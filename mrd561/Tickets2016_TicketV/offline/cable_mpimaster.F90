@@ -308,6 +308,7 @@ CONTAINS
          new_sumfpn   = 0.0, &
          new_sumfe    = 0.0 
 
+    INTEGER :: count_bal = 0
     INTEGER :: nkend=0
     INTEGER :: ioerror=0
 
@@ -912,20 +913,25 @@ PRINT*,"IS_CASA_",IS_CASA_TIME("dread", 2012, 8, 1, 0, 2920, 8, 88)
              !---------------------------------------------------------------------!
              IF(cable_user%consistency_check) THEN 
 
-               ! new_sumbal = new_sumbal + SUM(canopy%fe) + SUM(canopy%fh)                &
-               !      + SUM(ssnow%wb(:,1)) + SUM(ssnow%tgg(:,1))
-                new_sumbal = SUM(bal%wbal_tot) +  SUM(bal%ebal_tot)
-                new_sumfpn = new_sumfpn + SUM(canopy%fpn)
-                new_sumfe = new_sumfe + SUM(canopy%fe)
-                if (ktau == kend-1) PRINT*," Ebal_tot, Wbal_tot, sumbal, sum_fe, sum_fpn", sum(bal%ebal_tot), &
-                     sum(bal%wbal_tot),  new_sumbal, &
-                      new_sumfe, new_sumfpn
+
+                count_bal = count_bal +1;
+                    new_sumbal = new_sumbal + SUM(bal%wbal)/mp +  SUM(bal%ebal)/mp
+                    new_sumfpn = new_sumfpn + SUM(canopy%fpn)/mp
+                    new_sumfe = new_sumfe + SUM(canopy%fe)/mp
+                    if (ktau == kend-1) PRINT*, "time-space-averaged energy & water balances"
+                    if (ktau == kend-1) PRINT*,"Ebal_tot[Wm-2], Wbal_tot[mm]", &
+                         sum(bal%ebal_tot)/mp/count_bal, sum(bal%wbal_tot)/mp/count_bal
+                    if (ktau == kend-1) PRINT*, "time-space-averaged latent heat and net photosynthesis"
+                    if (ktau == kend-1) PRINT*, "sum_fe[Wm-2], sum_fpn[umol/m2/s]",  &
+                         new_sumfe/count_bal, new_sumfpn/count_bal
+
+             
                 if(any( canopy%fe.NE. canopy%fe)) THEN
                     DO kk=1,mp
 
                      IF (canopy%fe(kk).NE. canopy%fe(kk)) THEN
                       WRITE(*,*) 'Nan in evap flux,', kk, patch(kk)%latitude, patch(kk)%longitude 
- write(*,*) 'fe nan', kk, ktau,met%qv(kk), met%precip(kk),met%precip_sn(kk), &
+                      write(*,*) 'fe nan', kk, ktau,met%qv(kk), met%precip(kk),met%precip_sn(kk), &
                                met%fld(kk), met%fsd(kk,:), met%tk(kk), met%ua(kk), ssnow%potev(kk), met%pmb(kk), &
                                canopy%ga(kk), ssnow%tgg(kk,:), canopy%fwsoil(kk),rad%fvlai(kk,:) ,  rad%fvlai(kk,1), &
                                rad%fvlai(kk,2), canopy%vlaiw(kk)
@@ -1228,7 +1234,7 @@ IF (icycle>0 .and.   cable_user%CALL_POP)  THEN
 
 !!$       CALL casa_poolout( ktau, veg, soil, casabiome,                           &
 !!$            casapool, casaflux, casamet, casabal, phen )
-!!$       CALL casa_fluxout( nyear, veg, soil, casabal, casamet)
+       CALL casa_fluxout( nyear, veg, soil, casabal, casamet)
        CALL write_casa_restart_nc ( casamet, casapool,casaflux,phen,CASAONLY )
 
        !CALL write_casa_restart_nc ( casamet, casapool, met, CASAONLY )
@@ -1906,43 +1912,43 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
      blen(bidx) = 1
 
      ! additional  for sli
-!!$     bidx = bidx + 1
-!!$     CALL MPI_Get_address (ssnow%S(off,1), displs(bidx), ierr)
-!!$     CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
-!!$          &                             types(bidx), ierr)
-!!$     blen(bidx) = 1
-!!$
-!!$
-!!$     bidx = bidx + 1
-!!$     CALL MPI_Get_address (ssnow%Tsoil(off,1), displs(bidx), ierr)
-!!$     CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
-!!$          &                             types(bidx), ierr)
-!!$     blen(bidx) = 1
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%S(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blen(bidx) = 1
 
-!!$     bidx = bidx + 1
-!!$     CALL MPI_Get_address (ssnow%thetai(off,1), displs(bidx), ierr)
-!!$     CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
-!!$          &                             types(bidx), ierr)
-!!$     blen(bidx) = 1
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%Tsoil(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blen(bidx) = 1
 !!$
-!!$     
-!!$     bidx = bidx + 1
-!!$     CALL MPI_Get_address (ssnow%snowliq(off,1), displs(bidx), ierr)
-!!$     CALL MPI_Type_create_hvector (3, r2len, r2stride, MPI_BYTE, &
-!!$          &                             types(bidx), ierr)
-!!$     blen(bidx) = 1
-!!$
-!!$     bidx = bidx + 1
-!!$     CALL MPI_Get_address (ssnow%Tsurface(off), displs(bidx), ierr)
-!!$     blen(bidx) = r2len
-!!$
-!!$     bidx = bidx + 1
-!!$     CALL MPI_Get_address (ssnow%h0(off), displs(bidx), ierr)
-!!$     blen(bidx) = r2len
-!!$
-!!$     bidx = bidx + 1
-!!$     CALL MPI_Get_address (ssnow%nsnow(off), displs(bidx), ierr)
-!!$     blen(bidx) = I1len
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%thetai(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blen(bidx) = 1
+
+     
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%snowliq(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (3, r2len, r2stride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blen(bidx) = 1
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%Tsurface(off), displs(bidx), ierr)
+     blen(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%h0(off), displs(bidx), ierr)
+     blen(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%nsnow(off), displs(bidx), ierr)
+     blen(bidx) = I1len
      ! end additional for sli
 
     
@@ -2294,14 +2300,14 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
      blen(bidx) = r1len
 
 ! the next two are extra for sli
-!!$
-!!$     bidx = bidx + 1
-!!$     CALL MPI_Get_address (soil%zeta(off), displs(bidx), ierr)
-!!$     blen(bidx) = r2len
-!!$
-!!$     bidx = bidx + 1
-!!$     CALL MPI_Get_address (soil%fsatmax(off), displs(bidx), ierr)
-!!$     blen(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (soil%zeta(off), displs(bidx), ierr)
+     blen(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (soil%fsatmax(off), displs(bidx), ierr)
+     blen(bidx) = r2len
 
 ! end extra sli
 
@@ -5733,6 +5739,14 @@ SUBROUTINE master_outtypes (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
 
      vidx = vidx + 1
      CALL MPI_Get_address (ssnow%h0(off), vaddr(vidx), ierr)
+     blen(vidx) = cnt * extr2
+
+     vidx = vidx + 1
+     CALL MPI_Get_address (ssnow%delwcol(off), vaddr(vidx), ierr)
+     blen(vidx) = cnt * extr2
+
+     vidx = vidx + 1
+     CALL MPI_Get_address (ssnow%evap(off), vaddr(vidx), ierr)
      blen(vidx) = cnt * extr2
 
      vidx = vidx + 1

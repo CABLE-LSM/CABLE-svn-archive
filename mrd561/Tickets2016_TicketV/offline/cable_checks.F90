@@ -251,8 +251,6 @@ SUBROUTINE mass_balance(dels,ktau, ssnow,soil,canopy,met,                       
    bal%wbal = REAL(met%precip - canopy%delwc - ssnow%snowd+ssnow%osnowd        &
         - ssnow%runoff-(canopy%fevw+canopy%fevc                                &
         + canopy%fes/ssnow%cls)*dels/air%rlam - delwb)
-!write(*,*) 'wbal', bal%wbal, delwb
-
 
    ! Canopy water balance: precip-change.can.storage-throughfall-evap+dew
    canopy_wbal = REAL(met%precip-canopy%delwc-canopy%through                   &
@@ -262,15 +260,8 @@ SUBROUTINE mass_balance(dels,ktau, ssnow,soil,canopy,met,                       
       ! delwcol includes change in soil water, pond and snowpack
       bal%wbal = canopy_wbal + REAL(canopy%through - ssnow%delwcol-ssnow%runoff &
                   - ssnow%evap - max(canopy%fevc,0.0)*dels/air%rlam, r_2)
-
-
-!write(*,*) ktau,dels, canopy%through,   ssnow%delwcol, ssnow%runoff,   max(canopy%fevc,0.0)*dels/air%rlam,bal%wbal
-
-    if (ktau.le.28831.and.met%precip_sn(1).gt.0) then
-       write(*,*) ktau,  bal%wbal, ssnow%delwcol, ssnow%snowd - ssnow%osnowd, met%precip_sn(1), canopy%through
-    endif
-
-   END IF
+   
+   ENDIF
 
    !! vh_js !! remove re-initialisation of wbal_tot and IF condition.
  !  bal%wbal_tot = 0.

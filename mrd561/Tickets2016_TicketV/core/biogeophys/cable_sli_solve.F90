@@ -775,7 +775,6 @@ CONTAINS
 
 
 
-
              !----- get fluxes and derivs
              ! get surface condition
              ! ns==1 if no pond or full pond, i.e. do not solve for change in pond height
@@ -1779,9 +1778,12 @@ CONTAINS
                    end if
                 end if  ! (.not. again(kk))
                 nsteps(kk)        = nsteps(kk) + 1
-!!$                 if ((irec.eq.9322).and.(kk.eq.1)) then
+!!$                if ((irec.eq.9322).and.(kk.eq.1)) then
+!!$                    
 !!$                    write(*,*) 'writing diags', again(kk), nsteps(kk)
+!!$
 !!$                     if (.not. again(kk)) then
+!!$ 
 !!$                    write(345,"(13i8,1500e16.6)") nsteps, nfac1(kk), nfac2(kk), nfac3(kk), &
 !!$                         nfac4(kk), nfac5(kk), nfac6(kk), nfac7(kk), nfac8(kk), nfac9(kk), nfac10(kk), &
 !!$                         nfac11(kk), nfac12(kk), q(kk,:), qsig(kk,:), qH(kk,:), qhsig(kk,:), &
@@ -3229,7 +3231,7 @@ CONTAINS
                 vsnow(kk)%tsn(1) = zero
              endif
              if (irec.eq.10820) then
-                write(*,*) 'chk3', vsnow(kk)%hliq(1)
+               ! write(*,*) 'chk3', vsnow(kk)%hliq(1)
              endif
              h0(kk) = h0(kk) - vsnow(kk)%wcol
              hice(kk) = h0(kk)*var(kk,1)%thetai/par(kk,1)%thre
