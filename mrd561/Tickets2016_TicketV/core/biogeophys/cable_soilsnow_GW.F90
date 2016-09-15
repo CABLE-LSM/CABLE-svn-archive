@@ -1349,6 +1349,7 @@ SUBROUTINE remove_trans(dels, soil, ssnow, canopy, veg)
  
  
    xx = 0._r_2; xxd = 0._r_2; diff(:,:) = 0._r_2
+
    DO k = ms,1,-1  !I like the idea of removing from the bottom first.shouldn't matter
                    !should layers that are wetter get more water removed?
                    !logical but is it supported by evidence?
@@ -2078,7 +2079,7 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
                                                   ! after discussion with BP
          ! N.B. snmin should exceed sum of layer depths, i.e. .11 m
          ssnow%wbtot = 0.0
-         ssnow%wb(:,:)  = MIN( soil%watsat(:,:), MAX ( ssnow%wb(:,:), soil%wiltp(:,:) ) )   
+         !ssnow%wb(:,:)  = MIN( soil%watsat(:,:), MAX ( ssnow%wb(:,:), soil%wiltp(:,:) ) )   
 
          DO k = 1, ms
             
@@ -2183,7 +2184,7 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
    !ssnow%pudsto = max(ssnow%pudsto - canopy%fesp/C%HL*dels,0._r_2)  !currently pudsto = 0.0 always
 
    CALL smoistgw (dels,ktau,ssnow,soil,veg,canopy, md_prin)               !vertical soil moisture movement. 
-  
+
    ! correction required for energy balance in online simulations 
    IF( cable_runtime%um) THEN
 

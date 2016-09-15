@@ -14,7 +14,7 @@ host_mael()
    export NCMOD='/share/apps/netcdf/intel/4.1.3/include'
    export FC=ifort
    #export CFLAGS='-O2 -fp-model precise -ftz -fpe0 -xavx -parallel -ftrapuv  -shared-intel -mcmodel=medium'
-   export CFLAGS='-O2 -fp-model precise -ftz -fpe0 -ftrapuv -traceback -g '   #-traceback
+   export CFLAGS='-O2 -fp-model precise -ftz -fpe0 -ftrapuv -traceback -g -check bounds'   #-traceback
    if [[ $1 = 'debug' ]]; then
       export CFLAGS='-O0 -g -fp-model precise -ftz -fpe0 -traceback'
 #-check all -init=snan,arrays -traceback' 
