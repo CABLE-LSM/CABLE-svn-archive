@@ -213,6 +213,8 @@ PROGRAM cable_offline_driver
        soilMtemp,			  &
        soilTtemp
 
+  REAL, ALLOCATABLE, DIMENSION(:) :: soilGWtemp
+
   ! timing
   REAL:: etime ! Declare the type of etime(), For receiving user and system time, total time
 
@@ -867,7 +869,9 @@ PROGRAM cable_offline_driver
 
           ! evaluate spinup
 		 IF( ANY( ABS(ssnow%wb-soilMtemp)>delsoilM).OR.		      &
-		      ANY( ABS(ssnow%tgg-soilTtemp)>delsoilT) ) THEN
+		     ANY( ABS(ssnow%tgg-soilTtemp)>delsoilT)  .or.           &
+                     ANY( ABS(ssnow%GWwb-soilGWtemp)>delsoilM) ) THEN
+       
 
       ! No complete convergence yet
                     write(*,*) 'WE ARE NOT SPUN UP BY THE FOLLOWING AMOUNTS'
@@ -875,6 +879,11 @@ PROGRAM cable_offline_driver
 		    PRINT *, 'soilMtemp: ', soilMtemp
 		    PRINT *, 'ssnow%tgg: ', ssnow%tgg
 		    PRINT *, 'soilTtemp: ', soilTtemp
+                    if (cable_user%gw_model) then
+                       PRINT *, 'ssnow%GWwb: ', ssnow%GWwb
+                       PRINT *, 'soilGWtemp: ', soilGWtemp
+                    end if
+
 
 		 ELSE ! spinup has converged
 
@@ -895,6 +904,7 @@ PROGRAM cable_offline_driver
 
 		 IF (.NOT.ALLOCATED(soilMtemp)) ALLOCATE(  soilMtemp(mp,ms) )
 		 IF (.NOT.ALLOCATED(soilTtemp)) ALLOCATE(  soilTtemp(mp,ms) )
+                 IF (.NOT.ALLOCATED(soilGWtemp)) ALLOCATE( soilGWtemp(mp) )
 
 	      END IF
 
@@ -902,6 +912,15 @@ PROGRAM cable_offline_driver
 	      IF ( YYYY.EQ. CABLE_USER%YearEnd ) THEN
 		 soilTtemp = ssnow%tgg
 		 soilMtemp = REAL(ssnow%wb)
+
+                 if (cable_user%gw_model) then
+                    soilGWtemp = real(ssnow%GWwb)
+                 elseif (cable_user%test_new_gw) then
+                    soilGWtemp = real(ssnow%GWwb)
+                 else
+                    soilGWtemp = 0.0
+                    ssnow%GWwb = 0.0
+                 end if
 	      ENDIF
 
 	   ELSE

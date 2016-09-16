@@ -1810,8 +1810,14 @@ CONTAINS
 !!$             gs_coeff = xleuning
 
 !#else
-            rdx(i,1) = (veg%cfrd(i)*vcmxt3(i,1) + veg%cfrd(i)*vcmxt4(i,1))
-            rdx(i,2) = (veg%cfrd(i)*vcmxt3(i,2) + veg%cfrd(i)*vcmxt4(i,2))
+            if (cable_user%gw_model) then
+               rdx(i,1) = (veg%cfrd(i)*vcmxt3(i,1) + veg%cfrd(i)*vcmxt4(i,1))*fwsoil(i)
+               rdx(i,2) = (veg%cfrd(i)*vcmxt3(i,2) + veg%cfrd(i)*vcmxt4(i,2))*fwsoil(i)
+             else
+               rdx(i,1) = (veg%cfrd(i)*vcmxt3(i,1) + veg%cfrd(i)*vcmxt4(i,1))
+               rdx(i,2) = (veg%cfrd(i)*vcmxt3(i,2) + veg%cfrd(i)*vcmxt4(i,2))
+
+            end if
 
          endif !cable_user%call_climate
 
@@ -2395,24 +2401,20 @@ CONTAINS
   ! ------------------------------------------------------------------------------
 
   SUBROUTINE fwsoil_calc_gw(fwsoil, soil, ssnow, veg)
-    USE cable_def_types_mod
-    USE cable_common_module, only : cable_user
-    TYPE (soil_snow_type), INTENT(INOUT):: ssnow
-    TYPE (soil_parameter_type), INTENT(INOUT)   :: soil
-    TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
-    REAL, INTENT(OUT), DIMENSION(:):: fwsoil ! soil water modifier of stom. cond
-    REAL, DIMENSION(mp) :: rwater ! soil water availability
+   USE cable_def_types_mod
+   TYPE (soil_snow_type), INTENT(INOUT):: ssnow
+   TYPE (soil_parameter_type), INTENT(INOUT)   :: soil 
+   TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
+   REAL, INTENT(OUT), DIMENSION(:):: fwsoil ! soil water modifier of stom. cond
+   REAL, DIMENSION(mp) :: rwater ! soil water availability
 
-    rwater = MAX(1.0e-9,                                                    &
-         SUM(veg%froot * MAX(1.0e-9,MIN(1.0, ssnow%wb -                   &
-         soil%fldcap)) /(soil%fldcap-soil%wiltp),2))
-
-   ! Remove vbeta #56
-   IF(cable_user%GS_SWITCH == 'medlyn') THEN
-      fwsoil = MAX(1.0e-4,MIN(1.0, rwater))
-   ELSE   
-      fwsoil = MAX(1.0e-9,MIN(1.0, veg%vbeta * rwater))
-   ENDIF   
+   rwater = MAX(1.0e-4_r_2,                                                    &    
+            SUM(veg%froot * MAX(0.024,MIN(1.0_r_2,ssnow%wb -                   &    
+            SPREAD(soil%swilt, 2, ms))),2) /(soil%sfc-soil%swilt))
+   
+   ! Remove vbeta
+   !fwsoil = MAX(1.0e-4,MIN(1.0, veg%vbeta * rwater))
+   fwsoil = MAX(1.0e-4,MIN(1.0, rwater))
 
   END SUBROUTINE fwsoil_calc_gw
 
@@ -2712,7 +2714,7 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
    integer :: i,j,k
    logical, save ::  first_call = .true.
 
-   canopy%sublayer_dz(:) = 0.001
+   if (first_call) canopy%sublayer_dz(:) = 0.001
 
    pore_radius(:) =  0.148 *0.707 / (1000.0*9.81*abs(soil%smpsat(:,1))/1000.0)  !should replace 0.148 with surface tension, unit coversion, and angle
    pore_size(:) = pore_radius(:)*sqrt(pi)
@@ -2758,7 +2760,7 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
       ssnow%rtevap_unsat = 0.0
    endwhere
 
-   first_call = .false.
+   first_call = .true.
 
 END SUBROUTINE or_soil_evap_resistance
 

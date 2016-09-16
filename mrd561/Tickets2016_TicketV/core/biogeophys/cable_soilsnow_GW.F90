@@ -1347,7 +1347,8 @@ SUBROUTINE remove_trans(dels, soil, ssnow, canopy, veg)
    REAL(r_2), DIMENSION(mp)      :: xx,xxd,evap_cur
    INTEGER :: k,i
  
- 
+
+  IF (cable_user%FWSOIL_switch.ne.'Haverd2013') THEN
    xx = 0._r_2; xxd = 0._r_2; diff(:,:) = 0._r_2
 
    DO k = ms,1,-1  !I like the idea of removing from the bottom first.shouldn't matter
@@ -1378,6 +1379,23 @@ SUBROUTINE remove_trans(dels, soil, ssnow, canopy, veg)
 
       END DO  !mp
    END DO     !ms
+
+
+  ELSE 
+     WHERE (canopy%fevc .lt. 0.0_r_2)
+        canopy%fevw = canopy%fevw+canopy%fevc
+        canopy%fevc = 0.0_r_2
+     END WHERE
+     DO k = 1,ms 
+        ssnow%wb(:,k) = ssnow%wb(:,k) - ssnow%evapfbl(:,k)/(soil%zse(k)*1000.0)
+
+      !  write(59,*) k,  ssnow%wb(:,k),  ssnow%evapfbl(:,k)/(soil%zse(k)*1000.0)
+      !  write(59,*)
+     ENDDO
+
+
+  ENDIF
+
 
 END SUBROUTINE remove_trans 
 

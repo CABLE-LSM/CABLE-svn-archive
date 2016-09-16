@@ -118,6 +118,7 @@ MODULE cable_param_module
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: inSlope
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: inSlopeSTD
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: inORG
+  INTEGER, DIMENSION(:, :),     ALLOCATABLE :: GWinSoilColor
 
 
   ! vars intro for Ticket #27
@@ -442,13 +443,24 @@ write(*,*) 'in get_def_params:CABLE_USER%POPLUC=  ', CABLE_USER%POPLUC
     INTEGER, INTENT(IN) :: logn ! log file unit number
 
     ! local variables
-    INTEGER :: ncid, ok, ii, jj, ncid_elev
+    INTEGER :: ncid, ok, ii, jj, ncid_elev, kk
     INTEGER :: xID, yID, fieldID
     INTEGER :: xlon, xlat
     REAL, DIMENSION(:,:,:,:), ALLOCATABLE :: indummy
     REAL, DIMENSION(:,:),     ALLOCATABLE :: sfact, dummy2
     REAL, DIMENSION(:,:),     ALLOCATABLE :: in2alb
     INTEGER :: ok2
+    REAL, DIMENSION(20,2)  :: GWSoilAlbedoColors
+
+    GWSoilAlbedoColors(:,1) = &
+                           (/0.36,0.34,0.32,0.31,0.3,0.29,0.28,&
+                             0.27,0.26,0.25,0.24,0.23,0.22,0.2,&
+                             0.18,0.16,0.14,0.12,0.1,0.08      /)
+    GWSoilAlbedoColors(:,2) = &
+                           (/0.61,0.57,0.53,0.51,0.49,0.48,0.45,&
+                             0.43,0.41,0.39,0.37,0.35,0.33,0.31,&
+                             0.29,0.27,0.25,0.23,0.21,0.16      /)
+
 
     ok = NF90_OPEN(filename%type, 0, ncid)
 
@@ -727,6 +739,12 @@ write(*,*) 'in get_def_params:CABLE_USER%POPLUC=  ', CABLE_USER%POPLUC
     if (ok2 .ne. 0) CALL nc_abort(ok2, 'Error allocating inSlopeSTD ')
     inSlopeSTD(:,:) = 0.0
 
+    if (allocated(GWinSoilColor)) deallocate(GWinSoilColor)
+    allocate(GWinSoilColor(nlon,nlat),stat=ok2)
+    if (ok2 .ne. 0) CALL nc_abort(ok2, 'Error allocating inSlopeSTD ')
+    GWinSoilColor(:,:) = 0
+
+
     IF (cable_user%test_new_gw .or. cable_user%GW_MODEL) THEN 
        ok = NF90_OPEN(trim(filename%gw_elev),NF90_NOWRITE,ncid_elev)
 
@@ -747,6 +765,27 @@ write(*,*) 'in get_def_params:CABLE_USER%POPLUC=  ', CABLE_USER%POPLUC
        END IF
        where(inSlopeSTD .le. 0.0) inSlopeSTD = 0.3
        ok = NF90_CLOSE(ncid_elev)
+
+       ok = NF90_INQ_VARID(ncid_elev, 'soil_color', fieldID)
+       IF (ok /= NF90_NOERR) WRITE(logn,*) 'Error finding variable soil color'
+       ok = NF90_GET_VAR(ncid_elev, fieldID, GWinSoilColor)
+       IF (ok /= NF90_NOERR) THEN 
+          GWinSoilColor = -999 
+          WRITE(logn, *) 'Could not read soil data for SSGW, will use defulat Albedo'
+       END IF
+       !use soil color to replace inALB
+       do ii = 1,nlon
+          do jj=1,nlat
+             if (GWinSoilColor(ii,jj) .gt. 0 .and. GWinSoilColor(ii,jj) .lt. 21) then 
+                do kk=1,nrb
+                   if (kk .le. 2) then 
+                        inALB(ii,jj,:,kk) = GWSoilAlbedoColors(GWinSoilColor(ii,jj),kk)
+                   end if
+                end do
+             end if
+          end do
+       end do
+
 
     ENDIF  !running gw model
 
@@ -1521,6 +1560,7 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
     if (allocated(inSlope   )) deallocate(inSlope)
     if (allocated(inSlopeSTD)) deallocate(inSlopeSTD)
     if (allocated(inORG     )) deallocate(inORG)
+    if (allocated(GWinSoilColor )) deallocate(GWinSoilColor)
 
     DEALLOCATE(inVeg, inPFrac, inSoil, inWB, inTGG)
     DEALLOCATE(inLAI, inSND, inALB)
@@ -1821,7 +1861,7 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
     END IF
 
 
-    if ((gw_params%MaxSatFraction .lt. 0.0) .and. (mp .eq. 1)) soil%slope(:) = 0.01
+    if ((gw_params%MaxSatFraction .lt. 0.0) .and. (mland .eq. 1)) soil%slope(:) = 0.01
 
     ! Initialise sum flux variables:
     sum_flux%sumpn  = 0.0
