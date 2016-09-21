@@ -17,9 +17,11 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
        esat_ice, slope_esat_ice, thetalmax, Tfrz,  hyofS, SEB
   USE sli_roots,          ONLY: setroots, getrex
   USE sli_solve,          ONLY: solve
+ 
 
   IMPLICIT NONE
-
+  !INTEGER, INTENT(IN)            :: wlogn
+  INTEGER :: wlogn = 10001 
   REAL,                      INTENT(IN)    :: dt
   TYPE(veg_parameter_type),  INTENT(INOUT) :: veg     ! all r_1
   TYPE(soil_parameter_type), INTENT(INOUT) :: soil    ! all r_1
@@ -206,8 +208,8 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
   vmet%phiva = Dva * vmet%cva
   vmet%Rn    = canopy%fns
   ! vmet%Rnsw  = rad%qssabs  ! shortwave radiation absorbed
-  !vmet%Rnsw = zero ! all radiation absorbed at snow surface
-   vmet%Rnsw = vmet%Rn ! all radiation absorbed beneath snow surface
+  vmet%Rnsw = zero ! all radiation absorbed at snow surface
+  ! vmet%Rnsw = vmet%Rn ! all radiation absorbed beneath snow surface
   Etrans     = max(canopy%fevc/air%rlam/thousand, zero) ! m s-1
   where (canopy%fevc .lt. zero)
      canopy%fevw = canopy%fevw+canopy%fevc
@@ -488,6 +490,8 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
 
   if (SEB_only == 1) then
      do kk=1, mp
+
+
         ! call hyofS(S(kk,:), Tsoil(kk,:), par(kk,:), var(kk,:))
         call hyofS(S(kk,1), Tsoil(kk,1), par(kk,1), var(kk,1))
         CALL SEB(ms, par(kk,:), vmet(kk), vsnow(kk), var(kk,:), qprec(kk), qprec_snow(kk), dx(kk,:), &
@@ -496,6 +500,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
              tmp1d1a, tmp1d2, tmp1d3, tmp1d4, &
              tmp1d5, tmp1d6, tmp1d7, tmp1d8, tmp1d9,tmp1d10, tmp1d11, &
              tmp1d12,tmp1d13, tmp1d14, tmp1d15, tmp1d16, ktau)
+
      enddo
      canopy%ga  = real(G0)
      canopy%fes = real(lE)
@@ -509,7 +514,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
      rbh = vmet(1)%rbh
      rrc = vmet(1)%rrc
 
-     call solve(ti, tf, ktau, mp, qprec, qprec_snow, ms, dx, &
+     call solve(wlogn, ti, tf, ktau, mp, qprec, qprec_snow, ms, dx, &
           h0, S, thetai, Jsensible, Tsoil, evap, &
           evap_pot, runoff, infil, drn, discharge, qh, &
           nsteps, vmet, vlit, vsnow, var, csoil, kth, phi, T0, Tsurface, &
@@ -521,6 +526,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
           deltaTa=deltaTa, lE_old=lE_old, &
           dolitter=litter, doisotopologue=isotopologue, dosepts=septs, docondition=condition, &
           doadvection=advection)
+
      qprec_snow = qprec_snow_tmp
      H             = (H/(tf-ti))
      lE            = lE/(tf-ti)
@@ -550,12 +556,20 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
      wp  = sum((par%thr + (par%the-par%thr)*S)*dx,2) + plit%thre*SL*dxL 
      win = win + (qprec+qprec_snow)*(tf-ti)
 
-     if (1 == 1) then
-        k=1
+     if (1 == 0) then
+        k=2
         write(332,"(i8,i8,18e16.6)") ktau, nsteps(k), wp(k)-wpi(k), infil(k)-drn(k), runoff(k), &
              win(k)-(wp(k)-wpi(k)+deltah0(k)+runoff(k)+evap(k)+drn(k))-Etrans(k)*dt, wp(k), &
              evap(k), evap_pot(k), infil(k), &
              drn(k), h0(k), Etrans(k)*dt, discharge(k), fws(k), (ip(k)-ipi(k)), fsat(k), runoff_sat(k), qb(k)
+
+!!$if (ktau==5) then 
+!!$
+!!$ write(*,*) win(k), (wp(k)-wpi(k)), deltah0(k),runoff(k), evap(k), drn(k), Etrans(k)*dt, canopy%fwsoil(k), canopy%fevc(k)
+!!$stop
+!!$endif
+
+
         write(334,"(100f15.6)") S(k,:), S(k,:)*par(k,:)%thre+par(k,:)%thr
         write(336,"(100f15.6)") Tsoil(k,:)
         write(335,"(100e20.12)") vmet(k)%Ta, Tsurface(k), zero, H(k), lE(k), &
@@ -598,6 +612,9 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
      ssnow%rex      = wex*thousand
      ssnow%kth      = kth
      ssnow%nsteps   = real(nsteps)
+!write(*,*) 'irec =', ktau
+! write(3711,"(10000i8)") nsteps
+
      if (cable_user%fwsoil_switch.ne.'Haverd2013') then
         canopy%fwsoil  = real(fws)
      endif
@@ -631,8 +648,8 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
      ssnow%isflag = 0
 
      ! snow output
-     if (1 == 1) then
-        k = 1
+     if (1 == 0) then
+        k = 2
         write(340,"(100e16.6)") sum(vsnow(k)%hsnow(1:vsnow(k)%nsnow)), vsnow(k)%tsn(1),sum(vsnow(k)%hliq(1:vsnow(k)%nsnow)), &
              qprec_snow(k)*dt, vsnow(k)%Qmelt, qprec(k)*dt, &
              vsnow(k)%Qevap,vsnow(k)%Qvap,ssnow%albsoilsn(k,1), ssnow%albsoilsn(k,2), ssnow%sconds(k,1), &

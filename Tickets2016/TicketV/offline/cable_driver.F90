@@ -142,9 +142,9 @@ PROGRAM cable_offline_driver
        NRRRR,	   &  !
        ctime,	   &  ! day count for casacnp
        LOY, &	      ! days in year
-       count_sum_casa ! number of time steps over which casa pools &
+       count_sum_casa, & ! number of time steps over which casa pools &
   !and fluxes are aggregated (for output)
-
+       wlogn = 10001
 
   REAL :: dels			      ! time step size in seconds
 
@@ -915,9 +915,7 @@ PROGRAM cable_offline_driver
 
 	   IF((.NOT.(spinup.OR.casaonly)).OR.(spinup.AND.spinConv)) THEN
 	      IF (icycle > 0) THEN
-
 		 CALL casa_fluxout( nyear, veg, soil, casabal, casamet)
-
 	      END IF
 
 	   ENDIF

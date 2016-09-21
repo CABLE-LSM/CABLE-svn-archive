@@ -53,7 +53,7 @@ MODULE sli_numbers
   REAL(r_2), PARAMETER :: dSfac        = 1.25
   REAL(r_2), PARAMETER :: dpmaxr       = 0.5
   REAL(r_2), PARAMETER :: h0min        = -2.e-3
-  REAL(r_2), PARAMETER :: snmin        = 0.001 ! depth of snowpack (m) without dedicated snow layer(s)
+  REAL(r_2), PARAMETER :: snmin        = 0.005 ! depth of snowpack (m) without dedicated snow layer(s)
   REAL(r_2), PARAMETER :: fsnowliq_max = 0.03  ! max fraction of snow water in liquid phase
   INTEGER(i_d), PARAMETER :: nsnow_max = 1     ! maximum number of dedicated snow layers (1 or 2)
 
@@ -61,17 +61,22 @@ MODULE sli_numbers
   REAL(r_2), PARAMETER :: SLmax     = 1.01
   REAL(r_2), PARAMETER :: SLmin     = 0.001
   REAL(r_2), PARAMETER :: Smax      = 1.05
-  REAL(r_2), PARAMETER :: h0max     = 0.05
+  REAL(r_2), PARAMETER :: h0max     = 0.005
   REAL(r_2), PARAMETER :: qprecmax  = 1.0e10
+  !REAL(r_2), PARAMETER :: dSmax     = 0.5
+  !REAL(r_2), PARAMETER :: dSmaxr    = 0.5
   REAL(r_2), PARAMETER :: dSmax     = 0.1
   REAL(r_2), PARAMETER :: dSmaxr    = 0.1
-  REAL(r_2), PARAMETER :: dtmax     = 86400.
+  REAL(r_2), PARAMETER :: dtmax     = 86400. 
   REAL(r_2), PARAMETER :: dtmin     = 0.01
   REAL(r_2), PARAMETER :: dsmmax    = 1.0
-  REAL(r_2), PARAMETER :: dTsoilmax = 1.0
-  REAL(r_2), PARAMETER :: dTLmax    = 1.0
+  REAL(r_2), PARAMETER :: dTsoilmax = 5.0
+  REAL(r_2), PARAMETER :: dTLmax    = 5.0
+  !REAL(r_2), PARAMETER :: dTsoilmax = 1.0
+  !REAL(r_2), PARAMETER :: dTLmax    = 1.0
   REAL(r_2), PARAMETER :: tol_dthetaldT = 1.e-12_r_2
   INTEGER(i_d), PARAMETER ::nsteps_ice_max = 20
+  INTEGER(i_d), PARAMETER ::nsteps_max = 2000
   !MC-ToDo! Identify why smaller time-steps are needed for isotopes
   ! With isotopes  REAL(r_2), PARAMETER :: dSmax=0.1_r_2, dSmaxr=0.1_r_2, dtmax=0.05_r_2*3600.,
   !                                        dtmin=0.0_r_2, dsmmax=1.0_r_2

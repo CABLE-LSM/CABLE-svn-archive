@@ -613,11 +613,11 @@ CONTAINS
                  CALL cable_climate(ktau,kstart,kend,ktauday,idoy,LOY,met, &
                       climate, canopy,air, dels,mp)
 
+
              ! CALL land surface scheme for this timestep, all grid points:
              CALL cbm( ktau, dels, air, bgc, canopy, met,                  &
                   bal, rad, rough, soil, ssnow,                            &
                   sum_flux, veg, climate)
-
              
              ssnow%smelt  = ssnow%smelt*dels
              ssnow%rnof1  = ssnow%rnof1*dels
@@ -682,7 +682,6 @@ CONTAINS
           CALL1 = .FALSE.
       ! ENDIF
 
-write(wlogn,*), 'b4 annual calcs'
     
 call flush(wlogn)
 IF (icycle >0 .and.   cable_user%CALL_POP) THEN
@@ -698,9 +697,9 @@ IF (icycle >0 .and.   cable_user%CALL_POP) THEN
       CALL MPI_Recv( POP%pop_grid(1), POP%np, pop_t, 0, 0, icomm, stat, ierr )
                       
    ENDIF
-
    ! one annual time-step of POP
    CALL POPdriver(casaflux,casabal,veg, POP)
+
    CALL worker_send_pop (POP, ocomm) 
    
    IF (CABLE_USER%POPLUC) &               
@@ -5414,6 +5413,10 @@ ENDIF
      bidx = bidx + 1
      CALL MPI_Get_address (ssnow%nsnow(off), displs(bidx), ierr)
      blocks(bidx) = i1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%nsteps(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
      ! end additional for SLI 
 
 
@@ -7448,7 +7451,7 @@ SUBROUTINE worker_CASAONLY_LUC( dels,kstart,kend,veg,soil,casabiome,casapool, &
            write(wlogn,*) 'after MPI_Recv, pop_t '
            CALL flush(wlogn)
            IF (cable_user%CALL_POP .and. POP%np.gt.0) THEN ! CALL_POP
-
+write(wlogn,*), 'b4  POPdriver', POP%pop_grid%cmass_sum
             CALL POPdriver(casaflux,casabal,veg, POP)
             
            ENDIF

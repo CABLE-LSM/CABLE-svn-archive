@@ -1797,13 +1797,15 @@ CONTAINS
        END IF
 
       ! Add current timestep's value to total of temporary output variable:
-      out%SnowMelt = out%SnowMelt + REAL(ssnow%smelt, 4)/dels
+     ! out%SnowMelt = out%SnowMelt + REAL(ssnow%smelt, 4)/dels
+! temp test vh !
+      out%SnowMelt = out%SnowMelt + REAL(ssnow%nsteps, 4)/dels
       IF(writenow) THEN
          ! Divide accumulated variable by number of accumulated time steps:
          out%SnowMelt = out%SnowMelt / REAL(output%interval, 4)
          ! Write value to file:
          CALL write_ovar(out_timestep, ncid_out, ovid%SnowMelt, 'SnowMelt', out%SnowMelt,    &
-              ranges%Evap, patchout%SnowMelt, 'default', met)
+              (/-99999.0, 9999999.0/), patchout%SnowMelt, 'default', met)
          ! Reset temporary output variable:
          out%SnowMelt = 0.0
       END IF
