@@ -39,7 +39,7 @@ MODULE cable_cbm_module
 
 CONTAINS
 
-   SUBROUTINE cbm( dels, air, bgc, canopy, met,                                &
+   SUBROUTINE cbm( ktau,dels, air, bgc, canopy, met,                                &
                    bal, rad, rough, soil,                                      &
                    ssnow, sum_flux, veg, climate )
 
@@ -73,7 +73,7 @@ CONTAINS
    TYPE (veg_parameter_type),  INTENT(INOUT)    :: veg
 
    REAL, INTENT(IN)               :: dels ! time setp size (s)
-  
+   INTEGER, INTENT(IN) :: ktau
    INTEGER :: k,kk,j
 
 #ifdef NO_CASA_YET
@@ -136,7 +136,7 @@ CONTAINS
       IF(cable_user%SOIL_STRUC=='default') THEN
          call soil_snow(dels, soil, ssnow, canopy, met, bal,veg)
       ELSEIF (cable_user%SOIL_STRUC=='sli') THEN
-         CALL sli_main(dels,veg,soil,ssnow,met,canopy,air,rad,0)
+         CALL sli_main(ktau,dels,veg,soil,ssnow,met,canopy,air,rad,0)
       ENDIF
    ENDIF
 
