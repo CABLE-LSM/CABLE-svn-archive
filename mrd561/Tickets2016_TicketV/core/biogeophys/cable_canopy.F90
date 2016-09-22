@@ -2731,7 +2731,7 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
 
    if (first_call)  canopy%sublayer_dz(:) = 0.001
 
-   pore_radius(:) =0.148*/ (1000.0*9.81*abs(soil%smpsat(:,1))/1000.0)  !should replace 0.148 with surface tension, unit coversion, and angle
+   pore_radius(:) =0.148/ (1000.0*9.81*abs(soil%smpsat(:,1))/1000.0)  !should replace 0.148 with surface tension, unit coversion, and angle
    pore_size(:) = pore_radius(:)*sqrt(pi)
 
    !scale ustar according to the exponential wind profile, assuming we are a
