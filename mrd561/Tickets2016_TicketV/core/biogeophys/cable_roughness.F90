@@ -71,7 +71,7 @@ SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
        canopy%us  = min(max(1e-6,canopy%us),3.5)
 
        ! Roughness length of bare soil (m): new formulation- E.Kowalczyk 2014
-       IF (.not.cable_user%l_new_roughness_soil) THEN
+       IF ((.not.cable_user%l_new_roughness_soil) .and. (.not.cable_user%gw_model)) THEN
           rough%z0soil = 0.0009*min(1.0,canopy%vlaiw) + 1.e-4
           rough%z0soilsn = rough%z0soil
        ELSE

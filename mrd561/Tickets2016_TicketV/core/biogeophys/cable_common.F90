@@ -573,7 +573,7 @@ CONTAINS
 
     IS_LEAPYEAR = .FALSE.
     IF ( ( ( MOD( YYYY,  4 ) .EQ. 0 .AND. MOD( YYYY, 100 ) .NE. 0 ) .OR. &
-         MOD( YYYY,400 ) .EQ. 0 ) ) IS_LEAPYEAR = .TRUE.
+         MOD( YYYY,400 ) .EQ. 0 ).and. (YYYY .ne. 0) ) IS_LEAPYEAR = .TRUE.
 
   END FUNCTION IS_LEAPYEAR
 

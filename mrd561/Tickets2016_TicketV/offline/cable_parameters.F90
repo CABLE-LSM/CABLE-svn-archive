@@ -1188,8 +1188,6 @@ write(*,*) 'in get_def_params:CABLE_USER%POPLUC=  ', CABLE_USER%POPLUC
       ssnow%kth = 0.3  ! vh ! should be calculated from soil moisture or be in restart file
       ssnow%sconds(:,:) = 0.06_r_2    ! vh snow thermal cond (W m-2 K-1),
                                       ! should be in restart file
-      ssnow%GWwb(:) = 0.32
-
       ! parameters that are not spatially dependent
       select case(ms)
 
@@ -1498,6 +1496,14 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
           soil%silt(h)    =  soilin%silt(soil%isoilm(h))
           soil%clay(h)    =  soilin%clay(soil%isoilm(h))
           soil%sand(h)    =  soilin%sand(soil%isoilm(h))
+
+          !MDeck
+          do klev=1,ms
+            soil%Fclay(h,klev) = soilin%clay(soil%isoilm(h))
+            soil%Fsand(h,klev) = soilin%sand(soil%isoilm(h))
+            soil%Fsilt(h,klev) = soilin%silt(soil%isoilm(h))
+          end do
+
           IF (.NOT. soilparmnew) THEN   ! Q,Zhang @ 12/20/2010
             soil%swilt(h)   =  soilin%swilt(soil%isoilm(h))
             soil%sfc(h)     =  soilin%sfc(soil%isoilm(h))
@@ -1515,6 +1521,9 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
               soil%densoil(h,klev) = soilin%rhosoil(soil%isoilm(h))
               soil%watsat(h,klev)  = soilin%ssat(soil%isoilm(h))
               soil%watr(h,klev)    = 0.01 
+              soil%Fclay(h,klev) = soilin%clay(soil%isoilm(h))
+              soil%Fsand(h,klev) = soilin%sand(soil%isoilm(h))
+              soil%Fsilt(h,klev) = soilin%silt(soil%isoilm(h))
             end do
 
             soil%GWsmpsat(h)  = abs(soilin%sucs(soil%isoilm(h)))*1000.0
@@ -1824,6 +1833,7 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
        soil%GWclappB(:) = soil%clappB(:,ms)
        soil%GWwatsat(:) = soil%watsat(:,ms)
        soil%GWwatr(:)   = soil%watr(:,ms)
+       write(*,*) 'GWwatsat',soil%GWwatsat,'soil%GWhksat',soil%GWhksat,'soil%GWsmpsat',soil%GWsmpsat
 
        !include organin impact.  fraction of grid cell where percolation through
        !organic macropores dominates
@@ -1847,11 +1857,11 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
        soil%cnsd  = soil%sand * 0.3 + soil%clay * 0.25&
                    + soil%silt * 0.265 ! set dry soil thermal conductivity
 
-       do i=1,mp
-          soil%sfc(i) = minval(soil%fldcap(i,:))
-          soil%swilt(i) = minval(soil%wiltp(i,:))
-          soil%ssat(i) = minval(soil%watsat(i,:))
-       end do
+
+
+       soil%sfc(:) = soil%fldcap(:,1)
+       soil%swilt(:) = soil%wiltp(:,1)
+
     ELSE
       do klev=1,ms
        soil%fldcap(:,klev) = soil%sfc(:)
@@ -1861,7 +1871,7 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
     END IF
 
 
-    if ((gw_params%MaxSatFraction .lt. 0.0) .and. (mland .eq. 1)) soil%slope(:) = 0.01
+    if ((gw_params%MaxSatFraction .lt. 0.0)) soil%slope(:) = 0.01
 
     ! Initialise sum flux variables:
     sum_flux%sumpn  = 0.0

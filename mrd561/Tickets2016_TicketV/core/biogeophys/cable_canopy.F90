@@ -32,7 +32,6 @@ MODULE cable_canopy_module
 
   USE cable_data_module, ONLY : icanopy_type, point2constants
   USE cable_soil_snow_gw_module, ONLY : calc_srf_wet_fraction
-  USE cable_def_types_mod
 
   IMPLICIT NONE
 
@@ -209,7 +208,7 @@ CONTAINS
        CALL comp_friction_vel()
 
        ! E.Kowalczyk 2014
-       IF (cable_user%l_new_roughness_soil)                                     &
+       IF (cable_user%l_new_roughness_soil)             &
             CALL ruff_resist(veg, rough, ssnow, canopy)
 
 
@@ -415,6 +414,7 @@ CONTAINS
        canopy%fns = rad%qssabs + rad%transd*met%fld + (1.0-rad%transd)*C%EMLEAF* &
             C%SBOLTZ*canopy%tv**4 - C%EMSOIL*C%SBOLTZ* tss4
 
+       call qsatfjh(ssnow%qstss, ssnow%tss-C%tfrz, met%pmb)
 
        If (cable_user%soil_struc=='default') THEN
 
@@ -426,7 +426,6 @@ CONTAINS
           ELSE !by default assumes Humidity Deficit Method
 
 
-             call qsatfjh(ssnow%qstss, ssnow%tss-C%tfrz, met%pmb)
              if (cable_user%gw_model) then
                 do i=1,mp
                    if (veg%iveg(i) .ne. 16 .and. soil%isoilm(i) .ne. 9) then
@@ -475,6 +474,8 @@ CONTAINS
 
        CALL within_canopy( gbhu, gbhf )
 
+       call qsatfjh(ssnow%qstss, ssnow%tss-C%tfrz, met%pmb)
+
        IF (cable_user%soil_struc=='default') THEN
 
           IF(cable_user%ssnow_POTEV== "P-M") THEN
@@ -484,7 +485,6 @@ CONTAINS
 
           ELSE !by default assumes Humidity Deficit Method
 
-             call qsatfjh(ssnow%qstss, ssnow%tss-C%tfrz, met%pmb)
              if (cable_user%gw_model) then
                 do i=1,mp
                    if (veg%iveg(i) .ne. 16 .and. soil%isoilm(i) .ne. 9) then
@@ -516,18 +516,28 @@ CONTAINS
              !! vh_js !! account for additional litter resistance to sensible heat transfer
              canopy%fhs =  air%rho*C%CAPP*(ssnow%tss - met%tvair) / &
                   (ssnow%rtsoil +  real((1-ssnow%isflag))*veg%clitt*0.003/canopy%kthLitt/(air%rho*C%CAPP))
+             !vh method moved here so can reproduce trunk
+             canopy%ga = canopy%fns-canopy%fhs-canopy%fes*ssnow%cls
+
           elseif (cable_user%or_evap) then
             litter_thermal_diff = 0.2 / (1932.0*62.0)
             canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tk) /(ssnow%rtsoil +canopy%sublayer_dz/litter_thermal_diff)
+
+            canopy%ga = canopy%fns-canopy%fhs-canopy%fes!*ssnow%cls
+
           ELSE
              canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tvair) /ssnow%rtsoil
+             !this is default version to match trunk
+             canopy%ga = canopy%fns-canopy%fhs-canopy%fes
           ENDIF
 
           !! vh_js !! ssnow%cls factor in the line below should be retained: required for energy balance
           !! note this causes a small difference in cumlative latent heat flux (for comparison with trunk), but correction implemented
           !! because of importance for energy balance
-          canopy%ga = canopy%fns-canopy%fhs-canopy%fes*ssnow%cls
-          ! canopy%ga = canopy%fns-canopy%fhs-canopy%fes
+          !! mrd moved above.  if it changes fluxes we don't reproduce trunk, even if it is correct
+          !! should be a seperate ticket.  Also cls is applying in soilsnow
+          !canopy%ga = canopy%fns-canopy%fhs-canopy%fes*ssnow%cls
+           !canopy%ga = canopy%fns-canopy%fhs-canopy%fes
 
        ELSEIF (cable_user%soil_struc=='sli') THEN
           ! SLI SEB to get canopy%fhs, canopy%fess, canopy%ga
@@ -1810,7 +1820,7 @@ CONTAINS
 !!$             gs_coeff = xleuning
 
 !#else
-            if (cable_user%gw_model) then
+            if (cable_user%gw_model) then  !this was in 2.2.3
                rdx(i,1) = (veg%cfrd(i)*vcmxt3(i,1) + veg%cfrd(i)*vcmxt4(i,1))*fwsoil(i)
                rdx(i,2) = (veg%cfrd(i)*vcmxt3(i,2) + veg%cfrd(i)*vcmxt4(i,2))*fwsoil(i)
              else
@@ -2653,6 +2663,8 @@ CONTAINS
 
 
   recursive function my_gamma(a) result(g)
+    USE cable_def_types_mod, only : r_2
+   
     real(r_2), intent(in) :: a
     real(r_2) :: g
 
@@ -2714,9 +2726,9 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
    integer :: i,j,k
    logical, save ::  first_call = .true.
 
-   if (first_call) canopy%sublayer_dz(:) = 0.001
+   if (first_call)  canopy%sublayer_dz(:) = 0.001
 
-   pore_radius(:) =  0.148 *0.707 / (1000.0*9.81*abs(soil%smpsat(:,1))/1000.0)  !should replace 0.148 with surface tension, unit coversion, and angle
+   pore_radius(:) =1000.0* 0.148 *0.707 / (1000.0*9.81*abs(soil%smpsat(:,1))/1000.0)  !should replace 0.148 with surface tension, unit coversion, and angle
    pore_size(:) = pore_radius(:)*sqrt(pi)
 
    !scale ustar according to the exponential wind profile, assuming we are a
@@ -2760,7 +2772,7 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
       ssnow%rtevap_unsat = 0.0
    endwhere
 
-   first_call = .true.
+   first_call = .false.
 
 END SUBROUTINE or_soil_evap_resistance
 

@@ -975,6 +975,7 @@ SUBROUTINE alloc_soil_snow_type(var, mp)
    !MD  
    !Aquifer variables
    ALLOCATE( var%GWwb(mp) )
+   var%GWwb(:) = 0.45
    ALLOCATE( var%GWhk(mp) )
    ALLOCATE( var%GWdhkdw(mp) )
    ALLOCATE( var%GWdsmpdw(mp) )

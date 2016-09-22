@@ -1348,12 +1348,29 @@ SUBROUTINE remove_trans(dels, soil, ssnow, canopy, veg)
    INTEGER :: k,i
  
 
-  IF (cable_user%FWSOIL_switch.ne.'Haverd2013') THEN
+  IF (cable_user%FWSOIL_switch.eq.'Haverd2013') THEN
+
+     WHERE (canopy%fevc .lt. 0.0_r_2)
+        canopy%fevw = canopy%fevw+canopy%fevc
+        canopy%fevc = 0.0_r_2
+     END WHERE
+     DO k = 1,ms 
+        ssnow%wbliq(:,k) = ssnow%wbliq(:,k) - ssnow%evapfbl(:,k)/real((soil%zse(k)*1000.0),r_2)
+
+        ssnow%wmliq(:,k) = ssnow%wbliq(:,k)*real(soil%zse(k)*C%denliq,r_2)  !mass
+        ssnow%wmtot(:,k) = ssnow%wmliq(:,k) + ssnow%wmice(:,k)  !mass
+        ssnow%wb(:,k)    = ssnow%wbliq(:,k) + ssnow%wbice(:,k)  !volume
+
+      !  write(59,*) k,  ssnow%wb(:,k),  ssnow%evapfbl(:,k)/(soil%zse(k)*1000.0)
+      !  write(59,*)
+     ENDDO
+
+  ELSE
+
    xx = 0._r_2; xxd = 0._r_2; diff(:,:) = 0._r_2
 
    DO k = ms,1,-1  !I like the idea of removing from the bottom first.shouldn't matter
                    !should layers that are wetter get more water removed?
-                   !logical but is it supported by evidence?
       DO i=1,mp
 
          if (canopy%fevc(i) .gt. 0._r_2) then
@@ -1379,20 +1396,6 @@ SUBROUTINE remove_trans(dels, soil, ssnow, canopy, veg)
 
       END DO  !mp
    END DO     !ms
-
-
-  ELSE 
-     WHERE (canopy%fevc .lt. 0.0_r_2)
-        canopy%fevw = canopy%fevw+canopy%fevc
-        canopy%fevc = 0.0_r_2
-     END WHERE
-     DO k = 1,ms 
-        ssnow%wb(:,k) = ssnow%wb(:,k) - ssnow%evapfbl(:,k)/(soil%zse(k)*1000.0)
-
-      !  write(59,*) k,  ssnow%wb(:,k),  ssnow%evapfbl(:,k)/(soil%zse(k)*1000.0)
-      !  write(59,*)
-     ENDDO
-
 
   ENDIF
 
@@ -1789,10 +1792,9 @@ END SUBROUTINE remove_trans
     dzmm_mp = spread(dzmm,1,mp)
     zimm(0) = 0._r_2
 
-    do k=1,ms
-       zimm(k) = zimm(k-1) + dzmm(k)
-       zmm(k) = zimm(k-1) + 0.5_r_2*dzmm(k)
-    end do
+    zimm(1:ms) = zimm(0:(ms-1)) + dzmm(1:ms)
+    zmm(1:ms)  = zimm(0:(ms-1)) + 0.5_r_2*dzmm(1:ms)
+
 
     GWdzmm(:) = real(soil%GWdz(:),r_2)*1000._r_2
     GWzimm(:) = zimm(ms)+GWdzmm(:)
@@ -2097,7 +2099,7 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
                                                   ! after discussion with BP
          ! N.B. snmin should exceed sum of layer depths, i.e. .11 m
          ssnow%wbtot = 0.0
-         !ssnow%wb(:,:)  = MIN( soil%watsat(:,:), MAX ( ssnow%wb(:,:), soil%wiltp(:,:) ) )   
+         ssnow%wb(:,:)  = MIN( soil%watsat(:,:), MAX ( ssnow%wb(:,:), soil%wiltp(:,:) ) )   
 
          DO k = 1, ms
             
