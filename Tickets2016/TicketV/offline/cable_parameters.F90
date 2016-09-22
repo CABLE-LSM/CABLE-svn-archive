@@ -137,7 +137,6 @@ CONTAINS
     CALL read_gridinfo(nlon,nlat,npatch)
    
 ! Overwrite veg type and inital patch frac with land-use info 
-write(*,*) 'in get_def_params:CABLE_USER%POPLUC=  ', CABLE_USER%POPLUC
     IF (CABLE_USER%POPLUC) then
        CALL get_land_index(nlon, nlat)
        CALL LUC_EXPT_SET_TILES(inVeg, inPfrac, LUC_EXPT)

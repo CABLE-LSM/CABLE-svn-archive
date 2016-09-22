@@ -42,7 +42,7 @@ MODULE cable_canopy_module
 CONTAINS
 
 
-  SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,ktau,climate)
+  SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,climate)
     USE cable_def_types_mod
     USE cable_radiation_module
     USE cable_air_module
@@ -64,7 +64,6 @@ CONTAINS
     TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
 
     REAL, INTENT(IN)               :: dels ! integration time setp (s)
-    INTEGER, INTENT(IN) :: ktau
     INTEGER  ::                                                                 &
          iter,  & ! iteration #
          iterplus !
@@ -347,7 +346,7 @@ CONTAINS
             veg, canopy, soil, ssnow, dsx,                             &
             fwsoil, tlfx, tlfy, ecy, hcy,                              &
             rny, gbhu, gbhf, csx, cansat,                              &
-            ghwet,  iter,ktau,climate )
+            ghwet,  iter,climate )
 
 
 
@@ -402,6 +401,10 @@ CONTAINS
             C%SBOLTZ*canopy%tv**4 - C%EMSOIL*C%SBOLTZ* tss4
 
 
+       ! Saturation specific humidity at soil/snow surface temperature:
+      call qsatfjh(ssnow%qstss,ssnow%tss-C%tfrz,met%pmb)
+
+
        If (cable_user%soil_struc=='default') THEN
 
           IF(cable_user%ssnow_POTEV== "P-M") THEN
@@ -410,9 +413,7 @@ CONTAINS
              ssnow%potev = Penman_Monteith(canopy%ga)
 
           ELSE !by default assumes Humidity Deficit Method
-
-             ! Saturation specific humidity at soil/snow surface temperature:
-             call qsatfjh(ssnow%qstss, ssnow%tss-C%tfrz, met%pmb)
+             
              ! Humidity deficit
              dq = ssnow%qstss - met%qv
              ssnow%potev =  Humidity_deficit_method(dq, ssnow%qstss)
@@ -441,6 +442,9 @@ CONTAINS
 
        CALL within_canopy( gbhu, gbhf )
 
+       ! Saturation specific humidity at soil/snow surface temperature:
+       call qsatfjh(ssnow%qstss,ssnow%tss-C%tfrz,met%pmb)
+
        IF (cable_user%soil_struc=='default') THEN
 
           IF(cable_user%ssnow_POTEV== "P-M") THEN
@@ -450,8 +454,6 @@ CONTAINS
 
           ELSE !by default assumes Humidity Deficit Method
 
-             ! Saturation specific humidity at soil/snow surface temperature:
-             call qsatfjh(ssnow%qstss, ssnow%tss-C%tfrz, met%pmb)
              ! Humidity deficit
              dq = ssnow%qstss - met%qvair
              ssnow%potev =  Humidity_deficit_method(dq, ssnow%qstss)
@@ -962,6 +964,7 @@ CONTAINS
             met%qvair(j) = MAX(0.0,met%qvair(j))
 
             !---set limits for comparisson
+
             lower_limit =  MIN( ssnow%qstss(j), met%qv(j))
             upper_limit =  MAX( ssnow%qstss(j), met%qv(j))
 
@@ -1359,7 +1362,7 @@ CONTAINS
        veg, canopy, soil, ssnow, dsx,                             &
        fwsoil, tlfx,  tlfy,  ecy, hcy,                            &
        rny, gbhu, gbhf, csx,                                      &
-       cansat, ghwet, iter,ktau,climate )
+       cansat, ghwet, iter,climate )
 
     USE cable_def_types_mod
     USE cable_common_module
@@ -1373,7 +1376,6 @@ CONTAINS
 
     TYPE (veg_parameter_type),  INTENT(INOUT)   :: veg
     TYPE (soil_parameter_type), INTENT(inout)   :: soil
-    INTEGER, INTENT(IN) :: ktau
     TYPE (climate_type), INTENT(IN)    :: climate
 
     REAL, INTENT(INOUT), DIMENSION(:) ::                                        &
@@ -1785,6 +1787,7 @@ CONTAINS
                    canopy%gswx(i,kk) = MAX( 1.e-3, gswmin(i,kk)*fwsoil(i) +     &
                         MAX( 0.0, C%RGSWC * gs_coeff(i,kk) *     &
                         anx(i,kk) ) )
+
 
                    !Recalculate conductance for water:
                    gw(i,kk) = 1.0 / ( 1.0 / canopy%gswx(i,kk) +                 &
