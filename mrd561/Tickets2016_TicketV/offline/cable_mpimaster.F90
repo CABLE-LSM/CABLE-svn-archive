@@ -2161,16 +2161,7 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
           &                             types(bidx), ierr)
      blen(bidx) = 1
 
-     ! Ticket #56, adding veg parms for Medlyn model
-     bidx = bidx + 1
-     CALL MPI_Get_address (veg%g0(off), displs(bidx), ierr)
-     blen(bidx) = r1len
-
-     bidx = bidx + 1
-     CALL MPI_Get_address (veg%g1(off), displs(bidx), ierr)
-     blen(bidx) = r1len
-     ! Ticket #56, finish adding new veg parms 
-
+    
      bidx = bidx + 1
      CALL MPI_Get_address (veg%disturbance_interval(off,1), displs(bidx), ierr)
      CALL MPI_Type_create_hvector (2, i1len, istride, MPI_BYTE, &
@@ -2186,7 +2177,19 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
           &                             types(bidx), ierr)
      blen(bidx) = 1
 
-     ! ----------- bgc --------------
+     ! Ticket #56, adding veg parms for Medlyn model
+     bidx = bidx + 1
+     CALL MPI_Get_address (veg%g0(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (veg%g1(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+     ! Ticket #56, finish adding new veg parms 
+   
+
+
+  ! ----------- bgc --------------
 
      bidx = bidx + 1
      CALL MPI_Get_address (bgc%cplant(off,1), displs(bidx), ierr)
@@ -5840,6 +5843,11 @@ SUBROUTINE master_outtypes (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
      vidx = vidx + 1
      CALL MPI_Get_address (ssnow%nsnow(off), vaddr(vidx), ierr)
      blen(vidx) = cnt * extid
+
+     vidx = vidx + 1
+     CALL MPI_Get_address (ssnow%nsteps(off), vaddr(vidx), ierr)
+     blen(vidx) = cnt * extr2
+
      ! end additional for SLI 
 
 
@@ -6607,7 +6615,7 @@ SUBROUTINE master_climate_types (comm, climate)
   INTEGER :: bidx, midx, vidx, ierr, ny, nd, ndq
 
   CALL climate_init (climate, mp)
-  if (.NOT.cable_user%climate_fromzero) &
+  if (cable_user%call_climate .AND.(.NOT.cable_user%climate_fromzero)) &
        CALL READ_CLIMATE_RESTART_NC (climate)
   ALLOCATE (climate_ts(wnp))
 

@@ -2066,9 +2066,10 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
       ELSE
         ! If not in met file, use default LAI value:
         DO i=1,mland ! over all land points/grid cells
-          veg%vlai(landpt(i)%cstart:landpt(i)%cend) =  &
-               defaultLAI(i,met%moy(landpt(i)%cstart))
-       
+
+           veg%vlai(landpt(i)%cstart:landpt(i)%cend) =  &
+                defaultLAI(landpt(i)%cstart:landpt(i)%cend,met%moy(landpt(i)%cstart))
+             
         ENDDO
       END IF
 

@@ -482,7 +482,7 @@ CONTAINS
        qhTb = dGdTsoil + qadvTb
       
     case (2) !dedicated snow layer
-       ! NB Only longwave component of net radiation deriectly affects SEB: sw component is absorbed internally
+       ! NB Only longwave component of net radiation directly affects SEB: sw component is absorbed internally
 
        ! SEB at snow/air interface
        if (vsnow%hliq(1)>zero) then
@@ -503,13 +503,14 @@ CONTAINS
           qTb = zero
           !     write(*,*) "Epot2", Tsurface, vmet%Ta, Epot, Hpot, vmet%rrc, rhocp1
        else
-
+          !! vh !! use max snow depth of 20 cm in this calculation to avoid huge resistances
+          !! leading to large negative surface temperatures when snow-pack is thick and
+          !! Rn is large and negative (~-100 Wm-2)
           call potential_evap(vmet%Rn-vmet%Rnsw, vmet%rbh, vmet%rbw, vmet%Ta, vmet%rha, &
-               vsnow%tsn(1), vsnow%kth(1), half*vsnow%depth(1), &
+               vsnow%tsn(1), max(vsnow%kth(1),0.1), half*min(vsnow%depth(1),0.2), &
                lambdas, Tsurface, Epot, Hpot, &
                Gpot, dEdrha, dEdTs, dEdTsoil, dGdTa, dGdTsoil,iice=.TRUE.)
-          !  write(*,*) "Epot1", Tsurface, vmet%Ta, Epot, Hpot,vmet%Rn, vmet%Rnsw
-
+    
           if (Tsurface > zero) then ! temperature of frozen surface must be <= zero
              Tsurface = 0.0
              Epot = (esat(Tsurface)*0.018_r_2/thousand/8.314_r_2/(vmet%Ta+Tzero)  - & ! m3 H2O (liq) m-3 (air)
@@ -1765,7 +1766,6 @@ CONTAINS
           qhTa(i) = qhTa(i) + qadvTa(i)
           qhTb(i) = qhTb(i) + qadvTb(i)
        endif
-
     enddo
 
     qh(n)   = zero
@@ -3388,7 +3388,7 @@ CONTAINS
             (two*csol*Rgas*exp(b*log(min(S,one))))
     else
        ! Tfrz = (gravity*he*Tzero) / (-(gravity*he) + lambdaf*(S)**b)
-       Tfrz = (gravity*he*Tzero) / (-gravity*he + lambdaf*exp(b*log(min(S,one))))
+       Tfrz = (gravity*he*Tzero) / (-gravity*he + lambdaf*exp(b*log(max(min(S,one),0.01))))
     endif
 
   END FUNCTION Tfrz

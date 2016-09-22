@@ -44,7 +44,7 @@ MODULE cable_canopy_module
 CONTAINS
 
 
-  SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,ktau,climate) !,wlogn)
+  SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,ktau,climate)
     USE cable_def_types_mod
     USE cable_radiation_module
     USE cable_air_module
@@ -66,7 +66,7 @@ CONTAINS
     TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
 
     REAL, INTENT(IN)               :: dels ! integration time setp (s)
-    INTEGER, INTENT(IN) :: ktau !, wlogn
+    INTEGER, INTENT(IN) :: ktau
     INTEGER  ::                                                                 &
          iter,  & ! iteration #
          iterplus !
@@ -700,7 +700,7 @@ CONTAINS
        ENDIF
 
     ENDDO
-
+ 
     CALL qsatfjh(rsts,canopy%tscrn,met%pmb)
 
     qtgnet = rsts * ssnow%wetfac - met%qv
@@ -1648,7 +1648,6 @@ CONTAINS
     k = 0
 
 
-
     !kdcorbin, 08/10 - doing all points all the time
     DO WHILE (k < C%MAXITER)
        k = k + 1
@@ -1851,10 +1850,10 @@ CONTAINS
                 END IF
 
                 g1 = veg%g1(i)
-            
+
                 gs_coeff(i,1) = (1.0 + (g1 * fwsoil(i)) / SQRT(vpd)) / csx(i,1)
                 gs_coeff(i,2) = (1.0 + (g1 * fwsoil(i)) / SQRT(vpd)) / csx(i,2)
-                
+
             ELSE
                 STOP 'gs_model_switch failed.'
             ENDIF ! IF (cable_user%GS_SWITCH == 'leuning') THEN
@@ -1886,14 +1885,17 @@ CONTAINS
                         gbhu(i,kk) + gbhf(i,kk) )
                    csx(i,kk) = MAX( 1.0e-4_r_2, csx(i,kk) )
 
-                  ! Ticket #56, xleuning replaced with gs_coeff here
-                  canopy%gswx(i,kk) = MAX( 1.e-3, gswmin(i,kk)*fwsoil(i) +     &
-                                      MAX( 0.0, C%RGSWC * gs_coeff(i,kk) *     &
-                                      anx(i,kk) ) )
+
+                   ! Ticket #56, xleuning replaced with gs_coeff here
+                   canopy%gswx(i,kk) = MAX( 1.e-3, gswmin(i,kk)*fwsoil(i) +     &
+                        MAX( 0.0, C%RGSWC * gs_coeff(i,kk) *     &
+                        anx(i,kk) ) )
 
                    !Recalculate conductance for water:
                    gw(i,kk) = 1.0 / ( 1.0 / canopy%gswx(i,kk) +                 &
                         1.0 / ( 1.075 * ( gbhu(i,kk) + gbhf(i,kk) ) ) )
+
+
 
                    gw(i,kk) = MAX( gw(i,kk), 0.00001 )
 
@@ -1915,6 +1917,12 @@ CONTAINS
                   ( air%dsatdk(i) + psycst(i,2) )
 
              IF (cable_user%fwsoil_switch=='Haverd2013') then
+                 ! avoid root-water extraction when fwsoil is zero
+                 if (fwsoil(i).lt.1e-6) then
+                   anx(i,:) = rdx(i,:)
+                   ecx(i) = 0.0
+                 endif
+                 
                 canopy%fevc(i) = ecx(i)*(1.0-canopy%fwet(i))
 
                 call getrex_1d(real(ssnow%wb(i,:)-ssnow%wbice(i,:),r_2), ssnow%rex(i,:), &
@@ -1946,17 +1954,13 @@ CONTAINS
                    IF (cable_user%soil_struc=='default') then
                       canopy%fevc(i) = SUM(ssnow%evapfbl(i,:))*air%rlam(i)/dels
                       ecx(i) = canopy%fevc(i) / (1.0-canopy%fwet(i))
-                   ELSE
+                   ELSEIF (cable_user%soil_struc=='sli') then
                       canopy%fevc(i) = ecx(i)*(1.0-canopy%fwet(i))
                    ENDIF
 
                 ENDIF
 
              ENDIF
-
-
-
-
              ! Update canopy sensible heat flux:
              hcx(i) = (SUM(rad%rniso(i,:))-ecx(i)                               &
                   - C%capp*C%rmair*(met%tvair(i)-met%tk(i))                       &
@@ -1983,8 +1987,7 @@ CONTAINS
           ENDIF !lai/abs_deltlf
 
        ENDDO !i=1,mp
-
-       ! Whhere leaf temp change b/w iterations is significant, and
+       ! Where leaf temp change b/w iterations is significant, and
        ! difference is smaller than the previous iteration, store results:
        DO i=1,mp
 
