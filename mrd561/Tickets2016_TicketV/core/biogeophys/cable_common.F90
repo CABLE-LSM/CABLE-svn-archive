@@ -97,6 +97,7 @@ MODULE cable_common_module
      CHARACTER(LEN=3)  :: POP_out       = 'rst' ! POP output type ('epi' or 'rst')
      CHARACTER(LEN=50) :: POP_rst       = ' ' !
      CHARACTER(LEN=8)  :: CASA_OUT_FREQ = 'annually' !
+     CHARACTER(LEN=10)  :: vcmax = 'standard' ! "standard" or "Walker2014"
 
      LOGICAL ::                                                               &
           CALL_POP               = .FALSE., & !

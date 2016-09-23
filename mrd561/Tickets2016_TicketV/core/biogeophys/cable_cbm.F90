@@ -76,8 +76,7 @@ CONTAINS
    TYPE (veg_parameter_type),  INTENT(INOUT)    :: veg
 
    REAL, INTENT(IN)               :: dels ! time setp size (s)
-   INTEGER, INTENT(IN)            :: ktau! integration step number
-
+   INTEGER, INTENT(IN) :: ktau
    INTEGER :: k,kk,j
 
 #ifdef NO_CASA_YET
@@ -122,7 +121,7 @@ CONTAINS
    ssnow%otss = ssnow%tss
 
    ! Calculate canopy variables:
-        CALL define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,ktau,climate)
+        CALL define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,climate)
 
    !ssnow%otss_0 = ssnow%otss
    !ssnow%otss = ssnow%tss
