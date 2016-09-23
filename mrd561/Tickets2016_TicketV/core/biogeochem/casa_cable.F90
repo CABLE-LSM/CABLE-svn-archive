@@ -528,6 +528,7 @@ END SUBROUTINE write_casa_dump
   USE casaparm
   USE casavariable
   USE casa_cnp_module, ONLY: vcmax_np
+  USE cable_common_module, only: cable_user
   IMPLICIT NONE
   INTEGER,      INTENT(IN) :: ktau ! integration step number
   TYPE (veg_parameter_type),  INTENT(INOUT) :: veg  ! vegetation parameters
