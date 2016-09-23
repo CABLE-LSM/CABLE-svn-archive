@@ -123,17 +123,17 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
             ENDIF
   
             CALL biogeochem(ktau,dels,idoy,LALLOC,veg,soil,casabiome,casapool,casaflux, &
-                casamet,casabal,phen,POP,climate, xnplimit,xkNlimiting,xklitter,xksoil,xkleaf,xkleafcold,xkleafdry,&
+                casamet,casabal,phen,POP,climate, xnplimit,xkNlimiting,xklitter,xksoil, &
+                xkleaf,xkleafcold,xkleafdry,&
                 cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,         &
                 nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,         &
                 pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
-! write(77991,91)  veg%vcmax(1), casaflux%cgpp(1), veg%vlai(1)
-!91  format(e12.4,2x,20(f10.4,2x))
 
             IF (cable_user%CALL_POP) THEN ! accumulate input variables for POP
                ! accumulate annual variables for use in POP
                IF(MOD(ktau/ktauday,LOY)==1 ) THEN
-                  casaflux%stemnpp =  casaflux%cnpp * casaflux%fracCalloc(:,2) * 0.7 ! (assumes 70% of wood NPP is allocated above ground)
+                  casaflux%stemnpp =  casaflux%cnpp * casaflux%fracCalloc(:,2) * 0.7 
+                  ! (assumes 70% of wood NPP is allocated above ground)
                   casabal%LAImax = casamet%glai
                   casabal%Cleafmean = casapool%cplant(:,1)/real(LOY)/1000.
                   casabal%Crootmean = casapool%cplant(:,3)/real(LOY)/1000.
@@ -166,7 +166,8 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
 
             ! accumulate annual variables for use in POP
             IF(MOD(ktau/ktauday,LOY)==1) THEN
-               casaflux%stemnpp =  casaflux%cnpp * casaflux%fracCalloc(:,2) * 0.7 ! (assumes 70% of wood NPP is allocated above ground)
+               casaflux%stemnpp =  casaflux%cnpp * casaflux%fracCalloc(:,2) * 0.7 
+               ! (assumes 70% of wood NPP is allocated above ground)
                casabal%LAImax = casamet%glai
                casabal%Cleafmean = casapool%cplant(:,1)/real(LOY)/1000.
                casabal%Crootmean = casapool%cplant(:,3)/real(LOY)/1000.
@@ -557,38 +558,41 @@ END SUBROUTINE write_casa_dump
       ENDIF
     ENDIF
 
-    IF (casamet%glai(np) > casabiome%glaimin(ivt)) THEN
-      IF (ivt/=2) THEN
-        veg%vcmax(np) = ( casabiome%nintercept(ivt) &
-                        + casabiome%nslope(ivt)*ncleafx(np)/casabiome%sla(ivt) ) * 1.0e-6
-      ELSE
-        IF (casapool%nplant(np,leaf)>0.0.AND.casapool%pplant(np,leaf)>0.0) THEN
-          veg%vcmax(np) = ( casabiome%nintercept(ivt)  &
-                          + casabiome%nslope(ivt)*(0.4+9.0/npleafx(np)) &
-                          * ncleafx(np)/casabiome%sla(ivt) ) * 1.0e-6
-        ELSE
-          veg%vcmax(np) = ( casabiome%nintercept(ivt) &
-                          + casabiome%nslope(ivt)*ncleafx(np)/casabiome%sla(ivt) )*1.0e-6
-        ENDIF
-      ENDIF
-      veg%vcmax(np) =veg%vcmax(np)* xnslope(ivt)
-    ENDIF
-     
-   
-    !Walker, A. P. et al.: The relationship of leaf photosynthetic traits – Vcmax and Jmax – 
-    !to leaf nitrogen, leaf phosphorus, and specific leaf area: 
-    !a meta-analysis and modeling study, Ecology and Evolution, 4, 3218-3235, 2014.
-    ! veg%vcmax(np) = exp(3.946 + 0.921*log(nleafx(np)) + 0.121*log(pleafx(np)) + &
-    !      0.282*log(pleafx(np))*log(nleafx(np))) * 1.0e-6
-    nleafx(np) = ncleafx(np)/casabiome%sla(ivt) ! leaf N in g N m-2 leaf
-    pleafx(np) = nleafx(np)/npleafx(np) ! leaf P in g P m-2 leaf
-    if (ivt .EQ. 7) then
-       veg%vcmax(np) = 1.0e-5 ! special for C4 grass: set here to value from  parameter file
-    else
-       veg%vcmax(np) = vcmax_np(nleafx(np), pleafx(np))
-    endif
-    
+    IF (TRIM(cable_user%vcmax).eq.'standard') then
+       IF (casamet%glai(np) > casabiome%glaimin(ivt)) THEN
+          IF (ivt/=2) THEN
+             veg%vcmax(np) = ( casabiome%nintercept(ivt) &
+                  + casabiome%nslope(ivt)*ncleafx(np)/casabiome%sla(ivt) ) * 1.0e-6
+          ELSE
+             IF (casapool%nplant(np,leaf)>0.0.AND.casapool%pplant(np,leaf)>0.0) THEN
+                veg%vcmax(np) = ( casabiome%nintercept(ivt)  &
+                     + casabiome%nslope(ivt)*(0.4+9.0/npleafx(np)) &
+                     * ncleafx(np)/casabiome%sla(ivt) ) * 1.0e-6
+             ELSE
+                veg%vcmax(np) = ( casabiome%nintercept(ivt) &
+                     + casabiome%nslope(ivt)*ncleafx(np)/casabiome%sla(ivt) )*1.0e-6
+             ENDIF
+          ENDIF
+          veg%vcmax(np) =veg%vcmax(np)* xnslope(ivt)
+       ENDIF
 
+    elseif (TRIM(cable_user%vcmax).eq.'Walker2014') then
+       !Walker, A. P. et al.: The relationship of leaf photosynthetic traits – Vcmax and Jmax – 
+       !to leaf nitrogen, leaf phosphorus, and specific leaf area: 
+       !a meta-analysis and modeling study, Ecology and Evolution, 4, 3218-3235, 2014.
+       ! veg%vcmax(np) = exp(3.946 + 0.921*log(nleafx(np)) + 0.121*log(pleafx(np)) + &
+       !      0.282*log(pleafx(np))*log(nleafx(np))) * 1.0e-6
+       nleafx(np) = ncleafx(np)/casabiome%sla(ivt) ! leaf N in g N m-2 leaf
+       pleafx(np) = nleafx(np)/npleafx(np) ! leaf P in g P m-2 leaf
+       if (ivt .EQ. 7) then
+          veg%vcmax(np) = 1.0e-5 ! special for C4 grass: set here to value from  parameter file
+       else
+          veg%vcmax(np) = vcmax_np(nleafx(np), pleafx(np))
+       endif
+    else
+       stop('invalid vcmax flag')
+    endif
+  
   ENDDO
 
   veg%ejmax = 2.0 * veg%vcmax
