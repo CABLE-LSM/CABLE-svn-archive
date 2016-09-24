@@ -290,7 +290,7 @@ SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CF )
            WRITE( dum, FMT="(I4)")YEAR
         ENDIF
 
-write(*,*) 'dum', dum
+
         IF (typ.eq.'ini') THEN
            fname = TRIM(cable_user%POP_rst)//'/'//'pop_'//TRIM(cable_user%RunIDEN)&
                 //'_'//typ//'.nc'

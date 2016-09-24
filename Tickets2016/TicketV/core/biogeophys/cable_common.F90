@@ -96,7 +96,7 @@ MODULE cable_common_module
      CHARACTER(LEN=20) :: SOIL_STRUC    = "default" ! 'default' or 'sli'
      CHARACTER(LEN=3)  :: POP_out       = 'rst' ! POP output type ('epi' or 'rst')
      CHARACTER(LEN=50) :: POP_rst       = ' ' !
-     CHARACTER(LEN=8)  :: CASA_OUT_FREQ = 'annually' !
+     CHARACTER(LEN=8)  :: CASA_OUT_FREQ = 'annually' ! 'daily', 'monthly', 'annually'
      CHARACTER(LEN=10)  :: vcmax = 'standard' ! "standard" or "Walker2014"
 
      LOGICAL ::                                                               &
@@ -508,13 +508,13 @@ CONTAINS
     IF(status /= NF90_noerr) THEN
        WRITE(*,*)"netCDF error:"
        IF ( PRESENT( msg ) ) WRITE(*,*)msg
-#define Vanessas_common
-#ifdef Vanessas_common
+!#define Vanessas_common
+!#ifdef Vanessas_common
        WRITE(*,*) TRIM(NF90_strerror(status))
-#else       
-       WRITE(*,*) "UM builds with -i8. Therefore call to nf90_strerror is ", & 
-       " invalid. Quick fix to eliminate for now. Build NF90 with -i8, force -i4?" 
-#endif     
+!#else       
+!       WRITE(*,*) "UM builds with -i8. Therefore call to nf90_strerror is ", & 
+!       " invalid. Quick fix to eliminate for now. Build NF90 with -i8, force -i4?" 
+!#endif     
        STOP -1
     END IF
   END SUBROUTINE HANDLE_ERR

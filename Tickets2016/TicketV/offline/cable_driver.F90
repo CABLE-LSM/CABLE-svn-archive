@@ -424,7 +424,7 @@ PROGRAM cable_offline_driver
 		 kend	   = ktauday * LOY
 	      ENDIF
 	   ELSE IF ( TRIM(cable_user%MetType) .EQ. 'plum' ) THEN
-       ! CLN HERE PLUME modfications
+           ! PLUME experiment setup using WATCH
 	      IF ( CALL1 ) THEN
 
 		 CALL CPU_TIME(etime)
@@ -443,13 +443,13 @@ PROGRAM cable_offline_driver
                  write(str3,'(i2)') 1
                  str3 = adjustl(str3)
                  timeunits="seconds since "//trim(str1)//"-"//trim(str2)//"-"//trim(str3)//" &
-                            00:00 (midpoint of averaging period)"
+                            00:00"
                
 	      ENDIF
 	      IF ( .NOT. PLUME%LeapYears ) LOY = 365
 	      kend = NINT(24.0*3600.0/dels) * LOY
 	   ELSE IF ( TRIM(cable_user%MetType) .EQ. 'cru' ) THEN
-	      ! CLN HERE CRU modfications
+	      ! TRENDY experiment using CRU-NCEP
 	      IF ( CALL1 ) THEN
 
 		 CALL CPU_TIME(etime)
@@ -468,11 +468,10 @@ PROGRAM cable_offline_driver
                  write(str3,'(i2)') 1
                  str3 = adjustl(str3)
                  timeunits="seconds since "//trim(str1)//"-"//trim(str2)//"-"//trim(str3)//" &
-                            00:00 (midpoint of averaging period)"
+                            00:00"
 
 
 	      ENDIF
-
 	       LOY = 365
 	      kend = NINT(24.0*3600.0/dels) * LOY
 	   ENDIF
@@ -604,7 +603,16 @@ PROGRAM cable_offline_driver
                   rad, veg, kend, dels, C%TFRZ, ktau+koffset,		 &
                          kstart+koffset )
           ENDIF
-          IF ( TRIM(cable_user%MetType) .NE. 'gswp' ) CurYear = met%year(1)
+ 
+          IF (TRIM(cable_user%MetType).EQ.'' .OR. &
+                  TRIM(cable_user%MetType).EQ.'site' ) THEN
+             CurYear = met%year(1)
+             IF ( leaps .AND. IS_LEAPYEAR( CurYear ) ) THEN
+                LOY = 366
+             ELSE
+                LOY = 365
+             ENDIF
+          ENDIF
           met%ofsd = met%fsd(:,1) + met%fsd(:,2)
           canopy%oldcansto=canopy%cansto
           ! Zero out lai where there is no vegetation acc. to veg. index
@@ -717,11 +725,24 @@ PROGRAM cable_offline_driver
                     IF (((.NOT.spinup).OR.(spinup.AND.spinConv)).and. &
                          MOD((ktau-kstart+1),ktauday)==0) THEN
                        IF ( CABLE_USER%CASA_DUMP_WRITE )  THEN
-                          !CLN CHECK FOR LEAP YEAR
-                          WRITE(CYEAR,FMT="(I4)") CurYear + INT((ktau-kstart)/(LOY*ktauday))
+
+                          IF (TRIM(cable_user%MetType).EQ.'' .OR. &
+                               TRIM(cable_user%MetType).EQ.'site' ) THEN
+
+                             WRITE(CYEAR,FMT="(I4)") CurYear
+                          ELSE
+                             !CLN CHECK FOR LEAP YEAR
+                             WRITE(CYEAR,FMT="(I4)") CurYear + INT((ktau-kstart)/(LOY*ktauday))
+                          ENDIF
                           ncfile = TRIM(casafile%c2cdumppath)//'c2c_'//CYEAR//'_dump.nc'
-                          CALL write_casa_dump( ncfile, casamet , casaflux, phen, climate, idoy, &    
-                               kend/ktauday )
+
+                          IF (TRIM(cable_user%MetType).EQ.'' .OR. &
+                               TRIM(cable_user%MetType).EQ.'site' ) THEN
+                             CALL write_casa_dump( ncfile, casamet , casaflux, phen, climate,&
+                                  INT(met%doy), LOY )
+                          ELSE
+                             CALL write_casa_dump( ncfile, casamet , casaflux, phen, climate, idoy, &                                 kend/ktauday )
+                          ENDIF
 
                        ENDIF
                     ENDIF

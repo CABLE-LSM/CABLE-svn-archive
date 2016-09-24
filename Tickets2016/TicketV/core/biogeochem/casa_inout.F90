@@ -1578,7 +1578,7 @@ SUBROUTINE WRITE_CASA_RESTART_NC ( casamet, casapool, casaflux, phen, CASAONLY )
   ! Create NetCDF file:
   STATUS = NF90_create(fname, NF90_CLOBBER, FILE_ID)
   IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-write(*,*)  fname 
+write(*,*) 'writing casa restart', fname 
   ! Put the file in define mode:
   STATUS = NF90_redef(FILE_ID)
 
@@ -1757,6 +1757,7 @@ SUBROUTINE READ_CASA_RESTART_NC (  casamet, casapool, casaflux,phen )
   ! 2 dim arrays (npt,msoil)
   CHARACTER(len=20),DIMENSION(3) :: A4
   INTEGER :: VID1(SIZE(A1)), VID2(SIZE(A2)), VID3(SIZE(A3)), VID4(SIZE(A4))
+  LOGICAL            ::  EXISTFILE, EXISTFILE1
   mp4=int(mp,fmp4)
   A1(1) = 'latitude'
   A1(2) = 'longitude'
@@ -1784,12 +1785,30 @@ SUBROUTINE READ_CASA_RESTART_NC (  casamet, casapool, casaflux,phen )
   A4(2) = 'nsoil'
   A4(3) = 'psoil'
 
-
- fname = TRIM(filename%path)//'/'//TRIM( cable_user%RunIden )//&
-       '_casa_rst.nc'
-  STATUS = NF90_OPEN( TRIM(fname), NF90_NOWRITE, FILE_ID )
-  IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-  PRINT *, 'initial pool from restart file: ', fname
+!fname = TRIM(filename%path)//'/'//TRIM( cable_user%RunIden )//&
+!       '_casa_rst.nc'
+  fname =  TRIM(casafile%cnpipool)
+  INQUIRE( FILE=TRIM(fname), EXIST=EXISTFILE )
+  write (*,*) 'existfile', existfile
+  IF (EXISTFILE) THEN
+     STATUS = NF90_OPEN( TRIM(fname), NF90_NOWRITE, FILE_ID )
+     IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
+     PRINT *, 'initial pool from restart file: ', fname
+  ELSE
+     write(*,*) 'CASA restart file:', TRIM(fname), ' does not exist'
+     fname = TRIM(filename%path)//'/'//TRIM( cable_user%RunIden )//&
+          '_casa_rst.nc'   
+     INQUIRE( FILE=TRIM(fname), EXIST=EXISTFILE1 )
+     IF (EXISTFILE1) THEN
+        STATUS = NF90_OPEN( TRIM(fname), NF90_NOWRITE, FILE_ID )
+        IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
+        PRINT *, 'initial pool from restart file: ', fname
+     ELSE
+        write(*,*) 'CASA restart file:', TRIM(fname), ' does not exist either'
+        write(*,*) 'Set cable_user%CASA_fromZero to true to initialise without restart file'
+        stop
+     ENDIF
+  ENDIF
 
   ! TIME
   STATUS = NF90_GET_ATT( FILE_ID, NF90_GLOBAL, "Valid restart date", RSTDATE )
@@ -1797,7 +1816,9 @@ SUBROUTINE READ_CASA_RESTART_NC (  casamet, casapool, casaflux,phen )
 !!$
   WRITE(CYEAR, FMT="(I4)") CurYear
   CDATE = '01/01/'//CYEAR
-  IF ( CDATE .NE. RSTDATE ) THEN
+  ! compare current year with restart year (only for non-site type met data)
+  IF ( CDATE .NE. RSTDATE .and. &
+      TRIM(cable_user%MetType).NE.'' .and. TRIM(cable_user%MetType).NE.'site' ) THEN
      WRITE(*,*)"Restart Date in rst file doesn't match start date of Run!"
      WRITE(*,*)"File: "//RSTDATE//' Run: '//CDATE
     ! STOP
@@ -2135,14 +2156,20 @@ SUBROUTINE WRITE_CASA_OUTPUT_NC ( veg, casamet, casapool, casabal, casaflux, &
   IF ( CALL1 ) THEN
      ! Get File-Name
 
-     WRITE( dum, FMT="(I4,'_',I4)")CABLE_USER%YEARSTART,CABLE_USER%YEAREND
-     IF (CABLE_USER%YEARSTART.lt.1000.and.CABLE_USER%YEAREND.lt.1000) THEN
-        WRITE( dum, FMT="(I3,'_',I3)")CABLE_USER%YEARSTART,CABLE_USER%YEAREND
-     ELSEIF (CABLE_USER%YEARSTART.lt.1000) THEN
-        WRITE( dum, FMT="(I3,'_',I4)")CABLE_USER%YEARSTART,CABLE_USER%YEAREND
+     IF (TRIM(cable_user%MetType).NE.'' .and. TRIM(cable_user%MetType).NE.'site' ) THEN
+
+        WRITE( dum, FMT="(I4,'_',I4)")CABLE_USER%YEARSTART,CABLE_USER%YEAREND
+        IF (CABLE_USER%YEARSTART.lt.1000.and.CABLE_USER%YEAREND.lt.1000) THEN
+           WRITE( dum, FMT="(I3,'_',I3)")CABLE_USER%YEARSTART,CABLE_USER%YEAREND
+        ELSEIF (CABLE_USER%YEARSTART.lt.1000) THEN
+           WRITE( dum, FMT="(I3,'_',I4)")CABLE_USER%YEARSTART,CABLE_USER%YEAREND
+        ENDIF
+        fname = TRIM(filename%path)//'/'//TRIM(cable_user%RunIden)//'_'//&
+             TRIM(dum)//'_casa_out.nc'
+     ELSE
+        ! site data
+        fname = TRIM(filename%path)//'/'//TRIM(cable_user%RunIden)//'_casa_out.nc'
      ENDIF
-     fname = TRIM(filename%path)//'/'//TRIM(cable_user%RunIden)//'_'//&
-          TRIM(dum)//'_casa_out.nc'
      INQUIRE( FILE=TRIM( fname ), EXIST=EXRST )
      EXRST = .FALSE.
      IF ( EXRST ) THEN

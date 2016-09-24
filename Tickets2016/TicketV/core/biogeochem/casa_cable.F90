@@ -389,8 +389,6 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, climate, ncall, kend
 
    END SUBROUTINE read_casa_dump
 
-!! DOES THIS NEED TO BE DELETED FOR NOW - REPLACED WITH BP CODE (LATER?)
-!! NO
 
 SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, phen, climate, n_call, kend )
   USE netcdf

@@ -749,6 +749,12 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
     READ(timeunits(20:21),*) smoy ! integer month
     READ(timeunits(23:24),*) sdoytmp ! integer day of that month
     READ(timeunits(26:27),*) shod  ! starting hour of day
+    ! if site data, shift start time to middle of timestep
+    !! vh_js !!
+    IF (TRIM(cable_user%MetType).EQ.'' .OR. &
+                  TRIM(cable_user%MetType).EQ.'site') THEN
+       shod = shod - dels/3600./2.
+    ENDIF
     ! Decide day-of-year for non-leap year:
     CALL YMDHMS2DOYSOD( syear, smoy, sdoytmp, INT(shod), 0, 0, sdoy, ssod )
        ! Number of days between start position and 1st timestep:
@@ -1491,6 +1497,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
        ELSE
           ! increment hour-of-day by time step size:
           met%hod(landpt(i)%cstart) = met%hod(landpt(i)%cstart) + dels/3600.0
+          write(70,*),'hod1', met%hod
        END IF
        !
        IF(met%hod(landpt(i)%cstart)<0.0) THEN ! may be -ve since longitude
@@ -1498,6 +1505,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
           ! Reduce day-of-year by one and ammend hour-of-day:
           met%doy(landpt(i)%cstart) = met%doy(landpt(i)%cstart) - 1
           met%hod(landpt(i)%cstart) = met%hod(landpt(i)%cstart) + 24.0
+          write(70,*),'hod2', met%hod
           ! If a leap year AND we're using leap year timing:
           if (is_leapyear(met%year(landpt(i)%cstart))) then
              SELECT CASE(INT(met%doy(landpt(i)%cstart)))
