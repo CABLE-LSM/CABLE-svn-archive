@@ -532,7 +532,7 @@ PRINT*,"IS_CASA_",IS_CASA_TIME("dread", 2012, 8, 1, 0, 2920, 8, 88)
                   casamet, casabal, phen, POP, spinup,	       &
                   C%EMSOIL, C%TFRZ, LUC_EXPT, POPLUC )
 
-             IF (CABLE_USER%POPLUC .AND. TRIM(LUC_EXPT%run) .EQ. 'static') &
+             IF (CABLE_USER%POPLUC .AND. TRIM(CABLE_USER%POPLUC_RunType) .EQ. 'static') &
                   CABLE_USER%POPLUC= .FALSE.
             
              ssnow%otss_0 = ssnow%tgg(:,1)
@@ -622,7 +622,7 @@ PRINT*,"IS_CASA_",IS_CASA_TIME("dread", 2012, 8, 1, 0, 2920, 8, 88)
 
                 IF ( CABLE_USER%CASA_DUMP_READ .OR. CABLE_USER%CASA_DUMP_WRITE ) &
                      CALL master_casa_dump_types( comm, casamet, casaflux, phen, climate )
-
+                  write(*,*) 'cable_mpimaster, POPLUC: ' ,  CABLE_USER%POPLUC
                 IF ( CABLE_USER%POPLUC ) &
                      CALL master_casa_LUC_types( comm, casapool, casabal)
                 

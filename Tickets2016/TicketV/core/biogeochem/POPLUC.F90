@@ -53,6 +53,7 @@ MODULE POPLUC_Module
   USE POPLUC_Constants
   USE casavariable, ONLY: casa_pool, casa_balance, casa_flux, casa_biome
   USE POP_Types, ONLY: POP_TYPE
+  USE cable_common_module, ONLY: cable_user
   USE cable_IO_vars_module, ONLY: landpt, patch
   USE CABLE_LUC_EXPT, ONLY: LUC_EXPT_TYPE
   USE POPModule, ONLY: pop_init_single
@@ -1056,7 +1057,7 @@ write(699,*) 'POPLUC', sum(POPLUC%FHarvest(2,:)+ POPLUC%FClearance(2,:)), patch(
 
     CALL POPLUC_set_params(POPLUC, LUC_EXPT)
 
-    IF (LUC_EXPT%run .eq. 'init') THEN
+    IF (cable_user%POPLUC_RunType .eq. 'init') THEN
        POPLUC%frac_primf = LUC_EXPT%primaryf
        POPLUC%primf = LUC_EXPT%primaryf
        POPLUC%grass = LUC_EXPT%grass
@@ -1096,7 +1097,7 @@ write(699,*) 'POPLUC', sum(POPLUC%FHarvest(2,:)+ POPLUC%FClearance(2,:)), patch(
           ENDIF
        ENDDO
                  
-    ELSEIF (LUC_EXPT%run .eq. 'restart') THEN
+    ELSEIF (cable_user%POPLUC_RunType .eq. 'restart') THEN
 
        CALL  READ_LUC_RESTART_NC (POPLUC)
        
@@ -1114,20 +1115,6 @@ write(699,*) 'POPLUC', sum(POPLUC%FHarvest(2,:)+ POPLUC%FClearance(2,:)), patch(
        endif
     ENDDO
 
-!!$  ! reset cable tile areas according to land-use fractions
-!!$    IF (LUC_EXPT%run .NE. 'static') THEN
-!!$       DO k=1,np
-!!$          j = landpt(k)%cstart
-!!$          l = landpt(k)%cend
-!!$          
-!!$          IF (.NOT.LUC_EXPT%prim_only(k)) THEN
-!!$             patch(j)%frac = POPLUC%primf(k)
-!!$             patch(l)%frac = POPLUC%grass(k)
-!!$             patch(j+1)%frac = 1.0 -  patch(j)%frac - patch(l)%frac
-!!$          ENDIF
-!!$       ENDDO
-!!$    ENDIF
-       
   END SUBROUTINE POPLUC_Init
 !*******************************************************************************
 SUBROUTINE POPLUC_set_patchfrac(POPLUC,LUC_EXPT)

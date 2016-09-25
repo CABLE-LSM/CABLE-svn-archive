@@ -497,7 +497,7 @@ PROGRAM cable_offline_driver
             casamet, casabal, phen, POP, spinup,	       &
             C%EMSOIL, C%TFRZ, LUC_EXPT, POPLUC )
 
-       IF ( CABLE_USER%POPLUC .AND. TRIM(LUC_EXPT%run) .EQ. 'static') &
+       IF ( CABLE_USER%POPLUC .AND. TRIM(CABLE_USER%POPLUC_RunType) .EQ. 'static') &
             CABLE_USER%POPLUC= .FALSE.
        ! Open output file:
        IF (.NOT.CASAONLY) THEN

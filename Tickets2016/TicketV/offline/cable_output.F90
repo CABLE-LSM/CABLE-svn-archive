@@ -734,7 +734,7 @@ CONTAINS
     IF(output%carbon) THEN
        CALL define_ovar(ncid_out, ovid%NBP, 'NBP', 'umol/m^2/s',               &
                         'Net Biosphere Production &
-                        (excludes harvest and clearing, uptake +ve)', patchout%NBP,         &
+                        (uptake +ve)', patchout%NBP,         &
                         'dummy', xID, yID, zID, landID, patchID, tID)
        ALLOCATE(out%NBP(mp))
        out%NBP = 0.0 ! initialise
@@ -871,7 +871,7 @@ CONTAINS
 
        CALL define_ovar(ncid_out, ovid%LandUseFlux, 'LandUseFlux ', &
             'umol/m^2/s',               &
-            'Contribution to NBP from  harvest and clearing', patchout%LandUseFlux,         &
+            'Sum of wood harvest and clearing fluxes', patchout%LandUseFlux,         &
             'dummy', xID, yID, zID, landID, patchID, tID)
        ALLOCATE(out%LandUseFlux(mp))
        out%LandUseFlux = 0.0
@@ -953,9 +953,17 @@ CONTAINS
                                                  opid%albsoil, 'albsoil', '-', &
                               'Snow free shortwave soil reflectance fraction', &
            patchout%albsoil, radID, 'radiation', xID, yID, zID, landID, patchID)
-    IF(output%params .OR. output%hc) CALL define_ovar(ncid_out, opid%hc,       &
+    !! vh_js !!
+    IF (cable_user%CALL_POP) THEN
+       IF(output%params .OR. output%hc) CALL define_ovar(ncid_out, opid%hc,    &
                                    'hc', 'm', 'Height of canopy', patchout%hc, &
-                                         'real', xID, yID, zID, landID, patchID)
+                                      'real', xID, yID, zID, landID, patchID,tID)
+    ELSE
+       IF(output%params .OR. output%hc) CALL define_ovar(ncid_out, opid%hc,    &
+            'hc', 'm', 'Height of canopy', patchout%hc, &
+            'real', xID, yID, zID, landID, patchID)
+    ENDIF
+
     IF(output%params .OR. output%canst1) CALL define_ovar(ncid_out,            &
            opid%canst1, 'canst1', 'mm/LAI', 'Max water intercepted by canopy', &
                         patchout%canst1, 'real', xID, yID, zID, landID, patchID)
@@ -1191,8 +1199,11 @@ CONTAINS
               'vcmax', REAL(veg%vcmax, 4), ranges%vcmax, patchout%vcmax, 'real')
     IF(output%params .OR. output%frac4) CALL write_ovar(ncid_out, opid%frac4,  &
               'frac4', REAL(veg%frac4, 4), ranges%frac4, patchout%frac4, 'real')
-    IF(output%params .OR. output%hc) CALL write_ovar(ncid_out, opid%hc,        &
-                          'hc', REAL(veg%hc, 4), ranges%hc, patchout%hc, 'real')
+    
+    IF (.not.cable_user%CALL_POP) THEN
+       IF(output%params .OR. output%hc) CALL write_ovar(ncid_out, opid%hc,        &
+            'hc', REAL(veg%hc, 4), ranges%hc, patchout%hc, 'real')
+    ENDIF
     IF(output%params .OR. output%rp20) CALL write_ovar(ncid_out, opid%rp20,    &
                    'rp20', REAL(veg%rp20, 4),ranges%rp20, patchout%rp20, 'real')
     ! Ticket #56
@@ -2155,14 +2166,25 @@ CONTAINS
          END IF
       ENDIF
    ENDIF
+   IF (cable_user%CALL_POP) THEN
+       IF(output%params .OR. output%hc) CALL write_ovar(out_timestep,ncid_out, opid%hc,        &
+            'hc', REAL(veg%hc, 4), ranges%hc, patchout%hc, 'default', met)
+   ENDIF
+
     ! NBP and turnover fluxes [umol/m^2/s]
     IF(output%casa) THEN
        ! Add current timestep's value to total of temporary output variable:
-!!$       out%NBP = out%NBP + -REAL((casaflux%Crsoil-casaflux%cnpp+casaflux%clabloss)/86400.0 &
-!!$            / 1.201E-5, 4)
-       out%NBP = out%NBP + -REAL((casaflux%Crsoil-casaflux%cnpp &
+       IF (cable_user%POPLUC) THEN
+           out%NBP = out%NBP + -REAL((casaflux%Crsoil-casaflux%cnpp &
             - casapool%dClabiledt)/86400.0 &
+            / 1.201E-5, 4) -  &
+            REAL((casaflux%FluxCtohwp + casaflux%FluxCtoclear  )/86400.0 &
             / 1.201E-5, 4)
+       ELSE
+          out%NBP = out%NBP + -REAL((casaflux%Crsoil-casaflux%cnpp &
+               - casapool%dClabiledt)/86400.0 &
+               / 1.201E-5, 4)
+       ENDIF
 
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
