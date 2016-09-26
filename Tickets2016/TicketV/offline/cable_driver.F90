@@ -293,6 +293,24 @@ PROGRAM cable_offline_driver
   ENDIF
 
   ! INITIALISATION depending on nml settings
+  IF (TRIM(cable_user%MetType) .EQ. 'gswp') THEN
+     IF ( CABLE_USER%YearStart.eq.0 .and. ncciy.gt.0) THEN
+        CABLE_USER%YearStart = ncciy
+        CABLE_USER%YearEnd = ncciy
+     ELSEIF  ( CABLE_USER%YearStart.eq.0 .and. ncciy.eq.0) THEN
+        PRINT*, 'undefined start year for gswp met: '
+        PRINT*, 'enter value for ncciy or'  
+        PRINT*, '(CABLE_USER%YearStart and  CABLE_USER%YearEnd) &
+             in cable.nml'
+
+        write(logn,*) 'undefined start year for gswp met: '
+        write(logn,*) 'enter value for ncciy or'  
+        write(logn,*) '(CABLE_USER%YearStart and  CABLE_USER%YearEnd) &
+             in cable.nml'
+
+        stop
+     ENDIF
+  ENDIF
 
   CurYear = CABLE_USER%YearStart
 
@@ -759,8 +777,6 @@ PROGRAM cable_offline_driver
                          met, casaflux, l_vcmaxFeedbk )
 
 
-
-
                  ENDIF
 
                  ! Write timestep's output to file if either: we're not spinning up
@@ -769,7 +785,9 @@ PROGRAM cable_offline_driver
                  IF ( (.NOT. CASAONLY) .AND. spinConv ) THEN
                     !mpidiff
                     if ( TRIM(cable_user%MetType) .EQ. 'plum' .OR.  &
-                         TRIM(cable_user%MetType) .EQ. 'cru' ) then
+                         TRIM(cable_user%MetType) .EQ. 'cru' .OR.  &
+                       TRIM(cable_user%MetType) .EQ. 'gswp' ) then
+
                        CALL write_output( dels, ktau_tot, met, canopy, casaflux, casapool, casamet, &
                             ssnow,   rad, bal, air, soil, veg, C%SBOLTZ, C%EMLEAF, C%EMSOIL )
                     else
@@ -798,10 +816,22 @@ PROGRAM cable_offline_driver
                     new_sumbal = new_sumbal + SUM(bal%wbal)/mp +  SUM(bal%ebal)/mp
                     new_sumfpn = new_sumfpn + SUM(canopy%fpn)/mp
                     new_sumfe = new_sumfe + SUM(canopy%fe)/mp
+                    if (ktau == kend) PRINT*
                     if (ktau == kend) PRINT*, "time-space-averaged energy & water balances"
-                    if (ktau == kend) PRINT*,"Ebal_tot[Wm-2], Wbal_tot[mm]", sum(bal%ebal_tot)/mp/count_bal, sum(bal%wbal_tot)/mp/count_bal
-                    if (ktau == kend) PRINT*, "time-space-averaged latent heat and net photosynthesis"
-                    if (ktau == kend) PRINT*, "sum_fe[Wm-2], sum_fpn[umol/m2/s]",  new_sumfe/count_bal, new_sumfpn/count_bal
+                    if (ktau == kend) PRINT*,"Ebal_tot[Wm-2], Wbal_tot[mm per timestep]", &
+                         sum(bal%ebal_tot)/mp/count_bal, sum(bal%wbal_tot)/mp/count_bal
+                    if (ktau == kend) PRINT*, "time-space-averaged latent heat and &
+                         net photosynthesis"
+                    if (ktau == kend) PRINT*, "sum_fe[Wm-2], sum_fpn[umol/m2/s]",  &
+                         new_sumfe/count_bal, new_sumfpn/count_bal
+                    if (ktau == kend) write(logn,*)
+                    if (ktau == kend) write(logn,*), "time-space-averaged energy & water balances"
+                    if (ktau == kend) write(logn,*),"Ebal_tot[Wm-2], Wbal_tot[mm per timestep]", &
+                         sum(bal%ebal_tot)/mp/count_bal, sum(bal%wbal_tot)/mp/count_bal
+                    if (ktau == kend) write(logn,*), "time-space-averaged latent heat and &
+                         net photosynthesis"
+                    if (ktau == kend) write(logn,*), "sum_fe[Wm-2], sum_fpn[umol/m2/s]",  &
+                         new_sumfe/count_bal, new_sumfpn/count_bal
                   
 
 ! vh ! commented code below detects Nans in evaporation flux and stops if there are any.
@@ -1034,7 +1064,7 @@ PROGRAM cable_offline_driver
        TRIM(cable_user%MetType) .NE. "plum" .AND. & 
        TRIM(cable_user%MetType) .NE. "cru" ) CALL close_met_file
 
-  WRITE(logn,*) bal%wbal_tot, bal%ebal_tot, bal%ebal_tot_cncheck
+  !WRITE(logn,*) bal%wbal_tot, bal%ebal_tot, bal%ebal_tot_cncheck
   CALL CPU_TIME(etime)
   WRITE(logn,*) 'Finished. ', etime, ' seconds needed for ', kend,' hours'
   ! Close log file

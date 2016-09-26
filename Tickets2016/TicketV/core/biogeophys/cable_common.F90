@@ -160,7 +160,7 @@ MODULE cable_common_module
           path,       & ! path for output and restart files for CABLE and CASA
           out,        & ! name of file for CABLE output
           log,        & ! name of file for execution log
-          restart_in, & ! name of restart file to read
+          restart_in = ' ', & ! name of restart file to read
           restart_out,& ! name of restart file to read
           LAI,        & ! name of file for default LAI
           type,       & ! file for default veg/soil type

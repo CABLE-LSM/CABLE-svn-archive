@@ -301,7 +301,10 @@ SUBROUTINE surface_albedosn(ssnow, veg, met, soil, dels)
    ENDWHERE        ! snowd > 0
 
    IF(cable_user%SOIL_STRUC=='sli') THEN
-      snrat = 1.0   ! using default parameterisation, albedo is too low, inhibiting snowpack initiation
+      WHERE (ssnow%snowd.gt.1.0)
+         snrat = 1.0   ! using default parameterisation, albedo is too low,
+         ! inhibiting snowpack initiation
+      ENDWHERE
    ENDIF
    ssnow%albsoilsn(:,2) = MIN( aliro,                                          &
                           ( 1. - snrat ) * ssnow%albsoilsn(:,2) + snrat * alir)

@@ -1497,7 +1497,6 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
        ELSE
           ! increment hour-of-day by time step size:
           met%hod(landpt(i)%cstart) = met%hod(landpt(i)%cstart) + dels/3600.0
-          write(70,*),'hod1', met%hod
        END IF
        !
        IF(met%hod(landpt(i)%cstart)<0.0) THEN ! may be -ve since longitude
@@ -1505,7 +1504,6 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
           ! Reduce day-of-year by one and ammend hour-of-day:
           met%doy(landpt(i)%cstart) = met%doy(landpt(i)%cstart) - 1
           met%hod(landpt(i)%cstart) = met%hod(landpt(i)%cstart) + 24.0
-          write(70,*),'hod2', met%hod
           ! If a leap year AND we're using leap year timing:
           if (is_leapyear(met%year(landpt(i)%cstart))) then
              SELECT CASE(INT(met%doy(landpt(i)%cstart)))
