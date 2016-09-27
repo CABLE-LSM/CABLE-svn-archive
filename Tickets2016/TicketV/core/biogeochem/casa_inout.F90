@@ -30,7 +30,7 @@
 !   casa_cnpflux  (zeros casabal quantites on doy 1 and updates casabal at end of biogeochem)
 !   biogeochem
 
-#define UM_BUILD YES
+!#define UM_BUILD YES
 SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
 ! mst actually not used in this routine (BP sep2010)
 !SUBROUTINE casa_readbiome(mvt,mst,veg,soil, &
@@ -654,9 +654,7 @@ SUBROUTINE casa_init(casabiome,casamet,casaflux,casapool,casabal,veg,phen)
   USE phenvariable
 ! for first time reading file *_1220.csv  (BP may2010)
   USE cable_def_types_mod
-#     ifndef UM_BUILD YES
   USE cable_io_vars_module, ONLY: landpt, patch
-#endif
   USE cable_common_module, only: cable_user
 
 ! end addition (BP may2010)
@@ -895,7 +893,6 @@ ENDIF
 !92 format(5(i6,2x),5(f18.6,3x),2(i6,',',2x),',',2x,100(f18.6,3x))
 92    format(5(i6,',',2x),5(f18.6,',',2x),2(i6,',',2x),',',2x,100(f18.6,',',2x))
 
-#     ifndef UM_BUILD YES
 
 if(initcasa==0) then
    nyearz = 1
@@ -904,7 +901,6 @@ if(initcasa==0) then
       casamet%lat(npt) = patch(npt)%latitude
    enddo
 endif
-#endif
 
   ! reset labile C pool,comment out by Q.Zhang 10/09/2011
   !  casapool%clabile    = 0.0

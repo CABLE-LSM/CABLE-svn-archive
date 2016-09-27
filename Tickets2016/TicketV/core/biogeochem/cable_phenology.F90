@@ -17,15 +17,12 @@
 ! History: Vanessa Haverd Jan 2015
 
 ! ==============================================================================
-#define UM_BUILD YES
 MODULE cable_phenology_module
 
  Use cable_def_types_mod, ONLY: met_type, climate_type, canopy_type, veg_parameter_type, &
       mp, r_2
  USE TypeDef,              ONLY: i4b, dp
-#ifndef UM_BUILD 
  USE cable_IO_vars_module, ONLY: patch
-#endif
  USE CABLE_COMMON_MODULE, ONLY: CurYear, filename, cable_user, HANDLE_ERR
 
 CONTAINS
@@ -127,16 +124,15 @@ DO np= 1,mp
        if (days > 14) phen%phase(np) = 0          ! mimimum LAI
     endif
 
-#ifndef UM_BUILD 
     ! Update annual leaf-on sum
     IF ((patch(np)%latitude>=0.0 .and. climate%doy==COLDEST_DAY_NHEMISPHERE).OR. &
          (patch(np)%latitude <0.0 .and. climate%doy==COLDEST_DAY_SHEMISPHERE) ) &
          phen%aphen(np) = 0
 
     phen%aphen(np) = phen%aphen(np) + phen%phen(np)
-#endif
 
  endif
+
 ENDDO  ! end loop over patches
 
 

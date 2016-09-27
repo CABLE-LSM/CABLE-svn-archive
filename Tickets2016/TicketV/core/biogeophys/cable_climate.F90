@@ -16,15 +16,12 @@
 ! History: Vanessa Haverd Jan 2015
 
 ! ==============================================================================
-# define UM_BUILD YES
 MODULE cable_climate_mod
 
  Use cable_def_types_mod, ONLY: met_type, climate_type, canopy_type, mp, &
       r_2, alloc_cbm_var, air_type
  USE TypeDef,              ONLY: i4b, dp
-#ifndef UM_BUILD 
  USE cable_IO_vars_module, ONLY: patch
-#endif
  USE CABLE_COMMON_MODULE, ONLY: CurYear, filename, cable_user, HANDLE_ERR
 
 CONTAINS
@@ -35,7 +32,6 @@ SUBROUTINE cable_climate(ktau,kstart,kend,ktauday,idoy,LOY,met,climate, canopy, 
      air, dels, np)
 
 
-#ifndef UM_BUILD 
   IMPLICIT NONE
 
   INTEGER,      INTENT(IN) :: ktau ! integration step number
@@ -272,7 +268,6 @@ SUBROUTINE cable_climate(ktau,kstart,kend,ktauday,idoy,LOY,met,climate, canopy, 
 
   ENDIF ! end of day
 
-#endif
 END SUBROUTINE cable_climate
 !###############################################################################
 
@@ -313,7 +308,6 @@ END FUNCTION Epsif
 ! ==============================================================================
 !
 SUBROUTINE biome1_pft(climate, np)
-#ifndef UM_BUILD 
 IMPLICIT NONE
 
 TYPE (climate_type), INTENT(INOUT)       :: climate  ! climate variables
@@ -559,7 +553,7 @@ endif
 
 END DO 
 
-#endif
+
 END SUBROUTINE BIOME1_PFT
 
 ! ==============================================================================
@@ -698,6 +692,7 @@ SUBROUTINE WRITE_CLIMATE_RESTART_NC ( climate )
 
   A4(1) = 'dtemp_91'
 
+!# define UM_BUILD YES
 # ifndef UM_BUILD
 
   ! Get File-Name
@@ -1085,7 +1080,6 @@ SUBROUTINE READ_CLIMATE_RESTART_NC ( climate )
   STATUS = NF90_close(FILE_ID)
   IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
 # endif 
-
 
 
 END SUBROUTINE  READ_CLIMATE_RESTART_NC

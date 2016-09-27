@@ -1,5 +1,3 @@
-#define UM_BUILD YES
-#ifndef UM_BUILD 
 SUBROUTINE GLOBFOR_OUT(mp, pop, casapool,  veg, rad, cleaf_max, npp_ann, gpp_ann, stemnpp_ann, &
      leafnpp_ann)
 
@@ -48,4 +46,3 @@ SUBROUTINE GLOBFOR_OUT(mp, pop, casapool,  veg, rad, cleaf_max, npp_ann, gpp_ann
 
 END SUBROUTINE GLOBFOR_OUT
 
-#endif

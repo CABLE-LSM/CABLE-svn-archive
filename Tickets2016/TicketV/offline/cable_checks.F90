@@ -1,5 +1,3 @@
-#define UM_BUILD YES
-#ifndef UM_BUILD 
 !==============================================================================
 ! This source code is part of the
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
@@ -413,4 +411,3 @@ FUNCTION svp(tk) RESULT (F_Result)
 END FUNCTION svp
 !==============================================================================
 END MODULE cable_checks_module
-#endif
