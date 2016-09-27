@@ -22,6 +22,7 @@
 !
 ! ==============================================================================
 
+#define UM_BUILD YES 
 MODULE cable_common_module
   IMPLICIT NONE
 
@@ -508,13 +509,12 @@ CONTAINS
     IF(status /= NF90_noerr) THEN
        WRITE(*,*)"netCDF error:"
        IF ( PRESENT( msg ) ) WRITE(*,*)msg
-!#define Vanessas_common
-!#ifdef Vanessas_common
+#ifndef UM_BUILD 
        WRITE(*,*) TRIM(NF90_strerror(status))
-!#else       
-!       WRITE(*,*) "UM builds with -i8. Therefore call to nf90_strerror is ", & 
-!       " invalid. Quick fix to eliminate for now. Build NF90 with -i8, force -i4?" 
-!#endif     
+#else       
+       WRITE(*,*) "UM builds with -i8. Therefore call to nf90_strerror is ", & 
+       " invalid. Quick fix to eliminate for now. Build NF90 with -i8, force -i4?" 
+#endif     
        STOP -1
     END IF
   END SUBROUTINE HANDLE_ERR
@@ -778,7 +778,7 @@ CONTAINS
 !applications. iovars is an offline module and so not appropriate to include
 !here. Suggested FIX is to move decs of vars needed (e.g. leaps) to here, and
 !then use common in iovars  
-#ifdef Vanessas_common
+#ifndef UM_BUILD 
     USE cable_IO_vars_module, ONLY: leaps
 #endif
     IMPLICIT NONE
