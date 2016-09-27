@@ -1,3 +1,5 @@
+#define UM_BUILD YES
+#ifndef UM_BUILD 
 MODULE CABLE_CRU
 
   USE netcdf                         ! Access to netcdf routines
@@ -1222,3 +1224,4 @@ END SUBROUTINE GET_CRU_Ndep
   END SUBROUTINE CRU_GET_SUBDIURNAL_MET
 
 END MODULE CABLE_CRU
+#endif

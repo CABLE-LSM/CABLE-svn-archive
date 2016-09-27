@@ -1,3 +1,5 @@
+#define UM_BUILD YES
+#ifndef UM_BUILD 
 !==============================================================================
 ! This source code is part of the
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
@@ -1207,3 +1209,4 @@ SUBROUTINE LUCdriver( casabiome,casapool, &
   CALL POPLUC_weights_transfer(POPLUC,POP,LUC_EXPT)
 
 END SUBROUTINE LUCdriver
+#endif

@@ -1,3 +1,5 @@
+#define UM_BUILD YES
+#ifndef UM_BUILD 
 !==============================================================================
 ! This source code is part of the 
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
@@ -275,3 +277,4 @@ SUBROUTINE bcast_start_time (comm)
 END SUBROUTINE bcast_start_time
 
 END MODULE cable_mpicommon
+#endif
