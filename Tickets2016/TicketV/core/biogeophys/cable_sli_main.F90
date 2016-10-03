@@ -142,9 +142,9 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
      open(unit=370, file="qex.out",status="replace", position="rewind")
      open(unit=371, file="q.out",status="replace", position="rewind")
 
-     open(unit=339, file="latlong.out",status="replace", position="rewind")
-     write(339,"(20000f8.2)") rad%latitude
-     write(339,"(20000f8.2)") rad%longitude
+     !open(unit=339, file="latlong.out",status="replace", position="rewind")
+    ! write(339,"(20000f8.2)") rad%latitude
+     !write(339,"(20000f8.2)") rad%longitude
      counter = 0
   endif
 
@@ -513,7 +513,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
      rbw = vmet(1)%rbw
      rbh = vmet(1)%rbh
      rrc = vmet(1)%rrc
-write(*,*), 'b4 solve', ktau
+!write(*,*), 'b4 solve', ktau
      call solve(wlogn, ti, tf, ktau, mp, qprec, qprec_snow, ms, dx, &
           h0, S, thetai, Jsensible, Tsoil, evap, &
           evap_pot, runoff, infil, drn, discharge, qh, &

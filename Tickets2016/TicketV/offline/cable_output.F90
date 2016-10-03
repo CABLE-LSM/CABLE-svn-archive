@@ -731,7 +731,7 @@ CONTAINS
        out%NPP = 0.0 ! initialise
     END IF
 
-    IF(output%carbon) THEN
+    IF(output%casa) THEN
        CALL define_ovar(ncid_out, ovid%NBP, 'NBP', 'umol/m^2/s',               &
                         'Net Biosphere Production &
                         (uptake +ve)', patchout%NBP,         &
@@ -869,14 +869,16 @@ CONTAINS
        ALLOCATE(out%PlantTurnoverWoodResourceLim(mp))
        out%PlantTurnoverWoodResourceLim = 0.0
 
-       CALL define_ovar(ncid_out, ovid%LandUseFlux, 'LandUseFlux ', &
-            'umol/m^2/s',               &
-            'Sum of wood harvest and clearing fluxes', patchout%LandUseFlux,         &
-            'dummy', xID, yID, zID, landID, patchID, tID)
-       ALLOCATE(out%LandUseFlux(mp))
-       out%LandUseFlux = 0.0
-
-
+       IF (cable_user%POPLUC) THEN
+          
+          CALL define_ovar(ncid_out, ovid%LandUseFlux, 'LandUseFlux ', &
+               'umol/m^2/s',               &
+               'Sum of wood harvest and clearing fluxes', patchout%LandUseFlux,         &
+               'dummy', xID, yID, zID, landID, patchID, tID)
+          ALLOCATE(out%LandUseFlux(mp))
+          out%LandUseFlux = 0.0
+       ENDIF
+       
   
     END IF
 
@@ -1308,7 +1310,7 @@ CONTAINS
        out_timestep = 0
        out_month = 0
        !MC - use met%year(1) instead of CABLE_USER%YearStart for non-GSWP forcing and leap years
-       IF ( TRIM(cable_user%MetType) .ne. 'gswp' ) then
+       IF ( TRIM(cable_user%MetType) .EQ. '' ) then
           YearStart = met%year(1)
        ELSE
           YearStart = CABLE_USER%YearStart
@@ -1335,7 +1337,8 @@ CONTAINS
           writenow = .FALSE.
        END IF
     ELSE IF(output%averaging(1:2) == 'mo') THEN ! write monthly averages to file
-       realyear = met%year
+       !realyear = met%year
+       realyear = real(CurYear)
        IF(ktau >= 365*24*3600/INT(dels)) THEN
          WHERE(met%doy == 1) realyear = realyear - 1   ! last timestep of year
        END IF
@@ -1343,7 +1346,7 @@ CONTAINS
        ! LN Inserted for multiyear output
        dday = 0
        !MC - use met%year(1) instead of CABLE_USER%YearStart for non-GSWP forcing and leap years
-       DO iy=YearStart, MAXVAL(realyear)-1
+       DO iy=YearStart, CurYear-1
           IF (IS_LEAPYEAR(iy) .AND. leaps) THEN
              dday = dday + 366
           ELSE
@@ -1355,7 +1358,7 @@ CONTAINS
        ! Are we using leap year calendar?
        IF (leaps) THEN
           ! If currently a leap year:
-          if (any(is_leapyear(realyear))) then
+          if (is_leapyear(CurYear)) then
 !! vh_js !!
              IF(ANY(INT(real(lastdayl+dday) * 24. * 3600. / dels) == ktau)) THEN
                 out_month = MOD(out_month, 12) + 1 ! can only be 1 - 12
@@ -2167,8 +2170,10 @@ CONTAINS
       ENDIF
    ENDIF
    IF (cable_user%CALL_POP) THEN
-       IF(output%params .OR. output%hc) CALL write_ovar(out_timestep,ncid_out, opid%hc,        &
-            'hc', REAL(veg%hc, 4), ranges%hc, patchout%hc, 'default', met)
+      IF(writenow) THEN
+         IF(output%params .OR. output%hc) CALL write_ovar(out_timestep,ncid_out, opid%hc,        &
+              'hc', REAL(veg%hc, 4), ranges%hc, patchout%hc, 'default', met)
+      ENDIF
    ENDIF
 
     ! NBP and turnover fluxes [umol/m^2/s]

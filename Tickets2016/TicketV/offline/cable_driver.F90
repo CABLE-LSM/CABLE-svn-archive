@@ -622,8 +622,7 @@ PROGRAM cable_offline_driver
                          kstart+koffset )
           ENDIF
  
-          IF (TRIM(cable_user%MetType).EQ.'' .OR. &
-                  TRIM(cable_user%MetType).EQ.'site' ) THEN
+          IF (TRIM(cable_user%MetType).EQ.'' ) THEN
              CurYear = met%year(1)
              IF ( leaps .AND. IS_LEAPYEAR( CurYear ) ) THEN
                 LOY = 366
@@ -754,8 +753,7 @@ PROGRAM cable_offline_driver
                           ENDIF
                           ncfile = TRIM(casafile%c2cdumppath)//'c2c_'//CYEAR//'_dump.nc'
 
-                          IF (TRIM(cable_user%MetType).EQ.'' .OR. &
-                               TRIM(cable_user%MetType).EQ.'site' ) THEN
+                          IF (TRIM(cable_user%MetType).EQ.'' ) THEN
                              CALL write_casa_dump( ncfile, casamet , casaflux, phen, climate,&
                                   INT(met%doy), LOY )
                           ELSE
