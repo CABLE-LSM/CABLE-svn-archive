@@ -749,12 +749,13 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
     READ(timeunits(20:21),*) smoy ! integer month
     READ(timeunits(23:24),*) sdoytmp ! integer day of that month
     READ(timeunits(26:27),*) shod  ! starting hour of day
-!!$    ! if site data, shift start time to middle of timestep
-!!$    ! only do this if not already at middle of timestep
-!!$    !! vh_js !!
-!!$    IF (TRIM(cable_user%MetType).EQ.'') THEN
-!!$       shod = shod - dels/3600./2.
-!!$    ENDIF
+    ! if site data, shift start time to middle of timestep
+    ! only do this if not already at middle of timestep
+    !! vh_js !!
+
+    IF (TRIM(cable_user%MetType).EQ.'' .and. MOD(shod*3600, dels)==0) THEN
+       shod = shod - dels/3600./2.
+    ENDIF
     ! Decide day-of-year for non-leap year:
     CALL YMDHMS2DOYSOD( syear, smoy, sdoytmp, INT(shod), 0, 0, sdoy, ssod )
        ! Number of days between start position and 1st timestep:
