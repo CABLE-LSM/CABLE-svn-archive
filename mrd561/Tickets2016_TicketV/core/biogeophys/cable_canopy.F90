@@ -2707,7 +2707,7 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
    TYPE (air_type), INTENT(IN)       :: air
    TYPE (met_type), INTENT(IN)       :: met
    TYPE (soil_snow_type), INTENT(INOUT) :: ssnow
-   TYPE (canopy_type), INTENT(IN)    :: canopy
+   TYPE (canopy_type), INTENT(INOUT)    :: canopy
    TYPE (soil_parameter_type), INTENT(IN)   :: soil
    TYPE (veg_parameter_type), INTENT(IN) :: veg
    TYPE (roughness_type), INTENT(IN) :: rough
@@ -2766,8 +2766,8 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
 
    ssnow%rtevap_unsat(:) = min( rough%z0soil/canopy%sublayer_dz * (lm/(4.0*hk_zero) + (canopy%sublayer_dz + pore_size(:) * soil_moisture_mod) / Dff),&
                          rtevap_max )
-   ssnow%rtevap_sat(:)  = min( rough%z0soil/canopy%sublayer_dz * (lm/(4.0*hk_zero_sat) + (canopy%sublayer_dz + pore_size(:) * soil_moisture_mod_sat)/ Dff),&
-                         rtevap_max )
+   ssnow%rtevap_sat(:)  =0._r_2! min( rough%z0soil/canopy%sublayer_dz * (lm/(4.0*hk_zero_sat) + (canopy%sublayer_dz + pore_size(:) * soil_moisture_mod_sat)/ Dff),&
+                         !rtevap_max )
 
    !no additional evap resistane over lakes
    where(veg%iveg .eq. 16)
