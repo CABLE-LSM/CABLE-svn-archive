@@ -2524,9 +2524,22 @@ CONTAINS
                         par(kk,i)%he, one/(par(kk,i)%lambc*freezefac)))) then
 
                       tmp1d2(kk) = J0(kk,i) + LHS_h(kk,i)*dt(kk) ! total energy in  soil layer
+                     if (Tsoil(kk,i) .lt. -20) then
+                         ! assume no lquid below min temp threshhold
+                        var(kk,i)%thetal = 0.0
+                        var(kk,i)%thetai = theta
+                        hice(kk) = h0(kk)
+                        tmp1d3(kk) = (tmp1d2(kk) + rhow*lambdaf*(theta*dx(kk,i) +  merge(h0(kk),zero,i==1)))/ &
+                             (dx(kk,i)*par(kk,i)%css*par(kk,i)%rho + rhow*csice*(theta*dx(kk,i) + &
+                             merge(h0(kk),zero,i==1)))
+
+                     else
+
+                     
                       !check there is a zero
                       tmp1 = GTfrozen(real(Tsoil(kk,i)- dTsoil(kk,i)-50., r_2), tmp1d2(kk), dx(kk,i), theta,par(kk,i)%css, par(kk,i)%rho, &
                            merge(h0(kk),zero,i==1), par(kk,i)%thre, par(kk,i)%the, par(kk,i)%he, one/(par(kk,i)%lambc*freezefac))
+  
                       tmp2 = GTFrozen(Tfreezing(kk), tmp1d2(kk), dx(kk,i), theta,par(kk,i)%css, par(kk,i)%rho, &
                            merge(h0(kk),zero,i==1), par(kk,i)%thre, par(kk,i)%the, par(kk,i)%he, one/(par(kk,i)%lambc*freezefac))
                       ! there is a zero in between
@@ -2539,12 +2552,12 @@ CONTAINS
                               par(kk,i)%thre, par(kk,i)%the) ! liquid content at solution for Tsoil
                       else
                          write(*,*) "Found no solution for Tfrozen 1. Stop. ", kk, i
-                         write(*,*) nsteps(kk), S(kk,i), Tsoil(kk,i)- dTsoil(kk,i), h0(kk), tmp1, tmp2, tmp1d2(kk), theta
-                       !   stop
-
-                       endif
+                         write(*,*) nsteps(kk), S(kk,i), Tsoil(kk,i), dTsoil(kk,i), h0(kk), tmp1, tmp2, tmp1d2(kk), theta
+                         stop
+                        endif
                       var(kk,i)%thetal = tmp1d4(kk)
                       var(kk,i)%thetai = theta - tmp1d4(kk)
+                   endif ! Tsoil <-20
                       if (i==1) then
                          hice_tmp(kk) = hice(kk)
                          hice(kk) = h0(kk)*var(kk,1)%thetai/par(kk,1)%thre
@@ -2573,6 +2586,7 @@ CONTAINS
 
                       thetai(kk,i) = var(kk,i)%thetai
                       Tsoil(kk,i) = tmp1d3(kk)
+                    
                    endif ! soil remains frozen
 
                 endif ! if .not.again
@@ -3405,7 +3419,8 @@ CONTAINS
                       tmp1d4(kk) = thetalmax(tmp1d3(kk), S(kk,1), par(kk,1)%he, one/(par(kk,1)%lambc*freezefac), &
                            par(kk,1)%thre, par(kk,1)%the) ! liquid content at new Tsoil
                    else
-                      write(*,*) "Found no solution for Tfrozen 3. Stop.", kk
+                      write(*,*) "Found no solution for Tfrozen 3. Stop.", kk, S(kk,i), Tsoil(kk,i), tmp1, tmp2
+                      write(*,*) S(kk,i), Tsoil(kk,i), tmp1, tmp2
                       stop
                    endif
 

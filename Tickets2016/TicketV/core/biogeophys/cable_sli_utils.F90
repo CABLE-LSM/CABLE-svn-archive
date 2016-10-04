@@ -518,7 +518,17 @@ CONTAINS
              Gpot = vmet%Rn-vmet%Rnsw - Hpot - Epot
              dEdTs= zero
              !   write(*,*) "Epot3", Tsurface, vmet%Ta, Epot, Hpot, vmet%rbh
-          endif
+          
+          elseif (abs(Tsurface - vmet%Ta).gt. 20) then
+             Tsurface = min(vmet%Ta, 0.0)
+             Epot = (esat(Tsurface)*0.018_r_2/thousand/8.314_r_2/(vmet%Ta+Tzero)  - & ! m3 H2O (liq) m-3 (air)
+                  vmet%cva)*rhow*lambdas/vmet%rbw
+             dEdTsoil = zero
+             dGdTsoil = zero
+             Hpot = rhocp*(Tsurface - vmet%Ta)/vmet%rbh
+             Gpot = vmet%Rn-vmet%Rnsw - Hpot - Epot
+             dEdTs= zero
+           endif
           qevap = Epot/(rhow*lambdas)
           qTb = -dEdTsoil/(thousand*lambdas)
        endif
