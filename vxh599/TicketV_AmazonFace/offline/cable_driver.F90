@@ -4,7 +4,7 @@
 ! This work is licensed under the CSIRO Open Source Software License
 ! Agreement (variation of the BSD / MIT License).
 !
-! You may not use this file except in compliance with this License.
+! You may not use thi/data/hav014/surface_data_PLUME/pftlookup_csiro_v16_17tiles_li128_editvh_chengm01a.csvs file except in compliance with this License.
 ! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located
 ! in each directory containing CABLE code.
 !
@@ -109,6 +109,7 @@ PROGRAM cable_offline_driver
        PLUME_MIP_INIT
 
   USE CABLE_CRU,            ONLY: CRU_TYPE, CRU_GET_SUBDIURNAL_MET, CRU_INIT
+  USE CABLE_site,           ONLY: site_TYPE, site_INIT, site_GET_CO2_Ndep
 
  ! LUC_EXPT only
  USE CABLE_LUC_EXPT, ONLY: LUC_EXPT_TYPE, LUC_EXPT_INIT
@@ -123,7 +124,7 @@ PROGRAM cable_offline_driver
 
   ! timing variables
   INTEGER, PARAMETER ::	 kstart = 1   ! start of simulation
-  INTEGER, PARAMETER ::	 mloop	= 5   ! CASA-CNP PreSpinup loops
+  INTEGER, PARAMETER ::	 mloop	= 10  ! CASA-CNP PreSpinup loops
   INTEGER :: LALLOC ! allocation coefficient for passing to spincasa
 
   INTEGER	 ::							      &
@@ -132,6 +133,7 @@ PROGRAM cable_offline_driver
        kend,	   &  ! no. of time steps in run
                                 !CLN	  kstart = 1, &	 ! timestep to start at
        koffset = 0, &  ! timestep to start at
+       koffset_met = 0, &  !offfset for site met data ('site' only)
        ktauday,	   &  ! day counter for CASA-CNP
        idoy,	   &  ! day of year (1:365) counter for CASA-CNP
        nyear,	   &  ! year counter for CASA-CNP
@@ -184,6 +186,7 @@ PROGRAM cable_offline_driver
   TYPE(POPLUC_TYPE) :: POPLUC
   TYPE (PLUME_MIP_TYPE) :: PLUME
   TYPE (CRU_TYPE)       :: CRU
+  TYPE (site_TYPE)       :: site
   TYPE (LUC_EXPT_TYPE) :: LUC_EXPT
   CHARACTER		:: cyear*4
   CHARACTER		:: ncfile*99
@@ -207,6 +210,8 @@ PROGRAM cable_offline_driver
   REAL		    :: &
        delsoilM,	 & ! allowed variation in soil moisture for spin up
        delsoilT		   ! allowed variation in soil temperature for spin up
+
+ INTEGER :: Metyear, Y, LOYtmp
 
   ! temporary storage for soil moisture/temp. in spin up mode
   REAL, ALLOCATABLE, DIMENSION(:,:)  :: &
@@ -411,90 +416,124 @@ PROGRAM cable_offline_driver
 	      LOY = 365
 	   ENDIF
     ! Check for gswp run
-	   IF ( TRIM(cable_user%MetType) .EQ. 'gswp' ) THEN
-	      ncciy = CurYear
+    IF ( TRIM(cable_user%MetType) .EQ. 'gswp' ) THEN
+       ncciy = CurYear
 
-	      CALL prepareFiles(ncciy)
-	      IF ( RRRR .EQ. 1 ) THEN
-		 CALL open_met_file( dels, koffset, kend, spinup, C%TFRZ )
-		 IF (leaps.and.is_leapyear(YYYY).and.kend.eq.2920) THEN
-		    STOP 'LEAP YEAR INCOMPATIBILITY WITH INPUT MET !!!'
-		 ENDIF
-		 IF ( NRRRR .GT. 1 ) THEN
-		    GSWP_MID(1,YYYY) = ncid_rain
-		    GSWP_MID(2,YYYY) = ncid_snow
-		    GSWP_MID(3,YYYY) = ncid_lw
-		    GSWP_MID(4,YYYY) = ncid_sw
-		    GSWP_MID(5,YYYY) = ncid_ps
-		    GSWP_MID(6,YYYY) = ncid_qa
-		    GSWP_MID(7,YYYY) = ncid_ta
-		    GSWP_MID(8,YYYY) = ncid_wd
-		 ENDIF
-	      ELSE
-		 ncid_rain = GSWP_MID(1,YYYY)
-		 ncid_snow = GSWP_MID(2,YYYY)
-		 ncid_lw   = GSWP_MID(3,YYYY)
-		 ncid_sw   = GSWP_MID(4,YYYY)
-		 ncid_ps   = GSWP_MID(5,YYYY)
-		 ncid_qa   = GSWP_MID(6,YYYY)
-		 ncid_ta   = GSWP_MID(7,YYYY)
-		 ncid_wd   = GSWP_MID(8,YYYY)
-		 kend	   = ktauday * LOY
-	      ENDIF
-	   ELSE IF ( TRIM(cable_user%MetType) .EQ. 'plum' ) THEN
-           ! PLUME experiment setup using WATCH
-	      IF ( CALL1 ) THEN
+       CALL prepareFiles(ncciy)
+       IF ( RRRR .EQ. 1 ) THEN
+          CALL open_met_file( dels, koffset, kend, spinup, C%TFRZ )
+          IF (leaps.and.is_leapyear(YYYY).and.kend.eq.2920) THEN
+             STOP 'LEAP YEAR INCOMPATIBILITY WITH INPUT MET !!!'
+          ENDIF
+          IF ( NRRRR .GT. 1 ) THEN
+             GSWP_MID(1,YYYY) = ncid_rain
+             GSWP_MID(2,YYYY) = ncid_snow
+             GSWP_MID(3,YYYY) = ncid_lw
+             GSWP_MID(4,YYYY) = ncid_sw
+             GSWP_MID(5,YYYY) = ncid_ps
+             GSWP_MID(6,YYYY) = ncid_qa
+             GSWP_MID(7,YYYY) = ncid_ta
+             GSWP_MID(8,YYYY) = ncid_wd
+          ENDIF
+       ELSE
+          ncid_rain = GSWP_MID(1,YYYY)
+          ncid_snow = GSWP_MID(2,YYYY)
+          ncid_lw   = GSWP_MID(3,YYYY)
+          ncid_sw   = GSWP_MID(4,YYYY)
+          ncid_ps   = GSWP_MID(5,YYYY)
+          ncid_qa   = GSWP_MID(6,YYYY)
+          ncid_ta   = GSWP_MID(7,YYYY)
+          ncid_wd   = GSWP_MID(8,YYYY)
+          kend	   = ktauday * LOY
+       ENDIF
+    ELSE IF ( TRIM(cable_user%MetType) .EQ. 'plum' ) THEN
+       ! PLUME experiment setup using WATCH
+       IF ( CALL1 ) THEN
 
-		 CALL CPU_TIME(etime)
-		 CALL PLUME_MIP_INIT( PLUME )
-
-     
-
-		 dels	   = PLUME%dt
-		 koffset   = 0
-		 leaps = PLUME%LeapYears
-
-                 write(str1,'(i4)') CurYear
-                 str1 = adjustl(str1)
-                 write(str2,'(i2)') 1
-                 str2 = adjustl(str2)
-                 write(str3,'(i2)') 1
-                 str3 = adjustl(str3)
-                 timeunits="seconds since "//trim(str1)//"-"//trim(str2)//"-"//trim(str3)//" &
-                            00:00"
-               
-	      ENDIF
-	      IF ( .NOT. PLUME%LeapYears ) LOY = 365
-	      kend = NINT(24.0*3600.0/dels) * LOY
-	   ELSE IF ( TRIM(cable_user%MetType) .EQ. 'cru' ) THEN
-	      ! TRENDY experiment using CRU-NCEP
-	      IF ( CALL1 ) THEN
-
-		 CALL CPU_TIME(etime)
-		 CALL CRU_INIT( CRU )
-
-		 dels	   = CRU%dtsecs
-		 koffset   = 0
-		 leaps = .false.         ! No leap years in CRU-NCEP
-                 exists%Snowf = .false.  ! No snow in CRU-NCEP, so ensure it will
-                                         ! be determined from temperature in CABLE
-
-                 write(str1,'(i4)') CurYear
-                 str1 = adjustl(str1)
-                 write(str2,'(i2)') 1
-                 str2 = adjustl(str2)
-                 write(str3,'(i2)') 1
-                 str3 = adjustl(str3)
-                 timeunits="seconds since "//trim(str1)//"-"//trim(str2)//"-"//trim(str3)//" &
-                            00:00"
+          CALL CPU_TIME(etime)
+          CALL PLUME_MIP_INIT( PLUME )
 
 
-	      ENDIF
-	       LOY = 365
-	      kend = NINT(24.0*3600.0/dels) * LOY
-	   ENDIF
 
-    ! somethings (e.g. CASA-CNP) only need to be done once per day
+          dels	   = PLUME%dt
+          koffset   = 0
+          leaps = PLUME%LeapYears
+
+          write(str1,'(i4)') CurYear
+          str1 = adjustl(str1)
+          write(str2,'(i2)') 1
+          str2 = adjustl(str2)
+          write(str3,'(i2)') 1
+          str3 = adjustl(str3)
+          timeunits="seconds since "//trim(str1)//"-"//trim(str2)//"-"//trim(str3)//" &
+               00:00"
+
+       ENDIF
+       IF ( .NOT. PLUME%LeapYears ) LOY = 365
+       kend = NINT(24.0*3600.0/dels) * LOY
+    ELSE IF ( TRIM(cable_user%MetType) .EQ. 'cru' ) THEN
+       ! TRENDY experiment using CRU-NCEP
+       IF ( CALL1 ) THEN
+
+          CALL CPU_TIME(etime)
+          CALL CRU_INIT( CRU )
+
+          dels	   = CRU%dtsecs
+          koffset   = 0
+          leaps = .false.         ! No leap years in CRU-NCEP
+          exists%Snowf = .false.  ! No snow in CRU-NCEP, so ensure it will
+          ! be determined from temperature in CABLE
+
+          write(str1,'(i4)') CurYear
+          str1 = adjustl(str1)
+          write(str2,'(i2)') 1
+          str2 = adjustl(str2)
+          write(str3,'(i2)') 1
+          str3 = adjustl(str3)
+          timeunits="seconds since "//trim(str1)//"-"//trim(str2)//"-"//trim(str3)//" &
+               00:00"
+
+
+       ENDIF
+       LOY = 365
+       kend = NINT(24.0*3600.0/dels) * LOY
+    ELSE IF ( TRIM(cable_user%MetType) .EQ. 'site' ) THEN
+         ! site experiment eg AmazonFace (spinup, transient, 'AMB', 'ELE' run type)  
+           
+       IF ( CALL1 ) THEN
+          CALL CPU_TIME(etime)
+          CALL site_INIT( site )
+          write(str1,'(i4)') CurYear
+          str1 = adjustl(str1)
+          write(str2,'(i2)') 1
+          str2 = adjustl(str2)
+          write(str3,'(i2)') 1
+          str3 = adjustl(str3)
+          timeunits="seconds since "//trim(str1)//"-"//trim(str2)//"-"//trim(str3)//" &
+               00:00"
+
+       ENDIF
+       LOY = 365
+      IF (IS_LEAPYEAR(CurYear)) LOY = 366
+       kend = NINT(24.0*3600.0/dels) * LOY
+       ! get koffset to add to time-step of sitemet
+       IF (TRIM(site%RunType)=='AMB' .OR. TRIM(site%RunType)=='ELE') THEN
+          MetYear = CurYear
+       ELSEIF (TRIM(site%RunType)=='spinup' .OR. TRIM(site%RunType)=='transient') THEN
+          MetYear = site%spinstartyear + MOD(CurYear-1819,16)
+       ENDIF
+       koffset_met = 0
+       if (MetYear .gt. site%spinstartyear) then
+           DO Y = site%spinstartyear, MetYear-1
+             LOYtmp = 365
+             IF (IS_LEAPYEAR(Y)) LOYtmp = 366
+             koffset_met = koffset_met + INT( REAL(LOYtmp) * 86400./REAL(dels) )
+          ENDDO
+       endif
+
+    ENDIF
+
+    ! some things (e.g. CASA-CNP) only need to be done once per day
 	   ktauday=INT(24.0*3600.0/dels)
 
     !! Checks where parameters and initialisations should be loaded from.
@@ -587,7 +626,7 @@ PROGRAM cable_offline_driver
        ! time step loop over ktau
        DO ktau=kstart, kend
           
-          
+         
           ! increment total timstep counter
           ktau_tot = ktau_tot + 1
           
@@ -616,14 +655,24 @@ PROGRAM cable_offline_driver
                             YYYY, ktau, kend, &
                             YYYY.EQ.CABLE_USER%YearEnd)  
                     ENDIF
-           ELSE
-             CALL get_met_data( spinup, spinConv, met, soil,		 &
+          ELSE
+             IF (TRIM(cable_user%MetType) .EQ. 'site') &
+                  CALL get_met_data( spinup, spinConv, met, soil,		 &
+                  rad, veg, kend, dels, C%TFRZ, ktau+koffset_met,		 &
+                         kstart+koffset_met )
+             IF (TRIM(cable_user%MetType) .EQ. '') &
+                  CALL get_met_data( spinup, spinConv, met, soil,		 &
                   rad, veg, kend, dels, C%TFRZ, ktau+koffset,		 &
                          kstart+koffset )
+
+             IF (TRIM(cable_user%MetType) .EQ. 'site' .and. ktau.eq.1.) THEN
+                 CALL site_get_CO2_Ndep(site)
+              ENDIF
+                 met%ca = site%CO2 / 1.e+6
+                 met%Ndep = site%Ndep  *1000./10000./365. ! kg ha-1 y-1 > g m-2 d-1
           ENDIF
  
-          IF (TRIM(cable_user%MetType).EQ.'' .OR. &
-                  TRIM(cable_user%MetType).EQ.'site' ) THEN
+          IF (TRIM(cable_user%MetType).EQ.'') THEN
              CurYear = met%year(1)
              IF ( leaps .AND. IS_LEAPYEAR( CurYear ) ) THEN
                 LOY = 366
@@ -650,7 +699,7 @@ PROGRAM cable_offline_driver
                   casapool, casamet )
              
              IF (l_laiFeedbk.and.icycle>0) veg%vlai(:) = casamet%glai(:)
-             
+     
              ! Call land surface scheme for this timestep, all grid points:
                     CALL cbm(ktau, dels, air, bgc, canopy, met,		      &
                          bal, rad, rough, soil, ssnow,			      &
@@ -754,11 +803,11 @@ PROGRAM cable_offline_driver
                           ENDIF
                           ncfile = TRIM(casafile%c2cdumppath)//'c2c_'//CYEAR//'_dump.nc'
 
-                          IF (TRIM(cable_user%MetType).EQ.'' .OR. &
-                               TRIM(cable_user%MetType).EQ.'site' ) THEN
+                          IF (TRIM(cable_user%MetType).EQ.'' ) THEN
                              CALL write_casa_dump( ncfile, casamet , casaflux, phen, climate,&
                                   INT(met%doy), LOY )
                           ELSE
+
                              CALL write_casa_dump( ncfile, casamet , casaflux, phen, climate, idoy, &                                 kend/ktauday )
                           ENDIF
 
@@ -784,9 +833,12 @@ PROGRAM cable_offline_driver
 
                  IF ( (.NOT. CASAONLY) .AND. spinConv ) THEN
                     !mpidiff
+
+
                     if ( TRIM(cable_user%MetType) .EQ. 'plum' .OR.  &
                          TRIM(cable_user%MetType) .EQ. 'cru' .OR.  &
-                       TRIM(cable_user%MetType) .EQ. 'gswp' ) then
+                       TRIM(cable_user%MetType) .EQ. 'gswp'.OR.    &
+                       TRIM(cable_user%MetType) .EQ. 'site'  ) then
 
                        CALL write_output( dels, ktau_tot, met, canopy, casaflux, casapool, casamet, &
                             ssnow,   rad, bal, air, soil, veg, C%SBOLTZ, C%EMLEAF, C%EMSOIL )
@@ -1026,9 +1078,11 @@ PROGRAM cable_offline_driver
      !mpidiff
      IF ( CASAONLY .or. cable_user%pop_fromzero &
           .or.TRIM(cable_user%POP_out).eq.'ini' ) THEN
+
 	CALL POP_IO( pop, casamet, RYEAR+1, 'WRITE_INI', .TRUE.)
      ELSE
- 	CALL POP_IO( pop, casamet, RYEAR+1, 'WRITE_RST', .TRUE.)
+ 	!CALL POP_IO( pop, casamet, RYEAR+1, 'WRITE_RST', .TRUE.)
+	CALL POP_IO( pop, casamet, RYEAR+1, 'WRITE_INI', .TRUE.)
      ENDIF
   ENDIF
 

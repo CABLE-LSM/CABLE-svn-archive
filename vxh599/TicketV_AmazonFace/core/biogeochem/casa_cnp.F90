@@ -158,6 +158,7 @@ SUBROUTINE casa_xnp(xnplimit,xNPuptake,veg,casabiome,casapool,casaflux,casamet)
    enddo
 
 !write(59,91)  xNuptake(1),casapool%Nsoilmin(1), totNreqmin(1)*deltpool 
+!write(59,91) xPuptake(1),casapool%psoillab, totPreqmin*deltpool
 91  format(20(e12.4,2x))
 !  casaflux%cnpp(:) = xNPuptake(:) * xnplimit(:) * casaflux%cnpp(:)
 
@@ -1557,7 +1558,7 @@ IF(casamet%iveg2(nland)/=icewater) THEN
                         / ( max( 0.0_r_2, ( casabiome%costNPup( veg%iveg(nland) )  &
                                         - 15.0 )                               &
                                ) + 150.0                                       &
-                          )
+                               )
 
       xdplabsorb(nland) = 1.0+ casaflux%Psorbmax(nland)*casaflux%kmlabp(nland) &
                         /((casaflux%kmlabp(nland)+casapool%Psoillab(nland))**2)
@@ -1583,6 +1584,12 @@ IF(casamet%iveg2(nland)/=icewater) THEN
                                  - casaflux%Pleach(nland)-casaflux%pupland(nland)   &
                                  - casaflux%kpsorb(nland)*casapool%Psoilsorb(nland) &
                                  + casaflux%kpocc(nland) * casapool%Psoilocc(nland)
+
+!!$write(591,*) 'plab input', casaflux%Psnet, fluxptase,casaflux%Pdep,  casaflux%Pwea
+!!$write(591,*) 'plab output', casaflux%Pleach, casaflux%pupland, casaflux%kpsorb*casapool%Psoilsorb, &
+!!$casaflux%kpocc * casapool%Psoilocc
+!!$write(591,*)  casabiome%prodptase( veg%iveg(1) )
+!!$write(591,*)
       ! here the dPsoillabdt =(dPsoillabdt+dPsoilsorbdt)
       ! dPsoilsorbdt  = xdplabsorb
       casapool%dPsoillabdt(nland)  = casapool%dPsoillabdt(nland)/xdplabsorb(nland)
@@ -1934,6 +1941,8 @@ SUBROUTINE casa_puptake(veg,xkNlimiting,casabiome,casapool,casaflux,casamet)
   xpCnpp = max(0.0_r_2,casaflux%cnpp)
   call casa_Prequire(xpCnpp,Preqmin,Preqmax,PtransPtoP,veg, &
                      casabiome,casapool,casaflux,casamet)
+
+
   WHERE(casamet%iveg2/=icewater)
     totPreqmax(:) = Preqmax(:,leaf)+Preqmax(:,wood)+Preqmax(:,froot)
     totPreqmin(:) = Preqmin(:,leaf)+Preqmin(:,wood)+Preqmin(:,froot)
@@ -1954,12 +1963,14 @@ SUBROUTINE casa_puptake(veg,xkNlimiting,casabiome,casapool,casaflux,casamet)
 
   casaflux%Pupland = casaflux%Plabuptake
 
-!  np=1
-!  write(*,911) casapool%Psoillab(np),casaflux%Plabuptake(np), &
-!               xpuptake(np,leaf), xpuptake(np,wood), xpuptake(np,froot), &
-!               casaflux%fracPalloc(np,leaf),casaflux%fracPalloc(np,wood), &
-!               casaflux%fracPalloc(np,froot)
-!911 format('P uptake:',100(f8.3,2x))
+  np=1
+
+
+!!$  write(*,911) casapool%Psoillab(np),casaflux%Plabuptake(np), &
+!!$               xpuptake(np,leaf), xpuptake(np,wood), xpuptake(np,froot), &
+!!$               casaflux%fracPalloc(np,leaf),casaflux%fracPalloc(np,wood), &
+!!$               casaflux%fracPalloc(np,froot)
+!!$911 format('P uptake:',100(f12.6,2x))
 
 !  ! only used in spinning up the model
 !  DO  np=1,mp
@@ -2011,6 +2022,8 @@ SUBROUTINE casa_Prequire(xpCnpp,Preqmin,Preqmax,PtransPtoP,veg, &
     PtransPtoP(np,froot) = casaflux%kplant(np,froot)*casapool%Pplant(np,froot) &
                        * (1.0-casabiome%ftransPPtoL(veg%iveg(np),froot))
 
+
+
     Preqmax(np,leaf)    = max(0.0,Preqmax(np,leaf) - PtransPtoP(np,leaf))
     Preqmax(np,wood)    = max(0.0,Preqmax(np,wood) - PtransPtoP(np,wood))
     Preqmax(np,froot)    = max(0.0,Preqmax(np,froot) - PtransPtoP(np,froot))
@@ -2018,6 +2031,7 @@ SUBROUTINE casa_Prequire(xpCnpp,Preqmin,Preqmax,PtransPtoP,veg, &
     Preqmin(np,leaf)    = max(0.0,Preqmin(np,leaf) - PtransPtoP(np,leaf))
     Preqmin(np,wood)    = max(0.0,Preqmin(np,wood) - PtransPtoP(np,wood))
     Preqmin(np,froot)    = max(0.0,Preqmin(np,froot) - PtransPtoP(np,froot))
+
 
 
     if(casapool%pplant(np,leaf)/(casapool%nplant(np,leaf)+1.0e-10)> 1.0/casabiome%ratioNPplantmin(veg%iveg(np),leaf)) then
@@ -2035,6 +2049,7 @@ SUBROUTINE casa_Prequire(xpCnpp,Preqmin,Preqmax,PtransPtoP,veg, &
 
   endif
   ENDDO
+
 
 END SUBROUTINE casa_Prequire
 
@@ -2244,9 +2259,10 @@ casaflux%Cnpp(1), casapool%dcplantdt(1,:), &
 !stop
 endif
 
-
-
-
+! output for AmazonFACE
+ WRITE(126,'(15(E16.8,",") )') &
+casabal%cplantlast, casabal%nplantlast, casabal%nplantlast,casabal%clabilelast 
+! end hack for AmazonFACE
 
    casapool%ctot_0 = sum(casabal%cplantlast,2)+sum(casabal%clitterlast,2) &
         + sum(casabal%csoillast,2)+ casabal%clabilelast

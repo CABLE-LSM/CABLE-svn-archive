@@ -58,7 +58,7 @@ MODULE cable_common_module
   CHARACTER(LEN=200) ::                                                       &
        myhome
 
-  ! switch to calc sil albedo using soil colour - Ticket #27
+  ! switch to calc soil albedo using soil colour - Ticket #27
   LOGICAL :: calcsoilalbedo = .FALSE.
   !---Lestevens Sept2012
   !---CASACNP switches and cycle index

@@ -177,6 +177,8 @@ SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
            IF(idoy==mdyear) THEN ! end of year
 
               CALL POPdriver(casaflux,casabal,veg, POP)
+              CALL POP_IO( pop, casamet, NYEAR, 'WRITE_EPI', &
+			 .FALSE. )
 
            ENDIF  ! end of year
         ELSE
@@ -297,6 +299,7 @@ SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
 
         DO idoy=1,mdyear
            ktauy=idoy*ktauday
+           ktau=(idoy-1)*ktauday +1
            !      CALL read_casa_dump(casafile%cnpspin, casamet, casaflux, idoy, kend )
            casamet%tairk(:)       = casamet%Tairkspin(:,idoy)
            casamet%tsoil(:,1)     = casamet%Tsoilspin_1(:,idoy)
@@ -357,6 +360,8 @@ SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
 
                  CALL POPdriver(casaflux,casabal,veg, POP)
 
+                 CALL POP_IO( pop, casamet, NYEAR, 'WRITE_EPI', &
+			 (nyear.eq.myearspin .and. nloop.eq.mloop) )
                  
            ENDIF  ! end of year
         ELSE

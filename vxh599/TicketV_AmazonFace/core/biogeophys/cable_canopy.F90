@@ -725,6 +725,11 @@ CONTAINS
          + C%CAPP*C%rmair * (tlfy-met%tk) * SUM(rad%gradis,2) *          &
          canopy%fwet  ! YP nov2009
 
+! AmazonFACE output
+  WRITE(15,*) SUM((gbhu+gbhf),2), fwsoil
+! end AmazonFACE output
+
+
     DEALLOCATE(cansat,gbhu)
     DEALLOCATE(dsx, fwsoil, tlfx, tlfy)
     DEALLOCATE(ecy, hcy, rny)

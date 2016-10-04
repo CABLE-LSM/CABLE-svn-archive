@@ -753,7 +753,7 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
     !! vh_js !!
     IF (TRIM(cable_user%MetType).EQ.'' .OR. &
                   TRIM(cable_user%MetType).EQ.'site') THEN
-       shod = shod - dels/3600./2.
+       shod = shod !- dels/3600./2.
     ENDIF
     ! Decide day-of-year for non-leap year:
     CALL YMDHMS2DOYSOD( syear, smoy, sdoytmp, INT(shod), 0, 0, sdoy, ssod )
@@ -811,9 +811,10 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
 !       eyear = INT(REAL(INT(((timevar(kend)-timevar(1)+dels) &
 !            /3600.0+shod)/24.0)+sdoy)/365.0)+syear
     END IF
-    ! IF A CERTAIN PERIOD IS DESIRED AND WE ARE NOT RUNNING ON GSWP DATA
+    ! IF A CERTAIN PERIOD IS DESIRED AND WE ARE NOT RUNNING ON GSWP DATA or special site expt
     ! RECALCULATE STARTING AND ENDING INDICES
-    IF ( CABLE_USER%YEARSTART .GT. 0 .AND. .NOT. ncciy.GT.0) THEN
+    IF ( CABLE_USER%YEARSTART .GT. 0 .AND. .NOT. ncciy.GT.0 .and. &
+         TRIM(cable_user%MetType) .NE. "site") THEN
        IF ( syear.GT.CABLE_USER%YEARSTART .OR. eyear.LE.CABLE_USER%YEAREND .OR. &
             ( syear.EQ.CABLE_USER%YEARSTART .AND. sdoy.gt.1 ) ) THEN
           WRITE(*,*) "Chosen periode doesn't match dataset period!"
