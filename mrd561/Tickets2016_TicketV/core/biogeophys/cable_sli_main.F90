@@ -145,9 +145,9 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
      open(unit=370, file="qex.out",status="replace", position="rewind")
      open(unit=371, file="q.out",status="replace", position="rewind")
 
-     open(unit=339, file="latlong.out",status="replace", position="rewind")
-     write(339,"(20000f8.2)") rad%latitude
-     write(339,"(20000f8.2)") rad%longitude
+     !open(unit=339, file="latlong.out",status="replace", position="rewind")
+    ! write(339,"(20000f8.2)") rad%latitude
+     !write(339,"(20000f8.2)") rad%longitude
      counter = 0
   endif
 
@@ -540,7 +540,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
      rbw = vmet(1)%rbw
      rbh = vmet(1)%rbh
      rrc = vmet(1)%rrc
-
+!write(*,*), 'b4 solve', ktau
      call solve(wlogn, ti, tf, ktau, mp, qprec, qprec_snow, ms, dx, &
           h0, S, thetai, Jsensible, Tsoil, evap, &
           evap_pot, runoff, infil, drn, discharge, qh, &
@@ -589,7 +589,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
      wp  = sum((par%thr + (par%the-par%thr)*S)*dx,2) + plit%thre*SL*dxL 
      win = win + (qprec+qprec_snow)*(tf-ti)
 
-     if (1 == 1) then
+     if (1 == 0) then
         k=1
         write(332,"(i8,i8,18e16.6)") ktau, nsteps(k), wp(k)-wpi(k), infil(k)-drn(k), runoff(k), &
              win(k)-(wp(k)-wpi(k)+deltah0(k)+runoff(k)+evap(k)+drn(k))-Etrans(k)*dt, wp(k), &
@@ -681,7 +681,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
      ssnow%isflag = 0
 
      ! snow output
-     if (1 == 1) then
+     if (1 == 0) then
         k = 1
         write(340,"(100e16.6)") sum(vsnow(k)%hsnow(1:vsnow(k)%nsnow)), vsnow(k)%tsn(1),sum(vsnow(k)%hliq(1:vsnow(k)%nsnow)), &
              qprec_snow(k)*dt, vsnow(k)%Qmelt, qprec(k)*dt, &

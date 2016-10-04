@@ -93,7 +93,6 @@ CONTAINS
     CLOSE(iu)
     LUC_EXPT%TransitionFilePath = TransitionFilePath
     LUC_EXPT%ClimateFile        = ClimateFile
-    LUC_EXPT%Run                = Run
     LUC_EXPT%DirectRead         = DirectRead
     LUC_EXPT%YearStart          = YearStart
     LUC_EXPT%YearEnd            = YearEnd
@@ -102,7 +101,6 @@ CONTAINS
     WRITE(*   ,*)"LUC_EXPT settings chosen:"
     WRITE(*   ,*)" TransitionFilePath: ",TRIM(LUC_EXPT%TransitionFilePath)
     WRITE(*   ,*)" ClimateFile       : ",TRIM(LUC_EXPT%ClimateFile)
-    WRITE(*   ,*)" Run               : ",TRIM(LUC_EXPT%Run)
 
 
     ! Transition Filenames and variables

@@ -366,7 +366,7 @@ CONTAINS
 
     ! Open log file:
     OPEN(logn,FILE=filename%log)
-PRINT*,"IS_CASA_",IS_CASA_TIME("dread", 2012, 8, 1, 0, 2920, 8, 88) 
+
     CALL report_version_no( logn )
 
     IF( IARGC() > 0 ) THEN
@@ -375,6 +375,24 @@ PRINT*,"IS_CASA_",IS_CASA_TIME("dread", 2012, 8, 1, 0, 2920, 8, 88)
     ENDIF
 
     ! INITIALISATION depending on nml settings
+  IF (TRIM(cable_user%MetType) .EQ. 'gswp') THEN
+     IF ( CABLE_USER%YearStart.eq.0 .and. ncciy.gt.0) THEN
+        CABLE_USER%YearStart = ncciy
+        CABLE_USER%YearEnd = ncciy
+     ELSEIF  ( CABLE_USER%YearStart.eq.0 .and. ncciy.eq.0) THEN
+        PRINT*, 'undefined start year for gswp met: '
+        PRINT*, 'enter value for ncciy or'  
+        PRINT*, '(CABLE_USER%YearStart and  CABLE_USER%YearEnd) &
+             in cable.nml'
+
+        write(logn,*) 'undefined start year for gswp met: '
+        write(logn,*) 'enter value for ncciy or'  
+        write(logn,*) '(CABLE_USER%YearStart and  CABLE_USER%YearEnd) &
+             in cable.nml'
+
+        stop
+     ENDIF
+  ENDIF
 
     CurYear = CABLE_USER%YearStart
 
@@ -533,7 +551,7 @@ PRINT*,"IS_CASA_",IS_CASA_TIME("dread", 2012, 8, 1, 0, 2920, 8, 88)
                   casamet, casabal, phen, POP, spinup,	       &
                   C%EMSOIL, C%TFRZ, LUC_EXPT, POPLUC )
 
-             IF (CABLE_USER%POPLUC .AND. TRIM(LUC_EXPT%run) .EQ. 'static') &
+             IF (CABLE_USER%POPLUC .AND. TRIM(CABLE_USER%POPLUC_RunType) .EQ. 'static') &
                   CABLE_USER%POPLUC= .FALSE.
             
              ssnow%otss_0 = ssnow%tgg(:,1)
@@ -623,7 +641,7 @@ PRINT*,"IS_CASA_",IS_CASA_TIME("dread", 2012, 8, 1, 0, 2920, 8, 88)
 
                 IF ( CABLE_USER%CASA_DUMP_READ .OR. CABLE_USER%CASA_DUMP_WRITE ) &
                      CALL master_casa_dump_types( comm, casamet, casaflux, phen, climate )
-
+                  write(*,*) 'cable_mpimaster, POPLUC: ' ,  CABLE_USER%POPLUC
                 IF ( CABLE_USER%POPLUC ) &
                      CALL master_casa_LUC_types( comm, casapool, casabal)
                 
@@ -891,20 +909,22 @@ PRINT*,"IS_CASA_",IS_CASA_TIME("dread", 2012, 8, 1, 0, 2920, 8, 88)
                 ENDIF
           
                 
-                 IF ( (.NOT. CASAONLY).AND. spinConv  ) THEN
-                    IF ( TRIM(cable_user%MetType) .EQ. 'plum' &
-                         .OR. TRIM(cable_user%MetType) .EQ. 'cru' ) then
-                       CALL write_output( dels, ktau_tot, met, canopy, casaflux, casapool, &
-                            casamet,ssnow,         &
-                            rad, bal, air, soil, veg, C%SBOLTZ,     &
-                            C%EMLEAF, C%EMSOIL )
-                    else
-                       CALL write_output( dels, ktau, met, canopy, casaflux, casapool, &
-                            casamet, ssnow,   &
-                            rad, bal, air, soil, veg, C%SBOLTZ, C%EMLEAF, C%EMSOIL )
-                       
-                    ENDIF
-                 END IF
+                IF ( (.NOT. CASAONLY).AND. spinConv  ) THEN
+
+                   IF ( TRIM(cable_user%MetType) .EQ. 'plum' &
+                        .OR. TRIM(cable_user%MetType) .EQ. 'cru'   &
+                        .OR. TRIM(cable_user%MetType) .EQ. 'gswp') then
+                      CALL write_output( dels, ktau_tot, met, canopy, casaflux, casapool, &
+                           casamet,ssnow,         &
+                           rad, bal, air, soil, veg, C%SBOLTZ,     &
+                           C%EMLEAF, C%EMSOIL )
+                   else
+                      CALL write_output( dels, ktau, met, canopy, casaflux, casapool, &
+                           casamet, ssnow,   &
+                           rad, bal, air, soil, veg, C%SBOLTZ, C%EMLEAF, C%EMSOIL )
+
+                   ENDIF
+                END IF
               ENDIF
                
                !---------------------------------------------------------------------!
@@ -913,27 +933,28 @@ PRINT*,"IS_CASA_",IS_CASA_TIME("dread", 2012, 8, 1, 0, 2920, 8, 88)
              !---------------------------------------------------------------------!
              IF(cable_user%consistency_check) THEN 
 
-
                 count_bal = count_bal +1;
                     new_sumbal = new_sumbal + SUM(bal%wbal)/mp +  SUM(bal%ebal)/mp
                     new_sumfpn = new_sumfpn + SUM(canopy%fpn)/mp
                     new_sumfe = new_sumfe + SUM(canopy%fe)/mp
-                    if (ktau == kend-1) PRINT*, "time-space-averaged energy & water balances"
-                    if (ktau == kend-1) PRINT*,"Ebal_tot[Wm-2], Wbal_tot[mm]", &
-                         sum(bal%ebal_tot)/mp/count_bal, sum(bal%wbal_tot)/mp/count_bal
-                    if (ktau == kend-1) PRINT*, "time-space-averaged latent heat and net photosynthesis"
-                    if (ktau == kend-1) PRINT*, "sum_fe[Wm-2], sum_fpn[umol/m2/s]",  &
-                         new_sumfe/count_bal, new_sumfpn/count_bal
+!!$                    if (ktau == kend-1) PRINT*, "time-space-averaged energy & water balances"
+!!$                    if (ktau == kend-1) PRINT*,"Ebal_tot[Wm-2], Wbal_tot[mm]", &
+!!$                         sum(bal%ebal_tot)/mp/count_bal, sum(bal%wbal_tot)/mp/count_bal
+!!$                    if (ktau == kend-1) PRINT*, "time-space-averaged latent heat and net photosynthesis"
+!!$                    if (ktau == kend-1) PRINT*, "sum_fe[Wm-2], sum_fpn[umol/m2/s]",  &
+!!$                         new_sumfe/count_bal, new_sumfpn/count_bal
 
-             
-                if(any( canopy%fe.NE. canopy%fe)) THEN
+                    ! check for Nans in biophysical outputs and abort if there are any          
+                IF (any( canopy%fe.NE. canopy%fe)) THEN
                     DO kk=1,mp
 
                      IF (canopy%fe(kk).NE. canopy%fe(kk)) THEN
                       WRITE(*,*) 'Nan in evap flux,', kk, patch(kk)%latitude, patch(kk)%longitude 
                       write(*,*) 'fe nan', kk, ktau,met%qv(kk), met%precip(kk),met%precip_sn(kk), &
-                               met%fld(kk), met%fsd(kk,:), met%tk(kk), met%ua(kk), ssnow%potev(kk), met%pmb(kk), &
-                               canopy%ga(kk), ssnow%tgg(kk,:), canopy%fwsoil(kk),rad%fvlai(kk,:) ,  rad%fvlai(kk,1), &
+                               met%fld(kk), met%fsd(kk,:), met%tk(kk), met%ua(kk), &
+                               ssnow%potev(kk), met%pmb(kk), &
+                               canopy%ga(kk), ssnow%tgg(kk,:), canopy%fwsoil(kk), &
+                               rad%fvlai(kk,:) ,  rad%fvlai(kk,1), &
                                rad%fvlai(kk,2), canopy%vlaiw(kk)
 
                       CALL MPI_Abort(comm, 0, ierr)
@@ -941,7 +962,7 @@ PRINT*,"IS_CASA_",IS_CASA_TIME("dread", 2012, 8, 1, 0, 2920, 8, 88)
                       
                     ENDDO
               
-                ENDIF
+                 ENDIF
                 IF(ktau==(kend-1)) THEN 
 
                    nkend = nkend+1
@@ -969,7 +990,7 @@ PRINT*,"IS_CASA_",IS_CASA_TIME("dread", 2012, 8, 1, 0, 2920, 8, 88)
 !CLN                      CLOSE(12)
 
                    ENDIF
- 
+                   
                 ENDIF
 
              ENDIF
@@ -1114,7 +1135,9 @@ IF (icycle>0 .and.   cable_user%CALL_POP)  THEN
 
              IF ( (.NOT. CASAONLY) .AND. spinConv ) THEN
                 IF ( TRIM(cable_user%MetType) .EQ. 'plum' &
-                         .OR. TRIM(cable_user%MetType) .EQ. 'cru' ) then
+                         .OR. TRIM(cable_user%MetType) .EQ. 'cru'   &
+                       .OR. TRIM(cable_user%MetType) .EQ. 'gswp') then
+
                    CALL write_output( dels, ktau_tot, met, canopy, casaflux, casapool, &
                         casamet, ssnow,         &
                         rad, bal, air, soil, veg, C%SBOLTZ,     &
@@ -1127,11 +1150,35 @@ IF (icycle>0 .and.   cable_user%CALL_POP)  THEN
                 ENDIF
              END IF
              
-!!$             IF ( .NOT. CASAONLY ) &
-!!$                  CALL write_output( dels, ktau_tot, met, canopy, &
-!!$                   casaflux, casapool, ssnow,         &
-!!$                  rad, bal, air, soil, veg, C%SBOLTZ,     &
-!!$                  C%EMLEAF, C%EMSOIL )
+             IF(cable_user%consistency_check) THEN 
+                
+                count_bal = count_bal +1;
+                new_sumbal = new_sumbal + SUM(bal%wbal)/mp +  SUM(bal%ebal)/mp
+                new_sumfpn = new_sumfpn + SUM(canopy%fpn)/mp
+                new_sumfe = new_sumfe + SUM(canopy%fe)/mp
+                if (ktau == kend) PRINT*
+                if (ktau == kend) PRINT*, "time-space-averaged energy & water balances"
+                if (ktau == kend) PRINT*,"Ebal_tot[Wm-2], Wbal_tot[mm per timestep]", &
+                     sum(bal%ebal_tot)/mp/count_bal, sum(bal%wbal_tot)/mp/count_bal
+                if (ktau == kend) PRINT*, "time-space-averaged latent heat and &
+                     net photosynthesis"
+                if (ktau == kend) PRINT*, "sum_fe[Wm-2], sum_fpn[umol/m2/s]",  &
+                     new_sumfe/count_bal, new_sumfpn/count_bal
+                if (ktau == kend) write(logn,*)
+                if (ktau == kend) write(logn,*), "time-space-averaged energy & water balances"
+                if (ktau == kend) write(logn,*),"Ebal_tot[Wm-2], Wbal_tot[mm per timestep]", &
+                     sum(bal%ebal_tot)/mp/count_bal, sum(bal%wbal_tot)/mp/count_bal
+                if (ktau == kend) write(logn,*), "time-space-averaged latent heat and &
+                     net photosynthesis"
+                if (ktau == kend) write(logn,*), "sum_fe[Wm-2], sum_fpn[umol/m2/s]",  &
+                     new_sumfe/count_bal, new_sumfpn/count_bal
+
+                
+                
+             ENDIF
+
+
+
           END IF
           ! set tile area according to updated LU areas
           IF (CABLE_USER%POPLUC) THEN

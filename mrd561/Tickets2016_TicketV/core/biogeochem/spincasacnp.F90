@@ -297,7 +297,8 @@ SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
 
         DO idoy=1,mdyear
            ktauy=idoy*ktauday
-           !      CALL read_casa_dump(casafile%cnpspin, casamet, casaflux, idoy, kend )
+           ktau=(idoy-1)*ktauday +1
+      
            casamet%tairk(:)       = casamet%Tairkspin(:,idoy)
            casamet%tsoil(:,1)     = casamet%Tsoilspin_1(:,idoy)
            casamet%tsoil(:,2)     = casamet%Tsoilspin_2(:,idoy)

@@ -389,8 +389,6 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, climate, ncall, kend
 
    END SUBROUTINE read_casa_dump
 
-!! DOES THIS NEED TO BE DELETED FOR NOW - REPLACED WITH BP CODE (LATER?)
-!! NO
 
 SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, phen, climate, n_call, kend )
   USE netcdf
@@ -475,6 +473,7 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, phen, climate, n_call, ke
 
 
   IF (n_call == 1) THEN
+ 
      ! create netCDF dataset: enter define mode
      ncok = nf90_create(path = TRIM(ncfile), cmode = nf90_clobber, ncid = ncid)
      IF (ncok /= nf90_noerr) CALL stderr_nc(ncok,'ncdf creating ', ncfile)
@@ -528,7 +527,7 @@ END SUBROUTINE write_casa_dump
   USE casaparm
   USE casavariable
   USE casa_cnp_module, ONLY: vcmax_np
-  USE cable_common_module, only: cable_user
+  USE cable_common_module,  ONLY:  CABLE_USER
   IMPLICIT NONE
   INTEGER,      INTENT(IN) :: ktau ! integration step number
   TYPE (veg_parameter_type),  INTENT(INOUT) :: veg  ! vegetation parameters

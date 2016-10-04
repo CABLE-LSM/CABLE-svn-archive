@@ -740,10 +740,10 @@ CONTAINS
        out%NPP = 0.0 ! initialise
     END IF
 
-    IF(output%carbon) THEN
+    IF(output%casa) THEN
        CALL define_ovar(ncid_out, ovid%NBP, 'NBP', 'umol/m^2/s',               &
                         'Net Biosphere Production &
-                        (excludes harvest and clearing, uptake +ve)', patchout%NBP,         &
+                        (uptake +ve)', patchout%NBP,         &
                         'dummy', xID, yID, zID, landID, patchID, tID)
        ALLOCATE(out%NBP(mp))
        out%NBP = 0.0 ! initialise
@@ -878,14 +878,16 @@ CONTAINS
        ALLOCATE(out%PlantTurnoverWoodResourceLim(mp))
        out%PlantTurnoverWoodResourceLim = 0.0
 
-       CALL define_ovar(ncid_out, ovid%LandUseFlux, 'LandUseFlux ', &
-            'umol/m^2/s',               &
-            'Contribution to NBP from  harvest and clearing', patchout%LandUseFlux,         &
-            'dummy', xID, yID, zID, landID, patchID, tID)
-       ALLOCATE(out%LandUseFlux(mp))
-       out%LandUseFlux = 0.0
-
-
+       IF (cable_user%POPLUC) THEN
+          
+          CALL define_ovar(ncid_out, ovid%LandUseFlux, 'LandUseFlux ', &
+               'umol/m^2/s',               &
+               'Sum of wood harvest and clearing fluxes', patchout%LandUseFlux,         &
+               'dummy', xID, yID, zID, landID, patchID, tID)
+          ALLOCATE(out%LandUseFlux(mp))
+          out%LandUseFlux = 0.0
+       ENDIF
+       
   
     END IF
 
@@ -995,9 +997,17 @@ CONTAINS
                                                  opid%albsoil, 'albsoil', '-', &
                               'Snow free shortwave soil reflectance fraction', &
            patchout%albsoil, radID, 'radiation', xID, yID, zID, landID, patchID)
-    IF(output%params .OR. output%hc) CALL define_ovar(ncid_out, opid%hc,       &
+    !! vh_js !!
+    IF (cable_user%CALL_POP) THEN
+       IF(output%params .OR. output%hc) CALL define_ovar(ncid_out, opid%hc,    &
                                    'hc', 'm', 'Height of canopy', patchout%hc, &
-                                         'real', xID, yID, zID, landID, patchID)
+                                      'real', xID, yID, zID, landID, patchID,tID)
+    ELSE
+       IF(output%params .OR. output%hc) CALL define_ovar(ncid_out, opid%hc,    &
+            'hc', 'm', 'Height of canopy', patchout%hc, &
+            'real', xID, yID, zID, landID, patchID)
+    ENDIF
+
     IF(output%params .OR. output%canst1) CALL define_ovar(ncid_out,            &
            opid%canst1, 'canst1', 'mm/LAI', 'Max water intercepted by canopy', &
                         patchout%canst1, 'real', xID, yID, zID, landID, patchID)
@@ -1233,8 +1243,11 @@ CONTAINS
               'vcmax', REAL(veg%vcmax, 4), ranges%vcmax, patchout%vcmax, 'real')
     IF(output%params .OR. output%frac4) CALL write_ovar(ncid_out, opid%frac4,  &
               'frac4', REAL(veg%frac4, 4), ranges%frac4, patchout%frac4, 'real')
-    IF(output%params .OR. output%hc) CALL write_ovar(ncid_out, opid%hc,        &
-                          'hc', REAL(veg%hc, 4), ranges%hc, patchout%hc, 'real')
+    
+    IF (.not.cable_user%CALL_POP) THEN
+       IF(output%params .OR. output%hc) CALL write_ovar(ncid_out, opid%hc,        &
+            'hc', REAL(veg%hc, 4), ranges%hc, patchout%hc, 'real')
+    ENDIF
     IF(output%params .OR. output%rp20) CALL write_ovar(ncid_out, opid%rp20,    &
                    'rp20', REAL(veg%rp20, 4),ranges%rp20, patchout%rp20, 'real')
     ! Ticket #56
@@ -1339,7 +1352,7 @@ CONTAINS
        out_timestep = 0
        out_month = 0
        !MC - use met%year(1) instead of CABLE_USER%YearStart for non-GSWP forcing and leap years
-       IF ( TRIM(cable_user%MetType) .ne. 'gswp' ) then
+       IF ( TRIM(cable_user%MetType) .EQ. '' ) then
           YearStart = met%year(1)
        ELSE
           YearStart = CABLE_USER%YearStart
@@ -1366,7 +1379,8 @@ CONTAINS
           writenow = .FALSE.
        END IF
     ELSE IF(output%averaging(1:2) == 'mo') THEN ! write monthly averages to file
-       realyear = met%year
+       !realyear = met%year
+       realyear = real(CurYear)
        IF(ktau >= 365*24*3600/INT(dels)) THEN
          WHERE(met%doy == 1) realyear = realyear - 1   ! last timestep of year
        END IF
@@ -1374,7 +1388,7 @@ CONTAINS
        ! LN Inserted for multiyear output
        dday = 0
        !MC - use met%year(1) instead of CABLE_USER%YearStart for non-GSWP forcing and leap years
-       DO iy=YearStart, MAXVAL(realyear)-1
+       DO iy=YearStart, CurYear-1
           IF (IS_LEAPYEAR(iy) .AND. leaps) THEN
              dday = dday + 366
           ELSE
@@ -1386,7 +1400,7 @@ CONTAINS
        ! Are we using leap year calendar?
        IF (leaps) THEN
           ! If currently a leap year:
-          if (any(is_leapyear(realyear))) then
+          if (is_leapyear(CurYear)) then
 !! vh_js !!
              IF(ANY(INT(real(lastdayl+dday) * 24. * 3600. / dels) == ktau)) THEN
                 out_month = MOD(out_month, 12) + 1 ! can only be 1 - 12
@@ -1839,9 +1853,9 @@ CONTAINS
        END IF
 
       ! Add current timestep's value to total of temporary output variable:
-     ! out%SnowMelt = out%SnowMelt + REAL(ssnow%smelt, 4)/dels
+      out%SnowMelt = out%SnowMelt + REAL(ssnow%smelt, 4)/dels
 ! temp test vh !
-      out%SnowMelt = out%SnowMelt + REAL(ssnow%nsteps, 4)/dels
+      !out%SnowMelt = out%SnowMelt + REAL(ssnow%nsteps, 4)/dels
       IF(writenow) THEN
          ! Divide accumulated variable by number of accumulated time steps:
          out%SnowMelt = out%SnowMelt / REAL(output%interval, 4)
@@ -2256,14 +2270,27 @@ CONTAINS
          END IF
       ENDIF
    ENDIF
+   IF (cable_user%CALL_POP) THEN
+      IF(writenow) THEN
+         IF(output%params .OR. output%hc) CALL write_ovar(out_timestep,ncid_out, opid%hc,        &
+              'hc', REAL(veg%hc, 4), ranges%hc, patchout%hc, 'default', met)
+      ENDIF
+   ENDIF
+
     ! NBP and turnover fluxes [umol/m^2/s]
     IF(output%casa) THEN
        ! Add current timestep's value to total of temporary output variable:
-!!$       out%NBP = out%NBP + -REAL((casaflux%Crsoil-casaflux%cnpp+casaflux%clabloss)/86400.0 &
-!!$            / 1.201E-5, 4)
-       out%NBP = out%NBP + -REAL((casaflux%Crsoil-casaflux%cnpp &
+       IF (cable_user%POPLUC) THEN
+           out%NBP = out%NBP + -REAL((casaflux%Crsoil-casaflux%cnpp &
             - casapool%dClabiledt)/86400.0 &
+            / 1.201E-5, 4) -  &
+            REAL((casaflux%FluxCtohwp + casaflux%FluxCtoclear  )/86400.0 &
             / 1.201E-5, 4)
+       ELSE
+          out%NBP = out%NBP + -REAL((casaflux%Crsoil-casaflux%cnpp &
+               - casapool%dClabiledt)/86400.0 &
+               / 1.201E-5, 4)
+       ENDIF
 
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:

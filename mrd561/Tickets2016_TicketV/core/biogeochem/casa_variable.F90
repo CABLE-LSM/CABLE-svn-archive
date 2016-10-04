@@ -362,7 +362,7 @@ MODULE casavariable
     CHARACTER(LEN=99) :: cnpflux     ! modelled mean yearly CNP fluxes
     LOGICAL           :: l_ndep
 ! added vh
-    CHARACTER(LEN=99) :: c2cdumppath ! cable2casa dump for casa spinup
+    CHARACTER(LEN=99) :: c2cdumppath='' ! cable2casa dump for casa spinup
   END TYPE casafiles_type
   TYPE(casafiles_type) :: casafile
 

@@ -96,8 +96,9 @@ MODULE cable_common_module
      CHARACTER(LEN=20) :: SOIL_STRUC    = "default" ! 'default' or 'sli'
      CHARACTER(LEN=3)  :: POP_out       = 'rst' ! POP output type ('epi' or 'rst')
      CHARACTER(LEN=50) :: POP_rst       = ' ' !
-     CHARACTER(LEN=8)  :: CASA_OUT_FREQ = 'annually' !
+     CHARACTER(LEN=8)  :: CASA_OUT_FREQ = 'annually' ! 'daily', 'monthly', 'annually'
      CHARACTER(LEN=10)  :: vcmax = 'standard' ! "standard" or "Walker2014"
+     CHARACTER(LEN=10)  :: POPLUC_RunType = 'static' ! 'static', 'init', 'restart' 
 
      LOGICAL ::                                                               &
           CALL_POP               = .FALSE., & !
@@ -105,9 +106,8 @@ MODULE cable_common_module
           CALL_Climate           = .FALSE., &
           Climate_fromZero       = .FALSE., &
           CASA_fromZero          = .FALSE., &
-          POPLUC                = .FALSE.
-
-
+          POPLUC                 = .FALSE.
+    
      INTEGER  :: &
           CASA_SPIN_STARTYEAR = 1950, &
           CASA_SPIN_ENDYEAR   = 1960, &
@@ -166,7 +166,7 @@ MODULE cable_common_module
           path,       & ! path for output and restart files for CABLE and CASA
           out,        & ! name of file for CABLE output
           log,        & ! name of file for execution log
-          restart_in, & ! name of restart file to read
+          restart_in = ' ', & ! name of restart file to read
           restart_out,& ! name of restart file to read
           LAI,        & ! name of file for default LAI
           type,       & ! file for default veg/soil type
@@ -535,13 +535,13 @@ CONTAINS
     IF(status /= NF90_noerr) THEN
        WRITE(*,*)"netCDF error:"
        IF ( PRESENT( msg ) ) WRITE(*,*)msg
-#define Vanessas_common
-#ifdef Vanessas_common
+!#define Vanessas_common
+!#ifdef Vanessas_common
        WRITE(*,*) TRIM(NF90_strerror(status))
-#else       
-       WRITE(*,*) "UM builds with -i8. Therefore call to nf90_strerror is ", & 
-       " invalid. Quick fix to eliminate for now. Build NF90 with -i8, force -i4?" 
-#endif     
+!#else       
+!       WRITE(*,*) "UM builds with -i8. Therefore call to nf90_strerror is ", & 
+!       " invalid. Quick fix to eliminate for now. Build NF90 with -i8, force -i4?" 
+!#endif     
        STOP -1
     END IF
   END SUBROUTINE HANDLE_ERR

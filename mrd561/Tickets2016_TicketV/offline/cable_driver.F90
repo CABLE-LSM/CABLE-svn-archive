@@ -296,6 +296,24 @@ PROGRAM cable_offline_driver
   ENDIF
 
   ! INITIALISATION depending on nml settings
+  IF (TRIM(cable_user%MetType) .EQ. 'gswp') THEN
+     IF ( CABLE_USER%YearStart.eq.0 .and. ncciy.gt.0) THEN
+        CABLE_USER%YearStart = ncciy
+        CABLE_USER%YearEnd = ncciy
+     ELSEIF  ( CABLE_USER%YearStart.eq.0 .and. ncciy.eq.0) THEN
+        PRINT*, 'undefined start year for gswp met: '
+        PRINT*, 'enter value for ncciy or'  
+        PRINT*, '(CABLE_USER%YearStart and  CABLE_USER%YearEnd) &
+             in cable.nml'
+
+        write(logn,*) 'undefined start year for gswp met: '
+        write(logn,*) 'enter value for ncciy or'  
+        write(logn,*) '(CABLE_USER%YearStart and  CABLE_USER%YearEnd) &
+             in cable.nml'
+
+        stop
+     ENDIF
+  ENDIF
 
   CurYear = CABLE_USER%YearStart
 
@@ -427,7 +445,7 @@ PROGRAM cable_offline_driver
 		 kend	   = ktauday * LOY
 	      ENDIF
 	   ELSE IF ( TRIM(cable_user%MetType) .EQ. 'plum' ) THEN
-       ! CLN HERE PLUME modfications
+           ! PLUME experiment setup using WATCH
 	      IF ( CALL1 ) THEN
 
 		 CALL CPU_TIME(etime)
@@ -446,13 +464,13 @@ PROGRAM cable_offline_driver
                  write(str3,'(i2)') 1
                  str3 = adjustl(str3)
                  timeunits="seconds since "//trim(str1)//"-"//trim(str2)//"-"//trim(str3)//" &
-                            00:00 (midpoint of averaging period)"
+                            00:00"
                
 	      ENDIF
 	      IF ( .NOT. PLUME%LeapYears ) LOY = 365
 	      kend = NINT(24.0*3600.0/dels) * LOY
 	   ELSE IF ( TRIM(cable_user%MetType) .EQ. 'cru' ) THEN
-	      ! CLN HERE CRU modfications
+	      ! TRENDY experiment using CRU-NCEP
 	      IF ( CALL1 ) THEN
 
 		 CALL CPU_TIME(etime)
@@ -471,11 +489,10 @@ PROGRAM cable_offline_driver
                  write(str3,'(i2)') 1
                  str3 = adjustl(str3)
                  timeunits="seconds since "//trim(str1)//"-"//trim(str2)//"-"//trim(str3)//" &
-                            00:00 (midpoint of averaging period)"
+                            00:00"
 
 
 	      ENDIF
-
 	       LOY = 365
 	      kend = NINT(24.0*3600.0/dels) * LOY
 	   ENDIF
@@ -501,7 +518,7 @@ PROGRAM cable_offline_driver
             casamet, casabal, phen, POP, spinup,	       &
             C%EMSOIL, C%TFRZ, LUC_EXPT, POPLUC )
 
-       IF ( CABLE_USER%POPLUC .AND. TRIM(LUC_EXPT%run) .EQ. 'static') &
+       IF ( CABLE_USER%POPLUC .AND. TRIM(CABLE_USER%POPLUC_RunType) .EQ. 'static') &
             CABLE_USER%POPLUC= .FALSE.
        ! Open output file:
        IF (.NOT.CASAONLY) THEN
@@ -607,7 +624,15 @@ PROGRAM cable_offline_driver
                   rad, veg, kend, dels, C%TFRZ, ktau+koffset,		 &
                          kstart+koffset )
           ENDIF
-          IF ( TRIM(cable_user%MetType) .NE. 'gswp' ) CurYear = met%year(1)
+ 
+          IF (TRIM(cable_user%MetType).EQ.'' ) THEN
+             CurYear = met%year(1)
+             IF ( leaps .AND. IS_LEAPYEAR( CurYear ) ) THEN
+                LOY = 366
+             ELSE
+                LOY = 365
+             ENDIF
+          ENDIF
           met%ofsd = met%fsd(:,1) + met%fsd(:,2)
           canopy%oldcansto=canopy%cansto
           ! Zero out lai where there is no vegetation acc. to veg. index
@@ -720,11 +745,23 @@ PROGRAM cable_offline_driver
                     IF (((.NOT.spinup).OR.(spinup.AND.spinConv)).and. &
                          MOD((ktau-kstart+1),ktauday)==0) THEN
                        IF ( CABLE_USER%CASA_DUMP_WRITE )  THEN
-                          !CLN CHECK FOR LEAP YEAR
-                          WRITE(CYEAR,FMT="(I4)") CurYear + INT((ktau-kstart)/(LOY*ktauday))
+
+                          IF (TRIM(cable_user%MetType).EQ.'' .OR. &
+                               TRIM(cable_user%MetType).EQ.'site' ) THEN
+
+                             WRITE(CYEAR,FMT="(I4)") CurYear
+                          ELSE
+                             !CLN CHECK FOR LEAP YEAR
+                             WRITE(CYEAR,FMT="(I4)") CurYear + INT((ktau-kstart)/(LOY*ktauday))
+                          ENDIF
                           ncfile = TRIM(casafile%c2cdumppath)//'c2c_'//CYEAR//'_dump.nc'
-                          CALL write_casa_dump( ncfile, casamet , casaflux, phen, climate, idoy, &    
-                               kend/ktauday )
+
+                          IF (TRIM(cable_user%MetType).EQ.'' ) THEN
+                             CALL write_casa_dump( ncfile, casamet , casaflux, phen, climate,&
+                                  INT(met%doy), LOY )
+                          ELSE
+                             CALL write_casa_dump( ncfile, casamet , casaflux, phen, climate, idoy, &                                 kend/ktauday )
+                          ENDIF
 
                        ENDIF
                     ENDIF
@@ -741,8 +778,6 @@ PROGRAM cable_offline_driver
                          met, casaflux, l_vcmaxFeedbk )
 
 
-
-
                  ENDIF
 
                  ! Write timestep's output to file if either: we're not spinning up
@@ -751,7 +786,9 @@ PROGRAM cable_offline_driver
                  IF ( (.NOT. CASAONLY) .AND. spinConv ) THEN
                     !mpidiff
                     if ( TRIM(cable_user%MetType) .EQ. 'plum' .OR.  &
-                         TRIM(cable_user%MetType) .EQ. 'cru' ) then
+                         TRIM(cable_user%MetType) .EQ. 'cru' .OR.  &
+                       TRIM(cable_user%MetType) .EQ. 'gswp' ) then
+
                        CALL write_output( dels, ktau_tot, met, canopy, casaflux, casapool, casamet, &
                             ssnow,   rad, bal, air, soil, veg, C%SBOLTZ, C%EMLEAF, C%EMSOIL )
                     else
@@ -780,10 +817,22 @@ PROGRAM cable_offline_driver
                     new_sumbal = new_sumbal + SUM(bal%wbal)/mp +  SUM(bal%ebal)/mp
                     new_sumfpn = new_sumfpn + SUM(canopy%fpn)/mp
                     new_sumfe = new_sumfe + SUM(canopy%fe)/mp
+                    if (ktau == kend) PRINT*
                     if (ktau == kend) PRINT*, "time-space-averaged energy & water balances"
-                    if (ktau == kend) PRINT*,"Ebal_tot[Wm-2], Wbal_tot[mm]", sum(bal%ebal_tot)/mp/count_bal, sum(bal%wbal_tot)/mp/count_bal
-                    if (ktau == kend) PRINT*, "time-space-averaged latent heat and net photosynthesis"
-                    if (ktau == kend) PRINT*, "sum_fe[Wm-2], sum_fpn[umol/m2/s]",  new_sumfe/count_bal, new_sumfpn/count_bal
+                    if (ktau == kend) PRINT*,"Ebal_tot[Wm-2], Wbal_tot[mm per timestep]", &
+                         sum(bal%ebal_tot)/mp/count_bal, sum(bal%wbal_tot)/mp/count_bal
+                    if (ktau == kend) PRINT*, "time-space-averaged latent heat and &
+                         net photosynthesis"
+                    if (ktau == kend) PRINT*, "sum_fe[Wm-2], sum_fpn[umol/m2/s]",  &
+                         new_sumfe/count_bal, new_sumfpn/count_bal
+                    if (ktau == kend) write(logn,*)
+                    if (ktau == kend) write(logn,*), "time-space-averaged energy & water balances"
+                    if (ktau == kend) write(logn,*),"Ebal_tot[Wm-2], Wbal_tot[mm per timestep]", &
+                         sum(bal%ebal_tot)/mp/count_bal, sum(bal%wbal_tot)/mp/count_bal
+                    if (ktau == kend) write(logn,*), "time-space-averaged latent heat and &
+                         net photosynthesis"
+                    if (ktau == kend) write(logn,*), "sum_fe[Wm-2], sum_fpn[umol/m2/s]",  &
+                         new_sumfe/count_bal, new_sumfpn/count_bal
                   
 
 ! vh ! commented code below detects Nans in evaporation flux and stops if there are any.
@@ -1034,7 +1083,7 @@ PROGRAM cable_offline_driver
        TRIM(cable_user%MetType) .NE. "plum" .AND. & 
        TRIM(cable_user%MetType) .NE. "cru" ) CALL close_met_file
 
-  WRITE(logn,*) bal%wbal_tot, bal%ebal_tot, bal%ebal_tot_cncheck
+  !WRITE(logn,*) bal%wbal_tot, bal%ebal_tot, bal%ebal_tot_cncheck
   CALL CPU_TIME(etime)
   WRITE(logn,*) 'Finished. ', etime, ' seconds needed for ', kend,' hours'
   ! Close log file

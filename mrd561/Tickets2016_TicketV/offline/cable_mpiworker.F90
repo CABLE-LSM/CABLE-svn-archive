@@ -241,6 +241,7 @@ CONTAINS
     INTEGER :: icomm ! separate dupes of MPI communicator for send and recv
     INTEGER :: ocomm ! separate dupes of MPI communicator for send and recv
     INTEGER :: ierr
+    CHARACTER(len=200):: Run
 
     ! switches etc defined thru namelist (by default cable.nml)
     NAMELIST/CABLE/                  &
@@ -273,7 +274,7 @@ CONTAINS
          gw_params
 
     INTEGER :: i,x,kk
-    INTEGER :: LALLOC
+    INTEGER :: LALLOC, iu
     ! END header
 
     ! Maciej: make sure the variable does not go out of scope
@@ -288,6 +289,10 @@ CONTAINS
        CALL GETARG(1, filename%met)
        CALL GETARG(2, casafile%cnpipool)
     ENDIF
+
+   
+    IF (CABLE_USER%POPLUC .AND. TRIM(CABLE_USER%POPLUC_RunType) .EQ. 'static') &
+                  CABLE_USER%POPLUC= .FALSE.
 
     ! Get worker's rank and determine logfile-unit
 
@@ -478,7 +483,9 @@ CONTAINS
 
                 IF ( CABLE_USER%CASA_DUMP_READ .OR. CABLE_USER%CASA_DUMP_WRITE ) &
                      CALL worker_casa_dump_types(comm, casamet, casaflux, phen, climate)
-
+ write(wlogn,*) 'cable_mpiworker, POPLUC: ',  CABLE_USER%POPLUC
+write(*,*) 'cable_mpiworker, POPLUC: ',  CABLE_USER%POPLUC
+call flush(wlogn)
                 IF ( CABLE_USER%POPLUC ) &
                      CALL worker_casa_LUC_types( comm, casapool, casabal)
                 
@@ -7358,7 +7365,7 @@ SUBROUTINE worker_spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapoo
 
         DO idoy=1,mdyear
            ktauy=idoy*ktauday
-          
+           ktau=(idoy-1)*ktauday +1
            CALL MPI_Recv (MPI_BOTTOM, 1, casa_dump_t, 0, idoy, icomm, stat, ierr) 
 
            call biogeochem(ktauy,dels,idoy,LALLOC,veg,soil,casabiome,casapool,casaflux, &
