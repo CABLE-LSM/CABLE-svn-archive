@@ -540,5 +540,42 @@ SUBROUTINE init_veg_from_vegin(ifmp,fmp, veg)
 
 END SUBROUTINE init_veg_from_vegin 
 
+! owetfac introduced by EAK apr2009
+FUNCTION init_owetfac(wb, wbice, sfc, swilt) RESULT (owetfac) 
+   use cable_def_types_mod, only : mp, ms, r_2 
+   REAL, dimension(mp) ::                                                 & 
+      owetfac
+   REAL(r_2), dimension(mp,ms) ::                                                 & 
+      wb,                        & !
+      wbice
+   REAL, dimension(mp) ::                                                 & 
+      swilt_half,                & !
+      wetfac_proc,                & !
+      wetfac_max,                & !
+      temp
+    
+   REAL, dimension(mp) ::                                                      & 
+      sfc,                        & !
+      swilt
+   
+   !Calc wetness factor according to process
+   swilt_half  = swilt/2
+   wetfac_proc = ( REAL( wb(:,1) ) - swilt_half )                  &
+                  / ( sfc - swilt_half) 
+   !Limit wetness factor to range 1e-6 to 1
+   wetfac_max = MIN( 1.0, wetfac_proc )
+   owetfac = MAX( 1.e-6, wetfac_max )
+
+   ! Modereates stored/prog. wetness factor of leaves at glaciated points
+   temp(:) = 0.0
+   WHERE ( wbice(:, 1) > 0. ) 
+     temp(:) = wbice(:, 1) / wb(:, 1)
+     owetfac = owetfac * ( 1.0 - REAL(temp(:)) )** 2
+   END WHERE
+   
+   return
+END FUNCTION init_owetfac 
+
+
 END MODULE cable_common_module
 

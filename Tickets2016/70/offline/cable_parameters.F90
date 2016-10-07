@@ -1185,6 +1185,7 @@ CONTAINS
   END SUBROUTINE write_cnp_params
   !============================================================================
   SUBROUTINE derived_parameters(soil, sum_flux, bal, ssnow, veg, rough)
+    USE cable_common_module, ONLY : init_owetfac 
     ! Gives values to parameters that are derived from other parameters.
     TYPE (soil_snow_type),      INTENT(IN)    :: ssnow
     TYPE (veg_parameter_type),  INTENT(IN)    :: veg
@@ -1214,20 +1215,9 @@ CONTAINS
     soil%i2bp3  = 2 * NINT(soil%bch) + 3
     rough%hruff = max(0.01, veg%hc - 1.2 * ssnow%snowd/max(ssnow%ssdnn, 100.))
     rough%hruff_grmx = rough%hruff 
-    ! owetfac introduced by EAK apr2009
-    ssnow%owetfac = MAX(0.0, MIN(1.0,                                          &
-                   (REAL(ssnow%wb(:, 1)) - soil%swilt) /                  &
-                   (soil%sfc - soil%swilt)))
-    temp(:) = 0.0
-    tmp2(:) = 0.0
-    WHERE ( ssnow%wbice(:, 1) > 0. ) ! Prevents divide by zero at glaciated
-                                     ! points where wb and wbice=0.
-      temp(:) = ssnow%wbice(:, 1) / ssnow%wb(:, 1)
-      tmp2(:) = REAL(temp(:))
-      ssnow%owetfac = ssnow%owetfac * (1.0 - tmp2(:)) ** 2
-!      ssnow%owetfac = ssnow%owetfac &
-!                    * (1.0 - REAL(ssnow%wbice(:,1)/ssnow%wb(:,1)))**2
-    END WHERE
+    ! owetfac: stored wetness factor from prev timestep. init. on 1st timestep
+    ssnow%owetfac = init_owetfac(ssnow%wb, ssnow%wbice, soil%sfc, soil%swilt)
+    
     ssnow%pudsto = 0.0
     ssnow%pudsmx = 0.0
 

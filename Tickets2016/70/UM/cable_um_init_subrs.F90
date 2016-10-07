@@ -616,7 +616,7 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
    USE cable_def_types_mod,  ONLY : mp, msn
    USE cable_data_module,   ONLY : PHYS
    USE cable_um_tech_mod,   ONLY : um1, soil, ssnow, met, bal, veg
-   USE cable_common_module, ONLY : cable_runtime, cable_user
+   USE cable_common_module, ONLY : cable_runtime, cable_user, init_owetfac
    
    REAL, INTENT(IN), DIMENSION(um1%land_pts) :: smvcst
    
@@ -753,18 +753,9 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
          
          DEALLOCATE( fwork )
          
-         ssnow%owetfac = MAX( 0., MIN( 1.0,                                    &
-                         ( ssnow%wb(:,1) - soil%swilt ) /                      &
-                         ( soil%sfc - soil%swilt) ) )
-
-         ! Temporay fix for accounting for reduction of soil evaporation 
-         ! due to freezing
-         WHERE( ssnow%wbice(:,1) > 0. )                                        &
-            ! Prevents divide by zero at glaciated points where both 
-            ! wb and wbice=0.
-            ssnow%owetfac = ssnow%owetfac * ( 1.0 - ssnow%wbice(:,1) /         &
-                            ssnow%wb(:,1) )**2
-      
+         ! owetfac: stored wetness factor from prev timestep. init. on 1st timestep
+         ssnow%owetfac = init_owetfac(ssnow%wb, ssnow%wbice, soil%sfc, soil%swilt)
+               
          !jhan: do we want to do this before %owetfac is set 
          DO J = 1, um1%sm_levels
             WHERE( soil%isoilm == 9 ) ! permanent ice: remove hard-wired no. in future
