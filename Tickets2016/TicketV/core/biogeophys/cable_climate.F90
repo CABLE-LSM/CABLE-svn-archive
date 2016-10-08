@@ -848,6 +848,9 @@ STATUS = NF90_PUT_VAR(FILE_ID, VID1(5), climate%qtemp )
   STATUS = NF90_PUT_VAR(FILE_ID, VID3(1), climate%dtemp_31 )
   IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
 
+  STATUS = NF90_PUT_VAR(FILE_ID, VID3(2), climate%dmoist_31 )
+  IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+
   STATUS = NF90_PUT_VAR(FILE_ID, VID4(1), climate%dtemp_91 )
   IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
 
@@ -1060,6 +1063,7 @@ SUBROUTINE READ_CLIMATE_RESTART_NC ( climate )
 
      SELECT CASE ( TRIM(A3(i)))
      CASE ('dtemp_31' ) ; climate%dtemp_31 = TMP3
+     CASE ('dmoist_31' ) ; climate%dmoist_31 = TMP3
      END SELECT
   END DO
 
