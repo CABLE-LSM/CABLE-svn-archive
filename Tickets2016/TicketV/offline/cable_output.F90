@@ -660,7 +660,7 @@ CONTAINS
     END IF
     IF(output%veg .OR. output%Fwsoil) THEN
        CALL define_ovar(ncid_out, ovid%Fwsoil, 'Fwsoil', '[-]', &
-                        'soil moisture modifier to stamatal conductance', patchout%Fwsoil, &
+                        'soil moisture modifier to stomatal conductance', patchout%Fwsoil, &
                         'dummy', xID, yID, zID, landID, patchID, tID)
        ALLOCATE(out%Fwsoil(mp))
        out%Fwsoil = 0.0 ! initialise
@@ -2304,15 +2304,17 @@ CONTAINS
             / 1.201E-5, 4)
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
-          out%PlantTurnoverWoodResourceLim = out%PlantTurnoverWoodResourceLim / REAL(output%interval, 4)
+          out%PlantTurnoverWoodResourceLim = out%PlantTurnoverWoodResourceLim / &
+               REAL(output%interval, 4)
           ! Write value to file:
-          CALL write_ovar(out_timestep, ncid_out, ovid%PlantTurnoverWoodResourceLim, 'PlantTurnoverWoodResourceLim', &
+          CALL write_ovar(out_timestep, ncid_out, ovid%PlantTurnoverWoodResourceLim, &
+               'PlantTurnoverWoodResourceLim', &
                out%PlantTurnoverWoodResourceLim,    &
                ranges%NEE, patchout%PlantTurnoverWoodResourceLim, 'default', met)
           ! Reset temporary output variable:
           out%PlantTurnoverWoodResourceLim = 0.0
        END IF
-
+       IF (cable_user%POPLUC) THEN
        ! Add current timestep's value to total of temporary output variable:
        out%LandUseFlux = out%LandUseFlux + &
             REAL((casaflux%FluxCtohwp + casaflux%FluxCtoclear  )/86400.0 &
@@ -2328,10 +2330,10 @@ CONTAINS
           ! Reset temporary output variable:
           out%LandUseFlux = 0.0
        END IF
+    ENDIF
 
-
-    END IF
-
+ END IF
+    
     ! plant carbon [kg C m-2]
     IF(output%casa) THEN
        out%TotSoilCarb = out%TotSoilCarb + REAL((SUM(casapool%csoil,2)+SUM(casapool%clitter,2)) &
