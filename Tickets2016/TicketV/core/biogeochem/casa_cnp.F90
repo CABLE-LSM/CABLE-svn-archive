@@ -1117,18 +1117,20 @@ SUBROUTINE casa_delplant(veg,casabiome,casapool,casaflux,casamet,            &
 
 
 
-        casapool%dcplantdt(npt,2) = casapool%dcplantdt(npt,2)
+        !casapool%dcplantdt(npt,2) = casapool%dcplantdt(npt,2)
 
         !! vh_js !!
         !! adjust turnover and autotrophic respiration to avoid negative stores.
 
-        where ((casapool%dcplantdt(npt,2:3)*deltpool + casapool%cplant(npt,2:3)).lt. 0.0)
+        where (((casapool%dcplantdt(npt,2:3)*deltpool + casapool%cplant(npt,2:3)).lt. 0.0) &
+                  .OR. ((casapool%dcplantdt(npt,2:3)*deltpool + casapool%cplant(npt,2:3)) &
+                  .lt. 0.5 * casapool%cplant(npt,2:3) ))
            casaflux%kplant(npt,2:3) = 0.0
            casaflux%crmplant(npt,2:3)= 0.0
         endwhere
         IF(ANY((casapool%dcplantdt(npt,:)*deltpool + casapool%cplant(npt,:)).lt. 0.0)) THEN
            casaflux%kplant(npt,1) = 0.0
-           casaflux%crmplant(npt,1)= max(0.0,0.5*casaflux%Cgpp(npt))
+           casaflux%crmplant(npt,1)= min(casaflux%crmplant(npt,1),0.5*casaflux%Cgpp(npt))
         ENDIF
 
         !! revise turnover and NPP and dcplantdt to reflect above adjustments
@@ -1151,8 +1153,6 @@ SUBROUTINE casa_delplant(veg,casabiome,casapool,casaflux,casamet,            &
 
            casapool%dcplantdt(npt,:)  =  casaflux%Cnpp(npt) * casaflux%fracCalloc(npt,:)     &
                 - casaflux%kplant(npt,:)  * casapool%cplant(npt,:)
-
-        
         endif
 
 
