@@ -26,6 +26,17 @@
 !          replaced with gs_coeff,gs_coeffz. If GS_SWITCH is set to "leuning",
 !          gs_coeff=xleuning and gs_coeffz=xleuningz, but based on the new model
 !          if set to "medlyn". Search for "Ticket #56" 
+!        : Vanessa Haverd added new fwsoil_switch  for response of stomatal conductance
+!          to soil moisture, which resolves decoupling of transpiration and 
+!          photosynthesis at low soil moisture. Search for "Haverd2013".
+!        : Vanessa Hverd added new logical switch cable_user%litter. When 'true', 
+!          leaf litter suppresses soil evaporation
+!        : Vanessa Haverd added new switch to enable SLI alternative to default soil
+!          module. When cable_user%soil_struc=='sli', then SLI is used to compute
+!          coupled transfers of heat and water in the soil and snow and at the surface
+!          and an in-canopy stability correction is applied. 
+!        : See http://www.geosci-model-dev.net/9/3111/2016 for full documentation
+!          of last 3 changes.
 ! ==============================================================================
 
 MODULE cable_canopy_module
@@ -62,6 +73,7 @@ CONTAINS
 
     TYPE (soil_parameter_type), INTENT(INOUT)   :: soil
     TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
+    !INTEGER, INTENT(IN) :: wlogn
 
     REAL, INTENT(IN)               :: dels ! integration time setp (s)
     INTEGER  ::                                                                 &
