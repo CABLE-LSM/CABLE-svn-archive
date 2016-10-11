@@ -1149,11 +1149,7 @@ SUBROUTINE casa_delplant(veg,casabiome,casapool,casaflux,casamet,            &
         !! vh_js !!
         !! adjust turnover and autotrophic respiration to avoid negative stores.
         !! Ticket#108
-!!$if (npt==211) then
-!!$write(67,*) 'new pool 0',casapool%dcplantdt(npt,:)*deltpool + casapool%cplant(npt,:)
-!!$ write(67,*) 'rplant 0', casaflux%crmplant(npt,:), casaflux%crgplant(npt)
-!!$write(67,*) 'NPP 0', casaflux%Cnpp(npt) , casaflux%Cgpp(npt),  casaflux%fracClabile(npt) 
-!!$endif
+
         where (((casapool%dcplantdt(npt,2:3)*deltpool + casapool%cplant(npt,2:3)).lt. 0.0) &
                   .OR. ((casapool%dcplantdt(npt,2:3)*deltpool + casapool%cplant(npt,2:3)) &
                   .lt. 0.5 * casapool%cplant(npt,2:3) ))
@@ -1166,8 +1162,13 @@ SUBROUTINE casa_delplant(veg,casabiome,casapool,casaflux,casamet,            &
         ENDIF
 
         !! revise turnover and NPP and dcplantdt to reflect above adjustments
+       
         casaflux%Cplant_turnover(npt,:) = casaflux%kplant(npt,:)  * casapool%cplant(npt,:)
-        if (any((casapool%dcplantdt(npt,:)*deltpool + casapool%cplant(npt,:)).lt. 0.0)) then
+        if (any((casapool%dcplantdt(npt,:)*deltpool + casapool%cplant(npt,:)).lt. 0.0) &
+
+          .OR. any((casapool%dcplantdt(npt,2:3)*deltpool + casapool%cplant(npt,2:3)) &
+                  .lt. 0.5 * casapool%cplant(npt,2:3) )) then
+        
            ratioPNplant = 0.0  
            if (casapool%Nplant(npt,leaf)>0.0) &
                 ratioPNplant = casapool%Pplant(npt,leaf)/(casapool%Nplant(npt,leaf)+ 1.0e-10)  
@@ -1185,13 +1186,7 @@ SUBROUTINE casa_delplant(veg,casabiome,casapool,casaflux,casamet,            &
 
            casapool%dcplantdt(npt,:)  =  casaflux%Cnpp(npt) * casaflux%fracCalloc(npt,:)     &
                 - casaflux%kplant(npt,:)  * casapool%cplant(npt,:)
-!!$if (npt==211) then
-!!$write(67,*) 'new pool 1' ,casapool%dcplantdt(npt,:)*deltpool + casapool%cplant(npt,:)
-!!$write(67,*) 'NPP 1', casaflux%Cnpp(npt) , casaflux%fracCalloc(npt,:)
-!!$write(67,*) 'turnover',  casaflux%kplant(npt,:)  * casapool%cplant(npt,:)
-!!$write(67,*)  'alloc',    casaflux%Cnpp(npt) * casaflux%fracCalloc(npt,:)  
-!!$   write(67,*) 'rplant 1', casaflux%crmplant(npt,:), casaflux%crgplant(npt)
-!!$endif
+
         endif
 
 
@@ -2260,14 +2255,20 @@ SUBROUTINE casa_cnpbal(casapool,casaflux,casabal)
 
    casabal%cbalance(:) = Cbalplant(:) + Cbalsoil(:)
 
-!!$if ((abs(casabal%cbalance(1))>1e-10)) then
-!!$write(*,*) 'cbalance',   Cbalplant(1), Cbalsoil(1),&
-!!$casapool%cplant(1,:),casaflux%Cgpp(1) ,&
-!!$casaflux%Cnpp(1), casapool%dcplantdt(1,:), &
-!!$ casaflux%crmplant(1,:)
-!!$!stop
-!!$endif
 
+ do npt=1,mp
+    IF(abs(casabal%cbalance(npt))>1e-10) THEN
+      write(*,*) 'cbalance',  npt, Cbalplant(npt), Cbalsoil(npt)
+      write(*,*) 'cplant', casapool%cplant(npt,:)
+      write(*,*) 'gpp, npp',casaflux%Cgpp(npt) , &
+           casaflux%Cnpp(npt)
+      write(*,*) 'dcplandt',  casapool%dcplantdt(npt,:), sum(casapool%dcplantdt(npt,:))
+      write(*,*) 'rmplant, rgplant',  casaflux%crmplant(npt,:) , casaflux%crgplant(npt)
+      write(*,*), 'dclabile',  casapool%dClabiledt(npt)* deltpool
+       
+     !  STOP
+    ENDIF
+ ENDDO
 
 
 
