@@ -72,16 +72,25 @@ PROGRAM cable_offline_driver
                                    verbose, fixedCO2,output,check,patchout,    &
                                    patch_type,soilparmnew
    USE cable_common_module,  ONLY: ktau_gl, kend_gl, knode_gl, cable_user,     &
-                                   cable_runtime, filename, redistrb,          & 
-                                   report_version_no, wiltParam, satuParam
+                                   cable_runtime, filename, myhome,            & 
+                                   redistrb, wiltParam, satuParam, gw_params, &
+                                   sublayer_Z_param,&
+                                   default_sublayer_thickness,&
+                                   use_simple_sublayer_thickness,&
+                                   use_const_thickness,&
+                                   old_soil_roughness,&
+                                   simple_litter,&
+                                   litter_dz,&
+                                   pore_size_factor,&
+                                   force_sand_fraction,force_clay_fraction,&
+                                   force_organic_fraction
+
    USE cable_data_module,    ONLY: driver_type, point2constants
    USE cable_input_module,   ONLY: open_met_file,load_parameters,              &
                                    get_met_data,close_met_file
    USE cable_output_module,  ONLY: create_restart,open_output_file,            &
                                    write_output,close_output_file
    USE cable_cbm_module
-   
-   USE cable_diag_module
    
    ! modules related to CASA-CNP
    USE casadimension,       ONLY: icycle 
@@ -103,8 +112,7 @@ PROGRAM cable_offline_driver
       kend,       &  ! no. of time steps in run
       ktauday,    &  ! day counter for CASA-CNP
       idoy,       &  ! day of year (1:365) counter for CASA-CNP
-      nyear,      &  ! year counter for CASA-CNP
-      maxdiff(2)     ! location of maximum in convergence test
+      nyear          ! year counter for CASA-CNP
 
    REAL :: dels                        ! time step size in seconds
    
@@ -155,6 +163,8 @@ PROGRAM cable_offline_driver
    REAL, ALLOCATABLE, DIMENSION(:,:)  :: & 
       soilMtemp,                         &   
       soilTtemp      
+
+   REAL, ALLOCATABLE, DIMENSION(:) :: soilGWtemp
    
    ! switches etc defined thru namelist (by default cable.nml)
    NAMELIST/CABLE/                  &
@@ -182,7 +192,20 @@ PROGRAM cable_offline_driver
                   redistrb,         &
                   wiltParam,        &
                   satuParam,        &
-                  cable_user           ! additional USER switches 
+                  cable_user,       &    ! additional USER switches 
+                  gw_params,&              !four additional tunable paramters controlling the GW hydro
+                  sublayer_Z_param,&
+                  default_sublayer_thickness,&
+                  use_simple_sublayer_thickness,&
+                  use_const_thickness,&
+                  old_soil_roughness, &
+                  simple_litter, &
+                  litter_dz, &
+                  pore_size_factor, &
+                  force_sand_fraction, &
+                  force_clay_fraction, &
+                  force_organic_fraction
+
 
    ! END header
 
@@ -191,19 +214,14 @@ PROGRAM cable_offline_driver
       READ( 10, NML=CABLE )   !where NML=CABLE defined above
    CLOSE(10)
 
-   ! Open log file:
-   OPEN(logn,FILE=filename%log)
- 
-   CALL report_version_no( logn )
-    
    IF( IARGC() > 0 ) THEN
       CALL GETARG(1, filename%met)
       CALL GETARG(2, casafile%cnpipool)
    ENDIF
 
     
-   cable_runtime%offline = .TRUE.
-   
+   cable_runtime%offline  = .TRUE.
+   cable_runtime%run_gw_model = cable_user%GW_MODEL   
    ! associate pointers used locally with global definitions
    CALL point2constants( C )
     
@@ -216,17 +234,20 @@ PROGRAM cable_offline_driver
    IF( icycle > 0 .AND. ( .NOT. soilparmnew ) )                             &
       STOP 'casaCNP must use new soil parameters'
 
-   ! Check for gswp run
+   ! Open log file:
+   OPEN(logn,FILE=filename%log)
+ 
+   ! Check for gswp (or alt forcing) run
    IF (ncciy /= 0) THEN
       
       PRINT *, 'Looking for global offline run info.'
       
-      IF (ncciy < 1986 .OR. ncciy > 1995) THEN
+      IF (ncciy < 0) THEN
          PRINT *, 'Year ', ncciy, ' outside range of dataset!'
          STOP 'Please check input in namelist file.'
       ELSE
          
-         CALL prepareFiles(ncciy)
+         if (.not.cable_user%alt_forcing .and. .not. cable_user%GSWP3) CALL prepareFiles(ncciy)
       
       ENDIF
    
@@ -237,7 +258,7 @@ PROGRAM cable_offline_driver
    ! This retrieves time step size, number of timesteps, starting date,
    ! latitudes, longitudes, number of sites. 
    CALL open_met_file( dels, kend, spinup, C%TFRZ )
- 
+   !write(*,*) 'opened the met file' 
    ! Checks where parameters and initialisations should be loaded from.
    ! If they can be found in either the met file or restart file, they will 
    ! load from there, with the met file taking precedence. Otherwise, they'll
@@ -249,7 +270,7 @@ PROGRAM cable_offline_driver
                          casaflux, casamet, casabal, phen, C%EMSOIL,        &
                          C%TFRZ )
 
-   
+   !write(*,*) 'loaded params' 
    ! Open output file:
    CALL open_output_file( dels, soil, veg, bgc, rough )
  
@@ -264,20 +285,23 @@ PROGRAM cable_offline_driver
    DO
 
       ! globally (WRT code) accessible kend through USE cable_common_module
-      ktau_gl = 0
       kend_gl = kend
       knode_gl = 0
       
       ! time step loop over ktau
       DO ktau=kstart, kend 
-         
+         !MDeck
+         if (mod(ktau,200) .eq. 0) write(*,*) ' timestep number ',ktau
+
          ! increment total timstep counter
          ktau_tot = ktau_tot + 1
          
          ! globally (WRT code) accessible kend through USE cable_common_module
-         ktau_gl = ktau_gl + 1
+         ktau_gl = ktau_tot
          
          ! somethings (e.g. CASA-CNP) only need to be done once per day  
+         !write(*,*) 'dels is ',dels
+
          ktauday=int(24.0*3600.0/dels)
          idoy = mod(ktau/ktauday,365)
          IF(idoy==0) idoy=365
@@ -303,44 +327,39 @@ PROGRAM cable_offline_driver
          CALL cbm( dels, air, bgc, canopy, met,                             &
                    bal, rad, rough, soil, ssnow,                            &
                    sum_flux, veg )
-   
-         ssnow%smelt = ssnow%smelt*dels
-         ssnow%rnof1 = ssnow%rnof1*dels
-         ssnow%rnof2 = ssnow%rnof2*dels
+
+         ssnow%smelt  = ssnow%smelt*dels
+         ssnow%rnof1  = ssnow%rnof1*dels
+         ssnow%rnof2  = ssnow%rnof2*dels
          ssnow%runoff = ssnow%runoff*dels
    
    
          !jhan this is insufficient testing. condition for 
          !spinup=.false. & we want CASA_dump.nc (spinConv=.true.)
          IF(icycle >0) THEN
-            call bgcdriver( ktau, kstart, kend, dels, met,                     &
+            call bgcdriver( ktau, kstart, kend, dels, met,                  &
                             ssnow, canopy, veg, soil, casabiome,               &
                             casapool, casaflux, casamet, casabal,              &
                             phen, spinConv, spinup, ktauday, idoy,             &
                             .FALSE., .FALSE. )
          ENDIF 
    
+         !write(*,*) 'start sumcflux'
          ! sumcflux is pulled out of subroutine cbm
          ! so that casaCNP can be called before adding the fluxes (Feb 2008, YP)
-         CALL sumcflux( ktau, kstart, kend, dels, bgc,                         &
+         CALL sumcflux( ktau, kstart, kend, dels, bgc,                      &
                         canopy, soil, ssnow, sum_flux, veg,                    &
                         met, casaflux, l_vcmaxFeedbk )
+
+        ! write(*,*) 'done with sumcflux'
    
          ! Write time step's output to file if either: we're not spinning up 
          ! or we're spinning up and the spinup has converged:
-         IF((.NOT.spinup).OR.(spinup.AND.spinConv))                            &
-            CALL write_output( dels, ktau, met, canopy, ssnow,                 &
-                               rad, bal, air, soil, veg, C%SBOLTZ,             &
+         IF((.NOT.spinup).OR.(spinup.AND.spinConv))                         &
+            CALL write_output( dels, ktau, met, canopy, ssnow,                    &
+                               rad, bal, air, soil, veg, rough,C%SBOLTZ, &
                                C%EMLEAF, C%EMSOIL )
    
-         ! dump bitwise reproducible testing data
-         IF( cable_user%RUN_DIAG_LEVEL == 'zero') THEN
-            IF((.NOT.spinup).OR.(spinup.AND.spinConv))                         &
-               call cable_diag( 1, "FLUXES", mp, kend, ktau,                   &
-                                knode_gl, "FLUXES",                            &
-                          canopy%fe + canopy%fh )
-         ENDIF
-                
       END DO ! END Do loop over timestep ktau
 
 
@@ -359,22 +378,28 @@ PROGRAM cable_offline_driver
          
          ! IF not 1st run through whole dataset:
          IF( INT( ktau_tot/kend ) > 1 ) THEN 
+
+            !ensure GW doesn't impact non GW spinup
+            !ssnow%GWwb shouldn't change if both these flags are false, but why not
+            !make it explicit
+            if ((.not.cable_user%gw_model)) then! .and. (.not.cable_user%test_new_gw)) then
+               soilGWtemp = ssnow%GWwb
+            end if
             
             ! evaluate spinup
             IF( ANY( ABS(ssnow%wb-soilMtemp)>delsoilM).OR.                     &
-                ANY(ABS(ssnow%tgg-soilTtemp)>delsoilT) ) THEN
-               
+                ANY(ABS(ssnow%tgg-soilTtemp)>delsoilT).OR.                     &
+                ANY( ABS(ssnow%GWwb-soilGWtemp)>delsoilM) ) THEN
+
                ! No complete convergence yet
-               maxdiff = MAXLOC(ABS(ssnow%wb-soilMtemp))
-               PRINT *, 'Example location of moisture non-convergence: ', &
-                        maxdiff
-               PRINT *, 'ssnow%wb : ', ssnow%wb(maxdiff(1),maxdiff(2))
-               PRINT *, 'soilMtemp: ', soilMtemp(maxdiff(1),maxdiff(2))
-               maxdiff = MAXLOC(ABS(ssnow%tgg-soilTtemp))
-               PRINT *, 'Example location of temperature non-convergence: ', &
-                        maxdiff
-               PRINT *, 'ssnow%tgg: ', ssnow%tgg(maxdiff(1),maxdiff(2))
-               PRINT *, 'soilTtemp: ', soilTtemp(maxdiff(1),maxdiff(2))
+               PRINT *, 'ssnow%wb : ', ssnow%wb
+               PRINT *, 'soilMtemp: ', soilMtemp
+               PRINT *, 'ssnow%tgg: ', ssnow%tgg
+               PRINT *, 'soilTtemp: ', soilTtemp
+               if (cable_user%gw_model) then
+                  PRINT *, 'ssnow%GWwb: ', ssnow%GWwb
+                  PRINT *, 'soilGWtemp: ', soilGWtemp
+               end if
             
             ELSE ! spinup has converged
                
@@ -394,12 +419,20 @@ PROGRAM cable_offline_driver
          ELSE ! allocate variables for storage
          
            ALLOCATE( soilMtemp(mp,ms), soilTtemp(mp,ms) )
+           ALLOCATE( soilGWtemp(mp) )
          
          END IF
+
+         IF (INT(ktau_tot/kend) .gt. 200) then
+            write(*,*) 'Quitting spinup process, already tried 200 times.'
+            write(logn,*) 'Quitting spinup process, already tried 200 times.'
+            spinConv = .TRUE.
+         end if
          
          ! store soil moisture and temperature
          soilTtemp = ssnow%tgg
          soilMtemp = REAL(ssnow%wb)
+         soilGWtemp = real(ssnow%GWwb)
 
       ELSE
 
@@ -444,7 +477,8 @@ SUBROUTINE prepareFiles(ncciy)
   USE cable_IO_vars_module, ONLY: logn,gswpfile
   IMPLICIT NONE
   INTEGER, INTENT(IN) :: ncciy
-
+  integer :: pos1,pos2,pos3
+  
   WRITE(logn,*) 'CABLE offline global run using gswp forcing for ', ncciy
   PRINT *,      'CABLE offline global run using gswp forcing for ', ncciy
 

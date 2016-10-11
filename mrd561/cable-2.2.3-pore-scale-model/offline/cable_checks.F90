@@ -40,6 +40,10 @@ MODULE cable_checks_module
    USE cable_radiation_module, ONLY: sinbet
    USE cable_def_types_mod
 
+   USE cable_common_module                                 !needed to get GW flag
+   USE cable_data_module, ONLY : issnow_type, point2constants !density constants instead of hard coded
+   
+
    IMPLICIT NONE
 
    PRIVATE
@@ -54,6 +58,8 @@ MODULE cable_checks_module
       CHARACTER(LEN=1) :: Wind ! 'm'(m/s)
    END TYPE units_type
    TYPE(units_type) :: units
+
+   TYPE ( issnow_type ) :: C                           !get denice and denliq constants
 
    TYPE ranges_type 
       REAL, DIMENSION(2) ::                                               &
@@ -144,6 +150,15 @@ MODULE cable_checks_module
            lai = (/0.0,8.0/),                  &
            rp20 = (/0.0,10.0/),                &
            vbeta =(/-999999.0,999999.0/),      &
+           g0c3 = (/-999999.0,999999.0/),      & ! Ticket #56 (must find better range)
+           g0c4 = (/-999999.0,999999.0/),      & ! Ticket #56 (must find better range)
+           g1c3 = (/-999999.0,999999.0/),      & ! Ticket #56 (must find better range)
+           g1c4 = (/-999999.0,999999.0/),      & ! Ticket #56 (must find better range)
+           cancd = (/-999999.0,999999.0/),     & ! jtk561 (must have betterrange)
+           gswx_1 = (/-999999.0,999999.0/),    & ! jtk561 (must havebetterrange)
+           gswx_2 = (/-999999.0,999999.0/),    & ! jtk561 (must have betterrange)
+           gswmin_1 = (/-999999.0,999999.0/),  & ! jtk561 (must havebetterrange)
+           gswmin_2 = (/-999999.0,999999.0/),  & ! jtk561 (must havebetterrange)
            xalbnir = (/0.0,1.5/),              &
            meth = (/0.0,1.0/),                 &
            za =(/0.0,150.0/),                  &
@@ -165,7 +180,35 @@ MODULE cable_checks_module
            tmaxvj = (/-15.0,30.0/),            &
            rootbeta = (/0.7,1.0/),             & ! YP oct07
            veg_class = (/1.0,20.0/),           &
-           soil_class = (/1.0,20.0/)  
+           soil_class = (/1.0,20.0/),          &
+           
+           !MD
+           WatTable = (/0.0,1.0e10/),          &
+           GWMoist = (/0.0,1.0/),              &
+           EqGWMoist = (/0.0,1.0/),            & 
+           EqGWSoilMatPot = (/-1.0e8,0.0/),    &
+           GWSoilMatPot = (/-1.0e8,0.0/),      &
+           SoilMatPot = (/-1.0e8,0.0/),        &
+           EqSoilMatPot = (/-1.0e8,0.0/),      &
+           EqSoilMoist = (/0.0,1.0/),          & 
+           WatSat = (/0.0,1.0/),               & 
+           GWWatSat = (/0.0,1.0/),             &
+           SoilMatPotSat = (/-1.0e8,0.0/),     &
+           GWSoilMatPotSat = (/-1.0e8,0.0/),   &
+           HkSat = (/0.0,1.0e10/),             &
+           GWHkSat = (/0.0,1.0e10/),           &
+           FrcSand = (/0.0,1.0e2/),            &
+           FrcClay = (/0.0,1.0e2/),            &
+           ClappB = (/0.0,1.0e2/),             &
+           Watr = (/0.0,0.5/),                 &
+           GWWatr = (/0.0,0.5/),               &
+           Qinfl = (/0.0,1e10/),               &
+           GWwb  = (/0.0,0.99/),               &
+           SatFrac = (/0.0,1.0/),              &
+           Qrecharge = (/-9999.0,9999.0/)           
+           
+           
+           
    END TYPE ranges_type
    TYPE(ranges_type),SAVE :: ranges
 
@@ -186,7 +229,6 @@ CONTAINS
 
 SUBROUTINE mass_balance(dels,ktau, ssnow,soil,canopy,met,                            &
                         air,bal)
-
    ! Input arguments
    REAL,INTENT(IN)                           :: dels        ! time step size
    INTEGER, INTENT(IN)                       :: ktau        ! timestep number  
@@ -197,32 +239,43 @@ SUBROUTINE mass_balance(dels,ktau, ssnow,soil,canopy,met,                       
    TYPE (air_type),INTENT(IN)                :: air
 
    ! Local variables
-   REAL(r_2), DIMENSION(:,:,:),POINTER, SAVE :: bwb         ! volumetric soil moisture
+   REAL(r_2), DIMENSION(:,:,:),POINTER, SAVE :: bwbi,bwbl,bwb  ! volumetric soil moisture (liq-bwbl ice-bwbi)
    REAL(r_2), DIMENSION(mp)                  :: delwb       ! change in soilmoisture
                                                             ! b/w tsteps
    REAL, DIMENSION(mp)                  :: canopy_wbal !canopy water balance
-   TYPE (balances_type),INTENT(INOUT)        :: bal 
+   TYPE (balances_type),INTENT(INOUT)   :: bal 
    INTEGER                              :: j, k        ! do loop counter
-    
-   IF(ktau==1) THEN
-      ALLOCATE( bwb(mp,ms,2) )
-      ! initial vlaue of soil moisture
-      bwb(:,:,1)=ssnow%wb
-   ELSE
-      ! Calculate change in soil moisture b/w timesteps:
-      IF(MOD(REAL(ktau),2.0)==1.0) THEN         ! if odd timestep
-         bwb(:,:,1)=ssnow%wb
-         DO k=1,mp           ! current smoist - prev tstep smoist
-            delwb(k) = SUM((bwb(k,:,1)                                         &
-                  - (bwb(k,:,2)))*soil%zse)*1000.0
-         END DO
-      ELSE IF(MOD(REAL(ktau),2.0)==0.0) THEN    ! if even timestep
-         bwb(:,:,2)=ssnow%wb
-         DO k=1,mp           !  current smoist - prev tstep smoist
-            delwb(k) = SUM((bwb(k,:,2)                                         &
-                 - (bwb(k,:,1)))*soil%zse)*1000.0
-         END DO
+
+
+   CALL point2constants( C )       !get density of ice and liq
+
+   IF (cable_runtime%run_gw_model) then
+
+      delwb(:) = ssnow%wbtot(:)   !change in column soil moisture stored here
+
+   ELSE   !GW module not used
+
+      IF(ktau==1) THEN
+         ALLOCATE( bwb(mp,ms,2) )
+         ! initial vlaue of soil moisture
+         bwb(:,:,1) = ssnow%wb
+      ELSE
+         ! Calculate change in soil moisture b/w timesteps:
+         IF(MOD(REAL(ktau),2.0)==1.0) THEN         ! if odd timestep
+            bwb(:,:,1)=ssnow%wb
+            DO k=1,mp           ! current smoist - prev tstep smoist
+               delwb(k) = SUM((bwb(k,:,1)                                         &
+                     - (bwb(k,:,2)))*soil%zse)*1000.0
+            END DO
+         ELSE IF(MOD(REAL(ktau),2.0)==0.0) THEN    ! if even timestep
+            bwb(:,:,2)=ssnow%wb
+            DO k=1,mp           !  current smoist - prev tstep smoist
+               delwb(k) = SUM((bwb(k,:,2)                                         &
+                    - (bwb(k,:,1)))*soil%zse)*1000.0
+            END DO
+         END IF
       END IF
+
    END IF
 
    ! IF(ktau==kend) DEALLOCATE(bwb)
@@ -233,9 +286,17 @@ SUBROUTINE mass_balance(dels,ktau, ssnow,soil,canopy,met,                       
    !      it's included in change in canopy storage calculation))
    ! rml 28/2/11 ! BP changed rnof1+rnof2 to ssnow%runoff which also included rnof5
    ! which is used when nglacier=2 in soilsnow routines (BP feb2011)
-   bal%wbal = REAL(met%precip - canopy%delwc - ssnow%snowd+ssnow%osnowd        &
+   if (cable_runtime%run_gw_model .and. ktau > 1) then
+      !below calcs the water balance using input/output of cable_soilsnow_GW only.  not entire model water balance
+      !bal%wbal = REAL(ssnow%wbtot)  !soil water balance found in soilsnow_GW
+      bal%wbal = REAL(met%precip - canopy%delwc - ssnow%snowd+ssnow%osnowd        &
         - ssnow%runoff-(canopy%fevw+canopy%fevc                                &
         + canopy%fes/ssnow%cls)*dels/air%rlam - delwb)
+   else
+      bal%wbal = REAL(met%precip - canopy%delwc - ssnow%snowd+ssnow%osnowd        &
+        - ssnow%runoff-(canopy%fevw+canopy%fevc                                &
+        + canopy%fes/ssnow%cls)*dels/air%rlam - delwb)
+   end if
 !   bal%wbal = REAL(met%precip - canopy%delwc - ssnow%snowd+ssnow%osnowd        & 
 !        - ssnow%rnof1-ssnow%rnof2-(canopy%fevw+canopy%fevc                     &
 !        + canopy%fes/ssnow%cls)*dels/air%rlam - delwb)
@@ -310,8 +371,8 @@ SUBROUTINE energy_balance( dels,met,rad,canopy,bal,ssnow,                    &
    bal%ebal = (1.0-rad%albedo(:,1))*met%fsd(:,1) + (1.0-rad%albedo(:,2))       &
         *met%fsd(:,2)+met%fld-sboltz*emleaf*canopy%tv**4*(1-rad%transd)        &
         -sboltz*emsoil*ssnow%tss**4*rad%transd -canopy%fev-canopy%fes          &
-        * ssnow%cls-canopy%fh                 
-   bal%ebal_tot = bal%ebal_tot + bal%ebal
+        * ssnow%cls-canopy%fh - canopy%ga
+   bal%ebal_tot = bal%ebal !bal%ebal_tot + bal%ebal
   
       
    !bal%ebal_tot_cncheck = bal%ebal_tot_cncheck+ bal%ebal_cncheck

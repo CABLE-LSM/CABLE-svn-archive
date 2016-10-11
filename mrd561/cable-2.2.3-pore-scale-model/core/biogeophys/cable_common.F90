@@ -43,13 +43,18 @@ MODULE cable_common_module
 
    !---Lestevens Sept2012
    !---CASACNP switches and cycle index
-   LOGICAL, SAVE :: l_casacnp,l_laiFeedbk,l_vcmaxFeedbk
+   !---mrd561 make the default values false
+   LOGICAL, SAVE :: l_casacnp = .false.,   &
+                    l_laiFeedbk = .false., &
+                    l_vcmaxFeedbk = .false.
    
    !---CABLE runtime switches def in this type
    TYPE kbl_internal_switches
       LOGICAL :: um = .FALSE., um_explicit = .FALSE., um_implicit = .FALSE.,   &
             um_radiation = .FALSE.
       LOGICAL :: offline = .FALSE., mk3l = .FALSE.
+      !MD
+      LOGICAL :: run_gw_model = .FALSE.
    END TYPE kbl_internal_switches 
 
    TYPE(kbl_internal_switches), SAVE :: cable_runtime
@@ -62,6 +67,10 @@ MODULE cable_common_module
       
       CHARACTER(LEN=20) ::                                                     &
          FWSOIL_SWITCH     !
+
+      ! Ticket #56
+      CHARACTER(LEN=20) ::                                                     &
+         GS_SWITCH
       
       CHARACTER(LEN=5) ::                                                      &
          RUN_DIAG_LEVEL  !
@@ -80,8 +89,16 @@ MODULE cable_common_module
          ! L.Stevens - Test Switches
          L_NEW_ROUGHNESS_SOIL  = .FALSE., & !
          L_NEW_RUNOFF_SPEED    = .FALSE., & !
-         L_NEW_REDUCE_SOILEVP  = .FALSE.!
+         L_NEW_REDUCE_SOILEVP  = .FALSE.
+     !MD
+      LOGICAL :: GW_MODEL = .FALSE.
+      LOGICAL :: alt_forcing = .FALSE.
 
+     !using GSWP3 forcing?
+     LOGICAL :: GSWP3 = .FALSE.
+
+     LOGICAL :: or_evap = .FALSE.
+     LOGICAL :: or_evap_sh = .FALSE.
 
    END TYPE kbl_user_switches
 
@@ -101,7 +118,8 @@ MODULE cable_common_module
       veg,        & ! file for vegetation parameters
       soil,       & ! name of file for soil parameters
       inits,      & ! name of file for initialisations
-      soilIGBP      ! name of file for IGBP soil map
+      soilIGBP,   & ! name of file for IGBP soil map
+      gw_elev       !name of file for gw/elevation data
 
    END TYPE filenames_type
 
@@ -113,7 +131,6 @@ MODULE cable_common_module
    
    ! hydraulic_redistribution parameters _soilsnow module
    REAL :: wiltParam=0.5, satuParam=0.8
-
 
    ! soil parameters read from file(filename%soil def. in cable.nml)
    ! & veg parameters read from file(filename%veg def. in cable.nml)
@@ -159,7 +176,11 @@ MODULE cable_common_module
          extkn,      & ! 
          tminvj,     & !
          tmaxvj,     & !
-         vbeta         !
+         vbeta,      & !
+         g0c3,       & !  Ticket #56
+         g0c4,       & !  Ticket #56 
+         g1c3,       & !  Ticket #56 
+         g1c4          !  Ticket #56
       
       REAL, DIMENSION(:,:),ALLOCATABLE ::                                      &
          froot,      & !
@@ -184,7 +205,40 @@ MODULE cable_common_module
 
 !jhan:temporary measure. improve hiding
 !   real, dimension(:,:), pointer,save :: c1, rhoch
-      
+
+   TYPE gw_parameters_type
+
+      REAL ::                   &
+        MaxHorzDrainRate=1e-3,  & !anisintropy * q_max [qsub]
+        EfoldHorzDrainRate=2.5, & !e fold rate of q_horz
+        MaxSatFraction=900,     & !parameter controll max sat fraction
+        hkrz=0.5,               & !hksat variation with z
+        zdepth=1.0,             & !level where hksat(z) = hksat(no z)
+        frozen_frac=0.05,       & !ice fraction to determine first non-frozen layer for qsub
+        SoilEvapAlpha = 1.0,    & !modify field capacity dependence of soil evap limit
+        IceAlpha=1.0,           &
+        IceBeta=1.0
+
+   END TYPE gw_parameters_type
+
+   TYPE(gw_parameters_type), SAVE :: gw_params
+
+   REAL, SAVE ::  sublayer_Z_param = 1.0
+   logical,save :: default_sublayer_thickness=.true., &
+                   use_simple_sublayer_thickness=.false., &
+                   use_const_thickness=.false., &
+                   old_soil_roughness=.false.,&
+                   simple_litter=.false.
+
+   REAL, SAVE :: pore_size_factor   =  1.0, &   
+                 force_sand_fraction = -1.0, &
+                 force_clay_fraction = -1.0, &
+                 force_organic_fraction = -1.0
+
+   REAL, SAVE :: litter_dz = 0.1  !10 cm thickness
+
+
+
 CONTAINS
 
 
@@ -258,7 +312,10 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
          vegin%cplant( ncp, mvtype ), vegin%csoil( ncs, mvtype ),              &
          vegin%ratecp( ncp, mvtype ), vegin%ratecs( ncs, mvtype ),             &
          vegin%refl( nrb, mvtype ), vegin%taul( nrb, mvtype ),             &
-         veg_desc( mvtype ) )
+         veg_desc( mvtype ) ,                                               &
+         vegin%g0c3( mvtype ), vegin%g0c4( mvtype ),             & ! Ticket #56
+         vegin%g1c3( mvtype ), vegin%g1c4( mvtype ) )             ! Ticket #56
+
       
       
       IF( vegparmnew ) THEN    ! added to read new format (BP dec 2007)
@@ -289,6 +346,8 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
             READ(40,*) vegin%cplant(1:3,jveg), vegin%csoil(1:2,jveg)
             ! rates not currently set to vary with veg type
             READ(40,*) vegin%ratecp(1:3,jveg), vegin%ratecs(1:2,jveg)
+            READ(40,*) vegin%g0c3(jveg), vegin%g0c4(jveg),     & ! Ticket #56
+                       vegin%g1c3(jveg),vegin%g1c4(jveg) ! Ticket #56
 
          END DO
 
@@ -342,6 +401,11 @@ SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
          vegin%refl(1,:) = 0.07
          vegin%refl(2,:) = 0.425
          vegin%refl(3,:) = 0.0
+
+         READ(40,*) vegin%g0c3 ! Ticket #56
+         READ(40,*) vegin%g0c4 ! Ticket #56
+         READ(40,*) vegin%g1c3 ! Ticket #56
+         READ(40,*) vegin%g1c4 ! Ticket #56 
 
       ENDIF
 

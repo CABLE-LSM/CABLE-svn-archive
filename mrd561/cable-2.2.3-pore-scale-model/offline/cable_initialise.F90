@@ -147,6 +147,7 @@ SUBROUTINE get_default_inits(met,soil,ssnow,canopy,logn, EMSOIL)
    canopy%fev     = 0.0   ! latent heat flux from vegetation (W/m2)
    canopy%fes     = 0.0   ! latent heat flux from soil (W/m2)
    canopy%fhs     = 0.0   ! sensible heat flux from soil (W/m2)
+   ssnow%GWwb     = 0.45   ! arbitrary groundwater storage amount  mrd
 
 END SUBROUTINE get_default_inits
 
@@ -444,6 +445,15 @@ SUBROUTINE get_restart_data(logn,ssnow,canopy,rough,bgc,                       &
    CALL readpar(ncid_rin,'trad',dummy,rad%trad,filename%restart_in,            &
                 max_vegpatches,'def',from_restart,mp)
    
+   !MD
+   ok = NF90_INQ_VARID(ncid_rin,'GWwb',parID)
+   IF(ok == NF90_NOERR) THEN 
+     CALL readpar(ncid_rin,'GWwb',dummy,ssnow%GWwb,filename%restart_in,            &
+                max_vegpatches,'def',from_restart,mp)   
+   ELSE
+      ssnow%GWwb = 0.45
+   END IF
+   
    ! Get model parameters =============================================
    ! rad%latitude set above in lat/lon checking section   
    ALLOCATE(INvar(mp))
@@ -586,6 +596,16 @@ SUBROUTINE get_restart_data(logn,ssnow,canopy,rough,bgc,                       &
    CALL readpar(ncid_rin,'xalbnir',dummy,veg%xalbnir,filename%restart_in,      &
                 max_vegpatches,'def',from_restart,mp)
    veg%xalbnir = 1.0   ! xalbnir will soon be removed totally
+   CALL readpar(ncid_rin,'g0c3',dummy,veg%g0c3,filename%restart_in,            &
+                max_vegpatches,'def',from_restart,mp) ! Ticket #56
+   CALL readpar(ncid_rin,'g0c4',dummy,veg%g0c4,filename%restart_in,            &
+                max_vegpatches,'def',from_restart,mp) ! Ticket #56 
+   CALL readpar(ncid_rin,'g1c3',dummy,veg%g1c3,filename%restart_in,            &
+                max_vegpatches,'def',from_restart,mp) ! Ticket #56
+   CALL readpar(ncid_rin,'g1c4',dummy,veg%g1c4,filename%restart_in,            &
+                max_vegpatches,'def',from_restart,mp) ! Ticket #56
+   CALL readpar(ncid_rin,'meth',dummy,veg%meth,filename%restart_in,            &
+                max_vegpatches,'def',from_restart,mp)
    CALL readpar(ncid_rin,'meth',dummy,veg%meth,filename%restart_in,            &
                 max_vegpatches,'def',from_restart,mp)
    ! special treatment of za with the introduction of za_uv and za_tq
@@ -608,6 +628,70 @@ SUBROUTINE get_restart_data(logn,ssnow,canopy,rough,bgc,                       &
                 max_vegpatches,'ncp',from_restart,mp)
    CALL readpar(ncid_rin,'ratecs',dummy,bgc%ratecs,filename%restart_in,        &
                 max_vegpatches,'ncs',from_restart,mp)
+                
+   !MD check to see if restart has gw params and variables
+
+  IF ( .NOT. soilparmnew) THEN  !no need?
+
+   ok = NF90_INQ_VARID(ncid_rin,'WatSat',parID)
+   IF(ok == NF90_NOERR) THEN 
+     CALL readpar(ncid_rin,'WatSat',dummy,soil%watsat,filename%restart_in,            &
+                max_vegpatches,'ms',from_restart,mp)   
+   END IF  
+   
+   ok = NF90_INQ_VARID(ncid_rin,'SoilMatPotSat',parID)
+   IF(ok == NF90_NOERR) THEN 
+     CALL readpar(ncid_rin,'SoilMatPotSat',dummy,soil%smpsat,filename%restart_in,            &
+                max_vegpatches,'ms',from_restart,mp)   
+   END IF    
+   
+   ok = NF90_INQ_VARID(ncid_rin,'FrcSand',parID)
+   IF(ok == NF90_NOERR) THEN 
+     CALL readpar(ncid_rin,'FrcSand',dummy,soil%Fsand,filename%restart_in,            &
+                max_vegpatches,'ms',from_restart,mp)   
+   END IF       
+   
+   ok = NF90_INQ_VARID(ncid_rin,'FrcClay',parID)
+   IF(ok == NF90_NOERR) THEN 
+     CALL readpar(ncid_rin,'FrcClay',dummy,soil%Fclay,filename%restart_in,            &
+                max_vegpatches,'ms',from_restart,mp)   
+   END IF       
+   
+   ok = NF90_INQ_VARID(ncid_rin,'ClappB',parID)
+   IF(ok == NF90_NOERR) THEN 
+     CALL readpar(ncid_rin,'ClappB',dummy,soil%clappB,filename%restart_in,            &
+                max_vegpatches,'ms',from_restart,mp)   
+   END IF  
+   
+   ok = NF90_INQ_VARID(ncid_rin,'HkSat',parID)
+   IF(ok == NF90_NOERR) THEN 
+     CALL readpar(ncid_rin,'HkSat',dummy,soil%hksat,filename%restart_in,            &
+                max_vegpatches,'ms',from_restart,mp)   
+   END IF          
+   
+   
+ !MD check to see if restart has gw params and variables
+   ok = NF90_INQ_VARID(ncid_rin,'GWWatSat',parID)
+   IF(ok == NF90_NOERR) THEN 
+     CALL readpar(ncid_rin,'GWWatSat',dummy,soil%GWwatsat,filename%restart_in,            &
+                max_vegpatches,'def',from_restart,mp)   
+   END IF  
+   
+   ok = NF90_INQ_VARID(ncid_rin,'GWSoilMatPotSat',parID)
+   IF(ok == NF90_NOERR) THEN 
+     CALL readpar(ncid_rin,'GWSoilMatPotSat',dummy,soil%GWsmpsat,filename%restart_in,            &
+                max_vegpatches,'def',from_restart,mp)   
+   END IF    
+   
+   ok = NF90_INQ_VARID(ncid_rin,'GWHkSat',parID)
+   IF(ok == NF90_NOERR) THEN 
+     CALL readpar(ncid_rin,'GWHkSat',dummy,soil%GWhksat,filename%restart_in,            &
+                max_vegpatches,'def',from_restart,mp)   
+   END IF         
+
+   END IF 
+   
+   
    
    ! Close restart file:
    ok = NF90_CLOSE(ncid_rin)
@@ -789,7 +873,7 @@ SUBROUTINE extraRestart(INpatch,ssnow,canopy,rough,bgc,                        &
    
    ! assume all soil and veg parameters are done in default_parameters
    ! therefore, no need to do it here again
-   
+
    veg%xalbnir = 1.0   ! xalbnir will soon be removed totally
    
    PRINT *, 'Finished extraRestart'

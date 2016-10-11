@@ -45,7 +45,20 @@ MODULE cable_mpicommon
   ! MPI: CABLE_r491, after following up with Bernard on the new variables
   !INTEGER, PARAMETER :: nparam = 260
   ! added 23 params when trying to fix the bug in MPI
-  INTEGER, PARAMETER :: nparam = 283
+  !INTEGER, PARAMETER :: nparam = 283
+
+  !mrd
+  !added parameters:watsat, smpsat, hksat,
+  !clappB,GWwatsat,GWsmpsat,GWhksat,GWclappb 
+  !GWz, GWdz                                   ---> +12 new parameters.  
+      !2D-watsat,smpsat,hksat,clappB,watr
+           !in master.  in worker
+      !1D-GWwatsat,GWsmpsat,GWhsat,GWclappB,GWwatr,GWz,GWdz
+           !in master.  in worker
+  !GWwb, wtd                                   ---> +2 new variables
+           !in master.  in worker
+  !added topo_ind, slope,slope_std,elev,elev_std
+  INTEGER, PARAMETER :: nparam =309! 302! 301!297 !283
 
   ! MPI: extra params sent only if nsoilparmnew is true
   INTEGER, PARAMETER :: nsoilnew = 1
@@ -84,7 +97,10 @@ MODULE cable_mpicommon
   ! MPI: gol124: net +1 when Bernard ported to CABLE_r491
   !INTEGER, PARAMETER :: nmat = 29
   ! MPI: CABLE_r491, after following up with Bernard on the new variables
-  INTEGER, PARAMETER :: nmat = 36
+
+  !mrd GW
+  !add smp, smpeq, wbeq + 3
+  INTEGER, PARAMETER :: nmat = 39
 
   ! MPI: number of contig vector parts / worker (results)
   !INTEGER, PARAMETER :: nvec = 149
@@ -98,7 +114,10 @@ MODULE cable_mpicommon
   ! ported to CABLE_r491
   !INTEGER, PARAMETER :: nvec = 137
   ! MPI: CABLE_r491, after following up with Bernard on the new variables
-  INTEGER, PARAMETER :: nvec = 161
+
+   !mrd add GWwb, wtd, GWwbeq, GWzq, GWsmp -->+5
+   !mrd satfrac from hydrology, qrecharge
+  INTEGER, PARAMETER :: nvec = 173! 172!167! 166
 
   ! MPI: number of final casa result matrices and vectors to receive
   ! by the master for casa_poolout and casa_fluxout

@@ -88,6 +88,8 @@ MODULE cable_IO_vars_module
          ilat,    & ! replacing land_y  ! ??
          ilon       ! replacing land_x  ! ??
 
+      INTEGER, pointer :: tilenumber(:) 
+
    END TYPE land_type
  
    
@@ -110,7 +112,8 @@ MODULE cable_IO_vars_module
          PSurf, &
          Qair, &
          Tair, &
-         wind
+         wind, &
+         mask      !GSWP3 has separate mask file
 
    END TYPE gswp_type
    
@@ -138,7 +141,11 @@ MODULE cable_IO_vars_module
           ejmax,frac4,hc,lai,rp20,rpcoef,shelrb, vbeta, xalbnir,               &
           vcmax,xfang,ratecp,ratecs,refsbare,isoil,iveg,albsoil,               &
           taul,refl,tauw,refw,wai,vegcf,extkn,tminvj,tmaxvj,                   &
-          veg_class,soil_class,mvtype,mstype,patchfrac
+          veg_class,soil_class,mvtype,mstype,patchfrac,                        &
+          g0c3,g0c4,g1c3,g1c4,                                                 & ! Ticket #56
+          !MD
+          WatSat,GWWatSat,SoilMatPotSat,GWSoilMatPotSat,                       &
+          HkSat,GWHkSat,FrcSand,FrcClay,Clappb,Watr,GWWatr,fldcap,forg,wiltp
    
    END TYPE parID_type
   
@@ -247,14 +254,31 @@ MODULE cable_IO_vars_module
          LeafResp = .FALSE.,  & ! 51 autotrophic respiration [umol/m2/s]
          HeteroResp = .FALSE.,& ! 50 heterotrophic respiration [umol/m2/s]
          SnowDepth = .FALSE., & ! actual depth of snow in [m]
-         
+         cancd = .FALSE., & ! jtk561, canopy conductance (m/s)
+         gswx_1 = .FALSE., & ! jtk561, sunlit cond (dunno units)
+         gswx_2 = .FALSE., & ! jtk561, shaded cond (dunno units)
+         gswmin_1 = .FALSE., & ! jtk561, min sunlit cond
+         gswmin_2 = .FALSE., & ! jtk561, min shaded cond          
          !variables
          Rnet = .FALSE.,      & ! net absorbed radiation [W/m2]
          HVeg = .FALSE.,      & ! sensible heat from vegetation [W/m2]
          HSoil = .FALSE.,     & ! sensible heat from soil [W/m2]
          Ebal = .FALSE.,      & ! cumulative energy balance [W/m2]
          Wbal = .FALSE.,      & ! cumulative water balance [W/m2]
-         
+
+         !MD GW
+         GWMoist = .FALSE.,   & ! water balance of aquifer [mm3/mm3]
+         WatTable = .FALSE.,  & ! water table depth [m]
+         SoilMatPot=.FALSE.,  & ! soil matric potential [mm]
+         EqSoilMatPot=.FALSE.,& ! equilibirum soil matric potential [mm]
+         EqSoilMoist=.FALSE., & ! equilibirum soil moisture [mm3/mm3]
+         EqGWMoist=.FALSE.,   & ! equilibrium water of aquifer
+         GWSoilMatPot=.FALSE.,& ! pressure head/potential in the aquifer [mm]
+         EqGWSoilMatPot=.FALSE.,  & ! equilibrium soil matric potential of aquifer [mm3/mm3]     
+         Qinfl=.FALSE.,       & ! infiltration rate into soil [mm/s]
+         Qrecharge=.FALSE.,   &  !recharge to /from auqifer
+         SatFrac=.FALSE.,       & ! Saturated Fraction of Gridcell (tile)
+
          !parameters
          bch = .FALSE.,       & ! parameter b in Campbell equation 1985
          latitude = .FALSE.,  & ! site latitude
@@ -282,6 +306,10 @@ MODULE cable_IO_vars_module
          hc = .FALSE.,        & ! height of canopy [m]
          rp20  = .FALSE.,     & ! plant respiration coefficient at 
                                 ! 20 C [-] 0.1 - 10 (frp 0 - 15e-6 mol/m2/s)
+         g0c3 = .FALSE.,      & ! Ticket #56      
+         g0c4 = .FALSE.,      & ! Ticket #56
+         g1c3 = .FALSE.,      & ! Ticket #56
+         g1c4 = .FALSE.,      & ! Ticket #56
          rpcoef  = .FALSE.,   & ! temperature coef nonleaf plant 
                                 ! respiration [1/C] (0.8 - 1.5)
          shelrb  = .FALSE.,   & ! sheltering factor [-] {avoid - insensitive?}
@@ -309,7 +337,34 @@ MODULE cable_IO_vars_module
          patchfrac  = .FALSE.,& ! fractional cover of each veg/soil patch
          isoil  = .FALSE.,    & ! soil type from global index
          meth  = .FALSE.,     & ! method for solving turbulence in canopy scheme
-         za  = .FALSE.          ! something to do with roughness ????
+         za  = .FALSE.,       &  ! something to do with roughness ????
+
+         !MD GW
+         WatSat=.FALSE.,      & ! soil moisture at saturation [mm3/mm3]
+         SoilMatPotSat=.FALSE.,& ! soil matruc potential at saturation [mm]
+         ClappB=.FALSE.,      & ! clapp hornberger B parameter
+         FrcSand=.FALSE.,     & ! fraction of sand in soil
+         FrcClay=.FALSE.,     & ! fraction of clay in soil
+         HkSat=.FALSE.,       & ! saturated soil hydraulic conductivity [mm/s]
+         GWHkSat=.FALSE.,     & ! aquifer saturated soil hydraulic conductivity [mm/s]
+         GWWatSat=.FALSE.,    & ! soil moisture at saturation [mm3/mm3]
+         GWSoilMatPotSat=.FALSE.,&! soil matruc potential at saturation [mm]
+         GWWatr=.FALSE.,      & ! Aquifer soil moisture residual [mm3/mm3]
+         Watr=.FALSE.,        & ! soil moisture residual [mm3/mm3]      
+         fldcap=.FALSE.,      & !field cap including org frac [mm3/mm3]
+         wiltp=.FALSE.,       & !wilt point including org frac [mm3/mm3]
+         Forg=.FALSE.,        & !ogranic frac in soil   [-]
+         SoilIce=.FALSE.,     & !volumetric soil ice [mm3/mm3]
+         VISalbedo=.FALSE.,   & !albedo visible band [-]
+         NIRalbedo=.FALSE.,   & !albedo nir band [-]
+         rtevap=.false.,      &
+         sublayer_dz=.false., &
+         rtevap_sat=.false.,  &
+         z0soil=.false.,      &
+         rtsoil=.false.,      &
+         beta_rtsoil=.false., &
+         bl_rtevap=.true.,&
+         sv_rtevap=.true.
    
    END TYPE output_inclusion_type
 
