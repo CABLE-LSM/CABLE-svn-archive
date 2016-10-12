@@ -15,7 +15,7 @@ host_raij()
    export FC='mpif90'
    export CFLAGS='-O0 -fp-model precise'
    if [[ $1 = 'debug' ]]; then
-      export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0'
+      export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0 -warn all -check all'
    fi
    export LDFLAGS='-L'$NCDIR' -O2'
    export LD='-lnetcdf -lnetcdff'
@@ -24,7 +24,7 @@ host_raij()
    build_status
 }
 
-## shine-cl.nexus.csiro.au 
+## shine-cl.nexus.csiro.au
 host_shin()
 {
    export NCDIR='/usr/local/intel/'
@@ -39,7 +39,7 @@ host_shin()
 }
 
 
-## burnet.hpsc.csiro.au 
+## burnet.hpsc.csiro.au
 host_burn()
 {
    . /apps/modules/Modules/default/init/ksh
@@ -57,7 +57,7 @@ host_burn()
 }
 
 
-## cherax.hpsc.csiro.au 
+## cherax.hpsc.csiro.au
 host_cher()
 {
    export NCDIR=$NETCDF_ROOT'/lib/'
@@ -72,34 +72,34 @@ host_cher()
 }
 
 
-## unknown machine, user entering options stdout 
+## unknown machine, user entering options stdout
 host_read()
 {
    print "\n\tWhat is the ROOT path of your NetCDF library" \
          "and .mod file. "
    print "\tRemember these have to be created by the same " \
-         "Fortran compiler you" 
+         "Fortran compiler you"
    print "\twant to use to build CABLE. e.g./usr/local/intel"
    read NCDF_ROOT
-   
+
    print "\n\tWhat is the path, relative to the above ROOT, of " \
-         "your NetCDF library." 
+         "your NetCDF library."
    print "\n\tPress enter for default [lib]."
    read NCDF_DIR
    if [[ $NCDF_DIR == '' ]]; then
       export NCDIR=$NCDF_ROOT/'lib'
-   else   
+   else
       export NCDIR=$NCDF_ROOT/$NCDF_DIR
    fi
 
-   
+
    print "\n\tWhat is the path, relative to the above ROOT, of " \
          "your NetCDF .mod file."
    print "\n\tPress enter for default [include]."
    read NCDF_MOD
    if [[ $NCDF_MOD == '' ]]; then
       export NCMOD=$NCDF_ROOT/'include'
-   else   
+   else
       export NCDIR=$NCDF_ROOT/$NCDF_MOD
    fi
 
@@ -107,22 +107,22 @@ host_read()
 
    print "\n\tWhat is the Fortran compiler you wish to use."
    print "\te.g. ifort, gfortran"
-   
+
    print "\n\tPress enter for default [ifort]."
-   read FCRESPONSE 
+   read FCRESPONSE
    if [[ $FCRESPONSE == '' ]]; then
       export FC='ifort'
-   else   
+   else
       export FC=$FCRESPONSE
    fi
 
    print "\n\tWhat are the approriate compiler options"
    print "\te.g.(ifort) -O2 -fp-model precise "
    print "\n\tPress enter for default [-O2 -fp-model precise]."
-   read CFLAGRESPONSE 
+   read CFLAGRESPONSE
    if [[ $CFLAGRESPONSE == '' ]]; then
       export CFLAGS='-O2 -fp-model precise'
-   else   
+   else
       export CFLAGS=$CFLAGRESPONSE
    fi
 
@@ -132,10 +132,10 @@ host_read()
    print "\n\tWhat are the approriate libraries to link"
    print "\te.g.(most systems) -lnetcdf "
    print "\n\tPress enter for default [-lnetcdf]."
-   read LDRESPONSE 
+   read LDRESPONSE
    if [[ $LDRESPONSE == '' ]]; then
       export LD='-lnetcdf'
-   else   
+   else
       export LD=$LDRESPONSE
    fi
 
@@ -176,7 +176,7 @@ clean_build()
       print '\ncleaning up\n'
       rm -fr .mpitmp
       print '\n\tPress Enter too continue buiding, Control-C to abort now.\n'
-      read dummy 
+      read dummy
 }
 
 
@@ -187,13 +187,13 @@ set_up_CABLE_AUX()
       print "\tNCI account holders can have this set up for you now (anywhere)."
       print "\tOthers will have to use the tarball available for download at ..."
       print "\n\tDo you want to run set up this directory now? y/[n]"
-      
+
       read setup_CABLE_AUX
       if [[ $setup_CABLE_AUX = 'y' ]]; then
          print "\n\tPlease enter your NCI user ID"
-         read NCI_USERID 
-         mkdir ~/CABLE-AUX 
-         
+         read NCI_USERID
+         mkdir ~/CABLE-AUX
+
          fscp1="scp -r "
          fscp2="@vayu.nci.org.au:/projects/access/CABLE-AUX/"
          fscp3="offline "
@@ -201,53 +201,53 @@ set_up_CABLE_AUX()
          fscp5=$fscp1$NCI_USERID$fscp2
          fscp=$fscp5$fscp3$fscp4$fscp3
          $fscp
-          
+
          RC=$?
-         if [[ $RC > 0 ]];then 
-            print "ERROR: scp of ~/CABLE-AUX/offline failed" 
-            exit $RC 
+         if [[ $RC > 0 ]];then
+            print "ERROR: scp of ~/CABLE-AUX/offline failed"
+            exit $RC
          fi
-         
+
          fscp3="core "
          fscp=$fscp5$fscp3$fscp4$fscp3
          $fscp
-         
+
          RC=$?
-         if [[ $RC > 0 ]];then 
-            print "ERROR: scp of ~/CABLE-AUX/core failed" 
-            exit $RC 
+         if [[ $RC > 0 ]];then
+            print "ERROR: scp of ~/CABLE-AUX/core failed"
+            exit $RC
          fi
-      fi        
+      fi
 }
 
 
 
 not_recognized()
-{  
+{
    print "\n\n\tThis is not a recognized host for which we " \
-         "know the location of the" 
+         "know the location of the"
    print "\tnetcdf distribution and correct compiler switches."
 
    print "\n\tPlease enter these details as prompted, and the " \
-         "script will be " 
-   print "\tupdated accordingly. " 
+         "script will be "
+   print "\tupdated accordingly. "
    print "\n\tIf this is a common machine for CABLE users, " \
          "please email"
-   print "\n\t\t cable_help@nf.nci.org.au "  
+   print "\n\t\t cable_help@nf.nci.org.au "
    print "\n\talong with your new build_mpi.ksh so that we can " \
          "update the script "
    print "\tfor all users. "
    print "\n\tTo enter compile options for this build press " \
-         "enter, otherwise " 
-   print "\tControl-C to abort script."           
-   
+         "enter, otherwise "
+   print "\tControl-C to abort script."
+
    host_read
 
    print "\n\tPlease supply a comment include the new build " \
-         "script." 
+         "script."
    print "\n\tGenerally the host URL e.g. vayu.nci.org.au "
    read HOST_COMM
-   
+
    build_build
 }
 
@@ -257,15 +257,15 @@ do_i_no_u()
    integer kmax=${#kh[*]}
    integer k=0
    typeset -f subr
-   
+
    while [[ $k -lt $kmax ]]; do
       if [[ $HOST_MACH = ${kh[$k]} ]];then
          print 'Host recognized'
          subr=host_${kh[$k]}
          $subr $1
-      fi        
+      fi
       (( k = k + 1 ))
-   done 
+   done
 }
 
 
@@ -275,16 +275,16 @@ build_status()
    	mv .mpitmp/cable-mpi .
    	print '\nBUILD OK\n'
    else
-      print '\nOooops. Something went wrong\n'        
-      print '\nKnow build issues:\n'        
-      print '\nSome systems require additional library. \n'        
-      print '\nEdit Makefile_offline; add -lnetcdff to LD = ...\n'        
+      print '\nOooops. Something went wrong\n'
+      print '\nKnow build issues:\n'
+      print '\nSome systems require additional library. \n'
+      print '\nEdit Makefile_offline; add -lnetcdff to LD = ...\n'
    fi
    exit
 }
 
 
-      
+
 i_do_now()
 {
       cd ../
@@ -292,8 +292,8 @@ i_do_now()
       tail -n +7 build_mpi.ksh > build_mpi.ksh.tmp
       cat junk build_mpi.ksh.tmp > build_mpi.ksh.new
       mv build_mpi.ksh.new build_mpi.ksh
-      chmod u+x build_mpi.ksh 
-      rm -f build_mpi.ksh.tmp build_mpi.ksh.new junk 
+      chmod u+x build_mpi.ksh
+      rm -f build_mpi.ksh.tmp build_mpi.ksh.new junk
       build_status
 }
 
@@ -302,41 +302,41 @@ build_build()
 {
 
    # write file for consumption by Fortran code
-   # get SVN revision number 
+   # get SVN revision number
    CABLE_REV=`svn info | grep Revis |cut -c 11-18`
    if [[ $CABLE_REV="" ]]; then
       echo "this is not an svn checkout"
       CABLE_REV=0
-      echo "setting CABLE revision number to " $CABLE_REV 
-   fi         
+      echo "setting CABLE revision number to " $CABLE_REV
+   fi
    print $CABLE_REV > ~/.cable_rev
-   # get SVN status 
+   # get SVN status
    CABLE_STAT=`svn status`
    print $CABLE_STAT >> ~/.cable_rev
- 
+
    if [[ ! -d .mpitmp ]]; then
       mkdir .mpitmp
    fi
-   
+
    if [[ -f cable-mpi ]]; then
-      print '\ncable-mpi executable exists. copying to a dated backup file\n' 
+      print '\ncable-mpi executable exists. copying to a dated backup file\n'
       mv cable-mpi cable-mpi.`date +%d.%m.%y`
    fi
-   
+
    CORE="../core/biogeophys"
    DRV="."
    CASA="../core/biogeochem"
-   
+
    /bin/cp -p $CORE/*90 ./.mpitmp
    /bin/cp -p $DRV/*90 ./.mpitmp
    /bin/cp -p $CASA/*90 ./.mpitmp
-   
-   print "\n\n\tPlease note: CASA-CNP files are included in build only for " 
-   print "\ttechnical reasons. Implementation is not officially available with" 
+
+   print "\n\n\tPlease note: CASA-CNP files are included in build only for "
+   print "\ttechnical reasons. Implementation is not officially available with"
    print "\tthe release of CABLE 2.0\n"
-    
+
    /bin/cp -p Makefile_mpi  ./.mpitmp
-   
+
   cd .mpitmp/
 
    make -f Makefile_mpi
@@ -357,7 +357,7 @@ else
 fi
 
 
-   
+
 known_hosts
 
 HOST_MACH=`uname -n | cut -c 1-4`
@@ -367,4 +367,3 @@ do_i_no_u $1
 not_recognized
 
 i_do_now
-

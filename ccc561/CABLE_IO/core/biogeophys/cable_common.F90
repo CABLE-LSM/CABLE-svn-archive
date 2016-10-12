@@ -61,6 +61,9 @@ MODULE cable_common_module
       CHARACTER(LEN=20) ::                                                     &
          GS_SWITCH='leuning'
       
+      CHARACTER(LEN=4)  :: MetType       = "NA" !
+
+      
       CHARACTER(LEN=5) ::                                                      &
          RUN_DIAG_LEVEL  !
       

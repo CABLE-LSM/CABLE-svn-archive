@@ -34,7 +34,8 @@ LSRC = cable_data.F90 cable_diag.F90 cable_common.F90 cable_define_types.F90   \
      cable_roughness.F90 cable_carbon.F90 cable_canopy.F90 cable_cbm.F90       \
      cable_checks.F90 cable_read.F90 cable_initialise.F90 cable_input.F90      \
      cable_write.F90 cable_output.F90 casa_cnp.F90 casa_cable.F90 casa_inout.F90 \
-     cable_driver.F90 cable_plume_mip.F90 cable_weathergenerator.F90
+     cable_driver.F90 cable_plume_mip.F90 cable_weathergenerator.F90           \
+     cable_gswp3_mod.F90 cable_metforcing_mod.F90
 
 # this is the executable we are building
 PROG = cable
@@ -62,6 +63,10 @@ $(PROG) : cable_driver.o
 
 
 # dependencies
+cable_metforcing_mod.o: cable_metforcing_mod.F90 cable_iovars.o cable_common.o
+
+cable_gswp3_mod.o: cable_gswp3_mod.F90 cable_common.o cable_iovars.o cable_metforcing_mod.o
+
 cable_abort.o: cable_abort.F90 cable_iovars.o cable_define_types.o
 
 cable_data.o: cable_data.F90 
@@ -82,7 +87,7 @@ cable_checks.o: cable_checks.F90 cable_radiation.o cable_common.o
 
 cable_driver.o: cable_driver.F90 cable_output.o cable_iovars.o cable_cbm.o     \
 		cable_diag.o casa_variable.o casa_cable.o casa_cnp.o casa_inout.o \
-		cable_input.o cable_common.o cable_data.o cable_plume_mip.o
+		cable_input.o cable_common.o cable_data.o cable_plume_mip.o cable_gswp3_mod.o
 
 cable_define_types.o: cable_define_types.F90
 
@@ -100,7 +105,7 @@ cable_output.o: cable_output.F90 cable_abort.o cable_checks.o cable_write.o cabl
 
 cable_parameters.o: cable_parameters.F90 cable_define_types.o cable_iovars.o cable_abort.o casa_variable.o cable_common.o
 
-cable_weathergenerator.o: cable_weathergenerator.o
+cable_weathergenerator.o: cable_weathergenerator.F90
 
 cable_plume_mip.o: cable_plume_mip.F90 cable_iovars.o cable_define_types.o cable_checks.o cable_weathergenerator.o
 
