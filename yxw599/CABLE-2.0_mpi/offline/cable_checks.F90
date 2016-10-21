@@ -120,6 +120,9 @@ MODULE cable_checks_module
            casaGRresp = (/-1607.0,642.8 /),    & ! gC/m2/day or gC/m2/mon
            casaSLresp = (/-1607.0,642.8 /),    & ! gC/m2/day or gC/m2/mon
            casaNEE    = (/-2249.9,1607.0/),    & ! gC/m2/day or gC/m2/mon
+           Clabloss   = (/0.0,2000.0/),        & ! gC/m2/day or gC/m2/mon
+           dClabiledt = (/-642.8, 3214.1/),    & ! gC/m2/day or gC/m2/mon
+           fracClabile= (/0.0,1.0/),           & ! gC/m2/day or gC/m2/mon
            Ndep   = (/0.0,2000.0/),            & ! gN/m2/day or gN/m2/mon
            Nfix   = (/0.0,2000.0/),            & ! gN/m2/day or gN/m2/mon
            Nmin   = (/0.0,2000.0/),            & ! gN/m2/day or gN/m2/mon

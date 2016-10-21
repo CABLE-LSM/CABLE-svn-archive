@@ -260,7 +260,10 @@ MODULE cable_IO_vars_module
          casaRTresp = .FALSE., &
          casaGRresp = .FALSE., &
          casaSLresp = .FALSE., &
-         casaNEE = .FALSE.,   &
+         casaNEE    = .FALSE., &
+         Clabloss   = .FALSE., &
+         dClabiledt = .FALSE., &
+         fracClabile= .FALSE., &
          Ndep    = .FALSE.,   &
          Nfix    = .FALSE.,   &
          Nmin    = .FALSE.,   &

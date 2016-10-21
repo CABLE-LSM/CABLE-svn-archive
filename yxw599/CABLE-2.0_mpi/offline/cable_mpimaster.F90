@@ -856,15 +856,15 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
 
   TYPE (met_type), INTENT(INOUT) :: met
   TYPE (air_type), INTENT(INOUT) :: air
-  TYPE (soil_snow_type), INTENT(OUT) :: ssnow
-  TYPE (veg_parameter_type), INTENT(OUT)  :: veg
-  TYPE (bgc_pool_type), INTENT(OUT)  :: bgc
-  TYPE (soil_parameter_type), INTENT(OUT) :: soil
-  TYPE (canopy_type), INTENT(OUT)    :: canopy
-  TYPE (roughness_type), INTENT(OUT) :: rough
-  TYPE (radiation_type),INTENT(OUT)  :: rad
-  TYPE (sum_flux_type), INTENT(OUT)  :: sum_flux
-  TYPE (balances_type), INTENT(OUT)  :: bal
+  TYPE (soil_snow_type)          :: ssnow
+  TYPE (veg_parameter_type)      :: veg
+  TYPE (bgc_pool_type)           :: bgc
+  TYPE (soil_parameter_type)     :: soil
+  TYPE (canopy_type)             :: canopy
+  TYPE (roughness_type)          :: rough
+  TYPE (radiation_type)          :: rad
+  TYPE (sum_flux_type)           :: sum_flux
+  TYPE (balances_type)           :: bal
 
   ! local vars
 
@@ -5203,6 +5203,14 @@ SUBROUTINE master_casa_types (comm, casapool, casaflux, &
 
      bidx = bidx + 1
      CALL MPI_Get_address (casapool%dClabiledt(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+     ! BP added two more labile output (July 2016)
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%fracClabile(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casaflux%Clabloss(off), displs(bidx), ierr)
      blocks(bidx) = r2len
 
      bidx = bidx + 1

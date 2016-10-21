@@ -106,7 +106,8 @@ MODULE cable_mpicommon
 !  INTEGER, PARAMETER :: ncasa_mat = 15
   INTEGER, PARAMETER :: ncasa_mat = 33    ! changed  ypw 27-bov-2012 17 new variables added for casa spinup
 !  INTEGER, PARAMETER :: ncasa_vec = 27
-  INTEGER, PARAMETER :: ncasa_vec = 49    ! changed on 30-jan-2013 for adding four new respiration variable to the output
+!  INTEGER, PARAMETER :: ncasa_vec = 49    ! changed on 30-jan-2013 for adding four new respiration variable to the output
+  INTEGER, PARAMETER :: ncasa_vec = 51    ! BP added 2 labile output (July 2016)
 
   ! MPI: number of fields included in restart_t type for data
   ! that is returned only for creating a restart file at the end of the run

@@ -183,6 +183,15 @@ SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
       casabiome%ratioNCplantmin(nv,froot),casabiome%ratioNCplantmax(nv,froot), &
       xfNminloss(nv), xfNminleach(nv),xnfixrate(nv)
 !     PRINT *, 'nv6',nv6
+      if(casabiome%ratioNCplantmax(nv,leaf)/casabiome%ratioNCplantmin(nv,leaf)>1.51  &
+      .or.casabiome%ratioNCplantmax(nv,wood)/casabiome%ratioNCplantmin(nv,wood)>1.51 &
+      .or.casabiome%ratioNCplantmax(nv,froot)/casabiome%ratioNCplantmin(nv,froot)>1.51 ) then
+         print *, 'WARNING!!! Plant tiiuse range too wide, to avoid oscillation during spinup, reduce the range', &
+         'ivt= ', nv6, casabiome%ratioNCplantmin(nv,leaf),casabiome%ratioNCplantmax(nv,leaf), &
+                       casabiome%ratioNCplantmin(nv,wood),casabiome%ratioNCplantmax(nv,wood), &
+                       casabiome%ratioNCplantmin(nv,froot),casabiome%ratioNCplantmax(nv,froot)
+       endif
+
   ENDDO
 
   READ(101,*)
@@ -373,7 +382,7 @@ SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
     casapool%psoilocc(npt)    = xpocc(iv1)
     casaflux%kmlabp(npt)      = xkmlabp(iso)
     casaflux%psorbmax(npt)    = xpsorbmax(iso)
-    casaflux%fpleach(npt)     = xfPleach(iso)   !/365.0   ! convert from yr to daily
+    casaflux%fpleach(npt)     = xfPleach(iso)         !/365.0   ! convert from yr to daily
 !   we used the spatially explicit estimate N fixation by Wang and Houlton (GRL)
 !    casaflux%Nminfix(npt)     = xnfixrate(iv1)/365.0  
 
@@ -1542,7 +1551,7 @@ SUBROUTINE biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
   REAL(r_2),    DIMENSION(mp) :: xkleafcold,xkleafdry,xkleaf
   INTEGER  npt,j
 
-!  npt =62343
+!  npt =33748
 
   xKNlimiting = 1.0
   call phenology(idoy,veg,phen)
@@ -1616,14 +1625,16 @@ SUBROUTINE biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
 
 !  ! for spinning up only
 !  casapool%Nsoilmin = max(casapool%Nsoilmin,0.5)
-!  casapool%Psoillab = max(casapool%Psoillab,0.1)
+  casapool%Psoillab = max(casapool%Psoillab,0.01)
 
-!    write(*,901) ktau,idoy,npt,casapool%cplant(npt,:),casapool%nplant(npt,:), casapool%pplant(npt,:), &
+!    write(*,901) ktau,idoy,npt,phen%phase(npt),casapool%cplant(npt,:),casapool%nplant(npt,:), casapool%pplant(npt,:), &
 !               casaflux%cgpp(npt),casaflux%Cnpp(npt),casaflux%crmplant(npt,:),casaflux%Crgplant(npt), &
 !               casaflux%fracCalloc(npt,:),casaflux%fracClabile(npt),               &
 !               casapool%Nsoilmin(npt), casaflux%Nupland(npt),                       &
-!               casapool%psoillab(npt), casaflux%Pupland(npt)
-901 format('after delplant: ',3(i6,2x),100(f8.4,2x))
+!               casapool%psoillab(npt), casaflux%Pupland(npt),                       &
+!               casamet%glai(npt),casabiome%glaimin(veg%iveg(npt)),casabiome%glaimax(veg%iveg(npt))
+
+901 format('after delplant: ',4(i6,1x),100(f9.2,1x))
 900 format('before delplant: ',3(i6,2x),100(f8.4,2x))
 END SUBROUTINE biogeochem
 

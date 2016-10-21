@@ -151,7 +151,7 @@ SUBROUTINE casa_xnp(xnplimit,xNPuptake,veg,casabiome,casapool,casaflux,casamet)
     ENDDO
   ENDIF
 
-  xnplimit(:)  = 1.0
+  xnplimit(:)  = 1.0  ! disable the empirical method for nutrient limitation
   xNPuptake(:)     = min(xnuptake(:), xpuptake(:))
   do np =1, mp
      if(casamet%iveg2(np)/=icewater.and.casaflux%cnpp(np) > 0.0.and.xNPuptake(np) < 1.0) then
@@ -283,7 +283,7 @@ SUBROUTINE casa_allocation(veg,soil,casabiome,casaflux,casapool,casamet,phen)
 
   ! IF Prognostic LAI reached glaimax, no C is allocated to leaf
   ! Q.Zhang 17/03/2011
-    WHERE(casamet%glai(:)>=casabiome%glaimax(veg%iveg(:)))
+    WHERE(casamet%glai(:)>=0.95*casabiome%glaimax(veg%iveg(:)))
       casaflux%fracCalloc(:,leaf)  = 0.0
       casaflux%fracCalloc(:,froot) =  casaflux%fracCalloc(:,froot) &
                                    /(casaflux%fracCalloc(:,froot) &
@@ -291,7 +291,7 @@ SUBROUTINE casa_allocation(veg,soil,casabiome,casaflux,casapool,casamet,phen)
       casaflux%fracCalloc(:,wood)  = 1.0 -casaflux%fracCalloc(:,froot)
     ENDWHERE
 
-    WHERE(casamet%glai(:)<casabiome%glaimin(veg%iveg(:)))
+    WHERE(casamet%glai(:)<1.05*casabiome%glaimin(veg%iveg(:)))
       casaflux%fracCalloc(:,leaf)  = 0.8
       WHERE(casamet%lnonwood==0)  !woodland or forest
         casaflux%fracCalloc(:,froot) = 0.5*(1.0-casaflux%fracCalloc(:,leaf))
@@ -1761,11 +1761,20 @@ SUBROUTINE casa_cnpcycle(veg,casabiome,casapool,casaflux,casamet)
       IF(icycle >2) casapool%Pplant(np,:) = casapool%Pplant(np,:) &
                                  +casapool%dPplantdt(np,:)*deltpool
     ENDIF
-!    casamet%lglai(np)   = MIN(0.0, casabiome%sla(veg%iveg(np))  &
-!                                  * casapool%cplant(np,leaf))
-    casamet%glai(np)   = MAX(casabiome%glaimin(veg%iveg(np)), &
-                               casabiome%sla(veg%iveg(np)) * casapool%cplant(np,leaf))
-    casamet%glai(np)   = MIN(casabiome%glaimax(veg%iveg(np)), casamet%glai(np))
+    casamet%glai(np)   = casabiome%sla(veg%iveg(np)) * casapool%cplant(np,leaf)
+!! changes made by ypw on 09-08-2016 
+    if(casamet%glai(np) < casabiome%glaimin(veg%iveg(np)).or.casamet%glai(np) > casabiome%glaimax(veg%iveg(np))) then
+
+     casamet%glai(np)         = MIN(casabiome%glaimax(veg%iveg(np)),MAX(casabiome%glaimin(veg%iveg(np)), &
+                                casabiome%sla(veg%iveg(np)) * casapool%cplant(np,leaf)))
+     casapool%cplant(np,leaf) = casamet%glai(np)/ casabiome%sla(veg%iveg(np))
+     casapool%nplant(np,leaf) = casapool%cplant(np,leaf) * casabiome%ratioNCplantmin(veg%iveg(np),leaf) 
+     casapool%pplant(np,leaf) = casapool%nplant(np,leaf) / casabiome%ratioNPplantmax(veg%iveg(np),leaf)
+    endif
+!    casamet%glai(np)   = MIN(casabiome%glaimax(veg%iveg(np)), casamet%glai(np))
+!    casamet%glai(np)   = MAX(casabiome%glaimin(veg%iveg(np)), &
+!                              casabiome%sla(veg%iveg(np)) * casapool%cplant(np,leaf))
+!    casamet%glai(np)   = MIN(casabiome%glaimax(veg%iveg(np)), casamet%glai(np))
 !    PRINT *, 'np, casamet%glai(np) = ', np,veg%iveg(np),casamet%glai(np)
     casapool%clitter(np,:) = casapool%clitter(np,:) &
                            + casapool%dClitterdt(np,:) * deltpool 
@@ -1932,9 +1941,9 @@ SUBROUTINE casa_cnpbal(casapool,casaflux,casabal)
    casabal%cbalance(:) = Cbalplant(:) + Cbalsoil(:)
 ! comment out the revision on cnpp and crgplant due to changes in labile pool
    ! add change in labile carbon pool to NPP 
-   casaflux%cnpp(:) = casaflux%cnpp(:) + casapool%dClabiledt(:)
+!***   casaflux%cnpp(:) = casaflux%cnpp(:) + casapool%dClabiledt(:)
    ! add the labile C loss to growth respiration
-   casaflux%crgplant(:) = casaflux%crgplant(:) + casaflux%clabloss(:)
+!***   casaflux%crgplant(:) = casaflux%crgplant(:) + casaflux%clabloss(:)
 !   npt=59894
 
 !   write(*,91) casabal%cbalance(npt),Cbalplant(npt),Cbalsoil(npt), &

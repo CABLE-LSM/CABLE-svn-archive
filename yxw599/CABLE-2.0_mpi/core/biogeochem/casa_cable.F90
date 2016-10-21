@@ -662,6 +662,7 @@ SUBROUTINE spincasacnp(fcnpspin,dels,kstart,kend,mloop,veg,soil,casabiome,casapo
   integer nptx,nvt,kloop
 
 
+  !nptx = 59621
 
   bmcplant  = 0.0;  bmnplant  = 0.0; bmpplant  = 0.0
   bmclitter = 0.0;  bmnlitter = 0.0; bmplitter = 0.0
@@ -669,11 +670,11 @@ SUBROUTINE spincasacnp(fcnpspin,dels,kstart,kend,mloop,veg,soil,casabiome,casapo
   bmnsoilmin  = 0.0;  bmpsoillab  = 0.0; bmpsoilsorb = 0.0;  bmpsoilocc = 0.0
 
   call totcnppools(1,veg,casamet,casapool, &
-                bmcplant,bmnplant,bmpplant,bmclitter,bmnlitter,bmplitter, &
+                bmcplant,bmnplant,bmpplant,bmclitter,bmnlitter,bmplitter,  &
                 bmcsoil,bmnsoil,bmpsoil,bmnsoilmin,bmpsoillab,bmpsoilsorb, &
                 bmpsoilocc,bmarea)
-  call spinanalytic(fcnpspin,dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
-                       casaflux,casamet,casabal,phen)
+!  call spinanalytic(fcnpspin,dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
+!                       casaflux,casamet,casabal,phen)
 
   nloop1= max(1,mloop-4)
 
@@ -709,9 +710,16 @@ SUBROUTINE spincasacnp(fcnpspin,dels,kstart,kend,mloop,veg,soil,casabiome,casapo
                       cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,         &
                       nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,         &
                       pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
+!    write(89,891) idoy,nyear,nloop,nptx,&
+!                  casaflux%cgpp(nptx),casaflux%cnpp(nptx),casaflux%crmplant(nptx,:),casaflux%Crgplant(nptx),casaflux%Crsoil(nptx), &
+!                  casaflux%clabloss(nptx),casapool%dClabiledt(nptx),casaflux%fracClabile(nptx),                                  &
+!                  casapool%Cplant(nptx,:), casapool%clitter(nptx,:), casapool%csoil(nptx,:),casabal%cbalance(nptx)
     ENDDO   ! end of idoy
+
   ENDDO   ! end of nyear
   close(91)
+
+891 format(4(i6,2x),100(f9.2,1x))
 
     if(nloop>=nloop1) then
        print *, 'kloop =', 2+nloop-nloop1, nloop,nloop1
@@ -861,7 +869,7 @@ SUBROUTINE spinanalytic(fcnpspin,dels,kstart,kend,mloop,veg,soil,casabiome,casap
         WHERE(xkNlimiting .eq. 0)  !Chris Lu 4/June/2012
            xkNlimiting = 0.001
         END WHERE
-        nptx=8173
+        !nptx=8173
 
         avg_cleaf2met = avg_cleaf2met + cleaf2met
         avg_cleaf2str = avg_cleaf2str + cleaf2str

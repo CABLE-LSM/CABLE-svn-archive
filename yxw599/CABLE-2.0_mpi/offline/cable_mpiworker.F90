@@ -5359,6 +5359,14 @@ SUBROUTINE worker_casa_type (comm, casapool,casaflux, &
   bidx = bidx + 1
   CALL MPI_Get_address (casapool%dClabiledt(off), displs(bidx), ierr)
   blocks(bidx) = r2len
+  ! BP added two more labile output (July 2016)
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%fracClabile(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (casaflux%Clabloss(off), displs(bidx), ierr)
+  blocks(bidx) = r2len
 
   bidx = bidx + 1
   CALL MPI_Get_address (casaflux%Crgplant(off), displs(bidx), ierr)

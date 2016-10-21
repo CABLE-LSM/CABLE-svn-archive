@@ -69,6 +69,7 @@ MODULE cable_output_module
                     LeafResp, HeteroResp, GPP, NPP, LAI,                       &
                     casaGPP, casaNPP, casaLFresp, casaWDresp,                  &
                     casaRTresp, casaGRresp, casaSLresp, casaNEE,               &
+                    Clabloss, dClabiledt, fracClabile,                         &
                     Ndep, Nfix,  Nmin, Nup, Nleach, Nloss,                     &
                     Pwea, Pdust, Pmin, Pup, Pleach, Ploss,                     &
                     phase, Clab, Cplant, Clitter, Csoil,                       &
@@ -169,6 +170,9 @@ MODULE cable_output_module
     REAL(KIND=4), POINTER, DIMENSION(:) :: casaGRresp ! [gC/m2/day]
     REAL(KIND=4), POINTER, DIMENSION(:) :: casaSLresp ! [gC/m2/day]
     REAL(KIND=4), POINTER, DIMENSION(:) :: casaNEE    ! [gC/m2/day]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: Clabloss   ! [gC/m2/day]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: dClabiledt ! [gC/m2/day]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: fracClabile ! [gC/m2/day]
     REAL(KIND=4), POINTER, DIMENSION(:) :: Ndep       ! [gN/m2/day]
     REAL(KIND=4), POINTER, DIMENSION(:) :: Nfix       ! [gN/m2/day]
     REAL(KIND=4), POINTER, DIMENSION(:) :: Nmin       ! [gN/m2/day]
@@ -930,6 +934,22 @@ CONTAINS
                         'dummy', xID, yID, zID, landID, patchID, tCID)
        ALLOCATE(out%casaNEE(mp))
        out%casaNEE = 0.0 ! initialise
+       ! BP added 3 labile C output variables (July 2016)
+       CALL define_ovar(ncid_out, ovid%Clabloss, 'Clabloss', outUnit,          &
+                        'Labile C loss by respiration', patchout%Clabloss,     &
+                        'dummy', xID, yID, zID, landID, patchID, tCID)
+       ALLOCATE(out%Clabloss(mp))
+       out%Clabloss = 0.0 ! initialise
+       CALL define_ovar(ncid_out, ovid%dClabiledt, 'dClabiledt', outUnit,      &
+                        'rate of change of Labile C', patchout%dClabiledt,     &
+                        'dummy', xID, yID, zID, landID, patchID, tCID)
+       ALLOCATE(out%dClabiledt(mp))
+       out%dClabiledt = 0.0 ! initialise
+       CALL define_ovar(ncid_out, ovid%fracClabile, 'fracClabile', '-',        &
+                        'fraction of GPP as Labile C', patchout%fracClabile,   &
+                        'dummy', xID, yID, zID, landID, patchID, tCID)
+       ALLOCATE(out%fracClabile(mp))
+       out%fracClabile = 0.0 ! initialise
 
        IF(icycle > 1) THEN
           IF(output%averaging(1:2) == 'mo') THEN
@@ -2570,6 +2590,32 @@ CONTAINS
           CALL write_ovar(out_tsCASA, ncid_out, ovid%casaNEE, 'CASANEE', &
                out%casaNEE, ranges%casaNEE, patchout%casaNEE, 'default', met)
           out%casaNEE = 0.0
+       END IF
+       ! Clabloss: Labile C loss by respiration [gC/m^2/day or gC/m^2/mon]
+       out%Clabloss = out%Clabloss + REAL(casaflux%Clabloss)
+       IF(writeCASA) THEN
+          out%Clabloss = out%Clabloss/REAL(2 * backCASA / ktauday, 4)
+          CALL write_ovar(out_tsCASA, ncid_out, ovid%Clabloss, 'Clabloss', &
+               out%Clabloss, ranges%Clabloss, patchout%Clabloss, 'default', met)
+          out%Clabloss = 0.0
+       END IF
+       ! dClabiledt: rate of change of Labile C [gC/m^2/day or gC/m^2/mon]
+       out%dClabiledt = out%dClabiledt + REAL(casapool%dClabiledt)
+       IF(writeCASA) THEN
+          out%dClabiledt = out%dClabiledt/REAL(2 * backCASA / ktauday, 4)
+          CALL write_ovar(out_tsCASA, ncid_out, ovid%dClabiledt, 'dClabiledt', &
+               out%dClabiledt, ranges%dClabiledt, patchout%dClabiledt,         &
+               'default', met)
+          out%dClabiledt = 0.0
+       END IF
+       ! fracClabile: fraction of GPP as Labile C [gC/m^2/day or gC/m^2/mon]
+       out%fracClabile = out%fracClabile + REAL(casaflux%fracClabile)
+       IF(writeCASA) THEN
+          out%fracClabile = out%fracClabile/REAL(2 * backCASA / ktauday, 4)
+          CALL write_ovar(out_tsCASA, ncid_out, ovid%fracClabile,'fracClabile',&
+               out%fracClabile, ranges%fracClabile, patchout%fracClabile,      &
+               'default', met)
+          out%fracClabile = 0.0
        END IF
        ! State var & pool sizes are instant values at end of reporting period.
        IF(writeCASA) THEN

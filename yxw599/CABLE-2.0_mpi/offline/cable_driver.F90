@@ -160,7 +160,7 @@ PROGRAM cable_offline_driver
 
    ! added variable by yp wang 7-nov-2012
    ! BP had values of mloop read in from namelist file (Jun 2013)
-   INTEGER :: mloop = 20       ! default = 5, to be overwritten by namelist
+   INTEGER :: mloop = 5        ! default = 5, to be overwritten by namelist
 
    ! switches etc defined thru namelist (by default cable.nml)
    NAMELIST/CABLE/                  &
@@ -313,7 +313,6 @@ PROGRAM cable_offline_driver
        print *, 'spincasacnp enabled with mloop= ', mloop
        call spincasacnp(casafile%cnpspin,dels,kstart,kend,mloop,veg,soil, &
                         casabiome,casapool,casaflux,casamet,casabal,phen)
-       go to 9999
      endif
    endif
 
@@ -488,7 +487,6 @@ PROGRAM cable_offline_driver
       endif
 
    END IF
-9999 continue
    ! Write restart file if requested:
    IF(output%restart) THEN
       CALL create_restart( logn, dels, ktau, soil, veg, ssnow,                 &

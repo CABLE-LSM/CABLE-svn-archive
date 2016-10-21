@@ -1142,7 +1142,7 @@ CONTAINS
                land_y(i), (landpt(i)%nap + 1):max_vegpatches, :, 1) = ncmissingr
             IF(check%ranges) THEN  ! Check ranges for active patches:
               DO j = 1, landpt(i)%nap
-                DO k = 1, ncs
+                DO k = 1, mplant
                   IF((otmp5xypcnpt(land_x(i), land_y(i), j, k, 1) < vrange(1)) &
                       .OR. (otmp5xypcnpt(land_x(i), land_y(i), j, k, 1) >      &
                       vrange(2)))                                              &
@@ -1155,7 +1155,7 @@ CONTAINS
           END DO
           ! Fill non-land points with dummy value:
           DO j = 1, max_vegpatches
-            DO k = 1, ncs
+            DO k = 1, mplant
               ! not land
               WHERE(mask /= 1) otmp5xypsct(:, :, j, k, 1) = ncmissingr
             END DO
@@ -1303,13 +1303,13 @@ CONTAINS
         ELSE IF(dimswitch == 'cnp')THEN ! other dim is CASACNP pools
           DO i = 1, mland ! over all land grid points
             ! Write to temporary variable (sum over patches & weight by fraction):
-            DO j = 1, ncs
+            DO j = 1, mplant
                otmp4xycnpt(land_x(i), land_y(i), j, 1) = SUM(                  &
                                   var_r2(landpt(i)%cstart:landpt(i)%cend, j) * &
                                     patch(landpt(i)%cstart:landpt(i)%cend)%frac)
             END DO
             IF(check%ranges) THEN  ! Check ranges:
-              DO j = 1, ncs
+              DO j = 1, mplant
                 IF((otmp4xycnpt(land_x(i), land_y(i), j, 1) < vrange(1)) .OR.  &
                      (otmp4xycnpt(land_x(i), land_y(i), j, 1) > vrange(2)))    &
                      CALL range_abort(vname//' is out of specified ranges!',   &
@@ -1319,7 +1319,7 @@ CONTAINS
             END IF
           END DO
           ! Fill non-land points with dummy value:
-          DO j = 1, ncs
+          DO j = 1, mplant
             WHERE(mask /= 1) otmp4xycnpt(:, :, j, 1) = ncmissingr ! not land
           END DO
           ok = NF90_PUT_VAR(ncid, varID, REAL(otmp4xycnpt, 4),                 &
@@ -1464,7 +1464,7 @@ CONTAINS
                           (landpt(i)%nap + 1):max_vegpatches, :, 1) = ncmissingr
             IF(check%ranges) THEN  ! Check ranges for active patches:
               DO j = 1, landpt(i)%nap
-                DO k = 1, ncs
+                DO k = 1, mplant
                   IF((otmp4lpcnpt(i, j, k, 1) < vrange(1)) .OR.                &
                        (otmp4lpcnpt(i, j, k, 1) > vrange(2)))                  &
                        CALL range_abort(vname//' is out of specified ranges!', &
@@ -1590,13 +1590,13 @@ CONTAINS
         ELSE IF(dimswitch == 'cnp') THEN ! other dim is CASACNP pools
           DO i = 1, mland ! over all land grid points
             ! Write to temporary variable (sum patches & weight by fraction):
-            DO j = 1, ncs
+            DO j = 1, mplant
                otmp3lcnpt(i, j, 1) = SUM(                                      &
                                   var_r2(landpt(i)%cstart:landpt(i)%cend, j) * &
                                     patch(landpt(i)%cstart:landpt(i)%cend)%frac)
             END DO
             IF(check%ranges) THEN  ! Check ranges:
-              DO j = 1, ncs
+              DO j = 1, mplant
                 IF((otmp3lcnpt(i, j, 1) < vrange(1)) .OR.                      &
                      (otmp3lcnpt(i, j, 1) > vrange(2)))                        &
                      CALL range_abort(vname//' is out of specified ranges!',   &
