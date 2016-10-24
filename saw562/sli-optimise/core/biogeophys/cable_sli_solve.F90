@@ -313,6 +313,46 @@ CONTAINS
     REAL(r_2), DIMENSION(1:n) :: h_ex
     REAL(r_2) :: wpi
   
+ REAL(r_2), DIMENSION(1:n, 1:mp) :: dx_T
+ TYPE(params), DIMENSION(1:n, 1:mp) :: par_T
+ TYPE(vars), DIMENSION(1:n, 1:mp) :: var_T
+ REAL(r_2), DIMENSION(1:n, 1:mp) :: hint_T
+ REAL(r_2), DIMENSION(1:n, 1:mp) :: phimin_T
+ REAL(r_2), DIMENSION(0:n, 1:mp) :: q_T
+ REAL(r_2), DIMENSION(0:n, 1:mp) :: qya_T
+ REAL(r_2), DIMENSION(0:n, 1:mp) :: qyb_T
+ REAL(r_2), DIMENSION(0:n, 1:mp) :: qTa_T
+ REAL(r_2), DIMENSION(0:n, 1:mp) :: qTb_T
+ REAL(r_2), DIMENSION(0:n, 1:mp) :: qliq_T
+ REAL(r_2), DIMENSION(0:n, 1:mp) :: qlya_T
+ REAL(r_2), DIMENSION(0:n, 1:mp) :: qlyb_T
+ REAL(r_2), DIMENSION(0:n, 1:mp) :: qv_T
+ REAL(r_2), DIMENSION(0:n, 1:mp) :: qvT_T
+ REAL(r_2), DIMENSION(0:n, 1:mp) :: qvh_T
+ REAL(r_2), DIMENSION(0:n, 1:mp) :: qvya_T
+ REAL(r_2), DIMENSION(0:n, 1:mp) :: qvyb_T
+ REAL(r_2), DIMENSION(1:n, 1:mp) :: Tsoil_T
+
+ dx_T = TRANSPOSE(dx)
+ par_T = TRANSPOSE(par)
+ var_T = TRANSPOSE(var)
+ hint_T = TRANSPOSE(hint)
+ phimin_T = TRANSPOSE(phimin)
+ q_T = TRANSPOSE(q)
+ qya_T = TRANSPOSE(qya)
+ qyb_T = TRANSPOSE(qyb)
+ qTa_T = TRANSPOSE(qTa)
+ qTb_T = TRANSPOSE(qTb)
+ qliq_T = TRANSPOSE(qliq)
+ qlya_T = TRANSPOSE(qlya)
+ qlyb_T = TRANSPOSE(qlyb)
+ qv_T = TRANSPOSE(qv)
+ qvT_T = TRANSPOSE(qvT)
+ qvh_T = TRANSPOSE(qvh)
+ qvya_T = TRANSPOSE(qvya)
+ qvyb_T = TRANSPOSE(qvyb)
+ Tsoil_T = TRANSPOSE(Tsoil)
+
     !open (unit=7, file="Test.out", status="replace", position="rewind")
     ! The derived types params and vars hold soil water parameters and variables.
     ! Parameter names often end in e, which loosely denotes "air entry", i.e.,
@@ -875,11 +915,11 @@ CONTAINS
 
              ! get moisture fluxes and derivatives (at time t=0, i.e. q0 etc.)
 
-             call getfluxes_vp(n, dx(kk,1:n), vtop(kk), vbot(kk), par(kk,1:n), var(kk,1:n), & ! moisture fluxes
-                  hint(kk,1:n), phimin(kk,1:n), q(kk,0:n), qya(kk,0:n), qyb(kk,0:n), qTa(kk,0:n), qTb(kk,0:n), &
-                  qliq(kk,0:n), qlya(kk,0:n), qlyb(kk,0:n), qv(kk,0:n), qvT(kk,0:n), qvh(kk,0:n), qvya(kk,0:n), &
-                  qvyb(kk,0:n), &
-                  iflux(kk), init(kk), getq0(kk), getqn(kk), Tsoil(kk,1:n), T0(kk), nsat(kk), nsatlast(kk))
+             call getfluxes_vp(n, dx_T(1:n,kk), vtop(kk), vbot(kk), par_T(1:n,kk), var_T(1:n,kk), & ! moisture fluxes
+                  hint_T(1:n,kk), phimin_T(1:n,kk), q_T(0:n,kk), qya_T(0:n,kk), qyb_T(0:n,kk), qTa_T(0:n,kk), qTb_T(0:n,kk), &
+                  qliq_T(0:n,kk), qlya_T(0:n,kk), qlyb_T(0:n,kk), qv_T(0:n,kk), qvT_T(0:n,kk), qvh_T(0:n,kk), qvya_T(0:n,kk), &
+                  qvyb_T(0:n,kk), &
+                  iflux(kk), init(kk), getq0(kk), getqn(kk), Tsoil_T(1:n,kk), T0(kk), nsat(kk), nsatlast(kk))
              qTa(kk,n) = zero
              qTb(kk,n) = zero
              qvTa(kk,1:n) = qTa(kk,1:n)
