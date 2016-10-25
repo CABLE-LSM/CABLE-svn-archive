@@ -237,7 +237,6 @@ CONTAINS
     REAL(r_2),    DIMENSION(1:mp)       :: qpme, rsig, rsigdt, sig, t
     REAL(r_2),    DIMENSION(1:mp,1:n)   :: Sbot, Tbot
     REAL(r_2),    DIMENSION(1:mp,1:n-1) :: dz
-    REAL(r_2),    DIMENSION(1:mp,1:n)   :: hint, phimin, qexd
     REAL(r_2),    DIMENSION(1:mp,-nsnow_max+1:n)   :: aa, bb, cc, dd, ee, ff, gg, dy
     REAL(r_2),    DIMENSION(1:mp,-nsnow_max+1:n)   :: aah, bbh, cch, ddh, eeh, ffh, ggh, de
     REAL(r_2),    DIMENSION(1:mp,-nsnow_max:n)   :: q, qya, qyb, qTa, qTb,qhya, qhyb, qhTa, qhTb
@@ -327,7 +326,13 @@ CONTAINS
 
     ! Transposed fields, *Constant*
     REAL(r_2), DIMENSION(1:n,1:mp) :: dx_T
+    REAL(r_2), DIMENSION(1:n,1:mp) :: hint, phimin, qexd
+
     dx_T = TRANSPOSE(dx)
+    hint = 0.0
+    phimin = 0.0
+    qexd = 0.0
+
 
     ! set switches
     if (present(dolitter)) then
@@ -453,8 +458,6 @@ CONTAINS
     !       var(i,k) = vtmp
     !    end do
     ! end do
-    hint(:,:)   = zero
-    phimin(:,:) = zero
     q(:,:)      = zero
     qya(:,:)    = zero
     qyb(:,:)    = zero
@@ -560,7 +563,6 @@ CONTAINS
     litter = .false.
     if (littercase == 1) litter=.true. ! full litter model
 
-    qexd(:,:) = zero
     phip(:)   = zero !max(par(:,1)%phie-par(:,1)%he*par(:,1)%Ke, 1.00001_r_2*par(:,1)%phie) ! phi at h=0
 
     ! get K, Kh and phi at hmin (hmin is smallest h, stored in hy-props)
@@ -880,7 +882,7 @@ CONTAINS
              ! get moisture fluxes and derivatives (at time t=0, i.e. q0 etc.)
 
              call getfluxes_vp(n, dx_T(1:n, kk), vtop(kk), vbot(kk), par(kk,1:n), var(kk,1:n), & ! moisture fluxes
-                  hint(kk,1:n), phimin(kk,1:n), q(kk,0:n), qya(kk,0:n), qyb(kk,0:n), qTa(kk,0:n), qTb(kk,0:n), &
+                  hint(1:n, kk), phimin(1:n, kk), q(kk,0:n), qya(kk,0:n), qyb(kk,0:n), qTa(kk,0:n), qTb(kk,0:n), &
                   qliq(kk,0:n), qlya(kk,0:n), qlyb(kk,0:n), qv(kk,0:n), qvT(kk,0:n), qvh(kk,0:n), qvya(kk,0:n), &
                   qvyb(kk,0:n), &
                   iflux(kk), init(kk), getq0(kk), getqn(kk), Tsoil(kk,1:n), T0(kk), nsat(kk), nsatlast(kk))
@@ -1066,7 +1068,7 @@ CONTAINS
                 qadvTb(:,:) = zero
              endif
 
-             qexd(kk,1:n) = zero ! time derivative for root extraction (assumed fixed at input value)
+             qexd(1:n, kk) = zero ! time derivative for root extraction (assumed fixed at input value)
              again(kk)  = .false. ! flag for recalcn of fluxes (default=false)
              !----- end get fluxes and derivs
 
@@ -1242,13 +1244,13 @@ CONTAINS
                 bbh(kk,0) = zero
 
                 where (var(kk,1:n)%isat==0) ! unsaturated layers
-                   cc(kk,1:n) = qyb(kk,0:n-1) - qya(kk,1:n) - par(kk,1:n)%thre*dx_T(1:n, kk)*rsigdt(kk) - qexd(kk,1:n)
+                   cc(kk,1:n) = qyb(kk,0:n-1) - qya(kk,1:n) - par(kk,1:n)%thre*dx_T(1:n, kk)*rsigdt(kk) - qexd(1:n, kk)
                 elsewhere ! saturated layers
-                   cc(kk,1:n) = qyb(kk,0:n-1) - qya(kk,1:n) - qexd(kk,1:n)
+                   cc(kk,1:n) = qyb(kk,0:n-1) - qya(kk,1:n) - qexd(1:n, kk)
                 endwhere
 
                 if (ns(kk)<1) then ! pond included in top soil layer, solving for change in pond height
-                   cc(kk,1) = -qya(kk,1)-rsigdt(kk) -qexd(kk,1)
+                   cc(kk,1) = -qya(kk,1)-rsigdt(kk) -qexd(1, kk)
                 endif
 
                 cch(kk,1:n) = qhyb(kk,0:n-1)-qhya(kk,1:n) +   &
@@ -2065,7 +2067,7 @@ CONTAINS
                 end if
 
                 if (present(wex)) then
-                   wex(kk,1:n) = wex(kk,1:n)+(iqex(kk,1:n)+spread(sig(kk),1,n)*qexd(kk,1:n)*dy(kk,1:n))*spread(dt(kk),1,n)
+                   wex(kk,1:n) = wex(kk,1:n)+(iqex(kk,1:n)+spread(sig(kk),1,n)*qexd(1:n, kk)*dy(kk,1:n))*spread(dt(kk),1,n)
                 end if
 
                 if (litter .and. ns(kk)==1 ) then ! adjust litter moisture content if no ponding
