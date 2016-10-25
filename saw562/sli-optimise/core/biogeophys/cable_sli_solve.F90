@@ -246,7 +246,7 @@ CONTAINS
     TYPE(vars)                          :: vtmp
     !TYPE(vars),   DIMENSION(1:mp,1:n)   :: var
     REAL(r_2),    DIMENSION(-nsnow_max:n,1:mp)   :: qsig, qhsig, qadvsig
-    REAL(r_2),    DIMENSION(1:mp,-nsnow_max:n)   :: qliq, qv, qvT, qlya, qlyb, qvya, qvyb, qlTb, qvTa, qvTb
+    REAL(r_2),    DIMENSION(-nsnow_max:n,1:mp)   :: qliq, qv, qvT, qlya, qlyb, qvya, qvyb, qlTb, qvTa, qvTb
     TYPE(vars),   DIMENSION(1:mp,1:n)   :: vcall
     REAL(r_2),    DIMENSION(1:mp,1:n)   :: deltaS, dTsoil
     REAL(r_2),    DIMENSION(1:mp,0:n)   :: tmp2d1, tmp2d2
@@ -840,14 +840,14 @@ CONTAINS
                 CALL SEB(n, par(kk,:), vmet(kk), vsnow(kk), var(kk,:), qprec(kk), qprec_snow(kk), dx_T(:, kk), &
                      h0(kk), Tsoil(kk,:), &
                      Tsurface(kk), G0(kk), lE0(kk),Epot(kk),  &
-                     q(0, kk), qevap(kk), qliq(kk,0), qv(kk,0), &
-                     qyb(0, kk), qTb(0, kk), qlyb(kk,0), qvyb(kk,0), qlTb(kk,0), qvTb(kk,0), qh(kk,0), &
+                     q(0, kk), qevap(kk), qliq(0, kk), qv(0, kk), &
+                     qyb(0, kk), qTb(0, kk), qlyb(0, kk), qvyb(0, kk), qlTb(0, kk), qvTb(0, kk), qh(kk,0), &
                      qadv(kk,0), qhyb(0, kk), qhTb(0, kk), qadvyb(kk,0), qadvTb(kk,0), irec)
                 qya(0, kk)    = zero
                 qTa(0, kk)    = zero
-                qlya(kk,0)   = zero
-                qvya(kk,0)   = zero
-                qvTa(kk,0)   = zero
+                qlya(0, kk)   = zero
+                qvya(0, kk)   = zero
+                qvTa(0, kk)   = zero
                 qhya(0, kk)   = zero
                 qhTa(0, kk)   = zero
                 qadvya(kk,0) = zero
@@ -857,16 +857,16 @@ CONTAINS
                 CALL SEB(n, par(kk,:), vmet(kk), vsnow(kk), var(kk,:), qprec(kk), qprec_snow(kk), dx_T(:, kk), &
                      h0(kk), Tsoil(kk,:), &
                      Tsurface(kk), G0(kk), lE0(kk), Epot(kk),  &
-                     q(-vsnow(kk)%nsnow,kk), qevap(kk), qliq(kk,-vsnow(kk)%nsnow), qv(kk,-vsnow(kk)%nsnow), &
-                     qyb(-vsnow(kk)%nsnow, kk), qTb(-vsnow(kk)%nsnow, kk), qlyb(kk,-vsnow(kk)%nsnow), &
-                     qvyb(kk,-vsnow(kk)%nsnow), qlTb(kk,-vsnow(kk)%nsnow), qvTb(kk,-vsnow(kk)%nsnow), &
+                     q(-vsnow(kk)%nsnow,kk), qevap(kk), qliq(-vsnow(kk)%nsnow, kk), qv(-vsnow(kk)%nsnow, kk), &
+                     qyb(-vsnow(kk)%nsnow, kk), qTb(-vsnow(kk)%nsnow, kk), qlyb(-vsnow(kk)%nsnow, kk), &
+                     qvyb(-vsnow(kk)%nsnow, kk), qlTb(-vsnow(kk)%nsnow, kk), qvTb(-vsnow(kk)%nsnow, kk), &
                      qh(kk,-vsnow(kk)%nsnow), qadv(kk,-vsnow(kk)%nsnow), qhyb(-vsnow(kk)%nsnow, kk), &
                      qhTb(-vsnow(kk)%nsnow, kk), qadvyb(kk,-vsnow(kk)%nsnow), qadvTb(kk,-vsnow(kk)%nsnow), irec)
                 qya(-vsnow(kk)%nsnow, kk)    = zero
                 qTa(-vsnow(kk)%nsnow, kk)    = zero
-                qlya(kk,-vsnow(kk)%nsnow)   = zero
-                qvya(kk,-vsnow(kk)%nsnow)   = zero
-                qvTa(kk,-vsnow(kk)%nsnow)   = zero
+                qlya(-vsnow(kk)%nsnow, kk)   = zero
+                qvya(-vsnow(kk)%nsnow, kk)   = zero
+                qvTa(-vsnow(kk)%nsnow, kk)   = zero
                 qhya(-vsnow(kk)%nsnow, kk)   = zero
                 qhTa(-vsnow(kk)%nsnow, kk)   = zero
                 qadvya(kk,-vsnow(kk)%nsnow) = zero
@@ -883,14 +883,14 @@ CONTAINS
 
              call getfluxes_vp(n, dx_T(1:n, kk), vtop(kk), vbot(kk), par(kk,1:n), var(kk,1:n), & ! moisture fluxes
                   hint(1:n, kk), phimin(1:n, kk), q(0:n, kk), qya(0:n, kk), qyb(0:n, kk), qTa(0:n, kk), qTb(0:n, kk), &
-                  qliq(kk,0:n), qlya(kk,0:n), qlyb(kk,0:n), qv(kk,0:n), qvT(kk,0:n), qvh(kk,0:n), qvya(kk,0:n), &
-                  qvyb(kk,0:n), &
+                  qliq(0:n, kk), qlya(0:n, kk), qlyb(0:n, kk), qv(0:n, kk), qvT(0:n, kk), qvh(kk,0:n), qvya(0:n, kk), &
+                  qvyb(0:n, kk), &
                   iflux(kk), init(kk), getq0(kk), getqn(kk), Tsoil(kk,1:n), T0(kk), nsat(kk), nsatlast(kk))
              qTa(n, kk) = zero
              qTb(n, kk) = zero
-             qvTa(kk,1:n) = qTa(1:n, kk)
-             qvTb(kk,1:n) = qTb(1:n, kk)
-             qlTb(kk,1:n) = zero
+             qvTa(1:n, kk) = qTa(1:n, kk)
+             qvTb(1:n, kk) = qTb(1:n, kk)
+             qlTb(1:n, kk) = zero
 
              ! get  fluxes heat and derivatives (at time t=0, i.e. q0 etc.)
              call getheatfluxes(n, dx_T(1:n, kk), dxL(kk), &
@@ -955,15 +955,15 @@ CONTAINS
 
                 qya(0, kk) = zero
                 qyb(0, kk) = zero
-                qv(kk,0)   = q(0, kk)
-                qvyb(kk,0) = qyb(0, kk)
-                qvTb(kk,0) = qTb(0, kk)
-                qvya(kk,0) = qya(0, kk)
-                qvTa(kk,0) = qTa(0, kk)
-                qliq(kk,0) = zero
-                qlyb(kk,0) = zero
-                qlTb(kk,0) = zero
-                qlya(kk,0) = zero
+                qv(0, kk)   = q(0, kk)
+                qvyb(0, kk) = qyb(0, kk)
+                qvTb(0, kk) = qTb(0, kk)
+                qvya(0, kk) = qya(0, kk)
+                qvTa(0, kk) = qTa(0, kk)
+                qliq(0, kk) = zero
+                qlyb(0, kk) = zero
+                qlTb(0, kk) = zero
+                qlya(0, kk) = zero
                 qya(0, kk) = zero;
 
                 if (vsnow(kk)%hliq(vsnow(kk)%nsnow)>zero) then
@@ -1009,12 +1009,12 @@ CONTAINS
 
              ! adjust for bottom boundary condition
              if (botbc=="zero flux") then
-                qliq(kk,n) = zero
-                qv(kk,n)   = zero
+                qliq(n, kk) = zero
+                qv(n, kk)   = zero
                 q(n, kk)    = zero
                 qya(n, kk)  = zero
-                qlya(kk,n) = zero
-                qvya(kk,n) = zero
+                qlya(n, kk) = zero
+                qvya(n, kk) = zero
              endif
 
              ! specify mositure flux at bottom of soil column (heat flux set to zero)
@@ -1970,8 +1970,8 @@ CONTAINS
                         + qTa(0, kk)*de(kk,0))
                    qhsig(0, kk) = qh(kk,0) + sig(kk)*(qhyb(0, kk)*dy(kk,1) + qhya(0, kk)*dy(kk,0) + qhTb(0, kk)*de(kk,1) &
                         + qhTa(0, kk)*de(kk,0))
-                   qvsig(kk,0) = qv(kk,0)+sig(kk)*qvyb(kk,0)*dy(kk,1)+sig(kk)*qvTb(kk,0)*de(kk,1)
-                   qlsig(kk,0) = qliq(kk,0)+sig(kk)*qlyb(kk,0)*dy(kk,1)+sig(kk)*qlTb(kk,0)*de(kk,1)
+                   qvsig(kk,0) = qv(0, kk)+sig(kk)*qvyb(0, kk)*dy(kk,1)+sig(kk)*qvTb(0, kk)*de(kk,1)
+                   qlsig(kk,0) = qliq(0, kk)+sig(kk)*qlyb(0, kk)*dy(kk,1)+sig(kk)*qlTb(0, kk)*de(kk,1)
 
                    qsig(1:n-1, kk)   = q(1:n-1, kk) + sig(kk)*(qya(1:n-1, kk)*dy(kk,1:n-1) + qyb(1:n-1, kk)*dy(kk,2:n) &
                         + qTa(1:n-1, kk)*de(kk,1:n-1) + qTb(1:n-1, kk)*de(kk,2:n))
@@ -1979,12 +1979,12 @@ CONTAINS
                    qhsig(1:n-1, kk)  = qh(kk,1:n-1) + sig(kk)*(qhya(1:n-1, kk)*dy(kk,1:n-1) + qhyb(1:n-1, kk)*dy(kk,2:n) &
                         + qhTa(1:n-1, kk)*de(kk,1:n-1) + qhTb(1:n-1, kk)*de(kk,2:n))
                    qhsig(n, kk)      = qh(kk,n) + sig(kk)*(qhya(n, kk)*dy(kk,n) + qhTa(n, kk)*de(kk,n))
-                   qvsig(kk,1:n-1)  = qv(kk,1:n-1) + sig(kk)*(qvya(kk,1:n-1)*dy(kk,1:n-1) + qvyb(kk,1:n-1)*dy(kk,2:n) &
-                        + qvTa(kk,1:n-1)*de(kk,1:n-1) + qvTb(kk,1:n-1)*de(kk,2:n))
+                   qvsig(kk,1:n-1)  = qv(1:n-1, kk) + sig(kk)*(qvya(1:n-1, kk)*dy(kk,1:n-1) + qvyb(1:n-1, kk)*dy(kk,2:n) &
+                        + qvTa(1:n-1, kk)*de(kk,1:n-1) + qvTb(1:n-1, kk)*de(kk,2:n))
                    qvsig(kk,n)      = zero
 
-                   qvTsig(kk,0)     = qvT(kk,0) + sig(kk)*qvTb(kk,0)*de(kk,1)
-                   qvTsig(kk,1:n-1) = qvT(kk,1:n-1) + sig(kk)*(qvTa(kk,1:n-1)*de(kk,1:n-1) + qvTb(kk,1:n-1)*de(kk,2:n))
+                   qvTsig(kk,0)     = qvT(0, kk) + sig(kk)*qvTb(0, kk)*de(kk,1)
+                   qvTsig(kk,1:n-1) = qvT(1:n-1, kk) + sig(kk)*(qvTa(1:n-1, kk)*de(kk,1:n-1) + qvTb(1:n-1, kk)*de(kk,2:n))
                    qvTsig(kk,n)     = zero
                    qlsig(kk,1:n-1)  = qsig(1:n-1, kk) - qvsig(kk,1:n-1)
                    qlsig(kk,n)      = qsig(n, kk)
@@ -2000,12 +2000,12 @@ CONTAINS
                                 ! qhya(-vsnow(kk)%nsnow, kk)*dy(kk,-vsnow(kk)%nsnow) + &
                         qhTb(-vsnow(kk)%nsnow, kk)*de(kk,-vsnow(kk)%nsnow+1)) !&
                    !  + qhTa(-vsnow(kk)%nsnow, kk)*de(kk,-vsnow(kk)%nsnow))
-                   qvsig(kk,-vsnow(kk)%nsnow) = qv(kk,-vsnow(kk)%nsnow) + &
-                        sig(kk)*qvyb(kk,-vsnow(kk)%nsnow)*dy(kk,-vsnow(kk)%nsnow+1) + &
-                        sig(kk)*qvTb(kk,-vsnow(kk)%nsnow)*de(kk,-vsnow(kk)%nsnow+1)
+                   qvsig(kk,-vsnow(kk)%nsnow) = qv(-vsnow(kk)%nsnow, kk) + &
+                        sig(kk)*qvyb(-vsnow(kk)%nsnow, kk)*dy(kk,-vsnow(kk)%nsnow+1) + &
+                        sig(kk)*qvTb(-vsnow(kk)%nsnow, kk)*de(kk,-vsnow(kk)%nsnow+1)
 
                    qlsig(kk,-vsnow(kk)%nsnow:-1) = zero
-                   qlsig(kk,0) = qliq(kk,0)+sig(kk)*qlyb(kk,0)*dy(kk,1)+sig(kk)*qlTb(kk,0)*de(kk,1)
+                   qlsig(kk,0) = qliq(0, kk)+sig(kk)*qlyb(0, kk)*dy(kk,1)+sig(kk)*qlTb(0, kk)*de(kk,1)
 
                    qsig(-vsnow(kk)%nsnow+1:n-1, kk)   = q(-vsnow(kk)%nsnow+1:n-1, kk) + &
                         sig(kk)*(qya(-vsnow(kk)%nsnow+1:n-1, kk)*dy(kk,-vsnow(kk)%nsnow+1:n-1) + &
@@ -2019,17 +2019,17 @@ CONTAINS
                         + qhTa(-vsnow(kk)%nsnow+1:n-1, kk)*de(kk,-vsnow(kk)%nsnow+1:n-1) + &
                         qhTb(-vsnow(kk)%nsnow+1:n-1, kk)*de(kk,-vsnow(kk)%nsnow+2:n))
                    qhsig(n, kk)      = qh(kk,n) + sig(kk)*(qhya(n, kk)*dy(kk,n) + qhTa(n, kk)*de(kk,n))
-                   qvsig(kk,-vsnow(kk)%nsnow+1:n-1)  = qv(kk,-vsnow(kk)%nsnow+1:n-1) + &
-                        sig(kk)*(qvya(kk,-vsnow(kk)%nsnow+1:n-1)*dy(kk,-vsnow(kk)%nsnow+1:n-1) + &
-                        qvyb(kk,-vsnow(kk)%nsnow+1:n-1)*dy(kk,-vsnow(kk)%nsnow+2:n) &
-                        + qvTa(kk,-vsnow(kk)%nsnow+1:n-1)*de(kk,-vsnow(kk)%nsnow+1:n-1) + &
-                        qvTb(kk,-vsnow(kk)%nsnow+1:n-1)*de(kk,-vsnow(kk)%nsnow+2:n))
+                   qvsig(kk,-vsnow(kk)%nsnow+1:n-1)  = qv(-vsnow(kk)%nsnow+1:n-1, kk) + &
+                        sig(kk)*(qvya(-vsnow(kk)%nsnow+1:n-1, kk)*dy(kk,-vsnow(kk)%nsnow+1:n-1) + &
+                        qvyb(-vsnow(kk)%nsnow+1:n-1, kk)*dy(kk,-vsnow(kk)%nsnow+2:n) &
+                        + qvTa(-vsnow(kk)%nsnow+1:n-1, kk)*de(kk,-vsnow(kk)%nsnow+1:n-1) + &
+                        qvTb(-vsnow(kk)%nsnow+1:n-1, kk)*de(kk,-vsnow(kk)%nsnow+2:n))
                    qvsig(kk,n)      = zero
 
-                   qvTsig(kk,0)     = qvT(kk,0) + sig(kk)*qvTb(kk,0)*de(kk,1)
-                   qvTsig(kk,-vsnow(kk)%nsnow+1:n-1) = qvT(kk,-vsnow(kk)%nsnow+1:n-1) + &
-                        sig(kk)*(qvTa(kk,-vsnow(kk)%nsnow+1:n-1)*de(kk,-vsnow(kk)%nsnow+1:n-1) + &
-                        qvTb(kk,-vsnow(kk)%nsnow+1:n-1)*de(kk,-vsnow(kk)%nsnow+2:n))
+                   qvTsig(kk,0)     = qvT(0, kk) + sig(kk)*qvTb(0, kk)*de(kk,1)
+                   qvTsig(kk,-vsnow(kk)%nsnow+1:n-1) = qvT(-vsnow(kk)%nsnow+1:n-1, kk) + &
+                        sig(kk)*(qvTa(-vsnow(kk)%nsnow+1:n-1, kk)*de(kk,-vsnow(kk)%nsnow+1:n-1) + &
+                        qvTb(-vsnow(kk)%nsnow+1:n-1, kk)*de(kk,-vsnow(kk)%nsnow+2:n))
                    qvTsig(kk,n)     = zero
                    qlsig(kk,-vsnow(kk)%nsnow+1:n-1)  = qsig(-vsnow(kk)%nsnow+1:n-1, kk) - qvsig(kk,-vsnow(kk)%nsnow+1:n-1)
                    qlsig(kk,n)      = qsig(n, kk)
