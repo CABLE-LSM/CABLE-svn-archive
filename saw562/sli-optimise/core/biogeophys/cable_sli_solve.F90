@@ -245,7 +245,7 @@ CONTAINS
 
     TYPE(vars)                          :: vtmp
     !TYPE(vars),   DIMENSION(1:mp,1:n)   :: var
-    REAL(r_2),    DIMENSION(1:mp,-nsnow_max:n)   :: qsig, qhsig, qadvsig
+    REAL(r_2),    DIMENSION(-nsnow_max:n,1:mp)   :: qsig, qhsig, qadvsig
     REAL(r_2),    DIMENSION(1:mp,-nsnow_max:n)   :: qliq, qv, qvT, qlya, qlyb, qvya, qvyb, qlTb, qvTa, qvTb
     TYPE(vars),   DIMENSION(1:mp,1:n)   :: vcall
     REAL(r_2),    DIMENSION(1:mp,1:n)   :: deltaS, dTsoil
@@ -1399,26 +1399,26 @@ CONTAINS
                    endwhere
 
                    ! evaluate soil fluxes at sigma of time step
-                   qsig(kk,0)  = q(0, kk)+sig(kk)*qyb(0, kk)*dy(kk,1) + sig(kk)*qya(0, kk)*dy(kk,0) + &
+                   qsig(0, kk)  = q(0, kk)+sig(kk)*qyb(0, kk)*dy(kk,1) + sig(kk)*qya(0, kk)*dy(kk,0) + &
                         sig(kk)*qTb(0, kk)*dTsoil(kk,1) + sig(kk)*qTa(0, kk)*de(kk,0)
 
-                   qhsig(kk,0) = qh(kk,0) + sig(kk)*qhyb(0, kk)*dy(kk,1) + sig(kk)*qhya(0, kk)*dy(kk,0) + &
+                   qhsig(0, kk) = qh(kk,0) + sig(kk)*qhyb(0, kk)*dy(kk,1) + sig(kk)*qhya(0, kk)*dy(kk,0) + &
                         sig(kk)*qhTb(0, kk)*dTsoil(kk,1) + sig(kk)*qhTa(0, kk)*de(kk,0)
 
-                   qadvsig(kk,0) = qadv(kk,0) + sig(kk)*qadvyb(kk,0)*dy(kk,1) &
+                   qadvsig(0, kk) = qadv(kk,0) + sig(kk)*qadvyb(kk,0)*dy(kk,1) &
                         + sig(kk)*qadvya(kk,0)*dy(kk,0) + sig(kk)*qadvTb(kk,0)*dTsoil(kk,1) + sig(kk)*qadvTa(kk,0)*de(kk,0)
 
-                   qsig(kk,1:n-1) = q(1:n-1, kk) + sig(kk)*(qya(1:n-1, kk)*dy(kk,1:n-1)+qyb(1:n-1, kk)*dy(kk,2:n) &
+                   qsig(1:n-1, kk) = q(1:n-1, kk) + sig(kk)*(qya(1:n-1, kk)*dy(kk,1:n-1)+qyb(1:n-1, kk)*dy(kk,2:n) &
                         +qTa(1:n-1, kk)*dTsoil(kk,1:n-1)+qTb(1:n-1, kk)*dTsoil(kk,2:n))
-                   qsig(kk,n)     = q(n, kk) + sig(kk)*(qya(n, kk)*dy(kk,n)+qTa(n, kk)*dTsoil(kk,n))
+                   qsig(n, kk)     = q(n, kk) + sig(kk)*(qya(n, kk)*dy(kk,n)+qTa(n, kk)*dTsoil(kk,n))
 
-                   qhsig(kk,1:n-1) = qh(kk,1:n-1) + sig(kk)*(qhya(1:n-1, kk)*dy(kk,1:n-1)+qhyb(1:n-1, kk)*dy(kk,2:n) &
+                   qhsig(1:n-1, kk) = qh(kk,1:n-1) + sig(kk)*(qhya(1:n-1, kk)*dy(kk,1:n-1)+qhyb(1:n-1, kk)*dy(kk,2:n) &
                         +qhTa(1:n-1, kk)*dTsoil(kk,1:n-1)+qhTb(1:n-1, kk)*dTsoil(kk,2:n))
-                   qhsig(kk,n) = qh(kk,n) + sig(kk)*(qhya(n, kk)*dy(kk,n)+qhTa(n, kk)*dTsoil(kk,n))
+                   qhsig(n, kk) = qh(kk,n) + sig(kk)*(qhya(n, kk)*dy(kk,n)+qhTa(n, kk)*dTsoil(kk,n))
 
-                   qadvsig(kk,1:n-1) = qadv(kk,1:n-1) + sig(kk)*(qadvya(kk,1:n-1)*dy(kk,1:n-1)+qadvyb(kk,1:n-1)*dy(kk,2:n) &
+                   qadvsig(1:n-1, kk) = qadv(kk,1:n-1) + sig(kk)*(qadvya(kk,1:n-1)*dy(kk,1:n-1)+qadvyb(kk,1:n-1)*dy(kk,2:n) &
                         +qadvTa(kk,1:n-1)*dTsoil(kk,1:n-1)+qadvTb(kk,1:n-1)*dTsoil(kk,2:n))
-                   qadvsig(kk,n) = qadv(kk,n) + sig(kk)*(qadvya(kk,n)*dy(kk,n)+qadvTa(kk,n)*dTsoil(kk,n))
+                   qadvsig(n, kk) = qadv(kk,n) + sig(kk)*(qadvya(kk,n)*dy(kk,n)+qadvTa(kk,n)*dTsoil(kk,n))
 
                    LHS_h(kk,1) = (dx_T(1, kk)*var(kk,1)%csoileff+h0_tmp(kk)*cpeff(kk))*dTsoil(kk,1)/dt(kk) - &
                         dy(kk,1)*par(kk,1)%thre*dx_T(1, kk)*rhow*lambdaf/dt(kk)*var(kk,1)%iice* &
@@ -1436,7 +1436,7 @@ CONTAINS
                         var(kk,2:n)%dthetaldT*(Tsoil(kk,2:n))*rhow*(cswat-csice)*dx_T(2:n, kk)* &
                         dTsoil(kk,2:n)/dt(kk)*var(kk,2:n)%iice
 
-                   RHS_h(kk,1:n) = qhsig(kk,0:n-1) -qhsig(kk,1:n)
+                   RHS_h(kk,1:n) = qhsig(0:n-1, kk) -qhsig(1:n, kk)
 
                    if (advection==1) then
                       LHS_h(kk,1:n) = LHS_h(kk,1:n) &
@@ -1472,9 +1472,9 @@ CONTAINS
 !!$                      write(*,*) cch(kk,1)*dy(kk,1) +ddh(kk,1)*de(kk,1) + eeh(kk,1)*dy(kk,2) + ffh(kk,1)*de(kk,2)
 !!$                      write(*,*) ggh(kk,1), -(qh(kk,0) - qh(kk,1))/sig(kk)
 !!$                      write(*,*) "dy, de", dy(kk,1), de(kk,1)
-!!$                      write(*,*) qhsig(kk,1), qhsig(kk,0),qh(kk,1), qh(kk,0)
+!!$                      write(*,*) qhsig(1, kk), qhsig(0, kk),qh(kk,1), qh(kk,0)
 !!$                      write(*,*) G0(kk), qhya(0, kk), qhyb(0, kk), qhTa(0, kk), qhTb(0, kk)
-!!$                      write(*,*) qadvsig(kk,1), qadvsig(kk,0),qadv(kk,1), qadv(kk,0)
+!!$                      write(*,*) qadvsig(1, kk), qadvsig(0, kk),qadv(kk,1), qadv(kk,0)
 !!$                      write(*,*) "qprec, qprec_snow", qprec(kk), qprec_snow(kk)
 !!$                      write(*,*) (dx_T(1, kk)*var(kk,1)%csoileff)*dTsoil(kk,1)/dt(kk) - &
 !!$                           dy(kk,1)*par(kk,1)%thre*dx_T(1, kk)*rhow*lambdaf/dt(kk)*var(kk,1)%iice* &
@@ -1493,41 +1493,41 @@ CONTAINS
                    else
                       LHS(kk,1) = dy(kk,1)*par(kk,1)%thre*dx_T(1, kk)*real(-var(kk,1)%isat+1)/dt(kk)
                    endif
-                   RHS(kk,1) = qsig(kk,0) - qsig(kk,1)- iqex(kk,1) - qrunoff(kk)
+                   RHS(kk,1) = qsig(0, kk) - qsig(1, kk)- iqex(kk,1) - qrunoff(kk)
                    LHS(kk,2:n) = dy(kk,2:n)*par(kk,2:n)%thre*dx_T(2:n, kk)*real(-var(kk,2:n)%isat+1)/dt(kk)
-                   RHS(kk,2:n) = qsig(kk,1:n-1) - qsig(kk,2:n)- iqex(kk,2:n)
+                   RHS(kk,2:n) = qsig(1:n-1, kk) - qsig(2:n, kk)- iqex(kk,2:n)
                    ! snow pack
                    if (vsnow(kk)%nsnow>0) then
 
-                      qsig(kk,-vsnow(kk)%nsnow:-1)  = q(-vsnow(kk)%nsnow:-1, kk)+sig(kk)*qyb(-vsnow(kk)%nsnow:-1, kk)* &
+                      qsig(-vsnow(kk)%nsnow:-1, kk)  = q(-vsnow(kk)%nsnow:-1, kk)+sig(kk)*qyb(-vsnow(kk)%nsnow:-1, kk)* &
                            dy(kk,1-vsnow(kk)%nsnow:0) +  sig(kk)*qTb(-vsnow(kk)%nsnow:-1, kk)*de(kk,1-vsnow(kk)%nsnow:0)
 
-                      qhsig(kk,-vsnow(kk)%nsnow:-1) = qh(kk,-vsnow(kk)%nsnow:-1) + sig(kk)*qhyb(-vsnow(kk)%nsnow:-1, kk)* &
+                      qhsig(-vsnow(kk)%nsnow:-1, kk) = qh(kk,-vsnow(kk)%nsnow:-1) + sig(kk)*qhyb(-vsnow(kk)%nsnow:-1, kk)* &
                            dy(kk,1-vsnow(kk)%nsnow:0) + sig(kk)*qhTb(-vsnow(kk)%nsnow:-1, kk)*de(kk,1-vsnow(kk)%nsnow:0)
 
-                      qadvsig(kk,-vsnow(kk)%nsnow:-1) = qadv(kk,-vsnow(kk)%nsnow:-1) + &
+                      qadvsig(-vsnow(kk)%nsnow:-1, kk) = qadv(kk,-vsnow(kk)%nsnow:-1) + &
                            sig(kk)*qadvyb(kk,-vsnow(kk)%nsnow:-1)*dy(kk,1-vsnow(kk)%nsnow:0) + &
                            sig(kk)*qadvTb(kk,-vsnow(kk)%nsnow:-1)*de(kk,1-vsnow(kk)%nsnow:0)
 
                       if (vsnow(kk)%nsnow>1) then
-                         qsig(kk,1-vsnow(kk)%nsnow:-1) = qsig(kk,1-vsnow(kk)%nsnow:-1) + &
+                         qsig(1-vsnow(kk)%nsnow:-1, kk) = qsig(1-vsnow(kk)%nsnow:-1, kk) + &
                               sig(kk)*qya(1-vsnow(kk)%nsnow:-1, kk)*dy(kk,1-vsnow(kk)%nsnow:-1) + &
                               sig(kk)*qTa(1-vsnow(kk)%nsnow:-1, kk)*de(kk,1-vsnow(kk)%nsnow:-1)
 
-                         qhsig(kk,1-vsnow(kk)%nsnow:-1) = qhsig(kk,1-vsnow(kk)%nsnow:-1)  + &
+                         qhsig(1-vsnow(kk)%nsnow:-1, kk) = qhsig(1-vsnow(kk)%nsnow:-1, kk)  + &
                               sig(kk)*qhya(1-vsnow(kk)%nsnow:-1, kk)*dy(kk,1-vsnow(kk)%nsnow:-1) + &
                               sig(kk)*qhTa(1-vsnow(kk)%nsnow:-1, kk)*de(kk,1-vsnow(kk)%nsnow:-1)
 
-                         qadvsig(kk,1-vsnow(kk)%nsnow:-1) = qadvsig(kk,1-vsnow(kk)%nsnow:-1) + &
+                         qadvsig(1-vsnow(kk)%nsnow:-1, kk) = qadvsig(1-vsnow(kk)%nsnow:-1, kk) + &
                               sig(kk)*qadvya(kk,1-vsnow(kk)%nsnow:-1)*dy(kk,1-vsnow(kk)%nsnow:-1) + &
                               sig(kk)*qadvTa(kk,1-vsnow(kk)%nsnow:-1)*de(kk,1-vsnow(kk)%nsnow:-1)
 
                       endif
 
                       ! rate of change of snow water col
-                      RHS(kk,1-vsnow(kk)%nsnow:0) = qsig(kk,-vsnow(kk)%nsnow:-1) - qsig(kk,1-vsnow(kk)%nsnow:0)
+                      RHS(kk,1-vsnow(kk)%nsnow:0) = qsig(-vsnow(kk)%nsnow:-1, kk) - qsig(1-vsnow(kk)%nsnow:0, kk)
                       LHS(kk,1-vsnow(kk)%nsnow:0) = dy(kk,1-vsnow(kk)%nsnow:0)/dt(kk)
-                      RHS_h(kk,1-vsnow(kk)%nsnow:0) = qhsig(kk,-vsnow(kk)%nsnow:-1) - qhsig(kk,1-vsnow(kk)%nsnow:0)
+                      RHS_h(kk,1-vsnow(kk)%nsnow:0) = qhsig(-vsnow(kk)%nsnow:-1, kk) - qhsig(1-vsnow(kk)%nsnow:0, kk)
                       LHS_h(kk,1-vsnow(kk)%nsnow:0) = merge( &  ! liquid phase present, solve for change in liq content
                            (dy(kk,1-vsnow(kk)%nsnow:0)* rhow*(csice*(vsnow(kk)%tsn(1:vsnow(kk)%nsnow))-lambdaf) + &
                            de(kk,1-vsnow(kk)%nsnow:0)*rhow*((cswat-csice)*(vsnow(kk)%tsn(1:vsnow(kk)%nsnow))+lambdaf))/dt(kk), &
@@ -1768,7 +1768,7 @@ CONTAINS
                       rsigdt(kk) = one/(sig(kk)*dt(kk))
                       nless(kk)  = nless(kk) + 1 ! count step size reductions
                       !temporary update to h0 for use in energy cons eqn
-                      !h0_tmp(kk) = h0(kk) + (qsig(kk,0)-qsig(kk,1))*dt(kk)
+                      !h0_tmp(kk) = h0(kk) + (qsig(0, kk)-qsig(1, kk))*dt(kk)
 
                       !write(339,"(i8,i8,i8,14f15.6)") irec, nsteps(kk),nless(kk), dt(kk), fac
                    end if
@@ -1791,12 +1791,12 @@ CONTAINS
 !!$ 
 !!$                    write(345,"(13i8,1500e16.6)") nsteps, nfac1(kk), nfac2(kk), nfac3(kk), &
 !!$                         nfac4(kk), nfac5(kk), nfac6(kk), nfac7(kk), nfac8(kk), nfac9(kk), nfac10(kk), &
-!!$                         nfac11(kk), nfac12(kk), q(:, kk), qsig(kk,:), qH(kk,:), qhsig(kk,:), &
+!!$                         nfac11(kk), nfac12(kk), q(:, kk), qsig(:, kk), qH(kk,:), qhsig(:, kk), &
 !!$                         dy(kk,0:n), de(kk,0:n), dTsoil(kk,:), S(kk,:),thetai(kk,:), Tsoil(kk,:), &
 !!$                         real(var(kk,1)%iice), real(var(kk,1)%isat), &
 !!$                         h0(kk), real(iok(kk)), var(kk,1)%phie, var(kk,1)%phi, phip(kk),var(kk,2)%phi, &
 !!$                         vsnow(kk)%wcol, &
-!!$                         qadv(kk,:), qadvsig(kk,:), qhya(:, kk), qhyb(:, kk), qhTa(:, kk), qhTb(:, kk), &
+!!$                         qadv(kk,:), qadvsig(:, kk), qhya(:, kk), qhyb(:, kk), qhTa(:, kk), qhTb(:, kk), &
 !!$                         qya(:, kk), qyb(:, kk), qTa(:, kk), qTb(:, kk), &
 !!$                         var(kk,1:n)%kH, LHS_h(kk,1:n)*dt(kk), &
 !!$                         RHS(kk,1:n)*dt(kk), LHS(kk,1:n)*dt(kk), par(kk,1:n)%thre,dx_T(1:n, kk), &
@@ -1882,9 +1882,9 @@ CONTAINS
                 dJcol_latent_S(kk) = sum(deltaJ_latent_S(kk,1:n))
                 dJcol_latent_T(kk) = sum(deltaJ_latent_T(kk,1:n))
                 dJcol_sensible(kk) = sum(deltaJ_sensible_T(kk,1:n)) + sum(deltaJ_sensible_S(kk,1:n))
-                ! tmp1d1(kk) = dJcol_latent_S(kk) + dJcol_latent_T(kk) + dJcol_sensible(kk) - (qhsig(kk,0)-qhsig(kk,6))*dt(kk) &
+                ! tmp1d1(kk) = dJcol_latent_S(kk) + dJcol_latent_T(kk) + dJcol_sensible(kk) - (qhsig(0, kk)-qhsig(6, kk))*dt(kk) &
                 !      + qrunoff(kk)*cswat*rhow*(Tsoil(kk,1) + sig(kk)*dTsoil(kk,1))*dt(kk)
-                tmp1d1(kk) = dJcol_latent_S(kk) + dJcol_latent_T(kk) + dJcol_sensible(kk) - (qhsig(kk,0)-qhsig(kk,n))*dt(kk) &
+                tmp1d1(kk) = dJcol_latent_S(kk) + dJcol_latent_T(kk) + dJcol_sensible(kk) - (qhsig(0, kk)-qhsig(n, kk))*dt(kk) &
                      + qrunoff(kk)*cswat*rhow*(Tsoil(kk,1) + sig(kk)*dTsoil(kk,1))*dt(kk)
                 !       if (abs(tmp1d1(kk)).gt.10.) then
                 !write(*,*) 'E balance check 1', irec, nsteps, tmp1d1(kk)
@@ -1904,10 +1904,10 @@ CONTAINS
                 case(1)  ! no snow
                    evap(kk)     = evap(kk) +qevap(kk)*dt(kk) - sig(kk)*(qyb(0, kk)*dy(kk,1)+qTb(0, kk)*dTsoil(kk,1))*dt(kk)
                    qevapsig(kk) = qevap(kk) - sig(kk)*(qyb(0, kk)*dy(kk,1)+qTb(0, kk)*dTsoil(kk,1))
-                   Gcum(kk) = Gcum(kk)+(qhsig(kk,0)-qadvsig(kk,0))*dt(kk)
-                   Qadvcum(kk) = Qadvcum(kk) + qadvsig(kk,0)*dt(kk) - qadvsig(kk,n)*dt(kk)
+                   Gcum(kk) = Gcum(kk)+(qhsig(0, kk)-qadvsig(0, kk))*dt(kk)
+                   Qadvcum(kk) = Qadvcum(kk) + qadvsig(0, kk)*dt(kk) - qadvsig(n, kk)*dt(kk)
                    lEcum(kk)    = lEcum(kk) + qevapsig(kk)*thousand*var(kk,1)%lambdav*dt(kk)
-                   Hcum(kk) = Hcum(kk) + (vmet(kk)%Rn*dt(kk)-(qhsig(kk,0)-qadvsig(kk,0))*dt(kk)- &
+                   Hcum(kk) = Hcum(kk) + (vmet(kk)%Rn*dt(kk)-(qhsig(0, kk)-qadvsig(0, kk))*dt(kk)- &
                         qevapsig(kk)*thousand*var(kk,1)%lambdav*dt(kk))
                    dwinfil(kk) = (qprec(kk)+qprec_snow(kk)-qevapsig(kk))*dt(kk)
                 case(2) ! dedicated snow layer
@@ -1915,26 +1915,26 @@ CONTAINS
                         qTb(-vsnow(kk)%nsnow, kk)*de(kk,1-vsnow(kk)%nsnow))*dt(kk)
                    qevapsig(kk) = qevap(kk) - sig(kk)*(qyb(-vsnow(kk)%nsnow, kk)*dy(kk,1-vsnow(kk)%nsnow)+ &
                         qTb(-vsnow(kk)%nsnow, kk)*de(kk,1-vsnow(kk)%nsnow))
-                   Gcum(kk) = Gcum(kk)+(qhsig(kk,-vsnow(kk)%nsnow)-qadvsig(kk,-vsnow(kk)%nsnow))*dt(kk)
-                   Qadvcum(kk) = Qadvcum(kk) + qadvsig(kk,-vsnow(kk)%nsnow)*dt(kk) - qadvsig(kk,n)*dt(kk)
+                   Gcum(kk) = Gcum(kk)+(qhsig(-vsnow(kk)%nsnow, kk)-qadvsig(-vsnow(kk)%nsnow, kk))*dt(kk)
+                   Qadvcum(kk) = Qadvcum(kk) + qadvsig(-vsnow(kk)%nsnow, kk)*dt(kk) - qadvsig(n, kk)*dt(kk)
                    if (vsnow(kk)%hliq(1).gt.zero) then
                       lEcum(kk)    = lEcum(kk) + qevapsig(kk)*thousand*lambdaf*dt(kk)
-                      Hcum(kk) = Hcum(kk) + (vmet(kk)%Rn*dt(kk)-(qhsig(kk,-vsnow(kk)%nsnow)-qadvsig(kk,-vsnow(kk)%nsnow))*dt(kk)- &
+                      Hcum(kk) = Hcum(kk) + (vmet(kk)%Rn*dt(kk)-(qhsig(-vsnow(kk)%nsnow, kk)-qadvsig(-vsnow(kk)%nsnow, kk))*dt(kk)- &
                            qevapsig(kk)*thousand*lambdaf*dt(kk))
                    else
                       lEcum(kk)    = lEcum(kk) + qevapsig(kk)*thousand*lambdas*dt(kk)
-                      Hcum(kk) = Hcum(kk) + (vmet(kk)%Rn*dt(kk)-(qhsig(kk,-vsnow(kk)%nsnow)-qadvsig(kk,-vsnow(kk)%nsnow))*dt(kk)- &
+                      Hcum(kk) = Hcum(kk) + (vmet(kk)%Rn*dt(kk)-(qhsig(-vsnow(kk)%nsnow, kk)-qadvsig(-vsnow(kk)%nsnow, kk))*dt(kk)- &
                            qevapsig(kk)*thousand*lambdas*dt(kk))
                    endif
                    dwinfil(kk) = (qprec(kk)+qprec_snow(kk)-qevapsig(kk))*dt(kk)
                 end select ! surface_case
                 !                if ((Jcol_latent_S(kk) + dJcol_latent_T(kk) + dJcol_sensible(kk) - &
-                !                 (qhsig(kk,-vsnow(kk)%nsnow)-qadvsig(kk,-vsnow(kk)%nsnow))*dt(kk) - &
-                !                 (qadvsig(kk,0)*dt(kk) - qadvsig(kk,n)*dt(kk))) .gt. 1) then
+                !                 (qhsig(-vsnow(kk)%nsnow, kk)-qadvsig(-vsnow(kk)%nsnow, kk))*dt(kk) - &
+                !                 (qadvsig(0, kk)*dt(kk) - qadvsig(n, kk)*dt(kk))) .gt. 1) then
                 !                 write(*,*) 'E balance check 2', irec, nsteps,  &
                 !                 Jcol_latent_S(kk) + dJcol_latent_T(kk) + dJcol_sensible(kk) - &
-                !                 (qhsig(kk,-vsnow(kk)%nsnow)-qadvsig(kk,-vsnow(kk)%nsnow))*dt(kk) - &
-                !                 (qadvsig(kk,0)*dt(kk) - qadvsig(kk,n)*dt(kk))
+                !                 (qhsig(-vsnow(kk)%nsnow, kk)-qadvsig(-vsnow(kk)%nsnow, kk))*dt(kk) - &
+                !                 (qadvsig(0, kk)*dt(kk) - qadvsig(n, kk)*dt(kk))
                 !                 stop
                 !                 endif
 
@@ -1966,19 +1966,19 @@ CONTAINS
 
                 select case (surface_case(kk))
                 case(1)  ! no snow
-                   qsig(kk,0)  = q(0, kk)  + sig(kk)*(qyb(0, kk)*dy(kk,1)  + qya(0, kk)*dy(kk,0)  + qTb(0, kk)*de(kk,1) &
+                   qsig(0, kk)  = q(0, kk)  + sig(kk)*(qyb(0, kk)*dy(kk,1)  + qya(0, kk)*dy(kk,0)  + qTb(0, kk)*de(kk,1) &
                         + qTa(0, kk)*de(kk,0))
-                   qhsig(kk,0) = qh(kk,0) + sig(kk)*(qhyb(0, kk)*dy(kk,1) + qhya(0, kk)*dy(kk,0) + qhTb(0, kk)*de(kk,1) &
+                   qhsig(0, kk) = qh(kk,0) + sig(kk)*(qhyb(0, kk)*dy(kk,1) + qhya(0, kk)*dy(kk,0) + qhTb(0, kk)*de(kk,1) &
                         + qhTa(0, kk)*de(kk,0))
                    qvsig(kk,0) = qv(kk,0)+sig(kk)*qvyb(kk,0)*dy(kk,1)+sig(kk)*qvTb(kk,0)*de(kk,1)
                    qlsig(kk,0) = qliq(kk,0)+sig(kk)*qlyb(kk,0)*dy(kk,1)+sig(kk)*qlTb(kk,0)*de(kk,1)
 
-                   qsig(kk,1:n-1)   = q(1:n-1, kk) + sig(kk)*(qya(1:n-1, kk)*dy(kk,1:n-1) + qyb(1:n-1, kk)*dy(kk,2:n) &
+                   qsig(1:n-1, kk)   = q(1:n-1, kk) + sig(kk)*(qya(1:n-1, kk)*dy(kk,1:n-1) + qyb(1:n-1, kk)*dy(kk,2:n) &
                         + qTa(1:n-1, kk)*de(kk,1:n-1) + qTb(1:n-1, kk)*de(kk,2:n))
-                   qsig(kk,n)       = q(n, kk) + sig(kk)*(qya(n, kk)*dy(kk,n) + qTa(n, kk)*de(kk,n))
-                   qhsig(kk,1:n-1)  = qh(kk,1:n-1) + sig(kk)*(qhya(1:n-1, kk)*dy(kk,1:n-1) + qhyb(1:n-1, kk)*dy(kk,2:n) &
+                   qsig(n, kk)       = q(n, kk) + sig(kk)*(qya(n, kk)*dy(kk,n) + qTa(n, kk)*de(kk,n))
+                   qhsig(1:n-1, kk)  = qh(kk,1:n-1) + sig(kk)*(qhya(1:n-1, kk)*dy(kk,1:n-1) + qhyb(1:n-1, kk)*dy(kk,2:n) &
                         + qhTa(1:n-1, kk)*de(kk,1:n-1) + qhTb(1:n-1, kk)*de(kk,2:n))
-                   qhsig(kk,n)      = qh(kk,n) + sig(kk)*(qhya(n, kk)*dy(kk,n) + qhTa(n, kk)*de(kk,n))
+                   qhsig(n, kk)      = qh(kk,n) + sig(kk)*(qhya(n, kk)*dy(kk,n) + qhTa(n, kk)*de(kk,n))
                    qvsig(kk,1:n-1)  = qv(kk,1:n-1) + sig(kk)*(qvya(kk,1:n-1)*dy(kk,1:n-1) + qvyb(kk,1:n-1)*dy(kk,2:n) &
                         + qvTa(kk,1:n-1)*de(kk,1:n-1) + qvTb(kk,1:n-1)*de(kk,2:n))
                    qvsig(kk,n)      = zero
@@ -1986,16 +1986,16 @@ CONTAINS
                    qvTsig(kk,0)     = qvT(kk,0) + sig(kk)*qvTb(kk,0)*de(kk,1)
                    qvTsig(kk,1:n-1) = qvT(kk,1:n-1) + sig(kk)*(qvTa(kk,1:n-1)*de(kk,1:n-1) + qvTb(kk,1:n-1)*de(kk,2:n))
                    qvTsig(kk,n)     = zero
-                   qlsig(kk,1:n-1)  = qsig(kk,1:n-1) - qvsig(kk,1:n-1)
-                   qlsig(kk,n)      = qsig(kk,n)
+                   qlsig(kk,1:n-1)  = qsig(1:n-1, kk) - qvsig(kk,1:n-1)
+                   qlsig(kk,n)      = qsig(n, kk)
 
                 case(2) ! dedicated snow layer
-                   qsig(kk,-vsnow(kk)%nsnow)  = q(-vsnow(kk)%nsnow, kk)  + &
+                   qsig(-vsnow(kk)%nsnow, kk)  = q(-vsnow(kk)%nsnow, kk)  + &
                         sig(kk)*(qyb(-vsnow(kk)%nsnow, kk)*dy(kk,-vsnow(kk)%nsnow+1)  + &
                                 ! qya(-vsnow(kk)%nsnow, kk)*dy(kk,-vsnow(kk)%nsnow)  + &
                         qTb(-vsnow(kk)%nsnow, kk)*de(kk,-vsnow(kk)%nsnow+1)) ! &
                    !  + qTa(-vsnow(kk)%nsnow, kk)*de(kk,-vsnow(kk)%nsnow))
-                   qhsig(kk,-vsnow(kk)%nsnow) = qh(kk,-vsnow(kk)%nsnow) + &
+                   qhsig(-vsnow(kk)%nsnow, kk) = qh(kk,-vsnow(kk)%nsnow) + &
                         sig(kk)*(qhyb(-vsnow(kk)%nsnow, kk)*dy(kk,-vsnow(kk)%nsnow+1) + &
                                 ! qhya(-vsnow(kk)%nsnow, kk)*dy(kk,-vsnow(kk)%nsnow) + &
                         qhTb(-vsnow(kk)%nsnow, kk)*de(kk,-vsnow(kk)%nsnow+1)) !&
@@ -2007,18 +2007,18 @@ CONTAINS
                    qlsig(kk,-vsnow(kk)%nsnow:-1) = zero
                    qlsig(kk,0) = qliq(kk,0)+sig(kk)*qlyb(kk,0)*dy(kk,1)+sig(kk)*qlTb(kk,0)*de(kk,1)
 
-                   qsig(kk,-vsnow(kk)%nsnow+1:n-1)   = q(-vsnow(kk)%nsnow+1:n-1, kk) + &
+                   qsig(-vsnow(kk)%nsnow+1:n-1, kk)   = q(-vsnow(kk)%nsnow+1:n-1, kk) + &
                         sig(kk)*(qya(-vsnow(kk)%nsnow+1:n-1, kk)*dy(kk,-vsnow(kk)%nsnow+1:n-1) + &
                         qyb(-vsnow(kk)%nsnow+1:n-1, kk)*dy(kk,-vsnow(kk)%nsnow+2:n) &
                         + qTa(-vsnow(kk)%nsnow+1:n-1, kk)*de(kk,-vsnow(kk)%nsnow+1:n-1) + &
                         qTb(-vsnow(kk)%nsnow+1:n-1, kk)*de(kk,-vsnow(kk)%nsnow+2:n))
-                   qsig(kk,n)       = q(n, kk) + sig(kk)*(qya(n, kk)*dy(kk,n) + qTa(n, kk)*de(kk,n))
-                   qhsig(kk,-vsnow(kk)%nsnow+1:n-1)  = qh(kk,-vsnow(kk)%nsnow+1:n-1) + &
+                   qsig(n, kk)       = q(n, kk) + sig(kk)*(qya(n, kk)*dy(kk,n) + qTa(n, kk)*de(kk,n))
+                   qhsig(-vsnow(kk)%nsnow+1:n-1, kk)  = qh(kk,-vsnow(kk)%nsnow+1:n-1) + &
                         sig(kk)*(qhya(-vsnow(kk)%nsnow+1:n-1, kk)*dy(kk,-vsnow(kk)%nsnow+1:n-1) + &
                         qhyb(-vsnow(kk)%nsnow+1:n-1, kk)*dy(kk,-vsnow(kk)%nsnow+2:n) &
                         + qhTa(-vsnow(kk)%nsnow+1:n-1, kk)*de(kk,-vsnow(kk)%nsnow+1:n-1) + &
                         qhTb(-vsnow(kk)%nsnow+1:n-1, kk)*de(kk,-vsnow(kk)%nsnow+2:n))
-                   qhsig(kk,n)      = qh(kk,n) + sig(kk)*(qhya(n, kk)*dy(kk,n) + qhTa(n, kk)*de(kk,n))
+                   qhsig(n, kk)      = qh(kk,n) + sig(kk)*(qhya(n, kk)*dy(kk,n) + qhTa(n, kk)*de(kk,n))
                    qvsig(kk,-vsnow(kk)%nsnow+1:n-1)  = qv(kk,-vsnow(kk)%nsnow+1:n-1) + &
                         sig(kk)*(qvya(kk,-vsnow(kk)%nsnow+1:n-1)*dy(kk,-vsnow(kk)%nsnow+1:n-1) + &
                         qvyb(kk,-vsnow(kk)%nsnow+1:n-1)*dy(kk,-vsnow(kk)%nsnow+2:n) &
@@ -2031,8 +2031,8 @@ CONTAINS
                         sig(kk)*(qvTa(kk,-vsnow(kk)%nsnow+1:n-1)*de(kk,-vsnow(kk)%nsnow+1:n-1) + &
                         qvTb(kk,-vsnow(kk)%nsnow+1:n-1)*de(kk,-vsnow(kk)%nsnow+2:n))
                    qvTsig(kk,n)     = zero
-                   qlsig(kk,-vsnow(kk)%nsnow+1:n-1)  = qsig(kk,-vsnow(kk)%nsnow+1:n-1) - qvsig(kk,-vsnow(kk)%nsnow+1:n-1)
-                   qlsig(kk,n)      = qsig(kk,n)
+                   qlsig(kk,-vsnow(kk)%nsnow+1:n-1)  = qsig(-vsnow(kk)%nsnow+1:n-1, kk) - qvsig(kk,-vsnow(kk)%nsnow+1:n-1)
+                   qlsig(kk,n)      = qsig(n, kk)
                 end select ! surface_case
 
                 if (botbc=="aquifer") then ! update aquifer props
@@ -2095,14 +2095,14 @@ CONTAINS
 
                    !!vsnow(kk)%Qadv_vap = vsnow(kk)%Qadv_vap + &
                    !   rhow*(-qevapsig(kk))*cswat*Tqw*dt(kk) - &
-                   !    qadvsig(kk,0)*dt(kk)
+                   !    qadvsig(0, kk)*dt(kk)
 
-                   vsnow(kk)%Qadv_vap =vsnow(kk)%Qadv_vap + (qadvsig(kk,-vsnow(kk)%nsnow)-qadvsig(kk,0))*dt(kk) - &
+                   vsnow(kk)%Qadv_vap =vsnow(kk)%Qadv_vap + (qadvsig(-vsnow(kk)%nsnow, kk)-qadvsig(0, kk))*dt(kk) - &
                         rhow*(qprec_snow(kk))*(csice*(min(vmet(kk)%Ta,zero))-lambdaf)*dt(kk) - &
                         rhow*(qprec(kk))*cswat*(vmet(kk)%Ta)*dt(kk)
 
-                   vsnow(kk)%Qcond_net = vsnow(kk)%Qcond_net + (qhsig(kk,-vsnow(kk)%nsnow) -  qhsig(kk,0))*dt(kk) - &
-                        (qadvsig(kk,-vsnow(kk)%nsnow) -  qadvsig(kk,0))*dt(kk)
+                   vsnow(kk)%Qcond_net = vsnow(kk)%Qcond_net + (qhsig(-vsnow(kk)%nsnow, kk) -  qhsig(0, kk))*dt(kk) - &
+                        (qadvsig(-vsnow(kk)%nsnow, kk) -  qadvsig(0, kk))*dt(kk)
 
                    do i=1, vsnow(kk)%nsnow
                       if (vsnow(kk)%hliq(i)>zero) then
@@ -2184,7 +2184,7 @@ CONTAINS
                    vsnow(kk)%deltawcol = vsnow(kk)%wcol - wcol0snow(kk)
                    vsnow(kk)%Qprec = vsnow(kk)%Qprec + qprec_snow(kk)*dt(kk) + qprec(kk)*dt(kk)
                    vsnow(kk)%Qevap = vsnow(kk)%Qevap + qevapsig(kk)*dt(kk)
-                   vsnow(kk)%Qvap = vsnow(kk)%Qvap + qsig(kk,0)*dt(kk)
+                   vsnow(kk)%Qvap = vsnow(kk)%Qvap + qsig(0, kk)*dt(kk)
 
                    vsnow(kk)%J = sum(vsnow(kk)%Jsensible(1:vsnow(kk)%nsnow)+vsnow(kk)%Jlatent(1:vsnow(kk)%nsnow))
 
@@ -2422,10 +2422,10 @@ CONTAINS
                             dJcol_latent_T(kk) = sum(deltaJ_latent_T(kk,1:n))
                             dJcol_sensible(kk) = sum(deltaJ_sensible_T(kk,1:n)) + sum(deltaJ_sensible_S(kk,1:n))
                             ! tmp1d1(kk) = dJcol_latent_S(kk) + dJcol_latent_T(kk) + &
-                            !      dJcol_sensible(kk) - (qhsig(kk,0)-qhsig(kk,6))*dt(kk) + &
+                            !      dJcol_sensible(kk) - (qhsig(0, kk)-qhsig(6, kk))*dt(kk) + &
                             !      qrunoff(kk)*cswat*rhow*(Tsoil(kk,1) + sig(kk)*dTsoil(kk,1))*dt(kk)
                             tmp1d1(kk) = dJcol_latent_S(kk) + dJcol_latent_T(kk) + &
-                                 dJcol_sensible(kk) - (qhsig(kk,0)-qhsig(kk,n))*dt(kk) + &
+                                 dJcol_sensible(kk) - (qhsig(0, kk)-qhsig(n, kk))*dt(kk) + &
                                  qrunoff(kk)*cswat*rhow*(Tsoil(kk,1) + sig(kk)*dTsoil(kk,1))*dt(kk)
                             ! if (abs(tmp1d1(kk)).gt.10.) then
                             !    write(*,*) 'E imbalance check 2'
@@ -2863,7 +2863,7 @@ CONTAINS
                   Tsoil_ss(kk,itop:n), dTsoil_ss(kk,itop:n), Sliqice_ss(kk,itop:n), deltaSliqice_ss(kk,itop:n), &
                   Sliq_ss(kk,itop:n), deltaSliq_ss(kk,itop:n),Sice_ss(kk,itop:n), deltaSice_ss(kk,itop:n), &
                   Tsurface(kk), vmet(kk)%Ta, &
-                  qsig(kk,itop-1:n), qlsig(kk,itop-1:n), qvsig(kk,itop-1:n), &
+                  qsig(itop-1:n, kk), qlsig(kk,itop-1:n), qvsig(kk,itop-1:n), &
                   qmelt_ss(kk),qtransfer(kk)/dt(kk), &  ! melt water to soil and water transfer from soil to snow (+ve)
                   qprec_ss(kk),qprec_snow(kk), qevapsig(kk), qrunoff(kk), iqex(kk,1:n), &
                   cv_ss(kk,itop:n),Dv_ss(kk,itop:n), thetasat_ss(kk,itop:n), thetar_ss(kk,itop:n), tmp_tortuosity(kk,itop:n), &
