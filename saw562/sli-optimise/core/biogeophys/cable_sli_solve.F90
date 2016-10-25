@@ -1539,7 +1539,7 @@ CONTAINS
 
                 endif ! septs==1
 
-                tmp1d1 = nless
+                ! tmp1d1 = nless
                 ! dy contains dS or, for sat layers, dphi values
                 iok(kk) = 1
                 fac(kk) = one
