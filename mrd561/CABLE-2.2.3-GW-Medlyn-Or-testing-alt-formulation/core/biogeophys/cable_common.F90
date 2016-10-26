@@ -100,6 +100,13 @@ MODULE cable_common_module
      LOGICAL :: or_evap = .FALSE.
      LOGICAL :: or_evap_sh = .FALSE.
 
+         !INH1 - 22-09-2016  switch for the revised UM coupling strategy 
+     LOGICAL :: l_revised_coupling = .FALSE. ! 
+
+        ! Switch for customized soil respiration - see Ticket #42
+     LOGICAL ::     SRF = .FALSE.
+
+
    END TYPE kbl_user_switches
 
    TYPE(kbl_user_switches), SAVE :: cable_user

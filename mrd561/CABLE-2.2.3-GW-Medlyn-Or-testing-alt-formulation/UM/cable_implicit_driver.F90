@@ -1,22 +1,14 @@
 !==============================================================================
 ! This source code is part of the 
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
-! This work is licensed under the CABLE Academic User Licence Agreement 
-! (the "Licence").
-! You may not use this file except in compliance with the Licence.
-! A copy of the Licence and registration form can be obtained from 
-! http://www.cawcr.gov.au/projects/access/cable
-! You need to register and read the Licence agreement before use.
-! Please contact cable_help@nf.nci.org.au for any questions on 
-! registration and the Licence.
+! This work is licensed under the CSIRO Open Source Software License
+! Agreement (variation of the BSD / MIT License).
+! 
+! You may not use this file except in compliance with this License.
+! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located 
+! in each directory containing CABLE code.
 !
-! Unless required by applicable law or agreed to in writing, 
-! software distributed under the Licence is distributed on an "AS IS" BASIS,
-! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-! See the Licence for the specific language governing permissions and 
-! limitations under the Licence.
 ! ==============================================================================
-!
 ! Purpose: Updates CABLE variables (as altered by first pass through boundary 
 !          layer and convection scheme), calls cbm, passes CABLE variables back 
 !          to UM. 'Implicit' is the second call to cbm in each UM timestep.
@@ -34,10 +26,14 @@
    !REAL, POINTER :: TFRZ
    !   TFRZ => PHYS%TFRZ
 subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
-                                  DTL_1,DQW_1, TSOIL, TSOIL_TILE, SMCL,        &
-                                  SMCL_TILE,                                   &
-                                  SMGW_TILE,                             &
-                                  timestep, SMVCST,STHF, STHF_TILE, &
+                                  DTL_1,DQW_1,                                 &
+                                  
+! INH1 - 22-9-2016  Additional inputs as needed for CABLE coupling
+                                  DTL_EXP, DQW_EXP,                            &  
+ 
+                                  TSOIL, TSOIL_TILE, SMCL,        &
+                                  SMCL_TILE, SMGW_TILE,                        &
+                                  timestep, SMVCST,STHF, STHF_TILE,            &
                                   STHU,STHU_TILE, snow_tile, SNOW_RHO1L,       &
                                   ISNOW_FLG3L, SNOW_DEPTH3L, SNOW_MASS3L,      &
                                   SNOW_RHO3L, SNOW_TMP3L, SNOW_COND,           &
@@ -79,8 +75,13 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
       CON_RAIN, & ! IN Convective rain
       CONV_SNOW,& ! IN Convective snow
       DTL_1,    & ! IN Level 1 increment to T field 
-      DQW_1       ! IN Level 1 increment to q field 
+      DQW_1       ! IN Level 1 increment to q field
 
+! INH1 - 22-9-2016  Additional inputs as needed for CABLE coupling
+   REAL, DIMENSION(um1%ROW_LENGTH,um1%ROWS) ::                                 &
+    DTL_EXP, &    !IN revised level 1 increment to T field
+    DQW_EXP       !IN revised level 1 increment to Q field  
+ 
    REAL :: timestep
 
    INTEGER ::                                                                  &
@@ -127,10 +128,6 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
       TSOIL,      & !
       SURF_CAB_ROFF !       
 
-   !mrd561
-   REAL, dimension(um1%land_pts,um1%ntiles)  ::                             &
-      SMGW_TILE
-
    !___(tiled) soil prognostics: as above 
    REAL, dimension(um1%land_pts,um1%ntiles,um1%sm_levels) ::                &
       SMCL_TILE, & !
@@ -138,6 +135,10 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
       TSOIL_TILE,& !
       STHF_TILE    !
 
+   !mrd561
+   REAL, dimension(um1%land_pts,um1%ntiles) ::                &
+      SMGW_TILE
+   
    !___flag for 3 layer snow pack
    INTEGER :: ISNOW_FLG3L(um1%LAND_PTS,um1%NTILES)
    
@@ -244,9 +245,20 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
       !-------------------------------------------------------------------
       CALL um2cable_rr( (LS_RAIN+CON_RAIN)*um1%TIMESTEP, met%precip)
       CALL um2cable_rr( (LS_SNOW+CONV_SNOW)*um1%TIMESTEP, met%precip_sn)
-      CALL um2cable_rr( dtl_1, dtlc)
-      CALL um2cable_rr( dqw_1, dqwc)
-      
+ 
+      ! INH1 - 22-9-2016  Switch between the two versions of calculating
+      ! dtlc, dqwc for the original and revised coupling 
+      ! INH1.1 - 4-10-2016 corrected the mapping for TL and QW
+      if (cable_user%l_revised_coupling) then
+          ! revised forms
+          CALL um2cable_rr( DQW_EXP, dqwc)
+          CALL um2cable_rr( DTL_EXP, dtlc)
+      else
+          ! ORIGINAL forms
+          CALL um2cable_rr( dtl_1, dtlc)
+          CALL um2cable_rr( dqw_1, dqwc)
+      endif
+       
       !--- conv_rain(snow)_prevstep are added to precip. in explicit call
       CALL um2cable_rr( (CON_RAIN)*um1%TIMESTEP, conv_rain_prevstep)
       CALL um2cable_rr( (CONV_snow)*um1%TIMESTEP, conv_snow_prevstep)
@@ -287,7 +299,7 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
                             TSTAR_TILE_CAB, TSTAR_CAB, SMCL_CAB, TSOIL_CAB,    &
                             SURF_HTF_CAB, SURF_HT_FLUX_LAND, ECAN_TILE,        &
                             ESOIL_TILE, EI_TILE, RADNET_TILE, TOT_ALB,         &
-                            SNAGE_TILE, CANOPY_TILE, GS, GS_TILE, T1P5M_TILE,  &
+                            SNAGE_TILE, CANOPY_TILE, GS, GS_TILE, T1P5M_TILE,           &
                             Q1P5M_TILE, CANOPY_GB, FLAND, MELT_TILE, DIM_CS1,  &
                             DIM_CS2, NPP, NPP_FT, GPP, GPP_FT, RESP_S,         &
                             RESP_S_TOT, RESP_S_TILE, RESP_P, RESP_P_FT, G_LEAF,& 
@@ -318,7 +330,7 @@ END SUBROUTINE cable_implicit_driver
 !========================================================================= 
 !========================================================================= 
         
-SUBROUTINE implicit_unpack( TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,SMGW_TILE, &
+SUBROUTINE implicit_unpack( TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,SMGW_TILE,      &
                             SMVCST, STHF, STHF_TILE, STHU, STHU_TILE,          &
                             snow_tile, SNOW_RHO1L ,ISNOW_FLG3L, SNOW_DEPTH3L,  &
                             SNOW_MASS3L, SNOW_RHO3L, SNOW_TMP3L, SNOW_COND,    &
@@ -388,9 +400,8 @@ SUBROUTINE implicit_unpack( TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,SMGW_TILE, &
       STHF_TILE  
 
    !mrd561
-   REAL, DIMENSION(um1%land_pts,um1%ntiles) ::                                  &
+   REAL, DIMENSION(um1%land_pts,um1%ntiles) ::                   &
       SMGW_TILE
-
 
    !___flag for 3 layer snow pack
    INTEGER :: ISNOW_FLG3L(um1%LAND_PTS,um1%NTILES)
@@ -477,7 +488,7 @@ SUBROUTINE implicit_unpack( TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,SMGW_TILE, &
       !--- set UM vars to zero
       TSOIL_CAB = 0.; SMCL_CAB = 0.; TSOIL_TILE = 0.; 
       SMCL_TILE = 0.; STHF_TILE = 0.; STHU_TILE = 0.
-      SMGW_TILE = 0.; 
+      SMGW_TILE = 0.
 
       DO j = 1,um1%SM_LEVELS
          TSOIL_TILE(:,:,j)= UNPACK(ssnow%tgg(:,j), um1%L_TILE_PTS, miss)
@@ -508,6 +519,7 @@ SUBROUTINE implicit_unpack( TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,SMGW_TILE, &
 
       !mrd561 groudnwater variables
       SMGW_TILE = UNPACK(REAL(ssnow%GWwb(:)),um1%L_TILE_PTS,miss)
+
 
       !--- unpack snow vars 
       SNOW_RHO1L  = UNPACK(ssnow%ssdnn, um1%L_TILE_PTS, miss)
