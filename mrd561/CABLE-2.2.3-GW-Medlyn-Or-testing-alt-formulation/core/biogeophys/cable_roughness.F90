@@ -156,11 +156,24 @@ SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
       rough%term6 =  EXP( 3. * rough%coexp * ( rough%disp / rough%hruff -1. ) )
       
       ! eq. 3.54, SCAM manual (CSIRO tech report 132)
-      rough%rt0us  = rough%term5 * ( C%ZDLIN * LOG(                            &
-                     C%ZDLIN * rough%disp / rough%z0soilsn ) +                 &
-                     ( 1 - C%ZDLIN ) )                                         &
-                     * ( EXP( 2 * C%CSW * canopy%rghlai )  -  rough%term2 )    &
-                     / rough%term3  
+
+
+      if (cable_user%or_evap) then
+
+            rough%rt0us  = log(rough%disp/(rough%z0soilsn)) * & 
+                    EXP(2. * C%CSW * canopy%rghlai) * rough%disp &
+                    / rough%hruff / (c%a33 ** 2 * c%ctl) ! vh ! Haverd et al., Biogeosciences 10, 2011-2040, 2013
+
+
+      else
+
+         rough%rt0us  = rough%term5 * ( C%ZDLIN * LOG(                            &
+                        C%ZDLIN * rough%disp / rough%z0soilsn ) +                 &
+                        ( 1 - C%ZDLIN ) )                                         &
+                        * ( EXP( 2 * C%CSW * canopy%rghlai )  -  rough%term2 )    &
+                        / rough%term3  
+
+      end if
       
       ! See CSIRO SCAM, Raupach et al 1997, eq. 3.49:
       rough%zruffs = rough%disp + rough%hruff * C%A33**2 * C%CTL / C%VONK /    &
