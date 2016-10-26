@@ -64,6 +64,16 @@ SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
       dh,      & ! d/h where d is zero-plane displacement
       hmax       ! maximum height of canopy from
                                     ! tiles belonging to the same grid
+
+   integer, dimension(mp) :: or_evap_where
+
+
+   if (cable_user%or_evap) then
+      or_evap_where(:) = 1
+   else
+     or_evap_where(:) = 0
+   end if
+
    
    CALL point2constants( C ) 
    
@@ -158,14 +168,13 @@ SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
       ! eq. 3.54, SCAM manual (CSIRO tech report 132)
 
 
-      if (cable_user%or_evap) then
-
+      where (or_evap_where == 1)
             rough%rt0us  = log(rough%disp/(rough%z0soilsn)) * & 
                     EXP(2. * C%CSW * canopy%rghlai) * rough%disp &
                     / rough%hruff / (c%a33 ** 2 * c%ctl) ! vh ! Haverd et al., Biogeosciences 10, 2011-2040, 2013
 
 
-      else
+      elsewhere (or_evap_where == 0)
 
          rough%rt0us  = rough%term5 * ( C%ZDLIN * LOG(                            &
                         C%ZDLIN * rough%disp / rough%z0soilsn ) +                 &
@@ -173,7 +182,7 @@ SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
                         * ( EXP( 2 * C%CSW * canopy%rghlai )  -  rough%term2 )    &
                         / rough%term3  
 
-      end if
+      endwhere
       
       ! See CSIRO SCAM, Raupach et al 1997, eq. 3.49:
       rough%zruffs = rough%disp + rough%hruff * C%A33**2 * C%CTL / C%VONK /    &
