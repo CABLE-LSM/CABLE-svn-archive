@@ -119,6 +119,30 @@ MODULE sli_solve
 
 CONTAINS
 
+    SUBROUTINE call_tfrozen( &
+            tmp1d3, tmp1d4, &
+            tmp1d2, dx, theta, par, h0, freezefac, Tsoil, dTsoil, Tfreezing, S, i &
+            )
+        IMPLICIT NONE
+        REAL(r_2), INTENT(OUT) :: tmp1d3, tmp1d4
+        REAL(r_2), INTENT(IN) :: tmp1d2, dx, theta, h0, freezefac, Tsoil, dTsoil, Tfreezing, S
+        INTEGER(i_d), INTENT(IN) :: i
+        TYPE(params), INTENT(IN) :: par
+
+        REAL(r_2) :: h0_merged, x1, x2
+        h0_merged = merge(h0,zero,i==1)
+        x1 = one/(par%lambc*freezefac)
+        x2 = real(Tsoil- dTsoil-50., r_2)
+
+        tmp1d3 = rtbis_Tfrozen(tmp1d2, dx, theta,par%css, par%rho, &
+            h0_merged, par%thre, par%the, &
+            par%he, x1, &
+            x2, Tfreezing, 0.0001_r_2)
+        tmp1d4 = thetalmax(tmp1d3, S, par%he, x1, &
+            par%thre, par%the) ! liquid content at solution for Tsoil
+
+    END SUBROUTINE
+
     SUBROUTINE solve_single_point( &
  ts, tfin, &
  irec, mp, &
@@ -2309,12 +2333,9 @@ CONTAINS
                            merge(h0(kk),zero,i==1), par(i)%thre, par(i)%the, par(i)%he, one/(par(i)%lambc*freezefac))
                       ! there is a zero in between
                       if ((tmp1*tmp2) < zero) then
-                         tmp1d3(kk) = rtbis_Tfrozen(tmp1d2(kk), dx(i), theta,par(i)%css, par(i)%rho, &
-                              merge(h0(kk),zero,i==1), par(i)%thre, par(i)%the, &
-                              par(i)%he, one/(par(i)%lambc*freezefac), &
-                              real(Tsoil(i)- dTsoil(kk,i)-50., r_2), Tfreezing(kk), real(0.0001,r_2))
-                         tmp1d4(kk) = thetalmax(tmp1d3(kk), S(i), par(i)%he, one/(par(i)%lambc*freezefac), &
-                              par(i)%thre, par(i)%the) ! liquid content at solution for Tsoil
+                        call call_tfrozen(tmp1d3(kk), tmp1d4(kk), &
+                            tmp1d2(kk), dx(i), theta, par(i), h0(kk), freezefac, Tsoil(i), &
+                            dTsoil(kk,i), Tfreezing(kk), S(i),i)
                       else
                          write(*,*) "Found no solution for Tfrozen 1. Stop. ", kk, i
                          write(*,*) nsteps(kk), S(i), Tsoil(i), dTsoil(kk,i), h0(kk), tmp1, tmp2, tmp1d2(kk), theta
