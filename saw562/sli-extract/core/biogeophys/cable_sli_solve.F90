@@ -202,7 +202,7 @@ CONTAINS
         REAL(r_2),      DIMENSION(1:mp)                        :: cprec
         REAL(r_2),      DIMENSION(1:mp)                        :: cprec_snow
         REAL(r_2),      DIMENSION(1:mp)                        :: cali
-        REAL(r_2),      DIMENSION(1:mp)                        :: qali
+        REAL(r_2),      DIMENSION(1:mp), OPTIONAL                        :: qali
         REAL(r_2),      DIMENSION(1:mp)                        :: qiso_in, qiso_out
         REAL(r_2),      DIMENSION(1:mp)                        :: qiso_evap_cum, qiso_trans_cum
         REAL(r_2),      DIMENSION(1:mp,-nsnow_max+1:n)         :: qiso_liq_adv, qiso_vap_adv
@@ -1120,24 +1120,6 @@ CONTAINS
             end if
 
             if (.not. again(kk)) then
-                !!$                   if (h0(kk)<zero .and. var(kk,1)%isat==0 .and. (i==1)) then ! start negative pond correction
-                !!$                      infil(kk)     = infil(kk)+h0(kk)
-                !!$                      ! negative pond converted to loss of soil moisture in top two layers
-                !!$                      S(kk,1) = S(kk,1) + h0(kk)/(dx(kk,1)*par(kk,1)%thre)* dx(kk,1)/(dx(kk,1)+dx(kk,2))
-                !!$                      deltaS(kk,1) = h0(kk)/(dx(kk,1)*par(kk,1)%thre)* dx(kk,1)/(dx(kk,1)+dx(kk,2))
-                !!$                      ! adjust flux between layer 1 and layer 2
-                !!$                      qlsig(kk,1) = qlsig(kk,1) + h0(kk)* dx(kk,2)/(dx(kk,1)+dx(kk,2))/dt(kk)
-                !!$                      deltaS(kk,2) =   h0(kk)/(dx(kk,2)*par(kk,2)%thre)* dx(kk,2)/(dx(kk,1)+dx(kk,2))
-                !!$                      if (var(kk,2)%isat.eq.0) then
-                !!$                         dy(kk,2) = dy(kk,2) + deltaS(kk,2)
-                !!$                      else
-                !!$                         dy(kk,2) = deltaS(kk,2)
-                !!$                         var(kk,2)%isat = 0
-                !!$                      endif
-                !!$
-                !!$                      deltah0(kk) = -(h0(kk)-deltah0(kk)) ! whole pond lost (new change = - original pond height)
-                !!$                      h0(kk) = zero  ! zero pond remaining
-                !!$                   endif
 
                 ! water in profile initially
                 wpi = sum((par(kk,:)%thr + (par(kk,:)%the-par(kk,:)%thr)*S(kk,:))*dx(kk,:))  
