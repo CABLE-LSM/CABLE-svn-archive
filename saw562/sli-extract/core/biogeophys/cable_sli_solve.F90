@@ -60,6 +60,8 @@
 ! March 2014 (V. Haverd)
 ! Extract SEB calcs to subroutine in utils, and trial Force-Restore method
 
+!\<\(dx\|S\|thetai\|Jsensible\|Tsoil\|qh\|var\|csoil\|kth\|phi\|par\|qex\|wex\|heads\|ciso\|cisoice\|ciso_snow\|cisoice_snow\|qiso_liq_adv\|qiso_vap_adv\|qiso_liq_diff\|qiso_vap_diff\|qvsig\|qlsig\|qvTsig\|qvh\|again_ice\|Sbot\|Tbot\|dz\|hint\|phimin\|qexd\|aa\|bb\|cc\|dd\|ee\|ff\|gg\|dy\|aah\|bbh\|cch\|ddh\|eeh\|ffh\|ggh\|de\|q\|qya\|qyb\|qTa\|qTb\|qhya\|qhyb\|qhTa\|qhTb\|qadv\|qadvya\|qadvyb\|qadvTa\|qadvTb\|qsig\|qhsig\|qadvsig\|qliq\|qv\|qvT\|qlya\|qlyb\|qvya\|qvyb\|qlTb\|qvTa\|qvTb\|vcall\|deltaS\|dTsoil\|tmp2d1\|tmp2d2\|S0\|Sliq0\|Sliq\|deltaSliq\|cv0\|deltacv\|Sliqice0\|Sliqice\|deltaSliqice\|Sice0\|Sice\|deltaSice\|Sliq0_ss\|Sliq_ss\|deltaSliq_ss\|Sliqice0_ss\|Sliqice_ss\|deltaSliqice_ss\|Sice0_ss\|Sice_ss\|deltaSice_ss\|S0_ss\|S_ss\|deltaS_ss\|Tsoil_ss\|dTsoil_ss\|cv0_ss\|cv_ss\|Dv_ss\|deltacv_ss\|dx_ss\|dz_ss\|cisoliqice_snow\|tmp_thetasat\|tmp_thetar\|thetasat_ss\|thetar_ss\|tmp_tortuosity\|ciso_ss\|cisoice_ss\|delthetai\|dthetaldT\|thetal\|isave\|nsteps_ice\|imelt\|deltaJ_latent_S\|deltaJ_latent_T\|deltaJ_sensible_S\|deltaJ_sensible_T\|LHS\|RHS\|LHS_h\|RHS_h\|qmelt\|hsnow\|delta_snowcol\|delta_snowT\|delta_snowliq\|dTsnow\|thetai_0\|J0\|iqex\|thetal_max\)\>
+
 MODULE sli_solve
 
   USE cable_def_types_mod, ONLY: r_2, i_d
@@ -202,7 +204,7 @@ CONTAINS
         REAL(r_2),      DIMENSION(1:mp)                        :: cprec
         REAL(r_2),      DIMENSION(1:mp)                        :: cprec_snow
         REAL(r_2),      DIMENSION(1:mp)                        :: cali
-        REAL(r_2),      DIMENSION(1:mp)                        :: qali
+        REAL(r_2),      DIMENSION(1:mp), OPTIONAL                        :: qali
         REAL(r_2),      DIMENSION(1:mp)                        :: qiso_in, qiso_out
         REAL(r_2),      DIMENSION(1:mp)                        :: qiso_evap_cum, qiso_trans_cum
         REAL(r_2),      DIMENSION(1:mp,-nsnow_max+1:n)         :: qiso_liq_adv, qiso_vap_adv
