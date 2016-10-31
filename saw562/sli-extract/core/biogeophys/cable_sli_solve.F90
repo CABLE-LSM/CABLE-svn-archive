@@ -157,7 +157,7 @@ CONTAINS
             )
         IMPLICIT NONE
         INTEGER                                                :: wlogn
-        REAL(r_2)                                              :: ts, tfin
+        REAL(r_2)                                              :: tfin
         INTEGER(i_d)                                           :: irec, mp
         REAL(r_2),      DIMENSION(1:mp)                        :: qprec
         REAL(r_2),      DIMENSION(1:mp)                        :: qprec_snow
@@ -169,7 +169,7 @@ CONTAINS
         REAL(r_2),      DIMENSION(1:mp,1:n)                    :: Jsensible
         REAL(r_2),      DIMENSION(1:mp,1:n)                    :: Tsoil
         REAL(r_2),      DIMENSION(1:mp)                        :: evap
-        REAL(r_2),      DIMENSION(1:mp)                        :: evap_pot, runoff, infil
+        REAL(r_2),      DIMENSION(1:mp)                        :: infil
         REAL(r_2),      DIMENSION(1:mp)                        :: drainage, discharge
         REAL(r_2),      DIMENSION(1:mp,-nsnow_max:n)           :: qh
         INTEGER(i_d),   DIMENSION(1:mp)                        :: nsteps
@@ -178,7 +178,7 @@ CONTAINS
         TYPE(vars_snow), DIMENSION(1:mp)                       :: vsnow
         TYPE(vars),     DIMENSION(1:mp,1:n)                    :: var
         REAL(r_2),      DIMENSION(1:mp)                        :: T0, Tsurface
-        REAL(r_2),      DIMENSION(1:mp)                        :: Hcum, lEcum,  deltaice_cum_T, deltaice_cum_S
+        REAL(r_2),      DIMENSION(1:mp)                        :: Hcum, lEcum
         REAL(r_2),      DIMENSION(1:mp)                        :: Gcum, Qadvcum
         REAL(r_2),      DIMENSION(1:mp)                        :: Jcol_sensible, Jcol_latent_S, Jcol_latent_T
         REAL(r_2),      DIMENSION(1:mp,1:n)                    :: csoil, kth
@@ -187,39 +187,19 @@ CONTAINS
         REAL(r_2),      DIMENSION(1:mp)                        :: zdelta, SL, Tl
         TYPE(params),   DIMENSION(1:mp)                        :: plit
         TYPE(params),   DIMENSION(1:mp,1:n)                    :: par
-        REAL(r_2),       DIMENSION(1:mp,1:n)                   :: qex
         REAL(r_2),      DIMENSION(1:mp,1:n), OPTIONAL                    :: wex
-        REAL(r_2),      DIMENSION(1:mp,1:n)                    :: heads
-        REAL(r_2),      DIMENSION(1:mp,1:n)                    :: ciso
-        REAL(r_2),      DIMENSION(1:mp,1:n)                    :: cisoice
         REAL(r_2),      DIMENSION(1:mp,1:nsnow_max)            :: ciso_snow
         REAL(r_2),      DIMENSION(1:mp,1:nsnow_max)            :: cisoice_snow
-        REAL(r_2),      DIMENSION(1:mp)                        :: cisos, cisoL
-        REAL(r_2),      DIMENSION(1:mp)                        :: cprec
-        REAL(r_2),      DIMENSION(1:mp)                        :: cprec_snow
-        REAL(r_2),      DIMENSION(1:mp)                        :: cali
         REAL(r_2),      DIMENSION(1:mp), OPTIONAL                        :: qali
-        REAL(r_2),      DIMENSION(1:mp)                        :: qiso_in, qiso_out
-        REAL(r_2),      DIMENSION(1:mp)                        :: qiso_evap_cum, qiso_trans_cum
-        REAL(r_2),      DIMENSION(1:mp,-nsnow_max+1:n)         :: qiso_liq_adv, qiso_vap_adv
-        REAL(r_2),      DIMENSION(1:mp,-nsnow_max+1:n-1)       :: qiso_liq_diff, qiso_vap_diff
         REAL(r_2),      DIMENSION(1:mp,-nsnow_max:n)           :: qvsig, qlsig, qvTsig, qvh
         REAL(r_2),      DIMENSION(1:mp)                        :: deltaTa
-        REAL(r_2),      DIMENSION(1:mp)                        :: lE_old
-        INTEGER(i_d)                                           :: dolitter       ! 0: no; 1: normal; 2: resistance
-        INTEGER(i_d)                                           :: doisotopologue ! 0: no isotope; 1: HDO; 2: H218O
-        INTEGER(i_d)                                           :: dosepts        ! 0: normal; 1: uncouple T & S
-        INTEGER(i_d)                                           :: docondition    ! 0: no cond., 1: columns, 2: lines, 3: both
-        INTEGER(i_d)                                           :: doadvection       ! 0: off; 1: onn
         REAL(r_2),    DIMENSION(1:mp)                          :: precip, qevap
-        REAL(r_2),    DIMENSION(1:mp)                          :: qL, qhL, qybL, qTbL, qhTbL, qhybL, rexcol, wcol, ql0, qv0
+        REAL(r_2),    DIMENSION(1:mp)                          :: qL, qhL, qybL, qTbL, qhTbL, qhybL, rexcol, wcol
         LOGICAL,      DIMENSION(1:mp)                          :: again, getq0,getqn,init
         LOGICAL,      DIMENSION(1:mp,1:n)                      :: again_ice
         INTEGER(i_d), DIMENSION(1:mp)                          :: ih0, iok, itmp, ns, nsat, nsatlast, nsteps0
-        REAL(r_2),    DIMENSION(1:mp)                          :: accel, dmax, dt, dwinfil, dwoff, fac, Khmin1, Kmin1, phimin1, phip
+        REAL(r_2),    DIMENSION(1:mp)                          :: accel, dmax, dt, dwinfil, dwoff, fac, phip
         REAL(r_2),    DIMENSION(1:mp)                          :: qpme, rsig, rsigdt, sig, t
-        REAL(r_2),    DIMENSION(1:mp,1:n)                      :: Sbot, Tbot
-        REAL(r_2),    DIMENSION(1:mp,1:n-1)                    :: dz
         REAL(r_2),    DIMENSION(1:mp,1:n)                      :: hint, phimin, qexd
         REAL(r_2),    DIMENSION(1:mp,-nsnow_max+1:n)           :: aa, bb, cc, dd, ee, ff, gg, dy
         REAL(r_2),    DIMENSION(1:mp,-nsnow_max+1:n)           :: aah, bbh, cch, ddh, eeh, ffh, ggh, de
@@ -228,40 +208,24 @@ CONTAINS
         TYPE(vars)                                             :: vtmp
         REAL(r_2),    DIMENSION(1:mp,-nsnow_max:n)             :: qsig, qhsig, qadvsig
         REAL(r_2),    DIMENSION(1:mp,-nsnow_max:n)             :: qliq, qv, qvT, qlya, qlyb, qvya, qvyb, qlTb, qvTa, qvTb
-        TYPE(vars),   DIMENSION(1:mp,1:n)                      :: vcall
         REAL(r_2),    DIMENSION(1:mp,1:n)                      :: deltaS, dTsoil
         REAL(r_2),    DIMENSION(1:mp,0:n)                      :: tmp2d1, tmp2d2
-        REAL(r_2),    DIMENSION(1:mp,1:n)                      :: S0, Sliq0, Sliq, deltaSliq, cv0, deltacv
-        REAL(r_2),    DIMENSION(1:mp,1:n)                      :: Sliqice0, Sliqice, deltaSliqice
-        REAL(r_2),    DIMENSION(1:mp,1:n)                      :: Sice0, Sice, deltaSice
-        REAL(r_2),    DIMENSION(1:mp,-nsnow_max+1:n)           :: Sliq0_ss, Sliq_ss, deltaSliq_ss
-        REAL(r_2),    DIMENSION(1:mp,-nsnow_max+1:n)           :: Sliqice0_ss, Sliqice_ss, deltaSliqice_ss
-        REAL(r_2),    DIMENSION(1:mp,-nsnow_max+1:n)           :: Sice0_ss, Sice_ss, deltaSice_ss
-        REAL(r_2),    DIMENSION(1:mp,-nsnow_max+1:n)           :: S0_ss, S_ss, deltaS_ss, Tsoil_ss, dTsoil_ss
-        REAL(r_2),    DIMENSION(1:mp,-nsnow_max+1:n)           :: cv0_ss, cv_ss, Dv_ss, deltacv_ss, dx_ss
-        REAL(r_2),    DIMENSION(1:mp,-nsnow_max+1:n-1)         :: dz_ss
+        REAL(r_2),    DIMENSION(1:mp,1:n)                      :: cv0
         REAL(r_2),      DIMENSION(1:mp,1:nsnow_max)            :: cisoliqice_snow
-        INTEGER(i_d)                                           :: itop ! integer corresponding to top of soil-snow column
-        INTEGER(i_d)                                           :: nsnow ! number of dedicated snow layers
-        REAL(r_2),    DIMENSION(1:mp,1:n)                      :: tmp_thetasat, tmp_thetar
-        REAL(r_2),    DIMENSION(1:mp,-nsnow_max+1:n)           :: thetasat_ss, thetar_ss
-        REAL(r_2),    DIMENSION(1:mp,-nsnow_max+1:n)           :: tmp_tortuosity
-        REAL(r_2),    DIMENSION(1:mp,-nsnow_max+1:n)           :: ciso_ss, cisoice_ss
-        REAL(r_2),    DIMENSION(1:mp,1:n)                      :: delthetai, dthetaldT, thetal
+        REAL(r_2),    DIMENSION(1:mp,1:n)                      :: dthetaldT, thetal
         INTEGER(i_d), DIMENSION(1:mp,1:n)                      :: isave, nsteps_ice, imelt
         TYPE(vars),         DIMENSION(1:mp)                    :: vtop, vbot
         TYPE(vars_aquifer), DIMENSION(1:mp)                    :: v_aquifer
-        REAL(r_2),          DIMENSION(1:mp)                    :: qd, dwcol, dwdrainage, drn,inlit, dwinlit, drexcol, dwdischarge
+        REAL(r_2),          DIMENSION(1:mp)                    :: dwcol, dwdrainage, drn,inlit, dwinlit, drexcol, dwdischarge
         REAL(r_2),          DIMENSION(1:mp)                    :: dJcol_latent_S, dJcol_latent_T, dJcol_sensible
         REAL(r_2),          DIMENSION(1:mp,1:n)                :: deltaJ_latent_S, deltaJ_latent_T, deltaJ_sensible_S, deltaJ_sensible_T
         REAL(r_2),          DIMENSION(1:mp)                    :: qevapsig
         REAL(r_2),          DIMENSION(1:mp)                    :: qrunoff
         REAL(r_2),          DIMENSION(1:mp)                    :: tmp1d1, tmp1d2, tmp1d3,  tmp1d4
         REAL(r_2),          DIMENSION(1:mp)                    :: deltah0
-        REAL(r_2),          DIMENSION(1:mp)                    :: SL0, deltaSL, cvL0, SLliq0, deltacvL, SLliq, deltaSLliq
-        REAL(r_2),          DIMENSION(1:mp)                    :: qiso_evap, qiso_trans
+        REAL(r_2),          DIMENSION(1:mp)                    :: deltaSL
         REAL(r_2),          DIMENSION(1:mp)                    :: lE0, G0, Epot
-        REAL(r_2),          DIMENSION(1:mp)                    :: Tfreezing, dT0
+        REAL(r_2),          DIMENSION(1:mp)                    :: Tfreezing
         REAL(r_2),          DIMENSION(1:mp)                    :: dtdT
         REAL(r_2),          DIMENSION(1:mp,-nsnow_max+1:n)     :: LHS, RHS, LHS_h, RHS_h
         INTEGER(i_d),       DIMENSION(1:mp)                    :: surface_case
@@ -269,20 +233,15 @@ CONTAINS
         LOGICAL                                                :: litter
         INTEGER(i_d)                                           :: i, j, k, kk, condition
         INTEGER(i_d)                                           :: littercase, isotopologue, advection, septs ! switches
-        REAL(r_2)                                              :: ztmp, c2, theta
+        REAL(r_2)                                              :: c2, theta
         REAL(r_2)                                              :: dTqwdTa, dTqwdTb, Tqw, keff
-        REAL(r_2),          DIMENSION(1:mp)                    :: cp, cpeff, hice, deltahice, h0_0, hice_0, h0_tmp, hice_tmp
+        REAL(r_2),          DIMENSION(1:mp)                    :: cp, cpeff, hice, h0_0, hice_0, h0_tmp, hice_tmp
         REAL(r_2),          DIMENSION(1:mp,nsnow_max)          :: qmelt, hsnow
         REAL(r_2),  DIMENSION(1:mp)                            :: qtransfer
-        REAL(r_2),  DIMENSION(1:mp)                            :: qmelt_ss ! melt water from bottom snow layer to soil
-        REAL(r_2),  DIMENSION(1:mp)                            :: qprec_ss
-        REAL(r_2),  DIMENSION(1:mp)                            :: cprec_ss
-        REAL(r_2),          DIMENSION(1:mp,nsnow_max)          :: delta_snowcol, delta_snowT, delta_snowliq, dTsnow
-        REAL(r_2),          DIMENSION(1:mp)                    :: melt ! cumulative loss of snow pack as melt water
+        REAL(r_2),          DIMENSION(1:mp,nsnow_max)          :: delta_snowcol, delta_snowT, delta_snowliq
         REAL(r_2),      DIMENSION(1:mp,1:n)                    :: thetai_0, J0
         REAL(r_2)                                              :: tmp1, tmp2
-        REAL(r_2),          DIMENSION(1:mp,1:n)                :: iqex, thetal_max
-        REAL(r_2),          DIMENSION(1:mp)                    :: icali
+        REAL(r_2),          DIMENSION(1:mp,1:n)                :: iqex
         INTEGER(i_d),       DIMENSION(1:mp)                    :: nfac1, nfac2, nfac3, nfac4, nfac5, &
             nfac6, nfac7, nfac8, nfac9, nfac10, nfac11, nfac12
         REAL(r_2),          DIMENSION(1:mp)                    :: J0snow, wcol0snow
@@ -2494,7 +2453,7 @@ CONTAINS
        infil, drainage, discharge, qh, nsteps, vmet, vlit, vsnow, var, csoil, kth, phi, T0, Tsurface, Hcum, lEcum, &
        Gcum, Qadvcum, Jcol_sensible, Jcol_latent_S, Jcol_latent_T, deltaice_cum_T, deltaice_cum_S, dxL, zdelta, &
        SL, TL, plit, par, qex, wex, heads,  &
-       ciso, cisoice, ciso_snow, cisoice_snow, cisos, cisoL, cprec, cprec_snow, cali, &
+       ciso, cisoice, ciso_snow, cisoice_snow, cisos, cprec, cprec_snow, cali, &
        qali, qiso_in, qiso_out, qiso_evap_cum, qiso_trans_cum, qiso_liq_adv, &
        qiso_vap_adv, qiso_liq_diff, qiso_vap_diff, qvsig, qlsig, qvTsig, qvh, deltaTa, lE_old, &
        dolitter, doisotopologue, dosepts, docondition, doadvection)
@@ -2539,7 +2498,7 @@ CONTAINS
     REAL(r_2),      DIMENSION(1:mp,1:n),   INTENT(INOUT), OPTIONAL :: cisoice
     REAL(r_2),      DIMENSION(1:mp,1:nsnow_max),   INTENT(INOUT), OPTIONAL :: ciso_snow
     REAL(r_2),      DIMENSION(1:mp,1:nsnow_max),   INTENT(INOUT), OPTIONAL :: cisoice_snow
-    REAL(r_2),      DIMENSION(1:mp),       INTENT(INOUT), OPTIONAL :: cisos, cisoL
+    REAL(r_2),      DIMENSION(1:mp),       INTENT(INOUT), OPTIONAL :: cisos
     REAL(r_2),      DIMENSION(1:mp),       INTENT(IN),    OPTIONAL :: cprec
     REAL(r_2),      DIMENSION(1:mp),       INTENT(IN),    OPTIONAL :: cprec_snow
     REAL(r_2),      DIMENSION(1:mp),       INTENT(IN),    OPTIONAL :: cali
