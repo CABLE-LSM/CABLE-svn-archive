@@ -121,7 +121,7 @@ MODULE sli_solve
 
 CONTAINS
 
-    SUBROUTINE iflux_loop( &
+    SUBROUTINE get_fluxes_and_derivs( &
   tfin, irec, mp, qprec, qprec_snow, n, dx, h0, S, thetai, &
             Jsensible, Tsoil, evap, infil, drainage, discharge, &
             qh, nsteps, vmet, vlit, vsnow, var, T0, Tsurface, Hcum, lEcum, &
@@ -247,72 +247,6 @@ CONTAINS
         REAL(r_2),          DIMENSION(1:mp)                    :: J0snow, wcol0snow
         REAL(r_2), DIMENSION(1:n)                              :: h_ex
         REAL(r_2)                                              :: wpi
-          do while (again(kk)) ! sometimes need twice to adjust phi at satn
-
-             nsatlast(kk) = nsat(kk) ! for detecting onset of profile saturation
-             nsat(kk)     = sum(var(kk,:)%isat,1) ! no. of sat layers
-             sig(kk)      = half
-             if (nsat(kk) /= 0) sig(kk) = one ! time weighting sigma
-             rsig(kk)     = one/sig(kk)
-
-             ! update variables
-             if (iflux(kk)==1) then
-                ! Calc flux matric potentials (and derivatives) from S
-                ! this set var-structure
-                isave(kk,:) = var(kk,:)%isat
-                ! Debug for mp=1: remove elemental from hyofS and do loop instead of next line
-                 call hyofS(S(kk,1:n), Tsoil(kk,1:n), par(kk,1:n), var(kk,1:n))
-                !do i=1, n
-                !   call hyofS(S(kk,i), Tsoil(kk,i), par(kk,i), var(kk,i))
-                !end do
-               
-                ! End debug hyofS
-                cp(kk) = real(1-var(kk,1)%iice,r_2)*cswat*rhow & ! heat capacity of pond
-                     + real(var(kk,1)%iice,r_2)*rhow* &
-                     ((one-var(kk,1)%thetai/par(kk,1)%thre)*cswat + (var(kk,1)%thetai/par(kk,1)%thre)*csice)
-                cpeff(kk) = cp(kk) + rhow*lambdaf*var(kk,1)%dthetaldT/par(kk,1)%thre
-                ! phip(kk) = max(var(kk,1)%phie-var(kk,1)%he*var(kk,1)%Ksat, (one+e5)*var(kk,1)%phie) !at onset of ponding
-                phip(kk) = (one+e5)*var(kk,1)%phie !at onset of ponding
-                var(kk,:)%isat  = isave(kk,:)
-                thetai(kk,:)    = var(kk,:)%thetai ! ice profile
-                thetal(kk,:)    = var(kk,:)%thetal ! liq water profile
-                thetai_0(kk,:)  = thetai(kk,:) ! initial ice profile
-                dthetaldT(kk,:) = var(kk,:)%dthetaldT
-                hice(kk)   = h0(kk)*var(kk,1)%thetai/par(kk,1)%thre
-                hice_0(kk) = hice(kk)
-                h0_0(kk)   = h0(kk)
-                ! sensible heat stored in top layer + pond
-                Jsensible(kk,1)   = (var(kk,1)%csoil* dx(kk,1)+h0(kk)*cp(kk))*(Tsoil(kk,1))
-                ! sensible heat stored in soil column (2:n)
-                Jsensible(kk,2:n) = var(kk,2:n)%csoil*(Tsoil(kk,2:n))* dx(kk,2:n)
-
-
-                ! calculate this here in case snow pack disappears: ciso of transferred water needs to be retained
-                if ((isotopologue /= 0).and.(vsnow(kk)%hsnow(1).gt.zero)) then
-                   cisoliqice_snow(kk,1:nsnow_max) = (ciso_snow(kk,1:nsnow_max)*vsnow(kk)%hliq(1:nsnow_max) + &
-                        cisoice_snow(kk,1:nsnow_max)*(vsnow(kk)%hsnow(1:nsnow_max)-vsnow(kk)%hliq(1:nsnow_max))) / &
-                        vsnow(kk)%hsnow(1:nsnow_max)
-
-                endif
-
-
-                CALL snow_adjust(irec, mp, n, kk, ns, h0, hice, thetai, dx, vsnow, var, par, S, Tsoil, &
-                     Jcol_latent_S, Jcol_latent_T, Jcol_sensible, deltaJ_sensible_S, qmelt, qtransfer, j0snow)
-                thetai(kk,1) = var(kk,1)%thetai  ! this is the value of thetaice prior to matrix call
-                call hyofS(S(kk,1), Tsoil(kk,1), par(kk,1), var(kk,1))
-    
-             endif ! iflux==1
-
-             ! initialise litter vars
-             if (iflux(kk)==1 .and. (littercase==1 .or. littercase == 2)) then
-                call litter_props(Sl(kk), Tl(kk), vlit(kk), plit(kk), h0(kk))
-             endif
-
-             ! ! phi is solution var at satn, so h calc from phi where S>=1 - done in hyofS above for S<1
-             ! where (S(kk,:) >= one) & ! (special for frozen soil)
-             !      var(kk,:)%h = var(kk,:)%he + (var(kk,:)%phi-var(kk,:)%phie)/var(kk,:)%Ksat
-
-
 
              !----- get fluxes and derivs
              ! get surface condition
@@ -605,6 +539,134 @@ CONTAINS
              qexd(kk,1:n) = zero ! time derivative for root extraction (assumed fixed at input value)
              again(kk)  = .false. ! flag for recalcn of fluxes (default=false)
              !----- end get fluxes and derivs
+    END SUBROUTINE
+
+    SUBROUTINE estimate_timestep( &
+  tfin, irec, mp, qprec, qprec_snow, n, dx, h0, S, thetai, &
+            Jsensible, Tsoil, evap, infil, drainage, discharge, &
+            qh, nsteps, vmet, vlit, vsnow, var, T0, Tsurface, Hcum, lEcum, &
+ Gcum, Qadvcum, Jcol_sensible, &
+            Jcol_latent_S, Jcol_latent_T, csoil, kth, phi, dxL, zdelta, SL, Tl, &
+            plit, par, wex, ciso_snow, cisoice_snow, &
+ qali, &
+ qvsig, qlsig, qvTsig, qvh, deltaTa, &
+            precip, qevap, qL, qhL, qybL, qTbL, qhTbL, qhybL, rexcol, wcol, &
+ again, getq0,getqn,init, again_ice, ih0, iok, itmp, ns, nsat, &
+            nsatlast, nsteps0, accel, dmax, dt, dwinfil, dwoff, fac, &
+ phip, qpme, rsig, rsigdt, sig, t, hint, phimin, &
+            qexd, aa, bb, cc, dd, ee, ff, gg, dy, aah, bbh, cch, ddh, eeh, ffh, ggh, &
+            de, q, qya, qyb, qTa, qTb,qhya, qhyb, qhTa, qhTb, qadv, qadvya, qadvyb, &
+            qadvTa, qadvTb, vtmp, qsig, qhsig, qadvsig, qliq, qv, qvT, qlya, qlyb, &
+            qvya, qvyb, qlTb, qvTa, qvTb, deltaS, dTsoil, tmp2d1, tmp2d2, &
+ cv0, &
+ cisoliqice_snow, &
+            dthetaldT, thetal, isave, nsteps_ice, imelt, vtop, vbot, v_aquifer, &
+            dwcol, dwdrainage, drn,inlit, dwinlit, drexcol, dwdischarge, &
+            dJcol_latent_S, dJcol_latent_T, dJcol_sensible, deltaJ_latent_S, &
+            deltaJ_latent_T, deltaJ_sensible_S, deltaJ_sensible_T, qevapsig, &
+            qrunoff, tmp1d1, tmp1d2, tmp1d3,  tmp1d4, deltah0, deltaSL, &
+ lE0, G0, &
+            Epot, Tfreezing, dtdT, LHS, RHS, LHS_h, RHS_h, surface_case, nns, &
+            iflux, litter, i, j, k, kk, condition, littercase, isotopologue, &
+            advection, septs, c2, theta, dTqwdTa, dTqwdTb, Tqw, keff, cp, &
+            cpeff, hice, h0_0, hice_0, h0_tmp, hice_tmp, qmelt, hsnow, &
+            qtransfer, delta_snowcol, delta_snowT, &
+            delta_snowliq, thetai_0, J0, tmp1, tmp2, iqex, &
+ nfac1, nfac2, nfac3, nfac4, nfac5, nfac6, nfac7, nfac8, nfac9, &
+            nfac10, nfac11, nfac12, J0snow, wcol0snow, h_ex, wpi &
+            )
+        IMPLICIT NONE
+        INTEGER                                                :: wlogn
+        REAL(r_2)                                              :: tfin
+        INTEGER(i_d)                                           :: irec, mp
+        REAL(r_2),      DIMENSION(1:mp)                        :: qprec
+        REAL(r_2),      DIMENSION(1:mp)                        :: qprec_snow
+        INTEGER(i_d)                                           :: n
+        REAL(r_2),      DIMENSION(1:mp,1:n)                    :: dx
+        REAL(r_2),      DIMENSION(1:mp)                        :: h0
+        REAL(r_2),      DIMENSION(1:mp,1:n)                    :: S
+        REAL(r_2),      DIMENSION(1:mp,1:n)                    :: thetai
+        REAL(r_2),      DIMENSION(1:mp,1:n)                    :: Jsensible
+        REAL(r_2),      DIMENSION(1:mp,1:n)                    :: Tsoil
+        REAL(r_2),      DIMENSION(1:mp)                        :: evap
+        REAL(r_2),      DIMENSION(1:mp)                        :: infil
+        REAL(r_2),      DIMENSION(1:mp)                        :: drainage, discharge
+        REAL(r_2),      DIMENSION(1:mp,-nsnow_max:n)           :: qh
+        INTEGER(i_d),   DIMENSION(1:mp)                        :: nsteps
+        TYPE(vars_met), DIMENSION(1:mp)                        :: vmet
+        TYPE(vars),     DIMENSION(1:mp)                        :: vlit
+        TYPE(vars_snow), DIMENSION(1:mp)                       :: vsnow
+        TYPE(vars),     DIMENSION(1:mp,1:n)                    :: var
+        REAL(r_2),      DIMENSION(1:mp)                        :: T0, Tsurface
+        REAL(r_2),      DIMENSION(1:mp)                        :: Hcum, lEcum
+        REAL(r_2),      DIMENSION(1:mp)                        :: Gcum, Qadvcum
+        REAL(r_2),      DIMENSION(1:mp)                        :: Jcol_sensible, Jcol_latent_S, Jcol_latent_T
+        REAL(r_2),      DIMENSION(1:mp,1:n)                    :: csoil, kth
+        REAL(r_2),      DIMENSION(1:mp,1:n)                    :: phi
+        REAL(r_2),      DIMENSION(1:mp)                        :: dxL
+        REAL(r_2),      DIMENSION(1:mp)                        :: zdelta, SL, Tl
+        TYPE(params),   DIMENSION(1:mp)                        :: plit
+        TYPE(params),   DIMENSION(1:mp,1:n)                    :: par
+        REAL(r_2),      DIMENSION(1:mp,1:n), OPTIONAL                    :: wex
+        REAL(r_2),      DIMENSION(1:mp,1:nsnow_max)            :: ciso_snow
+        REAL(r_2),      DIMENSION(1:mp,1:nsnow_max)            :: cisoice_snow
+        REAL(r_2),      DIMENSION(1:mp), OPTIONAL                        :: qali
+        REAL(r_2),      DIMENSION(1:mp,-nsnow_max:n)           :: qvsig, qlsig, qvTsig, qvh
+        REAL(r_2),      DIMENSION(1:mp)                        :: deltaTa
+        REAL(r_2),    DIMENSION(1:mp)                          :: precip, qevap
+        REAL(r_2),    DIMENSION(1:mp)                          :: qL, qhL, qybL, qTbL, qhTbL, qhybL, rexcol, wcol
+        LOGICAL,      DIMENSION(1:mp)                          :: again, getq0,getqn,init
+        LOGICAL,      DIMENSION(1:mp,1:n)                      :: again_ice
+        INTEGER(i_d), DIMENSION(1:mp)                          :: ih0, iok, itmp, ns, nsat, nsatlast, nsteps0
+        REAL(r_2),    DIMENSION(1:mp)                          :: accel, dmax, dt, dwinfil, dwoff, fac, phip
+        REAL(r_2),    DIMENSION(1:mp)                          :: qpme, rsig, rsigdt, sig, t
+        REAL(r_2),    DIMENSION(1:mp,1:n)                      :: hint, phimin, qexd
+        REAL(r_2),    DIMENSION(1:mp,-nsnow_max+1:n)           :: aa, bb, cc, dd, ee, ff, gg, dy
+        REAL(r_2),    DIMENSION(1:mp,-nsnow_max+1:n)           :: aah, bbh, cch, ddh, eeh, ffh, ggh, de
+        REAL(r_2),    DIMENSION(1:mp,-nsnow_max:n)             :: q, qya, qyb, qTa, qTb,qhya, qhyb, qhTa, qhTb
+        REAL(r_2),    DIMENSION(1:mp,-nsnow_max:n)             :: qadv, qadvya, qadvyb, qadvTa, qadvTb
+        TYPE(vars)                                             :: vtmp
+        REAL(r_2),    DIMENSION(1:mp,-nsnow_max:n)             :: qsig, qhsig, qadvsig
+        REAL(r_2),    DIMENSION(1:mp,-nsnow_max:n)             :: qliq, qv, qvT, qlya, qlyb, qvya, qvyb, qlTb, qvTa, qvTb
+        REAL(r_2),    DIMENSION(1:mp,1:n)                      :: deltaS, dTsoil
+        REAL(r_2),    DIMENSION(1:mp,0:n)                      :: tmp2d1, tmp2d2
+        REAL(r_2),    DIMENSION(1:mp,1:n)                      :: cv0
+        REAL(r_2),      DIMENSION(1:mp,1:nsnow_max)            :: cisoliqice_snow
+        REAL(r_2),    DIMENSION(1:mp,1:n)                      :: dthetaldT, thetal
+        INTEGER(i_d), DIMENSION(1:mp,1:n)                      :: isave, nsteps_ice, imelt
+        TYPE(vars),         DIMENSION(1:mp)                    :: vtop, vbot
+        TYPE(vars_aquifer), DIMENSION(1:mp)                    :: v_aquifer
+        REAL(r_2),          DIMENSION(1:mp)                    :: dwcol, dwdrainage, drn,inlit, dwinlit, drexcol, dwdischarge
+        REAL(r_2),          DIMENSION(1:mp)                    :: dJcol_latent_S, dJcol_latent_T, dJcol_sensible
+        REAL(r_2),          DIMENSION(1:mp,1:n)                :: deltaJ_latent_S, deltaJ_latent_T, deltaJ_sensible_S, deltaJ_sensible_T
+        REAL(r_2),          DIMENSION(1:mp)                    :: qevapsig
+        REAL(r_2),          DIMENSION(1:mp)                    :: qrunoff
+        REAL(r_2),          DIMENSION(1:mp)                    :: tmp1d1, tmp1d2, tmp1d3,  tmp1d4
+        REAL(r_2),          DIMENSION(1:mp)                    :: deltah0
+        REAL(r_2),          DIMENSION(1:mp)                    :: deltaSL
+        REAL(r_2),          DIMENSION(1:mp)                    :: lE0, G0, Epot
+        REAL(r_2),          DIMENSION(1:mp)                    :: Tfreezing
+        REAL(r_2),          DIMENSION(1:mp)                    :: dtdT
+        REAL(r_2),          DIMENSION(1:mp,-nsnow_max+1:n)     :: LHS, RHS, LHS_h, RHS_h
+        INTEGER(i_d),       DIMENSION(1:mp)                    :: surface_case
+        INTEGER(i_d),       DIMENSION(1:mp)                    :: nns, iflux
+        LOGICAL                                                :: litter
+        INTEGER(i_d)                                           :: i, j, k, kk, condition
+        INTEGER(i_d)                                           :: littercase, isotopologue, advection, septs ! switches
+        REAL(r_2)                                              :: c2, theta
+        REAL(r_2)                                              :: dTqwdTa, dTqwdTb, Tqw, keff
+        REAL(r_2),          DIMENSION(1:mp)                    :: cp, cpeff, hice, h0_0, hice_0, h0_tmp, hice_tmp
+        REAL(r_2),          DIMENSION(1:mp,nsnow_max)          :: qmelt, hsnow
+        REAL(r_2),  DIMENSION(1:mp)                            :: qtransfer
+        REAL(r_2),          DIMENSION(1:mp,nsnow_max)          :: delta_snowcol, delta_snowT, delta_snowliq
+        REAL(r_2),      DIMENSION(1:mp,1:n)                    :: thetai_0, J0
+        REAL(r_2)                                              :: tmp1, tmp2
+        REAL(r_2),          DIMENSION(1:mp,1:n)                :: iqex
+        INTEGER(i_d),       DIMENSION(1:mp)                    :: nfac1, nfac2, nfac3, nfac4, nfac5, &
+            nfac6, nfac7, nfac8, nfac9, nfac10, nfac11, nfac12
+        REAL(r_2),          DIMENSION(1:mp)                    :: J0snow, wcol0snow
+        REAL(r_2), DIMENSION(1:n)                              :: h_ex
+        REAL(r_2)                                              :: wpi
 
              !----- first estimate of time step dt before the calculation
              !      gets revised after the calculation
@@ -696,6 +758,272 @@ CONTAINS
              end if
 
              !----- end estimate time step dt
+
+    END SUBROUTINE
+
+    SUBROUTINE iflux_loop( &
+  tfin, irec, mp, qprec, qprec_snow, n, dx, h0, S, thetai, &
+            Jsensible, Tsoil, evap, infil, drainage, discharge, &
+            qh, nsteps, vmet, vlit, vsnow, var, T0, Tsurface, Hcum, lEcum, &
+ Gcum, Qadvcum, Jcol_sensible, &
+            Jcol_latent_S, Jcol_latent_T, csoil, kth, phi, dxL, zdelta, SL, Tl, &
+            plit, par, wex, ciso_snow, cisoice_snow, &
+ qali, &
+ qvsig, qlsig, qvTsig, qvh, deltaTa, &
+            precip, qevap, qL, qhL, qybL, qTbL, qhTbL, qhybL, rexcol, wcol, &
+ again, getq0,getqn,init, again_ice, ih0, iok, itmp, ns, nsat, &
+            nsatlast, nsteps0, accel, dmax, dt, dwinfil, dwoff, fac, &
+ phip, qpme, rsig, rsigdt, sig, t, hint, phimin, &
+            qexd, aa, bb, cc, dd, ee, ff, gg, dy, aah, bbh, cch, ddh, eeh, ffh, ggh, &
+            de, q, qya, qyb, qTa, qTb,qhya, qhyb, qhTa, qhTb, qadv, qadvya, qadvyb, &
+            qadvTa, qadvTb, vtmp, qsig, qhsig, qadvsig, qliq, qv, qvT, qlya, qlyb, &
+            qvya, qvyb, qlTb, qvTa, qvTb, deltaS, dTsoil, tmp2d1, tmp2d2, &
+ cv0, &
+ cisoliqice_snow, &
+            dthetaldT, thetal, isave, nsteps_ice, imelt, vtop, vbot, v_aquifer, &
+            dwcol, dwdrainage, drn,inlit, dwinlit, drexcol, dwdischarge, &
+            dJcol_latent_S, dJcol_latent_T, dJcol_sensible, deltaJ_latent_S, &
+            deltaJ_latent_T, deltaJ_sensible_S, deltaJ_sensible_T, qevapsig, &
+            qrunoff, tmp1d1, tmp1d2, tmp1d3,  tmp1d4, deltah0, deltaSL, &
+ lE0, G0, &
+            Epot, Tfreezing, dtdT, LHS, RHS, LHS_h, RHS_h, surface_case, nns, &
+            iflux, litter, i, j, k, kk, condition, littercase, isotopologue, &
+            advection, septs, c2, theta, dTqwdTa, dTqwdTb, Tqw, keff, cp, &
+            cpeff, hice, h0_0, hice_0, h0_tmp, hice_tmp, qmelt, hsnow, &
+            qtransfer, delta_snowcol, delta_snowT, &
+            delta_snowliq, thetai_0, J0, tmp1, tmp2, iqex, &
+ nfac1, nfac2, nfac3, nfac4, nfac5, nfac6, nfac7, nfac8, nfac9, &
+            nfac10, nfac11, nfac12, J0snow, wcol0snow, h_ex, wpi &
+            )
+        IMPLICIT NONE
+        INTEGER                                                :: wlogn
+        REAL(r_2)                                              :: tfin
+        INTEGER(i_d)                                           :: irec, mp
+        REAL(r_2),      DIMENSION(1:mp)                        :: qprec
+        REAL(r_2),      DIMENSION(1:mp)                        :: qprec_snow
+        INTEGER(i_d)                                           :: n
+        REAL(r_2),      DIMENSION(1:mp,1:n)                    :: dx
+        REAL(r_2),      DIMENSION(1:mp)                        :: h0
+        REAL(r_2),      DIMENSION(1:mp,1:n)                    :: S
+        REAL(r_2),      DIMENSION(1:mp,1:n)                    :: thetai
+        REAL(r_2),      DIMENSION(1:mp,1:n)                    :: Jsensible
+        REAL(r_2),      DIMENSION(1:mp,1:n)                    :: Tsoil
+        REAL(r_2),      DIMENSION(1:mp)                        :: evap
+        REAL(r_2),      DIMENSION(1:mp)                        :: infil
+        REAL(r_2),      DIMENSION(1:mp)                        :: drainage, discharge
+        REAL(r_2),      DIMENSION(1:mp,-nsnow_max:n)           :: qh
+        INTEGER(i_d),   DIMENSION(1:mp)                        :: nsteps
+        TYPE(vars_met), DIMENSION(1:mp)                        :: vmet
+        TYPE(vars),     DIMENSION(1:mp)                        :: vlit
+        TYPE(vars_snow), DIMENSION(1:mp)                       :: vsnow
+        TYPE(vars),     DIMENSION(1:mp,1:n)                    :: var
+        REAL(r_2),      DIMENSION(1:mp)                        :: T0, Tsurface
+        REAL(r_2),      DIMENSION(1:mp)                        :: Hcum, lEcum
+        REAL(r_2),      DIMENSION(1:mp)                        :: Gcum, Qadvcum
+        REAL(r_2),      DIMENSION(1:mp)                        :: Jcol_sensible, Jcol_latent_S, Jcol_latent_T
+        REAL(r_2),      DIMENSION(1:mp,1:n)                    :: csoil, kth
+        REAL(r_2),      DIMENSION(1:mp,1:n)                    :: phi
+        REAL(r_2),      DIMENSION(1:mp)                        :: dxL
+        REAL(r_2),      DIMENSION(1:mp)                        :: zdelta, SL, Tl
+        TYPE(params),   DIMENSION(1:mp)                        :: plit
+        TYPE(params),   DIMENSION(1:mp,1:n)                    :: par
+        REAL(r_2),      DIMENSION(1:mp,1:n), OPTIONAL                    :: wex
+        REAL(r_2),      DIMENSION(1:mp,1:nsnow_max)            :: ciso_snow
+        REAL(r_2),      DIMENSION(1:mp,1:nsnow_max)            :: cisoice_snow
+        REAL(r_2),      DIMENSION(1:mp), OPTIONAL                        :: qali
+        REAL(r_2),      DIMENSION(1:mp,-nsnow_max:n)           :: qvsig, qlsig, qvTsig, qvh
+        REAL(r_2),      DIMENSION(1:mp)                        :: deltaTa
+        REAL(r_2),    DIMENSION(1:mp)                          :: precip, qevap
+        REAL(r_2),    DIMENSION(1:mp)                          :: qL, qhL, qybL, qTbL, qhTbL, qhybL, rexcol, wcol
+        LOGICAL,      DIMENSION(1:mp)                          :: again, getq0,getqn,init
+        LOGICAL,      DIMENSION(1:mp,1:n)                      :: again_ice
+        INTEGER(i_d), DIMENSION(1:mp)                          :: ih0, iok, itmp, ns, nsat, nsatlast, nsteps0
+        REAL(r_2),    DIMENSION(1:mp)                          :: accel, dmax, dt, dwinfil, dwoff, fac, phip
+        REAL(r_2),    DIMENSION(1:mp)                          :: qpme, rsig, rsigdt, sig, t
+        REAL(r_2),    DIMENSION(1:mp,1:n)                      :: hint, phimin, qexd
+        REAL(r_2),    DIMENSION(1:mp,-nsnow_max+1:n)           :: aa, bb, cc, dd, ee, ff, gg, dy
+        REAL(r_2),    DIMENSION(1:mp,-nsnow_max+1:n)           :: aah, bbh, cch, ddh, eeh, ffh, ggh, de
+        REAL(r_2),    DIMENSION(1:mp,-nsnow_max:n)             :: q, qya, qyb, qTa, qTb,qhya, qhyb, qhTa, qhTb
+        REAL(r_2),    DIMENSION(1:mp,-nsnow_max:n)             :: qadv, qadvya, qadvyb, qadvTa, qadvTb
+        TYPE(vars)                                             :: vtmp
+        REAL(r_2),    DIMENSION(1:mp,-nsnow_max:n)             :: qsig, qhsig, qadvsig
+        REAL(r_2),    DIMENSION(1:mp,-nsnow_max:n)             :: qliq, qv, qvT, qlya, qlyb, qvya, qvyb, qlTb, qvTa, qvTb
+        REAL(r_2),    DIMENSION(1:mp,1:n)                      :: deltaS, dTsoil
+        REAL(r_2),    DIMENSION(1:mp,0:n)                      :: tmp2d1, tmp2d2
+        REAL(r_2),    DIMENSION(1:mp,1:n)                      :: cv0
+        REAL(r_2),      DIMENSION(1:mp,1:nsnow_max)            :: cisoliqice_snow
+        REAL(r_2),    DIMENSION(1:mp,1:n)                      :: dthetaldT, thetal
+        INTEGER(i_d), DIMENSION(1:mp,1:n)                      :: isave, nsteps_ice, imelt
+        TYPE(vars),         DIMENSION(1:mp)                    :: vtop, vbot
+        TYPE(vars_aquifer), DIMENSION(1:mp)                    :: v_aquifer
+        REAL(r_2),          DIMENSION(1:mp)                    :: dwcol, dwdrainage, drn,inlit, dwinlit, drexcol, dwdischarge
+        REAL(r_2),          DIMENSION(1:mp)                    :: dJcol_latent_S, dJcol_latent_T, dJcol_sensible
+        REAL(r_2),          DIMENSION(1:mp,1:n)                :: deltaJ_latent_S, deltaJ_latent_T, deltaJ_sensible_S, deltaJ_sensible_T
+        REAL(r_2),          DIMENSION(1:mp)                    :: qevapsig
+        REAL(r_2),          DIMENSION(1:mp)                    :: qrunoff
+        REAL(r_2),          DIMENSION(1:mp)                    :: tmp1d1, tmp1d2, tmp1d3,  tmp1d4
+        REAL(r_2),          DIMENSION(1:mp)                    :: deltah0
+        REAL(r_2),          DIMENSION(1:mp)                    :: deltaSL
+        REAL(r_2),          DIMENSION(1:mp)                    :: lE0, G0, Epot
+        REAL(r_2),          DIMENSION(1:mp)                    :: Tfreezing
+        REAL(r_2),          DIMENSION(1:mp)                    :: dtdT
+        REAL(r_2),          DIMENSION(1:mp,-nsnow_max+1:n)     :: LHS, RHS, LHS_h, RHS_h
+        INTEGER(i_d),       DIMENSION(1:mp)                    :: surface_case
+        INTEGER(i_d),       DIMENSION(1:mp)                    :: nns, iflux
+        LOGICAL                                                :: litter
+        INTEGER(i_d)                                           :: i, j, k, kk, condition
+        INTEGER(i_d)                                           :: littercase, isotopologue, advection, septs ! switches
+        REAL(r_2)                                              :: c2, theta
+        REAL(r_2)                                              :: dTqwdTa, dTqwdTb, Tqw, keff
+        REAL(r_2),          DIMENSION(1:mp)                    :: cp, cpeff, hice, h0_0, hice_0, h0_tmp, hice_tmp
+        REAL(r_2),          DIMENSION(1:mp,nsnow_max)          :: qmelt, hsnow
+        REAL(r_2),  DIMENSION(1:mp)                            :: qtransfer
+        REAL(r_2),          DIMENSION(1:mp,nsnow_max)          :: delta_snowcol, delta_snowT, delta_snowliq
+        REAL(r_2),      DIMENSION(1:mp,1:n)                    :: thetai_0, J0
+        REAL(r_2)                                              :: tmp1, tmp2
+        REAL(r_2),          DIMENSION(1:mp,1:n)                :: iqex
+        INTEGER(i_d),       DIMENSION(1:mp)                    :: nfac1, nfac2, nfac3, nfac4, nfac5, &
+            nfac6, nfac7, nfac8, nfac9, nfac10, nfac11, nfac12
+        REAL(r_2),          DIMENSION(1:mp)                    :: J0snow, wcol0snow
+        REAL(r_2), DIMENSION(1:n)                              :: h_ex
+        REAL(r_2)                                              :: wpi
+          do while (again(kk)) ! sometimes need twice to adjust phi at satn
+
+             nsatlast(kk) = nsat(kk) ! for detecting onset of profile saturation
+             nsat(kk)     = sum(var(kk,:)%isat,1) ! no. of sat layers
+             sig(kk)      = half
+             if (nsat(kk) /= 0) sig(kk) = one ! time weighting sigma
+             rsig(kk)     = one/sig(kk)
+
+             ! update variables
+             if (iflux(kk)==1) then
+                ! Calc flux matric potentials (and derivatives) from S
+                ! this set var-structure
+                isave(kk,:) = var(kk,:)%isat
+                ! Debug for mp=1: remove elemental from hyofS and do loop instead of next line
+                 call hyofS(S(kk,1:n), Tsoil(kk,1:n), par(kk,1:n), var(kk,1:n))
+                !do i=1, n
+                !   call hyofS(S(kk,i), Tsoil(kk,i), par(kk,i), var(kk,i))
+                !end do
+               
+                ! End debug hyofS
+                cp(kk) = real(1-var(kk,1)%iice,r_2)*cswat*rhow & ! heat capacity of pond
+                     + real(var(kk,1)%iice,r_2)*rhow* &
+                     ((one-var(kk,1)%thetai/par(kk,1)%thre)*cswat + (var(kk,1)%thetai/par(kk,1)%thre)*csice)
+                cpeff(kk) = cp(kk) + rhow*lambdaf*var(kk,1)%dthetaldT/par(kk,1)%thre
+                ! phip(kk) = max(var(kk,1)%phie-var(kk,1)%he*var(kk,1)%Ksat, (one+e5)*var(kk,1)%phie) !at onset of ponding
+                phip(kk) = (one+e5)*var(kk,1)%phie !at onset of ponding
+                var(kk,:)%isat  = isave(kk,:)
+                thetai(kk,:)    = var(kk,:)%thetai ! ice profile
+                thetal(kk,:)    = var(kk,:)%thetal ! liq water profile
+                thetai_0(kk,:)  = thetai(kk,:) ! initial ice profile
+                dthetaldT(kk,:) = var(kk,:)%dthetaldT
+                hice(kk)   = h0(kk)*var(kk,1)%thetai/par(kk,1)%thre
+                hice_0(kk) = hice(kk)
+                h0_0(kk)   = h0(kk)
+                ! sensible heat stored in top layer + pond
+                Jsensible(kk,1)   = (var(kk,1)%csoil* dx(kk,1)+h0(kk)*cp(kk))*(Tsoil(kk,1))
+                ! sensible heat stored in soil column (2:n)
+                Jsensible(kk,2:n) = var(kk,2:n)%csoil*(Tsoil(kk,2:n))* dx(kk,2:n)
+
+
+                ! calculate this here in case snow pack disappears: ciso of transferred water needs to be retained
+                if ((isotopologue /= 0).and.(vsnow(kk)%hsnow(1).gt.zero)) then
+                   cisoliqice_snow(kk,1:nsnow_max) = (ciso_snow(kk,1:nsnow_max)*vsnow(kk)%hliq(1:nsnow_max) + &
+                        cisoice_snow(kk,1:nsnow_max)*(vsnow(kk)%hsnow(1:nsnow_max)-vsnow(kk)%hliq(1:nsnow_max))) / &
+                        vsnow(kk)%hsnow(1:nsnow_max)
+
+                endif
+
+
+                CALL snow_adjust(irec, mp, n, kk, ns, h0, hice, thetai, dx, vsnow, var, par, S, Tsoil, &
+                     Jcol_latent_S, Jcol_latent_T, Jcol_sensible, deltaJ_sensible_S, qmelt, qtransfer, j0snow)
+                thetai(kk,1) = var(kk,1)%thetai  ! this is the value of thetaice prior to matrix call
+                call hyofS(S(kk,1), Tsoil(kk,1), par(kk,1), var(kk,1))
+    
+             endif ! iflux==1
+
+             ! initialise litter vars
+             if (iflux(kk)==1 .and. (littercase==1 .or. littercase == 2)) then
+                call litter_props(Sl(kk), Tl(kk), vlit(kk), plit(kk), h0(kk))
+             endif
+
+             ! ! phi is solution var at satn, so h calc from phi where S>=1 - done in hyofS above for S<1
+             ! where (S(kk,:) >= one) & ! (special for frozen soil)
+             !      var(kk,:)%h = var(kk,:)%he + (var(kk,:)%phi-var(kk,:)%phie)/var(kk,:)%Ksat
+
+            
+             CALL get_fluxes_and_derivs( &
+  tfin, irec, mp, qprec, qprec_snow, n, dx, h0, S, thetai, &
+            Jsensible, Tsoil, evap, infil, drainage, discharge, &
+            qh, nsteps, vmet, vlit, vsnow, var, T0, Tsurface, Hcum, lEcum, &
+ Gcum, Qadvcum, Jcol_sensible, &
+            Jcol_latent_S, Jcol_latent_T, csoil, kth, phi, dxL, zdelta, SL, Tl, &
+            plit, par, wex, ciso_snow, cisoice_snow, &
+ qali, &
+ qvsig, qlsig, qvTsig, qvh, deltaTa, &
+            precip, qevap, qL, qhL, qybL, qTbL, qhTbL, qhybL, rexcol, wcol, &
+ again, getq0,getqn,init, again_ice, ih0, iok, itmp, ns, nsat, &
+            nsatlast, nsteps0, accel, dmax, dt, dwinfil, dwoff, fac, &
+ phip, qpme, rsig, rsigdt, sig, t, hint, phimin, &
+            qexd, aa, bb, cc, dd, ee, ff, gg, dy, aah, bbh, cch, ddh, eeh, ffh, ggh, &
+            de, q, qya, qyb, qTa, qTb,qhya, qhyb, qhTa, qhTb, qadv, qadvya, qadvyb, &
+            qadvTa, qadvTb, vtmp, qsig, qhsig, qadvsig, qliq, qv, qvT, qlya, qlyb, &
+            qvya, qvyb, qlTb, qvTa, qvTb, deltaS, dTsoil, tmp2d1, tmp2d2, &
+ cv0, &
+ cisoliqice_snow, &
+            dthetaldT, thetal, isave, nsteps_ice, imelt, vtop, vbot, v_aquifer, &
+            dwcol, dwdrainage, drn,inlit, dwinlit, drexcol, dwdischarge, &
+            dJcol_latent_S, dJcol_latent_T, dJcol_sensible, deltaJ_latent_S, &
+            deltaJ_latent_T, deltaJ_sensible_S, deltaJ_sensible_T, qevapsig, &
+            qrunoff, tmp1d1, tmp1d2, tmp1d3,  tmp1d4, deltah0, deltaSL, &
+ lE0, G0, &
+            Epot, Tfreezing, dtdT, LHS, RHS, LHS_h, RHS_h, surface_case, nns, &
+            iflux, litter, i, j, k, kk, condition, littercase, isotopologue, &
+            advection, septs, c2, theta, dTqwdTa, dTqwdTb, Tqw, keff, cp, &
+            cpeff, hice, h0_0, hice_0, h0_tmp, hice_tmp, qmelt, hsnow, &
+            qtransfer, delta_snowcol, delta_snowT, &
+            delta_snowliq, thetai_0, J0, tmp1, tmp2, iqex, &
+ nfac1, nfac2, nfac3, nfac4, nfac5, nfac6, nfac7, nfac8, nfac9, &
+            nfac10, nfac11, nfac12, J0snow, wcol0snow, h_ex, wpi &
+                 )
+
+
+             CALL estimate_timestep( &
+  tfin, irec, mp, qprec, qprec_snow, n, dx, h0, S, thetai, &
+            Jsensible, Tsoil, evap, infil, drainage, discharge, &
+            qh, nsteps, vmet, vlit, vsnow, var, T0, Tsurface, Hcum, lEcum, &
+ Gcum, Qadvcum, Jcol_sensible, &
+            Jcol_latent_S, Jcol_latent_T, csoil, kth, phi, dxL, zdelta, SL, Tl, &
+            plit, par, wex, ciso_snow, cisoice_snow, &
+ qali, &
+ qvsig, qlsig, qvTsig, qvh, deltaTa, &
+            precip, qevap, qL, qhL, qybL, qTbL, qhTbL, qhybL, rexcol, wcol, &
+ again, getq0,getqn,init, again_ice, ih0, iok, itmp, ns, nsat, &
+            nsatlast, nsteps0, accel, dmax, dt, dwinfil, dwoff, fac, &
+ phip, qpme, rsig, rsigdt, sig, t, hint, phimin, &
+            qexd, aa, bb, cc, dd, ee, ff, gg, dy, aah, bbh, cch, ddh, eeh, ffh, ggh, &
+            de, q, qya, qyb, qTa, qTb,qhya, qhyb, qhTa, qhTb, qadv, qadvya, qadvyb, &
+            qadvTa, qadvTb, vtmp, qsig, qhsig, qadvsig, qliq, qv, qvT, qlya, qlyb, &
+            qvya, qvyb, qlTb, qvTa, qvTb, deltaS, dTsoil, tmp2d1, tmp2d2, &
+ cv0, &
+ cisoliqice_snow, &
+            dthetaldT, thetal, isave, nsteps_ice, imelt, vtop, vbot, v_aquifer, &
+            dwcol, dwdrainage, drn,inlit, dwinlit, drexcol, dwdischarge, &
+            dJcol_latent_S, dJcol_latent_T, dJcol_sensible, deltaJ_latent_S, &
+            deltaJ_latent_T, deltaJ_sensible_S, deltaJ_sensible_T, qevapsig, &
+            qrunoff, tmp1d1, tmp1d2, tmp1d3,  tmp1d4, deltah0, deltaSL, &
+ lE0, G0, &
+            Epot, Tfreezing, dtdT, LHS, RHS, LHS_h, RHS_h, surface_case, nns, &
+            iflux, litter, i, j, k, kk, condition, littercase, isotopologue, &
+            advection, septs, c2, theta, dTqwdTa, dTqwdTb, Tqw, keff, cp, &
+            cpeff, hice, h0_0, hice_0, h0_tmp, hice_tmp, qmelt, hsnow, &
+            qtransfer, delta_snowcol, delta_snowT, &
+            delta_snowliq, thetai_0, J0, tmp1, tmp2, iqex, &
+ nfac1, nfac2, nfac3, nfac4, nfac5, nfac6, nfac7, nfac8, nfac9, &
+            nfac10, nfac11, nfac12, J0snow, wcol0snow, h_ex, wpi &
+                 )
+
              !----- get and solve eqns
              rsigdt(kk) = one/(sig(kk)*dt(kk))
              if (.not. again(kk))  then
