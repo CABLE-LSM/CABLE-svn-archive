@@ -149,10 +149,10 @@ CONTAINS
         REAL(r_2),      DIMENSION(1:mp)                        :: qprec
         REAL(r_2),      DIMENSION(1:mp)                        :: qprec_snow
         INTEGER(i_d)                                           :: n
-        REAL(r_2),      DIMENSION(1:mp,1:n)                    :: dx
+        REAL(r_2),      DIMENSION(1:n) :: dx
         REAL(r_2),      DIMENSION(1:mp)                        :: h0
-        REAL(r_2),      DIMENSION(1:mp,1:n)                    :: Tsoil
-        REAL(r_2),      DIMENSION(1:mp,-nsnow_max:n)           :: qh
+        REAL(r_2),      DIMENSION(1:n) :: Tsoil
+        REAL(r_2),      DIMENSION(-nsnow_max:n) :: qh
         TYPE(vars_met), DIMENSION(1:mp)                        :: vmet
         TYPE(vars),     DIMENSION(1:mp)                        :: vlit
         TYPE(vars_snow), DIMENSION(1:mp)                       :: vsnow
@@ -163,17 +163,17 @@ CONTAINS
         TYPE(params),   DIMENSION(1:mp)                        :: plit
         TYPE(params),   DIMENSION(1:mp,1:n)                    :: par
         REAL(r_2),      DIMENSION(1:mp), OPTIONAL                        :: qali
-        REAL(r_2),      DIMENSION(1:mp,-nsnow_max:n)           :: qvh
+        REAL(r_2),      DIMENSION(-nsnow_max:n) :: qvh
         REAL(r_2),    DIMENSION(1:mp)                          :: qevap
         LOGICAL,      DIMENSION(1:mp)                          :: again, getq0,getqn,init
         INTEGER(i_d), DIMENSION(1:mp)                          :: ns, nsat, nsatlast
         REAL(r_2),    DIMENSION(1:mp)                          :: phip
         REAL(r_2),    DIMENSION(1:mp)                          :: qpme
-        REAL(r_2),    DIMENSION(1:mp,1:n)                      :: hint, phimin, qexd
-        REAL(r_2),    DIMENSION(1:mp,-nsnow_max:n)             :: q, qya, qyb, qTa, qTb,qhya, qhyb, qhTa, qhTb
-        REAL(r_2),    DIMENSION(1:mp,-nsnow_max:n)             :: qadv, qadvya, qadvyb, qadvTa, qadvTb
+        REAL(r_2),    DIMENSION(1:n) :: hint, phimin, qexd
+        REAL(r_2),    DIMENSION(-nsnow_max:n) :: q, qya, qyb, qTa, qTb,qhya, qhyb, qhTa, qhTb
+        REAL(r_2),    DIMENSION(-nsnow_max:n) :: qadv, qadvya, qadvyb, qadvTa, qadvTb
         TYPE(vars)                                             :: vtmp
-        REAL(r_2),    DIMENSION(1:mp,-nsnow_max:n)             :: qliq, qv, qvT, qlya, qlyb, qvya, qvyb, qlTb, qvTa, qvTb
+        REAL(r_2),    DIMENSION(-nsnow_max:n) :: qliq, qv, qvT, qlya, qlyb, qvya, qvyb, qlTb, qvTa, qvTb
         TYPE(vars),         DIMENSION(1:mp)                    :: vtop, vbot
         REAL(r_2),          DIMENSION(1:mp)                    :: lE0, G0, Epot
         INTEGER(i_d),       DIMENSION(1:mp)                    :: surface_case
@@ -206,8 +206,8 @@ CONTAINS
                 vtop(kk)%lambdaf = lambdaf
                 ! var(kk,1)%phi = var(kk,1)%phie
                 ! calculates phi1,eff (pond + top soil layer)   !!vh!! does this get used???
-                call flux(par(kk,1), vtop(kk), var(kk,1), half*dx(kk,1), &
-                     q(kk,0), qya(kk,0), qyb(kk,0), qTa(kk,0), qTb(kk,0))
+                call flux(par(kk,1), vtop(kk), var(kk,1), half*dx(1), &
+                     q(0), qya(0), qyb(0), qTa(0), qTb(0))
 
                 
              endif
@@ -221,7 +221,7 @@ CONTAINS
              if (botbc=="seepage") then
                 vtmp = zerovars()
                 vbot = spread(vtmp,1,mp)
-                if (var(kk,n)%h > -half*gf*dx(kk,n)) then
+                if (var(kk,n)%h > -half*gf*dx(n)) then
                    getqn(kk) = .true.
                    vbot(kk)%isat    = 1
                    vbot(kk)%phi     = (zero-var(kk,n)%he)*var(kk,n)%Ksat+var(kk,n)%phie ! (special for frozen soil)
@@ -242,67 +242,67 @@ CONTAINS
              endif
              select case (surface_case(kk))
              case (1) ! no snow
-                CALL SEB(n, par(kk,:), vmet(kk), vsnow(kk), var(kk,:), qprec(kk), qprec_snow(kk), dx(kk,:), &
-                     h0(kk), Tsoil(kk,:), &
+                CALL SEB(n, par(kk,:), vmet(kk), vsnow(kk), var(kk,:), qprec(kk), qprec_snow(kk), dx(:), &
+                     h0(kk), Tsoil(:), &
                      Tsurface(kk), G0(kk), lE0(kk),Epot(kk),  &
-                     q(kk,0), qevap(kk), qliq(kk,0), qv(kk,0), &
-                     qyb(kk,0), qTb(kk,0), qlyb(kk,0), qvyb(kk,0), qlTb(kk,0), qvTb(kk,0), qh(kk,0), &
-                     qadv(kk,0), qhyb(kk,0), qhTb(kk,0), qadvyb(kk,0), qadvTb(kk,0), irec)
-                qya(kk,0)    = zero
-                qTa(kk,0)    = zero
-                qlya(kk,0)   = zero
-                qvya(kk,0)   = zero
-                qvTa(kk,0)   = zero
-                qhya(kk,0)   = zero
-                qhTa(kk,0)   = zero
-                qadvya(kk,0) = zero
-                qadvTa(kk,0) = zero
+                     q(0), qevap(kk), qliq(0), qv(0), &
+                     qyb(0), qTb(0), qlyb(0), qvyb(0), qlTb(0), qvTb(0), qh(0), &
+                     qadv(0), qhyb(0), qhTb(0), qadvyb(0), qadvTb(0), irec)
+                qya(0)    = zero
+                qTa(0)    = zero
+                qlya(0)   = zero
+                qvya(0)   = zero
+                qvTa(0)   = zero
+                qhya(0)   = zero
+                qhTa(0)   = zero
+                qadvya(0) = zero
+                qadvTa(0) = zero
 
              case (2) ! snow
-                CALL SEB(n, par(kk,:), vmet(kk), vsnow(kk), var(kk,:), qprec(kk), qprec_snow(kk), dx(kk,:), &
-                     h0(kk), Tsoil(kk,:), &
+                CALL SEB(n, par(kk,:), vmet(kk), vsnow(kk), var(kk,:), qprec(kk), qprec_snow(kk), dx(:), &
+                     h0(kk), Tsoil(:), &
                      Tsurface(kk), G0(kk), lE0(kk), Epot(kk),  &
-                     q(kk,-vsnow(kk)%nsnow), qevap(kk), qliq(kk,-vsnow(kk)%nsnow), qv(kk,-vsnow(kk)%nsnow), &
-                     qyb(kk,-vsnow(kk)%nsnow), qTb(kk,-vsnow(kk)%nsnow), qlyb(kk,-vsnow(kk)%nsnow), &
-                     qvyb(kk,-vsnow(kk)%nsnow), qlTb(kk,-vsnow(kk)%nsnow), qvTb(kk,-vsnow(kk)%nsnow), &
-                     qh(kk,-vsnow(kk)%nsnow), qadv(kk,-vsnow(kk)%nsnow), qhyb(kk,-vsnow(kk)%nsnow), &
-                     qhTb(kk,-vsnow(kk)%nsnow), qadvyb(kk,-vsnow(kk)%nsnow), qadvTb(kk,-vsnow(kk)%nsnow), irec)
-                qya(kk,-vsnow(kk)%nsnow)    = zero
-                qTa(kk,-vsnow(kk)%nsnow)    = zero
-                qlya(kk,-vsnow(kk)%nsnow)   = zero
-                qvya(kk,-vsnow(kk)%nsnow)   = zero
-                qvTa(kk,-vsnow(kk)%nsnow)   = zero
-                qhya(kk,-vsnow(kk)%nsnow)   = zero
-                qhTa(kk,-vsnow(kk)%nsnow)   = zero
-                qadvya(kk,-vsnow(kk)%nsnow) = zero
-                qadvTa(kk,-vsnow(kk)%nsnow) = zero
+                     q(-vsnow(kk)%nsnow), qevap(kk), qliq(-vsnow(kk)%nsnow), qv(-vsnow(kk)%nsnow), &
+                     qyb(-vsnow(kk)%nsnow), qTb(-vsnow(kk)%nsnow), qlyb(-vsnow(kk)%nsnow), &
+                     qvyb(-vsnow(kk)%nsnow), qlTb(-vsnow(kk)%nsnow), qvTb(-vsnow(kk)%nsnow), &
+                     qh(-vsnow(kk)%nsnow), qadv(-vsnow(kk)%nsnow), qhyb(-vsnow(kk)%nsnow), &
+                     qhTb(-vsnow(kk)%nsnow), qadvyb(-vsnow(kk)%nsnow), qadvTb(-vsnow(kk)%nsnow), irec)
+                qya(-vsnow(kk)%nsnow)    = zero
+                qTa(-vsnow(kk)%nsnow)    = zero
+                qlya(-vsnow(kk)%nsnow)   = zero
+                qvya(-vsnow(kk)%nsnow)   = zero
+                qvTa(-vsnow(kk)%nsnow)   = zero
+                qhya(-vsnow(kk)%nsnow)   = zero
+                qhTa(-vsnow(kk)%nsnow)   = zero
+                qadvya(-vsnow(kk)%nsnow) = zero
+                qadvTa(-vsnow(kk)%nsnow) = zero
 
              case default
                 write(*,*) "solve: illegal surface case."
                 stop
              end select ! surface_case
-             qpme(kk) = q(kk,0) ! water flux into top of soil column
+             qpme(kk) = q(0) ! water flux into top of soil column
              ! finished all the surfaces
 
              ! get moisture fluxes and derivatives (at time t=0, i.e. q0 etc.)
 
-             call getfluxes_vp(n, dx(kk,1:n), vtop(kk), vbot(kk), par(kk,1:n), var(kk,1:n), & ! moisture fluxes
-                  hint(kk,1:n), phimin(kk,1:n), q(kk,0:n), qya(kk,0:n), qyb(kk,0:n), qTa(kk,0:n), qTb(kk,0:n), &
-                  qliq(kk,0:n), qlya(kk,0:n), qlyb(kk,0:n), qv(kk,0:n), qvT(kk,0:n), qvh(kk,0:n), qvya(kk,0:n), &
-                  qvyb(kk,0:n), &
-                  iflux(kk), init(kk), getq0(kk), getqn(kk), Tsoil(kk,1:n), T0(kk), nsat(kk), nsatlast(kk))
-             qTa(kk,n) = zero
-             qTb(kk,n) = zero
-             qvTa(kk,1:n) = qTa(kk,1:n)
-             qvTb(kk,1:n) = qTb(kk,1:n)
-             qlTb(kk,1:n) = zero
+             call getfluxes_vp(n, dx(1:n), vtop(kk), vbot(kk), par(kk,1:n), var(kk,1:n), & ! moisture fluxes
+                  hint(1:n), phimin(1:n), q(0:n), qya(0:n), qyb(0:n), qTa(0:n), qTb(0:n), &
+                  qliq(0:n), qlya(0:n), qlyb(0:n), qv(0:n), qvT(0:n), qvh(0:n), qvya(0:n), &
+                  qvyb(0:n), &
+                  iflux(kk), init(kk), getq0(kk), getqn(kk), Tsoil(1:n), T0(kk), nsat(kk), nsatlast(kk))
+             qTa(n) = zero
+             qTb(n) = zero
+             qvTa(1:n) = qTa(1:n)
+             qvTb(1:n) = qTb(1:n)
+             qlTb(1:n) = zero
 
              ! get  fluxes heat and derivatives (at time t=0, i.e. q0 etc.)
-             call getheatfluxes(n, dx(kk,1:n), dxL(kk), &
-                  qh(kk,0:n), qhya(kk,0:n), qhyb(kk,0:n), qhTa(kk,0:n), qhTb(kk,0:n), &
-                  var(kk,1:n), vlit(kk), Tsoil(kk,1:n), TL(kk), litter, &
-                  q(kk,0:n), qya(kk,0:n), qyb(kk,0:n), qTa(kk,0:n), qTb(kk,0:n), &
-                  qadv(kk,0:n),qadvya(kk,0:n), qadvyb(kk,0:n), qadvTa(kk,0:n), qadvTb(kk,0:n), &
+             call getheatfluxes(n, dx(1:n), dxL(kk), &
+                  qh(0:n), qhya(0:n), qhyb(0:n), qhTa(0:n), qhTb(0:n), &
+                  var(kk,1:n), vlit(kk), Tsoil(1:n), TL(kk), litter, &
+                  q(0:n), qya(0:n), qyb(0:n), qTa(0:n), qTb(0:n), &
+                  qadv(0:n),qadvya(0:n), qadvyb(0:n), qadvTa(0:n), qadvTb(0:n), &
                   advection) ! heat fluxes
 
              ! get heat and vapour fluxes and derivatives in snow-pack
@@ -312,35 +312,35 @@ CONTAINS
                    keff = 2_r_2*((vsnow(kk)%kE(j)/(thousand*lambdaf))*(vsnow(kk)%kE(j+1)/(thousand*lambdaf))/ &
                         ((vsnow(kk)%kE(j)/(thousand*lambdaf))*vsnow(kk)%depth(j+1)+(vsnow(kk)%kE(j+1)/ &
                         (thousand*lambdaf))*vsnow(kk)%depth(j)) )
-                   q(kk,j-vsnow(kk)%nsnow) = keff*(vsnow(kk)%tsn(j)-vsnow(kk)%tsn(j+1))
-                   qTa(kk,j-vsnow(kk)%nsnow) = merge(keff,zero,vsnow(kk)%hliq(j)<=zero)
-                   qTb(kk,j-vsnow(kk)%nsnow) = merge(-keff,zero,vsnow(kk)%hliq(j+1)<=zero)
-                   qya(kk,j-vsnow(kk)%nsnow) = zero
-                   qyb(kk,j-vsnow(kk)%nsnow) = zero
+                   q(j-vsnow(kk)%nsnow) = keff*(vsnow(kk)%tsn(j)-vsnow(kk)%tsn(j+1))
+                   qTa(j-vsnow(kk)%nsnow) = merge(keff,zero,vsnow(kk)%hliq(j)<=zero)
+                   qTb(j-vsnow(kk)%nsnow) = merge(-keff,zero,vsnow(kk)%hliq(j+1)<=zero)
+                   qya(j-vsnow(kk)%nsnow) = zero
+                   qyb(j-vsnow(kk)%nsnow) = zero
                    ! conductive heat flux at interface between snow layers
                    keff = 2_r_2*(vsnow(kk)%kth(j+1)*vsnow(kk)%kth(j))/ &
                         (vsnow(kk)%kth(j+1)*vsnow(kk)%depth(j)+vsnow(kk)%kth(j)*vsnow(kk)%depth(j+1))  ! check this!
-                   qh(kk,j-vsnow(kk)%nsnow) = keff*(vsnow(kk)%tsn(j)-vsnow(kk)%tsn(j+1))
-                   qhTa(kk,j-vsnow(kk)%nsnow) = merge(zero,keff,vsnow(kk)%hliq(j)>zero)
-                   qhTb(kk,j-vsnow(kk)%nsnow) = merge(zero,-keff,vsnow(kk)%hliq(j+1)>zero)
+                   qh(j-vsnow(kk)%nsnow) = keff*(vsnow(kk)%tsn(j)-vsnow(kk)%tsn(j+1))
+                   qhTa(j-vsnow(kk)%nsnow) = merge(zero,keff,vsnow(kk)%hliq(j)>zero)
+                   qhTb(j-vsnow(kk)%nsnow) = merge(zero,-keff,vsnow(kk)%hliq(j+1)>zero)
 
                    ! advective heat flux at interface between snow layers
-                   Tqw  = merge(vsnow(kk)%tsn(j), vsnow(kk)%tsn(j+1), q(kk,j-vsnow(kk)%nsnow)>zero)
-                   dTqwdTb = merge(zero,one, q(kk,j-vsnow(kk)%nsnow)>zero)
-                   dTqwdTa = merge(one,zero, q(kk,j-vsnow(kk)%nsnow)>zero)
+                   Tqw  = merge(vsnow(kk)%tsn(j), vsnow(kk)%tsn(j+1), q(j-vsnow(kk)%nsnow)>zero)
+                   dTqwdTb = merge(zero,one, q(j-vsnow(kk)%nsnow)>zero)
+                   dTqwdTa = merge(one,zero, q(j-vsnow(kk)%nsnow)>zero)
                    if (vsnow(kk)%hliq(j)>zero) then
-                      qadv(kk,j-vsnow(kk)%nsnow) = rhow*q(kk,j-vsnow(kk)%nsnow)*cswat*Tqw
-                      qadvTa(kk,j-vsnow(kk)%nsnow) = zero
+                      qadv(j-vsnow(kk)%nsnow) = rhow*q(j-vsnow(kk)%nsnow)*cswat*Tqw
+                      qadvTa(j-vsnow(kk)%nsnow) = zero
                    else
-                      qadv(kk,j-vsnow(kk)%nsnow) = rhow*q(kk,j-vsnow(kk)%nsnow)*cswat*Tqw
-                      qadvTa(kk,j-vsnow(kk)%nsnow) = rhow*cswat*q(kk,j-vsnow(kk)%nsnow)*dTqwdTa  + &
-                           rhow*cswat*Tqw*qTa(kk,j-vsnow(kk)%nsnow)
+                      qadv(j-vsnow(kk)%nsnow) = rhow*q(j-vsnow(kk)%nsnow)*cswat*Tqw
+                      qadvTa(j-vsnow(kk)%nsnow) = rhow*cswat*q(j-vsnow(kk)%nsnow)*dTqwdTa  + &
+                           rhow*cswat*Tqw*qTa(j-vsnow(kk)%nsnow)
                    endif
-                   qadvTb(kk,0) = rhow*cswat*q(kk,j-vsnow(kk)%nsnow)*dTqwdTb + rhow*cswat*Tqw*qTb(kk,j-vsnow(kk)%nsnow)
+                   qadvTb(0) = rhow*cswat*q(j-vsnow(kk)%nsnow)*dTqwdTb + rhow*cswat*Tqw*qTb(j-vsnow(kk)%nsnow)
 
-                   qh(kk,j-vsnow(kk)%nsnow) = qh(kk,j-vsnow(kk)%nsnow) + qadv(kk,j-vsnow(kk)%nsnow)
-                   qhTa(kk,j-vsnow(kk)%nsnow) = qhTa(kk,j-vsnow(kk)%nsnow) +  qadvTa(kk,j-vsnow(kk)%nsnow)
-                   qhTb(kk,j-vsnow(kk)%nsnow) = qhTb(kk,j-vsnow(kk)%nsnow) +  qadvTb(kk,j-vsnow(kk)%nsnow)
+                   qh(j-vsnow(kk)%nsnow) = qh(j-vsnow(kk)%nsnow) + qadv(j-vsnow(kk)%nsnow)
+                   qhTa(j-vsnow(kk)%nsnow) = qhTa(j-vsnow(kk)%nsnow) +  qadvTa(j-vsnow(kk)%nsnow)
+                   qhTb(j-vsnow(kk)%nsnow) = qhTb(j-vsnow(kk)%nsnow) +  qadvTb(j-vsnow(kk)%nsnow)
                 enddo
              endif ! end fluxes at snow/snow interfaces
 
@@ -351,94 +351,94 @@ CONTAINS
                 endif
                 if (var(kk,1)%isat==0) then
                    keff = 2_r_2*((vsnow(kk)%kE(vsnow(kk)%nsnow)/(thousand*lambdaf))*(var(kk,1)%kE/thousand/var(kk,1)%lambdav))/ &
-                        ((vsnow(kk)%kE(vsnow(kk)%nsnow)/(thousand*lambdaf))*dx(kk,1)+(var(kk,1)%kE/thousand/var(kk,1)%lambdav)* &
+                        ((vsnow(kk)%kE(vsnow(kk)%nsnow)/(thousand*lambdaf))*dx(1)+(var(kk,1)%kE/thousand/var(kk,1)%lambdav)* &
                         vsnow(kk)%depth(vsnow(kk)%nsnow))
                 endif
-                q(kk,0) = keff*(vsnow(kk)%tsn(vsnow(kk)%nsnow)-Tsoil(kk,1))
-                qTa(kk,0) = keff
-                qTb(kk,0) =-keff
+                q(0) = keff*(vsnow(kk)%tsn(vsnow(kk)%nsnow)-Tsoil(1))
+                qTa(0) = keff
+                qTb(0) =-keff
 
-                qya(kk,0) = zero
-                qyb(kk,0) = zero
-                qv(kk,0)   = q(kk,0)
-                qvyb(kk,0) = qyb(kk,0)
-                qvTb(kk,0) = qTb(kk,0)
-                qvya(kk,0) = qya(kk,0)
-                qvTa(kk,0) = qTa(kk,0)
-                qliq(kk,0) = zero
-                qlyb(kk,0) = zero
-                qlTb(kk,0) = zero
-                qlya(kk,0) = zero
-                qya(kk,0) = zero;
+                qya(0) = zero
+                qyb(0) = zero
+                qv(0)   = q(0)
+                qvyb(0) = qyb(0)
+                qvTb(0) = qTb(0)
+                qvya(0) = qya(0)
+                qvTa(0) = qTa(0)
+                qliq(0) = zero
+                qlyb(0) = zero
+                qlTb(0) = zero
+                qlya(0) = zero
+                qya(0) = zero;
 
                 if (vsnow(kk)%hliq(vsnow(kk)%nsnow)>zero) then
-                   qhTa(kk,0) = zero
-                   qTa(kk,0) = zero
+                   qhTa(0) = zero
+                   qTa(0) = zero
                 endif
 
                 ! conductive heat flux at snow/soil interface  ! check this!
                 keff = 2_r_2*(vsnow(kk)%kth(vsnow(kk)%nsnow)*var(kk,1)%kth)/ &
-                     (vsnow(kk)%kth(vsnow(kk)%nsnow)*dx(kk,1)+var(kk,1)%kth*vsnow(kk)%depth(vsnow(kk)%nsnow))
-                qh(kk,0) = keff*(vsnow(kk)%tsn(vsnow(kk)%nsnow)-Tsoil(kk,1))
+                     (vsnow(kk)%kth(vsnow(kk)%nsnow)*dx(1)+var(kk,1)%kth*vsnow(kk)%depth(vsnow(kk)%nsnow))
+                qh(0) = keff*(vsnow(kk)%tsn(vsnow(kk)%nsnow)-Tsoil(1))
                 if (vsnow(kk)%hliq(1)>zero) then
-                   qhTa(kk,0) = zero
+                   qhTa(0) = zero
                 else
-                   qhTa(kk,0) = keff
+                   qhTa(0) = keff
                 endif
-                qhTb(kk,0) = -keff
+                qhTb(0) = -keff
 
                 ! advective heat flux at snow/soil interface
-                Tqw  = merge(vsnow(kk)%tsn(vsnow(kk)%nsnow), Tsoil(kk,1), q(kk,0)>zero)
-                dTqwdTb = merge(zero,one, q(kk,0)>zero)
-                dTqwdTa = merge(one,zero, q(kk,0)>zero)
+                Tqw  = merge(vsnow(kk)%tsn(vsnow(kk)%nsnow), Tsoil(1), q(0)>zero)
+                dTqwdTb = merge(zero,one, q(0)>zero)
+                dTqwdTa = merge(one,zero, q(0)>zero)
                 if (vsnow(kk)%hliq(vsnow(kk)%nsnow)>zero) then
-                   qadv(kk,0) = rhow*q(kk,0)*cswat*Tqw
-                   qadvTa(kk,0) = zero
+                   qadv(0) = rhow*q(0)*cswat*Tqw
+                   qadvTa(0) = zero
                 else
-                   qadv(kk,0) = rhow*q(kk,0)*cswat*Tqw
-                   qadvTa(kk,0) = rhow*cswat*q(kk,0)*dTqwdTa  +  rhow*cswat*Tqw*qTa(kk,0)
+                   qadv(0) = rhow*q(0)*cswat*Tqw
+                   qadvTa(0) = rhow*cswat*q(0)*dTqwdTa  +  rhow*cswat*Tqw*qTa(0)
                 endif
-                qadvTb(kk,0) = rhow*cswat*q(kk,0)*dTqwdTb + rhow*cswat*Tqw*qTb(kk,0)
+                qadvTb(0) = rhow*cswat*q(0)*dTqwdTb + rhow*cswat*Tqw*qTb(0)
              endif ! end of heat and vapour fluxes at soil/snow interface
 
              if (ns(kk)==0) then ! pond included in top soil layer
                 ! change qya(1) from dq/dphi (returned by getfluxes) to dq/dh
-                qya(kk,1) = var(kk,1)%Ksat*qya(kk,1)
+                qya(1) = var(kk,1)%Ksat*qya(1)
                 if (advection==1) then
-                   qhya(kk,1) = qhya(kk,1) - qadvya(kk,1)
-                   Tqw  = merge(Tsoil(kk,1), Tsoil(kk,2), q(kk,1)>zero)
-                   qadvya(kk,1) =  rhow*cswat*qya(kk,1)*Tqw  ! apply corrected qya(kk,1) to qadvya(kk,1)
-                   qhya(kk,1) = qhya(kk,1) + qadvya(kk,1)
+                   qhya(1) = qhya(1) - qadvya(1)
+                   Tqw  = merge(Tsoil(1), Tsoil(2), q(1)>zero)
+                   qadvya(1) =  rhow*cswat*qya(1)*Tqw  ! apply corrected qya(1) to qadvya(1)
+                   qhya(1) = qhya(1) + qadvya(1)
                 endif
              endif
 
              ! adjust for bottom boundary condition
              if (botbc=="zero flux") then
-                qliq(kk,n) = zero
-                qv(kk,n)   = zero
-                q(kk,n)    = zero
-                qya(kk,n)  = zero
-                qlya(kk,n) = zero
-                qvya(kk,n) = zero
+                qliq(n) = zero
+                qv(n)   = zero
+                q(n)    = zero
+                qya(n)  = zero
+                qlya(n) = zero
+                qvya(n) = zero
              endif
 
              ! specify mositure flux at bottom of soil column (heat flux set to zero)
              if (botbc /= "constant head") then
                 select case (botbc)
                 case ("zero flux")
-                   q(kk,n)   = zero
-                   qya(kk,n) = zero
+                   q(n)   = zero
+                   qya(n) = zero
                 case ("free drainage")
-                   q(kk,n) = gf*var(kk,n)%K
+                   q(n) = gf*var(kk,n)%K
                    if (var(kk,n)%isat == 0) then
-                      qya(kk,n) = gf*var(kk,n)%KS
+                      qya(n) = gf*var(kk,n)%KS
                    else
-                      qya(kk,n) = zero
+                      qya(n) = zero
                    end if
                 case ("seepage")
-                   if (var(kk,n)%h <= -half*gf*dx(kk,n)) then
-                      q(kk,n)   = zero
-                      qya(kk,n) = zero
+                   if (var(kk,n)%h <= -half*gf*dx(n)) then
+                      q(n)   = zero
+                      qya(n) = zero
                    end if
                 case default
                    write(*,*) "solve: illegal bottom boundary condition."
@@ -447,33 +447,33 @@ CONTAINS
              end if
              if (present(qali)) then
                 if (qali(kk)>zero) then
-                   q(kk,n)   = -qali(kk)
-                   qya(kk,n) = zero
+                   q(n)   = -qali(kk)
+                   qya(n) = zero
                 end if
              endif
              if (experiment==7 .or. experiment==8) then
-                q(kk,n)   = q(kk,0)
-                qya(kk,n) = zero
+                q(n)   = q(0)
+                qya(n) = zero
              endif
-             if (experiment==8) qh(kk,n) = G0(kk)
+             if (experiment==8) qh(n) = G0(kk)
 
              ! adjust lower heat flux for advection
              if (advection==1) then
-                qadv(kk,n) = rhow*cswat*(Tsoil(kk,n))*q(kk,n)
-                qadvya(kk,n) = rhow*cswat*(Tsoil(kk,n))*qya(kk,n)
-                qadvTa(kk,n)= rhow*cswat*q(kk,n)
-                qh(kk,n) = qh(kk,n) + qadv(kk,n)
-                qhya(kk,n) = qhya(kk,n) + qadvya(kk,n)
-                qhTa(kk,n) = qhTa(kk,n) + qadvTa(kk,n)
+                qadv(n) = rhow*cswat*(Tsoil(n))*q(n)
+                qadvya(n) = rhow*cswat*(Tsoil(n))*qya(n)
+                qadvTa(n)= rhow*cswat*q(n)
+                qh(n) = qh(n) + qadv(n)
+                qhya(n) = qhya(n) + qadvya(n)
+                qhTa(n) = qhTa(n) + qadvTa(n)
              else
-                qadv(:,:)   = zero
-                qadvya(:,:) = zero
-                qadvyb(:,:) = zero
-                qadvTa(:,:) = zero
-                qadvTb(:,:) = zero
+                qadv(:)   = zero
+                qadvya(:) = zero
+                qadvyb(:) = zero
+                qadvTa(:) = zero
+                qadvTb(:) = zero
              endif
 
-             qexd(kk,1:n) = zero ! time derivative for root extraction (assumed fixed at input value)
+             qexd(1:n) = zero ! time derivative for root extraction (assumed fixed at input value)
              again(kk)  = .false. ! flag for recalcn of fluxes (default=false)
              !----- end get fluxes and derivs
     END SUBROUTINE
@@ -811,21 +811,21 @@ CONTAINS
 
             
              CALL get_fluxes_and_derivs( &
- irec, mp, qprec, qprec_snow, n, dx, h0, &
- Tsoil, &
-            qh, vmet, vlit, vsnow, var, T0, Tsurface, &
+ irec, mp, qprec, qprec_snow, n, dx(kk,:), h0, &
+ Tsoil(kk,:), &
+            qh(kk,:), vmet, vlit, vsnow, var, T0, Tsurface, &
  dxL, SL, Tl, &
             plit, par, &
  qali, &
- qvh, &
+ qvh(kk,:), &
  qevap, &
  again, getq0,getqn,init, ns, nsat, &
             nsatlast, &
- phip, qpme, hint, phimin, &
-            qexd, &
- q, qya, qyb, qTa, qTb,qhya, qhyb, qhTa, qhTb, qadv, qadvya, qadvyb, &
-            qadvTa, qadvTb, vtmp, qliq, qv, qvT, qlya, qlyb, &
-            qvya, qvyb, qlTb, qvTa, qvTb, &
+ phip, qpme, hint(kk,:), phimin(kk,:), &
+            qexd(kk,:), &
+ q(kk,:), qya(kk,:), qyb(kk,:), qTa(kk,:), qTb(kk,:),qhya(kk,:), qhyb(kk,:), qhTa(kk,:), qhTb(kk,:), qadv(kk,:), qadvya(kk,:), qadvyb(kk,:), &
+            qadvTa(kk,:), qadvTb(kk,:), vtmp, qliq(kk,:), qv(kk,:), qvT(kk,:), qlya(kk,:), qlyb(kk,:), &
+            qvya(kk,:), qvyb(kk,:), qlTb(kk,:), qvTa(kk,:), qvTb(kk,:), &
  vtop, vbot, &
  lE0, G0, &
             Epot, surface_case, &
