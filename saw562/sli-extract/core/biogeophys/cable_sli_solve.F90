@@ -2615,11 +2615,8 @@ CONTAINS
  precip, qevap, qL, qhL, qybL, qTbL, qhTbL, qhybL, rexcol, wcol, ql0, &
           qv0, again, getq0,getqn,init, again_ice, ih0, iok, itmp, ns, nsat, nsatlast, nsteps0, accel, dmax, dt, dwinfil, dwoff, fac, &
  phip, qpme, rsig, rsigdt, sig, t, hint, phimin, qexd, &
-          vtmp, qsig, qhsig, qadvsig, qliq, qv, qvT, qlya, qlyb, qvya, qvyb, qlTb, qvTa, qvTb, deltaS, dTsoil, tmp2d1, &
-          tmp2d2, S0, Sliq0, Sliq, deltaSliq, cv0, deltacv, Sliqice0, Sliqice, deltaSliqice, Sice0, Sice, deltaSice, Sliq0_ss, Sliq_ss, &
-          deltaSliq_ss, Sliqice0_ss, Sliqice_ss, deltaSliqice_ss, Sice0_ss, Sice_ss, deltaSice_ss, S0_ss, S_ss, Tsoil_ss, &
-          dTsoil_ss, cv0_ss, cv_ss, Dv_ss, deltacv_ss, dx_ss, dz_ss, cisoliqice_snow, itop , nsnow , tmp_thetasat, tmp_thetar, &
-          thetasat_ss, thetar_ss, tmp_tortuosity, ciso_ss, cisoice_ss, delthetai, dthetaldT, thetal, isave, nsteps_ice, imelt, vtop, &
+          vtmp, deltaS, dTsoil, tmp2d1, &
+          tmp2d2, vtop, &
           vbot, v_aquifer, dwcol, dwdrainage, drn,inlit, dwinlit, drexcol, dwdischarge, dJcol_latent_S, dJcol_latent_T, &
           dJcol_sensible, deltaJ_latent_S, deltaJ_latent_T, deltaJ_sensible_S, deltaJ_sensible_T, qevapsig, qrunoff, tmp1d1, tmp1d2, &
           tmp1d3, tmp1d4, deltah0, SL0, deltaSL, cvL0, SLliq0, deltacvL, SLliq, deltaSLliq, qiso_evap, qiso_trans, lE0, G0, Epot, &
@@ -2825,6 +2822,22 @@ CONTAINS
     qadvyb(:) = zero
     qadvya(:) = zero
     de(:)            = zero
+    ! initialise diagnostic vars for input to isotope_vap
+    Sliq0_ss  = zero
+    Sliq_ss= zero
+    deltaSliq_ss= zero
+    Sliqice0_ss= zero
+    Sliqice_ss= zero
+    deltaSliqice_ss= zero
+    Sice0_ss= zero
+    Sice_ss= zero
+    deltaSice_ss= zero
+    S0_ss= zero
+    S_ss= zero
+    cv0_ss= zero
+    cv_ss= zero
+    Dv_ss = zero
+    deltacv_ss= zero
 
        do while (t(kk) < tfin)
 
@@ -3290,30 +3303,30 @@ CONTAINS
 
     TYPE(vars)                          :: vtmp
     !TYPE(vars),   DIMENSION(1:mp,1:n)   :: var
-    REAL(r_2),    DIMENSION(1:mp,-nsnow_max:n)   :: qsig, qhsig, qadvsig
-    REAL(r_2),    DIMENSION(1:mp,-nsnow_max:n)   :: qliq, qv, qvT, qlya, qlyb, qvya, qvyb, qlTb, qvTa, qvTb
+!    REAL(r_2),    DIMENSION(1:mp,-nsnow_max:n)   :: qsig, qhsig, qadvsig
+!    REAL(r_2),    DIMENSION(1:mp,-nsnow_max:n)   :: qliq, qv, qvT, qlya, qlyb, qvya, qvyb, qlTb, qvTa, qvTb
     TYPE(vars),   DIMENSION(1:mp,1:n)   :: vcall
     REAL(r_2),    DIMENSION(1:mp,1:n)   :: deltaS, dTsoil
     REAL(r_2),    DIMENSION(1:mp,0:n)   :: tmp2d1, tmp2d2
-    REAL(r_2),    DIMENSION(1:mp,1:n)   :: S0, Sliq0, Sliq, deltaSliq, cv0, deltacv
-    REAL(r_2),    DIMENSION(1:mp,1:n)   :: Sliqice0, Sliqice, deltaSliqice
-    REAL(r_2),    DIMENSION(1:mp,1:n)   :: Sice0, Sice, deltaSice
-
-    REAL(r_2),    DIMENSION(1:mp,-nsnow_max+1:n)   :: Sliq0_ss, Sliq_ss, deltaSliq_ss
-    REAL(r_2),    DIMENSION(1:mp,-nsnow_max+1:n)   :: Sliqice0_ss, Sliqice_ss, deltaSliqice_ss
-    REAL(r_2),    DIMENSION(1:mp,-nsnow_max+1:n)   :: Sice0_ss, Sice_ss, deltaSice_ss
-    REAL(r_2),    DIMENSION(1:mp,-nsnow_max+1:n)   :: S0_ss, S_ss, deltaS_ss, Tsoil_ss, dTsoil_ss
-    REAL(r_2),    DIMENSION(1:mp,-nsnow_max+1:n)   :: cv0_ss, cv_ss, Dv_ss, deltacv_ss, dx_ss
-    REAL(r_2),    DIMENSION(1:mp,-nsnow_max+1:n-1)   :: dz_ss
-    REAL(r_2),      DIMENSION(1:mp,1:nsnow_max) :: cisoliqice_snow
-    INTEGER(i_d) :: itop ! integer corresponding to top of soil-snow column
-    INTEGER(i_d) :: nsnow ! number of dedicated snow layers
-    REAL(r_2),    DIMENSION(1:mp,1:n)   :: tmp_thetasat, tmp_thetar
-    REAL(r_2),    DIMENSION(1:mp,-nsnow_max+1:n)   :: thetasat_ss, thetar_ss
-    REAL(r_2),    DIMENSION(1:mp,-nsnow_max+1:n)   ::  tmp_tortuosity
-    REAL(r_2),    DIMENSION(1:mp,-nsnow_max+1:n)   ::  ciso_ss, cisoice_ss
-    REAL(r_2),    DIMENSION(1:mp,1:n)   :: delthetai, dthetaldT, thetal
-    INTEGER(i_d), DIMENSION(1:mp,1:n)   :: isave, nsteps_ice, imelt
+!    REAL(r_2),    DIMENSION(1:mp,1:n)   :: S0, Sliq0, Sliq, deltaSliq, cv0, deltacv
+!    REAL(r_2),    DIMENSION(1:mp,1:n)   :: Sliqice0, Sliqice, deltaSliqice
+!    REAL(r_2),    DIMENSION(1:mp,1:n)   :: Sice0, Sice, deltaSice
+!
+!    REAL(r_2),    DIMENSION(1:mp,-nsnow_max+1:n)   :: Sliq0_ss, Sliq_ss, deltaSliq_ss
+!    REAL(r_2),    DIMENSION(1:mp,-nsnow_max+1:n)   :: Sliqice0_ss, Sliqice_ss, deltaSliqice_ss
+!    REAL(r_2),    DIMENSION(1:mp,-nsnow_max+1:n)   :: Sice0_ss, Sice_ss, deltaSice_ss
+!    REAL(r_2),    DIMENSION(1:mp,-nsnow_max+1:n)   :: S0_ss, S_ss, deltaS_ss, Tsoil_ss, dTsoil_ss
+!    REAL(r_2),    DIMENSION(1:mp,-nsnow_max+1:n)   :: cv0_ss, cv_ss, Dv_ss, deltacv_ss, dx_ss
+!    REAL(r_2),    DIMENSION(1:mp,-nsnow_max+1:n-1)   :: dz_ss
+!    REAL(r_2),      DIMENSION(1:mp,1:nsnow_max) :: cisoliqice_snow
+!    INTEGER(i_d) :: itop ! integer corresponding to top of soil-snow column
+!    INTEGER(i_d) :: nsnow ! number of dedicated snow layers
+!    REAL(r_2),    DIMENSION(1:mp,1:n)   :: tmp_thetasat, tmp_thetar
+!    REAL(r_2),    DIMENSION(1:mp,-nsnow_max+1:n)   :: thetasat_ss, thetar_ss
+!    REAL(r_2),    DIMENSION(1:mp,-nsnow_max+1:n)   ::  tmp_tortuosity
+!    REAL(r_2),    DIMENSION(1:mp,-nsnow_max+1:n)   ::  ciso_ss, cisoice_ss
+!    REAL(r_2),    DIMENSION(1:mp,1:n)   :: delthetai, dthetaldT, thetal
+    INTEGER(i_d), DIMENSION(1:mp,1:n)   :: isave !, nsteps_ice, imelt
 
 
     TYPE(vars),         DIMENSION(1:mp) :: vtop, vbot
@@ -3552,23 +3565,6 @@ CONTAINS
     vsnow(:)%Qtransfer = zero
     vsnow(:)%Qmelt = zero
 
-    ! initialise diagnostic vars for input to isotope_vap
-    Sliq0_ss  = zero
-    Sliq_ss= zero
-    deltaSliq_ss= zero
-    Sliqice0_ss= zero
-    Sliqice_ss= zero
-    deltaSliqice_ss= zero
-    Sice0_ss= zero
-    Sice_ss= zero
-    deltaSice_ss= zero
-    S0_ss= zero
-    S_ss= zero
-    deltaS_ss= zero
-    cv0_ss= zero
-    cv_ss= zero
-    Dv_ss = zero
-    deltacv_ss= zero
 
 
     litter = .false.
@@ -3706,14 +3702,7 @@ CONTAINS
            precip, qevap, qL, qhL, qybL, qTbL, qhTbL, qhybL, rexcol, wcol, ql0, qv0, again, getq0,getqn,init, again_ice, ih0, iok, itmp, &
            ns, nsat, nsatlast, nsteps0, accel, dmax, dt, dwinfil, dwoff, fac, phip, qpme, rsig, rsigdt, sig, t, hint(kk,:), &
            phimin(kk,:), qexd(kk,:), &
-           vtmp, qsig(kk,:), qhsig(kk,:), qadvsig(kk,:), qliq(kk,:), qv(kk,:), qvT(kk,:), qlya(kk,:), qlyb(kk,:), qvya(kk,:), &
-           qvyb(kk,:), qlTb(kk,:), qvTa(kk,:), qvTb(kk,:), deltaS(kk,:), dTsoil(kk,:), tmp2d1(kk,:), tmp2d2(kk,:), S0(kk,:), &
-           Sliq0(kk,:), Sliq(kk,:), deltaSliq(kk,:), cv0(kk,:), deltacv(kk,:), Sliqice0(kk,:), Sliqice(kk,:), deltaSliqice(kk,:), &
-           Sice0(kk,:), Sice(kk,:), deltaSice(kk,:), Sliq0_ss(kk,:), Sliq_ss(kk,:), deltaSliq_ss(kk,:), Sliqice0_ss(kk,:), &
-           Sliqice_ss(kk,:), deltaSliqice_ss(kk,:), Sice0_ss(kk,:), Sice_ss(kk,:), deltaSice_ss(kk,:), S0_ss(kk,:), S_ss(kk,:), &
-           Tsoil_ss(kk,:), dTsoil_ss(kk,:), cv0_ss(kk,:), cv_ss(kk,:), Dv_ss(kk,:), deltacv_ss(kk,:), dx_ss(kk,:), dz_ss(kk,:), &
-           cisoliqice_snow(kk,:), itop , nsnow , tmp_thetasat, tmp_thetar, thetasat_ss, thetar_ss, tmp_tortuosity, ciso_ss, cisoice_ss, &
-           delthetai, dthetaldT(kk,:), thetal(kk,:), isave, nsteps_ice, imelt, vtop, vbot, v_aquifer, dwcol, dwdrainage, drn,inlit, &
+           vtmp, deltaS(kk,:), dTsoil(kk,:), tmp2d1(kk,:), tmp2d2(kk,:), vtop, vbot, v_aquifer, dwcol, dwdrainage, drn,inlit, &
            dwinlit, drexcol, dwdischarge, dJcol_latent_S, dJcol_latent_T, dJcol_sensible, deltaJ_latent_S(kk,:), deltaJ_latent_T(kk,:), &
            deltaJ_sensible_S(kk,:), deltaJ_sensible_T(kk,:), qevapsig, qrunoff, tmp1d1, tmp1d2, tmp1d3, tmp1d4, deltah0, SL0, deltaSL, &
            cvL0, SLliq0, deltacvL, SLliq, deltaSLliq, qiso_evap, qiso_trans, lE0, G0, Epot, Tfreezing, dtdT, LHS, RHS, LHS_h, RHS_h, &
