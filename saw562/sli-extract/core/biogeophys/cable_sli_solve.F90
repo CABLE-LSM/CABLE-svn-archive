@@ -499,9 +499,9 @@ CONTAINS
         REAL(r_2)                                              :: tfin
         INTEGER(i_d)                                           :: mp
         INTEGER(i_d)                                           :: n
-        REAL(r_2),      DIMENSION(1:mp,1:n)                    :: dx
+        REAL(r_2),      DIMENSION(1:n) :: dx
         REAL(r_2),      DIMENSION(1:mp)                        :: h0
-        REAL(r_2),      DIMENSION(1:mp,-nsnow_max:n)           :: qh
+        REAL(r_2),      DIMENSION(-nsnow_max:n) :: qh
         INTEGER(i_d),   DIMENSION(1:mp)                        :: nsteps
         TYPE(vars),     DIMENSION(1:mp)                        :: vlit
         TYPE(vars_snow), DIMENSION(1:mp)                       :: vsnow
@@ -515,71 +515,71 @@ CONTAINS
         INTEGER(i_d), DIMENSION(1:mp)                          :: ns, nsat, nsatlast, nsteps0
         REAL(r_2),    DIMENSION(1:mp)                          :: dmax, dt
         REAL(r_2),    DIMENSION(1:mp)                          :: qpme, t
-        REAL(r_2),    DIMENSION(1:mp,-nsnow_max:n)             :: q
-        REAL(r_2),    DIMENSION(1:mp,-nsnow_max:n)             :: qadv
-        REAL(r_2),    DIMENSION(1:mp,0:n)                      :: tmp2d1, tmp2d2
+        REAL(r_2),    DIMENSION(-nsnow_max:n) :: q
+        REAL(r_2),    DIMENSION(-nsnow_max:n) :: qadv
+        REAL(r_2),    DIMENSION(0:n) :: tmp2d1, tmp2d2
         REAL(r_2),          DIMENSION(1:mp)                    :: tmp1d1, tmp1d3
         INTEGER(i_d),       DIMENSION(1:mp)                    :: iflux
         LOGICAL                                                :: litter
         INTEGER(i_d)                                           :: kk
         INTEGER(i_d)                                           :: advection ! switches
-        REAL(r_2),          DIMENSION(1:mp,1:n)                :: iqex
+        REAL(r_2),          DIMENSION(1:n) :: iqex
 
 
              !----- first estimate of time step dt before the calculation
              !      gets revised after the calculation
              dmax(kk)     = zero
-             tmp2d1(kk,:) = zero
-             tmp2d2(kk,:) = zero !  temp storage
+             tmp2d1(:) = zero
+             tmp2d2(:) = zero !  temp storage
              ! estimate rate of change of moisture storage [m/s]
-             where (var(kk,1:n)%isat==0.and.var(kk,1:n)%iice==0.) tmp2d1(kk,1:n) = &
-                  abs(q(kk,1:n)-q(kk,0:n-1)-iqex(kk,1:n))/(par(kk,1:n)%thre*dx(kk,1:n))
-             where (var(kk,1:n)%iice==1)  tmp2d1(kk,1:n) =  tmp2d1(kk,1:n)/2.
+             where (var(kk,1:n)%isat==0.and.var(kk,1:n)%iice==0.) tmp2d1(1:n) = &
+                  abs(q(1:n)-q(0:n-1)-iqex(1:n))/(par(kk,1:n)%thre*dx(1:n))
+             where (var(kk,1:n)%iice==1)  tmp2d1(1:n) =  tmp2d1(1:n)/2.
              ! estimate rate of change of temperature [K/s]
-             tmp2d2(kk,1:n) = abs(qh(kk,1:n)-qh(kk,0:n-1))/(var(kk,1:n)%csoileff*dx(kk,1:n))
+             tmp2d2(1:n) = abs(qh(1:n)-qh(0:n-1))/(var(kk,1:n)%csoileff*dx(1:n))
              if (advection==1) then
-                tmp2d2(kk,1:n) = abs((qh(kk,1:n)-qadv(kk,1:n))-(qh(kk,0:n-1)-qadv(kk,0:n-1)))/(var(kk,1:n)%csoileff*dx(kk,1:n))
+                tmp2d2(1:n) = abs((qh(1:n)-qadv(1:n))-(qh(0:n-1)-qadv(0:n-1)))/(var(kk,1:n)%csoileff*dx(1:n))
              endif
              if (litter .and. ns(kk)==1 ) then ! litter , no pond
                 if (vlit(kk)%isat==0) then ! estimate rate of change of moisture storage [m/s]
                    write(*,*) 'Should not be here - QL 01 ', qL(kk)
-                   tmp2d1(kk,0) = abs(q(kk,0) - qL(kk))/(plit(kk)%thre*dxL(kk))
+                   tmp2d1(0) = abs(q(0) - qL(kk))/(plit(kk)%thre*dxL(kk))
                 endif
                 write(*,*) 'Should not be here - QHL 01 ', qhL(kk)
-                tmp2d2(kk,0) = abs(qh(kk,0) - qhL(kk))/(vlit(kk)%csoileff*dxL(kk)) ! estimate rate of change of heat storage [K/s]
-                tmp1d3(kk) = (dTLmax-abs(deltaTa(kk))) / tmp2d2(kk,0)
+                tmp2d2(0) = abs(qh(0) - qhL(kk))/(vlit(kk)%csoileff*dxL(kk)) ! estimate rate of change of heat storage [K/s]
+                tmp1d3(kk) = (dTLmax-abs(deltaTa(kk))) / tmp2d2(0)
              else
-                tmp2d1(kk,0) = zero
-                tmp2d2(kk,0) = zero
+                tmp2d1(0) = zero
+                tmp2d2(0) = zero
                 tmp1d3(kk)   = dtmax
              endif
 
-             dmax(kk) = maxval(tmp2d1(kk,1:n),1) ! max derivative |dS/dt|
+             dmax(kk) = maxval(tmp2d1(1:n),1) ! max derivative |dS/dt|
 
-             if (abs(minval(tmp2d1(kk,:),1)) > maxval(tmp2d1(kk,:),1)) then
+             if (abs(minval(tmp2d1(:),1)) > maxval(tmp2d1(:),1)) then
                 write(*,*) 'Should not be here (01)'
                 stop
-                dmax(kk) = minval(tmp2d1(kk,1:n),1)
+                dmax(kk) = minval(tmp2d1(1:n),1)
              endif
 
-             tmp1d1(kk) = maxval(tmp2d2(kk,1:n),1) ! max derivative |dTsoil/dt|
+             tmp1d1(kk) = maxval(tmp2d2(1:n),1) ! max derivative |dTsoil/dt|
              if (dmax(kk) > zero) then
                 dt(kk) = min(dSmax/dmax(kk), dTLmax/tmp1d1(kk), tmp1d3(kk)) ! constrained either by moisture or temp
 !!$                  if (irec.eq.7413) then
 !!$                    write(*,*) 'writing init dt:', dSmax/dmax(kk), dTLmax/tmp1d1(kk), tmp1d3(kk)
-!!$                    write(*,*) "dmax", tmp2d1(kk,1:n)
+!!$                    write(*,*) "dmax", tmp2d1(1:n)
 !!$                    write(*,*) 'dphidT', var(kk,1)%phiT, var(kk,2)%phiT
 !!$                    write(*,*) 'dphidS', var(kk,1)%phiS, var(kk,2)%phiS
-!!$                    write(*,*) 'dmax: ', q(kk,0), q(kk,1), qprec_snow(kk)
+!!$                    write(*,*) 'dmax: ', q(0), q(1), qprec_snow(kk)
 !!$                  endif
                 ! if pond, overwrite dt
-                ! if (h0(kk)>zero .and. (q(kk,1)-qpme(kk))*dt(kk)>h0(kk).and.ns(kk)==0) &
-                !      dt(kk) = (h0(kk)-half*h0min)/(q(kk,1)-qpme(kk))
+                ! if (h0(kk)>zero .and. (q(1)-qpme(kk))*dt(kk)>h0(kk).and.ns(kk)==0) &
+                !      dt(kk) = (h0(kk)-half*h0min)/(q(1)-qpme(kk))
              else ! steady state flow
-                if (qpme(kk)>=q(kk,n)) then ! if saturated soil columnn and more precip then drainige -> finish
+                if (qpme(kk)>=q(n)) then ! if saturated soil columnn and more precip then drainige -> finish
                    dt(kk) = tfin-t(kk) ! step to finish
                 else ! otherwise adjust dt because change of pond height
-                   dt(kk) = -(h0(kk)-half*h0min)/(qpme(kk)-q(kk,n))
+                   dt(kk) = -(h0(kk)-half*h0min)/(qpme(kk)-q(n))
                 end if
                 dt(kk) = min(dt(kk), dTLmax/tmp1d1(kk), tmp1d3(kk)) ! constrained by  temp
              end if
@@ -588,8 +588,8 @@ CONTAINS
              if (vsnow(kk)%nsnow.gt.0 ) then
                 ! energy required to melt ice in snow-pack
                 tmp1d1(kk) = -rhow*(vsnow(kk)%hsnow(1)-vsnow(kk)%hliq(1))*(csice*vsnow(kk)%tsn(1) - lambdaf)
-                if (qh(kk,-vsnow(kk)%nsnow)*dt(kk).gt.tmp1d1(kk)) then
-                   dt(kk) = 0.9*tmp1d1(kk)/qh(kk,-vsnow(kk)%nsnow)
+                if (qh(-vsnow(kk)%nsnow)*dt(kk).gt.tmp1d1(kk)) then
+                   dt(kk) = 0.9*tmp1d1(kk)/qh(-vsnow(kk)%nsnow)
                 endif
              endif
 
@@ -836,8 +836,8 @@ CONTAINS
 
 
              CALL estimate_timestep( &
-  tfin, mp, n, dx, h0, &
-            qh, nsteps, vlit, vsnow, var, &
+  tfin, mp, n, dx(kk,:), h0, &
+            qh(kk,:), nsteps, vlit, vsnow, var, &
  dxL, &
             plit, par, &
  deltaTa, &
@@ -845,12 +845,12 @@ CONTAINS
  again, ns, nsat, &
             nsatlast, nsteps0, dmax, dt, &
  qpme, t, &
- q, qadv, &
- tmp2d1, tmp2d2, &
+ q(kk,:), qadv(kk,:), &
+ tmp2d1(kk,:), tmp2d2(kk,:), &
  tmp1d1, tmp1d3, &
             iflux, litter, kk, &
             advection, &
- iqex &
+ iqex(kk,:) &
                  )
 
              !----- get and solve eqns
