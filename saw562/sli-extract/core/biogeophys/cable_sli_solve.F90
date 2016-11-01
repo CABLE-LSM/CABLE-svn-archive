@@ -122,41 +122,29 @@ MODULE sli_solve
 CONTAINS
 
     SUBROUTINE get_fluxes_and_derivs( &
-  tfin, irec, mp, qprec, qprec_snow, n, dx, h0, S, thetai, &
-            Jsensible, Tsoil, evap, infil, drainage, discharge, &
-            qh, nsteps, vmet, vlit, vsnow, var, T0, Tsurface, Hcum, lEcum, &
- Gcum, Qadvcum, Jcol_sensible, &
-            Jcol_latent_S, Jcol_latent_T, csoil, kth, phi, dxL, zdelta, SL, Tl, &
-            plit, par, wex, ciso_snow, cisoice_snow, &
+ irec, mp, qprec, qprec_snow, n, dx, h0, &
+ Tsoil, &
+            qh, vmet, vlit, vsnow, var, T0, Tsurface, &
+ dxL, SL, Tl, &
+            plit, par, &
  qali, &
- qvsig, qlsig, qvTsig, qvh, deltaTa, &
-            precip, qevap, qL, qhL, qybL, qTbL, qhTbL, qhybL, rexcol, wcol, &
- again, getq0,getqn,init, again_ice, ih0, iok, itmp, ns, nsat, &
-            nsatlast, nsteps0, accel, dmax, dt, dwinfil, dwoff, fac, &
- phip, qpme, rsig, rsigdt, sig, t, hint, phimin, &
-            qexd, aa, bb, cc, dd, ee, ff, gg, dy, aah, bbh, cch, ddh, eeh, ffh, ggh, &
-            de, q, qya, qyb, qTa, qTb,qhya, qhyb, qhTa, qhTb, qadv, qadvya, qadvyb, &
-            qadvTa, qadvTb, vtmp, qsig, qhsig, qadvsig, qliq, qv, qvT, qlya, qlyb, &
-            qvya, qvyb, qlTb, qvTa, qvTb, deltaS, dTsoil, tmp2d1, tmp2d2, &
- cv0, &
- cisoliqice_snow, &
-            dthetaldT, thetal, isave, nsteps_ice, imelt, vtop, vbot, v_aquifer, &
-            dwcol, dwdrainage, drn,inlit, dwinlit, drexcol, dwdischarge, &
-            dJcol_latent_S, dJcol_latent_T, dJcol_sensible, deltaJ_latent_S, &
-            deltaJ_latent_T, deltaJ_sensible_S, deltaJ_sensible_T, qevapsig, &
-            qrunoff, tmp1d1, tmp1d2, tmp1d3,  tmp1d4, deltah0, deltaSL, &
+ qvh, &
+ qevap, &
+ again, getq0,getqn,init, ns, nsat, &
+            nsatlast, &
+ phip, qpme, hint, phimin, &
+            qexd, &
+ q, qya, qyb, qTa, qTb,qhya, qhyb, qhTa, qhTb, qadv, qadvya, qadvyb, &
+            qadvTa, qadvTb, vtmp, qliq, qv, qvT, qlya, qlyb, &
+            qvya, qvyb, qlTb, qvTa, qvTb, &
+ vtop, vbot, &
  lE0, G0, &
-            Epot, Tfreezing, dtdT, LHS, RHS, LHS_h, RHS_h, surface_case, nns, &
-            iflux, litter, i, j, k, kk, condition, littercase, isotopologue, &
-            advection, septs, c2, theta, dTqwdTa, dTqwdTb, Tqw, keff, cp, &
-            cpeff, hice, h0_0, hice_0, h0_tmp, hice_tmp, qmelt, hsnow, &
-            qtransfer, delta_snowcol, delta_snowT, &
-            delta_snowliq, thetai_0, J0, tmp1, tmp2, iqex, &
- nfac1, nfac2, nfac3, nfac4, nfac5, nfac6, nfac7, nfac8, nfac9, &
-            nfac10, nfac11, nfac12, J0snow, wcol0snow, h_ex, wpi &
+            Epot, surface_case, &
+            iflux, litter, j, kk, &
+            advection, dTqwdTa, dTqwdTb, Tqw, keff, &
+ hice &
             )
         IMPLICIT NONE
-        INTEGER                                                :: wlogn
         REAL(r_2)                                              :: tfin
         INTEGER(i_d)                                           :: irec, mp
         REAL(r_2),      DIMENSION(1:mp)                        :: qprec
@@ -187,7 +175,6 @@ CONTAINS
         REAL(r_2),      DIMENSION(1:mp)                        :: zdelta, SL, Tl
         TYPE(params),   DIMENSION(1:mp)                        :: plit
         TYPE(params),   DIMENSION(1:mp,1:n)                    :: par
-        REAL(r_2),      DIMENSION(1:mp,1:n), OPTIONAL                    :: wex
         REAL(r_2),      DIMENSION(1:mp,1:nsnow_max)            :: ciso_snow
         REAL(r_2),      DIMENSION(1:mp,1:nsnow_max)            :: cisoice_snow
         REAL(r_2),      DIMENSION(1:mp), OPTIONAL                        :: qali
@@ -542,41 +529,23 @@ CONTAINS
     END SUBROUTINE
 
     SUBROUTINE estimate_timestep( &
-  tfin, irec, mp, qprec, qprec_snow, n, dx, h0, S, thetai, &
-            Jsensible, Tsoil, evap, infil, drainage, discharge, &
-            qh, nsteps, vmet, vlit, vsnow, var, T0, Tsurface, Hcum, lEcum, &
- Gcum, Qadvcum, Jcol_sensible, &
-            Jcol_latent_S, Jcol_latent_T, csoil, kth, phi, dxL, zdelta, SL, Tl, &
-            plit, par, wex, ciso_snow, cisoice_snow, &
- qali, &
- qvsig, qlsig, qvTsig, qvh, deltaTa, &
-            precip, qevap, qL, qhL, qybL, qTbL, qhTbL, qhybL, rexcol, wcol, &
- again, getq0,getqn,init, again_ice, ih0, iok, itmp, ns, nsat, &
-            nsatlast, nsteps0, accel, dmax, dt, dwinfil, dwoff, fac, &
- phip, qpme, rsig, rsigdt, sig, t, hint, phimin, &
-            qexd, aa, bb, cc, dd, ee, ff, gg, dy, aah, bbh, cch, ddh, eeh, ffh, ggh, &
-            de, q, qya, qyb, qTa, qTb,qhya, qhyb, qhTa, qhTb, qadv, qadvya, qadvyb, &
-            qadvTa, qadvTb, vtmp, qsig, qhsig, qadvsig, qliq, qv, qvT, qlya, qlyb, &
-            qvya, qvyb, qlTb, qvTa, qvTb, deltaS, dTsoil, tmp2d1, tmp2d2, &
- cv0, &
- cisoliqice_snow, &
-            dthetaldT, thetal, isave, nsteps_ice, imelt, vtop, vbot, v_aquifer, &
-            dwcol, dwdrainage, drn,inlit, dwinlit, drexcol, dwdischarge, &
-            dJcol_latent_S, dJcol_latent_T, dJcol_sensible, deltaJ_latent_S, &
-            deltaJ_latent_T, deltaJ_sensible_S, deltaJ_sensible_T, qevapsig, &
-            qrunoff, tmp1d1, tmp1d2, tmp1d3,  tmp1d4, deltah0, deltaSL, &
- lE0, G0, &
-            Epot, Tfreezing, dtdT, LHS, RHS, LHS_h, RHS_h, surface_case, nns, &
-            iflux, litter, i, j, k, kk, condition, littercase, isotopologue, &
-            advection, septs, c2, theta, dTqwdTa, dTqwdTb, Tqw, keff, cp, &
-            cpeff, hice, h0_0, hice_0, h0_tmp, hice_tmp, qmelt, hsnow, &
-            qtransfer, delta_snowcol, delta_snowT, &
-            delta_snowliq, thetai_0, J0, tmp1, tmp2, iqex, &
- nfac1, nfac2, nfac3, nfac4, nfac5, nfac6, nfac7, nfac8, nfac9, &
-            nfac10, nfac11, nfac12, J0snow, wcol0snow, h_ex, wpi &
+  tfin, mp, n, dx, h0, &
+            qh, nsteps, vlit, vsnow, var, &
+ dxL, &
+            plit, par, &
+ deltaTa, &
+ qL, qhL, &
+ again, ns, nsat, &
+            nsatlast, nsteps0, dmax, dt, &
+ qpme, t, &
+ q, qadv, &
+ tmp2d1, tmp2d2, &
+ tmp1d1, tmp1d3, &
+            iflux, litter, kk, &
+            advection, &
+ iqex &
             )
         IMPLICIT NONE
-        INTEGER                                                :: wlogn
         REAL(r_2)                                              :: tfin
         INTEGER(i_d)                                           :: irec, mp
         REAL(r_2),      DIMENSION(1:mp)                        :: qprec
@@ -607,10 +576,8 @@ CONTAINS
         REAL(r_2),      DIMENSION(1:mp)                        :: zdelta, SL, Tl
         TYPE(params),   DIMENSION(1:mp)                        :: plit
         TYPE(params),   DIMENSION(1:mp,1:n)                    :: par
-        REAL(r_2),      DIMENSION(1:mp,1:n), OPTIONAL                    :: wex
         REAL(r_2),      DIMENSION(1:mp,1:nsnow_max)            :: ciso_snow
         REAL(r_2),      DIMENSION(1:mp,1:nsnow_max)            :: cisoice_snow
-        REAL(r_2),      DIMENSION(1:mp), OPTIONAL                        :: qali
         REAL(r_2),      DIMENSION(1:mp,-nsnow_max:n)           :: qvsig, qlsig, qvTsig, qvh
         REAL(r_2),      DIMENSION(1:mp)                        :: deltaTa
         REAL(r_2),    DIMENSION(1:mp)                          :: precip, qevap
@@ -796,7 +763,6 @@ CONTAINS
             nfac10, nfac11, nfac12, J0snow, wcol0snow, h_ex, wpi &
             )
         IMPLICIT NONE
-        INTEGER                                                :: wlogn
         REAL(r_2)                                              :: tfin
         INTEGER(i_d)                                           :: irec, mp
         REAL(r_2),      DIMENSION(1:mp)                        :: qprec
@@ -954,74 +920,46 @@ CONTAINS
 
             
              CALL get_fluxes_and_derivs( &
-  tfin, irec, mp, qprec, qprec_snow, n, dx, h0, S, thetai, &
-            Jsensible, Tsoil, evap, infil, drainage, discharge, &
-            qh, nsteps, vmet, vlit, vsnow, var, T0, Tsurface, Hcum, lEcum, &
- Gcum, Qadvcum, Jcol_sensible, &
-            Jcol_latent_S, Jcol_latent_T, csoil, kth, phi, dxL, zdelta, SL, Tl, &
-            plit, par, wex, ciso_snow, cisoice_snow, &
+ irec, mp, qprec, qprec_snow, n, dx, h0, &
+ Tsoil, &
+            qh, vmet, vlit, vsnow, var, T0, Tsurface, &
+ dxL, SL, Tl, &
+            plit, par, &
  qali, &
- qvsig, qlsig, qvTsig, qvh, deltaTa, &
-            precip, qevap, qL, qhL, qybL, qTbL, qhTbL, qhybL, rexcol, wcol, &
- again, getq0,getqn,init, again_ice, ih0, iok, itmp, ns, nsat, &
-            nsatlast, nsteps0, accel, dmax, dt, dwinfil, dwoff, fac, &
- phip, qpme, rsig, rsigdt, sig, t, hint, phimin, &
-            qexd, aa, bb, cc, dd, ee, ff, gg, dy, aah, bbh, cch, ddh, eeh, ffh, ggh, &
-            de, q, qya, qyb, qTa, qTb,qhya, qhyb, qhTa, qhTb, qadv, qadvya, qadvyb, &
-            qadvTa, qadvTb, vtmp, qsig, qhsig, qadvsig, qliq, qv, qvT, qlya, qlyb, &
-            qvya, qvyb, qlTb, qvTa, qvTb, deltaS, dTsoil, tmp2d1, tmp2d2, &
- cv0, &
- cisoliqice_snow, &
-            dthetaldT, thetal, isave, nsteps_ice, imelt, vtop, vbot, v_aquifer, &
-            dwcol, dwdrainage, drn,inlit, dwinlit, drexcol, dwdischarge, &
-            dJcol_latent_S, dJcol_latent_T, dJcol_sensible, deltaJ_latent_S, &
-            deltaJ_latent_T, deltaJ_sensible_S, deltaJ_sensible_T, qevapsig, &
-            qrunoff, tmp1d1, tmp1d2, tmp1d3,  tmp1d4, deltah0, deltaSL, &
+ qvh, &
+ qevap, &
+ again, getq0,getqn,init, ns, nsat, &
+            nsatlast, &
+ phip, qpme, hint, phimin, &
+            qexd, &
+ q, qya, qyb, qTa, qTb,qhya, qhyb, qhTa, qhTb, qadv, qadvya, qadvyb, &
+            qadvTa, qadvTb, vtmp, qliq, qv, qvT, qlya, qlyb, &
+            qvya, qvyb, qlTb, qvTa, qvTb, &
+ vtop, vbot, &
  lE0, G0, &
-            Epot, Tfreezing, dtdT, LHS, RHS, LHS_h, RHS_h, surface_case, nns, &
-            iflux, litter, i, j, k, kk, condition, littercase, isotopologue, &
-            advection, septs, c2, theta, dTqwdTa, dTqwdTb, Tqw, keff, cp, &
-            cpeff, hice, h0_0, hice_0, h0_tmp, hice_tmp, qmelt, hsnow, &
-            qtransfer, delta_snowcol, delta_snowT, &
-            delta_snowliq, thetai_0, J0, tmp1, tmp2, iqex, &
- nfac1, nfac2, nfac3, nfac4, nfac5, nfac6, nfac7, nfac8, nfac9, &
-            nfac10, nfac11, nfac12, J0snow, wcol0snow, h_ex, wpi &
+            Epot, surface_case, &
+            iflux, litter, j, kk, &
+            advection, dTqwdTa, dTqwdTb, Tqw, keff, &
+ hice &
                  )
 
 
              CALL estimate_timestep( &
-  tfin, irec, mp, qprec, qprec_snow, n, dx, h0, S, thetai, &
-            Jsensible, Tsoil, evap, infil, drainage, discharge, &
-            qh, nsteps, vmet, vlit, vsnow, var, T0, Tsurface, Hcum, lEcum, &
- Gcum, Qadvcum, Jcol_sensible, &
-            Jcol_latent_S, Jcol_latent_T, csoil, kth, phi, dxL, zdelta, SL, Tl, &
-            plit, par, wex, ciso_snow, cisoice_snow, &
- qali, &
- qvsig, qlsig, qvTsig, qvh, deltaTa, &
-            precip, qevap, qL, qhL, qybL, qTbL, qhTbL, qhybL, rexcol, wcol, &
- again, getq0,getqn,init, again_ice, ih0, iok, itmp, ns, nsat, &
-            nsatlast, nsteps0, accel, dmax, dt, dwinfil, dwoff, fac, &
- phip, qpme, rsig, rsigdt, sig, t, hint, phimin, &
-            qexd, aa, bb, cc, dd, ee, ff, gg, dy, aah, bbh, cch, ddh, eeh, ffh, ggh, &
-            de, q, qya, qyb, qTa, qTb,qhya, qhyb, qhTa, qhTb, qadv, qadvya, qadvyb, &
-            qadvTa, qadvTb, vtmp, qsig, qhsig, qadvsig, qliq, qv, qvT, qlya, qlyb, &
-            qvya, qvyb, qlTb, qvTa, qvTb, deltaS, dTsoil, tmp2d1, tmp2d2, &
- cv0, &
- cisoliqice_snow, &
-            dthetaldT, thetal, isave, nsteps_ice, imelt, vtop, vbot, v_aquifer, &
-            dwcol, dwdrainage, drn,inlit, dwinlit, drexcol, dwdischarge, &
-            dJcol_latent_S, dJcol_latent_T, dJcol_sensible, deltaJ_latent_S, &
-            deltaJ_latent_T, deltaJ_sensible_S, deltaJ_sensible_T, qevapsig, &
-            qrunoff, tmp1d1, tmp1d2, tmp1d3,  tmp1d4, deltah0, deltaSL, &
- lE0, G0, &
-            Epot, Tfreezing, dtdT, LHS, RHS, LHS_h, RHS_h, surface_case, nns, &
-            iflux, litter, i, j, k, kk, condition, littercase, isotopologue, &
-            advection, septs, c2, theta, dTqwdTa, dTqwdTb, Tqw, keff, cp, &
-            cpeff, hice, h0_0, hice_0, h0_tmp, hice_tmp, qmelt, hsnow, &
-            qtransfer, delta_snowcol, delta_snowT, &
-            delta_snowliq, thetai_0, J0, tmp1, tmp2, iqex, &
- nfac1, nfac2, nfac3, nfac4, nfac5, nfac6, nfac7, nfac8, nfac9, &
-            nfac10, nfac11, nfac12, J0snow, wcol0snow, h_ex, wpi &
+  tfin, mp, n, dx, h0, &
+            qh, nsteps, vlit, vsnow, var, &
+ dxL, &
+            plit, par, &
+ deltaTa, &
+ qL, qhL, &
+ again, ns, nsat, &
+            nsatlast, nsteps0, dmax, dt, &
+ qpme, t, &
+ q, qadv, &
+ tmp2d1, tmp2d2, &
+ tmp1d1, tmp1d3, &
+            iflux, litter, kk, &
+            advection, &
+ iqex &
                  )
 
              !----- get and solve eqns
