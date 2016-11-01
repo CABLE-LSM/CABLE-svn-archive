@@ -793,8 +793,8 @@ CONTAINS
                 endif
 
 
-                CALL snow_adjust(irec, mp, n, kk, ns, h0, hice, thetai, dx, vsnow, var, par, S, Tsoil, &
-                     Jcol_latent_S, Jcol_latent_T, Jcol_sensible, deltaJ_sensible_S, qmelt, qtransfer, j0snow)
+                CALL snow_adjust(irec, mp, n, kk, ns, h0, hice, thetai(kk,:), dx(kk,:), vsnow, var, par, S(kk,:), Tsoil(kk,:), &
+                     Jcol_latent_S, Jcol_latent_T, Jcol_sensible, deltaJ_sensible_S(kk,:), qmelt(kk,:), qtransfer, j0snow)
                 thetai(kk,1) = var(kk,1)%thetai  ! this is the value of thetaice prior to matrix call
                 call hyofS(S(kk,1), Tsoil(kk,1), par(kk,1), var(kk,1))
     
@@ -3745,14 +3745,14 @@ CONTAINS
     INTEGER(i_d),                               INTENT(IN)    :: n     ! # of soil layers
     INTEGER(i_d),                               INTENT(IN)    :: kk    ! grid-cell reference
     INTEGER(i_d),    DIMENSION(mp),             INTENT(INOUT) :: ns    ! pond (0), np ond (1)
-    REAL(r_2),       DIMENSION(mp,1:n),         INTENT(IN)    :: dx    ! soil depths
-    REAL(r_2),       DIMENSION(mp,1:n),         INTENT(INOUT) :: Tsoil ! soil temperatures soil
-    REAL(r_2),       DIMENSION(mp,1:n),         INTENT(INOUT) :: S     ! soil temperatures soil
+    REAL(r_2),       DIMENSION(1:n),         INTENT(IN)    :: dx    ! soil depths
+    REAL(r_2),       DIMENSION(1:n),         INTENT(INOUT) :: Tsoil ! soil temperatures soil
+    REAL(r_2),       DIMENSION(1:n),         INTENT(INOUT) :: S     ! soil temperatures soil
     REAL(r_2),       DIMENSION(mp),             INTENT(INOUT) :: h0, hice, j0snow ! pond
-    REAL(r_2),       DIMENSION(1:mp,1:n),       INTENT(INOUT) :: thetai
+    REAL(r_2),       DIMENSION(1:n),       INTENT(INOUT) :: thetai
     REAL(r_2),       DIMENSION(1:mp),           INTENT(INOUT) :: Jcol_latent_S, Jcol_latent_T, Jcol_sensible
-    REAL(r_2),       DIMENSION(1:mp,1:n),       INTENT(INOUT) :: deltaJ_sensible_S
-    REAL(r_2),       DIMENSION(1:mp,nsnow_max), INTENT(INOUT) :: qmelt
+    REAL(r_2),       DIMENSION(1:n),       INTENT(INOUT) :: deltaJ_sensible_S
+    REAL(r_2),       DIMENSION(nsnow_max), INTENT(INOUT) :: qmelt
     REAL(r_2),       DIMENSION(1:mp), INTENT(OUT) :: qtransfer
     TYPE(vars),      DIMENSION(1:mp,1:n),       INTENT(INOUT) :: var
     TYPE(params),    DIMENSION(1:mp,1:n),       INTENT(IN)    :: par
@@ -3763,8 +3763,8 @@ CONTAINS
     INTEGER(i_d) :: i,j ! counters
     LOGICAL :: melt_transfer=.FALSE.
 
-    tmp1d1(kk) = h0(kk)+dx(kk,1)*(var(kk,1)%thetai+var(kk,1)%thetal) ! total moisture content of top soil layer + pond
-    ! tmp1d1(kk) = hice(kk)+dx(kk,1)*(var(kk,1)%thetai) ! total ice  moisture content of top soil layer + pond
+    tmp1d1(kk) = h0(kk)+dx(1)*(var(kk,1)%thetai+var(kk,1)%thetal) ! total moisture content of top soil layer + pond
+    ! tmp1d1(kk) = hice(kk)+dx(1)*(var(kk,1)%thetai) ! total ice  moisture content of top soil layer + pond
     vsnow(kk)%melt = zero
     qmelt = zero
     qtransfer = zero
@@ -3773,7 +3773,7 @@ CONTAINS
     if (((vsnow(kk)%wcol-sum(vsnow(kk)%hliq(:)))<snmin*(vsnow(kk)%dens(1)/rhow)).or. &
          ((vsnow(kk)%nsnow==0).and.(tmp1d1(kk)-vsnow(kk)%wcol)<0.001)) then
        vsnow(kk)%nsnow = 0
-       theta         = S(kk,1)*(par(kk,1)%thre) + (par(kk,1)%the - par(kk,1)%thre)
+       theta         = S(1)*(par(kk,1)%thre) + (par(kk,1)%the - par(kk,1)%thre)
        if (vsnow(kk)%hsnow(1)>zero)  then ! termination of dedicated snow layer
           ! total energy in old snow layer
           tmp1d1(kk) = (vsnow(kk)%tsn(1))*rhow*vsnow(kk)%hliq(1)*cswat + &
@@ -3786,41 +3786,41 @@ CONTAINS
                (vsnow(kk)%hsnow(1)-vsnow(kk)%hliq(1))*rhow*(vsnow(kk)%tsn(1))*csice
 
           ! total energy in old top soil layer
-          tmp1d2(kk) = JSoilLayer(Tsoil(kk,1), &
-               dx(kk,1), theta,par(kk,1)%css, par(kk,1)%rho, &
+          tmp1d2(kk) = JSoilLayer(Tsoil(1), &
+               dx(1), theta,par(kk,1)%css, par(kk,1)%rho, &
                h0(kk), par(kk,1)%thre, par(kk,1)%the, &
                par(kk,1)%he, one/(par(kk,1)%lambc*freezefac))
 
-          tmp1d3(kk) = Tsoil(kk,1)
+          tmp1d3(kk) = Tsoil(1)
           !calculate new thetal, consistent with total energy and new pond height
           h0_tmp(kk) = h0(kk)
           if (h0(kk)>zero) then
              h0(kk) = h0(kk) + vsnow(kk)%hsnow(1)
-          elseif ((theta+vsnow(kk)%hsnow(1)/dx(kk,1))<par(kk,1)%the) then
+          elseif ((theta+vsnow(kk)%hsnow(1)/dx(1))<par(kk,1)%the) then
              h0(kk)=zero
-             theta = theta+vsnow(kk)%hsnow(1)/dx(kk,1)
-             S(kk,1) = (theta - (par(kk,1)%the - par(kk,1)%thre) )/(par(kk,1)%thre)
-          elseif ((theta+vsnow(kk)%hsnow(1)/dx(kk,1))>par(kk,1)%the) then
-             h0(kk) = ((theta+vsnow(kk)%hsnow(1)/dx(kk,1))-par(kk,1)%the)*dx(kk,1)
+             theta = theta+vsnow(kk)%hsnow(1)/dx(1)
+             S(1) = (theta - (par(kk,1)%the - par(kk,1)%thre) )/(par(kk,1)%thre)
+          elseif ((theta+vsnow(kk)%hsnow(1)/dx(1))>par(kk,1)%the) then
+             h0(kk) = ((theta+vsnow(kk)%hsnow(1)/dx(1))-par(kk,1)%the)*dx(1)
              theta = par(kk,1)%the
-             S(kk,1) = one
+             S(1) = one
              var(kk,1)%isat = 1
              ns(kk) = 0
           endif
 
-          Tfreezing(kk) = Tfrz(S(kk,1), par(kk,1)%he, one/(par(kk,1)%lambc*freezefac))
+          Tfreezing(kk) = Tfrz(S(1), par(kk,1)%he, one/(par(kk,1)%lambc*freezefac))
 
           ! check if total energy in old snow layer and top soil (+pond) is enough for complete melting
-          tmp1d3(kk) = var(kk,1)%thetai*dx(kk,1)*rhow*lambdaf + &
+          tmp1d3(kk) = var(kk,1)%thetai*dx(1)*rhow*lambdaf + &
                var(kk,1)%thetai*h0_tmp(kk)/par(kk,1)%thre*rhow*lambdaf
-          tmp1d4(kk) = (Tfreezing(kk))*(rhow*cswat*(theta*dx(kk,1)+h0(kk))+par(kk,1)%rho*par(kk,1)%css*dx(kk,1))
+          tmp1d4(kk) = (Tfreezing(kk))*(rhow*cswat*(theta*dx(1)+h0(kk))+par(kk,1)%rho*par(kk,1)%css*dx(1))
 
           if ((tmp1d1(kk)+tmp1d2(kk)-tmp1d4(kk))>zero) then !  complete melting
 
              Jcol_latent_T(kk) =     Jcol_latent_T(kk) + tmp1d3(kk)
-             deltaJ_sensible_S(kk,1) = zero
-             Tsoil(kk,1) = var(kk,1)%Tfrz + (tmp1d1(kk)+tmp1d2(kk) -tmp1d4(kk))/ &
-                  (rhow*cswat*(theta*dx(kk,1)+h0(kk))+par(kk,1)%rho*par(kk,1)%css*dx(kk,1))
+             deltaJ_sensible_S(1) = zero
+             Tsoil(1) = var(kk,1)%Tfrz + (tmp1d1(kk)+tmp1d2(kk) -tmp1d4(kk))/ &
+                  (rhow*cswat*(theta*dx(1)+h0(kk))+par(kk,1)%rho*par(kk,1)%css*dx(1))
 
              var(kk,1)%iice = 0
              var(kk,1)%thetai = zero
@@ -3832,19 +3832,19 @@ CONTAINS
 
              Jsoil = tmp1d1(kk)+tmp1d2(kk)! total energy in  soil layer
              !check there is a zero
-             tmp1 = GTfrozen(real(Tsoil(kk,1)-50., r_2), Jsoil, dx(kk,1), theta,par(kk,1)%css, par(kk,1)%rho, &
+             tmp1 = GTfrozen(real(Tsoil(1)-50., r_2), Jsoil, dx(1), theta,par(kk,1)%css, par(kk,1)%rho, &
                   h0(kk), par(kk,1)%thre, par(kk,1)%the, par(kk,1)%he, one/(par(kk,1)%lambc*freezefac))
 
-             tmp2 = GTFrozen(Tfreezing(kk), Jsoil, dx(kk,1), theta,par(kk,1)%css, par(kk,1)%rho, &
+             tmp2 = GTFrozen(Tfreezing(kk), Jsoil, dx(1), theta,par(kk,1)%css, par(kk,1)%rho, &
                   h0(kk), par(kk,1)%thre, par(kk,1)%the, par(kk,1)%he, one/(par(kk,1)%lambc*freezefac))
 
              ! there is a zero in between
              if ((tmp1*tmp2) < zero) then
-                tmp1d3(kk) = rtbis_Tfrozen(tmp1d2(kk), dx(kk,1), theta,par(kk,1)%css, par(kk,1)%rho, &
+                tmp1d3(kk) = rtbis_Tfrozen(tmp1d2(kk), dx(1), theta,par(kk,1)%css, par(kk,1)%rho, &
                      h0(kk), par(kk,1)%thre, par(kk,1)%the, par(kk,1)%he, one/(par(kk,1)%lambc*freezefac), &
-                     real(Tsoil(kk,1)-50., r_2), Tfreezing(kk), real(0.0001,r_2))
+                     real(Tsoil(1)-50., r_2), Tfreezing(kk), real(0.0001,r_2))
 
-                tmp1d4(kk) = thetalmax(tmp1d3(kk), S(kk,1), par(kk,1)%he, one/(par(kk,1)%lambc*freezefac), &
+                tmp1d4(kk) = thetalmax(tmp1d3(kk), S(1), par(kk,1)%he, one/(par(kk,1)%lambc*freezefac), &
                      par(kk,1)%thre, par(kk,1)%the) ! liquid content at new Tsoil
              else
                 write(*,*) "Found no solution for Tfrozen 2. Stop. " , kk
@@ -3860,18 +3860,18 @@ CONTAINS
 
              ! correct total energy stored in pond + soil
              Jcol_latent_S(kk) = Jcol_latent_S(kk)  - rhow*lambdaf*((hice(kk)-hice_tmp(kk)) + &
-                  dx(kk,1)*(var(kk,1)%thetai-thetai(kk,1)))
+                  dx(1)*(var(kk,1)%thetai-thetai(1)))
 
 
              Jcol_sensible(kk) = Jcol_sensible(kk) + &
                   JSoilLayer(tmp1d3(kk), &
-                  dx(kk,1), theta,par(kk,1)%css, par(kk,1)%rho, &
+                  dx(1), theta,par(kk,1)%css, par(kk,1)%rho, &
                   h0(kk), par(kk,1)%thre, par(kk,1)%the, &
                   par(kk,1)%he, one/(par(kk,1)%lambc*freezefac)) - &
                   tmp1d2(kk) - &
                   (-rhow*lambdaf*((hice(kk)-hice_tmp(kk)) + &
-                  dx(kk,1)*(var(kk,1)%thetai-thetai(kk,1))))
-             Tsoil(kk,1) = tmp1d3(kk)
+                  dx(1)*(var(kk,1)%thetai-thetai(1))))
+             Tsoil(1) = tmp1d3(kk)
              if (var(kk,1)%thetai>zero) then
                 var(kk,1)%iice = 1
              endif
@@ -3899,11 +3899,11 @@ CONTAINS
 
           if (h0(kk)>vsnow(kk)%wcol) then ! extract new snow layer from pond
              ! total energy in new snow layer
-             tmp1d1(kk) = (Tsoil(kk,1))*rhow*vsnow(kk)%hsnow(1)*(cswat*(h0(kk)-hice(kk))/h0(kk) + &
+             tmp1d1(kk) = (Tsoil(1))*rhow*vsnow(kk)%hsnow(1)*(cswat*(h0(kk)-hice(kk))/h0(kk) + &
                   csice*hice(kk)/h0(kk)) - rhow*lambdaf*vsnow(kk)%hsnow(1)*hice(kk)/h0(kk)
              ! correct total energy stored in pond + soil
              Jcol_latent_S(kk) = Jcol_latent_S(kk) + rhow*lambdaf*vsnow(kk)%hsnow(1)*hice(kk)/h0(kk)
-             Jcol_sensible(kk) = Jcol_sensible(kk) - (Tsoil(kk,1))*rhow*vsnow(kk)%hsnow(1) &
+             Jcol_sensible(kk) = Jcol_sensible(kk) - (Tsoil(1))*rhow*vsnow(kk)%hsnow(1) &
                   *(cswat*(h0(kk)-hice(kk))/h0(kk) +  csice*hice(kk)/h0(kk))
 
              ! total energy in snowpack totally frozen at 0degC
@@ -3926,12 +3926,12 @@ CONTAINS
 
           else  ! extract new snow layer from soil ice + pond
              ! total energy in new snow layer (component extracted from soil ice)
-             tmp1d1(kk) = (Tsoil(kk,1))*rhow*(vsnow(kk)%hsnow(1)-h0(kk))*csice - &
+             tmp1d1(kk) = (Tsoil(1))*rhow*(vsnow(kk)%hsnow(1)-h0(kk))*csice - &
                   rhow*lambdaf*(vsnow(kk)%hsnow(1)-h0(kk))
              h0_tmp(kk) = h0(kk)
              hice_tmp(kk) = hice(kk)
              if (h0(kk)>zero) then
-                tmp1d1(kk) = tmp1d1(kk) + (Tsoil(kk,1))*rhow*(cswat*(h0(kk)-hice(kk)) + &
+                tmp1d1(kk) = tmp1d1(kk) + (Tsoil(1))*rhow*(cswat*(h0(kk)-hice(kk)) + &
                      csice*hice(kk)) - rhow*lambdaf*hice(kk)
              endif
              ! total energy in snowpack totally frozen at 0degC
@@ -3948,79 +3948,79 @@ CONTAINS
              endif
 
              ! correct soil moisture
-             S(kk,1) = S(kk,1) - (vsnow(kk)%hsnow(1)-h0(kk))/dx(kk,1)/par(kk,1)%thre
-             if (S(kk,1).lt.one) then
+             S(1) = S(1) - (vsnow(kk)%hsnow(1)-h0(kk))/dx(1)/par(kk,1)%thre
+             if (S(1).lt.one) then
                 var(kk,1)%isat= 0
              endif
-             Tfreezing(kk) = Tfrz(S(kk,1), par(kk,1)%he, one/(par(kk,1)%lambc*freezefac))
-             if (S(kk,1)<zero) then
+             Tfreezing(kk) = Tfrz(S(1), par(kk,1)%he, one/(par(kk,1)%lambc*freezefac))
+             if (S(1)<zero) then
                 write(*,*) "error: over-extraction of soil water during snow pack init"
-                write(*,*) "S(kk,1), snow-col, deltaS"
-                write(*,*) S(kk,1) , vsnow(kk)%hsnow(1), - (vsnow(kk)%hsnow(1)-h0(kk))/dx(kk,1)/par(kk,1)%thre
+                write(*,*) "S(1), snow-col, deltaS"
+                write(*,*) S(1) , vsnow(kk)%hsnow(1), - (vsnow(kk)%hsnow(1)-h0(kk))/dx(1)/par(kk,1)%thre
              endif
              h0(kk) = zero
              hice(kk) = zero
              ! correct total energy stored in pond + soil
              ! correct soil temperature
-             theta         = S(kk,1)*(par(kk,1)%thre) + (par(kk,1)%the - par(kk,1)%thre)
+             theta         = S(1)*(par(kk,1)%thre) + (par(kk,1)%the - par(kk,1)%thre)
              ! total energy added to top soil layer
              tmp1d1(kk) = - tmp1d1(kk)
              ! total energy in old top soil layer
-             tmp1d2(kk) = var(kk,1)%csoil*dx(kk,1)*(Tsoil(kk,1)) -lambdaf*dx(kk,1)*var(kk,1)%thetai + &
-                  (h0_tmp(kk)-hice_tmp(kk))*cswat*rhow*(Tsoil(kk,1)) + &
-                  hice_tmp(kk)*rhow*(csice*(Tsoil(kk,1))-lambdaf)
+             tmp1d2(kk) = var(kk,1)%csoil*dx(1)*(Tsoil(1)) -lambdaf*dx(1)*var(kk,1)%thetai + &
+                  (h0_tmp(kk)-hice_tmp(kk))*cswat*rhow*(Tsoil(1)) + &
+                  hice_tmp(kk)*rhow*(csice*(Tsoil(1))-lambdaf)
              ! calculate energy in new top soil layer
              if (var(kk,1)%iice==0) then
                 var(kk,1)%csoil = theta*rhow*cswat+par(kk,1)%rho*par(kk,1)%css
-                tmp1d3(kk) = (tmp1d1(kk)+tmp1d2(kk))/((theta*rhow*cswat+par(kk,1)%rho*par(kk,1)%css)*dx(kk,1)+ &
+                tmp1d3(kk) = (tmp1d1(kk)+tmp1d2(kk))/((theta*rhow*cswat+par(kk,1)%rho*par(kk,1)%css)*dx(1)+ &
                      h0(kk)*rhow*cswat)
                 Jcol_sensible(kk) = Jcol_sensible(kk) - &
-                     var(kk,1)%csoil*dx(kk,1)*(Tsoil(kk,1)) - &
-                     (h0_tmp(kk))*cswat*rhow*(Tsoil(kk,1)) + &
-                     (theta*rhow*cswat+par(kk,1)%rho*par(kk,1)%css)*dx(kk,1)*(tmp1d3(kk)) + &
+                     var(kk,1)%csoil*dx(1)*(Tsoil(1)) - &
+                     (h0_tmp(kk))*cswat*rhow*(Tsoil(1)) + &
+                     (theta*rhow*cswat+par(kk,1)%rho*par(kk,1)%css)*dx(1)*(tmp1d3(kk)) + &
                      (h0_tmp(kk))*cswat*rhow*(tmp1d3(kk))
 
                 var(kk,1)%csoil = theta*rhow*cswat+par(kk,1)%rho*par(kk,1)%css
-                Tsoil(kk,1) = tmp1d3(kk)
+                Tsoil(1) = tmp1d3(kk)
 
              else
                 ! check if total energy in melt water and top soil (+pond) is enough for complete melting
-                tmp1d3(kk) = var(kk,1)%thetai*dx(kk,1)*rhow*lambdaf + &
+                tmp1d3(kk) = var(kk,1)%thetai*dx(1)*rhow*lambdaf + &
                      var(kk,1)%thetai*h0_tmp(kk)/par(kk,1)%thre*rhow*lambdaf
 
-                tmp1d4(kk) = (Tfreezing(kk))*(rhow*cswat*(theta*dx(kk,1)+h0(kk))+par(kk,1)%rho*par(kk,1)%css*dx(kk,1))
+                tmp1d4(kk) = (Tfreezing(kk))*(rhow*cswat*(theta*dx(1)+h0(kk))+par(kk,1)%rho*par(kk,1)%css*dx(1))
                 if ((tmp1d1(kk)+tmp1d2(kk)-tmp1d4(kk))>zero) then
                    !  complete melting
                    Jcol_latent_T(kk) =     Jcol_latent_T(kk) + tmp1d3(kk)
-                   deltaJ_sensible_S(kk,1) = zero
-                   Tsoil(kk,1) = var(kk,1)%Tfrz + (tmp1d1(kk)+tmp1d2(kk) -tmp1d4(kk))/ &
-                        (rhow*cswat*(theta*dx(kk,1)+h0(kk))+par(kk,1)%rho*par(kk,1)%css*dx(kk,1))
+                   deltaJ_sensible_S(1) = zero
+                   Tsoil(1) = var(kk,1)%Tfrz + (tmp1d1(kk)+tmp1d2(kk) -tmp1d4(kk))/ &
+                        (rhow*cswat*(theta*dx(1)+h0(kk))+par(kk,1)%rho*par(kk,1)%css*dx(1))
 
                    var(kk,1)%iice = 0
                    var(kk,1)%thetai = zero
-                   thetai(kk,1) = var(kk,1)%thetai
+                   thetai(1) = var(kk,1)%thetai
                    var(kk,1)%thetal = theta
                 else
 
                    Jsoil = tmp1d1(kk)+tmp1d2(kk)! total energy in  soil layer
                    !check there is a zero
-                   tmp1 = GTfrozen(real(Tsoil(kk,1)-50., r_2), Jsoil, dx(kk,1), theta,par(kk,1)%css, par(kk,1)%rho, &
+                   tmp1 = GTfrozen(real(Tsoil(1)-50., r_2), Jsoil, dx(1), theta,par(kk,1)%css, par(kk,1)%rho, &
                         h0(kk), par(kk,1)%thre, par(kk,1)%the, par(kk,1)%he, one/(par(kk,1)%lambc*freezefac))
 
-                   tmp2 = GTFrozen(Tfreezing(kk), Jsoil, dx(kk,1), theta,par(kk,1)%css, par(kk,1)%rho, &
+                   tmp2 = GTFrozen(Tfreezing(kk), Jsoil, dx(1), theta,par(kk,1)%css, par(kk,1)%rho, &
                         h0(kk), par(kk,1)%thre, par(kk,1)%the, par(kk,1)%he, one/(par(kk,1)%lambc*freezefac))
 
                    ! there is a zero in between
                    if ((tmp1*tmp2) < zero) then
-                      tmp1d3(kk) = rtbis_Tfrozen(tmp1d2(kk), dx(kk,1), theta,par(kk,1)%css, par(kk,1)%rho, &
+                      tmp1d3(kk) = rtbis_Tfrozen(tmp1d2(kk), dx(1), theta,par(kk,1)%css, par(kk,1)%rho, &
                            h0(kk), par(kk,1)%thre, par(kk,1)%the, par(kk,1)%he, one/(par(kk,1)%lambc*freezefac), &
-                           real(Tsoil(kk,1)-50., r_2), Tfreezing(kk), real(0.0001,r_2))
+                           real(Tsoil(1)-50., r_2), Tfreezing(kk), real(0.0001,r_2))
 
-                      tmp1d4(kk) = thetalmax(tmp1d3(kk), S(kk,1), par(kk,1)%he, one/(par(kk,1)%lambc*freezefac), &
+                      tmp1d4(kk) = thetalmax(tmp1d3(kk), S(1), par(kk,1)%he, one/(par(kk,1)%lambc*freezefac), &
                            par(kk,1)%thre, par(kk,1)%the) ! liquid content at new Tsoil
                    else
-                      write(*,*) "Found no solution for Tfrozen 3. Stop.", kk, S(kk,i), Tsoil(kk,i), tmp1, tmp2
-                      write(*,*) S(kk,i), Tsoil(kk,i), tmp1, tmp2
+                      write(*,*) "Found no solution for Tfrozen 3. Stop.", kk, S(i), Tsoil(i), tmp1, tmp2
+                      write(*,*) S(i), Tsoil(i), tmp1, tmp2
                       stop
                    endif
 
@@ -4028,18 +4028,18 @@ CONTAINS
                    var(kk,1)%thetai = theta - tmp1d4(kk)
                    ! correct total energy stored in pond + soil
                    Jcol_latent_S(kk) = Jcol_latent_S(kk)- rhow*lambdaf*((hice(kk)-hice_tmp(kk)) + &
-                        dx(kk,1)*(var(kk,1)%thetai-thetai(kk,1)))
+                        dx(1)*(var(kk,1)%thetai-thetai(1)))
 
                    Jcol_sensible(kk) = Jcol_sensible(kk) - &
-                        var(kk,1)%csoil*dx(kk,1)*(Tsoil(kk,1)) - &
-                        (h0_tmp(kk)-hice_tmp(kk))*cswat*rhow*(Tsoil(kk,1)) - &
-                        hice_tmp(kk)*rhow*(csice*(Tsoil(kk,1))) + &
-                        dx(kk,1)*(tmp1d3(kk))*par(kk,1)%rho*par(kk,1)%css + &
-                        (h0(kk)-hice(kk)+var(kk,1)%thetal*dx(kk,1))*cswat*rhow*(tmp1d3(kk)) + &
+                        var(kk,1)%csoil*dx(1)*(Tsoil(1)) - &
+                        (h0_tmp(kk)-hice_tmp(kk))*cswat*rhow*(Tsoil(1)) - &
+                        hice_tmp(kk)*rhow*(csice*(Tsoil(1))) + &
+                        dx(1)*(tmp1d3(kk))*par(kk,1)%rho*par(kk,1)%css + &
+                        (h0(kk)-hice(kk)+var(kk,1)%thetal*dx(1))*cswat*rhow*(tmp1d3(kk)) + &
                         (hice_tmp(kk)+var(kk,1)%thetai)*rhow*(csice*(tmp1d3(kk)))
 
-                   thetai(kk,1) = var(kk,1)%thetai
-                   Tsoil(kk,1) = tmp1d3(kk)
+                   thetai(1) = var(kk,1)%thetai
+                   Tsoil(1) = tmp1d3(kk)
 
                 endif ! incomplete melting
 
@@ -4081,16 +4081,16 @@ CONTAINS
 
        ! get snow melt from top layer
        if ((vsnow(kk)%hliq(1) - vsnow(kk)%hsnow(1)*vsnow(kk)%fsnowliq_max(1))>zero) then ! remove melt water
-          qmelt(kk,1) = max((vsnow(kk)%hliq(1) - vsnow(kk)%hsnow(1)*vsnow(kk)%fsnowliq_max(1)),zero)
-          qmelt(kk,1) = min(qmelt(kk,1), max(0.9*(vsnow(kk)%hsnow(1)-snmin*(vsnow(kk)%dens(1)/rhow)),zero))
-          vsnow(kk)%melt(1) = vsnow(kk)%melt(1) + qmelt(kk,1)
-          vsnow(kk)%hliq(1) = vsnow(kk)%hliq(1) - qmelt(kk,1)
-          vsnow(kk)%hsnow(1) = vsnow(kk)%hsnow(1) - qmelt(kk,1)
+          qmelt(1) = max((vsnow(kk)%hliq(1) - vsnow(kk)%hsnow(1)*vsnow(kk)%fsnowliq_max(1)),zero)
+          qmelt(1) = min(qmelt(1), max(0.9*(vsnow(kk)%hsnow(1)-snmin*(vsnow(kk)%dens(1)/rhow)),zero))
+          vsnow(kk)%melt(1) = vsnow(kk)%melt(1) + qmelt(1)
+          vsnow(kk)%hliq(1) = vsnow(kk)%hliq(1) - qmelt(1)
+          vsnow(kk)%hsnow(1) = vsnow(kk)%hsnow(1) - qmelt(1)
           ! adjust depth and density for snow melt removal
           !tmp1d3(kk) = vsnow(kk)%dens(1)*(one-vsnow(kk)%hliq(1)/vsnow(kk)%hsnow(1))
-          !vsnow(kk)%depth(1) = vsnow(kk)%depth(1) - qmelt(kk,1)*rhow/tmp1d3(kk)
+          !vsnow(kk)%depth(1) = vsnow(kk)%depth(1) - qmelt(1)*rhow/tmp1d3(kk)
           ! vsnow(kk)%dens(1) = vsnow(kk)%hsnow(1)*rhow/vsnow(kk)%depth(1)
-          !vsnow(kk)%dens(1) = max(vsnow(kk)%dens(1) - rhow*qmelt(kk,1)/vsnow(kk)%depth(1), 50.0)
+          !vsnow(kk)%dens(1) = max(vsnow(kk)%dens(1) - rhow*qmelt(1)/vsnow(kk)%depth(1), 50.0)
           do i=1, vsnow(kk)%nsnow
              vsnow(kk)%Jsensible(i) = (vsnow(kk)%hsnow(i)-vsnow(kk)%hliq(i))*rhow*csice*(vsnow(kk)%Tsn(i))
              vsnow(kk)%Jlatent(i) = (vsnow(kk)%hsnow(i)-vsnow(kk)%hliq(i))*rhow*(-lambdaf)
@@ -4102,22 +4102,22 @@ CONTAINS
 
           ! simply add melt water from above if melt water already exists and total new amount doesn't exceed capacity
           if ((vsnow(kk)%hliq(vsnow(kk)%nsnow).gt.zero).and. &
-               (vsnow(kk)%hliq(vsnow(kk)%nsnow) + qmelt(kk,1)).le.(vsnow(kk)%hsnow(vsnow(kk)%nsnow) + &
-               qmelt(kk,1))*vsnow(kk)%fsnowliq_max(vsnow(kk)%nsnow)) then
+               (vsnow(kk)%hliq(vsnow(kk)%nsnow) + qmelt(1)).le.(vsnow(kk)%hsnow(vsnow(kk)%nsnow) + &
+               qmelt(1))*vsnow(kk)%fsnowliq_max(vsnow(kk)%nsnow)) then
 
-             vsnow(kk)%hliq(vsnow(kk)%nsnow) = vsnow(kk)%hliq(vsnow(kk)%nsnow) + qmelt(kk,1)
-             vsnow(kk)%hsnow(vsnow(kk)%nsnow) = vsnow(kk)%hsnow(vsnow(kk)%nsnow) + qmelt(kk,1)
-             qmelt(kk,vsnow(kk)%nsnow) = zero
+             vsnow(kk)%hliq(vsnow(kk)%nsnow) = vsnow(kk)%hliq(vsnow(kk)%nsnow) + qmelt(1)
+             vsnow(kk)%hsnow(vsnow(kk)%nsnow) = vsnow(kk)%hsnow(vsnow(kk)%nsnow) + qmelt(1)
+             qmelt(vsnow(kk)%nsnow) = zero
              ! or convert excess to melt water
           elseif ((vsnow(kk)%hliq(vsnow(kk)%nsnow).gt.zero).and. &
-               (vsnow(kk)%hliq(vsnow(kk)%nsnow) + qmelt(kk,1)).gt.(vsnow(kk)%hsnow(vsnow(kk)%nsnow) + &
-               qmelt(kk,1))*vsnow(kk)%fsnowliq_max(vsnow(kk)%nsnow)) then
+               (vsnow(kk)%hliq(vsnow(kk)%nsnow) + qmelt(1)).gt.(vsnow(kk)%hsnow(vsnow(kk)%nsnow) + &
+               qmelt(1))*vsnow(kk)%fsnowliq_max(vsnow(kk)%nsnow)) then
 
              tmp1d1(kk) = vsnow(kk)%hliq(vsnow(kk)%nsnow)
              tmp1d2(kk) = vsnow(kk)%hsnow(vsnow(kk)%nsnow)
 
 
-             qmelt(kk,vsnow(kk)%nsnow) =  tmp1d1(kk) + vsnow(kk)%melt(1) - &
+             qmelt(vsnow(kk)%nsnow) =  tmp1d1(kk) + vsnow(kk)%melt(1) - &
                   vsnow(kk)%fsnowliq_max(vsnow(kk)%nsnow)*(tmp1d2(kk) - tmp1d1(kk))/ &
                   (1.-vsnow(kk)%fsnowliq_max(vsnow(kk)%nsnow))
 
@@ -4130,21 +4130,21 @@ CONTAINS
              ! or add melt water to completely frozen snowpack below
           else
              tmp1d1(kk) = (vsnow(kk)%hsnow(vsnow(kk)%nsnow)*(vsnow(kk)%tsn(vsnow(kk)%nsnow)*csice-lambdaf) &
-                  /(vsnow(kk)%hsnow(vsnow(kk)%nsnow) + qmelt(kk,1)) + lambdaf)/csice
+                  /(vsnow(kk)%hsnow(vsnow(kk)%nsnow) + qmelt(1)) + lambdaf)/csice
 
              if (tmp1d1(kk).lt.zero) then ! snow pack remains completely frozen
                 vsnow(kk)%tsn(vsnow(kk)%nsnow) = tmp1d1(kk)
                 vsnow(kk)%hliq(vsnow(kk)%nsnow) = zero
-                vsnow(kk)%hsnow(vsnow(kk)%nsnow) = vsnow(kk)%hsnow(vsnow(kk)%nsnow) + qmelt(kk,1)
-                qmelt(kk,vsnow(kk)%nsnow) = zero
+                vsnow(kk)%hsnow(vsnow(kk)%nsnow) = vsnow(kk)%hsnow(vsnow(kk)%nsnow) + qmelt(1)
+                qmelt(vsnow(kk)%nsnow) = zero
 
              else ! snowpack partially melted
                 vsnow(kk)%hliq(vsnow(kk)%nsnow) = vsnow(kk)%hsnow(vsnow(kk)%nsnow)/ &
                      lambdaf*(csice*vsnow(kk)%tsn(vsnow(kk)%nsnow)-lambdaf) + &
-                     (vsnow(kk)%hsnow(vsnow(kk)%nsnow) + qmelt(kk,1))
+                     (vsnow(kk)%hsnow(vsnow(kk)%nsnow) + qmelt(1))
                 vsnow(kk)%tsn(vsnow(kk)%nsnow) = zero
-                vsnow(kk)%hsnow(vsnow(kk)%nsnow) = vsnow(kk)%hsnow(vsnow(kk)%nsnow) + qmelt(kk,1)
-                qmelt(kk,vsnow(kk)%nsnow) = zero
+                vsnow(kk)%hsnow(vsnow(kk)%nsnow) = vsnow(kk)%hsnow(vsnow(kk)%nsnow) + qmelt(1)
+                qmelt(vsnow(kk)%nsnow) = zero
 
 
                 if (vsnow(kk)%hliq(vsnow(kk)%nsnow).gt. &
@@ -4153,7 +4153,7 @@ CONTAINS
                    tmp1d1(kk) = vsnow(kk)%hliq(vsnow(kk)%nsnow)
                    tmp1d2(kk) = vsnow(kk)%hsnow(vsnow(kk)%nsnow)
 
-                   qmelt(kk,vsnow(kk)%nsnow) =  vsnow(kk)%hliq(vsnow(kk)%nsnow) - &
+                   qmelt(vsnow(kk)%nsnow) =  vsnow(kk)%hliq(vsnow(kk)%nsnow) - &
                         vsnow(kk)%fsnowliq_max(vsnow(kk)%nsnow)*(vsnow(kk)%hsnow(vsnow(kk)%nsnow) - &
                         vsnow(kk)%hliq(vsnow(kk)%nsnow))/(1.-vsnow(kk)%fsnowliq_max(vsnow(kk)%nsnow))
 
@@ -4170,16 +4170,16 @@ CONTAINS
                 endif ! (vsnow(kk)%hliq(2).gt.vsnow(kk)%hsnow(2)*vsnow(kk)%fsnowliq_max(2))
 
              endif ! snowpack partially melted
-             vsnow(kk)%melt(vsnow(kk)%nsnow) = vsnow(kk)%melt(vsnow(kk)%nsnow) + qmelt(kk,vsnow(kk)%nsnow)
+             vsnow(kk)%melt(vsnow(kk)%nsnow) = vsnow(kk)%melt(vsnow(kk)%nsnow) + qmelt(vsnow(kk)%nsnow)
           endif ! (vsnow(kk)%hliq(2).gt.zero).and. &
-          !(vsnow(kk)%hliq(2) + qmelt(kk,1)).le.(vsnow(kk)%hsnow(2) + qmelt(kk,1))*vsnow(kk)%fsnowliq_max(2))
+          !(vsnow(kk)%hliq(2) + qmelt(1)).le.(vsnow(kk)%hsnow(2) + qmelt(1))*vsnow(kk)%fsnowliq_max(2))
 
        endif ! if (vsnow(kk)%nsnow>1)
 
-       theta = S(kk,1)*(par(kk,1)%thre) + (par(kk,1)%the - par(kk,1)%thre)
+       theta = S(1)*(par(kk,1)%thre) + (par(kk,1)%the - par(kk,1)%thre)
        ! move snow melt from bottom snow layer to top soil + pond
-       if (qmelt(kk,vsnow(kk)%nsnow)>zero) then
-          vsnow(kk)%Qmelt = vsnow(kk)%Qmelt + qmelt(kk,vsnow(kk)%nsnow)
+       if (qmelt(vsnow(kk)%nsnow)>zero) then
+          vsnow(kk)%Qmelt = vsnow(kk)%Qmelt + qmelt(vsnow(kk)%nsnow)
          if (melt_transfer) then
           h0_tmp(kk) = h0(kk)
           hice_tmp(kk) = hice(kk)
@@ -4187,61 +4187,61 @@ CONTAINS
           ! total energy in melt-water is zero
 
           ! total energy in old top soil layer
-          tmp1d2(kk) = JSoilLayer(Tsoil(kk,1), &
-               dx(kk,1), theta,par(kk,1)%css, par(kk,1)%rho, &
+          tmp1d2(kk) = JSoilLayer(Tsoil(1), &
+               dx(1), theta,par(kk,1)%css, par(kk,1)%rho, &
                h0_tmp(kk), par(kk,1)%thre, par(kk,1)%the, &
                par(kk,1)%he, one/(par(kk,1)%lambc*freezefac))
 
           !calculate new thetal, consistent with total energy and new pond height
-          theta         = S(kk,1)*(par(kk,1)%thre) + (par(kk,1)%the - par(kk,1)%thre)
+          theta         = S(1)*(par(kk,1)%thre) + (par(kk,1)%the - par(kk,1)%thre)
           theta_tmp = theta
           if (h0(kk)>zero) then
-             h0(kk) = h0(kk) +  qmelt(kk,vsnow(kk)%nsnow)
-          elseif ((theta+qmelt(kk,vsnow(kk)%nsnow)/dx(kk,1))<par(kk,1)%the) then
+             h0(kk) = h0(kk) +  qmelt(vsnow(kk)%nsnow)
+          elseif ((theta+qmelt(vsnow(kk)%nsnow)/dx(1))<par(kk,1)%the) then
              h0(kk)=zero
-             theta = theta+qmelt(kk,vsnow(kk)%nsnow)/dx(kk,1)
-             S(kk,1) = (theta - (par(kk,1)%the - par(kk,1)%thre) )/(par(kk,1)%thre)
-             if (S(kk,1).lt.one) then
+             theta = theta+qmelt(vsnow(kk)%nsnow)/dx(1)
+             S(1) = (theta - (par(kk,1)%the - par(kk,1)%thre) )/(par(kk,1)%thre)
+             if (S(1).lt.one) then
                 var(kk,1)%isat= 0
              endif
-          elseif ((theta+qmelt(kk,vsnow(kk)%nsnow)/dx(kk,1))>par(kk,1)%the) then
-             h0(kk) = ((theta+qmelt(kk,vsnow(kk)%nsnow)/dx(kk,1))-par(kk,1)%the)*dx(kk,1)
+          elseif ((theta+qmelt(vsnow(kk)%nsnow)/dx(1))>par(kk,1)%the) then
+             h0(kk) = ((theta+qmelt(vsnow(kk)%nsnow)/dx(1))-par(kk,1)%the)*dx(1)
 
-             S(kk,1) = one
+             S(1) = one
              var(kk,1)%isat = 1
              ns(kk) = 0
              theta = par(kk,1)%the
           endif
-          Tfreezing(kk) = Tfrz(S(kk,1), par(kk,1)%he, one/(par(kk,1)%lambc*freezefac))
+          Tfreezing(kk) = Tfrz(S(1), par(kk,1)%he, one/(par(kk,1)%lambc*freezefac))
 
           ! calculate energy in new top soil layer
           if (var(kk,1)%iice==0) then
              var(kk,1)%csoil = theta*rhow*cswat+par(kk,1)%rho*par(kk,1)%css
-             tmp1d3(kk) = (tmp1d2(kk))/((theta*rhow*cswat+par(kk,1)%rho*par(kk,1)%css)*dx(kk,1)+ &
+             tmp1d3(kk) = (tmp1d2(kk))/((theta*rhow*cswat+par(kk,1)%rho*par(kk,1)%css)*dx(1)+ &
                   h0(kk)*rhow*cswat)
              Jcol_sensible(kk) = Jcol_sensible(kk) - &
-                  var(kk,1)%csoil*dx(kk,1)*(Tsoil(kk,1)) - &
-                  (h0_tmp(kk))*cswat*rhow*(Tsoil(kk,1)) + &
-                  (theta*rhow*cswat+par(kk,1)%rho*par(kk,1)%css)*dx(kk,1)*(tmp1d3(kk)) + &
+                  var(kk,1)%csoil*dx(1)*(Tsoil(1)) - &
+                  (h0_tmp(kk))*cswat*rhow*(Tsoil(1)) + &
+                  (theta*rhow*cswat+par(kk,1)%rho*par(kk,1)%css)*dx(1)*(tmp1d3(kk)) + &
                   (h0_tmp(kk))*cswat*rhow*(tmp1d3(kk))
 
              var(kk,1)%csoil = theta*rhow*cswat+par(kk,1)%rho*par(kk,1)%css
-             Tsoil(kk,1) = tmp1d3(kk)
+             Tsoil(1) = tmp1d3(kk)
 
           else
              ! check if total energy in melt water and top soil (+pond) is enough for complete melting
-             tmp1d3(kk) = var(kk,1)%thetai*dx(kk,1)*rhow*lambdaf + &
+             tmp1d3(kk) = var(kk,1)%thetai*dx(1)*rhow*lambdaf + &
                   var(kk,1)%thetai*h0_tmp(kk)/par(kk,1)%thre*rhow*lambdaf
-             tmp1d4(kk) = (Tfreezing(kk))*(rhow*cswat*(theta*dx(kk,1)+h0(kk))+par(kk,1)%rho*par(kk,1)%css*dx(kk,1))
+             tmp1d4(kk) = (Tfreezing(kk))*(rhow*cswat*(theta*dx(1)+h0(kk))+par(kk,1)%rho*par(kk,1)%css*dx(1))
              if ((tmp1d2(kk)-tmp1d4(kk))>zero) then
                 !  complete melting
                 Jcol_latent_T(kk) =     Jcol_latent_T(kk) + tmp1d3(kk)
-                deltaJ_sensible_S(kk,1) = zero
-               ! Tsoil(kk,1) = var(kk,1)%Tfrz + (tmp1d1(kk)+tmp1d2(kk) -tmp1d4(kk))/ &
-               !      (rhow*cswat*(theta*dx(kk,1)+h0(kk))+par(kk,1)%rho*par(kk,1)%css*dx(kk,1))
+                deltaJ_sensible_S(1) = zero
+               ! Tsoil(1) = var(kk,1)%Tfrz + (tmp1d1(kk)+tmp1d2(kk) -tmp1d4(kk))/ &
+               !      (rhow*cswat*(theta*dx(1)+h0(kk))+par(kk,1)%rho*par(kk,1)%css*dx(1))
 
-                Tsoil(kk,1) = var(kk,1)%Tfrz + (tmp1d2(kk) -tmp1d4(kk))/ &
-                     (rhow*cswat*(theta*dx(kk,1)+h0(kk))+par(kk,1)%rho*par(kk,1)%css*dx(kk,1))
+                Tsoil(1) = var(kk,1)%Tfrz + (tmp1d2(kk) -tmp1d4(kk))/ &
+                     (rhow*cswat*(theta*dx(1)+h0(kk))+par(kk,1)%rho*par(kk,1)%css*dx(1))
 
                 var(kk,1)%iice = 0
                 var(kk,1)%thetai = zero
@@ -4250,22 +4250,22 @@ CONTAINS
 
                 Jsoil = tmp1d2(kk)! total energy in  soil layer
                 !check there is a zero
-                tmp1 = GTfrozen(real(Tsoil(kk,1)-50., r_2), Jsoil, dx(kk,1), theta,par(kk,1)%css, par(kk,1)%rho, &
+                tmp1 = GTfrozen(real(Tsoil(1)-50., r_2), Jsoil, dx(1), theta,par(kk,1)%css, par(kk,1)%rho, &
                      h0(kk), par(kk,1)%thre, par(kk,1)%the, par(kk,1)%he, one/(par(kk,1)%lambc*freezefac))
 
-                tmp2 = GTFrozen(Tfreezing(kk), Jsoil, dx(kk,1), theta,par(kk,1)%css, par(kk,1)%rho, &
+                tmp2 = GTFrozen(Tfreezing(kk), Jsoil, dx(1), theta,par(kk,1)%css, par(kk,1)%rho, &
                      h0(kk), par(kk,1)%thre, par(kk,1)%the, par(kk,1)%he, one/(par(kk,1)%lambc*freezefac))
 
                 ! there is a zero in between
                 if ((tmp1*tmp2) < zero) then
-                   tmp1d3(kk) = rtbis_Tfrozen(tmp1d2(kk), dx(kk,1), theta,par(kk,1)%css, par(kk,1)%rho, &
+                   tmp1d3(kk) = rtbis_Tfrozen(tmp1d2(kk), dx(1), theta,par(kk,1)%css, par(kk,1)%rho, &
                         h0(kk), par(kk,1)%thre, par(kk,1)%the, par(kk,1)%he, one/(par(kk,1)%lambc*freezefac), &
-                        real(Tsoil(kk,1)-50., r_2), Tfreezing(kk), real(0.0001,r_2))
+                        real(Tsoil(1)-50., r_2), Tfreezing(kk), real(0.0001,r_2))
 
-                   tmp1d4(kk) = thetalmax(tmp1d3(kk), S(kk,1), par(kk,1)%he, one/(par(kk,1)%lambc*freezefac), &
+                   tmp1d4(kk) = thetalmax(tmp1d3(kk), S(1), par(kk,1)%he, one/(par(kk,1)%lambc*freezefac), &
                         par(kk,1)%thre, par(kk,1)%the) ! liquid content at new Tsoil
                 else
-                   write(*,*) "Found no solution for Tfrozen 4. Stop.", irec, qmelt(kk,1), h0(kk)
+                   write(*,*) "Found no solution for Tfrozen 4. Stop.", irec, qmelt(1), h0(kk)
                    stop
                 endif
 
@@ -4276,18 +4276,18 @@ CONTAINS
 
                 ! correct total energy stored in pond + soil
                 Jcol_latent_S(kk) = Jcol_latent_S(kk)- rhow*lambdaf*((hice(kk)-hice_tmp(kk)) + &
-                     dx(kk,1)*(var(kk,1)%thetai-thetai(kk,1)))
+                     dx(1)*(var(kk,1)%thetai-thetai(1)))
 
                 Jcol_sensible(kk) = Jcol_sensible(kk) - &
-                     var(kk,1)%csoil*dx(kk,1)*(Tsoil(kk,1)) - &
-                     (h0_tmp(kk)-hice_tmp(kk))*cswat*rhow*(Tsoil(kk,1)) - &
-                     hice_tmp(kk)*rhow*(csice*(Tsoil(kk,1))) + &
-                     dx(kk,1)*(tmp1d3(kk))*par(kk,1)%rho*par(kk,1)%css + &
-                     (h0(kk)-hice(kk)+var(kk,1)%thetal*dx(kk,1))*cswat*rhow*(tmp1d3(kk)) + &
+                     var(kk,1)%csoil*dx(1)*(Tsoil(1)) - &
+                     (h0_tmp(kk)-hice_tmp(kk))*cswat*rhow*(Tsoil(1)) - &
+                     hice_tmp(kk)*rhow*(csice*(Tsoil(1))) + &
+                     dx(1)*(tmp1d3(kk))*par(kk,1)%rho*par(kk,1)%css + &
+                     (h0(kk)-hice(kk)+var(kk,1)%thetal*dx(1))*cswat*rhow*(tmp1d3(kk)) + &
                      (hice_tmp(kk)+var(kk,1)%thetai)*rhow*(csice*(tmp1d3(kk)))
 
-                thetai(kk,1) = var(kk,1)%thetai
-                Tsoil(kk,1) = tmp1d3(kk)
+                thetai(1) = var(kk,1)%thetai
+                Tsoil(1) = tmp1d3(kk)
 
              endif ! incomplete melting
           endif ! iice=1
