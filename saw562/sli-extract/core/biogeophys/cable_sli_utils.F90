@@ -2123,26 +2123,29 @@ CONTAINS
     ! endif
     var%macropore_factor = one
 
-    var%sl = slope_esat(Tsoil) * Mw/thousand/Rgas/(Tsoil+Tzero) ! m3 m-3 K-1
     c      = Mw*gravity/Rgas/(Tsoil+Tzero)
     lambda = parin%lam
+
     if (S < one) then
-       var%rh = max(exp(Mw*gravity*var%h/Rgas/(Tsoil+Tzero)),rhmin)
+        var%sl     = slope_esat(Tsoil) * Mw/thousand/Rgas/(Tsoil+Tzero) ! m3 m-3 K-1
+        var%cvsat  = esat(Tsoil)*Mw/thousand/Rgas/(Tsoil+Tzero) ! m3 m-3
+        var%rh     = max(exp(Mw*gravity*var%h/Rgas/(Tsoil+Tzero)),rhmin)
+        crh        = c*var%rh
+        var%hS     = dhdS
+        var%rhS    = crh*dhdS
+        var%cv     = var%rh*var%cvsat
+        var%cvS    = var%rhS *var%cvsat
+        var%cvsatT = var%sl
     else
-       var%rh = one
-    endif
-    crh        = c*var%rh
-    var%hS     = dhdS
-    var%rhS    = crh*dhdS
-    var%cvsat  = esat(Tsoil)*Mw/thousand/Rgas/(Tsoil+Tzero) ! m3 m-3
-    if (S < one) then
-       var%cv     = var%rh*var%cvsat
-       var%cvS    = var%rhS *var%cvsat
-       var%cvsatT = slope_esat(Tsoil)*Mw/thousand/Rgas/(Tsoil+Tzero) ! m3 m-3 K-1
-    else
-       var%cv = zero
-       var%cvS    = zero
-       var%cvsatT = zero
+        var%sl     = slope_esat(Tsoil) * Mw/thousand/Rgas/(Tsoil+Tzero) ! m3 m-3 K-1
+        var%cvsat  = esat(Tsoil)*Mw/thousand/Rgas/(Tsoil+Tzero) ! m3 m-3
+        var%rh     = one
+        crh        = c*var%rh
+        var%hS     = dhdS
+        var%rhS    = crh*dhdS
+        var%cv     = zero
+        var%cvS    = zero
+        var%cvsatT = zero
     endif
     ! Penman (1940): tortuosity*theta
     ! var%Dv    = Dva*parin%tortuosity*(parin%the-theta)  * ((Tsoil+Tzero)/Tzero)**1.88_r_2 ! m2 s-1
