@@ -762,7 +762,7 @@ CONTAINS
           inSlopeSTD = 0.002
           WRITE(logn, *) 'Could not read slope stddev data for SSGW, set to 0.0'
        END IF
-       where(inSlopeSTD .le. 0.0) inSlopeSTD = 0.002
+       where(inSlopeSTD .lt. 4.0e-3) inSlopeSTD = 4.0e-3  !put a limit to ensure .ne. 0
        ok = NF90_CLOSE(ncid_elev)
 
        ok = NF90_INQ_VARID(ncid_elev, 'soil_color', fieldID)

@@ -80,6 +80,7 @@ MODULE cable_large_scale_hydro
           ssnow%satfrac(i) = 0. 
        end if
        sat_ice_frac(i)   = max(1e-6,min(0.95,ice_factor(i) + (1._r_2-ice_factor(i))*ssnow%satfrac(i) ) )
+
      end do
 
      do i=1,mp
@@ -96,9 +97,10 @@ MODULE cable_large_scale_hydro
 
      end do  !mp
 
-     !add back to the lakes to keep saturated instead of drying
+     !add back to the lakes and wetlands to keep saturated instead of drying
+     !need to have horizontal converge to keep these sat, dont have that
      !imporant for ACCESS
-     where (veg%iveg .eq. 16)
+     where (veg%iveg .eq. 16 .or. veg%iveg .eq. 11)
          ssnow%fwtop(:) = ssnow%fwtop(:) + ssnow%rnof1(:)
          ssnow%fwtop(:) = 0._r_2
      endwhere
