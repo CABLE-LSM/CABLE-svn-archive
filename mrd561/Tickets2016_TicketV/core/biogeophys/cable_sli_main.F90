@@ -1,4 +1,4 @@
-SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
+SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, rough,SEB_only)
 
   ! Main subroutine for Soil-litter-iso soil model
   ! Vanessa Haverd, CSIRO Marine and Atmospheric Research
@@ -6,7 +6,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
   ! Modified to operate for multiple veg tiles but a single soil column, March 2011
   ! Rewritten for same number of soil columns as veg tiles May 2012
   USE cable_def_types_mod,       ONLY: veg_parameter_type, soil_parameter_type, soil_snow_type, met_type, &
-       canopy_type, air_type, radiation_type, ms, mp, r_2, i_d
+       canopy_type, air_type, radiation_type, roughness_type,ms, mp, r_2, i_d
   USE cable_common_module , ONLY: cable_user
   USE sli_numbers,        ONLY:  zero, half, one, two, four, thousand, & ! numbers
        Tzero, experiment, &                                       ! variables
@@ -14,7 +14,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
        MW, snmin, Rgas, Lambdas, lambdaf, csice, cswat, rhow, nsnow_max, e5, &
        freezefac, topmodel, alpha, fsat_max, botbc
   USE sli_utils,          ONLY: x, dx, par, setpar, setpar_Loetsch, setx, plit, dxL, setlitterpar, esat, &
-       esat_ice, slope_esat_ice, thetalmax, Tfrz,  hyofS, SEB
+       esat_ice, slope_esat_ice, thetalmax, Tfrz,  hyofS, SEB, PSM_SEB
   USE sli_roots,          ONLY: setroots, getrex
   USE sli_solve,          ONLY: solve
  
@@ -33,6 +33,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
   TYPE(canopy_type),         INTENT(INOUT) :: canopy  ! all r_1
   TYPE(air_type),            INTENT(INOUT) :: air     ! all r_1
   TYPE (radiation_type),     INTENT(IN)    :: rad
+  TYPE (roughness_type), INTENT(IN) :: rough
   INTEGER,                   INTENT(IN)    :: ktau ! integration step number
   INTEGER,                   INTENT(IN)    :: SEB_only ! integration step number
 
@@ -197,6 +198,9 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
      vmet%phiva = zero
   endif
 
+  vmet%qvair = met%qvair
+  vmet%psrf  = met%pmb*100.0
+
   vmet%Ta  = real(met%Tvair,r_2) - Tzero
   vmet%Da  = real(met%dva,r_2)
   vmet%rbh = ssnow%rtsoil
@@ -275,8 +279,6 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
      lE_old   = ssnow%lE
      zdelta   = ssnow%zdelta
 
-
-
   SL    = 0.5_r_2   ! degree of litter saturation
   Tsoil = ssnow%Tsoil
   TL(:) = Tsoil(:,1) ! litter T
@@ -337,6 +339,10 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
         elsewhere
            vsnow(kk)%fsnowliq_max = 0.03_r_2 + (0.1_r_2 - 0.03_r_2)*(vsnow(kk)%dens-200._r_2)/vsnow(kk)%dens
         endwhere
+        !mrd debug
+        !write(*,*) 'nsnow_max ',nsnow_max
+        !write(*,*) ssnow%tggsn(kk,1:nsnow_max)
+        !write(*,*) Tzero
         vsnow(kk)%fsnowliq_max = 0.1 !MC! ???
         vsnow(kk)%tsn(:) = real(ssnow%tggsn(kk,1:nsnow_max),r_2) - Tzero
         vsnow(kk)%kH(:)  = ssnow%sconds(kk,1:nsnow_max)
@@ -449,30 +455,20 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
   infil  = zero
   drn    = zero
 
-  !wtd         = ssnow%wtd
   !if (first_call) call aquifer_props(mp,ssnow,v_aquifer)
   ! 
   ! 
-  if (cable_user%test_new_gw) then
-     call diagnose_watertable_depth(ssnow,soil,par,veg)
-     call overland_runoff(par,ssnow,soil,veg)
-  !   !changes ssnow%fwtop, ssnow%rnof1, ssnow%sat_ice_frac,ssnow%sat_frac,
-     qprec = ssnow%fwtop(:)*10.0*3600.0  !=> mm/s to cm/h
-  
-     call determine_subsurface_runoff(par,ssnow,soil,veg)
-  !      !figures out ssnow%qhlev(:,1:ms+1), ssnow%qhz(:)
-     ssnow%qhlev(:,1:ms+1) = ssnow%qhlev(:,1:ms+1)*10.0*3600.0   !mm/s to cm/h
-  !     !pass this into solve, remove some each timestep
-  end if
   !
-  !     !after all of sli has run
-  !call aquifer_recharge(dt,ssnow,parin,dx,veg,soil,var)
-  !  finds ssnow%Qrecharge
-  !   upsated ssnow%S(:,ms), ssnow%GWwb(:)
   !
   !ssnow%rnof1 = ssnow%rnof1*onethousand  !to mm/s
   !ssnow%rnof2 = ssnow%rnof2 *onethousand  !to mm/s
+  ssnow%qhlev(:,:) = zero
 
+  if (cable_user%test_new_gw) then
+     botbc = "aquifer"
+  else
+     botbc = "free drainage"
+  end if
 
   if (SEB_only == 0) then
 
@@ -492,8 +488,29 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
         qex(:,k)= ssnow%rex(:,k)
      enddo
 
-  endif
+     call diagnose_watertable_depth(ssnow,soil,par,veg)
+     !write(*,*) 'wtd',ssnow%wtd,(sum(ssnow%S(1,:),dim=1)+ssnow%GWwb(1)/soil%GWwatsat(1))/real(ms+1),sum(ssnow%S(1,:),dim=1)/real(ms),ssnow%S(1,1)
 
+     if ((cable_user%test_new_gw)) then
+
+        ssnow%fwtop(:) = qprec(:)*thousand  !mm/s
+        call overland_runoff(par,ssnow,soil,veg)
+     !   !changes ssnow%fwtop, ssnow%rnof1, ssnow%sat_ice_frac,ssnow%sat_frac,
+        qprec = ssnow%fwtop(:)/thousand  !=> mm/s to ???? says cm/h but I think it is m/s
+     
+        call determine_subsurface_runoff(par,ssnow,soil,veg)
+     !      !figures out ssnow%qhlev(:,1:ms+1), ssnow%qhz(:)
+        ssnow%qhlev(:,1:ms) = ssnow%qhlev(:,1:ms)/thousand   !mm/s to cm/h
+        !note aquifer level left in mm/s 
+     !     !pass this into solve, remove some each timestep
+   
+        qex(:,:) = qex(:,:) + ssnow%qhlev(:,1:ms)
+        ssnow%qhlev(:,1:ms) = 0._r_2
+
+     else
+        ssnow%qhlev(:,:) = zero
+     end if
+   end if
   ! topmodel - 0:no; 1: only sat; 2: only base; 3: sat and base
   zdelta     = zero
   fsat       = zero
@@ -515,7 +532,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
      endif
   endif
 
-  if (SEB_only == 1) then
+  if ((SEB_only == 1) .and. (.not.cable_user%or_evap)) then
      do kk=1, mp
 
 
@@ -535,7 +552,30 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
      ssnow%tss  = real(Tsurface + Tzero)
      ssnow%potev  = real(Epot)
 
+  elseif ((SEB_only == 1).and.(cable_user%or_evap)) then
+     do kk=1, mp
+
+
+        ! call hyofS(S(kk,:), Tsoil(kk,:), par(kk,:), var(kk,:))
+        call hyofS(S(kk,1), Tsoil(kk,1), par(kk,1), var(kk,1))
+        CALL PSM_SEB(ms, par(kk,:), vmet(kk), vsnow(kk), var(kk,:), qprec(kk), qprec_snow(kk), dx(kk,:), &
+             h0(kk), Tsoil(kk,:), &
+             Tsurface(kk), G0(kk), lE(kk),Epot(kk), &
+             tmp1d1a, tmp1d2, tmp1d3, tmp1d4, &
+             tmp1d5, tmp1d6, tmp1d7, tmp1d8, tmp1d9,tmp1d10, tmp1d11, &
+             tmp1d12,tmp1d13, tmp1d14, tmp1d15, tmp1d16, ktau, &
+             soil,air,met,canopy,ssnow,veg,rough,kk,litter)
+
+     enddo
+     canopy%ga  = real(G0)
+     canopy%fes = real(lE)
+     canopy%fhs = canopy%fns - canopy%ga - real(canopy%fes)
+     ssnow%tss  = real(Tsurface + Tzero)
+     ssnow%potev  = real(Epot)
+
   else ! full SLI
+
+
      ! save for output, because they get changed with litter in solve
      rbw = vmet(1)%rbw
      rbh = vmet(1)%rbh
@@ -552,7 +592,8 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
           wex=wex, qvsig=qvsig, qlsig=qlsig, qvTsig=qvTsig, qvh=qvh, &
           deltaTa=deltaTa, lE_old=lE_old, &
           dolitter=litter, doisotopologue=isotopologue, dosepts=septs, docondition=condition, &
-          doadvection=advection)
+          doadvection=advection,&
+          soil=soil,air=air,met=met,canopy=canopy,ssnow=ssnow,veg=veg,rough=rough,useaquifer=cable_user%test_new_gw,psm_evap=cable_user%or_evap)
 
      qprec_snow = qprec_snow_tmp
      H             = (H/(tf-ti))
@@ -563,11 +604,6 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
      Jcol_sensible = Jcol_sensible/(tf-ti)
      Qadvcum       = Qadvcum/(tf-ti)
 
-     !if (cable_user%test_new_gw) then
-     !  !after all of sli has run
-     !  call aquifer_recharge(dt,ssnow,par,veg,soil,var)
-     !   !updated ssnow%S(:,ms), ssnow%GWwb(:)
-     !end if
 
      do kk=1, mp
         tmp1d1(kk) = (sum(vsnow(kk)%Jsensible) + sum(vsnow(kk)%Jlatent))
@@ -620,6 +656,12 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
 
      endif
 
+     if (cable_user%test_new_gw) then
+     !  !after all of sli has run
+         call aquifer_recharge(dt,ssnow,par,veg,soil,var,drn)
+     !   !updated ssnow%S(:,ms), ssnow%GWwb(:)
+     end if
+
 
      ! Update variables for output:
      ssnow%tss      = real(Tsurface + Tzero)
@@ -652,11 +694,11 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
         canopy%fwsoil  = real(fws)
      endif
 
-     if (litter==0) then
+!     if (litter==0) then
         ssnow%rlitt = zero
-     else
-        ssnow%rlitt = dxL/vlit%Dv
-     endif
+!     else
+!        ssnow%rlitt = dxL/vlit%Dv
+!     endif
      ssnow%gammzz   = Jsensible
      ssnow%h0       = h0
 

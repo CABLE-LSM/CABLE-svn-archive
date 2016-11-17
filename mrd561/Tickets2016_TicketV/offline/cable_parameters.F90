@@ -759,10 +759,10 @@ CONTAINS
        IF (ok /= NF90_NOERR) WRITE(logn,*) 'Error finding variable slope std'
        ok = NF90_GET_VAR(ncid_elev, fieldID, inSlopeSTD)
        IF (ok /= NF90_NOERR) THEN 
-          inSlopeSTD = 0.0
+          inSlopeSTD = 0.002
           WRITE(logn, *) 'Could not read slope stddev data for SSGW, set to 0.0'
        END IF
-       where(inSlopeSTD .le. 0.0) inSlopeSTD = 0.3
+       where(inSlopeSTD .le. 0.0) inSlopeSTD = 0.002
        ok = NF90_CLOSE(ncid_elev)
 
        ok = NF90_INQ_VARID(ncid_elev, 'soil_color', fieldID)
@@ -1346,7 +1346,7 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
       soil%hyds(landpt(e)%cstart:landpt(e)%cend) =                             &
                                           inhyds(landpt(e)%ilon, landpt(e)%ilat)
       soil%sucs(landpt(e)%cstart:landpt(e)%cend) =                             &
-                                     -1.* insucs(landpt(e)%ilon, landpt(e)%ilat)
+                                     sign(insucs(landpt(e)%ilon, landpt(e)%ilat),-1.0)
       soil%rhosoil(landpt(e)%cstart:landpt(e)%cend) =                          &
                                        inrhosoil(landpt(e)%ilon, landpt(e)%ilat)
       soil%css(landpt(e)%cstart:landpt(e)%cend) =                              &
@@ -1815,6 +1815,8 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
     END WHERE
     ssnow%pudsto = 0.0
     ssnow%pudsmx = 0.0
+
+    ssnow%qrecharge = 0.0   !only needed for GW module
 
 
     IF (cable_user%GW_MODEL .and. soilparmnew) then 

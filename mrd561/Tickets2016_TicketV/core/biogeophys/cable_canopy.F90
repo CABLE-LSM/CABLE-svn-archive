@@ -32,6 +32,7 @@ MODULE cable_canopy_module
 
   USE cable_data_module, ONLY : icanopy_type, point2constants
   USE cable_soil_snow_gw_module, ONLY : calc_srf_wet_fraction
+  USE cable_psm, ONLY : or_soil_evap_resistance
 
   IMPLICIT NONE
 
@@ -124,6 +125,8 @@ CONTAINS
          gbhf,          & ! freeConvectionBndryLayerCond
          csx              ! leaf surface CO2 concentration
 
+    real, dimension(mp) :: Kone, delta_tss, Dq_DT
+
     REAL  :: rt_min
     REAL, DIMENSION(mp)       :: zstar, rL, phist, csw, psihat,rt0bus
 
@@ -132,10 +135,13 @@ CONTAINS
     INTEGER, SAVE :: call_number =0
 
     REAL ::  litter_thermal_diff
+    real(r_2), dimension(mp) :: tmp_r,tmp_tg
 
     ! END header
 
     call_number = call_number + 1
+
+    litter_thermal_diff = 0.2 / (1932.0*62.0)
 
     ! assign local ptrs to constants defined in cable_data_module
     CALL point2constants(C)
@@ -289,7 +295,7 @@ CONTAINS
        ! See CSIRO SCAM, Raupach et al 1997, eq. 3.50:
        rough%rt1 = MAX(5.,(rough%rt1usa + rough%rt1usb + rt1usc) / canopy%us)
 
-       if (cable_user%or_evap) then
+       if (cable_user%or_evap .and. cable_user%soil_struc=='default') then
            call or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
        else
            ssnow%rtevap_unsat(:) = 0.0
@@ -429,7 +435,11 @@ CONTAINS
                 do i=1,mp
                    if (veg%iveg(i) .ne. 16 .and. soil%isoilm(i) .ne. 9) then
                       ssnow%rh_srf(i) =  exp(9.81*ssnow%smp(i,1)/1000.0/ssnow%tss(i)/461.4)
-                      dq(i) = max(0. , ssnow%qstss(i)*ssnow%rh_srf(i) -  met%qvair(i))
+                      !dq(i) = max(0. , ssnow%qstss(i)*ssnow%rh_srf(i) -  met%qvair(i))
+ 
+                      ssnow%rtevap_unsat(i) = max(1.,ssnow%rtevap_unsat(i))
+                      dq(i) = max(0. , (ssnow%qstss(i)*ssnow%rh_srf(i)/(ssnow%rtevap_unsat(i))+met%qvair(i)/ssnow%rtsoil(i))/ &
+                                    (1.0/ssnow%rtevap_unsat(i) + 1.0/ssnow%rtsoil(i)) - met%qvair(i))
                    else
                       ssnow%rh_srf(i) = 1._r_2
                       dq(i) = ssnow%qstss(i) - met%qvair(i)
@@ -441,7 +451,17 @@ CONTAINS
                 ssnow%rh_srf(:) = 1._r_2
              end if
 
-             dq2 = ssnow%qstss - met%qvair
+!             dq2 = ssnow%qstss - met%qvair
+             if (.not.cable_user%or_evap) then 
+                dq2 = ssnow%qstss - met%qvair
+             else 
+                do i=1,mp
+                   ssnow%rtevap_sat(i) = max(1.,ssnow%rtevap_sat(i))
+                   dq2(i) = (ssnow%qstss(i)/(ssnow%rtevap_sat(i))+met%qvair(i)/ssnow%rtsoil(i))/ &
+                                    (1.0/ssnow%rtevap_sat(i) + 1.0/ssnow%rtsoil(i)) - met%qvair(i)
+                end do
+             end if
+
 
              ssnow%potev =  Humidity_deficit_method(dq,dq2,ssnow%qstss )
 
@@ -460,6 +480,10 @@ CONTAINS
           elseif (cable_user%or_evap) then
             litter_thermal_diff = 0.2 / (1932.0*62.0)
             canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tk) /(ssnow%rtsoil +canopy%sublayer_dz/litter_thermal_diff)
+            !tmp_r = canopy%sublayer_dz/litter_thermal_diff
+            !tmp_tg = (ssnow%tss/tmp_r + met%tk/ssnow%rtsoil)/(1.0/tmp_r + 1.0/ssnow%rtsoil)
+            !canopy%fhs = air%rho*C%CAPP*(tmp_tg - met%tk) /(ssnow%rtsoil)
+
           ELSE
              canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tk) /ssnow%rtsoil
           ENDIF
@@ -467,7 +491,7 @@ CONTAINS
        ELSEIF (cable_user%soil_struc=='sli') THEN
           ! SLI SEB to get canopy%fhs, canopy%fess, canopy%ga
           ! (Based on old Tsoil, new canopy%tv, new canopy%fns)
-          CALL sli_main(1,dels,veg,soil,ssnow,met,canopy,air,rad,1)
+          CALL sli_main(1,dels,veg,soil,ssnow,met,canopy,air,rad,rough,1)
        ENDIF
 
 
@@ -488,7 +512,10 @@ CONTAINS
                 do i=1,mp
                    if (veg%iveg(i) .ne. 16 .and. soil%isoilm(i) .ne. 9) then
                       ssnow%rh_srf(i) = exp(9.81*ssnow%smp(i,1)/1000.0/ssnow%tss(i)/461.4)
-                      dq(i) = max(0. , ssnow%qstss(i)*ssnow%rh_srf(i) - met%qvair(i))
+                      !dq(i) = max(0. , ssnow%qstss(i)*ssnow%rh_srf(i) - met%qvair(i))
+                      ssnow%rtevap_unsat(i) = max(1.,ssnow%rtevap_unsat(i))
+                      dq(i) = max(0. , (ssnow%qstss(i)*ssnow%rh_srf(i)/(ssnow%rtevap_unsat(i))+met%qvair(i)/ssnow%rtsoil(i))/ &
+                                    (1.0/ssnow%rtevap_unsat(i) + 1.0/ssnow%rtsoil(i)) - met%qvair(i))
                    else
                       ssnow%rh_srf(i) = 1._r_2
                       dq(i) = ssnow%qstss(i) - met%qvair(i)
@@ -500,7 +527,17 @@ CONTAINS
                 dq = ssnow%qstss - met%qvair
              end if
 
-             dq2 = ssnow%qstss - met%qvair
+             !dq2 = ssnow%qstss - met%qvair
+             if (.not.cable_user%or_evap) then
+                dq2 = ssnow%qstss - met%qvair
+             else
+                do i=1,mp
+                   ssnow%rtevap_sat(i) = max(1.,ssnow%rtevap_sat(i))
+                   dq2(i) = (ssnow%qstss(i)/(ssnow%rtevap_sat(i))+met%qvair(i)/ssnow%rtsoil(i))/ &
+                                    (1.0/ssnow%rtevap_sat(i) + 1.0/ssnow%rtsoil(i)) - met%qvair(i)
+                end do
+             end if
+
 
              ssnow%potev =  Humidity_deficit_method(dq,dq2,ssnow%qstss )
 
@@ -521,8 +558,12 @@ CONTAINS
           elseif (cable_user%or_evap) then
             litter_thermal_diff = 0.2 / (1932.0*62.0)
             canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tk) /(ssnow%rtsoil +canopy%sublayer_dz/litter_thermal_diff)
+            !tmp_r = canopy%sublayer_dz/litter_thermal_diff
+            !tmp_tg = (ssnow%tss/tmp_r + met%tk/ssnow%rtsoil)/(1.0/tmp_r + 1.0/ssnow%rtsoil)
+            !canopy%fhs = air%rho*C%CAPP*(tmp_tg - met%tk) /(ssnow%rtsoil)
 
-            canopy%ga = canopy%fns-canopy%fhs-canopy%fes!*ssnow%cls
+
+            canopy%ga = canopy%fns-canopy%fhs-canopy%fes*ssnow%cls
 
           ELSE
              canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tvair) /ssnow%rtsoil
@@ -541,7 +582,7 @@ CONTAINS
        ELSEIF (cable_user%soil_struc=='sli') THEN
           ! SLI SEB to get canopy%fhs, canopy%fess, canopy%ga
           ! (Based on old Tsoil, new canopy%tv, new canopy%fns)
-          CALL sli_main(1,dels,veg,soil,ssnow,met,canopy,air,rad,1)
+          CALL sli_main(1,dels,veg,soil,ssnow,met,canopy,air,rad,rough,1)
        ENDIF
 
        ! Set total latent heat:
@@ -598,8 +639,6 @@ CONTAINS
        CALL update_zetar()
 
     END DO           ! do iter = 1, NITER
-
-
 
     canopy%cduv = canopy%us * canopy%us / (max(met%ua,C%UMIN))**2
 
@@ -896,6 +935,9 @@ CONTAINS
          elseif (cable_user%or_evap) then 
             ssnowpotev = (1.0-ssnow%wetfac) * air%rho * air%rlam * dq /(ssnow%rtsoil+ssnow%rtevap_unsat) + &
                    ssnow%wetfac * air%rho * air%rlam * dq2 /(ssnow%rtsoil+ssnow%rtevap_sat) 
+            !ssnowpotev = (1.0-ssnow%wetfac) * air%rho * air%rlam * dq /(ssnow%rtsoil) + &
+            !       ssnow%wetfac * air%rho * air%rlam * dq2 /(ssnow%rtsoil)
+
          else 
             ssnowpotev = air%rho * air%rlam * dq /(ssnow%rtsoil)
          end if
@@ -2664,119 +2706,148 @@ CONTAINS
   END SUBROUTINE getrex_1d
   !*********************************************************************************************************************
 
+!  these have been moved to the cable_psm module so they can be called from SLI
+!  at a single point and at all points from within cable_canopy
+!  recursive function my_gamma(a) result(g)
+!    USE cable_def_types_mod, only : r_2
+!   
+!    real(r_2), intent(in) :: a
+!    real(r_2) :: g
+!
+!    real(r_2), parameter :: pi = 3.14159265358979324
+!    integer, parameter :: cg = 7
+!
+!    ! these precomputed values are taken by the sample code in Wikipedia,
+!    ! and the sample itself takes them from the GNU Scientific Library
+!    real(r_2), dimension(0:8), parameter :: p = &
+!         (/ 0.99999999999980993, 676.5203681218851, -1259.1392167224028, &
+!         771.32342877765313, -176.61502916214059, 12.507343278686905, &
+!         -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7 /)
+!
+!    real(r_2) :: t, w, x
+!    integer :: i
+!
+!    x = a
+!
+!    if ( x < 0.5 ) then
+!       g = pi / ( sin(pi*x) * my_gamma(1.0-x) )
+!    else
+!       x = x - 1.0
+!       t = p(0)
+!       do i=1, cg+2
+!          t = t + p(i-1)/(x+real(i,r_2))
+!       end do
+!       w = x + real(cg,r_2) + 0.5
+!       g = sqrt(2.0*pi) * w**(x+0.5) * exp(-w) * t
+!    end if
+!  end function my_gamma
+!
+!SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
+!   USE cable_def_types_mod
+!   USE cable_air_module
+!   USE cable_common_module
+!
+!   TYPE (air_type), INTENT(IN)       :: air
+!   TYPE (met_type), INTENT(IN)       :: met
+!   TYPE (soil_snow_type), INTENT(INOUT) :: ssnow
+!   TYPE (canopy_type), INTENT(INOUT)    :: canopy
+!   TYPE (soil_parameter_type), INTENT(IN)   :: soil
+!   TYPE (veg_parameter_type), INTENT(IN) :: veg
+!   TYPE (roughness_type), INTENT(IN) :: rough
+!
+!
+!   REAL(r_2), DIMENSION(mp) :: sublayer_dz, eddy_shape,eddy_mod,soil_moisture_mod, &
+!                          soil_moisture_mod_sat, wb_liq, &
+!                          pore_size,pore_radius,rel_s,hk_zero,hk_zero_sat,time_scale  !note pore_size in m
+!
+!   INTEGER, DIMENSION(mp) :: int_eddy_shape
+!
+!   REAL(r_2), parameter :: Dff=2.5e-5, &
+!                      lm=1.73e-5, &
+!                      pi = 3.14159265358979324, &
+!                      c2 = 2.0
+!
+!   real(r_2), parameter :: rtevap_max = 100000.0
+!
+!   integer :: i,j,k
+!   logical, save ::  first_call = .true.
+!
+!   if (first_call)  canopy%sublayer_dz(:) = 0.001
+!
+!   pore_radius(:) =0.148/ (1000.0*9.81*abs(soil%smpsat(:,1))/1000.0)  !should replace 0.148 with surface tension, unit coversion, and angle
+!   pore_size(:) = pore_radius(:)*sqrt(pi)
+!
+!   !scale ustar according to the exponential wind profile, assuming we are a
+!   !mm from the surface
+!   eddy_shape = 0.3*met%ua/ max(1.0e-4,canopy%us*exp(-rough%coexp*(1.0-canopy%sublayer_dz/max(1e-2,rough%hruff))))
+!   int_eddy_shape = floor(eddy_shape)
+!   eddy_mod(:) = 0.0
+!   do i=1,mp
+!      eddy_mod(i) = 2.2*sqrt(112.0*pi) / (2.0**(eddy_shape(i)+1.0) * sqrt(eddy_shape(i)+1.0))
+!
+!      if (int_eddy_shape(i) .gt. 0) then
+!         eddy_mod(i) = eddy_mod(i) / my_gamma(eddy_shape(i)+1.0) * (2.0*eddy_shape(i)+1.0)
+!         do k=1,int_eddy_shape(i)
+!            eddy_mod(i) = eddy_mod(i) * (2.0*(eddy_shape(i) - k) + 1.0)
+!         end do
+!      end if
+!   end do
+!   canopy%sublayer_dz = max(eddy_mod(:) * air%visc / max(1.0e-4,canopy%us*exp(-rough%coexp*(1.0-canopy%sublayer_dz/max(1e-2,rough%hruff)))),1e-7) 
+!
+!   if (first_call) then
+!      wb_liq(:) = real(max(1.0e-7,min(pi/4.0, ssnow%wb(:,1)) ) )
+!   else
+!      wb_liq(:) = real(max(1.0e-7,min(pi/4.0, (ssnow%wb(:,1)-ssnow%wbice(:,1) -ssnow%satfrac(:)*soil%watsat(:,1))/(1._r_2 - ssnow%satfrac(:)) ) ) )
+!   end if
+!
+!   rel_s = real( max(wb_liq(:)-soil%watr(:,1),0._r_2)/(soil%watsat(:,1)-soil%watr(:,1)) )
+!   hk_zero = max(0.001*soil%hksat(:,1)*(min(max(rel_s,0.001_r_2),1._r_2)**(2._r_2*soil%clappB(:,1)+3._r_2)),1e-8)
+!   hk_zero_sat = max(0.001*soil%hksat(:,1),1e-8)
+!
+!   soil_moisture_mod(:)     = 1.0/pi/sqrt(wb_liq)* ( sqrt(pi/(4.0*wb_liq))-1.0)
+!   soil_moisture_mod_sat(:) = 1.0/pi/sqrt(soil%watsat(:,1))* (sqrt(pi/(4.0*soil%watsat(:,1)))-1.0)
+!
+!   !ssnow%rtevap_unsat(:) = min( rough%z0soil/canopy%sublayer_dz * (lm/(4.0*hk_zero) + (canopy%sublayer_dz + pore_size(:) * soil_moisture_mod) / Dff),&
+!   !                      rtevap_max )
+!   !ssnow%rtevap_sat(:)  =0._r_2! min( rough%z0soil/canopy%sublayer_dz * (lm/(4.0*hk_zero_sat) + (canopy%sublayer_dz + pore_size(:) * soil_moisture_mod_sat)/ Dff),&
+!                         !rtevap_max )
+!   ssnow%rtevap_unsat(:) = min( (lm/(4.0*hk_zero) + (canopy%sublayer_dz + pore_size(:) * soil_moisture_mod) / Dff),&
+!                         rtevap_max )
+!   ssnow%rtevap_sat(:)  =min( (lm/(4.0*hk_zero_sat) + (canopy%sublayer_dz + pore_size(:) * soil_moisture_mod_sat)/ Dff),&
+!                         rtevap_max )
+!
+!   !no additional evap resistane over lakes
+!   where(veg%iveg .eq. 16)
+!      ssnow%rtevap_sat = 0.0
+!      ssnow%rtevap_unsat = 0.0
+!   endwhere
+!
+!   first_call = .false.
+!
+!END SUBROUTINE or_soil_evap_resistance
 
-  recursive function my_gamma(a) result(g)
-    USE cable_def_types_mod, only : r_2
-   
-    real(r_2), intent(in) :: a
-    real(r_2) :: g
 
-    real(r_2), parameter :: pi = 3.14159265358979324
-    integer, parameter :: cg = 7
+SUBROUTINE Dqsat_DT(var,tair,pmb)
+   USE cable_def_types_mod, only : mp
 
-    ! these precomputed values are taken by the sample code in Wikipedia,
-    ! and the sample itself takes them from the GNU Scientific Library
-    real(r_2), dimension(0:8), parameter :: p = &
-         (/ 0.99999999999980993, 676.5203681218851, -1259.1392167224028, &
-         771.32342877765313, -176.61502916214059, 12.507343278686905, &
-         -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7 /)
+   REAL, INTENT(IN), DIMENSION(mp) ::                                          &
+      tair,                        & ! air temperature (C)
+      pmb                            ! pressure PMB (mb)
 
-    real(r_2) :: t, w, x
-    integer :: i
+   REAL, INTENT(OUT), DIMENSION(mp) ::                                         &
+      var                            ! result; sat sp humidity
 
-    x = a
+  INTEGER :: j
 
-    if ( x < 0.5 ) then
-       g = pi / ( sin(pi*x) * my_gamma(1.0-x) )
-    else
-       x = x - 1.0
-       t = p(0)
-       do i=1, cg+2
-          t = t + p(i-1)/(x+real(i,r_2))
-       end do
-       w = x + real(cg,r_2) + 0.5
-       g = sqrt(2.0*pi) * w**(x+0.5) * exp(-w) * t
-    end if
-  end function my_gamma
+  DO j=1,mp
 
-SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
-   USE cable_def_types_mod
-   USE cable_air_module
-   USE cable_common_module
+     var(j) = (C%RMH2o/C%rmair)/pmb(j) * ((C%TETENA*EXP(C%TETENB*tair(j)/(C%TETENC+tair(j))))  *&
+                 (C%TETENB/(C%TETENC+tair(j)) - C%TETENB*tair(j)/((C%TETENC+tair(j))**2.0)))
 
-   TYPE (air_type), INTENT(IN)       :: air
-   TYPE (met_type), INTENT(IN)       :: met
-   TYPE (soil_snow_type), INTENT(INOUT) :: ssnow
-   TYPE (canopy_type), INTENT(INOUT)    :: canopy
-   TYPE (soil_parameter_type), INTENT(IN)   :: soil
-   TYPE (veg_parameter_type), INTENT(IN) :: veg
-   TYPE (roughness_type), INTENT(IN) :: rough
+  ENDDO
 
 
-   REAL(r_2), DIMENSION(mp) :: sublayer_dz, eddy_shape,eddy_mod,soil_moisture_mod, &
-                          soil_moisture_mod_sat, wb_liq, &
-                          pore_size,pore_radius,rel_s,hk_zero,hk_zero_sat,time_scale  !note pore_size in m
+END SUBROUTINE Dqsat_DT
 
-   INTEGER, DIMENSION(mp) :: int_eddy_shape
-
-   REAL(r_2), parameter :: Dff=2.5e-5, &
-                      lm=1.73e-5, &
-                      pi = 3.14159265358979324, &
-                      c2 = 2.0
-
-   real(r_2), parameter :: rtevap_max = 100000.0
-
-   integer :: i,j,k
-   logical, save ::  first_call = .true.
-
-   if (first_call)  canopy%sublayer_dz(:) = 0.001
-
-   pore_radius(:) =0.148/ (1000.0*9.81*abs(soil%smpsat(:,1))/1000.0)  !should replace 0.148 with surface tension, unit coversion, and angle
-   pore_size(:) = pore_radius(:)*sqrt(pi)
-
-   !scale ustar according to the exponential wind profile, assuming we are a
-   !mm from the surface
-   eddy_shape = 0.3*met%ua/ max(1.0e-4,canopy%us*exp(-rough%coexp*(1.0-canopy%sublayer_dz/max(1e-2,rough%hruff))))
-   int_eddy_shape = floor(eddy_shape)
-   eddy_mod(:) = 0.0
-   do i=1,mp
-      eddy_mod(i) = 2.2*sqrt(112.0*pi) / (2.0**(eddy_shape(i)+1.0) * sqrt(eddy_shape(i)+1.0))
-
-      if (int_eddy_shape(i) .gt. 0) then
-         eddy_mod(i) = eddy_mod(i) / my_gamma(eddy_shape(i)+1.0) * (2.0*eddy_shape(i)+1.0)
-         do k=1,int_eddy_shape(i)
-            eddy_mod(i) = eddy_mod(i) * (2.0*(eddy_shape(i) - k) + 1.0)
-         end do
-      end if
-   end do
-   canopy%sublayer_dz = max(eddy_mod(:) * air%visc / max(1.0e-4,canopy%us*exp(-rough%coexp*(1.0-canopy%sublayer_dz/max(1e-2,rough%hruff)))),1e-7) 
-
-   if (first_call) then
-      wb_liq(:) = real(max(0.0,min(pi/4.0, ssnow%wb(:,1)) ) )
-   else
-      wb_liq(:) = real(max(0.0,min(pi/4.0, (ssnow%wb(:,1)-ssnow%wbice(:,1) -ssnow%satfrac(:)*soil%watsat(:,1))/(1._r_2 - ssnow%satfrac(:)) ) ) )
-   end if
-
-   rel_s = real( max(wb_liq(:)-soil%watr(:,1),0._r_2)/(soil%watsat(:,1)-soil%watr(:,1)) )
-   hk_zero = max(0.001*soil%hksat(:,1)*(min(max(rel_s,0.001_r_2),1._r_2)**(2._r_2*soil%clappB(:,1)+3._r_2)),1e-8)
-   hk_zero_sat = max(0.001*soil%hksat(:,1),1e-8)
-
-   soil_moisture_mod(:)     = 1.0/pi/sqrt(wb_liq)* ( sqrt(pi/(4.0*wb_liq))-1.0)
-   soil_moisture_mod_sat(:) = 1.0/pi/sqrt(soil%watsat(:,1))* (sqrt(pi/(4.0*soil%watsat(:,1)))-1.0)
-
-   ssnow%rtevap_unsat(:) = min( rough%z0soil/canopy%sublayer_dz * (lm/(4.0*hk_zero) + (canopy%sublayer_dz + pore_size(:) * soil_moisture_mod) / Dff),&
-                         rtevap_max )
-   ssnow%rtevap_sat(:)  =0._r_2! min( rough%z0soil/canopy%sublayer_dz * (lm/(4.0*hk_zero_sat) + (canopy%sublayer_dz + pore_size(:) * soil_moisture_mod_sat)/ Dff),&
-                         !rtevap_max )
-
-   !no additional evap resistane over lakes
-   where(veg%iveg .eq. 16)
-      ssnow%rtevap_sat = 0.0
-      ssnow%rtevap_unsat = 0.0
-   endwhere
-
-   first_call = .false.
-
-END SUBROUTINE or_soil_evap_resistance
 
 END MODULE cable_canopy_module

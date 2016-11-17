@@ -933,8 +933,7 @@ PROGRAM cable_offline_driver
                        PRINT *, 'soilGWtemp: ', soilGWtemp
                     end if
 
-
-		 ELSE ! spinup has converged
+                 ELSE
 
 		    spinConv = .TRUE.
       ! Write to screen and log file:

@@ -44,7 +44,7 @@ LSRC = cable_data.F90 cable_common.F90 cable_define_types.F90 cable_iovars.F90 \
 	cable_diag.F90 POP.F90 pop_io.F90 pop_mpi.F90 cable_plume_mip.F90 \
 	cable_weathergenerator.F90 cable_climate.F90 cable_phenology.F90 \
 	cable_cru_TRENDY.F90 POPLUC.F90 CASAONLY_LUC.F90 cable_LUC_EXPT.F90 \
-        cable_soilsnow_GW.F90 cable_large_scale_hydro.F90
+        cable_soilsnow_GW.F90 cable_large_scale_hydro.F90 cable_psm.F90
 
 # this is the executable we are building
 PROG = cable-mpi
@@ -82,7 +82,7 @@ cable_air.o: cable_air.F90 cable_define_types.o cable_common.o cable_data.o
 
 cable_albedo.o: cable_albedo.F90 cable_define_types.o cable_common.o cable_data.o
 
-cable_canopy.o: cable_canopy.F90 cable_define_types.o cable_radiation.o cable_roughness.o cable_air.o cable_common.o cable_data.o cable_sli_utils.o cable_soilsnow_GW.o
+cable_canopy.o: cable_canopy.F90 cable_define_types.o cable_radiation.o cable_roughness.o cable_air.o cable_common.o cable_data.o cable_sli_utils.o cable_soilsnow_GW.o cable_psm.o
 
 cable_carbon.o: cable_carbon.F90 cable_define_types.o cable_common.o cable_data.o
 
@@ -175,7 +175,7 @@ cable_sli_roots.o: cable_sli_roots.F90 cable_sli_numbers.o cable_define_types.o
 
 cable_sli_solve.o: cable_sli_solve.F90 cable_sli_numbers.o cable_sli_roots.o cable_sli_utils.o cable_define_types.o
 
-cable_sli_utils.o: cable_sli_utils.F90 cable_sli_numbers.o  cable_define_types.o
+cable_sli_utils.o: cable_sli_utils.F90 cable_sli_numbers.o  cable_define_types.o cable_psm.o
 
 cable_plume_mip.o: cable_plume_mip.F90 cable_iovars.o cable_define_types.o cable_checks.o cable_weathergenerator.o
 
@@ -191,6 +191,7 @@ cable_large_scale_hydro.o: cable_large_scale_hydro.F90 cable_common.o cable_defi
 
 cable_soilsnow_GW.o: cable_soilsnow_GW.F90 cable_iovars.o cable_define_types.o cable_common.o cable_data.o
 
+cable_psm.o: cable_psm.F90 cable_define_types.o cable_common.o cable_air.o
 
 # make clean option
 clean:

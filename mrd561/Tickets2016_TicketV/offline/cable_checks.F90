@@ -250,7 +250,7 @@ SUBROUTINE mass_balance(dels,ktau, ssnow,soil,canopy,met,                       
    ! which is used when nglacier=2 in soilsnow routines (BP feb2011)
    bal%wbal = REAL(met%precip - canopy%delwc - ssnow%snowd+ssnow%osnowd        &
         - ssnow%runoff-(canopy%fevw+canopy%fevc                                &
-        + canopy%fes/ssnow%cls)*dels/air%rlam - delwb)
+        + canopy%fes/ssnow%cls)*dels/air%rlam - delwb - ssnow%qrecharge)
 
    ! Canopy water balance: precip-change.can.storage-throughfall-evap+dew
    canopy_wbal = REAL(met%precip-canopy%delwc-canopy%through                   &

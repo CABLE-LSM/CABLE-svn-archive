@@ -1925,7 +1925,6 @@ END SUBROUTINE remove_trans
     end do
        
     !Doing the recharge outside of the soln of Richards Equation makes it easier to track total recharge amount.
-    !Add to ssnow at some point 
     do i=1,mp
        if ((ssnow%wtd(i) .ge. sum(dzmm,dim=1)) .and. (veg%iveg(i) .ne. 17) .and. (soil%isoilm(i) .ne. 9))  then
           ssnow%Qrecharge(i) = -ssnow%hk(i,ms)*((ssnow%GWsmp(i)-ssnow%smp(i,k-1)) - (ssnow%GWzq(i)-ssnow%zq(i,k)))/(zaq(i) - zmm(k))

@@ -53,7 +53,7 @@ MODULE sli_numbers
   REAL(r_2), PARAMETER :: dSfac        = 1.25
   REAL(r_2), PARAMETER :: dpmaxr       = 0.5
   REAL(r_2), PARAMETER :: h0min        = -2.e-3
-  REAL(r_2), PARAMETER :: snmin        = 0.005 ! depth of snowpack (m) without dedicated snow layer(s)
+  REAL(r_2), PARAMETER :: snmin        = 0.05!0.005 ! depth of snowpack (m) without dedicated snow layer(s)
   REAL(r_2), PARAMETER :: fsnowliq_max = 0.03  ! max fraction of snow water in liquid phase
   INTEGER(i_d), PARAMETER :: nsnow_max = 1     ! maximum number of dedicated snow layers (1 or 2)
 
@@ -61,7 +61,7 @@ MODULE sli_numbers
   REAL(r_2), PARAMETER :: SLmax     = 1.01
   REAL(r_2), PARAMETER :: SLmin     = 0.001
   REAL(r_2), PARAMETER :: Smax      = 1.05
-  REAL(r_2), PARAMETER :: h0max     = 0.005
+  REAL(r_2), PARAMETER :: h0max     = 0.0!0.005
   REAL(r_2), PARAMETER :: qprecmax  = 1.0e10
   !REAL(r_2), PARAMETER :: dSmax     = 0.5
   !REAL(r_2), PARAMETER :: dSmaxr    = 0.5
@@ -88,8 +88,9 @@ MODULE sli_numbers
 
   ! boundary conditions
   REAL(r_2), PARAMETER :: hbot  = 0.0
-  CHARACTER(LEN=20)    :: botbc = "free drainage"
-  ! CHARACTER(LEN=20)    :: botbc = "zero flux"
+  CHARACTER(LEN=20) :: botbc
+  !CHARACTER(LEN=20)    :: botbc = "free drainage"
+  !CHARACTER(LEN=20)    :: botbc = "zero flux"
   ! CHARACTER(LEN=20)    :: botbc = "aquifer"
   ! CHARACTER(LEN=20)    :: botbc = "constant head"
   ! CHARACTER(LEN=20)    :: botbc = "seepage"
@@ -119,7 +120,7 @@ MODULE sli_numbers
 
   ! define types
   TYPE vars_met
-     REAL(r_2) :: Ta, rha, rbw, rbh, rrc, Rn, Da, cva, civa, phiva, Rnsw
+     REAL(r_2) :: Ta, rha, rbw, rbh, rrc, Rn, Da, cva, civa, phiva, Rnsw,rpsm,rpsm_h,qvair,psrf
   END TYPE vars_met
 
   TYPE vars

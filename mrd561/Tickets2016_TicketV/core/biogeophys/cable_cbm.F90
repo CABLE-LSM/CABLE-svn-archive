@@ -162,7 +162,7 @@ CONTAINS
          END IF
 
       ELSEIF (cable_user%SOIL_STRUC=='sli') THEN
-         CALL sli_main(ktau,dels,veg,soil,ssnow,met,canopy,air,rad,0)
+         CALL sli_main(ktau,dels,veg,soil,ssnow,met,canopy,air,rad,rough,0)
       ENDIF
    ENDIF
 

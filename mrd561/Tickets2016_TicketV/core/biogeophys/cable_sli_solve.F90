@@ -62,7 +62,7 @@
 
 MODULE sli_solve
 
-  USE cable_def_types_mod, ONLY: r_2, i_d
+  USE cable_def_types_mod!, ONLY: r_2, i_d
   USE sli_numbers,         ONLY: &
        experiment, &
        zero, one, two, half, thousand, e3, e5, &  ! numbers
@@ -82,7 +82,7 @@ MODULE sli_solve
        getfluxes_vp, getheatfluxes, flux, sol, &
        csat, slope_csat, potential_evap, tri, setsol, zerovars, &
        esat_ice, slope_esat_ice, Tfrozen, rtbis_Tfrozen, GTFrozen, &
-       JSoilLayer, esat, forcerestore, SEB
+       JSoilLayer, esat, forcerestore, SEB, PSM_SEB
 
   IMPLICIT NONE
 
@@ -128,7 +128,8 @@ CONTAINS
        ciso, cisoice, ciso_snow, cisoice_snow, cisos, cisoL, cprec, cprec_snow, cali, &
        qali, qiso_in, qiso_out, qiso_evap_cum, qiso_trans_cum, qiso_liq_adv, &
        qiso_vap_adv, qiso_liq_diff, qiso_vap_diff, qvsig, qlsig, qvTsig, qvh, deltaTa, lE_old, &
-       dolitter, doisotopologue, dosepts, docondition, doadvection)
+       dolitter, doisotopologue, dosepts, docondition, doadvection,&
+       soil,air,met,canopy,ssnow,veg,rough,useaquifer,psm_evap)
 
 
     IMPLICIT NONE
@@ -191,6 +192,17 @@ CONTAINS
 
     !mrd561
     REAL(r_2),      DIMENSION(1:mp,1:n),   INTENT(inOUT)           :: qhorz_flux
+    LOGICAL,                               INTENT(IN)              :: useaquifer
+    LOGICAL,                               INTENT(IN)              :: psm_evap
+
+    TYPE (air_type), INTENT(IN)       :: air 
+    TYPE (met_type), INTENT(IN)       :: met 
+    TYPE (soil_snow_type), INTENT(INOUT) :: ssnow
+    TYPE (canopy_type), INTENT(INOUT)    :: canopy
+    TYPE (soil_parameter_type), INTENT(IN)   :: soil
+    TYPE (veg_parameter_type), INTENT(IN) :: veg 
+    TYPE (roughness_type), INTENT(IN) :: rough
+
     ! Solves the RE and, optionally, the ADE from time ts to tfin.
     ! Definitions of arguments:
     ! Required args:
@@ -316,7 +328,10 @@ CONTAINS
     REAL(r_2),          DIMENSION(1:mp)     :: J0snow, wcol0snow
     REAL(r_2), DIMENSION(1:n) :: h_ex
     REAL(r_2) :: wpi
-  
+
+    !mrd  
+    REAL(r_2),      DIMENSION(1:mp)            :: wtd
+
     !open (unit=7, file="Test.out", status="replace", position="rewind")
     ! The derived types params and vars hold soil water parameters and variables.
     ! Parameter names often end in e, which loosely denotes "air entry", i.e.,
@@ -581,10 +596,10 @@ CONTAINS
 
        Tbot(:,:) = spread(Tsoil(:,n),1,n)
        ! Debug for mp=1: remove elemental from hyofS and do loop instead of next line
-       call hyofS(Sbot, Tbot, par, vcall)
-       !do i=1, n
-       !   call hyofS(Sbot(1,i), Tbot(1,i), par(1,i), vcall(1,i))
-       !end do
+       !call hyofS(Sbot, Tbot, par, vcall)
+       do i=1, n
+          call hyofS(Sbot(1,i), Tbot(1,i), par(1,i), vcall(1,i))
+       end do
        ! End debug hyofS
        ! for hbot >= he
        vtmp = zerovars()
@@ -600,7 +615,24 @@ CONTAINS
           vbot(:)      = vcall(:,n)
           vbot(:)%isat = 0
        endwhere
+   elseif (useaquifer) then
+!   add aquifer code here
+!   set to saturation values...
+       vtmp = zerovars()
+       vtmp%isat    = 1
+       vtmp%rh      = one
+       vtmp%lambdav = rlambda
+       vtmp%lambdaf = lambdaf
+
+       vbot = spread(vtmp,1,mp)
+
+       vbot(:)%h   = soil%GWsmpsat(:)*thousand
+       vbot(:)%phi = var(:,n)%phie
+       vbot(:)%K   = soil%GWhksat(:)
+       vbot(:)%isat = 0
     end if
+
+    wtd(:) = ssnow%wtd(:)  !in m?
     !----- end set up for boundary conditions
 
     !----- initialise
@@ -649,7 +681,6 @@ CONTAINS
     ! v_aquifer(:)%zsoil  = sum(dx(:,:),2)
     ! v_aquifer(:)%zdelta = zdelta(:)
     ! call aquifer_props(v_aquifer(:))
-
 
     ! initialise litter
     if (littercase == 1 .or. littercase == 2) then
@@ -725,10 +756,10 @@ CONTAINS
                 ! this set var-structure
                 isave(kk,:) = var(kk,:)%isat
                 ! Debug for mp=1: remove elemental from hyofS and do loop instead of next line
-                 call hyofS(S(kk,1:n), Tsoil(kk,1:n), par(kk,1:n), var(kk,1:n))
-                !do i=1, n
-                !   call hyofS(S(kk,i), Tsoil(kk,i), par(kk,i), var(kk,i))
-                !end do
+                 !call hyofS(S(kk,1:n), Tsoil(kk,1:n), par(kk,1:n), var(kk,1:n))
+                do i=1, n
+                   call hyofS(S(kk,i), Tsoil(kk,i), par(kk,i), var(kk,i))
+                end do
                
                 ! End debug hyofS
                 cp(kk) = real(1-var(kk,1)%iice,r_2)*cswat*rhow & ! heat capacity of pond
@@ -835,12 +866,25 @@ CONTAINS
              endif
              select case (surface_case(kk))
              case (1) ! no snow
+                if (psm_evap) then
+                CALL PSM_SEB(n, par(kk,:), vmet(kk), vsnow(kk), var(kk,:), qprec(kk), qprec_snow(kk), dx(kk,:), &
+                     h0(kk), Tsoil(kk,:), &
+                     Tsurface(kk), G0(kk), lE0(kk),Epot(kk),  &
+                     q(kk,0), qevap(kk), qliq(kk,0), qv(kk,0), &
+                     qyb(kk,0), qTb(kk,0), qlyb(kk,0), qvyb(kk,0), qlTb(kk,0), qvTb(kk,0), qh(kk,0), &
+                     qadv(kk,0), qhyb(kk,0), qhTb(kk,0), qadvyb(kk,0), qadvTb(kk,0), irec, &
+                     soil,air,met,canopy,ssnow,veg,rough,kk,littercase)
+
+                else
+
                 CALL SEB(n, par(kk,:), vmet(kk), vsnow(kk), var(kk,:), qprec(kk), qprec_snow(kk), dx(kk,:), &
                      h0(kk), Tsoil(kk,:), &
                      Tsurface(kk), G0(kk), lE0(kk),Epot(kk),  &
                      q(kk,0), qevap(kk), qliq(kk,0), qv(kk,0), &
                      qyb(kk,0), qTb(kk,0), qlyb(kk,0), qvyb(kk,0), qlTb(kk,0), qvTb(kk,0), qh(kk,0), &
                      qadv(kk,0), qhyb(kk,0), qhTb(kk,0), qadvyb(kk,0), qadvTb(kk,0), irec)
+
+                end if
                 qya(kk,0)    = zero
                 qTa(kk,0)    = zero
                 qlya(kk,0)   = zero
@@ -852,6 +896,19 @@ CONTAINS
                 qadvTa(kk,0) = zero
 
              case (2) ! snow
+                if (psm_evap) then
+
+                CALL PSM_SEB(n, par(kk,:), vmet(kk), vsnow(kk), var(kk,:), qprec(kk), qprec_snow(kk), dx(kk,:), &
+                     h0(kk), Tsoil(kk,:), &
+                     Tsurface(kk), G0(kk), lE0(kk), Epot(kk),  &
+                     q(kk,-vsnow(kk)%nsnow), qevap(kk), qliq(kk,-vsnow(kk)%nsnow), qv(kk,-vsnow(kk)%nsnow), &
+                     qyb(kk,-vsnow(kk)%nsnow), qTb(kk,-vsnow(kk)%nsnow), qlyb(kk,-vsnow(kk)%nsnow), &
+                     qvyb(kk,-vsnow(kk)%nsnow), qlTb(kk,-vsnow(kk)%nsnow), qvTb(kk,-vsnow(kk)%nsnow), &
+                     qh(kk,-vsnow(kk)%nsnow), qadv(kk,-vsnow(kk)%nsnow), qhyb(kk,-vsnow(kk)%nsnow), &
+                     qhTb(kk,-vsnow(kk)%nsnow), qadvyb(kk,-vsnow(kk)%nsnow), qadvTb(kk,-vsnow(kk)%nsnow), irec,&
+                     soil,air,met,canopy,ssnow,veg,rough,kk,littercase)
+
+                else
                 CALL SEB(n, par(kk,:), vmet(kk), vsnow(kk), var(kk,:), qprec(kk), qprec_snow(kk), dx(kk,:), &
                      h0(kk), Tsoil(kk,:), &
                      Tsurface(kk), G0(kk), lE0(kk), Epot(kk),  &
@@ -860,6 +917,7 @@ CONTAINS
                      qvyb(kk,-vsnow(kk)%nsnow), qlTb(kk,-vsnow(kk)%nsnow), qvTb(kk,-vsnow(kk)%nsnow), &
                      qh(kk,-vsnow(kk)%nsnow), qadv(kk,-vsnow(kk)%nsnow), qhyb(kk,-vsnow(kk)%nsnow), &
                      qhTb(kk,-vsnow(kk)%nsnow), qadvyb(kk,-vsnow(kk)%nsnow), qadvTb(kk,-vsnow(kk)%nsnow), irec)
+                end if
                 qya(kk,-vsnow(kk)%nsnow)    = zero
                 qTa(kk,-vsnow(kk)%nsnow)    = zero
                 qlya(kk,-vsnow(kk)%nsnow)   = zero
@@ -883,7 +941,7 @@ CONTAINS
                   hint(kk,1:n), phimin(kk,1:n), q(kk,0:n), qya(kk,0:n), qyb(kk,0:n), qTa(kk,0:n), qTb(kk,0:n), &
                   qliq(kk,0:n), qlya(kk,0:n), qlyb(kk,0:n), qv(kk,0:n), qvT(kk,0:n), qvh(kk,0:n), qvya(kk,0:n), &
                   qvyb(kk,0:n), &
-                  iflux(kk), init(kk), getq0(kk), getqn(kk), Tsoil(kk,1:n), T0(kk), nsat(kk), nsatlast(kk))
+                  iflux(kk), init(kk), getq0(kk), getqn(kk), Tsoil(kk,1:n), T0(kk), nsat(kk), nsatlast(kk),useaquifer,wtd(kk))
              qTa(kk,n) = zero
              qTb(kk,n) = zero
              qvTa(kk,1:n) = qTa(kk,1:n)
@@ -1033,6 +1091,9 @@ CONTAINS
                       q(kk,n)   = zero
                       qya(kk,n) = zero
                    end if
+                case ("aquifer")
+                   qv(kk,n)   = zero
+                   qvya(kk,n) = zero
                 case default
                    write(*,*) "solve: illegal bottom boundary condition."
                    stop
@@ -1937,7 +1998,7 @@ CONTAINS
                 !                 endif
 
                 dwdrainage(kk)     = q(kk,n)*dt(kk) +sig(kk)*dt(kk)*(qya(kk,n)*dy(kk,n)+qTa(kk,n)*dTsoil(kk,n))
-                if (botbc=="aquifer" .and. v_aquifer(kk)%isat==0) then
+                if (botbc=="aquifer" .and. v_aquifer(kk)%isat==0 .and. (.not.useaquifer)) then
                    dwdischarge(kk) = v_aquifer(kk)%discharge*dt(kk)
                 else
                    dwdischarge(kk) = dwdrainage(kk)
@@ -2033,7 +2094,8 @@ CONTAINS
                    qlsig(kk,n)      = qsig(kk,n)
                 end select ! surface_case
 
-                if (botbc=="aquifer") then ! update aquifer props
+                if ((botbc=="aquifer") .and. (.not.useaquifer)) then ! update aquifer props  I made this confusing......
+                    !aquifer handled in seperate large_scale_hydro now
                    if (v_aquifer(kk)%isat==0) then
                       if (v_aquifer(kk)%WA+(dwdrainage(kk)-dwdischarge(kk))*dt(kk) > &
                            (v_aquifer(kk)%zzero-v_aquifer(kk)%zsoil)*v_aquifer(kk)%Sy) then
@@ -2588,10 +2650,10 @@ CONTAINS
                 isave(kk,1:n) = var(kk,1:n)%iice ! save isat before updating
                 ! update variables (particularly thetaice)
                 ! Debug for mp=1: remove elemental from hyofS and do loop instead of next line
-                 call hyofS(S(kk,1:n), Tsoil(kk,1:n), par(kk,1:n), var(kk,1:n))
-                !do i=1, n
-                !   call hyofS(S(kk,i), Tsoil(kk,i), par(kk,i), var(kk,i))
-                !end do
+                 !call hyofS(S(kk,1:n), Tsoil(kk,1:n), par(kk,1:n), var(kk,1:n))
+                do i=1, n
+                   call hyofS(S(kk,i), Tsoil(kk,i), par(kk,i), var(kk,i))
+                end do
                 ! End debug hyofS
                 var(kk,1:n)%iice = isave(kk,1:n)
              endif ! if .not.again
@@ -3516,7 +3578,10 @@ CONTAINS
 
              vsnow(kk)%hsnow(vsnow(kk)%nsnow) = (tmp1d2(kk) - tmp1d1(kk)) + vsnow(kk)%hliq(vsnow(kk)%nsnow)
 
-             ! or add melt water to completely frozen snowpack below
+             ! or add melt water to completely frozen snowpack belowit should
+             !
+             !mrd561 need to ensure not all melt water goes to frozen soil as 
+             !cause some surface runoff, need to partition
           else
              tmp1d1(kk) = (vsnow(kk)%hsnow(vsnow(kk)%nsnow)*(vsnow(kk)%tsn(vsnow(kk)%nsnow)*csice-lambdaf) &
                   /(vsnow(kk)%hsnow(vsnow(kk)%nsnow) + qmelt(kk,1)) + lambdaf)/csice
