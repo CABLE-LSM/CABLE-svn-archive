@@ -173,9 +173,10 @@ cable_sli_numbers.o: cable_sli_numbers.F90  cable_define_types.o
 cable_sli_roots.o: cable_sli_roots.F90 cable_sli_numbers.o cable_define_types.o
 
 cable_sli_solve.o: cable_sli_solve.F90 cable_sli_numbers.o cable_sli_roots.o cable_sli_utils.o cable_define_types.o
-cable_sli_solve.o: CFLAGS+=-warn all # -check all
+cable_sli_solve.o: CFLAGS+=-warn all # -fp-model fast # -check all
 
 cable_sli_utils.o: cable_sli_utils.F90 cable_sli_numbers.o  cable_define_types.o
+cable_sli_utils.o: CFLAGS+=-warn all # -fp-model fast # -check all
 
 cable_plume_mip.o: cable_plume_mip.F90 cable_iovars.o cable_define_types.o cable_checks.o cable_weathergenerator.o
 

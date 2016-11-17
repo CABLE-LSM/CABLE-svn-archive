@@ -1990,6 +1990,7 @@ CONTAINS
     REAL(r_2) :: F1, F2, F
     ! REAL(r_2) :: macropore_modifier
     REAL(r_2) :: cdry, tmp_thetai
+    REAL(r_2) :: mw_rgas_t
 
     theta         = S*(parin%thre) + (parin%the - parin%thre)
     var%lambdav   = rlambda       ! latent heat of vaporisation
@@ -2123,13 +2124,14 @@ CONTAINS
     ! endif
     var%macropore_factor = one
 
-    c      = Mw*gravity/Rgas/(Tsoil+Tzero)
+    mw_rgas_t = Mw/thousand/Rgas/(Tsoil+Tzero)
+    c      = gravity*mw_rgas_t*thousand
     lambda = parin%lam
 
     if (S < one) then
-        var%sl     = slope_esat(Tsoil) * Mw/thousand/Rgas/(Tsoil+Tzero) ! m3 m-3 K-1
-        var%cvsat  = esat(Tsoil)*Mw/thousand/Rgas/(Tsoil+Tzero) ! m3 m-3
-        var%rh     = max(exp(Mw*gravity*var%h/Rgas/(Tsoil+Tzero)),rhmin)
+        var%sl     = slope_esat(Tsoil) * mw_rgas_t ! m3 m-3 K-1
+        var%cvsat  = esat(Tsoil)*mw_rgas_t ! m3 m-3
+        var%rh     = max(exp(c*var%h),rhmin)
         crh        = c*var%rh
         var%hS     = dhdS
         var%rhS    = crh*dhdS
@@ -2137,8 +2139,8 @@ CONTAINS
         var%cvS    = var%rhS *var%cvsat
         var%cvsatT = var%sl
     else
-        var%sl     = slope_esat(Tsoil) * Mw/thousand/Rgas/(Tsoil+Tzero) ! m3 m-3 K-1
-        var%cvsat  = esat(Tsoil)*Mw/thousand/Rgas/(Tsoil+Tzero) ! m3 m-3
+        var%sl     = slope_esat(Tsoil) * mw_rgas_t ! m3 m-3 K-1
+        var%cvsat  = esat(Tsoil)*mw_rgas_t ! m3 m-3
         var%rh     = one
         crh        = c*var%rh
         var%hS     = dhdS
