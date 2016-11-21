@@ -277,6 +277,9 @@ MODULE cable_large_scale_hydro
      where (ssnow%wtd(:) .gt. wtd_max) ssnow%wtd(:) = wtd_max
      where (ssnow%wtd(:) .lt. wtd_min) ssnow%wtd(:) = wtd_min
 
+     !water table at surface in areas defined as saturated
+     where(veg%iveg .eq. 16 .or. veg%iveg .eq. 9 .or. veg%iveg .eq. 11) ssnow%wtd(:) = wtd_min
+
   END SUBROUTINE diagnose_watertable_depth
 
 
@@ -295,20 +298,24 @@ MODULE cable_large_scale_hydro
      REAL(r_2) :: tmpa,tmpb,qinmax
      INTEGER :: k_drain,k,i
      REAL(r_2), dimension(mp) :: sm_tot
+     REAL(r_2), dimension(17), parameter ::  qhz_pft_modifier = &
+                                          (/1.0,1.0,1.0,0.25,1.0,1.0,&
+                                            1.0,1.0,0.1,0.1,0.1,1.0,&
+                                            1.0,1.0,1.0,1.0,1.0     /)
+     REAL(r_2), dimension(17), parameter ::  qhz_pft_efold_modifier = &
+                                          (/1.0,1.0,1.0,0.25,1.0,1.0,&
+                                            1.0,1.0,0.1,0.1,0.1,1.0,&
+                                            1.0,1.0,1.0,1.0,1.0     /)
 
      ssnow%qhlev(:,:) = 0._r_2
 
      do i=1,mp
 
         ssnow%qhz(i)  = min(max(tan(soil%slope(i)),0.001),0.1) *gw_params%MaxHorzDrainRate * &
+                        qhz_pft_modifier(veg%iveg(i)) * &
                     exp(-ssnow%wtd(i)/gw_params%EfoldHorzDrainRate)
 
 
-        !Keep "lakes" saturated forcing qhz = 0.  runoff only from lakes
-        !overflowing
-        if ((soil%isoilm(i) .eq. 9) .or. (veg%iveg(i) .eq. 16)) then
-           ssnow%qhz(i) = 0._r_2
-        end if
  
         !identify first no frozen layer.  drinage from that layer and below
         !drain from sat layers
@@ -348,6 +355,13 @@ MODULE cable_large_scale_hydro
          do k=k_drain,ms
             ssnow%qhz(i) = ssnow%qhz(i) + ssnow%qhlev(i,k)
          end do
+
+        !Keep "lakes" saturated forcing qhz = 0.  runoff only from lakes
+        !overflowing
+        if ((soil%isoilm(i) .eq. 9) .or. (veg%iveg(i) .eq. 16)) then
+           ssnow%qhz(i) = 0._r_2
+           ssnow%qhlev(i,:) = 0._r_2
+        end if
 
     end do  
 
