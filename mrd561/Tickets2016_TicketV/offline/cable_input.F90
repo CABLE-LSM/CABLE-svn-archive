@@ -475,12 +475,17 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
     ! Get all latitude and longitude values.
     ! Find latitude variable (try 'latitude' and 'nav_lat'(ALMA)):
     ok = NF90_INQ_VARID(ncid_met, 'latitude', latitudeID)
-    IF(ok /= NF90_NOERR) THEN
+    IF(ok /= NF90_NOERR) THEN 
        ok = NF90_INQ_VARID(ncid_met, 'nav_lat', latitudeID)
-       IF(ok /= NF90_NOERR) CALL nc_abort &
+       IF(ok /= NF90_NOERR) then 
+          !MDeck allow for 1d lat called 'lat'
+          ok = NF90_INQ_VARID(ncid_met, 'lat', latitudeID)
+          if (ok /= NF90_NOERR) CALL nc_abort &
             (ok,'Error finding latitude variable in ' &
             //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
+       END IF
     END IF
+
     ! Allocate space for lat_all variable and its temp counterpart:
     ALLOCATE(lat_all(xdimsize,ydimsize))
     ALLOCATE(temparray2(xdimsize,ydimsize))
@@ -509,10 +514,15 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
     ok = NF90_INQ_VARID(ncid_met, 'longitude', longitudeID)
     IF(ok /= NF90_NOERR) THEN
        ok = NF90_INQ_VARID(ncid_met, 'nav_lon', longitudeID)
-       IF(ok /= NF90_NOERR) CALL nc_abort &
+       IF(ok /= NF90_NOERR) THEN
+          !MDeck allow for 1d lon called 'lon'
+          ok = NF90_INQ_VARID(ncid_met, 'lon', longitudeID)
+          IF(ok /= NF90_NOERR) CALL nc_abort &
             (ok,'Error finding longitude variable in ' &
             //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
+       END IF
     END IF
+
     ! Allocate space for lon_all variable:
     ALLOCATE(lon_all(xdimsize,ydimsize))
     IF (LON1D) THEN
