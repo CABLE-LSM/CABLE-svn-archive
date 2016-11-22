@@ -551,10 +551,10 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
     ! Check for "mask" variable or "land" variable to tell grid type
     ! (and allow neither if only one gridpoint). "mask" is a 2D variable
     ! with dims x,y and "land" is a 1D variable.
-    ok = NF90_INQ_VARID(ncid_met, 'mask', maskID) ! check for "mask"
+    ok = NF90_INQ_VARID(ncid_mask, 'mask', maskID) ! check for "mask"
     IF(ok /= NF90_NOERR) THEN ! if error, i.e. no "mask" variable:
        ! Check for "land" variable:
-       ok = NF90_INQ_VARID(ncid_met, 'land', landID)
+       ok = NF90_INQ_VARID(ncid_mask, 'land', landID)
        IF(ok /= NF90_NOERR) THEN ! ie no "land" or "mask"
           IF(ngridcells==1) THEN
              ! Allow no explicit grid system if only one gridpoint
@@ -578,11 +578,11 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
        ELSE ! i.e. "land" variable exists
           metGrid='land'
           ! Check size of "land" dimension:
-          ok = NF90_INQ_DIMID(ncid_met,'land', landdimID)
+          ok = NF90_INQ_DIMID(ncid_mask,'land', landdimID)
           IF(ok/=NF90_NOERR) CALL nc_abort &
                (ok,'Error finding land dimension in ' &
                //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
-          ok = NF90_INQUIRE_DIMENSION(ncid_met,landdimID,len=mland_fromfile)
+          ok = NF90_INQUIRE_DIMENSION(ncid_mask,landdimID,len=mland_fromfile)
           IF(ok/=NF90_NOERR) CALL nc_abort &
                (ok,'Error determining size of land dimension in ' &
                //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
@@ -590,7 +590,7 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
           ALLOCATE(landGrid(mland_fromfile))
           ALLOCATE(temparray1(mland_fromfile))
           ! Get values of "land" variable from file:
-          ok= NF90_GET_VAR(ncid_met,landID,temparray1)
+          ok= NF90_GET_VAR(ncid_mask,landID,temparray1)
           IF(ok /= NF90_NOERR) CALL nc_abort &
                (ok,'Error reading "land" variable in ' &
                //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
@@ -625,7 +625,7 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
        ALLOCATE(mask(xdimsize,ydimsize))
        metGrid='mask' ! Use mask system
        ! Get mask values from file:
-       ok= NF90_GET_VAR(ncid_met,maskID,mask)
+       ok= NF90_GET_VAR(ncid_mask,maskID,mask)
        IF(ok /= NF90_NOERR) CALL nc_abort &
             (ok,'Error reading "mask" variable in ' &
             //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
@@ -805,10 +805,22 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
     ! Use internal files to convert "time" variable units (giving the run's
     ! start time) from character to integer; calculate starting hour-of-day,
     ! day-of-year, year:
-    READ(timeunits(15:18),*) syear
-    READ(timeunits(20:21),*) smoy ! integer month
-    READ(timeunits(23:24),*) sdoytmp ! integer day of that month
-    READ(timeunits(26:27),*) shod  ! starting hour of day
+    IF (.not.cable_user%GSWP3) then 
+       READ(timeunits(15:18),*) syear
+       READ(timeunits(20:21),*) smoy ! integer month
+       READ(timeunits(23:24),*) sdoytmp ! integer day of that month
+       READ(timeunits(26:27),*) shod  ! starting hour of day 
+    ELSE 
+       syear=ncciy
+       smoy=1
+       sdoytmp=1
+       shod=0
+    END IF
+
+   ! READ(timeunits(15:18),*) syear
+   ! READ(timeunits(20:21),*) smoy ! integer month
+   ! READ(timeunits(23:24),*) sdoytmp ! integer day of that month
+   ! READ(timeunits(26:27),*) shod  ! starting hour of day
     ! if site data, shift start time to middle of timestep
     ! only do this if not already at middle of timestep
     !! vh_js !!
@@ -971,7 +983,8 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
        convert%Qair = -999.0
        WRITE(logn,*) 'Humidity will be converted from relative to specific'
     ELSE IF(metunits%Qair(1:3)=='g/g'.OR.metunits%Qair(1:5)=='kg/kg' &
-         .OR.metunits%Qair(1:3)=='G/G'.OR.metunits%Qair(1:5)=='KG/KG') THEN
+         .OR.metunits%Qair(1:3)=='G/G'.OR.metunits%Qair(1:5)=='KG/KG' .or.  & !gswp3)
+          metunits%Qair(1:7)=='kg kg-1') THEN
        ! Units are correct
        convert%Qair=1.0
     ELSE
@@ -993,7 +1006,8 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
     IF(metunits%Rainf(1:8)=='kg/m^2/s'.OR.metunits%Rainf(1:6)=='kg/m2s'.OR.metunits%Rainf(1:10)== &
          'kgm^-2s^-1'.OR.metunits%Rainf(1:4)=='mm/s'.OR. &
          metunits%Rainf(1:6)=='mms^-1'.OR. &
-         metunits%Rainf(1:7)=='kg/m^2s') THEN
+         metunits%Rainf(1:7)=='kg/m^2s' .or. &!  gswp3
+         metunits%Rainf(1:10)=='kg m-2 s-1') THEN
        ! Change from mm/s to mm/time step:
         convert%Rainf = dels
     ELSE IF(metunits%Rainf(1:4)=='mm/h'.OR.metunits%Rainf(1:6)== &
@@ -1030,7 +1044,8 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
     IF(ok /= NF90_NOERR) CALL nc_abort &
          (ok,'Error finding Wind units in met data file ' &
          //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
-    IF (metunits%Wind(1:3)/='m/s'.AND.metunits%Wind(1:2)/='ms'.AND.metunits%Wind(1:5)/='m s-1') THEN
+    IF (metunits%Wind(1:3)/='m/s'.AND.metunits%Wind(1:2)/='ms'.AND.metunits%Wind(1:5)/='m s-1' .and. &!gswp3
+       metunits%Wind(1:5)/='m s-1') THEN
        WRITE(*,*) metunits%Wind
        CALL abort('Unknown units for Wind'// &
             ' in '//TRIM(filename%met)//' (SUBROUTINE open_met_data)')
