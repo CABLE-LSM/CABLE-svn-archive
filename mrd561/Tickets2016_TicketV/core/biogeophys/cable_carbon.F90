@@ -335,7 +335,7 @@ SUBROUTINE plantcarb(veg, bgc, met, canopy)
    poolcoef1r=(sum(spread(bgc%ratecp,1,mp)*bgc%cplant,2) -                     &
         bgc%ratecp(1)*bgc%cplant(:,1) - bgc%ratecp(2)*bgc%cplant(:,2))
 
-   tmp1(:) = 3.22 - 0.046 * (met%tk(:)-C%TFRZ)
+   tmp1(:) = max(3.22 - 0.046 * (met%tk(:)-C%TFRZ),1e-6)
    tmp2(:) = 0.1 * (met%tk(:)-C%TFRZ-20.0)
    tmp3(:) = tmp1(:) ** tmp2(:)
 
