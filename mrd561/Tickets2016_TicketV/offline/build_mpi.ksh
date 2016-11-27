@@ -33,9 +33,12 @@ host_raij()
    export NCDIR=$NETCDF_ROOT'/lib/Intel'
    export NCMOD=$NETCDF_ROOT'/include/Intel'
    export FC='mpif90'
-   export CFLAGS='-O0 -fp-model precise'
+   export CFLAGS='-O3 -fp-model fast'
    if [[ $1 = 'debug' ]]; then
       export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0'
+      export dodbug=1
+   else
+      export dodbug=0
    fi
    export LDFLAGS='-L'$NCDIR' -O2'
    export LD='-lnetcdf -lnetcdff'
@@ -232,7 +235,7 @@ clean_build()
       print '\ncleaning up\n'
       print '\n\tPress Enter too continue buiding, Control-C to abort now.\n'
       read dummy 
-      rm -fr .mpitmp
+      rm -fr $bldir
 }
 
 
@@ -328,8 +331,8 @@ do_i_no_u()
 
 build_status()
 {
-   if [[ -f .mpitmp/cable-mpi ]]; then
-   	mv .mpitmp/cable-mpi .
+   if [[ -f $bldir/$exename ]]; then
+   	mv $bldir/$exename .
    	print '\nBUILD OK\n'
    else
       print '\nOooops. Something went wrong\n'        
@@ -370,33 +373,54 @@ build_build()
    # get SVN status 
    CABLE_STAT=`svn status`
    print $CABLE_STAT >> ~/.cable_rev
+
+   if [[ ${dodbug} -eq 1 ]] ; then
+      export bldir=".mpitmp_debug"
+      export exename="cable-mpi-debug"
+   else
+      export bldir=".mpitmp"
+      export exename="cable-mpi"
+   fi  
+
+   if [[ ! -d ${bldir} ]]; then
+      mkdir ${bldir}
+   fi  
+
  
-   if [[ ! -d .mpitmp ]]; then
-      mkdir .mpitmp
-   fi
-   
-   if [[ -f cable-mpi ]]; then
-      print '\ncable-mpi executable exists. copying to a dated backup file\n' 
-      mv cable-mpi cable-mpi.`date +%d.%m.%y`
-   fi
+#   if [[ ! -d .mpitmp ]]; then
+#      mkdir .mpitmp
+#   fi
+#   
+#   if [[ -f cable-mpi ]]; then
+#      print '\ncable-mpi executable exists. copying to a dated backup file\n' 
+#      mv cable-mpi cable-mpi.`date +%d.%m.%y`
+#   fi
+
+   if [[ -f ${exename} ]]; then
+      print '\ncable executable exists. copying to dated backup file\n' 
+      mv ${exename} ${exename}.`date +%d.%m.%y`
+   fi  
+
    
    CORE="../core/biogeophys"
    DRV="."
    CASA="../core/biogeochem"
    
-   /bin/cp -p $CORE/*90 ./.mpitmp
-   /bin/cp -p $DRV/*90 ./.mpitmp
-   /bin/cp -p $CASA/*90 ./.mpitmp
-   
+   /bin/cp -p $CORE/*90 ./${bldir}
+   /bin/cp -p $DRV/*90 ./${bldir}
+   /bin/cp -p $CASA/*90 ./${bldir}
+
    print "\n\n\tPlease note: CASA-CNP files are included in build only for " 
    print "\ttechnical reasons. Implementation is not officially available with" 
    print "\tthe release of CABLE 2.0\n"
-    
-   /bin/cp -p Makefile_mpi  ./.mpitmp
-   
-  cd .mpitmp/
 
+   /bin/cp -p Makefile_mpi  ./${bldir}
+
+   cd ${bldir}/
    make -f Makefile_mpi
+   mv cable-mpi $exename
+
+   
 }
 
 ###########################################
