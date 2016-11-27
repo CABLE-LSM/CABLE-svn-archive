@@ -375,7 +375,7 @@ CONTAINS
     ENDIF
 
     ! INITIALISATION depending on nml settings
-  IF (TRIM(cable_user%MetType) .EQ. 'gswp') THEN
+  IF ((TRIM(cable_user%MetType) .EQ. 'gswp')  .or. (TRIM(cable_user%MetType) .EQ. 'gswp3')) THEN
      IF ( CABLE_USER%YearStart.eq.0 .and. ncciy.gt.0) THEN
         CABLE_USER%YearStart = ncciy
         CABLE_USER%YearEnd = ncciy
@@ -600,8 +600,8 @@ CONTAINS
                   &                         rough,rad,sum_flux,bal)
 
 
-
-             CALL master_climate_types(comm, climate)
+             if (cable_user%call_climate) &
+                 CALL master_climate_types(comm, climate)
 
             
              ! MPI: mvtype and mstype send out here instead of inside master_casa_params

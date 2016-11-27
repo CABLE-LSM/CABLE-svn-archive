@@ -446,8 +446,8 @@ CONTAINS
                   &                        rough,rad,sum_flux,bal)
 
 
-          
-             CALL worker_climate_types(comm, climate)
+             if (cable_user%call_climate) & 
+                 CALL worker_climate_types(comm, climate)
 
              ! MPI: mvtype and mstype send out here instead of inside worker_casa_params
              !      so that old CABLE carbon module can use them. (BP May 2013)
