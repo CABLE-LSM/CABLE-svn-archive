@@ -60,7 +60,7 @@ MODULE sli_numbers
   REAL(r_2), PARAMETER :: dh0max    = 0.0001
   REAL(r_2), PARAMETER :: SLmax     = 1.01
   REAL(r_2), PARAMETER :: SLmin     = 0.001
-  REAL(r_2), PARAMETER :: Smax      = 1.05
+  REAL(r_2), PARAMETER :: Smax      = 1.00 !1.05
   REAL(r_2), PARAMETER :: h0max     = 0.0!0.005
   REAL(r_2), PARAMETER :: qprecmax  = 1.0e10
   !REAL(r_2), PARAMETER :: dSmax     = 0.5

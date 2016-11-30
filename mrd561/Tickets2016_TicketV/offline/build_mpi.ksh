@@ -33,14 +33,14 @@ host_raij()
    export NCDIR=$NETCDF_ROOT'/lib/Intel'
    export NCMOD=$NETCDF_ROOT'/include/Intel'
    export FC='mpif90'
-   export CFLAGS='-O3 -fp-model fast'
+   export CFLAGS='-O3 -fp-model source -ipo'
    if [[ $1 = 'debug' ]]; then
       export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0'
       export dodbug=1
    else
       export dodbug=0
    fi
-   export LDFLAGS='-L'$NCDIR' -O2'
+   export LDFLAGS='-L'$NCDIR' -O3'
    export LD='-lnetcdf -lnetcdff'
    build_build
    cd ../

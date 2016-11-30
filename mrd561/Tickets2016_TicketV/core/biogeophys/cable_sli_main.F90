@@ -475,9 +475,8 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, rough,SEB
      do k=1,ms
         qex(:,k)= ssnow%rex(:,k)
      enddo
-
+     !diagnose but may not use
      call diagnose_watertable_depth(ssnow,soil,par,veg)
-     !write(*,*) 'wtd',ssnow%wtd,(sum(ssnow%S(1,:),dim=1)+ssnow%GWwb(1)/soil%GWwatsat(1))/real(ms+1),sum(ssnow%S(1,:),dim=1)/real(ms),ssnow%S(1,1)
 
      if ((cable_user%test_new_gw)) then
 
