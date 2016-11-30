@@ -339,10 +339,6 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, rough,SEB
         elsewhere
            vsnow(kk)%fsnowliq_max = 0.03_r_2 + (0.1_r_2 - 0.03_r_2)*(vsnow(kk)%dens-200._r_2)/vsnow(kk)%dens
         endwhere
-        !mrd debug
-        !write(*,*) 'nsnow_max ',nsnow_max
-        !write(*,*) ssnow%tggsn(kk,1:nsnow_max)
-        !write(*,*) Tzero
         vsnow(kk)%fsnowliq_max = 0.1 !MC! ???
         vsnow(kk)%tsn(:) = real(ssnow%tggsn(kk,1:nsnow_max),r_2) - Tzero
         vsnow(kk)%kH(:)  = ssnow%sconds(kk,1:nsnow_max)
@@ -454,14 +450,6 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, rough,SEB
   runoff = zero
   infil  = zero
   drn    = zero
-
-  !if (first_call) call aquifer_props(mp,ssnow,v_aquifer)
-  ! 
-  ! 
-  !
-  !
-  !ssnow%rnof1 = ssnow%rnof1*onethousand  !to mm/s
-  !ssnow%rnof2 = ssnow%rnof2 *onethousand  !to mm/s
   ssnow%qhlev(:,:) = zero
 
   if (cable_user%test_new_gw) then
@@ -694,11 +682,11 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, rough,SEB
         canopy%fwsoil  = real(fws)
      endif
 
-!     if (litter==0) then
+     if ((litter==0) .or. (cable_user%or_evap)) then
         ssnow%rlitt = zero
-!     else
-!        ssnow%rlitt = dxL/vlit%Dv
-!     endif
+     else
+        ssnow%rlitt = dxL/vlit%Dv
+     endif
      ssnow%gammzz   = Jsensible
      ssnow%h0       = h0
 
