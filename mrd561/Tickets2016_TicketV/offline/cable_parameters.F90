@@ -58,7 +58,7 @@ MODULE cable_param_module
   USE casavariable
   USE phenvariable
   USE cable_abort_module
-  USE cable_IO_vars_module
+  USE cable_IO_vars_modulef
   USE cable_common_module, ONLY: cable_user, hide, gw_params
   USE CABLE_LUC_EXPT, ONLY: LUC_EXPT, LUC_EXPT_TYPE, LUC_EXPT_SET_TILES
   IMPLICIT NONE
@@ -1111,7 +1111,9 @@ CONTAINS
   !   landpt(mp)%type- via cable_IO_vars_module (%nap,cstart,cend,ilon,ilat)
   !   patch(mp)%type - via cable_IO_vars_module (%frac,longitude,latitude)
 
-    USE cable_common_module, only : vegin, soilin, calcsoilalbedo
+
+    USE cable_common_module, only : vegin, soilin, calcsoilalbedo,             &
+                                    init_veg_from_vegin
     IMPLICIT NONE
     INTEGER,               INTENT(IN)    :: logn  ! log file unit number
     INTEGER,               INTENT(IN)    :: month ! month of year
@@ -1187,6 +1189,7 @@ CONTAINS
       ssnow%kth = 0.3  ! vh ! should be calculated from soil moisture or be in restart file
       ssnow%sconds(:,:) = 0.06_r_2    ! vh snow thermal cond (W m-2 K-1),
                                       ! should be in restart file
+
       ! parameters that are not spatially dependent
       select case(ms)
 
@@ -1200,18 +1203,10 @@ CONTAINS
               0.3000,    0.3000 ,   0.3000,    0.3000,    0.7500,  1.50 /)
 
       end select
-
-      
+   
       !MD aquifer layers
       soil%GWdz = 20.0                          !20 m thick aquifer
 
-
-   !ELSE
-
-   !   ! parameters that are not spatially dependent
-   !   soil%zse = (/.022, .058, .154, .409, 1.085, 2.872/) ! layer thickness nov03
-
-   !ENDIF
 
     if (.not.cable_user%GSWP3) then 
        rough%za_uv = 40.0 ! lowest atm. model layer/reference height
@@ -1257,6 +1252,7 @@ CONTAINS
             veg%iLU(landpt(e)%cend) = 3
          endif
       endif
+
       ! Check that patch fractions total to 1
       tmp = 0
       IF (landpt(e)%cstart == landpt(e)%cend) THEN
@@ -1411,6 +1407,16 @@ CONTAINS
       soil%GWwatr(landpt(e)%cstart:landpt(e)%cend) =                          &    
          soil%watr(landpt(e)%cstart:landpt(e)%cend,ms)
 
+! vh !
+      soil%silt(landpt(e)%cstart:landpt(e)%cend) =                             &
+                                          insilt(landpt(e)%ilon, landpt(e)%ilat)
+
+      soil%sand(landpt(e)%cstart:landpt(e)%cend) =                             &
+                                          insand(landpt(e)%ilon, landpt(e)%ilat)
+
+      soil%clay(landpt(e)%cstart:landpt(e)%cend) =                             &
+                                          inclay(landpt(e)%ilon, landpt(e)%ilat)
+
 
       ENDIF
 
@@ -1445,6 +1451,8 @@ CONTAINS
                                                           soiltype_metfile(e, :)
        END IF
 ! offline only above
+       !call veg% init that is common   
+       CALL init_veg_from_vegin(landpt(e)%cstart, landpt(e)%cend, veg)
 
        ! Prescribe parameters for current gridcell based on veg/soil type (which
        ! may have loaded from default value file or met file):
@@ -1491,10 +1499,9 @@ CONTAINS
           bgc%csoil(h,:)  = vegin%csoil(:, veg%iveg(h))
           bgc%ratecp(:)   = vegin%ratecp(:, veg%iveg(h))
           bgc%ratecs(:)   = vegin%ratecs(:, veg%iveg(h))
-          veg%froot(h,:)  = vegin%froot(:, veg%iveg(h))
-          soil%silt(h)    =  soilin%silt(soil%isoilm(h))
-          soil%clay(h)    =  soilin%clay(soil%isoilm(h))
-          soil%sand(h)    =  soilin%sand(soil%isoilm(h))
+         ! soil%silt(h)    =  soilin%silt(soil%isoilm(h))
+         ! soil%clay(h)    =  soilin%clay(soil%isoilm(h))
+         ! soil%sand(h)    =  soilin%sand(soil%isoilm(h))
 
           !MDeck
           do klev=1,ms
@@ -1532,10 +1539,15 @@ CONTAINS
             soil%GWwatsat(h)  = soilin%ssat(soil%isoilm(h))
             soil%GWwatr(h)    = 0.01 
 
+            soil%silt(h)    =  soilin%silt(soil%isoilm(h))
+            soil%clay(h)    =  soilin%clay(soil%isoilm(h))
+            soil%sand(h)    =  soilin%sand(soil%isoilm(h))
+
           END IF
-          rad%latitude(h) = latitude(e)
+
             !IF(hide%Ticket49Bug4) &
           rad%longitude(h) = longitude(e)
+          !jhan:is this done online? YES
           veg%ejmax(h) = 2.0 * veg%vcmax(h)
        END DO ! over each veg patch in land point
     END DO ! over all land points
@@ -1794,8 +1806,11 @@ CONTAINS
 
     soil%hsbh   = soil%hyds*ABS(soil%sucs) * soil%bch ! difsat*etasat
     soil%ibp2   = NINT(soil%bch) + 2
-!!!!!!!!!!!! vh_js !!!!!!!!!!!!!!!!!
+
+    ! Ticket #66
+    where( soil%ssat > 0.) & ! Avoid divide by
     soil%pwb_min = (soil%swilt/soil%ssat)**soil%ibp2
+
     soil%i2bp3  = 2 * NINT(soil%bch) + 3
     rough%hruff = max(0.01, veg%hc - 1.2 * ssnow%snowd/max(ssnow%ssdnn, 100.))
     rough%hruff_grmx = rough%hruff
@@ -1912,9 +1927,6 @@ CONTAINS
           soil%ishorizon = 1
        END IF
    ! END IF
-
-
-
 
   END SUBROUTINE derived_parameters
   !============================================================================

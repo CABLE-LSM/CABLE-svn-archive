@@ -92,7 +92,7 @@ MODULE cable_common_module
         GS_SWITCH='leuning'
       
      CHARACTER(LEN=10) :: RunIden       = 'STANDARD'  !
-     CHARACTER(LEN=4)  :: MetType       = "NA" !
+     CHARACTER(LEN=4)  :: MetType       = ' ' !
      CHARACTER(LEN=20) :: SOIL_STRUC    = "default" ! 'default' or 'sli'
      CHARACTER(LEN=3)  :: POP_out       = 'rst' ! POP output type ('epi' or 'rst')
      CHARACTER(LEN=50) :: POP_rst       = ' ' !
@@ -163,7 +163,7 @@ MODULE cable_common_module
 
      CHARACTER(LEN=500) ::                                                        &
           met,        & ! name of file for CABLE input
-          path,       & ! path for output and restart files for CABLE and CASA
+          path='./',       & ! path for output and restart files for CABLE and CASA
           out,        & ! name of file for CABLE output
           log,        & ! name of file for execution log
           restart_in = ' ', & ! name of restart file to read
@@ -174,8 +174,8 @@ MODULE cable_common_module
           soil,       & ! name of file for soil parameters
           soilcolor,  & ! file for soil color(soilcolor_global_1x1.nc)
           inits,      & ! name of file for initialisations
-          soilIGBP,   & ! name of file for IGBP soil map
-          gw_elev       !name of file with slope and slope_std info
+          soilIGBP      ! name of file for IGBP soil map
+
   END TYPE filenames_type
 
   TYPE(filenames_type) :: filename
@@ -186,7 +186,6 @@ MODULE cable_common_module
 
   ! hydraulic_redistribution parameters _soilsnow module
   REAL :: wiltParam=0.5, satuParam=0.8
-
 
    TYPE gw_parameters_type
 
@@ -207,7 +206,6 @@ MODULE cable_common_module
    END TYPE gw_parameters_type
 
    TYPE(gw_parameters_type), SAVE :: gw_params
-
 
   ! soil parameters read from file(filename%soil def. in cable.nml)
   ! & veg parameters read from file(filename%veg def. in cable.nml)
@@ -574,7 +572,7 @@ CONTAINS
 
     IS_LEAPYEAR = .FALSE.
     IF ( ( ( MOD( YYYY,  4 ) .EQ. 0 .AND. MOD( YYYY, 100 ) .NE. 0 ) .OR. &
-         MOD( YYYY,400 ) .EQ. 0 ).and. (YYYY .ne. 0) ) IS_LEAPYEAR = .TRUE.
+         MOD( YYYY,400 ) .EQ. 0 ) ) IS_LEAPYEAR = .TRUE.
 
   END FUNCTION IS_LEAPYEAR
 
@@ -790,6 +788,8 @@ CONTAINS
             veg%ekc(h)    = vegin%ekc(veg%iveg(h))
             veg%eko(h)    = vegin%eko(veg%iveg(h))
             veg%froot(h,:)  = vegin%froot(:, veg%iveg(h))
+            veg%zr(h)       = vegin%zr(veg%iveg(h))
+            veg%clitt(h)    = vegin%clitt(veg%iveg(h))
          END DO ! over each veg patch in land point
   
   END SUBROUTINE init_veg_from_vegin 

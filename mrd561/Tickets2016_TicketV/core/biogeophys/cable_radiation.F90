@@ -151,6 +151,8 @@ SUBROUTINE init_radiation( met, rad, veg, canopy )
 !! vh_js !!
       rad%extkb=1.0e5         ! vh ! suggest higher to avoid sunlit leaves at night: this change affects cumulative fluxes, so currently commented out for comparison with trunk.
       !rad%extkb=30.0         ! keep cexpkbm within real*4 range (BP jul2010)
+      ! higher value precludes sunlit leaves at night. affects
+      ! nighttime evaporation - Ticket #90 
    END WHERE
 
 END SUBROUTINE init_radiation

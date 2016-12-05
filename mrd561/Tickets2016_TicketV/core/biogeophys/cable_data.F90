@@ -80,7 +80,6 @@ module cable_data_module
       denliq = 1000.0,  &  !density of liquid water
       denice = 1000.0       !denisty of ice
 
-
    END TYPE physical_constants
 
 
@@ -417,7 +416,7 @@ SUBROUTINE ssnow_type_ptr(C)
    C%HLS   => PHYS%HLS
    C%DENICE =>PHYS%DENICE
    C%DENLIQ =>PHYS%DENLIQ
-   !C% => PHYS%
+
 END SUBROUTINE ssnow_type_ptr
 
 END MODULE cable_data_module

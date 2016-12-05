@@ -53,12 +53,12 @@ CONTAINS
 #ifndef NO_CASA_YET
    USE casadimension,     only : icycle ! used in casa_cnp
 #endif
+
    USE cable_data_module, ONLY : icbm_type, point2constants
 
    !MD 
    USE cable_soil_snow_gw_module
 
-   !ptrs to local constants
    TYPE( icbm_type ) :: C
    ! CABLE model variables
    TYPE (air_type),       INTENT(INOUT) :: air
@@ -164,6 +164,7 @@ CONTAINS
       ELSEIF (cable_user%SOIL_STRUC=='sli') THEN
          CALL sli_main(ktau,dels,veg,soil,ssnow,met,canopy,air,rad,rough,0)
       ENDIF
+
    ENDIF
 
 

@@ -65,7 +65,6 @@ SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
    canopy%vlaiw = veg%vlai * rough%hruff / MAX( 0.01, veg%hc )
    canopy%rghlai = canopy%vlaiw
 
-
     IF (cable_user%soil_struc=='default') THEN
 
        canopy%us  = min(max(1e-6,canopy%us),3.5)
@@ -193,7 +192,6 @@ SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
 
          ENDWHERE
       ENDIF
-
 
 
 END SUBROUTINE ruff_resist

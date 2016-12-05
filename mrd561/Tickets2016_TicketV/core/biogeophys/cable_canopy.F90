@@ -26,6 +26,17 @@
 !          replaced with gs_coeff,gs_coeffz. If GS_SWITCH is set to "leuning",
 !          gs_coeff=xleuning and gs_coeffz=xleuningz, but based on the new model
 !          if set to "medlyn". Search for "Ticket #56" 
+!        : Vanessa Haverd added new fwsoil_switch  for response of stomatal conductance
+!          to soil moisture, which resolves decoupling of transpiration and 
+!          photosynthesis at low soil moisture. Search for "Haverd2013".
+!        : Vanessa Hverd added new logical switch cable_user%litter. When 'true', 
+!          leaf litter suppresses soil evaporation
+!        : Vanessa Haverd added new switch to enable SLI alternative to default soil
+!          module. When cable_user%soil_struc=='sli', then SLI is used to compute
+!          coupled transfers of heat and water in the soil and snow and at the surface
+!          and an in-canopy stability correction is applied. 
+!        : See http://www.geosci-model-dev.net/9/3111/2016 for full documentation
+!          of last 3 changes.
 ! ==============================================================================
 
 MODULE cable_canopy_module
@@ -93,6 +104,7 @@ CONTAINS
          sum_rad_gradis,& !
          dq2              !pore humidity minus air
 
+
     ! temporary buffers to simplify equations
     REAL, DIMENSION(mp) ::                                                      &
          ftemp,z_eff,psim_arg, psim_1, psim_2, rlower_limit,                      &
@@ -127,41 +139,191 @@ CONTAINS
 
     real, dimension(mp) :: Kone, delta_tss, Dq_DT
 
+||||||| .merge-left.r3726
+   !---compute surface wetness factor, update cansto, through
+   CALL surf_wetness_fact( cansat, canopy, ssnow,veg,met, soil, dels )
+=======
     REAL  :: rt_min
     REAL, DIMENSION(mp)       :: zstar, rL, phist, csw, psihat,rt0bus
+>>>>>>> .merge-right.r3933
 
+<<<<<<< .working
+    REAL  :: rt_min
+    REAL, DIMENSION(mp)       :: zstar, rL, phist, csw, psihat,rt0bus
+||||||| .merge-left.r3726
+   canopy%fevw_pot = 0.0
+   canopy%gswx = 1e-3     ! default stomatal conuctance 
+   gbhf = 1e-3     ! default free convection boundary layer conductance
+   gbhu = 1e-3     ! default forced convection boundary layer conductance
+   ssnow%evapfbl = 0.0
+=======
+    INTEGER :: j
+>>>>>>> .merge-right.r3933
+
+<<<<<<< .working
     INTEGER :: j,i
-
+||||||| .merge-left.r3726
+   ! Initialise in-canopy temperatures and humidity:
+   csx = SPREAD(met%ca, 2, mf) ! initialise leaf surface CO2 concentration
+   met%tvair = met%tk
+   met%qvair = met%qv
+   canopy%tv = met%tvair
+=======
     INTEGER, SAVE :: call_number =0
+>>>>>>> .merge-right.r3933
 
+<<<<<<< .working
+    INTEGER, SAVE :: call_number =0
+||||||| .merge-left.r3726
+   CALL define_air (met, air)
+   
+   CALL qsatfjh(qstvair,met%tvair-C%tfrz,met%pmb)
+=======
+    ! END header
+>>>>>>> .merge-right.r3933
+
+<<<<<<< .working
     REAL ::  litter_thermal_diff
     real(r_2), dimension(mp) :: tmp_r,tmp_tg
-
-    ! END header
-
+||||||| .merge-left.r3726
+   met%dva = (qstvair - met%qvair) *  C%rmair/C%rmh2o * met%pmb * 100.0
+   dsx = met%dva     ! init. leaf surface vpd
+   
+   tlfx = met%tk  ! initialise leaf temp iteration memory variable (K)
+   tlfy = met%tk  ! initialise current leaf temp (K)
+   
+   ortsoil = ssnow%rtsoil
+   ssnow%tss =  (1-ssnow%isflag)*ssnow%tgg(:,1) + ssnow%isflag*ssnow%tggsn(:,1)
+   tss4 = ssnow%tss**4
+   canopy%fes = 0.
+   canopy%fess = 0.
+   canopy%fesp = 0.
+   ssnow%potev = 0.
+   canopy%fevw_pot = 0.
+=======
     call_number = call_number + 1
+>>>>>>> .merge-right.r3933
 
-    litter_thermal_diff = 0.2 / (1932.0*62.0)
-
+<<<<<<< .working
+    ! END header
+||||||| .merge-left.r3726
+   CALL radiation( ssnow, veg, air, met, rad, canopy )
+=======
     ! assign local ptrs to constants defined in cable_data_module
     CALL point2constants(C)
+>>>>>>> .merge-right.r3933
 
+<<<<<<< .working
+    call_number = call_number + 1
+||||||| .merge-left.r3726
+   canopy%zetar(:,1) = C%ZETA0 ! stability correction terms
+   canopy%zetar(:,2) = C%ZETPOS + 1 
+=======
     IF( .NOT. cable_runtime%um)                                                 &
          canopy%cansto =  canopy%oldcansto
+>>>>>>> .merge-right.r3933
 
+<<<<<<< .working
+    litter_thermal_diff = 0.2 / (1932.0*62.0)
+||||||| .merge-left.r3726
+=======
     ALLOCATE( cansat(mp), gbhu(mp,mf))
     ALLOCATE( dsx(mp), fwsoil(mp), tlfx(mp), tlfy(mp) )
     ALLOCATE( ecy(mp), hcy(mp), rny(mp))
     ALLOCATE( gbhf(mp,mf), csx(mp,mf))
     ALLOCATE( ghwet(mp))
+>>>>>>> .merge-right.r3933
 
+<<<<<<< .working
+    ! assign local ptrs to constants defined in cable_data_module
+    CALL point2constants(C)
+||||||| .merge-left.r3726
+   DO iter = 1, NITER
+=======
     ! BATS-type canopy saturation proportional to LAI:
     cansat = veg%canst1 * canopy%vlaiw
+>>>>>>> .merge-right.r3933
 
+<<<<<<< .working
+    IF( .NOT. cable_runtime%um)                                                 &
+         canopy%cansto =  canopy%oldcansto
+||||||| .merge-left.r3726
+      ! AERODYNAMIC PROPERTIES: friction velocity us, thence turbulent
+      ! resistances rt0, rt1 (elements of dispersion matrix):
+      ! See CSIRO SCAM, Raupach et al 1997, eq. 3.46:
+      CALL comp_friction_vel()
+=======
     !---compute surface wetness factor, update cansto, through
     CALL surf_wetness_fact( cansat, canopy, ssnow,veg,met, soil, dels )
+>>>>>>> .merge-right.r3933
 
+<<<<<<< .working
+    ALLOCATE( cansat(mp), gbhu(mp,mf))
+    ALLOCATE( dsx(mp), fwsoil(mp), tlfx(mp), tlfy(mp) )
+    ALLOCATE( ecy(mp), hcy(mp), rny(mp))
+    ALLOCATE( gbhf(mp,mf), csx(mp,mf))
+    ALLOCATE( ghwet(mp))
+||||||| .merge-left.r3726
+      ! E.Kowalczyk 2014
+      IF (cable_user%l_new_roughness_soil)                                     &
+         CALL ruff_resist(veg, rough, ssnow, canopy)
+=======
+>>>>>>> .merge-right.r3933
 
+<<<<<<< .working
+    ! BATS-type canopy saturation proportional to LAI:
+    cansat = veg%canst1 * canopy%vlaiw
+||||||| .merge-left.r3726
+      
+      ! Turbulent aerodynamic resistance from roughness sublayer depth 
+      ! to reference height, x=1 if zref+disp>zruffs, 
+      ! 0 otherwise: thus rt1usc = 0 if zref+disp<zruffs
+      ! See CSIRO SCAM, Raupach et al 1997, eq. 3.53:
+      xx = 0.5 + sign(0.5,rough%zref_tq+rough%disp-rough%zruffs)
+      
+      ! correction  by Ian Harman to the 2nd psis term
+      rt1usc = xx * ( LOG( rough%zref_tq/MAX( rough%zruffs-rough%disp,         &
+                                              rough%z0soilsn ) )               &
+               - psis( canopy%zetar(:,iter) )                                  &
+               + psis( canopy%zetar(:,iter) * ( MAX( rough%zruffs-rough%disp,  &
+                                                rough%z0soilsn ) )            &
+                       / rough%zref_tq ) ) / C%VONK
+      
+      rt_min = 5.      
+      rt0 = max(rt_min,rough%rt0us / canopy%us)
+      
+      ! Aerodynamic resistance (sum 3 height integrals)/us
+      ! See CSIRO SCAM, Raupach et al 1997, eq. 3.50:
+      rough%rt1 = MAX(5.,(rough%rt1usa + rough%rt1usb + rt1usc) / canopy%us)
+      
+      DO j=1,mp
+     
+         IF(canopy%vlaiw(j) > C%LAI_THRESH) THEN
+            ssnow%rtsoil(j) = rt0(j)
+         ELSE
+            ssnow%rtsoil(j) = rt0(j) + rough%rt1(j)
+         ENDif 
+     
+      ENDDO 
+      
+      ssnow%rtsoil = max(rt_min,ssnow%rtsoil)   
+      
+      DO j=1,mp
+      
+         IF( ssnow%rtsoil(j) > 2.*ortsoil(j) .OR.                              &
+             ssnow%rtsoil(j) < 0.5*ortsoil(j) ) THEN
+              
+            ssnow%rtsoil(j) = MAX(rt_min,0.5*(ssnow%rtsoil(j) + ortsoil(j)))
+        
+        ENDIF    
+      
+      ENDDO 
+   
+      ! Vegetation boundary-layer conductance (mol/m2/s)
+      ! C%prandt = kinematic viscosity/molecular diffusivity
+      ! See CSIRO SCAM, Raupach et al 1997, eq. 3.12. Top leaf:
+      DO j=1,mp
+=======
     canopy%fevw_pot = 0.0
     canopy%gswx = 1e-3     ! default stomatal conuctance
     gbhf = 1e-3     ! default free convection boundary layer conductance
@@ -173,17 +335,89 @@ CONTAINS
     met%tvair = met%tk
     met%qvair = met%qv
     canopy%tv = met%tvair
+>>>>>>> .merge-right.r3933
 
+<<<<<<< .working
+    !---compute surface wetness factor, update cansto, through
+    CALL surf_wetness_fact( cansat, canopy, ssnow,veg,met, soil, dels )
+||||||| .merge-left.r3726
+         IF(canopy%vlaiw(j) > C%LAI_THRESH) THEN
+            gbvtop(j) = air%cmolar(j)*C%APOL * air%visc(j) / C%prandt /        &
+                        veg%dleaf(j) * (canopy%us(j) / MAX(rough%usuh(j),1.e-6)&
+                        * veg%dleaf(j) / air%visc(j) )**0.5                    &
+                        * C%prandt**(1.0/3.0) / veg%shelrb(j)
+            gbvtop(j) = MAX (0.05,gbvtop(j) )      ! for testing (BP aug2010)
+            
+            ! Forced convection boundary layer conductance                     
+            ! (see Wang & Leuning 1998, AFM):
+            gbhu(j,1) = gbvtop(j)*(1.0-EXP(-canopy%vlaiw(j)                    &
+                        *(0.5*rough%coexp(j)+rad%extkb(j) ))) /                &
+                        (rad%extkb(j)+0.5*rough%coexp(j))
+            
+            gbhu(j,2) = (2.0/rough%coexp(j))*gbvtop(j)*  &
+                        (1.0-EXP(-0.5*rough%coexp(j)*canopy%vlaiw(j)))         &
+                        - gbhu(j,1)
+         ENDIF 
+      
+      ENDDO 
+     
+      rny = SUM(rad%rniso,2) ! init current estimate net rad
+      hcy = 0.0              ! init current estimate lat heat
+      ecy = rny - hcy        ! init current estimate lat heat
+=======
     CALL define_air (met, air)
+>>>>>>> .merge-right.r3933
 
+<<<<<<< .working
+||||||| .merge-left.r3726
+      sum_rad_rniso = SUM(rad%rniso,2)
+=======
     CALL qsatfjh(qstvair,met%tvair-C%tfrz,met%pmb)
+>>>>>>> .merge-right.r3933
 
+<<<<<<< .working
+    canopy%fevw_pot = 0.0
+    canopy%gswx = 1e-3     ! default stomatal conuctance
+    gbhf = 1e-3     ! default free convection boundary layer conductance
+    gbhu = 1e-3     ! default forced convection boundary layer conductance
+    ssnow%evapfbl = 0.0
+    ssnow%rex = 0.0
+    ! Initialise in-canopy temperatures and humidity:
+    csx = SPREAD(met%ca, 2, mf) ! initialise leaf surface CO2 concentration
+    met%tvair = met%tk
+    met%qvair = met%qv
+    canopy%tv = met%tvair
+||||||| .merge-left.r3726
+      CALL dryLeaf( dels, rad, rough, air, met,                                &
+                    veg, canopy, soil, ssnow, dsx,                             &
+                    fwsoil, tlfx, tlfy, ecy, hcy,                              &
+                    rny, gbhu, gbhf, csx, cansat,                              &
+                    ghwet,  iter )
+     
+      CALL wetLeaf( dels, rad, rough, air, met,                                &
+                    veg, canopy, cansat, tlfy,                                 &
+                    gbhu, gbhf, ghwet )
+=======
     met%dva = (qstvair - met%qvair) *  C%rmair/C%rmh2o * met%pmb * 100.0
     dsx = met%dva     ! init. leaf surface vpd
     dsx= max(dsx,0.0)
     tlfx = met%tk  ! initialise leaf temp iteration memory variable (K)
     tlfy = met%tk  ! initialise current leaf temp (K)
+>>>>>>> .merge-right.r3933
 
+<<<<<<< .working
+    CALL define_air (met, air)
+||||||| .merge-left.r3726
+     
+      ! Calculate latent heat from vegetation:
+      ! Calculate sensible heat from vegetation:
+      ! Calculate net rad absorbed by canopy:
+      canopy%fev = REAL(canopy%fevc + canopy%fevw)
+      ftemp = (1.0 - canopy%fwet) *  REAL(hcy) + canopy%fhvw
+      canopy%fhv = real(ftemp) 
+      ftemp= (1.0-canopy%fwet)*REAL(rny)+canopy%fevw+canopy%fhvw
+      canopy%fnv = real(ftemp)
+=======
     ortsoil = ssnow%rtsoil
     IF (cable_user%soil_struc=='default') then
        ssnow%tss =  real((1-ssnow%isflag))*ssnow%tgg(:,1) + real(ssnow%isflag)*ssnow%tggsn(:,1)
@@ -196,24 +430,92 @@ CONTAINS
     canopy%fesp = 0.
     ssnow%potev = 0.
     canopy%fevw_pot = 0.
+>>>>>>> .merge-right.r3933
 
+<<<<<<< .working
+    CALL qsatfjh(qstvair,met%tvair-C%tfrz,met%pmb)
+||||||| .merge-left.r3726
+      ! canopy rad. temperature calc from long-wave rad. balance
+      sum_rad_gradis = SUM(rad%gradis,2)
+=======
     CALL radiation( ssnow, veg, air, met, rad, canopy )
+>>>>>>> .merge-right.r3933
 
+<<<<<<< .working
+    met%dva = (qstvair - met%qvair) *  C%rmair/C%rmh2o * met%pmb * 100.0
+    dsx = met%dva     ! init. leaf surface vpd
+    dsx= max(dsx,0.0)
+    tlfx = met%tk  ! initialise leaf temp iteration memory variable (K)
+    tlfy = met%tk  ! initialise current leaf temp (K)
+||||||| .merge-left.r3726
+      DO j=1,mp
+=======
     canopy%zetar(:,1) = C%ZETA0 ! stability correction terms
     canopy%zetar(:,2) = C%ZETPOS + 1
     canopy%zetash(:,1) = C%ZETA0 ! stability correction terms
     canopy%zetash(:,2) = C%ZETPOS + 1
+>>>>>>> .merge-right.r3933
 
+<<<<<<< .working
+    ortsoil = ssnow%rtsoil
+    IF (cable_user%soil_struc=='default') then
+       ssnow%tss =  real((1-ssnow%isflag))*ssnow%tgg(:,1) + real(ssnow%isflag)*ssnow%tggsn(:,1)
+    elseif (cable_user%soil_struc=='sli') then
+       ssnow%tss = real(ssnow%Tsurface) + C%tfrz
+    endif
+    tss4 = ssnow%tss**4
+    canopy%fes = 0.
+    canopy%fess = 0.
+    canopy%fesp = 0.
+    ssnow%potev = 0.
+    canopy%fevw_pot = 0.
+||||||| .merge-left.r3726
+         IF ( canopy%vlaiw(j) > C%LAI_THRESH .AND.                             &
+              rough%hruff(j) > rough%z0soilsn(j) ) THEN
+=======
+>>>>>>> .merge-right.r3933
 
+<<<<<<< .working
+    CALL radiation( ssnow, veg, air, met, rad, canopy )
+||||||| .merge-left.r3726
+            rad%lwabv(j) = C%CAPP * C%rmair * ( tlfy(j) - met%tk(j) ) *        &
+                           sum_rad_gradis(j) 
+=======
     DO iter = 1, NITER
+>>>>>>> .merge-right.r3933
 
+<<<<<<< .working
+    canopy%zetar(:,1) = C%ZETA0 ! stability correction terms
+    canopy%zetar(:,2) = C%ZETPOS + 1
+    canopy%zetash(:,1) = C%ZETA0 ! stability correction terms
+    canopy%zetash(:,2) = C%ZETPOS + 1
+||||||| .merge-left.r3726
+            canopy%tv(j) = (rad%lwabv(j) / (2.0*(1.0-rad%transd(j))            &
+                           * C%SBOLTZ*C%EMLEAF)+met%tk(j)**4)**0.25
+         
+         ELSE! sparse canopy
+         
+           canopy%tv(j) = met%tk(j)
+         
+         ENDIF
+          
+      ENDDO 
+     
+=======
        ! AERODYNAMIC PROPERTIES: friction velocity us, thence turbulent
        ! resistances rt0, rt1 (elements of dispersion matrix):
        ! See CSIRO SCAM, Raupach et al 1997, eq. 3.46:
        CALL comp_friction_vel()
+>>>>>>> .merge-right.r3933
 
+<<<<<<< .working
+||||||| .merge-left.r3726
+      ! Calculate net rad to soil:
+      canopy%fns = rad%qssabs + rad%transd*met%fld + (1.0-rad%transd)*C%EMLEAF* &
+            C%SBOLTZ*canopy%tv**4 - C%EMSOIL*C%SBOLTZ* tss4
+=======
        ! E.Kowalczyk 2014
-       IF (cable_user%l_new_roughness_soil)             &
+       IF (cable_user%l_new_roughness_soil)                                     &
             CALL ruff_resist(veg, rough, ssnow, canopy)
 
 
@@ -225,6 +527,263 @@ CONTAINS
        ! See CSIRO SCAM, Raupach et al 1997, eq. 3.53:
        xx = 0.5 + sign(0.5,rough%zref_tq+rough%disp-rough%zruffs)
 
+       ! correction  by Ian Harman to the 2nd psis term
+       rt1usc = xx * ( LOG( rough%zref_tq/MAX( rough%zruffs-rough%disp,         &
+            rough%z0soilsn ) )               &
+            - psis( canopy%zetar(:,iter) )                                  &
+            + psis( canopy%zetar(:,iter) * ( MAX( rough%zruffs-rough%disp,  &
+            rough%z0soilsn ) )            &
+            / rough%zref_tq ) ) / C%VONK
+       rt_min = 5.
+
+       !! vh_js !!
+       IF (cable_user%soil_struc=='sli') THEN
+          ! for stable conditions, update rough%rt0us & rough%rt1usa by replacing C%CSW by
+          ! csw = cd/2* (U(hc)/ust)**2 according to Eqs 15 & 19 from notes by Ian Harman (9-9-2011)
+          WHERE (canopy%vlaiw > C%LAI_thresh .and. rough%hruff > rough%z0soilsn)
+             rt0bus = (LOG(0.1*rough%hruff/rough%z0soilsn) - psis(canopy%zetash(:,iter)) + &
+                  psis(canopy%zetash(:,iter)*rough%z0soilsn/(0.1*rough%hruff))) / &
+                  C%vonk/rough%term6a
+
+             zstar = rough%disp + 1.5*(veg%hc - rough%disp)
+
+             psihat = log((zstar - rough%disp)/ (veg%hc - rough%disp)) + &
+                  (veg%hc - zstar)/(zstar - rough%disp)
+             rL = -(C%vonk*C%grav*(zstar - rough%disp)*(canopy%fh))/ &  ! 1/Monin-Obokov Length
+                  max( (air%rho*C%capp*met%tk*canopy%us**3), 1.e-12)
+             phist = 1 + 5.0*(zstar - rough%disp)*rL
+
+             where (canopy%zetar(:,iter) .gt. 1.e-6)! stable conditions
+
+                csw = min(0.3*((log((veg%hc-rough%disp)/rough%z0m) + phist*psihat - &
+                     psim(canopy%zetar(:,iter)*(veg%hc-rough%disp)/(rough%zref_tq-rough%disp))+ &
+                     psim(canopy%zetar(:,iter)*rough%z0m/(rough%zref_tq-rough%disp)))/0.4)**2/2., 3.0)* c%csw
+             elsewhere
+                csw = c%csw
+             endwhere
+
+             rough%term2  = EXP( 2. * CSW * canopy%rghlai * &
+                  ( 1 - rough%disp / rough%hruff ) )
+             rough%term3  = C%A33**2 * C%CTL * 2. * CSW * canopy%rghlai
+             rough%term5  = MAX( ( 2. / 3. ) * rough%hruff / rough%disp, 1.0 )
+             rough%term6 =  EXP( 3. * rough%coexp * ( rough%disp / rough%hruff -1. ) )
+
+             rough%rt0us  = log(rough%disp/(0.1 * rough%hruff)) * &
+                  EXP(2. * C%CSW * canopy%rghlai) * rough%disp &
+                  / rough%hruff / (c%a33 ** 2 * c%ctl)
+
+             rough%rt1usa = rough%term5 * ( rough%term2 - 1.0 ) / rough%term3
+             rt0 = max(rt_min, rough%rt0us+rt0bus) / canopy%us
+          ELSEWHERE
+             rt0 = max(rt_min,rough%rt0us) / canopy%us
+          ENDWHERE
+
+       ELSE
+          rt0 = max(rt_min,rough%rt0us / canopy%us)
+
+          IF (cable_user%litter) THEN
+             ! Mathews (2006), A process-based model of offine fuel moisture,
+             !                 International Journal of Wildland Fire 15,155-168
+             ! assuming here u=1.0 ms-1, bulk litter density 63.5 kgm-3
+             canopy%kthLitt = 0.3_r_2 ! ~ 0.2992125984251969 = 0.2+0.14*0.045*1000.0/63.5
+             canopy%DvLitt = 3.1415841138194147e-05_r_2 ! = 2.17e-5*exp(1.0*2.6)*exp(-0.5*(2.08+(1.0*2.38)))
+          ENDIF
+
+       ENDIF
+
+
+
+       ! Aerodynamic resistance (sum 3 height integrals)/us
+       ! See CSIRO SCAM, Raupach et al 1997, eq. 3.50:
+       rough%rt1 = MAX(5.,(rough%rt1usa + rough%rt1usb + rt1usc) / canopy%us)
+
+       DO j=1,mp
+
+          IF(canopy%vlaiw(j) > C%LAI_THRESH) THEN
+             ssnow%rtsoil(j) = rt0(j)
+          ELSE
+             ssnow%rtsoil(j) = rt0(j) + rough%rt1(j)
+          ENDif
+
+       ENDDO
+
+
+       ssnow%rtsoil = max(rt_min,ssnow%rtsoil)
+
+       DO j=1,mp
+
+          IF( ssnow%rtsoil(j) > 2.*ortsoil(j) .OR.                              &
+               ssnow%rtsoil(j) < 0.5*ortsoil(j) ) THEN
+
+             ssnow%rtsoil(j) = MAX(rt_min,0.5*(ssnow%rtsoil(j) + ortsoil(j)))
+
+          ENDIF
+
+       ENDDO
+
+       ! Vegetation boundary-layer conductance (mol/m2/s)
+       ! C%prandt = kinematic viscosity/molecular diffusivity
+       ! See CSIRO SCAM, Raupach et al 1997, eq. 3.12. Top leaf:
+       DO j=1,mp
+
+          IF(canopy%vlaiw(j) > C%LAI_THRESH) THEN
+             gbvtop(j) = air%cmolar(j)*C%APOL * air%visc(j) / C%prandt /        &
+                  veg%dleaf(j) * (canopy%us(j) / MAX(rough%usuh(j),1.e-6)&
+                  * veg%dleaf(j) / air%visc(j) )**0.5                    &
+                  * C%prandt**(1.0/3.0) / veg%shelrb(j)
+             gbvtop(j) = MAX (0.05_r_2,gbvtop(j) )      ! for testing (BP aug2010)
+
+             ! Forced convection boundary layer conductance
+             ! (see Wang & Leuning 1998, AFM):
+
+
+             !vh! inserted 'min' to avoid floating underflow
+             gbhu(j,1) = gbvtop(j)*(1.0-EXP(-min(canopy%vlaiw(j)                    &
+                  *(0.5*rough%coexp(j)+rad%extkb(j) ),20.0))) /            &
+                  (rad%extkb(j)+0.5*rough%coexp(j))
+
+             gbhu(j,2) = (2.0/rough%coexp(j))*gbvtop(j)*  &
+                  (1.0-EXP(-min(0.5*rough%coexp(j)*canopy%vlaiw(j),20.0))) &
+                  - gbhu(j,1)
+          ENDIF
+
+       ENDDO
+
+       rny = SUM(rad%rniso,2) ! init current estimate net rad
+       hcy = 0.0              ! init current estimate lat heat
+       ecy = rny - hcy        ! init current estimate lat heat
+
+       sum_rad_rniso = SUM(rad%rniso,2)
+
+       CALL dryLeaf( dels, rad, rough, air, met,                                &
+            veg, canopy, soil, ssnow, dsx,                             &
+            fwsoil, tlfx, tlfy, ecy, hcy,                              &
+            rny, gbhu, gbhf, csx, cansat,                              &
+            ghwet,  iter,climate )
+
+
+
+       CALL wetLeaf( dels, rad, rough, air, met,                                &
+            veg, canopy, cansat, tlfy,                                 &
+            gbhu, gbhf, ghwet )
+
+
+       ! Calculate latent heat from vegetation:
+       ! Calculate sensible heat from vegetation:
+       ! Calculate net rad absorbed by canopy:
+       canopy%fev = REAL(canopy%fevc + canopy%fevw)
+       ftemp = (1.0 - canopy%fwet) *  REAL(hcy) + canopy%fhvw
+       canopy%fhv = real(ftemp)
+       ftemp= (1.0-canopy%fwet)*REAL(rny)+canopy%fevw+canopy%fhvw
+       canopy%fnv = real(ftemp)
+
+       ! canopy rad. temperature calc from long-wave rad. balance
+       sum_rad_gradis = SUM(rad%gradis,2)
+
+       DO j=1,mp
+
+          IF ( canopy%vlaiw(j) > C%LAI_THRESH .AND.                             &
+               rough%hruff(j) > rough%z0soilsn(j) ) THEN
+
+             rad%lwabv(j) = C%CAPP * C%rmair * ( tlfy(j) - met%tk(j) ) *        &
+                  sum_rad_gradis(j)
+             !! vh_js !!
+
+             if (  (rad%lwabv(j) / (2.0*(1.0-rad%transd(j))            &
+                  * C%SBOLTZ*C%EMLEAF)+met%tk(j)**4) .gt. 0.0) then
+
+                canopy%tv(j) = (rad%lwabv(j) / (2.0*(1.0-rad%transd(j))            &
+                     * C%SBOLTZ*C%EMLEAF)+met%tk(j)**4)**0.25
+
+             else
+                canopy%tv(j) = met%tk(j)
+             endif
+
+
+          ELSE! sparse canopy
+
+             canopy%tv(j) = met%tk(j)
+
+          ENDIF
+
+       ENDDO
+
+
+       ! Calculate net rad to soil:
+       canopy%fns = rad%qssabs + rad%transd*met%fld + (1.0-rad%transd)*C%EMLEAF* &
+            C%SBOLTZ*canopy%tv**4 - C%EMSOIL*C%SBOLTZ* tss4
+>>>>>>> .merge-right.r3933
+
+    DO iter = 1, NITER
+
+<<<<<<< .working
+       ! AERODYNAMIC PROPERTIES: friction velocity us, thence turbulent
+       ! resistances rt0, rt1 (elements of dispersion matrix):
+       ! See CSIRO SCAM, Raupach et al 1997, eq. 3.46:
+       CALL comp_friction_vel()
+||||||| .merge-left.r3726
+      ! Saturation specific humidity at soil/snow surface temperature:
+      call qsatfjh(ssnow%qstss,ssnow%tss-C%tfrz,met%pmb)
+=======
+       ! Saturation specific humidity at soil/snow surface temperature:
+      call qsatfjh(ssnow%qstss,ssnow%tss-C%tfrz,met%pmb)
+>>>>>>> .merge-right.r3933
+
+<<<<<<< .working
+       ! E.Kowalczyk 2014
+       IF (cable_user%l_new_roughness_soil)             &
+            CALL ruff_resist(veg, rough, ssnow, canopy)
+||||||| .merge-left.r3726
+      IF(cable_user%ssnow_POTEV== "P-M") THEN
+         
+         !--- uses %ga from previous timestep    
+         ssnow%potev =  Penman_Monteith(canopy%ga) 
+      
+      ELSE !by default assumes Humidity Deficit Method
+      
+         dq = ssnow%qstss - met%qv
+         ssnow%potev =  Humidity_deficit_method(dq,ssnow%qstss )
+          
+      ENDIF
+=======
+>>>>>>> .merge-right.r3933
+
+<<<<<<< .working
+||||||| .merge-left.r3726
+      ! Soil latent heat:
+      CALL latent_heat_flux()
+=======
+       If (cable_user%soil_struc=='default') THEN
+>>>>>>> .merge-right.r3933
+
+<<<<<<< .working
+||||||| .merge-left.r3726
+      ! Calculate soil sensible heat:
+      canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tk) /ssnow%rtsoil
+=======
+          IF(cable_user%ssnow_POTEV== "P-M") THEN
+>>>>>>> .merge-right.r3933
+
+             !--- uses %ga from previous timestep
+             ssnow%potev = Penman_Monteith(canopy%ga)
+
+<<<<<<< .working
+       ! Turbulent aerodynamic resistance from roughness sublayer depth
+       ! to reference height, x=1 if zref+disp>zruffs,
+       ! 0 otherwise: thus rt1usc = 0 if zref+disp<zruffs
+       ! See CSIRO SCAM, Raupach et al 1997, eq. 3.53:
+       xx = 0.5 + sign(0.5,rough%zref_tq+rough%disp-rough%zruffs)
+||||||| .merge-left.r3726
+      CALL within_canopy( gbhu, gbhf )
+=======
+          ELSE !by default assumes Humidity Deficit Method
+             
+             ! Humidity deficit
+             dq = ssnow%qstss - met%qv
+             ssnow%potev =  Humidity_deficit_method(dq, ssnow%qstss)
+>>>>>>> .merge-right.r3933
+
+<<<<<<< .working
        ! correction  by Ian Harman to the 2nd psis term
        rt1usc = xx * ( LOG( rough%zref_tq/MAX( rough%zruffs-rough%disp,         &
             rough%z0soilsn ) )               &
@@ -421,15 +980,94 @@ CONTAINS
 
        ! Saturation specific humidity at soil/snow surface temperature:
       call qsatfjh(ssnow%qstss,ssnow%tss-C%tfrz,met%pmb)
+||||||| .merge-left.r3726
+      ! Saturation specific humidity at soil/snow surface temperature:
+      call qsatfjh(ssnow%qstss,ssnow%tss-C%tfrz,met%pmb)
+=======
+          ENDIF
+>>>>>>> .merge-right.r3933
 
+<<<<<<< .working
+||||||| .merge-left.r3726
+      IF(cable_user%ssnow_POTEV== "P-M") THEN
+         
+         !--- uses %ga from previous timestep    
+         ssnow%potev =  Penman_Monteith(canopy%ga) 
+      
+      ELSE !by default assumes Humidity Deficit Method
+      
+         dq = ssnow%qstss - met%qvair
+         ssnow%potev =  Humidity_deficit_method(dq,ssnow%qstss )
+          
+      ENDIF
+=======
+          ! Soil latent heat:
+          CALL latent_heat_flux()
+>>>>>>> .merge-right.r3933
 
+<<<<<<< .working
        If (cable_user%soil_struc=='default') THEN
+||||||| .merge-left.r3726
+         
+      ! Soil latent heat:
+      CALL latent_heat_flux()
+=======
+          ! Calculate soil sensible heat:
+          !canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tk) /ssnow%rtsoil
+          IF (cable_user%litter) THEN
+             !! vh_js !! account for additional litter resistance to sensible heat transfer
+             canopy%fhs =  air%rho*C%CAPP*(ssnow%tss - met%tk) / &
+                  (ssnow%rtsoil + real((1-ssnow%isflag))*veg%clitt*0.003/canopy%kthLitt/(air%rho*C%CAPP))
+          ELSE
+             canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tk) /ssnow%rtsoil
+          ENDIF
+>>>>>>> .merge-right.r3933
 
+<<<<<<< .working
           IF(cable_user%ssnow_POTEV== "P-M") THEN
+||||||| .merge-left.r3726
+      ! Soil sensible heat:
+      canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tvair) /ssnow%rtsoil
+      !canopy%ga = canopy%fns-canopy%fhs-canopy%fes*ssnow%cls
+      canopy%ga = canopy%fns-canopy%fhs-canopy%fes
+      
+      ! Set total latent heat:
+      canopy%fe = canopy%fev + canopy%fes
+      
+      ! Set total sensible heat:
+      canopy%fh = canopy%fhv + canopy%fhs
+      
+      !---diagnostic purposes
+      DO j=1,mp
+      
+         IF (ssnow%potev(j) .GE. 0.) THEN
+            ssnow%potev(j) = max(0.00001,ssnow%potev(j))
+         ELSE
+            ssnow%potev(j) = min(-0.0002,ssnow%potev(j))
+         ENDIF
+         
+         IF (canopy%fevw_pot(j) .ge. 0.) then
+            canopy%fevw_pot(j) = max(0.000001,canopy%fevw_pot(j))
+         ELSE
+            canopy%fevw_pot(j) = min(-0.002,canopy%fevw_pot(j))
+         ENDIF
+=======
+       ELSEIF (cable_user%soil_struc=='sli') THEN
+          ! SLI SEB to get canopy%fhs, canopy%fess, canopy%ga
+          ! (Based on old Tsoil, new canopy%tv, new canopy%fns)
+          CALL sli_main(1,dels,veg,soil,ssnow,met,canopy,air,rad,1)
+       ENDIF
+>>>>>>> .merge-right.r3933
 
+<<<<<<< .working
              !--- uses %ga from previous timestep
              ssnow%potev = Penman_Monteith(canopy%ga)
+||||||| .merge-left.r3726
+      ENDDO 
+=======
+>>>>>>> .merge-right.r3933
 
+<<<<<<< .working
           ELSE !by default assumes Humidity Deficit Method
              if (cable_user%gw_model) then
                 do i=1,mp
@@ -445,12 +1083,26 @@ CONTAINS
                       dq(i) = ssnow%qstss(i) - met%qvair(i)
                    end if
                 end do
+||||||| .merge-left.r3726
+=======
+       CALL within_canopy( gbhu, gbhf )
+>>>>>>> .merge-right.r3933
 
+<<<<<<< .working
              else
                 dq = ssnow%qstss - met%qvair
                 ssnow%rh_srf(:) = 1._r_2
              end if
+||||||| .merge-left.r3726
+      canopy%rnet = canopy%fnv + canopy%fns  
+      canopy%epot = ((1.-rad%transd)*canopy%fevw_pot +                         &
+                    rad%transd*ssnow%potev) * dels/air%rlam  
+=======
+       ! Saturation specific humidity at soil/snow surface temperature:
+       call qsatfjh(ssnow%qstss,ssnow%tss-C%tfrz,met%pmb)
+>>>>>>> .merge-right.r3933
 
+<<<<<<< .working
 !             dq2 = ssnow%qstss - met%qvair
              if (.not.cable_user%or_evap) then 
                 dq2 = ssnow%qstss - met%qvair
@@ -461,33 +1113,105 @@ CONTAINS
                                     (1.0/ssnow%rtevap_sat(i) + 1.0/ssnow%rtsoil(i)) - met%qvair(i)
                 end do
              end if
+||||||| .merge-left.r3726
+      rlower_limit = canopy%epot * air%rlam / dels  
+      where (rlower_limit == 0 ) rlower_limit = 1.e-7 !prevent from 0. by adding 1.e-7 (W/m2)
+=======
+       IF (cable_user%soil_struc=='default') THEN
+>>>>>>> .merge-right.r3933
 
+<<<<<<< .working
+||||||| .merge-left.r3726
+      
+      canopy%wetfac_cs = max(0., min(1.0,canopy%fe / rlower_limit ))
+      
+      DO j=1,mp
+=======
+          IF(cable_user%ssnow_POTEV== "P-M") THEN
+>>>>>>> .merge-right.r3933
 
+<<<<<<< .working
              ssnow%potev =  Humidity_deficit_method(dq,dq2,ssnow%qstss )
+||||||| .merge-left.r3726
+         IF ( canopy%wetfac_cs(j) .LE. 0. )                                    &
+            canopy%wetfac_cs(j) = MAX( 0., MIN( 1.,                            &
+                                  MAX( canopy%fev(j)/canopy%fevw_pot(j),       &
+                                  canopy%fes(j)/ssnow%potev(j) ) ) )
+      
+      ENDDO 
+=======
+             !--- uses %ga from previous timestep
+             ssnow%potev = Penman_Monteith(canopy%ga)
+>>>>>>> .merge-right.r3933
 
+<<<<<<< .working
           ENDIF
+||||||| .merge-left.r3726
+      CALL update_zetar()
+=======
+          ELSE !by default assumes Humidity Deficit Method
+>>>>>>> .merge-right.r3933
 
+<<<<<<< .working
           ! Soil latent heat:
           CALL latent_heat_flux()
+||||||| .merge-left.r3726
+   END DO           ! do iter = 1, NITER
+=======
+             ! Humidity deficit
+             dq = ssnow%qstss - met%qvair
+             ssnow%potev =  Humidity_deficit_method(dq, ssnow%qstss)
+>>>>>>> .merge-right.r3933
 
+<<<<<<< .working
           ! Calculate soil sensible heat:
           !canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tk) /ssnow%rtsoil
           IF (cable_user%litter) THEN
              !! vh_js !! account for additional litter resistance to sensible heat transfer
              canopy%fhs =  air%rho*C%CAPP*(ssnow%tss - met%tk) / &
                   (ssnow%rtsoil + real((1-ssnow%isflag))*veg%clitt*0.003/canopy%kthLitt/(air%rho*C%CAPP))
+||||||| .merge-left.r3726
+=======
+          ENDIF
+>>>>>>> .merge-right.r3933
 
+<<<<<<< .working
           elseif (cable_user%or_evap) then
             litter_thermal_diff = 0.2 / (1932.0*62.0)
             canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tk) /(ssnow%rtsoil +canopy%sublayer_dz/litter_thermal_diff)
             !tmp_r = canopy%sublayer_dz/litter_thermal_diff
             !tmp_tg = (ssnow%tss/tmp_r + met%tk/ssnow%rtsoil)/(1.0/tmp_r + 1.0/ssnow%rtsoil)
             !canopy%fhs = air%rho*C%CAPP*(tmp_tg - met%tk) /(ssnow%rtsoil)
+||||||| .merge-left.r3726
+   canopy%cduv = canopy%us * canopy%us / (max(met%ua,C%UMIN))**2
+=======
+          ! Soil latent heat:
+          CALL latent_heat_flux()
+>>>>>>> .merge-right.r3933
 
+<<<<<<< .working
           ELSE
              canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tk) /ssnow%rtsoil
           ENDIF
+||||||| .merge-left.r3726
+   !---diagnostic purposes
+   canopy%gswx_T = rad%fvlai(:,1)/MAX( C%LAI_THRESH, canopy%vlaiw(:) )         & 
+                   * canopy%gswx(:,1) + rad%fvlai(:,2) / MAX(C%LAI_THRESH,     &
+                   canopy%vlaiw(:))*canopy%gswx(:,2)
+   
+=======
+          ! Soil sensible heat:
+          !canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tvair) /ssnow%rtsoil
+          IF (cable_user%litter) THEN
+             !! vh_js !! account for additional litter resistance to sensible heat transfer
+             canopy%fhs =  air%rho*C%CAPP*(ssnow%tss - met%tvair) / &
+                  (ssnow%rtsoil +  real((1-ssnow%isflag))*veg%clitt*0.003/canopy%kthLitt/(air%rho*C%CAPP))
+          else
+             canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tvair) /ssnow%rtsoil
+          ENDIF
+>>>>>>> .merge-right.r3933
 
+<<<<<<< .working
        ELSEIF (cable_user%soil_struc=='sli') THEN
           ! SLI SEB to get canopy%fhs, canopy%fess, canopy%ga
           ! (Based on old Tsoil, new canopy%tv, new canopy%fns)
@@ -647,6 +1371,82 @@ CONTAINS
          * canopy%gswx(:,1) + rad%fvlai(:,2) / MAX(C%LAI_THRESH,     &
          canopy%vlaiw(:))*canopy%gswx(:,2)
 
+||||||| .merge-left.r3726
+=======
+          !! Ticket #90 ssnow%cls factor should be retained: required for energy balance
+          canopy%ga = canopy%fns-canopy%fhs-canopy%fes !*ssnow%cls
+
+       ELSEIF (cable_user%soil_struc=='sli') THEN
+          ! SLI SEB to get canopy%fhs, canopy%fess, canopy%ga
+          ! (Based on old Tsoil, new canopy%tv, new canopy%fns)
+          CALL sli_main(1,dels,veg,soil,ssnow,met,canopy,air,rad,1)
+       ENDIF
+
+       ! Set total latent heat:
+       canopy%fe = canopy%fev + canopy%fes
+
+       ! Set total sensible heat:
+       canopy%fh = canopy%fhv + canopy%fhs
+
+       !---diagnostic purposes
+       DO j=1,mp
+
+          IF (ssnow%potev(j) .GE. 0.) THEN
+             ssnow%potev(j) = max(0.00001,ssnow%potev(j))
+          ELSE
+             ssnow%potev(j) = min(-0.0002,ssnow%potev(j))
+          ENDIF
+
+          IF (canopy%fevw_pot(j) .ge. 0.) then
+             canopy%fevw_pot(j) = max(0.000001,canopy%fevw_pot(j))
+          ELSE
+             canopy%fevw_pot(j) = min(-0.002,canopy%fevw_pot(j))
+          ENDIF
+
+       ENDDO
+
+
+       canopy%rnet = canopy%fnv + canopy%fns
+
+
+       canopy%epot = ((1.-rad%transd)*canopy%fevw_pot +                         &
+            rad%transd*ssnow%potev*ssnow%cls) * dels/air%rlam
+
+
+
+       canopy%rniso = sum(rad%rniso,2) + rad%qssabs + rad%transd*met%fld + &
+            (1.0-rad%transd)*C%EMLEAF* &
+            C%SBOLTZ*met%tk**4 - C%EMSOIL*C%SBOLTZ*met%tk**4
+
+       rlower_limit = canopy%epot * air%rlam / dels
+       where (rlower_limit == 0 ) rlower_limit = 1.e-7 !prevent from 0. by adding 1.e-7 (W/m2)
+
+
+       canopy%wetfac_cs = max(0., min(1.0,canopy%fe / rlower_limit ))
+
+       DO j=1,mp
+
+          IF ( canopy%wetfac_cs(j) .LE. 0. )                                    &
+               canopy%wetfac_cs(j) = MAX( 0., MIN( 1.,                            &
+               MAX( canopy%fev(j)/canopy%fevw_pot(j),       &
+               real(canopy%fes(j))/ssnow%potev(j) ) ) )
+
+       ENDDO
+
+       CALL update_zetar()
+
+    END DO           ! do iter = 1, NITER
+
+
+
+    canopy%cduv = canopy%us * canopy%us / (max(met%ua,C%UMIN))**2
+
+    !---diagnostic purposes
+    canopy%gswx_T = rad%fvlai(:,1)/MAX( C%LAI_THRESH, canopy%vlaiw(:) )         &
+         * canopy%gswx(:,1) + rad%fvlai(:,2) / MAX(C%LAI_THRESH,     &
+         canopy%vlaiw(:))*canopy%gswx(:,2)
+
+>>>>>>> .merge-right.r3933
     ! The surface conductance below is required by dust scheme; it is composed from canopy and soil conductances
     canopy%gswx_T = (1.-rad%transd)*max(1.e-06,canopy%gswx_T ) +  &   !contribution from  canopy conductance
          rad%transd*(.01*ssnow%wb(:,1)/soil%sfc)**2 ! + soil conductance; this part is done as in Moses
@@ -804,13 +1604,25 @@ CONTAINS
           ssnow%dfe_ddq = ssnow%wetfac*air%rho*air%rlam*ssnow%cls/ &
                (ssnow%rtsoil+ real((1-ssnow%isflag))*veg%clitt*0.003/canopy%DvLitt)
 
+<<<<<<< .working
        ELSEIF (cable_user%or_evap .and. cable_user%GW_MODEL) THEN
             litter_thermal_diff = 0.2 / (1932.0*62.0)
             ssnow%dfh_dtg = air%rho*C%CAPP/(ssnow%rtsoil + canopy%sublayer_dz/litter_thermal_diff)
             ssnow%dfe_ddq  = ssnow%rh_srf(:) * (1. - ssnow%wetfac)*air%rho*air%rlam*ssnow%cls/(ssnow%rtsoil  +ssnow%rtevap_unsat) + &
                        ssnow%wetfac(:) * air%rho*air%rlam*ssnow%cls/(ssnow%rtsoil  +ssnow%rtevap_sat)
        ELSEIF (cable_user%GW_MODEL) THEN
+||||||| .merge-left.r3726
+SUBROUTINE comp_friction_vel()
+   USE cable_def_types_mod, only : mp
+   REAL, DIMENSION(mp)  :: lower_limit, rescale
+=======
+       ELSE
+          ssnow%dfh_dtg = air%rho*C%CAPP/ssnow%rtsoil
+          ssnow%dfe_ddq = ssnow%wetfac*air%rho*air%rlam*ssnow%cls/ssnow%rtsoil
+       ENDIF
+>>>>>>> .merge-right.r3933
 
+<<<<<<< .working
             ssnow%dfh_dtg = air%rho*C%CAPP/(ssnow%rtsoil)
             ssnow%dfe_ddq  = ssnow%rh_srf(:) * (1. - ssnow%wetfac)*air%rho*air%rlam*ssnow%cls/(ssnow%rtsoil) + &
                        ssnow%wetfac(:) * air%rho*air%rlam*ssnow%cls/(ssnow%rtsoil)
@@ -853,6 +1665,43 @@ CONTAINS
 
       psim_1 = psim(canopy%zetar(:,iter))
 
+||||||| .merge-left.r3726
+   psim_1 = psim(canopy%zetar(:,iter)) 
+   
+=======
+       ssnow%ddq_dtg = (C%rmh2o/C%rmair) /met%pmb * C%TETENA*C%TETENB * C%TETENC   &
+            / ( ( C%TETENC + ssnow%tss-C%tfrz )**2 )*EXP( C%TETENB *       &
+            ( ssnow%tss-C%tfrz ) / ( C%TETENC + ssnow%tss-C%tfrz ) )
+       canopy%dgdtg = ssnow%dfn_dtg - ssnow%dfh_dtg - ssnow%dfe_ddq *    &
+            ssnow%ddq_dtg
+    ENDIF
+
+    bal%drybal = REAL(ecy+hcy) - SUM(rad%rniso,2)                               &
+         + C%CAPP*C%rmair*(tlfy-met%tk)*SUM(rad%gradis,2)  ! YP nov2009
+
+    bal%wetbal = canopy%fevw + canopy%fhvw - SUM(rad%rniso,2) * canopy%fwet      &
+         + C%CAPP*C%rmair * (tlfy-met%tk) * SUM(rad%gradis,2) *          &
+         canopy%fwet  ! YP nov2009
+
+    DEALLOCATE(cansat,gbhu)
+    DEALLOCATE(dsx, fwsoil, tlfx, tlfy)
+    DEALLOCATE(ecy, hcy, rny)
+    DEALLOCATE(gbhf, csx)
+    DEALLOCATE(ghwet)
+
+    RETURN
+
+  CONTAINS
+
+    ! ------------------------------------------------------------------------------
+
+    SUBROUTINE comp_friction_vel()
+      USE cable_def_types_mod, only : mp
+      REAL, DIMENSION(mp)  :: lower_limit, rescale
+
+      psim_1 = psim(canopy%zetar(:,iter))
+
+>>>>>>> .merge-right.r3933
       rescale = C%VONK * MAX(met%ua,C%UMIN)
       z_eff = rough%zref_uv / rough%z0m
 
@@ -902,32 +1751,90 @@ CONTAINS
     END FUNCTION Penman_Monteith
 
 
+<<<<<<< .working
     ! ------------------------------------------------------------------------------
     ! method alternative to P-M formula above
     FUNCTION humidity_deficit_method(dq,dq2,qstss ) RESULT(ssnowpotev)
+||||||| .merge-left.r3726
+   INTEGER :: j
+   
+   ! Soil latent heat:
+   canopy%fess= ssnow%wetfac * ssnow%potev
+   WHERE (ssnow%potev < 0. ) canopy%fess = ssnow%potev
+   
+   ! Reduce soil evap due to presence of puddle
+   pwet = max(0.,min(0.2,ssnow%pudsto/max(1.,ssnow%pudsmx)))
+   canopy%fess = canopy%fess * (1.-pwet)
+=======
+    ! ------------------------------------------------------------------------------
+    ! method alternative to P-M formula above
+    FUNCTION humidity_deficit_method(dq,qstss ) RESULT(ssnowpotev)
+>>>>>>> .merge-right.r3933
 
       USE cable_def_types_mod, only : mp
 
+<<<<<<< .working
       REAL, DIMENSION(mp) ::                                                      &
            ssnowpotev,    & !
            dq,dq2,        & ! sat spec hum diff.
            qstss             !dummy var for compilation
+||||||| .merge-left.r3726
+   DO j=1,mp
+      
+      IF(ssnow%snowd(j) < 0.1 .AND. canopy%fess(j) .GT. 0. ) THEN
+=======
+      REAL, DIMENSION(mp) ::                                                      &
+           ssnowpotev,    & !
+           dq,            & ! sat spec hum diff.
+           qstss             !dummy var for compilation
+>>>>>>> .merge-right.r3933
 
       INTEGER :: j
 
+<<<<<<< .working
       DO j=1,mp
          !if(ssnow%snowd(j) > 1.0) dq(j) = max( -0.1e-3, dq(j))
          IF( ssnow%snowd(j)>1.0 .OR. ssnow%tgg(j,1).EQ.C%tfrz)                      &
               dq(j) = max( -0.1e-3, dq(j))
               dq2(j) = max( -0.1e-3, dq2(j))
       ENDDO
+||||||| .merge-left.r3726
+         canopy%fess(j) = MIN(canopy%fess(j), fupper_limit(j))
+         
+         fupper_limit(j) = REAL(ssnow%wb(j,1)-ssnow%wbice(j,1)) * frescale(j)
+=======
+      DO j=1,mp
+         !if(ssnow%snowd(j) > 1.0) dq(j) = max( -0.1e-3, dq(j))
+         IF( ssnow%snowd(j)>1.0 .OR. ssnow%tgg(j,1).EQ.C%tfrz)                      &
+              dq(j) = max( -0.1e-3, dq(j))
+      ENDDO
+>>>>>>> .merge-right.r3933
 
+<<<<<<< .working
       IF (cable_user%litter) THEN
          !! vh_js !!
          ssnowpotev =air%rho * air%rlam * dq /(ssnow%rtsoil + &
               real((1-ssnow%isflag))*veg%clitt*0.003/canopy%DvLitt)
+||||||| .merge-left.r3726
+         canopy%fess(j) = min(canopy%fess(j), fupper_limit(j))
+=======
+      IF (cable_user%litter) THEN
+         !! vh_js !!
+         ssnowpotev =air%rho * air%rlam * dq /(ssnow%rtsoil + &
+              real((1-ssnow%isflag))*veg%clitt*0.003/canopy%DvLitt)
+      ELSE
+         ssnowpotev =air%rho * air%rlam * dq /ssnow%rtsoil
+      ENDIF
+>>>>>>> .merge-right.r3933
 
+<<<<<<< .working
+||||||| .merge-left.r3726
+      END IF
+=======
+    END FUNCTION Humidity_deficit_method
+>>>>>>> .merge-right.r3933
 
+<<<<<<< .working
       ELSE
       
          if (.not.cable_user%GW_MODEL) then 
@@ -937,37 +1844,175 @@ CONTAINS
                    ssnow%wetfac * air%rho * air%rlam * dq2 /(ssnow%rtsoil+ssnow%rtevap_sat) 
             !ssnowpotev = (1.0-ssnow%wetfac) * air%rho * air%rlam * dq /(ssnow%rtsoil) + &
             !       ssnow%wetfac * air%rho * air%rlam * dq2 /(ssnow%rtsoil)
+||||||| .merge-left.r3726
+      ssnow%cls(j)=1.
+      
+      IF (ssnow%snowd(j) >= 0.1 .and. ssnow%potev(j) > 0.) THEN
+=======
+    ! ------------------------------------------------------------------------------
+>>>>>>> .merge-right.r3933
 
+<<<<<<< .working
          else 
             ssnowpotev = air%rho * air%rlam * dq /(ssnow%rtsoil)
          end if
-
-      END IF
-
-    END FUNCTION Humidity_deficit_method
-
-    ! ------------------------------------------------------------------------------
-
+||||||| .merge-left.r3726
+         ssnow%cls(j) = 1.1335
+         canopy%fess(j) = MIN( (ssnow%wetfac(j)*ssnow%potev(j))*ssnow%cls(j), &
+                          ssnow%snowd(j)/dels*air%rlam(j)*ssnow%cls(j))
+      
+      ENDIF
+=======
     SUBROUTINE Latent_heat_flux()
+>>>>>>> .merge-right.r3933
 
+<<<<<<< .working
+      END IF
+||||||| .merge-left.r3726
+   ENDDO 
+   
+   ! Evaporation form soil puddle
+   canopy%fesp = min(ssnow%pudsto/dels*air%rlam,max(pwet*ssnow%potev,0.))
+   canopy%fes = canopy%fess + canopy%fesp
+=======
       USE cable_common_module
       USE cable_def_types_mod, only : mp
+>>>>>>> .merge-right.r3933
 
+<<<<<<< .working
+    END FUNCTION Humidity_deficit_method
+||||||| .merge-left.r3726
+END SUBROUTINE latent_heat_flux
+=======
       REAL, DIMENSION(mp) ::                                                      &
            frescale,  flower_limit, fupper_limit
+>>>>>>> .merge-right.r3933
 
+<<<<<<< .working
+    ! ------------------------------------------------------------------------------
+||||||| .merge-left.r3726
+! -----------------------------------------------------------------------------
+=======
       INTEGER :: j
+>>>>>>> .merge-right.r3933
 
+<<<<<<< .working
+    SUBROUTINE Latent_heat_flux()
+||||||| .merge-left.r3726
+SUBROUTINE within_canopy( gbhu, gbhf )
+=======
       ! Soil latent heat:
       canopy%fess= ssnow%wetfac * ssnow%potev
       WHERE (ssnow%potev < 0. ) canopy%fess = ssnow%potev
+>>>>>>> .merge-right.r3933
 
+<<<<<<< .working
+      USE cable_common_module
+      USE cable_def_types_mod, only : mp
+||||||| .merge-left.r3726
+   USE cable_def_types_mod, only : mp, r_2
+=======
       ! Reduce soil evap due to presence of puddle
       pwet = max(0.,min(0.2,ssnow%pudsto/max(1.,ssnow%pudsmx)))
       canopy%fess = canopy%fess * (1.-pwet)
+>>>>>>> .merge-right.r3933
 
+<<<<<<< .working
+      REAL, DIMENSION(mp) ::                                                      &
+           frescale,  flower_limit, fupper_limit
+||||||| .merge-left.r3726
+   REAL(r_2), INTENT(IN), DIMENSION(:,:) ::                                    &
+      gbhu,    &  ! forcedConvectionBndryLayerCond
+      gbhf        ! freeConvectionBndryLayerCond
+      
+   REAL, DIMENSION(mp) ::                                                      &
+      rrsw,             & ! recipr. stomatal resistance for water
+      rrbw,             & ! recipr. leaf boundary layer resistance for water
+      dmah,             & ! A_{H} in eq. 3.41 in SCAM, CSIRO tech report 132
+      dmbh,             & ! B_{H} in eq. 3.41 in SCAM, CSIRO tech report 132
+      dmch,             & ! C_{H} in eq. 3.41 in SCAM, CSIRO tech report 132
+      dmae,             & ! A_{E} in eq. 3.41 in SCAM, CSIRO tech report 132
+      dmbe,             & ! B_{E} in eq. 3.41 in SCAM, CSIRO tech report 132
+      dmce                ! C_{E} in eq. 3.41 in SCAM, CSIRO tech report 132
+=======
       frescale = soil%zse(1) * 1000. * air%rlam / dels
+>>>>>>> .merge-right.r3933
 
+<<<<<<< .working
+      INTEGER :: j
+||||||| .merge-left.r3726
+   REAL  :: lower_limit, upper_limit
+ 
+   INTEGER :: j
+   
+   rrbw = sum(gbhu+gbhf,2)/air%cmolar  ! MJT 
+   
+   ! leaf stomatal resistance for water
+   rrsw = sum(canopy%gswx,2)/air%cmolar ! MJT
+   
+   DO j=1,mp
+   
+      IF(veg%meth(j) > 0 .AND. canopy%vlaiw(j) > C%LAI_THRESH .AND.              &
+         rough%hruff(j) > rough%z0soilsn(j) ) THEN
+=======
+      DO j=1,mp
+>>>>>>> .merge-right.r3933
+
+<<<<<<< .working
+      ! Soil latent heat:
+      canopy%fess= ssnow%wetfac * ssnow%potev
+      WHERE (ssnow%potev < 0. ) canopy%fess = ssnow%potev
+||||||| .merge-left.r3726
+         !   use the dispersion matrix (DM) to find the air temperature 
+         !   and specific humidity 
+         !   (Raupach, Finkele and Zhang 1997, pp 17)
+         ! leaf boundary layer resistance for water
+         ! A_{H} in eq. 3.41, SCAM manual, CSIRO tech doc 132
+         dmah(j) = (rt0(j)+rough%rt1(j))*((1.+air%epsi(j))*rrsw(j) + rrbw(j))  &
+                   + air%epsi(j) * (rt0(j)*rough%rt1(j))*(rrbw(j)*rrsw(j))
+         
+         ! B_{H} in eq. 3.41, SCAM manual, CSIRO tech doc 132
+         dmbh(j) = (-air%rlam(j)/C%CAPP)*(rt0(j)*rough%rt1(j))*(rrbw(j)*rrsw(j))
+         
+         ! C_{H} in eq. 3.41, SCAM manual, CSIRO tech doc 132
+         dmch(j) = ((1.+air%epsi(j))*rrsw(j) + rrbw(j))*rt0(j)*rough%rt1(j)*   &
+                   (canopy%fhv(j) + canopy%fhs(j))/(air%rho(j)*C%CAPP)
+=======
+         IF(ssnow%snowd(j) < 0.1 .AND. canopy%fess(j) .GT. 0. ) THEN
+>>>>>>> .merge-right.r3933
+
+<<<<<<< .working
+      ! Reduce soil evap due to presence of puddle
+      pwet = max(0.,min(0.2,ssnow%pudsto/max(1.,ssnow%pudsmx)))
+      canopy%fess = canopy%fess * (1.-pwet)
+||||||| .merge-left.r3726
+         ! A_{E} in eq. 3.41, SCAM manual, CSIRO tech doc 132
+         dmae(j) = (-air%epsi(j)*C%CAPP/air%rlam(j))*(rt0(j)*rough%rt1(j)) *   &
+                   (rrbw(j)*rrsw(j))
+=======
+            IF (.not.cable_user%l_new_reduce_soilevp) THEN
+               flower_limit(j) = REAL(ssnow%wb(j,1))-soil%swilt(j)/2.0
+            ELSE
+               ! E.Kowalczyk 2014 - reduces the soil evaporation
+               flower_limit(j) = REAL(ssnow%wb(j,1))-soil%swilt(j)
+            ENDIF
+            fupper_limit(j) = MAX( 0.,                                        &
+                 flower_limit(j) * frescale(j)                       &
+                 - ssnow%evapfbl(j,1)*air%rlam(j)/dels)
+>>>>>>> .merge-right.r3933
+
+<<<<<<< .working
+      frescale = soil%zse(1) * 1000. * air%rlam / dels
+||||||| .merge-left.r3726
+         ! B_{E} in eq. 3.41, SCAM manual, CSIRO tech doc 132
+         dmbe(j) = ( rt0(j) + ssnow%wetfac(j) * rough%rt1(j) ) *               &
+                   ( (1.+air%epsi(j) ) * rrsw(j) + rrbw(j) ) +                 &
+                   ( rt0(j) * rough%rt1(j) ) * ( rrbw(j) * rrsw(j) )
+=======
+            canopy%fess(j) = MIN(canopy%fess(j), real(fupper_limit(j),r_2))
+>>>>>>> .merge-right.r3933
+
+<<<<<<< .working
       DO j=1,mp
 
          IF(ssnow%snowd(j) < 0.1 .AND. canopy%fess(j) .GT. 0. ) THEN
@@ -1093,6 +2138,143 @@ CONTAINS
             lower_limit =  MIN( ssnow%qstss(j), met%qv(j))
             upper_limit =  MAX( ssnow%qstss(j), met%qv(j))
 
+||||||| .merge-left.r3726
+         ! C_{E} in eq. 3.41, SCAM manual, CSIRO tech doc 132
+         dmce(j) = ((1.+air%epsi(j))*rrsw(j) + rrbw(j))*rt0(j)*rough%rt1(j)*   &
+                   (canopy%fev(j) + canopy%fes(j))/(air%rho(j)*air%rlam(j))
+      
+         ! Within canopy air temperature:
+         met%tvair(j) = met%tk(j) + ( dmbe(j) * dmch(j) - dmbh(j) * dmce(j) )  &
+                        / (dmah(j)*dmbe(j)-dmae(j)*dmbh(j)+1.0e-12)
+           
+         !---set limits for comparisson
+         lower_limit =  MIN( ssnow%tss(j), met%tk(j)) - 5.0
+         upper_limit =  MAX( ssnow%tss(j), met%tk(j)) + 5.0
+      
+         !--- tvair within these limits
+         met%tvair(j) = MAX(met%tvair(j) , lower_limit)
+         met%tvair(j) = MIN(met%tvair(j) , upper_limit)
+   
+         ! recalculate using canopy within temperature
+         met%qvair(j) = met%qv(j) + (dmah(j)*dmce(j)-dmae(j)*dmch(j)) /        &
+                        ( dmah(j)*dmbe(j)-dmae(j)*dmbh(j)+1.0e-12)
+         met%qvair(j) = MAX(0.0,met%qvair(j))
+      
+         !---set limits for comparisson
+         lower_limit =  MIN( ssnow%qstss(j), met%qv(j)) 
+         upper_limit =  MAX( ssnow%qstss(j), met%qv(j))
+      
+=======
+            fupper_limit(j) = REAL(ssnow%wb(j,1)-ssnow%wbice(j,1)) * frescale(j)
+
+            canopy%fess(j) = min(canopy%fess(j), real(fupper_limit(j),r_2))
+
+         END IF
+
+         ssnow%cls(j)=1.
+
+         IF (ssnow%snowd(j) >= 0.1 .and. ssnow%potev(j) > 0.) THEN
+
+            ssnow%cls(j) = 1.1335
+            canopy%fess(j) = MIN( (ssnow%wetfac(j)*ssnow%potev(j))*ssnow%cls(j), &
+                 ssnow%snowd(j)/dels*air%rlam(j)*ssnow%cls(j))
+
+         ENDIF
+
+      ENDDO
+
+      ! Evaporation from soil puddle
+      canopy%fesp = min(ssnow%pudsto/dels*air%rlam,max(pwet*ssnow%potev,0.))
+      canopy%fes = canopy%fess + canopy%fesp
+
+    END SUBROUTINE latent_heat_flux
+
+    ! -----------------------------------------------------------------------------
+
+    SUBROUTINE within_canopy( gbhu, gbhf )
+
+      USE cable_def_types_mod, only : mp, r_2
+
+      REAL(r_2), INTENT(IN), DIMENSION(:,:) ::                                    &
+           gbhu,    &  ! forcedConvectionBndryLayerCond
+           gbhf        ! freeConvectionBndryLayerCond
+
+      REAL, DIMENSION(mp) ::                                                      &
+           rrsw,             & ! recipr. stomatal resistance for water
+           rrbw,             & ! recipr. leaf boundary layer resistance for water
+           dmah,             & ! A_{H} in eq. 3.41 in SCAM, CSIRO tech report 132
+           dmbh,             & ! B_{H} in eq. 3.41 in SCAM, CSIRO tech report 132
+           dmch,             & ! C_{H} in eq. 3.41 in SCAM, CSIRO tech report 132
+           dmae,             & ! A_{E} in eq. 3.41 in SCAM, CSIRO tech report 132
+           dmbe,             & ! B_{E} in eq. 3.41 in SCAM, CSIRO tech report 132
+           dmce                ! C_{E} in eq. 3.41 in SCAM, CSIRO tech report 132
+
+      REAL  :: lower_limit, upper_limit
+
+      INTEGER :: j
+
+      rrbw = sum(gbhu+gbhf,2)/air%cmolar  ! MJT
+
+      ! leaf stomatal resistance for water
+      rrsw = sum(canopy%gswx,2)/air%cmolar ! MJT
+
+      DO j=1,mp
+
+         IF(veg%meth(j) > 0 .AND. canopy%vlaiw(j) > C%LAI_THRESH .AND.              &
+              rough%hruff(j) > rough%z0soilsn(j) ) THEN
+
+            !   use the dispersion matrix (DM) to find the air temperature
+            !   and specific humidity
+            !   (Raupach, Finkele and Zhang 1997, pp 17)
+            ! leaf boundary layer resistance for water
+            ! A_{H} in eq. 3.41, SCAM manual, CSIRO tech doc 132
+            dmah(j) = (rt0(j)+rough%rt1(j))*((1.+air%epsi(j))*rrsw(j) + rrbw(j))  &
+                 + air%epsi(j) * (rt0(j)*rough%rt1(j))*(rrbw(j)*rrsw(j))
+
+            ! B_{H} in eq. 3.41, SCAM manual, CSIRO tech doc 132
+            dmbh(j) = (-air%rlam(j)/C%CAPP)*(rt0(j)*rough%rt1(j))*(rrbw(j)*rrsw(j))
+
+            ! C_{H} in eq. 3.41, SCAM manual, CSIRO tech doc 132
+            dmch(j) = ((1.+air%epsi(j))*rrsw(j) + rrbw(j))*rt0(j)*rough%rt1(j)*   &
+                 (canopy%fhv(j) + canopy%fhs(j))/(air%rho(j)*C%CAPP)
+
+            ! A_{E} in eq. 3.41, SCAM manual, CSIRO tech doc 132
+            dmae(j) = (-air%epsi(j)*C%CAPP/air%rlam(j))*(rt0(j)*rough%rt1(j)) *   &
+                 (rrbw(j)*rrsw(j))
+
+            ! B_{E} in eq. 3.41, SCAM manual, CSIRO tech doc 132
+            dmbe(j) = ( rt0(j) + ssnow%wetfac(j) * rough%rt1(j) ) *               &
+                 ( (1.+air%epsi(j) ) * rrsw(j) + rrbw(j) ) +                 &
+                 ( rt0(j) * rough%rt1(j) ) * ( rrbw(j) * rrsw(j) )
+
+            ! C_{E} in eq. 3.41, SCAM manual, CSIRO tech doc 132
+            dmce(j) = ((1.+air%epsi(j))*rrsw(j) + rrbw(j))*rt0(j)*rough%rt1(j)*   &
+                 (canopy%fev(j) + canopy%fes(j))/(air%rho(j)*air%rlam(j))
+
+            ! Within canopy air temperature:
+            met%tvair(j) = met%tk(j) + ( dmbe(j) * dmch(j) - dmbh(j) * dmce(j) )  &
+                 / (dmah(j)*dmbe(j)-dmae(j)*dmbh(j)+1.0e-12)
+
+
+            !---set limits for comparisson
+            lower_limit =  MIN( ssnow%tss(j), met%tk(j)) - 5.0
+            upper_limit =  MAX( ssnow%tss(j), met%tk(j)) + 5.0
+
+            !--- tvair within these limits
+            met%tvair(j) = MAX(met%tvair(j) , lower_limit)
+            met%tvair(j) = MIN(met%tvair(j) , upper_limit)
+
+            ! recalculate using canopy within temperature
+            met%qvair(j) = met%qv(j) + (dmah(j)*dmce(j)-dmae(j)*dmch(j)) /        &
+                 ( dmah(j)*dmbe(j)-dmae(j)*dmbh(j)+1.0e-12)
+            met%qvair(j) = MAX(0.0,met%qvair(j))
+
+            !---set limits for comparisson
+
+            lower_limit =  MIN( ssnow%qstss(j), met%qv(j))
+            upper_limit =  MAX( ssnow%qstss(j), met%qv(j))
+
+>>>>>>> .merge-right.r3933
             !--- qvair within these limits
             met%qvair(j) =  MAX(met%qvair(j),lower_limit)
             met%qvair(j) =  MIN(met%qvair(j), upper_limit)
@@ -1388,6 +2570,7 @@ CONTAINS
                  / ( air%dsatdk(j)+air%psyc(j)*ghrwet(j) / gwwet(j) )  &
                  , ccfevw(j) )
 
+<<<<<<< .working
             canopy%fevw_pot(j) = ( air%dsatdk(j)* (sum_rad_rniso(j) -             &
                  C%CAPP * C%rmair * ( met%tvair(j) - met%tk(j) )  &
                  *sum_rad_gradis(j) )                             &
@@ -1463,66 +2646,790 @@ CONTAINS
                   ( REAL (ssnow%wb(:,1) ) - soil%swilt/ 2.0 )                  &    
                   / ( soil%sfc - soil%swilt/2.0 ) ) )
    END IF
+||||||| .merge-left.r3726
+   ssnow%wetfac = MAX( 1.e-6, MIN( 1.0,                                        &
+                  ( REAL (ssnow%wb(:,1) ) - soil%swilt/ 2.0 )                  &
+                  / ( soil%sfc - soil%swilt/2.0 ) ) )
+  
+   DO j=1,mp
+   
+      IF( ssnow%wbice(j,1) > 0. )                                              &
+         ssnow%wetfac(j) = ssnow%wetfac(j) * MAX( 0.5, 1. - MIN( 0.2,          &
+                           ( ssnow%wbice(j,1) / ssnow%wb(j,1) )**2 ) )
+=======
+            canopy%fevw_pot(j) = ( air%dsatdk(j)* (sum_rad_rniso(j) -             &
+                 C%CAPP * C%rmair * ( met%tvair(j) - met%tk(j) )  &
+                 *sum_rad_gradis(j) )                             &
+                 + C%CAPP * C%rmair * met%dva(j) * ghrwet(j))     &
+                 / (air%dsatdk(j)+air%psyc(j)*ghrwet(j)/gwwet(j) )
+>>>>>>> .merge-right.r3933
 
+<<<<<<< .working
+||||||| .merge-left.r3726
+      IF( ssnow%snowd(j) > 0.1) ssnow%wetfac(j) = 0.9
+      
+      IF ( veg%iveg(j) == 16 .and. met%tk(j) >= C%tfrz + 5. )                  &
+         ssnow%wetfac(j) = 1.0 ! lakes: hard-wired number to be removed
+      
+      IF( veg%iveg(j) == 16 .and. met%tk(j) < C%tfrz + 5. )                    &
+         ssnow%wetfac(j) = 0.7 ! lakes: hard-wired number to be removed
+=======
+            ! calculate sens heat from wet canopy:
+            canopy%fhvw(j) = canopy%fwet(j) * ( sum_rad_rniso(j) -C%CAPP * C%rmair&
+                 * ( tlfy(j) - met%tk(j) ) * sum_rad_gradis(j) )      &
+                 - canopy%fevw(j)
+>>>>>>> .merge-right.r3933
 
+<<<<<<< .working
     DO j=1,mp
+||||||| .merge-left.r3726
+   ENDDO 
+      
+=======
+         ENDIF
+>>>>>>> .merge-right.r3933
 
+<<<<<<< .working
        IF(.not.cable_user%gw_model .and.  ssnow%wbice(j,1) > 0. )                                              &
             ssnow%wetfac(j) = ssnow%wetfac(j) * real(MAX( 0.5_r_2, 1._r_2 - MIN( 0.2_r_2, &
             ( ssnow%wbice(j,1) / ssnow%wb(j,1) )**2 ) ) )
+||||||| .merge-left.r3726
+   ! owetfac introduced to reduce sharp changes in dry regions,
+   ! especially in offline runs in which there may be discrepancies b/n
+   ! timing of precip and temperature change (EAK apr2009)
+   ssnow%wetfac = 0.5*(ssnow%wetfac + ssnow%owetfac)
+=======
+      ENDDO
+>>>>>>> .merge-right.r3933
 
+<<<<<<< .working
        IF( ssnow%snowd(j) > 0.1) ssnow%wetfac(j) = 0.9
+||||||| .merge-left.r3726
+END SUBROUTINE Surf_wetness_fact
+=======
+    END SUBROUTINE wetLeaf
+>>>>>>> .merge-right.r3933
 
+<<<<<<< .working
        IF ( veg%iveg(j) == 16 .and. met%tk(j) >= C%tfrz + 5. )                  &
             ssnow%wetfac(j) = 1.0 ! lakes: hard-wired number to be removed
+||||||| .merge-left.r3726
+! -----------------------------------------------------------------------------
+=======
+    ! -----------------------------------------------------------------------------
+>>>>>>> .merge-right.r3933
 
+<<<<<<< .working
        IF( veg%iveg(j) == 16 .and. met%tk(j) < C%tfrz + 5. )                    &
             ssnow%wetfac(j) = 0.7 ! lakes: hard-wired number to be removed
+||||||| .merge-left.r3726
+SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
+                    veg, canopy, soil, ssnow, dsx,                             &
+                    fwsoil, tlfx,  tlfy,  ecy, hcy,                            &
+                    rny, gbhu, gbhf, csx,                                      &
+                    cansat, ghwet, iter )
+=======
+  END SUBROUTINE define_canopy
+>>>>>>> .merge-right.r3933
 
+<<<<<<< .working
     ENDDO
+||||||| .merge-left.r3726
+   USE cable_def_types_mod
+   USE cable_common_module
+=======
+  ! -----------------------------------------------------------------------------
+>>>>>>> .merge-right.r3933
 
+<<<<<<< .working
+||||||| .merge-left.r3726
+   TYPE (radiation_type), INTENT(INOUT) :: rad
+   TYPE (roughness_type), INTENT(INOUT) :: rough
+   TYPE (air_type),       INTENT(INOUT) :: air
+   TYPE (met_type),       INTENT(INOUT) :: met
+   TYPE (canopy_type),    INTENT(INOUT) :: canopy
+   TYPE (soil_snow_type), INTENT(INOUT) :: ssnow
+=======
+  SUBROUTINE Surf_wetness_fact( cansat, canopy, ssnow,veg, met, soil, dels )
+>>>>>>> .merge-right.r3933
 
+<<<<<<< .working
     ! owetfac introduced to reduce sharp changes in dry regions,
     ! especially in offline runs in which there may be discrepancies b/n
     ! timing of precip and temperature change (EAK apr2009)
    if (.not.cable_user%gw_model)    &
        ssnow%wetfac = 0.5*(ssnow%wetfac + ssnow%owetfac)
+||||||| .merge-left.r3726
+   TYPE (veg_parameter_type),  INTENT(INOUT)   :: veg
+   TYPE (soil_parameter_type), INTENT(inout)   :: soil
+   
+   REAL, INTENT(INOUT), DIMENSION(:) ::                                        &
+      dsx,        & ! leaf surface vpd
+      fwsoil,     & ! soil water modifier of stom. cond
+      tlfx,       & ! leaf temp prev. iter (K)
+      tlfy          ! leaf temp (K)
+   
+   REAL(R_2),INTENT(INOUT), DIMENSION(:) ::                                    &
+      ecy,        & ! lat heat fl dry big leaf
+      hcy,        & ! veg. sens heat
+      rny         !& !
+=======
+    USE cable_common_module
+    USE cable_def_types_mod
+>>>>>>> .merge-right.r3933
 
+<<<<<<< .working
   END SUBROUTINE Surf_wetness_fact
+||||||| .merge-left.r3726
+   REAL(R_2),INTENT(INOUT), DIMENSION(:,:) ::                                  &
+      gbhu,       & ! forcedConvectionBndryLayerCond
+      gbhf,       & ! freeConvectionBndryLayerCond
+      csx           ! leaf surface CO2 concentration
+=======
+    TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
+    TYPE (soil_snow_type), intent(inout):: ssnow
+    TYPE (soil_parameter_type), intent(inout)   :: soil
+    TYPE (canopy_type), INTENT(INOUT)   :: canopy
+    TYPE (met_type), INTENT(INOUT)   :: met
+>>>>>>> .merge-right.r3933
 
+<<<<<<< .working
   ! -----------------------------------------------------------------------------
+||||||| .merge-left.r3726
+   REAL,INTENT(IN), DIMENSION(:) :: cansat
+=======
+    REAL, INTENT(IN) :: dels ! integration time setp (s)
+>>>>>>> .merge-right.r3933
 
+<<<<<<< .working
   SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
        veg, canopy, soil, ssnow, dsx,                             &
        fwsoil, tlfx,  tlfy,  ecy, hcy,                            &
        rny, gbhu, gbhf, csx,                                      &
        cansat, ghwet, iter,climate )
+||||||| .merge-left.r3726
+   REAL(r_2), INTENT(OUT), DIMENSION(:) ::                                     &
+      ghwet  ! cond for heat for a wet canopy
+=======
+    REAL,INTENT(IN), DIMENSION(:) :: cansat ! max canopy intercept. (mm)
+>>>>>>> .merge-right.r3933
 
+<<<<<<< .working
     USE cable_def_types_mod
     USE cable_common_module
+||||||| .merge-left.r3726
+   INTEGER,INTENT(IN) :: iter
+ 
+   REAL, INTENT(IN)     :: dels ! integration time step (s)
+   
+   !local variables
+   REAL, PARAMETER  ::                                                         &
+      co2cp3 = 0.0,  & ! CO2 compensation pt C3
+      jtomol = 4.6e-6  ! Convert from J to Mol for light
+=======
+    !local variables
+    REAL, DIMENSION(mp)  :: lower_limit, upper_limit,ftemp
+>>>>>>> .merge-right.r3933
 
+<<<<<<< .working
     TYPE (radiation_type), INTENT(INOUT) :: rad
     TYPE (roughness_type), INTENT(INOUT) :: rough
     TYPE (air_type),       INTENT(INOUT) :: air
     TYPE (met_type),       INTENT(INOUT) :: met
     TYPE (canopy_type),    INTENT(INOUT) :: canopy
     TYPE (soil_snow_type), INTENT(INOUT) :: ssnow
+||||||| .merge-left.r3726
+   REAL, DIMENSION(mp) ::                                                      &
+      conkct,        & ! Michaelis Menton const.
+      conkot,        & ! Michaelis Menton const.
+      cx1,           & ! "d_{3}" in Wang and Leuning,
+      cx2,           & !     1998, appendix E
+      tdiff,         & ! leaf air temp diff.
+      tlfxx,         & ! leaf temp of current iteration (K)
+      abs_deltlf,    & ! ABS(deltlf)
+      deltlf,        & ! deltlfy of prev iter.
+      deltlfy,       & ! del temp successive iter.
+      gras,          & ! Grashof coeff
+      evapfb,        & !
+      sum_rad_rniso, & !
+      sum_rad_gradis,& ! 
+      gwwet,         & ! cond for water for a wet canopy
+      ghrwet,        & ! wet canopy cond: heat & thermal rad
+      sum_gbh,       & !
+      ccfevw,        & ! limitation term for
+                       ! wet canopy evaporation rate
+      temp             !
+=======
+    INTEGER :: j
+>>>>>>> .merge-right.r3933
 
+<<<<<<< .working
     TYPE (veg_parameter_type),  INTENT(INOUT)   :: veg
     TYPE (soil_parameter_type), INTENT(inout)   :: soil
     TYPE (climate_type), INTENT(IN)    :: climate
+||||||| .merge-left.r3726
+   REAL(r_2), DIMENSION(mp)  ::                                                &
+      ecx,        & ! lat. hflux big leaf
+      ecx_t,      & ! lat. hflux big leaf
+      hcx,        & ! sens heat fl big leaf prev iteration
+      rnx,        & ! net rad prev timestep
+      fwsoil_coef   !
+=======
+    ! Rainfall variable is limited so canopy interception is limited,
+    ! used to stabilise latent fluxes.
+    ! to avoid excessive direct canopy evaporation (EK nov2007, snow scheme)
+    upper_limit = 4.0 * MIN(dels,1800.0) / (60.0 * 1440.0 )
+    ftemp =MIN(met%precip-met%precip_sn, upper_limit )
+    ! Calculate canopy intercepted rainfall, equal to zero if temp < 0C:
+    lower_limit = cansat - canopy%cansto
+    upper_limit = max(lower_limit, 0.0)
+    canopy%wcint = MERGE( MIN( upper_limit, ftemp ), 0.0,                       &
+         ftemp > 0.0  .AND. met%tk > C%tfrz)  !EAK, 09/10
+>>>>>>> .merge-right.r3933
 
+<<<<<<< .working
     REAL, INTENT(INOUT), DIMENSION(:) ::                                        &
          dsx,        & ! leaf surface vpd
          fwsoil,     & ! soil water modifier of stom. cond
          tlfx,       & ! leaf temp prev. iter (K)
          tlfy          ! leaf temp (K)
+||||||| .merge-left.r3726
+   REAL, DIMENSION(mp,ms)  :: oldevapfbl
+      
+   REAL, DIMENSION(mp,mf)  ::                                                  &
+      gw,         & ! cond for water for a dry canopy
+      gh,         & ! cond for heat for a dry canopy
+      ghr,        & ! dry canopy cond for heat & thermal rad
+      anx,        & ! net photos. prev iteration
+      an_y,       & ! net photosynthesis soln
+      rdx,        & ! daytime leaf resp rate, prev iteration
+      rdy,        & ! daytime leaf resp rate
+      ejmax2,     & ! jmax of big leaf
+      ejmxt3,     & ! jmax big leaf C3 plants
+      vcmxt3,     & ! vcmax big leaf C3
+      vcmxt4,     & ! vcmax big leaf C4
+      vx3,        & ! carboxylation C3 plants
+      vx4,        & ! carboxylation C4 plants
+      ! Ticket #56, xleuning is no longer used, we replace it with
+      ! gs_coeff,
+      ! which is computed differently based on the new GS_SWITCH. If GS_SWITCH
+      ! is "leuning", it's the same, if "medlyn", then the new Medlyn model
+      ! xleuning,   & ! leuning stomatal coeff
+      gs_coeff,   & ! stom coeff, Ticket #56 
+      psycst,     & ! modified pych. constant
+      frac42,     & ! 2D frac4
+      temp2
+=======
+    ! Define canopy throughfall (100% of precip if temp < 0C, see above):
+    canopy%through = met%precip_sn + MIN( met%precip - met%precip_sn ,          &
+         MAX( 0.0, met%precip - met%precip_sn - canopy%wcint) )
+>>>>>>> .merge-right.r3933
 
+<<<<<<< .working
     REAL(R_2),INTENT(INOUT), DIMENSION(:) ::                                    &
          ecy,        & ! lat heat fl dry big leaf
          hcy,        & ! veg. sens heat
          rny         !& !
+||||||| .merge-left.r3726
+   REAL, DIMENSION(:,:), POINTER :: gswmin ! min stomatal conductance
+   
+   REAL, DIMENSION(mp,2) ::  gsw_term, lower_limit2  ! local temp var 
+=======
+    ! Add canopy interception to canopy storage term:
+    canopy%cansto = canopy%cansto + canopy%wcint
+>>>>>>> .merge-right.r3933
 
+<<<<<<< .working
+    REAL(R_2),INTENT(INOUT), DIMENSION(:,:) ::                                  &
+         gbhu,       & ! forcedConvectionBndryLayerCond
+         gbhf,       & ! freeConvectionBndryLayerCond
+         csx           ! leaf surface CO2 concentration
+||||||| .merge-left.r3726
+   INTEGER :: i, j, k, kk  ! iteration count
+   REAL :: vpd, g1 ! Ticket #56   
+ 
+   ! END header
+=======
+    ! Calculate fraction of canopy which is wet:
+    canopy%fwet   = MAX( 0.0, MIN( 0.9, 0.8 * canopy%cansto /                   &
+         MAX( cansat, 0.01 ) ) )
+>>>>>>> .merge-right.r3933
+
+<<<<<<< .working
+    REAL,INTENT(IN), DIMENSION(:) :: cansat
+||||||| .merge-left.r3726
+=======
+    ssnow%wetfac = MAX( 1.e-6, MIN( 1.0,                                        &
+         ( REAL (ssnow%wb(:,1) ) - soil%swilt/ 2.0 )                  &
+         / ( soil%sfc - soil%swilt/2.0 ) ) )
+>>>>>>> .merge-right.r3933
+
+<<<<<<< .working
+    REAL(r_2), INTENT(OUT), DIMENSION(:) ::                                     &
+         ghwet  ! cond for heat for a wet canopy
+||||||| .merge-left.r3726
+   ALLOCATE( gswmin(mp,mf ))
+=======
+    DO j=1,mp
+>>>>>>> .merge-right.r3933
+
+<<<<<<< .working
+    INTEGER,INTENT(IN) :: iter
+||||||| .merge-left.r3726
+   ! Soil water limitation on stomatal conductance:
+   IF( iter ==1) THEN
+   
+      IF(cable_user%FWSOIL_SWITCH == 'standard') THEN
+         CALL fwsoil_calc_std( fwsoil, soil, ssnow, veg) 
+      ELSEIf (cable_user%FWSOIL_SWITCH == 'non-linear extrapolation') THEN
+         !EAK, 09/10 - replace linear approx by polynomial fitting
+         CALL fwsoil_calc_non_linear(fwsoil, soil, ssnow, veg) 
+      ELSEIF(cable_user%FWSOIL_SWITCH == 'Lai and Ktaul 2000') THEN
+         CALL fwsoil_calc_Lai_Ktaul(fwsoil, soil, ssnow, veg) 
+      ELSE
+         STOP 'fwsoil_switch failed.'
+      ENDIF
+=======
+       IF( ssnow%wbice(j,1) > 0. )                                              &
+            ssnow%wetfac(j) = ssnow%wetfac(j) * real(MAX( 0.5_r_2, 1._r_2 - MIN( 0.2_r_2, &
+            ( ssnow%wbice(j,1) / ssnow%wb(j,1) )**2 ) ) )
+>>>>>>> .merge-right.r3933
+
+<<<<<<< .working
+    REAL, INTENT(IN)     :: dels ! integration time step (s)
+||||||| .merge-left.r3726
+   ENDIF
+=======
+       IF( ssnow%snowd(j) > 0.1) ssnow%wetfac(j) = 0.9
+>>>>>>> .merge-right.r3933
+
+<<<<<<< .working
+    !local variables
+    REAL, PARAMETER  ::                                                         &
+         co2cp3 = 0.0,  & ! CO2 compensation pt C3
+         jtomol = 4.6e-6  ! Convert from J to Mol for light
+||||||| .merge-left.r3726
+   ! weight min stomatal conductance by C3 an C4 plant fractions
+   frac42 = SPREAD(veg%frac4, 2, mf) ! frac C4 plants
+   gsw_term = SPREAD(veg%gswmin,2,mf)
+   lower_limit2 = rad%scalex * gsw_term
+   gswmin = max(1.e-6,lower_limit2)
+         
+=======
+       IF ( veg%iveg(j) == 16 .and. met%tk(j) >= C%tfrz + 5. )                  &
+            ssnow%wetfac(j) = 1.0 ! lakes: hard-wired number to be removed
+>>>>>>> .merge-right.r3933
+
+<<<<<<< .working
+    REAL, DIMENSION(mp) ::                                                      &
+         conkct,        & ! Michaelis Menton const.
+         conkot,        & ! Michaelis Menton const.
+         cx1,           & ! "d_{3}" in Wang and Leuning,
+         cx2,           & !     1998, appendix E
+         tdiff,         & ! leaf air temp diff.
+         tlfxx,         & ! leaf temp of current iteration (K)
+         abs_deltlf,    & ! ABS(deltlf)
+         deltlf,        & ! deltlfy of prev iter.
+         deltlfy,       & ! del temp successive iter.
+         gras,          & ! Grashof coeff
+         evapfb,        & !
+         sum_rad_rniso, & !
+         sum_rad_gradis,& !
+         gwwet,         & ! cond for water for a wet canopy
+         ghrwet,        & ! wet canopy cond: heat & thermal rad
+         sum_gbh,       & !
+         ccfevw,        & ! limitation term for
+                                ! wet canopy evaporation rate
+         temp             !
+||||||| .merge-left.r3726
+   gw = 1.0e-3 ! default values of conductance
+   gh = 1.0e-3
+   ghr= 1.0e-3
+   rdx = 0.0
+   anx = 0.0
+   rnx = SUM(rad%rniso,2)
+   abs_deltlf = 999.0
+=======
+       IF( veg%iveg(j) == 16 .and. met%tk(j) < C%tfrz + 5. )                    &
+            ssnow%wetfac(j) = 0.7 ! lakes: hard-wired number to be removed
+>>>>>>> .merge-right.r3933
+
+<<<<<<< .working
+    REAL(r_2), DIMENSION(mp)  ::                                                &
+         ecx,        & ! lat. hflux big leaf
+         ecx_t,      & ! lat. hflux big leaf
+         hcx,        & ! sens heat fl big leaf prev iteration
+         rnx,        & ! net rad prev timestep
+         fwsoil_coef   !
+||||||| .merge-left.r3726
+=======
+    ENDDO
+>>>>>>> .merge-right.r3933
+
+<<<<<<< .working
+    REAL, DIMENSION(mp,ms)  :: oldevapfbl
+||||||| .merge-left.r3726
+   gras = 1.0e-6
+   an_y= 0.0
+   hcx = 0.0              ! init sens heat iteration memory variable
+   hcy = 0.0
+   rdy = 0.0
+   ecx = SUM(rad%rniso,2) ! init lat heat iteration memory variable
+   tlfxx = tlfx
+   psycst(:,:) = SPREAD(air%psyc,2,mf)
+   canopy%fevc = 0.0
+   ssnow%evapfbl = 0.0
+=======
+>>>>>>> .merge-right.r3933
+
+<<<<<<< .working
+    REAL, DIMENSION(mp,mf)  ::                                                  &
+         gw,         & ! cond for water for a dry canopy
+         gh,         & ! cond for heat for a dry canopy
+         ghr,        & ! dry canopy cond for heat & thermal rad
+         anx,        & ! net photos. prev iteration
+         an_y,       & ! net photosynthesis soln
+         rdx,        & ! daytime leaf resp rate, prev iteration
+         rdy,        & ! daytime leaf resp rate
+         ejmax2,     & ! jmax of big leaf
+         ejmxt3,     & ! jmax big leaf C3 plants
+         vcmxt3,     & ! vcmax big leaf C3
+         vcmxt4,     & ! vcmax big leaf C4
+         vx3,        & ! carboxylation C3 plants
+         vx4,        & ! carboxylation C4 plants
+         ! Ticket #56, xleuning is no longer used, we replace it with
+         ! gs_coeff,
+         ! which is computed differently based on the new GS_SWITCH. If GS_SWITCH
+         ! is "leuning", it's the same, if "medlyn", then the new Medlyn model
+         ! xleuning,   & ! leuning stomatal coeff
+         gs_coeff,   & ! stom coeff, Ticket #56 
+         psycst,     & ! modified pych. constant
+         frac42,     & ! 2D frac4
+         temp2
+||||||| .merge-left.r3726
+   ghwet = 1.0e-3
+   gwwet = 1.0e-3
+   ghrwet= 1.0e-3
+   canopy%fevw = 0.0
+   canopy%fhvw = 0.0
+   sum_gbh = SUM((gbhu+gbhf),2)
+   sum_rad_rniso = SUM(rad%rniso,2)
+   sum_rad_gradis = SUM(rad%gradis,2)
+=======
+    ! owetfac introduced to reduce sharp changes in dry regions,
+    ! especially in offline runs in which there may be discrepancies b/n
+    ! timing of precip and temperature change (EAK apr2009)
+    ssnow%wetfac = 0.5*(ssnow%wetfac + ssnow%owetfac)
+>>>>>>> .merge-right.r3933
+
+<<<<<<< .working
+    REAL, DIMENSION(:,:), POINTER :: gswmin ! min stomatal conductance
+||||||| .merge-left.r3726
+   DO kk=1,mp
+=======
+  END SUBROUTINE Surf_wetness_fact
+>>>>>>> .merge-right.r3933
+
+<<<<<<< .working
+    REAL, DIMENSION(mp,2) ::  gsw_term, lower_limit2  ! local temp var
+||||||| .merge-left.r3726
+      IF(canopy%vlaiw(kk) <= C%LAI_THRESH) THEN
+         rnx(kk) = 0.0 ! intialise
+         ecx(kk) = 0.0 ! intialise
+         ecy(kk) = ecx(kk) ! store initial values
+         abs_deltlf(kk)=0.0
+         rny(kk) = rnx(kk) ! store initial values
+         ! calculate total thermal resistance, rthv in s/m
+      END IF
+=======
+  ! -----------------------------------------------------------------------------
+>>>>>>> .merge-right.r3933
+
+<<<<<<< .working
+    INTEGER :: i, j, k, kk  ! iteration count
+    REAL :: vpd, g1 ! Ticket #56   
+#define VanessasCanopy
+#ifdef VanessasCanopy
+    REAL, DIMENSION(mp,mf)  ::                                                  &
+         xleuning    ! leuning stomatal coeff
+#endif
+||||||| .merge-left.r3726
+   ENDDO
+   
+   deltlfy = abs_deltlf
+   k = 0
+=======
+  SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
+       veg, canopy, soil, ssnow, dsx,                             &
+       fwsoil, tlfx,  tlfy,  ecy, hcy,                            &
+       rny, gbhu, gbhf, csx,                                      &
+       cansat, ghwet, iter,climate )
+>>>>>>> .merge-right.r3933
+
+<<<<<<< .working
+    ! END header
+||||||| .merge-left.r3726
+   !kdcorbin, 08/10 - doing all points all the time
+   DO WHILE (k < C%MAXITER)
+      k = k + 1
+=======
+    USE cable_def_types_mod
+    USE cable_common_module
+>>>>>>> .merge-right.r3933
+
+<<<<<<< .working
+    ALLOCATE( gswmin(mp,mf ))
+||||||| .merge-left.r3726
+      DO i=1,mp
+         
+         IF (canopy%vlaiw(i) > C%LAI_THRESH .AND. abs_deltlf(i) > 0.1) THEN
+         
+            ghwet(i) = 2.0   * sum_gbh(i)
+            gwwet(i) = 1.075 * sum_gbh(i)
+            ghrwet(i) = sum_rad_gradis(i) + ghwet(i)
+       
+            ! Calculate fraction of canopy which is wet:
+            canopy%fwet(i) = MAX( 0.0, MIN( 1.0, 0.8 * canopy%cansto(i)/ MAX(  &
+                             cansat(i),0.01 ) ) )
+=======
+    TYPE (radiation_type), INTENT(INOUT) :: rad
+    TYPE (roughness_type), INTENT(INOUT) :: rough
+    TYPE (air_type),       INTENT(INOUT) :: air
+    TYPE (met_type),       INTENT(INOUT) :: met
+    TYPE (canopy_type),    INTENT(INOUT) :: canopy
+    TYPE (soil_snow_type), INTENT(INOUT) :: ssnow
+>>>>>>> .merge-right.r3933
+
+<<<<<<< .working
+    ! Soil water limitation on stomatal conductance:
+    IF( iter ==1) THEN
+       IF ((cable_user%soil_struc=='default').and.(cable_user%FWSOIL_SWITCH.ne.'Haverd2013')) THEN
+          IF(cable_user%FWSOIL_SWITCH == 'standard') THEN
+             if (cable_user%gw_model) then
+                CALL fwsoil_calc_gw( fwsoil, soil, ssnow, veg)
+             else
+                CALL fwsoil_calc_std( fwsoil, soil, ssnow, veg)
+             end if
+          ELSEIf (cable_user%FWSOIL_SWITCH == 'non-linear extrapolation') THEN
+             !EAK, 09/10 - replace linear approx by polynomial fitting
+             CALL fwsoil_calc_non_linear(fwsoil, soil, ssnow, veg)
+          ELSEIF(cable_user%FWSOIL_SWITCH == 'Lai and Ktaul 2000') THEN
+             CALL fwsoil_calc_Lai_Ktaul(fwsoil, soil, ssnow, veg)
+          ELSE
+             STOP 'fwsoil_switch failed.'
+          ENDIF
+          canopy%fwsoil = fwsoil
+       ELSEIF ((cable_user%soil_struc=='sli').OR.(cable_user%FWSOIL_SWITCH=='Haverd2013')) THEN
+          fwsoil = canopy%fwsoil
+       ENDIF
+||||||| .merge-left.r3726
+            ! Calculate lat heat from wet canopy, may be neg.                  
+            ! if dew on wet canopy to avoid excessive evaporation:
+            ccfevw(i) = MIN(canopy%cansto(i) * air%rlam(i) / dels,             &
+                        2.0 / (1440.0 / (dels/60.0)) * air%rlam(i) )
+   
+            ! Grashof number (Leuning et al, 1995) eq E4:
+            gras(i) = MAX(1.0e-6,                                              &
+                      1.595E8* ABS( tlfx(i)-met%tvair(i))* (veg%dleaf(i)**3.0) )
+=======
+    TYPE (veg_parameter_type),  INTENT(INOUT)   :: veg
+    TYPE (soil_parameter_type), INTENT(inout)   :: soil
+    TYPE (climate_type), INTENT(IN)    :: climate
+>>>>>>> .merge-right.r3933
+
+<<<<<<< .working
+    ENDIF
+||||||| .merge-left.r3726
+            ! See Appendix E in (Leuning et al, 1995):
+            gbhf(i,1) = rad%fvlai(i,1) * air%cmolar(i) * 0.5*C%dheat           &
+                       * ( gras(i)**0.25 ) / veg%dleaf(i)
+            gbhf(i,2) = rad%fvlai(i,2) * air%cmolar(i) * 0.5 * C%dheat         &
+                        * ( gras(i)**0.25 ) / veg%dleaf(i)
+            gbhf(i,:) = MAX( 1.e-6, gbhf(i,:) )
+      
+            ! Conductance for heat:
+            gh(i,:) = 2.0 * (gbhu(i,:) + gbhf(i,:))
+      
+            ! Conductance for heat and longwave radiation:
+            ghr(i,:) = rad%gradis(i,:)+gh(i,:)
+      
+            ! Leuning 2002 (P C & E) equation for temperature response
+            ! used for Vcmax for C3 plants:
+            temp(i) =  xvcmxt3(tlfx(i)) * veg%vcmax(i) * (1.0-veg%frac4(i))
+            
+            vcmxt3(i,1) = rad%scalex(i,1) * temp(i)
+            vcmxt3(i,2) = rad%scalex(i,2) * temp(i)
+    
+            ! Temperature response Vcmax, C4 plants (Collatz et al 1989):
+            temp(i) = xvcmxt4(tlfx(i)-C%tfrz) * veg%vcmax(i) * veg%frac4(i)
+            vcmxt4(i,1) = rad%scalex(i,1) * temp(i)
+            vcmxt4(i,2) = rad%scalex(i,2) * temp(i)
+    
+            ! Leuning 2002 (P C & E) equation for temperature response
+            ! used for Jmax for C3 plants:
+            temp(i) = xejmxt3(tlfx(i)) * veg%ejmax(i) * (1.0-veg%frac4(i))
+            ejmxt3(i,1) = rad%scalex(i,1) * temp(i)
+            ejmxt3(i,2) = rad%scalex(i,2) * temp(i)
+            
+            ! Difference between leaf temperature and reference temperature:
+            tdiff(i) = tlfx(i) - C%TREFK
+            
+            ! Michaelis menten constant of Rubisco for CO2:
+            conkct(i) = veg%conkc0(i) * EXP( ( veg%ekc(i) / (C%rgas*C%trefk) ) &
+                                             * ( 1.0 - C%trefk/tlfx(i) ) )
+=======
+    REAL, INTENT(INOUT), DIMENSION(:) ::                                        &
+         dsx,        & ! leaf surface vpd
+         fwsoil,     & ! soil water modifier of stom. cond
+         tlfx,       & ! leaf temp prev. iter (K)
+         tlfy          ! leaf temp (K)
+>>>>>>> .merge-right.r3933
+
+<<<<<<< .working
+    ! weight min stomatal conductance by C3 an C4 plant fractions
+    frac42 = SPREAD(veg%frac4, 2, mf) ! frac C4 plants
+    gsw_term = SPREAD(veg%gswmin,2,mf)
+    lower_limit2 = rad%scalex * gsw_term
+    gswmin = max(1.e-6,lower_limit2)
+||||||| .merge-left.r3726
+            ! Michaelis menten constant of Rubisco for oxygen:
+            conkot(i) = veg%conko0(i) * EXP( ( veg%eko(i) / (C%rgas*C%trefk) ) &
+                                             * ( 1.0 - C%trefk/tlfx(i) ) )
+=======
+    REAL(R_2),INTENT(INOUT), DIMENSION(:) ::                                    &
+         ecy,        & ! lat heat fl dry big leaf
+         hcy,        & ! veg. sens heat
+         rny         !& !
+>>>>>>> .merge-right.r3933
+
+<<<<<<< .working
+
+    gw = 1.0e-3 ! default values of conductance
+    gh = 1.0e-3
+    ghr= 1.0e-3
+    rdx = 0.0
+    anx = 0.0
+    rnx = SUM(rad%rniso,2)
+    abs_deltlf = 999.0
+
+
+    gras = 1.0e-6
+    an_y= 0.0
+    hcx = 0.0              ! init sens heat iteration memory variable
+    hcy = 0.0
+    rdy = 0.0
+    ecx = SUM(rad%rniso,2) ! init lat heat iteration memory variable
+    tlfxx = tlfx
+    psycst(:,:) = SPREAD(air%psyc,2,mf)
+    canopy%fevc = 0.0
+    ssnow%evapfbl = 0.0
+
+    ghwet = 1.0e-3
+    gwwet = 1.0e-3
+    ghrwet= 1.0e-3
+    canopy%fevw = 0.0
+    canopy%fhvw = 0.0
+    sum_gbh = SUM((gbhu+gbhf),2)
+    sum_rad_rniso = SUM(rad%rniso,2)
+    sum_rad_gradis = SUM(rad%gradis,2)
+
+    DO kk=1,mp
+
+       IF(canopy%vlaiw(kk) <= C%LAI_THRESH) THEN
+          rnx(kk) = 0.0 ! intialise
+          ecx(kk) = 0.0 ! intialise
+          ecy(kk) = ecx(kk) ! store initial values
+          abs_deltlf(kk)=0.0
+          rny(kk) = rnx(kk) ! store initial values
+          ! calculate total thermal resistance, rthv in s/m
+       END IF
+
+    ENDDO
+
+    deltlfy = abs_deltlf
+    k = 0
+
+
+    !kdcorbin, 08/10 - doing all points all the time
+    DO WHILE (k < C%MAXITER)
+       k = k + 1
+       DO i=1,mp
+
+          IF (canopy%vlaiw(i) > C%LAI_THRESH .AND. abs_deltlf(i) > 0.1) THEN
+
+             ghwet(i) = 2.0   * sum_gbh(i)
+             gwwet(i) = 1.075 * sum_gbh(i)
+             ghrwet(i) = sum_rad_gradis(i) + ghwet(i)
+
+             ! Calculate fraction of canopy which is wet:
+             canopy%fwet(i) = MAX( 0.0, MIN( 1.0, 0.8 * canopy%cansto(i)/ MAX(  &
+                  cansat(i),0.01 ) ) )
+
+             ! Calculate lat heat from wet canopy, may be neg.
+             ! if dew on wet canopy to avoid excessive evaporation:
+             ccfevw(i) = MIN(canopy%cansto(i) * air%rlam(i) / dels,             &
+                  2.0 / (1440.0 / (dels/60.0)) * air%rlam(i) )
+
+             ! Grashof number (Leuning et al, 1995) eq E4:
+             gras(i) = MAX(1.0e-6,                                              &
+                  1.595E8* ABS( tlfx(i)-met%tvair(i))* (veg%dleaf(i)**3.0) )
+
+             ! See Appendix E in (Leuning et al, 1995):
+             gbhf(i,1) = rad%fvlai(i,1) * air%cmolar(i) * 0.5*C%dheat           &
+                  * ( gras(i)**0.25 ) / veg%dleaf(i)
+             gbhf(i,2) = rad%fvlai(i,2) * air%cmolar(i) * 0.5 * C%dheat         &
+                  * ( gras(i)**0.25 ) / veg%dleaf(i)
+             gbhf(i,:) = MAX( 1.e-6_r_2, gbhf(i,:) )
+
+             ! Conductance for heat:
+             gh(i,:) = 2.0 * (gbhu(i,:) + gbhf(i,:))
+
+             ! Conductance for heat and longwave radiation:
+             ghr(i,:) = rad%gradis(i,:)+gh(i,:)
+
+             ! Leuning 2002 (P C & E) equation for temperature response
+             ! used for Vcmax for C3 plants:
+             temp(i) =  xvcmxt3(tlfx(i)) * veg%vcmax(i) * (1.0-veg%frac4(i))
+
+             vcmxt3(i,1) = rad%scalex(i,1) * temp(i)
+             vcmxt3(i,2) = rad%scalex(i,2) * temp(i)
+
+             ! Temperature response Vcmax, C4 plants (Collatz et al 1989):
+             temp(i) = xvcmxt4(tlfx(i)-C%tfrz) * veg%vcmax(i) * veg%frac4(i)
+             vcmxt4(i,1) = rad%scalex(i,1) * temp(i)
+             vcmxt4(i,2) = rad%scalex(i,2) * temp(i)
+
+             ! Leuning 2002 (P C & E) equation for temperature response
+             ! used for Jmax for C3 plants:
+             temp(i) = xejmxt3(tlfx(i)) * veg%ejmax(i) * (1.0-veg%frac4(i))
+             ejmxt3(i,1) = rad%scalex(i,1) * temp(i)
+             ejmxt3(i,2) = rad%scalex(i,2) * temp(i)
+
+             ! Difference between leaf temperature and reference temperature:
+             tdiff(i) = tlfx(i) - C%TREFK
+
+             ! Michaelis menten constant of Rubisco for CO2:
+             conkct(i) = veg%conkc0(i) * EXP( ( veg%ekc(i) / (C%rgas*C%trefk) ) &
+                                              * ( 1.0 - C%trefk/tlfx(i) ) )
+
+             ! Michaelis menten constant of Rubisco for oxygen:
+             conkot(i) = veg%conko0(i) * EXP( ( veg%eko(i) / (C%rgas*C%trefk) ) &
+                                              * ( 1.0 - C%trefk/tlfx(i) ) )
+
+             ! Store leaf temperature
+             tlfxx(i) = tlfx(i)
+
+             ! "d_{3}" in Wang and Leuning, 1998, appendix E:
+             cx1(i) = conkct(i) * (1.0+0.21/conkot(i))
+             cx2(i) = 2.0 * C%gam0 * ( 1.0 + C%gam1 * tdiff(i)                  &
+||||||| .merge-left.r3726
+            ! Store leaf temperature
+            tlfxx(i) = tlfx(i)
+   
+            ! "d_{3}" in Wang and Leuning, 1998, appendix E:
+            cx1(i) = conkct(i) * (1.0+0.21/conkot(i))
+            cx2(i) = 2.0 * C%gam0 * ( 1.0 + C%gam1 * tdiff(i)                  &
+=======
     REAL(R_2),INTENT(INOUT), DIMENSION(:,:) ::                                  &
          gbhu,       & ! forcedConvectionBndryLayerCond
          gbhf,       & ! freeConvectionBndryLayerCond
@@ -1616,11 +3523,7 @@ CONTAINS
     IF( iter ==1) THEN
        IF ((cable_user%soil_struc=='default').and.(cable_user%FWSOIL_SWITCH.ne.'Haverd2013')) THEN
           IF(cable_user%FWSOIL_SWITCH == 'standard') THEN
-             if (cable_user%gw_model) then
-                CALL fwsoil_calc_gw( fwsoil, soil, ssnow, veg)
-             else
-                CALL fwsoil_calc_std( fwsoil, soil, ssnow, veg)
-             end if
+             CALL fwsoil_calc_std( fwsoil, soil, ssnow, veg)
           ELSEIf (cable_user%FWSOIL_SWITCH == 'non-linear extrapolation') THEN
              !EAK, 09/10 - replace linear approx by polynomial fitting
              CALL fwsoil_calc_non_linear(fwsoil, soil, ssnow, veg)
@@ -1761,6 +3664,7 @@ CONTAINS
              ! "d_{3}" in Wang and Leuning, 1998, appendix E:
              cx1(i) = conkct(i) * (1.0+0.21/conkot(i))
              cx2(i) = 2.0 * C%gam0 * ( 1.0 + C%gam1 * tdiff(i)                  &
+>>>>>>> .merge-right.r3933
                                           + C%gam2 * tdiff(i) * tdiff(i) )
 
              ! All equations below in appendix E in Wang and Leuning 1998 are
@@ -1786,6 +3690,35 @@ CONTAINS
 !#ifdef VanessasCanopy
 
     
+<<<<<<< .working
+              if (cable_user%CALL_climate) then
+  
+                 ! Atkins et al. 2015, Table S4, 
+                 ! modified by saling factor to reduce leaf respiration to 
+                 ! expected proportion of GPP
+                 !Broad-leaved trees: Rdark a25 = 
+                 !1.2818 + (0.0116 × Vcmax,a25) – (0.0334 × TWQ)
+                 !C3 herbs/grasses: Rdark,a25 = 
+                 !1.6737 + (0.0116 × Vcmax,a25) – (0.0334 × TWQ)
+                 !Needle-leaved trees: Rdark,a25 = 
+                 !1.2877 + (0.0116 × Vcmax,a25) – (0.0334 × TWQ)
+                 !Shrubs: Rdark,a25 = 1.5758 + (0.0116 × Vcmax,a25) – (0.0334 × TWQ)
+||||||| .merge-left.r3726
+            ! All equations below in appendix E in Wang and Leuning 1998 are
+            ! for calculating anx, csx and gswx for Rubisco limited,
+            ! RuBP limited, sink limited
+            temp2(i,1) = rad%qcan(i,1,1) * jtomol * (1.0-veg%frac4(i))
+            temp2(i,2) = rad%qcan(i,2,1) * jtomol * (1.0-veg%frac4(i))
+            vx3(i,1)  = ej3x(temp2(i,1),veg%alpha(i),veg%convex(i),ejmxt3(i,1))
+            vx3(i,2)  = ej3x(temp2(i,2),veg%alpha(i),veg%convex(i),ejmxt3(i,2))
+            temp2(i,1) = rad%qcan(i,1,1) * jtomol * veg%frac4(i)
+            temp2(i,2) = rad%qcan(i,2,1) * jtomol * veg%frac4(i)
+            vx4(i,1)  = ej4x(temp2(i,1),veg%alpha(i),veg%convex(i),vcmxt4(i,1))
+            vx4(i,2)  = ej4x(temp2(i,2),veg%alpha(i),veg%convex(i),vcmxt4(i,2))
+    
+            rdx(i,1) = (veg%cfrd(i)*vcmxt3(i,1) + veg%cfrd(i)*vcmxt4(i,1))
+            rdx(i,2) = (veg%cfrd(i)*vcmxt3(i,2) + veg%cfrd(i)*vcmxt4(i,2))
+=======
               if (cable_user%CALL_climate) then
   
                  ! Atkins et al. 2015, Table S4, 
@@ -1860,6 +3793,72 @@ CONTAINS
 !!$             gs_coeff = xleuning
 
 !#else
+            rdx(i,1) = (veg%cfrd(i)*vcmxt3(i,1) + veg%cfrd(i)*vcmxt4(i,1))
+            rdx(i,2) = (veg%cfrd(i)*vcmxt3(i,2) + veg%cfrd(i)*vcmxt4(i,2))
+>>>>>>> .merge-right.r3933
+
+<<<<<<< .working
+              if (veg%iveg(i).eq.2 .or. veg%iveg(i).eq. 4  ) then ! broadleaf forest
+
+                rdx(i,1) = 0.60*(1.2818e-6+0.0116*veg%vcmax(i)- &
+                     0.0334*climate%qtemp_max_last_year(i)*1e-6)
+                rdx(i,2) = rdx(i,1)
+
+              elseif (veg%iveg(i).eq.1 .or. veg%iveg(i).eq. 3  ) then ! needleleaf forest
+                 rdx(i,1) = 1.0*(1.2877e-6+0.0116*veg%vcmax(i)- &
+                      0.0334*climate%qtemp_max_last_year(i)*1e-6)
+                 rdx(i,2) = rdx(i,1)
+
+              elseif (veg%iveg(i).eq.6 .or. veg%iveg(i).eq.8 .or. &
+                 veg%iveg(i).eq. 9  ) then ! C3 grass, tundra, crop
+                 rdx(i,1) = 0.60*(1.6737e-6+0.0116*veg%vcmax(i)- &
+                      0.0334*climate%qtemp_max_last_year(i)*1e-6)
+                 rdx(i,2) = rdx(i,1)
+
+              else  ! shrubs and other (C4 grass and crop)
+                 rdx(i,1) = 0.60*(1.5758e-6+0.0116*veg%vcmax(i)- &
+                      0.0334*climate%qtemp_max_last_year(i)*1e-6)
+                 rdx(i,2) = rdx(i,1)
+              endif
+
+     
+              ! modify for leaf area and instanteous temperature response (Rd25 -> Rd)
+                 rdx(i,1) = rdx(i,1) * xrdt(tlfx(i)) * rad%scalex(i,1)
+                 rdx(i,2) = rdx(i,2) * xrdt(tlfx(i)) * rad%scalex(i,2)
+      
+                     
+                
+                 ! reduction of daytime leaf dark-respiration to account for 
+                 !photo-inhibition
+                 !Mercado, L. M., Huntingford, C., Gash, J. H. C., Cox, P. M., 
+                 ! and Jogireddy, V.:
+                 ! Improving the representation of radiation 
+                 !interception and photosynthesis for climate model applications, 
+                 !Tellus B, 59, 553-565, 2007.
+                 ! Equation 3
+                 ! (Brooks and Farquhar, 1985, as implemented by Lloyd et al., 1995).
+                 ! Rc = Rd 0 < Io < 10 μmol quantam−2s−1
+                 ! Rc = [0.5 − 0.05 ln(Io)] Rd Io > 10μmol quantam−2s−1
+                 
+                 if (jtomol*1.0e6*rad%qcan(i,1,1).gt.10.0) &
+                      rdx(i,1) = rdx(i,1) * &
+                      (0.5 - 0.05*log(jtomol*1.0e6*rad%qcan(i,1,1)))
+
+                 if (jtomol*1.0e6*rad%qcan(i,1,2).gt.10.0) &
+                      rdx(i,2) = rdx(i,2) * &
+                      (0.5 - 0.05*log(jtomol*1.0e6*rad%qcan(i,1,2)))
+                
+!!$                xleuning(i,1) = ( fwsoil(i) / ( csx(i,1) - co2cp3 ) )              &
+!!$                     * ( veg%a1gs(i) / ( 1.0 + dsx(i)/veg%d0gs(i)))
+!!$                xleuning(i,2) = ( fwsoil(i) / ( csx(i,2) - co2cp3 ) )              &
+!!$                     * ( veg%a1gs(i) / ( 1.0 + dsx(i)/veg%d0gs(i)))
+                
+             else !cable_user%call_climate
+
+!!$!Vanessa:note there is no xleuning to go into photosynthesis etc anymore
+!!$             gs_coeff = xleuning
+
+!#else
             if (cable_user%gw_model) then  !this was in 2.2.3
                rdx(i,1) = (veg%cfrd(i)*vcmxt3(i,1) + veg%cfrd(i)*vcmxt4(i,1))*fwsoil(i)
                rdx(i,2) = (veg%cfrd(i)*vcmxt3(i,2) + veg%cfrd(i)*vcmxt4(i,2))*fwsoil(i)
@@ -1871,6 +3870,11 @@ CONTAINS
 
          endif !cable_user%call_climate
 
+||||||| .merge-left.r3726
+=======
+         endif !cable_user%call_climate
+
+>>>>>>> .merge-right.r3933
             ! Ticket #56 added switch for Belinda Medlyn's model
             IF (cable_user%GS_SWITCH == 'leuning') THEN
                 gs_coeff(i,1) = ( fwsoil(i) / ( csx(i,1) - co2cp3 ) )              &
@@ -2022,6 +4026,7 @@ CONTAINS
 
              dsx(i)=  max(dsx(i),0.0)
 
+<<<<<<< .working
              ! Store change in leaf temperature between successive iterations:
              deltlf(i) = tlfxx(i)-tlfx(i)
              abs_deltlf(i) = ABS(deltlf(i))
@@ -2138,6 +4143,128 @@ CONTAINS
 
    ! Ticket #56, xleuningz repalced with gs_coeffz
    SUBROUTINE photosynthesis( csxz, cx1z, cx2z, gswminz,                          &
+||||||| .merge-left.r3726
+! -----------------------------------------------------------------------------
+! Ticket #56, xleuningz repalced with gs_coeffz
+SUBROUTINE photosynthesis( csxz, cx1z, cx2z, gswminz,                          &
+=======
+             ! Store change in leaf temperature between successive iterations:
+             deltlf(i) = tlfxx(i)-tlfx(i)
+             abs_deltlf(i) = ABS(deltlf(i))
+
+          ENDIF !lai/abs_deltlf
+
+       ENDDO !i=1,mp
+       ! Where leaf temp change b/w iterations is significant, and
+       ! difference is smaller than the previous iteration, store results:
+       DO i=1,mp
+
+          IF ( abs_deltlf(i) < ABS( deltlfy(i) ) ) THEN
+
+             deltlfy(i) = deltlf(i)
+             tlfy(i) = tlfx(i)
+             rny(i) = rnx(i)
+             hcy(i) = hcx(i)
+             ecy(i) = ecx(i)
+             rdy(i,1) = rdx(i,1)
+             rdy(i,2) = rdx(i,2)
+             an_y(i,1) = anx(i,1)
+             an_y(i,2) = anx(i,2)
+
+             ! save last values calculated for ssnow%evapfbl
+             oldevapfbl(i,:) = ssnow%evapfbl(i,:)
+
+          ENDIF
+
+          IF( abs_deltlf(i) > 0.1 )                                             &
+
+                                ! after 4 iterations, take mean of current & previous estimates
+                                ! as the next estimate of leaf temperature, to avoid oscillation
+               tlfx(i) = ( 0.5 * ( MAX( 0, k-5 ) / ( k - 4.9999 ) ) ) *tlfxx(i) + &
+               ( 1.0 - ( 0.5 * ( MAX( 0, k-5 ) / ( k - 4.9999 ) ) ) )   &
+               * tlfx(i)
+
+          IF(k==1) THEN
+
+             ! take the first iterated estimates as the defaults
+             tlfy(i) = tlfx(i)
+             rny(i) = rnx(i)
+             hcy(i) = hcx(i)
+             ecy(i) = ecx(i)
+             rdy(i,:) = rdx(i,:)
+             an_y(i,:) = anx(i,:)
+             ! save last values calculated for ssnow%evapfbl
+             oldevapfbl(i,:) = ssnow%evapfbl(i,:)
+
+          END IF
+
+       END DO !over mp
+
+    END DO  ! DO WHILE (ANY(abs_deltlf > 0.1) .AND.  k < C%MAXITER)
+
+
+    ! dry canopy flux
+    canopy%fevc = (1.0-canopy%fwet) * ecy
+
+    IF (cable_user%fwsoil_switch.ne.'Haverd2013') then
+
+       ! Recalculate ssnow%evapfbl as ecy may not be updated with the ecx
+       ! calculated in the last iteration.
+       ! DO NOT use simple scaling as there are times that ssnow%evapfbl is zero.
+       ! ** ssnow%evapfbl(i,:) = ssnow%evapfbl(i,:) * ecy(i) / ecx(i) **
+       DO i = 1, mp
+
+          IF( ecy(i) > 0.0 .AND. canopy%fwet(i) < 1.0 ) THEN
+
+             IF( ABS( ecy(i) - ecx(i) ) > 1.0e-6 ) THEN
+
+                IF( ABS( canopy%fevc(i) - ( SUM( oldevapfbl(i,:)) * air%rlam(i)    &
+                     /dels ) ) > 1.0e-4 ) THEN
+
+                   PRINT *, 'Error! oldevapfbl not right.', ktau_gl, i
+                   PRINT *, 'ecx, ecy = ', ecx(i), ecy(i)
+                   PRINT *, 'or in mm = ', ecx(i) * ( 1.0 - canopy%fwet(i) )       &
+                        / air%rlam(i) * dels,                   &
+                        ecy(i) * ( 1.0 - canopy%fwet(i) ) /     &
+                        air%rlam(i) * dels
+
+                   PRINT *,'fevc = ', canopy%fevc(i), SUM( oldevapfbl(i,:) ) *     &
+                        air%rlam(i) / dels
+                   PRINT *, 'fwet = ', canopy%fwet(i)
+                   PRINT *, 'oldevapfbl = ', oldevapfbl(i,:)
+                   PRINT *, 'ssnow%evapfbl before rescaling: ',                    &
+                        ssnow%evapfbl(i,:)
+                   ! STOP
+
+                ELSE
+
+                   ssnow%evapfbl(i,:) = oldevapfbl(i,:)
+
+                END IF
+
+             END IF
+
+          END IF
+
+       END DO
+
+    ENDIF
+
+    canopy%frday = 12.0 * SUM(rdy, 2)
+!! vh !! inserted min to avoid -ve values of GPP
+    canopy%fpn = min(-12.0 * SUM(an_y, 2), canopy%frday)
+    canopy%evapfbl = ssnow%evapfbl
+
+
+    DEALLOCATE( gswmin )
+
+  END SUBROUTINE dryLeaf
+  ! -----------------------------------------------------------------------------
+
+
+   ! Ticket #56, xleuningz repalced with gs_coeffz
+   SUBROUTINE photosynthesis( csxz, cx1z, cx2z, gswminz,                          &
+>>>>>>> .merge-right.r3933
                            rdxz, vcmxt3z, vcmxt4z, vx3z,                       &
                            vx4z, gs_coeffz, vlaiz, deltlfz, anxz, fwsoilz )
     USE cable_def_types_mod, only : mp, mf, r_2
@@ -2295,6 +4422,7 @@ CONTAINS
 
                 ENDIF
 
+<<<<<<< .working
                 ! Sink limited:
                 coef2z(i,j) = gs_coeffz(i,j)
                 
@@ -2462,11 +4590,203 @@ CONTAINS
    TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
    REAL, INTENT(OUT), DIMENSION(:):: fwsoil ! soil water modifier of stom. cond
    REAL, DIMENSION(mp) :: rwater ! soil water availability
+||||||| .merge-left.r3726
+SUBROUTINE fwsoil_calc_std(fwsoil, soil, ssnow, veg) 
+   USE cable_def_types_mod
+   USE cable_common_module, ONLY : cable_user
+   TYPE (soil_snow_type), INTENT(INOUT):: ssnow
+   TYPE (soil_parameter_type), INTENT(INOUT)   :: soil
+   TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
+   REAL, INTENT(OUT), DIMENSION(:):: fwsoil ! soil water modifier of stom. cond
+   REAL, DIMENSION(mp) :: rwater ! soil water availability
+=======
+                ! Sink limited:
+                coef2z(i,j) = gs_coeffz(i,j)
+                
+                coef1z(i,j) = gswminz(i,j)*fwsoilz(i)/C%RGSWC + gs_coeffz(i,j)   &
+                              * (rdxz(i,j) - 0.5*vcmxt3z(i,j))                  &
+                              + effc4 * vcmxt4z(i,j) - gs_coeffz(i,j)           &
+                              * csxz(i,j) * effc4 * vcmxt4z(i,j)  
+                                             
+                coef0z(i,j) = -( gswminz(i,j)*fwsoilz(i)/C%RGSWC )*csxz(i,j)*effc4 &
+                              * vcmxt4z(i,j) + ( rdxz(i,j)                      &
+                            - 0.5 * vcmxt3z(i,j)) * gswminz(i,j)*fwsoilz(i)/C%RGSWC
+  
+                ! no solution, give it a huge number
+                IF( ABS( coef2z(i,j) ) < 1.0e-9 .AND.                           &
+                     ABS( coef1z(i,j)) < 1.0e-9 ) THEN
+>>>>>>> .merge-right.r3933
 
+<<<<<<< .working
    rwater = MAX(1.0e-4_r_2,                                                    &    
             SUM(veg%froot * MAX(0.024,MIN(1.0_r_2,ssnow%wb -                   &    
             SPREAD(soil%swilt, 2, ms))),2) /(soil%sfc-soil%swilt))
    
+||||||| .merge-left.r3726
+   rwater = MAX(1.0e-9,                                                    &
+            SUM(veg%froot * MAX(1.0e-9,MIN(1.0_r_2,ssnow%wb -                   &
+            SPREAD(soil%swilt, 2, ms))),2) /(soil%sfc-soil%swilt))
+   
+=======
+                   ciz(i,j) = 99999.0
+                   ansinkz(i,j)  = 99999.0
+
+                ENDIF
+
+                ! solve linearly
+                IF( ABS( coef2z(i,j) ) < 1.e-9 .AND.                            &
+                     ABS( coef1z(i,j) ) >= 1.e-9 ) THEN
+
+                   ciz(i,j) = -1.0 * coef0z(i,j) / coef1z(i,j)
+                   ansinkz(i,j)  = ciz(i,j)
+
+                ENDIF
+
+                ! solve quadratic (only take the more positive solution)
+                IF( ABS( coef2z(i,j) ) >= 1.e-9 ) THEN
+
+                   delcxz(i,j) = coef1z(i,j)**2 -4.0*coef0z(i,j)*coef2z(i,j)
+
+                   ciz(i,j) = (-coef1z(i,j)+SQRT (MAX(0.0_r_2,delcxz(i,j)) ) )  &
+                        / ( 2.0 * coef2z(i,j) )
+
+                   ansinkz(i,j) = ciz(i,j)
+
+                ENDIF
+
+                ! minimal of three limited rates
+                anxz(i,j) = MIN(anrubiscoz(i,j),anrubpz(i,j),ansinkz(i,j))
+
+
+             ENDIF
+
+          ENDDO
+
+       ENDIF
+
+    ENDDO
+
+
+
+  END SUBROUTINE photosynthesis
+
+  ! ------------------------------------------------------------------------------
+
+  FUNCTION ej3x(parx,alpha,convex,x) RESULT(z)
+
+    REAL, INTENT(IN)     :: parx
+    REAL, INTENT(IN)     :: alpha
+    REAL, INTENT(IN)     :: convex
+    REAL, INTENT(IN)     :: x
+    REAL                 :: z
+
+    z = MAX(0.0,                                                                &
+         0.25*((alpha*parx+x-sqrt((alpha*parx+x)**2 -                      &
+         4.0*convex*alpha*parx*x)) /(2.0*convex)) )
+  END FUNCTION ej3x
+
+  ! ------------------------------------------------------------------------------
+
+  FUNCTION ej4x(parx,alpha,convex,x) RESULT(z)
+
+    REAL, INTENT(IN)     :: parx
+    REAL, INTENT(IN)     :: alpha
+    REAL, INTENT(IN)     :: convex
+    REAL, INTENT(IN)     :: x
+    REAL                 :: z
+
+    z = MAX(0.0,                                                                &
+         (alpha*parx+x-sqrt((alpha*parx+x)**2 -                           &
+         4.0*convex*alpha*parx*x))/(2.0*convex))
+
+  END FUNCTION ej4x
+
+  ! ------------------------------------------------------------------------------
+
+  ! Explicit array dimensions as temporary work around for NEC inlining problem
+  FUNCTION xvcmxt4(x) RESULT(z)
+
+    REAL, PARAMETER      :: q10c4 = 2.0
+    REAL, INTENT(IN) :: x
+    REAL :: z
+
+    z = q10c4 ** (0.1 * x - 2.5) /                                              &
+         ((1.0 + exp(0.3 * (13.0 - x))) * (1.0 + exp(0.3 * (x - 36.0))))
+
+  END FUNCTION xvcmxt4
+
+  ! ------------------------------------------------------------------------------
+
+  FUNCTION xvcmxt3(x) RESULT(z)
+
+    !  leuning 2002 (p c & e) equation for temperature response
+    !  used for vcmax for c3 plants
+    REAL, INTENT(IN) :: x
+    REAL :: xvcnum,xvcden,z
+
+    REAL, PARAMETER  :: EHaVc  = 73637.0  ! J/mol (Leuning 2002)
+    REAL, PARAMETER  :: EHdVc  = 149252.0 ! J/mol (Leuning 2002)
+    REAL, PARAMETER  :: EntropVc = 486.0  ! J/mol/K (Leuning 2002)
+    REAL, PARAMETER  :: xVccoef = 1.17461 ! derived parameter
+    ! xVccoef=1.0+exp((EntropJx*C%TREFK-EHdJx)/(Rconst*C%TREFK))
+
+    xvcnum=xvccoef*exp( ( ehavc / ( C%rgas*C%TREFK ) )* ( 1.-C%TREFK/x ) )
+    xvcden=1.0+exp( ( entropvc*x-ehdvc ) / ( C%rgas*x ) )
+    z = max( 0.0,xvcnum / xvcden )
+
+  END FUNCTION xvcmxt3
+
+  ! ------------------------------------------------------------------------------
+ REAL FUNCTION xrdt(x)
+
+   !  Atkins et al. (Eq 1, New Phytologist (2015) 206: 614–636) 
+   !variable Q10 temperature of dark respiration
+   ! Originally from Tjoelker et al. 2001
+
+    REAL, INTENT(IN) :: x
+    
+
+    xrdt = (3.09 - 0.043*((x-273.15)+25.)/2.0)**((x-273.15 -25.0)/10.0)
+
+  END FUNCTION xrdt
+
+  ! ------------------------------------------------------------------------------
+
+  FUNCTION xejmxt3(x) RESULT(z)
+
+    !  leuning 2002 (p c & e) equation for temperature response
+    !  used for jmax for c3 plants
+
+    REAL, INTENT(IN) :: x
+    REAL :: xjxnum,xjxden,z
+
+    REAL, PARAMETER  :: EHaJx  = 50300.0  ! J/mol (Leuning 2002)
+    REAL, PARAMETER  :: EHdJx  = 152044.0 ! J/mol (Leuning 2002)
+    REAL, PARAMETER  :: EntropJx = 495.0  ! J/mol/K (Leuning 2002)
+    REAL, PARAMETER  :: xjxcoef = 1.16715 ! derived parameter
+
+    xjxnum = xjxcoef*exp( ( ehajx / ( C%rgas*C%TREFK ) ) * ( 1.-C%TREFK / x ) )
+    xjxden=1.0+exp( ( entropjx*x-ehdjx) / ( C%rgas*x ) )
+    z = max(0.0, xjxnum/xjxden)
+
+  END FUNCTION xejmxt3
+
+  ! ------------------------------------------------------------------------------
+
+  SUBROUTINE fwsoil_calc_std(fwsoil, soil, ssnow, veg)
+    USE cable_def_types_mod
+    USE cable_common_module, only : cable_user
+    TYPE (soil_snow_type), INTENT(INOUT):: ssnow
+    TYPE (soil_parameter_type), INTENT(INOUT)   :: soil
+    TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
+    REAL, INTENT(OUT), DIMENSION(:):: fwsoil ! soil water modifier of stom. cond
+    REAL, DIMENSION(mp) :: rwater ! soil water availability
+
+    rwater = MAX(1.0e-9,                                                    &
+         SUM(veg%froot * MAX(1.0e-9,MIN(1.0, real(ssnow%wb) -                   &
+         SPREAD(soil%swilt, 2, ms))),2) /(soil%sfc-soil%swilt))
+
+>>>>>>> .merge-right.r3933
    ! Remove vbeta
    !fwsoil = MAX(1.0e-4,MIN(1.0, veg%vbeta * rwater))
    fwsoil = MAX(1.0e-4,MIN(1.0, rwater))
@@ -2568,6 +4888,7 @@ CONTAINS
 
        dummy(:) = rootgamma/max(1.0e-3_r_2,ssnow%wb(:,ns)-soil%swilt(:))
 
+<<<<<<< .working
        frwater(:,ns) = MAX(1.0e-4_r_2,((ssnow%wb(:,ns)-soil%swilt(:))/soil%ssat(:)) &
             ** dummy)
 
@@ -2850,4 +5171,146 @@ SUBROUTINE Dqsat_DT(var,tair,pmb)
 END SUBROUTINE Dqsat_DT
 
 
+||||||| .merge-left.r3726
+    
+=======
+       frwater(:,ns) = MAX(1.0e-4_r_2,((ssnow%wb(:,ns)-soil%swilt(:))/soil%ssat(:)) &
+            ** dummy)
+
+       fwsoil(:) = min(1.0,max(fwsoil(:),frwater(:,ns)))
+
+       normFac(:) = normFac(:) + frwater(:,ns) * veg%froot(:,ns)
+
+    ENDDO
+
+  END SUBROUTINE fwsoil_calc_Lai_Ktaul
+
+  ! ------------------------------------------------------------------------------
+  SUBROUTINE fwsoil_calc_sli(fwsoil, soil, ssnow, veg)
+    USE cable_def_types_mod
+    TYPE (soil_snow_type), INTENT(INOUT):: ssnow
+    TYPE (soil_parameter_type), INTENT(INOUT)   :: soil
+    TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
+    REAL, INTENT(OUT), DIMENSION(:):: fwsoil ! soil water modifier of stom. cond
+    REAL, DIMENSION(mp,ms):: tmp2d1, tmp2d2, delta_root, alpha2a_root, alpha2_root
+    ! Lai and Katul formulation for root efficiency function  vh 17/07/09
+    alpha2a_root = max(ssnow%wb-soil%swilt_vec, 0.001_r_2)/(soil%ssat_vec)
+    tmp2d1 = ssnow%wb -soil%swilt_vec
+    tmp2d2 = SPREAD(veg%gamma,2,ms)/tmp2d1*log(alpha2a_root)
+    WHERE ((tmp2d1>0.001) .and. (tmp2d2 > -10.0))
+       alpha2_root = exp(tmp2d2)
+    ELSEWHERE
+       alpha2_root = 0.0
+    ENDWHERE
+
+    WHERE (veg%froot>0.0)
+       delta_root = 1.0
+    ELSEWHERE
+       delta_root = 0.0
+    ENDWHERE
+
+    fwsoil  = maxval(alpha2_root*delta_root, 2)
+    fwsoil  = max(0.0, fwsoil)
+
+  END SUBROUTINE fwsoil_calc_sli
+
+  !*********************************************************************************************************************
+
+  SUBROUTINE getrex_1d(theta, rex, fws, Fs, thetaS, thetaw, Etrans, gamma, dx, dt, zr)
+
+    ! root extraction : Haverd et al. 2013
+    USE cable_def_types_mod, only: r_2
+
+    IMPLICIT NONE
+
+    REAL(r_2), DIMENSION(:), INTENT(IN)    :: theta      ! volumetric soil moisture
+    REAL(r_2), DIMENSION(:), INTENT(INOUT)   :: rex    ! water extraction per layer
+    REAL(r_2),               INTENT(INOUT) :: fws    ! stomatal limitation factor
+    REAL(r_2), DIMENSION(:), INTENT(IN)    :: Fs     ! root length density
+    REAL(r_2), DIMENSION(:), INTENT(IN)    :: thetaS ! saturation soil moisture
+    REAL(r_2), DIMENSION(:), INTENT(IN)    :: thetaw ! soil moisture at wiliting point
+    REAL(r_2),               INTENT(IN)    :: Etrans ! total transpiration
+    REAL(r_2),               INTENT(IN)    :: gamma  ! skew of Li & Katul alpha2 function
+    REAL(r_2), DIMENSION(:), INTENT(IN)    :: dx     ! layer thicknesses (m)
+    REAL(r_2),               INTENT(IN)    :: dt
+    REAL(r_2),               INTENT(IN)    :: zr
+
+    ! Gets rate of water extraction compatible with CABLE stomatal conductance model
+    ! theta(:) - soil moisture(m3 m-3)
+    ! rex(:)   - rate of water extraction by roots from layers (cm/h).
+    REAL(r_2), DIMENSION(1:size(theta)) ::  lthetar, alpha_root, delta_root, layer_depth
+    REAL(r_2)                       :: trex, e3, one, zero
+    INTEGER :: k
+
+    e3 = 0.001
+    one = 1.0;
+    zero = 0.0;
+
+    layer_depth(1) = 0.0
+    do k=2,size(theta)
+       layer_depth(k) = sum(dx(1:k-1))
+    enddo
+
+    !theta(:)   = S(:)*thetaS(:)
+    lthetar(:) = log(max(theta(:)-thetaw(:),e3)/thetaS(:))
+
+    where ((theta(:)-thetaw(:)) > e3)
+       alpha_root(:) = exp( gamma/max(theta(:)-thetaw(:), e3) * lthetar(:) )
+    elsewhere
+       alpha_root(:) = zero
+    endwhere
+
+    where (Fs(:) > zero .and. layer_depth < zr )  ! where there are roots and we are aobe max rooting depth
+       delta_root(:) = one
+    elsewhere
+       delta_root(:) = zero
+    endwhere
+
+    rex(:) = alpha_root(:)*Fs(:)
+
+    trex = sum(rex(:))
+    if (trex > zero) then
+       rex(:) = rex(:)/trex
+    else
+       rex(:) = zero
+    endif
+    rex(:) = Etrans*rex(:)
+
+
+    ! reduce extraction efficiency where total extraction depletes soil moisture below wilting point
+    where (((rex*dt) > (theta(:)-thetaw(:))*dx(:)) .and. ((rex*dt) > zero))
+       alpha_root = alpha_root*(theta(:)-thetaw(:))*dx(:)/(1.1_r_2*rex*dt)
+    endwhere
+    rex(:) = alpha_root(:)*Fs(:)
+
+    trex = sum(rex(:))
+    if (trex > zero) then
+       rex(:) = rex(:)/trex
+    else
+       rex(:) = zero
+    endif
+    rex(:) = Etrans*rex(:)
+
+    ! check that the water available in each layer exceeds the extraction
+    !if (any((rex*dt) > (theta(:)-0.01_r_2)*dx(:))) then
+    if (any(((rex*dt) > max((theta(:)-thetaw(:)),zero)*dx(:)) .and. (Etrans > zero))) then
+       fws = zero
+       ! distribute extraction according to available water
+       !rex(:) = (theta(:)-0.01_r_2)*dx(:)
+       rex(:) = max((theta(:)-thetaw(:))*dx(:),zero)
+       trex = sum(rex(:))
+       if (trex > zero) then
+          rex(:) = rex(:)/trex
+       else
+          rex(:) = zero
+       endif
+       rex(:) = Etrans*rex(:)
+    else
+       fws    = maxval(alpha_root(2:)*delta_root(2:))
+    endif
+
+  END SUBROUTINE getrex_1d
+  !*********************************************************************************************************************
+
+>>>>>>> .merge-right.r3933
 END MODULE cable_canopy_module

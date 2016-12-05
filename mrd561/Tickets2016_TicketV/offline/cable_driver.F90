@@ -68,7 +68,7 @@ PROGRAM cable_offline_driver
        cable_runtime, filename, myhome,		   &
        redistrb, wiltParam, satuParam, CurYear,	   &
        IS_LEAPYEAR, IS_CASA_TIME, calcsoilalbedo,		 &
-       report_version_no, gw_params
+       report_version_no, kwidth_gl,, gw_params
   USE cable_data_module,    ONLY: driver_type, point2constants
   USE cable_input_module,   ONLY: open_met_file,load_parameters,	      &
        get_met_data,close_met_file,		   &
@@ -79,7 +79,8 @@ PROGRAM cable_offline_driver
        ncid_ps,		&
        ncid_qa,		&
        ncid_ta,		&
-       ncid_wd
+       ncid_wd,     &
+       ncid_evel
   USE cable_output_module,  ONLY: create_restart,open_output_file,	      &
        write_output,close_output_file
   USE cable_write_module,   ONLY: nullify_write
@@ -248,7 +249,7 @@ PROGRAM cable_offline_driver
        redistrb,	 &
        wiltParam,	 &
        satuParam,	 &
-       cable_user,   &	    ! additional USER switches
+       cable_user,	 &   ! additional USER switches
        gw_params
   !mpidiff
   INTEGER :: i,x,kk
@@ -580,6 +581,7 @@ PROGRAM cable_offline_driver
     ENDIF ! CALL 1
     
     ! globally (WRT code) accessible kend through USE cable_common_module
+	kwidth_gl = int(dels)
     kend_gl  = kend
     knode_gl = 0
 
@@ -707,7 +709,8 @@ PROGRAM cable_offline_driver
                          MOD((ktau-kstart+1)/ktauday,LOY)==0) )THEN ! end of year
                        IF (CABLE_USER%POPLUC) THEN
                           ! Dynamic LUC
-                          CALL LUCdriver( casabiome,casapool,casaflux,POP,LUC_EXPT, POPLUC )
+                          CALL LUCdriver( casabiome,casapool,casaflux,POP,     &
+                                    LUC_EXPT, POPLUC, veg )
                        ENDIF
 
                        ! one annual time-step of POP
@@ -760,7 +763,8 @@ PROGRAM cable_offline_driver
                              CALL write_casa_dump( ncfile, casamet , casaflux, phen, climate,&
                                   INT(met%doy), LOY )
                           ELSE
-                             CALL write_casa_dump( ncfile, casamet , casaflux, phen, climate, idoy, &                                 kend/ktauday )
+                             CALL write_casa_dump( ncfile, casamet , casaflux, &
+                                    phen, climate, idoy, kend/ktauday )
                           ENDIF
 
                        ENDIF
@@ -773,8 +777,8 @@ PROGRAM cable_offline_driver
                     ! sumcflux is pulled out of subroutine cbm
                     ! so that casaCNP can be called before adding the fluxes
                     ! (Feb 2008, YP)
-                    CALL sumcflux( ktau, kstart, kend, dels, bgc,		       &
-                         canopy, soil, ssnow, sum_flux, veg,		       &
+                    CALL sumcflux( ktau, kstart, kend, dels, bgc,              &
+                         canopy, soil, ssnow, sum_flux, veg,                   &
                          met, casaflux, l_vcmaxFeedbk )
 
 
@@ -920,20 +924,17 @@ PROGRAM cable_offline_driver
 		 IF( ANY( ABS(ssnow%wb-soilMtemp)>delsoilM).OR.		      &
 		     ANY( ABS(ssnow%tgg-soilTtemp)>delsoilT)  .or.           &
                      ANY( ABS(ssnow%GWwb-soilGWtemp)>delsoilM) ) THEN
-       
 
       ! No complete convergence yet
-                    write(*,*) 'WE ARE NOT SPUN UP BY THE FOLLOWING AMOUNTS'
 		    PRINT *, 'ssnow%wb : ', ssnow%wb
 		    PRINT *, 'soilMtemp: ', soilMtemp
 		    PRINT *, 'ssnow%tgg: ', ssnow%tgg
 		    PRINT *, 'soilTtemp: ', soilTtemp
-                    if (cable_user%gw_model) then
-                       PRINT *, 'ssnow%GWwb: ', ssnow%GWwb
-                       PRINT *, 'soilGWtemp: ', soilGWtemp
-                    end if
-
-                 ELSE
+            if (cable_user%gw_model .or. cable_user%test_new_gw) then
+               PRINT *, 'ssnow%GWwb: ', ssnow%GWwb
+               PRINT *, 'soilGWtemp: ', soilGWtemp
+            end if
+		 ELSE ! spinup has converged
 
 		    spinConv = .TRUE.
       ! Write to screen and log file:
@@ -950,25 +951,24 @@ PROGRAM cable_offline_driver
 
 	      ELSE ! allocate variables for storage
 
-		 IF (.NOT.ALLOCATED(soilMtemp)) ALLOCATE(  soilMtemp(mp,ms) )
-		 IF (.NOT.ALLOCATED(soilTtemp)) ALLOCATE(  soilTtemp(mp,ms) )
-                 IF (.NOT.ALLOCATED(soilGWtemp)) ALLOCATE( soilGWtemp(mp) )
+		     IF (.NOT.ALLOCATED(soilMtemp)) ALLOCATE(  soilMtemp(mp,ms) )
+		     IF (.NOT.ALLOCATED(soilTtemp)) ALLOCATE(  soilTtemp(mp,ms) )
+             IF (.NOT.ALLOCATED(soilGWtemp)) ALLOCATE( soilGWtemp(mp) )
 
 	      END IF
 
        ! store soil moisture and temperature
 	      IF ( YYYY.EQ. CABLE_USER%YearEnd ) THEN
-		 soilTtemp = ssnow%tgg
-		 soilMtemp = REAL(ssnow%wb)
-
-                 if (cable_user%gw_model) then
-                    soilGWtemp = real(ssnow%GWwb)
-                 elseif (cable_user%test_new_gw) then
-                    soilGWtemp = real(ssnow%GWwb)
-                 else
-                    soilGWtemp = 0.0
-                    ssnow%GWwb = 0.0
-                 end if
+		     soilTtemp = ssnow%tgg
+		     soilMtemp = REAL(ssnow%wb)
+             if (cable_user%gw_model) then
+                soilGWtemp = real(ssnow%GWwb)
+             elseif (cable_user%test_new_gw) then
+                soilGWtemp = real(ssnow%GWwb)
+             else
+                soilGWtemp = 0.0
+                ssnow%GWwb = 0.0
+             end if
 	      ENDIF
 
 	   ELSE

@@ -236,6 +236,7 @@ clean_build()
       print '\n\tPress Enter too continue buiding, Control-C to abort now.\n'
       read dummy 
       rm -fr $bldir
+
 }
 
 
@@ -385,16 +386,6 @@ build_build()
    if [[ ! -d ${bldir} ]]; then
       mkdir ${bldir}
    fi  
-
- 
-#   if [[ ! -d .mpitmp ]]; then
-#      mkdir .mpitmp
-#   fi
-#   
-#   if [[ -f cable-mpi ]]; then
-#      print '\ncable-mpi executable exists. copying to a dated backup file\n' 
-#      mv cable-mpi cable-mpi.`date +%d.%m.%y`
-#   fi
 
    if [[ -f ${exename} ]]; then
       print '\ncable executable exists. copying to dated backup file\n' 

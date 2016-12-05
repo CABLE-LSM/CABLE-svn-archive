@@ -35,7 +35,7 @@ MODULE cable_albedo_module
 CONTAINS
 
 
-SUBROUTINE surface_albedo(ssnow, veg, met, rad, soil, canopy,dels)
+SUBROUTINE surface_albedo(ssnow, veg, met, rad, soil, canopy)
 
    USE cable_common_module
    USE cable_def_types_mod, ONLY : veg_parameter_type, soil_parameter_type,    &
@@ -68,8 +68,7 @@ SUBROUTINE surface_albedo(ssnow, veg, met, rad, soil, canopy,dels)
    IF (.NOT. allocated(c1)) &
       ALLOCATE( c1(mp,nrb), rhoch(mp,nrb) )
 
-
-   CALL surface_albedosn(ssnow, veg, met, soil, dels)
+   CALL surface_albedosn(ssnow, veg, met, soil)
 
    rad%cexpkbm = 0.0
    rad%extkbm  = 0.0
@@ -133,10 +132,11 @@ END SUBROUTINE surface_albedo
 
 ! ------------------------------------------------------------------------------
 
-SUBROUTINE surface_albedosn(ssnow, veg, met, soil, dels)
+SUBROUTINE surface_albedosn(ssnow, veg, met, soil)
+   
+   USE cable_def_types_mod, ONLY : veg_parameter_type, soil_parameter_type,    &     
+                                   met_type, soil_snow_type, mp 
 
-   USE cable_def_types_mod, ONLY : veg_parameter_type, soil_parameter_type,    &
-                                   met_type, soil_snow_type, mp
    USE cable_common_module
 
    TYPE (soil_snow_type),INTENT(INOUT) :: ssnow
@@ -144,7 +144,6 @@ SUBROUTINE surface_albedosn(ssnow, veg, met, soil, dels)
 
    TYPE (veg_parameter_type),INTENT(INout)  :: veg
    TYPE(soil_parameter_type), INTENT(INOUT) :: soil
-   REAL, INTENT(IN) :: dels
 
    REAL, DIMENSION(mp) ::                                                      &
       alv,     &  ! Snow albedo for visible
@@ -225,13 +224,7 @@ SUBROUTINE surface_albedosn(ssnow, veg, met, soil, dels)
 
       END WHERE
 
-
-
-     !! vh_js !! in offline runs kwidth_gl is zero. Suggest using dels instead
-
-      dtau = 1.e-6 * (EXP( ar1 ) + EXP( ar2 ) + ar3 ) * dels
-
-     ! dtau = 1.e-6 * (EXP( ar1 ) + EXP( ar2 ) + ar3 ) * kwidth_gl
+      dtau = 1.e-6 * (EXP( ar1 ) + EXP( ar2 ) + ar3 ) * kwidth_gl
 
       WHERE (ssnow%snowd <= 1.0)
          ssnow%snage = 0.

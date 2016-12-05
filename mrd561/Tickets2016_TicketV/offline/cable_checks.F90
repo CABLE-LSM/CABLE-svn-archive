@@ -177,8 +177,7 @@ MODULE cable_checks_module
            GWMoist = (/0.0,1.0/),              &  
            SatFrac = (/0.0,1.0/),              &   
            Qrecharge = (/-9999.0,9999.0/)    
-    
-           
+
    END TYPE ranges_type
    TYPE(ranges_type),SAVE :: ranges
 
@@ -256,6 +255,7 @@ SUBROUTINE mass_balance(dels,ktau, ssnow,soil,canopy,met,                       
    canopy_wbal = REAL(met%precip-canopy%delwc-canopy%through                   &
         - (canopy%fevw+MIN(canopy%fevc,0.0_r_2))*dels/air%rlam)
 
+
    IF (cable_user%soil_struc=='sli') then  !! vh March 2014 !!
       ! delwcol includes change in soil water, pond and snowpack
       bal%wbal = canopy_wbal + REAL(canopy%through - ssnow%delwcol-ssnow%runoff &
@@ -271,12 +271,11 @@ SUBROUTINE mass_balance(dels,ktau, ssnow,soil,canopy,met,                       
       ! (method 1 for water balance):
       bal%wbal_tot = bal%wbal_tot + bal%wbal
 
-      ! Add to accumulation variables:
       bal%precip_tot = bal%precip_tot + met%precip
       bal%rnoff_tot = bal%rnoff_tot + ssnow%rnof1 + ssnow%rnof2
       bal%evap_tot = bal%evap_tot                                              &
            + (canopy%fev+canopy%fes/ssnow%cls) * dels/air%rlam
- !  ENDIF
+   ENDIF
 
 END SUBROUTINE mass_balance
 
@@ -314,6 +313,7 @@ SUBROUTINE energy_balance( dels,ktau,met,rad,canopy,bal,ssnow,                  
 
     !! vh !! March 2014
 
+<<<<<<< .working
     bal%Radbal = met%fsd(:,1) + met%fsd(:,2) + met%fld  - rad%albedo(:,1)*met%fsd(:,1) - rad%albedo(:,2)*met%fsd(:,2)  &
          - (emsoil*sboltz*rad%transd*ssnow%otss**4) - &
          (emleaf*sboltz*(1-rad%transd)*canopy%tv**4) &
@@ -337,6 +337,48 @@ SUBROUTINE energy_balance( dels,ktau,met,rad,canopy,bal,ssnow,                  
     bal%ebal_tot = bal%ebal_tot + bal%ebal
     bal%RadbalSum = bal%RadbalSum + bal%Radbal
 
+||||||| .merge-left.r3726
+!   Atmosphere and radiation code in the global model can 'see' only fluxes, surface 
+!   temperature and albedo from CABLE. Those variables as calculated at the end of the given 
+!   time step need to be used for the evaluation of the SEB
+!   
+   !bal%ebal_cncheck = (1.0-rad%albedo(:,1))*met%fsd(:,1) + (1.0-rad%albedo(:,2))*met%fsd(:,2)  &
+   bal%ebal = (1.0-rad%albedo(:,1))*met%fsd(:,1) + (1.0-rad%albedo(:,2))       &
+        *met%fsd(:,2)+met%fld-sboltz*emleaf*canopy%tv**4*(1-rad%transd)        &
+        -sboltz*emsoil*ssnow%tss**4*rad%transd -canopy%fev-canopy%fes          &
+        * ssnow%cls-canopy%fh                 
+   bal%ebal_tot = bal%ebal_tot + bal%ebal
+  
+      
+   !bal%ebal_tot_cncheck = bal%ebal_tot_cncheck+ bal%ebal_cncheck
+!    print 11,bal%ebal_cncheck,bal%ebal_tot_cncheck,bal%ebal,bal%ebal_tot
+!11  format(1x,'Ebal_cncheck, Ebal',f6.1,f8.0,2x,f6.1,f8.0)
+    
+=======
+    bal%Radbal = met%fsd(:,1) + met%fsd(:,2) + met%fld  - rad%albedo(:,1)*met%fsd(:,1) - rad%albedo(:,2)*met%fsd(:,2)  &
+         - (emsoil*sboltz*rad%transd*ssnow%otss**4) - &
+         (emleaf*sboltz*(1-rad%transd)*canopy%tv**4) &
+         - canopy%fnv - canopy%fns
+
+    !  soil energy balance
+    bal%EbalSoil =canopy%fns -canopy%fes*ssnow%cls &
+         & -canopy%fhs -canopy%ga
+
+    ! canopy energy balance
+    bal%Ebalveg = canopy%fnv - canopy%fev -canopy%fhv
+
+    ! soil + canopy energy balance
+    ! SW absorbed + LW absorbed - (LH+SH+ghflux) should = 0
+    bal%Ebal = SUM(rad%qcan(:,:,1),2)+SUM(rad%qcan(:,:,2),2)+rad%qssabs &  !! vh !! March 2014
+         & +met%fld-sboltz*emleaf*canopy%tv**4*(1-rad%transd) &
+          -rad%flws*rad%transd &
+         & -canopy%fev-canopy%fes & !*ssnow%cls &
+         & -canopy%fh -canopy%ga
+    ! Add to cumulative balance:
+    bal%ebal_tot = bal%ebal_tot + bal%ebal
+    bal%RadbalSum = bal%RadbalSum + bal%Radbal
+
+>>>>>>> .merge-right.r3933
 END SUBROUTINE energy_balance
 
 !==============================================================================

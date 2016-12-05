@@ -350,7 +350,6 @@ MODULE cable_IO_vars_module
          Qrecharge=.FALSE.,   &  !recharge to /from auqifer
          SatFrac=.FALSE.        ! Saturated Fraction of Gridcell (tile)
 
-
    END TYPE output_inclusion_type
 
 

@@ -259,7 +259,6 @@ MODULE cable_def_types_mod
          wblf,    & !
          wbfice     !
 
-
      ! Additional SLI variables:
      REAL(r_2), DIMENSION(:,:), POINTER :: S         ! moisture content relative to sat value    (edit vh 23/01/08)
      REAL(r_2), DIMENSION(:,:), POINTER :: Tsoil         !     Tsoil (deg C)
@@ -327,7 +326,6 @@ MODULE cable_def_types_mod
       REAL, DIMENSION(:), POINTER :: &
          rtevap_unsat,  & ! turbulent resistance for soil
          rtevap_sat
-
 
 
 
@@ -483,8 +481,6 @@ MODULE cable_def_types_mod
 
       REAL(r_2), DIMENSION(:), POINTER :: &
          sublayer_dz
-
-
 
    END TYPE canopy_type
 
@@ -1157,6 +1153,7 @@ SUBROUTINE alloc_canopy_type(var, mp)
 
    ALLOCATE( var%sublayer_dz(mp) )
 
+
 END SUBROUTINE alloc_canopy_type
 
 ! ------------------------------------------------------------------------------
@@ -1617,7 +1614,6 @@ SUBROUTINE dealloc_soil_snow_type(var)
  
    DEALLOCATE ( var % qhlev )   !horizontal subsurface drainage by layer
 
-
 END SUBROUTINE dealloc_soil_snow_type
 
 ! ------------------------------------------------------------------------------
@@ -1750,7 +1746,6 @@ SUBROUTINE dealloc_canopy_type(var)
    DEALLOCATE (var % DvLitt)
 
    DEALLOCATE( var%sublayer_dz )
-
 
 END SUBROUTINE dealloc_canopy_type
 

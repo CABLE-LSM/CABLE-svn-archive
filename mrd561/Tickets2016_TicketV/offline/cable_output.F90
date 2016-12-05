@@ -212,6 +212,7 @@ MODULE cable_output_module
 
 
  END TYPE output_temporary_type
+
   TYPE(output_temporary_type), SAVE :: out
   INTEGER :: ok   ! netcdf error status
 
@@ -669,7 +670,7 @@ CONTAINS
     END IF
     IF(output%veg .OR. output%Fwsoil) THEN
        CALL define_ovar(ncid_out, ovid%Fwsoil, 'Fwsoil', '[-]', &
-                        'soil moisture modifier to stamatal conductance', patchout%Fwsoil, &
+                        'soil moisture modifier to stomatal conductance', patchout%Fwsoil, &
                         'dummy', xID, yID, zID, landID, patchID, tID)
        ALLOCATE(out%Fwsoil(mp))
        out%Fwsoil = 0.0 ! initialise
@@ -739,6 +740,7 @@ CONTAINS
        ALLOCATE(out%NPP(mp))
        out%NPP = 0.0 ! initialise
     END IF
+
 
     IF(output%casa) THEN
        CALL define_ovar(ncid_out, ovid%NBP, 'NBP', 'umol/m^2/s',               &
@@ -890,39 +892,6 @@ CONTAINS
        
   
     END IF
-
-    !MD groundwater related variables
-    IF(output%soil .OR. output%WatTable) THEN
-       CALL define_ovar(ncid_out, ovid%WatTable, 'WatTable', 'm',      &
-                        'Water Table Depth', patchout%WatTable,     &
-                        'dummy', xID, yID, zID, landID, patchID, tID)
-       ALLOCATE(out%WatTable(mp))
-       out%WatTable = 0.0 ! initialise
-    END IF
-    IF(output%soil .OR. output%GWMoist) THEN
-       CALL define_ovar(ncid_out, ovid%GWMoist, 'GWMoist', 'mm3/mm3',      &
-                        'Aquifer mositure content', patchout%GWMoist,     &
-                        'dummy', xID, yID, zID, landID, patchID, tID)
-       ALLOCATE(out%GWMoist(mp))
-       out%GWMoist = 0.0 ! initialise
-    END IF
-    IF(output%soil .OR. output%SatFrac) THEN
-       CALL define_ovar(ncid_out, ovid%SatFrac, 'SatFrac', 'unitless',      &
-                        'Saturated Fraction of Gridcell', patchout%SatFrac,  &
-                        'dummy', xID, yID, zID, landID, patchID, tID)
-       ALLOCATE(out%SatFrac(mp))
-       out%SatFrac = 0.0 ! initialise
-    END IF
-
-    IF(output%soil .OR. output%Qrecharge) THEN
-       CALL define_ovar(ncid_out, ovid%Qrecharge, 'Qrecharge', 'mm/s',      &
-                           'Recharge to or from Aquifer', patchout%Qrecharge,&
-                        'dummy', xID, yID, zID, landID, patchID, tID)
-       ALLOCATE(out%Qrecharge(mp))
-       out%Qrecharge = 0.0 ! initialise
-    END IF
-
-
 
 !! vh_js !!
     CALL define_ovar(ncid_out, ovid%Area, 'Area', 'km2',               &
@@ -2252,7 +2221,6 @@ CONTAINS
        END IF
     END IF
 
-
     ! output patch area 
     IF(output%casa) THEN
      out%Area = casamet%areacell/1e6 ! km2
@@ -2405,15 +2373,17 @@ CONTAINS
             / 1.201E-5, 4)
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
-          out%PlantTurnoverWoodResourceLim = out%PlantTurnoverWoodResourceLim / REAL(output%interval, 4)
+          out%PlantTurnoverWoodResourceLim = out%PlantTurnoverWoodResourceLim / &
+               REAL(output%interval, 4)
           ! Write value to file:
-          CALL write_ovar(out_timestep, ncid_out, ovid%PlantTurnoverWoodResourceLim, 'PlantTurnoverWoodResourceLim', &
+          CALL write_ovar(out_timestep, ncid_out, ovid%PlantTurnoverWoodResourceLim, &
+               'PlantTurnoverWoodResourceLim', &
                out%PlantTurnoverWoodResourceLim,    &
                ranges%NEE, patchout%PlantTurnoverWoodResourceLim, 'default', met)
           ! Reset temporary output variable:
           out%PlantTurnoverWoodResourceLim = 0.0
        END IF
-
+       IF (cable_user%POPLUC) THEN
        ! Add current timestep's value to total of temporary output variable:
        out%LandUseFlux = out%LandUseFlux + &
             REAL((casaflux%FluxCtohwp + casaflux%FluxCtoclear  )/86400.0 &
@@ -2429,10 +2399,10 @@ CONTAINS
           ! Reset temporary output variable:
           out%LandUseFlux = 0.0
        END IF
+    ENDIF
 
-
-    END IF
-
+ END IF
+    
     ! plant carbon [kg C m-2]
     IF(output%casa) THEN
        out%TotSoilCarb = out%TotSoilCarb + REAL((SUM(casapool%csoil,2)+SUM(casapool%clitter,2)) &
@@ -2663,6 +2633,7 @@ CONTAINS
                     ghfluxID, runoffID, rnof1ID, rnof2ID, gaID, dgdtgID,       &
                     fevID, fesID, fhsID, wbtot0ID, osnowd0ID, cplantID,        &
                     csoilID, tradID, albedoID, gwID
+    INTEGER :: h0ID, snowliqID, SID, TsurfaceID, scondsID, nsnowID, TsoilID
     INTEGER :: h0ID, snowliqID, SID, TsurfaceID, scondsID, nsnowID, TsoilID
     CHARACTER(LEN=10) :: todaydate, nowtime ! used to timestamp netcdf file
     ! CHARACTER         :: FRST_OUT*100, CYEAR*4

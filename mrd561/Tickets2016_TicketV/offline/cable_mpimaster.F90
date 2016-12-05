@@ -160,7 +160,7 @@ CONTAINS
          cable_runtime, fileName, myhome,            &
          redistrb, wiltParam, satuParam, CurYear,    &
          IS_LEAPYEAR, IS_CASA_TIME, calcsoilalbedo,                &
-         report_version_no, gw_params
+         report_version_no, kwidth_gl, gw_params
     USE cable_data_module,    ONLY: driver_type, point2constants
     USE cable_input_module,   ONLY: open_met_file,load_parameters,              &
          get_met_data,close_met_file
@@ -702,6 +702,7 @@ CONTAINS
 
           ! globally (WRT code) accessible kend through USE cable_common_module
           ktau_gl = 0
+          kwidth_gl = int(dels)
           kend_gl = kend
           knode_gl = 0
 

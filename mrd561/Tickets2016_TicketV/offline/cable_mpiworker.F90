@@ -124,7 +124,7 @@ CONTAINS
          cable_runtime, filename, myhome,            &
          redistrb, wiltParam, satuParam, CurYear,    &
          IS_LEAPYEAR, IS_CASA_TIME, calcsoilalbedo,                &
-         report_version_no, gw_params
+         report_version_no, kwidth_gl, gw_params
     USE cable_data_module,    ONLY: driver_type, point2constants
     USE cable_input_module,   ONLY: open_met_file,load_parameters,              &
          get_met_data,close_met_file
@@ -158,7 +158,7 @@ CONTAINS
 
     ! timing variables 
     INTEGER, PARAMETER ::  kstart = 1   ! start of simulation
-    INTEGER, PARAMETER ::  mloop  = 5   ! CASA-CNP PreSpinup loops
+    INTEGER, PARAMETER ::  mloop  = 30   ! CASA-CNP PreSpinup loops
 
     INTEGER        ::                                                           &
          ktau,       &  ! increment equates to timestep, resets if spinning up
@@ -270,7 +270,7 @@ CONTAINS
          redistrb,         &
          wiltParam,        &
          satuParam,        &
-         cable_user,       &    ! additional USER switches 
+         cable_user,       &    ! additional USER switches
          gw_params
 
     INTEGER :: i,x,kk
@@ -446,8 +446,8 @@ CONTAINS
                   &                        rough,rad,sum_flux,bal)
 
 
-             if (cable_user%call_climate) & 
-                 CALL worker_climate_types(comm, climate)
+          
+             CALL worker_climate_types(comm, climate)
 
              ! MPI: mvtype and mstype send out here instead of inside worker_casa_params
              !      so that old CABLE carbon module can use them. (BP May 2013)
@@ -550,6 +550,7 @@ call flush(wlogn)
 
           ! globally (WRT code) accessible kend through USE cable_common_module
           ktau_gl  = 0
+          kwidth_gl = int(dels)
           kend_gl  = kend
           knode_gl = 0
         
@@ -2298,7 +2299,7 @@ ENDIF
     CALL MPI_Get_address (rad%longitude, displs(bidx), ierr)
     blen(bidx) = r1len
 
-!mrd add new GW parameters here
+mrd add new GW parameters here
 !2D
   bidx = bidx + 1
   CALL MPI_Get_address (soil%watsat, displs(bidx), ierr)
@@ -2372,6 +2373,7 @@ ENDIF
   bidx = bidx + 1
   CALL MPI_Get_address (ssnow%wtd, displs(bidx), ierr)
   blen(bidx) = r2len
+
 
     ! MPI: sanity check
     IF (bidx /= ntyp) THEN
@@ -5501,7 +5503,6 @@ ENDIF
      CALL MPI_Get_address (ssnow%nsteps(off), displs(bidx), ierr)
      blocks(bidx) = r2len
      ! end additional for SLI 
-
     !mrd561 additional for gw 
 !mrd 1D GW
     bidx = bidx + 1

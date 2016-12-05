@@ -766,7 +766,9 @@ ENDIF
 
   IF (initcasa==1) THEN
      if (.NOT.cable_user%casa_fromzero) THEN
+#ifndef UM_BUILD
         CALL READ_CASA_RESTART_NC (  casamet, casapool, casaflux, phen )
+#endif
      ELSE
         WRITE(*,*)'casa_init: not using restart file!'
         WRITE(*,*)'Using input from readbiome.!!!'
@@ -1237,11 +1239,11 @@ SUBROUTINE casa_cnpflux(casaflux,casapool,casabal,zeroflux)
   TYPE (casa_flux),    INTENT(INOUT) :: casaflux
   TYPE (casa_pool),    INTENT(INOUT) :: casapool
   TYPE (casa_balance), INTENT(INOUT) :: casabal
-  LOGICAL, OPTIONAL, INTENT(IN) :: zeroflux
+  LOGICAL :: zeroflux
   !  REAL(r_2), INTENT(INOUT) :: clitterinput(mp,3),csoilinput(mp,3)
   INTEGER n
 
-  IF(present(zeroflux) .and. zeroflux) THEN
+  IF(zeroflux) THEN
      casabal%FCgppyear    = 0.0
      casabal%FCrpyear     = 0.0   
      casabal%FCrmleafyear = 0.0
@@ -1357,7 +1359,7 @@ SUBROUTINE biogeochem(ktau,dels,idoY,LALLOC,veg,soil,casabiome,casapool,casaflux
   xKNlimiting = 1.0
 
  ! zero annual sums
-  if (idoy==1) CALL casa_cnpflux(casaflux,casapool,casabal,.TRUE.)
+  if (idoy==1) CALL casa_cnpflux(casaflux,casapool,casabal,.true.)
 
   IF (cable_user%PHENOLOGY_SWITCH.eq.'MODIS') THEN
      call phenology(idoy,veg,phen)
@@ -1473,7 +1475,7 @@ SUBROUTINE biogeochem(ktau,dels,idoY,LALLOC,veg,soil,casabiome,casapool,casaflux
 
   call casa_delsoil(veg,casapool,casaflux,casamet,casabiome)
 
-  call casa_cnpcycle(veg,casabiome,casapool,casaflux,casamet)
+  call casa_cnpcycle(veg,casabiome,casapool,casaflux,casamet, LALLOC)
    !! vh_js !!
   !CLN ndummy must be before pdummy!!!!
   IF (icycle<3) then
@@ -1482,7 +1484,8 @@ SUBROUTINE biogeochem(ktau,dels,idoY,LALLOC,veg,soil,casabiome,casapool,casaflux
   ENDIF
 
   call casa_cnpbal(casapool,casaflux,casabal)
-  call casa_cnpflux(casaflux,casapool,casabal,.FALSE.)
+
+  call casa_cnpflux(casaflux,casapool,casabal,.false.)
 
   ! for spinning up only
   ! casapool%Nsoilmin = max(casapool%Nsoilmin,0.5)
@@ -1712,6 +1715,7 @@ write(*,*) 'writing casa restart', fname
 
 END SUBROUTINE WRITE_CASA_RESTART_NC
 
+#ifndef UM_BUILD
 SUBROUTINE READ_CASA_RESTART_NC (  casamet, casapool, casaflux,phen )
 
   USE CASAVARIABLE
@@ -1789,7 +1793,6 @@ SUBROUTINE READ_CASA_RESTART_NC (  casamet, casapool, casaflux,phen )
 !       '_casa_rst.nc'
   fname =  TRIM(casafile%cnpipool)
   INQUIRE( FILE=TRIM(fname), EXIST=EXISTFILE )
-  write (*,*) 'existfile', existfile
   IF (EXISTFILE) THEN
      STATUS = NF90_OPEN( TRIM(fname), NF90_NOWRITE, FILE_ID )
      IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
@@ -1805,7 +1808,8 @@ SUBROUTINE READ_CASA_RESTART_NC (  casamet, casapool, casaflux,phen )
         PRINT *, 'initial pool from restart file: ', fname
      ELSE
         write(*,*) 'CASA restart file:', TRIM(fname), ' does not exist either'
-        write(*,*) 'Set cable_user%CASA_fromZero to true to initialise without restart file'
+        write(*,*) 'Set cable_user%CASA_fromZero to true to initialise without restart file.'
+        write(*,*) 'Otherwise set casafile%cnpipool to netcdf restart file name in cable.nml'
         stop
      ENDIF
   ENDIF
@@ -1996,7 +2000,7 @@ ENDIF
   STATUS = NF90_CLOSE( FILE_ID )
 
 END SUBROUTINE READ_CASA_RESTART_NC
-
+#endif
 SUBROUTINE WRITE_CASA_OUTPUT_NC ( veg, casamet, casapool, casabal, casaflux, &
      CASAONLY, ctime, FINAL )
 
@@ -2156,7 +2160,7 @@ SUBROUTINE WRITE_CASA_OUTPUT_NC ( veg, casamet, casapool, casabal, casaflux, &
   IF ( CALL1 ) THEN
      ! Get File-Name
 
-     IF (TRIM(cable_user%MetType).NE.'' .and. TRIM(cable_user%MetType).NE.'site' ) THEN
+     IF (TRIM(cable_user%MetType).NE.'' ) THEN
 
         WRITE( dum, FMT="(I4,'_',I4)")CABLE_USER%YEARSTART,CABLE_USER%YEAREND
         IF (CABLE_USER%YEARSTART.lt.1000.and.CABLE_USER%YEAREND.lt.1000) THEN
