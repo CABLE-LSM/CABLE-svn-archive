@@ -51,7 +51,8 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
                                   air, bgc, canopy, met, bal, rad, rough, soil,&
                                   ssnow, sum_flux, veg
    USE cable_common_module, ONLY : cable_runtime, cable_user, l_casacnp,       &
-                                   l_vcmaxFeedbk, knode_gl, ktau_gl, kend_gl
+                                   l_vcmaxFeedbk, knode_gl, ktau_gl, kend_gl,  &
+                                   kwidth_gl
    USE cable_um_init_subrs_mod, ONLY : um2cable_rr
    USE cable_cbm_module,    ONLY : cbm
 
@@ -60,8 +61,11 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
    USE casa_types_mod
    !USE casa_cable
    USE casa_um_inout_mod
+   USE cable_climate_mod
 
    IMPLICIT NONE
+  
+   TYPE (climate_type)	:: climate     ! climate variables
         
    REAL, DIMENSION(um1%ROW_LENGTH,um1%ROWS) ::                                 &
       LS_RAIN,  & ! IN Large scale rain
@@ -198,6 +202,7 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
 
    INTEGER ::     &
       ktauday,    &  ! day counter for CASA-CNP
+      k, &
       idoy           ! day of year (1:365) counter for CASA-CNP
    INTEGER, SAVE :: &
       kstart = 1
@@ -207,7 +212,11 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
       dqwc
 
    REAL, POINTER :: TFRZ
-   
+   !This is a quick fix. These can be organised through namelists
+   logical :: pop=.false., spinup=.false., spinconv=.false.,                   &
+              dump_read=.false., dump_write=.false.
+   integer :: loy=365, lalloc=0
+    
       TFRZ => PHYS%TFRZ
    
       ! FLAGS def. specific call to CABLE from UM
@@ -244,9 +253,12 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
       met%tvrad = met%tk
  
       canopy%cansto = canopy%oldcansto
+      !do k=1,mp
+      !print *,'impl_tgg',k, ssnow%tgg(k,:)
+      !end do
 
-      CALL cbm(TIMESTEP, air, bgc, canopy, met, bal,  &
-           rad, rough, soil, ssnow, sum_flux, veg)
+      CALL cbm(ktau_gl,TIMESTEP, air, bgc, canopy, met, bal,  &
+           rad, rough, soil, ssnow, sum_flux, veg, climate)
 
       ! Lestevens - temporary ?
       ktauday = int(24.0*3600.0/TIMESTEP)
@@ -254,11 +266,11 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
   
 ! Lestevens Sept2012 - Call CASA-CNP
       if (l_casacnp) then
-      CALL bgcdriver(ktau_gl,kstart,kend_gl,TIMESTEP,met,ssnow,canopy,veg,soil, &
-                     casabiome,casapool,casaflux,casamet,casabal,phen,          &
-                     .FALSE., .FALSE., ktauday, idoy, .FALSE., .FALSE. )
-!                     spinConv, spinup, ktauday, idoy, cable_user%casa_dump_read,&
-!                     cable_user%casa_dump_write )
+      CALL bgcdriver(ktau_gl,kstart,kend_gl,timestep,met,ssnow,canopy,veg,soil, &
+                     climate,casabiome,casapool,casaflux,casamet,casabal,phen, &
+                     pop, spinConv,spinup, ktauday, idoy,loy, dump_read,   &
+                     dump_write, LALLOC)
+
       endif
 
       CALL sumcflux(ktau_gl,kstart,kend_gl,TIMESTEP,bgc,canopy,soil,ssnow,      &

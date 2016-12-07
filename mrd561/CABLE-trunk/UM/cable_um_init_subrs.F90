@@ -236,8 +236,14 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
          
          ! satcon in UM is in mm/s; Cable needs m/s
          soil%hyds    =  soil%hyds / 1000.
+         if (.not.cable_user%SOIL_STRUC=='sli') then
          soil%sucs    =  ABS( soil%sucs )
          soil%sucs    =  MAX(0.106,soil%sucs)
+         else
+         where (soil%isoilm /= 9 ) soil%sucs = (-1)* soil%sucs
+         endif
+         ! Lestevens - what to do here for sli ?
+         !soil%sucs    =  MAX(0.106,soil%sucs)
          
          !jhan:coupled runs 
          soil%hsbh    =  soil%hyds*ABS(soil%sucs)*soil%bch
@@ -256,9 +262,21 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
          soil%silt = soilin%silt(soil%isoilm)
          soil%sand = soilin%sand(soil%isoilm)
          
-            
          first_call= .FALSE.
       ENDIF
+
+         IF(cable_user%SOIL_STRUC=='sli') THEN
+            soil%nhorizons = 2 ! use 2 soil horizons globally
+            soil%clitt     = 5.0 ! (tC / ha)
+            soil%zeta      = 0.
+            soil%fsatmax   = 0.
+            soil%swilt_vec = SPREAD(soil%swilt,2,ms)
+            soil%ssat_vec  = SPREAD(soil%ssat,2,ms)
+            soil%sfc_vec   = SPREAD(soil%sfc,2,ms)
+            ! Arbitrarily set A horiz depth to be first half of the layers
+            soil%ishorizon(:,1:ms/2)  = 1
+            soil%ishorizon(:,ms/2+1:) = 2
+         END IF
 
    END SUBROUTINE initialize_soil
  
@@ -284,7 +302,24 @@ SUBROUTINE initialize_veg( canht_ft, lai_ft)
          veg%meth = 1
       ENDIF
       first_call= .FALSE.
-     
+
+      !IF (cable_user%CANOPY_STRUC=='canopy_vh') THEN
+      !   veg%d0c3 = 1500.
+      !   veg%a1c3 = 9.0
+      !   veg%gamma = 1.e-2
+      !END IF
+
+      IF(cable_user%SOIL_STRUC=='sli') THEN
+         veg%gamma = 1.e-2
+         veg%F10 = 0.85
+         veg%ZR = 5.0
+      END IF
+
+      IF(cable_user%CALL_POP) THEN
+         veg%disturbance_interval = 100
+         veg%disturbance_intensity = 0.
+      ENDIF
+
 END SUBROUTINE initialize_veg
 
 !========================================================================
@@ -391,37 +426,55 @@ END SUBROUTINE init_respiration
 !========================================================================
 
 SUBROUTINE init_veg_pars_fr_vegin() 
-   USE cable_common_module, ONLY : vegin
+   USE cable_common_module, ONLY : vegin, init_veg_from_vegin
    USE cable_um_tech_mod,   ONLY : veg, soil 
    USE cable_def_types_mod, ONLY : mp
 
-   INTEGER :: k
+   INTEGER :: j, k
 
-      !jhan:UM reads from ancil. & resets thru kblum_veg   
-      veg%canst1  = vegin%canst1(veg%iveg)
-      veg%ejmax   = 2.*vegin%vcmax(veg%iveg)
-      veg%frac4   = vegin%frac4(veg%iveg)
-      veg%tminvj  = vegin%tminvj(veg%iveg)
-      veg%tmaxvj  = vegin%tmaxvj(veg%iveg)
-      veg%vbeta   = vegin%vbeta(veg%iveg)
-      veg%rp20    = vegin%rp20(veg%iveg)
-      veg%rpcoef  = vegin%rpcoef(veg%iveg)
-      veg%shelrb  = vegin%shelrb(veg%iveg)
-      veg%vegcf   = vegin%vegcf(veg%iveg)
-      veg%extkn   = vegin%extkn(veg%iveg)
-      veg%vcmax   = vegin%vcmax(veg%iveg)
-      veg%xfang   = vegin%xfang(veg%iveg)
-      veg%dleaf   = vegin%dleaf(veg%iveg)
-      veg%xalbnir = vegin%xalbnir(veg%iveg)
-      veg%rs20 = vegin%rs20(veg%iveg)
-      ! jtk561
-      veg%g0 = vegin%g0(veg%iveg)
-      veg%g1 = vegin%g1(veg%iveg)
+   CALL init_veg_from_vegin(1, mp, veg) 
 
-      do k=1,2
-        veg%refl(:,k)   = vegin%refl(k,veg%iveg)
-        veg%taul(:,k)   = vegin%taul(k,veg%iveg)
-      enddo
+      !do j=1,mp
+      !   veg%canst1(j)   = vegin%canst1(veg%iveg(j) )
+      !   veg%ejmax(j)    = 2.*vegin%vcmax(veg%iveg(j) )
+      !   veg%frac4(j)    = vegin%frac4(veg%iveg(j) )
+      !   veg%tminvj(j)   = vegin%tminvj(veg%iveg(j) )
+      !   veg%tmaxvj(j)   = vegin%tmaxvj(veg%iveg(j) )
+      !   veg%vbeta(j)    = vegin%vbeta(veg%iveg(j) )
+      !   veg%rp20(j)     = vegin%rp20(veg%iveg(j) )
+      !   veg%rpcoef(j)   = vegin%rpcoef(veg%iveg(j) )
+      !   veg%shelrb(j)   = vegin%shelrb(veg%iveg(j) )
+      !   veg%vegcf(j)    = vegin%vegcf(veg%iveg(j) )
+      !   veg%extkn(j)    = vegin%extkn(veg%iveg(j) )
+      !   veg%vcmax(j)    = vegin%vcmax(veg%iveg(j) )
+      !   veg%xfang(j)    = vegin%xfang(veg%iveg(j) )
+      !   veg%dleaf(j)    = vegin%dleaf(veg%iveg(j) )
+      !   veg%xalbnir(j)  = vegin%xalbnir(veg%iveg(j) )
+      !   veg%rs20(j)     = vegin%rs20(veg%iveg(j) )
+ 
+      !   ! jtk561
+      !   veg%g0(j)       = vegin%g0(veg%iveg(j))
+      !   veg%g1(j)       = vegin%g1(veg%iveg(j))
+   
+      !   ! Ammendments to Ticket #2
+      !   veg%a1gs(j)     = vegin%a1gs(veg%iveg(j))
+      !   veg%d0gs(j)     = vegin%d0gs(veg%iveg(j))
+      !   veg%convex(j)   = vegin%convex(veg%iveg(j))
+      !   veg%gswmin(j)   = vegin%gswmin(veg%iveg(j))
+      !   veg%conkc0(j)   = vegin%conkc0(veg%iveg(j))
+      !   veg%conko0(j)   = vegin%conko0(veg%iveg(j))
+      !   veg%ekc(j)      = vegin%ekc(veg%iveg(j))
+      !   veg%eko(j)      = vegin%eko(veg%iveg(j))
+   
+      !   veg%cfrd(j)     = vegin%cfrd(veg%iveg(j)) !never used
+      !   veg%wai(j)      = vegin%wai(veg%iveg(j)) !never used
+
+      !      do k=1,2
+      !        veg%refl(j,k)   = vegin%refl(k,veg%iveg(j) )
+      !        veg%taul(j,k)   = vegin%taul(k,veg%iveg(j) )
+      !      enddo
+
+      !enddo
 
       !froot fixed here for all vegetation types for ACCESS
       !need more flexibility in next version to read in or parameterise
@@ -432,6 +485,7 @@ SUBROUTINE init_veg_pars_fr_vegin()
       veg%froot(:,5) = 0.20
       veg%froot(:,6) = 0.15
 
+      veg%ejmax    = 2.*veg%vcmax
 END SUBROUTINE init_veg_pars_fr_vegin
 
 !========================================================================
@@ -576,8 +630,20 @@ SUBROUTINE initialize_canopy(canopy_tile)
          canopy%fes_cor = 0.
          canopy%fhs_cor = 0.
          first_call = .FALSE.
+
+      IF (cable_user%SOIL_STRUC=='sli') THEN
+       canopy%ofes    = 0.0  ! latent heat flux from soil (W/m2)
+       canopy%fevc    = 0.0  !vh!
+       canopy%fevw    = 0.0  !vh!
+       canopy%fns     = 0.0
+       canopy%fnv     = 0.0
+       canopy%fhv     = 0.0
+       canopy%fwsoil  = 1.0 ! vh -should be calculated from soil moisture or
+       !! be in restart file
       ENDIF
-         
+
+      ENDIF
+
      !---set canopy storage (already in dim(land_pts,ntiles) ) 
      canopy%cansto = pack(CANOPY_TILE, um1%l_tile_pts)
      canopy%oldcansto=canopy%cansto
@@ -594,7 +660,7 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
                                 snow_mass3l, snow_tmp3l, fland,                &
                                 sin_theta_latitude ) 
 
-   USE cable_def_types_mod,  ONLY : mp, msn
+   USE cable_def_types_mod,  ONLY : mp, msn, ms, r_2
    USE cable_data_module,   ONLY : PHYS
    USE cable_um_tech_mod,   ONLY : um1, soil, ssnow, met, bal, veg
    USE cable_common_module, ONLY : cable_runtime, cable_user
@@ -669,6 +735,10 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
       DO J=1,um1%sm_levels
          ssnow%tgg(:,J) = PACK(TSOIL_TILE(:,:,J),um1%l_tile_pts)
       ENDDO 
+
+      !do k=1,mp
+      ! print *, 'expl_tgg', k,ssnow%tgg(k,:)
+      !enddo
       
       ssnow%snage = PACK(SNAGE_TILE, um1%l_tile_pts)
 
@@ -771,9 +841,40 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
         
          DEALLOCATE( fwork )
 
+      !! SLI specific initialisations:
+      !IF(cable_user%SOIL_STRUC=='sli') THEN
+      !   ssnow%h0(:)        = 0.0
+      !   ssnow%S(:,:)       = ssnow%wb(:,:)/SPREAD(soil%ssat,2,ms)
+      !   ssnow%snowliq(:,:) = 0.0
+      !   ssnow%Tsurface     = 25.0
+      !   ssnow%nsnow        = 0
+      !   !ssnow%Tsoil        = ssnow%tgg - 273.16
+      !   ssnow%kth          = 0.3
+      !   ssnow%lE           = 0.
+      !   ! vh ! should be calculated from soil moisture or be in restart file
+      !   !ssnow%sconds(:,:)  = 0.06_r_2    ! vh snow thermal cond (W m-2 K-1),
+      !   ! should be in restart file
+      !END IF
+
          first_call = .FALSE.
 
       ENDIF ! END: if (first_call)       
+
+      ! SLI specific initialisations:
+      IF(cable_user%SOIL_STRUC=='sli') THEN
+         ssnow%h0(:)        = 0.0
+         ssnow%S(:,:)       = ssnow%wb(:,:)/SPREAD(soil%ssat,2,ms)
+         ssnow%snowliq(:,:) = 0.0
+         ssnow%Tsurface     = 25.0
+         ssnow%nsnow        = 0
+         ssnow%Tsoil        = ssnow%tgg - 273.16
+         ssnow%kth          = 0.3
+         ssnow%lE           = 0.
+         ! vh ! should be calculated from soil moisture or be in restart file
+         ssnow%sconds(:,:)  = 0.06_r_2    ! vh snow thermal cond (W m-2 K-1),
+         ! should be in restart file
+      END IF
+
 
 !     DO J=1, msn
       DO J=1, 1
