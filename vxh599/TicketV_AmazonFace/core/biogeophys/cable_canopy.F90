@@ -1668,7 +1668,7 @@ CONTAINS
 
               if (veg%iveg(i).eq.2 .or. veg%iveg(i).eq. 4  ) then ! broadleaf forest
 
-                rdx(i,1) = 0.60*(1.2818e-6+0.0116*veg%vcmax(i)- &
+                rdx(i,1) = 0.45*(1.2818e-6+0.0116*veg%vcmax(i)- &
                      0.0334*climate%qtemp_max_last_year(i)*1e-6)
                 rdx(i,2) = rdx(i,1)
 

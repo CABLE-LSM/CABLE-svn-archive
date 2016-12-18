@@ -16,14 +16,17 @@ MODULE CABLE_site
     CHARACTER(len=15)  :: RunType ! 'spinup', 'transient', 'AMB', 'ELE'
     REAL, DIMENSION(:) ,ALLOCATABLE :: CO2VALS  ! Global annual CO2 values (dim is the number of years of data, or 1 if time-invariant)
     REAL, DIMENSION(:) ,ALLOCATABLE :: NdepVALS  ! Global annual Ndep values (dim is the number of years of data, or 1 if time-invariant)
+    REAL, DIMENSION(:) ,ALLOCATABLE :: PdepVALS  ! Global annual Pdep values (dim is the number of years of data, or 1 if time-invariant)
     INTEGER  :: mland                   ! Number of land cells
     CHARACTER(len=200) :: CO2NdepFile   ! CO2Ndepfile with path
     INTEGER :: spinstartyear
     INTEGER :: spinendyear
     REAL :: spinCO2 ! ppm in 1850
     REAL :: spinNdep  ! kgNha-1y-1 in 1850
+    REAL :: spinPdep  ! kgPha-1y-1 in 1850
     REAL :: CO2   ! CO2 for current time step
     REAL :: Ndep  ! Ndep for current time step
+    REAL :: Pdep  ! Pdep for current time step
   END TYPE site_TYPE
 
   TYPE (site_TYPE):: site  ! Define the variable CRU, of type CRU_TYPE
@@ -54,11 +57,13 @@ CONTAINS
     INTEGER :: spinendyear
     REAL :: spinCO2 ! ppm in 1850
     REAL :: spinNdep  ! kgNha-1y-1 in 1850
+    REAL :: spinPdep  ! kgPha-1y-1 in 1850
  
     ! Flag for errors
     LOGICAL              :: ERR = .FALSE.
 
-    NAMELIST /siteNML/ RunType, CO2NdepFile, spinstartyear, spinendyear, spinCO2, spinNdep
+    NAMELIST /siteNML/ RunType, CO2NdepFile, spinstartyear, spinendyear, spinCO2, &
+         spinNdep, spinPdep
 
     ! Read site namelist settings
     CALL GET_UNIT(nmlunit)  ! CABLE routine finds spare unit number
@@ -73,7 +78,7 @@ CONTAINS
     site%spinendyear          = spinendyear
     site%spinCO2 = spinCO2
     site%spinNdep = spinNdep    
-
+    site%spinPdep = spinPdep    
     ! Print settings
     WRITE(*   ,*)"========================================= CRU ============"
     WRITE(*   ,*)"site settings chosen:"
@@ -83,6 +88,7 @@ CONTAINS
     WRITE(*   ,*)" spin end year : ",site%spinendyear
     WRITE(*   ,*)" CO2 value for spinup [ppm]  : ", site%spinCO2
     WRITE(*   ,*)" Ndep value for spinup [kg n ha-1 y-1] ", site%spinNdep
+    WRITE(*   ,*)" Pdep value for spinup [kg P ha-1 y-1] ", site%spinPdep
     WRITE(logn,*)"========================================= CRU ============"
     WRITE(logn,*)"site settings chosen:"
     WRITE(logn,*)" RunType: ",TRIM( site%RunType)
@@ -91,6 +97,7 @@ CONTAINS
     WRITE(logn,*)" spin end year : ",site%spinendyear
     WRITE(logn,*)" CO2 value for spinup [ppm]  : ", site%spinCO2
     WRITE(logn,*)" Ndep value for spinup [kg n ha-1 y-1] ", site%spinNdep
+    WRITE(logn,*)" Pdep value for spinup [kg n ha-1 y-1] ", site%spinPdep
 
    
     WRITE(*   ,*)"========================================= site ============"
@@ -119,6 +126,7 @@ CONTAINS
   IF ( TRIM(site%RunType) .EQ. "spinup") THEN
     site%CO2 = site%spinCO2  ! CO2 in ppm for spinup
     site%Ndep = site%spinNdep 
+    site%Pdep = site%spinPdep 
     RETURN
 
 ! If not spinup, varying CO2 and Ndep values will be used...
@@ -127,14 +135,16 @@ CONTAINS
 ! On the first call, allocate the CRU%CO2VALS array to store the entire history of annual CO2 
 ! values, open the (ascii) CO2 file and read the values into the array. 
     IF (CALL1) THEN
-      ALLOCATE( site%CO2VALS( 1850:2015 ) )
-      ALLOCATE( site%NdepVALS( 1850:2015 )) 
+      ALLOCATE( site%CO2VALS( 1850:2100 ) )
+      ALLOCATE( site%NdepVALS( 1850:2100 )) 
+      ALLOCATE( site%PdepVALS( 1850:2100 )) 
       CALL GET_UNIT(iunit)
       OPEN (iunit, FILE=TRIM(site%CO2NdepFILE), STATUS="OLD", ACTION="READ")
       ! get past header
       READ(iunit, *)
       DO WHILE( IOS .EQ. 0 )
-        READ(iunit, FMT=*, IOSTAT=IOS) iyear, site%CO2VALS(iyear), site%NdepVALS(iyear)
+        READ(iunit, FMT=*, IOSTAT=IOS) iyear, site%CO2VALS(iyear), site%NdepVALS(iyear), &
+             site%PdepVALS(iyear)
       END DO
       CLOSE(iunit)
       CALL1 = .FALSE.
@@ -146,7 +156,7 @@ CONTAINS
 
     site%CO2 = site%CO2VALS( CurYear ) 
     site%Ndep = site%NdepVALS( CurYear ) 
-
+    site%Pdep = site%PdepVALS( CurYear ) 
   END IF
 
 END SUBROUTINE site_GET_CO2_Ndep

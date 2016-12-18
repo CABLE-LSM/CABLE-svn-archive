@@ -522,6 +522,8 @@ PROGRAM cable_offline_driver
        ELSEIF (TRIM(site%RunType)=='spinup' .OR. TRIM(site%RunType)=='transient') THEN
           MetYear = site%spinstartyear + MOD(CurYear-1819,16)
        ENDIF
+write(*,*) 'MetYear: ', MetYear
+
        koffset_met = 0
        if (MetYear .gt. site%spinstartyear) then
            DO Y = site%spinstartyear, MetYear-1
@@ -581,7 +583,7 @@ PROGRAM cable_offline_driver
   WRITE(123,'(A100)') 'Note that PARh is output as 2.3*fsd and APARh is 4.6*qcan.'// &
                ' VPD is direct from input met file.'
   WRITE(123,*) 'Soil temperature reported for 4th layer at depth 0.234-0.643 m'
-  WRITE(123,'(A200)') 'YEAR,Tstp,CO2h,PPTh,PARh,LWh,ATh,STh,VPDh,SWh,'//    &
+  WRITE(123,'(A200)') 'YEAR,Tstp,CO2h,PPTh,PARh,LWh,ATh,STh,CTh,VPDh,SWh,'//    &
                       'aSWh,NEPh,GPPh,NPPh,CEXh,CVOCh,RECOh,RAUTOh,RLEAFh,'//  &
                       'RWOODh,RROOTh,RGROh,RHETh,RSOILh,ETh,Th,ESh,ECh,'//     &
                       'ROh,DRAINh,LEh,SHh,APARh,GCh,GAh,GBh,Betah'
@@ -640,7 +642,7 @@ PROGRAM cable_offline_driver
        if (cable_user%call_climate) CALL climate_init ( climate, mp )
        if (cable_user%call_climate .AND.(.NOT.cable_user%climate_fromzero)) &
             CALL READ_CLIMATE_RESTART_NC (climate)
-       
+
        spinConv = .FALSE. ! initialise spinup convergence variable
        IF (.NOT.spinup)	spinConv=.TRUE.
        IF( icycle>0 .AND. spincasa) THEN
@@ -664,7 +666,7 @@ PROGRAM cable_offline_driver
        
        
     ENDIF ! CALL 1
-    
+ 
     ! globally (WRT code) accessible kend through USE cable_common_module
     kend_gl  = kend
     knode_gl = 0
@@ -720,6 +722,7 @@ PROGRAM cable_offline_driver
               ENDIF
                  met%ca = site%CO2 / 1.e+6
                  met%Ndep = site%Ndep  *1000./10000./365. ! kg ha-1 y-1 > g m-2 d-1
+                 met%Pdep = site%Pdep  *1000./10000./365. ! kg ha-1 y-1 > g m-2 d-1
           ENDIF
  
           IF (TRIM(cable_user%MetType).EQ.'') THEN
@@ -741,7 +744,7 @@ PROGRAM cable_offline_driver
              if (icycle>1) CALL casa_cnpflux(casaflux,casapool,casabal,.TRUE.)
              if ( CABLE_USER%POPLUC) CALL POPLUC_set_patchfrac(POPLUC,LUC_EXPT)   
           ENDIF
-          
+  
           IF ( .NOT. CASAONLY ) THEN
              
              ! Feedback prognostic vcmax and daily LAI from casaCNP to CABLE
@@ -824,12 +827,14 @@ PROGRAM cable_offline_driver
                  IF(icycle >0) THEN
 
 
+
                     IF ( IS_CASA_TIME("write", yyyy, ktau, kstart, &
                          koffset, kend, ktauday, logn) ) THEN
                        ctime = ctime +1
                        !mpidiff
                        CALL update_sum_casa(sum_casapool, sum_casaflux, casapool, casaflux, &
                             .FALSE. , .TRUE. , count_sum_casa)
+
                        CALL WRITE_CASA_OUTPUT_NC (veg, casamet, sum_casapool, casabal, sum_casaflux, &
                             CASAONLY, ctime, ( ktau.EQ.kend .AND. YYYY .EQ.	       &
                             cable_user%YearEnd.AND. RRRR .EQ.NRRRR ) )
@@ -859,6 +864,7 @@ PROGRAM cable_offline_driver
                           ELSE
 
                              CALL write_casa_dump( ncfile, casamet , casaflux, phen, climate, idoy, &                                 kend/ktauday )
+
                           ENDIF
 
                        ENDIF
@@ -899,9 +905,9 @@ PROGRAM cable_offline_driver
                  ENDIF
 
 ! Hacking to dump AmazonFACE output
-  WRITE(123,'(2(I8,","),35(E16.8,","))') CurYear, ktau_tot, met%ca, &
+  WRITE(123,'(2(I8,","),36(E16.8,","))') CurYear, ktau_tot, met%ca, &
      met%precip*2.0, 2.3*(met%fsd(1,1)+met%fsd(1,2)), met%fld,   &
-     met%tk-273.16, ssnow%tgg(1,4)-273.16, -9999.9,  &
+     met%tk-273.16, ssnow%tgg(1,4)-273.16,canopy%tv-273.16, -9999.9,  &
      SUM(ssnow%wb(1,:)*soil%zse(:))*1000.0,          &
      SUM((ssnow%wb(1,:)-soil%swilt(1))*soil%zse(:))*1000.0,      &
      canopy%fnee*3600.0,      &

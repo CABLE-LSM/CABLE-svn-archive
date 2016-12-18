@@ -376,6 +376,9 @@ SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
     casapool%ratioNCsoilmin(npt,:)   = 1.0/ratioCNsoilmax(iv1,:)
     casapool%ratioNCsoilmax(npt,:)   = 1.0/ratioCNsoilmin(iv1,:)
     casapool%ratioNCsoilnew(npt,:)   = casapool%ratioNCsoilmax(npt,:)
+    casapool%ratiopcsoil(npt,:)   = 1.0/ratioNPsoil(iv1,:)
+    casapool%ratiopClitter(npt,:) = casapool%plitter(npt,:)/(casapool%clitter(npt,:)+1.0e-10)
+    casapool%ratioPCplant(npt,:)  = casapool%pplant(npt,:)/(casapool%cplant(npt,:)+1.0e-10)
   ENDDO
 
    if(icycle<2) then
@@ -754,6 +757,9 @@ ENDIF
   casaflux%FluxCtoCO2   = 0.
 
   casaflux%Cplant_turnover = 0.
+  casaflux%Cplant_turnover_resource_limitation =  0.
+  casaflux%Cplant_turnover_crowding = 0.
+  casaflux%Cplant_turnover_disturbance = 0.
 
   phen%doyphase(:,1) = -50
   phen%doyphase(:,2) = phen%doyphase(:,1) +14

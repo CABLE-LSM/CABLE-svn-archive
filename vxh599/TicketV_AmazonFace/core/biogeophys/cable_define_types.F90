@@ -540,8 +540,8 @@ MODULE cable_def_types_mod
          da,      & ! water vap pressure deficit at ref height (Pa)
          dva,     & ! in canopy water vap pressure deficit (Pa)
          coszen,   &  ! cos(zenith angle of sun)
-         Ndep        ! nitrogen deposition (gN m-2 d-1)
-
+         Ndep,     &     ! nitrogen deposition (gN m-2 d-1)
+         Pdep ! P deposition (gP m-2 d-1)
       REAL, DIMENSION(:,:), POINTER ::                                         &
          fsd  ! downward short-wave radiation (W/m2)
 
@@ -1132,6 +1132,7 @@ SUBROUTINE alloc_met_type(var, mp)
    ALLOCATE ( var % dva(mp) )
    ALLOCATE ( var % coszen(mp) )
    ALLOCATE ( var % Ndep(mp) )
+   ALLOCATE ( var % Pdep(mp) )
 
 END SUBROUTINE alloc_met_type
 
@@ -1659,6 +1660,7 @@ SUBROUTINE dealloc_met_type(var)
    DEALLOCATE ( var % dva )
    DEALLOCATE ( var % coszen )
    DEALLOCATE ( var % Ndep )
+   DEALLOCATE ( var % Pdep )
 
 END SUBROUTINE dealloc_met_type
 
