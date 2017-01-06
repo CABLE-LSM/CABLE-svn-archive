@@ -1,4 +1,4 @@
-module cable_ncdf_module
+module casa_dump_module
    use cable_def_types_mod, only : r_2
    implicit none
   
@@ -214,7 +214,7 @@ module cable_ncdf_module
    end subroutine stderr_nc      
 
 
-end module cabled_ncdf_module
+end module casa_dump_module
 
 
 
