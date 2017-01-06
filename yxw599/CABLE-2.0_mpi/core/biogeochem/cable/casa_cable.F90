@@ -177,7 +177,7 @@ subroutine ncdf_dump(casamet, n_call, kend, ncfile)
       use cable_def_types_mod
       use casadimension, only : mdyear, mplant
       USE casavariable
-      use casa_dump_module, only : def_dims, def_vars, def_var_atts, &
+      use cable_ncdf_module, only : def_dims, def_vars, def_var_atts, &
                                    put_var_nc, stderr_nc
       USE cable_io_vars_module, only : patch
 
@@ -355,7 +355,7 @@ subroutine ncdf_dump(casamet, n_call, kend, ncfile)
       use cable_def_types_mod,   only : r_2,ms
       use casadimension,         only : mplant,mdyear
       USE casa_cnp_module
-      use casa_dump_module,     only : get_var_nc, stderr_nc
+      use cable_ncdf_module,     only : get_var_nc, stderr_nc
 
       TYPE (casa_flux), intent(inout) :: casaflux
       TYPE (casa_met), intent(inout)  :: casamet
