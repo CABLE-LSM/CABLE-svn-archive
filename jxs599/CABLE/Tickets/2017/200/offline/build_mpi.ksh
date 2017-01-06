@@ -367,6 +367,7 @@ build_build()
    /bin/cp -p $CORE/*90 ./.mpitmp
    /bin/cp -p $DRV/*90 ./.mpitmp
    /bin/cp -p $CASA/*90 ./.mpitmp
+   /bin/cp -p $CASA/*/*90 ./.mpitmp
    
    print "\n\n\tPlease note: CASA-CNP files are included in build only for " 
    print "\ttechnical reasons. Implementation is not officially available with" 

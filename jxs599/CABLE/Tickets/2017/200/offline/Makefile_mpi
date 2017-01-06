@@ -43,7 +43,7 @@ LSRC = cable_data.F90 cable_common.F90 cable_define_types.F90 cable_iovars.F90 \
 	cable_sli_solve.F90 cable_sli_utils.F90 spincasacnp.F90  \
 	cable_diag.F90 POP.F90 pop_io.F90 pop_mpi.F90 cable_plume_mip.F90 \
 	cable_weathergenerator.F90 cable_climate.F90 cable_phenology.F90 \
-	cable_cru_TRENDY.F90 POPLUC.F90 CASAONLY_LUC.F90 cable_LUC_EXPT.F90	   
+	cable_cru_TRENDY.F90 POPLUC.F90 CASAONLY_LUC.F90 cable_LUC_EXPT.F90 nc_dump.F90	   
 
 # this is the executable we are building
 PROG = cable-mpi
@@ -75,7 +75,7 @@ cable_abort.o: cable_abort.F90 cable_iovars.o cable_define_types.o
 
 cable_data.o: cable_data.F90 
  
-cable_diag.o: cable_diag.F90 cable_common.o 
+cable_diag.o: cable_diag.F90 cable_common.o nc_dump.o 
  
 cable_air.o: cable_air.F90 cable_define_types.o cable_common.o cable_data.o
 
