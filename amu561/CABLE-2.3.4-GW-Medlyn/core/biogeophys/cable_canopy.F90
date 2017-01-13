@@ -1976,28 +1976,33 @@ SUBROUTINE photosynthesis( csxz, cx1z, cx2z, gswminz,                          &
                coef2z(i,j) = gswminz(i,j)*fwsoilz(i) / C%RGSWC + gs_coeffz(i,j) *           &
                              ( vcmxt3z(i,j) - ( rdxz(i,j)-vcmxt4z(i,j) ) )
 
+
                coef1z(i,j) = (1.0-csxz(i,j)*gs_coeffz(i,j)) *                  &
                              (vcmxt3z(i,j)+vcmxt4z(i,j)-rdxz(i,j))             &
                              + (gswminz(i,j)*fwsoilz(i)/C%RGSWC)*(cx1z(i,j)-csxz(i,j)) &
                              - gs_coeffz(i,j)*(vcmxt3z(i,j)*cx2z(i,j)/2.0      &
                              + cx1z(i,j)*(rdxz(i,j)-vcmxt4z(i,j) ) )
-               
+         
                 
                coef0z(i,j) = -(1.0-csxz(i,j)*gs_coeffz(i,j)) *                 &    
                              (vcmxt3z(i,j)*cx2z(i,j)/2.0                       &
                              + cx1z(i,j)*( rdxz(i,j)-vcmxt4z(i,j ) ) )         &
                              -( gswminz(i,j)*fwsoilz(i)/C%RGSWC ) * cx1z(i,j)*csxz(i,j)
 
+
                ! kdcorbin,09/10 - new calculations
-               IF( ABS(coef2z(i,j)) .GT. 1.0e-9 .AND. &
-                   ABS(coef1z(i,j)) .LT. 1.0e-9) THEN
+               IF( (ABS(coef2z(i,j)) .GT. 1.0e-9 .AND. &
+                    ABS(coef1z(i,j)) .LT. 1.0e-9) &
+                   .OR. &
+                   (ABS(coef2z(i,j) .LT. 1.0e-09 .AND. &
+                    ABS(coef1z(i,j) .LT. 1.0e-09))) ) THEN
                   
                   ! no solution, give it a huge number as 
                   ! quadratic below cannot handle zero denominator
                   ciz(i,j) = 99999.0        
                   
                   anrubiscoz(i,j) = 99999.0 ! OR do ciz=0 and calc anrubiscoz
-                   
+                  
                ENDIF
 
                ! solve linearly
@@ -2012,7 +2017,7 @@ SUBROUTINE photosynthesis( csxz, cx1z, cx2z, gswminz,                          &
                   anrubiscoz(i,j) = vcmxt3z(i,j)*(ciz(i,j)-cx2z(i,j) / 2.0 ) / &
                                     ( ciz(i,j) + cx1z(i,j)) + vcmxt4z(i,j) -   &
                                     rdxz(i,j)
-   
+  
                ENDIF
    
                ! solve quadratic (only take the more positive solution)
@@ -2131,6 +2136,7 @@ SUBROUTINE photosynthesis( csxz, cx1z, cx2z, gswminz,                          &
    
                ENDIF
           
+
                ! minimal of three limited rates
                anxz(i,j) = MIN(anrubiscoz(i,j),anrubpz(i,j),ansinkz(i,j))
         

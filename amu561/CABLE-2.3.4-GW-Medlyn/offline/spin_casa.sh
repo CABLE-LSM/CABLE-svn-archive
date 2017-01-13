@@ -8,7 +8,7 @@
 
 ##### SET SITE !!!!! #####
 
-site="Stubai"
+site="grassLTER"
 
 
 ## Spins CASA for determined number of cycles
@@ -159,7 +159,7 @@ tol=$(echo "scale=6; 0.05" | bc)
 diff_cplant=$(echo "scale=6; 99999.0" | bc)
 diff_csoil=$(echo "scale=6; 99999.0" | bc)
 
-I=100
+I=1
 
 
 
@@ -266,10 +266,6 @@ cable_user%alt_forcing = .FALSE.
 cable_user%GSWP3       = .FALSE.
 cable_user%L_newProfile = .TRUE. !Use new YP profile for root water extraction?
 cable_user%or_evap = .FALSE.     !Use new Or soilE formulation?
-gw_params%EfoldMaxSatFrac    = 6.0
-gw_params%MaxHorzDrainRate   = 0.01
-gw_params%MaxSatFraction     = 900.0
-gw_params%EfoldHorzDrainRate = 1.0
 &end
 
 EOF
