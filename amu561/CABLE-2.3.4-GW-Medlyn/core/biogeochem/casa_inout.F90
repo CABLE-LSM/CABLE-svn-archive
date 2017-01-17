@@ -1092,7 +1092,7 @@ SUBROUTINE casa_poolout(ktau,veg,soil,casabiome,casapool,casaflux,casamet, &
   INTEGER                       :: CbalID, NbalID, PbalID
   INTEGER,  DIMENSION(num_dims) :: dimID, dim_len
   CHARACTER(LEN=12),DIMENSION(num_dims) :: dim_name 
-  CHARACTER(LEN=99)             :: ncfile
+  CHARACTER(LEN=500)             :: ncfile
   REAL,     DIMENSION(mp)       :: dummy
 
   ! Soiltype     soilnumber soil P(g P/m2)

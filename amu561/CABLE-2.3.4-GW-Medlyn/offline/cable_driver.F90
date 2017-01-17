@@ -150,7 +150,7 @@ PROGRAM cable_offline_driver
 
    ! added variable by yp wang 7-nov-2012
    ! BP had values of mloop read in from namelist file (Jun 2013)
-   INTEGER :: mloop = 5        ! default = 5, to be overwritten by namelist
+   INTEGER :: mloop = 50        ! default = 5, to be overwritten by namelist
 
    !___ unique unit/file identifiers for cable_diag: arbitrarily 5 here 
    INTEGER, SAVE :: iDiagZero=0, iDiag1=0, iDiag2=0, iDiag3=0, iDiag4=0
