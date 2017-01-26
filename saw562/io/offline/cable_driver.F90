@@ -757,7 +757,7 @@ PROGRAM cable_offline_driver
 
                           IF (TRIM(cable_user%MetType).EQ.'' ) THEN
                              CALL write_casa_dump( ncfile, casamet , casaflux, phen, climate,&
-                                  INT(met%doy), LOY )
+                                  INT(met%doy(1)), LOY )
                           ELSE
                              CALL write_casa_dump( ncfile, casamet , casaflux, &
                                     phen, climate, idoy, kend/ktauday )
