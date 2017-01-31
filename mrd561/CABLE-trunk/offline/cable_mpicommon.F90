@@ -38,7 +38,8 @@ MODULE cable_mpicommon
   ! Ticket #56, add 2 new params for the Medlyns Stom Cond model 293 -> 295
   !Vanessa Haverd: add 4 new params 295 -> 299
   ! VH add 9 params for sli 299 -> 308
-  INTEGER, PARAMETER :: nparam = 308   
+  ! mrd561 make 326
+  INTEGER, PARAMETER :: nparam = 326
   ! MPI: extra params sent only if nsoilparmnew is true
   INTEGER, PARAMETER :: nsoilnew = 1
 
@@ -104,7 +105,8 @@ MODULE cable_mpicommon
   !INTEGER, PARAMETER :: nvec = 137
   ! MPI: CABLE_r491, after following up with Bernard on the new variables
   ! vh sli nvec + 6 162 -> 168
-  INTEGER, PARAMETER :: nvec = 168
+  ! mrd561 gw + 4
+  INTEGER, PARAMETER :: nvec = 172! 168
 
   ! MPI: number of final casa result matrices and vectors to receive
   ! by the master for casa_poolout and casa_fluxout

@@ -62,7 +62,7 @@
 
 MODULE sli_solve
 
-  USE cable_def_types_mod, ONLY: r_2, i_d
+  USE cable_def_types_mod!, ONLY: r_2, i_d
   USE sli_numbers,         ONLY: &
        experiment, &
        zero, one, two, half, thousand, e3, e5, &  ! numbers
@@ -124,11 +124,12 @@ CONTAINS
   SUBROUTINE solve(wlogn, ts, tfin, irec, mp, qprec, qprec_snow, n, dx, h0, S,thetai, Jsensible, Tsoil, evap, evap_pot, runoff, &
        infil, drainage, discharge, qh, nsteps, vmet, vlit, vsnow, var, csoil, kth, phi, T0, Tsurface, Hcum, lEcum, &
        Gcum, Qadvcum, Jcol_sensible, Jcol_latent_S, Jcol_latent_T, deltaice_cum_T, deltaice_cum_S, dxL, zdelta, &
-       SL, TL, plit, par, qex, wex, heads,  &
+       SL, TL, plit, par,qhorz_flux, qex, wex, heads,  &
        ciso, cisoice, ciso_snow, cisoice_snow, cisos, cisoL, cprec, cprec_snow, cali, &
        qali, qiso_in, qiso_out, qiso_evap_cum, qiso_trans_cum, qiso_liq_adv, &
        qiso_vap_adv, qiso_liq_diff, qiso_vap_diff, qvsig, qlsig, qvTsig, qvh, deltaTa, lE_old, &
-       dolitter, doisotopologue, dosepts, docondition, doadvection)
+       dolitter, doisotopologue, dosepts, docondition, doadvection,&
+       soil,air,met,canopy,ssnow,veg,rough,useaquifer,psm_evap)
 
 
     IMPLICIT NONE
@@ -187,6 +188,20 @@ CONTAINS
     INTEGER(i_d),                          INTENT(IN),    OPTIONAL :: dosepts        ! 0: normal; 1: uncouple T & S
     INTEGER(i_d),                          INTENT(IN),    OPTIONAL :: docondition    ! 0: no cond., 1: columns, 2: lines, 3: both
     INTEGER(i_d),                          INTENT(IN),    OPTIONAL :: doadvection       ! 0: off; 1: onn
+    !mrd561
+    REAL(r_2),      DIMENSION(1:mp,1:n),   INTENT(inOUT)           :: qhorz_flux
+    LOGICAL,                               INTENT(IN)              :: useaquifer
+    LOGICAL,                               INTENT(IN)              :: psm_evap
+
+    TYPE (air_type), INTENT(IN)       :: air 
+    TYPE (met_type), INTENT(IN)       :: met 
+    TYPE (soil_snow_type), INTENT(INOUT) :: ssnow
+    TYPE (canopy_type), INTENT(INOUT)    :: canopy
+    TYPE (soil_parameter_type), INTENT(IN)   :: soil
+    TYPE (veg_parameter_type), INTENT(IN) :: veg 
+    TYPE (roughness_type), INTENT(IN) :: rough
+
+    integer :: myerr
     ! Solves the RE and, optionally, the ADE from time ts to tfin.
     ! Definitions of arguments:
     ! Required args:
@@ -312,6 +327,8 @@ CONTAINS
     REAL(r_2),          DIMENSION(1:mp)     :: J0snow, wcol0snow
     REAL(r_2), DIMENSION(1:n) :: h_ex
     REAL(r_2) :: wpi
+    !mrd  
+    REAL(r_2),      DIMENSION(1:mp)            :: wtd
   
     !open (unit=7, file="Test.out", status="replace", position="rewind")
     ! The derived types params and vars hold soil water parameters and variables.
@@ -597,6 +614,7 @@ CONTAINS
           vbot(:)%isat = 0
        endwhere
     end if
+    wtd(:) = ssnow%wtd(:)  !in m?
     !----- end set up for boundary conditions
 
     !----- initialise
@@ -879,7 +897,7 @@ CONTAINS
                   hint(kk,1:n), phimin(kk,1:n), q(kk,0:n), qya(kk,0:n), qyb(kk,0:n), qTa(kk,0:n), qTb(kk,0:n), &
                   qliq(kk,0:n), qlya(kk,0:n), qlyb(kk,0:n), qv(kk,0:n), qvT(kk,0:n), qvh(kk,0:n), qvya(kk,0:n), &
                   qvyb(kk,0:n), &
-                  iflux(kk), init(kk), getq0(kk), getqn(kk), Tsoil(kk,1:n), T0(kk), nsat(kk), nsatlast(kk))
+                  iflux(kk), init(kk), getq0(kk), getqn(kk), Tsoil(kk,1:n), T0(kk), nsat(kk), nsatlast(kk),useaquifer,wtd(kk))
              qTa(kk,n) = zero
              qTb(kk,n) = zero
              qvTa(kk,1:n) = qTa(kk,1:n)

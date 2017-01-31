@@ -1,4 +1,4 @@
-SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
+SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, rough,SEB_only)
 
   ! Main subroutine for Soil-litter-iso soil model
   ! Vanessa Haverd, CSIRO Marine and Atmospheric Research
@@ -6,7 +6,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
   ! Modified to operate for multiple veg tiles but a single soil column, March 2011
   ! Rewritten for same number of soil columns as veg tiles May 2012
   USE cable_def_types_mod,       ONLY: veg_parameter_type, soil_parameter_type, soil_snow_type, met_type, &
-       canopy_type, air_type, radiation_type, ms, mp, r_2, i_d
+       canopy_type, air_type, radiation_type, roughness_type,ms, mp, r_2, i_d
   USE cable_common_module , ONLY: cable_user
   USE sli_numbers,        ONLY:  zero, half, one, two, four, thousand, & ! numbers
        Tzero, experiment, &                                       ! variables
@@ -18,6 +18,10 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
   USE sli_roots,          ONLY: setroots, getrex
   USE sli_solve,          ONLY: solve
  
+  USE cable_large_scale_hydro, ONLY: overland_runoff, diagnose_watertable_depth, determine_subsurface_runoff,&
+                               aquifer_recharge
+
+  USE cable_psm, ONLY : or_soil_evap_resistance
 
   IMPLICIT NONE
   !INTEGER, INTENT(IN)            :: wlogn
@@ -30,6 +34,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
   TYPE(canopy_type),         INTENT(INOUT) :: canopy  ! all r_1
   TYPE(air_type),            INTENT(INOUT) :: air     ! all r_1
   TYPE (radiation_type),     INTENT(IN)    :: rad
+  TYPE (roughness_type), INTENT(IN) :: rough
   INTEGER,                   INTENT(IN)    :: ktau ! integration step number
   INTEGER,                   INTENT(IN)    :: SEB_only ! integration step number
 
@@ -447,6 +452,13 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
   infil  = zero
   drn    = zero
 
+  !mrd561
+  ssnow%qhlev(:,:) = zero
+  if (cable_user%test_new_gw) then
+     botbc = "aquifer"
+  else
+     botbc = "free drainage"
+  end if
   if (SEB_only == 0) then
 
      if (cable_user%fwsoil_switch.ne.'Haverd2013') then
@@ -464,6 +476,25 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
      do k=1,ms
         qex(:,k)= ssnow%rex(:,k)
      enddo
+
+     call diagnose_watertable_depth(ssnow,soil,par,veg)
+
+     if ((cable_user%test_new_gw)) then
+
+        ssnow%fwtop(:) = qprec(:)*thousand  !mm/s
+        call overland_runoff(par,ssnow,soil,veg)
+     !   !changes ssnow%fwtop, ssnow%rnof1, ssnow%sat_ice_frac,ssnow%sat_frac,
+        qprec = ssnow%fwtop(:)/thousand  !=> mm/s to ???? says cm/h but I think it is m/s
+     
+        call determine_subsurface_runoff(par,ssnow,soil,veg)
+        ssnow%qhlev(:,1:ms) = ssnow%qhlev(:,1:ms)/thousand   !mm/s to cm/h
+        !note aquifer level left in mm/s 
+        qex(:,:) = qex(:,:) + ssnow%qhlev(:,1:ms)
+        ssnow%qhlev(:,1:ms) = 0._r_2
+
+     else
+        ssnow%qhlev(:,:) = zero
+     end if
 
   endif
 
@@ -521,11 +552,16 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
           H, lE, G0, Qadvcum, Jcol_sensible, &
           Jcol_latent_S, Jcol_latent_T, deltaice_cum_T, &
           deltaice_cum_S, dxL, zdelta, SL, TL, &
-          plit, par, qex=qex, &
+          plit, par,ssnow%qhlev(:,1:ms), qex=qex, &
           wex=wex, qvsig=qvsig, qlsig=qlsig, qvTsig=qvTsig, qvh=qvh, &
           deltaTa=deltaTa, lE_old=lE_old, &
           dolitter=litter, doisotopologue=isotopologue, dosepts=septs, docondition=condition, &
-          doadvection=advection)
+          doadvection=advection,&
+          soil=soil,air=air,met=met,canopy=canopy,ssnow=ssnow,veg=veg,rough=rough,useaquifer=cable_user%test_new_gw,psm_evap=cable_user%or_evap)
+
+     if (cable_user%test_new_gw) then
+         call aquifer_recharge(dt,ssnow,par,veg,soil,var,drn)
+     end if
 
      qprec_snow = qprec_snow_tmp
      H             = (H/(tf-ti))

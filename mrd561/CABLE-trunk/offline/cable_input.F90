@@ -68,7 +68,8 @@ MODULE cable_input_module
        ncid_ps,         &
        ncid_qa,         &
        ncid_ta,         &
-       ncid_wd
+       ncid_wd,         &
+       ncid_mask
 
    INTEGER                      ::                                        &
         ncid_met,        & ! met data netcdf file ID
@@ -419,6 +420,16 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
           PRINT*,'wind',ncid_wd
           CALL handle_err( ok )
        ENDIF
+    if (cable_user%GSWP3) then 
+       ok = NF90_OPEN(gswpfile%mask,0,ncid_mask)
+       if (ok .ne. NF90_NOERR) then 
+          CALL nc_abort(ok, "Error opening GSWP3 mask file")
+       end if
+       LAT1D = .true.   !GSWP3 forcing has 1d lat/lon variables
+       LON1D = .true.  
+    else 
+      ncid_mask = ncid_rain
+    end if
     ncid_met = ncid_rain
   ELSE
     WRITE(logn,*) 'Opening met data file: ', TRIM(filename%met)
@@ -715,9 +726,6 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
          //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
     ! Set time step size:
     !MDeck
-    IF (cable_user%alt_forcing) THEN
-       timevar = timevar*24.0*3600.0  !convert from days to seconds
-    END IF
     IF (cable_user%gswp3) then         !Hack the GSWP3 time units to make from start of year
        timevar(:) = (timevar(:)-timevar(1))*3600.0 + 1.5*3600.0  !convert hours to seconds
     end if
@@ -731,7 +739,7 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
 
 
     !********* gswp input file has bug in timevar **************
-    IF (ncciy > 0 .and. .not.cable_user%alt_forcing) THEN
+    IF (ncciy > 0 ) THEN
       PRINT *, 'original timevar(kend) = ', timevar(kend)
       DO i = 1, kend - 1
         timevar(i+1) = timevar(i) + dels
@@ -778,7 +786,7 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
     !****** done bug fixing for timevar in PALS met file **********************
 
     !********* gswp input file has bug in timeunits ************
-    IF (ncciy > 0 .and. .not.cable_user%alt_forcing) WRITE(timeunits(26:27),'(i2.2)') 0
+    IF (ncciy > 0 ) WRITE(timeunits(26:27),'(i2.2)') 0
     !********* done bug fixing for timeunits in gwsp file ******
     WRITE(logn,*) 'Time variable units: ', timeunits
     ! Get coordinate field:
