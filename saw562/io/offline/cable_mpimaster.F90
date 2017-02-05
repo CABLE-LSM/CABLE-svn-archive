@@ -75,6 +75,7 @@
 MODULE cable_mpimaster
 
   USE cable_mpicommon
+  use comms_mod, only: comms_t
 
   IMPLICIT NONE
 
@@ -98,7 +99,8 @@ MODULE cable_mpimaster
   INTEGER, ALLOCATABLE, DIMENSION(:) :: vec_t
 
   ! MPI derived datatype handles for sending input data to the workers
-  INTEGER, ALLOCATABLE, DIMENSION(:) :: inp_ts
+  ! INTEGER, ALLOCATABLE, DIMENSION(:) :: inp_ts
+  type(comms_t) :: intypes
 
   ! MPI derived datatype handles for receiving output from the workers
   INTEGER, ALLOCATABLE, DIMENSION(:) :: recv_ts
@@ -625,7 +627,8 @@ CONTAINS
              ! at the start of every timestep
              !CALL master_intypes (comm,met,veg)
              ! for read ahead use the new variables
-             CALL master_intypes (comm,imet,iveg)
+             !CALL master_intypes (comm,imet,iveg)
+             call master_intypes_register(comm, wland, imet, iveg, intypes)
 
              ! MPI: create recv_t types to receive results from the workers
              ! at the end of every timestep
@@ -754,7 +757,8 @@ CONTAINS
           IF ( .NOT. CASAONLY ) THEN
              ! MPI: scatter input data to the workers
 
-             CALL master_send_input (icomm, inp_ts, iktau)
+             ! CALL master_send_input (icomm, inp_ts, iktau)
+             call intypes%scatter()
 
            !  CALL MPI_Waitall (wnp, inp_req, inp_stats, ierr)
           ELSE 
@@ -845,7 +849,8 @@ CONTAINS
 
 
                 ! MPI: scatter input data to the workers
-                CALL master_send_input (icomm, inp_ts, iktau)
+                ! CALL master_send_input (icomm, inp_ts, iktau)
+                call intypes%scatter()
               !  CALL MPI_Waitall (wnp, inp_req, inp_stats, ierr)
 
 !!$                IF ( ((.NOT.spinup).OR.(spinup.AND.spinConv)) .AND.   &
@@ -4359,6 +4364,36 @@ SUBROUTINE master_casa_params (comm,casabiome,casapool,casaflux,casamet,&
 
 END SUBROUTINE master_casa_params
 
+SUBROUTINE master_intypes_register(comm, decomp, met, veg, intypes)
+    use comms_mod, only: comms_t
+    use cable_def_types_mod, only: met_type, veg_parameter_type
+    use :: cable_mpicommon, only: lpdecomp_t
+    implicit none
+    integer, intent(in) :: comm
+    type(lpdecomp_t), intent(in) :: decomp(:)
+    type(met_type), intent(in) :: met
+    type(veg_parameter_type), intent(in) :: veg
+    type(comms_t), intent(out) :: intypes
+
+    call intypes%init(comm, decomp)
+    call intypes%register_field('met%fsd', met%fsd)
+    call intypes%register_field('met%tk', met%tk)
+    call intypes%register_field('met%pmb', met%pmb)
+    call intypes%register_field('met%qv', met%qv)
+    call intypes%register_field('met%ua', met%ua)
+    call intypes%register_field('met%precip', met%precip)
+    call intypes%register_field('met%precip_sn', met%precip_sn)
+    call intypes%register_field('met%fld', met%fld)
+    call intypes%register_field('met%ca', met%ca)
+    call intypes%register_field('met%coszen', met%coszen)
+    call intypes%register_field('met%Ndep', met%Ndep)
+    call intypes%register_field('veg%vlai', veg%vlai)
+    call intypes%register_field('met%year', met%year)
+    call intypes%register_field('met%moy', met%moy)
+    call intypes%register_field('met%doy', met%doy)
+    call intypes%register_field('met%hod', met%hod)
+END SUBROUTINE
+
 ! MPI: creates inp_t types to send input data to the workers
 ! input data means arrays read by get_met_data; each worker receives
 ! only its own slice of the arrays
@@ -4394,6 +4429,7 @@ SUBROUTINE master_intypes (comm,met,veg)
   INTEGER :: off  ! first patch index for a worker
   INTEGER :: cnt  ! mp for a worker
   INTEGER :: ierr
+  INTEGER, ALLOCATABLE, DIMENSION(:) :: inp_ts
 
   ALLOCATE (inp_ts(wnp))
 
@@ -7757,7 +7793,7 @@ SUBROUTINE master_end (icycle, restart)
   ! MPI: free MPI types
   DO rank = 1, wnp
 
-     CALL MPI_Type_free (inp_ts(rank), ierr)
+     !CALL MPI_Type_free (inp_ts(rank), ierr)
 
      CALL MPI_Type_free (recv_ts(rank), ierr)
 
@@ -7801,7 +7837,7 @@ SUBROUTINE master_end (icycle, restart)
 
 
   ! MPI: free derived datatype handle array
-  DEALLOCATE (inp_ts)
+  !DEALLOCATE (inp_ts)
 
   DEALLOCATE (recv_ts)
 

@@ -13,7 +13,7 @@ if (${CMAKE_Fortran_COMPILER_ID} MATCHES GNU)
 elseif(${CMAKE_Fortran_COMPILER_ID} MATCHES Intel)
     set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -g -traceback -warn all -fp-model precise")
     set(CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS_RELEASE} -O3 -xHost")
-    set(CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS_DEBUG} -O0 -check all -warn error -ftz -fpe0")
+    set(CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS_DEBUG} -O0 -check all -ftz -fpe0")
 
 endif(${CMAKE_Fortran_COMPILER_ID} MATCHES GNU)
 
@@ -64,6 +64,7 @@ add_library(offline
     offline/cable_read.F90
     offline/cable_weathergenerator.F90
     offline/cable_write.F90
+    comms.f90
     )
 
 add_executable(cable offline/cable_driver.F90)
@@ -71,3 +72,6 @@ target_link_libraries(cable offline -lnetcdff -lnetcdf)
 
 add_executable(cable_mpi offline/cable_mpidrv.F90)
 target_link_libraries(cable_mpi offline -lnetcdff -lnetcdf)
+
+add_executable(test_comms test_comms.f90)
+target_link_libraries(test_comms offline)

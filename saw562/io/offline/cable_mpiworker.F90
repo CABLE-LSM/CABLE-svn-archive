@@ -64,6 +64,7 @@
 MODULE cable_mpiworker
 
   USE cable_mpicommon
+  use comms_mod, only: comms_t
 
  
   IMPLICIT NONE
@@ -81,7 +82,8 @@ MODULE cable_mpiworker
   INTEGER :: casaparam_t
 
   ! MPI: MPI derived datatype for receiving input from the master
-  INTEGER :: inp_t
+  ! INTEGER :: inp_t
+  type(comms_t) :: intypes
 
   ! MPI: MPI derived datatype for sending results back to the master
   INTEGER :: send_t
@@ -466,7 +468,8 @@ CONTAINS
 
              ! MPI: create inp_t type to receive input data from the master
              ! at the start of every timestep
-             CALL worker_intype (comm,met,veg)
+             !CALL worker_intype (comm,met,veg)
+             call worker_intypes_register(comm, met, veg, intypes)
 
              ! MPI: casa parameters received only if cnp module is active
              ! MPI: create send_t type to send the results to the master
@@ -596,7 +599,8 @@ call flush(wlogn)
              ! MPI: receive input data for this step from the master
              IF ( .NOT. CASAONLY ) THEN
 
-                CALL MPI_Recv (MPI_BOTTOM, 1, inp_t, 0, ktau_gl, icomm, stat, ierr)
+                ! CALL MPI_Recv (MPI_BOTTOM, 1, inp_t, 0, ktau_gl, icomm, stat, ierr)
+                call intypes%scatter()
 
                 ! MPI: receive casa_dump_data for this step from the master
              ELSEIF ( IS_CASA_TIME("dread", yyyy, ktau, kstart, koffset, &
@@ -3352,6 +3356,33 @@ ENDIF
 
   END SUBROUTINE worker_casa_params
 
+    SUBROUTINE worker_intypes_register(comm, met, veg, intypes)
+        use comms_mod, only: comms_t
+        use cable_def_types_mod, only: met_type, veg_parameter_type
+        implicit none
+        integer, intent(in) :: comm
+        type(met_type), intent(in) :: met
+        type(veg_parameter_type), intent(in) :: veg
+        type(comms_t), intent(out) :: intypes
+
+        call intypes%init(comm)
+        call intypes%register_field('met%fsd', met%fsd)
+        call intypes%register_field('met%tk', met%tk)
+        call intypes%register_field('met%pmb', met%pmb)
+        call intypes%register_field('met%qv', met%qv)
+        call intypes%register_field('met%ua', met%ua)
+        call intypes%register_field('met%precip', met%precip)
+        call intypes%register_field('met%precip_sn', met%precip_sn)
+        call intypes%register_field('met%fld', met%fld)
+        call intypes%register_field('met%ca', met%ca)
+        call intypes%register_field('met%coszen', met%coszen)
+        call intypes%register_field('met%Ndep', met%Ndep)
+        call intypes%register_field('veg%vlai', veg%vlai)
+        call intypes%register_field('met%year', met%year)
+        call intypes%register_field('met%moy', met%moy)
+        call intypes%register_field('met%doy', met%doy)
+        call intypes%register_field('met%hod', met%hod)
+    END SUBROUTINE
 
   ! MPI: creates inp_t type to receive input data from the master
   SUBROUTINE worker_intype (comm,met,veg)
@@ -3369,6 +3400,7 @@ ENDIF
 
     ! Local variables
 
+   INTEGER :: inp_t
     ! temp arrays for marshalling all fields into a single struct
     INTEGER, ALLOCATABLE, DIMENSION(:) :: blocks
     INTEGER(KIND=MPI_ADDRESS_KIND), ALLOCATABLE, DIMENSION(:) :: displs
@@ -6985,7 +7017,7 @@ SUBROUTINE worker_end(icycle, restart)
 
  INTEGER :: ierr
 
- CALL MPI_Type_free (inp_t, ierr)
+ !CALL MPI_Type_free (inp_t, ierr)
 
  CALL MPI_Type_free (send_t, ierr)
 
