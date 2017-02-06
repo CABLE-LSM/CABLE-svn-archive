@@ -194,6 +194,19 @@ contains
         end if
 
     end subroutine
+
+    subroutine test_scatter(send, sendcounts, displs, sendtype, &
+            recv, recvcount, recvtype, root, comm)
+        use mpi_f08
+        real :: send, recv
+        type(MPI_DATATYPE) :: sendtype, recvtype
+        integer :: sendcounts(:), displs(:), recvcount
+        integer :: root
+        type(MPI_COMM) :: comm
+            call MPI_Scatterv(send, sendcounts, displs, sendtype, &
+                recv, recvcount, recvtype, root, comm)
+    end subroutine
+
         
     
     ! Register specific types of field by creating a generic object then registering that
@@ -201,7 +214,7 @@ contains
     subroutine register_field_i4_1(self, name, ptr)
         class(comms_t), intent(inout) :: self
         character(len=*), intent(in) :: name
-        integer(kind=4), intent(in), target, contiguous :: ptr(:)
+        integer(kind=4), intent(in), pointer, contiguous :: ptr(:)
         type(field_t) :: field
 
         field%name = name
@@ -215,7 +228,7 @@ contains
     subroutine register_field_i4_2(self, name, ptr)
         class(comms_t), intent(inout) :: self
         character(len=*), intent(in) :: name
-        integer(kind=4), intent(in), target, contiguous  :: ptr(:,:)
+        integer(kind=4), intent(in), pointer, contiguous  :: ptr(:,:)
         type(field_t) :: field
 
         field%name = name
@@ -229,7 +242,7 @@ contains
     subroutine register_field_i4_3(self, name, ptr)
         class(comms_t), intent(inout) :: self
         character(len=*), intent(in) :: name
-        integer(kind=4), intent(in), target, contiguous  :: ptr(:,:,:)
+        integer(kind=4), intent(in), pointer, contiguous  :: ptr(:,:,:)
         type(field_t) :: field
 
         field%name = name
@@ -243,7 +256,7 @@ contains
     subroutine register_field_r4_1(self, name, ptr)
         class(comms_t), intent(inout) :: self
         character(len=*), intent(in) :: name
-        real(kind=4), intent(in), target, contiguous  :: ptr(:)
+        real(kind=4), intent(in), pointer, contiguous  :: ptr(:)
         type(field_t) :: field
 
         field%name = name
@@ -257,7 +270,7 @@ contains
     subroutine register_field_r4_2(self, name, ptr)
         class(comms_t), intent(inout) :: self
         character(len=*), intent(in) :: name
-        real(kind=4), intent(in), target, contiguous  :: ptr(:,:)
+        real(kind=4), intent(in), pointer, contiguous  :: ptr(:,:)
         type(field_t) :: field
 
         field%name = name
@@ -271,7 +284,7 @@ contains
     subroutine register_field_r4_3(self, name, ptr)
         class(comms_t), intent(inout) :: self
         character(len=*), intent(in) :: name
-        real(kind=4), intent(in), target, contiguous  :: ptr(:,:,:)
+        real(kind=4), intent(in), pointer, contiguous  :: ptr(:,:,:)
         type(field_t) :: field
 
         field%name = name
@@ -285,7 +298,7 @@ contains
     subroutine register_field_r8_1(self, name, ptr)
         class(comms_t), intent(inout) :: self
         character(len=*), intent(in) :: name
-        real(kind=8), intent(in), target, contiguous  :: ptr(:)
+        real(kind=8), intent(in), pointer, contiguous  :: ptr(:)
         type(field_t) :: field
 
         field%name = name
@@ -299,7 +312,7 @@ contains
     subroutine register_field_r8_2(self, name, ptr)
         class(comms_t), intent(inout) :: self
         character(len=*), intent(in) :: name
-        real(kind=8), intent(in), target, contiguous  :: ptr(:,:)
+        real(kind=8), intent(in), pointer, contiguous  :: ptr(:,:)
         type(field_t) :: field
 
         field%name = name
@@ -313,7 +326,7 @@ contains
     subroutine register_field_r8_3(self, name, ptr)
         class(comms_t), intent(inout) :: self
         character(len=*), intent(in) :: name
-        real(kind=8), intent(in), target, contiguous  :: ptr(:,:,:)
+        real(kind=8), intent(in), pointer, contiguous  :: ptr(:,:,:)
         type(field_t) :: field
 
         field%name = name

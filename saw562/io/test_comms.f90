@@ -19,17 +19,20 @@ program test_comms
     use comms_mod
     use mpi_f08
     use :: cable_mpicommon, only: lpdecomp_t
+    use cable_def_types_mod, only: met_type, alloc_cbm_var
     
     type(comms_t) :: comms
     type(lpdecomp_t), allocatable :: decomp(:)
     integer :: rank, size
     integer :: npatch, i
     integer, allocatable :: field(:)
+    type(met_type) :: met
 
     call MPI_Init()
     call MPI_Comm_rank(MPI_COMM_WORLD, rank)
     call MPI_Comm_size(MPI_COMM_WORLD, size)
     npatch = 100
+        call alloc_cbm_var(met, npatch)
 
     if (rank == 0) then
         allocate(decomp(size-1))
@@ -40,6 +43,7 @@ program test_comms
         end do
         allocate(field(npatch*(size-1)))
         field = 999
+        met%tk = 123
         call comms%init(MPI_COMM_WORLD%mpi_val, decomp)
     else
         allocate(field(npatch))
@@ -47,14 +51,22 @@ program test_comms
         call comms%init(MPI_COMM_WORLD%mpi_val)
     end if
 
-    call comms%register_field('foo', field)
+
+    call comms%register_field('met%tk', met%tk)
+    if (.not. associated(comms%field(1)%r4_ptr, met%tk(1))) then
+        write(*,*) 'not assoc'
+    end if
+    
+    !call comms%register_field('foo', field)
     call comms%scatter()
 
-    if (rank == 1) then
-        if (.not. all(field == 999)) then
-            write(*,*) "Error"
-            write(*,*) field
-        end if
+    !if (.not. all(field == 999)) then
+    !    write(*,*) rank, "Error"
+    !    write(*,*) field
+    !end if
+
+    if (.not. all(met%tk == 123)) then
+        write(*,*) rank, "Error met%tk", count(met%tk /= 123)
     end if
 
     call MPI_Finalize()

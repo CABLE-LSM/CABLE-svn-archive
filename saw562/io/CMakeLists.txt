@@ -65,6 +65,7 @@ add_library(offline
     offline/cable_weathergenerator.F90
     offline/cable_write.F90
     comms.f90
+    save.f90
     )
 
 add_executable(cable offline/cable_driver.F90)
@@ -75,3 +76,6 @@ target_link_libraries(cable_mpi offline -lnetcdff -lnetcdf)
 
 add_executable(test_comms test_comms.f90)
 target_link_libraries(test_comms offline)
+
+add_executable(diff diff.f90)
+target_link_libraries(diff offline)
