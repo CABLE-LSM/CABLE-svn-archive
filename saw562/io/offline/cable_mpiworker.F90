@@ -114,7 +114,6 @@ MODULE cable_mpiworker
 CONTAINS
 
   SUBROUTINE mpidrv_worker (comm)
-      use save_mod
 
     USE mpi
 
@@ -602,7 +601,6 @@ call flush(wlogn)
 
                 ! CALL MPI_Recv (MPI_BOTTOM, 1, inp_t, 0, ktau_gl, icomm, stat, ierr)
                 call intypes%scatter()
-                call save_fields(met, veg)
 
                 ! MPI: receive casa_dump_data for this step from the master
              ELSEIF ( IS_CASA_TIME("dread", yyyy, ktau, kstart, koffset, &

@@ -13,7 +13,7 @@ if (${CMAKE_Fortran_COMPILER_ID} MATCHES GNU)
 elseif(${CMAKE_Fortran_COMPILER_ID} MATCHES Intel)
     set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -g -traceback -warn all -fp-model precise")
     set(CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS_RELEASE} -O3 -xHost")
-    set(CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS_DEBUG} -O0 -check all -ftz -fpe0")
+    set(CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS_DEBUG} -O0 -check all -ftz -fpe0 -check noarg_temp_created")
 
 endif(${CMAKE_Fortran_COMPILER_ID} MATCHES GNU)
 

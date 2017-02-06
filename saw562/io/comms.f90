@@ -102,6 +102,16 @@ contains
         class(comms_t), intent(inout) :: self
         type(field_t), intent(in) :: field
         integer :: total, rank
+        integer(kind=8) :: hash, rhash
+        call MPI_Comm_rank(self%comm, rank)
+
+        ! Check field names match across ranks
+        hash = djb2(field%name)
+        CALL MPI_Reduce(hash, rhash, 1, MPI_INTEGER8, MPI_BAND, 0, self%comm)
+        if (rank == 0 .and. rhash /= hash) then
+            write(*,*) "Error: Fields don't match, expected ", field%name
+            call MPI_Abort(self%comm, -2)
+        end if
        
         if (.not. allocated(self%field)) then
             allocate(self%field(20))
@@ -115,7 +125,6 @@ contains
         self%field(self%field_count) = field
 
         ! Do some sanity checks
-        call MPI_Comm_rank(self%comm, rank)
 
         if (rank == 0) then
             total = 0
@@ -128,7 +137,6 @@ contains
         else
             call MPI_Reduce(field%shape, total, 1, MPI_INTEGER, &
                 MPI_SUM, 0, self%comm)
-            write(*,*) rank, "field", field%name, field%shape
         end if
     end subroutine
 
@@ -153,37 +161,39 @@ contains
 
     subroutine scatter_field(self, comm, decomp)
         ! Scatter a single field
-        ! Decomp is only required on rank 0, to know what to send where
+        ! Decomp is only required on comm_rank 0, to know what to send where
         class(field_t), intent(inout) :: self
         type(MPI_Comm), intent(in) :: comm
         type(lpdecomp_t), allocatable, intent(in) :: decomp(:)
         integer, allocatable :: sendcounts(:), displs(:)
-        integer :: rank, size, i
+        integer :: comm_rank, comm_size, i
         integer :: patch_size, recvcount
 
         patch_size = product(self%shape(2:self%dim))
         recvcount  = product(self%shape(1:self%dim))
 
-        call MPI_Comm_rank(comm, rank)
-        call MPI_Comm_size(comm, size)
-        allocate(sendcounts(size), displs(size)) 
+        call MPI_Comm_rank(comm, comm_rank)
+        call MPI_Comm_size(comm, comm_size)
+        allocate(sendcounts(comm_size), displs(comm_size)) 
 
-        if (rank == 0) then
-            recvcount = 0
+        if (comm_rank == 0) then
             sendcounts(1) = 0
-            displs(1) = 0
+            displs(1) = recvcount + 1
 
-            do i=2, size
+            do i=2, comm_size
                 sendcounts(i) = patch_size * decomp(i-1)%npatch
-                displs(i)     = patch_size * decomp(i-1)%patch0
+                displs(i)     = patch_size * (decomp(i-1)%patch0 -1)
             end do
+
+            recvcount = 0
+        else
         end if
-        write(*,*) 'scatter ', self%name, rank, recvcount
 
         if (self%type == MPI_INTEGER4) then
             call MPI_Scatterv(self%i4_ptr, sendcounts, displs, self%type, &
                 self%i4_ptr, recvcount, self%type, 0, comm)
         else if (self%type == MPI_REAL4) then
+            if (comm_rank /= 0) self%r4_ptr = -9999
             call MPI_Scatterv(self%r4_ptr, sendcounts, displs, self%type, &
                 self%r4_ptr, recvcount, self%type, 0, comm)
         else if (self%type == MPI_REAL8) then
@@ -192,7 +202,6 @@ contains
         else
             call MPI_Abort(comm, -100)
         end if
-
     end subroutine
 
     subroutine test_scatter(send, sendcounts, displs, sendtype, &
@@ -206,8 +215,6 @@ contains
             call MPI_Scatterv(send, sendcounts, displs, sendtype, &
                 recv, recvcount, recvtype, root, comm)
     end subroutine
-
-        
     
     ! Register specific types of field by creating a generic object then registering that
 
@@ -337,5 +344,19 @@ contains
 
         call self%register_field_t(field)
     end subroutine
+
+    ! djb2 hash function http://www.cse.yorku.ca/~oz/hash.html
+    pure function djb2(string)
+        character(len=*), intent(in) :: string
+        integer(kind=8) :: djb2
+        integer :: i, c
+
+        djb2 = 5381
+
+        do i=1,len(string)
+            c = ichar(string(i:i))
+            djb2 = 33 * djb2 + c
+        end do
+    end function
 
 end module
