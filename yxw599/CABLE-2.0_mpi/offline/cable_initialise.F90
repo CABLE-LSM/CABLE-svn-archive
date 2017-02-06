@@ -562,10 +562,13 @@ SUBROUTINE get_restart_data(logn,ssnow,canopy,rough,bgc,                       &
                 max_vegpatches,'def',from_restart,mp)
    CALL readpar(ncid_rin,'frac4',dummy,veg%frac4,filename%restart_in,          &
                 max_vegpatches,'def',from_restart,mp)
+
+!  comment out for icycle=1 or with no vcmax feedback
    CALL readpar(ncid_rin,'ejmax',dummy,veg%ejmax,filename%restart_in,          &
                 max_vegpatches,'def',from_restart,mp)
    CALL readpar(ncid_rin,'vcmax',dummy,veg%vcmax,filename%restart_in,          &
                 max_vegpatches,'def',from_restart,mp)
+
    CALL readpar(ncid_rin,'rp20',dummy,veg%rp20,filename%restart_in,            &
                 max_vegpatches,'def',from_restart,mp)
    CALL readpar(ncid_rin,'rpcoef',dummy,veg%rpcoef,filename%restart_in,        &
