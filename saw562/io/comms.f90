@@ -23,6 +23,7 @@ module comms_mod
     type :: field_t
         integer :: dim, shape(5)
         type(MPI_DATATYPE) :: type
+        type(MPI_DATATYPE) :: basetype
         character(len=:), allocatable :: name
 
         ! Pointers to the field data (just the first value is enough for MPI)
@@ -169,7 +170,7 @@ contains
         integer :: comm_rank, comm_size, i
         integer :: patch_size, recvcount
 
-        patch_size = product(self%shape(2:self%dim))
+        patch_size = 1 ! product(self%shape(2:self%dim))
         recvcount  = product(self%shape(1:self%dim))
 
         call MPI_Comm_rank(comm, comm_rank)
@@ -177,6 +178,7 @@ contains
         allocate(sendcounts(comm_size), displs(comm_size)) 
 
         if (comm_rank == 0) then
+            ! Send no data to rank 0
             sendcounts(1) = 0
             displs(1) = recvcount + 1
 
@@ -185,18 +187,18 @@ contains
                 displs(i)     = patch_size * (decomp(i-1)%patch0 -1)
             end do
 
+            ! Rank 0 doesn't recieve any data
             recvcount = 0
-        else
         end if
 
-        if (self%type == MPI_INTEGER4) then
+        if (self%basetype == MPI_INTEGER4) then
             call MPI_Scatterv(self%i4_ptr, sendcounts, displs, self%type, &
                 self%i4_ptr, recvcount, self%type, 0, comm)
-        else if (self%type == MPI_REAL4) then
+        else if (self%basetype == MPI_REAL4) then
             if (comm_rank /= 0) self%r4_ptr = -9999
             call MPI_Scatterv(self%r4_ptr, sendcounts, displs, self%type, &
                 self%r4_ptr, recvcount, self%type, 0, comm)
-        else if (self%type == MPI_REAL8) then
+        else if (self%basetype == MPI_REAL8) then
             call MPI_Scatterv(self%r8_ptr, sendcounts, displs, self%type, &
                 self%r8_ptr, recvcount, self%type, 0, comm)
         else
@@ -215,6 +217,32 @@ contains
             call MPI_Scatterv(send, sendcounts, displs, sendtype, &
                 recv, recvcount, recvtype, root, comm)
     end subroutine
+
+    function mpi_array_2d(source, shape) result(res)
+        type(MPI_DATATYPE), intent(in) :: source
+        integer :: shape(2)
+        type(MPI_DATATYPE) :: res, tmp_type
+        integer(kind=MPI_COUNT_KIND) :: lb, extent
+
+        call MPI_Type_get_extent(source, lb, extent)
+        call MPI_Type_vector(shape(2), 1, shape(1), source, tmp_type)
+        call MPI_Type_create_resized(tmp_type, lb, extent, res)
+        call MPI_Type_commit(res)
+    end function
+
+    function mpi_array_3d(source, shape) result(res)
+        type(MPI_DATATYPE), intent(in) :: source
+        integer :: shape(3)
+        type(MPI_DATATYPE) :: res, tmp_type1, tmp_type2
+        integer(kind=MPI_COUNT_KIND) :: lb, extent
+
+        call MPI_Type_get_extent(source, lb, extent)
+        call MPI_Type_vector(shape(2), 1, shape(1), source, tmp_type1)
+        call MPI_Type_create_resized(tmp_type1, lb, extent, res)
+        call MPI_Type_vector(shape(3), 1, shape(1)*shape(2), res, tmp_type2)
+        call MPI_Type_create_resized(tmp_type2, lb, extent, res)
+        call MPI_Type_commit(res)
+    end function
     
     ! Register specific types of field by creating a generic object then registering that
 
@@ -225,7 +253,8 @@ contains
         type(field_t) :: field
 
         field%name = name
-        field%type = MPI_INTEGER4
+        field%basetype = MPI_INTEGER4
+        field%type = field%basetype
         field%dim = size(shape(ptr))
         field%shape(1:field%dim) = shape(ptr) 
         field%i4_ptr => ptr(1)
@@ -239,10 +268,12 @@ contains
         type(field_t) :: field
 
         field%name = name
-        field%type = MPI_INTEGER4
+        field%basetype = MPI_INTEGER4
         field%dim = size(shape(ptr))
         field%shape(1:field%dim) = shape(ptr) 
         field%i4_ptr => ptr(1,1)
+
+        field%type = mpi_array_2d(field%basetype, field%shape)
 
         call self%register_field_t(field)
     end subroutine
@@ -251,12 +282,16 @@ contains
         character(len=*), intent(in) :: name
         integer(kind=4), intent(in), pointer, contiguous  :: ptr(:,:,:)
         type(field_t) :: field
+        type(MPI_DATATYPE) :: tmp_type1, tmp_type2
+        integer(kind=MPI_COUNT_KIND) :: lb, extent
 
         field%name = name
-        field%type = MPI_INTEGER4
+        field%basetype = MPI_INTEGER4
         field%dim = size(shape(ptr))
         field%shape(1:field%dim) = shape(ptr) 
         field%i4_ptr => ptr(1,1,1)
+
+        field%type = mpi_array_3d(field%basetype, field%shape)
 
         call self%register_field_t(field)
     end subroutine
@@ -267,7 +302,8 @@ contains
         type(field_t) :: field
 
         field%name = name
-        field%type = MPI_REAL4
+        field%basetype = MPI_REAL4
+        field%type = field%basetype
         field%dim = size(shape(ptr))
         field%shape(1:field%dim) = shape(ptr) 
         field%r4_ptr => ptr(1)
@@ -281,10 +317,12 @@ contains
         type(field_t) :: field
 
         field%name = name
-        field%type = MPI_REAL4
+        field%basetype = MPI_REAL4
         field%dim = size(shape(ptr))
         field%shape(1:field%dim) = shape(ptr) 
         field%r4_ptr => ptr(1,1)
+
+        field%type = mpi_array_2d(field%basetype, field%shape)
 
         call self%register_field_t(field)
     end subroutine
@@ -295,10 +333,12 @@ contains
         type(field_t) :: field
 
         field%name = name
-        field%type = MPI_REAL4
+        field%basetype = MPI_REAL4
         field%dim = size(shape(ptr))
         field%shape(1:field%dim) = shape(ptr) 
         field%r4_ptr => ptr(1,1,1)
+
+        field%type = mpi_array_3d(field%basetype, field%shape)
 
         call self%register_field_t(field)
     end subroutine
@@ -309,7 +349,8 @@ contains
         type(field_t) :: field
 
         field%name = name
-        field%type = MPI_REAL8
+        field%basetype = MPI_REAL8
+        field%type = field%basetype
         field%dim = size(shape(ptr))
         field%shape(1:field%dim) = shape(ptr) 
         field%r8_ptr => ptr(1)
@@ -321,12 +362,16 @@ contains
         character(len=*), intent(in) :: name
         real(kind=8), intent(in), pointer, contiguous  :: ptr(:,:)
         type(field_t) :: field
+        type(MPI_DATATYPE) :: tmp_type
+        integer(kind=MPI_COUNT_KIND) :: lb, extent
 
         field%name = name
-        field%type = MPI_REAL8
+        field%basetype = MPI_REAL8
         field%dim = size(shape(ptr))
         field%shape(1:field%dim) = shape(ptr) 
         field%r8_ptr => ptr(1,1)
+
+        field%type = mpi_array_2d(field%basetype, field%shape)
 
         call self%register_field_t(field)
     end subroutine
@@ -337,10 +382,12 @@ contains
         type(field_t) :: field
 
         field%name = name
-        field%type = MPI_REAL8
+        field%basetype = MPI_REAL8
         field%dim = size(shape(ptr))
         field%shape(1:field%dim) = shape(ptr) 
         field%r8_ptr => ptr(1,1,1)
+
+        field%type = mpi_array_3d(field%basetype, field%shape)
 
         call self%register_field_t(field)
     end subroutine

@@ -65,6 +65,7 @@ MODULE cable_mpiworker
 
   USE cable_mpicommon
   use comms_mod, only: comms_t
+  use save_mod
 
  
   IMPLICIT NONE
@@ -82,7 +83,7 @@ MODULE cable_mpiworker
   INTEGER :: casaparam_t
 
   ! MPI: MPI derived datatype for receiving input from the master
-  ! INTEGER :: inp_t
+  INTEGER :: inp_t
   type(comms_t) :: intypes
 
   ! MPI: MPI derived datatype for sending results back to the master
@@ -468,7 +469,7 @@ CONTAINS
 
              ! MPI: create inp_t type to receive input data from the master
              ! at the start of every timestep
-             !CALL worker_intype (comm,met,veg)
+             CALL worker_intype (comm,met,veg)
              call worker_intypes_register(comm, met, veg, intypes)
 
              ! MPI: casa parameters received only if cnp module is active
@@ -599,8 +600,11 @@ call flush(wlogn)
              ! MPI: receive input data for this step from the master
              IF ( .NOT. CASAONLY ) THEN
 
-                ! CALL MPI_Recv (MPI_BOTTOM, 1, inp_t, 0, ktau_gl, icomm, stat, ierr)
+                !CALL MPI_Recv (MPI_BOTTOM, 1, inp_t, 0, ktau_gl, icomm, stat, ierr)
+!                call save_fields(met, veg, 'recv_old')
                 call intypes%scatter()
+!                call save_fields(met, veg, 'recv_comm')
+!                if (ktau == kstart + 0) call MPI_Abort(MPI_COMM_WORLD, -1, ierr)
 
                 ! MPI: receive casa_dump_data for this step from the master
              ELSEIF ( IS_CASA_TIME("dread", yyyy, ktau, kstart, koffset, &
@@ -3400,7 +3404,6 @@ ENDIF
 
     ! Local variables
 
-   INTEGER :: inp_t
     ! temp arrays for marshalling all fields into a single struct
     INTEGER, ALLOCATABLE, DIMENSION(:) :: blocks
     INTEGER(KIND=MPI_ADDRESS_KIND), ALLOCATABLE, DIMENSION(:) :: displs

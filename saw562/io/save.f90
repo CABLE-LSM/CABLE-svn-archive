@@ -19,15 +19,21 @@ module save_mod
 
     contains
 
-    subroutine save_fields(met, veg)
+    subroutine save_fields(met, veg, filename)
         use mpi_f08
         use cable_def_types_mod, only: met_type, veg_parameter_type
         implicit none
         type(met_type), intent(in) :: met
         type(veg_parameter_type), intent(in) :: veg
+        character(len=*), intent(in) :: filename
         integer :: unit
+        integer :: rank
 
-        open(newunit=unit, file='tmp', form='UNFORMATTED', status='REPLACE')
+        call MPI_Comm_rank(MPI_COMM_WORLD, rank)
+        if (rank /= 1) return
+
+        open(newunit=unit, file=filename, form='UNFORMATTED', status='REPLACE')
+        write(unit) size(met%fsd, 1)
         write(unit) met%fsd
         write(unit) met%tk
         write(unit) met%pmb
@@ -44,8 +50,8 @@ module save_mod
         write(unit) met%moy
         write(unit) met%doy
         write(unit) met%hod
+        close(unit)
 
-        call MPI_Abort(MPI_COMM_WORLD, -1)
     end subroutine
 
     subroutine load_fields(met, veg, filename)
@@ -55,11 +61,14 @@ module save_mod
         type(veg_parameter_type), intent(out) :: veg
         character(len=*), intent(in) :: filename
         integer :: unit
-
-        call alloc_cbm_var(met, 15238)
-        call alloc_cbm_var(veg, 15238)
+        integer :: size
 
         open(newunit=unit, file=filename, form='UNFORMATTED', status='OLD')
+        read(unit) size
+
+        call alloc_cbm_var(met, size)
+        call alloc_cbm_var(veg, size)
+
         read(unit) met%fsd
         read(unit) met%tk
         read(unit) met%pmb
@@ -90,7 +99,7 @@ module save_mod
         call load_fields(met_a, veg_a, file_a)
         call load_fields(met_b, veg_b, file_b)
 
-        ! call diff_r(met_a%fsd,met_b%fsd,'met%fsd')
+        call diff_r2(met_a%fsd,met_b%fsd,'met%fsd')
         call diff_r(met_a%tk,met_b%tk,'met%tk')
         call diff_r(met_a%pmb,met_b%pmb,'met%pmb')
         call diff_r(met_a%qv,met_b%qv,'met%qv')
@@ -108,6 +117,19 @@ module save_mod
         call diff_r(met_a%hod,met_b%hod,'met%hod')
     end subroutine
 
+    subroutine diff_r2(a, b, name)
+        real, intent(in) :: a(:,:), b(:,:)
+        character(len=*), intent(in) :: name
+
+        integer c
+        integer i(2)
+
+        c = count(a /= b)
+        if (c /= 0) then
+            i = maxloc(abs(a - b), a /= b)
+            write(*,*) name, c, i, a(i(1),i(2)), b(i(1),i(2))
+        end if
+    end subroutine
     subroutine diff_r(a, b, name)
         real, intent(in) :: a(:), b(:)
         character(len=*), intent(in) :: name

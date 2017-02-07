@@ -99,7 +99,7 @@ MODULE cable_mpimaster
   INTEGER, ALLOCATABLE, DIMENSION(:) :: vec_t
 
   ! MPI derived datatype handles for sending input data to the workers
-  ! INTEGER, ALLOCATABLE, DIMENSION(:) :: inp_ts
+  INTEGER, ALLOCATABLE, DIMENSION(:) :: inp_ts
   type(comms_t) :: intypes
 
   ! MPI derived datatype handles for receiving output from the workers
@@ -627,7 +627,7 @@ CONTAINS
              ! at the start of every timestep
              !CALL master_intypes (comm,met,veg)
              ! for read ahead use the new variables
-             !CALL master_intypes (comm,imet,iveg)
+             CALL master_intypes (comm,imet,iveg)
              call master_intypes_register(comm, wland, imet, iveg, intypes)
 
              ! MPI: create recv_t types to receive results from the workers
@@ -849,7 +849,7 @@ CONTAINS
 
 
                 ! MPI: scatter input data to the workers
-                ! CALL master_send_input (icomm, inp_ts, iktau)
+                !CALL master_send_input (icomm, inp_ts, iktau)
                 call intypes%scatter()
               !  CALL MPI_Waitall (wnp, inp_req, inp_stats, ierr)
 
@@ -4429,7 +4429,7 @@ SUBROUTINE master_intypes (comm,met,veg)
   INTEGER :: off  ! first patch index for a worker
   INTEGER :: cnt  ! mp for a worker
   INTEGER :: ierr
-  INTEGER, ALLOCATABLE, DIMENSION(:) :: inp_ts
+  !INTEGER, ALLOCATABLE, DIMENSION(:) :: inp_ts
 
   ALLOCATE (inp_ts(wnp))
 

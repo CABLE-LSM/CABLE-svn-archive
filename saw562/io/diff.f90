@@ -16,5 +16,5 @@
 !! limitations under the License.
 program diff
     use save_mod
-    call diff_fields('tmp_old','tmp')
+    call diff_fields('recv_old','recv_comm')
 end program
