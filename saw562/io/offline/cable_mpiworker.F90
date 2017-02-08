@@ -83,8 +83,9 @@ MODULE cable_mpiworker
   INTEGER :: casaparam_t
 
   ! MPI: MPI derived datatype for receiving input from the master
-  INTEGER :: inp_t
+  !INTEGER :: inp_t
   type(comms_t) :: intypes
+  type(comms_t) :: outtypes
 
   ! MPI: MPI derived datatype for sending results back to the master
   INTEGER :: send_t
@@ -150,6 +151,7 @@ CONTAINS
 
     ! PLUME-MIP only
     USE CABLE_PLUME_MIP,      ONLY: PLUME_MIP_TYPE
+    use cable_comms_mod
 
     IMPLICIT NONE
 
@@ -469,13 +471,14 @@ CONTAINS
 
              ! MPI: create inp_t type to receive input data from the master
              ! at the start of every timestep
-             CALL worker_intype (comm,met,veg)
-             call worker_intypes_register(comm, met, veg, intypes)
+             !CALL worker_intype (comm,met,veg)
+             call intypes_register(comm, met, veg, intypes)
 
              ! MPI: casa parameters received only if cnp module is active
              ! MPI: create send_t type to send the results to the master
              ! at the end of every timestep
              CALL worker_outtype (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
+             CALL outtypes_register (comm,met,canopy,ssnow,rad,bal,air,soil,veg, outtypes)
 
              ! MPI: casa parameters received only if cnp module is active
              ! MPI: create type to send casa results back to the master
@@ -680,6 +683,8 @@ call flush(wlogn)
 
              ! MPI: send the results back to the master
              CALL MPI_Send (MPI_BOTTOM, 1, send_t, 0, ktau_gl, ocomm, ierr)
+             call outtypes%gather()
+             
 
              ! Write time step's output to file if either: we're not spinning up 
              ! or we're spinning up and the spinup has converged:
@@ -3419,6 +3424,7 @@ ENDIF
     INTEGER :: ierr
 
     INTEGER :: rank
+    integer :: inp_t
 
     CALL MPI_Comm_rank (comm, rank, ierr)
 

@@ -20,20 +20,34 @@ module comms_mod
     use :: mpi_f08
     use :: cable_mpicommon, only: lpdecomp_t
 
+    type :: mode_t
+        integer :: val
+    end type
+
+    type(mode_t), parameter :: mode_scatter = mode_t(1)
+    type(mode_t), parameter :: mode_bcast   = mode_t(2)
+
     type :: field_t
         integer :: dim, shape(5)
         type(MPI_DATATYPE) :: type
         type(MPI_DATATYPE) :: basetype
         character(len=:), allocatable :: name
+        type(mode_t) :: mode = mode_scatter
 
         ! Pointers to the field data (just the first value is enough for MPI)
         ! Only one will be valid, depending on field%type
         integer(kind=4), pointer :: i4_ptr => null()
         real(kind=4),    pointer :: r4_ptr => null()
         real(kind=8),    pointer :: r8_ptr => null()
+        logical,         pointer :: l_ptr => null()
     contains
+        ! Choose between scatter and bcast
+        procedure :: distribute
         ! Scatter field from rank 0 to others
         procedure :: scatter => scatter_field
+        ! Send identical data to all ranks
+        procedure :: bcast => bcast_field
+        procedure :: gather => gather_field
     end type
 
     type :: comms_t
@@ -49,7 +63,8 @@ module comms_mod
         procedure :: resize
 
         ! MPI_Scatter all fields
-        procedure :: scatter
+        procedure :: scatter => scatter_comms
+        procedure :: gather  => gather_comms
 
         ! Register a field_t
         !     comms%register_field(name, field)
@@ -66,6 +81,7 @@ module comms_mod
         procedure :: register_field_r8_1
         procedure :: register_field_r8_2
         procedure :: register_field_r8_3
+        procedure :: register_field_l_1
 
         generic :: register_field &
             => register_field_t &
@@ -77,7 +93,8 @@ module comms_mod
             , register_field_r4_3 &
             , register_field_r8_1 &
             , register_field_r8_2 &
-            , register_field_r8_3
+            , register_field_r8_3 &
+            , register_field_l_1
     end type
 
 contains
@@ -104,10 +121,13 @@ contains
         type(field_t), intent(in) :: field
         integer :: total, rank
         integer(kind=8) :: hash, rhash
+
         call MPI_Comm_rank(self%comm, rank)
+        rhash = -1
 
         ! Check field names match across ranks
         hash = djb2(field%name)
+        !write(*,*) rank, hash, rhash
         CALL MPI_Reduce(hash, rhash, 1, MPI_INTEGER8, MPI_BAND, 0, self%comm)
         if (rank == 0 .and. rhash /= hash) then
             write(*,*) "Error: Fields don't match, expected ", field%name
@@ -151,13 +171,82 @@ contains
         call move_alloc(temp, self%field)
     end subroutine
 
-    subroutine scatter(self)
+    subroutine scatter_comms(self)
         class(comms_t), intent(inout) :: self
         integer :: i
 
         DO i=1, self%field_count
-            call self%field(i)%scatter(self%comm, self%decomp)
+            call self%field(i)%distribute(self%comm, self%decomp)
         END DO
+    end subroutine
+
+    subroutine gather_comms(self)
+        class(comms_t), intent(inout) :: self
+        integer :: i
+
+        DO i=1, self%field_count
+            call self%field(i)%gather(self%comm, self%decomp)
+        END DO
+    end subroutine
+
+    subroutine distribute(self, comm, decomp)
+        class(field_t), intent(inout) :: self
+        type(MPI_Comm), intent(in) :: comm
+        type(lpdecomp_t), allocatable, intent(in) :: decomp(:)
+
+        if (self%mode%val == mode_bcast%val) then
+            call self%bcast(comm)
+        else
+            call self%scatter(comm, decomp)
+        end if
+    end subroutine
+
+    subroutine gather_field(self, comm, decomp)
+        ! Gather a single field
+        ! Decomp is only required on comm_rank 0, to know what to send where
+        class(field_t), intent(inout) :: self
+        type(MPI_Comm), intent(in) :: comm
+        type(lpdecomp_t), allocatable, intent(in) :: decomp(:)
+        integer, allocatable :: recvcounts(:), displs(:)
+        integer :: comm_rank, comm_size, i
+        integer :: patch_size, sendcount
+
+        patch_size = 1 ! product(self%shape(2:self%dim))
+        sendcount  = self%shape(1) !product(self%shape(1:self%dim))
+
+        call MPI_Comm_rank(comm, comm_rank)
+        call MPI_Comm_size(comm, comm_size)
+        allocate(recvcounts(comm_size), displs(comm_size)) 
+
+        if (comm_rank == 0) then
+            ! Send no data to rank 0
+            recvcounts(1) = 0
+            displs(1) = sendcount + 1
+
+            do i=2, comm_size
+                recvcounts(i) = patch_size * decomp(i-1)%npatch
+                displs(i)     = patch_size * (decomp(i-1)%patch0 -1)
+            end do
+
+            ! Rank 0 doesn't recieve any data
+            sendcount = 0
+        end if
+
+        if (self%basetype == MPI_INTEGER4) then
+            call MPI_Gatherv(self%i4_ptr, sendcount, self%type, &
+                self%i4_ptr, recvcounts, displs, self%type, 0, comm)
+        else if (self%basetype == MPI_REAL4) then
+            call MPI_Gatherv(self%r4_ptr, sendcount, self%type, &
+                self%r4_ptr, recvcounts, displs, self%type, 0, comm)
+        else if (self%basetype == MPI_REAL8) then
+            call MPI_Gatherv(self%r8_ptr, sendcount, self%type, &
+                self%r8_ptr, recvcounts, displs, self%type, 0, comm)
+        else if (self%basetype == MPI_LOGICAL) then
+            call MPI_Gatherv(self%l_ptr, sendcount, self%type, &
+                self%l_ptr, recvcounts, displs, self%type, 0, comm)
+        else
+            call MPI_Abort(comm, -100)
+        end if
     end subroutine
 
     subroutine scatter_field(self, comm, decomp)
@@ -171,7 +260,7 @@ contains
         integer :: patch_size, recvcount
 
         patch_size = 1 ! product(self%shape(2:self%dim))
-        recvcount  = product(self%shape(1:self%dim))
+        recvcount  = self%shape(1) ! product(self%shape(1:self%dim))
 
         call MPI_Comm_rank(comm, comm_rank)
         call MPI_Comm_size(comm, comm_size)
@@ -195,15 +284,35 @@ contains
             call MPI_Scatterv(self%i4_ptr, sendcounts, displs, self%type, &
                 self%i4_ptr, recvcount, self%type, 0, comm)
         else if (self%basetype == MPI_REAL4) then
-            if (comm_rank /= 0) self%r4_ptr = -9999
             call MPI_Scatterv(self%r4_ptr, sendcounts, displs, self%type, &
                 self%r4_ptr, recvcount, self%type, 0, comm)
         else if (self%basetype == MPI_REAL8) then
             call MPI_Scatterv(self%r8_ptr, sendcounts, displs, self%type, &
                 self%r8_ptr, recvcount, self%type, 0, comm)
+        else if (self%basetype == MPI_LOGICAL) then
+            call MPI_Scatterv(self%l_ptr, sendcounts, displs, self%type, &
+                self%l_ptr, recvcount, self%type, 0, comm)
         else
             call MPI_Abort(comm, -100)
         end if
+    end subroutine
+
+    subroutine bcast_field(self, comm)
+        class(field_t), intent(inout) :: self
+        type(MPI_Comm), intent(in) :: comm
+
+        if (self%basetype == MPI_INTEGER4) then
+            call MPI_Bcast(self%i4_ptr, self%shape(1), self%type, 0, comm)
+        else if (self%basetype == MPI_REAL4) then
+            call MPI_Bcast(self%r4_ptr, self%shape(1), self%type, 0, comm)
+        else if (self%basetype == MPI_REAL8) then
+            call MPI_Bcast(self%r8_ptr, self%shape(1), self%type, 0, comm)
+        else if (self%basetype == MPI_LOGICAL) then
+            call MPI_Bcast(self%l_ptr, self%shape(1), self%type, 0, comm)
+        else
+            call MPI_Abort(comm, -100)
+        end if
+
     end subroutine
 
     subroutine test_scatter(send, sendcounts, displs, sendtype, &
@@ -295,11 +404,12 @@ contains
 
         call self%register_field_t(field)
     end subroutine
-    subroutine register_field_r4_1(self, name, ptr)
+    subroutine register_field_r4_1(self, name, ptr, mode)
         class(comms_t), intent(inout) :: self
         character(len=*), intent(in) :: name
-        real(kind=4), intent(in), pointer, contiguous  :: ptr(:)
+        real(kind=4), intent(in), target, contiguous  :: ptr(:)
         type(field_t) :: field
+        type(mode_t), intent(in), optional :: mode
 
         field%name = name
         field%basetype = MPI_REAL4
@@ -307,6 +417,8 @@ contains
         field%dim = size(shape(ptr))
         field%shape(1:field%dim) = shape(ptr) 
         field%r4_ptr => ptr(1)
+
+        if (present(mode)) field%mode = mode
 
         call self%register_field_t(field)
     end subroutine
@@ -388,6 +500,40 @@ contains
         field%r8_ptr => ptr(1,1,1)
 
         field%type = mpi_array_3d(field%basetype, field%shape)
+
+        call self%register_field_t(field)
+    end subroutine
+    subroutine register_field_l_1(self, name, ptr)
+        class(comms_t), intent(inout) :: self
+        character(len=*), intent(in) :: name
+        logical, intent(in), pointer, contiguous  :: ptr(:)
+        type(field_t) :: field
+
+        field%name = name
+        field%basetype = MPI_LOGICAL
+        field%type = field%basetype
+        field%dim = size(shape(ptr))
+        field%shape(1:field%dim) = shape(ptr) 
+        field%l_ptr => ptr(1)
+
+        call self%register_field_t(field)
+    end subroutine
+
+    subroutine register_field_r4t_1(self, name, ptr, mode)
+        class(comms_t), intent(inout) :: self
+        character(len=*), intent(in) :: name
+        real(kind=4), intent(in), target, contiguous  :: ptr(:)
+        type(field_t) :: field
+        type(mode_t), intent(in), optional :: mode
+
+        field%name = name
+        field%basetype = MPI_REAL4
+        field%type = field%basetype
+        field%dim = size(shape(ptr))
+        field%shape(1:field%dim) = shape(ptr) 
+        field%r4_ptr => ptr(1)
+
+        if (present(mode)) field%mode = mode
 
         call self%register_field_t(field)
     end subroutine

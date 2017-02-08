@@ -11,7 +11,7 @@ if (${CMAKE_Fortran_COMPILER_ID} MATCHES GNU)
     set(CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS_DEBUG} -fbounds-check --coverage")
 
 elseif(${CMAKE_Fortran_COMPILER_ID} MATCHES Intel)
-    set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -g -traceback -warn all -fp-model precise")
+    set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -g -traceback -warn all -fp-model precise -implicitnone")
     set(CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS_RELEASE} -O3 -xHost")
     set(CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS_DEBUG} -O0 -check all -ftz -fpe0 -check noarg_temp_created")
 
@@ -66,6 +66,7 @@ add_library(offline
     offline/cable_write.F90
     comms.f90
     save.f90
+    cable_comms.f90
     )
 
 add_executable(cable offline/cable_driver.F90)
