@@ -456,7 +456,9 @@ CONTAINS
              ! MPI: casa parameters received only if cnp module is active
              IF (icycle>0) THEN
 
-                CALL worker_casa_params (comm,casabiome,casapool,casaflux,casamet,&
+!                CALL worker_casa_params (comm,casabiome,casapool,casaflux,casamet,&
+!                     &                        casabal,phen)
+                CALL casa_params_scatter (comm,casabiome,casapool,casaflux,casamet,&
                      &                        casabal,phen)
 
                 ! MPI: POP restart received only if pop module AND casa are active 

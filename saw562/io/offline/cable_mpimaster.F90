@@ -601,8 +601,12 @@ CONTAINS
              ! MPI: casa parameters scattered only if cnp module is active
              IF (icycle>0) THEN
                 ! MPI:
-                CALL master_casa_params (comm,casabiome,casapool,casaflux,casamet,&
-                     &                        casabal,phen)
+!                CALL master_casa_params (comm,casabiome,casapool,casaflux,casamet,&
+!                     &                        casabal,phen)
+
+                 
+                CALL casa_params_scatter (comm,casabiome,casapool,casaflux,casamet,&
+                     &                        casabal,phen, wland)
 
                 IF ( CABLE_USER%CALL_POP ) CALL master_pop_types (comm,casamet,pop)
              END IF
