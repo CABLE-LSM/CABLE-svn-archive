@@ -89,6 +89,7 @@ MODULE cable_mpimaster
   type(comms_t) :: intypes
   type(comms_t) :: outtypes
   type(comms_t) :: climate_comms
+  type(comms_t) :: restart_comms
   
   ! master's struct for receiving restart data from the workers
   INTEGER, ALLOCATABLE, DIMENSION(:) :: restart_ts
@@ -592,7 +593,6 @@ CONTAINS
 
 
             call climate_types(comm, climate, climate_comms, wland)
-             !CALL master_climate_types(comm, climate)
 
             
              ! MPI: mvtype and mstype send out here instead of inside master_casa_params
@@ -646,7 +646,7 @@ CONTAINS
              ! MPI: create type to send restart data back to the master
              ! only if restart file is to be created
              IF(output%restart) THEN
-                CALL master_restart_types (comm, canopy, air)
+                call restart_types(comm, canopy,air, restart_comms, wland)
              END IF
 
            !  CALL zero_sum_casa(sum_casapool, sum_casaflux)
@@ -1306,7 +1306,8 @@ write(*,*) 'after annual calcs'
        !       &              canopy,rough,rad,bgc,bal)
        ! gol124: how about call master_receive (comm, ktau, restart_ts)
        ! instead of a separate receive_restart sub?
-       CALL master_receive (comm, ktau_gl, restart_ts)
+       ! CALL master_receive (comm, ktau_gl, restart_ts)
+       call restart_comms%gather()
 
 !       CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
 
@@ -1348,6 +1349,8 @@ write(*,*) 'after annual calcs'
    ! MPI: cleanup
    call intypes%free()
    call outtypes%free()
+   call climate_comms%free()
+   call restart_comms%free()
     CALL master_end (icycle, output%restart)
 
     RETURN
@@ -4991,293 +4994,6 @@ SUBROUTINE master_casa_types (comm, casapool, casaflux, &
 
 END SUBROUTINE master_casa_types
 
-SUBROUTINE master_climate_types (comm, climate)
-
-  USE mpi
-
-  USE cable_def_types_mod, ONLY: climate_type, mp
-  USE cable_climate_mod, ONLY: climate_init,  READ_CLIMATE_RESTART_NC
-  USE cable_common_module, ONLY: CABLE_USER
-
-  TYPE(climate_type):: climate
-  INTEGER :: comm
-  ! MPI: temp arrays for marshalling all types into a struct
-  INTEGER, ALLOCATABLE, DIMENSION(:) :: blocks
-  INTEGER(KIND=MPI_ADDRESS_KIND), ALLOCATABLE, DIMENSION(:) :: displs
-  INTEGER, ALLOCATABLE, DIMENSION(:) :: types
-  INTEGER :: ntyp ! number of worker's types
-
-  INTEGER :: last2d, i
-
-  ! MPI: block lenghts for hindexed representing all vectors
-  INTEGER, ALLOCATABLE, DIMENSION(:) :: blen
-
-  ! MPI: block lengths and strides for hvector representing matrices
-  INTEGER :: r1len, r2len, I1LEN
-  INTEGER(KIND=MPI_ADDRESS_KIND) :: r1stride, r2stride
-
-  INTEGER :: tsize, totalrecv, totalsend
-  INTEGER(KIND=MPI_ADDRESS_KIND) :: text, tmplb
-
-  INTEGER :: rank, off, cnt
-  INTEGER :: bidx, midx, vidx, ierr, ny, nd, ndq
-
-  CALL climate_init (climate, mp)
-  if (cable_user%call_climate .AND.(.NOT.cable_user%climate_fromzero)) &
-       CALL READ_CLIMATE_RESTART_NC (climate)
-  ALLOCATE (climate_ts(wnp))
-
-  ! MPI: allocate temp vectors used for marshalling
-  ntyp = nclimate
-
-  ALLOCATE (blocks(ntyp))
-  ALLOCATE (displs(ntyp))
-  ALLOCATE (types(ntyp))
-  
-  r1stride = mp * extr1
-  r2stride = mp * extr2
-
-  ! counter to sum total number of bytes receives from all workers
-  totalrecv = 0
-
- DO rank = 1, wnp
-     off = wland(rank)%patch0
-     cnt = wland(rank)%npatch
-
-     r1len = cnt * extr1
-     r2len = cnt * extr2
-     I1LEN = cnt * extid
-
-     bidx = 0
-
-     ! ------------- 2D arrays -------------
-     ny = climate%nyear_average
-     nd = climate%nday_average
-     ndq = 91
-
-!print*, 'master, nd ny mp', nd, ny,mp
-!print*, 'master, size(climate)', size(climate%mtemp_min_20)
-     bidx = bidx + 1
-     !types(bidx)  = MPI_REAL
-     CALL MPI_Get_address (climate%mtemp_min_20(off,1), displs(bidx), ierr)
-     CALL MPI_Type_create_hvector (ny, r1len, r1stride, MPI_BYTE, &
-     &                                types(bidx), ierr)
-     blocks(bidx) = 1
- 
-! print*, 'master', blocks, bidx, ny, r1len, displs, ierr, climate%mtemp_min_20(off,:)
-
-     bidx = bidx + 1
-     CALL MPI_Get_address (climate%mtemp_max_20(off,1), displs(bidx), ierr)
-     CALL MPI_Type_create_hvector (ny, r1len, r1stride, MPI_BYTE, &
-     &                                types(bidx), ierr)
-     blocks(bidx) = 1
-
-     bidx = bidx + 1
-     CALL MPI_Get_address (climate%alpha_PT_20(off,1), displs(bidx), ierr)
-     CALL MPI_Type_create_hvector (ny, r1len, r1stride, MPI_BYTE, &
-     &                                types(bidx), ierr)
-     blocks(bidx) = 1
- 
-
-     bidx = bidx + 1
-     CALL MPI_Get_address (climate%dtemp_31(off,1), displs(bidx), ierr)
-     CALL MPI_Type_create_hvector (nd, r1len, r1stride, MPI_BYTE, &
-     &                                types(bidx), ierr)
-     blocks(bidx) = 1
-
-     bidx = bidx + 1
-     CALL MPI_Get_address (climate%dtemp_91(off,1), displs(bidx), ierr)
-     CALL MPI_Type_create_hvector (ndq, r1len, r1stride, MPI_BYTE, &
-     &                                types(bidx), ierr)
-     blocks(bidx) = 1
- 
-
-     bidx = bidx + 1
-     CALL MPI_Get_address (climate%dmoist_31(off,1), displs(bidx), ierr)
-     CALL MPI_Type_create_hvector (nd, r1len, r1stride, MPI_BYTE, &
-     &                                types(bidx), ierr)
-     blocks(bidx) = 1
- 
-
- ! ------------- 1D vectors -------------
-
-     bidx = bidx + 1
-     CALL MPI_Get_address (climate%chilldays(off), displs(bidx), ierr)
-     blocks(bidx) = i1len
-     types(bidx)  = MPI_BYTE
-
-     bidx = bidx + 1
-     CALL MPI_Get_address (climate%iveg(off), displs(bidx), ierr)
-     blocks(bidx) = i1len
-     types(bidx)  = MPI_BYTE
-
-
-     bidx = bidx + 1
-     CALL MPI_Get_address (climate%biome(off), displs(bidx), ierr)
-     blocks(bidx) = i1len
-     types(bidx)  = MPI_BYTE
-
-     bidx = bidx + 1
-     CALL MPI_Get_address (climate%dtemp(off), displs(bidx), ierr)
-     blocks(bidx) = r1len
-     types(bidx)  = MPI_BYTE
-
-     bidx = bidx + 1
-     CALL MPI_Get_address (climate%dmoist(off), displs(bidx), ierr)
-     blocks(bidx) = r1len
-     types(bidx)  = MPI_BYTE
-
-     bidx = bidx + 1
-     CALL MPI_Get_address (climate%mtemp(off), displs(bidx), ierr)
-     blocks(bidx) = r1len
-     types(bidx)  = MPI_BYTE
-
-     bidx = bidx + 1
-     CALL MPI_Get_address (climate%qtemp(off), displs(bidx), ierr)
-     blocks(bidx) = r1len
-     types(bidx)  = MPI_BYTE
-
-     bidx = bidx + 1
-     CALL MPI_Get_address (climate%mmoist(off), displs(bidx), ierr)
-     blocks(bidx) = r1len
-     types(bidx)  = MPI_BYTE
-
-     bidx = bidx + 1
-     CALL MPI_Get_address (climate%mtemp_min(off), displs(bidx), ierr)
-     blocks(bidx) = r1len
-     types(bidx)  = MPI_BYTE
-
-     bidx = bidx + 1
-     CALL MPI_Get_address (climate%mtemp_max(off), displs(bidx), ierr)
-     blocks(bidx) = r1len
-     types(bidx)  = MPI_BYTE
-
-     bidx = bidx + 1
-     CALL MPI_Get_address (climate%qtemp_max(off), displs(bidx), ierr)
-     blocks(bidx) = r1len
-     types(bidx)  = MPI_BYTE
-
-     bidx = bidx + 1
-     CALL MPI_Get_address (climate%qtemp_max_last_year(off), displs(bidx), ierr)
-     blocks(bidx) = r1len
-     types(bidx)  = MPI_BYTE
-
-
-     bidx = bidx + 1
-     CALL MPI_Get_address (climate%mtemp_min20(off), displs(bidx), ierr)
-     blocks(bidx) = r1len
-     types(bidx)  = MPI_BYTE
-
-     bidx = bidx + 1
-     CALL MPI_Get_address (climate%mtemp_max20(off), displs(bidx), ierr)
-     blocks(bidx) = r1len
-     types(bidx)  = MPI_BYTE
-
-     bidx = bidx + 1
-     CALL MPI_Get_address (climate%atemp_mean(off), displs(bidx), ierr)
-     blocks(bidx) = r1len
-     types(bidx)  = MPI_BYTE
-
-     bidx = bidx + 1
-     CALL MPI_Get_address (climate%agdd5(off), displs(bidx), ierr)
-     blocks(bidx) = r1len
-     types(bidx)  = MPI_BYTE
-
-     bidx = bidx + 1
-     CALL MPI_Get_address (climate%gdd5(off), displs(bidx), ierr)
-     blocks(bidx) = r1len
-     types(bidx)  = MPI_BYTE
-
-     bidx = bidx + 1
-     CALL MPI_Get_address (climate%agdd0(off), displs(bidx), ierr)
-     blocks(bidx) = r1len
-     types(bidx)  = MPI_BYTE
-
-     bidx = bidx + 1
-     CALL MPI_Get_address (climate%gdd0(off), displs(bidx), ierr)
-     blocks(bidx) = r1len
-     types(bidx)  = MPI_BYTE
-
-     bidx = bidx + 1
-     CALL MPI_Get_address (climate%alpha_PT(off), displs(bidx), ierr)
-     blocks(bidx) = r1len
-     types(bidx)  = MPI_BYTE
-
-     bidx = bidx + 1
-     CALL MPI_Get_address (climate%evap_PT(off), displs(bidx), ierr)
-     blocks(bidx) = r1len
-     types(bidx)  = MPI_BYTE
-
-     bidx = bidx + 1
-     CALL MPI_Get_address (climate%aevap(off), displs(bidx), ierr)
-     blocks(bidx) = r1len
-     types(bidx)  = MPI_BYTE
-
- ! ------------- scalars  -------------
-
-     bidx = bidx + 1
-     CALL MPI_Get_address (climate%nyears, displs(bidx), ierr)
-     blocks(bidx) = extid
-     types(bidx)  = MPI_BYTE
-
-     bidx = bidx + 1
-     CALL MPI_Get_address (climate%doy, displs(bidx), ierr)
-     blocks(bidx) = extid
-     types(bidx)  = MPI_BYTE
-
-! MPI: sanity check
-     IF (bidx /= ntyp) THEN
-        WRITE (*,*) 'master: invalid number of climate fields, fix it!'
-        CALL MPI_Abort (comm, 1, ierr)
-     END IF
-
-     CALL MPI_Type_create_struct (bidx, blocks, displs, types, climate_ts(rank), ierr)
-     CALL MPI_Type_commit (climate_ts(rank), ierr)
-
-     CALL MPI_Type_size (climate_ts(rank), tsize, ierr)
-     CALL MPI_Type_get_extent (climate_ts(rank), tmplb, text, ierr)
-
-     WRITE (*,*) 'climate results recv from worker, size, extent, lb: ', &
-   &       rank,tsize,text,tmplb
-
-     totalrecv = totalrecv + tsize
-
-  END DO
-
-  WRITE (*,*) 'total size of climate results received from all workers: ', totalrecv
-
-  ! MPI: check whether total size of received data equals total
-  ! data sent by all the workers
-  totalsend = 0
-  CALL MPI_Reduce (MPI_IN_PLACE, totalsend, 1, MPI_INTEGER, MPI_SUM, &
-    &     0, comm, ierr)
-
-  WRITE (*,*) 'total size of climate results sent by all workers: ', totalsend
-
-  IF (totalrecv /= totalsend) THEN
-          WRITE (*,*) 'error: climate results totalsend and totalrecv differ'
-          CALL MPI_Abort (comm, 0, ierr)
-  END IF
-
-
-  DO rank = 1, wnp
-
-     CALL MPI_ISend (MPI_BOTTOM, 1, climate_ts(rank), rank, 0, comm, &
-          &               inp_req(rank), ierr)
-       
-  END DO
-  
-  CALL MPI_Waitall (wnp, inp_req, inp_stats, ierr)
-  
-
-  DEALLOCATE(types)
-  DEALLOCATE(displs)
-  DEALLOCATE(blocks)
-
-  RETURN
-
-END SUBROUTINE master_climate_types
-
 !MPI 
 
 !CLNSUBROUTINE master_casa_restart_types( comm, casamet, casapool )
@@ -6230,9 +5946,9 @@ SUBROUTINE master_end (icycle, restart)
   ! MPI: free MPI types
   DO rank = 1, wnp
 
-     IF(restart) THEN
-        CALL MPI_Type_free (restart_ts(rank), ierr)
-     END IF
+     !IF(restart) THEN
+     !   !CALL MPI_Type_free (restart_ts(rank), ierr)
+     !END IF
 
      IF (icycle>0) THEN
         CALL MPI_Type_free (casa_ts(rank), ierr)
@@ -6256,9 +5972,9 @@ SUBROUTINE master_end (icycle, restart)
      DEALLOCATE (inp_req)
   END IF
 
-  IF(restart) THEN
-     DEALLOCATE (restart_ts)
-  END IF
+  !IF(restart) THEN
+  !   DEALLOCATE (restart_ts)
+  !END IF
 
   IF (icycle>0) THEN
      DEALLOCATE (casa_ts)
