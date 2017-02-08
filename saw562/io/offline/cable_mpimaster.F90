@@ -88,6 +88,7 @@ MODULE cable_mpimaster
 
   type(comms_t) :: intypes
   type(comms_t) :: outtypes
+  type(comms_t) :: climate_comms
   
   ! master's struct for receiving restart data from the workers
   INTEGER, ALLOCATABLE, DIMENSION(:) :: restart_ts
@@ -590,7 +591,8 @@ CONTAINS
 
 
 
-             CALL master_climate_types(comm, climate)
+            call climate_types(comm, climate, climate_comms, wland)
+             !CALL master_climate_types(comm, climate)
 
             
              ! MPI: mvtype and mstype send out here instead of inside master_casa_params
@@ -1312,7 +1314,8 @@ write(*,*) 'after annual calcs'
             canopy, rough, rad, bgc, bal, met  )
 
        if (cable_user%CALL_climate) then
-          CALL master_receive (comm, ktau_gl, climate_ts)
+          !CALL master_receive (comm, ktau_gl, climate_ts)
+          call climate_comms%gather()
           
           !CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
           

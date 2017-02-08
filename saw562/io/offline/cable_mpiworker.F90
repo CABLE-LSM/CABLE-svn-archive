@@ -84,6 +84,7 @@ MODULE cable_mpiworker
 
   type(comms_t) :: intypes
   type(comms_t) :: outtypes
+  type(comms_t) :: climate_comms
 
   ! worker's struct for sending final casa results to the master
   INTEGER :: casa_t
@@ -446,7 +447,8 @@ CONTAINS
 
 
           
-             CALL worker_climate_types(comm, climate)
+             !CALL worker_climate_types(comm, climate)
+             call climate_types(comm, climate, climate_comms)
 
              ! MPI: mvtype and mstype send out here instead of inside worker_casa_params
              !      so that old CABLE carbon module can use them. (BP May 2013)
@@ -835,8 +837,11 @@ ENDIF
        CALL MPI_Send (MPI_BOTTOM, 1, restart_t, 0, ktau_gl, comm, ierr)
        ! MPI: output file written by master only
 
-       if (cable_user%CALL_climate) &
-       CALL MPI_Send (MPI_BOTTOM, 1, climate_t, 0, ktau_gl, comm, ierr)
+       if (cable_user%CALL_climate) then
+           !CALL MPI_Send (MPI_BOTTOM, 1, climate_t, 0, ktau_gl, comm, ierr)
+           call climate_comms%gather()
+       end if
+
     END IF
 
     ! MPI: cleanup

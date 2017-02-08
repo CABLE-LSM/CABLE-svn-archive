@@ -177,6 +177,7 @@ contains
 
         DO i=1, self%field_count
             call self%field(i)%distribute(self%comm, self%decomp)
+            call MPI_Barrier(self%comm)
         END DO
     end subroutine
 
