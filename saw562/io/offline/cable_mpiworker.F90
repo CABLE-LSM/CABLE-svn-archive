@@ -102,9 +102,6 @@ MODULE cable_mpiworker
   ! worker's struct for rec'ing/sending pop io to/from the master
   INTEGER :: pop_t
 
-  ! worker's struct for restart data to the master
-  INTEGER :: restart_t
-
   ! worker's logfile unit
   INTEGER :: wlogn 
 
@@ -501,7 +498,6 @@ call flush(wlogn)
              ! only if restart file is to be created
              IF(output%restart) THEN
 
-                !CALL worker_restart_type (comm, canopy, air)
                 call restart_types(comm, canopy, air, restart_comms)
 
              END IF
@@ -835,8 +831,7 @@ ENDIF
     ! Write restart file if requested:
     IF(output%restart .AND. (.NOT. CASAONLY)) THEN
        ! MPI: send variables that are required by create_restart
-       !CALL MPI_Send (MPI_BOTTOM, 1, restart_t, 0, ktau_gl, comm, ierr)
-                call restart_comms%gather()
+       call restart_comms%gather()
        ! MPI: output file written by master only
 
        if (cable_user%CALL_climate) then
@@ -4095,151 +4090,6 @@ ENDIF
 
   END SUBROUTINE worker_casa_type
 
-!!$ 
-! MPI: creates restart_t type to send to the master the fields
-! that are only required for the restart file but not included in the
-! results sent at the end of each time step
-SUBROUTINE worker_restart_type (comm, canopy, air)
-
- USE mpi
-
- USE cable_def_types_mod
-
- IMPLICIT NONE
-
- INTEGER :: comm
-
- TYPE(canopy_type), INTENT(IN) :: canopy
- TYPE (air_type),INTENT(IN)     :: air
-
- ! MPI: temp arrays for marshalling all types into a struct
- INTEGER, ALLOCATABLE, DIMENSION(:) :: blocks
- INTEGER(KIND=MPI_ADDRESS_KIND), ALLOCATABLE, DIMENSION(:) :: displs
- INTEGER, ALLOCATABLE, DIMENSION(:) :: types
- INTEGER :: ntyp ! number of worker's types
-
- ! MPI: block lengths and strides for hvector representing matrices
- INTEGER :: r1len, r2len, I1LEN, llen
-
- INTEGER :: rank, off, cnt
- INTEGER :: bidx, midx, vidx, ierr, nd, ny
-
- INTEGER :: tsize
- INTEGER(KIND=MPI_ADDRESS_KIND) :: text, tmplb
-
- CALL MPI_Comm_rank (comm, rank, ierr)
-
- ! MPI: allocate temp vectors used for marshalling
- ntyp = nrestart
- ALLOCATE (blocks(ntyp))
- ALLOCATE (displs(ntyp))
- ALLOCATE (types(ntyp))
-
- off = 1
- cnt = mp
- bidx = 0
-
- r1len = cnt * extr1
- r2len = cnt * extr2
- I1LEN = cnt * extid
- llen = cnt * extl
-
- !  bidx = bidx + 1
- !  CALL MPI_Get_address (canopy%rwater(off,1), displs(bidx), ierr)
- !  blocks(bidx) = r1len * ms
-
- bidx = bidx + 1
- CALL MPI_Get_address (canopy%evapfbl(off,1), displs(bidx), ierr)
- ! MPI: gol124: changed to r1 when Bernard ported to CABLE_r491
- blocks(bidx) = r1len * ms
-
- bidx = bidx + 1
- CALL MPI_Get_address (canopy%cduv(off), displs(bidx), ierr)
- blocks(bidx) = r1len
-
- bidx = bidx + 1
- CALL MPI_Get_address (canopy%dewmm(off), displs(bidx), ierr)
- blocks(bidx) = r1len
-
- bidx = bidx + 1
- CALL MPI_Get_address (canopy%dgdtg(off), displs(bidx), ierr)
- blocks(bidx) = r2len
-
- bidx = bidx + 1
- CALL MPI_Get_address (canopy%frpw(off), displs(bidx), ierr)
- blocks(bidx) = r1len
-
- bidx = bidx + 1
- CALL MPI_Get_address (canopy%frpr(off), displs(bidx), ierr)
- blocks(bidx) = r1len
-
- bidx = bidx + 1
- CALL MPI_Get_address (canopy%fnv(off), displs(bidx), ierr)
- blocks(bidx) = r1len
-
- bidx = bidx + 1
- CALL MPI_Get_address (air%rho(off), displs(bidx), ierr)
- blocks(bidx) = r1len
-
- bidx = bidx + 1
- CALL MPI_Get_address (air%volm(off), displs(bidx), ierr)
- blocks(bidx) = r1len
-
- bidx = bidx + 1
- CALL MPI_Get_address (air%qsat(off), displs(bidx), ierr)
- blocks(bidx) = r1len
-
- bidx = bidx + 1
- CALL MPI_Get_address (air%epsi(off), displs(bidx), ierr)
- blocks(bidx) = r1len
-
- bidx = bidx + 1
- CALL MPI_Get_address (air%visc(off), displs(bidx), ierr)
- blocks(bidx) = r1len
-
- bidx = bidx + 1
- CALL MPI_Get_address (air%psyc(off), displs(bidx), ierr)
- blocks(bidx) = r1len
-
- bidx = bidx + 1
- CALL MPI_Get_address (air%dsatdk(off), displs(bidx), ierr)
- blocks(bidx) = r1len
-
- bidx = bidx + 1
- CALL MPI_Get_address (air%cmolar(off), displs(bidx), ierr)
- blocks(bidx) = r1len
-
- ! MPI: sanity check
- IF (bidx /= ntyp) THEN
-    WRITE (*,*) 'invalid nrestart constant, fix it!'
-    CALL MPI_Abort (comm, 1, ierr)
- END IF
-
- types = MPI_BYTE
-
- CALL MPI_Type_create_struct (bidx, blocks, displs, types, restart_t, ierr)
- CALL MPI_Type_commit (restart_t, ierr)
-
- CALL MPI_Type_size (restart_t, tsize, ierr)
- CALL MPI_Type_get_extent (restart_t, tmplb, text, ierr)
-
- WRITE (*,*) 'restart struct blocks, size, extent and lb: ',rank,bidx,tsize,text,tmplb
-
- ! MPI: check whether total size of received data equals total
- ! data sent by all the workers
- !mcd287  CALL MPI_Reduce (tsize, tsize, 1, MPI_INTEGER, MPI_SUM, 0, comm, ierr)
-write(*,*) 'b4 reduce wk', tsize, MPI_DATATYPE_NULL, 1, MPI_INTEGER, MPI_SUM, 0, comm, ierr
-call flush(6)
-!call flush(wlogn)
- CALL MPI_Reduce (tsize, MPI_DATATYPE_NULL, 1, MPI_INTEGER, MPI_SUM, 0, comm, ierr)
-
- DEALLOCATE(types)
- DEALLOCATE(displs)
- DEALLOCATE(blocks)
-
- RETURN
-
-END SUBROUTINE worker_restart_type
 
 SUBROUTINE worker_casa_dump_types(comm, casamet, casaflux, phen, climate)
 
@@ -4629,10 +4479,6 @@ SUBROUTINE worker_end(icycle, restart)
  IF (icycle>0) THEN
     CALL MPI_Type_free (casa_t, ierr)
  END IF
-
- !IF (restart) THEN
- !   CALL MPI_Type_free (restart_t, ierr)
- !END IF
 
  RETURN
 
