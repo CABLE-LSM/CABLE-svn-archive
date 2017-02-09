@@ -90,6 +90,9 @@ MODULE cable_mpimaster
   type(comms_t) :: outtypes
   type(comms_t) :: climate_comms
   type(comms_t) :: restart_comms
+  
+  ! master's struct for receiving restart data from the workers
+  INTEGER, ALLOCATABLE, DIMENSION(:) :: restart_ts
 
   ! CASA related derived types
 
@@ -5596,6 +5599,10 @@ SUBROUTINE master_end (icycle, restart)
   IF (ALLOCATED(inp_req)) THEN
      DEALLOCATE (inp_req)
   END IF
+
+  !IF(restart) THEN
+  !   DEALLOCATE (restart_ts)
+  !END IF
 
   IF (icycle>0) THEN
      DEALLOCATE (casa_ts)

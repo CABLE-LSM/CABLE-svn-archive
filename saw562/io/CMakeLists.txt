@@ -67,6 +67,7 @@ add_library(offline
     comms.f90
     save.f90
     cable_comms.f90
+    log.F90
     )
 
 add_executable(cable offline/cable_driver.F90)

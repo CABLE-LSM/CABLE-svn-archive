@@ -442,6 +442,9 @@ CONTAINS
 
              CALL worker_cable_params(comm, met,air,ssnow,veg,bgc,soil,canopy,&
                   &                        rough,rad,sum_flux,bal)
+             !CALL cable_params_scatter(comm, &
+             !        met,air,ssnow,veg,bgc,soil,canopy, &
+             !    &                         rough,rad,sum_flux,bal)
 
 
           
