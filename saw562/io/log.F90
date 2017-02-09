@@ -24,6 +24,8 @@ module log_mod
 
     type(err_code_t), parameter :: err_success = err_code_t(0, "Success")
 
+    type(err_code_t), parameter :: err_missing_optional = err_code_t(500, "OPTIONAL not present")
+
 contains
 
     subroutine traceback()

@@ -20,8 +20,10 @@ module comms_mod
     use :: mpi_f08
     use :: cable_mpicommon, only: lpdecomp_t
     use log_mod
+        use cable_io_vars_module, only: land_type, patch_type
 
-    type(err_code_t), parameter :: err_field_size = err_code_t(-100, "Field sizes don't match")
+    type(err_code_t), parameter :: err_mpi_type   = err_code_t(-100, "Unsupported MPI type")
+    type(err_code_t), parameter :: err_field_size = err_code_t(-101, "Field sizes don't match")
 
     type :: mode_t
         integer :: val
@@ -33,16 +35,18 @@ module comms_mod
     type :: field_t
         integer :: dim, shape(5)
         type(MPI_DATATYPE) :: type
-        type(MPI_DATATYPE) :: basetype
+        type(MPI_DATATYPE) :: basetype, rrtype
         character(len=:), allocatable :: name
         type(mode_t) :: mode = mode_scatter
 
         ! Pointers to the field data (just the first value is enough for MPI)
         ! Only one will be valid, depending on field%type
-        integer(kind=4), pointer :: i4_ptr => null()
-        real(kind=4),    pointer :: r4_ptr => null()
-        real(kind=8),    pointer :: r8_ptr => null()
-        logical,         pointer :: l_ptr => null()
+        integer(kind=4), pointer :: i4_ptr(:) => null()
+        real(kind=4),    pointer :: r4_ptr(:) => null()
+        real(kind=8),    pointer :: r8_ptr(:) => null()
+        logical,         pointer :: l_ptr(:) => null()
+        type(land_type), pointer :: land_ptr(:) => null()
+        type(patch_type), pointer :: patch_ptr(:) => null()
     contains
         ! Choose between scatter and bcast
         procedure :: distribute
@@ -55,6 +59,7 @@ module comms_mod
 
     type :: comms_t
         type(MPI_Comm) :: comm
+        integer :: rank, size
 
         type(field_t), allocatable :: field(:)
         integer :: field_count
@@ -109,12 +114,15 @@ module comms_mod
 contains
 
     subroutine init(self, comm, decomp)
+        use log_mod
         class(comms_t), intent(inout) :: self
         integer :: comm
         type(lpdecomp_t), optional, intent(in) :: decomp(:)
         integer :: i
 
         self%comm = MPI_Comm(comm)
+        call MPI_Comm_rank(self%comm, self%rank)
+        call MPI_Comm_size(self%comm, self%size)
 
         ! Only needed on master
         if (present(decomp)) self%decomp = decomp
@@ -122,12 +130,18 @@ contains
         self%nland = 0
         self%npatch = 0
 
-        if (present(decomp)) then
+        if (self%rank == 0) then
+            if (.not. present(decomp)) call log_error(err_missing_optional, "decomp")
+
             do i=1,size(decomp)
                 self%nland  = self%nland + decomp(i)%nland
                 self%npatch = self%npatch + decomp(i)%npatch
             end do
         end if
+
+        call MPI_Bcast(self%nland, 1, MPI_INTEGER, 0, self%comm)
+        call MPI_Bcast(self%npatch, 1, MPI_INTEGER, 0, self%comm)
+        write(*,*) "nland, npatch =",self%nland, self%npatch
     end subroutine
 
     subroutine free(self)
@@ -138,7 +152,7 @@ contains
     subroutine register_field_t(self, field)
         ! Register a generic field object
         class(comms_t), intent(inout) :: self
-        type(field_t), intent(in) :: field
+        type(field_t), intent(inout) :: field
         integer :: total, rank, comm_size
         integer(kind=8) :: hash, rhash
 
@@ -162,6 +176,9 @@ contains
         if (size(self%field) == self%field_count) then
             call self%resize
         end if
+
+        ! Setup round-robin types
+        call rrtype(self, field)
 
         self%field_count = self%field_count + 1
         self%field(self%field_count) = field
@@ -213,7 +230,8 @@ contains
         integer :: i
 
         DO i=1, self%field_count
-            call self%field(i)%gather(self, self%decomp)
+            !call self%field(i)%gather(self, self%decomp)
+            call rrgather_field(self, self%field(i))
         END DO
     end subroutine
 
@@ -225,7 +243,8 @@ contains
         if (self%mode%val == mode_bcast%val) then
             call self%bcast(comms%comm)
         else
-            call self%scatter(comms, decomp)
+            !call self%scatter(comms, decomp)
+            call rrscatter_field(comms, self)
         end if
     end subroutine
 
@@ -262,25 +281,32 @@ contains
                     displs(i)     = (decomp(i-1)%landp0 -1)
                 end do
             else
-                call MPI_Abort(comms%comm, -110)
+                write(*,*) comms%rank, "Unexpected field size:", self%shape(1), "land, patch = ", comms%nland, comms%npatch
+                call log_error(err_field_size, self%name)
             end if
 
             ! Rank 0 doesn't recieve any data
             sendcount = 0
         end if
 
-        if (self%basetype == MPI_INTEGER4) then
+        if (associated(self%i4_ptr)) then
             call MPI_Gatherv(self%i4_ptr, sendcount, self%type, &
                 self%i4_ptr, recvcounts, displs, self%type, 0, comms%comm)
-        else if (self%basetype == MPI_REAL4) then
+        else if (associated(self%r4_ptr)) then
             call MPI_Gatherv(self%r4_ptr, sendcount, self%type, &
                 self%r4_ptr, recvcounts, displs, self%type, 0, comms%comm)
-        else if (self%basetype == MPI_REAL8) then
+        else if (associated(self%r8_ptr)) then
             call MPI_Gatherv(self%r8_ptr, sendcount, self%type, &
                 self%r8_ptr, recvcounts, displs, self%type, 0, comms%comm)
-        else if (self%basetype == MPI_LOGICAL) then
+        else if (associated(self%l_ptr)) then
             call MPI_Gatherv(self%l_ptr, sendcount, self%type, &
                 self%l_ptr, recvcounts, displs, self%type, 0, comms%comm)
+        else if (associated(self%land_ptr)) then
+            call MPI_Gatherv(self%land_ptr, sendcount, self%type, &
+                self%land_ptr, recvcounts, displs, self%type, 0, comms%comm)
+        else if (associated(self%patch_ptr)) then
+            call MPI_Gatherv(self%patch_ptr, sendcount, self%type, &
+                self%patch_ptr, recvcounts, displs, self%type, 0, comms%comm)
         else
             call MPI_Abort(comms%comm, -100)
         end if
@@ -319,25 +345,32 @@ contains
                     displs(i)     = (decomp(i-1)%landp0 -1)
                 end do
             else
-                call MPI_Abort(comms%comm, -110)
+                write(*,*) comms%rank, "Unexpected field size:", self%shape(1), "land, patch = ", comms%nland, comms%npatch
+                call log_error(err_field_size, self%name)
             end if
 
             ! Rank 0 doesn't recieve any data
             recvcount = 0
         end if
 
-        if (self%basetype == MPI_INTEGER4) then
+        if (associated(self%i4_ptr)) then
             call MPI_Scatterv(self%i4_ptr, sendcounts, displs, self%type, &
                 self%i4_ptr, recvcount, self%type, 0, comms%comm)
-        else if (self%basetype == MPI_REAL4) then
+        else if (associated(self%r4_ptr)) then
             call MPI_Scatterv(self%r4_ptr, sendcounts, displs, self%type, &
                 self%r4_ptr, recvcount, self%type, 0, comms%comm)
-        else if (self%basetype == MPI_REAL8) then
+        else if (associated(self%r8_ptr)) then
             call MPI_Scatterv(self%r8_ptr, sendcounts, displs, self%type, &
                 self%r8_ptr, recvcount, self%type, 0, comms%comm)
-        else if (self%basetype == MPI_LOGICAL) then
+        else if (associated(self%l_ptr)) then
             call MPI_Scatterv(self%l_ptr, sendcounts, displs, self%type, &
                 self%l_ptr, recvcount, self%type, 0, comms%comm)
+        else if (associated(self%land_ptr)) then
+            call MPI_Scatterv(self%land_ptr, sendcounts, displs, self%type, &
+                self%land_ptr, recvcount, self%type, 0, comms%comm)
+        else if (associated(self%patch_ptr)) then
+            call MPI_Scatterv(self%patch_ptr, sendcounts, displs, self%type, &
+                self%patch_ptr, recvcount, self%type, 0, comms%comm)
         else
             call MPI_Abort(comms%comm, -100)
         end if
@@ -347,14 +380,18 @@ contains
         class(field_t), intent(inout) :: self
         type(MPI_Comm), intent(in) :: comm
 
-        if (self%basetype == MPI_INTEGER4) then
+        if (associated(self%i4_ptr)) then
             call MPI_Bcast(self%i4_ptr, self%shape(1), self%type, 0, comm)
-        else if (self%basetype == MPI_REAL4) then
+        else if (associated(self%r4_ptr)) then
             call MPI_Bcast(self%r4_ptr, self%shape(1), self%type, 0, comm)
-        else if (self%basetype == MPI_REAL8) then
+        else if (associated(self%r8_ptr)) then
             call MPI_Bcast(self%r8_ptr, self%shape(1), self%type, 0, comm)
-        else if (self%basetype == MPI_LOGICAL) then
+        else if (associated(self%l_ptr)) then
             call MPI_Bcast(self%l_ptr, self%shape(1), self%type, 0, comm)
+        else if (associated(self%land_ptr)) then
+            call MPI_Bcast(self%land_ptr, self%shape(1), self%type, 0, comm)
+        else if (associated(self%patch_ptr)) then
+            call MPI_Bcast(self%patch_ptr, self%shape(1), self%type, 0, comm)
         else
             call MPI_Abort(comm, -100)
         end if
@@ -412,7 +449,7 @@ contains
         field%type = field%basetype
         field%dim = size(shape(ptr))
         field%shape(1:field%dim) = shape(ptr) 
-        field%i4_ptr => ptr(1)
+        field%i4_ptr => ptr(:)
 
         call self%register_field_t(field)
     end subroutine
@@ -426,7 +463,7 @@ contains
         field%basetype = MPI_INTEGER4
         field%dim = size(shape(ptr))
         field%shape(1:field%dim) = shape(ptr) 
-        field%i4_ptr => ptr(1,1)
+        field%i4_ptr => ptr(:,1)
 
         field%type = mpi_array_2d(field%basetype, field%shape)
 
@@ -444,7 +481,7 @@ contains
         field%basetype = MPI_INTEGER4
         field%dim = size(shape(ptr))
         field%shape(1:field%dim) = shape(ptr) 
-        field%i4_ptr => ptr(1,1,1)
+        field%i4_ptr => ptr(:,1,1)
 
         field%type = mpi_array_3d(field%basetype, field%shape)
 
@@ -462,7 +499,7 @@ contains
         field%type = field%basetype
         field%dim = size(shape(ptr))
         field%shape(1:field%dim) = shape(ptr) 
-        field%r4_ptr => ptr(1)
+        field%r4_ptr => ptr(:)
 
         if (present(mode)) field%mode = mode
 
@@ -478,7 +515,7 @@ contains
         field%basetype = MPI_REAL4
         field%dim = size(shape(ptr))
         field%shape(1:field%dim) = shape(ptr) 
-        field%r4_ptr => ptr(1,1)
+        field%r4_ptr => ptr(:,1)
 
         field%type = mpi_array_2d(field%basetype, field%shape)
 
@@ -494,7 +531,7 @@ contains
         field%basetype = MPI_REAL4
         field%dim = size(shape(ptr))
         field%shape(1:field%dim) = shape(ptr) 
-        field%r4_ptr => ptr(1,1,1)
+        field%r4_ptr => ptr(:,1,1)
 
         field%type = mpi_array_3d(field%basetype, field%shape)
 
@@ -511,7 +548,7 @@ contains
         field%type = field%basetype
         field%dim = size(shape(ptr))
         field%shape(1:field%dim) = shape(ptr) 
-        field%r8_ptr => ptr(1)
+        field%r8_ptr => ptr(:)
 
         call self%register_field_t(field)
     end subroutine
@@ -527,7 +564,7 @@ contains
         field%basetype = MPI_REAL8
         field%dim = size(shape(ptr))
         field%shape(1:field%dim) = shape(ptr) 
-        field%r8_ptr => ptr(1,1)
+        field%r8_ptr => ptr(:,1)
 
         field%type = mpi_array_2d(field%basetype, field%shape)
 
@@ -543,7 +580,7 @@ contains
         field%basetype = MPI_REAL8
         field%dim = size(shape(ptr))
         field%shape(1:field%dim) = shape(ptr) 
-        field%r8_ptr => ptr(1,1,1)
+        field%r8_ptr => ptr(:,1,1)
 
         field%type = mpi_array_3d(field%basetype, field%shape)
 
@@ -560,7 +597,7 @@ contains
         field%type = field%basetype
         field%dim = size(shape(ptr))
         field%shape(1:field%dim) = shape(ptr) 
-        field%l_ptr => ptr(1)
+        field%l_ptr => ptr(:)
 
         call self%register_field_t(field)
     end subroutine
@@ -577,7 +614,7 @@ contains
         field%type = field%basetype
         field%dim = size(shape(ptr))
         field%shape(1:field%dim) = shape(ptr) 
-        field%r4_ptr => ptr(1)
+        field%r4_ptr => ptr(:)
 
         if (present(mode)) field%mode = mode
 
@@ -596,12 +633,13 @@ contains
         field%basetype = MPI_REAL4
         field%dim = size(shape(ptr))
         field%shape(1:field%dim) = shape(ptr) 
-        field%r4_ptr => ptr(1)%frac
+        field%patch_ptr => ptr(:)
 
         ! Sanity check
         if (SIZEOF(ptr(1)) /= SIZEOF(ptr(1)%frac) * elements) call MPI_Abort(MPI_COMM_WORLD, -200)
         call MPI_Type_vector(1, elements, 0, field%basetype, field%type)
         call MPI_Type_commit(field%type)
+        field%basetype = field%type
 
         call self%register_field_t(field)
     end subroutine
@@ -618,12 +656,13 @@ contains
         field%basetype = MPI_INTEGER4
         field%dim = size(shape(ptr))
         field%shape(1:field%dim) = shape(ptr) 
-        field%i4_ptr => ptr(1)%nap
+        field%land_ptr => ptr(:)
 
         ! Sanity check
         if (SIZEOF(ptr(1)) /= SIZEOF(ptr(1)%nap) * elements) call MPI_Abort(MPI_COMM_WORLD, -200)
         call MPI_Type_vector(1, elements, 0, field%basetype, field%type)
         call MPI_Type_commit(field%type)
+        field%basetype = field%type
 
         call self%register_field_t(field)
     end subroutine
@@ -641,5 +680,232 @@ contains
             djb2 = 33 * djb2 + c
         end do
     end function
+
+    function is_patches(comms, field)
+        class(comms_t), intent(in) :: comms
+        class(field_t), intent(in) :: field
+        logical :: is_patches
+
+        if (comms%rank == 0) is_patches = (comms%npatch == field%shape(1))
+        call MPI_Bcast(is_patches, 1, MPI_LOGICAL, 0, comms%comm)
+    end function
+
+    function cell_size(comms, field)
+        class(comms_t), intent(in) :: comms
+        class(field_t), intent(in) :: field
+        integer :: cell_size
+
+        if (is_patches(comms, field)) then
+            cell_size = comms%npatch / comms%nland
+        else
+            cell_size = 1
+        end if
+    end function
+
+    subroutine rrtype(comms, field)
+        class(comms_t),  intent(in) :: comms
+        class(field_t), intent(inout) :: field
+        integer :: count, length, stride
+        type(MPI_DATATYPE) :: tmp_type
+        integer(kind=MPI_COUNT_KIND) :: lb, extent
+        integer :: ierr
+
+        ! Create a type for round-robin distribution
+
+        ! We send patches on the same land point to the same processor
+        length = cell_size(comms, field)
+        stride = (comms%size - 1)
+        count  = comms%nland / stride
+
+        call MPI_Type_get_extent(field%basetype, lb, extent)
+        call MPI_Type_vector(count, length, stride, field%type, tmp_type)
+        call MPI_Type_create_resized(tmp_type, lb, extent, field%rrtype)
+        call MPI_Type_commit(field%rrtype, ierr)
+        if (ierr /= 0) call MPI_Abort(MPI_COMM_WORLD, ierr)
+    end subroutine
+
+    subroutine rrscatter_field(comms, field)
+        class(comms_t), intent(in)    :: comms
+        class(field_t), intent(inout) :: field
+        integer :: sendcounts(comms%size), displs(comms%size)
+        integer :: i, recvcount
+
+        ! All the offsets are set up in field%rrtype, would use MPI_Scatter 
+        ! except rank 0 receives no data
+
+        ! There will be some remaining points if nland doesn't evenly divide the processor count, these are left at the *start* of
+        ! the send buffer and cleaned up in `rrscatter_field_remainder()`
+        sendcounts = 1
+        do i=1,comms%size
+            displs(i) = i - 2
+        end do
+        sendcounts(1) = 0
+
+        recvcount = comms%nland / (comms%size - 1)
+
+        if (associated(field%i4_ptr)) then
+            call MPI_Scatterv(field%i4_ptr, sendcounts, displs, field%rrtype, &
+                field%i4_ptr, recvcount, field%type, 0, comms%comm)
+        else if (associated(field%r4_ptr)) then
+            call MPI_Scatterv(field%r4_ptr, sendcounts, displs, field%rrtype, &
+                field%r4_ptr, recvcount, field%type, 0, comms%comm)
+        else if (associated(field%r8_ptr)) then
+            call MPI_Scatterv(field%r8_ptr, sendcounts, displs, field%rrtype, &
+                field%r8_ptr, recvcount, field%type, 0, comms%comm)
+        else if (associated(field%l_ptr)) then
+            call MPI_Scatterv(field%l_ptr, sendcounts, displs, field%rrtype, &
+                field%l_ptr, recvcount, field%type, 0, comms%comm)
+        else if (associated(field%land_ptr)) then
+            call MPI_Scatterv(field%land_ptr, sendcounts, displs, field%rrtype, &
+                field%land_ptr, recvcount, field%type, 0, comms%comm)
+        else if (associated(field%patch_ptr)) then
+            call MPI_Scatterv(field%patch_ptr, sendcounts, displs, field%rrtype, &
+                field%patch_ptr, recvcount, field%type, 0, comms%comm)
+        else
+            call log_error(err_mpi_type, field%name)
+        end if
+
+        call rrscatter_field_remainder(comms, field)
+    end subroutine
+
+    subroutine rrscatter_field_remainder(comms, field)
+        class(comms_t), intent(in)    :: comms
+        class(field_t), intent(inout) :: field
+        integer :: count
+        integer :: stride
+        type(MPI_Status) :: status
+
+        ! Remaining points after scatter
+        stride = (comms%size - 1)
+        count = cell_size(comms, field) * (comms%nland - stride * (comms%nland / stride))
+
+        if (comms%rank == 0) then
+            if (associated(field%i4_ptr)) then
+                call MPI_Send(field%i4_ptr(field%shape(1) - count), count, field%type, 1, 1, comms%comm)
+            else if (associated(field%r4_ptr)) then
+                call MPI_Send(field%r4_ptr(field%shape(1) - count), count, field%type, 1, 2, comms%comm)
+            else if (associated(field%r8_ptr)) then
+                call MPI_Send(field%r8_ptr(field%shape(1) - count), count, field%type, 1, 3, comms%comm)
+            else if (associated(field%l_ptr)) then
+                call MPI_Send(field%l_ptr(field%shape(1) - count), count, field%type, 1, 4, comms%comm)
+            else if (associated(field%land_ptr)) then
+                call MPI_Send(field%land_ptr(field%shape(1) - count), count, field%type, 1, 4, comms%comm)
+            else if (associated(field%patch_ptr)) then
+                call MPI_Send(field%patch_ptr(field%shape(1) - count), count, field%type, 1, 4, comms%comm)
+            else
+                call log_error(err_mpi_type, field%name)
+            end if
+
+        else if (comms%rank == 1) then
+            if (associated(field%i4_ptr)) then
+                call MPI_Recv(field%i4_ptr(field%shape(1) - count), count, field%type, 0, 1, comms%comm, status)
+            else if (associated(field%r4_ptr)) then
+                call MPI_Recv(field%r4_ptr(field%shape(1) - count), count, field%type, 0, 2, comms%comm, status)
+            else if (associated(field%r8_ptr)) then
+                call MPI_Recv(field%r8_ptr(field%shape(1) - count), count, field%type, 0, 3, comms%comm, status)
+            else if (associated(field%l_ptr)) then
+                call MPI_Recv(field%l_ptr(field%shape(1) - count), count, field%type, 0, 4, comms%comm, status)
+            else if (associated(field%land_ptr)) then
+                call MPI_Recv(field%land_ptr(field%shape(1) - count), count, field%type, 0, 4, comms%comm, status)
+            else if (associated(field%patch_ptr)) then
+                call MPI_Recv(field%patch_ptr(field%shape(1) - count), count, field%type, 0, 4, comms%comm, status)
+            else
+                call log_error(err_mpi_type, field%name)
+            end if
+
+        end if
+    end subroutine
+
+    subroutine rrgather_field(comms, field)
+        class(comms_t), intent(in)    :: comms
+        class(field_t), intent(inout) :: field
+        integer :: recvcounts(comms%size), displs(comms%size)
+        integer :: i, sendcount
+
+        ! All the offsets are set up in field%rrtype, would use MPI_Gather 
+        ! except rank 0 receives no data
+
+        ! There will be some remaining points if nland doesn't evenly divide the processor count, these are left at the *end* of
+        ! the send buffer and cleaned up in `rrgather_field_remainder()`
+        recvcounts = 1
+        do i=1,comms%size
+            displs(i) = i - 2
+        end do
+        recvcounts(1) = 0
+
+        sendcount = comms%nland / (comms%size - 1)
+
+        if (associated(field%i4_ptr)) then
+            call MPI_Gatherv(field%i4_ptr, sendcount, field%type, &
+                field%i4_ptr, recvcounts, displs, field%rrtype, 0, comms%comm)
+        else if (associated(field%r4_ptr)) then
+            call MPI_Gatherv(field%r4_ptr, sendcount, field%type, &
+                field%r4_ptr, recvcounts, displs, field%rrtype, 0, comms%comm)
+        else if (associated(field%r8_ptr)) then
+            call MPI_Gatherv(field%r8_ptr, sendcount, field%type, &
+                field%r8_ptr, recvcounts, displs, field%rrtype, 0, comms%comm)
+        else if (associated(field%l_ptr)) then
+            call MPI_Gatherv(field%l_ptr, sendcount, field%type, &
+                field%l_ptr, recvcounts, displs, field%rrtype, 0, comms%comm)
+        else if (associated(field%land_ptr)) then
+            call MPI_Gatherv(field%land_ptr, sendcount, field%type, &
+                field%land_ptr, recvcounts, displs, field%rrtype, 0, comms%comm)
+        else if (associated(field%patch_ptr)) then
+            call MPI_Gatherv(field%patch_ptr, sendcount, field%type, &
+                field%patch_ptr, recvcounts, displs, field%rrtype, 0, comms%comm)
+        else
+            call log_error(err_mpi_type, field%name)
+        end if
+
+        call rrgather_field_remainder(comms, field)
+    end subroutine
+
+    subroutine rrgather_field_remainder(comms, field)
+        class(comms_t), intent(in)    :: comms
+        class(field_t), intent(inout) :: field
+        integer :: count
+        integer :: stride
+        type(MPI_Status) :: status
+
+        ! Remaining points after gather
+        stride = (comms%size - 1)
+        count = cell_size(comms, field) * (comms%nland - stride * (comms%nland / stride))
+
+        if (comms%rank == 1) then
+            if (associated(field%i4_ptr)) then
+                call MPI_Send(field%i4_ptr(field%shape(1) - count), count, field%type, 0, 1, comms%comm)
+            else if (associated(field%r4_ptr)) then
+                call MPI_Send(field%r4_ptr(field%shape(1) - count), count, field%type, 0, 2, comms%comm)
+            else if (associated(field%r8_ptr)) then
+                call MPI_Send(field%r8_ptr(field%shape(1) - count), count, field%type, 0, 3, comms%comm)
+            else if (associated(field%l_ptr)) then
+                call MPI_Send(field%l_ptr(field%shape(1) - count), count, field%type, 0, 4, comms%comm)
+            else if (associated(field%land_ptr)) then
+                call MPI_Send(field%land_ptr(field%shape(1) - count), count, field%type, 0, 4, comms%comm)
+            else if (associated(field%patch_ptr)) then
+                call MPI_Send(field%patch_ptr(field%shape(1) - count), count, field%type, 0, 4, comms%comm)
+            else
+                call log_error(err_mpi_type, field%name)
+            end if
+
+        else if (comms%rank == 0) then
+            if (associated(field%i4_ptr)) then
+                call MPI_Recv(field%i4_ptr(field%shape(1) - count), count, field%type, 1, 1, comms%comm, status)
+            else if (associated(field%r4_ptr)) then
+                call MPI_Recv(field%r4_ptr(field%shape(1) - count), count, field%type, 1, 2, comms%comm, status)
+            else if (associated(field%r8_ptr)) then
+                call MPI_Recv(field%r8_ptr(field%shape(1) - count), count, field%type, 1, 3, comms%comm, status)
+            else if (associated(field%l_ptr)) then
+                call MPI_Recv(field%l_ptr(field%shape(1) - count), count, field%type, 1, 4, comms%comm, status)
+            else if (associated(field%land_ptr)) then
+                call MPI_Recv(field%land_ptr(field%shape(1) - count), count, field%type, 1, 4, comms%comm, status)
+            else if (associated(field%patch_ptr)) then
+                call MPI_Recv(field%patch_ptr(field%shape(1) - count), count, field%type, 1, 4, comms%comm, status)
+            else
+                call log_error(err_mpi_type, field%name)
+            end if
+
+        end if
+    end subroutine
 
 end module
