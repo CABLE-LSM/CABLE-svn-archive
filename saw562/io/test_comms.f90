@@ -15,7 +15,76 @@
 !! See the License for the specific language governing permissions and
 !! limitations under the License.
 
+module test_comms_mod
+
+contains
+
+    subroutine setup_decomp(decomp, land_points, patches_per_land, comm)
+        use MPI_f08
+        use cable_mpicommon, only: lpdecomp_t
+
+        type(lpdecomp_t), allocatable, intent(out) :: decomp(:)
+        integer, intent(in) :: land_points, patches_per_land
+        type(MPI_Comm), intent(in) :: comm
+
+        integer :: rank, comm_size
+
+        call MPI_Comm_rank(comm, rank)
+        call MPI_Comm_size(comm, comm_size)
+        allocate(decomp(comm_size-1))
+
+        decomp(:)%nland = land_points / size(decomp)
+        decomp(1)%nland = decomp(1)%nland + mod(land_points, size(decomp))
+
+        decomp(:)%npatch = patches_per_land * decomp(:)%nland
+    end subroutine
+
+    subroutine test_return()
+        use MPI_f08
+        use cable_mpicommon, only: lpdecomp_t
+        use comms_mod
+
+        type(lpdecomp_t), allocatable :: decomp(:)
+        integer, target, allocatable :: field(:), orig(:)
+        integer, pointer :: ptr(:)
+        integer :: land_points
+        integer :: rank, i
+        type(comms_t) :: comms
+
+        call MPI_Comm_rank(MPI_COMM_WORLD, rank)
+
+        land_points = 11
+        call setup_decomp(decomp, land_points, 1, MPI_COMM_WORLD)
+        if (rank/=0) write(*,*) rank, decomp(rank)%nland
+
+        if (rank/=0) allocate(field(decomp(rank)%nland))
+        if (rank==0) allocate(field(land_points))
+
+        do i=1,land_points
+            field(i) = i
+        end do
+        orig = field
+        ptr => field
+
+        call comms%init(MPI_COMM_WORLD%mpi_val, decomp)
+        call comms%register_field('field', ptr)
+        call comms%scatter()
+        if (rank == 0) field = -999
+        call comms%gather()
+
+        if (rank == 0) then
+            do i=1,land_points
+                if (field(i) /= orig(i)) then
+                    write(*,*) 'Return error at',i, 'expect', orig(i), 'got',field(i)
+                end if
+            end do
+        end if
+    end subroutine
+
+end module
+
 program test_comms
+    use test_comms_mod
     use comms_mod
     use mpi_f08
     use :: cable_mpicommon, only: lpdecomp_t
@@ -27,20 +96,16 @@ program test_comms
     integer :: npatch, i, j, k
     type(met_type) :: met
     !integer , parameter :: npatch_total = 15238
-    integer , parameter :: npatch_total = 15
-    integer,  pointer :: field(:,:,:)
+    integer, parameter :: land_points = 9
+    integer, parameter :: patches_per_land = 1
+    integer, parameter :: npatch_total = land_points * patches_per_land
+    integer, pointer :: field(:,:,:)
 
     call MPI_Init()
     call MPI_Comm_rank(MPI_COMM_WORLD, rank)
     call MPI_Comm_size(MPI_COMM_WORLD, comm_size)
 
-    allocate(decomp(comm_size-1))
-    decomp(1)%npatch = npatch_total - (comm_size-2)*(npatch_total/(comm_size-1))
-    decomp(1)%patch0 = 1
-    do i=2,comm_size-1
-        decomp(i)%patch0 = decomp(i-1)%patch0 + decomp(i-1)%npatch
-        decomp(i)%npatch = npatch_total/(comm_size-1)
-    end do
+    call setup_decomp(decomp, land_points, patches_per_land, MPI_COMM_WORLD)
 
     if (rank == 0) then
         write(*,*) rank, "patches", npatch_total
@@ -135,6 +200,8 @@ program test_comms
                 if (any(field(:,j,k) /= j * size(field,3) + i)) write(*,*) rank, "Error field ", field(:,j,k)
             end do
         end do
+
+        call test_return()
 
     call MPI_Finalize()
 end program

@@ -141,7 +141,7 @@ contains
 
         call MPI_Bcast(self%nland, 1, MPI_INTEGER, 0, self%comm)
         call MPI_Bcast(self%npatch, 1, MPI_INTEGER, 0, self%comm)
-        write(*,*) "nland, npatch =",self%nland, self%npatch
+        ! write(*,*) "nland, npatch =",self%nland, self%npatch
     end subroutine
 
     subroutine free(self)
@@ -741,7 +741,11 @@ contains
         end do
         sendcounts(1) = 0
 
-        recvcount = comms%nland / (comms%size - 1)
+        recvcount = comms%nland / (comms%size - 1) * cell_size(comms, field)
+
+        !write(*,*) comms%rank, field%name, ' s', sendcounts
+        !write(*,*) comms%rank, field%name, ' d', displs
+        !write(*,*) comms%rank, field%name, ' r', recvcount
 
         if (associated(field%i4_ptr)) then
             call MPI_Scatterv(field%i4_ptr, sendcounts, displs, field%rrtype, &
@@ -774,6 +778,9 @@ contains
         integer :: count
         integer :: stride
         type(MPI_Status) :: status
+        type(MPI_Request) :: request
+
+        status = MPI_STATUS_IGNORE
 
         ! Remaining points after scatter
         stride = (comms%size - 1)
@@ -781,34 +788,34 @@ contains
 
         if (comms%rank == 0) then
             if (associated(field%i4_ptr)) then
-                call MPI_Send(field%i4_ptr(field%shape(1) - count), count, field%type, 1, 1, comms%comm)
+                call MPI_ISend(field%i4_ptr(field%shape(1)+1 - count), count, field%type, 1, 1, comms%comm, request)
             else if (associated(field%r4_ptr)) then
-                call MPI_Send(field%r4_ptr(field%shape(1) - count), count, field%type, 1, 2, comms%comm)
+                call MPI_ISend(field%r4_ptr(field%shape(1)+1 - count), count, field%type, 1, 2, comms%comm, request)
             else if (associated(field%r8_ptr)) then
-                call MPI_Send(field%r8_ptr(field%shape(1) - count), count, field%type, 1, 3, comms%comm)
+                call MPI_ISend(field%r8_ptr(field%shape(1)+1 - count), count, field%type, 1, 3, comms%comm, request)
             else if (associated(field%l_ptr)) then
-                call MPI_Send(field%l_ptr(field%shape(1) - count), count, field%type, 1, 4, comms%comm)
+                call MPI_ISend(field%l_ptr(field%shape(1)+1 - count), count, field%type, 1, 4, comms%comm, request)
             else if (associated(field%land_ptr)) then
-                call MPI_Send(field%land_ptr(field%shape(1) - count), count, field%type, 1, 4, comms%comm)
+                call MPI_ISend(field%land_ptr(field%shape(1)+1 - count), count, field%type, 1, 4, comms%comm, request)
             else if (associated(field%patch_ptr)) then
-                call MPI_Send(field%patch_ptr(field%shape(1) - count), count, field%type, 1, 4, comms%comm)
+                call MPI_ISend(field%patch_ptr(field%shape(1)+1 - count), count, field%type, 1, 4, comms%comm, request)
             else
                 call log_error(err_mpi_type, field%name)
             end if
 
         else if (comms%rank == 1) then
             if (associated(field%i4_ptr)) then
-                call MPI_Recv(field%i4_ptr(field%shape(1) - count), count, field%type, 0, 1, comms%comm, status)
+                call MPI_Recv(field%i4_ptr(field%shape(1)+1 - count), count, field%type, 0, 1, comms%comm, status)
             else if (associated(field%r4_ptr)) then
-                call MPI_Recv(field%r4_ptr(field%shape(1) - count), count, field%type, 0, 2, comms%comm, status)
+                call MPI_Recv(field%r4_ptr(field%shape(1)+1 - count), count, field%type, 0, 2, comms%comm, status)
             else if (associated(field%r8_ptr)) then
-                call MPI_Recv(field%r8_ptr(field%shape(1) - count), count, field%type, 0, 3, comms%comm, status)
+                call MPI_Recv(field%r8_ptr(field%shape(1)+1 - count), count, field%type, 0, 3, comms%comm, status)
             else if (associated(field%l_ptr)) then
-                call MPI_Recv(field%l_ptr(field%shape(1) - count), count, field%type, 0, 4, comms%comm, status)
+                call MPI_Recv(field%l_ptr(field%shape(1)+1 - count), count, field%type, 0, 4, comms%comm, status)
             else if (associated(field%land_ptr)) then
-                call MPI_Recv(field%land_ptr(field%shape(1) - count), count, field%type, 0, 4, comms%comm, status)
+                call MPI_Recv(field%land_ptr(field%shape(1)+1 - count), count, field%type, 0, 4, comms%comm, status)
             else if (associated(field%patch_ptr)) then
-                call MPI_Recv(field%patch_ptr(field%shape(1) - count), count, field%type, 0, 4, comms%comm, status)
+                call MPI_Recv(field%patch_ptr(field%shape(1)+1 - count), count, field%type, 0, 4, comms%comm, status)
             else
                 call log_error(err_mpi_type, field%name)
             end if
@@ -866,6 +873,9 @@ contains
         integer :: count
         integer :: stride
         type(MPI_Status) :: status
+        type(MPI_Request) :: request
+
+        status = MPI_STATUS_IGNORE
 
         ! Remaining points after gather
         stride = (comms%size - 1)
@@ -873,34 +883,34 @@ contains
 
         if (comms%rank == 1) then
             if (associated(field%i4_ptr)) then
-                call MPI_Send(field%i4_ptr(field%shape(1) - count), count, field%type, 0, 1, comms%comm)
+                call MPI_ISend(field%i4_ptr(field%shape(1) +1 - count), count, field%type, 0, 1, comms%comm, request)
             else if (associated(field%r4_ptr)) then
-                call MPI_Send(field%r4_ptr(field%shape(1) - count), count, field%type, 0, 2, comms%comm)
+                call MPI_ISend(field%r4_ptr(field%shape(1) +1 - count), count, field%type, 0, 2, comms%comm, request)
             else if (associated(field%r8_ptr)) then
-                call MPI_Send(field%r8_ptr(field%shape(1) - count), count, field%type, 0, 3, comms%comm)
+                call MPI_ISend(field%r8_ptr(field%shape(1) +1 - count), count, field%type, 0, 3, comms%comm, request)
             else if (associated(field%l_ptr)) then
-                call MPI_Send(field%l_ptr(field%shape(1) - count), count, field%type, 0, 4, comms%comm)
+                call MPI_ISend(field%l_ptr(field%shape(1) +1 - count), count, field%type, 0, 4, comms%comm, request)
             else if (associated(field%land_ptr)) then
-                call MPI_Send(field%land_ptr(field%shape(1) - count), count, field%type, 0, 4, comms%comm)
+                call MPI_ISend(field%land_ptr(field%shape(1) +1 - count), count, field%type, 0, 4, comms%comm, request)
             else if (associated(field%patch_ptr)) then
-                call MPI_Send(field%patch_ptr(field%shape(1) - count), count, field%type, 0, 4, comms%comm)
+                call MPI_ISend(field%patch_ptr(field%shape(1) +1 - count), count, field%type, 0, 4, comms%comm, request)
             else
                 call log_error(err_mpi_type, field%name)
             end if
 
         else if (comms%rank == 0) then
             if (associated(field%i4_ptr)) then
-                call MPI_Recv(field%i4_ptr(field%shape(1) - count), count, field%type, 1, 1, comms%comm, status)
+                call MPI_Recv(field%i4_ptr(field%shape(1) +1 - count), count, field%type, 1, 1, comms%comm, status)
             else if (associated(field%r4_ptr)) then
-                call MPI_Recv(field%r4_ptr(field%shape(1) - count), count, field%type, 1, 2, comms%comm, status)
+                call MPI_Recv(field%r4_ptr(field%shape(1) +1 - count), count, field%type, 1, 2, comms%comm, status)
             else if (associated(field%r8_ptr)) then
-                call MPI_Recv(field%r8_ptr(field%shape(1) - count), count, field%type, 1, 3, comms%comm, status)
+                call MPI_Recv(field%r8_ptr(field%shape(1) +1 - count), count, field%type, 1, 3, comms%comm, status)
             else if (associated(field%l_ptr)) then
-                call MPI_Recv(field%l_ptr(field%shape(1) - count), count, field%type, 1, 4, comms%comm, status)
+                call MPI_Recv(field%l_ptr(field%shape(1) +1 - count), count, field%type, 1, 4, comms%comm, status)
             else if (associated(field%land_ptr)) then
-                call MPI_Recv(field%land_ptr(field%shape(1) - count), count, field%type, 1, 4, comms%comm, status)
+                call MPI_Recv(field%land_ptr(field%shape(1) +1 - count), count, field%type, 1, 4, comms%comm, status)
             else if (associated(field%patch_ptr)) then
-                call MPI_Recv(field%patch_ptr(field%shape(1) - count), count, field%type, 1, 4, comms%comm, status)
+                call MPI_Recv(field%patch_ptr(field%shape(1) +1 - count), count, field%type, 1, 4, comms%comm, status)
             else
                 call log_error(err_mpi_type, field%name)
             end if
