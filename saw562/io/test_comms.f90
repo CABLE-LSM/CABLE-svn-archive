@@ -60,7 +60,7 @@ contains
         if (rank/=0) allocate(field(decomp(rank)%nland))
         if (rank==0) allocate(field(land_points))
 
-        do i=1,land_points
+        do i=1,size(field)
             field(i) = i
         end do
         orig = field
