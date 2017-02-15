@@ -54,6 +54,8 @@ CONTAINS
    USE casadimension,     only : icycle ! used in casa_cnp
 #endif
    USE cable_data_module, ONLY : icbm_type, point2constants
+   !mrd561
+   USE cable_soil_snow_gw_module
 
    !ptrs to local constants
    TYPE( icbm_type ) :: C
@@ -129,12 +131,20 @@ CONTAINS
    IF( cable_runtime%um ) THEN
 
      IF( cable_runtime%um_implicit ) THEN
-         CALL soil_snow(dels, soil, ssnow, canopy, met, bal,veg)
+        IF (cable_user%gw_model) then
+           if (mp .ge. 1) CALL soil_snow_gw(dels, soil, ssnow, canopy, met, bal,veg)
+        ELSE
+            CALL soil_snow(dels, soil, ssnow, canopy, met, bal,veg)
+         ENDIF
       ENDIF
 
    ELSE
       IF(cable_user%SOIL_STRUC=='default') THEN
-         call soil_snow(dels, soil, ssnow, canopy, met, bal,veg)
+        IF (cable_user%gw_model) then
+           if (mp .ge. 1) CALL soil_snow_gw(dels, soil, ssnow, canopy, met, bal,veg)
+        ELSE
+            CALL soil_snow(dels, soil, ssnow, canopy, met, bal,veg)
+         ENDIF
       ELSEIF (cable_user%SOIL_STRUC=='sli') THEN
          CALL sli_main(ktau,dels,veg,soil,ssnow,met,canopy,air,rad,0)
       ENDIF

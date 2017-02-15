@@ -155,12 +155,13 @@ CONTAINS
     USE cable_IO_vars_module, ONLY: logn,gswpfile,ncciy,leaps,                  &
          verbose, fixedCO2,output,check,patchout,    &
          patch_type,soilparmnew,&
-         defaultLAI, sdoy, smoy, syear, timeunits, exists, output
+         defaultLAI, sdoy, smoy, syear, timeunits, exists, output, &
+         latitude,longitude
     USE cable_common_module,  ONLY: ktau_gl, kend_gl, knode_gl, cable_user,     &
          cable_runtime, fileName, myhome,            &
          redistrb, wiltParam, satuParam, CurYear,    &
          IS_LEAPYEAR, IS_CASA_TIME, calcsoilalbedo,                &
-         report_version_no, kwidth_gl
+         report_version_no, kwidth_gl, gw_params
     USE cable_data_module,    ONLY: driver_type, point2constants
     USE cable_input_module,   ONLY: open_met_file,load_parameters,              &
          get_met_data,close_met_file
@@ -340,11 +341,13 @@ CONTAINS
          redistrb,         &
          wiltParam,        &
          satuParam,        &
-         cable_user           ! additional USER switches 
+         cable_user,       &  ! additional USER switches 
+         gw_params
     INTEGER :: i,x,kk
     INTEGER :: LALLOC
     INTEGER, PARAMETER ::	 mloop	= 30   ! CASA-CNP PreSpinup loops
     REAL    :: etime
+
 
     ! END header
 
@@ -374,7 +377,7 @@ CONTAINS
     ENDIF
 
     ! INITIALISATION depending on nml settings
-  IF (TRIM(cable_user%MetType) .EQ. 'gswp') THEN
+  IF (TRIM(cable_user%MetType) .EQ. 'gswp' .or. TRIM(cable_user%MetType) .EQ. 'gswp3') THEN
      IF ( CABLE_USER%YearStart.eq.0 .and. ncciy.gt.0) THEN
         CABLE_USER%YearStart = ncciy
         CABLE_USER%YearEnd = ncciy
@@ -447,6 +450,7 @@ CONTAINS
     ! This retrieves time step size, number of timesteps, starting date,
     ! latitudes, longitudes, number of sites.
     IF ( TRIM(cable_user%MetType) .NE. "gswp" .AND. &
+         TRIM(cable_user%MetType) .NE. "gswp3" .AND. &
          TRIM(cable_user%MetType) .NE. "gpgs" .AND. &
          TRIM(cable_user%MetType) .NE. "plum"  .AND. &
          TRIM(cable_user%MetType) .NE. "cru") THEN
@@ -519,10 +523,15 @@ CONTAINS
 
 	       LOY = 365
 	       kend = NINT(24.0*3600.0/dels) * LOY
-          ELSE IF (TRIM(cable_user%MetType) .EQ. 'gswp' ) THEN
+          ELSE IF (TRIM(cable_user%MetType) .EQ. 'gswp') THEN 
              ncciy = CurYear
              WRITE(*,*) 'Looking for global offline run info.'
              CALL prepareFiles(ncciy)
+             CALL open_met_file( dels, koffset, kend, spinup, C%TFRZ )
+
+          ELSE IF (TRIM(cable_user%MetType) .EQ. 'gswp3') THEN
+             ncciy = CurYear
+             WRITE(*,*) 'Looking for global offline run info.'
              CALL open_met_file( dels, koffset, kend, spinup, C%TFRZ )
           ENDIF
 
@@ -569,6 +578,7 @@ CONTAINS
              ! MPI: bcast to workers so that they don't need to open the met
              ! file themselves
              CALL MPI_Bcast (dels, 1, MPI_REAL, 0, comm, ierr)
+
           ENDIF
 
           CALL MPI_Bcast (kend, 1, MPI_INTEGER, 0, comm, ierr)
@@ -772,6 +782,14 @@ CONTAINS
              !         ktau_tot = ktau_tot + 1
              iktau = iktau + 1
              oktau = oktau + 1
+
+             write(*,*) 'Progress -',real(ktau)/real(kend)
+             do i=1,mp
+                if (ssnow%wb(i,1) .lt. 1e-6) then
+                   write(*,*) 'wb small',ssnow%wb(i,1),'at ',latitude(i),longitude(i),i
+                   write(*,*) 'wbie is',ssnow%wbice(i,1),'at',latitude(i),longitude(i),i
+                 end if
+             end do
 
              met%year = imet%year
              met%doy = imet%doy
@@ -3101,7 +3119,92 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
      CALL MPI_Get_address (rad%longitude(off), displs(bidx), ierr)
      blen(bidx) = r1len
 
+ !mrd need to add parameters here...
+!2D
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%watsat(off,1), displs(bidx), ierr)
+  CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
+  &                             types(bidx), ierr)
+  blen(bidx) = 1
  
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%smpsat(off,1), displs(bidx), ierr)
+  CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
+  &                             types(bidx), ierr)
+  blen(bidx) = 1
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%hksat(off,1), displs(bidx), ierr)
+  CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
+  &                             types(bidx), ierr)
+  blen(bidx) = 1
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%clappB(off,1), displs(bidx), ierr)
+  CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
+  &                             types(bidx), ierr)
+  blen(bidx) = 1
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%watr(off,1), displs(bidx), ierr)
+  CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
+  &                             types(bidx), ierr)
+  blen(bidx) = 1
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%wiltp(off,1), displs(bidx), ierr)
+  CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
+  &                             types(bidx), ierr)
+  blen(bidx) = 1
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%fldcap(off,1), displs(bidx), ierr)
+  CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
+  &                             types(bidx), ierr)
+  blen(bidx) = 1
+
+
+!1D
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%GWwatsat(off), displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%GWsmpsat(off), displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%GWhksat(off), displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%GWclappB(off), displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%GWwatr(off), displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%GWz(off), displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%GWdz(off), displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%slope(off), displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (soil%slope_std(off), displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (ssnow%GWwb(off), displs(bidx), ierr)
+  blen(bidx) = r2len
+
 
      ! MPI: sanity check
      IF (bidx /= ntyp) THEN
@@ -5781,6 +5884,27 @@ SUBROUTINE master_outtypes (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
      ! LOGICAL
      CALL MPI_Get_address (veg%deciduous(off), vaddr(vidx), ierr) ! 163
      blen(vidx) = cnt * extl
+
+     vidx = vidx + 1
+     ! REAL(r_2)
+     CALL MPI_Get_address (ssnow%GWwb(off), vaddr(vidx), ierr) ! 40
+     blen(vidx) = cnt * extr2
+
+     vidx = vidx + 1
+     ! REAL(r_2)
+     CALL MPI_Get_address (ssnow%wtd(off), vaddr(vidx), ierr) ! 40
+     blen(vidx) = cnt * extr2
+
+     vidx = vidx + 1
+     ! REAL(r_2)
+     CALL MPI_Get_address (ssnow%satfrac(off), vaddr(vidx), ierr) ! 40
+     blen(vidx) = cnt * extr2
+
+     vidx = vidx + 1
+     ! REAL(r_2)
+     CALL MPI_Get_address (ssnow%Qrecharge(off), vaddr(vidx), ierr) ! 40
+     blen(vidx) = cnt * extr2
+
 
       ! additional for SLI 
      vidx = vidx + 1

@@ -146,6 +146,13 @@ MODULE cable_common_module
 
           !! vh_js !!
          litter = .FALSE.
+     !MD
+      LOGICAL :: GW_MODEL = .FALSE.
+      LOGICAL :: alt_forcing = .FALSE.
+ 
+     !using GSWP3 forcing?
+     LOGICAL :: GSWP3 = .FALSE.
+     LOGICAL :: or_evap = .FALSE.
 
   END TYPE kbl_user_switches
 
@@ -168,7 +175,8 @@ MODULE cable_common_module
           soil,       & ! name of file for soil parameters
           soilcolor,  & ! file for soil color(soilcolor_global_1x1.nc)
           inits,      & ! name of file for initialisations
-          soilIGBP      ! name of file for IGBP soil map
+          soilIGBP,   & ! name of file for IGBP soil map
+          gw_elev       !name of file for gw/elevation data
 
   END TYPE filenames_type
 
@@ -265,6 +273,24 @@ MODULE cable_common_module
 
   !jhan:temporary measure. improve hiding
   !   real, dimension(:,:), pointer,save :: c1, rhoch
+
+   TYPE gw_parameters_type
+
+      REAL ::                   &
+        MaxHorzDrainRate=1e-3,  & !anisintropy * q_max [qsub]
+        EfoldHorzDrainRate=2.5, & !e fold rate of q_horz
+        MaxSatFraction=900,     & !parameter controll max sat fraction
+        hkrz=0.0,               & !hksat variation with z
+        zdepth=1.0,             & !level where hksat(z) = hksat(no z)
+        frozen_frac=0.05,       & !ice fraction to determine first non-frozen layer for qsub
+        SoilEvapAlpha = 1.0,    & !modify field capacity dependence of soil evap limit
+        IceAlpha=1.0,           &
+        IceBeta=1.0
+
+   END TYPE gw_parameters_type
+
+   TYPE(gw_parameters_type), SAVE :: gw_params
+
 
 CONTAINS
 
