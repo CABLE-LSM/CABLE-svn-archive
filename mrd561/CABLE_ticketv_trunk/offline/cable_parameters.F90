@@ -1145,7 +1145,7 @@ CONTAINS
     canopy%fe    = 0.0  ! sensible heat flux
     !mrd
     ssnow%qrecharge = 0.0
-    ssnow%GWwb = 0.40
+    ssnow%GWwb = 0.95*soil%ssat
     ssnow%wtd = 1.0
 
    !IF(hide%Ticket49Bug2) THEN
@@ -1176,7 +1176,7 @@ CONTAINS
 
       end select
 
-   soil%GWdz = 20.0
+   soil%GWdz = 10.0
 
    !ELSE
 
@@ -1312,7 +1312,7 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
       soil%hyds(landpt(e)%cstart:landpt(e)%cend) =                             &
                                           inhyds(landpt(e)%ilon, landpt(e)%ilat)
       soil%sucs(landpt(e)%cstart:landpt(e)%cend) =                             &
-                                     -1.* insucs(landpt(e)%ilon, landpt(e)%ilat)
+                                     -1.* abs(insucs(landpt(e)%ilon, landpt(e)%ilat)) !ensure negative 
       soil%rhosoil(landpt(e)%cstart:landpt(e)%cend) =                          &
                                        inrhosoil(landpt(e)%ilon, landpt(e)%ilat)
       soil%css(landpt(e)%cstart:landpt(e)%cend) =                              &

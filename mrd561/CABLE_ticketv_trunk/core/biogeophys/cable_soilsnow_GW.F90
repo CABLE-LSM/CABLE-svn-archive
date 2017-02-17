@@ -67,7 +67,7 @@ MODULE cable_soil_snow_gw_module
                       wtd_min      = 100.0,       &! minimum wtd [mm]
                       dri          = 1.0           !ratio of density of ice to density of liquid [unitless]
 
-   INTEGER, PARAMETER :: wtd_iter_max = 5 ! maximum number of iterations to find the water table depth                    
+   INTEGER, PARAMETER :: wtd_iter_max = 20 ! maximum number of iterations to find the water table depth                    
    
    REAL :: cp    ! specific heat capacity for air
    
@@ -1594,7 +1594,6 @@ END SUBROUTINE GWsoilfreeze
   REAL(r_2)                     :: deffunc,tempa,tempb,derv,calc,tmpc
   REAL(r_2), DIMENSION(mp)      :: invB,Nsmpsat  !inverse of C&H B,Nsmpsat
   INTEGER :: k,i,wttd,jlp
-  LOGICAL, save :: first_call = .true.
 
   !make code cleaner define these here 
   invB     = 1._r_2/soil%clappB(:,ms)                                !1 over C&H B
@@ -1627,12 +1626,11 @@ END SUBROUTINE GWsoilfreeze
     def(i) = def(i) + max(0._r_2,soil%GWwatsat(i)-ssnow%GWwb(i))*soil%GWdz(i)*1000._r_2
   end do   
 
-  if (first_call) &
-     ssnow%wtd(:) = zimm(ms)*def(:)/defc(:)
+ ssnow%wtd(:) = zimm(ms)*def(:)/defc(:)
 
   do i=1,mp
     !mrd561 debug remove iveg = 16 test here
-    if ((soil%isoilm(i) .ne. 9)) then      
+    if ((soil%isoilm(i) .ne. 9) .and. (veg%iveg(i) .ne. 16)) then      
 
       if (defc(i) > def(i)) then                 !iterate tfor wtd
 
@@ -1723,7 +1721,6 @@ END SUBROUTINE GWsoilfreeze
   where (ssnow%wtd(:) .gt. wtd_max) ssnow%wtd(:) = wtd_max
   where (ssnow%wtd(:) .lt. wtd_min) ssnow%wtd(:) = wtd_min
 
-  first_call = .false.
 
   END SUBROUTINE iterative_wtd
 
@@ -1819,15 +1816,15 @@ END SUBROUTINE GWsoilfreeze
        !identify first no frozen layer.  drinage from that layer and below
        !drain from sat layers
        k_drain = ms+1
-       do k=ms,2,-1
+       do k=ms,3,-1
            !below what was in paper
           !if ( ssnow%wbliq(i,k+1) .le. gw_params%frozen_frac*ssnow%wb(i,k+1)  .and.&
           !     ssnow%wbliq(i,k  ) .gt. gw_params%frozen_frac*ssnow%wb(i,k  ) ) then
           if (ssnow%wtd(i) .le. sum(dzmm(1:k),dim=1)) then
-             k_drain = k
+             k_drain = k + 1
           end if
        end do
-       k_drain = min(k_drain,2)
+       k_drain = max(k_drain,4)
 
 !       k_drain = ms + 1
 !       do k=ms,2,-1
@@ -1843,11 +1840,17 @@ END SUBROUTINE GWsoilfreeze
           do k=k_drain,ms
              sm_tot(i) = sm_tot(i) + max(ssnow%wbliq(i,k)-soil%watr(i,k),0._r_2)!*dzmm(k)
           end do
+
+          sm_tot(i) = sm_tot(i) + &
+                      max(ssnow%GWwb(i)-soil%watr(i,ms),0._r_2)*max(1._r_2-ssnow%fracice(i,ms),0._r_2)
+
           sm_tot(i) = max(sm_tot(i),0.01_r_2)
 
          do k=k_drain,ms
              qhlev(i,k) = ssnow%qhz(i)*max(ssnow%wbliq(i,k)-soil%watr(i,k),0._r_2)/sm_tot(i)!*dzmm(k)/sm_tot(i)
-          end do
+         end do
+
+         qhlev(i,ms+1) = ssnow%qhz(i)*max(ssnow%GWwb(i)-soil%watr(i,ms),0._r_2)*max(1._r_2-ssnow%fracice(i,ms),0._r_2)/sm_tot(i) 
 
        else
           qhlev(i,ms+1) = max(1._r_2-ssnow%fracice(i,ms),0._r_2)*ssnow%qhz(i)!*max(ssnow%GWwb(i)-soil%watr(i,ms),0._r_2)/sm_tot(i)
@@ -1929,13 +1932,15 @@ END SUBROUTINE GWsoilfreeze
        
     !Doing the recharge outside of the soln of Richards Equation makes it easier to track total recharge amount.
     !Add to ssnow at some point 
-    do i=1,mp
-       if ((ssnow%wtd(i) .le. sum(dzmm,dim=1)) .or. (veg%iveg(i) .ge. 16) .or. (soil%isoilm(i) .eq. 9))  then
-          ssnow%Qrecharge(i) = 0._r_2
-       else
-          ssnow%Qrecharge(i) = -ssnow%hk(i,ms)*((ssnow%GWsmp(i)-ssnow%smp(i,ms)) - (ssnow%GWzq(i)-ssnow%zq(i,ms)))/(zaq(i) - zmm(ms))
-       end if
-    end do
+!    do i=1,mp
+!       if ((ssnow%wtd(i) .le. sum(dzmm,dim=1)) .or. (veg%iveg(i) .ge. 16) .or. (soil%isoilm(i) .eq. 9))  then
+!          ssnow%Qrecharge(i) = 0._r_2
+!       else
+!          ssnow%Qrecharge(i) = -ssnow%hk(i,ms)*((ssnow%GWsmp(i)-ssnow%smp(i,ms)) - (ssnow%GWzq(i)-ssnow%zq(i,ms)))/(zaq(i) - zmm(ms))
+!       end if
+!    end do
+
+    CALL aquifer_recharge(ssnow,soil,veg,zaq,zmm,dzmm)
 
     CALL trimb(at,bt,ct,rt,ms)                       !use the defulat cable tridiag solution
 
@@ -3579,15 +3584,32 @@ SUBROUTINE remove_trans(dels, soil, ssnow, canopy, veg)
 
 END SUBROUTINE remove_trans
 
-! -----------------------------------------------------------------------------
 
-! Inputs:
-!        dt_in - time step in sec
-!        ktau_in - time step no.
-!        ga      - ground heat flux W/m^2
-!        dgdtg   -
-!        condxpr - total precip reaching the ground (liquid and solid)
-!        scondxpr - precip (solid only)
-!        fev   - transpiration (W/m2)
+  SUBROUTINE aquifer_recharge(ssnow,soil,veg,zaq,zmm,dzmm)
+  USE cable_common_module
+
+  IMPLICIT NONE
+  
+    TYPE (soil_snow_type), INTENT(INOUT)      :: ssnow ! soil and snow variables
+    TYPE (soil_parameter_type), INTENT(IN)    :: soil  ! soil parameters
+    TYPE (veg_parameter_type), INTENT(IN)     :: veg
+    REAL(r_2), dimension(:), intent(in)       :: zaq
+    REAL(r_2), dimension(:), intent(in)       :: zmm,dzmm
+
+    integer :: i    
+
+    !Doing the recharge outside of the soln of Richards Equation makes it easier to track total recharge amount.
+    !Add to ssnow at some point 
+    do i=1,mp
+       if ((ssnow%wtd(i) .le. sum(dzmm,dim=1)) .or. (veg%iveg(i) .ge. 16) .or. (soil%isoilm(i) .eq. 9))  then
+          ssnow%Qrecharge(i) = 0._r_2
+       else
+          ssnow%Qrecharge(i) = -ssnow%hk(i,ms)*((ssnow%GWsmp(i)-ssnow%smp(i,ms)) - (ssnow%GWzq(i)-ssnow%zq(i,ms)))/(zaq(i) - zmm(ms))
+       end if
+    end do
+
+
+  END SUBROUTINE aquifer_recharge
+
 
 END MODULE cable_soil_snow_gw_module
