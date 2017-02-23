@@ -1589,7 +1589,7 @@ END SUBROUTINE GWsoilfreeze
   REAL(r_2), DIMENSION(0:ms)    :: zimm
   REAL(r_2), DIMENSION(ms)      :: zmm
   REAL(r_2), DIMENSION(mp)      :: GWzimm,temp
-  REAL(r_2), DIMENSION(mp)      :: def,defc     
+  REAL(r_2), DIMENSION(mp)      :: def,defc,total_depth_column
 
   REAL(r_2)                     :: deffunc,tempa,tempb,derv,calc,tmpc
   REAL(r_2), DIMENSION(mp)      :: invB,Nsmpsat  !inverse of C&H B,Nsmpsat
@@ -1604,12 +1604,12 @@ END SUBROUTINE GWsoilfreeze
   do k=1,ms
     zimm(k) = zimm(k-1) + soil%zse(k)*1000._r_2
   end do
-  zimm(ms) = zimm(ms) + soil%GWdz(1)*1000._r_2
+  total_depth_column(:) = zimm(ms) + soil%GWdz(:)*1000._r_2
   
   !find the deficit if the water table is at the bottom of the soil column
   do i=1,mp
-     defc(i) = (soil%watsat(i,ms))*(zimm(ms)+Nsmpsat(i)/(1._r_2-invB(i))*            &
-             (1._r_2-((Nsmpsat(i)+zimm(ms))/Nsmpsat(i))**(1._r_2-invB(i)))) 
+     defc(i) = (soil%watsat(i,ms))*(total_depth_column(i)+Nsmpsat(i)/(1._r_2-invB(i))*            &
+             (1._r_2-((Nsmpsat(i)+total_depth_column(i))/Nsmpsat(i))**(1._r_2-invB(i)))) 
      defc(i) = max(0.1_r_2,defc(i)) 
   end do
 
@@ -1626,8 +1626,10 @@ END SUBROUTINE GWsoilfreeze
     def(i) = def(i) + max(0._r_2,soil%GWwatsat(i)-ssnow%GWwb(i))*soil%GWdz(i)*1000._r_2
   end do   
 
- ssnow%wtd(:) = zimm(ms)*def(:)/defc(:)
+ ssnow%wtd(:) = total_depth_column(:)*def(:)/defc(:)
 
+ !use newtons method to solve for wtd, note this assumes homogenous column but
+ !that is ok 
   do i=1,mp
     !mrd561 debug remove iveg = 16 test here
     if ((soil%isoilm(i) .ne. 9) .and. (veg%iveg(i) .ne. 16)) then      
@@ -1676,15 +1678,15 @@ END SUBROUTINE GWsoilfreeze
 
         mainloop2: DO
 
-          tmpc     = Nsmpsat(i)+ssnow%wtd(i)-zimm(ms)
+          tmpc     = Nsmpsat(i)+ssnow%wtd(i)-total_depth_column(i)
           tempa    = (abs(tmpc/Nsmpsat(i)))**(-invB(i))
           tempb    = (1._r_2+ssnow%wtd(i)/Nsmpsat(i))**(-invB(i))
           derv     = (soil%watsat(i,ms))*(tempa-tempb)
           if (abs(derv) .lt. real(1e-8,r_2)) derv = sign(real(1e-8,r_2),derv)
 
-          tempa    = (abs((Nsmpsat(i)+ssnow%wtd(i)-zimm(ms))/Nsmpsat(i)))**(1._r_2-invB(i))
+          tempa    = (abs((Nsmpsat(i)+ssnow%wtd(i)-total_depth_column(i))/Nsmpsat(i)))**(1._r_2-invB(i))
           tempb    = (1._r_2+ssnow%wtd(i)/Nsmpsat(i))**(1._r_2-invB(i))
-          deffunc  = (soil%watsat(i,ms))*(zimm(ms) +&
+          deffunc  = (soil%watsat(i,ms))*(total_depth_column(i) +&
                      Nsmpsat(i)/(1._r_2-invB(i))*(tempa-tempb))-def(i)
           calc     = ssnow%wtd(i) - deffunc/derv
 
@@ -1708,7 +1710,7 @@ END SUBROUTINE GWsoilfreeze
 
       else  !water table depth is exactly on bottom boundary
 
-        ssnow%wtd(i) = zimm(ms)
+        ssnow%wtd(i) = total_depth_column(i)
 
       endif
 
@@ -3551,15 +3553,15 @@ SUBROUTINE remove_trans(dels, soil, ssnow, canopy, veg)
            ! Calculate the amount (perhaps moisture/ice limited)
            ! which can be removed:
            xx = canopy%fevc * dels / C%HL * veg%froot(:,k) + diff(:,k-1)   ! kg/m2
-           diff(:,k) = MAX( 0.0_r_2, ssnow%wb(:,k) - soil%swilt) &      ! m3/m3
+           diff(:,k) = MAX( 0.0_r_2, ssnow%wbliq(:,k) - soil%wiltp(:,k)) &      ! m3/m3
                 * soil%zse(k)*1000.0
            xxd = xx - diff(:,k)
 
            WHERE ( xxd .GT. 0.0 )
-              ssnow%wb(:,k) = ssnow%wb(:,k) - diff(:,k) / (soil%zse(k)*1000.0)
+              ssnow%wbliq(:,k) = ssnow%wbliq(:,k) - diff(:,k) / (soil%zse(k)*1000.0)
               diff(:,k) = xxd
            ELSEWHERE
-              ssnow%wb(:,k) = ssnow%wb(:,k) - xx / (soil%zse(k)*1000.0)
+              ssnow%wbliq(:,k) = ssnow%wbliq(:,k) - xx / (soil%zse(k)*1000.0)
               diff(:,k) = 0.0
            ENDWHERE
 
@@ -3573,7 +3575,7 @@ SUBROUTINE remove_trans(dels, soil, ssnow, canopy, veg)
         canopy%fevc = 0.0_r_2
      END WHERE
      DO k = 1,ms
-        ssnow%wb(:,k) = ssnow%wb(:,k) - ssnow%evapfbl(:,k)/(soil%zse(k)*1000.0)
+        ssnow%wbliq(:,k) = ssnow%wbliq(:,k) - ssnow%evapfbl(:,k)/(soil%zse(k)*1000.0)
 
       !  write(59,*) k,  ssnow%wb(:,k),  ssnow%evapfbl(:,k)/(soil%zse(k)*1000.0)
       !  write(59,*)
@@ -3581,6 +3583,16 @@ SUBROUTINE remove_trans(dels, soil, ssnow, canopy, veg)
 
 
   ENDIF
+
+   do i=1,mp
+      do k=1,ms
+            ssnow%wmliq(i,k) = ssnow%wbliq(i,k)*real(soil%zse(k)*C%denliq,r_2)
+            !mass
+            ssnow%wmtot(i,k) = ssnow%wmliq(i,k) + ssnow%wmice(i,k)  !mass
+            ssnow%wb(i,k)    = ssnow%wbliq(i,k) + ssnow%wbice(i,k)  !volume
+      end do
+   end do
+
 
 END SUBROUTINE remove_trans
 
