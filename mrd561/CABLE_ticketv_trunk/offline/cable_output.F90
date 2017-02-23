@@ -67,7 +67,7 @@ MODULE cable_output_module
                     PlantTurnover, PlantTurnoverLeaf, PlantTurnoverFineRoot, &
                     PlantTurnoverWood, PlantTurnoverWoodDist, PlantTurnoverWoodCrowding, &
                     PlantTurnoverWoodResourceLim, dCdt, Area, LandUseFlux, patchfrac, &
-                    vcmax, hc,WatTable,GWMoist,SatFrac,Qrecharge
+                    vcmax,hc,WatTable,GWMoist,SatFrac,Qrecharge
   END TYPE out_varID_type
   TYPE(out_varID_type) :: ovid ! netcdf variable IDs for output variables
   TYPE(parID_type) :: opid ! netcdf variable IDs for output variables
@@ -1089,6 +1089,18 @@ CONTAINS
                          'froot', '-', 'Fraction of roots in each soil layer', &
                  patchout%froot, soilID, 'soil', xID, yID, zID, landID, patchID)
 
+    IF(output%params .OR. output%slope) CALL define_ovar(ncid_out, opid%slope,   &
+           'slope', '-', 'Mean subgrid topographic slope', &
+                          patchout%slope, 'real', xID, yID, zID, landID, patchID)
+
+    IF(output%params .OR. output%slope_std) CALL define_ovar(ncid_out, opid%slope_std,   &
+           'slope_std', '-', 'Mean subgrid topographic slope_std', &
+                          patchout%slope_std, 'real', xID, yID, zID, landID, patchID)
+
+    IF(output%params .OR. output%GWdz) CALL define_ovar(ncid_out, opid%GWdz,   &
+           'GWdz', '-', 'Mean aquifer layer thickness ', &
+                          patchout%GWdz, 'real', xID, yID, zID, landID, patchID)
+
     ! Write global attributes for file:
     CALL DATE_AND_TIME(todaydate, nowtime)
     todaydate = todaydate(1:4)//'/'//todaydate(5:6)//'/'//todaydate(7:8)
@@ -1296,6 +1308,13 @@ CONTAINS
     IF(output%params .OR. output%zse) CALL write_ovar(ncid_out, opid%zse,      &
                            'zse', SPREAD(REAL(soil%zse, 4), 1, mp),ranges%zse, &
                                 patchout%zse, 'soil')! no spatial dim at present
+
+    IF(output%params .OR. output%slope) CALL write_ovar(ncid_out, opid%slope,    &
+                 'slope', REAL(soil%slope, 4), (/0.0,1.0/), patchout%slope, 'real')
+    IF(output%params .OR. output%slope_std) CALL write_ovar(ncid_out, opid%slope_std,    &
+                 'slope_std', REAL(soil%slope_std, 4), (/0.0,1.0/), patchout%slope_std, 'real')
+    IF(output%params .OR. output%GWdz) CALL write_ovar(ncid_out, opid%GWdz,    &
+                 'GWdz', REAL(soil%GWdz, 4), (/0.0,10000.0/), patchout%GWdz, 'real')
 
   END SUBROUTINE open_output_file
   !=============================================================================
