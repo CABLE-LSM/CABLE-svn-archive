@@ -140,7 +140,6 @@ SUBROUTINE get_default_inits(met,soil,ssnow,canopy,logn, EMSOIL)
    canopy%fes     = 0.0   ! latent heat flux from soil (W/m2)
    canopy%fhs     = 0.0   ! sensible heat flux from soil (W/m2)
    canopy%us = 0.1 ! friction velocity (needed in roughness before first call to canopy: should in be in restart?)
-   ssnow%GWwb = 0.3
 
 END SUBROUTINE get_default_inits
 
@@ -415,7 +414,7 @@ SUBROUTINE get_restart_data(logn,ssnow,canopy,rough,bgc,                       &
      CALL readpar(ncid_rin,'GWwb',dummy,ssnow%GWwb,filename%restart_in,            &
                 max_vegpatches,'def',from_restart,mp)   
    ELSE
-      ssnow%GWwb = 0.3
+      ssnow%GWwb = 0.95*soil%ssat
    END IF
 
    IF(cable_user%SOIL_STRUC=='sli'.or.cable_user%FWSOIL_SWITCH=='Haverd2013') THEN
