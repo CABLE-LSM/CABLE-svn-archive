@@ -3539,7 +3539,7 @@ SUBROUTINE remove_trans(dels, soil, ssnow, canopy, veg)
    TYPE(veg_parameter_type), INTENT(INOUT)  :: veg
    REAL(r_2), DIMENSION(mp,0:ms) :: diff
    REAL(r_2), DIMENSION(mp)      :: xx,xxd,evap_cur
-   INTEGER k
+   INTEGER :: i,k
 
    CALL point2constants( C )
 
