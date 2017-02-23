@@ -115,6 +115,7 @@ MODULE cable_param_module
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: inGWWatr
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: inWatr
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: inSlope
+  REAL,    DIMENSION(:, :),     ALLOCATABLE :: inGWdz
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: inSlopeSTD
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: inORG
 
@@ -734,6 +735,10 @@ CONTAINS
     if (ok .ne. 0) CALL nc_abort(ok, 'Error allocating inSlopeSTD ')
     inSlopeSTD(:,:) = 0.0
 
+    allocate(inGWdz(nlon,nlat),stat=ok)
+    if (ok .ne. 0) CALL nc_abort(ok, 'Error allocating inGWdz ')
+    inGWdz(:,:) = 20.0
+
     IF (cable_user%GW_MODEL) THEN
        ok = NF90_OPEN(trim(filename%gw_elev),NF90_NOWRITE,ncid_elev)
        IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error opening GW elev param file.')
@@ -752,6 +757,14 @@ CONTAINS
        IF (ok /= NF90_NOERR) THEN
           inSlopeSTD = 0.0
           WRITE(logn, *) 'Could not read slope stddev data for SSGW, set to 0.0'
+       END IF
+
+       ok = NF90_INQ_VARID(ncid_elev, 'dtb', fieldID)
+       IF (ok /= NF90_NOERR) WRITE(logn,*) 'Error finding variable dtb'
+       ok = NF90_GET_VAR(ncid_elev, fieldID, inGWdz)
+       IF (ok /= NF90_NOERR) THEN
+          inGWdz = 20.0
+          WRITE(logn, *) 'Could not read dtb data for SSGW, set to 0.0'
        END IF
 
        ok = NF90_CLOSE(ncid_elev)
@@ -1145,7 +1158,7 @@ CONTAINS
     canopy%fe    = 0.0  ! sensible heat flux
     !mrd
     ssnow%qrecharge = 0.0
-    ssnow%GWwb = 0.95*soil%ssat
+    ssnow%GWwb = -1.0
     ssnow%wtd = 1.0
 
    !IF(hide%Ticket49Bug2) THEN
@@ -1176,7 +1189,6 @@ CONTAINS
 
       end select
 
-   soil%GWdz = 10.0
 
    !ELSE
 
@@ -1383,6 +1395,8 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
       soil%slope_std(landpt(e)%cstart:landpt(e)%cend) =                       &
                                     min(max(inSlopeSTD(landpt(e)%ilon,landpt(e)%ilat),0.0001),0.05)
 
+      soil%GWdz(landpt(e)%cstart:landpt(e)%cend) =                           &
+                                    inGWdz(landpt(e)%ilon,landpt(e)%ilat)
 
 ! vh !
       soil%silt(landpt(e)%cstart:landpt(e)%cend) =                             &
@@ -1643,6 +1657,7 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
          veg%disturbance_intensity = 0.
       ENDIF
 
+   soil%GWdz = max(1.0,min(20.0,soil%GWdz - sum(soil%zse,dim=1)))
 
 
   END SUBROUTINE write_default_params
@@ -1815,6 +1830,8 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
 
     !mrd561 debug
     WHERE(soil%cnsd .le. 0.)   soil%cnsd = 0.272
+
+    where(ssnow%GWwb(:) .le. 0.) ssnow%GWwb(:) = 0.97*soil%ssat
 
     if ((gw_params%MaxSatFraction .lt. 0.0) .and. (mp .eq. 1)) soil%slope(:) = 0.01    
 
