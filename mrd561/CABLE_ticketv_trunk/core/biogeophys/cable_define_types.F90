@@ -136,18 +136,18 @@ MODULE cable_def_types_mod
      !mrd561
       !MD parameters for GW module that vary with soil layer
       REAL(r_2), DIMENSION(:,:), POINTER ::                                    &
-         smpsat, & !psi at saturation in [mm]
-         hksat,  & !saturated hydraulic conductivity  [mm/s]
-         clappB, & !C and H B [none]
+         sucs_vec, & !psi at saturation in [mm]
+         hyds_vec,  & !saturated hydraulic conductivity  [mm/s]
+         bch_vec, & !C and H B [none]
          Fclay,  & !fraction of soil that is clay [frac]
          Fsand,  & !fraction of soil that is sand [frac]
          Fsilt,  & !fraction of soil that is silt [frac]
          Forg,   & !fration of soil made of organic soils [frac]
          densoil,& !soil density  [kg/m3]
-         watsat, & !volumetric water content at saturation [mm3/mm3]
+         ssat_vec, & !volumetric water content at saturation [mm3/mm3]
          watr,   & !residual water content of the soil [mm3/mm3]
-         fldcap, & !field capcacity (hk = 1 mm/day)
-         wiltp     ! wilting point (hk = 0.02 mm/day)
+         sfc_vec, & !field capcacity (hk = 1 mm/day)
+         swilt_vec     ! wilting point (hk = 0.02 mm/day)
 
       REAL(r_2), DIMENSION(:), POINTER ::                                      &
          slope,  &  !mean slope of grid cell
@@ -155,10 +155,10 @@ MODULE cable_def_types_mod
 
       !MD parameters for GW module for the aquifer
       REAL(r_2), DIMENSION(:), POINTER ::                                       &
-         GWsmpsat,  &  !head in the aquifer [mm]
-         GWhksat,   &  !saturated hydraulic conductivity of the aquifer [mm/s]
-         GWclappB,  & !clapp and horn b of the aquifer   [none]
-         GWwatsat,  & !saturated water content of the aquifer [mm3/mm3]
+         GWsucs_vec,  &  !head in the aquifer [mm]
+         GWhyds_vec,   &  !saturated hydraulic conductivity of the aquifer [mm/s]
+         GWbch_vec,  & !clapp and horn b of the aquifer   [none]
+         GWssat_vec,  & !saturated water content of the aquifer [mm3/mm3]
          GWwatr,    & !residual water content of the aquifer [mm3/mm3]
          GWz,       & !node depth of the aquifer    [m]
          GWdz,      & !thickness of the aquifer   [m]
@@ -170,9 +170,9 @@ MODULE cable_def_types_mod
      REAL(r_2), DIMENSION(:),   POINTER :: clitt     ! litter (tC/ha)
      REAL(r_2), DIMENSION(:),   POINTER :: zeta      ! macropore parameter
      REAL(r_2), DIMENSION(:),   POINTER :: fsatmax   ! variably saturated area parameter
-     REAL(r_2), DIMENSION(:,:), POINTER :: swilt_vec ! vol H2O @ wilting
-     REAL(r_2), DIMENSION(:,:), POINTER :: ssat_vec  ! vol H2O @ sat
-     REAL(r_2), DIMENSION(:,:), POINTER :: sfc_vec   ! vol H2O @ fc
+     !REAL(r_2), DIMENSION(:,:), POINTER :: swilt_vec ! vol H2O @ wilting
+     !REAL(r_2), DIMENSION(:,:), POINTER :: ssat_vec  ! vol H2O @ sat
+     !REAL(r_2), DIMENSION(:,:), POINTER :: sfc_vec   ! vol H2O @ fc
 
   END TYPE soil_parameter_type
 
@@ -810,24 +810,24 @@ SUBROUTINE alloc_soil_parameter_type(var, mp)
    !mrd561
    !MD
    !Aquifer properties
-   allocate( var%GWhksat(mp) )
-   allocate( var%GWsmpsat(mp) )
-   allocate( var%GWclappB(mp) )
-   allocate( var%GWwatsat(mp) )
+   allocate( var%GWhyds_vec(mp) )
+   allocate( var%GWsucs_vec(mp) )
+   allocate( var%GWbch_vec(mp) )
+   allocate( var%GWssat_vec(mp) )
    allocate( var%GWwatr(mp) )
    var%GWwatr(:) = 0.05
    allocate( var%GWz(mp) )
    allocate( var%GWdz(mp) )
    allocate( var%GWdensoil(mp) )
    !soil properties (vary by layer)
-   allocate( var%hksat(mp,ms) )
-   allocate( var%smpsat(mp,ms) )
-   allocate( var%clappB(mp,ms) )
-   allocate( var%watsat(mp,ms) )
+   allocate( var%hyds_vec(mp,ms) )
+   allocate( var%sucs_vec(mp,ms) )
+   allocate( var%bch_vec(mp,ms) )
+   allocate( var%ssat_vec(mp,ms) )
    allocate( var%watr(mp,ms) )
    var%watr(:,:) = 0.05
-   allocate( var%fldcap(mp,ms) )
-   allocate( var%wiltp(mp,ms) )
+   allocate( var%sfc_vec(mp,ms) )
+   allocate( var%swilt_vec(mp,ms) )
    allocate( var%Fsand(mp,ms) )
    allocate( var%Fclay(mp,ms) )
    allocate( var%Fsilt(mp,ms) )
@@ -843,9 +843,9 @@ SUBROUTINE alloc_soil_parameter_type(var, mp)
    ALLOCATE ( var % clitt(mp) )
    ALLOCATE ( var % zeta(mp) )
    ALLOCATE ( var % fsatmax(mp) )
-   ALLOCATE ( var % swilt_vec(mp,ms) )
-   ALLOCATE ( var % ssat_vec(mp,ms) )
-   ALLOCATE ( var % sfc_vec(mp,ms) )
+   !ALLOCATE ( var % swilt_vec(mp,ms) )
+   !ALLOCATE ( var % ssat_vec(mp,ms) )
+   !ALLOCATE ( var % sfc_vec(mp,ms) )
    IF(.NOT.(ASSOCIATED(var % swilt_vec))) ALLOCATE ( var % swilt_vec(mp,ms) )
    IF(.NOT.(ASSOCIATED(var % ssat_vec))) ALLOCATE ( var % ssat_vec(mp,ms) )
    IF(.NOT.(ASSOCIATED(var % sfc_vec))) ALLOCATE ( var % sfc_vec(mp,ms) )
@@ -1418,22 +1418,22 @@ SUBROUTINE dealloc_soil_parameter_type(var)
    !mrd561
    !MD
    !Aquifer properties
-   DEALLOCATE( var%GWhksat )
-   DEALLOCATE( var%GWsmpsat )
-   DEALLOCATE( var%GWclappB )
-   DEALLOCATE( var%GWwatsat )
+   DEALLOCATE( var%GWhyds_vec )
+   DEALLOCATE( var%GWsucs_vec )
+   DEALLOCATE( var%GWbch_vec )
+   DEALLOCATE( var%GWssat_vec )
    DEALLOCATE( var%GWwatr )
    DEALLOCATE( var%GWz )
    DEALLOCATE( var%GWdz )
    DEALLOCATE( var%GWdensoil )
    !soil properties (vary by layer)
-   DEALLOCATE( var%hksat )
-   DEALLOCATE( var%smpsat )
-   DEALLOCATE( var%clappB )
-   DEALLOCATE( var%watsat )
+   DEALLOCATE( var%hyds_vec )
+   DEALLOCATE( var%sucs_vec )
+   DEALLOCATE( var%bch_vec )
+   DEALLOCATE( var%ssat_vec )
    DEALLOCATE( var%watr )
-   DEALLOCATE( var%fldcap )
-   DEALLOCATE( var%wiltp )
+   DEALLOCATE( var%sfc_vec )
+   DEALLOCATE( var%swilt_vec )
    DEALLOCATE( var%Fsand )
    DEALLOCATE( var%Fclay )
    DEALLOCATE( var%Fsilt )
@@ -1448,9 +1448,9 @@ SUBROUTINE dealloc_soil_parameter_type(var)
     DEALLOCATE ( var % clitt )
     DEALLOCATE ( var % zeta )
     DEALLOCATE ( var % fsatmax )
-    DEALLOCATE ( var % swilt_vec )
-    DEALLOCATE ( var % ssat_vec )
-    DEALLOCATE ( var % sfc_vec )
+    !DEALLOCATE ( var % swilt_vec )
+    !DEALLOCATE ( var % ssat_vec )
+    !DEALLOCATE ( var % sfc_vec )
     IF(ASSOCIATED(var % swilt_vec)) DEALLOCATE ( var % swilt_vec )
     IF(ASSOCIATED(var % ssat_vec)) DEALLOCATE ( var % ssat_vec )
     IF(ASSOCIATED(var % sfc_vec)) DEALLOCATE ( var % sfc_vec )

@@ -448,8 +448,8 @@ CONTAINS
                   &                        rough,rad,sum_flux,bal)
 
              !mrd561 debug
-             write(wlogn,*) ' watsat min',minval(soil%watsat),minloc(soil%watsat)
-             write(wlogn,*) ' fldcap min',minval(soil%fldcap),minloc(soil%fldcap)
+             write(wlogn,*) ' ssat_vec min',minval(soil%ssat_vec),minloc(soil%ssat_vec)
+             write(wlogn,*) ' sfc_vec min',minval(soil%sfc_vec),minloc(soil%sfc_vec)
              write(wlogn,*) ' wb min',minval(ssnow%wb),minloc(ssnow%wb)
              call flush(wlogn)
           
@@ -2308,19 +2308,19 @@ ENDIF
 !mrd add new GW parameters here
 !2D
   bidx = bidx + 1
-  CALL MPI_Get_address (soil%watsat, displs(bidx), ierr)
+  CALL MPI_Get_address (soil%ssat_vec, displs(bidx), ierr)
   blen(bidx) = ms * r2len
  
   bidx = bidx + 1
-  CALL MPI_Get_address (soil%smpsat, displs(bidx), ierr)
+  CALL MPI_Get_address (soil%sucs_vec, displs(bidx), ierr)
   blen(bidx) = ms * r2len
 
   bidx = bidx + 1
-  CALL MPI_Get_address (soil%hksat, displs(bidx), ierr)
+  CALL MPI_Get_address (soil%hyds_vec, displs(bidx), ierr)
   blen(bidx) = ms * r2len
 
   bidx = bidx + 1
-  CALL MPI_Get_address (soil%clappB, displs(bidx), ierr)
+  CALL MPI_Get_address (soil%bch_vec, displs(bidx), ierr)
   blen(bidx) = ms * r2len
 
   bidx = bidx + 1
@@ -2328,29 +2328,29 @@ ENDIF
   blen(bidx) = ms * r2len
 
   bidx = bidx + 1
-  CALL MPI_Get_address (soil%wiltp, displs(bidx), ierr)
+  CALL MPI_Get_address (soil%swilt_vec, displs(bidx), ierr)
   blen(bidx) = ms * r2len
 
   bidx = bidx + 1
-  CALL MPI_Get_address (soil%fldcap, displs(bidx), ierr)
+  CALL MPI_Get_address (soil%sfc_vec, displs(bidx), ierr)
   blen(bidx) = ms * r2len
 
 
 !1d
   bidx = bidx + 1
-  CALL MPI_Get_address (soil%GWwatsat, displs(bidx), ierr)
+  CALL MPI_Get_address (soil%GWssat_vec, displs(bidx), ierr)
   blen(bidx) = r2len
 
   bidx = bidx + 1
-  CALL MPI_Get_address (soil%GWsmpsat, displs(bidx), ierr)
+  CALL MPI_Get_address (soil%GWsucs_vec, displs(bidx), ierr)
   blen(bidx) = r2len
 
   bidx = bidx + 1
-  CALL MPI_Get_address (soil%GWhksat, displs(bidx), ierr)
+  CALL MPI_Get_address (soil%GWhyds_vec, displs(bidx), ierr)
   blen(bidx) = r2len
 
   bidx = bidx + 1
-  CALL MPI_Get_address (soil%GWclappB, displs(bidx), ierr)
+  CALL MPI_Get_address (soil%GWbch_vec, displs(bidx), ierr)
   blen(bidx) = r2len
 
   bidx = bidx + 1

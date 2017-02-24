@@ -280,8 +280,8 @@ MODULE cable_common_module
         MaxHorzDrainRate=1e-3,  & !anisintropy * q_max [qsub]
         EfoldHorzDrainRate=2.5, & !e fold rate of q_horz
         MaxSatFraction=900,     & !parameter controll max sat fraction
-        hkrz=0.0,               & !hksat variation with z
-        zdepth=1.0,             & !level where hksat(z) = hksat(no z)
+        hkrz=0.0,               & !hyds_vec variation with z
+        zdepth=1.0,             & !level where hyds_vec(z) = hyds_vec(no z)
         frozen_frac=0.05,       & !ice fraction to determine first non-frozen layer for qsub
         SoilEvapAlpha = 1.0,    & !modify field capacity dependence of soil evap limit
         IceAlpha=1.0,           &

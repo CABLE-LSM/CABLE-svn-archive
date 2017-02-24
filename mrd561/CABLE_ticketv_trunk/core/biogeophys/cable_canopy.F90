@@ -2689,7 +2689,7 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
 
    if (first_call) canopy%sublayer_dz(:) = 0.001
 
-   pore_radius(:) = 0.148  / (1000.0*9.81*abs(soil%smpsat(:,1))/1000.0)  !should replace 0.148 with surface tension, unit coversion, and angle
+   pore_radius(:) = 0.148  / (1000.0*9.81*abs(soil%sucs_vec(:,1))/1000.0)  !should replace 0.148 with surface tension, unit coversion, and angle
    pore_size(:) = pore_radius(:)*sqrt(pi)
 
       !scale ustar according to the exponential wind profile, assuming we are a mm from the surface
@@ -2713,15 +2713,15 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
    if (first_call) then
       wb_liq(:) = real(max(0.0001,min(pi/4.0, ssnow%wb(:,1)) ) )
    else
-      wb_liq(:) = real(max(0.0001,min(pi/4.0, (ssnow%wb(:,1)-ssnow%wbice(:,1) - ssnow%satfrac(:)*soil%watsat(:,1))/(1._r_2 - ssnow%satfrac(:)) ) ) )
+      wb_liq(:) = real(max(0.0001,min(pi/4.0, (ssnow%wb(:,1)-ssnow%wbice(:,1) - ssnow%satfrac(:)*soil%ssat_vec(:,1))/(1._r_2 - ssnow%satfrac(:)) ) ) )
    end if
 
-   rel_s = real( max(wb_liq(:)-soil%watr(:,1),0._r_2)/(soil%watsat(:,1)-soil%watr(:,1)) )
-   hk_zero = max(0.001*soil%hksat(:,1)*(min(max(rel_s,0.001_r_2),1._r_2)**(2._r_2*soil%clappB(:,1)+3._r_2) ),1e-8)
-   hk_zero_sat = max(0.001*soil%hksat(:,1),1e-8)
+   rel_s = real( max(wb_liq(:)-soil%watr(:,1),0._r_2)/(soil%ssat_vec(:,1)-soil%watr(:,1)) )
+   hk_zero = max(0.001*soil%hyds_vec(:,1)*(min(max(rel_s,0.001_r_2),1._r_2)**(2._r_2*soil%bch_vec(:,1)+3._r_2) ),1e-8)
+   hk_zero_sat = max(0.001*soil%hyds_vec(:,1),1e-8)
 
    soil_moisture_mod(:)     = 1.0/pi/sqrt(wb_liq)* ( sqrt(pi/(4.0*wb_liq))-1.0)
-   soil_moisture_mod_sat(:) = 1.0/pi/sqrt(soil%watsat(:,1))* ( sqrt(pi/(4.0*soil%watsat(:,1)))-1.0)
+   soil_moisture_mod_sat(:) = 1.0/pi/sqrt(soil%ssat_vec(:,1))* ( sqrt(pi/(4.0*soil%ssat_vec(:,1)))-1.0)
 
    where(canopy%sublayer_dz .ge. 1.0e-7) 
       ssnow%rtevap_unsat(:) = min( rough%z0soil/canopy%sublayer_dz * (lm/ (4.0*hk_zero) + (canopy%sublayer_dz + pore_size(:) * soil_moisture_mod) / Dff),&  

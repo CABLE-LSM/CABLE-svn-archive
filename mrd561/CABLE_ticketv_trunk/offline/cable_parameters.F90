@@ -1338,13 +1338,13 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
 
       DO klev=1,ms
 
-        soil%smpsat(landpt(e)%cstart:landpt(e)%cend,klev) =                   &
+        soil%sucs_vec(landpt(e)%cstart:landpt(e)%cend,klev) =                   &
          abs(insucs(landpt(e)%ilon, landpt(e)%ilat))*1000.0 !convert to mm
                                          
-        soil%hksat(landpt(e)%cstart:landpt(e)%cend,klev) =                    &
+        soil%hyds_vec(landpt(e)%cstart:landpt(e)%cend,klev) =                    &
              inhyds(landpt(e)%ilon, landpt(e)%ilat)*1000.0  !convert to mm                         
 
-        soil%clappB(landpt(e)%cstart:landpt(e)%cend,klev) =                   &
+        soil%bch_vec(landpt(e)%cstart:landpt(e)%cend,klev) =                   &
               inbch(landpt(e)%ilon, landpt(e)%ilat)                       
 
         soil%Fclay(landpt(e)%cstart:landpt(e)%cend,klev) =                    &
@@ -1362,7 +1362,7 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
         soil%Forg(landpt(e)%cstart:landpt(e)%cend,klev) =                    &
            inORG(landpt(e)%ilon, landpt(e)%ilat)
 
-        soil%watsat(landpt(e)%cstart:landpt(e)%cend,klev) =                   &
+        soil%ssat_vec(landpt(e)%cstart:landpt(e)%cend,klev) =                   &
              inssat(landpt(e)%ilon, landpt(e)%ilat) 
 
         soil%watr(landpt(e)%cstart:landpt(e)%cend,klev) =  0.01
@@ -1371,20 +1371,20 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
 
       !Aquifer properties  same as bottom soil layer for now
 
-      soil%GWsmpsat(landpt(e)%cstart:landpt(e)%cend) =                        &
-         soil%smpsat(landpt(e)%cstart:landpt(e)%cend,ms)
+      soil%GWsucs_vec(landpt(e)%cstart:landpt(e)%cend) =                        &
+         soil%sucs_vec(landpt(e)%cstart:landpt(e)%cend,ms)
 
-      soil%GWhksat(landpt(e)%cstart:landpt(e)%cend) =                         &
-          soil%hksat(landpt(e)%cstart:landpt(e)%cend,ms)
+      soil%GWhyds_vec(landpt(e)%cstart:landpt(e)%cend) =                         &
+          soil%hyds_vec(landpt(e)%cstart:landpt(e)%cend,ms)
 
-      soil%GWclappB(landpt(e)%cstart:landpt(e)%cend) =                        &
-          soil%clappB(landpt(e)%cstart:landpt(e)%cend,ms)
+      soil%GWbch_vec(landpt(e)%cstart:landpt(e)%cend) =                        &
+          soil%bch_vec(landpt(e)%cstart:landpt(e)%cend,ms)
 
       soil%GWdensoil(landpt(e)%cstart:landpt(e)%cend) =                       &
          soil%densoil(landpt(e)%cstart:landpt(e)%cend,ms)
 
-      soil%GWwatsat(landpt(e)%cstart:landpt(e)%cend) =                        &
-         soil%watsat(landpt(e)%cstart:landpt(e)%cend,ms)
+      soil%GWssat_vec(landpt(e)%cstart:landpt(e)%cend) =                        &
+         soil%ssat_vec(landpt(e)%cstart:landpt(e)%cend,ms)
 
       soil%GWwatr(landpt(e)%cstart:landpt(e)%cend) =                          &
          soil%watr(landpt(e)%cstart:landpt(e)%cend,ms)
@@ -1509,18 +1509,18 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
                soil%Fclay(h,klev) = soilin%clay(soil%isoilm(h))
                soil%Fsand(h,klev) = soilin%sand(soil%isoilm(h))
                soil%Fsilt(h,klev) = soilin%silt(soil%isoilm(h))
-              soil%smpsat(h,klev)  = abs(soilin%sucs(soil%isoilm(h)))*1000.0
-              soil%hksat(h,klev)   = soilin%hyds(soil%isoilm(h))*1000.0
-              soil%clappB(h,klev)  = soilin%bch(soil%isoilm(h))
+              soil%sucs_vec(h,klev)  = abs(soilin%sucs(soil%isoilm(h)))*1000.0
+              soil%hyds_vec(h,klev)   = soilin%hyds(soil%isoilm(h))*1000.0
+              soil%bch_vec(h,klev)  = soilin%bch(soil%isoilm(h))
               soil%densoil(h,klev) = soilin%rhosoil(soil%isoilm(h))
-              soil%watsat(h,klev)  = soilin%ssat(soil%isoilm(h))
+              soil%ssat_vec(h,klev)  = soilin%ssat(soil%isoilm(h))
               soil%watr(h,klev)    = 0.01
             end do
-            soil%GWsmpsat(h)  = abs(soilin%sucs(soil%isoilm(h)))*1000.0
-            soil%GWhksat(h)   = soilin%hyds(soil%isoilm(h))*1000.0
-            soil%GWclappB(h)  = soilin%bch(soil%isoilm(h))
+            soil%GWsucs_vec(h)  = abs(soilin%sucs(soil%isoilm(h)))*1000.0
+            soil%GWhyds_vec(h)   = soilin%hyds(soil%isoilm(h))*1000.0
+            soil%GWbch_vec(h)  = soilin%bch(soil%isoilm(h))
             soil%GWdensoil(h) = soilin%rhosoil(soil%isoilm(h))
-            soil%GWwatsat(h)  = soilin%ssat(soil%isoilm(h))
+            soil%GWssat_vec(h)  = soilin%ssat(soil%isoilm(h))
             soil%GWwatr(h)    = 0.01
 
           END IF
@@ -1739,15 +1739,15 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
     REAL(r_2)    :: temp(mp)
     REAL    :: tmp2(mp)
 
-    REAL(r_2), parameter :: hksat_organic  = 1.0e-4
-    REAL(r_2), parameter :: smpsat_organic = 10.3
+    REAL(r_2), parameter :: hyds_vec_organic  = 1.0e-4
+    REAL(r_2), parameter :: sucs_vec_organic = 10.3
     REAL(r_2), parameter :: clappb_organic = 2.91
-    REAL(r_2), parameter :: watsat_organic = 0.9 
+    REAL(r_2), parameter :: ssat_vec_organic = 0.9 
     REAL(r_2), parameter :: watr_organic   = 0.1
     REAL(r_2), parameter :: perc_lim        = 0.5
     REAL(r_2), parameter :: perc_beta      = 0.139  
-    REAL(r_2), parameter :: fldcap_hk      = 1.157407e-06
-    REAL(r_2), parameter :: wiltp_hk      = 2.31481481e-8
+    REAL(r_2), parameter :: sfc_vec_hk      = 1.157407e-06
+    REAL(r_2), parameter :: swilt_vec_hk      = 2.31481481e-8
     REAL(r_2), dimension(mp,ms) :: perc_frac
     REAL(r_2), DIMENSION(17)    :: psi_o,psi_c
     REAL(r_2), DIMENSION(mp,ms) :: psi_tmp
@@ -1774,56 +1774,56 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
     IF (cable_user%GW_MODEL .and. soilparmnew) then
 
        DO klev=1,ms
-          soil%hksat(:,klev) = 0.0070556*10.0**(-0.884 + 0.0153*soil%Fsand(:,klev)*100.0)
-          soil%smpsat(:,klev) = 10.0 * 10.0**(1.88 -0.0131*soil%Fsand(:,klev)*100.0)
-          soil%clappB(:,klev) = 2.91 + 0.159*soil%Fclay(:,klev)*100.0
-          soil%watsat(:,klev) = 0.489 - 0.00126*soil%Fsand(:,klev)*100.0
+          soil%hyds_vec(:,klev) = 0.0070556*10.0**(-0.884 + 0.0153*soil%Fsand(:,klev)*100.0)
+          soil%sucs_vec(:,klev) = 10.0 * 10.0**(1.88 -0.0131*soil%Fsand(:,klev)*100.0)
+          soil%bch_vec(:,klev) = 2.91 + 0.159*soil%Fclay(:,klev)*100.0
+          soil%ssat_vec(:,klev) = 0.489 - 0.00126*soil%Fsand(:,klev)*100.0
           soil%watr(:,klev) = 0.02 + 0.00018*soil%Fclay(:,klev)*100.0
        ENDDO
        !aquifer share non-organic with last layer
-       soil%GWhksat(:)  = soil%hksat(:,ms)
-       soil%GWsmpsat(:) = soil%smpsat(:,ms)
-       soil%GWclappB(:) = soil%clappB(:,ms)
-       soil%GWwatsat(:) = soil%watsat(:,ms)
+       soil%GWhyds_vec(:)  = soil%hyds_vec(:,ms)
+       soil%GWsucs_vec(:) = soil%sucs_vec(:,ms)
+       soil%GWbch_vec(:) = soil%bch_vec(:,ms)
+       soil%GWssat_vec(:) = soil%ssat_vec(:,ms)
        soil%GWwatr(:)   = soil%watr(:,ms)
        !include organin impact.  fraction of grid cell where percolation through
        !organic macropores dominates
        soil%Forg = max(0._r_2,soil%Forg)
        soil%Forg = min(1._r_2,soil%Forg)
        DO klev=1,3  !0-23.3 cm, data really is to 30cm
-          soil%hksat(:,klev)  = (1.-soil%Forg(:,klev))*soil%hksat(:,klev) +soil%Forg(:,klev)*hksat_organic
-          soil%smpsat(:,klev) = (1.-soil%Forg(:,klev))*soil%smpsat(:,klev) + soil%Forg(:,klev)*smpsat_organic
-          soil%clappB(:,klev) = (1.-soil%Forg(:,klev))*soil%clappB(:,klev) +soil%Forg(:,klev)*clappb_organic
-          soil%watsat(:,klev) = (1.-soil%Forg(:,klev))*soil%watsat(:,klev) + soil%Forg(:,klev)*watsat_organic
+          soil%hyds_vec(:,klev)  = (1.-soil%Forg(:,klev))*soil%hyds_vec(:,klev) +soil%Forg(:,klev)*hyds_vec_organic
+          soil%sucs_vec(:,klev) = (1.-soil%Forg(:,klev))*soil%sucs_vec(:,klev) + soil%Forg(:,klev)*sucs_vec_organic
+          soil%bch_vec(:,klev) = (1.-soil%Forg(:,klev))*soil%bch_vec(:,klev) +soil%Forg(:,klev)*clappb_organic
+          soil%ssat_vec(:,klev) = (1.-soil%Forg(:,klev))*soil%ssat_vec(:,klev) + soil%Forg(:,klev)*ssat_vec_organic
           soil%watr(:,klev)   = (1.-soil%Forg(:,klev))*soil%watr(:,klev) + soil%Forg(:,klev)*watr_organic
        END DO
 
        !soil%cnsd = soil%Fsand(:,1)*0.3 + soil%Fclay(:,1)*0.25 +soil%Fsilt(:,1)*0.265
-       soil%fldcap = (fldcap_hk/soil%hksat)**(1.0/(2.0*soil%clappB+3.0)) * soil%watsat
+       soil%sfc_vec = (sfc_vec_hk/soil%hyds_vec)**(1.0/(2.0*soil%bch_vec+3.0)) * soil%ssat_vec
 
        !vegetation dependent wilting point
 
        DO i=1,mp
           psi_tmp(i,:) = -psi_c(veg%iveg(i))
        END DO
-       soil%wiltp = soil%watsat * (abs(psi_tmp)/(max(abs(soil%smpsat),1.0)))**(-1.0/soil%clappB)
+       soil%swilt_vec = soil%ssat_vec * (abs(psi_tmp)/(max(abs(soil%sucs_vec),1.0)))**(-1.0/soil%bch_vec)
        !mrd561 redundant
        !soil%cnsd  = soil%sand * 0.3 + soil%clay * 0.25                          &
        !            + soil%silt * 0.265 ! set dry soil thermal conductivity
 
-       soil%sfc(:) = real(soil%fldcap(:,1))
-       soil%swilt(:) = real(soil%wiltp(:,1))
+       soil%sfc(:) = real(soil%sfc_vec(:,1))
+       soil%swilt(:) = real(soil%swilt_vec(:,1))
 
-       soil%hyds = real(soil%hksat(:,1))/1000.0
-       soil%sucs = real(soil%smpsat(:,1))/1000.0
-       soil%ssat = real(soil%watsat(:,1))
-       soil%bch  = real(soil%clappB(:,1))
+       soil%hyds = real(soil%hyds_vec(:,1))/1000.0
+       soil%sucs = real(soil%sucs_vec(:,1))/1000.0
+       soil%ssat = real(soil%ssat_vec(:,1))
+       soil%bch  = real(soil%bch_vec(:,1))
 
     ELSE
 
       do klev=1,ms
-       soil%fldcap(:,klev) = soil%sfc(:)
-       soil%wiltp(:,klev)  = soil%swilt(:)
+       soil%sfc_vec(:,klev) = soil%sfc(:)
+       soil%swilt_vec(:,klev)  = soil%swilt(:)
       end do
 
     END IF
