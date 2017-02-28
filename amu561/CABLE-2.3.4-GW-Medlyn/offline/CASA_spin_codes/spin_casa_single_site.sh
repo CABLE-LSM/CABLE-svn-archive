@@ -3,7 +3,7 @@
 # Run LIS
 #PBS -m ae
 #PBS -P dt6
-#PBS -l walltime=60200
+#PBS -l walltime=70200
 #PBS -l mem=7500MB
 #PBS -l ncpus=1
 #PBS -j oe
@@ -27,7 +27,7 @@ module load R/3.1.1  #can't be newer R, ncdf library does not work
 
 ### Set file paths ###
 
-site="grassLTER"   #"Konza", "grassLTER"
+site="Konza"   #"Konza", "grassLTER"
 
 run_dir=${PWD##*/}    #`pwd`
 
@@ -41,12 +41,14 @@ else
 fi
 
 
-cable_outpath="${data_dir}/Outputs/${site}/${INDIR}_spin"   #where store CABLE outputs from spin-up?
-cable_finalpath="${data_dir}/Outputs/${site}/${INDIR}_run"   #where store CABLE outputs from final run (if step4=true)?
+cable_outpath="${data_dir}/Outputs/${site}/${INDIR}_spin_alloc0.45"   #where store CABLE outputs from spin-up?
+cable_finalpath="${data_dir}/Outputs/${site}/${INDIR}_run_alloc0.45"   #where store CABLE outputs from final run (if step4=true)?
 casa_outpath=$cable_outpath    #where store CASA outputs?
 
 
 met_file="${data_dir}/Inputs/Met_inputs/${site}/${INDIR}/CABLE_met_input_${INDIR}.nc"
+
+casa_biome="pftlookup_csiro_v16_17tiles_Ticket2_${site}.csv"
 
 
 #CO2_file="./Annual_CO2_concentration_until_2010.txt"  #CO2 concentration file if want annually varying
@@ -62,7 +64,7 @@ GWflag="TRUE"		#use groundwater scheme?
 
 
 
-executable="cable-r3966"	#name of CABLE executable
+executable="cable-r3970"	#name of CABLE executable
 
 
 step1=true #run Step 1?
@@ -522,7 +524,7 @@ if [[ "$step4" = true ]]; then
 
 
     #Create name list (use spin-up TRUE to spin up soil moisture; also make sure to write CASA outputs to file)
-    ./create_cable-nml_casaspin_Step4_final_run.sh -m $met_file -d $LAIflag -c $icycle -p $casa_outpath -j $cable_finalpath -g $GWflag -e true -i $restart_in -b TRUE #-n $CO2_con
+    ./create_cable-nml_casaspin_Step4_final_run.sh -m $met_file -d $LAIflag -c $icycle -p $casa_outpath -j $cable_finalpath -g $GWflag -e true -i $restart_in -b TRUE -k $casa_biome #-n $CO2_con
 
 
     ./$executable

@@ -31,12 +31,13 @@ OPTIONS:
    -u      true -> spincasa option
    -n      CO2 concentration
    -b      true -> write CASA output to netcdf
+   -k      CASA biome parameter file
 EOF
 }
 
 #set some defaults here?  or do with if;fi after getopts
 
-while getopts "hm:j:o:l:i:r:v:s:y:e:g:a:f:c:p:d:x:t:u:n:b:" OPTION
+while getopts "hm:j:o:l:i:r:v:s:y:e:g:a:f:c:p:d:x:t:u:n:b:k:" OPTION
 
 do
      case $OPTION in
@@ -106,6 +107,9 @@ do
 	    ;;
 	 b)
 	    casaout_flag=$OPTARG
+	    ;;
+	 k) 
+            casabiome=$OPTARG
 	    ;;
          ?)
              usage
@@ -216,6 +220,9 @@ if [ -z $casaout_flag ]; then
   casaout_flag="FALSE"
 fi
 
+if [ -z $casabiome ];then
+  casabiome="pftlookup_csiro_v16_17tiles_Ticket2.csv"
+fi
 
 #Set CASA-CNP flag (should CASA be used or not?)
 if [[ $icycle_flag -eq 0 ]]; then
@@ -271,7 +278,7 @@ cat > $(pwd)/cable.nml << EOF
    l_vcmaxFeedbk = .${Vcmax_flag}.  ! using prognostic Vcmax
    icycle = ${icycle_flag}   ! BP pull it out from casadimension and put here; 0 for not using casaCNP, 1 for C, 2 for C+N, 3 for C+N+P
    casafile%cnpipool=''
-   casafile%cnpbiome='${in_path}/CASA_inputs/pftlookup_csiro_v16_17tiles_Ticket2.csv'
+   casafile%cnpbiome='${in_path}/CASA_inputs/${casabiome}'
    casafile%cnpepool='${casaout_path}/poolcnpOut.csv'    ! end of run pool size
    casafile%cnpmetout=''         ! output daily met forcing for spinning casacnp
    casafile%cnpmetin=''          ! list of daily met files for spinning casacnp
@@ -312,7 +319,7 @@ cat > $(pwd)/cable.nml << EOF
    cable_user%GSWP3 = .FALSE.
    cable_user%GS_SWITCH = 'medlyn'
    cable_user%g1map = .FALSE.
-   cable_user%or_evap = .FALSE.         !Use Or soilE formulation?
+   cable_user%or_evap = .TRUE.         !Use Or soilE formulation?
    cable_user%L_newProfile = .TRUE.    !Y-P's new root water uptake?
 
 &end

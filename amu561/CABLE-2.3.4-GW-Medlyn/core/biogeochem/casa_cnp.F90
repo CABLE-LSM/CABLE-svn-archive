@@ -301,6 +301,9 @@ SUBROUTINE casa_allocation(veg,soil,casabiome,casaflux,casamet,phen)
   casaflux%fracCalloc(:,wood) = casaflux%fracCalloc(:,wood)/totfracCalloc(:)
   casaflux%fracCalloc(:,froot) = casaflux%fracCalloc(:,froot)/totfracCalloc(:)
 
+
+  PRINT *, "CASA_Calloc",casaflux%fracCalloc(:,leaf)+casaflux%fracCalloc(:,wood)
+
 END SUBROUTINE casa_allocation  
 
 
