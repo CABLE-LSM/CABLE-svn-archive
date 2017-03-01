@@ -160,8 +160,9 @@ MODULE cable_def_types_mod
          cls,     & ! factor for latent heat
          dfn_dtg, & ! d(canopy%fns)/d(ssnow%tgg)
          dfh_dtg, & ! d(canopy%fhs)/d(ssnow%tgg)
-         dfe_ddq, & ! d(canopy%fes)/d(dq)
-         ddq_dtg, & ! d(dq)/d(ssnow%tgg)
+         dfe_ddq, & ! d(canopy%fes)/d(dq) - INH: no longer necessary
+         ddq_dtg, & ! d(dq)/d(ssnow%tgg)  - INH: no longer necessary
+         dfe_dtg, & ! d(canopy%fes)/d(ssnow%tgg) - INH: covers previous vars
          evapsn,  & ! snow evaporation
          fwtop,   & ! water flux to the soil
          fwtop1,  & ! water flux to the soil
@@ -203,7 +204,7 @@ MODULE cable_def_types_mod
          tss_p,   & ! surface temperature (weighted soil, snow)
          deltss,  & ! surface temperature (weighted soil, snow)
          owb1       ! surface temperature (weighted soil, snow)
-
+         
       REAL, DIMENSION(:,:), POINTER ::                                         &
          sconds,     & !
          sdepth,     & ! snow depth
@@ -381,6 +382,11 @@ MODULE cable_def_types_mod
          rghlai,  & ! lai adj for snow depth for calc of resistances
          fwet       ! fraction of canopy wet
 
+      !INH - ACCESS coupling variables
+      REAL, DIMENSION(:), POINTER ::                                           &
+         fns_cor, & ! correction to net rad avail to soil (W/m2)
+         ga_cor  ! correction to ground heat flux (W/m2)
+
       REAL, DIMENSION(:,:), POINTER ::                                         &
          evapfbl, &
          gswx,    & ! stom cond for water
@@ -396,6 +402,11 @@ MODULE cable_def_types_mod
          fes_cor, & ! latent heatfl from soil (W/m2)
          fevc,     &  ! dry canopy transpiration (W/m2)
          ofes     ! latent heatfl from soil (W/m2)
+
+      !INH - limits on correction terms
+      REAL(r_2), DIMENSION(:), POINTER ::                                      &
+        fescor_upp,& ! upper limit on the correction term fes_cor (W/m2)
+        fescor_low   ! lower limit on the correction term - not used (yet)
 
      ! Additional variables:
      REAL(r_2), DIMENSION(:,:),   POINTER :: gw     ! dry canopy conductance (ms-1) edit vh 6/7/09
@@ -777,6 +788,7 @@ SUBROUTINE alloc_soil_snow_type(var, mp)
    ALLOCATE( var% dfh_dtg(mp) )
    ALLOCATE( var% dfe_ddq(mp) )
    ALLOCATE( var% ddq_dtg(mp) )
+   ALLOCATE( var% dfe_dtg(mp) )
    ALLOCATE( var% evapsn(mp) )
    ALLOCATE( var% fwtop(mp) )
    ALLOCATE( var% fwtop1(mp) )
@@ -979,6 +991,8 @@ SUBROUTINE alloc_canopy_type(var, mp)
    ALLOCATE( var% rghlai(mp) )
    ALLOCATE( var% vlaiw(mp) )
    ALLOCATE( var% fwet(mp) )
+   ALLOCATE( var% fns_cor(mp) )
+   ALLOCATE( var% ga_cor(mp) )
    ALLOCATE ( var % evapfbl(mp,ms) )
    ALLOCATE( var% epot(mp) )
    ALLOCATE( var% fnpp(mp) )
@@ -990,6 +1004,8 @@ SUBROUTINE alloc_canopy_type(var, mp)
    ALLOCATE( var% fhvw(mp) )
    ALLOCATE( var% fes(mp) )
    ALLOCATE( var% fes_cor(mp) )
+   ALLOCATE( var% fescor_upp(mp) )
+   ALLOCATE( var% fescor_low(mp) )
    ALLOCATE( var% gswx(mp,mf) )
    ALLOCATE( var% oldcansto(mp) )
    ALLOCATE( var% zetar(mp,NITER) )
@@ -1323,6 +1339,7 @@ SUBROUTINE dealloc_soil_snow_type(var)
    DEALLOCATE( var% dfh_dtg )
    DEALLOCATE( var% dfe_ddq )
    DEALLOCATE( var% ddq_dtg )
+   DEALLOCATE( var% dfe_dtg )
    DEALLOCATE( var% evapsn )
    DEALLOCATE( var% fwtop )
    DEALLOCATE( var% fwtop1 )
@@ -1379,7 +1396,7 @@ SUBROUTINE dealloc_soil_snow_type(var)
    DEALLOCATE( var%qasrf )
    DEALLOCATE( var%qfsrf )
    DEALLOCATE( var%qssrf )
-
+ 
     !IF(cable_user%SOIL_STRUC=='sli') THEN
     DEALLOCATE ( var % S )
     DEALLOCATE ( var % Tsoil )
@@ -1520,6 +1537,8 @@ SUBROUTINE dealloc_canopy_type(var)
    DEALLOCATE( var% rghlai )
    DEALLOCATE( var% vlaiw )
    DEALLOCATE( var% fwet )
+   DEALLOCATE( var% fns_cor )
+   DEALLOCATE( var% ga_cor )
    DEALLOCATE ( var % evapfbl )
    DEALLOCATE( var% epot )
    DEALLOCATE( var% fnpp )
@@ -1531,6 +1550,8 @@ SUBROUTINE dealloc_canopy_type(var)
    DEALLOCATE( var% fhvw )
    DEALLOCATE( var% fes )
    DEALLOCATE( var% fes_cor )
+   DEALLOCATE( var% fescor_upp )
+   DEALLOCATE( var% fescor_low )
    DEALLOCATE( var% gswx )
    DEALLOCATE( var% oldcansto )
    DEALLOCATE( var% zetar )
