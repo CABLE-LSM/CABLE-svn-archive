@@ -104,7 +104,7 @@ MODULE cable_common_module
           CALL_POP               = .FALSE., & !
           POP_fromZero           = .FALSE., &
           CALL_Climate           = .FALSE., &
-          Climate_fromZero       = .FALSE., &
+          Climate_fromZero       = .TRUE., &
           CASA_fromZero          = .FALSE., &
           POPLUC                 = .FALSE.
     
@@ -146,7 +146,13 @@ MODULE cable_common_module
 
           !! vh_js !!
          litter = .FALSE.
+    
+     !----------------------------------------------------------------!
+     !INH user interface for testing revisions to the correction terms
 
+    LOGICAL ::                                                                &
+          L_REV_CORR = .FALSE.     !switch to revert to unchanged code
+ 
   END TYPE kbl_user_switches
 
   ! instantiate internal switches
