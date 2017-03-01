@@ -1136,6 +1136,11 @@ ENDIF
     CALL MPI_Get_address (ssnow%dfe_ddq, displs(bidx), ierr)
     blen(bidx) = r1len
 
+    !INH - REV_CORR
+    bidx = bidx + 1
+    CALL MPI_Get_address (ssnow%dfe_dtg, displs(bidx), ierr)
+    blen(bidx) = r1len
+
     bidx = bidx + 1
     CALL MPI_Get_address (ssnow%ddq_dtg, displs(bidx), ierr)
     blen(bidx) = r1len
@@ -1735,12 +1740,37 @@ ENDIF
     CALL MPI_Get_address (canopy%fns, displs(bidx), ierr)
     blen(bidx) = r1len
 
+    !INH - temporary?
+    bidx = bidx + 1
+    CALL MPI_Get_address (canopy%fns_cor, displs(bidx), ierr)
+    blen(bidx) = r1len    
+
     bidx = bidx + 1
     CALL MPI_Get_address (canopy%fes, displs(bidx), ierr)
     blen(bidx) = r2len
 
+    !INH - temporary
+    bidx = bidx + 1
+    CALL MPI_Get_address (canopy%fes_cor, displs(bidx), ierr)
+    blen(bidx) = r2len
+
+    !INH - temporary? - REV_CORR
+    bidx = bidx + 1
+    CALL MPI_Get_address (canopy%fescor_upp, displs(bidx), ierr)
+    blen(bidx) = r2len
+
+    !INH - temporary? - REV_CORR
+    bidx = bidx + 1
+    CALL MPI_Get_address (canopy%fescor_low, displs(bidx), ierr)
+    blen(bidx) = r2len
+
     bidx = bidx + 1
     CALL MPI_Get_address (canopy%fhs, displs(bidx), ierr)
+    blen(bidx) = r1len
+
+    !INH - temporary? - REV_CORR
+    bidx = bidx + 1
+    CALL MPI_Get_address (canopy%fhs_cor, displs(bidx), ierr)
     blen(bidx) = r1len
 
     bidx = bidx + 1
@@ -1749,6 +1779,11 @@ ENDIF
 
     bidx = bidx + 1
     CALL MPI_Get_address (canopy%ga, displs(bidx), ierr)
+    blen(bidx) = r1len
+
+    !INH - temporary? - REV_CORR
+    bidx = bidx + 1
+    CALL MPI_Get_address (canopy%ga_cor, displs(bidx), ierr)
     blen(bidx) = r1len
 
     bidx = bidx + 1
@@ -4317,6 +4352,11 @@ ENDIF
     CALL MPI_Get_address (canopy%fns(off), displs(bidx), ierr)
     blocks(bidx) = r1len
 
+    !INH - REV_CORR
+    bidx = bidx + 1
+    CALL MPI_Get_address (canopy%fns_cor(off), displs(bidx), ierr)
+    blocks(bidx) = r1len
+
     !vidx = vidx + 1
     ! REAL(r_1)
     !CALL MPI_Get_address (canopy%fes(off), vaddr(vidx), ierr) ! 42
@@ -4327,6 +4367,16 @@ ENDIF
 
     bidx = bidx + 1
     CALL MPI_Get_address (canopy%fes_cor(off), displs(bidx), ierr)
+    blocks(bidx) = r2len
+
+    !INH - REV_CORR
+    bidx = bidx + 1
+    CALL MPI_Get_address (canopy%fescor_upp(off), displs(bidx), ierr)
+    blocks(bidx) = r2len
+
+    !INH - REV_CORR
+    bidx = bidx + 1
+    CALL MPI_Get_address (canopy%fescor_low(off), displs(bidx), ierr)
     blocks(bidx) = r2len
 
     !vidx = vidx + 1
@@ -4379,6 +4429,11 @@ ENDIF
     !blen(vidx) = cnt * extr1
     bidx = bidx + 1
     CALL MPI_Get_address (canopy%ga(off), displs(bidx), ierr)
+    blocks(bidx) = r1len
+
+    !INH - REV_CORR
+    bidx = bidx + 1
+    CALL MPI_Get_address (canopy%ga_cor(off), displs(bidx), ierr)
     blocks(bidx) = r1len
 
     !vidx = vidx + 1
@@ -4542,6 +4597,11 @@ ENDIF
 
     bidx = bidx + 1
     CALL MPI_Get_address (ssnow%dfe_ddq(off), displs(bidx), ierr) ! +1
+    blocks(bidx) = r1len
+    
+    !INH - REV_CORR
+    bidx = bidx + 1
+    CALL MPI_Get_address (ssnow%dfe_dtg(off), displs(bidx), ierr) ! +1
     blocks(bidx) = r1len
 
     !vidx = vidx + 1
