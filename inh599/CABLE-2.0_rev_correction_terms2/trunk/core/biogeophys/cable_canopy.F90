@@ -773,15 +773,25 @@ CONTAINS
           relitt = real((1-ssnow%isflag))*veg%clitt*0.003/canopy%DvLitt
           
           ssnow%dfh_dtg = air%rho*C%CAPP/(rttsoil+rhlitt)
-          ssnow%dfe_ddq = ssnow%wetfac*air%rho*air%rlam*ssnow%cls/(rttsoil+relitt) 
+          !factor ssnow%wetfac is not applied if dew/frost i.e. potev<0
+          IF (cable_user%L_REV_CORR) THEN
+             ssnow%dfe_ddq = air%rho*air%rlam*ssnow%cls/(rttsoil+relitt)      
+          ELSE
+             ssnow%dfe_ddq = ssnow%wetfac*air%rho*air%rlam*ssnow%cls/(rttsoil+relitt)        
+          ENDIF
 
        ELSE
           !ssnow%dfh_dtg = air%rho*C%CAPP/ssnow%rtsoil
           !ssnow%dfe_ddq = ssnow%wetfac*air%rho*air%rlam*ssnow%cls/ssnow%rtsoil
 
           ssnow%dfh_dtg = air%rho*C%CAPP/rttsoil
-          ssnow%dfe_ddq = ssnow%wetfac*air%rho*air%rlam*ssnow%cls/rttsoil
-
+          !factor ssnow%wetfac is not applied if dew/frost i.e. potev<0
+          IF (cable_user%L_REV_CORR) THEN
+             ssnow%dfe_ddq = air%rho*air%rlam*ssnow%cls/rttsoil     
+          ELSE
+             ssnow%dfe_ddq = ssnow%wetfac*air%rho*air%rlam*ssnow%cls/rttsoil    
+          ENDIF
+          
        ENDIF
 
        ssnow%ddq_dtg = (C%rmh2o/C%rmair)/met%pmb* C%TETENA*C%TETENB*C%TETENC &
