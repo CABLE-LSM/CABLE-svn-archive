@@ -21,6 +21,7 @@
 ! Contact: Yingping.Wang@csiro.au
 !
 ! History: Calling sequence changes for ACCESS compared to v1.4b
+!          Feb 2017 - bug fixes for latent heats and correction terms 
 !
 !
 ! ==============================================================================
@@ -144,21 +145,52 @@ CONTAINS
    ssnow%deltss = ssnow%tss-ssnow%otss
    ! correction required for energy balance in online simulations
    IF( cable_runtime%um ) THEN
-
       canopy%fhs = canopy%fhs + ( ssnow%tss-ssnow%otss ) * ssnow%dfh_dtg
 
       canopy%fhs_cor = canopy%fhs_cor + ( ssnow%tss-ssnow%otss ) * ssnow%dfh_dtg
 
       canopy%fh = canopy%fhv + canopy%fhs
 
-   canopy%fes = canopy%fes + ( ssnow%tss-ssnow%otss ) *                        &
-                ( ssnow%dfe_ddq * ssnow%ddq_dtg )
-                !( ssnow%cls * ssnow%dfe_ddq * ssnow%ddq_dtg )
+      !canopy%fes = canopy%fes + ( ssnow%tss-ssnow%otss ) *                    &
+      !          ( ssnow%dfe_ddq * ssnow%ddq_dtg )
+      !          !( ssnow%cls * ssnow%dfe_ddq * ssnow%ddq_dtg )
+      !
+      !Ticket 137 - remove double couting of %cls
+      !canopy%fes_cor = canopy%fes_cor + ( ssnow%tss-ssnow%otss ) *            &
+      !                      ( ssnow%dfe_ddq * ssnow%ddq_dtg )
+      !              ( ssnow%cls * ssnow%dfe_ddq * ssnow%ddq_dtg )
 
-   canopy%fes_cor = canopy%fes_cor + ( ssnow%tss-ssnow%otss ) *                &
-                    ( ssnow%cls * ssnow%dfe_ddq * ssnow%ddq_dtg )
+      !INH Written in terms of %dfe_dtg - NB factor %cls above was a bug
+      canopy%fes = canopy%fes + ( ssnow%tss-ssnow%otss ) * ssnow%dfe_dtg
+  
+      !INH NB factor %cls in %fes_cor above was a bug - see Ticket #135 #137
+      IF (cable_user%L_REV_CORR) THEN
+         canopy%fes_cor = canopy%fes_cor + (ssnow%tss-ssnow%otss) * ssnow%dfe_dtg
+      ELSE
+         canopy%fes_cor = canopy%fes_cor + ssnow%cls*(ssnow%tss-ssnow%otss) & 
+             * ssnow%dfe_dtg
+      ENDIF 
 
-   ENDIF
+      IF (cable_user%L_REV_CORR) THEN
+         !INH need to add on corrections to other terms in the soil energy balance
+         canopy%fns_cor = canopy%fns_cor + ( ssnow%tss-ssnow%otss )*ssnow%dfn_dtg
+
+         !and associated corrections to the other energy balance terms
+         !NB %fns_cor also added onto out%Rnet and out%LWnet in cable_output and
+         !cable_checks as the correction term needs to pass through the 
+         !canopy in entirity not be partially absorbed and %fns not used there 
+         !(as would be the case if rad%flws were changed)
+         canopy%fns = canopy%fns + ( ssnow%tss-ssnow%otss )*ssnow%dfn_dtg
+
+         canopy%ga_cor = canopy%ga_cor + ( ssnow%tss-ssnow%otss )*canopy%dgdtg
+         canopy%ga = canopy%ga + ( ssnow%tss-ssnow%otss )*canopy%dgdtg
+
+         !assign all the correction to %fes to %fess - none to %fesp
+         canopy%fess = canopy%fess + ( ssnow%tss-ssnow%otss ) * ssnow%dfe_dtg
+
+      ENDIF
+    
+   ENDIF   !cable_runtime%um
 
    ! need to adjust fe after soilsnow
    canopy%fev  = canopy%fevc + canopy%fevw
