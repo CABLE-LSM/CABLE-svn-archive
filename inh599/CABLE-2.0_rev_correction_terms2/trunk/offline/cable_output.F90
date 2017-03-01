@@ -51,8 +51,8 @@ MODULE cable_output_module
   REAL :: missing_value = -999999.0 ! for netcdf output
   TYPE out_varID_type ! output variable IDs in netcdf file
     INTEGER ::      SWdown, LWdown, Wind, Wind_E, PSurf,                       &
-                    Tair, Qair, Rainf, Snowf, CO2air,                          &
-                    Qle, Qh, Qg, NEE, SWnet,                                   &
+                    Tair, Qair, Tscrn, Qscrn, Rainf, Snowf, CO2air,            &
+                    Qmom, Qle, Qh, Qg, NEE, SWnet,                             &
                     LWnet, SoilMoist, SoilTemp, Albedo,                        &
                     visAlbedo, nirAlbedo, SoilMoistIce,                        &
                     Qs, Qsb, Evap, BaresoilT, SWE, SnowT,                      &
@@ -82,6 +82,10 @@ MODULE cable_output_module
     REAL(KIND=4), POINTER, DIMENSION(:) :: Tair   ! 11 surface air temperature
                                                   ! [K]
     REAL(KIND=4), POINTER, DIMENSION(:) :: Qair   ! 12 specific humidity [kg/kg]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: Tscrn  ! -- screen-level air 
+                                                  ! temperature [oC]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: Qscrn  ! -- screen level specific 
+                                                  ! humidity [kg/kg]    
     REAL(KIND=4), POINTER, DIMENSION(:) :: CO2air ! 13 CO2 concentration [ppmv]
     REAL(KIND=4), POINTER, DIMENSION(:) :: Wind   ! 14 windspeed [m/s]
     REAL(KIND=4), POINTER, DIMENSION(:) :: Wind_N ! 15 surface wind speed, N
@@ -89,6 +93,7 @@ MODULE cable_output_module
     REAL(KIND=4), POINTER, DIMENSION(:) :: Wind_E ! 16 surface wind speed, E
                                                   ! component [m/s]
     REAL(KIND=4), POINTER, DIMENSION(:) :: LAI
+    REAL(KIND=4), POINTER, DIMENSION(:) :: Qmom   ! -- momentum flux [kg/m/s2]
     REAL(KIND=4), POINTER, DIMENSION(:) :: Qh     ! 17 sensible heat flux [W/m2]
     REAL(KIND=4), POINTER, DIMENSION(:) :: Qle    ! 18 latent heat flux [W/m2]
     REAL(KIND=4), POINTER, DIMENSION(:) :: Qg     ! 19 ground heat flux [W/m2]
@@ -393,6 +398,14 @@ CONTAINS
        ALLOCATE(out%Tair(mp))
        out%Tair = 0.0 ! initialise
     END IF
+    IF(output%met .OR. output%Tscrn .OR. output%veg) THEN
+       CALL define_ovar(ncid_out, ovid%Tscrn,                                  &
+                        'Tscrn', 'oC', 'screen level air temperature', &        
+                        patchout%Tscrn, &
+                        'ALMA', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%Tscrn(mp))
+       out%Tscrn = 0.0 ! initialise
+    END IF
     IF(output%met .OR. output%Rainf) THEN
        CALL define_ovar(ncid_out, ovid%Rainf, 'Rainf',                         &
                         'kg/m^2/s', 'Rainfall+snowfall', patchout%Rainf,       &
@@ -413,6 +426,14 @@ CONTAINS
                         'ALMA', xID, yID, zID, landID, patchID, tID)
        ALLOCATE(out%Qair(mp))
        out%Qair = 0.0 ! initialise
+    END IF
+    IF(output%met .OR. output%Qscrn .OR. output%veg) THEN
+       CALL define_ovar(ncid_out, ovid%Qscrn,                                  &
+                        'Qscrn', 'kg/kg', 'screen level specific humdity',     &
+                        patchout%Qscrn, &
+                        'ALMA', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%Qscrn(mp))
+       out%Qscrn = 0.0 ! initialise
     END IF
     IF(output%met .OR. output%Wind) THEN
        CALL define_ovar(ncid_out, ovid%Wind, 'Wind',                           &
@@ -437,6 +458,13 @@ CONTAINS
     END IF
     ! Define surface flux variables in output file and allocate temp output
     ! vars:
+    IF(output%flux .OR. output%Qmom) THEN
+       CALL define_ovar(ncid_out, ovid%Qmom, 'Qmom', 'kg/m/s2',                &
+                        'Surface momentum flux',patchout%Qmom,'dummy',       &
+                        xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%Qmom(mp))
+       out%Qmom = 0.0 ! initialise
+    END IF
     IF(output%flux .OR. output%Qle) THEN
        CALL define_ovar(ncid_out, ovid%Qle, 'Qle', 'W/m^2',                    &
                         'Surface latent heat flux',patchout%Qle,'dummy',       &
@@ -1474,6 +1502,20 @@ CONTAINS
           out%Tair = 0.0
        END IF
     END IF
+    ! Tscrn: screen level air temperature [K]
+    IF(output%met .OR. output%Tscrn .OR. output%veg) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%Tscrn = out%Tscrn + REAL(canopy%tscrn, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%Tscrn = out%Tscrn/REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%Tscrn, 'Tscrn',         &
+                           out%Tscrn, ranges%Tscrn, patchout%Tscrn, 'ALMA', met)
+          ! Reset temporary output variable:
+          out%Tscrn = 0.0
+       END IF
+    END IF
     ! Rainf: rainfall [kg/m^2/s]
     IF(output%met .OR. output%Rainf) THEN
        ! Add current timestep's value to total of temporary output variable:
@@ -1530,6 +1572,20 @@ CONTAINS
           out%Qair = 0.0
        END IF
     END IF
+    ! Qscrn: screen level specific humdity [kg/kg]
+    IF(output%met .OR. output%Qscrn .OR. output%veg) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%Qscrn = out%Qscrn + REAL(canopy%qscrn, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%qscrn = out%qscrn/REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%Qscrn, 'Qscrn',        &
+                           out%Qscrn, ranges%Qscrn, patchout%Qscrn, 'ALMA', met)
+          ! Reset temporary output variable:
+          out%Qscrn = 0.0
+       END IF
+    END IF
     ! Wind: windspeed [m/s]
     IF(output%met .OR. output%Wind) THEN
        ! Add current timestep's value to total of temporary output variable:
@@ -1559,6 +1615,20 @@ CONTAINS
        END IF
     END IF
     !-----------------------WRITE FLUX DATA-------------------------------------
+    ! Qmom: momentum flux [kg/m/s2]
+    IF(output%flux .OR. output%Qmom) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%Qmom = out%Qmom + REAL(air%rho,4)*(REAL(canopy%us,4)**2.)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%Qmom = out%Qmom / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%Qmom, 'Qmom', out%Qmom, &
+                          ranges%Qmom, patchout%Qmom, 'default', met)
+          ! Reset temporary output variable:
+          out%Qmom = 0.0
+       END IF
+    END IF
     ! Qle: latent heat flux [W/m^2]
     IF(output%flux .OR. output%Qle) THEN
        ! Add current timestep's value to total of temporary output variable:
@@ -1875,6 +1945,13 @@ CONTAINS
        out%LWnet = out%LWnet +                                                 &
           REAL(met%fld - sboltz * emleaf * canopy%tv ** 4 * (1 - rad%transd) - &
                rad%flws * rad%transd, 4)
+      
+       !INH - likely for TESTING only: correction terms added onto out%LWnet
+       !NB entirety of %fns_cor is applied not (1-rad%transd)*
+       IF (cable_user%L_REV_CORR) THEN
+          out%LWnet = out%LWnet + canopy%fns_cor
+       ENDIF
+
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
           out%LWnet = out%LWnet / REAL(output%interval, 4)
@@ -1892,6 +1969,13 @@ CONTAINS
                                   (1 - rad%transd) -rad%flws * rad%transd +    &
                                   SUM(rad%qcan(:, :, 1), 2) +                  &
                                   SUM(rad%qcan(:, :, 2), 2) + rad%qssabs, 4)
+
+       !INH - likely for TESTING only: correction terms added onto out%Rnet
+       !NB entirety of %fns_cor is applied not (1-rad%transd)*
+       IF (cable_user%L_REV_CORR) THEN
+          out%Rnet = out%Rnet + canopy%fns_cor
+       ENDIF
+
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
           out%Rnet = out%Rnet / REAL(output%interval, 4)
