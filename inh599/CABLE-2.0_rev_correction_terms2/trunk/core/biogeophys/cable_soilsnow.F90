@@ -27,6 +27,7 @@
 !               NB Currently hard-wired to veg types 2 and 7
 !                  (usually evergreen broadleaf and c4 grass)
 !          v2.0 ssoil variable renamed ssnow
+!          Feb 2017 - applied changes for cls and rev_corr packages
 !
 ! ==============================================================================
 
@@ -51,9 +52,9 @@ MODULE cable_soil_snow_module
       snmin = 1.,          & ! for 3-layer;
       max_ssdn = 750.0,    & !
       max_sconds = 2.51,   & !
-      frozen_limit = 0.85    ! EAK Feb2011 (could be 0.95)
+      frozen_limit = 0.85    ! EAK Feb2011 (could be 0.95) - now a parameter
 
-   REAL :: cp    ! specific heat capacity for air
+   REAL :: cp                ! specific heat capacity for air
 
    !jhan:make parameter
    REAL :: max_glacier_snowd
@@ -115,7 +116,6 @@ SUBROUTINE trimb (a, b, c, rhs, kmax)
 
 END SUBROUTINE trimb
 
-! -----------------------------------------------------------------------------
 
 ! SUBROUTINE smoisturev (fwtop,dels,ssnow,soil)
 !      Solves implicit soil moisture equation
@@ -892,12 +892,17 @@ USE cable_common_module
    ! 'fess' is for soil evap and 'fes' is for soil evap plus soil puddle evap
    canopy%segg = canopy%fess / C%HL
    canopy%segg = ( canopy%fess + canopy%fes_cor ) / C%HL
-
+   
    ! Initialise snow evaporation:
-   ssnow%evapsn = 0
+   ssnow%evapsn = 0.0
 
-   ! Snow evaporation and dew on snow
-   WHERE( ssnow%snowd > 0.1 )
+   !Snow evaporation and dew on snow
+   !NB the conditions on when %fes applies to %segg or %evapsn MUST(!!)
+   ! match those used to set %cls in the latent_heat_flux calculations 
+   ! for moisture conservation purposes 
+   !Ticket 137 - using %cls as the trigger not %snowd
+   WHERE ( ssnow%cls == 1.1335 )
+   !WHERE (ssnow%snowd > 0.1)
 
       ssnow%evapsn = dels * ( canopy%fess + canopy%fes_cor ) / ( C%HL + C%HLF )
       xxx = ssnow%evapsn
@@ -917,7 +922,9 @@ USE cable_common_module
 
       canopy%segg = 0.0
 
-   END WHERE
+   ENDWHERE
+   
+   !INH:we may need to conserve moisture/energy in case of evapsn limited here
 
 END SUBROUTINE snow_accum
 
@@ -1059,6 +1066,7 @@ END SUBROUTINE surfbv
 ! ga - heat flux from the atmosphere (ground heat flux)
 ! ccnsw - soil thermal conductivity, including water/ice
 SUBROUTINE stempv(dels, canopy, ssnow, soil)
+
    REAL, INTENT(IN) :: dels ! integration time step (s)
 
    TYPE(canopy_type),    INTENT(INOUT) :: canopy
@@ -1700,6 +1708,7 @@ SUBROUTINE soil_snow(dels, soil, ssnow, canopy, met, bal, veg)
    REAL, DIMENSION(mp) :: xxx, tgg_old, tggsn_old
    REAL(r_2), DIMENSION(mp) :: xx,deltat,sinfil1,sinfil2,sinfil3
    REAL                :: zsetot
+   REAL                :: ian, ian1, ian2
    INTEGER, SAVE :: ktau =0
 
    CALL point2constants( C )
@@ -1838,7 +1847,7 @@ SUBROUTINE soil_snow(dels, soil, ssnow, canopy, met, bal, veg)
    CALL  soilfreeze(dels, soil, ssnow)
 
    totwet = canopy%precis + ssnow%smelt
-
+  
    ! total available liquid including puddle
    weting = totwet + max(0._r_2,ssnow%pudsto - canopy%fesp/C%HL*dels)
    xxx=soil%ssat - ssnow%wb(:,1)
@@ -1861,14 +1870,27 @@ SUBROUTINE soil_snow(dels, soil, ssnow, canopy, met, bal, veg)
 
    CALL surfbv(dels, met, ssnow, soil, veg, canopy )
 
-
    ! correction required for energy balance in online simulations
    IF( cable_runtime%um ) THEN
       canopy%fhs_cor = ssnow%dtmlt(:,1)*ssnow%dfh_dtg
-      canopy%fes_cor = ssnow%dtmlt(:,1)*(ssnow%dfe_ddq * ssnow%ddq_dtg)
+      !canopy%fes_cor = ssnow%dtmlt(:,1)*(ssnow%dfe_ddq * ssnow%ddq_dtg)
+      canopy%fes_cor = ssnow%dtmlt(:,1)*ssnow%dfe_dtg
 
       canopy%fhs = canopy%fhs+canopy%fhs_cor
       canopy%fes = canopy%fes+canopy%fes_cor
+
+      !associated changes to other energy balance terms
+      !NB canopy%fns changed not rad%flws as the correction term needs to
+      !pass through the canopy in entirety, not be partially absorbed
+      IF (cable_user%L_REV_CORR) THEN
+         canopy%fns_cor = ssnow%dtmlt(:,1)*ssnow%dfn_dtg
+         canopy%ga_cor = ssnow%dtmlt(:,1)*canopy%dgdtg
+
+         canopy%fns = canopy%fns + canopy%fns_cor
+         canopy%ga = canopy%ga + canopy%ga_cor
+
+         canopy%fess = canopy%fess + canopy%fes_cor
+      ENDIF         
    ENDIF
 
    ! redistrb (set in cable.nml) by default==.FALSE.
