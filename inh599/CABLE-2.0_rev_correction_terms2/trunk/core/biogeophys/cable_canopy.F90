@@ -773,11 +773,15 @@ CONTAINS
           relitt = real((1-ssnow%isflag))*veg%clitt*0.003/canopy%DvLitt
           
           ssnow%dfh_dtg = air%rho*C%CAPP/(rttsoil+rhlitt)
+          ssnow%dfe_ddq = ssnow%wetfac*air%rho*air%rlam*ssnow%cls/(rttsoil+relitt)        
           !factor ssnow%wetfac is not applied if dew/frost i.e. potev<0
           IF (cable_user%L_REV_CORR) THEN
-             ssnow%dfe_ddq = air%rho*air%rlam*ssnow%cls/(rttsoil+relitt)      
-          ELSE
-             ssnow%dfe_ddq = ssnow%wetfac*air%rho*air%rlam*ssnow%cls/(rttsoil+relitt)        
+             DO j=1,mp
+                IF (ssnow%potev(j)<0.) THEN
+                  ssnow%dfe_ddq(j) = air%rho(j)*air%rlam(j)*ssnow%cls(j) &
+                           /(rttsoil(j)+relitt(j))
+                ENDIF
+             ENDDO         
           ENDIF
 
        ELSE
@@ -785,12 +789,17 @@ CONTAINS
           !ssnow%dfe_ddq = ssnow%wetfac*air%rho*air%rlam*ssnow%cls/ssnow%rtsoil
 
           ssnow%dfh_dtg = air%rho*C%CAPP/rttsoil
+          ssnow%dfe_ddq = ssnow%wetfac*air%rho*air%rlam*ssnow%cls/rttsoil      
+          
           !factor ssnow%wetfac is not applied if dew/frost i.e. potev<0
           IF (cable_user%L_REV_CORR) THEN
-             ssnow%dfe_ddq = air%rho*air%rlam*ssnow%cls/rttsoil     
-          ELSE
-             ssnow%dfe_ddq = ssnow%wetfac*air%rho*air%rlam*ssnow%cls/rttsoil    
-          ENDIF
+             DO j=1,mp
+                IF (ssnow%potev(j)<0.) THEN
+                   ssnow%dfe_ddq(j) = air%rho(j)*air%rlam(j)*ssnow%cls(j) &
+                             / rttsoil(j)
+                ENDIF
+             ENDDO
+          ENDIF     
           
        ENDIF
 
