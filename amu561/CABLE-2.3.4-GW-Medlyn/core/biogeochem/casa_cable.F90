@@ -766,7 +766,7 @@ SUBROUTINE spincasacnp(fcnpspin,dels,kstart,kend,mloop,veg,soil,casabiome,casapo
   USE casavariable
   USE phenvariable
   IMPLICIT NONE
-  CHARACTER(LEN=99), INTENT(IN)  :: fcnpspin
+  CHARACTER(LEN=200), INTENT(IN)  :: fcnpspin
   REAL,    INTENT(IN)    :: dels
   INTEGER, INTENT(IN)    :: kstart
   INTEGER, INTENT(IN)    :: kend
@@ -791,7 +791,7 @@ SUBROUTINE spincasacnp(fcnpspin,dels,kstart,kend,mloop,veg,soil,casabiome,casapo
 
   ! local variables
   INTEGER                  :: myearspin,nyear, nloop1
-  CHARACTER(LEN=99)        :: ncfile
+  CHARACTER(LEN=200)       :: ncfile
   INTEGER                  :: ktau,ktauday,nday,idoy,ktaux,ktauy,nloop
   INTEGER, save            :: ndays
   real,      dimension(mp)      :: cleaf2met, cleaf2str, croot2met, croot2str, cwood2cwd
