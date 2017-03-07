@@ -1411,6 +1411,8 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
       ghr,        & ! dry canopy cond for heat & thermal rad
       anx,        & ! net photos. prev iteration
       an_y,       & ! net photosynthesis soln
+      rdx3,       & ! daytime leaf resp rate, prev iteration
+      rdx4,       & ! daytime leaf resp rate, prev iteration
       rdx,        & ! daytime leaf resp rate, prev iteration
       rdy,        & ! daytime leaf resp rate
       ejmax2,     & ! jmax of big leaf
@@ -1427,9 +1429,10 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
       gs_coeff,   & ! stom coeff, Ticket #56 
       psycst,     & ! modified pych. constant
       frac42,     & ! 2D frac4
-      temp2
+      temp2,      &
+      gswmin3, gswmin4
 
-   REAL, DIMENSION(:,:), POINTER :: gswmin ! min stomatal conductance
+   REAL, DIMENSION(:,:), POINTER :: gswmin  ! min stomatal conductance
    
    REAL(r_2), DIMENSION(:,:), POINTER :: wb2 !WUE fix
 
@@ -1487,6 +1490,8 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
    gsw_term = SPREAD(veg%gswmin,2,mf)
    lower_limit2 = rad%scalex * gsw_term
    gswmin = max(1.e-6,lower_limit2)
+   gswmin3 = gswmin
+   gswmin4 = gswmin
    
    gw = 1.0e-3 ! default values of conductance
    gh = 1.0e-3
@@ -1622,6 +1627,10 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
     
             rdx(i,1) = (veg%cfrd(i)*vcmxt3(i,1) + veg%cfrd(i)*vcmxt4(i,1))
             rdx(i,2) = (veg%cfrd(i)*vcmxt3(i,2) + veg%cfrd(i)*vcmxt4(i,2))
+            rdx3(i,1) = veg%cfrd(i)*vcmxt3(i,1)
+            rdx3(i,2) = veg%cfrd(i)*vcmxt3(i,2)
+            rdx4(i,1) = veg%cfrd(i)*vcmxt4(i,1)
+            rdx4(i,2) = veg%cfrd(i)*vcmxt4(i,2)
            
            ! Ticket #56 added switch for Belinda Medlyn's model
             IF (cable_user%GS_SWITCH == 'leuning') THEN
@@ -1638,6 +1647,8 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
             ELSEIF(cable_user%GS_SWITCH == 'medlyn') THEN
 
                 gswmin = veg%g0c3(i) * (1. - frac42) + veg%g0c4(i) * frac42
+                gswmin3 = veg%g0c3(i) * (1. - frac42)
+                gswmin4 = veg%g0c4(i) * frac42
                 
                 IF (dsx(i) < 50.0) THEN
                     vpd  = 0.05 ! kPa
@@ -1661,8 +1672,9 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
       CALL photosynthesis( csx(:,:),                                           &
                            SPREAD( cx1(:), 2, mf ),                            &
                            SPREAD( cx2(:), 2, mf ),                            &
-                           gswmin(:,:), rdx(:,:), vcmxt3(:,:),                 &
-                           vcmxt4(:,:), vx3(:,:), vx4(:,:),                    &
+                           gswmin3(:,:), gswmin4(:,:),                         &
+                           rdx3(:,:), rdx4(:,:),                               &
+                           vcmxt3(:,:), vcmxt4(:,:), vx3(:,:), vx4(:,:),       &
                            gs_coeff(:,:), rad%fvlai(:,:),& ! Ticket #56, xleuning replaced with gs_coeff here
                            SPREAD( abs_deltlf, 2, mf ),                        &
                            anx(:,:),fwsoil(:) )
@@ -1929,8 +1941,8 @@ END SUBROUTINE dryLeaf
 ! -----------------------------------------------------------------------------
 ! Ticket #56, xleuningz repalced with gs_coeffz
 ! -----------------------------------------------------------------------------
-SUBROUTINE photosynthesis( csxz, cx1z, cx2z, gswminz,                          &
-                           rdxz, vcmxt3z, vcmxt4z, vx3z,                       &
+SUBROUTINE photosynthesis( csxz, cx1z, cx2z, gswmin3z, gswmin4z,               &
+                           rdx3z, rdx4z, vcmxt3z, vcmxt4z, vx3z,               &
                            vx4z, gs_coeffz, vlaiz, deltlfz, anxz, fwsoilz )
    USE cable_def_types_mod, only : mp, mf, r_2
    
@@ -1939,8 +1951,10 @@ SUBROUTINE photosynthesis( csxz, cx1z, cx2z, gswminz,                          &
    REAL, DIMENSION(mp,mf), INTENT(IN) ::                                       &
       cx1z,       & !
       cx2z,       & !     
-      gswminz,    & !
-      rdxz,       & !
+      gswmin3z,   & !
+      gswmin4z,   & !
+      rdx3z,      & !
+      rdx4z,      & !
       vcmxt3z,    & !
       vcmxt4z,    & !
       vx4z,       & !
@@ -1955,7 +1969,8 @@ SUBROUTINE photosynthesis( csxz, cx1z, cx2z, gswminz,                          &
    ! local variables
    REAL(r_2), DIMENSION(mp,mf) ::                                              &
       coef0z,coef1z,coef2z, ciz,delcxz,                                        &
-      anrubiscoz,anrubpz,ansinkz
+      anrubisco3z,anrubp3z,ansink3z,                                           &
+      anrubisco4z,anrubp4z,ansink4z
 
    REAL, PARAMETER  :: effc4 = 4000.0  ! Vc=effc4*Ci*Vcmax (see
                                        ! Bonan,LSM version 1.0, p106)
@@ -1973,21 +1988,21 @@ SUBROUTINE photosynthesis( csxz, cx1z, cx2z, gswminz,                          &
 
                ! Rubisco limited:
                ! Ticket #56, xleuingz replaced with gs_coeffz
-               coef2z(i,j) = gswminz(i,j)*fwsoilz(i) / C%RGSWC + gs_coeffz(i,j) *           &
-                             ( vcmxt3z(i,j) - ( rdxz(i,j)-vcmxt4z(i,j) ) )
+               coef2z(i,j) = gswmin3z(i,j)*fwsoilz(i) / C%RGSWC + gs_coeffz(i,j) *           &
+                             ( vcmxt3z(i,j) - rdx3z(i,j) )
 
 
                coef1z(i,j) = (1.0-csxz(i,j)*gs_coeffz(i,j)) *                  &
-                             (vcmxt3z(i,j)+vcmxt4z(i,j)-rdxz(i,j))             &
-                             + (gswminz(i,j)*fwsoilz(i)/C%RGSWC)*(cx1z(i,j)-csxz(i,j)) &
+                             (vcmxt3z(i,j)-rdx3z(i,j))             &
+                             + (gswmin3z(i,j)*fwsoilz(i)/C%RGSWC)*(cx1z(i,j)-csxz(i,j)) &
                              - gs_coeffz(i,j)*(vcmxt3z(i,j)*cx2z(i,j)/2.0      &
-                             + cx1z(i,j)*(rdxz(i,j)-vcmxt4z(i,j) ) )
+                             + cx1z(i,j)*rdx3z(i,j) )
          
                 
                coef0z(i,j) = -(1.0-csxz(i,j)*gs_coeffz(i,j)) *                 &    
                              (vcmxt3z(i,j)*cx2z(i,j)/2.0                       &
-                             + cx1z(i,j)*( rdxz(i,j)-vcmxt4z(i,j ) ) )         &
-                             -( gswminz(i,j)*fwsoilz(i)/C%RGSWC ) * cx1z(i,j)*csxz(i,j)
+                             + cx1z(i,j)* rdx3z(i,j) )         &
+                             -( gswmin3z(i,j)*fwsoilz(i)/C%RGSWC ) * cx1z(i,j)*csxz(i,j)
 
 
                ! kdcorbin,09/10 - new calculations
@@ -2001,7 +2016,7 @@ SUBROUTINE photosynthesis( csxz, cx1z, cx2z, gswminz,                          &
                   ! quadratic below cannot handle zero denominator
                   ciz(i,j) = 99999.0        
                   
-                  anrubiscoz(i,j) = 99999.0 ! OR do ciz=0 and calc anrubiscoz
+                  anrubisco3z(i,j) = 99999.0 ! OR do ciz=0 and calc anrubiscoz
                   
                ENDIF
 
@@ -2014,9 +2029,8 @@ SUBROUTINE photosynthesis( csxz, cx1z, cx2z, gswminz,                          &
           
                   ciz(i,j) = MAX( 0.0_r_2, ciz(i,j) )
 
-                  anrubiscoz(i,j) = vcmxt3z(i,j)*(ciz(i,j)-cx2z(i,j) / 2.0 ) / &
-                                    ( ciz(i,j) + cx1z(i,j)) + vcmxt4z(i,j) -   &
-                                    rdxz(i,j)
+                  anrubisco3z(i,j) = vcmxt3z(i,j)*(ciz(i,j)-cx2z(i,j) / 2.0 ) / &
+                                    ( ciz(i,j) + cx1z(i,j)) - rdx3z(i,j)
   
                ENDIF
    
@@ -2031,28 +2045,30 @@ SUBROUTINE photosynthesis( csxz, cx1z, cx2z, gswminz,                          &
                              
                   ciz(i,j) = MAX( 0.0_r_2, ciz(i,j) )   ! must be positive, why?
    
-                  anrubiscoz(i,j) = vcmxt3z(i,j) * ( ciz(i,j) - cx2z(i,j)      &
-                                    / 2.0)  / ( ciz(i,j) + cx1z(i,j) ) +       &
-                                    vcmxt4z(i,j) - rdxz(i,j)
+                  anrubisco3z(i,j) = vcmxt3z(i,j) * ( ciz(i,j) - cx2z(i,j)      &
+                                    / 2.0)  / ( ciz(i,j) + cx1z(i,j) )        &
+                                    - rdx3z(i,j)
                
                ENDIF
+               anrubisco4z(i,j) = vcmxt4z(i,j) - rdx4z(i,j)
+
    
                ! RuBP limited:
                ! Ticket #56, all instances of xleuningz replaced with gs_coeffz
-               coef2z(i,j) = gswminz(i,j)*fwsoilz(i) / C%RGSWC + gs_coeffz(i,j)             &
-                             * ( vx3z(i,j) - ( rdxz(i,j) - vx4z(i,j) ) )
+               coef2z(i,j) = gswmin3z(i,j)*fwsoilz(i) / C%RGSWC + gs_coeffz(i,j)             &
+                             * ( vx3z(i,j) - rdx3z(i,j) )
    
                coef1z(i,j) = ( 1.0 - csxz(i,j) * gs_coeffz(i,j) ) *            &
-                             ( vx3z(i,j) + vx4z(i,j) - rdxz(i,j) )             &
-                             + ( gswminz(i,j)*fwsoilz(i) / C%RGSWC ) *          &
+                             ( vx3z(i,j) - rdx3z(i,j) )             &
+                             + ( gswmin3z(i,j)*fwsoilz(i) / C%RGSWC ) *          &
                              ( cx2z(i,j) - csxz(i,j) ) - gs_coeffz(i,j)        &
                              * ( vx3z(i,j) * cx2z(i,j) / 2.0 + cx2z(i,j) *     &
-                             ( rdxz(i,j) - vx4z(i,j) ) )                          
+                              rdx3z(i,j) )                          
                              
-                             coef0z(i,j) = -(1.0-csxz(i,j)*gs_coeffz(i,j)) *   &
+               coef0z(i,j) = -(1.0-csxz(i,j)*gs_coeffz(i,j)) *   &
                              (vx3z(i,j)*cx2z(i,j)/2.0                          &
-                             + cx2z(i,j)*(rdxz(i,j)-vx4z(i,j)))                &
-                        - (gswminz(i,j)*fwsoilz(i)/C%RGSWC)*cx2z(i,j)*csxz(i,j)
+                             + cx2z(i,j)*rdx3z(i,j))                &
+                        - (gswmin3z(i,j)*fwsoilz(i)/C%RGSWC)*cx2z(i,j)*csxz(i,j)
    
    
                !kdcorbin, 09/10 - new calculations
@@ -2061,7 +2077,7 @@ SUBROUTINE photosynthesis( csxz, cx1z, cx2z, gswminz,                          &
                    ABS( coef1z(i,j) ) < 1.0e-9 ) THEN
 
                   ciz(i,j) = 99999.0
-                  anrubpz(i,j)  = 99999.0
+                  anrubp3z(i,j)  = 99999.0
 
                ENDIF
    
@@ -2073,8 +2089,8 @@ SUBROUTINE photosynthesis( csxz, cx1z, cx2z, gswminz,                          &
                   
                   ciz(i,j) = MAX(0.0_r_2,ciz(i,j))
                   
-                  anrubpz(i,j) = vx3z(i,j)*(ciz(i,j)-cx2z(i,j)/2.0) /          &
-                                 (ciz(i,j)+cx2z(i,j)) +vx4z(i,j)-rdxz(i,j)
+                  anrubp3z(i,j) = vx3z(i,j)*(ciz(i,j)-cx2z(i,j)/2.0) /          &
+                                 (ciz(i,j)+cx2z(i,j)) -rdx3z(i,j)
                
                ENDIF
    
@@ -2088,30 +2104,32 @@ SUBROUTINE photosynthesis( csxz, cx1z, cx2z, gswminz,                          &
                    
                   ciz(i,j) = MAX(0.0_r_2,ciz(i,j)) 
                   
-                  anrubpz(i,j)  = vx3z(i,j)*(ciz(i,j)-cx2z(i,j)/2.0) /         &
-                                  (ciz(i,j)+cx2z(i,j)) +vx4z(i,j)-rdxz(i,j)
+                  anrubp3z(i,j)  = vx3z(i,j)*(ciz(i,j)-cx2z(i,j)/2.0) /         &
+                                  (ciz(i,j)+cx2z(i,j)) -rdx3z(i,j)
    
                ENDIF
+               anrubp4z(i,j)  = vx4z(i,j) - rdx4z(i,j)
+
                  
                ! Sink limited:
                ! Ticket #56, repalce all xleuningz with gs_coeffz
                coef2z(i,j) = gs_coeffz(i,j)
                
-               coef1z(i,j) = gswminz(i,j)*fwsoilz(i)/C%RGSWC + gs_coeffz(i,j)               &
-                             * (rdxz(i,j) - 0.5*vcmxt3z(i,j))                  &
+               coef1z(i,j) = gswmin4z(i,j)*fwsoilz(i)/C%RGSWC + gs_coeffz(i,j)               &
+                             * rdx4z(i,j)                  &
                              + effc4 * vcmxt4z(i,j) - gs_coeffz(i,j)           &
                              * csxz(i,j) * effc4 * vcmxt4z(i,j)  
                                             
-               coef0z(i,j) = -( gswminz(i,j)*fwsoilz(i)/C%RGSWC ) * csxz(i,j) * effc4 &
-                             * vcmxt4z(i,j) + ( rdxz(i,j)                      &
-                        - 0.5 * vcmxt3z(i,j)) * gswminz(i,j)*fwsoilz(i)/C%RGSWC
+               coef0z(i,j) = -( gswmin4z(i,j)*fwsoilz(i)/C%RGSWC ) * csxz(i,j) * effc4 &
+                             * vcmxt4z(i,j) +  rdx4z(i,j)                      &
+                         * gswmin4z(i,j)*fwsoilz(i)/C%RGSWC
           
                ! no solution, give it a huge number
                IF( ABS( coef2z(i,j) ) < 1.0e-9 .AND.                           &
                    ABS( coef1z(i,j)) < 1.0e-9 ) THEN
 
                   ciz(i,j) = 99999.0
-                  ansinkz(i,j)  = 99999.0
+                  ansink4z(i,j)  = 99999.0
 
                ENDIF
           
@@ -2120,7 +2138,7 @@ SUBROUTINE photosynthesis( csxz, cx1z, cx2z, gswminz,                          &
                    ABS( coef1z(i,j) ) >= 1.e-9 ) THEN
 
                   ciz(i,j) = -1.0 * coef0z(i,j) / coef1z(i,j)
-                  ansinkz(i,j)  = ciz(i,j)
+                  ansink4z(i,j)  = ciz(i,j)
 
                ENDIF
                
@@ -2132,13 +2150,20 @@ SUBROUTINE photosynthesis( csxz, cx1z, cx2z, gswminz,                          &
                   ciz(i,j) = (-coef1z(i,j)+SQRT (MAX(0.0_r_2,delcxz(i,j)) ) )  &
                              / ( 2.0 * coef2z(i,j) )
    
-                  ansinkz(i,j) = ciz(i,j)
+                  ansink4z(i,j) = ciz(i,j)
    
                ENDIF
+               ansink3z(i,j)  = 0.5 * vcmxt3z(i,j) - rdx3z(i,j)
           
 
                ! minimal of three limited rates
-               anxz(i,j) = MIN(anrubiscoz(i,j),anrubpz(i,j),ansinkz(i,j))
+               anxz(i,j) = MIN(anrubisco3z(i,j),anrubp3z(i,j),ansink3z(i,j))  &
+                         + MIN(anrubisco4z(i,j),anrubp4z(i,j),ansink4z(i,j))
+
+               ! just for checking the CO2 concentration
+               ciz(i,j)  = csxz(i,j) -anxz(i,j)         &
+                         / ( gs_coeffz(i,j)*anxz(i,j)   &
+                           + fwsoilz(i) *(gswmin3z(i,j) +gswmin4z(i,j))/C%RGSWC)
         
             ENDIF
       

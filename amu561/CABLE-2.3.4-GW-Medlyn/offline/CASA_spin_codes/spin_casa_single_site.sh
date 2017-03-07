@@ -41,8 +41,8 @@ else
 fi
 
 
-cable_outpath="${data_dir}/Outputs/${site}/${INDIR}_spin_alloc0.45"   #where store CABLE outputs from spin-up?
-cable_finalpath="${data_dir}/Outputs/${site}/${INDIR}_run_alloc0.45"   #where store CABLE outputs from final run (if step4=true)?
+cable_outpath="${data_dir}/Outputs/${site}/${INDIR}_spin_alloc0.5_can"   #where store CABLE outputs from spin-up?
+cable_finalpath="${data_dir}/Outputs/${site}/${INDIR}_run_alloc0.5_can"   #where store CABLE outputs from final run (if step4=true)?
 casa_outpath=$cable_outpath    #where store CASA outputs?
 
 
@@ -64,7 +64,7 @@ GWflag="TRUE"		#use groundwater scheme?
 
 
 
-executable="cable-r3970"	#name of CABLE executable
+executable="cable-r4016"	#name of CABLE executable
 
 
 step1=true #run Step 1?
