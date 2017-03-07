@@ -929,7 +929,7 @@ SUBROUTINE spinanalytic(fcnpspin,dels,kstart,kend,mloop,veg,soil,casabiome,casap
   USE casavariable
   USE phenvariable
   IMPLICIT NONE
-  CHARACTER(LEN=99), INTENT(IN)  :: fcnpspin
+  CHARACTER(LEN=250), INTENT(IN)  :: fcnpspin
   REAL,    INTENT(IN)    :: dels
   INTEGER, INTENT(IN)    :: kstart
   INTEGER, INTENT(IN)    :: kend
