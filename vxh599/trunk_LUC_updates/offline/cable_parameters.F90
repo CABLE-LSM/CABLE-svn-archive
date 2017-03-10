@@ -925,7 +925,7 @@ CONTAINS
   !=============================================================================
   SUBROUTINE write_default_params(met,  air,    ssnow, veg, bgc,               &
                                   soil, canopy, rough, rad, logn,              &
-                                  vegparmnew, month, TFRZ)
+                                  vegparmnew, month, TFRZ, LUC_EXPT)
   ! Initialize many canopy_type, soil_snow_type, soil_parameter_type and
   ! roughness_type variables;
   ! Calculate 'froot' from 'rootbeta' parameter;
@@ -947,7 +947,7 @@ CONTAINS
   !   landpt(mp)%type- via cable_IO_vars_module (%nap,cstart,cend,ilon,ilat)
   !   patch(mp)%type - via cable_IO_vars_module (%frac,longitude,latitude)
 
-    USE cable_common_module, only : vegin, soilin, calcsoilalbedo,             &
+    USE cable_common_module, only : vegin, soilin, calcsoilalbedo,  cable_user          &
                                     init_veg_from_vegin
     IMPLICIT NONE
     INTEGER,               INTENT(IN)    :: logn  ! log file unit number
@@ -963,6 +963,7 @@ CONTAINS
     TYPE (canopy_type),         INTENT(INOUT)   :: canopy
     TYPE (roughness_type),      INTENT(INOUT)   :: rough
     TYPE (radiation_type),      INTENT(INOUT)   :: rad
+    TYPE (LUC_EXPT_TYPE), INTENT(IN) :: LUC_EXPT
 
     INTEGER,dimension(:), ALLOCATABLE :: ALLVEG
     INTEGER :: e,f,h,i  ! do loop counter
@@ -1078,7 +1079,7 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
       ! set land use (1 = primary; 2 = secondary, 3 = open)
       if (cable_user%popluc) then
          veg%iLU(landpt(e)%cstart:landpt(e)%cend)= 1
-         if (landpt(e)%nap.gt.1) then
+         if (landpt(e)%nap.eq.3 .and.veg%iveg(landpt(e)%cstart)<=5 ) then
             veg%iLU(landpt(e)%cstart+1) = 2
             veg%iLU(landpt(e)%cend) = 3
          endif
@@ -1355,15 +1356,13 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
 
       IF(cable_user%SOIL_STRUC=='sli') THEN
          soil%nhorizons = 1 ! use 1 soil horizon globally
-        ! veg%clitt = 5.0 ! (tC / ha)
-         veg%F10 = 0.85
+          veg%F10 = 0.85
          veg%ZR = 5.0
       END IF
 
       IF(cable_user%SOIL_STRUC=='sli'.or.cable_user%FWSOIL_SWITCH=='Haverd2013') THEN
          veg%gamma = 3.e-2
-         !veg%clitt = 5.0 ! (tC / ha)
-      ENDIF
+       ENDIF
 !! vh_js !!
       IF(cable_user%CALL_POP) THEN
          veg%disturbance_interval = 100
