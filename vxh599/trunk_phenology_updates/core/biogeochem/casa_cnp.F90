@@ -792,7 +792,8 @@ SUBROUTINE casa_xrateplant(xkleafcold,xkleafdry,xkleaf,veg,casabiome, &
     ! vh: account for high rate of leaf loss during senescence
     ! vh_js
     if (trim(cable_user%PHENOLOGY_SWITCH)=='climate') then
-       IF (phen%phase(npt)==3.or.phen%phase(npt)==0) xkleaf(npt)= 100.0
+       ! increases base turnover rate by a factor of 26 (for base turnover time of 1y, this reduces it to 2 weeks)
+       IF (phen%phase(npt)==3.or.phen%phase(npt)==0) xkleaf(npt)= 26. 
     endif
   END IF
   END DO
