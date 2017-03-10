@@ -59,6 +59,7 @@ SUBROUTINE cable_climate(ktau,kstart,kend,ktauday,idoy,LOY,met,climate, canopy, 
   real, PARAMETER:: Gaero = 0.015  ! (m s-1) aerodynmaic conductance (for use in PT evap)
   real, PARAMETER:: Capp   = 29.09    ! isobaric spec heat air    [J/molA/K]
   real, PARAMETER:: SBoltz  = 5.67e-8  ! Stefan-Boltzmann constant [W/m2/K4]
+  real, PARAMETER:: moisture_min = 0.35
   climate%doy = idoy
 
 !!$! * Find irradiances, available energy, equilibrium latent heat flux
@@ -85,13 +86,15 @@ SUBROUTINE cable_climate(ktau,kstart,kend,ktauday,idoy,LOY,met,climate, canopy, 
 
   IF (idoy==1 .and. MOD(ktau,ktauday)==1 ) THEN
       !  climate%evap_PT =  max(phiEq,1.0)*CoeffPT/air%rlam*dels  ! mm
-        climate%evap_PT =  phiEq*CoeffPT/air%rlam*dels  ! mm
+        climate%evap_PT =  phiEq*CoeffPT/2.5014e6*dels  ! mm
       !  climate%evap_PT = canopy%epot  ! mm
       !  climate%aevap  =   canopy%fe/air%rlam*dels ! mm
         climate%aevap = met%precip ! mm
   ELSE
 
-     climate%evap_PT = climate%evap_PT + max(phiEq,1.0)*CoeffPT/air%rlam*dels  ! mm
+    ! climate%evap_PT = climate%evap_PT + max(phiEq,1.0)*CoeffPT/air%rlam*dels  ! mm
+    climate%evap_PT = climate%evap_PT + phiEq*CoeffPT/2.5014e6*dels  ! mm
+
     ! climate%evap_PT =climate%evap_PT + canopy%epot  ! mm
     ! climate%aevap =  climate%aevap + canopy%fe/air%rlam*dels ! mm
      climate%aevap = climate%aevap + met%precip ! mm
@@ -156,6 +159,13 @@ SUBROUTINE cable_climate(ktau,kstart,kend,ktauday,idoy,LOY,met,climate, canopy, 
      WHERE (climate%dtemp<5.0 .and. climate%chilldays<=365)
         climate%chilldays = climate%chilldays + 1
      ENDWHERE
+
+     ! update GMD (growing moisture day) counter
+    where (climate%dmoist .gt. moisture_min)
+     climate%gmd = climate%gmd + 1
+    elsewhere
+     climate%gmd = 0
+    endwhere
 
      ! Save yesterday's mean temperature for the last month
      mtemp_last=climate%mtemp
@@ -366,7 +376,7 @@ DO k=1,np
    ENDIF
    
    IF (climate%mtemp_min20(k).GE.-35 .and. climate%mtemp_min20(k).LE.-2 .and. &
-     alpha_PT_scaled(k).GE.0.35 .and. climate%agdd5(k).gt.350 )  THEN
+     alpha_PT_scaled(k).GE.0.35 .and. climate%agdd5(k).gt.550 )  THEN
       IF (pft_biome1(k,1).eq.999 ) THEN
          pft_biome1(k,1) = 6
       ELSEIF (pft_biome1(k,2).eq.999 ) THEN
@@ -377,7 +387,7 @@ DO k=1,np
    ENDIF
    
    IF ( climate%mtemp_min20(k).LE. 5 .and. &
-        alpha_PT_scaled(k).GE.0.45 .and. climate%agdd5(k).gt.350 )  THEN
+        alpha_PT_scaled(k).GE.0.35 .and. climate%agdd5(k).gt.550 )  THEN
       IF (pft_biome1(k,1).eq.999 ) THEN
          pft_biome1(k,1) = 7
       ELSEIF (pft_biome1(k,2).eq.999 ) THEN
@@ -539,6 +549,16 @@ if ((climate%iveg(k)==1 .OR.climate%iveg(k)==3 .OR. climate%iveg(k)==4) &
    climate%iveg(k) = 2
 endif
 
+
+! check for EBL in temperate South America: set to Warm grass/shrub instead.
+if (climate%biome(k)==4 .and. &
+     (patch(k)%latitude>=-46.25 .and. patch(k)%latitude<= -23.25 &
+      .and. patch(k)%longitude>=-65.25 .and. patch(k)%longitude<=-42.75)) then
+      climate%biome(k) = 12
+      climate%iveg(k) = 5
+endif
+
+
 !"(/grass:1/shrub:2/woody:3"
 !1,3,Evergreen Needleleaf Forest
 !2,3,Evergreen Broadleaf Forest,,,,,,,,,,,,,,,,,,
@@ -607,7 +627,7 @@ if (cable_user%climate_fromzero) then
    climate%alpha_PT_20=0
    climate%iveg = 999
    climate%biome = 999
-
+   climate%gmd = 0
 
 else
    CALL READ_CLIMATE_RESTART_NC (climate)
@@ -643,7 +663,7 @@ SUBROUTINE WRITE_CLIMATE_RESTART_NC ( climate )
   ! 1 dim arrays (npt )
   CHARACTER(len=20),DIMENSION(20) :: A1
  ! 1 dim arrays (integer) (npt )
-  CHARACTER(len=20),DIMENSION(3) :: AI1
+  CHARACTER(len=20),DIMENSION(4) :: AI1
   ! 2 dim arrays (npt,20)
   CHARACTER(len=20),DIMENSION(3) :: A2
   ! 2 dim arrays (npt,31)
@@ -683,6 +703,7 @@ SUBROUTINE WRITE_CLIMATE_RESTART_NC ( climate )
   AI1(1) = 'chilldays'
   AI1(2) = 'iveg'
   AI1(3) = 'biome'
+  AI1(4) = 'GMD'
 
   A2(1) = 'mtemp_min_20'
   A2(2) = 'mtemp_max_20'
@@ -693,6 +714,7 @@ SUBROUTINE WRITE_CLIMATE_RESTART_NC ( climate )
 
   A4(1) = 'dtemp_91'
 
+!# define UM_BUILD YES
 # ifndef UM_BUILD
 
   ! Get File-Name
@@ -836,6 +858,9 @@ STATUS = NF90_PUT_VAR(FILE_ID, VID1(5), climate%qtemp )
   STATUS = NF90_PUT_VAR(FILE_ID, VIDI1(3), climate%biome )
   IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
 
+  STATUS = NF90_PUT_VAR(FILE_ID, VIDI1(4), climate%GMD )
+  IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+
   STATUS = NF90_PUT_VAR(FILE_ID, VID2(1), climate%mtemp_min_20 )
   IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
 
@@ -884,7 +909,7 @@ SUBROUTINE READ_CLIMATE_RESTART_NC ( climate )
   ! 1 dim arrays (npt )
   CHARACTER(len=20),DIMENSION(20) :: A1
  ! 1 dim arrays (integer) (npt )
-  CHARACTER(len=20),DIMENSION(3) :: AI1
+  CHARACTER(len=20),DIMENSION(4) :: AI1
   ! 2 dim arrays (npt,20)
   CHARACTER(len=20),DIMENSION(3) :: A2
   ! 2 dim arrays (npt,31)
@@ -925,6 +950,7 @@ SUBROUTINE READ_CLIMATE_RESTART_NC ( climate )
   AI1(1) = 'chilldays'
   AI1(2) = 'iveg'
   AI1(3) = 'biome'
+  AI1(4) = 'GMD'
 
   A2(1) = 'mtemp_min_20'
   A2(2) = 'mtemp_max_20'
@@ -1035,6 +1061,7 @@ SUBROUTINE READ_CLIMATE_RESTART_NC ( climate )
      CASE ('chilldays'      ) ; climate%chilldays      = TMPI
      CASE ('iveg'      ) ; climate%iveg     = TMPI
      CASE ('biome'      ) ; climate%biome     = TMPI
+     CASE ('GMD'      ) ; climate%GMD     = TMPI
      END SELECT
   END DO
 
