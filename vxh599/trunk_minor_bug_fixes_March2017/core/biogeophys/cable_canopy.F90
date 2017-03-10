@@ -254,9 +254,12 @@ CONTAINS
 
              where (canopy%zetar(:,iter) .gt. 1.e-6)! stable conditions
 
+
                 csw = min(0.3*((log((veg%hc-rough%disp)/rough%z0m) + phist*psihat - &
-                     psim(canopy%zetar(:,iter)*(veg%hc-rough%disp)/(rough%zref_tq-rough%disp))+ &
-                     psim(canopy%zetar(:,iter)*rough%z0m/(rough%zref_tq-rough%disp)))/0.4)**2/2., 3.0)* c%csw
+                     psim(canopy%zetar(:,iter)*(veg%hc-rough%disp)/(rough%zref_tq))+ &
+                     psim(canopy%zetar(:,iter)*rough%z0m/(rough%zref_tq)))/0.4)**2/2., 3.0)* c%csw
+
+               
              elsewhere
                 csw = c%csw
              endwhere

@@ -384,8 +384,8 @@ SUBROUTINE casa_allocation(veg,soil,casabiome,casaflux,casapool,casamet,phen,LAL
            casaflux%fracCalloc(:,leaf)  = 0.0
         ENDWHERE
 
-!! vh !! don't require this fix for LALLOC = 3 (POP allocation scheme)
-!! Thiss fix can lead to over-allocation to roots, in turn bumping up N-uptake
+!! vh !! 
+!! This fix can lead to over-allocation to roots, in turn bumping up N-uptake
 !! , leading to decline in mineral nitrogen availability and spikes in fracCalloc,
 !! causing spikes in tree mortality and lack of model convergence in productive
 !! regions where LAI is hitting LAImax.
@@ -1668,10 +1668,7 @@ SUBROUTINE avgsoil(veg,soil,casamet)
                              * casamet%tsoil(nland,ns)
     casamet%moistavg(nland)  = casamet%moistavg(nland)+ veg%froot(nland,ns) &
                            * min(soil%sfc(nland),casamet%moist(nland,ns))
-    casamet%btran(nland)     = casamet%btran(nland)+ veg%froot(nland,ns)  &
-            * (min(soil%sfc(nland),casamet%moist(nland,ns))-soil%swilt(nland)) &
-            /(soil%sfc(nland)-soil%swilt(nland))
-
+    
  ! Ticket#121
 
     casamet%btran(nland)     = casamet%btran(nland)+ veg%froot(nland,ns)  &
@@ -2110,9 +2107,9 @@ SUBROUTINE casa_cnpcycle(veg,casabiome,casapool,casaflux,casamet, LALLOC)
     casamet%glai(np)   = MAX(casabiome%glaimin(veg%iveg(np)), &
                                casabiome%sla(veg%iveg(np)) * casapool%cplant(np,leaf))
    ! vh !
-    IF (LALLOC.ne.3) THEN
+    !IF (LALLOC.ne.3) THEN
        casamet%glai(np)   = MIN(casabiome%glaimax(veg%iveg(np)), casamet%glai(np))
-    ENDIF
+    !ENDIF
     casapool%clitter(np,:) = casapool%clitter(np,:) &
                            + casapool%dClitterdt(np,:) * deltpool
     casapool%csoil(np,:)   = casapool%csoil(np,:)   &
@@ -2272,19 +2269,19 @@ SUBROUTINE casa_cnpbal(casapool,casaflux,casabal)
    casabal%cbalance(:) = Cbalplant(:) + Cbalsoil(:)
 
 
- do npt=1,mp
-    IF(abs(casabal%cbalance(npt))>1e-10) THEN
-      write(*,*) 'cbalance',  npt, Cbalplant(npt), Cbalsoil(npt)
-      write(*,*) 'cplant', casapool%cplant(npt,:)
-      write(*,*) 'gpp, npp',casaflux%Cgpp(npt) , &
-           casaflux%Cnpp(npt)
-      write(*,*) 'dcplandt',  casapool%dcplantdt(npt,:), sum(casapool%dcplantdt(npt,:))
-      write(*,*) 'rmplant, rgplant',  casaflux%crmplant(npt,:) , casaflux%crgplant(npt)
-      write(*,*), 'dclabile',  casapool%dClabiledt(npt)* deltpool
-       
-     !  STOP
-    ENDIF
- ENDDO
+!!$ do npt=1,mp
+!!$    IF(abs(casabal%cbalance(npt))>1e-10) THEN
+!!$      write(*,*) 'cbalance',  npt, Cbalplant(npt), Cbalsoil(npt)
+!!$      write(*,*) 'cplant', casapool%cplant(npt,:)
+!!$      write(*,*) 'gpp, npp',casaflux%Cgpp(npt) , &
+!!$           casaflux%Cnpp(npt)
+!!$      write(*,*) 'dcplandt',  casapool%dcplantdt(npt,:), sum(casapool%dcplantdt(npt,:))
+!!$      write(*,*) 'rmplant, rgplant',  casaflux%crmplant(npt,:) , casaflux%crgplant(npt)
+!!$      write(*,*), 'dclabile',  casapool%dClabiledt(npt)* deltpool
+!!$       
+!!$     !  STOP
+!!$    ENDIF
+!!$ ENDDO
 
 
 
