@@ -135,7 +135,7 @@ cable_roughness.o: cable_roughness.F90 cable_define_types.o cable_common.o cable
 cable_soilsnow.o: cable_soilsnow.F90 cable_iovars.o cable_define_types.o cable_common.o \
 	cable_data.o
 
-cable_soilsnow_GW.o: cable_soilsnow_GW.F90 cable_iovars.o cable_define_types.o cable_common.o cable_data.o
+cable_soilsnow_GW.o: cable_soilsnow_GW.F90 cable_iovars.o cable_define_types.o cable_common.o cable_data.o cable_soilsnow.o
 
 casa_variable.o: casa_variable.F90 POP.o  
 
