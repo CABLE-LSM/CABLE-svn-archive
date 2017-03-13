@@ -302,7 +302,7 @@ SUBROUTINE casa_allocation(veg,soil,casabiome,casaflux,casamet,phen)
   casaflux%fracCalloc(:,froot) = casaflux%fracCalloc(:,froot)/totfracCalloc(:)
 
 
-  PRINT *, "CASA_Calloc",casaflux%fracCalloc(:,leaf)+casaflux%fracCalloc(:,wood)
+ ! PRINT *, "CASA_Calloc",casaflux%fracCalloc(:,leaf)+casaflux%fracCalloc(:,wood)
 
 END SUBROUTINE casa_allocation  
 
@@ -704,6 +704,7 @@ SUBROUTINE casa_coeffsoil(xklitter,xksoil,veg,soil,casabiome,casaflux,casamet)
 
   ENDWHERE
    
+
   DO nland=1,mp
     IF(casamet%iveg2(nland)/=icewater) THEN
       DO j=1,mlitter

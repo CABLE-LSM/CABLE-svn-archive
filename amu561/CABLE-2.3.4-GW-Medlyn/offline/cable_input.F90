@@ -2667,7 +2667,8 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,bgc,                              &
  !        WRITE(logn,*) ' Initialize pool sizes with poolcnp####.csv file.' 
           !CALL casa_init(casabiome,casamet,casapool,casabal,veg,phen)
           WRITE(logn,*) ' Initialize pool sizes with values in restart file.' 
-          CALL get_casa_restart(casamet,casapool,casabal,phen) 
+          CALL get_casa_restart(casamet,casapool,casabal,phen)
+          PRINT *, "CASA csoil right after reading from file", casapool%csoil
       ENDIF
 
     END IF ! if restart file exists
