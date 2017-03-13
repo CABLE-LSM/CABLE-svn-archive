@@ -804,11 +804,11 @@ SUBROUTINE spincasacnp(fcnpspin,dels,kstart,kend,mloop,veg,soil,casabiome,casapo
   real(r_2), dimension(mp) :: xnplimit,  xkNlimiting, xklitter, xksoil,xkleaf, xkleafcold, xkleafdry
 
   ! more variables to store the spinup pool size over the last 10 loops. Added by Yp Wang 30 Nov 2012
-  real,      dimension(10,mvtype,mplant)  :: bmcplant,  bmnplant,  bmpplant
-  real,      dimension(10,mvtype,mlitter) :: bmclitter, bmnlitter, bmplitter
-  real,      dimension(10,mvtype,msoil)   :: bmcsoil,   bmnsoil,   bmpsoil
-  real,      dimension(10,mvtype)         :: bmnsoilmin,bmpsoillab,bmpsoilsorb, bmpsoilocc
-  real,      dimension(mvtype)            :: bmarea
+  real,      dimension(5,mvtype,mplant)  :: bmcplant,  bmnplant,  bmpplant
+  real,      dimension(5,mvtype,mlitter) :: bmclitter, bmnlitter, bmplitter
+  real,      dimension(5,mvtype,msoil)   :: bmcsoil,   bmnsoil,   bmpsoil
+  real,      dimension(5,mvtype)         :: bmnsoilmin,bmpsoillab,bmpsoilsorb, bmpsoilocc
+  real,      dimension(mvtype)           :: bmarea
   integer nptx,nvt,kloop
 
 
@@ -830,9 +830,8 @@ SUBROUTINE spincasacnp(fcnpspin,dels,kstart,kend,mloop,veg,soil,casabiome,casapo
   call spinanalytic(fcnpspin,dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
                        casaflux,casamet,casabal,phen)
 
-PRINT *, "xklitter after calling spinanalytic", xklitter
 
-  nloop1= max(1,mloop-4)
+  nloop1= max(1,mloop-3)
 
   DO nloop=2,mloop
 
@@ -868,7 +867,6 @@ PRINT *, "xklitter after calling spinanalytic", xklitter
                          cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,   &
                          nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,   &
                          pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
-
 !    write(89,891) idoy,nyear,nloop,nptx,&
 !                  casaflux%cgpp(nptx),casaflux%cnpp(nptx),casaflux%crmplant(nptx,:),casaflux%Crgplant(nptx),casaflux%Crsoil(nptx), &
 !                  casaflux%clabloss(nptx),casapool%dClabiledt(nptx),casaflux%fracClabile(nptx),                                  &
@@ -878,8 +876,7 @@ PRINT *, "xklitter after calling spinanalytic", xklitter
   ENDDO   ! end of nyear
   close(91)
 
-  PRINT *, "nloop", nloop
-  PRINT *, "nloop1", nloop1
+
   891 format(4(i6,2x),100(f9.2,1x))
 
     if(nloop>=nloop1) then
@@ -888,8 +885,10 @@ PRINT *, "xklitter after calling spinanalytic", xklitter
             bmcplant,bmnplant,bmpplant,bmclitter,bmnlitter,bmplitter, &
             bmcsoil,bmnsoil,bmpsoil,bmnsoilmin,bmpsoillab,bmpsoilsorb, &
             bmpsoilocc,bmarea)
-    endif
 
+
+
+    endif
 
   ENDDO     ! end of nloop
 
@@ -927,9 +926,6 @@ PRINT *, "xklitter after calling spinanalytic", xklitter
   CLOSE(92)   
   151 FORMAT(i6,100(f12.5,2x))
 
-  PRINT*,"END SPIN variables", nvt, bmpplant(kloop,nvt,:),bmplitter(kloop,nvt,:),bmpsoil(kloop,nvt,:),  &
-                              bmpsoillab(kloop,nvt), bmpsoilsorb(kloop,nvt), bmpsoilocc(kloop,nvt)
-  PRINT *,"ENDING spinning up"
 
 END SUBROUTINE spincasacnp
 
@@ -1081,7 +1077,6 @@ SUBROUTINE spinanalytic(fcnpspin,dels,kstart,kend,mloop,veg,soil,casabiome,casap
     enddo
     enddo
 
-    PRINT*, "AVERAGE klitter", avg_xklitter
     CLOSE(91)
 
     avg_cleaf2met = avg_cleaf2met/real(nday*myearspin)
@@ -1121,7 +1116,6 @@ SUBROUTINE spinanalytic(fcnpspin,dels,kstart,kend,mloop,veg,soil,casabiome,casap
     avg_rationcsoilslow = avg_rationcsoilslow /real(nday*myearspin)
     avg_rationcsoilpass = avg_rationcsoilpass /real(nday*myearspin)
 
-    PRINT *, "CASA csoil before analyticpool", casapool%csoil
     call analyticpool(kend,veg,soil,casabiome,casapool,                                          &
                           casaflux,casamet,casabal,phen,                                         &
                           avg_cleaf2met,avg_cleaf2str,avg_croot2met,avg_croot2str,avg_cwood2cwd, &
@@ -1131,11 +1125,6 @@ SUBROUTINE spinanalytic(fcnpspin,dels,kstart,kend,mloop,veg,soil,casabiome,casap
                           avg_xnplimit,avg_xkNlimiting,avg_xklitter,avg_xksoil,                  &
                           avg_ratioNCsoilmic,avg_ratioNCsoilslow,avg_ratioNCsoilpass,            &
                           avg_nsoilmin,avg_psoillab,avg_psoilsorb,avg_psoilocc)
-
-PRINT *, "CASA xklitter after analyticpool", xklitter
-PRINT *, "CASA avg_xklitter after analyticpool", avg_xklitter
-PRINT *, "Finishing spinanalytic"
-
 
 END SUBROUTINE spinanalytic
 !----------------------------------------------------------------------------------------
@@ -1294,8 +1283,6 @@ END SUBROUTINE spinanalytic
   casabal%sumpbal(:)   = 0.0
 
 
-PRINT *,"start of analyticpool", casaflux%klitter
-
 !  write(517,*),'before
 !  analyticpool:casaflux%klitter(39:40,1:3),casa%ksoil(39:40,1:3),avgxkNlimiting(39:40),avgxklitter(39:40),casabiome%fracLigninplant(veg%iveg(39:40),1:3),casapool%clitter(39:40,1:3),casa%csoil%(39:40,1:3)',casaflux%klitter(39:40,1:3),casaflux%ksoil(39:40,1:3),avgxkNlimiting(39:40),avgxklitter(39:40),casabiome%fracLigninplant(veg%iveg(39:40),1:3),casapool%clitter(39:40,:),casapool%csoil(39:40,:)
   DO npt=1,mp
@@ -1338,13 +1325,6 @@ PRINT *,"start of analyticpool", casaflux%klitter
       ENDIF
   ENDDO
 
-PRINT *,"VARIABLES in analyticpool"
-PRINT *,"avgxkNlimiting", avgxkNlimiting
-PRINT *,"avgxklitter", avgxklitter
-PRINT *,"litterrate", casabiome%litterrate 
-PRINT *,"klitter", casaflux%klitter
-
-
   DO npt=1,mp
        
       IF(casamet%iveg2(npt)/=icewater.and.avgcnpp(npt) > 0.0) then
@@ -1357,10 +1337,6 @@ PRINT *,"klitter", casaflux%klitter
                                        +casaflux%fromLtoS(npt,mic,cwd)*casaflux%klitter(npt,cwd)*casapool%clitter(npt,cwd) )   &
                                        /MAX(1.e-10, casaflux%ksoil(npt,mic))
 
-           PRINT *,"ENTERING here #1", casaflux%fromLtoS(npt,mic,metb),  casaflux%klitter(npt,metb), casapool%clitter(npt,metb), &
-casaflux%fromLtoS(npt,mic,str), casaflux%klitter(npt,str),casapool%clitter(npt,str),  casaflux%fromLtoS(npt,mic,cwd), &
-casaflux%klitter(npt,cwd), casapool%clitter(npt,cwd),  casaflux%ksoil(npt,mic)
-           PRINT*, "Csoil mic", casapool%csoil(npt,mic)
           casapool%csoil(npt,slow)   = (casaflux%fromLtoS(npt,slow,metb)*casaflux%klitter(npt,metb)*casapool%clitter(npt,metb) &
                                        +casaflux%fromLtoS(npt,slow,str)*casaflux%klitter(npt,str)*casapool%clitter(npt,str)    &
                                        +casaflux%fromLtoS(npt,slow,cwd)*casaflux%klitter(npt,cwd)*casapool%clitter(npt,cwd)    &
@@ -1439,7 +1415,6 @@ casaflux%klitter(npt,cwd), casapool%clitter(npt,cwd),  casaflux%ksoil(npt,mic)
       ENDIF
   ENDDO
 
-PRINT *,"analyticpool, casapool%csoil",casapool%csoil(1,:)
   END SUBROUTINE analyticpool
 
 

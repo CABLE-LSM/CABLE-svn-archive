@@ -1518,7 +1518,6 @@ SUBROUTINE biogeochem(ktau,dels,idoY,veg,soil,casabiome,casapool,casaflux, &
 
   xKNlimiting = 1.0
 
-  PRINT *,"PRINTING xklitter inside biogeochem #1", xklitter
  ! zero annual sums
   if (idoy==1) CALL casa_cnpflux(casaflux,casabal)
 
@@ -1542,7 +1541,6 @@ SUBROUTINE biogeochem(ktau,dels,idoY,veg,soil,casabiome,casapool,casaflux, &
   call casa_xratesoil(xklitter,xksoil,veg,soil,casamet,casabiome)
   call casa_coeffsoil(xklitter,xksoil,veg,soil,casabiome,casaflux,casamet)
 
-PRINT *, "xklitter biogeochem #2", xklitter
 
   IF (icycle>1) THEN
     call casa_xkN(xkNlimiting,casapool,casaflux,casamet,casabiome,veg)
