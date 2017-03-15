@@ -287,8 +287,8 @@ MODULE cable_def_types_mod
          wbliq,   &    ! volumetric liquid water content  [mm3/mm3]
          wmliq,   &    !water mass [mm] liq
          wmice,   &    !water mass [mm] ice
-         wmtot         !water mass [mm] liq+ice ->total
-
+         wmtot,   &    !water mass [mm] liq+ice ->total
+         qhlev
      ! Additional SLI variables:
      REAL(r_2), DIMENSION(:,:), POINTER :: S         ! moisture content relative to sat value    (edit vh 23/01/08)
      REAL(r_2), DIMENSION(:,:), POINTER :: Tsoil         !     Tsoil (deg C)
@@ -939,6 +939,7 @@ SUBROUTINE alloc_soil_snow_type(var, mp)
    ALLOCATE( var%GWwbeq(mp) )
    ALLOCATE( var%GWzq(mp) )
    ALLOCATE( var%qhz(mp) )
+   ALLOCATE( var%qhlev(mp,ms+1) )
    ALLOCATE( var%satfrac(mp) )
    ALLOCATE( var%Qrecharge(mp) )
    ALLOCATE( var%rh_srf(mp) )
@@ -1542,6 +1543,7 @@ SUBROUTINE dealloc_soil_snow_type(var)
    DEALLOCATE( var%GWwbeq )
    DEALLOCATE( var%GWzq )
    DEALLOCATE( var%qhz )
+   DEALLOCATE( var%qhlev )
    DEALLOCATE( var%satfrac )
    DEALLOCATE( var%Qrecharge )
    DEALLOCATE( var%rh_srf )

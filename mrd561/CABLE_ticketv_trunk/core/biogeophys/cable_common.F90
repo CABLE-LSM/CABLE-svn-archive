@@ -153,6 +153,7 @@ MODULE cable_common_module
      !using GSWP3 forcing?
      LOGICAL :: GSWP3 = .FALSE.
      LOGICAL :: or_evap = .FALSE.
+     LOGICAL :: test_new_gw=.false.
 
   END TYPE kbl_user_switches
 
