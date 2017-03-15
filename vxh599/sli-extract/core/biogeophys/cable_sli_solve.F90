@@ -120,7 +120,7 @@ CONTAINS
 
     SUBROUTINE get_fluxes_and_derivs( &
             irec, mp, qprec, qprec_snow, n, dx, h0, &
-            Tsoil, &
+            Tsoil, S, &
             qh, vmet, vlit, vsnow, var, T0, Tsurface, &
             dxL, SL, Tl, &
             plit, par, &
@@ -148,7 +148,7 @@ CONTAINS
         INTEGER(i_d)                                           :: n
         REAL(r_2),      DIMENSION(1:n) :: dx
         REAL(r_2),      DIMENSION(1:mp)                        :: h0
-        REAL(r_2),      DIMENSION(1:n) :: Tsoil
+        REAL(r_2),      DIMENSION(1:n) :: Tsoil, S
         REAL(r_2),      DIMENSION(-nsnow_max:n) :: qh
         TYPE(vars_met), DIMENSION(1:mp)                        :: vmet
         TYPE(vars),     DIMENSION(1:mp)                        :: vlit
@@ -294,6 +294,7 @@ CONTAINS
              qvTb(1:n) = qTb(1:n)
              qlTb(1:n) = zero
 
+            
              ! get  fluxes heat and derivatives (at time t=0, i.e. q0 etc.)
              call getheatfluxes(n, dx(1:n), dxL(kk), &
                   qh(0:n), qhya(0:n), qhyb(0:n), qhTa(0:n), qhTb(0:n), &
@@ -476,7 +477,7 @@ CONTAINS
     END SUBROUTINE
 
     SUBROUTINE estimate_timestep( &
-            tfin, mp, n, dx, h0, &
+            irec, tfin, mp, n, dx, h0, &
             qh, nsteps, vlit, vsnow, var, &
             dxL, &
             plit, par, &
@@ -494,7 +495,7 @@ CONTAINS
             )
         IMPLICIT NONE
         REAL(r_2)                                              :: tfin
-        INTEGER(i_d)                                           :: mp
+        INTEGER(i_d)                                           :: mp, irec
         INTEGER(i_d)                                           :: n
         REAL(r_2),      DIMENSION(1:n) :: dx
         REAL(r_2),      DIMENSION(1:mp)                        :: h0
@@ -613,7 +614,8 @@ CONTAINS
              end if
 
              !----- end estimate time step dt
-
+             
+             
     END SUBROUTINE
 
     SUBROUTINE iflux_loop( &
@@ -812,7 +814,7 @@ CONTAINS
             
              CALL get_fluxes_and_derivs( &
                  irec, mp, qprec, qprec_snow, n, dx(:), h0, &
-                 Tsoil(:), &
+                 Tsoil(:), S(:), &
                  qh(kk,:), vmet, vlit, vsnow, var, T0, Tsurface, &
                  dxL, SL, Tl, &
                  plit, par, &
@@ -836,7 +838,7 @@ CONTAINS
 
 
              CALL estimate_timestep( &
-                 tfin, mp, n, dx(:), h0, &
+                 irec, tfin, mp, n, dx(:), h0, &
                  qh(kk,:), nsteps, vlit, vsnow, var, &
                  dxL, &
                  plit, par, &
@@ -1036,6 +1038,7 @@ CONTAINS
         ! update variables (S,T) to end of time step
         ! update variables to sig for use in isotope routine
         do i=1, n
+          
             if (.not.again(kk)) Tsoil(i)  = Tsoil(i) + dTsoil(i)
             if (var(i)%isat==0) then
                 if (.not.again(kk)) then
@@ -2192,9 +2195,11 @@ CONTAINS
                 if (nns(kk) == 1) dy(0) = zero
                 !call dgtsv(nn, 1, bbh(nns+1:n), ddh(nns:n), ffh(nns:n-1), ggh(nns:n), nn, info)
                 !dTsoil(nns:n) = ggh(nns:n)
-                call tri(nns(kk), n, bbh(0:n), ddh(0:n), ffh(0:n), gg(0:n), dTsoil(0:n))
+                !call tri(nns(kk), n, bbh(0:n), ddh(0:n), ffh(0:n), gg(0:n), dTsoil(0:n))
+                call tri(nns(kk), n, bbh(0:n), ddh(0:n), ffh(0:n), gg(0:n), de(0:n))
                 if (nns(kk) == 1) de(0) = zero
                 if (nns(kk)==0 .and. h0(kk)<e3 .and. (.not. litter)) de(0) = zero
+                dTsoil(1:n) = de(1:n)
             else ! coupled of T and S
                 nns(kk) = 1  ! pond included in top soil layer
                 if (vsnow(kk)%nsnow>0) then
@@ -2840,7 +2845,6 @@ CONTAINS
     deltacv_ss= zero
 
        do while (t(kk) < tfin)
-
           !----- take next time step
           iflux(kk)=1
           again(kk)  = .true. ! flag for recalcn of fluxes (default=false)
