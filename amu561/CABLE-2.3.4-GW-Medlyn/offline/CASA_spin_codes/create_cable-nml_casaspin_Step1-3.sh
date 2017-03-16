@@ -31,12 +31,14 @@ OPTIONS:
    -u      true -> spincasa option
    -n      CO2 concentration
    -b      true -> write CASA output to netcdf
+   -k      CASA biome parameter file
+   -z      Should all variables be outputted?
 EOF
 }
 
 #set some defaults here?  or do with if;fi after getopts
 
-while getopts "hm:j:o:l:i:r:v:s:y:e:g:a:f:c:p:d:x:t:u:n:b:" OPTION
+while getopts "hm:j:o:l:i:r:v:s:y:e:g:a:f:c:p:d:x:t:u:n:b:k:z:" OPTION
 
 do
      case $OPTION in
@@ -107,6 +109,12 @@ do
 	 b)
 	    casaout_flag=$OPTARG
 	    ;;
+	 k)
+	    casabiome=$OPTARG
+   	    ;;
+	 z)
+	    all_vars=$OPTARG
+ 	    ;;
          ?)
              usage
              exit
@@ -216,6 +224,12 @@ if [ -z $casaout_flag ]; then
   casaout_flag="FALSE"
 fi
 
+if [ -z $casabiome ];then
+  casabiome="pftlookup_csiro_v16_17tiles_Ticket2.csv"
+fi
+if [ -z $all_vars ]; then
+  all_vars="FALSE"
+fi
 
 #Set CASA-CNP flag (should CASA be used or not?)
 if [[ $icycle_flag -eq 0 ]]; then
@@ -247,15 +261,15 @@ cat > $(pwd)/cable.nml << EOF
    delsoilM = 0.01   ! allowed variation in soil moisture for spin up
    delsoilT = 0.1    ! allowed variation in soil temperature for spin up
    output%restart = .TRUE.  ! should a restart file be created?
-   output%met = .FALSE.  ! input met data
-   output%flux = .FALSE.  ! convective, runoff, NEE
-   output%soil = .FALSE.  ! soil states
-   output%snow = .FALSE.  ! snow states
-   output%radiation = .FALSE.  ! net rad, albedo
-   output%carbon    = .FALSE.  ! NEE, GPP, NPP, stores
-   output%veg       = .FALSE.  ! vegetation states
-   output%params    = .FALSE.  ! input parameters used to produce run
-   output%balances  = .FALSE.  ! energy and water balances
+   output%met = .${all_vars}.  ! input met data
+   output%flux = .${all_vars}.  ! convective, runoff, NEE
+   output%soil = .${all_vars}.  ! soil states
+   output%snow = .${all_vars}.  ! snow states
+   output%radiation = .${all_vars}.  ! net rad, albedo
+   output%carbon    = .${all_vars}.  ! NEE, GPP, NPP, stores
+   output%veg       = .${all_vars}.  ! vegetation states
+   output%params    = .${all_vars}.  ! input parameters used to produce run
+   output%balances  = .${all_vars}.  ! energy and water balances
    output%averaging = "${AVGflag}"
    check%ranges     = .FALSE.  ! variable ranges, input and output
    check%energy_bal = .TRUE.  ! energy balance
@@ -271,7 +285,7 @@ cat > $(pwd)/cable.nml << EOF
    l_vcmaxFeedbk = .${Vcmax_flag}.  ! using prognostic Vcmax
    icycle = ${icycle_flag}   ! BP pull it out from casadimension and put here; 0 for not using casaCNP, 1 for C, 2 for C+N, 3 for C+N+P
    casafile%cnpipool=''
-   casafile%cnpbiome='${in_path}/CASA_inputs/pftlookup_csiro_v16_17tiles_Ticket2.csv'
+   casafile%cnpbiome='${in_path}/CASA_inputs/${casabiome}'
    casafile%cnpepool='${casaout_path}/poolcnpOut.csv'    ! end of run pool size
    casafile%cnpmetout=''         ! output daily met forcing for spinning casacnp
    casafile%cnpmetin=''          ! list of daily met files for spinning casacnp
@@ -312,7 +326,7 @@ cat > $(pwd)/cable.nml << EOF
    cable_user%GSWP3 = .FALSE.
    cable_user%GS_SWITCH = 'medlyn'
    cable_user%g1map = .FALSE.
-   cable_user%or_evap = .FALSE.         !Use Or soilE formulation?
+   cable_user%or_evap = .TRUE.         !Use Or soilE formulation?
    cable_user%L_newProfile = .TRUE.    !Y-P's new root water uptake?
 
 &end

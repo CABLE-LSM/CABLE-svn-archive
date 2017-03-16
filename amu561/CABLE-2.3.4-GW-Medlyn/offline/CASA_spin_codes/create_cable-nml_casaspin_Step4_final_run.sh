@@ -217,7 +217,7 @@ if [ -z $CO2_var ]; then   #CO2 concentration
 fi
 
 if [ -z $casaout_flag ]; then
-  casaout_flag="FALSE"
+  casaout_flag="TRUE"
 fi
 
 if [ -z $casabiome ];then
@@ -268,7 +268,7 @@ cat > $(pwd)/cable.nml << EOF
    check%energy_bal = .TRUE.  ! energy balance
    check%mass_bal   = .TRUE.  ! water/mass balance
    verbose = .FALSE. ! write details of every grid cell init and params to log?
-   leaps = .TRUE. ! calculate timing with leap years?
+   leaps = .FALSE. ! calculate timing with leap years?
    logn = 88      ! log file number - declared in input module
    fixedCO2 = ${CO2_var}.0   ! if not found in met file, in ppmv
    spincasainput = .${spincasain}.    ! input required to spin casacnp offline

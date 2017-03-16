@@ -768,7 +768,7 @@ SUBROUTINE spincasacnp(fcnpspin,dels,kstart,kend,mloop,veg,soil,casabiome,casapo
   USE casavariable
   USE phenvariable
   IMPLICIT NONE
-  CHARACTER(LEN=200), INTENT(IN)  :: fcnpspin
+  CHARACTER(LEN=250), INTENT(IN)  :: fcnpspin
   REAL,    INTENT(IN)    :: dels
   INTEGER, INTENT(IN)    :: kstart
   INTEGER, INTENT(IN)    :: kend
@@ -793,7 +793,7 @@ SUBROUTINE spincasacnp(fcnpspin,dels,kstart,kend,mloop,veg,soil,casabiome,casapo
 
   ! local variables
   INTEGER                  :: myearspin,nyear, nloop1
-  CHARACTER(LEN=200)       :: ncfile
+  CHARACTER(LEN=250)       :: ncfile
   INTEGER                  :: ktau,ktauday,nday,idoy,ktaux,ktauy,nloop
   INTEGER, save            :: ndays
   real,      dimension(mp) :: cleaf2met, cleaf2str, croot2met, croot2str, cwood2cwd
@@ -827,8 +827,8 @@ SUBROUTINE spincasacnp(fcnpspin,dels,kstart,kend,mloop,veg,soil,casabiome,casapo
                 bmpsoilocc,bmarea)
 
 
-  call spinanalytic(fcnpspin,dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
-                       casaflux,casamet,casabal,phen)
+  !call spinanalytic(fcnpspin,dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
+   !                    casaflux,casamet,casabal,phen)
 
 
   nloop1= max(1,mloop-3)
@@ -921,7 +921,7 @@ SUBROUTINE spincasacnp(fcnpspin,dels,kstart,kend,mloop,veg,soil,casabiome,casapo
   endif 
   enddo
 
-  901  format(A99)
+  901  format(A250)
   922 format(i4,20(f10.4,2x))
   CLOSE(92)   
   151 FORMAT(i6,100(f12.5,2x))
@@ -965,7 +965,7 @@ SUBROUTINE spinanalytic(fcnpspin,dels,kstart,kend,mloop,veg,soil,casabiome,casap
 
   ! local variables
   INTEGER                  :: myearspin,nyear, nloop1
-  CHARACTER(LEN=99)        :: ncfile
+  CHARACTER(LEN=250)       :: ncfile
   INTEGER                  :: ktau,ktauday,nday,idoy,ktaux,ktauy,nloop
   INTEGER, save            :: ndays
   real,      dimension(mp) :: cleaf2met, cleaf2str, croot2met, croot2str, cwood2cwd
@@ -1003,7 +1003,7 @@ SUBROUTINE spinanalytic(fcnpspin,dels,kstart,kend,mloop,veg,soil,casabiome,casap
   do nyear=1,myearspin
      read(91,901) ncfile
      call read_casa_dump(ncfile,casamet,casaflux,ktau,kend)
-901  format(A99)
+  901  format(A250)
     do idoy=1,mdyear
        ktau=(idoy-1)*ktauday +1
        casamet%tairk(:)       = casamet%Tairkspin(:,idoy)
