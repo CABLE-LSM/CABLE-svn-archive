@@ -14,7 +14,7 @@
 
 module load intel-mpi/4.1.1.036
 module load netcdf/4.2.1.1
-module load R/3.1.1  #can't be newer R, ncdf library does not work
+module load R
 
 
 
@@ -41,8 +41,8 @@ else
 fi
 
 
-cable_outpath="${data_dir}/Outputs/${site}/${INDIR}_spin"   #where store CABLE outputs from spin-up?
-cable_finalpath="${data_dir}/Outputs/${site}/${INDIR}_run"   #where store CABLE outputs from final run (if step4=true)?
+cable_outpath="${data_dir}/Outputs/${site}/${INDIR}_spin_new"   #where store CABLE outputs from spin-up?
+cable_finalpath="${data_dir}/Outputs/${site}/${INDIR}_run_new"   #where store CABLE outputs from final run (if step4=true)?
 casa_outpath=$cable_outpath    #where store CASA outputs?
 
 
@@ -64,7 +64,7 @@ GWflag="TRUE"		#use groundwater scheme?
 
 
 
-executable="cable-r4043"	#name of CABLE executable
+executable="cable-r4061"	#name of CABLE executable
 
 #Set spin-up options
 #Set step 2 to true to use fast spinup. Otherwise recycles a normal run.
@@ -108,7 +108,7 @@ if [[ "$step0" = true ]]; then
 	cat > create_initial_poolfile.R << EOF
 
 	    if(!require(raster)) install.packages("raster")
-	    if(!require(ncdf)) install.packages("ncdf4")
+	    if(!require(ncdf4)) install.packages("ncdf4")
 
 	    library(raster)
 	    library(ncdf4)
@@ -326,7 +326,7 @@ if [[ "$step1" = true ]]; then
             cat > npp_check.R << EOF
             #Check if packages exist
             if(!require(raster)) install.packages("raster")
-            if(!require(ncdf)) install.packages("ncdf")
+            if(!require(ncdf4)) install.packages("ncdf4")
 
             #Load packages
             library(raster)
@@ -590,7 +590,7 @@ if [[ "$step3" = true ]]; then
 
 
             #Create R script for checking global mean NPP
-            cat > npp_check.R << EOF
+            cat > csoil_check.R << EOF
             #Check if packages exist
             if(!require(raster)) install.packages("raster")
             if(!require(ncdf4)) install.packages("ncdf4")
@@ -618,7 +618,7 @@ if [[ "$step3" = true ]]; then
 
             difference <- (abs(mean_data[[2]]-mean_data[[1]])/mean(unlist(mean_data)))
 
-            status <- paste("Difference in NPP:", round(difference*100, digits=2), "%, iter: ", $iter)
+            status <- paste("Difference in passive Csoil:", round(difference*100, digits=4), "%, iter: ", $iter)
    
             print(status)
 
@@ -633,7 +633,7 @@ EOF
             #not pretty indenting but EOF statement has to be on first column...
 
             #Run R-script
-            Rscript npp_check.R
+            Rscript csoil_check.R
 
         fi
 

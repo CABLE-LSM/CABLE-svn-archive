@@ -34,7 +34,7 @@ host_squa()
    export NCMOD='/share/apps/netcdf/intel/4.1.3/include'
    export FC=ifort
    #export CFLAGS='-O2  -shared-intel -mcmodel=medium -fp-model precise -ftz -fpe0 -xavx'
-   export CFLAGS='-O2 -fp-model precise -ftz -fpe0 -ftrapuv -traceback -g'   #-traceback
+   export CFLAGS='-O2 -fp-model precise -ftz -fpe0'   #-traceback
    if [[ $1 = 'debug' ]]; then
       export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0 ' 
    fi
@@ -51,7 +51,7 @@ host_bliz()
    export NCMOD='/share/apps/netcdf/intel/4.1.3/include'
    export FC=ifort
    #export CFLAGS='-O2 -fp-model precise -ftz -fpe0 -xavx  -shared-intel -mcmodel=medium -parallel'
-   export CFLAGS='-O2 -fp-model precise -ftz -fpe0 -ftrapuv -traceback -g'   #-traceback
+   export CFLAGS='-O2 -fp-model precise -ftz -fpe0'   #-traceback
    if [[ $1 = 'debug' ]]; then
       export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0 ' 
    fi
@@ -68,7 +68,7 @@ host_mael()
    export NCMOD='/share/apps/netcdf/intel/4.1.3/include'
    export FC=ifort
    #export CFLAGS='-O2 -fp-model precise -ftz -fpe0 -xavx -parallel -ftrapuv  -shared-intel -mcmodel=medium'
-   export CFLAGS='-O2 -fp-model precise -ftz -fpe0 -ftrapuv -traceback -g'   #-traceback
+   export CFLAGS='-O2 -fp-model precise -ftz -fpe0'   #-traceback
    if [[ $1 = 'debug' ]]; then
       export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0 ' 
    fi
@@ -86,7 +86,7 @@ host_mons()
    export NCMOD='/share/apps/netcdf/intel/4.1.3/include'
    export FC=ifort
    #export CFLAGS='-O2 -fp-model precise -ftz -fpe0 -xavx -shared-intel -mcmodel=medium -parallel'
-   export CFLAGS='-O2 -fp-model precise -ftz -fpe0 -ftrapuv -traceback -g'   #-traceback
+   export CFLAGS='-O2 -fp-model precise -ftz -fpe0'   #-traceback
    if [[ $1 = 'debug' ]]; then
       export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0 ' 
    fi
@@ -183,7 +183,7 @@ host_raij()
    export NCDIR=$NETCDF_ROOT'/lib/Intel'
    export NCMOD=$NETCDF_ROOT'/include/Intel'
    export FC='ifort'
-   export CFLAGS='-O2 -fp-model precise '
+   export CFLAGS='-O2 -fp-model precise'
    if [[ $1 = 'debug' ]]; then
       export CFLAGS='-O0 -traceback -g -fp-model precise'
    fi
