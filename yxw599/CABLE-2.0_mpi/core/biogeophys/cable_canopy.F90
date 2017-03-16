@@ -1334,7 +1334,8 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
       frac42,     & ! 2D frac4
       temp2
 
-   REAL, DIMENSION(:,:), POINTER :: gswmin,gswmin3,gswmin4 ! min stomatal conductance
+   REAL, DIMENSION(:,:), POINTER :: gswmin ! min stomatal conductance
+   REAL, DIMENSION(mp,mf) :: gswmin3,gswmin4 ! min stomatal conductance
    
    REAL, DIMENSION(mp,2) ::  gsw_term, lower_limit2  ! local temp var 
 
