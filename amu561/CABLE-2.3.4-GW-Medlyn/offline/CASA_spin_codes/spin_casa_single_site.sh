@@ -64,7 +64,7 @@ GWflag="TRUE"		#use groundwater scheme?
 
 
 
-executable="cable-r4061"	#name of CABLE executable
+executable="cable-r4062" #name of CABLE executable
 
 #Set spin-up options
 #Set step 2 to true to use fast spinup. Otherwise recycles a normal run.
@@ -273,7 +273,7 @@ if [[ "$step1" = true ]]; then
     iter=1  #loop counter
 
 
-    while [[ $iter -lt 20 ]]   #while iter smaller than 20, keep going (using 20 so doesn't run all day...)
+    while [[ $iter -lt 200 ]]   #while iter smaller than 20, keep going (using 20 so doesn't run all day...)
     do
 
 
@@ -309,7 +309,7 @@ if [[ "$step1" = true ]]; then
 
 
         #Create namelist
-        ./create_cable-nml_casaspin_Step1-3.sh -m $met_file -d $LAIflag -c $icycle -p $casa_outpath -j $cable_outpath -g $GWflag -e false -b true -y $iter -i $restart_in -r $restart_out -k $casa_biome  #-n $CO2_con
+        ./create_cable-nml_casaspin_Step1-3.sh -m $met_file -d $LAIflag -c $icycle -p $casa_outpath -j $cable_outpath -g $GWflag -e false -b false -y $iter -i $restart_in -r $restart_out -k $casa_biome  #-n $CO2_con
 
         #Run CABLE
         ./$executable
@@ -333,8 +333,8 @@ if [[ "$step1" = true ]]; then
             library(ncdf4)
 
             #Find outputs for current and previous years
-            file_prev <- list.files(path="$cable_outpath", pattern=paste('cable_output_$(($iter-1)).nc'), full.names=TRUE)    #pattern must match cable output file pattern
-            file_current <- list.files(path="$cable_outpath", pattern=paste('cable_output_${iter}.nc'), full.names=TRUE)
+            file_prev <- list.files(path="$cable_outpath", pattern=paste('cable_restart_Step1_$(($iter-1)).nc'), full.names=TRUE)    #pattern must match cable output file pattern
+            file_current <- list.files(path="$cable_outpath", pattern=paste('cable_restart_Step1_${iter}.nc'), full.names=TRUE)
 
             if(length(file_prev)==0 | length(file_current)==0)
             {
@@ -344,13 +344,14 @@ if [[ "$step1" = true ]]; then
 
             data <- lapply(list(file_prev,file_current), function(x) ncvar_get(nc_open(x), "CASA_Cplant"))
 
-            #Calculate average annual plant carbon (sum leaf, wood and root pools)
-            mean_data <- lapply(data, function(x) sum(apply(x, MARGIN=1, function(y) 
-				sum(y, na.rm=TRUE)/round(length(y)/365, digits=0))))
-
             #If difference <1%, create final restart file
 
-            difference <- (abs(mean_data[[2]]-mean_data[[1]])/mean(unlist(mean_data)))
+            leaf_diff <- abs((data[[2]][1]-data[[1]][1])/data[[2]][1])
+            wood_diff <- abs((data[[2]][2]-data[[1]][2])/data[[2]][2])
+            root_diff <- abs((data[[2]][3]-data[[1]][3])/data[[2]][3])
+
+	    difference <- sum(leaf_diff, wood_diff, root_diff, na.rm=TRUE)
+
 
             status <- paste("Difference in NPP:", round(difference*100, digits=2), "%, iter: ", $iter)
 
@@ -547,7 +548,7 @@ if [[ "$step3" = true ]]; then
     first_iter=$iter
 
 
-    while [[ $iter -lt 1000 ]]   #while iter smaller than 1000, keep going (number picked randomly)
+    while [[ $iter -lt 2000 ]]   #while iter smaller than 1000, keep going (number picked randomly)
     do
 
         echo "Spinning up Step #3, iteration: ${iter} ----------------------------------###"
@@ -574,8 +575,10 @@ if [[ "$step3" = true ]]; then
 
 
 
-        #Create namelist
-        ./create_cable-nml_casaspin_Step1-3.sh -m $met_file -d $LAIflag -c $icycle -p $casa_outpath -j $cable_outpath -g $GWflag -e false -b true -y $iter -i $restart_in -r $restart_out -k $casa_biome  #-n $CO2_con
+        #Create namelist (write CASA variables during first iter so can extract time info in R code)
+            ./create_cable-nml_casaspin_Step1-3.sh -m $met_file -d $LAIflag -c $icycle -p $casa_outpath -j $cable_outpath -g $GWflag -e false -b true -i $restart_in -r $restart_out -k $casa_biome  #-n $CO2_con
+	
+	fi
 
         #Run CABLE
         ./$executable
@@ -600,8 +603,10 @@ if [[ "$step3" = true ]]; then
             library(ncdf4)
 
             #Find outputs for current and previous years
-            file_prev <- list.files(path="$cable_outpath", pattern=paste('cable_output_$(($iter-1)).nc'), full.names=TRUE)    #pattern must match cable output file pattern
-            file_current <- list.files(path="$cable_outpath", pattern=paste('cable_output_${iter}.nc'), full.names=TRUE)
+            file_prev <- list.files(path="$cable_outpath", pattern=paste('cable_restart_Step3_$(($iter-1)).nc'), full.names=TRUE)    #pattern must match cable output file pattern
+            file_current <- list.files(path="$cable_outpath", pattern=paste('cable_restart_Step3_${iter}.nc'), full.names=TRUE)
+
+	    file_time <- list.files(path="$cable_outpath", pattern=paste('cable_output_0.nc'), full.names=TRUE)
 
             if(length(file_prev)==0 | length(file_current)==0)
             {
@@ -611,18 +616,22 @@ if [[ "$step3" = true ]]; then
 
             data <- lapply(list(file_prev,file_current), function(x) ncvar_get(nc_open(x), "CASA_Csoil"))
 
-            #Calculate global average passive Csoil
-            mean_data <- lapply(data, function(x) mean(x[3,], na.rm=TRUE))
+	    time_info <- ncvar_get(nc_open(file_time), "CASA_GPP")
+	    yrs <- round(length(time_info)/365, digits=0)
+
 
             #If difference <1%, create final restart file
 
-            difference <- (abs(mean_data[[2]]-mean_data[[1]])/mean(unlist(mean_data)))
+            difference <- abs(data[[2]][3]-data[[1]][3]) / yrs
 
             status <- paste("Difference in passive Csoil:", round(difference*100, digits=4), "%, iter: ", $iter)
    
             print(status)
 
-            if (difference < 0.001) {
+		
+	    #Use 0.5 gC/m2 per 50 years as the threshold (i.e. 0.01 gC/m2 per yr)	
+
+            if (difference < 0.01) {
                 file.copy(from='${cable_outpath}/cable_restart_Step3_${iter}.nc', to='${cable_outpath}/cable_restart_Step3_final.nc')
             } else {
                 write.csv(status, file="Csoil_passive_difference_Step3_iter_${iter}.csv")
