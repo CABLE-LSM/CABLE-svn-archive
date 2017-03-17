@@ -3,7 +3,7 @@
 # Run LIS
 #PBS -m ae
 #PBS -P dt6
-#PBS -l walltime=70200
+#PBS -l walltime=170200
 #PBS -l mem=7500MB
 #PBS -l ncpus=1
 #PBS -j oe
@@ -64,7 +64,7 @@ GWflag="TRUE"		#use groundwater scheme?
 
 
 
-executable="cable-r4062" #name of CABLE executable
+executable="cable-r4066" #name of CABLE executable
 
 #Set spin-up options
 #Set step 2 to true to use fast spinup. Otherwise recycles a normal run.
@@ -575,10 +575,9 @@ if [[ "$step3" = true ]]; then
 
 
 
-        #Create namelist (write CASA variables during first iter so can extract time info in R code)
+        #Create namelist
             ./create_cable-nml_casaspin_Step1-3.sh -m $met_file -d $LAIflag -c $icycle -p $casa_outpath -j $cable_outpath -g $GWflag -e false -b true -i $restart_in -r $restart_out -k $casa_biome  #-n $CO2_con
 	
-	fi
 
         #Run CABLE
         ./$executable
