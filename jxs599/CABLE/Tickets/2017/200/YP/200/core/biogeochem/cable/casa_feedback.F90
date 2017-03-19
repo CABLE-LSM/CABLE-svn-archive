@@ -19,8 +19,12 @@
 
   ! first initialize
   ncleafx(:) = casabiome%ratioNCplantmax(veg%iveg(:),leaf)
-  npleafx = 14.2
-
+  if(Ticket200) then
+    npleafx(:) = casabiome%ratioNPplantmin(veg%iveg(:),leaf)
+  else 
+    npleafx = 14.2
+  endif
+  
   DO np=1,mp
     ivt=veg%iveg(np)
     IF (casamet%iveg2(np)/=icewater &
@@ -36,6 +40,7 @@
     ENDIF
 
     IF (TRIM(cable_user%vcmax).eq.'standard') then
+    
        IF (casamet%glai(np) > casabiome%glaimin(ivt)) THEN
           IF (ivt/=2) THEN
              veg%vcmax(np) = ( casabiome%nintercept(ivt) &
@@ -50,7 +55,8 @@
                      + casabiome%nslope(ivt)*ncleafx(np)/casabiome%sla(ivt) )*1.0e-6
              ENDIF
           ENDIF
-          veg%vcmax(np) =veg%vcmax(np)* xnslope(ivt)
+          if(.NOT. Ticket200) &
+            veg%vcmax(np) =veg%vcmax(np)* xnslope(ivt)
        ENDIF
 
     elseif (TRIM(cable_user%vcmax).eq.'Walker2014') then
