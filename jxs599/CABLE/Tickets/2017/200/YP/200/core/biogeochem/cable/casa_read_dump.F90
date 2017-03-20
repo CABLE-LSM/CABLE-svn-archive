@@ -1,7 +1,11 @@
-SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, climate, ncall, kend, allATonce )
+SUBROUTINE read_casa_dump( ncfile, casamet, casaflux,phen, climate, ncall, kend, allATonce )
       USE netcdf
       USE cable_def_types_mod,   ONLY : r_2,ms,mp, climate_type
       USE casadimension,         ONLY : mplant,mdyear
+!Ticket200 - trunk uses cable_diag
+!      use cable_ncdf_module,     only : get_var_nc, stderr_nc
+      USE casa_cnp_module
+
       USE casavariable,          ONLY : casa_met, casa_flux
       USE phenvariable
 #     ifndef UM_BUILD
