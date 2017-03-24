@@ -1,18 +1,3 @@
-MODULE casa__mod
-
-USE cable_def_types_mod
-USE casadimension
-USE casaparm
-USE casavariable
-USE phenvariable
-USE cable_common_module, only: cable_user ! Custom soil respiration: Ticket #42
-
-IMPLICIT NONE
-  REAL(r_2), PARAMETER :: zero = 0.0_r_2
-  REAL(r_2), PARAMETER :: one  = 1.0_r_2
-
-CONTAINS
-
 SUBROUTINE avgsoil(veg,soil,casamet)
 ! Get avg soil moisture, avg soil temperature
 ! need to estimate the land cell mean soil temperature and moisture weighted by the area fraction
@@ -49,6 +34,3 @@ SUBROUTINE avgsoil(veg,soil,casamet)
   ENDDO
 
 END SUBROUTINE avgsoil
-
-
-END MODULE casa__mod
