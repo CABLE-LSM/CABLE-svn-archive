@@ -1,18 +1,3 @@
-MODULE casa__mod
-
-USE cable_def_types_mod
-USE casadimension
-USE casaparm
-USE casavariable
-USE phenvariable
-USE cable_common_module, only: cable_user ! Custom soil respiration: Ticket #42
-
-IMPLICIT NONE
-  REAL(r_2), PARAMETER :: zero = 0.0_r_2
-  REAL(r_2), PARAMETER :: one  = 1.0_r_2
-
-CONTAINS
-
 SUBROUTINE casa_cnpbal(casapool,casaflux,casabal)
 
   IMPLICIT NONE
@@ -49,7 +34,7 @@ SUBROUTINE casa_cnpbal(casapool,casaflux,casabal)
 
    casabal%cbalance(:) = Cbalplant(:) + Cbalsoil(:)
 
-
+!Ticket200
  do npt=1,mp
     IF(abs(casabal%cbalance(npt))>1e-10) THEN
       write(*,*) 'cbalance',  npt, Cbalplant(npt), Cbalsoil(npt)
@@ -60,24 +45,23 @@ SUBROUTINE casa_cnpbal(casapool,casaflux,casabal)
       write(*,*) 'rmplant, rgplant',  casaflux%crmplant(npt,:) , casaflux%crgplant(npt)
       write(*,*), 'dclabile',  casapool%dClabiledt(npt)* deltpool
        
-     !  STOP
-    ENDIF
+     ENDIF
  ENDDO
 
 
 
-
+!Ticket200
    casapool%ctot_0 = sum(casabal%cplantlast,2)+sum(casabal%clitterlast,2) &
         + sum(casabal%csoillast,2)+ casabal%clabilelast
    casapool%ctot = sum(casapool%cplant,2)+sum(casapool%clitter,2) &
         + sum(casapool%csoil,2)+ casapool%clabile
+   
    casabal%cplantlast  = casapool%cplant
    casabal%clabilelast = casapool%clabile
    casabal%clitterlast = casapool%clitter
    casabal%csoillast   = casapool%csoil
    casabal%sumcbal     = casabal%sumcbal + casabal%cbalance
    
-
    IF(icycle >1) THEN
       Nbalplant(:) = sum(casabal%nplantlast,2) -sum(casapool%nplant,2)                  &
                     +casaflux%Nminuptake(:) *deltpool
@@ -119,19 +103,4 @@ SUBROUTINE casa_cnpbal(casapool,casaflux,casabal)
       casabal%sumpbal  = casabal%sumpbal + casabal%pbalance
    ENDIF
 
-
-
-!write(6999,"(100(f12.5,2x))"),  casabal%cbalance(:)
-!write(8999,"(100(f12.5,2x))"), - (casaflux%Crsoil-casaflux%cnpp+casaflux%clabloss)
-!write(7999,"(100(f12.5,2x))"),  casapool%ctot - casapool%ctot_0
-!write(9999,"(100(f12.5,2x))"), casapool%ctot - casapool%ctot_0 + &
-! ( casaflux%Crsoil-casaflux%cnpp+casaflux%clabloss)
-
-
-91 format('balance= ',100(f12.5,2x))
-
 END SUBROUTINE casa_cnpbal
-
-
-
-END MODULE casa__mod
