@@ -1,21 +1,43 @@
 SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, phen, climate, n_call, kend )
   USE netcdf
+
+# ifdef Ticket200-YP 
+
+  USE cable_def_types_mod
+  USE casadimension, only : mdyear, mplant
+  USE casavariable
+
+#    ifndef UM_BUILD
+  
+      use cable_ncdf_module, only : def_dims, def_vars, def_var_atts, &
+                                   put_var_nc, stderr_nc
+#    endif
+  
+  USE cable_io_vars_module, only : patch
+
+# else      
+
   USE cable_def_types_mod,   ONLY : r_2,ms,mp, climate_type
-  USE cable_common_module,   ONLY : kend_gl
-#     ifndef UM_BUILD
-  USE cable_diag_module,     ONLY : def_dims, def_vars, def_var_atts, &
+  USE casadimension,         ONLY : mplant
+  USE casavariable,          ONLY : CASA_MET, CASA_FLUX
+
+#    ifndef UM_BUILD
+
+      USE cable_diag_module,     ONLY : def_dims, def_vars, def_var_atts, &
        put_var_ncr1, put_var_ncr2,       &
        put_var_ncr3, stderr_nc
-#     endif
-  USE casavariable,          ONLY : CASA_MET, CASA_FLUX
-  USE casadimension,         ONLY : mplant
+
+#    endif
+
+  USE cable_common_module,   ONLY : kend_gl
   USE phenvariable
 
+#  endif
   IMPLICIT NONE
 
   INTEGER, INTENT(in) :: &
-       n_call, &         ! this timestep #
-       kend              ! final timestep of run
+    n_call, &         ! this timestep #
+    kend              ! final timestep of run
 
   TYPE (casa_flux),             INTENT(IN) :: casaflux
   TYPE (casa_met),              INTENT(IN) :: casamet
