@@ -1,18 +1,3 @@
-MODULE casa__mod
-
-USE cable_def_types_mod
-USE casadimension
-USE casaparm
-USE casavariable
-USE phenvariable
-USE cable_common_module, only: cable_user ! Custom soil respiration: Ticket #42
-
-IMPLICIT NONE
-  REAL(r_2), PARAMETER :: zero = 0.0_r_2
-  REAL(r_2), PARAMETER :: one  = 1.0_r_2
-
-CONTAINS
-
 SUBROUTINE casa_coeffplant(xkleafcold,xkleafdry,xkleaf,veg,casabiome,casapool, &
                            casaflux,casamet,phen)
 ! calculate the plant litter fall rate, litter fall and sOM decomposition rate (1/day)
@@ -76,4 +61,3 @@ SUBROUTINE casa_coeffplant(xkleafcold,xkleafdry,xkleaf,veg,casabiome,casapool, &
 END SUBROUTINE casa_coeffplant
 
 
-END MODULE casa__mod
