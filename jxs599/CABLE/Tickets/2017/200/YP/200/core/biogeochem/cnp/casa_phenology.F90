@@ -1,18 +1,3 @@
-MODULE casa__mod
-
-USE cable_def_types_mod
-USE casadimension
-USE casaparm
-USE casavariable
-USE phenvariable
-USE cable_common_module, only: cable_user ! Custom soil respiration: Ticket #42
-
-IMPLICIT NONE
-  REAL(r_2), PARAMETER :: zero = 0.0_r_2
-  REAL(r_2), PARAMETER :: one  = 1.0_r_2
-
-CONTAINS
-
 SUBROUTINE phenology(iday,veg,phen)
   IMPLICIT NONE
   INTEGER,              INTENT(IN)    :: iday
@@ -63,5 +48,3 @@ SUBROUTINE phenology(iday,veg,phen)
 END SUBROUTINE phenology
 
 
-
-END MODULE casa__mod
