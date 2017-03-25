@@ -1,18 +1,3 @@
-MODULE casa__mod
-
-USE cable_def_types_mod
-USE casadimension
-USE casaparm
-USE casavariable
-USE phenvariable
-USE cable_common_module, only: cable_user ! Custom soil respiration: Ticket #42
-
-IMPLICIT NONE
-  REAL(r_2), PARAMETER :: zero = 0.0_r_2
-  REAL(r_2), PARAMETER :: one  = 1.0_r_2
-
-CONTAINS
-
 SUBROUTINE casa_delsoil(veg,casapool,casaflux,casamet,casabiome)
 ! calculate changes in litter and soil pools
 
@@ -61,7 +46,7 @@ SUBROUTINE casa_delsoil(veg,casapool,casaflux,casamet,casabiome)
 
 DO nland=1,mp
 IF(casamet%iveg2(nland)/=icewater) THEN
-
+   !Ticket200
    IF(icycle > 1) THEN
       !vh! set klitter to zero where Nlitter will go -ve 
       !(occurs occasionally for metabolic litter pool) Ticket#108
@@ -176,6 +161,7 @@ IF(casamet%iveg2(nland)/=icewater) THEN
 
       DO kk=1,msoil
          DO jj=1,mlitter    ! immobilisation from litter to soil
+           !Ticket200
             casaflux%Psimm(nland) = casaflux%Psimm(nland) &
                                      - casaflux%fromLtoS(nland,kk,jj) &
                                      * casaflux%klitter(nland,jj)     &
@@ -185,6 +171,7 @@ IF(casamet%iveg2(nland)/=icewater) THEN
          ENDDO
          DO kkk=1,msoil      ! immobilisation from soil to soil
             IF(kkk.ne.kk) THEN
+              !Ticket200
                casaflux%Psimm(nland) = casaflux%Psimm(nland) &
                                         - casaflux%fromStoS(nland,kk,kkk)  &
                                         * casaflux%ksoil(nland,kkk) &
@@ -208,6 +195,7 @@ IF(casamet%iveg2(nland)/=icewater) THEN
 
       DO k=1,msoil
          DO j=1,mlitter
+           !Ticket200
             casaflux%FluxPtosoil(nland,k) =  casaflux%FluxPtosoil(nland,k)  &
                                  + casaflux%fromLtoS(nland,k,j) &
                                  * casaflux%klitter(nland,j)    &
@@ -217,11 +205,7 @@ IF(casamet%iveg2(nland)/=icewater) THEN
          ENDDO  ! end of "j"
          DO kk=1,msoil
             IF(kk.ne.k) THEN
-!               casaflux%FluxPtosoil(nland,k) = casaflux%FluxPtosoil(nland,k)  &
-!                                    + casaflux%fromStoS(nland,k,kk) &
-!                                    * casaflux%ksoil(nland,kk)      &
-!                                    * casapool%Csoil(nland,kk)      &
-!                                    * casapool%ratioPCsoil(nland,k)
+              !Ticket200
                casaflux%FluxPtosoil(nland,k) = casaflux%FluxPtosoil(nland,k)  &
                                     + casaflux%fromStoS(nland,k,kk) &
                                     * casaflux%ksoil(nland,kk)      &
@@ -241,6 +225,7 @@ IF(casamet%iveg2(nland)/=icewater) THEN
    casapool%dClitterdt(nland,:) =  casaflux%fluxCtolitter(nland,:) - casaflux%klitter(nland,:) * casapool%clitter(nland,:)
    casapool%dCsoildt(nland,:)   =  casaflux%fluxCtosoil(nland,:)   - casaflux%ksoil(nland,:)   * casapool%csoil(nland,:)
    casaflux%Crsoil(nland)       =  casaflux%fluxCtoCO2(nland)
+   !Ticket200
    casaflux%cnep(nland)         =  casaflux%cnpp(nland) - casaflux%Crsoil(nland)
 
    IF(icycle > 1) THEN
@@ -257,18 +242,9 @@ IF(casamet%iveg2(nland)/=icewater) THEN
                                  - casaflux%Nupland(nland)
 
    ENDIF
-!!$if (nland==1) write(59,91) casaflux%Nsnet(nland) , &
-!!$                                 casaflux%Nlittermin(nland),  &
-!!$                                 casaflux%Nsmin(nland),   &
-!!$                                 casaflux%Nsimm(nland)
-!!$                                 , casaflux%Nmindep(nland) ,casaflux%Nminfix(nland)   &
-!!$                                 , casaflux%Nminloss(nland)   &
-!!$                                 , casaflux%Nminleach(nland)   &
-!!$                                 , casaflux%Nupland(nland)
 
-91  format(20(e12.4,2x))
    IF(icycle >2) THEN
-
+      !Ticket200
       fluxptase(nland) =  casabiome%prodptase( veg%iveg(nland) ) * deltcasa    &
                        * max( 0.0_r_2, ( casapool%Psoil(nland,2)                   &
                                       * casaflux%ksoil(nland,2)                &
@@ -327,5 +303,3 @@ ENDDO
 END SUBROUTINE casa_delsoil
 
 
-
-END MODULE casa__mod
