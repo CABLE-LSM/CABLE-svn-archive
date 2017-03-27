@@ -1070,7 +1070,7 @@ SUBROUTINE casa_poolout(ktau,veg,casabiome,casapool,casaflux,casamet, &
   USE casaparm
   USE casavariable
   USE phenvariable
-  USE cable_ncdf_module,    ONLY: def_dims
+  USE casa_dump_module,    ONLY: def_dims
   USE cable_common_module, ONLY: filename
   USE cable_write_module
   USE cable_checks_module, ONLY: ranges
