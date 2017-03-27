@@ -41,36 +41,38 @@
 
     IF (TRIM(cable_user%vcmax).eq.'standard') then
     
-       IF (casamet%glai(np) > casabiome%glaimin(ivt)) THEN
-          IF (ivt/=2) THEN
-            veg%vcmax(np) = ( casabiome%nintercept(ivt) &
+      IF (casamet%glai(np) > casabiome%glaimin(ivt)) THEN
+        
+        IF (ivt/=2) THEN
+          
+          veg%vcmax(np) = ( casabiome%nintercept(ivt) &
                         + casabiome%nslope(ivt)     &
                         * ncleafx(np)/casabiome%sla(ivt) ) * 1.0e-6
-      ELSE
-        IF (casapool%nplant(np,leaf)>0.0.AND.casapool%pplant(np,leaf)>0.0) THEN
-          veg%vcmax(np) = ( casabiome%nintercept(ivt)  &
+        
+        ELSE !(ivt==2)
+          
+          IF (casapool%nplant(np,leaf)>0.0.AND.casapool%pplant(np,leaf)>0.0) THEN
+            
+            veg%vcmax(np) = ( casabiome%nintercept(ivt)  &
                           + casabiome%nslope(ivt)*(0.4+9.0/npleafx(np)) &
                           * ncleafx(np)/casabiome%sla(ivt) ) * 1.0e-6
-        ELSE
-          veg%vcmax(np) = ( casabiome%nintercept(ivt) &
+          
+          ELSE
+            
+            veg%vcmax(np) = ( casabiome%nintercept(ivt) &
                           + casabiome%nslope(ivt)     &
                           * ncleafx(np)/casabiome%sla(ivt) ) * 1.0e-6
-        ENDIF
-      ENDIF
-    ENDIF
+          ENDIF 
+        
+        ENDIF !(ivt/=2)
+      
+      ENDIF !(casamet%glai(np) > casabiome%glaimin(ivt))
 
-!    veg%vcmax(np) = ( nintercept(ivt)  &
-!                  + nslope(ivt)*(0.4+8.5/npleafx(np)) &
-!                  * ncleafx(np)/casabiome%sla(ivt))*(1.0e-6)
-!    veg%vcmax(np) =veg%vcmax(np)* xnslope(ivt)
-
-!write(*,991) np, ivt,veg%vlai(np),veg%vcmax(np)*1.0e6
-!write(*,891) np,ivt,casapool%cplant(np,leaf),casapool%nplant(np,leaf),casapool%pplant(np,leaf)
-!891 format(2(i6),3(f9.3,2x))
+    endif !cable_user%vcmax).eq.'standard'
   ENDDO
 
   veg%ejmax = 2.0 * veg%vcmax
-!991 format(i6,2x,i4,2x,2(f9.3,2x))
- END SUBROUTINE casa_feedback
+
+END SUBROUTINE casa_feedback
 
 
