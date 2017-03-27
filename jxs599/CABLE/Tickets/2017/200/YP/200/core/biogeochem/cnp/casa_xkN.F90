@@ -1,18 +1,3 @@
-MODULE casa__mod
-
-USE cable_def_types_mod
-USE casadimension
-USE casaparm
-USE casavariable
-USE phenvariable
-USE cable_common_module, only: cable_user ! Custom soil respiration: Ticket #42
-
-IMPLICIT NONE
-  REAL(r_2), PARAMETER :: zero = 0.0_r_2
-  REAL(r_2), PARAMETER :: one  = 1.0_r_2
-
-CONTAINS
-
 SUBROUTINE casa_xkN(xkNlimiting,casapool,casaflux,casamet,casabiome,veg)
 ! computing the reduction in litter and SOM decomposition
 ! when decomposition rate is N-limiting
@@ -26,7 +11,7 @@ SUBROUTINE casa_xkN(xkNlimiting,casapool,casaflux,casamet,casabiome,veg)
   TYPE (veg_parameter_type),   INTENT(IN) :: veg  ! vegetation parameters
 
   ! local variables
-  INTEGER i,j,k,kk,iv,thepoint,nland
+  INTEGER i,j,k,kk,iv,thepoint,nland,npt
   REAL(r_2), DIMENSION(mp)         :: xFluxNlittermin
   REAL(r_2), DIMENSION(mp)         :: xFluxNsoilmin
   REAL(r_2), DIMENSION(mp)         :: xFluxNsoilimm
@@ -103,7 +88,7 @@ SUBROUTINE casa_xkN(xkNlimiting,casapool,casaflux,casamet,casabiome,veg)
 ! Q.Zhang 23/05/2011 test code according to YPW
   WHERE(casamet%iveg2(:)/=icewater)
     WHERE((xFluxNsoilminnet(:)*deltpool + (casapool%Nsoilmin(:)-2.0)) > 0.0 &
-          .OR. xFluxNsoilminnet(:) .ge. 0.0)
+          .OR. xFluxNsoilminnet(:) > 0.0)
       xkNlimiting(:) =1.0
     ELSEWHERE
       xkNlimiting(:) =MAX(0.0, - (casapool%Nsoilmin(:)-0.5) &
@@ -116,12 +101,14 @@ SUBROUTINE casa_xkN(xkNlimiting,casapool,casaflux,casamet,casabiome,veg)
 !     xkNlimiting(:) = 1.0
 !    end where
 ! end (Q.Zhang 23/05/2011)
-    where(sum(casapool%clitter,2) > casabiome%maxfinelitter(veg%iveg(:)) + casabiome%maxcwd(veg%iveg(:)))
+    where(sum(casapool%clitter,2) > casabiome%maxfinelitter(veg%iveg(:)) &
+                                  + casabiome%maxcwd(veg%iveg(:)))
      xkNlimiting(:) = 1.0
     end where
   ENDWHERE
 
-
+  xkNlimiting = MIN(1.0,MAX(0.0,xKNlimiting))
+!  print *, 'xkN2= ', casapool%Nsoilmin(npt),casapool%clitter(npt,:),xFluxNsoilminnet(npt), xkNlimiting(npt)
 END SUBROUTINE casa_xkN
 
 

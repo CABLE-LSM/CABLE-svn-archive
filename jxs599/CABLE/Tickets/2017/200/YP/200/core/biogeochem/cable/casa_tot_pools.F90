@@ -10,6 +10,7 @@
   TYPE (veg_parameter_type),   INTENT(IN)  :: veg  ! vegetation parameters
   TYPE(casa_pool),             INTENT(IN)  :: casapool
   TYPE(casa_met),              INTENT(IN)  :: casamet
+  !Ticket200: YP replaces 5 with 10
   real,      dimension(5,mvtype,mplant)    :: bmcplant,  bmnplant,  bmpplant
   real,      dimension(5,mvtype,mlitter)   :: bmclitter, bmnlitter, bmplitter
   real,      dimension(5,mvtype,msoil)     :: bmcsoil,   bmnsoil,   bmpsoil

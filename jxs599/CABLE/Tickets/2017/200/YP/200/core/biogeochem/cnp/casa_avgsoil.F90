@@ -9,7 +9,7 @@ SUBROUTINE avgsoil(veg,soil,casamet)
   TYPE (casa_met),              INTENT(INOUT) :: casamet
 
   INTEGER                     :: ns,nland
-
+  logical :: Ticket200 = .false.
   casamet%tsoilavg   = 0.0
   casamet%moistavg   = 0.0
   casamet%btran      = 0.0
@@ -24,8 +24,8 @@ SUBROUTINE avgsoil(veg,soil,casamet)
             * (min(soil%sfc(nland),casamet%moist(nland,ns))-soil%swilt(nland)) &
             /(soil%sfc(nland)-soil%swilt(nland))
 
- ! Ticket#121
-
+  if( .NOT. Ticket200) &
+    ! Ticket#121
     casamet%btran(nland)     = casamet%btran(nland)+ veg%froot(nland,ns)  &
             * (max(min(soil%sfc(nland),casamet%moist(nland,ns))-soil%swilt(nland),0.0)) &
             /(soil%sfc(nland)-soil%swilt(nland))

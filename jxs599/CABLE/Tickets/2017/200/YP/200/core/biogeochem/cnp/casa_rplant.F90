@@ -1,18 +1,3 @@
-MODULE casa__mod
-
-USE cable_def_types_mod
-USE casadimension
-USE casaparm
-USE casavariable
-USE phenvariable
-USE cable_common_module, only: cable_user ! Custom soil respiration: Ticket #42
-
-IMPLICIT NONE
-  REAL(r_2), PARAMETER :: zero = 0.0_r_2
-  REAL(r_2), PARAMETER :: one  = 1.0_r_2
-
-CONTAINS
-
 SUBROUTINE casa_rplant(veg,casabiome,casapool,casaflux,casamet,climate)
 ! maintenance respiration of woody tisse and fineroots
 ! see Sitch et al. (2003), GCB, reqn (23)
@@ -28,7 +13,7 @@ SUBROUTINE casa_rplant(veg,casabiome,casapool,casaflux,casamet,climate)
 
   real(r_2), dimension(mp)        :: Ygrow        ! growth efficiency Q.Zhang 22/02/2011
   real(r_2), dimension(mp,mplant) :: ratioPNplant ! Q.Zhang 22/02/2011
-  real(r_2), dimension(mp)        :: delcrmwood,delcrmfroot    ! reduction in wood and root respiration when NPP <0.0
+  real(r_2), dimension(mp)        :: delcrmleaf, delcrmwood,delcrmfroot    ! reduction in wood and root respiration when NPP <0.0
   real(r_2), dimension(mp)        :: resp_coeff_root, resp_coeff_sapwood, resp_coeff
   real,  dimension(mp)        :: nleaf, pleaf, vcmaxmax
 
@@ -46,6 +31,7 @@ SUBROUTINE casa_rplant(veg,casabiome,casapool,casaflux,casamet,climate)
 
   casaflux%crmplant(:,wood) = 0.0
   casaflux%crmplant(:,froot) = 0.0
+  delcrmleaf   = 0.0
   delcrmwood   = 0.0
   delcrmfroot  = 0.0
   casaflux%crgplant = 0.0
@@ -131,13 +117,14 @@ SUBROUTINE casa_rplant(veg,casabiome,casapool,casaflux,casamet,climate)
      resp_coeff = 0.50
   ENDIF  ! end coefficients for acclimation of autotrophic respiration Ticket #110
 
- 
+!Ticket200 
 IF (cable_user%CALL_climate) then 
    !  acclimation of autotrophic respiration Ticket #110
      WHERE(casamet%iveg2/=icewater)
         WHERE(casamet%tairk >250.0)
            WHERE(casapool%cplant(:,wood)>1.0e-6)
-              casaflux%crmplant(:,wood)  =  resp_coeff  * resp_coeff_sapwood * &
+              casaflux%crmplant(:,wood)  =  resp_coeff  * &
+              resp_coeff_sapwood * &
                    casabiome%rmplant(veg%iveg(:),wood) &
                    * exp(308.56*(1.0/56.02-1.0           &
                    / (casamet%tairk(:)+46.02-tkzeroc)))
@@ -181,7 +168,9 @@ IF (cable_user%CALL_climate) then
      WHERE(casamet%iveg2/=icewater)
         WHERE(casamet%tairk >250.0)
            WHERE(casapool%cplant(:,wood)>1.0e-6)
-              casaflux%crmplant(:,wood)  =  resp_coeff * casaflux%frac_sapwood(:) * &
+             !Ticket200
+              casaflux%crmplant(:,wood)  =  resp_coeff * 
+                   casaflux%frac_sapwood(:) * &
                    casabiome%rmplant(veg%iveg(:),wood) &
                    * casapool%nplant(:,wood)             &
                    * exp(308.56*(1.0/56.02-1.0           &
@@ -228,5 +217,3 @@ IF (cable_user%CALL_climate) then
 END SUBROUTINE casa_rplant
 
 
-
-END MODULE casa__mod

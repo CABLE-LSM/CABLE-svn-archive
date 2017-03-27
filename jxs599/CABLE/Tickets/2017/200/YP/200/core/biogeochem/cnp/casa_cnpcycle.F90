@@ -191,6 +191,4 @@ SUBROUTINE casa_cnpcycle(veg,casabiome,casapool,casaflux,casamet, LALLOC)
   ENDIF
   ENDDO !end of "np"
 
-
-
 END SUBROUTINE casa_cnpcycle

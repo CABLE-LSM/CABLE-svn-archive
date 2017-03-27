@@ -10,7 +10,7 @@ SUBROUTINE casa_cnpbal(casapool,casaflux,casabal)
   REAL(r_2), DIMENSION(mp) :: cbalplant,  nbalplant,  pbalplant
   REAL(r_2), DIMENSION(mp) :: cbalsoil,   nbalsoil,   pbalsoil
   REAL(r_2), DIMENSION(mp) :: cbalplantx, nbalplantx, pbalplantx
-
+  logical :: Ticket200 = .false.
 
   cbalplant(:) = 0.0
   cbalsoil(:)  = 0.0
@@ -34,7 +34,7 @@ SUBROUTINE casa_cnpbal(casapool,casaflux,casabal)
 
    casabal%cbalance(:) = Cbalplant(:) + Cbalsoil(:)
 
-!Ticket200
+if(.NOT. Ticket200) then
  do npt=1,mp
     IF(abs(casabal%cbalance(npt))>1e-10) THEN
       write(*,*) 'cbalance',  npt, Cbalplant(npt), Cbalsoil(npt)
@@ -48,20 +48,18 @@ SUBROUTINE casa_cnpbal(casapool,casaflux,casabal)
      ENDIF
  ENDDO
 
-
-
-!Ticket200
    casapool%ctot_0 = sum(casabal%cplantlast,2)+sum(casabal%clitterlast,2) &
         + sum(casabal%csoillast,2)+ casabal%clabilelast
    casapool%ctot = sum(casapool%cplant,2)+sum(casapool%clitter,2) &
         + sum(casapool%csoil,2)+ casapool%clabile
+endif   
    
    casabal%cplantlast  = casapool%cplant
    casabal%clabilelast = casapool%clabile
    casabal%clitterlast = casapool%clitter
    casabal%csoillast   = casapool%csoil
    casabal%sumcbal     = casabal%sumcbal + casabal%cbalance
-   
+
    IF(icycle >1) THEN
       Nbalplant(:) = sum(casabal%nplantlast,2) -sum(casapool%nplant,2)                  &
                     +casaflux%Nminuptake(:) *deltpool

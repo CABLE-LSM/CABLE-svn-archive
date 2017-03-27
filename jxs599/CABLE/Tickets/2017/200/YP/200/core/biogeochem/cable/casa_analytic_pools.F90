@@ -41,15 +41,12 @@
 
   INTEGER  npt,nout,nso
   
+  real(r_2), dimension(mp)             :: cuemet, cuestr,cuecwd
+  real, parameter                      :: cnmic=10.0                ! microbial biomass C:N ratio
+
   !Ticket#200
   logical :: Ticket200 = .false.
     
-  real(r_2), dimension(mp)             :: cuemet, cuestr,cuecwd
-  real, parameter                      :: cnmic=10.0                ! microbial biomass C:N ratio
-  !Ticket#200:End
-
-
-
   ! Soiltype     soilnumber soil P(g P/m2)
   ! Alfisol     1       61.3
   ! Andisol     2       103.9
@@ -199,9 +196,6 @@
             totpsoil(npt)          = psorder(casamet%isorder(npt)) *xpsoil50(casamet%isorder(npt))
             casapool%plitter(npt,:)= casapool%Nlitter(npt,:) / casapool%ratioNPlitter(npt,:)
             casapool%psoil(npt,:)  = casapool%Nsoil(npt,:) / casapool%ratioNPsoil(npt,:)
-            ! why is this commented here but used in UM
-            ! casapool%plitter(npt,:)= casapool%ratiopclitter(npt,:)  * casapool%clitter(npt,:)
-            ! casapool%psoil(npt,:)  = casapool%ratioPCsoil(npt,:)    * casapool%Csoil(npt,:)
             casapool%psoillab(npt) = totpsoil(npt) *fracpLab(casamet%isorder(npt))
             casapool%psoilsorb(npt)= casaflux%psorbmax(npt) * casapool%psoillab(npt) &
                                     /(casaflux%kmlabp(npt)+casapool%psoillab(npt))

@@ -1,18 +1,3 @@
-MODULE casa__mod
-
-USE cable_def_types_mod
-USE casadimension
-USE casaparm
-USE casavariable
-USE phenvariable
-USE cable_common_module, only: cable_user ! Custom soil respiration: Ticket #42
-
-IMPLICIT NONE
-  REAL(r_2), PARAMETER :: zero = 0.0_r_2
-  REAL(r_2), PARAMETER :: one  = 1.0_r_2
-
-CONTAINS
-
 SUBROUTINE casa_xrateplant(xkleafcold,xkleafdry,xkleaf,veg,casabiome, &
                            casamet,phen)
 ! use xleafcold and xleafdry to account for
@@ -66,8 +51,8 @@ SUBROUTINE casa_xrateplant(xkleafcold,xkleafdry,xkleaf,veg,casabiome, &
                     * (1.0-casamet%btran(npt))&
                     ** casabiome%xkleafdryexp(veg%iveg(npt))
     IF (phen%phase(npt)==1) xkleaf(npt)= 0.0
+    !Ticket200
     ! vh: account for high rate of leaf loss during senescence
-    ! vh_js
     if (trim(cable_user%PHENOLOGY_SWITCH)=='climate') then
        IF (phen%phase(npt)==3.or.phen%phase(npt)==0) xkleaf(npt)= 100.0
     endif
@@ -98,5 +83,3 @@ SUBROUTINE casa_xrateplant(xkleafcold,xkleafdry,xkleaf,veg,casabiome, &
 END SUBROUTINE casa_xrateplant
 
 
-
-END MODULE casa__mod

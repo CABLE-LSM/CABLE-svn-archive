@@ -42,24 +42,38 @@
     IF (TRIM(cable_user%vcmax).eq.'standard') then
     
        IF (casamet%glai(np) > casabiome%glaimin(ivt)) THEN
+        
           IF (ivt/=2) THEN
+          
              veg%vcmax(np) = ( casabiome%nintercept(ivt) &
-                  + casabiome%nslope(ivt)*ncleafx(np)/casabiome%sla(ivt) ) * 1.0e-6
-          ELSE
+                        + casabiome%nslope(ivt)     &
+                        * ncleafx(np)/casabiome%sla(ivt) ) * 1.0e-6
+        
+        ELSE !(ivt==2)
+          
              IF (casapool%nplant(np,leaf)>0.0.AND.casapool%pplant(np,leaf)>0.0) THEN
+            
                 veg%vcmax(np) = ( casabiome%nintercept(ivt)  &
                      + casabiome%nslope(ivt)*(0.4+9.0/npleafx(np)) &
                      * ncleafx(np)/casabiome%sla(ivt) ) * 1.0e-6
+          
              ELSE
-                veg%vcmax(np) = ( casabiome%nintercept(ivt) &
-                     + casabiome%nslope(ivt)*ncleafx(np)/casabiome%sla(ivt) )*1.0e-6
+            
+               veg%vcmax(np) = ( casabiome%nintercept(ivt) &
+                          + casabiome%nslope(ivt)     &
+                          * ncleafx(np)/casabiome%sla(ivt) ) * 1.0e-6
+
              ENDIF
-          ENDIF
+
+           ENDIF !(ivt/=2)
+  
           if(.NOT. Ticket200) &
             veg%vcmax(np) =veg%vcmax(np)* xnslope(ivt)
-       ENDIF
-
+      
+      ENDIF !(casamet%glai(np) > casabiome%glaimin(ivt))  
+      
     elseif (TRIM(cable_user%vcmax).eq.'Walker2014') then
+    
        !Walker, A. P. et al.: The relationship of leaf photosynthetic traits – Vcmax and Jmax – 
        !to leaf nitrogen, leaf phosphorus, and specific leaf area: 
        !a meta-analysis and modeling study, Ecology and Evolution, 4, 3218-3235, 2014.
@@ -67,19 +81,23 @@
        !      0.282*log(pleafx(np))*log(nleafx(np))) * 1.0e-6
        nleafx(np) = ncleafx(np)/casabiome%sla(ivt) ! leaf N in g N m-2 leaf
        pleafx(np) = nleafx(np)/npleafx(np) ! leaf P in g P m-2 leaf
+       
        if (ivt .EQ. 7) then
           veg%vcmax(np) = 1.0e-5 ! special for C4 grass: set here to value from  parameter file
        else
           veg%vcmax(np) = vcmax_np(nleafx(np), pleafx(np))
        endif
-    else
-       stop('invalid vcmax flag')
-    endif
+       
+    else !cable_user%vcmax).eq.'xxx'
+    
+      stop('invalid vcmax flag')
+    
+    endif !cable_user%vcmax).eq.'standard'
   
   ENDDO
 
   veg%ejmax = 2.0 * veg%vcmax
-!991 format(i6,2x,i4,2x,2(f9.3,2x))
+
  END SUBROUTINE casa_feedback
 
 

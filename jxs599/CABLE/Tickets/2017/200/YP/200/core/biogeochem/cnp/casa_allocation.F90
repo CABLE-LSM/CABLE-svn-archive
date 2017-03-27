@@ -36,8 +36,10 @@ SUBROUTINE casa_allocation( veg,soil,casabiome,casaflux,casapool,casamet,phen, &
 
   ! initlization
   casaflux%fracCalloc  = 0.0
+  
   !Ticket200 - comments this out
-  !casaflux%fracClabile = 0.0
+  if(.NOT. Ticket200) casaflux%fracClabile = 0.0
+  
   fracCallocx = 0.0
   newLAI = 0.0
   SELECT CASE (LALLOC)

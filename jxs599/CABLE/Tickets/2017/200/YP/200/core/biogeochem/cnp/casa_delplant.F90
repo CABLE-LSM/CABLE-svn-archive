@@ -22,6 +22,7 @@ SUBROUTINE casa_delplant(veg,casabiome,casapool,casaflux,casamet,            &
 
   INTEGER  npt,nL,nP,nland, ivt
   real(r_2)      :: Ygrow, ratioPNplant
+  logical :: Ticket200 = .false.
 
   casaflux%FluxCtolitter = 0.0
   casaflux%FluxNtolitter = 0.0
@@ -55,7 +56,7 @@ SUBROUTINE casa_delplant(veg,casabiome,casapool,casaflux,casamet,            &
         casapool%dcplantdt(npt,:)  =  casaflux%Cnpp(npt) * casaflux%fracCalloc(npt,:)     &
              - casaflux%kplant(npt,:)  * casapool%cplant(npt,:)
 
-        !Ticket200
+        if( .NOT. Ticket200 ) then
         !! adjust turnover and autotrophic respiration to avoid negative stores.
         !! Ticket#108
 
@@ -97,9 +98,8 @@ SUBROUTINE casa_delplant(veg,casabiome,casapool,casaflux,casamet,            &
                 - casaflux%kplant(npt,:)  * casapool%cplant(npt,:)
 
         endif
-
-        !Ticket200 end of adjustments to avoid negative stores Ticket#108
-
+        endif !Ticket200 
+        
         ! change here made by ypw on 26august 2011
         ! calculate fraction c to labile pool as a fraction of gpp, not npp
         ! casapool%dClabiledt(npt)   = casaflux%Cnpp(npt)    * casaflux%fracClabile(npt)

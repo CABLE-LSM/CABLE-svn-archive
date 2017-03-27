@@ -51,7 +51,6 @@ SUBROUTINE casa_coeffplant(xkleafcold,xkleafdry,xkleaf,veg,casabiome,casapool, &
     casaflux%kplant(:,froot)       = casabiome%plantrate(veg%iveg(:),froot)
   ENDWHERE
 
-
   ! When glai<glaimin,leaf biomass will not decrease anymore. (Q.Zhang 10/03/2011)
   DO npt = 1,mp
     if(casamet%glai(npt).le.casabiome%glaimin(veg%iveg(npt))) casaflux%kplant(npt,leaf) = 0.0
