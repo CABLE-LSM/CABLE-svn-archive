@@ -1,4 +1,3 @@
-! casa_fluxout output data for Julie Tang; comment out (BP apr2010)
 SUBROUTINE casa_fluxout(myear,veg,soil,casabal,casamet)
 !SUBROUTINE casa_fluxout(myear,clitterinput,csoilinput)
   USE cable_def_types_mod
@@ -52,8 +51,7 @@ SUBROUTINE casa_fluxout(myear,veg,soil,casabal,casamet)
     DO npt =1,mp
       SELECT CASE(icycle)
       CASE(1)
-
-        WRITE(nout,*) myear,npt,veg%iveg(npt),soil%isoilm(npt),    &
+        WRITE(nout,92) myear,npt,veg%iveg(npt),soil%isoilm(npt),    &
             casamet%isorder(npt),casamet%lat(npt),casamet%lon(npt), &
             casamet%areacell(npt)*(1.0e-9),casabal%Fcgppyear(npt),  &
             casabal%Fcnppyear(npt),  &
@@ -63,7 +61,7 @@ SUBROUTINE casa_fluxout(myear,veg,soil,casabal,casamet)
 !            clitterinput(npt,:),csoilinput(npt,:)
 
       CASE(2)
-        WRITE(nout,*) myear,npt,veg%iveg(npt),soil%isoilm(npt),    &
+        WRITE(nout,92) myear,npt,veg%iveg(npt),soil%isoilm(npt),    &
             casamet%isorder(npt),casamet%lat(npt),casamet%lon(npt), &
             casamet%areacell(npt)*(1.0e-9),casabal%Fcgppyear(npt),  &
             casabal%FCnppyear(npt),                                 &
@@ -75,7 +73,7 @@ SUBROUTINE casa_fluxout(myear,veg,soil,casabal,casamet)
         casabal%FNupyear(npt), casabal%FNleachyear(npt),casabal%FNlossyear(npt)
 
       CASE(3)
-        WRITE(nout,*) myear,npt,veg%iveg(npt),soil%isoilm(npt), &
+        WRITE(nout,92) myear,npt,veg%iveg(npt),soil%isoilm(npt), &
         casamet%isorder(npt),casamet%lat(npt),casamet%lon(npt),  &
         casamet%areacell(npt)*(1.0e-9),casabal%Fcgppyear(npt), &
         casabal%FCnppyear(npt),                                  &
@@ -90,8 +88,6 @@ SUBROUTINE casa_fluxout(myear,veg,soil,casabal,casamet)
 
       END SELECT
       totGPP = totGPP+casabal%Fcgppyear(npt)* casamet%areacell(npt)
-
-
       totNPP = totNPP+casabal%Fcnppyear(npt)* casamet%areacell(npt)
     ENDDO
 

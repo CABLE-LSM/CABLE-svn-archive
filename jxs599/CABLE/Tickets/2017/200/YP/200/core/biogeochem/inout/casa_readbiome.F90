@@ -7,7 +7,8 @@ SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
   USE casaparm
   USE casavariable
   USE phenvariable
-  !! vh_js !!
+  !Ticket200
+  USE cable_common_module, only: knode_gl
   USE cable_common_module, only: cable_user
   IMPLICIT NONE
 !  INTEGER,               INTENT(IN)    :: mvt,mst
@@ -20,9 +21,12 @@ SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
   TYPE (phen_variable),       INTENT(INOUT) :: phen
 
   ! local variables
+  !Ticket200
+  REAL(r_2), DIMENSION(mvtype)       :: slawright
   REAL(r_2), DIMENSION(mvtype)       :: leafage,frootage,woodage
   REAL(r_2), DIMENSION(mvtype)       :: totroot
   REAL(r_2), DIMENSION(mvtype)       :: cwdage,metage,strage
+  !Ticket200: YP doesnt have slax here
   REAL(r_2), DIMENSION(mvtype)       :: micage,slowage,passage,clabileage,slax
   REAL(r_2), DIMENSION(mvtype,mplant):: ratioCNplant
   REAL(r_2), DIMENSION(mvtype,msoil) :: ratioCNsoil,ratioCNsoilmin,ratioCNsoilmax
@@ -50,9 +54,21 @@ SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
   REAL(r_2), DIMENSION(mvtype)       :: xxnpmax,xq10soil,xxkoptlitter,xxkoptsoil,xprodptase, &
                                         xcostnpup,xmaxfinelitter,xmaxcwd,xnintercept,xnslope
   REAL(r_2), DIMENSION(mso)          :: xxkplab,xxkpsorb,xxkpocc
-
+  logical :: Ticket200 = .false.
 
   OPEN(101,file=casafile%cnpbiome)
+
+!Ticket200
+if (Ticket200) then    
+if (knode_gl==0) then    
+    print *, '  '; print *, 'CASA_log:'
+    print *, '  Opened file - '
+    print *, '  ', trim(casafile%cnpbiome)
+    print *, '  for reading cnpbiome vars.'
+    print *, 'End CASA_log:'; print *, '  '
+  endif
+  endif
+
   DO i=1,3
     READ(101,*)
   ENDDO
@@ -65,13 +81,22 @@ SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
   READ(101,*)
   READ(101,*)
   DO nv=1,mvtype
+!Ticket200 read slax v slawright
+if (Ticket200) then    
+    READ(101,*) nv1,casabiome%kroot(nv),casabiome%rootdepth(nv),      &
+                casabiome%kuptake(nv),casabiome%krootlen(nv),         &
+                casabiome%kminN(nv), casabiome%kuplabP(nv),           &
+                xfherbivore(nv),leafage(nv),woodage(nv),frootage(nv), &
+                metage(nv),strage(nv),cwdage(nv),  &
+                micage(nv),slowage(nv),passage(nv),clabileage(nv),slawright(nv) 
+else
     READ(101,*) nv1,casabiome%kroot(nv),casabiome%rootdepth(nv),      &
                 casabiome%kuptake(nv),casabiome%krootlen(nv),         &
                 casabiome%kminN(nv), casabiome%kuplabP(nv),           &
                 xfherbivore(nv),leafage(nv),woodage(nv),frootage(nv), &
                 metage(nv),strage(nv),cwdage(nv),  &
                 micage(nv),slowage(nv),passage(nv),clabileage(nv),slax(nv)
-!     PRINT *, 'nv1',nv,nv1
+endif
   ENDDO
 
   READ(101,*)
@@ -134,8 +159,18 @@ SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
       casabiome%ratioNCplantmin(nv,wood),casabiome%ratioNCplantmax(nv,wood), &
       casabiome%ratioNCplantmin(nv,froot),casabiome%ratioNCplantmax(nv,froot), &
       xfNminloss(nv), xfNminleach(nv),xnfixrate(nv)
-!     PRINT *, 'nv6',nv6
-  ENDDO
+!Ticket200 
+if (Ticket200) then    
+  if(casabiome%ratioNCplantmax(nv,leaf)/casabiome%ratioNCplantmin(nv,leaf)>1.51  &
+      .or.casabiome%ratioNCplantmax(nv,wood)/casabiome%ratioNCplantmin(nv,wood)>1.51 &
+      .or.casabiome%ratioNCplantmax(nv,froot)/casabiome%ratioNCplantmin(nv,froot)>1.51 ) then
+         print *, 'WARNING!!! Plant tiiuse range too wide, to avoid oscillation during spinup, reduce the range', &
+         'ivt= ', nv6, casabiome%ratioNCplantmin(nv,leaf),casabiome%ratioNCplantmax(nv,leaf), &
+                       casabiome%ratioNCplantmin(nv,wood),casabiome%ratioNCplantmax(nv,wood), &
+                       casabiome%ratioNCplantmin(nv,froot),casabiome%ratioNCplantmax(nv,froot)
+  endif
+endif
+ENDDO
 
   READ(101,*)
   READ(101,*)
@@ -154,13 +189,15 @@ SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
          xratioNPfrootmin,xratioNPfrootmax,                    &
          casabiome%ftransPPtoL(nv,leaf), casabiome%ftransPPtoL(nv,wood), &
          casabiome%ftransPPtoL(nv,froot)
+  !Ticket200 
+  if ( .NOT. Ticket200) then       
     casabiome%ratioPcplantmin(nv,leaf)  = 1.0/(xratioNPleafmax*ratioCNplant(nv,leaf))
     casabiome%ratioPcplantmax(nv,leaf)  = 1.0/(xratioNPleafmin*ratioCNplant(nv,leaf))
     casabiome%ratioPcplantmin(nv,wood)  = 1.0/(xratioNPwoodmax*ratioCNplant(nv,wood))
     casabiome%ratioPcplantmax(nv,wood)  = 1.0/(xratioNPwoodmin*ratioCNplant(nv,wood))
     casabiome%ratioPcplantmin(nv,froot) = 1.0/(xratioNPfrootmax*ratioCNplant(nv,froot))
     casabiome%ratioPcplantmax(nv,froot) = 1.0/(xratioNPfrootmin*ratioCNplant(nv,froot))
-
+  endif
 
     casabiome%ratioNPplantmin(nv,leaf)  = xratioNPleafmin
     casabiome%ratioNPplantmax(nv,leaf)  = xratioNPleafmax
@@ -179,6 +216,7 @@ SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
                 xxkplab(iso),xxkpsorb(iso),xxkpocc(iso)
 !     PRINT *, 'nv9',nv9
   ENDDO
+
   READ(101,*)
   READ(101,*)
   DO nv=1,mvtype
@@ -213,7 +251,13 @@ SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
   ENDDO
 
   DO nv=1,mvtype
-    casabiome%sla(nv)             = slax(nv)
+    !Ticket200 
+    if ( Ticket200) then       
+      ! use the value from Wright et al. (2004) (read in) instead of equation 
+      casabiome%sla(nv)             = slawright(nv)
+    else
+      casabiome%sla(nv)             = slax(nv)
+    endif
     casabiome%fraclabile(nv,leaf) = deltcasa*0.6    !1/day
     casabiome%fraclabile(nv,froot)= deltcasa*0.4    !1/day
     casabiome%fraclabile(nv,wood) = deltcasa*0.0
@@ -231,7 +275,6 @@ SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
 !    casabiome%kuplabp(nv)         = xkuplabp(nv)
     casabiome%rmplant(nv,:)       = casabiome%rmplant(nv,:)*deltcasa
     casabiome%kclabrate(nv)       = deltcasa/clabileage(nv)
-
 !@@@@@@@@@@@@@@@@@
     casabiome%xnpmax(nv)          = xxnpmax(nv)
     casabiome%q10soil(nv)         = xq10soil(nv)
@@ -255,8 +298,7 @@ SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
 
 !@@@@@@@@@@@@@@
 
- ! PRINT *, 'casabiome%xkoptsoil = ', casabiome%xkoptsoil(2)
-
+ 
   DO npt = 1, mp
     iv1=veg%iveg(npt)
     iso=casamet%isorder(npt)
@@ -279,13 +321,12 @@ SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
       casapool%nlitter(npt,cwd)  = ncwd(iv1)
       casapool%pplant(npt,wood)  = xpwood(iv1)
       casapool%plitter(npt,cwd)  = xpcwd(iv1)
-      !! vh_js !!
+!Ticket200
       IF (cable_user%CALL_POP) THEN  ! initialise very small wood pool, so POP can start from zero.
          casapool%cplant(npt,wood) = 0.01
          casapool%nplant(npt,wood)= casabiome%ratioNCplantmin(iv1,wood)* casapool%cplant(npt,wood)
          casapool%pplant(npt,wood)= casabiome%ratioPCplantmin(iv1,wood)* casapool%cplant(npt,wood)
       ENDIF
-      !! vh_js
 
     ENDIF
     casapool%cplant(npt,leaf)     = cleaf(iv1)
@@ -303,6 +344,7 @@ SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
     ! initializing glai in case not reading pool file (eg. during spin)
     casamet%glai(npt) = MAX(casabiome%glaimin(iv1), &
                         casabiome%sla(iv1) * casapool%cplant(npt,leaf))
+    casamet%glai(npt) = MIN(casabiome%glaimax(iv1),casamet%glai(npt))
 
     casaflux%fNminloss(npt)   = xfNminloss(iv1)
     ! comment out by ypw 12/07/2009
@@ -337,6 +379,7 @@ SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
     casapool%ratioNCplant(npt,:)  = 1.0/ratioCNplant(iv1,:)
     casapool%ratioNPplant(npt,:)  = casabiome%ratioNPplantmin(iv1,:)
     casapool%ratioNClitter(npt,:) = casapool%nlitter(npt,:)/(casapool%clitter(npt,:)+1.0e-10)
+   if (Ticket200)   casapool%ratioNPplant(npt,:)  = casabiome%ratioNPplantmin(iv1,:)
     casapool%ratioNPlitter(npt,:) = casapool%nlitter(npt,:)/(casapool%plitter(npt,:)+1.0e-10)
     casapool%ratioNCsoil(npt,:)   = 1.0/ratioCNsoil(iv1,:)
     casapool%ratioNPsoil(npt,:)   = ratioNPsoil(iso,:)
@@ -354,12 +397,6 @@ SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
       casapool%Psoilsorb(:) = casaflux%psorbmax(:) * casapool%psoillab(:) &
                             /(casaflux%kmlabp(:)+casapool%psoillab(:))
    endif
-
-!  DO npt=1,mp
-!    IF (veg%iveg(npt)==12) PRINT *, npt, veg%iveg(npt), &
-!         casapool%Psoil(npt,:),casapool%psoilsorb(npt), &
-!         casaflux%psorbmax(npt),casapool%psoillab(npt),casaflux%kmlabp(npt)
-!  ENDDO
 
 END SUBROUTINE casa_readbiome
 

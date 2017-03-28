@@ -1,11 +1,14 @@
-! clitterinput and csoilinput are for Julie Tang; comment out (BP apr2010)
-!SUBROUTINE casa_cnpflux(clitterinput,csoilinput)
-! changed by yp wang following Chris Lu 5/nov/2012
 SUBROUTINE biogeochem(ktau,dels,idoY,LALLOC,veg,soil,casabiome,casapool,casaflux, &
      casamet,casabal,phen,POP,climate,xnplimit,xkNlimiting,xklitter,xksoil,xkleaf,xkleafcold,xkleafdry,&
      cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,         &
      nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,         &
                       pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
+!Ticket200:YP's vn below - consolidate arg list w call from _driver
+!SUBROUTINE biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
+!                      casamet,casabal,phen,xnplimit,xkNlimiting,xklitter,xksoil,xkleaf,xkleafcold,xkleafdry,&
+!                      cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,         &
+!                      nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,         &
+!                      pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)                      
   USE cable_def_types_mod
   USE casadimension
   USE casa_cnp_module
@@ -38,33 +41,46 @@ SUBROUTINE biogeochem(ktau,dels,idoY,LALLOC,veg,soil,casabiome,casapool,casaflux
   REAL(r_2),    DIMENSION(mp) :: xkleafcold,xkleafdry,xkleaf
   INTEGER  npt,j
   REAL, ALLOCATABLE :: tmp(:)
-
+  logical :: Ticket200 = .false.
+  
   xKNlimiting = 1.0
 
+  !Ticket200:NB YP does not call
  ! zero annual sums
   if (idoy==1) CALL casa_cnpflux(casaflux,casapool,casabal,.true.)
 
+  !Ticket200:NB YP does not have condititonal switch
   IF (cable_user%PHENOLOGY_SWITCH.eq.'MODIS') THEN
      call phenology(idoy,veg,phen)
   ENDIF
+  
   call avgsoil(veg,soil,casamet)
-  call casa_rplant(veg,casabiome,casapool,casaflux,casamet,climate)
-
-
+  
+  !Ticket200:NB YP does not pass climate%
+  if(.NOT. Ticket200 ) then
+    call casa_rplant(veg,casabiome,casapool,casaflux,casamet,climate)
+  else
+    call casa_rplant(veg,casabiome,casapool,casaflux,casamet)
+  endif
+  
+  !Ticket200:NB YP does not call POP
    IF (.NOT.cable_user%CALL_POP) THEN
       call casa_allocation(veg,soil,casabiome,casaflux,casapool,casamet,phen,LALLOC)
    ENDIF
 
    call casa_xrateplant(xkleafcold,xkleafdry,xkleaf,veg,casabiome, &
         casamet,phen)
+
+   !Ticket200:NB YP does not pass phen%
    call casa_coeffplant(xkleafcold,xkleafdry,xkleaf,veg,casabiome,casapool, &
         casaflux,casamet,phen)
 
    call casa_xnp(xnplimit,xNPuptake,veg,casabiome,casapool,casaflux,casamet)
 
-   IF (cable_user%CALL_POP) THEN
+   IF (cable_user%CALL_POP) THEN 
 
       call casa_allocation(veg,soil,casabiome,casaflux,casapool,casamet,phen,LALLOC)
+
       WHERE (pop%pop_grid(:)%cmass_sum_old.gt.0.001 .and. pop%pop_grid(:)%cmass_sum.gt.0.001 )
          
          casaflux%frac_sapwood(POP%Iwood) = POP%pop_grid(:)%csapwood_sum/ POP%pop_grid(:)%cmass_sum
@@ -80,66 +96,60 @@ SUBROUTINE biogeochem(ktau,dels,idoY,LALLOC,veg,soil,casabiome,casapool,casaflux
               /(POP%pop_grid(:)%cmass_sum+POP%pop_grid(:)%growth) + &
               1.0/veg%disturbance_interval(POP%Iwood,1), 0.99), 0.0))**(1.0/365.0)
 
-         ELSEWHERE
+         ELSEWHERE !(pop%pop_grid(:)%LU ==2)
+         
             casaflux%kplant(POP%Iwood,2) =  1.0 -  &
               (1.0-  max( min((POP%pop_grid(:)%stress_mortality + &
               POP%pop_grid(:)%crowding_mortality+ &
               + POP%pop_grid(:)%fire_mortality+POP%pop_grid(:)%cat_mortality  ) &
               /(POP%pop_grid(:)%cmass_sum+POP%pop_grid(:)%growth), 0.99), 0.0))**(1.0/365.0)
 
-         ENDWHERE
+         ENDWHERE !(pop%pop_grid(:)%LU ==2)
 
          veg%hc(POP%Iwood) = POP%pop_grid(:)%height_max
+      
       ELSEWHERE
+      
          casaflux%frac_sapwood(POP%Iwood) = 1.0
          casaflux%sapwood_area(POP%Iwood) = max(POP%pop_grid(:)%sapwood_area/10000., 1e-6)
          casaflux%kplant(POP%Iwood,2) = 0.0
          veg%hc(POP%Iwood) = POP%pop_grid(:)%height_max
+      
       ENDWHERE
     
-   ENDIF
-!!$if (idoy.eq.365) then
-!!$ write(667,*) pop%LU
-!!$ write(667,*) veg%ilu
-!!$ write(667,991) casaflux%FluxCtohwp(POP%Iwood,1)
-!!$ write(667,991) POP%pop_grid(:)%cat_mortality/POP%pop_grid(:)%cmass_sum_old
-!!$   write(667,991)max(min((POP%pop_grid(:)%cat_mortality                &
-!!$        /POP%pop_grid(:)%cmass_sum_old),0.99),0.0)**(1.0/365.0)
-!!$   write(667,991) (1.0 - (1.0 -max( min((POP%pop_grid(:)%cat_mortality  &
-!!$        /POP%pop_grid(:)%cmass_sum_old),0.99), 0.0))**(1.0/365.0))
-!!$write(667,*)
-!!$   endif
-!!$  
-!write(667,991) casaflux%cgpp(147),casaflux%cnpp(147),casaflux%kplant(147,2),casapool%cplant(147,:)
-!  write(*,991)casaflux%cgpp(2058),casaflux%cnpp(2058),casaflux%fracClabile(2058), &
-!            casaflux%fracCalloc(2058,:),casaflux%crmplant(2058,:),casaflux%crgplant(2058), casapool%Nsoilmin(2058), &
-!            casaflux%cgpp(2058)-casaflux%cnpp(2058)-casaflux%fracClabile(2058)*casaflux%cgpp(2058)-sum(casaflux%crmplant(2058,:))-casaflux%crgplant(2058)
-   !991  format('point 147',20(f10.4,2x))
-   991  format(20(e12.4,2x))
+   ENDIF ! (cable_user%CALL_POP) 
 
   call casa_xratesoil(xklitter,xksoil,veg,soil,casamet,casabiome)
-  call casa_coeffsoil(xklitter,xksoil,veg,soil,casabiome,casaflux,casamet)
+  
+  if (.NOT. Ticket200) then
+    call casa_coeffsoil(xklitter,xksoil,veg,soil,casabiome,casaflux,casamet)
+  else
+    call casa_coeffsoil(xklitter,xksoil,veg,soil,casabiome,casapool,casaflux,casamet)
+  endif
 
   IF (icycle>1) THEN
     call casa_xkN(xkNlimiting,casapool,casaflux,casamet,casabiome,veg)
+
     DO j=1,mlitter
       casaflux%klitter(:,j) = casaflux%klitter(:,j)* xkNlimiting(:)
     ENDDO
+
     call casa_nuptake(veg,xkNlimiting,casabiome,casapool,casaflux,casamet)
     IF (icycle >2) call casa_puptake(veg,xkNlimiting,casabiome, &
                                      casapool,casaflux,casamet)
   ENDIF
 
-  ! changed by ypwang following Chris Lu on 5/nov/2012
   call casa_delplant(veg,casabiome,casapool,casaflux,casamet,                &
        cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,  &
        nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,  &
        pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
 
-  casaflux%Cplant_turnover_disturbance = 0
-  casaflux%Cplant_turnover_crowding = 0
-  casaflux%Cplant_turnover_resource_limitation = 0
-
+  if (.NOT. Ticket200) then
+    casaflux%Cplant_turnover_disturbance = 0
+    casaflux%Cplant_turnover_crowding = 0
+    casaflux%Cplant_turnover_resource_limitation = 0
+  endif
+  
   if (cable_user%CALL_POP) THEN
      if (.not.allocated(tmp)) allocate(tmp(size(POP%pop_grid)))
      tmp = (POP%pop_grid(:)%stress_mortality + POP%pop_grid(:)%crowding_mortality &
@@ -158,9 +168,14 @@ SUBROUTINE biogeochem(ktau,dels,idoY,LALLOC,veg,soil,casabiome,casapool,casaflux
 
   call casa_delsoil(veg,casapool,casaflux,casamet,casabiome)
 
-  call casa_cnpcycle(veg,casabiome,casapool,casaflux,casamet, LALLOC)
-   !! vh_js !!
-  !CLN ndummy must be before pdummy!!!!
+  if (.NOT. Ticket200) then
+    call casa_cnpcycle(veg,casabiome,casapool,casaflux,casamet, LALLOC)
+  else
+    call casa_cnpcycle(veg,casabiome,casapool,casaflux,casamet)
+  endif
+  
+  !Ticket200  
+  !ndummy must be before pdummy
   IF (icycle<3) then
       IF (icycle<2) call casa_ndummy(casapool)
       call casa_pdummy(casapool)
@@ -170,12 +185,8 @@ SUBROUTINE biogeochem(ktau,dels,idoY,LALLOC,veg,soil,casabiome,casapool,casaflux
 
   call casa_cnpflux(casaflux,casapool,casabal,.false.)
 
-  ! for spinning up only
-  ! casapool%Nsoilmin = max(casapool%Nsoilmin,0.5)
-  ! casapool%Psoillab = max(casapool%Psoillab,0.1)
-
-
-
+  if (.NOT. Ticket200) &
+    casapool%Psoillab = max(casapool%Psoillab,0.01)
 
 END SUBROUTINE biogeochem
 

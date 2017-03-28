@@ -7,6 +7,8 @@ SUBROUTINE casa_readphen(veg,casamet,phen)
   USE casaparm
   USE casavariable
   USE phenvariable
+  !Ticket200: needs for writing log
+  USE cable_common_module, ONLY : knode_gl
   IMPLICIT NONE
 !  INTEGER,              INTENT(IN)    :: mvt
   TYPE (veg_parameter_type), INTENT(IN)    :: veg  ! vegetation parameters
@@ -27,6 +29,15 @@ SUBROUTINE casa_readphen(veg,casamet,phen)
   phendoy1(:,:)= 2
 
   OPEN(101,file=casafile%phen)
+!Ticket200:adds log
+  if (knode_gl==0) then
+    print *, '  '; print *, 'CASA_log:'
+    print *, '  Opened file - '
+    print *, '  ', trim(casafile%phen)
+    print *, '  for reading phen vars.'
+    print *, 'End CASA_log:'; print *, '  '
+  endif
+
   READ(101,*)
   READ(101,*) (ivtx(nx),nx=1,nphen) ! fixed at 10, as only 10 of 17 IGBP PFT
                                     ! have seasonal leaf phenology
