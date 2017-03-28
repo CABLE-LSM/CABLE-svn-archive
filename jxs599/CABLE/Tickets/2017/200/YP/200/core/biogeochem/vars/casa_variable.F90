@@ -97,9 +97,6 @@ MODULE casaparm
   REAL(r_2), PARAMETER :: frootparmb =-0.0485
   REAL(r_2), PARAMETER :: frootparmc = 0.1755
   REAL(r_2), PARAMETER :: xweightalloc = 0.2
-!  REAL(r_2), PARAMETER :: xkplab=0.5*deltcasa
-!  REAL(r_2), PARAMETER :: xkpsorb=0.01*deltcasa
-!  REAL(r_2), PARAMETER :: xkpocc =0.01*deltcasa
 END MODULE casaparm
 
 MODULE casavariable
@@ -423,8 +420,6 @@ SUBROUTINE alloc_casavariable(casabiome,casapool,casaflux, &
            casabiome%ftransPPtoL(mvtype,mplant),     &
            casabiome%litterrate(mvtype,mlitter),     &
            casabiome%soilrate(mvtype,msoil),         &
-         !  casabiome%ratioPcplantmax(mvtype,leaf),   &
-         !  casabiome%ratioPcplantmin(mvtype,leaf)    &
          !! vh_js !!
            casabiome%ratioPcplantmax(mvtype,mplant),   &
            casabiome%ratioPcplantmin(mvtype,mplant)    &
