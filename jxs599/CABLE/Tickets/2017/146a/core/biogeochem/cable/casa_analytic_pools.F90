@@ -39,7 +39,13 @@
   REAL(r_2), DIMENSION(mso) :: fracPlab,fracPsorb,fracPocc,fracPorg
   REAL(r_2), DIMENSION(mp)  :: totpsoil
   INTEGER  npt,nout,nso
+!Ticket146  
+  real(r_2), dimension(mp)             :: cuemet, cuestr,cuecwd
+  real, parameter                      :: cnmic=10.0                ! microbial biomass C:N ratio
 
+!Ticket#146
+  logical :: Ticket146 = .false.
+    
   ! Soiltype     soilnumber soil P(g P/m2)
   ! Alfisol     1       61.3
   ! Andisol     2       103.9
@@ -72,18 +78,33 @@
   casabal%sumnbal(:)   = 0.0
   casabal%sumpbal(:)   = 0.0
 
+  !Ticket #146: YP uses variables to define coeff. BUT NB. differences in applied co_eff
+  cuemet(:) = 0.45
+  cuestr(:) = 0.45
+  cuecwd(:) = 0.4
+  
+  !Ticket#146: Replace hardwire co-eff with new params above
   do npt=1,mp
   if(casamet%iveg2(npt)/=icewater.and.avgcnpp(npt) > 0.0) THEN
-    casaflux%fromLtoS(npt,mic,metb)   = 0.45
+    casaflux%fromLtoS(npt,mic,metb)   = cuemet(npt)
                                           ! metb -> mic
-    casaflux%fromLtoS(npt,mic,str)   = 0.45*(1.0-casabiome%fracLigninplant(veg%iveg(npt),leaf))
+    casaflux%fromLtoS(npt,mic,str)    = cuestr(npt) * 
+                            (1.0-casabiome%fracLigninplant(veg%iveg(npt),leaf))
                                           ! str -> mic
-    casaflux%fromLtoS(npt,slow,str)  = 0.7 * casabiome%fracLigninplant(veg%iveg(npt),leaf)
+    if(.NOT. Ticket146) cuestr(:) = 0.7
+    casaflux%fromLtoS(npt,slow,str)  = cuestr(npt) * 
+                                  casabiome%fracLigninplant(veg%iveg(npt),leaf) 
                                           ! str -> slow
-    casaflux%fromLtoS(npt,mic,cwd)   = 0.40*(1.0 - casabiome%fracLigninplant(veg%iveg(npt),wood))
+    
+    casaflux%fromLtoS(npt,mic,cwd)   = cuecwd(npt) * 
+                          (1.0 - casabiome%fracLigninplant(veg%iveg(npt),wood))
                                           ! CWD -> fmic
-    casaflux%fromLtoS(npt,slow,cwd)  = 0.7 * casabiome%fracLigninplant(veg%iveg(npt),wood)
+    if(.NOT. Ticket146) cuecwd(:) = 0.7
+    casaflux%fromLtoS(npt,slow,cwd)  = cuecwd(npt) *
+                                  casabiome%fracLigninplant(veg%iveg(npt),wood)
                                           ! CWD -> slow
+!Ticket #146:End  
+
 !! set the following two backflow to set (see Bolker 199x)
 !    casaflux%fromStoS(npt,mic,slow)  = 0.45 * (0.997 - 0.009 *soil%clay(npt))
 !    casaflux%fromStoS(npt,mic,pass)  = 0.45
@@ -131,10 +152,12 @@
       casapool%csoil(npt,pass)  = (casaflux%fromStoS(npt,pass,mic) *casaflux%ksoil(npt,mic) *casapool%csoil(npt,mic)    &
                                   +casaflux%fromStoS(npt,pass,slow)*casaflux%ksoil(npt,slow)*casapool%csoil(npt,slow) ) &
                                 /casaflux%ksoil(npt,pass)
-
-      casabal%clitterlast = casapool%clitter
-      casabal%csoillast   = casapool%csoil
-
+      !Ticket146:YP doesnt use this init 
+      if(.NOT. Ticket146) then
+        casabal%clitterlast = casapool%clitter
+        casabal%csoillast   = casapool%csoil
+      endif
+      
       if(icycle <=1) then
          casapool%nlitter(npt,:)= casapool%rationclitter(npt,:) * casapool%clitter(npt,:)
          casapool%nsoil(npt,:)  = casapool%ratioNCsoil(npt,:)   * casapool%Csoil(npt,:)
@@ -164,11 +187,8 @@
 
         IF (icycle<=2) THEN
             totpsoil(npt)          = psorder(casamet%isorder(npt)) *xpsoil50(casamet%isorder(npt))
-           casapool%plitter(npt,:)= casapool%Nlitter(npt,:)/casapool%ratioNPlitter(npt,:)
-            casapool%psoil(npt,:)  = casapool%Nsoil(npt,:)/casapool%ratioNPsoil(npt,:)
-            ! why is this commented here but used in UM
-            ! casapool%plitter(npt,:)= casapool%ratiopclitter(npt,:)  * casapool%clitter(npt,:)
-            ! casapool%psoil(npt,:)  = casapool%ratioPCsoil(npt,:)    * casapool%Csoil(npt,:)
+           casapool%plitter(npt,:)= casapool%Nlitter(npt,:) / casapool%ratioNPlitter(npt,:)
+            casapool%psoil(npt,:)  = casapool%Nsoil(npt,:) / casapool%ratioNPsoil(npt,:)
             casapool%psoillab(npt) = totpsoil(npt) *fracpLab(casamet%isorder(npt))
             casapool%psoilsorb(npt)= casaflux%psorbmax(npt) * casapool%psoillab(npt) &
                                     /(casaflux%kmlabp(npt)+casapool%psoillab(npt))

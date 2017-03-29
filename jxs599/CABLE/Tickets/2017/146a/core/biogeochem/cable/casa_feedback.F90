@@ -16,11 +16,15 @@
   real, dimension(mp)  :: ncleafx,npleafx, pleafx, nleafx ! local variables
   real, dimension(17)                   ::  xnslope
   data xnslope/0.80,1.00,2.00,1.00,1.00,1.00,0.50,1.00,0.34,1.00,1.00,1.00,1.00,1.00,1.00,1.00,1.00/
-
+  logical Ticket146 = .false.
   ! first initialize
   ncleafx(:) = casabiome%ratioNCplantmax(veg%iveg(:),leaf)
-  npleafx = 14.2
-
+  if(Ticket146) then
+    npleafx(:) = casabiome%ratioNPplantmin(veg%iveg(:),leaf)
+  else 
+    npleafx = 14.2
+  endif
+  
   DO np=1,mp
     ivt=veg%iveg(np)
     IF (casamet%iveg2(np)/=icewater &
@@ -50,8 +54,9 @@
                      + casabiome%nslope(ivt)*ncleafx(np)/casabiome%sla(ivt) )*1.0e-6
              ENDIF
           ENDIF
-          veg%vcmax(np) =veg%vcmax(np)* xnslope(ivt)
-       ENDIF
+          if(.NOT. Ticket146) &
+            veg%vcmax(np) =veg%vcmax(np)* xnslope(ivt)
+      ENDIF
 
     elseif (TRIM(cable_user%vcmax).eq.'Walker2014') then
        !Walker, A. P. et al.: The relationship of leaf photosynthetic traits – Vcmax and Jmax – 
@@ -69,11 +74,11 @@
     else
        stop('invalid vcmax flag')
     endif
-  
+    
   ENDDO
 
   veg%ejmax = 2.0 * veg%vcmax
-!991 format(i6,2x,i4,2x,2(f9.3,2x))
+
  END SUBROUTINE casa_feedback
 
 

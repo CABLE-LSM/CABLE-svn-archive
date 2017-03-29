@@ -8,6 +8,9 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, climate, ncall, kend
       USE cable_diag_module,     ONLY : get_var_ncr2, &
                                         get_var_ncr3, stderr_nc
 #     endif
+!Ticket146 - trunk USEes cable_diag NOT ncdf_module & not _cnp_ either
+      use cable_ncdf_module,     only : get_var_nc, stderr_nc
+      USE casa_cnp_module
       IMPLICIT NONE
 
       TYPE (casa_flux), INTENT(INOUT) :: casaflux

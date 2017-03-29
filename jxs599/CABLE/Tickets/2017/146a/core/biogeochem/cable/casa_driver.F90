@@ -56,7 +56,7 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
 
   ! INTEGER, INTENT(IN) :: wlogn
    INTEGER , parameter :: wlogn=6
-
+  logical :: Ticket146 = .false.
   
    IF ( .NOT. dump_read ) THEN  ! construct casa met and flux inputs from current CABLE run
       IF ( TRIM(cable_user%MetType) .EQ. 'cru' ) THEN
@@ -67,7 +67,15 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
          casamet%tairk  = 0.0
          casamet%tsoil  = 0.0
          casamet%moist  = 0.0
-  
+         if(Ticket146) then
+           casaflux%cgpp  = 0.0
+           !add initializations (BP jul2010)
+           casaflux%Crsoil   = 0.0
+           casaflux%crgplant = 0.0
+           casaflux%crmplant = 0.0
+           casaflux%clabloss = 0.0
+           !casaflux%crmplant(:,leaf) = 0.0
+         End 
       ENDIF
 
       IF(MOD(ktau,ktauday)==1) THEN
@@ -93,15 +101,47 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
             IF (trim(cable_user%PHENOLOGY_SWITCH)=='climate') THEN
                ! get climate_dependent phenology
                call cable_phenology_clim(veg, climate, phen)
-
             ENDIF
-  
+            
+            if(Ticket146) then           
+         
+              if(ktau/ktauday .le. 365)then
+
+                casamet%Tairkspin     (:,idoy) = casamet%tairk(:)
+                casamet%cgppspin      (:,idoy) = casaflux%cgpp(:)
+                casamet%crmplantspin_1(:,idoy) = casaflux%crmplant(:,1)
+                casamet%crmplantspin_2(:,idoy) = casaflux%crmplant(:,2)
+                casamet%crmplantspin_3(:,idoy) = casaflux%crmplant(:,3)
+                casamet%Tsoilspin_1   (:,idoy) = casamet%tsoil(:,1)
+                casamet%Tsoilspin_2   (:,idoy) = casamet%tsoil(:,2)
+                casamet%Tsoilspin_3   (:,idoy) = casamet%tsoil(:,3)
+                casamet%Tsoilspin_4   (:,idoy) = casamet%tsoil(:,4)
+                casamet%Tsoilspin_5   (:,idoy) = casamet%tsoil(:,5)
+                casamet%Tsoilspin_6   (:,idoy) = casamet%tsoil(:,6)
+                casamet%moistspin_1   (:,idoy) = casamet%moist(:,1)
+                casamet%moistspin_2   (:,idoy) = casamet%moist(:,2)
+                casamet%moistspin_3   (:,idoy) = casamet%moist(:,3)
+                casamet%moistspin_4   (:,idoy) = casamet%moist(:,4)
+                casamet%moistspin_5   (:,idoy) = casamet%moist(:,5)
+                casamet%moistspin_6   (:,idoy) = casamet%moist(:,6)
+
+              end if
+            end if !End Ticket146
+            
             CALL biogeochem(ktau,dels,idoy,LALLOC,veg,soil,casabiome,casapool,casaflux, &
                 casamet,casabal,phen,POP,climate, xnplimit,xkNlimiting,xklitter,xksoil, &
                 xkleaf,xkleafcold,xkleafdry,&
                 cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,         &
                 nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,         &
                 pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
+
+         !Ticket146: NB. YP's are list to biogeochem differs
+         !CALL biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
+         !                casamet,casabal,phen,xnplimit,xkNlimiting,xklitter,  &
+         !                xksoil,xkleaf,xkleafcold,xkleafdry,&
+         !                cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,   &
+         !                nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,   &
+         !                pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)!
 
             IF (cable_user%CALL_POP) THEN ! accumulate input variables for POP
                ! accumulate annual variables for use in POP
@@ -128,6 +168,14 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
    ELSE ! dump_read: ! use casa met and flux inputs from dumpfile
 
       IF( MOD((ktau-kstart+1),ktauday) == 0 ) THEN  ! end of day
+
+!Ticket146 - again consolidate call. VH also has POP loop etc
+!       CALL biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
+!                       casamet,casabal,phen,xnplimit,xkNlimiting,xklitter,  &
+!                       xksoil,xkleaf,xkleafcold,xkleafdry,&
+!                       cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,   &
+!                       nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,   &
+!                       pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
 
          CALL biogeochem(ktau,dels,idoy,LALLOC,veg,soil,casabiome,casapool,casaflux, &
               casamet,casabal,phen,POP,climate,xnplimit,xkNlimiting,xklitter,xksoil,xkleaf, &

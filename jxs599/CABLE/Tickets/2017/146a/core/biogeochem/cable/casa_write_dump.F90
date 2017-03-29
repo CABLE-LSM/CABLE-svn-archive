@@ -11,6 +11,16 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, phen, climate, n_call, ke
   USE casadimension,         ONLY : mplant
   USE phenvariable
 
+!Ticket146: YP vn has this config. NB. This is NOT build ready 
+  USE cable_def_types_mod
+  USE casadimension, only : mdyear, mplant
+  USE casavariable
+  USE cable_io_vars_module, only : patch
+  use cable_ncdf_module, only : def_dims, def_vars, def_var_atts, &
+                                   put_var_nc, stderr_nc
+  
+
+  
   IMPLICIT NONE
 
   INTEGER, INTENT(in) :: &
