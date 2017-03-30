@@ -19,8 +19,9 @@ SUBROUTINE casa_delplant(veg,casabiome,casapool,casaflux,casamet,            &
        nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,  &
        pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd
 
-  INTEGER  npt,nL,nP,nland
+  INTEGER  npt,nL,nP,nland, ivt
   real(r_2)      :: Ygrow, ratioPNplant
+  logical :: Ticket146 = .false.
 
   casaflux%FluxCtolitter = 0.0
   casaflux%FluxNtolitter = 0.0
@@ -54,11 +55,7 @@ SUBROUTINE casa_delplant(veg,casabiome,casapool,casaflux,casamet,            &
         casapool%dcplantdt(npt,:)  =  casaflux%Cnpp(npt) * casaflux%fracCalloc(npt,:)     &
              - casaflux%kplant(npt,:)  * casapool%cplant(npt,:)
 
-
-
-        !casapool%dcplantdt(npt,2) = casapool%dcplantdt(npt,2)
-
-        !! vh_js !!
+!Ticket146: doesnt have
         !! adjust turnover and autotrophic respiration to avoid negative stores.
         !! Ticket#108
 
@@ -125,7 +122,7 @@ SUBROUTINE casa_delplant(veg,casabiome,casapool,casaflux,casamet,            &
               casapool%dNplantdt(npt,leaf)  = - casaflux%kplant(npt,leaf) * casapool%Nplant(npt,leaf) &
                    * casabiome%ftransNPtoL(veg%iveg(npt),leaf)
            ENDIF
-
+           !Ticket146: if condition
            IF (casamet%lnonwood(npt)==0) THEN
               casapool%dNplantdt(npt,wood)  = - casaflux%kplant(npt,wood) * casapool%Nplant(npt,wood) &
                                         * casabiome%ftransNPtoL(veg%iveg(npt),wood)
@@ -189,19 +186,15 @@ SUBROUTINE casa_delplant(veg,casabiome,casapool,casaflux,casamet,            &
 
         !    PRINT *, 'before 2nd icycle >1; npt, mp', npt, mp
         IF(icycle > 1) THEN
-!!$       casaflux%FluxNtolitter(npt,str) = casaflux%fromPtoL(npt,str,leaf) * casaflux%kplant(npt,leaf)  &
-!!$                               * casapool%cplant(npt,leaf)       * ratioNCstrfix              &
-!!$                               + casaflux%fromPtoL(npt,str,froot)* casaflux%kplant(npt,froot) &
-!!$                               * casapool%cplant(npt,froot)      * ratioNCstrfix
-
-           !vh! to avoid -ve Nitrogen pools Ticket#108
-           casaflux%FluxNtolitter(npt,str) = min(casaflux%fromPtoL(npt,str,leaf) * &
-                casaflux%kplant(npt,leaf)  &
-                * casapool%cplant(npt,leaf)       * ratioNCstrfix &
-                , -casapool%dNplantdt(npt,leaf))             &
-                + min(casaflux%fromPtoL(npt,str,froot)* casaflux%kplant(npt,froot) &
-                * casapool%cplant(npt,froot)      * ratioNCstrfix &
-                , -casapool%dNplantdt(npt,froot))
+           !Ticket#108 to avoid -ve Nitrogen pools 
+           casaflux%FluxNtolitter(npt,str) = min( &
+                 casaflux%fromPtoL(npt,str,leaf) * casaflux%kplant(npt,leaf)   &
+               * casapool%cplant(npt,leaf) * ratioNCstrfix ,                   &
+                   (-)casapool%dNplantdt(npt,leaf))               &
+                  + min( casaflux%fromPtoL(npt,str,froot)         &
+                  * casaflux%kplant(npt,froot)                    &
+                  * casapool%cplant(npt,froot) * ratioNCstrfix  , &
+                    (-)casapool%dNplantdt(npt,froot) )
 
            casaflux%FluxNtolitter(npt,metb) = - casapool%dNplantdt(npt,leaf)-casapool%dNplantdt(npt,froot) &
                 - casaflux%FluxNtolitter(npt,str)
@@ -210,6 +203,7 @@ SUBROUTINE casa_delplant(veg,casabiome,casapool,casaflux,casamet,            &
            ! adding N uptake
            casapool%dNplantdt(npt,:) = casapool%dNplantdt(npt,:) &
                 + casaflux%Nminuptake(npt)*casaflux%fracNalloc(npt,:)
+! now accounted for in delsoil
            !       casapool%Nsoilmin(npt)    = casapool%Nsoilmin(npt) - casaflux%Nminuptake(npt) *deltpool
         ENDIF !end "icycle >1"
 
@@ -231,10 +225,6 @@ SUBROUTINE casa_delplant(veg,casabiome,casapool,casaflux,casamet,            &
 
      ENDIF
   ENDDO
-npt=2
-! write(911,91) casaflux%kplant(npt,wood), casabiome%ftransNPtoL(veg%iveg(npt),wood), casapool%Nplant(npt,wood), casapool%cplant(npt,wood), &
-!casaflux%Nminuptake(npt)*casaflux%fracNalloc(npt,wood), casaflux%Cnpp(npt) * casaflux%fracCalloc(npt,wood)
-91 format (100(e12.4,2x))
 
 END SUBROUTINE casa_delplant
 

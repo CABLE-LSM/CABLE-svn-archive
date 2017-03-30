@@ -10,7 +10,7 @@ SUBROUTINE casa_cnpbal(casapool,casaflux,casabal)
   REAL(r_2), DIMENSION(mp) :: cbalplant,  nbalplant,  pbalplant
   REAL(r_2), DIMENSION(mp) :: cbalsoil,   nbalsoil,   pbalsoil
   REAL(r_2), DIMENSION(mp) :: cbalplantx, nbalplantx, pbalplantx
-
+  logical :: Ticket146 = .false.
 
   cbalplant(:) = 0.0
   cbalsoil(:)  = 0.0
@@ -44,9 +44,7 @@ SUBROUTINE casa_cnpbal(casapool,casaflux,casabal)
       write(*,*) 'dcplandt',  casapool%dcplantdt(npt,:), sum(casapool%dcplantdt(npt,:))
       write(*,*) 'rmplant, rgplant',  casaflux%crmplant(npt,:) , casaflux%crgplant(npt)
       write(*,*), 'dclabile',  casapool%dClabiledt(npt)* deltpool
-       
-     !  STOP
-    ENDIF
+     ENDIF    
  ENDDO
 
 
@@ -103,17 +101,6 @@ SUBROUTINE casa_cnpbal(casapool,casaflux,casabal)
       casabal%psoilocclast = casapool%psoilocc
       casabal%sumpbal  = casabal%sumpbal + casabal%pbalance
    ENDIF
-
-
-
-!write(6999,"(100(f12.5,2x))"),  casabal%cbalance(:)
-!write(8999,"(100(f12.5,2x))"), - (casaflux%Crsoil-casaflux%cnpp+casaflux%clabloss)
-!write(7999,"(100(f12.5,2x))"),  casapool%ctot - casapool%ctot_0
-!write(9999,"(100(f12.5,2x))"), casapool%ctot - casapool%ctot_0 + &
-! ( casaflux%Crsoil-casaflux%cnpp+casaflux%clabloss)
-
-
-91 format('balance= ',100(f12.5,2x))
 
 END SUBROUTINE casa_cnpbal
 

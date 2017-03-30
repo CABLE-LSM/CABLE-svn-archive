@@ -13,7 +13,8 @@ SUBROUTINE casa_rplant(veg,casabiome,casapool,casaflux,casamet,climate)
 
   real(r_2), dimension(mp)        :: Ygrow        ! growth efficiency Q.Zhang 22/02/2011
   real(r_2), dimension(mp,mplant) :: ratioPNplant ! Q.Zhang 22/02/2011
-  real(r_2), dimension(mp)        :: delcrmwood,delcrmfroot    ! reduction in wood and root respiration when NPP <0.0
+!Ticket146: adds delcrmleaf 
+  real(r_2), dimension(mp)        :: delcrmleaf, delcrmwood,delcrmfroot    ! reduction in wood and root respiration when NPP <0.0
   real(r_2), dimension(mp)        :: resp_coeff_root, resp_coeff_sapwood, resp_coeff
   real,  dimension(mp)        :: nleaf, pleaf, vcmaxmax
 
@@ -31,6 +32,8 @@ SUBROUTINE casa_rplant(veg,casabiome,casapool,casaflux,casamet,climate)
 
   casaflux%crmplant(:,wood) = 0.0
   casaflux%crmplant(:,froot) = 0.0
+!Ticket146: adds delcrmleaf 
+  delcrmleaf   = 0.0
   delcrmwood   = 0.0
   delcrmfroot  = 0.0
   casaflux%crgplant = 0.0

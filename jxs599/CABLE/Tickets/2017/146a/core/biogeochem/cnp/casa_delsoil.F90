@@ -11,7 +11,8 @@ SUBROUTINE casa_delsoil(veg,casapool,casaflux,casamet,casabiome)
   ! local variables
   REAL(r_2), DIMENSION(mp)    :: xdplabsorb, fluxptase
   INTEGER i,j,jj,k,kk,kkk,n,iv,npt,nL,nS,nSS,nland
-
+  logical :: Ticket146 = .false.
+  
   casaflux%fluxCtoCO2    = 0.0
   casaflux%fluxCtosoil   = 0.0
   casaflux%fluxNtosoil   = 0.0
@@ -161,12 +162,11 @@ IF(casamet%iveg2(nland)/=icewater) THEN
 
       DO kk=1,msoil
          DO jj=1,mlitter    ! immobilisation from litter to soil
-            casaflux%Psimm(nland) = casaflux%Psimm(nland) &
+           casaflux%Psimm(nland) = casaflux%Psimm(nland) &
                                      - casaflux%fromLtoS(nland,kk,jj) &
                                      * casaflux%klitter(nland,jj)     &
                                      * casapool%Nlitter(nland,jj)     &
-                                     /casapool%ratioNPsoil(nland,kk)
-!                                     * casapool%ratioPCsoil(nland,kk)/casapool%ratioNCsoil(nland,kk)
+                                     / casapool%ratioNPsoil(nland,kk)
          ENDDO
          DO kkk=1,msoil      ! immobilisation from soil to soil
             IF(kkk.ne.kk) THEN
@@ -174,8 +174,7 @@ IF(casamet%iveg2(nland)/=icewater) THEN
                                         - casaflux%fromStoS(nland,kk,kkk)  &
                                         * casaflux%ksoil(nland,kkk) &
                                         * casapool%Nsoil(nland,kkk) &
-                                        /casapool%ratioNPsoil(nland,kk)
-!                                        * casapool%ratioPCsoil(nland,kk)/casapool%ratioNCsoil(nland,kk)
+                                        / casapool%ratioNPsoil(nland,kk)
             ENDIF
          ENDDO
       ENDDO  ! immobilization
@@ -185,8 +184,6 @@ IF(casamet%iveg2(nland)/=icewater) THEN
                                  +casaflux%Psimm(nland)
                                       ! net mineralization
 
-!      casaflux%Pleach(nland)  =  (1.0e-4) &
-!                                 * max(0.0,casapool%Psoillab(nland))
 
       casaflux%Pleach(nland)  =  casaflux%fPleach(nland) &
                                  * max(0.0,casapool%Psoillab(nland))
@@ -197,22 +194,15 @@ IF(casamet%iveg2(nland)/=icewater) THEN
                                  + casaflux%fromLtoS(nland,k,j) &
                                  * casaflux%klitter(nland,j)    &
                                  * casapool%Nlitter(nland,j)    &
-                                 /casapool%ratioNPsoil(nland,k)
-!                                 * casapool%ratioPCsoil(nland,k)/casapool%ratioNCsoil(nland,k)
+                                 / casapool%ratioNPsoil(nland,k)
          ENDDO  ! end of "j"
          DO kk=1,msoil
             IF(kk.ne.k) THEN
-!               casaflux%FluxPtosoil(nland,k) = casaflux%FluxPtosoil(nland,k)  &
-!                                    + casaflux%fromStoS(nland,k,kk) &
-!                                    * casaflux%ksoil(nland,kk)      &
-!                                    * casapool%Csoil(nland,kk)      &
-!                                    * casapool%ratioPCsoil(nland,k)
                casaflux%FluxPtosoil(nland,k) = casaflux%FluxPtosoil(nland,k)  &
                                     + casaflux%fromStoS(nland,k,kk) &
                                     * casaflux%ksoil(nland,kk)      &
                                     * casapool%Nsoil(nland,kk)      &
-                                    /casapool%ratioNPsoil(nland,k)
-!                                    * casapool%ratioPCsoil(nland,k)/casapool%ratioNCsoil(nland,k)
+                                    / casapool%ratioNPsoil(nland,k)
             ENDIF
          ENDDO ! end of "kk"
       ENDDO    ! end of "k"
@@ -226,7 +216,7 @@ IF(casamet%iveg2(nland)/=icewater) THEN
    casapool%dClitterdt(nland,:) =  casaflux%fluxCtolitter(nland,:) - casaflux%klitter(nland,:) * casapool%clitter(nland,:)
    casapool%dCsoildt(nland,:)   =  casaflux%fluxCtosoil(nland,:)   - casaflux%ksoil(nland,:)   * casapool%csoil(nland,:)
    casaflux%Crsoil(nland)       =  casaflux%fluxCtoCO2(nland)
-   casaflux%cnep(nland)         =  casaflux%cnpp(nland) - casaflux%Crsoil(nland)
+     casaflux%cnep(nland)         =  casaflux%cnpp(nland) - casaflux%Crsoil(nland)
 
    IF(icycle > 1) THEN
       casapool%dNlitterdt(nland,:) =  casaflux%fluxNtolitter(nland,:)  &
@@ -242,16 +232,7 @@ IF(casamet%iveg2(nland)/=icewater) THEN
                                  - casaflux%Nupland(nland)
 
    ENDIF
-!!$if (nland==1) write(59,91) casaflux%Nsnet(nland) , &
-!!$                                 casaflux%Nlittermin(nland),  &
-!!$                                 casaflux%Nsmin(nland),   &
-!!$                                 casaflux%Nsimm(nland)
-!!$                                 , casaflux%Nmindep(nland) ,casaflux%Nminfix(nland)   &
-!!$                                 , casaflux%Nminloss(nland)   &
-!!$                                 , casaflux%Nminleach(nland)   &
-!!$                                 , casaflux%Nupland(nland)
 
-91  format(20(e12.4,2x))
    IF(icycle >2) THEN
 
       fluxptase(nland) =  casabiome%prodptase( veg%iveg(nland) ) * deltcasa    &

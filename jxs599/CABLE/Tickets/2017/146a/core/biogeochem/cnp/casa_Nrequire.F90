@@ -14,6 +14,7 @@ SUBROUTINE casa_Nrequire(xnCnpp,Nreqmin,Nreqmax,NtransPtoP,veg, &
   ! local variable
   INTEGER :: np
   REAL(r_2), DIMENSION(mp,mplant)     :: ncplantmax
+  REAL(r_2)                           :: xscale
 
   Nreqmin(:,:)    = 0.0
   Nreqmax(:,:)    = 0.0
@@ -22,15 +23,20 @@ SUBROUTINE casa_Nrequire(xnCnpp,Nreqmin,Nreqmax,NtransPtoP,veg, &
   DO np=1,mp
   IF(casamet%iveg2(np)/=icewater) THEN
     if(casapool%Nsoilmin(np)<2.0) then
-       ncplantmax(np,leaf) =casabiome%ratioNCplantmin(veg%iveg(np),leaf)  &
-                           +(casabiome%ratioNCplantmax(veg%iveg(np),leaf)-casabiome%ratioNCplantmin(veg%iveg(np),leaf)) &
+!Ticket146: should use xscale 
+       xscale = min( 1.0, max( 0.0, 2.0 ** ( 0.5 * casapool%Nsoilmin(np))-1.0) )
+       ncplantmax(np,leaf) = casabiome% ratioNCplantmin(veg%iveg(np),leaf)     &
+                             + ( casabiome %ratioNCplantmax(veg%iveg(np),leaf) &
+                             - casabiome %ratioNCplantmin(veg%iveg(np),leaf) ) &
                              * min(1.0,max(0.0,2.0**(0.5*casapool%Nsoilmin(np))-1.0))
-       ncplantmax(np,wood) =casabiome%ratioNCplantmin(veg%iveg(np),wood)  &
-                           +(casabiome%ratioNCplantmax(veg%iveg(np),wood)-casabiome%ratioNCplantmin(veg%iveg(np),wood)) &
-                             * min(1.0,max(0.0,2.0**(0.5*casapool%Nsoilmin(np))-1.0))
-       ncplantmax(np,froot) =casabiome%ratioNCplantmin(veg%iveg(np),froot)  &
-                           +(casabiome%ratioNCplantmax(veg%iveg(np),froot)-casabiome%ratioNCplantmin(veg%iveg(np),froot)) &
-                             * min(1.0,max(0.0,2.0**(0.5*casapool%Nsoilmin(np))-1.0))
+       ncplantmax(np,wood) = casabiome% ratioNCplantmin(veg%iveg(np),wood)     &
+                            + ( casabiome% ratioNCplantmax(veg%iveg(np),wood)  &
+                            - casabiome% ratioNCplantmin(veg%iveg(np),wood) )  &
+                            * min(1.0,max(0.0,2.0**(0.5*casapool%Nsoilmin(np))-1.0))
+       ncplantmax(np,froot) = casabiome% ratioNCplantmin(veg%iveg(np),froot)   &
+                             + ( casabiome% ratioNCplantmax(veg%iveg(np),froot)&
+                             - casabiome% ratioNCplantmin(veg%iveg(np),froot) )&
+                             * xscale
     else
       ncplantmax(np,leaf)  = casabiome%ratioNCplantmax(veg%iveg(np),leaf)
       ncplantmax(np,wood)  = casabiome%ratioNCplantmax(veg%iveg(np),wood)
@@ -62,15 +68,18 @@ SUBROUTINE casa_Nrequire(xnCnpp,Nreqmin,Nreqmax,NtransPtoP,veg, &
     Nreqmin(np,wood)  = max(0.0,Nreqmin(np,wood) - NtransPtoP(np,wood))
     Nreqmin(np,froot) = max(0.0,Nreqmin(np,froot) - NtransPtoP(np,froot))
 
-    if(casapool%nplant(np,leaf)/(casapool%cplant(np,leaf)+1.0e-10)>casabiome%ratioNCplantmax(veg%iveg(np),leaf)) then
+    if(casapool%nplant(np,leaf)/(casapool%cplant(np,leaf)+1.0e-10) &
+      >casabiome%ratioNCplantmax(veg%iveg(np),leaf)) then
        Nreqmax(np,leaf) = 0.0
        Nreqmin(np,leaf) =0.0
     endif
-    if(casapool%nplant(np,wood)/(casapool%cplant(np,wood)+1.0e-10)>casabiome%ratioNCplantmax(veg%iveg(np),wood)) then
+    if(casapool%nplant(np,wood)/(casapool%cplant(np,wood)+1.0e-10) &
+      >casabiome%ratioNCplantmax(veg%iveg(np),wood)) then
        Nreqmax(np,wood) = 0.0
        Nreqmin(np,wood) =0.0
     endif
-    if(casapool%nplant(np,froot)/(casapool%cplant(np,froot)+1.0e-10)>casabiome%ratioNCplantmax(veg%iveg(np),froot)) then
+    if(casapool%nplant(np,froot)/(casapool%cplant(np,froot)+1.0e-10) &
+      >casabiome%ratioNCplantmax(veg%iveg(np),froot)) then
        Nreqmax(np,froot) = 0.0
        Nreqmin(np,froot) =0.0
     endif

@@ -1,4 +1,5 @@
 SUBROUTINE casa_coeffsoil(xklitter,xksoil,veg,soil,casabiome,casaflux,casamet)
+!Ticket 146 SUBROUTINE casa_coeffsoil(xklitter,xksoil,veg,soil,casabiome,casapool,casaflux,casamet)
 !  calculate the plant litter fall rate, litter fall and sOM decomposition rate (1/day)
 !  and the transfer coefficients between different pools
 !
@@ -18,12 +19,18 @@ SUBROUTINE casa_coeffsoil(xklitter,xksoil,veg,soil,casabiome,casaflux,casamet)
   TYPE (veg_parameter_type),    INTENT(INOUT) :: veg  ! vegetation parameters
   TYPE (soil_parameter_type),   INTENT(INOUT) :: soil ! soil parameters
   TYPE (casa_biome),            INTENT(INOUT) :: casabiome
+!Ticket146
+  TYPE (casa_pool),             INTENT(IN)    :: casapool
   TYPE (casa_flux),             INTENT(INOUT) :: casaflux
   TYPE (casa_met),              INTENT(INOUT) :: casamet
 
   ! local variables
   INTEGER j,k,kk,nland             !i: for plant pool, j for litter, k for soil
-
+!Ticket146
+  real(r_2), dimension(mp)             :: cuemet, cuestr,cuecwd
+  real, parameter                      :: cnmic=10.0               ! microbial biomass C:N ratio 
+  logical :: Ticket146 = .false.
+   
   casaflux%fromLtoS(:,:,:)      = 0.0
   casaflux%fromStoS(:,:,:)      = 0.0
                                           ! flow from soil to soil
@@ -58,17 +65,31 @@ SUBROUTINE casa_coeffsoil(xklitter,xksoil,veg,soil,casabiome,casaflux,casamet)
     ENDWHERE  !
 
                                           ! flow from litter to soil
-    casaflux%fromLtoS(:,mic,metb)   = 0.45
+    if(Ticket146) then
+      cuemet(:) = 0.45
+      cuestr(:) = 0.45
+      cuecwd(:) = 0.4  
+    else
+      cuemet(:) = 0.45
+      cuestr(:) = 0.7
+      cuecwd(:) = 0.4
+    endif
+    
+    casaflux%fromLtoS(:,mic,metb)  = cuemet(:)                                  
                                           ! metb -> mic
-    casaflux%fromLtoS(:,mic,str)   = 0.45*(1.0-casabiome%fracLigninplant(veg%iveg(:),leaf))
+    casaflux%fromLtoS(:,mic,str)   = cuestr(:)*(1.0-casabiome%fracLigninplant(veg%iveg(:),leaf))  
                                           ! str -> mic
-    casaflux%fromLtoS(:,slow,str)  = 0.7 * casabiome%fracLigninplant(veg%iveg(:),leaf)
+    casaflux%fromLtoS(:,slow,str)  = cuestr(:) * casabiome%fracLigninplant(veg%iveg(:),leaf)       
                                           ! str -> slow
-    casaflux%fromLtoS(:,mic,cwd)   = 0.40*(1.0 - casabiome%fracLigninplant(veg%iveg(:),wood))
+    casaflux%fromLtoS(:,mic,cwd)   = cuecwd(:) *(1.0 - casabiome%fracLigninplant(veg%iveg(:),wood)) 
                                           ! CWD -> fmic
-    casaflux%fromLtoS(:,slow,cwd)  = 0.7 * casabiome%fracLigninplant(veg%iveg(:),wood)
+    if(Ticket146) then
+      casaflux%fromLtoS(:,slow,cwd)  = cuecwd(:) * casabiome%fracLigninplant(veg%iveg(:),wood)        
                                           ! CWD -> slow
-
+    else
+      casaflux%fromLtoS(:,slow,cwd)  = cuestr(:) * casabiome%fracLigninplant(veg%iveg(:),wood)        
+    endif
+    
 !! set the following two backflow to set (see Bolker 199x)
 !    casaflux%fromStoS(:,mic,slow)  = 0.45 * (0.997 - 0.009 *soil%clay(:))
 !    casaflux%fromStoS(:,mic,pass)  = 0.45
@@ -101,4 +122,5 @@ SUBROUTINE casa_coeffsoil(xklitter,xksoil,veg,soil,casabiome,casaflux,casamet)
   ENDDO   ! "nland"
 
 END SUBROUTINE casa_coeffsoil
+
 

@@ -1,7 +1,9 @@
+!Ticket146: formatting changes only
 SUBROUTINE casa_wolf(veg,casabiome,casaflux,casapool,casamet)
-   ! carbon allocation based on
+   ! carbon allocation based on WFB2011
    ! Wolf,Field and Berry, 2011. Ecological Applications, p1546-1556
-   ! Wolf et al. 2011. Global Biogeochemical Cycles, 25, GB3015, doi:10.1019/2010GB003917
+   ! Wolf et al. 2011. Global Biogeochemical Cycles, 25, GB3015,
+   ! doi:10.1019/2010GB003917
   IMPLICIT NONE
   TYPE (veg_parameter_type),  INTENT(IN) :: veg  ! vegetation parameters
   TYPE (casa_biome),          INTENT(IN) :: casabiome
@@ -34,15 +36,15 @@ SUBROUTINE casa_wolf(veg,casabiome,casaflux,casapool,casamet)
           totbmdm(npt) = sum(casapool%cplant(npt,:)) *10.0 / fracCbiomass      !10.0 for convert gc/m2 to kg/ha
           totbmdm(npt) = max(30000.0, totbmdm(npt))
           ! calculate tree stocking density
-           ntree(npt) = 10**(wolf_c1+wolf_c2*log10(totbmdm(npt)))   ! tree ha-1, based on eqn (4) of Wolf et al. 2011, GBC
+           ntree(npt) = 10**(wolf_c1+wolf_c2*log10(totbmdm(npt)))   ! tree ha-1, based on eqn (4) of WFB2011
            ntree(npt) = min(200000.0,ntree(npt))
            ! changed by ypw 23/april/2012 to avoid negative npp
            nppdm(npt)  = (abs(casaflux%cnpp(npt)) *365.0*0.001/fracCbiomass)/(0.0001*ntree(npt))  ! in kg dm tree-1 yr-1
 
-           gleaf(npt)  = 0.156*(nppdm(npt)**1.106)     ! Figure 2a of Wolf, Field and Berry (2011)
-           gwood(npt)  = 0.232*(nppdm(npt)**1.165)     ! Figure 2b of Wolf, Field and Berry (2011)
-           gcroot(npt) = 0.0348*(nppdm(npt)**1.310)    ! Figure 2d of Wolf, Field and Berry (2011)
-           gfroot(npt) = 0.247*(nppdm(npt)**0.987)     ! Figure 2c of Wolf, Field and Berry (2011)
+           gleaf(npt)  = 0.156*(nppdm(npt)**1.106)     ! Figure 2a of WFB2011
+           gwood(npt)  = 0.232*(nppdm(npt)**1.165)     ! Figure 2b of WFB2011
+           gcroot(npt) = 0.0348*(nppdm(npt)**1.310)    ! Figure 2d of WFB2011
+           gfroot(npt) = 0.247*(nppdm(npt)**0.987)     ! Figure 2c of WFB2011
            gtot(npt)   = gleaf(npt) + gwood(npt) + gcroot(npt) + gfroot(npt)
 
            casaflux%fracCalloc(npt,leaf)  = gleaf(npt)/gtot(npt)

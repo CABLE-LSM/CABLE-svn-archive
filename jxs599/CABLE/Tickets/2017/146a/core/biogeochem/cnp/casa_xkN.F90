@@ -11,7 +11,9 @@ SUBROUTINE casa_xkN(xkNlimiting,casapool,casaflux,casamet,casabiome,veg)
   TYPE (veg_parameter_type),   INTENT(IN) :: veg  ! vegetation parameters
 
   ! local variables
-  INTEGER i,j,k,kk,iv,thepoint,nland
+  !Ticket146
+  INTEGER i,j,k,kk,iv,thepoint,nland,npt
+  logical :: Ticket146 = .false.
   REAL(r_2), DIMENSION(mp)         :: xFluxNlittermin
   REAL(r_2), DIMENSION(mp)         :: xFluxNsoilmin
   REAL(r_2), DIMENSION(mp)         :: xFluxNsoilimm
@@ -101,11 +103,13 @@ SUBROUTINE casa_xkN(xkNlimiting,casapool,casaflux,casamet,casabiome,veg)
 !     xkNlimiting(:) = 1.0
 !    end where
 ! end (Q.Zhang 23/05/2011)
-    where(sum(casapool%clitter,2) > casabiome%maxfinelitter(veg%iveg(:)) + casabiome%maxcwd(veg%iveg(:)))
+    where(sum(casapool%clitter,2) > casabiome%maxfinelitter(veg%iveg(:)) &
+                                  + casabiome%maxcwd(veg%iveg(:)))
      xkNlimiting(:) = 1.0
     end where
   ENDWHERE
 
+  if( Ticket146 ) xkNlimiting = MIN( 1.0, MAX( 0.0, xKNlimiting ) )
 
 END SUBROUTINE casa_xkN
 

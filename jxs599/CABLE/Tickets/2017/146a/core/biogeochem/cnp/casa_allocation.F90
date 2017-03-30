@@ -30,8 +30,10 @@ SUBROUTINE casa_allocation(veg,soil,casabiome,casaflux,casapool,casamet,phen,LAL
   REAL(r_2), DIMENSION(mp)        :: xWorNalloc,xNalloc,xWalloc
   REAL(r_2), DIMENSION(mp)        :: totfracCalloc
   REAL(r_2), DIMENSION(mp)        :: newLAI
+  logical :: Ticket146 = .false.
   ! initlization
   casaflux%fracCalloc  = 0.0
+  !Ticket146:VH comments out init
   !casaflux%fracClabile = 0.0
   fracCallocx = 0.0
   newLAI = 0.0
@@ -72,7 +74,7 @@ SUBROUTINE casa_allocation(veg,soil,casabiome,casaflux,casapool,casamet,phen,LAL
     END WHERE
   CASE (0)   ! fixed allocation
     casaflux%fracCalloc(:,:) = casabiome%fracnpptop(veg%iveg(:),:)
-
+!Ticket146: VH implements case(3)
   CASE (3) ! leaf:wood allocation set to maintain LA:SA ratio
      ! below target value of 4000, where phen%phase = 1 or 2 
      !(requires casaflux%sapwood_area, which is inherited from the 
@@ -111,8 +113,6 @@ SUBROUTINE casa_allocation(veg,soil,casabiome,casaflux,casapool,casamet,phen,LAL
 
   END SELECT
 
-991 format(1166(e14.7,2x)) 
-
   ! during leaf growth phase 0 or 3, no carbon is allocated to leaf,
   ! during maximal leaf growth phase, all C is allocated to leaf
   ! during steady growth period, C allocation is estimated in such
@@ -123,6 +123,67 @@ SUBROUTINE casa_allocation(veg,soil,casabiome,casaflux,casapool,casamet,phen,LAL
   !   fineroot = ratiofrootleaf*cleaf
   ! for grassland
   !   root=ratiofinerootleaf*cleaf
+
+if( Ticket46 ) then
+
+  WHERE(casamet%iveg2/=icewater) 
+    WHERE(phen%phase==0) 
+      casaflux%fracCalloc(:,leaf)  = 0.0
+      casaflux%fracCalloc(:,froot) =  casaflux%fracCalloc(:,froot) &
+                                   /(casaflux%fracCalloc(:,froot) &
+                                     +casaflux%fracCalloc(:,wood))
+      casaflux%fracCalloc(:,wood)  = 1.0 -casaflux%fracCalloc(:,froot)
+    END WHERE 
+
+    WHERE(phen%phase==1)          
+      casaflux%fracCalloc(:,leaf)  = 0.8
+      WHERE(casamet%lnonwood==0)  !woodland or forest
+        casaflux%fracCalloc(:,froot) = 0.5*(1.0-casaflux%fracCalloc(:,leaf))
+        casaflux%fracCalloc(:,wood)  = 0.5*(1.0-casaflux%fracCalloc(:,leaf))
+      ELSEWHERE !grassland
+        casaflux%fracCalloc(:,froot) = 1.0-casaflux%fracCalloc(:,leaf)
+      ENDWHERE
+    END WHERE
+
+    WHERE(phen%phase==3) 
+!      casaflux%fracClabile(:)  = casaflux%fracCalloc(:,leaf)
+      casaflux%fracCalloc(:,froot) = 1.0-casaflux%fracCalloc(:,wood) 
+      casaflux%fracCalloc(:,leaf)  = 0.0
+    ENDWHERE
+
+  ! IF Prognostic LAI reached glaimax, no C is allocated to leaf
+  ! Q.Zhang 17/03/2011
+    WHERE(casamet%glai(:)>=0.95*casabiome%glaimax(veg%iveg(:)))
+      casaflux%fracCalloc(:,leaf)  = 0.0
+      casaflux%fracCalloc(:,froot) =  casaflux%fracCalloc(:,froot) &
+                                   /(casaflux%fracCalloc(:,froot) &
+                                     +casaflux%fracCalloc(:,wood))
+      casaflux%fracCalloc(:,wood)  = 1.0 -casaflux%fracCalloc(:,froot)
+    ENDWHERE
+
+    WHERE(casamet%glai(:)<1.05*casabiome%glaimin(veg%iveg(:)))
+      casaflux%fracCalloc(:,leaf)  = 0.8
+      WHERE(casamet%lnonwood==0)  !woodland or forest
+        casaflux%fracCalloc(:,froot) = 0.5*(1.0-casaflux%fracCalloc(:,leaf))
+        casaflux%fracCalloc(:,wood)  = 0.5*(1.0-casaflux%fracCalloc(:,leaf))
+      ELSEWHERE !grassland
+        casaflux%fracCalloc(:,froot) = 1.0-casaflux%fracCalloc(:,leaf)
+      ENDWHERE
+    ENDWHERE
+
+    !! added in for negative NPP and one of biomass pool being zero ypw 27/jan/2014
+    WHERE(casaflux%Cnpp<0.0.and.sum(casapool%cplant,2)>0.0)
+ !      casaflux%fracCalloc(:,leaf)  = casaflux%Crmplant(:,leaf)/sum(casaflux%Crmplant,2)
+ !      casaflux%fracCalloc(:,wood)  = casaflux%Crmplant(:,wood)/sum(casaflux%Crmplant,2)
+ !      casaflux%fracCalloc(:,froot) = casaflux%Crmplant(:,froot)/sum(casaflux%Crmplant,2)
+       casaflux%fracCalloc(:,leaf)  = sum(casaflux%Crmplant,2) * casapool%cplant(:,leaf)/sum(casapool%cplant,2)
+       casaflux%fracCalloc(:,wood)  = sum(casaflux%Crmplant,2) * casapool%cplant(:,wood)/sum(casapool%cplant,2)
+       casaflux%fracCalloc(:,froot) = sum(casaflux%Crmplant,2) * casapool%cplant(:,froot)/sum(casapool%cplant,2)
+    ENDWHERE
+
+  ENDWHERE
+
+else (Ticket46)
 
 ! vh edit to avoid overwriting CASE(3) for woody veg
 !! vh_js !!
@@ -272,6 +333,7 @@ SUBROUTINE casa_allocation(veg,soil,casabiome,casaflux,casapool,casamet,phen,LAL
 !stop
 !endif
   ENDIF ! LALLOC=3
+ENDIF ! TIcket46 
   
 
 
