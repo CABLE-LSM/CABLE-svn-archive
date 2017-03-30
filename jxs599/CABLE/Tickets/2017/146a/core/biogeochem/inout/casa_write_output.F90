@@ -1,3 +1,4 @@
+#ifndef UM_BUILD
 SUBROUTINE WRITE_CASA_OUTPUT_NC ( veg, casamet, casapool, casabal, casaflux, &
      CASAONLY, ctime, FINAL )
 
@@ -877,4 +878,4 @@ END SELECT
   ENDIF
 
 END SUBROUTINE WRITE_CASA_OUTPUT_NC
-
+#endif
