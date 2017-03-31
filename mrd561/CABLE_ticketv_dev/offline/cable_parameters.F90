@@ -1895,8 +1895,6 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
 
   !! vh_js !! comment out hide% condition
    ! IF (hide%Ticket49Bug6) THEN
-
-   if (.not.cable_user%GW_MODEL) then
        soil%swilt_vec = SPREAD(soil%swilt,2,ms)
        soil%ssat_vec = SPREAD(soil%ssat,2,ms)
        IF(cable_user%SOIL_STRUC=='sli') THEN
@@ -1905,7 +1903,6 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
           soil%nhorizons = 1
           soil%ishorizon = 1
        END IF
-   end if
    ! END IF
 
   END SUBROUTINE derived_parameters

@@ -822,8 +822,7 @@ CONTAINS
                      kstart+koffset )
  
              ENDIF
-             IF ( (TRIM(cable_user%MetType) .NE. 'gswp') .and. &
-                  (TRIM(cable_user%MetType) .NE. 'gswp3') ) CurYear = met%year(1)
+             IF ( TRIM(cable_user%MetType) .NE. 'gswp' ) CurYear = met%year(1)
 
 !!$             IF ( CASAONLY .AND. IS_CASA_TIME("dread", yyyy, iktau, kstart, koffset, &
 !!$                  kend, ktauday, logn) )  THEN          
@@ -930,10 +929,9 @@ CONTAINS
                 
                 IF ( (.NOT. CASAONLY).AND. spinConv  ) THEN
 
-                   IF ( TRIM(cable_user%MetType) .EQ. 'plum'       &
+                   IF ( TRIM(cable_user%MetType) .EQ. 'plum' &
                         .OR. TRIM(cable_user%MetType) .EQ. 'cru'   &
-                        .OR. TRIM(cable_user%MetType) .EQ. 'gswp'  &
-                        .OR. TRIM(cable_user%MetType) .EQ. 'gswp3') then
+                        .OR. TRIM(cable_user%MetType) .EQ. 'gswp') then
                       CALL write_output( dels, ktau_tot, met, canopy, casaflux, casapool, &
                            casamet,ssnow,         &
                            rad, bal, air, soil, veg, C%SBOLTZ,     &
@@ -1060,7 +1058,7 @@ CONTAINS
           met%ofsd = met%fsd(:,1) + met%fsd(:,2)
           canopy%oldcansto=canopy%cansto
                     
-          IF ( (TRIM(cable_user%MetType) .EQ. "gswp") .or. (TRIM(cable_user%MetType) .EQ. "gswp3") ) &
+          IF ( TRIM(cable_user%MetType) .EQ. "gswp" ) &
                CALL close_met_file
 
 IF (icycle>0 .and.   cable_user%CALL_POP)  THEN
@@ -1156,8 +1154,7 @@ write(*,*) 'after annual calcs'
              IF ( (.NOT. CASAONLY) .AND. spinConv ) THEN
                 IF ( TRIM(cable_user%MetType) .EQ. 'plum' &
                          .OR. TRIM(cable_user%MetType) .EQ. 'cru'   &
-                       .OR. TRIM(cable_user%MetType) .EQ. 'gswp' &
-                       .OR. TRIM(cable_user%MetType) .EQ. 'gswp3') then
+                       .OR. TRIM(cable_user%MetType) .EQ. 'gswp') then
 
                    CALL write_output( dels, ktau_tot, met, canopy, casaflux, casapool, &
                         casamet, ssnow,         &
@@ -1353,9 +1350,8 @@ write(*,*) 'after annual calcs'
    
 
     ! Close met data input file:
-    IF ( TRIM(cable_user%MetType) .NE. "gswp"  .AND. &
-         TRIM(cable_user%MetType) .NE. "gswp3" .AND. &
-         TRIM(cable_user%MetType) .NE. "plum"  .AND. &
+    IF ( TRIM(cable_user%MetType) .NE. "gswp" .AND. &
+         TRIM(cable_user%MetType) .NE. "plum" .AND. &
          TRIM(cable_user%MetType) .NE. "cru") CALL close_met_file
     IF  (.NOT. CASAONLY) THEN
        ! Close output file and deallocate main variables:

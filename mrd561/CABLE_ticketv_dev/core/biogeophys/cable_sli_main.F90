@@ -1,4 +1,4 @@
-SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, rough,SEB_only)
+SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
 
   ! Main subroutine for Soil-litter-iso soil model
   ! Vanessa Haverd, CSIRO Marine and Atmospheric Research
@@ -6,7 +6,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, rough,SEB
   ! Modified to operate for multiple veg tiles but a single soil column, March 2011
   ! Rewritten for same number of soil columns as veg tiles May 2012
   USE cable_def_types_mod,       ONLY: veg_parameter_type, soil_parameter_type, soil_snow_type, met_type, &
-       canopy_type, air_type, radiation_type, roughness_type,ms, mp, r_2, i_d
+       canopy_type, air_type, radiation_type, ms, mp, r_2, i_d
   USE cable_common_module , ONLY: cable_user
   USE sli_numbers,        ONLY:  zero, half, one, two, four, thousand, & ! numbers
        Tzero, experiment, &                                       ! variables
@@ -17,11 +17,6 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, rough,SEB
        esat_ice, slope_esat_ice, thetalmax, Tfrz,  hyofS, SEB
   USE sli_roots,          ONLY: setroots, getrex
   USE sli_solve,          ONLY: solve
-
-  use cable_soil_snow_gw_module, only: iterative_wtd,ovrlndflx,subsurface_drainage,calc_soil_hydraulic_props,aquifer_recharge
-
-  USE cable_psm, ONLY : or_soil_evap_resistance
-
  
 
   IMPLICIT NONE
@@ -35,7 +30,6 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, rough,SEB
   TYPE(canopy_type),         INTENT(INOUT) :: canopy  ! all r_1
   TYPE(air_type),            INTENT(INOUT) :: air     ! all r_1
   TYPE (radiation_type),     INTENT(IN)    :: rad
-  TYPE(roughness_type),      INTENT(INOUT) :: rough     ! all r_1
   INTEGER,                   INTENT(IN)    :: ktau ! integration step number
   INTEGER,                   INTENT(IN)    :: SEB_only ! integration step number
 
@@ -101,10 +95,6 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, rough,SEB
   ! 3: condition first lines then columns
   LOGICAL, SAVE :: first = .true.
   INTEGER(i_d), SAVE  :: counter
-
-  REAL(r_2),dimension(mp) :: dz_litter,zaq,litter_dz
-  REAL(r_2),dimension(ms) :: dzmm,zmm
-
 
   ! initialise cumulative variables
   ! Jcol_sensible = zero
@@ -457,10 +447,6 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, rough,SEB
   infil  = zero
   drn    = zero
 
-  if (cable_user%test_new_gw) then
-     botbc = "zero flux"
-  end if
-
   if (SEB_only == 0) then
 
      if (cable_user%fwsoil_switch.ne.'Haverd2013') then
@@ -479,45 +465,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, rough,SEB
         qex(:,k)= ssnow%rex(:,k)
      enddo
 
-     call iterative_wtd (ssnow, soil, veg, ktau, cable_user%test_new_gw)
-
-     if (cable_user%test_new_gw) then
-
-        CALL calc_soil_hydraulic_props(ssnow,soil,veg)
-        ssnow%fwtop(:) = qprec(:)*thousand  !mm/s
-        call  ovrlndflx (dt, ktau, ssnow, soil, veg,cable_user%test_new_gw )
-         
-
-        qprec = ssnow%fwtop(:)/thousand  !=> mm/s to ???? says cm/h but I think it is m/s
-     
-        dzmm = dx(1,:)*thousand
-        CALL subsurface_drainage(ssnow,soil,veg,dzmm)
-
-        ssnow%qhlev(:,1:ms+1) = ssnow%qhlev(:,1:ms+1)/thousand   !mm/s to m/s
-        !note aquifer level left in mm/s 
-        qex(:,:) = qex(:,:) + ssnow%qhlev(:,1:ms)
-        ssnow%qhlev(:,1:ms) = 0._r_2
-
-        !calcuate the amount of recharge
-        zmm(:) = thousand*(sum(real(soil%zse,r_2),dim=1))
-        zaq(:) = zmm(:) + 0.5_r_2*soil%GWdz(:)*thousand
-        CALL aquifer_recharge(dt,ssnow,soil,veg,zaq,zmm)
-
-        !add recharge to qex
-        qex(:,ms) = qex(:,ms) + ssnow%Qrecharge(:)/thousand
-
-        do i=1,ms
-           write(wlogn,*) 'max qex lev ',i,' is ',maxval(qex(:,i),dim=1)
-        end do
-           write(wlogn,*) 'max recharege is ',maxval(ssnow%Qrecharge(:),dim=1)
-           write(wlogn,*) 'min recharege is ',minval(ssnow%Qrecharge(:),dim=1)
-
-
-     else
-        ssnow%qhlev(:,:) = zero
-     end if
-
-  end if
+  endif
 
   ! topmodel - 0:no; 1: only sat; 2: only base; 3: sat and base
   zdelta     = zero
@@ -540,30 +488,9 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, rough,SEB
      endif
   endif
 
-
   if (SEB_only == 1) then
-
-     if (cable_user%or_evap) then
-
-        if (litter == 2) then 
-           litter_dz(:) = dxL(:)
-        else 
-           litter_dz(:) = 0._r_2
-        end if
-
-        if (.not.cable_user%test_new_gw) ssnow%satfrac(:) = 0._r_2
-
-        call or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough,vsnow(:)%nsnow,litter_dz)
-
-          vmet(:)%rpsm = (1._r_2 - ssnow%satfrac(:))*ssnow%rtevap_unsat(:) + ssnow%satfrac(:)*ssnow%rtevap_sat(:)
-          vmet(:)%rpsm_h = canopy%sublayer_dz(:)/ (0.2 / (1932.0*62.0))
-     else
-        vmet(:)%rpsm = zero
-        vmet(:)%rpsm_h = zero
-
-     end if
-
      do kk=1, mp
+
 
         ! call hyofS(S(kk,:), Tsoil(kk,:), par(kk,:), var(kk,:))
         call hyofS(S(kk,1), Tsoil(kk,1), par(kk,1), var(kk,1))
@@ -659,25 +586,6 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, rough,SEB
         write(371,"(20e20.12)")  qvsig+qlsig
 
      endif
-
-     if (cable_user%test_new_gw) then
-
-        do i=1,mp
-           ssnow%GWwb(i) = ssnow%GWwb(i)  + (ssnow%Qrecharge(i)-ssnow%qhlev(i,ms+1))*dt/soil%GWdz(i)/thousand
-  
-           if (ssnow%GWwb(i) .gt. soil%GWssat_vec(i)) then
-              ssnow%qhlev(i,ms+1) = ssnow%qhlev(i,ms+1)  + (ssnow%GWwb(i) - soil%GWssat_vec(i))*soil%GWdz(i)*thousand/dt
-              ssnow%GWwb(i) = soil%GWssat_vec(i)
-              ssnow%qhz(i) = sum(ssnow%qhlev(i,1:ms+1),dim=1) 
-           end if
-  
-           if (ssnow%GWwb(i) .lt. soil%GWwatr(i)) then
-              ssnow%qhlev(i,ms+1) = ssnow%qhlev(i,ms+1)  - (ssnow%GWwb(i) - soil%GWwatr(i))*soil%GWdz(i)*thousand/dt
-              ssnow%GWwb(i) = soil%GWwatr(i)
-              ssnow%qhz(i) = sum(ssnow%qhlev(i,1:ms+1),dim=1) 
-           end if
-        end do  
-     end if
 
 
      ! Update variables for output:

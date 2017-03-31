@@ -334,7 +334,7 @@ CONTAINS
 
     select case (surface_case)
     case (1) ! no snow
-       call potential_evap(vmet%Rn, vmet%rbh, vmet%rbw, vmet%rpsm,vmet%rpsm_h,vmet%Ta, vmet%rha, &
+       call potential_evap(vmet%Rn, vmet%rbh, vmet%rbw, vmet%Ta, vmet%rha, &
             Tsoil(1), var(1)%kth, half*dx(1)+h0, var(1)%lambdav, Tsurface_pot, Epot, Hpot, &
             Gpot, dEdrha, dEdTs, dEdTsoil, dGdTa, dGdTsoil)
 
@@ -503,7 +503,7 @@ CONTAINS
           !! vh !! use max snow depth of 20 cm in this calculation to avoid huge resistances
           !! leading to large negative surface temperatures when snow-pack is thick and
           !! Rn is large and negative (~-100 Wm-2)
-          call potential_evap(vmet%Rn-vmet%Rnsw, vmet%rbh, vmet%rbw, vmet%rpsm,vmet%rpsm_h,vmet%Ta, vmet%rha, &
+          call potential_evap(vmet%Rn-vmet%Rnsw, vmet%rbh, vmet%rbw, vmet%Ta, vmet%rha, &
                vsnow%tsn(1), max(vsnow%kth(1),0.1), half*min(vsnow%depth(1),0.2), &
                lambdas, Tsurface, Epot, Hpot, &
                Gpot, dEdrha, dEdTs, dEdTsoil, dGdTa, dGdTsoil,iice=.TRUE.)
@@ -629,7 +629,7 @@ CONTAINS
     if (vsnow%nsnow>0) surface_case = 2
     select case (surface_case)
     case (1)
-       call potential_evap(vmet%Rn, vmet%rrc, vmet%rbw, vmet%rpsm,vmet%rpsm_h,vmet%Ta, vmet%rha, &
+       call potential_evap(vmet%Rn, vmet%rrc, vmet%rbw, vmet%Ta, vmet%rha, &
             Tsoil(1), var(1)%kth, half*dx(1)+h0, var(1)%lambdav, Tsurface_pot, Epot, Hpot, &
             Gpot, dEdrha, dEdTs, dEdTsoil, dGdTa, dGdTsoil)
 
@@ -777,7 +777,7 @@ CONTAINS
           qTb = zero
        else
 
-          call potential_evap(vmet%Rn, vmet%rrc, vmet%rbw, vmet%rpsm,vmet%rpsm_h,vmet%Ta, vmet%rha, &
+          call potential_evap(vmet%Rn, vmet%rrc, vmet%rbw, vmet%Ta, vmet%rha, &
                vsnow%tsn(1), vsnow%kth(1), half*vsnow%depth(1), &
                lambdas, Tsurface, Epot, Hpot, &
                Gpot, dEdrha, dEdTs, dEdTsoil, dGdTa, dGdTsoil)
@@ -2609,7 +2609,7 @@ CONTAINS
 
   !**********************************************************************************************************************
 
-  ELEMENTAL PURE SUBROUTINE potential_evap(Rn, rbh, rbw, rpsm,rpsm_h,Ta, rha, Tsoil, k, dz,lambdav, &
+  ELEMENTAL PURE SUBROUTINE potential_evap(Rn, rbh, rbw, Ta, rha, Tsoil, k, dz,lambdav, &
        Ts, E, H, G, &
        dEdrha, dEdTs, dEdTsoil, dGdTa, dGdTsoil,iice)
 
@@ -2617,7 +2617,7 @@ CONTAINS
 
     IMPLICIT NONE
 
-    REAL(r_2), INTENT(IN)  :: Rn, rbh, rbw, Ta, rha, Tsoil, k, dz, lambdav,rpsm,rpsm_h
+    REAL(r_2), INTENT(IN)  :: Rn, rbh, rbw, Ta, rha, Tsoil, k, dz, lambdav
     REAL(r_2), INTENT(OUT) :: Ts, E, H, G, dEdrha, dEdTs, dEdTsoil, dGdTa, dGdTsoil
     LOGICAL, INTENT(IN), OPTIONAL :: iice
     REAL(r_2) :: s, es, ea, dEdea, dEdesat, dTsdTa, dEdDa, Da
@@ -2641,25 +2641,24 @@ CONTAINS
     ea = es * max(rha, 0.1_r_2)
     Da = ea/max(rha, 0.1_r_2) - ea
 
-    E  = (rhocp*(Da*(k*(rbh+rpsm_h) + dz*rhocp) + (rbh+rpsm_h)*s*(dz*Rn + k*(-Ta + Tsoil)))) / &
-         (gamma*(rbw+rpsm)*(k*(rbh+rpsm_h) + dz*rhocp) + dz*(rbh+rpsm_h)*rhocp*s)
-    Ts = Ta + E*gamma*(rbw+rpsm)/s/rhocp - Da/s
-    H  = rhocp*(Ts - Ta)/(rbh+rpsm_h)
+    E  = (rhocp*(Da*(k*rbh + dz*rhocp) + rbh*s*(dz*Rn + k*(-Ta + Tsoil)))) / &
+         (gamma*rbw*(k*rbh + dz*rhocp) + dz*rbh*rhocp*s)
+    Ts = Ta + E*gamma*rbw/s/rhocp - Da/s
+    H  = rhocp*(Ts - Ta)/rbh
     G  = k*(Ts-Tsoil)/dz
 
-    dEdDa    = (-(k*(rbh+rpsm_h)*rhocp) - dz*rhocp**2)/(gamma*k*(rbh+rpsm_h)*(rbw+rpsm) + dz*gamma*(rbw+rpsm)*rhocp + dz*(rbh+rpsm_h)*rhocp*s)
+    dEdDa    = (-(k*rbh*rhocp) - dz*rhocp**2)/(gamma*k*rbh*rbw + dz*gamma*rbw*rhocp + dz*rbh*rhocp*s)
     dEdea    = -dEdDa
     dEdesat  = dEdea
     dEdrha   = dEdea *es
     !dEdTa    = (k*rbh*rhocp*s)/(gamma*k*rbh*rbw + dz*gamma*rbw*rhocp + dz*rbh*rhocp*s) + dEdesat *s
-    dEdTsoil = -((k*(rbh+rpsm_h)*rhocp*s)/(gamma*k*(rbh+rpsm_h)*(rbw+rpsm) + dz*gamma*(rbw+rpsm)*rhocp + dz*(rbh+rpsm_h)*rhocp*s))
+    dEdTsoil = -((k*rbh*rhocp*s)/(gamma*k*rbh*rbw + dz*gamma*rbw*rhocp + dz*rbh*rhocp*s))
 
-    dTsdTa   = (-(dz*gamma*(rbw+rpsm)*rhocp) - dz*(rbh+rpsm_h)*rhocp*s)/(gamma*k*(rbh+rpsm_h)*(rbw+rpsm) + dz*gamma*(rbw+rpsm)*rhocp + dz*(rbh+rpsm_h)*rhocp*s)
+    dTsdTa   = (-(dz*gamma*rbw*rhocp) - dz*rbh*rhocp*s)/(gamma*k*rbh*rbw + dz*gamma*rbw*rhocp + dz*rbh*rhocp*s)
 
     dGdTa    = k/dz * dTsdTa
     dGdTsoil = -k/dz !+k/dz*dEdTsoil*gamma*rbw/s/rhocp
     dEdTs = s*rhocp/gamma/rbw
-
 
   END SUBROUTINE potential_evap
 
