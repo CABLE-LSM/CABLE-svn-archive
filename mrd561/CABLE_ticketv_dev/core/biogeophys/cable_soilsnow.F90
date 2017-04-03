@@ -62,7 +62,7 @@ MODULE cable_soil_snow_module
    PUBLIC soil_snow ! must be available outside this module
    PUBLIC snowdensity, snow_melting, snowcheck, snowl_adjust,snow_accum, stempv,trimb
    PRIVATE smoisturev
-   PRIVATE soilfreeze, remove_trans
+   PRIVATE soilfreeze,remove_trans
 
 CONTAINS
 
