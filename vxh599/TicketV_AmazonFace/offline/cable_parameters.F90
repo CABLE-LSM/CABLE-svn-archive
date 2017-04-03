@@ -1280,6 +1280,15 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
     END DO ! over all land points
     soil%albsoil = ssnow%albsoilsn
 
+
+    ! special for AmazonFace
+    soil%swilt = 0.294
+    soil%sfc = 0.424
+    soil%ssat = 0.548
+    soil%bch = 11.125
+    soil%hyds = 8.8e-7
+    soil%sucs = -0.0481
+
     ! check tgg and alb
     IF(ANY(ssnow%tgg > 350.0) .OR. ANY(ssnow%tgg < 180.0))                     &
            CALL abort('Soil temps nuts')
