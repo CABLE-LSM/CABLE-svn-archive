@@ -154,6 +154,7 @@ MODULE cable_common_module
      !using GSWP3 forcing?
      LOGICAL :: GSWP3 = .FALSE.
      LOGICAL :: or_evap = .FALSE.
+     LOGICAL :: sync_netcdf_file = .false.
 
   END TYPE kbl_user_switches
 

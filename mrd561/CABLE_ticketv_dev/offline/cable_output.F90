@@ -2594,7 +2594,8 @@ CONTAINS
 
     END IF
 
-    ok = NF90_SYNC(ncid_out)
+    if (cable_user%sync_netcdf_file) &
+        ok = NF90_SYNC(ncid_out)
 
 
   END SUBROUTINE write_output
