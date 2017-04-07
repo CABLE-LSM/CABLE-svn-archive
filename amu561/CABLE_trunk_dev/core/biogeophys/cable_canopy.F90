@@ -2200,8 +2200,11 @@ CONTAINS
 
 
                 ! kdcorbin,09/10 - new calculations
-                IF( ABS(coef2z(i,j)) .GT. 1.0e-9 .AND. &
-                     ABS(coef1z(i,j)) .LT. 1.0e-9) THEN
+                IF( (ABS(coef2z(i,j)) .GT. 1.0e-9 .AND. &
+                    ABS(coef1z(i,j)) .LT. 1.0e-9) &
+                    .OR. &
+                    (ABS(coef2z(i,j)) .LT. 1.0e-09 .AND. &
+                     ABS(coef1z(i,j)) .LT. 1.0e-09))  THEN
 
                    ! no solution, give it a huge number as
                    ! quadratic below cannot handle zero denominator
