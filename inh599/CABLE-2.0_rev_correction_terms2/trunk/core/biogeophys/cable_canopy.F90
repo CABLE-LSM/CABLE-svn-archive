@@ -209,7 +209,7 @@ CONTAINS
     canopy%fhs_cor = 0.0
     canopy%fns_cor = 0.0
     canopy%ga_cor = 0.0
-    canopy%fes_cor = 0.0
+    !canopy%fes_cor = 0.0
 
     !L_REV_CORR - new working variables
     rhlitt = 0.
@@ -480,8 +480,8 @@ CONTAINS
 
        !REV_CORR: Needs to be tested
        IF (cable_user%L_REV_CORR) THEN
-          !alternate (simpler) calculation of %tvair and %qvair
-          CALL within_canopy_SSEB( )
+          !alternate calculation of %tvair and %qvair
+          CALL within_canopy_SSEB( gbhu, gbhf, rt0, rhlitt, relitt )
        ELSE
           CALL within_canopy( gbhu, gbhf )
        ENDIF
@@ -1128,28 +1128,105 @@ CONTAINS
     END SUBROUTINE within_canopy
 
     !------------------------------------------------------------------------
-    !simpler within_canopy subroutine - a simple balance of fluxes
-    !and resistance network from the canopy air to reference level
-    !Does not use the simultaneous EB-transfer of Raupach et al. 1997
+    !revised within_canopy subroutine - incorporates cls and litter
+    !based on within_canopy but needs additional inputs
 
-    SUBROUTINE within_canopy_SSEB( )
+    SUBROUTINE within_canopy_SSEB(gbhu, gbhf, rt0, rhlitt, relitt )
 
-      USE cable_common_module
-      USE cable_def_types_mod, only : mp
+      USE cable_def_types_mod, only : mp, r_2
+
+      REAL(r_2), INTENT(IN), DIMENSION(:,:) ::                                 &
+           gbhu,    &  ! forcedConvectionBndryLayerCond
+           gbhf        ! freeConvectionBndryLayerCond
+      
+      REAL, INTENT(IN), DIMENSION(mp) ::                                       &
+           rt0,     &  ! resistance from ground to canopy air
+           rhlitt,  &  ! additional litter resistance for heat
+           relitt      ! additional litter resistance for water  
+           
+      REAL, DIMENSION(mp) ::                                                   &
+           rrsw,         & ! recipr. stomatal resistance for water
+           rrbw,         & ! recipr. leaf boundary layer resistance for water
+           dmah,         & ! A_{H} in eq. 3.41 in SCAM, CSIRO tech report 132
+           dmbh,         & ! B_{H} in eq. 3.41 in SCAM, CSIRO tech report 132
+           dmch,         & ! C_{H} in eq. 3.41 in SCAM, CSIRO tech report 132
+           dmae,         & ! A_{E} in eq. 3.41 in SCAM, CSIRO tech report 132
+           dmbe,         & ! B_{E} in eq. 3.41 in SCAM, CSIRO tech report 132
+           dmce          ! C_{E} in eq. 3.41 in SCAM, CSIRO tech report 132
 
       REAL  :: lower_limit, upper_limit
+
       INTEGER :: j
+
+      !NB: rhlitt=relitt=0. if litter resistance not active but case included
+      !dmah through to dmce are not A_{H}through C_{E} as per Eqn 3.40 
+      !in DM documentation but rt0*((1+esp)/rs + 1/rb)*A_{H} etc. 
+
+      rrbw = sum(gbhu+gbhf,2)/air%cmolar  ! MJT
+
+      ! leaf stomatal resistance for water
+      rrsw = sum(canopy%gswx,2)/air%cmolar ! MJT
 
       DO j=1,mp
 
-         IF(veg%meth(j) > 0 .AND. canopy%vlaiw(j) > C%LAI_THRESH .AND.    &
+         IF(veg%meth(j) > 0 .AND. canopy%vlaiw(j) > C%LAI_THRESH .AND.         &
               rough%hruff(j) > rough%z0soilsn(j) ) THEN
 
-            !set air within-canopy air temperature from fluxes and %rt1
-            met%tvair(j) = met%tk(j) + rough%rt1(j)*(canopy%fhv(j) +    & 
-                             canopy%fhs(j)) / (air%rho(j)*C%CAPP)
-         
-            !---set limits for comparison
+            ! use the dispersion matrix (DM) to find the air temperature
+            ! and specific humidity  (Raupach, Finkele and Zhang 1997, pp 17)
+            ! modifications made to A_{H}, B_{E} and C_{E}
+
+            ! leaf boundary layer resistance for water
+            ! A_{H} in eq. 3.41, SCAM manual, CSIRO tech doc 132
+            ! with modifications for litter
+            IF (cable_user%litter) THEN
+               dmah(j) = rt0(j)/(rt0(j)+rhlitt(j)) *                           &
+                         (rt0(j)+rhlitt(j)+rough%rt1(j)) *                     &
+                         ((1.+air%epsi(j))*rrsw(j) + rrbw(j))                  &
+                 + air%epsi(j) * (rt0(j)*rough%rt1(j))*(rrbw(j)*rrsw(j))
+            ELSE
+               dmah(j) = (rt0(j)+rough%rt1(j)) *                               &
+                         ((1.+air%epsi(j))*rrsw(j) + rrbw(j))                  &
+                 + air%epsi(j) * (rt0(j)*rough%rt1(j))*(rrbw(j)*rrsw(j))
+            ENDIF
+
+            ! B_{H} in eq. 3.41, SCAM manual, CSIRO tech doc 132
+            dmbh(j) = (-air%rlam(j)/C%CAPP)*(rt0(j)*rough%rt1(j))*             &
+                           (rrbw(j)*rrsw(j))
+
+            ! C_{H} in eq. 3.41, SCAM manual, CSIRO tech doc 132
+            dmch(j) = ((1.+air%epsi(j))*rrsw(j) + rrbw(j))*rt0(j)*rough%rt1(j)*&
+                 (canopy%fhv(j) + canopy%fhs(j))/(air%rho(j)*C%CAPP)
+
+            ! A_{E} in eq. 3.41, SCAM manual, CSIRO tech doc 132
+            dmae(j) = (-air%epsi(j)*C%CAPP/air%rlam(j)) *                      &
+                          (rt0(j)*rough%rt1(j)) * (rrbw(j)*rrsw(j))
+
+            ! B_{E} in eq. 3.41, SCAM manual, CSIRO tech doc 132
+            ! with modifications for litter and %cls
+            IF (cable_user%litter) THEN
+               dmbe(j) = rt0(j)/(rt0(j)+relitt(j)) *                           &
+                 (rt0(j)+relitt(j)+ssnow%wetfac(j)*ssnow%cls(j)*rough%rt1(j)) *&
+                 ( (1.+air%epsi(j) ) * rrsw(j) + rrbw(j) ) +                   &
+                 ( rt0(j) * rough%rt1(j) ) * ( rrbw(j) * rrsw(j) )
+            ELSE
+               dmbe(j) = (rt0(j)+ssnow%wetfac(j)*ssnow%cls(j)*rough%rt1(j)) *  &
+                 ( (1.+air%epsi(j) ) * rrsw(j) + rrbw(j) ) +                   &
+                 ( rt0(j) * rough%rt1(j) ) * ( rrbw(j) * rrsw(j) )
+            ENDIF
+
+            ! C_{E} in eq. 3.41, SCAM manual, CSIRO tech doc 132
+            ! with modifications for %cls
+            dmce(j) = ((1.+air%epsi(j))*rrsw(j) + rrbw(j))*rt0(j)*rough%rt1(j)*&
+                 (canopy%fev(j) + canopy%fes(j)/ssnow%cls(j)) /                &
+                 (air%rho(j)*air%rlam(j))
+
+
+            ! Within canopy air temperature ------------------------------------
+            met%tvair(j) = met%tk(j) + ( dmbe(j)*dmch(j) - dmbh(j)*dmce(j) )   &
+                 / (dmah(j)*dmbe(j)-dmae(j)*dmbh(j)+1.0e-12)
+
+            !---set limits for comparisson
             lower_limit =  MIN( ssnow%tss(j), met%tk(j)) - 5.0
             upper_limit =  MAX( ssnow%tss(j), met%tk(j)) + 5.0
 
@@ -1157,11 +1234,12 @@ CONTAINS
             met%tvair(j) = MAX(met%tvair(j) , lower_limit)
             met%tvair(j) = MIN(met%tvair(j) , upper_limit)
 
-            !set within-canopy humidity - note factor of %cls
-            met%qvair(j) = met%qv(j) + rough%rt1(j)*(canopy%fev(j) + &
-                         canopy%fes(j)/ssnow%cls(j)) / (air%rho(j)*air%rlam(j))
+            ! within canopy humidity -------------------------------------------
+            met%qvair(j) = met%qv(j) + (dmah(j)*dmce(j)-dmae(j)*dmch(j)) /     &
+                 ( dmah(j)*dmbe(j)-dmae(j)*dmbh(j)+1.0e-12)
+            met%qvair(j) = MAX(0.0,met%qvair(j))
 
-            !---set limits for comparison
+            !---set limits for comparisson
             lower_limit =  MIN( ssnow%qstss(j), met%qv(j))
             upper_limit =  MAX( ssnow%qstss(j), met%qv(j))
 
@@ -1169,16 +1247,16 @@ CONTAINS
             met%qvair(j) =  MAX(met%qvair(j),lower_limit)
             met%qvair(j) =  MIN(met%qvair(j), upper_limit)
 
-            ! Saturated specific humidity in canopy:
+            ! Saturated specific humidity in canopy ---------------------------
             CALL qsatfjh2(qstvair(j),met%tvair(j)-C%tfrz,met%pmb(j))
 
             ! Saturated vapour pressure deficit in canopy:
-            met%dva(j) = ( qstvair(j) - met%qvair(j) ) *  C%rmair/C%RMH2o   &
-                 * met%pmb(j) * 100
-
+            met%dva(j) = ( qstvair(j) - met%qvair(j) ) *  C%rmair/C%RMH2o      &
+                 * met%pmb(j) * 100.
          ENDIF
-      ENDDO
 
+      ENDDO
+      
     END SUBROUTINE within_canopy_SSEB
 
 
