@@ -52,6 +52,7 @@ MODULE cable_output_module
   TYPE out_varID_type ! output variable IDs in netcdf file
     INTEGER ::      SWdown, LWdown, Wind, Wind_E, PSurf,                       &
                     Tair, Qair, Tscrn, Qscrn, Rainf, Snowf, CO2air,            &
+                    Tmx, Tmn, Txx, Tnn,                                        &
                     Qmom, Qle, Qh, Qg, NEE, SWnet,                             &
                     LWnet, SoilMoist, SoilTemp, Albedo,                        &
                     visAlbedo, nirAlbedo, SoilMoistIce,                        &
@@ -85,7 +86,19 @@ MODULE cable_output_module
     REAL(KIND=4), POINTER, DIMENSION(:) :: Tscrn  ! -- screen-level air 
                                                   ! temperature [oC]
     REAL(KIND=4), POINTER, DIMENSION(:) :: Qscrn  ! -- screen level specific 
-                                                  ! humidity [kg/kg]    
+                                                  ! humidity [kg/kg]  
+    REAL(KIND=4), POINTER, DIMENSION(:) :: Tmx    ! -- averaged daily maximum
+                                                  ! screen level temp [oC]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: Txx    ! -- max screen level temp 
+                                                  ! in averaging period [oC]  
+    REAL(KIND=4), POINTER, DIMENSION(:) :: Tmn    ! -- averaged daily minimum
+                                                  ! screen level temp [oC]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: Tnn    ! -- min screen level temp
+                                                  ! in averaging period [oC]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: Tdaymx ! -- daily maximum
+                                                  ! screen level temp [oC]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: Tdaymn ! -- daily maximum
+                                                  ! screen level temp [oC]    
     REAL(KIND=4), POINTER, DIMENSION(:) :: CO2air ! 13 CO2 concentration [ppmv]
     REAL(KIND=4), POINTER, DIMENSION(:) :: Wind   ! 14 windspeed [m/s]
     REAL(KIND=4), POINTER, DIMENSION(:) :: Wind_N ! 15 surface wind speed, N
@@ -406,6 +419,41 @@ CONTAINS
        ALLOCATE(out%Tscrn(mp))
        out%Tscrn = 0.0 ! initialise
     END IF
+    !INH - output extremes 
+    IF (output%met .OR. output%Tex .OR. output%veg) THEN 
+       IF((output%averaging(1:2) == 'da').OR.(output%averaging(1:2)=='mo')) THEN
+          CALL define_ovar(ncid_out, ovid%Txx,                                 &
+                         'Txx', 'oC', 'max screen-level T in reporting period',&
+                         patchout%Tex,                                         &
+                         'ALMA', xID, yID, zID, landID, patchID, tID)
+           ALLOCATE(out%Txx(mp))
+           out%Txx = -1.0E6 !initialise extremes at unreasonable value 
+           CALL define_ovar(ncid_out, ovid%Tnn,                                &
+                         'Tnn', 'oC', 'min screen-level T in reporting period',&
+                         patchout%Tex,                                         &
+                         'ALMA', xID, yID, zID, landID, patchID, tID)
+           ALLOCATE(out%Tnn(mp))
+           out%Tnn = 1.0E6 !initialise extremes at unreasonable value
+       ENDIF
+       IF (output%averaging(1:2)=='mo') THEN
+           !%Tdaymx is the current day max T *working variable)
+           !%Tmx is average of those values to be output
+           CALL define_ovar(ncid_out, ovid%Tmx,                                &
+                         'Tmx', 'oC', 'averaged daily maximum screen-level T', &
+                         patchout%Tex,                                         &
+                         'ALMA', xID, yID, zID, landID, patchID, tID)
+           ALLOCATE(out%Tmx(mp), out%Tdaymx(mp))
+           out%Tmx = 0.0 !initialise average
+           out%Tdaymx = -1.0E6 !initialise extremes at unreasonable value
+           CALL define_ovar(ncid_out, ovid%Tmn,                                &
+                         'Tmn', 'oC', 'averaged daily minimum screen-level T', &
+                         patchout%Tex,                                         &
+                         'ALMA', xID, yID, zID, landID, patchID, tID)
+           ALLOCATE(out%Tmn(mp),out%Tdaymn(mp))
+           out%Tmn = 0.0
+           out%Tdaymn = 1.0E6
+       ENDIF
+    ENDIF
     IF(output%met .OR. output%Rainf) THEN
        CALL define_ovar(ncid_out, ovid%Rainf, 'Rainf',                         &
                         'kg/m^2/s', 'Rainfall+snowfall', patchout%Rainf,       &
@@ -1398,6 +1446,7 @@ CONTAINS
                 output%interval = daysml(out_month) * 24 * 3600 / INT(dels)
              ELSE
                 writenow = .FALSE.
+                
              END IF
           ELSE ! not currently a leap year
              ! last time step of month
@@ -1502,7 +1551,7 @@ CONTAINS
           out%Tair = 0.0
        END IF
     END IF
-    ! Tscrn: screen level air temperature [K]
+    ! Tscrn: screen level air temperature [oC]
     IF(output%met .OR. output%Tscrn .OR. output%veg) THEN
        ! Add current timestep's value to total of temporary output variable:
        out%Tscrn = out%Tscrn + REAL(canopy%tscrn, 4)
@@ -1516,6 +1565,61 @@ CONTAINS
           out%Tscrn = 0.0
        END IF
     END IF
+    !INH - extremes in screen level air temperature [oC]
+    IF(output%met .OR. output%Tex .OR. output%veg) THEN
+       !if 'daily' then only daily values - using variables Txx and Tnn
+       IF (output%averaging(1:2) == 'da') THEN
+          DO iy=1,mp
+             out%Txx(iy) = MAX(out%Txx(iy),REAL(canopy%tscrn(iy),4))
+             out%Tnn(iy) = MIN(out%Tnn(iy),REAL(canopy%tscrn(iy),4))
+          ENDDO
+          IF(writenow) THEN
+             CALL write_ovar(out_timestep,ncid_out,ovid%Txx, 'Txx',            &
+                           out%Txx, ranges%Tscrn, patchout%Tex, 'ALMA', met)
+             CALL write_ovar(out_timestep,ncid_out,ovid%Tnn, 'Tnn',           &
+                           out%Tnn, ranges%Tscrn, patchout%Tex, 'ALMA', met)
+             !Reset temporary output variables:
+             out%Txx = -1.0E6
+             out%Tnn = 1.0E6
+          ENDIF
+       ENDIF
+
+       IF (output%averaging(1:2)=='mo') THEN
+          !if monthly then both full extremes and averaged extremes
+          DO iy=1,mp
+             out%Txx(iy) = MAX(out%Txx(iy),REAL(canopy%tscrn(iy),4))
+             out%Tnn(iy) = MIN(out%Tnn(iy),REAL(canopy%tscrn(iy),4))
+             out%Tdaymx(iy) = MAX(out%Tdaymx(iy),REAL(canopy%tscrn(iy),4))
+             out%Tdaymn(iy) = MIN(out%Tdaymn(iy),REAL(canopy%tscrn(iy),4))
+          ENDDO
+          !take copy of day's max/min for averaged output - reset Tdaymx/mn
+          IF (mod(ktau,24*3600/INT(dels))==0) THEN  
+             out%Tmx = out%Tmx + out%Tdaymx
+             out%Tmn = out%Tmn + out%Tdaymn
+             out%Tdaymx = -1.0E6
+             out%Tdaymn = 1.0E6
+          ENDIF
+          IF(writenow) THEN
+             !divide by number of records in average (dels*%interval/24/3600)
+             out%Tmx = REAL(86400,4)*out%Tmx/REAL(output%interval*INT(dels),4)
+             out%Tmn = REAL(86400,4)*out%Tmn/REAL(output%interval*INT(dels),4)
+             !write to file
+             CALL write_ovar(out_timestep,ncid_out,ovid%Txx, 'Txx',            &
+                           out%Txx, ranges%Tscrn, patchout%Tex, 'ALMA', met)
+             CALL write_ovar(out_timestep,ncid_out,ovid%Tnn, 'Tnn',           &
+                          out%Tnn, ranges%Tscrn, patchout%Tex, 'ALMA', met)
+             CALL write_ovar(out_timestep,ncid_out,ovid%Tmx, 'Tmx',           &
+                          out%Tmx, ranges%Tscrn, patchout%Tex, 'ALMA', met)
+             CALL write_ovar(out_timestep,ncid_out,ovid%Tmn, 'Tmn',           &
+                          out%Tmn, ranges%Tscrn, patchout%Tex, 'ALMA', met)
+             !Reset temporary output variables:
+             out%Txx = -1.0E6
+             out%Tnn = 1.0E6
+             out%Tmx = 0.0
+             out%Tmn = 0.0
+          ENDIF
+       ENDIF
+    ENDIF
     ! Rainf: rainfall [kg/m^2/s]
     IF(output%met .OR. output%Rainf) THEN
        ! Add current timestep's value to total of temporary output variable:
