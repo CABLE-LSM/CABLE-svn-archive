@@ -1494,9 +1494,9 @@ SUBROUTINE biogeochem(ktau,dels,idoY,LALLOC,veg,soil,casabiome,casapool,casaflux
 END SUBROUTINE biogeochem
 
 #ifndef UM_BUILD
-SUBROUTINE WRITE_CASA_RESTART_NC ( casamet, casapool, casaflux, phen, CASAONLY )
+SUBROUTINE WRITE_CASA_RESTART_NC ( casamet, casapool, casaflux, phen, CASAONLY)
 
-  USE CASAVARIABLE, ONLY : casa_met, casa_pool, casa_flux, icycle, mplant, mlitter, msoil
+  USE CASAVARIABLE!, ONLY : casa_met, casa_pool, casa_flux, icycle, mplant, mlitter, msoil
   USE CABLE_COMMON_MODULE
   USE CABLE_DEF_TYPES_MOD, ONLY: MET_TYPE, mp
   USE phenvariable
@@ -1571,14 +1571,16 @@ SUBROUTINE WRITE_CASA_RESTART_NC ( casamet, casapool, casaflux, phen, CASAONLY )
   ! Get File-Name
   WRITE(CYEAR, FMT='(I4)') CurYear + 1
 
+
+  fname = TRIM(casafile%cnpepool)
   !fname = TRIM(filename%path)//'/'//TRIM( cable_user%RunIden )//&
   !     '_'//CYEAR//'_casa_rst.nc'
-  fname = TRIM(filename%path)//'/'//TRIM( cable_user%RunIden )//&
-       '_casa_rst.nc'
+  !fname = TRIM(filename%path)//'/'//TRIM( cable_user%RunIden )//&
+   !    '_casa_rst.nc'
   ! Create NetCDF file:
   STATUS = NF90_create(fname, NF90_CLOBBER, FILE_ID)
   IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-write(*,*) 'writing casa restart', fname 
+  write(*,*) 'writing casa restart', fname 
   ! Put the file in define mode:
   STATUS = NF90_redef(FILE_ID)
 
@@ -1723,17 +1725,17 @@ SUBROUTINE READ_CASA_RESTART_NC (  casamet, casapool, casaflux,phen )
   IMPLICIT NONE
 
   !INTEGER, INTENT(in)    :: YEAR
-  TYPE (casa_met) , INTENT(inout) :: casamet
-  TYPE (casa_pool), INTENT(inout) :: casapool
-  TYPE (casa_flux), INTENT(inout) :: casaflux
-  TYPE (phen_variable),       INTENT(INOUT) :: phen
+  TYPE (casa_met) , INTENT(INOUT)     :: casamet
+  TYPE (casa_pool), INTENT(INOUT)     :: casapool
+  TYPE (casa_flux), INTENT(INOUT)     :: casaflux
+  TYPE (phen_variable), INTENT(INOUT) :: phen
 
   INTEGER*4 :: mp4
-  INTEGER*4, parameter   :: pmp4 =0
-  INTEGER, parameter   :: fmp4 = kind(pmp4)
+  INTEGER*4, PARAMETER  :: pmp4 =0
+  INTEGER, PARAMETER    :: fmp4 = kind(pmp4)
   INTEGER*4   :: STATUS, i
   INTEGER*4   :: FILE_ID, dID, land_dim, mp_dim, ml_dim, ms_dim
-  CHARACTER :: FRST_IN*99, CYEAR*4, CDATE*12, RSTDATE*12, FNAME*99
+  CHARACTER   :: FRST_IN*99, CYEAR*4, CDATE*12, RSTDATE*12, FNAME*99
 
   ! ! 1 dim arrays (npt )
   ! CHARACTER(len=20),DIMENSION(7), PARAMETER :: A1 = (/ 'latitude', 'longitude', 'glai', &
@@ -2067,7 +2069,6 @@ SUBROUTINE WRITE_CASA_OUTPUT_NC ( veg, casamet, casapool, casabal, casaflux, &
   LOGICAL   :: EXRST
   CHARACTER(len=50) :: RecordDimName
 
-
   A0(1) = 'latitude'
   A0(2) = 'longitude'
 
@@ -2154,13 +2155,13 @@ SUBROUTINE WRITE_CASA_OUTPUT_NC ( veg, casamet, casapool, casabal, casaflux, &
   CNT = CNT + 1
 
   IF ( CALL1 ) THEN
-     ! Get File-Name
 
-     IF (TRIM(cable_user%MetType).NE.'' ) THEN
+     ! Get File-Name
+     IF (TRIM(cable_user%MetType).NE.'') THEN
 
         WRITE( dum, FMT="(I4,'_',I4)")CABLE_USER%YEARSTART,CABLE_USER%YEAREND
         IF (CABLE_USER%YEARSTART.lt.1000.and.CABLE_USER%YEAREND.lt.1000) THEN
-           WRITE( dum, FMT="(I3,'_',I3)")CABLE_USER%YEARSTART,CABLE_USER%YEAREND
+           WRITE( dum, FMT="(I1,'_',I1)")CABLE_USER%YEARSTART,CABLE_USER%YEAREND
         ELSEIF (CABLE_USER%YEARSTART.lt.1000) THEN
            WRITE( dum, FMT="(I3,'_',I4)")CABLE_USER%YEARSTART,CABLE_USER%YEAREND
         ENDIF
@@ -2170,6 +2171,7 @@ SUBROUTINE WRITE_CASA_OUTPUT_NC ( veg, casamet, casapool, casabal, casaflux, &
         ! site data
         fname = TRIM(filename%path)//'/'//TRIM(cable_user%RunIden)//'_casa_out.nc'
      ENDIF
+
      INQUIRE( FILE=TRIM( fname ), EXIST=EXRST )
      EXRST = .FALSE.
      IF ( EXRST ) THEN

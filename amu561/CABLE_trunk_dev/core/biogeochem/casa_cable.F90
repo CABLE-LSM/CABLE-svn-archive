@@ -471,9 +471,8 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, phen, climate, n_call, ke
   dim_len(num_dims) = NF90_unlimited
 
 
-
   IF (n_call == 1) THEN
- 
+
      ! create netCDF dataset: enter define mode
      ncok = nf90_create(path = TRIM(ncfile), cmode = nf90_clobber, ncid = ncid)
      IF (ncok /= nf90_noerr) CALL stderr_nc(ncok,'ncdf creating ', ncfile)
@@ -499,7 +498,6 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, phen, climate, n_call, ke
     
 
   ENDIF
-
 
   CALL put_var_ncr2(ncid, var_name(3), casamet%tairk    ,n_call )
   CALL put_var_ncr3(ncid, var_name(4), casamet%tsoil    ,n_call, ms )

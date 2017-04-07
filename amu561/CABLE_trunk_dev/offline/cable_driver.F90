@@ -402,25 +402,28 @@ PROGRAM cable_offline_driver
 
   SPINLOOP:DO WHILE ( SPINon )
 
-     NREP: DO RRRR = 1, NRRRR
+    NREP: DO RRRR = 1, NRRRR
 
 	YEAR: DO YYYY= CABLE_USER%YearStart,  CABLE_USER%YearEnd
+
 	   CurYear = YYYY
+
 	   IF ( leaps .AND. IS_LEAPYEAR( YYYY ) ) THEN
 	      LOY = 366
 	   ELSE
 	      LOY = 365
 	   ENDIF
-    ! Check for gswp run
+       ! Check for gswp run
 	   IF ( TRIM(cable_user%MetType) .EQ. 'gswp' ) THEN
 	      ncciy = CurYear
 
 	      CALL prepareFiles(ncciy)
 	      IF ( RRRR .EQ. 1 ) THEN
-		 CALL open_met_file( dels, koffset, kend, spinup, C%TFRZ )
-		 IF (leaps.and.is_leapyear(YYYY).and.kend.eq.2920) THEN
-		    STOP 'LEAP YEAR INCOMPATIBILITY WITH INPUT MET !!!'
-		 ENDIF
+		     CALL open_met_file( dels, koffset, kend, spinup, C%TFRZ )
+		  IF (leaps.and.is_leapyear(YYYY).and.kend.eq.2920) THEN
+		     STOP 'LEAP YEAR INCOMPATIBILITY WITH INPUT MET !!!'
+		  ENDIF
+
 		 IF ( NRRRR .GT. 1 ) THEN
 		    GSWP_MID(1,YYYY) = ncid_rain
 		    GSWP_MID(2,YYYY) = ncid_snow
@@ -431,7 +434,7 @@ PROGRAM cable_offline_driver
 		    GSWP_MID(7,YYYY) = ncid_ta
 		    GSWP_MID(8,YYYY) = ncid_wd
 		 ENDIF
-	      ELSE
+	   ELSE
 		 ncid_rain = GSWP_MID(1,YYYY)
 		 ncid_snow = GSWP_MID(2,YYYY)
 		 ncid_lw   = GSWP_MID(3,YYYY)
