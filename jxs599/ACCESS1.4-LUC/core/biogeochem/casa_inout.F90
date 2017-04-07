@@ -30,7 +30,7 @@
 !   casa_cnpflux  (zeros casabal quantites on doy 1 and updates casabal at end of biogeochem)
 !   biogeochem
 
-!#define UM_BUILD YES
+#define UM_BUILD YES
 SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
 ! mst actually not used in this routine (BP sep2010)
 !SUBROUTINE casa_readbiome(mvt,mst,veg,soil, &

@@ -199,7 +199,7 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
    !INTEGER, DIMENSION(um1%LAND_PTS,um1%NTILES) ::                              &
       PHENPHASE
 !LUC
-  real, pointer :: &
+  real :: &
     stemnpp(um1%LAND_PTS,um1%NTILES), &
     sapwoodarea(um1%LAND_PTS,um1%NTILES), &
     frac_sapwood(um1%LAND_PTS,um1%NTILES), &
@@ -271,18 +271,18 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
     
     
     CALL um2cable_lp( stemnpp, stemnpp, casaflux%stemnpp,                &
-                           soil%isoilm, skip )
-    CALL um2cable_lp( sapwoodarea, sapwoodarea, casaflux%sapwoodarea,    &
-                           soil%isoilm, skip )
+                           soil%isoilm, skip=.true. )
+    CALL um2cable_lp( sapwoodarea, sapwoodarea, casaflux%sapwood_area,    &
+                           soil%isoilm, skip=.true. )
     CALL um2cable_lp( frac_sapwood, frac_sapwood, casaflux%frac_sapwood, &
-                           soil%isoilm, skip )
+                           soil%isoilm, skip=.true. )
 
      CALL um2cable_lp( CplantXX(:,:,1), CplantXX(:,:,1), casaflux%Cplant_turnover(:,1),&
-                           soil%isoilm, skip )
+                           soil%isoilm, skip=.true. )
      CALL um2cable_lp( CplantXX(:,:,2), CplantXX(:,:,2), casaflux%Cplant_turnover(:,2),&
-                           soil%isoilm, skip )
+                           soil%isoilm, skip=.true. )
      CALL um2cable_lp( CplantXX(:,:,3), CplantXX(:,:,3), casaflux%Cplant_turnover(:,3),&
-                           soil%isoilm, skip )
+                           soil%isoilm, skip=.true. )
 
 
       CALL cbm(ktau_gl,TIMESTEP, air, bgc, canopy, met, bal,  &
