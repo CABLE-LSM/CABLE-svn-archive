@@ -43,7 +43,11 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
                                   RESP_S_TOT, RESP_S_TILE, RESP_P, RESP_P_FT,  &
                                   G_LEAF, TRANSP_TILE, CPOOL_TILE, NPOOL_TILE, &
                                   PPOOL_TILE, GLAI, PHENPHASE, NPP_FT_ACC,     &
-                                  RESP_W_FT_ACC, idoy )
+                                  RESP_W_FT_ACC, idoy, &
+                                  !LUC  
+                                  stemnpp, sapwoodarea, frac_sapwood,       &
+                                  CplantXX                                    &
+                                   )
 
    USE cable_def_types_mod, ONLY : mp
    USE cable_data_module,   ONLY : PHYS
@@ -53,7 +57,7 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
    USE cable_common_module, ONLY : cable_runtime, cable_user, l_casacnp,       &
                                    l_vcmaxFeedbk, knode_gl, ktau_gl, kend_gl,  &
                                    kwidth_gl
-   USE cable_um_init_subrs_mod, ONLY : um2cable_rr
+   USE cable_um_init_subrs_mod, ONLY : um2cable_rr, um2cable_lp
    USE cable_cbm_module,    ONLY : cbm
 
    USE casavariable
@@ -194,6 +198,12 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
       GLAI, &
    !INTEGER, DIMENSION(um1%LAND_PTS,um1%NTILES) ::                              &
       PHENPHASE
+!LUC
+  real, pointer :: &
+    stemnpp(um1%LAND_PTS,um1%NTILES), &
+    sapwoodarea(um1%LAND_PTS,um1%NTILES), &
+    frac_sapwood(um1%LAND_PTS,um1%NTILES), &
+    CplantXX(um1%LAND_PTS,um1%NTILES,3)
 
    ! Lestevens 23apr13
    REAL, DIMENSION(um1%LAND_PTS,um1%NTILES) ::                                 &
@@ -256,6 +266,24 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
       !do k=1,mp
       !print *,'impl_tgg',k, ssnow%tgg(k,:)
       !end do
+      !LUC
+    
+    
+    
+    CALL um2cable_lp( stemnpp, stemnpp, casaflux%stemnpp,                &
+                           soil%isoilm, skip )
+    CALL um2cable_lp( sapwoodarea, sapwoodarea, casaflux%sapwoodarea,    &
+                           soil%isoilm, skip )
+    CALL um2cable_lp( frac_sapwood, frac_sapwood, casaflux%frac_sapwood, &
+                           soil%isoilm, skip )
+
+     CALL um2cable_lp( CplantXX(:,:,1), CplantXX(:,:,1), casaflux%Cplant_turnover(:,1),&
+                           soil%isoilm, skip )
+     CALL um2cable_lp( CplantXX(:,:,2), CplantXX(:,:,2), casaflux%Cplant_turnover(:,2),&
+                           soil%isoilm, skip )
+     CALL um2cable_lp( CplantXX(:,:,3), CplantXX(:,:,3), casaflux%Cplant_turnover(:,3),&
+                           soil%isoilm, skip )
+
 
       CALL cbm(ktau_gl,TIMESTEP, air, bgc, canopy, met, bal,  &
            rad, rough, soil, ssnow, sum_flux, veg, climate)
