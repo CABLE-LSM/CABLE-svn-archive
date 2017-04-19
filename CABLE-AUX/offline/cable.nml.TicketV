@@ -1,9 +1,9 @@
 &cable
    filename%met = ''      ! filename for single site met
    filename%path = './'   ! path for cable output files
-   filename%type    = '/data/hav014/surface_data_PLUME/gridinfo_CSIRO_CRU05x05_4tiles.nc'  ! grid-info file name, including path
-   filename%veg    =  '/data/hav014/surface_data_PLUME/def_veg_params_zr_clitt_Medlyn.txt' ! veg parameter text file
-   filename%soil    = '/data/hav014/surface_data_PLUME/def_soil_params.txt'          ! soil parameter text file (note: only used if soilparmnew is FALSE)
+   filename%type    = '/surface_data/gridinfo_CSIRO_CRU05x05_4tiles.nc'  ! grid-info file name, including path
+   filename%veg    =  '/surface_data/def_veg_params_zr_clitt_Medlyn.txt' ! veg parameter text file
+   filename%soil    = '/surface_data/def_soil_params.txt'          ! soil parameter text file (note: only used if soilparmnew is FALSE)
    filename%out = 'out_cable.nc'                    ! CABLE output file name
    filename%log = 'log_cable.txt'                   ! cable log filename
    filename%restart_in  = './restart_in.nc' 
@@ -38,10 +38,10 @@
    l_laiFeedbk   = .FALSE.  ! using prognostic LAI
    l_vcmaxFeedbk = .FALSE.  ! using prognostic Vcmax
    icycle = 0   ! 0 for not using casaCNP, 1 for C, 2 for C+N, 3 for C+N+P; 11 for C spin-casa; 12 for C+N spincasa; 13 for C+N+P spin-casa
-   casafile%cnpipool='./plume_plum_casa_rst.nc'  ! casa restart file
-   casafile%cnpbiome='~/surface_data/pftlookup_csiro_v16_17tile.csv'  ! biome specific BGC parameters
+   casafile%cnpipool='./casa_rst.nc'  ! casa restart file
+   casafile%cnpbiome='surface_data/pftlookup_csiro_v16_17tile.csv'  ! biome specific BGC parameters
    casafile%cnpepool='poolcnpOut.csv'    ! end of run pool size (text file). Note casa restart.nc and ouput.nc files are created by default
-   casafile%phen='~/surface_data/modis_phenology_csiro.txt'        ! modis phenology
+   casafile%phen='surface_data/modis_phenology_csiro.txt'        ! modis phenology
    ncciy = 0 ! 0 for not using gswp; 4-digit year input for year of gswp met
    gswpfile%rainf = 'gswp/Rainf_gswp1987.nc'
    gswpfile%snowf = 'gswp/Snowf_gswp1987.nc'
