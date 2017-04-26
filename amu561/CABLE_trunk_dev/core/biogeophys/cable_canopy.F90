@@ -1626,8 +1626,10 @@ CONTAINS
     gsw_term = SPREAD(veg%gswmin,2,mf)
     lower_limit2 = rad%scalex * gsw_term
     gswmin = max(1.e-6,lower_limit2)
-    gswmin3 = gswmin
-    gswmin4 = gswmin
+
+    gswmin3 = gswmin * (1 - frac42)
+    gswmin4 = gswmin * frac42
+
 
 
     gw = 1.0e-3 ! default values of conductance
@@ -1876,11 +1878,11 @@ CONTAINS
             ! Medlyn BE et al (2011) Global Change Biology 17: 2134-2144. 
             ELSEIF(cable_user%GS_SWITCH == 'medlyn') THEN
                 
-                 gswmin  = veg%g0(i)               
+                ! gswmin  = veg%g0(i)               
                  !Anna: adding these based on Bernard's code
                  !but unsure if this is correct
-                 gswmin3 = veg%g0(i) * (1. - frac42)
-                 gswmin4 = veg%g0(i) * frac42
+                 !gswmin3 = veg%g0(i) * (1. - frac42)
+                 !gswmin4 = veg%g0(i) * frac42
 
 
                 IF (dsx(i) < 50.0) THEN
@@ -2173,6 +2175,7 @@ CONTAINS
     ! Bonan,LSM version 1.0, p106)
 
     INTEGER :: i,j
+
 
     DO i=1,mp
 

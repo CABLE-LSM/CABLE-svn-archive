@@ -27,11 +27,11 @@ module load R
 
 ### Set file paths ###
 
-site="Konza"   #"Konza", "grassLTER"
+site="grassLTER"   #"Konza", "grassLTER"
 
 run_dir=${PWD##*/}    #`pwd`
 
-data_dir="/g/data1/w35/amu561/Rainfall_assymmetry/"
+data_dir="/srv/ccrc/data45/z3509830/CABLE_runs//Rainfall_assymmetry/"
 
 if [[ $run_dir =~ "CABLE-2.3.4-GW-Medlyn_spin" ]]; then
     INDIR="${site}${run_dir#*GW-Medlyn_spin}"   #creates string of site name and experiment (e.g. Konza100)
@@ -40,8 +40,8 @@ else
 fi
 
 
-cable_spinpath="${data_dir}/Outputs/${site}/${INDIR}_spin_alloc0.5_vcmax0.1"   #where store CABLE outputs from spin-up?
-cable_runpath="${data_dir}/Outputs/${site}/${INDIR}_run_alloc0.5_vcmax0.1"   #where store CABLE outputs from final run (if step4=true)?
+cable_spinpath="${data_dir}/Outputs/${site}/${INDIR}_spin_alloc0.4_vcmax0.1"   #where store CABLE outputs from spin-up?
+cable_runpath="${data_dir}/Outputs/${site}/${INDIR}_run_alloc0.4_vcmax0.1"   #where store CABLE outputs from final run (if step4=true)?
 casa_spinpath=$cable_outpath    #where store CASA outputs?
 
 
@@ -81,7 +81,7 @@ icycle=1		    #which icycle (1=C, 2=CN, 3=CNP)
 
 
 
-executable="cable-r4137" #name of CABLE executable
+executable="cable-r4138" #name of CABLE executable
 
 #Set spin-up options
 #Set step 2 to true to use fast spinup. Otherwise recycles a normal run.
