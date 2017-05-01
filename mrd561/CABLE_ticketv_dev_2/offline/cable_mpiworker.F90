@@ -312,6 +312,9 @@ CONTAINS
        OPEN(wlogn, FILE="/dev/null")
     ENDIF
 
+
+    write(wlogn,*) 'the value of call climate is ',cable_user%call_climate
+
     ! INITIALISATION depending on nml settings
 
     CurYear = CABLE_USER%YearStart
@@ -601,15 +604,17 @@ call flush(wlogn)
              !                   rad, veg, kend, dels, C%TFRZ, ktau ) 
 
              ! MPI: receive input data for this step from the master
+             !IF (icycle > 0) THEN
              IF ( .NOT. CASAONLY ) THEN
 
                 CALL MPI_Recv (MPI_BOTTOM, 1, inp_t, 0, ktau_gl, icomm, stat, ierr)
 
                 ! MPI: receive casa_dump_data for this step from the master
              ELSEIF ( IS_CASA_TIME("dread", yyyy, ktau, kstart, koffset, &
-                  kend, ktauday, wlogn) ) THEN
+                  kend, ktauday, wlogn) .and. icycle > 0) THEN
                 CALL MPI_Recv (MPI_BOTTOM, 1, casa_dump_t, 0, ktau_gl, icomm, stat, ierr)
              END IF
+             !END IF
 
              ! MPI: some fields need explicit init, because we don't transfer
              ! them for better performance

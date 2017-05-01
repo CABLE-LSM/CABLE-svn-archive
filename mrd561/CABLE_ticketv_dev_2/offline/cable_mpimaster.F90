@@ -396,6 +396,8 @@ CONTAINS
      ENDIF
   ENDIF
 
+  write(logn,*) 'THE VALUE of CALL_CLIMATE IS ',cable_user%call_climate
+
     CurYear = CABLE_USER%YearStart
 
     IF ( icycle .GE. 11 ) THEN
@@ -1351,6 +1353,7 @@ write(*,*) 'after annual calcs'
 
     ! Close met data input file:
     IF ( TRIM(cable_user%MetType) .NE. "gswp" .AND. &
+         !TRIM(cable_user%MetType) .NE. "gswp3" .AND. &
          TRIM(cable_user%MetType) .NE. "plum" .AND. &
          TRIM(cable_user%MetType) .NE. "cru") CALL close_met_file
     IF  (.NOT. CASAONLY) THEN

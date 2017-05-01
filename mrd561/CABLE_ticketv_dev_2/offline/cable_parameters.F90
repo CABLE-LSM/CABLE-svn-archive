@@ -1825,6 +1825,8 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
        soil%sfc_vec(:,klev) = soil%sfc(:)
        soil%swilt_vec(:,klev)  = soil%swilt(:)
       end do
+      soil%watr = 0._r_2
+      soil%GWwatr = 0._r_2
 
     END IF
 

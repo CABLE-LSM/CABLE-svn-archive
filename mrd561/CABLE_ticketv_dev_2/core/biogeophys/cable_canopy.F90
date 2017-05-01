@@ -42,7 +42,7 @@
 MODULE cable_canopy_module
 
   USE cable_data_module, ONLY : icanopy_type, point2constants
-  USE cable_soil_snow_gw_module, ONLY : calc_srf_wet_fraction
+  USE cable_soil_snow_gw_module, ONLY : calc_srf_wet_fraction,saturated_fraction
   USE cable_IO_vars_module, ONLY: wlogn
   USE cable_psm, ONLY: or_soil_evap_resistance
 
@@ -305,11 +305,14 @@ CONTAINS
        rough%rt1 = MAX(5.,(rough%rt1usa + rough%rt1usb + rt1usc) / canopy%us)
 
       if (cable_user%or_evap) then
-         if (cable_user%litter) then
-            litter_thickness = veg%clitt*0.003
-         else
-            litter_thickness = 0.
-         end if
+         !if (cable_user%litter) then
+         !   litter_thickness = veg%clitt*0.003
+         !else
+            litter_thickness = 0._r_2
+         !end if
+
+         call saturated_fraction(ssnow,soil)
+
          call or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough,ssnow%isflag,litter_thickness)
       else
          ssnow%rtevap_unsat(:) = 0.0 
@@ -429,8 +432,16 @@ CONTAINS
 
 
        ! Calculate net rad to soil:
+      !mrd quick test
+       !canopy%fns = rad%qssabs + rad%transd*met%fld + (1.0-rad%transd)*C%EMLEAF* &
+       !     C%SBOLTZ*canopy%tv**4 - C%EMSOIL*C%SBOLTZ* tss4
+
        canopy%fns = rad%qssabs + rad%transd*met%fld + (1.0-rad%transd)*C%EMLEAF* &
-            C%SBOLTZ*canopy%tv**4 - C%EMSOIL*C%SBOLTZ* tss4
+            C%SBOLTZ*canopy%tv**4 - (1-ssnow%isflag)*C%sboltz*C%EMSOIL*ssnow%tgg(:,1)**4 - & 
+              ssnow%isflag*C%sboltz*0.94* ssnow%tggsn(:,1)**4
+
+
+
 
 
        ! Saturation specific humidity at soil/snow surface temperature:
@@ -489,7 +500,6 @@ CONTAINS
        ELSEIF (cable_user%soil_struc=='sli') THEN
           ! SLI SEB to get canopy%fhs, canopy%fess, canopy%ga
           ! (Based on old Tsoil, new canopy%tv, new canopy%fns)
-          !CALL sli_main(1,dels,veg,soil,ssnow,met,canopy,air,rad,rough,1)
           CALL sli_main(1,dels,veg,soil,ssnow,met,canopy,air,rad,1)
        ENDIF
 
@@ -555,7 +565,6 @@ CONTAINS
        ELSEIF (cable_user%soil_struc=='sli') THEN
           ! SLI SEB to get canopy%fhs, canopy%fess, canopy%ga
           ! (Based on old Tsoil, new canopy%tv, new canopy%fns)
-          !CALL sli_main(1,dels,veg,soil,ssnow,met,canopy,air,rad,rough,1)
           CALL sli_main(1,dels,veg,soil,ssnow,met,canopy,air,rad,1)
        ENDIF
 
@@ -590,10 +599,19 @@ CONTAINS
             rad%transd*ssnow%potev*ssnow%cls) * dels/air%rlam
 
 
-
+       !mrd561 simple snow emissivity test
+       !canopy%rniso = sum(rad%rniso,2) + rad%qssabs + rad%transd*met%fld + &
+       !     (1.0-rad%transd)*C%EMLEAF* &
+       !     C%SBOLTZ*met%tk**4 - C%EMSOIL*C%SBOLTZ*met%tk**4
+       where (ssnow%isflag .eq. 1)
+       canopy%rniso = sum(rad%rniso,2) + rad%qssabs + rad%transd*met%fld + &
+            (1.0-rad%transd)*C%EMLEAF* &
+            C%SBOLTZ*met%tk**4 - 0.94*C%SBOLTZ*met%tk**4
+       elsewhere
        canopy%rniso = sum(rad%rniso,2) + rad%qssabs + rad%transd*met%fld + &
             (1.0-rad%transd)*C%EMLEAF* &
             C%SBOLTZ*met%tk**4 - C%EMSOIL*C%SBOLTZ*met%tk**4
+       endwhere
 
        rlower_limit = canopy%epot * air%rlam / dels
        where (rlower_limit == 0 ) rlower_limit = 1.e-7 !prevent from 0. by adding 1.e-7 (W/m2)
@@ -771,7 +789,13 @@ CONTAINS
     ! d(canopy%fhs)/d(ssnow%tgg)
     ! d(canopy%fes)/d(dq)
     IF (cable_user%soil_struc=='default') THEN
+       !mrd561 soil snow emissivity test
+       !ssnow%dfn_dtg = (-1.)*4.*C%EMSOIL*C%SBOLTZ*tss4/ssnow%tss
+       where (ssnow%isflag .eq. 1)
+       ssnow%dfn_dtg = (-1.)*4.*0.94*C%SBOLTZ*tss4/ssnow%tss
+       elsewhere
        ssnow%dfn_dtg = (-1.)*4.*C%EMSOIL*C%SBOLTZ*tss4/ssnow%tss
+       endwhere
 
        IF (cable_user%litter) THEN
           !!vh_js!!
@@ -909,8 +933,8 @@ CONTAINS
               real((1-ssnow%isflag))*veg%clitt*0.003/canopy%DvLitt)
       ELSE
          if (cable_user%or_evap) then
-             ssnowpotev = (1.0-ssnow%wetfac) * air%rho * air%rlam * dq /(ssnow%rtsoil+ssnow%rtevap_unsat) + &
-                   ssnow%wetfac * air%rho * air%rlam * dq2 /(ssnow%rtsoil+ssnow%rtevap_sat) 
+             ssnowpotev = (1.0-ssnow%satfrac) * air%rho * air%rlam * dq /(ssnow%rtsoil+ssnow%rtevap_unsat) + &
+                   ssnow%satfrac * air%rho * air%rlam * dq2 /(ssnow%rtsoil+ssnow%rtevap_sat) 
          elseif (cable_user%gw_model) then
              ssnowpotev = air%rho * air%rlam * dq /(ssnow%rtsoil) 
          else
@@ -1044,8 +1068,8 @@ CONTAINS
 !                 ( rt0(j) * rough%rt1(j) ) * ( rrbw(j) * rrsw(j) )
 !
             if (cable_user%or_evap) then
-            tmp_me = rt0(j)*(ssnow%wetfac(j)/(rt0(j)+ssnow%rtevap_sat(j)) + &
-                      (1-ssnow%wetfac(j))/(rt0(j)+ssnow%rtevap_unsat(j)))
+            tmp_me = rt0(j)*(ssnow%satfrac(j)/(rt0(j)+ssnow%rtevap_sat(j)) + &
+                      (1-ssnow%satfrac(j))/(rt0(j)+ssnow%rtevap_unsat(j)))
             else
             tmp_me = ssnow%wetfac(j)
             end if
@@ -1774,16 +1798,6 @@ CONTAINS
     
               if (cable_user%CALL_climate) then
   
-                 ! Atkins et al. 2015, Table S4, 
-                 ! modified by saling factor to reduce leaf respiration to 
-                 ! expected proportion of GPP
-                 !Broad-leaved trees: Rdark a25 = 
-                 !1.2818 + (0.0116 × Vcmax,a25) – (0.0334 × TWQ)
-                 !C3 herbs/grasses: Rdark,a25 = 
-                 !1.6737 + (0.0116 × Vcmax,a25) – (0.0334 × TWQ)
-                 !Needle-leaved trees: Rdark,a25 = 
-                 !1.2877 + (0.0116 × Vcmax,a25) – (0.0334 × TWQ)
-                 !Shrubs: Rdark,a25 = 1.5758 + (0.0116 × Vcmax,a25) – (0.0334 × TWQ)
 
               if (veg%iveg(i).eq.2 .or. veg%iveg(i).eq. 4  ) then ! broadleaf forest
 
@@ -1813,19 +1827,6 @@ CONTAINS
                  rdx(i,1) = rdx(i,1) * xrdt(tlfx(i)) * rad%scalex(i,1)
                  rdx(i,2) = rdx(i,2) * xrdt(tlfx(i)) * rad%scalex(i,2)
       
-                     
-                
-                 ! reduction of daytime leaf dark-respiration to account for 
-                 !photo-inhibition
-                 !Mercado, L. M., Huntingford, C., Gash, J. H. C., Cox, P. M., 
-                 ! and Jogireddy, V.:
-                 ! Improving the representation of radiation 
-                 !interception and photosynthesis for climate model applications, 
-                 !Tellus B, 59, 553-565, 2007.
-                 ! Equation 3
-                 ! (Brooks and Farquhar, 1985, as implemented by Lloyd et al., 1995).
-                 ! Rc = Rd 0 < Io < 10 μmol quantam−2s−1
-                 ! Rc = [0.5 − 0.05 ln(Io)] Rd Io > 10μmol quantam−2s−1
                  
                  if (jtomol*1.0e6*rad%qcan(i,1,1).gt.10.0) &
                       rdx(i,1) = rdx(i,1) * &
@@ -2402,7 +2403,7 @@ CONTAINS
   ! ------------------------------------------------------------------------------
  REAL FUNCTION xrdt(x)
 
-   !  Atkins et al. (Eq 1, New Phytologist (2015) 206: 614–636) 
+   !  Atkins et al. (Eq 1, New Phytologist (2015) 206: 61436) 
    !variable Q10 temperature of dark respiration
    ! Originally from Tjoelker et al. 2001
 

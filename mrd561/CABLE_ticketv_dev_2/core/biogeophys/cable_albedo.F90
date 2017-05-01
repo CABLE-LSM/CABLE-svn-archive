@@ -223,7 +223,7 @@ SUBROUTINE surface_albedosn(ssnow, veg, met, soil)
 
       END WHERE
 
-      dtau = 1.e-6 * (EXP( ar1 ) + EXP( ar2 ) + ar3 ) * kwidth_gl
+      dtau = 1.e-6 * (EXP( ar1 ) + EXP( ar2 ) + ar3 ) * real(kwidth_gl)
 
       WHERE (ssnow%snowd <= 1.0)
          ssnow%snage = 0.

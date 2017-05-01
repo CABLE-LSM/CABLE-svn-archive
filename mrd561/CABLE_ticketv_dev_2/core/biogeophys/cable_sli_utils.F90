@@ -2030,7 +2030,7 @@ CONTAINS
        var%K  = var%Ksat
        var%KS = zero
        ! var%KT = var%dthetaldT * parin%Ke * parin%eta * exp(lnS*(parin%eta-one))/parin%thre
-       var%KT = var%dthetaldT * parin%Ke * parin%eta * exp(lnS*(parin%eta-one))/(parin%thre-var%thetai)
+       var%KT = var%dthetaldT * parin%Ke * parin%eta * exp(lnS*(parin%eta-one))/max(parin%thre-var%thetai,max(parin%thr,1e-5_r_2))
        if (S < one) var%phi = var%phie
 
        ! var%phiT = parin%phie * exp(lnS*(parin%eta-one/parin%lam-one)) * var%dthetaldT * &
@@ -2192,7 +2192,11 @@ CONTAINS
           F2 = 1.06_r_2
           if  (Tsoil < var%Tfrz) then ! ice
              ! F  = one + F1*var%thetai**F2
-             F  = one + F1*exp(F2*log(var%thetai))
+             if (var%thetai .gt. zero) then
+                F  = one + F1*exp(F2*log(var%thetai))
+             else
+                F = one
+             end if
              if ((C1*(theta+F*var%thetai))**E > 100.) then
                 var%kH = A + B*(theta+F*var%thetai)
              else
