@@ -15,10 +15,10 @@ host_raij()
    export FC='mpif90'
    export CFLAGS='-O2 -fp-model precise'
    if [[ $1 = 'debug' ]]; then
-      #export CFLAGS='-O0 -traceback -g -fp-model precise -ftrapuv -ftz -fpe0 -check bounds -check uninit'
+      export CFLAGS='-O0 -traceback -g -fp-model precise -ftrapuv -ftz -fpe0 -check bounds -check uninit'
       #export FLAGTMP='-O0 -traceback -g -fp-model precise -ftrapuv -fpe0 -check bounds -check uninit -debug'
       #export CFLAGS=$FLAGTMP' -WB -diag-enable warn -warn errors -warn declarations -warn interfaces'
-      export CFLAGS='-O0 -traceback -g -fp-model precise '
+      #export CFLAGS='-O0 -traceback -g -fp-model precise '
    fi
    export LDFLAGS='-L'$NCDIR' '
    export LD='-lnetcdf -lnetcdff'
