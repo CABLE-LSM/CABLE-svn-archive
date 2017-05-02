@@ -97,9 +97,6 @@ MODULE casaparm
   REAL(r_2), PARAMETER :: frootparmb =-0.0485
   REAL(r_2), PARAMETER :: frootparmc = 0.1755
   REAL(r_2), PARAMETER :: xweightalloc = 0.2
-!  REAL(r_2), PARAMETER :: xkplab=0.5*deltcasa
-!  REAL(r_2), PARAMETER :: xkpsorb=0.01*deltcasa
-!  REAL(r_2), PARAMETER :: xkpocc =0.01*deltcasa
 END MODULE casaparm
 
 MODULE casavariable
@@ -367,6 +364,26 @@ MODULE casavariable
   TYPE(casafiles_type) :: casafile
 
 Contains
+
+SUBROUTINE alloc_phenvariable(phen,arraysize)
+
+  IMPLICIT NONE
+  TYPE(phen_variable), INTENT(INOUT) :: phen
+  INTEGER,             INTENT(IN) :: arraysize
+
+  ALLOCATE(phen%Tkshed(mvtype))
+  ALLOCATE(phen%phase(arraysize),         &
+           phen%doyphase(arraysize,mphase))
+  ALLOCATE(phen%phen(arraysize), &
+       phen%aphen(arraysize), &
+       phen%phasespin(arraysize,mdyear), &
+       phen%doyphasespin_1(arraysize,mdyear), &
+       phen%doyphasespin_2(arraysize,mdyear), &
+       phen%doyphasespin_3(arraysize,mdyear), &
+       phen%doyphasespin_4(arraysize,mdyear))
+END SUBROUTINE alloc_phenvariable
+
+End MODULE phenvariable
 
 SUBROUTINE alloc_casavariable(casabiome,casapool,casaflux, &
       casamet,casabal,arraysize)

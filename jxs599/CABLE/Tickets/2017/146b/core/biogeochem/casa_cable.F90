@@ -81,7 +81,7 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
 
   ! INTEGER, INTENT(IN) :: wlogn
    INTEGER , parameter :: wlogn=6
-
+  logical :: Ticket146 = .false.
   
    IF ( .NOT. dump_read ) THEN  ! construct casa met and flux inputs from current CABLE run
       IF ( TRIM(cable_user%MetType) .EQ. 'cru' ) THEN
@@ -92,7 +92,15 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
          casamet%tairk  = 0.0
          casamet%tsoil  = 0.0
          casamet%moist  = 0.0
-  
+         if(Ticket146) then
+           casaflux%cgpp  = 0.0
+           !add initializations (BP jul2010)
+           casaflux%Crsoil   = 0.0
+           casaflux%crgplant = 0.0
+           casaflux%crmplant = 0.0
+           casaflux%clabloss = 0.0
+           !casaflux%crmplant(:,leaf) = 0.0
+         End 
       ENDIF
 
       IF(MOD(ktau,ktauday)==1) THEN
@@ -120,7 +128,32 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
                call cable_phenology_clim(veg, climate, phen)
 
             ENDIF
-  
+            
+            if(Ticket146) then           
+         
+              if(ktau/ktauday .le. 365)then
+
+                casamet%Tairkspin     (:,idoy) = casamet%tairk(:)
+                casamet%cgppspin      (:,idoy) = casaflux%cgpp(:)
+                casamet%crmplantspin_1(:,idoy) = casaflux%crmplant(:,1)
+                casamet%crmplantspin_2(:,idoy) = casaflux%crmplant(:,2)
+                casamet%crmplantspin_3(:,idoy) = casaflux%crmplant(:,3)
+                casamet%Tsoilspin_1   (:,idoy) = casamet%tsoil(:,1)
+                casamet%Tsoilspin_2   (:,idoy) = casamet%tsoil(:,2)
+                casamet%Tsoilspin_3   (:,idoy) = casamet%tsoil(:,3)
+                casamet%Tsoilspin_4   (:,idoy) = casamet%tsoil(:,4)
+                casamet%Tsoilspin_5   (:,idoy) = casamet%tsoil(:,5)
+                casamet%Tsoilspin_6   (:,idoy) = casamet%tsoil(:,6)
+                casamet%moistspin_1   (:,idoy) = casamet%moist(:,1)
+                casamet%moistspin_2   (:,idoy) = casamet%moist(:,2)
+                casamet%moistspin_3   (:,idoy) = casamet%moist(:,3)
+                casamet%moistspin_4   (:,idoy) = casamet%moist(:,4)
+                casamet%moistspin_5   (:,idoy) = casamet%moist(:,5)
+                casamet%moistspin_6   (:,idoy) = casamet%moist(:,6)
+
+              end if
+            end if !End Ticket146
+            
             CALL biogeochem(ktau,dels,idoy,LALLOC,veg,soil,casabiome,casapool,casaflux, &
                 casamet,casabal,phen,POP,climate, xnplimit,xkNlimiting,xklitter,xksoil, &
                 xkleaf,xkleafcold,xkleafdry,&
@@ -260,6 +293,9 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, climate, ncall, kend
       USE cable_diag_module,     ONLY : get_var_ncr2, &
                                         get_var_ncr3, stderr_nc
 #     endif
+!Ticket146 - trunk USEes cable_diag NOT ncdf_module & not _cnp_ either
+      use cable_ncdf_module,     only : get_var_nc, stderr_nc
+      USE casa_cnp_module
       IMPLICIT NONE
 
       TYPE (casa_flux), INTENT(INOUT) :: casaflux
@@ -384,7 +420,7 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, climate, ncall, kend
       ENDIF
 #     endif
 
-   END SUBROUTINE read_casa_dump
+END SUBROUTINE read_casa_dump
 
 
 SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, phen, climate, n_call, kend )
@@ -400,6 +436,16 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, phen, climate, n_call, ke
   USE casadimension,         ONLY : mplant
   USE phenvariable
 
+!Ticket146: YP vn has this config. NB. This is NOT build ready 
+  USE cable_def_types_mod
+  USE casadimension, only : mdyear, mplant
+  USE casavariable
+  USE cable_io_vars_module, only : patch
+  use cable_ncdf_module, only : def_dims, def_vars, def_var_atts, &
+                                   put_var_nc, stderr_nc
+  
+
+  
   IMPLICIT NONE
 
   INTEGER, INTENT(in) :: &
@@ -536,11 +582,15 @@ END SUBROUTINE write_casa_dump
   real, dimension(mp)  :: ncleafx,npleafx, pleafx, nleafx ! local variables
   real, dimension(17)                   ::  xnslope
   data xnslope/0.80,1.00,2.00,1.00,1.00,1.00,0.50,1.00,0.34,1.00,1.00,1.00,1.00,1.00,1.00,1.00,1.00/
-
+  logical Ticket146 = .false.
   ! first initialize
   ncleafx(:) = casabiome%ratioNCplantmax(veg%iveg(:),leaf)
-  npleafx = 14.2
-
+  if(Ticket146) then
+    npleafx(:) = casabiome%ratioNPplantmin(veg%iveg(:),leaf)
+  else 
+    npleafx = 14.2
+  endif
+  
   DO np=1,mp
     ivt=veg%iveg(np)
     IF (casamet%iveg2(np)/=icewater &
@@ -570,8 +620,9 @@ END SUBROUTINE write_casa_dump
                      + casabiome%nslope(ivt)*ncleafx(np)/casabiome%sla(ivt) )*1.0e-6
              ENDIF
           ENDIF
-          veg%vcmax(np) =veg%vcmax(np)* xnslope(ivt)
-       ENDIF
+          if(.NOT. Ticket146) &
+            veg%vcmax(np) =veg%vcmax(np)* xnslope(ivt)
+      ENDIF
 
     elseif (TRIM(cable_user%vcmax).eq.'Walker2014') then
        !Walker, A. P. et al.: The relationship of leaf photosynthetic traits – Vcmax and Jmax – 
@@ -589,11 +640,11 @@ END SUBROUTINE write_casa_dump
     else
        stop('invalid vcmax flag')
     endif
-  
+    
   ENDDO
 
   veg%ejmax = 2.0 * veg%vcmax
-!991 format(i6,2x,i4,2x,2(f9.3,2x))
+
  END SUBROUTINE casa_feedback
 
 
@@ -684,6 +735,7 @@ END SUBROUTINE sumcflux
   TYPE (veg_parameter_type),   INTENT(IN)  :: veg  ! vegetation parameters
   TYPE(casa_pool),             INTENT(IN)  :: casapool
   TYPE(casa_met),              INTENT(IN)  :: casamet
+  !Ticket146: YP replaces 5 with 10
   real,      dimension(5,mvtype,mplant)    :: bmcplant,  bmnplant,  bmpplant
   real,      dimension(5,mvtype,mlitter)   :: bmclitter, bmnlitter, bmplitter
   real,      dimension(5,mvtype,msoil)     :: bmcsoil,   bmnsoil,   bmpsoil
@@ -691,54 +743,82 @@ END SUBROUTINE sumcflux
   real,      dimension(mvtype)             :: bmarea
   ! local variables
   INTEGER  npt,nvt
+  logical :: Ticket146 = .false.
 
+    !Ticket146: YP does NOT use these inits
+    bmcplant(kloop,:,:)  = 0.0;  bmnplant(kloop,:,:)  = 0.0; bmpplant(kloop,:,:)  = 0.0
+    bmclitter(kloop,:,:) = 0.0;  bmnlitter(kloop,:,:) = 0.0; bmplitter(kloop,:,:) = 0.0
+    bmcsoil(kloop,:,:)   = 0.0;  bmnsoil(kloop,:,:)   = 0.0; bmpsoil(kloop,:,:)   = 0.0
+    bmnsoilmin(kloop,:)  = 0.0;  bmpsoillab(kloop,:)  = 0.0; bmpsoilsorb(kloop,:) = 0.0;  bmpsoilocc(kloop,:) = 0.0
+  
+  bmarea(:) = 0.0
 
-      bmcplant(kloop,:,:)  = 0.0;  bmnplant(kloop,:,:)  = 0.0; bmpplant(kloop,:,:)  = 0.0
-      bmclitter(kloop,:,:) = 0.0;  bmnlitter(kloop,:,:) = 0.0; bmplitter(kloop,:,:) = 0.0
-      bmcsoil(kloop,:,:)   = 0.0;  bmnsoil(kloop,:,:)   = 0.0; bmpsoil(kloop,:,:)   = 0.0
-      bmnsoilmin(kloop,:)  = 0.0;  bmpsoillab(kloop,:)  = 0.0; bmpsoilsorb(kloop,:) = 0.0;  bmpsoilocc(kloop,:) = 0.0
+  do npt=1,mp
+     nvt=veg%iveg(npt)
+     bmcplant(kloop,nvt,:) = bmcplant(kloop,nvt,:)   + casapool%cplant(npt,:) * casamet%areacell(npt)
+     bmnplant(kloop,nvt,:) = bmnplant(kloop,nvt,:)   + casapool%nplant(npt,:) * casamet%areacell(npt)
+     bmpplant(kloop,nvt,:) = bmpplant(kloop,nvt,:)   + casapool%pplant(npt,:) * casamet%areacell(npt)
 
-      bmarea(:) = 0.0
+     bmclitter(kloop,nvt,:) = bmclitter(kloop,nvt,:) + casapool%clitter(npt,:) * casamet%areacell(npt)
+     bmnlitter(kloop,nvt,:) = bmnlitter(kloop,nvt,:) + casapool%nlitter(npt,:) * casamet%areacell(npt)
+     bmplitter(kloop,nvt,:) = bmplitter(kloop,nvt,:) + casapool%plitter(npt,:) * casamet%areacell(npt)
 
-      do npt=1,mp
-         nvt=veg%iveg(npt)
-         bmcplant(kloop,nvt,:) = bmcplant(kloop,nvt,:)   + casapool%cplant(npt,:) * casamet%areacell(npt)
-         bmnplant(kloop,nvt,:) = bmnplant(kloop,nvt,:)   + casapool%nplant(npt,:) * casamet%areacell(npt)
-         bmpplant(kloop,nvt,:) = bmpplant(kloop,nvt,:)   + casapool%pplant(npt,:) * casamet%areacell(npt)
+     bmcsoil(kloop,nvt,:) = bmcsoil(kloop,nvt,:)     + casapool%csoil(npt,:) * casamet%areacell(npt)
+     bmnsoil(kloop,nvt,:) = bmnsoil(kloop,nvt,:)     + casapool%nsoil(npt,:) * casamet%areacell(npt)
+     bmpsoil(kloop,nvt,:) = bmpsoil(kloop,nvt,:)     + casapool%psoil(npt,:) * casamet%areacell(npt)
 
-         bmclitter(kloop,nvt,:) = bmclitter(kloop,nvt,:) + casapool%clitter(npt,:) * casamet%areacell(npt)
-         bmnlitter(kloop,nvt,:) = bmnlitter(kloop,nvt,:) + casapool%nlitter(npt,:) * casamet%areacell(npt)
-         bmplitter(kloop,nvt,:) = bmplitter(kloop,nvt,:) + casapool%plitter(npt,:) * casamet%areacell(npt)
+     bmnsoilmin(kloop,nvt)  = bmnsoilmin(kloop,nvt)   + casapool%nsoilmin(npt) * casamet%areacell(npt)
+     bmpsoillab(kloop,nvt)  = bmpsoillab(kloop,nvt)   + casapool%psoillab(npt) * casamet%areacell(npt)
+     bmpsoilsorb(kloop,nvt) = bmpsoilsorb(kloop,nvt)  + casapool%psoilsorb(npt) * casamet%areacell(npt)
+     bmpsoilocc(kloop,nvt)  = bmpsoilocc(kloop,nvt)   + casapool%psoilocc(npt) * casamet%areacell(npt)
+     bmarea(nvt)  = bmarea(nvt) + casamet%areacell(npt)
+  enddo
 
-         bmcsoil(kloop,nvt,:) = bmcsoil(kloop,nvt,:)     + casapool%csoil(npt,:) * casamet%areacell(npt)
-         bmnsoil(kloop,nvt,:) = bmnsoil(kloop,nvt,:)     + casapool%nsoil(npt,:) * casamet%areacell(npt)
-         bmpsoil(kloop,nvt,:) = bmpsoil(kloop,nvt,:)     + casapool%psoil(npt,:) * casamet%areacell(npt)
+  do nvt=1,mvtype
+    !Ticket146: YP has IF(bmarea) condition
+    if(Ticket146) then
+      
+      if(bmarea(nvt) > 0.0) then
+        bmcplant(kloop,nvt,:) = bmcplant(kloop,nvt,:)/bmarea(nvt)
+        bmnplant(kloop,nvt,:) = bmnplant(kloop,nvt,:)/bmarea(nvt)
+        bmpplant(kloop,nvt,:) = bmpplant(kloop,nvt,:)/bmarea(nvt)
 
-         bmnsoilmin(kloop,nvt)  = bmnsoilmin(kloop,nvt)   + casapool%nsoilmin(npt) * casamet%areacell(npt)
-         bmpsoillab(kloop,nvt)  = bmpsoillab(kloop,nvt)   + casapool%psoillab(npt) * casamet%areacell(npt)
-         bmpsoilsorb(kloop,nvt) = bmpsoilsorb(kloop,nvt)  + casapool%psoilsorb(npt) * casamet%areacell(npt)
-         bmpsoilocc(kloop,nvt)  = bmpsoilocc(kloop,nvt)   + casapool%psoilocc(npt) * casamet%areacell(npt)
-         bmarea(nvt)  = bmarea(nvt) + casamet%areacell(npt)
-      enddo
+        bmclitter(kloop,nvt,:) = bmclitter(kloop,nvt,:)/bmarea(nvt)
+        bmnlitter(kloop,nvt,:) = bmnlitter(kloop,nvt,:)/bmarea(nvt)
+        bmplitter(kloop,nvt,:) = bmplitter(kloop,nvt,:)/bmarea(nvt)
 
-      do nvt=1,mvtype
-         bmcplant(kloop,nvt,:) = bmcplant(kloop,nvt,:)/bmarea(nvt)
-         bmnplant(kloop,nvt,:) = bmnplant(kloop,nvt,:)/bmarea(nvt)
-         bmpplant(kloop,nvt,:) = bmpplant(kloop,nvt,:)/bmarea(nvt)
+        bmcsoil(kloop,nvt,:) = bmcsoil(kloop,nvt,:)/bmarea(nvt)
+        bmnsoil(kloop,nvt,:) = bmnsoil(kloop,nvt,:)/bmarea(nvt)
+        bmpsoil(kloop,nvt,:) = bmpsoil(kloop,nvt,:)/bmarea(nvt)
 
-         bmclitter(kloop,nvt,:) = bmclitter(kloop,nvt,:)/bmarea(nvt)
-         bmnlitter(kloop,nvt,:) = bmnlitter(kloop,nvt,:)/bmarea(nvt)
-         bmplitter(kloop,nvt,:) = bmplitter(kloop,nvt,:)/bmarea(nvt)
+        bmnsoilmin(kloop,nvt)  = bmnsoilmin(kloop,nvt)/bmarea(nvt)
+        bmpsoillab(kloop,nvt)  = bmpsoillab(kloop,nvt)/bmarea(nvt)
+        bmpsoilsorb(kloop,nvt) = bmpsoilsorb(kloop,nvt)/bmarea(nvt)
+        bmpsoilocc(kloop,nvt)  = bmpsoilocc(kloop,nvt)/bmarea(nvt)
+      endif  
+    
+    else
+    
+      bmcplant(kloop,nvt,:) = bmcplant(kloop,nvt,:)/bmarea(nvt)
+      bmnplant(kloop,nvt,:) = bmnplant(kloop,nvt,:)/bmarea(nvt)
+      bmpplant(kloop,nvt,:) = bmpplant(kloop,nvt,:)/bmarea(nvt)
 
-         bmcsoil(kloop,nvt,:) = bmcsoil(kloop,nvt,:)/bmarea(nvt)
-         bmnsoil(kloop,nvt,:) = bmnsoil(kloop,nvt,:)/bmarea(nvt)
-         bmpsoil(kloop,nvt,:) = bmpsoil(kloop,nvt,:)/bmarea(nvt)
+      bmclitter(kloop,nvt,:) = bmclitter(kloop,nvt,:)/bmarea(nvt)
+      bmnlitter(kloop,nvt,:) = bmnlitter(kloop,nvt,:)/bmarea(nvt)
+      bmplitter(kloop,nvt,:) = bmplitter(kloop,nvt,:)/bmarea(nvt)
 
-         bmnsoilmin(kloop,nvt)  = bmnsoilmin(kloop,nvt)/bmarea(nvt)
-         bmpsoillab(kloop,nvt)  = bmpsoillab(kloop,nvt)/bmarea(nvt)
-         bmpsoilsorb(kloop,nvt) = bmpsoilsorb(kloop,nvt)/bmarea(nvt)
-         bmpsoilocc(kloop,nvt)  = bmpsoilocc(kloop,nvt)/bmarea(nvt)
-      enddo
+      bmcsoil(kloop,nvt,:) = bmcsoil(kloop,nvt,:)/bmarea(nvt)
+      bmnsoil(kloop,nvt,:) = bmnsoil(kloop,nvt,:)/bmarea(nvt)
+      bmpsoil(kloop,nvt,:) = bmpsoil(kloop,nvt,:)/bmarea(nvt)
+
+      bmnsoilmin(kloop,nvt)  = bmnsoilmin(kloop,nvt)/bmarea(nvt)
+      bmpsoillab(kloop,nvt)  = bmpsoillab(kloop,nvt)/bmarea(nvt)
+      bmpsoilsorb(kloop,nvt) = bmpsoilsorb(kloop,nvt)/bmarea(nvt)
+      bmpsoilocc(kloop,nvt)  = bmpsoilocc(kloop,nvt)/bmarea(nvt)
+
+    endif
+  
+  enddo
 
   END SUBROUTINE totcnppools
 
@@ -783,7 +863,13 @@ END SUBROUTINE sumcflux
   REAL(r_2), DIMENSION(mso) :: fracPlab,fracPsorb,fracPocc,fracPorg
   REAL(r_2), DIMENSION(mp)  :: totpsoil
   INTEGER  npt,nout,nso
+!Ticket146  
+  real(r_2), dimension(mp)             :: cuemet, cuestr,cuecwd
+  real, parameter                      :: cnmic=10.0                ! microbial biomass C:N ratio
 
+!Ticket#146
+  logical :: Ticket146 = .false.
+    
   ! Soiltype     soilnumber soil P(g P/m2)
   ! Alfisol     1       61.3
   ! Andisol     2       103.9
@@ -816,18 +902,33 @@ END SUBROUTINE sumcflux
   casabal%sumnbal(:)   = 0.0
   casabal%sumpbal(:)   = 0.0
 
+  !Ticket #146: YP uses variables to define coeff. BUT NB. differences in applied co_eff
+  cuemet(:) = 0.45
+  cuestr(:) = 0.45
+  cuecwd(:) = 0.4
+  
+  !Ticket#146: Replace hardwire co-eff with new params above
   do npt=1,mp
   if(casamet%iveg2(npt)/=icewater.and.avgcnpp(npt) > 0.0) THEN
-    casaflux%fromLtoS(npt,mic,metb)   = 0.45
+    casaflux%fromLtoS(npt,mic,metb)   = cuemet(npt)
                                           ! metb -> mic
-    casaflux%fromLtoS(npt,mic,str)   = 0.45*(1.0-casabiome%fracLigninplant(veg%iveg(npt),leaf))
+    casaflux%fromLtoS(npt,mic,str)    = cuestr(npt) * 
+                            (1.0-casabiome%fracLigninplant(veg%iveg(npt),leaf))
                                           ! str -> mic
-    casaflux%fromLtoS(npt,slow,str)  = 0.7 * casabiome%fracLigninplant(veg%iveg(npt),leaf)
+    if(.NOT. Ticket146) cuestr(:) = 0.7
+    casaflux%fromLtoS(npt,slow,str)  = cuestr(npt) * 
+                                  casabiome%fracLigninplant(veg%iveg(npt),leaf) 
                                           ! str -> slow
-    casaflux%fromLtoS(npt,mic,cwd)   = 0.40*(1.0 - casabiome%fracLigninplant(veg%iveg(npt),wood))
+    
+    casaflux%fromLtoS(npt,mic,cwd)   = cuecwd(npt) * 
+                          (1.0 - casabiome%fracLigninplant(veg%iveg(npt),wood))
                                           ! CWD -> fmic
-    casaflux%fromLtoS(npt,slow,cwd)  = 0.7 * casabiome%fracLigninplant(veg%iveg(npt),wood)
+    if(.NOT. Ticket146) cuecwd(:) = 0.7
+    casaflux%fromLtoS(npt,slow,cwd)  = cuecwd(npt) *
+                                  casabiome%fracLigninplant(veg%iveg(npt),wood)
                                           ! CWD -> slow
+!Ticket #146:End  
+
 !! set the following two backflow to set (see Bolker 199x)
 !    casaflux%fromStoS(npt,mic,slow)  = 0.45 * (0.997 - 0.009 *soil%clay(npt))
 !    casaflux%fromStoS(npt,mic,pass)  = 0.45
@@ -875,10 +976,12 @@ END SUBROUTINE sumcflux
       casapool%csoil(npt,pass)  = (casaflux%fromStoS(npt,pass,mic) *casaflux%ksoil(npt,mic) *casapool%csoil(npt,mic)    &
                                   +casaflux%fromStoS(npt,pass,slow)*casaflux%ksoil(npt,slow)*casapool%csoil(npt,slow) ) &
                                 /casaflux%ksoil(npt,pass)
-
-      casabal%clitterlast = casapool%clitter
-      casabal%csoillast   = casapool%csoil
-
+      !Ticket146:YP doesnt use this init 
+      if(.NOT. Ticket146) then
+        casabal%clitterlast = casapool%clitter
+        casabal%csoillast   = casapool%csoil
+      endif
+      
       if(icycle <=1) then
          casapool%nlitter(npt,:)= casapool%rationclitter(npt,:) * casapool%clitter(npt,:)
          casapool%nsoil(npt,:)  = casapool%ratioNCsoil(npt,:)   * casapool%Csoil(npt,:)
@@ -908,11 +1011,8 @@ END SUBROUTINE sumcflux
 
         IF (icycle<=2) THEN
             totpsoil(npt)          = psorder(casamet%isorder(npt)) *xpsoil50(casamet%isorder(npt))
-           casapool%plitter(npt,:)= casapool%Nlitter(npt,:)/casapool%ratioNPlitter(npt,:)
-            casapool%psoil(npt,:)  = casapool%Nsoil(npt,:)/casapool%ratioNPsoil(npt,:)
-            ! why is this commented here but used in UM
-            ! casapool%plitter(npt,:)= casapool%ratiopclitter(npt,:)  * casapool%clitter(npt,:)
-            ! casapool%psoil(npt,:)  = casapool%ratioPCsoil(npt,:)    * casapool%Csoil(npt,:)
+           casapool%plitter(npt,:)= casapool%Nlitter(npt,:) / casapool%ratioNPlitter(npt,:)
+            casapool%psoil(npt,:)  = casapool%Nsoil(npt,:) / casapool%ratioNPsoil(npt,:)
             casapool%psoillab(npt) = totpsoil(npt) *fracpLab(casamet%isorder(npt))
             casapool%psoilsorb(npt)= casaflux%psorbmax(npt) * casapool%psoillab(npt) &
                                     /(casaflux%kmlabp(npt)+casapool%psoillab(npt))
