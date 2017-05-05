@@ -100,7 +100,7 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
            casaflux%crmplant = 0.0
            casaflux%clabloss = 0.0
            !casaflux%crmplant(:,leaf) = 0.0
-         End 
+         Endif 
       ENDIF
 
       IF(MOD(ktau,ktauday)==1) THEN
@@ -294,7 +294,7 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, climate, ncall, kend
                                         get_var_ncr3, stderr_nc
 #     endif
 !Ticket146 - trunk USEes cable_diag NOT ncdf_module & not _cnp_ either
-      use cable_ncdf_module,     only : get_var_nc, stderr_nc
+      use cable_ncdf_module,     only : get_var_nc!, stderr_nc
       USE casa_cnp_module
       IMPLICIT NONE
 
@@ -425,14 +425,14 @@ END SUBROUTINE read_casa_dump
 
 SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, phen, climate, n_call, kend )
   USE netcdf
-  USE cable_def_types_mod,   ONLY : r_2,ms,mp, climate_type
+  USE cable_def_types_mod!,   ONLY : r_2,ms,mp, climate_type
   USE cable_common_module,   ONLY : kend_gl
 #     ifndef UM_BUILD
   USE cable_diag_module,     ONLY : def_dims, def_vars, def_var_atts, &
        put_var_ncr1, put_var_ncr2,       &
        put_var_ncr3, stderr_nc
 #     endif
-  USE casavariable,          ONLY : CASA_MET, CASA_FLUX
+  USE casavariable!,          ONLY : CASA_MET, CASA_FLUX
   USE casadimension,         ONLY : mplant
   USE phenvariable
 
@@ -441,8 +441,8 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, phen, climate, n_call, ke
   USE casadimension, only : mdyear, mplant
   USE casavariable
   USE cable_io_vars_module, only : patch
-  use cable_ncdf_module, only : def_dims, def_vars, def_var_atts, &
-                                   put_var_nc, stderr_nc
+  use cable_ncdf_module, only : &!def_dims, def_vars, def_var_atts, &
+                                   put_var_nc!, stderr_nc
   
 
   
@@ -582,7 +582,7 @@ END SUBROUTINE write_casa_dump
   real, dimension(mp)  :: ncleafx,npleafx, pleafx, nleafx ! local variables
   real, dimension(17)                   ::  xnslope
   data xnslope/0.80,1.00,2.00,1.00,1.00,1.00,0.50,1.00,0.34,1.00,1.00,1.00,1.00,1.00,1.00,1.00,1.00/
-  logical Ticket146 = .false.
+  logical :: Ticket146 = .false.
   ! first initialize
   ncleafx(:) = casabiome%ratioNCplantmax(veg%iveg(:),leaf)
   if(Ticket146) then
@@ -912,19 +912,19 @@ END SUBROUTINE sumcflux
   if(casamet%iveg2(npt)/=icewater.and.avgcnpp(npt) > 0.0) THEN
     casaflux%fromLtoS(npt,mic,metb)   = cuemet(npt)
                                           ! metb -> mic
-    casaflux%fromLtoS(npt,mic,str)    = cuestr(npt) * 
+    casaflux%fromLtoS(npt,mic,str)    = cuestr(npt) * & 
                             (1.0-casabiome%fracLigninplant(veg%iveg(npt),leaf))
                                           ! str -> mic
     if(.NOT. Ticket146) cuestr(:) = 0.7
-    casaflux%fromLtoS(npt,slow,str)  = cuestr(npt) * 
+    casaflux%fromLtoS(npt,slow,str)  = cuestr(npt) * &
                                   casabiome%fracLigninplant(veg%iveg(npt),leaf) 
                                           ! str -> slow
     
-    casaflux%fromLtoS(npt,mic,cwd)   = cuecwd(npt) * 
+    casaflux%fromLtoS(npt,mic,cwd)   = cuecwd(npt) * &
                           (1.0 - casabiome%fracLigninplant(veg%iveg(npt),wood))
                                           ! CWD -> fmic
     if(.NOT. Ticket146) cuecwd(:) = 0.7
-    casaflux%fromLtoS(npt,slow,cwd)  = cuecwd(npt) *
+    casaflux%fromLtoS(npt,slow,cwd)  = cuecwd(npt) * &
                                   casabiome%fracLigninplant(veg%iveg(npt),wood)
                                           ! CWD -> slow
 !Ticket #146:End  

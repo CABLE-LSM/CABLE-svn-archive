@@ -31,7 +31,6 @@
 !   biogeochem
 
 !#define UM_BUILD YES
-#endif
 SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
 ! mst actually not used in this routine (BP sep2010)
 !SUBROUTINE casa_readbiome(mvt,mst,veg,soil, &
@@ -42,7 +41,7 @@ SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
   USE casavariable
   USE phenvariable
   !! vh_js !!
-  USE cable_common_module, only: cable_user
+  USE cable_common_module, only: cable_user, knode_gl
   IMPLICIT NONE
 !  INTEGER,               INTENT(IN)    :: mvt,mst
   TYPE (veg_parameter_type),  INTENT(INOUT) :: veg  ! vegetation parameters
@@ -946,150 +945,152 @@ DO npt =1, mp
           casabal%sumcbal(npt),casabal%sumnbal(npt),casabal%sumpbal(npt)
  
   ENDIF
+  
+ENDDO
 
 if( Ticket146 ) then  
 
-  ! open CABLE restart file (netcdf format)
-  ncfile = filename%restart_out
-  ncok = NF90_OPEN(ncfile, NF90_WRITE, ncid)
-  IF (ncok /= NF90_NOERR) CALL nc_abort(ncok,'Error opening '//TRIM(ncfile))
-
-  ! getting info for the existing dimensions
-  ncok = NF90_INQ_DIMID(ncid,'mp',mpID)
-  IF(ncok /= NF90_NOERR) THEN
-    ncok = NF90_INQ_DIMID(ncid,'mp_patch',mpID)
-    IF(ncok /= NF90_NOERR)  CALL nc_abort &
-       (ncok,'Error finding mp or mp_patch dimension in ' //TRIM(ncfile))
-  END IF
-  ncok = NF90_INQUIRE_DIMENSION(ncid,mpID,len=mp_restart)
-  IF(ncok /= NF90_NOERR) CALL nc_abort &
-       (ncok,'Error finding total number of patches in ' //TRIM(ncfile))
-  ! Check that mp_restart = mp from default/met values
-  IF(mp_restart /= mp) CALL abort('Number of patches in '// TRIM(ncfile)// &
-       ' does not equal to number in default/met file settings.')
-
-  ! get into define mode
-  ncok = NF90_REDEF(ncid)
-  IF(ncok /= NF90_NOERR) CALL nc_abort &
-       (ncok,'Error starting define mode in '//TRIM(ncfile))
-
-  ! define new dimensions
-  dim_len(1) = mplant
-  dim_len(2) = mlitter
-  dim_len(3) = msoil
-  dim_name   = (/ "pools_plant", &
-                  "pools_litter", &
-                  "pools_soil" /)
-  CALL def_dims(num_dims, ncid, dimID, dim_len, dim_name )
-
-  ! define new variables
-!  ncok = NF90_DEF_VAR(ncid, 'soilOrder', NF90_INT, (/mpID/), soID)
-!  IF(ncok /= NF90_NOERR) CALL nc_abort &
-!       (ncok,'Error defining soil order in '//TRIM(ncfile))
-!  ncok = NF90_PUT_ATT(ncid, soID, "longname", "soil order")
-!  IF(ncok /= NF90_NOERR) CALL nc_abort &
-!       (ncok,'Error defining attribute of soil order in '//TRIM(ncfile))
-!! **** or use **** !
-  CALL define_ovar(ncid, soID, 'soilOrder', '-', 'soil order', &
-                   .TRUE., 'integer', 0, 0, 0, mpID, 0, .TRUE.)
-!  CALL define_ovar(ncid, areaID, 'areacell', '1.0E-9 m2', 'area of tile', &
-!                   .TRUE., 'real', 0, 0, 0, mpID, 0, .TRUE.)
-  CALL define_ovar(ncid, areaID, 'areacell', 'm2', 'area of tile', &
-                   .TRUE., 'r2', 0, 0, 0, mpID, 0, .TRUE.)
-  CALL define_ovar(ncid, laiID, 'LAI', '-', 'Leaf Area Index', &
-                   .TRUE., 'r2', 0, 0, 0, mpID, 0, .TRUE.)
-  CALL define_ovar(ncid, slaID, 'SLA', 'm2', 'Specific Leaf Area', &
-                   .TRUE., 'r2', 0, 0, 0, mpID, 0, .TRUE.)
-  CALL define_ovar(ncid, phaseID, 'phase', '-', 'phenological phase', &
-                   .TRUE., 'integer', 0, 0, 0, mpID, 0, .TRUE.)
-  CALL define_ovar(ncid, ClabID, 'Clabile', 'gC/m2', 'labile C pool', &
-                   .TRUE., 'r2', 0, 0, 0, mpID, 0, .TRUE.)
-  CALL define_ovar(ncid, CplantID, 'CASA_Cplant', 'gC/m2', 'plant C pools', &
-                   .TRUE., dimID(1), 'r2', 0, 0, 0, mpID, 0, .TRUE.)
-  CALL define_ovar(ncid, ClitterID, 'Clitter', 'gC/m2', 'litter C pools', &
-                   .TRUE., dimID(2), 'r2', 0, 0, 0, mpID, 0, .TRUE.)
-  CALL define_ovar(ncid, CsoilID, 'CASA_Csoil', 'gC/m2', 'soil C pools', &
-                   .TRUE., dimID(3), 'r2', 0, 0, 0, mpID, 0, .TRUE.)
-  CALL define_ovar(ncid, NplantID, 'Nplant', 'gN/m2', 'plant N pools', &
-                   .TRUE., dimID(1), 'r2', 0, 0, 0, mpID, 0, .TRUE.)
-  CALL define_ovar(ncid, NlitterID, 'Nlitter', 'gN/m2', 'litter N pools', &
-                   .TRUE., dimID(2), 'r2', 0, 0, 0, mpID, 0, .TRUE.)
-  CALL define_ovar(ncid, NsoilID, 'Nsoil', 'gN/m2', 'soil N pools', &
-                   .TRUE., dimID(3), 'r2', 0, 0, 0, mpID, 0, .TRUE.)
-  CALL define_ovar(ncid, NsminID, 'Nsoilmin', 'gN/m2', 'mineral N in soil', &
-                   .TRUE., 'r2', 0, 0, 0, mpID, 0, .TRUE.)
-  CALL define_ovar(ncid, PplantID, 'Pplant', 'gP/m2', 'plant P pools', &
-                   .TRUE., dimID(1), 'r2', 0, 0, 0, mpID, 0, .TRUE.)
-  CALL define_ovar(ncid, PlitterID, 'Plitter', 'gP/m2', 'litter P pools', &
-                   .TRUE., dimID(2), 'r2', 0, 0, 0, mpID, 0, .TRUE.)
-  CALL define_ovar(ncid, PsoilID, 'Psoil', 'gP/m2', 'soil P pools', &
-                   .TRUE., dimID(3), 'r2', 0, 0, 0, mpID, 0, .TRUE.)
-  CALL define_ovar(ncid, PslabID, 'Psoillab', 'gP/m2', 'labile P in soil', &
-                   .TRUE., 'r2', 0, 0, 0, mpID, 0, .TRUE.)
-  CALL define_ovar(ncid, PssorbID, 'Psoilsorb', 'gP/m2', 'adsorbed P in soil', &
-                   .TRUE., 'r2', 0, 0, 0, mpID, 0, .TRUE.)
-  CALL define_ovar(ncid, PsoccID, 'Psoilocc', 'gP/m2', 'occluded P in soil', &
-                   .TRUE., 'r2', 0, 0, 0, mpID, 0, .TRUE.)
-  CALL define_ovar(ncid, CbalID, 'sumCbal', 'gC/m2', 'Accumulated C balance', &
-                   .TRUE., 'real', 0, 0, 0, mpID, 0, .TRUE.)
-  CALL define_ovar(ncid, NbalID, 'sumNbal', 'gN/m2', 'Accumulated N balance', &
-                   .TRUE., 'real', 0, 0, 0, mpID, 0, .TRUE.)
-  CALL define_ovar(ncid, PbalID, 'sumPbal', 'gP/m2', 'Accumulated P balance', &
-                   .TRUE., 'real', 0, 0, 0, mpID, 0, .TRUE.)
-
-  ! End netcdf define mode:
-  ncok = NF90_ENDDEF(ncid)
-  IF(ncok /= NF90_NOERR) CALL nc_abort(ncok, 'Error redefining restart file '  &
-                 //TRIM(filename%restart_out)// '(SUBROUTINE casa_poolout)')
-
-  CALL write_ovar(ncid, soID, 'soilOrder', REAL(casamet%isorder,4),  &
-                   ranges%SoilOrder, .TRUE., 'integer', .TRUE.)
-  CALL write_ovar(ncid, areaID, 'areacell', casamet%areacell, ranges%area, &
-                  .TRUE., 'cnp', .TRUE.)
-  CALL write_ovar(ncid, laiID, 'LAI', casamet%glai, ranges%lai, &
-                  .TRUE., 'cnp', .TRUE.)
-  dummy(:) = casabiome%sla(veg%iveg(:))
-  CALL write_ovar(ncid, slaID, 'SLA', dummy, ranges%sla, &
-                  .TRUE., 'cnp', .TRUE.)
-  CALL write_ovar(ncid, phaseID, 'phase', REAL(phen%phase,4), ranges%phase, &
-                  .TRUE., 'integer', .TRUE.)
-  CALL write_ovar(ncid, ClabID, 'Clabile', casapool%clabile, ranges%Clab, &
-                  .TRUE., 'cnp', .TRUE.)
-  CALL write_ovar(ncid, CplantID, 'CASA_Cplant', casapool%cplant,ranges%Cplant,&
-                  .TRUE., 'cnp', .TRUE.)
-  CALL write_ovar(ncid, ClitterID, 'Clitter', casapool%clitter, ranges%Clitter,&
-                  .TRUE., 'cnp', .TRUE.)
-  CALL write_ovar(ncid, CsoilID, 'CASA_Csoil', casapool%csoil, ranges%Csoil, &
-                  .TRUE., 'cnp', .TRUE.)
-  CALL write_ovar(ncid, NplantID, 'Nplant', casapool%nplant, ranges%Nplant, &
-                  .TRUE., 'cnp', .TRUE.)
-  CALL write_ovar(ncid, NlitterID, 'Nlitter', casapool%nlitter, ranges%Nlitter,&
-                  .TRUE., 'cnp', .TRUE.)
-  CALL write_ovar(ncid, NsoilID, 'Nsoil', casapool%nsoil, ranges%Nsoil, &
-                  .TRUE., 'cnp', .TRUE.)
-  CALL write_ovar(ncid, NsminID, 'Nsoilmin', casapool%nsoilmin, ranges%Nsmin, &
-                  .TRUE., 'cnp', .TRUE.)
-  CALL write_ovar(ncid, PplantID, 'Pplant', casapool%pplant, ranges%Pplant, &
-                  .TRUE., 'cnp', .TRUE.)
-  CALL write_ovar(ncid, PlitterID, 'Plitter', casapool%plitter, ranges%Plitter,&
-                  .TRUE., 'cnp', .TRUE.)
-  CALL write_ovar(ncid, PsoilID, 'Psoil', casapool%psoil, ranges%Psoil, &
-                  .TRUE., 'cnp', .TRUE.)
-  CALL write_ovar(ncid, PslabID, 'Psoillab', casapool%psoillab, ranges%Pslab, &
-                  .TRUE., 'cnp', .TRUE.)
-  CALL write_ovar(ncid, PssorbID, 'Psoilsorb', casapool%psoilsorb,  &
-                  ranges%Pssorb, .TRUE., 'cnp', .TRUE.)
-  CALL write_ovar(ncid, PsoccID, 'Psoilocc', casapool%psoilocc, ranges%Psocc, &
-                  .TRUE., 'cnp', .TRUE.)
-  CALL write_ovar(ncid, CbalID, 'sumCbal', casabal%sumcbal, ranges%Cbal, &
-                  .TRUE., 'real', .TRUE.)
-  CALL write_ovar(ncid, NbalID, 'sumNbal', casabal%sumnbal, ranges%Nbal, &
-                  .TRUE., 'real', .TRUE.)
-  CALL write_ovar(ncid, PbalID, 'sumPbal', casabal%sumpbal, ranges%Pbal, &
-                  .TRUE., 'real', .TRUE.)
-
-  ! Close restart file
-  ncok = NF90_CLOSE(ncid)
+!146b!  ! open CABLE restart file (netcdf format)
+!146b!  ncfile = filename%restart_out
+!146b!  ncok = NF90_OPEN(ncfile, NF90_WRITE, ncid)
+!146b!  IF (ncok /= NF90_NOERR) CALL nc_abort(ncok,'Error opening '//TRIM(ncfile))
+!146b!
+!146b!  ! getting info for the existing dimensions
+!146b!  ncok = NF90_INQ_DIMID(ncid,'mp',mpID)
+!146b!  IF(ncok /= NF90_NOERR) THEN
+!146b!    ncok = NF90_INQ_DIMID(ncid,'mp_patch',mpID)
+!146b!    IF(ncok /= NF90_NOERR)  CALL nc_abort &
+!146b!       (ncok,'Error finding mp or mp_patch dimension in ' //TRIM(ncfile))
+!146b!  END IF
+!146b!  ncok = NF90_INQUIRE_DIMENSION(ncid,mpID,len=mp_restart)
+!146b!  IF(ncok /= NF90_NOERR) CALL nc_abort &
+!146b!       (ncok,'Error finding total number of patches in ' //TRIM(ncfile))
+!146b!  ! Check that mp_restart = mp from default/met values
+!146b!  IF(mp_restart /= mp) CALL abort('Number of patches in '// TRIM(ncfile)// &
+!146b!       ' does not equal to number in default/met file settings.')
+!146b!
+!146b!  ! get into define mode
+!146b!  ncok = NF90_REDEF(ncid)
+!146b!  IF(ncok /= NF90_NOERR) CALL nc_abort &
+!146b!       (ncok,'Error starting define mode in '//TRIM(ncfile))
+!146b!
+!146b!  ! define new dimensions
+!146b!  dim_len(1) = mplant
+!146b!  dim_len(2) = mlitter
+!146b!  dim_len(3) = msoil
+!146b!  dim_name   = (/ "pools_plant", &
+!146b!                  "pools_litter", &
+!146b!                  "pools_soil" /)
+!146b!  CALL def_dims(num_dims, ncid, dimID, dim_len, dim_name )
+!146b!
+!146b!  ! define new variables
+!146b!!  ncok = NF90_DEF_VAR(ncid, 'soilOrder', NF90_INT, (/mpID/), soID)
+!146b!!  IF(ncok /= NF90_NOERR) CALL nc_abort &
+!146b!!       (ncok,'Error defining soil order in '//TRIM(ncfile))
+!146b!!  ncok = NF90_PUT_ATT(ncid, soID, "longname", "soil order")
+!146b!!  IF(ncok /= NF90_NOERR) CALL nc_abort &
+!146b!!       (ncok,'Error defining attribute of soil order in '//TRIM(ncfile))
+!146b!!! **** or use **** !
+!146b!  CALL define_ovar(ncid, soID, 'soilOrder', '-', 'soil order', &
+!146b!                   .TRUE., 'integer', 0, 0, 0, mpID, 0, .TRUE.)
+!146b!!  CALL define_ovar(ncid, areaID, 'areacell', '1.0E-9 m2', 'area of tile', &
+!146b!!                   .TRUE., 'real', 0, 0, 0, mpID, 0, .TRUE.)
+!146b!  CALL define_ovar(ncid, areaID, 'areacell', 'm2', 'area of tile', &
+!146b!                   .TRUE., 'r2', 0, 0, 0, mpID, 0, .TRUE.)
+!146b!  CALL define_ovar(ncid, laiID, 'LAI', '-', 'Leaf Area Index', &
+!146b!                   .TRUE., 'r2', 0, 0, 0, mpID, 0, .TRUE.)
+!146b!  CALL define_ovar(ncid, slaID, 'SLA', 'm2', 'Specific Leaf Area', &
+!146b!                   .TRUE., 'r2', 0, 0, 0, mpID, 0, .TRUE.)
+!146b!  CALL define_ovar(ncid, phaseID, 'phase', '-', 'phenological phase', &
+!146b!                   .TRUE., 'integer', 0, 0, 0, mpID, 0, .TRUE.)
+!146b!  CALL define_ovar(ncid, ClabID, 'Clabile', 'gC/m2', 'labile C pool', &
+!146b!                   .TRUE., 'r2', 0, 0, 0, mpID, 0, .TRUE.)
+!146b!  CALL define_ovar(ncid, CplantID, 'CASA_Cplant', 'gC/m2', 'plant C pools', &
+!146b!                   .TRUE., dimID(1), 'r2', 0, 0, 0, mpID, 0, .TRUE.)
+!146b!  CALL define_ovar(ncid, ClitterID, 'Clitter', 'gC/m2', 'litter C pools', &
+!146b!                   .TRUE., dimID(2), 'r2', 0, 0, 0, mpID, 0, .TRUE.)
+!146b!  CALL define_ovar(ncid, CsoilID, 'CASA_Csoil', 'gC/m2', 'soil C pools', &
+!146b!                   .TRUE., dimID(3), 'r2', 0, 0, 0, mpID, 0, .TRUE.)
+!146b!  CALL define_ovar(ncid, NplantID, 'Nplant', 'gN/m2', 'plant N pools', &
+!146b!                   .TRUE., dimID(1), 'r2', 0, 0, 0, mpID, 0, .TRUE.)
+!146b!  CALL define_ovar(ncid, NlitterID, 'Nlitter', 'gN/m2', 'litter N pools', &
+!146b!                   .TRUE., dimID(2), 'r2', 0, 0, 0, mpID, 0, .TRUE.)
+!146b!  CALL define_ovar(ncid, NsoilID, 'Nsoil', 'gN/m2', 'soil N pools', &
+!146b!                   .TRUE., dimID(3), 'r2', 0, 0, 0, mpID, 0, .TRUE.)
+!146b!  CALL define_ovar(ncid, NsminID, 'Nsoilmin', 'gN/m2', 'mineral N in soil', &
+!146b!                   .TRUE., 'r2', 0, 0, 0, mpID, 0, .TRUE.)
+!146b!  CALL define_ovar(ncid, PplantID, 'Pplant', 'gP/m2', 'plant P pools', &
+!146b!                   .TRUE., dimID(1), 'r2', 0, 0, 0, mpID, 0, .TRUE.)
+!146b!  CALL define_ovar(ncid, PlitterID, 'Plitter', 'gP/m2', 'litter P pools', &
+!146b!                   .TRUE., dimID(2), 'r2', 0, 0, 0, mpID, 0, .TRUE.)
+!146b!  CALL define_ovar(ncid, PsoilID, 'Psoil', 'gP/m2', 'soil P pools', &
+!146b!                   .TRUE., dimID(3), 'r2', 0, 0, 0, mpID, 0, .TRUE.)
+!146b!  CALL define_ovar(ncid, PslabID, 'Psoillab', 'gP/m2', 'labile P in soil', &
+!146b!                   .TRUE., 'r2', 0, 0, 0, mpID, 0, .TRUE.)
+!146b!  CALL define_ovar(ncid, PssorbID, 'Psoilsorb', 'gP/m2', 'adsorbed P in soil', &
+!146b!                   .TRUE., 'r2', 0, 0, 0, mpID, 0, .TRUE.)
+!146b!  CALL define_ovar(ncid, PsoccID, 'Psoilocc', 'gP/m2', 'occluded P in soil', &
+!146b!                   .TRUE., 'r2', 0, 0, 0, mpID, 0, .TRUE.)
+!146b!  CALL define_ovar(ncid, CbalID, 'sumCbal', 'gC/m2', 'Accumulated C balance', &
+!146b!                   .TRUE., 'real', 0, 0, 0, mpID, 0, .TRUE.)
+!146b!  CALL define_ovar(ncid, NbalID, 'sumNbal', 'gN/m2', 'Accumulated N balance', &
+!146b!                   .TRUE., 'real', 0, 0, 0, mpID, 0, .TRUE.)
+!146b!  CALL define_ovar(ncid, PbalID, 'sumPbal', 'gP/m2', 'Accumulated P balance', &
+!146b!                   .TRUE., 'real', 0, 0, 0, mpID, 0, .TRUE.)
+!146b!
+!146b!  ! End netcdf define mode:
+!146b!  ncok = NF90_ENDDEF(ncid)
+!146b!  IF(ncok /= NF90_NOERR) CALL nc_abort(ncok, 'Error redefining restart file '  &
+!146b!                 //TRIM(filename%restart_out)// '(SUBROUTINE casa_poolout)')
+!146b!
+!146b!  CALL write_ovar(ncid, soID, 'soilOrder', REAL(casamet%isorder,4),  &
+!146b!                   ranges%SoilOrder, .TRUE., 'integer', .TRUE.)
+!146b!  CALL write_ovar(ncid, areaID, 'areacell', casamet%areacell, ranges%area, &
+!146b!                  .TRUE., 'cnp', .TRUE.)
+!146b!  CALL write_ovar(ncid, laiID, 'LAI', casamet%glai, ranges%lai, &
+!146b!                  .TRUE., 'cnp', .TRUE.)
+!146b!  dummy(:) = casabiome%sla(veg%iveg(:))
+!146b!  CALL write_ovar(ncid, slaID, 'SLA', dummy, ranges%sla, &
+!146b!                  .TRUE., 'cnp', .TRUE.)
+!146b!  CALL write_ovar(ncid, phaseID, 'phase', REAL(phen%phase,4), ranges%phase, &
+!146b!                  .TRUE., 'integer', .TRUE.)
+!146b!  CALL write_ovar(ncid, ClabID, 'Clabile', casapool%clabile, ranges%Clab, &
+!146b!                  .TRUE., 'cnp', .TRUE.)
+!146b!  CALL write_ovar(ncid, CplantID, 'CASA_Cplant', casapool%cplant,ranges%Cplant,&
+!146b!                  .TRUE., 'cnp', .TRUE.)
+!146b!  CALL write_ovar(ncid, ClitterID, 'Clitter', casapool%clitter, ranges%Clitter,&
+!146b!                  .TRUE., 'cnp', .TRUE.)
+!146b!  CALL write_ovar(ncid, CsoilID, 'CASA_Csoil', casapool%csoil, ranges%Csoil, &
+!146b!                  .TRUE., 'cnp', .TRUE.)
+!146b!  CALL write_ovar(ncid, NplantID, 'Nplant', casapool%nplant, ranges%Nplant, &
+!146b!                  .TRUE., 'cnp', .TRUE.)
+!146b!  CALL write_ovar(ncid, NlitterID, 'Nlitter', casapool%nlitter, ranges%Nlitter,&
+!146b!                  .TRUE., 'cnp', .TRUE.)
+!146b!  CALL write_ovar(ncid, NsoilID, 'Nsoil', casapool%nsoil, ranges%Nsoil, &
+!146b!                  .TRUE., 'cnp', .TRUE.)
+!146b!  CALL write_ovar(ncid, NsminID, 'Nsoilmin', casapool%nsoilmin, ranges%Nsmin, &
+!146b!                  .TRUE., 'cnp', .TRUE.)
+!146b!  CALL write_ovar(ncid, PplantID, 'Pplant', casapool%pplant, ranges%Pplant, &
+!146b!                  .TRUE., 'cnp', .TRUE.)
+!146b!  CALL write_ovar(ncid, PlitterID, 'Plitter', casapool%plitter, ranges%Plitter,&
+!146b!                  .TRUE., 'cnp', .TRUE.)
+!146b!  CALL write_ovar(ncid, PsoilID, 'Psoil', casapool%psoil, ranges%Psoil, &
+!146b!                  .TRUE., 'cnp', .TRUE.)
+!146b!  CALL write_ovar(ncid, PslabID, 'Psoillab', casapool%psoillab, ranges%Pslab, &
+!146b!                  .TRUE., 'cnp', .TRUE.)
+!146b!  CALL write_ovar(ncid, PssorbID, 'Psoilsorb', casapool%psoilsorb,  &
+!146b!                  ranges%Pssorb, .TRUE., 'cnp', .TRUE.)
+!146b!  CALL write_ovar(ncid, PsoccID, 'Psoilocc', casapool%psoilocc, ranges%Psocc, &
+!146b!                  .TRUE., 'cnp', .TRUE.)
+!146b!  CALL write_ovar(ncid, CbalID, 'sumCbal', casabal%sumcbal, ranges%Cbal, &
+!146b!                  .TRUE., 'real', .TRUE.)
+!146b!  CALL write_ovar(ncid, NbalID, 'sumNbal', casabal%sumnbal, ranges%Nbal, &
+!146b!                  .TRUE., 'real', .TRUE.)
+!146b!  CALL write_ovar(ncid, PbalID, 'sumPbal', casabal%sumpbal, ranges%Pbal, &
+!146b!                  .TRUE., 'real', .TRUE.)
+!146b!
+!146b!  ! Close restart file
+!146b!  ncok = NF90_CLOSE(ncid)
 
 endif
 
@@ -1484,7 +1485,7 @@ END SUBROUTINE biogeochem
 !Ticket146:YP's version of write
 SUBROUTINE WRITE_CASA_RESTART_NC ( casamet, casapool, casaflux, phen, CASAONLY )
 
-  USE CASAVARIABLE, ONLY : casa_met, casa_pool, casa_flux, icycle, mplant, mlitter, msoil
+  USE CASAVARIABLE!, ONLY : casa_met, casa_pool, casa_flux, icycle, mplant, mlitter, msoil
   USE CABLE_COMMON_MODULE
   USE CABLE_DEF_TYPES_MOD, ONLY: MET_TYPE, mp
   USE phenvariable

@@ -365,26 +365,6 @@ MODULE casavariable
 
 Contains
 
-SUBROUTINE alloc_phenvariable(phen,arraysize)
-
-  IMPLICIT NONE
-  TYPE(phen_variable), INTENT(INOUT) :: phen
-  INTEGER,             INTENT(IN) :: arraysize
-
-  ALLOCATE(phen%Tkshed(mvtype))
-  ALLOCATE(phen%phase(arraysize),         &
-           phen%doyphase(arraysize,mphase))
-  ALLOCATE(phen%phen(arraysize), &
-       phen%aphen(arraysize), &
-       phen%phasespin(arraysize,mdyear), &
-       phen%doyphasespin_1(arraysize,mdyear), &
-       phen%doyphasespin_2(arraysize,mdyear), &
-       phen%doyphasespin_3(arraysize,mdyear), &
-       phen%doyphasespin_4(arraysize,mdyear))
-END SUBROUTINE alloc_phenvariable
-
-End MODULE phenvariable
-
 SUBROUTINE alloc_casavariable(casabiome,casapool,casaflux, &
       casamet,casabal,arraysize)
 
