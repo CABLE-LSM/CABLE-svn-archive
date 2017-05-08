@@ -568,20 +568,28 @@ SUBROUTINE GWstempv(dels, canopy, ssnow, soil)
             ! permanent ice: fix hard-wired number in next version
             ccnsw(j,k) = snow_ccnsw
          ELSE  !test alt formation for thermal conductivity
-            ew(j) =min(1.0_r_2, (ssnow%wmliq(j,k)/rhowat + ssnow%wmice(j,k)/(rhowat*dri))/(1000.*soil%zse(k)*soil%watsat(j,k)))
-            if (ew(j) .gt. 1.0e-7) then
-               liq_frac = ssnow%wmliq(j,k)/(ssnow%wmliq(j,k)+ssnow%wmice(j,k))
-               if (ssnow%tgg(j,k) .gt. 273.15) then
-                  tmp = max(0._r_2, log10(ew(j)) + 1.0_r_2)
-                  tmpsat = tkmg(j,k)*0.57_r_2**soil%watsat(j,k)
-                else                               ! Frozen soil
-                  tmp =  ew(j)
-                  tmpsat = tkmg(j,k)*0.249_r_2**(liq_frac*soil%watsat(k,j))*2.29_r_2**soil%watsat(k,j)
-                endif
-                ccnsw(j,k) = tmp*tmpsat + (1._r_2-tmp)*soil%cnsd(j)
-             else 
-                ccnsw(j,k) = soil%cnsd(j)
-             endif
+!            ew(j) =min(1.0_r_2, (ssnow%wmliq(j,k)/rhowat + ssnow%wmice(j,k)/(rhowat*dri))/(1000.*soil%zse(k)*soil%watsat(j,k)))
+!            if (ew(j) .gt. 1.0e-7) then
+!               liq_frac = ssnow%wmliq(j,k)/(ssnow%wmliq(j,k)+ssnow%wmice(j,k))
+!               if (ssnow%tgg(j,k) .gt. 273.15) then
+!                  tmp = max(0._r_2, log10(ew(j)) + 1.0_r_2)
+!                  tmpsat = tkmg(j,k)*0.57_r_2**soil%watsat(j,k)
+!                else                               ! Frozen soil
+!                  tmp =  ew(j)
+!                  tmpsat = tkmg(j,k)*0.249_r_2**(liq_frac*soil%watsat(k,j))*2.29_r_2**soil%watsat(k,j)
+!                endif
+!                ccnsw(j,k) = tmp*tmpsat + (1._r_2-tmp)*soil%cnsd(j)
+!             else 
+!                ccnsw(j,k) = soil%cnsd(j)
+!             endif
+!
+            ew(j) = log10(abs(soil%smpsat(j,k)/10.0 * ((ssnow%wb(j,k)-soil%watr(j,k))/(soil%watsat(j,k)-soil%watr(j,k)))**(-soil%clappB(j,k))))
+
+            if (ew(j) .le. 5.1) then 
+               ccnsw(j,k) = (exp(-(ew(j)+2.7))*418.0 - 0.1714) + soil%cnsd(j)
+            else
+               ew(j) = soil%cnsd(j)!  0.1714
+            end if
 
         
          ENDIF 
@@ -1793,22 +1801,19 @@ END SUBROUTINE remove_trans
        ssnow%qhz(i)  = max(tan(soil%slope(i)),0.001) * drainmod(i)*gw_params%MaxHorzDrainRate* &
                     exp(-ssnow%wtd(i)/(1000._r_2*(gw_params%EfoldHorzDrainRate)))
 
-       !Keep "lakes" saturated forcing qhz = 0.  runoff only from lakes
-       !overflowing
-       if (soil%isoilm(i) .eq. 9 .or. veg%iveg(i) .eq. 16) ssnow%qhz(i) = 0._r_2
  
        !identify first no frozen layer.  drinage from that layer and below
        !drain from sat layers
        k_drain = ms+1
-       do k=ms,2,-1
+       do k=ms,3,-1
            !below what was in paper
           !if ( ssnow%wbliq(i,k+1) .le. gw_params%frozen_frac*ssnow%wb(i,k+1)  .and.&
           !     ssnow%wbliq(i,k  ) .gt. gw_params%frozen_frac*ssnow%wb(i,k  ) ) then
           if (ssnow%wtd(i) .le. sum(dzmm(1:k),dim=1)) then
-             k_drain = k
+             k_drain = k + 1
           end if
        end do
-       k_drain = min(k_drain,2)
+       k_drain = max(k_drain,3)
 
 !       k_drain = ms + 1
 !       do k=ms,2,-1
@@ -1824,11 +1829,15 @@ END SUBROUTINE remove_trans
           do k=k_drain,ms
              sm_tot(i) = sm_tot(i) + max(ssnow%wbliq(i,k)-soil%watr(i,k),0._r_2)!*dzmm(k)
           end do
+          !sm_tot(i) = sm_tot(i) + max((ssnow%GWwb(i)-soil%watr(i,ms))*max(1._r_2-ssnow%fracice(i,ms),0._r_2),0._r_2)
+
           sm_tot(i) = max(sm_tot(i),0.01_r_2)
 
          do k=k_drain,ms
              qhlev(i,k) = ssnow%qhz(i)*max(ssnow%wbliq(i,k)-soil%watr(i,k),0._r_2)/sm_tot(i)!*dzmm(k)/sm_tot(i)
           end do
+          !qhlev(i,ms+1) = max((ssnow%GWwb(i)-soil%watr(i,ms))*max(1._r_2-ssnow%fracice(i,ms),0._r_2),0._r_2)*ssnow%qhz(i)/sm_tot(i)
+          !*max(ssnow%GWwb(i)-soil%watr(i,ms),0._r_2)/sm_tot(i)
 
        else
           qhlev(i,ms+1) = max(1._r_2-ssnow%fracice(i,ms),0._r_2)*ssnow%qhz(i)!*max(ssnow%GWwb(i)-soil%watr(i,ms),0._r_2)/sm_tot(i)
@@ -1839,6 +1848,13 @@ END SUBROUTINE remove_trans
        do k=k_drain,ms
           ssnow%qhz(i) = ssnow%qhz(i) +qhlev(i,k)
        end do
+
+       !Keep "lakes" saturated forcing qhz = 0.  runoff only from lakes
+       !overflowing
+       if (soil%isoilm(i) .eq. 9 .or. veg%iveg(i) .eq. 16) then
+          ssnow%qhz(i) = 0._r_2
+          qhlev(i,:) = 0._r_2
+       end if
 
     end do  
 
@@ -1904,10 +1920,10 @@ END SUBROUTINE remove_trans
     !Doing the recharge outside of the soln of Richards Equation makes it easier to track total recharge amount.
     !Add to ssnow at some point 
     do i=1,mp
-       if ((ssnow%wtd(i) .ge. sum(dzmm,dim=1)) .and. (veg%iveg(i) .ne. 17) .and. (soil%isoilm(i) .ne. 9))  then
-          ssnow%Qrecharge(i) = -ssnow%hk(i,ms)*((ssnow%GWsmp(i)-ssnow%smp(i,k-1)) - (ssnow%GWzq(i)-ssnow%zq(i,k)))/(zaq(i) - zmm(k))
-       else
+       if ((ssnow%wtd(i) .le. sum(dzmm,dim=1)) .or. (veg%iveg(i) .eq. 17) .or. (soil%isoilm(i) .eq. 9))  then
           ssnow%Qrecharge(i) = 0._r_2
+       else
+          ssnow%Qrecharge(i) = -ssnow%hk(i,ms)*((ssnow%GWsmp(i)-ssnow%smp(i,k)) - (ssnow%GWzq(i)-ssnow%zq(i,k)))/(zaq(i) - zmm(k))
        end if
     end do
 

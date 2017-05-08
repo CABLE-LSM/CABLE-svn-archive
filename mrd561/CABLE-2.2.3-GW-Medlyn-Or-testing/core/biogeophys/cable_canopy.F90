@@ -332,7 +332,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
 
          canopy%fns(j) = rad%qssabs(j) + rad%transd(j)*met%fld(j) + (1.0-rad%transd(j))*C%EMLEAF* &
             C%SBOLTZ*canopy%tv(j)**4 - C%EMSOIL*C%SBOLTZ* tss4(j)
-          
+
       ENDDO 
      
       ! Saturation specific humidity at soil/snow surface temperature:
@@ -863,7 +863,7 @@ SUBROUTINE within_canopy( gbhu, gbhf )
       dmbe,             & ! B_{E} in eq. 3.41 in SCAM, CSIRO tech report 132
       dmce                ! C_{E} in eq. 3.41 in SCAM, CSIRO tech report 132
 
-   REAL  :: lower_limit, upper_limit
+   REAL  :: lower_limit, upper_limit,tmp_me
  
    INTEGER :: j
    
@@ -896,10 +896,22 @@ SUBROUTINE within_canopy( gbhu, gbhf )
          dmae(j) = (-air%epsi(j)*C%CAPP/air%rlam(j))*(rt0(j)*rough%rt1(j)) *   &
                    (rrbw(j)*rrsw(j))
 
-         ! B_{E} in eq. 3.41, SCAM manual, CSIRO tech doc 132
-         dmbe(j) = ( rt0(j) + ssnow%wetfac(j) * rough%rt1(j) ) *               &
-                   ( (1.+air%epsi(j) ) * rrsw(j) + rrbw(j) ) +                 &
-                   ( rt0(j) * rough%rt1(j) ) * ( rrbw(j) * rrsw(j) )
+!         ! B_{E} in eq. 3.41, SCAM manual, CSIRO tech doc 132
+!         dmbe(j) = ( rt0(j) + ssnow%wetfac(j) * rough%rt1(j) ) *               &
+!                   ( (1.+air%epsi(j) ) * rrsw(j) + rrbw(j) ) +                 &
+!                   ( rt0(j) * rough%rt1(j) ) * ( rrbw(j) * rrsw(j) )
+
+            if (cable_user%or_evap) then 
+            tmp_me = rt0(j)*(ssnow%wetfac(j)/(rt0(j)+ssnow%rtevap_sat(j)) + &
+                      (1-ssnow%wetfac(j))/(rt0(j)+ssnow%rtevap_unsat(j)))
+            else
+            tmp_me = ssnow%wetfac(j)
+            end if
+            ! B_{E} in eq. 3.41, SCAM manual, CSIRO tech doc 132
+            dmbe(j) = ( rt0(j) + tmp_me * rough%rt1(j) ) *               &
+                 ( (1.+air%epsi(j) ) * rrsw(j) + rrbw(j) ) +                 &
+                 ( rt0(j) * rough%rt1(j) ) * ( rrbw(j) * rrsw(j) )
+
 
          ! C_{E} in eq. 3.41, SCAM manual, CSIRO tech doc 132
          dmce(j) = ((1.+air%epsi(j))*rrsw(j) + rrbw(j))*rt0(j)*rough%rt1(j)*   &
@@ -2464,7 +2476,8 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
    integer :: i,j,k 
    logical, save ::  first_call = .true.
 
-   if (first_call) canopy%sublayer_dz(:) = 0.001
+   if (first_call) canopy%sublayer_dz = 0.001
+   canopy%sublayer_dz = 0.001
 
    pore_radius(:) = pore_size_factor * 0.148 *0.707 / (1000.0*9.81*abs(soil%smpsat(:,1))/1000.0)  !should replace 0.148 with surface tension, unit coversion, and angle
    pore_size(:) = pore_radius(:)*sqrt(pi)
