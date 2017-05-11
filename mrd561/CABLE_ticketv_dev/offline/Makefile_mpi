@@ -189,7 +189,7 @@ cable_climate.o: cable_climate.F90 cable_define_types.o cable_iovars.o  cable_co
 
 cable_phenology.o: cable_phenology.F90 cable_define_types.o cable_iovars.o  cable_common.o  casa_variable.o
 
-cable_psm.o: cable_psm.F90 cable_define_types.o cable_common.o cable_air.o
+cable_psm.o: cable_psm.F90 cable_define_types.o cable_common.o cable_air.o cable_soilsnow_GW.o
 
 cable_sli_large_scale_hydro.o: cable_sli_large_scale_hydro.F90 cable_common.o cable_define_types.o cable_sli_numbers.o cable_sli_utils.o
 
