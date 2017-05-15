@@ -91,6 +91,11 @@ SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
 
     ENDIF
 
+#ifdef scm
+    ! GABLS patch ! MJT suggestion
+    rough%z0soilsn = 0.001
+#endif
+    
    !! vh_js !! use LAI_THRESH here
    WHERE( canopy%vlaiw .LT. C%LAI_THRESH  .OR.                                          &
            rough%hruff .LT. rough%z0soilsn ) ! BARE SOIL SURFACE

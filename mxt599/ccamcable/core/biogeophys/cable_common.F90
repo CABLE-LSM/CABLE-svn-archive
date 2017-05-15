@@ -499,6 +499,7 @@ CONTAINS
 
   END SUBROUTINE get_type_parameters
 
+#ifndef ccamcable
     !--- LN ------------------------------------------[
   SUBROUTINE HANDLE_ERR( status, msg )
     ! LN 06/2013
@@ -518,7 +519,8 @@ CONTAINS
        STOP -1
     END IF
   END SUBROUTINE HANDLE_ERR
-
+#endif
+  
   SUBROUTINE GET_UNIT (IUNIT)
 
     ! Find an unused unit for intermediate use
@@ -673,7 +675,11 @@ CONTAINS
 
     INTEGER :: icable_rev, ioerror
 
+#ifndef ccamcable
     CALL getenv("HOME", myhome)
+#else
+    myhome=''
+#endif
     fcablerev = TRIM(myhome)//TRIM("/.cable_rev")
 
     OPEN(440,FILE=TRIM(fcablerev),STATUS='old',ACTION='READ',IOSTAT=ioerror)

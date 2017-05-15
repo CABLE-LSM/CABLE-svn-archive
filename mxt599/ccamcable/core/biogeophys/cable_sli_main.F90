@@ -128,6 +128,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
   phi        = zero
   hice       = zero
 
+#ifndef ccamcable
   ! output files for testing purposes
   if (first) then
      open (unit=332,file="vh08.out",status="replace",position="rewind")
@@ -149,6 +150,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
   endif
 
   counter = counter + 1
+#endif
 
   ! Save soil / snow surface temperature from last time step:
   ssnow%otss = ssnow%tss
@@ -556,6 +558,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
      wp  = sum((par%thr + (par%the-par%thr)*S)*dx,2) + plit%thre*SL*dxL 
      win = win + (qprec+qprec_snow)*(tf-ti)
 
+#ifndef ccamcable
      if (1 == 0) then
         k=1
         write(332,"(i8,i8,18e16.6)") ktau, nsteps(k), wp(k)-wpi(k), infil(k)-drn(k), runoff(k), &
@@ -568,7 +571,6 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
 !!$ write(*,*) win(k), (wp(k)-wpi(k)), deltah0(k),runoff(k), evap(k), drn(k), Etrans(k)*dt, canopy%fwsoil(k), canopy%fevc(k)
 !!$stop
 !!$endif
-
 
         write(334,"(100f15.6)") S(k,:), S(k,:)*par(k,:)%thre+par(k,:)%thr
         write(336,"(100f15.6)") Tsoil(k,:)
@@ -584,9 +586,8 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
             vmet(k)%phiva, Etrans(k), qprec(k), qprec_snow(k), rad%latitude(k),  rad%longitude(k)
         write(370,"(20e20.12)")  qex
         write(371,"(20e20.12)")  qvsig+qlsig
-
      endif
-
+#endif
 
      ! Update variables for output:
      ssnow%tss      = real(Tsurface + Tzero)
@@ -650,12 +651,14 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
      ! snow output
      if (1 == 0) then
         k = 1
+#ifndef ccamcable
         write(340,"(100e16.6)") sum(vsnow(k)%hsnow(1:vsnow(k)%nsnow)), vsnow(k)%tsn(1),sum(vsnow(k)%hliq(1:vsnow(k)%nsnow)), &
              qprec_snow(k)*dt, vsnow(k)%Qmelt, qprec(k)*dt, &
              vsnow(k)%Qevap,vsnow(k)%Qvap,ssnow%albsoilsn(k,1), ssnow%albsoilsn(k,2), ssnow%sconds(k,1), &
              vsnow(k)%dens(1),sum(vsnow(k)%depth(1:vsnow(k)%nsnow)), vsnow(k)%J, &
              vsnow(k)%MoistureFluxDivergence, vsnow(k)%FluxDivergence, vsnow(k)%dens(nsnow_max), vsnow(k)%tsn(nsnow_max), &
              qh(k,0), vmet(k)%rbh
+#endif
      endif
 
      canopy%ofes = canopy%fes

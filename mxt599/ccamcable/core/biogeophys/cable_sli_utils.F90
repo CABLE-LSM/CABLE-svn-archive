@@ -504,9 +504,9 @@ CONTAINS
           !! leading to large negative surface temperatures when snow-pack is thick and
           !! Rn is large and negative (~-100 Wm-2)
           call potential_evap(vmet%Rn-vmet%Rnsw, vmet%rbh, vmet%rbw, vmet%Ta, vmet%rha, &
-               vsnow%tsn(1), max(vsnow%kth(1),0.1), half*min(vsnow%depth(1),0.2), &
+               vsnow%tsn(1), max(vsnow%kth(1),0.1_r_2), half*min(vsnow%depth(1),0.2_r_2), &
                lambdas, Tsurface, Epot, Hpot, &
-               Gpot, dEdrha, dEdTs, dEdTsoil, dGdTa, dGdTsoil,iice=.TRUE.)
+               Gpot, dEdrha, dEdTs, dEdTsoil, dGdTa, dGdTsoil,iice=.TRUE.) ! MJT suggestion
     
           if (Tsurface > zero) then ! temperature of frozen surface must be <= zero
              Tsurface = 0.0
@@ -3395,7 +3395,7 @@ CONTAINS
             (two*csol*Rgas*exp(b*log(min(S,one))))
     else
        ! Tfrz = (gravity*he*Tzero) / (-(gravity*he) + lambdaf*(S)**b)
-       Tfrz = (gravity*he*Tzero) / (-gravity*he + lambdaf*exp(b*log(max(min(S,one),0.01))))
+       Tfrz = (gravity*he*Tzero) / (-gravity*he + lambdaf*exp(b*log(max(min(S,one),0.01_r_2)))) ! MJT suggestion
     endif
 
   END FUNCTION Tfrz

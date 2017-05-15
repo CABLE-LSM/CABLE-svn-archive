@@ -3097,6 +3097,8 @@ CONTAINS
     REAL(r_2) :: theta, tmp1, tmp2 ,Tfreezing(1:mp), Jsoil, theta_tmp
     INTEGER(i_d) :: i,j ! counters
 
+    qtransfer = 0._r_2 ! MJT suggestion
+    
     if (qprec_snow(kk).gt.0) then
        ! total energy of augmented snow pack
        tmp1d1(kk) = rhow*(vsnow(kk)%hsnow(1)-vsnow(kk)%hliq(1))*(csice*vsnow(kk)%tsn(1) - lambdaf) + &

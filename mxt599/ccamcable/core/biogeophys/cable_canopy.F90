@@ -112,7 +112,7 @@ CONTAINS
          dEdrha, dEdTa, dEdTsoil, dGdTa, dGdTsoil
     REAL, DIMENSION(mp) :: qsat
 
-    REAL, DIMENSION(:), POINTER ::                                              &
+    REAL, DIMENSION(mp) ::  &
          cansat,        & ! max canopy intercept. (mm)
          dsx,           & ! leaf surface vpd
          fwsoil,        & ! soil water modifier of stom. cond
@@ -122,25 +122,31 @@ CONTAINS
     REAL(r_2), DIMENSION(mp) ::                                                 &
          gbvtop                   ! bnd layer cond. top leaf
 
-    REAL(r_2), DIMENSION(:), POINTER ::                                         &
+    REAL(r_2), DIMENSION(mp) :: &
          ecy,           & ! lat heat fl dry big leaf
          hcy,           & ! veg. sens heat
          rny,           & ! net rad
          ghwet             ! cond for heat for a wet canopy
 
-    REAL(r_2), DIMENSION(:,:), POINTER ::                                       &
+    REAL(r_2), DIMENSION(mp,mf) :: &
          gbhu,          & ! forcedConvectionBndryLayerCond
          gbhf,          & ! freeConvectionBndryLayerCond
          csx              ! leaf surface CO2 concentration
 
     REAL  :: rt_min
     REAL, DIMENSION(mp)       :: zstar, rL, phist, csw, psihat,rt0bus
+    real, dimension(mp) :: tmp, tmp1, tmp2, tmp4
 
     INTEGER :: j
 
     INTEGER, SAVE :: call_number =0
 
     ! END header
+    
+    tmp = 0.
+    tmp1 = 0.
+    tmp2 = 0.
+    tmp4 = 0.
 
     call_number = call_number + 1
 
@@ -150,11 +156,12 @@ CONTAINS
     IF( .NOT. cable_runtime%um)                                                 &
          canopy%cansto =  canopy%oldcansto
 
-    ALLOCATE( cansat(mp), gbhu(mp,mf))
-    ALLOCATE( dsx(mp), fwsoil(mp), tlfx(mp), tlfy(mp) )
-    ALLOCATE( ecy(mp), hcy(mp), rny(mp))
-    ALLOCATE( gbhf(mp,mf), csx(mp,mf))
-    ALLOCATE( ghwet(mp))
+! MJT fix    
+!    ALLOCATE( cansat(mp), gbhu(mp,mf))
+!    ALLOCATE( dsx(mp), fwsoil(mp), tlfx(mp), tlfy(mp) )
+!    ALLOCATE( ecy(mp), hcy(mp), rny(mp))
+!    ALLOCATE( gbhf(mp,mf), csx(mp,mf))
+!    ALLOCATE( ghwet(mp))
 
     ! BATS-type canopy saturation proportional to LAI:
     cansat = veg%canst1 * canopy%vlaiw
@@ -177,7 +184,8 @@ CONTAINS
 
     CALL define_air (met, air)
 
-    CALL qsatfjh(qstvair,met%tvair-C%tfrz,met%pmb)
+    tmp = met%tvair-C%tfrz ! MJT suggestion
+    CALL qsatfjh(qstvair,tmp,met%pmb)
 
     met%dva = (qstvair - met%qvair) *  C%rmair/C%rmh2o * met%pmb * 100.0
     dsx = met%dva     ! init. leaf surface vpd
@@ -240,8 +248,9 @@ CONTAINS
           ! for stable conditions, update rough%rt0us & rough%rt1usa by replacing C%CSW by
           ! csw = cd/2* (U(hc)/ust)**2 according to Eqs 15 & 19 from notes by Ian Harman (9-9-2011)
           WHERE (canopy%vlaiw > C%LAI_thresh .and. rough%hruff > rough%z0soilsn)
+             tmp = canopy%zetash(:,iter)*rough%z0soilsn/(0.1*rough%hruff)
              rt0bus = (LOG(0.1*rough%hruff/rough%z0soilsn) - psis(canopy%zetash(:,iter)) + &
-                  psis(canopy%zetash(:,iter)*rough%z0soilsn/(0.1*rough%hruff))) / &
+                  psis(tmp)) / &
                   C%vonk/rough%term6a
 
              zstar = rough%disp + 1.5*(veg%hc - rough%disp)
@@ -254,9 +263,11 @@ CONTAINS
 
              where (canopy%zetar(:,iter) .gt. 1.e-6)! stable conditions
 
+                tmp1 = canopy%zetar(:,iter)*(veg%hc-rough%disp)/(rough%zref_tq-rough%disp)
+                tmp2 = canopy%zetar(:,iter)*rough%z0m/(rough%zref_tq-rough%disp)
                 csw = min(0.3*((log((veg%hc-rough%disp)/rough%z0m) + phist*psihat - &
-                     psim(canopy%zetar(:,iter)*(veg%hc-rough%disp)/(rough%zref_tq-rough%disp))+ &
-                     psim(canopy%zetar(:,iter)*rough%z0m/(rough%zref_tq-rough%disp)))/0.4)**2/2., 3.0)* c%csw
+                     psim(tmp1)+ &
+                     psim(tmp2))/0.4)**2/2., 3.0)* c%csw
              elsewhere
                 csw = c%csw
              endwhere
@@ -407,14 +418,14 @@ CONTAINS
 
        ENDDO
 
-
        ! Calculate net rad to soil:
        canopy%fns = rad%qssabs + rad%transd*met%fld + (1.0-rad%transd)*C%EMLEAF* &
             C%SBOLTZ*canopy%tv**4 - C%EMSOIL*C%SBOLTZ* tss4
 
 
        ! Saturation specific humidity at soil/snow surface temperature:
-      call qsatfjh(ssnow%qstss,ssnow%tss-C%tfrz,met%pmb)
+       tmp = ssnow%tss-C%tfrz
+       call qsatfjh(ssnow%qstss,tmp,met%pmb)
 
 
        If (cable_user%soil_struc=='default') THEN
@@ -455,7 +466,10 @@ CONTAINS
        CALL within_canopy( gbhu, gbhf )
 
        ! Saturation specific humidity at soil/snow surface temperature:
-       call qsatfjh(ssnow%qstss,ssnow%tss-C%tfrz,met%pmb)
+       
+       ! MJT fix
+       tmp = ssnow%tss-C%tfrz
+       call qsatfjh(ssnow%qstss,tmp,met%pmb)
 
        IF (cable_user%soil_struc=='default') THEN
 
@@ -563,12 +577,16 @@ CONTAINS
          rad%transd*(.01*ssnow%wb(:,1)/soil%sfc)**2 ! + soil conductance; this part is done as in Moses
     where ( soil%isoilm == 9 ) canopy%gswx_T = 1.e6   ! this is a value taken from Moses for ice points
 
+    ! MJT fix
+    tmp1 = canopy%zetar(:,NITER) * rough%zref_uv/rough%zref_tq
+    tmp2 = canopy%zetar(:,NITER) * rough%z0m/rough%zref_tq
+    tmp4 = canopy%zetar(:,NITER)*0.1*rough%z0m/rough%zref_tq
     canopy%cdtq = canopy%cduv *( LOG( rough%zref_uv / rough%z0m) -              &
-         psim( canopy%zetar(:,NITER) * rough%zref_uv/rough%zref_tq )   &
-         + psim( canopy%zetar(:,NITER) * rough%z0m/rough%zref_tq ) & ! new term from Ian Harman
+         psim( tmp1 )   &
+         + psim( tmp2 ) & ! new term from Ian Harman
          ) / ( LOG( rough%zref_tq /(0.1*rough%z0m) )                   &
          - psis( canopy%zetar(:,NITER))                                  &
-         + psis(canopy%zetar(:,NITER)*0.1*rough%z0m/rough%zref_tq) ) ! n
+         + psis(tmp4) ) ! n
 
 
     ! Calculate screen temperature: 1) original method from SCAM
@@ -635,9 +653,11 @@ CONTAINS
                   ( LOG( (zscl(j) - rough%disp(j)) /                       &
                   MAX( rough%zruffs(j)-rough%disp(j),                      &
                   rough%z0soilsn(j) ) ) - psis( (zscl(j)-rough%disp(j))    &
-                  / (rough%zref_tq(j)/canopy%zetar(j,iterplus) ) )         &
+                  * canopy%zetar(j,iterplus) / rough%zref_tq(j) )          &
+!                  / (rough%zref_tq(j)/canopy%zetar(j,iterplus) ) )         & ! MJT suggestion
                   + psis( (rough%zruffs(j) - rough%disp(j) )               &
-                  / (rough%zref_tq(j)/canopy%zetar(j,iterplus ) ) ) )      &
+                  * canopy%zetar(j,iterplus ) / rough%zref_tq(j) ) )       & 
+!                  / (rough%zref_tq(j)/canopy%zetar(j,iterplus ) ) ) )      & ! MJT suggestion
                   / C%VONK
 
           ENDIF
@@ -734,11 +754,12 @@ CONTAINS
          + C%CAPP*C%rmair * (tlfy-met%tk) * SUM(rad%gradis,2) *          &
          canopy%fwet  ! YP nov2009
 
-    DEALLOCATE(cansat,gbhu)
-    DEALLOCATE(dsx, fwsoil, tlfx, tlfy)
-    DEALLOCATE(ecy, hcy, rny)
-    DEALLOCATE(gbhf, csx)
-    DEALLOCATE(ghwet)
+! MJT fix
+!    DEALLOCATE(cansat,gbhu)
+!    DEALLOCATE(dsx, fwsoil, tlfx, tlfy)
+!    DEALLOCATE(ecy, hcy, rny)
+!    DEALLOCATE(gbhf, csx)
+!    DEALLOCATE(ghwet)
 
     RETURN
 
@@ -779,6 +800,7 @@ CONTAINS
            cc1,             & ! var for Penman-Monteith soil evap
            cc2,             & ! var for Penman-Monteith soil evap
            qsatfvar           !
+      REAL, DIMENSION(MP) :: tmp
       INTEGER :: j
 
       ! Penman-Monteith formula
@@ -786,7 +808,9 @@ CONTAINS
       cc1=sss/(sss+air%psyc )
       cc2=air%psyc /(sss+air%psyc )
 
-      CALL qsatfjh(qsatfvar,met%tvair-C%tfrz,met%pmb)
+      ! MJT fix
+      tmp = met%tvair-C%tfrz
+      CALL qsatfjh(qsatfvar,tmp,met%pmb)
 
       IF (cable_user%litter) THEN
          !! vh_js !!
@@ -1543,6 +1567,9 @@ CONTAINS
     sum_rad_rniso = SUM(rad%rniso,2)
     sum_rad_gradis = SUM(rad%gradis,2)
 
+   cx1 = 0. ! MJT avoids float invalid
+   cx2 = 0. ! MJT avoids float invalid
+    
     DO kk=1,mp
 
        IF(canopy%vlaiw(kk) <= C%LAI_THRESH) THEN
@@ -2009,7 +2036,9 @@ CONTAINS
 
     REAL(r_2), DIMENSION(mp,mf), INTENT(IN) :: csxz
 
-    REAL, DIMENSION(mp,mf), INTENT(IN) ::                                       &
+    ! MJT suggestion to avoid temporary arrays
+!    REAL, DIMENSION(mp,mf), INTENT(IN) ::                                       &
+    REAL, DIMENSION(:,:), INTENT(IN) ::                                       &
          cx1z,       & !
          cx2z,       & !
          gswminz,    & !
@@ -2022,7 +2051,9 @@ CONTAINS
          vlaiz,      & !
          deltlfz       !
 
-    REAL, DIMENSION(mp,mf), INTENT(INOUT) :: anxz
+    ! MJT suggestion to avoid temporary arrays
+!    REAL, DIMENSION(mp,mf), INTENT(INOUT) :: anxz
+    REAL, DIMENSION(:,:), INTENT(INOUT) :: anxz
 
     ! local variables
     REAL(r_2), DIMENSION(mp,mf) ::                                              &
@@ -2062,8 +2093,8 @@ CONTAINS
 
 
                 ! kdcorbin,09/10 - new calculations
-                IF( ABS(coef2z(i,j)) .GT. 1.0e-9 .AND. &
-                     ABS(coef1z(i,j)) .LT. 1.0e-9) THEN
+                !IF( ABS(coef2z(i,j)) .GT. 1.0e-9 .AND. &  ! MJT fix
+                !     ABS(coef1z(i,j)) .LT. 1.0e-9) THEN   ! MJT fix
 
                    ! no solution, give it a huge number as
                    ! quadratic below cannot handle zero denominator
@@ -2071,7 +2102,7 @@ CONTAINS
 
                    anrubiscoz(i,j) = 99999.0 ! OR do ciz=0 and calc anrubiscoz
 
-                ENDIF
+                !ENDIF                                     ! MJT fix
 
                 ! solve linearly
                 IF( ABS( coef2z(i,j) ) < 1.e-9 .AND.                            &
@@ -2124,13 +2155,13 @@ CONTAINS
 
                 !kdcorbin, 09/10 - new calculations
                 ! no solution, give it a huge number
-                IF( ABS( coef2z(i,j) ) < 1.0e-9 .AND.                           &
-                     ABS( coef1z(i,j) ) < 1.0e-9 ) THEN
+                !IF( ABS( coef2z(i,j) ) < 1.0e-9 .AND.                           & ! MJT fix
+                !     ABS( coef1z(i,j) ) < 1.0e-9 ) THEN                           ! MJT fix
 
                    ciz(i,j) = 99999.0
                    anrubpz(i,j)  = 99999.0
 
-                ENDIF
+                !ENDIF                                                             ! MJT fix
 
                 ! solve linearly
                 IF( ABS( coef2z(i,j) ) < 1.e-9 .AND.                            &
@@ -2173,13 +2204,13 @@ CONTAINS
                             - 0.5 * vcmxt3z(i,j)) * gswminz(i,j)*fwsoilz(i)/C%RGSWC
   
                 ! no solution, give it a huge number
-                IF( ABS( coef2z(i,j) ) < 1.0e-9 .AND.                           &
-                     ABS( coef1z(i,j)) < 1.0e-9 ) THEN
+                !IF( ABS( coef2z(i,j) ) < 1.0e-9 .AND.                           & ! MJT fix
+                !     ABS( coef1z(i,j)) < 1.0e-9 ) THEN                            ! MJT fix
 
                    ciz(i,j) = 99999.0
                    ansinkz(i,j)  = 99999.0
 
-                ENDIF
+                !ENDIF                                                             ! MJT fix
 
                 ! solve linearly
                 IF( ABS( coef2z(i,j) ) < 1.e-9 .AND.                            &
@@ -2256,10 +2287,15 @@ CONTAINS
 
     REAL, PARAMETER      :: q10c4 = 2.0
     REAL, INTENT(IN) :: x
-    REAL :: z
+    REAL :: z, xlim
 
-    z = q10c4 ** (0.1 * x - 2.5) /                                              &
-         ((1.0 + exp(0.3 * (13.0 - x))) * (1.0 + exp(0.3 * (x - 36.0))))
+   xlim = max( min(x, 100.), -100.) ! MJT suggestion
+   ! z tends to be non-trival between 0C and 70C
+    
+   ! z = q10c4 ** (0.1 * x - 2.5) /                                              &
+   !      ((1.0 + exp(0.3 * (13.0 - x))) * (1.0 + exp(0.3 * (x - 36.0))))
+   z = q10c4 ** (0.1 * xlim - 2.5) /                                            &
+        ((1.0 + exp(0.3 * (13.0 - xlim))) * (1.0 + exp(0.3 * (xlim - 36.0)))) ! MJT suggestion
 
   END FUNCTION xvcmxt4
 
