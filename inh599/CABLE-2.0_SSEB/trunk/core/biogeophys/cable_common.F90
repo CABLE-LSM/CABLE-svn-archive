@@ -151,8 +151,9 @@ MODULE cable_common_module
      !INH user interface for testing revisions to the correction terms
 
     LOGICAL ::                                                                &
-          L_REV_CORR = .FALSE.     !switch to revert to unchanged code
- 
+          L_REV_CORR = .FALSE., &  !switch to revert to unchanged code
+          L_REV_SSEB = .FALSE.     !switch between new/old soil SEB
+
   END TYPE kbl_user_switches
 
   ! instantiate internal switches
