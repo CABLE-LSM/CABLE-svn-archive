@@ -403,7 +403,7 @@ MODULE cable_def_types_mod
          fevc,     &  ! dry canopy transpiration (W/m2)
          ofes     ! latent heatfl from soil (W/m2)
 
-      !INH - limits on correction terms
+      !INH - SSEB(2&3) limits on correction terms
       REAL(r_2), DIMENSION(:), POINTER ::                                      &
         fescor_upp,& ! upper limit on the correction term fes_cor (W/m2)
         fescor_low   ! lower limit on the correction term - not used (yet)
