@@ -38,8 +38,7 @@
 !        : See http://www.geosci-model-dev.net/9/3111/2016 for full documentation
 !          of last 3 changes.
 !
-!        : Feb 2017 - various changes to facilitate the cls (Ticket 137) and
-!          REV_CORR packages 
+!          INH - added L_REV_CORR & L_REV_SSEB code to aid water conservation
 ! ==============================================================================
 
 MODULE cable_canopy_module
@@ -204,12 +203,16 @@ CONTAINS
     ssnow%potev = 0.
     canopy%fevw_pot = 0.
 
-    !L_REV_CORR - initialise ACCESS correction terms
-    !NB %fes_cor is NOT initialised to zero at this point
+    !INH L_REV_CORR - initialise ACCESS correction terms
     canopy%fhs_cor = 0.0
     canopy%fns_cor = 0.0
     canopy%ga_cor = 0.0
-    !canopy%fes_cor = 0.0
+   
+    !INH L_REV_SSEB(1) - applying correction terms on correct time step
+    !%fes_cor must be initialised to zero
+    IF (cable_user%L_REV_SSEB) THEN
+        canopy%fes_cor = 0.
+    ENDIF
 
     !L_REV_CORR - new working variables
     rhlitt = 0.
@@ -437,40 +440,72 @@ CONTAINS
 
        If (cable_user%soil_struc=='default') THEN
           
-          !single location for calculating litter resistances
-          !can go earlier in the code if needed
-          IF (cable_user%litter) THEN
-             rhlitt = real((1-ssnow%isflag))*veg%clitt*0.003/ &
-                        canopy%kthLitt/(air%rho*C%CAPP)
-             relitt = real((1-ssnow%isflag))*veg%clitt*0.003/ &
-                        canopy%DvLitt
-          ENDIF
- 
-          IF(cable_user%ssnow_POTEV== "P-M") THEN
+          !SSEB(2)
+          IF (cable_user%L_REV_SSEB) THEN
+             !total non-litter resistance from soil to reference level
+             !needs to go inside the iter loop in case rt0 or rt1 made zetar
+             !dependent in the future
+             rttsoil = ssnow%rtsoil
+             IF (cable_user%L_REV_CORR) THEN
+                DO j=1,mp
+                !if %vlaiw<%LAI_THRESH then %rt1 already added to %rtsoil
+                IF (canopy%vlaiw(j) > C%LAI_THRESH) THEN
+                   rttsoil(j) = rttsoil(j) + rough%rt1(j)
+                ENDIF
+                ENDDO
+             ENDIF
+           
+             !single location for calculating litter resistances
+             !can go earlier in the code if needed
+             IF (cable_user%litter) THEN
+                rhlitt = real((1-ssnow%isflag))*veg%clitt*0.003/ &
+                           canopy%kthLitt/(air%rho*C%CAPP)
+                relitt = real((1-ssnow%isflag))*veg%clitt*0.003/ &
+                           canopy%DvLitt
+             ENDIF
 
-             !--- uses %ga from previous timestep
-             ssnow%potev = Penman_Monteith(canopy%ga)
+             !determine whether using latent heat for water or ice
+             !taken from original latent_heat() with the cls package
+             !see Ticket 137 - must go within the iteration loop
+             ! %cls controls whether soil or snow impacted in _soilsnow
+             ! a first value needed before soil_energy_balane_SSEB but 
+             ! can be updated later 
+             ssnow%cls=1.
+             WHERE (ssnow%snowd >= 0.1) 
+                ssnow%cls = 1.1335
+             ENDWHERE
 
-          ELSE !by default assumes Humidity Deficit Method
+             CALL soil_energy_balance_SSEB(rttsoil,relitt,rhlitt)
              
-             ! Humidity deficit
-             dq = ssnow%qstss - met%qv
-             ssnow%potev =  Humidity_deficit_method(dq, ssnow%qstss)
+          ELSE !L_REV_SSEB(2) - use original scheme
+             
+             IF(cable_user%ssnow_POTEV== "P-M") THEN
 
-          ENDIF
+                !--- uses %ga from previous timestep
+                ssnow%potev = Penman_Monteith(canopy%ga)
 
-          ! Soil latent heat:
-          CALL latent_heat_flux()
+             ELSE !by default assumes Humidity Deficit Method
+             
+                ! Humidity deficit
+                dq = ssnow%qstss - met%qv
+                ssnow%potev =  Humidity_deficit_method(dq, ssnow%qstss)
+
+             ENDIF
+
+             ! Soil latent heat:
+             CALL latent_heat_flux()
           
-          ! Calculate soil sensible heat:
-          !canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tk) /ssnow%rtsoil
-          IF (cable_user%litter) THEN
-             !! vh_js !! account for additional litter resistance to sensible heat transfer
-             canopy%fhs =  air%rho*C%CAPP*(ssnow%tss - met%tk) / &
+             ! Calculate soil sensible heat:
+             !canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tk) /ssnow%rtsoil
+             IF (cable_user%litter) THEN
+                !! vh_js !! account for additional litter resistance to sensible heat transfer
+                canopy%fhs =  air%rho*C%CAPP*(ssnow%tss - met%tk) / &
                   (ssnow%rtsoil + real((1-ssnow%isflag))*veg%clitt*0.003/canopy%kthLitt/(air%rho*C%CAPP))
-          ELSE
-             canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tk) /ssnow%rtsoil
-          ENDIF
+             ELSE
+                canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tk) /ssnow%rtsoil
+             ENDIF
+
+          ENDIF !cable_user%L_REV_SSEB
 
        ELSEIF (cable_user%soil_struc=='sli') THEN
           ! SLI SEB to get canopy%fhs, canopy%fess, canopy%ga
@@ -478,8 +513,7 @@ CONTAINS
           CALL sli_main(1,dels,veg,soil,ssnow,met,canopy,air,rad,1)
        ENDIF
 
-       !REV_CORR: Needs to be tested
-       IF (cable_user%L_REV_CORR) THEN
+       IF (cable_user%L_REV_SSEB .OR. cable_user%L_REV_CORR) THEN
           !alternate calculation of %tvair and %qvair
           CALL within_canopy_SSEB( gbhu, gbhf, rt0, rhlitt, relitt )
        ELSE
@@ -491,35 +525,43 @@ CONTAINS
 
        IF (cable_user%soil_struc=='default') THEN
 
-          IF(cable_user%ssnow_POTEV== "P-M") THEN
+          !SSEB(2)
+          IF(cable_user%L_REV_SSEB) THEN
+             CALL soil_energy_balance_SSEB(rttsoil,relitt,rhlitt)
+             
+          ELSE  !L_REV_SSEB - use original scheme
 
-             !--- uses %ga from previous timestep
-             ssnow%potev = Penman_Monteith(canopy%ga)
+             IF(cable_user%ssnow_POTEV== "P-M") THEN
 
-          ELSE !by default assumes Humidity Deficit Method
+                !--- uses %ga from previous timestep
+                ssnow%potev = Penman_Monteith(canopy%ga)
 
-             ! Humidity deficit
-             dq = ssnow%qstss - met%qvair
-             ssnow%potev =  Humidity_deficit_method(dq, ssnow%qstss)
+             ELSE !by default assumes Humidity Deficit Method
 
-          ENDIF
+                ! Humidity deficit
+                dq = ssnow%qstss - met%qvair
+                ssnow%potev =  Humidity_deficit_method(dq, ssnow%qstss)
 
-          ! Soil latent heat:
-          CALL latent_heat_flux()
+             ENDIF
+
+             ! Soil latent heat:
+             CALL latent_heat_flux()
           
-          ! Soil sensible heat:
-          !canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tvair) /ssnow%rtsoil
-          IF (cable_user%litter) THEN
-             !! vh_js !! account for additional litter resistance to sensible heat transfer
-             canopy%fhs =  air%rho*C%CAPP*(ssnow%tss - met%tvair) / &
-                  (ssnow%rtsoil +  real((1-ssnow%isflag))*veg%clitt*0.003/canopy%kthLitt/(air%rho*C%CAPP))
-          else
-             canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tvair) /ssnow%rtsoil
-          ENDIF
+             ! Soil sensible heat:
+             !canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tvair) /ssnow%rtsoil
+             IF (cable_user%litter) THEN
+                !! vh_js !! account for additional litter resistance to sensible heat transfer
+                canopy%fhs =  air%rho*C%CAPP*(ssnow%tss - met%tvair) / &
+                   (ssnow%rtsoil +  real((1-ssnow%isflag))*veg%clitt*0.003/canopy%kthLitt/(air%rho*C%CAPP))
+             else
+                canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tvair) /ssnow%rtsoil
+             ENDIF
 
-          !! Ticket#90 %cls factor retained: required for energy balance
-          !! INH: %cls factor included in %fes already - do not include here
-          canopy%ga = canopy%fns-canopy%fhs-canopy%fes !*ssnow%cls
+             !! Ticket#90 %cls factor retained: required for energy balance
+             !! INH: %cls factor included in %fes already - do not include here
+             canopy%ga = canopy%fns-canopy%fhs-canopy%fes !*ssnow%cls
+
+          ENDIF !cable_user%L_REV_SSEB
      
        ELSEIF (cable_user%soil_struc=='sli') THEN
           ! SLI SEB to get canopy%fhs, canopy%fess, canopy%ga
@@ -553,9 +595,14 @@ CONTAINS
 
        canopy%rnet = canopy%fnv + canopy%fns
 
-       !INH: If PM corrected thenmatching changes here
-       canopy%epot = ((1.-rad%transd)*canopy%fevw_pot +                         &
-          rad%transd*ssnow%potev*ssnow%cls) * dels/air%rlam
+       !SSEB(2) with SSEB %potev already includes the %cls factor
+       IF (.not. cable_user%L_REV_SSEB) THEN
+          canopy%epot = ((1.-rad%transd)*canopy%fevw_pot +                     &
+             rad%transd*ssnow%potev*ssnow%cls) * dels/air%rlam
+       ELSE
+          canopy%epot = ((1.-rad%transd)*canopy%fevw_pot +                     &
+             rad%transd*ssnow%potev) * dels/air%rlam
+       ENDIF
 
 
        canopy%rniso = sum(rad%rniso,2) + rad%qssabs + rad%transd*met%fld + &
@@ -602,9 +649,8 @@ CONTAINS
          - psis( canopy%zetar(:,NITER))                                  &
          + psis(canopy%zetar(:,NITER)*0.1*rough%z0m/rough%zref_tq) ) ! n
 
-    !INH: screen level calculations - place holder for future developments
-    !Feb 2017 - now includes litter resistances
-    IF (cable_user%L_REV_CORR) THEN
+    !INH: screen level calculations - place holder for future code management
+    IF (cable_user%L_REV_SSEB .or. cable_user%L_REV_CORR) THEN
       CALL screen_level_SSEB(rt1usc,relitt,rhlitt)  
 
     ELSE  !original code
@@ -713,7 +759,7 @@ CONTAINS
 
     ENDDO
 
-    ENDIF !L_REV_CORR for screen level calculations
+    ENDIF !L_REV_SSEB for screen level stuff
 
 
     ! Calculate dewfall: from negative lh wet canopy + neg. lh dry canopy:
@@ -748,10 +794,14 @@ CONTAINS
     ! d(canopy%fns)/d(ssnow%tgg)
     ! d(canopy%fhs)/d(ssnow%tgg)
     ! d(canopy%fes)/d(dq)
-    IF (cable_user%soil_struc=='default') THEN
+    !IF (cable_user%soil_struc=='default') THEN
+    IF ( (cable_user%soil_struc == 'default') .and. & 
+            (.not. cable_user%L_REV_SSEB)) THEN
+
+       !SSEB(2) has these calculations within soil_energy_balance_SSEB
        ssnow%dfn_dtg = (-1.)*4.*C%EMSOIL*C%SBOLTZ*tss4/ssnow%tss
 
-       !INH: REV_CORR revised sensitivity terms 
+       !INH revised sensitivity terms 
        rttsoil = ssnow%rtsoil
        IF (cable_user%L_REV_CORR) THEN
           DO j=1,mp
@@ -763,8 +813,8 @@ CONTAINS
        ENDIF
 
        IF (cable_user%litter) THEN
-          
-          !!vh_js!!  INH simplifying code for legibility
+          !INH simplifying code for legibility
+          !!vh_js!!
           !ssnow%dfh_dtg = air%rho*C%CAPP/(ssnow%rtsoil+ &
           !     real((1-ssnow%isflag))*veg%clitt*0.003/canopy%kthLitt/(air%rho*C%CAPP))
           !ssnow%dfe_ddq = ssnow%wetfac*air%rho*air%rlam*ssnow%cls/ &
@@ -773,7 +823,7 @@ CONTAINS
           relitt = real((1-ssnow%isflag))*veg%clitt*0.003/canopy%DvLitt
           
           ssnow%dfh_dtg = air%rho*C%CAPP/(rttsoil+rhlitt)
-          ssnow%dfe_ddq = ssnow%wetfac*air%rho*air%rlam*ssnow%cls/(rttsoil+relitt)        
+          ssnow%dfe_ddq = ssnow%wetfac*air%rho*air%rlam*ssnow%cls/(rttsoil+relitt) 
           !factor ssnow%wetfac is not applied if dew/frost i.e. potev<0
           IF (cable_user%L_REV_CORR) THEN
              DO j=1,mp
@@ -781,7 +831,7 @@ CONTAINS
                   ssnow%dfe_ddq(j) = air%rho(j)*air%rlam(j)*ssnow%cls(j) &
                            /(rttsoil(j)+relitt(j))
                 ENDIF
-             ENDDO         
+             ENDDO
           ENDIF
 
        ELSE
@@ -789,8 +839,8 @@ CONTAINS
           !ssnow%dfe_ddq = ssnow%wetfac*air%rho*air%rlam*ssnow%cls/ssnow%rtsoil
 
           ssnow%dfh_dtg = air%rho*C%CAPP/rttsoil
-          ssnow%dfe_ddq = ssnow%wetfac*air%rho*air%rlam*ssnow%cls/rttsoil      
-          
+          ssnow%dfe_ddq = ssnow%wetfac*air%rho*air%rlam*ssnow%cls/rttsoil
+
           !factor ssnow%wetfac is not applied if dew/frost i.e. potev<0
           IF (cable_user%L_REV_CORR) THEN
              DO j=1,mp
@@ -799,20 +849,20 @@ CONTAINS
                              / rttsoil(j)
                 ENDIF
              ENDDO
-          ENDIF     
-          
+          ENDIF
+
        ENDIF
 
        ssnow%ddq_dtg = (C%rmh2o/C%rmair)/met%pmb* C%TETENA*C%TETENB*C%TETENC &
             / ( ( C%TETENC + ssnow%tss-C%tfrz )**2 )*EXP( C%TETENB *       &
             ( ssnow%tss-C%tfrz ) / ( C%TETENC + ssnow%tss-C%tfrz ) )
        
-       !canopy%dgdtg = ssnow%dfn_dtg - ssnow%dfh_dtg - ssnow%dfe_ddq *    &
-       !    ssnow%ddq_dtg
+        !canopy%dgdtg = ssnow%dfn_dtg - ssnow%dfh_dtg - ssnow%dfe_ddq *    &
+        !    ssnow%ddq_dtg
 
-       !INH: REV_CORR Rewritten for flexibility
-       ssnow%dfe_dtg = ssnow%dfe_ddq * ssnow%ddq_dtg
-       canopy%dgdtg = ssnow%dfn_dtg - ssnow%dfh_dtg - ssnow%dfe_dtg
+        !INH Rewritten for flexibility
+        ssnow%dfe_dtg = ssnow%dfe_ddq * ssnow%ddq_dtg
+        canopy%dgdtg = ssnow%dfn_dtg - ssnow%dfh_dtg - ssnow%dfe_dtg
     ENDIF
 
     bal%drybal = REAL(ecy+hcy) - SUM(rad%rniso,2)                           &
@@ -839,9 +889,9 @@ CONTAINS
       USE cable_def_types_mod, only : mp
       REAL, DIMENSION(mp)  :: lower_limit, rescale
 
-      !INH: Ticket #138 %us defined based on U(rough%zref_uv)
+      !INH: Ticket 138 %us defined based on U(rough%zref_uv)
       ! but zetar based on rough%zref_tq - changes to ensure consistency
-      !NB RSL is not incorporated here
+      !NB RSL is not incorporated here (yet)
 
       !psim_1 = psim(canopy%zetar(:,iter))
       psim_1 = psim(canopy%zetar(:,iter)*rough%zref_uv/rough%zref_tq)
@@ -884,22 +934,22 @@ CONTAINS
 
       CALL qsatfjh(qsatfvar,met%tvair-C%tfrz,met%pmb)
 
-      !INH 10-1-2017 - this P-M implementation is incorrect over snow.
-      !variable ssnowpotev is actually the latent heat flux associated with 
-      !potential evaporation. 
-      !Needs to be addressed/simplified at a later date - involves changes
-      !to HDM method and latent_heat_flux()
+      !INH: This orginal P-M implementation is incorrect over snow.
+      !Variable ssnow%potev should be the latent heat flux associated with 
+      !potential evaporation in both P-M and HDM methods.
+      !corrected as part of SSEB package
       
+      !original incorrect code
       IF (cable_user%litter) THEN
          !! vh_js !!
          ssnowpotev = cc1 * (canopy%fns - ground_H_flux) + &
-            cc2 * air%rho * air%rlam*(qsatfvar - met%qvair)/ &
-            (ssnow%rtsoil+ real((1-ssnow%isflag))*veg%clitt*0.003/canopy%DvLitt)
+           cc2 * air%rho * air%rlam*(qsatfvar - met%qvair)/ &
+           (ssnow%rtsoil+ real((1-ssnow%isflag))*veg%clitt*0.003/canopy%DvLitt)
       ELSE
          ssnowpotev = cc1 * (canopy%fns - ground_H_flux) + &
-            cc2 * air%rho * air%rlam*(qsatfvar  - met%qvair)/ssnow%rtsoil
-      ENDIF       
-
+              cc2 * air%rho * air%rlam*(qsatfvar  - met%qvair)/ssnow%rtsoil
+      ENDIF
+           
     END FUNCTION Penman_Monteith
 
 
@@ -922,7 +972,9 @@ CONTAINS
               dq(j) = max( -0.1e-3, dq(j))
       ENDDO
 
-      !INH:  CARE - changes to meaning of PM routine to be matched here 
+      !INH: If you correct for %cls in the P-M scheme then 
+      !corresponding changes are required here
+      !corrected in the SSEB pacakge
       IF (cable_user%litter) THEN
          !! vh_js !!
          ssnowpotev =air%rho * air%rlam * dq /(ssnow%rtsoil + &
@@ -930,7 +982,7 @@ CONTAINS
       ELSE
          ssnowpotev =air%rho * air%rlam * dq /ssnow%rtsoil
       ENDIF
-
+      
     END FUNCTION Humidity_deficit_method
 
     ! ------------------------------------------------------------------------------
@@ -983,8 +1035,9 @@ CONTAINS
             !fupper_limit(j) = REAL(ssnow%wb(j,1)-ssnow%wbice(j,1)) * frescale(j)
             !Ticket 137 - case iii)
             !evaporation from frozen soils needs to respect the assumption that
-            !ice fraction of soil moisture cannot exceed frozen_limit=0.85
-            !see soilsnow: if frozen_limit changes need to be consistent 
+            !ice fraction of soil moisture cannot exceed 85%
+            ! see frozen_limit in soilsnow 
+            !if frozen_limit is changed the corresponding needs to be made here
             fupper_limit(j) = REAL(ssnow%wb(j,1)-ssnow%wbice(j,1)/0.85)*frescale(j)
             fupper_limit(j) = MAX(real(fupper_limit(j),r_2),0.)
 
@@ -995,7 +1048,6 @@ CONTAINS
          ssnow%cls(j)=1.
          
          !Ticket 137 - case ii) deposition of frost onto snow
-         ! case of sublimation of snow overwrites later
          IF (ssnow%snowd(j) >=0.1 ) THEN
             ssnow%cls(j) = 1.1335
             canopy%fess(j) = ssnow%cls(j)*ssnow%potev(j)
@@ -1013,10 +1065,10 @@ CONTAINS
 
             ssnow%cls(j) = 1.1335
 
-            !INH - if changes to PM routine then matching changes here
-            canopy%fess(j) = MIN( (ssnow%wetfac(j)*ssnow%potev(j))*ssnow%cls(j), &
+            !INH: If PM routine corrected for %cls factor 
+            !associated changes are needed here 
+            canopy%fess(j) = MIN( (ssnow%wetfac(j)*ssnow%potev(j)), &
                  ssnow%snowd(j)/dels*air%rlam(j)*ssnow%cls(j))
-
          ENDIF
 
       ENDDO
@@ -1027,6 +1079,310 @@ CONTAINS
 
     END SUBROUTINE latent_heat_flux
 
+   !--------------------------------------------------------------------------- 
+   !The next three subroutines provide equivalent code to the previous three
+   !but work with the L_REV_SSEB flag:  SSEB(2)
+
+   SUBROUTINE Penman_Monteith_SSEB(rttsoil, relitt, rhlitt)
+      !routine calculates the soil latent heat flux associated with 
+      !potential evaporation as given by the Penman-Monteith formula
+      !also calculates the d(potev)/dTg given the resistance network
+      !
+      !In order to accomodate frost onto frozen soils with no snow 
+      !(Ticket 137) %cls is modified within
+    
+      USE cable_common_module
+      USE cable_def_types_mod, only : mp
+
+      REAL, INTENT(IN), DIMENSION (mp) :: &      
+           rttsoil, & !sum of non-litter resistances - soil-atm ref
+           relitt, &  !litter resistance for water
+           rhlitt     !litter resistance for heat
+
+      !working variables
+      REAL, DIMENSION(MP)  ::                                              &
+           sss,             & ! var for Penman-Monteith soil evap
+           denom,           & ! var for P-M with litter
+           cc1,             & ! var for Penman-Monteith soil evap
+           cc2,             & ! var for Penman-Monteith soil evap
+           term1,           & ! available energy term
+           term2,           & ! humdity difference term
+           qsatfvar           
+           
+      INTEGER :: j
+
+      !qsat at canopy air temperature
+      CALL qsatfjh(qsatfvar,met%tvair-C%tfrz,met%pmb)
+
+      !sensitivity of qsat(Tvair) to Tvair 
+      ssnow%ddq_dtg = (C%rmh2o/C%rmair) /met%pmb * &
+            C%TETENA*C%TETENB * C%TETENC   &
+            / ( ( C%TETENC + ssnow%tss-C%tfrz )**2 )*EXP( C%TETENB *       &
+            ( ssnow%tss-C%tfrz ) / ( C%TETENC + ssnow%tss-C%tfrz ) )
+      
+      IF (cable_user%litter) THEN
+         ! Penman-Monteith formula coefficients adjusted for litter
+         sss=air%dsatdk
+         denom = sss*(ssnow%rtsoil+rhlitt) + air%psyc*(ssnow%rtsoil+relitt)
+         cc1= sss*(ssnow%rtsoil+rhlitt) / denom
+         cc2= air%psyc*(ssnow%rtsoil+relitt) / denom
+
+         term1 = cc1 * (canopy%fns - canopy%ga)
+         term2 = cc2 * air%rho * air%rlam* ssnow%cls* (qsatfvar - met%qvair)/ &
+              (ssnow%rtsoil+relitt)
+
+         ssnow%potev = term1 + term2 
+         
+         !not used - included for completeness
+         ssnow%dfe_ddq = cc2 * air%rho * air%rlam * ssnow%cls / &
+              (ssnow%rtsoil + relitt)
+         
+         ssnow%dfe_dtg = air%rho * air%rlam * ssnow%cls * ssnow%ddq_dtg / &
+              (rttsoil + relitt)
+         
+      ELSE
+         ! Penman-Monteith formula coefficients
+         sss=air%dsatdk
+         cc1=sss/(sss+air%psyc )
+         cc2=air%psyc /(sss+air%psyc )
+
+         term1 = cc1 * (canopy%fns - canopy%ga)
+         term2 = cc2 * air%rho * air%rlam* ssnow%cls* (qsatfvar - met%qvair)/ &
+              (ssnow%rtsoil+relitt)
+         
+         ssnow%potev = term1 + term2
+         
+         !not used - included for completeness
+         ssnow%dfe_ddq = cc2*air%rho*air%rlam*ssnow%cls/ssnow%rtsoil
+         
+         ssnow%dfe_dtg = air%rho * air%rlam * ssnow%cls * ssnow%ddq_dtg / &
+              rttsoil
+
+      ENDIF
+
+      !Ticket 137 - need to adjust %cls for cases where snowd<0.1 & Tss<Tfrz
+      ! and potential evap<0 (if %cls not already=1.1335)
+      ! 16-2-2017 - this section was resulting in spikes in water conservation
+      ! due to interaction with snow scheme
+      WHERE (ssnow%snowd<0.1 .AND. ssnow%tss<C%tfrz .AND. ssnow%potev<0. &
+           .AND. ssnow%cls==1. )
+           ssnow%cls=1.1335
+           ssnow%potev = MIN(term1+ssnow%cls*term2, 0.)
+           ssnow%dfe_ddq = ssnow%cls*ssnow%dfe_ddq
+           ssnow%dfe_dtg = ssnow%cls*ssnow%dfe_dtg
+           WHERE (ssnow%potev ==0.) ssnow%dfe_dtg=0.
+      ENDWHERE     
+
+    END SUBROUTINE Penman_Monteith_SSEB
+
+
+    SUBROUTINE HDM_SSEB ( rttsoil, relitt)
+      !routine calculates the soil latent heat flux HDM method 
+      ! if unrestricted by soil moisture availabiity (%wetfac) 
+      ! also calculates the d(potev)/dTg given the resistance network
+      !
+      !In order to accomodate frost onto frozen soils with no snow 
+      !(Ticket 137) %cls is modified within   
+      
+      USE cable_common_module
+      USE cable_def_types_mod, only : mp
+
+      REAL, INTENT(IN), DIMENSION (mp) :: &      
+           rttsoil, & !sum of non-litter resistances
+           relitt     !litter resistance for water
+
+      REAL, DIMENSION(mp) ::                                              &
+           dq,            & ! sat spec hum diff.
+           qstss           !dummy var for compilation
+  
+      INTEGER :: j
+
+      ! Saturation specific humidity at soil/snow surface temperature:
+      call qsatfjh(ssnow%qstss,ssnow%tss-C%tfrz,met%pmb)
+      
+      !humidity deficit - on first iteration %qvair = %qv by initialisation
+      dq = ssnow%qstss - met%qvair
+
+      DO j=1,mp
+         IF( ssnow%snowd(j)>1.0 .OR. ssnow%tgg(j,1).EQ.C%tfrz)             &
+              dq(j) = max( -0.1e-3, dq(j))
+      ENDDO
+
+      
+      IF (cable_user%litter) THEN
+         ssnow%potev = air%rho * air%rlam * ssnow%cls *dq / &
+              (ssnow%rtsoil + relitt)
+         
+         ssnow%dfe_ddq = air%rho * air%rlam * ssnow%cls / &
+              (rttsoil + relitt)
+      ELSE
+         ssnow%potev = air%rho * air%rlam * ssnow%cls * dq / ssnow%rtsoil
+         ssnow%dfe_ddq = air%rho * air%rlam * ssnow%cls / rttsoil
+      ENDIF
+
+      !sensitivity terms
+      ssnow%ddq_dtg = (C%rmh2o/C%rmair) /met%pmb * &
+            C%TETENA*C%TETENB * C%TETENC   &
+            / ( ( C%TETENC + ssnow%tss-C%tfrz )**2 )*EXP( C%TETENB *       &
+            ( ssnow%tss-C%tfrz ) / ( C%TETENC + ssnow%tss-C%tfrz ) )
+
+      ssnow%dfe_dtg = ssnow%dfe_ddq * ssnow%ddq_dtg
+
+      ! Ticket 137 - need to adjust %cls for cases where snowd<0.1 & Tss<Tfrz
+      ! and potential evap<0 (if %cls not already=1.1335)
+      ! 16-2-2017 - this section was resulting in spikes in water conservation
+      ! due to interaction with snow scheme
+      WHERE (ssnow%snowd<0.1 .AND. ssnow%tss<C%tfrz .AND. ssnow%potev<0. &
+           .AND. ssnow%cls==1. )
+           ssnow%cls=1.1335
+           ssnow%potev = ssnow%cls*ssnow%potev
+           ssnow%dfe_ddq = ssnow%cls*ssnow%dfe_ddq
+           ssnow%dfe_dtg = ssnow%cls*ssnow%dfe_dtg
+      ENDWHERE    
+
+    END SUBROUTINE HDM_SSEB 
+
+    SUBROUTINE soil_energy_balance_SSEB(rttsoil, relitt, rhlitt )
+    !calculates fluxes from the soil and sensitivity terms
+    !incorporates latent_heat and potential evaporation calculations.
+    ! and Ticket 137
+    !
+    ! Adjustments made so that one of four cases applies
+    !  i) evaporation from/dew onto ssoils with no snow, T>Tfrz
+    ! ii) sublimation/frost onto surfaces with snow cover
+    !iii) evaporation of liquid water from frozen soil with no snow cover
+    ! iv) frost onto frozen soils with no snow cover 
+ 
+      USE cable_common_module
+      USE cable_def_types_mod, only : mp
+
+      REAL, INTENT(IN), DIMENSION(mp) ::                              &
+            rttsoil,  &         !sum of non-litter resistances soil-atm
+            relitt,   &         !litter resistance for water
+            rhlitt              !litter resistance for heat
+
+      REAL, DIMENSION(mp) ::                                          &
+           frescale,  flower_limit, fupper_limit, pwet, fess, fesp
+
+      !initialise
+      frescale = 0.
+      flower_limit = -1.0E10     !unrealistic value
+      fupper_limit = 1.0E10      !unrealistic value
+      canopy%fescor_upp = fupper_limit
+      pwet = 0.                   !puddle factor
+      fess = 0.                   !factor for sensitivity of %fess to Tg
+      fesp = 0.                   !factor for sensitivity of %fesp to Tg 
+
+      !first get latent heat and sensitvity
+      !associated with unrestricted evaporation
+      !ssnow%wetfac restriction applied later
+      IF(cable_user%ssnow_POTEV== "P-M") THEN
+         CALL Penman_Monteith_SSEB(rttsoil, relitt, rhlitt)
+
+      ELSE !by default assumes Humidity Deficit Method             
+         CALL HDM_SSEB(rttsoil, relitt )
+
+      ENDIF
+      
+      ! adjust soil latent heat for restrictions -------------
+      WHERE (ssnow%potev < 0. ) 
+         canopy%fess = ssnow%potev
+         fess = 1.0
+      ELSEWHERE
+         canopy%fess= ssnow%wetfac * ssnow%potev
+         fess = ssnow%wetfac
+      ENDWHERE
+
+      ! Reduce soil evap due to presence of puddle
+      pwet = max(0.,min(0.2,ssnow%pudsto/max(1.,ssnow%pudsmx)))
+      canopy%fess = canopy%fess * (1.-pwet)
+      fess = (1.-pwet)*fess
+      
+      ! Evaporation from soil puddle and sensitivity factor fesp
+      canopy%fesp = min(ssnow%pudsto/dels*air%rlam,max(pwet*ssnow%potev,0.))
+      ! if at a limit then sensitvity factor fesp is zero 
+      WHERE ((canopy%fesp == 0.) .or.    &
+             (canopy%fesp == ssnow%pudsto/dels*air%rlam)) 
+         fesp = 0.
+      ELSEWHERE
+         fesp = pwet
+      ENDWHERE
+         
+      
+      !coefficient for limits on %fess 
+      frescale = soil%zse(1) * 1000. * air%rlam * ssnow%cls / dels
+
+      DO j=1,mp
+         IF(ssnow%snowd(j) < 0.1 .AND. canopy%fess(j) .GT. 0. ) THEN
+
+            !lower_limit is amount of water that can be extracted from
+            !surface soil layer before %wetfac reaches zero
+            IF (.not.cable_user%l_new_reduce_soilevp) THEN
+               flower_limit(j) = REAL(ssnow%wb(j,1))-soil%swilt(j)/2.0
+            ELSE
+               ! E.Kowalczyk 2014 - reduces the soil evaporation
+               flower_limit(j) = REAL(ssnow%wb(j,1))-soil%swilt(j)
+            ENDIF
+
+            !limit soil evaporation due transpiration requirement
+            ! and liquid water amount in soil layer
+            fupper_limit(j) = MAX( 0.,                               &
+                                   flower_limit(j) * frescale(j)     &
+                             - ssnow%evapfbl(j,1)*air%rlam(j)/dels)
+
+            !Ticket 137 - case iii)
+            !evaporation from frozen soil needs to respect the assumption that
+            !ice fraction of soil moisture caanot exceed 85% - see frozen_limit
+            ! if frozen_limit (_soilsnow) changed the corresponding change
+            !is needed here
+            fupper_limit(j) = MIN( fupper_limit(j),                  &
+                    REAL(ssnow%wb(j,1)-ssnow%wbice(j,1)/0.85) * frescale(j) )
+
+            canopy%fess(j) = MIN(canopy%fess(j), real(fupper_limit(j),r_2))
+
+            !determine upper limit on the correction term
+            canopy%fescor_upp(j) = MAX(0., real(fupper_limit(j),r_2) -   &
+                                           canopy%fess(j) )
+         END IF
+
+         !limit latent heat over snow due to finite snow mass
+         !%cls impact in fess already incorporated in  %potev
+         IF (ssnow%snowd(j) >= 0.1 .and. ssnow%potev(j) > 0.) THEN
+            fupper_limit(j) = ssnow%snowd(j)/dels*air%rlam(j)*ssnow%cls(j)
+            canopy%fess(j) = MIN(canopy%fess(j), fupper_limit(j))
+            canopy%fescor_upp(j) = MAX( 0., fupper_limit(j)-canopy%fess(j)) 
+         ENDIF
+
+         !if at a limit then sensitivity factor fess is zero
+         IF( (canopy%fess(j) == fupper_limit(j)) ) THEN 
+             fess = 0.
+         ENDIF
+      ENDDO
+
+      !%fes and its sensitvity - NB ssnow%wetfac appears in fess
+      canopy%fes = canopy%fess + canopy%fesp
+      ssnow%dfe_dtg = (fess+fesp)*ssnow%dfe_dtg
+
+      ! Soil sensible heat and sensitvity
+      IF (cable_user%litter) THEN
+         canopy%fhs =  air%rho*C%CAPP*(ssnow%tss - met%tvair) / &
+                  (rttsoil +  rhlitt)
+         ssnow%dfh_dtg = air%rho*C%CAPP/(rttsoil+rhlitt)
+      ELSE
+         canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tvair) / rttsoil
+         ssnow%dfh_dtg = air%rho*C%CAPP / rttsoil
+      ENDIF
+ 
+      !sensitvity of outgoing longwave radiation
+      ssnow%dfn_dtg = (-1.)*4.*C%EMSOIL*C%SBOLTZ*(ssnow%tss**3.)
+
+      !ground heat flux and sensitvity         
+      canopy%ga = canopy%fns-canopy%fhs-canopy%fes
+      canopy%dgdtg = ssnow%dfn_dtg - ssnow%dfh_dtg - ssnow%dfe_dtg
+
+    END SUBROUTINE soil_energy_balance_SSEB
+
+   ! -------------------------------------------------------------------------
 
     SUBROUTINE within_canopy( gbhu, gbhf )
 
@@ -1087,6 +1443,10 @@ CONTAINS
             ! C_{E} in eq. 3.41, SCAM manual, CSIRO tech doc 132
             dmce(j) = ((1.+air%epsi(j))*rrsw(j) + rrbw(j))*rt0(j)*rough%rt1(j)*   &
                  (canopy%fev(j) + canopy%fes(j))/(air%rho(j)*air%rlam(j))
+
+            !INH REVCORR - bug in above line over snow; should be
+            !    (canopy%fev(j) + canopy%fes(j)/ssnow%cls(j))/(air%rho(j)*air%rlam(j))
+            !included in within_canopy_SSEB
 
             ! Within canopy air temperature:
             met%tvair(j) = met%tk(j) + ( dmbe(j) * dmch(j) - dmbh(j) * dmce(j) )  &
@@ -1158,9 +1518,10 @@ CONTAINS
 
       INTEGER :: j
 
-      !NB: rhlitt=relitt=0. if litter resistance not active but case included
-      !dmah through to dmce are not A_{H}through C_{E} as per Eqn 3.40 
-      !in DM documentation but rt0*((1+esp)/rs + 1/rb)*A_{H} etc. 
+      !NB: rhlitt=relitt=0. if litter resistance not active but a separate 
+      ! case included for completeness
+      !dmah through to dmce are not A_{H} through C_{E} as per Eqn 3.40 
+      !in documentation but rt0*((1+esp)/rs + 1/rb)*A_{H} etc. 
 
       rrbw = sum(gbhu+gbhf,2)/air%cmolar  ! MJT
 
@@ -1265,8 +1626,8 @@ CONTAINS
     SUBROUTINE screen_level_SSEB(rt1usc,relitt,rhlitt)
 
       !routine calculates screen temp (C), wind speed, humidity at 2.0m
-      !this is a straight copy of the orginal code 
-      ! - but with modifications for litter resistances
+      !this is a copy of the orginal code with modifications 
+      ! for litter resistances
       ! a place holder for future developments 
 
       USE cable_common_module
