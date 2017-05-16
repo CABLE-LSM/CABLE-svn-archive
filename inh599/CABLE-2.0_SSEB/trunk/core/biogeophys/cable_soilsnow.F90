@@ -27,7 +27,8 @@
 !               NB Currently hard-wired to veg types 2 and 7
 !                  (usually evergreen broadleaf and c4 grass)
 !          v2.0 ssoil variable renamed ssnow
-!          Feb 2017 - applied changes for cls and rev_corr packages
+!
+!          INH - added REV_CORR and SSEB packages to aid water conservation
 !
 ! ==============================================================================
 
@@ -52,9 +53,9 @@ MODULE cable_soil_snow_module
       snmin = 1.,          & ! for 3-layer;
       max_ssdn = 750.0,    & !
       max_sconds = 2.51,   & !
-      frozen_limit = 0.85    ! EAK Feb2011 (could be 0.95) - now a parameter
+      frozen_limit = 0.85    ! EAK Feb2011 (could be 0.95)
 
-   REAL :: cp                ! specific heat capacity for air
+   REAL :: cp    ! specific heat capacity for air
 
    !jhan:make parameter
    REAL :: max_glacier_snowd
@@ -62,7 +63,7 @@ MODULE cable_soil_snow_module
    ! This module contains the following subroutines:
    PUBLIC soil_snow ! must be available outside this module
    PRIVATE snowdensity, snow_melting, snowcheck, snowl_adjust
-   PRIVATE trimb, smoisturev, snow_accum, stempv
+   PRIVATE trimb, smoisturev, snow_accum, stempv, invtrimb
    PRIVATE soilfreeze, remove_trans
 
 CONTAINS
@@ -116,6 +117,154 @@ SUBROUTINE trimb (a, b, c, rhs, kmax)
 
 END SUBROUTINE trimb
 
+SUBROUTINE invtrimb(aa, bb, cc, rhs, kmax, ssnow, canopy, dels, cgsnow)
+!      this routine solves the system
+!          a(k)*u(k-1)+b(k)*u(k)+c(k)*u(k+1)=rhs(k)    for k=2,kmax-1
+!          with  b(k)*u(k)+c(k)*u(k+1)=rhs(k)          for k=1
+!          and   a(k)*u(k-1)+b(k)*u(k)=rhs(k)          for k=kmax
+!
+!        n.b. this does not assume b = 1-a-c
+!
+!      unlike trimb this system solves with an upwards sweep and then 
+!      a downwards sweep.
+!      routine for use within SSEB(3) with limits on %fes_cor
+!      so must allow coef b to be inout.  full parallelisation is not possible
+!      
+ 
+   USE cable_common_module, ONLY : cable_user
+
+   !with SSEB(3) may need to update coeff "B", ssnow%dfe_dtg, canopy%dgdtg 
+   !if over limits on evaporation. Also need %isflag, %dtmlt & %otss
+   TYPE(soil_snow_type),   INTENT(INOUT) ::                                    &
+      ssnow ! soil and snow variables
+
+   TYPE(canopy_type),      INTENT(INOUT) ::                                    &
+      canopy ! canopy variables           
+
+   INTEGER, INTENT(IN)                  :: kmax ! no. of discrete layers
+
+   REAL(r_2), DIMENSION(:,:), INTENT(IN) ::                                    &
+      aa,    & ! coef "A" in finite diff eq
+      cc       ! coef "C" in finite diff eq
+
+   REAL(r_2), DIMENSION(:,:), INTENT(INOUT)  ::                                &
+      bb,    & ! coef "B" in finite diff eqn
+      rhs      ! right hand side of eq
+
+   REAL(r_2), DIMENSION(SIZE(aa,1),SIZE(aa,2)) ::                              &
+      ee, temp, gg                !don't need to be 2d arrays but kept as trimb
+
+   REAL, INTENT(IN) :: dels, cgsnow !used when applying limits to %fes_cor
+
+   INTEGER :: i, k, top, &  ! do loop counters
+              iter, maxiter ! iteration counters
+
+   REAL(r_2) :: dummy_tss, dummy_cor, wrk, wrk2
+
+   maxiter = 4  !max number of iterations
+
+   !can't parallelise over i as number of layers involved depends on %isflag
+   DO i=1,mp    !loop over land points
+      !first set which layer the enerrgy balance is on
+      IF (ssnow%isflag(i)==0) THEN
+         top=4
+      ELSE
+         top=1
+      ENDIF
+      
+      !upwards sweep
+      ee(i,kmax) = aa(i,kmax)/bb(i,kmax)
+      gg(i,kmax) = rhs(i,kmax) / bb(i,kmax)
+      DO k=kmax-1, top+1, -1
+         temp(i,k) = 1./(bb(i,k)-cc(i,k)*ee(i,k+1))
+         ee(i,k)   = aa(i,k)*temp(i,k)
+         gg(i,k)   = (rhs(i,k)-cc(i,k)*gg(i,k+1))*temp(i,k)
+      ENDDO
+
+      !top layer - 1st estimate of Tss and %fes_cor (both terms)
+      dummy_tss = (rhs(i,top)-cc(i,top)*gg(i,top+1))   &
+                      /(bb(i,top)-cc(i,top)*ee(i,top+1))
+      dummy_cor = (dummy_tss-ssnow%otss(i)+ssnow%dtmlt(i,1))*ssnow%dfe_dtg(i)
+      
+      !initialise iter count at the exit condition - max of 4 iterations
+      iter = maxiter
+
+      !check to see if dummy_tss leads to a correction term that is too +ve
+      IF ( (dummy_tss-ssnow%otss(i) > 0.) .AND.  & 
+                   (dummy_cor > canopy%fescor_upp(i)) ) THEN
+         iter=0
+      ENDIF
+
+      !iteration of bb, rhs, %dfe_dtg, %dtdtg so correction term within limit
+      DO
+        !exit condition on iteration loop
+        IF (iter >= maxiter) EXIT
+
+        !limiting process is three stage
+        !   i) undo components of bb, rhs that depend on %dgdtg
+        !  ii) rescale %dgdtg and %dfe_dtg
+        ! ii) recalculate bb, rhs, dummy_tss and check
+
+        !part i
+        IF (ssnow%isflag(i)==0) THEN
+           wrk = 1. - canopy%dgdtg(i)*dels/REAL(ssnow%gammzz(i,1))
+           bb(i,top) = bb(i,top) + canopy%dgdtg(i)*dels/ssnow%gammzz(i,1)
+           !may need a catch on wrk=0
+           ssnow%tgg(i,1) = ( ssnow%tgg(i,1)-canopy%ga(i)*dels/                &
+                          REAL(ssnow%gammzz(i,1)) ) / wrk 
+
+        ELSE  !ssnow%isflag(i)/=0 
+           wrk2 = ssnow%ssdn(i,1)*cgsnow*ssnow%sdepth(i,1)  !=sgam in stempv
+           wrk = 1. - canopy%dgdtg(i)*dels / wrk2
+           bb(i,top) = bb(i,top) + canopy%dgdtg(i)*dels / wrk2
+           ssnow%tggsn(i,1) = (ssnow%tggsn(i,1) - canopy%ga(i)*dels/wrk2 ) / wrk
+        ENDIF
+
+        !part ii
+        ssnow%dfe_dtg(i) = ssnow%dfe_dtg(i) * canopy%fescor_upp(i) / dummy_cor
+        canopy%dgdtg(i) = ssnow%dfn_dtg(i)-ssnow%dfh_dtg(i)-ssnow%dfe_dtg(i)
+
+        !part iii
+        IF (ssnow%isflag(i)==0) THEN
+          bb(i,top) = bb(i,top) - canopy%dgdtg(i)*dels/ssnow%gammzz(i,1)
+          ssnow%tgg(i,1) = ssnow%tgg(i,1) + ( canopy%ga(i) - ssnow%tgg(i,1)    &
+                   * REAL(canopy%dgdtg(i)) ) * dels / REAL(ssnow%gammzz(i,1))
+          rhs(i,top) = ssnow%tgg(i,1)
+
+        ELSE !ssnow%isflag(i)/=0
+          bb(i,top) = bb(i,top) - canopy%dgdtg(i) * dels / wrk2
+          ssnow%tggsn(i,1) = ssnow%tggsn(i,1) + ( canopy%ga(i) -               &
+                   ssnow%tggsn(i,1)*REAL(canopy%dgdtg(i)) ) * dels / wrk2
+          rhs(i,top) = ssnow%tggsn(i,1)
+        ENDIF
+
+        !re-calculate new Tss and %fes_cor 
+        dummy_tss = (rhs(i,top)-cc(i,top)*gg(i,top+1))   &
+                      /(bb(i,top)-cc(i,top)*ee(i,top+1))
+        dummy_cor = (dummy_tss-ssnow%otss(i)+ssnow%dtmlt(i,1))*ssnow%dfe_dtg(i)
+
+        IF ( (dummy_tss-ssnow%otss(i) >0.) .AND.  &
+              (dummy_cor > canopy%fescor_upp(i)) ) THEN
+          iter=iter+1
+        ELSE
+          iter=maxiter   !move to exit condition
+        ENDIF
+
+      END DO  !%fes_correction loop
+
+      !dummy_tss is now ok - so copy to rhs
+      rhs(i,top) = dummy_tss
+  
+      ! finally the downwards sweep
+       do k=top+1,kmax
+          rhs(i,k)=gg(i,k)-ee(i,k)*rhs(i,k-1)
+       end do
+ 
+    ENDDO  !i=1,mp
+
+END SUBROUTINE invtrimb
+
+! -----------------------------------------------------------------------------
 
 ! SUBROUTINE smoisturev (fwtop,dels,ssnow,soil)
 !      Solves implicit soil moisture equation
@@ -892,14 +1041,24 @@ USE cable_common_module
    ! 'fess' is for soil evap and 'fes' is for soil evap plus soil puddle evap
    canopy%segg = canopy%fess / C%HL
    canopy%segg = ( canopy%fess + canopy%fes_cor ) / C%HL
+   ! INH Ticket #136 - I think this should be
+   !canopy%segg = ( canopy%fess + canopy%fes_cor) / C%HL / ssnow%cls
    
    ! Initialise snow evaporation:
    ssnow%evapsn = 0.0
 
    !Snow evaporation and dew on snow
    !NB the conditions on when %fes applies to %segg or %evapsn MUST(!!)
-   ! match those used to set %cls in the latent_heat_flux calculations 
-   ! for moisture conservation purposes 
+   ! match those used to set %cls in the latent heat calculations for moisture
+   ! conservation purposes 
+   IF (cable_user%L_REV_SSEB) THEN
+      !as %snowd has changed can allow a larger %fes_cor - change %fescor_upp
+      WHERE (ssnow%osnowd > 0.1 .AND. ssnow%snowd>ssnow%osnowd)
+         canopy%fescor_upp = canopy%fescor_upp + (C%HL+C%HLF)*   & 
+                 (ssnow%snowd-ssnow%osnowd)/dels
+      ENDWHERE
+   ENDIF
+ 
    !Ticket 137 - using %cls as the trigger not %snowd
    WHERE ( ssnow%cls == 1.1335 )
    !WHERE (ssnow%snowd > 0.1)
@@ -924,7 +1083,7 @@ USE cable_common_module
 
    ENDWHERE
    
-   !INH:we may need to conserve moisture/energy in case of evapsn limited here
+   !SSEB:we may need to conserve moisture/energy in case of evapsn limited here
 
 END SUBROUTINE snow_accum
 
@@ -1066,6 +1225,9 @@ END SUBROUTINE surfbv
 ! ga - heat flux from the atmosphere (ground heat flux)
 ! ccnsw - soil thermal conductivity, including water/ice
 SUBROUTINE stempv(dels, canopy, ssnow, soil)
+
+   !SSEB requires access to cable_user
+   USE cable_common_module, ONLY : cable_user
 
    REAL, INTENT(IN) :: dels ! integration time step (s)
 
@@ -1291,7 +1453,17 @@ SUBROUTINE stempv(dels, canopy, ssnow, soil)
    tmp_mat(:,1:3) = REAL(ssnow%tggsn,r_2)
    tmp_mat(:,4:(ms+3)) = REAL(ssnow%tgg,r_2)
 
-   CALL trimb( at, bt, ct, tmp_mat, ms + 3 )
+   !switch between the two soil temperature solution algorithms: SSEB(3)
+   !invtrimb adapts soil temperature solver to ensure that
+   !evaporation limits are not exceeded
+   !
+   !at review stage check if cable_user%cable_runtime_coupled is appropriate    
+   IF (cable_user%L_REV_SSEB .and. cable_user%cable_runtime_coupled) THEN
+     CALL invtrimb(at, bt, ct, tmp_mat, ms+3, ssnow, canopy, dels, cgsnow )
+     !CALL trimb(at, bt, ct, tmp_mat, ms+3)
+   ELSE
+     CALL trimb( at, bt, ct, tmp_mat, ms + 3 )
+   ENDIF
 
    ssnow%tggsn = REAL( tmp_mat(:,1:3) )
    ssnow%tgg   = REAL( tmp_mat(:,4:(ms+3)) )
@@ -1708,7 +1880,6 @@ SUBROUTINE soil_snow(dels, soil, ssnow, canopy, met, bal, veg)
    REAL, DIMENSION(mp) :: xxx, tgg_old, tggsn_old
    REAL(r_2), DIMENSION(mp) :: xx,deltat,sinfil1,sinfil2,sinfil3
    REAL                :: zsetot
-   REAL                :: ian, ian1, ian2
    INTEGER, SAVE :: ktau =0
 
    CALL point2constants( C )
@@ -1847,7 +2018,136 @@ SUBROUTINE soil_snow(dels, soil, ssnow, canopy, met, bal, veg)
    CALL  soilfreeze(dels, soil, ssnow)
 
    totwet = canopy%precis + ssnow%smelt
+
+   !INH: SSEB(1) this section evaluates and applies the correction terms onto 
+   !the correct time step
+   ! if %cls=1.1335 change the depth of snow
+   !else add onto %segg and change water balance through surfbv
+   !
+   IF ( cable_runtime%um .and. cable_user%L_REV_SSEB )  THEN
+      !update ssnow%tss - as now set (unless glacier)
+      ssnow%tss = (1-ssnow%isflag)*ssnow%tgg(:,1)+ssnow%isflag*ssnow%tggsn(:,1)
+      
+      !sensible heat corection - 2 components
+      canopy%fhs_cor = ssnow%dtmlt(:,1)*ssnow%dfh_dtg
+      canopy%fhs_cor = canopy%fhs_cor + (ssnow%tss-ssnow%otss)*ssnow%dfh_dtg
+     
+      canopy%fhs = canopy%fhs+canopy%fhs_cor
+      canopy%fh = canopy%fhv + canopy%fhs
+
+      !latent heat correction - 2 components
+      canopy%fes_cor = ssnow%dtmlt(:,1)*ssnow%dfe_dtg
+      canopy%fes_cor = canopy%fes_cor + (ssnow%tss-ssnow%otss)*ssnow%dfe_dtg
+      canopy%fes = canopy%fes+canopy%fes_cor
+
+      !associated changes to other energy balance terms
+      IF (cable_user%L_REV_CORR) THEN
+         !NB canopy%fns changed not rad%flws as the correction term needs to
+         !pass through the canopy in entirety, not be partially absorbed
+         canopy%fns_cor = ssnow%dtmlt(:,1)*ssnow%dfn_dtg
+         canopy%fns_cor = canopy%fns_cor + (ssnow%tss-ssnow%otss)*ssnow%dfn_dtg
+         canopy%fns = canopy%fns + canopy%fns_cor
+
+         canopy%ga_cor = ssnow%dtmlt(:,1)*canopy%dgdtg
+         canopy%ga_cor = canopy%ga_cor + (ssnow%tss-ssnow%otss)*canopy%dgdtg
+         canopy%ga = canopy%ga + canopy%ga_cor
+
+         canopy%fess = canopy%fess + canopy%fes_cor
+      ENDIF
+
+      ! apply correction term on this time step
+      ! - %fes_cor must be initialised to 0 in cable_canopy       
+      IF (cable_user%L_REV_CORR) THEN
+
+         !L_REV_CORR -> canopy%fess & canopy%fes include canopy%fes_cor
+         !use %cls as the trigger as per snow_accum Ticket 137 
+         WHERE (ssnow%cls==1)
+            !increment applied to %segg
+            canopy%segg = canopy%fess / C%HL 
+         
+         ELSEWHERE
+            !applying %fes_cor to snow fluxes
+
+            !1st need to check that addition of %fes_cor hasn't removed all snow
+            !and update %fes, %fess, and %fes_cor if it has
+            !also update %ga, %ga_cor to conserve energy as
+            ! %ga_cor ~ -%fes_cor through %dgdtg
+            !conditions from snow_accum noting %snowd already has %fess removed
+            
+            WHERE( ssnow%isflag == 0 .AND. canopy%fess > 0. .AND.          & 
+                       dels*canopy%fes_cor/(C%HL+C%HLF) > ssnow%snowd)
+               canopy%fess = canopy%fess - canopy%fes_cor + ssnow%snowd*(C%HL+C%HLF)/dels
+               canopy%fes = canopy%fes - canopy%fes_cor + ssnow%snowd*(C%HL+C%HLF)/dels
+               canopy%ga = canopy%ga + canopy%fes_cor - ssnow%snowd*(C%HL+C%HLF)/dels
+               canopy%ga_cor = canopy%ga_cor + canopy%fes_cor - ssnow%snowd*(C%HL+C%HLF)/dels
+               !finally update %fes_cor
+               canopy%fes_cor = ssnow%snowd*(C%HL+C%HLF)/dels
+            ENDWHERE
+
+            WHERE( ssnow%isflag  > 0 .AND. canopy%fess > 0. .AND.         & 
+                   dels*canopy%fes_cor/(C%HL+C%HLF) > 0.9*ssnow%smass(:,1) )    
+               canopy%fess = canopy%fess - canopy%fes_cor + 0.9*ssnow%smass(:,1)*(C%HL+C%HLF)/dels
+               canopy%fes = canopy%fes - canopy%fes_cor + 0.9*ssnow%smass(:,1)*(C%HL+C%HLF)/dels
+               canopy%ga = canopy%ga + canopy%fes_cor - 0.9*ssnow%smass(:,1)*(C%HL+C%HLF)/dels
+               canopy%ga_cor = canopy%ga_cor + canopy%fes_cor - 0.9*ssnow%smass(:,1)*(C%HL+C%HLF)/dels
+               !finally update %fes_cor
+               canopy%fes_cor = 0.9*ssnow%smass(:,1)*(C%HL+C%HLF)/dels
+            ENDWHERE
+
+            !update %evapsn, %snowd, %smass, & %sdepth. May need to change %ssdn
+            ssnow%evapsn = dels * canopy%fess / ( C%HL + C%HLF )
+            ssnow%snowd = ssnow%snowd - dels * canopy%fes_cor / (C%HL + C%HLF)
+            WHERE ( ssnow%snowd<0.0) ssnow%snowd=0.0 !numerics catch
+            WHERE( ssnow%isflag > 0 )
+               ssnow%smass(:,1) = ssnow%smass(:,1) - dels*canopy%fes_cor/(C%HL+C%HLF)
+               ssnow%sdepth(:,1) = MAX( 0.02, ssnow%smass(:,1) / ssnow%ssdn(:,1) )
+            END WHERE
+
+         ENDWHERE !%cls
   
+      ELSE  
+         !L_REV_CORR false - this case should be removed in future
+         !NB L_REV_CORR false -> canopy%fess doesn't include %fes_cor 
+         !   but canopy%fes does include canopy%fes_cor
+         !   %ga_cor also does not need to be adjusted
+            
+         !use %cls as trigger as per snow_accum - Ticket 137
+         WHERE (ssnow%cls==1)
+             canopy%segg = (canopy%fess + canopy%fes_cor) / C%HL 
+
+         ELSEWHERE
+            
+            !1st need to check that addition of %fes_cor hasn't removed all snow
+            !and update %fes and %fes_cor accordingly
+            !conditions from snow_accum
+            WHERE( ssnow%isflag == 0 .AND. canopy%fess+canopy%fes_cor > 0.  &
+                   .and. dels*canopy%fes_cor/(C%HL+C%HLF) > ssnow%snowd)
+               canopy%fes = canopy%fes - canopy%fes_cor + ssnow%snowd*(C%HL+C%HLF)/dels
+               canopy%fes_cor = ssnow%snowd*(C%HL+C%HLF)/dels
+            ENDWHERE
+
+            WHERE( ssnow%isflag  > 0 .AND. canopy%fess+canopy%fes_cor > 0.   &
+               .and. dels*canopy%fes_cor/(C%HL+C%HLF) > 0.9*ssnow%smass(:,1) )
+               canopy%fes = canopy%fes - canopy%fes_cor + 0.9*ssnow%smass(:,1)*(C%HL+C%HLF)/dels
+               canopy%fes_cor = 0.9*ssnow%smass(:,1)*(C%HL+C%HLF)/dels
+            ENDWHERE
+
+            !update %evapsn, %snowd, %smass & %sdepth. May need to change %ssdn
+            ssnow%evapsn = dels*(canopy%fess+canopy%fes_cor) / ( C%HL+C%HLF )
+            ssnow%snowd = ssnow%snowd - dels * canopy%fes_cor / (C%HL + C%HLF )
+            WHERE ( ssnow%snowd<0.0) ssnow%snowd=0.0  !numerics catch
+            WHERE( ssnow%isflag > 0 )
+               ssnow%smass(:,1) = ssnow%smass(:,1) - dels*canopy%fes_cor/(C%HL+C%HLF)
+               ssnow%sdepth(:,1) = MAX( 0.02, ssnow%smass(:,1) / ssnow%ssdn(:,1) )
+            END WHERE
+          
+         ENDWHERE
+      ENDIF  !L_REV_CORR
+               
+   ENDIF !runtime%um and %L_REV_SSEB: SSEB(1)
+
+   !------------------------------------------
+   
    ! total available liquid including puddle
    weting = totwet + max(0._r_2,ssnow%pudsto - canopy%fesp/C%HL*dels)
    xxx=soil%ssat - ssnow%wb(:,1)
@@ -1871,7 +2171,9 @@ SUBROUTINE soil_snow(dels, soil, ssnow, canopy, met, bal, veg)
    CALL surfbv(dels, met, ssnow, soil, veg, canopy )
 
    ! correction required for energy balance in online simulations
-   IF( cable_runtime%um ) THEN
+   ! SSEB(1): old code now moved earlier
+   !IF( cable_runtime%um ) THEN
+   IF( cable_runtime%um .and. (.not. cable_user%L_REV_SSEB ) ) THEN    
       canopy%fhs_cor = ssnow%dtmlt(:,1)*ssnow%dfh_dtg
       !canopy%fes_cor = ssnow%dtmlt(:,1)*(ssnow%dfe_ddq * ssnow%ddq_dtg)
       canopy%fes_cor = ssnow%dtmlt(:,1)*ssnow%dfe_dtg
@@ -1879,10 +2181,10 @@ SUBROUTINE soil_snow(dels, soil, ssnow, canopy, met, bal, veg)
       canopy%fhs = canopy%fhs+canopy%fhs_cor
       canopy%fes = canopy%fes+canopy%fes_cor
 
-      !associated changes to other energy balance terms
-      !NB canopy%fns changed not rad%flws as the correction term needs to
-      !pass through the canopy in entirety, not be partially absorbed
+      !associated changes to other energy balance terms (diagnostics)
       IF (cable_user%L_REV_CORR) THEN
+         !NB canopy%fns changed not rad%flws as the correction term needs to
+         !pass through the canopy in entirety, not be partially absorbed
          canopy%fns_cor = ssnow%dtmlt(:,1)*ssnow%dfn_dtg
          canopy%ga_cor = ssnow%dtmlt(:,1)*canopy%dgdtg
 
@@ -1890,7 +2192,7 @@ SUBROUTINE soil_snow(dels, soil, ssnow, canopy, met, bal, veg)
          canopy%ga = canopy%ga + canopy%ga_cor
 
          canopy%fess = canopy%fess + canopy%fes_cor
-      ENDIF         
+      ENDIF     
    ENDIF
 
    ! redistrb (set in cable.nml) by default==.FALSE.
