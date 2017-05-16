@@ -933,8 +933,12 @@ CONTAINS
       INTEGER :: j
 
       ! Soil latent heat:
-      if (.not.cable_user%or_evap) &
+      if (.not.cable_user%or_evap) then
            canopy%fess= ssnow%wetfac * ssnow%potev
+      else
+          canopy%fess=ssnow%potev
+      end if
+
       WHERE (ssnow%potev < 0. ) canopy%fess = ssnow%potev
 
       ! Reduce soil evap due to presence of puddle
