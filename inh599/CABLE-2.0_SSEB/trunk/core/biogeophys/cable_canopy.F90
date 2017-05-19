@@ -1067,7 +1067,7 @@ CONTAINS
 
             !INH: If PM routine corrected for %cls factor 
             !associated changes are needed here 
-            canopy%fess(j) = MIN( (ssnow%wetfac(j)*ssnow%potev(j)), &
+            canopy%fess(j) = MIN((ssnow%wetfac(j)*ssnow%potev(j)*ssnow%cls(j)),&
                  ssnow%snowd(j)/dels*air%rlam(j)*ssnow%cls(j))
          ENDIF
 
