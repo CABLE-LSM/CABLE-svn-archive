@@ -315,7 +315,7 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough,snow_cove
       ssnow%rtevap_unsat = 0.0
    endwhere
 
-   if (cable_user%gw_model) then
+   if (cable_user%gw_model .or. cable_user%test_new_gw) then
       first_call = .false.
    end if
 
