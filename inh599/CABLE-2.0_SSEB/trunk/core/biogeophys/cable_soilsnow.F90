@@ -1042,7 +1042,9 @@ USE cable_common_module
    canopy%segg = canopy%fess / C%HL
    canopy%segg = ( canopy%fess + canopy%fes_cor ) / C%HL
    ! INH Ticket #136 - I think this should be
-   !canopy%segg = ( canopy%fess + canopy%fes_cor) / C%HL / ssnow%cls
+   ! canopy%segg = ( canopy%fess + canopy%fes_cor) / C%HL / ssnow%cls
+   ! NB: with SSEB fes_cor is initialised to zero in cable_canopy
+   ! unlike old scheme.  This avoids applying the correction flux twice.
    
    ! Initialise snow evaporation:
    ssnow%evapsn = 0.0
