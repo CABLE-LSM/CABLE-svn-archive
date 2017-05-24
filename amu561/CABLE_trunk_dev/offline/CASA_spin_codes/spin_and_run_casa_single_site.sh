@@ -27,7 +27,7 @@ module load R
 
 ### Set file paths ###
 
-site="grassLTER"   #"Konza", "grassLTER"
+site="Konza"   #"Konza", "grassLTER"
 
 run_dir=${PWD##*/}    #`pwd`
 
@@ -40,8 +40,8 @@ else
 fi
 
 
-cable_spinpath="${data_dir}/Outputs/${site}/${INDIR}_spin_alloc0.4_vcmax0.1"   #where store CABLE outputs from spin-up?
-cable_runpath="${data_dir}/Outputs/${site}/${INDIR}_run_alloc0.4_vcmax0.1"   #where store CABLE outputs from final run (if step4=true)?
+cable_spinpath="${data_dir}/Outputs/${site}/${INDIR}_spin_newparams"   #where store CABLE outputs from spin-up?
+cable_runpath="${data_dir}/Outputs/${site}/${INDIR}_run_newparams"   #where store CABLE outputs from final run (if step4=true)?
 casa_spinpath=$cable_outpath    #where store CASA outputs?
 
 
@@ -75,13 +75,13 @@ casa_biome="pftlookup_csiro_v16_17tiles_Ticket2_${site}.csv"
 
 ### Run settings ###
 
-LAIflag="TRUE"		#use prognostic LAI?
-Vcmax_flag="FALSE"	#use prognostic vcmax?
-icycle=1		    #which icycle (1=C, 2=CN, 3=CNP)
+LAIflag="TRUE"      #use prognostic LAI?
+Vcmax_flag="FALSE"  #use prognostic vcmax?
+icycle=1            #which icycle (1=C, 2=CN, 3=CNP)
 
 
 
-executable="cable-r4138" #name of CABLE executable
+executable="cable-r4182" #name of CABLE executable
 
 #Set spin-up options
 #Set step 2 to true to use fast spinup. Otherwise recycles a normal run.
@@ -325,7 +325,7 @@ if [[ "$step2" = true ]]; then
 #    N=`find ${casa_outpath}/casa_dump_cnpspin*.nc | wc -l`
 
 
-    #have to be non-intended or cable can't read the created file correctly !!!!!!
+    #have to be non-indented or cable can't read the created file correctly !!!!!!
 #cat > ${casa_outpath}/fcnpspin.lst << EOF
 #$N
 #$files
@@ -492,9 +492,9 @@ if [[ "$step3" = true ]]; then
             print(status)
 
 		
-	        #Use 0.5 gC/m2 per 50 years as the threshold (i.e. 0.01 gC/m2 per yr)
+	        #Use 0.5 gC/m2 per 5 years as the threshold (i.e. 0.1 gC/m2 per yr)
 
-            if (difference < 0.01) {
+            if (difference < 0.1) {
                 file.copy(from='${cable_outpath}/cable_restart_Step3_${iter}.nc', to='${cable_outpath}/CABLE_restart_Step3_final.nc')
                 file.copy(from='${casa_outpath}/casa_restart_Step3_${iter}.nc', to='${casa_outpath}/CASA_restart_Step3_final.nc')
             } else {

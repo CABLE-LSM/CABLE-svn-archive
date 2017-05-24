@@ -335,7 +335,7 @@ cat > $(pwd)/cable.nml << EOF
    cable_user%litter = .false.         !Use litter scheme to suppress Esoil?
    cable_user%L_NEW_ROUGHNESS_SOIL = .false.
    cable_user%CLIMATE_fromZero=.${casa_zero}.
-   cable_user%CALL_CLIMATE = .TRUE.
+   cable_user%CALL_CLIMATE = .FALSE.
    cable_user%soil_struc='default'
    wiltParam = 0.5
    satuParam = 0.8
