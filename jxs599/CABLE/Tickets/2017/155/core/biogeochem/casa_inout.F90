@@ -29,6 +29,9 @@
 !   casa_poolout
 !   casa_cnpflux  (zeros casabal quantites on doy 1 and updates casabal at end of biogeochem)
 !   biogeochem
+module casa_inout_module
+
+contains 
 
 !#define UM_BUILD YES
 SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
@@ -2881,3 +2884,5 @@ END SELECT
 
 END SUBROUTINE WRITE_CASA_OUTPUT_NC
 #endif
+
+End module casa_inout_module

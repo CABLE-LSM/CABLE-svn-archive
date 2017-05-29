@@ -21,6 +21,9 @@
 !          ssoil changed to ssnow
 !
 ! ==============================================================================
+module casa_cable
+
+contains
 
 !#define UM_BUILD YES
 SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
@@ -39,7 +42,7 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
    USE POPMODULE,            ONLY: POPStep
    USE POP_TYPES,            ONLY: POP_TYPE
    USE cable_phenology_module, ONLY: cable_phenology_clim
-
+  USE casa_inout_module
    IMPLICIT NONE
 
    INTEGER,      INTENT(IN) :: ktau ! integration step number
@@ -946,3 +949,4 @@ END SUBROUTINE sumcflux
   END SUBROUTINE analyticpool
 
 
+End module casa_cable
