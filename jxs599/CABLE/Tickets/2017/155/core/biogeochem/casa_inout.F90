@@ -33,7 +33,7 @@ module casa_inout_module
 
 contains 
 
-!#define UM_BUILD YES
+#define UM_BUILD YES
 SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
 ! mst actually not used in this routine (BP sep2010)
 !SUBROUTINE casa_readbiome(mvt,mst,veg,soil, &

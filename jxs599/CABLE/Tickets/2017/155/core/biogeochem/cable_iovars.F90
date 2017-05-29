@@ -17,8 +17,6 @@
 !          Additional code to use multiple vegetation types per grid-cell (patches)
 !
 ! ==============================================================================
-!#define UM_BUILD YES
-#ifdef UM_BUILD
 MODULE cable_IO_vars_module
 
    USE cable_def_types_mod, ONLY : r_2, mvtype, mstype
@@ -367,4 +365,3 @@ MODULE cable_IO_vars_module
   !$OMP THREADPRIVATE(landpt,patch)
 
 END MODULE cable_IO_vars_module
-#endif

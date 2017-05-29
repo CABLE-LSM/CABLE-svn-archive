@@ -25,7 +25,7 @@ module casa_cable
 
 contains
 
-!#define UM_BUILD YES
+#define UM_BUILD YES
 SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
                      climate,casabiome,casapool,casaflux,casamet,casabal,phen, &
                      pop, spinConv, spinup, ktauday, idoy,loy, dump_read,   &

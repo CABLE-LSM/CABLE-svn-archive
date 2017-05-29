@@ -1,6 +1,3 @@
-
-!#define UM_BUILD YES
-#ifdef UM_BUILD
 MODULE cable_soil_params_mod
    IMPLICIT NONE 
 
@@ -176,4 +173,4 @@ subroutine cable_soil_params()
 End subroutine cable_soil_params
 
 END MODULE cable_soil_params_mod
-#endif
+
