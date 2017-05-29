@@ -21,13 +21,20 @@
 !
 !
 ! ==============================================================================
-
+!#define UM_BUILD YES
 MODULE cable_common_module
+#ifdef UM_BUILD
+  use cable_pft_params_mod, ONLY : vegin
+  use cable_soil_params_mod, ONLY : soilin
+#endif  
   IMPLICIT NONE
 
   !---allows reference to "gl"obal timestep in run (from atm_step)
   !---total number of timesteps, and processing node
   INTEGER, SAVE :: ktau_gl, kend_gl, knode_gl, kwidth_gl
+
+  logical :: L_fudge = .false. 
+
   INTEGER, SAVE :: CurYear  ! current year of multiannual run
 
   ! user switches turned on/off by the user thru namelists
@@ -134,7 +141,8 @@ MODULE cable_common_module
           CONSISTENCY_CHECK     = .FALSE., & !
           CASA_DUMP_READ        = .FALSE., & !
           CASA_DUMP_WRITE       = .FALSE., & !
-          CABLE_RUNTIME_COUPLED = .TRUE. , & !
+          CABLE_RUNTIME_COUPLED = .FALSE. , & ! TRUE to use snow from stardump
+                                              ! and of course fully coupled mode 
           LogWorker             = .TRUE. , & ! Write Output of each worker
                                 ! L.Stevens - Test Switches
           L_NEW_ROUGHNESS_SOIL  = .FALSE., & !
@@ -181,7 +189,8 @@ MODULE cable_common_module
   ! hydraulic_redistribution parameters _soilsnow module
   REAL :: wiltParam=0.5, satuParam=0.8
 
-
+!See Ticket #155
+#ifndef UM_BUILD
   ! soil parameters read from file(filename%soil def. in cable.nml)
   ! & veg parameters read from file(filename%veg def. in cable.nml)
   TYPE soilin_type
@@ -260,15 +269,27 @@ MODULE cable_common_module
   TYPE(soilin_type), SAVE  :: soilin
   TYPE(vegin_type),  SAVE  :: vegin
 
+#endif
+
   !   !---parameters, tolerances, etc. could be set in _directives.h
   !jhan:cable.nml   real, parameter :: RAD_TOLS = 1.0e-2
 
   !jhan:temporary measure. improve hiding
   !   real, dimension(:,:), pointer,save :: c1, rhoch
 
+    character(len=*), parameter :: &
+    fprintf_dir_root = "/short/p66/jxs599/10.6/diag/March1/"
+  
+  character(len=200) :: fprintf_dir
+
+interface fudge_out
+   module procedure fudge_out_r2D, fudge_out_r1D, fudge_out_r3D, fudge_out_i2D
+End interface fudge_out
+
 CONTAINS
 
-
+!See Ticket #155
+#ifndef UM_BUILD
   SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
 
     ! Gets parameter values for each vegetation type and soil type.
@@ -498,6 +519,7 @@ CONTAINS
     CLOSE(40)
 
   END SUBROUTINE get_type_parameters
+#endif
 
     !--- LN ------------------------------------------[
   SUBROUTINE HANDLE_ERR( status, msg )
@@ -838,6 +860,81 @@ CONTAINS
     ENDIF
 
   END FUNCTION IS_CASA_TIME
+
+
+SUBROUTINE fudge_out_i2D( i,j, var, varname, vzero, vval )
+   ! interfaces on these
+   integer :: i,j
+   integer, dimension(:,:) :: var
+   ! ft changes with interface
+   character(len=*), parameter :: &
+      ft = '(  "fudge: ", A10, "(", I2.1, ",", I2.1, X, ") = ", I1.1 )'
+   
+   character(len=*) :: varname
+   logical :: vzero
+   integer :: vval
+   
+   ! content changes with interface
+   var = var(i,j) 
+   if( (vzero) ) var = vval
+   write (6, ft) varname,i, var(i,j)
+End SUBROUTINE fudge_out_i2D 
+
+
+SUBROUTINE fudge_out_r1D( i, var, varname, vzero, vval )
+   ! interfaces on these
+   integer :: i
+   real, dimension(:) :: var
+   ! ft changes with interface
+   character(len=*), parameter :: &
+      ft = '(  "fudge: ", A10, "(", I2.1, X, ") = ", F15.3 )'
+   
+   character(len=*) :: varname
+   logical :: vzero
+   real :: vval
+
+   ! content changes with interface
+   var = var(i) 
+   if( (vzero) ) var = vval
+   write (6, ft) varname,i, var(i)
+End SUBROUTINE fudge_out_r1D 
+
+SUBROUTINE fudge_out_r2D( i,j, var, varname, vzero, vval )
+   ! interfaces on these
+   integer :: i,j
+   real, dimension(:,:) :: var
+   ! ft changes with interface
+   character(len=*), parameter :: &
+      ft = '(  "fudge: ", A10, "(", I2.1, ",", I2.1, X, ") = ", F15.3 )'
+   
+   character(len=*) :: varname
+   logical :: vzero
+   real :: vval
+   
+   ! content changes with interface
+   var = var(i,j) 
+   if( (vzero) ) var = vval
+   write (6, ft) varname,i,j, var(i,j)
+End SUBROUTINE fudge_out_r2D 
+
+SUBROUTINE fudge_out_r3D( i,j,k, var, varname, vzero, vval )
+   ! interfaces on these
+   integer :: i,j,k
+   real, dimension(:,:,:) :: var
+   ! ft changes with interface
+   character(len=*), parameter :: &
+      ft = '(  "fudge: ", A10, "(",  I2.1, ",",I2.1, ",", I2.1, X, ") = ", F15.3 )'
+   
+   character(len=*) :: varname
+   logical :: vzero
+   real :: vval
+   
+   ! content changes with interface
+   var = var(i,j,k) 
+   if( (vzero) ) var = vval
+   write (6, ft) varname,i,j,k, var(i,j,k)
+End SUBROUTINE fudge_out_r3D 
+
 
 
 END MODULE cable_common_module
