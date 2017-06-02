@@ -117,9 +117,9 @@ SUBROUTINE init_radiation( met, rad, veg, canopy )
    DO ictr=1,nrb
      
      rad%rhocdf(:,ictr) = rhoch(:,ictr) *                                      &
-                          ( C%GAUSS_W(1) * xk(:,1) / ( xk(:,1) + rad%extkd(:) )&
-                          + C%GAUSS_W(2) * xk(:,2) / ( xk(:,2) + rad%extkd(:) )&
-                          + C%GAUSS_W(3) * xk(:,3) / ( xk(:,3) + rad%extkd(:) ) )
+                          ( C%GAUSS_W(1)*2.0*xk(:,1) / (xk(:,1)+rad%extkd(:))  &
+                          + C%GAUSS_W(2)*2.0*xk(:,2) / (xk(:,2)+rad%extkd(:))  &
+                          + C%GAUSS_W(3)*2.0*xk(:,3) / (xk(:,3)+rad%extkd(:)) )
 
    ENDDO
    
