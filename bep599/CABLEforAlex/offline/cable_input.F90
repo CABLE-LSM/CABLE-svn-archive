@@ -1713,14 +1713,24 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
           ! Reduce day-of-year by one and ammend hour-of-day:
           met%doy(landpt(i)%cstart) = met%doy(landpt(i)%cstart) - 1
           met%hod(landpt(i)%cstart) = met%hod(landpt(i)%cstart) + 24.0
+          IF (INT(met%doy(landpt(i)%cstart)) == 0)   &
+               met%year(landpt(i)%cstart) = met%year(landpt(i)%cstart) - 1 !BP bug fix starts
           ! If a leap year AND we're using leap year timing:
-          IF(((MOD(syear,4)==0.AND.MOD(syear,100)/=0).OR. & 
-               (MOD(syear,4)==0.AND.MOD(syear,400)==0)).AND.leaps) THEN
+          IF(((MOD(met%year(landpt(i)%cstart),4)==0 .AND.  &
+               MOD(met%year(landpt(i)%cstart),100)/=0) .OR. & 
+              (MOD(met%year(landpt(i)%cstart),4)==0 .AND.  &
+               MOD(met%year(landpt(i)%cstart),400)==0)) .AND. leaps) THEN
              SELECT CASE(INT(met%doy(landpt(i)%cstart)))
-             CASE(0) ! ie Dec previous year
+             CASE(0) ! ie grid point year
                 met%moy(landpt(i)%cstart) = 12
-                met%year(landpt(i)%cstart) = met%year(landpt(i)%cstart) - 1
-                met%doy(landpt(i)%cstart) = 365 ! prev year not leap year as this is
+                met%doy(landpt(i)%cstart) = 366   !BP bug fix ends
+!          IF(((MOD(syear,4)==0.AND.MOD(syear,100)/=0).OR. & 
+!               (MOD(syear,4)==0.AND.MOD(syear,400)==0)).AND.leaps) THEN
+!             SELECT CASE(INT(met%doy(landpt(i)%cstart)))
+!             CASE(0) ! ie Dec previous year
+!                met%moy(landpt(i)%cstart) = 12
+!                met%year(landpt(i)%cstart) = met%year(landpt(i)%cstart) - 1
+!                met%doy(landpt(i)%cstart) = 365 ! prev year not leap year as this is
              CASE(31) ! Jan
                 met%moy(landpt(i)%cstart) = 1
              CASE(60) ! Feb
@@ -1748,14 +1758,14 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
              SELECT CASE(INT(met%doy(landpt(i)%cstart)))
              CASE(0) ! ie Dec previous year
                 met%moy(landpt(i)%cstart) = 12
-                met%year(landpt(i)%cstart) = met%year(landpt(i)%cstart) - 1
-                ! If previous year is a leap year
-                IF((MOD(syear,4)==0.AND.MOD(syear,100)/=0).OR. & 
-                     (MOD(syear,4)==0.AND.MOD(syear,400)==0)) THEN
-                   met%doy(landpt(i)%cstart) = 366
-                ELSE
+!                met%year(landpt(i)%cstart) = met%year(landpt(i)%cstart) - 1   !BP bug fix
+!                ! If previous year is a leap year                             !BP bug fix
+!                IF((MOD(syear,4)==0.AND.MOD(syear,100)/=0).OR. &              !BP bug fix
+!                     (MOD(syear,4)==0.AND.MOD(syear,400)==0)) THEN            !BP bug fix
+!                   met%doy(landpt(i)%cstart) = 366                            !BP bug fix
+!                ELSE     !BP bug fix
                    met%doy(landpt(i)%cstart) = 365
-                END IF
+!                END IF   !BP bug fix
              CASE(31) ! Jan
                 met%moy(landpt(i)%cstart) = 1 
              CASE(59) ! Feb
@@ -1786,8 +1796,12 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
           met%doy(landpt(i)%cstart) = met%doy(landpt(i)%cstart) + 1
           met%hod(landpt(i)%cstart) = met%hod(landpt(i)%cstart) - 24.0
           ! If a leap year AND we're using leap year timing:
-          IF(((MOD(syear,4)==0.AND.MOD(syear,100)/=0).OR. & 
-               (MOD(syear,4)==0.AND.MOD(syear,400)==0)).AND.leaps) THEN
+          IF(((MOD(met%year(landpt(i)%cstart),4)==0 .AND.  &                !BP bug fix
+               MOD(met%year(landpt(i)%cstart),100)/=0) .OR. &               !BP bug fix
+              (MOD(met%year(landpt(i)%cstart),4)==0 .AND.  &                !BP bug fix
+               MOD(met%year(landpt(i)%cstart),400)==0)) .AND. leaps) THEN   !BP bug fix
+!          IF(((MOD(syear,4)==0.AND.MOD(syear,100)/=0).OR. & 
+!               (MOD(syear,4)==0.AND.MOD(syear,400)==0)).AND.leaps) THEN
              SELECT CASE(INT(met%doy(landpt(i)%cstart)))
              CASE(32) ! Feb
                 met%moy(landpt(i)%cstart) = 2
