@@ -582,7 +582,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
      rbh = vmet(1)%rbh
      rrc = vmet(1)%rrc
 !write(*,*), 'b4 solve', ktau
-     call solve(wlogn, ti, tf, ktau, mp, qprec, qprec_snow, ms, dx, &
+     call solve( ti, tf, ktau, mp, qprec, qprec_snow, ms, dx, &
           h0, S, thetai, Jsensible, Tsoil, evap, &
           evap_pot, runoff, infil, drn, discharge, qh, &
           nsteps, vmet, vlit, vsnow, var, csoil, kth, phi, T0, Tsurface, &
