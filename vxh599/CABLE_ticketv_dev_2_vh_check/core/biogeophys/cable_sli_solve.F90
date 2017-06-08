@@ -1376,8 +1376,13 @@ CONTAINS
                                 par(i)%thre, par(i)%the) ! liquid content at solution for Tsoil
                         else
                             write(*,*) "Found no solution for Tfrozen 1. Stop. ", kk, i
-                            write(*,*) nsteps(kk), S(i), Tsoil(i), dTsoil(i), h0(kk), tmp1, tmp2, tmp1d2(kk), theta
+                            write(*,*) nsteps(kk), S(i), Tsoil(i), dTsoil(i), h0(kk), tmp1, tmp2, tmp1d2(kk), theta, &
+JSoilLayer(Tfreezing(kk), &
+                    dx(i), theta,par(i)%css, par(i)%rho, &
+                    merge(h0(kk),zero,i==1), par(i)%thre, par(i)%the, &
+                    par(i)%he, one/(par(i)%lambc*freezefac)), J0(i) + LHS_h(i)*dt(kk), Tfreezing(kk)
                             stop
+
                         endif
                         var(i)%thetal = tmp1d4(kk)
                         var(i)%thetai = theta - tmp1d4(kk)
