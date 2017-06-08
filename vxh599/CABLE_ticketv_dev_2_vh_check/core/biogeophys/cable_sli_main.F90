@@ -424,10 +424,10 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
   lE_old  = ssnow%lE
   gamm    = real(veg%gamma,r_2)
   where (canopy%through>=met%precip_sn)
-     qprec      = (canopy%through-met%precip_sn)/thousand/dt              ! liq precip rate (m s-1)
+     qprec      = max((canopy%through-met%precip_sn)/thousand/dt , zero)             ! liq precip rate (m s-1)
      qprec_snow = (met%precip_sn)/thousand/dt
   elsewhere
-     qprec = canopy%through
+     qprec = max(canopy%through, zero)
      qprec_snow = zero
   endwhere
 
