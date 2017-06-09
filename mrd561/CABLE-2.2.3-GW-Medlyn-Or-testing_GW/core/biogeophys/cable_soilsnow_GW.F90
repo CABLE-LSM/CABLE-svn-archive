@@ -1580,16 +1580,20 @@ END SUBROUTINE remove_trans
 !       end do
 
        qhlev(i,:) = 0._r_2
-       sm_tot(i) = 0._r_2
+       sm_tot(i)  = 0._r_2
        if (k_drain .le. ms) then
           do k=k_drain,ms
-             sm_tot(i) = sm_tot(i) + max(ssnow%wbliq(i,k)-soil%watr(i,k),0._r_2)!*dzmm(k)
+             sm_tot(i) = sm_tot(i) + max(ssnow%wbliq(i,k)-soil%watr(i,k),0._r_2)     !*dzmm(k)
           end do
+          !assume aquifer has same proportion of ice as bottom layer
+          !sm_tot(i) = sm_tot(i) +  max(ssnow%GWwb(i) - soil%GWwatr(i),0._r_2)*(ssnow%wbliq(i,ms)/max(1e-8,ssnow%wb(i,ms)))   !*GWdzmm(i)
           sm_tot(i) = max(sm_tot(i),0.01_r_2)
 
          do k=k_drain,ms
-             qhlev(i,k) = ssnow%qhz(i)*max(ssnow%wbliq(i,k)-soil%watr(i,k),0._r_2)/sm_tot(i)!*dzmm(k)/sm_tot(i)
-          end do
+             qhlev(i,k) = ssnow%qhz(i)*max(ssnow%wbliq(i,k)-soil%watr(i,k),0._r_2)/sm_tot(i)!     *dzmm(k)/sm_tot(i)
+         end do
+         !k = ms + 1
+         !qhlev(i,k) = ssnow%qhz(i)*(1._r_2 -ssnow%fracice(i,ms))*max(ssnow%GWwb(i)-soil%GWwatr(i),0._r_2)*GWdzmm(i)/sm_tot(i)
 
        else
           qhlev(i,ms+1) = max(1._r_2-ssnow%fracice(i,ms),0._r_2)*ssnow%qhz(i)!*max(ssnow%GWwb(i)-soil%watr(i,ms),0._r_2)/sm_tot(i)

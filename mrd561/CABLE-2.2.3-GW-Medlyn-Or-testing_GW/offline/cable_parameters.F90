@@ -1153,6 +1153,8 @@ CONTAINS
         ssnow%wb(landpt(e)%cstart:landpt(e)%cend, is) =                        &
                                  inWB(landpt(e)%ilon, landpt(e)%ilat, is, month)
       END DO
+      !init GW from bottom soil layer so it is consistent (more)
+      ssnow%GWwb(landpt(e)%cstart:landpt(e)%cend) = inWB(landpt(e)%ilon,landpt(e)%ilat,ms,month)
 
       ! Set initial snow depth and snow-free soil albedo
       DO is = 1, landpt(e)%cend - landpt(e)%cstart + 1  ! each patch
