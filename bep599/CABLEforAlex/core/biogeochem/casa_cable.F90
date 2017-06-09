@@ -32,7 +32,7 @@
 
 SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
                      casabiome,casapool,casaflux,casamet,casabal,phen, &
-                     spinConv, spinup, ktauday, idoy, dump_read, dump_write )
+                     spinConv, spinup, ktauday, idoy, dump_read, dump_write)
 
    USE cable_def_types_mod
    USE casadimension
@@ -68,7 +68,8 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
    real,      dimension(mp)  :: nleaf2met, nleaf2str, nroot2met, nroot2str, nwood2cwd
    real,      dimension(mp)  :: pleaf2met, pleaf2str, proot2met, proot2str, pwood2cwd
    real(r_2), dimension(mp)  :: xnplimit,  xkNlimiting, xklitter, xksoil ,xkleaf,xkleafcold,xkleafdry
-
+   ! hacking for Alex
+   INTEGER :: iAlex
 
    !    phen%phase = 2
 
@@ -106,6 +107,15 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
          casamet%tairk  =casamet%tairk/FLOAT(ktauday)
          casamet%tsoil=casamet%tsoil/FLOAT(ktauday)
          casamet%moist=casamet%moist/FLOAT(ktauday)
+         ! hacking for Alex
+         ! Replace GPP in Australian desert grids,
+         ! with monthly-averaged values converted to daily total.
+         ! Assuming irrelevant grids were set to -99 during read in.
+          DO iAlex = 1, mp
+            IF (met%gpp_Alex(iAlex) > -1.0)  &
+                  casaflux%cgpp(iAlex)=met%gpp_Alex(iAlex)
+          ENDDO
+         ! end hacking for Alex
    
          ! added ypwang 5/nov/2012                      
          if(ktau/ktauday .le. 365)then

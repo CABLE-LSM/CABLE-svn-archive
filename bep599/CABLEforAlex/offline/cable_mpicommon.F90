@@ -73,7 +73,9 @@ MODULE cable_mpicommon
   ! timestep
   !INTEGER, PARAMETER :: ninput = 11
   ! added 4 time fields in met: year, moy, doy, hod
-  INTEGER, PARAMETER :: ninput = 15
+  ! INTEGER, PARAMETER :: ninput = 15
+  ! added gpp_Alex for this exercise
+  INTEGER, PARAMETER :: ninput = 16
 
   ! MPI: number of 3D array slices / worker (results)
   INTEGER, PARAMETER :: n3d = 1

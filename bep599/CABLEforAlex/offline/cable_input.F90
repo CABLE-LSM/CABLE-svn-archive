@@ -1677,6 +1677,10 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
    REAL(KIND=4),ALLOCATABLE,DIMENSION(:,:)     :: tmpDat2, tmpDat2x
    REAL(KIND=4),ALLOCATABLE,DIMENSION(:,:,:)   :: tmpDat3, tmpDat3x
    REAL(KIND=4),ALLOCATABLE,DIMENSION(:,:,:,:) :: tmpDat4, tmpDat4x
+
+   REAL(r_2), DIMENSION(85,69,1)          :: tmpVar  ! hacking for Alex
+   REAL,      DIMENSION(720,360)          :: tmpGpp  ! hacking for Alex
+   INTEGER   :: ncid_Alex, varID                     ! hacking for Alex
    
      DO i=1,mland ! over all land points/grid cells
        ! First set timing variables:
@@ -2192,6 +2196,61 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
         ENDDO
       END IF
 
+!      IF (ktau < 5) THEN
+!        PRINT *, 'ktau = ', ktau, 'in mask branch'
+!        PRINT *, 'hod  = ', met%hod(22880)
+!        PRINT *, 'doy  = ', met%doy(22880)
+!      ELSE
+!        STOP
+!      END IF
+!      ! hacking to read Alex's gpp
+!      ! Only read file on first hour of first day of each month (using GMT)
+!      IF (met%hod(22880)==1 .AND. (met%doy(22880)==1  .OR.  &
+!                                   met%doy(22880)==32 .OR.  &
+!                                   met%doy(22880)==60 .OR.  &
+!                                   met%doy(22880)==91 .OR.  &
+!                                   met%doy(22880)==121.OR.  &
+!                                   met%doy(22880)==152.OR.  &
+!                                   met%doy(22880)==182.OR.  &
+!                                   met%doy(22880)==213.OR.  &
+!                                   met%doy(22880)==244.OR.  &
+!                                   met%doy(22880)==274.OR.  &
+!                                   met%doy(22880)==305.OR.  &
+!                                   met%doy(22880)==335) ) THEN
+!        PRINT *, 'ktau_Alex = ', ktau
+!        tmpDat2 = -99.0
+!        ok= NF90_OPEN('./surface_data/Aus_desert_satellite-derived_gpp_gome2sif.nc',0,ncid_Alex)
+!        IF(ok /= NF90_NOERR) CALL nc_abort(ok,'Error opening gpp_Alex file')
+!        ok = NF90_INQ_VARID(ncid_Alex,'SIF-derived GPP',varID)
+!        IF(ok /= NF90_NOERR) CALL nc_abort(ok,'Error inquiring gpp_Alex')
+!        ok= NF90_GET_VAR(ncid_Alex,varID,tmpVar,start=(/1,1,met%moy/),count=(/85,69,1/))
+!        IF(ok /= NF90_NOERR) CALL nc_abort(ok,'Error reading gpp_Alex')
+!        ! get rid of negative gpp (become zero)
+!        ! and change missing values (NaN) to -99.0
+!        ! while the values are copied to the Australian region in tmpDat2
+!        ! Also need to change unit from umol m-2 s-1 to gC m-2 day-1
+!        DO i=1, 85
+!          DO j=1, 69
+!            IF (.NOT.(isnan(tmpVar(i,j,1)))) THEN
+!              IF (tmpVar(i,j,1) < 0.0) THEN
+!                tmpDat2(585+i,200+j) = 0.0
+!              ELSE
+!                tmpDat2(585+i,200+j) = REAL(tmpVar(i,j,1)) &
+!                                     * 1.201E-5 * 24.0 * 3600.0
+!              ENDIF
+!            ENDIF
+!          ENDDO
+!        ENDDO
+!        DO i=1,mland ! over all land points/grid cells
+!          met%gpp_Alex(landpt(i)%cstart:landpt(i)%cend)  &
+!                 = tmpDat2(land_x(i),land_y(i))
+!        ENDDO
+!        ok= NF90_CLOSE(ncid_Alex)
+!   PRINT *, 'tmpVar(,1,1) = ', (tmpVar(i,1,1),i=1,85)
+!   STOP
+!      ENDIF
+!      ! end hacking for Alex
+
       DEALLOCATE(tmpDat2,tmpDat3,tmpDat4,tmpDat3x,tmpDat4x)
 
     ELSE IF(metGrid=='land') THEN
@@ -2463,6 +2522,64 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
                defaultLAI(i,met%moy(landpt(i)%cstart))
         ENDDO
       END IF
+
+      IF (ktau < 3) THEN
+        PRINT *, 'ktau = ', ktau, 'in landpoint branch'
+        PRINT *, 'hod  = ', met%hod(22880)
+        PRINT *, 'doy  = ', met%doy(22880)
+      END IF
+      ! hacking to read Alex's gpp
+      ! Only read file on first hour of first day of each month (using GMT)
+      IF (met%hod(22880)<1.1 .AND. (ABS(met%doy(22880)-1  )<0.1 .OR.  &
+                                 !   ABS(met%doy(22880)-32 )<0.1 .OR.  &
+                                 !   ABS(met%doy(22880)-60 )<0.1 .OR.  &
+                                 !   ABS(met%doy(22880)-91 )<0.1 .OR.  &
+                                 !   ABS(met%doy(22880)-121)<0.1 .OR.  &    !2007 data start from May
+                                    ABS(met%doy(22880)-152)<0.1 .OR.  &
+                                    ABS(met%doy(22880)-182)<0.1 .OR.  &
+                                    ABS(met%doy(22880)-213)<0.1 .OR.  &
+                                    ABS(met%doy(22880)-244)<0.1 .OR.  &
+                                    ABS(met%doy(22880)-274)<0.1 .OR.  &
+                                    ABS(met%doy(22880)-305)<0.1 .OR.  &
+                                    ABS(met%doy(22880)-335)<0.1 ) ) THEN
+        PRINT *, 'ktau_Alex = ', ktau
+        tmpGpp = -99.0
+!        ok= NF90_OPEN('./surface_data/Alex_gpp.nc',0,ncid_Alex)
+        ok= NF90_OPEN('/data/pak007/alex/Aus_desert_satellite-derived_gpp_gome2sif.nc',0,ncid_Alex)
+        IF(ok /= NF90_NOERR) CALL nc_abort(ok,'Error opening gpp_Alex file')
+        ok = NF90_INQ_VARID(ncid_Alex,'SIF-derived GPP',varID)
+        IF(ok /= NF90_NOERR) CALL nc_abort(ok,'Error inquiring gpp_Alex')
+        IF (ABS(met%doy(22880)-1  )<0.1) THEN
+          ok= NF90_GET_VAR(ncid_Alex,varID,tmpVar,start=(/1,1,met%moy/),count=(/85,69,1/))
+        ELSE
+          ok= NF90_GET_VAR(ncid_Alex,varID,tmpVar,start=(/1,1,met%moy-4/),count=(/85,69,1/))
+        ENDIF
+        IF(ok /= NF90_NOERR) CALL nc_abort(ok,'Error reading gpp_Alex')
+        ! get rid of negative gpp (become zero)
+        ! and change missing values (NaN) to -99.0
+        ! while the values are copied to the Australian region in tmpGpp
+        ! Also need to change unit from umol m-2 s-1 to gC m-2 day-1
+        DO i=1, 85
+          DO j=1, 69
+            IF (.NOT.(isnan(tmpVar(i,j,1)))) THEN
+              IF (tmpVar(i,j,1) < 0.0) THEN
+                tmpGpp(585+i,200+j) = 0.0
+              ELSE
+                tmpGpp(585+i,200+j) = REAL(tmpVar(i,j,1)) &
+                                     * 1.201E-5 * 24.0 * 3600.0
+              ENDIF
+            ENDIF
+          ENDDO
+        ENDDO
+        DO i=1,mland ! over all land points/grid cells
+          met%gpp_Alex(landpt(i)%cstart:landpt(i)%cend)  &
+                 = tmpGpp(land_x(i),land_y(i))
+        ENDDO
+        ok= NF90_CLOSE(ncid_Alex)
+        ! PRINT *, 'tmpVar(,30,1) = ', (tmpVar(i,30,1),i=1,85)
+      ENDIF
+      ! end hacking for Alex
+
       DEALLOCATE(tmpDat1, tmpDat2, tmpDat3, tmpDat2x)
 
     ELSE

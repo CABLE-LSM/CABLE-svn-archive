@@ -444,6 +444,7 @@ MODULE cable_def_types_mod
          moy        ! local time month of year 
      
       REAL, DIMENSION(:), POINTER ::                                           &
+         gpp_Alex,& ! hacking to insert Alex's Australian gpp
          ca,      & ! CO2 concentration (mol/mol)
          doy,     & ! local time day of year = days since 0 hr 1st Jan 
          hod,     & ! local hour of day
@@ -894,7 +895,8 @@ SUBROUTINE alloc_met_type(var, mp)
 
    TYPE(met_type), INTENT(inout) :: var
    INTEGER, INTENT(in) :: mp
- 
+
+   ALLOCATE ( var % gpp_Alex(mp) ) 
    ALLOCATE ( var % ca(mp) )
    ALLOCATE ( var % year(mp) )
    ALLOCATE ( var % moy(mp) )
@@ -1298,6 +1300,7 @@ SUBROUTINE dealloc_met_type(var)
 
    TYPE(met_type), INTENT(inout) :: var
    
+   DEALLOCATE ( var % gpp_Alex )
    DEALLOCATE ( var % ca )
    DEALLOCATE ( var % year )
    DEALLOCATE ( var % moy )

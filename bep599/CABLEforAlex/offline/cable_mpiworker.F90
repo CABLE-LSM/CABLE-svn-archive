@@ -2970,6 +2970,10 @@ SUBROUTINE worker_intype (comm,met,veg)
   CALL MPI_Get_address (met%coszen, displs(bidx), ierr)
   blocks(bidx) = r1len
 
+  bidx = bidx + 1
+  CALL MPI_Get_address (met%gpp_Alex, displs(bidx), ierr)
+  blocks(bidx) = r1len
+
 
   ! veg fields
 

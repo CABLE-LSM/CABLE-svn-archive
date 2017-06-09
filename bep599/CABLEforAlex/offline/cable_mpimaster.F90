@@ -3559,6 +3559,10 @@ SUBROUTINE master_intypes (comm,met,veg)
      CALL MPI_Get_address (met%coszen(off), displs(bidx), ierr)
      blocks(bidx) = r1len
 
+     bidx = bidx + 1
+     CALL MPI_Get_address (met%gpp_Alex(off), displs(bidx), ierr)
+     blocks(bidx) = r1len
+
 
      ! veg fields
 
