@@ -120,6 +120,8 @@ SUBROUTINE cable_um_runtime_vars(runtime_vars_file)
       CLOSE(funit)
 
       if (knode_gl==0) then
+        write(*,*)  ' the switch for the alternate coupling is set as '
+        write(*,*)  'couling set to ----',cable_user%l_revised_coupling
         print *, '  '; print *, 'CASA_log:'
         print *, '  icycle =',icycle
         print *, '  l_casacnp =',l_casacnp

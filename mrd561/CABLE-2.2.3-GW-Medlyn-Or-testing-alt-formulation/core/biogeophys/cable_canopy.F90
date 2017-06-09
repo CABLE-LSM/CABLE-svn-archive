@@ -346,40 +346,59 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
          ssnow%potev =  Penman_Monteith(canopy%ga) 
       
       ELSE !by default assumes Humidity Deficit Method
-      
          if (cable_user%gw_model) then 
             do i=1,mp
+               !if ((ssnow%qstss(i) .gt. met%qvair(i)) .and. veg%iveg(i) .ne. 16 .and. soil%isoilm(i) .ne. 9) then
                if (veg%iveg(i) .ne. 16 .and. soil%isoilm(i) .ne. 9) then
                   ssnow%rh_srf(i) = exp(9.81*ssnow%smp(i,1)/1000.0/ssnow%tss(i)/461.4)
-                  if (.not.cable_user%or_evap) then
-                    dq(i) = max(0. , ssnow%qstss(i)*ssnow%rh_srf(i) - met%qvair(i))
-                  else
-                    ssnow%rtevap_unsat(i) = max(1.,ssnow%rtevap_unsat(i))
-                    dq(i) = max(0. , (ssnow%qstss(i)*ssnow%rh_srf(i)/(ssnow%rtevap_unsat(i))+met%qvair(i)/ssnow%rtsoil(i))/ &
-                                    (1.0/ssnow%rtevap_unsat(i) + 1.0/ssnow%rtsoil(i)) - met%qvair(i))
-                  end if
+                  dq(i) = max(0. , ssnow%qstss(i)*ssnow%rh_srf(i) - met%qvair(i))
                else
                   ssnow%rh_srf(i) = 1._r_2
                   dq(i) = ssnow%qstss(i) - met%qvair(i)
                end if
             end do
-
          else
-            ssnow%rh_srf(i) = 1._r_2
             dq = ssnow%qstss - met%qvair
-         end if
-
-         if (cable_user%or_evap) then
-           do i=1,mp
-             ssnow%rtevap_sat(i) = max(1.,ssnow%rtevap_sat(i))
-             dq2(i) =  (ssnow%qstss(i)/(ssnow%rtevap_sat(i))+met%qvair(i)/ssnow%rtsoil(i))/ &
-                                    (1.0/ssnow%rtevap_sat(i) + 1.0/ssnow%rtsoil(i)) - met%qvair(i)
-           end do
-         else
-           dq2 = ssnow%qstss - met%qvair
 
          end if
+         dq2 = ssnow%qstss - met%qvair
+         
          ssnow%potev =  Humidity_deficit_method(dq,dq2,ssnow%qstss )
+!         if (cable_user%gw_model) then 
+      
+!         if (cable_user%gw_model) then 
+!            do i=1,mp
+!               if (veg%iveg(i) .ne. 16 .and. soil%isoilm(i) .ne. 9) then
+!                  ssnow%rh_srf(i) = exp(9.81*ssnow%smp(i,1)/1000.0/ssnow%tss(i)/461.4)
+!                  if (.not.cable_user%or_evap) then
+!                    dq(i) = max(0. , ssnow%qstss(i)*ssnow%rh_srf(i) - met%qvair(i))
+!                  else
+!                    ssnow%rtevap_unsat(i) = max(1.,ssnow%rtevap_unsat(i))
+!                    dq(i) = max(0. , (ssnow%qstss(i)*ssnow%rh_srf(i)/(ssnow%rtevap_unsat(i))+met%qvair(i)/ssnow%rtsoil(i))/ &
+!                                    (1.0/ssnow%rtevap_unsat(i) + 1.0/ssnow%rtsoil(i)) - met%qvair(i))
+!                  end if
+!               else
+!                  ssnow%rh_srf(i) = 1._r_2
+!                  dq(i) = ssnow%qstss(i) - met%qvair(i)
+!               end if
+!            end do
+!
+!         else
+!            ssnow%rh_srf(i) = 1._r_2
+!            dq = ssnow%qstss - met%qvair
+!         end if
+!
+!         if (cable_user%or_evap) then
+!           do i=1,mp
+!             ssnow%rtevap_sat(i) = max(1.,ssnow%rtevap_sat(i))
+!             dq2(i) =  (ssnow%qstss(i)/(ssnow%rtevap_sat(i))+met%qvair(i)/ssnow%rtsoil(i))/ &
+!                                    (1.0/ssnow%rtevap_sat(i) + 1.0/ssnow%rtsoil(i)) - met%qvair(i)
+!           end do
+!         else
+!           dq2 = ssnow%qstss - met%qvair
+!
+!         end if
+!         ssnow%potev =  Humidity_deficit_method(dq,dq2,ssnow%qstss )
           
       ENDIF
 
@@ -416,56 +435,56 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
          ssnow%potev =  Penman_Monteith(canopy%ga) 
       
       ELSE !by default assumes Humidity Deficit Method
-        ! if (cable_user%gw_model) then 
-        !    do i=1,mp
-        !       !if ((ssnow%qstss(i) .gt. met%qvair(i)) .and. veg%iveg(i) .ne. 16 .and. soil%isoilm(i) .ne. 9) then
-        !       if (veg%iveg(i) .ne. 16 .and. soil%isoilm(i) .ne. 9) then
-        !          ssnow%rh_srf(i) = exp(9.81*ssnow%smp(i,1)/1000.0/ssnow%tss(i)/461.4)
-        !          dq(i) = max(0. , ssnow%qstss(i)*ssnow%rh_srf(i) - met%qvair(i))
-        !       else
-        !          ssnow%rh_srf(i) = 1._r_2
-        !          dq(i) = ssnow%qstss(i) - met%qvair(i)
-        !       end if
-        !    end do
-        ! else
-         !   dq = ssnow%qstss - met%qvair
-
-        ! end if
-        ! dq2 = ssnow%qstss - met%qvair
-        ! 
-         !ssnow%potev =  Humidity_deficit_method(dq,dq2,ssnow%qstss )
          if (cable_user%gw_model) then 
             do i=1,mp
+               !if ((ssnow%qstss(i) .gt. met%qvair(i)) .and. veg%iveg(i) .ne. 16 .and. soil%isoilm(i) .ne. 9) then
                if (veg%iveg(i) .ne. 16 .and. soil%isoilm(i) .ne. 9) then
                   ssnow%rh_srf(i) = exp(9.81*ssnow%smp(i,1)/1000.0/ssnow%tss(i)/461.4)
-                  if (.not.cable_user%or_evap) then
-                    dq(i) = max(0. , ssnow%qstss(i)*ssnow%rh_srf(i) - met%qvair(i))
-                  else
-                    ssnow%rtevap_unsat(i) = max(1.,ssnow%rtevap_unsat(i))
-                    dq(i) = max(0. , (ssnow%qstss(i)*ssnow%rh_srf(i)/(ssnow%rtevap_unsat(i))+met%qvair(i)/ssnow%rtsoil(i))/ &
-                                    (1.0/ssnow%rtevap_unsat(i) + 1.0/ssnow%rtsoil(i)) - met%qvair(i))
-                  end if
+                  dq(i) = max(0. , ssnow%qstss(i)*ssnow%rh_srf(i) - met%qvair(i))
                else
                   ssnow%rh_srf(i) = 1._r_2
                   dq(i) = ssnow%qstss(i) - met%qvair(i)
                end if
             end do
-
          else
-            ssnow%rh_srf(i) = 1._r_2
             dq = ssnow%qstss - met%qvair
-         end if
 
-         if (.not.cable_user%or_evap) then
-           dq2 = ssnow%qstss - met%qvair
-         else
-           do i=1,mp
-             ssnow%rtevap_sat(i) = max(1.,ssnow%rtevap_sat(i))
-             dq2(i) = (ssnow%qstss(i)/(ssnow%rtevap_sat(i))+met%qvair(i)/ssnow%rtsoil(i))/ &
-                                    (1.0/ssnow%rtevap_sat(i) + 1.0/ssnow%rtsoil(i)) - met%qvair(i)
-           end do
          end if
+         dq2 = ssnow%qstss - met%qvair
+         
          ssnow%potev =  Humidity_deficit_method(dq,dq2,ssnow%qstss )
+!         if (cable_user%gw_model) then 
+!            do i=1,mp
+!               if (veg%iveg(i) .ne. 16 .and. soil%isoilm(i) .ne. 9) then
+!                  ssnow%rh_srf(i) = exp(9.81*ssnow%smp(i,1)/1000.0/ssnow%tss(i)/461.4)
+!                  if (.not.cable_user%or_evap) then
+!                    dq(i) = max(0. , ssnow%qstss(i)*ssnow%rh_srf(i) - met%qvair(i))
+!                  else
+!                    ssnow%rtevap_unsat(i) = max(1.,ssnow%rtevap_unsat(i))
+!                    dq(i) = max(0. , (ssnow%qstss(i)*ssnow%rh_srf(i)/(ssnow%rtevap_unsat(i))+met%qvair(i)/ssnow%rtsoil(i))/ &
+!                                    (1.0/ssnow%rtevap_unsat(i) + 1.0/ssnow%rtsoil(i)) - met%qvair(i))
+!                  end if
+!               else
+!                  ssnow%rh_srf(i) = 1._r_2
+!                  dq(i) = ssnow%qstss(i) - met%qvair(i)
+!               end if
+!            end do
+!
+!         else
+!            ssnow%rh_srf(i) = 1._r_2
+!            dq = ssnow%qstss - met%qvair
+!         end if
+!
+!         if (.not.cable_user%or_evap) then
+!           dq2 = ssnow%qstss - met%qvair
+!         else
+!           do i=1,mp
+!             ssnow%rtevap_sat(i) = max(1.,ssnow%rtevap_sat(i))
+!             dq2(i) = (ssnow%qstss(i)/(ssnow%rtevap_sat(i))+met%qvair(i)/ssnow%rtsoil(i))/ &
+!                                    (1.0/ssnow%rtevap_sat(i) + 1.0/ssnow%rtsoil(i)) - met%qvair(i)
+!           end do
+!         end if
+!         ssnow%potev =  Humidity_deficit_method(dq,dq2,ssnow%qstss )
           
       ENDIF
 
@@ -829,10 +848,10 @@ FUNCTION humidity_deficit_method(dq,dq2,qstss ) RESULT(ssnowpotev)
    if (.not.cable_user%GW_MODEL) then 
       ssnowpotev = air%rho * air%rlam * dq2 /ssnow%rtsoil
    elseif (cable_user%or_evap) then
-      !ssnowpotev = (1.0-ssnow%wetfac) * air%rho * air%rlam * dq /(ssnow%rtsoil+ssnow%rtevap_unsat) + &
-      !             ssnow%wetfac * air%rho * air%rlam * dq2 /(ssnow%rtsoil+ssnow%rtevap_sat) 
-      ssnowpotev = (1.0-ssnow%wetfac) * air%rho * air%rlam * dq /(ssnow%rtsoil) + &
-                   ssnow%wetfac * air%rho * air%rlam * dq2 /(ssnow%rtsoil) 
+      ssnowpotev = (1.0-ssnow%wetfac) * air%rho * air%rlam * dq /(ssnow%rtsoil+ssnow%rtevap_unsat) + &
+                   ssnow%wetfac * air%rho * air%rlam * dq2 /(ssnow%rtsoil+ssnow%rtevap_sat) 
+!      ssnowpotev = (1.0-ssnow%wetfac) * air%rho * air%rlam * dq /(ssnow%rtsoil) + &
+!                   ssnow%wetfac * air%rho * air%rlam * dq2 /(ssnow%rtsoil) 
    else
       ssnowpotev = air%rho * air%rlam * dq /(ssnow%rtsoil)
    end if
@@ -2573,20 +2592,20 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
    soil_moisture_mod(:)     = 1.0/pi/sqrt(wb_liq)* ( sqrt(pi/(4.0*wb_liq))-1.0)
    soil_moisture_mod_sat(:) = 1.0/pi/sqrt(soil%watsat(:,1))* ( sqrt(pi/(4.0*soil%watsat(:,1)))-1.0)
 
-   !where(canopy%sublayer_dz .ge. 1.0e-7) 
-   !   ssnow%rtevap_unsat(:) = min( rough%z0soil/canopy%sublayer_dz * (lm/ (4.0*hk_zero) + (canopy%sublayer_dz + pore_size(:) * soil_moisture_mod) / Dff),&  
-   !                      rtevap_max )
-   !   ssnow%rtevap_sat(:)  = min( rough%z0soil/canopy%sublayer_dz * (lm/ (4.0*hk_zero_sat) + (canopy%sublayer_dz + pore_size(:) * soil_moisture_mod_sat) / Dff),& 
-   !                      rtevap_max )
-!
-   !   ssnow%sv_rtevap(:) = min( rough%z0soil/canopy%sublayer_dz * (lm/ (4.0*hk_zero)),rtevap_max)
-   !   ssnow%bl_rtevap(:) = min( rough%z0soil/canopy%sublayer_dz * ((canopy%sublayer_dz + pore_size(:) * soil_moisture_mod) / Dff),rtevap_max)
-   !elsewhere
+   where(canopy%sublayer_dz .ge. 1.0e-7) 
+      ssnow%rtevap_unsat(:) = min( rough%z0soil/canopy%sublayer_dz * (lm/ (4.0*hk_zero) + (canopy%sublayer_dz + pore_size(:) * soil_moisture_mod) / Dff),&  
+                         rtevap_max )
+      ssnow%rtevap_sat(:)  = min( rough%z0soil/canopy%sublayer_dz * (lm/ (4.0*hk_zero_sat) + (canopy%sublayer_dz + pore_size(:) * soil_moisture_mod_sat) / Dff),& 
+                         rtevap_max )
+
+      ssnow%sv_rtevap(:) = min( rough%z0soil/canopy%sublayer_dz * (lm/ (4.0*hk_zero)),rtevap_max)
+      ssnow%bl_rtevap(:) = min( rough%z0soil/canopy%sublayer_dz * ((canopy%sublayer_dz + pore_size(:) * soil_moisture_mod) / Dff),rtevap_max)
+   elsewhere
       ssnow%rtevap_unsat(:) = max(2.0,min( lm/ (4.0*hk_zero) + (canopy%sublayer_dz + pore_size(:) * soil_moisture_mod) / Dff,rtevap_max))
       ssnow%rtevap_sat(:)  = max(2.0,min( lm/ (4.0*hk_zero_sat) + (canopy%sublayer_dz + pore_size(:) * soil_moisture_mod_sat) / Dff,rtevap_max))
       ssnow%sv_rtevap(:) = min( (lm/ (4.0*hk_zero)),rtevap_max)
       ssnow%bl_rtevap(:) = min( ((canopy%sublayer_dz + pore_size(:) * soil_moisture_mod) / Dff),rtevap_max)
-   !endwhere
+   endwhere
    !no additional evap resistane over lakes
    where(veg%iveg .eq. 16) 
       ssnow%rtevap_sat = 0.0
