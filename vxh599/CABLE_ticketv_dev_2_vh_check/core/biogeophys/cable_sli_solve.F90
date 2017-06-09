@@ -966,7 +966,7 @@ CONTAINS
                  )
 
              CALL update_s_t( &
-                 mp,   n, dx(:), h0, S(:), thetai(:), &
+                 irec, mp,   n, dx(:), h0, S(:), thetai(:), &
                  Tsoil(:),    infil,   &
                  nsteps,    var,     &
                  par,        &
@@ -1007,7 +1007,7 @@ CONTAINS
     END SUBROUTINE
 
     SUBROUTINE update_s_t( &
-            mp,   n, dx, h0, S, thetai, &
+            irec, mp,   n, dx, h0, S, thetai, &
             Tsoil,    infil,   &
             nsteps,    var,     &
             par,        &
@@ -1029,7 +1029,7 @@ CONTAINS
             h_ex, wpi &
             )
         IMPLICIT NONE
-        INTEGER(i_d)                                           :: mp
+        INTEGER(i_d)                                           :: mp, irec
         INTEGER(i_d)                                           :: n
         REAL(r_2),      DIMENSION(1:n) :: dx
         REAL(r_2),      DIMENSION(1:mp)                        :: h0
