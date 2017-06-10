@@ -41,7 +41,7 @@ MODULE cable_soil_snow_module
 
    PRIVATE
 
-   TYPE ( issnow_type ) :: C
+   !TYPE ( issnow_type ) :: C
 
    REAL, PARAMETER ::                                                          &
       cgsnow = 2090.0,     & ! specific heat capacity for snow
@@ -555,6 +555,7 @@ SUBROUTINE snowdensity (dels, ssnow, soil)
    INTEGER, DIMENSION(mp,3) :: ssnow_isflag_ssdn
    REAL, DIMENSION(mp) :: ssnow_tgg_min1
    REAL, DIMENSION(mp,3) :: dels_ssdn, ssnow_tgg_min
+   TYPE ( issnow_type ) :: C
 
    CALL point2constants( C )
 
@@ -665,6 +666,8 @@ SUBROUTINE snow_melting (dels, snowmlt, ssnow, soil )
       snowflx    !
 
    REAL, DIMENSION(mp,0:3) :: smelt1
+
+   TYPE ( issnow_type ) :: C
 
    CALL point2constants( C )
 
@@ -780,6 +783,7 @@ USE cable_common_module
       xxx        !
 
    INTEGER             :: k
+   TYPE ( issnow_type ) :: C
 
    CALL point2constants( C )
 
@@ -959,6 +963,9 @@ SUBROUTINE surfbv (dels, met, ssnow, soil, veg, canopy )
 
    REAL :: wb_lake_T, rnof2_T, ratio
    INTEGER :: k,j
+   TYPE ( issnow_type ) :: C
+
+   CALL point2constants( C )
 
    CALL smoisturev( dels, ssnow, soil, veg )
 
@@ -1312,6 +1319,7 @@ SUBROUTINE snowcheck(dels, ssnow, soil, met )
    TYPE(soil_parameter_type), INTENT(INOUT) :: soil  ! soil parameters
 
    INTEGER :: k,j
+   TYPE ( issnow_type ) :: C 
 
    CALL point2constants( C )
 
@@ -1568,6 +1576,7 @@ SUBROUTINE soilfreeze(dels, soil, ssnow)
    REAL(r_2), DIMENSION(mp)           :: sicemelt
    REAL, DIMENSION(mp)           :: xx
    INTEGER k
+   TYPE ( issnow_type ) :: C 
 
    CALL point2constants( C )
 
@@ -1635,7 +1644,9 @@ SUBROUTINE remove_trans(dels, soil, ssnow, canopy, veg)
    REAL(r_2), DIMENSION(mp,0:ms) :: diff
    REAL(r_2), DIMENSION(mp)      :: xx,xxd,evap_cur
    INTEGER k
+   TYPE ( issnow_type ) :: C 
 
+   CALL point2constants( C )
 
   IF (cable_user%FWSOIL_switch.ne.'Haverd2013') THEN
      xx = 0.; xxd = 0.; diff(:,:) = 0.
@@ -1712,6 +1723,7 @@ SUBROUTINE soil_snow(dels, soil, ssnow, canopy, met, bal, veg)
    REAL(r_2), DIMENSION(mp) :: xx,deltat,sinfil1,sinfil2,sinfil3
    REAL                :: zsetot
    INTEGER, SAVE :: ktau =0
+   TYPE ( issnow_type ) :: C 
 
    CALL point2constants( C )
    cp = C%CAPP
@@ -1948,6 +1960,9 @@ SUBROUTINE hydraulic_redistribution(dels, soil, ssnow, canopy, veg, met)
       hr_perTime    !
 
    INTEGER :: j, k
+   TYPE ( issnow_type ) :: C 
+
+   CALL point2constants( C )
 
    zsetot = sum(soil%zse)
    totalmoist(:) = 0.0

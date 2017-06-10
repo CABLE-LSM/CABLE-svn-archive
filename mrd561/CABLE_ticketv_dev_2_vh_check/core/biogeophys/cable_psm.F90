@@ -1,8 +1,9 @@
 MODULE cable_psm
+
 USE cable_def_types_mod
 implicit none
 
-PUBLIC  or_soil_evap_resistance
+PUBLIC  or_soil_evap_resistance,my_gamma
 
 contains
 
@@ -116,21 +117,21 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough,snow_cove
    endwhere
 
 
- !  where(canopy%sublayer_dz .ge. 1.0e-7) 
- !     ssnow%rtevap_unsat(:) = min( rough%z0soil/canopy%sublayer_dz * (lm/ (4.0*hk_zero) + (canopy%sublayer_dz + pore_size(:) * soil_moisture_mod) / Dff),&  
- !                        rtevap_max )
- !     ssnow%rtevap_sat(:)  = min( rough%z0soil/canopy%sublayer_dz * (lm/ (4.0*hk_zero_sat) + (canopy%sublayer_dz + pore_size(:) * soil_moisture_mod_sat) / Dff),& 
- !                        rtevap_max )
+   where(canopy%sublayer_dz .ge. 1.0e-7) 
+      ssnow%rtevap_unsat(:) = min( rough%z0soil/canopy%sublayer_dz * (lm/ (4.0*hk_zero) + (canopy%sublayer_dz + pore_size(:) * soil_moisture_mod) / Dff),&  
+                         rtevap_max )
+      ssnow%rtevap_sat(:)  = min( rough%z0soil/canopy%sublayer_dz * (lm/ (4.0*hk_zero_sat) + (canopy%sublayer_dz + pore_size(:) * soil_moisture_mod_sat) / Dff),& 
+                         rtevap_max )
 
- !  elsewhere
+   elsewhere
       ssnow%rtevap_unsat(:) = min( lm/ (4.0*hk_zero) + (canopy%sublayer_dz + pore_size(:) * soil_moisture_mod) / Dff,rtevap_max)
       ssnow%rtevap_sat(:)  = min( lm/ (4.0*hk_zero_sat) + (canopy%sublayer_dz + pore_size(:) * soil_moisture_mod_sat) / Dff,rtevap_max)
- !  endwhere
+   endwhere
    !no additional evap resistane over lakes
-   !where(veg%iveg .eq. 16) 
+   where(veg%iveg .eq. 16) 
       ssnow%rtevap_sat = 0.0
       ssnow%rtevap_unsat = 0.0
-   !endwhere
+   endwhere
 
    myfirst_call = .false.
 

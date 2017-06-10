@@ -381,6 +381,11 @@ CONTAINS
      IF ( CABLE_USER%YearStart.eq.0 .and. ncciy.gt.0) THEN
         CABLE_USER%YearStart = ncciy
         CABLE_USER%YearEnd = ncciy
+     ELSEIF ( (CABLE_USER%YearStart .ne. ncciy) .or. (CABLE_USER%YearEnd .ne. ncciy) ) THEN
+        write(logn,*) 'CABLE_USER%YearStart or CABLE_USER%YearEnd diffrs from ncciy '
+        write(logn,*) 'Resetting CABLE_USER%YearStart and CABLE_USER%YearEnd to ncciy '
+        CABLE_USER%YearStart = ncciy
+        CABLE_USER%YearEnd = ncciy
      ELSEIF  ( CABLE_USER%YearStart.eq.0 .and. ncciy.eq.0) THEN
         PRINT*, 'undefined start year for gswp met: '
         PRINT*, 'enter value for ncciy or'  
@@ -396,7 +401,7 @@ CONTAINS
      ENDIF
   ENDIF
 
-  write(logn,*) 'THE VALUE of CALL_CLIMATE IS ',cable_user%call_climate
+  !write(logn,*) 'THE VALUE of CALL_CLIMATE IS ',cable_user%call_climate
 
     CurYear = CABLE_USER%YearStart
 

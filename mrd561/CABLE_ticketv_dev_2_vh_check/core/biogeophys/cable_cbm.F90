@@ -55,7 +55,7 @@ CONTAINS
 #endif
    USE cable_data_module, ONLY : icbm_type, point2constants
    !mrd561
-   USE cable_soil_snow_gw_module
+   USE cable_soil_snow_gw_module, ONLY : soil_snow_gw
 
    !ptrs to local constants
    TYPE( icbm_type ) :: C
