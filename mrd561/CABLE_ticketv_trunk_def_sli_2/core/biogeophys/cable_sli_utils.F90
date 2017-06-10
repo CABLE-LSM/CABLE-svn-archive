@@ -2190,7 +2190,7 @@ CONTAINS
           ! Hansson et al. (2004) - Eq. 15
           F1 = 13.05_r_2
           F2 = 1.06_r_2
-          if  (Tsoil < var%Tfrz) then ! ice
+          if  (Tsoil < var%Tfrz .and. var%thetai .gt. 0._r_2) then ! ice
              ! F  = one + F1*var%thetai**F2
              F  = one + F1*exp(F2*log(var%thetai))
              if ((C1*(theta+F*var%thetai))**E > 100.) then

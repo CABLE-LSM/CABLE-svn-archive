@@ -20,9 +20,6 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, rough,SEB
 
   use cable_soil_snow_gw_module, only: iterative_wtd,ovrlndflx,subsurface_drainage,calc_soil_hydraulic_props,aquifer_recharge
 
-  USE cable_psm, ONLY : or_soil_evap_resistance
-
- 
 
   IMPLICIT NONE
   !INTEGER, INTENT(IN)            :: wlogn
@@ -499,18 +496,22 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, rough,SEB
         ssnow%qhlev(:,1:ms) = 0._r_2
 
         !calcuate the amount of recharge
-        zmm(:) = thousand*(sum(real(soil%zse,r_2),dim=1))
-        zaq(:) = zmm(:) + 0.5_r_2*soil%GWdz(:)*thousand
+        do i=1,ms
+           zmm(i) = thousand*(sum(real(soil%zse,r_2),dim=1))
+        end do
+
+        zaq(:) = zmm(ms) + 0.5_r_2*soil%GWdz(:)*thousand
+
         CALL aquifer_recharge(dt,ssnow,soil,veg,zaq,zmm)
 
         !add recharge to qex
         qex(:,ms) = qex(:,ms) + ssnow%Qrecharge(:)/thousand
 
-        do i=1,ms
-           write(wlogn,*) 'max qex lev ',i,' is ',maxval(qex(:,i),dim=1)
-        end do
-           write(wlogn,*) 'max recharege is ',maxval(ssnow%Qrecharge(:),dim=1)
-           write(wlogn,*) 'min recharege is ',minval(ssnow%Qrecharge(:),dim=1)
+!        do i=1,ms
+!           write(wlogn,*) 'max qex lev ',i,' is ',maxval(qex(:,i),dim=1)
+!        end do
+!           write(wlogn,*) 'max recharege is ',maxval(ssnow%Qrecharge(:),dim=1)
+!           write(wlogn,*) 'min recharege is ',minval(ssnow%Qrecharge(:),dim=1)
 
 
      else
@@ -544,23 +545,11 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, rough,SEB
   if (SEB_only == 1) then
 
      if (cable_user%or_evap) then
-
-        if (litter == 2) then 
-           litter_dz(:) = dxL(:)
-        else 
-           litter_dz(:) = 0._r_2
-        end if
-
-        if (.not.cable_user%test_new_gw) ssnow%satfrac(:) = 0._r_2
-
-        call or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough,vsnow(:)%nsnow,litter_dz)
-
           vmet(:)%rpsm = (1._r_2 - ssnow%satfrac(:))*ssnow%rtevap_unsat(:) + ssnow%satfrac(:)*ssnow%rtevap_sat(:)
           vmet(:)%rpsm_h = canopy%sublayer_dz(:)/ (0.2 / (1932.0*62.0))
      else
         vmet(:)%rpsm = zero
         vmet(:)%rpsm_h = zero
-
      end if
 
      do kk=1, mp

@@ -570,6 +570,9 @@ call flush(wlogn)
              ! increment total timstep counter
              ktau_tot = ktau_tot + 1
 
+             write(wlogn,*) 'ktau -',ktau_tot
+             call flush(wlogn)
+
              ! globally (WRT code) accessible kend through USE cable_common_module
              ktau_gl = ktau_gl + 1
 
