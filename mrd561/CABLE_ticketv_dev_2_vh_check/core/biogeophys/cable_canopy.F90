@@ -590,19 +590,9 @@ CONTAINS
             rad%transd*ssnow%potev*ssnow%cls) * dels/air%rlam
 
 
-       !mrd561 simple snow emissivity test
-       !canopy%rniso = sum(rad%rniso,2) + rad%qssabs + rad%transd*met%fld + &
-       !     (1.0-rad%transd)*C%EMLEAF* &
-       !     C%SBOLTZ*met%tk**4 - C%EMSOIL*C%SBOLTZ*met%tk**4
-       where (ssnow%isflag .eq. 1)
-       canopy%rniso = sum(rad%rniso,2) + rad%qssabs + rad%transd*met%fld + &
-            (1.0-rad%transd)*C%EMLEAF* &
-            C%SBOLTZ*met%tk**4 - 0.94*C%SBOLTZ*met%tk**4
-       elsewhere
        canopy%rniso = sum(rad%rniso,2) + rad%qssabs + rad%transd*met%fld + &
             (1.0-rad%transd)*C%EMLEAF* &
             C%SBOLTZ*met%tk**4 - C%EMSOIL*C%SBOLTZ*met%tk**4
-       endwhere
 
        rlower_limit = canopy%epot * air%rlam / dels
        where (rlower_limit == 0 ) rlower_limit = 1.e-7 !prevent from 0. by adding 1.e-7 (W/m2)
@@ -780,13 +770,7 @@ CONTAINS
     ! d(canopy%fhs)/d(ssnow%tgg)
     ! d(canopy%fes)/d(dq)
     IF (cable_user%soil_struc=='default') THEN
-       !mrd561 soil snow emissivity test
-       !ssnow%dfn_dtg = (-1.)*4.*C%EMSOIL*C%SBOLTZ*tss4/ssnow%tss
-       where (ssnow%isflag .eq. 1)
-       ssnow%dfn_dtg = (-1.)*4.*0.94*C%SBOLTZ*tss4/ssnow%tss
-       elsewhere
        ssnow%dfn_dtg = (-1.)*4.*C%EMSOIL*C%SBOLTZ*tss4/ssnow%tss
-       endwhere
 
        IF (cable_user%litter) THEN
           !!vh_js!!
@@ -1021,7 +1005,6 @@ CONTAINS
       REAL  :: lower_limit, upper_limit
 
       INTEGER :: j
-      !mrd561
       real :: tmp_me
 
       rrbw = sum(gbhu+gbhf,2)/air%cmolar  ! MJT
