@@ -218,11 +218,7 @@ SUBROUTINE radiation( ssnow, veg, air, met, rad, canopy )
    flpwb = C%sboltz * (met%tvrad) ** 4
    flwv = C%EMLEAF * flpwb
 
-   !rad%flws = C%sboltz*C%EMSOIL* ssnow%tss **4
-    !mrd quick test of snow emissivity that is closer to actual
-   rad%flws = (1-ssnow%isflag)*C%sboltz*C%EMSOIL* ssnow%tgg(:,1)**4 + &
-              ssnow%isflag*C%sboltz*0.94* ssnow%tggsn(:,1)**4
-   !(1-ssnow%isflag)*ssnow%tgg(:,1) + ssnow%isflag*ssnow%tggsn(:,1)
+   rad%flws = C%sboltz*C%EMSOIL* ssnow%tss **4
 
    ! Define air emissivity:
    emair = met%fld / flpwb
