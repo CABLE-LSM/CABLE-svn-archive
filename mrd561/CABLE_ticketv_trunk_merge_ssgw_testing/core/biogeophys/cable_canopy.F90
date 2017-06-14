@@ -490,7 +490,7 @@ CONTAINS
        ELSEIF (cable_user%soil_struc=='sli') THEN
           ! SLI SEB to get canopy%fhs, canopy%fess, canopy%ga
           ! (Based on old Tsoil, new canopy%tv, new canopy%fns)
-          CALL sli_main(1,dels,veg,soil,ssnow,met,canopy,air,rad,rough,1)
+          CALL sli_main(1,dels,veg,soil,ssnow,met,canopy,air,rad,1)
        ENDIF
 
 
@@ -555,7 +555,7 @@ CONTAINS
        ELSEIF (cable_user%soil_struc=='sli') THEN
           ! SLI SEB to get canopy%fhs, canopy%fess, canopy%ga
           ! (Based on old Tsoil, new canopy%tv, new canopy%fns)
-          CALL sli_main(1,dels,veg,soil,ssnow,met,canopy,air,rad,rough,1)
+          CALL sli_main(1,dels,veg,soil,ssnow,met,canopy,air,rad,1)
        ENDIF
 
        ! Set total latent heat:
@@ -899,6 +899,11 @@ CONTAINS
          IF( ssnow%snowd(j)>1.0 .OR. ssnow%tgg(j,1).EQ.C%tfrz)                      &
               dq(j) = max( -0.1e-3, dq(j))
       ENDDO
+
+      IF (cable_user%gw_model .or. cable_user%or_evap) then
+         dq = max( -0.1e-3, dq)
+         dq2 = max( -0.1e-3, dq2)
+      END IF
 
       IF (cable_user%litter) THEN
          !! vh_js !!
