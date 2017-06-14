@@ -334,7 +334,7 @@ CONTAINS
 
     select case (surface_case)
     case (1) ! no snow
-       call potential_evap(vmet%Rn, vmet%rbh, vmet%rbw, vmet%rpsm,vmet%rpsm_h,vmet%Ta, vmet%rha, &
+       call potential_evap(vmet%Rn, vmet%rbh, vmet%rbw, vmet%Ta, vmet%rha, &
             Tsoil(1), var(1)%kth, half*dx(1)+h0, var(1)%lambdav, Tsurface_pot, Epot, Hpot, &
             Gpot, dEdrha, dEdTs, dEdTsoil, dGdTa, dGdTsoil)
 
@@ -503,7 +503,7 @@ CONTAINS
           !! vh !! use max snow depth of 20 cm in this calculation to avoid huge resistances
           !! leading to large negative surface temperatures when snow-pack is thick and
           !! Rn is large and negative (~-100 Wm-2)
-          call potential_evap(vmet%Rn-vmet%Rnsw, vmet%rbh, vmet%rbw, vmet%rpsm,vmet%rpsm_h,vmet%Ta, vmet%rha, &
+          call potential_evap(vmet%Rn-vmet%Rnsw, vmet%rbh, vmet%rbw, vmet%Ta, vmet%rha, &
                vsnow%tsn(1), max(vsnow%kth(1),0.1), half*min(vsnow%depth(1),0.2), &
                lambdas, Tsurface, Epot, Hpot, &
                Gpot, dEdrha, dEdTs, dEdTsoil, dGdTa, dGdTsoil,iice=.TRUE.)
@@ -629,7 +629,7 @@ CONTAINS
     if (vsnow%nsnow>0) surface_case = 2
     select case (surface_case)
     case (1)
-       call potential_evap(vmet%Rn, vmet%rrc, vmet%rbw, vmet%rpsm,vmet%rpsm_h,vmet%Ta, vmet%rha, &
+       call potential_evap(vmet%Rn, vmet%rrc, vmet%rbw, vmet%Ta, vmet%rha, &
             Tsoil(1), var(1)%kth, half*dx(1)+h0, var(1)%lambdav, Tsurface_pot, Epot, Hpot, &
             Gpot, dEdrha, dEdTs, dEdTsoil, dGdTa, dGdTsoil)
 
@@ -777,7 +777,7 @@ CONTAINS
           qTb = zero
        else
 
-          call potential_evap(vmet%Rn, vmet%rrc, vmet%rbw, vmet%rpsm,vmet%rpsm_h,vmet%Ta, vmet%rha, &
+          call potential_evap(vmet%Rn, vmet%rrc, vmet%rbw, vmet%Ta, vmet%rha, &
                vsnow%tsn(1), vsnow%kth(1), half*vsnow%depth(1), &
                lambdas, Tsurface, Epot, Hpot, &
                Gpot, dEdrha, dEdTs, dEdTsoil, dGdTa, dGdTsoil)
@@ -1990,7 +1990,7 @@ CONTAINS
     REAL(r_2) :: F1, F2, F
     ! REAL(r_2) :: macropore_modifier
     REAL(r_2) :: cdry, tmp_thetai
-
+    REAL(r_2), parameter :: tol = 1e-6
     theta         = S*(parin%thre) + (parin%the - parin%thre)
     var%lambdav   = rlambda       ! latent heat of vaporisation
     var%lambdav   = 1.91846e6_r_2*((Tsoil+Tzero)/((Tsoil+Tzero)-33.91_r_2))**2  ! Henderson-Sellers, QJRMS, 1984
@@ -1998,7 +1998,7 @@ CONTAINS
     !var%Tfrz      = Tfrz(S,parin%he,one/parin%lam)
     var%Tfrz      = Tfrz(S, parin%he, one/(parin%lambc*freezefac)) ! freezefac for test of steep freezing curve
 
-    if ((Tsoil < var%Tfrz) .and. (experiment/=184)) then ! ice
+    if ((Tsoil < var%Tfrz-tol) .and. (experiment/=184)) then ! ice
        parin%lam     = parin%lambc * freezefac   ! freezefac>1 -> steeper freezing curve
        parin%eta     = two/parin%lam + two + one ! freezefac>1 -> steeper freezing curve
        thetal_max    = thetalmax(Tsoil,S,parin%he,one/parin%lam,parin%thre,parin%the)
@@ -2030,7 +2030,7 @@ CONTAINS
        var%K  = var%Ksat
        var%KS = zero
        ! var%KT = var%dthetaldT * parin%Ke * parin%eta * exp(lnS*(parin%eta-one))/parin%thre
-       var%KT = var%dthetaldT * parin%Ke * parin%eta * exp(lnS*(parin%eta-one))/(parin%thre-var%thetai)
+       var%KT = var%dthetaldT * parin%Ke * parin%eta * exp(lnS*(parin%eta-one))/max(parin%thre-var%thetai,max(parin%thr,1e-5_r_2))
        if (S < one) var%phi = var%phie
 
        ! var%phiT = parin%phie * exp(lnS*(parin%eta-one/parin%lam-one)) * var%dthetaldT * &
@@ -2086,7 +2086,7 @@ CONTAINS
        var%lambdav   = lambdas ! latent heat of sublimation
        var%KT        = zero
     endif
-    if (((Tsoil >= var%Tfrz) .or. (experiment==184)) .and. (S < one)) then ! unsaturated
+    if (((Tsoil >= var%Tfrz-tol) .or. (experiment==184)) .and. (S < one)) then ! unsaturated
        var%h    = parin%he*v3  ! matric potential
        ! dhdS     = -parin%he/parin%lam*S**(-one/parin%lam-one)
        dhdS     = -parin%he/parin%lam*exp((-one/parin%lam-one)*log(S))
@@ -2098,7 +2098,7 @@ CONTAINS
        var%phiT = zero
        var%rh   = max(exp(Mw*gravity*var%h/Rgas/(Tsoil+Tzero)),rhmin)
     endif
-    if (((Tsoil >= var%Tfrz) .or. (experiment==184)) .and. (S >= one)) then ! saturated
+    if (((Tsoil >= var%Tfrz-tol) .or. (experiment==184)) .and. (S >= one)) then ! saturated
        var%h    = parin%he
        dhdS     = zero
        var%K    = parin%Ke
@@ -2190,7 +2190,7 @@ CONTAINS
           ! Hansson et al. (2004) - Eq. 15
           F1 = 13.05_r_2
           F2 = 1.06_r_2
-          if  (Tsoil < var%Tfrz .and. var%thetai .gt. 0._r_2) then ! ice
+          if  (Tsoil < var%Tfrz-tol .and.  var%thetai.gt.zero ) then ! ice
              ! F  = one + F1*var%thetai**F2
              F  = one + F1*exp(F2*log(var%thetai))
              if ((C1*(theta+F*var%thetai))**E > 100.) then
@@ -2609,7 +2609,7 @@ CONTAINS
 
   !**********************************************************************************************************************
 
-  ELEMENTAL PURE SUBROUTINE potential_evap(Rn, rbh, rbw, rpsm,rpsm_h,Ta, rha, Tsoil, k, dz,lambdav, &
+  ELEMENTAL PURE SUBROUTINE potential_evap(Rn, rbh, rbw, Ta, rha, Tsoil, k, dz,lambdav, &
        Ts, E, H, G, &
        dEdrha, dEdTs, dEdTsoil, dGdTa, dGdTsoil,iice)
 
@@ -2617,7 +2617,7 @@ CONTAINS
 
     IMPLICIT NONE
 
-    REAL(r_2), INTENT(IN)  :: Rn, rbh, rbw, Ta, rha, Tsoil, k, dz, lambdav,rpsm,rpsm_h
+    REAL(r_2), INTENT(IN)  :: Rn, rbh, rbw, Ta, rha, Tsoil, k, dz, lambdav
     REAL(r_2), INTENT(OUT) :: Ts, E, H, G, dEdrha, dEdTs, dEdTsoil, dGdTa, dGdTsoil
     LOGICAL, INTENT(IN), OPTIONAL :: iice
     REAL(r_2) :: s, es, ea, dEdea, dEdesat, dTsdTa, dEdDa, Da
@@ -2641,25 +2641,24 @@ CONTAINS
     ea = es * max(rha, 0.1_r_2)
     Da = ea/max(rha, 0.1_r_2) - ea
 
-    E  = (rhocp*(Da*(k*(rbh+rpsm_h) + dz*rhocp) + (rbh+rpsm_h)*s*(dz*Rn + k*(-Ta + Tsoil)))) / &
-         (gamma*(rbw+rpsm)*(k*(rbh+rpsm_h) + dz*rhocp) + dz*(rbh+rpsm_h)*rhocp*s)
-    Ts = Ta + E*gamma*(rbw+rpsm)/s/rhocp - Da/s
-    H  = rhocp*(Ts - Ta)/(rbh+rpsm_h)
+    E  = (rhocp*(Da*(k*rbh + dz*rhocp) + rbh*s*(dz*Rn + k*(-Ta + Tsoil)))) / &
+         (gamma*rbw*(k*rbh + dz*rhocp) + dz*rbh*rhocp*s)
+    Ts = Ta + E*gamma*rbw/s/rhocp - Da/s
+    H  = rhocp*(Ts - Ta)/rbh
     G  = k*(Ts-Tsoil)/dz
 
-    dEdDa    = (-(k*(rbh+rpsm_h)*rhocp) - dz*rhocp**2)/(gamma*k*(rbh+rpsm_h)*(rbw+rpsm) + dz*gamma*(rbw+rpsm)*rhocp + dz*(rbh+rpsm_h)*rhocp*s)
+    dEdDa    = (-(k*rbh*rhocp) - dz*rhocp**2)/(gamma*k*rbh*rbw + dz*gamma*rbw*rhocp + dz*rbh*rhocp*s)
     dEdea    = -dEdDa
     dEdesat  = dEdea
     dEdrha   = dEdea *es
     !dEdTa    = (k*rbh*rhocp*s)/(gamma*k*rbh*rbw + dz*gamma*rbw*rhocp + dz*rbh*rhocp*s) + dEdesat *s
-    dEdTsoil = -((k*(rbh+rpsm_h)*rhocp*s)/(gamma*k*(rbh+rpsm_h)*(rbw+rpsm) + dz*gamma*(rbw+rpsm)*rhocp + dz*(rbh+rpsm_h)*rhocp*s))
+    dEdTsoil = -((k*rbh*rhocp*s)/(gamma*k*rbh*rbw + dz*gamma*rbw*rhocp + dz*rbh*rhocp*s))
 
-    dTsdTa   = (-(dz*gamma*(rbw+rpsm)*rhocp) - dz*(rbh+rpsm_h)*rhocp*s)/(gamma*k*(rbh+rpsm_h)*(rbw+rpsm) + dz*gamma*(rbw+rpsm)*rhocp + dz*(rbh+rpsm_h)*rhocp*s)
+    dTsdTa   = (-(dz*gamma*rbw*rhocp) - dz*rbh*rhocp*s)/(gamma*k*rbh*rbw + dz*gamma*rbw*rhocp + dz*rbh*rhocp*s)
 
     dGdTa    = k/dz * dTsdTa
     dGdTsoil = -k/dz !+k/dz*dEdTsoil*gamma*rbw/s/rhocp
     dEdTs = s*rhocp/gamma/rbw
-
 
   END SUBROUTINE potential_evap
 

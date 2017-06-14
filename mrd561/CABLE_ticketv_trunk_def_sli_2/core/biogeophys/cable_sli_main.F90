@@ -1,4 +1,4 @@
-SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, rough,SEB_only)
+SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
 
   ! Main subroutine for Soil-litter-iso soil model
   ! Vanessa Haverd, CSIRO Marine and Atmospheric Research
@@ -6,7 +6,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, rough,SEB
   ! Modified to operate for multiple veg tiles but a single soil column, March 2011
   ! Rewritten for same number of soil columns as veg tiles May 2012
   USE cable_def_types_mod,       ONLY: veg_parameter_type, soil_parameter_type, soil_snow_type, met_type, &
-       canopy_type, air_type, radiation_type, roughness_type,ms, mp, r_2, i_d
+       canopy_type, air_type, radiation_type, ms, mp, r_2, i_d
   USE cable_common_module , ONLY: cable_user
   USE sli_numbers,        ONLY:  zero, half, one, two, four, thousand, & ! numbers
        Tzero, experiment, &                                       ! variables
@@ -18,12 +18,14 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, rough,SEB
   USE sli_roots,          ONLY: setroots, getrex
   USE sli_solve,          ONLY: solve
 
-  use cable_soil_snow_gw_module, only: iterative_wtd,ovrlndflx,subsurface_drainage,calc_soil_hydraulic_props,aquifer_recharge
+  USE cable_soil_snow_GW_module, only: iterative_wtd,calc_soil_hydraulic_props,ovrlndflx,&
+                                       subsurface_drainage,aquifer_recharge
 
+  USE  cable_IO_vars_module, ONLY: wlogn, verbose
 
   IMPLICIT NONE
   !INTEGER, INTENT(IN)            :: wlogn
-  INTEGER :: wlogn = 10001 
+  !INTEGER :: wlogn = 10001   !use correct value from io_vars module
   REAL,                      INTENT(IN)    :: dt
   TYPE(veg_parameter_type),  INTENT(INOUT) :: veg     ! all r_1
   TYPE(soil_parameter_type), INTENT(INOUT) :: soil    ! all r_1
@@ -32,7 +34,6 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, rough,SEB
   TYPE(canopy_type),         INTENT(INOUT) :: canopy  ! all r_1
   TYPE(air_type),            INTENT(INOUT) :: air     ! all r_1
   TYPE (radiation_type),     INTENT(IN)    :: rad
-  TYPE(roughness_type),      INTENT(INOUT) :: rough     ! all r_1
   INTEGER,                   INTENT(IN)    :: ktau ! integration step number
   INTEGER,                   INTENT(IN)    :: SEB_only ! integration step number
 
@@ -99,9 +100,8 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, rough,SEB
   LOGICAL, SAVE :: first = .true.
   INTEGER(i_d), SAVE  :: counter
 
-  REAL(r_2),dimension(mp) :: dz_litter,zaq,litter_dz
-  REAL(r_2),dimension(ms) :: dzmm,zmm
-
+  REAL(r_2), DIMENSION(ms) :: zmm,dzmm
+  REAL(r_2), DIMENSION(mp) :: zaq
 
   ! initialise cumulative variables
   ! Jcol_sensible = zero
@@ -136,7 +136,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, rough,SEB
   hice       = zero
 
   ! output files for testing purposes
-  if (first) then
+  if (first .and. verbose) then
      open (unit=332,file="vh08.out",status="replace",position="rewind")
      open (unit=334,file="S.out",status="replace",position="rewind")
      open (unit=336,file="Tsoil.out",status="replace",position="rewind")
@@ -203,8 +203,15 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, rough,SEB
 
   vmet%Ta  = real(met%Tvair,r_2) - Tzero
   vmet%Da  = real(met%dva,r_2)
-  vmet%rbh = ssnow%rtsoil
-  vmet%rbw = vmet%rbh
+
+  if (cable_user%or_evap .and. SEB_only==1) then
+     vmet%rbh = ssnow%rtsoil +  (one - &
+                    ssnow%satfrac(:))*ssnow%rtevap_unsat(:) + ssnow%satfrac(:)*ssnow%rtevap_sat(:)
+     vmet%rbw = vmet%rbh + canopy%sublayer_dz(:)/(0.27_r_2/1189.8)
+  else
+     vmet%rbh = ssnow%rtsoil
+     vmet%rbw = vmet%rbh
+  end if
 
   gr       = four * emsoil * (vmet%Ta+Tzero)**3 *5.67e-8_r_2 ! radiation conductance Wm-2K-1
   grc      = one/vmet%rbh   + gr/rhocp
@@ -285,10 +292,19 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, rough,SEB
   Tsoil = ssnow%Tsoil
   TL(:) = Tsoil(:,1) ! litter T
 
-  thetai      = ssnow%thetai
-  var%thetai = thetai
+  !thetai      = ssnow%thetai
+  !var%thetai = thetai
   ssnow%smelt = zero
   ssnow%cls   = one
+
+  !mrd561 UM changes
+  thetai      =ssnow%wbice! ssnow%thetai
+  var%thetai = thetai
+  do k=1,ms
+     do i=1,mp
+        ssnow%S(i,k) = ssnow%wb(i,k)/(par(i,k)%thr+(par(i,k)%the-par(i,k)%thr))
+     end do
+  end do
   S           = ssnow%S                ! degree of soil saturation
 
 
@@ -408,10 +424,10 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, rough,SEB
   lE_old  = ssnow%lE
   gamm    = real(veg%gamma,r_2)
   where (canopy%through>=met%precip_sn)
-     qprec      = (canopy%through-met%precip_sn)/thousand/dt              ! liq precip rate (m s-1)
+     qprec      = max((canopy%through-met%precip_sn)/thousand/dt , zero)             ! liq precip rate (m s-1)
      qprec_snow = (met%precip_sn)/thousand/dt
   elsewhere
-     qprec = canopy%through
+     qprec = max(canopy%through, zero)
      qprec_snow = zero
   endwhere
 
@@ -454,10 +470,6 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, rough,SEB
   infil  = zero
   drn    = zero
 
-  if (cable_user%test_new_gw) then
-     botbc = "zero flux"
-  end if
-
   if (SEB_only == 0) then
 
      if (cable_user%fwsoil_switch.ne.'Haverd2013') then
@@ -480,10 +492,13 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, rough,SEB
 
      if (cable_user%test_new_gw) then
 
+        botbc = "zero flux"
+
         CALL calc_soil_hydraulic_props(ssnow,soil,veg)
+
         ssnow%fwtop(:) = qprec(:)*thousand  !mm/s
+
         call  ovrlndflx (dt, ktau, ssnow, soil, veg,cable_user%test_new_gw )
-         
 
         qprec = ssnow%fwtop(:)/thousand  !=> mm/s to ???? says cm/h but I think it is m/s
      
@@ -491,34 +506,32 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, rough,SEB
         CALL subsurface_drainage(ssnow,soil,veg,dzmm)
 
         ssnow%qhlev(:,1:ms+1) = ssnow%qhlev(:,1:ms+1)/thousand   !mm/s to m/s
+
         !note aquifer level left in mm/s 
+        !add to source/sink
         qex(:,:) = qex(:,:) + ssnow%qhlev(:,1:ms)
-        ssnow%qhlev(:,1:ms) = 0._r_2
+
+        ssnow%qhlev(:,1:ms) = 0._r_2  !not needed?
 
         !calcuate the amount of recharge
-        do i=1,ms
-           zmm(i) = thousand*(sum(real(soil%zse,r_2),dim=1))
-        end do
+        zmm(:) = thousand*(sum(real(soil%zse,r_2),dim=1))
+        zaq(:) = zmm(:) + 0.5_r_2*soil%GWdz(:)*thousand
+        call aquifer_recharge(dt,ssnow,soil,veg,zaq,zmm)
 
-        zaq(:) = zmm(ms) + 0.5_r_2*soil%GWdz(:)*thousand
-
-        CALL aquifer_recharge(dt,ssnow,soil,veg,zaq,zmm)
-
-        !add recharge to qex
+        !add recharge to source/sink term
         qex(:,ms) = qex(:,ms) + ssnow%Qrecharge(:)/thousand
 
-!        do i=1,ms
-!           write(wlogn,*) 'max qex lev ',i,' is ',maxval(qex(:,i),dim=1)
-!        end do
-!           write(wlogn,*) 'max recharege is ',maxval(ssnow%Qrecharge(:),dim=1)
-!           write(wlogn,*) 'min recharege is ',minval(ssnow%Qrecharge(:),dim=1)
+        !call ovrland_flux
 
+        !find subsurface drainage
 
-     else
-        ssnow%qhlev(:,:) = zero
+        !calculate the recharge amount
+
      end if
 
-  end if
+
+
+  endif
 
   ! topmodel - 0:no; 1: only sat; 2: only base; 3: sat and base
   zdelta     = zero
@@ -542,15 +555,8 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, rough,SEB
   endif
 
 
-  if (SEB_only == 1) then
 
-     if (cable_user%or_evap) then
-          vmet(:)%rpsm = (1._r_2 - ssnow%satfrac(:))*ssnow%rtevap_unsat(:) + ssnow%satfrac(:)*ssnow%rtevap_sat(:)
-          vmet(:)%rpsm_h = canopy%sublayer_dz(:)/ (0.2 / (1932.0*62.0))
-     else
-        vmet(:)%rpsm = zero
-        vmet(:)%rpsm_h = zero
-     end if
+  if (SEB_only == 1) then
 
      do kk=1, mp
 
@@ -576,7 +582,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, rough,SEB
      rbh = vmet(1)%rbh
      rrc = vmet(1)%rrc
 !write(*,*), 'b4 solve', ktau
-     call solve(wlogn, ti, tf, ktau, mp, qprec, qprec_snow, ms, dx, &
+     call solve( ti, tf, ktau, mp, qprec, qprec_snow, ms, dx, &
           h0, S, thetai, Jsensible, Tsoil, evap, &
           evap_pot, runoff, infil, drn, discharge, qh, &
           nsteps, vmet, vlit, vsnow, var, csoil, kth, phi, T0, Tsurface, &
@@ -618,7 +624,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, rough,SEB
      wp  = sum((par%thr + (par%the-par%thr)*S)*dx,2) + plit%thre*SL*dxL 
      win = win + (qprec+qprec_snow)*(tf-ti)
 
-     if (1 == 0) then
+     if (verbose) then
         k=1
         write(332,"(i8,i8,18e16.6)") ktau, nsteps(k), wp(k)-wpi(k), infil(k)-drn(k), runoff(k), &
              win(k)-(wp(k)-wpi(k)+deltah0(k)+runoff(k)+evap(k)+drn(k))-Etrans(k)*dt, wp(k), &
@@ -667,6 +673,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, rough,SEB
            end if
         end do  
      end if
+
 
 
      ! Update variables for output:
