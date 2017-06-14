@@ -18,8 +18,8 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
   USE sli_roots,          ONLY: setroots, getrex
   USE sli_solve,          ONLY: solve
 
-  USE cable_soil_snow_GW_module, only: iterative_wtd,calc_soil_hydraulic_props,ovrlndflx,&
-                                       subsurface_drainage,aquifer_recharge
+  !USE cable_soil_snow_GW_module, only: iterative_wtd,calc_soil_hydraulic_props,ovrlndflx,&
+  !                                     subsurface_drainage,aquifer_recharge
 
   USE  cable_IO_vars_module, ONLY: wlogn, verbose
 
@@ -204,14 +204,16 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
   vmet%Ta  = real(met%Tvair,r_2) - Tzero
   vmet%Da  = real(met%dva,r_2)
 
-  if (cable_user%or_evap .and. SEB_only==1) then
-     vmet%rbh = ssnow%rtsoil +  (one - &
-                    ssnow%satfrac(:))*ssnow%rtevap_unsat(:) + ssnow%satfrac(:)*ssnow%rtevap_sat(:)
-     vmet%rbw = vmet%rbh + canopy%sublayer_dz(:)/(0.27_r_2/1189.8)
-  else
+!  if (cable_user%or_evap .and. SEB_only==1) then
+!     do i=1,mp
+!        vmet(i)%rbh = ssnow%rtsoil(i) +  (one - &
+!                    ssnow%satfrac(i))*ssnow%rtevap_unsat(i) + ssnow%satfrac(i)*ssnow%rtevap_sat(i)
+!        vmet(i)%rbw = vme(i)t%rbh + canopy%sublayer_dz(i)/(0.27_r_2/1189.8)
+!     end do
+!  else
      vmet%rbh = ssnow%rtsoil
      vmet%rbw = vmet%rbh
-  end if
+!  end if
 
   gr       = four * emsoil * (vmet%Ta+Tzero)**3 *5.67e-8_r_2 ! radiation conductance Wm-2K-1
   grc      = one/vmet%rbh   + gr/rhocp
@@ -488,46 +490,46 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
         qex(:,k)= ssnow%rex(:,k)
      enddo
 
-     call iterative_wtd (ssnow, soil, veg, ktau, cable_user%test_new_gw)
-
-     if (cable_user%test_new_gw) then
-
-        botbc = "zero flux"
-
-        CALL calc_soil_hydraulic_props(ssnow,soil,veg)
-
-        ssnow%fwtop(:) = qprec(:)*thousand  !mm/s
-
-        call  ovrlndflx (dt, ktau, ssnow, soil, veg,cable_user%test_new_gw )
-
-        qprec = ssnow%fwtop(:)/thousand  !=> mm/s to ???? says cm/h but I think it is m/s
-     
-        dzmm = dx(1,:)*thousand
-        CALL subsurface_drainage(ssnow,soil,veg,dzmm)
-
-        ssnow%qhlev(:,1:ms+1) = ssnow%qhlev(:,1:ms+1)/thousand   !mm/s to m/s
-
-        !note aquifer level left in mm/s 
-        !add to source/sink
-        qex(:,:) = qex(:,:) + ssnow%qhlev(:,1:ms)
-
-        ssnow%qhlev(:,1:ms) = 0._r_2  !not needed?
-
-        !calcuate the amount of recharge
-        zmm(:) = thousand*(sum(real(soil%zse,r_2),dim=1))
-        zaq(:) = zmm(:) + 0.5_r_2*soil%GWdz(:)*thousand
-        call aquifer_recharge(ssnow,soil,veg,zaq,zmm,dzmm)
-
-        !add recharge to source/sink term
-        qex(:,ms) = qex(:,ms) + ssnow%Qrecharge(:)/thousand
-
-        !call ovrland_flux
-
-        !find subsurface drainage
-
-        !calculate the recharge amount
-
-     end if
+!     call iterative_wtd (ssnow, soil, veg, ktau, cable_user%test_new_gw)
+!
+!     if (cable_user%test_new_gw) then
+!
+!        botbc = "zero flux"
+!
+!        CALL calc_soil_hydraulic_props(ssnow,soil,veg)
+!
+!        ssnow%fwtop(:) = qprec(:)*thousand  !mm/s
+!
+!        call  ovrlndflx (dt, ktau, ssnow, soil, veg,cable_user%test_new_gw )
+!
+!        qprec = ssnow%fwtop(:)/thousand  !=> mm/s to ???? says cm/h but I think it is m/s
+!     
+!        dzmm = dx(1,:)*thousand
+!        CALL subsurface_drainage(ssnow,soil,veg,dzmm)
+!
+!        ssnow%qhlev(:,1:ms+1) = ssnow%qhlev(:,1:ms+1)/thousand   !mm/s to m/s
+!
+!        !note aquifer level left in mm/s 
+!        !add to source/sink
+!        qex(:,:) = qex(:,:) + ssnow%qhlev(:,1:ms)
+!
+!        ssnow%qhlev(:,1:ms) = 0._r_2  !not needed?
+!
+!        !calcuate the amount of recharge
+!        zmm(:) = thousand*(sum(real(soil%zse,r_2),dim=1))
+!        zaq(:) = zmm(:) + 0.5_r_2*soil%GWdz(:)*thousand
+!        call aquifer_recharge(ssnow,soil,veg,zaq,zmm,dzmm)
+!
+!        !add recharge to source/sink term
+!        qex(:,ms) = qex(:,ms) + ssnow%Qrecharge(:)/thousand
+!
+!        !call ovrland_flux
+!
+!        !find subsurface drainage
+!
+!        !calculate the recharge amount
+!
+!     end if
 
 
 
@@ -655,24 +657,24 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
 
      endif
 
-     if (cable_user%test_new_gw) then
-
-        do i=1,mp
-           ssnow%GWwb(i) = ssnow%GWwb(i)  + (ssnow%Qrecharge(i)-ssnow%qhlev(i,ms+1))*dt/soil%GWdz(i)/thousand
-  
-           if (ssnow%GWwb(i) .gt. soil%GWssat_vec(i)) then
-              ssnow%qhlev(i,ms+1) = ssnow%qhlev(i,ms+1)  + (ssnow%GWwb(i) - soil%GWssat_vec(i))*soil%GWdz(i)*thousand/dt
-              ssnow%GWwb(i) = soil%GWssat_vec(i)
-              ssnow%qhz(i) = sum(ssnow%qhlev(i,1:ms+1),dim=1) 
-           end if
-  
-           if (ssnow%GWwb(i) .lt. soil%GWwatr(i)) then
-              ssnow%qhlev(i,ms+1) = ssnow%qhlev(i,ms+1)  - (ssnow%GWwb(i) - soil%GWwatr(i))*soil%GWdz(i)*thousand/dt
-              ssnow%GWwb(i) = soil%GWwatr(i)
-              ssnow%qhz(i) = sum(ssnow%qhlev(i,1:ms+1),dim=1) 
-           end if
-        end do  
-     end if
+!     if (cable_user%test_new_gw) then
+!
+!        do i=1,mp
+!           ssnow%GWwb(i) = ssnow%GWwb(i)  + (ssnow%Qrecharge(i)-ssnow%qhlev(i,ms+1))*dt/soil%GWdz(i)/thousand
+!  
+!           if (ssnow%GWwb(i) .gt. soil%GWssat_vec(i)) then
+!              ssnow%qhlev(i,ms+1) = ssnow%qhlev(i,ms+1)  + (ssnow%GWwb(i) - soil%GWssat_vec(i))*soil%GWdz(i)*thousand/dt
+!              ssnow%GWwb(i) = soil%GWssat_vec(i)
+!              ssnow%qhz(i) = sum(ssnow%qhlev(i,1:ms+1),dim=1) 
+!           end if
+!  
+!           if (ssnow%GWwb(i) .lt. soil%GWwatr(i)) then
+!              ssnow%qhlev(i,ms+1) = ssnow%qhlev(i,ms+1)  - (ssnow%GWwb(i) - soil%GWwatr(i))*soil%GWdz(i)*thousand/dt
+!              ssnow%GWwb(i) = soil%GWwatr(i)
+!              ssnow%qhz(i) = sum(ssnow%qhlev(i,1:ms+1),dim=1) 
+!           end if
+!        end do  
+!     end if
 
 
 
