@@ -516,7 +516,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
         !calcuate the amount of recharge
         zmm(:) = thousand*(sum(real(soil%zse,r_2),dim=1))
         zaq(:) = zmm(:) + 0.5_r_2*soil%GWdz(:)*thousand
-        call aquifer_recharge(dt,ssnow,soil,veg,zaq,zmm)
+        call aquifer_recharge(dt,ssnow,soil,veg,zaq,zmm,zmm)
 
         !add recharge to source/sink term
         qex(:,ms) = qex(:,ms) + ssnow%Qrecharge(:)/thousand
