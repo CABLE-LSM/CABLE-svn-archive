@@ -285,7 +285,7 @@ MODULE cable_common_module
         zdepth=1.0,             & !level where hyds_vec(z) = hyds_vec(no z)
         frozen_frac=0.05,       & !ice fraction to determine first non-frozen layer for qsub
         SoilEvapAlpha = 1.0,    & !modify field capacity dependence of soil evap limit
-        IceAlpha=1.0,           &
+        IceAlpha=3.0,           &
         IceBeta=1.0
 
    END TYPE gw_parameters_type

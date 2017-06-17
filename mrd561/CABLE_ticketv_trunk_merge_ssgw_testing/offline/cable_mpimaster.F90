@@ -768,8 +768,8 @@ CONTAINS
 
            !  CALL MPI_Waitall (wnp, inp_req, inp_stats, ierr)
           ELSE 
-         !    CALL master_send_input (icomm, casa_dump_ts, iktau)
-          !   CALL MPI_Waitall (wnp, inp_req, inp_stats, ierr)
+             CALL master_send_input (icomm, casa_dump_ts, iktau)
+             CALL MPI_Waitall (wnp, inp_req, inp_stats, ierr)
           ENDIF
 
           IF (spincasa.OR. casaonly) THEN
@@ -784,7 +784,6 @@ CONTAINS
              oktau = oktau + 1
 
              write(logn,*) 'Progress -',real(ktau)/real(kend)*100.0
-             flush(logn)
 
              met%year = imet%year
              met%doy = imet%doy
