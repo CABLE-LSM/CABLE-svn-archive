@@ -108,12 +108,26 @@ SUBROUTINE init_radiation( met, rad, veg, canopy )
    ! Canopy REFLection of diffuse radiation for black leaves:
    DO ictr=1,nrb
 
+!!$     rad%rhocdf(:,ictr) = rhoch(:,ictr) *                                      &
+!!$                          ( C%GAUSS_W(1) * xk(:,1) / ( xk(:,1) + rad%extkd(:) )&
+!!$                          + C%GAUSS_W(2) * xk(:,2) / ( xk(:,2) + rad%extkd(:) )&
+!!$                          + C%GAUSS_W(3) * xk(:,3) / ( xk(:,3) + rad%extkd(:) ) )
+   !! Ticket #147  (vh)
+   !! the above line is incorrect, as it is missing a factor of 2 in the numerator.
+   !! (See equation 6.21 from Goudriaan & van Laar 1994)
+   !! The correct version below doubles canopy reflectance for diffuse radiation.
+   !! (Note it is correctly implemented in the evaluation of canopy beam reflectance
+   !! rad%rhocbm in canopy_albedo.F90).
+
      rad%rhocdf(:,ictr) = rhoch(:,ictr) *                                      &
-                          ( C%GAUSS_W(1) * xk(:,1) / ( xk(:,1) + rad%extkd(:) )&
-                          + C%GAUSS_W(2) * xk(:,2) / ( xk(:,2) + rad%extkd(:) )&
-                          + C%GAUSS_W(3) * xk(:,3) / ( xk(:,3) + rad%extkd(:) ) )
+                          ( C%GAUSS_W(1) * 2. *xk(:,1) / ( xk(:,1) + rad%extkd(:) )&
+                          + C%GAUSS_W(2) * 2. *xk(:,2) / ( xk(:,2) + rad%extkd(:) )&
+                          + C%GAUSS_W(3) * 2. *xk(:,3) / ( xk(:,3) + rad%extkd(:) ) )
+
 
    ENDDO
+
+
 
    IF( .NOT. cable_runtime%um) THEN
 
@@ -133,8 +147,8 @@ SUBROUTINE init_radiation( met, rad, veg, canopy )
    ! In gridcells where vegetation exists....
 
 !!vh !! include RAD_THRESH in condition
-   WHERE (canopy%vlaiw > C%LAI_THRESH .and. rad%fbeam(:,1).GE.C%RAD_THRESH   )
-
+  ! WHERE (canopy%vlaiw > C%LAI_THRESH .and. rad%fbeam(:,1).GE.C%RAD_THRESH   )
+   WHERE (canopy%vlaiw > C%LAI_THRESH) 
       ! SW beam extinction coefficient ("black" leaves, extinction neglects
       ! leaf SW transmittance and REFLectance):
       rad%extkb = xphi1 / met%coszen + xphi2
@@ -147,11 +161,11 @@ SUBROUTINE init_radiation( met, rad, veg, canopy )
       rad%extkb = rad%extkd + 0.001
    END WHERE
 
-   WHERE(rad%fbeam(:,1) < C%RAD_THRESH )
-      ! higher value precludes sunlit leaves at night. affects
-      ! nighttime evaporation - Ticket #90 
-      rad%extkb=1.0e5 
-   END WHERE
+!!$   WHERE(rad%fbeam(:,1) < C%RAD_THRESH )
+!!$      ! higher value precludes sunlit leaves at night. affects
+!!$      ! nighttime evaporation - Ticket #90 
+!!$      rad%extkb=1.0e5 
+!!$    END WHERE
 
 END SUBROUTINE init_radiation
 
@@ -403,6 +417,7 @@ FUNCTION spitter(doy, coszen, fsd) RESULT(fbeam)
       tmprat        !
 
    REAL, PARAMETER :: solcon = 1370.0
+   INTEGER :: k
 
    fbeam = 0.0
    tmpr = 0.847 + coszen * (1.04 * coszen - 1.61)
@@ -420,6 +435,11 @@ FUNCTION spitter(doy, coszen, fsd) RESULT(fbeam)
    WHERE ( tmprat > 0.35 ) fbeam = MIN( 1.66 * tmprat - 0.4728, 1.0 )
 
    WHERE ( tmprat > tmpk ) fbeam = MAX( 1.0 - tmpr, 0.0 )
+
+   DO k=1,mp
+      IF (fbeam(k) .le. 0.01) fbeam(k) = 0.0
+   ENDDO
+              
 
 END FUNCTION spitter
 

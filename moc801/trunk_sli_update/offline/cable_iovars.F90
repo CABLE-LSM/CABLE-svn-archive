@@ -361,7 +361,10 @@ MODULE cable_IO_vars_module
                                               ! has no LAI
    REAL :: fixedCO2 ! CO2 level if CO2air not in met file
 
-  ! For threading:
-  !$OMP THREADPRIVATE(landpt,patch)
+   ! for mpi debugging
+   INTEGER :: wlogn
+
+   ! For threading:
+   !$OMP THREADPRIVATE(landpt,patch)
 
 END MODULE cable_IO_vars_module

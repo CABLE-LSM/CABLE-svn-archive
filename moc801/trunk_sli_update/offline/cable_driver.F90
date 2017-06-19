@@ -300,13 +300,11 @@ PROGRAM cable_offline_driver
      ELSEIF  ( CABLE_USER%YearStart.eq.0 .and. ncciy.eq.0) THEN
         PRINT*, 'undefined start year for gswp met: '
         PRINT*, 'enter value for ncciy or'  
-        PRINT*, '(CABLE_USER%YearStart and  CABLE_USER%YearEnd) &
-             in cable.nml'
+        PRINT*, '(CABLE_USER%YearStart and  CABLE_USER%YearEnd) in cable.nml'
 
         write(logn,*) 'undefined start year for gswp met: '
         write(logn,*) 'enter value for ncciy or'  
-        write(logn,*) '(CABLE_USER%YearStart and  CABLE_USER%YearEnd) &
-             in cable.nml'
+        write(logn,*) '(CABLE_USER%YearStart and  CABLE_USER%YearEnd) in cable.nml'
 
         stop
      ENDIF
@@ -460,8 +458,7 @@ PROGRAM cable_offline_driver
                  str2 = adjustl(str2)
                  write(str3,'(i2)') 1
                  str3 = adjustl(str3)
-                 timeunits="seconds since "//trim(str1)//"-"//trim(str2)//"-"//trim(str3)//" &
-                            00:00"
+                 timeunits="seconds since "//trim(str1)//"-"//trim(str2)//"-"//trim(str3)//" 00:00"
                
 	      ENDIF
 	      IF ( .NOT. PLUME%LeapYears ) LOY = 365
@@ -485,9 +482,7 @@ PROGRAM cable_offline_driver
                  str2 = adjustl(str2)
                  write(str3,'(i2)') 1
                  str3 = adjustl(str3)
-                 timeunits="seconds since "//trim(str1)//"-"//trim(str2)//"-"//trim(str3)//" &
-                            00:00"
-
+                 timeunits="seconds since "//trim(str1)//"-"//trim(str2)//"-"//trim(str3)//" 00:00"
 
 	      ENDIF
 	       LOY = 365
@@ -821,16 +816,14 @@ PROGRAM cable_offline_driver
                     if (ktau == kend) PRINT*, "time-space-averaged energy & water balances"
                     if (ktau == kend) PRINT*,"Ebal_tot[Wm-2], Wbal_tot[mm per timestep]", &
                          sum(bal%ebal_tot)/mp/count_bal, sum(bal%wbal_tot)/mp/count_bal
-                    if (ktau == kend) PRINT*, "time-space-averaged latent heat and &
-                         net photosynthesis"
+                    if (ktau == kend) PRINT*, "time-space-averaged latent heat and net photosynthesis"
                     if (ktau == kend) PRINT*, "sum_fe[Wm-2], sum_fpn[umol/m2/s]",  &
                          new_sumfe/count_bal, new_sumfpn/count_bal
                     if (ktau == kend) write(logn,*)
                     if (ktau == kend) write(logn,*), "time-space-averaged energy & water balances"
                     if (ktau == kend) write(logn,*),"Ebal_tot[Wm-2], Wbal_tot[mm per timestep]", &
                          sum(bal%ebal_tot)/mp/count_bal, sum(bal%wbal_tot)/mp/count_bal
-                    if (ktau == kend) write(logn,*), "time-space-averaged latent heat and &
-                         net photosynthesis"
+                    if (ktau == kend) write(logn,*), "time-space-averaged latent heat and net photosynthesis"
                     if (ktau == kend) write(logn,*), "sum_fe[Wm-2], sum_fpn[umol/m2/s]",  &
                          new_sumfe/count_bal, new_sumfpn/count_bal
                   
