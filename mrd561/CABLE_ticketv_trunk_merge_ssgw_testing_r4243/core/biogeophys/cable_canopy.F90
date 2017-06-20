@@ -42,7 +42,7 @@
 MODULE cable_canopy_module
 
   USE cable_data_module, ONLY : icanopy_type, point2constants
-  USE cable_gw_hydro_module, ONLY : calc_srf_wet_fraction
+  USE cable_soil_snow_gw_module, ONLY : calc_srf_wet_fraction
   USE cable_IO_vars_module, ONLY: wlogn
 
   USE cable_psm, only: or_soil_evap_resistance
@@ -490,7 +490,7 @@ CONTAINS
        ELSEIF (cable_user%soil_struc=='sli') THEN
           ! SLI SEB to get canopy%fhs, canopy%fess, canopy%ga
           ! (Based on old Tsoil, new canopy%tv, new canopy%fns)
-          CALL sli_main(1,dels,veg,soil,ssnow,met,canopy,air,rad,1)
+          CALL sli_main(1,dels,veg,soil,ssnow,met,canopy,air,rad,rough,1)
        ENDIF
 
 
@@ -555,7 +555,7 @@ CONTAINS
        ELSEIF (cable_user%soil_struc=='sli') THEN
           ! SLI SEB to get canopy%fhs, canopy%fess, canopy%ga
           ! (Based on old Tsoil, new canopy%tv, new canopy%fns)
-          CALL sli_main(1,dels,veg,soil,ssnow,met,canopy,air,rad,1)
+          CALL sli_main(1,dels,veg,soil,ssnow,met,canopy,air,rad,rough,1)
        ENDIF
 
        ! Set total latent heat:
@@ -899,11 +899,6 @@ CONTAINS
          IF( ssnow%snowd(j)>1.0 .OR. ssnow%tgg(j,1).EQ.C%tfrz)                      &
               dq(j) = max( -0.1e-3, dq(j))
       ENDDO
-
-      IF (cable_user%gw_model .or. cable_user%or_evap) then
-         dq = max( -0.1e-3, dq)
-         dq2 = max( -0.1e-3, dq2)
-      END IF
 
       IF (cable_user%litter) THEN
          !! vh_js !!
@@ -1428,8 +1423,7 @@ CONTAINS
     ! used to stabilise latent fluxes.
     ! to avoid excessive direct canopy evaporation (EK nov2007, snow scheme)
     upper_limit = 4.0 * MIN(dels,1800.0) / (60.0 * 1440.0 )
-    canopy%through_sn = met%precip_sn  !all snow falls through the canopy
-    ftemp =MIN(met%precip-canopy%through_sn, upper_limit )
+    ftemp =MIN(met%precip-met%precip_sn, upper_limit )
     ! Calculate canopy intercepted rainfall, equal to zero if temp < 0C:
     lower_limit = cansat - canopy%cansto
     upper_limit = max(lower_limit, 0.0)
@@ -1437,8 +1431,8 @@ CONTAINS
          ftemp > 0.0  .AND. met%tk > C%tfrz)  !EAK, 09/10
 
     ! Define canopy throughfall (100% of precip if temp < 0C, see above):
-    canopy%through = canopy%through_sn + MIN( met%precip - canopy%through_sn ,          &
-         MAX( 0.0, met%precip - canopy%through_sn - canopy%wcint) )
+    canopy%through = met%precip_sn + MIN( met%precip - met%precip_sn ,          &
+         MAX( 0.0, met%precip - met%precip_sn - canopy%wcint) )
 
     ! Add canopy interception to canopy storage term:
     canopy%cansto = canopy%cansto + canopy%wcint

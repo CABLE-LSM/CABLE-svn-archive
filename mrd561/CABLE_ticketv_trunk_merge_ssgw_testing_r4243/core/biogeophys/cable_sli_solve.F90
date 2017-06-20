@@ -1374,18 +1374,13 @@ CONTAINS
                                 real(Tsoil(i)- dTsoil(i)-50., r_2), Tfreezing(kk), real(0.0001,r_2))
                             tmp1d4(kk) = thetalmax(tmp1d3(kk), S(i), par(i)%he, one/(par(i)%lambc*freezefac), &
                                 par(i)%thre, par(i)%the) ! liquid content at solution for Tsoil
-                        !else
-                        !    write(*,*) "Found no solution for Tfrozen 1. Stop. ", kk, i
-                        !    write(*,*) nsteps(kk), S(i), Tsoil(i), dTsoil(i), h0(kk), tmp1, tmp2, tmp1d2(kk), theta
-                        !    stop
-                        !endif
+                        else
+                            write(*,*) "Found no solution for Tfrozen 1. Stop. ", kk, i
+                            write(*,*) nsteps(kk), S(i), Tsoil(i), dTsoil(i), h0(kk), tmp1, tmp2, tmp1d2(kk), theta
+                            stop
+                        endif
                         var(i)%thetal = tmp1d4(kk)
                         var(i)%thetai = theta - tmp1d4(kk)
-                        else
-                        tmp1d4(kk) = var(i)%thetal
-                        var(i)%thetai = theta - tmp1d4(kk)
-                        tmp1d3(kk) = Tsoil(i) 
-                        end if
                     endif ! Tsoil <-20
                     if (i==1) then
                         hice_tmp(kk) = hice(kk)

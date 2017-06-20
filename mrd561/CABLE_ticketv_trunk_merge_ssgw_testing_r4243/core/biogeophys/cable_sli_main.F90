@@ -18,6 +18,9 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
   USE sli_roots,          ONLY: setroots, getrex
   USE sli_solve,          ONLY: solve
 
+  USE cable_soil_snow_GW_module, only: iterative_wtd,calc_soil_hydraulic_props,ovrlndflx,&
+                                       subsurface_drainage,aquifer_recharge
+
   USE  cable_IO_vars_module, ONLY: wlogn, verbose
 
   IMPLICIT NONE
@@ -420,24 +423,14 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
   deltaTa = zero
   lE_old  = ssnow%lE
   gamm    = real(veg%gamma,r_2)
+  where (canopy%through>=met%precip_sn)
+     qprec      = max((canopy%through-met%precip_sn)/thousand/dt , zero)             ! liq precip rate (m s-1)
+     qprec_snow = (met%precip_sn)/thousand/dt
+  elsewhere
+     qprec = max(canopy%through, zero)
+     qprec_snow = zero
+  endwhere
 
-  if (cable_user%test_new_gw) then
-     where (canopy%through>=met%precip_sn)
-        qprec      = ssnow%fwtop/thousand            ! liq precip rate (m s-1)
-        qprec_snow = (met%precip_sn)/thousand/dt
-     elsewhere
-        qprec = max(ssnow%fwtop/thousand, zero)
-        qprec_snow = zero
-     endwhere
-  else
-     where (canopy%through>=met%precip_sn)
-        qprec      = max((canopy%through-met%precip_sn)/thousand/dt , zero)             ! liq precip rate (m s-1)
-        qprec_snow = (met%precip_sn)/thousand/dt
-     elsewhere
-        qprec = max(canopy%through, zero)
-        qprec_snow = zero
-     endwhere
-  end if
   ! re-calculate qprec_snow and qprec based on total precip and air T (ref Jin et al. Table II, Hyd Proc, 1999
   ! qprec_tot = qprec + qprec_snow
   ! where (vmet%Ta > 2.5_r_2)
@@ -495,11 +488,44 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
         qex(:,k)= ssnow%rex(:,k)
      enddo
 
+     call iterative_wtd (ssnow, soil, veg, ktau, cable_user%test_new_gw)
+
      if (cable_user%test_new_gw) then
 
-        qex(:,:) = qex(:,:) + ssnow%qhlev(:,1:ms)/thousand
-        qex(:,ms) = qex(:,ms) + ssnow%Qrecharge(:)/thousand
         botbc = "zero flux"
+
+        CALL calc_soil_hydraulic_props(ssnow,soil,veg)
+
+        ssnow%fwtop(:) = qprec(:)*thousand  !mm/s
+
+        call  ovrlndflx (dt, ktau, ssnow, soil, veg,cable_user%test_new_gw )
+
+        qprec = ssnow%fwtop(:)/thousand  !=> mm/s to ???? says cm/h but I think it is m/s
+     
+        dzmm = dx(1,:)*thousand
+        CALL subsurface_drainage(ssnow,soil,veg,dzmm)
+
+        ssnow%qhlev(:,1:ms+1) = ssnow%qhlev(:,1:ms+1)/thousand   !mm/s to m/s
+
+        !note aquifer level left in mm/s 
+        !add to source/sink
+        qex(:,:) = qex(:,:) + ssnow%qhlev(:,1:ms)
+
+        ssnow%qhlev(:,1:ms) = 0._r_2  !not needed?
+
+        !calcuate the amount of recharge
+        zmm(:) = thousand*(sum(real(soil%zse,r_2),dim=1))
+        zaq(:) = zmm(:) + 0.5_r_2*soil%GWdz(:)*thousand
+        call aquifer_recharge(dt,ssnow,soil,veg,zaq,zmm,zmm)
+
+        !add recharge to source/sink term
+        qex(:,ms) = qex(:,ms) + ssnow%Qrecharge(:)/thousand
+
+        !call ovrland_flux
+
+        !find subsurface drainage
+
+        !calculate the recharge amount
 
      end if
 

@@ -1751,12 +1751,6 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
     REAL(r_2), dimension(mp,ms) :: perc_frac
     REAL(r_2), DIMENSION(17)    :: psi_o,psi_c
     REAL(r_2), DIMENSION(mp,ms) :: psi_tmp
-    REAL(r_2), DIMENSION(ms) :: soil_depth
-
-    soil_depth(1) = real(soil%zse(1),r_2)
-    do klev=2,ms
-       soil_depth(klev) = soil_depth(klev-1) + real(soil%zse(klev),r_2)
-    end do
 
     psi_o(1:3)  = -66000._r_2
     psi_o(4)    = -35000._r_2
@@ -1779,14 +1773,8 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
 
     IF (cable_user%GW_MODEL .and. soilparmnew) then
 
-   gw_params%hkrz               = 0.5 
-   gw_params%zdepth             = 1.0 
-   gw_params%frozen_frac        = 0.05
-
-
        DO klev=1,ms
-          soil%hyds_vec(:,klev) = 0.0070556*10.0**(-0.884 + 0.0153*soil%Fsand(:,klev)*100.0)* &
-                                  exp(-gw_params%hkrz*(soil_depth(klev)-gw_params%zdepth))
+          soil%hyds_vec(:,klev) = 0.0070556*10.0**(-0.884 + 0.0153*soil%Fsand(:,klev)*100.0)
           soil%sucs_vec(:,klev) = 10.0 * 10.0**(1.88 -0.0131*soil%Fsand(:,klev)*100.0)
           soil%bch_vec(:,klev) = 2.91 + 0.159*soil%Fclay(:,klev)*100.0
           soil%ssat_vec(:,klev) = 0.489 - 0.00126*soil%Fsand(:,klev)*100.0
@@ -1837,8 +1825,6 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
        soil%sfc_vec(:,klev) = soil%sfc(:)
        soil%swilt_vec(:,klev)  = soil%swilt(:)
       end do
-      soil%watr = 0._r_2
-      soil%GWwatr = 0._r_2
 
     END IF
 
