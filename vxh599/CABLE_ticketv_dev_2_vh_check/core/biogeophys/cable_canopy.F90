@@ -808,7 +808,8 @@ CONTAINS
           if (cable_user%or_evap) then
              litter_thermal_diff = 0.2 / (1932.0*62.0)
              ssnow%dfh_dtg = air%rho*C%CAPP/(ssnow%rtsoil + canopy%sublayer_dz/litter_thermal_diff)
-             ssnow%dfe_ddq  = ssnow%rh_srf(:) * (1. - ssnow%wetfac)*air%rho*air%rlam*ssnow%cls/(ssnow%rtsoil  +ssnow%rtevap_unsat) + &
+             ssnow%dfe_ddq  = ssnow%rh_srf(:) * (1. - ssnow%wetfac)*air%rho*air%rlam*ssnow%cls/ &
+                  (ssnow%rtsoil  +ssnow%rtevap_unsat) + &
                            ssnow%wetfac(:) * air%rho*air%rlam*ssnow%cls/(ssnow%rtsoil  +ssnow%rtevap_sat)
           else
              ssnow%dfh_dtg = air%rho*C%CAPP/ssnow%rtsoil

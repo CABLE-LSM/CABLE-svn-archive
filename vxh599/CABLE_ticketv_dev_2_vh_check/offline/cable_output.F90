@@ -771,8 +771,7 @@ CONTAINS
 
     IF(output%casa) THEN
        CALL define_ovar(ncid_out, ovid%NBP, 'NBP', 'umol/m^2/s',               &
-                        'Net Biosphere Production &
-                        (uptake +ve)', patchout%NBP,         &
+                        'Net Biosphere Production  (uptake +ve)', patchout%NBP,         &
                         'dummy', xID, yID, zID, landID, patchID, tID)
        ALLOCATE(out%NBP(mp))
        out%NBP = 0.0 ! initialise

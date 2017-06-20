@@ -4,7 +4,40 @@ export dosvn=1 # 1/0: do/do not check svn
 
 known_hosts()
 {
-   set -A kh vayu cher pear shin jigg nXXX raij ces2
+   set -A kh vayu cher pear shin jigg nXXX raij ces2 mcin valh
+}
+
+## 
+host_valh()
+{
+   # GFORTRAN
+   export FC=gfortran
+   # debug
+   export CFLAGS="-Wall -W -O -g -Wno-maybe-uninitialized -cpp -ffree-form -ffixed-line-length-132 -Wno-tabs" # -DVanessas_common"
+   # # release
+   # export CFLAGS="-O3 -Wno-aggressive-loop-optimizations -cpp -ffree-form -ffixed-line-length-132"
+   export LD=''
+   export NCROOT='/usr/local/netcdf-fortran-4.4.2-gfortran/'
+
+   # # NAG
+   # export FC=nagfor
+   # # debug
+   # export CFLAGS="-C -C=dangling -g -nan -O0 -strict95 -gline -fpp -colour -unsharedf95 -kind=byte -ideclient -ieee=full -free -DNAG"
+   # # # release
+   # # export CFLAGS="-O4 -fpp -colour -unsharedf95 -kind=byte -ideclient -ieee=full -free"
+   # export LD='-ideclient -unsharedrts'
+   # export NCROOT='/usr/local/netcdf-fortran-4.4.2-nagfor'
+
+   # All compilers
+   export NCCROOT='/usr/local'
+   export NCCLIB=${NCROOT}'/lib'
+   export NCLIB=${NCROOT}'/lib'
+   export NCMOD=${NCROOT}'/include'
+   export LDFLAGS="-L${NCCLIB} -L${NCLIB} -lnetcdff -lnetcdf -lhdf5_hl -lhdf5 -lsz -lz"
+   export dosvn=0
+   build_build
+   cd ../
+   build_status
 }
 
 

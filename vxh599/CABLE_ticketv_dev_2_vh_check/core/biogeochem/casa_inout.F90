@@ -1237,11 +1237,13 @@ SUBROUTINE casa_cnpflux(casaflux,casapool,casabal,zeroflux)
   TYPE (casa_flux),    INTENT(INOUT) :: casaflux
   TYPE (casa_pool),    INTENT(INOUT) :: casapool
   TYPE (casa_balance), INTENT(INOUT) :: casabal
-  LOGICAL, OPTIONAL, INTENT(IN) :: zeroflux
+  !LOGICAL, OPTIONAL, INTENT(IN) :: zeroflux
+  LOGICAL, INTENT(IN) :: zeroflux
   !  REAL(r_2), INTENT(INOUT) :: clitterinput(mp,3),csoilinput(mp,3)
   INTEGER n
 
-  IF(present(zeroflux) .and. zeroflux) THEN
+  !IF(present(zeroflux) .and. zeroflux) THEN
+  IF(zeroflux) THEN
      casabal%FCgppyear    = 0.0
      casabal%FCrpyear     = 0.0   
      casabal%FCrmleafyear = 0.0

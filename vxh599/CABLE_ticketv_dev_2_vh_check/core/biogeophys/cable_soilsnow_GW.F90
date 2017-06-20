@@ -127,7 +127,8 @@ SUBROUTINE GWstempv(dels, canopy, ssnow, soil)
    LOGICAL :: direct2min = .FALSE.
 
    om_tkm       = 0.25_r_2
-   tkm(:,:) = (1._r_2-soil%Forg(:,:))*(8.80_r_2*soil%Fsand(:,:)+2.92_r_2*soil%Fclay(:,:))/(soil%Fsand(:,:)+2.92_r_2*soil%Fclay(:,:))+om_tkm*soil%Forg(:,:)
+   tkm(:,:) = (1._r_2-soil%Forg(:,:))*(8.80_r_2*soil%Fsand(:,:)+2.92_r_2*soil%Fclay(:,:))/ &
+        (soil%Fsand(:,:)+2.92_r_2*soil%Fclay(:,:))+om_tkm*soil%Forg(:,:)
 
    tkmg(:,:) = tkm(:,:) ** (1._r_2- soil%ssat_vec(:,:))
 
@@ -928,11 +929,11 @@ END SUBROUTINE remove_transGW
        
     CALL aquifer_recharge(ssnow,soil,veg,zaq,zmm,dzmm)
 
-    CALL trimb(at,bt,ct,rt,ms)                       !use the defulat cable tridiag solution
+    CALL trimb(at,bt,ct,rt,ms)                       !use the default cable tridiag solution
 
     do k=1,ms
        do i=1,mp
-          ssnow%wbliq(i,k) = ssnow%wbliq(i,k) + rt(i,k) - ssnow%qhlev(i,k)*dels/dzmm(k)   !volutermic liquid
+          ssnow%wbliq(i,k) = ssnow%wbliq(i,k) + rt(i,k) - ssnow%qhlev(i,k)*dels/dzmm(k)   !volumetric liquid
        end do
     end do
 
@@ -1403,7 +1404,8 @@ SUBROUTINE calc_soil_hydraulic_props(ssnow,soil,veg)
 
    REAL(r_2), DIMENSION(0:ms) :: zimm  !depths at interface between layers
 
-    !soil matric potential, hydraulic conductivity, and derivatives of each with respect to water (calculated using total (not liquid))
+   !soil matric potential, hydraulic conductivity, and derivatives of each with respect to water
+   !(calculated using total (not liquid))
 
    zimm(0)  = 0.0_r_2                                          !depth of layer interfaces mm
    do k=1,ms
@@ -1415,7 +1417,8 @@ SUBROUTINE calc_soil_hydraulic_props(ssnow,soil,veg)
     do k=1,ms
        do i=1,mp
           ssnow%icefrac(i,k) = ssnow%wbice(i,k)/(max(ssnow%wb(i,k),0.01_r_2))
-          ssnow%fracice(i,k) = (exp(gw_params%IceAlpha*(1._r_2-ssnow%icefrac(i,k)))-exp(gw_params%IceAlpha))/(1._r_2-exp(gw_params%IceAlpha))
+          ssnow%fracice(i,k) = (exp(gw_params%IceAlpha*(1._r_2-ssnow%icefrac(i,k)))-exp(gw_params%IceAlpha)) &
+               /(1._r_2-exp(gw_params%IceAlpha))
        end do
     end do
 
@@ -1439,7 +1442,7 @@ SUBROUTINE calc_soil_hydraulic_props(ssnow,soil,veg)
        end do
     end do
 
-    k = ms 
+    k = ms
        do i=1,mp
           s1(i) = 0.5_r_2*(max(ssnow%wb(i,k)-soil%watr(i,k),0.) + max(ssnow%GWwb(i)-soil%GWwatr(i),0.)) / &
                   (0.5_r_2*(soil%ssat_vec(i,k)-soil%watr(i,k) + soil%GWssat_vec(i)-soil%GWwatr(i)))
@@ -1509,7 +1512,8 @@ END SUBROUTINE calc_soil_hydraulic_props
        if ((ssnow%wtd(i) .le. sum(dzmm,dim=1)) .or. (veg%iveg(i) .ge. 16) .or. (soil%isoilm(i) .eq. 9))  then
           ssnow%Qrecharge(i) = 0._r_2
        else
-          ssnow%Qrecharge(i) = -ssnow%hk(i,ms)*((ssnow%GWsmp(i)-ssnow%smp(i,ms)) - (ssnow%GWzq(i)-ssnow%zq(i,ms)))/(zaq(i) - zmm(ms))
+          ssnow%Qrecharge(i) = -ssnow%hk(i,ms)*((ssnow%GWsmp(i)-ssnow%smp(i,ms)) - &
+               (ssnow%GWzq(i)-ssnow%zq(i,ms)))/(zaq(i) - zmm(ms))
        end if
     end do
 
@@ -1560,11 +1564,13 @@ END SUBROUTINE calc_soil_hydraulic_props
          sm_tot(i) = max(sm_tot(i),0.01_r_2)
 
          do k=k_drain,ms
-             ssnow%qhlev(i,k) = ssnow%qhz(i)*max(ssnow%wbliq(i,k)-soil%watr(i,k),0._r_2)/sm_tot(i)*ssnow%hk(i,k)!*dzmm(k)/sm_tot(i)
+            ssnow%qhlev(i,k) = ssnow%qhz(i)*max(ssnow%wbliq(i,k)-soil%watr(i,k),0._r_2)/ &
+                 sm_tot(i)*ssnow%hk(i,k)!*dzmm(k)/sm_tot(i)
          end do
 
        else
-          ssnow%qhlev(i,ms+1) = max(1._r_2-ssnow%fracice(i,ms),0._r_2)*ssnow%qhz(i)*ssnow%GWhk(i)!*max(ssnow%GWwb(i)-soil%watr(i,ms),0._r_2)/sm_tot(i)
+          ssnow%qhlev(i,ms+1) = max(1._r_2-ssnow%fracice(i,ms),0._r_2)* &
+               ssnow%qhz(i)*ssnow%GWhk(i)!*max(ssnow%GWwb(i)-soil%watr(i,ms),0._r_2)/sm_tot(i)
        end if
 
        !incase every layer is frozen very dry
@@ -1593,7 +1599,8 @@ END SUBROUTINE calc_soil_hydraulic_props
 
      S(:) = 0._r_2
      do k=1,ms
-       S(:) = S(:) + max(0.01,min(1.0, (ssnow%wb(:,k)-ssnow%wbice(:,k)-soil%watr(:,k))/max(0.001,soil%ssat_vec(:,k)-soil%watr(:,k)) ) )*soil%zse(k)
+        S(:) = S(:) + max(0.01,min(1.0, (ssnow%wb(:,k)-ssnow%wbice(:,k)-soil%watr(:,k))/ &
+             max(0.001,soil%ssat_vec(:,k)-soil%watr(:,k)) ) )*soil%zse(k)
      end do
      S(:) = S(:)/sum(soil%zse(1:ms),dim=1)
      !srf frozen fraction.  should be based on topography

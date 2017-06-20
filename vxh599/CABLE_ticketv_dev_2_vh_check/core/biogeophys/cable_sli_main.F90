@@ -493,26 +493,28 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
      if (cable_user%test_new_gw) then
 
         botbc = "zero flux"
-
+        ! calculate fraction of the grid-cell that is frozen
         CALL calc_soil_hydraulic_props(ssnow,soil,veg)
 
         ssnow%fwtop(:) = qprec(:)*thousand  !mm/s
-
+        !call ovrland_flux
         call  ovrlndflx (dt, ktau, ssnow, soil, veg,cable_user%test_new_gw )
 
-        qprec = ssnow%fwtop(:)/thousand  !=> mm/s to ???? says cm/h but I think it is m/s
+        ! infiltration
+        qprec = ssnow%fwtop(:)/thousand  ! mm/s to m/s 
      
         dzmm = dx(1,:)*thousand
+        !find subsurface drainage
         CALL subsurface_drainage(ssnow,soil,veg,dzmm)
 
         ssnow%qhlev(:,1:ms+1) = ssnow%qhlev(:,1:ms+1)/thousand   !mm/s to m/s
 
         !note aquifer level left in mm/s 
-        !add to source/sink
+        !add sbsurface runoff to sink
         qex(:,:) = qex(:,:) + ssnow%qhlev(:,1:ms)
 
         ssnow%qhlev(:,1:ms) = 0._r_2  !not needed?
-
+        !calculate the recharge amount
         !calcuate the amount of recharge
         zmm(:) = thousand*(sum(real(soil%zse,r_2),dim=1))
         zaq(:) = zmm(:) + 0.5_r_2*soil%GWdz(:)*thousand
@@ -520,13 +522,6 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
 
         !add recharge to source/sink term
         qex(:,ms) = qex(:,ms) + ssnow%Qrecharge(:)/thousand
-
-        !call ovrland_flux
-
-        !find subsurface drainage
-
-        !calculate the recharge amount
-
      end if
 
 

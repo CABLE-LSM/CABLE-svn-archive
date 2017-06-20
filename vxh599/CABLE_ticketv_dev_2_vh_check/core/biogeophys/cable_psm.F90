@@ -77,7 +77,8 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough,snow_cove
 
    if (myfirst_call) canopy%sublayer_dz(:) = 0.001
 
-   pore_radius(:) = 0.148  / (1000.0*9.81*abs(soil%sucs_vec(:,1))/1000.0)  !should replace 0.148 with surface tension, unit coversion, and angle
+   pore_radius(:) = 0.148  / (1000.0*9.81*abs(soil%sucs_vec(:,1))/1000.0)
+   !should replace 0.148 with surface tension, unit coversion, and angle
    pore_size(:) = pore_radius(:)*sqrt(pi)
 
       !scale ustar according to the exponential wind profile, assuming we are a mm from the surface
@@ -95,11 +96,14 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough,snow_cove
             end do
          end if
       end do
-      canopy%sublayer_dz = max(eddy_mod(:) * real(air%visc,r_2) / max(0.0001_r_2,real(canopy%us,r_2)*exp(-real(rough%coexp,r_2)*(1._r_2-canopy%sublayer_dz/max(0.01_r_2,real(rough%hruff,r_2))))),0.0000001_r_2)              !exp(-canopy%vlaiw)), 1e-7)
+      canopy%sublayer_dz = max(eddy_mod(:) * real(air%visc,r_2) / &
+           max(0.0001_r_2,real(canopy%us,r_2)*exp(-real(rough%coexp,r_2)*(1._r_2-canopy%sublayer_dz/ &
+           max(0.01_r_2,real(rough%hruff,r_2))))),0.0000001_r_2)              !exp(-canopy%vlaiw)), 1e-7)
 
 
 
-   wb_liq(:) = real(max(0.0001,min(pi/4.0, (ssnow%wb(:,1)-ssnow%wbice(:,1) - ssnow%satfrac(:)*soil%ssat_vec(:,1))/(1._r_2 - ssnow%satfrac(:)) ) ) )
+      wb_liq(:) = real(max(0.0001,min(pi/4.0, (ssnow%wb(:,1)-ssnow%wbice(:,1) - ssnow%satfrac(:)*soil%ssat_vec(:,1))/ &
+           (1._r_2 - ssnow%satfrac(:)) ) ) )
 
    rel_s = real( max(wb_liq(:)-soil%watr(:,1),0._r_2)/(soil%ssat_vec(:,1)-soil%watr(:,1)) )
    hk_zero = max(0.001*soil%hyds_vec(:,1)*(min(max(rel_s,0.001_r_2),1._r_2)**(2._r_2*soil%bch_vec(:,1)+3._r_2) ),1e-8)
@@ -124,7 +128,8 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough,snow_cove
 
  !  elsewhere
       ssnow%rtevap_unsat(:) = min( lm/ (4.0*hk_zero) + (canopy%sublayer_dz + pore_size(:) * soil_moisture_mod) / Dff,rtevap_max)
-      ssnow%rtevap_sat(:)  = min( lm/ (4.0*hk_zero_sat) + (canopy%sublayer_dz + pore_size(:) * soil_moisture_mod_sat) / Dff,rtevap_max)
+      ssnow%rtevap_sat(:)  = min( lm/ (4.0*hk_zero_sat) + (canopy%sublayer_dz + pore_size(:) * soil_moisture_mod_sat) &
+           / Dff,rtevap_max)
  !  endwhere
    !no additional evap resistane over lakes
    !where(veg%iveg .eq. 16) 

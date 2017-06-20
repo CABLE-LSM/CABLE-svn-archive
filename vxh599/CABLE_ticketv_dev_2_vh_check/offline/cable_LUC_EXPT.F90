@@ -278,7 +278,7 @@ CONTAINS
     END DO
 
     ! set secondary vegetation area to be zero where land use transitions don't occur
-    WHERE (LUC_EXPT%prim_only .eq. .TRUE.)
+    WHERE (LUC_EXPT%prim_only)
        LUC_EXPT%secdf = 0.0
        LUC_EXPT%primaryf = 1.0
        LUC_EXPT%grass = 0.0
