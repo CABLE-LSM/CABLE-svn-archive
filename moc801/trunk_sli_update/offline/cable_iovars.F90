@@ -362,7 +362,7 @@ MODULE cable_IO_vars_module
    REAL :: fixedCO2 ! CO2 level if CO2air not in met file
 
    ! for mpi debugging
-   INTEGER :: wlogn
+   INTEGER :: wlogn = 125
 
    ! For threading:
    !$OMP THREADPRIVATE(landpt,patch)
