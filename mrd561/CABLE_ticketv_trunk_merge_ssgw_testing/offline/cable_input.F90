@@ -1945,6 +1945,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
              REAL(tmpDat3(land_x(i),land_y(i),1)) ! store Rainf
       ENDDO
       IF(exists%Snowf) THEN
+        if (cable_user%GSWP3) ncid_met = ncid_snow
         ok= NF90_GET_VAR(ncid_met,id%Snowf,tmpDat3, &
              start=(/1,1,ktau/),count=(/xdimsize,ydimsize,1/))
         IF(ok /= NF90_NOERR) CALL nc_abort &

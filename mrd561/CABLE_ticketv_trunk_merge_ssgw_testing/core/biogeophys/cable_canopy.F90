@@ -902,6 +902,10 @@ CONTAINS
               dq2(j) = max( -0.1e-3, dq2(j))
       ENDDO
 
+     if (cable_user%or_evap .or. cable_user%gw_model) then
+        where(dq .lt. -3e-3) dq = -3e-3
+        where(dq2 .lt. -3e-3) dq2 = -3e-3
+     end if
 
       IF (cable_user%litter) THEN
          !! vh_js !!
