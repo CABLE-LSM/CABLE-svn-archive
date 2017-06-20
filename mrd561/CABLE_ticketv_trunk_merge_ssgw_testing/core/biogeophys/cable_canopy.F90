@@ -42,7 +42,7 @@
 MODULE cable_canopy_module
 
   USE cable_data_module, ONLY : icanopy_type, point2constants
-  USE cable_gw_hydro_module, ONLY : calc_srf_wet_fraction
+  USE cable_gw_hydro_module, ONLY : calc_srf_wet_fraction,saturated_fraction
   USE cable_IO_vars_module, ONLY: wlogn
 
   USE cable_psm, only: or_soil_evap_resistance
@@ -310,6 +310,7 @@ CONTAINS
          else
             litter_thickness = 0.
          end if
+         call saturated_fraction(ssnow,soil)
          call or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough,ssnow%isflag,litter_thickness)
       else
          ssnow%rtevap_unsat(:) = 0.0 
@@ -454,7 +455,7 @@ CONTAINS
                do i=1,mp
                   if (veg%iveg(i) .ne. 16 .and. soil%isoilm(i) .ne. 9) then
                      ssnow%rh_srf(i) = exp(9.81*ssnow%smp(i,1)/1000.0/ssnow%tss(i)/461.4)
-                     dq(i) = max(0. , ssnow%qstss(i)*ssnow%rh_srf(i) - met%qvair(i))
+                     dq(i) =  ssnow%qstss(i)*ssnow%rh_srf(i) - met%qvair(i)
                   else
                      ssnow%rh_srf(i) = 1._r_2
                      dq(i) = ssnow%qstss(i) - met%qvair(i)
@@ -516,7 +517,7 @@ CONTAINS
                     !if ((ssnow%qstss(i) .gt. met%qvair(i)) .and. veg%iveg(i) .ne. 16 .and. soil%isoilm(i) .ne. 9) then
                     if (veg%iveg(i) .ne. 16 .and. soil%isoilm(i) .ne. 9) then
                        ssnow%rh_srf(i) = exp(9.81*ssnow%smp(i,1)/1000.0/ssnow%tss(i)/461.4)
-                       dq(i) = max(0. , ssnow%qstss(i)*ssnow%rh_srf(i) - met%qvair(i))
+                       dq(i) =  ssnow%qstss(i)*ssnow%rh_srf(i) - met%qvair(i)
                     else
                        ssnow%rh_srf(i) = 1._r_2
                        dq(i) = ssnow%qstss(i) - met%qvair(i)
@@ -783,8 +784,8 @@ CONTAINS
           if (cable_user%or_evap) then
              litter_thermal_diff = 0.2 / (1932.0*62.0)
              ssnow%dfh_dtg = air%rho*C%CAPP/(ssnow%rtsoil + canopy%sublayer_dz/litter_thermal_diff)
-             ssnow%dfe_ddq  = ssnow%rh_srf(:) * (1. - ssnow%wetfac)*air%rho*air%rlam*ssnow%cls/(ssnow%rtsoil  +ssnow%rtevap_unsat) + &
-                           ssnow%wetfac(:) * air%rho*air%rlam*ssnow%cls/(ssnow%rtsoil  +ssnow%rtevap_sat)
+             ssnow%dfe_ddq  = ssnow%rh_srf(:) * (1. - ssnow%satfrac)*air%rho*air%rlam*ssnow%cls/(ssnow%rtsoil  +ssnow%rtevap_unsat) + &
+                           ssnow%satfrac(:) * air%rho*air%rlam*ssnow%cls/(ssnow%rtsoil  +ssnow%rtevap_sat)
           else
              ssnow%dfh_dtg = air%rho*C%CAPP/ssnow%rtsoil
              ssnow%dfe_ddq = air%rho*air%rlam*ssnow%cls/ssnow%rtsoil
@@ -866,10 +867,10 @@ CONTAINS
               (ssnow%rtsoil+ real((1-ssnow%isflag))*veg%clitt*0.003/canopy%DvLitt)
       ELSEIF (cable_user%or_evap) THEN
          !! vh_js !!
-         ssnowpotev = (1.0-ssnow%wetfac) * cc1 * (canopy%fns - ground_H_flux) + &
+         ssnowpotev = (1.0-ssnow%satfrac) * cc1 * (canopy%fns - ground_H_flux) + &
               cc2 * air%rho * air%rlam*(qsatfvar - met%qvair)/ &
               (ssnow%rtsoil+ ssnow%rtevap_unsat) + &
-              (ssnow%wetfac) * cc1 * (canopy%fns - ground_H_flux) + &
+              (ssnow%satfrac) * cc1 * (canopy%fns - ground_H_flux) + &
               cc2 * air%rho * air%rlam*(qsatfvar - met%qvair)/ &
               (ssnow%rtsoil+ ssnow%rtevap_sat) 
       ELSE
@@ -898,12 +899,9 @@ CONTAINS
          !if(ssnow%snowd(j) > 1.0) dq(j) = max( -0.1e-3, dq(j))
          IF( ssnow%snowd(j)>1.0 .OR. ssnow%tgg(j,1).EQ.C%tfrz)                      &
               dq(j) = max( -0.1e-3, dq(j))
+              dq2(j) = max( -0.1e-3, dq2(j))
       ENDDO
 
-      IF (cable_user%gw_model .or. cable_user%or_evap) then
-         dq = max( -0.1e-3, dq)
-         dq2 = max( -0.1e-3, dq2)
-      END IF
 
       IF (cable_user%litter) THEN
          !! vh_js !!
@@ -911,8 +909,8 @@ CONTAINS
               real((1-ssnow%isflag))*veg%clitt*0.003/canopy%DvLitt)
       ELSE
          if (cable_user%or_evap) then
-             ssnowpotev = (1.0-ssnow%wetfac) * air%rho * air%rlam * dq /(ssnow%rtsoil+ssnow%rtevap_unsat) + &
-                   ssnow%wetfac * air%rho * air%rlam * dq2 /(ssnow%rtsoil+ssnow%rtevap_sat) 
+             ssnowpotev = (1.0-ssnow%satfrac) * air%rho * air%rlam * dq /(ssnow%rtsoil+ssnow%rtevap_unsat) + &
+                   ssnow%satfrac * air%rho * air%rlam * dq2 /(ssnow%rtsoil+ssnow%rtevap_sat) 
          elseif (cable_user%gw_model) then
              ssnowpotev = air%rho * air%rlam * dq /(ssnow%rtsoil) 
          else
@@ -935,11 +933,8 @@ CONTAINS
       INTEGER :: j
 
       ! Soil latent heat:
-      if (.not.cable_user%or_evap) then
-           canopy%fess= ssnow%wetfac * ssnow%potev
-      else
-           canopy%fess= ssnow%potev
-      end if
+      canopy%fess= ssnow%wetfac * ssnow%potev
+
       WHERE (ssnow%potev < 0. ) canopy%fess = ssnow%potev
 
       ! Reduce soil evap due to presence of puddle
@@ -1049,8 +1044,8 @@ CONTAINS
 !                 ( rt0(j) * rough%rt1(j) ) * ( rrbw(j) * rrsw(j) )
 !
             if (cable_user%or_evap) then
-            tmp_me = rt0(j)*(ssnow%wetfac(j)/(rt0(j)+ssnow%rtevap_sat(j)) + &
-                      (1-ssnow%wetfac(j))/(rt0(j)+ssnow%rtevap_unsat(j)))
+            tmp_me = rt0(j)*(ssnow%satfrac(j)/(rt0(j)+ssnow%rtevap_sat(j)) + &
+                      (1-ssnow%satfrac(j))/(rt0(j)+ssnow%rtevap_unsat(j)))
             else
             tmp_me = ssnow%wetfac(j)
             end if
@@ -1447,7 +1442,7 @@ CONTAINS
     canopy%fwet   = MAX( 0.0, MIN( 0.9, 0.8 * canopy%cansto /                   &
          MAX( cansat, 0.01 ) ) )
 
-    IF (cable_user%gw_model) then
+    IF (cable_user%gw_model .or. cable_user%or_evap) then
        call calc_srf_wet_fraction(ssnow,soil)
     else
        ssnow%wetfac = MAX( 1.e-6, MIN( 1.0,                                        &
@@ -1457,7 +1452,7 @@ CONTAINS
 
     DO j=1,mp
 
-       IF( .not.cable_user%gw_model .and. ssnow%wbice(j,1) > 0. )                                              &
+       IF( .not.cable_user%gw_model .and. .not.cable_user%or_evap .and. ssnow%wbice(j,1) > 0. )      &
             ssnow%wetfac(j) = ssnow%wetfac(j) * real(MAX( 0.5_r_2, 1._r_2 - MIN( 0.2_r_2, &
             ( ssnow%wbice(j,1) / ssnow%wb(j,1) )**2 ) ) )
 
@@ -1475,7 +1470,7 @@ CONTAINS
     ! owetfac introduced to reduce sharp changes in dry regions,
     ! especially in offline runs in which there may be discrepancies b/n
     ! timing of precip and temperature change (EAK apr2009)
-    IF( .not.cable_user%gw_model) &
+    IF( .not.cable_user%gw_model .and. .not.cable_user%or_evap) &
        ssnow%wetfac = 0.5*(ssnow%wetfac + ssnow%owetfac)
 
   END SUBROUTINE Surf_wetness_fact

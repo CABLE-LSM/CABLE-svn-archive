@@ -77,7 +77,6 @@ MODULE cable_gw_hydro_module
    PUBLIC soil_snow_gw,calc_srf_wet_fraction,sli_hydrology ! must be available outside this module
    PUBLIC saturated_fraction
    PRIVATE subsurface_drainage,iterative_wtd,ovrlndflx,aquifer_recharge, calc_soil_hydraulic_props
-   PRIVATE snowdensity, snow_melting, snowcheck, snowl_adjust ,snow_accum, stempv,trimb
    PRIVATE calc_equilibrium_water_content
    PRIVATE GWsoilfreeze, remove_transGW,simple_wtd
    PRIVATE smoistgw
@@ -1401,7 +1400,7 @@ SUBROUTINE calc_srf_wet_fraction(ssnow,soil)
          ssnow%wetfac(i) = max(0.0,min(1.0,satfrac_liqice(i) +&
                                      (1. - satfrac_liqice(i))*xx ) )
       else
-         ssnow%wetfac(i) = ssnow%satfrac(i)
+         ssnow%wetfac(i) = 1.0
       end if
 
    end do
