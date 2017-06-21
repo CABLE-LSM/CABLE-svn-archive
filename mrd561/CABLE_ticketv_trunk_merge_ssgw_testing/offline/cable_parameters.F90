@@ -1779,11 +1779,6 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
 
     IF (cable_user%GW_MODEL .and. soilparmnew) then
 
-   gw_params%hkrz               = 0.5 
-   gw_params%zdepth             = 1.0 
-   gw_params%frozen_frac        = 0.05
-
-
        DO klev=1,ms
           soil%hyds_vec(:,klev) = 0.0070556*10.0**(-0.884 + 0.0153*soil%Fsand(:,klev)*100.0)* &
                                   exp(-gw_params%hkrz*(soil_depth(klev)-gw_params%zdepth))
@@ -1844,7 +1839,6 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
 
     !mrd561 debug
     WHERE(soil%cnsd .le. 0.)   soil%cnsd = 0.272
-
     where(ssnow%GWwb(:) .le. 0.) ssnow%GWwb(:) = 0.97*soil%ssat
 
     if ((gw_params%MaxSatFraction .lt. 0.0) .and. (mp .eq. 1)) soil%slope(:) = 0.01    
