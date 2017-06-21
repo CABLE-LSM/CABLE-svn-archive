@@ -270,7 +270,6 @@ END SUBROUTINE remove_transGW
     TYPE(veg_parameter_type) , INTENT(IN)    :: veg  ! veg parameters
     TYPE (canopy_type), INTENT(IN)           :: canopy
     LOGICAL, INTENT(IN)                      :: sli_call
-    INTEGER, PARAMETER                       :: ntest = 0 ! for snow diag prints
     INTEGER                                  :: nglacier ! 0 original, 1 off, 2 new Eva
     INTEGER                                  :: k, i, j
     REAL, DIMENSION(mp)                :: rnof5
@@ -284,7 +283,6 @@ END SUBROUTINE remove_transGW
     REAL(r_2), parameter               :: pi=3.1415926535898
     REAL(r_2)                          :: fice
     REAL(r_2)                          :: dzmm,slopeSTDmm
-    logical                            :: prinall = .false.  !for debugging
     TYPE ( issnow_type ) :: GWC
     REAL :: cp    ! specific heat capacity for air
 
@@ -301,7 +299,7 @@ END SUBROUTINE remove_transGW
         ssnow%fwtop = max(canopy%through, 0.)
      endwhere
    end if
-
+   !amount of ice in surface layer
    do i = 1,mp
       efpor(i) = max(0.001_r_2, soil%ssat_vec(i,1) - ssnow%wbice(i,1))
       icemass  = ssnow%wbice(i,1) * dzmm * dri
@@ -310,6 +308,7 @@ END SUBROUTINE remove_transGW
       icef(i)     = max(0._r_2,min(1._r_2,gw_params%IceBeta*icemass / totmass))
    end do
 
+   !sat fraction assuming topo controlled subgrid soil moisture distribution
    call saturated_fraction(ssnow,soil)
 
    !srf frozen fraction.  should be based on topography
@@ -389,13 +388,12 @@ END SUBROUTINE remove_transGW
 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! 
-  SUBROUTINE simple_wtd(ssnow, soil, veg, ktau, md_prin)
+  SUBROUTINE simple_wtd(ssnow, soil, veg)
+  !This was only for testing purposes
   IMPLICIT NONE
   TYPE (soil_snow_type), INTENT(INOUT)      :: ssnow ! soil and snow variables
   TYPE (soil_parameter_type), INTENT(IN)    :: soil  ! soil parameters
   TYPE (veg_parameter_type), INTENT(IN)     :: veg
-  INTEGER, INTENT(IN)                       :: ktau  ! integration step number
-  LOGICAL, INTENT(IN)                       :: md_prin  !print info?
 
   REAL(r_2), DIMENSION(mp)            :: fz, wmean,ztot
   REAL(r_2), DIMENSION(mp,ms)         :: stot
@@ -435,12 +433,12 @@ END SUBROUTINE remove_transGW
   ! soil column to the mass of a hydrostatic column inegrated from the surface to the 
   ! water table depth
   !  
-  SUBROUTINE iterative_wtd (ssnow, soil, veg, md_prin)
+  SUBROUTINE iterative_wtd (ssnow, soil, veg, include_aquifer)
   IMPLICIT NONE
   TYPE (soil_snow_type), INTENT(INOUT)      :: ssnow ! soil and snow variables
   TYPE (soil_parameter_type), INTENT(IN)    :: soil  ! soil parameters
   TYPE (veg_parameter_type), INTENT(IN)     :: veg
-  LOGICAL, INTENT(IN)                       :: md_prin  !print info?
+  LOGICAL, INTENT(IN)                       :: include_aquifer  !use GWwb or only wb to find wtd?
 
  
   !Local vars 
@@ -460,19 +458,23 @@ END SUBROUTINE remove_transGW
   dzmm_mp  = real(spread((soil%zse(:)) * 1000.0,1,mp),r_2)    !layer thickness mm
   zimm(0)  = 0.0_r_2                                          !depth of layer interfaces mm
 
+  !total depth of soil column
   do k=1,ms
     zimm(k) = zimm(k-1) + soil%zse(k)*1000._r_2
   end do
-  total_depth_column(:) = zimm(ms) + soil%GWdz(:)*1000._r_2
-  
-  !find the deficit if the water table is at the bottom of the soil column
-  do i=1,mp
-     defc(i) = (soil%ssat_vec(i,ms))*(total_depth_column(i)+Nsucs_vec(i)/(1._r_2-invB(i))*            &
-             (1._r_2-((Nsucs_vec(i)+total_depth_column(i))/Nsucs_vec(i))**(1._r_2-invB(i)))) 
-     defc(i) = max(0.1_r_2,defc(i)) 
-  end do
 
   def(:) = 0._r_2
+
+  if (include_aquifer) then  !do we include the aquifer in the calculation of wtd?
+
+     total_depth_column(:) = zimm(ms) + soil%GWdz(:)*1000._r_2
+     do i=1,mp
+        def(i) = def(i) + max(0._r_2,soil%GWssat_vec(i)-ssnow%GWwb(i))*soil%GWdz(i)*1000._r_2
+     end do   
+
+  end if
+
+  !comute the total mass away from full saturation
   do k=1,ms
      do i=1,mp
 
@@ -481,10 +483,14 @@ END SUBROUTINE remove_transGW
       end do  !mp
   end do  !ms
 
+  !find the deficit if the water table is at the bottom of the soil column
   do i=1,mp
-    def(i) = def(i) + max(0._r_2,soil%GWssat_vec(i)-ssnow%GWwb(i))*soil%GWdz(i)*1000._r_2
-  end do   
+     defc(i) = (soil%ssat_vec(i,ms))*(total_depth_column(i)+Nsucs_vec(i)/(1._r_2-invB(i))*            &
+             (1._r_2-((Nsucs_vec(i)+total_depth_column(i))/Nsucs_vec(i))**(1._r_2-invB(i)))) 
+     defc(i) = max(0.1_r_2,defc(i)) 
+  end do
 
+ !initial guess at wtd
  ssnow%wtd(:) = total_depth_column(:)*def(:)/defc(:)
 
  !use newtons method to solve for wtd, note this assumes homogenous column but
@@ -590,7 +596,7 @@ END SUBROUTINE remove_transGW
   ! vertical mocement of soil water.  Bottom boundary condition is determined
   ! using a single layer groundwater module
   !
-  SUBROUTINE smoistgw (dels,ktau,ssnow,soil,veg,canopy,md_prin)
+  SUBROUTINE smoistgw (dels,ktau,ssnow,soil,veg,canopy)
   USE cable_common_module
 
   IMPLICIT NONE
@@ -601,7 +607,6 @@ END SUBROUTINE remove_transGW
     TYPE (soil_parameter_type), INTENT(IN)    :: soil  ! soil parameters
     TYPE (veg_parameter_type), INTENT(IN)     :: veg
     TYPE(canopy_type), INTENT(INOUT)          :: canopy ! vegetation variables
-    LOGICAL, INTENT(IN)                       :: md_prin
     
     !Local variables.  
     REAL(r_2), DIMENSION(mp,ms+1)       :: at     ! coef "A" in finite diff eq
@@ -610,9 +615,8 @@ END SUBROUTINE remove_transGW
     REAL(r_2), DIMENSION(mp,ms+1)       :: rt
 
     INTEGER                             :: k,kk,i
-    REAL(r_2), DIMENSION(mp,ms)         :: eff_por,old_wb,mss_por  !effective porosity (mm3/mm3),wb(mm3/mm3),mass (mm) of eff_por
+    REAL(r_2), DIMENSION(mp,ms)         :: eff_por,old_wb  !effective porosity (mm3/mm3),wb(mm3/mm3),mass (mm) of eff_por
     REAL(r_2), DIMENSION(mp,ms)         :: msliq,msice             !mass of the soil liquid and ice water    
-    REAL(r_2), DIMENSION(mp,ms)         :: wbrat                   !ratio of volumetric water - watr / saturated - watr
     REAL(r_2), DIMENSION(mp)            :: den
     REAL(r_2), DIMENSION(mp)            :: dne
     REAL(r_2), DIMENSION(mp)            :: num
@@ -631,19 +635,9 @@ END SUBROUTINE remove_transGW
     REAL(r_2), DIMENSION(mp)            :: xs1,GWmsliq!xsi    !mass (mm) of liquid over/under saturation, mass of aquifer water
     REAL(r_2)                           :: xsi
     REAL(r_2), DIMENSION(mp,ms+1)       :: del_wb
-    REAL(r_2), DIMENSION(mp)            :: sm_tot,drainmod  !total column soil water available for drainage
-    INTEGER, DIMENSION(mp)              :: idlev
-    logical                             :: prinall = .false.   !another debug flag
-    character (len=30)                  :: fmt  !format to output some debug info
     !MD DEBUG VARS
     INTEGER :: imp,ims,k_drain
 
-    drainmod(:) = 1._r_2  !parameter to modify qhrz params by basin or veg type
-    !where(veg%iveg .eq. 2) drainmod(:) = 0.1_r_2*drainmod(:)
-    !drainmod(:) = (1._r_2 + soil%FOrg(:,1))*drainmod(:)
-
-
-    fmt='(A6,6(1X,F8.6))'       !not needed.  was used to nicely format debug output
     !make code cleaner define these here
     dzmm    = 1000.0_r_2 * real(soil%zse(:),r_2)
     dzmm_mp = spread(dzmm,1,mp)
@@ -838,20 +832,19 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
 
    INTEGER             :: k,i
    REAL, DIMENSION(mp) :: snowmlt
-   REAL, DIMENSION(mp) :: totwet
-   REAL, DIMENSION(mp) :: weting,GWwb_ic,wberr
+   REAL, DIMENSION(mp) :: GWwb_ic
    REAL, DIMENSION(mp) :: tgg_old, tggsn_old,wbtot_ic,del_wbtot
-   REAL(r_2), DIMENSION(mp) :: xx,deltat,sinfil1,sinfil2,sinfil3 
+   REAL(r_2), DIMENSION(mp) :: xx
    REAL                :: zsetot
    INTEGER, SAVE :: ktau =0 
-   LOGICAL :: prin,md_prin
-   REAL(r_2) :: wb_lake_T, rnof2_T, ratio
+   REAL(r_2) :: wb_lake_T, rnof2_T
    TYPE ( issnow_type ) :: GWC
+   LOGICAL :: use_sli
    REAL :: cp    ! specific heat capacity for air
    
-   prin = .FALSE.
-   md_prin = .false.
-   
+  
+   use_sli = .false. 
+
    CALL point2constants( GWC ) 
    cp = GWC%CAPP
     
@@ -990,15 +983,15 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
    ssnow%fwtop = canopy%precis/dels + ssnow%smelt/dels   !water from canopy and snowmelt [mm/s]   
    !ssnow%rnof1 = ssnow%rnof1 + ssnow%smelt / dels          !adding snow melt directly to the runoff
 
-   CALL iterative_wtd (ssnow, soil, veg, md_prin)  
-   !CALL simple_wtd(ssnow, soil, veg, ktau, md_prin)
+   CALL iterative_wtd (ssnow, soil, veg)  
+   !CALL simple_wtd(ssnow, soil, veg)
 
-   CALL ovrlndflx (dels, ssnow, soil, veg, canopy,md_prin )         !surface runoff, incorporate ssnow%pudsto?
+   CALL ovrlndflx (dels, ssnow, soil, veg, canopy,use_sli )         !surface runoff, incorporate ssnow%pudsto?
 
    ssnow%sinfil = ssnow%fwtop - canopy%segg  !canopy%fes/C%HL               !remove soil evap from throughfall
    !ssnow%pudsto = max(ssnow%pudsto - canopy%fesp/C%HL*dels,0._r_2)  !currently pudsto = 0.0 always
 
-   CALL smoistgw (dels,ktau,ssnow,soil,veg,canopy, md_prin)               !vertical soil moisture movement. 
+   CALL smoistgw (dels,ktau,ssnow,soil,veg,canopy)               !vertical soil moisture movement. 
   
    ! correction required for energy balance in online simulations 
    IF( cable_runtime%um) THEN
@@ -1032,6 +1025,7 @@ END SUBROUTINE soil_snow_gw
 
 
 SUBROUTINE calc_equilibrium_water_content(ssnow,soil)
+  !find layer mean soil moisture and potential at equilibrium with wtd
 
   IMPLICIT NONE
   
@@ -1468,6 +1462,7 @@ END SUBROUTINE calc_soil_hydraulic_props
        ssnow%qhlev = 0.
        ssnow%Qrecharge = 0.
        ssnow%fwtop = 0.
+       ssnow%wtd = 0.
 
     end if
 
