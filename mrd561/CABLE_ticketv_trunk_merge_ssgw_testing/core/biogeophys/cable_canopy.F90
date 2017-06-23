@@ -1603,7 +1603,9 @@ CONTAINS
 
     ! Soil water limitation on stomatal conductance:
     IF( iter ==1) THEN
-       IF ((cable_user%soil_struc=='default').and.(cable_user%FWSOIL_SWITCH.ne.'Haverd2013')) THEN
+       IF ((cable_user%soil_struc=='sli').OR.(cable_user%FWSOIL_SWITCH=='Haverd2013')) THEN
+          fwsoil = canopy%fwsoil
+       ELSE
           IF(cable_user%FWSOIL_SWITCH == 'standard') THEN
              CALL fwsoil_calc_std( fwsoil, soil, ssnow, veg)
           ELSEIf (cable_user%FWSOIL_SWITCH == 'non-linear extrapolation') THEN
@@ -1615,8 +1617,6 @@ CONTAINS
              STOP 'fwsoil_switch failed.'
           ENDIF
           canopy%fwsoil = fwsoil
-       ELSEIF ((cable_user%soil_struc=='sli').OR.(cable_user%FWSOIL_SWITCH=='Haverd2013')) THEN
-          fwsoil = canopy%fwsoil
        ENDIF
 
     ENDIF
@@ -1954,8 +1954,8 @@ CONTAINS
 
                 call getrex_1d(real(ssnow%wb(i,:)-ssnow%wbice(i,:),r_2), ssnow%rex(i,:), &
                      canopy%fwsoil(i), &
-                     real(veg%froot(i,:),r_2), SPREAD(real(soil%ssat(i),r_2),1,ms), &
-                      SPREAD(real(soil%swilt(i),r_2),1,ms), &
+                     real(veg%froot(i,:),r_2), soil%ssat_vec(i,:), &
+                      soil%swilt_vec(i,:), &
                       max(real(canopy%fevc(i)/air%rlam(i)/1000_r_2,r_2),0.0_r_2), &
                      real(veg%gamma(i),r_2), &
                      real(soil%zse,r_2), real(dels,r_2), real(veg%zr(i),r_2))
