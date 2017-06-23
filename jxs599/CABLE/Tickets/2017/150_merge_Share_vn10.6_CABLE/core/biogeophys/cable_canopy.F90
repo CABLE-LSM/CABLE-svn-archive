@@ -60,6 +60,7 @@ CONTAINS
     USE cable_common_module
     USE cable_roughness_module
     USE sli_utils, ONLY : potential_evap
+    USE sli_main_mod, ONLY : sli_main
 
 
     TYPE (balances_type), INTENT(INOUT)  :: bal
@@ -1040,11 +1041,19 @@ CONTAINS
 
          ! zetar too +
          canopy%zetar(:,iterplus) = MIN(C%ZETPOS,canopy%zetar(:,iterplus))
-         canopy%zetash(:,iterplus) = MIN(C%ZETPOS,canopy%zetash(:,iterplus))
+!CABLE_LSM: to get past rigorous build. 
+         !if ( canopy%zetash(:,iterplus) .NE. C%ZETPOS ) &
+         ! however (:,i) cant be compared so use soil_struc== 
+            IF (cable_user%soil_struc=='sli') & 
+           canopy%zetash(:,iterplus) = MIN(C%ZETPOS,canopy%zetash(:,iterplus))
 
          ! zetar too -
          canopy%zetar(:,iterplus) = MAX(C%ZETNEG,canopy%zetar(:,iterplus))
-         canopy%zetash(:,iterplus) = MAX(C%ZETNEG,canopy%zetash(:,iterplus))
+!CABLE_LSM: to get past rigorous build. 
+         !if ( canopy%zetash(:,iterplus) .NE. C%ZETNEG ) &
+         ! however (:,i) cant be compared so use soil_struc== 
+            IF (cable_user%soil_struc=='sli') & 
+           canopy%zetash(:,iterplus) = MAX(C%ZETNEG,canopy%zetash(:,iterplus))
 
       END IF ! (iter < NITER)
 
