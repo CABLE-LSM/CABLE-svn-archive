@@ -1041,17 +1041,14 @@ CONTAINS
 
          ! zetar too +
          canopy%zetar(:,iterplus) = MIN(C%ZETPOS,canopy%zetar(:,iterplus))
-!CABLE_LSM: to get past rigorous build. 
+         !jhan: to get past rigorous build - however (:,i) cant be compared 
          !if ( canopy%zetash(:,iterplus) .NE. C%ZETPOS ) &
-         ! however (:,i) cant be compared so use soil_struc== 
             IF (cable_user%soil_struc=='sli') & 
            canopy%zetash(:,iterplus) = MIN(C%ZETPOS,canopy%zetash(:,iterplus))
 
          ! zetar too -
          canopy%zetar(:,iterplus) = MAX(C%ZETNEG,canopy%zetar(:,iterplus))
-!CABLE_LSM: to get past rigorous build. 
          !if ( canopy%zetash(:,iterplus) .NE. C%ZETNEG ) &
-         ! however (:,i) cant be compared so use soil_struc== 
             IF (cable_user%soil_struc=='sli') & 
            canopy%zetash(:,iterplus) = MAX(C%ZETNEG,canopy%zetash(:,iterplus))
 
