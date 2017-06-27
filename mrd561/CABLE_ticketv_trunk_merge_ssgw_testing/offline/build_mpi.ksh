@@ -8,8 +8,7 @@ known_hosts()
 ## raijin.nci.org.au
 host_raij()
 {
-   module load netcdf
-   module load intel-mpi
+   module load intel-mpi/5.1.3.210 intel-fc/17.0.1.132 netcdf
    export NCDIR=$NETCDF_ROOT'/lib/Intel'
    export NCMOD=$NETCDF_ROOT'/include/Intel'
    export FC='mpif90'
