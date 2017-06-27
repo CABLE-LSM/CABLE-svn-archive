@@ -61,6 +61,7 @@ CONTAINS
     USE cable_common_module
     USE cable_roughness_module
     USE sli_utils, ONLY : potential_evap
+    USE cable_psm, ONLY:  or_soil_evap_resistance
 
 
     TYPE (balances_type), INTENT(INOUT)  :: bal
@@ -320,6 +321,10 @@ CONTAINS
           ENDIF
 
        ENDDO
+
+       IF (cable_user%or_evap) THEN
+          call or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
+       END IF
 
        ! Vegetation boundary-layer conductance (mol/m2/s)
        ! C%prandt = kinematic viscosity/molecular diffusivity
