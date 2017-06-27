@@ -288,6 +288,8 @@ MODULE cable_common_module
         IceAlpha=3.0,           &
         IceBeta=1.0
 
+      INTEGER :: level_for_satfrac = 6
+
    END TYPE gw_parameters_type
 
    TYPE(gw_parameters_type), SAVE :: gw_params

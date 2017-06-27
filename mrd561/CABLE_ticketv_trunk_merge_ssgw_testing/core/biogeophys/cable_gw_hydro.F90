@@ -1327,22 +1327,17 @@ END SUBROUTINE calc_soil_hydraulic_props
 
        !Note: future revision will have interaction with river here. nned to
        !work on router and add river type cells
-       ssnow%qhz(i)  = min(max(tan(soil%slope(i)),0.001),0.1) *gw_params%MaxHorzDrainRate* &
+       ssnow%qhz(i)  = min(max(tan(soil%slope(i)),0.00001),0.1) *gw_params%MaxHorzDrainRate* &
                     exp(-ssnow%wtd(i)/(1000._r_2*(gw_params%EfoldHorzDrainRate)))
 
- 
-       !identify first no frozen layer.  drinage from that layer and below
        !drain from sat layers
        k_drain = ms+1
-       do k=ms,4,-1
-           !below what was in paper
-          !if ( ssnow%wbliq(i,k+1) .le. gw_params%frozen_frac*ssnow%wb(i,k+1)  .and.&
-          !     ssnow%wbliq(i,k  ) .gt. gw_params%frozen_frac*ssnow%wb(i,k  ) ) then
+       do k=ms,2,-1
           if (ssnow%wtd(i) .le. sum(dzmm(1:k),dim=1)) then
              k_drain = k + 1
           end if
        end do
-       k_drain = max(k_drain,5)
+       k_drain = max(k_drain,3)
 
 
        ssnow%qhlev(i,:) = 0._r_2
@@ -1354,31 +1349,10 @@ END SUBROUTINE calc_soil_hydraulic_props
        end do
        sm_tot(i) = max(sm_tot(i),0.01_r_2)
 
-
-       if (k_drain .le. ms) then
-          do k=k_drain,ms
-             ssnow%qhlev(i,k) = ssnow%qhz(i)*max(ssnow%wbliq(i,k)-soil%watr(i,k),0._r_2)/sm_tot(i)
-          end do
-          ssnow%qhlev(i,ms+1) = max(1._r_2-ssnow%fracice(i,ms),0._r_2)*ssnow%qhz(i)*max(ssnow%GWwb(i)-soil%watr(i,ms),0._r_2)/sm_tot(i)
-       else
-          ssnow%qhlev(i,ms+1) = max(1._r_2-ssnow%fracice(i,ms),0._r_2)*ssnow%qhz(i)*max(ssnow%GWwb(i)-soil%watr(i,ms),0._r_2)
-       end if
-!       if (k_drain .le. ms) then
-!          do k=k_drain,ms
-!             sm_tot(i) = sm_tot(i) + max(ssnow%wbliq(i,k)-soil%watr(i,k),0._r_2)*exp(-10.0*(ssnow%wbice(i,k)/ssnow%wb(i,k)))!*dzmm(k)
-!          end do
-!
-!         sm_tot(i) = max(sm_tot(i),0.01_r_2)
-!
-!         do k=k_drain,ms
-!             ssnow%qhlev(i,k) = ssnow%qhz(i)*max(ssnow%wbliq(i,k)-soil%watr(i,k),0._r_2)*&
-!                                 exp(-10.0*(ssnow%wbice(i,k)/ssnow%wb(i,k)))/sm_tot(i)!*ssnow%hk(i,k)!*dzmm(k)/sm_tot(i)
-!         end do
-!
-!       else
-!          !ssnow%qhlev(i,ms+1) = max(1._r_2-ssnow%fracice(i,ms),0._r_2)*ssnow%qhz(i)!*ssnow%GWhk(i)!*max(ssnow%GWwb(i)-soil%watr(i,ms),0._r_2)/sm_tot(i)
-!          ssnow%qhlev(i,ms+1) = exp(-10.0*(ssnow%wbice(i,ms)/ssnow%wb(i,ms)))*ssnow%qhz(i)*max(ssnow%GWwb(i)-soil%GWwatr(i),0._r_2)
-!       end if
+       do k=k_drain,ms
+          ssnow%qhlev(i,k) = ssnow%qhz(i)*max(ssnow%wbliq(i,k)-soil%watr(i,k),0._r_2)/sm_tot(i)
+       end do
+       ssnow%qhlev(i,ms+1) = max(1._r_2-ssnow%fracice(i,ms),0._r_2)*ssnow%qhz(i)*max(ssnow%GWwb(i)-soil%watr(i,ms),0._r_2)/sm_tot(i)
 
        !incase every layer is frozen very dry
        ssnow%qhz(i) = sum(ssnow%qhlev(i,:),dim=1)
@@ -1405,10 +1379,10 @@ END SUBROUTINE calc_soil_hydraulic_props
     INTEGER :: i,k
 
      S(:) = 0._r_2
-     do k=1,ms
+     do k=1,gw_params%level_for_satfrac
        S(:) = S(:) + max(0.01,min(1.0, (ssnow%wb(:,k)-ssnow%wbice(:,k)-soil%watr(:,k))/max(0.001,soil%ssat_vec(:,k)-soil%watr(:,k)) ) )*soil%zse(k)
      end do
-     S(:) = S(:)/sum(soil%zse(1:ms),dim=1)
+     S(:) = S(:)/sum(soil%zse(1:gw_params%level_for_satfrac),dim=1)
      !srf frozen fraction.  should be based on topography
       do i = 1,mp
          !Saturated fraction

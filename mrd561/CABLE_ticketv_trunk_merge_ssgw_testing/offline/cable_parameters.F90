@@ -1841,7 +1841,7 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
     WHERE(soil%cnsd .le. 0.)   soil%cnsd = 0.272
     where(ssnow%GWwb(:) .le. 0.) ssnow%GWwb(:) = 0.97*soil%ssat
 
-    if ((gw_params%MaxSatFraction .lt. 0.0) .and. (mp .eq. 1)) soil%slope(:) = 0.01    
+    if ((gw_params%MaxSatFraction .lt. -9999.9) .and. (mp .eq. 1)) soil%slope(:) = 0.01    
 
     IF ( .NOT. soilparmnew) THEN  ! Q,Zhang @ 12/20/2010
       soil%cnsd  = soil%sand * 0.3 + soil%clay * 0.25                          &

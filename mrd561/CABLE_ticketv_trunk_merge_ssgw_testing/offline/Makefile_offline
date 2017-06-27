@@ -80,11 +80,11 @@ cable_air.o: cable_air.F90 cable_define_types.o cable_common.o cable_data.o
 
 cable_albedo.o: cable_albedo.F90 cable_define_types.o cable_common.o cable_data.o
 
-cable_canopy.o: cable_canopy.F90 cable_define_types.o cable_radiation.o cable_roughness.o cable_air.o cable_common.o cable_data.o cable_sli_utils.o cable_gw_hydro.o cable_iovars.o cable_psm.o
+cable_canopy.o: cable_canopy.F90 cable_define_types.o cable_radiation.o cable_roughness.o cable_air.o cable_common.o cable_data.o cable_sli_utils.o cable_gw_hydro.o cable_iovars.o cable_psm.o cable_gw_hydro.o
 
 cable_carbon.o: cable_carbon.F90 cable_define_types.o cable_common.o cable_data.o
 
-cable_cbm.o: cable_cbm.F90 cable_carbon.o cable_soilsnow.o cable_canopy.o cable_define_types.o cable_roughness.o cable_radiation.o cable_albedo.o casa_variable.o cable_common.o cable_data.o
+cable_cbm.o: cable_cbm.F90 cable_carbon.o cable_soilsnow.o cable_canopy.o cable_define_types.o cable_roughness.o cable_radiation.o cable_albedo.o casa_variable.o cable_common.o cable_data.o cable_gw_hydro.o
 
 cable_checks.o: cable_checks.F90 cable_radiation.o cable_common.o
 
@@ -163,7 +163,7 @@ cable_climate.o: cable_climate.F90 cable_define_types.o cable_iovars.o  cable_co
 
 cable_phenology.o: cable_phenology.F90 cable_define_types.o cable_iovars.o  cable_common.o  casa_variable.o
 
-cable_gw_hydro.o: cable_gw_hydro.F90 cable_iovars.o cable_define_types.o cable_common.o cable_data.o
+cable_gw_hydro.o: cable_gw_hydro.F90 cable_iovars.o cable_define_types.o cable_common.o cable_data.o cable_soilsnow.o
 
 cable_psm.o: cable_psm.F90 cable_define_types.o cable_common.o cable_air.o
 
