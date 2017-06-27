@@ -59,7 +59,7 @@ MODULE cable_param_module
   USE phenvariable
   USE cable_abort_module
   USE cable_IO_vars_module
-  USE cable_common_module, ONLY: cable_user, hide, gw_params
+  USE cable_common_module, ONLY: cable_user, hide, gw_params,init_veg_from_vegin
   USE CABLE_LUC_EXPT, ONLY: LUC_EXPT, LUC_EXPT_TYPE, LUC_EXPT_SET_TILES
   IMPLICIT NONE
   PRIVATE
@@ -104,6 +104,7 @@ MODULE cable_param_module
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: insand
 
   !MD temp vars for reading in aquifer properties
+  LOGICAL :: found_explicit_gw_parameters
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: inGWbch
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: inGWssat
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: inGWhyds
@@ -544,6 +545,8 @@ CONTAINS
 
     !MD try to read aquifer properties from the file
     ! if they don't exist set aquifer properties to the same as the soil
+    found_explicit_gw_parameters = .true.
+
     ok = NF90_INQ_VARID(ncid, 'GWssat', fieldID)
     write(*,*) NF90_NOERR
     ok2= ok
@@ -552,6 +555,7 @@ CONTAINS
     end if
     IF ((ok2 .ne. NF90_NOERR) .or. (ok .ne. NF90_NOERR)) then
       inGWssat(:,:) = inssat(:,:)
+      found_explicit_gw_parameters = .false.
     END IF
     
     ok = NF90_INQ_VARID(ncid, 'GWWatr', fieldID)
@@ -569,7 +573,8 @@ CONTAINS
       ok2 = NF90_GET_VAR(ncid, fieldID, inGWsucs)
     end if
     IF ((ok2 .ne. NF90_NOERR) .or. (ok .ne. NF90_NOERR)) then
-      inGWsucs(:,:) = insucs(:,:)
+      inGWsucs(:,:) = abs(insucs(:,:)) * 1000.0
+      found_explicit_gw_parameters = .false.
     END IF    
     
     ok = NF90_INQ_VARID(ncid, 'GWbch', fieldID)
@@ -579,6 +584,7 @@ CONTAINS
     end if
     IF ((ok2 .ne. NF90_NOERR) .or. (ok .ne. NF90_NOERR)) then
       inGWbch(:,:) = inbch(:,:)
+      found_explicit_gw_parameters = .false.
     END IF    
         
     ok = NF90_INQ_VARID(ncid, 'GWhyds', fieldID)
@@ -587,7 +593,8 @@ CONTAINS
       ok2 = NF90_GET_VAR(ncid, fieldID, inGWhyds)
     end if
     IF ((ok2 .ne. NF90_NOERR) .or. (ok .ne. NF90_NOERR)) then
-      inGWhyds(:,:) = inhyds(:,:)
+      inGWhyds(:,:) = inhyds(:,:)*1000.0
+      found_explicit_gw_parameters = .false.
     END IF    
     
     ok = NF90_INQ_VARID(ncid, 'GWrhosoil', fieldID)
@@ -714,12 +721,12 @@ CONTAINS
     WRITE(logn, *) 'When choosing spatially-specific soil properties,'
     WRITE(logn, *) 'snow-free albedo is also overwritten by this data set.'
     sfact = 0.68
-    WHERE (in2alb <= 0.14 .and. in2alb > 0.0)
+    WHERE (in2alb <= 0.14)
        sfact = 0.5
-    ELSEWHERE (in2alb > 0.14 .and. in2alb <= 0.20)
+    ELSEWHERE (in2alb > 0.14)
        sfact = 0.62
     END WHERE
-    WHERE (in2alb > 1.0e19 .or. in2alb <= 0.0)   ! ocean points
+    WHERE (in2alb > 1.0e19)   ! ocean points
       in2alb = -1.0
     END WHERE
     dummy2(:, :) = 2.0 * in2alb(:, :) / (1.0 + sfact(:, :))
@@ -1094,7 +1101,8 @@ CONTAINS
   !   landpt(mp)%type- via cable_IO_vars_module (%nap,cstart,cend,ilon,ilat)
   !   patch(mp)%type - via cable_IO_vars_module (%frac,longitude,latitude)
 
-    USE cable_common_module, only : vegin, soilin, calcsoilalbedo,cable_user
+    USE cable_common_module, only : vegin, soilin, &
+                  calcsoilalbedo,cable_user,init_veg_from_vegin
     IMPLICIT NONE
     INTEGER,               INTENT(IN)    :: logn  ! log file unit number
     INTEGER,               INTENT(IN)    :: month ! month of year
@@ -1331,69 +1339,65 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
                                            incss(landpt(e)%ilon, landpt(e)%ilat)
       soil%cnsd(landpt(e)%cstart:landpt(e)%cend) =                             &
                                           incnsd(landpt(e)%ilon, landpt(e)%ilat)
-!mrd561
-      !MD
 
       !possibly heterogeneous soil properties
-
       DO klev=1,ms
 
         soil%sucs_vec(landpt(e)%cstart:landpt(e)%cend,klev) =                   &
-         abs(insucs(landpt(e)%ilon, landpt(e)%ilat))*1000.0 !convert to mm
+             real(insucs(landpt(e)%ilon, landpt(e)%ilat),r_2)
                                          
         soil%hyds_vec(landpt(e)%cstart:landpt(e)%cend,klev) =                    &
-             inhyds(landpt(e)%ilon, landpt(e)%ilat)*1000.0  !convert to mm                         
+             real(inhyds(landpt(e)%ilon, landpt(e)%ilat),r_2)
 
         soil%bch_vec(landpt(e)%cstart:landpt(e)%cend,klev) =                   &
-              inbch(landpt(e)%ilon, landpt(e)%ilat)                       
+            real(inbch(landpt(e)%ilon, landpt(e)%ilat),r_2)                       
 
         soil%Fclay(landpt(e)%cstart:landpt(e)%cend,klev) =                    &
-            inclay(landpt(e)%ilon, landpt(e)%ilat)                      
+            real(inclay(landpt(e)%ilon, landpt(e)%ilat),r_2)                 
 
         soil%Fsand(landpt(e)%cstart:landpt(e)%cend,klev) =                    &
-            insand(landpt(e)%ilon, landpt(e)%ilat)                       
+            real(insand(landpt(e)%ilon, landpt(e)%ilat),r_2)                  
 
         soil%Fsilt(landpt(e)%cstart:landpt(e)%cend,klev) =                    &
-            insilt(landpt(e)%ilon, landpt(e)%ilat)
+            real(insilt(landpt(e)%ilon, landpt(e)%ilat),r_2)
 
         soil%densoil(landpt(e)%cstart:landpt(e)%cend,klev) =                  &
-           inrhosoil(landpt(e)%ilon, landpt(e)%ilat)                      
+           real(inrhosoil(landpt(e)%ilon, landpt(e)%ilat),r_2)                    
 
         soil%Forg(landpt(e)%cstart:landpt(e)%cend,klev) =                    &
-           inORG(landpt(e)%ilon, landpt(e)%ilat)
+           real(inORG(landpt(e)%ilon, landpt(e)%ilat),r_2)
 
         soil%ssat_vec(landpt(e)%cstart:landpt(e)%cend,klev) =                   &
-             inssat(landpt(e)%ilon, landpt(e)%ilat) 
+             real(inssat(landpt(e)%ilon, landpt(e)%ilat),r_2) 
 
         soil%watr(landpt(e)%cstart:landpt(e)%cend,klev) =  0.01
 
       END DO
 
       !Aquifer properties  same as bottom soil layer for now
-
       soil%GWsucs_vec(landpt(e)%cstart:landpt(e)%cend) =                        &
-         soil%sucs_vec(landpt(e)%cstart:landpt(e)%cend,ms)
+         real(inGWsucs(landpt(e)%ilon, landpt(e)%ilat),r_2)
 
       soil%GWhyds_vec(landpt(e)%cstart:landpt(e)%cend) =                         &
-          soil%hyds_vec(landpt(e)%cstart:landpt(e)%cend,ms)
+          real(inGWhyds(landpt(e)%ilon, landpt(e)%ilat),r_2)
 
       soil%GWbch_vec(landpt(e)%cstart:landpt(e)%cend) =                        &
-          soil%bch_vec(landpt(e)%cstart:landpt(e)%cend,ms)
+          real(inGWbch(landpt(e)%ilon, landpt(e)%ilat),r_2)
 
       soil%GWdensoil(landpt(e)%cstart:landpt(e)%cend) =                       &
-         soil%densoil(landpt(e)%cstart:landpt(e)%cend,ms)
+         real(inGWrhosoil(landpt(e)%ilon, landpt(e)%ilat),r_2)
 
       soil%GWssat_vec(landpt(e)%cstart:landpt(e)%cend) =                        &
-         soil%ssat_vec(landpt(e)%cstart:landpt(e)%cend,ms)
+         real(inGWssat(landpt(e)%ilon, landpt(e)%ilat),r_2)
 
       soil%GWwatr(landpt(e)%cstart:landpt(e)%cend) =                          &
          soil%watr(landpt(e)%cstart:landpt(e)%cend,ms)
 
       soil%slope(landpt(e)%cstart:landpt(e)%cend) =                           &
-                                    min(max(inSlope(landpt(e)%ilon,landpt(e)%ilat),0.0001),0.05)
+                                    min(max(inSlope(landpt(e)%ilon,landpt(e)%ilat),1e-8),0.95)
 
       soil%slope_std(landpt(e)%cstart:landpt(e)%cend) =                       &
-                                    min(max(inSlopeSTD(landpt(e)%ilon,landpt(e)%ilat),0.0001),0.05)
+                                    min(max(inSlopeSTD(landpt(e)%ilon,landpt(e)%ilat),1e-8),0.95)
 
       soil%GWdz(landpt(e)%cstart:landpt(e)%cend) =                           &
                                     inGWdz(landpt(e)%ilon,landpt(e)%ilat)
@@ -1506,21 +1510,21 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
             soil%sand(h)    =  soilin%sand(soil%isoilm(h))
              !MDeck
             do klev=1,ms
-               soil%Fclay(h,klev) = soilin%clay(soil%isoilm(h))
-               soil%Fsand(h,klev) = soilin%sand(soil%isoilm(h))
-               soil%Fsilt(h,klev) = soilin%silt(soil%isoilm(h))
-              soil%sucs_vec(h,klev)  = abs(soilin%sucs(soil%isoilm(h)))*1000.0
-              soil%hyds_vec(h,klev)   = soilin%hyds(soil%isoilm(h))*1000.0
-              soil%bch_vec(h,klev)  = soilin%bch(soil%isoilm(h))
-              soil%densoil(h,klev) = soilin%rhosoil(soil%isoilm(h))
-              soil%ssat_vec(h,klev)  = soilin%ssat(soil%isoilm(h))
+               soil%Fclay(h,klev) = real(soilin%clay(soil%isoilm(h)),r_2)
+               soil%Fsand(h,klev) = real(soilin%sand(soil%isoilm(h)),r_2)
+               soil%Fsilt(h,klev) = real(soilin%silt(soil%isoilm(h)),r_2)
+              soil%sucs_vec(h,klev)  = real(abs(soilin%sucs(soil%isoilm(h)))*1000.0,r_2)
+              soil%hyds_vec(h,klev)   = real(soilin%hyds(soil%isoilm(h))*1000.0,r_2)
+              soil%bch_vec(h,klev)  = real(soilin%bch(soil%isoilm(h)),r_2)
+              soil%densoil(h,klev) = real(soilin%rhosoil(soil%isoilm(h)),r_2)
+              soil%ssat_vec(h,klev)  = real(soilin%ssat(soil%isoilm(h)),r_2)
               soil%watr(h,klev)    = 0.01
             end do
-            soil%GWsucs_vec(h)  = abs(soilin%sucs(soil%isoilm(h)))*1000.0
-            soil%GWhyds_vec(h)   = soilin%hyds(soil%isoilm(h))*1000.0
-            soil%GWbch_vec(h)  = soilin%bch(soil%isoilm(h))
-            soil%GWdensoil(h) = soilin%rhosoil(soil%isoilm(h))
-            soil%GWssat_vec(h)  = soilin%ssat(soil%isoilm(h))
+            soil%GWsucs_vec(h)  = real(abs(soilin%sucs(soil%isoilm(h)))*1000.0,r_2)
+            soil%GWhyds_vec(h)   = real(soilin%hyds(soil%isoilm(h))*1000.0,r_2)
+            soil%GWbch_vec(h)  = real(soilin%bch(soil%isoilm(h)),r_2)
+            soil%GWdensoil(h) = real(soilin%rhosoil(soil%isoilm(h)),r_2)
+            soil%GWssat_vec(h)  = real(soilin%ssat(soil%isoilm(h)),r_2)
             soil%GWwatr(h)    = 0.01
 
           END IF
@@ -1787,12 +1791,14 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
           soil%ssat_vec(:,klev) = 0.489 - 0.00126*soil%Fsand(:,klev)*100.0
           soil%watr(:,klev) = 0.02 + 0.00018*soil%Fclay(:,klev)*100.0
        ENDDO
-       !aquifer share non-organic with last layer
-       soil%GWhyds_vec(:)  = soil%hyds_vec(:,ms)
-       soil%GWsucs_vec(:) = soil%sucs_vec(:,ms)
-       soil%GWbch_vec(:) = soil%bch_vec(:,ms)
-       soil%GWssat_vec(:) = soil%ssat_vec(:,ms)
-       soil%GWwatr(:)   = soil%watr(:,ms)
+       !aquifer share non-organic with last layer if not found in param file
+       if (found_explicit_gw_parameters .eq. .false.) THEN
+          soil%GWhyds_vec(:)  = soil%hyds_vec(:,ms)
+          soil%GWsucs_vec(:) = soil%sucs_vec(:,ms)
+          soil%GWbch_vec(:) = soil%bch_vec(:,ms)
+          soil%GWssat_vec(:) = soil%ssat_vec(:,ms)
+          soil%GWwatr(:)   = soil%watr(:,ms)
+       endif
        !include organin impact.  fraction of grid cell where percolation through
        !organic macropores dominates
        soil%Forg = max(0._r_2,soil%Forg)
@@ -1831,6 +1837,7 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
           soil%slope_std(i) = min(0.9,max(1e-9,soil%slope_std(i)))
        end do
 
+       if ((gw_params%MaxSatFraction .lt. -9999.9) .and. (mp .eq. 1)) soil%slope(:) = 0.01    
 
     ELSE
 
@@ -1844,10 +1851,9 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
     END IF
 
     !mrd561 debug
-    WHERE(soil%cnsd .le. 0.)   soil%cnsd = 0.272
-    where(ssnow%GWwb(:) .le. 0.) ssnow%GWwb(:) = 0.97*soil%ssat
+    !WHERE(soil%cnsd .le. 0.)   soil%cnsd = 0.272
+    !where(ssnow%GWwb(:) .le. 0.) ssnow%GWwb(:) = 0.97*soil%ssat
 
-    if ((gw_params%MaxSatFraction .lt. -9999.9) .and. (mp .eq. 1)) soil%slope(:) = 0.01    
 
     IF ( .NOT. soilparmnew) THEN  ! Q,Zhang @ 12/20/2010
       soil%cnsd  = soil%sand * 0.3 + soil%clay * 0.25                          &
@@ -1910,16 +1916,11 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
   !! vh_js !! comment out hide% condition
    ! IF (hide%Ticket49Bug6) THEN
 
-   if (.not.cable_user%GW_MODEL) then
-       soil%swilt_vec = SPREAD(soil%swilt,2,ms)
-       soil%ssat_vec = SPREAD(soil%ssat,2,ms)
-       IF(cable_user%SOIL_STRUC=='sli') THEN
-          soil%sfc_vec = SPREAD(soil%sfc,2,ms)
-          ! Only 1 horizon by default !
-          soil%nhorizons = 1
-          soil%ishorizon = 1
-       END IF
-   end if
+   IF(cable_user%SOIL_STRUC=='sli') THEN
+      ! Only 1 horizon by default !
+      soil%nhorizons = 1
+      soil%ishorizon = 1
+   END IF
    ! END IF
 
   END SUBROUTINE derived_parameters
