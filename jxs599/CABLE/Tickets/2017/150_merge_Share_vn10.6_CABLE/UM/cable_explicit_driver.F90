@@ -31,50 +31,26 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
                                   sm_levels, timestep, latitude, longitude,    &
                                   land_index, tile_frac,  tile_pts, tile_index,&
                                   bexp, hcon, satcon, sathh, smvcst,           &
-                                  smvcwt,  smvccl, albsoil,                    &
-                                  snow_tile,                                   &
-                                  snow_rho1l,                                  &
-                                  snow_age,                                    &
-                                  snow_flg3l,                                  &
-                                  snow_rho3l,                                  &
-                                  !snow_cond, 
-                                  snow_depth3l,                                &
-                                  snow_tmp3l,                                  &
-                                  snow_mass3l,                                 & 
-                                  !sw_down, 
-                                  lw_down,                                     &
-                                  cos_zenith_angle,                            &
-                                  surf_down_sw,                                &
-                                  ls_rain,                                     &
-                                  ls_snow,                                     &
-                                  tl_1, qw_1, &
-                                  vshr_land, pstar, z1_tq, z1_uv,  &
-                                  canopy_tile,                                 &
-                                  Fland,                                       &
-                                  CO2_MMR,                                     & 
-                                  ! r935 rml 2/7/13 pass 3d co2 through to cable if required
+                                  smvcwt,  smvccl, albsoil, snow_tile,         &
+                                  snow_rho1l, snow_age, snow_flg3l, snow_rho3l,&
+                                  snow_depth3l, snow_tmp3l, snow_mass3l,       & 
+                                  lw_down, cos_zenith_angle, surf_down_sw,     &
+                                  ls_rain, ls_snow, tl_1, qw_1, vshr_land,     &
+                                  pstar, z1_tq, z1_uv, canopy_tile, Fland,     &
+                                  CO2_MMR, & 
                                   !CO2_3D,CO2_DIM_LEN,CO2_DIM_ROW,L_CO2_INTERACTIVE,   &
-                                  !
-                                  !sthu_tile, 
-                                  smcl_tile,                                   &
-                                  sthf_tile,                                   &
-                                  sthu,                                        &
-                                  tsoil_tile,                                  &
-                                  canht_ft,                                    &
-                                  lai_ft, sin_theta_latitude, dzsoil,          &
-                                  FTL_TILE, FQW_TILE,                          &
-                                  TSTAR_TILE,                                  &
-                                  U_S, U_S_STD_TILE,                           &
-                                  CD_TILE, CH_TILE,                            &
-                                  RADNET_TILE, FRACA,                          &
-                                  RESFS, RESFT,                                &
-                                  Z0H_TILE,Z0M_TILE,                           &
+                                  smcl_tile, sthf_tile, sthu, tsoil_tile,      &
+                                  canht_ft, lai_ft, sin_theta_latitude, dzsoil,&
+                                  FTL_TILE, FQW_TILE, TSTAR_TILE,              &
+                                  U_S, U_S_STD_TILE, CD_TILE, CH_TILE,         &
+                                  RADNET_TILE, FRACA, RESFS, RESFT,            &
+                                  Z0H_TILE, Z0M_TILE,                          &
                                   RECIP_L_MO_TILE, EPOT_TILE,                  &
-                                  ! r825 adds CASA vars here
-                                  !CPOOL_TILE, NPOOL_TILE, PPOOL_TILE,          &
-                                  !SOIL_ORDER, NIDEP, NIFIX, PWEA, PDUST,       &
-                                  !GLAI, PHENPHASE, NPP_FT_ACC, RESP_W_FT_ACC,  &
-                                  endstep, timestep_number, mype )    
+! r825 adds CASA vars here
+!CPOOL_TILE, NPOOL_TILE, PPOOL_TILE,          &
+!SOIL_ORDER, NIDEP, NIFIX, PWEA, PDUST,       &
+!GLAI, PHENPHASE, NPP_FT_ACC, RESP_W_FT_ACC,  &
+endstep, timestep_number, mype )    
    
    !--- reads runtime and user switches and reports
    USE cable_um_tech_mod, ONLY : cable_um_runtime_vars, air, bgc, canopy,      &
@@ -114,7 +90,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
   character(len=*), parameter :: subr_name = "cable_explicit_driver"
 
    !jhan: this can be moved and USEd ?
-   TYPE (climate_type)	:: climate     ! climate variables
+   TYPE (climate_type) :: climate     ! climate variables
    !-------------------------------------------------------------------------- 
    !--- INPUT ARGS FROM () --------------------------------------------
    !-------------------------------------------------------------------------- 
@@ -368,7 +344,7 @@ wiltparam=0.5
    !   CALL basic_diag(subr_name, "Called.") 
 
    !--- initialize cable_runtime% switches 
-      cable_runtime%um = .TRUE.
+   cable_runtime%um = .TRUE.
    cable_runtime%um_explicit = .TRUE.
    
    !--- UM7.3 latitude is not passed correctly. hack 
@@ -416,8 +392,8 @@ wiltparam=0.5
    !---------------------------------------------------------------------!
    !--- Feedback prognostic vcmax and daily LAI from casaCNP to CABLE ---!
    !---------------------------------------------------------------------!
-   !IF(l_vcmaxFeedbk) call casa_feedback(ktau_gl,veg,casabiome,casapool,casamet)
-   !IF(l_laiFeedbk) veg%vlai(:) = casamet%glai(:)
+   IF(l_vcmaxFeedbk) call casa_feedback(ktau_gl,veg,casabiome,casapool,casamet)
+   IF(l_laiFeedbk) veg%vlai(:) = casamet%glai(:)
 
    canopy%oldcansto=canopy%cansto
 

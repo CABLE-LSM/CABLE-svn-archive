@@ -49,7 +49,7 @@ snow_tile, SNOW_RHO1L,       &
                                   CANOPY_GB, MELT_TILE, &
                                   NPP, NPP_FT, GPP, GPP_FT, RESP_S,   &
                                   RESP_S_TOT, &
-!RESP_S_TILE, 
+                                  RESP_S_TILE, &
                                   RESP_P, RESP_P_FT,  &
                      ! r825 added casa vars after G_LEAF, but we need
                     ! need. vars here satisfy _hydrol CALL that is now from _impl
