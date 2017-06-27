@@ -589,7 +589,8 @@ PROGRAM cable_offline_driver
        ! time step loop over ktau
        DO ktau=kstart, kend
           
-          
+          write(logn,*) 'Progress -',real(ktau)/real(kend)*100.0
+
           ! increment total timstep counter
           ktau_tot = ktau_tot + 1
           
