@@ -55,7 +55,8 @@ CONTAINS
 #endif
    USE cable_data_module, ONLY : icbm_type, point2constants
    !mrd561
-   USE cable_gw_hydro_module, only : soil_snow_gw,sli_hydrology
+   USE cable_gw_hydro_module
+   USE cable_psm
 
    !ptrs to local constants
    TYPE( icbm_type ) :: C
@@ -120,6 +121,14 @@ CONTAINS
    ssnow%otss = ssnow%tss
 
    ! Calculate canopy variables:
+   IF (cable_user%or_evap .or. cable_user%gw_model) then
+      call saturated_fraction(ssnow,soil)
+      call or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
+      call calc_srf_wet_fraction(ssnow,soil)
+   ELSE
+      call set_unsed_gw_vars(ssnow,soil,canopy)
+   END IF
+
         CALL define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,climate)
 
    !ssnow%otss_0 = ssnow%otss

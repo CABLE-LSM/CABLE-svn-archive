@@ -1592,8 +1592,9 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
    canopy%sublayer_dz = 0.0
    ssnow%rtevap_sat = 0.0
    ssnow%rtevap_unsat = 0.0
-   ssnow%satfrac = 0.0
+   ssnow%satfrac = 0.5
    ssnow%wbliq = ssnow%wb - ssnow%wbice
+   ssnow%GWwb = 0.9*soil%ssat
 
    !IF(hide%Ticket49Bug5) THEN
 

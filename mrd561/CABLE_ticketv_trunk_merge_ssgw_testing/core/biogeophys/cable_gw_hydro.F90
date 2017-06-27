@@ -77,7 +77,7 @@ MODULE cable_gw_hydro_module
  
   ! ! This module contains the following subroutines:
    PUBLIC soil_snow_gw,calc_srf_wet_fraction,sli_hydrology ! must be available outside this module
-   PUBLIC saturated_fraction,pore_space_relative_humidity
+   PUBLIC saturated_fraction,pore_space_relative_humidity,set_unsed_gw_vars
    PUBLIC sucmin,volwatmin,wtd_uncert,wtd_max,wtd_min,dri,wtd_iter_max
 
    PRIVATE subsurface_drainage,iterative_wtd,ovrlndflx,aquifer_recharge, calc_soil_hydraulic_props
@@ -1465,15 +1465,34 @@ END SUBROUTINE calc_soil_hydraulic_props
 
     else
 
-       ssnow%qhlev = 0.
-       ssnow%Qrecharge = 0.
-       ssnow%fwtop = 0.
-       ssnow%wtd = 0.
+       call set_unsed_gw_vars(ssnow,soil,canopy)
 
     end if
 
 
 
   END SUBROUTINE sli_hydrology
+
+
+  SUBROUTINE set_unsed_gw_vars(ssnow,soil,canopy)
+    TYPE(soil_snow_type), INTENT(INOUT)      :: ssnow  ! soil+snow variables
+    TYPE(soil_parameter_type), INTENT(INOUT)    :: soil ! soil parameters
+    TYPE (canopy_type), INTENT(INOUT)           :: canopy
+
+       ssnow%qhlev = 0.
+       ssnow%Qrecharge = 0.
+       ssnow%fwtop = 0.
+       ssnow%wtd = 0.
+       ssnow%satfrac = 0.5
+       ssnow%qhz = 0.
+       ssnow%wbliq = ssnow%wb - ssnow%wbice
+       canopy%sublayer_dz = 0.0
+       ssnow%rtevap_sat = 0.0
+       ssnow%rtevap_unsat = 0.0
+
+       ssnow%GWwb = 0.9*soil%ssat
+
+
+  END SUBROUTINE set_unsed_gw_vars
 
 END MODULE cable_gw_hydro_module
