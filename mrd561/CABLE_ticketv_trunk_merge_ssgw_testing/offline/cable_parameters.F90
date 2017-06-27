@@ -1826,11 +1826,17 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
        soil%ssat = real(soil%ssat_vec(:,1))
        soil%bch  = real(soil%bch_vec(:,1))
 
+       do i=1,mp
+          soil%slope(i) = min(0.9,max(1e-9,soil%slope(i)))
+          soil%slope_std(i) = min(0.9,max(1e-9,soil%slope_std(i)))
+       end do
+
+
     ELSE
 
       do klev=1,ms
-       soil%sfc_vec(:,klev) = soil%sfc(:)
-       soil%swilt_vec(:,klev)  = soil%swilt(:)
+       soil%sfc_vec(:,klev) = real(soil%sfc(:),r_2)
+       soil%swilt_vec(:,klev)  = real(soil%swilt(:),r_2)
       end do
       soil%watr = 0._r_2
       soil%GWwatr = 0._r_2
