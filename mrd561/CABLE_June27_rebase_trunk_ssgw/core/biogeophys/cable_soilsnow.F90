@@ -56,13 +56,14 @@ MODULE cable_soil_snow_module
    REAL :: cp    ! specific heat capacity for air
 
    !jhan:make parameter
-   REAL :: max_glacier_snowd
+   REAL,PARAMETER :: max_glacier_snowd=1100.0
 
    ! This module contains the following subroutines:
    PUBLIC soil_snow ! must be available outside this module
-   PRIVATE snowdensity, snow_melting, snowcheck, snowl_adjust
-   PRIVATE trimb, smoisturev, snow_accum, stempv
-   PRIVATE soilfreeze, remove_trans
+   PUBLIC snowdensity, snow_melting, snowcheck, snowl_adjust
+   PUBLIC trimb, snow_accum
+   PUBLIC C,cgsnow,csice,cswat,rhowat,snmin,snmin,max_ssdn,max_sconds,frozen_limit,max_glacier_snowd
+   PRIVATE soilfreeze, remove_trans, smoisturev, stempv
 
 CONTAINS
 
@@ -1711,7 +1712,7 @@ SUBROUTINE soil_snow(dels, soil, ssnow, canopy, met, bal, veg)
    ! appropriate for ACCESS1.0
    !max_glacier_snowd = 50000.0
    ! appropriate for ACCESS1.3
-   max_glacier_snowd = 1100.0
+   !max_glacier_snowd = 1100.0
 
    zsetot = sum(soil%zse)
    ssnow%tggav = 0.

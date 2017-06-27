@@ -68,7 +68,7 @@ PROGRAM cable_offline_driver
        cable_runtime, filename, myhome,		   &
        redistrb, wiltParam, satuParam, CurYear,	   &
        IS_LEAPYEAR, IS_CASA_TIME, calcsoilalbedo,		 &
-       report_version_no, kwidth_gl
+       report_version_no, kwidth_gl, gw_params
   USE cable_data_module,    ONLY: driver_type, point2constants
   USE cable_input_module,   ONLY: open_met_file,load_parameters,	      &
        get_met_data,close_met_file,		   &
@@ -79,7 +79,7 @@ PROGRAM cable_offline_driver
        ncid_ps,		&
        ncid_qa,		&
        ncid_ta,		&
-       ncid_wd
+       ncid_wd,ncid_mask
   USE cable_output_module,  ONLY: create_restart,open_output_file,	      &
        write_output,close_output_file
   USE cable_write_module,   ONLY: nullify_write
@@ -246,7 +246,9 @@ PROGRAM cable_offline_driver
        redistrb,	 &
        wiltParam,	 &
        satuParam,	 &
-       cable_user	    ! additional USER switches
+       cable_user,       & ! additional USER switches
+       gw_params
+
   !mpidiff
   INTEGER :: i,x,kk
 
@@ -293,7 +295,7 @@ PROGRAM cable_offline_driver
   ENDIF
 
   ! INITIALISATION depending on nml settings
-  IF (TRIM(cable_user%MetType) .EQ. 'gswp') THEN
+  IF (TRIM(cable_user%MetType) .EQ. 'gswp' .or. TRIM(cable_user%MetType) .EQ. 'gswp3') THEN
      IF ( CABLE_USER%YearStart.eq.0 .and. ncciy.gt.0) THEN
         CABLE_USER%YearStart = ncciy
         CABLE_USER%YearEnd = ncciy

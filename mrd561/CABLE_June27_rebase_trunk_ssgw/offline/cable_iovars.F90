@@ -102,7 +102,8 @@ MODULE cable_IO_vars_module
          PSurf, &
          Qair, &
          Tair, &
-         wind
+         wind, &
+         mask
 
    END TYPE gswp_type
 
@@ -134,6 +135,11 @@ MODULE cable_IO_vars_module
      INTEGER :: ishorizon,nhorizons,clitt, &
           zeta,fsatmax, &
           gamma,ZR,F10
+      INTEGER ::                                                               &
+           WatSat,GWWatSat,SoilMatPotSat,GWSoilMatPotSat,&   
+           HkSat,GWHkSat,FrcSand,FrcClay,Clappb,Watr,GWWatr,sfc_vec,forg,swilt_vec,&
+           slope,slope_std,GWdz
+
 
      INTEGER :: g0,g1 ! Ticket #56
 
@@ -341,7 +347,13 @@ MODULE cable_IO_vars_module
          patchfrac  = .FALSE.,& ! fractional cover of each veg/soil patch
          isoil  = .FALSE.,    & ! soil type from global index
          meth  = .FALSE.,     & ! method for solving turbulence in canopy scheme
-         za  = .FALSE.          ! something to do with roughness ????
+         za  = .FALSE.,       & ! something to do with roughness ????
+         !mrd561
+         !MD GW
+         GWMoist = .FALSE.,   & ! water balance of aquifer [mm3/mm3]
+         WatTable = .FALSE.,  & ! water table depth [m] 
+         Qrecharge=.FALSE.,   &  !recharge to /from auqifer
+         SatFrac=.FALSE.,       & ! Saturated Fraction of Gridcell (tile)
 
    END TYPE output_inclusion_type
 

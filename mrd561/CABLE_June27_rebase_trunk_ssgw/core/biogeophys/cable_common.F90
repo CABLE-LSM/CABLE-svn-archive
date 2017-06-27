@@ -147,6 +147,13 @@ MODULE cable_common_module
           !! vh_js !!
          litter = .FALSE.
 
+      LOGICAL :: GW_MODEL = .FALSE.
+      LOGICAL :: GSWP3 = .FALSE.
+      LOGICAL :: or_evap = .FALSE.
+      LOGICAL :: test_new_gw=.false.
+
+
+
   END TYPE kbl_user_switches
 
   ! instantiate internal switches
@@ -168,7 +175,8 @@ MODULE cable_common_module
           soil,       & ! name of file for soil parameters
           soilcolor,  & ! file for soil color(soilcolor_global_1x1.nc)
           inits,      & ! name of file for initialisations
-          soilIGBP      ! name of file for IGBP soil map
+          soilIGBP,   & ! name of file for IGBP soil map
+          gw_elev       !name of file for gw/elevation data
 
   END TYPE filenames_type
 
@@ -252,6 +260,26 @@ MODULE cable_common_module
           taul        !
 
   END TYPE vegin_type
+
+  TYPE gw_parameters_type
+
+     REAL ::                   &
+       MaxHorzDrainRate=1e-3,  & !anisintropy * q_max [qsub]
+       EfoldHorzDrainRate=2.5, & !e fold rate of q_horz
+       MaxSatFraction=900,     & !parameter controll max sat fraction
+       hkrz=0.0,               & !hyds_vec variation with z
+       zdepth=1.0,             & !level where hyds_vec(z) = hyds_vec(no z)
+       frozen_frac=0.05,       & !ice fraction to determine first non-frozen layer for qsub
+       SoilEvapAlpha = 1.0,    & !modify field capacity dependence of soil evap limit
+       IceAlpha=3.0,           &
+       IceBeta=1.0
+
+     INTEGER :: level_for_satfrac = 6
+
+  END TYPE gw_parameters_type
+
+  TYPE(gw_parameters_type), SAVE :: gw_params
+
 
   CHARACTER(LEN=70), DIMENSION(:), POINTER ::                                 &
        veg_desc,   & ! decriptions of veg type

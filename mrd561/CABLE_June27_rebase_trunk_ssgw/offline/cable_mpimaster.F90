@@ -160,7 +160,7 @@ CONTAINS
          cable_runtime, fileName, myhome,            &
          redistrb, wiltParam, satuParam, CurYear,    &
          IS_LEAPYEAR, IS_CASA_TIME, calcsoilalbedo,                &
-         report_version_no, kwidth_gl
+         report_version_no, kwidth_gl, gw_params
     USE cable_data_module,    ONLY: driver_type, point2constants
     USE cable_input_module,   ONLY: open_met_file,load_parameters,              &
          get_met_data,close_met_file
@@ -340,7 +340,9 @@ CONTAINS
          redistrb,         &
          wiltParam,        &
          satuParam,        &
-         cable_user           ! additional USER switches 
+         cable_user,       &  ! additional USER switches 
+         gw_params
+
     INTEGER :: i,x,kk
     INTEGER :: LALLOC
     INTEGER, PARAMETER ::	 mloop	= 30   ! CASA-CNP PreSpinup loops
@@ -522,7 +524,9 @@ CONTAINS
           ELSE IF (TRIM(cable_user%MetType) .EQ. 'gswp' ) THEN
              ncciy = CurYear
              WRITE(*,*) 'Looking for global offline run info.'
-             CALL prepareFiles(ncciy)
+             IF (.not.cable_user%GSWP3) THEN
+                CALL prepareFiles(ncciy)
+             ENDIF
              CALL open_met_file( dels, koffset, kend, spinup, C%TFRZ )
           ENDIF
 
@@ -3101,6 +3105,95 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
      CALL MPI_Get_address (rad%longitude(off), displs(bidx), ierr)
      blen(bidx) = r1len
 
+     !mrd need to add parameters here...
+     !2D
+     bidx = bidx + 1
+     CALL MPI_Get_address (soil%ssat_vec(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
+     &                             types(bidx), ierr)
+     blen(bidx) = 1
+    
+     bidx = bidx + 1
+     CALL MPI_Get_address (soil%sucs_vec(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
+     &                             types(bidx), ierr)
+     blen(bidx) = 1
+   
+     bidx = bidx + 1
+     CALL MPI_Get_address (soil%hyds_vec(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
+     &                             types(bidx), ierr)
+     blen(bidx) = 1
+   
+     bidx = bidx + 1
+     CALL MPI_Get_address (soil%bch_vec(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
+     &                             types(bidx), ierr)
+     blen(bidx) = 1
+   
+     bidx = bidx + 1
+     CALL MPI_Get_address (soil%watr(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
+     &                             types(bidx), ierr)
+     blen(bidx) = 1
+   
+     bidx = bidx + 1
+     CALL MPI_Get_address (soil%swilt_vec(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
+     &                             types(bidx), ierr)
+     blen(bidx) = 1
+   
+     bidx = bidx + 1
+     CALL MPI_Get_address (soil%sfc_vec(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
+     &                             types(bidx), ierr)
+     blen(bidx) = 1
+   
+   
+   !1D
+     bidx = bidx + 1
+     CALL MPI_Get_address (soil%GWssat_vec(off), displs(bidx), ierr)
+     blen(bidx) = r2len
+   
+     bidx = bidx + 1
+     CALL MPI_Get_address (soil%GWsucs_vec(off), displs(bidx), ierr)
+     blen(bidx) = r2len
+   
+     bidx = bidx + 1
+     CALL MPI_Get_address (soil%GWhyds_vec(off), displs(bidx), ierr)
+     blen(bidx) = r2len
+   
+     bidx = bidx + 1
+     CALL MPI_Get_address (soil%GWbch_vec(off), displs(bidx), ierr)
+     blen(bidx) = r2len
+   
+     bidx = bidx + 1
+     CALL MPI_Get_address (soil%GWwatr(off), displs(bidx), ierr)
+     blen(bidx) = r2len
+   
+     bidx = bidx + 1
+     CALL MPI_Get_address (soil%GWz(off), displs(bidx), ierr)
+     blen(bidx) = r2len
+   
+     bidx = bidx + 1
+     CALL MPI_Get_address (soil%GWdz(off), displs(bidx), ierr)
+     blen(bidx) = r2len
+   
+     bidx = bidx + 1
+     CALL MPI_Get_address (soil%slope(off), displs(bidx), ierr)
+     blen(bidx) = r2len
+   
+     bidx = bidx + 1
+     CALL MPI_Get_address (soil%slope_std(off), displs(bidx), ierr)
+     blen(bidx) = r2len
+   
+     bidx = bidx + 1
+     CALL MPI_Get_address (soil%GWdz(off), displs(bidx), ierr)
+     blen(bidx) = r2len
+   
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%GWwb(off), displs(bidx), ierr)
+     blen(bidx) = r2len
  
 
      ! MPI: sanity check
@@ -5781,6 +5874,26 @@ SUBROUTINE master_outtypes (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
      ! LOGICAL
      CALL MPI_Get_address (veg%deciduous(off), vaddr(vidx), ierr) ! 163
      blen(vidx) = cnt * extl
+
+     vidx = vidx + 1
+     ! REAL(r_2)
+     CALL MPI_Get_address (ssnow%GWwb(off), vaddr(vidx), ierr) ! 40
+     blen(vidx) = cnt * extr2
+
+     vidx = vidx + 1
+     ! REAL(r_2)
+     CALL MPI_Get_address (ssnow%wtd(off), vaddr(vidx), ierr) ! 40
+     blen(vidx) = cnt * extr2
+
+     vidx = vidx + 1
+     ! REAL(r_2)
+     CALL MPI_Get_address (ssnow%satfrac(off), vaddr(vidx), ierr) ! 40
+     blen(vidx) = cnt * extr2
+
+     vidx = vidx + 1
+     ! REAL(r_2)
+     CALL MPI_Get_address (ssnow%Qrecharge(off), vaddr(vidx), ierr) ! 40
+     blen(vidx) = cnt * extr2
 
       ! additional for SLI 
      vidx = vidx + 1
