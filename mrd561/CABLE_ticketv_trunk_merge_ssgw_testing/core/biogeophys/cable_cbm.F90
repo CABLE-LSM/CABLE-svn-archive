@@ -45,7 +45,7 @@ CONTAINS
 
    USE cable_common_module
    USE cable_carbon_module
-   USE cable_soil_snow_module
+   USE cable_soil_snow_module, only : soil_snow
    USE cable_def_types_mod
    USE cable_roughness_module
    USE cable_radiation_module
@@ -55,7 +55,7 @@ CONTAINS
 #endif
    USE cable_data_module, ONLY : icbm_type, point2constants
    !mrd561
-   USE cable_gw_hydro_module
+   USE cable_gw_hydro_module, only : soil_snow_gw,sli_hydrology
 
    !ptrs to local constants
    TYPE( icbm_type ) :: C
