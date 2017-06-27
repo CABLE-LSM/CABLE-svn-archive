@@ -273,7 +273,8 @@ MODULE cable_def_types_mod
          Qrecharge,&
          rh_srf,   &
          rtevap_sat,&
-         rtevap_unsat
+         rtevap_unsat,&
+         rt_qh_sublayer
      
       REAL(r_2), DIMENSION(:,:), POINTER  ::                                     &
          wbeq,    &    ! equilibrium water content [mm3/mm3]
@@ -946,6 +947,7 @@ SUBROUTINE alloc_soil_snow_type(var, mp)
    ALLOCATE( var%rh_srf(mp) )
    ALLOCATE( var%rtevap_unsat(mp) )
    ALLOCATE( var%rtevap_sat(mp) )
+   ALLOCATE( var%rt_qh_sublayer(mp) )
    !soil moisture variables
    ALLOCATE( var%wbeq(mp,ms) )
    ALLOCATE( var%zq(mp,ms) )
@@ -1551,6 +1553,7 @@ SUBROUTINE dealloc_soil_snow_type(var)
    DEALLOCATE( var%rh_srf )
    DEALLOCATE( var%rtevap_unsat )
    DEALLOCATE( var%rtevap_sat )
+   DEALLOCATE( var%rt_qh_sublayer )
    !soil moisture variables
    DEALLOCATE( var%wbeq )
    DEALLOCATE( var%zq )

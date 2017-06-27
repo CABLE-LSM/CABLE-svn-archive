@@ -44,15 +44,15 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough,snow_cove
    USE cable_air_module
    USE cable_common_module   
 
-   TYPE (air_type), INTENT(IN)       :: air
-   TYPE (met_type), INTENT(IN)       :: met
+   TYPE (air_type), INTENT(INOUT)       :: air
+   TYPE (met_type), INTENT(INOUT)       :: met
    TYPE (soil_snow_type), INTENT(INOUT) :: ssnow
    TYPE (canopy_type), INTENT(INOUT)    :: canopy
-   TYPE (soil_parameter_type), INTENT(IN)   :: soil 
-   TYPE (veg_parameter_type), INTENT(IN) :: veg
-   TYPE (roughness_type), INTENT(IN) :: rough
+   TYPE (soil_parameter_type), INTENT(INOUT)   :: soil 
+   TYPE (veg_parameter_type), INTENT(INOUT) :: veg
+   TYPE (roughness_type), INTENT(INOUT) :: rough
    integer, dimension(:), intent(in)  :: snow_covered
-   real(r_2), dimension(:), intent(in) :: dz_litter
+   real, dimension(:), intent(in) :: dz_litter
 
 
 
@@ -65,7 +65,8 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough,snow_cove
    REAL(r_2), parameter :: Dff=2.5e-5, &
                       lm=1.73e-5, &
                       pi = 3.14159265358979324, &
-                      c2 = 2.0
+                      c2 = 2.0,&
+                      litter_thermal_diff=8.3e-6
 
    real(r_2), parameter :: rtevap_max = 10000.0
 
@@ -112,24 +113,35 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough,snow_cove
       soil_moisture_mod = 0.
       soil_moisture_mod_sat = 0.
    elsewhere
-      canopy%sublayer_dz = canopy%sublayer_dz + dz_litter
+      canopy%sublayer_dz = canopy%sublayer_dz + real(dz_litter,r_2)
    endwhere
 
 
    where(canopy%sublayer_dz .ge. 1.0e-7) 
-      ssnow%rtevap_unsat(:) = min( rough%z0soil/canopy%sublayer_dz * (lm/ (4.0*hk_zero) + (canopy%sublayer_dz + pore_size(:) * soil_moisture_mod) / Dff),&  
-                         rtevap_max )
-      ssnow%rtevap_sat(:)  = min( rough%z0soil/canopy%sublayer_dz * (lm/ (4.0*hk_zero_sat) + (canopy%sublayer_dz + pore_size(:) * soil_moisture_mod_sat) / Dff),& 
-                         rtevap_max )
+      ssnow%rtevap_unsat(:) = min(rtevap_max, &
+                               rough%z0soil/canopy%sublayer_dz * (lm/ (4.0*hk_zero) +&
+                               (canopy%sublayer_dz + pore_size(:) * soil_moisture_mod) / Dff))
+      ssnow%rtevap_sat(:)  = min(rtevap_max, &
+                               rough%z0soil/canopy%sublayer_dz * (lm/ (4.0*hk_zero_sat) + &
+                              (canopy%sublayer_dz + pore_size(:) * soil_moisture_mod_sat) / Dff))
+
+      ssnow%rt_qh_sublayer = canopy%sublayer_dz / litter_thermal_diff
 
    elsewhere
-      ssnow%rtevap_unsat(:) = min( lm/ (4.0*hk_zero) + (canopy%sublayer_dz + pore_size(:) * soil_moisture_mod) / Dff,rtevap_max)
-      ssnow%rtevap_sat(:)  = min( lm/ (4.0*hk_zero_sat) + (canopy%sublayer_dz + pore_size(:) * soil_moisture_mod_sat) / Dff,rtevap_max)
+      ssnow%rtevap_unsat(:) = min(rtevap_max, &
+                           lm/ (4.0*hk_zero) + (canopy%sublayer_dz + pore_size(:) * soil_moisture_mod) / Dff)
+      ssnow%rtevap_sat(:)  = min(rtevap_max, &
+                         lm/ (4.0*hk_zero_sat) + (canopy%sublayer_dz + pore_size(:) * soil_moisture_mod_sat) / Dff)
+
+      ssnow%rt_qh_sublayer = 0.0
    endwhere
+
+
    !no additional evap resistane over lakes
    where(veg%iveg .eq. 16) 
       ssnow%rtevap_sat = 0.0
       ssnow%rtevap_unsat = 0.0
+      ssnow%rt_qh_sublayer = 0.0
    endwhere
 
    first_call = .false.
