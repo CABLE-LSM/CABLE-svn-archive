@@ -154,6 +154,7 @@ MODULE cable_common_module
      LOGICAL :: GSWP3 = .FALSE.
      LOGICAL :: or_evap = .FALSE.
      LOGICAL :: test_new_gw=.false.
+     LOGICAL :: sync_nc_file=.false.
 
   END TYPE kbl_user_switches
 
@@ -275,6 +276,20 @@ MODULE cable_common_module
   !jhan:temporary measure. improve hiding
   !   real, dimension(:,:), pointer,save :: c1, rhoch
 
+   TYPE organic_soil_params
+        !Below are the soil properties for fully organic soil
+
+      REAL ::    &
+        hyds_vec_organic  = 1.0e-4,&
+        sucs_vec_organic = 10.3,   &
+        clappb_organic = 2.91,     &
+        ssat_vec_organic = 0.9,    &
+        watr_organic   = 0.1,     &
+        sfc_vec_hk      = 1.157407e-06, &
+        swilt_vec_hk      = 2.31481481e-8
+
+   END TYPE organic_soil_params
+
    TYPE gw_parameters_type
 
       REAL ::                   &
@@ -286,7 +301,9 @@ MODULE cable_common_module
         frozen_frac=0.05,       & !ice fraction to determine first non-frozen layer for qsub
         SoilEvapAlpha = 1.0,    & !modify field capacity dependence of soil evap limit
         IceAlpha=3.0,           &
-        IceBeta=1.0
+        IceBeta=1.0           
+
+      TYPE(organic_soil_params) :: org
 
       INTEGER :: level_for_satfrac = 6
 

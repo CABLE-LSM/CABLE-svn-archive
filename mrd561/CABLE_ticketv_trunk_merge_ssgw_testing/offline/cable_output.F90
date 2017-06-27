@@ -2594,6 +2594,7 @@ CONTAINS
 
     END IF
 
+    if (cable_user%sync_nc_file) &
     ok = NF90_SYNC(ncid_out)
 
 

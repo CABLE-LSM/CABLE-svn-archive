@@ -475,6 +475,7 @@ CONTAINS
     ALLOCATE(    inGWsucs(nlon, nlat) )
     ALLOCATE( inGWrhosoil(nlon, nlat) )
     ALLOCATE(    inGWWatr(nlon, nlat) )
+    ALLOCATE(      inWatr(nlon, nlat) )
     ALLOCATE(       inORG(nlon, nlat) )
 
     ! 1
@@ -545,6 +546,16 @@ CONTAINS
 
     !MD try to read aquifer properties from the file
     ! if they don't exist set aquifer properties to the same as the soil
+    ok = NF90_INQ_VARID(ncid, 'Watr', fieldID)
+    write(*,*) NF90_NOERR
+    ok2= ok
+    IF (ok .eq. NF90_NOERR) then
+      ok2 = NF90_GET_VAR(ncid, fieldID, inWatr)
+    end if
+    IF ((ok2 .ne. NF90_NOERR) .or. (ok .ne. NF90_NOERR)) then
+      inWatr(:,:) = 0.05
+    END IF
+
     found_explicit_gw_parameters = .true.
 
     ok = NF90_INQ_VARID(ncid, 'GWssat', fieldID)
@@ -1343,15 +1354,6 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
       !possibly heterogeneous soil properties
       DO klev=1,ms
 
-        soil%sucs_vec(landpt(e)%cstart:landpt(e)%cend,klev) =                   &
-             real(insucs(landpt(e)%ilon, landpt(e)%ilat),r_2)
-                                         
-        soil%hyds_vec(landpt(e)%cstart:landpt(e)%cend,klev) =                    &
-             real(inhyds(landpt(e)%ilon, landpt(e)%ilat),r_2)
-
-        soil%bch_vec(landpt(e)%cstart:landpt(e)%cend,klev) =                   &
-            real(inbch(landpt(e)%ilon, landpt(e)%ilat),r_2)                       
-
         soil%Fclay(landpt(e)%cstart:landpt(e)%cend,klev) =                    &
             real(inclay(landpt(e)%ilon, landpt(e)%ilat),r_2)                 
 
@@ -1367,10 +1369,8 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
         soil%Forg(landpt(e)%cstart:landpt(e)%cend,klev) =                    &
            real(inORG(landpt(e)%ilon, landpt(e)%ilat),r_2)
 
-        soil%ssat_vec(landpt(e)%cstart:landpt(e)%cend,klev) =                   &
-             real(inssat(landpt(e)%ilon, landpt(e)%ilat),r_2) 
-
-        soil%watr(landpt(e)%cstart:landpt(e)%cend,klev) =  0.01
+        soil%watr(landpt(e)%cstart:landpt(e)%cend,klev) =                    &
+           real(inWatr(landpt(e)%ilon, landpt(e)%ilat),r_2)
 
       END DO
 
@@ -1446,55 +1446,17 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
        END IF
 ! offline only above
 
+       CALL init_veg_from_vegin(landpt(e)%cstart, landpt(e)%cend, veg)
+
        ! Prescribe parameters for current gridcell based on veg/soil type (which
        ! may have loaded from default value file or met file):
        DO h = landpt(e)%cstart, landpt(e)%cend ! over each patch in current grid
-          veg%frac4(h)    = vegin%frac4(veg%iveg(h))
-          veg%taul(h,1)    = vegin%taul(1,veg%iveg(h))
-          veg%taul(h,2)    = vegin%taul(2,veg%iveg(h))
-          veg%refl(h,1)    = vegin%refl(1,veg%iveg(h))
-          veg%refl(h,2)    = vegin%refl(2,veg%iveg(h))
-          veg%canst1(h)   = vegin%canst1(veg%iveg(h))
-          veg%dleaf(h)    = vegin%dleaf(veg%iveg(h))
-          veg%vcmax(h)    = vegin%vcmax(veg%iveg(h))
-          veg%ejmax(h)    = vegin%ejmax(veg%iveg(h))
-          veg%hc(h)       = vegin%hc(veg%iveg(h))
-          veg%xfang(h)    = vegin%xfang(veg%iveg(h))
-          veg%vbeta(h)    = vegin%vbeta(veg%iveg(h))
-          veg%zr(h)    = vegin%zr(veg%iveg(h))
-          veg%clitt(h)    = vegin%clitt(veg%iveg(h))
-          veg%g0(h)    = vegin%g0(veg%iveg(h))
-          veg%g1(h)    = vegin%g1(veg%iveg(h))
-          veg%xalbnir(h)  = vegin%xalbnir(veg%iveg(h))
-          veg%rp20(h)     = vegin%rp20(veg%iveg(h))
-          veg%rpcoef(h)   = vegin%rpcoef(veg%iveg(h))
-          veg%rs20(h)     = vegin%rs20(veg%iveg(h))
-          veg%shelrb(h)   = vegin%shelrb(veg%iveg(h))
-          veg%wai(h)      = vegin%wai(veg%iveg(h))
-          veg%a1gs(h)     = vegin%a1gs(veg%iveg(h))
-          veg%d0gs(h)     = vegin%d0gs(veg%iveg(h))
-          veg%vegcf(h)    = vegin%vegcf(veg%iveg(h))
-          veg%extkn(h)    = vegin%extkn(veg%iveg(h))
-          veg%tminvj(h)   = vegin%tminvj(veg%iveg(h))
-          veg%tmaxvj(h)   = vegin%tmaxvj(veg%iveg(h))
-          veg%a1gs(h)   = vegin%a1gs(veg%iveg(h))
-          veg%d0gs(h)   = vegin%d0gs(veg%iveg(h))
-          veg%alpha(h)  = vegin%alpha(veg%iveg(h))
-          veg%convex(h) = vegin%convex(veg%iveg(h))
-          veg%cfrd(h)   = vegin%cfrd(veg%iveg(h))
-          veg%gswmin(h) = vegin%gswmin(veg%iveg(h))
-          veg%conkc0(h) = vegin%conkc0(veg%iveg(h))
-          veg%conko0(h) = vegin%conko0(veg%iveg(h))
-          veg%ekc(h)    = vegin%ekc(veg%iveg(h))
-          veg%eko(h)    = vegin%eko(veg%iveg(h))
           bgc%cplant(h,:) = vegin%cplant(:, veg%iveg(h))
           bgc%csoil(h,:)  = vegin%csoil(:, veg%iveg(h))
           bgc%ratecp(:)   = vegin%ratecp(:, veg%iveg(h))
           bgc%ratecs(:)   = vegin%ratecs(:, veg%iveg(h))
           veg%froot(h,:)  = vegin%froot(:, veg%iveg(h))
-         ! soil%silt(h)    =  soilin%silt(soil%isoilm(h))
-         ! soil%clay(h)    =  soilin%clay(soil%isoilm(h))
-         ! soil%sand(h)    =  soilin%sand(soil%isoilm(h))
+
           IF (.NOT. soilparmnew) THEN   ! Q,Zhang @ 12/20/2010
             soil%swilt(h)   =  soilin%swilt(soil%isoilm(h))
             soil%sfc(h)     =  soilin%sfc(soil%isoilm(h))
@@ -1513,12 +1475,8 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
                soil%Fclay(h,klev) = real(soilin%clay(soil%isoilm(h)),r_2)
                soil%Fsand(h,klev) = real(soilin%sand(soil%isoilm(h)),r_2)
                soil%Fsilt(h,klev) = real(soilin%silt(soil%isoilm(h)),r_2)
-              soil%sucs_vec(h,klev)  = real(abs(soilin%sucs(soil%isoilm(h)))*1000.0,r_2)
-              soil%hyds_vec(h,klev)   = real(soilin%hyds(soil%isoilm(h))*1000.0,r_2)
-              soil%bch_vec(h,klev)  = real(soilin%bch(soil%isoilm(h)),r_2)
-              soil%densoil(h,klev) = real(soilin%rhosoil(soil%isoilm(h)),r_2)
-              soil%ssat_vec(h,klev)  = real(soilin%ssat(soil%isoilm(h)),r_2)
-              soil%watr(h,klev)    = 0.01
+               soil%densoil(h,klev) = real(soilin%rhosoil(soil%isoilm(h)),r_2)
+               soil%watr(h,klev)    = 0.01
             end do
             soil%GWsucs_vec(h)  = real(abs(soilin%sucs(soil%isoilm(h)))*1000.0,r_2)
             soil%GWhyds_vec(h)   = real(soilin%hyds(soil%isoilm(h))*1000.0,r_2)
@@ -1579,6 +1537,8 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
     if (allocated(inGWsand  )) deallocate(inGWsand)
     if (allocated(inGWclay  )) deallocate(inGWclay)
     if (allocated(inGWssat  )) deallocate(inGWssat)
+    if (allocated(inGWWatr  )) deallocate(inGWWatr)
+    if (allocated(inWatr    )) deallocate(inWatr)
     if (allocated(inSlope   )) deallocate(inSlope)
     if (allocated(inSlopeSTD)) deallocate(inSlopeSTD)
     if (allocated(inORG     )) deallocate(inORG)
@@ -1627,6 +1587,14 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
       ssnow%wbice(:, :) = 0.0
     END WHERE
 
+
+   ssnow%Qrecharge = 0.0
+   canopy%sublayer_dz = 0.0
+   ssnow%rtevap_sat = 0.0
+   ssnow%rtevap_unsat = 0.0
+   ssnow%satfrac = 0.0
+   ssnow%wbliq = ssnow%wb - ssnow%wbice
+
    !IF(hide%Ticket49Bug5) THEN
 
 !! vh_js !! neeed to remove this if to enable the code below
@@ -1663,6 +1631,13 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
 
    soil%GWdz = max(1.0,min(20.0,soil%GWdz - sum(soil%zse,dim=1)))
 
+   !set vectorized versions as same as defaut for now
+   soil%swilt_vec(:,:)  = real(spread(soil%swilt(:),2,ms),r_2)
+   soil%sfc_vec(:,:)  = real(spread(soil%sfc(:),2,ms),r_2)
+   soil%sucs_vec(:,:)  = real(spread(soil%sucs(:),2,ms),r_2)
+   soil%bch_vec(:,:)  = real(spread(soil%bch(:),2,ms),r_2)
+   soil%ssat_vec(:,:)  = real(spread(soil%ssat(:),2,ms),r_2)
+   soil%hyds_vec(:,:)  = real(spread(soil%hyds(:),2,ms),r_2)
 
   END SUBROUTINE write_default_params
   !=============================================================================
@@ -1743,15 +1718,6 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
     REAL(r_2)    :: temp(mp)
     REAL    :: tmp2(mp)
 
-    REAL(r_2), parameter :: hyds_vec_organic  = 1.0e-4
-    REAL(r_2), parameter :: sucs_vec_organic = 10.3
-    REAL(r_2), parameter :: clappb_organic = 2.91
-    REAL(r_2), parameter :: ssat_vec_organic = 0.9 
-    REAL(r_2), parameter :: watr_organic   = 0.1
-    REAL(r_2), parameter :: perc_lim        = 0.5
-    REAL(r_2), parameter :: perc_beta      = 0.139  
-    REAL(r_2), parameter :: sfc_vec_hk      = 1.157407e-06
-    REAL(r_2), parameter :: swilt_vec_hk      = 2.31481481e-8
     REAL(r_2), dimension(mp,ms) :: perc_frac
     REAL(r_2), DIMENSION(17)    :: psi_o,psi_c
     REAL(r_2), DIMENSION(mp,ms) :: psi_tmp
@@ -1781,11 +1747,12 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
     !MD aquifer node depth
     soil%GWz = 0.5*soil%GWdz + sum(soil%zse)  !node is halfway through aquifer depth
 
-    IF (cable_user%GW_MODEL .and. soilparmnew) then
+
+    IF (cable_user%GW_MODEL) then
 
        DO klev=1,ms
           soil%hyds_vec(:,klev) = 0.0070556*10.0**(-0.884 + 0.0153*soil%Fsand(:,klev)*100.0)* &
-                                  exp(-gw_params%hkrz*(soil_depth(klev)-gw_params%zdepth))
+                                  exp(-gw_params%hkrz*(max(0.,soil_depth(klev)-gw_params%zdepth)))
           soil%sucs_vec(:,klev) = 10.0 * 10.0**(1.88 -0.0131*soil%Fsand(:,klev)*100.0)
           soil%bch_vec(:,klev) = 2.91 + 0.159*soil%Fclay(:,klev)*100.0
           soil%ssat_vec(:,klev) = 0.489 - 0.00126*soil%Fsand(:,klev)*100.0
@@ -1804,15 +1771,20 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
        soil%Forg = max(0._r_2,soil%Forg)
        soil%Forg = min(1._r_2,soil%Forg)
        DO klev=1,3  !0-23.3 cm, data really is to 30cm
-          soil%hyds_vec(:,klev)  = (1.-soil%Forg(:,klev))*soil%hyds_vec(:,klev) +soil%Forg(:,klev)*hyds_vec_organic
-          soil%sucs_vec(:,klev) = (1.-soil%Forg(:,klev))*soil%sucs_vec(:,klev) + soil%Forg(:,klev)*sucs_vec_organic
-          soil%bch_vec(:,klev) = (1.-soil%Forg(:,klev))*soil%bch_vec(:,klev) +soil%Forg(:,klev)*clappb_organic
-          soil%ssat_vec(:,klev) = (1.-soil%Forg(:,klev))*soil%ssat_vec(:,klev) + soil%Forg(:,klev)*ssat_vec_organic
-          soil%watr(:,klev)   = (1.-soil%Forg(:,klev))*soil%watr(:,klev) + soil%Forg(:,klev)*watr_organic
+          soil%hyds_vec(:,klev)  = (1.-soil%Forg(:,klev))*soil%hyds_vec(:,klev) + &
+                                       soil%Forg(:,klev)*gw_params%org%hyds_vec_organic
+          soil%sucs_vec(:,klev) = (1.-soil%Forg(:,klev))*soil%sucs_vec(:,klev) + &
+                                      soil%Forg(:,klev)*gw_params%org%sucs_vec_organic
+          soil%bch_vec(:,klev) = (1.-soil%Forg(:,klev))*soil%bch_vec(:,klev) +&
+                                     soil%Forg(:,klev)*gw_params%org%clappb_organic
+          soil%ssat_vec(:,klev) = (1.-soil%Forg(:,klev))*soil%ssat_vec(:,klev) + &
+                                      soil%Forg(:,klev)*gw_params%org%ssat_vec_organic
+          soil%watr(:,klev)   = (1.-soil%Forg(:,klev))*soil%watr(:,klev) + &
+                                    soil%Forg(:,klev)*gw_params%org%watr_organic
        END DO
 
        !soil%cnsd = soil%Fsand(:,1)*0.3 + soil%Fclay(:,1)*0.25 +soil%Fsilt(:,1)*0.265
-       soil%sfc_vec = (sfc_vec_hk/soil%hyds_vec)**(1.0/(2.0*soil%bch_vec+3.0)) * soil%ssat_vec
+       soil%sfc_vec = (gw_params%org%sfc_vec_hk/soil%hyds_vec)**(1.0/(2.0*soil%bch_vec+3.0)) * soil%ssat_vec
 
        !vegetation dependent wilting point
 
@@ -1849,10 +1821,6 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
       soil%GWwatr = 0._r_2
 
     END IF
-
-    !mrd561 debug
-    !WHERE(soil%cnsd .le. 0.)   soil%cnsd = 0.272
-    !where(ssnow%GWwb(:) .le. 0.) ssnow%GWwb(:) = 0.97*soil%ssat
 
 
     IF ( .NOT. soilparmnew) THEN  ! Q,Zhang @ 12/20/2010
