@@ -98,7 +98,7 @@ SUBROUTINE GWsoilfreeze(dels, soil, ssnow)
    USE cable_common_module
    REAL, INTENT(IN)                    :: dels ! integration time step (s)
    TYPE(soil_snow_type), INTENT(INOUT)      :: ssnow
-   TYPE(soil_parameter_type), INTENT(IN)    :: soil
+   TYPE(soil_parameter_type), INTENT(INOUT)    :: soil
    REAL(r_2), DIMENSION(mp)           :: sicefreeze
    REAL(r_2), DIMENSION(mp)           :: sicemelt
    REAL, DIMENSION(mp)                :: xx, ice_mass,liq_mass,tot_mass
@@ -191,7 +191,7 @@ SUBROUTINE remove_transGW(dels, soil, ssnow, canopy, veg)
    REAL, INTENT(IN)                    :: dels ! integration time step (s)
    TYPE(canopy_type), INTENT(INOUT)         :: canopy
    TYPE(soil_snow_type), INTENT(INOUT)      :: ssnow
-   TYPE(soil_parameter_type), INTENT(IN)    :: soil
+   TYPE(soil_parameter_type), INTENT(INOUT)    :: soil
    TYPE(veg_parameter_type), INTENT(INOUT)  :: veg
    REAL(r_2), DIMENSION(mp,0:ms+1) :: diff 
    REAL(r_2), DIMENSION(mp)      :: xx,xxd,evap_cur
@@ -269,9 +269,9 @@ END SUBROUTINE remove_transGW
   IMPLICIT NONE
     REAL, INTENT(IN)                         :: dels ! integration time step (s)
     TYPE(soil_snow_type), INTENT(INOUT)      :: ssnow  ! soil+snow variables
-    TYPE(soil_parameter_type), INTENT(IN)    :: soil ! soil parameters
-    TYPE(veg_parameter_type) , INTENT(IN)    :: veg  ! veg parameters
-    TYPE (canopy_type), INTENT(IN)           :: canopy
+    TYPE(soil_parameter_type), INTENT(INOUT)    :: soil ! soil parameters
+    TYPE(veg_parameter_type) , INTENT(INOUT)    :: veg  ! veg parameters
+    TYPE (canopy_type), INTENT(INOUT)           :: canopy
     LOGICAL, INTENT(IN)                      :: sli_call
     INTEGER                                  :: nglacier ! 0 original, 1 off, 2 new Eva
     INTEGER                                  :: k, i, j
@@ -395,8 +395,8 @@ END SUBROUTINE remove_transGW
   !This was only for testing purposes
   IMPLICIT NONE
   TYPE (soil_snow_type), INTENT(INOUT)      :: ssnow ! soil and snow variables
-  TYPE (soil_parameter_type), INTENT(IN)    :: soil  ! soil parameters
-  TYPE (veg_parameter_type), INTENT(IN)     :: veg
+  TYPE (soil_parameter_type), INTENT(INOUT)    :: soil  ! soil parameters
+  TYPE (veg_parameter_type), INTENT(INOUT)     :: veg
 
   REAL(r_2), DIMENSION(mp)            :: fz, wmean,ztot
   REAL(r_2), DIMENSION(mp,ms)         :: stot
@@ -439,8 +439,8 @@ END SUBROUTINE remove_transGW
   SUBROUTINE iterative_wtd (ssnow, soil, veg, include_aquifer)
   IMPLICIT NONE
   TYPE (soil_snow_type), INTENT(INOUT)      :: ssnow ! soil and snow variables
-  TYPE (soil_parameter_type), INTENT(IN)    :: soil  ! soil parameters
-  TYPE (veg_parameter_type), INTENT(IN)     :: veg
+  TYPE (soil_parameter_type), INTENT(INOUT)    :: soil  ! soil parameters
+  TYPE (veg_parameter_type), INTENT(INOUT)     :: veg
   LOGICAL, INTENT(IN)                       :: include_aquifer  !use GWwb or only wb to find wtd?
 
  
@@ -607,8 +607,8 @@ END SUBROUTINE remove_transGW
     REAL, INTENT(IN)                          :: dels  ! time step size (s)
     INTEGER, INTENT(IN)                       :: ktau  ! integration step number
     TYPE (soil_snow_type), INTENT(INOUT)      :: ssnow ! soil and snow variables
-    TYPE (soil_parameter_type), INTENT(IN)    :: soil  ! soil parameters
-    TYPE (veg_parameter_type), INTENT(IN)     :: veg
+    TYPE (soil_parameter_type), INTENT(INOUT)    :: soil  ! soil parameters
+    TYPE (veg_parameter_type), INTENT(INOUT)     :: veg
     TYPE(canopy_type), INTENT(INOUT)          :: canopy ! vegetation variables
     
     !Local variables.  
