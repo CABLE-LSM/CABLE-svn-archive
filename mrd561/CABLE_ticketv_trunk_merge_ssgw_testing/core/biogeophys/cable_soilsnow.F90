@@ -200,6 +200,9 @@ SUBROUTINE smoisturev (dels,ssnow,soil,veg)
       u,    & ! I/O unit
       k
 
+   TYPE ( issnow_type ) :: C 
+
+   CALL point2constants( C )
 
 
    at = 0.0
