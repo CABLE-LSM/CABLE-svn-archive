@@ -104,11 +104,6 @@ SUBROUTINE GWsoilfreeze(dels, soil, ssnow)
    REAL, DIMENSION(mp)                :: xx, ice_mass,liq_mass,tot_mass
    INTEGER k
    REAL(r_2),DIMENSION(mp,ms) :: frozen_limit,iceF  !Decker and Zeng 2009
-   TYPE ( issnow_type ) :: C
-   REAL :: cp    ! specific heat capacity for air
-
-   !CALL point2constants( C ) 
-   cp = C%CAPP
 
    where (ssnow%tgg .le. C%TFRZ)
       frozen_limit(:,:) = (1. - exp(-2.*(ssnow%wb(:,:)/soil%ssat_vec(:,:))**4.0 *&
@@ -197,11 +192,7 @@ SUBROUTINE remove_transGW(dels, soil, ssnow, canopy, veg)
    REAL(r_2), DIMENSION(mp)      :: xx,xxd,evap_cur
    REAL(r_2), DIMENSION(mp,ms) :: zse_mp_mm
    INTEGER :: k,i
-   TYPE ( issnow_type ) :: C
-   REAL :: cp    ! specific heat capacity for air
 
-   !CALL point2constants( C ) 
-   cp = C%CAPP
 
    zse_mp_mm  = real(spread(soil%zse,1,mp)*C%denliq,r_2)
 
@@ -286,11 +277,7 @@ END SUBROUTINE remove_transGW
     REAL(r_2), parameter               :: pi=3.1415926535898
     REAL(r_2)                          :: fice
     REAL(r_2)                          :: dzmm,slopeSTDmm
-    TYPE ( issnow_type ) :: C
-    REAL :: cp    ! specific heat capacity for air
 
-   !CALL point2constants( C ) 
-   cp = C%CAPP
     
    !For now assume there is no puddle
    dzmm = 1000._r_2 * soil%zse(1)
@@ -841,16 +828,13 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
    REAL                :: zsetot
    INTEGER, SAVE :: ktau =0 
    REAL(r_2) :: wb_lake_T, rnof2_T
-   !TYPE ( issnow_type ) :: C
    LOGICAL :: use_sli
-   REAL :: cp    ! specific heat capacity for air
   
    max_glacier_snowd = 1100.0 
   
    use_sli = .false. 
 
    CALL point2constants( C ) 
-   cp = C%CAPP
     
    ktau = ktau +1 
 
