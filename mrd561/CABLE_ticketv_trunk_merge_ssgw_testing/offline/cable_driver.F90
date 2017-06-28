@@ -216,10 +216,14 @@ PROGRAM cable_offline_driver
        delsoilM,	 & ! allowed variation in soil moisture for spin up
        delsoilT		   ! allowed variation in soil temperature for spin up
 
+  REAL :: delgwM = 1e-4
+
   ! temporary storage for soil moisture/temp. in spin up mode
   REAL, ALLOCATABLE, DIMENSION(:,:)  :: &
        soilMtemp,			  &
        soilTtemp
+
+  REAL, ALLOCATABLE, DIMENSION(:) :: GWtemp
 
   ! timing
   REAL:: etime ! Declare the type of etime(), For receiving user and system time, total time
@@ -236,6 +240,7 @@ PROGRAM cable_offline_driver
        calcsoilalbedo,	 & ! albedo considers soil color Ticket #27
        spinup,		 & ! spinup model (soil) to steady state
        delsoilM,delsoilT,& !
+       delgwM,           &
        output,		 &
        patchout,	 &
        check,		 &
@@ -934,13 +939,18 @@ PROGRAM cable_offline_driver
 
           ! evaluate spinup
 		 IF( ANY( ABS(ssnow%wb-soilMtemp)>delsoilM).OR.		      &
-		      ANY( ABS(ssnow%tgg-soilTtemp)>delsoilT) ) THEN
+		      ANY( ABS(ssnow%tgg-soilTtemp)>delsoilT) .or. &
+                       maxval(ABS(ssnow%GWwb-GWtemp),dim=1) > delgwM) THEN
 
       ! No complete convergence yet
 		    PRINT *, 'ssnow%wb : ', ssnow%wb
 		    PRINT *, 'soilMtemp: ', soilMtemp
 		    PRINT *, 'ssnow%tgg: ', ssnow%tgg
 		    PRINT *, 'soilTtemp: ', soilTtemp
+                    IF (cable_user%gw_model) then
+		       PRINT *, 'ssnow%GWwb : ', ssnow%GWwb
+		       PRINT *, 'GWtemp: ', GWtemp
+                    ENDIF
 
 		 ELSE ! spinup has converged
 
@@ -961,6 +971,7 @@ PROGRAM cable_offline_driver
 
 		 IF (.NOT.ALLOCATED(soilMtemp)) ALLOCATE(  soilMtemp(mp,ms) )
 		 IF (.NOT.ALLOCATED(soilTtemp)) ALLOCATE(  soilTtemp(mp,ms) )
+		 IF (.NOT.ALLOCATED(GWtemp)   ) ALLOCATE(  GWtemp(mp)  )
 
 	      END IF
 
@@ -968,6 +979,7 @@ PROGRAM cable_offline_driver
 	      IF ( YYYY.EQ. CABLE_USER%YearEnd ) THEN
 		 soilTtemp = ssnow%tgg
 		 soilMtemp = REAL(ssnow%wb)
+                 GWtemp = ssnow%GWwb
 	      ENDIF
 
 	   ELSE

@@ -282,6 +282,8 @@ CONTAINS
          delsoilM,         & ! allowed variation in soil moisture for spin up
          delsoilT            ! allowed variation in soil temperature for spin up
 
+         REAL :: delgwM = 1e-4
+
     ! temporary storage for soil moisture/temp. in spin up mode
     REAL, ALLOCATABLE, DIMENSION(:,:)  :: & 
          soilMtemp,                         &   
@@ -1225,7 +1227,8 @@ write(*,*) 'after annual calcs'
 
              ! evaluate spinup
              IF( ANY( ABS(ssnow%wb-soilMtemp)>delsoilM).OR.                     &
-                  ANY(ABS(ssnow%tgg-soilTtemp)>delsoilT) ) THEN
+                  ANY(ABS(ssnow%tgg-soilTtemp)>delsoilT) .or. &
+                  maxval(abs(ssnow%GWwb-GWtemp),dim-1)>delgwM)  THEN
 
                 ! No complete convergence yet
                 !               PRINT *, 'ssnow%wb : ', ssnow%wb
@@ -1240,6 +1243,12 @@ write(*,*) 'after annual calcs'
                 PRINT *, 'Example location of temperature non-convergence: ',maxdiff
                 PRINT *, 'ssnow%tgg: ', ssnow%tgg(maxdiff(1),maxdiff(2))
                 PRINT *, 'soilTtemp: ', soilTtemp(maxdiff(1),maxdiff(2))
+
+                IF (cable_user%gw_model) then
+                   maxdiff(1) = MAXLOC(ABS(ssnow%GWwb-GWtemp),dim=1)
+                   PRINT *. 'ssnow%GWwb: ', ssnow%GWwb(maxdiff(1))
+                   PRINT *. 'GWtemp: ', GWtemp(maxdiff(1))
+                ENDIF
 
              ELSE ! spinup has converged
 
@@ -1260,6 +1269,7 @@ write(*,*) 'after annual calcs'
 
              IF (.NOT.ALLOCATED(soilMtemp)) ALLOCATE(  soilMtemp(mp,ms) )
              IF (.NOT.ALLOCATED(soilTtemp)) ALLOCATE(  soilTtemp(mp,ms) )
+             IF (.NOT.ALLOCATED(GWtemp))    ALLOCATE(  GWtemp(mp) )
 
           END IF
 
