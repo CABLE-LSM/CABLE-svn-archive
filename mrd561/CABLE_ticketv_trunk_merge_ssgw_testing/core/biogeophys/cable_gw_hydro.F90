@@ -1227,6 +1227,7 @@ SUBROUTINE calc_soil_hydraulic_props(ssnow,soil,veg)
                                liq_ratio
 
    REAL(r_2), DIMENSION(0:ms) :: zimm  !depths at interface between layers
+   REAL(r_2), pointer, dimension(:,:) ::wb_temp 
 
     !soil matric potential, hydraulic conductivity, and derivatives of each with respect to water (calculated using total (not liquid))
 
@@ -1246,33 +1247,43 @@ SUBROUTINE calc_soil_hydraulic_props(ssnow,soil,veg)
 
     ssnow%fracice(:,:) = max( min( ssnow%fracice, 1._r_2), 0._r_2)
 
+    if (gw_params%ssgw_ice_switch) then
+       wb_temp => ssnow%wbliq
+    else
+       wb_temp => ssnow%wb
+    end if
+
     do k=1,ms-1
        kk=k+1
        do i=1,mp
-          s1(i) = 0.5_r_2*(max(ssnow%wb(i,k)-soil%watr(i,k),0.) + max(ssnow%wb(i,kk)-soil%watr(i,kk),0.)) / &
-            (0.5_r_2*((soil%ssat_vec(i,k)-soil%watr(i,k)) + (soil%ssat_vec(i,kk)-soil%watr(i,kk))))
+
+          !s1(i) = 0.5_r_2*(max(ssnow%wb(i,k)-soil%watr(i,k),0.) + max(ssnow%wb(i,kk)-soil%watr(i,kk),0.)) / &
+          !  (0.5_r_2*((soil%ssat_vec(i,k)-soil%watr(i,k)) + (soil%ssat_vec(i,kk)-soil%watr(i,kk))))
           !s1(i) = 0.5_r_2*(max(ssnow%wbliq(i,k)-soil%watr(i,k),0.) + max(ssnow%wbliq(i,kk)-soil%watr(i,kk),0.)) / &
           !  (0.5_r_2*((soil%ssat_vec(i,k)-soil%watr(i,k)) + (soil%ssat_vec(i,kk)-soil%watr(i,kk))))
+          s1(i) = 0.5_r_2*(max(wb_temp(i,k)-soil%watr(i,k),0.) + max(ssnow%wbliq(i,kk)-soil%watr(i,kk),0.)) / &
+            (0.5_r_2*((soil%ssat_vec(i,k)-soil%watr(i,k)) + (soil%ssat_vec(i,kk)-soil%watr(i,kk))))
 
           s1(i) = min(max(s1(i),0.01_r_2),1._r_2)
           s2(i) = soil%hyds_vec(i,k)*s1(i)**(2._r_2*soil%bch_vec(i,k)+2._r_2)
 
           ssnow%hk(i,k)    =  s1(i)*s2(i)
           ssnow%dhkdw(i,k) = (2._r_2*soil%bch_vec(i,k)+3._r_2)*s2(i)*0.5_r_2/(soil%ssat_vec(i,k)-soil%watr(i,k))
-
-          ssnow%hk(i,k)    = ssnow%hk(i,k)*(1.0 - 0.5_r_2*(ssnow%fracice(i,k)+ssnow%fracice(i,kk)))
-          ssnow%dhkdw(i,k) = ssnow%dhkdw(i,k)*(1.0 - 0.5_r_2*(ssnow%fracice(i,k)+ssnow%fracice(i,kk)))
+          if (.not.gw_params%ssgw_ice_switch) then
+             ssnow%hk(i,k)    = ssnow%hk(i,k)*(1.0 - 0.5_r_2*(ssnow%fracice(i,k)+ssnow%fracice(i,kk)))
+             ssnow%dhkdw(i,k) = ssnow%dhkdw(i,k)*(1.0 - 0.5_r_2*(ssnow%fracice(i,k)+ssnow%fracice(i,kk)))
+          end if
        end do
     end do
 
     k = ms 
        do i=1,mp
-          s1(i) = 0.5_r_2*(max(ssnow%wb(i,k)-soil%watr(i,k),0.) + max(ssnow%GWwb(i)-soil%GWwatr(i),0.)) / &
-                  (0.5_r_2*(soil%ssat_vec(i,k)-soil%watr(i,k) + soil%GWssat_vec(i)-soil%GWwatr(i)))
-          liq_ratio(i) = 1.
-          !liq_ratio(i) = min(1.,max(0.,ssnow%wbliq(i,k)/max(ssnow%wb(i,k),1e-6) ) )
-          !s1(i) = 0.5_r_2*(max(ssnow%wbliq(i,k)-soil%watr(i,k),0.) + max(liq_ratio(i)*ssnow%GWwb(i)-soil%GWwatr(i),0.)) / &
+          !s1(i) = 0.5_r_2*(max(ssnow%wb(i,k)-soil%watr(i,k),0.) + max(ssnow%GWwb(i)-soil%GWwatr(i),0.)) / &
           !        (0.5_r_2*(soil%ssat_vec(i,k)-soil%watr(i,k) + soil%GWssat_vec(i)-soil%GWwatr(i)))
+          !liq_ratio(i) = 1.
+          liq_ratio(i) = min(1.,max(0.,wb_temp(i,k)/max(ssnow%wb(i,k),1e-6) ) )
+          s1(i) = 0.5_r_2*(max(wb_temp(i,k)-soil%watr(i,k),0.) + max(liq_ratio(i)*ssnow%GWwb(i)-soil%GWwatr(i),0.)) / &
+                  (0.5_r_2*(soil%ssat_vec(i,k)-soil%watr(i,k) + soil%GWssat_vec(i)-soil%GWwatr(i)))
 
           s1(i) = min(max(s1(i),0.01_r_2),1._r_2)
           s2(i) = soil%hyds_vec(i,k)*s1(i)**(2._r_2*soil%bch_vec(i,k)+2._r_2)
@@ -1280,9 +1291,10 @@ SUBROUTINE calc_soil_hydraulic_props(ssnow,soil,veg)
           ssnow%hk(i,k)    = s1(i)*s2(i)
           ssnow%dhkdw(i,k) = (2._r_2*soil%bch_vec(i,k)+3._r_2)*&
                              s2(i)*0.5_r_2/(soil%ssat_vec(i,k)-soil%watr(i,k))
-          
-          ssnow%hk(i,k)    =  (1.-ssnow%fracice(i,k))*ssnow%hk(i,k)
-          ssnow%dhkdw(i,k) =  (1.-ssnow%fracice(i,k))*ssnow%dhkdw(i,k)
+          if (.not.gw_params%ssgw_ice_switch) then
+             ssnow%hk(i,k)    =  (1.-ssnow%fracice(i,k))*ssnow%hk(i,k)
+             ssnow%dhkdw(i,k) =  (1.-ssnow%fracice(i,k))*ssnow%dhkdw(i,k)
+          endif
        end do
  
     do k=1,ms 
@@ -1303,8 +1315,7 @@ SUBROUTINE calc_soil_hydraulic_props(ssnow,soil,veg)
 
     do i=1,mp
        !Aquifer properties
-       s_mid(i) = (ssnow%GWwb(i)-soil%GWwatr(i))/(soil%GWssat_vec(i)-soil%GWwatr(i))
-       !s_mid(i) = (ssnow%GWwb(i)*liq_ratio(i)-soil%GWwatr(i))/(soil%GWssat_vec(i)-soil%GWwatr(i))
+       s_mid(i) = (ssnow%GWwb(i)*liq_ratio(i)-soil%GWwatr(i))/(soil%GWssat_vec(i)-soil%GWwatr(i))
        s_mid(i) = min(max(s_mid(i),0.001_r_2),1._r_2)
        s2(i)    = soil%GWhyds_vec(i)*s_mid(i)**(2._r_2*soil%GWbch_vec(i)+2._r_2)
 
@@ -1313,8 +1324,10 @@ SUBROUTINE calc_soil_hydraulic_props(ssnow,soil,veg)
        ssnow%GWdhkdw(i)  =  (2._r_2*soil%GWbch_vec(i)+3._r_2)*&
                            s2(i)*0.5_r_2/(soil%GWssat_vec(i)-soil%GWwatr(i))
 
-       ssnow%GWhk(i)    = (1.-ssnow%fracice(i,ms)) * ssnow%GWhk(i)
-       ssnow%GWdhkdw(i) = (1.-ssnow%fracice(i,ms)) * ssnow%GWdhkdw(i)
+       if (.not.gw_params%ssgw_ice_switch) then
+          ssnow%GWhk(i)    = (1.-ssnow%fracice(i,ms)) * ssnow%GWhk(i)
+          ssnow%GWdhkdw(i) = (1.-ssnow%fracice(i,ms)) * ssnow%GWdhkdw(i)
+       endif
 
        s_mid(i) = (ssnow%GWwb(i)-soil%GWwatr(i))/(soil%GWssat_vec(i)-soil%GWwatr(i))
        s_mid(i) = min(max(s_mid(i),0.001_r_2),1._r_2)
@@ -1323,6 +1336,8 @@ SUBROUTINE calc_soil_hydraulic_props(ssnow,soil,veg)
        ssnow%GWsmp(i)    = max(min(ssnow%GWsmp(i),-soil%GWsucs_vec(i)),sucmin)
        ssnow%GWdsmpdw(i) = -soil%GWbch_vec(i)*ssnow%GWsmp(i)/(s_mid(i)*(soil%GWssat_vec(i)-soil%GWwatr(i)))
     end do
+
+    nullify(wb_temp)
 
 END SUBROUTINE calc_soil_hydraulic_props
 

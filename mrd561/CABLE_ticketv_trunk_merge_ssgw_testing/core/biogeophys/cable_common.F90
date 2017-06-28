@@ -306,6 +306,7 @@ MODULE cable_common_module
       TYPE(organic_soil_params) :: org
 
       INTEGER :: level_for_satfrac = 6
+      LOGICAL :: ssgw_ice_switch = .false.
 
    END TYPE gw_parameters_type
 
