@@ -1337,6 +1337,7 @@ CONTAINS
 
     USE cable_common_module
     USE cable_def_types_mod
+    USE cable_gw_hydro_module, ONLY : calc_srf_wet_fraction
 
     TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
     TYPE (soil_snow_type), intent(inout):: ssnow
@@ -1375,36 +1376,9 @@ CONTAINS
     canopy%fwet   = MAX( 0.0, MIN( 0.9, 0.8 * canopy%cansto /                   &
          MAX( cansat, 0.01 ) ) )
 
-    if ((.not. cable_user%gw_model) .and. (.not.cable_user%or_evap)) THEN
-    !wetfac done outside of canopy if using gw_model or or_evap
-
-       ssnow%wetfac = MAX( 1.e-6, MIN( 1.0,                                        &
-            ( REAL (ssnow%wb(:,1) ) - soil%swilt/ 2.0 )                  &
-            / ( soil%sfc - soil%swilt/2.0 ) ) )
-   
-       DO j=1,mp
-   
-          IF( ssnow%wbice(j,1) > 0. )                                              &
-               ssnow%wetfac(j) = ssnow%wetfac(j) * real(MAX( 0.5_r_2, 1._r_2 - MIN( 0.2_r_2, &
-               ( ssnow%wbice(j,1) / ssnow%wb(j,1) )**2 ) ) )
-   
-          IF( ssnow%snowd(j) > 0.1) ssnow%wetfac(j) = 0.9
-   
-          IF ( veg%iveg(j) == 16 .and. met%tk(j) >= C%tfrz + 5. )                  &
-               ssnow%wetfac(j) = 1.0 ! lakes: hard-wired number to be removed
-   
-          IF( veg%iveg(j) == 16 .and. met%tk(j) < C%tfrz + 5. )                    &
-               ssnow%wetfac(j) = 0.7 ! lakes: hard-wired number to be removed
-   
-       ENDDO
-   
-   
-       ! owetfac introduced to reduce sharp changes in dry regions,
-       ! especially in offline runs in which there may be discrepancies b/n
-       ! timing of precip and temperature change (EAK apr2009)
-       ssnow%wetfac = 0.5*(ssnow%wetfac + ssnow%owetfac)
-
-    ENDIF
+    !calc the surface wetness for soil evap in this routine
+    !include the default wetfac when or_evap and gw_model are not used
+    CALL calc_srf_wet_fraction(ssnow,soil,met%tk,veg%iveg)
 
   END SUBROUTINE Surf_wetness_fact
 
