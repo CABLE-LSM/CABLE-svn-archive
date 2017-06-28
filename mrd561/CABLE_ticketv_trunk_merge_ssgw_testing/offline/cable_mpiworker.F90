@@ -157,7 +157,7 @@ CONTAINS
     INTEGER               :: comm ! MPI communicator for comms with the workers
 
     ! CABLE namelist: model configuration, runtime/user switches 
-    CHARACTER(LEN=200), PARAMETER :: CABLE_NAMELIST='cable.nml' 
+    !CHARACTER(LEN=200), PARAMETER :: CABLE_NAMELIST='cable.nml' 
 
     ! timing variables 
     INTEGER, PARAMETER ::  kstart = 1   ! start of simulation
