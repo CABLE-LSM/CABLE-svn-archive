@@ -1224,7 +1224,8 @@ SUBROUTINE calc_soil_hydraulic_props(ssnow,soil,veg)
    REAL(r_2), DIMENSION(mp) :: s1, &  !temporary variables for calculating hydraulic properties
                                s2, &
                                s_mid, &
-                               liq_ratio
+                               liq_ratio, &
+                               Dliq_ratio_Dz
 
    REAL(r_2), DIMENSION(0:ms) :: zimm  !depths at interface between layers
    REAL(r_2), pointer, dimension(:,:) ::wb_temp 
@@ -1281,7 +1282,21 @@ SUBROUTINE calc_soil_hydraulic_props(ssnow,soil,veg)
           !s1(i) = 0.5_r_2*(max(ssnow%wb(i,k)-soil%watr(i,k),0.) + max(ssnow%GWwb(i)-soil%GWwatr(i),0.)) / &
           !        (0.5_r_2*(soil%ssat_vec(i,k)-soil%watr(i,k) + soil%GWssat_vec(i)-soil%GWwatr(i)))
           !liq_ratio(i) = 1.
-          liq_ratio(i) = min(1.,max(0.,wb_temp(i,k)/max(ssnow%wb(i,k),1e-6) ) )
+          liq_ratio(i) =min(1.,max(0.,wb_temp(i,k)/max(ssnow%wb(i,k),1e-6) ) )
+          Dliq_ratio_Dz(i) = (min(1.,max(0.,wb_temp(i,k-1)/max(ssnow%wb(i,k-1),1e-6) ) ) - &
+                           liq_ratio(i)) / (0.5*(soil%zse(k-1)+soil%zse(k)))
+          IF (Dliq_ratio_Dz(i) .gt. 0.0) THEN  !means upper layer more frozen
+                                               !freezing downward so aquifer should have 
+                                               !less ice than bottom soil layer
+             IF (ssnow%wtd(i) .gt. zimm(ms)) THEN  !use wtd to find how frozen
+                liq_ratio(i) = liq_ratio(i) - Dliq_ratio_Dz(i) * 0.5*(soil%zse(ms)+ 1.0e-3_r_2*(ssnow%wtd(i) - zimm(ms)))
+             ELSE
+                liq_ratio(i) = liq_ratio(i) - Dliq_ratio_Dz(i) * 0.5*(soil%zse(ms)+soil%GWdz(i))
+             END IF
+          END IF
+
+          liq_ratio(i) =min(1.,max(0.,wb_temp(i,k)/max(ssnow%wb(i,k),1e-6) ) )
+
           s1(i) = 0.5_r_2*(max(wb_temp(i,k)-soil%watr(i,k),0.) + max(liq_ratio(i)*ssnow%GWwb(i)-soil%GWwatr(i),0.)) / &
                   (0.5_r_2*(soil%ssat_vec(i,k)-soil%watr(i,k) + soil%GWssat_vec(i)-soil%GWwatr(i)))
 
@@ -1399,16 +1414,18 @@ END SUBROUTINE calc_soil_hydraulic_props
        ssnow%qhlev(i,:) = 0._r_2
        sm_tot(i) = 0._r_2
        ssnow%qhlev(i,:) = 0._r_2
-       sm_tot(i) = max(ssnow%GWwb(i) - soil%watr(i,ms),0._r_2)*(1._r_2-ssnow%fracice(i,ms))
+       sm_tot(i) =ssnow%GWhk(i)! max(ssnow%GWwb(i) - soil%watr(i,ms),0._r_2)*(1._r_2-ssnow%fracice(i,ms))
        do k=k_drain,ms
-          sm_tot(i) = sm_tot(i) + max(ssnow%wbliq(i,k)-soil%watr(i,k),0._r_2)
+          sm_tot(i) = sm_tot(i) +ssnow%hk(i,k)! max(ssnow%wbliq(i,k)-soil%watr(i,k),0._r_2)
        end do
-       sm_tot(i) = max(sm_tot(i),0.01_r_2)
+       !sm_tot(i) = max(sm_tot(i),0.01_r_2)
 
-       do k=k_drain,ms
-          ssnow%qhlev(i,k) = soil%hyds_vec(i,k)*ssnow%qhz(i)*max(ssnow%wbliq(i,k)-soil%watr(i,k),0._r_2)/sm_tot(i)
-       end do
-       ssnow%qhlev(i,ms+1) = soil%GWhyds_vec(i)*max(1._r_2-ssnow%fracice(i,ms),0._r_2)*ssnow%qhz(i)*max(ssnow%GWwb(i)-soil%watr(i,ms),0._r_2)/sm_tot(i)
+       if (sm_tot(i) .ge. 1.0e-10) then
+           do k=k_drain,ms
+              ssnow%qhlev(i,k) = soil%hyds_vec(i,k)*ssnow%qhz(i)*ssnow%hk(i,k)/sm_tot(i)
+           end do
+           ssnow%qhlev(i,ms+1) = soil%GWhyds_vec(i)*max(1._r_2-ssnow%fracice(i,ms),0._r_2)*ssnow%qhz(i)*ssnow%GWhk(i)/sm_tot(i)
+       endif
 
        !incase every layer is frozen very dry
        ssnow%qhz(i) = sum(ssnow%qhlev(i,:),dim=1)
