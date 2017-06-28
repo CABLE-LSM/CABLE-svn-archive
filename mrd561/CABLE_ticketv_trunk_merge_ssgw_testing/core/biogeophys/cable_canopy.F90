@@ -2349,9 +2349,22 @@ CONTAINS
     REAL, INTENT(OUT), DIMENSION(:):: fwsoil ! soil water modifier of stom. cond
     REAL, DIMENSION(mp) :: rwater ! soil water availability
 
-    rwater = MAX(1.0e-9,                                                    &
-         SUM(veg%froot * MAX(1.0e-9,MIN(1.0, real(ssnow%wb) -                   &
-         SPREAD(soil%swilt, 2, ms))),2) /(soil%sfc-soil%swilt))
+    !note even though swilt_vec is defined in default model it is r_2
+    !and even using real(_vec) gives results different from trunk (rounding
+    !errors)
+
+    if (.not.cable_user%gw_model) THEN
+
+       rwater = MAX(1.0e-9,                                                    &
+            SUM(veg%froot * MAX(1.0e-9,MIN(1.0, real(ssnow%wb) -                   &
+            SPREAD(soil%swilt, 2, ms))),2) /(soil%sfc-soil%swilt))
+   
+    else
+       rwater = MAX(1.0e-9,                                                    &
+            SUM(veg%froot * MAX(1.0e-9,MIN(1.0, real((ssnow%wbliq -                 &
+            soil%swilt_vec)/(soil%sfc_vec-soil%swilt_vec)) )),2) )
+
+    endif
 
    ! Remove vbeta #56
    IF(cable_user%GS_SWITCH == 'medlyn') THEN
