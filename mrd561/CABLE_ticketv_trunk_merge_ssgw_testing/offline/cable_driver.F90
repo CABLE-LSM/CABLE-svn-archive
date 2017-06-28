@@ -69,6 +69,11 @@ PROGRAM cable_offline_driver
        redistrb, wiltParam, satuParam, CurYear,	   &
        IS_LEAPYEAR, IS_CASA_TIME, calcsoilalbedo,		 &
        report_version_no, kwidth_gl, gw_params
+
+  USE cable_namelist_util, only : get_namelist_file_name,&
+                                  CABLE_NAMELIST,arg_not_namelist
+
+
   USE cable_data_module,    ONLY: driver_type, point2constants
   USE cable_input_module,   ONLY: open_met_file,load_parameters,	      &
        get_met_data,close_met_file,		   &
@@ -119,7 +124,10 @@ PROGRAM cable_offline_driver
   IMPLICIT NONE
 
   ! CABLE namelist: model configuration, runtime/user switches
-  CHARACTER(LEN=200), PARAMETER :: CABLE_NAMELIST='cable.nml'
+  !CHARACTER(LEN=200), PARAMETER :: CABLE_NAMELIST='cable.nml'
+  ! try to read in namelist from command line argument
+  ! allows simple way of not hard coding cable.nml
+  ! defaults to using cable.nml if no file specified
 
   ! timing variables
   INTEGER, PARAMETER ::	 kstart = 1   ! start of simulation
@@ -219,6 +227,7 @@ PROGRAM cable_offline_driver
   !___ unique unit/file identifiers for cable_diag: arbitrarily 5 here
   INTEGER, SAVE :: iDiagZero=0, iDiag1=0, iDiag2=0, iDiag3=0, iDiag4=0
 
+
   ! switches etc defined thru namelist (by default cable.nml)
   NAMELIST/CABLE/		   &
        filename,	 & ! TYPE, containing input filenames
@@ -248,6 +257,7 @@ PROGRAM cable_offline_driver
        satuParam,	 &
        cable_user,       &   ! additional USER switches
        gw_params
+
   !mpidiff
   INTEGER :: i,x,kk
 
@@ -268,6 +278,12 @@ PROGRAM cable_offline_driver
   INTEGER :: count_bal = 0
   ! END header
 
+  !check to see if first argument passed to cable is
+  !the name of the namelist file
+  !if not use cable.nml
+  CALL get_namelist_file_name()
+
+  WRITE(*,*) "THE NAME LIST IS ",CABLE_NAMELIST
   ! Open, read and close the namelist file.
   OPEN( 10, FILE = CABLE_NAMELIST )
   READ( 10, NML=CABLE )	  !where NML=CABLE defined above
@@ -288,7 +304,7 @@ PROGRAM cable_offline_driver
 
   CALL report_version_no( logn )
 
-  IF( IARGC() > 0 ) THEN
+  IF( (IARGC() > 0 ) .and. (arg_not_namelist)) THEN
      CALL GETARG(1, filename%met)
      CALL GETARG(2, casafile%cnpipool)
   ENDIF

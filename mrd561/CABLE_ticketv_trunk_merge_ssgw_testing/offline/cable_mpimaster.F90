@@ -194,6 +194,8 @@ CONTAINS
          PLUME_MIP_INIT
     USE CABLE_CRU,            ONLY: CRU_TYPE, CRU_GET_SUBDIURNAL_MET, CRU_INIT
 
+    USE cable_namelist_util, only : get_namelist_file_name,&
+                                  CABLE_NAMELIST,arg_not_namelist
 
     IMPLICIT NONE
 

@@ -24,11 +24,19 @@ PROGRAM mpi_driver
   USE cable_mpicommon
   USE cable_mpimaster
   USE cable_mpiworker
+  USE cable_namelist_util, only: get_namelist_file_name,&
+                                 CABLE_NAMELIST,arg_not_namelist
 
   IMPLICIT NONE
 
   INTEGER :: comm, np, rank, ierr
   REAL    :: etime ! Declare the type of etime()
+
+  !check to see if first argument passed to cable is
+  !the name of the namelist file
+  !if not use cable.nml
+  CALL get_namelist_file_name()
+
 
   CALL MPI_Init (ierr)
   CALL MPI_Comm_dup (MPI_COMM_WORLD, comm, ierr)
