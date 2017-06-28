@@ -1444,6 +1444,10 @@ END SUBROUTINE calc_soil_hydraulic_props
     TYPE(veg_parameter_type), INTENT(INOUT)      :: veg
 
     REAL(r_2), DIMENSION(mp) :: unsat_wb,unsat_smp
+    logical, save :: first_call = .true.
+
+
+    if (first_call) call saturated_fraction(ssnow,soil)
 
     where (ssnow%satfrac(:) .le. 0.99)
        unsat_wb(:) = max(0.001,min(soil%ssat_vec(:,1), &
@@ -1462,6 +1466,8 @@ END SUBROUTINE calc_soil_hydraulic_props
    elsewhere
       ssnow%rh_srf(:) = max(0.,min(1., exp(9.81*unsat_smp(:)/1000.0/ssnow%tss(:)/461.4) ) )
    endwhere
+
+   first_call = .false.
 
 
   END SUBROUTINE pore_space_relative_humidity

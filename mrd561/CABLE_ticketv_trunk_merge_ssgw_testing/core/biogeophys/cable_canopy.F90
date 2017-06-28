@@ -62,6 +62,7 @@ CONTAINS
     USE cable_roughness_module
     USE sli_utils, ONLY : potential_evap
     USE cable_psm, ONLY:  or_soil_evap_resistance
+    USE cable_gw_hydro_module, ONLY : pore_space_relative_humidity, saturated_fraction
 
 
     TYPE (balances_type), INTENT(INOUT)  :: bal
@@ -422,6 +423,7 @@ CONTAINS
        ! Saturation specific humidity at soil/snow surface temperature:
       call qsatfjh(ssnow%qstss,ssnow%tss-C%tfrz,met%pmb)
 
+      call pore_space_relative_humidity(ssnow,soil,veg)
 
        If (cable_user%soil_struc=='default') THEN
 
