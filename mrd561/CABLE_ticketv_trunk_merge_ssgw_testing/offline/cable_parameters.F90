@@ -1784,22 +1784,25 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
                                     soil%Forg(:,klev)*gw_params%org%watr_organic
        END DO
 
-       !soil%cnsd = soil%Fsand(:,1)*0.3 + soil%Fclay(:,1)*0.25 +soil%Fsilt(:,1)*0.265
-       soil%sfc_vec = (gw_params%org%sfc_vec_hk/soil%hyds_vec)**(1.0/(2.0*soil%bch_vec+3.0)) * soil%ssat_vec
-
-       !vegetation dependent wilting point
-
+       !!vegetation dependent field capacity (point plants get stressed) and
+       !wilting point
        DO i=1,mp
           psi_tmp(i,:) = -psi_c(veg%iveg(i))
        END DO
-       soil%swilt_vec = soil%ssat_vec * (abs(psi_tmp)/(max(abs(soil%sucs_vec),1.0)))**(-1.0/soil%bch_vec)
-       !mrd561 redundant
-       !soil%cnsd  = soil%sand * 0.3 + soil%clay * 0.25                          &
-       !            + soil%silt * 0.265 ! set dry soil thermal conductivity
+       soil%sfc_vec = (soil%ssat_vec-soil%watr) * (abs(psi_tmp)/(abs(soil%sucs_vec)))**(-1.0/soil%bch_vec)+&
+                        soil%watr
+       DO i=1,mp
+          psi_tmp(i,:) = -psi_c(veg%iveg(i))
+       END DO
+       soil%swilt_vec = (soil%ssat_vec-soil%watr) * (abs(psi_tmp)/(abs(soil%sucs_vec)))**(-1.0/soil%bch_vec)+&
+                        soil%watr
 
+       !set the non-vectored values to srf value
        soil%sfc(:) = real(soil%sfc_vec(:,1))
        soil%swilt(:) = real(soil%swilt_vec(:,1))
 
+       !convert the units back to what default uses and GW only uses the
+       !vectored versions
        soil%hyds = real(soil%hyds_vec(:,1))/1000.0
        soil%sucs = real(soil%sucs_vec(:,1))/1000.0
        soil%ssat = real(soil%ssat_vec(:,1))
@@ -1813,11 +1816,10 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
        if ((gw_params%MaxSatFraction .lt. -9999.9) .and. (mp .eq. 1)) soil%slope(:) = 0.01    
 
     ELSE
-
-      do klev=1,ms
-       soil%sfc_vec(:,klev) = real(soil%sfc(:),r_2)
-       soil%swilt_vec(:,klev)  = real(soil%swilt(:),r_2)
-      end do
+     
+      soil%sfc_vec = real(spread(soil%sfc(:),2,ms),r_2)
+      soil%swilt_vec = real(spread(soil%swilt(:),2,ms),r_2)
+      !These are not used when gw_model == false
       soil%watr = 0._r_2
       soil%GWwatr = 0._r_2
 
@@ -1849,8 +1851,7 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
       temp(:) = ssnow%wbice(:, 1) / ssnow%wb(:, 1)
       tmp2(:) = REAL(temp(:))
       ssnow%owetfac = ssnow%owetfac * (1.0 - tmp2(:)) ** 2
-!      ssnow%owetfac = ssnow%owetfac &
-!                    * (1.0 - REAL(ssnow%wbice(:,1)/ssnow%wb(:,1)))**2
+
     END WHERE
     ssnow%pudsto = 0.0
     ssnow%pudsmx = 0.0
@@ -1965,7 +1966,7 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
              WRITE(*,*) 'SUM:',soil%sand(landpt(i)%cstart + j - 1)             &
                                + soil%silt(landpt(i)%cstart + j - 1)           &
                                + soil%clay(landpt(i)%cstart + j - 1)
-             !MDeck error where fraction was slightly off summing to 1.  Fix rather than abort
+             !mrd561 error where fraction was slightly off summing to 1.  Fix rather than abort.
              soil%silt(landpt(i)%cstart + j - 1) = 1.0 -                       &
                                          soil%clay(landpt(i)%cstart + j - 1) - &
                                          soil%sand(landpt(i)%cstart + j - 1) 
@@ -2004,11 +2005,12 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
     END IF
     ! Ensure soil moisture values are reasonable (possible restart precision
     ! issue):
-    DO i = 1, ms
-       WHERE(ssnow%wb(:, i) > soil%ssat) ! Can only happen due to i/o issues
-          ssnow%wb(:, i) = 0.9999 * soil%ssat
-       END WHERE
-    END DO
+    !actually if denliq .ne. denice than ssnow%wb > ssat_vec is possible due to
+    !the expansion during freezing
+
+    WHERE(ssnow%wb  > real(soil%ssat_vec)) ! Can only happen due to i/o issues
+       ssnow%wb = 0.9999 * soil%ssat
+    END WHERE
 
   END SUBROUTINE check_parameter_values
 !===============================================================================
