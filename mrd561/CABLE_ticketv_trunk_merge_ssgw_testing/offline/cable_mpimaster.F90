@@ -288,6 +288,9 @@ CONTAINS
     REAL, ALLOCATABLE, DIMENSION(:,:)  :: & 
          soilMtemp,                         &   
          soilTtemp      
+
+    REAL, ALLOCATABLE, DIMENSION(:) :: &
+         GWtemp
  
     ! MPI:
     TYPE (met_type)       :: imet  ! read ahead met input variables
@@ -1228,7 +1231,7 @@ write(*,*) 'after annual calcs'
              ! evaluate spinup
              IF( ANY( ABS(ssnow%wb-soilMtemp)>delsoilM).OR.                     &
                   ANY(ABS(ssnow%tgg-soilTtemp)>delsoilT) .or. &
-                  maxval(abs(ssnow%GWwb-GWtemp),dim-1)>delgwM)  THEN
+                  maxval(abs(ssnow%GWwb-GWtemp),dim=1)>delgwM)  THEN
 
                 ! No complete convergence yet
                 !               PRINT *, 'ssnow%wb : ', ssnow%wb
@@ -1246,8 +1249,8 @@ write(*,*) 'after annual calcs'
 
                 IF (cable_user%gw_model) then
                    maxdiff(1) = MAXLOC(ABS(ssnow%GWwb-GWtemp),dim=1)
-                   PRINT *. 'ssnow%GWwb: ', ssnow%GWwb(maxdiff(1))
-                   PRINT *. 'GWtemp: ', GWtemp(maxdiff(1))
+                   PRINT *,'ssnow%GWwb: ', ssnow%GWwb(maxdiff(1))
+                   PRINT *, 'GWtemp: ', GWtemp(maxdiff(1))
                 ENDIF
 
              ELSE ! spinup has converged

@@ -2007,9 +2007,9 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
     ! issue):
     !actually if denliq .ne. denice than ssnow%wb > ssat_vec is possible due to
     !the expansion during freezing
-
+    !mrd561 Left using a real to set wb since that is what trunk does
     WHERE(ssnow%wb  > real(soil%ssat_vec)) ! Can only happen due to i/o issues
-       ssnow%wb = 0.9999 * soil%ssat
+       ssnow%wb = 0.9999 * real(soil%ssat_vec)
     END WHERE
 
   END SUBROUTINE check_parameter_values
