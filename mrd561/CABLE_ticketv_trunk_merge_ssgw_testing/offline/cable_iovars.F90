@@ -136,7 +136,7 @@ MODULE cable_IO_vars_module
           veg_class,soil_class,mvtype,mstype,patchfrac,                        &
            WatSat,GWWatSat,SoilMatPotSat,GWSoilMatPotSat,                       &
           HkSat,GWHkSat,FrcSand,FrcClay,Clappb,Watr,GWWatr,sfc_vec,forg,swilt_vec, &
-          slope,slope_std,GWdz
+          slope,slope_std,GWdz,SatFracmax,Qhmax,QhmaxEfold,HKefold,HKdepth
      INTEGER :: ishorizon,nhorizons,clitt, &
           zeta,fsatmax, &
           gamma,ZR,F10
@@ -356,7 +356,12 @@ MODULE cable_IO_vars_module
          za  = .FALSE.,       & ! something to do with roughness ????
          slope = .false.,&      !mean subgrid slope
          slope_std=.false.,&    !stddev of subgrid slope
-         GWdz=.false.           !aquifer thickness
+         GWdz=.false.,&         !aquifer thickness
+         SatFracmax=.false.,&
+         Qhmax=.false.,&
+         QhmaxEfold=.false.,&
+         HKefold=.false.,&
+         HKdepth
 
    END TYPE output_inclusion_type
 

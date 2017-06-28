@@ -43,7 +43,8 @@ MODULE cable_output_module
   USE cable_checks_module, ONLY: mass_balance, energy_balance, ranges
   USE cable_write_module
   USE netcdf
-  USE cable_common_module, ONLY: filename, calcsoilalbedo, CurYear,IS_LEAPYEAR, cable_user
+  USE cable_common_module, ONLY: filename, calcsoilalbedo, CurYear,IS_LEAPYEAR, cable_user,&
+                                 gw_params
   IMPLICIT NONE
   PRIVATE
   PUBLIC open_output_file, write_output, close_output_file, create_restart
@@ -1101,6 +1102,25 @@ CONTAINS
            'GWdz', '-', 'Mean aquifer layer thickness ', &
                           patchout%GWdz, 'real', xID, yID, zID, landID, patchID)
 
+    IF(output%params .and. cable_user%gw_model) THEN
+           CALL define_ovar(ncid_out, opid%Qhmax,   &
+                          'Qhmax', 'mm/s', 'Maximum subsurface drainage ', &
+                          patchout%Qhmax, 'real', xID, yID, zID, landID, patchID)
+           CALL define_ovar(ncid_out, opid%QhmaxEfold,   &
+                          'QhmaxEfold', 'm', 'Maximum subsurface drainage decay rate', &
+                          patchout%QhmaxEfold, 'real', xID, yID, zID, landID, patchID)
+           CALL define_ovar(ncid_out, opid%SatFracmax,   &
+                          'SatFracmax', '-', 'Controls max saturated fraction ', &
+                          patchout%SatFracmax, 'real', xID, yID, zID, landID, patchID)
+           CALL define_ovar(ncid_out, opid%HKefold,   &
+                          'HKefold', '1/m', 'Rate HK decays with depth ', &
+                          patchout%HKefold, 'real', xID, yID, zID, landID, patchID)
+           CALL define_ovar(ncid_out, opid%HKdepth,   &
+                          'HKdepth', 'm', 'Depth at which HKsat(z) is HKsat(0) ', &
+                          patchout%HKdepth, 'real', xID, yID, zID, landID, patchID)
+    END IF
+
+
     ! Write global attributes for file:
     CALL DATE_AND_TIME(todaydate, nowtime)
     todaydate = todaydate(1:4)//'/'//todaydate(5:6)//'/'//todaydate(7:8)
@@ -1315,6 +1335,29 @@ CONTAINS
                  'slope_std', REAL(soil%slope_std, 4), (/0.0,1.0/), patchout%slope_std, 'real')
     IF(output%params .OR. output%GWdz) CALL write_ovar(ncid_out, opid%GWdz,    &
                  'GWdz', REAL(soil%GWdz, 4), (/0.0,10000.0/), patchout%GWdz, 'real')
+
+    IF(output%params .and. cable_user%gw_model) THEN
+                  CALL write_ovar(ncid_out, opid%SatFracmax,    &
+                       'SatFracmax', spread(REAL(gw_params%MaxSatFraction,4),1,mp), &
+                        (/0.0,100000000.0/), patchout%SatFracmax, 'real')
+
+                  CALL write_ovar(ncid_out, opid%Qhmax,    &
+                       'Qhmax', spread(REAL(gw_params%MaxHorzDrainRate, 4),1,mp), &
+                       (/0.0,100000000.0/), patchout%Qhmax, 'real')
+
+                  CALL write_ovar(ncid_out, opid%QhmaxEfold,    &
+                       'QhmaxEfold', spread(REAL(gw_params%EfoldHorzDrainRate, 4),1,mp), &
+                        (/0.0,100000000.0/), patchout%QhmaxEfold, 'real')
+
+                  CALL write_ovar(ncid_out, opid%HKefold,    &
+                       'HKefold', spread(REAL(gw_params%hkrz, 4),1,mp), &
+                        (/0.0,100000000.0/), patchout%HKefold, 'real')
+
+                  CALL write_ovar(ncid_out, opid%HKdepth,    &
+                       'HKdepth', spread(REAL(gw_params%zdepth, 4),1,mp), &
+                        (/0.0,100000000.0/), patchout%HKdepth, 'real')
+     END IF
+
 
   END SUBROUTINE open_output_file
   !=============================================================================
