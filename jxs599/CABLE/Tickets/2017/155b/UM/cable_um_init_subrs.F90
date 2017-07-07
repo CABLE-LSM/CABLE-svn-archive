@@ -23,7 +23,6 @@ MODULE cable_um_init_subrs_mod
    
    IMPLICIT NONE
 
-
 CONTAINS
 
    subroutine initialize_maps(latitude,longitude, tile_index_mp)
@@ -49,7 +48,6 @@ CONTAINS
       real, dimension(um1%row_length, um1%rows) :: new_longitude
 
       integer, save :: iDiag0, iDiag1, iDiag2, iDiag3, iDiag4, iDiag5 
-
            
             allocate( cable%lat(mp), cable%lon(mp), cable%tile(mp), cable%tile_frac(mp) )
 
@@ -354,11 +352,6 @@ SUBROUTINE initialize_veg( canht_ft, lai_ft)
       ENDIF
       first_call= .FALSE.
 
-      !IF (cable_user%CANOPY_STRUC=='canopy_vh') THEN
-      !   veg%d0c3 = 1500.
-      !   veg%a1c3 = 9.0
-      !   veg%gamma = 1.e-2
-      !END IF
 
       IF(cable_user%SOIL_STRUC=='sli') THEN
          veg%gamma = 1.e-2
@@ -484,48 +477,6 @@ SUBROUTINE init_veg_pars_fr_vegin()
    INTEGER :: j, k
 
    CALL init_veg_from_vegin(1, mp, veg) 
-
-      !do j=1,mp
-      !   veg%canst1(j)   = vegin%canst1(veg%iveg(j) )
-      !   veg%ejmax(j)    = 2.*vegin%vcmax(veg%iveg(j) )
-      !   veg%frac4(j)    = vegin%frac4(veg%iveg(j) )
-      !   veg%tminvj(j)   = vegin%tminvj(veg%iveg(j) )
-      !   veg%tmaxvj(j)   = vegin%tmaxvj(veg%iveg(j) )
-      !   veg%vbeta(j)    = vegin%vbeta(veg%iveg(j) )
-      !   veg%rp20(j)     = vegin%rp20(veg%iveg(j) )
-      !   veg%rpcoef(j)   = vegin%rpcoef(veg%iveg(j) )
-      !   veg%shelrb(j)   = vegin%shelrb(veg%iveg(j) )
-      !   veg%vegcf(j)    = vegin%vegcf(veg%iveg(j) )
-      !   veg%extkn(j)    = vegin%extkn(veg%iveg(j) )
-      !   veg%vcmax(j)    = vegin%vcmax(veg%iveg(j) )
-      !   veg%xfang(j)    = vegin%xfang(veg%iveg(j) )
-      !   veg%dleaf(j)    = vegin%dleaf(veg%iveg(j) )
-      !   veg%xalbnir(j)  = vegin%xalbnir(veg%iveg(j) )
-      !   veg%rs20(j)     = vegin%rs20(veg%iveg(j) )
- 
-      !   ! jtk561
-      !   veg%g0(j)       = vegin%g0(veg%iveg(j))
-      !   veg%g1(j)       = vegin%g1(veg%iveg(j))
-   
-      !   ! Ammendments to Ticket #2
-      !   veg%a1gs(j)     = vegin%a1gs(veg%iveg(j))
-      !   veg%d0gs(j)     = vegin%d0gs(veg%iveg(j))
-      !   veg%convex(j)   = vegin%convex(veg%iveg(j))
-      !   veg%gswmin(j)   = vegin%gswmin(veg%iveg(j))
-      !   veg%conkc0(j)   = vegin%conkc0(veg%iveg(j))
-      !   veg%conko0(j)   = vegin%conko0(veg%iveg(j))
-      !   veg%ekc(j)      = vegin%ekc(veg%iveg(j))
-      !   veg%eko(j)      = vegin%eko(veg%iveg(j))
-   
-      !   veg%cfrd(j)     = vegin%cfrd(veg%iveg(j)) !never used
-      !   veg%wai(j)      = vegin%wai(veg%iveg(j)) !never used
-
-      !      do k=1,2
-      !        veg%refl(j,k)   = vegin%refl(k,veg%iveg(j) )
-      !        veg%taul(j,k)   = vegin%taul(k,veg%iveg(j) )
-      !      enddo
-
-      !enddo
 
       !froot fixed here for all vegetation types for ACCESS
       !need more flexibility in next version to read in or parameterise
@@ -1084,7 +1035,6 @@ SUBROUTINE um2cable_rr(umvar,cablevar)
       cablevar =  pack(fvar,um1%l_tile_pts)
 
 END SUBROUTINE um2cable_rr
-
 
 !========================================================================
 

@@ -166,9 +166,9 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
    INTEGER ::                              &
       CO2_DIM_LEN                                     &
      ,CO2_DIM_ROW
-   !REAL, INTENT(IN) :: CO2_3D(CO2_DIM_LEN,CO2_DIM_ROW)  ! co2 mass mixing ratio
  !CABLE_LSM:
-   REAL :: CO2_3D(1,1)  ! co2 mass mixing ratio
+    !REAL, INTENT(IN) :: CO2_3D(CO2_DIM_LEN,CO2_DIM_ROW)  ! co2 mass mixing ratio
+    REAL :: CO2_3D(1,1)  ! co2 mass mixing ratio
 
    LOGICAL,DIMENSION(land_pts, ntiles) ::                       &
       L_tile_pts  ! true IF vegetation (tile) fraction is greater than 0
