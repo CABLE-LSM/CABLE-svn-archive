@@ -188,7 +188,8 @@ MODULE cable_common_module
   ! hydraulic_redistribution parameters _soilsnow module
   REAL :: wiltParam=0.5, satuParam=0.8
   
-  !CABLE_LSM: vn10.6-CABLE hacks-hardwires these in utils/ files BUT
+  !CABLE_LSM: soil/veg params types & subr deleted here 
+  ! vn10.6-CABLE hacks-hardwires these
   !use these as the basis for namelist vars/files later in offline apps
   
   !CABLE_LSM: verify these are set if commented here
