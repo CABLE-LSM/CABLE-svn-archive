@@ -48,124 +48,122 @@ CONTAINS
       real, dimension(um1%row_length, um1%rows) :: new_longitude
 
       integer, save :: iDiag0, iDiag1, iDiag2, iDiag3, iDiag4, iDiag5 
+      real, dimension(um1%row_length,um1%rows) :: &
+         asinlatitude, acoslat, acoslon
            
-            allocate( cable%lat(mp), cable%lon(mp), cable%tile(mp), cable%tile_frac(mp) )
+            !CMIP6!allocate( cable%lat(mp), cable%lon(mp), cable%tile(mp), cable%tile_frac(mp) )
 
-            !-------------------------------------   
-            !---make indexes for tile, lat, lon
-            !-------------------------------------   
+            !CMIP6!!-------------------------------------   
+            !CMIP6!!---make indexes for tile, lat, lon
+            !CMIP6!!-------------------------------------   
            
-            !=== LaTITUDE 
-            !form acoslat(:,:) & acoslon(:,:)
-            !acoslat = ( latitude ) /cable%const%math%pi180
-            
-            !--- get latitude index corresponding to cable points
-            !call um2cable_rr( (asin(latitude)/cable%const%math%pi180), cable%lat )
-            !call um2cable_rr( ((latitude)/cable%const%math%pi180), cable%lat )
-            !call um2cable_rr( acoslat, cable%lat )
-            call um2cable_rr( latitude, cable%lat )
+            !CMIP6!!=== LaTITUDE 
+            !CMIP6!!form acoslat(:,:) & acoslon(:,:)
+            !CMIP6!!acoslat = ( latitude ) /cable%const%math%pi180
+            !CMIP6!
+            !CMIP6!!--- get latitude index corresponding to cable points
+            !CMIP6!!call um2cable_rr( (asin(latitude)/cable%const%math%pi180), cable%lat )
+            !CMIP6!!call um2cable_rr( ((latitude)/cable%const%math%pi180), cable%lat )
+            !CMIP6!!call um2cable_rr( acoslat, cable%lat )
+            !CMIP6!call um2cable_rr( latitude, cable%lat )
            
-            !==================================================================
+            !CMIP6!!==================================================================
 
-            !=== LONGITUDE 
-            !acoslong =  ( longitude(:,2) ) /cable%const%math%pi180  
-            !!acoslon =  ( longitude ) /cable%const%math%pi180  
-            !acoslon1 =  acoslon(:,1) 
-            !!acoslong =  acos( longitude(:,1) ) /cable%const%math%pi180  
+            !CMIP6!!=== LONGITUDE 
+            !CMIP6!!acoslong =  ( longitude(:,2) ) /cable%const%math%pi180  
+            !CMIP6!!!acoslon =  ( longitude ) /cable%const%math%pi180  
+            !CMIP6!!acoslon1 =  acoslon(:,1) 
+            !CMIP6!!!acoslong =  acos( longitude(:,1) ) /cable%const%math%pi180  
        
-            !!--- get longitude index corresponding to cable points.
-            !!--- this is not so straight forward as UM longitude index 
-            !!--- contains ambiguity. thus define "new_longitude" first
-            !tlong(1) = acoslong(1)
-            !do j=2, um1%row_length
-            !   if( acoslong(j) < acoslong(j-1) ) then  
-            !      dlon = acoslong(j) - acoslong(j-1)
-            !      tlong(j) = tlong(j-1) - dlon   
-            !   else 
-            !      tlong(j) = acoslong(j)
-            !   endif           
-            !enddo
-            !
-            !do j=1, um1%row_length
-            !   new_longitude(j,:) = tlong(j)
-            !enddo
-            
-            call um2cable_rr( longitude, cable%lon )
-            
-            !==================================================================
+            !CMIP6!!!--- get longitude index corresponding to cable points.
+            !CMIP6!!!--- this is not so straight forward as UM longitude index 
+            !CMIP6!!!--- contains ambiguity. thus define "new_longitude" first
+            !CMIP6!!tlong(1) = acoslong(1)
+            !CMIP6!!do j=2, um1%row_length
+            !CMIP6!!   if( acoslong(j) < acoslong(j-1) ) then  
+            !CMIP6!!      dlon = acoslong(j) - acoslong(j-1)
+            !CMIP6!!      tlong(j) = tlong(j-1) - dlon   
+            !CMIP6!!   else 
+            !CMIP6!!      tlong(j) = acoslong(j)
+            !CMIP6!!   endif           
+            !CMIP6!!enddo
+            !CMIP6!!
+            !CMIP6!!do j=1, um1%row_length
+            !CMIP6!!   new_longitude(j,:) = tlong(j)
+            !CMIP6!!enddo
+            !CMIP6!
+            !CMIP6!call um2cable_rr( longitude, cable%lon )
+            !CMIP6!
+            !CMIP6!!==================================================================
          
-return          
-            !--- get tile index/fraction  corresponding to cable points
-            cable%tile = pack(tile_index_mp, um1%l_tile_pts)
-            cable%tile_frac = pack(um1%tile_frac, um1%l_tile_pts)
+            !CMIP6!!--- get tile index/fraction  corresponding to cable points
+            !CMIP6!cable%tile = pack(tile_index_mp, um1%l_tile_pts)
+            !CMIP6!cable%tile_frac = pack(um1%tile_frac, um1%l_tile_pts)
 
-            !--- write all these maps.  cable_user%initialize_mapping can be 
-            !--- set in namelist cable.nml
-            !if ( cable_user%initialize_mapping ) then
-            !write indexes for tile, lat, lon  !fudge
-            !asinlatitude = ( latitude ) /cable%const%math%pi180
-             
-            !call cable_diag( iDiag0, 'latitude', um1%rows, 1, ktau_gl,  & 
-            !      knode_gl, 'latitude',asinlatitude(1,:)  ) 
+            !CMIP6!!--- write all these maps.  cable_user%initialize_mapping can be 
+            !CMIP6!!--- set in namelist cable.nml
+            !CMIP6!!if ( cable_user%initialize_mapping ) then
+            !CMIP6!!write indexes for tile, lat, lon  !fudge
+            !CMIP6!!asinlatitude = ( latitude ) /cable%const%math%pi180
+            !CMIP6! 
+            !CMIP6!!call cable_diag( iDiag0, 'latitude', um1%rows, 1, ktau_gl,  & 
+            !CMIP6!!      knode_gl, 'latitude',asinlatitude(1,:)  ) 
 
 
-            ! ----------------------------------------------------------------------------------
-            write(chnode,10) knode_gl
-   10       format(I3.3)   
-            filename=trim(trim(basename)//trim(chnode))
-            
-            umi=0; umj=0; uml=0; umn=0            
-            do i=1, um1%row_length      
-               do j=1, um1%rows     
-                 umi(i,j) = i 
-                 umj(i,j) = j 
-               enddo   
-            enddo   
-            
-            do i=1, um1%land_pts
-               do j=1, um1%ntiles
-                 uml(i,j) = i 
-                 umn(i,j) = j 
-               enddo   
-            enddo   
+            !CMIP6!! ----------------------------------------------------------------------------------
+            !CMIP6!
+            !CMIP6!umi=0; umj=0; uml=0; umn=0            
+            !CMIP6!do i=1, um1%row_length      
+            !CMIP6!   do j=1, um1%rows     
+            !CMIP6!     umi(i,j) = i 
+            !CMIP6!     umj(i,j) = j 
+            !CMIP6!   enddo   
+            !CMIP6!enddo   
+            !CMIP6!
+            !CMIP6!do i=1, um1%land_pts
+            !CMIP6!   do j=1, um1%ntiles
+            !CMIP6!     uml(i,j) = i 
+            !CMIP6!     umn(i,j) = j 
+            !CMIP6!   enddo   
+            !CMIP6!enddo   
 
-            call um2cable_irr( umi, cable_umi )
-            call um2cable_irr( umj, cable_umj )
-            
-            cable_uml = pack(uml, um1%l_tile_pts)
-            cable_umn = pack(umn, um1%l_tile_pts)
-            
-            !open(unit=12517,file=filename,status="unknown", &
-            !      action="write", form="formatted",position='append' )
-            !   
-            !   write (12517, hfmt1) hcomp, hcompa, hcompb, hcompc, hcompd,hcomp1, hcomp2, hcomp3, hcomp4, hcomp5
-            !   write (12517, *) footer2 
-            !   do i=1, mp 
-            !      WRITE(12517,dfmt1) , knode_gl, cable_umi(i), cable_umj(i), cable_uml(i), cable_umn(i), &
-            !                        i, cable%lat(i), cable%lon(i),    &
-            !                        cable%tile_frac(i), veg%iveg(i)  
-            !   enddo   
-            !   write (12517, *) footer1 
-            !
-            !close(12517)
+            !CMIP6!call um2cable_irr( umi, cable_umi )
+            !CMIP6!call um2cable_irr( umj, cable_umj )
+            !CMIP6!
+            !CMIP6!cable_uml = pack(uml, um1%l_tile_pts)
+            !CMIP6!cable_umn = pack(umn, um1%l_tile_pts)
+            !CMIP6!
+            !CMIP6!!open(unit=12517,file=filename,status="unknown", &
+            !CMIP6!!      action="write", form="formatted",position='append' )
+            !CMIP6!!   
+            !CMIP6!!   write (12517, hfmt1) hcomp, hcompa, hcompb, hcompc, hcompd,hcomp1, hcomp2, hcomp3, hcomp4, hcomp5
+            !CMIP6!!   write (12517, *) footer2 
+            !CMIP6!!   do i=1, mp 
+            !CMIP6!!      WRITE(12517,dfmt1) , knode_gl, cable_umi(i), cable_umj(i), cable_uml(i), cable_umn(i), &
+            !CMIP6!!                        i, cable%lat(i), cable%lon(i),    &
+            !CMIP6!!                        cable%tile_frac(i), veg%iveg(i)  
+            !CMIP6!!   enddo   
+            !CMIP6!!   write (12517, *) footer1 
+            !CMIP6!!
+            !CMIP6!!close(12517)
 
-            ! ----------------------------------------------------------------------------------
-             
-            call cable_diag( iDiag1, 'longitude', um1%row_length, 1, ktau_gl,  & 
-                  knode_gl, 'longitude', ( new_longitude(:,1) ) ) 
+            !CMIP6!! ----------------------------------------------------------------------------------
+            !CMIP6! 
+            !CMIP6!call cable_diag( iDiag1, 'longitude', um1%row_length, 1, ktau_gl,  & 
+            !CMIP6!      knode_gl, 'longitude', ( new_longitude(:,1) ) ) 
         
-            !write indexes for tile, lat, lon
-            call cable_diag( iDiag2, 'lat_index', mp, 1, ktau_gl,  & 
-                  knode_gl, 'lat', cable%lat )
-            call cable_diag( iDiag3, 'lon_index', mp, 1, ktau_gl,  & 
-                  knode_gl, 'lon', cable%lon )
-            
-            !this should be integer-ed. typecast for now
-            call cable_diag( iDiag4, 'tile_index', mp, 1, ktau_gl,  & 
-                  knode_gl, 'tile', real(cable%tile) )
-            
-            call cable_diag( iDiag5, 'tile_frac', mp, 1, ktau_gl,  & 
-                  knode_gl, 'tile_frac', cable%tile_frac )
+            !CMIP6!!write indexes for tile, lat, lon
+            !CMIP6!call cable_diag( iDiag2, 'lat_index', mp, 1, ktau_gl,  & 
+            !CMIP6!      knode_gl, 'lat', cable%lat )
+            !CMIP6!call cable_diag( iDiag3, 'lon_index', mp, 1, ktau_gl,  & 
+            !CMIP6!      knode_gl, 'lon', cable%lon )
+            !CMIP6!
+            !CMIP6!!this should be integer-ed. typecast for now
+            !CMIP6!call cable_diag( iDiag4, 'tile_index', mp, 1, ktau_gl,  & 
+            !CMIP6!      knode_gl, 'tile', real(cable%tile) )
+            !CMIP6!
+            !CMIP6!call cable_diag( iDiag5, 'tile_frac', mp, 1, ktau_gl,  & 
+            !CMIP6!      knode_gl, 'tile_frac', cable%tile_frac )
             
       
       return
