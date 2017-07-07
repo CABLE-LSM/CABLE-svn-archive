@@ -720,7 +720,7 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
       ssnow%ssdnn  = PACK(SNOW_RHO1L,um1%l_tile_pts)  
       ssnow%isflag = PACK(int(ISNOW_FLG3L),um1%l_tile_pts)  
 !jhan: clobber
-ssnow%isflag = 0. 
+!ssnow%isflag = 0. 
       
       DO J=1, msn
          

@@ -32,7 +32,7 @@ module cable_hyd_main_mod
   
 contains
 
-SUBROUTINE cable_hyd_main( land_pts, ntiles, SNOW_surft, SURF_ROFF, SUB_SURF_ROFF,  &
+SUBROUTINE cable_hyd_main( land_pts, ntiles, lying_snow, SNOW_surft, SURF_ROFF, SUB_SURF_ROFF,  &
                              TOT_TFALL )
   
   USE cable_common_module, ONLY : knode_gl,        & ! processor number
@@ -50,6 +50,7 @@ SUBROUTINE cable_hyd_main( land_pts, ntiles, SNOW_surft, SURF_ROFF, SUB_SURF_ROF
   real :: snow_surft(land_pts,ntiles)
   
   real, dimension(land_pts) ::                                                 &
+    lying_snow,    & ! OUT Gridbox snowmass (kg/m2)        
     sub_surf_roff,  & ! OUT Sub-surface runoff (kg/m2/s).
     surf_roff,      & ! OUT Surface runoff (kg/m2/s).
     tot_tfall         ! OUT Total throughfall (kg/m2/s).
@@ -80,7 +81,7 @@ SUBROUTINE cable_hyd_main( land_pts, ntiles, SNOW_surft, SURF_ROFF, SUB_SURF_ROF
   !--- args PACKED to force CABLE
   !----------------------------------------------------------------------------
   
-  CALL cable_hyd_driver( land_pts, ntiles, SNOW_surft, SURF_ROFF,   &
+  CALL cable_hyd_driver( land_pts, ntiles, lying_snow, SNOW_surft, SURF_ROFF,   &
                          SUB_SURF_ROFF, TOT_TFALL )
   
   !----------------------------------------------------------------------------

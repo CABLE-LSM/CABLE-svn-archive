@@ -26,7 +26,7 @@ module cable_hyd_driv_mod
   
 contains
 
-SUBROUTINE cable_hyd_driver( land_pts, ntiles, SNOW_TILE, SURF_ROFF,           &
+SUBROUTINE cable_hyd_driver( land_pts, ntiles, lying_snow, SNOW_TILE, SURF_ROFF,&
                              SUB_SURF_ROFF, TOT_TFALL )
 ! r1022:1164                 TOT_TFALL, WB_LAKE )
 
@@ -46,7 +46,7 @@ SUBROUTINE cable_hyd_driver( land_pts, ntiles, SNOW_TILE, SURF_ROFF,           &
       SNOW_TILE   ! IN Lying snow on tiles (kg/m2)        
 
    REAL, INTENT(OUT), DIMENSION(LAND_PTS) ::                               &
-      !LYING_SNOW,    & ! OUT Gridbox snowmass (kg/m2)        
+      LYING_SNOW,    & ! OUT Gridbox snowmass (kg/m2)        
       SUB_SURF_ROFF, & !
       SURF_ROFF,     & !
       TOT_TFALL        !
@@ -65,9 +65,8 @@ SUBROUTINE cable_hyd_driver( land_pts, ntiles, SNOW_TILE, SURF_ROFF,           &
       TFRZ => PHYS%TFRZ
    
 SNOW_TILE= UNPACK(ssnow%snowd, L_TILE_PTS, miss) 
-!CABLE_LSM:vn10.6-CABLE should have changes to reinstate this
      !jh:really - we dont want this
-     !LYING_SNOW = SUM(TILE_FRAC * SNOW_TILE,2) !gridbox snow mass
+     LYING_SNOW = SUM(um1%TILE_FRAC * SNOW_TILE,2) !gridbox snow mass
 
      SURF_CAB_ROFF  = UNPACK(ssnow%rnof1, L_TILE_PTS, miss)
 SURF_ROFF      = SUM(um1%TILE_FRAC * SURF_CAB_ROFF,2)
