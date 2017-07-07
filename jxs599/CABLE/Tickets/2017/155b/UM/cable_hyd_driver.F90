@@ -65,7 +65,7 @@ SUBROUTINE cable_hyd_driver( land_pts, ntiles, SNOW_TILE, SURF_ROFF,           &
       TFRZ => PHYS%TFRZ
    
 SNOW_TILE= UNPACK(ssnow%snowd, L_TILE_PTS, miss) 
-!CABLE_LSM:
+!CABLE_LSM:vn10.6-CABLE should have changes to reinstate this
      !jh:really - we dont want this
      !LYING_SNOW = SUM(TILE_FRAC * SNOW_TILE,2) !gridbox snow mass
 

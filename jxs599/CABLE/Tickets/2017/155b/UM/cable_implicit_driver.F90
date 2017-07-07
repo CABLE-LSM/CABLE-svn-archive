@@ -49,7 +49,8 @@ snow_tile, SNOW_RHO1L,       &
                                   CANOPY_GB, MELT_TILE, &
                                   NPP, NPP_FT, GPP, GPP_FT, RESP_S,   &
                                   RESP_S_TOT, &
-!RESP_S_TILE, 
+!CABLE_LSM: check on status of this in vn10.6-CABLE
+                                  RESP_S_TILE, &
                                   RESP_P, RESP_P_FT,  &
                      ! r825 added casa vars after G_LEAF, but we need
                     ! need. vars here satisfy _hydrol CALL that is now from _impl
@@ -165,7 +166,9 @@ TL_1, QW_1, SURF_HTF_TILE )
       SNOW_TMP3L,    & !
       SNOW_COND        !
   !NOT declared as Ntiles in UM yet: reverted
-   REAL, DIMENSION(land_pts,ntiles) ::                              &
+!CABLE_LSM: check on status of this in vn10.6-CABLE
+   !REAL, DIMENSION(land_pts,ntiles) ::                              &
+   REAL, DIMENSION(land_pts,npft) ::                              &
       RESP_P_FT,     &
       G_LEAF,        &
 !     FRS_TILE,   & ! Local
@@ -228,6 +231,13 @@ TL_1, QW_1, SURF_HTF_TILE )
       dtlc, & 
       dqwc
    
+!CABLE_LSM: check on status of this in vn10.6-CABLE
+   REAL, DIMENSION(LAND_PTS) ::                               &
+      LYING_SNOW,    & ! OUT Gridbox snowmass (kg/m2)        
+      SUB_SURF_ROFF, & !
+      SURF_ROFF,     & !
+      TOT_TFALL        !
+
    REAL, POINTER :: TFRZ
 
    !This is a quick fix. These can be organised through namelists
