@@ -2317,6 +2317,7 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,climate,bgc,soil,canopy,rough,rad, 
 !! vh_js !!
    USE POPmodule, ONLY: POP_INIT
    USE POPLUC_module, ONLY: POPLUC_INIT 
+   USE casa_inout_module, ONLY: casa_readbiome, casa_readphen, casa_init 
    USE CABLE_LUC_EXPT, ONLY: LUC_EXPT_TYPE
 
    IMPLICIT NONE
