@@ -54,6 +54,7 @@ MODULE cable_input_module
    USE cable_init_module
    USE netcdf ! link must be made in cd to netcdf-x.x.x/src/f90/netcdf.mod
    USE cable_common_module, ONLY : filename, cable_user, CurYear, HANDLE_ERR, is_leapyear
+   USE casa_inout_module, ONLY: casa_readbiome, casa_readphen, casa_init 
 
    IMPLICIT NONE
 
@@ -2317,7 +2318,6 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,climate,bgc,soil,canopy,rough,rad, 
 !! vh_js !!
    USE POPmodule, ONLY: POP_INIT
    USE POPLUC_module, ONLY: POPLUC_INIT 
-   USE casa_inout_module, ONLY: casa_readbiome, casa_readphen, casa_init 
    USE CABLE_LUC_EXPT, ONLY: LUC_EXPT_TYPE
 
    IMPLICIT NONE
