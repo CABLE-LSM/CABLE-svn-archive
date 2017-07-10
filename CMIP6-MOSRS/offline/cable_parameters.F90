@@ -60,6 +60,8 @@ MODULE cable_param_module
   USE cable_abort_module
   USE cable_IO_vars_module
   USE cable_common_module, ONLY: cable_user, hide
+  USE cable_pft_params_mod
+  USE cable_soil_params_mod
   USE CABLE_LUC_EXPT, ONLY: LUC_EXPT, LUC_EXPT_TYPE, LUC_EXPT_SET_TILES
   IMPLICIT NONE
   PRIVATE
@@ -109,7 +111,7 @@ MODULE cable_param_module
 CONTAINS
 
   SUBROUTINE get_default_params(logn, vegparmnew, LUC_EXPT)
-    use cable_common_module, only : get_type_parameters, filename,             &
+    use cable_common_module, only : filename,             &
                                     calcsoilalbedo
   ! Load parameters for each veg type and each soil type. (get_type_parameters)
   ! Also read in initial information for each grid point. (read_gridinfo)
@@ -129,7 +131,7 @@ CONTAINS
     INTEGER :: nlat
 
     ! Get parameter values for all default veg and soil types:
-    CALL get_type_parameters(logn, vegparmnew, classification)
+    !CALL get_type_parameters(logn, vegparmnew, classification)
 
     WRITE(logn,*) ' Reading grid info from ', TRIM(filename%type)
     WRITE(logn,*) ' And assigning C4 fraction according to veg classification.'
@@ -1647,7 +1649,8 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
 SUBROUTINE report_parameters(logn, soil, veg, bgc, rough,                    &
                                ssnow, canopy, casamet, casapool, casaflux,     &
                                phen, vegparmnew, verbose )
-   USE cable_common_module, ONLY : veg_desc, soil_desc
+   USE cable_pft_params_mod, ONLY : veg_desc
+   USE cable_soil_params_mod, ONLY : soil_desc
    IMPLICIT NONE
    INTEGER,      INTENT(IN)  :: logn        ! log file unit number
    LOGICAL,      INTENT(IN)  :: vegparmnew  ! are we using the new format?
