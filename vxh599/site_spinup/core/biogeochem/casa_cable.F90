@@ -84,7 +84,9 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
 
   
    IF ( .NOT. dump_read ) THEN  ! construct casa met and flux inputs from current CABLE run
-      IF ( TRIM(cable_user%MetType) .EQ. 'cru' ) THEN
+      IF ( TRIM(cable_user%MetType) .EQ. 'cru'.OR. TRIM(cable_user%MetType) .EQ. 'site'  ) &
+           THEN
+         casaflux%Pdep = met%Pdep
          casaflux%Nmindep = met%Ndep
       ENDIF
 
