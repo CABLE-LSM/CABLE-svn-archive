@@ -4,40 +4,7 @@ export dosvn=1 # 1/0: do/do not check svn
 
 known_hosts()
 {
-   set -A kh vayu cher pear shin jigg nXXX raij ces2 mcin valh
-}
-
-## 
-host_valh()
-{
-   # GFORTRAN
-   export FC=gfortran
-   # debug
-   export CFLAGS="-Wall -W -O -g -Wno-maybe-uninitialized -cpp -ffree-form -ffixed-line-length-132 -Wno-tabs" # -DVanessas_common"
-   # # release
-   # export CFLAGS="-O3 -Wno-aggressive-loop-optimizations -cpp -ffree-form -ffixed-line-length-132"
-   export LD=''
-   export NCROOT='/usr/local/netcdf-fortran-4.4.2-gfortran/'
-
-   # # NAG
-   # export FC=nagfor
-   # # debug
-   # export CFLAGS="-C -C=dangling -g -nan -O0 -strict95 -gline -fpp -colour -unsharedf95 -kind=byte -ideclient -ieee=full -free -DNAG"
-   # # # release
-   # # export CFLAGS="-O4 -fpp -colour -unsharedf95 -kind=byte -ideclient -ieee=full -free"
-   # export LD='-ideclient -unsharedrts'
-   # export NCROOT='/usr/local/netcdf-fortran-4.4.2-nagfor'
-
-   # All compilers
-   export NCCROOT='/usr/local'
-   export NCCLIB=${NCROOT}'/lib'
-   export NCLIB=${NCROOT}'/lib'
-   export NCMOD=${NCROOT}'/include'
-   export LDFLAGS="-L${NCCLIB} -L${NCLIB} -lnetcdff -lnetcdf -lhdf5_hl -lhdf5 -lsz -lz"
-   export dosvn=0
-   build_build
-   cd ../
-   build_status
+   set -A kh vayu cher pear shin jigg nXXX raij ces2
 }
 
 
@@ -141,9 +108,9 @@ host_pear()
    export NCDIR=$NETCDF_ROOT'/lib/'
    export NCMOD=$NETCDF_ROOT'/include/'
    export FC='ifort'
-  # export CFLAGS='-O0 -fp-model precise -g -debug -traceback -fp-stack-check -no-ftz -ftrapuv   -check all,noarg_temp_created -C '
+   #export CFLAGS='-O2 -fp-model precise -g -debug -traceback -fp-stack-check -no-ftz -ftrapuv   -check all,noarg_temp_created -C '
    export CFLAGS='-O0 -fp-model precise'
-  # export CFLAGS='  -g -debug -traceback -fp-stack-check -O0 -debug -fpe=0 -fpe-all=0 -no-ftz -ftrapuv -check bounds'
+   #export CFLAGS='  -g -debug -traceback -fp-stack-check -O0 -debug -fpe=0  -no-ftz -ftrapuv -check bounds'
    export LDFLAGS='-g -L'$NCDIR' -O0'
    export LD='-lnetcdf -lnetcdff'
    build_build

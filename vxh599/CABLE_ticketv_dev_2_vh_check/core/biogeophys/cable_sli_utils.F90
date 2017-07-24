@@ -868,7 +868,7 @@ CONTAINS
 
   !**********************************************************************************************************************
 
-  SUBROUTINE generic_thomas_1d(n,A,B,C,r,u)
+  SUBROUTINE generic_thomas_1d(n,A,B,C,r,u,err)
 
     USE sli_numbers,       ONLY: one
 
@@ -879,6 +879,7 @@ CONTAINS
     REAL(r_2), DIMENSION(1:n,1:2,1:2), INTENT(IN)  :: A, B, C
     REAL(r_2), DIMENSION(1:n,1:2),     INTENT(IN)  :: r
     REAL(r_2), DIMENSION(1:n,1:2),     INTENT(OUT) :: u
+    INTEGER(i_d), OPTIONAL,            INTENT(OUT) :: err ! 0: no error; >0: error
     ! local
     REAL(r_2), DIMENSION(1:n,1:2,1:2) :: G
     REAL(r_2), DIMENSION(1:2,1:2)     :: bet
@@ -886,12 +887,18 @@ CONTAINS
     REAL(r_2)                         :: detbet, detbet1
     INTEGER(i_d)                      :: j
 
+    if (present(err)) err = 0
     ! j=1
     bet(1:2,1:2) = B(1,1:2,1:2)
     detbet       = bet(1,1)*bet(2,2) - bet(1,2)*bet(2,1)
     if (abs(detbet) < epsilon(detbet)) then
        write(*,*) 'generic_thomas_1d error1: det = 0'
-       stop 'program terminated by generic_thomas_1d'
+       if (present(err)) then
+          err = 1
+          return
+       else
+          stop 1
+       endif
     endif
     detbet1 = one/detbet
     d(1:2)  = r(1,1:2)
@@ -909,7 +916,12 @@ CONTAINS
        detbet       = bet(1,1)*bet(2,2) - bet(1,2)*bet(2,1)
        if (abs(detbet) < epsilon(detbet)) then
           write(*,*) 'generic_thomas_1d error2: det = 0 at j=', j
-          stop 'program terminated by generic_thomas_1d'
+          if (present(err)) then
+             err = 1
+             return
+          else
+             stop 1
+          endif
        endif
        detbet1      = one/detbet
        d(1:2)       = r(j,1:2) - matmul(A(j,1:2,1:2),u(j-1,1:2))
@@ -923,7 +935,7 @@ CONTAINS
     !
   END SUBROUTINE generic_thomas_1d
 
-  SUBROUTINE generic_thomas_2d(mp, n,A,B,C,r,u)
+  SUBROUTINE generic_thomas_2d(mp, n,A,B,C,r,u,err)
 
     USE sli_numbers,       ONLY: one
 
@@ -935,6 +947,7 @@ CONTAINS
     REAL(r_2), DIMENSION(1:mp,1:n,1:2,1:2), INTENT(IN)  :: A, B, C
     REAL(r_2), DIMENSION(1:mp,1:n,1:2),     INTENT(IN)  :: r
     REAL(r_2), DIMENSION(1:mp,1:n,1:2),     INTENT(OUT) :: u
+    INTEGER(i_d), OPTIONAL,                 INTENT(OUT) :: err ! 0: no error; >0: error
     ! local
     REAL(r_2), DIMENSION(1:mp,1:n,1:2,1:2) :: G
     REAL(r_2), DIMENSION(1:mp,1:2,1:2)     :: bet
@@ -944,12 +957,18 @@ CONTAINS
     REAL(r_2), DIMENSION(1:mp,1:2)         :: tmp1d
     REAL(r_2), DIMENSION(1:mp,1:2,1:2)     :: tmp2d
 
+    if (present(err)) err = 0
     ! j=1
     bet(1:mp,1:2,1:2) = B(1:mp,1,1:2,1:2)
     detbet(1:mp)      = bet(1:mp,1,1)*bet(1:mp,2,2) - bet(1:mp,1,2)*bet(1:mp,2,1)
     if (any(abs(detbet(1:mp)) < epsilon(detbet))) then
        write(*,*) 'generic_thomas_2d error1: det = 0'
-       stop 'program terminated by generic_thomas_2d'
+       if (present(err)) then
+          err = 1
+          return
+       else
+          stop 1
+       endif
     endif
     detbet1(1:mp) = one/detbet(1:mp)
     d(1:mp,1:2)   = r(1:mp,1,1:2)
@@ -971,7 +990,12 @@ CONTAINS
        detbet(1:mp)      = bet(1:mp,1,1)*bet(1:mp,2,2) - bet(1:mp,1,2)*bet(1:mp,2,1)
        if (any(abs(detbet(1:mp)) < epsilon(detbet))) then
           write(*,*) 'generic_thomas_2d error2: det = 0 at j=', j
-          stop 'program terminated by generic_thomas_2d'
+          if (present(err)) then
+             err = 1
+             return
+          else
+             stop 1
+          endif
        endif
        detbet1(1:mp) = one/detbet(1:mp)
        tmp1d(1:mp,1) = A(1:mp,j,1,1)*u(1:mp,j-1,1) + A(1:mp,j,1,2)*u(1:mp,j-1,2)
@@ -2258,7 +2282,7 @@ CONTAINS
 
   !**********************************************************************************************************************
 
-  SUBROUTINE massman_sparse_1d(aa, aah, bb, bbh, cc, cch, dd, ddh, ee, eeh, ff, ffh, gg, ggh, dy, dT, condition)
+  SUBROUTINE massman_sparse_1d(aa, aah, bb, bbh, cc, cch, dd, ddh, ee, eeh, ff, ffh, gg, ggh, dy, dT, condition, err)
 
     USE cable_def_types_mod, ONLY: r_2, i_d
     USE sli_numbers,       ONLY: zero, one
@@ -2270,6 +2294,7 @@ CONTAINS
     REAL(r_2), DIMENSION(:), INTENT(IN)  :: cc, cch, dd, ddh, gg, ggh
     REAL(r_2), DIMENSION(:), INTENT(OUT) :: dy, dT
     INTEGER(i_d),  OPTIONAL, INTENT(IN)  :: condition
+    INTEGER(i_d),  OPTIONAL, INTENT(OUT) :: err ! 0: no error; >0: error
     ! local
     INTEGER(i_d)                         :: n, n2
     REAL(r_2), DIMENSION(size(cc),2,2)   :: A, B, C
@@ -2281,6 +2306,7 @@ CONTAINS
     REAL(r_2), DIMENSION(2*size(cc),2*size(cc)) :: allmat
     REAL(r_2)    :: eps
     INTEGER(i_d) :: docond ! 0: no conditioning, 1: columns, 2: lines, 3: both
+    INTEGER(i_d) :: ierr ! error code for generic_thomas
     ! CHARACTER(LEN=20) :: form1
     ! integer :: i, nn
     !
@@ -2303,6 +2329,8 @@ CONTAINS
     else
        docond = 0
     endif
+    if (present(err)) err = 0
+    ierr = 0
     !
     ! Overall matrix
     if (docond >= 1 .and. docond <= 3) then
@@ -2379,13 +2407,21 @@ CONTAINS
     d(1:n,2)     = ggh(1:n)   * lT(1:n)
     !
     ! Call Generic Thomas algorithm
-    call generic_thomas(n,A,B,C,d,x)
+    call generic_thomas(n,A,B,C,d,x,ierr)
+    if (ierr /= 0) then
+       if (present(err)) then
+          err = 1
+          return
+       else
+          stop 1
+       endif
+    endif
     dy(1:n) = x(1:n,1) * cS(1:n)
     dT(1:n) = x(1:n,2) * cT(1:n)
     !
   END SUBROUTINE massman_sparse_1d
 
-  SUBROUTINE massman_sparse_2d(aa, aah, bb, bbh, cc, cch, dd, ddh, ee, eeh, ff, ffh, gg, ggh, dy, dT, condition)
+  SUBROUTINE massman_sparse_2d(aa, aah, bb, bbh, cc, cch, dd, ddh, ee, eeh, ff, ffh, gg, ggh, dy, dT, condition, err)
 
     USE cable_def_types_mod, ONLY: r_2, i_d
     USE sli_numbers,       ONLY: zero, one
@@ -2397,6 +2433,7 @@ CONTAINS
     REAL(r_2), DIMENSION(:,:), INTENT(IN)  :: cc, cch, dd, ddh, gg, ggh
     REAL(r_2), DIMENSION(:,:), INTENT(OUT) :: dy, dT
     INTEGER(i_d),    OPTIONAL, INTENT(IN)  :: condition
+    INTEGER(i_d),    OPTIONAL, INTENT(OUT) :: err ! 0: no error; >0: error
     ! local
     INTEGER(i_d)                                        :: n, mp
     INTEGER(i_d)                                        :: n2
@@ -2409,6 +2446,7 @@ CONTAINS
     REAL(r_2), DIMENSION(1:size(cc,1),2*size(cc,2),2*size(cc,2)) :: allmat
     REAL(r_2)    :: eps
     INTEGER(i_d) :: docond ! 0: no conditioning, 1: columns, 2: lines, 3: both
+    INTEGER(i_d) :: ierr ! error code for generic_thomas
     ! CHARACTER(LEN=20) :: form1
     ! integer :: i, k, nn
     !
@@ -2445,6 +2483,8 @@ CONTAINS
     else
        docond = 0
     endif
+    if (present(err)) err = 0
+    ierr = 0
     !
     ! Overall matrix
     if (docond >= 1 .and. docond <= 3) then
@@ -2521,7 +2561,15 @@ CONTAINS
     d(1:mp,1:n,2)     = ggh(1:mp,1:n)   * lT(1:mp,1:n)
     !
     ! Call Generic Thomas algorithm
-    call generic_thomas(mp,n,A,B,C,d,x)
+    call generic_thomas(mp,n,A,B,C,d,x,ierr)
+    if (ierr /= 0) then
+       if (present(err)) then
+          err = 1
+          return
+       else
+          stop 1
+       endif
+    endif
     dy(1:mp,1:n) = x(1:mp,1:n,1) * cS(1:mp,1:n)
     dT(1:mp,1:n) = x(1:mp,1:n,2) * cT(1:mp,1:n)
     !
