@@ -217,6 +217,10 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
   end where
   h0         = ssnow%h0
 
+  ! zero runoff here, in case error is returned to avoid excessive runoff from previous time-step. (Runoff is multipled by dt in cable_driver.F90)
+  ssnow%rnof1 = 0.0
+  ssnow%rnof2 = 0.0
+  ssnow%runoff = 0.0
   ! Set isotopes to zero
   vmet%civa = zero
 
@@ -562,7 +566,8 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
      win = win + (qprec+qprec_snow)*(tf-ti)
 
      if (1 == 0 .and. wlogn == 1011) then
-        k=79
+     !   k=79
+     
         write(332,"(i8,i8,18e16.6)") ktau, nsteps(k), wp(k)-wpi(k), infil(k)-drn(k), runoff(k), &
              win(k)-(wp(k)-wpi(k)+deltah0(k)+runoff(k)+evap(k)+drn(k))-Etrans(k)*dt, wp(k), &
              evap(k), evap_pot(k), infil(k), &
@@ -585,7 +590,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
      if (1 == 0) then
         write(wlogn+100,"(100i8)")  nsteps
      endif
-
+     
      ! Update variables for output:
      where (err(1:mp) == 0)
         ssnow%tss      = real(Tsurface + Tzero)
@@ -595,7 +600,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
         canopy%fhs     = canopy%fns - canopy%ga - canopy%fes
         ssnow%rnof1    = real(runoff*thousand/dt )
         ssnow%rnof2    = real(drn*thousand/dt )
-        ssnow%runoff   = ssnow%rnof1 + ssnow%rnof2
+        ssnow%runoff = ssnow%rnof1 + ssnow%rnof2
         ssnow%zdelta   = zdelta
         ssnow%SL       = SL
         ssnow%TL       = TL
@@ -605,7 +610,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
         ssnow%evap     = evap*thousand
         ssnow%nsteps   = real(nsteps)
         ssnow%h0       = h0
-     end where
+     endwhere
      do k=1, ms
         where (err(:) == 0)
            ssnow%tgg(:,k)    = real(Tsoil(:,k) + Tzero)

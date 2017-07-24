@@ -2443,11 +2443,18 @@ CONTAINS
           endif
 
           ! pond decreasing or runoff starts
-          if (iok(kk)==1 .and. ns(kk)<1 .and. h0(kk)+dy(1)<h0min) then ! pond going
-             fac(kk) = -(h0(kk)-half*h0min)/dy(1)
-             nfac9(kk) = nfac9(kk) +1
-             iok(kk) = 0
-          end if
+!!$          if (iok(kk)==1 .and. ns(kk)<1 .and. h0(kk)+dy(1)<h0min) then ! pond going
+!!$             fac(kk) = -(h0(kk)-half*h0min)/dy(1)
+!!$             nfac9(kk) = nfac9(kk) +1
+!!$             iok(kk) = 0
+!!$          end if
+
+!!$           ! pond decreasing or runoff starts
+!!$          if (iok(kk)==1 .and. ns(kk)<1 .and.S(1)*par(1)%thre*dx(1) + h0(kk)+dy(1)<0.1*dx(1)) then ! pond going
+!!$             fac(kk) = -(S(1)*par(1)%thre*dx(1)+h0(kk)-half*0.1*dx(1))/dy(1)
+!!$             nfac9(kk) = nfac9(kk) +1
+!!$             iok(kk) = 0
+!!$          end if
 
           ! J0+deltaJ<J(thetai=theta) i.e. too much energy extracted
           J0(1) = rhow*cswat*(Tsoil(1))*dx(1)*var(1)%thetal + &
@@ -2462,11 +2469,11 @@ CONTAINS
           c2 = rhow*((tmp1d3(kk))*csice-lambdaf)*(dx(1)*theta+tmp1d4(kk)*theta/par(1)%thre) + & ! projected energy content
                rhow*(tmp1d3(kk))*cswat*tmp1d4(kk)*(one-theta/par(1)%thre) + &
                dx(1)*(tmp1d3(kk))*par(1)%rho*par(1)%css
-          if(((tmp1d2(kk))-c2)<zero) then
-             fac(kk) = 0.5_r_2
-             iok(kk) = 0
-             nfac10(kk) = nfac10(kk)+1
-          endif
+!!$          if(((tmp1d2(kk))-c2)<zero) then
+!!$             fac(kk) = 0.5_r_2
+!!$             iok(kk) = 0
+!!$             nfac10(kk) = nfac10(kk)+1
+!!$          endif
 
           if (fac(kk) < one) then
              again_ice(kk,1:n) = .false.  ! reset all again_ice if calc is to be repeated with smaller time-step
@@ -2510,11 +2517,11 @@ CONTAINS
        end if  ! (.not. again(kk))
        nsteps(kk) = nsteps(kk) + 1
 
-!!$                if ((irec.eq.5).and.(kk.eq.1626)  .and. wlogn == 1011) then
-!!$
+!!$                if ((irec.eq.8992).and.(kk.eq.1) ) then
+!!$                   !if ((irec.eq.5).and.(kk.eq.1626)  .and. wlogn == 1011) then
 !!$                    write(*,*) 'writing diags', again(kk), nsteps(kk)
 !!$
-!!$                     if (.not. again(kk)) then
+!!$                    ! if (.not. again(kk)) then
 !!$ !write(345,"(13i8,1500e16.6)")
 !!$                    write(346,"(13i8,1500e16.6)") nsteps(kk), nfac1(kk), nfac2(kk), nfac3(kk), &
 !!$                         nfac4(kk), nfac5(kk), nfac6(kk), nfac7(kk), nfac8(kk), nfac9(kk), nfac10(kk), &
@@ -2528,8 +2535,8 @@ CONTAINS
 !!$                         var(1:n)%kH, LHS_h(1:n)*dt(kk), &
 !!$                         RHS(1:n)*dt(kk), LHS(1:n)*dt(kk), par(1:n)%thre,dx(1:n), &
 !!$                         real(-var(1:n)%isat), dt(kk), real(ns(kk)), vsnow(kk)%tsn(1), vsnow(kk)%hsnow(1)
-!!$                    endif
-!!$                    if (nsteps(kk).gt.100) STOP
+!!$                  !  endif
+!!$                    if (nsteps(kk).gt.1000) STOP
 !!$                 endif
 
        if (nsteps(kk) > nsteps_max) then
@@ -3637,7 +3644,7 @@ CONTAINS
             nfac3, nfac4, nfac5, nfac6, nfac7, nfac8, nfac9, nfac10, nfac11, nfac12, J0snow, wcol0snow, h_ex, wpi,  &
             err=err(kk))
        ! only if melt_transfer=.false.: runoff(kk) = runoff(kk) + vsnow(kk)%Qmelt
-       runoff(kk) = runoff(kk) + vsnow(kk)%Qmelt
+       !runoff(kk) = runoff(kk) + vsnow(kk)%Qmelt
     end do ! kk=1, mp
 
     ! get heads if required
@@ -3894,7 +3901,7 @@ CONTAINS
     REAL(r_2),       DIMENSION(1:mp) :: h0_tmp, hice_tmp
     REAL(r_2) :: theta, tmp1, tmp2 ,Tfreezing(1:mp), Jsoil, theta_tmp
     INTEGER(i_d) :: i,j ! counters
-    LOGICAL :: melt_transfer=.false.
+    LOGICAL :: melt_transfer=.true.
 
     tmp1d1(kk) = h0(kk)+dx(1)*(var(1)%thetai+var(1)%thetal) ! total moisture content of top soil layer + pond
     ! tmp1d1(kk) = hice(kk)+dx(1)*(var(1)%thetai) ! total ice  moisture content of top soil layer + pond
@@ -4337,6 +4344,7 @@ CONTAINS
              !calculate new thetal, consistent with total energy and new pond height
              theta = S(1)*(par(1)%thre) + (par(1)%the - par(1)%thre)
              theta_tmp = theta
+                      
              if (h0(kk)>zero) then
                 h0(kk) = h0(kk) +  qmelt(vsnow(kk)%nsnow)
              elseif ((theta+qmelt(vsnow(kk)%nsnow)/dx(1))<par(1)%the) then
@@ -4355,7 +4363,6 @@ CONTAINS
                 theta = par(1)%the
              endif
              Tfreezing(kk) = Tfrz(S(1), par(1)%he, one/(par(1)%lambc*freezefac))
-
              ! calculate energy in new top soil layer
              if (var(1)%iice==0) then
                 var(1)%csoil = theta*rhow*cswat+par(1)%rho*par(1)%css
@@ -4389,6 +4396,7 @@ CONTAINS
                    var(1)%thetai = zero
                    var(1)%thetal = theta
                 else
+                 
                    ! frozen remaining frozen
                    Jsoil = tmp1d2(kk) ! total energy in  soil layer
                    !check there is a zero
@@ -4445,8 +4453,8 @@ CONTAINS
              vsnow(kk)%deltaJ = vsnow(kk)%J - J0snow(kk)
              vsnow(kk)%FluxDivergence = vsnow(kk)%Qadv_rain + vsnow(kk)%Qadv_snow + vsnow(kk)%Qadv_vap + &
                   vsnow(kk)%Qadv_melt + vsnow(kk)%Qcond_net  +  vsnow(kk)%Qadv_transfer
-          endif
-       endif ! remove  melt water (melt_transfer==.true.)
+          endif ! (melt_transfer==.true.)
+       endif ! remove  melt water 
 
        do i=1, vsnow(kk)%nsnow
           vsnow(kk)%dens(i) = vsnow(kk)%hsnow(i)/vsnow(kk)%depth(i)*rhow
