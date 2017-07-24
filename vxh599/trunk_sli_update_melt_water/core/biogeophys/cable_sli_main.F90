@@ -600,6 +600,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
         canopy%fhs     = canopy%fns - canopy%ga - canopy%fes
         ssnow%rnof1    = real(runoff*thousand/dt )
         ssnow%rnof2    = real(drn*thousand/dt )
+        ssnow%runoff = ssnow%rnof1 + ssnow%rnof2
         ssnow%zdelta   = zdelta
         ssnow%SL       = SL
         ssnow%TL       = TL
