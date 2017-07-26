@@ -173,8 +173,10 @@ MODULE cable_IO_vars_module
          flux = .FALSE.,      &  ! convective, runoff, NEE
          radiation = .FALSE., & ! net rad, albedo
          carbon = .FALSE.,    & ! NEE, GPP, NPP, stores
-         soil = .FALSE.,      &  ! soil states
-         snow = .FALSE.,      &  ! snow states
+         soil = .FALSE.,      & ! soil states
+         snow = .FALSE.,      & ! snow states
+         ! vh_mc
+         snowmip = .FALSE.,   & ! additional variables for ESM-SnowMIP
          veg = .FALSE.,       & ! vegetation states
          params = .FALSE.,    & ! input parameters used to produce run
          balances = .FALSE.,  & ! energy and water balances
@@ -182,7 +184,7 @@ MODULE cable_IO_vars_module
          ensemble = .FALSE.,  & ! are we creating an ensemble run?
          patch = .FALSE. , &   ! should patch-specific info be written
                                 ! to output file?
-!! vh_js !!
+         !! vh_js !!
          casa = .FALSE.       ! additional casa outputs (C stores and plant turnover)
 
       ! Should output grid follow met file 'default'; force with 'land' or 'mask':
@@ -238,7 +240,7 @@ MODULE cable_IO_vars_module
          AvgSurfT = .FALSE.,  & ! 41 Average surface temperature [K]
          RadT = .FALSE.,      & ! 42 Radiative surface temperature [K]
          SWE = .FALSE.,       & ! 43 snow water equivalent [kg/m2]
-          SnowMelt = .FALSE.,       & ! 43 snow melt [kg/m2/s] !vh!
+         SnowMelt = .FALSE.,  & ! 43 snow melt [kg/m2/s] !vh!
          RootMoist = .FALSE., & ! 44 root zone soil moisture [kg/m2]
          CanopInt = .FALSE.,  & ! 45 total canopy water storage [kg/m2]
          NEE  = .FALSE.,      & ! 46 net ecosystem exchange [umol/m2/s]
@@ -254,13 +256,52 @@ MODULE cable_IO_vars_module
          Rnet = .FALSE.,      & ! net absorbed radiation [W/m2]
          HVeg = .FALSE.,      & ! sensible heat from vegetation [W/m2]
          HSoil = .FALSE.,     & ! sensible heat from soil [W/m2]
-         RnetSoil = .FALSE.,     & ! sensible heat from soil [W/m2] !vh!
+         RnetSoil = .FALSE.,  & ! sensible heat from soil [W/m2] !vh!
          Ebal = .FALSE.,      & ! cumulative energy balance [W/m2]
          Wbal = .FALSE.,      & ! cumulative water balance [W/m2]
          !! vh_js ! added CanT and fwsoil to the list
          CanT = .FALSE.,      & ! within-canopy temperature [K]
-         Fwsoil = .FALSE.,      & ! soil moisture modifier to stomatal conductance
-         Area = .FALSE., & ! patch area in km2
+         Fwsoil = .FALSE.,    & ! soil moisture modifier to stomatal conductance
+         Area = .FALSE.,      & ! patch area in km2
+
+         ! vh_mc ! additional variables for ESM-SnowMIP
+         hfds       = .FALSE., & ! downward heat flux at ground surface [W/m2]
+         hfdsn      = .FALSE., & ! downward heat flux into snowpack [W/m2]
+         hfls       = .FALSE., & ! surface upward latent heat flux [W/m2]
+         hfmlt      = .FALSE., & ! energy of fusion [W/m2]
+         hfrs       = .FALSE., & ! heat transferred to snowpack by rain [W/m2]
+         hfsbl      = .FALSE., & ! energy of sublimation [W/m2]
+         hfss       = .FALSE., & ! surface upward sensible heat flux [W/m2]
+         rlus       = .FALSE., & ! surface upwelling longwave radiation [W/m2]
+         rsus       = .FALSE., & ! surface upwelling shortwave radiation [W/m2]
+         esn        = .FALSE., & ! liquid water evaporation from snowpack [kg/m2/s]
+         evspsbl    = .FALSE., & ! total water vapour flux from the surface to the atmosphere [kg/m2/s]
+         evspsblsoi = .FALSE., & ! evaporation and sublimation from soil [kg/m2/s]
+         evspsblveg = .FALSE., & ! evaporation and sublimation from canopy [kg/m2/s]
+         mrrob      = .FALSE., & ! subsurface runoff [kg/m2/s]
+         mrros      = .FALSE., & ! surface runoff [kg/m2/s]
+         sbl        = .FALSE., & ! sublimation of snow [kg/m2/s]
+         snm        = .FALSE., & ! surface snow melt [kg/m2/s]
+         snmsl      = .FALSE., & ! water flowing out of snowpack [kg/m2/s]
+         tran       = .FALSE., & ! transpiration [kg/m2/s]
+         albs       = .FALSE., & ! surface albedo [-]
+         albsn      = .FALSE., & ! snow albedo [-]
+         cw         = .FALSE., & ! total canopy water storage [kg/m2]
+         lqsn       = .FALSE., & ! mass fraction of liquid water in snowpack [-]
+         lwsnl      = .FALSE., & ! liquid water content of snowpack [kg/m2]
+         mrfsofr    = .FALSE., & ! mass fractions of frozen water in soil layers [-]
+         mrlqso     = .FALSE., & ! mass fractions of unfrozen water in soil layers [-]
+         mrlsl      = .FALSE., & ! masses of frozen and unfrozen moisture in soil layers [kg/m2]
+         snc        = .FALSE., & ! snow area fraction [-]
+         snd        = .FALSE., & ! snowdepth [m]
+         snw        = .FALSE., & ! mass of snowpack [kg/m2]
+         snwc       = .FALSE., & ! mass of snow intercepted by vegetation [kg/m2]
+         tcs        = .FALSE., & ! vegetation canopy temperature [K]
+         tgs        = .FALSE., & ! temperature of bare soil [K]
+         ts         = .FALSE., & ! surface temperature [K]
+         tsl        = .FALSE., & ! temperatures of soil layers [K]
+         tsn        = .FALSE., & ! snow internal temperature [K]
+         tsns       = .FALSE., & ! snow surface temperature [K]
 
          !! vh_js !! additional casa variables
          NBP = .FALSE., &
@@ -285,6 +326,7 @@ MODULE cable_IO_vars_module
          PlantTurnoverWoodCrowding = .FALSE., &
          PlantTurnoverWoodResourceLim = .FALSE., &
          LandUseFlux = .FALSE., &
+         
          !parameters
          bch = .FALSE.,       & ! parameter b in Campbell equation 1985
          latitude = .FALSE.,  & ! site latitude
@@ -344,7 +386,6 @@ MODULE cable_IO_vars_module
          za  = .FALSE.          ! something to do with roughness ????
 
    END TYPE output_inclusion_type
-
 
    TYPE(output_inclusion_type),SAVE :: output
    TYPE(output_inclusion_type),SAVE :: patchout ! do we want patch-specific info

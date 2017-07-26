@@ -499,7 +499,7 @@ CONTAINS
           !! leading to large negative surface temperatures when snow-pack is thick and
           !! Rn is large and negative (~-100 Wm-2)
           call potential_evap(vmet%Rn-vmet%Rnsw, vmet%rbh, vmet%rbw, vmet%Ta, vmet%rha, &
-               vsnow%tsn(1), max(vsnow%kth(1),0.1_r_2), half*min(vsnow%depth(1),0.2_r_2), &
+               vsnow%tsn(1), max(vsnow%kth(1),0.1_r_2), half*min(vsnow%depth(1),0.05_r_2), &
                lambdas, Tsurface, Epot, Hpot, &
                Gpot, dEdrha, dEdTs, dEdTsoil, dGdTa, dGdTsoil,iice=.TRUE.)
     

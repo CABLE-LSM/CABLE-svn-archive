@@ -59,7 +59,13 @@ MODULE cable_output_module
                     RadT, VegT, Ebal, Wbal, AutoResp,                          &
                     LeafResp, HeteroResp, GPP, NPP, LAI,                       &
                     ECanop, TVeg, ESoil, CanopInt, SnowDepth,                  &
-                    HVeg, HSoil, Rnet, tvar, CanT,Fwsoil, RnetSoil, SnowMelt, &
+                    HVeg, HSoil, Rnet, tvar, CanT,Fwsoil, RnetSoil, SnowMelt,  &
+                    ! vh_mc ! additional variables for ESM-SnowMIP
+                    hfds, hfdsn, hfls, hfmlt, hfrs, hfsbl, hfss, rlus, rsus,   &
+                    esn, evspsbl, evspsblsoi, evspsblveg, mrrob, mrros, sbl,   &
+                    snm, snmsl, tran, albs, albsn, cw, lqsn, lwsnl, mrfsofr,   &
+                    mrlqso, mrlsl, snc, snd, snw, snwc, tcs, tgs, ts, tsl,     &
+                    tsn, tsns,                                                 &
                     NBP, TotSoilCarb, TotLivBiomass, &
                     TotLittCarb, SoilCarbFast, SoilCarbSlow, SoilCarbPassive, &
                     LittCarbMetabolic, LittCarbStructural, LittCarbCWD, &
@@ -155,6 +161,44 @@ MODULE cable_output_module
                                                       ! respiration [umol/m2/s]
     REAL(KIND=4), POINTER, DIMENSION(:) :: SnowDepth  ! actual depth of snow in
                                                       ! [m]
+    ! vh_mc ! additional variables for ESM-SnowMIP
+    REAL(KIND=4), POINTER, DIMENSION(:)   :: hfds       ! downward heat flux at ground surface [W/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:)   :: hfdsn      ! downward heat flux into snowpack [W/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:)   :: hfls       ! surface upward latent heat flux [W/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:)   :: hfmlt      ! energy of fusion [W/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:)   :: hfrs       ! heat transferred to snowpack by rain [W/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:)   :: hfsbl      ! energy of sublimation [W/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:)   :: hfss       ! surface upward sensible heat flux [W/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:)   :: rlus       ! surface upwelling longwave radiation [W/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:)   :: rsus       ! surface upwelling shortwave radiation [W/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:)   :: esn        ! liquid water evaporation from snowpack [kg/m2/s]
+    REAL(KIND=4), POINTER, DIMENSION(:)   :: evspsbl    ! total water vapour flux from the surface to the atmosphere [kg/m2/s]
+    REAL(KIND=4), POINTER, DIMENSION(:)   :: evspsblsoi ! evaporation and sublimation from soil [kg/m2/s]
+    REAL(KIND=4), POINTER, DIMENSION(:)   :: evspsblveg ! evaporation and sublimation from canopy [kg/m2/s]
+    REAL(KIND=4), POINTER, DIMENSION(:)   :: mrrob      ! subsurface runoff [kg/m2/s]
+    REAL(KIND=4), POINTER, DIMENSION(:)   :: mrros      ! surface runoff [kg/m2/s]
+    REAL(KIND=4), POINTER, DIMENSION(:)   :: sbl        ! sublimation of snow [kg/m2/s]
+    REAL(KIND=4), POINTER, DIMENSION(:)   :: snm        ! surface snow melt [kg/m2/s]
+    REAL(KIND=4), POINTER, DIMENSION(:)   :: snmsl      ! water flowing out of snowpack [kg/m2/s]
+    REAL(KIND=4), POINTER, DIMENSION(:)   :: tran       ! transpiration [kg/m2/s]
+    REAL(KIND=4), POINTER, DIMENSION(:)   :: albs       ! surface albedo [-]
+    REAL(KIND=4), POINTER, DIMENSION(:)   :: albsn      ! snow albedo [-]
+    REAL(KIND=4), POINTER, DIMENSION(:)   :: cw         ! total canopy water storage [kg/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:)   :: lqsn       ! mass fraction of liquid water in snowpack [-]
+    REAL(KIND=4), POINTER, DIMENSION(:)   :: lwsnl      ! liquid water content of snowpack [kg/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:,:) :: mrfsofr    ! mass fractions of frozen water in soil layers [-]
+    REAL(KIND=4), POINTER, DIMENSION(:,:) :: mrlqso     ! mass fractions of unfrozen water in soil layers [-]
+    REAL(KIND=4), POINTER, DIMENSION(:,:) :: mrlsl      ! masses of frozen and unfrozen moisture in soil layers [kg/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:)   :: snc        ! snow area fraction [-]
+    REAL(KIND=4), POINTER, DIMENSION(:)   :: snd        ! snowdepth [m]
+    REAL(KIND=4), POINTER, DIMENSION(:)   :: snw        ! mass of snowpack [kg/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:)   :: snwc       ! mass of snow intercepted by vegetation [kg/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:)   :: tcs        ! vegetation canopy temperature [K]
+    REAL(KIND=4), POINTER, DIMENSION(:)   :: tgs        ! temperature of bare soil [K]
+    REAL(KIND=4), POINTER, DIMENSION(:)   :: ts         ! surface temperature [K]
+    REAL(KIND=4), POINTER, DIMENSION(:,:) :: tsl        ! temperatures of soil layers [K]
+    REAL(KIND=4), POINTER, DIMENSION(:)   :: tsn        ! snow internal temperature [K]
+    REAL(KIND=4), POINTER, DIMENSION(:)   :: tsns       ! snow surface temperature [K]
     ! Non-Alma variables
     REAL(KIND=4), POINTER, DIMENSION(:) :: Rnet  ! net absorbed radiation [W/m2]
     REAL(KIND=4), POINTER, DIMENSION(:) :: HVeg  ! sensible heat from vegetation
@@ -729,6 +773,198 @@ CONTAINS
                         'dummy', xID, yID, zID, landID, patchID, tID)
        ALLOCATE(out%NPP(mp))
        out%NPP = 0.0 ! initialise
+    END IF
+
+    ! vh_mc ! additional variables for ESM-SnowMIP
+    IF (output%snowmip) THEN
+       ! define
+       CALL define_ovar(ncid_out, ovid%hfds, 'hfds', 'W/m2', &
+            'downward heat flux at ground surface', patchout%hfds, &
+            'dummy', xID, yID, zID, landID, patchID, tID)
+       CALL define_ovar(ncid_out, ovid%hfdsn, 'hfdsn', 'W/m2', &
+            'downward heat flux into snowpack', patchout%hfdsn, &
+            'dummy', xID, yID, zID, landID, patchID, tID)
+       CALL define_ovar(ncid_out, ovid%hfls, 'hfls', 'W/m2', &
+            'surface upward latent heat flux', patchout%hfls, &
+            'dummy', xID, yID, zID, landID, patchID, tID)
+       CALL define_ovar(ncid_out, ovid%hfmlt, 'hfmlt', 'W/m2', &
+            'energy of fusion', patchout%hfmlt, &
+            'dummy', xID, yID, zID, landID, patchID, tID)
+       CALL define_ovar(ncid_out, ovid%hfrs, 'hfrs', 'W/m2', &
+            'heat transferred to snowpack by rain', patchout%hfrs, &
+            'dummy', xID, yID, zID, landID, patchID, tID)
+       CALL define_ovar(ncid_out, ovid%hfsbl, 'hfsbl', 'W/m2', &
+            'energy of sublimation', patchout%hfsbl, &
+            'dummy', xID, yID, zID, landID, patchID, tID)
+       CALL define_ovar(ncid_out, ovid%hfss, 'hfss', 'W/m2', &
+            'surface upward sensible heat flux', patchout%hfss, &
+            'dummy', xID, yID, zID, landID, patchID, tID)
+       CALL define_ovar(ncid_out, ovid%rlus, 'rlus', 'W/m2', &
+            'surface upwelling longwave radiation', patchout%rlus, &
+            'dummy', xID, yID, zID, landID, patchID, tID)
+       CALL define_ovar(ncid_out, ovid%rsus, 'rsus', 'W/m2', &
+            'surface upwelling shortwave radiation', patchout%rsus, &
+            'dummy', xID, yID, zID, landID, patchID, tID)
+       CALL define_ovar(ncid_out, ovid%esn, 'esn', 'kg/m2/s', &
+            'liquid water evaporation from snowpack', patchout%esn, &
+            'dummy', xID, yID, zID, landID, patchID, tID)
+       CALL define_ovar(ncid_out, ovid%evspsbl, 'evspsbl', 'kg/m2/s', &
+            'total water vapour flux from the surface to the atmosphere', patchout%evspsbl, &
+            'dummy', xID, yID, zID, landID, patchID, tID)
+       CALL define_ovar(ncid_out, ovid%evspsblsoi, 'evspsblsoi', 'kg/m2/s', &
+            'evaporation and sublimation from soil', patchout%evspsblsoi, &
+            'dummy', xID, yID, zID, landID, patchID, tID)
+       CALL define_ovar(ncid_out, ovid%evspsblveg, 'evspsblveg', 'kg/m2/s', &
+            'evaporation and sublimation from canopy', patchout%evspsblveg, &
+            'dummy', xID, yID, zID, landID, patchID, tID)
+       CALL define_ovar(ncid_out, ovid%mrrob, 'mrrob', 'kg/m2/s', &
+            'subsurface runoff', patchout%mrrob, &
+            'dummy', xID, yID, zID, landID, patchID, tID)
+       CALL define_ovar(ncid_out, ovid%mrros, 'mrros', 'kg/m2/s', &
+            'surface runoff', patchout%mrros, &
+            'dummy', xID, yID, zID, landID, patchID, tID)
+       CALL define_ovar(ncid_out, ovid%sbl, 'sbl', 'kg/m2/s', &
+            'sublimation of snow', patchout%sbl, &
+            'dummy', xID, yID, zID, landID, patchID, tID)
+       CALL define_ovar(ncid_out, ovid%snm, 'snm', 'kg/m2/s', &
+            'surface snow melt', patchout%snm, &
+            'dummy', xID, yID, zID, landID, patchID, tID)
+       CALL define_ovar(ncid_out, ovid%snmsl, 'snmsl', 'kg/m2/s', &
+            'water flowing out of snowpack', patchout%snmsl, &
+            'dummy', xID, yID, zID, landID, patchID, tID)
+       CALL define_ovar(ncid_out, ovid%tran, 'tran', 'kg/m2/s', &
+            'transpiration', patchout%tran, &
+            'dummy', xID, yID, zID, landID, patchID, tID)
+       CALL define_ovar(ncid_out, ovid%albs, 'albs', '-', &
+            'surface albedo', patchout%albs, &
+            'dummy', xID, yID, zID, landID, patchID, tID)
+       CALL define_ovar(ncid_out, ovid%albsn, 'albsn', '-', &
+            'snow albedo', patchout%albsn, &
+            'dummy', xID, yID, zID, landID, patchID, tID)
+       CALL define_ovar(ncid_out, ovid%cw, 'cw', 'kg/m2', &
+            'total canopy water storage', patchout%cw, &
+            'dummy', xID, yID, zID, landID, patchID, tID)
+       CALL define_ovar(ncid_out, ovid%lqsn, 'lqsn', '-', &
+            'mass fraction of liquid water in snowpack', patchout%lqsn, &
+            'dummy', xID, yID, zID, landID, patchID, tID)
+       CALL define_ovar(ncid_out, ovid%lwsnl, 'lwsnl', 'kg/m2', &
+            'liquid water content of snowpack', patchout%lwsnl, &
+            'dummy', xID, yID, zID, landID, patchID, tID)
+       CALL define_ovar(ncid_out, ovid%mrfsofr, 'mrfsofr', '-', &
+            'mass fractions of frozen water in soil layers', patchout%mrfsofr, &
+            'soil', xID, yID, zID, landID, patchID, soilID, tID)
+       CALL define_ovar(ncid_out, ovid%mrlqso, 'mrlqso', '-', &
+            'mass fractions of unfrozen water in soil layers', patchout%mrlqso, &
+            'soil', xID, yID, zID, landID, patchID, soilID, tID)
+       CALL define_ovar(ncid_out, ovid%mrlsl, 'mrlsl', 'kg/m2', &
+            'masses of frozen and unfrozen moisture in soil layers', patchout%mrlsl, &
+            'soil', xID, yID, zID, landID, patchID, soilID, tID)
+       CALL define_ovar(ncid_out, ovid%snc, 'snc', '-', &
+            'snow area fraction', patchout%snc, &
+            'dummy', xID, yID, zID, landID, patchID, tID)
+       CALL define_ovar(ncid_out, ovid%snd, 'snd', 'm', &
+            'snowdepth', patchout%snd, &
+            'dummy', xID, yID, zID, landID, patchID, tID)
+       CALL define_ovar(ncid_out, ovid%snw, 'snw', 'kg/m2', &
+            'mass of snowpack', patchout%snw, &
+            'dummy', xID, yID, zID, landID, patchID, tID)
+       CALL define_ovar(ncid_out, ovid%snwc, 'snwc', 'kg/m2', &
+            'mass of snow intercepted by vegetation', patchout%snwc, &
+            'dummy', xID, yID, zID, landID, patchID, tID)
+       CALL define_ovar(ncid_out, ovid%tcs, 'tcs', 'K', &
+            'vegetation canopy temperature', patchout%tcs, &
+            'dummy', xID, yID, zID, landID, patchID, tID)
+       CALL define_ovar(ncid_out, ovid%tgs, 'tgs', 'K', &
+            'temperature of bare soil', patchout%tgs, &
+            'dummy', xID, yID, zID, landID, patchID, tID)
+       CALL define_ovar(ncid_out, ovid%ts, 'ts', 'K', &
+            'surface temperature', patchout%ts, &
+            'dummy', xID, yID, zID, landID, patchID, tID)
+       CALL define_ovar(ncid_out, ovid%tsl, 'tsl', 'K', &
+            'temperatures of soil layers', patchout%tsl, &
+            'soil', xID, yID, zID, landID, patchID, soilID, tID)
+       CALL define_ovar(ncid_out, ovid%tsn, 'tsn', 'K', &
+            'snow internal temperature', patchout%tsn, &
+            'dummy', xID, yID, zID, landID, patchID, tID)
+       CALL define_ovar(ncid_out, ovid%tsns, 'tsns', 'K', &
+            'snow surface temperature', patchout%tsns, &
+            'dummy', xID, yID, zID, landID, patchID, tID)
+       ! allocate
+       allocate(out%hfds(mp))
+       allocate(out%hfdsn(mp))
+       allocate(out%hfls(mp))
+       allocate(out%hfmlt(mp))
+       allocate(out%hfrs(mp))
+       allocate(out%hfsbl(mp))
+       allocate(out%hfss(mp))
+       allocate(out%rlus(mp))
+       allocate(out%rsus(mp))
+       allocate(out%esn(mp))
+       allocate(out%evspsbl(mp))
+       allocate(out%evspsblsoi(mp))
+       allocate(out%evspsblveg(mp))
+       allocate(out%mrrob(mp))
+       allocate(out%mrros(mp))
+       allocate(out%sbl(mp))
+       allocate(out%snm(mp))
+       allocate(out%snmsl(mp))
+       allocate(out%tran(mp))
+       allocate(out%albs(mp))
+       allocate(out%albsn(mp))
+       allocate(out%cw(mp))
+       allocate(out%lqsn(mp))
+       allocate(out%lwsnl(mp))
+       allocate(out%mrfsofr(mp,ms))
+       allocate(out%mrlqso(mp,ms))
+       allocate(out%mrlsl(mp,ms))
+       allocate(out%snc(mp))
+       allocate(out%snd(mp))
+       allocate(out%snw(mp))
+       allocate(out%snwc(mp))
+       allocate(out%tcs(mp))
+       allocate(out%tgs(mp))
+       allocate(out%ts(mp))
+       allocate(out%tsl(mp,ms))
+       allocate(out%tsn(mp))
+       allocate(out%tsns(mp))
+       ! initialise
+       out%hfds       = 0.0
+       out%hfdsn      = 0.0
+       out%hfls       = 0.0
+       out%hfmlt      = 0.0
+       out%hfrs       = 0.0
+       out%hfsbl      = 0.0
+       out%hfss       = 0.0
+       out%rlus       = 0.0
+       out%rsus       = 0.0
+       out%esn        = 0.0
+       out%evspsbl    = 0.0
+       out%evspsblsoi = 0.0
+       out%evspsblveg = 0.0
+       out%mrrob      = 0.0
+       out%mrros      = 0.0
+       out%sbl        = 0.0
+       out%snm        = 0.0
+       out%snmsl      = 0.0
+       out%tran       = 0.0
+       out%albs       = 0.0
+       out%albsn      = 0.0
+       out%cw         = 0.0
+       out%lqsn       = 0.0
+       out%lwsnl      = 0.0
+       out%mrfsofr    = 0.0
+       out%mrlqso     = 0.0
+       out%mrlsl      = 0.0
+       out%snc        = 0.0
+       out%snd        = 0.0
+       out%snw        = 0.0
+       out%snwc       = 0.0
+       out%tcs        = 0.0
+       out%tgs        = 0.0
+       out%ts         = 0.0
+       out%tsl        = 0.0
+       out%tsn        = 0.0
+       out%tsns       = 0.0
     END IF
 
     IF(output%casa) THEN
@@ -1677,7 +1913,7 @@ CONTAINS
        IF(cable_user%SOIL_STRUC=='sli') THEN
           out%ESoil = out%ESoil + REAL(ssnow%evap/dels, 4) !vh!
        ELSE
-       out%ESoil = out%ESoil + REAL(canopy%fes / air%rlam, 4)
+          out%ESoil = out%ESoil + REAL(canopy%fes / air%rlam, 4)
        ENDIF
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
@@ -2174,6 +2410,209 @@ CONTAINS
               'hc', REAL(veg%hc, 4), ranges%hc, patchout%hc, 'default', met)
       ENDIF
    ENDIF
+
+    ! vh_mc ! additional variables for ESM-SnowMIP
+    IF (output%snowmip) THEN
+       ! Add current timestep's value to total of temporary output variable
+       out%hfds       = out%hfds        + real(canopy%ga, 4)
+       out%hfdsn      = out%hfdsn        + real(merge(canopy%ga,0.,sum(ssnow%sdepth,2)>0.), 4)
+       out%hfls       = out%hfls        + real(canopy%fe, 4)
+       out%hfmlt      = out%hfmlt       + real(ssnow%E_fusion_sn, 4) ! energy of fusion [W/m2]
+       out%hfrs       = out%hfrs        + real(ssnow%Qadv_rain_sn, 4)
+       out%hfsbl      = out%hfsbl       + real(ssnow%E_SUBLIMATION_SN, 4)
+       out%hfss       = out%hfss        + real(canopy%fh, 4)
+       out%rlus       = out%rlus        + real(emsoil*sboltz*(rad%transd*ssnow%otss**4 +(1-rad%transd)*canopy%tv**4) , 4)
+       out%rsus       = out%rsus        + real(rad%albedo(:,1)*met%fsd(:,1) + rad%albedo(:,2)*met%fsd(:,2) , 4)
+       out%esn        = out%esn         + real(ssnow%evap_liq_sn, 4)
+       out%evspsbl    = out%evspsbl     + real(ssnow%evap/dels + max(canopy%fevc,0.0)/air%rlam, 4)
+       IF (cable_user%soil_struc=='sli') THEN
+          out%evspsblsoi = out%evspsblsoi  + real(ssnow%evap/dels, 4)
+       ELSE
+          out%evspsblsoi = out%evspsblsoi  + real(canopy%fes / air%rlam, 4)
+       ENDIF
+       out%evspsblveg = out%evspsblveg  + real(canopy%fevw / air%rlam, 4)
+       out%mrrob      = out%mrrob       + real(ssnow%rnof2 / dels, 4)
+       out%mrros      = out%mrros       + real(ssnow%rnof1 / dels, 4)
+       out%sbl        = out%sbl         + real(ssnow%E_sublimation_sn, 4)
+       out%snm        = out%snm         + real(ssnow%surface_melt, 4)
+       out%snmsl      = out%snmsl       + real(ssnow%smelt, 4)
+       out%tran       = out%tran        + real(canopy%fevc / air%rlam, 4)
+       out%albs       = out%albs        + real((rad%albedo(:,1) + rad%albedo(:,2)) * 0.5, 4)
+       out%albsn      = out%albsn       + real((ssnow%albsoilsn(:,1) + ssnow%albsoilsn(:,2)) * 0.5, 4)
+       out%cw         = out%cw          + real(canopy%cansto, 4)
+       where (sum(ssnow%sdepth,2)>0.)
+          out%lqsn       = out%lqsn        + sum(ssnow%snowliq,2)/ssnow%snowd
+       elsewhere
+          out%lqsn = out%lqsn + real(0., 4)
+       endwhere
+       out%lwsnl      = out%lwsnl       + real(sum(ssnow%snowliq,2), 4)
+       out%mrfsofr    = out%mrfsofr     + real(ssnow%wbice/ssnow%wb, 4)
+        out%mrlqso     = out%mrlqso      + real((ssnow%wb-ssnow%wbice)/ssnow%wb, 4)
+       out%mrlsl      = out%mrlsl       +  real(ssnow%wb*spread(soil%zse,1,mp), 4)
+       out%snc        = out%snc         + real(merge(1.,0.,sum(ssnow%sdepth,2)>0.), 4)
+       out%snd        = out%snd         + real(sum(ssnow%sdepth, 2), 4)
+       out%snw        = out%snw         + real(ssnow%snowd, 4)
+       out%snwc       = out%snwc        + real(0., 4)
+       out%tcs        = out%tcs         + real(canopy%tv, 4)
+       out%tgs        = out%tgs         + real(ssnow%tgg(:, 1), 4)
+       out%ts         = out%ts          + real(ssnow%tss, 4)
+       out%tsl        = out%tsl         + real(ssnow%tgg, 4) 
+       out%tsn        = out%tsn         + real(ssnow%tggsn(:, 1), 4)
+       out%tsns       = out%tsns        + real(ssnow%tss, 4)
+       IF (writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps
+          out%hfds       = out%hfds        / real(output%interval, 4)
+          out%hfdsn      = out%hfdsn       / real(output%interval, 4)
+          out%hfls       = out%hfls        / real(output%interval, 4)
+          out%hfmlt      = out%hfmlt       / real(output%interval, 4)
+          out%hfrs       = out%hfrs        / real(output%interval, 4)
+          out%hfsbl      = out%hfsbl       / real(output%interval, 4)
+          out%hfss       = out%hfss        / real(output%interval, 4)
+          out%rlus       = out%rlus        / real(output%interval, 4)
+          out%rsus       = out%rsus        / real(output%interval, 4)
+          out%esn        = out%esn         / real(output%interval, 4)
+          out%evspsbl    = out%evspsbl     / real(output%interval, 4)
+          out%evspsblsoi = out%evspsblsoi  / real(output%interval, 4)
+          out%evspsblveg = out%evspsblveg  / real(output%interval, 4)
+          out%mrrob      = out%mrrob       / real(output%interval, 4)
+          out%mrros      = out%mrros       / real(output%interval, 4)
+          out%sbl        = out%sbl         / real(output%interval, 4)
+          out%snm        = out%snm         / real(output%interval, 4)
+          out%snmsl      = out%snmsl       / real(output%interval, 4)
+          out%tran       = out%tran        / real(output%interval, 4)
+          out%albs       = out%albs        / real(output%interval, 4)
+          out%albsn      = out%albsn       / real(output%interval, 4)
+          out%cw         = out%cw          / real(output%interval, 4)
+          out%lqsn       = out%lqsn        / real(output%interval, 4)
+          out%lwsnl      = out%lwsnl       / real(output%interval, 4)
+          out%mrfsofr    = out%mrfsofr     / real(output%interval, 4)
+          out%mrlqso     = out%mrlqso      / real(output%interval, 4)
+          out%mrlsl      = out%mrlsl       / real(output%interval, 4)
+          out%snc        = out%snc         / real(output%interval, 4)
+          out%snd        = out%snd         / real(output%interval, 4)
+          out%snw        = out%snw         / real(output%interval, 4)
+          out%snwc       = out%snwc        / real(output%interval, 4)
+          out%tcs        = out%tcs         / real(output%interval, 4)
+          out%tgs        = out%tgs         / real(output%interval, 4)
+          out%ts         = out%ts          / real(output%interval, 4)
+          out%tsl        = out%tsl         / real(output%interval, 4)
+          out%tsn        = out%tsn         / real(output%interval, 4)
+          out%tsns       = out%tsns        / real(output%interval, 4)
+          ! Write value to file. Use ranges%Ebal for -999999 to 999999
+          call write_ovar(out_timestep, ncid_out, ovid%hfds, 'hfds', &
+               out%hfds, ranges%Ebal, patchout%hfds, 'default', met)
+          call write_ovar(out_timestep, ncid_out, ovid%hfdsn, 'hfdsn', &
+               out%hfdsn, ranges%Ebal, patchout%hfdsn, 'default', met)
+          call write_ovar(out_timestep, ncid_out, ovid%hfls, 'hfls', &
+               out%hfls, ranges%Ebal, patchout%hfls, 'default', met)
+          call write_ovar(out_timestep, ncid_out, ovid%hfmlt, 'hfmlt', &
+               out%hfmlt, ranges%Ebal, patchout%hfmlt, 'default', met)
+          call write_ovar(out_timestep, ncid_out, ovid%hfrs, 'hfrs', &
+               out%hfrs, ranges%Ebal, patchout%hfrs, 'default', met)
+          call write_ovar(out_timestep, ncid_out, ovid%hfsbl, 'hfsbl', &
+               out%hfsbl, ranges%Ebal, patchout%hfsbl, 'default', met)
+          call write_ovar(out_timestep, ncid_out, ovid%hfss, 'hfss', &
+               out%hfss, ranges%Ebal, patchout%hfss, 'default', met)
+          call write_ovar(out_timestep, ncid_out, ovid%rlus, 'rlus', &
+               out%rlus, ranges%Ebal, patchout%rlus, 'default', met)
+          call write_ovar(out_timestep, ncid_out, ovid%rsus, 'rsus', &
+               out%rsus, ranges%Ebal, patchout%rsus, 'default', met)
+          call write_ovar(out_timestep, ncid_out, ovid%esn, 'esn', &
+               out%esn, ranges%Ebal, patchout%esn, 'default', met)
+          call write_ovar(out_timestep, ncid_out, ovid%evspsbl, 'evspsbl', &
+               out%evspsbl, ranges%Ebal, patchout%evspsbl, 'default', met)
+          call write_ovar(out_timestep, ncid_out, ovid%evspsblsoi, 'evspsblsoi', &
+               out%evspsblsoi, ranges%Ebal, patchout%evspsblsoi, 'default', met)
+          call write_ovar(out_timestep, ncid_out, ovid%evspsblveg, 'evspsblveg', &
+               out%evspsblveg, ranges%Ebal, patchout%evspsblveg, 'default', met)
+          call write_ovar(out_timestep, ncid_out, ovid%mrrob, 'mrrob', &
+               out%mrrob, ranges%Ebal, patchout%mrrob, 'default', met)
+          call write_ovar(out_timestep, ncid_out, ovid%mrros, 'mrros', &
+               out%mrros, ranges%Ebal, patchout%mrros, 'default', met)
+          call write_ovar(out_timestep, ncid_out, ovid%sbl, 'sbl', &
+               out%sbl, ranges%Ebal, patchout%sbl, 'default', met)
+          call write_ovar(out_timestep, ncid_out, ovid%snm, 'snm', &
+               out%snm, ranges%Ebal, patchout%snm, 'default', met)
+          call write_ovar(out_timestep, ncid_out, ovid%snmsl, 'snmsl', &
+               out%snmsl, ranges%Ebal, patchout%snmsl, 'default', met)
+          call write_ovar(out_timestep, ncid_out, ovid%tran, 'tran', &
+               out%tran, ranges%Ebal, patchout%tran, 'default', met)
+          call write_ovar(out_timestep, ncid_out, ovid%albs, 'albs', &
+               out%albs, ranges%Ebal, patchout%albs, 'default', met)
+          call write_ovar(out_timestep, ncid_out, ovid%albsn, 'albsn', &
+               out%albsn, ranges%Ebal, patchout%albsn, 'default', met)
+          call write_ovar(out_timestep, ncid_out, ovid%cw, 'cw', &
+               out%cw, ranges%Ebal, patchout%cw, 'default', met)
+          call write_ovar(out_timestep, ncid_out, ovid%lqsn, 'lqsn', &
+               out%lqsn, ranges%Ebal, patchout%lqsn, 'default', met)
+          call write_ovar(out_timestep, ncid_out, ovid%lwsnl, 'lwsnl', &
+               out%lwsnl, ranges%Ebal, patchout%lwsnl, 'default', met)
+          call write_ovar(out_timestep, ncid_out, ovid%mrfsofr, 'mrfsofr', &
+               out%mrfsofr, ranges%Ebal, patchout%mrfsofr, 'soil', met)
+          call write_ovar(out_timestep, ncid_out, ovid%mrlqso, 'mrlqso', &
+               out%mrlqso, ranges%Ebal, patchout%mrlqso, 'soil', met)
+          call write_ovar(out_timestep, ncid_out, ovid%mrlsl, 'mrlsl', &
+               out%mrlsl, ranges%Ebal, patchout%mrlsl, 'soil', met)
+          call write_ovar(out_timestep, ncid_out, ovid%snc, 'snc', &
+               out%snc, ranges%Ebal, patchout%snc, 'default', met)
+          call write_ovar(out_timestep, ncid_out, ovid%snd, 'snd', &
+               out%snd, ranges%Ebal, patchout%snd, 'default', met)
+          call write_ovar(out_timestep, ncid_out, ovid%snw, 'snw', &
+               out%snw, ranges%Ebal, patchout%snw, 'default', met)
+          call write_ovar(out_timestep, ncid_out, ovid%snwc, 'snwc', &
+               out%snwc, ranges%Ebal, patchout%snwc, 'default', met)
+          call write_ovar(out_timestep, ncid_out, ovid%tcs, 'tcs', &
+               out%tcs, ranges%Ebal, patchout%tcs, 'default', met)
+          call write_ovar(out_timestep, ncid_out, ovid%tgs, 'tgs', &
+               out%tgs, ranges%Ebal, patchout%tgs, 'default', met)
+          call write_ovar(out_timestep, ncid_out, ovid%ts, 'ts', &
+               out%ts, ranges%Ebal, patchout%ts, 'default', met)
+          call write_ovar(out_timestep, ncid_out, ovid%tsl, 'tsl', &
+               out%tsl, ranges%Ebal, patchout%tsl, 'soil', met)
+          call write_ovar(out_timestep, ncid_out, ovid%tsn, 'tsn', &
+               out%tsn, ranges%Ebal, patchout%tsn, 'default', met)
+          call write_ovar(out_timestep, ncid_out, ovid%tsns, 'tsns', &
+               out%tsns, ranges%Ebal, patchout%tsns, 'default', met)
+          ! Reset temporary output variable
+          out%hfds       = 0.0
+          out%hfdsn      = 0.0
+          out%hfls       = 0.0
+          out%hfmlt      = 0.0
+          out%hfrs       = 0.0
+          out%hfsbl      = 0.0
+          out%hfss       = 0.0
+          out%rlus       = 0.0
+          out%rsus       = 0.0
+          out%esn        = 0.0
+          out%evspsbl    = 0.0
+          out%evspsblsoi = 0.0
+          out%evspsblveg = 0.0
+          out%mrrob      = 0.0
+          out%mrros      = 0.0
+          out%sbl        = 0.0
+          out%snm        = 0.0
+          out%snmsl      = 0.0
+          out%tran       = 0.0
+          out%albs       = 0.0
+          out%albsn      = 0.0
+          out%cw         = 0.0
+          out%lqsn       = 0.0
+          out%lwsnl      = 0.0
+          out%mrfsofr    = 0.0
+          out%mrlqso     = 0.0
+          out%mrlsl      = 0.0
+          out%snc        = 0.0
+          out%snd        = 0.0
+          out%snw        = 0.0
+          out%snwc       = 0.0
+          out%tcs        = 0.0
+          out%tgs        = 0.0
+          out%ts         = 0.0
+          out%tsl        = 0.0
+          out%tsn        = 0.0
+          out%tsns       = 0.0
+       END IF
+    END IF
 
     ! NBP and turnover fluxes [umol/m^2/s]
     IF(output%casa) THEN

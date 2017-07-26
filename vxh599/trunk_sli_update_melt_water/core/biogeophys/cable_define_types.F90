@@ -51,213 +51,217 @@ MODULE cable_def_types_mod
       msn = 3,       & ! max # snow layers
       swb = 2,       & ! # shortwave bands
       niter = 4,     & ! number of iterations for za/L
- !      ms = 12          ! # soil layers
-       ms = 6         ! # soil layers - standard
+       ms = 12          ! # soil layers
+ !      ms = 6         ! # soil layers - standard
 !       ms = 13          ! for Loetschental experiment
 
-!   PRIVATE :: r_2, ms, msn, mf, nrb, ncp, ncs
+!   PRIVATE :: R_2, MS, MSN, MF, NRB, NCP, NCS
 
 ! .............................................................................
 
-   ! Energy and water balance variables:
-   TYPE balances_type
+   ! ENERGY AND WATER BALANCE VARIABLES:
+   TYPE BALANCES_TYPE
 
       REAL, DIMENSION(:), POINTER ::                                           &
-         drybal,           & ! energy balance for dry canopy
-         ebal,             & ! energy balance per time step (W/m^2)
-         ebal_tot,         & ! cumulative energy balance (W/m^2)
-         ebal_cncheck,     & ! energy balance consistency check (W/m^2)
-         ebal_tot_cncheck, & ! cumulative energy balance (W/m^2)
-         ebaltr,           & ! energy balance per time step (W/m^2)
-         ebal_tottr,       & ! cumulative energy balance (W/m^2)
-         evap_tot,         & ! cumulative evapotranspiration (mm/dels)
-         osnowd0,          & ! snow depth, first time step
-         precip_tot,       & ! cumulative precipitation (mm/dels)
-         rnoff_tot,        & ! cumulative runoff (mm/dels)
-         wbal,             & ! water balance per time step (mm/dels)
-         wbal_tot,         & ! cumulative water balance (mm/dels)
-         wbtot0,           & ! total soil water (mm), first time step
-         wetbal,           & ! energy balance for wet canopy
-         cansto0,          & ! canopy water storage (mm)
-         owbtot,           & ! total soil water (mm), first time step
-         evapc_tot,        & ! cumulative evapotranspiration (mm/dels)
-         evaps_tot,        & ! cumulative evapotranspiration (mm/dels)
-         rnof1_tot,        & ! cumulative runoff (mm/dels)
-         rnof2_tot,        & ! cumulative runoff (mm/dels)
-         snowdc_tot,       & ! cumulative runoff (mm/dels)
-         wbal_tot1,        & ! cumulative water balance (mm/dels)
-         delwc_tot,        & ! energy balance for wet canopy
-         qasrf_tot,        & ! heat advected to the snow by precip.
-         qfsrf_tot,        & ! energy of snowpack phase changes
-         qssrf_tot, &        ! energy of snowpack phase changes
-         Radbal, &
-         EbalSoil, &
-         Ebalveg, &
-         Radbalsum
+         DRYBAL,           & ! ENERGY BALANCE FOR DRY CANOPY
+         EBAL,             & ! ENERGY BALANCE PER TIME STEP (W/M^2)
+         EBAL_TOT,         & ! CUMULATIVE ENERGY BALANCE (W/M^2)
+         EBAL_CNCHECK,     & ! ENERGY BALANCE CONSISTENCY CHECK (W/M^2)
+         EBAL_TOT_CNCHECK, & ! CUMULATIVE ENERGY BALANCE (W/M^2)
+         EBALTR,           & ! ENERGY BALANCE PER TIME STEP (W/M^2)
+         EBAL_TOTTR,       & ! CUMULATIVE ENERGY BALANCE (W/M^2)
+         EVAP_TOT,         & ! CUMULATIVE EVAPOTRANSPIRATION (MM/DELS)
+         OSNOWD0,          & ! SNOW DEPTH, FIRST TIME STEP
+         PRECIP_TOT,       & ! CUMULATIVE PRECIPITATION (MM/DELS)
+         RNOFF_TOT,        & ! CUMULATIVE RUNOFF (MM/DELS)
+         WBAL,             & ! WATER BALANCE PER TIME STEP (MM/DELS)
+         WBAL_TOT,         & ! CUMULATIVE WATER BALANCE (MM/DELS)
+         WBTOT0,           & ! TOTAL SOIL WATER (MM), FIRST TIME STEP
+         WETBAL,           & ! ENERGY BALANCE FOR WET CANOPY
+         CANSTO0,          & ! CANOPY WATER STORAGE (MM)
+         OWBTOT,           & ! TOTAL SOIL WATER (MM), FIRST TIME STEP
+         EVAPC_TOT,        & ! CUMULATIVE EVAPOTRANSPIRATION (MM/DELS)
+         EVAPS_TOT,        & ! CUMULATIVE EVAPOTRANSPIRATION (MM/DELS)
+         RNOF1_TOT,        & ! CUMULATIVE RUNOFF (MM/DELS)
+         RNOF2_TOT,        & ! CUMULATIVE RUNOFF (MM/DELS)
+         SNOWDC_TOT,       & ! CUMULATIVE RUNOFF (MM/DELS)
+         WBAL_TOT1,        & ! CUMULATIVE WATER BALANCE (MM/DELS)
+         DELWC_TOT,        & ! ENERGY BALANCE FOR WET CANOPY
+         QASRF_TOT,        & ! HEAT ADVECTED TO THE SNOW BY PRECIP.
+         QFSRF_TOT,        & ! ENERGY OF SNOWPACK PHASE CHANGES
+         QSSRF_TOT, &        ! ENERGY OF SNOWPACK PHASE CHANGES
+         RADBAL, &
+         EBALSOIL, &
+         EBALVEG, &
+         RADBALSUM
 
-   END TYPE balances_type
+   END TYPE BALANCES_TYPE
 
 ! .............................................................................
 
-   ! Soil parameters:
-   TYPE soil_parameter_type
+   ! SOIL PARAMETERS:
+   TYPE SOIL_PARAMETER_TYPE
 
       INTEGER, DIMENSION(:), POINTER ::                                        &
-         isoilm     ! integer soil type
+         ISOILM     ! INTEGER SOIL TYPE
 
       REAL, DIMENSION(:), POINTER ::                                           &
-         bch,     & ! parameter b in Campbell equation
-         c3,      & ! c3 drainage coeff (fraction)
-         clay,    & ! fraction of soil which is clay
-         css,     & ! soil specific heat capacity [kJ/kg/K]
-         hsbh,    & ! difsat * etasat (=hyds*abs(sucs)*bch)
-         hyds,    & ! hydraulic conductivity @ saturation [m/s], Ksat
-         i2bp3,   & ! par. one in K vis suction (=nint(bch)+2)
-         ibp2,    & ! par. two in K vis suction (fn of pbch)
-         rhosoil, & ! soil density [kg/m3]
-         sand,    & ! fraction of soil which is sand
-         sfc,     & ! vol H2O @ field capacity
-         silt,    & ! fraction of soil which is silt
-         ssat,    & ! vol H2O @ saturation
-         sucs,    & ! suction at saturation (m)
-         swilt,   & ! vol H2O @ wilting
-         zse,     & ! thickness of each soil layer (1=top) in m
-         zshh,    & ! distance between consecutive layer midpoints (m)
-                 ! vars intro for Ticket #27
-         soilcol, & ! keep color for all patches/tiles
-         albsoilf   ! soil reflectance
+         BCH,     & ! PARAMETER B IN CAMPBELL EQUATION
+         C3,      & ! C3 DRAINAGE COEFF (FRACTION)
+         CLAY,    & ! FRACTION OF SOIL WHICH IS CLAY
+         CSS,     & ! SOIL SPECIFIC HEAT CAPACITY [KJ/KG/K]
+         HSBH,    & ! DIFSAT * ETASAT (=HYDS*ABS(SUCS)*BCH)
+         HYDS,    & ! HYDRAULIC CONDUCTIVITY @ SATURATION [M/S], KSAT
+         I2BP3,   & ! PAR. ONE IN K VIS SUCTION (=NINT(BCH)+2)
+         IBP2,    & ! PAR. TWO IN K VIS SUCTION (FN OF PBCH)
+         RHOSOIL, & ! SOIL DENSITY [KG/M3]
+         SAND,    & ! FRACTION OF SOIL WHICH IS SAND
+         SFC,     & ! VOL H2O @ FIELD CAPACITY
+         SILT,    & ! FRACTION OF SOIL WHICH IS SILT
+         SSAT,    & ! VOL H2O @ SATURATION
+         SUCS,    & ! SUCTION AT SATURATION (M)
+         SWILT,   & ! VOL H2O @ WILTING
+         ZSE,     & ! THICKNESS OF EACH SOIL LAYER (1=TOP) IN M
+         ZSHH,    & ! DISTANCE BETWEEN CONSECUTIVE LAYER MIDPOINTS (M)
+                 ! VARS INTRO FOR TICKET #27
+         SOILCOL, & ! KEEP COLOR FOR ALL PATCHES/TILES
+         ALBSOILF   ! SOIL REFLECTANCE
 
-      REAL(r_2), DIMENSION(:), POINTER ::                                      &
-         cnsd,    & ! thermal conductivity of dry soil [W/m/K]
-         pwb_min    ! working variable (swilt/ssat)**ibp2
+      REAL(R_2), DIMENSION(:), POINTER ::                                      &
+         CNSD,    & ! THERMAL CONDUCTIVITY OF DRY SOIL [W/M/K]
+         PWB_MIN    ! WORKING VARIABLE (SWILT/SSAT)**IBP2
 
       REAL, DIMENSION(:,:), POINTER ::                                         &
-         albsoil    ! soil reflectance (2nd dim. BP 21Oct2009)
+         ALBSOIL    ! SOIL REFLECTANCE (2ND DIM. BP 21OCT2009)
 
-     ! Additional SLI parameters
-     INTEGER,   DIMENSION(:),   POINTER :: nhorizons ! number of soil horizons
-     INTEGER,   DIMENSION(:,:), POINTER :: ishorizon ! horizon number 1:nhorizons
-     REAL(r_2), DIMENSION(:),   POINTER :: clitt     ! litter (tC/ha)
-     REAL(r_2), DIMENSION(:),   POINTER :: zeta      ! macropore parameter
-     REAL(r_2), DIMENSION(:),   POINTER :: fsatmax   ! variably saturated area parameter
-     REAL(r_2), DIMENSION(:,:), POINTER :: swilt_vec ! vol H2O @ wilting
-     REAL(r_2), DIMENSION(:,:), POINTER :: ssat_vec  ! vol H2O @ sat
-     REAL(r_2), DIMENSION(:,:), POINTER :: sfc_vec   ! vol H2O @ fc
+     ! ADDITIONAL SLI PARAMETERS
+     INTEGER,   DIMENSION(:),   POINTER :: NHORIZONS ! NUMBER OF SOIL HORIZONS
+     INTEGER,   DIMENSION(:,:), POINTER :: ISHORIZON ! HORIZON NUMBER 1:NHORIZONS
+     REAL(R_2), DIMENSION(:),   POINTER :: CLITT     ! LITTER (TC/HA)
+     REAL(R_2), DIMENSION(:),   POINTER :: ZETA      ! MACROPORE PARAMETER
+     REAL(R_2), DIMENSION(:),   POINTER :: FSATMAX   ! VARIABLY SATURATED AREA PARAMETER
+     REAL(R_2), DIMENSION(:,:), POINTER :: SWILT_VEC ! VOL H2O @ WILTING
+     REAL(R_2), DIMENSION(:,:), POINTER :: SSAT_VEC  ! VOL H2O @ SAT
+     REAL(R_2), DIMENSION(:,:), POINTER :: SFC_VEC   ! VOL H2O @ FC
 
-  END TYPE soil_parameter_type
+  END TYPE SOIL_PARAMETER_TYPE
 
 ! .............................................................................
 
-   ! Soil and snow variables:
-   TYPE soil_snow_type
+   ! SOIL AND SNOW VARIABLES:
+   TYPE SOIL_SNOW_TYPE
 
-     INTEGER, DIMENSION(:), POINTER :: isflag ! 0 => no snow 1 => snow
+     INTEGER, DIMENSION(:), POINTER :: ISFLAG ! 0 => NO SNOW 1 => SNOW
 
       REAL, DIMENSION(:), POINTER ::                                           &
-         iantrct, & ! pointer to Antarctic land points
-         pudsto,  & ! puddle storage
-         pudsmx,  & ! puddle storage
-         cls,     & ! factor for latent heat
-         dfn_dtg, & ! d(canopy%fns)/d(ssnow%tgg)
-         dfh_dtg, & ! d(canopy%fhs)/d(ssnow%tgg)
-         dfe_ddq, & ! d(canopy%fes)/d(dq)
-         ddq_dtg, & ! d(dq)/d(ssnow%tgg)
-         evapsn,  & ! snow evaporation
-         fwtop,   & ! water flux to the soil
-         fwtop1,  & ! water flux to the soil
-         fwtop2,  & ! water flux to the soil
-         fwtop3,  & ! water flux to the soil
-         osnowd,  & ! snow depth from previous time step
-         potev,   & ! potential evapotranspiration
-         runoff,  & ! total runoff (mm/dels)
-         rnof1,   & ! surface runoff (mm/dels)
-         rnof2,   & ! deep drainage (mm/dels)
-         rtsoil,  & ! turbulent resistance for soil
-         wbtot1,  & ! total soil water (mm)
-         wbtot2,  & ! total soil water (mm)
-         wb_lake, &
-         sinfil,  &
-         qstss,   &
-         wetfac,  & ! surface wetness fact. at current time step
-         owetfac, & ! surface wetness fact. at previous time step
-         t_snwlr, & ! top snow layer depth in 3 layer snowpack
-         tggav,   & ! mean soil temperature in K
-         otgg,    & ! soil temperature in K
-         otss,    & ! surface temperature (weighted soil, snow)
-         otss_0,  & ! surface temperature (weighted soil, snow)
-         tprecip, &
-         tevap,   &
-         trnoff,  &
-         totenbal,&!
-         totenbal2,&
-         fland,   & ! factor for latent heat
-         ifland,  & ! integer soil type
-         qasrf,   & ! heat advected to the snow by precip.
-         qfsrf,   & ! energy of snowpack phase changes
-         qssrf,   & ! sublimation
-         snage,   & ! snow age
-         snowd,   & ! snow depth (liquid water)
-         smelt,   & ! snow melt
-         ssdnn,   & ! average snow density
-         tss,     & ! surface temperature (weighted soil, snow)
-         tss_p,   & ! surface temperature (weighted soil, snow)
-         deltss,  & ! surface temperature (weighted soil, snow)
-         owb1       ! surface temperature (weighted soil, snow)
+         IANTRCT, & ! POINTER TO ANTARCTIC LAND POINTS
+         PUDSTO,  & ! PUDDLE STORAGE
+         PUDSMX,  & ! PUDDLE STORAGE
+         CLS,     & ! FACTOR FOR LATENT HEAT
+         DFN_DTG, & ! D(CANOPY%FNS)/D(SSNOW%TGG)
+         DFH_DTG, & ! D(CANOPY%FHS)/D(SSNOW%TGG)
+         DFE_DDQ, & ! D(CANOPY%FES)/D(DQ)
+         DDQ_DTG, & ! D(DQ)/D(SSNOW%TGG)
+         EVAPSN,  & ! SNOW EVAPORATION
+         FWTOP,   & ! WATER FLUX TO THE SOIL
+         FWTOP1,  & ! WATER FLUX TO THE SOIL
+         FWTOP2,  & ! WATER FLUX TO THE SOIL
+         FWTOP3,  & ! WATER FLUX TO THE SOIL
+         OSNOWD,  & ! SNOW DEPTH FROM PREVIOUS TIME STEP
+         POTEV,   & ! POTENTIAL EVAPOTRANSPIRATION
+         RUNOFF,  & ! TOTAL RUNOFF (MM/DELS)
+         RNOF1,   & ! SURFACE RUNOFF (MM/DELS)
+         RNOF2,   & ! DEEP DRAINAGE (MM/DELS)
+         RTSOIL,  & ! TURBULENT RESISTANCE FOR SOIL
+         WBTOT1,  & ! TOTAL SOIL WATER (MM)
+         WBTOT2,  & ! TOTAL SOIL WATER (MM)
+         WB_LAKE, &
+         SINFIL,  &
+         QSTSS,   &
+         WETFAC,  & ! SURFACE WETNESS FACT. AT CURRENT TIME STEP
+         OWETFAC, & ! SURFACE WETNESS FACT. AT PREVIOUS TIME STEP
+         T_SNWLR, & ! TOP SNOW LAYER DEPTH IN 3 LAYER SNOWPACK
+         TGGAV,   & ! MEAN SOIL TEMPERATURE IN K
+         OTGG,    & ! SOIL TEMPERATURE IN K
+         OTSS,    & ! SURFACE TEMPERATURE (WEIGHTED SOIL, SNOW)
+         OTSS_0,  & ! SURFACE TEMPERATURE (WEIGHTED SOIL, SNOW)
+         TPRECIP, &
+         TEVAP,   &
+         TRNOFF,  &
+         TOTENBAL,&!
+         TOTENBAL2,&
+         FLAND,   & ! FACTOR FOR LATENT HEAT
+         IFLAND,  & ! INTEGER SOIL TYPE
+         QASRF,   & ! HEAT ADVECTED TO THE SNOW BY PRECIP.
+         QFSRF,   & ! ENERGY OF SNOWPACK PHASE CHANGES
+         QSSRF,   & ! SUBLIMATION
+         SNAGE,   & ! SNOW AGE
+         SNOWD,   & ! SNOW DEPTH (LIQUID WATER)
+         SMELT,   & ! SNOW MELT
+         SSDNN,   & ! AVERAGE SNOW DENSITY
+         TSS,     & ! SURFACE TEMPERATURE (WEIGHTED SOIL, SNOW)
+         TSS_P,   & ! SURFACE TEMPERATURE (WEIGHTED SOIL, SNOW)
+         DELTSS,  & ! SURFACE TEMPERATURE (WEIGHTED SOIL, SNOW)
+         OWB1       ! SURFACE TEMPERATURE (WEIGHTED SOIL, SNOW)
 
       REAL, DIMENSION(:,:), POINTER ::                                         &
-         sconds,     & !
-         sdepth,     & ! snow depth
-         smass,      & ! snow mass
-         ssdn,       & ! snow densities
-         tgg,        & ! soil temperature in K
-         tggsn,      & ! snow temperature in K
-         dtmlt,      & ! water flux to the soil
-         albsoilsn,  & ! soil + snow reflectance
-         evapfbl,    & !
-         tilefrac      ! factor for latent heat
+         SCONDS,     & !
+         SDEPTH,     & ! SNOW DEPTH
+         SMASS,      & ! SNOW MASS
+         SSDN,       & ! SNOW DENSITIES
+         TGG,        & ! SOIL TEMPERATURE IN K
+         TGGSN,      & ! SNOW TEMPERATURE IN K
+         DTMLT,      & ! WATER FLUX TO THE SOIL
+         ALBSOILSN,  & ! SOIL + SNOW REFLECTANCE
+         EVAPFBL,    & !
+         TILEFRAC      ! FACTOR FOR LATENT HEAT
 
 
-      REAL(r_2), DIMENSION(:), POINTER ::                                      &
-         wbtot   ! total soil water (mm)
+      REAL(R_2), DIMENSION(:), POINTER ::                                      &
+         WBTOT   ! TOTAL SOIL WATER (MM)
 
-      REAL(r_2), DIMENSION(:,:), POINTER ::                                    &
-         gammzz,  & ! heat capacity for each soil layer
-         wb,      & ! volumetric soil moisture (solid+liq)
-         wbice,   & ! soil ice
-         wblf,    & !
-         wbfice     !
-
-
-     ! Additional SLI variables:
-     REAL(r_2), DIMENSION(:,:), POINTER :: S         ! moisture content relative to sat value    (edit vh 23/01/08)
-     REAL(r_2), DIMENSION(:,:), POINTER :: Tsoil         !     Tsoil (deg C)
-     REAL(r_2), DIMENSION(:),   POINTER :: SL        ! litter moisture content relative to sat value (edit vh 23/01/08)
-     REAL(r_2), DIMENSION(:),   POINTER :: TL        ! litter temperature in K     (edit vh 23/01/08)
-     REAL(r_2), DIMENSION(:),   POINTER :: h0        ! pond height in m            (edit vh 23/01/08)
-     REAL(r_2), DIMENSION(:,:), POINTER :: rex       ! root extraction from each layer (mm/dels)
-     REAL(r_2), DIMENSION(:,:), POINTER :: wflux     ! water flux at layer boundaries (mm s-1)
-     REAL(r_2), DIMENSION(:),   POINTER :: delwcol   ! change in water column (mm / dels)
-     REAL(r_2), DIMENSION(:),   POINTER :: zdelta    ! water table depth           (edit vh 23/06/08)
-     REAL(r_2), DIMENSION(:,:), POINTER :: kth       ! thermal conductivity           (edit vh 29/07/08)
-     REAL(r_2), DIMENSION(:),   POINTER :: Tsurface  !  tepmerature at surface (soil, pond or litter) (edit vh 22/10/08)
-     REAL(r_2), DIMENSION(:),   POINTER :: lE        ! soil latent heat flux
-     REAL(r_2), DIMENSION(:),   POINTER :: evap      ! soil evaporation (mm / dels)
-     REAL(r_2), DIMENSION(:,:), POINTER :: ciso      ! concentration of minor isotopologue in soil water (kg m-3 water)
-     REAL(r_2), DIMENSION(:),   POINTER :: cisoL     ! concentration of minor isotopologue in litter water (kg m-3 water)
-     REAL(r_2), DIMENSION(:),   POINTER :: rlitt     ! resistance to heat/moisture transfer through litter (m-1 s)
-     REAL(r_2), DIMENSION(:,:), POINTER :: thetai    ! volumetric ice content (MC)
-     REAL(r_2), DIMENSION(:,:), POINTER :: snowliq   ! liquid snow content (mm H2O)
-     REAL(r_2), DIMENSION(:),   POINTER :: nsteps    ! number of iterations at each timestep
-     REAL(r_2), DIMENSION(:),   POINTER :: TsurfaceFR  !  tepmerature at surface (soil, pond or litter) (edit vh 22/10/08)
-     REAL(r_2), DIMENSION(:,:), POINTER :: Ta_daily        ! air temp averaged over last 24h
-     INTEGER, DIMENSION(:),     POINTER :: nsnow ! number of layers in snow-pack (0-nsnow_max)
-     REAL(r_2), DIMENSION(:),   POINTER :: Qadv_daily  ! advective heat flux into surface , daily average (W m-2)
-     REAL(r_2), DIMENSION(:),   POINTER :: G0_daily  ! conductive heat flux into surface , daily average (W m-2)
-     REAL(r_2), DIMENSION(:),   POINTER :: Qevap_daily ! evaporative flux at surface, daily average (m s-1)
-     REAL(r_2), DIMENSION(:),   POINTER :: Qprec_daily ! liquid precip, daily average (m s-1)
-     REAL(r_2), DIMENSION(:),   POINTER :: Qprec_snow_daily ! solid precip, daily average (m s-1)
+      REAL(R_2), DIMENSION(:,:), POINTER ::                                    &
+         GAMMZZ,  & ! HEAT CAPACITY FOR EACH SOIL LAYER
+         WB,      & ! VOLUMETRIC SOIL MOISTURE (SOLID+LIQ)
+         WBICE,   & ! SOIL ICE
+         WBLF,    & !
+         WBFICE     !
 
 
+     ! ADDITIONAL SLI VARIABLES:
+     REAL(R_2), DIMENSION(:,:), POINTER :: S         ! MOISTURE CONTENT RELATIVE TO SAT VALUE    (EDIT VH 23/01/08)
+     REAL(R_2), DIMENSION(:,:), POINTER :: TSOIL         !     TSOIL (DEG C)
+     REAL(R_2), DIMENSION(:),   POINTER :: SL        ! LITTER MOISTURE CONTENT RELATIVE TO SAT VALUE (EDIT VH 23/01/08)
+     REAL(R_2), DIMENSION(:),   POINTER :: TL        ! LITTER TEMPERATURE IN K     (EDIT VH 23/01/08)
+     REAL(R_2), DIMENSION(:),   POINTER :: H0        ! POND HEIGHT IN M            (EDIT VH 23/01/08)
+     REAL(R_2), DIMENSION(:,:), POINTER :: REX       ! ROOT EXTRACTION FROM EACH LAYER (MM/DELS)
+     REAL(R_2), DIMENSION(:,:), POINTER :: WFLUX     ! WATER FLUX AT LAYER BOUNDARIES (MM S-1)
+     REAL(R_2), DIMENSION(:),   POINTER :: DELWCOL   ! CHANGE IN WATER COLUMN (MM / DELS)
+     REAL(R_2), DIMENSION(:),   POINTER :: ZDELTA    ! WATER TABLE DEPTH           (EDIT VH 23/06/08)
+     REAL(R_2), DIMENSION(:,:), POINTER :: KTH       ! THERMAL CONDUCTIVITY           (EDIT VH 29/07/08)
+     REAL(R_2), DIMENSION(:),   POINTER :: TSURFACE  !  TEPMERATURE AT SURFACE (SOIL, POND OR LITTER) (EDIT VH 22/10/08)
+     REAL(R_2), DIMENSION(:),   POINTER :: LE        ! SOIL LATENT HEAT FLUX
+     REAL(R_2), DIMENSION(:),   POINTER :: EVAP      ! SOIL EVAPORATION (MM / DELS)
+     REAL(R_2), DIMENSION(:,:), POINTER :: CISO      ! CONCENTRATION OF MINOR ISOTOPOLOGUE IN SOIL WATER (KG M-3 WATER)
+     REAL(R_2), DIMENSION(:),   POINTER :: CISOL     ! CONCENTRATION OF MINOR ISOTOPOLOGUE IN LITTER WATER (KG M-3 WATER)
+     REAL(R_2), DIMENSION(:),   POINTER :: RLITT     ! RESISTANCE TO HEAT/MOISTURE TRANSFER THROUGH LITTER (M-1 S)
+     REAL(R_2), DIMENSION(:,:), POINTER :: THETAI    ! VOLUMETRIC ICE CONTENT (MC)
+     REAL(R_2), DIMENSION(:,:), POINTER :: SNOWLIQ   ! LIQUID SNOW CONTENT (MM H2O)
+     REAL(R_2), DIMENSION(:),   POINTER :: NSTEPS    ! NUMBER OF ITERATIONS AT EACH TIMESTEP
+     REAL(R_2), DIMENSION(:),   POINTER :: TSURFACEFR  !  TEPMERATURE AT SURFACE (SOIL, POND OR LITTER) (EDIT VH 22/10/08)
+     REAL(R_2), DIMENSION(:,:), POINTER :: TA_DAILY        ! AIR TEMP AVERAGED OVER LAST 24H
+     INTEGER, DIMENSION(:),     POINTER :: NSNOW ! NUMBER OF LAYERS IN SNOW-PACK (0-NSNOW_MAX)
+     REAL(R_2), DIMENSION(:),   POINTER :: QADV_DAILY  ! ADVECTIVE HEAT FLUX INTO SURFACE , DAILY AVERAGE (W M-2)
+     REAL(R_2), DIMENSION(:),   POINTER :: G0_DAILY  ! CONDUCTIVE HEAT FLUX INTO SURFACE , DAILY AVERAGE (W M-2)
+     REAL(R_2), DIMENSION(:),   POINTER :: QEVAP_DAILY ! EVAPORATIVE FLUX AT SURFACE, DAILY AVERAGE (M S-1)
+     REAL(R_2), DIMENSION(:),   POINTER :: QPREC_DAILY ! LIQUID PRECIP, DAILY AVERAGE (M S-1)
+     REAL(R_2), DIMENSION(:),   POINTER :: QPREC_SNOW_DAILY ! SOLID PRECIP, DAILY AVERAGE (M S-1)
+     REAL(R_2), DIMENSION(:),   POINTER :: E_FUSION_SN 
+     REAL(R_2), DIMENSION(:),   POINTER :: E_SUBLIMATION_SN 
+     REAL(R_2), DIMENSION(:),   POINTER :: LATENT_HEAT_SN
+     REAL(R_2), DIMENSION(:),   POINTER :: EVAP_LIQ_SN
+     REAL(R_2), DIMENSION(:),   POINTER :: surface_melt
+     REAL(r_2), DIMENSION(:),   POINTER :: Qadv_rain_sn
 
    END TYPE soil_snow_type
 
@@ -863,7 +867,12 @@ SUBROUTINE alloc_soil_snow_type(var, mp)
     ALLOCATE ( var % Qevap_daily(mp) )
     ALLOCATE ( var % Qprec_daily(mp) )
     ALLOCATE ( var % Qprec_snow_daily(mp) )
-
+    ALLOCATE ( var % E_fusion_sn(mp) )
+    ALLOCATE ( var % E_sublimation_sn(mp) )
+    ALLOCATE ( var % latent_heat_sn(mp) )
+    ALLOCATE ( var % evap_liq_sn(mp) )
+    ALLOCATE ( var % surface_melt(mp) )
+    ALLOCATE ( var %Qadv_rain_sn(mp))
     !END IF
 
 END SUBROUTINE alloc_soil_snow_type
@@ -1408,6 +1417,13 @@ SUBROUTINE dealloc_soil_snow_type(var)
     DEALLOCATE ( var % Qevap_daily )
     DEALLOCATE ( var % Qprec_daily )
     DEALLOCATE ( var % Qprec_snow_daily )
+
+    DEALLOCATE ( var % E_fusion_sn)
+    DEALLOCATE ( var % E_sublimation_sn)
+    DEALLOCATE ( var % latent_heat_sn)
+    DEALLOCATE ( var % evap_liq_sn)
+    DEALLOCATE ( var % surface_melt)
+    DEALLOCATE ( var % Qadv_rain_sn)
 
     ! END IF
 
