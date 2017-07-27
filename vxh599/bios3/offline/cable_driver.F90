@@ -110,6 +110,10 @@ PROGRAM cable_offline_driver
 
   USE CABLE_CRU,            ONLY: CRU_TYPE, CRU_GET_SUBDIURNAL_MET, CRU_INIT
 
+  ! BIOS only
+  USE cable_bios_met_obs_params,   ONLY:  cable_bios_read_met, cable_bios_init, &
+                                          cable_bios_load_params
+
  ! LUC_EXPT only
  USE CABLE_LUC_EXPT, ONLY: LUC_EXPT_TYPE, LUC_EXPT_INIT
 #ifdef NAG
@@ -381,6 +385,7 @@ PROGRAM cable_offline_driver
   IF ( TRIM(cable_user%MetType) .NE. "gswp" .AND. &
        TRIM(cable_user%MetType) .NE. "gpgs" .AND. &
        TRIM(cable_user%MetType) .NE. "plum" .AND. &
+       TRIM(cable_user%MetType) .NE. "bios" .AND. &
        TRIM(cable_user%MetType) .NE. "cru") THEN
      CALL open_met_file( dels, koffset, kend, spinup, C%TFRZ )
      IF ( koffset .NE. 0 .AND. CABLE_USER%CALL_POP ) THEN
@@ -402,6 +407,26 @@ PROGRAM cable_offline_driver
   SPINLOOP:DO WHILE ( SPINon )
 
      NREP: DO RRRR = 1, NRRRR
+        IF (TRIM(cable_user%MetType) .EQ. "bios") THEN
+
+          CALL CPU_TIME(etime)
+          
+          CALL cable_bios_init(dels,curyear,met,kend,ktauday)
+
+          koffset   = 0
+          leaps = .true.
+
+          write(str1,'(i4)') curyear
+          str1 = adjustl(str1)
+          write(str2,'(i2)') 1
+          str2 = adjustl(str2)
+          write(str3,'(i2)') 1
+          str3 = adjustl(str3)
+          timeunits="seconds since "//trim(str1)//"-"//trim(str2)//"-"//trim(str3)//" &
+                            00:00"
+        ENDIF
+
+print *, "CABLE_USER%YearStart,  CABLE_USER%YearEnd", CABLE_USER%YearStart,  CABLE_USER%YearEnd
 
 	YEAR: DO YYYY= CABLE_USER%YearStart,  CABLE_USER%YearEnd
 	   CurYear = YYYY
@@ -466,6 +491,11 @@ PROGRAM cable_offline_driver
 	      ENDIF
 	      IF ( .NOT. PLUME%LeapYears ) LOY = 365
 	      kend = NINT(24.0*3600.0/dels) * LOY
+
+           ELSE IF ( TRIM(cable_user%MetType) .EQ. 'bios' ) THEN
+             
+              kend = NINT(24.0*3600.0/dels) * LOY
+
 	   ELSE IF ( TRIM(cable_user%MetType) .EQ. 'cru' ) THEN
 	      ! TRENDY experiment using CRU-NCEP
 	      IF ( CALL1 ) THEN
@@ -517,6 +547,15 @@ PROGRAM cable_offline_driver
 
        IF ( CABLE_USER%POPLUC .AND. TRIM(CABLE_USER%POPLUC_RunType) .EQ. 'static') &
             CABLE_USER%POPLUC= .FALSE.
+
+
+    ! Having read the default parameters, if this is a bios run we will now
+    ! overwrite the subset of them required for bios.
+       IF ( TRIM(cable_user%MetType) .EQ. 'bios' ) THEN
+         CALL cable_bios_load_params (soil)
+       ENDIF
+
+
        ! Open output file:
        IF (.NOT.CASAONLY) THEN
           IF ( TRIM(filename%out) .EQ. '' ) THEN
@@ -610,7 +649,11 @@ PROGRAM cable_offline_driver
                      (YYYY.EQ.CABLE_USER%YearEnd .AND. ktau.EQ.kend))
                 
              ENDIF
-             
+          ELSE IF ( TRIM(cable_user%MetType) .EQ. 'bios' ) THEN
+             IF (( .NOT. CASAONLY ).OR. (CASAONLY.and.CALL1))  THEN               
+                CALL  cable_bios_read_met(MET, CurYear, ktau, kend, &
+                       (YYYY.EQ.CABLE_USER%YearEnd .AND. ktau.EQ.kend), dels )
+             END IF
           ELSE IF ( TRIM(cable_user%MetType) .EQ. 'cru' ) THEN
                     IF (( .NOT. CASAONLY ).OR. (CASAONLY.and.CALL1))  THEN
                        CALL CRU_GET_SUBDIURNAL_MET(CRU, met, &
@@ -785,16 +828,17 @@ PROGRAM cable_offline_driver
 
                  IF ( (.NOT. CASAONLY) .AND. spinConv ) THEN
                     !mpidiff
-                    if ( TRIM(cable_user%MetType) .EQ. 'plum' .OR.  &
-                         TRIM(cable_user%MetType) .EQ. 'cru' .OR.  &
-                       TRIM(cable_user%MetType) .EQ. 'gswp' ) then
+                    IF ( TRIM(cable_user%MetType) .EQ. 'plum'  .OR.  &
+                         TRIM(cable_user%MetType) .EQ. 'cru'   .OR.  &
+                         TRIM(cable_user%MetType) .EQ. 'bios'  .OR.  &
+                         TRIM(cable_user%MetType) .EQ. 'gswp' ) THEN
 
                        CALL write_output( dels, ktau_tot, met, canopy, casaflux, casapool, casamet, &
                             ssnow,   rad, bal, air, soil, veg, C%SBOLTZ, C%EMLEAF, C%EMSOIL )
-                    else
+                    ELSE
                        CALL write_output( dels, ktau, met, canopy, casaflux, casapool, casamet, &
                             ssnow,rad, bal, air, soil, veg, C%SBOLTZ, C%EMLEAF, C%EMSOIL )
-                    endif
+                    ENDIF
                  ENDIF
 
 
@@ -1062,6 +1106,7 @@ PROGRAM cable_offline_driver
 
 
   IF ( TRIM(cable_user%MetType) .NE. "gswp" .AND. &
+       TRIM(cable_user%MetType) .NE. "bios" .AND. &
        TRIM(cable_user%MetType) .NE. "plum" .AND. & 
        TRIM(cable_user%MetType) .NE. "cru" ) CALL close_met_file
 
