@@ -99,7 +99,7 @@ MODULE cable_common_module
         GS_SWITCH='leuning'
       
      CHARACTER(LEN=10) :: RunIden       = 'STANDARD'  !
-     CHARACTER(LEN=4)  :: MetType       = ' ' !
+     CHARACTER(LEN=6)  :: MetType       = ' ' !
      CHARACTER(LEN=20) :: SOIL_STRUC    = "default" ! 'default' or 'sli'
      CHARACTER(LEN=3)  :: POP_out       = 'rst' ! POP output type ('epi' or 'rst')
      CHARACTER(LEN=50) :: POP_rst       = ' ' !
@@ -153,6 +153,15 @@ MODULE cable_common_module
 
           !! vh_js !!
          litter = .FALSE.
+     !MD
+      LOGICAL :: GW_MODEL = .FALSE.
+      LOGICAL :: alt_forcing = .FALSE.
+ 
+     !using GSWP3 forcing?
+     LOGICAL :: GSWP3 = .FALSE.
+     LOGICAL :: or_evap = .FALSE.
+     LOGICAL :: test_new_gw=.false.
+     LOGICAL :: sync_nc_file=.false.
 
   END TYPE kbl_user_switches
 
@@ -175,7 +184,8 @@ MODULE cable_common_module
           soil,       & ! name of file for soil parameters
           soilcolor,  & ! file for soil color(soilcolor_global_1x1.nc)
           inits,      & ! name of file for initialisations
-          soilIGBP      ! name of file for IGBP soil map
+          soilIGBP,   & ! name of file for IGBP soil map
+          gw_elev       !name of file for gw/elevation data
 
   END TYPE filenames_type
 
@@ -204,6 +214,43 @@ MODULE cable_common_module
     fprintf_dir_root = "/short/p66/jxs599/10.6/diag/March1/"
   
   character(len=200) :: fprintf_dir
+CONTAINS
+   TYPE organic_soil_params
+        !Below are the soil properties for fully organic soil
+
+      REAL ::    &
+        hyds_vec_organic  = 1.0e-4,&
+        sucs_vec_organic = 10.3,   &
+        clappb_organic = 2.91,     &
+        ssat_vec_organic = 0.9,    &
+        watr_organic   = 0.1,     &
+        sfc_vec_hk      = 1.157407e-06, &
+        swilt_vec_hk      = 2.31481481e-8
+
+   END TYPE organic_soil_params
+
+   TYPE gw_parameters_type
+
+      REAL ::                   &
+        MaxHorzDrainRate=1e-3,  & !anisintropy * q_max [qsub]
+        EfoldHorzDrainRate=2.5, & !e fold rate of q_horz
+        MaxSatFraction=900,     & !parameter controll max sat fraction
+        hkrz=0.0,               & !hyds_vec variation with z
+        zdepth=1.0,             & !level where hyds_vec(z) = hyds_vec(no z)
+        frozen_frac=0.05,       & !ice fraction to determine first non-frozen layer for qsub
+        SoilEvapAlpha = 1.0,    & !modify field capacity dependence of soil evap limit
+        IceAlpha=3.0,           &
+        IceBeta=1.0           
+
+      TYPE(organic_soil_params) :: org
+
+      INTEGER :: level_for_satfrac = 6
+      LOGICAL :: ssgw_ice_switch = .false.
+
+   END TYPE gw_parameters_type
+
+   TYPE(gw_parameters_type), SAVE :: gw_params
+
 
 interface fudge_out
    module procedure fudge_out_r2D, fudge_out_r1D, fudge_out_r3D, fudge_out_i2D
