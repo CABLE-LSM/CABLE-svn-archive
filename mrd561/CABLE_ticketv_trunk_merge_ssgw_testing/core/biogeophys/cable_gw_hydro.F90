@@ -50,16 +50,6 @@ MODULE cable_gw_hydro_module
    IMPLICIT NONE
 
    PRIVATE
-
-   
-   !REAL, PARAMETER ::                                                          &
-   !   cgsnow = 2090.0,     & ! specific heat capacity for snow
-   !   csice = 2.100e3,     & ! specific heat capacity for ice
-   !   cswat = 4.218e3,     & ! specific heat capacity for water
-   !   rhowat = 1000.0,     & ! density of water
-   !   snmin = 1.,          & ! for 3-layer;
-   !   max_ssdn = 750.0,    & !
-   !   max_sconds = 2.51
       
    !mrd561 GW params
    !Should read some in from namelist
@@ -72,9 +62,6 @@ MODULE cable_gw_hydro_module
 
    INTEGER, PARAMETER :: wtd_iter_max = 20 ! maximum number of iterations to find the water table depth                    
    
-  ! !jhan:make parameter
-  ! REAL :: max_glacier_snowd
- 
   ! ! This module contains the following subroutines:
    PUBLIC soil_snow_gw,calc_srf_wet_fraction,sli_hydrology ! must be available outside this module
    PUBLIC saturated_fraction,pore_space_relative_humidity,set_unsed_gw_vars
@@ -89,11 +76,9 @@ CONTAINS
 
 
 ! -----------------------------------------------------------------------------
+!
 ! -----------------------------------------------------------------------------
-! -----------------------------------------------------------------------------
-  
-!!! -----------------------------------------------------------------------------
-!!
+
 SUBROUTINE GWsoilfreeze(dels, soil, ssnow)
    USE cable_common_module
    REAL, INTENT(IN)                    :: dels ! integration time step (s)
@@ -1183,7 +1168,7 @@ SUBROUTINE calc_srf_wet_fraction(ssnow,soil,met_tk,veg_iveg)
 
       end do
 
-   ELSE
+   ELSE  !Default formulation
 
        ssnow%wetfac = MAX( 1.e-6, MIN( 1.0,&
             ( REAL (ssnow%wb(:,1) ) - soil%swilt/ 2.0 )                  &

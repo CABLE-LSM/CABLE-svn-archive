@@ -812,7 +812,6 @@ CONTAINS
             veg%froot(h,:)  = vegin%froot(:, veg%iveg(h))
             veg%zr(h)       = vegin%zr(veg%iveg(h))
             veg%clitt(h)    = vegin%clitt(veg%iveg(h))
-
          END DO ! over each veg patch in land point
   
   END SUBROUTINE init_veg_from_vegin 

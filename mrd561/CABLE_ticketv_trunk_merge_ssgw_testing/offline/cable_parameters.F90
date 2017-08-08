@@ -1114,6 +1114,7 @@ CONTAINS
 
     USE cable_common_module, only : vegin, soilin, &
                   calcsoilalbedo,cable_user,init_veg_from_vegin
+
     IMPLICIT NONE
     INTEGER,               INTENT(IN)    :: logn  ! log file unit number
     INTEGER,               INTENT(IN)    :: month ! month of year
@@ -1179,6 +1180,8 @@ CONTAINS
     ssnow%qrecharge = 0.0
     ssnow%GWwb = -1.0
     ssnow%wtd = 1.0
+    canopy%sublayer_dz = 0.001  !could go into restart to ensure starting/stopping runs gives identical results
+                                !however the impact is negligible
 
    !IF(hide%Ticket49Bug2) THEN
       canopy%ofes    = 0.0  ! latent heat flux from soil (W/m2)
@@ -1445,6 +1448,8 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
                                                           soiltype_metfile(e, :)
        END IF
 ! offline only above
+       !call veg% init that is common   
+       CALL init_veg_from_vegin(landpt(e)%cstart, landpt(e)%cend, veg)
 
        CALL init_veg_from_vegin(landpt(e)%cstart, landpt(e)%cend, veg)
 
@@ -1455,7 +1460,6 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
           bgc%csoil(h,:)  = vegin%csoil(:, veg%iveg(h))
           bgc%ratecp(:)   = vegin%ratecp(:, veg%iveg(h))
           bgc%ratecs(:)   = vegin%ratecs(:, veg%iveg(h))
-          veg%froot(h,:)  = vegin%froot(:, veg%iveg(h))
 
           IF (.NOT. soilparmnew) THEN   ! Q,Zhang @ 12/20/2010
             soil%swilt(h)   =  soilin%swilt(soil%isoilm(h))
@@ -1489,6 +1493,7 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
           rad%latitude(h) = latitude(e)
             !IF(hide%Ticket49Bug4) &
           rad%longitude(h) = longitude(e)
+          !jhan:is this done online? YES
           veg%ejmax(h) = 2.0 * veg%vcmax(h)
        END DO ! over each veg patch in land point
     END DO ! over all land points

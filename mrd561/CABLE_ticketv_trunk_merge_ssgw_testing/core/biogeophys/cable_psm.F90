@@ -1,5 +1,6 @@
 MODULE cable_psm
 USE cable_def_types_mod
+
 implicit none
 
 PUBLIC  or_soil_evap_resistance
@@ -64,18 +65,16 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)!,snow_co
 
    INTEGER, DIMENSION(mp) :: int_eddy_shape
 
-   REAL(r_2), parameter :: Dff=2.5e-5, &
-                      lm=1.73e-5, &
-                      pi = 3.14159265358979324, &
-                      c2 = 2.0,&
-                      litter_thermal_diff=8.3e-6
+   !
+   REAL(r_2), parameter :: Dff=2.5e-5, &  !diffusivity water vapor in air
+                      lm=1.73e-5, &       !converts units
+                      pi = 3.14159265358979324, &  !obvous
+                      c2 = 2.0,&                  !params
+                      litter_thermal_diff=8.3e-6  !param based on vh thermal diffusivity
 
    real(r_2), parameter :: rtevap_max = 10000.0
 
    integer :: i,j,k 
-   logical, save ::  first_call = .true.
-
-   if (first_call) canopy%sublayer_dz(:) = 0.001
 
    if (cable_user%litter) then
       litter_dz(:) = veg%clitt*0.003
@@ -100,15 +99,13 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)!,snow_co
             end do
          end if
       end do
-      canopy%sublayer_dz = max(eddy_mod(:) * air%visc / max(1.0e-4,canopy%us*exp(-rough%coexp*(1.0-canopy%sublayer_dz/max(1e-2,rough%hruff)))),1e-7)              !exp(-canopy%vlaiw)), 1e-7)
+      canopy%sublayer_dz = max(eddy_mod(:) * air%visc / max(1.0e-4,canopy%us*&
+                           exp(-rough%coexp*(1.0-canopy%sublayer_dz/max(1e-2,rough%hruff)))),1e-7) 
 
 
-
-   !if (first_call) then
-   !   wb_liq(:) = real(max(0.0001,min(pi/4.0, ssnow%wb(:,1)-ssnow%wbice(:,1)) ) )
-   !else
-      wb_liq(:) = real(max(0.0001,min(pi/4.0, (ssnow%wb(:,1)-ssnow%wbice(:,1) - ssnow%satfrac(:)*soil%ssat_vec(:,1))/(1._r_2 - ssnow%satfrac(:)) ) ) )
-   !end if
+   wb_liq(:) = real(max(0.0001,min(pi/4.0, &
+                (ssnow%wb(:,1)-ssnow%wbice(:,1) - ssnow%satfrac(:)*soil%ssat_vec(:,1)) / &
+                max((1._r_2 - ssnow%satfrac(:)),1e-5) ) ) )
 
    rel_s = real( max(wb_liq(:)-soil%watr(:,1),0._r_2)/(soil%ssat_vec(:,1)-soil%watr(:,1)) )
    hk_zero = max(0.001*soil%hyds_vec(:,1)*(min(max(rel_s,0.001_r_2),1._r_2)**(2._r_2*soil%bch_vec(:,1)+3._r_2) ),1e-8)
@@ -151,8 +148,6 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)!,snow_co
       ssnow%rtevap_unsat = 0.0
       ssnow%rt_qh_sublayer = 0.0
    endwhere
-
-   first_call = .false.
 
 
 END SUBROUTINE or_soil_evap_resistance
