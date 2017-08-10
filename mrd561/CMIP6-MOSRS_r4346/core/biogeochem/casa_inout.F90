@@ -29,12 +29,8 @@
 !   casa_poolout
 !   casa_cnpflux  (zeros casabal quantites on doy 1 and updates casabal at end of biogeochem)
 !   biogeochem
-!CABLE_LSM:This has to be commented for offline
+
 !#define UM_BUILD YES
-module casa_inout_module
-
-contains 
-
 SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
 ! mst actually not used in this routine (BP sep2010)
 !SUBROUTINE casa_readbiome(mvt,mst,veg,soil, &
@@ -2885,5 +2881,3 @@ END SELECT
 
 END SUBROUTINE WRITE_CASA_OUTPUT_NC
 #endif
-
-End module casa_inout_module

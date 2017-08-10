@@ -59,20 +59,16 @@ MODULE cable_um_tech_mod
 
    TYPE derived_veg_pars
       INTEGER, DIMENSION(:,:), POINTER ::                                      &
-         ivegt(:,:) => NULL(),    & ! vegetation  types
-         isoilm(:,:) => NULL()     ! soil types
+         ivegt(:,:),    & ! vegetation  types
+         isoilm(:,:)      ! soil types
       REAL, DIMENSION(:,:), POINTER ::                                         &
-         htveg(:,:) => NULL(),    &
-         laift(:,:) => NULL()       ! hruffmax(:.:)
+         htveg(:,:),    &
+         laift(:,:)       ! hruffmax(:.:)
    END TYPE derived_veg_pars
 
    INTERFACE check_nmlvar 
-      MODULE PROCEDURE check_chvar, check_intvar, check_lgvar
+      MODULE PROCEDURE check_chvar, check_intvar!, check_lgvar
    END INTERFACE check_nmlvar 
- 
-   INTERFACE basic_diag 
-      MODULE PROCEDURE basic_chdiag 
-   END INTERFACE basic_diag 
  
       TYPE(derived_rad_bands), SAVE :: kblum_rad    
       TYPE(derived_veg_pars),  SAVE :: kblum_veg    
@@ -181,41 +177,23 @@ SUBROUTINE check_intvar(this_var, val_var)
       ENDIF
 
 END SUBROUTINE check_intvar
- 
-SUBROUTINE basic_chdiag(upto, message)
-   USE cable_common_module, ONLY : knode_gl
 
-   CHARACTER(LEN=*), INTENT(IN) :: upto, message 
-   
-      IF (knode_gl==0) THEN
-         PRINT *, '  '; PRINT *, 'CABLE_log:' 
-         PRINT *, '   From subroutine:- '
-         PRINT *, '  ', trim(upto) 
-         PRINT *, '   broadcast - '
-         PRINT *, '  ', trim(message) 
-         PRINT *, 'End CABLE_log:'; PRINT *, '  '
-      ENDIf
-
-END SUBROUTINE basic_chdiag 
-
-   
-
-SUBROUTINE check_lgvar(this_var, val_var)
-   USE cable_common_module, ONLY : knode_gl
-
-   CHARACTER(LEN=*), INTENT(IN) :: this_var
-   LOGICAL, INTENT(IN) :: val_var
-
-      IF (knode_gl==0) THEN
-         PRINT *, '  '; PRINT *, 'CABLE_log:'
-         PRINT *, '   run time variable - '
-         PRINT *, '  ', trim(this_var)
-         PRINT *, '   defined as - '
-         PRINT *, '  ', (val_var)
-         PRINT *, 'End CABLE_log:'; PRINT *, '  '
-      ENDIf
-
-END SUBROUTINE check_lgvar
+!SUBROUTINE check_lgvar(this_var, val_var)
+!   USE cable_common_module, ONLY : knode_gl
+!
+!   CHARACTER(LEN=*), INTENT(IN) :: this_var
+!   LOGICAL, INTENT(IN) :: val_var
+!
+!      IF (knode_gl==0) THEN
+!         PRINT *, '  '; PRINT *, 'CABLE_log:'
+!         PRINT *, '   run time variable - '
+!         PRINT *, '  ', trim(this_var)
+!         PRINT *, '   defined as - '
+!         PRINT *, '  ', (val_var)
+!         PRINT *, 'End CABLE_log:'; PRINT *, '  '
+!      ENDIf
+!
+!END SUBROUTINE check_lgvar
     
 !========================================================================= 
 !=========================================================================
@@ -227,39 +205,23 @@ SUBROUTINE alloc_um_interface_types( row_length, rows, land_pts, ntiles,       &
       
       INTEGER,INTENT(IN) :: row_length, rows, land_pts, ntiles, sm_levels   
 
-       if(.NOT. allocated ( um1%land_index ) ) &
-                  ALLOCATE( um1%land_index(land_pts) )
-       if(.NOT. allocated ( um1%tile_pts ) )  & 
-                  ALLOCATE( um1%tile_pts(ntiles) )
-       if(.NOT. allocated ( um1%tile_frac ) )  &
-                  ALLOCATE( um1%tile_frac(land_pts, ntiles) )
-       if(.NOT. allocated ( um1%tile_index ) )  &
-                  ALLOCATE( um1%tile_index(land_pts, ntiles) )
-       if(.NOT. allocated ( um1%latitude ) )  &
-                  ALLOCATE( um1%latitude(row_length, rows) )
-       if(.NOT. allocated ( um1%longitude ) )  &
-                  ALLOCATE( um1%longitude(row_length, rows) )
-       if(.NOT. allocated ( um1%l_tile_pts ) )  &
-                  ALLOCATE( um1%l_tile_pts(land_pts, ntiles) ) 
-
-       if(.NOT. allocated ( kblum_rad%sw_down_dir ) )  &
-                  ALLOCATE( kblum_rad%sw_down_dir(row_length,rows) )
-       if(.NOT. allocated ( kblum_rad%sw_down_dif ) )  &
-                  ALLOCATE( kblum_rad%sw_down_dif(row_length,rows) )
-       if(.NOT. allocated ( kblum_rad%sw_down_vis ) )  &
-                  ALLOCATE( kblum_rad%sw_down_vis(row_length,rows) )
-       if(.NOT. allocated ( kblum_rad%sw_down_nir ) )  &
-                  ALLOCATE( kblum_rad%sw_down_nir(row_length,rows) )
-       if(.NOT. allocated ( kblum_rad%fbeam) )  &
-                  ALLOCATE( kblum_rad%fbeam(row_length,rows,3) )
-       if(.NOT. associated ( kblum_veg%htveg ) )  &
-                  ALLOCATE( kblum_veg%htveg(land_pts,ntiles) )
-       if(.NOT. associated ( kblum_veg%laift ) )  &
-                  ALLOCATE( kblum_veg%laift(land_pts,ntiles) )
-       if(.NOT. associated ( kblum_veg%ivegt ) )  &
-                  ALLOCATE( kblum_veg%ivegt(land_pts,ntiles) )
-       if(.NOT. associated ( kblum_veg%isoilm ) )  &
-                  ALLOCATE( kblum_veg%isoilm(land_pts,ntiles) ) 
+         ALLOCATE( um1%land_index(land_pts) )
+         ALLOCATE( um1%tile_pts(ntiles) )
+         ALLOCATE( um1%tile_frac(land_pts, ntiles) )
+         ALLOCATE( um1%tile_index(land_pts, ntiles) )
+         ALLOCATE( um1%latitude(row_length, rows) )
+         ALLOCATE( um1%longitude(row_length, rows) )
+         ALLOCATE( um1%l_tile_pts(land_pts, ntiles) ) 
+        !-------------------------------------------------------
+         ALLOCATE( kblum_rad%sw_down_dir(row_length,rows) )
+         ALLOCATE( kblum_rad%sw_down_dif(row_length,rows) )
+         ALLOCATE( kblum_rad%sw_down_vis(row_length,rows) )
+         ALLOCATE( kblum_rad%sw_down_nir(row_length,rows) )
+         ALLOCATE( kblum_rad%fbeam(row_length,rows,3) )
+         ALLOCATE( kblum_veg%htveg(land_pts,ntiles) )
+         ALLOCATE( kblum_veg%laift(land_pts,ntiles) )
+         ALLOCATE( kblum_veg%ivegt(land_pts,ntiles) )
+         ALLOCATE( kblum_veg%isoilm(land_pts,ntiles) ) 
          
 END SUBROUTINE alloc_um_interface_types 
 
