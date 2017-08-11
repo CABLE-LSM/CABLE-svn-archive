@@ -3644,7 +3644,7 @@ CONTAINS
             nfac3, nfac4, nfac5, nfac6, nfac7, nfac8, nfac9, nfac10, nfac11, nfac12, J0snow, wcol0snow, h_ex, wpi,  &
             err=err(kk))
        ! only if melt_transfer=.false.: runoff(kk) = runoff(kk) + vsnow(kk)%Qmelt
-       !runoff(kk) = runoff(kk) + vsnow(kk)%Qmelt
+       runoff(kk) = runoff(kk) + vsnow(kk)%Qmelt
     end do ! kk=1, mp
 
     ! get heads if required
@@ -3901,7 +3901,7 @@ CONTAINS
     REAL(r_2),       DIMENSION(1:mp) :: h0_tmp, hice_tmp
     REAL(r_2) :: theta, tmp1, tmp2 ,Tfreezing(1:mp), Jsoil, theta_tmp
     INTEGER(i_d) :: i,j ! counters
-    LOGICAL :: melt_transfer=.true.
+    LOGICAL :: melt_transfer=.false.
 
     tmp1d1(kk) = h0(kk)+dx(1)*(var(1)%thetai+var(1)%thetal) ! total moisture content of top soil layer + pond
     ! tmp1d1(kk) = hice(kk)+dx(1)*(var(1)%thetai) ! total ice  moisture content of top soil layer + pond
