@@ -1034,7 +1034,9 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
           convert%PSurf = 10.0
           WRITE(logn,*) 'Pressure will be converted from kPa to mb'
        ELSE IF(metunits%PSurf(1:2)=='MB'.OR.metunits%PSurf(1:2)=='mB' &
-            .OR.metunits%PSurf(1:2)=='Mb'.OR.metunits%PSurf(1:2)=='mb') THEN
+            .OR.metunits%PSurf(1:2)=='Mb'.OR.metunits%PSurf(1:2)=='mb' &
+            .OR.metunits%PSurf(1:2)=='HP'.OR.metunits%PSurf(1:2)=='hP' &
+            .OR.metunits%PSurf(1:2)=='Hp'.OR.metunits%PSurf(1:2)=='hp' ) THEN
           ! Units are correct
           convert%PSurf = 1.0
        ELSE

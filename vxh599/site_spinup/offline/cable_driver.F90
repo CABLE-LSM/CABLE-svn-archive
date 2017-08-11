@@ -521,14 +521,15 @@ PROGRAM cable_offline_driver
       IF (IS_LEAPYEAR(CurYear)) LOY = 366
        kend = NINT(24.0*3600.0/dels) * LOY
        ! get koffset to add to time-step of sitemet
-       IF (TRIM(site%RunType)=='AMB' .OR. TRIM(site%RunType)=='ELE') THEN
+       IF (TRIM(site%RunType)=='historical') THEN
           MetYear = CurYear
        ELSEIF (TRIM(site%RunType)=='spinup' .OR. TRIM(site%RunType)=='transient') THEN
-       ! setting met year so we end the spin-up at the end of the site data-years.
+          ! setting met year so we end the spin-up at the end of the site data-years.
           MetYear = site%spinstartyear + &
                MOD(CurYear- &
-               (site%spinstartyear-(site%spinendyear-site%spinstartyear +1)*100-1), &
+               (site%spinstartyear-(site%spinendyear-site%spinstartyear +1)*100), &
                (site%spinendyear-site%spinstartyear +1))
+
        ENDIF
        write(*,*) 'MetYear: ', MetYear
        write(*,*) 'Simulation Year: ', CurYear
