@@ -250,7 +250,7 @@ SUBROUTINE casa_allocation(veg,soil,casabiome,casaflux,casapool,casamet,phen,LAL
     casaflux%fracCalloc(:,:) = casabiome%fracnpptop(veg%iveg(:),:)
 
   CASE (3) ! leaf:wood allocation set to maintain LA:SA ratio
-     ! below target value of 3000, where phen%phase = 1 or 2 
+     ! below target value of 4000, where phen%phase = 1 or 2 
      !(requires casaflux%sapwood_area, which is inherited from the 
      ! POP tree demography module. (Ticket #61)
     WHERE(casamet%lnonwood==0)
@@ -260,10 +260,10 @@ SUBROUTINE casa_allocation(veg,soil,casabiome,casaflux,casapool,casamet,phen,LAL
              casaflux%fracCalloc(:,WOOD)
         newLAI =casamet%glai + (casaflux%fracCalloc(:,LEAF) *casaflux%cnpp- &
              casaflux%kplant(:,leaf) *casapool%cplant(:,LEAF) )*casabiome%sla(veg%iveg(:))
-        where (casaflux%sapwood_area.gt.1.e-6 .and. newLAI.gt.(3000.*casaflux%sapwood_area) &
+        where (casaflux%sapwood_area.gt.1.e-6 .and. newLAI.gt.(4000.*casaflux%sapwood_area) &
              .and. casaflux%cnpp.gt.0.0)
 
-           casaflux%fracCalloc(:,LEAF) = ((3000.*casaflux%sapwood_area - casamet%glai)/ &
+           casaflux%fracCalloc(:,LEAF) = ((4000.*casaflux%sapwood_area - casamet%glai)/ &
                 casabiome%sla(veg%iveg(:)) &
              + casaflux%kplant(:,leaf) *casapool%cplant(:,LEAF)  )/casaflux%cnpp
 
