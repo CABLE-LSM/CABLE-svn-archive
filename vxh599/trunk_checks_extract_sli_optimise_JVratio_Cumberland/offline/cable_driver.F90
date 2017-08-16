@@ -564,6 +564,7 @@ PROGRAM cable_offline_driver
             casamet, casabal, phen, POP, spinup,	       &
             C%EMSOIL, C%TFRZ, LUC_EXPT, POPLUC )
 
+
        IF ( CABLE_USER%POPLUC .AND. TRIM(CABLE_USER%POPLUC_RunType) .EQ. 'static') &
             CABLE_USER%POPLUC= .FALSE.
 
@@ -702,6 +703,7 @@ PROGRAM cable_offline_driver
           ! Zero out lai where there is no vegetation acc. to veg. index
           WHERE ( veg%iveg(:) .GE. 14 ) veg%vlai = 0.
 
+         
           ! At first time step of year, set tile area according to updated LU areas
           ! and zero casa fluxes
 
@@ -718,7 +720,7 @@ PROGRAM cable_offline_driver
                   casapool, casamet, climate, ktauday )
              
              IF (l_laiFeedbk.and.icycle>0) veg%vlai(:) = casamet%glai(:)
-             !veg%vlai = 2 ! test
+             !veg%vlai = 1.5 ! test
              ! Call land surface scheme for this timestep, all grid points:
                     CALL cbm(ktau, dels, air, bgc, canopy, met,		      &
                          bal, rad, rough, soil, ssnow,			      &

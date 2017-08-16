@@ -1429,7 +1429,7 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
         ! where (veg%iveg.eq.2 ) 
         !    veg%gamma = 1.e-2
         ! elsewhere
-            veg%gamma = 3.e-2
+            veg%gamma = 1.e-2
         !endwhere
          !veg%clitt = 5.0 ! (tC / ha)
       ENDIF

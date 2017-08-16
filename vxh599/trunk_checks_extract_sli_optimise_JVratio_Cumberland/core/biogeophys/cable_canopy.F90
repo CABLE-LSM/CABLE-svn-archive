@@ -2039,11 +2039,13 @@ CONTAINS
              ecx(i) = ( air%dsatdk(i) * ( rad%rniso(i,1) - C%capp * C%rmair     &
                   * ( met%tvair(i) - met%tk(i) ) * rad%gradis(i,1) )        &
                   + C%capp * C%rmair * met%dva(i) * ghr(i,1) )              &
-                  / ( air%dsatdk(i) + psycst(i,1) ) + ( air%dsatdk(i)       &
+                  / ( air%dsatdk(i) + psycst(i,1) ) &
+                  + ( air%dsatdk(i)       &
                   * ( rad%rniso(i,2) - C%capp * C%rmair * ( met%tvair(i) -  &
                   met%tk(i) ) * rad%gradis(i,2) ) + C%capp * C%rmair *      &
                   met%dva(i) * ghr(i,2) ) /                                 &
                   ( air%dsatdk(i) + psycst(i,2) )
+
 
              IF (cable_user%fwsoil_switch=='Haverd2013') then
                  ! avoid root-water extraction when fwsoil is zero
@@ -2226,6 +2228,7 @@ CONTAINS
 !!$ write(3367,"(200e16.6)") veg%ejmax_shade
 !!$ write(3378,"(200e16.6)") anrubiscoy(:,2)
 !!$ write(3369,"(200e16.6)") anrubpy(:,2)
+!!$ write(3379,"(200e16.6)") rny(:)
     ! dry canopy flux
     canopy%fevc = (1.0-canopy%fwet) * ecy
 
