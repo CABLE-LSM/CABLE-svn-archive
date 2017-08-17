@@ -134,6 +134,8 @@ SUBROUTINE cable_um_runtime_vars(runtime_vars_file)
       CALL check_nmlvar('cable_user%LEAF_RESPIRATION',                         &
                         cable_user%LEAF_RESPIRATION)
       CALL check_nmlvar('cable_user%FWSOIL_SWITCH', cable_user%FWSOIL_SWITCH)
+      CALL check_nmlvar('cable_user%SD_FWSOIL_SWITCH', cable_user%SD_FWSOIL_SWITCH)
+      CALL check_nmlvar('cable_user%SD_FWSOIL_PATH', cable_user%SD_FWSOIL_PATH)
       CALL check_nmlvar('cable_user%RUN_DIAG_LEVEL', cable_user%RUN_DIAG_LEVEL)
       !CALL check_nmlvar('cable_user%l_new_roughness_soil',                     &
       !                   cable_user%l_new_roughness_soil)

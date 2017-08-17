@@ -82,9 +82,13 @@ MODULE cable_common_module
      CHARACTER(LEN=200) ::                                                    &
           VEG_PARS_FILE  !
 
-     CHARACTER(LEN=20) ::                                                     &
+     CHARACTER(LEN=200) ::                                                    &
           FWSOIL_SWITCH, &     !
           PHENOLOGY_SWITCH = 'MODIS'   ! alternative is 'climate'
+
+     CHARACTER(LEN=200) ::						      &
+     	  SD_FWSOIL_SWITCH='no_SD', &     !
+          SD_FWSOIL_PATH='no_path'     ! this is a path rather than a switch, but we co-define it with the associated switch
     !--- LN ------------------------------------------[
 
      ! Ticket #56

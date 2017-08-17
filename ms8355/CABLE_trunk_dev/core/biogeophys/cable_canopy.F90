@@ -37,6 +37,8 @@
 !          and an in-canopy stability correction is applied. 
 !        : See http://www.geosci-model-dev.net/9/3111/2016 for full documentation
 !          of last 3 changes.
+!	 : Manon Sabot added SD_FWSOIL_SWITCH to introduce a ± constant in the
+!          in the computation of fwsoil
 ! ==============================================================================
 
 MODULE cable_canopy_module
@@ -45,6 +47,7 @@ MODULE cable_canopy_module
   USE cable_soil_snow_gw_module, ONLY : calc_srf_wet_fraction
   USE cable_IO_vars_module, ONLY: wlogn
   USE cable_psm, ONLY: or_soil_evap_resistance
+  USE cable_common_module
 
   IMPLICIT NONE
 
@@ -1605,11 +1608,13 @@ CONTAINS
     ALLOCATE( gswmin(mp,mf ))
 
     ! Soil water limitation on stomatal conductance:
+
     IF( iter ==1) THEN
+
        IF ((cable_user%soil_struc=='default').and.(cable_user%FWSOIL_SWITCH.ne.'Haverd2013')) THEN
           IF(cable_user%FWSOIL_SWITCH == 'standard') THEN
              CALL fwsoil_calc_std( fwsoil, soil, ssnow, veg)
-          ELSEIf (cable_user%FWSOIL_SWITCH == 'non-linear extrapolation') THEN
+          ELSEIF (cable_user%FWSOIL_SWITCH == 'non-linear extrapolation') THEN
              !EAK, 09/10 - replace linear approx by polynomial fitting
              CALL fwsoil_calc_non_linear(fwsoil, soil, ssnow, veg)
           ELSEIF(cable_user%FWSOIL_SWITCH == 'Lai and Ktaul 2000') THEN
@@ -1617,7 +1622,9 @@ CONTAINS
           ELSE
              STOP 'fwsoil_switch failed.'
           ENDIF
+
           canopy%fwsoil = fwsoil
+
        ELSEIF ((cable_user%soil_struc=='sli').OR.(cable_user%FWSOIL_SWITCH=='Haverd2013')) THEN
           fwsoil = canopy%fwsoil
        ENDIF
@@ -2492,6 +2499,26 @@ CONTAINS
     REAL, INTENT(OUT), DIMENSION(:):: fwsoil ! soil water modifier of stom. cond
     REAL, DIMENSION(mp) :: rwater ! soil water availability
 
+    ! Addition by Manon: ±SD for a specific file on each configuration
+    ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    INTEGER, PARAMETER :: fsd=198 ! unique number attributed to SD file
+    REAL :: SD_fwsoil
+
+    SD_fwsoil=0.
+
+    IF (cable_user%SD_FWSOIL_SWITCH.ne.'no_SD') THEN
+       OPEN(fsd,FILE=cable_user%SD_FWSOIL_PATH,STATUS='old',ACTION='READ')
+       READ(fsd,*) ! this is the header line
+       READ(fsd,*) SD_fwsoil ! the first line of data is the site SD for the standard config of fwsoil
+       CLOSE(fsd)
+
+       IF (cable_user%SD_FWSOIL_SWITCH=='minus_SD') THEN
+       	  SD_fwsoil = - 1.0 * SD_fwsoil
+       ENDIF
+
+    ENDIF
+    ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
     if (cable_user%or_evap) then
     rwater = MAX(1.0e-9,                                                    &
          SUM(veg%froot * MAX(0.024,MIN(1.0, real(ssnow%wb) -                   &
@@ -2503,9 +2530,9 @@ CONTAINS
    end if
    ! Remove vbeta #56
    IF(cable_user%GS_SWITCH == 'medlyn') THEN
-      fwsoil = MAX(1.0e-4,MIN(1.0, rwater))
+      fwsoil = MAX(1.0e-4,MIN(1.0, rwater + SD_fwsoil))
    ELSE   
-      fwsoil = MAX(1.0e-9,MIN(1.0, veg%vbeta * rwater))
+      fwsoil = MAX(1.0e-9,MIN(1.0, (veg%vbeta * rwater) + SD_fwsoil))
    ENDIF   
 
   END SUBROUTINE fwsoil_calc_std
@@ -2521,6 +2548,29 @@ CONTAINS
     REAL, DIMENSION(mp) :: rwater ! soil water availability
     REAL, DIMENSION(mp,3)          :: xi, ti, si
     INTEGER :: j
+
+    ! Addition by Manon: ±SD for a specific file on each configuration
+    ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    INTEGER, PARAMETER :: fsd=298 ! unique number attributed to SD file
+    REAL :: SD_fwsoil
+
+    SD_fwsoil=0.
+
+    IF (cable_user%SD_FWSOIL_SWITCH.ne.'no_SD') THEN
+       OPEN(fsd,FILE=cable_user%SD_FWSOIL_PATH,STATUS='old',ACTION='READ')
+       READ(fsd,*) ! this is the header line
+       READ(fsd,*) 
+       READ(fsd,*)
+       READ(fsd,*)
+       READ(fsd,*) SD_fwsoil ! the fourth line of data is the site SD for the non-linear config of fwsoil
+       CLOSE(fsd)
+
+       IF (cable_user%SD_FWSOIL_SWITCH=='minus_SD') THEN
+       	  SD_fwsoil = -1.0 * SD_fwsoil
+       ENDIF
+
+    ENDIF
+    ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     rwater = MAX(1.0e-9,                                                    &
          SUM(veg%froot * MAX(0.0,MIN(1.0, real(ssnow%wb) -                   &
@@ -2554,6 +2604,9 @@ CONTAINS
 
     ENDDO
 
+    fwsoil = fwsoil + SD_fwsoil
+    fwsoil = max(1.0e-9, min(1.0, fwsoil))
+
   END SUBROUTINE fwsoil_calc_non_linear
 
   ! ------------------------------------------------------------------------------
@@ -2571,6 +2624,28 @@ CONTAINS
     !--- local level dependent rwater
     REAL, DIMENSION(mp,ms)  :: frwater
 
+    ! Addition by Manon: ±SD for a specific file on each configuration
+    ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    INTEGER, PARAMETER :: fsd=398 ! unique number attributed to SD file
+    REAL :: SD_fwsoil
+
+    SD_fwsoil=0.
+
+    IF (cable_user%SD_FWSOIL_SWITCH.ne.'no_SD') THEN
+       OPEN(fsd,FILE=cable_user%SD_FWSOIL_PATH,STATUS='old',ACTION='READ')
+       READ(fsd,*) ! this is the header line
+       READ(fsd,*) 
+       READ(fsd,*)
+       READ(fsd,*) SD_fwsoil ! the third line of data is the site SD for the Lai and Katul config of fwsoil
+       CLOSE(fsd)
+
+       IF (cable_user%SD_FWSOIL_SWITCH=='minus_SD') THEN
+       	  SD_fwsoil = -1.0 * SD_fwsoil
+       ENDIF
+
+    ENDIF
+    ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
     fwsoil(:) = 0.0
     normFac(:) = 0.0
 
@@ -2587,6 +2662,9 @@ CONTAINS
 
     ENDDO
 
+    fwsoil = fwsoil + SD_fwsoil
+    fwsoil = max(1.0e-9, min(1.0, fwsoil))
+
   END SUBROUTINE fwsoil_calc_Lai_Ktaul
 
   ! ------------------------------------------------------------------------------
@@ -2597,6 +2675,28 @@ CONTAINS
     TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
     REAL, INTENT(OUT), DIMENSION(:):: fwsoil ! soil water modifier of stom. cond
     REAL, DIMENSION(mp,ms):: tmp2d1, tmp2d2, delta_root, alpha2a_root, alpha2_root
+
+    ! Addition by Manon: ±SD for a specific file on each configuration
+    ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    INTEGER, PARAMETER :: fsd=598 ! unique number attributed to SD file
+    REAL :: SD_fwsoil
+
+    SD_fwsoil=0.
+
+    IF (cable_user%SD_FWSOIL_SWITCH.ne.'no_SD') THEN
+       OPEN(fsd,FILE=cable_user%SD_FWSOIL_PATH,STATUS='old',ACTION='READ')
+       READ(fsd,*) ! this is the header line
+       READ(fsd,*)
+       READ(fsd,*) SD_fwsoil ! the second line of data is the site SD for the Haverd config of fwsoil
+       CLOSE(fsd)
+
+       IF (cable_user%SD_FWSOIL_SWITCH=='minus_SD') THEN
+       	  SD_fwsoil = -1.0 * SD_fwsoil
+       ENDIF
+
+    ENDIF
+    ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
     ! Lai and Katul formulation for root efficiency function  vh 17/07/09
     alpha2a_root = max(ssnow%wb-soil%swilt_vec, 0.001_r_2)/(soil%ssat_vec)
     tmp2d1 = ssnow%wb -soil%swilt_vec
@@ -2614,6 +2714,7 @@ CONTAINS
     ENDWHERE
 
     fwsoil  = maxval(alpha2_root*delta_root, 2)
+    fwsoil = fwsoil + SD_fwsoil
     fwsoil  = max(0.0, fwsoil)
 
   END SUBROUTINE fwsoil_calc_sli
@@ -2645,6 +2746,27 @@ CONTAINS
     REAL(r_2), DIMENSION(1:size(theta)) ::  lthetar, alpha_root, delta_root, layer_depth
     REAL(r_2)                       :: trex, e3, one, zero
     INTEGER :: k
+
+    ! Addition by Manon: ±SD for a specific file on each configuration
+    ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    INTEGER, PARAMETER :: fsd=498 ! unique number attributed to SD file
+    REAL :: SD_fwsoil
+
+    SD_fwsoil=0.
+
+    IF (cable_user%SD_FWSOIL_SWITCH.ne.'no_SD') THEN
+       OPEN(fsd,FILE=cable_user%SD_FWSOIL_PATH,STATUS='old',ACTION='READ')
+       READ(fsd,*) ! this is the header line
+       READ(fsd,*)
+       READ(fsd,*) SD_fwsoil ! the second line of data is the site SD for the Haverd config of fwsoil
+       CLOSE(fsd)
+
+       IF (cable_user%SD_FWSOIL_SWITCH=='minus_SD') THEN
+       	  SD_fwsoil = -1.0 * SD_fwsoil
+       ENDIF
+
+    ENDIF
+    ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     e3 = 0.001
     one = 1.0;
@@ -2712,6 +2834,8 @@ CONTAINS
     else
        fws    = maxval(alpha_root(2:)*delta_root(2:))
     endif
+
+    fws = max(1.0e-9, min(1.0, fws + SD_fwsoil)) ! fws by Haverd is the eq. of fwsoil in the other functions
 
   END SUBROUTINE getrex_1d
   !*********************************************************************************************************************
