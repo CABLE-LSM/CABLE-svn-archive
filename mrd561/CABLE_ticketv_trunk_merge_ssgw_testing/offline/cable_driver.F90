@@ -977,6 +977,13 @@ PROGRAM cable_offline_driver
 
 	      END IF
 
+              if (cable_user%max_spins .gt. 0) then
+              if ((ktau_tot/kend .ge. 15)) then
+                 spinConv = .true.
+                 write(logn,*) 'Past 15 spin cycles, running anywats'
+              end if
+              end if
+
        ! store soil moisture and temperature
 	      IF ( YYYY.EQ. CABLE_USER%YearEnd ) THEN
 		 soilTtemp = ssnow%tgg

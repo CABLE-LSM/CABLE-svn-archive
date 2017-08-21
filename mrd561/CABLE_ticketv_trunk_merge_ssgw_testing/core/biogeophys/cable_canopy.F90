@@ -490,7 +490,7 @@ CONTAINS
           ! Soil sensible heat:
           !canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tvair) /ssnow%rtsoil
           IF (cable_user%gw_model .or. cable_user%or_evap) THEN
-             canopy%fhs =  air%rho*C%CAPP*(ssnow%tss - met%tk) / &
+             canopy%fhs =  air%rho*C%CAPP*(ssnow%tss - met%tvair) / &
                   (ssnow%rtsoil + real(ssnow%rt_qh_sublayer))
 
           ELSEIF (cable_user%litter) THEN
@@ -945,7 +945,7 @@ CONTAINS
            dmce                ! C_{E} in eq. 3.41 in SCAM, CSIRO tech report 132
 
       REAL  :: lower_limit, upper_limit
-      REAL, DIMENSION(mp) :: fix_eqn
+      REAL, DIMENSION(mp) :: fix_eqn,fix_eqn2
 
       INTEGER :: j
 
@@ -957,8 +957,10 @@ CONTAINS
       IF (cable_user%or_evap) THEN
          fix_eqn(:) = rt0(:)*(real(ssnow%satfrac(:))/(rt0(:)+real(ssnow%rtevap_sat(:))) + &
                                (1-real(ssnow%satfrac(:)))/(rt0(:)+real(ssnow%rtevap_unsat(:))))
+         fix_eqn2(:) = rt0(:) / (rt0(:) + real(ssnow%rt_qh_sublayer) )
       ELSE
          fix_eqn = ssnow%wetfac
+         fix_eqn2 = 1.0
       END IF
 
       DO j=1,mp
@@ -971,7 +973,7 @@ CONTAINS
             !   (Raupach, Finkele and Zhang 1997, pp 17)
             ! leaf boundary layer resistance for water
             ! A_{H} in eq. 3.41, SCAM manual, CSIRO tech doc 132
-            dmah(j) = (rt0(j)+rough%rt1(j))*((1.+air%epsi(j))*rrsw(j) + rrbw(j))  &
+            dmah(j) = (rt0(j)+fix_eqn2(j)*rough%rt1(j))*((1.+air%epsi(j))*rrsw(j) + rrbw(j))  &
                  + air%epsi(j) * (rt0(j)*rough%rt1(j))*(rrbw(j)*rrsw(j))
 
             ! B_{H} in eq. 3.41, SCAM manual, CSIRO tech doc 132

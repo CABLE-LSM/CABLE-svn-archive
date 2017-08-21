@@ -2608,35 +2608,7 @@ CONTAINS
                             cp(kk) = real(1-var(1)%iice,r_2)*cswat*rhow & ! heat capacity of pond
                                 + real(var(1)%iice,r_2)*rhow* &
                                 ((one-var(1)%thetai/par(1)%thre)*cswat + (var(1)%thetai/par(1)%thre)*csice)
-                     
-                      !check there is a zero
-                      tmp1 = GTfrozen( &
-                              real(Tsoil(kk,i) - dTsoil(kk,i) -50., r_2),      &
-                              tmp1d2(kk), dx(kk,i), theta,par(kk,i)%css,       &
-                              par(kk,i)%rho, merge(h0(kk),zero,i==1),          &
-                              par(kk,i)%thre, par(kk,i)%the, par(kk,i)%he,     &
-                              one/(par(kk,i)%lambc*freezefac) )
-  
-                      tmp2 = GTFrozen( &
-                              Tfreezing(kk),                                   &
-                              tmp1d2(kk), dx(kk,i), theta,par(kk,i)%css,       &
-                              par(kk,i)%rho, merge(h0(kk),zero,i==1),          &
-                              par(kk,i)%thre, par(kk,i)%the, par(kk,i)%he,     &
-                              one/(par(kk,i)%lambc*freezefac) )
-
-                      ! there is a zero in between
-                      if ((tmp1*tmp2) < zero) then
-                         tmp1d3(kk) = rtbis_Tfrozen(tmp1d2(kk), dx(kk,i), theta,par(kk,i)%css, par(kk,i)%rho, &
-                              merge(h0(kk),zero,i==1), par(kk,i)%thre, par(kk,i)%the, &
-                              par(kk,i)%he, one/(par(kk,i)%lambc*freezefac), &
-                              real(Tsoil(kk,i)- dTsoil(kk,i)-50., r_2), Tfreezing(kk), real(0.0001,r_2))
-                         tmp1d4(kk) = thetalmax(tmp1d3(kk), S(kk,i), par(kk,i)%he, one/(par(kk,i)%lambc*freezefac), &
-                              par(kk,i)%thre, par(kk,i)%the) ! liquid content at solution for Tsoil
-                      else
-                         write(*,*) "Found no solution for Tfrozen 1. Stop. ", kk, i
-                         write(*,*) nsteps(kk), S(kk,i), Tsoil(kk,i), dTsoil(kk,i), h0(kk), tmp1, tmp2, tmp1d2(kk), theta
-                         stop
-                      endif
+                        endif
                     enddo
                     var(:)%csoileff = var(:)%csoil + rhow*lambdaf*var(:)%dthetaldT*real(var(:)%iice,r_2)
                     cpeff(kk)= cp(kk) + rhow*lambdaf*var(1)%dthetaldT/par(1)%thre*real(var(1)%iice,r_2)
