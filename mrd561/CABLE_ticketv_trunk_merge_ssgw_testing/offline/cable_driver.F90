@@ -978,9 +978,9 @@ PROGRAM cable_offline_driver
 	      END IF
 
               if (cable_user%max_spins .gt. 0) then
-              if ((ktau_tot/kend .ge. 15)) then
+              if ((ktau_tot/kend .ge. cable_user%max_spins)) then
                  spinConv = .true.
-                 write(logn,*) 'Past 15 spin cycles, running anywats'
+                 write(logn,*) 'Past ',cable_user%max_spins,' spin cycles, running anyways'
               end if
               end if
 

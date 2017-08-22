@@ -1253,6 +1253,7 @@ write(*,*) 'after annual calcs'
                    PRINT *, 'GWtemp: ', GWtemp(maxdiff(1))
                 ENDIF
 
+
              ELSE ! spinup has converged
 
                 spinConv = .TRUE.
@@ -1274,6 +1275,17 @@ write(*,*) 'after annual calcs'
              IF (.NOT.ALLOCATED(soilTtemp)) ALLOCATE(  soilTtemp(mp,ms) )
              IF (.NOT.ALLOCATED(GWtemp))    ALLOCATE(  GWtemp(mp) )
 
+          END IF
+
+         IF (cable_user%max_spins .gt. 0) THEN
+            IF (INT( ktau_tot/kend ) .gt. cable_user%max_spins ) THEN
+               spinConv = .TRUE.
+               ! Write to screen and log file:
+               WRITE(*,*) ' Spinup exceeded max ',cable_user%max_spins,' cycles '
+               WRITE(*,*) ' Forcing the final run without spin up convergence '
+               WRITE(logn,*) ' Spinup exceeded max ',cable_user%max_spins,' cycles '
+               WRITE(logn,*) ' Forcing the final run without spin up convergence '
+             END IF
           END IF
 
           IF ( YYYY.EQ. CABLE_USER%YearEnd ) THEN
