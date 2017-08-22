@@ -103,6 +103,7 @@ SUBROUTINE cable_rad_main( mype, timestep_number, cycleno, numcycles,          &
   !----------------------------------------------------------------------------
   !----------------------------------------------------------------------------
   
+  snow_flg_cable = real(isnow_flg_cable)
   !----------------------------------------------------------------------------
   !--- CALL _driver to run specific and necessary components of CABLE with IN -
   !--- args PACKED to force CABLE

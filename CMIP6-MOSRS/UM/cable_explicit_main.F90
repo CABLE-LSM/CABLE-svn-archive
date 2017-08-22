@@ -61,7 +61,11 @@ SUBROUTINE cable_explicit_main(                                                &
                                   soil_froz_frac_cable, snow_dpth_cable,       & 
                                   snow_mass_cable, snow_temp_cable,            &
                                   snow_rho_cable, snow_avg_rho_cable,          &   
-                                  snow_age_cable, snow_flg_cable
+                                  snow_age_cable, snow_flg_cable,              & 
+                                  C_pool_casa, N_pool_casa, P_pool_casa,       &
+                                  SOIL_ORDER_casa, N_DEP_casa, N_FIX_casa,     &
+                                  P_DUST_casa, P_weath_casa, LAI_casa,         &
+                                  PHENPHASE_casa, NPP_PFT_ACC, RSP_W_PFT_ACC
 
   USE cable_explicit_driv_mod, ONLY : cable_explicit_driver
 
@@ -183,21 +187,10 @@ SUBROUTINE cable_explicit_main(                                                &
       RECIP_L_MO_TILE,& ! Reciprocal of the Monin-Obukhov length for tiles (m^-1)
       EPOT_TILE
 
-!real :: SOIL_ORDER_casa(:)
-!real :: LAI_casa(:,:)
-!real :: PHENPHASE_casa(:,:)
-!real :: C_pool_casa(:,:,:)
-!real :: N_pool_casa(:,:,:)
-!real :: N_dep_casa(:)
-!real :: N_fix_casa(:)
-!real :: P_pool_casa(:,:,:)
-!real :: P_dust_casa(:)
-!real :: P_weath_casa(:)
 
 !REAL,  DIMENSION(land_pts, ntiles,3) ::                       &
 !   snow_cond
 !
-  
 ! rml 2/7/13 Extra atmospheric co2 variables
 !LOGICAL, INTENT(IN) :: L_CO2_INTERACTIVE
 !INTEGER, INTENT(IN) ::                              &
@@ -210,29 +203,24 @@ SUBROUTINE cable_explicit_main(                                                &
   !___true IF vegetation (tile) fraction is greater than 0
   integer,  DIMENSION(land_pts, ntiles) :: isnow_flg_cable
   
-!   !r825 adds CASA vars here
-!   REAL, DIMENSION(land_pts,ntiles,10) :: &
-!      CPOOL_TILE,    & ! Carbon Pools
-!      NPOOL_TILE       ! Nitrogen Pools
-!
-!   REAL, DIMENSION(land_pts,ntiles,12) :: &
-!      PPOOL_TILE       ! Phosphorus Pools
-!
-!   REAL, DIMENSION(land_pts) :: &
-!      SOIL_ORDER,    & ! Soil Order (1 to 12)
-!      NIDEP,         & ! Nitrogen Deposition
-!      NIFIX,         & ! Nitrogen Fixation
-!      PWEA,          & ! Phosphorus from Weathering
-!      PDUST            ! Phosphorus from Dust
-!
-!   REAL, DIMENSION(land_pts,ntiles) :: &
-!      GLAI, &          ! Leaf Area Index for Prognostics LAI
-!      PHENPHASE        ! Phenology Phase for Casa-CNP
-!                                  
-!   REAL, DIMENSION(land_pts,ntiles) :: &
-!      NPP_FT_ACC,     &
-!      RESP_W_FT_ACC
-
+!C!   REAL, DIMENSION(land_pts,ntiles,10) :: &
+!C!      C_pool_casa,    & ! Carbon Pools
+!C!      N_pool_casa       ! Nitrogen Pools
+!C!
+!C!   REAL, DIMENSION(land_pts,ntiles,12) :: &
+!C!      P_pool_casa      ! Phosphorus Pools
+!C!
+!C!   REAL, DIMENSION(land_pts) :: &
+!C!      SOIL_ORDER_casa,    & ! Soil Order (1 to 12)
+!C!      N_dep_casa,         & ! Nitrogen Deposition
+!C!      N_fix_casa,         & ! Nitrogen Fixation
+!C!      P_weath_casa,          & ! Phosphorus from Weathering
+!C!      P_dust_casa
+!C!
+!C!   REAL, DIMENSION(land_pts,ntiles) :: &
+!C!      LAI_casa, &          ! Leaf Area Index for Prognostics LAI
+!C!      PHENPHASE_casa        ! Phenology Phase for Casa-CNP
+                                  
   !--- declare local vars ------------------------------------------------------ 
 
   character(len=*), parameter :: subr_name = "cable_explicit_main"
@@ -262,12 +250,12 @@ SUBROUTINE cable_explicit_main(                                                &
   !initialize processor number, timestep width adn number here as we know this 
   !is first CABLE call in model. However make this more generic
   if( first_call ) then
-    knode_gl  = mype 
-    kwidth_gl = int(timestep)
+   knode_gl  = mype 
+   kwidth_gl = int(timestep)
   endif
   ktau_gl   = timestep_number
   kend_gl   = endstep   !dummy initialization
-   
+  
   if( .NOT. allocated(L_tile_pts) ) allocate( L_tile_pts(land_pts, ntiles) ) 
 
   !----------------------------------------------------------------------------
@@ -294,9 +282,10 @@ SUBROUTINE cable_explicit_main(                                                &
                               RADNET_TILE, FRACA, RESFS, RESFT,                &
                               Z0H_TILE, Z0M_TILE,                              &
                               RECIP_L_MO_TILE, EPOT_TILE,                      &
-!                  !CPOOL_TILE, NPOOL_TILE, PPOOL_TILE,          &
-!                  !SOIL_ORDER, NIDEP, NIFIX, PWEA, PDUST,       &
-!                  !GLAI, PHENPHASE, NPP_FT_ACC, RESP_W_FT_ACC,  &
+                              C_pool_casa, N_pool_casa, P_pool_casa,           &
+                              SOIL_ORDER_casa, N_DEP_casa, N_FIX_casa,         &
+                              P_weath_casa, P_DUST_casa, LAI_casa,             &
+                              PHENPHASE_casa, NPP_PFT_ACC, RSP_W_PFT_ACC,     &
                               endstep, timestep_number, mype )    
 
   

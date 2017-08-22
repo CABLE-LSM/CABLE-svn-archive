@@ -50,120 +50,149 @@ CONTAINS
       integer, save :: iDiag0, iDiag1, iDiag2, iDiag3, iDiag4, iDiag5 
       real, dimension(um1%row_length,um1%rows) :: &
          asinlatitude, acoslat, acoslon
+      !decs to write text files mapping mp points to lat/lon, i/j 
+      character(len=*), parameter :: hcomp="mype"
+      character(len=*), parameter :: hcompa ="i"
+      character(len=*), parameter :: hcompb ="j"
+      character(len=*), parameter :: hcompc ="l"
+      character(len=*), parameter :: hcompd ="n"
+      character(len=*), parameter :: hcomp1 ="mp "
+      character(len=*), parameter :: hcomp2 ="lat "
+      character(len=*), parameter :: hcomp3 ="lon"
+      character(len=*), parameter :: hcomp4 ="frac"
+      character(len=*), parameter :: hcomp5 ="iveg"
+      character(len=*), parameter :: footer1 =""
+      character(len=*), parameter :: footer2 = &
+                  "------------------------------------------------------------"
+      character(len=*), parameter :: hfmt1 = &
+                  '(A8, 4X, A8, 4X, A8, 4X, A8, 4X, A8, 4X, A8, 4X, A8,   4X, A8,   4X, A8,    4X, A8)'
+      character(len=*), parameter :: dfmt1 = &
+                  '(I8, 4X, I8, 4X, I8, 4X, I8, 4X, I8, 4X, I8, 4X, F8.3, 4X, F8.3, 4X, ES8.2, 4X, I8)'
+      character(len=30) :: chnode
+      character(len=12) :: filename
+      character(len=9), parameter :: basename="cable_mp_"
+      integer, dimension(um1%row_length,um1%rows) ::umi, umj 
+      integer, dimension(um1%land_pts, um1%ntiles) :: uml,umn 
+      integer, dimension(mp) :: cable_umi,cable_umj, cable_uml,cable_umn 
+ 
            
-            !CMIP6!allocate( cable%lat(mp), cable%lon(mp), cable%tile(mp), cable%tile_frac(mp) )
+            allocate( cable%lat(mp), cable%lon(mp), cable%tile(mp), cable%tile_frac(mp) )
 
-            !CMIP6!!-------------------------------------   
-            !CMIP6!!---make indexes for tile, lat, lon
-            !CMIP6!!-------------------------------------   
+            !-------------------------------------   
+            !---make indexes for tile, lat, lon
+            !-------------------------------------   
            
-            !CMIP6!!=== LaTITUDE 
-            !CMIP6!!form acoslat(:,:) & acoslon(:,:)
-            !CMIP6!!acoslat = ( latitude ) /cable%const%math%pi180
-            !CMIP6!
-            !CMIP6!!--- get latitude index corresponding to cable points
-            !CMIP6!!call um2cable_rr( (asin(latitude)/cable%const%math%pi180), cable%lat )
-            !CMIP6!!call um2cable_rr( ((latitude)/cable%const%math%pi180), cable%lat )
-            !CMIP6!!call um2cable_rr( acoslat, cable%lat )
-            !CMIP6!call um2cable_rr( latitude, cable%lat )
+            !=== LaTITUDE 
+            !form acoslat(:,:) & acoslon(:,:)
+            !acoslat = ( latitude ) /cable%const%math%pi180
+            
+            !--- get latitude index corresponding to cable points
+            !call um2cable_rr( (asin(latitude)/cable%const%math%pi180), cable%lat )
+            !call um2cable_rr( ((latitude)/cable%const%math%pi180), cable%lat )
+            !call um2cable_rr( acoslat, cable%lat )
+            call um2cable_rr( latitude, cable%lat )
            
-            !CMIP6!!==================================================================
+            !==================================================================
 
-            !CMIP6!!=== LONGITUDE 
-            !CMIP6!!acoslong =  ( longitude(:,2) ) /cable%const%math%pi180  
-            !CMIP6!!!acoslon =  ( longitude ) /cable%const%math%pi180  
-            !CMIP6!!acoslon1 =  acoslon(:,1) 
-            !CMIP6!!!acoslong =  acos( longitude(:,1) ) /cable%const%math%pi180  
+            !=== LONGITUDE 
+            !acoslong =  ( longitude(:,2) ) /cable%const%math%pi180  
+            !!acoslon =  ( longitude ) /cable%const%math%pi180  
+            !acoslon1 =  acoslon(:,1) 
+            !!acoslong =  acos( longitude(:,1) ) /cable%const%math%pi180  
        
-            !CMIP6!!!--- get longitude index corresponding to cable points.
-            !CMIP6!!!--- this is not so straight forward as UM longitude index 
-            !CMIP6!!!--- contains ambiguity. thus define "new_longitude" first
-            !CMIP6!!tlong(1) = acoslong(1)
-            !CMIP6!!do j=2, um1%row_length
-            !CMIP6!!   if( acoslong(j) < acoslong(j-1) ) then  
-            !CMIP6!!      dlon = acoslong(j) - acoslong(j-1)
-            !CMIP6!!      tlong(j) = tlong(j-1) - dlon   
-            !CMIP6!!   else 
-            !CMIP6!!      tlong(j) = acoslong(j)
-            !CMIP6!!   endif           
-            !CMIP6!!enddo
-            !CMIP6!!
-            !CMIP6!!do j=1, um1%row_length
-            !CMIP6!!   new_longitude(j,:) = tlong(j)
-            !CMIP6!!enddo
-            !CMIP6!
-            !CMIP6!call um2cable_rr( longitude, cable%lon )
-            !CMIP6!
-            !CMIP6!!==================================================================
+            !!--- get longitude index corresponding to cable points.
+            !!--- this is not so straight forward as UM longitude index 
+            !!--- contains ambiguity. thus define "new_longitude" first
+            !tlong(1) = acoslong(1)
+            !do j=2, um1%row_length
+            !   if( acoslong(j) < acoslong(j-1) ) then  
+            !      dlon = acoslong(j) - acoslong(j-1)
+            !      tlong(j) = tlong(j-1) - dlon   
+            !   else 
+            !      tlong(j) = acoslong(j)
+            !   endif           
+            !enddo
+            !
+            !do j=1, um1%row_length
+            !   new_longitude(j,:) = tlong(j)
+            !enddo
+            
+            call um2cable_rr( longitude, cable%lon )
+            
+            !==================================================================
          
-            !CMIP6!!--- get tile index/fraction  corresponding to cable points
-            !CMIP6!cable%tile = pack(tile_index_mp, um1%l_tile_pts)
-            !CMIP6!cable%tile_frac = pack(um1%tile_frac, um1%l_tile_pts)
+return          
+            !--- get tile index/fraction  corresponding to cable points
+            cable%tile = pack(tile_index_mp, um1%l_tile_pts)
+            cable%tile_frac = pack(um1%tile_frac, um1%l_tile_pts)
 
-            !CMIP6!!--- write all these maps.  cable_user%initialize_mapping can be 
-            !CMIP6!!--- set in namelist cable.nml
-            !CMIP6!!if ( cable_user%initialize_mapping ) then
-            !CMIP6!!write indexes for tile, lat, lon  !fudge
-            !CMIP6!!asinlatitude = ( latitude ) /cable%const%math%pi180
-            !CMIP6! 
-            !CMIP6!!call cable_diag( iDiag0, 'latitude', um1%rows, 1, ktau_gl,  & 
-            !CMIP6!!      knode_gl, 'latitude',asinlatitude(1,:)  ) 
+            !--- write all these maps.  cable_user%initialize_mapping can be 
+            !--- set in namelist cable.nml
+            !if ( cable_user%initialize_mapping ) then
+            !write indexes for tile, lat, lon  !fudge
+            !asinlatitude = ( latitude ) /cable%const%math%pi180
+             
+            !call cable_diag( iDiag0, 'latitude', um1%rows, 1, ktau_gl,  & 
+            !      knode_gl, 'latitude',asinlatitude(1,:)  ) 
 
 
-            !CMIP6!! ----------------------------------------------------------------------------------
-            !CMIP6!
-            !CMIP6!umi=0; umj=0; uml=0; umn=0            
-            !CMIP6!do i=1, um1%row_length      
-            !CMIP6!   do j=1, um1%rows     
-            !CMIP6!     umi(i,j) = i 
-            !CMIP6!     umj(i,j) = j 
-            !CMIP6!   enddo   
-            !CMIP6!enddo   
-            !CMIP6!
-            !CMIP6!do i=1, um1%land_pts
-            !CMIP6!   do j=1, um1%ntiles
-            !CMIP6!     uml(i,j) = i 
-            !CMIP6!     umn(i,j) = j 
-            !CMIP6!   enddo   
-            !CMIP6!enddo   
+            ! ----------------------------------------------------------------------------------
+            write(chnode,10) knode_gl
+   10       format(I3.3)   
+            filename=trim(trim(basename)//trim(chnode))
+            
+            umi=0; umj=0; uml=0; umn=0            
+            do i=1, um1%row_length      
+               do j=1, um1%rows     
+                 umi(i,j) = i 
+                 umj(i,j) = j 
+               enddo   
+            enddo   
+            
+            do i=1, um1%land_pts
+               do j=1, um1%ntiles
+                 uml(i,j) = i 
+                 umn(i,j) = j 
+               enddo   
+            enddo   
 
-            !CMIP6!call um2cable_irr( umi, cable_umi )
-            !CMIP6!call um2cable_irr( umj, cable_umj )
-            !CMIP6!
-            !CMIP6!cable_uml = pack(uml, um1%l_tile_pts)
-            !CMIP6!cable_umn = pack(umn, um1%l_tile_pts)
-            !CMIP6!
-            !CMIP6!!open(unit=12517,file=filename,status="unknown", &
-            !CMIP6!!      action="write", form="formatted",position='append' )
-            !CMIP6!!   
-            !CMIP6!!   write (12517, hfmt1) hcomp, hcompa, hcompb, hcompc, hcompd,hcomp1, hcomp2, hcomp3, hcomp4, hcomp5
-            !CMIP6!!   write (12517, *) footer2 
-            !CMIP6!!   do i=1, mp 
-            !CMIP6!!      WRITE(12517,dfmt1) , knode_gl, cable_umi(i), cable_umj(i), cable_uml(i), cable_umn(i), &
-            !CMIP6!!                        i, cable%lat(i), cable%lon(i),    &
-            !CMIP6!!                        cable%tile_frac(i), veg%iveg(i)  
-            !CMIP6!!   enddo   
-            !CMIP6!!   write (12517, *) footer1 
-            !CMIP6!!
-            !CMIP6!!close(12517)
+            call um2cable_irr( umi, cable_umi )
+            call um2cable_irr( umj, cable_umj )
+            
+            cable_uml = pack(uml, um1%l_tile_pts)
+            cable_umn = pack(umn, um1%l_tile_pts)
+            
+            !open(unit=12517,file=filename,status="unknown", &
+            !      action="write", form="formatted",position='append' )
+            !   
+            !   write (12517, hfmt1) hcomp, hcompa, hcompb, hcompc, hcompd,hcomp1, hcomp2, hcomp3, hcomp4, hcomp5
+            !   write (12517, *) footer2 
+            !   do i=1, mp 
+            !      WRITE(12517,dfmt1) , knode_gl, cable_umi(i), cable_umj(i), cable_uml(i), cable_umn(i), &
+            !                        i, cable%lat(i), cable%lon(i),    &
+            !                        cable%tile_frac(i), veg%iveg(i)  
+            !   enddo   
+            !   write (12517, *) footer1 
+            !
+            !close(12517)
 
-            !CMIP6!! ----------------------------------------------------------------------------------
-            !CMIP6! 
-            !CMIP6!call cable_diag( iDiag1, 'longitude', um1%row_length, 1, ktau_gl,  & 
-            !CMIP6!      knode_gl, 'longitude', ( new_longitude(:,1) ) ) 
+            ! ----------------------------------------------------------------------------------
+             
+            call cable_diag( iDiag1, 'longitude', um1%row_length, 1, ktau_gl,  & 
+                  knode_gl, 'longitude', ( new_longitude(:,1) ) ) 
         
-            !CMIP6!!write indexes for tile, lat, lon
-            !CMIP6!call cable_diag( iDiag2, 'lat_index', mp, 1, ktau_gl,  & 
-            !CMIP6!      knode_gl, 'lat', cable%lat )
-            !CMIP6!call cable_diag( iDiag3, 'lon_index', mp, 1, ktau_gl,  & 
-            !CMIP6!      knode_gl, 'lon', cable%lon )
-            !CMIP6!
-            !CMIP6!!this should be integer-ed. typecast for now
-            !CMIP6!call cable_diag( iDiag4, 'tile_index', mp, 1, ktau_gl,  & 
-            !CMIP6!      knode_gl, 'tile', real(cable%tile) )
-            !CMIP6!
-            !CMIP6!call cable_diag( iDiag5, 'tile_frac', mp, 1, ktau_gl,  & 
-            !CMIP6!      knode_gl, 'tile_frac', cable%tile_frac )
+            !write indexes for tile, lat, lon
+            call cable_diag( iDiag2, 'lat_index', mp, 1, ktau_gl,  & 
+                  knode_gl, 'lat', cable%lat )
+            call cable_diag( iDiag3, 'lon_index', mp, 1, ktau_gl,  & 
+                  knode_gl, 'lon', cable%lon )
+            
+            !this should be integer-ed. typecast for now
+            call cable_diag( iDiag4, 'tile_index', mp, 1, ktau_gl,  & 
+                  knode_gl, 'tile', real(cable%tile) )
+            
+            call cable_diag( iDiag5, 'tile_frac', mp, 1, ktau_gl,  & 
+                  knode_gl, 'tile_frac', cable%tile_frac )
             
       
       return
@@ -283,14 +312,8 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
          
          ! satcon in UM is in mm/s; Cable needs m/s
          soil%hyds    =  soil%hyds / 1000.
-         if (.not.cable_user%SOIL_STRUC=='sli') then
          soil%sucs    =  ABS( soil%sucs )
          soil%sucs    =  MAX(0.106,soil%sucs)
-         else
-         where (soil%isoilm /= 9 ) soil%sucs = (-1)* soil%sucs
-         endif
-         ! Lestevens - what to do here for sli ?
-         !soil%sucs    =  MAX(0.106,soil%sucs)
          
          !jhan:coupled runs 
          soil%hsbh    =  soil%hyds*ABS(soil%sucs)*soil%bch
@@ -309,21 +332,9 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
          soil%silt = soilin%silt(soil%isoilm)
          soil%sand = soilin%sand(soil%isoilm)
          
+            
          first_call= .FALSE.
       ENDIF
-
-         IF(cable_user%SOIL_STRUC=='sli') THEN
-            soil%nhorizons = 2 ! use 2 soil horizons globally
-            soil%clitt     = 5.0 ! (tC / ha)
-            soil%zeta      = 0.
-            soil%fsatmax   = 0.
-            soil%swilt_vec = SPREAD(soil%swilt,2,ms)
-            soil%ssat_vec  = SPREAD(soil%ssat,2,ms)
-            soil%sfc_vec   = SPREAD(soil%sfc,2,ms)
-            ! Arbitrarily set A horiz depth to be first half of the layers
-            soil%ishorizon(:,1:ms/2)  = 1
-            soil%ishorizon(:,ms/2+1:) = 2
-         END IF
 
    END SUBROUTINE initialize_soil
  
@@ -349,19 +360,7 @@ SUBROUTINE initialize_veg( canht_ft, lai_ft)
          veg%meth = 1
       ENDIF
       first_call= .FALSE.
-
-
-      IF(cable_user%SOIL_STRUC=='sli') THEN
-         veg%gamma = 1.e-2
-         veg%F10 = 0.85
-         veg%ZR = 5.0
-      END IF
-
-      IF(cable_user%CALL_POP) THEN
-         veg%disturbance_interval = 100
-         veg%disturbance_intensity = 0.
-      ENDIF
-
+     
 END SUBROUTINE initialize_veg
 
 !========================================================================
@@ -573,7 +572,7 @@ SUBROUTINE initialize_radiation( sw_down, lw_down, cos_zenith_angle,           &
       CALL um2cable_rr( QW_1, met%qv)
       CALL um2cable_rr( VSHR_LAND, met%ua)
       CALL um2cable_rr( PSTAR*0.01, met%pmb)
-   
+      
       !---re-set some of CABLE's forcing variables
       met%precip   =  met%precip + met%precip_sn 
       !met%precip   =  (met%precip + conv_rain_prevstep) &
@@ -591,7 +590,6 @@ SUBROUTINE initialize_radiation( sw_down, lw_down, cos_zenith_angle,           &
       ! (3d) CO2 field Convert CO2 from kg/kg to mol/mol ( m_air, 
       ! 28.966 taken from include/constant/ccarbon.h file )
       ! r935 rml 2/7/13 Add in co2_interactive option
-!CABLE_LSM: not yet available
       !IF (L_CO2_INTERACTIVE) THEN
       !  CALL um2cable_rr(CO2_3D, met%ca)
       !ELSE
@@ -632,18 +630,6 @@ SUBROUTINE initialize_canopy(canopy_tile)
          canopy%fes_cor = 0.
          canopy%fhs_cor = 0.
          first_call = .FALSE.
-
-      IF (cable_user%SOIL_STRUC=='sli') THEN
-       canopy%ofes    = 0.0  ! latent heat flux from soil (W/m2)
-       canopy%fevc    = 0.0  !vh!
-       canopy%fevw    = 0.0  !vh!
-       canopy%fns     = 0.0
-       canopy%fnv     = 0.0
-       canopy%fhv     = 0.0
-       canopy%fwsoil  = 1.0 ! vh -should be calculated from soil moisture or
-       !! be in restart file
-      ENDIF
-
       ENDIF
 
      !---set canopy storage (already in dim(land_pts,ntiles) ) 

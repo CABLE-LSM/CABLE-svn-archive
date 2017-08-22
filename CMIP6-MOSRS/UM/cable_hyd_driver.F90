@@ -66,7 +66,8 @@ SUBROUTINE cable_hyd_driver( land_pts, ntiles, lying_snow, SNOW_TILE, SURF_ROFF,
    
 SNOW_TILE= UNPACK(ssnow%snowd, L_TILE_PTS, miss) 
      !jh:really - we dont want this
-     LYING_SNOW = SUM(um1%TILE_FRAC * SNOW_TILE,2) !gridbox snow mass
+
+LYING_SNOW = SUM(um1%TILE_FRAC * SNOW_TILE,2) !gridbox snow mass
 
      SURF_CAB_ROFF  = UNPACK(ssnow%rnof1, L_TILE_PTS, miss)
 SURF_ROFF      = SUM(um1%TILE_FRAC * SURF_CAB_ROFF,2)

@@ -46,9 +46,9 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
                                   RADNET_TILE, FRACA, RESFS, RESFT,            &
                                   Z0H_TILE, Z0M_TILE,                          &
                                   RECIP_L_MO_TILE, EPOT_TILE,                  &
-!CPOOL_TILE, NPOOL_TILE, PPOOL_TILE,          &
-!SOIL_ORDER, NIDEP, NIFIX, PWEA, PDUST,       &
-!GLAI, PHENPHASE, NPP_FT_ACC, RESP_W_FT_ACC,  &
+CPOOL_TILE, NPOOL_TILE, PPOOL_TILE,          &
+SOIL_ORDER, NIDEP, NIFIX, PWEA, PDUST,       &
+GLAI, PHENPHASE, NPP_FT_ACC, RESP_W_FT_ACC,  &
 endstep, timestep_number, mype )    
    
    !--- reads runtime and user switches and reports
@@ -111,10 +111,6 @@ endstep, timestep_number, mype )
    INTEGER,  DIMENSION(land_pts, ntiles) ::                         & 
       tile_index ,& ! index of tile points being processed
       snow_flg3l   ! 3 layer snow flag
-!CABLE_LSM:omitted in 10.6-re-instate?
-   !--- TRUE if land, F elsewhere.
-   !jhan:rm land_mask
-   LOGICAL,DIMENSION(row_length,rows) :: land_mask   
 
    !___UM parameters: water density, soil layer thicknesses 
    REAL,  DIMENSION(sm_levels) :: dzsoil
@@ -231,6 +227,7 @@ endstep, timestep_number, mype )
       RECIP_L_MO_TILE,& ! Reciprocal of the Monin-Obukhov length for tiles (m^-1)
       EPOT_TILE
 
+   !r825 adds CASA vars here
    REAL, DIMENSION(land_pts,ntiles,10) :: &
       CPOOL_TILE,    & ! Carbon Pools
       NPOOL_TILE       ! Nitrogen Pools
@@ -314,42 +311,28 @@ integer ::  i,j
   !  endif  
   !endif  
 
- !CABLE_LSM: print vars to seperate text files. keep as ref. only
- !fprintf_dir=trim(fprintf_dir_root)//trim("expl_unpack")//"/"
+  IF(cable_user%run_diag_level == "fprint")                                    &     
+    fprintf_dir=trim(fprintf_dir_root)//trim("expl_unpack")//"/"
   
   !vname='' 
   !call cable_fprintf( cDiagX, vname, %, mp, L_fprint )
   !fprintf_____________________________________________________________________} 
  
-!hard-wired for now as not reasing namelists
-cable_user%cable_runtime_coupled=.FALSE.
-cable_user%diag_soil_resp='ON '
-cable_user%fwsoil_switch='standard'
-cable_user%l_new_reduce_soilevp=.FALSE.
-cable_user%l_new_roughness_soil=.FALSE.
-cable_user%l_new_runoff_speed=.FALSE.
-cable_user%leaf_respiration='OFF'
-cable_user%run_diag_level='BASIC'
-cable_user%ssnow_potev=''
-!casafile%cnpbiome='~/CABLE-AUX/core/biogeochem/pftlookup_csiro_v16_17tiles.csv'
-!casafile%phen='~/CABLE-AUX/core/biogeochem/modis_phenology_csiro.txt'
-!filename%soil='/home/599/lxs599/CABLE-AUX/core/biogeophys/def_soil_params.txt'
-!filename%veg='/home/599/lxs599/CABLE-AUX/core/biogeophys/def_veg_params.txt'
-icycle=0
-redistrb=.FALSE.
-satuparam=0.8
-wiltparam=0.5
+   !IF(cable_user%run_diag_level == "BASIC")                                    &     
+   !   CALL basic_diag(subr_name, "Called.") 
 
    !--- initialize cable_runtime% switches 
    cable_runtime%um = .TRUE.
    cable_runtime%um_explicit = .TRUE.
    
+   !--- UM7.3 latitude is not passed correctly. hack 
+   !IF(first_cable_call) latitude = sin_theta_latitude
+
    !--- user FLAGS, variables etc def. in cable.nml is read on 
    !--- first time step of each run. these variables are read at 
    !--- runtime and for the most part do not require a model rebuild.
-!CABLE_LSM: we dont need to do as Hardwired these aswell
    IF(first_cable_call) THEN
-      !*!CALL cable_um_runtime_vars(runtime_vars_file) 
+      CALL cable_um_runtime_vars(runtime_vars_file) 
       first_cable_call = .FALSE.
    ENDIF      
 
@@ -375,13 +358,14 @@ wiltparam=0.5
                    !CO2_3D,CO2_DIM_LEN,CO2_DIM_ROW,L_CO2_INTERACTIVE,   &
                            sthu_tile, smcl_tile, sthf_tile,                    &
                            sthu, tsoil_tile, canht_ft, lai_ft,                 &
-                           sin_theta_latitude, dzsoil )!,                         &
+                           sin_theta_latitude, dzsoil,                         &
                            ! r825	
-                           !CPOOL_TILE, NPOOL_TILE, PPOOL_TILE, SOIL_ORDER,     &
-                           !NIDEP, NIFIX, PWEA, PDUST, GLAI, PHENPHASE,         &
-                           !NPP_FT_ACC,RESP_W_FT_ACC )
+                           CPOOL_TILE, NPOOL_TILE, PPOOL_TILE, SOIL_ORDER,     &
+                           NIDEP, NIFIX, PWEA, PDUST, GLAI, PHENPHASE,         &
+                           NPP_FT_ACC,RESP_W_FT_ACC )
 
-  !fprintf_dir=trim(fprintf_dir_root)//trim("expl_driver")//"/"
+  IF(cable_user%run_diag_level == "fprint")                                    &     
+    fprintf_dir=trim(fprintf_dir_root)//trim("expl_driver")//"/"
 
    !---------------------------------------------------------------------!
    !--- Feedback prognostic vcmax and daily LAI from casaCNP to CABLE ---!
@@ -391,7 +375,8 @@ wiltparam=0.5
 
    canopy%oldcansto=canopy%cansto
 
-
+   IF(cable_user%run_diag_level == "BASIC")                                    &     
+      CALL basic_diag(subr_name, "call cbm.") 
    !---------------------------------------------------------------------!
    !--- real(timestep) width, CABLE types passed to CABLE "engine" as ---!  
    !--- req'd by Mk3L  --------------------------------------------------!
