@@ -254,7 +254,6 @@ MODULE cable_common_module
   
   character(len=200) :: fprintf_dir
 
-CONTAINS
 
 interface fudge_out
    module procedure fudge_out_r2D, fudge_out_r1D, fudge_out_r3D, fudge_out_i2D
