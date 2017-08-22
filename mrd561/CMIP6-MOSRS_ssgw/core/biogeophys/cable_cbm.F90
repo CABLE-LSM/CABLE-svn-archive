@@ -31,6 +31,7 @@ MODULE cable_cbm_module
 
    USE cable_canopy_module
    USE cable_albedo_module
+  USE sli_main_mod
 
    IMPLICIT NONE
 
@@ -69,7 +70,7 @@ CONTAINS
    TYPE (roughness_type), INTENT(INOUT) :: rough
    TYPE (soil_snow_type), INTENT(INOUT) :: ssnow
    TYPE (sum_flux_type),  INTENT(INOUT) :: sum_flux
-   TYPE (climate_type), INTENT(IN)    :: climate
+   TYPE (climate_type), INTENT(IN)      :: climate
 
    TYPE (soil_parameter_type), INTENT(INOUT)   :: soil
    TYPE (veg_parameter_type),  INTENT(INOUT)    :: veg
@@ -77,7 +78,7 @@ CONTAINS
    REAL, INTENT(IN)               :: dels ! time setp size (s)
    INTEGER, INTENT(IN) :: ktau
    INTEGER :: k,kk,j
-
+   logical, save :: first_call = .true.
 #ifdef NO_CASA_YET
    INTEGER :: ICYCLE
    ICYCLE = 0
@@ -115,7 +116,12 @@ CONTAINS
    ENDIf
 
    !! vh_js !!
-
+   !CABLE_LSM:check
+   IF( cable_runtime%um .AND. first_call ) then
+     ssnow%tss = ssnow%tgg(:,1)
+     ssnow%otss = ssnow%tss
+     first_call = .false.
+   endif
    ssnow%otss_0 = ssnow%otss  ! vh should be before call to canopy?
    ssnow%otss = ssnow%tss
 
@@ -123,7 +129,6 @@ CONTAINS
    IF (.not.(cable_user%or_evap .or. cable_user%gw_model) ) THEN
       call set_unsed_gw_vars(ssnow,soil,canopy)
    END IF
-   !END IF
 
    CALL define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,climate)
 

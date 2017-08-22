@@ -63,6 +63,7 @@ CONTAINS
     USE sli_utils, ONLY : potential_evap
     USE cable_psm, ONLY:  or_soil_evap_resistance
     USE cable_gw_hydro_module, ONLY : pore_space_relative_humidity, saturated_fraction
+    USE sli_main_mod, ONLY : sli_main
 
 
     TYPE (balances_type), INTENT(INOUT)  :: bal
@@ -1082,11 +1083,16 @@ CONTAINS
 
          ! zetar too +
          canopy%zetar(:,iterplus) = MIN(C%ZETPOS,canopy%zetar(:,iterplus))
-         canopy%zetash(:,iterplus) = MIN(C%ZETPOS,canopy%zetash(:,iterplus))
+         !jhan: to get past rigorous build - however (:,i) cant be compared 
+         !if ( canopy%zetash(:,iterplus) .NE. C%ZETPOS ) &
+            IF (cable_user%soil_struc=='sli') & 
+           canopy%zetash(:,iterplus) = MIN(C%ZETPOS,canopy%zetash(:,iterplus))
 
          ! zetar too -
          canopy%zetar(:,iterplus) = MAX(C%ZETNEG,canopy%zetar(:,iterplus))
-         canopy%zetash(:,iterplus) = MAX(C%ZETNEG,canopy%zetash(:,iterplus))
+         !if ( canopy%zetash(:,iterplus) .NE. C%ZETNEG ) &
+            IF (cable_user%soil_struc=='sli') & 
+           canopy%zetash(:,iterplus) = MAX(C%ZETNEG,canopy%zetash(:,iterplus))
 
       END IF ! (iter < NITER)
 
