@@ -1377,7 +1377,8 @@ END SUBROUTINE calc_soil_hydraulic_props
     TYPE (veg_parameter_type), INTENT(INOUT)     :: veg
     REAL(r_2), dimension(:), intent(in)       :: dzmm
     REAL(r_2), dimension(mp)                  :: sm_tot
-    integer :: i,k,k_drain
+    INTEGER, dimension(mp)                    :: k_drain
+    integer :: i,k
 
     do i=1,mp
 
@@ -1386,31 +1387,54 @@ END SUBROUTINE calc_soil_hydraulic_props
        ssnow%qhz(i)  = min(max(soil%slope(i),0.00001),0.1) *gw_params%MaxHorzDrainRate* &
                     exp(-ssnow%wtd(i)/(1000._r_2*(gw_params%EfoldHorzDrainRate)))
 
-       !drain from sat layers
-       k_drain = ms+1
-       do k=ms,2,-1
-          if (ssnow%wtd(i) .le. sum(dzmm(1:k),dim=1)) then
-             k_drain = k + 1
-          end if
-       end do
-       k_drain = max(k_drain,3)
+       if (gw_params%subsurface_sat_drainage) then
+          !drain from sat layers
+          k_drain(i) = ms+1
+          do k=ms,2,-1
+             if (ssnow%wtd(i) .le. sum(dzmm(1:k),dim=1)) then
+                k_drain(i) = k + 1
+             end if
+          end do
+          k_drain(i) = max(k_drain(i),3)
+       else
+          k_drain(i) = 2
+       end if
 
+   end do
 
+   do i=1,mp
        ssnow%qhlev(i,:) = 0._r_2
        sm_tot(i) = 0._r_2
        ssnow%qhlev(i,:) = 0._r_2
-       sm_tot(i) =ssnow%GWhk(i)! max(ssnow%GWwb(i) - soil%watr(i,ms),0._r_2)*(1._r_2-ssnow%fracice(i,ms))
-       do k=k_drain,ms
-          sm_tot(i) = sm_tot(i) +ssnow%hk(i,k)! max(ssnow%wbliq(i,k)-soil%watr(i,k),0._r_2)
-       end do
-       !sm_tot(i) = max(sm_tot(i),0.01_r_2)
 
-       if (sm_tot(i) .ge. 1.0e-10) then
-           do k=k_drain,ms
-              ssnow%qhlev(i,k) = soil%hyds_vec(i,k)*ssnow%qhz(i)*ssnow%hk(i,k)/sm_tot(i)
-           end do
-           ssnow%qhlev(i,ms+1) = soil%GWhyds_vec(i)*max(1._r_2-ssnow%fracice(i,ms),0._r_2)*ssnow%qhz(i)*ssnow%GWhk(i)/sm_tot(i)
-       endif
+       if (gw_params%subsurface_sat_drainage) then
+          sm_tot(i) = ssnow%GWhk(i)! max(ssnow%GWwb(i) - soil%watr(i,ms),0._r_2)*(1._r_2-ssnow%fracice(i,ms))
+
+          do k=k_drain(i),ms
+             sm_tot(i) = sm_tot(i) +ssnow%hk(i,k)! max(ssnow%wbliq(i,k)-soil%watr(i,k),0._r_2)
+          end do
+
+          if (sm_tot(i) .ge. 1.0e-12) then
+              do k=k_drain(i),ms
+                 ssnow%qhlev(i,k) = ssnow%qhz(i)*ssnow%hk(i,k)/sm_tot(i)
+              end do
+              ssnow%qhlev(i,ms+1) = max(1._r_2-ssnow%fracice(i,ms),0._r_2)*ssnow%qhz(i)*ssnow%GWhk(i)/sm_tot(i)
+          endif
+
+       else  !second option
+
+          sm_tot(i) = 0.
+          do k=k_drain(i),ms
+             sm_tot(i) = sm_tot(i) +ssnow%hk(i,k)! max(ssnow%wbliq(i,k)-soil%watr(i,k),0._r_2)
+          end do
+
+          if (sm_tot(i) .ge. 1.0e-12) then
+              do k=k_drain(i),ms
+                 ssnow%qhlev(i,k) = ssnow%qhz(i)*ssnow%hk(i,k)/sm_tot(i)
+              end do
+          endif
+
+       end if
 
        !incase every layer is frozen very dry
        ssnow%qhz(i) = sum(ssnow%qhlev(i,:),dim=1)

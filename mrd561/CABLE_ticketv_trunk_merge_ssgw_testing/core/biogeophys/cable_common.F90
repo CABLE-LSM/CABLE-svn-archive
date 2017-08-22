@@ -155,6 +155,7 @@ MODULE cable_common_module
      LOGICAL :: or_evap = .FALSE.
      LOGICAL :: test_new_gw=.false.
      LOGICAL :: sync_nc_file=.false.
+     INTEGER :: max_spins = -1
 
   END TYPE kbl_user_switches
 
@@ -307,6 +308,8 @@ MODULE cable_common_module
 
       INTEGER :: level_for_satfrac = 6
       LOGICAL :: ssgw_ice_switch = .false.
+ 
+      LOGICAL :: subsurface_sat_drainage = .false.
 
    END TYPE gw_parameters_type
 

@@ -120,13 +120,6 @@ CONTAINS
    ssnow%otss = ssnow%tss
 
    ! Calculate canopy variables:
-   !moved this to within canopy (calc_srf_wet_fraction calls saturated_fraction)
-   !IF (cable_user%or_evap .or. cable_user%gw_model) then
-   !   call saturated_fraction(ssnow,soil)
-   !   call calc_srf_wet_fraction(ssnow,soil,met%tk,veg%iveg)
-   !ELSE
-   !SET some states that new hydrology uses that do not get
-   !set when it is not called
    IF (.not.(cable_user%or_evap .or. cable_user%gw_model) ) THEN
       call set_unsed_gw_vars(ssnow,soil,canopy)
    END IF
