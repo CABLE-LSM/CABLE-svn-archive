@@ -429,11 +429,13 @@ build_build()
    fi
    
    # directories contain source code
-   CORE="../core/biogeophys"
+   PHYS="../core/biogeophys"
+   UTIL="../core/utils"
    DRV="."
    CASA="../core/biogeochem"
    
-   /bin/cp -p $CORE/*90 ./.tmp
+   /bin/cp -p $PHYS/*90 ./.tmp
+   /bin/cp -p $UTIL/*90 ./.tmp
    /bin/cp -p $DRV/*90 ./.tmp
    /bin/cp -p $CASA/*90 ./.tmp
    
