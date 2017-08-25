@@ -789,8 +789,10 @@ USE cable_common_module
 
    !CALL point2constants( C )
 
-   WHERE (canopy%precis > 0.0 .and. ssnow%isflag == 0)
-      ! accumulate solid part
+do i=1,mp   
+
+   if(canopy%precis(i) > 0.0 .and. ssnow%isflag(i) == 0) then
+         !accumulate solid part
       ssnow%snowd(i) = MAX( ssnow%snowd(i) + met%precip_sn(i), 0.0 ) 
 
       canopy%precis(i) = canopy%precis(i) - met%precip_sn(i)

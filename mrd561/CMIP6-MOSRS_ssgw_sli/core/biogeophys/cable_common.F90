@@ -200,17 +200,6 @@ MODULE cable_common_module
   ! hydraulic_redistribution parameters _soilsnow module
   REAL :: wiltParam=0.5, satuParam=0.8
   
-  !CABLE_LSM: soil/veg params types & subr deleted here 
-  ! vn10.6-CABLE hacks-hardwires these
-  !use these as the basis for namelist vars/files later in offline apps
-  
-  !CABLE_LSM: verify these are set if commented here
-  !   !---parameters, tolerances, etc. could be set in _directives.h
-  !jhan:cable.nml   real, parameter :: RAD_TOLS = 1.0e-2
-
-  !jhan:temporary measure. improve hiding
-  !   real, dimension(:,:), pointer,save :: c1, rhoch
-
    TYPE organic_soil_params
         !Below are the soil properties for fully organic soil
 
@@ -249,8 +238,23 @@ MODULE cable_common_module
 
    TYPE(gw_parameters_type), SAVE :: gw_params
 
+  !CABLE_LSM: soil/veg params types & subr deleted here 
+  ! vn10.6-CABLE hacks-hardwires these
+  !use these as the basis for namelist vars/files later in offline apps
+  
+  !CABLE_LSM: verify these are set if commented here
+  !   !---parameters, tolerances, etc. could be set in _directives.h
+  !jhan:cable.nml   real, parameter :: RAD_TOLS = 1.0e-2
 
-CONTAINS
+  !jhan:temporary measure. improve hiding
+  !   real, dimension(:,:), pointer,save :: c1, rhoch
+
+  !CABLE_LSM: intro'd quick writing capbility. remove from here. keep for ref
+  character(len=*), parameter :: &
+    fprintf_dir_root = "/short/w35/mrd561/10.6/diag/"
+  
+  character(len=200) :: fprintf_dir
+
 
 interface fudge_out
    module procedure fudge_out_r2D, fudge_out_r1D, fudge_out_r3D, fudge_out_i2D

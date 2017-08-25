@@ -61,6 +61,7 @@ CONTAINS
     USE cable_common_module
     USE cable_roughness_module
     USE sli_utils, ONLY : potential_evap
+    USE sli_main_mod, ONLY : sli_main
     USE cable_psm, ONLY:  or_soil_evap_resistance
     USE cable_gw_hydro_module, ONLY : pore_space_relative_humidity, saturated_fraction
 
