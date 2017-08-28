@@ -631,7 +631,7 @@ CONTAINS
 
 
           ELSEIF( zscl(j) >= rough%zruffs(j) ) THEN
-
+            !Ticket #67 - Modify order of operations to avoid potential error
              r_sc(j) = rough%rt0us(j) + rough%rt1usa(j) + rough%rt1usb(j) +     &
                        ( LOG( ( zscl(j) - rough%disp(j) ) /                     &
                                 MAX( rough%zruffs(j)-rough%disp(j),             &
@@ -2134,15 +2134,9 @@ CONTAINS
                           - (gswminz(i,j)*fwsoilz(i)/C%RGSWC)*cx2z(i,j)*csxz(i,j)
 
 
-                !kdcorbin, 09/10 - new calculations
-                ! no solution, give it a huge number
-                IF( ABS( coef2z(i,j) ) < 1.0e-9 .AND.                           &
-                     ABS( coef1z(i,j) ) < 1.0e-9 ) THEN
-
-                   ciz(i,j) = 99999.0
-                   anrubpz(i,j)  = 99999.0
-
-                ENDIF
+                !Ticket #117 - initialize at all times
+                 ciz(i,j) = 99999.0
+                 anrubpz(i,j)  = 99999.0
 
                 ! solve linearly
                 IF( ABS( coef2z(i,j) ) < 1.e-9 .AND.                            &
