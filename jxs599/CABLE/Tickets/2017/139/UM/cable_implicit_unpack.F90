@@ -142,7 +142,7 @@ use arraydiag_m
 !     GLEAF_TILE, & ! Local, kdcorbin, 10/10
 !     FRP_TILE
 
-   REAL, dimension(land_pts,npft) ::                           &
+   REAL, dimension(land_pts,ntiles) ::                           &
    !REAL, dimension(land_pts,ntiles) ::                           &
       RESP_P_FT,     &
       G_LEAF,        &
@@ -223,7 +223,8 @@ use arraydiag_m
 
   L_fprint = .false. !default
 
-  fprintf_dir=trim(fprintf_dir_root)//trim("impl_unpack")//"/"
+  IF(cable_user%run_diag_level == "fprint")                                    &     
+    fprintf_dir=trim(fprintf_dir_root)//trim("impl_unpack")//"/"
   
   !if( L_fprint_HW ) then
   !  if ( ktau_gl==1 .OR. ktau_gl==54 .OR. ktau_gl==154 .OR. &

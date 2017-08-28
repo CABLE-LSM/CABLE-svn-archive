@@ -87,6 +87,16 @@ SUBROUTINE cable_implicit_main(                                                &
   
   USE cable_gather_um_data_decs, ONLY : smvcst_cable  
   USE atmos_physics2_alloc_mod, ONLY : resp_s_tile
+
+
+  USE atm_fields_real_mod, ONLY : C_pool_casa, N_pool_casa, P_pool_casa,       &
+                                  SOIL_ORDER_casa, N_DEP_casa, N_FIX_casa,     &
+                                  P_DUST_casa, P_weath_casa, LAI_casa,         &
+                                  PHENPHASE_casa, NPP_PFT_ACC, RSP_W_PFT_ACC
+
+ USE model_time_mod, ONLY: &
+    target_end_stepim, i_day, i_day_number
+     
   implicit none
  
   !--- IN ARGS FROM sf_impl2_cable, passed from surf_couple_implicit() down ----
@@ -200,7 +210,7 @@ REAL ::                                                     &
   
   isnow_flg_cable = int(snow_flg_cable)
 
- call cable_implicit_driver(                               &
+ call cable_implicit_driver( i_day_number,                             &
 cycleno,                                                         & 
 row_length,rows, land_pts, ntiles, npft, sm_levels,              &
 dim_cs1, dim_cs2,                                                & 
@@ -243,7 +253,10 @@ RESP_S_TILE, &
 RESP_P, RESP_P_FT,  &
 G_LEAF, & 
 TL_1, QW_1, &
-SURF_HTF_surft)
+SURF_HTF_surft, &
+                              C_pool_casa, N_pool_casa, P_pool_casa,           &
+                              LAI_casa, PHENPHASE_casa,            &
+                              NPP_PFT_ACC, RSP_W_PFT_ACC )
  
   !----------------------------------------------------------------------------
   !----------------------------------------------------------------------------
@@ -256,6 +269,7 @@ SURF_HTF_surft)
   !----------------------------------------------------------------------------
   !----------------------------------------------------------------------------
   
+  snow_flg_cable = real(isnow_flg_cable)
   !----------------------------------------------------------------------------
   !--- Organize report writing for CABLE.                         -------------
   !--- OUT args @ timestep X,Y,Z                                  -------------

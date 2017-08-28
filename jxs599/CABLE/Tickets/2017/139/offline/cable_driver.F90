@@ -115,6 +115,8 @@ PROGRAM cable_offline_driver
 #ifdef NAG
   USE F90_UNIX
 #endif
+  use casa_inout_module
+  use casa_cable   
 
   IMPLICIT NONE
 
@@ -756,8 +758,9 @@ PROGRAM cable_offline_driver
                           ncfile = TRIM(casafile%c2cdumppath)//'c2c_'//CYEAR//'_dump.nc'
 
                           IF (TRIM(cable_user%MetType).EQ.'' ) THEN
+                             !jhan:assuming doy for mp=1 is same as ....
                              CALL write_casa_dump( ncfile, casamet , casaflux, phen, climate,&
-                                  INT(met%doy), LOY )
+                                  INT(met%doy(1)), LOY )
                           ELSE
                              CALL write_casa_dump( ncfile, casamet , casaflux, &
                                     phen, climate, idoy, kend/ktauday )

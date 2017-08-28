@@ -25,7 +25,7 @@ module cable_implicit_driv_mod
   
 contains
 
-subroutine cable_implicit_driver( &
+subroutine cable_implicit_driver( i_day_number, &
 cycleno,                                                         & 
 row_length,rows, land_pts, ntiles, npft, sm_levels,              &
 dim_cs1, dim_cs2,                                                & 
@@ -49,7 +49,6 @@ snow_tile, SNOW_RHO1L,       &
                                   CANOPY_GB, MELT_TILE, &
                                   NPP, NPP_FT, GPP, GPP_FT, RESP_S,   &
                                   RESP_S_TOT, &
-!CABLE_LSM: check on status of this in vn10.6-CABLE
                                   RESP_S_TILE, &
                                   RESP_P, RESP_P_FT,  &
                      ! r825 added casa vars after G_LEAF, but we need
@@ -58,11 +57,12 @@ snow_tile, SNOW_RHO1L,       &
                                   G_LEAF, & 
 !LYING_SNOW, SURF_ROFF, SUB_SURF_ROFF,  &
 !TOT_TFALL, 
-TL_1, QW_1, SURF_HTF_TILE )
+TL_1, QW_1, SURF_HTF_TILE, & 
                                   !TOT_TFALL )
-                                  !G_LEAF, TRANSP_TILE, CPOOL_TILE, NPOOL_TILE, &
-                                  !PPOOL_TILE, GLAI, PHENPHASE, NPP_FT_ACC,     &
-                                  !RESP_W_FT_ACC, idoy )
+                                  !G_LEAF, TRANSP_TILE, 
+                                  CPOOL_TILE, NPOOL_TILE, PPOOL_TILE,  &
+                                  GLAI, PHENPHASE, & 
+                                  NPP_FT_ACC, RESP_W_FT_ACC )
 
   USE cable_implicit_unpack_mod, ONLY : implicit_unpack
    USE cable_def_types_mod, ONLY : mp, msn
@@ -79,15 +79,19 @@ TL_1, QW_1, SURF_HTF_TILE )
    USE casavariable
    USE phenvariable
    USE casa_types_mod
-   !USE casa_cable
+   USE casa_cable, only : bgcdriver, sumcflux
    USE casa_um_inout_mod
   USE cable_common_module, ONLY :    fprintf_dir_root, fprintf_dir
   USE cable_diag_module
    USE cable_climate_mod
+   use POP_TYPES, only : pop_type
 
    IMPLICIT NONE
 
    TYPE (climate_type)  :: climate     ! climate variables
+  !necessary as arg checking is enforce in modular structure that now present 
+  ! - HOWEVER *NB*  this POP is not initialized anywhere
+  TYPE(POP_TYPE) :: POP 
   
   character(len=*), parameter :: subr_name = "cable_implicit_driver"
         
@@ -166,9 +170,8 @@ TL_1, QW_1, SURF_HTF_TILE )
       SNOW_TMP3L,    & !
       SNOW_COND        !
   !NOT declared as Ntiles in UM yet: reverted
-!CABLE_LSM: check on status of this in vn10.6-CABLE
    !REAL, DIMENSION(land_pts,ntiles) ::                              &
-   REAL, DIMENSION(land_pts,npft) ::                              &
+   REAL, DIMENSION(land_pts,ntiles) ::                              &
       RESP_P_FT,     &
       G_LEAF,        &
 !     FRS_TILE,   & ! Local
@@ -222,8 +225,9 @@ TL_1, QW_1, SURF_HTF_TILE )
       RESP_W_FT_ACC
 
    INTEGER ::     &
-      ktauday,    &  ! day counter for CASA-CNP
-      idoy           ! day of year (1:365) counter for CASA-CNP
+      ktauday,      & ! day counter for CASA-CNP
+      i_day_number, & ! day of year (1:365) counter for CASA-CNP
+      idoy            ! day of year (1:365) counter for CASA-CNP
    INTEGER, SAVE :: &
       kstart = 1
 
@@ -231,7 +235,6 @@ TL_1, QW_1, SURF_HTF_TILE )
       dtlc, & 
       dqwc
    
-!CABLE_LSM: check on status of this in vn10.6-CABLE
    REAL, DIMENSION(LAND_PTS) ::                               &
       LYING_SNOW,    & ! OUT Gridbox snowmass (kg/m2)        
       SUB_SURF_ROFF, & !
@@ -241,7 +244,7 @@ TL_1, QW_1, SURF_HTF_TILE )
    REAL, POINTER :: TFRZ
 
    !This is a quick fix. These can be organised through namelists
-   logical :: pop=.false., spinup=.false., spinconv=.false.,                   &
+   logical :: spinup=.false., spinconv=.false.,                   &
               dump_read=.false., dump_write=.false.
    integer :: loy=365, lalloc=0
    
@@ -312,6 +315,7 @@ TL_1, QW_1, SURF_HTF_TILE )
 
   L_fprint = .false. !default
 
+  IF(cable_user%run_diag_level == "fprint")                                    &     
   fprintf_dir=trim(fprintf_dir_root)//trim("impl_driver")//"/"
   
   !if( L_fprint_HW ) then
@@ -486,20 +490,19 @@ TL_1, QW_1, SURF_HTF_TILE )
 
       ! Lestevens - temporary ?
       ktauday = int(24.0*3600.0/TIMESTEP)
+      idoy=i_day_number
 !      IF(idoy==0) idoy =365
   
-! Lestevens Sept2012 - Call CASA-CNP
-!      if (l_casacnp) then
-!      CALL bgcdriver(ktau_gl,kstart,kend_gl,TIMESTEP,met,ssnow,canopy,veg,soil, &
-!                     casabiome,casapool,casaflux,casamet,casabal,phen,          &
-!                     .FALSE., .FALSE., ktauday, idoy, .FALSE., .FALSE. )
-!                     spinConv, spinup, ktauday, idoy, cable_user%casa_dump_read,&
-!                     cable_user%casa_dump_write )
-!      endif
+!Call CASA-CNP
+      if (l_casacnp) then
+      CALL bgcdriver(ktau_gl,kstart,kend_gl,timestep,met,ssnow,canopy,veg,soil, &
+                     climate,casabiome,casapool,casaflux,casamet,casabal,phen, &
+                     pop, spinConv,spinup, ktauday, idoy,loy, dump_read,   &
+                     dump_write, LALLOC)
+      endif
 
-!      CALL sumcflux(ktau_gl,kstart,kend_gl,TIMESTEP,bgc,canopy,soil,ssnow,      &
-!                    sum_flux,veg,met,casaflux,l_vcmaxFeedbk)
-!pass rowsetc - get L-tile_pts
+      CALL sumcflux(ktau_gl,kstart,kend_gl,TIMESTEP,bgc,canopy,soil,ssnow,      &
+                    sum_flux,veg,met,casaflux,l_vcmaxFeedbk)
 
      CALL implicit_unpack(& 
                             cycleno,                                         & 
@@ -518,23 +521,19 @@ TL_1, QW_1, SURF_HTF_TILE )
                            RESP_S_TOT, RESP_S_TILE, RESP_P, RESP_P_FT, G_LEAF,& 
                            TRANSP_TILE, NPP_FT_ACC, RESP_W_FT_ACC,SURF_HTF_TILE )
 
-
-
-! Lestevens Sept2012 - Call CASA-CNP
-!      if (l_casacnp) then
-!      !if (l_casacnp .and. ktau_gl==kend_gl ) then
-!        if (knode_gl==0 .and. ktau_gl==kend_gl) then
-!        !if (knode_gl==0) then
-!         print *, '  '; print *, 'CASA_log:'
-!         print *, '  Calling CasaCNP - Poolout '
-!         print *, '  l_casacnp = ',l_casacnp
-!         print *, '  ktau_gl, kend_gl = ',ktau_gl,kend_gl
-!         print *, 'End CASA_log:'; print *, '  '
-!        endif
-!       CALL casa_poolout_unpk(casapool,casaflux,casamet,casabal,phen,  &
-!                              CPOOL_TILE,NPOOL_TILE,PPOOL_TILE, &
-!                              GLAI,PHENPHASE)
-!      endif
+! Call CASA-CNP
+      if (l_casacnp) then
+        if (knode_gl==0 .and. ktau_gl==kend_gl) then
+         print *, '  '; print *, 'CASA_log:'
+         print *, '  Calling CasaCNP - Poolout '
+         print *, '  l_casacnp = ',l_casacnp
+         print *, '  ktau_gl, kend_gl = ',ktau_gl,kend_gl
+         print *, 'End CASA_log:'; print *, '  '
+        endif
+       CALL casa_poolout_unpk(casapool,casaflux,casamet,casabal,phen,  &
+                              CPOOL_TILE,NPOOL_TILE,PPOOL_TILE, &
+                              GLAI,PHENPHASE)
+      endif
 
       cable_runtime%um_implicit = .FALSE.
 

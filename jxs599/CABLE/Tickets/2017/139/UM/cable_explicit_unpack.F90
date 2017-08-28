@@ -215,7 +215,8 @@ use arraydiag_m
   !  endif  
   !endif  
 
-  fprintf_dir=trim(fprintf_dir_root)//trim("expl_unpack")//"/"
+  IF(cable_user%run_diag_level == "fprint")                                    &     
+    fprintf_dir=trim(fprintf_dir_root)//trim("expl_unpack")//"/"
   
   !vname='' 
   !call cable_fprintf( cDiagX, vname, %, mp, L_fprint )
@@ -225,8 +226,10 @@ use arraydiag_m
      
   !___return fluxes
 
-  if( L_fprint_HW ) L_fprint = .true.
-  
+  IF(cable_user%run_diag_level == "fprint") then 
+    if( L_fprint_HW ) L_fprint = .true.
+  endif
+
   vname='canopy_fh' ! FTL_TILE 
   call cable_fprintf( cDiag0, vname, canopy_fh/CAPP, mp, L_fprint )
   FTL_TILE = UNPACK(canopy_fh,  um1%l_tile_pts, miss)

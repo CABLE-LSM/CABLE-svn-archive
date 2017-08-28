@@ -43,11 +43,12 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
                               !r935 CO2_3D,CO2_DIM_LEN,CO2_DIM_ROW,L_CO2_INTERACTIVE,   &
                               sthu_tile, smcl_tile, sthf_tile, sthu,           &
                               tsoil_tile, canht_ft, lai_ft, sin_theta_latitude,&
-                              dzsoil )!, CPOOL_TILE, NPOOL_TILE, PPOOL_TILE,      &
-                              !SOIL_ORDER, NIDEP, NIFIX, PWEA, PDUST, GLAI,     &
-                              !PHENPHASE, NPP_FT_ACC, RESP_W_FT_ACC )
+                              dzsoil, CPOOL_TILE, NPOOL_TILE, PPOOL_TILE,      &
+                              SOIL_ORDER, NIDEP, NIFIX, PWEA, PDUST, GLAI,     &
+                              PHENPHASE, NPP_FT_ACC, RESP_W_FT_ACC )
 
    USE cable_um_init_subrs_mod          ! where most subrs called from here reside
+  USE casa_um_inout_mod
    
    USE cable_um_tech_mod,   ONLY :                                             &
       alloc_um_interface_types,  & ! mem. allocation subr (um1, kblum%) 
@@ -165,10 +166,8 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
    LOGICAL  :: L_CO2_INTERACTIVE
    INTEGER ::                              &
       CO2_DIM_LEN                                     &
-     ,CO2_DIM_ROW
- !CABLE_LSM:
-    !REAL, INTENT(IN) :: CO2_3D(CO2_DIM_LEN,CO2_DIM_ROW)  ! co2 mass mixing ratio
-    REAL :: CO2_3D(1,1)  ! co2 mass mixing ratio
+     ,CO2_DIM_ROW 
+   REAL :: CO2_3D(1,1)  ! co2 mass mixing ratio
 
    LOGICAL,DIMENSION(land_pts, ntiles) ::                       &
       L_tile_pts  ! true IF vegetation (tile) fraction is greater than 0
@@ -177,28 +176,28 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
       sin_theta_latitude
 
 ! Les 28 Spet 2012 - CASA-CNP Pools
-!   REAL, DIMENSION(land_pts,ntiles,10) :: &
-!      CPOOL_TILE, &
-!      NPOOL_TILE
-!
-!   REAL, DIMENSION(land_pts,ntiles,12) :: &
-!      PPOOL_TILE
-!
-!   REAL, DIMENSION(land_pts) :: &
-!      SOIL_ORDER, &
-!      NIDEP,      &
-!      NIFIX,      &
-!      PWEA,       &
-!      PDUST
-!
-!   REAL, DIMENSION(land_pts,ntiles) :: &
-!      GLAI, &
-!   !INTEGER, DIMENSION(land_pts,ntiles) :: &
-!      PHENPHASE
-!
-!   REAL, DIMENSION(land_pts,ntiles) :: &
-!      NPP_FT_ACC,   &
-!      RESP_W_FT_ACC
+   REAL, DIMENSION(land_pts,ntiles,10) :: &
+      CPOOL_TILE, &
+      NPOOL_TILE
+
+   REAL, DIMENSION(land_pts,ntiles,12) :: &
+      PPOOL_TILE
+
+   REAL, DIMENSION(land_pts) :: &
+      SOIL_ORDER, &
+      NIDEP,      &
+      NIFIX,      &
+      PWEA,       &
+      PDUST
+
+   REAL, DIMENSION(land_pts,ntiles) :: &
+      GLAI, &
+   !INTEGER, DIMENSION(land_pts,ntiles) :: &
+      PHENPHASE
+
+   REAL, DIMENSION(land_pts,ntiles) :: &
+      NPP_FT_ACC,   &
+      RESP_W_FT_ACC
 
    !------------------------------------------------------------------------- 
    !--- end INPUT ARGS FROM cable_explicit_driver() -------------------------
@@ -251,7 +250,6 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
                
                IF( um1%TILE_FRAC(i,j) .GT. 0.0 ) THEN 
                   um1%L_TILE_PTS(i,j) = .TRUE.
-                  !jhan:can set veg%iveg from  here ?
                   tile_index_mp(i,j) = j 
                ENDIF
             
@@ -302,23 +300,23 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
          CALL init_bgc_vars() 
          CALL init_sumflux_zero() 
 
-!      !--- initialize respiration for CASA-CNP
-!      !--- Lestevens 23apr13
-!      !IF (l_casacnp) THEN ?
-!         CALL init_respiration(NPP_FT_ACC,RESP_W_FT_ACC)
-!
-!      ! Lestevens 28 Sept 2012 - Initialize CASA-CNP here
-!         if (l_casacnp) then
-!           if (knode_gl==0) then
-!             print *, '  '; print *, 'CASA_log:'
-!             print *, '  Calling CasaCNP - Initialise '
-!             print *, '  l_casacnp = ',l_casacnp
-!             print *, 'End CASA_log:'; print *, '  '
-!           endif
-!           call init_casacnp(sin_theta_latitude,cpool_tile,npool_tile,&
-!                             ppool_tile,soil_order,nidep,nifix,pwea,pdust,&
-!                             GLAI,PHENPHASE)
-!         endif
+      !--- initialize respiration for CASA-CNP
+      !--- Lestevens 23apr13
+      !IF (l_casacnp) THEN ?
+         CALL init_respiration(NPP_FT_ACC,RESP_W_FT_ACC)
+
+      ! Lestevens 28 Sept 2012 - Initialize CASA-CNP here
+         if (l_casacnp) then
+           if (knode_gl==0) then
+             print *, '  '; print *, 'CASA_log:'
+             print *, '  Calling CasaCNP - Initialise '
+             print *, '  l_casacnp = ',l_casacnp
+             print *, 'End CASA_log:'; print *, '  '
+           endif
+           call init_casacnp(sin_theta_latitude,cpool_tile,npool_tile,&
+                             ppool_tile,soil_order,nidep,nifix,pwea,pdust,&
+                             GLAI,PHENPHASE)
+         endif
 
          CALL dealloc_vegin_soilin()
          first_call = .FALSE. 
