@@ -312,7 +312,7 @@ integer ::  i,j
   !endif  
 
   IF(cable_user%run_diag_level == "fprint")                                    &     
-    fprintf_dir=trim(fprintf_dir_root)//trim("expl_unpack")//"/"
+  fprintf_dir=trim(fprintf_dir_root)//trim("expl_unpack")//"/"
   
   !vname='' 
   !call cable_fprintf( cDiagX, vname, %, mp, L_fprint )
@@ -365,7 +365,7 @@ integer ::  i,j
                            NPP_FT_ACC,RESP_W_FT_ACC )
 
   IF(cable_user%run_diag_level == "fprint")                                    &     
-    fprintf_dir=trim(fprintf_dir_root)//trim("expl_driver")//"/"
+  fprintf_dir=trim(fprintf_dir_root)//trim("expl_driver")//"/"
 
    !---------------------------------------------------------------------!
    !--- Feedback prognostic vcmax and daily LAI from casaCNP to CABLE ---!

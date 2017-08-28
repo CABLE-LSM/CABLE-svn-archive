@@ -94,6 +94,9 @@ SUBROUTINE cable_implicit_main(                                                &
                                   P_DUST_casa, P_weath_casa, LAI_casa,         &
                                   PHENPHASE_casa, NPP_PFT_ACC, RSP_W_PFT_ACC
 
+ USE model_time_mod, ONLY: &
+    target_end_stepim, i_day, i_day_number
+     
   implicit none
  
   !--- IN ARGS FROM sf_impl2_cable, passed from surf_couple_implicit() down ----
@@ -207,7 +210,7 @@ REAL ::                                                     &
   
   isnow_flg_cable = int(snow_flg_cable)
 
- call cable_implicit_driver(                               &
+ call cable_implicit_driver( i_day_number,                             &
 cycleno,                                                         & 
 row_length,rows, land_pts, ntiles, npft, sm_levels,              &
 dim_cs1, dim_cs2,                                                & 

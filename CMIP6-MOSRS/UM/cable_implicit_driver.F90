@@ -25,7 +25,7 @@ module cable_implicit_driv_mod
   
 contains
 
-subroutine cable_implicit_driver( &
+subroutine cable_implicit_driver( i_day_number, &
 cycleno,                                                         & 
 row_length,rows, land_pts, ntiles, npft, sm_levels,              &
 dim_cs1, dim_cs2,                                                & 
@@ -225,8 +225,9 @@ TL_1, QW_1, SURF_HTF_TILE, &
       RESP_W_FT_ACC
 
    INTEGER ::     &
-      ktauday,    &  ! day counter for CASA-CNP
-      idoy           ! day of year (1:365) counter for CASA-CNP
+      ktauday,      & ! day counter for CASA-CNP
+      i_day_number, & ! day of year (1:365) counter for CASA-CNP
+      idoy            ! day of year (1:365) counter for CASA-CNP
    INTEGER, SAVE :: &
       kstart = 1
 
@@ -315,7 +316,7 @@ TL_1, QW_1, SURF_HTF_TILE, &
   L_fprint = .false. !default
 
   IF(cable_user%run_diag_level == "fprint")                                    &     
-    fprintf_dir=trim(fprintf_dir_root)//trim("impl_driver")//"/"
+  fprintf_dir=trim(fprintf_dir_root)//trim("impl_driver")//"/"
   
   !if( L_fprint_HW ) then
   !  if ( ktau_gl==1 .OR. ktau_gl==54 .OR. ktau_gl==154 .OR. &
@@ -489,9 +490,10 @@ TL_1, QW_1, SURF_HTF_TILE, &
 
       ! Lestevens - temporary ?
       ktauday = int(24.0*3600.0/TIMESTEP)
+      idoy=i_day_number
 !      IF(idoy==0) idoy =365
   
-! Call CASA-CNP
+!Call CASA-CNP
       if (l_casacnp) then
       CALL bgcdriver(ktau_gl,kstart,kend_gl,timestep,met,ssnow,canopy,veg,soil, &
                      climate,casabiome,casapool,casaflux,casamet,casabal,phen, &
@@ -519,8 +521,7 @@ TL_1, QW_1, SURF_HTF_TILE, &
                            RESP_S_TOT, RESP_S_TILE, RESP_P, RESP_P_FT, G_LEAF,& 
                            TRANSP_TILE, NPP_FT_ACC, RESP_W_FT_ACC,SURF_HTF_TILE )
 
-
-! CASA-CNP
+! Call CASA-CNP
       if (l_casacnp) then
         if (knode_gl==0 .and. ktau_gl==kend_gl) then
          print *, '  '; print *, 'CASA_log:'
