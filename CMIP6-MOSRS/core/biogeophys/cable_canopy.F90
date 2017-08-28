@@ -633,13 +633,19 @@ CONTAINS
           ELSEIF( zscl(j) >= rough%zruffs(j) ) THEN
 
              r_sc(j) = rough%rt0us(j) + rough%rt1usa(j) + rough%rt1usb(j) +     &
-                  ( LOG( (zscl(j) - rough%disp(j)) /                       &
-                  MAX( rough%zruffs(j)-rough%disp(j),                      &
-                  rough%z0soilsn(j) ) ) - psis( (zscl(j)-rough%disp(j))    &
-                  / (rough%zref_tq(j)/canopy%zetar(j,iterplus) ) )         &
-                  + psis( (rough%zruffs(j) - rough%disp(j) )               &
-                  / (rough%zref_tq(j)/canopy%zetar(j,iterplus ) ) ) )      &
-                  / C%VONK
+                       ( LOG( ( zscl(j) - rough%disp(j) ) /                     &
+                                MAX( rough%zruffs(j)-rough%disp(j),             &
+                                     rough%z0soilsn(j)                          &
+                                   )                                            &
+                            )                                                   &
+                         - psis( ( zscl(j) - rough%disp(j) )                    &
+                                 * canopy%zetar(j,iterplus) / rough%zref_tq(j)  &
+                               )                                                &
+                         + psis( ( rough%zruffs(j) - rough%disp(j) )            &
+                                 * canopy%zetar(j,iterplus) / rough%zref_tq(j)  & 
+                               )                                                &
+                       )                                                        &
+                       / C%VONK
 
           ENDIF
 
