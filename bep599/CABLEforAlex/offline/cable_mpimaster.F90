@@ -321,7 +321,7 @@ SUBROUTINE mpidrv_master (comm)
        globalMetfile%l_gswp   = .FALSE.
        globalMetfile%l_access = .FALSE.
        PRINT *, 'Using GPCC met forcing.'
-       IF (ncciy < 1901 .OR. ncciy > 2010) THEN
+       IF (ncciy < 1901 .OR. ncciy > 2013) THEN
           PRINT *, 'Year ', ncciy, ' outside range of dataset!'
           PRINT *, 'Please check input in namelist file.'
           STOP

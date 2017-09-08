@@ -2530,18 +2530,18 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
       END IF
       ! hacking to read Alex's gpp
       ! Only read file on first hour of first day of each month (using GMT)
-      IF (met%hod(22880)<1.1 .AND. (ABS(met%doy(22880)-1  )<0.1 .OR.  &
-                                 !   ABS(met%doy(22880)-32 )<0.1 .OR.  &
-                                 !   ABS(met%doy(22880)-60 )<0.1 .OR.  &
-                                 !   ABS(met%doy(22880)-91 )<0.1 .OR.  &
-                                 !   ABS(met%doy(22880)-121)<0.1 .OR.  &    !2007 data start from May
-                                    ABS(met%doy(22880)-152)<0.1 .OR.  &
-                                    ABS(met%doy(22880)-182)<0.1 .OR.  &
-                                    ABS(met%doy(22880)-213)<0.1 .OR.  &
-                                    ABS(met%doy(22880)-244)<0.1 .OR.  &
-                                    ABS(met%doy(22880)-274)<0.1 .OR.  &
-                                    ABS(met%doy(22880)-305)<0.1 .OR.  &
-                                    ABS(met%doy(22880)-335)<0.1 ) ) THEN
+      IF (met%hod(22880)<1.1 .AND. (ABS(met%doy(22880)-1  )<0.02 .OR.  &
+                                    ABS(met%doy(22880)-32 )<0.02 .OR.  &
+                                    ABS(met%doy(22880)-60 )<0.02 .OR.  &
+                                    ABS(met%doy(22880)-91 )<0.02 .OR.  &
+                                    ABS(met%doy(22880)-121)<0.02 .OR.  &
+                                    ABS(met%doy(22880)-152)<0.02 .OR.  &
+                                    ABS(met%doy(22880)-182)<0.02 .OR.  &
+                                    ABS(met%doy(22880)-213)<0.02 .OR.  &
+                                    ABS(met%doy(22880)-244)<0.02 .OR.  &
+                                    ABS(met%doy(22880)-274)<0.02 .OR.  &
+                                    ABS(met%doy(22880)-305)<0.02 .OR.  &
+                                    ABS(met%doy(22880)-335)<0.02 ) ) THEN
         PRINT *, 'ktau_Alex = ', ktau
         tmpGpp = -99.0
 !        ok= NF90_OPEN('./surface_data/Alex_gpp.nc',0,ncid_Alex)
@@ -2549,11 +2549,26 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
         IF(ok /= NF90_NOERR) CALL nc_abort(ok,'Error opening gpp_Alex file')
         ok = NF90_INQ_VARID(ncid_Alex,'SIF-derived GPP',varID)
         IF(ok /= NF90_NOERR) CALL nc_abort(ok,'Error inquiring gpp_Alex')
-        IF (ABS(met%doy(22880)-1  )<0.1) THEN
-          ok= NF90_GET_VAR(ncid_Alex,varID,tmpVar,start=(/1,1,met%moy/),count=(/85,69,1/))
-        ELSE
-          ok= NF90_GET_VAR(ncid_Alex,varID,tmpVar,start=(/1,1,met%moy-4/),count=(/85,69,1/))
-        ENDIF
+! Wrong calendar! Data start from January not May.
+!        !IF (ABS(met%doy(22880)-1  )<0.1) THEN
+!        !  ok= NF90_GET_VAR(ncid_Alex,varID,tmpVar,start=(/1,1,met%moy/),count=(/85,69,1/))
+!        !ELSE
+!        !  ok= NF90_GET_VAR(ncid_Alex,varID,tmpVar,start=(/1,1,met%moy-4/),count=(/85,69,1/))
+!        !ENDIF
+!        !ok= NF90_GET_VAR(ncid_Alex,varID,tmpVar,start=(/1,1,met%moy+8/),count=(/85,69,1/))   ! for 2008 GPP
+!        !ok= NF90_GET_VAR(ncid_Alex,varID,tmpVar,start=(/1,1,met%moy+20/),count=(/85,69,1/))  ! for 2009 GPP
+!        !ok= NF90_GET_VAR(ncid_Alex,varID,tmpVar,start=(/1,1,met%moy+32/),count=(/85,69,1/))  ! for 2010 GPP
+!        !ok= NF90_GET_VAR(ncid_Alex,varID,tmpVar,start=(/1,1,met%moy+44/),count=(/85,69,1/))  ! for 2011 GPP
+!        !ok= NF90_GET_VAR(ncid_Alex,varID,tmpVar,start=(/1,1,met%moy+56/),count=(/85,69,1/))  ! for 2012 GPP
+!        ok= NF90_GET_VAR(ncid_Alex,varID,tmpVar,start=(/1,1,met%moy+68/),count=(/85,69,1/))  ! for 2013 GPP
+!        IF(ok /= NF90_NOERR) CALL nc_abort(ok,'Error reading gpp_Alex')
+        !ok= NF90_GET_VAR(ncid_Alex,varID,tmpVar,start=(/1,1,met%moy/),count=(/85,69,1/))     ! for 2007 GPP 
+        !ok= NF90_GET_VAR(ncid_Alex,varID,tmpVar,start=(/1,1,met%moy+12/),count=(/85,69,1/))   ! for 2008 GPP
+        !ok= NF90_GET_VAR(ncid_Alex,varID,tmpVar,start=(/1,1,met%moy+24/),count=(/85,69,1/))  ! for 2009 GPP
+        !ok= NF90_GET_VAR(ncid_Alex,varID,tmpVar,start=(/1,1,met%moy+36/),count=(/85,69,1/))  ! for 2010 GPP
+        !ok= NF90_GET_VAR(ncid_Alex,varID,tmpVar,start=(/1,1,met%moy+48/),count=(/85,69,1/))  ! for 2011 GPP
+        !ok= NF90_GET_VAR(ncid_Alex,varID,tmpVar,start=(/1,1,met%moy+60/),count=(/85,69,1/))  ! for 2012 GPP
+        ok= NF90_GET_VAR(ncid_Alex,varID,tmpVar,start=(/1,1,met%moy+72/),count=(/85,69,1/))  ! for 2013 GPP
         IF(ok /= NF90_NOERR) CALL nc_abort(ok,'Error reading gpp_Alex')
         ! get rid of negative gpp (become zero)
         ! and change missing values (NaN) to -99.0
