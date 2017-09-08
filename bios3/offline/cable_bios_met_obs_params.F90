@@ -144,7 +144,7 @@ CONTAINS
   EQDates = .true.
   IF (Date1%day   /= Date2%day   .OR. &
       Date1%month /= Date2%month .OR. &
-	  Date1%year  /= Date2%year) EQDates = .false.
+      Date1%year  /= Date2%year) EQDates = .false.
   END FUNCTION EQDates
 
 !*******************************************************************************
@@ -511,6 +511,15 @@ MODULE cable_bios_met_obs_params
 ! parameter initialisation happens after other initialisations. Our choice is to overwrite the defaults, so this has to be
 ! done after the defaults are read in. 
 
+  CHARACTER(200) :: Run            ! 'spinup', 'premet', 'standard'
+                                   ! 'spinup' uses recycled met (from later date), and constant CO2 and Ndep
+                                   ! 'premet' uses recycled met (from later date), and actual CO2 and Ndep (e.g. appropriate before met starts in 1900)
+                                   ! 'standard' uses actual met, and actual CO2 and Ndep
+  CHARACTER(len=15) :: CO2         ! CO2 takes value       : "preind","actual"
+  CHARACTER(len=15) :: Ndep        ! Ndep takes value      : "preind","actual"
+  CHARACTER(len=15) :: MetForcing  ! MetForcing takes value: "recycled", "actual"
+
+
   CHARACTER(200) :: met_path, param_path, landmaskflt_file, landmaskhdr_file, &
     rain_file, swdown_file, tairmax_file, tairmin_file, co2_file, &
     b1_file, b2_file, bulkdens1_kgm3_file, bulkdens2_kgm3_file, clayfrac1_file, clayfrac2_file, &
@@ -532,8 +541,13 @@ MODULE cable_bios_met_obs_params
   INTEGER(i4b),  SAVE :: rain_unit, swdown_unit, tairmax_unit, tairmin_unit, co2_unit ! Met file unit numbers
   
   TYPE(dmydate), SAVE :: previous_date ! The day before the current date, for noting changes of year
-  TYPE(dmydate), SAVE :: bios_rundate ! The day before the current date, for noting changes of year
+  TYPE(dmydate), SAVE :: bios_rundate  ! The day before the current date, for noting changes of year
   TYPE(dmydate)       :: dummydate     ! Dummy date for when keeping the date is not required
+  TYPE(dmydate),SAVE  :: MetDate       ! Date of met to access (equals current date for normals runs, but
+                                       ! must be calculated for spinup and initialisation runs (for dates before 1900)
+  INTEGER(i4b),PARAMETER :: recycle_met_startdate = 1900 ! range for met to be recycled for spinup and initialisation
+  INTEGER(i4b),PARAMETER :: recycle_met_enddate = 1930 
+  INTEGER(i4b)   :: skipdays                        ! Days of met to skip when user_startdate is after bios_startdate
 
   REAL(sp), PRIVATE, PARAMETER :: SecDay = 86400.
   TYPE(WEATHER_GENERATOR_TYPE), SAVE :: WG
@@ -564,8 +578,6 @@ CONTAINS
   TYPE(MET_TYPE), INTENT(INOUT)       :: MET 
   ! Local variables
   
-
-
   LOGICAL,  SAVE :: call1 = .TRUE.
   INTEGER(i4b)   :: iunit  
   INTEGER(i4b)   :: MaskCols, MaskRows  ! Landmask col and row dimensions
@@ -582,11 +594,10 @@ CONTAINS
   TYPE(dmydate)  :: bios_startdate, bios_enddate    ! First and last dates found in bios met files (read from rain file)
   TYPE(dmydate)  :: user_startdate, user_enddate    ! First and last run dates specified by user (read from cable_user%)
   INTEGER(i4b)   :: bios_rundays                    ! Days in run, from bios_startdate or user_startdate to bios_enddate 
-  INTEGER(i4b)   :: skipdays                        ! Days of met to skip when user_startdate is after bios_startdate
   INTEGER(i4b)   :: co2_startyear, co2_endyear      ! First and last years found in bios global CO2 files 
   INTEGER(i4b)   :: co2_skipyears                   ! Years of annual CO2 to skip to position for reading the current year
   INTEGER(i4b)   :: iday, iyear ! counters
-  NAMELIST /biosnml/ met_path, param_path, landmaskflt_file, landmaskhdr_file, &
+  NAMELIST /biosnml/ Run, met_path, param_path, landmaskflt_file, landmaskhdr_file, &
     rain_file, swdown_file, tairmax_file, tairmin_file, co2_file, &
     b1_file, b2_file, bulkdens1_kgm3_file, bulkdens2_kgm3_file, clayfrac1_file, clayfrac2_file, &
     csoil1_file, csoil2_file, depth1_m_file, depth2_m_file, hyk1sat_ms_file, hyk2sat_ms_file, & 
@@ -604,7 +615,7 @@ CONTAINS
 
 !%%%%%%%%%%%%%%%
 
-!print *,met_path, param_path, landmaskflt_file, landmaskhdr_file, &
+!print *,Run, met_path, param_path, landmaskflt_file, landmaskhdr_file, &
 !    rain_file, swdown_file, tairmax_file, tairmin_file, co2_file, &
 !    b1_file, b2_file, bulkdens1_kgm3_file, bulkdens2_kgm3_file, clayfrac1_file, clayfrac2_file, &
 !    csoil1_file, csoil2_file, depth1_m_file, depth2_m_file, hyk1sat_ms_file, hyk2sat_ms_file, & 
@@ -613,7 +624,120 @@ CONTAINS
 
 !stop 'end test'
 
+  ! Assign MetForcing, CO2 and Ndep cases based only on the value of Run from bios namelist file
+  SELECT CASE (TRIM(Run))
+  CASE( "spinup" )       ! corresponds to S0_TRENDY in CRU
+    MetForcing = "recycled"
+    CO2     = "preind"
+    Ndep    = "preind"
+    WRITE(*   ,*)"Run = 'spinup': Therefore MetForcing = 'spinup', CO2 = 'preind', Ndep = 'preind'"
+    WRITE(logn,*)"Run = 'spinup': Therefore MetForcing = 'spinup', CO2 = 'preind', Ndep = 'preind'"
+  CASE( "premet" )    ! corresponds to S1_TRENDY in CRU
+    MetForcing = "recycled"
+    CO2     = "actual"
+    Ndep     = "actual"
+    WRITE(*   ,*)"Run = 'premet': Therefore MetForcing = 'recycled', CO2 = 'actual', Ndep = 'actual'"
+    WRITE(logn,*)"Run = 'premet': Therefore MetForcing = 'recycled', CO2 = 'actual', Ndep = 'actual'"
+  CASE( "standard" )    ! corresponds to S2_TRENDY in CRU
+    MetForcing = "actual"
+    CO2     = "actual"
+    Ndep     = "actual"
+    WRITE(*   ,*)"Run = 'standard': Therefore MetForcing = 'actual', CO2 = 'actual', Ndep = 'actual'"
+    WRITE(logn,*)"Run = 'standard': Therefore MetForcing = 'actual', CO2 = 'actual', Ndep = 'actual'"
+  CASE  default
+    WRITE(*   ,*)"Wrong Run in bios nml file: ",Run
+    WRITE(*   ,*)"Use: spinup, premet or standard!"
+    WRITE(*   ,*)"Program stopped"
+    WRITE(logn,*)"Wrong Run in bios nml file: ",Run
+    WRITE(logn,*)"Use: spinup, premet or standard!"
+    WRITE(logn,*)"Program stopped"
+    STOP  
+  END SELECT
 
+  ! Print settings
+  WRITE(*   ,*)"========================================= BIOS ============"
+  WRITE(*   ,*)"BIOS settings chosen:"
+  WRITE(*   ,*)" Run      = ",TRIM(Run)
+  WRITE(*   ,*)" MetForcing (assigned) : ",TRIM(MetForcing)
+  WRITE(*   ,*)" CO2     (assigned) : ",TRIM(CO2)
+  WRITE(*   ,*)" Ndep     (assigned) : ",TRIM(Ndep)
+  WRITE(*   ,*)" met_path      = ",TRIM(met_path)
+  WRITE(*   ,*)" param_path    = ",TRIM(param_path)
+  WRITE(*   ,*)" landmaskflt_file  = ",TRIM(landmaskflt_file)
+  WRITE(*   ,*)" landmaskhdr_file  = ",TRIM(landmaskhdr_file)
+  WRITE(*   ,*)" rain_file     = ",TRIM(rain_file)
+  WRITE(*   ,*)" swdown_file   = ",TRIM(swdown_file)
+  WRITE(*   ,*)" tairmax_file  = ",TRIM(tairmax_file)
+  WRITE(*   ,*)" tairmin_file  = ",TRIM(tairmin_file)
+  WRITE(*   ,*)" co2_file      = ",TRIM(co2_file)
+  WRITE(*   ,*)" b1_file             = ",TRIM(b1_file)
+  WRITE(*   ,*)" b2_file             = ",TRIM(b2_file)
+  WRITE(*   ,*)" bulkdens1_kgm3_file = ",TRIM(bulkdens1_kgm3_file)
+  WRITE(*   ,*)" bulkdens2_kgm3_file = ",TRIM(bulkdens2_kgm3_file)
+  WRITE(*   ,*)" clayfrac1_file      = ",TRIM(clayfrac1_file)
+  WRITE(*   ,*)" clayfrac2_file      = ",TRIM(clayfrac2_file)
+  WRITE(*   ,*)" csoil1_file         = ",TRIM(csoil1_file)
+  WRITE(*   ,*)" csoil2_file         = ",TRIM(csoil2_file)
+  WRITE(*   ,*)" depth1_m_file       = ",TRIM(depth1_m_file)
+  WRITE(*   ,*)" depth2_m_file       = ",TRIM(depth2_m_file)
+  WRITE(*   ,*)" hyk1sat_ms_file     = ",TRIM(hyk1sat_ms_file)
+  WRITE(*   ,*)" hyk2sat_ms_file     = ",TRIM(hyk2sat_ms_file)
+  WRITE(*   ,*)" psie1_m_file        = ",TRIM(psie1_m_file)
+  WRITE(*   ,*)" psie2_m_file        = ",TRIM(psie2_m_file)
+  WRITE(*   ,*)" siltfrac1_file      = ",TRIM(siltfrac1_file)
+  WRITE(*   ,*)" siltfrac2_file      = ",TRIM(siltfrac2_file)
+  WRITE(*   ,*)" wvol1fc_m3m3_file   = ",TRIM(wvol1fc_m3m3_file)
+  WRITE(*   ,*)" wvol2fc_m3m3_file   = ",TRIM(wvol2fc_m3m3_file)
+  WRITE(*   ,*)" wvol1sat_m3m3_file  = ",TRIM(wvol1sat_m3m3_file)
+  WRITE(*   ,*)" wvol2sat_m3m3_file  = ",TRIM(wvol2sat_m3m3_file)
+  WRITE(*   ,*)" wvol1w_m3m3_file    = ",TRIM(wvol1w_m3m3_file)
+  WRITE(*   ,*)" wvol2w_m3m3_file    = ",TRIM(wvol2w_m3m3_file)
+  !WRITE(*   ,*)" slope_deg_file      = ",TRIM(slope_deg_file)
+  WRITE(*   ,*)" DT(secs): ",dels
+
+  WRITE(logn,*)"========================================= BIOS ============"
+  WRITE(logn,*)"BIOS settings chosen:"
+  WRITE(logn,*)" Run      = ",TRIM(Run)
+  WRITE(logn,*)" MetForcing (assigned) : ",TRIM(MetForcing)
+  WRITE(logn,*)" CO2     (assigned) : ",TRIM(CO2)
+  WRITE(logn,*)" Ndep     (assigned) : ",TRIM(Ndep)
+  WRITE(logn,*)" met_path      = ",TRIM(met_path)
+  WRITE(logn,*)" param_path    = ",TRIM(param_path)
+  WRITE(logn,*)" landmaskflt_file  = ",TRIM(landmaskflt_file)
+  WRITE(logn,*)" landmaskhdr_file  = ",TRIM(landmaskhdr_file)
+  WRITE(logn,*)" rain_file     = ",TRIM(rain_file)
+  WRITE(logn,*)" swdown_file   = ",TRIM(swdown_file)
+  WRITE(logn,*)" tairmax_file  = ",TRIM(tairmax_file)
+  WRITE(logn,*)" tairmin_file  = ",TRIM(tairmin_file)
+  WRITE(logn,*)" co2_file      = ",TRIM(co2_file)
+  WRITE(logn,*)" b1_file             = ",TRIM(b1_file)
+  WRITE(logn,*)" b2_file             = ",TRIM(b2_file)
+  WRITE(logn,*)" bulkdens1_kgm3_file = ",TRIM(bulkdens1_kgm3_file)
+  WRITE(logn,*)" bulkdens2_kgm3_file = ",TRIM(bulkdens2_kgm3_file)
+  WRITE(logn,*)" clayfrac1_file      = ",TRIM(clayfrac1_file)
+  WRITE(logn,*)" clayfrac2_file      = ",TRIM(clayfrac2_file)
+  WRITE(logn,*)" csoil1_file         = ",TRIM(csoil1_file)
+  WRITE(logn,*)" csoil2_file         = ",TRIM(csoil2_file)
+  WRITE(logn,*)" depth1_m_file       = ",TRIM(depth1_m_file)
+  WRITE(logn,*)" depth2_m_file       = ",TRIM(depth2_m_file)
+  WRITE(logn,*)" hyk1sat_ms_file     = ",TRIM(hyk1sat_ms_file)
+  WRITE(logn,*)" hyk2sat_ms_file     = ",TRIM(hyk2sat_ms_file)
+  WRITE(logn,*)" psie1_m_file        = ",TRIM(psie1_m_file)
+  WRITE(logn,*)" psie2_m_file        = ",TRIM(psie2_m_file)
+  WRITE(logn,*)" siltfrac1_file      = ",TRIM(siltfrac1_file)
+  WRITE(logn,*)" siltfrac2_file      = ",TRIM(siltfrac2_file)
+  WRITE(logn,*)" wvol1fc_m3m3_file   = ",TRIM(wvol1fc_m3m3_file)
+  WRITE(logn,*)" wvol2fc_m3m3_file   = ",TRIM(wvol2fc_m3m3_file)
+  WRITE(logn,*)" wvol1sat_m3m3_file  = ",TRIM(wvol1sat_m3m3_file)
+  WRITE(logn,*)" wvol2sat_m3m3_file  = ",TRIM(wvol2sat_m3m3_file)
+  WRITE(logn,*)" wvol1w_m3m3_file    = ",TRIM(wvol1w_m3m3_file)
+  WRITE(logn,*)" wvol2w_m3m3_file    = ",TRIM(wvol2w_m3m3_file)
+  !WRITE(logn,*)" slope_deg_file      = ",TRIM(slope_deg_file)
+  WRITE(logn,*)" timestep in secs  = ",dels
+  WRITE(logn,*)" DT(secs): ",dels
+
+  WRITE(*   ,*)"========================================= BIOS ============"
+  WRITE(logn,*)"========================================= BIOS ============"
   
   ! Read the header file for the landmask file and parse it for dimensions
   ! and no-data value. Allocate logical, integer (CABLE) and real (temporary
@@ -664,7 +788,6 @@ CONTAINS
   FORALL (irow=1:MaskRows) ColRowGrid(:,irow) = irow
   land_y = PACK(ColRowGrid,mask=LandMaskLogical)
 
-
 ! convert latitude and longitude to array
   ALLOCATE (lat_all(MaskCols,MaskRows))
   ALLOCATE (lon_all(MaskCols,MaskRows))
@@ -683,7 +806,7 @@ CONTAINS
     longitude(iLand) = MaskRes * real((land_x(iLand) - 1)) + MaskCtrW
     latitude(iLand) = MaskCtrS + (real(MaskRows - land_y(iLand)) * MaskRes)
   END DO
-  
+
 ! If this is the first ever initialisation, open the met files, sort
 ! out the run's date range with respect to the available met data,
 ! and allocate memory for met vars. Otherwise, just rewind the  
@@ -711,7 +834,6 @@ CONTAINS
     IF (cable_user%yearstart == 0 .and. cable_user%yearend == 0) THEN
 
 ! Using date arithmetic, calculate the number of days in the bios run. 
-
       bios_rundays =  DayDifference(bios_enddate, bios_startdate) + 1
       skipdays = 0
 
@@ -729,15 +851,12 @@ CONTAINS
       smoy        = 1
       syear       = curyear
 
-
 !      met%hod (landpt(:)%cstart) = 0 ! Cable run always starts at midnight
 !      met%doy (landpt(:)%cstart) = 1 ! Cable run always starts on Jan 1...
 !      met%year(landpt(:)%cstart) = curyear ! ...of the current year
 
-
       cable_user%yearstart = bios_startdate%year
       cable_user%yearend = bios_enddate%year
-
       
     ELSE
 ! Dates are user specified, so they must be tested for compliance with the 
@@ -746,14 +865,29 @@ CONTAINS
 ! User-specified start & end dates are just years: convert them to dmy dates.
       user_startdate = dmydate(1,1,cable_user%yearstart)
       user_enddate   = dmydate(31,12,cable_user%yearend)
+      curyear = user_startdate%year  ! The initial current year is set prior to any skipping.
       
 ! Initialise the previous_date as one day before the user_startdate,
 ! using date arithmetic.
       previous_date = user_startdate - 1
+      shod        = 0.
+      sdoy        = 1
+      smoy        = 1
+      syear       = curyear
+      
+! For spinup and initialisation before met begins (1900), calculate the required met year for repeatedly cycling through the
+! spinup meteorology between recycle_met_startdate - recycle_met_enddate. For normal runs (1900-2015), MetDate%Year = curyear.
+      MetDate%day = 1
+      MetDate%month = 1
+      IF (TRIM(MetForcing) .EQ. 'recycled') THEN
+        MetDate%Year = recycle_met_startdate + MOD(curyear-syear,recycle_met_enddate-recycle_met_startdate+1)
+      ELSE IF (TRIM(MetForcing) .EQ. 'actual' ) THEN
+        MetDate%Year = curyear
+      ENDIF
 
 ! The user-specified run startdate must be no earlier than the first available met.
 ! Stop if the user startdate is mis-specified in this way.
-      skipdays = DayDifference(user_startdate , bios_startdate)
+      skipdays = DayDifference(MetDate, bios_startdate)
       IF (skipdays < 0) THEN
         STOP "ERROR in cable_bios_init: user_startdate < bios_startdate"
       END IF
@@ -761,19 +895,11 @@ CONTAINS
       ! In this case the bios run is what is left of the bios met
       ! after skipping to the user startdate.
       bios_rundays = DayDifference(bios_enddate , user_startdate) + 1
-      curyear = user_startdate%year  ! The initial current year is set prior to any skipping.
       kend = bios_rundays * ktauday  ! Final timestep
 
-
-      shod        = 0.
-      sdoy        = 1
-      smoy        = 1
-      syear       = curyear
-      
 !      met%hod (landpt(:)%cstart) = 0
 !      met%doy (landpt(:)%cstart) = 1
 !      met%year(landpt(:)%cstart) = curyear
-
 
     END IF  ! End of test for user start/end dates set to zero.
     
@@ -817,6 +943,11 @@ CONTAINS
     READ (tairmax_unit) dummydate, tairmax_day
     READ (tairmin_unit) dummydate, tairmin_day
   END DO
+  dummydate = dummydate + 1
+  IF (skipdays .gt. 0) THEN
+    write(*,*) 'Met skipped, ready to read from ',dummydate
+    write(logn,*) 'Met skipped, ready to read from ',dummydate
+  END IF
   
   ! Likewise, skip through the annual CO2 records to position for reading
   ! the first relevant year.
@@ -824,7 +955,6 @@ CONTAINS
     READ (co2_unit) dummydate, co2air_year
   END DO
   
-   
   CONTAINS
 
     SUBROUTINE open_bios_met
@@ -862,7 +992,7 @@ CONTAINS
       STOP ''
     END IF
   
-    CALL GET_UNIT(co2_unit)  ! Minimum air temperature  
+    CALL GET_UNIT(co2_unit)  ! CO2
     OPEN (co2_unit, FILE=TRIM(met_path)//TRIM(co2_file), FORM='BINARY', STATUS='OLD',IOSTAT=error_status)
     IF (error_status > 0) THEN
       WRITE (*,'("STOP - File not found: ", A<LEN_TRIM(TRIM(met_path)//TRIM(co2_file))>)') TRIM(met_path)//TRIM(co2_file)
@@ -881,9 +1011,6 @@ CONTAINS
     ! Read a single day of meteorology from all bios met files, updating the bios_rundate
     ! If a change of year has occurred, read an annual CO2 record
     
-    
-    
-    
     IMPLICIT NONE
 
     INTEGER, INTENT(IN)  :: CurYear, ktau, kend
@@ -891,15 +1018,14 @@ CONTAINS
     REAL, INTENT(IN) :: dels                        ! time step size in seconds
     TYPE(MET_TYPE), INTENT(INOUT)       :: MET
 
-    
     LOGICAL(lgt)   :: newday
 !    real(sp),parameter:: RMW       = 0.018016 ! molecular wt of water     [kg/mol]
 !    real(sp),parameter:: RMA       = 0.02897 ! atomic wt of C            [kg/mol]
     real(sp),parameter:: RMWbyRMA  = 0.62188471 ! molecular wt of water [kg/mol] / atomic wt of C [kg/mol]
+    integer(i4b)   :: iday
     integer(i4b)   :: iland       ! Loop counter through mland land cells
     integer(i4b)   :: is, ie      ! For each land cell, the start and ending index position within the larger cable spatial
                                   ! vectors of the first and last tile for that land cell. 
-    
 
     met%hod (landpt(:)%cstart) = REAL(MOD( (ktau-1) * NINT(dels), INT(SecDay)) ) / 3600.
     met%doy (landpt(:)%cstart) = INT(REAL(ktau-1) * dels / SecDay ) + 1
@@ -914,7 +1040,39 @@ CONTAINS
        READ (tairmax_unit) bios_rundate, tairmax_day       ! Packed vector of daily AWAP/BIOS max air temp (deg C)
        READ (tairmin_unit) bios_rundate, tairmin_day       ! Packed vector of daily AWAP/BIOS min air temp (deg C)
 
+       IF (MetDate /= bios_rundate) THEN
+         write(*,*) 'Expecting to read met for ',MetDate,' but actually read met for ',bios_rundate
+         write(*,*) 'Program stopped'
+         STOP
+       END IF
 
+       ! Increment MetDate. 
+       MetDate = MetDate + 1
+
+       ! If MetForcing is 'recycled', check whether we need to rewind files and skip to correct position
+       if (MetForcing .eq. 'recycled') then
+         if (MetDate%Year .gt. recycle_met_enddate) then
+           MetDate%Day = 1
+           MetDate%Month = 1
+           MetDate%Year = recycle_met_startdate
+           REWIND (rain_unit)
+           REWIND (swdown_unit)
+           REWIND (tairmax_unit)
+           REWIND (tairmin_unit)
+           REWIND (co2_unit)
+           DO iday = 1,skipdays
+             READ (rain_unit) dummydate, rain_day
+             READ (swdown_unit) dummydate, swdown_day
+             READ (tairmax_unit) dummydate, tairmax_day
+             READ (tairmin_unit) dummydate, tairmin_day
+           END DO
+           dummydate = dummydate + 1
+           IF (skipdays .gt. 0) THEN
+             write(*,*) 'Met skipped, ready to read from ',dummydate
+             write(logn,*) 'Met skipped, ready to read from ',dummydate
+           END IF
+         endif
+       endif
 
        !! NB !! Peter to fix as in Cabledyn !!
        !if (ktau.eq.1) then       
@@ -946,9 +1104,13 @@ CONTAINS
   
        WG%PmbDay = 1000.0 ! Air pressure in mb fixed in space and time
 
-       IF (previous_date%year < bios_rundate%year) THEN
-          READ (co2_unit) dummydate, co2air_year          ! Single global value of co2 (ppm)
-          met%ca(:) = CO2air_year / 1.e+6   
+       IF (previous_date%year .ne. bios_rundate%year) THEN
+         IF ( TRIM(CO2) .EQ. "preind") THEN
+           met%ca(:) = 286.42 / 1.e+6  ! CO2 for 1860
+         ELSE
+           READ (co2_unit) dummydate, co2air_year          ! Single global value of co2 (ppm)
+           met%ca(:) = CO2air_year / 1.e+6   
+         END IF
        END IF
 
        ! Finished operations for this day, so the current date becomes the previous date.  

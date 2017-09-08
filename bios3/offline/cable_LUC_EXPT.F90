@@ -84,8 +84,6 @@ CONTAINS
     ALLOCATE( LUC_EXPT%grass(mland) )
     ALLOCATE( LUC_EXPT%mtemp_min20(mland) )
 
-    
-    
     ! READ LUC_EXPT settings
     CALL GET_UNIT(iu)
     OPEN (iu,FILE="LUC.nml",STATUS='OLD',ACTION='READ')
@@ -296,6 +294,7 @@ CONTAINS
 !!$    WHERE (LUC_EXPT%ivegp == 14)
 !!$       LUC_EXPT%prim_only = .TRUE.
 !!$    END WHERE
+
     
  END SUBROUTINE LUC_EXPT_INIT
   
@@ -486,8 +485,6 @@ USE netcdf
   ! Close NetCDF file:
   STATUS = NF90_close(FILE_ID)
   IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-
-
 
 
 END SUBROUTINE READ_CLIMATEFILE

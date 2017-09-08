@@ -63,7 +63,7 @@ PROGRAM cable_offline_driver
   USE cable_IO_vars_module, ONLY: logn,gswpfile,ncciy,leaps,		      &
        verbose, fixedCO2,output,check,patchout,	   &
        patch_type,soilparmnew,&
-       defaultLAI, sdoy, smoy, syear, timeunits, exists
+       defaultLAI, sdoy, smoy, syear, timeunits, exists, calendar
   USE cable_common_module,  ONLY: ktau_gl, kend_gl, knode_gl, cable_user,     &
        cable_runtime, filename, myhome,		   &
        redistrb, wiltParam, satuParam, CurYear,	   &
@@ -83,7 +83,7 @@ PROGRAM cable_offline_driver
   USE cable_output_module,  ONLY: create_restart,open_output_file,	      &
        write_output,close_output_file
   USE cable_write_module,   ONLY: nullify_write
-  USE cable_IO_vars_module, ONLY: timeunits
+  USE cable_IO_vars_module, ONLY: timeunits,calendar
   USE cable_cbm_module
   USE cable_diag_module
   !mpidiff
@@ -356,6 +356,7 @@ PROGRAM cable_offline_driver
 
   IF ( TRIM(cable_user%MetType) .EQ. 'gpgs' ) THEN
      leaps = .TRUE.
+     calendar = "standard"
      cable_user%MetType = 'gswp'
   ENDIF
 
@@ -424,6 +425,7 @@ PROGRAM cable_offline_driver
           str3 = adjustl(str3)
           timeunits="seconds since "//trim(str1)//"-"//trim(str2)//"-"//trim(str3)//" &
                             00:00"
+          calendar = 'standard'
         ENDIF
 
 print *, "CABLE_USER%YearStart,  CABLE_USER%YearEnd", CABLE_USER%YearStart,  CABLE_USER%YearEnd
@@ -487,7 +489,11 @@ print *, "CABLE_USER%YearStart,  CABLE_USER%YearEnd", CABLE_USER%YearStart,  CAB
                  str3 = adjustl(str3)
                  timeunits="seconds since "//trim(str1)//"-"//trim(str2)//"-"//trim(str3)//" &
                             00:00"
-               
+                 if (leaps) then
+                   calendar = "standard"
+                 else
+                   calendar = "noleap"
+                 endif
 	      ENDIF
 	      IF ( .NOT. PLUME%LeapYears ) LOY = 365
 	      kend = NINT(24.0*3600.0/dels) * LOY
@@ -517,7 +523,7 @@ print *, "CABLE_USER%YearStart,  CABLE_USER%YearEnd", CABLE_USER%YearStart,  CAB
                  str3 = adjustl(str3)
                  timeunits="seconds since "//trim(str1)//"-"//trim(str2)//"-"//trim(str3)//" &
                             00:00"
-
+                 calendar = "noleap"
 
 	      ENDIF
 	       LOY = 365
@@ -533,7 +539,6 @@ print *, "CABLE_USER%YearStart,  CABLE_USER%YearEnd", CABLE_USER%YearStart,  CAB
     ! be chosen from a coarse global grid of veg and soil types, based on
     ! the lat/lon coordinates. Allocation of CABLE's main variables also here.
     IF ( CALL1 ) THEN
-       
        IF (cable_user%POPLUC) THEN
           CALL LUC_EXPT_INIT (LUC_EXPT)
        ENDIF
