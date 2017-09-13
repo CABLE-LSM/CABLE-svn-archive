@@ -27,6 +27,7 @@
 !               NB Currently hard-wired to veg types 2 and 7
 !                  (usually evergreen broadleaf and c4 grass)
 !          v2.0 ssoil variable renamed ssnow
+!          Aug 2017 - applied changes for cls and rev_corr packages
 !
 ! ==============================================================================
 
@@ -52,6 +53,7 @@ MODULE cable_soil_snow_module
       max_ssdn = 750.0,    & !
       max_sconds = 2.51,   & !
       frozen_limit = 0.85    ! EAK Feb2011 (could be 0.95)
+                             ! INH if changed see latent_heat() in _canopy
 
    REAL :: cp    ! specific heat capacity for air
 
@@ -60,9 +62,10 @@ MODULE cable_soil_snow_module
 
    ! This module contains the following subroutines:
    PUBLIC soil_snow ! must be available outside this module
-   PRIVATE snowdensity, snow_melting, snowcheck, snowl_adjust
-   PRIVATE trimb, smoisturev, snow_accum, stempv
-   PRIVATE soilfreeze, remove_trans
+   PUBLIC snowdensity, snow_melting, snowcheck, snowl_adjust,snow_accum, stempv,trimb
+   PUBLIC cgsnow,csice,cswat,rhowat,snmin,max_ssdn,max_sconds,frozen_limit,C,max_glacier_snowd
+   PRIVATE smoisturev
+   PRIVATE soilfreeze,remove_trans
 
 CONTAINS
 
@@ -200,6 +203,8 @@ SUBROUTINE smoisturev (dels,ssnow,soil,veg)
       u,    & ! I/O unit
       k
 
+
+   !CALL point2constants( C )
 
 
    at = 0.0
@@ -556,6 +561,8 @@ SUBROUTINE snowdensity (dels, ssnow, soil)
    REAL, DIMENSION(mp) :: ssnow_tgg_min1
    REAL, DIMENSION(mp,3) :: dels_ssdn, ssnow_tgg_min
 
+   !CALL point2constants( C )
+
    ssnow_isflag_ssdn = SPREAD( ssnow%isflag,2,mp)
 
    dels_ssdn = SPREAD( SPREAD( dels, 1, mp ), 2,  mp )
@@ -663,6 +670,9 @@ SUBROUTINE snow_melting (dels, snowmlt, ssnow, soil )
       snowflx    !
 
    REAL, DIMENSION(mp,0:3) :: smelt1
+
+
+   !CALL point2constants( C )
 
    snowmlt= 0.0
    smelt1 = 0.0
@@ -776,6 +786,8 @@ USE cable_common_module
       xxx        !
 
    INTEGER             :: k
+
+   !CALL point2constants( C )
 
    WHERE (canopy%precis > 0.0 .and. ssnow%isflag == 0)
       ! accumulate solid part
@@ -897,7 +909,12 @@ USE cable_common_module
    ssnow%evapsn = 0
 
    ! Snow evaporation and dew on snow
-   WHERE( ssnow%snowd > 0.1 )
+   ! NB the conditions on when %fes applies to %segg or %evapsn MUST(!!)
+   ! match those used to set %cls in the latent_heat_flux calculations 
+   ! for moisture conservation purposes 
+   ! Ticket 137 - using %cls as the trigger not %snowd
+   WHERE ( ssnow%cls == 1.1335 )
+   !WHERE( ssnow%snowd > 0.1 )
 
       ssnow%evapsn = dels * ( canopy%fess + canopy%fes_cor ) / ( C%HL + C%HLF )
       xxx = ssnow%evapsn
@@ -916,6 +933,10 @@ USE cable_common_module
       END WHERE
 
       canopy%segg = 0.0
+
+      !INH: cls package 
+      !we still need to conserve moisture/energy when evapsn is limited
+      !this is a key point of moisture non-conservation
 
    END WHERE
 
@@ -953,6 +974,8 @@ SUBROUTINE surfbv (dels, met, ssnow, soil, veg, canopy )
 
    REAL :: wb_lake_T, rnof2_T, ratio
    INTEGER :: k,j
+
+   !CALL point2constants( C )
 
    CALL smoisturev( dels, ssnow, soil, veg )
 
@@ -1307,6 +1330,8 @@ SUBROUTINE snowcheck(dels, ssnow, soil, met )
 
    INTEGER :: k,j
 
+   !CALL point2constants( C )
+
    DO j=1,mp
 
       IF( ssnow%snowd(j) <= 0.0 ) THEN
@@ -1561,6 +1586,8 @@ SUBROUTINE soilfreeze(dels, soil, ssnow)
    REAL, DIMENSION(mp)           :: xx
    INTEGER k
 
+   !CALL point2constants( C )
+
    xx = 0.
    DO k = 1, ms
 
@@ -1625,6 +1652,8 @@ SUBROUTINE remove_trans(dels, soil, ssnow, canopy, veg)
    REAL(r_2), DIMENSION(mp,0:ms) :: diff
    REAL(r_2), DIMENSION(mp)      :: xx,xxd,evap_cur
    INTEGER k
+
+   !CALL point2constants( C )
 
   IF (cable_user%FWSOIL_switch.ne.'Haverd2013') THEN
      xx = 0.; xxd = 0.; diff(:,:) = 0.
@@ -1864,11 +1893,27 @@ SUBROUTINE soil_snow(dels, soil, ssnow, canopy, met, bal, veg)
 
    ! correction required for energy balance in online simulations
    IF( cable_runtime%um ) THEN
+
+      !cls package - rewritten for flexibility
       canopy%fhs_cor = ssnow%dtmlt(:,1)*ssnow%dfh_dtg
-      canopy%fes_cor = ssnow%dtmlt(:,1)*(ssnow%dfe_ddq * ssnow%ddq_dtg)
+      !canopy%fes_cor = ssnow%dtmlt(:,1)*(ssnow%dfe_ddq * ssnow%ddq_dtg)
+      canopy%fes_cor = ssnow%dtmlt(:,1)*ssnow%dfe_dtg
 
       canopy%fhs = canopy%fhs+canopy%fhs_cor
       canopy%fes = canopy%fes+canopy%fes_cor
+
+      !REV_CORR associated changes to other energy balance terms
+      !NB canopy%fns changed not rad%flws as the correction term needs to
+      !pass through the canopy in entirety, not be partially absorbed
+      IF (cable_user%L_REV_CORR) THEN
+         canopy%fns_cor = ssnow%dtmlt(:,1)*ssnow%dfn_dtg
+         canopy%ga_cor = ssnow%dtmlt(:,1)*canopy%dgdtg
+
+         canopy%fns = canopy%fns + canopy%fns_cor
+         canopy%ga = canopy%ga + canopy%ga_cor
+
+         canopy%fess = canopy%fess + canopy%fes_cor
+      ENDIF
    ENDIF
 
    ! redistrb (set in cable.nml) by default==.FALSE.
@@ -1937,6 +1982,8 @@ SUBROUTINE hydraulic_redistribution(dels, soil, ssnow, canopy, veg, met)
       hr_perTime    !
 
    INTEGER :: j, k
+
+   !CALL point2constants( C )
 
    zsetot = sum(soil%zse)
    totalmoist(:) = 0.0
