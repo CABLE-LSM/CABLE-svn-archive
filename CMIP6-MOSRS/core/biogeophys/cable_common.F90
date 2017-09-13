@@ -254,9 +254,6 @@ MODULE cable_common_module
 
    TYPE(gw_parameters_type), SAVE :: gw_params
 
-
-CONTAINS
-
   !CABLE_LSM: intro'd quick writing capbility. remove from here. keep for ref
   character(len=*), parameter :: &
     fprintf_dir_root = "/short/p66/jxs599/10.6/diag/March1/"

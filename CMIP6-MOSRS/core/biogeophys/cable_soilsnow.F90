@@ -917,7 +917,7 @@ do i=1,mp
    ! match those used to set %cls in the latent_heat_flux calculations 
    ! for moisture conservation purposes 
    ! Ticket 137 - using %cls as the trigger not %snowd
-   if( ssnow%cls(i) == 1.1335 )
+   if( ssnow%cls(i) == 1.1335 ) then
    !WHERE( ssnow%snowd > 0.1 )
 
       ssnow%evapsn(i) = dels * ( canopy%fess(i) + canopy%fes_cor(i) ) / ( C%HL + C%HLF )

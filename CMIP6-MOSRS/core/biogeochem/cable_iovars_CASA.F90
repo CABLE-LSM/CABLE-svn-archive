@@ -17,7 +17,7 @@
 !          Additional code to use multiple vegetation types per grid-cell (patches)
 !
 ! ==============================================================================
-MODULE cable_IO_vars_module
+MODULE cable_IO_vars_CASA_module
 
    USE cable_def_types_mod, ONLY : r_2, mvtype, mstype
 
@@ -364,4 +364,4 @@ MODULE cable_IO_vars_module
   ! For threading:
   !$OMP THREADPRIVATE(landpt,patch)
 
-END MODULE cable_IO_vars_module
+END MODULE cable_IO_vars_CASA_module
