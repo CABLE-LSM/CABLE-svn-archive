@@ -22,6 +22,7 @@
 !
 ! History: Calling sequence changes for ACCESS compared to v1.4b
 !
+!          REV_CORR package of fixes for the sensitivity/correction terms 
 !
 ! ==============================================================================
 
@@ -46,7 +47,7 @@ CONTAINS
 
    USE cable_common_module
    USE cable_carbon_module
-   USE cable_soil_snow_module
+   USE cable_soil_snow_module, only : soil_snow
    USE cable_def_types_mod
    USE cable_roughness_module
    USE cable_radiation_module
@@ -55,6 +56,8 @@ CONTAINS
    USE casadimension,     only : icycle ! used in casa_cnp
 #endif
    USE cable_data_module, ONLY : icbm_type, point2constants
+   !mrd561
+   USE cable_gw_hydro_module
 
    !ptrs to local constants
    TYPE( icbm_type ) :: C
@@ -99,8 +102,7 @@ CONTAINS
    ELSE
       call ruff_resist(veg, rough, ssnow, canopy)
    ENDIF
-
-
+   
    CALL init_radiation(met,rad,veg, canopy) ! need to be called at every dt
 
    IF( cable_runtime%um ) THEN
@@ -120,12 +122,18 @@ CONTAINS
      ssnow%otss = ssnow%tss
      first_call = .false.
    endif
+
    ssnow%otss_0 = ssnow%otss  ! vh should be before call to canopy?
    ssnow%otss = ssnow%tss
 
    ! Calculate canopy variables:
-   CALL define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,climate)
+   IF (.not.(cable_user%or_evap .or. cable_user%gw_model .or. &
+            (cable_user%SOIL_STRUC=='sli' .and. cable_user%test_new_gw) ) ) THEN
+      call set_unsed_gw_vars(ssnow,soil,canopy)
+   END IF
 
+   CALL define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,climate)
+   
    !ssnow%otss_0 = ssnow%otss
    !ssnow%otss = ssnow%tss
 
@@ -135,37 +143,77 @@ CONTAINS
    IF( cable_runtime%um ) THEN
 
      IF( cable_runtime%um_implicit ) THEN
-         CALL soil_snow(dels, soil, ssnow, canopy, met, bal,veg)
+        IF (cable_user%gw_model) then
+           if (mp .ge. 1) CALL soil_snow_gw(dels, soil, ssnow, canopy, met, bal,veg)
+        ELSE
+            CALL soil_snow(dels, soil, ssnow, canopy, met, bal,veg)
+         ENDIF
       ENDIF
 
    ELSE
       IF(cable_user%SOIL_STRUC=='default') THEN
-         call soil_snow(dels, soil, ssnow, canopy, met, bal,veg)
+        IF (cable_user%gw_model) then
+           if (mp .ge. 1) CALL soil_snow_gw(dels, soil, ssnow, canopy, met, bal,veg)
+        ELSE
+            CALL soil_snow(dels, soil, ssnow, canopy, met, bal,veg)
+         ENDIF
       ELSEIF (cable_user%SOIL_STRUC=='sli') THEN
+
+         IF (cable_user%test_new_gw) &
+            CALL sli_hydrology(dels,ssnow,soil,veg,canopy)
+
          CALL sli_main(ktau,dels,veg,soil,ssnow,met,canopy,air,rad,0)
       ENDIF
    ENDIF
-
+   
 
    ssnow%deltss = ssnow%tss-ssnow%otss
    ! correction required for energy balance in online simulations
-   IF( cable_runtime%um ) THEN
+   ! REV_CORR - multiple changes to address %cls bugs and revised correction
+   ! terms.  Also - do not apply correction terms if using SLI
+   ! SSEB package will move these calculations to within soilsnow
+   IF( cable_runtime%um .AND. cable_user%SOIL_STRUC=='default') THEN
 
       canopy%fhs = canopy%fhs + ( ssnow%tss-ssnow%otss ) * ssnow%dfh_dtg
-
       canopy%fhs_cor = canopy%fhs_cor + ( ssnow%tss-ssnow%otss ) * ssnow%dfh_dtg
-
       canopy%fh = canopy%fhv + canopy%fhs
 
+      !canopy%fes = canopy%fes + ( ssnow%tss-ssnow%otss ) *                    &
+      !          ( ssnow%dfe_ddq * ssnow%ddq_dtg )
+      !          !( ssnow%cls * ssnow%dfe_ddq * ssnow%ddq_dtg )
+      !
+      !Ticket 137 - remove double couting of %cls
+      !canopy%fes_cor = canopy%fes_cor + ( ssnow%tss-ssnow%otss ) *            &
+      !                      ( ssnow%dfe_ddq * ssnow%ddq_dtg )
+      !               ( ssnow%cls * ssnow%dfe_ddq * ssnow%ddq_dtg )
+ 
+      !INH rewritten in terms of %dfe_dtg - NB factor %cls above was a bug
+      canopy%fes = canopy%fes + ( ssnow%tss-ssnow%otss ) * ssnow%dfe_dtg
+  
+      !INH NB factor %cls in %fes_cor above was a bug - see Ticket #135 #137
+      canopy%fes_cor = canopy%fes_cor + (ssnow%tss-ssnow%otss) * ssnow%dfe_dtg
+      !canopy%fes_cor = canopy%fes_cor + ssnow%cls*(ssnow%tss-ssnow%otss) & 
+      !       * ssnow%dfe_dtg
+      
+      IF (cable_user%L_REV_CORR) THEN
+         !INH need to add on corrections to all terms in the soil energy balance
+         canopy%fns_cor = canopy%fns_cor + (ssnow%tss-ssnow%otss)*ssnow%dfn_dtg
 
-   canopy%fes = canopy%fes + ( ssnow%tss-ssnow%otss ) *                        &
-                ( ssnow%dfe_ddq * ssnow%ddq_dtg )
-  !Ticket #122 - remove %cls for consistency
-   canopy%fes_cor = canopy%fes_cor + ( ssnow%tss-ssnow%otss ) *                &
-                    ( ssnow%dfe_ddq * ssnow%ddq_dtg )
+         !NB %fns_cor also added onto out%Rnet and out%LWnet in cable_output and
+         !cable_checks as the correction term needs to pass through the 
+         !canopy in entirity not be partially absorbed and %fns not used there 
+         !(as would be the case if rad%flws were changed)
+         canopy%fns = canopy%fns + ( ssnow%tss-ssnow%otss )*ssnow%dfn_dtg
 
+         canopy%ga_cor = canopy%ga_cor + ( ssnow%tss-ssnow%otss )*canopy%dgdtg
+         canopy%ga = canopy%ga + ( ssnow%tss-ssnow%otss )*canopy%dgdtg
+
+         !assign all the correction to %fes to %fess - none to %fesp
+         canopy%fess = canopy%fess + ( ssnow%tss-ssnow%otss ) * ssnow%dfe_dtg
+
+      ENDIF
    ENDIF
-
+   
    ! need to adjust fe after soilsnow
    canopy%fev  = canopy%fevc + canopy%fevw
 

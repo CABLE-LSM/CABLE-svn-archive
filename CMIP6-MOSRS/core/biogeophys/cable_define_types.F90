@@ -133,6 +133,36 @@ MODULE cable_def_types_mod
 
       REAL, DIMENSION(:,:), POINTER ::                                         &
          albsoil    ! soil reflectance (2nd dim. BP 21Oct2009)
+     !mrd561
+      !MD parameters for GW module that vary with soil layer
+      REAL(r_2), DIMENSION(:,:), POINTER ::                                    &
+         sucs_vec, & !psi at saturation in [mm]
+         hyds_vec,  & !saturated hydraulic conductivity  [mm/s]
+         bch_vec, & !C and H B [none]
+         Fclay,  & !fraction of soil that is clay [frac]
+         Fsand,  & !fraction of soil that is sand [frac]
+         Fsilt,  & !fraction of soil that is silt [frac]
+         Forg,   & !fration of soil made of organic soils [frac]
+         densoil,& !soil density  [kg/m3]
+         ssat_vec, & !volumetric water content at saturation [mm3/mm3]
+         watr,   & !residual water content of the soil [mm3/mm3]
+         sfc_vec, & !field capcacity (hk = 1 mm/day)
+         swilt_vec     ! wilting point (hk = 0.02 mm/day)
+
+      REAL(r_2), DIMENSION(:), POINTER ::                                      &
+         slope,  &  !mean slope of grid cell
+         slope_std  !stddev of grid cell slope
+
+      !MD parameters for GW module for the aquifer
+      REAL(r_2), DIMENSION(:), POINTER ::                                       &
+         GWsucs_vec,  &  !head in the aquifer [mm]
+         GWhyds_vec,   &  !saturated hydraulic conductivity of the aquifer [mm/s]
+         GWbch_vec,  & !clapp and horn b of the aquifer   [none]
+         GWssat_vec,  & !saturated water content of the aquifer [mm3/mm3]
+         GWwatr,    & !residual water content of the aquifer [mm3/mm3]
+         GWz,       & !node depth of the aquifer    [m]
+         GWdz,      & !thickness of the aquifer   [m]
+         GWdensoil    !density of the aquifer substrate [kg/m3]
 
      ! Additional SLI parameters
      INTEGER,   DIMENSION(:),   POINTER :: nhorizons ! number of soil horizons
@@ -140,9 +170,9 @@ MODULE cable_def_types_mod
      REAL(r_2), DIMENSION(:),   POINTER :: clitt     ! litter (tC/ha)
      REAL(r_2), DIMENSION(:),   POINTER :: zeta      ! macropore parameter
      REAL(r_2), DIMENSION(:),   POINTER :: fsatmax   ! variably saturated area parameter
-     REAL(r_2), DIMENSION(:,:), POINTER :: swilt_vec ! vol H2O @ wilting
-     REAL(r_2), DIMENSION(:,:), POINTER :: ssat_vec  ! vol H2O @ sat
-     REAL(r_2), DIMENSION(:,:), POINTER :: sfc_vec   ! vol H2O @ fc
+     !REAL(r_2), DIMENSION(:,:), POINTER :: swilt_vec ! vol H2O @ wilting
+     !REAL(r_2), DIMENSION(:,:), POINTER :: ssat_vec  ! vol H2O @ sat
+     !REAL(r_2), DIMENSION(:,:), POINTER :: sfc_vec   ! vol H2O @ fc
 
   END TYPE soil_parameter_type
 
@@ -158,10 +188,11 @@ MODULE cable_def_types_mod
          pudsto,  & ! puddle storage
          pudsmx,  & ! puddle storage
          cls,     & ! factor for latent heat
-         dfn_dtg, & ! d(canopy%fns)/d(ssnow%tgg)
-         dfh_dtg, & ! d(canopy%fhs)/d(ssnow%tgg)
-         dfe_ddq, & ! d(canopy%fes)/d(dq)
-         ddq_dtg, & ! d(dq)/d(ssnow%tgg)
+         dfn_dtg, & ! d(canopy%fns)/d(ssnow%tgg) 
+         dfh_dtg, & ! d(canopy%fhs)/d(ssnow%tgg) 
+         dfe_ddq, & ! d(canopy%fes)/d(dq)        - REV_CORR: no longer necessary
+         ddq_dtg, & ! d(dq)/d(ssnow%tgg)         - REV_CORR: no longer necessary
+         dfe_dtg, & ! d(canopy%fes)/d(ssnow%tgg) - REV_CORR: covers above vars
          evapsn,  & ! snow evaporation
          fwtop,   & ! water flux to the soil
          fwtop1,  & ! water flux to the soil
@@ -227,7 +258,39 @@ MODULE cable_def_types_mod
          wblf,    & !
          wbfice     !
 
-
+     !mrd561
+      !MD variables for the revised soil moisture + GW scheme
+      REAL(r_2), DIMENSION(:), POINTER   ::                                     &
+         GWwb,    &  ! water content in aquifer [mm3/mm3]
+         GWhk,    &  ! aquifer hydraulic conductivity  [mm/s]
+         GWdhkdw, &  ! aquifer d(hk) over d(water content) [(mm/s)/(mm3/mm3)]
+         GWdsmpdw,&  ! aquifer d(smp) / dw   [(mm)/(mm3/mm3)]
+         wtd,     &  ! water table depth   [mm]
+         GWsmp,   &  ! aquifer soil matric potential [mm]
+         GWwbeq,  &  ! equilibrium aquifer water content [mm3/mm3]
+         GWzq,    &  ! equilibrium aquifer smp   [mm]
+         qhz,     &  ! horizontal hydraulic conductivity in 1D gw model for soil layers  [mm/s] 
+         satfrac, &
+         Qrecharge,&
+         rh_srf,   &
+         rtevap_sat,&
+         rtevap_unsat,&
+         rt_qh_sublayer
+     
+      REAL(r_2), DIMENSION(:,:), POINTER  ::                                     &
+         wbeq,    &    ! equilibrium water content [mm3/mm3]
+         zq,      &    ! equilibrium smp       [mm]
+         icefrac, &    ! ice fraction  [none]  -> ice mass / total mass
+         fracice, &    ! alternate ice fraction  [none] - parameterized
+         hk,      &    ! hydraulic conductivity for soil layers [mm/s]
+         smp,     &    ! soil matric potential for soil layers         [mm]
+         dhkdw,   &    ! d(hydraulic conductivity ) d(water) for soil layers [(mm/s)/(mm3/mm3)]
+         dsmpdw,  &    ! d(smp)/ d(water) for soil layers   [(mm)/(mm3/mm3)]
+         wbliq,   &    ! volumetric liquid water content  [mm3/mm3]
+         wmliq,   &    !water mass [mm] liq
+         wmice,   &    !water mass [mm] ice
+         wmtot,   &    !water mass [mm] liq+ice ->total
+         qhlev
      ! Additional SLI variables:
      REAL(r_2), DIMENSION(:,:), POINTER :: S         ! moisture content relative to sat value    (edit vh 23/01/08)
      REAL(r_2), DIMENSION(:,:), POINTER :: Tsoil         !     Tsoil (deg C)
@@ -371,6 +434,7 @@ MODULE cable_def_types_mod
          segg,    & ! latent heatfl from soil mm
          sghflux, & ! ground heat flux (W/m2) ???
          through, & ! canopy throughfall (mm)
+         through_sn, & ! canopy snow throughfall (equal to precip_sn) (mm)
          spill,   & ! can.storage excess after dewfall (mm)
          tscrn,   & ! air temperature at screen height (oC)
          wcint,   & ! canopy rainfall interception (mm)
@@ -380,6 +444,11 @@ MODULE cable_def_types_mod
          vlaiw,   & ! lai adj for snow depth for calc of resistances
          rghlai,  & ! lai adj for snow depth for calc of resistances
          fwet       ! fraction of canopy wet
+
+      !INH - new REV_CORR coupling variables
+      REAL, DIMENSION(:), POINTER ::                                           &
+         fns_cor, & ! correction to net rad avail to soil (W/m2)
+         ga_cor  ! correction to ground heat flux (W/m2)
 
       REAL, DIMENSION(:,:), POINTER ::                                         &
          evapfbl, &
@@ -396,6 +465,14 @@ MODULE cable_def_types_mod
          fes_cor, & ! latent heatfl from soil (W/m2)
          fevc,     &  ! dry canopy transpiration (W/m2)
          ofes     ! latent heatfl from soil (W/m2)
+
+      !SSEB - new variables limits on correction terms - for future use
+      !REAL(r_2), DIMENSION(:), POINTER ::                                     &
+      !  fescor_upp,& ! upper limit on the correction term fes_cor (W/m2)
+      !  fescor_low   ! lower limit on the correction term fes_cor (W/m2)      
+
+      REAL(r_2), DIMENSION(:), POINTER :: &
+         sublayer_dz
 
      ! Additional variables:
      REAL(r_2), DIMENSION(:,:),   POINTER :: gw     ! dry canopy conductance (ms-1) edit vh 6/7/09
@@ -743,6 +820,35 @@ SUBROUTINE alloc_soil_parameter_type(var, mp)
    allocate( var% pwb_min(mp) )
    allocate( var% albsoilf(mp) )
    allocate( var% soilcol(mp) )
+   !mrd561
+   !MD
+   !Aquifer properties
+   allocate( var%GWhyds_vec(mp) )
+   allocate( var%GWsucs_vec(mp) )
+   allocate( var%GWbch_vec(mp) )
+   allocate( var%GWssat_vec(mp) )
+   allocate( var%GWwatr(mp) )
+   var%GWwatr(:) = 0.05
+   allocate( var%GWz(mp) )
+   allocate( var%GWdz(mp) )
+   allocate( var%GWdensoil(mp) )
+   !soil properties (vary by layer)
+   allocate( var%hyds_vec(mp,ms) )
+   allocate( var%sucs_vec(mp,ms) )
+   allocate( var%bch_vec(mp,ms) )
+   allocate( var%ssat_vec(mp,ms) )
+   allocate( var%watr(mp,ms) )
+   var%watr(:,:) = 0.05
+   allocate( var%sfc_vec(mp,ms) )
+   allocate( var%swilt_vec(mp,ms) )
+   allocate( var%Fsand(mp,ms) )
+   allocate( var%Fclay(mp,ms) )
+   allocate( var%Fsilt(mp,ms) )
+   allocate( var%Forg(mp,ms) )
+   allocate( var%densoil(mp,ms) )
+
+   allocate( var%slope(mp) )
+   allocate( var%slope_std(mp) )
 
    ! Allocate variables for SLI soil model:
    ALLOCATE ( var % nhorizons(mp) )
@@ -750,9 +856,9 @@ SUBROUTINE alloc_soil_parameter_type(var, mp)
    ALLOCATE ( var % clitt(mp) )
    ALLOCATE ( var % zeta(mp) )
    ALLOCATE ( var % fsatmax(mp) )
-   ALLOCATE ( var % swilt_vec(mp,ms) )
-   ALLOCATE ( var % ssat_vec(mp,ms) )
-   ALLOCATE ( var % sfc_vec(mp,ms) )
+   !ALLOCATE ( var % swilt_vec(mp,ms) )
+   !ALLOCATE ( var % ssat_vec(mp,ms) )
+   !ALLOCATE ( var % sfc_vec(mp,ms) )
    IF(.NOT.(ASSOCIATED(var % swilt_vec))) ALLOCATE ( var % swilt_vec(mp,ms) )
    IF(.NOT.(ASSOCIATED(var % ssat_vec))) ALLOCATE ( var % ssat_vec(mp,ms) )
    IF(.NOT.(ASSOCIATED(var % sfc_vec))) ALLOCATE ( var % sfc_vec(mp,ms) )
@@ -777,6 +883,7 @@ SUBROUTINE alloc_soil_snow_type(var, mp)
    ALLOCATE( var% dfh_dtg(mp) )
    ALLOCATE( var% dfe_ddq(mp) )
    ALLOCATE( var% ddq_dtg(mp) )
+   ALLOCATE( var% dfe_dtg(mp) )    !REV_CORR variable
    ALLOCATE( var% evapsn(mp) )
    ALLOCATE( var% fwtop(mp) )
    ALLOCATE( var% fwtop1(mp) )
@@ -833,6 +940,39 @@ SUBROUTINE alloc_soil_snow_type(var, mp)
    ALLOCATE( var%qasrf(mp) )
    ALLOCATE( var%qfsrf(mp) )
    ALLOCATE( var%qssrf(mp) )
+
+   !mrd561
+   !MD
+   !Aquifer variables
+   ALLOCATE( var%GWwb(mp) )
+   ALLOCATE( var%GWhk(mp) )
+   ALLOCATE( var%GWdhkdw(mp) )
+   ALLOCATE( var%GWdsmpdw(mp) )
+   ALLOCATE( var%wtd(mp) )
+   ALLOCATE( var%GWsmp(mp) )
+   ALLOCATE( var%GWwbeq(mp) )
+   ALLOCATE( var%GWzq(mp) )
+   ALLOCATE( var%qhz(mp) )
+   ALLOCATE( var%qhlev(mp,ms+1) )
+   ALLOCATE( var%satfrac(mp) )
+   ALLOCATE( var%Qrecharge(mp) )
+   ALLOCATE( var%rh_srf(mp) )
+   ALLOCATE( var%rtevap_unsat(mp) )
+   ALLOCATE( var%rtevap_sat(mp) )
+   ALLOCATE( var%rt_qh_sublayer(mp) )
+   !soil moisture variables
+   ALLOCATE( var%wbeq(mp,ms) )
+   ALLOCATE( var%zq(mp,ms) )
+   ALLOCATE( var%icefrac(mp,ms) )
+   ALLOCATE( var%fracice(mp,ms) )
+   ALLOCATE( var%hk(mp,ms) )
+   ALLOCATE( var%smp(mp,ms) )
+   ALLOCATE( var%dhkdw(mp,ms) )
+   ALLOCATE( var%dsmpdw(mp,ms) )
+   ALLOCATE( var%wbliq(mp,ms) )
+   ALLOCATE( var%wmliq(mp,ms) )
+   ALLOCATE( var%wmice(mp,ms) )
+   ALLOCATE( var%wmtot(mp,ms) )
 
     ! Allocate variables for SLI soil model:
     !IF(cable_user%SOIL_STRUC=='sli') THEN
@@ -970,6 +1110,7 @@ SUBROUTINE alloc_canopy_type(var, mp)
    ALLOCATE( var% segg(mp) )
    ALLOCATE( var% sghflux(mp) )
    ALLOCATE( var% through(mp) )
+   ALLOCATE( var% through_sn(mp) )
    ALLOCATE( var% spill(mp) )
    ALLOCATE( var% tscrn(mp) )
    ALLOCATE( var% wcint(mp) )
@@ -979,6 +1120,8 @@ SUBROUTINE alloc_canopy_type(var, mp)
    ALLOCATE( var% rghlai(mp) )
    ALLOCATE( var% vlaiw(mp) )
    ALLOCATE( var% fwet(mp) )
+   ALLOCATE( var% fns_cor(mp) )    !REV_CORR variable
+   ALLOCATE( var% ga_cor(mp) )     !REV_CORR variable
    ALLOCATE ( var % evapfbl(mp,ms) )
    ALLOCATE( var% epot(mp) )
    ALLOCATE( var% fnpp(mp) )
@@ -990,12 +1133,16 @@ SUBROUTINE alloc_canopy_type(var, mp)
    ALLOCATE( var% fhvw(mp) )
    ALLOCATE( var% fes(mp) )
    ALLOCATE( var% fes_cor(mp) )
+   !ALLOCATE( var% fescor_upp(mp) )  !SSEB variable
+   !ALLOCATE( var% fescor_low(mp) )  !SSEB variable
    ALLOCATE( var% gswx(mp,mf) )
    ALLOCATE( var% oldcansto(mp) )
    ALLOCATE( var% zetar(mp,NITER) )
    ALLOCATE( var% zetash(mp,NITER) )
     ALLOCATE ( var % fwsoil(mp) )
     ALLOCATE ( var % ofes(mp) )
+
+   ALLOCATE( var%sublayer_dz(mp) )
 
     ALLOCATE ( var % gw(mp,mf) )     ! dry canopy conductance (ms-1) edit vh 6/7/09
     ALLOCATE ( var % ancj(mp,mf,3) ) ! limiting photosynthetic rates (Rubisco,RuBP,sink) vh 6/7/09
@@ -1289,6 +1436,32 @@ SUBROUTINE dealloc_soil_parameter_type(var)
    DEALLOCATE( var% pwb_min)
    DEALLOCATE( var% albsoilf )
    DEALLOCATE( var% soilcol )
+   !mrd561
+   !MD
+   !Aquifer properties
+   DEALLOCATE( var%GWhyds_vec )
+   DEALLOCATE( var%GWsucs_vec )
+   DEALLOCATE( var%GWbch_vec )
+   DEALLOCATE( var%GWssat_vec )
+   DEALLOCATE( var%GWwatr )
+   DEALLOCATE( var%GWz )
+   DEALLOCATE( var%GWdz )
+   DEALLOCATE( var%GWdensoil )
+   !soil properties (vary by layer)
+   DEALLOCATE( var%hyds_vec )
+   DEALLOCATE( var%sucs_vec )
+   DEALLOCATE( var%bch_vec )
+   DEALLOCATE( var%ssat_vec )
+   DEALLOCATE( var%watr )
+   DEALLOCATE( var%sfc_vec )
+   DEALLOCATE( var%swilt_vec )
+   DEALLOCATE( var%Fsand )
+   DEALLOCATE( var%Fclay )
+   DEALLOCATE( var%Fsilt )
+   DEALLOCATE( var%Forg  )
+   DEALLOCATE( var%densoil )   
+   DEALLOCATE( var%slope )
+   DEALLOCATE( var%slope_std )
     ! Deallocate variables for SLI soil model:
     !IF(cable_user%SOIL_STRUC=='sli') THEN
     DEALLOCATE ( var % nhorizons)
@@ -1296,9 +1469,9 @@ SUBROUTINE dealloc_soil_parameter_type(var)
     DEALLOCATE ( var % clitt )
     DEALLOCATE ( var % zeta )
     DEALLOCATE ( var % fsatmax )
-    DEALLOCATE ( var % swilt_vec )
-    DEALLOCATE ( var % ssat_vec )
-    DEALLOCATE ( var % sfc_vec )
+    !DEALLOCATE ( var % swilt_vec )
+    !DEALLOCATE ( var % ssat_vec )
+    !DEALLOCATE ( var % sfc_vec )
     IF(ASSOCIATED(var % swilt_vec)) DEALLOCATE ( var % swilt_vec )
     IF(ASSOCIATED(var % ssat_vec)) DEALLOCATE ( var % ssat_vec )
     IF(ASSOCIATED(var % sfc_vec)) DEALLOCATE ( var % sfc_vec )
@@ -1323,6 +1496,7 @@ SUBROUTINE dealloc_soil_snow_type(var)
    DEALLOCATE( var% dfh_dtg )
    DEALLOCATE( var% dfe_ddq )
    DEALLOCATE( var% ddq_dtg )
+   DEALLOCATE( var% dfe_dtg )  !REV_CORR variable
    DEALLOCATE( var% evapsn )
    DEALLOCATE( var% fwtop )
    DEALLOCATE( var% fwtop1 )
@@ -1379,6 +1553,37 @@ SUBROUTINE dealloc_soil_snow_type(var)
    DEALLOCATE( var%qasrf )
    DEALLOCATE( var%qfsrf )
    DEALLOCATE( var%qssrf )
+   !MD
+   !Aquifer variables
+   DEALLOCATE( var%GWwb )
+   DEALLOCATE( var%GWhk )
+   DEALLOCATE( var%GWdhkdw )
+   DEALLOCATE( var%GWdsmpdw )
+   DEALLOCATE( var%wtd )
+   DEALLOCATE( var%GWsmp )
+   DEALLOCATE( var%GWwbeq )
+   DEALLOCATE( var%GWzq )
+   DEALLOCATE( var%qhz )
+   DEALLOCATE( var%qhlev )
+   DEALLOCATE( var%satfrac )
+   DEALLOCATE( var%Qrecharge )
+   DEALLOCATE( var%rh_srf )
+   DEALLOCATE( var%rtevap_unsat )
+   DEALLOCATE( var%rtevap_sat )
+   DEALLOCATE( var%rt_qh_sublayer )
+   !soil moisture variables
+   DEALLOCATE( var%wbeq )
+   DEALLOCATE( var%zq )
+   DEALLOCATE( var%icefrac )
+   DEALLOCATE( var%fracice )
+   DEALLOCATE( var%hk )
+   DEALLOCATE( var%smp )
+   DEALLOCATE( var%dhkdw )
+   DEALLOCATE( var%dsmpdw )   
+   DEALLOCATE( var%wbliq )
+   DEALLOCATE( var%wmliq )
+   DEALLOCATE( var%wmice )
+   DEALLOCATE( var%wmtot )
 
     !IF(cable_user%SOIL_STRUC=='sli') THEN
     DEALLOCATE ( var % S )
@@ -1511,6 +1716,7 @@ SUBROUTINE dealloc_canopy_type(var)
    DEALLOCATE( var% segg )
    DEALLOCATE( var% sghflux )
    DEALLOCATE( var% through )
+   DEALLOCATE( var% through_sn )
    DEALLOCATE( var% spill )
    DEALLOCATE( var% tscrn )
    DEALLOCATE( var% wcint )
@@ -1520,6 +1726,8 @@ SUBROUTINE dealloc_canopy_type(var)
    DEALLOCATE( var% rghlai )
    DEALLOCATE( var% vlaiw )
    DEALLOCATE( var% fwet )
+   DEALLOCATE( var% fns_cor )   !REV_CORR variable
+   DEALLOCATE( var% ga_cor )    !REV_CORR variable
    DEALLOCATE ( var % evapfbl )
    DEALLOCATE( var% epot )
    DEALLOCATE( var% fnpp )
@@ -1531,12 +1739,15 @@ SUBROUTINE dealloc_canopy_type(var)
    DEALLOCATE( var% fhvw )
    DEALLOCATE( var% fes )
    DEALLOCATE( var% fes_cor )
+   !DEALLOCATE( var% fescor_upp ) !SSEB variable
+   !DEALLOCATE( var% fescor_low ) !SSEB variable
    DEALLOCATE( var% gswx )
    DEALLOCATE( var% oldcansto )
    DEALLOCATE( var% zetar )
    DEALLOCATE( var% zetash )
    DEALLOCATE ( var % fwsoil )
    DEALLOCATE ( var % ofes )
+   DEALLOCATE( var% sublayer_dz )
 
 !! vh_js !! liiter resistances to heat and vapour transfer
    DEALLOCATE (var % kthLitt)
