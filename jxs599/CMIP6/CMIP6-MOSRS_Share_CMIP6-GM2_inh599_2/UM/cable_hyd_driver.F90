@@ -22,30 +22,41 @@
 !
 !
 ! ==============================================================================
+module cable_hyd_driv_mod
+  
+contains
 
-SUBROUTINE cable_hyd_driver( SNOW_TILE, LYING_SNOW, SURF_ROFF, SUB_SURF_ROFF,  &
-                             TOT_TFALL, WB_LAKE )
+SUBROUTINE cable_hyd_driver( land_pts, ntiles, lying_snow, SNOW_TILE, SURF_ROFF,&
+                             SUB_SURF_ROFF, TOT_TFALL )
+! r1022:1164                 TOT_TFALL, WB_LAKE )
 
    USE cable_data_module,   ONLY : PHYS, OTHER
    USE cable_common_module!, only : cable_runtime, cable_user
    USE cable_um_tech_mod, only : um1, ssnow, canopy, veg
+  USE cable_decs_mod, ONLY : L_tile_pts
+  USE cable_um_tech_mod,   ONLY : um1
+!C!  USE cable_hyd_nunpack_mod
+   
+
    IMPLICIT NONE
 
-   REAL, INTENT(OUT), DIMENSION(um1%LAND_PTS,um1%NTILES) ::                    &
+  integer :: land_pts, ntiles
+  
+   REAL, INTENT(OUT), DIMENSION(LAND_PTS,NTILES) ::                    &
       SNOW_TILE   ! IN Lying snow on tiles (kg/m2)        
 
-   REAL, INTENT(OUT), DIMENSION(um1%LAND_PTS) ::                               &
+   REAL, INTENT(OUT), DIMENSION(LAND_PTS) ::                               &
       LYING_SNOW,    & ! OUT Gridbox snowmass (kg/m2)        
       SUB_SURF_ROFF, & !
       SURF_ROFF,     & !
       TOT_TFALL        !
 
-   REAL, DIMENSION(um1%LAND_PTS,um1%NTILES) ::                                 &
+   REAL, DIMENSION(LAND_PTS,NTILES) ::                                 &
       SURF_CAB_ROFF,    &
       TOT_TFALL_TILE                
 
    ! Lestevens 25sep13 - water balance fix for lakes
-   REAL, DIMENSION(um1%land_pts,um1%ntiles) ::                                 &
+   REAL, DIMENSION(land_pts,ntiles) ::                                 &
       WB_LAKE         ! unpack CABLE wb_lake
 
    REAL :: miss =0. 
@@ -53,26 +64,33 @@ SUBROUTINE cable_hyd_driver( SNOW_TILE, LYING_SNOW, SURF_ROFF, SUB_SURF_ROFF,  &
       
       TFRZ => PHYS%TFRZ
    
-      SNOW_TILE= UNPACK(ssnow%snowd, um1%L_TILE_PTS, miss) 
-      LYING_SNOW = SUM(um1%TILE_FRAC * SNOW_TILE,2) !gridbox snow mass
+SNOW_TILE= UNPACK(ssnow%snowd, L_TILE_PTS, miss) 
+     !jh:really - we dont want this
 
-      SURF_CAB_ROFF  = UNPACK(ssnow%rnof1, um1%L_TILE_PTS, miss)
-      SURF_ROFF      = SUM(um1%TILE_FRAC * SURF_CAB_ROFF,2)
-      
-      SURF_CAB_ROFF  = UNPACK(ssnow%rnof2, um1%L_TILE_PTS, miss)
-      SUB_SURF_ROFF  = SUM(um1%TILE_FRAC * SURF_CAB_ROFF,2)
+LYING_SNOW = SUM(um1%TILE_FRAC * SNOW_TILE,2) !gridbox snow mass
 
-      ! %through is /dels in UM app. for STASH output  
-      canopy%through = canopy%through / kwidth_gl
-      TOT_TFALL_TILE = UNPACK(canopy%through, um1%L_TILE_PTS, miss)
-      TOT_TFALL      = SUM(um1%TILE_FRAC * TOT_TFALL_TILE,2)
+     SURF_CAB_ROFF  = UNPACK(ssnow%rnof1, L_TILE_PTS, miss)
+SURF_ROFF      = SUM(um1%TILE_FRAC * SURF_CAB_ROFF,2)
 
-      ! Lest 25sep13 - wb_lake fix
-      WB_LAKE        = UNPACK(ssnow%wb_lake, um1%L_TILE_PTS, miss)
-      
+     SURF_CAB_ROFF  = UNPACK(ssnow%rnof2, L_TILE_PTS, miss)
+SUB_SURF_ROFF  = SUM(um1%TILE_FRAC * SURF_CAB_ROFF,2)
+
+    ! %through is /dels in UM app. for STASH output  
+     canopy%through = canopy%through / kwidth_gl
+     TOT_TFALL_TILE = UNPACK(canopy%through, L_TILE_PTS, miss)
+TOT_TFALL      = SUM(um1%TILE_FRAC * TOT_TFALL_TILE,2)
+
+     ! Lest 25sep13 - wb_lake fix
+     WB_LAKE        = UNPACK(ssnow%wb_lake, L_TILE_PTS, miss)
+
+
+!  call cable_hyd_nunpack( land_pts, ntiles, SNOW_TILE, SURF_ROFF,           &
+!                             SUB_SURF_ROFF, TOT_TFALL )
+       
+
 END SUBROUTINE cable_hyd_driver
       
-
+End module cable_hyd_driv_mod
 
 
 

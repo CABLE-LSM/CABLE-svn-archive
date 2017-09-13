@@ -21,45 +21,46 @@
 !
 !
 ! ==============================================================================
-
+  
+ 
+module cable_explicit_driv_mod
+  
+contains
 
 SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
                                   sm_levels, timestep, latitude, longitude,    &
                                   land_index, tile_frac,  tile_pts, tile_index,&
                                   bexp, hcon, satcon, sathh, smvcst,           &
                                   smvcwt,  smvccl, albsoil, snow_tile,         &
-                                  snow_rho1l, snage_tile, isnow_flg3l,         &
-                                  snow_rho3l, snow_cond, snow_depth3l,         &
-                                  snow_tmp3l, snow_mass3l, sw_down, lw_down,   &
-                                  cos_zenith_angle, surf_down_sw, ls_rain,     &
-                                  ls_snow, tl_1, qw_1, vshr_land, pstar, z1_tq,&
-                                  z1_uv, rho_water, L_tile_pts, canopy_tile,   &
-                                  Fland,                                       &
-! rml 2/7/13 pass 3d co2 through to cable if required
-                   CO2_MMR,CO2_3D,CO2_DIM_LEN,CO2_DIM_ROW,L_CO2_INTERACTIVE,   &
-                                  sthu_tile, smcl_tile,                        &
-                                  sthf_tile, sthu, tsoil_tile, canht_ft,       &
-                                  lai_ft, sin_theta_latitude, dzsoil,          &
-                                  LAND_MASK, FTL_TILE_CAB, FTL_CAB, FTL_TILE,  &
-                                  FQW_TILE, LE_TILE_CAB, LE_CAB, TSTAR_TILE,   &
-                                  TSTAR_TILE_CAB, TSTAR_CAB, U_S, U_S_STD_TILE,&
-                                  U_S_CAB, CH_CAB, CD_CAB, CD_TILE, CH_TILE,   &
-                                  RADNET_TILE, FRACA, RESFS, RESFT, Z0H_TILE,  &
-                                  Z0M_TILE, RECIP_L_MO_TILE, EPOT_TILE,        &
-                                  CPOOL_TILE, NPOOL_TILE, PPOOL_TILE,          &
-                                  SOIL_ORDER, NIDEP, NIFIX, PWEA, PDUST,       &
-                                  GLAI, PHENPHASE, NPP_FT_ACC, RESP_W_FT_ACC,  &
-                                  endstep, timestep_number, mype )    
+                                  snow_rho1l, snow_age, snow_flg3l, snow_rho3l,&
+                                  snow_depth3l, snow_tmp3l, snow_mass3l,       & 
+                                  lw_down, cos_zenith_angle, surf_down_sw,     &
+                                  ls_rain, ls_snow, tl_1, qw_1, vshr_land,     &
+                                  pstar, z1_tq, z1_uv, canopy_tile, Fland,     &
+                                  CO2_MMR, & 
+                                  !CO2_3D,CO2_DIM_LEN,CO2_DIM_ROW,L_CO2_INTERACTIVE,   &
+                                  smcl_tile, sthf_tile, sthu, tsoil_tile,      &
+                                  canht_ft, lai_ft, sin_theta_latitude, dzsoil,&
+                                  FTL_TILE, FQW_TILE, TSTAR_TILE,              &
+                                  U_S, U_S_STD_TILE, CD_TILE, CH_TILE,         &
+                                  RADNET_TILE, FRACA, RESFS, RESFT,            &
+                                  Z0H_TILE, Z0M_TILE,                          &
+                                  RECIP_L_MO_TILE, EPOT_TILE,                  &
+CPOOL_TILE, NPOOL_TILE, PPOOL_TILE,          &
+SOIL_ORDER, NIDEP, NIFIX, PWEA, PDUST,       &
+GLAI, PHENPHASE, NPP_FT_ACC, RESP_W_FT_ACC,  &
+endstep, timestep_number, mype )    
    
    !--- reads runtime and user switches and reports
    USE cable_um_tech_mod, ONLY : cable_um_runtime_vars, air, bgc, canopy,      &
-                                 met, bal, rad, rough, soil, ssnow, sum_flux, veg 
+                                 met, bal, rad, rough, soil, ssnow, sum_flux,  &
+                                 veg, basic_diag 
    
    !--- vars common to CABLE declared 
-   USE cable_common_module, ONLY : cable_runtime, cable_user, ktau_gl,         &
-                                   knode_gl, kwidth_gl, kend_gl,               &
-                                   report_version_no,                          & 
-                                   l_vcmaxFeedbk, l_laiFeedbk
+   USE cable_common_module!, ONLY : cable_runtime, cable_user, ktau_gl,         &
+                          !         knode_gl, kwidth_gl, kend_gl,               &
+                          !         report_version_no,                          & 
+                          !         l_vcmaxFeedbk, l_laiFeedbk
    
    !--- subr to (manage)interface UM data to CABLE
    USE cable_um_init_mod, ONLY : interface_UM_data
@@ -69,23 +70,32 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
 
    USE cable_def_types_mod, ONLY : mp, ms
 
-   !--- include subr called to write data for testing purposes 
-   USE cable_diag_module
+   USE cable_expl_unpack_mod, ONLY : cable_expl_unpack
+  
+  USE cable_decs_mod, only : L_tile_pts, rho_water
+
    USE casavariable
    USE casa_types_mod
-   USE cable_climate_mod
-
+  !fprintf
+  !USE cable_common_module, ONLY :    fprintf_dir_root, fprintf_dir
+  USE cable_diag_module
+  USE cable_climate_mod
+  !made this a module so can build in the UM re:dependencies etc
+  !did the same dor sli_main. promote everything to modules
+  USE casa_cable
+   
    IMPLICIT NONE
  
- 
-   !jhan: this can be moved and USEd 
-   TYPE (climate_type)	:: climate     ! climate variables
+  character(len=*), parameter :: subr_name = "cable_explicit_driver"
+
+   !jhan: this can be moved and USEd ?
+   TYPE (climate_type) :: climate     ! climate variables
    !-------------------------------------------------------------------------- 
-   !--- INPUT ARGS FROM sf_exch() --------------------------------------------
+   !--- INPUT ARGS FROM () --------------------------------------------
    !-------------------------------------------------------------------------- 
    
    !___IN: UM dimensions, array indexes, flags
-   INTEGER, INTENT(IN) ::                                                      & 
+   INTEGER ::                                                      & 
       row_length, rows, & ! UM grid resolution
       land_pts,         & ! # of land points being processed
       ntiles,           & ! # of tiles 
@@ -93,25 +103,20 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
       sm_levels           ! # of soil layers 
 
    ! index of land points being processed
-   INTEGER, INTENT(IN), DIMENSION(land_pts) :: land_index 
+   INTEGER, DIMENSION(land_pts) :: land_index 
 
    ! # of land points on each tile
-   INTEGER, INTENT(IN), DIMENSION(ntiles) :: tile_pts 
+   INTEGER,  DIMENSION(ntiles) :: tile_pts 
    
-   INTEGER, INTENT(IN), DIMENSION(land_pts, ntiles) ::                         & 
+   INTEGER,  DIMENSION(land_pts, ntiles) ::                         & 
       tile_index ,& ! index of tile points being processed
-      isnow_flg3l   ! 3 layer snow flag
-
-   !--- TRUE if land, F elsewhere.
-   !jhan:rm land_mask
-   LOGICAL,DIMENSION(row_length,rows) :: land_mask   
+      snow_flg3l   ! 3 layer snow flag
 
    !___UM parameters: water density, soil layer thicknesses 
-   REAL, INTENT(IN) :: rho_water 
-   REAL, INTENT(IN), DIMENSION(sm_levels) :: dzsoil
+   REAL,  DIMENSION(sm_levels) :: dzsoil
 
    !___UM soil/snow/radiation/met vars
-   REAL, INTENT(IN), DIMENSION(land_pts) :: & 
+   REAL,  DIMENSION(land_pts) :: & 
       bexp,    & ! => parameter b in Campbell equation 
       hcon,    & ! Soil thermal conductivity (W/m/K).
       satcon,  & ! hydraulic conductivity @ saturation [mm/s]
@@ -122,14 +127,12 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
       albsoil, &
       fland 
    
-   REAL, INTENT(INOUT), DIMENSION(row_length,rows) :: &
+   REAL,  DIMENSION(row_length,rows) :: &
       sw_down,          & 
       cos_zenith_angle
    
-   REAL, INTENT(INOUT), DIMENSION(row_length,rows) ::                             &
-      latitude
-   
-   REAL, INTENT(IN), DIMENSION(row_length,rows) ::                             &
+   REAL,  DIMENSION(row_length,rows) ::                             &
+      latitude,   &
       longitude,  &
       lw_down,    &
       ls_rain,    &
@@ -141,96 +144,79 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
       z1_tq,      &
       z1_uv
 
-   REAL, INTENT(INOUT), DIMENSION(land_pts, ntiles) ::                         &
+   REAL,  DIMENSION(land_pts, ntiles) ::                         &
       snow_tile
 
-   REAL, INTENT(IN), DIMENSION(land_pts, ntiles) ::                            &
+   REAL, DIMENSION(land_pts, ntiles) ::                            &
       tile_frac,  &    
       snow_rho1l, &
-      snage_tile
+      snow_age
    
-   REAL, INTENT(IN), DIMENSION(row_length, rows, 4) ::                         &
+   REAL, DIMENSION(row_length, rows, 4) ::                         &
       surf_down_sw 
    
-   REAL, INTENT(IN), DIMENSION(land_pts, npft) ::                              &
+   REAL, DIMENSION(land_pts, npft) ::                              &
       canht_ft, lai_ft 
    
-   REAL, INTENT(IN),DIMENSION(land_pts, ntiles) ::                             &
+   REAL, DIMENSION(land_pts, ntiles) ::                             &
       canopy_tile
    
-   REAL, INTENT(INOUT), DIMENSION(land_pts, ntiles,3) ::                       &
+   REAL,  DIMENSION(land_pts, ntiles,3) ::                       &
       snow_cond
    
-   REAL, INTENT(IN), DIMENSION(land_pts, ntiles,3) ::                          &
+   REAL, DIMENSION(land_pts, ntiles,3) ::                          &
       snow_rho3l,    &
       snow_depth3l,  &
       snow_mass3l,   &
       snow_tmp3l
    
-   REAL, INTENT(IN), DIMENSION(land_pts, sm_levels) ::                         &
+   REAL, DIMENSION(land_pts, sm_levels) ::                         &
       sthu 
    
-   REAL, INTENT(IN), DIMENSION(land_pts, ntiles, sm_levels) :: & 
+   REAL, DIMENSION(land_pts, ntiles, sm_levels) :: & 
       sthu_tile, &
       sthf_tile, &
       smcl_tile, &
       tsoil_tile
    
-   REAL, INTENT(IN) :: co2_mmr
+   REAL :: co2_mmr
 ! rml 2/7/13 Extra atmospheric co2 variables
-   LOGICAL, INTENT(IN) :: L_CO2_INTERACTIVE
-   INTEGER, INTENT(IN) ::                              &
-      CO2_DIM_LEN                                      &
-     ,CO2_DIM_ROW
-   REAL, INTENT(IN) :: CO2_3D(CO2_DIM_LEN,CO2_DIM_ROW)  ! co2 mass mixing ratio
-
-   !___true IF vegetation (tile) fraction is greater than 0
-   LOGICAL, INTENT(INOUT), DIMENSION(land_pts, ntiles) :: L_tile_pts
+   !LOGICAL, INTENT(IN) :: L_CO2_INTERACTIVE
+   !INTEGER, INTENT(IN) ::                              &
+   !  CO2_DIM_LEN                                      &
+   !  ,CO2_DIM_ROW
+   !REAL, INTENT(IN) :: CO2_3D(CO2_DIM_LEN,CO2_DIM_ROW)  ! co2 mass mixing ratio
   
    REAL :: sin_theta_latitude(row_length,rows) 
      
    !___return fluxes
-   REAL, INTENT(OUT), DIMENSION(land_pts) ::   &
-      FTL_CAB, &
-      LE_CAB
 
-   REAL, INTENT(OUT), DIMENSION(land_pts,ntiles) :: &
-      FTL_TILE_CAB, &
+   REAL, DIMENSION(land_pts,ntiles) :: &
       FTL_TILE,   &  ! Surface FTL for land tiles     
-      FQW_TILE,   &  ! Surface FQW for land tiles     
-      LE_TILE_CAB
+      FQW_TILE       ! Surface FQW for land tiles     
 
    !___return temp and roughness
-   REAL, INTENT(OUT), DIMENSION(land_pts,ntiles) :: &
-      TSTAR_TILE_CAB,   &
+   REAL, DIMENSION(land_pts,ntiles) :: &
       TSTAR_TILE,       & 
       Z0H_TILE,         &
       Z0M_TILE
 
-   REAL, INTENT(OUT), DIMENSION(land_pts) ::  TSTAR_CAB
-
    !___return friction velocities/drags/ etc
-   REAL, INTENT(OUT), DIMENSION(land_pts,ntiles) :: &
+   REAL, DIMENSION(land_pts,ntiles) :: &
       CD_TILE,    &     ! Drag coefficient
       CH_TILE,    &     ! Transfer coefficient for heat & moisture
       U_S_STD_TILE      ! Surface friction velocity
 
-   REAL, INTENT(OUT), DIMENSION(row_length,rows)  :: &
+   REAL, DIMENSION(row_length,rows)  :: &
       U_S               ! Surface friction velocity (m/s)
    
-   REAL, INTENT(OUT), DIMENSION(land_pts) ::                  &
-      CH_CAB,  &  ! Turbulent surface exchange
-      CD_CAB,  &  ! Turbulent surface exchange
-      U_S_CAB     ! Surface friction velocity (m/s)
-
    ! end step of experiment, this step, step width, processor num
-   INTEGER, INTENT(IN) :: endstep, timestep_number, mype
-   REAL, INTENT(IN) ::  timestep     
-   
-   INTEGER:: itimestep
+   INTEGER :: endstep, timestep_number, mype
+   REAL ::  timestep     
+   !INTEGER:: itimestep
     
    !___return miscelaneous 
-   REAL, INTENT(OUT), DIMENSION(land_pts,ntiles) :: &
+   REAL,  DIMENSION(land_pts,ntiles) :: &
       RADNET_TILE,   & ! Surface net radiation
       RESFS,         & ! Combined soil, stomatal & aerodynamic resistance
                        ! factor for fraction (1-FRACA) of snow-free land tiles
@@ -241,35 +227,32 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
       RECIP_L_MO_TILE,& ! Reciprocal of the Monin-Obukhov length for tiles (m^-1)
       EPOT_TILE
 
-! Lestevens Sept2012 - CASA-CNP Pools
-   REAL, INTENT(INOUT), DIMENSION(land_pts,ntiles,10) :: &
+   !r825 adds CASA vars here
+   REAL, DIMENSION(land_pts,ntiles,10) :: &
       CPOOL_TILE,    & ! Carbon Pools
       NPOOL_TILE       ! Nitrogen Pools
 
-   REAL, INTENT(INOUT), DIMENSION(land_pts,ntiles,12) :: &
+   REAL, DIMENSION(land_pts,ntiles,12) :: &
       PPOOL_TILE       ! Phosphorus Pools
 
-   REAL, INTENT(INOUT), DIMENSION(land_pts) :: &
+   REAL, DIMENSION(land_pts) :: &
       SOIL_ORDER,    & ! Soil Order (1 to 12)
       NIDEP,         & ! Nitrogen Deposition
       NIFIX,         & ! Nitrogen Fixation
       PWEA,          & ! Phosphorus from Weathering
       PDUST            ! Phosphorus from Dust
 
-   REAL, INTENT(INOUT), DIMENSION(land_pts,ntiles) :: &
+   REAL, DIMENSION(land_pts,ntiles) :: &
       GLAI, &          ! Leaf Area Index for Prognostics LAI
       PHENPHASE        ! Phenology Phase for Casa-CNP
                                   
-   REAL, INTENT(INOUT), DIMENSION(land_pts,ntiles) :: &
+   REAL, DIMENSION(land_pts,ntiles) :: &
       NPP_FT_ACC,     &
       RESP_W_FT_ACC
      
    !-------------------------------------------------------------------------- 
    !--- end INPUT ARGS FROM sf_exch() ----------------------------------------
    !-------------------------------------------------------------------------- 
-   
-
-
    
    !___ declare local vars 
    
@@ -284,7 +267,6 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    !___ unique unit/file identifiers for cable_diag: arbitrarily 5 here 
    INTEGER, SAVE :: iDiagZero=0, iDiag1=0, iDiag2=0, iDiag3=0, iDiag4=0
 
-
    ! Vars for standard for quasi-bitwise reproducability b/n runs
    ! Check triggered by cable_user%consistency_check = .TRUE. in cable.nml
    CHARACTER(len=30), PARAMETER ::                                             &
@@ -296,32 +278,55 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
       new_sumbal = 0.0
 
    INTEGER :: ioerror=0
+integer ::  i,j
 
-   ! END header
+  !fprintf{_____________________________________________________________________  
+  !USE cable_common_module, ONLY :    fprintf_dir_root, fprintf_dir
+  !USE cable_diag_module
+  character(len=25) :: vname
+  character(len=70) :: dir
+ 
+  INTEGER, SAVE ::                                                            &
+   cDiag00=0, cDiag0=0, cDiag1=0, cDiag2=0, cDiag3=0, cDiag4=0,                &
+   cDiag5=0, cDiag6=0, cDiag7=0, cDiag8=0, cDiag9=0, cDiag10=0,    cDiag11=0,  &  
+   cDiag12=0, cDiag13=0, cDiag14=0, cDiag15=0, cDiag16=0, cDiag17=0, cDiag18=0,& 
+   cDiag19=0,cDiag20=0, cDiag21=0, cDiag22=0, cDiag23=0, cDiag24=0, cDiag25=0, &
+   cDiag26=0, cDiag27=0, cDiag28=0, cDiag29=0, cDiag30=0, cDiag31=0, cDiag32=0,&  
+   cDiag33=0, cDiag34=0, cDiag35=0, cDiag36=0, cDiag37=0, cDiag38=0, cDiag39=0,& 
+   cDiag40=0, cDiag41=0, cDiag42=0, cDiag43=0, cDiag44=0, cDiag45=0, cDiag46=0,& 
+   cDiag47=0, cDiag48=0, cDiag49=0, cDiag50=0, cDiag51=0, cDiag52=0, cDiag53=0,& 
+   cDiag54=0, cDiag55=0, cDiag56=0, cDiag57=0, cDiag58=0, cDiag59=0, cDiag60=0,& 
+   cDiag61=0, cDiag62=0, cDiag63=0, cDiag64=0, cDiag65=0, cDiag66=0, cDiag67=0,& 
+   cDiag68=0, cDiag69=0
+
+  logical, parameter :: L_fprint_HW = .false.
+  logical :: L_fprint
+  
+  L_fprint = .false. ! default
+  
+  !if( L_fprint_HW ) then
+  !  if ( ktau_gl==1 .OR. ktau_gl==54 .OR. ktau_gl==154 .OR. &
+  !       ktau_gl==154 .OR. ktau_gl==154 .OR. mod(ktau_gl,10)==0. ) then
+  !    L_fprint = .true.
+  !  endif  
+  !endif  
+
+  IF(cable_user%run_diag_level == "fprint")                                    &     
+  fprintf_dir=trim(fprintf_dir_root)//trim("expl_unpack")//"/"
+  
+  !vname='' 
+  !call cable_fprintf( cDiagX, vname, %, mp, L_fprint )
+  !fprintf_____________________________________________________________________} 
+ 
+   !IF(cable_user%run_diag_level == "BASIC")                                    &     
+   !   CALL basic_diag(subr_name, "Called.") 
 
    !--- initialize cable_runtime% switches 
-   IF(first_cable_call) THEN
-      cable_runtime%um = .TRUE.
-      write(6,*) ""
-      write(6,*) "CABLE_log"
-      CALL report_version_no(6) ! wriite revision number to stdout(6)
-   ENDIF
-      
-   !--- basic info from global model passed to cable_common_module 
-   !--- vars so don't need to be passed around, just USE _module
-   ktau_gl = timestep_number     !timestep of EXPERIMENT not necesarily 
-                                 !the same as timestep of particular RUN
-   knode_gl = mype               !which processor am i on?
-   itimestep = INT(timestep)    !realize for 'call cbm' pass
-   kwidth_gl = itimestep          !width of timestep (secs)
-   kend_gl = endstep             !timestep of EXPERIMENT not necesarily 
-
-   !--- internal FLAGS def. specific call of CABLE from UM
-   !--- from cable_common_module
+   cable_runtime%um = .TRUE.
    cable_runtime%um_explicit = .TRUE.
    
    !--- UM7.3 latitude is not passed correctly. hack 
-   IF(first_cable_call) latitude = sin_theta_latitude
+   !IF(first_cable_call) latitude = sin_theta_latitude
 
    !--- user FLAGS, variables etc def. in cable.nml is read on 
    !--- first time step of each run. these variables are read at 
@@ -331,41 +336,36 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
       first_cable_call = .FALSE.
    ENDIF      
 
-   ! Open, read and close the consistency check file.
-   ! Check triggered by cable_user%consistency_check = .TRUE. in cable.nml
-   IF(cable_user%consistency_check) THEN 
-      OPEN( 11, FILE = Ftrunk_sumbal,STATUS='old',ACTION='READ',IOSTAT=ioerror )
-         IF(ioerror==0) then
-            READ( 11, * ) trunk_sumbal  ! written by previous trunk version
-         ENDIF
-      CLOSE(11)
-   ENDIF
-
-
-
-
    !---------------------------------------------------------------------!
    !--- initialize CABLE using UM forcings etc. these args are passed ---!
    !--- down from UM.                                                 ---! 
    !---------------------------------------------------------------------!
+
    CALL interface_UM_data( row_length, rows, land_pts, ntiles, npft,           & 
-                           sm_levels, itimestep, latitude, longitude,          &
+                           sm_levels, ktau_gl, &
+                           latitude, &
+                           longitude,         &
                            land_index, tile_frac, tile_pts, tile_index,        &
                            bexp, hcon, satcon, sathh, smvcst, smvcwt,          &
                            smvccl, albsoil, snow_tile, snow_rho1l,             &
-                           snage_tile, isnow_flg3l, snow_rho3l, snow_cond,     &
+                           snow_age, snow_flg3l, snow_rho3l, snow_cond,     &
                            snow_depth3l, snow_tmp3l, snow_mass3l, sw_down,     &
                            lw_down, cos_zenith_angle, surf_down_sw, ls_rain,   &
                            ls_snow, tl_1, qw_1, vshr_land, pstar, z1_tq,       &
                            z1_uv, rho_water, L_tile_pts, canopy_tile, Fland,   &
-! rml 2/7/13 pass 3d co2 through to cable if required
-                   CO2_MMR,CO2_3D,CO2_DIM_LEN,CO2_DIM_ROW,L_CO2_INTERACTIVE,   &
+                           CO2_MMR, &
+! r935 rml 2/7/13 pass 3d co2 through to cable if required
+                   !CO2_3D,CO2_DIM_LEN,CO2_DIM_ROW,L_CO2_INTERACTIVE,   &
                            sthu_tile, smcl_tile, sthf_tile,                    &
                            sthu, tsoil_tile, canht_ft, lai_ft,                 &
                            sin_theta_latitude, dzsoil,                         &
+                           ! r825	
                            CPOOL_TILE, NPOOL_TILE, PPOOL_TILE, SOIL_ORDER,     &
                            NIDEP, NIFIX, PWEA, PDUST, GLAI, PHENPHASE,         &
                            NPP_FT_ACC,RESP_W_FT_ACC )
+
+  IF(cable_user%run_diag_level == "fprint")                                    &     
+  fprintf_dir=trim(fprintf_dir_root)//trim("expl_driver")//"/"
 
    !---------------------------------------------------------------------!
    !--- Feedback prognostic vcmax and daily LAI from casaCNP to CABLE ---!
@@ -375,7 +375,8 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
 
    canopy%oldcansto=canopy%cansto
 
-
+   IF(cable_user%run_diag_level == "BASIC")                                    &     
+      CALL basic_diag(subr_name, "call cbm.") 
    !---------------------------------------------------------------------!
    !--- real(timestep) width, CABLE types passed to CABLE "engine" as ---!  
    !--- req'd by Mk3L  --------------------------------------------------!
@@ -425,10 +426,10 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    !--- pass land-surface quantities calc'd by CABLE in explicit call ---!
    !--- back to UM.                                                   ---!
    !---------------------------------------------------------------------!
-   call cable_expl_unpack( FTL_TILE_CAB, FTL_CAB, FTL_TILE, FQW_TILE,          &
-                           LE_TILE_CAB, LE_CAB, TSTAR_TILE, TSTAR_TILE_CAB,    &
-                           TSTAR_CAB, U_S, U_S_STD_TILE, U_S_CAB, CH_CAB,      &
-                           CD_CAB, CD_TILE, CH_TILE, FLAND, RADNET_TILE,       &
+
+   call cable_expl_unpack( latitude, longitude, FTL_TILE, FQW_TILE, TSTAR_TILE, &
+                           U_S, U_S_STD_TILE, &
+                           CD_TILE, CH_TILE, FLAND, RADNET_TILE,       &
                            FRACA, rESFS, RESFT, Z0H_TILE, Z0M_TILE,            &
                            RECIP_L_MO_TILE, EPOT_TILE, l_tile_pts,             &
                            ssnow%snowd, ssnow%cls, air%rlam, air%rho,          &
@@ -437,234 +438,8 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
                            canopy%zetar, canopy%epot, met%ua, rad%trad,        &
                            rad%transd, rough%z0m, rough%zref_tq )
 
-
-   ! dump bitwise reproducible testing data
-   IF( cable_user%RUN_DIAG_LEVEL == 'zero')                                    &
-      call cable_diag( iDiagZero, "FLUXES", mp, kend_gl, ktau_gl, knode_gl,            &
-                          "FLUXES", canopy%fe + canopy%fh )
-                
-
    cable_runtime%um_explicit = .FALSE.
-
 
 END SUBROUTINE cable_explicit_driver
 
-
-
-
-!---------------------------------------------------------------------!
-!--- pass land-surface quantities calc'd by CABLE in explicit call ---!
-!--- back to UM.                                                   ---!
-!---------------------------------------------------------------------!
-SUBROUTINE cable_expl_unpack( FTL_TILE_CAB, FTL_CAB, FTL_TILE, FQW_TILE,       &
-                           LE_TILE_CAB, LE_CAB, TSTAR_TILE, TSTAR_TILE_CAB,    &
-                           TSTAR_CAB, U_S, U_S_STD_TILE, U_S_CAB, CH_CAB,      &
-                           CD_CAB, CD_TILE, CH_TILE, FLAND, RADNET_TILE,       &
-                           FRACA, rESFS, RESFT, Z0H_TILE, Z0M_TILE,            &
-                           RECIP_L_MO_TILE, EPOT_TILE, l_tile_pts,             &
-                           ssnow_snowd, ssnow_cls, air_rlam, air_rho,          &
-                           canopy_fe, canopy_fh, canopy_us, canopy_cdtq,       &
-                           canopy_fwet, canopy_wetfac_cs, canopy_rnet,         &
-                           canopy_zetar, canopy_epot, met_ua, rad_trad,        &
-                           rad_transd, rough_z0m, rough_zref_tq )
-
-   USE cable_def_types_mod, ONLY : mp, NITER 
-   USE cable_data_module,   ONLY : PHYS
-   USE cable_um_tech_mod,   ONLY : um1
-   USE cable_common_module, ONLY : cable_runtime, cable_user, &
-                                   ktau_gl, knode_gl 
-   IMPLICIT NONE         
-
-
-   !-------------------------------------------------------------------------- 
-   !--- INPUT ARGS FROM cable_explicit_driver() ------------------------------
-   !-------------------------------------------------------------------------- 
-
-
-   !___ UM variables to recieve unpacked CABLE vars
-
-   !___return fluxes
-   REAL, INTENT(OUT), DIMENSION(um1%land_pts) ::   &
-      FTL_CAB, &
-      LE_CAB
-   REAL, INTENT(OUT), DIMENSION(um1%land_pts,um1%ntiles) :: &
-      FTL_TILE_CAB, &
-      FTL_TILE,   &  ! Surface FTL for land tiles     
-      FQW_TILE,   &  ! Surface FQW for land tiles     
-      LE_TILE_CAB
-
-   !___return temp and roughness
-   REAL, INTENT(OUT), DIMENSION(um1%land_pts,um1%ntiles) :: &
-      TSTAR_TILE_CAB, TSTAR_TILE,  Z0H_TILE, Z0M_TILE
-   REAL, INTENT(OUT), DIMENSION(um1%land_pts) ::                  &
-      TSTAR_CAB
-
-   !___return friction velocities/drags/ etc
-   REAL, INTENT(OUT), DIMENSION(um1%land_pts,um1%ntiles) :: &
-      CD_TILE,    &     ! Drag coefficient
-      CH_TILE,    &     ! Transfer coefficient for heat & moisture
-      U_S_STD_TILE      ! Surface friction velocity
-   REAL, INTENT(OUT), DIMENSION(um1%row_length,um1%rows)  :: &
-      U_S               ! Surface friction velocity (m/s)
-   REAL, INTENT(OUT), DIMENSION(um1%land_pts) ::                  &
-      CH_CAB,  &  ! Turbulent surface exchange
-      CD_CAB,  &  ! Turbulent surface exchange
-      U_S_CAB     ! Surface friction velocity (m/s)
-
-   !___return miscelaneous 
-   REAL, INTENT(OUT), DIMENSION(um1%land_pts,um1%ntiles) :: &
-      RADNET_TILE,   & ! Surface net radiation
-      RESFS,         & ! Combined soil, stomatal & aerodynamic resistance
-                       ! factor for fraction (1-FRACA) of snow-free land tiles
-      RESFT,         & ! Total resistance factor.
-                       ! FRACA+(1-FRACA)*RESFS for snow-free l_tile_pts,
-                       ! 1 for snow.    
-      FRACA,         & ! Fraction of surface moisture
-      RECIP_L_MO_TILE,&! Reciprocal of the Monin-Obukhov length for tiles (m^-1).
-      EPOT_TILE
-   
-   LOGICAL,DIMENSION(um1%land_pts,um1%ntiles) :: l_tile_pts
-
-   !___UM vars used but NOT returned 
-   REAL, INTENT(IN), DIMENSION(um1%land_pts) ::   &
-      FLAND(um1%land_pts)              ! IN Land fraction on land tiles.
-
-
-
-
-   !___ decs of intent(in) CABLE variables to be unpacked
-
-   ! snow depth (liquid water), factor for latent heat
-   REAL, INTENT(IN), DIMENSION(mp) :: ssnow_snowd, ssnow_cls
-   
-   ! surface wind speed (m/s)
-   REAL, INTENT(IN), DIMENSION(mp) :: met_ua 
-   
-   ! latent heat for water (j/kg), dry air density (kg m-3)
-   REAL, INTENT(IN), DIMENSION(mp) :: air_rlam, air_rho 
-   
-   ! frac SW diffuse transmitted thru canopy, rad. temp. (soil and veg)
-   REAL, INTENT(IN), DIMENSION(mp) :: rad_trad,rad_transd 
-   
-   ! total latent heat (W/m2), total sensible heat (W/m2)
-   REAL, INTENT(IN), DIMENSION(mp) :: canopy_fe, canopy_fh  
-   
-   ! fraction of canopy wet
-   REAL, INTENT(IN), DIMENSION(mp) :: canopy_fwet, canopy_wetfac_cs
-   
-   ! friction velocity, drag coefficient for momentum
-   REAL, INTENT(IN), DIMENSION(mp) :: canopy_us, canopy_cdtq
-   
-   ! net rad. absorbed by surface (W/m2), total potential evaporation 
-   REAL, INTENT(IN), DIMENSION(mp) :: canopy_rnet, canopy_epot        
-   
-   ! stability correction
-   REAL, INTENT(IN), DIMENSION(mp,niter) :: canopy_zetar
-   
-   ! roughness length, Reference height for met forcing
-   REAL, INTENT(IN), DIMENSION(mp) :: rough_z0m, rough_zref_tq 
- 
-   !-------------------------------------------------------------------------- 
-   !--- end INPUT ARGS FROM cable_explicit_driver() ------------------------------
-   !-------------------------------------------------------------------------- 
-
-
-   
-        
-   !___vars in local calc. of latent heat fluxes
-   REAL, DIMENSION(um1%land_pts,um1%ntiles) ::                  &
-      FQW_TILE_CAB,  &
-      LE_TILE
-
-   !___vars in local calc of Surface friction velocities
-   REAL, DIMENSION(um1%land_pts,um1%ntiles) ::                  &
-      CD_CAB_TILE,   &  
-      CH_CAB_TILE,   &  ! (bulk transfer) coeff. for momentum
-      U_S_TILE
-   REAL, DIMENSION(mp)  :: &
-      CDCAB,CHCAB
-
-   !___local miscelaneous
-   REAL, DIMENSION(mp)  :: &
-   THETAST,fraca_cab,rfsfs_cab, RECIPLMOTILE, fe_dlh
-   INTEGER :: i,j,k,N,L
-   REAL :: miss = 0.0
-   LOGICAL, SAVE :: first_cable_call = .true.
-   REAL, POINTER :: CAPP 
-   
-      CAPP => PHYS%CAPP
-      
-      !___return fluxes
-      FTL_TILE_CAB = UNPACK(canopy_fh,  um1%l_tile_pts, miss)
-      FTL_CAB = SUM(um1%TILE_FRAC * FTL_TILE_CAB,2)
-      FQW_TILE_CAB = UNPACK(canopy_fe,  um1%l_tile_pts, miss)
-      LE_TILE_CAB = UNPACK(canopy_fe,  um1%l_tile_pts, miss)
-      LE_CAB = SUM(um1%TILE_FRAC * LE_TILE_CAB,2)
-      fe_dlh = canopy_fe/(air_rlam*ssnow_cls)
-      FTL_TILE = UNPACK(canopy_fh,  um1%l_tile_pts, miss)
-      FTL_TILE = FTL_TILE / capp
-      FQW_TILE = UNPACK(fe_dlh, um1%l_tile_pts, miss)
-
-      !___return temp and roughness
-      TSTAR_TILE_CAB = UNPACK(rad_trad, um1%l_tile_pts, miss)
-      TSTAR_CAB = SUM(um1%TILE_FRAC * TSTAR_TILE_CAB,2)
-      TSTAR_TILE = UNPACK(rad_trad,  um1%l_tile_pts, miss)
-      Z0M_TILE = UNPACK(rough_z0m,  um1%l_tile_pts, miss)
-      Z0H_TILE = 0.1*Z0M_TILE
-      
-      !___return friction velocities/drags/ etc
-      U_S_TILE  =  UNPACK(canopy_us, um1%l_tile_pts, miss)
-      U_S_CAB  = SUM(um1%TILE_FRAC *  U_S_TILE,2)
-      CDCAB = canopy_us**2/met_ua**2   ! met%ua is always above umin = 0.1m/s
-      ! for Cable CD*
-      CD_CAB_TILE =  UNPACK(CDCAB,um1%l_tile_pts, miss)
-      CD_CAB= SUM(um1%TILE_FRAC * CD_CAB_TILE,2)
-      ! for Cable CH*
-      CH_CAB_TILE =  UNPACK(canopy_cdtq,um1%l_tile_pts, miss)
-      CH_CAB= SUM(um1%TILE_FRAC * CH_CAB_TILE,2)
-
-      U_S_STD_TILE=U_S_TILE
-      CD_TILE = CD_CAB_TILE
-      CH_TILE = CH_CAB_TILE
-
-      U_S = 0.
-      DO N=1,um1%ntiles
-         DO K=1,um1%TILE_PTS(N)
-            L = um1%TILE_INDEX(K,N)
-            J=(um1%LAND_INDEX(L)-1)/um1%row_length + 1
-            I = um1%LAND_INDEX(L) - (J-1)*um1%row_length
-            U_S(I,J) = U_S(I,J)+um1%TILE_FRAC(L,N)*U_S_TILE(L,N)
-         ENDDO
-      ENDDO
-
-
-
-
-      !___return miscelaneous 
-      fraca_cab = canopy_fwet * (1.-rad_transd)
-      WHERE( ssnow_snowd > 1.0 ) fraca_cab = 1.0
-      rfsfs_cab = MIN( 1., MAX( 0.01, canopy_wetfac_cs - fraca_cab ) /         &
-                  MAX( 0.01,1. - fraca_cab ) )
-      FRACA = UNPACK( fraca_cab, um1%l_tile_pts, miss )
-      RESFT = UNPACK( canopy_wetfac_cs,um1%l_tile_pts, miss )
-      RESFS = UNPACK( rfsfs_cab , um1%l_tile_pts, miss )
-
-      RADNET_TILE = UNPACK( canopy_rnet , um1%l_tile_pts, miss )
-      THETAST = ABS( canopy_fh ) / ( air_rho * capp*canopy_us )
-      RECIPLMOTILE =  canopy_zetar(:,niter) / rough_zref_tq
-      RECIP_L_MO_TILE = UNPACK( RECIPLMOTILE, um1%l_tile_pts, miss )
-      EPOT_TILE = UNPACK( canopy_epot, um1%l_tile_pts, miss )
-      
-
-      IF(first_cable_call) THEN 
-         l_tile_pts = um1%l_tile_pts
-         first_cable_call = .FALSE.
-      ENDIF
-
-   
-END SUBROUTINE cable_expl_unpack
-    
-!============================================================================
-!============================================================================
-!============================================================================
-
+End module cable_explicit_driv_mod
