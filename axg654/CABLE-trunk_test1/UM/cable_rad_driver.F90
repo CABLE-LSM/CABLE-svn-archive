@@ -1,22 +1,14 @@
 !==============================================================================
 ! This source code is part of the 
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
-! This work is licensed under the CABLE Academic User Licence Agreement 
-! (the "Licence").
-! You may not use this file except in compliance with the Licence.
-! A copy of the Licence and registration form can be obtained from 
-! http://www.cawcr.gov.au/projects/access/cable
-! You need to register and read the Licence agreement before use.
-! Please contact cable_help@nf.nci.org.au for any questions on 
-! registration and the Licence.
+! This work is licensed under the CSIRO Open Source Software License
+! Agreement (variation of the BSD / MIT License).
+! 
+! You may not use this file except in compliance with this License.
+! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located 
+! in each directory containing CABLE code.
 !
-! Unless required by applicable law or agreed to in writing, 
-! software distributed under the Licence is distributed on an "AS IS" BASIS,
-! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-! See the Licence for the specific language governing permissions and 
-! limitations under the Licence.
 ! ==============================================================================
-!
 ! Purpose: Pass CABLE albedo to UM variable for UM radiation scheme
 !
 ! Called from: UM code glue_rad_ctl
@@ -112,7 +104,7 @@ SUBROUTINE cable_rad_driver(                                                   &
       ssnow%tgg(:,1) =   PACK( TSOIL_TILE(:,:,1), um1%L_TILE_PTS )
 
 
-      CALL surface_albedo(ssnow, veg, met, rad, soil, canopy)
+      CALL surface_albedo(ssnow, veg, met, rad, soil, canopy )
 
       ! only for land points, at present do not have a method for treating 
       ! mixed land/sea or land/seaice points as yet.
