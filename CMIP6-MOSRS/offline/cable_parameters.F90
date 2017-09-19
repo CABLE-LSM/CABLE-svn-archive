@@ -149,6 +149,8 @@ CONTAINS
 
     ! Get parameter values for all default veg and soil types:
     !CALL get_type_parameters(logn, vegparmnew, classification)
+    call cable_pft_params()
+    call cable_soil_params()
 
     WRITE(logn,*) ' Reading grid info from ', TRIM(filename%type)
     WRITE(logn,*) ' And assigning C4 fraction according to veg classification.'
@@ -1453,8 +1455,6 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
        !call veg% init that is common   
        CALL init_veg_from_vegin(landpt(e)%cstart, landpt(e)%cend, veg)
 
-       CALL init_veg_from_vegin(landpt(e)%cstart, landpt(e)%cend, veg)
-
        ! Prescribe parameters for current gridcell based on veg/soil type (which
        ! may have loaded from default value file or met file):
        DO h = landpt(e)%cstart, landpt(e)%cend ! over each patch in current grid
@@ -1523,19 +1523,19 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
 !         frac4_temp,iveg_temp)
 !    IF(ASSOCIATED(vegtype_metfile)) DEALLOCATE(vegtype_metfile)
 !    IF(ASSOCIATED(soiltype_metfile)) DEALLOCATE(soiltype_metfile)
-    DEALLOCATE(soilin%silt, soilin%clay, soilin%sand, soilin%swilt,            &
-               soilin%sfc, soilin%ssat, soilin%bch, soilin%hyds, soilin%sucs,  &
-               soilin%rhosoil, soilin%css, vegin%canst1, vegin%dleaf,          &
-               vegin%vcmax, vegin%ejmax, vegin%hc, vegin%xfang, vegin%rp20,    &
-               vegin%rpcoef, vegin%rs20, vegin%shelrb, vegin%frac4,            &
-               vegin%wai, vegin%vegcf, vegin%extkn, vegin%tminvj,              &
-               vegin%tmaxvj, vegin%vbeta,vegin%clitt, vegin%zr, vegin%rootbeta, vegin%froot,         &
-               vegin%cplant, vegin%csoil, vegin%ratecp, vegin%ratecs,          &
-               vegin%xalbnir, vegin%length, vegin%width,                       &
-               vegin%g0, vegin%g1,                                             & 
-               vegin%a1gs, vegin%d0gs, vegin%alpha, vegin%convex, vegin%cfrd,  &
-               vegin%gswmin, vegin%conkc0,vegin%conko0,vegin%ekc,vegin%eko   )
-    !         vegf_temp,urbanf_temp,lakef_temp,icef_temp, &
+!    DEALLOCATE(soilin%silt, soilin%clay, soilin%sand, soilin%swilt,            &
+!               soilin%sfc, soilin%ssat, soilin%bch, soilin%hyds, soilin%sucs,  &
+!               soilin%rhosoil, soilin%css, vegin%canst1, vegin%dleaf,          &
+!               vegin%vcmax, vegin%ejmax, vegin%hc, vegin%xfang, vegin%rp20,    &
+!               vegin%rpcoef, vegin%rs20, vegin%shelrb, vegin%frac4,            &
+!               vegin%wai, vegin%vegcf, vegin%extkn, vegin%tminvj,              &
+!               vegin%tmaxvj, vegin%vbeta,vegin%clitt, vegin%zr, vegin%rootbeta, vegin%froot,         &
+!               vegin%cplant, vegin%csoil, vegin%ratecp, vegin%ratecs,          &
+!               vegin%xalbnir, vegin%length, vegin%width,                       &
+!               vegin%g0, vegin%g1,                                             & 
+!               vegin%a1gs, vegin%d0gs, vegin%alpha, vegin%convex, vegin%cfrd,  &
+!               vegin%gswmin, vegin%conkc0,vegin%conko0,vegin%ekc,vegin%eko   )
+!    !         vegf_temp,urbanf_temp,lakef_temp,icef_temp, &
 
     if (allocated(inGWsucs  )) deallocate(inGWsucs)
     if (allocated(inGWhyds  )) deallocate(inGWhyds)
@@ -2054,6 +2054,8 @@ SUBROUTINE report_parameters(logn, soil, veg, bgc, rough,                    &
    ! loaded (i.e. if restart file + met file contains all parameter/init/LAI
    ! info). This will not overwrite any parameter values.
    ! CALL get_type_parameters(filename_veg, filename_soil, logn, vegparmnew)
+    call cable_pft_params()
+    call cable_soil_params()
 
    ! Only report parameters for active vegetation patches:
    DO e = 1, mland

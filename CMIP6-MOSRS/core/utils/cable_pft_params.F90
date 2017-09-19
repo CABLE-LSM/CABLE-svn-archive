@@ -65,10 +65,12 @@ subroutine cable_pft_params()
    USE cable_def_types_mod, ONLY : mvtype, ms, ncs, ncp, nrb 
 
    INTEGER :: a, jveg ! do loop counter
-
+  logical, save :: first_call = .true.
    mvtype=17    
 
     ! Allocate memory for type-specific vegetation parameters:
+  if( first_call ) then
+  
     ALLOCATE (                                                               &
          vegin%canst1( mvtype ), vegin%dleaf( mvtype ),                        &
          vegin%length( mvtype ), vegin%width( mvtype ),                        &
@@ -1099,8 +1101,9 @@ subroutine cable_pft_params()
        vegin%g1(17) =        5.248500
        vegin%zr(17) =        1.000000
     vegin%clitt(17) =        0.000000
+  endif
 
-
+  first_call = .false.
       
    ! new calculation dleaf since April 2012 (cable v1.8 did not use width)
    vegin%dleaf = SQRT(vegin%width * vegin%length)
