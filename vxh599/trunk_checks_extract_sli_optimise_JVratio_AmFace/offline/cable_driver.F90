@@ -587,6 +587,44 @@ PROGRAM cable_offline_driver
           ENDIF
        ENDIF
        
+
+! Hacking to output AmazonFACE results
+  OPEN(123,file='H1CABLEamazon_30min.csv')
+  WRITE(123,'(A100)') 'Note that PARh is output as 2.3*fsd and APARh is 4.6*qcan.'// &
+               ' VPD is direct from input met file.'
+  WRITE(123,*) 'Soil temperature reported for 4th layer at depth 0.234-0.643 m'
+  WRITE(123,'(A200)') 'YEAR,Tstp,CO2h,PPTh,PARh,LWh,ATh,STh,CTh,VPDh,SWh,'//    &
+                      'aSWh,NEPh,GPPh,NPPh,CEXh,CVOCh,RECOh,RAUTOh,RLEAFh,'//  &
+                      'RWOODh,RROOTh,RGROh,RHETh,RSOILh,ETh,Th,ESh,ECh,'//     &
+                      'ROh,DRAINh,LEh,SHh,APARh,GCh,GAh,GBh,Betah'
+  WRITE(123,'(A200)') ' - ,  - , ppm,mm/h,umol/m2/s,W/m2, C, C, kPa, mm,'// &
+                      '  mm, gC/m2/h, .., .., .., .., .., .., ..,'//           &
+                      ' .., .., .., .., .., mm/h, .., .., ..,'//               &
+                      ' .., ..,W/m2,W/m2,umol/m2/s,mol/m2/s, .., .., - '
+  OPEN(124,file='D1CABLEamazon_prelim.csv')
+  WRITE(124,'(A100)') 'Note that PARh is output as 2.3*fsd and APARh is 4.6*qcan.'// &
+               ' VPD is direct from input met file.'
+  WRITE(124,'(A400)') 'YEAR,DOY,NDEP,NEP,RLEAF,RWOOD,RROOT,RGROW,RHET,'// &
+                      'RSOIL,CL,CW,CFR,TNC,CLIT1,CLIT2,CLIT3,'//   &
+                      'CSOIL,LAI,LMA,NCON,NCAN,NWOOD,NFR,NLIT1,NLIT2,'//   &
+                      'NDW,NPOOLO,NPOOLM,NFIX,NUP,NGMIN,NMIN,NVOL,NLEACH,'// &
+                      'dNplantdtL,kplantL,ftrnsNPtoL1,dNplantdtW,'// &
+                      'kplantW,ftrnsNPtoL2,dNplantdtR,kplantR,'//         &
+                      'ftrnsNPtoL3,PCAN,PWOOD,PFR,PLIT1,PLIT2,PDW,PSOIL,'//  &
+                      'PLABILE,PSECOND,POCCLUD,PUP,PGMIN,PMIN,PLEACH,los'
+  WRITE(124,'(A400)') ' - , - ,gN/m2/d,gC/m2/d, .., .., .., .., ..,'// &
+                      ' .., gC/m2, .., .., .., .., .., ..,'//   &
+                      ' gC/m2,m2/m2,gC/m2,gN/gC,gN/m2, .., .., .., ..,'//   &
+                      ' .., .., .., gN/m2/d,.., .., .., .., ..,'//      &
+                      ' ??, ??, ??, ??,'//                              &
+                      ' ??, ??, ??, ??,'//                                  &
+                      ' ??, gP/m2, .., .., .., .., .., ..,'//               &
+                      ' .., .., .., gP/m2/d, .., .., .., ..'
+  OPEN(125,file='litterInput.csv')
+  OPEN(126,file='oldpools.txt')
+  OPEN(15, file='sumgbh.txt')
+! End hacking for AmazonFACE
+
        ssnow%otss_0 = ssnow%tgg(:,1)
        ssnow%otss = ssnow%tgg(:,1)
        ssnow%tss = ssnow%tgg(:,1)
@@ -721,7 +759,10 @@ PROGRAM cable_offline_driver
              IF (l_laiFeedbk.and.icycle>0) veg%vlai(:) = casamet%glai(:)
              !veg%vlai = 2 ! test
              ! Call land surface scheme for this timestep, all grid points:
-write(*,*), 'ca: ', met%ca*1e6
+               !met%precip = met%precip/2. ! test vh
+               veg%dleaf = 0.02
+               veg%gamma = 0.03
+               !veg%shelrb = 1.0
                     CALL cbm(ktau, dels, air, bgc, canopy, met,		      &
                          bal, rad, rough, soil, ssnow,			      &
                          sum_flux, veg,climate )
@@ -866,6 +907,51 @@ write(*,*), 'ca: ', met%ca*1e6
                             ssnow,rad, bal, air, soil, veg, C%SBOLTZ, C%EMLEAF, C%EMSOIL )
                     endif
                  ENDIF
+
+
+
+! Hacking to dump AmazonFACE output
+  WRITE(123,'(2(I8,","),36(E16.8,","))') CurYear, ktau_tot, met%ca, &
+     met%precip*2.0, 2.3*(met%fsd(1,1)+met%fsd(1,2)), met%fld,   &
+     met%tk-273.16, ssnow%tgg(1,4)-273.16,canopy%tv-273.16, -9999.9,  &
+     SUM(ssnow%wb(1,:)*soil%zse(:))*1000.0,          &
+     SUM((ssnow%wb(1,:)-soil%swilt(1))*soil%zse(:))*1000.0,      &
+     canopy%fnee*3600.0,      &
+     (canopy%frday-canopy%fpn)*3600.0, (-canopy%frp-canopy%fpn)*3600.0, &
+     -9999.9, -9999.9, (canopy%frp+canopy%frday+canopy%frs)*3600.0, &
+     (canopy%frp+canopy%frday)*3600.0, canopy%frday*3600.0, &
+     casaflux%crmplant(1,2)/24.0, casaflux%crmplant(1,3)/24.0, &
+     casaflux%crgplant/24.0, canopy%frs*3600.0, &
+     (casaflux%Crsoil+casaflux%crmplant(1,3))/24.0, &
+     canopy%fe/air%rlam*3600.0, canopy%fevc/air%rlam*3600.0, &
+     canopy%fes/air%rlam*3600.0, canopy%fevw/air%rlam*3600.0, &
+     ssnow%rnof1*2.0, ssnow%rnof2*2.0, canopy%fe, canopy%fh, &
+     SUM(rad%qcan(1,:,1))*4.6, canopy%gswx(1,1)+canopy%gswx(1,2), &
+     1.0/rough%rt1, -9999.9, -9999.9
+! writing daily file
+  IF (mod(ktau,ktauday) == 0)  &
+     WRITE(124,'(2(I8,","),64(E16.8,","))') &
+     CurYear, idoy, casaflux%Nmindep, &
+     (casaflux%Crsoil-casaflux%cnpp &
+               - casapool%dClabiledt), casaflux%crmplant(1,:), casaflux%crgplant, &
+     casaflux%Crsoil, casaflux%Crsoil+casaflux%crmplant(1,3), &
+     casapool%Cplant(1,:), casapool%Clabile, casapool%Clitter(1,:),         &
+     SUM(casapool%Csoil(1,:)), casamet%glai, 1.0/casabiome%sla(2), &
+     casapool%Nplant(1,1)/casapool%Cplant(1,1), casapool%Nplant(1,:), &
+     casapool%Nlitter(1,:), SUM(casapool%Nsoil(1,:)), casapool%Nsoilmin, &
+     casaflux%Nminfix, casaflux%Nminuptake, casaflux%Nsmin, casaflux%Nsnet, &
+     casaflux%Nminloss, casaflux%Nminleach, casapool%dNplantdt(1,1), &
+     casaflux%kplant(1,1), casabiome%ftransNPtoL(2,1), casapool%dNplantdt(1,2),&
+     casaflux%kplant(1,2), casabiome%ftransNPtoL(2,2), casapool%dNplantdt(1,3),&
+     casaflux%kplant(1,3), casabiome%ftransNPtoL(2,3), casapool%Pplant(1,:), &
+     casapool%Plitter(1,:), SUM(casapool%Psoil(1,:))+ casapool%Psoillab+ &
+     casapool%Psoilsorb  + casapool%Psoilocc , casapool%Psoillab, &
+     casapool%Psoilsorb, casapool%Psoilocc, casaflux%Plabuptake, &
+     casaflux%Psmin, casaflux%Psnet, casaflux%Pleach, casaflux%Ploss, &
+     casaflux%cgpp, casaflux%cnpp, casapool%Psoillab+ &
+     casapool%Psoilsorb  + casapool%Psoilocc, SUM(casapool%Psoil(1,:)),  casaflux%Pdep, &
+     casaflux%Pwea,  casaflux%clabloss
+! End hacking for AmazonFACE
 
 
                  ! dump bitwise reproducible testing data
