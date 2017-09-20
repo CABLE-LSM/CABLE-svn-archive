@@ -92,7 +92,7 @@ MODULE cable_common_module
     ! GS_SWITCH='leuning'
      GS_SWITCH='medlyn'
       
-     CHARACTER(LEN=10) :: RunIden       = 'STANDARD'  !
+     CHARACTER(LEN=30) :: RunIden       = 'STANDARD'  !
      CHARACTER(LEN=4)  :: MetType       = ' ' !
      CHARACTER(LEN=20) :: SOIL_STRUC    = "default" ! 'default' or 'sli'
      CHARACTER(LEN=3)  :: POP_out       = 'rst' ! POP output type ('epi' or 'rst')
