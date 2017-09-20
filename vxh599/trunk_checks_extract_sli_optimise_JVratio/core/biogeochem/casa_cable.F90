@@ -642,7 +642,7 @@ if (mod(ktau,ktauday) ==1) then
    if (cable_user%call_climate .and. TRIM(cable_user%vcmax).eq.'Walker2014' ) then
       CALL optimise_JV(veg,climate,ktauday,bjvref)
 
-    else
+   else
 
        veg%vcmax_shade = veg%vcmax
        veg%ejmax_shade = veg%ejmax

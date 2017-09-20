@@ -721,7 +721,7 @@ PROGRAM cable_offline_driver
              IF (l_laiFeedbk.and.icycle>0) veg%vlai(:) = casamet%glai(:)
              !veg%vlai = 2 ! test
              ! Call land surface scheme for this timestep, all grid points:
-write(*,*), 'ca: ', met%ca*1e6
+
                     CALL cbm(ktau, dels, air, bgc, canopy, met,		      &
                          bal, rad, rough, soil, ssnow,			      &
                          sum_flux, veg,climate )
@@ -906,34 +906,35 @@ write(*,*), 'ca: ', met%ca*1e6
                   
 
 ! vh ! commented code below detects Nans in evaporation flux and stops if there are any.
-	      do kk=1,mp
-		 if( canopy%fe(kk).NE.( canopy%fe(kk))) THEN
-		    write(*,*) 'fe nan', kk, ktau,met%qv(kk), met%precip(kk),met%precip_sn(kk), &
-			 met%fld(kk), met%fsd(kk,:), met%tk(kk), met%ua(kk), ssnow%potev(kk), met%pmb(kk), &
-			 canopy%ga(kk), ssnow%tgg(kk,:), canopy%fwsoil(kk)
+                    do kk=1,mp
+                       if( canopy%fe(kk).NE.( canopy%fe(kk))) THEN
+                          write(*,*) 'fe nan', kk, ktau,met%qv(kk), met%precip(kk),met%precip_sn(kk), &
+                               met%fld(kk), met%fsd(kk,:), met%tk(kk), met%ua(kk), ssnow%potev(kk), met%pmb(kk), &
+                               canopy%ga(kk), ssnow%tgg(kk,:), canopy%fwsoil(kk)
+                          
+                          
+                          !stop
+                       endif
 
-
-		    !stop
-		 endif
-		 if ( casaflux%cnpp(kk).NE. casaflux%cnpp(kk)) then
-		    write(*,*) 'npp nan', kk, ktau,  casaflux%cnpp(kk)
-		    !stop
-
-		 endif
-
-
-		 !if (canopy%fwsoil(kk).eq.0.0) then
-		 !   write(*,*) 'zero fwsoil', ktau, canopy%fpn(kk)
-		 !endif
-
-
-	      enddo
-
+                       IF(icycle >0) THEN
+                          if ( casaflux%cnpp(kk).NE. casaflux%cnpp(kk)) then
+                             write(*,*) 'npp nan', kk, ktau,  casaflux%cnpp(kk)
+                          endif
+                       ENDIF
+                       
+                       
+                       !if (canopy%fwsoil(kk).eq.0.0) then
+                       !   write(*,*) 'zero fwsoil', ktau, canopy%fpn(kk)
+                       !endif
+                       
+                       
+                    enddo
+                    
                     IF( ktau == kend ) THEN
                        nkend = nkend+1
-
+                       
                        IF( ABS(new_sumbal-trunk_sumbal) < 1.e-7) THEN
-
+                          
                           PRINT *, ""
                           PRINT *, &
                                "NB. Offline-serial runs spinup cycles:", nkend
