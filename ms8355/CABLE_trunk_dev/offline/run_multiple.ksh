@@ -60,20 +60,18 @@ book_keeping()
 # regenerate if number of sites does not match input folder
 site_list_file()
 {
-    num_sites="$(grep -c 'Fluxnet.1.4_met.nc' $site_file)" # counts the sites in list
+    num_sites="$(grep -c $suffix1 $site_file)" # counts the sites in list
     num_site_files="$(ls $in | wc -l)" # counts site files in site folders
     if [[ "$num_sites" != "$num_site_files" ]] ; then
 	grep '#' $site_file >> Temp_sites.txt
 	find $in  -printf "%f\n" >> Temp_sites_2.txt # lists all input site files from folder
-	sed '1d' Temp_sites_2.txt >> tmpfile # removes folder name from the list
-	mv tmpfile Temp_sites_2.txt
-	sed 's/Fluxnet.1.4_met.nc.*//' Temp_sites_2.txt >> Temp_sites_3.txt # creates list with site names only
-	awk -v prefix="${in}/" '{print prefix $0}' Temp_sites_2.txt >> tmpfile # adds path to site files' names
-	mv tmpfile Temp_sites_2.txt
+	sed -i '1d' Temp_sites_2.txt # removes folder name from the list
+	sed -e 's/'$suffix2'//g' Temp_sites_2.txt >> Temp_sites_3.txt # creates list with site names only
+	awk -v prefix="${in}" '{print prefix $0}' Temp_sites_2.txt >>  temp.txt && mv temp.txt Temp_sites_2.txt # adds path to site files' names
 	len_2="$(wc -l < Temp_sites_2.txt)" # counts lines in the newly created file
 	len_3="$(wc -l < Temp_sites_3.txt)"
 	if [[ "$len_2" != "$len_3" ]] ; then
-	    echo "there is an issue with how you generate your site file"
+	    echo "there is an issue with how you generate your site file, first warning"
 	    exit
 	fi
 	if [[ "$len_2" == "$len_3" ]] ; then
@@ -84,16 +82,16 @@ site_list_file()
 		echo -en '\n' >> Temp_sites_4.txt
 	    done
 	    sed -e '/#Sites/r Temp_sites_4.txt' Temp_sites.txt >> Temp_sites_5.txt # inserts names & paths after #Sites
-	    num_sites_5="$(grep -c 'Fluxnet.1.4_met.nc' Temp_sites_5.txt)" # counts sites in the newly created file
+	    num_sites_5="$(grep -c $suffix2 Temp_sites_5.txt)" # counts sites in the newly created file
 	    if [[ "$num_sites" == "$num_sites_5" ]] ; then
-		echo "there is an issue with how you generate your site file"
+		echo "there is an issue with how you generate your site file, second warning"
 		exit
 	    fi
 	    if [[ "$num_sites" != "$num_sites_5" ]] ; then # this is satisfactory, the new site list is different from the previous one
 		mv Temp_sites_5.txt Sites.txt
 		site_file="Sites.txt"
 		rm Temp_site*.txt
-		echo "you have successfuly generated your new Site.txt file"
+		echo "you have successfuly generated your new Sites.txt file"
 	    fi
 	fi
     fi
@@ -171,10 +169,10 @@ run_run()
    # execute CABLE
    if [[ ${fsites[$1]} != '' ]]; then
       ./create_cable-nml_casa_spin_and_run.sh -W $SD_loc/${sites[$1]}"_SD.txt" -w "$which_SD" -q "$drought_fun" -j $out/${sites[$1]}"_"   #create namelist with options above
-      ./cable-r4334 ${fsites[$1]} ${fpoolsites[$1]}
+      ./cable-r4412 ${fsites[$1]} ${fpoolsites[$1]}
    else
        echo "bypassing namelist arg"
-      ./cable-r4334
+      ./cable-r4412
    fi
 
    print '\n*** CABLE RUN FINISHED ***\n' 
@@ -266,17 +264,27 @@ write_SD()
 cd . #/srv/ccrc/data04/z3509830/Fluxnet_data/Data_for_Manon/CABLE_trunk_dev/offline
 
 # Set fwsoil option for creating output path
-drought_fun="Haverd2013"
-which_SD="minus_SD"
+drought_fun="standard"
+which_SD="no_SD"
 
 # paths
-out="../../Outputs/""$which_SD""/""$drought_fun"
+out="../../Outputs/Fluxnet2015/""$which_SD""/""$drought_fun"
 out="$(echo "$out" | sed 's/ //g')" #removes all white spaces from out path (there are white spaces with some of the drought_fun options)
-in="../../Inputs/Test_sites"
+in="../../Inputs/Fluxnet2015/"
 SD_loc="../../Outputs/SDs"
 
 # site file
 site_file="Sites.txt"
+suffix1='Fluxnet.1.4_met.nc'
+suffix2='Fluxnet.1.4_met.nc'
+if [[ $in == "../../Inputs/Fluxnet2015/" ]] ; then
+    suffix1='_FLUXNET2015_Met.nc'
+    suffix2='_FLUXNET2015_Met.nc'
+fi
+if [[ $in == "../../Inputs/LaThuile/" ]] ; then
+    suffix1='_LaThuile_Met.nc'
+    suffix2='_LaThuile_Met.nc'
+fi
 
 
 ######################################################################
@@ -296,7 +304,7 @@ fi
 
 book_keeping
 
-site_list_file
+#site_list_file
 
 site_name
 
@@ -309,3 +317,179 @@ site_name
 run_cable
 
 #write_SD
+
+
+############################################################################################################################
+
+
+# Set fwsoil option for creating output path
+drought_fun="non-linear extrapolation"
+
+# paths
+out="../../Outputs/Fluxnet2015/""$which_SD""/""$drought_fun"
+out="$(echo "$out" | sed 's/ //g')" #removes all white spaces from out path (there are white spaces with some of the drought_fun options)
+
+# site file
+site_file="Sites.txt"
+
+#check if directory exists, it not create
+if [[ -d $out ]]; then
+   echo  "output directory exists for the runs"
+else
+    mkdir -p $out
+fi
+
+# see above functions()
+
+book_keeping
+
+#site_list_file
+
+site_name
+
+run_cable
+
+
+
+# Set fwsoil option for creating output path
+drought_fun="Lai and Ktaul 2000"
+
+# paths
+out="../../Outputs/Fluxnet2015/""$which_SD""/""$drought_fun"
+out="$(echo "$out" | sed 's/ //g')" #removes all white spaces from out path (there are white spaces with some of the drought_fun options)
+
+# site file
+site_file="Sites.txt"
+
+#check if directory exists, it not create
+if [[ -d $out ]]; then
+   echo  "output directory exists for the runs"
+else
+    mkdir -p $out
+fi
+
+# see above functions()
+
+book_keeping
+
+#site_list_file
+
+site_name
+
+run_cable
+
+
+
+# Set fwsoil option for creating output path
+drought_fun="Haverd2013"
+
+# paths
+out="../../Outputs/Fluxnet2015/""$which_SD""/""$drought_fun"
+out="$(echo "$out" | sed 's/ //g')" #removes all white spaces from out path (there are white spaces with some of the drought_fun options)
+
+# site file
+site_file="Sites.txt"
+
+#check if directory exists, it not create
+if [[ -d $out ]]; then
+   echo  "output directory exists for the runs"
+else
+    mkdir -p $out
+fi
+
+# see above functions()
+
+book_keeping
+
+#site_list_file
+
+site_name
+
+run_cable
+
+exit
+
+# Set fwsoil option for creating output path
+drought_fun="non-linear extrapolation"
+
+# paths
+out="../../Outputs/LaThuile/""$which_SD""/""$drought_fun"
+out="$(echo "$out" | sed 's/ //g')" #removes all white spaces from out path (there are white spaces with some of the drought_fun options)
+
+# site file
+site_file="Sites.txt"
+
+#check if directory exists, it not create
+if [[ -d $out ]]; then
+   echo  "output directory exists for the runs"
+else
+    mkdir -p $out
+fi
+
+# see above functions()
+
+book_keeping
+
+site_list_file
+
+site_name
+
+run_cable
+
+
+
+# Set fwsoil option for creating output path
+drought_fun="standard"
+
+# paths
+out="../../Outputs/LaThuile/""$which_SD""/""$drought_fun"
+out="$(echo "$out" | sed 's/ //g')" #removes all white spaces from out path (there are white spaces with some of the drought_fun options)
+
+# site file
+site_file="Sites.txt"
+
+#check if directory exists, it not create
+if [[ -d $out ]]; then
+   echo  "output directory exists for the runs"
+else
+    mkdir -p $out
+fi
+
+# see above functions()
+
+book_keeping
+
+site_list_file
+
+site_name
+
+run_cable
+
+
+
+# Set fwsoil option for creating output path
+drought_fun="Lai and Ktaul 2000"
+
+# paths
+out="../../Outputs/LaThuile/""$which_SD""/""$drought_fun"
+out="$(echo "$out" | sed 's/ //g')" #removes all white spaces from out path (there are white spaces with some of the drought_fun options)
+
+# site file
+site_file="Sites.txt"
+
+#check if directory exists, it not create
+if [[ -d $out ]]; then
+   echo  "output directory exists for the runs"
+else
+    mkdir -p $out
+fi
+
+# see above functions()
+
+book_keeping
+
+site_list_file
+
+site_name
+
+run_cable
