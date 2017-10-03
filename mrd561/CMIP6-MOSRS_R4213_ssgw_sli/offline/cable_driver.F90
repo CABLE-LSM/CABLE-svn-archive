@@ -216,14 +216,20 @@ PROGRAM cable_offline_driver
        delsoilM,	 & ! allowed variation in soil moisture for spin up
        delsoilT		   ! allowed variation in soil temperature for spin up
 
-  REAL :: delgwM = 1e-4
+  REAL, allocatable, dimension(:,:)    :: &
+       runavg_soilM,	 & ! allowed variation in soil moisture for spin up
+       runavg_soilT		   ! allowed variation in soil temperature for spin up
+  REAL, allocatable, dimension(:)    :: &
+       runavg_wtd
+
+  REAL :: delWTD = -1.0
 
   ! temporary storage for soil moisture/temp. in spin up mode
   REAL, ALLOCATABLE, DIMENSION(:,:)  :: &
        soilMtemp,			  &
        soilTtemp
 
-  REAL, ALLOCATABLE, DIMENSION(:) :: GWtemp
+  REAL, ALLOCATABLE, DIMENSION(:) :: WTDtemp
 
   ! timing
   REAL:: etime ! Declare the type of etime(), For receiving user and system time, total time
@@ -240,7 +246,7 @@ PROGRAM cable_offline_driver
        calcsoilalbedo,	 & ! albedo considers soil color Ticket #27
        spinup,		 & ! spinup model (soil) to steady state
        delsoilM,delsoilT,& !
-       delgwM,           &
+       delWTD,           &
        output,		 &
        patchout,	 &
        check,		 &
@@ -277,6 +283,8 @@ PROGRAM cable_offline_driver
        new_sumbal = 0.0, &
        new_sumfpn = 0.0, &
        new_sumfe = 0.0
+
+  REAL,allocatable,dimension(:) :: runavg_fe,prev_runavg_fe
 
   INTEGER :: nkend=0
   INTEGER :: ioerror
@@ -537,6 +545,7 @@ PROGRAM cable_offline_driver
             casamet, casabal, phen, POP, spinup,	       &
             C%EMSOIL, C%TFRZ, LUC_EXPT, POPLUC )
 
+
        IF ( CABLE_USER%POPLUC .AND. TRIM(CABLE_USER%POPLUC_RunType) .EQ. 'static') &
             CABLE_USER%POPLUC= .FALSE.
        ! Open output file:
@@ -609,9 +618,8 @@ PROGRAM cable_offline_driver
     
        ! time step loop over ktau
        DO ktau=kstart, kend
-          
-          write(logn,*) 'Progress -',real(ktau)/real(kend)*100.0
 
+          
           ! increment total timstep counter
           ktau_tot = ktau_tot + 1
           
@@ -678,6 +686,41 @@ PROGRAM cable_offline_driver
                     CALL cbm(ktau, dels, air, bgc, canopy, met,		      &
                          bal, rad, rough, soil, ssnow,			      &
                          sum_flux, veg,climate )
+
+                  IF (.NOT.ALLOCATED(runavg_soilM)) then
+                     ALLOCATE( runavg_soilM(mp,ms) )
+                     runavg_soilM = 0.0
+                  end if
+                  IF (.NOT.ALLOCATED(runavg_soilT)) then
+                     ALLOCATE( runavg_soilT(mp,ms) )
+                     runavg_soilT = 0.0
+                  end if
+                  IF (.NOT.ALLOCATED(runavg_wtd)) then
+                     ALLOCATE( runavg_wtd(mp) )
+                     runavg_wtd = 0.0
+                  end if
+                  IF (.NOT.ALLOCATED(runavg_fe)) then
+                     ALLOCATE( runavg_fe(mp) )
+                     runavg_fe = 0.0
+                  end if
+
+                 if (ktau .eq. kstart) then
+                    runavg_soilM = 0.0
+                    runavg_soilT = 0.0
+                    runavg_wtd = 0.0
+                     runavg_fe = 0.0
+                 end if
+
+                 runavg_fe(:) = runavg_fe(:) + 1.0/real(kend)*canopy%fe(:)
+                 if (cable_user%new_spin) then
+                    runavg_soilM(:,:) = runavg_soilM(:,:) + 1.0/real(kend)*ssnow%wb(:,:)
+                    runavg_soilT(:,:) = runavg_soilM(:,:) + 1.0/real(kend)*ssnow%tgg(:,:)
+                    runavg_wtd(:) = runavg_wtd(:) + 1.0/real(kend)*ssnow%wtd(:)
+                 elseif (ktau .eq. kend) then
+                    runavg_soilM(:,:) = ssnow%wb
+                    runavg_soilT(:,:) = ssnow%tgg
+                    runavg_wtd(:) = ssnow%wtd
+                 end if
 
                  if (cable_user%CALL_climate) &
                   CALL cable_climate(ktau_tot,kstart,kend,ktauday,idoy,LOY,met, &
@@ -940,20 +983,27 @@ PROGRAM cable_offline_driver
 		   YYYY.EQ. CABLE_USER%YearEnd ) THEN
 
           ! evaluate spinup
-		 IF( ANY( ABS(ssnow%wb-soilMtemp)>delsoilM).OR.		      &
-		      ANY( ABS(ssnow%tgg-soilTtemp)>delsoilT) .or. &
-                       maxval(ABS(ssnow%GWwb-GWtemp),dim=1) > delgwM) THEN
+                 if (delWTD .le. 0.0) delWTD = sum(soil%zse,dim=1)*delsoilM*1000.0
+!		 IF( ANY( ABS(ssnow%wb-soilMtemp)>delsoilM).OR.		      &
+!		      ANY( ABS(ssnow%tgg-soilTtemp)>delsoilT) .or. &
+!                       maxval(ABS(ssnow%GWwb-WTDtemp),dim=1) > delWTD) THEN
+                 IF( (ANY( ABS(runavg_soilM-soilMtemp)>delsoilM).OR.		      &
+                      ANY( ABS(runavg_soilT-soilTtemp)>delsoilT) .or. &
+                       (maxval(ABS(runavg_wtd-WTDtemp),dim=1) > delWTD)) .and. &
+                       (maxval(ABS(runavg_fe-prev_runavg_fe),dim=1) > 0.05) .and.&
+                        (int(ktau_tot/kend) .lt. cable_user%max_spins)) THEN
 
       ! No complete convergence yet
-		    PRINT *, 'ssnow%wb : ', ssnow%wb
+		    PRINT *, 'ssnow%wb : ', runavg_soilM
 		    PRINT *, 'soilMtemp: ', soilMtemp
-		    PRINT *, 'ssnow%tgg: ', ssnow%tgg
+		    PRINT *, 'ssnow%tgg: ', runavg_soilT
 		    PRINT *, 'soilTtemp: ', soilTtemp
                     IF (cable_user%gw_model) then
-		       PRINT *, 'ssnow%GWwb : ', ssnow%GWwb
-		       PRINT *, 'GWtemp: ', GWtemp
+		       PRINT *, 'ssnow%wtd : ', runavg_wtd
+		       PRINT *, 'WTDtemp: ', WTDtemp
                     ENDIF
-
+                    PRINT *, 'canopy%fe ',runavg_fe
+                    PRINT *, 'prev_runavg_fe ',prev_runavg_fe
 		 ELSE ! spinup has converged
 
 		    spinConv = .TRUE.
@@ -973,7 +1023,8 @@ PROGRAM cable_offline_driver
 
 		 IF (.NOT.ALLOCATED(soilMtemp)) ALLOCATE(  soilMtemp(mp,ms) )
 		 IF (.NOT.ALLOCATED(soilTtemp)) ALLOCATE(  soilTtemp(mp,ms) )
-		 IF (.NOT.ALLOCATED(GWtemp)   ) ALLOCATE(  GWtemp(mp)  )
+		 IF (.NOT.ALLOCATED(WTDtemp)   ) ALLOCATE(  WTDtemp(mp)  )
+		 IF (.NOT.ALLOCATED(prev_runavg_fe)   ) ALLOCATE(  prev_runavg_fe(mp)  )
 
 	      END IF
 
@@ -985,10 +1036,18 @@ PROGRAM cable_offline_driver
               end if
 
        ! store soil moisture and temperature
-	      IF ( YYYY.EQ. CABLE_USER%YearEnd ) THEN
-		 soilTtemp = ssnow%tgg
-		 soilMtemp = REAL(ssnow%wb)
-                 GWtemp = ssnow%GWwb
+             IF ( YYYY.EQ. CABLE_USER%YearEnd ) THEN
+                if (cable_user%new_spin) then
+                    soilTtemp = runavg_soilT
+                    soilMtemp = runavg_soilM
+                    WTDtemp = runavg_wtd
+                    prev_runavg_fe = runavg_fe
+                 else
+                    soilTtemp = ssnow%tgg
+                    soilMtemp = REAL(ssnow%wb)
+                    WTDtemp = ssnow%wtd
+
+                 end if
 	      ENDIF
 
 	   ELSE

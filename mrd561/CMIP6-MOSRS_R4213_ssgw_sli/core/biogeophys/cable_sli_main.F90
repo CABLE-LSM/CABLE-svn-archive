@@ -1,3 +1,7 @@
+module sli_main_mod
+
+contains
+
 SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
 
   ! Main subroutine for Soil-litter-iso soil model
@@ -234,7 +238,8 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
   end where
   h0         = ssnow%h0
 
-  ! zero runoff here, in case error is returned to avoid excessive runoff from previous time-step. (Runoff is multipled by dt in cable_driver.F90)
+  ! zero runoff here, in case error is returned to avoid excessive runoff 
+  !from previous time-step. (Runoff is multipled by dt in cable_driver.F90)
   ssnow%rnof1 = 0.0
   ssnow%rnof2 = 0.0
   ssnow%runoff = 0.0
@@ -748,3 +753,5 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
   endif ! SEB only
 
 END SUBROUTINE sli_main
+End module sli_main_mod
+

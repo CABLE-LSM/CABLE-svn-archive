@@ -155,7 +155,8 @@ MODULE cable_common_module
      LOGICAL :: or_evap = .FALSE.
      LOGICAL :: test_new_gw=.false.
      LOGICAL :: sync_nc_file=.false.
-     INTEGER :: max_spins = -1
+     INTEGER :: max_spins = 999999999
+     LOGICAL :: new_spin=.true.
      LOGICAL :: fix_access_roots = .false.  !use pft dependent roots in ACCESS
 
   END TYPE kbl_user_switches
@@ -192,6 +193,22 @@ MODULE cable_common_module
 
   ! hydraulic_redistribution parameters _soilsnow module
   REAL :: wiltParam=0.5, satuParam=0.8
+
+   REAL ::                                                          &
+      cgsnow = 2090.0,     & ! specific heat capacity for snow
+      csice = 2.100e3,     & ! specific heat capacity for ice
+      cswat = 4.218e3,     & ! specific heat capacity for water
+      rhowat = 1000.0,     & ! density of water
+!jhan:clobber - effectively force single layer snow
+      snmin = 1.,          & ! for 3-layer;, 100.0 for 1 layer
+      max_ssdn = 750.0,    & ! 
+      max_sconds = 2.51,   & ! 
+      frozen_limit = 0.85    ! EAK Feb2011 (could be 0.95)
+
+   !jhan:make parameter
+   REAL :: max_glacier_snowd=1100.0
+  
+
 
 
   ! soil parameters read from file(filename%soil def. in cable.nml)
