@@ -326,10 +326,6 @@ CONTAINS
 
        IF (cable_user%or_evap) THEN
           call or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
-          ssnow%wetfac = ssnow%rtsoil(:)*(real(ssnow%satfrac(:))/&
-                              (ssnow%rtsoil(:)+real(ssnow%rtevap_sat(:))) + &
-                               (1-real(ssnow%satfrac(:)))/&
-                              (ssnow%rtsoil(:)+real(ssnow%rtevap_unsat(:))))
        END IF
 
        ! Vegetation boundary-layer conductance (mol/m2/s)
