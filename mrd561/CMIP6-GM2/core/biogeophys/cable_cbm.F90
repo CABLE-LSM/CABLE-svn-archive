@@ -56,7 +56,7 @@ CONTAINS
 #endif
    USE cable_data_module, ONLY : icbm_type, point2constants
    !mrd561
-   USE cable_gw_hydro_module
+   USE cable_gw_hydro_module, only : soil_snow_gw,sli_hydrology
 
    !ptrs to local constants
    TYPE( icbm_type ) :: C
@@ -119,10 +119,6 @@ CONTAINS
    ssnow%otss = ssnow%tss
 
    ! Calculate canopy variables:
-   IF (.not.(cable_user%or_evap .or. cable_user%gw_model .or. &
-            (cable_user%SOIL_STRUC=='sli' .and. cable_user%test_new_gw) ) ) THEN
-      call set_unsed_gw_vars(ssnow,soil,canopy)
-   END IF
 
    CALL define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,climate)
    
@@ -136,7 +132,7 @@ CONTAINS
 
      IF( cable_runtime%um_implicit ) THEN
         IF (cable_user%gw_model) then
-           if (mp .ge. 1) CALL soil_snow_gw(dels, soil, ssnow, canopy, met, bal,veg)
+           CALL soil_snow_gw(dels, soil, ssnow, canopy, met, bal,veg)
         ELSE
             CALL soil_snow(dels, soil, ssnow, canopy, met, bal,veg)
          ENDIF
@@ -145,7 +141,7 @@ CONTAINS
    ELSE
       IF(cable_user%SOIL_STRUC=='default') THEN
         IF (cable_user%gw_model) then
-           if (mp .ge. 1) CALL soil_snow_gw(dels, soil, ssnow, canopy, met, bal,veg)
+           CALL soil_snow_gw(dels, soil, ssnow, canopy, met, bal,veg)
         ELSE
             CALL soil_snow(dels, soil, ssnow, canopy, met, bal,veg)
          ENDIF

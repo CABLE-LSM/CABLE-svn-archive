@@ -1234,13 +1234,6 @@ SUBROUTINE calc_soil_hydraulic_props(ssnow,soil,veg)
 
     !soil matric potential, hydraulic conductivity, and derivatives of each with respect to water (calculated using total (not liquid))
 
-   zimm(0)  = 0.0_r_2                                          !depth of layer interfaces mm
-   do k=1,ms
-     zimm(k) = zimm(k-1) + soil%zse(k)*1000._r_2
-   end do
-   zimm(ms) = zimm(ms) + soil%GWdz(1)*1000._r_2
-
-
     do k=1,ms
        do i=1,mp
           ssnow%icefrac(i,k) = ssnow%wbice(i,k)/(max(ssnow%wb(i,k),0.01_r_2))
@@ -1260,7 +1253,7 @@ SUBROUTINE calc_soil_hydraulic_props(ssnow,soil,veg)
        kk=k+1
        do i=1,mp
 
-          s1(i) = 0.5_r_2*(max(wb_temp(i,k)-soil%watr(i,k),0.) + max(ssnow%wbliq(i,kk)-soil%watr(i,kk),0.)) / &
+          s1(i) = 0.5_r_2*(max(wb_temp(i,k)-soil%watr(i,k),0.) + max(wb_temp(i,kk)-soil%watr(i,kk),0.)) / &
             (0.5_r_2*((soil%ssat_vec(i,k)-soil%watr(i,k)) + (soil%ssat_vec(i,kk)-soil%watr(i,kk))))
 
           s1(i) = min(max(s1(i),0.01_r_2),1._r_2)
@@ -1491,39 +1484,6 @@ END SUBROUTINE calc_soil_hydraulic_props
 
   END SUBROUTINE saturated_fraction
 
-  SUBROUTINE pore_space_relative_humidity(ssnow,soil,veg)
-    TYPE (soil_snow_type), INTENT(INOUT)      :: ssnow ! soil and snow variables
-    TYPE (soil_parameter_type), INTENT(INOUT)    :: soil  ! soil parameters
-    TYPE(veg_parameter_type), INTENT(INOUT)      :: veg
-
-    REAL(r_2), DIMENSION(mp) :: unsat_wb,unsat_smp
-    logical, save :: first_call = .true.
-
-
-    if (first_call) call saturated_fraction(ssnow,soil)
-
-    where (ssnow%satfrac(:) .le. 0.99)
-       unsat_wb(:) = max(0.001,min(soil%ssat_vec(:,1), &
-                     (ssnow%wbliq(:,1) - soil%ssat_vec(:,1)*ssnow%satfrac(:))/(1.0 - ssnow%satfrac(:))  ))
-    elsewhere
-       unsat_wb(:) = ssnow%wbliq(:,1)
-    endwhere
-
-    unsat_wb(:) = max(soil%watr(:,1), min(soil%ssat_vec(:,1), unsat_wb(:) ) )
-
-    unsat_smp = sign(soil%sucs_vec(:,1),-1.0) * &
-                  ( (unsat_wb-soil%watr(:,1))/(soil%ssat_vec(:,1)-soil%watr(:,1)) ) ** (-soil%bch_vec(:,1))
-
-   where (veg%iveg .eq. 16 .or. soil%isoilm .eq. 9)
-      ssnow%rh_srf(:) = 1.0
-   elsewhere
-      ssnow%rh_srf(:) = max(0.,min(1., exp(9.81*unsat_smp(:)/1000.0/ssnow%tss(:)/461.4) ) )
-   endwhere
-
-   first_call = .false.
-
-
-  END SUBROUTINE pore_space_relative_humidity
 
   SUBROUTINE sli_hydrology(dels,ssnow,soil,veg,canopy)
     REAL, INTENT(IN)                         :: dels ! integration time step (s)
@@ -1559,26 +1519,5 @@ END SUBROUTINE calc_soil_hydraulic_props
 
   END SUBROUTINE sli_hydrology
 
-
-  SUBROUTINE set_unsed_gw_vars(ssnow,soil,canopy)
-    TYPE(soil_snow_type), INTENT(INOUT)      :: ssnow  ! soil+snow variables
-    TYPE(soil_parameter_type), INTENT(INOUT)    :: soil ! soil parameters
-    TYPE (canopy_type), INTENT(INOUT)           :: canopy
-
-       ssnow%qhlev = 0.
-       ssnow%Qrecharge = 0.
-       ssnow%fwtop = 0.
-       ssnow%wtd = 0.
-       ssnow%satfrac = 0.5
-       ssnow%qhz = 0.
-       ssnow%wbliq = ssnow%wb - ssnow%wbice
-       canopy%sublayer_dz = 0.0
-       ssnow%rtevap_sat = 0.0
-       ssnow%rtevap_unsat = 0.0
-
-       ssnow%GWwb = 0.9*soil%ssat
-
-
-  END SUBROUTINE set_unsed_gw_vars
 
 END MODULE cable_gw_hydro_module
