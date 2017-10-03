@@ -45,15 +45,7 @@ MODULE cable_common_module
           ! L.Stevens - Test Switches
           L_NEW_ROUGHNESS_SOIL  = .FALSE., & ! from Ticket?
           L_NEW_RUNOFF_SPEED    = .FALSE., & ! from Ticket?
-          L_NEW_REDUCE_SOILEVP  = .FALSE., & ! from Ticket?
-          Ticket46 = .FALSE.,              & !
-          !jhan: default should be FALSE, bu set up nml etc
-          Ticket49Bug1 = .false.,           & !
-          Ticket49Bug2 = .false.,           & !
-          Ticket49Bug3 = .false.,           & !
-          Ticket49Bug4 = .false.,           & !
-          Ticket49Bug5 = .false.,           & !
-          Ticket49Bug6 = .false.              !
+          L_NEW_REDUCE_SOILEVP  = .FALSE.    ! from Ticket?
 
   END TYPE hide_switches
 
