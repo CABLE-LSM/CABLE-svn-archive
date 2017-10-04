@@ -223,7 +223,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
   ssnow%runoff = 0.0
   ssnow%E_fusion_sn = 0.0
   ssnow%E_sublimation_sn = 0.0
-  ssnow%latent_heat_sn = 0.0
+ 
   ssnow%evap_liq_sn = 0.0
   ssnow%surface_melt = 0.0
     ! Set isotopes to zero
@@ -270,6 +270,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
         vsnow(kk)%deltawcol              = zero
         vsnow(kk)%Jsensible              = zero
         vsnow(kk)%Jlatent                = zero
+       ssnow%latent_heat_sn(kk) = 0.0
      enddo
      first = .false.
   endif
@@ -660,11 +661,15 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
            endif
            ! change in latent heat of snow-pack (excl snow-fall contribution)
            ssnow%E_fusion_sn(kk) = (sum(vsnow(kk)%Jlatent) - ssnow%latent_heat_sn(kk) - vsnow(kk)%Qadv_snow)/dt
+
            ssnow%E_sublimation_sn(kk) = 0.0
            if ( vsnow(kk)%tsn(1).lt.0.0 .AND.  (ssnow%tggsn(kk,1) - Tzero) .lt.0.0 ) then
               ssnow%E_fusion_sn(kk) = 0.0
-              ssnow%E_sublimation_sn(kk) =  (sum(vsnow(kk)%Jlatent) - ssnow%latent_heat_sn(kk) - vsnow(kk)%Qadv_snow)/dt
+              ! assume change in latent heat occurs as sublimation when Tsnow at beginning and end of timestep is < 0
+              ssnow%E_sublimation_sn(kk) =  (sum(vsnow(kk)%Jlatent) - ssnow%latent_heat_sn(kk) - vsnow(kk)%Qadv_snow)/dt  ! W m-2
+              ssnow%E_sublimation_sn(kk) = ssnow%E_sublimation_sn(kk)/lambdas ! Wm-2 -> kgm-2s-1
            endif
+              
            
            if (vsnow(kk)%hliq(1) .gt. 0.0) then
               ssnow%evap_liq_sn(kk)     = evap(kk)*thousand
