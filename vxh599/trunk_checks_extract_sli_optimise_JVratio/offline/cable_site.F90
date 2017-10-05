@@ -168,8 +168,7 @@ CONTAINS
       ! get past header
       READ(iunit, *)
       DO WHILE( IOS .EQ. 0 )
-        READ(iunit, FMT=*, IOSTAT=IOS) iyear, site%CO2VALS(iyear), site%NdepVALS(iyear), &
-             site%PdepVALS(iyear)
+        READ(iunit, FMT=*, IOSTAT=IOS) iyear, site%CO2VALS(iyear), site%NdepVALS(iyear)
       END DO
       CLOSE(iunit)
       CALL1 = .FALSE.
@@ -184,6 +183,11 @@ CONTAINS
     site%CO2 = site%CO2VALS( CurYear ) 
     site%Ndep = site%NdepVALS( CurYear ) 
     site%Pdep = site%PdepVALS( CurYear ) 
+
+if (site%CO2<10) then
+
+write(*,*) CurYear , site%CO2VALS( CurYear ) , site%CO2VALS( CurYear+1)
+endif 
 
   END IF
 
