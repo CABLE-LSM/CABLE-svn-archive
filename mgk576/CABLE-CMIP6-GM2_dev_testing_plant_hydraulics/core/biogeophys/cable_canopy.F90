@@ -1709,8 +1709,7 @@ CONTAINS
           ELSEIF(cable_user%FWSOIL_SWITCH == 'Lai and Ktaul 2000') THEN
              CALL fwsoil_calc_Lai_Ktaul(fwsoil, soil, ssnow, veg)
 
-          ! Need to turn off the drought stress functions, water stress is
-          ! inferred from the hydraulics approach instead.
+          ! Water stress is inferred from the hydraulics approach instead.
           ELSEIF(cable_user%FWSOIL_SWITCH == 'hydrology') THEN
              fwsoil = 1.0
           ELSE
@@ -1722,7 +1721,8 @@ CONTAINS
        ENDIF
 
     ENDIF
-
+    print*, canopy%fwsoil
+    stop
     ! weight min stomatal conductance by C3 an C4 plant fractions
     frac42 = SPREAD(veg%frac4, 2, mf) ! frac C4 plants
     gsw_term = SPREAD(veg%gswmin,2,mf)
@@ -1994,6 +1994,13 @@ CONTAINS
                            gs_coeff(:,:), rad%fvlai(:,:),&
                            SPREAD( abs_deltlf, 2, mf ),                        &
                            anx(:,:), fwsoil(:) )
+
+       !IF(cable_user%FWSOIL_SWITCH == 'hydrology') THEN
+          ! Ensure transpiration does not exceed Emax, if it does we
+          ! recalculate gs and An
+       !    CALL calculate_emax()
+       !ENDIF
+
 
        DO i=1,mp
 
@@ -2681,6 +2688,8 @@ CONTAINS
 
   END SUBROUTINE fwsoil_calc_sli
 
+
+
   !*********************************************************************************************************************
 
   SUBROUTINE getrex_1d(theta, rex, fws, Fs, thetaS, thetaw, Etrans, gamma, dx, dt, zr)
@@ -2778,5 +2787,61 @@ CONTAINS
 
   END SUBROUTINE getrex_1d
   !*********************************************************************************************************************
+
+  !*****************************************************************************
+  !!SUBROUTINE calculate_emax(total_soil_resist, plant_k, weighted_swp, min_lwp)
+    ! Assumption that during the day transpiration cannot exceed a maximum
+    ! value, Emax (e_supply). At this point we've reached a leaf water
+    ! potential minimum. Once this point is reached transpiration, gs and A
+    ! are reclulated
+    !
+    ! Reference:
+    !   * Duursma et al. 2008, Tree Physiology 28, 265–276
+    !
+    ! Martin De Kauwe, 6th Oct, 2017
+
+    ! Hydraulic conductance of the entire soil-to-leaf pathway
+    ! (mmol m–2 s–1 MPa–1)
+    !!ktot = 1.0 / (total_soil_resist + 1.0 / plant_k)
+
+    ! Maximum transpiration rate (mmol m-2 s-1)
+    ! Following Darcy's law which relates leaf transpiration to hydraulic
+    ! conductance of the soil-to-leaf pathway and leaf & soil water potentials.
+    ! Transpiration is limited in the perfectly isohydric case above the
+    ! critical threshold for embolism given by min_lwp.
+    !!e_supply = MAX(0.0, ktot * (weighted_swp - min_lwp))
+
+    ! Leaf transpiration (mmol m-2 s-1), i.e. ignoring boundary layer effects!
+    !!e_demand = MOL_2_MMOL * (vpd / press) * gsc_leaf * GSVGSC
+
+    !!IF (e_demand > e_supply) THEN
+
+      ! Calculate gs (mol m-2 s-1) given supply (Emax)
+      !!gsv = MMOL_2_MOL * e_supply / (vpd / press)
+      !!gsc_leaf = gsv / GSVGSC
+
+      ! gs cannot be lower than minimum (cuticular conductance)
+      !!IF (gsc_leaf < gs_min) THEN
+
+        !!gsc_leaf = p->gs_min
+        !!gsv = gsc_leaf * GSVGSC
+
+      !!ENDIF
+
+      ! Need to calculate an effective beta to use in soil decomposition
+      !!canopy%fwsoil = e_supply / e_demand
+
+      ! Re-solve An for the new gs
+      !!CALL photosynthesis_C3_emax()
+
+    !!ELSE
+
+      ! This needs to be initialised somewhere.
+      !!canopy%fwsoil = 1.0
+      !!gsv = gsc_leaf * GSVGSC
+
+    !!ENDIF
+  !!END SUBROUTINE calculate_emax
+
 
 END MODULE cable_canopy_module
