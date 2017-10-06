@@ -558,8 +558,13 @@ IMPLICIT NONE
 
  else
 
-    write(*,*) 'warning: past end of LUH2 record'
-
+    write(*,*) 'warning: past end of LUH2 record: setting transitions to zero'
+    LUC_EXPT%INPUT(ptos)%VAL = 0.0
+    LUC_EXPT%INPUT(ptog)%VAL = 0.0
+    LUC_EXPT%INPUT(gtos)%VAL = 0.0
+    LUC_EXPT%INPUT(stog)%VAL = 0.0
+    LUC_EXPT%INPUT(smharv)%VAL = 0.0
+    LUC_EXPT%INPUT(syharv)%VAL = 0.0
  endif
 
 
