@@ -176,8 +176,8 @@ CONTAINS
 
  LUC_EXPT%FirstYEAR = 850
   ! Set internal counter
-    LUC_EXPT%CTSTEP = 1 +  LUC_EXPT%YearStart- LUC_EXPT%FirstYEAR
-
+    LUC_EXPT%CTSTEP = 1 +  min(LUC_EXPT%YearStart,2016)- LUC_EXPT%FirstYEAR
+  
  ! READ initial states
     i = grassfrac
     IF ( LUC_EXPT%DirectRead ) THEN
