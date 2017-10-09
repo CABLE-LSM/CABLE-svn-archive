@@ -1994,11 +1994,11 @@ CONTAINS
                            SPREAD( abs_deltlf, 2, mf ),                        &
                            anx(:,:), fwsoil(:) )
 
-       !IF(cable_user%FWSOIL_SWITCH == 'hydrology') THEN
-          ! Ensure transpiration does not exceed Emax, if it does we
-          ! recalculate gs and An
-       !    CALL calculate_emax()
-       !ENDIF
+       IF (cable_user%FWSOIL_SWITCH == 'hydrology') THEN
+         ! Ensure transpiration does not exceed Emax, if it does we
+         ! recalculate gs and An
+         CALL calculate_emax()
+       ENDIF
 
 
        DO i=1,mp
@@ -2788,7 +2788,7 @@ CONTAINS
   !*********************************************************************************************************************
 
   !*****************************************************************************
-  !!SUBROUTINE calculate_emax(total_soil_resist, plant_k, weighted_swp, min_lwp)
+  SUBROUTINE calculate_emax(ssnow)
     ! Assumption that during the day transpiration cannot exceed a maximum
     ! value, Emax (e_supply). At this point we've reached a leaf water
     ! potential minimum. Once this point is reached transpiration, gs and A
@@ -2799,48 +2799,61 @@ CONTAINS
     !
     ! Martin De Kauwe, 6th Oct, 2017
 
+    USE cable_def_types_mod
+    USE cable_common_module
+    TYPE (soil_snow_type), INTENT(INOUT) :: ssnow
+
+    REAL, PARAMETER :: MM_TO_M = 0.001
+    ! plant component of the leaf-specific hydraulic conductance
+    ! (mmol m-2 s-1 MPa-1 )
+    REAL, PARAMETER :: kp = 2.0
+
+    ! minimum leaf water potential (MPa)
+    REAL, PARAMETER :: min_lwp = -2.0
+    REAL :: plant_k, ktot
+
+    ! no cavitation when stem water storage not simulated
+    plant_k = kp
+
     ! Hydraulic conductance of the entire soil-to-leaf pathway
     ! (mmol m–2 s–1 MPa–1)
-    !!ktot = 1.0 / (total_soil_resist + 1.0 / plant_k)
+    ktot = 1.0 / (ssnow%total_soil_resist + 1.0 / plant_k)
 
     ! Maximum transpiration rate (mmol m-2 s-1)
     ! Following Darcy's law which relates leaf transpiration to hydraulic
     ! conductance of the soil-to-leaf pathway and leaf & soil water potentials.
     ! Transpiration is limited in the perfectly isohydric case above the
     ! critical threshold for embolism given by min_lwp.
-    !!e_supply = MAX(0.0, ktot * (weighted_swp - min_lwp))
+    e_supply = MAX(0.0, ktot * (ssnow%weighted_swp - min_lwp))
 
     ! Leaf transpiration (mmol m-2 s-1), i.e. ignoring boundary layer effects!
-    !!e_demand = MOL_2_MMOL * (vpd / press) * gsc_leaf * GSVGSC
+    e_demand = MOL_2_MMOL * (vpd / press) * gsc_leaf * GSVGSC
 
-    !!IF (e_demand > e_supply) THEN
-
+    IF (e_demand > e_supply) THEN
       ! Calculate gs (mol m-2 s-1) given supply (Emax)
-      !!gsv = MMOL_2_MOL * e_supply / (vpd / press)
-      !!gsc_leaf = gsv / GSVGSC
+      gsv = MMOL_2_MOL * e_supply / (vpd / press)
+      gsc_leaf = gsv / GSVGSC
 
       ! gs cannot be lower than minimum (cuticular conductance)
-      !!IF (gsc_leaf < gs_min) THEN
-
-        !!gsc_leaf = p->gs_min
-        !!gsv = gsc_leaf * GSVGSC
-
-      !!ENDIF
+      IF (gsc_leaf < gs_min) THEN
+        gsc_leaf = p->gs_min
+        gsv = gsc_leaf * GSVGSC
+      ENDIF
 
       ! Need to calculate an effective beta to use in soil decomposition
-      !!canopy%fwsoil = e_supply / e_demand
+      canopy%fwsoil = e_supply / e_demand
 
       ! Re-solve An for the new gs
-      !!CALL photosynthesis_C3_emax()
-
-    !!ELSE
-
+      !CALL photosynthesis_C3_emax()
+      print *, "Implement photosynthesis_emax"
+      STOP
+    ELSE
       ! This needs to be initialised somewhere.
-      !!canopy%fwsoil = 1.0
-      !!gsv = gsc_leaf * GSVGSC
+      canopy%fwsoil = 1.0
+      gsv = gsc_leaf * GSVGSC
+    ENDIF
 
-    !!ENDIF
-  !!END SUBROUTINE calculate_emax
+  END SUBROUTINE calculate_emax
 
 
 END MODULE cable_canopy_module
