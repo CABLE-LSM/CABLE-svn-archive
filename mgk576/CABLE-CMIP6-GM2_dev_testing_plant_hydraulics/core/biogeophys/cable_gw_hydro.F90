@@ -680,8 +680,7 @@ END SUBROUTINE remove_transGW
 
     ! mgk576, 9/10/17
     CALL calc_soil_root_resistance(ssnow, soil, veg, bgc)
-    print*, ssnow%soilR(:,i), ssnow%total_soil_resist
-    stop
+
     CALL subsurface_drainage(ssnow,soil,veg,dzmm)
 
     k = 1     !top soil layer
@@ -1796,7 +1795,7 @@ END SUBROUTINE calc_soil_hydraulic_props
         ENDIF
      END DO
      ssnow%total_soil_resist = 1.0 / SUM(rsum)
-     print*, ssnow%soilR(:,i), ssnow%total_soil_resist
+     
   END SUBROUTINE calc_soil_root_resistance
 
 END MODULE cable_gw_hydro_module
