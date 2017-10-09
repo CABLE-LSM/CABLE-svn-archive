@@ -2239,21 +2239,26 @@ CONTAINS
 
       INTEGER :: i,j
       REAL :: A, B, C
-      
+
       DO i=1, mp
          IF (sum(vlaiz(i,:)) .GT. C%LAI_THRESH) THEN
             DO j=1, mf
                ! Unpack calculated properties from first photosynthesis solution
-               Cs = cw->ts_Cs
-               vcmax = cw->ts_vcmax
-               km = cw->ts_km
-               gamma_star = cw->ts_gamma_star
-               rd = cw->ts_rd
-               jmax = cw->ts_jmax
-               qudratic_error = FALSE
-               large_root = FALSE
-               J = quad(p->theta, -(p->alpha_j * par + jmax),
-                        p->alpha_j * par * jmax, large_root, &qudratic_error)
+               Cs =
+               vcmax =
+               km =
+               gamma_star =
+               rd =
+               jmax =
+
+               A = theta
+               B = -(alpha_j * par + jmax)
+               C = alpha_j * par * jmax
+               discriminant(i,j) = B**2 - 4.0 * A * C
+               J(i,j) = (-B + SQRT(MAX( 0.0_r_2 , discriminant(i,j)))) /&
+                          (2.0 * A)
+               ! positive root
+               J(i,j) = MAX( 0.0_r_2, J(i,j))
                Vj = J / 4.0
                gs = cw->gsc_leaf[idx]
 
@@ -2262,24 +2267,23 @@ CONTAINS
                B = (rd - vcmax) / gs - Cs - km
                C = vcmax * (Cs - gamma_star) - rd * (Cs + km)
 
-               qudratic_error = FALSE
-               large_root = FALSE
-               anrubiscoz = quad(A, B, C, large_root, &qudratic_error)
-               IF (qudratic_error) THEN
-                  anrubiscoz = 0.0
-               ENDIF
+               discriminant(i,j) = B**2 - 4.0 * A * C
+               anrubiscoz(i,j) = (-B + SQRT(MAX( 0.0_r_2 , discriminant(i,j)))) /&
+                          (2.0 * A)
+               ! positive root
+               anrubiscoz(i,j) = MAX( 0.0_r_2, anrubiscoz(i,j))
 
                ! Solution when electron transport rate is limiting */
                A = 1.0 / gs
                B = (rd - Vj) / gs - Cs - 2.0 * gamma_star
                C = Vj * (Cs - gamma_star) - rd * (Cs + 2.0 * gamma_star)
 
-               qudratic_error = FALSE
-               large_root = FALSE
-               anrubpz = quad(A, B, C, large_root, &qudratic_error)
-               IF (qudratic_error) THEN
-                  anrubpz = 0.0
-               ENDIF
+               discriminant(i,j) = B**2 - 4.0 * A * C
+               anrubpz(i,j) = (-B + SQRT(MAX( 0.0_r_2 , discriminant(i,j)))) /&
+                          (2.0 * A)
+               ! positive root
+               anrubpz(i,j) = MAX( 0.0_r_2, anrubpz(i,j))
+
 
                anxz(i,j) = MIN(anrubiscoz(i,j), anrubpz(i,j))
             ENDDO
