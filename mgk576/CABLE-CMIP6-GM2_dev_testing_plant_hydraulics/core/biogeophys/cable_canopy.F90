@@ -2240,50 +2240,72 @@ CONTAINS
       INTEGER :: i,j
       REAL :: A, B, C
 
+      REAL, INTENT(IN)     :: parx
+      REAL, INTENT(IN)     :: alpha
+      REAL, INTENT(IN)     :: convex
+
+      REAL, DIMENSION(mp,mf), INTENT(IN) ::                                       &
+           cx1z,       & !
+           cx2z,       & !
+           gswminz,    & !
+           rdxz,       & !
+           vcmxt3z,    & !
+           vcmxt4z,    & !
+           vx4z,       & !
+           vx3z,       & !
+           gs_coeffz,  & ! Ticket #56, xleuningz repalced with gs_coeffz
+           vlaiz,      & !
+           deltlfz       !
+
+      REAL, DIMENSION(mp,mf) :: jmax
+
       DO i=1, mp
          IF (sum(vlaiz(i,:)) .GT. C%LAI_THRESH) THEN
             DO j=1, mf
+
                ! Unpack calculated properties from first photosynthesis solution
                Cs =
-               vcmax =
                km =
                gamma_star =
-               rd =
-               jmax =
 
-               A = theta
-               B = -(alpha_j * par + jmax)
-               C = alpha_j * par * jmax
+               ! where is the JV ratio set in the code? Use that instead
+               jmax(i,j) = vcmxt3z(i,j) * 2.0
+
+               A = veg%convex(i)
+               B = -(veg%alpha(i) * par + jmax(i,j))
+               C = veg%alpha(i) * par * jmax(i,j)
                discriminant(i,j) = B**2 - 4.0 * A * C
-               J(i,j) = (-B + SQRT(MAX( 0.0_r_2 , discriminant(i,j)))) /&
-                          (2.0 * A)
+               J(i,j) = (-B + &
+                         SQRT(MAX(0.0_r_2 , discriminant(i,j)))) / &
+                         (2.0 * A)
+
                ! positive root
                J(i,j) = MAX( 0.0_r_2, J(i,j))
                Vj = J / 4.0
-               gs = cw->gsc_leaf[idx]
 
                ! Solution when Rubisco rate is limiting */
-               A = 1.0 / gs
-               B = (rd - vcmax) / gs - Cs - km
-               C = vcmax * (Cs - gamma_star) - rd * (Cs + km)
+               A = 1.0 / gsc(i,j)
+               B = (rdxz(i,j) - vcmxt3z(i,j)) / gsc(i,j) - Cs - km
+               C = vcmxt3z(i,j) * (Cs - gamma_star) - rdxz(i,j) * (Cs + km)
 
                discriminant(i,j) = B**2 - 4.0 * A * C
-               anrubiscoz(i,j) = (-B + SQRT(MAX( 0.0_r_2 , discriminant(i,j)))) /&
-                          (2.0 * A)
+               anrubiscoz(i,j) = (-B + &
+                                  SQRT(MAX( 0.0_r_2 , discriminant(i,j)))) / &
+                                  (2.0 * A)
                ! positive root
                anrubiscoz(i,j) = MAX( 0.0_r_2, anrubiscoz(i,j))
 
                ! Solution when electron transport rate is limiting */
-               A = 1.0 / gs
-               B = (rd - Vj) / gs - Cs - 2.0 * gamma_star
-               C = Vj * (Cs - gamma_star) - rd * (Cs + 2.0 * gamma_star)
+               A = 1.0 / gsc(i,j)
+               B = (rdxz(i,j) - Vj) / gsc(i,j) - Cs - 2.0 * gamma_star
+               C = Vj * (Cs - gamma_star) - rdxz(i,j) * (Cs + 2.0 * gamma_star)
 
                discriminant(i,j) = B**2 - 4.0 * A * C
-               anrubpz(i,j) = (-B + SQRT(MAX( 0.0_r_2 , discriminant(i,j)))) /&
-                          (2.0 * A)
+               anrubpz(i,j) = (-B + &
+                               SQRT(MAX( 0.0_r_2 , discriminant(i,j)))) / &
+                               (2.0 * A)
                ! positive root
                anrubpz(i,j) = MAX( 0.0_r_2, anrubpz(i,j))
-
 
                anxz(i,j) = MIN(anrubiscoz(i,j), anrubpz(i,j))
             ENDDO
