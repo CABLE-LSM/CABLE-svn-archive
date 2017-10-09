@@ -279,8 +279,10 @@ MODULE cable_def_types_mod
       ! mgk576
       ! Plant hydraulics variables
       REAL(r_2), DIMENSION(:), POINTER ::                                      &
-         total_soil_resist    ! Total soil resistance across layers (excludes
+         total_soil_resist,  &! Total soil resistance across layers (excludes
                               ! root resistance).
+         weighted_swp
+
       REAL(r_2), DIMENSION(:,:), POINTER ::                                    &
          soilR
 
@@ -984,6 +986,7 @@ SUBROUTINE alloc_soil_snow_type(var, mp)
 
     ! Allocate variables for plant hydraulics, mgk576, 9/10/17
     ALLOCATE ( var%total_soil_resist(mp) )
+    ALLOCATE ( var%weighted_swp(mp) )
     ALLOCATE ( var%soilR(mp,ms) )
 
     ! Allocate variables for SLI soil model:
@@ -1600,6 +1603,7 @@ SUBROUTINE dealloc_soil_snow_type(var)
 
    ! Deallocate variables for plant hydraulics, mgk576, 9/10/17
    DEALLOCATE( var%total_soil_resist  )
+   DEALLOCATE( var%weighted_swp )
    DEALLOCATE( var%soilR  )
 
 

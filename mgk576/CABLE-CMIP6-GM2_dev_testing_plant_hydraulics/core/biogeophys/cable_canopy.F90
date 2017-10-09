@@ -1721,7 +1721,7 @@ CONTAINS
        ENDIF
 
     ENDIF
-    
+
     ! weight min stomatal conductance by C3 an C4 plant fractions
     frac42 = SPREAD(veg%frac4, 2, mf) ! frac C4 plants
     gsw_term = SPREAD(veg%gswmin,2,mf)

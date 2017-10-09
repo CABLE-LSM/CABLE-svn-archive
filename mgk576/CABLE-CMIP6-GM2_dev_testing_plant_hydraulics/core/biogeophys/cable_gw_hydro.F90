@@ -681,6 +681,10 @@ END SUBROUTINE remove_transGW
     ! mgk576, 9/10/17
     CALL calc_soil_root_resistance(ssnow, soil, veg, bgc)
 
+    ! mgk576, 9/10/17
+    CALL calc_weighted_swp(ssnow, soil)
+    print *, ssnow%weighted_swp
+
     CALL subsurface_drainage(ssnow,soil,veg,dzmm)
 
     k = 1     !top soil layer
@@ -1740,7 +1744,7 @@ END SUBROUTINE calc_soil_hydraulic_props
      REAL, PARAMETER :: root_xsec_area = pi * root_radius**2 ! m2
      REAL, PARAMETER :: root_density = 0.5e6                ! g biomass m-3 root
      REAL, PARAMETER :: root_resistivity = 400.0             ! MPa s g mmol-1
-     REAL, PARAMETER ::  head = 0.009807             ! head of pressure  (MPa/m)
+     REAL, PARAMETER :: head = 0.009807             ! head of pressure  (MPa/m)
      REAL, PARAMETER :: C_2_BIOMASS = 2.0
      REAL, PARAMETER :: MM_TO_M = 0.001
      REAL, PARAMETER :: KPA_2_MPa = 0.001
@@ -1795,7 +1799,39 @@ END SUBROUTINE calc_soil_hydraulic_props
         ENDIF
      END DO
      ssnow%total_soil_resist = 1.0 / SUM(rsum)
-     
+
   END SUBROUTINE calc_soil_root_resistance
+
+  SUBROUTINE calc_weighted_swp(ssnow, soil)
+    !
+    ! Determine weighted SWP given the hydraulic resistance of each layer.
+    !
+    ! Martin De Kauwe, 9th Oct, 2017
+
+    USE cable_def_types_mod
+    USE cable_common_module
+    TYPE (soil_snow_type), INTENT(INOUT) :: ssnow
+    TYPE (soil_parameter_type), INTENT(INOUT) :: soil
+
+    REAL, PARAMETER :: MM_TO_M = 0.001
+    REAL, PARAMETER :: KPA_2_MPa = 0.001
+    REAL, PARAMETER :: M_HEAD_TO_MPa = 9.8 * KPA_2_MPa
+    REAL, DIMENSION(mp,ms) :: cond_per_layer, swp, psi_sat
+    INTEGER :: i
+
+    DO i = 1, ms ! Loop over 6 soil layers
+      ! SWP at saturation mm/s -> MPa
+      psi_sat(:,i) = soil%sucs_vec(:,i) * MM_TO_M * M_HEAD_TO_MPa
+
+      ! SWP mm/s -> MPa
+      swp(:,i) = ssnow%smp(:,i) * MM_TO_M * M_HEAD_TO_MPa
+
+      cond_per_layer(:,i) = 1.0 / ssnow%soilR(:,i)
+    END DO
+
+    ! Weighted soil water potental
+    ssnow%weighted_swp = sum(swp * cond_per_layer) / sum(cond_per_layer)
+
+  END SUBROUTINE calc_weighted_swp
 
 END MODULE cable_gw_hydro_module
