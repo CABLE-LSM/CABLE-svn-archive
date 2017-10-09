@@ -35,7 +35,7 @@ MODULE cable_gw_hydro_module
 
    USE cable_def_types_mod, ONLY : soil_snow_type, soil_parameter_type,        &
                              veg_parameter_type, canopy_type, met_type,        &
-                             balances_type, r_2, ms, mp
+                             balances_type, r_2, ms, mp, bgc_pool_type
 
    USE cable_data_module, ONLY : issnow_type, point2constants
 
@@ -602,7 +602,7 @@ END SUBROUTINE remove_transGW
   ! vertical mocement of soil water.  Bottom boundary condition is determined
   ! using a single layer groundwater module
   !
-  SUBROUTINE smoistgw (dels,ktau,ssnow,soil,veg,canopy)
+  SUBROUTINE smoistgw (dels,ktau,ssnow,soil,veg,canopy,bgc)
   USE cable_common_module
 
   IMPLICIT NONE
@@ -610,9 +610,10 @@ END SUBROUTINE remove_transGW
     REAL, INTENT(IN)                          :: dels  ! time step size (s)
     INTEGER, INTENT(IN)                       :: ktau  ! integration step number
     TYPE (soil_snow_type), INTENT(INOUT)      :: ssnow ! soil and snow variables
-    TYPE (soil_parameter_type), INTENT(INOUT)    :: soil  ! soil parameters
-    TYPE (veg_parameter_type), INTENT(INOUT)     :: veg
+    TYPE (soil_parameter_type), INTENT(INOUT) :: soil  ! soil parameters
+    TYPE (veg_parameter_type), INTENT(INOUT)  :: veg
     TYPE(canopy_type), INTENT(INOUT)          :: canopy ! vegetation variables
+    TYPE(bgc_pool_type),  INTENT(IN)          :: bgc
 
     !Local variables.
     REAL(r_2), DIMENSION(mp,ms+1)       :: at     ! coef "A" in finite diff eq
@@ -676,6 +677,9 @@ END SUBROUTINE remove_transGW
     CALL calc_equilibrium_water_content(ssnow,soil)
 
     CALL calc_soil_hydraulic_props(ssnow,soil,veg)
+
+    ! mgk, 9/10/17
+    CALL calc_soil_root_resistance(ssnow, soil, veg, bgc)
 
     CALL subsurface_drainage(ssnow,soil,veg,dzmm)
 
@@ -845,7 +849,7 @@ END SUBROUTINE remove_transGW
 !	 ivegt - vegetation type
 ! Output
 !	 ssnow
-SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
+SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg, bgc)
    USE cable_IO_vars_module, ONLY: wlogn
 
    USE cable_common_module
@@ -856,6 +860,7 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
    TYPE(veg_parameter_type) , INTENT(INOUT)  :: veg
    TYPE(met_type)           , INTENT(INOUT)  :: met ! all met forcing
    TYPE (balances_type)     , INTENT(INOUT)  :: bal
+   TYPE (bgc_pool_type)     , INTENT(IN)     :: bgc
 
    INTEGER             :: k,i
    REAL, DIMENSION(mp) :: snowmlt
@@ -1021,7 +1026,7 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
 
    ssnow%sinfil = ssnow%fwtop - canopy%segg  !canopy%fes/C%HL               !remove soil evap from throughfall
 
-   CALL smoistgw (dels,ktau,ssnow,soil,veg,canopy)               !vertical soil moisture movement.
+   CALL smoistgw (dels,ktau,ssnow,soil,veg,canopy,bgc)               !vertical soil moisture movement.
 
    ! correction required for energy balance in online simulations
    IF( cable_runtime%um) THEN
@@ -1635,9 +1640,9 @@ END SUBROUTINE calc_soil_hydraulic_props
   SUBROUTINE sli_hydrology(dels,ssnow,soil,veg,canopy)
     REAL, INTENT(IN)                         :: dels ! integration time step (s)
     TYPE(soil_snow_type), INTENT(INOUT)      :: ssnow  ! soil+snow variables
-    TYPE(soil_parameter_type), INTENT(INOUT)    :: soil ! soil parameters
-    TYPE(veg_parameter_type) , INTENT(INOUT)    :: veg  ! veg parameters
-    TYPE (canopy_type), INTENT(INOUT)           :: canopy
+    TYPE(soil_parameter_type), INTENT(INOUT) :: soil ! soil parameters
+    TYPE(veg_parameter_type) , INTENT(INOUT) :: veg  ! veg parameters
+    TYPE(canopy_type), INTENT(INOUT)         :: canopy
 
     LOGICAL, SAVE :: sli_call = .true.
 
@@ -1660,9 +1665,6 @@ END SUBROUTINE calc_soil_hydraulic_props
    zaq(:) = zmm(:) + 0.5_r_2*soil%GWdz(:)*1000._r_2
 
    call aquifer_recharge(dels,ssnow,soil,veg,zaq,zmm,zmm)
-
-
-
 
   END SUBROUTINE sli_hydrology
 
@@ -1709,5 +1711,106 @@ END SUBROUTINE calc_soil_hydraulic_props
   my_erf = 1.0 - tmp_val
 
   end function my_erf
+
+  SUBROUTINE calc_soil_root_resistance(ssnow, soil, veg, bgc)
+     ! Calculate root & soil hydraulic resistance following SPA approach
+     !
+     ! Root hydraulic resistance declines linearly with increasing root
+     ! biomass according to root resistivity (400) [MPA s m2 mmol-1]
+     !
+     ! Soil hydraulic resistance depends on soil conductivity, root length,
+     ! depth of layer and distance between roots
+     !
+     ! Martin De Kauwe, 9th Oct, 2017
+     !
+     ! In units conversion, useful to recall that
+     ! m s-1 = m3 m-1 m-1 s-1
+     ! m3 (amount of water) m-1 (per unit length) m-1 (per unit hydraulic head,
+     !                                                 measured in meters) s-1
+
+     USE cable_def_types_mod
+     USE cable_common_module
+     TYPE (soil_snow_type), INTENT(INOUT)        :: ssnow
+     TYPE (soil_parameter_type), INTENT(INOUT)   :: soil
+     TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
+     TYPE (bgc_pool_type),  INTENT(IN)           :: bgc
+
+     REAL, PARAMETER :: pi = 3.1415927
+     REAL, PARAMETER :: root_radius = 0.0005                 ! m
+     REAL, PARAMETER :: root_xsec_area = pi * root_radius**2 ! m2
+     REAL, PARAMETER :: root_density = 0.5e6                ! g biomass m-3 root
+     REAL, PARAMETER :: root_resistivity = 400.0             ! MPa s g mmol-1
+     REAL, PARAMETER ::  head = 0.009807             ! head of pressure  (MPa/m)
+     REAL, PARAMETER :: C_2_BIOMASS = 2.0
+     REAL, PARAMETER :: MM_TO_M = 0.001
+     REAL, PARAMETER :: KPA_2_MPa = 0.001
+     REAL, PARAMETER :: M_HEAD_TO_MPa = 9.8 * KPA_2_MPa
+     REAL, PARAMETER :: M3_2_LITRE = 1000.0
+     REAL, PARAMETER :: MOL_OF_WATER = 18.015
+     REAL :: depth
+
+     INTEGER :: i
+     REAL :: soilR1, soilR2, arg1, arg2, total_soil_resist
+     REAL, DIMENSION(mp) :: root_biomass
+     REAL, DIMENSION(mp,ms) :: root_length, Ks, Lsoil, soil_root_resist, rs
+     REAL, DIMENSION(mp,ms) :: soil_resistance, rsum
+     !REAL, DIMENSION(mp,ms) :: swp, psi_sat, ksat, expon
+
+     ! Store each layers resistance, used in LWP calculatons
+     rsum = 0.0
+     DO i = 1, ms ! Loop over 6 soil layers
+        depth = depth + soil%zse(i)
+        root_biomass = bgc%cplant(:,3) * veg%froot(:,i) * C_2_BIOMASS
+
+        ! (m m-3 soil)
+        root_length(:,i) = root_biomass / (root_density * root_xsec_area)
+
+
+        ! Soil hydraulic conductivity for layer, mm/s -> mol m-1 s-1 MPa-1
+        Ks(:,i) = ssnow%hk(:,i) * MM_TO_M * M3_2_LITRE / MOL_OF_WATER / &
+                  M_HEAD_TO_MPa
+
+        ! SWP at saturation mm/s -> MPa
+        !psi_sat(:,i) = soil%sucs_vec(:,i) * MM_TO_M * M_HEAD_TO_MPa
+        !
+        ! SWP mm/s -> MPa
+        !swp(:,i) = ssnow%smp(:,i) * MM_TO_M * M_HEAD_TO_MPa
+        !
+        ! A simple equation relating KS to psi_S is given by (Campbell 1974)
+        ! See eqn 9 in Duursma 2008
+        ! Saturated soil hydraulic conductivity, mm/s -> mol m-1 s-1 MPa-1
+        !ksat(:,i) = soil%hyds_vec(:,i) * MM_TO_M * M3_2_LITRE / &
+        !               MOL_OF_WATER / M_HEAD_TO_MPa
+        ! NB. I've multiplied SWP by -1to ensure Ks is positive.
+        !expon(:,i) = 2.0 + (3.0 / soil%bch_vec(:,i))
+        !Ks(:,i)  ksat(:,i) * (psi_sat(:,i) / (-1.0 * swp(:,i)))**expon(:,i)
+
+        ! converts from m s-1 to m2 s-1 MPa-1
+        Lsoil(:,i) = Ks(:,i) / head
+        ! prevent floating point error
+        IF (Lsoil(1,i) < 1E-35) THEN
+           soil_root_resist(:,i) = 1E35
+        ELSE
+            rs(:,i) = sqrt(1.0 / (root_length(:,i) * pi))
+            soil_resistance(:,i) = log(rs(:,i) / root_radius) /       &
+                                   (2.0 * pi * root_length(:,i) *     &
+                                    soil%zse(i) * Lsoil(:,i))
+
+
+           ! convert from MPa s m2 m-3 to MPa s m2 mmol-1
+           soil_resistance(:,i) = soil_resistance(:,i) * 1E-6 * 18.0 * 0.001
+
+           ! second component of below ground resistance related to root
+           ! hydraulics
+           !root_resistance(:,i) = root_resistivity / (soil%zse(i) * root_mass)
+
+           ! Need to combine resistances in parallel, but we only want the
+           ! soil term as the root component is part of the plant resistance
+           rsum(:,i) = rsum(:,i) + 1.0 / soil_resistance(:,i)
+        ENDIF
+     END DO
+     total_soil_resist = 1.0 / SUM(rsum)
+
+  END SUBROUTINE calc_soil_root_resistance
 
 END MODULE cable_gw_hydro_module
