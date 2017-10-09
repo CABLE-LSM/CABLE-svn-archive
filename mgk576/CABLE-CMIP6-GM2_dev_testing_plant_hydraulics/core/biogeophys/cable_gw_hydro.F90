@@ -1747,19 +1747,17 @@ END SUBROUTINE calc_soil_hydraulic_props
      REAL, PARAMETER :: M_HEAD_TO_MPa = 9.8 * KPA_2_MPa
      REAL, PARAMETER :: M3_2_LITRE = 1000.0
      REAL, PARAMETER :: MOL_OF_WATER = 18.015
-     REAL :: depth
 
-     INTEGER :: i
-     REAL :: soilR1, soilR2, arg1, arg2, total_soil_resist
      REAL, DIMENSION(mp) :: root_biomass
      REAL, DIMENSION(mp,ms) :: root_length, Ks, Lsoil, soil_root_resist, rs
-     REAL, DIMENSION(mp,ms) :: soil_resistance, rsum
      !REAL, DIMENSION(mp,ms) :: swp, psi_sat, ksat, expon
+     REAL, DIMENSION(mp,ms) :: soil_resistance, rsum
+     REAL :: soilR1, soilR2, arg1, arg2, total_soil_resist
+     INTEGER :: i
 
      ! Store each layers resistance, used in LWP calculatons
      rsum = 0.0
      DO i = 1, ms ! Loop over 6 soil layers
-        depth = depth + soil%zse(i)
         root_biomass = bgc%cplant(:,3) * veg%froot(:,i) * C_2_BIOMASS
 
         ! (m m-3 soil)
