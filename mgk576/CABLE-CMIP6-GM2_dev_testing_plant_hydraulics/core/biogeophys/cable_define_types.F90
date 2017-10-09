@@ -276,6 +276,14 @@ MODULE cable_def_types_mod
          rtevap_unsat,&
          rt_qh_sublayer
 
+      ! mgk576
+      ! Plant hydraulics variables
+      REAL(r_2), DIMENSION(:), POINTER ::                                      &
+         total_soil_resist    ! Total soil resistance across layers (excludes
+                              ! root resistance).
+      REAL(r_2), DIMENSION(:,:), POINTER ::                                    &
+         soilR
+
       REAL(r_2), DIMENSION(:,:), POINTER  ::                                     &
          wbeq,    &    ! equilibrium water content [mm3/mm3]
          zq,      &    ! equilibrium smp       [mm]
@@ -819,6 +827,7 @@ SUBROUTINE alloc_soil_parameter_type(var, mp)
    allocate( var% pwb_min(mp) )
    allocate( var% albsoilf(mp) )
    allocate( var% soilcol(mp) )
+
    !mrd561
    !MD
    !Aquifer properties
@@ -971,6 +980,11 @@ SUBROUTINE alloc_soil_snow_type(var, mp)
    ALLOCATE( var%wmliq(mp,ms) )
    ALLOCATE( var%wmice(mp,ms) )
    ALLOCATE( var%wmtot(mp,ms) )
+
+
+    ! Allocate variables for plant hydraulics, mgk576, 9/10/17
+    ALLOCATE ( var%total_soil_resist(mp) )
+    ALLOCATE ( var%soilR(mp,ms) )
 
     ! Allocate variables for SLI soil model:
     !IF(cable_user%SOIL_STRUC=='sli') THEN
@@ -1434,6 +1448,7 @@ SUBROUTINE dealloc_soil_parameter_type(var)
    DEALLOCATE( var% pwb_min)
    DEALLOCATE( var% albsoilf )
    DEALLOCATE( var% soilcol )
+
    !mrd561
    !MD
    !Aquifer properties
@@ -1581,6 +1596,12 @@ SUBROUTINE dealloc_soil_snow_type(var)
    DEALLOCATE( var%wmliq )
    DEALLOCATE( var%wmice )
    DEALLOCATE( var%wmtot )
+
+
+   ! Deallocate variables for plant hydraulics, mgk576, 9/10/17
+   DEALLOCATE( var%total_soil_resist  )
+   DEALLOCATE( var%soilR  )
+
 
     !IF(cable_user%SOIL_STRUC=='sli') THEN
     DEALLOCATE ( var % S )

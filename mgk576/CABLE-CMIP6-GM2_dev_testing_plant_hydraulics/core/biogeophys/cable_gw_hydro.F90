@@ -678,9 +678,10 @@ END SUBROUTINE remove_transGW
 
     CALL calc_soil_hydraulic_props(ssnow,soil,veg)
 
-    ! mgk, 9/10/17
+    ! mgk576, 9/10/17
     CALL calc_soil_root_resistance(ssnow, soil, veg, bgc)
-
+    print*, ssnow%soilR(:,i), ssnow%total_soil_resist
+    stop
     CALL subsurface_drainage(ssnow,soil,veg,dzmm)
 
     k = 1     !top soil layer
@@ -1745,14 +1746,14 @@ END SUBROUTINE calc_soil_hydraulic_props
      REAL, PARAMETER :: MM_TO_M = 0.001
      REAL, PARAMETER :: KPA_2_MPa = 0.001
      REAL, PARAMETER :: M_HEAD_TO_MPa = 9.8 * KPA_2_MPa
-     REAL, PARAMETER :: M3_2_LITRE = 1000.0
      REAL, PARAMETER :: MOL_OF_WATER = 18.015
+     REAL, PARAMETER :: MOL_2_MMOL = 1000.0
 
      REAL, DIMENSION(mp) :: root_biomass
      REAL, DIMENSION(mp,ms) :: root_length, Ks, Lsoil, soil_root_resist, rs
-     !REAL, DIMENSION(mp,ms) :: swp, psi_sat, ksat, expon
-     REAL, DIMENSION(mp,ms) :: soil_resistance, root_resistance, soilR, rsum
-     REAL :: soilR1, soilR2, arg1, arg2, total_soil_resist
+     REAL, DIMENSION(mp,ms) :: swp, psi_sat, ksat, expon, Ksx
+     REAL, DIMENSION(mp,ms) :: soil_resistance, root_resistance, rsum
+     REAL :: soilR1, soilR2, arg1, arg2
      INTEGER :: i
 
      ! Store each layers resistance, used in LWP calculatons
@@ -1763,27 +1764,12 @@ END SUBROUTINE calc_soil_hydraulic_props
         ! (m m-3 soil)
         root_length(:,i) = root_biomass / (root_density * root_xsec_area)
 
-        ! Soil hydraulic conductivity for layer, mm/s -> mol m-1 s-1 MPa-1
-        Ks(:,i) = ssnow%hk(:,i) * MM_TO_M * M3_2_LITRE / MOL_OF_WATER / &
-                  M_HEAD_TO_MPa
-
-        ! SWP at saturation mm/s -> MPa
-        !psi_sat(:,i) = soil%sucs_vec(:,i) * MM_TO_M * M_HEAD_TO_MPa
-        !
-        ! SWP mm/s -> MPa
-        !swp(:,i) = ssnow%smp(:,i) * MM_TO_M * M_HEAD_TO_MPa
-        !
-        ! A simple equation relating KS to psi_S is given by (Campbell 1974)
-        ! See eqn 9 in Duursma 2008
-        ! Saturated soil hydraulic conductivity, mm/s -> mol m-1 s-1 MPa-1
-        !ksat(:,i) = soil%hyds_vec(:,i) * MM_TO_M * M3_2_LITRE / &
-        !               MOL_OF_WATER / M_HEAD_TO_MPa
-        ! NB. I've multiplied SWP by -1to ensure Ks is positive.
-        !expon(:,i) = 2.0 + (3.0 / soil%bch_vec(:,i))
-        !Ks(:,i)  ksat(:,i) * (psi_sat(:,i) / (-1.0 * swp(:,i)))**expon(:,i)
+        ! Soil hydraulic conductivity for layer, mm/s -> m s-1
+        Ks(:,i) = ssnow%hk(:,i) * MM_TO_M
 
         ! converts from m s-1 to m2 s-1 MPa-1
         Lsoil(:,i) = Ks(:,i) / head
+
         ! prevent floating point error
         IF (Lsoil(1,i) < 1E-35) THEN
            soil_root_resist(:,i) = 1E35
@@ -1802,15 +1788,15 @@ END SUBROUTINE calc_soil_hydraulic_props
                                   (soil%zse(i) * root_biomass)
 
            ! MPa s m2 mmol-1
-           soilR(:,i) = soil_resistance(:,i) + root_resistance(:,i)
+           ssnow%soilR(:,i) = soil_resistance(:,i) + root_resistance(:,i)
 
            ! Need to combine resistances in parallel, but we only want the
            ! soil term as the root component is part of the plant resistance
            rsum(:,i) = rsum(:,i) + 1.0 / soil_resistance(:,i)
         ENDIF
      END DO
-     total_soil_resist = 1.0 / SUM(rsum)
-
+     ssnow%total_soil_resist = 1.0 / SUM(rsum)
+     print*, ssnow%soilR(:,i), ssnow%total_soil_resist
   END SUBROUTINE calc_soil_root_resistance
 
 END MODULE cable_gw_hydro_module
