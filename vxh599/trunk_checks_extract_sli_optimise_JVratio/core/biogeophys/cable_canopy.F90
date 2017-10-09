@@ -2858,7 +2858,7 @@ END SUBROUTINE photosynthesis_gm
 
                    anrubiscoz(i,j) = Am
                    if (Am > 0) eta_c(i,j) = dAmc(i,j)*cs/Am
-                endif  ! end Rubisco limited  c3 calculation that accounts for mesophyll conductance
+                endif  ! end Rubisco limited  c3 calculation 
 
                 ! C4
                 if (vcmxt4z(i,j) .gt. 1e-8) then
@@ -2866,7 +2866,7 @@ END SUBROUTINE photosynthesis_gm
                    dAmc(i,j) = 0.0
                    eta_c(i,j) = 0.0
                 endif
-
+                ! electron transport-limited
                 if ( vcmxt3z(i,j).gt.0.0 .and. gs_coeffz(i,j) .gt. 1e2 .and. &
                      vx3z(i,j) .gt. 1e-8 ) then  ! C3
 
@@ -2884,7 +2884,7 @@ END SUBROUTINE photosynthesis_gm
                    if (Am > 0) eta_e(i,j) = dAme(i,j)*cs/Am
                   
 
-                endif  ! end RuBp c3 calculation that accounts for mesophyll conductance
+                endif  ! end RuBp c3 calculation 
 
                 ! C4 RubP calculation
                 IF ( vx4z(i,j) .gt. 1e-8) then
