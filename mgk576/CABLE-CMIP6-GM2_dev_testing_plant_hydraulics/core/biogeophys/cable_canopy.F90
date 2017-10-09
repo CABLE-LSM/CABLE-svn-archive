@@ -2226,7 +2226,7 @@ CONTAINS
   END SUBROUTINE dryLeaf
   ! -----------------------------------------------------------------------------
 
-  ! -----------------------------------------------------------------------------
+  ! ----------------------------------------------------------------------------
   SUBROUTINE photosynthesis_C3_emax(csxz, cx1z, cx2z, gswminz,                &
                                     rdxz, vcmxt3z, vcmxt4z, vx3z,             &
                                     vx4z, gs_coeffz, vlaiz, deltlfz, anxz,    &
@@ -2290,6 +2290,8 @@ CONTAINS
          ENDIF
       ENDDO
    END SUBROUTINE photosynthesis_C3_emax
+   ! ---------------------------------------------------------------------------
+
 
    ! Ticket #56, xleuningz repalced with gs_coeffz
    SUBROUTINE photosynthesis( csxz, cx1z, cx2z, gswminz,                          &
