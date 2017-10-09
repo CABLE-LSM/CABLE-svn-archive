@@ -1734,6 +1734,9 @@ END SUBROUTINE calc_soil_hydraulic_props
 
      USE cable_def_types_mod
      USE cable_common_module
+
+     IMPLICIT NONE
+
      TYPE (soil_snow_type), INTENT(INOUT)        :: ssnow
      TYPE (soil_parameter_type), INTENT(INOUT)   :: soil
      TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
@@ -1810,6 +1813,9 @@ END SUBROUTINE calc_soil_hydraulic_props
 
     USE cable_def_types_mod
     USE cable_common_module
+
+    IMPLICIT NONE
+
     TYPE (soil_snow_type), INTENT(INOUT) :: ssnow
     TYPE (soil_parameter_type), INTENT(INOUT) :: soil
 

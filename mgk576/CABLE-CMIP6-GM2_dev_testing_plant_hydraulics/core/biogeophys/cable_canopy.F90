@@ -1994,12 +1994,6 @@ CONTAINS
                            SPREAD( abs_deltlf, 2, mf ),                        &
                            anx(:,:), fwsoil(:) )
 
-       IF (cable_user%FWSOIL_SWITCH == 'hydrology') THEN
-         ! Ensure transpiration does not exceed Emax, if it does we
-         ! recalculate gs and An
-         CALL calculate_emax()
-       ENDIF
-
 
        DO i=1,mp
 
@@ -2013,12 +2007,21 @@ CONTAINS
                         gbhu(i,kk) + gbhf(i,kk) )
                    csx(i,kk) = MAX( 1.0e-4_r_2, csx(i,kk) )
 
+                   IF (cable_user%FWSOIL_SWITCH == 'hydrology') THEN
+                      ! Ensure transpiration does not exceed Emax, if it does we
+                      ! recalculate gs and An
 
-                   ! Ticket #56, xleuning replaced with gs_coeff here
-                   canopy%gswx(i,kk) = MAX( 1.e-3, gswmin(i,kk)*fwsoil(i) +     &
-                        MAX( 0.0, C%RGSWC * gs_coeff(i,kk) *     &
-                        anx(i,kk) ) )
+                      canopy%gsc(i,kk) = MAX(gswmin(i,kk), gswmin(i,kk) + &
+                                             gs_coeff(i,kk) * anx(i,kk))
 
+                      CALL calculate_emax(ssnow, canopy, dsx(i), canopy%gsc(i,kk))
+                      canopy%gswx(i,kk) = canopy%gsc(i,kk) * 1.57
+                   ELSE
+                      ! Ticket #56, xleuning replaced with gs_coeff here
+                      canopy%gswx(i,kk) = MAX( 1.e-3, gswmin(i,kk)*fwsoil(i) +     &
+                           MAX( 0.0, C%RGSWC * gs_coeff(i,kk) *     &
+                           anx(i,kk) ) )
+                   ENDIF
 
                    !Recalculate conductance for water:
                    gw(i,kk) = 1.0 / ( 1.0 / canopy%gswx(i,kk) +                 &
@@ -2788,7 +2791,7 @@ CONTAINS
   !*********************************************************************************************************************
 
   !*****************************************************************************
-  SUBROUTINE calculate_emax(ssnow)
+  SUBROUTINE calculate_emax(ssnow, canopy, vpd, gsc)
     ! Assumption that during the day transpiration cannot exceed a maximum
     ! value, Emax (e_supply). At this point we've reached a leaf water
     ! potential minimum. Once this point is reached transpiration, gs and A
@@ -2801,7 +2804,11 @@ CONTAINS
 
     USE cable_def_types_mod
     USE cable_common_module
+
+    IMPLICIT NONE
+
     TYPE (soil_snow_type), INTENT(INOUT) :: ssnow
+    TYPE (canopy_type), INTENT(INOUT)    :: canopy
 
     REAL, PARAMETER :: MM_TO_M = 0.001
     ! plant component of the leaf-specific hydraulic conductance
@@ -2810,8 +2817,17 @@ CONTAINS
 
     ! minimum leaf water potential (MPa)
     REAL, PARAMETER :: min_lwp = -2.0
-    REAL :: plant_k, ktot
-
+    REAL, PARAMETER :: MOL_2_MMOL = 1000.0
+    REAL, PARAMETER :: MMOL_2_MOL = 1E-03
+    ! Cuticular conductance (mol m-2 s-1) - obvs should be passed
+    ! if we are not setting this then set to a tiny value
+    ! (1e-09 for numerical reasons)
+    REAL, PARAMETER :: gs_min = 1E-09
+    REAL :: plant_k, ktot, gsc_leaf, e_demand, e_supply, gsv
+    REAL, INTENT(IN) :: vpd
+    REAL, INTENT(INOUT) :: gsc
+    REAL :: press = 101325.0 ! Pascals, we should pass this from CABLE obvs
+    REAL :: GSVGSC = 1.57    ! Ratio of Gsw:Gsc
     ! no cavitation when stem water storage not simulated
     plant_k = kp
 
@@ -2827,7 +2843,7 @@ CONTAINS
     e_supply = MAX(0.0, ktot * (ssnow%weighted_swp - min_lwp))
 
     ! Leaf transpiration (mmol m-2 s-1), i.e. ignoring boundary layer effects!
-    e_demand = MOL_2_MMOL * (vpd / press) * gsc_leaf * GSVGSC
+    e_demand = MOL_2_MMOL * (vpd / press) * gsc * GSVGSC
 
     IF (e_demand > e_supply) THEN
       ! Calculate gs (mol m-2 s-1) given supply (Emax)
@@ -2835,9 +2851,9 @@ CONTAINS
       gsc_leaf = gsv / GSVGSC
 
       ! gs cannot be lower than minimum (cuticular conductance)
-      IF (gsc_leaf < gs_min) THEN
-        gsc_leaf = p->gs_min
-        gsv = gsc_leaf * GSVGSC
+      IF (gsc < gs_min) THEN
+        gsc = gs_min
+        gsv = gsc * GSVGSC
       ENDIF
 
       ! Need to calculate an effective beta to use in soil decomposition
@@ -2850,7 +2866,6 @@ CONTAINS
     ELSE
       ! This needs to be initialised somewhere.
       canopy%fwsoil = 1.0
-      gsv = gsc_leaf * GSVGSC
     ENDIF
 
   END SUBROUTINE calculate_emax

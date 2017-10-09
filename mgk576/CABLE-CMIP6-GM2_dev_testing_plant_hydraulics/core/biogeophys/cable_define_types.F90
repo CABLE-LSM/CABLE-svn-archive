@@ -375,7 +375,8 @@ MODULE cable_def_types_mod
          ekc,     &  ! activation energy for caroxylagse
          eko,     &  ! acvtivation enegery for oxygenase
          g0,      & ! Belinda's stomatal model intercept, Ticket #56.
-         g1         ! Belinda's stomatal model slope, Ticket #56.
+         g1       ! Belinda's stomatal model slope, Ticket #56.
+
 
       LOGICAL, DIMENSION(:), POINTER ::                                        &
          deciduous ! flag used for phenology fix
@@ -462,6 +463,7 @@ MODULE cable_def_types_mod
       REAL, DIMENSION(:,:), POINTER ::                                         &
          evapfbl, &
          gswx,    & ! stom cond for water
+         gsc,     & ! stom cond for co2
          zetar, &   ! stability parameter (ref height)
           !! vh_js !!
          zetash      ! stability parameter (shear height)
@@ -1151,6 +1153,7 @@ SUBROUTINE alloc_canopy_type(var, mp)
    !ALLOCATE( var% fescor_upp(mp) )  !SSEB variable
    !ALLOCATE( var% fescor_low(mp) )  !SSEB variable
    ALLOCATE( var% gswx(mp,mf) )
+   ALLOCATE( var% gsc(mp,mf) )
    ALLOCATE( var% oldcansto(mp) )
    ALLOCATE( var% zetar(mp,NITER) )
    ALLOCATE( var% zetash(mp,NITER) )
@@ -1764,6 +1767,7 @@ SUBROUTINE dealloc_canopy_type(var)
    !DEALLOCATE( var% fescor_upp ) !SSEB variable
    !DEALLOCATE( var% fescor_low ) !SSEB variable
    DEALLOCATE( var% gswx )
+   DEALLOCATE( var% gsc )
    DEALLOCATE( var% oldcansto )
    DEALLOCATE( var% zetar )
    DEALLOCATE( var% zetash )
