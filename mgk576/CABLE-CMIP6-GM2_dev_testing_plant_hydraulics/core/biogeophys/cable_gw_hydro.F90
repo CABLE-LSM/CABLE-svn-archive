@@ -1751,7 +1751,7 @@ END SUBROUTINE calc_soil_hydraulic_props
      REAL, DIMENSION(mp) :: root_biomass
      REAL, DIMENSION(mp,ms) :: root_length, Ks, Lsoil, soil_root_resist, rs
      !REAL, DIMENSION(mp,ms) :: swp, psi_sat, ksat, expon
-     REAL, DIMENSION(mp,ms) :: soil_resistance, rsum
+     REAL, DIMENSION(mp,ms) :: soil_resistance, root_resistance, soilR, rsum
      REAL :: soilR1, soilR2, arg1, arg2, total_soil_resist
      INTEGER :: i
 
@@ -1762,7 +1762,6 @@ END SUBROUTINE calc_soil_hydraulic_props
 
         ! (m m-3 soil)
         root_length(:,i) = root_biomass / (root_density * root_xsec_area)
-
 
         ! Soil hydraulic conductivity for layer, mm/s -> mol m-1 s-1 MPa-1
         Ks(:,i) = ssnow%hk(:,i) * MM_TO_M * M3_2_LITRE / MOL_OF_WATER / &
@@ -1794,13 +1793,16 @@ END SUBROUTINE calc_soil_hydraulic_props
                                    (2.0 * pi * root_length(:,i) *     &
                                     soil%zse(i) * Lsoil(:,i))
 
-
            ! convert from MPa s m2 m-3 to MPa s m2 mmol-1
            soil_resistance(:,i) = soil_resistance(:,i) * 1E-6 * 18.0 * 0.001
 
            ! second component of below ground resistance related to root
            ! hydraulics
-           !root_resistance(:,i) = root_resistivity / (soil%zse(i) * root_mass)
+           root_resistance(:,i) = root_resistivity / &
+                                  (soil%zse(i) * root_biomass)
+
+           ! MPa s m2 mmol-1
+           soilR(:,i) = soil_resistance(:,i) + root_resistance(:,i)
 
            ! Need to combine resistances in parallel, but we only want the
            ! soil term as the root component is part of the plant resistance
