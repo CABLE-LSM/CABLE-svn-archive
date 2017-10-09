@@ -2226,6 +2226,66 @@ CONTAINS
   END SUBROUTINE dryLeaf
   ! -----------------------------------------------------------------------------
 
+  ! -----------------------------------------------------------------------------
+  SUBROUTINE photosynthesis_C3_emax(csxz, cx1z, cx2z, gswminz,                &
+                                    rdxz, vcmxt3z, vcmxt4z, vx3z,             &
+                                    vx4z, gs_coeffz, vlaiz, deltlfz, anxz,    &
+                                    fwsoilz)
+      ! Calculate photosynthesis resolving Ci and A for a given gs
+      ! (Jarvis style) to get the Emax solution.
+      ! This follows MAESPA code.
+      !
+      ! Martin De Kauwe, 9th Oct, 2017
+
+      INTEGER :: i,j
+      REAL :: A, B, C
+      
+      DO i=1, mp
+         IF (sum(vlaiz(i,:)) .GT. C%LAI_THRESH) THEN
+            DO j=1, mf
+               ! Unpack calculated properties from first photosynthesis solution
+               Cs = cw->ts_Cs
+               vcmax = cw->ts_vcmax
+               km = cw->ts_km
+               gamma_star = cw->ts_gamma_star
+               rd = cw->ts_rd
+               jmax = cw->ts_jmax
+               qudratic_error = FALSE
+               large_root = FALSE
+               J = quad(p->theta, -(p->alpha_j * par + jmax),
+                        p->alpha_j * par * jmax, large_root, &qudratic_error)
+               Vj = J / 4.0
+               gs = cw->gsc_leaf[idx]
+
+               ! Solution when Rubisco rate is limiting */
+               A = 1.0 / gs
+               B = (rd - vcmax) / gs - Cs - km
+               C = vcmax * (Cs - gamma_star) - rd * (Cs + km)
+
+               qudratic_error = FALSE
+               large_root = FALSE
+               anrubiscoz = quad(A, B, C, large_root, &qudratic_error)
+               IF (qudratic_error) THEN
+                  anrubiscoz = 0.0
+               ENDIF
+
+               ! Solution when electron transport rate is limiting */
+               A = 1.0 / gs
+               B = (rd - Vj) / gs - Cs - 2.0 * gamma_star
+               C = Vj * (Cs - gamma_star) - rd * (Cs + 2.0 * gamma_star)
+
+               qudratic_error = FALSE
+               large_root = FALSE
+               anrubpz = quad(A, B, C, large_root, &qudratic_error)
+               IF (qudratic_error) THEN
+                  anrubpz = 0.0
+               ENDIF
+
+               anxz(i,j) = MIN(anrubiscoz(i,j), anrubpz(i,j))
+            ENDDO
+         ENDIF
+      ENDDO
+   END SUBROUTINE photosynthesis_C3_emax
 
    ! Ticket #56, xleuningz repalced with gs_coeffz
    SUBROUTINE photosynthesis( csxz, cx1z, cx2z, gswminz,                          &
@@ -2833,14 +2893,14 @@ CONTAINS
 
     ! Hydraulic conductance of the entire soil-to-leaf pathway
     ! (mmol m–2 s–1 MPa–1)
-    ktot = 1.0 / (ssnow%total_soil_resist + 1.0 / plant_k)
+    ktot = 1.0 / (ssnow%total_soil_resist(1) + 1.0 / plant_k)
 
     ! Maximum transpiration rate (mmol m-2 s-1)
     ! Following Darcy's law which relates leaf transpiration to hydraulic
     ! conductance of the soil-to-leaf pathway and leaf & soil water potentials.
     ! Transpiration is limited in the perfectly isohydric case above the
     ! critical threshold for embolism given by min_lwp.
-    e_supply = MAX(0.0, ktot * (ssnow%weighted_swp - min_lwp))
+    e_supply = MAX(0.0, ktot * (ssnow%weighted_swp(1) - min_lwp))
 
     ! Leaf transpiration (mmol m-2 s-1), i.e. ignoring boundary layer effects!
     e_demand = MOL_2_MMOL * (vpd / press) * gsc * GSVGSC
