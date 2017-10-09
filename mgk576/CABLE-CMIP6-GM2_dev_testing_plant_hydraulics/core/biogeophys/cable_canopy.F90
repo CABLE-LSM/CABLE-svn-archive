@@ -1994,6 +1994,8 @@ CONTAINS
                            SPREAD( abs_deltlf, 2, mf ),                        &
                            anx(:,:), fwsoil(:) )
 
+       !!! MARTIN WE NEED TO CALL EMAX PHOTOSYNTHESIS HERE AS OTHERWISE IT
+       !!! IS WITHIN THE LEAF LOOP. There is a leaf loop within photosyntheis
 
        DO i=1,mp
 
@@ -2227,10 +2229,7 @@ CONTAINS
   ! -----------------------------------------------------------------------------
 
   ! ----------------------------------------------------------------------------
-  SUBROUTINE photosynthesis_C3_emax(csxz, cx1z, cx2z, gswminz,                &
-                                    rdxz, vcmxt3z, vcmxt4z, vx3z,             &
-                                    vx4z, gs_coeffz, vlaiz, deltlfz, anxz,    &
-                                    fwsoilz)
+  SUBROUTINE photosynthesis_C3_emax()
       ! Calculate photosynthesis resolving Ci and A for a given gs
       ! (Jarvis style) to get the Emax solution.
       ! This follows MAESPA code.
@@ -2239,23 +2238,6 @@ CONTAINS
 
       INTEGER :: i,j
       REAL :: A, B, C
-
-      REAL, INTENT(IN)     :: parx
-      REAL, INTENT(IN)     :: alpha
-      REAL, INTENT(IN)     :: convex
-
-      REAL, DIMENSION(mp,mf), INTENT(IN) ::                                       &
-           cx1z,       & !
-           cx2z,       & !
-           gswminz,    & !
-           rdxz,       & !
-           vcmxt3z,    & !
-           vcmxt4z,    & !
-           vx4z,       & !
-           vx3z,       & !
-           gs_coeffz,  & ! Ticket #56, xleuningz repalced with gs_coeffz
-           vlaiz,      & !
-           deltlfz       !
 
       REAL, DIMENSION(mp,mf) :: jmax
 
