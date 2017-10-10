@@ -2860,10 +2860,9 @@ CONTAINS
 
      REAL :: inferred_stress = 0.0
 
-     REAL(r_2), DIMENSION(mp,mf), INTENT(IN) :: csxz
+     REAL(R_2),INTENT(INOUT), DIMENSION(:,:) :: csxz
 
      REAL, DIMENSION(mp,mf), INTENT(IN) ::                                     &
-          cx1z,       & !
           cx2z,       & !
           gswminz,    & !
           rdxz,       & !
@@ -2876,12 +2875,9 @@ CONTAINS
           deltlfz,&
           par
 
-     REAL, DIMENSION(mp,mf), INTENT(INOUT) :: anxz
+     REAL, DIMENSION(mp) ::  cx1z
 
-     ! local variables
-     REAL(r_2), DIMENSION(mp,mf) ::                                            &
-          coef0z,coef1z,coef2z, ciz,delcxz,                                    &
-          anrubiscoz,anrubpz,ansinkz
+     REAL, DIMENSION(mp,mf), INTENT(INOUT) :: anxz
 
      REAL, DIMENSION(mp) :: fwsoilz
 
@@ -2922,7 +2918,8 @@ CONTAINS
            ! Need to calculate an effective beta to use in soil decomposition
            inferred_stress = inferred_stress + e_supply / e_demand
            ! Re-solve An for the new gs
-           CALL photosynthesis_C3_emax(veg, vlaiz, vcmxt3z, par)
+           CALL photosynthesis_C3_emax(canopy, veg, vlaiz, vcmxt3z, par, csxz, &
+                                       rdxz, cx1z)
            print*, "Implement emax photo"
            stop
         ELSE
@@ -2936,7 +2933,7 @@ CONTAINS
   ! ----------------------------------------------------------------------------
 
   ! ----------------------------------------------------------------------------
-  SUBROUTINE photosynthesis_C3_emax(veg, vlaiz, vcmax, par)
+  SUBROUTINE photosynthesis_C3_emax(canopy, veg, vlaiz, vcmax, par, Cs, rd, km)
      ! Calculate photosynthesis resolving Ci and A for a given gs
      ! (Jarvis style) to get the Emax solution.
      ! This follows MAESPA code.
@@ -2946,15 +2943,22 @@ CONTAINS
      USE cable_def_types_mod
 
      IMPLICIT NONE
+
+     TYPE (canopy_type), INTENT(INOUT)           :: canopy
      TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
 
      INTEGER :: i,j
      REAL :: A, B, C
-
-     REAL, DIMENSION(mp,mf), INTENT(IN) :: vlaiz, vcmax, par
+     REAL(R_2),INTENT(INOUT), DIMENSION(:,:) :: Cs
+     !REAL, DIMENSION(mp,mf), INTENT(INOUT) :: an
+     REAL, DIMENSION(mp,mf), INTENT(IN) :: vlaiz, vcmax, par, rd
      REAL, PARAMETER :: LAI_THRESH = 0.001
+     REAL, DIMENSION(mp) ::  km
+     REAL, DIMENSION(mp,mf) :: jmax, discriminant, JJ, Vj
+     REAL(r_2), DIMENSION(mp,mf) :: an_rubisco, an_rubp
 
-     REAL, DIMENSION(mp,mf) :: jmax
+     !!! NOT SURE WHAT GAMMA STAR IS???? FOR NOW IGNROE IT
+   REAL, PARAMETER :: gamma_star = 0.0
 
      DO i=1, mp
         IF (sum(vlaiz(i,:)) .GT. LAI_THRESH) THEN
@@ -2968,59 +2972,70 @@ CONTAINS
                A = veg%convex(i)
                B = -(veg%alpha(i) * par(i,j) + jmax(i,j))
                C = veg%alpha(i) * par(i,j) * jmax(i,j)
+               discriminant(i,j) = B**2 - 4.0 * A * C
+               JJ(i,j) = (-B + &
+                         SQRT(MAX(0.0_r_2 , discriminant(i,j)))) / (2.0 * A)
 
-               print*, par(i,j)
-!
-!              ! Unpack calculated properties from first photosynthesis solution
-!              Cs =
-!              km =
-!              gamma_star =
-!
+               ! positive root
+               JJ(i,j) = MAX( 0.0_r_2, JJ(i,j))
+               Vj = JJ / 4.0
 
-!
-!              A = veg%convex(i)
-!              B = -(veg%alpha(i) * par + jmax(i,j))
-!              C = veg%alpha(i) * par * jmax(i,j)
-!              discriminant(i,j) = B**2 - 4.0 * A * C
-!              J(i,j) = (-B + &
-!                        SQRT(MAX(0.0_r_2 , discriminant(i,j)))) / &
-!                        (2.0 * A)
-!
-!              ! positive root
-!              J(i,j) = MAX( 0.0_r_2, J(i,j))
-!              Vj = J / 4.0
-!
-!              ! Solution when Rubisco rate is limiting */
-!              A = 1.0 / gsc(i,j)
-!              B = (rdxz(i,j) - vcmxt3z(i,j)) / gsc(i,j) - Cs - km
-!              C = vcmxt3z(i,j) * (Cs - gamma_star) - rdxz(i,j) * (Cs + km)
-!
-!              discriminant(i,j) = B**2 - 4.0 * A * C
-!              anrubiscoz(i,j) = (-B + &
-!                                 SQRT(MAX( 0.0_r_2 , discriminant(i,j)))) / &
-!                                 (2.0 * A)
-!              ! positive root
-!              anrubiscoz(i,j) = MAX( 0.0_r_2, anrubiscoz(i,j))
-!
-!              ! Solution when electron transport rate is limiting */
-!              A = 1.0 / gsc(i,j)
-!              B = (rdxz(i,j) - Vj) / gsc(i,j) - Cs - 2.0 * gamma_star
-!              C = Vj * (Cs - gamma_star) - rdxz(i,j) * (Cs + 2.0 * gamma_star)
-!
-!              discriminant(i,j) = B**2 - 4.0 * A * C
-!              anrubpz(i,j) = (-B + &
-!                              SQRT(MAX( 0.0_r_2 , discriminant(i,j)))) / &
-!                              (2.0 * A)
-!              ! positive root
-!              anrubpz(i,j) = MAX( 0.0_r_2, anrubpz(i,j))
-!
-!              anxz(i,j) = MIN(anrubiscoz(i,j), anrubpz(i,j))
+               ! Solution when Rubisco rate is limiting */
+               A = 1.0 / canopy%gsc(i)
+               B = (rd(i,j) - vcmax(i,j)) / canopy%gsc(i) - Cs(i,j) - km(i)
+               C = vcmax(i,j) * (Cs(i,j) - gamma_star) - rd(i,j) * &
+                   (Cs(i,j) + km(i))
+
+               discriminant(i,j) = B**2 - 4.0 * A * C
+               an_rubisco(i,j) = (-B + &
+                                  SQRT(MAX( 0.0_r_2 , discriminant(i,j)))) / &
+                                  (2.0 * A)
+               ! positive root
+               an_rubisco(i,j) = MAX(0.0_r_2, an_rubisco(i,j))
+
+               ! Solution when electron transport rate is limiting
+               A = 1.0 / canopy%gsc(i)
+               B = (rd(i,j) - Vj(i,j)) / canopy%gsc(i) - Cs(i,j) - 2.0 * gamma_star
+               C = Vj(i,j) * (Cs(i,j) - gamma_star) - rd(i,j) * &
+                   (Cs(i,j) + 2.0 * gamma_star)
+
+               discriminant(i,j) = B**2 - 4.0 * A * C
+               an_rubp(i,j) = (-B + &
+                               SQRT(MAX( 0.0_r_2 , discriminant(i,j)))) / &
+                               (2.0 * A)
+
+               ! positive root
+               an_rubp(i,j) = MAX( 0.0_r_2, an_rubp(i,j))
+               !stop
+               !an(i,j) = MIN(an_rubisco(i,j), an_rubp(i,j))
            ENDDO
         ENDIF
      ENDDO
 
   END SUBROUTINE photosynthesis_C3_emax
   ! ---------------------------------------------------------------------------
+
+  ! ----------------------------------------------------------------------------
+  FUNCTION quad(A, B, C) RESULT(root)
+     ! Quadratic solution
+     !
+     ! Martin De Kauwe, 10th Oct, 2017
+
+     USE cable_common_module
+     USE cable_def_types_mod
+
+     IMPLICIT NONE
+
+     REAL, INTENT(IN) :: A, B, C
+     REAL :: d, root
+
+     ! discriminant
+     d = B**2 - 4.0 * A * C
+     root = (-B + SQRT(MAX(0.0_r_2 , d))) / (2.0 * A)
+     root = MAX(0.0_r_2, root)
+
+  END FUNCTION quad
+  ! ----------------------------------------------------------------------------
 
   ! ----------------------------------------------------------------------------
   FUNCTION calc_lwp(ssnow, ktot, transpiration) RESULT(lwp)
@@ -3035,7 +3050,7 @@ CONTAINS
 
      TYPE (soil_snow_type), INTENT(INOUT) :: ssnow
 
-     REAL, INTENT(IN) ::  ktot, transpiration
+     REAL, INTENT(IN) :: ktot, transpiration
      REAL :: lwp
 
      IF (ktot > 0.0) THEN
