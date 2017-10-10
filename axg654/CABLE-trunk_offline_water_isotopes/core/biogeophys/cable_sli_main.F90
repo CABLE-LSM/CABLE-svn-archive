@@ -17,11 +17,11 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
        esat_ice, slope_esat_ice, thetalmax, Tfrz,  hyofS, SEB
   USE sli_roots,          ONLY: setroots, getrex
   USE sli_solve,          ONLY: solve
- 
+
 
   IMPLICIT NONE
   !INTEGER, INTENT(IN)            :: wlogn
-  INTEGER :: wlogn = 10001 
+  INTEGER :: wlogn = 10001
   REAL,                      INTENT(IN)    :: dt
   TYPE(veg_parameter_type),  INTENT(INOUT) :: veg     ! all r_1
   TYPE(soil_parameter_type), INTENT(INOUT) :: soil    ! all r_1
@@ -69,6 +69,20 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
   REAL(r_2) :: rbw, rbh, rrc ! resistances for output
   INTEGER(i_d), DIMENSION(1:mp) :: index
 
+  ! water isotopes
+  REAL(r_2),      DIMENSION(1:mp)      :: cprec, cprec_snow, cali
+  REAL(r_2),      DIMENSION(1:mp,1:ms)  :: cisoice
+  ! water isotopes - state
+  REAL(r_2),      DIMENSION(1:mp,1:nsnow_max) :: ciso_snow
+  REAL(r_2),      DIMENSION(1:mp,1:nsnow_max) :: cisoice_snow
+  REAL(r_2),      DIMENSION(1:mp) :: cisos, cisoL
+
+  ! water isotopes - data returned from solve
+  REAL(r_2),      DIMENSION(1:mp) :: qiso_in, qiso_out
+  REAL(r_2),      DIMENSION(1:mp) :: qiso_evap_cum, qiso_trans_cum
+  REAL(r_2),      DIMENSION(1:mp,-nsnow_max+1:ms) :: qiso_liq_adv, qiso_vap_adv
+  REAL(r_2),      DIMENSION(1:mp,-nsnow_max+1:ms-1) :: qiso_liq_diff, qiso_vap_diff
+
   ! Topmodel
   REAL(r_2), DIMENSION(1:mp) :: fsat ! topmodel saturated area
   REAL(r_2), DIMENSION(1:mp) :: qb   ! topmodel baseflow
@@ -79,12 +93,11 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
   ! 1: full litter
   ! 2: litter resistance
   INTEGER(i_d), PARAMETER :: advection    = 1 ! heat advection by water
-  INTEGER(i_d), PARAMETER :: isotopologue = 0 ! which isotope
+  INTEGER(i_d) :: isotopologue = -999 ! which isotope
   ! 0: no isotope calculations
   ! 1: HDO
   ! 2: H218O
-  ! 3: HDO & H218O
-  ! 0: normal run
+  ! 3: HDO & H218O    **not implemented**
   INTEGER(i_d), PARAMETER :: septs        = 0 ! coupled or uncoupled energy and water calculation
   ! 0: coupled calc
   ! 1: uncoupled energy (T) and moisture (S)
@@ -95,6 +108,14 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
   ! 3: condition first lines then columns
   LOGICAL, SAVE :: first = .true.
   INTEGER(i_d), SAVE  :: counter
+
+  if (cable_user%isotope_mode == 0 .or. cable_user%isotope_mode == 1 .or. &
+      cable_user%isotope_mode == 2) then
+     isotopologue = cable_user%isotope_mode
+  else
+     stop "Bad value for isotope_mode switch. Options are: &
+          &0 - no isotope calculations, 1 - HDO, 2 - H218O"
+  endif
 
   ! initialise cumulative variables
   ! Jcol_sensible = zero
@@ -262,6 +283,17 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
         vsnow(kk)%Jsensible              = zero
         vsnow(kk)%Jlatent                = zero
      enddo
+     if (isotopologue == 1) then
+	ssnow%ciso = real(cable_user%d2h_initial_value, r_2) &
+                     * 0.001_r_2 + 1.0_r_2
+        ssnow%cisoL = real(cable_user%d2h_initial_value, r_2) &
+                     * 0.001_r_2 + 1.0_r_2
+     elseif (isotopologue == 2) then
+        ssnow%ciso = real(cable_user%d18o_initial_value, r_2) &
+                     * 0.001_r_2 + 1.0_r_2
+        ssnow%cisoL = real(cable_user%d18o_initial_value, r_2) &
+                     * 0.001_r_2 + 1.0_r_2
+     endif
      first = .false.
   endif
 
@@ -435,7 +467,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
   ! Water balance variables:
   ipi = sum(ssnow%thetai*dx,2)  + h0*ssnow%thetai(:,1)/par(:,1)%thre       ! ice in profile initially
   ! water in profile initially
-  wpi = sum((par%thr + (par%the-par%thr)*S)*dx,2)  + plit%thre*SL*dxL 
+  wpi = sum((par%thr + (par%the-par%thr)*S)*dx,2)  + plit%thre*SL*dxL
 
   nsteps = 0
   ti     = zero
@@ -488,6 +520,42 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
      endif
   endif
 
+  if (isotopologue > 0) then
+    if (isotopologue == 1) then
+      ! HDO
+      vmet%civa = vmet%cva * (real(met%d2h_v, r_2) * 0.001_r_2 + 1_r_2)
+      ! TODO: should this be multiplied by qprec, or is cprec mass/mass?
+      cprec = qprec * (real(met%d2h_rf, r_2) * 0.001_r_2 + 1_r_2)
+      ! snow is not really considered at the moment
+      cprec_snow = qprec_snow * (real(met%d2h_rf, r_2) * 0.001_r_2 + 1_r_2)
+      ! not sure what to do here, this is water coming up from below
+      ! it seems that it can be disabled by setting to zero
+      cali = zero
+    elseif (isotopologue == 2) then
+      ! HDO
+
+      vmet%civa = vmet%cva * (real(met%d18o_v, r_2) * 0.001_r_2 + 1_r_2)
+      cprec = real(met%d18o_rf, r_2) * 0.001_r_2 + 1_r_2
+      cprec_snow = real(met%d18o_rf, r_2) * 0.001_r_2 + 1_r_2
+      ! I *think* that cprec and cprec_snow should *not* be weighted by fluxes
+      ! but if I'm wrong, perhaps the next two lines should be used instead
+      !cprec = qprec * (real(met%d18o_rf, r_2) * 0.001_r_2 + 1_r_2)
+      !cprec_snow = qprec_snow * (real(met%d18o_rf, r_2) * 0.001_r_2 + 1_r_2)
+      cali = zero
+    else
+      ! this is checked above
+      stop "Bad value for isotopologue"
+    endif
+    ! TODO: handle snow properly
+    ! snow state variables
+    ! state variables which are not properly defined as part of
+    ! ssnow structure
+    ciso_snow = one
+    cisoice_snow = one
+    cisoice = one
+    cisos = one
+  endif
+
   if (SEB_only == 1) then
      do kk=1, mp
 
@@ -525,7 +593,14 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
           wex=wex, qvsig=qvsig, qlsig=qlsig, qvTsig=qvTsig, qvh=qvh, &
           deltaTa=deltaTa, lE_old=lE_old, &
           dolitter=litter, doisotopologue=isotopologue, dosepts=septs, docondition=condition, &
-          doadvection=advection)
+          doadvection=advection, &   ! water isotopes follow
+          ciso=ssnow%ciso, cisoice=cisoice, ciso_snow=ciso_snow, &
+          cisoice_snow=cisoice_snow, &
+          cisos=cisos, cisoL=ssnow%cisoL, cprec=cprec, cprec_snow=cprec_snow, &
+          qiso_in=qiso_in, qiso_out=qiso_out, &   ! note: "cali=cali, qali=qali, " are missing from the argument list
+          qiso_evap_cum=qiso_evap_cum, qiso_trans_cum=qiso_trans_cum, &
+          qiso_liq_adv=qiso_liq_adv, qiso_vap_adv=qiso_vap_adv, &
+          qiso_liq_diff=qiso_liq_diff, qiso_vap_diff=qiso_vap_diff)
 
      qprec_snow = qprec_snow_tmp
      H             = (H/(tf-ti))
@@ -553,7 +628,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
      ssnow%thetai = thetai
      ip  = sum(ssnow%thetai*dx,2)   + h0*ssnow%thetai(:,1)/par(:,1)%thre   ! ice in profile at tf
      ! water at tf
-     wp  = sum((par%thr + (par%the-par%thr)*S)*dx,2) + plit%thre*SL*dxL 
+     wp  = sum((par%thr + (par%the-par%thr)*S)*dx,2) + plit%thre*SL*dxL
      win = win + (qprec+qprec_snow)*(tf-ti)
 
      if (1 == 0) then
@@ -563,7 +638,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
              evap(k), evap_pot(k), infil(k), &
              drn(k), h0(k), Etrans(k)*dt, discharge(k), fws(k), (ip(k)-ipi(k)), fsat(k), runoff_sat(k), qb(k)
 
-!!$if (ktau==5) then 
+!!$if (ktau==5) then
 !!$
 !!$ write(*,*) win(k), (wp(k)-wpi(k)), deltah0(k),runoff(k), evap(k), drn(k), Etrans(k)*dt, canopy%fwsoil(k), canopy%fevc(k)
 !!$stop

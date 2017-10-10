@@ -68,7 +68,11 @@ MODULE cable_input_module
        ncid_ps,         &
        ncid_qa,         &
        ncid_ta,         &
-       ncid_wd
+       ncid_wd,         &
+       ncid_d18o_rf,    & ! stable water isotopes
+       ncid_d18o_v,     &
+       ncid_d2h_rf,     &
+       ncid_d2h_v
 
    INTEGER                      ::                                        &
         ncid_met,        & ! met data netcdf file ID
@@ -80,7 +84,11 @@ MODULE cable_input_module
         ncid_qa,         &
         ncid_ta,         &
         ncid_wd,         &
-        ok                 ! netcdf error status
+        ok,              &   ! netcdf error status
+        ncid_d18o_rf,    & ! stable water isotopes
+        ncid_d18o_v,     &
+        ncid_d2h_rf,     &
+        ncid_d2h_v
    ! - see ALMA compress by gathering
    INTEGER,POINTER,DIMENSION(:) :: landGrid ! for ALMA compressed variables
    REAL,POINTER,DIMENSION(:)    ::                                        &
@@ -103,7 +111,11 @@ MODULE cable_input_module
            avPrecip,     &
            iveg,         &
            isoil,        &
-           patchfrac
+           patchfrac,    &
+           d18o_rf,      &
+           d18o_v,       &
+           d2h_rf,       &
+           d2h_v
    END TYPE met_varID_type
    TYPE(met_varID_type)              :: id ! netcdf variable IDs for input met variables
    TYPE met_units_type
@@ -119,7 +131,11 @@ MODULE cable_input_module
            Snowf,        &
            CO2air,       &
            Elev,         &
-           avPrecip
+           avPrecip,     &
+           d18o_rf,      &
+           d18o_v,       &
+           d2h_rf,       &
+           d2h_v
    END TYPE met_units_type
    TYPE(met_units_type)              :: metunits ! units for meteorological variables
    TYPE convert_units_type
@@ -759,8 +775,8 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
          (shod.lt.dels/3600./2.) ) THEN
        shod = shod + dels/3600./2.
     ENDIF
-    
-   
+
+
     ! Decide day-of-year for non-leap year:
     CALL YMDHMS2DOYSOD( syear, smoy, sdoytmp, INT(shod), 0, 0, sdoy, ssod )
        ! Number of days between start position and 1st timestep:
@@ -1414,6 +1430,95 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
        NULLIFY(soiltype_metfile)
     END IF
 
+    ! Stable Water isotopes (four variables, insert defaults if missing)
+    ok = NF90_INQ_VARID(ncid_met,'d18o_rf',id%d18o_rf)
+    IF(ok == NF90_NOERR) THEN ! If inquiry is okay
+       exists%d18o_rf = .TRUE. ! present in met file
+       ! unit check
+       ok = NF90_GET_ATT(ncid_met,id%d18o_rf,'units',metunits%d18o_rf)
+       IF(ok /= NF90_NOERR) CALL nc_abort &
+            (ok,'Error finding d18o_rf units in met data file ' &
+            //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
+       IF(metunits%d18o_rf(1:11)/='delta_vsmow') THEN
+          WRITE(*,*) metunits%d18o_rf
+          CALL abort('Unknown units for d18o_rf'// &
+               ' in '//TRIM(filename%met)//' (SUBROUTINE open_met_data)')
+       END IF
+    ELSE ! not present
+       exists%d18o_rf = .FALSE.
+       all_met=.FALSE. ! not all met variables are present in file
+       ! Note this in log file:
+       ! TODO: make the fixed value configurable somehwere
+       WRITE(logn,'(A33,A24,I4,A5)') ' d18o_rf not present in met file; ', &
+            'values will be fixed at ',(0.0),' (delta VSMOW)'
+    END IF
+
+    ok = NF90_INQ_VARID(ncid_met,'d18o_v',id%d18o_v)
+    IF(ok == NF90_NOERR) THEN ! If inquiry is okay
+       exists%d18o_v = .TRUE. ! present in met file
+       ! disble unit check, but leave code here for easy re-enable
+       ok = NF90_GET_ATT(ncid_met,id%d18o_v,'units',metunits%d18o_v)
+       IF(ok /= NF90_NOERR) CALL nc_abort &
+            (ok,'Error finding d18o_v units in met data file ' &
+            //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
+       IF(metunits%d18o_v(1:11)/='delta_vsmow') THEN
+          WRITE(*,*) metunits%d18o_v
+          CALL abort('Unknown units for d18o_v'// &
+               ' in '//TRIM(filename%met)//' (SUBROUTINE open_met_data)')
+       END IF
+    ELSE ! not present
+       exists%d18o_v = .FALSE.
+       all_met=.FALSE. ! not all met variables are present in file
+       ! Note this in log file:
+       ! TODO: make the fixed value configurable somehwere
+       WRITE(logn,'(A33,A24,I4,A5)') ' d18o_v not present in met file; ', &
+            'values will be fixed at ',(0.0),' (delta VSMOW)'
+    END IF
+
+    ok = NF90_INQ_VARID(ncid_met,'d2h_rf',id%d2h_rf)
+    IF(ok == NF90_NOERR) THEN ! If inquiry is okay
+       exists%d2h_rf = .TRUE. ! present in met file
+       ! disble unit check, but leave code here for easy re-enable
+       ok = NF90_GET_ATT(ncid_met,id%d2h_rf,'units',metunits%d2h_rf)
+       IF(ok /= NF90_NOERR) CALL nc_abort &
+            (ok,'Error finding d2h_rf units in met data file ' &
+            //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
+       IF(metunits%d2h_rf(1:11)/='delta_vsmow') THEN
+          WRITE(*,*) metunits%d2h_rf
+          CALL abort('Unknown units for d2h_rf'// &
+               ' in '//TRIM(filename%met)//' (SUBROUTINE open_met_data)')
+       END IF
+    ELSE ! not present
+       exists%d2h_rf = .FALSE.
+       all_met=.FALSE. ! not all met variables are present in file
+       ! Note this in log file:
+       ! TODO: make the fixed value configurable somehwere
+       WRITE(logn,'(A33,A24,I4,A5)') ' d2h_rf not present in met file; ', &
+            'values will be fixed at ',(0.0),' (delta VSMOW)'
+    END IF
+
+    ok = NF90_INQ_VARID(ncid_met,'d2h_v',id%d2h_v)
+    IF(ok == NF90_NOERR) THEN ! If inquiry is okay
+       exists%d2h_v = .TRUE. ! present in met file
+       ! disble unit check, but leave code here for easy re-enable
+       ok = NF90_GET_ATT(ncid_met,id%d2h_v,'units',metunits%d2h_v)
+       IF(ok /= NF90_NOERR) CALL nc_abort &
+            (ok,'Error finding d2h_v units in met data file ' &
+            //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
+       IF(metunits%d2h_v(1:11)/='delta_vsmow') THEN
+          WRITE(*,*) metunits%d2h_v
+          CALL abort('Unknown units for d2h_v'// &
+               ' in '//TRIM(filename%met)//' (SUBROUTINE open_met_data)')
+       END IF
+    ELSE ! not present
+       exists%d2h_v = .FALSE.
+       all_met=.FALSE. ! not all met variables are present in file
+       ! Note this in log file:
+       ! TODO: make the fixed value configurable somehwere
+       WRITE(logn,'(A33,A24,I4,A5)') ' d2h_v not present in met file; ', &
+            'values will be fixed at ',(0.0),' (delta VSMOW)'
+    END IF
+
     ! Report finding met variables to log file:
     IF(all_met) THEN
        WRITE(logn,*) 'Found all met variables in met file.'
@@ -1839,6 +1944,65 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
         met%ca(:) = fixedCO2 /1000000.0
       END IF
 
+      ! get stable water isotopes for mask grid
+      IF(exists%d18O_rf) THEN ! If d18O_rf exists in met file
+        ok= NF90_GET_VAR(ncid_met,id%d18O_rf,tmpDat4, &
+             start=(/1,1,1,ktau/),count=(/xdimsize,ydimsize,1,1/))
+        IF(ok /= NF90_NOERR) CALL nc_abort &
+             (ok,'Error reading d18O_rf in met data file ' &
+             //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
+        DO i=1,mland ! over all land points/grid cells
+          met%d18O_rf(landpt(i)%cstart:landpt(i)%cend) = &
+                  REAL(tmpDat4(land_x(i),land_y(i),1,1))
+        ENDDO
+      ELSE
+        ! Fix d18O_rf air concentration:
+        met%d18O_rf(:) = 0.0
+      END IF
+
+      IF(exists%d18o_v) THEN ! If d18o_v exists in met file
+        ok= NF90_GET_VAR(ncid_met,id%d18o_v,tmpDat4, &
+             start=(/1,1,1,ktau/),count=(/xdimsize,ydimsize,1,1/))
+        IF(ok /= NF90_NOERR) CALL nc_abort &
+             (ok,'Error reading d18o_v in met data file ' &
+             //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
+        DO i=1,mland ! over all land points/grid cells
+          met%d18o_v(landpt(i)%cstart:landpt(i)%cend) = &
+                  REAL(tmpDat4(land_x(i),land_y(i),1,1))
+        ENDDO
+      ELSE
+        ! Fix d18o_v air concentration:
+        met%d18o_v(:) = 0.0
+      END IF
+      IF(exists%d2h_rf) THEN ! If d2h_rf exists in met file
+        ok= NF90_GET_VAR(ncid_met,id%d2h_rf,tmpDat4, &
+             start=(/1,1,1,ktau/),count=(/xdimsize,ydimsize,1,1/))
+        IF(ok /= NF90_NOERR) CALL nc_abort &
+             (ok,'Error reading d2h_rf in met data file ' &
+             //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
+        DO i=1,mland ! over all land points/grid cells
+          met%d2h_rf(landpt(i)%cstart:landpt(i)%cend) = &
+                  REAL(tmpDat4(land_x(i),land_y(i),1,1))
+        ENDDO
+      ELSE
+        ! Fix d2h_rf air concentration:
+        met%d2h_rf(:) = 0.0
+      END IF
+      IF(exists%d2h_v) THEN ! If d2h_v exists in met file
+        ok= NF90_GET_VAR(ncid_met,id%d2h_v,tmpDat4, &
+             start=(/1,1,1,ktau/),count=(/xdimsize,ydimsize,1,1/))
+        IF(ok /= NF90_NOERR) CALL nc_abort &
+             (ok,'Error reading d2h_v in met data file ' &
+             //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
+        DO i=1,mland ! over all land points/grid cells
+          met%d2h_v(landpt(i)%cstart:landpt(i)%cend) = &
+                  REAL(tmpDat4(land_x(i),land_y(i),1,1))
+        ENDDO
+      ELSE
+        ! Fix d2h_v air concentration:
+        met%d2h_v(:) = 0.0
+      END IF
+
       ! Get LAI, if it's present, for mask grid:- - - - - - - - - - - - -
       IF(exists%LAI) THEN ! If LAI exists in met file
         IF(exists%LAI_T) THEN ! i.e. time dependent LAI
@@ -1920,7 +2084,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
 
            veg%vlai(landpt(i)%cstart:landpt(i)%cend) =  &
                 defaultLAI(landpt(i)%cstart:landpt(i)%cend,met%moy(landpt(i)%cstart))
-             
+
         ENDDO
       END IF
 
@@ -2112,6 +2276,60 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
         ENDDO
       ELSE
         met%ca(:) = fixedCO2 /1000000.0
+      END IF
+
+      ! Get stable water isotopes for land-only grid
+      IF(exists%d18O_rf) THEN ! If d18O_rf exists in met file
+        ok= NF90_GET_VAR(ncid_met,id%d18O_rf,tmpDat2, &
+             start=(/1,ktau/),count=(/mland,1/))
+        IF(ok /= NF90_NOERR) CALL nc_abort &
+             (ok,'Error reading d18O_rf in met data file ' &
+             //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
+        DO i=1,mland ! over all land points/grid cells
+          met%d18O_rf(landpt(i)%cstart:landpt(i)%cend) = &
+               REAL(tmpDat2(i,1))
+        ENDDO
+      ELSE
+        met%d18O_rf(:) = 0.0
+      END IF
+      IF(exists%d18o_v) THEN ! If d18o_v exists in met file
+        ok= NF90_GET_VAR(ncid_met,id%d18o_v,tmpDat2, &
+             start=(/1,ktau/),count=(/mland,1/))
+        IF(ok /= NF90_NOERR) CALL nc_abort &
+             (ok,'Error reading d18o_v in met data file ' &
+             //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
+        DO i=1,mland ! over all land points/grid cells
+          met%d18o_v(landpt(i)%cstart:landpt(i)%cend) = &
+               REAL(tmpDat2(i,1))
+        ENDDO
+      ELSE
+        met%d18o_v(:) = 0.0
+      END IF
+      IF(exists%d2h_rf) THEN ! If d2h_rf exists in met file
+        ok= NF90_GET_VAR(ncid_met,id%d2h_rf,tmpDat2, &
+             start=(/1,ktau/),count=(/mland,1/))
+        IF(ok /= NF90_NOERR) CALL nc_abort &
+             (ok,'Error reading d2h_rf in met data file ' &
+             //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
+        DO i=1,mland ! over all land points/grid cells
+          met%d2h_rf(landpt(i)%cstart:landpt(i)%cend) = &
+               REAL(tmpDat2(i,1))
+        ENDDO
+      ELSE
+        met%d2h_rf(:) = 0.0
+      END IF
+      IF(exists%d2h_v) THEN ! If d2h_v exists in met file
+        ok= NF90_GET_VAR(ncid_met,id%d2h_v,tmpDat2, &
+             start=(/1,ktau/),count=(/mland,1/))
+        IF(ok /= NF90_NOERR) CALL nc_abort &
+             (ok,'Error reading d2h_v in met data file ' &
+             //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
+        DO i=1,mland ! over all land points/grid cells
+          met%d2h_v(landpt(i)%cstart:landpt(i)%cend) = &
+               REAL(tmpDat2(i,1))
+        ENDDO
+      ELSE
+        met%d2h_v(:) = 0.0
       END IF
 
       ! Get LAI data, if it exists, for land-only grid:- - - - - - - - -
@@ -2316,7 +2534,7 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,climate,bgc,soil,canopy,rough,rad, 
    !   max_vegpatches - via cable_IO_vars_module
 !! vh_js !!
    USE POPmodule, ONLY: POP_INIT
-   USE POPLUC_module, ONLY: POPLUC_INIT 
+   USE POPLUC_module, ONLY: POPLUC_INIT
    USE CABLE_LUC_EXPT, ONLY: LUC_EXPT_TYPE
 
    IMPLICIT NONE
@@ -2348,7 +2566,7 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,climate,bgc,soil,canopy,rough,rad, 
    INTEGER,INTENT(IN)                      :: logn     ! log file unit number
    LOGICAL,INTENT(IN)                      :: &
          vegparmnew, &  ! are we using the new format?
-!! vh_js !!  
+!! vh_js !!
        spinup         ! for POP (initialize pop)
    REAL, INTENT(IN) :: TFRZ, EMSOIL
 
@@ -2440,7 +2658,7 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,climate,bgc,soil,canopy,rough,rad, 
          ! read POP_LUC restart file here
          ! set POP%LU here for secondary tiles if cable_user%POPLUC_RunType is not 'static'
          CALL POPLUC_init(POPLUC,LUC_EXPT, casapool, casaflux, casabiome, veg, POP, mland)
-         
+
       ENDIF
 
    ENDIF

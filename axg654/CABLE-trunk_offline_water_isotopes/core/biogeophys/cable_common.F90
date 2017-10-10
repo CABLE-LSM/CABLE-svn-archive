@@ -1,11 +1,11 @@
 !==============================================================================
-! This source code is part of the 
+! This source code is part of the
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
 ! This work is licensed under the CSIRO Open Source Software License
 ! Agreement (variation of the BSD / MIT License).
-! 
+!
 ! You may not use this file except in compliance with this License.
-! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located 
+! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located
 ! in each directory containing CABLE code.
 !
 ! ==============================================================================
@@ -90,7 +90,7 @@ MODULE cable_common_module
      ! Ticket #56
      CHARACTER(LEN=20) ::                                                     &
         GS_SWITCH='leuning'
-      
+
      CHARACTER(LEN=10) :: RunIden       = 'STANDARD'  !
      CHARACTER(LEN=4)  :: MetType       = ' ' !
      CHARACTER(LEN=20) :: SOIL_STRUC    = "default" ! 'default' or 'sli'
@@ -98,7 +98,7 @@ MODULE cable_common_module
      CHARACTER(LEN=50) :: POP_rst       = ' ' !
      CHARACTER(LEN=8)  :: CASA_OUT_FREQ = 'annually' ! 'daily', 'monthly', 'annually'
      CHARACTER(LEN=10)  :: vcmax = 'standard' ! "standard" or "Walker2014"
-     CHARACTER(LEN=10)  :: POPLUC_RunType = 'static' ! 'static', 'init', 'restart' 
+     CHARACTER(LEN=10)  :: POPLUC_RunType = 'static' ! 'static', 'init', 'restart'
 
      LOGICAL ::                                                               &
           CALL_POP               = .FALSE., & !
@@ -107,7 +107,7 @@ MODULE cable_common_module
           Climate_fromZero       = .TRUE., &
           CASA_fromZero          = .FALSE., &
           POPLUC                 = .FALSE.
-    
+
      INTEGER  :: &
           CASA_SPIN_STARTYEAR = 1950, &
           CASA_SPIN_ENDYEAR   = 1960, &
@@ -147,6 +147,9 @@ MODULE cable_common_module
           !! vh_js !!
          litter = .FALSE.
 
+     INTEGER  :: ISOTOPE_MODE = 0
+     REAL :: d18o_initial_value = 0.0
+     REAL :: d2h_initial_value = 0.0
   END TYPE kbl_user_switches
 
   ! instantiate internal switches
@@ -238,7 +241,7 @@ MODULE cable_common_module
           ekc,        &
           eko,        &
           g0,         & !  Ticket #56
-          g1,         & !  Ticket #56 
+          g1,         & !  Ticket #56
           zr,         &
           clitt
 
@@ -511,10 +514,10 @@ CONTAINS
 !#define Vanessas_common
 !#ifdef Vanessas_common
        WRITE(*,*) TRIM(NF90_strerror(status))
-!#else       
-!       WRITE(*,*) "UM builds with -i8. Therefore call to nf90_strerror is ", & 
-!       " invalid. Quick fix to eliminate for now. Build NF90 with -i8, force -i4?" 
-!#endif     
+!#else
+!       WRITE(*,*) "UM builds with -i8. Therefore call to nf90_strerror is ", &
+!       " invalid. Quick fix to eliminate for now. Build NF90 with -i8, force -i4?"
+!#endif
        STOP -1
     END IF
   END SUBROUTINE HANDLE_ERR
@@ -714,15 +717,15 @@ CONTAINS
 
   END SUBROUTINE report_version_no
 
-  SUBROUTINE init_veg_from_vegin(ifmp,fmp, veg) 
+  SUBROUTINE init_veg_from_vegin(ifmp,fmp, veg)
      use cable_def_types_mod, ONLY : veg_parameter_type
-     integer ::  ifmp,  & ! start local mp, # landpoints (jhan:when is this not 1 )      
-                 fmp     ! local mp, # landpoints       
-  
+     integer ::  ifmp,  & ! start local mp, # landpoints (jhan:when is this not 1 )
+                 fmp     ! local mp, # landpoints
+
      type(veg_parameter_type) :: veg
-     
+
      integer :: h
-     
+
          ! Prescribe parameters for current gridcell based on veg/soil type (which
          ! may have loaded from default value file or met file):
          DO h = ifmp, fmp          ! over each patch in current grid
@@ -766,8 +769,8 @@ CONTAINS
             veg%zr(h)       = vegin%zr(veg%iveg(h))
             veg%clitt(h)    = vegin%clitt(veg%iveg(h))
          END DO ! over each veg patch in land point
-  
-  END SUBROUTINE init_veg_from_vegin 
+
+  END SUBROUTINE init_veg_from_vegin
 
 
   FUNCTION IS_CASA_TIME(iotype, yyyy, ktau, kstart, koffset, kend, ktauday, logn)
@@ -779,7 +782,7 @@ CONTAINS
 !cable_common module was intended to be unequivocally common to all
 !applications. iovars is an offline module and so not appropriate to include
 !here. Suggested FIX is to move decs of vars needed (e.g. leaps) to here, and
-!then use common in iovars  
+!then use common in iovars
 #ifdef Vanessas_common
     USE cable_IO_vars_module, ONLY: leaps
 #endif

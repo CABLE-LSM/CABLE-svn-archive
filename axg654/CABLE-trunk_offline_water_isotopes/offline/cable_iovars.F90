@@ -156,7 +156,11 @@ MODULE cable_IO_vars_module
          parameters,&! TRUE if non-default parameters are found
          initial, & ! switched to TRUE when initialisation data are loaded
          patch,   & ! T=> met file have a subgrid veg/soil patch dimension
-         laiPatch   ! T=> LAI file have a subgrid veg patch dimension
+         laiPatch,&  ! T=> LAI file have a subgrid veg patch dimension
+         d18o_rf, & ! T=> is present in the met file
+         d18o_v,  & ! T=> is present in the met file
+         d2h_rf,  & ! T=> is present in the met file
+         d2h_v      ! T=> is present in the met file
 
    END TYPE input_details_type
 
@@ -312,9 +316,9 @@ MODULE cable_IO_vars_module
          hc = .FALSE.,        & ! height of canopy [m]
          rp20  = .FALSE.,     & ! plant respiration coefficient at
                                 ! 20 C [-] 0.1 - 10 (frp 0 - 15e-6 mol/m2/s)
-         g0   = .FALSE.,      & ! Ticket #56      
+         g0   = .FALSE.,      & ! Ticket #56
          g1   = .FALSE.,      & ! Ticket #56
-         rpcoef  = .FALSE.,   & ! temperature coef nonleaf plant 
+         rpcoef  = .FALSE.,   & ! temperature coef nonleaf plant
                                 ! respiration [1/C] (0.8 - 1.5)
          shelrb  = .FALSE.,   & ! sheltering factor [-] {avoid - insensitive?}
          vcmax  = .FALSE.,    & ! maximum RuBP carboxylation rate
@@ -341,7 +345,8 @@ MODULE cable_IO_vars_module
          patchfrac  = .FALSE.,& ! fractional cover of each veg/soil patch
          isoil  = .FALSE.,    & ! soil type from global index
          meth  = .FALSE.,     & ! method for solving turbulence in canopy scheme
-         za  = .FALSE.          ! something to do with roughness ????
+         za  = .FALSE.,       &   ! something to do with roughness ????
+         WaterIsotope = .FALSE. ! water isotope
 
    END TYPE output_inclusion_type
 

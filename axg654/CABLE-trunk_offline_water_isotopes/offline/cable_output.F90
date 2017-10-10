@@ -67,7 +67,7 @@ MODULE cable_output_module
                     PlantTurnover, PlantTurnoverLeaf, PlantTurnoverFineRoot, &
                     PlantTurnoverWood, PlantTurnoverWoodDist, PlantTurnoverWoodCrowding, &
                     PlantTurnoverWoodResourceLim, dCdt, Area, LandUseFlux, patchfrac, &
-                    vcmax, hc
+                    vcmax, hc, WaterIsotope
   END TYPE out_varID_type
   TYPE(out_varID_type) :: ovid ! netcdf variable IDs for output variables
   TYPE(parID_type) :: opid ! netcdf variable IDs for output variables
@@ -202,6 +202,7 @@ MODULE cable_output_module
     REAL(KIND=4), POINTER, DIMENSION(:) :: vcmax
     REAL(KIND=4), POINTER, DIMENSION(:) :: patchfrac
     REAL(KIND=4), POINTER, DIMENSION(:) :: hc
+    REAL(KIND=4), POINTER, DIMENSION(:,:) :: WaterIsotope ! Stable water isotope ratio
  END TYPE output_temporary_type
   TYPE(output_temporary_type), SAVE :: out
   INTEGER :: ok   ! netcdf error status
@@ -558,6 +559,13 @@ CONTAINS
        ALLOCATE(out%BaresoilT(mp))
        out%BaresoilT = 0.0 ! initialise
     END IF
+    IF(output%soil .OR. output%WaterIsotope) THEN
+       CALL define_ovar(ncid_out, ovid%WaterIsotope, 'WaterIsotope', '',              &
+                        'Stable water isotope ratio', patchout%WaterIsotope,   &
+                        'soil', xID, yID, zID, landID, patchID, soilID, tID)
+       ALLOCATE(out%WaterIsotope(mp,ms))
+       out%WaterIsotope = 0.0 ! initialise
+    END IF
     ! Define snow state variables in output file and allocate temp output vars:
     IF(output%snow .OR. output%SWE) THEN
        CALL define_ovar(ncid_out, ovid%SWE, 'SWE', 'kg/m^2',                   &
@@ -870,7 +878,7 @@ CONTAINS
        out%PlantTurnoverWoodResourceLim = 0.0
 
        IF (cable_user%POPLUC) THEN
-          
+
           CALL define_ovar(ncid_out, ovid%LandUseFlux, 'LandUseFlux ', &
                'umol/m^2/s',               &
                'Sum of wood harvest and clearing fluxes', patchout%LandUseFlux,         &
@@ -878,8 +886,8 @@ CONTAINS
           ALLOCATE(out%LandUseFlux(mp))
           out%LandUseFlux = 0.0
        ENDIF
-       
-  
+
+
     END IF
 
 !! vh_js !!
@@ -900,9 +908,9 @@ CONTAINS
        CALL define_ovar(ncid_out, opid%patchfrac, 'patchfrac', '-',          &
             'Fractional cover of vegetation patches', patchout%patchfrac, 'real', &
             xID, yID, zID, landID, patchID, tID)
-       
+
     ELSE
-       
+
        IF((output%params .OR. output%patchfrac)                                   &
             .AND. (patchout%patchfrac .OR. output%patch))                         &
             CALL define_ovar(ncid_out, opid%patchfrac, 'patchfrac', '-',          &
@@ -991,7 +999,7 @@ CONTAINS
     IF(output%params .OR. output%g1) CALL define_ovar(ncid_out, opid%g1,   &
                           'g1', '-', 'g1 term in Medlyn Stom Cond. Param', &
                           patchout%g1, 'real', xID, yID, zID, landID, patchID)
-    ! end Ticket #56 
+    ! end Ticket #56
 
     IF(output%params .OR. output%rpcoef) CALL define_ovar(ncid_out,            &
                                                  opid%rpcoef, 'rpcoef', '1/C', &
@@ -1201,7 +1209,7 @@ CONTAINS
               'vcmax', REAL(veg%vcmax, 4), ranges%vcmax, patchout%vcmax, 'real')
     IF(output%params .OR. output%frac4) CALL write_ovar(ncid_out, opid%frac4,  &
               'frac4', REAL(veg%frac4, 4), ranges%frac4, patchout%frac4, 'real')
-    
+
     IF (.not.cable_user%CALL_POP) THEN
        IF(output%params .OR. output%hc) CALL write_ovar(ncid_out, opid%hc,        &
             'hc', REAL(veg%hc, 4), ranges%hc, patchout%hc, 'real')
@@ -1795,6 +1803,21 @@ CONTAINS
           out%BaresoilT = 0.0
        END IF
     END IF
+    IF(output%soil .OR. output%WaterIsotope) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       ! note: skip the top level because ciso is dimensioned (mp,ms+1)
+       ! in cable_define_types
+       out%WaterIsotope = out%WaterIsotope + REAL(ssnow%ciso(:,2:), 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%WaterIsotope = out%WaterIsotope/REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%WaterIsotope, 'WaterIsotope',   &
+                  out%WaterIsotope, ranges%WaterIsotope, patchout%WaterIsotope, 'soil', met)
+          ! Reset temporary output variable:
+          out%WaterIsotope = 0.0
+       END IF
+    END IF
     !----------------------WRITE SNOW STATE DATA--------------------------------
     ! SWE: snow water equivalent [kg/m^2]
     IF(output%snow .OR. output%SWE) THEN
@@ -2075,7 +2098,7 @@ CONTAINS
        ! Add current timestep's value to total of temporary output variable:
        !out%NPP = out%NPP + REAL((-1.0 * canopy%fpn - canopy%frp &
        !     - casaflux%clabloss/86400.0) / 1.201E-5, 4)
-       ! vh ! expression below can be slightly different form that above in cases where 
+       ! vh ! expression below can be slightly different form that above in cases where
        ! leaf maintenance respiration is reduced in CASA
        ! (relative to its original value calculated in cable_canopy)
        ! in order to avoid negative carbon stores.
@@ -2099,7 +2122,7 @@ CONTAINS
        ! Add current timestep's value to total of temporary output variable:
        !out%AutoResp = out%AutoResp + REAL((canopy%frp + canopy%frday + casaflux%clabloss/86400.0)          &
        !                                    / 1.201E-5, 4)
-       ! vh ! expression below can be slightly different form that above in cases where 
+       ! vh ! expression below can be slightly different form that above in cases where
        ! leaf maintenance respiration is reduced in CASA
        ! (relative to its original value calculated in cable_canopy)
        ! in order to avoid negative carbon stores.
@@ -2152,7 +2175,7 @@ CONTAINS
        END IF
     END IF
 
-    ! output patch area 
+    ! output patch area
     IF(output%casa) THEN
      out%Area = casamet%areacell/1e6 ! km2
      IF(writenow) THEN
@@ -2333,7 +2356,7 @@ CONTAINS
     ENDIF
 
  END IF
-    
+
     ! plant carbon [kg C m-2]
     IF(output%casa) THEN
        out%TotSoilCarb = out%TotSoilCarb + REAL((SUM(casapool%csoil,2)+SUM(casapool%clitter,2)) &

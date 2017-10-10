@@ -65,22 +65,25 @@ MODULE sli_numbers
   REAL(r_2), PARAMETER :: qprecmax  = 1.0e10
   !REAL(r_2), PARAMETER :: dSmax     = 0.5
   !REAL(r_2), PARAMETER :: dSmaxr    = 0.5
-  REAL(r_2), PARAMETER :: dSmax     = 0.1
-  REAL(r_2), PARAMETER :: dSmaxr    = 0.1
-  REAL(r_2), PARAMETER :: dtmax     = 86400. 
-  REAL(r_2), PARAMETER :: dtmin     = 0.01
-  REAL(r_2), PARAMETER :: dsmmax    = 1.0
-  REAL(r_2), PARAMETER :: dTsoilmax = 5.0
-  REAL(r_2), PARAMETER :: dTLmax    = 5.0
+  !REAL(r_2), PARAMETER :: dSmax     = 0.1
+  !REAL(r_2), PARAMETER :: dSmaxr    = 0.1
+  !REAL(r_2), PARAMETER :: dtmax     = 86400.
+  !REAL(r_2), PARAMETER :: dtmin     = 0.01
+  !REAL(r_2), PARAMETER :: dsmmax    = 1.0
+  !REAL(r_2), PARAMETER :: dTsoilmax = 5.0
+  !REAL(r_2), PARAMETER :: dTLmax    = 5.0
   !REAL(r_2), PARAMETER :: dTsoilmax = 1.0
   !REAL(r_2), PARAMETER :: dTLmax    = 1.0
   REAL(r_2), PARAMETER :: tol_dthetaldT = 1.e-12_r_2
   INTEGER(i_d), PARAMETER ::nsteps_ice_max = 20
   INTEGER(i_d), PARAMETER ::nsteps_max = 2000
   !MC-ToDo! Identify why smaller time-steps are needed for isotopes
-  ! With isotopes  REAL(r_2), PARAMETER :: dSmax=0.1_r_2, dSmaxr=0.1_r_2, dtmax=0.05_r_2*3600.,
-  !                                        dtmin=0.0_r_2, dsmmax=1.0_r_2
-  ! With isotopes   REAL(r_2), PARAMETER ::  dTsoilmax=1.0_r_2, dTLmax=1.0_r_2
+  ! With isotopes
+  REAL(r_2), PARAMETER :: dSmax=0.1_r_2, dSmaxr=0.1_r_2, dtmax=0.05_r_2*3600., &
+                                          dtmin=0.0_r_2, dsmmax=1.0_r_2
+  ! With isotopes
+  REAL(r_2), PARAMETER ::  dTsoilmax=1.0_r_2, dTLmax=1.0_r_2
+
   REAL(r_2), PARAMETER :: gf        = 1.0    ! gravity factor for flow direction (usually 1 for straight down).
   REAL(r_2), PARAMETER :: hmin      = -1.0e6 ! minimum matric head h (used by MF).
   REAL(r_2), PARAMETER :: csol      = 0.0    ! solute concentration (mol kg-1 soil water)

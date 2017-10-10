@@ -303,7 +303,7 @@ MODULE cable_def_types_mod
          ekc,     &  ! activation energy for caroxylagse
          eko,     &  ! acvtivation enegery for oxygenase
          g0,      & ! Belinda's stomatal model intercept, Ticket #56.
-         g1         ! Belinda's stomatal model slope, Ticket #56.   
+         g1         ! Belinda's stomatal model slope, Ticket #56.
 
       LOGICAL, DIMENSION(:), POINTER ::                                        &
          deciduous ! flag used for phenology fix
@@ -539,8 +539,12 @@ MODULE cable_def_types_mod
          qvair,   & ! within canopy specific humidity (g/g)
          da,      & ! water vap pressure deficit at ref height (Pa)
          dva,     & ! in canopy water vap pressure deficit (Pa)
-         coszen,   &  ! cos(zenith angle of sun)
-         Ndep        ! nitrogen deposition (gN m-2 d-1)
+         coszen,  & ! cos(zenith angle of sun)
+         Ndep,    & ! nitrogen deposition (gN m-2 d-1)
+         d18o_rf, & ! h218o/h2o in rainfall (delta, VSMOW)
+         d2h_rf,  & ! hdo/h2o in rainfall (delta, VSMOW)
+         d18o_v,  & ! h218o/h2o in near-surface vapour (delta, VSMOW)
+         d2h_v      ! hdo/h2o in near-surface vapour (delta, VSMOW)
 
       REAL, DIMENSION(:,:), POINTER ::                                         &
          fsd  ! downward short-wave radiation (W/m2)
@@ -579,7 +583,7 @@ MODULE cable_def_types_mod
       atemp_mean,  & ! annual average temperature
       AGDD5,       &
       GDD5,        & ! growing degree day sum relative to 5deg base temperature
-      AGDD0,        & ! 
+      AGDD0,        & !
       GDD0,        & ! growing degree day sum relative to 0deg base temperature
       alpha_PT,    & ! ratio of annual evap to annual PT evap
       evap_PT,    & ! annual PT evap [mm]
@@ -914,7 +918,7 @@ SUBROUTINE alloc_veg_parameter_type(var, mp)
    ALLOCATE( var%conko0(mp) )
    ALLOCATE( var%ekc(mp) )
    ALLOCATE( var%eko(mp) )
-   ALLOCATE( var% g0(mp) )   ! Ticket #56. 
+   ALLOCATE( var% g0(mp) )   ! Ticket #56.
    ALLOCATE( var% g1(mp) )   ! Ticket #56.
 
 
@@ -1132,6 +1136,10 @@ SUBROUTINE alloc_met_type(var, mp)
    ALLOCATE ( var % dva(mp) )
    ALLOCATE ( var % coszen(mp) )
    ALLOCATE ( var % Ndep(mp) )
+   ALLOCATE ( var % d18O_rf(mp) )
+   ALLOCATE ( var % d18O_v(mp) )
+   ALLOCATE ( var % d2h_rf(mp) )
+   ALLOCATE ( var % d2h_v(mp) )
 
 END SUBROUTINE alloc_met_type
 
@@ -1457,7 +1465,7 @@ SUBROUTINE dealloc_veg_parameter_type(var)
    DEALLOCATE( var%ekc )
    DEALLOCATE( var%eko )
    DEALLOCATE( var%g0 ) ! Ticket #56.
-   DEALLOCATE( var%g1 ) ! Ticket #56. 
+   DEALLOCATE( var%g1 ) ! Ticket #56.
 
     ! Deallocate variables for SLI soil model:
     !IF(cable_user%SOIL_STRUC=='sli') THEN
@@ -1659,6 +1667,10 @@ SUBROUTINE dealloc_met_type(var)
    DEALLOCATE ( var % dva )
    DEALLOCATE ( var % coszen )
    DEALLOCATE ( var % Ndep )
+   DEALLOCATE ( var % d18O_rf )
+   DEALLOCATE ( var % d18O_v )
+   DEALLOCATE ( var % d2h_rf )
+   DEALLOCATE ( var % d2h_v )
 
 END SUBROUTINE dealloc_met_type
 

@@ -171,7 +171,8 @@ MODULE cable_checks_module
            TotLivBiomass =  (/0.0, 1000./),      &
            TotSoilCarb =  (/0.0, 1000./),      &
            TotLittCarb =  (/0.0, 1000./), &
-           Area = (/0.0, 5000./)
+           Area = (/0.0, 5000./), &
+           WaterIsotope = (/0.0, 2.0 /)
    END TYPE ranges_type
    TYPE(ranges_type),SAVE :: ranges
 
@@ -253,16 +254,16 @@ SUBROUTINE mass_balance(dels,ktau, ssnow,soil,canopy,met,                       
       ! delwcol includes change in soil water, pond and snowpack
       bal%wbal = canopy_wbal + REAL(canopy%through - ssnow%delwcol-ssnow%runoff &
                   - ssnow%evap - max(canopy%fevc,0.0)*dels/air%rlam, r_2)
-   
+
    ENDIF
 
 
-   if(ktau==1) then 
-      bal%wbal_tot = 0.; bal%precip_tot = 0. 
+   if(ktau==1) then
+      bal%wbal_tot = 0.; bal%precip_tot = 0.
       bal%rnoff_tot = 0.; bal%evap_tot = 0.
-   endif   
-   
-   IF(ktau>10) THEN ! Avoid wobbly balances for ktau<10 pending later fix 
+   endif
+
+   IF(ktau>10) THEN ! Avoid wobbly balances for ktau<10 pending later fix
       ! Add to accumulation variables:
       bal%wbal_tot = bal%wbal_tot + bal%wbal
       bal%precip_tot = bal%precip_tot + met%precip
