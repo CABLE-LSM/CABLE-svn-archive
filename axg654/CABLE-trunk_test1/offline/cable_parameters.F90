@@ -1,11 +1,11 @@
 !==============================================================================
-! This source code is part of the 
+! This source code is part of the
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
 ! This work is licensed under the CSIRO Open Source Software License
 ! Agreement (variation of the BSD / MIT License).
-! 
+!
 ! You may not use this file except in compliance with this License.
-! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located 
+! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located
 ! in each directory containing CABLE code.
 !
 ! ==============================================================================
@@ -19,7 +19,7 @@
 !
 ! Contact: Bernard.Pak@csiro.au
 !
-! History: Changes since v1.4b for global offline (GSWP) cases, read in new 
+! History: Changes since v1.4b for global offline (GSWP) cases, read in new
 !          input files
 !          Two subroutines moved to cable_common (reading veg and soil parameter
 !          files)
@@ -135,8 +135,8 @@ CONTAINS
     WRITE(logn,*) ' And assigning C4 fraction according to veg classification.'
     WRITE(logn,*)
     CALL read_gridinfo(nlon,nlat,npatch)
-   
-! Overwrite veg type and inital patch frac with land-use info 
+
+! Overwrite veg type and inital patch frac with land-use info
     IF (CABLE_USER%POPLUC) then
        CALL get_land_index(nlon, nlat)
        CALL LUC_EXPT_SET_TILES(inVeg, inPfrac, LUC_EXPT)
@@ -785,7 +785,7 @@ CONTAINS
           PRINT *, 'inLat range:', MINVAL(inLat), MAXVAL(inLat)
           STOP
        END IF
-       
+
     END DO
 
 
@@ -851,7 +851,7 @@ CONTAINS
           PRINT *, 'inLat range:', MINVAL(inLat), MAXVAL(inLat)
           STOP
        END IF
-       
+
        landpt(kk)%nap = 0
        landpt(kk)%cstart = ncount + 1
        IF (ASSOCIATED(vegtype_metfile)) THEN
@@ -903,7 +903,7 @@ CONTAINS
      STOP
   END IF
   DEALLOCATE(inLon, inLat)
-  
+
     ! Set the maximum number of active patches to that read from met file:
   max_vegpatches = MAXVAL(landpt(:)%nap)
   !CLN    IF (max_vegpatches /= nmetpatches) THEN
@@ -1035,7 +1035,13 @@ CONTAINS
       case(13)
          soil%zse = (/.02,  0.0500,  0.06,  0.1300 ,   0.300 ,   0.300 ,   0.3000,  &
               0.3000,    0.3000 ,   0.3000,    0.3000,    0.7500,  1.50 /)
-
+      case(37)
+         soil%zse = (/.02,  0.0500,  0.06,  0.1300 ,   0.300 ,   0.300 ,   0.3000,  &
+              0.3000,    0.3000 ,   0.3000,    0.3000,    0.7500,  1.50, &
+              1.5,       1.5,       1.5,       1.5,       1.5,     1.5, &
+              1.5,       1.5,       1.5,       1.5,       1.5,     1.5, &
+              1.5,       1.5,       1.5,       1.5,       1.5,     1.5, &
+              1.5,       1.5,       1.5,       1.5,       1.5,    1.5 /)
       end select
 
    !ELSE
@@ -1072,7 +1078,7 @@ CONTAINS
       patch(landpt(e)%cstart:landpt(e)%cend)%frac =                            &
                         inPFrac(landpt(e)%ilon, landpt(e)%ilat, 1:landpt(e)%nap)
 
-write(*,*) 'iveg', e,  veg%iveg(landpt(e)%cstart:landpt(e)%cend) 
+write(*,*) 'iveg', e,  veg%iveg(landpt(e)%cstart:landpt(e)%cend)
 write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
 
       ! set land use (1 = primary; 2 = secondary, 3 = open)
@@ -1137,7 +1143,7 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
 
 
       DO is = 1, landpt(e)%cend - landpt(e)%cstart + 1  ! each patch
-        DO ir = 1, nrb 
+        DO ir = 1, nrb
            IF (CABLE_USER%POPLUC) then !vh! use same soilalbedo for all land-use tiles
               ssnow%albsoilsn(landpt(e)%cstart + is - 1, ir)                       &
                    = inALB(landpt(e)%ilon, landpt(e)%ilat, 1, ir) ! various rad band
@@ -1223,7 +1229,7 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
                                                           soiltype_metfile(e, :)
        END IF
 ! offline only above
-       !call veg% init that is common   
+       !call veg% init that is common
        CALL init_veg_from_vegin(landpt(e)%cstart, landpt(e)%cend, veg)
 
        ! Prescribe parameters for current gridcell based on veg/soil type (which
@@ -1286,7 +1292,7 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
                vegin%tmaxvj, vegin%vbeta,vegin%clitt, vegin%zr, vegin%rootbeta, vegin%froot,         &
                vegin%cplant, vegin%csoil, vegin%ratecp, vegin%ratecs,          &
                vegin%xalbnir, vegin%length, vegin%width,                       &
-               vegin%g0, vegin%g1,                                             & 
+               vegin%g0, vegin%g1,                                             &
                vegin%a1gs, vegin%d0gs, vegin%alpha, vegin%convex, vegin%cfrd,  &
                vegin%gswmin, vegin%conkc0,vegin%conko0,vegin%ekc,vegin%eko   )
     !         vegf_temp,urbanf_temp,lakef_temp,icef_temp, &
@@ -1357,7 +1363,7 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
          soil%nhorizons = 1 ! use 1 soil horizon globally
         ! veg%clitt = 5.0 ! (tC / ha)
          veg%F10 = 0.85
-         veg%ZR = 5.0
+         veg%ZR = 40.0
       END IF
 
       IF(cable_user%SOIL_STRUC=='sli'.or.cable_user%FWSOIL_SWITCH=='Haverd2013') THEN
@@ -1414,14 +1420,14 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
      !   IF (CABLE_USER%POPLUC) then
            casaflux%Nmindep(hh) =  inNdep(landpt(ee)%ilon, landpt(ee)%ilat)
            casaflux%Nminfix(hh) = max( inNfix(landpt(ee)%ilon, landpt(ee)%ilat), &
-                8.0e-4)  
+                8.0e-4)
 !vh ! minimum fixation rate of 3 kg N ha-1y-1 (8e-4 g N m-2 d-1)
 ! Cleveland, Cory C., et al. "Global patterns of terrestrial biological nitrogen (N2) &
 !fixation in natural ecosystems." Global biogeochemical cycles 13.2 (1999): 623-645.
            casaflux%Pdep(hh)    = inPdust(landpt(ee)%ilon, landpt(ee)%ilat)
            casaflux%Pwea(hh)    = inPwea(landpt(ee)%ilon, landpt(ee)%ilat)
       !  ENDIF
-           
+
         ! fertilizer addition is included here
         IF (veg%iveg(hh) == cropland .OR. veg%iveg(hh) == croplnd2) then
           ! P fertilizer =13 Mt P globally in 1994
@@ -1588,7 +1594,7 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
  ! vh changed limits from 1.0000001, 0.999999 to 1.01 and 0.99 for compatibility with gridinfo
           IF((soil%sand(landpt(i)%cstart + j - 1)                              &
               + soil%silt(landpt(i)%cstart + j - 1)                            &
-              + soil%clay(landpt(i)%cstart + j - 1)) > 1.01 .OR.          & 
+              + soil%clay(landpt(i)%cstart + j - 1)) > 1.01 .OR.          &
              (soil%sand(landpt(i)%cstart + j - 1)                              &
               + soil%silt(landpt(i)%cstart + j - 1)                            &
               + soil%clay(landpt(i)%cstart + j - 1)) < 0.99) THEN
