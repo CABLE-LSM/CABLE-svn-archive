@@ -1719,6 +1719,7 @@ END SUBROUTINE calc_soil_hydraulic_props
 
   end function my_erf
 
+  ! ----------------------------------------------------------------------------
   SUBROUTINE calc_soil_root_resistance(ssnow, soil, veg, bgc)
      ! Calculate root & soil hydraulic resistance following SPA approach
      !
@@ -1728,12 +1729,12 @@ END SUBROUTINE calc_soil_hydraulic_props
      ! Soil hydraulic resistance depends on soil conductivity, root length,
      ! depth of layer and distance between roots
      !
-     ! Martin De Kauwe, 9th Oct, 2017
-     !
-     ! In units conversion, useful to recall that
+     ! In units conversion, useful to recall that:
      ! m s-1 = m3 m-1 m-1 s-1
      ! m3 (amount of water) m-1 (per unit length) m-1 (per unit hydraulic head,
      !                                                 measured in meters) s-1
+     !
+     ! Martin De Kauwe, 9th Oct, 2017
 
      USE cable_def_types_mod
      USE cable_common_module
@@ -1802,7 +1803,9 @@ END SUBROUTINE calc_soil_hydraulic_props
      ssnow%total_soil_resist = 1.0 / rsum
 
   END SUBROUTINE calc_soil_root_resistance
+  ! ----------------------------------------------------------------------------
 
+  ! ----------------------------------------------------------------------------
   SUBROUTINE calc_weighted_swp(ssnow, soil)
     !
     ! Determine weighted SWP given the hydraulic resistance of each layer.
@@ -1833,5 +1836,6 @@ END SUBROUTINE calc_soil_hydraulic_props
     ssnow%weighted_swp = sum(swp * cond_per_layer) / sum(cond_per_layer)
 
   END SUBROUTINE calc_weighted_swp
+  ! ----------------------------------------------------------------------------
 
 END MODULE cable_gw_hydro_module

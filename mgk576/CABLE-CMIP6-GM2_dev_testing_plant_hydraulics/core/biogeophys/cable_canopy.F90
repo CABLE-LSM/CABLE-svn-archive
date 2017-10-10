@@ -1994,13 +1994,13 @@ CONTAINS
                            SPREAD( abs_deltlf, 2, mf ),                        &
                            anx(:,:), fwsoil(:) )
 
-       !IF (cable_user%FWSOIL_SWITCH == 'hydrology') THEN
-      !    ! Ensure transpiration does not exceed Emax, if it does we
-      !    ! recalculate gs and An
-      !    DO kk=1, mf
-      !       canopy%gsc(i) = MAX(gswmin(i,kk), gswmin(i,kk) + &
-      !                              gs_coeff(i,kk) * anx(i,kk))
-      !    ENDDO
+       IF (cable_user%FWSOIL_SWITCH == 'hydrology') THEN
+          ! Ensure transpiration does not exceed Emax, if it does we
+          ! recalculate gs and An
+          DO kk=1, mf
+             canopy%gsc(kk) = MAX(1.e-3, gswmin(i,kk)*fwsoil(i) +     &
+                                 MAX(0.0, gs_coeff(i,kk) * anx(i,kk)))
+          ENDDO
       !    CALL calculate_emax(ssnow, canopy, dsx(:), csx(:,:),             &
       !                        SPREAD( cx1(:), 2, mf ),                     &
       !                        SPREAD( cx2(:), 2, mf ),                     &
@@ -2009,7 +2009,7 @@ CONTAINS
       !                        gs_coeff(:,:), rad%fvlai(:,:),               &
       !                        SPREAD( abs_deltlf, 2, mf ),                 &
       !                        anx(:,:), fwsoil(:), ktot)
-      ! ENDIF
+       ENDIF
 
        DO i=1,mp
 
@@ -2023,13 +2023,13 @@ CONTAINS
                         gbhu(i,kk) + gbhf(i,kk) )
                    csx(i,kk) = MAX( 1.0e-4_r_2, csx(i,kk) )
 
-                   IF (cable_user%FWSOIL_SWITCH .ne. 'hydrology') THEN
-                      canopy%gswx(i,kk) = canopy%gsc(i) * 1.57
+                   IF (cable_user%FWSOIL_SWITCH == 'hydrology') THEN
+                      canopy%gswx(i,kk) = canopy%gsc(kk) * C%RGSWC
                    ELSE
                       ! Ticket #56, xleuning replaced with gs_coeff here
-                      canopy%gswx(i,kk) = MAX( 1.e-3, gswmin(i,kk)*fwsoil(i) +     &
-                                              MAX( 0.0, C%RGSWC * gs_coeff(i,kk) *     &
-                                              anx(i,kk) ) )
+                      canopy%gswx(i,kk) = MAX(1.e-3, gswmin(i,kk)*fwsoil(i) + &
+                                              MAX(0.0, C%RGSWC *              &
+                                              gs_coeff(i,kk) * anx(i,kk)))
                    ENDIF
 
                    !Recalculate conductance for water:
@@ -2931,7 +2931,10 @@ CONTAINS
 
   ! ----------------------------------------------------------------------------
   FUNCTION calc_lwp(ssnow, ktot, transpiration) RESULT(lwp)
+     ! Calculate the leaf water potential (MPa)
+     !
      ! Martin De Kauwe, 10th Oct, 2017
+
      USE cable_common_module
      USE cable_def_types_mod
 
