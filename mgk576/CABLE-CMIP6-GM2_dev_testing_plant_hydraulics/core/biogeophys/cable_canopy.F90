@@ -1984,7 +1984,7 @@ CONTAINS
 
        ENDDO !i=1,mp
 
-       CALL photosynthesis( csx(:,:),                                           &
+       CALL photosynthesis( csx(:,:),                                          &
                            SPREAD( cx1(:), 2, mf ),                            &
                            SPREAD( cx2(:), 2, mf ),                            &
                            gswmin(:,:), rdx(:,:), vcmxt3(:,:),                 &
@@ -2001,14 +2001,15 @@ CONTAINS
              canopy%gsc(kk) = MAX(1.e-3, gswmin(i,kk)*fwsoil(i) +     &
                                  MAX(0.0, gs_coeff(i,kk) * anx(i,kk)))
           ENDDO
-      !    CALL calculate_emax(ssnow, canopy, dsx(:), csx(:,:),             &
-      !                        SPREAD( cx1(:), 2, mf ),                     &
-      !                        SPREAD( cx2(:), 2, mf ),                     &
-      !                        gswmin(:,:), rdx(:,:), vcmxt3(:,:),          &
-      !                        vcmxt4(:,:), vx3(:,:), vx4(:,:),             &
-      !                        gs_coeff(:,:), rad%fvlai(:,:),               &
-      !                        SPREAD( abs_deltlf, 2, mf ),                 &
-      !                        anx(:,:), fwsoil(:), ktot)
+
+          CALL calculate_emax(ssnow, canopy, dsx(:), csx(:,:),             &
+                              SPREAD( cx1(:), 2, mf ),                     &
+                              SPREAD( cx2(:), 2, mf ),                     &
+                              gswmin(:,:), rdx(:,:), vcmxt3(:,:),          &
+                              vcmxt4(:,:), vx3(:,:), vx4(:,:),             &
+                              gs_coeff(:,:), rad%fvlai(:,:),               &
+                              SPREAD( abs_deltlf, 2, mf ),                 &
+                              anx(:,:), fwsoil(:), ktot)
        ENDIF
 
        DO i=1,mp
@@ -2019,7 +2020,7 @@ CONTAINS
 
                 IF(rad%fvlai(i,kk)>C%LAI_THRESH) THEN
 
-                   csx(i,kk) = met%ca(i) - C%RGBWC*anx(i,kk) / (                &
+                   csx(i,kk) = met%ca(i) - C%RGBWC*anx(i,kk) / (               &
                         gbhu(i,kk) + gbhf(i,kk) )
                    csx(i,kk) = MAX( 1.0e-4_r_2, csx(i,kk) )
 
@@ -2033,7 +2034,7 @@ CONTAINS
                    ENDIF
 
                    !Recalculate conductance for water:
-                   gw(i,kk) = 1.0 / ( 1.0 / canopy%gswx(i,kk) +                 &
+                   gw(i,kk) = 1.0 / ( 1.0 / canopy%gswx(i,kk) +                &
                         1.0 / ( 1.075 * ( gbhu(i,kk) + gbhf(i,kk) ) ) )
 
 
@@ -2826,15 +2827,14 @@ CONTAINS
      USE cable_common_module
      USE cable_def_types_mod
 
-     !IMPLICIT NONE
+     IMPLICIT NONE
      TYPE (soil_snow_type), INTENT(INOUT) :: ssnow
      TYPE (canopy_type), INTENT(INOUT)    :: canopy
-
 
      REAL, INTENT(INOUT), DIMENSION(:) ::  dleaf ! leaf surface vpd
      REAL, INTENT(INOUT) ::  ktot
 
-     REAL, PARAMETER :: MM_TO_M = 0.001
+
      ! plant component of the leaf-specific hydraulic conductance
      ! (mmol m-2 s-1 MPa-1 )
      REAL, PARAMETER :: kp = 2.0
@@ -2843,16 +2843,16 @@ CONTAINS
      REAL, PARAMETER :: min_lwp = -2.0
      REAL, PARAMETER :: MOL_2_MMOL = 1000.0
      REAL, PARAMETER :: MMOL_2_MOL = 1E-03
+     REAL, PARAMETER :: MM_TO_M = 0.001
+
      ! Cuticular conductance (mol m-2 s-1) - obvs should be passed
      ! if we are not setting this then set to a tiny value
      ! (1e-09 for numerical reasons)
      REAL, PARAMETER :: gs_min = 1E-09
      REAL :: plant_k, gsc_leaf, e_demand, e_supply, gsv
 
-
      REAL :: press = 101325.0 ! Pascals, we should pass this from CABLE obvs
-     REAL :: GSVGSC = 1.57    ! Ratio of Gsw:Gsc
-
+     
      REAL :: inferred_stress = 0.0
 
      REAL(r_2), DIMENSION(mp,mf), INTENT(IN) :: csxz
@@ -2884,6 +2884,8 @@ CONTAINS
 
      INTEGER :: i,j
 
+     print *, C%RGSWC
+
      DO i=1, mf
         ! no cavitation when stem water storage not simulated
         plant_k = kp
@@ -2900,17 +2902,17 @@ CONTAINS
         e_supply = MAX(0.0, ktot * (ssnow%weighted_swp(1) - min_lwp))
 
         ! Leaf transpiration (mmol m-2 s-1), i.e. ignoring boundary layer effects!
-        e_demand = MOL_2_MMOL * (dleaf(i) / press) * canopy%gsc(i) * GSVGSC
+        e_demand = MOL_2_MMOL * (dleaf(i) / press) * canopy%gsc(i) * C%RGSWC
 
         IF (e_demand > e_supply) THEN
            ! Calculate gs (mol m-2 s-1) given supply (Emax)
            gsv = MMOL_2_MOL * e_supply / (dleaf(i) / press)
-           gsc_leaf = gsv / GSVGSC
+           gsc_leaf = gsv / C%RGSWC
 
            ! gs cannot be lower than minimum (cuticular conductance)
            IF (canopy%gsc(i) < gs_min) THEN
               canopy%gsc(i) = gs_min
-              gsv = canopy%gsc(i) * GSVGSC
+              gsv = canopy%gsc(i) * C%RGSWC
            ENDIF
 
            ! Need to calculate an effective beta to use in soil decomposition
