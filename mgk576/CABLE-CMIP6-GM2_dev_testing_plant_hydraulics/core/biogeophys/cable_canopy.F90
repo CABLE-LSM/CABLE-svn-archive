@@ -1684,6 +1684,9 @@ CONTAINS
 
     REAL, DIMENSION(mp,2) ::  gsw_term, lower_limit2  ! local temp var
 
+    REAL :: trans_mmol, conv
+
+
     INTEGER :: i, j, k, kk  ! iteration count
     REAL :: vpd, g1, ktot ! Ticket #56
 #define VanessasCanopy
@@ -2112,10 +2115,11 @@ CONTAINS
              ! way the loops fall above
 
              ! Transpiration kg m-2 s-1 -> mmol m-2 s-1
-             !trans_mmol = (canopy%fevc(i) / air%rlam) *1000.0*(1.0/18.02)*1000.0
-             !canopy%lwp(i) = calc_lwp(ssnow, ktot, trans_mmol);
-             !print *, ktot, canopy%lwp(i)
-             !stop
+             conv = 1000.0 * (1.0 / 18.02) * 1000.0
+             trans_mmol = (canopy%fevc(i) / air%rlam(i)) * conv
+             canopy%lwp(i) = calc_lwp(ssnow, ktot, trans_mmol)
+             print *, ktot, canopy%lwp(i)
+             stop
 
              ! Update canopy sensible heat flux:
              hcx(i) = (SUM(rad%rniso(i,:))-ecx(i)                               &
@@ -2920,7 +2924,7 @@ CONTAINS
            ! Re-solve An for the new gs
            CALL photosynthesis_C3_emax(canopy, veg, vlaiz, vcmxt3z, par, csxz, &
                                        rdxz, cx1z, anxz)
-           
+
         ELSE
            ! This needs to be initialised somewhere.
            inferred_stress = inferred_stress + 1.0
