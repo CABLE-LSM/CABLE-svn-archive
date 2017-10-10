@@ -1677,7 +1677,8 @@ CONTAINS
          gs_coeff,   & ! stom coeff, Ticket #56
          psycst,     & ! modified pych. constant
          frac42,     & ! 2D frac4
-         temp2
+         temp2,      &
+         par_to_pass
 
     REAL, DIMENSION(:,:), POINTER :: gswmin ! min stomatal conductance
 
@@ -1864,6 +1865,8 @@ CONTAINS
              rdx(i,1) = (veg%cfrd(i)*Vcmxt3(i,1) + veg%cfrd(i)*vcmxt4(i,1))
              rdx(i,2) = (veg%cfrd(i)*vcmxt3(i,2) + veg%cfrd(i)*vcmxt4(i,2))
 
+             par_to_pass(i,1) = rad%qcan(i,1,1) * jtomol
+             par_to_pass(i,2) = rad%qcan(i,2,1) * jtomol
 !Vanessa - the trunk does not contain xleauning as of Ticket#56 inclusion
 !as well as other inconsistencies here that need further investigation. In the
 !interests of getting this into the trunk ASAP just isolate this code for now
@@ -2002,14 +2005,14 @@ CONTAINS
                                  MAX(0.0, gs_coeff(i,kk) * anx(i,kk)))
           ENDDO
 
-          CALL calculate_emax(ssnow, canopy, dsx(:), csx(:,:),             &
+          CALL calculate_emax(veg, ssnow, canopy, dsx(:), csx(:,:),        &
                               SPREAD( cx1(:), 2, mf ),                     &
                               SPREAD( cx2(:), 2, mf ),                     &
                               gswmin(:,:), rdx(:,:), vcmxt3(:,:),          &
                               vcmxt4(:,:), vx3(:,:), vx4(:,:),             &
                               gs_coeff(:,:), rad%fvlai(:,:),               &
                               SPREAD( abs_deltlf, 2, mf ),                 &
-                              anx(:,:), fwsoil(:), ktot)
+                              anx(:,:), fwsoil(:), ktot, par_to_pass(:,:))
        ENDIF
 
        DO i=1,mp
@@ -2812,9 +2815,10 @@ CONTAINS
   !*********************************************************************************************************************
 
   ! ----------------------------------------------------------------------------
-  SUBROUTINE calculate_emax(ssnow, canopy, dleaf, csxz, cx1z, cx2z, gswminz,   &
-                            rdxz, vcmxt3z, vcmxt4z, vx3z, vx4z, gs_coeffz, &
-                            vlaiz, deltlfz, anxz, fwsoilz, ktot)
+  SUBROUTINE calculate_emax(veg, ssnow, canopy, dleaf, csxz, cx1z, cx2z,   &
+                            gswminz, rdxz, vcmxt3z, vcmxt4z, vx3z, vx4z, &
+                            gs_coeffz, vlaiz, deltlfz, anxz, fwsoilz, ktot, &
+                            par)
      ! Assumption that during the day transpiration cannot exceed a maximum
      ! value, Emax (e_supply). At this point we've reached a leaf water
      ! potential minimum. Once this point is reached transpiration, gs and A
@@ -2829,8 +2833,9 @@ CONTAINS
 
      IMPLICIT NONE
 
-     TYPE (soil_snow_type), INTENT(INOUT) :: ssnow
-     TYPE (canopy_type), INTENT(INOUT)    :: canopy
+     TYPE (veg_parameter_type), INTENT(INOUT)  :: veg
+     TYPE (soil_snow_type), INTENT(INOUT)      :: ssnow
+     TYPE (canopy_type), INTENT(INOUT)         :: canopy
 
      REAL, INTENT(INOUT), DIMENSION(:) ::  dleaf ! leaf surface vpd
      REAL, INTENT(INOUT) ::  ktot
@@ -2868,7 +2873,8 @@ CONTAINS
           vx3z,       & !
           gs_coeffz,  & ! Ticket #56, xleuningz repalced with gs_coeffz
           vlaiz,      & !
-          deltlfz       !
+          deltlfz,&
+          par
 
      REAL, DIMENSION(mp,mf), INTENT(INOUT) :: anxz
 
@@ -2916,9 +2922,9 @@ CONTAINS
            ! Need to calculate an effective beta to use in soil decomposition
            inferred_stress = inferred_stress + e_supply / e_demand
            ! Re-solve An for the new gs
-           !CALL photosynthesis_C3_emax()
-           print *, "Implement photosynthesis_emax"
-           STOP
+           CALL photosynthesis_C3_emax(veg, vlaiz, vcmxt3z, par)
+           print*, "Implement emax photo"
+           stop
         ELSE
            ! This needs to be initialised somewhere.
            inferred_stress = inferred_stress + 1.0
@@ -2930,58 +2936,47 @@ CONTAINS
   ! ----------------------------------------------------------------------------
 
   ! ----------------------------------------------------------------------------
-  FUNCTION calc_lwp(ssnow, ktot, transpiration) RESULT(lwp)
-     ! Calculate the leaf water potential (MPa)
+  SUBROUTINE photosynthesis_C3_emax(veg, vlaiz, vcmax, par)
+     ! Calculate photosynthesis resolving Ci and A for a given gs
+     ! (Jarvis style) to get the Emax solution.
+     ! This follows MAESPA code.
      !
-     ! Martin De Kauwe, 10th Oct, 2017
-
+     ! Martin De Kauwe, 9th Oct, 2017
      USE cable_common_module
      USE cable_def_types_mod
 
      IMPLICIT NONE
+     TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
 
-     TYPE (soil_snow_type), INTENT(INOUT) :: ssnow
+     INTEGER :: i,j
+     REAL :: A, B, C
 
-     REAL, INTENT(IN) ::  ktot, transpiration
-     REAL :: lwp
+     REAL, DIMENSION(mp,mf), INTENT(IN) :: vlaiz, vcmax, par
+     REAL, PARAMETER :: LAI_THRESH = 0.001
 
-     IF (ktot > 0.0) THEN
-        lwp = ssnow%weighted_swp(1) - (transpiration / ktot)
-     ELSE
-        lwp = ssnow%weighted_swp(1)
-     ENDIF
+     REAL, DIMENSION(mp,mf) :: jmax
 
-     ! Set lower limit to LWP
-     IF (lwp < -20.0) THEN
-        lwp = -20.0
-     ENDIF
+     DO i=1, mp
+        IF (sum(vlaiz(i,:)) .GT. LAI_THRESH) THEN
+           DO j=1, mf
 
-  END FUNCTION calc_lwp
+               ! where is the JV ratio set in the code? Use that instead
+               jmax(i,j) = vcmax(i,j) * 2.0
 
-  ! ----------------------------------------------------------------------------
-!  SUBROUTINE photosynthesis_C3_emax()
-!     ! Calculate photosynthesis resolving Ci and A for a given gs
-!     ! (Jarvis style) to get the Emax solution.
-!     ! This follows MAESPA code.
-!     !
-!     ! Martin De Kauwe, 9th Oct, 2017
-!
-!     INTEGER :: i,j
-!     REAL :: A, B, C
-!
-!     REAL, DIMENSION(mp,mf) :: jmax
-!
-!     DO i=1, mp
-!        IF (sum(vlaiz(i,:)) .GT. C%LAI_THRESH) THEN
-!           DO j=1, mf
+               !!! NEED TO CHECK THAT ALPHA AND THETA ARE THE SAME IN CABLE
+               !!! I THINK THESE ARE THE RIGHT CABLE PARAMS
+               A = veg%convex(i)
+               B = -(veg%alpha(i) * par(i,j) + jmax(i,j))
+               C = veg%alpha(i) * par(i,j) * jmax(i,j)
+
+               print*, par(i,j)
 !
 !              ! Unpack calculated properties from first photosynthesis solution
 !              Cs =
 !              km =
 !              gamma_star =
 !
-!              ! where is the JV ratio set in the code? Use that instead
-!              jmax(i,j) = vcmxt3z(i,j) * 2.0
+
 !
 !              A = veg%convex(i)
 !              B = -(veg%alpha(i) * par + jmax(i,j))
@@ -3020,11 +3015,41 @@ CONTAINS
 !              anrubpz(i,j) = MAX( 0.0_r_2, anrubpz(i,j))
 !
 !              anxz(i,j) = MIN(anrubiscoz(i,j), anrubpz(i,j))
-!           ENDDO
-!        ENDIF
-!     ENDDO
-!  END SUBROUTINE photosynthesis_C3_emax
+           ENDDO
+        ENDIF
+     ENDDO
+
+  END SUBROUTINE photosynthesis_C3_emax
   ! ---------------------------------------------------------------------------
 
+  ! ----------------------------------------------------------------------------
+  FUNCTION calc_lwp(ssnow, ktot, transpiration) RESULT(lwp)
+     ! Calculate the leaf water potential (MPa)
+     !
+     ! Martin De Kauwe, 10th Oct, 2017
+
+     USE cable_common_module
+     USE cable_def_types_mod
+
+     IMPLICIT NONE
+
+     TYPE (soil_snow_type), INTENT(INOUT) :: ssnow
+
+     REAL, INTENT(IN) ::  ktot, transpiration
+     REAL :: lwp
+
+     IF (ktot > 0.0) THEN
+        lwp = ssnow%weighted_swp(1) - (transpiration / ktot)
+     ELSE
+        lwp = ssnow%weighted_swp(1)
+     ENDIF
+
+     ! Set lower limit to LWP
+     IF (lwp < -20.0) THEN
+        lwp = -20.0
+     ENDIF
+
+  END FUNCTION calc_lwp
+  ! ----------------------------------------------------------------------------
 
 END MODULE cable_canopy_module
