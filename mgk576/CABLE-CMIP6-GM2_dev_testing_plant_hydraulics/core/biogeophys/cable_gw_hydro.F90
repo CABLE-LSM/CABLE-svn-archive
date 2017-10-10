@@ -1754,7 +1754,7 @@ END SUBROUTINE calc_soil_hydraulic_props
      REAL, PARAMETER :: M_HEAD_TO_MPa = 9.8 * KPA_2_MPa
      REAL, PARAMETER :: MOL_OF_WATER = 18.015
      REAL, PARAMETER :: MOL_2_MMOL = 1000.0
-
+     
      REAL, DIMENSION(mp) :: root_biomass
      REAL, DIMENSION(mp,ms) :: root_length, Ks, Lsoil, soil_root_resist, rs
      REAL, DIMENSION(mp,ms) :: swp, psi_sat, ksat, expon, Ksx

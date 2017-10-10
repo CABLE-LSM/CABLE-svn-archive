@@ -460,10 +460,12 @@ MODULE cable_def_types_mod
          fns_cor, & ! correction to net rad avail to soil (W/m2)
          ga_cor  ! correction to ground heat flux (W/m2)
 
+      REAL, DIMENSION(:), POINTER ::                                           &
+         gsc! stom cond for co2
+
       REAL, DIMENSION(:,:), POINTER ::                                         &
          evapfbl, &
          gswx,    & ! stom cond for water
-         gsc,     & ! stom cond for co2
          zetar, &   ! stability parameter (ref height)
           !! vh_js !!
          zetash      ! stability parameter (shear height)
@@ -1153,7 +1155,7 @@ SUBROUTINE alloc_canopy_type(var, mp)
    !ALLOCATE( var% fescor_upp(mp) )  !SSEB variable
    !ALLOCATE( var% fescor_low(mp) )  !SSEB variable
    ALLOCATE( var% gswx(mp,mf) )
-   ALLOCATE( var% gsc(mp,mf) )
+   ALLOCATE( var% gsc(mf) )
    ALLOCATE( var% oldcansto(mp) )
    ALLOCATE( var% zetar(mp,NITER) )
    ALLOCATE( var% zetash(mp,NITER) )

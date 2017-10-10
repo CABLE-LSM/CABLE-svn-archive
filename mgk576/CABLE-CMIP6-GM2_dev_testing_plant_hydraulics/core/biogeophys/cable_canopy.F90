@@ -1994,8 +1994,22 @@ CONTAINS
                            SPREAD( abs_deltlf, 2, mf ),                        &
                            anx(:,:), fwsoil(:) )
 
-       !!! MARTIN WE NEED TO CALL EMAX PHOTOSYNTHESIS HERE AS OTHERWISE IT
-       !!! IS WITHIN THE LEAF LOOP. There is a leaf loop within photosyntheis
+       IF (cable_user%FWSOIL_SWITCH == 'hydrology') THEN
+          ! Ensure transpiration does not exceed Emax, if it does we
+          ! recalculate gs and An
+          DO kk=1, mf
+             canopy%gsc(i) = MAX(gswmin(i,kk), gswmin(i,kk) + &
+                                    gs_coeff(i,kk) * anx(i,kk))
+          ENDDO
+          CALL calculate_emax(ssnow, canopy, dsx(:), csx(:,:),             &
+                              SPREAD( cx1(:), 2, mf ),                     &
+                              SPREAD( cx2(:), 2, mf ),                     &
+                              gswmin(:,:), rdx(:,:), vcmxt3(:,:),          &
+                              vcmxt4(:,:), vx3(:,:), vx4(:,:),             &
+                              gs_coeff(:,:), rad%fvlai(:,:),               &
+                              SPREAD( abs_deltlf, 2, mf ),                 &
+                              anx(:,:), fwsoil(:))
+       ENDIF
 
        DO i=1,mp
 
@@ -2009,20 +2023,13 @@ CONTAINS
                         gbhu(i,kk) + gbhf(i,kk) )
                    csx(i,kk) = MAX( 1.0e-4_r_2, csx(i,kk) )
 
-                   IF (cable_user%FWSOIL_SWITCH == 'hydrology') THEN
-                      ! Ensure transpiration does not exceed Emax, if it does we
-                      ! recalculate gs and An
-
-                      canopy%gsc(i,kk) = MAX(gswmin(i,kk), gswmin(i,kk) + &
-                                             gs_coeff(i,kk) * anx(i,kk))
-
-                      CALL calculate_emax(ssnow, canopy, dsx(i), canopy%gsc(i,kk))
-                      canopy%gswx(i,kk) = canopy%gsc(i,kk) * 1.57
+                   IF (cable_user%FWSOIL_SWITCH .ne. 'hydrology') THEN
+                      canopy%gswx(i,kk) = canopy%gsc(i) * 1.57
                    ELSE
                       ! Ticket #56, xleuning replaced with gs_coeff here
                       canopy%gswx(i,kk) = MAX( 1.e-3, gswmin(i,kk)*fwsoil(i) +     &
-                           MAX( 0.0, C%RGSWC * gs_coeff(i,kk) *     &
-                           anx(i,kk) ) )
+                                              MAX( 0.0, C%RGSWC * gs_coeff(i,kk) *     &
+                                              anx(i,kk) ) )
                    ENDIF
 
                    !Recalculate conductance for water:
@@ -2228,73 +2235,6 @@ CONTAINS
   END SUBROUTINE dryLeaf
   ! -----------------------------------------------------------------------------
 
-  ! ----------------------------------------------------------------------------
-  SUBROUTINE photosynthesis_C3_emax()
-      ! Calculate photosynthesis resolving Ci and A for a given gs
-      ! (Jarvis style) to get the Emax solution.
-      ! This follows MAESPA code.
-      !
-      ! Martin De Kauwe, 9th Oct, 2017
-
-      INTEGER :: i,j
-      REAL :: A, B, C
-
-      REAL, DIMENSION(mp,mf) :: jmax
-
-      DO i=1, mp
-         IF (sum(vlaiz(i,:)) .GT. C%LAI_THRESH) THEN
-            DO j=1, mf
-
-               ! Unpack calculated properties from first photosynthesis solution
-               Cs =
-               km =
-               gamma_star =
-
-               ! where is the JV ratio set in the code? Use that instead
-               jmax(i,j) = vcmxt3z(i,j) * 2.0
-
-               A = veg%convex(i)
-               B = -(veg%alpha(i) * par + jmax(i,j))
-               C = veg%alpha(i) * par * jmax(i,j)
-               discriminant(i,j) = B**2 - 4.0 * A * C
-               J(i,j) = (-B + &
-                         SQRT(MAX(0.0_r_2 , discriminant(i,j)))) / &
-                         (2.0 * A)
-
-               ! positive root
-               J(i,j) = MAX( 0.0_r_2, J(i,j))
-               Vj = J / 4.0
-
-               ! Solution when Rubisco rate is limiting */
-               A = 1.0 / gsc(i,j)
-               B = (rdxz(i,j) - vcmxt3z(i,j)) / gsc(i,j) - Cs - km
-               C = vcmxt3z(i,j) * (Cs - gamma_star) - rdxz(i,j) * (Cs + km)
-
-               discriminant(i,j) = B**2 - 4.0 * A * C
-               anrubiscoz(i,j) = (-B + &
-                                  SQRT(MAX( 0.0_r_2 , discriminant(i,j)))) / &
-                                  (2.0 * A)
-               ! positive root
-               anrubiscoz(i,j) = MAX( 0.0_r_2, anrubiscoz(i,j))
-
-               ! Solution when electron transport rate is limiting */
-               A = 1.0 / gsc(i,j)
-               B = (rdxz(i,j) - Vj) / gsc(i,j) - Cs - 2.0 * gamma_star
-               C = Vj * (Cs - gamma_star) - rdxz(i,j) * (Cs + 2.0 * gamma_star)
-
-               discriminant(i,j) = B**2 - 4.0 * A * C
-               anrubpz(i,j) = (-B + &
-                               SQRT(MAX( 0.0_r_2 , discriminant(i,j)))) / &
-                               (2.0 * A)
-               ! positive root
-               anrubpz(i,j) = MAX( 0.0_r_2, anrubpz(i,j))
-
-               anxz(i,j) = MIN(anrubiscoz(i,j), anrubpz(i,j))
-            ENDDO
-         ENDIF
-      ENDDO
-   END SUBROUTINE photosynthesis_C3_emax
-   ! ---------------------------------------------------------------------------
 
 
    ! Ticket #56, xleuningz repalced with gs_coeffz
@@ -2860,85 +2800,191 @@ CONTAINS
   END SUBROUTINE getrex_1d
   !*********************************************************************************************************************
 
-  !*****************************************************************************
-  SUBROUTINE calculate_emax(ssnow, canopy, vpd, gsc)
-    ! Assumption that during the day transpiration cannot exceed a maximum
-    ! value, Emax (e_supply). At this point we've reached a leaf water
-    ! potential minimum. Once this point is reached transpiration, gs and A
-    ! are reclulated
-    !
-    ! Reference:
-    !   * Duursma et al. 2008, Tree Physiology 28, 265–276
-    !
-    ! Martin De Kauwe, 6th Oct, 2017
+  ! ----------------------------------------------------------------------------
+  SUBROUTINE calculate_emax(ssnow, canopy, dleaf, csxz, cx1z, cx2z, gswminz,   &
+                            rdxz, vcmxt3z, vcmxt4z, vx3z, vx4z, gs_coeffz, &
+                            vlaiz, deltlfz, anxz, fwsoilz)
+     ! Assumption that during the day transpiration cannot exceed a maximum
+     ! value, Emax (e_supply). At this point we've reached a leaf water
+     ! potential minimum. Once this point is reached transpiration, gs and A
+     ! are reclulated
+     !
+     ! Reference:
+     !   * Duursma et al. 2008, Tree Physiology 28, 265–276
+     !
+     ! Martin De Kauwe, 6th Oct, 2017
+     USE cable_common_module
+     USE cable_def_types_mod
 
-    USE cable_def_types_mod
-    USE cable_common_module
+     !IMPLICIT NONE
+     TYPE (soil_snow_type), INTENT(INOUT) :: ssnow
+     TYPE (canopy_type), INTENT(INOUT)    :: canopy
 
-    IMPLICIT NONE
 
-    TYPE (soil_snow_type), INTENT(INOUT) :: ssnow
-    TYPE (canopy_type), INTENT(INOUT)    :: canopy
+     REAL, INTENT(INOUT), DIMENSION(:) ::  dleaf ! leaf surface vpd
 
-    REAL, PARAMETER :: MM_TO_M = 0.001
-    ! plant component of the leaf-specific hydraulic conductance
-    ! (mmol m-2 s-1 MPa-1 )
-    REAL, PARAMETER :: kp = 2.0
+     REAL, PARAMETER :: MM_TO_M = 0.001
+     ! plant component of the leaf-specific hydraulic conductance
+     ! (mmol m-2 s-1 MPa-1 )
+     REAL, PARAMETER :: kp = 2.0
 
-    ! minimum leaf water potential (MPa)
-    REAL, PARAMETER :: min_lwp = -2.0
-    REAL, PARAMETER :: MOL_2_MMOL = 1000.0
-    REAL, PARAMETER :: MMOL_2_MOL = 1E-03
-    ! Cuticular conductance (mol m-2 s-1) - obvs should be passed
-    ! if we are not setting this then set to a tiny value
-    ! (1e-09 for numerical reasons)
-    REAL, PARAMETER :: gs_min = 1E-09
-    REAL :: plant_k, ktot, gsc_leaf, e_demand, e_supply, gsv
-    REAL, INTENT(IN) :: vpd
-    REAL, INTENT(INOUT) :: gsc
-    REAL :: press = 101325.0 ! Pascals, we should pass this from CABLE obvs
-    REAL :: GSVGSC = 1.57    ! Ratio of Gsw:Gsc
-    ! no cavitation when stem water storage not simulated
-    plant_k = kp
+     ! minimum leaf water potential (MPa)
+     REAL, PARAMETER :: min_lwp = -2.0
+     REAL, PARAMETER :: MOL_2_MMOL = 1000.0
+     REAL, PARAMETER :: MMOL_2_MOL = 1E-03
+     ! Cuticular conductance (mol m-2 s-1) - obvs should be passed
+     ! if we are not setting this then set to a tiny value
+     ! (1e-09 for numerical reasons)
+     REAL, PARAMETER :: gs_min = 1E-09
+     REAL :: plant_k, ktot, gsc_leaf, e_demand, e_supply, gsv
 
-    ! Hydraulic conductance of the entire soil-to-leaf pathway
-    ! (mmol m–2 s–1 MPa–1)
-    ktot = 1.0 / (ssnow%total_soil_resist(1) + 1.0 / plant_k)
 
-    ! Maximum transpiration rate (mmol m-2 s-1)
-    ! Following Darcy's law which relates leaf transpiration to hydraulic
-    ! conductance of the soil-to-leaf pathway and leaf & soil water potentials.
-    ! Transpiration is limited in the perfectly isohydric case above the
-    ! critical threshold for embolism given by min_lwp.
-    e_supply = MAX(0.0, ktot * (ssnow%weighted_swp(1) - min_lwp))
+     REAL :: press = 101325.0 ! Pascals, we should pass this from CABLE obvs
+     REAL :: GSVGSC = 1.57    ! Ratio of Gsw:Gsc
 
-    ! Leaf transpiration (mmol m-2 s-1), i.e. ignoring boundary layer effects!
-    e_demand = MOL_2_MMOL * (vpd / press) * gsc * GSVGSC
+     REAL :: inferred_stress = 0.0
 
-    IF (e_demand > e_supply) THEN
-      ! Calculate gs (mol m-2 s-1) given supply (Emax)
-      gsv = MMOL_2_MOL * e_supply / (vpd / press)
-      gsc_leaf = gsv / GSVGSC
+     REAL(r_2), DIMENSION(mp,mf), INTENT(IN) :: csxz
 
-      ! gs cannot be lower than minimum (cuticular conductance)
-      IF (gsc < gs_min) THEN
-        gsc = gs_min
-        gsv = gsc * GSVGSC
-      ENDIF
+     REAL, DIMENSION(mp,mf), INTENT(IN) ::                                       &
+          cx1z,       & !
+          cx2z,       & !
+          gswminz,    & !
+          rdxz,       & !
+          vcmxt3z,    & !
+          vcmxt4z,    & !
+          vx4z,       & !
+          vx3z,       & !
+          gs_coeffz,  & ! Ticket #56, xleuningz repalced with gs_coeffz
+          vlaiz,      & !
+          deltlfz       !
 
-      ! Need to calculate an effective beta to use in soil decomposition
-      canopy%fwsoil = e_supply / e_demand
+     REAL, DIMENSION(mp,mf), INTENT(INOUT) :: anxz
 
-      ! Re-solve An for the new gs
-      !CALL photosynthesis_C3_emax()
-      print *, "Implement photosynthesis_emax"
-      STOP
-    ELSE
-      ! This needs to be initialised somewhere.
-      canopy%fwsoil = 1.0
-    ENDIF
+     ! local variables
+     REAL(r_2), DIMENSION(mp,mf) ::                                              &
+          coef0z,coef1z,coef2z, ciz,delcxz,                                        &
+          anrubiscoz,anrubpz,ansinkz
+
+     REAL, DIMENSION(mp) :: fwsoilz
+
+     REAL, PARAMETER  :: effc4 = 4000.0  ! Vc=effc4*Ci*Vcmax (see
+     ! Bonan,LSM version 1.0, p106)
+
+     INTEGER :: i,j
+
+     DO i=1, mf
+        ! no cavitation when stem water storage not simulated
+        plant_k = kp
+
+        ! Hydraulic conductance of the entire soil-to-leaf pathway
+        ! (mmol m–2 s–1 MPa–1)
+        ktot = 1.0 / (ssnow%total_soil_resist(1) + 1.0 / plant_k)
+
+        ! Maximum transpiration rate (mmol m-2 s-1)
+        ! Following Darcy's law which relates leaf transpiration to hydraulic
+        ! conductance of the soil-to-leaf pathway and leaf & soil water potentials.
+        ! Transpiration is limited in the perfectly isohydric case above the
+        ! critical threshold for embolism given by min_lwp.
+        e_supply = MAX(0.0, ktot * (ssnow%weighted_swp(1) - min_lwp))
+
+        ! Leaf transpiration (mmol m-2 s-1), i.e. ignoring boundary layer effects!
+        e_demand = MOL_2_MMOL * (dleaf(i) / press) * canopy%gsc(i) * GSVGSC
+
+        IF (e_demand > e_supply) THEN
+           ! Calculate gs (mol m-2 s-1) given supply (Emax)
+           gsv = MMOL_2_MOL * e_supply / (dleaf(i) / press)
+           gsc_leaf = gsv / GSVGSC
+
+           ! gs cannot be lower than minimum (cuticular conductance)
+           IF (canopy%gsc(i) < gs_min) THEN
+              canopy%gsc(i) = gs_min
+              gsv = canopy%gsc(i) * GSVGSC
+           ENDIF
+
+           ! Need to calculate an effective beta to use in soil decomposition
+           inferred_stress = inferred_stress + e_supply / e_demand
+           ! Re-solve An for the new gs
+           !CALL photosynthesis_C3_emax()
+           print *, "Implement photosynthesis_emax"
+           STOP
+        ELSE
+           ! This needs to be initialised somewhere.
+           inferred_stress = inferred_stress + 1.0
+        ENDIF
+     ENDDO
+     canopy%fwsoil = inferred_stress / 2.0
 
   END SUBROUTINE calculate_emax
+  ! ----------------------------------------------------------------------------
+
+  ! ----------------------------------------------------------------------------
+!  SUBROUTINE photosynthesis_C3_emax()
+!     ! Calculate photosynthesis resolving Ci and A for a given gs
+!     ! (Jarvis style) to get the Emax solution.
+!     ! This follows MAESPA code.
+!     !
+!     ! Martin De Kauwe, 9th Oct, 2017
+!
+!     INTEGER :: i,j
+!     REAL :: A, B, C
+!
+!     REAL, DIMENSION(mp,mf) :: jmax
+!
+!     DO i=1, mp
+!        IF (sum(vlaiz(i,:)) .GT. C%LAI_THRESH) THEN
+!           DO j=1, mf
+!
+!              ! Unpack calculated properties from first photosynthesis solution
+!              Cs =
+!              km =
+!              gamma_star =
+!
+!              ! where is the JV ratio set in the code? Use that instead
+!              jmax(i,j) = vcmxt3z(i,j) * 2.0
+!
+!              A = veg%convex(i)
+!              B = -(veg%alpha(i) * par + jmax(i,j))
+!              C = veg%alpha(i) * par * jmax(i,j)
+!              discriminant(i,j) = B**2 - 4.0 * A * C
+!              J(i,j) = (-B + &
+!                        SQRT(MAX(0.0_r_2 , discriminant(i,j)))) / &
+!                        (2.0 * A)
+!
+!              ! positive root
+!              J(i,j) = MAX( 0.0_r_2, J(i,j))
+!              Vj = J / 4.0
+!
+!              ! Solution when Rubisco rate is limiting */
+!              A = 1.0 / gsc(i,j)
+!              B = (rdxz(i,j) - vcmxt3z(i,j)) / gsc(i,j) - Cs - km
+!              C = vcmxt3z(i,j) * (Cs - gamma_star) - rdxz(i,j) * (Cs + km)
+!
+!              discriminant(i,j) = B**2 - 4.0 * A * C
+!              anrubiscoz(i,j) = (-B + &
+!                                 SQRT(MAX( 0.0_r_2 , discriminant(i,j)))) / &
+!                                 (2.0 * A)
+!              ! positive root
+!              anrubiscoz(i,j) = MAX( 0.0_r_2, anrubiscoz(i,j))
+!
+!              ! Solution when electron transport rate is limiting */
+!              A = 1.0 / gsc(i,j)
+!              B = (rdxz(i,j) - Vj) / gsc(i,j) - Cs - 2.0 * gamma_star
+!              C = Vj * (Cs - gamma_star) - rdxz(i,j) * (Cs + 2.0 * gamma_star)
+!
+!              discriminant(i,j) = B**2 - 4.0 * A * C
+!              anrubpz(i,j) = (-B + &
+!                              SQRT(MAX( 0.0_r_2 , discriminant(i,j)))) / &
+!                              (2.0 * A)
+!              ! positive root
+!              anrubpz(i,j) = MAX( 0.0_r_2, anrubpz(i,j))
+!
+!              anxz(i,j) = MIN(anrubiscoz(i,j), anrubpz(i,j))
+!           ENDDO
+!        ENDIF
+!     ENDDO
+!  END SUBROUTINE photosynthesis_C3_emax
+  ! ---------------------------------------------------------------------------
 
 
 END MODULE cable_canopy_module
