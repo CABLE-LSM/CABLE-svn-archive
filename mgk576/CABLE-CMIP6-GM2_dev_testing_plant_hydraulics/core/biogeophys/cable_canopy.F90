@@ -1684,7 +1684,7 @@ CONTAINS
     REAL, DIMENSION(mp,2) ::  gsw_term, lower_limit2  ! local temp var
 
     INTEGER :: i, j, k, kk  ! iteration count
-    REAL :: vpd, g1 ! Ticket #56
+    REAL :: vpd, g1, ktot ! Ticket #56
 #define VanessasCanopy
 #ifdef VanessasCanopy
     REAL, DIMENSION(mp,mf)  ::                                                  &
@@ -1994,22 +1994,22 @@ CONTAINS
                            SPREAD( abs_deltlf, 2, mf ),                        &
                            anx(:,:), fwsoil(:) )
 
-       IF (cable_user%FWSOIL_SWITCH == 'hydrology') THEN
-          ! Ensure transpiration does not exceed Emax, if it does we
-          ! recalculate gs and An
-          DO kk=1, mf
-             canopy%gsc(i) = MAX(gswmin(i,kk), gswmin(i,kk) + &
-                                    gs_coeff(i,kk) * anx(i,kk))
-          ENDDO
-          CALL calculate_emax(ssnow, canopy, dsx(:), csx(:,:),             &
-                              SPREAD( cx1(:), 2, mf ),                     &
-                              SPREAD( cx2(:), 2, mf ),                     &
-                              gswmin(:,:), rdx(:,:), vcmxt3(:,:),          &
-                              vcmxt4(:,:), vx3(:,:), vx4(:,:),             &
-                              gs_coeff(:,:), rad%fvlai(:,:),               &
-                              SPREAD( abs_deltlf, 2, mf ),                 &
-                              anx(:,:), fwsoil(:))
-       ENDIF
+       !IF (cable_user%FWSOIL_SWITCH == 'hydrology') THEN
+      !    ! Ensure transpiration does not exceed Emax, if it does we
+      !    ! recalculate gs and An
+      !    DO kk=1, mf
+      !       canopy%gsc(i) = MAX(gswmin(i,kk), gswmin(i,kk) + &
+      !                              gs_coeff(i,kk) * anx(i,kk))
+      !    ENDDO
+      !    CALL calculate_emax(ssnow, canopy, dsx(:), csx(:,:),             &
+      !                        SPREAD( cx1(:), 2, mf ),                     &
+      !                        SPREAD( cx2(:), 2, mf ),                     &
+      !                        gswmin(:,:), rdx(:,:), vcmxt3(:,:),          &
+      !                        vcmxt4(:,:), vx3(:,:), vx4(:,:),             &
+      !                        gs_coeff(:,:), rad%fvlai(:,:),               &
+      !                        SPREAD( abs_deltlf, 2, mf ),                 &
+      !                        anx(:,:), fwsoil(:), ktot)
+      ! ENDIF
 
        DO i=1,mp
 
@@ -2103,10 +2103,20 @@ CONTAINS
                 ENDIF
 
              ENDIF
+
+             ! This will be over the combined direct & diffuse leaves due to the
+             ! way the loops fall above
+
+             ! Transpiration kg m-2 s-1 -> mmol m-2 s-1
+             !trans_mmol = (canopy%fevc(i) / air%rlam) *1000.0*(1.0/18.02)*1000.0
+             !canopy%lwp(i) = calc_lwp(ssnow, ktot, trans_mmol);
+             !print *, ktot, canopy%lwp(i)
+             !stop
+
              ! Update canopy sensible heat flux:
              hcx(i) = (SUM(rad%rniso(i,:))-ecx(i)                               &
-                  - C%capp*C%rmair*(met%tvair(i)-met%tk(i))                       &
-                  * SUM(rad%gradis(i,:)))                                         &
+                  - C%capp*C%rmair*(met%tvair(i)-met%tk(i))                     &
+                  * SUM(rad%gradis(i,:)))                                       &
                   * SUM(gh(i,:))/ SUM(ghr(i,:))
 
              ! Update leaf temperature:
@@ -2803,7 +2813,7 @@ CONTAINS
   ! ----------------------------------------------------------------------------
   SUBROUTINE calculate_emax(ssnow, canopy, dleaf, csxz, cx1z, cx2z, gswminz,   &
                             rdxz, vcmxt3z, vcmxt4z, vx3z, vx4z, gs_coeffz, &
-                            vlaiz, deltlfz, anxz, fwsoilz)
+                            vlaiz, deltlfz, anxz, fwsoilz, ktot)
      ! Assumption that during the day transpiration cannot exceed a maximum
      ! value, Emax (e_supply). At this point we've reached a leaf water
      ! potential minimum. Once this point is reached transpiration, gs and A
@@ -2822,6 +2832,7 @@ CONTAINS
 
 
      REAL, INTENT(INOUT), DIMENSION(:) ::  dleaf ! leaf surface vpd
+     REAL, INTENT(INOUT) ::  ktot
 
      REAL, PARAMETER :: MM_TO_M = 0.001
      ! plant component of the leaf-specific hydraulic conductance
@@ -2836,7 +2847,7 @@ CONTAINS
      ! if we are not setting this then set to a tiny value
      ! (1e-09 for numerical reasons)
      REAL, PARAMETER :: gs_min = 1E-09
-     REAL :: plant_k, ktot, gsc_leaf, e_demand, e_supply, gsv
+     REAL :: plant_k, gsc_leaf, e_demand, e_supply, gsv
 
 
      REAL :: press = 101325.0 ! Pascals, we should pass this from CABLE obvs
@@ -2917,6 +2928,32 @@ CONTAINS
 
   END SUBROUTINE calculate_emax
   ! ----------------------------------------------------------------------------
+
+  ! ----------------------------------------------------------------------------
+  FUNCTION calc_lwp(ssnow, ktot, transpiration) RESULT(lwp)
+     ! Martin De Kauwe, 10th Oct, 2017
+     USE cable_common_module
+     USE cable_def_types_mod
+
+     IMPLICIT NONE
+
+     TYPE (soil_snow_type), INTENT(INOUT) :: ssnow
+
+     REAL, INTENT(IN) ::  ktot, transpiration
+     REAL :: lwp
+
+     IF (ktot > 0.0) THEN
+        lwp = ssnow%weighted_swp(1) - (transpiration / ktot)
+     ELSE
+        lwp = ssnow%weighted_swp(1)
+     ENDIF
+
+     ! Set lower limit to LWP
+     IF (lwp < -20.0) THEN
+        lwp = -20.0
+     ENDIF
+
+  END FUNCTION calc_lwp
 
   ! ----------------------------------------------------------------------------
 !  SUBROUTINE photosynthesis_C3_emax()

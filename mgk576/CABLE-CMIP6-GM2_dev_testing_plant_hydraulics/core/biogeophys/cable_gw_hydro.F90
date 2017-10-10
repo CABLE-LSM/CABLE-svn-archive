@@ -602,7 +602,7 @@ END SUBROUTINE remove_transGW
   ! vertical mocement of soil water.  Bottom boundary condition is determined
   ! using a single layer groundwater module
   !
-  SUBROUTINE smoistgw (dels,ktau,ssnow,soil,veg,canopy,bgc)
+  SUBROUTINE smoistgw (dels,ktau,ssnow,soil,veg,canopy,bgc,met)
   USE cable_common_module
 
   IMPLICIT NONE
@@ -614,6 +614,7 @@ END SUBROUTINE remove_transGW
     TYPE (veg_parameter_type), INTENT(INOUT)  :: veg
     TYPE(canopy_type), INTENT(INOUT)          :: canopy ! vegetation variables
     TYPE(bgc_pool_type),  INTENT(IN)          :: bgc
+    TYPE(met_type) , INTENT(INOUT)            :: met ! all met forcing
 
     !Local variables.
     REAL(r_2), DIMENSION(mp,ms+1)       :: at     ! coef "A" in finite diff eq
@@ -681,9 +682,11 @@ END SUBROUTINE remove_transGW
     ! mgk576, 9/10/17
     CALL calc_soil_root_resistance(ssnow, soil, veg, bgc)
 
-    ! mgk576, 9/10/17
+    ! mgk576, 9/10/17, store pre-dawn value
     CALL calc_weighted_swp(ssnow, soil)
-    print *, ssnow%weighted_swp
+    !IF (met%hod < 6) THEN
+     !    swp_pd = ssnow%weighted_swp
+    !ENDIF
 
     CALL subsurface_drainage(ssnow,soil,veg,dzmm)
 
@@ -1030,7 +1033,7 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg, bgc)
 
    ssnow%sinfil = ssnow%fwtop - canopy%segg  !canopy%fes/C%HL               !remove soil evap from throughfall
 
-   CALL smoistgw (dels,ktau,ssnow,soil,veg,canopy,bgc)               !vertical soil moisture movement.
+   CALL smoistgw (dels,ktau,ssnow,soil,veg,canopy,bgc,met)               !vertical soil moisture movement.
 
    ! correction required for energy balance in online simulations
    IF( cable_runtime%um) THEN

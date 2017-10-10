@@ -459,9 +459,6 @@ MODULE cable_def_types_mod
          fns_cor, & ! correction to net rad avail to soil (W/m2)
          ga_cor  ! correction to ground heat flux (W/m2)
 
-      REAL, DIMENSION(:), POINTER ::                                           &
-         gsc! stom cond for co2
-
       REAL, DIMENSION(:,:), POINTER ::                                         &
          evapfbl, &
          gswx,    & ! stom cond for water
@@ -497,6 +494,11 @@ MODULE cable_def_types_mod
 
 !! vh_js !! !litter thermal conductivity (Wm-2K-1) and vapour diffusivity (m2s-1)
       REAL(r_2), DIMENSION(:), POINTER :: kthLitt, DvLitt
+
+      ! mgk576, 10/10/2017: plant hydraulics
+      REAL, DIMENSION(:), POINTER ::                                           &
+         gsc,&! stom cond for co2
+         lwp
 
 
    END TYPE canopy_type
@@ -1154,7 +1156,7 @@ SUBROUTINE alloc_canopy_type(var, mp)
    !ALLOCATE( var% fescor_upp(mp) )  !SSEB variable
    !ALLOCATE( var% fescor_low(mp) )  !SSEB variable
    ALLOCATE( var% gswx(mp,mf) )
-   ALLOCATE( var% gsc(mf) )
+
    ALLOCATE( var% oldcansto(mp) )
    ALLOCATE( var% zetar(mp,NITER) )
    ALLOCATE( var% zetash(mp,NITER) )
@@ -1174,6 +1176,10 @@ SUBROUTINE alloc_canopy_type(var, mp)
 !! vh_js !! liiter resistances to heat and vapour transfer
    ALLOCATE (var % kthLitt(mp))
    ALLOCATE (var % DvLitt(mp))
+
+   ! mgk576, 10/10/2017: plant hydraulics
+   ALLOCATE( var%gsc(mf) )
+   ALLOCATE( var%lwp(mf) )
 
 END SUBROUTINE alloc_canopy_type
 
@@ -1768,7 +1774,6 @@ SUBROUTINE dealloc_canopy_type(var)
    !DEALLOCATE( var% fescor_upp ) !SSEB variable
    !DEALLOCATE( var% fescor_low ) !SSEB variable
    DEALLOCATE( var% gswx )
-   DEALLOCATE( var% gsc )
    DEALLOCATE( var% oldcansto )
    DEALLOCATE( var% zetar )
    DEALLOCATE( var% zetash )
@@ -1779,6 +1784,10 @@ SUBROUTINE dealloc_canopy_type(var)
 !! vh_js !! liiter resistances to heat and vapour transfer
    DEALLOCATE (var % kthLitt)
    DEALLOCATE (var % DvLitt)
+
+   ! mgk576, 10/10/2017: plant hydraulics
+   DEALLOCATE( var%gsc )
+   DEALLOCATE( var%lwp )
 
 END SUBROUTINE dealloc_canopy_type
 
