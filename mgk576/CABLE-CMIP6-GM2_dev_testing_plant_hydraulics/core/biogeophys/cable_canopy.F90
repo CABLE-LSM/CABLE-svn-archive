@@ -2920,8 +2920,7 @@ CONTAINS
            ! Re-solve An for the new gs
            CALL photosynthesis_C3_emax(canopy, veg, vlaiz, vcmxt3z, par, csxz, &
                                        rdxz, cx1z, anxz)
-           print*, "Implement emax photo"
-           stop
+           
         ELSE
            ! This needs to be initialised somewhere.
            inferred_stress = inferred_stress + 1.0
@@ -2975,8 +2974,7 @@ CONTAINS
                C = veg%alpha(i) * par(i,j) * jmax(i,j)
                JJ(i,j) = quad(A, B, C)
                Vj = JJ / 4.0
-               print*, A, B, C, JJ(i,j)
-               stop
+
                ! Solution when Rubisco rate is limiting */
                A = 1.0 / canopy%gsc(i)
                B = (rd(i,j) - vcmax(i,j)) / canopy%gsc(i) - Cs(i,j) - km(i)
@@ -2994,7 +2992,7 @@ CONTAINS
 
                ! positive root
                an_rubp(i,j) = MAX( 0.0_r_2, an_rubp(i,j))
-               
+
                an(i,j) = MIN(an_rubisco(i,j), an_rubp(i,j))
            ENDDO
         ENDIF
