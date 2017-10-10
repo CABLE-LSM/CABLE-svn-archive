@@ -2828,12 +2828,12 @@ CONTAINS
      USE cable_def_types_mod
 
      IMPLICIT NONE
+
      TYPE (soil_snow_type), INTENT(INOUT) :: ssnow
      TYPE (canopy_type), INTENT(INOUT)    :: canopy
 
      REAL, INTENT(INOUT), DIMENSION(:) ::  dleaf ! leaf surface vpd
      REAL, INTENT(INOUT) ::  ktot
-
 
      ! plant component of the leaf-specific hydraulic conductance
      ! (mmol m-2 s-1 MPa-1 )
@@ -2852,12 +2852,12 @@ CONTAINS
      REAL :: plant_k, gsc_leaf, e_demand, e_supply, gsv
 
      REAL :: press = 101325.0 ! Pascals, we should pass this from CABLE obvs
-     
+
      REAL :: inferred_stress = 0.0
 
      REAL(r_2), DIMENSION(mp,mf), INTENT(IN) :: csxz
 
-     REAL, DIMENSION(mp,mf), INTENT(IN) ::                                       &
+     REAL, DIMENSION(mp,mf), INTENT(IN) ::                                     &
           cx1z,       & !
           cx2z,       & !
           gswminz,    & !
@@ -2873,8 +2873,8 @@ CONTAINS
      REAL, DIMENSION(mp,mf), INTENT(INOUT) :: anxz
 
      ! local variables
-     REAL(r_2), DIMENSION(mp,mf) ::                                              &
-          coef0z,coef1z,coef2z, ciz,delcxz,                                        &
+     REAL(r_2), DIMENSION(mp,mf) ::                                            &
+          coef0z,coef1z,coef2z, ciz,delcxz,                                    &
           anrubiscoz,anrubpz,ansinkz
 
      REAL, DIMENSION(mp) :: fwsoilz
@@ -2883,8 +2883,6 @@ CONTAINS
      ! Bonan,LSM version 1.0, p106)
 
      INTEGER :: i,j
-
-     print *, C%RGSWC
 
      DO i=1, mf
         ! no cavitation when stem water storage not simulated
@@ -2907,7 +2905,7 @@ CONTAINS
         IF (e_demand > e_supply) THEN
            ! Calculate gs (mol m-2 s-1) given supply (Emax)
            gsv = MMOL_2_MOL * e_supply / (dleaf(i) / press)
-           gsc_leaf = gsv / C%RGSWC
+           canopy%gsc(i) = gsv / C%RGSWC
 
            ! gs cannot be lower than minimum (cuticular conductance)
            IF (canopy%gsc(i) < gs_min) THEN
