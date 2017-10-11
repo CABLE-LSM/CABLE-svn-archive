@@ -2008,10 +2008,10 @@ CONTAINS
                                  MAX(0.0, gs_coeff(i,kk) * anx(i,kk)))
           ENDDO
 
-          CALL calculate_emax(veg, ssnow, canopy, dsx(:), csx(:,:),           &
-                              SPREAD(cx1(:), 2, mf), rdx(:,:), vcmxt3(:,:),   &
-                              rad%fvlai(:,:), anx(:,:), fwsoil(:), ktot,      &
-                              par_to_pass(:,:), co2cp3)
+          CALL calculate_emax(veg, ssnow, canopy, dsx(:), par_to_pass(:,:),   &
+                              csx(:,:), SPREAD(cx1(:), 2, mf), rdx(:,:),      &
+                              vcmxt3(:,:), rad%fvlai(:,:), anx(:,:), ktot,    &
+                              co2cp3)
 
        ENDIF
 
@@ -2814,8 +2814,8 @@ CONTAINS
   !*********************************************************************************************************************
 
   ! ----------------------------------------------------------------------------
-  SUBROUTINE calculate_emax(veg, ssnow, canopy, dleaf, Cs, km, rd, vcmax, &
-                            vlaiz, an, fwsoilz, ktot, par, gamma_star)
+  SUBROUTINE calculate_emax(veg, ssnow, canopy, dleaf, par, Cs, km, rd, vcmax, &
+                            vlaiz, an, ktot, gamma_star)
      !
      ! Assumption that during the day transpiration cannot exceed a maximum
      ! value, Emax (e_supply). At this point we've reached a leaf water
@@ -2839,53 +2839,43 @@ CONTAINS
      TYPE (soil_snow_type), INTENT(INOUT)      :: ssnow
      TYPE (canopy_type), INTENT(INOUT)         :: canopy
 
-     REAL, INTENT(INOUT), DIMENSION(:) ::  dleaf ! leaf surface vpd
+     ! met stuff
+     REAL(R_2),INTENT(IN), DIMENSION(:,:) :: Cs
+     REAL, INTENT(IN), DIMENSION(:) ::  dleaf ! leaf surface vpd
+     REAL, DIMENSION(mp,mf), INTENT(IN) :: par
+     REAL :: press = 101325.0 ! Pascals, where is this in CABLE?????
+
      REAL, INTENT(INOUT) ::  ktot
-     REAL, INTENT(IN) :: gamma_star
+
 
      ! plant component of the leaf-specific hydraulic conductance
      ! (mmol m-2 s-1 MPa-1 )
-     REAL, PARAMETER :: kp = 2.0
+     REAL, PARAMETER :: plant_k = 2.0
 
      ! minimum leaf water potential (MPa)
      REAL, PARAMETER :: min_lwp = -2.0
-     REAL, PARAMETER :: MOL_2_MMOL = 1000.0
-     REAL, PARAMETER :: MMOL_2_MOL = 1E-03
-     REAL, PARAMETER :: MM_TO_M = 0.001
 
      ! Cuticular conductance (mol m-2 s-1) - obvs should be passed
      ! if we are not setting this then set to a tiny value
      ! (1e-09 for numerical reasons)
      REAL, PARAMETER :: gs_min = 1E-09
-     REAL :: plant_k, gsc_leaf, e_demand, e_supply, gsv
 
-     REAL :: press = 101325.0 ! Pascals, we should pass this from CABLE obvs
+     ! constants
+     REAL, PARAMETER :: MOL_2_MMOL = 1000.0
+     REAL, PARAMETER :: MMOL_2_MOL = 1E-03
+     REAL, PARAMETER :: MM_TO_M = 0.001
 
-     REAL :: inferred_stress = 0.0
-
-     REAL(R_2),INTENT(INOUT), DIMENSION(:,:) :: Cs
-
-     REAL, DIMENSION(mp,mf), INTENT(IN) ::                                     &
-          rd,       & !
-          vcmax,    & !
-          vlaiz,      & !
-          par
-
-     REAL, DIMENSION(mp) ::  km
-
+     REAL, DIMENSION(mp,mf), INTENT(IN) :: rd, vcmax, vlaiz
      REAL, DIMENSION(mp,mf), INTENT(INOUT) :: an
+     REAL, DIMENSION(mp) :: km
+     REAL, INTENT(IN) :: gamma_star
 
-     REAL, DIMENSION(mp) :: fwsoilz
-
-     REAL, PARAMETER  :: effc4 = 4000.0  ! Vc=effc4*Ci*Vcmax (see
-     ! Bonan,LSM version 1.0, p106)
+     REAL :: e_demand, e_supply, gsv
+     REAL :: inferred_stress = 0.0
 
      INTEGER :: i,j
 
      DO i=1, mf
-        ! no cavitation when stem water storage not simulated
-        plant_k = kp
-
         ! Hydraulic conductance of the entire soil-to-leaf pathway
         ! (mmol m–2 s–1 MPa–1)
         ktot = 1.0 / (ssnow%total_soil_resist(1) + 1.0 / plant_k)
