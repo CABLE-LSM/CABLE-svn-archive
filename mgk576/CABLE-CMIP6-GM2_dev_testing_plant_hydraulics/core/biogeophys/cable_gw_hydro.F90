@@ -646,6 +646,9 @@ END SUBROUTINE remove_transGW
     !MD DEBUG VARS
     INTEGER :: imp,ims,k_drain
 
+    !mgk576, 12/10/2017
+    REAL, DIMENSION(ms) :: fraction_uptake
+
     !make code cleaner define these here
     dzmm(:) = 1000.0_r_2 * real(soil%zse(:),r_2)
     do i=1,mp
@@ -683,10 +686,8 @@ END SUBROUTINE remove_transGW
     CALL calc_soil_root_resistance(ssnow, soil, veg, bgc)
 
     ! mgk576, 9/10/17, store pre-dawn value
-    CALL calc_weighted_swp(ssnow, soil)
-    !IF (met%hod < 6) THEN
-     !    swp_pd = ssnow%weighted_swp
-    !ENDIF
+    CALL calc_weighted_swp_weighting_frac(ssnow, soil, fraction_uptake)
+
 
     CALL subsurface_drainage(ssnow,soil,veg,dzmm)
 
@@ -1830,7 +1831,7 @@ END SUBROUTINE calc_soil_hydraulic_props
   ! ----------------------------------------------------------------------------
 
   ! ----------------------------------------------------------------------------
-  SUBROUTINE calc_weighted_swp(ssnow, soil)
+  SUBROUTINE calc_weighted_swp_weighting_frac(ssnow, soil, fraction_uptake)
     !
     ! Determine weighted SWP given the the maximum rate of water supply from
     ! each rooted soil layer and hydraulic resistance of each layer. We are
@@ -1862,7 +1863,8 @@ END SUBROUTINE calc_soil_hydraulic_props
     REAL, PARAMETER :: KPA_2_MPa = 0.001
     REAL, PARAMETER :: M_HEAD_TO_MPa = 9.8 * KPA_2_MPa
     REAL, PARAMETER :: min_lwp = -2.0 ! we obv need to pass this
-    REAL, DIMENSION(ms) :: swp, est_evap, fraction_uptake
+    REAL, DIMENSION(ms) :: swp, est_evap
+    REAL, DIMENSION(ms), INTENT(INOUT) :: fraction_uptake
     INTEGER :: i
     REAL :: total_est_evap
 
@@ -1879,7 +1881,6 @@ END SUBROUTINE calc_soil_hydraulic_props
     IF (total_est_evap > 0.0) THEN
        DO i = 1, ms ! Loop over 6 soil layers
           ssnow%weighted_swp = ssnow%weighted_swp + swp(i) * est_evap(i)
-
           ! fraction of water taken from layer
           fraction_uptake(i) = est_evap(i) / total_est_evap
        ENDDO
