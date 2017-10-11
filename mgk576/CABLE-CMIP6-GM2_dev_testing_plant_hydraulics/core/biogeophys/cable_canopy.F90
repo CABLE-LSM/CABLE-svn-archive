@@ -2816,15 +2816,20 @@ CONTAINS
   ! ----------------------------------------------------------------------------
   SUBROUTINE calculate_emax(veg, ssnow, canopy, dleaf, Cs, km, rd, vcmax, &
                             vlaiz, an, fwsoilz, ktot, par, gamma_star)
+     !
      ! Assumption that during the day transpiration cannot exceed a maximum
      ! value, Emax (e_supply). At this point we've reached a leaf water
      ! potential minimum. Once this point is reached transpiration, gs and A
-     ! are reclulated
+     ! are recalculated
+     !
+     ! To do:
+     !   - Add dynamic plant K linked to xylem water potential
      !
      ! Reference:
      !   * Duursma et al. 2008, Tree Physiology 28, 265–276
      !
      ! Martin De Kauwe, 6th Oct, 2017
+
      USE cable_common_module
      USE cable_def_types_mod
 
