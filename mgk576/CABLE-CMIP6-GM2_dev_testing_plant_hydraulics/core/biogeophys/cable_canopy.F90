@@ -2849,7 +2849,6 @@ CONTAINS
      ! back out to LWP calculation
      REAL, INTENT(INOUT) ::  ktot
 
-
      ! plant component of the leaf-specific hydraulic conductance
      ! (mmol m-2 s-1 MPa-1 )
      REAL, PARAMETER :: plant_k = 2.0
@@ -2952,9 +2951,11 @@ CONTAINS
            ! where is the JV ratio set in the code? Use that instead
            jmax(i,j) = vcmax(i,j) * 2.0
 
-           !!! NEED TO CHECK THAT ALPHA AND THETA ARE THE SAME IN CABLE
-           !!! I THINK THESE ARE THE RIGHT CABLE PARAMS
-           A = veg%convex(i)
+           ! What I thought was theta in CABLE doesn't appear to be in the right
+           ! order or mangitude - check units and whether it was the right thing
+           ! for now use what we use in GDAY
+           !A = veg%convex(i)
+           A = 0.7
            B = -(veg%alpha(i) * par(i,j) + jmax(i,j))
            C = veg%alpha(i) * par(i,j) * jmax(i,j)
            JJ(i,j) = quad(A, B, C)
