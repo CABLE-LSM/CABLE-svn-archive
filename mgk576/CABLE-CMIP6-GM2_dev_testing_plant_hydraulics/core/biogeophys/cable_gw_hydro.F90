@@ -685,7 +685,7 @@ END SUBROUTINE remove_transGW
     ! mgk576, 9/10/17
     CALL calc_soil_root_resistance(ssnow, soil, veg, bgc)
 
-    ! mgk576, 9/10/17, store pre-dawn value
+    ! mgk576, 9/10/17
     CALL calc_weighted_swp_weighting_frac(ssnow, soil, fraction_uptake)
 
 
@@ -1870,13 +1870,20 @@ END SUBROUTINE calc_soil_hydraulic_props
 
     total_est_evap = 0.0
     ssnow%weighted_swp = 0.0
+    fraction_uptake = 0.0
+    est_evap = 0.0
 
     ! Estimate max transpiration from gradient-gravity / soil resistance
     DO i = 1, ms ! Loop over 6 soil layers
        ! Convert SWP: mm/s -> MPa
        swp(i) = ssnow%smp(1,i) * MM_TO_M * M_HEAD_TO_MPa
-       est_evap(i) = MAX(0.0, (swp(i) - min_lwp) / ssnow%soilR(i))
+       est_evap(i) = MAX(0.0, (swp(i) - min_lwp) / ssnow%soilR(i)) ! no negative
+       ! NEED TO ADD SOMETHING IF THE SOIL IS FROZEN, what is ice in CABLE?
+       !IF ( iceprop(i) .gt. 0. ) THEN
+       !  est_evap(i) = 0.0
+       !ENDIF
     END DO
+
 
     IF (total_est_evap > 0.0) THEN
        DO i = 1, ms ! Loop over 6 soil layers
@@ -1885,9 +1892,14 @@ END SUBROUTINE calc_soil_hydraulic_props
           fraction_uptake(i) = est_evap(i) / total_est_evap
        ENDDO
        ssnow%weighted_swp = ssnow%weighted_swp / total_est_evap
+    ELSE
+       ! No water was evaporated
+       DO i = 1, ms ! Loop over 6 soil layers
+          fraction_uptake(i) = 1.0 / (REAL)ms
+       ENDDO
     ENDIF
 
-  END SUBROUTINE calc_weighted_swp
+  END SUBROUTINE calc_weighted_swp_weighting_frac
   ! ----------------------------------------------------------------------------
 
 END MODULE cable_gw_hydro_module
