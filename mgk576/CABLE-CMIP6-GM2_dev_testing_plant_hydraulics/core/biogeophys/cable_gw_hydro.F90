@@ -1832,6 +1832,10 @@ END SUBROUTINE calc_soil_hydraulic_props
     !
     ! Determine weighted SWP given the hydraulic resistance of each layer.
     !
+    ! Todo:
+    ! -----------
+    ! We need to change this function so that it matches extraction logic.
+    !
     ! Martin De Kauwe, 9th Oct, 2017
 
     USE cable_def_types_mod
