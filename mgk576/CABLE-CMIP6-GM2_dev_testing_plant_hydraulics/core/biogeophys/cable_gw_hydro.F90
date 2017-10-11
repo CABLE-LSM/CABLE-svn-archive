@@ -1832,71 +1832,76 @@ END SUBROUTINE calc_soil_hydraulic_props
 
   ! ----------------------------------------------------------------------------
   SUBROUTINE calc_weighted_swp_weighting_frac(ssnow, soil, fraction_uptake)
-    !
-    ! Determine weighted SWP given the the maximum rate of water supply from
-    ! each rooted soil layer and hydraulic resistance of each layer. We are
-    ! also calculating a weighting fraction for water extraction. This is
-    ! achieved by roughly estimating the maximum rate of water supply from each
-    ! rooted soil layer, using SWP and hydraulic resistance of each layer.
-    ! Actual water from each layer is determined using the estimated value as a
-    ! weighted factor.
-    !
-    ! Todo for Manon:
-    ! -----------
-    ! We need to use the fraction_uptake calculated to do the actual extraction
-    ! otherwise this logic doesn't match as the extraction will be calculated
-    ! a different way
-    !
-    ! https://github.com/mdekauwe/GDAY/blob/master/src/water_balance_sub_daily.c
-    !
-    ! Martin De Kauwe, 9th Oct, 2017
+     !
+     ! Determine weighted SWP given the the maximum rate of water supply from
+     ! each rooted soil layer and hydraulic resistance of each layer. We are
+     ! also calculating a weighting fraction for water extraction. This is
+     ! achieved by roughly estimating the maximum rate of water supply from each
+     ! rooted soil layer, using SWP and hydraulic resistance of each layer.
+     ! Actual water from each layer is determined using the estimated value as a
+     ! weighted factor.
+     !
+     ! Todo for Manon:
+     ! -----------
+     ! We need to use the fraction_uptake calculated to do the actual extraction
+     ! otherwise this logic doesn't match as the extraction will be calculated
+     ! a different way
+     !
+     ! https://github.com/mdekauwe/GDAY/blob/master/src/water_balance_sub_daily.c
+     !
+     ! Martin De Kauwe, 9th Oct, 2017
 
-    USE cable_def_types_mod
-    USE cable_common_module
+     USE cable_def_types_mod
+     USE cable_common_module
 
-    IMPLICIT NONE
+     IMPLICIT NONE
 
-    TYPE (soil_snow_type), INTENT(INOUT) :: ssnow
-    TYPE (soil_parameter_type), INTENT(INOUT) :: soil
+     TYPE (soil_snow_type), INTENT(INOUT) :: ssnow
+     TYPE (soil_parameter_type), INTENT(INOUT) :: soil
 
-    REAL, PARAMETER :: MM_TO_M = 0.001
-    REAL, PARAMETER :: KPA_2_MPa = 0.001
-    REAL, PARAMETER :: M_HEAD_TO_MPa = 9.8 * KPA_2_MPa
-    REAL, PARAMETER :: min_lwp = -2.0 ! we obv need to pass this
-    REAL, DIMENSION(ms) :: swp, est_evap
-    REAL, DIMENSION(ms), INTENT(INOUT) :: fraction_uptake
-    INTEGER :: i
-    REAL :: total_est_evap
+     REAL, PARAMETER :: MM_TO_M = 0.001
+     REAL, PARAMETER :: KPA_2_MPa = 0.001
+     REAL, PARAMETER :: M_HEAD_TO_MPa = 9.8 * KPA_2_MPa
+     REAL, PARAMETER :: min_lwp = -2.0 ! we obv need to pass this
 
-    total_est_evap = 0.0
-    ssnow%weighted_swp = 0.0
-    fraction_uptake = 0.0
-    est_evap = 0.0
+     REAL, DIMENSION(ms) :: swp, est_evap
+     REAL, DIMENSION(ms), INTENT(INOUT) :: fraction_uptake
+     REAL :: total_est_evap
+     INTEGER :: i
 
-    ! Estimate max transpiration from gradient-gravity / soil resistance
-    DO i = 1, ms ! Loop over 6 soil layers
-       ! Convert SWP: mm/s -> MPa
-       swp(i) = ssnow%smp(1,i) * MM_TO_M * M_HEAD_TO_MPa
-       est_evap(i) = MAX(0.0, (swp(i) - min_lwp) / ssnow%soilR(i)) ! no negative
-       ! NEED TO ADD SOMETHING IF THE SOIL IS FROZEN, what is ice in CABLE?
-       !IF ( iceprop(i) .gt. 0. ) THEN
-       !  est_evap(i) = 0.0
-       !ENDIF
-    END DO
-    total_est_evap = sum(est_evap)
+     total_est_evap = 0.0
+     ssnow%weighted_swp = 0.0
+     fraction_uptake = 0.0
+     est_evap = 0.0
 
-    IF (total_est_evap > 0.0) THEN
-       DO i = 1, ms ! Loop over 6 soil layers
-          ssnow%weighted_swp = ssnow%weighted_swp + swp(i) * est_evap(i)
-          ! fraction of water taken from layer
-          fraction_uptake(i) = est_evap(i) / total_est_evap
-       ENDDO
-       ssnow%weighted_swp = ssnow%weighted_swp / total_est_evap
-    ELSE
-       ! No water was evaporated
-       fraction_uptake(:) = 1.0 / (REAL)ms
-    ENDIF
+     ! Estimate max transpiration from gradient-gravity / soil resistance
+     DO i = 1, ms ! Loop over 6 soil layers
+        ! Convert SWP: mm/s -> MPa
+        swp(i) = ssnow%smp(1,i) * MM_TO_M * M_HEAD_TO_MPa
+        est_evap(i) = MAX(0.0, (swp(i) - min_lwp) / ssnow%soilR(i)) ! no negative
+        ! NEED TO ADD SOMETHING IF THE SOIL IS FROZEN, what is ice in CABLE?
+        !IF ( iceprop(i) .gt. 0. ) THEN
+        !  est_evap(i) = 0.0
+        !ENDIF
+     END DO
+     total_est_evap = sum(est_evap)
 
+     IF (total_est_evap > 0.0) THEN
+        DO i = 1, ms ! Loop over 6 soil layers
+           ssnow%weighted_swp = ssnow%weighted_swp + swp(i) * est_evap(i)
+           ! fraction of water taken from layer
+           fraction_uptake(i) = est_evap(i) / total_est_evap
+
+           IF ((fraction_uptake(i) > 1.0) .or. (fraction_uptake(i) < 0.0)) THEN
+              PRINT *, 'Problem with the uptake fraction (either >1 or 0<)'
+              STOP
+           ENDIF
+        ENDDO
+        ssnow%weighted_swp = ssnow%weighted_swp / total_est_evap
+     ELSE
+        ! No water was evaporated
+        fraction_uptake(:) = 1.0 / (REAL)ms
+     ENDIF
   END SUBROUTINE calc_weighted_swp_weighting_frac
   ! ----------------------------------------------------------------------------
 
