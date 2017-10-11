@@ -1881,7 +1881,7 @@ END SUBROUTINE calc_soil_hydraulic_props
           ! fraction of water taken from layer
           fraction_uptake(i) = est_evap(i) / total_est_evap
        ENDDO
-       s->weighted_swp = ssnow%weighted_swp / total_est_evap
+       ssnow%weighted_swp = ssnow%weighted_swp / total_est_evap
     ENDIF
 
   END SUBROUTINE calc_weighted_swp
