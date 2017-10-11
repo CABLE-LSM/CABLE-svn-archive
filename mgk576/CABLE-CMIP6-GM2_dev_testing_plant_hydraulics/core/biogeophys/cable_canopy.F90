@@ -2004,8 +2004,8 @@ CONTAINS
           ! Ensure transpiration does not exceed Emax, if it does we
           ! recalculate gs and An
           DO kk=1, mf
-             canopy%gsc(kk) = MAX(1.e-3, gswmin(i,kk)*fwsoil(i) +     &
-                                 MAX(0.0, gs_coeff(i,kk) * anx(i,kk)))
+             canopy%gsc(kk) = MAX(1.e-3, gswmin(i,kk)*fwsoil(i) +             &
+                                  MAX(0.0, gs_coeff(i,kk) * anx(i,kk)))
           ENDDO
 
           CALL calculate_emax(veg, ssnow, canopy, dsx(:), par_to_pass(:,:),   &
@@ -2890,7 +2890,7 @@ CONTAINS
 
         ! Leaf transpiration (mmol m-2 s-1), i.e. ignoring boundary layer effects!
         e_demand = MOL_2_MMOL * (dleaf(i) / press) * canopy%gsc(i) * C%RGSWC
-
+        print *, e_demand, dleaf(i), press, canopy%gsc(i)
         IF (e_demand > e_supply) THEN
            ! Calculate gs (mol m-2 s-1) given supply (Emax)
            gsv = MMOL_2_MOL * e_supply / (dleaf(i) / press)
