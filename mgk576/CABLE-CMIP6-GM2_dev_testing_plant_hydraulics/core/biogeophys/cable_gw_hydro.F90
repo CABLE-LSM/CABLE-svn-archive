@@ -1883,7 +1883,7 @@ END SUBROUTINE calc_soil_hydraulic_props
        !  est_evap(i) = 0.0
        !ENDIF
     END DO
-
+    total_est_evap = sum(est_evap)
 
     IF (total_est_evap > 0.0) THEN
        DO i = 1, ms ! Loop over 6 soil layers
