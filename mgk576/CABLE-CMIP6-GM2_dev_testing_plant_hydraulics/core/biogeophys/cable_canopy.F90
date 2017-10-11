@@ -2008,14 +2008,11 @@ CONTAINS
                                  MAX(0.0, gs_coeff(i,kk) * anx(i,kk)))
           ENDDO
 
-          CALL calculate_emax(veg, ssnow, canopy, dsx(:), csx(:,:),        &
-                              SPREAD( cx1(:), 2, mf ),                     &
-                              SPREAD( cx2(:), 2, mf ),                     &
-                              gswmin(:,:), rdx(:,:), vcmxt3(:,:),          &
-                              vcmxt4(:,:), vx3(:,:), vx4(:,:),             &
-                              gs_coeff(:,:), rad%fvlai(:,:),               &
-                              SPREAD( abs_deltlf, 2, mf ),                 &
-                              anx(:,:), fwsoil(:), ktot, par_to_pass(:,:))
+          CALL calculate_emax(veg, ssnow, canopy, dsx(:), csx(:,:),           &
+                              SPREAD(cx1(:), 2, mf), rdx(:,:), vcmxt3(:,:),   &
+                              rad%fvlai(:,:), anx(:,:), fwsoil(:), ktot,      &
+                              par_to_pass(:,:), co2cp3)
+
        ENDIF
 
        DO i=1,mp
@@ -2118,8 +2115,6 @@ CONTAINS
              conv = 1000.0 * (1.0 / 18.02) * 1000.0
              trans_mmol = (canopy%fevc(i) / air%rlam(i)) * conv
              canopy%lwp(i) = calc_lwp(ssnow, ktot, trans_mmol)
-             print *, ktot, canopy%lwp(i)
-             stop
 
              ! Update canopy sensible heat flux:
              hcx(i) = (SUM(rad%rniso(i,:))-ecx(i)                               &
@@ -2819,10 +2814,8 @@ CONTAINS
   !*********************************************************************************************************************
 
   ! ----------------------------------------------------------------------------
-  SUBROUTINE calculate_emax(veg, ssnow, canopy, dleaf, csxz, cx1z, cx2z,   &
-                            gswminz, rdxz, vcmxt3z, vcmxt4z, vx3z, vx4z, &
-                            gs_coeffz, vlaiz, deltlfz, anxz, fwsoilz, ktot, &
-                            par)
+  SUBROUTINE calculate_emax(veg, ssnow, canopy, dleaf, Cs, km, rd, vcmax, &
+                            vlaiz, an, fwsoilz, ktot, par, gamma_star)
      ! Assumption that during the day transpiration cannot exceed a maximum
      ! value, Emax (e_supply). At this point we've reached a leaf water
      ! potential minimum. Once this point is reached transpiration, gs and A
@@ -2843,6 +2836,7 @@ CONTAINS
 
      REAL, INTENT(INOUT), DIMENSION(:) ::  dleaf ! leaf surface vpd
      REAL, INTENT(INOUT) ::  ktot
+     REAL, INTENT(IN) :: gamma_star
 
      ! plant component of the leaf-specific hydraulic conductance
      ! (mmol m-2 s-1 MPa-1 )
@@ -2864,24 +2858,17 @@ CONTAINS
 
      REAL :: inferred_stress = 0.0
 
-     REAL(R_2),INTENT(INOUT), DIMENSION(:,:) :: csxz
+     REAL(R_2),INTENT(INOUT), DIMENSION(:,:) :: Cs
 
      REAL, DIMENSION(mp,mf), INTENT(IN) ::                                     &
-          cx2z,       & !
-          gswminz,    & !
-          rdxz,       & !
-          vcmxt3z,    & !
-          vcmxt4z,    & !
-          vx4z,       & !
-          vx3z,       & !
-          gs_coeffz,  & ! Ticket #56, xleuningz repalced with gs_coeffz
+          rd,       & !
+          vcmax,    & !
           vlaiz,      & !
-          deltlfz,&
           par
 
-     REAL, DIMENSION(mp) ::  cx1z
+     REAL, DIMENSION(mp) ::  km
 
-     REAL, DIMENSION(mp,mf), INTENT(INOUT) :: anxz
+     REAL, DIMENSION(mp,mf), INTENT(INOUT) :: an
 
      REAL, DIMENSION(mp) :: fwsoilz
 
@@ -2922,8 +2909,8 @@ CONTAINS
            ! Need to calculate an effective beta to use in soil decomposition
            inferred_stress = inferred_stress + e_supply / e_demand
            ! Re-solve An for the new gs
-           CALL photosynthesis_C3_emax(canopy, veg, vlaiz, vcmxt3z, par, csxz, &
-                                       rdxz, cx1z, anxz)
+           CALL photosynthesis_C3_emax(canopy, veg, vlaiz, vcmax, par, Cs, &
+                                       rd, km, gamma_star, an)
 
         ELSE
            ! This needs to be initialised somewhere.
@@ -2937,7 +2924,7 @@ CONTAINS
 
   ! ----------------------------------------------------------------------------
   SUBROUTINE photosynthesis_C3_emax(canopy, veg, vlaiz, vcmax, par, Cs, rd, &
-                                    km, an)
+                                    km, gamma_star, an)
      ! Calculate photosynthesis resolving Ci and A for a given gs
      ! (Jarvis style) to get the Emax solution.
      ! This follows MAESPA code.
@@ -2960,9 +2947,7 @@ CONTAINS
      REAL, DIMENSION(mp) ::  km
      REAL, DIMENSION(mp,mf) :: jmax, discriminant, JJ, Vj
      REAL(r_2), DIMENSION(mp,mf) :: an_rubisco, an_rubp
-
-     !!! NOT SURE WHAT GAMMA STAR IS IN CABLE???? FOR NOW IGNROE IT
-     REAL, PARAMETER :: gamma_star = 0.0
+     REAL, INTENT(IN) :: gamma_star
 
      DO i=1, mp
         IF (sum(vlaiz(i,:)) .GT. LAI_THRESH) THEN
