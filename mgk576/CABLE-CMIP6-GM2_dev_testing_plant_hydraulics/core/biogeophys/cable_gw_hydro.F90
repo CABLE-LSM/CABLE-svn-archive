@@ -1902,6 +1902,7 @@ END SUBROUTINE calc_soil_hydraulic_props
         ! No water was evaporated
         fraction_uptake(:) = 1.0 / FLOAT(ms)
      ENDIF
+     
   END SUBROUTINE calc_weighted_swp_weighting_frac
   ! ----------------------------------------------------------------------------
 
