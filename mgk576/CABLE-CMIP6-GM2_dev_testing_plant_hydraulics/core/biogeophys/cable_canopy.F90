@@ -2818,16 +2818,20 @@ CONTAINS
   SUBROUTINE calculate_emax(veg, ssnow, canopy, dleaf, par, cs, km, rd, vcmax, &
                             vlaiz, an, ktot, gamma_star)
      !
-     ! Assumption that during the day transpiration cannot exceed a maximum
-     ! value, Emax (e_supply). At this point we've reached a leaf water
-     ! potential minimum. Once this point is reached transpiration, gs and A
-     ! are recalculated
+     ! Transpiration is calculated assuming a maximum "supply" driven by darcy's
+     ! law. Once the "demand" exceeds the supply, we infer a new "supply" and
+     ! re-estimate An, gs and then push everything back to the leaf-energy
+     ! balance iteration loop to resolve the Tleaf and Ci that would match
+     ! the down-regulated gs (supply).
      !
      ! To do:
      !   - Add dynamic plant K linked to xylem water potential
      !
      ! Reference:
-     !   * Duursma et al. 2008, Tree Physiology 28, 265–276
+     !   * Duursma, R. A. 2008. Predicting the decline in daily maximum
+     !   transpiration rate of two pine stands during drought based on
+     !   constant minimum leaf water potential and plant hydraulic conductance.
+     !   Tree Physiology, 28, 265–276.
      !
      ! Martin De Kauwe, 6th Oct, 2017
 
