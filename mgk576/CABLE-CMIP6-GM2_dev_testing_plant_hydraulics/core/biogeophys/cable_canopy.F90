@@ -2814,7 +2814,7 @@ CONTAINS
   !*********************************************************************************************************************
 
   ! ----------------------------------------------------------------------------
-  SUBROUTINE calculate_emax(veg, ssnow, canopy, dleaf, par, Cs, km, rd, vcmax, &
+  SUBROUTINE calculate_emax(veg, ssnow, canopy, dleaf, par, cs, km, rd, vcmax, &
                             vlaiz, an, ktot, gamma_star)
      !
      ! Assumption that during the day transpiration cannot exceed a maximum
@@ -2840,11 +2840,13 @@ CONTAINS
      TYPE (canopy_type), INTENT(INOUT)         :: canopy
 
      ! met stuff
-     REAL(R_2),INTENT(IN), DIMENSION(:,:) :: Cs
-     REAL, INTENT(IN), DIMENSION(:) ::  dleaf ! leaf surface vpd
-     REAL, DIMENSION(mp,mf), INTENT(IN) :: par
+     REAL(R_2),INTENT(IN), DIMENSION(:,:) :: cs  ! leaf surface CO2
+     REAL, INTENT(IN), DIMENSION(:) ::  dleaf    ! leaf surface vpd
+     REAL, DIMENSION(mp,mf), INTENT(IN) :: par   ! leaf surface PAR
      REAL :: press = 101325.0 ! Pascals, where is this in CABLE?????
 
+     ! Hydraulic conductance of the entire soil-to-leaf pathway, this is passed
+     ! back out to LWP calculation
      REAL, INTENT(INOUT) ::  ktot
 
 
@@ -2865,7 +2867,7 @@ CONTAINS
      REAL, PARAMETER :: MMOL_2_MOL = 1E-03
      REAL, PARAMETER :: MM_TO_M = 0.001
 
-     REAL, DIMENSION(mp,mf), INTENT(IN) :: rd, vcmax, vlaiz
+     REAL, DIMENSION(mp,mf), INTENT(IN) :: Rd, vcmax, vlaiz
      REAL, DIMENSION(mp,mf), INTENT(INOUT) :: an
      REAL, DIMENSION(mp) :: km
      REAL, INTENT(IN) :: gamma_star
@@ -2904,7 +2906,7 @@ CONTAINS
            ! Need to calculate an effective beta to use in soil decomposition
            inferred_stress = inferred_stress + e_supply / e_demand
            ! Re-solve An for the new gs
-           CALL photosynthesis_C3_emax(canopy, veg, vlaiz, vcmax, par, Cs, &
+           CALL photosynthesis_C3_emax(canopy, veg, vlaiz, vcmax, par, cs, &
                                        rd, km, gamma_star, an)
 
         ELSE
