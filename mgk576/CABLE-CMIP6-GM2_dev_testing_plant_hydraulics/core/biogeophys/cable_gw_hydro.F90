@@ -1836,7 +1836,9 @@ END SUBROUTINE calc_soil_hydraulic_props
     !
     ! Todo for Manon:
     ! -----------
-    ! We need to change this function so that it matches extraction logic.
+    ! We need to change this function so that it matches extraction logic, see
+    ! GDAY -> calc_water_uptake_per_layer
+    ! https://github.com/mdekauwe/GDAY/blob/master/src/water_balance_sub_daily.c
     !
     ! Martin De Kauwe, 9th Oct, 2017
 
