@@ -2004,7 +2004,7 @@ CONTAINS
           ! Ensure transpiration does not exceed Emax, if it does we
           ! recalculate gs and An
           DO kk=1, mf
-             canopy%gsc(kk) = MAX(1.e-3, gswmin(i,kk)*fwsoil(i) +             &
+             canopy%gsc(kk) = MAX(1.e-3, gswmin(i,kk) +                       &
                                   MAX(0.0, gs_coeff(i,kk) * anx(i,kk)))
           ENDDO
 
