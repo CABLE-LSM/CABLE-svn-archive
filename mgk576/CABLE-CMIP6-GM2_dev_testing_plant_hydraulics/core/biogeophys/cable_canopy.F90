@@ -2818,11 +2818,11 @@ CONTAINS
   SUBROUTINE calculate_emax(veg, ssnow, canopy, dleaf, par, cs, km, rd, vcmax, &
                             vlaiz, an, ktot, gamma_star)
      !
-     ! Transpiration is calculated assuming a maximum "supply" driven by darcy's
-     ! law. Once the "demand" exceeds the supply, we infer a new "supply" and
-     ! re-estimate An, gs and then push everything back to the leaf-energy
-     ! balance iteration loop to resolve the Tleaf and Ci that would match
-     ! the down-regulated gs (supply).
+     ! Transpiration is calculated assuming a maximum "supply" driven by
+     ! darcy's law. Once the "demand" exceeds the supply, we infer a new
+     ! "supply" and re-estimate An, gs and then push everything back to the
+     ! leaf energy balance iteration loop to resolve the Tleaf and Ci that
+     ! would match the down-regulated gs (supply).
      !
      ! To do:
      !   - Add dynamic plant K linked to xylem water potential
