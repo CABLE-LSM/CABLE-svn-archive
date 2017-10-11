@@ -1834,7 +1834,7 @@ END SUBROUTINE calc_soil_hydraulic_props
     !
     ! Determine weighted SWP given the hydraulic resistance of each layer.
     !
-    ! Todo:
+    ! Todo for Manon:
     ! -----------
     ! We need to change this function so that it matches extraction logic.
     !
