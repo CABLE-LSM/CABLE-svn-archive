@@ -2899,7 +2899,7 @@ CONTAINS
         ! minimum leaf water potential (min_lwp)
         e_supply = MAX(0.0, ktot * (ssnow%weighted_swp(1) - min_lwp))
 
-        ! Leaf transpiration (mmol m-2 s-1), i.e. ignoring boundary layer effects!
+        ! Transpiration (mmol m-2 s-1) demand ignoring boundary layer effects!
         e_demand = MOL_2_MMOL * (vpd / press) * canopy%gsc(i) * C%RGSWC
         print *, i, par(1,i) ,vcmax(1,i)*1e6, cs(1,i)*1e6, vpd, vcmax*1E6
         IF (e_demand > e_supply) THEN
