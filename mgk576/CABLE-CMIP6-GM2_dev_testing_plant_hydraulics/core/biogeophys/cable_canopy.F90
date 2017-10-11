@@ -2907,7 +2907,7 @@ CONTAINS
            inferred_stress = inferred_stress + e_supply / e_demand
            ! Re-solve An for the new gs
            CALL photosynthesis_C3_emax(canopy, veg, vlaiz, vcmax, par, cs, &
-                                       rd, km, gamma_star, an)
+                                       rd, km, gamma_star, an, i)
 
         ELSE
            ! This needs to be initialised somewhere.
@@ -2921,7 +2921,7 @@ CONTAINS
 
   ! ----------------------------------------------------------------------------
   SUBROUTINE photosynthesis_C3_emax(canopy, veg, vlaiz, vcmax, par, Cs, rd, &
-                                    km, gamma_star, an)
+                                    km, gamma_star, an, leaf_idx)
      ! Calculate photosynthesis resolving Ci and A for a given gs
      ! (Jarvis style) to get the Emax solution.
      ! This follows MAESPA code.
@@ -2935,6 +2935,7 @@ CONTAINS
      TYPE (canopy_type), INTENT(INOUT)           :: canopy
      TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
 
+     INTEGER, INTENT(IN) :: leaf_idx
      INTEGER :: i,j
      REAL :: A, B, C
      REAL(R_2),INTENT(INOUT), DIMENSION(:,:) :: Cs
@@ -2946,6 +2947,8 @@ CONTAINS
      REAL(r_2), DIMENSION(mp,mf) :: an_rubisco, an_rubp
      REAL, INTENT(IN) :: gamma_star
 
+     j = leaf_idx
+     print*, j
      DO i=1, mp
         IF (sum(vlaiz(i,:)) .GT. LAI_THRESH) THEN
            DO j=1, mf
