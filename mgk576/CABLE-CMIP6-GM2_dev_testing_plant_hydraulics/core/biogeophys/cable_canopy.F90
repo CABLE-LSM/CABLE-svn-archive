@@ -2924,6 +2924,9 @@ CONTAINS
            inferred_stress = inferred_stress + 1.0
         ENDIF
      ENDDO
+
+     ! fwsoil means nothing when using the plant hydraulics, but we still need
+     ! an inferred fwsoil as this is used in SOM decomposition calculations
      canopy%fwsoil = inferred_stress / 2.0
 
   END SUBROUTINE calculate_emax
