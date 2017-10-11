@@ -1868,8 +1868,9 @@ CONTAINS
              rdx(i,1) = (veg%cfrd(i)*Vcmxt3(i,1) + veg%cfrd(i)*vcmxt4(i,1))
              rdx(i,2) = (veg%cfrd(i)*vcmxt3(i,2) + veg%cfrd(i)*vcmxt4(i,2))
 
-             par_to_pass(i,1) = rad%qcan(i,1,1) * jtomol
-             par_to_pass(i,2) = rad%qcan(i,2,1) * jtomol
+             ! PAR: W/m2 (J m-2 s-1) -> umol m-2 s-1
+             par_to_pass(i,1) = rad%qcan(i,1,1) * jtomol * 1.0e6
+             par_to_pass(i,2) = rad%qcan(i,2,1) * jtomol * 1.0e6
 !Vanessa - the trunk does not contain xleauning as of Ticket#56 inclusion
 !as well as other inconsistencies here that need further investigation. In the
 !interests of getting this into the trunk ASAP just isolate this code for now
@@ -2890,7 +2891,7 @@ CONTAINS
 
         ! Leaf transpiration (mmol m-2 s-1), i.e. ignoring boundary layer effects!
         e_demand = MOL_2_MMOL * (dleaf(i) / press) * canopy%gsc(i) * C%RGSWC
-        print *, e_demand, dleaf(i), press, canopy%gsc(i)
+        !print *, par(1,i) ,vcmax(1,i)*1e6, cs(1,i)*1e6, dleaf(i),  canopy%gsc(i)
         IF (e_demand > e_supply) THEN
            ! Calculate gs (mol m-2 s-1) given supply (Emax)
            gsv = MMOL_2_MOL * e_supply / (dleaf(i) / press)
@@ -2949,7 +2950,7 @@ CONTAINS
      DO i=1, mp
         IF (sum(vlaiz(i,:)) .GT. LAI_THRESH) THEN
            ! where is the JV ratio set in the code? Use that instead
-           jmax(i,j) = vcmax(i,j) * 2.0
+           jmax(i,j) = vcmax(i,j)*1E6 * 2.0
 
            ! What I thought was theta in CABLE doesn't appear to be in the right
            ! order or mangitude - check units and whether it was the right thing
@@ -2963,17 +2964,17 @@ CONTAINS
 
            ! Solution when Rubisco rate is limiting */
            A = 1.0 / canopy%gsc(i)
-           B = (rd(i,j) - vcmax(i,j)) / canopy%gsc(i) - cs(i,j) - km(i)
-           C = vcmax(i,j) * (cs(i,j) - gamma_star) - rd(i,j) * &
-               (cs(i,j) + km(i))
+           B = (rd(i,j) - vcmax(i,j)*1E6) / canopy%gsc(i) - cs(i,j)*1E6 - km(i)
+           C = vcmax(i,j)*1E6 * (cs(i,j)*1E6 - gamma_star) - rd(i,j) * &
+               (cs(i,j)*1E6 + km(i))
            an_rubisco(i,j) = quad(A, B, C)
 
            ! Solution when electron transport rate is limiting
            A = 1.0 / canopy%gsc(i)
-           B = (rd(i,j) - Vj(i,j)) / canopy%gsc(i) - cs(i,j) - &
+           B = (rd(i,j) - Vj(i,j)) / canopy%gsc(i) - cs(i,j)*1E6 - &
                 2.0 * gamma_star
-           C = Vj(i,j) * (cs(i,j) - gamma_star) - rd(i,j) * &
-               (cs(i,j) + 2.0 * gamma_star)
+           C = Vj(i,j) * (cs(i,j)*1E6 - gamma_star) - rd(i,j) * &
+               (cs(i,j)*1E6 + 2.0 * gamma_star)
            an_rubp(i,j) = quad(A, B, C)
 
            ! positive root
