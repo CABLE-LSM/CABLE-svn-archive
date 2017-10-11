@@ -2833,7 +2833,7 @@ CONTAINS
      !   constant minimum leaf water potential and plant hydraulic conductance.
      !   Tree Physiology, 28, 265–276.
      !
-     ! Martin De Kauwe, 6th Oct, 2017
+     ! Martin De Kauwe, 12th Oct, 2017
 
      USE cable_common_module
      USE cable_def_types_mod
@@ -2894,11 +2894,9 @@ CONTAINS
         ! (mmol m–2 s–1 MPa–1)
         ktot = 1.0 / (ssnow%total_soil_resist(1) + 1.0 / plant_k)
 
-        ! Maximum transpiration rate (mmol m-2 s-1)
-        ! Following Darcy's law which relates leaf transpiration to hydraulic
-        ! conductance of the soil-to-leaf pathway and leaf & soil water potentials.
-        ! Transpiration is limited in the perfectly isohydric case above the
-        ! critical threshold for embolism given by min_lwp.
+        ! Maximum transpiration rate (mmol m-2 s-1) is given by Darcy's law,
+        ! which estimates the water flow from the bulk soil to the leaf at the
+        ! minimum leaf water potential (min_lwp)
         e_supply = MAX(0.0, ktot * (ssnow%weighted_swp(1) - min_lwp))
 
         ! Leaf transpiration (mmol m-2 s-1), i.e. ignoring boundary layer effects!
