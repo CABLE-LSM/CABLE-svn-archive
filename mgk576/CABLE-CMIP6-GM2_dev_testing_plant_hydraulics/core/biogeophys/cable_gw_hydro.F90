@@ -1773,13 +1773,14 @@ END SUBROUTINE calc_soil_hydraulic_props
      REAL, PARAMETER :: MM_TO_M = 0.001
      REAL, PARAMETER :: KPA_2_MPa = 0.001
      REAL, PARAMETER :: M_HEAD_TO_MPa = 9.8 * KPA_2_MPa
-     REAL, PARAMETER :: MOL_OF_WATER = 18.015
+     REAL, PARAMETER :: G_WATER_TO_MOLE = 1.0 / 18.01528
+     REAL, PARAMETER :: CUBIC_M_WATER_2_GRAMS = 1E6
      REAL, PARAMETER :: MOL_2_MMOL = 1000.0
      REAL, PARAMETER :: TINY_NUMBER = 1E-35
      REAL, PARAMETER :: HUGE_NUMBER = 1E35
 
      REAL :: Ks, Lsoil, soilR1, soilR2, arg1, arg2, root_biomass, root_length
-     REAL :: soil_root_resist, rs, soil_resistance, root_resistance, rsum
+     REAL :: soil_root_resist, rs, soil_resistance, root_resistance, rsum, conv
      INTEGER :: i
 
      ! Store each layers resistance, used in LWP calculatons
@@ -1808,7 +1809,8 @@ END SUBROUTINE calc_soil_hydraulic_props
                              (2.0 * pi * root_length * soil%zse(i) * Lsoil)
 
            ! convert from MPa s m2 m-3 to MPa s m2 mmol-1
-           soil_resistance = soil_resistance * 1E-6 * MOL_OF_WATER * 0.001
+           conv = 1.0 / (CUBIC_M_WATER_2_GRAMS * G_WATER_TO_MOLE * MOL_2_MMOL)
+           soil_resistance = soil_resistance * conv
 
            ! second component of below ground resistance related to root
            ! hydraulics
