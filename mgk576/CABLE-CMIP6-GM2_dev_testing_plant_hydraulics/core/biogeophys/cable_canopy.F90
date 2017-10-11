@@ -2920,8 +2920,8 @@ CONTAINS
   ! ----------------------------------------------------------------------------
 
   ! ----------------------------------------------------------------------------
-  SUBROUTINE photosynthesis_C3_emax(canopy, veg, vlaiz, vcmax, par, Cs, rd, &
-                                    km, gamma_star, an, leaf_idx)
+  SUBROUTINE photosynthesis_C3_emax(canopy, veg, vlaiz, vcmax, par, cs, rd, &
+                                    km, gamma_star, an, j)
      ! Calculate photosynthesis resolving Ci and A for a given gs
      ! (Jarvis style) to get the Emax solution.
      ! This follows MAESPA code.
@@ -2935,10 +2935,10 @@ CONTAINS
      TYPE (canopy_type), INTENT(INOUT)           :: canopy
      TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
 
-     INTEGER, INTENT(IN) :: leaf_idx
-     INTEGER :: i,j
+     INTEGER, INTENT(IN) :: j ! leaf index, direct or diffuse
+     INTEGER :: i
      REAL :: A, B, C
-     REAL(R_2),INTENT(INOUT), DIMENSION(:,:) :: Cs
+     REAL(R_2),INTENT(IN), DIMENSION(:,:) :: cs
      REAL, DIMENSION(mp,mf), INTENT(INOUT) :: an
      REAL, DIMENSION(mp,mf), INTENT(IN) :: vlaiz, vcmax, par, rd
      REAL, PARAMETER :: LAI_THRESH = 0.001
@@ -2947,43 +2947,38 @@ CONTAINS
      REAL(r_2), DIMENSION(mp,mf) :: an_rubisco, an_rubp
      REAL, INTENT(IN) :: gamma_star
 
-     j = leaf_idx
-     print*, j
      DO i=1, mp
         IF (sum(vlaiz(i,:)) .GT. LAI_THRESH) THEN
-           DO j=1, mf
+           ! where is the JV ratio set in the code? Use that instead
+           jmax(i,j) = vcmax(i,j) * 2.0
 
-               ! where is the JV ratio set in the code? Use that instead
-               jmax(i,j) = vcmax(i,j) * 2.0
+           !!! NEED TO CHECK THAT ALPHA AND THETA ARE THE SAME IN CABLE
+           !!! I THINK THESE ARE THE RIGHT CABLE PARAMS
+           A = veg%convex(i)
+           B = -(veg%alpha(i) * par(i,j) + jmax(i,j))
+           C = veg%alpha(i) * par(i,j) * jmax(i,j)
+           JJ(i,j) = quad(A, B, C)
+           Vj = JJ / 4.0
 
-               !!! NEED TO CHECK THAT ALPHA AND THETA ARE THE SAME IN CABLE
-               !!! I THINK THESE ARE THE RIGHT CABLE PARAMS
-               A = veg%convex(i)
-               B = -(veg%alpha(i) * par(i,j) + jmax(i,j))
-               C = veg%alpha(i) * par(i,j) * jmax(i,j)
-               JJ(i,j) = quad(A, B, C)
-               Vj = JJ / 4.0
+           ! Solution when Rubisco rate is limiting */
+           A = 1.0 / canopy%gsc(i)
+           B = (rd(i,j) - vcmax(i,j)) / canopy%gsc(i) - cs(i,j) - km(i)
+           C = vcmax(i,j) * (cs(i,j) - gamma_star) - rd(i,j) * &
+               (cs(i,j) + km(i))
+           an_rubisco(i,j) = quad(A, B, C)
 
-               ! Solution when Rubisco rate is limiting */
-               A = 1.0 / canopy%gsc(i)
-               B = (rd(i,j) - vcmax(i,j)) / canopy%gsc(i) - Cs(i,j) - km(i)
-               C = vcmax(i,j) * (Cs(i,j) - gamma_star) - rd(i,j) * &
-                   (Cs(i,j) + km(i))
-               an_rubisco(i,j) = quad(A, B, C)
+           ! Solution when electron transport rate is limiting
+           A = 1.0 / canopy%gsc(i)
+           B = (rd(i,j) - Vj(i,j)) / canopy%gsc(i) - cs(i,j) - &
+                2.0 * gamma_star
+           C = Vj(i,j) * (cs(i,j) - gamma_star) - rd(i,j) * &
+               (cs(i,j) + 2.0 * gamma_star)
+           an_rubp(i,j) = quad(A, B, C)
 
-               ! Solution when electron transport rate is limiting
-               A = 1.0 / canopy%gsc(i)
-               B = (rd(i,j) - Vj(i,j)) / canopy%gsc(i) - Cs(i,j) - &
-                    2.0 * gamma_star
-               C = Vj(i,j) * (Cs(i,j) - gamma_star) - rd(i,j) * &
-                   (Cs(i,j) + 2.0 * gamma_star)
-               an_rubp(i,j) = quad(A, B, C)
+           ! positive root
+           an_rubp(i,j) = MAX( 0.0_r_2, an_rubp(i,j))
 
-               ! positive root
-               an_rubp(i,j) = MAX( 0.0_r_2, an_rubp(i,j))
-
-               an(i,j) = MIN(an_rubisco(i,j), an_rubp(i,j))
-           ENDDO
+           an(i,j) = MIN(an_rubisco(i,j), an_rubp(i,j))
         ENDIF
      ENDDO
 
