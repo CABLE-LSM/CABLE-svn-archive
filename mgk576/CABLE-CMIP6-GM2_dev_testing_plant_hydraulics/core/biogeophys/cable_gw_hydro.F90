@@ -1722,17 +1722,34 @@ END SUBROUTINE calc_soil_hydraulic_props
   ! ----------------------------------------------------------------------------
   SUBROUTINE calc_soil_root_resistance(ssnow, soil, veg, bgc)
      ! Calculate root & soil hydraulic resistance following SPA approach
+     ! (Williams et al.)
      !
      ! Root hydraulic resistance declines linearly with increasing root
-     ! biomass according to root resistivity (400) [MPA s m2 mmol-1]
+     ! biomass according to root resistivity (400) [MPA s m2 mmol-1].
      !
      ! Soil hydraulic resistance depends on soil conductivity, root length,
-     ! depth of layer and distance between roots
+     ! depth of layer and distance between roots.
      !
      ! In units conversion, useful to recall that:
      ! m s-1 = m3 m-1 m-1 s-1
      ! m3 (amount of water) m-1 (per unit length) m-1 (per unit hydraulic head,
      !                                                 measured in meters) s-1
+     !
+     ! References:
+     ! -----------
+     ! * Duursma, R. A. 2008. Predicting the decline in daily maximum
+     !   transpiration rate of two pine stands during drought based on
+     !   constant minimum leaf water potential and plant hydraulic conductance.
+     !   Tree Physiology, 28, 265–276.
+     ! * Gardner, W.R. 1964. Relation of root distribution to water uptake
+     !   and availability. Agron. J. 56:41–45.
+     ! * Newman, E.I. 1969. Resistance to water flow in soil and plant. I.
+     !   Soil resistance in relation to amounts of root: theoretical
+     !   estimates. J. Appl. Ecol. 6:1–12.
+     ! * Williams, M. et al. 1996. Modeling the soil–plant–atmosphere continuum
+     !   in a Quercus–Acer stand at Harvard Forest: the regulation of stomatal
+     !   conductance by light, nitrogen and soil/plant hydraulic properties.
+     !   Plant Cell Environ. 19:911–927.
      !
      ! Martin De Kauwe, 9th Oct, 2017
 
@@ -1758,6 +1775,8 @@ END SUBROUTINE calc_soil_hydraulic_props
      REAL, PARAMETER :: M_HEAD_TO_MPa = 9.8 * KPA_2_MPa
      REAL, PARAMETER :: MOL_OF_WATER = 18.015
      REAL, PARAMETER :: MOL_2_MMOL = 1000.0
+     REAL, PARAMETER :: TINY_NUMBER = 1E-35
+     REAL, PARAMETER :: HUGE_NUMBER = 1E35
 
      REAL :: Ks, Lsoil, soilR1, soilR2, arg1, arg2, root_biomass, root_length
      REAL :: soil_root_resist, rs, soil_resistance, root_resistance, rsum
@@ -1768,7 +1787,7 @@ END SUBROUTINE calc_soil_hydraulic_props
      DO i = 1, ms ! Loop over 6 soil layers
         root_biomass = bgc%cplant(1,3) * veg%froot(1,i) * C_2_BIOMASS
 
-        ! (m m-3 soil)
+        ! (m root m-3 soil surface)
         root_length = root_biomass / (root_density * root_xsec_area)
 
         ! Soil hydraulic conductivity for layer, mm/s -> m s-1
@@ -1778,15 +1797,18 @@ END SUBROUTINE calc_soil_hydraulic_props
         Lsoil = Ks / head
 
         ! prevent floating point error
-        IF (Lsoil < 1E-35) THEN
-           soil_root_resist = 1E35
+        IF (Lsoil < TINY_NUMBER) THEN
+           soil_root_resist = HUGE_NUMBER
         ELSE
-            rs = sqrt(1.0 / (root_length * pi))
-            soil_resistance = log(rs / root_radius) /                         &
-                              (2.0 * pi * root_length * soil%zse(i) * Lsoil)
+           ! Conductance of the soil-to-root pathway can be estimated assuming
+           ! that the root system consists of one long root that has access to
+           ! a surrounding cylinder of soil (Gardner 1960, Newman 1969)
+           rs = sqrt(1.0 / (root_length * pi))
+           soil_resistance = log(rs / root_radius) /                         &
+                             (2.0 * pi * root_length * soil%zse(i) * Lsoil)
 
            ! convert from MPa s m2 m-3 to MPa s m2 mmol-1
-           soil_resistance = soil_resistance * 1E-6 * 18.0 * 0.001
+           soil_resistance = soil_resistance * 1E-6 * MOL_OF_WATER * 0.001
 
            ! second component of below ground resistance related to root
            ! hydraulics

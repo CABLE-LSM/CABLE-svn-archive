@@ -2009,7 +2009,7 @@ CONTAINS
                                   MAX(0.0, gs_coeff(i,kk) * anx(i,kk)))
           ENDDO
 
-          CALL calculate_emax(veg, ssnow, canopy, dsx(:), par_to_pass(:,:),   &
+          CALL calculate_emax(veg, ssnow, canopy, dsx(i), par_to_pass(:,:),   &
                               csx(:,:), SPREAD(cx1(:), 2, mf), rdx(:,:),      &
                               vcmxt3(:,:), rad%fvlai(:,:), anx(:,:), ktot,    &
                               co2cp3)
@@ -2842,7 +2842,7 @@ CONTAINS
 
      ! met stuff
      REAL(R_2),INTENT(IN), DIMENSION(:,:) :: cs  ! leaf surface CO2
-     REAL, INTENT(IN), DIMENSION(:) ::  dleaf    ! leaf surface vpd
+     REAL, INTENT(IN) ::  dleaf    ! leaf surface vpd
      REAL, DIMENSION(mp,mf), INTENT(IN) :: par   ! leaf surface PAR
      REAL :: press = 101325.0 ! Pascals, where is this in CABLE?????
 
@@ -2872,12 +2872,20 @@ CONTAINS
      REAL, DIMENSION(mp) :: km
      REAL, INTENT(IN) :: gamma_star
 
-     REAL :: e_demand, e_supply, gsv
+     REAL :: e_demand, e_supply, gsv, vpd
      REAL :: inferred_stress = 0.0
 
      INTEGER :: i,j
 
+
      DO i=1, mf
+
+        IF (dleaf < 50.0) THEN
+            vpd = 50.0
+        ELSE
+            vpd = dleaf
+        END IF
+
         ! Hydraulic conductance of the entire soil-to-leaf pathway
         ! (mmol m–2 s–1 MPa–1)
         ktot = 1.0 / (ssnow%total_soil_resist(1) + 1.0 / plant_k)
@@ -2890,11 +2898,11 @@ CONTAINS
         e_supply = MAX(0.0, ktot * (ssnow%weighted_swp(1) - min_lwp))
 
         ! Leaf transpiration (mmol m-2 s-1), i.e. ignoring boundary layer effects!
-        e_demand = MOL_2_MMOL * (dleaf(i) / press) * canopy%gsc(i) * C%RGSWC
-        !print *, par(1,i) ,vcmax(1,i)*1e6, cs(1,i)*1e6, dleaf(i),  canopy%gsc(i)
+        e_demand = MOL_2_MMOL * (vpd / press) * canopy%gsc(i) * C%RGSWC
+        print *, i, par(1,i) ,vcmax(1,i)*1e6, cs(1,i)*1e6, vpd, vcmax*1E6
         IF (e_demand > e_supply) THEN
            ! Calculate gs (mol m-2 s-1) given supply (Emax)
-           gsv = MMOL_2_MOL * e_supply / (dleaf(i) / press)
+           gsv = MMOL_2_MOL * e_supply / (vpd / press)
            canopy%gsc(i) = gsv / C%RGSWC
 
            ! gs cannot be lower than minimum (cuticular conductance)
@@ -2942,6 +2950,7 @@ CONTAINS
      REAL, DIMENSION(mp,mf), INTENT(INOUT) :: an
      REAL, DIMENSION(mp,mf), INTENT(IN) :: vlaiz, vcmax, par, rd
      REAL, PARAMETER :: LAI_THRESH = 0.001
+     REAL, PARAMETER :: MOL_2_UMOL = 1E6
      REAL, DIMENSION(mp) ::  km
      REAL, DIMENSION(mp,mf) :: jmax, discriminant, JJ, Vj
      REAL(r_2), DIMENSION(mp,mf) :: an_rubisco, an_rubp
@@ -2950,7 +2959,7 @@ CONTAINS
      DO i=1, mp
         IF (sum(vlaiz(i,:)) .GT. LAI_THRESH) THEN
            ! where is the JV ratio set in the code? Use that instead
-           jmax(i,j) = vcmax(i,j)*1E6 * 2.0
+           jmax(i,j) = vcmax(i,j) * MOL_2_UMOL * 2.0
 
            ! What I thought was theta in CABLE doesn't appear to be in the right
            ! order or mangitude - check units and whether it was the right thing
@@ -2964,17 +2973,18 @@ CONTAINS
 
            ! Solution when Rubisco rate is limiting */
            A = 1.0 / canopy%gsc(i)
-           B = (rd(i,j) - vcmax(i,j)*1E6) / canopy%gsc(i) - cs(i,j)*1E6 - km(i)
-           C = vcmax(i,j)*1E6 * (cs(i,j)*1E6 - gamma_star) - rd(i,j) * &
-               (cs(i,j)*1E6 + km(i))
+           B = ((rd(i,j)*MOL_2_UMOL) - (vcmax(i,j)*MOL_2_UMOL)) / &
+               canopy%gsc(i) - (cs(i,j)*MOL_2_UMOL) - km(i)
+           C = (vcmax(i,j)*MOL_2_UMOL) * ((cs(i,j)*MOL_2_UMOL) - gamma_star) - &
+                (rd(i,j)*MOL_2_UMOL) * ((cs(i,j)*MOL_2_UMOL) + km(i))
            an_rubisco(i,j) = quad(A, B, C)
 
            ! Solution when electron transport rate is limiting
            A = 1.0 / canopy%gsc(i)
-           B = (rd(i,j) - Vj(i,j)) / canopy%gsc(i) - cs(i,j)*1E6 - &
-                2.0 * gamma_star
-           C = Vj(i,j) * (cs(i,j)*1E6 - gamma_star) - rd(i,j) * &
-               (cs(i,j)*1E6 + 2.0 * gamma_star)
+           B = ((rd(i,j)*MOL_2_UMOL) - Vj(i,j)) / canopy%gsc(i) - &
+               (cs(i,j)*MOL_2_UMOL) - 2.0 * gamma_star
+           C = Vj(i,j) * ((cs(i,j)*MOL_2_UMOL) - gamma_star) - &
+               (rd(i,j)*MOL_2_UMOL) * ((cs(i,j)*MOL_2_UMOL) + 2.0 * gamma_star)
            an_rubp(i,j) = quad(A, B, C)
 
            ! positive root
