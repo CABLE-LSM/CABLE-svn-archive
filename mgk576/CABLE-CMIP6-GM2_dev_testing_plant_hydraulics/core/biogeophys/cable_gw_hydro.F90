@@ -1832,10 +1832,12 @@ END SUBROUTINE calc_soil_hydraulic_props
   ! ----------------------------------------------------------------------------
   SUBROUTINE calc_weighted_swp(ssnow, soil)
     !
-    ! Determine which layer water is extracted from. This is achieved by
-    ! roughly estimating the maximum rate of water supply from each rooted
-    ! soil layer, using SWP and hydraulic resistance of each layer. Actual
-    ! water from each layer is determined using the estimated value as a
+    ! Determine weighted SWP given the the maximum rate of water supply from
+    ! each rooted soil layer and hydraulic resistance of each layer. We are
+    ! also calculating a weighting fraction for water extraction. This is
+    ! achieved by roughly estimating the maximum rate of water supply from each
+    ! rooted soil layer, using SWP and hydraulic resistance of each layer.
+    ! Actual water from each layer is determined using the estimated value as a
     ! weighted factor.
     !
     ! Todo for Manon:
