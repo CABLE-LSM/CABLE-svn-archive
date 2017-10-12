@@ -3035,12 +3035,7 @@ CONTAINS
      d = B**2 - 4.0 * A * C
      root = (-B + SQRT(MAX(0.0_r_2 , d))) / (2.0 * A)
      root = MAX(0.0_r_2, root)
-
-     ! no solution, give it a huge number
-     IF(ABS(root) < 1.0e-9) THEN
-        root = 99999.0
-     ENDIF
-
+     
   END FUNCTION quad
   ! ----------------------------------------------------------------------------
 
