@@ -2951,9 +2951,7 @@ CONTAINS
   ! ----------------------------------------------------------------------------
   SUBROUTINE photosynthesis_C3_emax(veg, vcmax, par, cs, rd, km, &
                                     gamma_star, gsc, an, i, j)
-     ! Calculate photosynthesis resolving Ci and A for a given gs
-     ! (Jarvis style) to get the Emax solution.
-     ! This follows MAESPA code.
+     ! Re-calculate photosynthesis given the reduced gs from Emax assumption
      !
      ! Martin De Kauwe, 9th Oct, 2017
      USE cable_common_module
@@ -2974,7 +2972,6 @@ CONTAINS
      REAL(r_2), DIMENSION(mp,mf) :: an_rubisco, an_rubp
      REAL, INTENT(IN) :: gamma_star
 
-     print *, vcmax(i,j), par(i,j), cs(i,j), rd(i,j), km(i,j), gsc(j)
      ! where is the JV ratio set in the code? Use that instead
      jmax = vcmax(i,j) * 2.0
 
