@@ -2972,7 +2972,6 @@ CONTAINS
      REAL, DIMENSION(mp,mf), INTENT(INOUT) :: an
      REAL, DIMENSION(mf), INTENT(IN) :: gsc
      REAL, DIMENSION(mp,mf), INTENT(IN) :: vcmax, par, rd
-     REAL, PARAMETER :: LAI_THRESH = 0.001
      REAL, PARAMETER :: UMOL_2_MOL = 1E-6
      REAL, DIMENSION(mp) ::  km
      REAL, DIMENSION(mp,mf) :: jmax, JJ, Vj
@@ -3035,7 +3034,7 @@ CONTAINS
      d = B**2 - 4.0 * A * C
      root = (-B + SQRT(MAX(0.0_r_2 , d))) / (2.0 * A)
      root = MAX(0.0_r_2, root)
-     
+
   END FUNCTION quad
   ! ----------------------------------------------------------------------------
 
