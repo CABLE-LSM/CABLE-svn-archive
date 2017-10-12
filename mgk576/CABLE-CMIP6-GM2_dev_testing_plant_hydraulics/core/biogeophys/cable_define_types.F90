@@ -497,7 +497,6 @@ MODULE cable_def_types_mod
 
       ! mgk576, 10/10/2017: plant hydraulics
       REAL, DIMENSION(:), POINTER ::                                           &
-         gsc,&! stom cond for co2
          lwp
 
 
@@ -1178,7 +1177,6 @@ SUBROUTINE alloc_canopy_type(var, mp)
    ALLOCATE (var % DvLitt(mp))
 
    ! mgk576, 10/10/2017: plant hydraulics
-   ALLOCATE( var%gsc(mf) )
    ALLOCATE( var%lwp(mf) )
 
 END SUBROUTINE alloc_canopy_type
@@ -1786,7 +1784,6 @@ SUBROUTINE dealloc_canopy_type(var)
    DEALLOCATE (var % DvLitt)
 
    ! mgk576, 10/10/2017: plant hydraulics
-   DEALLOCATE( var%gsc )
    DEALLOCATE( var%lwp )
 
 END SUBROUTINE dealloc_canopy_type

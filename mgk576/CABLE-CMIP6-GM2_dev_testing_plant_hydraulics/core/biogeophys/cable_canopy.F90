@@ -1680,6 +1680,8 @@ CONTAINS
          temp2,      &
          par_to_pass
 
+    REAL, DIMENSION(mf) :: gsc
+
     REAL, DIMENSION(:,:), POINTER :: gswmin ! min stomatal conductance
 
     REAL, DIMENSION(mp,2) ::  gsw_term, lower_limit2  ! local temp var
@@ -2005,17 +2007,17 @@ CONTAINS
           ! Ensure transpiration does not exceed Emax, if it does we
           ! recalculate gs and An
           DO kk=1, mf
-             canopy%gsc(kk) = MAX(1.e-3, gswmin(i,kk) +                       &
-                                  MAX(0.0, gs_coeff(i,kk) * anx(i,kk)))
+             gsc(kk) = MAX(1.e-3, gswmin(i,kk) +                       &
+                           MAX(0.0, gs_coeff(i,kk) * anx(i,kk)))
           ENDDO
 
-          CALL calculate_emax(veg, ssnow, canopy, dsx(:), par_to_pass(:,:),   &
+          CALL calculate_emax(veg, ssnow, dsx(:), par_to_pass(:,:),   &
                               csx(:,:), SPREAD(cx1(:), 2, mf), rdx(:,:),      &
-                              vcmxt3(:,:), anx(:,:), ktot, co2cp3)
+                              vcmxt3(:,:), gsc(:), anx(:,:), ktot, co2cp3)
           ! If supply didn't mean demand, gsc will have been reduced, we need
           ! to update the gs_coeff term, so it can be reused in photosynthesis
           ! call on the next iteration.
-          gs_coeff(i,kk) = (canopy%gsc(kk) - gswmin(i,kk)) / anx(i,kk)
+          gs_coeff(i,kk) = (gsc(kk) - gswmin(i,kk)) / anx(i,kk)
        ENDIF
 
        DO i=1,mp
@@ -2820,8 +2822,8 @@ CONTAINS
   !*********************************************************************************************************************
 
   ! ----------------------------------------------------------------------------
-  SUBROUTINE calculate_emax(veg, ssnow, canopy, dleaf, par, cs, km, rd, vcmax, &
-                            an, ktot, gamma_star)
+  SUBROUTINE calculate_emax(veg, ssnow, dleaf, par, cs, km, rd, vcmax, &
+                            an, gsc, ktot, gamma_star)
      !
      ! Transpiration is calculated assuming a maximum "supply" driven by
      ! darcy's law. Once the "demand" exceeds the supply, we infer a new
@@ -2847,7 +2849,6 @@ CONTAINS
 
      TYPE (veg_parameter_type), INTENT(INOUT)  :: veg
      TYPE (soil_snow_type), INTENT(INOUT)      :: ssnow
-     TYPE (canopy_type), INTENT(INOUT)         :: canopy
 
      ! met stuff
      REAL(R_2),INTENT(IN), DIMENSION(:,:) :: cs  ! leaf surface CO2
@@ -2881,6 +2882,7 @@ CONTAINS
 
      REAL, DIMENSION(mp,mf), INTENT(IN) :: rd, vcmax
      REAL, DIMENSION(mp,mf), INTENT(INOUT) :: an
+     REAL, DIMENSION(mf), INTENT(INOUT) :: gsc
      REAL, DIMENSION(mp) :: km
      REAL, INTENT(IN) :: gamma_star
 
@@ -2916,25 +2918,25 @@ CONTAINS
         e_supply = MAX(0.0, ktot * (ssnow%weighted_swp(1) - min_lwp))
 
         ! Transpiration (mmol m-2 s-1) demand ignoring boundary layer effects!
-        e_demand = MOL_2_MMOL * (dleaf(i) / press) * canopy%gsc(i) * C%RGSWC
+        e_demand = MOL_2_MMOL * (dleaf(i) / press) * gsc(i) * C%RGSWC
         !print *, i, par(1,i) ,vcmax(1,i)*1e6, cs(1,i)*1e6, vpd, vcmax*1E6
 
         IF (e_demand > e_supply) THEN
            ! Calculate gs (mol m-2 s-1) given supply (Emax)
            gsv = MMOL_2_MOL * e_supply / (dleaf(i) / press)
-           canopy%gsc(i) = gsv / C%RGSWC
+           gsc(i) = gsv / C%RGSWC
 
            ! gs cannot be lower than minimum (cuticular conductance)
-           IF (canopy%gsc(i) < gs_min) THEN
-              canopy%gsc(i) = gs_min
-              gsv = canopy%gsc(i) * C%RGSWC
+           IF (gsc(i) < gs_min) THEN
+              gsc(i) = gs_min
+              gsv = gsc(i) * C%RGSWC
            ENDIF
 
            ! Need to calculate an effective beta to use in soil decomposition
            inferred_stress = inferred_stress + e_supply / e_demand
            ! Re-solve An for the new gs
-           CALL photosynthesis_C3_emax(canopy, veg, vcmaxx, parx, csx, &
-                                       rdx, kmx, gamma_starx, an, i)
+           CALL photosynthesis_C3_emax(veg, vcmaxx, parx, csx, &
+                                       rdx, kmx, gamma_starx, gsc, an, i)
 
         ELSE
            ! This needs to be initialised somewhere.
@@ -2950,7 +2952,7 @@ CONTAINS
   ! ----------------------------------------------------------------------------
 
   ! ----------------------------------------------------------------------------
-  SUBROUTINE photosynthesis_C3_emax(canopy, veg, vcmax, par, cs, rd, km, &
+  SUBROUTINE photosynthesis_C3_emax(veg, vcmax, par, cs, rd, km, &
                                     gamma_star, an, j)
      ! Calculate photosynthesis resolving Ci and A for a given gs
      ! (Jarvis style) to get the Emax solution.
@@ -2962,7 +2964,6 @@ CONTAINS
 
      IMPLICIT NONE
 
-     TYPE (canopy_type), INTENT(INOUT)           :: canopy
      TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
 
      INTEGER, INTENT(IN) :: j ! leaf index, direct or diffuse
@@ -2970,6 +2971,7 @@ CONTAINS
      REAL :: A, B, C
      REAL(R_2),INTENT(IN), DIMENSION(:,:) :: cs
      REAL, DIMENSION(mp,mf), INTENT(INOUT) :: an
+     REAL, DIMENSION(mf), INTENT(IN) :: gsc
      REAL, DIMENSION(mp,mf), INTENT(IN) :: vcmax, par, rd
      REAL, PARAMETER :: LAI_THRESH = 0.001
      REAL, PARAMETER :: UMOL_2_MOL = 1E-6
@@ -2993,17 +2995,15 @@ CONTAINS
         Vj = JJ / 4.0
 
         ! Solution when Rubisco rate is limiting */
-        A = 1.0 / canopy%gsc(i)
-        B = (rd(i,j) - vcmax(i,j)) / &
-            canopy%gsc(i) - cs(i,j) - km(i)
+        A = 1.0 / gsc(i)
+        B = (rd(i,j) - vcmax(i,j)) / canopy%gsc(i) - cs(i,j) - km(i)
         C = vcmax(i,j) * (cs(i,j) - gamma_star) - &
              rd(i,j) * (cs(i,j) + km(i))
         an_rubisco(i,j) = quad(A, B, C)
 
         ! Solution when electron transport rate is limiting
-        A = 1.0 / canopy%gsc(i)
-        B = (rd(i,j) - Vj(i,j)) / canopy%gsc(i) - &
-            cs(i,j) - 2.0 * gamma_star
+        A = 1.0 / gsc(i)
+        B = (rd(i,j) - Vj(i,j)) / gsc(i) - cs(i,j) - 2.0 * gamma_star
         C = Vj(i,j) * (cs(i,j) - gamma_star) - &
             rd(i,j) * (cs(i,j) + 2.0 * gamma_star)
         an_rubp(i,j) = quad(A, B, C)
