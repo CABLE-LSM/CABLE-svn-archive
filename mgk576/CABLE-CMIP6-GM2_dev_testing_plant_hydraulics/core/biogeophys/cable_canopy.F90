@@ -2005,20 +2005,23 @@ CONTAINS
        IF (cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
           ! Ensure transpiration does not exceed Emax, if it does we
           ! recalculate gs and An
-          DO kk=1, mf
-             gsc(kk)  = MAX((1.e-3 / C%RGSWC), (gswmin(i,kk) / C%RGSWC) + &
-                            MAX(0.0, gs_coeff(i,kk) * anx(i,kk)))
+
+          DO i=1,mp
+             DO kk=1, mf
+                gsc(kk)  = MAX((1.e-3 / C%RGSWC), (gswmin(i,kk) / C%RGSWC) + &
+                               MAX(0.0, gs_coeff(i,kk) * anx(i,kk)))
+
+                CALL calculate_emax(canopy, veg, ssnow, dsx(:), par_to_pass(:,:),   &
+                                    csx(:,:), SPREAD(cx1(:), 2, mf), rdx(:,:),      &
+                                    vcmxt3(:,:), gsc(:), anx(:,:), ktot, co2cp3, i, kk)
+
+                ! If supply didn't mean demand, gsc will have been reduced, we need
+                ! to update the gs_coeff term, so it can be reused in photosynthesis
+                ! call on the next iteration.
+                gs_coeff(i,kk) = MAX(0.0, &
+                                     (gsc(kk) - (gswmin(i,kk) / C%RGSWC)) / anx(i,kk))
+             ENDDO
           ENDDO
-
-          CALL calculate_emax(canopy, veg, ssnow, dsx(:), par_to_pass(:,:),   &
-                              csx(:,:), SPREAD(cx1(:), 2, mf), rdx(:,:),      &
-                              vcmxt3(:,:), gsc(:), anx(:,:), ktot, co2cp3, i)
-
-          ! If supply didn't mean demand, gsc will have been reduced, we need
-          ! to update the gs_coeff term, so it can be reused in photosynthesis
-          ! call on the next iteration.
-          gs_coeff(i,kk) = MAX(0.0, &
-                              (gsc(kk) - (gswmin(i,kk) / C%RGSWC)) / anx(i,kk))
        ENDIF
 
        DO i=1,mp
@@ -2825,7 +2828,7 @@ CONTAINS
 
   ! ----------------------------------------------------------------------------
   SUBROUTINE calculate_emax(canopy, veg, ssnow, dleaf, par, cs, km, rd, vcmax, &
-                            an, gsc, ktot, gamma_star, i)
+                            an, gsc, ktot, gamma_star, i, j)
      !
      ! Transpiration is calculated assuming a maximum "supply" driven by
      ! darcy's law. Once the "demand" exceeds the supply, we infer a new
@@ -2888,15 +2891,15 @@ CONTAINS
 
      REAL(R_2), DIMENSION(mp,mf) :: csx
      REAL, DIMENSION(mp,mf) :: parx, rdx, vcmaxx, kmx
-     REAL, DIMENSION(mf) :: dleafx
+     REAL, DIMENSION(mp) :: dleafx
      REAL :: gamma_starx
 
 
      REAL :: e_demand, e_supply, gsw
      REAL :: inferred_stress
 
-     INTEGER, INTENT(IN) :: i ! patch
-     INTEGER :: j
+     INTEGER, INTENT(IN) :: i,j ! patch, leaf
+
      ! need to change units to be consistent with what I deem the units should
      ! be in
      parx = par * MOL_2_UMOL
@@ -2907,43 +2910,43 @@ CONTAINS
      gamma_starx = gamma_star * MOL_2_UMOL
 
      inferred_stress = 0.0
-     DO j=1, mf ! Loop over sunlit, shaded leaves
 
-        ! Hydraulic conductance of the entire soil-to-leaf pathway
-        ! (mmol m–2 s–1 MPa–1)
-        ktot = 1.0 / (ssnow%total_soil_resist(i) + 1.0 / plant_k)
+     ! Hydraulic conductance of the entire soil-to-leaf pathway
+     ! (mmol m–2 s–1 MPa–1)
+     ktot = 1.0 / (ssnow%total_soil_resist(i) + 1.0 / plant_k)
 
-        ! Maximum transpiration rate (mmol m-2 s-1) is given by Darcy's law,
-        ! which estimates the water flow from the bulk soil to the leaf at the
-        ! minimum leaf water potential (min_lwp)
-        e_supply = MAX(0.0, ktot * (ssnow%weighted_swp(i) - min_lwp))
+     ! Maximum transpiration rate (mmol m-2 s-1) is given by Darcy's law,
+     ! which estimates the water flow from the bulk soil to the leaf at the
+     ! minimum leaf water potential (min_lwp)
+     e_supply = MAX(0.0, ktot * (ssnow%weighted_swp(i) - min_lwp))
 
-        ! Transpiration (mmol m-2 s-1) demand ignoring boundary layer effects!
-        e_demand = MOL_2_MMOL * (dleaf(j) / press) * gsc(j) * C%RGSWC
+     ! Transpiration (mmol m-2 s-1) demand ignoring boundary layer effects!
+     e_demand = MOL_2_MMOL * (dleaf(i) / press) * gsc(j) * C%RGSWC
+     !print*, i, j, e_supply, e_demand, gsc(j)
 
-        IF (e_demand > e_supply) THEN
-           ! Calculate gs (mol m-2 s-1) given supply (Emax)
-           gsw = MMOL_2_MOL * e_supply / (dleaf(j) / press)
-           gsc(j) = gsw / C%RGSWC
+     IF (e_demand > e_supply) THEN
+        ! Calculate gs (mol m-2 s-1) given supply (Emax)
+        gsw = MMOL_2_MOL * e_supply / (dleaf(i) / press)
+        gsc(j) = gsw / C%RGSWC
 
-           ! gs cannot be lower than minimum (cuticular conductance)
-           IF (gsc(j) < gs_min) THEN
-              gsc(j) = gs_min
-              gsw = gsc(j) * C%RGSWC
-           ENDIF
-
-           ! Need to calculate an effective beta to use in soil decomposition
-           inferred_stress = inferred_stress + e_supply / e_demand
-           !print*, inferred_stress, e_supply, e_demand, e_supply / e_demand
-           ! Re-solve An for the new gs
-           CALL photosynthesis_C3_emax(veg, vcmaxx, parx, csx, &
-                                       rdx, kmx, gamma_starx, gsc, an, j)
-
-        ELSE
-           ! This needs to be initialised somewhere.
-           inferred_stress = inferred_stress + 1.0
+        ! gs cannot be lower than minimum (cuticular conductance)
+        IF (gsc(j) < gs_min) THEN
+           gsc(j) = gs_min
+           gsw = gsc(j) * C%RGSWC
         ENDIF
-     ENDDO
+
+        ! Need to calculate an effective beta to use in soil decomposition
+        inferred_stress = inferred_stress + e_supply / e_demand
+        !print*, inferred_stress, e_supply, e_demand, e_supply / e_demand
+        ! Re-solve An for the new gs
+        CALL photosynthesis_C3_emax(veg, vcmaxx, parx, csx, &
+                                    rdx, kmx, gamma_starx, gsc, an, i, j)
+
+     ELSE
+        ! This needs to be initialised somewhere.
+        inferred_stress = inferred_stress + 1.0
+     ENDIF
+
 
      ! fwsoil means nothing when using the plant hydraulics, but we still need
      ! an inferred fwsoil as this is used in SOM decomposition calculations
@@ -2954,7 +2957,7 @@ CONTAINS
 
   ! ----------------------------------------------------------------------------
   SUBROUTINE photosynthesis_C3_emax(veg, vcmax, par, cs, rd, km, &
-                                    gamma_star, gsc, an, j)
+                                    gamma_star, gsc, an, i, j)
      ! Calculate photosynthesis resolving Ci and A for a given gs
      ! (Jarvis style) to get the Emax solution.
      ! This follows MAESPA code.
@@ -2967,8 +2970,7 @@ CONTAINS
 
      TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
 
-     INTEGER, INTENT(IN) :: j ! leaf index, direct or diffuse
-     INTEGER :: i
+     INTEGER, INTENT(IN) :: i, j ! patch, leaf index
      REAL :: A, B, C
      REAL(R_2),INTENT(IN), DIMENSION(:,:) :: cs
      REAL, DIMENSION(mp,mf), INTENT(INOUT) :: an
@@ -2979,40 +2981,39 @@ CONTAINS
      REAL(r_2), DIMENSION(mp,mf) :: an_rubisco, an_rubp
      REAL, INTENT(IN) :: gamma_star
 
-     DO i=1, mp
-        ! where is the JV ratio set in the code? Use that instead
-        jmax(i,j) = vcmax(i,j) * 2.0
+     ! where is the JV ratio set in the code? Use that instead
+     jmax(i,j) = vcmax(i,j) * 2.0
 
-        ! What I thought was theta in CABLE doesn't appear to be in the right
-        ! order or mangitude - check units and whether it was the right thing
-        ! for now use what we use in GDAY
-        !A = veg%convex(i)
-        A = 0.7
-        B = -(veg%alpha(i) * par(i,j) + jmax(i,j))
-        C = veg%alpha(i) * par(i,j) * jmax(i,j)
-        JJ(i,j) = quad(A, B, C)
-        Vj = JJ / 4.0
+     ! What I thought was theta in CABLE doesn't appear to be in the right
+     ! order or mangitude - check units and whether it was the right thing
+     ! for now use what we use in GDAY
+     !A = veg%convex(i)
+     A = 0.7
+     B = -(veg%alpha(i) * par(i,j) + jmax(i,j))
+     C = veg%alpha(i) * par(i,j) * jmax(i,j)
+     JJ(i,j) = quad(A, B, C)
+     Vj = JJ / 4.0
 
-        ! Solution when Rubisco rate is limiting */
-        A = 1.0 / gsc(i)
-        B = (rd(i,j) - vcmax(i,j)) / gsc(i) - cs(i,j) - km(i,j)
-        C = vcmax(i,j) * (cs(i,j) - gamma_star) - &
-             rd(i,j) * (cs(i,j) + km(i,j))
-        an_rubisco(i,j) = quad(A, B, C)
+     ! Solution when Rubisco rate is limiting */
+     A = 1.0 / gsc(i)
+     B = (rd(i,j) - vcmax(i,j)) / gsc(i) - cs(i,j) - km(i,j)
+     C = vcmax(i,j) * (cs(i,j) - gamma_star) - &
+          rd(i,j) * (cs(i,j) + km(i,j))
+     an_rubisco(i,j) = quad(A, B, C)
 
-        ! Solution when electron transport rate is limiting
-        A = 1.0 / gsc(i)
-        B = (rd(i,j) - Vj(i,j)) / gsc(i) - cs(i,j) - 2.0 * gamma_star
-        C = Vj(i,j) * (cs(i,j) - gamma_star) - &
-            rd(i,j) * (cs(i,j) + 2.0 * gamma_star)
-        an_rubp(i,j) = quad(A, B, C)
+     ! Solution when electron transport rate is limiting
+     A = 1.0 / gsc(i)
+     B = (rd(i,j) - Vj(i,j)) / gsc(i) - cs(i,j) - 2.0 * gamma_star
+     C = Vj(i,j) * (cs(i,j) - gamma_star) - &
+         rd(i,j) * (cs(i,j) + 2.0 * gamma_star)
+     an_rubp(i,j) = quad(A, B, C)
 
-        ! positive root
-        an_rubp(i,j) = MAX( 0.0_r_2, an_rubp(i,j))
+     ! positive root
+     an_rubp(i,j) = MAX( 0.0_r_2, an_rubp(i,j))
 
-        ! CABLE is expecting to find An returned in mol m-2 s-1
-        an(i,j) = MIN(an_rubisco(i,j), an_rubp(i,j)) * UMOL_2_MOL
-     ENDDO
+     ! CABLE is expecting to find An returned in mol m-2 s-1
+     an(i,j) = MIN(an_rubisco(i,j), an_rubp(i,j)) * UMOL_2_MOL
+
 
   END SUBROUTINE photosynthesis_C3_emax
   ! ---------------------------------------------------------------------------
