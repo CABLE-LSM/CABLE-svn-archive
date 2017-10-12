@@ -1678,7 +1678,7 @@ CONTAINS
          psycst,     & ! modified pych. constant
          frac42,     & ! 2D frac4
          temp2,      &
-         par_to_pass
+         par
 
     REAL, DIMENSION(mf) :: gsc
 
@@ -1870,8 +1870,8 @@ CONTAINS
              rdx(i,2) = (veg%cfrd(i)*vcmxt3(i,2) + veg%cfrd(i)*vcmxt4(i,2))
 
              ! PAR: W/m2 (J m-2 s-1) -> mol m-2 s-1
-             par_to_pass(i,1) = rad%qcan(i,1,1) * jtomol
-             par_to_pass(i,2) = rad%qcan(i,2,1) * jtomol
+             par(i,1) = rad%qcan(i,1,1) * jtomol
+             par(i,2) = rad%qcan(i,2,1) * jtomol
 !Vanessa - the trunk does not contain xleauning as of Ticket#56 inclusion
 !as well as other inconsistencies here that need further investigation. In the
 !interests of getting this into the trunk ASAP just isolate this code for now
@@ -2013,9 +2013,10 @@ CONTAINS
                 gsc(kk)  = MAX((1.e-3 / C%RGSWC), (gswmin(i,kk) / C%RGSWC) + &
                                MAX(0.0, (gs_coeff(i,kk) *1e6* anx(i,kk))))
 
-                CALL calculate_emax(canopy, veg, ssnow, dsx(:), par_to_pass(:,:),   &
-                                    csx(:,:), SPREAD(cx1(:), 2, mf), rdx(:,:),      &
-                                    vcmxt3(:,:), gsc(:), anx(:,:), ktot, co2cp3, i, kk)
+                CALL calculate_emax(canopy, veg, ssnow, dsx(:), par(:,:),      &
+                                    csx(:,:), SPREAD(cx1(:), 2, mf), rdx(:,:), &
+                                    vcmxt3(:,:), gsc(:), anx(:,:), ktot,       &
+                                    co2cp3, i, kk)
 
                 ! If supply didn't mean demand, gsc will have been reduced, we need
                 ! to update the gs_coeff term, so it can be reused in photosynthesis
