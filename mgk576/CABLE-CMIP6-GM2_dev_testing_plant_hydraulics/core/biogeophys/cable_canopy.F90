@@ -2918,7 +2918,6 @@ CONTAINS
         ! Transpiration (mmol m-2 s-1) demand ignoring boundary layer effects!
         e_demand = MOL_2_MMOL * (dleaf(i) / press) * gsc(i) * C%RGSWC
 
-        print *, i, " : ", kmx(1,i)
         IF (e_demand > e_supply) THEN
            ! Calculate gs (mol m-2 s-1) given supply (Emax)
            gsv = MMOL_2_MOL * e_supply / (dleaf(i) / press)
