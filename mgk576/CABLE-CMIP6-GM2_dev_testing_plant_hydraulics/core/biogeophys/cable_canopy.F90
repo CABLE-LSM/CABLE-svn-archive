@@ -2014,6 +2014,7 @@ CONTAINS
           CALL calculate_emax(canopy, veg, ssnow, dsx(:), par_to_pass(:,:),   &
                               csx(:,:), SPREAD(cx1(:), 2, mf), rdx(:,:),      &
                               vcmxt3(:,:), gsc(:), anx(:,:), ktot, co2cp3)
+
           ! If supply didn't mean demand, gsc will have been reduced, we need
           ! to update the gs_coeff term, so it can be reused in photosynthesis
           ! call on the next iteration.
@@ -3034,6 +3035,11 @@ CONTAINS
      d = B**2 - 4.0 * A * C
      root = (-B + SQRT(MAX(0.0_r_2 , d))) / (2.0 * A)
      root = MAX(0.0_r_2, root)
+
+     ! no solution, give it a huge number
+     IF(ABS(root) < 1.0e-9) THEN
+        root = 99999.0
+     ENDIF
 
   END FUNCTION quad
   ! ----------------------------------------------------------------------------
