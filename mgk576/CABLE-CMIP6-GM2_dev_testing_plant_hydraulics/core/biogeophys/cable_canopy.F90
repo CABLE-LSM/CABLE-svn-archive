@@ -2008,8 +2008,10 @@ CONTAINS
 
           DO i=1,mp
              DO kk=1, mf
+
+
                 gsc(kk)  = MAX((1.e-3 / C%RGSWC), (gswmin(i,kk) / C%RGSWC) + &
-                               MAX(0.0, gs_coeff(i,kk) * anx(i,kk)))
+                               MAX(0.0, (gs_coeff(i,kk) *1e6* anx(i,kk))))
 
                 CALL calculate_emax(canopy, veg, ssnow, dsx(:), par_to_pass(:,:),   &
                                     csx(:,:), SPREAD(cx1(:), 2, mf), rdx(:,:),      &
@@ -2019,7 +2021,8 @@ CONTAINS
                 ! to update the gs_coeff term, so it can be reused in photosynthesis
                 ! call on the next iteration.
                 gs_coeff(i,kk) = MAX(0.0, &
-                                     (gsc(kk) - (gswmin(i,kk) / C%RGSWC)) / anx(i,kk))
+                                     ((gsc(kk)/1e6) - (gswmin(i,kk) / C%RGSWC)) / anx(i,kk))
+
              ENDDO
           ENDDO
        ENDIF
@@ -3012,7 +3015,7 @@ CONTAINS
      an_rubp(i,j) = MAX( 0.0_r_2, an_rubp(i,j))
 
      ! CABLE is expecting to find An returned in mol m-2 s-1
-     an(i,j) = MIN(an_rubisco(i,j), an_rubp(i,j)) * UMOL_2_MOL
+     an(i,j) = MIN(an_rubisco(i,j), an_rubp(i,j)) !* UMOL_2_MOL
 
 
   END SUBROUTINE photosynthesis_C3_emax
