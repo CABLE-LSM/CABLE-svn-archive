@@ -2890,7 +2890,7 @@ CONTAINS
      REAL :: gamma_starx
 
 
-     REAL :: e_demand, e_supply, gsv
+     REAL :: e_demand, e_supply, gsw
      REAL :: inferred_stress = 0.0
 
      INTEGER :: i,j
@@ -2920,13 +2920,13 @@ CONTAINS
 
         IF (e_demand > e_supply) THEN
            ! Calculate gs (mol m-2 s-1) given supply (Emax)
-           gsv = MMOL_2_MOL * e_supply / (dleaf(i) / press)
-           gsc(i) = gsv / C%RGSWC
+           gsw = MMOL_2_MOL * e_supply / (dleaf(i) / press)
+           gsc(i) = gsw / C%RGSWC
 
            ! gs cannot be lower than minimum (cuticular conductance)
            IF (gsc(i) < gs_min) THEN
               gsc(i) = gs_min
-              gsv = gsc(i) * C%RGSWC
+              gsw = gsc(i) * C%RGSWC
            ENDIF
 
            ! Need to calculate an effective beta to use in soil decomposition
