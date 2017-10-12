@@ -2011,8 +2011,11 @@ CONTAINS
 
           CALL calculate_emax(veg, ssnow, canopy, dsx(:), par_to_pass(:,:),   &
                               csx(:,:), SPREAD(cx1(:), 2, mf), rdx(:,:),      &
-                              vcmxt3(:,:), anx(:,:), ktot,  co2cp3)
-
+                              vcmxt3(:,:), anx(:,:), ktot, co2cp3)
+          ! If supply didn't mean demand, gsc will have been reduced, we need
+          ! to update the gs_coeff term, so it can be reused in photosynthesis
+          ! call on the next iteration.
+          gs_coeff(i,kk) = (canopy%gsc(kk) - gswmin(i,kk)) / anx(i,kk)
        ENDIF
 
        DO i=1,mp
@@ -2027,8 +2030,11 @@ CONTAINS
                         gbhu(i,kk) + gbhf(i,kk) )
                    csx(i,kk) = MAX( 1.0e-4_r_2, csx(i,kk) )
 
+                   ! Don't want fwsoil in the emax calculated gsw
                    IF (cable_user%FWSOIL_SWITCH == 'hydrology') THEN
-                      canopy%gswx(i,kk) = canopy%gsc(kk) * C%RGSWC
+                      canopy%gswx(i,kk) = MAX(1.e-3, gswmin(i,kk) +           &
+                                              MAX(0.0, C%RGSWC *              &
+                                              gs_coeff(i,kk) * anx(i,kk)))
                    ELSE
                       ! Ticket #56, xleuning replaced with gs_coeff here
                       canopy%gswx(i,kk) = MAX(1.e-3, gswmin(i,kk)*fwsoil(i) + &
