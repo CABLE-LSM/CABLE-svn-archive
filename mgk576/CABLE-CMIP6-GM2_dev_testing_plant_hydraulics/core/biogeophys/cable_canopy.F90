@@ -1870,9 +1870,9 @@ CONTAINS
              rdx(i,1) = (veg%cfrd(i)*Vcmxt3(i,1) + veg%cfrd(i)*vcmxt4(i,1))
              rdx(i,2) = (veg%cfrd(i)*vcmxt3(i,2) + veg%cfrd(i)*vcmxt4(i,2))
 
-             ! PAR: W/m2 (J m-2 s-1) -> umol m-2 s-1
-             par_to_pass(i,1) = rad%qcan(i,1,1) * jtomol * 1.0e6
-             par_to_pass(i,2) = rad%qcan(i,2,1) * jtomol * 1.0e6
+             ! PAR: W/m2 (J m-2 s-1) -> mol m-2 s-1
+             par_to_pass(i,1) = rad%qcan(i,1,1) * jtomol
+             par_to_pass(i,2) = rad%qcan(i,2,1) * jtomol
 !Vanessa - the trunk does not contain xleauning as of Ticket#56 inclusion
 !as well as other inconsistencies here that need further investigation. In the
 !interests of getting this into the trunk ASAP just isolate this code for now
@@ -2905,6 +2905,7 @@ CONTAINS
      kmx = km * MOL_2_UMOL
      gamma_starx = gamma_star * MOL_2_UMOL
 
+
      DO i=1, mf
 
         ! Hydraulic conductance of the entire soil-to-leaf pathway
@@ -2918,8 +2919,8 @@ CONTAINS
 
         ! Transpiration (mmol m-2 s-1) demand ignoring boundary layer effects!
         e_demand = MOL_2_MMOL * (dleaf(i) / press) * gsc(i) * C%RGSWC
-        !print *, i, par(1,i) ,vcmax(1,i)*1e6, cs(1,i)*1e6, vpd, vcmax*1E6
 
+        !print *, par(1,j), parx(1,j), csx(1,i), vcmaxx(1,i), rdx(1, i), kmx(i), gamma_starx
         IF (e_demand > e_supply) THEN
            ! Calculate gs (mol m-2 s-1) given supply (Emax)
            gsv = MMOL_2_MOL * e_supply / (dleaf(i) / press)
