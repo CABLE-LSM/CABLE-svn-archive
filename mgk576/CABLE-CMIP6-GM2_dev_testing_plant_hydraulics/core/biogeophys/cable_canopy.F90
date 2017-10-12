@@ -1687,7 +1687,9 @@ CONTAINS
     REAL, DIMENSION(mp,2) ::  gsw_term, lower_limit2  ! local temp var
 
     REAL :: trans_mmol, conv
-
+    REAL, PARAMETER :: KG_2_G = 1000.0
+    REAL, PARAMETER :: G_WATER_TO_MOL = 1.0 / 18.01528
+    REAL, PARAMETER :: MOL_2_MMOL = 1000.0
 
     INTEGER :: i, j, k, kk  ! iteration count
     REAL :: vpd, g1, ktot ! Ticket #56
@@ -2121,8 +2123,8 @@ CONTAINS
              ! This will be over the combined direct & diffuse leaves due to the
              ! way the loops fall above
 
-             ! Transpiration kg m-2 s-1 -> mmol m-2 s-1
-             conv = 1000.0 * (1.0 / 18.02) * 1000.0
+             ! Transpiration: kg m-2 s-1 -> mmol m-2 s-1
+             conv = KG_2_G * G_WATER_TO_MOL * MOL_2_MMOL
              trans_mmol = (canopy%fevc(i) / air%rlam(i)) * conv
              canopy%lwp(i) = calc_lwp(ssnow, ktot, trans_mmol)
 
