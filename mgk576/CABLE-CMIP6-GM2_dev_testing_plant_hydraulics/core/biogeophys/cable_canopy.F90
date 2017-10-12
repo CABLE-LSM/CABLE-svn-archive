@@ -2007,8 +2007,8 @@ CONTAINS
           ! Ensure transpiration does not exceed Emax, if it does we
           ! recalculate gs and An
           DO kk=1, mf
-             gsc(kk) = MAX(1.e-3, gswmin(i,kk) +                       &
-                           MAX(0.0, gs_coeff(i,kk) * anx(i,kk)))
+             gsc(kk)  = MAX((1.e-3 / C%RGSWC), (gswmin(i,kk) / C%RGSWC) + &
+                            MAX(0.0, gs_coeff(i,kk) * anx(i,kk)))
           ENDDO
 
           CALL calculate_emax(canopy, veg, ssnow, dsx(:), par_to_pass(:,:),   &
@@ -2018,7 +2018,8 @@ CONTAINS
           ! If supply didn't mean demand, gsc will have been reduced, we need
           ! to update the gs_coeff term, so it can be reused in photosynthesis
           ! call on the next iteration.
-          gs_coeff(i,kk) = MAX(0.0, (gsc(kk) - gswmin(i,kk)) / anx(i,kk))
+          gs_coeff(i,kk) = MAX(0.0, &
+                              (gsc(kk) - (gswmin(i,kk) / C%RGSWC)) / anx(i,kk))
        ENDIF
 
        DO i=1,mp
@@ -2034,7 +2035,10 @@ CONTAINS
                    csx(i,kk) = MAX( 1.0e-4_r_2, csx(i,kk) )
 
                    IF (cable_user%FWSOIL_SWITCH == 'hydrology') THEN
-                      canopy%gswx(i,kk) = gsc(i) * C%RGSWC
+                      !canopy%gswx(i,kk) = gsc(i) * C%RGSWC
+                      canopy%gswx(i,kk) = MAX(1.e-3, gswmin(i,kk) + &
+                                              MAX(0.0, C%RGSWC *              &
+                                              gs_coeff(i,kk) * anx(i,kk)))
                    ELSE
                       ! Ticket #56, xleuning replaced with gs_coeff here
                       canopy%gswx(i,kk) = MAX(1.e-3, gswmin(i,kk)*fwsoil(i) + &
@@ -2854,8 +2858,6 @@ CONTAINS
      REAL, INTENT(IN), DIMENSION(:) ::  dleaf    ! leaf surface vpd
      REAL, DIMENSION(mp,mf), INTENT(IN) :: par   ! leaf surface PAR
      REAL :: press = 101325.0 ! Pascals, where is this in CABLE?????
-
-
 
      ! Hydraulic conductance of the entire soil-to-leaf pathway, this is passed
      ! back out to LWP calculation
