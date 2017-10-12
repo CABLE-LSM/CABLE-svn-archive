@@ -2879,16 +2879,14 @@ CONTAINS
      REAL, PARAMETER :: MMOL_2_MOL = 1E-03
      REAL, PARAMETER :: MM_TO_M = 0.001
 
-     REAL, DIMENSION(mp,mf), INTENT(IN) :: rd, vcmax
+     REAL, DIMENSION(mp,mf), INTENT(IN) :: rd, vcmax, km
      REAL, DIMENSION(mp,mf), INTENT(INOUT) :: an
      REAL, DIMENSION(mf), INTENT(INOUT) :: gsc
-     REAL, DIMENSION(mp) :: km
      REAL, INTENT(IN) :: gamma_star
 
      REAL(R_2), DIMENSION(mp,mf) :: csx
-     REAL, DIMENSION(mp,mf) :: parx, rdx, vcmaxx
+     REAL, DIMENSION(mp,mf) :: parx, rdx, vcmaxx, kmx
      REAL, DIMENSION(mf) :: dleafx
-     REAL, DIMENSION(mp) :: kmx
      REAL :: gamma_starx
 
 
@@ -2920,7 +2918,7 @@ CONTAINS
         ! Transpiration (mmol m-2 s-1) demand ignoring boundary layer effects!
         e_demand = MOL_2_MMOL * (dleaf(i) / press) * gsc(i) * C%RGSWC
 
-        !print *, par(1,j), parx(1,j), csx(1,i), vcmaxx(1,i), rdx(1, i), kmx(i), gamma_starx
+        print *, i, " : ", kmx(1,i)
         IF (e_demand > e_supply) THEN
            ! Calculate gs (mol m-2 s-1) given supply (Emax)
            gsv = MMOL_2_MOL * e_supply / (dleaf(i) / press)
@@ -2972,9 +2970,8 @@ CONTAINS
      REAL(R_2),INTENT(IN), DIMENSION(:,:) :: cs
      REAL, DIMENSION(mp,mf), INTENT(INOUT) :: an
      REAL, DIMENSION(mf), INTENT(IN) :: gsc
-     REAL, DIMENSION(mp,mf), INTENT(IN) :: vcmax, par, rd
+     REAL, DIMENSION(mp,mf), INTENT(IN) :: vcmax, par, rd, km
      REAL, PARAMETER :: UMOL_2_MOL = 1E-6
-     REAL, DIMENSION(mp) ::  km
      REAL, DIMENSION(mp,mf) :: jmax, JJ, Vj
      REAL(r_2), DIMENSION(mp,mf) :: an_rubisco, an_rubp
      REAL, INTENT(IN) :: gamma_star
@@ -2995,9 +2992,9 @@ CONTAINS
 
         ! Solution when Rubisco rate is limiting */
         A = 1.0 / gsc(i)
-        B = (rd(i,j) - vcmax(i,j)) / gsc(i) - cs(i,j) - km(i)
+        B = (rd(i,j) - vcmax(i,j)) / gsc(i) - cs(i,j) - km(i,j)
         C = vcmax(i,j) * (cs(i,j) - gamma_star) - &
-             rd(i,j) * (cs(i,j) + km(i))
+             rd(i,j) * (cs(i,j) + km(i,j))
         an_rubisco(i,j) = quad(A, B, C)
 
         ! Solution when electron transport rate is limiting
