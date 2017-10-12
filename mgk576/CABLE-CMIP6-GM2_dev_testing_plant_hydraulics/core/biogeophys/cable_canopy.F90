@@ -2018,7 +2018,6 @@ CONTAINS
           ENDDO
        ENDIF
 
-
        DO i=1,mp
 
           IF (canopy%vlaiw(i) > C%LAI_THRESH .AND. abs_deltlf(i) > 0.1 ) Then
@@ -2920,8 +2919,6 @@ CONTAINS
      ! Transpiration (mmol m-2 s-1) demand ignoring boundary layer effects!
      e_demand = MOL_2_MMOL * (dleaf(i) / press) * gsc(j) * C%RGSWC
 
-     !print*, i, j, e_supply, e_demand, gsc(j)
-
      IF (e_demand > e_supply) THEN
         !print*, e_supply, e_demand, gsc(j), an(i,j)
         ! Calculate gs (mol m-2 s-1) given supply (Emax)
@@ -2940,6 +2937,7 @@ CONTAINS
         ! Re-solve An for the new gs
         CALL photosynthesis_C3_emax(veg, vcmaxx, parx, csx, &
                                     rdx, kmx, gamma_starx, gsc, an, i, j)
+
      ELSE
         ! This needs to be initialised somewhere.
         inferred_stress = inferred_stress + 1.0
@@ -2965,14 +2963,13 @@ CONTAINS
 
      TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
 
-     INTEGER, INTENT(IN) :: i, j ! patch, leaf index
-     REAL :: A, B, C, jmax, JJ, Vj
+     INTEGER, INTENT(IN) :: i, j ! patch index, leaf index
+     REAL :: A, B, C, jmax, JJ, Vj, an_rubisco, an_rubp
      REAL(R_2),INTENT(IN), DIMENSION(:,:) :: cs
      REAL, DIMENSION(mp,mf), INTENT(INOUT) :: an
      REAL, DIMENSION(mf), INTENT(IN) :: gsc
      REAL, DIMENSION(mp,mf), INTENT(IN) :: vcmax, par, rd, km
      REAL, PARAMETER :: UMOL_2_MOL = 1E-6
-     REAL(r_2), DIMENSION(mp,mf) :: an_rubisco, an_rubp
      REAL, INTENT(IN) :: gamma_star
 
      ! where is the JV ratio set in the code? Use that instead
@@ -2993,17 +2990,17 @@ CONTAINS
      B = (rd(i,j) - vcmax(i,j)) / gsc(j) - cs(i,j) - km(i,j)
      C = vcmax(i,j) * (cs(i,j) - gamma_star) - &
          rd(i,j) * (cs(i,j) + km(i,j))
-     an_rubisco(i,j) = MAX(0.0_r_2, quad(A, B, C))
+     an_rubisco = MAX(0.0_r_2, quad(A, B, C))
 
      ! Solution when electron transport rate is limiting
      A = 1.0 / gsc(j)
      B = (rd(i,j) - Vj) / gsc(j) - cs(i,j) - 2.0 * gamma_star
      C = Vj * (cs(i,j) - gamma_star) - &
          rd(i,j) * (cs(i,j) + 2.0 * gamma_star)
-     an_rubp(i,j) = MAX(0.0_r_2, quad(A, B, C))
+     an_rubp = MAX(0.0_r_2, quad(A, B, C))
 
      ! CABLE is expecting to find An returned in mol m-2 s-1
-     an(i,j) = MIN(an_rubisco(i,j), an_rubp(i,j)) * UMOL_2_MOL
+     an(i,j) = MIN(an_rubisco, an_rubp) * UMOL_2_MOL
      if (an(i,j) > 5.) then
         print*, an(i,j), gsc(j)
         stop
