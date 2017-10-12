@@ -2962,13 +2962,12 @@ CONTAINS
      TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
 
      INTEGER, INTENT(IN) :: i, j ! patch, leaf index
-     REAL :: A, B, C, jmax
+     REAL :: A, B, C, jmax, JJ, Vj
      REAL(R_2),INTENT(IN), DIMENSION(:,:) :: cs
      REAL, DIMENSION(mp,mf), INTENT(INOUT) :: an
      REAL, DIMENSION(mf), INTENT(IN) :: gsc
      REAL, DIMENSION(mp,mf), INTENT(IN) :: vcmax, par, rd, km
      REAL, PARAMETER :: UMOL_2_MOL = 1E-6
-     REAL, DIMENSION(mp,mf) :: JJ, Vj
      REAL(r_2), DIMENSION(mp,mf) :: an_rubisco, an_rubp
      REAL, INTENT(IN) :: gamma_star
 
@@ -2982,7 +2981,7 @@ CONTAINS
      A = 0.7
      B = -(veg%alpha(i) * par(i,j) + jmax)
      C = veg%alpha(i) * par(i,j) * jmax
-     JJ(i,j) = quad(A, B, C)
+     JJ = quad(A, B, C)
      Vj = JJ / 4.0
 
      ! Solution when Rubisco rate is limiting */
@@ -2994,8 +2993,8 @@ CONTAINS
 
      ! Solution when electron transport rate is limiting
      A = 1.0 / gsc(j)
-     B = (rd(i,j) - Vj(i,j)) / gsc(j) - cs(i,j) - 2.0 * gamma_star
-     C = Vj(i,j) * (cs(i,j) - gamma_star) - &
+     B = (rd(i,j) - Vj) / gsc(j) - cs(i,j) - 2.0 * gamma_star
+     C = Vj * (cs(i,j) - gamma_star) - &
          rd(i,j) * (cs(i,j) + 2.0 * gamma_star)
      an_rubp(i,j) = quad(A, B, C)
 
