@@ -2001,7 +2001,7 @@ CONTAINS
                            gs_coeff(:,:), rad%fvlai(:,:),&
                            SPREAD( abs_deltlf, 2, mf ),                        &
                            anx(:,:), fwsoil(:) )
-
+       
        ! Ensure transpiration does not exceed Emax, if it does we
        ! recalculate gs and An
        IF (cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
@@ -2033,13 +2033,15 @@ CONTAINS
                    csx(i,kk) = MAX( 1.0e-4_r_2, csx(i,kk) )
 
                    IF (cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
-                      canopy%gswx(i,kk) = gsc(kk) * C%RGSWC
+                      canopy%gswx(i,kk) = MAX(1.e-3, gsc(kk) * C%RGSWC)
+
+
                    ELSE
                       ! Ticket #56, xleuning replaced with gs_coeff here
                       canopy%gswx(i,kk) = MAX(1.e-3, gswmin(i,kk)*fwsoil(i) + &
                                               MAX(0.0, C%RGSWC *              &
                                               gs_coeff(i,kk) * anx(i,kk)))
-                      !print*,  canopy%gswx(i,kk), canopy%gswx(i,kk)/C%RGSWC
+                      !print*,  "**", anx(i,kk)
                    ENDIF
 
                    !Recalculate conductance for water:
