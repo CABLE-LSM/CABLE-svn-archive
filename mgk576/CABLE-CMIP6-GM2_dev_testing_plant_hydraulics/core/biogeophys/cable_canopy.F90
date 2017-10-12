@@ -2926,7 +2926,7 @@ CONTAINS
         ! gs cannot be lower than minimum (cuticular conductance)
         IF (gsc(j) < gs_min) THEN
            gsc(j) = gs_min
-           gsw = gsc(j) * C%RGSWC
+           !gsw = gsc(j) * C%RGSWC
         ENDIF
 
         ! Need to calculate an effective beta to use in soil decomposition
@@ -2974,6 +2974,7 @@ CONTAINS
      REAL(r_2), DIMENSION(mp,mf) :: an_rubisco, an_rubp
      REAL, INTENT(IN) :: gamma_star
 
+     !print *, vcmax(i,j), par(i,j), cs(i,j), rd(i,j), km(i,j), gsc(j)
      ! where is the JV ratio set in the code? Use that instead
      jmax(i,j) = vcmax(i,j) * 2.0
 
@@ -2988,15 +2989,15 @@ CONTAINS
      Vj = JJ / 4.0
 
      ! Solution when Rubisco rate is limiting */
-     A = 1.0 / gsc(i)
-     B = (rd(i,j) - vcmax(i,j)) / gsc(i) - cs(i,j) - km(i,j)
+     A = 1.0 / gsc(j)
+     B = (rd(i,j) - vcmax(i,j)) / gsc(j) - cs(i,j) - km(i,j)
      C = vcmax(i,j) * (cs(i,j) - gamma_star) - &
           rd(i,j) * (cs(i,j) + km(i,j))
      an_rubisco(i,j) = quad(A, B, C)
 
      ! Solution when electron transport rate is limiting
-     A = 1.0 / gsc(i)
-     B = (rd(i,j) - Vj(i,j)) / gsc(i) - cs(i,j) - 2.0 * gamma_star
+     A = 1.0 / gsc(j)
+     B = (rd(i,j) - Vj(i,j)) / gsc(j) - cs(i,j) - 2.0 * gamma_star
      C = Vj(i,j) * (cs(i,j) - gamma_star) - &
          rd(i,j) * (cs(i,j) + 2.0 * gamma_star)
      an_rubp(i,j) = quad(A, B, C)
