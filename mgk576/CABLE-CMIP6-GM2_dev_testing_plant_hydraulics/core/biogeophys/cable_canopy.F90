@@ -1703,9 +1703,6 @@ CONTAINS
 
     ALLOCATE( gswmin(mp,mf ))
 
-    ! MDK: Hardwiring the switch for now.
-    cable_user%FWSOIL_SWITCH = "hydrology"
-
     ! Soil water limitation on stomatal conductance:
     IF( iter ==1) THEN
        IF ((cable_user%soil_struc=='default').and.(cable_user%FWSOIL_SWITCH.ne.'Haverd2013')) THEN
@@ -1718,7 +1715,7 @@ CONTAINS
              CALL fwsoil_calc_Lai_Ktaul(fwsoil, soil, ssnow, veg)
 
           ! Water stress is inferred from the hydraulics approach instead.
-          ELSEIF(cable_user%FWSOIL_SWITCH == 'hydrology') THEN
+          ELSEIF(cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
              fwsoil = 1.0
           ELSE
              STOP 'fwsoil_switch failed.'
@@ -2005,7 +2002,7 @@ CONTAINS
                            SPREAD( abs_deltlf, 2, mf ),                        &
                            anx(:,:), fwsoil(:) )
 
-       IF (cable_user%FWSOIL_SWITCH == 'hydrology') THEN
+       IF (cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
           ! Ensure transpiration does not exceed Emax, if it does we
           ! recalculate gs and An
           DO kk=1, mf
@@ -2015,7 +2012,7 @@ CONTAINS
 
           CALL calculate_emax(canopy, veg, ssnow, dsx(:), par_to_pass(:,:),   &
                               csx(:,:), SPREAD(cx1(:), 2, mf), rdx(:,:),      &
-                              vcmxt3(:,:), gsc(:), anx(:,:), ktot, co2cp3)
+                              vcmxt3(:,:), gsc(:), anx(:,:), ktot, co2cp3, i)
 
           ! If supply didn't mean demand, gsc will have been reduced, we need
           ! to update the gs_coeff term, so it can be reused in photosynthesis
@@ -2036,7 +2033,7 @@ CONTAINS
                         gbhu(i,kk) + gbhf(i,kk) )
                    csx(i,kk) = MAX( 1.0e-4_r_2, csx(i,kk) )
 
-                   IF (cable_user%FWSOIL_SWITCH == 'hydrology') THEN
+                   IF (cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
                       !canopy%gswx(i,kk) = gsc(i) * C%RGSWC
                       canopy%gswx(i,kk) = MAX(1.e-3, gswmin(i,kk) + &
                                               MAX(0.0, C%RGSWC *              &
@@ -2122,11 +2119,12 @@ CONTAINS
 
              ! This will be over the combined direct & diffuse leaves due to the
              ! way the loops fall above
-
-             ! Transpiration: kg m-2 s-1 -> mmol m-2 s-1
-             conv = KG_2_G * G_WATER_TO_MOL * MOL_2_MMOL
-             trans_mmol = (canopy%fevc(i) / air%rlam(i)) * conv
-             canopy%lwp(i) = calc_lwp(ssnow, ktot, trans_mmol)
+             IF(cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
+                ! Transpiration: kg m-2 s-1 -> mmol m-2 s-1
+                conv = KG_2_G * G_WATER_TO_MOL * MOL_2_MMOL
+                trans_mmol = (canopy%fevc(i) / air%rlam(i)) * conv
+                canopy%lwp(i) = calc_lwp(ssnow, ktot, trans_mmol, i)
+             ENDIF
 
              ! Update canopy sensible heat flux:
              hcx(i) = (SUM(rad%rniso(i,:))-ecx(i)                               &
@@ -2827,7 +2825,7 @@ CONTAINS
 
   ! ----------------------------------------------------------------------------
   SUBROUTINE calculate_emax(canopy, veg, ssnow, dleaf, par, cs, km, rd, vcmax, &
-                            an, gsc, ktot, gamma_star)
+                            an, gsc, ktot, gamma_star, i)
      !
      ! Transpiration is calculated assuming a maximum "supply" driven by
      ! darcy's law. Once the "demand" exceeds the supply, we infer a new
@@ -2895,9 +2893,10 @@ CONTAINS
 
 
      REAL :: e_demand, e_supply, gsw
-     REAL :: inferred_stress = 0.0
+     REAL :: inferred_stress
 
-     INTEGER :: i,j
+     INTEGER, INTENT(IN) :: i ! patch
+     INTEGER :: j
      ! need to change units to be consistent with what I deem the units should
      ! be in
      parx = par * MOL_2_UMOL
@@ -2907,37 +2906,38 @@ CONTAINS
      kmx = km * MOL_2_UMOL
      gamma_starx = gamma_star * MOL_2_UMOL
 
-
-     DO i=1, mf
+     inferred_stress = 0.0
+     DO j=1, mf ! Loop over sunlit, shaded leaves
 
         ! Hydraulic conductance of the entire soil-to-leaf pathway
         ! (mmol m–2 s–1 MPa–1)
-        ktot = 1.0 / (ssnow%total_soil_resist(1) + 1.0 / plant_k)
+        ktot = 1.0 / (ssnow%total_soil_resist(i) + 1.0 / plant_k)
 
         ! Maximum transpiration rate (mmol m-2 s-1) is given by Darcy's law,
         ! which estimates the water flow from the bulk soil to the leaf at the
         ! minimum leaf water potential (min_lwp)
-        e_supply = MAX(0.0, ktot * (ssnow%weighted_swp(1) - min_lwp))
+        e_supply = MAX(0.0, ktot * (ssnow%weighted_swp(i) - min_lwp))
 
         ! Transpiration (mmol m-2 s-1) demand ignoring boundary layer effects!
-        e_demand = MOL_2_MMOL * (dleaf(i) / press) * gsc(i) * C%RGSWC
+        e_demand = MOL_2_MMOL * (dleaf(j) / press) * gsc(j) * C%RGSWC
 
         IF (e_demand > e_supply) THEN
            ! Calculate gs (mol m-2 s-1) given supply (Emax)
-           gsw = MMOL_2_MOL * e_supply / (dleaf(i) / press)
-           gsc(i) = gsw / C%RGSWC
+           gsw = MMOL_2_MOL * e_supply / (dleaf(j) / press)
+           gsc(j) = gsw / C%RGSWC
 
            ! gs cannot be lower than minimum (cuticular conductance)
-           IF (gsc(i) < gs_min) THEN
-              gsc(i) = gs_min
-              gsw = gsc(i) * C%RGSWC
+           IF (gsc(j) < gs_min) THEN
+              gsc(j) = gs_min
+              gsw = gsc(j) * C%RGSWC
            ENDIF
 
            ! Need to calculate an effective beta to use in soil decomposition
            inferred_stress = inferred_stress + e_supply / e_demand
+           !print*, inferred_stress, e_supply, e_demand, e_supply / e_demand
            ! Re-solve An for the new gs
            CALL photosynthesis_C3_emax(veg, vcmaxx, parx, csx, &
-                                       rdx, kmx, gamma_starx, gsc, an, i)
+                                       rdx, kmx, gamma_starx, gsc, an, j)
 
         ELSE
            ! This needs to be initialised somewhere.
@@ -2947,7 +2947,7 @@ CONTAINS
 
      ! fwsoil means nothing when using the plant hydraulics, but we still need
      ! an inferred fwsoil as this is used in SOM decomposition calculations
-     canopy%fwsoil = inferred_stress / 2.0
+     canopy%fwsoil(i) = inferred_stress / 2.0
 
   END SUBROUTINE calculate_emax
   ! ----------------------------------------------------------------------------
@@ -3040,7 +3040,7 @@ CONTAINS
   ! ----------------------------------------------------------------------------
 
   ! ----------------------------------------------------------------------------
-  FUNCTION calc_lwp(ssnow, ktot, transpiration) RESULT(lwp)
+  FUNCTION calc_lwp(ssnow, ktot, transpiration, i) RESULT(lwp)
      ! Calculate the leaf water potential (MPa)
      !
      ! Martin De Kauwe, 10th Oct, 2017
@@ -3051,14 +3051,14 @@ CONTAINS
      IMPLICIT NONE
 
      TYPE (soil_snow_type), INTENT(INOUT) :: ssnow
-
+     INTEGER, INTENT(IN) :: i
      REAL, INTENT(IN) :: ktot, transpiration
      REAL :: lwp
 
      IF (ktot > 0.0) THEN
-        lwp = ssnow%weighted_swp(1) - (transpiration / ktot)
+        lwp = ssnow%weighted_swp(i) - (transpiration / ktot)
      ELSE
-        lwp = ssnow%weighted_swp(1)
+        lwp = ssnow%weighted_swp(i)
      ENDIF
 
      ! Set lower limit to LWP

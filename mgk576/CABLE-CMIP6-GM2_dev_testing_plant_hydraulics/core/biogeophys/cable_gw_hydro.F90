@@ -647,7 +647,7 @@ END SUBROUTINE remove_transGW
     INTEGER :: imp,ims,k_drain
 
     !mgk576, 12/10/2017
-    REAL, DIMENSION(ms) :: fraction_uptake
+    REAL, DIMENSION(mp,ms) :: fraction_uptake
 
     !make code cleaner define these here
     dzmm(:) = 1000.0_r_2 * real(soil%zse(:),r_2)
@@ -683,11 +683,12 @@ END SUBROUTINE remove_transGW
     CALL calc_soil_hydraulic_props(ssnow,soil,veg)
 
     ! mgk576, 9/10/17
-    CALL calc_soil_root_resistance(ssnow, soil, veg, bgc)
-
-    ! mgk576, 9/10/17
-    CALL calc_weighted_swp_weighting_frac(ssnow, soil, fraction_uptake)
-
+    IF(cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
+       DO i=1, mp
+          CALL calc_soil_root_resistance(ssnow, soil, veg, bgc, i)
+          CALL calc_weighted_swp_weighting_frac(ssnow, soil, fraction_uptake, i)
+       ENDDO
+    ENDIF
 
     CALL subsurface_drainage(ssnow,soil,veg,dzmm)
 
@@ -1721,7 +1722,7 @@ END SUBROUTINE calc_soil_hydraulic_props
   end function my_erf
 
   ! ----------------------------------------------------------------------------
-  SUBROUTINE calc_soil_root_resistance(ssnow, soil, veg, bgc)
+  SUBROUTINE calc_soil_root_resistance(ssnow, soil, veg, bgc, i)
      ! Calculate root & soil hydraulic resistance following SPA approach
      ! (Williams et al.)
      !
@@ -1780,20 +1781,22 @@ END SUBROUTINE calc_soil_hydraulic_props
      REAL, PARAMETER :: TINY_NUMBER = 1E-35
      REAL, PARAMETER :: HUGE_NUMBER = 1E35
 
+     INTEGER, INTENT(IN) :: i
+
      REAL :: Ks, Lsoil, soilR1, soilR2, arg1, arg2, root_biomass, root_length
      REAL :: soil_root_resist, rs, soil_resistance, root_resistance, rsum, conv
-     INTEGER :: i
+     INTEGER :: j
 
      ! Store each layers resistance, used in LWP calculatons
      rsum = 0.0
-     DO i = 1, ms ! Loop over 6 soil layers
-        root_biomass = bgc%cplant(1,3) * veg%froot(1,i) * C_2_BIOMASS
+     DO j = 1, ms ! Loop over 6 soil layers
+        root_biomass = bgc%cplant(i,3) * veg%froot(i,j) * C_2_BIOMASS
 
         ! (m root m-3 soil surface)
         root_length = root_biomass / (root_density * root_xsec_area)
 
         ! Soil hydraulic conductivity for layer, mm/s -> m s-1
-        Ks = ssnow%hk(1,i) * MM_TO_M
+        Ks = ssnow%hk(i,j) * MM_TO_M
 
         ! converts from m s-1 to m2 s-1 MPa-1
         Lsoil = Ks / head
@@ -1807,7 +1810,7 @@ END SUBROUTINE calc_soil_hydraulic_props
            ! a surrounding cylinder of soil (Gardner 1960, Newman 1969)
            rs = sqrt(1.0 / (root_length * pi))
            soil_resistance = log(rs / root_radius) /                         &
-                             (2.0 * pi * root_length * soil%zse(i) * Lsoil)
+                             (2.0 * pi * root_length * soil%zse(j) * Lsoil)
 
            ! convert from MPa s m2 m-3 to MPa s m2 mmol-1
            conv = 1.0 / (CUBIC_M_WATER_2_GRAMS * G_WATER_TO_MOLE * MOL_2_MMOL)
@@ -1815,23 +1818,23 @@ END SUBROUTINE calc_soil_hydraulic_props
 
            ! second component of below ground resistance related to root
            ! hydraulics
-           root_resistance = root_resistivity / (soil%zse(i) * root_biomass)
+           root_resistance = root_resistivity / (soil%zse(j) * root_biomass)
 
            ! MPa s m2 mmol-1
-           ssnow%soilR(i) = soil_resistance + root_resistance
+           ssnow%soilR(i,j) = soil_resistance + root_resistance
 
            ! Need to combine resistances in parallel, but we only want the
            ! soil term as the root component is part of the plant resistance
            rsum = rsum + 1.0 / soil_resistance
         ENDIF
      END DO
-     ssnow%total_soil_resist = 1.0 / rsum
+     ssnow%total_soil_resist(i) = 1.0 / rsum
 
   END SUBROUTINE calc_soil_root_resistance
   ! ----------------------------------------------------------------------------
 
   ! ----------------------------------------------------------------------------
-  SUBROUTINE calc_weighted_swp_weighting_frac(ssnow, soil, fraction_uptake)
+  SUBROUTINE calc_weighted_swp_weighting_frac(ssnow, soil, fraction_uptake, i)
      !
      ! Determine weighted SWP given the the maximum rate of water supply from
      ! each rooted soil layer and hydraulic resistance of each layer. We are
@@ -1865,9 +1868,11 @@ END SUBROUTINE calc_soil_hydraulic_props
      REAL, PARAMETER :: min_lwp = -2.0 ! we obv need to pass this
 
      REAL, DIMENSION(ms) :: swp, est_evap
-     REAL, DIMENSION(ms), INTENT(INOUT) :: fraction_uptake
+     REAL, DIMENSION(mp,ms), INTENT(INOUT) :: fraction_uptake
      REAL :: total_est_evap
-     INTEGER :: i
+
+     INTEGER, INTENT(IN) :: i
+     INTEGER :: j
 
      total_est_evap = 0.0
      ssnow%weighted_swp = 0.0
@@ -1875,10 +1880,10 @@ END SUBROUTINE calc_soil_hydraulic_props
      est_evap = 0.0
 
      ! Estimate max transpiration from gradient-gravity / soil resistance
-     DO i = 1, ms ! Loop over 6 soil layers
+     DO j = 1, ms ! Loop over 6 soil layers
         ! Convert SWP: mm/s -> MPa
-        swp(i) = ssnow%smp(1,i) * MM_TO_M * M_HEAD_TO_MPa
-        est_evap(i) = MAX(0.0, (swp(i) - min_lwp) / ssnow%soilR(i)) ! no negative
+        swp(j) = ssnow%smp(i,j) * MM_TO_M * M_HEAD_TO_MPa
+        est_evap(j) = MAX(0.0, (swp(j) - min_lwp) / ssnow%soilR(i,j))
         ! NEED TO ADD SOMETHING IF THE SOIL IS FROZEN, what is ice in CABLE?
         !IF ( iceprop(i) .gt. 0. ) THEN
         !  est_evap(i) = 0.0
@@ -1887,22 +1892,22 @@ END SUBROUTINE calc_soil_hydraulic_props
      total_est_evap = sum(est_evap)
 
      IF (total_est_evap > 0.0) THEN
-        DO i = 1, ms ! Loop over 6 soil layers
-           ssnow%weighted_swp = ssnow%weighted_swp + swp(i) * est_evap(i)
+        DO j = 1, ms ! Loop over 6 soil layers
+           ssnow%weighted_swp(i) = ssnow%weighted_swp(i) + swp(j) * est_evap(j)
            ! fraction of water taken from layer
-           fraction_uptake(i) = est_evap(i) / total_est_evap
+           fraction_uptake(i,j) = est_evap(j) / total_est_evap
 
-           IF ((fraction_uptake(i) > 1.0) .or. (fraction_uptake(i) < 0.0)) THEN
+           IF ((fraction_uptake(i,j) > 1.0) .or. (fraction_uptake(i,j) < 0.0)) THEN
               PRINT *, 'Problem with the uptake fraction (either >1 or 0<)'
               STOP
            ENDIF
         ENDDO
-        ssnow%weighted_swp = ssnow%weighted_swp / total_est_evap
+        ssnow%weighted_swp(i) = ssnow%weighted_swp(i) / total_est_evap
      ELSE
         ! No water was evaporated
-        fraction_uptake(:) = 1.0 / FLOAT(ms)
+        fraction_uptake(i,:) = 1.0 / FLOAT(ms)
      ENDIF
-     
+
   END SUBROUTINE calc_weighted_swp_weighting_frac
   ! ----------------------------------------------------------------------------
 
