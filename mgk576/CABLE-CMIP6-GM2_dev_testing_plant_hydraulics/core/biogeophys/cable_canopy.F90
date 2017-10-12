@@ -2964,27 +2964,27 @@ CONTAINS
      TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
 
      INTEGER, INTENT(IN) :: i, j ! patch, leaf index
-     REAL :: A, B, C
+     REAL :: A, B, C, jmax
      REAL(R_2),INTENT(IN), DIMENSION(:,:) :: cs
      REAL, DIMENSION(mp,mf), INTENT(INOUT) :: an
      REAL, DIMENSION(mf), INTENT(IN) :: gsc
      REAL, DIMENSION(mp,mf), INTENT(IN) :: vcmax, par, rd, km
      REAL, PARAMETER :: UMOL_2_MOL = 1E-6
-     REAL, DIMENSION(mp,mf) :: jmax, JJ, Vj
+     REAL, DIMENSION(mp,mf) :: JJ, Vj
      REAL(r_2), DIMENSION(mp,mf) :: an_rubisco, an_rubp
      REAL, INTENT(IN) :: gamma_star
 
-     !print *, vcmax(i,j), par(i,j), cs(i,j), rd(i,j), km(i,j), gsc(j)
+     print *, vcmax(i,j), par(i,j), cs(i,j), rd(i,j), km(i,j), gsc(j)
      ! where is the JV ratio set in the code? Use that instead
-     jmax(i,j) = vcmax(i,j) * 2.0
+     jmax = vcmax(i,j) * 2.0
 
      ! What I thought was theta in CABLE doesn't appear to be in the right
      ! order or mangitude - check units and whether it was the right thing
      ! for now use what we use in GDAY
      !A = veg%convex(i)
      A = 0.7
-     B = -(veg%alpha(i) * par(i,j) + jmax(i,j))
-     C = veg%alpha(i) * par(i,j) * jmax(i,j)
+     B = -(veg%alpha(i) * par(i,j) + jmax)
+     C = veg%alpha(i) * par(i,j) * jmax
      JJ(i,j) = quad(A, B, C)
      Vj = JJ / 4.0
 
