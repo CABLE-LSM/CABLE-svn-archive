@@ -1680,7 +1680,7 @@ CONTAINS
          temp2,      &
          par
 
-    REAL, DIMENSION(mf) :: gsc, gsw
+    REAL, DIMENSION(mf) :: gsc
 
     REAL, DIMENSION(:,:), POINTER :: gswmin ! min stomatal conductance
 
@@ -2007,63 +2007,18 @@ CONTAINS
        IF (cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
           DO i = 1, mp
              DO kk = 1, mf
-                !gs_coeff(i,1) = (1.0 + (g1 * fwsoil(i)) / SQRT(vpd)) / csx(i,1)
-                !gs_coeff(i,2) = (1.0 + (g1 * fwsoil(i)) / SQRT(vpd)) / csx(i,2)
+                gsc(kk)  = MAX((1.e-3 / C%RGSWC), (gswmin(i,kk) / C%RGSWC) + &
+                               MAX(0.0, (gs_coeff(i,kk) * anx(i,kk))))
 
-                !gsc(1) = gs_coeff(1,1) * anx(1,1)
-                !gsc(2) = gs_coeff(1,2) * anx(1,2)
-                !print *, gs_coeff(i,1), gs_coeff(i,2), csx(i,1), csx(i,2), gsc(1), gsc(2)
-                !gs_coeff(1,1) = gsc(1) / anx(1,1)
-                !gs_coeff(1,2) = gsc(2) / anx(1,2)
-                !print *, gs_coeff(i,1), gs_coeff(i,2)
-
-               ! gs_coeff(i,1) = (1.0 + (g1 * fwsoil(i)) / SQRT(vpd)) / (csx(i,1)*1E6)
-                !gs_coeff(i,2) = (1.0 + (g1 * fwsoil(i)) / SQRT(vpd)) / (csx(i,2)*1E6)
-                !gsc(1) = gs_coeff(1,1) * anx(1,1)
-                !gsc(2) = gs_coeff(1,2) * anx(1,2)
-                !print *, gs_coeff(i,1), gs_coeff(i,2), csx(i,1)*1E6, csx(i,2)*1E6, gsc(1), gsc(2)
-                !gs_coeff(1,1) = gsc(1)*1E6 / anx(1,1)
-                !gs_coeff(1,2) = gsc(2)*1E6 / anx(1,2)
-                !print *, gs_coeff(i,1), gs_coeff(i,2)
-
-
-                !gs_coeff(i,1) = (1.0 + (g1 * fwsoil(i)) / SQRT(vpd)) / csx(i,1)
-                !gs_coeff(i,2) = (1.0 + (g1 * fwsoil(i)) / SQRT(vpd)) / csx(i,2)
-                !gsc(1) = gs_coeff(1,1)/1E6 * anx(1,1)
-                !gsc(2) = gs_coeff(1,2)/1E6 * anx(1,2)
-                !print *, gs_coeff(i,1), gs_coeff(i,2), csx(i,1)*1E6, csx(i,2)*1E6, gsc(1), gsc(2)
-                !gs_coeff(1,1) = gsc(1)*1E6 / anx(1,1)
-                !gs_coeff(1,2) = gsc(2)*1E6 / anx(1,2)
-                !print *, gs_coeff(i,1), gs_coeff(i,2)
-                !stop
-
-
-                !gsc(kk)  = MAX((1.e-3 / C%RGSWC), (gswmin(i,kk) / C%RGSWC) + &
-                   !             MAX(0.0, (gs_coeff(i,kk) *1e6* anx(i,kk))))
-                !gsc(kk) = (gs_coeff(i,kk)/1E6) * anx(i,kk)
-
-                gsw(kk) = MAX(1.e-3, gswmin(i,kk) + &
-                              MAX(0.0, C%RGSWC * gs_coeff(i,kk) * anx(i,kk)))
-                gsc(kk) = gsw(kk) / C%RGSWC
-                print *, "*", anx(1,1), anx(1,2)
                 CALL calculate_emax(canopy, veg, ssnow, dsx(:), par(:,:),      &
                                     csx(:,:), SPREAD(cx1(:), 2, mf), rdx(:,:), &
                                     vcmxt3(:,:), gsc(:), anx(:,:), ktot,       &
                                     co2cp3, i, kk)
 
-
-
-                ! If supply didn't mean demand, gsc will have been reduced, we need
-                ! to update the gs_coeff term, so it can be reused in photosynthesis
-                ! call on the next iteration.
-                !gs_coeff(i,kk) = MAX(0.0, &
-                !                   ((gsc(kk)*1E6) - (gswmin(i,kk) / C%RGSWC)) / anx(i,kk))
-                !gs_coeff(i,kk) = MAX(0.0, (gsc(kk)*1E6) / anx(i,kk))
-
-                gs_coeff(i,kk) = gsc(kk) / anx(i,kk)
              ENDDO
           ENDDO
        ENDIF
+
 
        DO i=1,mp
 
@@ -2078,12 +2033,7 @@ CONTAINS
                    csx(i,kk) = MAX( 1.0e-4_r_2, csx(i,kk) )
 
                    IF (cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
-                      !canopy%gswx(i,kk) = gsc(i) * C%RGSWC
-                      canopy%gswx(i,kk) = MAX(1.e-3, gswmin(i,kk) + &
-                                              MAX(0.0, C%RGSWC *              &
-                                              gs_coeff(i,kk) * anx(i,kk)))
-
-                       print*,  canopy%gswx(i,kk), canopy%gswx(i,kk)/C%RGSWC
+                      canopy%gswx(i,kk) = gsc(kk) * C%RGSWC
                    ELSE
                       ! Ticket #56, xleuning replaced with gs_coeff here
                       canopy%gswx(i,kk) = MAX(1.e-3, gswmin(i,kk)*fwsoil(i) + &
@@ -2968,31 +2918,28 @@ CONTAINS
      e_demand = MOL_2_MMOL * (dleaf(i) / press) * gsc(j) * C%RGSWC
      !print*, i, j, e_supply, e_demand, gsc(j)
 
-     print *, "**", an(1,1), an(1,2)
-     stop
-     !IF (e_demand > e_supply) THEN
-      !  ! Calculate gs (mol m-2 s-1) given supply (Emax)
-      !  gsw = MMOL_2_MOL * e_supply / (dleaf(i) / press)
-      !  gsc(j) = gsw / C%RGSWC
-      !
-      !  ! gs cannot be lower than minimum (cuticular conductance)
-      !  IF (gsc(j) < gs_min) THEN
-      !     gsc(j) = gs_min
-      !     gsw = gsc(j) * C%RGSWC
-      !  ENDIF
-      !
-      !  ! Need to calculate an effective beta to use in soil decomposition
-      !  inferred_stress = inferred_stress + e_supply / e_demand
-      !  !print*, inferred_stress, e_supply, e_demand, e_supply / e_demand
-      !  ! Re-solve An for the new gs
-      !  CALL photosynthesis_C3_emax(veg, vcmaxx, parx, csx, &
-   !                                 rdx, kmx, gamma_starx, gsc, an, i, j)
-   !
-   !  ELSE
-   !     ! This needs to be initialised somewhere.
-   !     inferred_stress = inferred_stress + 1.0
-    ! ENDIF
+     IF (e_demand > e_supply) THEN
+        ! Calculate gs (mol m-2 s-1) given supply (Emax)
+        gsw = MMOL_2_MOL * e_supply / (dleaf(i) / press)
+        gsc(j) = gsw / C%RGSWC
 
+        ! gs cannot be lower than minimum (cuticular conductance)
+        IF (gsc(j) < gs_min) THEN
+           gsc(j) = gs_min
+           gsw = gsc(j) * C%RGSWC
+        ENDIF
+
+        ! Need to calculate an effective beta to use in soil decomposition
+        inferred_stress = inferred_stress + e_supply / e_demand
+        !print*, inferred_stress, e_supply, e_demand, e_supply / e_demand
+        ! Re-solve An for the new gs
+        CALL photosynthesis_C3_emax(veg, vcmaxx, parx, csx, &
+                                    rdx, kmx, gamma_starx, gsc, an, i, j)
+
+     ELSE
+        ! This needs to be initialised somewhere.
+        inferred_stress = inferred_stress + 1.0
+     ENDIF
 
      ! fwsoil means nothing when using the plant hydraulics, but we still need
      ! an inferred fwsoil as this is used in SOM decomposition calculations
