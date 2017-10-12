@@ -2895,7 +2895,7 @@ CONTAINS
      INTEGER, INTENT(IN) :: i,j ! patch, leaf
 
      ! need to change units to be consistent with what I deem the units should
-     ! be in
+     ! be in, i.e. umol m-2 s-1, not mol m-2 s-1
      parx = par * MOL_2_UMOL
      csx = cs * MOL_2_UMOL
      vcmaxx = vcmax * MOL_2_UMOL
@@ -2919,6 +2919,7 @@ CONTAINS
      !print*, i, j, e_supply, e_demand, gsc(j)
 
      IF (e_demand > e_supply) THEN
+        !print*, e_supply, e_demand, gsc(j), an(i,j)
         ! Calculate gs (mol m-2 s-1) given supply (Emax)
         gsw = MMOL_2_MOL * e_supply / (dleaf(i) / press)
         gsc(j) = gsw / C%RGSWC
@@ -2935,7 +2936,8 @@ CONTAINS
         ! Re-solve An for the new gs
         CALL photosynthesis_C3_emax(veg, vcmaxx, parx, csx, &
                                     rdx, kmx, gamma_starx, gsc, an, i, j)
-
+        !print*, gsc(j), an(i,j)
+        !stop
      ELSE
         ! This needs to be initialised somewhere.
         inferred_stress = inferred_stress + 1.0
@@ -2999,7 +3001,7 @@ CONTAINS
      an_rubp(i,j) = MAX(0.0_r_2, quad(A, B, C))
 
      ! CABLE is expecting to find An returned in mol m-2 s-1
-     an(i,j) = MIN(an_rubisco(i,j), an_rubp(i,j)) !* UMOL_2_MOL
+     an(i,j) = MIN(an_rubisco(i,j), an_rubp(i,j)) * UMOL_2_MOL
 
 
   END SUBROUTINE photosynthesis_C3_emax
