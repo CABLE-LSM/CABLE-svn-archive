@@ -2417,7 +2417,7 @@ CONTAINS
                         (ciz(i,j)+cx2z(i,j)) +vx4z(i,j)-rdxz(i,j)
 
                 ENDIF
-
+                print*, "***", gsc(j)
                 ! Sink limited:
                 coef2z(i,j) = gs_coeffz(i,j)
 
@@ -2953,7 +2953,8 @@ CONTAINS
   ! ----------------------------------------------------------------------------
   SUBROUTINE photosynthesis_C3_emax(veg, vcmax, par, cs, rd, km, &
                                     gamma_star, gsc, an, i, j)
-     ! Re-calculate photosynthesis given the reduced gs from Emax assumption
+     ! Re-calculate photosynthesis as in the Jarvis model given the reduced gs
+     ! from Emax assumption
      !
      ! Martin De Kauwe, 9th Oct, 2017
      USE cable_common_module
@@ -2961,7 +2962,7 @@ CONTAINS
 
      IMPLICIT NONE
 
-     TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
+     TYPE (veg_parameter_type), INTENT(INOUT) :: veg
 
      INTEGER, INTENT(IN) :: i, j ! patch index, leaf index
      REAL :: A, B, C, jmax, JJ, Vj, an_rubisco, an_rubp
@@ -2974,7 +2975,7 @@ CONTAINS
 
      ! where is the JV ratio set in the code? Use that instead
      jmax = vcmax(i,j) * 2.0
-
+     !print*, "***", gsc(j)
      ! What I thought was theta in CABLE doesn't appear to be in the right
      ! order or mangitude - check units and whether it was the right thing
      ! for now use what we use in GDAY
@@ -3001,10 +3002,6 @@ CONTAINS
 
      ! CABLE is expecting to find An returned in mol m-2 s-1
      an(i,j) = MIN(an_rubisco, an_rubp) * UMOL_2_MOL
-     if (an(i,j) > 5.) then
-        print*, an(i,j), gsc(j)
-        stop
-     endif
 
   END SUBROUTINE photosynthesis_C3_emax
   ! ---------------------------------------------------------------------------
