@@ -2011,8 +2011,7 @@ CONTAINS
 
           CALL calculate_emax(veg, ssnow, canopy, dsx(:), par_to_pass(:,:),   &
                               csx(:,:), SPREAD(cx1(:), 2, mf), rdx(:,:),      &
-                              vcmxt3(:,:), rad%fvlai(:,:), anx(:,:), ktot,    &
-                              co2cp3)
+                              vcmxt3(:,:), anx(:,:), ktot,  co2cp3)
 
        ENDIF
 
@@ -2816,7 +2815,7 @@ CONTAINS
 
   ! ----------------------------------------------------------------------------
   SUBROUTINE calculate_emax(veg, ssnow, canopy, dleaf, par, cs, km, rd, vcmax, &
-                            vlaiz, an, ktot, gamma_star)
+                            an, ktot, gamma_star)
      !
      ! Transpiration is calculated assuming a maximum "supply" driven by
      ! darcy's law. Once the "demand" exceeds the supply, we infer a new
@@ -2874,7 +2873,7 @@ CONTAINS
      REAL, PARAMETER :: MMOL_2_MOL = 1E-03
      REAL, PARAMETER :: MM_TO_M = 0.001
 
-     REAL, DIMENSION(mp,mf), INTENT(IN) :: rd, vcmax, vlaiz
+     REAL, DIMENSION(mp,mf), INTENT(IN) :: rd, vcmax
      REAL, DIMENSION(mp,mf), INTENT(INOUT) :: an
      REAL, DIMENSION(mp) :: km
      REAL, INTENT(IN) :: gamma_star
@@ -2928,7 +2927,7 @@ CONTAINS
            ! Need to calculate an effective beta to use in soil decomposition
            inferred_stress = inferred_stress + e_supply / e_demand
            ! Re-solve An for the new gs
-           CALL photosynthesis_C3_emax(canopy, veg, vlaiz, vcmaxx, parx, csx, &
+           CALL photosynthesis_C3_emax(canopy, veg, vcmaxx, parx, csx, &
                                        rdx, kmx, gamma_starx, an, i)
 
         ELSE
@@ -2945,8 +2944,8 @@ CONTAINS
   ! ----------------------------------------------------------------------------
 
   ! ----------------------------------------------------------------------------
-  SUBROUTINE photosynthesis_C3_emax(canopy, veg, vlaiz, vcmax, par, cs, rd, &
-                                    km, gamma_star, an, j)
+  SUBROUTINE photosynthesis_C3_emax(canopy, veg, vcmax, par, cs, rd, km, &
+                                    gamma_star, an, j)
      ! Calculate photosynthesis resolving Ci and A for a given gs
      ! (Jarvis style) to get the Emax solution.
      ! This follows MAESPA code.
@@ -2965,51 +2964,49 @@ CONTAINS
      REAL :: A, B, C
      REAL(R_2),INTENT(IN), DIMENSION(:,:) :: cs
      REAL, DIMENSION(mp,mf), INTENT(INOUT) :: an
-     REAL, DIMENSION(mp,mf), INTENT(IN) :: vlaiz, vcmax, par, rd
+     REAL, DIMENSION(mp,mf), INTENT(IN) :: vcmax, par, rd
      REAL, PARAMETER :: LAI_THRESH = 0.001
      REAL, PARAMETER :: UMOL_2_MOL = 1E-6
      REAL, DIMENSION(mp) ::  km
-     REAL, DIMENSION(mp,mf) :: jmax, discriminant, JJ, Vj
+     REAL, DIMENSION(mp,mf) :: jmax, JJ, Vj
      REAL(r_2), DIMENSION(mp,mf) :: an_rubisco, an_rubp
      REAL, INTENT(IN) :: gamma_star
 
      DO i=1, mp
-        IF (sum(vlaiz(i,:)) .GT. LAI_THRESH) THEN
-           ! where is the JV ratio set in the code? Use that instead
-           jmax(i,j) = vcmax(i,j) * 2.0
+        ! where is the JV ratio set in the code? Use that instead
+        jmax(i,j) = vcmax(i,j) * 2.0
 
-           ! What I thought was theta in CABLE doesn't appear to be in the right
-           ! order or mangitude - check units and whether it was the right thing
-           ! for now use what we use in GDAY
-           !A = veg%convex(i)
-           A = 0.7
-           B = -(veg%alpha(i) * par(i,j) + jmax(i,j))
-           C = veg%alpha(i) * par(i,j) * jmax(i,j)
-           JJ(i,j) = quad(A, B, C)
-           Vj = JJ / 4.0
+        ! What I thought was theta in CABLE doesn't appear to be in the right
+        ! order or mangitude - check units and whether it was the right thing
+        ! for now use what we use in GDAY
+        !A = veg%convex(i)
+        A = 0.7
+        B = -(veg%alpha(i) * par(i,j) + jmax(i,j))
+        C = veg%alpha(i) * par(i,j) * jmax(i,j)
+        JJ(i,j) = quad(A, B, C)
+        Vj = JJ / 4.0
 
-           ! Solution when Rubisco rate is limiting */
-           A = 1.0 / canopy%gsc(i)
-           B = (rd(i,j) - vcmax(i,j)) / &
-               canopy%gsc(i) - cs(i,j) - km(i)
-           C = vcmax(i,j) * (cs(i,j) - gamma_star) - &
-                rd(i,j) * (cs(i,j) + km(i))
-           an_rubisco(i,j) = quad(A, B, C)
+        ! Solution when Rubisco rate is limiting */
+        A = 1.0 / canopy%gsc(i)
+        B = (rd(i,j) - vcmax(i,j)) / &
+            canopy%gsc(i) - cs(i,j) - km(i)
+        C = vcmax(i,j) * (cs(i,j) - gamma_star) - &
+             rd(i,j) * (cs(i,j) + km(i))
+        an_rubisco(i,j) = quad(A, B, C)
 
-           ! Solution when electron transport rate is limiting
-           A = 1.0 / canopy%gsc(i)
-           B = (rd(i,j) - Vj(i,j)) / canopy%gsc(i) - &
-               cs(i,j) - 2.0 * gamma_star
-           C = Vj(i,j) * (cs(i,j) - gamma_star) - &
-               rd(i,j) * (cs(i,j) + 2.0 * gamma_star)
-           an_rubp(i,j) = quad(A, B, C)
+        ! Solution when electron transport rate is limiting
+        A = 1.0 / canopy%gsc(i)
+        B = (rd(i,j) - Vj(i,j)) / canopy%gsc(i) - &
+            cs(i,j) - 2.0 * gamma_star
+        C = Vj(i,j) * (cs(i,j) - gamma_star) - &
+            rd(i,j) * (cs(i,j) + 2.0 * gamma_star)
+        an_rubp(i,j) = quad(A, B, C)
 
-           ! positive root
-           an_rubp(i,j) = MAX( 0.0_r_2, an_rubp(i,j))
+        ! positive root
+        an_rubp(i,j) = MAX( 0.0_r_2, an_rubp(i,j))
 
-           ! CABLE is expecting to find An returned in mol m-2 s-1
-           an(i,j) = MIN(an_rubisco(i,j), an_rubp(i,j)) * UMOL_2_MOL
-        ENDIF
+        ! CABLE is expecting to find An returned in mol m-2 s-1
+        an(i,j) = MIN(an_rubisco(i,j), an_rubp(i,j)) * UMOL_2_MOL
      ENDDO
 
   END SUBROUTINE photosynthesis_C3_emax
