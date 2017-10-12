@@ -2001,20 +2001,19 @@ CONTAINS
                            gs_coeff(:,:), rad%fvlai(:,:),&
                            SPREAD( abs_deltlf, 2, mf ),                        &
                            anx(:,:), fwsoil(:) )
-       
+
        ! Ensure transpiration does not exceed Emax, if it does we
        ! recalculate gs and An
        IF (cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
           DO i = 1, mp
              DO kk = 1, mf
-                gsc(kk)  = MAX((1.e-3 / C%RGSWC), (gswmin(i,kk) / C%RGSWC) + &
-                               MAX(0.0, (gs_coeff(i,kk) * anx(i,kk))))
+                gsc(kk) = MAX(1.e-3, (gswmin(i,kk) / C%RGSWC) + &
+                              MAX(0.0, (gs_coeff(i,kk) * anx(i,kk))))
 
                 CALL calculate_emax(canopy, veg, ssnow, dsx(:), par(:,:),      &
                                     csx(:,:), SPREAD(cx1(:), 2, mf), rdx(:,:), &
                                     vcmxt3(:,:), gsc(:), anx(:,:), ktot,       &
                                     co2cp3, i, kk)
-
              ENDDO
           ENDDO
        ENDIF
@@ -2033,8 +2032,10 @@ CONTAINS
                    csx(i,kk) = MAX( 1.0e-4_r_2, csx(i,kk) )
 
                    IF (cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
-                      canopy%gswx(i,kk) = MAX(1.e-3, gsc(kk) * C%RGSWC)
-
+                      canopy%gswx(i,kk) = gsc(kk) * C%RGSWC
+                      !canopy%gswx(i,kk) = MAX(1.e-3, gswmin(i,kk) +           &
+                     !                         MAX(0.0, C%RGSWC *              &
+                     !                         gs_coeff(i,kk) * anx(i,kk)))
 
                    ELSE
                       ! Ticket #56, xleuning replaced with gs_coeff here
@@ -2860,7 +2861,7 @@ CONTAINS
 
      ! Hydraulic conductance of the entire soil-to-leaf pathway, this is passed
      ! back out to LWP calculation
-     REAL, INTENT(INOUT) ::  ktot
+     REAL, INTENT(INOUT) :: ktot
 
      ! plant component of the leaf-specific hydraulic conductance
      ! (mmol m-2 s-1 MPa-1 )
@@ -2872,7 +2873,7 @@ CONTAINS
      ! Cuticular conductance (mol m-2 s-1) - obvs should be passed
      ! if we are not setting this then set to a tiny value
      ! (1e-09 for numerical reasons)
-     REAL, PARAMETER :: gs_min = 1E-09
+     REAL, PARAMETER :: gs_min = 1e-03 !1E-09
 
      ! constants
      REAL, PARAMETER :: MOL_2_MMOL = 1000.0
@@ -2918,6 +2919,7 @@ CONTAINS
 
      ! Transpiration (mmol m-2 s-1) demand ignoring boundary layer effects!
      e_demand = MOL_2_MMOL * (dleaf(i) / press) * gsc(j) * C%RGSWC
+
      !print*, i, j, e_supply, e_demand, gsc(j)
 
      IF (e_demand > e_supply) THEN
@@ -2938,8 +2940,6 @@ CONTAINS
         ! Re-solve An for the new gs
         CALL photosynthesis_C3_emax(veg, vcmaxx, parx, csx, &
                                     rdx, kmx, gamma_starx, gsc, an, i, j)
-        !print*, gsc(j), an(i,j)
-        !stop
      ELSE
         ! This needs to be initialised somewhere.
         inferred_stress = inferred_stress + 1.0
@@ -3004,7 +3004,10 @@ CONTAINS
 
      ! CABLE is expecting to find An returned in mol m-2 s-1
      an(i,j) = MIN(an_rubisco(i,j), an_rubp(i,j)) * UMOL_2_MOL
-
+     if (an(i,j) > 5.) then
+        print*, an(i,j), gsc(j)
+        stop
+     endif
 
   END SUBROUTINE photosynthesis_C3_emax
   ! ---------------------------------------------------------------------------
