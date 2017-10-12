@@ -2981,25 +2981,22 @@ CONTAINS
      A = 0.7
      B = -(veg%alpha(i) * par(i,j) + jmax)
      C = veg%alpha(i) * par(i,j) * jmax
-     JJ = quad(A, B, C)
+     JJ = MAX(0.0_r_2, quad(A, B, C))
      Vj = JJ / 4.0
 
      ! Solution when Rubisco rate is limiting */
      A = 1.0 / gsc(j)
      B = (rd(i,j) - vcmax(i,j)) / gsc(j) - cs(i,j) - km(i,j)
      C = vcmax(i,j) * (cs(i,j) - gamma_star) - &
-          rd(i,j) * (cs(i,j) + km(i,j))
-     an_rubisco(i,j) = quad(A, B, C)
+         rd(i,j) * (cs(i,j) + km(i,j))
+     an_rubisco(i,j) = MAX(0.0_r_2, quad(A, B, C))
 
      ! Solution when electron transport rate is limiting
      A = 1.0 / gsc(j)
      B = (rd(i,j) - Vj) / gsc(j) - cs(i,j) - 2.0 * gamma_star
      C = Vj * (cs(i,j) - gamma_star) - &
          rd(i,j) * (cs(i,j) + 2.0 * gamma_star)
-     an_rubp(i,j) = quad(A, B, C)
-
-     ! positive root
-     an_rubp(i,j) = MAX( 0.0_r_2, an_rubp(i,j))
+     an_rubp(i,j) = MAX(0.0_r_2, quad(A, B, C))
 
      ! CABLE is expecting to find An returned in mol m-2 s-1
      an(i,j) = MIN(an_rubisco(i,j), an_rubp(i,j)) !* UMOL_2_MOL
