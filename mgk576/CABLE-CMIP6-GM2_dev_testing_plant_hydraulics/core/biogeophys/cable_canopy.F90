@@ -2017,7 +2017,7 @@ CONTAINS
           ! If supply didn't mean demand, gsc will have been reduced, we need
           ! to update the gs_coeff term, so it can be reused in photosynthesis
           ! call on the next iteration.
-          gs_coeff(i,kk) = (gsc(kk) - gswmin(i,kk)) / anx(i,kk)
+          gs_coeff(i,kk) = MAX(0.0, (gsc(kk) - gswmin(i,kk)) / anx(i,kk))
        ENDIF
 
        DO i=1,mp
