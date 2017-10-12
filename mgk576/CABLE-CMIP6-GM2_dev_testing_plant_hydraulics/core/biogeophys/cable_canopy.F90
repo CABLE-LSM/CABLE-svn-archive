@@ -2010,31 +2010,40 @@ CONTAINS
              DO kk=1, mf
 
 
-                gs_coeff(i,1) = (1.0 + (g1 * fwsoil(i)) / SQRT(vpd)) / csx(i,1)
-                gs_coeff(i,2) = (1.0 + (g1 * fwsoil(i)) / SQRT(vpd)) / csx(i,2)
+                !gs_coeff(i,1) = (1.0 + (g1 * fwsoil(i)) / SQRT(vpd)) / csx(i,1)
+                !gs_coeff(i,2) = (1.0 + (g1 * fwsoil(i)) / SQRT(vpd)) / csx(i,2)
 
-                gsc(1) = gs_coeff(1,1) * anx(1,1)
-                gsc(2) = gs_coeff(1,2) * anx(1,2)
-                print *, gs_coeff(i,1), gs_coeff(i,2), csx(i,1), csx(i,2), gsc(1), gsc(2)
+                !gsc(1) = gs_coeff(1,1) * anx(1,1)
+                !gsc(2) = gs_coeff(1,2) * anx(1,2)
+                !print *, gs_coeff(i,1), gs_coeff(i,2), csx(i,1), csx(i,2), gsc(1), gsc(2)
+                !gs_coeff(1,1) = gsc(1) / anx(1,1)
+                !gs_coeff(1,2) = gsc(2) / anx(1,2)
+                !print *, gs_coeff(i,1), gs_coeff(i,2)
 
-                gs_coeff(1,1) = gsc(1) / anx(1,1)
-                gs_coeff(1,2) = gsc(2) / anx(1,2)
-                print *, gs_coeff(i,1), gs_coeff(i,2)
+               ! gs_coeff(i,1) = (1.0 + (g1 * fwsoil(i)) / SQRT(vpd)) / (csx(i,1)*1E6)
+                !gs_coeff(i,2) = (1.0 + (g1 * fwsoil(i)) / SQRT(vpd)) / (csx(i,2)*1E6)
+                !gsc(1) = gs_coeff(1,1) * anx(1,1)
+                !gsc(2) = gs_coeff(1,2) * anx(1,2)
+                !print *, gs_coeff(i,1), gs_coeff(i,2), csx(i,1)*1E6, csx(i,2)*1E6, gsc(1), gsc(2)
+                !gs_coeff(1,1) = gsc(1)*1E6 / anx(1,1)
+                !gs_coeff(1,2) = gsc(2)*1E6 / anx(1,2)
+                !print *, gs_coeff(i,1), gs_coeff(i,2)
 
-                gs_coeff(i,1) = (1.0 + (g1 * fwsoil(i)) / SQRT(vpd)) / (csx(i,1)*1E6)
-                gs_coeff(i,2) = (1.0 + (g1 * fwsoil(i)) / SQRT(vpd)) / (csx(i,2)*1E6)
-                gsc(1) = gs_coeff(1,1) * anx(1,1)
-                gsc(2) = gs_coeff(1,2) * anx(1,2)
-                print *, gs_coeff(i,1), gs_coeff(i,2), csx(i,1)*1E6, csx(i,2)*1E6, gsc(1), gsc(2)
-                gs_coeff(1,1) = gsc(1)*1E6 / anx(1,1)
-                gs_coeff(1,2) = gsc(2)*1E6 / anx(1,2)
-                print *, gs_coeff(i,1), gs_coeff(i,2)
-                stop
+
+                !gs_coeff(i,1) = (1.0 + (g1 * fwsoil(i)) / SQRT(vpd)) / csx(i,1)
+                !gs_coeff(i,2) = (1.0 + (g1 * fwsoil(i)) / SQRT(vpd)) / csx(i,2)
+                !gsc(1) = gs_coeff(1,1)/1E6 * anx(1,1)
+                !gsc(2) = gs_coeff(1,2)/1E6 * anx(1,2)
+                !print *, gs_coeff(i,1), gs_coeff(i,2), csx(i,1)*1E6, csx(i,2)*1E6, gsc(1), gsc(2)
+                !gs_coeff(1,1) = gsc(1)*1E6 / anx(1,1)
+                !gs_coeff(1,2) = gsc(2)*1E6 / anx(1,2)
+                !print *, gs_coeff(i,1), gs_coeff(i,2)
+                !stop
 
 
                 !gsc(kk)  = MAX((1.e-3 / C%RGSWC), (gswmin(i,kk) / C%RGSWC) + &
                    !             MAX(0.0, (gs_coeff(i,kk) *1e6* anx(i,kk))))
-                gsc(kk) = gs_coeff(i,kk) * anx(i,kk)
+                gsc(kk) = (gs_coeff(i,kk)/1E6) * anx(i,kk)
 
                 CALL calculate_emax(canopy, veg, ssnow, dsx(:), par(:,:),      &
                                     csx(:,:), SPREAD(cx1(:), 2, mf), rdx(:,:), &
@@ -2044,8 +2053,9 @@ CONTAINS
                 ! If supply didn't mean demand, gsc will have been reduced, we need
                 ! to update the gs_coeff term, so it can be reused in photosynthesis
                 ! call on the next iteration.
-                gs_coeff(i,kk) = MAX(0.0, &
-                                     (gsc(kk) - (gswmin(i,kk) / C%RGSWC)) / anx(i,kk))
+                !gs_coeff(i,kk) = MAX(0.0, &
+                !                   ((gsc(kk)*1E6) - (gswmin(i,kk) / C%RGSWC)) / anx(i,kk))
+                gs_coeff(i,kk) = MAX(0.0, (gsc(kk)*1E6) / anx(i,kk))
 
              ENDDO
           ENDDO
@@ -2949,7 +2959,7 @@ CONTAINS
 
      ! Transpiration (mmol m-2 s-1) demand ignoring boundary layer effects!
      e_demand = MOL_2_MMOL * (dleaf(i) / press) * gsc(j) * C%RGSWC
-     !print*, i, j, e_supply, e_demand, gsc(j), dleaf(i)
+     print*, i, j, e_supply, e_demand, gsc(j)
 
      IF (e_demand > e_supply) THEN
         ! Calculate gs (mol m-2 s-1) given supply (Emax)
