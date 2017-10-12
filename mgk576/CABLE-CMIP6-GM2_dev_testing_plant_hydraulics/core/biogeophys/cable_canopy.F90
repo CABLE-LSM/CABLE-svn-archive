@@ -2011,7 +2011,7 @@ CONTAINS
                            MAX(0.0, gs_coeff(i,kk) * anx(i,kk)))
           ENDDO
 
-          CALL calculate_emax(veg, ssnow, dsx(:), par_to_pass(:,:),   &
+          CALL calculate_emax(canopy, veg, ssnow, dsx(:), par_to_pass(:,:),   &
                               csx(:,:), SPREAD(cx1(:), 2, mf), rdx(:,:),      &
                               vcmxt3(:,:), gsc(:), anx(:,:), ktot, co2cp3)
           ! If supply didn't mean demand, gsc will have been reduced, we need
@@ -2032,11 +2032,8 @@ CONTAINS
                         gbhu(i,kk) + gbhf(i,kk) )
                    csx(i,kk) = MAX( 1.0e-4_r_2, csx(i,kk) )
 
-                   ! Don't want fwsoil in the emax calculated gsw
                    IF (cable_user%FWSOIL_SWITCH == 'hydrology') THEN
-                      canopy%gswx(i,kk) = MAX(1.e-3, gswmin(i,kk) +           &
-                                              MAX(0.0, C%RGSWC *              &
-                                              gs_coeff(i,kk) * anx(i,kk)))
+                      canopy%gswx(i,kk) = gsc(i) * C%RGSWC
                    ELSE
                       ! Ticket #56, xleuning replaced with gs_coeff here
                       canopy%gswx(i,kk) = MAX(1.e-3, gswmin(i,kk)*fwsoil(i) + &
@@ -2822,7 +2819,7 @@ CONTAINS
   !*********************************************************************************************************************
 
   ! ----------------------------------------------------------------------------
-  SUBROUTINE calculate_emax(veg, ssnow, dleaf, par, cs, km, rd, vcmax, &
+  SUBROUTINE calculate_emax(canopy, veg, ssnow, dleaf, par, cs, km, rd, vcmax, &
                             an, gsc, ktot, gamma_star)
      !
      ! Transpiration is calculated assuming a maximum "supply" driven by
@@ -2849,6 +2846,7 @@ CONTAINS
 
      TYPE (veg_parameter_type), INTENT(INOUT)  :: veg
      TYPE (soil_snow_type), INTENT(INOUT)      :: ssnow
+     TYPE (canopy_type), INTENT(INOUT)         :: canopy
 
      ! met stuff
      REAL(R_2),INTENT(IN), DIMENSION(:,:) :: cs  ! leaf surface CO2
@@ -2953,7 +2951,7 @@ CONTAINS
 
   ! ----------------------------------------------------------------------------
   SUBROUTINE photosynthesis_C3_emax(veg, vcmax, par, cs, rd, km, &
-                                    gamma_star, an, j)
+                                    gamma_star, gsc, an, j)
      ! Calculate photosynthesis resolving Ci and A for a given gs
      ! (Jarvis style) to get the Emax solution.
      ! This follows MAESPA code.
@@ -2996,7 +2994,7 @@ CONTAINS
 
         ! Solution when Rubisco rate is limiting */
         A = 1.0 / gsc(i)
-        B = (rd(i,j) - vcmax(i,j)) / canopy%gsc(i) - cs(i,j) - km(i)
+        B = (rd(i,j) - vcmax(i,j)) / gsc(i) - cs(i,j) - km(i)
         C = vcmax(i,j) * (cs(i,j) - gamma_star) - &
              rd(i,j) * (cs(i,j) + km(i))
         an_rubisco(i,j) = quad(A, B, C)
