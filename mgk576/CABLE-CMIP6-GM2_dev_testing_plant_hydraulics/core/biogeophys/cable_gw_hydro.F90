@@ -1807,10 +1807,10 @@ END SUBROUTINE calc_soil_hydraulic_props
      REAL, PARAMETER :: TINY_NUMBER = 1E-35
      REAL, PARAMETER :: HUGE_NUMBER = 1E35
 
-     INTEGER, INTENT(IN) :: i
-
      REAL :: Ks, Lsoil, soilR1, soilR2, arg1, arg2, root_biomass, root_length
      REAL :: soil_root_resist, rs, soil_resistance, root_resistance, rsum, conv
+
+     INTEGER, INTENT(IN) :: i
      INTEGER :: j
 
      ! Store each layers resistance, used in LWP calculatons
@@ -1852,7 +1852,7 @@ END SUBROUTINE calc_soil_hydraulic_props
            ! Need to combine resistances in parallel, but we only want the
            ! soil term as the root component is part of the plant resistance
            rsum = rsum + 1.0 / soil_resistance
-        ENDIF
+        END IF
      END DO
      ssnow%total_soil_resist(i) = 1.0 / rsum
 
