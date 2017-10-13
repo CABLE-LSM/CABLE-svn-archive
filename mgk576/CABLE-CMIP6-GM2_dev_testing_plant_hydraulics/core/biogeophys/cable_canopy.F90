@@ -2048,7 +2048,7 @@ CONTAINS
                       canopy%gswx(i,kk) = MAX(1.e-3, gswmin(i,kk)*fwsoil(i) + &
                                               MAX(0.0, C%RGSWC *              &
                                               gs_coeff(i,kk) * anx(i,kk)))
-                   ENDIF
+                   END IF
 
                    !Recalculate conductance for water:
                    gw(i,kk) = 1.0 / ( 1.0 / canopy%gswx(i,kk) +                &
