@@ -1892,9 +1892,9 @@ END SUBROUTINE calc_soil_hydraulic_props
      INTEGER :: j
 
      total_est_evap = 0.0
+     est_evap = 0.0
      ssnow%weighted_swp = 0.0
      ssnow%fraction_uptake = 0.0
-     est_evap = 0.0
 
      ! Estimate max transpiration from gradient-gravity / soil resistance
      DO j = 1, ms ! Loop over 6 soil layers
@@ -1906,7 +1906,7 @@ END SUBROUTINE calc_soil_hydraulic_props
         !  est_evap(i) = 0.0
         !ENDIF
      END DO
-     total_est_evap = sum(est_evap)
+     total_est_evap = SUM(est_evap)
 
      IF (total_est_evap > 0.0) THEN
         DO j = 1, ms ! Loop over 6 soil layers
@@ -1918,13 +1918,13 @@ END SUBROUTINE calc_soil_hydraulic_props
                (ssnow%fraction_uptake(i,j) < 0.0)) THEN
               PRINT *, 'Problem with the uptake fraction (either >1 or 0<)'
               STOP
-           ENDIF
-        ENDDO
+           END IF
+        END DO
         ssnow%weighted_swp = ssnow%weighted_swp / total_est_evap
      ELSE
         ! No water was evaporated
         ssnow%fraction_uptake(i,:) = 1.0 / FLOAT(ms)
-     ENDIF
+     END IF
 
   END SUBROUTINE calc_weighted_swp_and_frac_uptake
   ! ----------------------------------------------------------------------------
