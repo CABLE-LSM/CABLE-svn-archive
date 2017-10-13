@@ -205,8 +205,7 @@ SUBROUTINE remove_transGW(dels, soil, ssnow, canopy, veg)
    !                    if else logic
 
    IF (cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
-      ! Testing this ...
-      !
+
       ! This follows the default extraction logic, but instead of weighting
       ! by froot, we are weighting by the frac uptake we calculated when we
       ! were weighting the soil water potential.
@@ -240,54 +239,48 @@ SUBROUTINE remove_transGW(dels, soil, ssnow, canopy, veg)
    ELSE IF (cable_user%FWSOIL_SWITCH == 'Haverd2013') THEN
 
       WHERE (canopy%fevc .lt. 0.0_r_2)
-        canopy%fevw = canopy%fevw+canopy%fevc
-        canopy%fevc = 0.0_r_2
-     END WHERE
-     DO k = 1,ms
-        ssnow%wbliq(:,k) = ssnow%wbliq(:,k) - ssnow%evapfbl(:,k)/zse_mp_mm(:,k)
-     ENDDO
+         canopy%fevw = canopy%fevw+canopy%fevc
+         canopy%fevc = 0.0_r_2
+      END WHERE
+      DO k = 1,ms
+         ssnow%wbliq(:,k) = ssnow%wbliq(:,k) - ssnow%evapfbl(:,k)/zse_mp_mm(:,k)
+      ENDDO
 
-   ELSE
+   ELSE ! Default logic
 
       xx(:) = 0._r_2
       xxd(:) = 0._r_2
       diff(:,:) = 0._r_2
 
-      DO k = 1,ms
-
-         DO i=1,mp
-
-            if (canopy%fevc(i) .gt. 0._r_2) then
-
-               xx(i) = canopy%fevc(i) * dels / C%HL * veg%froot(i,k) + diff(i,k-1)
-               diff(i,k) = max(0._r_2,ssnow%wbliq(i,k)-soil%swilt_vec(i,k)) &
-                          * zse_mp_mm(i,k)
+      DO k = 1, ms
+         DO i = 1, mp
+            IF (canopy%fevc(i) .gt. 0._r_2) THEN
+               xx(i) = canopy%fevc(i) * dels / C%HL * veg%froot(i,k) + &
+                       diff(i,k-1)
+               diff(i,k) = max(0._r_2,ssnow%wbliq(i,k)-soil%swilt_vec(i,k)) * &
+                           zse_mp_mm(i,k)
                xxd(i) = xx(i) - diff(i,k)
 
-               if (xxd(i) .gt. 0._r_2) then
+               IF (xxd(i) .gt. 0._r_2) THEN
                   ssnow%wbliq(i,k) = ssnow%wbliq(i,k) - diff(i,k)/zse_mp_mm(i,k)
                   diff(i,k) = xxd(i)
-               else
+               ELSE
                   ssnow%wbliq(i,k) = ssnow%wbliq(i,k) - xx(i)/zse_mp_mm(i,k)
                   diff(i,k) = 0._r_2
-               end if
-
-
-             end if  !fvec > 0
-
+               END IF
+            END IF  !fvec > 0
          END DO  !mp
       END DO     !ms
 
-  ENDIF
+   ENDIF
 
-  do k=1,ms
-     do i=1,mp
-        ssnow%wmliq(i,k) = ssnow%wbliq(i,k)*zse_mp_mm(i,k)!mass
-        ssnow%wmtot(i,k) = ssnow%wmliq(i,k) + ssnow%wmice(i,k)  !mass
-        ssnow%wb(i,k)    = ssnow%wbliq(i,k) + ssnow%wbice(i,k)  !volume
-     end do
-  end do
-
+   DO k = 1, ms
+      DO i = 1, mp
+         ssnow%wmliq(i,k) = ssnow%wbliq(i,k)*zse_mp_mm(i,k)      !mass
+         ssnow%wmtot(i,k) = ssnow%wmliq(i,k) + ssnow%wmice(i,k)  !mass
+         ssnow%wb(i,k)    = ssnow%wbliq(i,k) + ssnow%wbice(i,k)  !volume
+      END DO
+   END DO
 
 END SUBROUTINE remove_transGW
 
