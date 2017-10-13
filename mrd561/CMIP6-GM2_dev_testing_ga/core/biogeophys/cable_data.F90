@@ -177,7 +177,8 @@ module cable_data_module
          ! math constants
          PI_C,                                                                 &
          ! other constants
-         LAI_THRESH
+         LAI_THRESH,&
+         HL, HLF, HLS,density_ice,density_liq
 
       INTEGER, POINTER :: MAXITER
 
@@ -351,6 +352,12 @@ SUBROUTINE canopy_type_ptr(C)
 
    ! other constants
    C%LAI_THRESH  => OTHER%LAI_THRESH
+
+   C%HL          => PHYS%HL
+   C%HLF         => PHYS%HLF
+   C%HLS         => PHYS%HLS
+   C%density_ice => PHYS%density_ice
+   C%density_liq => PHYS%density_liq
 
 END SUBROUTINE canopy_type_ptr
 

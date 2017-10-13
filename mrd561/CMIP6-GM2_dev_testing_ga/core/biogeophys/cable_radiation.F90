@@ -220,7 +220,7 @@ SUBROUTINE radiation( ssnow, veg, air, met, rad, canopy )
    flpwb = C%sboltz * (met%tvrad) ** 4
    flwv = C%EMLEAF * flpwb
 
-   rad%flws = C%sboltz*C%EMSOIL* ssnow%tss **4
+   rad%flws = C%sboltz*C%EMSOIL* ssnow%tskin **4
 
    ! Define air emissivity:
    emair = met%fld / flpwb

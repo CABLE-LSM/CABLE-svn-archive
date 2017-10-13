@@ -1022,6 +1022,14 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
    ssnow%sinfil = ssnow%fwtop - canopy%segg  !canopy%fes/C%HL               !remove soil evap from throughfall
 
    CALL smoistgw (dels,ktau,ssnow,soil,veg,canopy)               !vertical soil moisture movement. 
+
+   do i=1,mp
+      if (ssnow%isflag(i) .eq. 0) then
+         ssnow%deltskin(i) = 0.5*soil%zse(1)* (ssnow%tss(i) - ssnow%tgg(i,2))/(0.5*(soil%zse(1)+soil%zse(2) ) )
+      else
+
+      end if
+   end do
   
    ! correction required for energy balance in online simulations 
    IF( cable_runtime%um) THEN

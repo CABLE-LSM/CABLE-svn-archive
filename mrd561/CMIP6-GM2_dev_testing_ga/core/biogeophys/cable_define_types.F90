@@ -231,6 +231,8 @@ MODULE cable_def_types_mod
          smelt,   & ! snow melt
          ssdnn,   & ! average snow density
          tss,     & ! surface temperature (weighted soil, snow)
+         tskin,   &
+         deltskin,   &
          tss_p,   & ! surface temperature (weighted soil, snow)
          deltss,  & ! surface temperature (weighted soil, snow)
          owb1       ! surface temperature (weighted soil, snow)
@@ -908,6 +910,8 @@ SUBROUTINE alloc_soil_snow_type(var, mp)
    ALLOCATE( var% tgg(mp,ms) )
    ALLOCATE( var% tggsn(mp,msn) )
    ALLOCATE( var% tss(mp) )
+   ALLOCATE( var% tskin(mp) )
+   ALLOCATE( var% deltskin(mp) )
    ALLOCATE( var% tss_p(mp) )
    ALLOCATE( var% deltss(mp) )
    ALLOCATE( var% owb1(mp) )
@@ -1520,6 +1524,8 @@ SUBROUTINE dealloc_soil_snow_type(var)
    DEALLOCATE( var% ssdnn )
    DEALLOCATE( var% tgg )
    DEALLOCATE( var% tggsn )
+   DEALLOCATE( var% tskin )
+   DEALLOCATE( var% deltskin )
    DEALLOCATE( var% tss )
    DEALLOCATE( var% tss_p )
    DEALLOCATE( var% deltss )

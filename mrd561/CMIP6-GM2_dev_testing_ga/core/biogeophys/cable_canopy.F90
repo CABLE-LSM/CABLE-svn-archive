@@ -156,6 +156,14 @@ CONTAINS
 
     INTEGER, SAVE :: call_number =0
 
+    REAL, DIMENSION(mp) :: Keffective, tmp_ga, adjust_ice,&
+                                adjust_snow,frozen_frac_zero,&
+                           dz_layer,gammzz
+    REAL(r_2) :: tmp_liq,tmp_ice
+    real :: tmp_snowd, snow_left
+    
+    INTEGER :: i,tmp_flg
+
     ! END header
 
     call_number = call_number + 1
@@ -207,6 +215,9 @@ CONTAINS
        ssnow%tss =  real((1-ssnow%isflag))*ssnow%tgg(:,1) + real(ssnow%isflag)*ssnow%tggsn(:,1)
     endif
     tss4 = ssnow%tss**4
+
+    ssnow%tskin = ssnow%tss
+
     canopy%fes = 0.
     canopy%fess = 0.
     canopy%fesp = 0.
@@ -234,9 +245,13 @@ CONTAINS
     canopy%zetash(:,1) = C%ZETA0 ! stability correction terms
     canopy%zetash(:,2) = C%ZETPOS + 1
 
+    do i=1,mp  !snow_flg,snowdp,wbliq,wbice
+       Keffective(i) = soil_thermal_conductivity(ssnow%isflag(i),ssnow%snowd(i),ssnow%wbliq(i,1),ssnow%wbice(i,1))
+    end do
 
     DO iter = 1, NITER
 
+       tss4 = ssnow%tskin(:)**4
        ! AERODYNAMIC PROPERTIES: friction velocity us, thence turbulent
        ! resistances rt0, rt1 (elements of dispersion matrix):
        ! See CSIRO SCAM, Raupach et al 1997, eq. 3.46:
@@ -548,6 +563,116 @@ CONTAINS
           canopy%ga = canopy%fns-canopy%fhs-canopy%fes !*ssnow%cls
 
        ENDIF
+
+      !update skin surface temperature
+      !call soil_thermal_conductivity(Keffective, soil,ssnow)
+      if (cable_user%gw_model .and. iter .lt. NITER) then
+
+         tmp_ga(:) = 0.5*canopy%ga(:)
+         adjust_snow(:) = 0.   !W/m2
+         adjust_ice(:) = 0.    !W/m2
+         frozen_frac_zero(:) = 1.  !none
+
+         do i=1,mp
+
+            tmp_flg = ssnow%isflag(i)
+            tmp_liq = ssnow%wbliq(i,1)
+            tmp_ice = ssnow%wbice(i,1)
+            tmp_snowd = ssnow%snowd(i)
+ 
+            if (tmp_flg .eq. 0) then
+               dz_layer(i) = 0.5*soil%zse(1) 
+               gammzz(i) = MAX( ( (1.0 - real(soil%ssat_vec(i,1))) * soil%css(i) * soil%rhosoil(i)      &
+                           + tmp_liq * 4.218e3 * C%density_liq           &
+                           + tmp_ice * 2.1e3   * C%density_ice) &
+                             ,soil%css(i) * soil%rhosoil(i) )&
+                           * dz_layer(i) +   &
+                             2090.0 * tmp_snowd
+
+            else
+               dz_layer(i) = 0.5*ssnow%sdepth(i,1)
+               gammzz(i) = ssnow%ssdn(i,1) * 2090.0 * dz_layer(i)
+            end if
+
+            ssnow%tskin(i) = update_skin_temp(tmp_ga(i),dz_layer(i),Keffective(i),ssnow%tss(i) )
+
+            if (ssnow%tskin(i) .gt. C%TFRZ .and. &
+                ssnow%tss(i) .le. C%TFRZ .and. &
+                (ssnow%snowd(i) .gt. 0.0 .or. ssnow%wbice(i,1) .gt. 0.0) ) then
+
+                !amound E needed so tskin=TFRZ
+                tmp_ga(i) = tmp_ga(i) + REAL( (ssnow%tss(i) - C%TFRZ) * gammzz(i))/dels
+                !can temp change beyond melt?
+                !how energy compared to needed to melt snow?
+                !how much melt ice?
+                adjust_snow(i) = min(tmp_ga(i), ssnow%snowd(i)*C%HLF/dels )
+                snow_left = max(0., ssnow%snowd(i) - dels*adjust_snow(i)/C%HLF )
+                if (ssnow%isflag(i) .ne. 0) then
+                   if (adjust_snow(i) .gt. ssnow%smass(i,1)/C%HLF/dels ) then
+                      if ( adjust_snow(i) .gt. sum(ssnow%smass(i,1:2),dim=1)/C%HLF/dels) then
+                         if ( adjust_snow(i) .gt. sum(ssnow%smass(i,1:3),dim=1)/C%HLF/dels) then
+                             !all snow will be melted
+                             dz_layer(i) = 0.5*soil%zse(1)
+                         else
+                            dz_layer(i) = 0.5*ssnow%sdepth(i,3) - &
+                                          (adjust_snow(i) - sum(ssnow%smass(i,1:2),dim=1)/C%HLF/dels )/ssnow%ssdn(i,3)
+                         end if
+                      else
+                         dz_layer(i) = 0.5*ssnow%sdepth(i,2) - &
+                                          (adjust_snow(i) - ssnow%smass(i,1)/C%HLF/dels )/ssnow%ssdn(i,2)
+                      end if
+                   else
+                      dz_layer(i) = 0.5*ssnow%sdepth(i,1) - adjust_snow(i)/ssnow%ssdn(i,1)
+                   end if
+                end if
+
+                         
+                !remove energy needed to melt snow
+                tmp_ga(i) = tmp_ga(i) - adjust_snow(i)
+                !remove energy needed to melt ice
+                adjust_ice(i) = min(tmp_ga(i), 0.5*ssnow%wbice(i,1)*soil%zse(1)*C%density_ice/C%HLF/dels)
+                tmp_ga(i) = tmp_ga(i) - adjust_ice(i)
+
+                if (snow_left .eq. 0) tmp_flg = 0
+
+                tmp_liq = ssnow%wbliq(i,1) + adjust_ice(i)*C%HLF*dels/(0.5*soil%zse(1)*C%density_ice)
+                tmp_ice = ssnow%wbice(i,1) - adjust_ice(i)*C%HLF*dels/(0.5*soil%zse(1)*C%density_ice)
+                tmp_snowd = snow_left/ssnow%ssdn(i,1)
+
+                Keffective(i) = soil_thermal_conductivity(tmp_flg,tmp_snowd,tmp_liq,tmp_ice)
+            
+                ssnow%tskin(i) = update_skin_temp(tmp_ga(i),dz_layer(i),Keffective(i),C%TFRZ )
+
+            elseif (ssnow%tskin(i) .lt. C%TFRZ .and. &
+                    ssnow%tss(i) .ge. C%TFRZ  .and. ssnow%isflag(i) .eq. 0 ) then
+               !dtermine amount of ice that can be frozen if tskin goes < 0
+               frozen_frac_zero(i) = max(0.5, &
+                            (1. - exp(-2.*(ssnow%wb(i,1)/soil%ssat_vec(i,1))**4.0 *&
+                            (ssnow%tskin(i)-C%TFRZ)))/exp(1. - ssnow%wb(i,1)/soil%ssat_vec(i,1)) )
+               !remove E needed to make tss to zero
+               tmp_ga(i) = tmp_ga(i) + REAL( (ssnow%tss(i) - C%TFRZ) * gammzz(i))/dels
+
+                if (ssnow%wbice(i,1) .lt. frozen_frac_zero(i)*ssnow%wb(i,1))  then
+                   !how much needed to melt snow?
+                   !how much melt ice?
+                   adjust_ice(i) = min(-tmp_ga(i), &
+                                   max(0.,ssnow%wb(i,1)*frozen_frac_zero(i) - ssnow%wbice(i,1))&
+                                   *dz_layer(i)*C%density_ice/C%HLF/dels  )
+                   !remove energy needed to freeze liquid to ice
+                   tmp_ga(i) = tmp_ga(i)  + adjust_ice(i)
+
+                   tmp_liq = ssnow%wbliq(i,1) - adjust_ice(i)*C%HLF*dels/(dz_layer(i)*C%density_liq)
+                   tmp_ice = ssnow%wbice(i,1) + adjust_ice(i)*C%HLF*dels/(dz_layer(i)*C%density_ice)
+
+                   Keffective(i) = soil_thermal_conductivity(tmp_flg,tmp_snowd,tmp_liq,tmp_ice)
+
+                   ssnow%tskin(i) = update_skin_temp(tmp_ga(i),soil%zse(1),Keffective(i),C%TFRZ )
+                end if
+
+             end if
+
+         end do
+      end if
 
        ! Set total latent heat:
        canopy%fe = canopy%fev + canopy%fes
@@ -1519,6 +1644,54 @@ CONTAINS
     END SUBROUTINE wetLeaf
 
     ! -----------------------------------------------------------------------------
+     function soil_thermal_conductivity(snow_flg,snowdp,wbliq,wbice) result(ccnsw)
+         USE cable_def_types_mod
+     
+        REAL   :: ccnsw
+        integer, intent(in) :: snow_flg
+        real, intent(in) :: snowdp
+        real(r_2), intent(in) :: wbliq,wbice
+     
+        REAL :: ew
+        REAL :: exp_arg,snow_ccnsw
+        
+        snow_ccnsw = 2.0
+     
+        IF( soil%isoilm(i) .eq. 9 ) THEN
+              ! permanent ice: fix hard-wired number in next version
+           ccnsw = snow_ccnsw
+        ELSE
+           ew = real(wbliq)
+           exp_arg = ( ew * LOG( 60.0 ) ) + ( real(wbice)       &
+                         * LOG( 250.0 ) )
+     
+           IF( exp_arg .gt. 30.) THEN
+                 
+              ccnsw = 1.5 * MAX( 1.0_r_2, SQRT( MIN( 2.0_r_2, 0.5 *      &
+                              soil%ssat_vec(i,1) /                                     &
+                              MIN( ew, 0.5_r_2 * soil%ssat_vec(i,1) ) ) ) )
+     
+              ELSE         
+                 
+                 ccnsw = MIN( soil%cnsd(i) * EXP( exp_arg ), 1.5_r_2 )      &
+                              * MAX( 1.0_r_2, SQRT( MIN( 2.0_r_2, 0.5 *          &
+                              soil%ssat_vec(i,1) /                                     &
+                              MIN( ew, 0.5_r_2 * soil%ssat_vec(i,1) ) ) ) )
+              
+              ENDIF          
+          
+           ENDIF 
+        
+        IF (ssnow%isflag(i) == 0) THEN
+           ccnsw = ( ccnsw - 0.2 ) * ( soil%zse(1) / ( soil%zse(1) + &
+                         MAX( 0., snowdp / ssnow%ssdnn(i) ) ) ) + 0.2
+        ELSE
+           ccnsw = MAX( 0.2, MIN( 2.876e-6 * ssnow%ssdn(i,1)**2         &
+                               + 0.074, 2.51 ) )
+        ENDIF
+     
+     
+     END function soil_thermal_conductivity
 
   END SUBROUTINE define_canopy
 
@@ -2770,5 +2943,82 @@ CONTAINS
 
   END SUBROUTINE getrex_1d
   !*********************************************************************************************************************
+!SUBROUTINE soil_thermal_conductivity(ccnsw, soil,ssnow)
+!    USE cable_def_types_mod
+!
+!   REAL, DIMENSION(mp), INTENT(INOUT)     :: ccnsw
+!   TYPE(soil_parameter_type), INTENT(IN)     :: soil 
+!   TYPE(soil_snow_type)     , INTENT(INOUT)  :: ssnow
+!
+!   INTEGER :: k,j
+!   REAL(r_2), DIMENSION(mp,ms) :: wblf, &  !ratio liquid volume to sat volume
+!                                  wbfice   !ratio ice volume to sat volume
+!   REAL, DIMENSION(mp) :: ew
+!   REAL :: exp_arg,snow_ccnsw
+!   
+!   snow_ccnsw = 2.0
+!
+!   wblf = (ssnow%wb - ssnow%wbice) / soil%ssat_vec
+!   wbfice = ssnow%wbice / soil%ssat_vec
+!
+!   k=1 
+!   DO j = 1, mp
+!   
+!      IF( soil%isoilm(j) .eq. 9 ) THEN
+!         ! permanent ice: fix hard-wired number in next version
+!         ccnsw(j) = snow_ccnsw
+!      ELSE
+!         ew(j) = ssnow%wb(j,k) - ssnow%wbice(j,k)
+!         exp_arg = ( ew(j) * LOG( 60.0 ) ) + ( ssnow%wbice(j,k)            &
+!                    * LOG( 250.0 ) )
+!
+!         
+!         IF( exp_arg .gt. 30.) THEN
+!            
+!            ccnsw(j) = 1.5 * MAX( 1.0_r_2, SQRT( MIN( 2.0_r_2, 0.5 *      &
+!                         soil%ssat_vec(j,k) /                                     &
+!                         MIN( ew(j), 0.5_r_2 * soil%ssat_vec(j,k) ) ) ) )
+!
+!         ELSE         
+!            
+!            ccnsw(j) = MIN( soil%cnsd(j) * EXP( exp_arg ), 1.5_r_2 )      &
+!                         * MAX( 1.0_r_2, SQRT( MIN( 2.0_r_2, 0.5 *          &
+!                         soil%ssat_vec(j,k) /                                     &
+!                         MIN( ew(j), 0.5_r_2 * soil%ssat_vec(j,k) ) ) ) )
+!         
+!         ENDIF          
+!     
+!      ENDIF 
+!   
+!   END DO
+!    
+!   WHERE(ssnow%isflag == 0)
+!      ccnsw(:) = ( ccnsw(:) - 0.2 ) * ( soil%zse(1) / ( soil%zse(1) + &
+!                    MAX( 0., ssnow%snowd / ssnow%ssdnn ) ) ) + 0.2
+!   ELSEWHERE
+!      ccnsw(:) = MAX( 0.2, MIN( 2.876e-6 * ssnow%ssdn(:,1)**2         &
+!                          + 0.074, 2.51 ) )
+!   ENDWHERE
+!
+!
+!END SUBROUTINE soil_thermal_conductivity
+
+
+ function update_skin_temp(canopy_ga,layer_dz,K_eff,ssnow_tss) result(ssnow_tskin)
+     USE cable_def_types_mod, only : r_2
+
+     real, intent(in) :: canopy_ga,K_eff,ssnow_tss,layer_dz
+     real  :: ssnow_tskin
+
+       if (abs(canopy_ga *layer_dz/K_eff) .gt. 1.5) then  !do not allow too
+                                                            ! large of changes for stability
+          ssnow_tskin = ssnow_tss + sign(0.5,canopy_ga)
+       else
+          ssnow_tskin = ssnow_tss + canopy_ga*layer_dz/K_eff
+       end if
+
+ end function update_skin_temp
+
+
 
 END MODULE cable_canopy_module
