@@ -2417,7 +2417,7 @@ CONTAINS
                         (ciz(i,j)+cx2z(i,j)) +vx4z(i,j)-rdxz(i,j)
 
                 ENDIF
-                print*, "***", gsc(j)
+
                 ! Sink limited:
                 coef2z(i,j) = gs_coeffz(i,j)
 
@@ -2983,7 +2983,7 @@ CONTAINS
      A = 0.7
      B = -(veg%alpha(i) * par(i,j) + jmax)
      C = veg%alpha(i) * par(i,j) * jmax
-     JJ = MAX(0.0_r_2, quad(A, B, C))
+     JJ = MAX(0.0_r_2, quadm(A, B, C))
      Vj = JJ / 4.0
 
      ! Solution when Rubisco rate is limiting */
@@ -2991,14 +2991,14 @@ CONTAINS
      B = (rd(i,j) - vcmax(i,j)) / gsc(j) - cs(i,j) - km(i,j)
      C = vcmax(i,j) * (cs(i,j) - gamma_star) - &
          rd(i,j) * (cs(i,j) + km(i,j))
-     an_rubisco = MAX(0.0_r_2, quad(A, B, C))
+     an_rubisco = MAX(0.0_r_2, quadm(A, B, C))
 
      ! Solution when electron transport rate is limiting
      A = 1.0 / gsc(j)
      B = (rd(i,j) - Vj) / gsc(j) - cs(i,j) - 2.0 * gamma_star
      C = Vj * (cs(i,j) - gamma_star) - &
          rd(i,j) * (cs(i,j) + 2.0 * gamma_star)
-     an_rubp = MAX(0.0_r_2, quad(A, B, C))
+     an_rubp = MAX(0.0_r_2, quadm(A, B, C))
 
      ! CABLE is expecting to find An returned in mol m-2 s-1
      an(i,j) = MIN(an_rubisco, an_rubp) * UMOL_2_MOL
@@ -3007,8 +3007,10 @@ CONTAINS
   ! ---------------------------------------------------------------------------
 
   ! ----------------------------------------------------------------------------
-  FUNCTION quad(A, B, C) RESULT(root)
-     ! Quadratic solution
+  FUNCTION quadm(A, B, C) RESULT(root)
+     ! Quadratic solution - finds smaller root.
+     !
+     ! Todo: Add warnings to a log file ...
      !
      ! Martin De Kauwe, 10th Oct, 2017
 
@@ -3017,15 +3019,34 @@ CONTAINS
 
      IMPLICIT NONE
 
+     REAL, PARAMETER :: EPSILON = 1E-09
      REAL, INTENT(IN) :: A, B, C
      REAL :: d, root
 
      ! discriminant
-     d = B**2 - 4.0 * A * C
-     root = (-B + SQRT(MAX(0.0_r_2 , d))) / (2.0 * A)
-     root = MAX(0.0_r_2, root)
+     d = B * B - 4.0 * A * C
 
-  END FUNCTION quad
+     IF (d < 0.0) THEN
+        ! Should put this in a log file? How?
+        !print*, 'WARNING:IMAGINARY ROOTS IN QUADRATIC'
+        root = 0.0
+     ELSE
+        IF (ABS(A) < EPSILON) THEN
+            IF (ABS(B) < EPSILON) THEN
+                root = 0.0
+                ! Should put this in a log file? How?
+                !IF (C > EPSILON .OR. C < EPSILON) THEN
+                !   print*, 'ERROR: CANT SOLVE QUADRATIC'
+                !ENDIF
+            ELSE
+                root = -C / B
+            END IF
+        ELSE
+            root = (-B - SQRT(d)) / (2.0 * A)
+        END IF
+     END IF
+
+  END FUNCTION quadm
   ! ----------------------------------------------------------------------------
 
   ! ----------------------------------------------------------------------------
