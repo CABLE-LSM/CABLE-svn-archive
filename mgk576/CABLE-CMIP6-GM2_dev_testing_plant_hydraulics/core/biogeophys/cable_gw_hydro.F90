@@ -202,7 +202,7 @@ SUBROUTINE remove_transGW(dels, soil, ssnow, canopy, veg)
    end do
 
    ! mgk576, 13/10/17 - I've added a new if block and restructured the previous
-   !                    if else logic
+   !                    if-else logic below, remove the "ne" case too.
 
    IF (cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
 
