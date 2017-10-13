@@ -204,9 +204,9 @@ SUBROUTINE remove_transGW(dels, soil, ssnow, canopy, veg)
    IF (cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
       ! Testing this ...
       !
-      ! This follows the default, but instead of weighting by froot, we are
-      ! weighting by the frac uptake we calculated, this is related to the
-      ! weighted SWP
+      ! This follows the default extraction logic, but instead of weighting
+      ! by froot, we are weighting by the frac uptake we calculated when we 
+      ! were weighting the soil water potential.
       !
       ! Martin De Kauwe, 13/10/17
 
@@ -233,7 +233,7 @@ SUBROUTINE remove_transGW(dels, soil, ssnow, canopy, veg)
              END IF  !fvec > 0
          END DO  !mp
       END DO     !ms
-      
+
    ELSE IF (cable_user%FWSOIL_SWITCH == 'Haverd2013') THEN
 
       WHERE (canopy%fevc .lt. 0.0_r_2)
