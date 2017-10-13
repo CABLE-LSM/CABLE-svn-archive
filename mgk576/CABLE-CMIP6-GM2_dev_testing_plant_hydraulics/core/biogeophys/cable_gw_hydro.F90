@@ -203,8 +203,11 @@ SUBROUTINE remove_transGW(dels, soil, ssnow, canopy, veg)
 
    ! PH: mgk576, 13/10/17 - I've added a new if block and restructured the
    !                        previous if-else logic below
-   IF (cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
+   IF (cable_user%FWSOIL_SWITCH == 'hydraulicsXXXX') THEN
 
+      ! TURNED THIS OFF as I get a weird result when testing at Palang.
+      ! Need to read the logic in detail ...
+      !
       ! This follows the default extraction logic, but instead of weighting
       ! by froot, we are weighting by the frac uptake we calculated when we
       ! were weighting the soil water potential.
