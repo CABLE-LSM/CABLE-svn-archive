@@ -2033,22 +2033,19 @@ CONTAINS
                    IF (cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
                       canopy%gswx(i,kk) = gsc(kk) * C%RGSWC
                       !canopy%gswx(i,kk) = MAX(1.e-3, gswmin(i,kk) +           &
-                     !                         MAX(0.0, C%RGSWC *              &
-                     !                         gs_coeff(i,kk) * anx(i,kk)))
+                      !                        MAX(0.0, C%RGSWC *              &
+                      !                        gs_coeff(i,kk) * anx(i,kk)))
 
                    ELSE
                       ! Ticket #56, xleuning replaced with gs_coeff here
                       canopy%gswx(i,kk) = MAX(1.e-3, gswmin(i,kk)*fwsoil(i) + &
                                               MAX(0.0, C%RGSWC *              &
                                               gs_coeff(i,kk) * anx(i,kk)))
-                      !print*,  "**", anx(i,kk)
                    ENDIF
 
                    !Recalculate conductance for water:
                    gw(i,kk) = 1.0 / ( 1.0 / canopy%gswx(i,kk) +                &
                         1.0 / ( 1.075 * ( gbhu(i,kk) + gbhf(i,kk) ) ) )
-
-
 
                    gw(i,kk) = MAX( gw(i,kk), 0.00001 )
 
@@ -2889,8 +2886,6 @@ CONTAINS
      REAL, DIMENSION(mp,mf) :: parx, rdx, vcmaxx, kmx
      REAL, DIMENSION(mp) :: dleafx
      REAL :: gamma_starx
-
-
      REAL :: e_demand, e_supply, gsw
      REAL :: inferred_stress
 
@@ -2920,7 +2915,7 @@ CONTAINS
      e_demand = MOL_2_MMOL * (dleaf(i) / press) * gsc(j) * C%RGSWC
 
      IF (e_demand > e_supply) THEN
-        !print*, e_supply, e_demand, gsc(j), an(i,j)
+
         ! Calculate gs (mol m-2 s-1) given supply (Emax)
         gsw = MMOL_2_MOL * e_supply / (dleaf(i) / press)
         gsc(j) = gsw / C%RGSWC
@@ -2933,11 +2928,10 @@ CONTAINS
 
         ! Need to calculate an effective beta to use in soil decomposition
         inferred_stress = inferred_stress + e_supply / e_demand
-        !print*, inferred_stress, e_supply, e_demand, e_supply / e_demand
+
         ! Re-solve An for the new gs
         CALL photosynthesis_C3_emax(veg, vcmaxx, parx, csx, &
                                     rdx, kmx, gamma_starx, gsc, an, i, j)
-
      ELSE
         ! This needs to be initialised somewhere.
         inferred_stress = inferred_stress + 1.0
