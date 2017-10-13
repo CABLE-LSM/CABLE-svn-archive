@@ -2951,7 +2951,7 @@ CONTAINS
      ! Re-calculate photosynthesis given the reduced gs from Emax assumption
      !
      ! Martin De Kauwe, 9th Oct, 2017
-     
+
      USE cable_common_module
      USE cable_def_types_mod
 
@@ -3065,12 +3065,12 @@ CONTAINS
         lwp = ssnow%weighted_swp - (transpiration / ktot)
      ELSE
         lwp = ssnow%weighted_swp
-     ENDIF
+     END IF
 
      ! Set lower limit to LWP
      IF (lwp < -20.0) THEN
         lwp = -20.0
-     ENDIF
+     END IF
 
   END FUNCTION calc_lwp
   ! ----------------------------------------------------------------------------
