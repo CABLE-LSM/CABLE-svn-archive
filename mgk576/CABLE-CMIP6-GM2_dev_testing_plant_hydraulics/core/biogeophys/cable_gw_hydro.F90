@@ -201,9 +201,8 @@ SUBROUTINE remove_transGW(dels, soil, ssnow, canopy, veg)
       end do
    end do
 
-   ! mgk576, 13/10/17 - I've added a new if block and restructured the previous
-   !                    if-else logic below, remove the "ne" case too.
-
+   ! PH: mgk576, 13/10/17 - I've added a new if block and restructured the
+   !                        previous if-else logic below
    IF (cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
 
       ! This follows the default extraction logic, but instead of weighting
@@ -709,13 +708,13 @@ END SUBROUTINE remove_transGW
 
     CALL calc_soil_hydraulic_props(ssnow,soil,veg)
 
-    ! mgk576, 9/10/17
-    IF(cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
-       DO i=1, mp
+    ! PH: mgk576, 13/10/17
+    IF (cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
+       DO i = 1, mp
           CALL calc_soil_root_resistance(ssnow, soil, veg, bgc, i)
-          CALL calc_weighted_swp_weighting_frac(ssnow, soil, i)
-       ENDDO
-    ENDIF
+          CALL calc_weighted_swp_and_frac_uptake(ssnow, soil, i)
+       END DO
+    END IF
 
     CALL subsurface_drainage(ssnow,soil,veg,dzmm)
 
@@ -1861,7 +1860,7 @@ END SUBROUTINE calc_soil_hydraulic_props
   ! ----------------------------------------------------------------------------
 
   ! ----------------------------------------------------------------------------
-  SUBROUTINE calc_weighted_swp_weighting_frac(ssnow, soil, i)
+  SUBROUTINE calc_weighted_swp_and_frac_uptake(ssnow, soil, i)
      !
      ! Determine weighted SWP given the the maximum rate of water supply from
      ! each rooted soil layer and hydraulic resistance of each layer. We are
@@ -1935,7 +1934,7 @@ END SUBROUTINE calc_soil_hydraulic_props
         ssnow%fraction_uptake(i,:) = 1.0 / FLOAT(ms)
      ENDIF
 
-  END SUBROUTINE calc_weighted_swp_weighting_frac
+  END SUBROUTINE calc_weighted_swp_and_frac_uptake
   ! ----------------------------------------------------------------------------
 
 END MODULE cable_gw_hydro_module
