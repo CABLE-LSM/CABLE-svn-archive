@@ -2035,6 +2035,8 @@ CONTAINS
                         gbhu(i,kk) + gbhf(i,kk) )
                    csx(i,kk) = MAX( 1.0e-4_r_2, csx(i,kk) )
 
+                   ! PH: mgk576, 13/10/17
+                   ! can't decide which is these is the best way to infer gsw?
                    IF (cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
                       canopy%gswx(i,kk) = gsc(kk) * C%RGSWC
                       !canopy%gswx(i,kk) = MAX(1.e-3, gswmin(i,kk) +           &
