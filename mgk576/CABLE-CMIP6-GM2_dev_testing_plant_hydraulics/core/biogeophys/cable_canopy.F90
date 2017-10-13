@@ -2948,10 +2948,10 @@ CONTAINS
   ! ----------------------------------------------------------------------------
   SUBROUTINE photosynthesis_C3_emax(veg, vcmax, par, cs, rd, km, &
                                     gamma_star, gsc, an, i, j)
-     ! Re-calculate photosynthesis as in the Jarvis model given the reduced gs
-     ! from Emax assumption
+     ! Re-calculate photosynthesis given the reduced gs from Emax assumption
      !
      ! Martin De Kauwe, 9th Oct, 2017
+     
      USE cable_common_module
      USE cable_def_types_mod
 
