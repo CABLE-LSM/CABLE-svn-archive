@@ -201,7 +201,50 @@ SUBROUTINE remove_transGW(dels, soil, ssnow, canopy, veg)
       end do
    end do
 
-   IF (cable_user%FWSOIL_switch.ne.'Haverd2013') THEN
+   IF (cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
+      ! Testing this ...
+      !
+      ! This follows the default, but instead of weighting by froot, we are
+      ! weighting by the frac uptake we calculated, this is related to the
+      ! weighted SWP
+      !
+      ! Martin De Kauwe, 13/10/17
+
+      xx(:) = 0._r_2
+      xxd(:) = 0._r_2
+      diff(:,:) = 0._r_2
+
+      DO k = 1, ms
+         DO i = 1, mp
+            IF (canopy%fevc(i) .gt. 0._r_2) THEN
+               xx(i) = canopy%fevc(i) * dels / C%HL * &
+                       ssnow%fraction_uptake(i,k) + diff(i,k-1)
+               diff(i,k) = max(0._r_2,ssnow%wbliq(i,k)-soil%swilt_vec(i,k)) * &
+                               zse_mp_mm(i,k)
+               xxd(i) = xx(i) - diff(i,k)
+
+               IF (xxd(i) .gt. 0._r_2) THEN
+                  ssnow%wbliq(i,k) = ssnow%wbliq(i,k) - diff(i,k)/zse_mp_mm(i,k)
+                  diff(i,k) = xxd(i)
+               ELSE
+                  ssnow%wbliq(i,k) = ssnow%wbliq(i,k) - xx(i)/zse_mp_mm(i,k)
+                  diff(i,k) = 0._r_2
+               END IF
+             END IF  !fvec > 0
+         END DO  !mp
+      END DO     !ms
+      
+   ELSE IF (cable_user%FWSOIL_SWITCH == 'Haverd2013') THEN
+
+      WHERE (canopy%fevc .lt. 0.0_r_2)
+        canopy%fevw = canopy%fevw+canopy%fevc
+        canopy%fevc = 0.0_r_2
+     END WHERE
+     DO k = 1,ms
+        ssnow%wbliq(:,k) = ssnow%wbliq(:,k) - ssnow%evapfbl(:,k)/zse_mp_mm(:,k)
+     ENDDO
+
+   ELSE
 
       xx(:) = 0._r_2
       xxd(:) = 0._r_2
@@ -231,16 +274,6 @@ SUBROUTINE remove_transGW(dels, soil, ssnow, canopy, veg)
 
          END DO  !mp
       END DO     !ms
-
-   ELSE
-
-     WHERE (canopy%fevc .lt. 0.0_r_2)
-        canopy%fevw = canopy%fevw+canopy%fevc
-        canopy%fevc = 0.0_r_2
-     END WHERE
-     DO k = 1,ms
-        ssnow%wbliq(:,k) = ssnow%wbliq(:,k) - ssnow%evapfbl(:,k)/zse_mp_mm(:,k)
-     ENDDO
 
   ENDIF
 
@@ -646,8 +679,6 @@ END SUBROUTINE remove_transGW
     !MD DEBUG VARS
     INTEGER :: imp,ims,k_drain
 
-    !mgk576, 12/10/2017
-    REAL, DIMENSION(mp,ms) :: fraction_uptake
 
     !make code cleaner define these here
     dzmm(:) = 1000.0_r_2 * real(soil%zse(:),r_2)
@@ -686,7 +717,7 @@ END SUBROUTINE remove_transGW
     IF(cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
        DO i=1, mp
           CALL calc_soil_root_resistance(ssnow, soil, veg, bgc, i)
-          CALL calc_weighted_swp_weighting_frac(ssnow, soil, fraction_uptake, i)
+          CALL calc_weighted_swp_weighting_frac(ssnow, soil, i)
        ENDDO
     ENDIF
 
@@ -1834,7 +1865,7 @@ END SUBROUTINE calc_soil_hydraulic_props
   ! ----------------------------------------------------------------------------
 
   ! ----------------------------------------------------------------------------
-  SUBROUTINE calc_weighted_swp_weighting_frac(ssnow, soil, fraction_uptake, i)
+  SUBROUTINE calc_weighted_swp_weighting_frac(ssnow, soil, i)
      !
      ! Determine weighted SWP given the the maximum rate of water supply from
      ! each rooted soil layer and hydraulic resistance of each layer. We are
@@ -1868,7 +1899,6 @@ END SUBROUTINE calc_soil_hydraulic_props
      REAL, PARAMETER :: min_lwp = -2.0 ! we obv need to pass this
 
      REAL, DIMENSION(ms) :: swp, est_evap
-     REAL, DIMENSION(mp,ms), INTENT(INOUT) :: fraction_uptake
      REAL :: total_est_evap
 
      INTEGER, INTENT(IN) :: i
@@ -1876,7 +1906,7 @@ END SUBROUTINE calc_soil_hydraulic_props
 
      total_est_evap = 0.0
      ssnow%weighted_swp = 0.0
-     fraction_uptake = 0.0
+     ssnow%fraction_uptake = 0.0
      est_evap = 0.0
 
      ! Estimate max transpiration from gradient-gravity / soil resistance
@@ -1895,9 +1925,10 @@ END SUBROUTINE calc_soil_hydraulic_props
         DO j = 1, ms ! Loop over 6 soil layers
            ssnow%weighted_swp = ssnow%weighted_swp + swp(j) * est_evap(j)
            ! fraction of water taken from layer
-           fraction_uptake(i,j) = est_evap(j) / total_est_evap
+           ssnow%fraction_uptake(i,j) = est_evap(j) / total_est_evap
 
-           IF ((fraction_uptake(i,j) > 1.0) .or. (fraction_uptake(i,j) < 0.0)) THEN
+           IF ((ssnow%fraction_uptake(i,j) > 1.0) .or. &
+               (ssnow%fraction_uptake(i,j) < 0.0)) THEN
               PRINT *, 'Problem with the uptake fraction (either >1 or 0<)'
               STOP
            ENDIF
@@ -1905,7 +1936,7 @@ END SUBROUTINE calc_soil_hydraulic_props
         ssnow%weighted_swp = ssnow%weighted_swp / total_est_evap
      ELSE
         ! No water was evaporated
-        fraction_uptake(i,:) = 1.0 / FLOAT(ms)
+        ssnow%fraction_uptake(i,:) = 1.0 / FLOAT(ms)
      ENDIF
 
   END SUBROUTINE calc_weighted_swp_weighting_frac

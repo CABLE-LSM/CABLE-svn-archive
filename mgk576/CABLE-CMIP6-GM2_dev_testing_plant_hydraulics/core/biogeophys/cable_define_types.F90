@@ -286,7 +286,8 @@ MODULE cable_def_types_mod
       REAL(r_2) ::  weighted_swp
 
       REAL(r_2), DIMENSION(:,:), POINTER ::                                      &
-         soilR
+         soilR, & !
+         fraction_uptake
 
 
       REAL(r_2), DIMENSION(:,:), POINTER  ::                                     &
@@ -995,6 +996,7 @@ SUBROUTINE alloc_soil_snow_type(var, mp)
     ! Allocate variables for plant hydraulics, mgk576, 9/10/17
     ALLOCATE ( var%total_soil_resist(mp) )
     ALLOCATE ( var%soilR(mp,ms) )
+    ALLOCATE ( var%fraction_uptake(mp,ms) )
 
     ! Allocate variables for SLI soil model:
     !IF(cable_user%SOIL_STRUC=='sli') THEN
@@ -1614,7 +1616,8 @@ SUBROUTINE dealloc_soil_snow_type(var)
 
    ! Deallocate variables for plant hydraulics, mgk576, 9/10/17
    DEALLOCATE( var%total_soil_resist  )
-      DEALLOCATE( var%soilR  )
+   DEALLOCATE( var%soilR  )
+   DEALLOCATE( var%fraction_uptake  )
 
 
     !IF(cable_user%SOIL_STRUC=='sli') THEN
