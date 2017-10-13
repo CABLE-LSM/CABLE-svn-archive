@@ -1692,7 +1692,7 @@ CONTAINS
     REAL, PARAMETER :: MOL_2_MMOL = 1000.0
 
     INTEGER :: i, j, k, kk  ! iteration count
-    REAL :: vpd, g1, ktot ! Ticket #56
+    REAL :: vpd, g1, ktot, inferred_stress ! Ticket #56
 #define VanessasCanopy
 #ifdef VanessasCanopy
     REAL, DIMENSION(mp,mf)  ::                                                  &
@@ -2006,6 +2006,7 @@ CONTAINS
        ! recalculate gs and An
        IF (cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
           DO i = 1, mp
+             inferred_stress = 0.0
              DO kk = 1, mf
                 gsc(kk) = MAX(1.e-3, (gswmin(i,kk) / C%RGSWC) + &
                               MAX(0.0, (gs_coeff(i,kk) * anx(i,kk))))
@@ -2013,8 +2014,12 @@ CONTAINS
                 CALL calculate_emax(canopy, veg, ssnow, dsx(:), par(:,:),      &
                                     csx(:,:), SPREAD(cx1(:), 2, mf), rdx(:,:), &
                                     vcmxt3(:,:), gsc(:), anx(:,:), ktot,       &
-                                    co2cp3, i, kk)
-             ENDDO
+                                    co2cp3, inferred_stress, i, kk)
+             ENDDO 
+             ! fwsoil means nothing when using the plant hydraulics, but we
+             ! still need an inferred fwsoil as this is used in SOM
+             ! decomposition calculations
+             canopy%fwsoil(i) = inferred_stress / 2.0
           ENDDO
        ENDIF
 
@@ -2821,7 +2826,7 @@ CONTAINS
 
   ! ----------------------------------------------------------------------------
   SUBROUTINE calculate_emax(canopy, veg, ssnow, dleaf, par, cs, km, rd, vcmax, &
-                            gsc, an, ktot, gamma_star, i, j)
+                            gsc, an, ktot, gamma_star, inferred_stress, i, j)
      !
      ! Transpiration is calculated assuming a maximum "supply" driven by
      ! darcy's law. Once the "demand" exceeds the supply, we infer a new
@@ -2878,7 +2883,7 @@ CONTAINS
      REAL, PARAMETER :: MM_TO_M = 0.001
 
      REAL, DIMENSION(mp,mf), INTENT(IN) :: rd, vcmax, km
-     REAL, DIMENSION(mp,mf), INTENT(INOUT) :: an
+     REAL, DIMENSION(mp,mf), INTENT(INOUT) :: an, inferred_stress
      REAL, DIMENSION(mf), INTENT(INOUT) :: gsc
      REAL, INTENT(IN) :: gamma_star
 
@@ -2887,8 +2892,6 @@ CONTAINS
      REAL, DIMENSION(mp) :: dleafx
      REAL :: gamma_starx
      REAL :: e_demand, e_supply, gsw
-     REAL :: inferred_stress
-
      INTEGER, INTENT(IN) :: i,j ! patch, leaf
 
      ! need to change units to be consistent with what I deem the units should
@@ -2899,8 +2902,6 @@ CONTAINS
      rdx = rd * MOL_2_UMOL
      kmx = km * MOL_2_UMOL
      gamma_starx = gamma_star * MOL_2_UMOL
-
-     inferred_stress = 0.0
 
      ! Hydraulic conductance of the entire soil-to-leaf pathway
      ! (mmol m–2 s–1 MPa–1)
@@ -2936,10 +2937,6 @@ CONTAINS
         ! This needs to be initialised somewhere.
         inferred_stress = inferred_stress + 1.0
      ENDIF
-
-     ! fwsoil means nothing when using the plant hydraulics, but we still need
-     ! an inferred fwsoil as this is used in SOM decomposition calculations
-     canopy%fwsoil(i) = inferred_stress / 2.0
 
   END SUBROUTINE calculate_emax
   ! ----------------------------------------------------------------------------
