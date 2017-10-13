@@ -2840,6 +2840,7 @@ CONTAINS
      !   - Add dynamic plant K linked to xylem water potential
      !
      ! Reference:
+     ! ==========
      !   * Duursma, R. A. 2008. Predicting the decline in daily maximum
      !   transpiration rate of two pine stands during drought based on
      !   constant minimum leaf water potential and plant hydraulic conductance.
@@ -2928,7 +2929,7 @@ CONTAINS
         IF (gsc(j) < gs_min) THEN
            gsc(j) = gs_min
            !gsw = gsc(j) * C%RGSWC
-        ENDIF
+        END IF
 
         ! Need to calculate an effective beta to use in soil decomposition
         inferred_stress = inferred_stress + e_supply / e_demand
@@ -2939,7 +2940,7 @@ CONTAINS
      ELSE
         ! This needs to be initialised somewhere.
         inferred_stress = inferred_stress + 1.0
-     ENDIF
+     END IF
 
   END SUBROUTINE calculate_emax
   ! ----------------------------------------------------------------------------
