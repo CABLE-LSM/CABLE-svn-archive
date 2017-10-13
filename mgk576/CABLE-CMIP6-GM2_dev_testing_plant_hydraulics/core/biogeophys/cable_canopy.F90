@@ -2120,7 +2120,8 @@ CONTAINS
 
              ENDIF
 
-             ! This will be over the combined direct & diffuse leaves due to the
+             ! PH: mgk576, 13/10/17
+             ! This is over the combined direct & diffuse leaves due to the
              ! way the loops fall above
              IF(cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
                 ! Transpiration: kg m-2 s-1 -> mmol m-2 s-1
