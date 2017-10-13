@@ -2002,8 +2002,8 @@ CONTAINS
                            SPREAD( abs_deltlf, 2, mf ),                        &
                            anx(:,:), fwsoil(:) )
 
-       ! Ensure transpiration does not exceed Emax, if it does we
-       ! recalculate gs and An
+       ! PH: mgk576, 13/10/17
+       ! Check if transpiration exceeds Emax, if it does we recalculate gs & An
        IF (cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
           DO i = 1, mp
              inferred_stress = 0.0
@@ -2015,13 +2015,13 @@ CONTAINS
                                     csx(:,:), SPREAD(cx1(:), 2, mf), rdx(:,:), &
                                     vcmxt3(:,:), gsc(:), anx(:,:), ktot,       &
                                     co2cp3, inferred_stress, i, kk)
-             ENDDO
+             END DO
              ! fwsoil means nothing when using the plant hydraulics, but we
              ! still need an inferred fwsoil as this is used in SOM
              ! decomposition calculations
              canopy%fwsoil(i) = inferred_stress / 2.0
-          ENDDO
-       ENDIF
+          END DO
+       END IF
 
        DO i=1,mp
 
