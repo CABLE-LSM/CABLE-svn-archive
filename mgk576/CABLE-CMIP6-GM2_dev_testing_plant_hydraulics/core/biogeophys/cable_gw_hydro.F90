@@ -1870,14 +1870,6 @@ END SUBROUTINE calc_soil_hydraulic_props
      ! Actual water from each layer is determined using the estimated value as a
      ! weighted factor.
      !
-     ! Todo for Manon:
-     ! -----------
-     ! We need to use the fraction_uptake calculated to do the actual extraction
-     ! otherwise this logic doesn't match as the extraction will be calculated
-     ! a different way
-     !
-     ! https://github.com/mdekauwe/GDAY/blob/master/src/water_balance_sub_daily.c
-     !
      ! Martin De Kauwe, 9th Oct, 2017
 
      USE cable_def_types_mod
