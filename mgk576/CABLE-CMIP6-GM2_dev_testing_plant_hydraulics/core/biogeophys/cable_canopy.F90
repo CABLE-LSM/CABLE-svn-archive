@@ -2911,7 +2911,7 @@ CONTAINS
      ! Maximum transpiration rate (mmol m-2 s-1) is given by Darcy's law,
      ! which estimates the water flow from the bulk soil to the leaf at the
      ! minimum leaf water potential (min_lwp)
-     e_supply = MAX(0.0, ktot * (ssnow%weighted_swp(i) - min_lwp))
+     e_supply = MAX(0.0, ktot * (ssnow%weighted_swp - min_lwp))
 
      ! Transpiration (mmol m-2 s-1) demand ignoring boundary layer effects!
      e_demand = MOL_2_MMOL * (dleaf(i) / press) * gsc(j) * C%RGSWC
@@ -3059,9 +3059,9 @@ CONTAINS
      REAL :: lwp
 
      IF (ktot > 0.0) THEN
-        lwp = ssnow%weighted_swp(i) - (transpiration / ktot)
+        lwp = ssnow%weighted_swp - (transpiration / ktot)
      ELSE
-        lwp = ssnow%weighted_swp(i)
+        lwp = ssnow%weighted_swp
      ENDIF
 
      ! Set lower limit to LWP

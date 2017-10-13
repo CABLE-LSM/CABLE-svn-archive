@@ -1893,7 +1893,7 @@ END SUBROUTINE calc_soil_hydraulic_props
 
      IF (total_est_evap > 0.0) THEN
         DO j = 1, ms ! Loop over 6 soil layers
-           ssnow%weighted_swp(i) = ssnow%weighted_swp(i) + swp(j) * est_evap(j)
+           ssnow%weighted_swp = ssnow%weighted_swp + swp(j) * est_evap(j)
            ! fraction of water taken from layer
            fraction_uptake(i,j) = est_evap(j) / total_est_evap
 
@@ -1902,7 +1902,7 @@ END SUBROUTINE calc_soil_hydraulic_props
               STOP
            ENDIF
         ENDDO
-        ssnow%weighted_swp(i) = ssnow%weighted_swp(i) / total_est_evap
+        ssnow%weighted_swp = ssnow%weighted_swp / total_est_evap
      ELSE
         ! No water was evaporated
         fraction_uptake(i,:) = 1.0 / FLOAT(ms)
