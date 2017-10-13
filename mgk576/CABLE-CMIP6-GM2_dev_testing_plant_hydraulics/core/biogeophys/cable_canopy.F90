@@ -2015,7 +2015,7 @@ CONTAINS
                                     csx(:,:), SPREAD(cx1(:), 2, mf), rdx(:,:), &
                                     vcmxt3(:,:), gsc(:), anx(:,:), ktot,       &
                                     co2cp3, inferred_stress, i, kk)
-             ENDDO 
+             ENDDO
              ! fwsoil means nothing when using the plant hydraulics, but we
              ! still need an inferred fwsoil as this is used in SOM
              ! decomposition calculations
@@ -2883,9 +2883,10 @@ CONTAINS
      REAL, PARAMETER :: MM_TO_M = 0.001
 
      REAL, DIMENSION(mp,mf), INTENT(IN) :: rd, vcmax, km
-     REAL, DIMENSION(mp,mf), INTENT(INOUT) :: an, inferred_stress
+     REAL, DIMENSION(mp,mf), INTENT(INOUT) :: an
      REAL, DIMENSION(mf), INTENT(INOUT) :: gsc
      REAL, INTENT(IN) :: gamma_star
+     REAL, INTENT(INOUT) :: inferred_stress
 
      REAL(R_2), DIMENSION(mp,mf) :: csx
      REAL, DIMENSION(mp,mf) :: parx, rdx, vcmaxx, kmx
