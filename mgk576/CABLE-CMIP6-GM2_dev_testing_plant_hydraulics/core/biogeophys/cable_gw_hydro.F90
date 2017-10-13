@@ -201,11 +201,14 @@ SUBROUTINE remove_transGW(dels, soil, ssnow, canopy, veg)
       end do
    end do
 
+   ! mgk576, 13/10/17 - I've added a new if block and restructured the previous
+   !                    if else logic
+
    IF (cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
       ! Testing this ...
       !
       ! This follows the default extraction logic, but instead of weighting
-      ! by froot, we are weighting by the frac uptake we calculated when we 
+      ! by froot, we are weighting by the frac uptake we calculated when we
       ! were weighting the soil water potential.
       !
       ! Martin De Kauwe, 13/10/17
@@ -230,9 +233,9 @@ SUBROUTINE remove_transGW(dels, soil, ssnow, canopy, veg)
                   ssnow%wbliq(i,k) = ssnow%wbliq(i,k) - xx(i)/zse_mp_mm(i,k)
                   diff(i,k) = 0._r_2
                END IF
-             END IF  !fvec > 0
-         END DO  !mp
-      END DO     !ms
+            END IF   !fvec > 0
+         END DO   !mp
+      END DO   !ms
 
    ELSE IF (cable_user%FWSOIL_SWITCH == 'Haverd2013') THEN
 
