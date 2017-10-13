@@ -2002,10 +2002,19 @@ CONTAINS
                            SPREAD( abs_deltlf, 2, mf ),                        &
                            anx(:,:), fwsoil(:) )
 
+
        ! PH: mgk576, 13/10/17
        ! Check if transpiration exceeds Emax, if it does we recalculate gs & An
        IF (cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
+
           DO i = 1, mp
+
+             IF (veg%iveg(i) > 4) THEN
+                print*, veg%iveg(i)
+                PRINT*, "Plant Hydraulics only works for trees"
+                STOP
+             END IF
+
              inferred_stress = 0.0
              DO kk = 1, mf
                 gsc(kk) = MAX(1.e-3, (gswmin(i,kk) / C%RGSWC) + &
@@ -2038,6 +2047,7 @@ CONTAINS
                    ! PH: mgk576, 13/10/17
                    ! can't decide which is these is the best way to infer gsw?
                    IF (cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
+
                       canopy%gswx(i,kk) = gsc(kk) * C%RGSWC
                       !canopy%gswx(i,kk) = MAX(1.e-3, gswmin(i,kk) +           &
                       !                        MAX(0.0, C%RGSWC *              &
@@ -2123,7 +2133,8 @@ CONTAINS
              ! PH: mgk576, 13/10/17
              ! This is over the combined direct & diffuse leaves due to the
              ! way the loops fall above
-             IF(cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
+             IF (cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
+
                 ! Transpiration: kg m-2 s-1 -> mmol m-2 s-1
                 conv = KG_2_G * G_WATER_TO_MOL * MOL_2_MMOL
                 trans_mmol = (canopy%fevc(i) / air%rlam(i)) * conv
