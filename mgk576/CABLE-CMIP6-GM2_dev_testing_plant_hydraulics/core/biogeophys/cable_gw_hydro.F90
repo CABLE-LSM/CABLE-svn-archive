@@ -204,7 +204,7 @@ SUBROUTINE remove_transGW(dels, soil, ssnow, canopy, veg)
    ! PH: mgk576, 13/10/17 - I've added a new if block and restructured the
    !                        previous if-else logic below
    !IF (cable_user%FWSOIL_SWITCH == 'hydraulics_OFF') THEN
-   IF (cable_user%FWSOIL_SWITCH == 'hydraulicsXXX') THEN
+   IF (cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
 
       ! TURNED THIS OFF as I get a weird result when testing at Palang.
       ! Need to read the logic in detail ...
@@ -223,11 +223,12 @@ SUBROUTINE remove_transGW(dels, soil, ssnow, canopy, veg)
          DO i = 1, mp
             IF (canopy%fevc(i) .gt. 0._r_2) THEN
                xx(i) = canopy%fevc(i) * dels / C%HL * &
-                       ssnow%fraction_uptake(i,k) + diff(i,k-1)
+                       MAX(0.00000005, ssnow%fraction_uptake(i,k)) + diff(i,k-1)
+
                diff(i,k) = max(0._r_2,ssnow%wbliq(i,k)-soil%swilt_vec(i,k)) * &
                                zse_mp_mm(i,k)
                xxd(i) = xx(i) - diff(i,k)
-               print*, ssnow%fraction_uptake(i,k)
+
                IF (xxd(i) .gt. 0._r_2) THEN
                   ssnow%wbliq(i,k) = ssnow%wbliq(i,k) - diff(i,k)/zse_mp_mm(i,k)
                   diff(i,k) = xxd(i)
@@ -238,7 +239,7 @@ SUBROUTINE remove_transGW(dels, soil, ssnow, canopy, veg)
             END IF   !fvec > 0
          END DO   !mp
       END DO   !ms
-      stop
+
    ELSE IF (cable_user%FWSOIL_SWITCH == 'Haverd2013') THEN
 
       WHERE (canopy%fevc .lt. 0.0_r_2)
