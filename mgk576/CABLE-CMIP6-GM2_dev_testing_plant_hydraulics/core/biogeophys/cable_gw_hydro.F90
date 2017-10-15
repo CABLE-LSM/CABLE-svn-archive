@@ -204,7 +204,7 @@ SUBROUTINE remove_transGW(dels, soil, ssnow, canopy, veg)
    ! PH: mgk576, 13/10/17 - I've added a new if block and restructured the
    !                        previous if-else logic below
    !IF (cable_user%FWSOIL_SWITCH == 'hydraulics_OFF') THEN
-   IF (cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
+   IF (cable_user%FWSOIL_SWITCH == 'hydraulicsXXX') THEN
 
       ! TURNED THIS OFF as I get a weird result when testing at Palang.
       ! Need to read the logic in detail ...
@@ -1950,17 +1950,16 @@ END SUBROUTINE calc_soil_hydraulic_props
         !IF ( iceprop(i) .gt. 0. ) THEN
         !  est_evap(i) = 0.0
         !ENDIF
-        print *, "*", j, swp(j), est_evap(j), min_lwp, (swp(j) - min_lwp), ssnow%soilR(i,j)
 
      END DO
      total_est_evap = SUM(est_evap)
-     print*, "**", total_est_evap
+
      IF (total_est_evap > 0.0) THEN
         DO j = 1, ms ! Loop over 6 soil layers
            ssnow%weighted_swp = ssnow%weighted_swp + swp(j) * est_evap(j)
            ! fraction of water taken from layer
            ssnow%fraction_uptake(i,j) = est_evap(j) / total_est_evap
-           print*, "***", i,j, ssnow%fraction_uptake(i,j), est_evap(j), total_est_evap
+
            IF ((ssnow%fraction_uptake(i,j) > 1.0) .or. &
                (ssnow%fraction_uptake(i,j) < 0.0)) THEN
               PRINT *, 'Problem with the uptake fraction (either >1 or 0<)'
