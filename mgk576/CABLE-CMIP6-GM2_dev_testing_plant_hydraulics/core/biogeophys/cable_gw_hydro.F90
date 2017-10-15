@@ -711,14 +711,6 @@ END SUBROUTINE remove_transGW
 
     CALL calc_soil_hydraulic_props(ssnow,soil,veg)
 
-    ! PH: mgk576, 13/10/17, added two funcs
-    IF (cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
-       DO i = 1, mp
-          CALL calc_soil_root_resistance(ssnow, soil, veg, bgc, i)
-          CALL calc_weighted_swp_and_frac_uptake(ssnow, soil, i)
-       END DO
-    END IF
-
     CALL subsurface_drainage(ssnow,soil,veg,dzmm)
 
     k = 1     !top soil layer
@@ -1049,6 +1041,14 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg, bgc)
    do i=1,mp
      ssnow%smelt(i) = ssnow%smelt(i) + snowmlt(i)
    end do
+
+   ! PH: mgk576, 13/10/17, added two funcs
+   IF (cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
+      DO i = 1, mp
+         CALL calc_soil_root_resistance(ssnow, soil, veg, bgc, i)
+         CALL calc_weighted_swp_and_frac_uptake(ssnow, soil, i)
+      END DO
+   END IF
 
    ! PH: mgk576, 13/10/17, added case to if-else and restructured logic to make
    !                       room for plant hydraulics.
