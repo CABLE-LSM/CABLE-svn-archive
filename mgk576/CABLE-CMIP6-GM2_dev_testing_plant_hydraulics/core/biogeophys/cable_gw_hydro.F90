@@ -203,7 +203,8 @@ SUBROUTINE remove_transGW(dels, soil, ssnow, canopy, veg)
 
    ! PH: mgk576, 13/10/17 - I've added a new if block and restructured the
    !                        previous if-else logic below
-   IF (cable_user%FWSOIL_SWITCH == 'hydraulics_OFF') THEN
+   !IF (cable_user%FWSOIL_SWITCH == 'hydraulics_OFF') THEN
+   IF (cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
 
       ! TURNED THIS OFF as I get a weird result when testing at Palang.
       ! Need to read the logic in detail ...
@@ -226,7 +227,7 @@ SUBROUTINE remove_transGW(dels, soil, ssnow, canopy, veg)
                diff(i,k) = max(0._r_2,ssnow%wbliq(i,k)-soil%swilt_vec(i,k)) * &
                                zse_mp_mm(i,k)
                xxd(i) = xx(i) - diff(i,k)
-
+               print*, ssnow%fraction_uptake(i,k)
                IF (xxd(i) .gt. 0._r_2) THEN
                   ssnow%wbliq(i,k) = ssnow%wbliq(i,k) - diff(i,k)/zse_mp_mm(i,k)
                   diff(i,k) = xxd(i)
@@ -237,7 +238,7 @@ SUBROUTINE remove_transGW(dels, soil, ssnow, canopy, veg)
             END IF   !fvec > 0
          END DO   !mp
       END DO   !ms
-
+      stop
    ELSE IF (cable_user%FWSOIL_SWITCH == 'Haverd2013') THEN
 
       WHERE (canopy%fevc .lt. 0.0_r_2)
@@ -1046,6 +1047,7 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg, bgc)
    IF (cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
       DO i = 1, mp
          CALL calc_soil_root_resistance(ssnow, soil, veg, bgc, i)
+         CALL calc_swp(ssnow, soil)
          CALL calc_weighted_swp_and_frac_uptake(ssnow, soil, i)
       END DO
    END IF
@@ -1834,7 +1836,7 @@ END SUBROUTINE calc_soil_hydraulic_props
 
         ! prevent floating point error
         IF (Lsoil < TINY_NUMBER) THEN
-           soil_root_resist = HUGE_NUMBER
+           ssnow%soilR(i,j) = HUGE_NUMBER
         ELSE
            ! Conductance of the soil-to-root pathway can be estimated assuming
            ! that the root system consists of one long root that has access to
@@ -1862,6 +1864,44 @@ END SUBROUTINE calc_soil_hydraulic_props
      ssnow%total_soil_resist(i) = 1.0 / rsum
 
   END SUBROUTINE calc_soil_root_resistance
+  ! ----------------------------------------------------------------------------
+
+  ! ----------------------------------------------------------------------------
+  SUBROUTINE calc_swp(ssnow, soil)
+     ! Calculate the soil water potential. Mark does this, but we need this
+     ! information earlier in the code so that we can figure out the
+     ! root extraction for transpiration.
+     !
+     ! There is a probably a better way to rework Mark's logic - speak to him.
+     !
+     ! Martin De Kauwe, 16th Oct, 2017
+
+     USE cable_def_types_mod
+     USE cable_common_module
+
+     IMPLICIT NONE
+
+     TYPE (soil_snow_type), INTENT(INOUT)        :: ssnow
+     TYPE (soil_parameter_type), INTENT(INOUT)   :: soil
+
+     REAL(r_2), PARAMETER :: sucmin  = -1.0e8! minimum soil pressure head [mm]
+     REAL(r_2), DIMENSION(mp) :: s_mid
+
+     INTEGER :: k, i
+
+     DO k = 1, ms
+        DO i = 1, mp
+           s_mid(i) = (ssnow%wb(i,k)-soil%watr(i,k))/&  !+dri*ssnow%wbice(:,k)
+                      (soil%ssat_vec(i,k)-soil%watr(i,k))
+
+           s_mid(i) = min(max(s_mid(i),0.001_r_2),1._r_2)
+
+           ssnow%smp(i,k) = -soil%sucs_vec(i,k)*s_mid(i)**(-soil%bch_vec(i,k))
+           ssnow%smp(i,k) = max(min(ssnow%smp(i,k),-soil%sucs_vec(i,k)),sucmin)
+
+         END DO
+     END DO
+  END SUBROUTINE calc_swp
   ! ----------------------------------------------------------------------------
 
   ! ----------------------------------------------------------------------------
@@ -1910,15 +1950,17 @@ END SUBROUTINE calc_soil_hydraulic_props
         !IF ( iceprop(i) .gt. 0. ) THEN
         !  est_evap(i) = 0.0
         !ENDIF
+        print *, "*", j, swp(j), est_evap(j), min_lwp, (swp(j) - min_lwp), ssnow%soilR(i,j)
+
      END DO
      total_est_evap = SUM(est_evap)
-
+     print*, "**", total_est_evap
      IF (total_est_evap > 0.0) THEN
         DO j = 1, ms ! Loop over 6 soil layers
            ssnow%weighted_swp = ssnow%weighted_swp + swp(j) * est_evap(j)
            ! fraction of water taken from layer
            ssnow%fraction_uptake(i,j) = est_evap(j) / total_est_evap
-
+           print*, "***", i,j, ssnow%fraction_uptake(i,j), est_evap(j), total_est_evap
            IF ((ssnow%fraction_uptake(i,j) > 1.0) .or. &
                (ssnow%fraction_uptake(i,j) < 0.0)) THEN
               PRINT *, 'Problem with the uptake fraction (either >1 or 0<)'
