@@ -152,6 +152,9 @@ MODULE cable_IO_vars_module
          Wind,    & ! T => 'Wind' is present; F => use vector component wind
          LWdown,  & ! T=> downward longwave is present in met file
          CO2air,  & ! T=> air CO2 concentration is present in met file
+         ! mgk576, 18/10/17
+         Ndep,    & ! T=> Nitogen deposition is present in met file
+         Pdep,    & ! T=> Phosphorus deposition is present in met file
          PSurf,   & ! T=> surface air pressure is present in met file
          Snowf,   & ! T=> snowfall variable is present in met file
          avPrecip,& ! T=> ave rainfall present in met file (use for spinup)
@@ -328,9 +331,9 @@ MODULE cable_IO_vars_module
          hc = .FALSE.,        & ! height of canopy [m]
          rp20  = .FALSE.,     & ! plant respiration coefficient at
                                 ! 20 C [-] 0.1 - 10 (frp 0 - 15e-6 mol/m2/s)
-         g0   = .FALSE.,      & ! Ticket #56      
+         g0   = .FALSE.,      & ! Ticket #56
          g1   = .FALSE.,      & ! Ticket #56
-         rpcoef  = .FALSE.,   & ! temperature coef nonleaf plant 
+         rpcoef  = .FALSE.,   & ! temperature coef nonleaf plant
                                 ! respiration [1/C] (0.8 - 1.5)
          shelrb  = .FALSE.,   & ! sheltering factor [-] {avoid - insensitive?}
          vcmax  = .FALSE.,    & ! maximum RuBP carboxylation rate

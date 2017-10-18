@@ -100,6 +100,8 @@ MODULE cable_input_module
            Rainf,        &
            Snowf,        &
            CO2air,       &
+           Ndep,         & ! mgk576, 17/10/17
+           Pdep,         & ! mgk576, 17/10/17
            Elev,         &
            LAI,          &
            avPrecip,     &
@@ -120,6 +122,8 @@ MODULE cable_input_module
            Rainf,        &
            Snowf,        &
            CO2air,       &
+           Ndep,         & ! mgk576, 17/10/17
+           Pdep,         & ! mgk576, 17/10/17
            Elev,         &
            avPrecip
    END TYPE met_units_type
@@ -131,6 +135,8 @@ MODULE cable_input_module
            Qair,         &
            Rainf,        &
            CO2air,       &
+           Ndep,         & ! mgk576, 17/10/17
+           Pdep,         & ! mgk576, 17/10/17
            Elev
    END TYPE convert_units_type
    TYPE(convert_units_type)          :: convert ! units change factors for met variables
@@ -425,7 +431,7 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
              CALL nc_abort(ok, "Error opening GSWP3 mask file")
           end if
           LAT1D = .true.   !GSWP3 forcing has 1d lat/lon variables
-          LON1D = .true.  
+          LON1D = .true.
        else
           ncid_mask = ncid_rain
        end if
@@ -537,9 +543,9 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
     ! (and allow neither if only one gridpoint). "mask" is a 2D variable
     ! with dims x,y and "land" is a 1D variable.
     if (.not.cable_user%gswp3) then
-       ok = NF90_INQ_VARID(ncid_mask, 'mask', maskID) ! check for "mask" 
+       ok = NF90_INQ_VARID(ncid_mask, 'mask', maskID) ! check for "mask"
     else
-       ok = NF90_INQ_VARID(ncid_mask, 'landsea', maskID) ! check for "mask" 
+       ok = NF90_INQ_VARID(ncid_mask, 'landsea', maskID) ! check for "mask"
     end if
     IF(ok /= NF90_NOERR) THEN ! if error, i.e. no "mask" variable:
        ! Check for "land" variable:
@@ -808,12 +814,12 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
     ! Use internal files to convert "time" variable units (giving the run's
     ! start time) from character to integer; calculate starting hour-of-day,
     ! day-of-year, year:
-    IF (.not.cable_user%GSWP3) then 
+    IF (.not.cable_user%GSWP3) then
        READ(timeunits(15:18),*) syear
        READ(timeunits(20:21),*) smoy ! integer month
        READ(timeunits(23:24),*) sdoytmp ! integer day of that month
-       READ(timeunits(26:27),*) shod  ! starting hour of day 
-    ELSE 
+       READ(timeunits(26:27),*) shod  ! starting hour of day
+    ELSE
        syear=ncciy
        smoy=1
        sdoytmp=1
@@ -829,8 +835,8 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
          (shod.lt.dels/3600./2.) ) THEN
        shod = shod + dels/3600./2.
     ENDIF
-    
-   
+
+
     ! Decide day-of-year for non-leap year:
     CALL YMDHMS2DOYSOD( syear, smoy, sdoytmp, INT(shod), 0, 0, sdoy, ssod )
        ! Number of days between start position and 1st timestep:
@@ -1182,6 +1188,51 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
        WRITE(logn,'(A33,A24,I4,A5)') ' CO2air not present in met file; ', &
             'values will be fixed at ',INT(fixedCO2),' ppmv'
     END IF
+
+    ! mgk576, 18/10/17
+    ! Look for Ndep
+    ok = NF90_INQ_VARID(ncid_met,'Ndep',id%Ndep)
+    IF(ok == NF90_NOERR) THEN ! If inquiry is okay
+       exists%Ndep = .TRUE. ! Ndep is present in met file
+       ! Get Ndep units:
+       ok = NF90_GET_ATT(ncid_met,id%Ndep,'units',metunits%Ndep)
+       IF(ok /= NF90_NOERR) CALL nc_abort &
+            (ok,'Error finding Ndep units in met data file ' &
+            //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
+       IF(metunits%Ndep(1:14)/='gN m-2 d-1') THEN
+          WRITE(*,*) metunits%Ndep
+          CALL abort('Unknown units for Ndep'// &
+               ' in '//TRIM(filename%met)//' (SUBROUTINE open_met_data)')
+       END IF
+    ELSE ! Ndep not present
+       exists%Ndep = .FALSE. ! Ndep is not present in met file
+       all_met=.FALSE. ! not all met variables are present in file
+       ! Note this in log file:
+       WRITE(logn,*) 'Ndep not present in met file'
+    END IF
+
+    ! mgk576, 18/10/17
+    ! Look for Pdep
+    ok = NF90_INQ_VARID(ncid_met,'Pdep',id%Pdep)
+    IF(ok == NF90_NOERR) THEN ! If inquiry is okay
+       exists%Pdep = .TRUE. ! Ndep is present in met file
+       ! Get Ndep units:
+       ok = NF90_GET_ATT(ncid_met,id%Pdep,'units',metunits%Pdep)
+       IF(ok /= NF90_NOERR) CALL nc_abort &
+            (ok,'Error finding Ndep units in met data file ' &
+            //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
+       IF(metunits%Pdep(1:14)/='gP m-2 d-1') THEN
+          WRITE(*,*) metunits%Pdep
+          CALL abort('Unknown units for Pdep'// &
+               ' in '//TRIM(filename%met)//' (SUBROUTINE open_met_data)')
+       END IF
+    ELSE ! Pdep not present
+       exists%Pdep = .FALSE. ! Pdep is not present in met file
+       all_met=.FALSE. ! not all met variables are present in file
+       ! Note this in log file:
+       WRITE(logn,*) 'Pdep not present in met file'
+    END IF
+
     ! Look for Snowf (could be part of Rainf variable):- - - - - - - - - -
     IF (ncciy > 0) ncid_met = ncid_snow
     ok = NF90_INQ_VARID(ncid_met,'Snowf',id%Snowf)
@@ -1895,7 +1946,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
                REAL(tmpDat3(land_x(i),land_y(i),1))**2)
         ENDDO
       END IF
-   
+
     ELSE ! Anna, site runs need extra z dimension
       IF(exists%Wind) THEN ! Scalar Wind
         ok= NF90_GET_VAR(ncid_met,id%Wind,tmpDat4, &
@@ -2011,6 +2062,35 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
         met%ca(:) = fixedCO2 /1000000.0
       END IF
 
+      ! mgk576, 18/10/17
+      ! Get Ndep data for mask grid:- - - - - - - - - - - - - - - - - -
+      IF(exists%Ndep) THEN ! If Ndep exists in met file
+        ok= NF90_GET_VAR(ncid_met,id%Ndep,tmpDat4, &
+             start=(/1,1,1,ktau/),count=(/xdimsize,ydimsize,1,1/))
+        IF(ok /= NF90_NOERR) CALL nc_abort &
+             (ok,'Error reading Ndep in met data file ' &
+             //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
+        DO i=1,mland ! over all land points/grid cells
+          met%ndep(landpt(i)%cstart:landpt(i)%cend) = &
+                  REAL(tmpDat4(land_x(i),land_y(i),1,1))
+        ENDDO
+      END IF
+
+      ! mgk576, 18/10/17
+      ! Get Pdep data for mask grid:- - - - - - - - - - - - - - - - - -
+      IF(exists%Pdep) THEN ! If Ndep exists in met file
+        ok= NF90_GET_VAR(ncid_met,id%Pdep,tmpDat4, &
+             start=(/1,1,1,ktau/),count=(/xdimsize,ydimsize,1,1/))
+        IF(ok /= NF90_NOERR) CALL nc_abort &
+             (ok,'Error reading Pdep in met data file ' &
+             //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
+        DO i=1,mland ! over all land points/grid cells
+          met%ndep(landpt(i)%cstart:landpt(i)%cend) = &
+                  REAL(tmpDat4(land_x(i),land_y(i),1,1))
+        ENDDO
+      END IF
+
+
       ! Get LAI, if it's present, for mask grid:- - - - - - - - - - - - -
       IF(exists%LAI) THEN ! If LAI exists in met file
         IF(exists%LAI_T) THEN ! i.e. time dependent LAI
@@ -2092,7 +2172,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
 
            veg%vlai(landpt(i)%cstart:landpt(i)%cend) =  &
                 defaultLAI(landpt(i)%cstart:landpt(i)%cend,met%moy(landpt(i)%cstart))
-             
+
         ENDDO
       END IF
 
@@ -2284,6 +2364,34 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
         ENDDO
       ELSE
         met%ca(:) = fixedCO2 /1000000.0
+      END IF
+
+      ! mgk576, 18/10/17
+      ! Get Ndep data for land-only grid:- - - - - - - - - - - - - -
+      IF(exists%Ndep) THEN ! If Ndep exists in met file
+        ok= NF90_GET_VAR(ncid_met,id%Ndep,tmpDat2, &
+             start=(/1,ktau/),count=(/mland,1/))
+        IF(ok /= NF90_NOERR) CALL nc_abort &
+             (ok,'Error reading Ndep in met data file ' &
+             //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
+        DO i=1,mland ! over all land points/grid cells
+          met%Ndep(landpt(i)%cstart:landpt(i)%cend) = &
+               REAL(tmpDat2(i,1))
+        ENDDO
+      END IF
+
+      ! mgk576, 18/10/17
+      ! Get Pdep data for land-only grid:- - - - - - - - - - - - - -
+      IF(exists%Pdep) THEN ! If Ndep exists in met file
+        ok= NF90_GET_VAR(ncid_met,id%Pdep,tmpDat2, &
+             start=(/1,ktau/),count=(/mland,1/))
+        IF(ok /= NF90_NOERR) CALL nc_abort &
+             (ok,'Error reading Pdep in met data file ' &
+             //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
+        DO i=1,mland ! over all land points/grid cells
+          met%Pdep(landpt(i)%cstart:landpt(i)%cend) = &
+               REAL(tmpDat2(i,1))
+        ENDDO
       END IF
 
       ! Get LAI data, if it exists, for land-only grid:- - - - - - - - -
@@ -2488,7 +2596,7 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,climate,bgc,soil,canopy,rough,rad, 
    !   max_vegpatches - via cable_IO_vars_module
 !! vh_js !!
    USE POPmodule, ONLY: POP_INIT
-   USE POPLUC_module, ONLY: POPLUC_INIT 
+   USE POPLUC_module, ONLY: POPLUC_INIT
    USE CABLE_LUC_EXPT, ONLY: LUC_EXPT_TYPE
 
    IMPLICIT NONE
@@ -2520,7 +2628,7 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,climate,bgc,soil,canopy,rough,rad, 
    INTEGER,INTENT(IN)                      :: logn     ! log file unit number
    LOGICAL,INTENT(IN)                      :: &
          vegparmnew, &  ! are we using the new format?
-!! vh_js !!  
+!! vh_js !!
        spinup         ! for POP (initialize pop)
    REAL, INTENT(IN) :: TFRZ, EMSOIL
 
@@ -2612,7 +2720,7 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,climate,bgc,soil,canopy,rough,rad, 
          ! read POP_LUC restart file here
          ! set POP%LU here for secondary tiles if cable_user%POPLUC_RunType is not 'static'
          CALL POPLUC_init(POPLUC,LUC_EXPT, casapool, casaflux, casabiome, veg, POP, mland)
-         
+
       ENDIF
 
    ENDIF

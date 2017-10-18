@@ -45,6 +45,9 @@ MODULE cable_checks_module
       CHARACTER(LEN=1) :: Tair  ! 'C' or 'K'
       CHARACTER(LEN=1) :: Qair  ! '%' or 'g' (spec hum)
       CHARACTER(LEN=1) :: CO2air ! 'p' (ppmv)
+      ! mgk576, 18/17/17: not sure about this bit?
+      CHARACTER(LEN=1) :: Ndep ! 'k' (kg N ha-1 yr-1)
+      CHARACTER(LEN=1) :: Pdep ! 'k' (kg N ha-1 yr-1)
       CHARACTER(LEN=1) :: Wind ! 'm'(m/s)
    END TYPE units_type
    TYPE(units_type) :: units
@@ -66,6 +69,9 @@ MODULE cable_checks_module
            Tscrn = (/-70.0,70.0/),             & ! oC - INH
           Qscrn = (/0.0,0.1/),                & ! kg/kg
            CO2air = (/160.0,2000.0/),          & ! ppmv
+           ! mgk576, 18/17/17
+           Ndep = (/0.01,10.0/),               & ! kg N ha-1 yr-1
+           Pdep = (/0.01,10.0/),               & ! kg P ha-1 yr-1
            Wind = (/0.0,75.0/),                & ! m/s
            Wind_N = (/-75.0,75.0/),            & ! m/s
            Wind_E = (/-75.0,75.0/),            & ! m/s
@@ -179,7 +185,7 @@ MODULE cable_checks_module
            WatTable = (/0.0,1.0e10/),          &
            GWwb = (/0.0,1.0/),              &
            SatFrac = (/0.0,1.0/),              &
-           Qrecharge = (/-9999.0,9999.0/) 
+           Qrecharge = (/-9999.0,9999.0/)
    END TYPE ranges_type
    TYPE(ranges_type),SAVE :: ranges
 
@@ -261,16 +267,16 @@ SUBROUTINE mass_balance(dels,ktau, ssnow,soil,canopy,met,                       
       ! delwcol includes change in soil water, pond and snowpack
       bal%wbal = canopy_wbal + REAL(canopy%through - ssnow%delwcol-ssnow%runoff &
                   - ssnow%evap - max(canopy%fevc,0.0)*dels/air%rlam, r_2)
-   
+
    ENDIF
 
 
-   if(ktau==1) then 
-      bal%wbal_tot = 0.; bal%precip_tot = 0. 
+   if(ktau==1) then
+      bal%wbal_tot = 0.; bal%precip_tot = 0.
       bal%rnoff_tot = 0.; bal%evap_tot = 0.
-   endif   
-   
-   IF(ktau>10) THEN ! Avoid wobbly balances for ktau<10 pending later fix 
+   endif
+
+   IF(ktau>10) THEN ! Avoid wobbly balances for ktau<10 pending later fix
       ! Add to accumulation variables:
       bal%wbal_tot = bal%wbal_tot + bal%wbal
       bal%precip_tot = bal%precip_tot + met%precip
@@ -321,7 +327,7 @@ SUBROUTINE energy_balance( dels,ktau,met,rad,canopy,bal,ssnow,                  
          - canopy%fnv - canopy%fns
 
     !  soil energy - INH Ticket #133 corrected for consistency with %Ebal
-    !  this includes the correction terms 
+    !  this includes the correction terms
     bal%EbalSoil =canopy%fns - canopy%fes & !*ssnow%cls &
          & -canopy%fhs -canopy%ga
 
