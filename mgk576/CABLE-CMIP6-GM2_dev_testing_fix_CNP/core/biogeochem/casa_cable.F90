@@ -86,7 +86,9 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
    IF ( .NOT. dump_read ) THEN  ! construct casa met and flux inputs from current CABLE run
       IF ( TRIM(cable_user%MetType) .EQ. 'cru' ) THEN
          casaflux%Nmindep = met%Ndep
-         !mgk576, 18/10/17
+         !mgk576, 18/10/17 - I've added this as Vanessa did, but NB I'm not
+         ! sure this is written out as a flux as it isn't added in all the
+         ! place NDEP is below. This will need to be checked.
          casaflux%Pdep = met%Pdep
       ENDIF
 
