@@ -1767,7 +1767,7 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
           soil%watr(:,klev) = 0.02 + 0.00018*soil%Fclay(:,klev)*100.0
        ENDDO
        !aquifer share non-organic with last layer if not found in param file
-       if (found_explicit_gw_parameters .eq. .false.) THEN
+       if (found_explicit_gw_parameters .eqv. .false.) THEN
           soil%GWhyds_vec(:)  = soil%hyds_vec(:,ms)
           soil%GWsucs_vec(:) = soil%sucs_vec(:,ms)
           soil%GWbch_vec(:) = soil%bch_vec(:,ms)
