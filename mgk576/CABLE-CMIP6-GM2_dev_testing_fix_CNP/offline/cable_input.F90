@@ -1201,7 +1201,7 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
        IF(ok /= NF90_NOERR) CALL nc_abort &
             (ok,'Error finding Ndep units in met data file ' &
             //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
-       IF(metunits%Ndep(1:8)/='gN/m^2/d' .OR. &
+       IF(metunits%Ndep(1:8)/='gN/m^2/d^1' .OR. &
           metunits%Ndep(1:12)/='gN m^-2 d^-1') THEN
           WRITE(*,*) metunits%Ndep
           CALL abort('Unknown units for Ndep'// &
@@ -1224,7 +1224,7 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
        IF(ok /= NF90_NOERR) CALL nc_abort &
             (ok,'Error finding Ndep units in met data file ' &
             //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
-       IF(metunits%Pdep(1:8)/='gP/m^2/d' .OR. &
+       IF(metunits%Pdep(1:8)/='gP/m^2/d^1' .OR. &
           metunits%Pdep(1:12)/='gP m^-2 d^-1') THEN
           WRITE(*,*) metunits%Pdep
           CALL abort('Unknown units for Pdep'// &
