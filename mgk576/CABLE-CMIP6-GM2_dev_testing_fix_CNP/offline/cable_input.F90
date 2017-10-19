@@ -717,6 +717,7 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
     IF(ok/=NF90_NOERR) CALL nc_abort &
          (ok,'Error determining number of timesteps in ' &
          //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
+
     ! Allocate time variable:
     ALLOCATE(timevar(kend))
     ! Fetch 'time' variable:
@@ -1189,6 +1190,7 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
             'values will be fixed at ',INT(fixedCO2),' ppmv'
     END IF
 
+
     ! mgk576, 18/10/17
     ! Look for Ndep
     ok = NF90_INQ_VARID(ncid_met,'Ndep',id%Ndep)
@@ -1199,7 +1201,8 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
        IF(ok /= NF90_NOERR) CALL nc_abort &
             (ok,'Error finding Ndep units in met data file ' &
             //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
-       IF(metunits%Ndep(1:10)/='gN m-2 d-1') THEN
+       IF(metunits%Ndep(1:8)/='gN/m^2/d') .OR. &
+          metunits%Ndep(1:12)/='gN m^-2 d^-1') THEN
           WRITE(*,*) metunits%Ndep
           CALL abort('Unknown units for Ndep'// &
                ' in '//TRIM(filename%met)//' (SUBROUTINE open_met_data)')
@@ -1221,7 +1224,8 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
        IF(ok /= NF90_NOERR) CALL nc_abort &
             (ok,'Error finding Ndep units in met data file ' &
             //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
-       IF(metunits%Pdep(1:10)/='gP m-2 d-1') THEN
+       IF(metunits%Pdep(1:8)/='gP/m^2/d') .OR. &
+          metunits%Pdep(1:12)/='gP m^-2 d^-1') THEN
           WRITE(*,*) metunits%Pdep
           CALL abort('Unknown units for Pdep'// &
                ' in '//TRIM(filename%met)//' (SUBROUTINE open_met_data)')
