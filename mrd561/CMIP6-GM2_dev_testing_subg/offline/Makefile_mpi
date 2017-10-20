@@ -119,7 +119,7 @@ cable_write.o: cable_write.F90 cable_iovars.o cable_abort.o cable_define_types.o
 
 cable_input.o: cable_input.F90 POP.o cable_checks.o cable_abort.o cable_read.o \
 	 cable_initialise.o cable_radiation.o cable_parameters.o cable_common.o \
-	 cable_LUC_EXPT.o POPLUC.o
+	 cable_LUC_EXPT.o POPLUC.o cable_data.o
 
 cable_output.o: cable_output.F90 cable_checks.o cable_write.o cable_common.o \
 	cable_abort.o casa_variable.o

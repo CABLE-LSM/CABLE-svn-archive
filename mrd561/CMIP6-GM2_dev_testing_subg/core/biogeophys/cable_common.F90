@@ -167,6 +167,8 @@ MODULE cable_common_module
      LOGICAL :: fix_access_roots = .false.  !use pft dependent roots in ACCESS
      LOGICAL :: fix_um_soil_comps = .false. !inverse pedotransfer funcs to get
                                             !sand,clay,silt and then use these to get isoilm
+
+     LOGICAL :: super_hydro = .false.
   END TYPE kbl_user_switches
 
   ! instantiate internal switches
@@ -190,7 +192,8 @@ MODULE cable_common_module
           soilcolor,  & ! file for soil color(soilcolor_global_1x1.nc)
           inits,      & ! name of file for initialisations
           soilIGBP,   & ! name of file for IGBP soil map
-          gw_elev       !name of file for gw/elevation data
+          gw_elev,    & !name of file for gw/elevation data
+          gw_tiles      !file with tiled props for super hydro
 
   END TYPE filenames_type
 
@@ -989,7 +992,6 @@ SUBROUTINE fudge_out_r3D( i,j,k, var, varname, vzero, vval )
    if( (vzero) ) var = vval
    write (6, ft) varname,i,j,k, var(i,j,k)
 End SUBROUTINE fudge_out_r3D 
-
 
 
 END MODULE cable_common_module

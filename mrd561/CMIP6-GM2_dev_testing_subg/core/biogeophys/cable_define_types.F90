@@ -130,9 +130,17 @@ MODULE cable_def_types_mod
          soilcol, & ! keep color for all patches/tiles
          albsoilf   ! soil reflectance
 
+      real(r_2), dimension(:,:), pointer ::&
+         zse_vec      ! thickness of each soil layer (1=top) in m
+
+
       REAL(r_2), DIMENSION(:), POINTER ::                                      &
          cnsd,    & ! thermal conductivity of dry soil [W/m/K]
          pwb_min    ! working variable (swilt/ssat)**ibp2
+
+      real(r_2), dimension(:,:), pointer :: &
+         cnsd_vec,&
+         css_vec
 
       REAL, DIMENSION(:,:), POINTER ::                                         &
          albsoil    ! soil reflectance (2nd dim. BP 21Oct2009)
@@ -823,6 +831,7 @@ SUBROUTINE alloc_soil_parameter_type(var, mp)
    allocate( var% sucs(mp) )
    allocate( var% swilt(mp) )
    allocate( var% zse(ms) )
+   allocate( var% zse_vec(mp,ms) )
    allocate( var% zshh(ms+1) )
    allocate( var% cnsd(mp) )
    allocate( var% albsoil(mp, nrb) )
@@ -1445,6 +1454,7 @@ SUBROUTINE dealloc_soil_parameter_type(var)
    DEALLOCATE( var% sucs )
    DEALLOCATE( var% swilt )
    DEALLOCATE( var% zse )
+   DEALLOCATE( var% zse_vec )
    DEALLOCATE( var% zshh )
    DEALLOCATE( var% cnsd )
    DEALLOCATE( var% albsoil )
