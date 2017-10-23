@@ -2087,7 +2087,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
              (ok,'Error reading Pdep in met data file ' &
              //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
         DO i=1,mland ! over all land points/grid cells
-          met%ndep(landpt(i)%cstart:landpt(i)%cend) = &
+          met%pdep(landpt(i)%cstart:landpt(i)%cend) = &
                   REAL(tmpDat4(land_x(i),land_y(i),1,1))
         ENDDO
       END IF
