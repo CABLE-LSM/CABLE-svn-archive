@@ -4,7 +4,19 @@ export dosvn=1 # 1/0: do/do not check svn
 
 known_hosts()
 {
-   set -A kh vayu cher pear shin jigg nXXX raij ces2 ccrc mael Mart
+   set -A kh vayu cher pear shin jigg nXXX raij ces2 ccrc mael Mart ccrc
+host_ccrc(){
+    export NCDIR='/opt/local/lib/'
+    export NCMOD='/opt/local/include/'
+    export FC=gfortran
+    export CFLAGS='-O2'
+    export LD='-lnetcdf -lnetcdff'
+    export LDFLAGS='-L/opt/local/lib -O2'
+    build_build
+    cd ../
+    build_status
+}
+
 host_Mart(){
     export NCDIR='/opt/local/lib/'
     export NCMOD='/opt/local/include/'
@@ -297,7 +309,7 @@ host_write()
    print '' >> junk
    print 'known_hosts()' >> junk
    print '{' >> junk
-   print '   set -A kh' ${kh[*]} $HOST_MACH >> junk Mart
+   print '   set -A kh' ${kh[*]} $HOST_MACH >> junk Mart ccrc
    print '}' >> junk
    print '' >> junk
    print '' >> junk
