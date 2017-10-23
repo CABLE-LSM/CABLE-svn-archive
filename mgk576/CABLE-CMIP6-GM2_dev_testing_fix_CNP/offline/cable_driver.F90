@@ -646,7 +646,7 @@ PROGRAM cable_offline_driver
                          kstart+koffset )
           ENDIF
 
-          print*, met%ca*1E6, met%Ndep, met%Pdep
+          
           IF (TRIM(cable_user%MetType).EQ.'' ) THEN
              CurYear = met%year(1)
              IF ( leaps .AND. IS_LEAPYEAR( CurYear ) ) THEN
