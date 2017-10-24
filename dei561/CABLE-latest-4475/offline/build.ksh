@@ -4,7 +4,21 @@ export dosvn=1 # 1/0: do/do not check svn
 
 known_hosts()
 {
-   set -A kh vayu cher pear shin jigg nXXX raij ces2
+   set -A kh vayu cher pear shin jigg nXXX raij ces2 mons
+}
+
+## monsoon
+host_mons()
+{
+   export NCDIR='/share/apps/netcdf/intel/4.2.1/lib'
+   export NCMOD='/share/apps/netcdf/intel/4.2.1/include'
+   export FC=ifort
+   export CFLAGS='-O2 -fp-model precise'
+   export LD='-lnetcdf -lnetcdff'
+   export LDFLAGS='-L/share/apps/netcdf/intel/4.2.1/lib -O2'
+   build_build
+   cd ../
+   build_status
 }
 
 
