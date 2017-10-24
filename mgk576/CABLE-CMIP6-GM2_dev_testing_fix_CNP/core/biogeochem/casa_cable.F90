@@ -395,7 +395,7 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, climate, ncall, kend
 SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, phen, climate, n_call, kend )
   USE netcdf
   USE cable_def_types_mod,   ONLY : r_2,ms,mp, climate_type
-  USE cable_common_module,   ONLY : kend_gl
+  USE cable_common_module,   ONLY : kend_gl, cable_user
 #     ifndef UM_BUILD
   USE cable_diag_module,     ONLY : def_dims, def_vars, def_var_atts, &
        put_var_ncr1, put_var_ncr2,       &
