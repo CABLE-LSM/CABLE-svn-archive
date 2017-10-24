@@ -2,8 +2,25 @@
 
 known_hosts()
 {
-   set -A kh vayu cher burn shin jigg raij
+   set -A kh vayu cher burn shin jigg raij mons
 }
+
+
+## monsoon
+host_mons()
+{
+   export NCDIR='/share/apps/netcdf/intel/4.2.1/lib'
+   export NCMOD='/share/apps/netcdf/intel/4.2.1/include'
+   export FC=ifort
+   export CFLAGS='-O2 -fp-model precise'
+   export LD='-lnetcdf -lnetcdff'
+   export LDFLAGS='-L/share/apps/netcdf/intel/4.2.1/lib -O2'
+   build_build
+   cd ../
+   build_status
+}
+
+
 
 
 ## jiggle
