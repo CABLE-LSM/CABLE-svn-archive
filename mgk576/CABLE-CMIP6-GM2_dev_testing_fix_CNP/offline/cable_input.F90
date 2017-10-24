@@ -896,6 +896,11 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
     END IF
     ! IF A CERTAIN PERIOD IS DESIRED AND WE ARE NOT RUNNING ON GSWP DATA
     ! RECALCULATE STARTING AND ENDING INDICES
+
+    !IF ( CABLE_USER%YEARSTART .GT. 0 .AND. .NOT. ncciy.GT.0) THEN
+
+    ! mgk576, added temporary tag to not do this, can't use site because
+    ! the code does other things with that tag
     IF ( CABLE_USER%YEARSTART .GT. 0 .AND. .NOT. ncciy.GT.0 .and. &
          TRIM(cable_user%MetType) .NE. "martin") THEN
        IF ( syear.GT.CABLE_USER%YEARSTART .OR. eyear.LE.CABLE_USER%YEAREND .OR. &
