@@ -2940,7 +2940,7 @@ CONTAINS
                     canstoID, albsoilsnID, gammzzID, tggsnID, sghfluxID,       &
                     ghfluxID, runoffID, rnof1ID, rnof2ID, gaID, dgdtgID,       &
                     fevID, fesID, fhsID, wbtot0ID, osnowd0ID, cplantID,        &
-                    csoilID, tradID, albedoID, gwID
+                    csoilID, tradID, albedoID, gwID,wtdID,subdzID
     INTEGER :: h0ID, snowliqID, SID, TsurfaceID, scondsID, nsnowID, TsoilID
     CHARACTER(LEN=10) :: todaydate, nowtime ! used to timestamp netcdf file
     ! CHARACTER         :: FRST_OUT*100, CYEAR*4
@@ -3307,6 +3307,124 @@ CONTAINS
 
     CALL define_ovar(ncid_restart, gwID, 'GWwb', 'mm3/mm3','GW water content',&
                      .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+    CALL define_ovar(ncid_restart, wtdID, 'wtd', 'mm','water table depth',&
+                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+    CALL define_ovar(ncid_restart, subdzID, 'sublayer_dz', 'm','thickness of viscous sublayer',&
+                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+
+
+    !tiled and hetero soil properteis
+
+    if (cable_user%gw_model) then
+      CALL define_ovar(ncid_restart, rpid%ssatv, 'ssat_vec', '(mm3/mm3)',        &
+                       'per layer saturated moisture content',                   &
+                       .TRUE., soilID, 'soil', 0, 0, 0, mpID, dummy, .TRUE.)
+  
+      CALL define_ovar(ncid_restart, rpid%watrv, 'watr', '(mm3/mm3)',        &
+                       'per layer residual moisture content',                   &
+                       .TRUE., soilID, 'soil', 0, 0, 0, mpID, dummy, .TRUE.)
+  
+      CALL define_ovar(ncid_restart, rpid%bchv, 'bch_vec', '(-)',        &
+                       'per layer pore dist param',                   &
+                       .TRUE., soilID, 'soil', 0, 0, 0, mpID, dummy, .TRUE.)
+  
+      CALL define_ovar(ncid_restart, rpid%sucsv, 'sucs_vec', '(mm)',        &
+                       'per layer air entry potential',                   &
+                       .TRUE., soilID, 'soil', 0, 0, 0, mpID, dummy, .TRUE.)
+  
+      CALL define_ovar(ncid_restart, rpid%hydsv, 'hyds_vec', '(mm/s)',        &
+                       'per layer saturated conductivity',                   &
+                       .TRUE., soilID, 'soil', 0, 0, 0, mpID, dummy, .TRUE.)
+  
+      CALL define_ovar(ncid_restart, rpid%sfcv, 'sfc_vec', '(mm3/mm3)',        &
+                       'per layer moisture at field capacity',                   &
+                       .TRUE., soilID, 'soil', 0, 0, 0, mpID, dummy, .TRUE.)
+  
+      CALL define_ovar(ncid_restart, rpid%swiltv, 'swilt_vec', '(mm3/mm3)',        &
+                       'per layer moisture at wilting point',                   &
+                       .TRUE., soilID, 'soil', 0, 0, 0, mpID, dummy, .TRUE.)
+  
+      CALL define_ovar(ncid_restart, rpid%rhosoilv, 'rhosoil_vec', '(mm3/mm3)',        &
+                       'per layer soil builk density',                   &
+                       .TRUE., soilID, 'soil', 0, 0, 0, mpID, dummy, .TRUE.)
+  
+      CALL define_ovar(ncid_restart, rpid%orgv, 'org_vec', '-',        &
+                       'per layer organic mass / soil mass',                   &
+                       .TRUE., soilID, 'soil', 0, 0, 0, mpID, dummy, .TRUE.)
+  
+      CALL define_ovar(ncid_restart, rpid%clayv, 'clay_vec', '(-)',        &
+                       'per layer fraction clay content',                   &
+                       .TRUE., soilID, 'soil', 0, 0, 0, mpID, dummy, .TRUE.)
+  
+      CALL define_ovar(ncid_restart, rpid%sandv, 'sand_vec', '(-)',        &
+                       'per layer fraction sand content',                   &
+                       .TRUE., soilID, 'soil', 0, 0, 0, mpID, dummy, .TRUE.)
+  
+  
+      CALL define_ovar(ncid_restart, rpid%siltv, 'silt_vec', '(-)',        &
+                       'per layer fraction silt content',                   &
+                       .TRUE., soilID, 'soil', 0, 0, 0, mpID, dummy, .TRUE.)
+  
+  
+      CALL define_ovar(ncid_restart, rpid%cssv, 'css_vec', '()',        &
+                       'per layer css',                   &
+                       .TRUE., soilID, 'soil', 0, 0, 0, mpID, dummy, .TRUE.)
+  
+  
+      CALL define_ovar(ncid_restart, rpid%cnsdv, 'cnsd_vec', '()',        &
+                       'per layer cnsd',                   &
+                       .TRUE., soilID, 'soil', 0, 0, 0, mpID, dummy, .TRUE.)
+  
+  
+      CALL define_ovar(ncid_restart, rpid%zsev, 'zse_vec', '()',        &
+                       'variable soil layer thicknesses',                   &
+                       .TRUE., soilID, 'soil', 0, 0, 0, mpID, dummy, .TRUE.)
+  
+      CALL define_ovar(ncid_restart, rpid%GWhyds, 'GWhyds', 'mm/s',    &
+                       'aquifer hydraulic conductivity', &
+                       .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+  
+      CALL define_ovar(ncid_restart, rpid%GWhyds, 'GWsucs', 'mm',    &
+                       'aquifer air entry', &
+                       .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+  
+      CALL define_ovar(ncid_restart, rpid%GWssat, 'GWssat', 'mm',    &
+                       'aquifer saturated volumetric content', &
+                       .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+  
+      CALL define_ovar(ncid_restart, rpid%GWwatr, 'GWwatr', 'mm',    &
+                       'aquifer residual volumetric content', &
+                       .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+  
+  
+      CALL define_ovar(ncid_restart, rpid%GWbch, 'GWbch', 'mm',    &
+                       'aquifer pore dist ', &
+                       .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+  
+  
+      CALL define_ovar(ncid_restart, rpid%GWdz, 'GWdz', 'm',    &
+                       'aquifer thickness ', &
+                       .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+  
+  
+      CALL define_ovar(ncid_restart, rpid%GWrhosoil, 'GWrhosoil', 'mm',    &
+                       'aquifer bullk density', &
+                       .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+  
+  
+      CALL define_ovar(ncid_restart, rpid%slope, 'slope', 'm/m',    &
+                       'mean surface slope', &
+                       .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+  
+      CALL define_ovar(ncid_restart, rpid%slope_std, 'slope_std', 'm/m',    &
+                       'stddev surface slope', &
+                       .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+  
+      CALL define_ovar(ncid_restart, rpid%elev, 'elevation', 'm',    &
+                       'mean surface elevation above sea level', &
+                       .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+ 
+    end if
 
     IF(cable_user%SOIL_STRUC=='sli'.OR.cable_user%FWSOIL_SWITCH=='Haverd2013') THEN
       CALL define_ovar(ncid_restart,rpid%gamma,'gamma','-', &
@@ -3579,9 +3697,112 @@ CONTAINS
     CALL write_ovar (ncid_restart, tradID, 'trad',                             &
          REAL(rad%trad, 4), ranges%RadT, .TRUE., 'real', .TRUE.)
 
-    CALL write_ovar (ncid_restart, gwID, 'GWwb', REAL(ssnow%GWwb, 4),       &
-                     ranges%GWwb, .TRUE., 'real', .TRUE.)
+    CALL write_ovar (ncid_restart, gwID, 'GWwb', ssnow%GWwb,       &
+                     (/-1.0e25,1.0e25/), .TRUE., 'real', .TRUE.)
+    CALL write_ovar (ncid_restart, gwID, 'wtd', ssnow%wtd,       &
+                     (/0.0,1.0e25/), .TRUE., 'real', .TRUE.)
+    CALL write_ovar (ncid_restart, subdzID, 'sublayer_dz', canopy%sublayer_dz, &
+                     (/0.0,1.0e25/), .TRUE., 'real', .TRUE.)
 
+    if (cable_user%gw_model) then
+
+       CALL write_ovar (ncid_restart, rpid%ssatv, 'ssat_vec', soil%ssat_vec, &
+                        (/-99999.0, 9999999.0/), .TRUE., 'soil', .TRUE.)
+       CALL write_ovar (ncid_restart, rpid%watrv, 'watr', soil%watr, &
+                        (/-99999.0, 9999999.0/), .TRUE., 'soil', .TRUE.)
+
+
+       CALL write_ovar (ncid_restart, rpid%bchv, 'bch_vec', soil%bch_vec, &
+                        (/-99999.0, 9999999.0/), .TRUE., 'soil', .TRUE.)
+
+
+       CALL write_ovar (ncid_restart, rpid%sucsv, 'sucs_vec', soil%sucs_vec, &
+                        (/-99999.0, 9999999.0/), .TRUE., 'soil', .TRUE.)
+
+
+       CALL write_ovar (ncid_restart, rpid%hydsv, 'hyds_vec', soil%hyds_vec, &
+                        (/-99999.0, 9999999.0/), .TRUE., 'soil', .TRUE.)
+
+
+       CALL write_ovar (ncid_restart, rpid%sfcv, 'sfc_vec', soil%sfc_vec, &
+                        (/-99999.0, 9999999.0/), .TRUE., 'soil', .TRUE.)
+
+
+       CALL write_ovar (ncid_restart, rpid%swiltv, 'swilt_vec', soil%swilt_vec, &
+                        (/-99999.0, 9999999.0/), .TRUE., 'soil', .TRUE.)
+
+
+       CALL write_ovar (ncid_restart, rpid%rhosoilv, 'rhosoil_vec', soil%rhosoil_vec, &
+                        (/-99999.0, 9999999.0/), .TRUE., 'soil', .TRUE.)
+
+
+       CALL write_ovar (ncid_restart, rpid%orgv, 'org_vec', soil%org_vec, &
+                        (/-99999.0, 9999999.0/), .TRUE., 'soil', .TRUE.)
+
+
+       CALL write_ovar (ncid_restart, rpid%sandv, 'sand_vec', soil%sand_vec, &
+                        (/-99999.0, 9999999.0/), .TRUE., 'soil', .TRUE.)
+
+
+       CALL write_ovar (ncid_restart, rpid%siltv, 'silt_vec', soil%silt_vec, &
+                        (/-99999.0, 9999999.0/), .TRUE., 'soil', .TRUE.)
+
+
+       CALL write_ovar (ncid_restart, rpid%clayv, 'clay_vec', soil%clay_vec, &
+                        (/-99999.0, 9999999.0/), .TRUE., 'soil', .TRUE.)
+
+
+       CALL write_ovar (ncid_restart, rpid%cssv, 'css_vec', soil%css_vec, &
+                        (/-99999.0, 9999999.0/), .TRUE., 'soil', .TRUE.)
+
+
+       CALL write_ovar (ncid_restart, rpid%cnsdv, 'cnsd_vec', soil%cnsd_vec, &
+                        (/-99999.0, 9999999.0/), .TRUE., 'soil', .TRUE.)
+
+
+       CALL write_ovar (ncid_restart, rpid%zsev, 'zse_vec', soil%zse_vec, &
+                        (/-99999.0, 9999999.0/), .TRUE., 'soil', .TRUE.)
+
+    CALL write_ovar (ncid_restart, rpid%GWhyds, 'GWhyds', soil%GWhyds,       &
+                       (/-99999.0, 9999999.0/), .TRUE., 'real', .TRUE.) 
+
+
+    CALL write_ovar (ncid_restart, rpid%GWsucs, 'GWsucs', soil%GWsucs,       &
+                       (/-99999.0, 9999999.0/), .TRUE., 'real', .TRUE.) 
+
+
+    CALL write_ovar (ncid_restart, rpid%GWssat, 'GWssat', soil%GWssat,       &
+                       (/-99999.0, 9999999.0/), .TRUE., 'real', .TRUE.) 
+
+
+    CALL write_ovar (ncid_restart, rpid%GWwatr, 'GWwatr', soil%GWwatr,       &
+                       (/-99999.0, 9999999.0/), .TRUE., 'real', .TRUE.) 
+
+
+    CALL write_ovar (ncid_restart, rpid%GWbch, 'GWbch', soil%GWbch,       &
+                       (/-99999.0, 9999999.0/), .TRUE., 'real', .TRUE.) 
+
+
+    CALL write_ovar (ncid_restart, rpid%GWdz, 'GWdz', soil%GWdz,       &
+                       (/-99999.0, 9999999.0/), .TRUE., 'real', .TRUE.) 
+
+
+    CALL write_ovar (ncid_restart, rpid%GWrhosoil, 'GWrhosoil', soil%GWrhosoil,       &
+                       (/-99999.0, 9999999.0/), .TRUE., 'real', .TRUE.) 
+
+
+    CALL write_ovar (ncid_restart, rpid%slope, 'slope', soil%slope,       &
+                       (/-99999.0, 9999999.0/), .TRUE., 'real', .TRUE.) 
+
+
+    CALL write_ovar (ncid_restart, rpid%slope_std, 'slope_std', soil%slope_std,       &
+                       (/-99999.0, 9999999.0/), .TRUE., 'real', .TRUE.) 
+
+    CALL write_ovar (ncid_restart, rpid%elev, 'elevation', soil%elev,       &
+                       (/-99999.0, 9999999.0/), .TRUE., 'real', .TRUE.) 
+
+
+    end if
     IF(cable_user%SOIL_STRUC=='sli'.OR.cable_user%FWSOIL_SWITCH=='Haverd2013') THEN
        CALL write_ovar (ncid_restart,rpid%gamma,'gamma', &
             REAL(veg%gamma,4),(/-99999.0,99999.0/),.TRUE.,'real',.TRUE.)

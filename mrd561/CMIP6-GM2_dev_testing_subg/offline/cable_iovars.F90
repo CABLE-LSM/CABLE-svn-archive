@@ -28,6 +28,8 @@ MODULE cable_IO_vars_module
    !mrd561 debug
    integer :: wlogn
 
+    logical ::  found_restart_gwmodel_params
+
    ! ============ Timing variables =====================
    REAL :: shod ! start time hour-of-day
 
@@ -134,9 +136,11 @@ MODULE cable_IO_vars_module
           vcmax,xfang,ratecp,ratecs,refsbare,isoil,iveg,albsoil,               &
           taul,refl,tauw,refw,wai,vegcf,extkn,tminvj,tmaxvj,                   &
           veg_class,soil_class,mvtype,mstype,patchfrac,                        &
-           WatSat,GWWatSat,SoilMatPotSat,GWSoilMatPotSat,                       &
-          HkSat,GWHkSat,FrcSand,FrcClay,Clappb,Watr,GWWatr,sfc_vec,forg,swilt_vec, &
-          slope,slope_std,GWdz,SatFracmax,Qhmax,QhmaxEfold,HKefold,HKdepth
+          sfc_vec,forg,swilt_vec, &
+          slope,slope_std,SatFracmax,Qhmax,QhmaxEfold,HKefold,HKdepth,&
+          clayv,siltv,sandv,orgv,GWhyds,GWssat,GWwatr,GWbch,GWdz,GWrhosoil,&
+          zsev,sfcv,swiltv,watrv,bchv,cssv,cnsdv,rhosoilv,ssatv,sucsv,hydsv,&
+          elev,GWsucs
      INTEGER :: ishorizon,nhorizons,clitt, &
           zeta,fsatmax, &
           gamma,ZR,F10

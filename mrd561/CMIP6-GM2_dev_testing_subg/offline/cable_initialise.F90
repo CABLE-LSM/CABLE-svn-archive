@@ -36,7 +36,7 @@ MODULE cable_init_module
    USE cable_IO_vars_module,       ONLY: latitude,longitude, patch,            &
                                  landpt,smoy,ncid_rin,max_vegpatches,          &
                                  soilparmnew,ncciy, vegtype_metfile,           &
-                                 soiltype_metfile
+                                 soiltype_metfile,found_restart_gwmodel_params
    USE cable_read_module
    USE netcdf
    USE cable_common_module, ONLY : filename, cable_user
@@ -417,6 +417,22 @@ SUBROUTINE get_restart_data(logn,ssnow,canopy,rough,bgc,                       &
       ssnow%GWwb = 0.95*soil%ssat
    END IF
 
+   ok = NF90_INQ_VARID(ncid_rin,'wtd',parID)
+   IF(ok == NF90_NOERR) THEN 
+     CALL readpar(ncid_rin,'wtd',dummy,ssnow%wtd,filename%restart_in,            &
+                max_vegpatches,'def',from_restart,mp)   
+   ELSE
+      ssnow%wtd = -9999.0
+   END IF
+
+   ok = NF90_INQ_VARID(ncid_rin,'sublayer_dz',parID)
+   IF(ok == NF90_NOERR) THEN 
+     CALL readpar(ncid_rin,'sublayer_dz',dummy,canopy%sublayer_dz,filename%restart_in,            &
+                max_vegpatches,'def',from_restart,mp)   
+   ELSE
+      canopy%sublayer_dz = 0.01
+   END IF
+
    IF(cable_user%SOIL_STRUC=='sli'.or.cable_user%FWSOIL_SWITCH=='Haverd2013') THEN
       CALL readpar(ncid_rin,'gamma',dummy,veg%gamma,filename%restart_in,           &
            max_vegpatches,'def',from_restart,mp)
@@ -655,6 +671,185 @@ ENDIF
                 max_vegpatches,'ncp',from_restart,mp)
    CALL readpar(ncid_rin,'ratecs',dummy,bgc%ratecs,filename%restart_in,        &
                 max_vegpatches,'ncs',from_restart,mp)
+
+   IF (cable_user%gw_model) then  !do not abort if not found, could be running
+                                   !experiment about turning gw on
+      IF ( NF90_INQ_VARID(ncid_rin,'ssat_vec',parID) == NF90_NOERR)  then
+          write(*,*) "Check restart file, ssat_vec is not present!!!!!!!!"
+          found_restart_gwmodel_params = .false.
+          CALL readpar(ncid_rin,'ssat_vec',dummy,soil%ssat_vec,filename%restart_in, &
+                   max_vegpatches,'msd',from_restart,mp)
+      END IF
+
+      IF ( NF90_INQ_VARID(ncid_rin,'watr',parID) == NF90_NOERR)   THEN
+         write(*,*) "Check restart file, some GW MODLE Parameters are MISSING"
+          found_restart_gwmodel_params = .false.
+         CALL readpar(ncid_rin,'watr',dummy,soil%watr,filename%restart_in,              &
+                   max_vegpatches,'msd',from_restart,mp)
+
+      END IF
+
+      IF ( NF90_INQ_VARID(ncid_rin,'bch_vec',parID) == NF90_NOERR)   THEN
+         write(*,*) "Check restart file, some GW MODLE Parameters are MISSING"
+          found_restart_gwmodel_params = .false.
+        CALL readpar(ncid_rin,'bch_vec',dummy,soil%bch_vec,filename%restart_in,              &
+                     max_vegpatches,'msd',from_restart,mp)
+      END IF
+
+      IF ( NF90_INQ_VARID(ncid_rin,'sucs_vec',parID) == NF90_NOERR)   THEN
+         found_restart_gwmodel_params = .false.
+         write(*,*) "Check restart file, some GW MODLE Parameters are MISSING"
+        CALL readpar(ncid_rin,'sucs_vec',dummy,soil%sucs_vec,filename%restart_in,              &
+                     max_vegpatches,'msd',from_restart,mp)
+      END IF
+
+      IF ( NF90_INQ_VARID(ncid_rin,'hyds_vec',parID) == NF90_NOERR)   THEN
+         found_restart_gwmodel_params = .false.
+         write(*,*) "Check restart file, some GW MODLE Parameters are MISSING"
+        CALL readpar(ncid_rin,'hyds_vec',dummy,soil%hyds_vec,filename%restart_in,              &
+                     max_vegpatches,'msd',from_restart,mp)
+      END IF
+
+      IF ( NF90_INQ_VARID(ncid_rin,'sfc_vec',parID) == NF90_NOERR)   THEN
+         found_restart_gwmodel_params = .false.
+         write(*,*) "Check restart file, some GW MODLE Parameters are MISSING"
+        CALL readpar(ncid_rin,'sfc_vec',dummy,soil%sfc_vec,filename%restart_in,              &
+                     max_vegpatches,'msd',from_restart,mp)
+      END IF
+
+      IF ( NF90_INQ_VARID(ncid_rin,'swilt_vec',parID) == NF90_NOERR)   THEN
+         found_restart_gwmodel_params = .false.
+         write(*,*) "Check restart file, some GW MODLE Parameters are MISSING"
+        CALL readpar(ncid_rin,'swilt_vec',dummy,soil%swilt_vec,filename%restart_in,              &
+                     max_vegpatches,'msd',from_restart,mp)
+      END IF
+
+      IF ( NF90_INQ_VARID(ncid_rin,'rhosoil_vec',parID) == NF90_NOERR)   THEN
+         found_restart_gwmodel_params = .false.
+         write(*,*) "Check restart file, some GW MODLE Parameters are MISSING"
+        CALL readpar(ncid_rin,'rhosoil_vec',dummy,soil%rhosoil_vec,filename%restart_in,              &
+                     max_vegpatches,'msd',from_restart,mp)
+      END IF
+
+      IF ( NF90_INQ_VARID(ncid_rin,'sand_vec',parID) == NF90_NOERR)   THEN
+         found_restart_gwmodel_params = .false.
+        write(*,*) "Check restart file, some GW MODLE Parameters are MISSING"
+        CALL readpar(ncid_rin,'sand_vec',dummy,soil%sand_vec,filename%restart_in,              &
+                     max_vegpatches,'msd',from_restart,mp)
+      END IF
+
+      IF ( NF90_INQ_VARID(ncid_rin,'silt_vec',parID) == NF90_NOERR)   THEN
+         found_restart_gwmodel_params = .false.
+        write(*,*) "Check restart file, some GW MODLE Parameters are MISSING"
+        CALL readpar(ncid_rin,'silt_vec',dummy,soil%silt_vec,filename%restart_in,              &
+                     max_vegpatches,'msd',from_restart,mp)
+      END IF
+
+      IF ( NF90_INQ_VARID(ncid_rin,'clay_vec',parID) == NF90_NOERR)   THEN
+         found_restart_gwmodel_params = .false.
+        write(*,*) "Check restart file, some GW MODLE Parameters are MISSING"
+        CALL readpar(ncid_rin,'clay_vec',dummy,soil%clay_vec,filename%restart_in,              &
+                     max_vegpatches,'msd',from_restart,mp)
+      END IF
+
+      IF ( NF90_INQ_VARID(ncid_rin,'org_vec',parID) == NF90_NOERR)   THEN
+         found_restart_gwmodel_params = .false.
+        write(*,*) "Check restart file, some GW MODLE Parameters are MISSING"
+        CALL readpar(ncid_rin,'org_vec',dummy,soil%org_vec,filename%restart_in,              &
+                     max_vegpatches,'msd',from_restart,mp)
+      END IF
+
+      IF ( NF90_INQ_VARID(ncid_rin,'css_vec',parID) == NF90_NOERR)   THEN
+         found_restart_gwmodel_params = .false.
+        write(*,*) "Check restart file, some GW MODLE Parameters are MISSING"
+        CALL readpar(ncid_rin,'css_vec',dummy,soil%css_vec,filename%restart_in,              &
+                     max_vegpatches,'msd',from_restart,mp)
+      END IF
+
+      IF ( NF90_INQ_VARID(ncid_rin,'cnsd_vec',parID) == NF90_NOERR)   THEN
+         found_restart_gwmodel_params = .false.
+        write(*,*) "Check restart file, some GW MODLE Parameters are MISSING"
+        CALL readpar(ncid_rin,'cnsd_vec',dummy,soil%cnsd_vec,filename%restart_in,              &
+                     max_vegpatches,'msd',from_restart,mp)
+      END IF
+
+      IF ( NF90_INQ_VARID(ncid_rin,'zse_vec',parID) == NF90_NOERR)   THEN
+         found_restart_gwmodel_params = .false.
+        write(*,*) "Check restart file, some GW MODLE Parameters are MISSING"
+        CALL readpar(ncid_rin,'zse_vec',dummy,soil%zse_vec,filename%restart_in,              &
+                     max_vegpatches,'msd',from_restart,mp)
+      END IF
+
+      IF ( NF90_INQ_VARID(ncid_rin,'GWhyds',parID) == NF90_NOERR)   THEN
+         found_restart_gwmodel_params = .false.
+        write(*,*) "Check restart file, some GW MODLE Parameters are MISSING"
+        CALL readpar(ncid_rin,'GWhyds',dummy,soil%GWhyds,filename%restart_in,     &
+                     max_vegpatches,'def',from_restart,mp)
+      END IF
+
+      IF ( NF90_INQ_VARID(ncid_rin,'GWssat',parID) == NF90_NOERR)   THEN
+         found_restart_gwmodel_params = .false.
+        write(*,*) "Check restart file, some GW MODLE Parameters are MISSING"
+        CALL readpar(ncid_rin,'GWssat',dummy,soil%GWssat,filename%restart_in,     &
+                     max_vegpatches,'def',from_restart,mp)
+      END IF
+
+
+      IF ( NF90_INQ_VARID(ncid_rin,'GWsucs',parID) == NF90_NOERR)   THEN
+         found_restart_gwmodel_params = .false.
+        write(*,*) "Check restart file, some GW MODLE Parameters are MISSING"
+        CALL readpar(ncid_rin,'GWsucs',dummy,soil%GWsucs,filename%restart_in,     &
+                     max_vegpatches,'def',from_restart,mp)
+      END IF
+
+
+      IF ( NF90_INQ_VARID(ncid_rin,'GWwatr',parID) == NF90_NOERR)   THEN
+         found_restart_gwmodel_params = .false.
+        write(*,*) "Check restart file, some GW MODLE Parameters are MISSING"
+        CALL readpar(ncid_rin,'GWwatr',dummy,soil%GWwatr,filename%restart_in,     &
+                     max_vegpatches,'def',from_restart,mp)
+      END IF
+
+
+      IF ( NF90_INQ_VARID(ncid_rin,'GWbch',parID) == NF90_NOERR)   THEN
+         found_restart_gwmodel_params = .false.
+        write(*,*) "Check restart file, some GW MODLE Parameters are MISSING"
+        CALL readpar(ncid_rin,'GWbch',dummy,soil%GWbch,filename%restart_in,     &
+                     max_vegpatches,'def',from_restart,mp)
+      END IF
+
+
+      IF ( NF90_INQ_VARID(ncid_rin,'GWdz',parID) == NF90_NOERR)   THEN
+         found_restart_gwmodel_params = .false.
+        write(*,*) "Check restart file, some GW MODLE Parameters are MISSING"
+        CALL readpar(ncid_rin,'GWdz',dummy,soil%GWdz,filename%restart_in,     &
+                     max_vegpatches,'def',from_restart,mp)
+      END IF
+
+
+      IF ( NF90_INQ_VARID(ncid_rin,'GWrhosoil',parID) == NF90_NOERR)   THEN
+         found_restart_gwmodel_params = .false.
+        write(*,*) "Check restart file, some GW MODLE Parameters are MISSING"
+        CALL readpar(ncid_rin,'GWrhosoil',dummy,soil%GWrhosoil,filename%restart_in,     &
+                     max_vegpatches,'def',from_restart,mp)
+      END IF
+
+
+      IF ( NF90_INQ_VARID(ncid_rin,'slope',parID) == NF90_NOERR)   THEN
+         found_restart_gwmodel_params = .false.
+        write(*,*) "Check restart file, some GW MODLE Parameters are MISSING"
+        CALL readpar(ncid_rin,'slope',dummy,soil%slope,filename%restart_in,     &
+                     max_vegpatches,'def',from_restart,mp)
+      END IF
+
+
+      IF ( NF90_INQ_VARID(ncid_rin,'slope_std',parID) == NF90_NOERR)   THEN
+         found_restart_gwmodel_params = .false.
+        write(*,*) "Check restart file, some GW MODLE Parameters are MISSING"
+        CALL readpar(ncid_rin,'slope_std',dummy,soil%slope_std,filename%restart_in,     &
+                     max_vegpatches,'def',from_restart,mp)
+      END IF
+   end if
 
    ! Close restart file:
    ok = NF90_CLOSE(ncid_rin)

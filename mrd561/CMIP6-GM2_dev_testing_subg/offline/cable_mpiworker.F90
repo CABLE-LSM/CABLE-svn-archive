@@ -288,6 +288,9 @@ CONTAINS
     READ( 10, NML=CABLE )   !where NML=CABLE defined above
     CLOSE(10)
 
+    !set number of soil layers
+    ms = cable_user%number_soil_levels
+
     IF( IARGC() > 0 ) THEN
        CALL GETARG(1, filename%met)
        CALL GETARG(2, casafile%cnpipool)
@@ -2417,19 +2420,19 @@ ENDIF
 
 !1d
   bidx = bidx + 1
-  CALL MPI_Get_address (soil%GWssat_vec, displs(bidx), ierr)
+  CALL MPI_Get_address (soil%GWssat, displs(bidx), ierr)
   blen(bidx) = r2len
 
   bidx = bidx + 1
-  CALL MPI_Get_address (soil%GWsucs_vec, displs(bidx), ierr)
+  CALL MPI_Get_address (soil%GWsucs, displs(bidx), ierr)
   blen(bidx) = r2len
 
   bidx = bidx + 1
-  CALL MPI_Get_address (soil%GWhyds_vec, displs(bidx), ierr)
+  CALL MPI_Get_address (soil%GWhyds, displs(bidx), ierr)
   blen(bidx) = r2len
 
   bidx = bidx + 1
-  CALL MPI_Get_address (soil%GWbch_vec, displs(bidx), ierr)
+  CALL MPI_Get_address (soil%GWbch, displs(bidx), ierr)
   blen(bidx) = r2len
 
   bidx = bidx + 1
@@ -5601,6 +5604,10 @@ ENDIF
 
      bidx = bidx + 1
      CALL MPI_Get_address (ssnow%Qconv(off), displs(bidx), ierr)
+     blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (canopy%sublayer_dz(off), displs(bidx), ierr)
      blocks(bidx) = r2len
 
      ! additional for SLI 

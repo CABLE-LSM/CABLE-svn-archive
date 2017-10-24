@@ -53,8 +53,10 @@ MODULE cable_def_types_mod
       niter = 4,     & ! number of iterations for za/L
  !      ms = 12          ! # soil layers
        !ms = 6         ! # soil layers - standard
-       ms = 7,      & ! # soil layers - standard
+       pms = 7,      & ! # soil layers - standard
        ntiles=8       ! # number of clusters per gridcell
+
+   INTEGER :: ms
 
 !       ms = 13          ! for Loetschental experiment
 
@@ -150,11 +152,11 @@ MODULE cable_def_types_mod
          sucs_vec, & !psi at saturation in [mm]
          hyds_vec,  & !saturated hydraulic conductivity  [mm/s]
          bch_vec, & !C and H B [none]
-         Fclay,  & !fraction of soil that is clay [frac]
-         Fsand,  & !fraction of soil that is sand [frac]
-         Fsilt,  & !fraction of soil that is silt [frac]
-         Forg,   & !fration of soil made of organic soils [frac]
-         densoil,& !soil density  [kg/m3]
+         clay_vec,  & !fraction of soil that is clay [frac]
+         sand_vec,  & !fraction of soil that is sand [frac]
+         silt_vec,  & !fraction of soil that is silt [frac]
+         org_vec,   & !fration of soil made of organic soils [frac]
+         rhosoil_vec,& !soil density  [kg/m3]
          ssat_vec, & !volumetric water content at saturation [mm3/mm3]
          watr,   & !residual water content of the soil [mm3/mm3]
          sfc_vec, & !field capcacity (hk = 1 mm/day)
@@ -167,13 +169,13 @@ MODULE cable_def_types_mod
 
       !MD parameters for GW module for the aquifer
       REAL(r_2), DIMENSION(:), POINTER ::                                       &
-         GWsucs_vec,  &  !head in the aquifer [mm]
-         GWhyds_vec,   &  !saturated hydraulic conductivity of the aquifer [mm/s]
-         GWbch_vec,  & !clapp and horn b of the aquifer   [none]
-         GWssat_vec,  & !saturated water content of the aquifer [mm3/mm3]
+         GWsucs,  &  !head in the aquifer [mm]
+         GWhyds,   &  !saturated hydraulic conductivity of the aquifer [mm/s]
+         GWbch,  & !clapp and horn b of the aquifer   [none]
+         GWssat,  & !saturated water content of the aquifer [mm3/mm3]
          GWwatr,    & !residual water content of the aquifer [mm3/mm3]
          GWdz,      & !thickness of the aquifer   [m]
-         GWdensoil    !density of the aquifer substrate [kg/m3]
+         GWrhosoil    !density of the aquifer substrate [kg/m3]
 
      ! Additional SLI parameters
      INTEGER,   DIMENSION(:),   POINTER :: nhorizons ! number of soil horizons
@@ -841,14 +843,14 @@ SUBROUTINE alloc_soil_parameter_type(var, mp)
    !mrd561
    !MD
    !Aquifer properties
-   allocate( var%GWhyds_vec(mp) )
-   allocate( var%GWsucs_vec(mp) )
-   allocate( var%GWbch_vec(mp) )
-   allocate( var%GWssat_vec(mp) )
+   allocate( var%GWhyds(mp) )
+   allocate( var%GWsucs(mp) )
+   allocate( var%GWbch(mp) )
+   allocate( var%GWssat(mp) )
    allocate( var%GWwatr(mp) )
    var%GWwatr(:) = 0.05
    allocate( var%GWdz(mp) )
-   allocate( var%GWdensoil(mp) )
+   allocate( var%GWrhosoil(mp) )
    !soil properties (vary by layer)
    allocate( var%hyds_vec(mp,ms) )
    allocate( var%sucs_vec(mp,ms) )
@@ -858,11 +860,13 @@ SUBROUTINE alloc_soil_parameter_type(var, mp)
    var%watr(:,:) = 0.05
    allocate( var%sfc_vec(mp,ms) )
    allocate( var%swilt_vec(mp,ms) )
-   allocate( var%Fsand(mp,ms) )
-   allocate( var%Fclay(mp,ms) )
-   allocate( var%Fsilt(mp,ms) )
-   allocate( var%Forg(mp,ms) )
-   allocate( var%densoil(mp,ms) )
+   allocate( var%sand_vec(mp,ms) )
+   allocate( var%clay_vec(mp,ms) )
+   allocate( var%silt_vec(mp,ms) )
+   allocate( var%org_vec(mp,ms) )
+   allocate( var%rhosoil_vec(mp,ms) )
+   allocate( var% cnsd_vec(mp,ms) )
+   allocate( var% css_vec(mp,ms) )
 
    allocate( var%elev(mp) )
    allocate( var%slope(mp) )
@@ -1458,20 +1462,21 @@ SUBROUTINE dealloc_soil_parameter_type(var)
    DEALLOCATE( var% zshh )
    DEALLOCATE( var% cnsd )
    DEALLOCATE( var% albsoil )
-   DEALLOCATE( var% cnsd )
+   DEALLOCATE( var% cnsd_vec )
+   DEALLOCATE( var% css_vec )
    DEALLOCATE( var% pwb_min)
    DEALLOCATE( var% albsoilf )
    DEALLOCATE( var% soilcol )
    !mrd561
    !MD
    !Aquifer properties
-   DEALLOCATE( var%GWhyds_vec )
-   DEALLOCATE( var%GWsucs_vec )
-   DEALLOCATE( var%GWbch_vec )
-   DEALLOCATE( var%GWssat_vec )
+   DEALLOCATE( var%GWhyds )
+   DEALLOCATE( var%GWsucs )
+   DEALLOCATE( var%GWbch )
+   DEALLOCATE( var%GWssat )
    DEALLOCATE( var%GWwatr )
    DEALLOCATE( var%GWdz )
-   DEALLOCATE( var%GWdensoil )
+   DEALLOCATE( var%GWrhosoil )
    !soil properties (vary by layer)
    DEALLOCATE( var%hyds_vec )
    DEALLOCATE( var%sucs_vec )
@@ -1480,11 +1485,11 @@ SUBROUTINE dealloc_soil_parameter_type(var)
    DEALLOCATE( var%watr )
    DEALLOCATE( var%sfc_vec )
    DEALLOCATE( var%swilt_vec )
-   DEALLOCATE( var%Fsand )
-   DEALLOCATE( var%Fclay )
-   DEALLOCATE( var%Fsilt )
-   DEALLOCATE( var%Forg  )
-   DEALLOCATE( var%densoil )   
+   DEALLOCATE( var%sand_vec )
+   DEALLOCATE( var%clay_vec )
+   DEALLOCATE( var%silt_vec )
+   DEALLOCATE( var%org_vec  )
+   DEALLOCATE( var%rhosoil_vec )   
    DEALLOCATE( var%elev )
    DEALLOCATE( var%slope )
    DEALLOCATE( var%slope_std )

@@ -363,6 +363,10 @@ CONTAINS
     READ( 10, NML=CABLE )   !where NML=CABLE defined above
     CLOSE(10)
 
+
+    !set number of soil layers
+    ms = cable_user%number_soil_levels
+
     ! Open, read and close the consistency check file.
     ! Check triggered by cable_user%consistency_check = .TRUE. in cable.nml
     IF(cable_user%consistency_check) THEN 
@@ -3276,19 +3280,19 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
 
 !1D
   bidx = bidx + 1
-  CALL MPI_Get_address (soil%GWssat_vec(off), displs(bidx), ierr)
+  CALL MPI_Get_address (soil%GWssat(off), displs(bidx), ierr)
   blen(bidx) = r2len
 
   bidx = bidx + 1
-  CALL MPI_Get_address (soil%GWsucs_vec(off), displs(bidx), ierr)
+  CALL MPI_Get_address (soil%GWsucs(off), displs(bidx), ierr)
   blen(bidx) = r2len
 
   bidx = bidx + 1
-  CALL MPI_Get_address (soil%GWhyds_vec(off), displs(bidx), ierr)
+  CALL MPI_Get_address (soil%GWhyds(off), displs(bidx), ierr)
   blen(bidx) = r2len
 
   bidx = bidx + 1
-  CALL MPI_Get_address (soil%GWbch_vec(off), displs(bidx), ierr)
+  CALL MPI_Get_address (soil%GWbch(off), displs(bidx), ierr)
   blen(bidx) = r2len
 
   bidx = bidx + 1
@@ -6053,6 +6057,10 @@ SUBROUTINE master_outtypes (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
      CALL MPI_Get_address (ssnow%Qconv(off), vaddr(vidx), ierr) ! 40
      blen(vidx) = cnt * extr2
 
+     vidx = vidx + 1
+     ! REAL(r_2)
+     CALL MPI_Get_address (canopy%sublayer_dz(off), vaddr(vidx), ierr) ! 40
+     blen(vidx) = cnt * extr2
 
       ! additional for SLI 
      vidx = vidx + 1

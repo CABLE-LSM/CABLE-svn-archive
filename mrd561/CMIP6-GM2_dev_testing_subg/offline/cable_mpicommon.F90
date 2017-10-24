@@ -110,7 +110,8 @@ MODULE cable_mpicommon
   ! vh sli nvec + 6 162 -> 168
   ! INTEGER, PARAMETER :: nvec = 172! 168
   ! INH REV_CORR +3  (SSEB +2 will be needed)
-   INTEGER, PARAMETER :: nvec = 175
+  ! sublayer_dz
+   INTEGER, PARAMETER :: nvec = 176 !175
 
   ! MPI: number of final casa result matrices and vectors to receive
   ! by the master for casa_poolout and casa_fluxout

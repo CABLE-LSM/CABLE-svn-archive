@@ -294,6 +294,9 @@ PROGRAM cable_offline_driver
   READ( 10, NML=CABLE )	  !where NML=CABLE defined above
   CLOSE(10)
 
+  !set number of soil levels
+  ms = cable_user%number_soil_levels
+
   ! Open, read and close the consistency check file.
   ! Check triggered by cable_user%consistency_check = .TRUE. in cable.nml
   IF(cable_user%consistency_check) THEN
@@ -904,7 +907,7 @@ PROGRAM cable_offline_driver
                                "Writing new_sumbal to the file:", TRIM(Fnew_sumbal)
 
                           OPEN( 12, FILE = Fnew_sumbal )
-                          WRITE( 12, '(F20.7)' ) new_sumbal  ! written by previous trunk version
+                          WRITE(12, * ) new_sumbal  ! written by previous trunk version
                           CLOSE(12)
 
                        ENDIF

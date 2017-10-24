@@ -650,9 +650,9 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
         do i=1,mp
            ssnow%GWwb(i) = ssnow%GWwb(i)  + (ssnow%Qrecharge(i)-ssnow%qhlev(i,ms+1))*dt/soil%GWdz(i)/thousand
 
-           if (ssnow%GWwb(i) .gt. soil%GWssat_vec(i)) then
-              ssnow%qhlev(i,ms+1) = ssnow%qhlev(i,ms+1)  + (ssnow%GWwb(i) - soil%GWssat_vec(i))*soil%GWdz(i)*thousand/dt
-              ssnow%GWwb(i) = soil%GWssat_vec(i)
+           if (ssnow%GWwb(i) .gt. soil%GWssat(i)) then
+              ssnow%qhlev(i,ms+1) = ssnow%qhlev(i,ms+1)  + (ssnow%GWwb(i) - soil%GWssat(i))*soil%GWdz(i)*thousand/dt
+              ssnow%GWwb(i) = soil%GWssat(i)
               ssnow%qhz(i) = sum(ssnow%qhlev(i,1:ms+1),dim=1)
            end if
 

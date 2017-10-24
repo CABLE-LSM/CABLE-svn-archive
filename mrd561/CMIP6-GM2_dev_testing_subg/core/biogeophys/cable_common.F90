@@ -169,6 +169,9 @@ MODULE cable_common_module
                                             !sand,clay,silt and then use these to get isoilm
 
      LOGICAL :: super_hydro = .false.
+
+     INTEGER :: number_soil_levels=6  !number of soil levels
+
   END TYPE kbl_user_switches
 
   ! instantiate internal switches
@@ -193,7 +196,8 @@ MODULE cable_common_module
           inits,      & ! name of file for initialisations
           soilIGBP,   & ! name of file for IGBP soil map
           gw_elev,    & !name of file for gw/elevation data
-          gw_tiles      !file with tiled props for super hydro
+          gw_tiles,   & !file with tiled vertically varying soil props
+          gw_subg_flow  !file that contins the subgrid flow matrix
 
   END TYPE filenames_type
 
@@ -248,10 +252,11 @@ MODULE cable_common_module
 
      LOGICAL :: sfc_clm_func=.false.
      LOGICAL :: swilt_clm_func=.false.
+     LOGICAL :: use_pedotransfer_functions=.false.
 
       TYPE(organic_soil_params) :: org
 
-      INTEGER :: level_for_satfrac = 6
+      INTEGER :: level_for_satfrac = -1
       LOGICAL :: ssgw_ice_switch = .false.
  
       LOGICAL :: subsurface_sat_drainage = .false.
