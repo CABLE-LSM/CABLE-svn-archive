@@ -89,7 +89,7 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
 
       ENDIF
 
-      !mgk576, 18/10/17 - should this be in an if block, if so, check for what? 
+      !mgk576, 18/10/17 - should this be in an if block, if so, check for what?
       casaflux%Nmindep = met%Ndep
       casaflux%Pdep = met%Pdep
 
@@ -513,7 +513,12 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, phen, climate, n_call, ke
   CALL put_var_ncr2(ncid, var_name(10), real(phen%doyphase(:,2), r_2)    ,n_call )
   CALL put_var_ncr2(ncid, var_name(11), real(phen%doyphase(:,3), r_2)    ,n_call )
   CALL put_var_ncr2(ncid, var_name(12), real(phen%doyphase(:,4), r_2)    ,n_call )
-  CALL put_var_ncr2(ncid, var_name(13), real(climate%mtemp_max,r_2)    ,n_call )
+  ! mgk576, 25/10/17 - I think this should have been in an if block
+  ! otherwise you get a seg fault if call_climate is false and you presumably
+  ! never allocate mtemp_max
+  if (cable_user%CALL_climate) then
+     CALL put_var_ncr2(ncid, var_name(13), real(climate%mtemp_max,r_2)    ,n_call )
+  endif
   CALL put_var_ncr2(ncid, var_name(14), real(casaflux%Nmindep,r_2)    ,n_call )
 
 
