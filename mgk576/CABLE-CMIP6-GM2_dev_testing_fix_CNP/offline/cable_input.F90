@@ -902,7 +902,7 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
     ! mgk576, added temporary tag to not do this, can't use site because
     ! the code does other things with that tag
     IF ( CABLE_USER%YEARSTART .GT. 0 .AND. .NOT. ncciy.GT.0 .and. &
-         TRIM(cable_user%MetType) .NE. "site") THEN
+         TRIM(cable_user%MetType) .NE. "martin") THEN
        IF ( syear.GT.CABLE_USER%YEARSTART .OR. eyear.LE.CABLE_USER%YEAREND .OR. &
             ( syear.EQ.CABLE_USER%YEARSTART .AND. sdoy.gt.1 ) ) THEN
           WRITE(*,*) "Chosen period doesn't match dataset period!"

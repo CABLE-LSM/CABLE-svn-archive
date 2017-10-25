@@ -515,7 +515,7 @@ PROGRAM cable_offline_driver
      	   kend = NINT(24.0*3600.0/dels) * LOY
 
       ! mgk576, ELSE IF block from Vanessa's branch
-	   ELSE IF ( TRIM(cable_user%MetType) .EQ. 'site' ) THEN
+   ELSE IF ( TRIM(cable_user%MetType) .EQ. 'martin' ) THEN
          ! site experiment eg AmazonFace (spinup or  transient run type)
           IF ( CALL1 ) THEN
              CALL CPU_TIME(etime)
@@ -803,7 +803,7 @@ PROGRAM cable_offline_driver
                        IF ( CABLE_USER%CASA_DUMP_WRITE )  THEN
 
                           IF (TRIM(cable_user%MetType).EQ.'' .OR. &
-                               TRIM(cable_user%MetType).EQ.'site' ) THEN
+                               TRIM(cable_user%MetType).EQ.'martin' ) THEN
 
                              WRITE(CYEAR,FMT="(I4)") CurYear
                           ELSE
