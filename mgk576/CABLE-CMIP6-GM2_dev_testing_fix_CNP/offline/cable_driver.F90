@@ -115,6 +115,7 @@ PROGRAM cable_offline_driver
 
   USE CABLE_CRU,            ONLY: CRU_TYPE, CRU_GET_SUBDIURNAL_MET, CRU_INIT
 
+
  ! LUC_EXPT only
  USE CABLE_LUC_EXPT, ONLY: LUC_EXPT_TYPE, LUC_EXPT_INIT
 #ifdef NAG
@@ -491,33 +492,65 @@ PROGRAM cable_offline_driver
 	   ELSE IF ( TRIM(cable_user%MetType) .EQ. 'cru' ) THEN
 	      ! TRENDY experiment using CRU-NCEP
 	      IF ( CALL1 ) THEN
+            CALL CPU_TIME(etime)
+		      CALL CRU_INIT( CRU )
 
-		 CALL CPU_TIME(etime)
-		 CALL CRU_INIT( CRU )
-
-		 dels	   = CRU%dtsecs
-		 koffset   = 0
-		 leaps = .false.         ! No leap years in CRU-NCEP
-                 exists%Snowf = .false.  ! No snow in CRU-NCEP, so ensure it will
+		      dels	   = CRU%dtsecs
+		      koffset   = 0
+		      leaps = .false.         ! No leap years in CRU-NCEP
+            exists%Snowf = .false.  ! No snow in CRU-NCEP, so ensure it will
                                          ! be determined from temperature in CABLE
 
-                 write(str1,'(i4)') CurYear
-                 str1 = adjustl(str1)
-                 write(str2,'(i2)') 1
-                 str2 = adjustl(str2)
-                 write(str3,'(i2)') 1
-                 str3 = adjustl(str3)
-                 timeunits="seconds since "//trim(str1)//"-"//trim(str2)//"-"//trim(str3)//" &
-                            00:00"
+            write(str1,'(i4)') CurYear
+            str1 = adjustl(str1)
+            write(str2,'(i2)') 1
+            str2 = adjustl(str2)
+            write(str3,'(i2)') 1
+            str3 = adjustl(str3)
+            timeunits="seconds since "//trim(str1)//"-"//trim(str2)//"-"//trim(str3)//" &
+                      00:00"
 
+         ENDIF
+     	   LOY = 365
+     	   kend = NINT(24.0*3600.0/dels) * LOY
 
-	      ENDIF
-	       LOY = 365
-	      kend = NINT(24.0*3600.0/dels) * LOY
-	   ENDIF
+      ! mgk576, ELSE IF block from Vanessa's branch
+	   ELSE IF ( TRIM(cable_user%MetType) .EQ. 'site' ) THEN
+         ! site experiment eg AmazonFace (spinup or  transient run type)
+          IF ( CALL1 ) THEN
+             CALL CPU_TIME(etime)
+
+             write(str1,'(i4)') CurYear
+             str1 = adjustl(str1)
+             write(str2,'(i2)') 1
+             str2 = adjustl(str2)
+             write(str3,'(i2)') 1
+             str3 = adjustl(str3)
+             timeunits="seconds since "//trim(str1)//"-"//trim(str2)//"-"//trim(str3)//" &
+                  00:00"
+	       ENDIF
+          LOY = 365
+
+          IF (IS_LEAPYEAR(CurYear)) LOY = 366
+          kend = NINT(24.0*3600.0/dels) * LOY
+          !MetYear = CurYear
+
+          !write(*,*) 'MetYear: ', MetYear
+          !write(*,*) 'Simulation Year: ', CurYear
+
+          !koffset_met = 0
+          !IF (MetYear .gt. site%spinstartyear) then
+          !    DO Y = site%spinstartyear, MetYear-1
+          !       LOYtmp = 365
+          !       IF (IS_LEAPYEAR(Y)) LOYtmp = 366
+          !          koffset_met = koffset_met + INT( REAL(LOYtmp) * 86400./REAL(dels) )
+          !    END DO
+          !END IF
+
+       ENDIF
 
     ! somethings (e.g. CASA-CNP) only need to be done once per day
-	   ktauday=INT(24.0*3600.0/dels)
+	 ktauday=INT(24.0*3600.0/dels)
 
     !! Checks where parameters and initialisations should be loaded from.
     ! If they can be found in either the met file or restart file, they will
@@ -850,12 +883,12 @@ PROGRAM cable_offline_driver
                     if (ktau == kend) PRINT*, "sum_fe[Wm-2], sum_fpn[umol/m2/s]",  &
                          new_sumfe/count_bal, new_sumfpn/count_bal
                     if (ktau == kend) write(logn,*)
-                    if (ktau == kend) write(logn,*), "time-space-averaged energy & water balances"
-                    if (ktau == kend) write(logn,*),"Ebal_tot[Wm-2], Wbal_tot[mm per timestep]", &
+                    if (ktau == kend) write(logn,*) "time-space-averaged energy & water balances"
+                    if (ktau == kend) write(logn,*)"Ebal_tot[Wm-2], Wbal_tot[mm per timestep]", &
                          sum(bal%ebal_tot)/mp/count_bal, sum(bal%wbal_tot)/mp/count_bal
-                    if (ktau == kend) write(logn,*), "time-space-averaged latent heat and &
+                    if (ktau == kend) write(logn,*) "time-space-averaged latent heat and &
                          net photosynthesis"
-                    if (ktau == kend) write(logn,*), "sum_fe[Wm-2], sum_fpn[umol/m2/s]",  &
+                    if (ktau == kend) write(logn,*) "sum_fe[Wm-2], sum_fpn[umol/m2/s]",  &
                          new_sumfe/count_bal, new_sumfpn/count_bal
 
 
