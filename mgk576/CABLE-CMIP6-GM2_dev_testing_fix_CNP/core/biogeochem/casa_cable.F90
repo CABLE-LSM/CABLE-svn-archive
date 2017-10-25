@@ -257,6 +257,7 @@ END SUBROUTINE POPdriver
 ! ==============================================================================
 SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, climate, ncall, kend, allATonce )
       USE netcdf
+      USE cable_common_module,   ONLY : cable_user
       USE cable_def_types_mod,   ONLY : r_2,ms,mp, climate_type
       USE casadimension,         ONLY : mplant,mdyear
       USE casavariable,          ONLY : casa_met, casa_flux
