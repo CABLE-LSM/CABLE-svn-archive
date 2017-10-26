@@ -578,9 +578,9 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, phen, climate, n_call, ke
   CALL put_var_ncr2(ncid, var_name(13), real(casaflux%Nmindep,r_2)    ,n_call )
   ! mgk576, 25/10/17: this should have been in an IF block
   if (cable_user%CALL_climate) then
-     CALL put_var_ncr2(ncid, var_name(13), real(climate%mtemp_max,r_2)    ,n_call )
+     CALL put_var_ncr2(ncid, var_name(14), real(climate%mtemp_max,r_2), n_call)
   endif
-  
+
   !amu561
   deallocate(var_name)
   deallocate(varID)
