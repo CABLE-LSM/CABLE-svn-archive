@@ -562,7 +562,6 @@ PROGRAM cable_offline_driver
        IF (cable_user%POPLUC) THEN
           CALL LUC_EXPT_INIT (LUC_EXPT)
        ENDIF
-
        !! vh_js !!
        CALL load_parameters( met, air, ssnow, veg,climate,bgc,		&
             soil, canopy, rough, rad, sum_flux,			 &
@@ -631,7 +630,6 @@ PROGRAM cable_offline_driver
 
 
     ENDIF ! CALL 1
-
 
     ! globally (WRT code) accessible kend through USE cable_common_module
 	kwidth_gl = int(dels)
