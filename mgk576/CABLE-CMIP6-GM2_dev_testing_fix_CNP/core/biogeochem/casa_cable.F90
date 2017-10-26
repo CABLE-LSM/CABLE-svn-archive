@@ -308,12 +308,13 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, climate, ncall, kend
       INTEGER :: ncok,  idoy
 
 #     ifndef UM_BUILD
-
+ print*, "here"
  IF ( allATonce .OR. ncall .EQ. 1 ) THEN
          ncok = NF90_OPEN(TRIM(ncfile), nf90_nowrite, ncrid)
          IF (ncok /= nf90_noerr ) CALL stderr_nc(ncok,'re-opening ', ncfile)
       ENDIF
       IF ( allATonce ) THEN
+         print*, "in here"
          DO idoy=1,mdyear
 
             CALL get_var_ncr2(ncrid, var_name(3), tairk   , idoy )
@@ -361,7 +362,7 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, climate, ncall, kend
             endif
          END DO
       ELSE
-
+         print*, "no in here"
          CALL get_var_ncr2(ncrid, var_name(3), tairk   ,ncall )
          CALL get_var_ncr3(ncrid, var_name(4), tsoil   ,ncall , ms)
          CALL get_var_ncr3(ncrid, var_name(5), moist   ,ncall , ms)
