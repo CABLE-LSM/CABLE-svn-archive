@@ -2663,7 +2663,7 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,climate,bgc,soil,canopy,rough,rad, 
     ! Allocate spatial heterogeneity variables:
     ALLOCATE(landpt(mland))
 
-    
+
     WRITE(logn,*) '-------------------------------------------------------'
     WRITE(logn,*) 'Looking for parameters and initial states....'
     WRITE(logn,*) ' Loading initialisations from default grid.'
@@ -2690,8 +2690,6 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,climate,bgc,soil,canopy,rough,rad, 
     CALL write_default_params(met,air,ssnow,veg,bgc,soil,canopy,rough, &
             rad,logn,vegparmnew,smoy, TFRZ)
 
-
-
     ! Zero out lai where there is no vegetation acc. to veg. index
     WHERE ( veg%iveg(:) .GE. 14 ) veg%vlai = 0.
 
@@ -2700,8 +2698,10 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,climate,bgc,soil,canopy,rough,rad, 
       CALL casa_readbiome(veg,soil,casabiome,casapool,casaflux, &
            casamet,phen)
       IF (cable_user%PHENOLOGY_SWITCH.eq.'MODIS') CALL casa_readphen(veg,casamet,phen)
-
+      stop
       CALL casa_init(casabiome,casamet,casaflux,casapool,casabal,veg,phen)
+
+
 !! vh_js !!
       IF ( CABLE_USER%CALL_POP ) THEN
          ! evaluate mp_POP and POP_array

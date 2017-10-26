@@ -570,7 +570,7 @@ PROGRAM cable_offline_driver
             casaflux, sum_casapool, sum_casaflux, &
             casamet, casabal, phen, POP, spinup,	       &
             C%EMSOIL, C%TFRZ, LUC_EXPT, POPLUC )
-      
+
        IF ( CABLE_USER%POPLUC .AND. TRIM(CABLE_USER%POPLUC_RunType) .EQ. 'static') &
             CABLE_USER%POPLUC= .FALSE.
        ! Open output file:
