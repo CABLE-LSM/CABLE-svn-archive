@@ -280,10 +280,10 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, climate, ncall, kend
   INTEGER                :: num_vars
   INTEGER, PARAMETER     :: num_dims=3
   INTEGER, SAVE          :: ncrid  ! netcdf file ID
-  INTEGER , DIMENSION(:) :: varrID ! (1) tvair, (2) pmb
+  INTEGER , DIMENSION(:), POINTER :: varID ! (1) tvair, (2) pmb
 
   !vars
-  CHARACTER(len=*), DIMENSION(num_vars), PARAMETER :: var_name
+  CHARACTER, DIMENSION(:), POINTER :: var_name
 
   REAL     , DIMENSION(mp)        :: lat, lon
   REAL(r_2), DIMENSION(mp)        :: tairk,  cgpp, mtemp, Ndep
@@ -417,7 +417,7 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, climate, ncall, kend
      ncok = NF90_CLOSE(ncrid)
      IF (ncok /= nf90_noerr ) CALL stderr_nc(ncok,'closing ', ncfile)
    ENDIF
-  #     endif
+#     endif
 
 END SUBROUTINE read_casa_dump
 
@@ -455,10 +455,10 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, phen, climate, n_call, ke
   INTEGER, PARAMETER :: num_dims=3
   INTEGER, SAVE      :: ncid       ! netcdf file ID
 
-  !vars   FIX HERE AND BELOW !!!!!!!!!!!!!!!!!!!!!
-  CHARACTER(len=*), DIMENSION(:) :: var_name
+  !vars  
+  CHARACTER, DIMENSION(:), POINTER :: var_name*15
 
-  INTEGER, DIMENSION(:) :: varID ! (1) tvair, (2) pmb
+  INTEGER, DIMENSION(:), POINTER :: varID ! (1) tvair, (2) pmb
 
   !dims
   CHARACTER(len=*), DIMENSION(num_dims), PARAMETER :: &
@@ -490,7 +490,15 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, phen, climate, n_call, ke
   !Number of variables
   num_vars=13
 
-  !Variable names
+  !Add extra mtemp variable when running with climate
+  IF (cable_user%CALL_climate) THEN
+    num_vars=num_vars+1
+  ENDIF
+
+  allocate(var_name(num_vars))
+  allocate(varID(num_vars))
+
+  !Variable names,
   var_name =  (/  "lat          ", &
   "lon          ", &
   "casamet_tairk", &
@@ -505,10 +513,10 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, phen, climate, n_call, ke
   "phendoyphase4", &
   "Ndep         " /)
 
+
   !Add extra mtemp variable when running with climate
   IF (cable_user%CALL_climate) THEN
-    num_vars=num_vars+1
-    var_name=(/var_name, "mtemp"/)
+    var_name(num_vars)="mtemp"
   ENDIF
 
 
@@ -521,6 +529,7 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, phen, climate, n_call, ke
      !ncok = nf90_redef(ncid)
      !if (ncok /= nf90_noerr) call stderr_nc(ncok,'enter def mode', ncfile)
 
+
      ! define dimensions: from name and length
      CALL def_dims(num_dims, ncid, dimID, dim_len, dim_name )
 
@@ -532,6 +541,7 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, phen, climate, n_call, ke
 
      ncok = nf90_enddef(ncid)
      if (ncok /= nf90_noerr) call stderr_nc(ncok,'end def mode', ncfile)
+
 
      CALL put_var_ncr1(ncid, var_name(1), REAL(casamet%lat)  )
      CALL put_var_ncr1(ncid, var_name(2), REAL(casamet%lon)  )
@@ -555,6 +565,9 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, phen, climate, n_call, ke
      CALL put_var_ncr2(ncid, var_name(14), real(climate%mtemp_max,r_2)    ,n_call )
   endif
 
+
+  deallocate(var_name)
+  deallocate(varID)
 
   IF (n_call == kend ) &
        ncok = nf90_close(ncid)            ! close: save new netCDF dataset
