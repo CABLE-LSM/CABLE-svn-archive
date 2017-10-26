@@ -2663,6 +2663,8 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,climate,bgc,soil,canopy,rough,rad, 
     ! Allocate spatial heterogeneity variables:
     ALLOCATE(landpt(mland))
 
+    print*, "here"
+    stop
     WRITE(logn,*) '-------------------------------------------------------'
     WRITE(logn,*) 'Looking for parameters and initial states....'
     WRITE(logn,*) ' Loading initialisations from default grid.'
@@ -2732,7 +2734,8 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,climate,bgc,soil,canopy,rough,rad, 
       ENDIF
 
    ENDIF
-
+   print*, "got here"
+   stop
 ! removed get_default_inits and get_default_lai as they are already done
 ! in write_default_params
 !    ! Load default initialisations from Mk3L climatology:
