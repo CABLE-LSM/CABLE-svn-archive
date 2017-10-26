@@ -528,9 +528,7 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, phen, climate, n_call, ke
                   "phendoyphase4", &
                   "Ndep         " /)
   num_vars = size(var_name)
-  print*, num_vars
-  stop
-
+  
   !amu561 Add extra mtemp variable when running with climate
   IF (cable_user%CALL_climate) THEN
      var_name(num_vars) = "mtemp"
