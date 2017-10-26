@@ -565,17 +565,17 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, phen, climate, n_call, ke
   ENDIF
 
 
-  CALL put_var_ncr2(ncid, var_name(3), casamet%tairk    ,n_call )
-  CALL put_var_ncr3(ncid, var_name(4), casamet%tsoil    ,n_call, ms )
-  CALL put_var_ncr3(ncid, var_name(5), casamet%moist    ,n_call, ms )
-  CALL put_var_ncr2(ncid, var_name(6), casaflux%cgpp    ,n_call )
-  CALL put_var_ncr3(ncid, var_name(7), casaflux%crmplant,n_call, mplant )
-  CALL put_var_ncr2(ncid, var_name(8), real(phen%phase , r_2)    ,n_call )
-  CALL put_var_ncr2(ncid, var_name(9), real(phen%doyphase(:,1), r_2)    ,n_call )
-  CALL put_var_ncr2(ncid, var_name(10), real(phen%doyphase(:,2), r_2)    ,n_call )
-  CALL put_var_ncr2(ncid, var_name(11), real(phen%doyphase(:,3), r_2)    ,n_call )
-  CALL put_var_ncr2(ncid, var_name(12), real(phen%doyphase(:,4), r_2)    ,n_call )
-  CALL put_var_ncr2(ncid, var_name(13), real(casaflux%Nmindep,r_2)    ,n_call )
+  CALL put_var_ncr2(ncid, var_name(3), casamet%tairk , n_call)
+  CALL put_var_ncr3(ncid, var_name(4), casamet%tsoil , n_call, ms)
+  CALL put_var_ncr3(ncid, var_name(5), casamet%moist , n_call, ms)
+  CALL put_var_ncr2(ncid, var_name(6), casaflux%cgpp , n_call)
+  CALL put_var_ncr3(ncid, var_name(7), casaflux%crmplant,n_call, mplant)
+  CALL put_var_ncr2(ncid, var_name(8), real(phen%phase , r_2) ,n_call)
+  CALL put_var_ncr2(ncid, var_name(9), real(phen%doyphase(:,1), r_2), n_call)
+  CALL put_var_ncr2(ncid, var_name(10), real(phen%doyphase(:,2), r_2), n_call)
+  CALL put_var_ncr2(ncid, var_name(11), real(phen%doyphase(:,3), r_2), n_call)
+  CALL put_var_ncr2(ncid, var_name(12), real(phen%doyphase(:,4), r_2), n_call)
+  CALL put_var_ncr2(ncid, var_name(13), real(casaflux%Nmindep,r_2), n_call)
   ! mgk576, 25/10/17: this should have been in an IF block
   if (cable_user%CALL_climate) then
      CALL put_var_ncr2(ncid, var_name(14), real(climate%mtemp_max,r_2), n_call)
