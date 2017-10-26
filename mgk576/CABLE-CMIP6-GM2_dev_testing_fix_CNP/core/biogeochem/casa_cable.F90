@@ -425,27 +425,14 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, phen, climate, n_call, ke
 
   !netcdf IDs/ names
   CHARACTER(len=*)   :: ncfile
-  INTEGER, PARAMETER :: num_vars=14
+  !mgk576, anna change
+  INTEGER :: num_vars
   INTEGER, PARAMETER :: num_dims=3
   INTEGER, SAVE :: ncid       ! netcdf file ID
 
   !vars
-  CHARACTER(len=*), DIMENSION(num_vars), PARAMETER :: &
-       var_name =  (/  "lat          ", &
-       "lon          ", &
-       "casamet_tairk", &
-       "tsoil        ", &
-       "moist        ", &
-       "cgpp         ", &
-       "crmplant     " , &
-       "phenphase    ", &
-       "phendoyphase1", &
-       "phendoyphase2", &
-       "phendoyphase3", &
-       "phendoyphase4", &
-       "mtemp        ", &
-       "Ndep         " /)
-
+  !amu561
+  CHARACTER, DIMENSION(:), POINTER :: var_name*15
 
   INTEGER, DIMENSION(num_vars) :: varID ! (1) tvair, (2) pmb
 
@@ -476,7 +463,38 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, phen, climate, n_call, ke
   dim_len(1)        = mp
   dim_len(num_dims) = NF90_unlimited
 
+  !amu561 fixing definitions when not calling climate
+  !Number of variables
+  num_vars = 13
 
+  !amu561 Add extra mtemp variable when running with climate
+  IF (cable_user%CALL_climate) THEN
+     num_vars = num_vars + 1
+  ENDIF
+
+  !amu561
+  allocate(var_name(num_vars))
+  allocate(varID(num_vars))
+
+  !amu561 Variable names,
+  var_name =  (/  "lat          ", &
+                  "lon          ", &
+                  "casamet_tairk", &
+                  "tsoil        ", &
+                  "moist        ", &
+                  "cgpp         ", &
+                  "crmplant     ", &
+                  "phenphase    ", &
+                  "phendoyphase1", &
+                  "phendoyphase2", &
+                  "phendoyphase3", &
+                  "phendoyphase4", &
+                  "Ndep         " /)
+
+  !amu561 Add extra mtemp variable when running with climate
+  IF (cable_user%CALL_climate) THEN
+     var_name(num_vars)="mtemp"
+  ENDIF
 
   IF (n_call == 1) THEN
 
@@ -523,6 +541,9 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, phen, climate, n_call, ke
   endif
   CALL put_var_ncr2(ncid, var_name(14), real(casaflux%Nmindep,r_2)    ,n_call )
 
+  !amu561
+  deallocate(var_name)
+  deallocate(varID)
 
   IF (n_call == kend ) &
        ncok = nf90_close(ncid)            ! close: save new netCDF dataset

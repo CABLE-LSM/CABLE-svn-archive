@@ -112,6 +112,7 @@ SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
   do nyear=1,myearspin
      !     read(91,901) ncfile
      WRITE(CYEAR,FMT="(I4)") CABLE_USER%CASA_SPIN_STARTYEAR + nyear - 1
+     print*, CYEAR, nyear, myearspin, CABLE_USER%CASA_SPIN_STARTYEAR + nyear - 1
      ncfile = TRIM(casafile%c2cdumppath)//'c2c_'//CYEAR//'_dump.nc'
 
 
@@ -173,7 +174,7 @@ SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
                casaflux%stemnpp = 0.
             ENDIF ! CALL_POP
 
- 
+
            IF(idoy==mdyear) THEN ! end of year
 
               CALL POPdriver(casaflux,casabal,veg, POP)
@@ -298,7 +299,7 @@ SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
         DO idoy=1,mdyear
            ktauy=idoy*ktauday
            ktau=(idoy-1)*ktauday +1
-      
+
            casamet%tairk(:)       = casamet%Tairkspin(:,idoy)
            casamet%tsoil(:,1)     = casamet%Tsoilspin_1(:,idoy)
            casamet%tsoil(:,2)     = casamet%Tsoilspin_2(:,idoy)
@@ -322,7 +323,7 @@ SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
            phen%doyphase(:,3) =  phen%doyphasespin_3(:,idoy)
            phen%doyphase(:,4) =  phen%doyphasespin_4(:,idoy)
            climate%qtemp_max_last_year(:) =  casamet%mtempspin(:,idoy)
-           
+
 
 
            call biogeochem(ktauy,dels,idoy,LALLOC,veg,soil,casabiome,casapool,casaflux, &
@@ -352,23 +353,23 @@ SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
               ELSE
                  casaflux%stemnpp = 0.
               ENDIF ! CALL_POP
-              
-           
+
+
               IF(idoy==mdyear) THEN ! end of year
 
                  CALL POPdriver(casaflux,casabal,veg, POP)
 
-                 
+
            ENDIF  ! end of year
         ELSE
            casaflux%stemnpp = 0.
         ENDIF ! CALL_POP
-        
-        
+
+
      ENDDO   ! end of idoy
   ENDDO   ! end of nyear
 
-  
+
 !!$  if(nloop>=nloop1) &
 !!$       call totcnppools(2+nloop-nloop1,veg,casamet,casapool,bmcplant,bmnplant,bmpplant,bmclitter,bmnlitter,bmplitter, &
 !!$       bmcsoil,bmnsoil,bmpsoil,bmnsoilmin,bmpsoillab,bmpsoilsorb,bmpsoilocc,bmarea)
