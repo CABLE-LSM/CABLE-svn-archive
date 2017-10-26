@@ -569,7 +569,7 @@ PROGRAM cable_offline_driver
             casaflux, sum_casapool, sum_casaflux, &
             casamet, casabal, phen, POP, spinup,	       &
             C%EMSOIL, C%TFRZ, LUC_EXPT, POPLUC )
-
+      
        IF ( CABLE_USER%POPLUC .AND. TRIM(CABLE_USER%POPLUC_RunType) .EQ. 'static') &
             CABLE_USER%POPLUC= .FALSE.
        ! Open output file:
@@ -630,6 +630,7 @@ PROGRAM cable_offline_driver
 
 
     ENDIF ! CALL 1
+
 
     ! globally (WRT code) accessible kend through USE cable_common_module
 	kwidth_gl = int(dels)
