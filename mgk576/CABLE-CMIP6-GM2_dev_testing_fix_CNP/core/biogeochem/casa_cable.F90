@@ -302,9 +302,18 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, climate, ncall, kend
 
       !amu561 fixing definitions when not calling climate
       !Number of variables
-      num_vars=13
+      num_vars = 13
 
-      !amu561 Variable names
+      !amu561 Add extra mtemp variable when running with climate
+      IF (cable_user%CALL_climate) THEN
+         num_vars = num_vars + 1
+      ENDIF
+
+      !amu561
+      allocate(var_name(num_vars))
+      allocate(varID(num_vars))
+
+      !amu561 Variable names,
       var_name =  (/  "lat          ", &
                       "lon          ", &
                       "casamet_tairk", &
@@ -321,9 +330,9 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, climate, ncall, kend
 
       !amu561 Add extra mtemp variable when running with climate
       IF (cable_user%CALL_climate) THEN
-         num_vars = num_vars+1
-         var_name = (/var_name, "mtemp"/)
-      END IF
+         var_name(num_vars)="mtemp"
+      ENDIF
+
 
 
  IF ( allATonce .OR. ncall .EQ. 1 ) THEN
@@ -415,7 +424,7 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, climate, ncall, kend
       ENDIF
 #     endif
 
-      ! mgk576
+      !amu561
       deallocate(var_name)
       deallocate(varID)
 
