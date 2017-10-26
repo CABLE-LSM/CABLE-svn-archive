@@ -499,11 +499,6 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, phen, climate, n_call, ke
   dim_len(1)        = mp
   dim_len(num_dims) = NF90_unlimited
 
-  !amu561 Add extra mtemp variable when running with climate
-  IF (cable_user%CALL_climate) THEN
-     num_vars = num_vars + 1
-  ENDIF
-
   !amu561
   allocate(var_name(num_vars))
   allocate(varID(num_vars))
@@ -526,7 +521,8 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, phen, climate, n_call, ke
 
   !amu561 Add extra mtemp variable when running with climate
   IF (cable_user%CALL_climate) THEN
-     var_name(num_vars)="mtemp"
+     num_vars = num_vars + 1
+     var_name(num_vars) = "mtemp"
   ENDIF
 
   IF (n_call == 1) THEN
