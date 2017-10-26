@@ -95,6 +95,7 @@ MODULE cable_common_module
      CHARACTER(LEN=20) ::                                                     &
         GS_SWITCH='leuning'
 
+     ! mgk576, increased space here
      CHARACTER(LEN=50) :: RunIden       = 'STANDARD'  !
      CHARACTER(LEN=6)  :: MetType       = ' ' !
      CHARACTER(LEN=20) :: SOIL_STRUC    = "default" ! 'default' or 'sli'
