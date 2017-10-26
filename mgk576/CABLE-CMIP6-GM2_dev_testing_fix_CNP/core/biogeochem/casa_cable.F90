@@ -257,8 +257,8 @@ END SUBROUTINE POPdriver
 ! ==============================================================================
 SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, climate, ncall, kend, allATonce )
       USE netcdf
-      USE cable_common_module,   ONLY : cable_user
       USE cable_def_types_mod,   ONLY : r_2,ms,mp, climate_type
+      USE cable_common_module,   ONLY : cable_user
       USE casadimension,         ONLY : mplant,mdyear
       USE casavariable,          ONLY : casa_met, casa_flux
       USE phenvariable
@@ -277,18 +277,27 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, climate, ncall, kend
       LOGICAL, INTENT(in)             :: allATonce
 
       !netcdf IDs/ names
-      !INTEGER, PARAMETER :: num_vars=14
-      ! mgk576
-      INTEGER                :: num_vars
+      INTEGER, PARAMETER :: num_vars=14
       INTEGER, PARAMETER :: num_dims=3
       INTEGER, SAVE                        :: ncrid  ! netcdf file ID
+      INTEGER , DIMENSION(num_vars)        :: varrID ! (1) tvair, (2) pmb
 
-      ! mgk576
-      !INTEGER , DIMENSION(num_vars)        :: varrID ! (1) tvair, (2) pmb
-      INTEGER , DIMENSION(:), POINTER :: varID ! (1) tvair, (2) pmb
-
-      !mgk576 vars
-      CHARACTER, DIMENSION(:), POINTER :: var_name
+      !mgk576, reorgansied order vars
+      CHARACTER(len=*), DIMENSION(num_vars), PARAMETER :: &
+            var_name =  (/  "lat          ", &
+                            "lon          ", &
+                            "casamet_tairk", &
+                            "tsoil        ", &
+                            "moist        ", &
+                            "cgpp         ", &
+                            "crmplant     ", &
+                            "phenphase    ", &
+                            "phendoyphase1", &
+                            "phendoyphase2", &
+                            "phendoyphase3", &
+                            "phendoyphase4", &
+                            "Ndep         ", &
+                            "mtemp        " /)
 
       REAL     , DIMENSION(mp)        :: lat, lon
       REAL(r_2), DIMENSION(mp)        :: tairk,  cgpp, mtemp, Ndep
@@ -299,41 +308,6 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, climate, ncall, kend
       INTEGER :: ncok,  idoy
 
 #     ifndef UM_BUILD
-
-      !amu561 fixing definitions when not calling climate
-      !Number of variables
-      num_vars = 13
-
-      !amu561 Add extra mtemp variable when running with climate
-      IF (cable_user%CALL_climate) THEN
-         num_vars = num_vars + 1
-      ENDIF
-
-      !amu561
-      allocate(var_name(num_vars))
-      allocate(varID(num_vars))
-
-      !amu561 Variable names,
-      var_name =  (/  "lat          ", &
-                      "lon          ", &
-                      "casamet_tairk", &
-                      "tsoil        ", &
-                      "moist        ", &
-                      "cgpp         ", &
-                      "crmplant     ", &
-                      "phenphase    ", &
-                      "phendoyphase1", &
-                      "phendoyphase2", &
-                      "phendoyphase3", &
-                      "phendoyphase4", &
-                      "Ndep         " /)
-
-      !amu561 Add extra mtemp variable when running with climate
-      IF (cable_user%CALL_climate) THEN
-         var_name(num_vars)="mtemp"
-      ENDIF
-
-
 
  IF ( allATonce .OR. ncall .EQ. 1 ) THEN
          ncok = NF90_OPEN(TRIM(ncfile), nf90_nowrite, ncrid)
@@ -352,11 +326,11 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, climate, ncall, kend
             CALL get_var_ncr2(ncrid, var_name(10), phendoyphase2, idoy)
             CALL get_var_ncr2(ncrid, var_name(11), phendoyphase3, idoy)
             CALL get_var_ncr2(ncrid, var_name(12), phendoyphase4, idoy)
-            !amu561 this need to be in if-block
             CALL get_var_ncr2(ncrid, var_name(13), Ndep, idoy)
-            IF (cable_user%CALL_climate) THEN
+            ! mgk576, 25/10/17: this should have been in an IF block
+            if (cable_user%CALL_climate) then
                CALL get_var_ncr2(ncrid, var_name(14), mtemp, idoy)
-            END IF
+            endif
 
             casamet%Tairkspin(:,idoy) = tairk
             casamet%cgppspin (:,idoy) = cgpp
@@ -380,8 +354,11 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, climate, ncall, kend
             phen%doyphasespin_2(:,idoy) = int(phendoyphase2)
             phen%doyphasespin_3(:,idoy) = int(phendoyphase3)
             phen%doyphasespin_4(:,idoy) = int(phendoyphase4)
-            casamet%mtempspin(:,idoy) = mtemp
             casaflux%Nmindep = Ndep
+            ! mgk576, 25/10/17: this should have been in an IF block
+            if (cable_user%CALL_climate) then
+               casamet%mtempspin(:,idoy) = mtemp
+            endif
          END DO
       ELSE
 
@@ -395,11 +372,12 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, climate, ncall, kend
          CALL get_var_ncr2(ncrid, var_name(10), phendoyphase2    ,ncall )
          CALL get_var_ncr2(ncrid, var_name(11), phendoyphase3    ,ncall )
          CALL get_var_ncr2(ncrid, var_name(12), phendoyphase4    ,ncall )
-         !amu561 this need to be in if-block
-         CALL get_var_ncr2(ncrid, var_name(13), Ndep, ncall )
-         IF(cable_user%CALL_climate) THEN
-            CALL get_var_ncr2(ncrid, var_name(14), mtemp , ncall)
-         END IF
+         CALL get_var_ncr2(ncrid, var_name(13), Ndep   , ncall)
+         ! mgk576, 25/10/17: this should have been in an IF block
+         if (cable_user%CALL_climate) then
+            CALL get_var_ncr2(ncrid, var_name(14), mtemp, ncall)
+         endif
+
          casamet%tairk     = tairk
          casamet%tsoil     = tsoil
          casamet%moist     = moist
@@ -410,11 +388,10 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, climate, ncall, kend
          phen%doyphase(:,2) = int(phendoyphase2)
          phen%doyphase(:,3) = int(phendoyphase3)
          phen%doyphase(:,4) = int(phendoyphase4)
-         ! mgk576, 25/10/17: this should have been in an IF block
-         IF (cable_user%CALL_climate) THEN
-             climate%mtemp_max = mtemp
-         ENDIF
          casaflux%Nmindep = Ndep
+         if (cable_user%CALL_climate) then
+            climate%mtemp_max = mtemp
+         endif
 
       ENDIF
 
@@ -423,11 +400,6 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, climate, ncall, kend
          IF (ncok /= nf90_noerr ) CALL stderr_nc(ncok,'closing ', ncfile)
       ENDIF
 #     endif
-
-      !amu561
-      deallocate(var_name)
-      deallocate(varID)
-
 
    END SUBROUTINE read_casa_dump
 
@@ -461,16 +433,28 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, phen, climate, n_call, ke
 
   !netcdf IDs/ names
   CHARACTER(len=*)   :: ncfile
-  !mgk576, anna change
-  INTEGER :: num_vars
+  INTEGER, PARAMETER :: num_vars = 14
   INTEGER, PARAMETER :: num_dims=3
   INTEGER, SAVE :: ncid       ! netcdf file ID
 
-  !amu561, vars
-  CHARACTER, DIMENSION(:), POINTER :: var_name*15
+  !mgk576, reorganised order
+  CHARACTER(len=*), DIMENSION(num_vars), PARAMETER :: &
+       var_name =  (/  "lat          ", &
+                       "lon          ", &
+                       "casamet_tairk", &
+                       "tsoil        ", &
+                       "moist        ", &
+                       "cgpp         ", &
+                       "crmplant     " , &
+                       "phenphase    ", &
+                       "phendoyphase1", &
+                       "phendoyphase2", &
+                       "phendoyphase3", &
+                       "phendoyphase4", &
+                       "Ndep         ", &
+                       "mtemp        "/)
 
-  !amu561
-  INTEGER, DIMENSION(:), POINTER :: varID ! (1) tvair, (2) pmb
+  INTEGER, DIMENSION(num_vars) :: varID ! (1) tvair, (2) pmb
 
   !dims
   CHARACTER(len=*), DIMENSION(num_dims), PARAMETER :: &
@@ -499,41 +483,6 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, phen, climate, n_call, ke
   dim_len(1)        = mp
   dim_len(num_dims) = NF90_unlimited
 
-  !amu561 fixing definitions when not calling climate
-  !Number of variables
-  num_vars = 13
-
-
-  !amu561 Add extra mtemp variable when running with climate
-  IF (cable_user%CALL_climate) THEN
-     num_vars = num_vars + 1
-  ENDIF
-
-  !amu561
-  allocate(var_name(num_vars))
-  allocate(varID(num_vars))
-
-  !amu561 Variable names,
-  var_name =  (/  "lat          ", &
-                  "lon          ", &
-                  "casamet_tairk", &
-                  "tsoil        ", &
-                  "moist        ", &
-                  "cgpp         ", &
-                  "crmplant     ", &
-                  "phenphase    ", &
-                  "phendoyphase1", &
-                  "phendoyphase2", &
-                  "phendoyphase3", &
-                  "phendoyphase4", &
-                  "Ndep         " /)
-  num_vars = size(var_name)
-  
-  !amu561 Add extra mtemp variable when running with climate
-  IF (cable_user%CALL_climate) THEN
-     var_name(num_vars) = "mtemp"
-  ENDIF
-
   IF (n_call == 1) THEN
 
      ! create netCDF dataset: enter define mode
@@ -555,13 +504,10 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, phen, climate, n_call, ke
      ncok = nf90_enddef(ncid)
      if (ncok /= nf90_noerr) call stderr_nc(ncok,'end def mode', ncfile)
 
-
      CALL put_var_ncr1(ncid, var_name(1), REAL(casamet%lat)  )
      CALL put_var_ncr1(ncid, var_name(2), REAL(casamet%lon)  )
 
-
   ENDIF
-
 
   CALL put_var_ncr2(ncid, var_name(3), casamet%tairk , n_call)
   CALL put_var_ncr3(ncid, var_name(4), casamet%tsoil , n_call, ms)
@@ -578,10 +524,6 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, phen, climate, n_call, ke
   if (cable_user%CALL_climate) then
      CALL put_var_ncr2(ncid, var_name(14), real(climate%mtemp_max,r_2), n_call)
   endif
-
-  !amu561
-  deallocate(var_name)
-  deallocate(varID)
 
   IF (n_call == kend ) &
        ncok = nf90_close(ncid)            ! close: save new netCDF dataset
