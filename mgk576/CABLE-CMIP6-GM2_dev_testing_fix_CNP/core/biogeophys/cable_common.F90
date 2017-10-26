@@ -94,9 +94,8 @@ MODULE cable_common_module
      ! Ticket #56
      CHARACTER(LEN=20) ::                                                     &
         GS_SWITCH='leuning'
-
-     ! mgk576, increased space here
-     CHARACTER(LEN=50) :: RunIden       = 'STANDARD'  !
+     ! mgk576, made this bigger - if i make it 50 it seg fauts?! WTAF
+     CHARACTER(LEN=20) :: RunIden       = 'STANDARD'  !
      CHARACTER(LEN=6)  :: MetType       = ' ' !
      CHARACTER(LEN=20) :: SOIL_STRUC    = "default" ! 'default' or 'sli'
      CHARACTER(LEN=3)  :: POP_out       = 'rst' ! POP output type ('epi' or 'rst')
