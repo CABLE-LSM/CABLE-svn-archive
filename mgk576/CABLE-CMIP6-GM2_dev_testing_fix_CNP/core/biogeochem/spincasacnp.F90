@@ -112,9 +112,8 @@ SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
   do nyear=1,myearspin
      !     read(91,901) ncfile
      WRITE(CYEAR,FMT="(I4)") CABLE_USER%CASA_SPIN_STARTYEAR + nyear - 1
-     print*, CYEAR, nyear, myearspin, CABLE_USER%CASA_SPIN_STARTYEAR + nyear - 1
+     !print*, CYEAR, nyear, myearspin, CABLE_USER%CASA_SPIN_STARTYEAR + nyear - 1
      ncfile = TRIM(casafile%c2cdumppath)//'c2c_'//CYEAR//'_dump.nc'
-      print*, "HERE"
      call read_casa_dump( ncfile,casamet, casaflux, phen,climate, ktau ,kend,.TRUE. )
 
      !!CLN901  format(A99)

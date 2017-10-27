@@ -308,7 +308,7 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, climate, ncall, kend
       INTEGER :: ncok,  idoy
 
 #     ifndef UM_BUILD
- 
+
  IF ( allATonce .OR. ncall .EQ. 1 ) THEN
          ncok = NF90_OPEN(TRIM(ncfile), nf90_nowrite, ncrid)
          IF (ncok /= nf90_noerr ) CALL stderr_nc(ncok,'re-opening ', ncfile)
