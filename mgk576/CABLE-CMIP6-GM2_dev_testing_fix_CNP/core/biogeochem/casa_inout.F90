@@ -2027,7 +2027,7 @@ SUBROUTINE WRITE_CASA_OUTPUT_NC ( veg, casamet, casapool, casabal, casaflux, &
   INTEGER   :: STATUS, ctime
   INTEGER   :: land_ID, plnt_ID, litt_ID, soil_ID, t_ID, i
   LOGICAL   :: CASAONLY, FINAL
-  CHARACTER :: CYEAR*4, FNAME*99,dum*50
+  CHARACTER :: CYEAR*4, FNAME*500,dum*50
   LOGICAL, SAVE :: CALL1 = .TRUE.
 
   ! ! 1 dim arrays (mp )
@@ -2164,7 +2164,8 @@ SUBROUTINE WRITE_CASA_OUTPUT_NC ( veg, casamet, casapool, casabal, casaflux, &
   IF ( CALL1 ) THEN
      ! Get File-Name
 
-     IF (TRIM(cable_user%MetType).NE.'' ) THEN
+     ! mgk576 added site to match comment logic below in else block
+     IF (TRIM(cable_user%MetType).NE.'site' ) THEN
 
         WRITE( dum, FMT="(I4,'_',I4)")CABLE_USER%YEARSTART,CABLE_USER%YEAREND
         IF (CABLE_USER%YEARSTART.lt.1000.and.CABLE_USER%YEAREND.lt.1000) THEN
@@ -2177,7 +2178,9 @@ SUBROUTINE WRITE_CASA_OUTPUT_NC ( veg, casamet, casapool, casabal, casaflux, &
      ELSE
         ! site data
         fname = TRIM(filename%path)//'/'//TRIM(cable_user%RunIden)//'_casa_out.nc'
+
      ENDIF
+
      INQUIRE( FILE=TRIM( fname ), EXIST=EXRST )
      EXRST = .FALSE.
      IF ( EXRST ) THEN

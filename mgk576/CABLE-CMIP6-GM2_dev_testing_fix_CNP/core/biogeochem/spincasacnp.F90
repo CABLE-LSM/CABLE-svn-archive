@@ -114,9 +114,9 @@ SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
      WRITE(CYEAR,FMT="(I4)") CABLE_USER%CASA_SPIN_STARTYEAR + nyear - 1
      print*, CYEAR, nyear, myearspin, CABLE_USER%CASA_SPIN_STARTYEAR + nyear - 1
      ncfile = TRIM(casafile%c2cdumppath)//'c2c_'//CYEAR//'_dump.nc'
-
-
+      print*, "HERE"
      call read_casa_dump( ncfile,casamet, casaflux, phen,climate, ktau ,kend,.TRUE. )
+
      !!CLN901  format(A99)
      do idoy=1,mdyear
         ktau=(idoy-1)*ktauday +1
@@ -143,7 +143,12 @@ SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
         phen%doyphase(:,2) =  phen%doyphasespin_2(:,idoy)
         phen%doyphase(:,3) =  phen%doyphasespin_3(:,idoy)
         phen%doyphase(:,4) =  phen%doyphasespin_4(:,idoy)
-        climate%qtemp_max_last_year(:) =  casamet%mtempspin(:,idoy)
+        ! mgk576, 25/10/17: this should have been in an IF block
+        if (cable_user%CALL_climate) then
+           climate%qtemp_max_last_year(:) =  casamet%mtempspin(:,idoy)
+        endif
+
+
 
       ! write(6699,*) casaflux%cgpp(1), climate%mtemp(1),  casaflux%crmplant(1,1)
 
