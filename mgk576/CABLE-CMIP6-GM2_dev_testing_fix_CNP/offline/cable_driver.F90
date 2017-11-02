@@ -398,17 +398,26 @@ PROGRAM cable_offline_driver
 
 !!!! INISTUFF
 
+    ! Open met data and get site information from netcdf file. (NON-GSWP ONLY!)
+    ! This retrieves time step size, number of timesteps, starting date,
+    ! latitudes, longitudes, number of sites.
+    !!$  IF ( TRIM(cable_user%MetType) .NE. "gswp" .AND. &
+    !!$       TRIM(cable_user%MetType) .NE. "gpgs" .AND. &
+    !!$       TRIM(cable_user%MetType) .NE. "plum" .AND. &
+    !!$       TRIM(cable_user%MetType) .NE. "cru") THEN
+
+
   ! Open met data and get site information from netcdf file. (NON-GSWP ONLY!)
   ! This retrieves time step size, number of timesteps, starting date,
   ! latitudes, longitudes, number of sites.
-  IF ( TRIM(cable_user%MetType) .NE. "gswp" .AND. &
-       TRIM(cable_user%MetType) .NE. "gpgs" .AND. &
-       TRIM(cable_user%MetType) .NE. "plum" .AND. &
-       TRIM(cable_user%MetType) .NE. "cru") THEN
+
+  ! mgk576, taken from Vanessa
+  IF (TRIM(cable_user%MetType) .EQ. 'site' .OR. &
+      TRIM(cable_user%MetType) .EQ. '') THEN
      CALL open_met_file( dels, koffset, kend, spinup, C%TFRZ )
      IF ( koffset .NE. 0 .AND. CABLE_USER%CALL_POP ) THEN
-	WRITE(*,*)"When using POP, episode must start at Jan 1st!"
-	STOP 991
+	     WRITE(*,*)"When using POP, episode must start at Jan 1st!"
+	     STOP 991
      ENDIF
   ELSE IF ( NRRRR .GT. 1 ) THEN
      IF(.NOT.ALLOCATED(GSWP_MID)) ALLOCATE( GSWP_MID( 8, CABLE_USER%YearStart:CABLE_USER%YearEnd ) )
@@ -533,7 +542,7 @@ PROGRAM cable_offline_driver
 
           IF (IS_LEAPYEAR(CurYear)) LOY = 366
           kend = NINT(24.0*3600.0/dels) * LOY
-          !MetYear = CurYear
+      
 
           !write(*,*) 'MetYear: ', MetYear
           !write(*,*) 'Simulation Year: ', CurYear
