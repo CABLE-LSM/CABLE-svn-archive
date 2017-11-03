@@ -671,13 +671,15 @@ PROGRAM cable_offline_driver
           ktau_gl = ktau_tot
 
           !idoy =INT( MOD(REAL(CEILING(REAL((ktau+koffset)/ktauday))),REAL(LOY)))
+          !IF ( idoy .EQ. 0 ) idoy = LOY
+
           !mgk576, fixed logic
           idoy = INT(MOD(REAL(CEILING(REAL(ktau+koffset)/REAL(ktauday))), &
                      REAL(LOY)))
-          IF ( idoy .EQ. 0 ) THEN
-             idoy = LOY
-          END IF
-         
+          IF ( idoy .EQ. 0 ) idoy = LOY
+          print*, CurYear, idoy,  LOY, ktau, ktau+koffset
+
+
 
           ! needed for CASA-CNP
           nyear	=INT((kend+koffset)/(LOY*ktauday))
