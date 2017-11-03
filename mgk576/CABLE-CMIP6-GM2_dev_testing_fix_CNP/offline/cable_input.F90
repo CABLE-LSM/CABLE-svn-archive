@@ -900,8 +900,9 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
     !IF ( CABLE_USER%YEARSTART .GT. 0 .AND. .NOT. ncciy.GT.0) THEN
 
     ! mgk576
-    IF ( CABLE_USER%YEARSTART .GT. 0 .AND. .NOT. ncciy.GT.0 .and. &
-         TRIM(cable_user%MetType) .NE. "site") THEN
+    IF ( CABLE_USER%YEARSTART .GT. 0 .AND. .NOT. ncciy.GT.0) THEN
+    !IF ( CABLE_USER%YEARSTART .GT. 0 .AND. .NOT. ncciy.GT.0 .and. &
+    !      TRIM(cable_user%MetType) .NE. "site") THEN
        IF ( syear.GT.CABLE_USER%YEARSTART .OR. eyear.LE.CABLE_USER%YEAREND .OR. &
             ( syear.EQ.CABLE_USER%YEARSTART .AND. sdoy.gt.1 ) ) THEN
           WRITE(*,*) "Chosen period doesn't match dataset period!"
@@ -1608,6 +1609,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
        ! First set timing variables:
        ! All timing details below are initially written to the first patch
        ! of each gridcell, then dumped to all patches for the gridcell.
+       
        IF(ktau==kstart) THEN ! initialise...
           SELECT CASE(time_coord)
           CASE('LOC')! i.e. use local time by default

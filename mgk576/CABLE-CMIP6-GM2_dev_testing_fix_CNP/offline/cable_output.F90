@@ -85,14 +85,14 @@ MODULE cable_output_module
                                                   ! [K]
     REAL(KIND=4), POINTER, DIMENSION(:) :: Qair   ! 12 specific humidity [kg/kg]
     !INH new output variables
-    REAL(KIND=4), POINTER, DIMENSION(:) :: Tscrn  ! -- screen-level air 
+    REAL(KIND=4), POINTER, DIMENSION(:) :: Tscrn  ! -- screen-level air
                                                   ! temperature [oC]
-    REAL(KIND=4), POINTER, DIMENSION(:) :: Qscrn  ! -- screen level specific 
-                                                  ! humidity [kg/kg]  
+    REAL(KIND=4), POINTER, DIMENSION(:) :: Qscrn  ! -- screen level specific
+                                                  ! humidity [kg/kg]
     REAL(KIND=4), POINTER, DIMENSION(:) :: Tmx    ! -- averaged daily maximum
                                                   ! screen level temp [oC]
-    REAL(KIND=4), POINTER, DIMENSION(:) :: Txx    ! -- max screen level temp 
-                                                  ! in averaging period [oC]  
+    REAL(KIND=4), POINTER, DIMENSION(:) :: Txx    ! -- max screen level temp
+                                                  ! in averaging period [oC]
     REAL(KIND=4), POINTER, DIMENSION(:) :: Tmn    ! -- averaged daily minimum
                                                   ! screen level temp [oC]
     REAL(KIND=4), POINTER, DIMENSION(:) :: Tnn    ! -- min screen level temp
@@ -100,7 +100,7 @@ MODULE cable_output_module
     REAL(KIND=4), POINTER, DIMENSION(:) :: Tdaymx ! -- daily maximum
                                                   ! screen level temp [oC]
     REAL(KIND=4), POINTER, DIMENSION(:) :: Tdaymn ! -- daily maximum
-                                                  ! screen level temp [oC]    
+                                                  ! screen level temp [oC]
     REAL(KIND=4), POINTER, DIMENSION(:) :: CO2air ! 13 CO2 concentration [ppmv]
     REAL(KIND=4), POINTER, DIMENSION(:) :: Wind   ! 14 windspeed [m/s]
     REAL(KIND=4), POINTER, DIMENSION(:) :: Wind_N ! 15 surface wind speed, N
@@ -464,7 +464,7 @@ CONTAINS
     END IF
     ! Define surface flux variables in output file and allocate temp output
     ! vars:
-    IF(output%flux .OR. output%Qmom) THEN    
+    IF(output%flux .OR. output%Qmom) THEN
        CALL define_ovar(ncid_out, ovid%Qmom, 'Qmom', 'kg/m/s2',                &
                         'Surface momentum flux',patchout%Qmom,'dummy',       &
                         xID, yID, zID, landID, patchID, tID)
@@ -688,20 +688,20 @@ CONTAINS
     ! REV_CORR - new output variables.
     IF(output%Tscrn .OR. output%veg) THEN
        CALL define_ovar(ncid_out, ovid%Tscrn,                                  &
-                        'Tscrn', 'oC', 'screen level air temperature', &        
+                        'Tscrn', 'oC', 'screen level air temperature', &
                         patchout%Tscrn, &
                         'ALMA', xID, yID, zID, landID, patchID, tID)
        ALLOCATE(out%Tscrn(mp))
        out%Tscrn = 0.0 ! initialise
     END IF
-    IF (output%Tex .OR. output%veg) THEN 
+    IF (output%Tex .OR. output%veg) THEN
        IF((output%averaging(1:2) == 'da').OR.(output%averaging(1:2)=='mo')) THEN
           CALL define_ovar(ncid_out, ovid%Txx,                                 &
                          'Txx', 'oC', 'max screen-level T in reporting period',&
                          patchout%Tex,                                         &
                          'ALMA', xID, yID, zID, landID, patchID, tID)
            ALLOCATE(out%Txx(mp))
-           out%Txx = -1.0E6 !initialise extremes at unreasonable value 
+           out%Txx = -1.0E6 !initialise extremes at unreasonable value
            CALL define_ovar(ncid_out, ovid%Tnn,                                &
                          'Tnn', 'oC', 'min screen-level T in reporting period',&
                          patchout%Tex,                                         &
@@ -845,7 +845,7 @@ CONTAINS
                         'dummy', xID, yID, zID, landID, patchID, tID)
        ALLOCATE(out%SatFrac(mp))
        out%SatFrac = 0.0 ! initialise
-    END IF         
+    END IF
 
 
     IF(output%soil .OR. output%Qrecharge) THEN
@@ -854,7 +854,7 @@ CONTAINS
                         'dummy', xID, yID, zID, landID, patchID, tID)
        ALLOCATE(out%Qrecharge(mp))
        out%Qrecharge = 0.0 ! initialise
-    END IF   
+    END IF
 
     IF(output%casa) THEN
        CALL define_ovar(ncid_out, ovid%NBP, 'NBP', 'umol/m^2/s',               &
@@ -995,7 +995,7 @@ CONTAINS
        out%PlantTurnoverWoodResourceLim = 0.0
 
        IF (cable_user%POPLUC) THEN
-          
+
           CALL define_ovar(ncid_out, ovid%LandUseFlux, 'LandUseFlux ', &
                'umol/m^2/s',               &
                'Sum of wood harvest and clearing fluxes', patchout%LandUseFlux,         &
@@ -1003,8 +1003,8 @@ CONTAINS
           ALLOCATE(out%LandUseFlux(mp))
           out%LandUseFlux = 0.0
        ENDIF
-       
-  
+
+
     END IF
 
 !! vh_js !!
@@ -1025,9 +1025,9 @@ CONTAINS
        CALL define_ovar(ncid_out, opid%patchfrac, 'patchfrac', '-',          &
             'Fractional cover of vegetation patches', patchout%patchfrac, 'real', &
             xID, yID, zID, landID, patchID, tID)
-       
+
     ELSE
-       
+
        IF((output%params .OR. output%patchfrac)                                   &
             .AND. (patchout%patchfrac .OR. output%patch))                         &
             CALL define_ovar(ncid_out, opid%patchfrac, 'patchfrac', '-',          &
@@ -1116,7 +1116,7 @@ CONTAINS
     IF(output%params .OR. output%g1) CALL define_ovar(ncid_out, opid%g1,   &
                           'g1', '-', 'g1 term in Medlyn Stom Cond. Param', &
                           patchout%g1, 'real', xID, yID, zID, landID, patchID)
-    ! end Ticket #56 
+    ! end Ticket #56
 
     IF(output%params .OR. output%rpcoef) CALL define_ovar(ncid_out,            &
                                                  opid%rpcoef, 'rpcoef', '1/C', &
@@ -1357,7 +1357,7 @@ CONTAINS
               'vcmax', REAL(veg%vcmax, 4), ranges%vcmax, patchout%vcmax, 'real')
     IF(output%params .OR. output%frac4) CALL write_ovar(ncid_out, opid%frac4,  &
               'frac4', REAL(veg%frac4, 4), ranges%frac4, patchout%frac4, 'real')
-    
+
     IF (.not.cable_user%CALL_POP) THEN
        IF(output%params .OR. output%hc) CALL write_ovar(ncid_out, opid%hc,        &
             'hc', REAL(veg%hc, 4), ranges%hc, patchout%hc, 'real')
@@ -1504,6 +1504,7 @@ CONTAINS
           YearStart = CABLE_USER%YearStart
        ENDIF
     END IF
+
     ! Decide on output averaging regime:
     IF(output%averaging(1:3) == 'all') THEN ! write every time step to file
        ! Set flag to write data for current time step:
@@ -2013,7 +2014,7 @@ CONTAINS
           ! Reset temporary output variable:
           out%WatTable = 0.0
        END IF
-    END IF    
+    END IF
     !aquifer water content
     IF((output%soil .OR. output%GWMoist)  .and. cable_user%GW_MODEL) THEN
        out%GWMoist = out%GWMoist + REAL(ssnow%GWwb, 4)
@@ -2026,7 +2027,7 @@ CONTAINS
           ! Reset temporary output variable:
           out%GWMoist = 0.0
        END IF
-    END IF   
+    END IF
     IF((output%soil .OR. output%SatFrac)  .and. cable_user%GW_MODEL) THEN
        !write(*,*) 'Qinfl'    !MDeck
        ! Add current timestep's value to total of temporary output variable:
@@ -2039,7 +2040,7 @@ CONTAINS
           ! Reset temporary output variable:
           out%SatFrac = 0.0
        END IF
-    END IF      
+    END IF
 
     IF((output%soil .OR. output%SMP)  .and. cable_user%GW_MODEL) THEN
        !write(*,*) 'Qinfl'    !MDeck
@@ -2053,7 +2054,7 @@ CONTAINS
           ! Reset temporary output variable:
           out%SMP = 0.0
        END IF
-    END IF      
+    END IF
 
 
     ! recharge rate
@@ -2069,7 +2070,7 @@ CONTAINS
           ! Reset temporary output variable:
           out%Qrecharge = 0.0
        END IF
-    END IF   
+    END IF
     !----------------------WRITE SNOW STATE DATA--------------------------------
     ! SWE: snow water equivalent [kg/m^2]
     IF(output%snow .OR. output%SWE) THEN
@@ -2153,7 +2154,7 @@ CONTAINS
 
        ! REV_CORR (needed for testing and offline-as-online cases):
        ! correction term added in entirety onto %LWnet not (1-rad%transd)*
-       ! for standard offline cases %fns_cor = 0. 
+       ! for standard offline cases %fns_cor = 0.
        IF (cable_user%L_REV_CORR) THEN
           out%LWnet = out%LWnet + canopy%fns_cor
        ENDIF
@@ -2175,10 +2176,10 @@ CONTAINS
                                   (1 - rad%transd) -rad%flws * rad%transd +    &
                                   SUM(rad%qcan(:, :, 1), 2) +                  &
                                   SUM(rad%qcan(:, :, 2), 2) + rad%qssabs, 4)
-       
+
        ! REV_CORR (needed for testing and offline-as-online cases):
        ! correction term added in entirety onto %Rnet not (1-rad%transd)*
-       ! for standard offline cases %fns_cor = 0. 
+       ! for standard offline cases %fns_cor = 0.
        IF (cable_user%L_REV_CORR) THEN
           out%Rnet = out%Rnet + canopy%fns_cor
        ENDIF
@@ -2275,7 +2276,7 @@ CONTAINS
              out%Tnn = 1.0E6
           ENDIF
        ENDIF
- 
+
        IF (output%averaging(1:2)=='mo') THEN
           !if monthly then both full extremes and averaged extremes
           DO iy=1,mp
@@ -2285,7 +2286,7 @@ CONTAINS
              out%Tdaymn(iy) = MIN(out%Tdaymn(iy),REAL(canopy%tscrn(iy),4))
           ENDDO
           !take copy of day's max/min for averaged output - reset Tdaymx/mn
-          IF (mod(ktau,24*3600/INT(dels))==0) THEN  
+          IF (mod(ktau,24*3600/INT(dels))==0) THEN
              out%Tmx = out%Tmx + out%Tdaymx
              out%Tmn = out%Tmn + out%Tdaymn
              out%Tdaymx = -1.0E6
@@ -2449,7 +2450,7 @@ CONTAINS
        ! Add current timestep's value to total of temporary output variable:
        !out%NPP = out%NPP + REAL((-1.0 * canopy%fpn - canopy%frp &
        !     - casaflux%clabloss/86400.0) / 1.201E-5, 4)
-       ! vh ! expression below can be slightly different form that above in cases where 
+       ! vh ! expression below can be slightly different form that above in cases where
        ! leaf maintenance respiration is reduced in CASA
        ! (relative to its original value calculated in cable_canopy)
        ! in order to avoid negative carbon stores.
@@ -2473,7 +2474,7 @@ CONTAINS
        ! Add current timestep's value to total of temporary output variable:
        !out%AutoResp = out%AutoResp + REAL((canopy%frp + canopy%frday + casaflux%clabloss/86400.0)          &
        !                                    / 1.201E-5, 4)
-       ! vh ! expression below can be slightly different form that above in cases where 
+       ! vh ! expression below can be slightly different form that above in cases where
        ! leaf maintenance respiration is reduced in CASA
        ! (relative to its original value calculated in cable_canopy)
        ! in order to avoid negative carbon stores.
@@ -2526,7 +2527,7 @@ CONTAINS
        END IF
     END IF
 
-    ! output patch area 
+    ! output patch area
     IF(output%casa) THEN
      out%Area = casamet%areacell/1e6 ! km2
      IF(writenow) THEN
@@ -2707,7 +2708,7 @@ CONTAINS
     ENDIF
 
  END IF
-    
+
     ! plant carbon [kg C m-2]
     IF(output%casa) THEN
        out%TotSoilCarb = out%TotSoilCarb + REAL((SUM(casapool%csoil,2)+SUM(casapool%clitter,2)) &

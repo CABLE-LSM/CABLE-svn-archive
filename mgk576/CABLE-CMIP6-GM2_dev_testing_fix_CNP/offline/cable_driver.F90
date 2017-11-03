@@ -217,6 +217,8 @@ PROGRAM cable_offline_driver
        delsoilM,	 & ! allowed variation in soil moisture for spin up
        delsoilT		   ! allowed variation in soil temperature for spin up
 
+  INTEGER :: Y, LOYtmp
+
   REAL :: delgwM = 1e-4
 
   ! temporary storage for soil moisture/temp. in spin up mode
@@ -437,6 +439,7 @@ PROGRAM cable_offline_driver
 
 	YEAR: DO YYYY= CABLE_USER%YearStart,  CABLE_USER%YearEnd
 	   CurYear = YYYY
+
 	   IF ( leaps .AND. IS_LEAPYEAR( YYYY ) ) THEN
 	      LOY = 366
 	   ELSE
@@ -524,11 +527,11 @@ PROGRAM cable_offline_driver
      	   kend = NINT(24.0*3600.0/dels) * LOY
 
       ! mgk576, ELSE IF block from Vanessa's branch
-   ELSE IF ( TRIM(cable_user%MetType) .EQ. 'site' ) THEN
+      ELSE IF ( TRIM(cable_user%MetType) .EQ. 'site' ) THEN
+
          ! site experiment eg AmazonFace (spinup or  transient run type)
           IF ( CALL1 ) THEN
              CALL CPU_TIME(etime)
-
              write(str1,'(i4)') CurYear
              str1 = adjustl(str1)
              write(str2,'(i2)') 1
@@ -542,19 +545,22 @@ PROGRAM cable_offline_driver
 
           IF (IS_LEAPYEAR(CurYear)) LOY = 366
           kend = NINT(24.0*3600.0/dels) * LOY
-      
+
 
           !write(*,*) 'MetYear: ', MetYear
           !write(*,*) 'Simulation Year: ', CurYear
 
-          !koffset_met = 0
-          !IF (MetYear .gt. site%spinstartyear) then
-          !    DO Y = site%spinstartyear, MetYear-1
-          !       LOYtmp = 365
-          !       IF (IS_LEAPYEAR(Y)) LOYtmp = 366
-          !          koffset_met = koffset_met + INT( REAL(LOYtmp) * 86400./REAL(dels) )
-          !    END DO
-          !END IF
+          print*, "*******", CurYear
+          koffset   = 0
+          !IF (MetYear .gt. met%year(1)) then
+          IF (CurYear .gt. CABLE_USER%YearStart) then
+             DO Y = CABLE_USER%YearStart, CurYear-1
+                LOYtmp = 365
+                IF (IS_LEAPYEAR(Y)) LOYtmp = 366
+                koffset = koffset + INT( REAL(LOYtmp) * 86400./REAL(dels) )
+             END DO
+          END IF
+          print*, koffset
 
        ENDIF
 
@@ -682,7 +688,8 @@ PROGRAM cable_offline_driver
                             YYYY, ktau, kend, &
                             YYYY.EQ.CABLE_USER%YearEnd)
                     ENDIF
-           ELSE
+          ELSE
+             !print *, "here", ktau+koffset, kstart+koffset
              CALL get_met_data( spinup, spinConv, met, soil,		 &
                   rad, veg, kend, dels, C%TFRZ, ktau+koffset,		 &
                          kstart+koffset )
