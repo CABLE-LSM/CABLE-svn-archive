@@ -545,14 +545,19 @@ PROGRAM cable_offline_driver
 	       ENDIF
 
           LOY = 365
-          IF (IS_LEAPYEAR(CurYear)) LOY = 366
+          IF (IS_LEAPYEAR(CurYear)) THEN
+             LOY = 366
+          END IF
           kend = NINT(24.0*3600.0/dels) * LOY
+
           koffset = 0
           !IF (MetYear .gt. met%year(1)) then
           IF (CurYear .gt. CABLE_USER%YearStart) then
              DO Y = CABLE_USER%YearStart, CurYear-1
                 LOYtmp = 365
-                IF (IS_LEAPYEAR(Y)) LOYtmp = 366
+                IF (IS_LEAPYEAR(Y)) THEN
+                   LOYtmp = 366
+                END IF
                 koffset = koffset + INT( REAL(LOYtmp) * 86400./REAL(dels) )
              END DO
           END IF
