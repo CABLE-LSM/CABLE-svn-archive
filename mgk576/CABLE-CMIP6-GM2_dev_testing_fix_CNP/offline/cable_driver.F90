@@ -140,7 +140,6 @@ PROGRAM cable_offline_driver
        ktau_tot,   &  ! NO reset when spinning up, total timesteps by model
        kend,	   &  ! no. of time steps in run
                                 !CLN	  kstart = 1, &	 ! timestep to start at
-       koffset = 0, &  ! timestep to start at
        ktauday,	   &  ! day counter for CASA-CNP
        idoy,	   &  ! day of year (1:365) counter for CASA-CNP
        nyear,	   &  ! year counter for CASA-CNP
@@ -154,6 +153,9 @@ PROGRAM cable_offline_driver
        count_sum_casa, & ! number of time steps over which casa pools &
   !and fluxes are aggregated (for output)
        wlogn = 10001
+
+  ! mgk576
+  INTEGER (KIND=4) :: koffset = 0  ! timestep to start at
 
   REAL :: dels			      ! time step size in seconds
 
@@ -550,12 +552,15 @@ PROGRAM cable_offline_driver
           !IF (MetYear .gt. met%year(1)) then
           IF (CurYear .gt. CABLE_USER%YearStart) then
              DO Y = CABLE_USER%YearStart, CurYear-1
+                print*, Y, CABLE_USER%YearStart, CurYear-1
                 LOYtmp = 365
                 IF (IS_LEAPYEAR(Y)) LOYtmp = 366
                 koffset = koffset + INT( REAL(LOYtmp) * 86400./REAL(dels) )
              END DO
           END IF
+          print*, kend, koffset
 
+          !stop
        ENDIF
 
     ! somethings (e.g. CASA-CNP) only need to be done once per day
@@ -854,10 +859,10 @@ PROGRAM cable_offline_driver
                     if ( TRIM(cable_user%MetType) .EQ. 'plum' .OR.  &
                          TRIM(cable_user%MetType) .EQ. 'cru' .OR.  &
                        TRIM(cable_user%MetType) .EQ. 'gswp' ) then
-
                        CALL write_output( dels, ktau_tot, met, canopy, casaflux, casapool, casamet, &
                             ssnow,   rad, bal, air, soil, veg, C%SBOLTZ, C%EMLEAF, C%EMSOIL )
                     else
+                       print*, ktau
                        CALL write_output( dels, ktau, met, canopy, casaflux, casapool, casamet, &
                             ssnow,rad, bal, air, soil, veg, C%SBOLTZ, C%EMLEAF, C%EMSOIL )
                     endif
