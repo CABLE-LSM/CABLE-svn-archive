@@ -1608,7 +1608,7 @@ CONTAINS
     IF(writenow) THEN
        ! Write to temporary time variable:
        timetemp(1) = DBLE(REAL(ktau-backtrack)*dels)
-       print*, DBLE(REAL(ktau-backtrack)*dels)
+
        ! Write time variable for this output time step:
        ok = NF90_PUT_VAR(ncid_out, ovid%tvar, timetemp,                        &
                                         start = (/out_timestep/), count = (/1/))

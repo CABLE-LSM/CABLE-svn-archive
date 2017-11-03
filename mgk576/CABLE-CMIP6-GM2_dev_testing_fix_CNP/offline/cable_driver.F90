@@ -542,6 +542,8 @@ PROGRAM cable_offline_driver
              str3 = adjustl(str3)
              timeunits="seconds since "//trim(str1)//"-"//trim(str2)//"-"//trim(str3)//" &
                   00:00"
+              print*, "seconds since "//trim(str1)//"-"//trim(str2)//"-"//trim(str3)//" &
+                   00:00"
 	       ENDIF
           LOY = 365
 
@@ -552,13 +554,14 @@ PROGRAM cable_offline_driver
           !IF (MetYear .gt. met%year(1)) then
           IF (CurYear .gt. CABLE_USER%YearStart) then
              DO Y = CABLE_USER%YearStart, CurYear-1
-                print*, Y, CABLE_USER%YearStart, CurYear-1
+                print*, Y, CurYear-1
+
                 LOYtmp = 365
                 IF (IS_LEAPYEAR(Y)) LOYtmp = 366
                 koffset = koffset + INT( REAL(LOYtmp) * 86400./REAL(dels) )
              END DO
           END IF
-          print*, kend, koffset
+          !print*, kend, koffset
 
           !stop
        ENDIF
@@ -862,7 +865,6 @@ PROGRAM cable_offline_driver
                        CALL write_output( dels, ktau_tot, met, canopy, casaflux, casapool, casamet, &
                             ssnow,   rad, bal, air, soil, veg, C%SBOLTZ, C%EMLEAF, C%EMSOIL )
                     else
-                       print*, ktau
                        CALL write_output( dels, ktau, met, canopy, casaflux, casapool, casamet, &
                             ssnow,rad, bal, air, soil, veg, C%SBOLTZ, C%EMLEAF, C%EMSOIL )
                     endif
