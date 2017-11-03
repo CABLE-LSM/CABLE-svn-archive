@@ -543,25 +543,20 @@ PROGRAM cable_offline_driver
              timeunits="seconds since "//trim(str1)//"-"//trim(str2)//"-"//trim(str3)//" &
                   00:00"
 	       ENDIF
-          LOY = 365
 
+          LOY = 365
           IF (IS_LEAPYEAR(CurYear)) LOY = 366
           kend = NINT(24.0*3600.0/dels) * LOY
-
-          koffset   = 0
+          koffset = 0
           !IF (MetYear .gt. met%year(1)) then
           IF (CurYear .gt. CABLE_USER%YearStart) then
              DO Y = CABLE_USER%YearStart, CurYear-1
-                print*, Y, CurYear-1
-
                 LOYtmp = 365
                 IF (IS_LEAPYEAR(Y)) LOYtmp = 366
                 koffset = koffset + INT( REAL(LOYtmp) * 86400./REAL(dels) )
              END DO
           END IF
-          !print*, kend, koffset
-
-          !stop
+          
        ENDIF
 
     ! somethings (e.g. CASA-CNP) only need to be done once per day
