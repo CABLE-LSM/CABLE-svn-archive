@@ -558,8 +558,12 @@ PROGRAM cable_offline_driver
                 IF (IS_LEAPYEAR(Y)) THEN
                    LOYtmp = 366
                 END IF
+
                 koffset = koffset + INT( REAL(LOYtmp) * 86400./REAL(dels) )
+                !print*, "+++", Y, koffset, CurYear, CABLE_USER%YearStart
+
              END DO
+
           END IF
 
        ENDIF
@@ -666,8 +670,14 @@ PROGRAM cable_offline_driver
           ! globally (WRT code) accessible kend through USE cable_common_module
           ktau_gl = ktau_tot
 
-          idoy =INT( MOD(REAL(CEILING(REAL((ktau+koffset)/ktauday))),REAL(LOY)))
-          IF ( idoy .EQ. 0 ) idoy = LOY
+          !idoy =INT( MOD(REAL(CEILING(REAL((ktau+koffset)/ktauday))),REAL(LOY)))
+          !mgk576, fixed logic
+          idoy = INT(MOD(REAL(CEILING(REAL(ktau+koffset)/REAL(ktauday))), &
+                     REAL(LOY)))
+          IF ( idoy .EQ. 0 ) THEN
+             idoy = LOY
+          END IF
+         
 
           ! needed for CASA-CNP
           nyear	=INT((kend+koffset)/(LOY*ktauday))
@@ -831,6 +841,7 @@ PROGRAM cable_offline_driver
                              CALL write_casa_dump( ncfile, casamet , casaflux, phen, climate,&
                                   INT(met%doy), LOY )
                           ELSE
+                             !print*, "****", CurYear, idoy, kend/ktauday, kend, ktauday
                              CALL write_casa_dump( ncfile, casamet , casaflux, &
                                     phen, climate, idoy, kend/ktauday )
                           ENDIF
