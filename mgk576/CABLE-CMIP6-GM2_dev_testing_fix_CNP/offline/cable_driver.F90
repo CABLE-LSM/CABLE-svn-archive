@@ -650,7 +650,7 @@ PROGRAM cable_offline_driver
 	kwidth_gl = int(dels)
     kend_gl  = kend
     knode_gl = 0
-
+    print*, "******* KEND", kend
     IF (casaonly) THEN
              EXIT
     ENDIF

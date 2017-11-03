@@ -1512,6 +1512,8 @@ CONTAINS
        ! Set output time step to be current model time step:
        out_timestep = ktau
        backtrack = 0
+
+
     ELSE IF(output%averaging(1:4) == 'user' .OR. output%averaging(1:2)=='da')  &
             THEN
        ! user defined output interval or daily output
