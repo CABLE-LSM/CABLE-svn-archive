@@ -526,10 +526,10 @@ PROGRAM cable_offline_driver
      	   LOY = 365
      	   kend = NINT(24.0*3600.0/dels) * LOY
 
-      ! mgk576, ELSE IF block from Vanessa's branch
+      ! mgk576, ELSE IF block from Vanessa's branch, but ediged
       ELSE IF ( TRIM(cable_user%MetType) .EQ. 'site' ) THEN
 
-         ! site experiment eg AmazonFace (spinup or  transient run type)
+         ! site experiment 
           IF ( CALL1 ) THEN
              CALL CPU_TIME(etime)
              write(str1,'(i4)') CurYear
@@ -546,11 +546,6 @@ PROGRAM cable_offline_driver
           IF (IS_LEAPYEAR(CurYear)) LOY = 366
           kend = NINT(24.0*3600.0/dels) * LOY
 
-
-          !write(*,*) 'MetYear: ', MetYear
-          !write(*,*) 'Simulation Year: ', CurYear
-
-          print*, "*******", CurYear
           koffset   = 0
           !IF (MetYear .gt. met%year(1)) then
           IF (CurYear .gt. CABLE_USER%YearStart) then
@@ -560,7 +555,6 @@ PROGRAM cable_offline_driver
                 koffset = koffset + INT( REAL(LOYtmp) * 86400./REAL(dels) )
              END DO
           END IF
-          print*, koffset
 
        ENDIF
 
