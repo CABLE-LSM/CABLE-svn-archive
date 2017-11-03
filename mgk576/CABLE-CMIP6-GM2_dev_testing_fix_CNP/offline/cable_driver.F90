@@ -529,7 +529,7 @@ PROGRAM cable_offline_driver
       ! mgk576, ELSE IF block from Vanessa's branch, but ediged
       ELSE IF ( TRIM(cable_user%MetType) .EQ. 'site' ) THEN
 
-         ! site experiment 
+         ! site experiment
           IF ( CALL1 ) THEN
              CALL CPU_TIME(etime)
              write(str1,'(i4)') CurYear
@@ -683,7 +683,6 @@ PROGRAM cable_offline_driver
                             YYYY.EQ.CABLE_USER%YearEnd)
                     ENDIF
           ELSE
-             !print *, "here", ktau+koffset, kstart+koffset
              CALL get_met_data( spinup, spinConv, met, soil,		 &
                   rad, veg, kend, dels, C%TFRZ, ktau+koffset,		 &
                          kstart+koffset )
