@@ -556,7 +556,7 @@ PROGRAM cable_offline_driver
                 koffset = koffset + INT( REAL(LOYtmp) * 86400./REAL(dels) )
              END DO
           END IF
-          
+
        ENDIF
 
     ! somethings (e.g. CASA-CNP) only need to be done once per day
@@ -642,10 +642,10 @@ PROGRAM cable_offline_driver
     ENDIF ! CALL 1
 
     ! globally (WRT code) accessible kend through USE cable_common_module
-	kwidth_gl = int(dels)
+	 kwidth_gl = int(dels)
     kend_gl  = kend
     knode_gl = 0
-    print*, "******* KEND", kend
+
     IF (casaonly) THEN
              EXIT
     ENDIF
