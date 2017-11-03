@@ -107,7 +107,7 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
          casaflux%cgpp = (-canopy%fpn+canopy%frday)*dels
          casaflux%crmplant(:,leaf) = canopy%frday*dels
       ELSE
-         Casamet%tairk  =casamet%tairk + met%tk
+         Casamet%tairk = casamet%tairk + met%tk
          casamet%tsoil = casamet%tsoil + ssnow%tgg
          casamet%moist = casamet%moist + ssnow%wb
          casaflux%cgpp = casaflux%cgpp + (-canopy%fpn+canopy%frday)*dels
@@ -115,7 +115,7 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
       ENDIF
 
       IF(MOD((ktau-kstart+1),ktauday)==0) THEN  ! end of day
-         casamet%tairk  =casamet%tairk/FLOAT(ktauday)
+         casamet%tairk=casamet%tairk/FLOAT(ktauday)
          casamet%tsoil=casamet%tsoil/FLOAT(ktauday)
          casamet%moist=casamet%moist/FLOAT(ktauday)
 
@@ -315,7 +315,8 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, climate, ncall, kend
       ENDIF
       IF ( allATonce ) THEN
          DO idoy=1,mdyear
-
+            print*, idoy
+            print*, "here"
             CALL get_var_ncr2(ncrid, var_name(3), tairk   , idoy )
             CALL get_var_ncr3(ncrid, var_name(4), tsoil   , idoy ,ms)
             CALL get_var_ncr3(ncrid, var_name(5), moist   , idoy ,ms)
@@ -361,7 +362,8 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, climate, ncall, kend
             endif
          END DO
       ELSE
-
+         print*, ncall
+         print*, "no here"
          CALL get_var_ncr2(ncrid, var_name(3), tairk   ,ncall )
          CALL get_var_ncr3(ncrid, var_name(4), tsoil   ,ncall , ms)
          CALL get_var_ncr3(ncrid, var_name(5), moist   ,ncall , ms)
@@ -508,7 +510,8 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, phen, climate, n_call, ke
      CALL put_var_ncr1(ncid, var_name(2), REAL(casamet%lon)  )
 
   ENDIF
-
+  print*, n_call
+  print*, "no no here"
   CALL put_var_ncr2(ncid, var_name(3), casamet%tairk , n_call)
   CALL put_var_ncr3(ncid, var_name(4), casamet%tsoil , n_call, ms)
   CALL put_var_ncr3(ncid, var_name(5), casamet%moist , n_call, ms)
