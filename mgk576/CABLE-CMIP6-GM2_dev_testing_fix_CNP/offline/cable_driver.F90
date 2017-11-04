@@ -683,9 +683,9 @@ PROGRAM cable_offline_driver
           idoy = INT(MOD(REAL(CEILING(REAL(ktau+koffset)/REAL(ktauday))), &
                      REAL(LOY)))
           IF ( idoy .EQ. 0 ) idoy = LOY
-          if (CurYear .EQ. 2004) THEN
+          if (CurYear .EQ. 2003) THEN
              print*, CurYear, idoy,  LOY, ktau, koffset, ktauday
-          else if (CurYear .EQ. 2005) THEN
+          else if (CurYear .EQ. 2003) THEN
              stop
           endif
 
