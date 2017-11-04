@@ -553,7 +553,7 @@ PROGRAM cable_offline_driver
           koffset = 0
           !IF (MetYear .gt. met%year(1)) then
           IF (CurYear .gt. CABLE_USER%YearStart) then
-             DO Y = CABLE_USER%YearStart, CurYear-1
+             DO Y = CABLE_USER%YearStart, CurYear!-1
                 LOYtmp = 365
                 IF (IS_LEAPYEAR(Y)) THEN
                    LOYtmp = 366
@@ -561,6 +561,10 @@ PROGRAM cable_offline_driver
 
                 koffset = koffset + INT( REAL(LOYtmp) * 86400./REAL(dels) )
                 !print*, "+++", Y, koffset, CurYear, CABLE_USER%YearStart
+
+
+                !print*, Y, ktau, kstart, koffset
+
 
              END DO
 
@@ -672,14 +676,18 @@ PROGRAM cable_offline_driver
 
           !idoy =INT( MOD(REAL(CEILING(REAL((ktau+koffset)/ktauday))),REAL(LOY)))
           !IF ( idoy .EQ. 0 ) idoy = LOY
-
           !mgk576, fixed logic
+
+
+
           idoy = INT(MOD(REAL(CEILING(REAL(ktau+koffset)/REAL(ktauday))), &
                      REAL(LOY)))
           IF ( idoy .EQ. 0 ) idoy = LOY
-          print*, CurYear, idoy,  LOY, ktau, ktau+koffset
-
-
+          if (CurYear .EQ. 2004) THEN
+             print*, CurYear, idoy,  LOY, ktau, koffset, ktauday
+          else if (CurYear .EQ. 2005) THEN
+             stop
+          endif
 
           ! needed for CASA-CNP
           nyear	=INT((kend+koffset)/(LOY*ktauday))
@@ -843,7 +851,7 @@ PROGRAM cable_offline_driver
                              CALL write_casa_dump( ncfile, casamet , casaflux, phen, climate,&
                                   INT(met%doy), LOY )
                           ELSE
-                             !print*, "****", CurYear, idoy, kend/ktauday, kend, ktauday
+                             !print*, "****", CurYear, idoy, kend/ktauday, kend, ktauday, ktau, koffset
                              CALL write_casa_dump( ncfile, casamet , casaflux, &
                                     phen, climate, idoy, kend/ktauday )
                           ENDIF
