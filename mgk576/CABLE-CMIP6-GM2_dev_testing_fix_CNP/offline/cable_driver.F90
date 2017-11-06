@@ -156,7 +156,7 @@ PROGRAM cable_offline_driver
 
   ! mgk576
   INTEGER (KIND=4) :: koffset = 0  ! timestep to start at
-  INTEGER (KIND=4) :: koffsetx = 0  ! timestep to start at
+  INTEGER (KIND=4) :: koffset_doy = 0  ! timestep to start at
 
   REAL :: dels			      ! time step size in seconds
 
@@ -552,7 +552,7 @@ PROGRAM cable_offline_driver
           kend = NINT(24.0*3600.0/dels) * LOY
 
           koffset = 0
-          koffsetx = 0
+          koffset_doy = 0
           !IF (MetYear .gt. met%year(1)) then
           IF (CurYear .gt. CABLE_USER%YearStart) then
              DO Y = CABLE_USER%YearStart, CurYear!-1
@@ -561,8 +561,8 @@ PROGRAM cable_offline_driver
                    LOYtmp = 366
                 END IF
 
-                !koffset = koffset + INT( REAL(LOYtmp) * 86400./REAL(dels) )
-                koffsetx = INT( REAL(LOYtmp) * 86400./REAL(dels) )
+                koffset = koffset + INT( REAL(LOYtmp) * 86400./REAL(dels) )
+                koffset_doy = INT( REAL(LOYtmp) * 86400./REAL(dels) )
 
 
                 !koffset = (1*INT(86400./REAL(dels))) + koffset + INT( REAL(LOYtmp) * 86400./REAL(dels) )
@@ -685,7 +685,7 @@ PROGRAM cable_offline_driver
           !mgk576, fixed logic
 
 
-          idoy = INT(MOD(REAL(CEILING(REAL(ktau+koffsetx)/REAL(ktauday))), &
+          idoy = INT(MOD(REAL(CEILING(REAL(ktau+koffset_doy)/REAL(ktauday))), &
                      REAL(LOY)))
           !idoy = INT(MOD(REAL(CEILING(REAL(ktau+koffset)/REAL(ktauday))), &
           !            REAL(LOY)))
