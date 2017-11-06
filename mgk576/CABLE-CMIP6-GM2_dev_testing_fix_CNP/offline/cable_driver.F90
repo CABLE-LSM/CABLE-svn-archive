@@ -156,6 +156,7 @@ PROGRAM cable_offline_driver
 
   ! mgk576
   INTEGER (KIND=4) :: koffset = 0  ! timestep to start at
+  INTEGER (KIND=4) :: koffsetx = 0  ! timestep to start at
 
   REAL :: dels			      ! time step size in seconds
 
@@ -551,6 +552,7 @@ PROGRAM cable_offline_driver
           kend = NINT(24.0*3600.0/dels) * LOY
 
           koffset = 0
+          koffsetx = 0
           !IF (MetYear .gt. met%year(1)) then
           IF (CurYear .gt. CABLE_USER%YearStart) then
              DO Y = CABLE_USER%YearStart, CurYear!-1
@@ -559,12 +561,16 @@ PROGRAM cable_offline_driver
                    LOYtmp = 366
                 END IF
 
-                koffset = koffset + INT( REAL(LOYtmp) * 86400./REAL(dels) )
+                !koffset = koffset + INT( REAL(LOYtmp) * 86400./REAL(dels) )
+                koffsetx = INT( REAL(LOYtmp) * 86400./REAL(dels) )
+
+
+                !koffset = (1*INT(86400./REAL(dels))) + koffset + INT( REAL(LOYtmp) * 86400./REAL(dels) )
+
                 !print*, "+++", Y, koffset, CurYear, CABLE_USER%YearStart
-
-
+                !print*, 86400./REAL(dels), REAL(LOYtmp), INT( REAL(LOYtmp) * 86400./REAL(dels))
                 !print*, Y, ktau, kstart, koffset
-                print*, Y, koffset
+
 
              END DO
 
@@ -679,15 +685,18 @@ PROGRAM cable_offline_driver
           !mgk576, fixed logic
 
 
-
-          idoy = INT(MOD(REAL(CEILING(REAL(ktau+koffset)/REAL(ktauday))), &
+          idoy = INT(MOD(REAL(CEILING(REAL(ktau+koffsetx)/REAL(ktauday))), &
                      REAL(LOY)))
+          !idoy = INT(MOD(REAL(CEILING(REAL(ktau+koffset)/REAL(ktauday))), &
+          !            REAL(LOY)))
           IF ( idoy .EQ. 0 ) idoy = LOY
-          if (CurYear .EQ. 2004) THEN
-             print*, CurYear, idoy,  LOY, ktau, koffset, ktauday
-          else if (CurYear .EQ. 2005) THEN
-             stop
-          endif
+          !if (CurYear .EQ. 2004) THEN
+         !    print*, CurYear, idoy,  LOY, ktau, koffset, REAL(ktau+koffset)/REAL(ktauday)
+          !else if (CurYear .EQ. 2005) THEN
+         !    stop
+         ! endif
+         !print*, CurYear, idoy,  LOY, ktau, koffset, REAL(ktau+koffset)/REAL(ktauday)
+
 
           ! needed for CASA-CNP
           nyear	=INT((kend+koffset)/(LOY*ktauday))
