@@ -556,10 +556,12 @@ PROGRAM cable_offline_driver
           !IF (MetYear .gt. met%year(1)) then
           IF (CurYear .gt. CABLE_USER%YearStart) then
              DO Y = CABLE_USER%YearStart, CurYear!-1
-                LOYtmp = 365
-                IF (IS_LEAPYEAR(Y)) THEN
+                IF ( leaps .AND. IS_LEAPYEAR(Y) ) THEN
                    LOYtmp = 366
-                END IF
+                ELSE
+                   LOYtmp = 365
+                ENDIF
+
 
                 ! mgk576, we actually need two offsets, one to step through the
                 ! met file -> koffset
