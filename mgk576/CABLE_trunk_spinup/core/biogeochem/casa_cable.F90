@@ -587,6 +587,7 @@ END SUBROUTINE write_casa_dump
           veg%vcmax(np) = vcmax_np(nleafx(np), pleafx(np))
        endif
     else
+       ! mgk576, added missing stop
        stop ('invalid vcmax flag')
     endif
 
