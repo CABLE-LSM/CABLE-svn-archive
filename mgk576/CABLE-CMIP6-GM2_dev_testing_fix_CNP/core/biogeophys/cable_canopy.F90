@@ -186,6 +186,8 @@ CONTAINS
     ssnow%rex = 0.0
     ! Initialise in-canopy temperatures and humidity:
     csx = SPREAD(met%ca, 2, mf) ! initialise leaf surface CO2 concentration
+
+    !print*, met%ca * 1.e+6
     met%tvair = met%tk
     met%qvair = met%qv
     canopy%tv = met%tvair
