@@ -683,9 +683,16 @@ PROGRAM cable_offline_driver
 
 
           !mgk576, fixed logic, the casting logic above doesn't make sense?
-          idoy = INT(MOD(REAL(CEILING(REAL(ktau+offset_doy)/REAL(ktauday))), &
-                     REAL(LOY)))
-          IF ( idoy .EQ. 0 ) idoy = LOY
+          IF ( leaps .eqv. .FALSE. ) THEN
+             idoy = INT(MOD(REAL(CEILING(REAL(ktau+offset_doy)/REAL(ktauday))), &
+                       REAL(365)))
+             IF ( idoy .EQ. 0 ) idoy = 365
+          ELSE
+             idoy = INT(MOD(REAL(CEILING(REAL(ktau+offset_doy)/REAL(ktauday))), &
+                       REAL(LOY)))
+             IF ( idoy .EQ. 0 ) idoy = LOY
+          ENDIF
+
 
           ! needed for CASA-CNP
           nyear	=INT((kend+koffset)/(LOY*ktauday))
@@ -850,6 +857,7 @@ PROGRAM cable_offline_driver
                                   INT(met%doy), LOY )
                           ELSE
                              !print*, "****", CurYear, idoy, kend/ktauday, kend, ktauday, ktau, koffset
+                             !print*, "1: ", CurYear, idoy, kend/ktauday
                              CALL write_casa_dump( ncfile, casamet , casaflux, &
                                     phen, climate, idoy, kend/ktauday )
                           ENDIF
