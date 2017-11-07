@@ -773,7 +773,6 @@ PROGRAM cable_offline_driver
                     ncfile	 = TRIM(casafile%c2cdumppath)//'c2c_'//CYEAR//'_dump.nc'
                     casa_it = NINT( REAL(ktau / ktauday) )
 
-                    print*, "***", kend
                     CALL read_casa_dump( ncfile, casamet, casaflux,phen, climate, casa_it, kend, .FALSE. )
                  ENDIF
 
