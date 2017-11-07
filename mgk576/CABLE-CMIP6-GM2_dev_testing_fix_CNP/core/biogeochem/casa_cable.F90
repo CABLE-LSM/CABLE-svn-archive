@@ -84,14 +84,14 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
 
 
    IF ( .NOT. dump_read ) THEN  ! construct casa met and flux inputs from current CABLE run
-      IF ( TRIM(cable_user%MetType) .EQ. 'cru' ) THEN
+      IF ( TRIM(cable_user%MetType) .EQ. 'cru' .OR. &
+           TRIM(cable_user%MetType) .EQ. 'site') THEN
+
+         !mgk576, 18/10/17 - should this be in an if block, if so, check for what?
          casaflux%Nmindep = met%Ndep
+         casaflux%Pdep = met%Pdep
 
       ENDIF
-
-      !mgk576, 18/10/17 - should this be in an if block, if so, check for what?
-      casaflux%Nmindep = met%Ndep
-      casaflux%Pdep = met%Pdep
 
       IF(ktau == kstart) THEN
          casamet%tairk  = 0.0
@@ -308,14 +308,13 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, climate, ncall, kend
       INTEGER :: ncok,  idoy
 
 #     ifndef UM_BUILD
-
  IF ( allATonce .OR. ncall .EQ. 1 ) THEN
          ncok = NF90_OPEN(TRIM(ncfile), nf90_nowrite, ncrid)
          IF (ncok /= nf90_noerr ) CALL stderr_nc(ncok,'re-opening ', ncfile)
       ENDIF
       IF ( allATonce ) THEN
          DO idoy=1,mdyear
-            !print*, "HERE:::", idoy
+
             CALL get_var_ncr2(ncrid, var_name(3), tairk   , idoy )
             CALL get_var_ncr3(ncrid, var_name(4), tsoil   , idoy ,ms)
             CALL get_var_ncr3(ncrid, var_name(5), moist   , idoy ,ms)
