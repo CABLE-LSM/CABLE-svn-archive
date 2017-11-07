@@ -84,13 +84,8 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
 
 
    IF ( .NOT. dump_read ) THEN  ! construct casa met and flux inputs from current CABLE run
-      IF ( TRIM(cable_user%MetType) .EQ. 'cru' .OR. &
-           TRIM(cable_user%MetType) .EQ. 'site') THEN
-
-         !mgk576, 18/10/17 - should this be in an if block, if so, check for what?
+      IF ( TRIM(cable_user%MetType) .EQ. 'cru' ) THEN
          casaflux%Nmindep = met%Ndep
-         casaflux%Pdep = met%Pdep
-
       ENDIF
 
       IF(ktau == kstart) THEN
