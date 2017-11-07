@@ -140,6 +140,7 @@ PROGRAM cable_offline_driver
        ktau_tot,   &  ! NO reset when spinning up, total timesteps by model
        kend,	   &  ! no. of time steps in run
                                 !CLN	  kstart = 1, &	 ! timestep to start at
+       koffset = 0, &  ! timestep to start at
        ktauday,	   &  ! day counter for CASA-CNP
        idoy,	   &  ! day of year (1:365) counter for CASA-CNP
        nyear,	   &  ! year counter for CASA-CNP
@@ -155,8 +156,8 @@ PROGRAM cable_offline_driver
        wlogn = 10001
 
   ! mgk576
-  INTEGER (KIND=4) :: koffset = 0  ! timestep to start at
-  INTEGER (KIND=4) :: offset_doy = 0  ! timestep to start at
+  INTEGER (KIND=4) :: koffset_met = 0
+  INTEGER (KIND=4) :: koffset_doy = 0
 
   REAL :: dels			      ! time step size in seconds
 
@@ -551,8 +552,8 @@ PROGRAM cable_offline_driver
           END IF
           kend = NINT(24.0*3600.0/dels) * LOY
 
-          koffset = 0
-          offset_doy = 0
+          koffset_met = 0
+          koffset_doy = 0
           !IF (MetYear .gt. met%year(1)) then
           IF (CurYear .gt. CABLE_USER%YearStart) then
              DO Y = CABLE_USER%YearStart, CurYear!-1
@@ -565,10 +566,11 @@ PROGRAM cable_offline_driver
 
                 ! mgk576, we actually need two offsets, one to step through the
                 ! met file -> koffset
-                koffset = koffset + INT( REAL(LOYtmp) * 86400./REAL(dels) )
+                koffset_met = koffset_met + INT(REAL(LOYtmp) * &
+                                                86400. / REAL(dels))
 
                 ! mgk576, we also need an offset to figure out the right idoy
-                offset_doy = INT(REAL(LOYtmp) * 86400./REAL(dels))
+                koffset_doy = INT(REAL(LOYtmp) * 86400./REAL(dels))
 
              END DO
 
@@ -678,20 +680,22 @@ PROGRAM cable_offline_driver
           ! globally (WRT code) accessible kend through USE cable_common_module
           ktau_gl = ktau_tot
 
-          !idoy =INT( MOD(REAL(CEILING(REAL((ktau+koffset)/ktauday))),REAL(LOY)))
-          !IF ( idoy .EQ. 0 ) idoy = LOY
+          idoy =INT( MOD(REAL(CEILING(REAL((ktau+koffset)/ktauday))),REAL(LOY)))
+          IF ( idoy .EQ. 0 ) idoy = LOY
 
+          !mgk576, fixed the above logic, it doesn't make sense to me
+          IF (TRIM(cable_user%MetType) .EQ. 'site') THEN
 
-          !mgk576, fixed logic, the casting logic above doesn't make sense?
-          IF ( leaps .eqv. .FALSE. ) THEN
-             idoy = INT(MOD(REAL(CEILING(REAL(ktau+offset_doy)/REAL(ktauday))), &
+             IF ( leaps .eqv. .FALSE. ) THEN
+                idoy = INT(MOD(REAL(CEILING(REAL(ktau+koffset_doy)/REAL(ktauday))), &
                        REAL(365)))
-             IF ( idoy .EQ. 0 ) idoy = 365
-          ELSE
-             idoy = INT(MOD(REAL(CEILING(REAL(ktau+offset_doy)/REAL(ktauday))), &
+                IF ( idoy .EQ. 0 ) idoy = 365
+             ELSE
+                idoy = INT(MOD(REAL(CEILING(REAL(ktau+koffset_doy)/REAL(ktauday))), &
                        REAL(LOY)))
-             IF ( idoy .EQ. 0 ) idoy = LOY
-          ENDIF
+                IF ( idoy .EQ. 0 ) idoy = LOY
+             END IF
+         END IF
 
 
           ! needed for CASA-CNP
@@ -713,10 +717,17 @@ PROGRAM cable_offline_driver
                             YYYY, ktau, kend, &
                             YYYY.EQ.CABLE_USER%YearEnd)
                     ENDIF
+
           ELSE
-             CALL get_met_data( spinup, spinConv, met, soil,		 &
-                  rad, veg, kend, dels, C%TFRZ, ktau+koffset,		 &
-                         kstart+koffset )
+             IF (TRIM(cable_user%MetType) .EQ. 'site') THEN
+                CALL get_met_data(spinup, spinConv, met, soil,		    &
+                                  rad, veg, kend, dels, C%TFRZ,       &
+                                  ktau+koffset_met, kstart+koffset_met)
+             ELSE
+                CALL get_met_data(spinup, spinConv, met, soil,		 &
+                                  rad, veg, kend, dels, C%TFRZ,    &
+                                  ktau+koffset, kstart+koffset)
+             END IF
           ENDIF
 
 
