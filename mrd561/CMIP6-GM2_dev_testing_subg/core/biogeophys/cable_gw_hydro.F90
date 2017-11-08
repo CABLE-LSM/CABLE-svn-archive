@@ -97,8 +97,8 @@ SUBROUTINE GWsoilfreeze(dels, soil, ssnow)
 
    do k=1,ms
    do i=1,mp
-      if  (ssnow%tgg(i,k) .le. C%TFRZ) then
-         max_ice_frac(i,k) = (1. - exp(-2.*(ssnow%wb(i,k)/soil%ssat_vec(i,k))**4.0 *&
+      if  (ssnow%tgg(i,k) .lt. C%TFRZ) then
+         max_ice_frac(i,k) = (1.0 - exp(-2.*(ssnow%wb(i,k)/soil%ssat_vec(i,k))**4.0 *&
                           (ssnow%tgg(i,k)-C%TFRZ)))/exp(1. - ssnow%wb(i,k)/soil%ssat_vec(i,k))
          max_ice_frac(i,k) = max(0.4,max_ice_frac(i,k))
       else
@@ -2365,7 +2365,7 @@ SUBROUTINE GWstempv(dels, canopy, ssnow, soil)
 
          dtg = dels / ssnow%gammzz(:,k)
          at(:,k) = - dtg * coeff(:,k)
-         ct(:,k) = - dtg * coeff(:,k + 1) ! c3(ms)=0 & not really used
+         ct(:,k) = 0.!- dtg * coeff(:,k + 1) ! c3(ms)=0 & not really used
          bt(:,k) = 1.0 - at(:,k) - ct(:,k)
 
       END WHERE
@@ -2389,11 +2389,11 @@ SUBROUTINE GWstempv(dels, canopy, ssnow, soil)
    tmp_mat(:,4:(ms+3)) = REAL(ssnow%tgg,r_2)
    tmp_mat(:,ms+4) = real(ssnow%GWtgg,r_2)
 
-   CALL trimb( at, bt, ct, tmp_mat, ms + 4 )
+   CALL trimb( at, bt, ct, tmp_mat, ms + 3 )
 
    ssnow%tggsn = REAL( tmp_mat(:,1:3) )
    ssnow%tgg   = REAL( tmp_mat(:,4:(ms+3)) )
-   ssnow%GWtgg = real( tmp_mat(:,ms+4) )
+   ssnow%GWtgg = ssnow%tgg(:,ms)  !real( tmp_mat(:,ms+4) )
    canopy%sghflux = coefa * ( ssnow%tggsn(:,1) - ssnow%tggsn(:,2) )
    canopy%ghflux = coefb * ( ssnow%tgg(:,1) - ssnow%tgg(:,2) ) ! +ve downwards
 

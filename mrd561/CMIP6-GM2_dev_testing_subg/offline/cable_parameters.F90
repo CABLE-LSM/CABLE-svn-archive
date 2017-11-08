@@ -1225,6 +1225,9 @@ CONTAINS
 
       case(6)
          soil%zse = (/.022, .058, .154, .409, 1.085, 2.872/) ! layer thickness nov03
+         do i=1,mp
+            soil%zse_vec(i,:) = real(soil%zse(:),r_2)
+         end do
       case(12)
          soil%zse = (/.022,  0.0500,    0.1300 ,   0.3250 ,   0.3250 ,   0.3000,  &
               0.3000,    0.3000 ,   0.3000,    0.3000,    0.7500,  1.50 /)
@@ -1233,18 +1236,17 @@ CONTAINS
               0.3000,    0.3000 ,   0.3000,    0.3000,    0.7500,  1.50 /)
       case(7)
          soil%zse = (/.022, .058, .154, .409, 1.085, 2.872, 10.0/) ! layer thickness nov03
+         sum_zse = sum(soil%zse(1:ms-1),dim=1)
+         do i=1,mp
+            soil%zse_vec(i,1:ms-1) = (/.022_r_2, .058_r_2, .154_r_2, .409_r_2, 1.085_r_2, 2.872_r_2/)
+         end do
+
+         do i=1,mp
+            soil%zse_vec(i,ms) = min(20.0,max(3.0, soil%zse_vec(i,ms)-real(sum_zse,r_2)) ) 
+         end do
 
       end select
 
-      sum_zse = sum(soil%zse(1:ms-1),dim=1)
-      do i=1,mp
-         soil%zse_vec(i,1:ms-1) = (/.022_r_2, .058_r_2, .154_r_2, .409_r_2, 1.085_r_2, 2.872_r_2/)
-      end do
-
-      do i=1,mp
-         soil%zse_vec(i,ms) = min(20.0,max(3.0, soil%zse_vec(i,ms)-real(sum_zse,r_2)) ) 
-
-      end do
 
 
 
@@ -1806,13 +1808,12 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
     !get horiuzontally vertically (per cell) varying soil params
     call read_tiled_soil_params(soil)
     !get subgrid flux matrix if needed
-    call read_explicit_subgrid_flow_params(soil)
+    !call read_explicit_subgrid_flow_params(soil)
 
 
     IF (cable_user%GW_MODEL) then
 
-       if ( (gw_params%use_pedotransfer_functions) .or. &
-            (.not.found_restart_gwmodel_params) ) then
+       if ( (gw_params%use_pedotransfer_functions) ) then
 
           DO klev=1,ms
              soil%hyds_vec(:,klev) = 0.0070556*10.0**(-0.884 + 0.0153*soil%sand_vec(:,klev)*100.0)* &
@@ -1824,7 +1825,8 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
              soil%cnsd_vec(:,klev)  = soil%sand_vec(:,klev) * 0.3 + soil%clay_vec(:,klev) * 0.25                          &
                       + soil%silt_vec(:,klev) * 0.265 ! set dry soil thermal conductivity
              soil%css_vec(:,klev)  = 900.0*soil%sand_vec(:,klev) + 1100.0*soil%clay_vec(:,klev)     
-   
+
+
           ENDDO
           !aquifer share non-organic with last layer if not found in param file
           if (found_explicit_gw_parameters .eq. .false.) THEN
