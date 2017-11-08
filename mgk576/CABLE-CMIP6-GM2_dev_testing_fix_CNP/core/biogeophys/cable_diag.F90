@@ -180,6 +180,7 @@ END SUBROUTINE cable_diag_data1
 
   subroutine def_vars(nv, ncid,  xtype, dimID, var_name,varID )
     use netcdf
+    USE cable_common_module,  ONLY: CABLE_USER
     implicit none
     integer, intent(in) :: nv, ncid, xtype
     integer, dimension(:), intent(in) :: dimID
@@ -247,16 +248,19 @@ END SUBROUTINE cable_diag_data1
          (/ dimID(1), dimID(3)/), varID(12))
     if (ncok /= nf90_noerr ) call stderr_nc(ncok,'def var ', var_name(12))
 
-
-    !mtemp
+    !Ndep
     ncok = NF90_DEF_VAR(ncid, trim(var_name(13)), xtype, &
-         (/ dimID(1),dimID(3)/), varID(13))
+          (/ dimID(1),dimID(3)/), varID(13))
     if (ncok /= nf90_noerr ) call stderr_nc(ncok,'def var ', var_name(13))
 
-    !Ndep
-    ncok = NF90_DEF_VAR(ncid, trim(var_name(14)), xtype, &
-         (/ dimID(1),dimID(3)/), varID(14))
-    if (ncok /= nf90_noerr ) call stderr_nc(ncok,'def var ', var_name(14))
+    !mgk576, added if
+    IF (cable_user%CALL_climate) THEN
+       !mtemp
+       ncok = NF90_DEF_VAR(ncid, trim(var_name(14)), xtype, &
+             (/ dimID(1),dimID(3)/), varID(14))
+       if (ncok /= nf90_noerr ) call stderr_nc(ncok,'def var ', var_name(14))
+    END IF
+
 
     return
   end subroutine def_vars
@@ -415,6 +419,3 @@ END SUBROUTINE cable_stat
 
 
 END MODULE cable_diag_module
-
-
-
