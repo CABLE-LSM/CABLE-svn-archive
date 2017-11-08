@@ -253,6 +253,7 @@ MODULE cable_common_module
      LOGICAL :: sfc_clm_func=.false.
      LOGICAL :: swilt_clm_func=.false.
      LOGICAL :: use_pedotransfer_functions=.true.
+     LOGICAL :: No_Recharge=.false.
 
       TYPE(organic_soil_params) :: org
 
