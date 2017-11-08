@@ -349,7 +349,9 @@ CONTAINS
          wiltParam,        &
          satuParam,        &
          cable_user,       &  ! additional USER switches 
-         gw_params
+         gw_params,        &
+         ms
+
     INTEGER :: i,x,kk
     INTEGER :: LALLOC
     INTEGER, PARAMETER ::	 mloop	= 30   ! CASA-CNP PreSpinup loops
@@ -3319,6 +3321,10 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   CALL MPI_Get_address (ssnow%GWwb(off), displs(bidx), ierr)
   blen(bidx) = r2len
 
+  bidx = bidx + 1
+  CALL MPI_Get_address (ssnow%GWtgg(off), displs(bidx), ierr)
+  blen(bidx) = r1len
+
   write(*,*) 'master bidx ',bidx
      ! MPI: sanity check
      IF (bidx /= ntyp) THEN
@@ -6036,6 +6042,11 @@ SUBROUTINE master_outtypes (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
      ! REAL(r_2)
      CALL MPI_Get_address (ssnow%GWwb(off), vaddr(vidx), ierr) ! 40
      blen(vidx) = cnt * extr2
+
+     vidx = vidx + 1
+     ! REAL(r_2)
+     CALL MPI_Get_address (ssnow%GWtgg(off), vaddr(vidx), ierr) ! 40
+     blen(vidx) = cnt * extr1
 
      vidx = vidx + 1
      ! REAL(r_2)

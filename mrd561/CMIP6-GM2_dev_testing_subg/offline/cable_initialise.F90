@@ -417,6 +417,15 @@ SUBROUTINE get_restart_data(logn,ssnow,canopy,rough,bgc,                       &
       ssnow%GWwb = 0.95*soil%ssat
    END IF
 
+   !MD
+   ok = NF90_INQ_VARID(ncid_rin,'GWtgg',parID)
+   IF(ok == NF90_NOERR) THEN 
+     CALL readpar(ncid_rin,'GWtgg',dummy,ssnow%GWtgg,filename%restart_in,            &
+                max_vegpatches,'def',from_restart,mp)   
+   ELSE
+      ssnow%GWtgg = ssnow%tgg(:,size(ssnow%tgg,dim=2))
+   END IF
+
    ok = NF90_INQ_VARID(ncid_rin,'wtd',parID)
    IF(ok == NF90_NOERR) THEN 
      CALL readpar(ncid_rin,'wtd',dummy,ssnow%wtd,filename%restart_in,            &

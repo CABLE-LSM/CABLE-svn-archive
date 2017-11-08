@@ -1811,10 +1811,6 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
 
     IF (cable_user%GW_MODEL) then
 
-       if (gw_params%level_for_satfrac .le. 0) then
-          gw_params%level_for_satfrac = ms
-       end if
-
        if ( (gw_params%use_pedotransfer_functions) .or. &
             (.not.found_restart_gwmodel_params) ) then
 
@@ -2121,6 +2117,7 @@ SUBROUTINE report_parameters(logn, soil, veg, bgc, rough,                    &
    ! CALL get_type_parameters(filename_veg, filename_soil, logn, vegparmnew)
 
    ! Only report parameters for active vegetation patches:
+   IF (verbose)  THEN  !why fill log when data written to output file?
    DO e = 1, mland
       WRITE(logn, *) '==================================================='//  &
                      '======'
@@ -2705,6 +2702,7 @@ SUBROUTINE report_parameters(logn, soil, veg, bgc, rough,                    &
 
       END IF ! if verbose
    END DO
+   END IF
 
 END SUBROUTINE report_parameters
 

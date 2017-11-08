@@ -278,6 +278,7 @@ MODULE cable_IO_vars_module
          !mrd561
          !MD GW
          GWMoist = .FALSE.,   & ! water balance of aquifer [mm3/mm3]
+         GWtemp = .FALSE.,   & ! water balance of aquifer [mm3/mm3]
          WatTable = .FALSE.,  & ! water table depth [m]
          Qrecharge=.FALSE.,   &  !recharge to /from auqifer
          SatFrac=.FALSE.,       & ! Saturated Fraction of Gridcell (tile)

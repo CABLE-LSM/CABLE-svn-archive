@@ -56,7 +56,7 @@ MODULE cable_def_types_mod
        pms = 7,      & ! # soil layers - standard
        ntiles=8       ! # number of clusters per gridcell
 
-   INTEGER :: ms
+   INTEGER :: ms = 6
 
 !       ms = 13          ! for Loetschental experiment
 
@@ -274,11 +274,17 @@ MODULE cable_def_types_mod
          wblf,    & !
          wbfice     !
 
+      REAL(r_2), DIMENSION(:), POINTER :: &
+         GWgammzz
+        
+
      !mrd561
       !MD variables for the revised soil moisture + GW scheme
+      REAL, DIMENSION(:), POINTER   ::                                     &
+         GWtgg      ! tmperature of aquifer
+
       REAL(r_2), DIMENSION(:), POINTER   ::                                     &
          GWwb,    &  ! water content in aquifer [mm3/mm3]
-         GWtgg,    &  ! tmperature of aquifer
          GWhk,    &  ! aquifer hydraulic conductivity  [mm/s]
          GWdhkdw, &  ! aquifer d(hk) over d(water content) [(mm/s)/(mm3/mm3)]
          GWdsmpdw,&  ! aquifer d(smp) / dw   [(mm)/(mm3/mm3)]
@@ -915,7 +921,8 @@ SUBROUTINE alloc_soil_snow_type(var, mp)
    ALLOCATE( var% fwtop1(mp) )
    ALLOCATE( var% fwtop2(mp) )
    ALLOCATE( var% fwtop3(mp) )
-   ALLOCATE( var% gammzz(mp,ms+1) )
+   ALLOCATE( var% gammzz(mp,ms) )
+   ALLOCATE( var% GWgammzz(mp) )
    ALLOCATE( var% isflag(mp) )
    ALLOCATE( var% osnowd(mp) )
    ALLOCATE( var% potev(mp) )
@@ -1537,6 +1544,7 @@ SUBROUTINE dealloc_soil_snow_type(var)
    DEALLOCATE( var% fwtop2 )
    DEALLOCATE( var% fwtop3 )
    DEALLOCATE( var% gammzz )
+   DEALLOCATE( var% GWgammzz )
    DEALLOCATE( var% isflag )
    DEALLOCATE( var% osnowd )
    DEALLOCATE( var% potev )

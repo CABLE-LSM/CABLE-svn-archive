@@ -41,7 +41,7 @@ MODULE cable_soil_snow_module
 
    PRIVATE
 
-   TYPE ( issnow_type ) :: C
+   TYPE ( issnow_type ), SAVE :: C
 
    REAL, PARAMETER ::                                                          &
       cgsnow = 2090.0,     & ! specific heat capacity for snow

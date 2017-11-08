@@ -274,7 +274,8 @@ CONTAINS
          wiltParam,        &
          satuParam,        &
          cable_user,       &  ! additional USER switches
-         gw_params
+         gw_params,        &
+         ms
 
     INTEGER :: i,x,kk
     INTEGER :: LALLOC, iu
@@ -2458,6 +2459,10 @@ ENDIF
   bidx = bidx + 1
   CALL MPI_Get_address (ssnow%GWwb, displs(bidx), ierr)
   blen(bidx) = r2len
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (ssnow%GWtgg, displs(bidx), ierr)
+  blen(bidx) = r1len
 
   write(*,*) 'worker ',rank,' bidx of ',bidx
 
@@ -5589,6 +5594,10 @@ ENDIF
      bidx = bidx + 1
      CALL MPI_Get_address (ssnow%GWwb(off), displs(bidx), ierr)
      blocks(bidx) = r2len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (ssnow%GWtgg(off), displs(bidx), ierr)
+     blocks(bidx) = r1len
 
      bidx = bidx + 1
      CALL MPI_Get_address (ssnow%wtd(off), displs(bidx), ierr)

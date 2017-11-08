@@ -69,7 +69,7 @@ MODULE cable_output_module
                     PlantTurnover, PlantTurnoverLeaf, PlantTurnoverFineRoot, &
                     PlantTurnoverWood, PlantTurnoverWoodDist, PlantTurnoverWoodCrowding, &
                     PlantTurnoverWoodResourceLim, dCdt, Area, LandUseFlux, patchfrac, &
-                    vcmax,hc,WatTable,GWMoist,SatFrac,Qrecharge,SMP
+                    vcmax,hc,WatTable,GWMoist,SatFrac,Qrecharge,SMP,GWtemp
   END TYPE out_varID_type
   TYPE(out_varID_type) :: ovid ! netcdf variable IDs for output variables
   TYPE(parID_type) :: opid ! netcdf variable IDs for output variables
@@ -226,6 +226,7 @@ MODULE cable_output_module
     REAL(KIND=4), POINTER, DIMENSION(:)   :: SatFrac         !Saturated Fraction of Grid Cell
     REAL(KIND=4), POINTER, DIMENSION(:)   :: Qrecharge         !recharge rate Grid Cell
     REAL(KIND=4), POINTER, DIMENSION(:)   :: GWMoist       ! water balance of aquifer [mm3/mm3]
+    REAL(KIND=4), POINTER, DIMENSION(:)   :: GWtemp       ! water balance of aquifer [mm3/mm3]
     REAL(KIND=4), POINTER, DIMENSION(:)   :: WatTable      ! water table depth [m]
     REAL(KIND=4), POINTER, DIMENSION(:,:) :: SMP      ! soil pressure [m]
 
@@ -837,6 +838,13 @@ CONTAINS
                         'dummy', xID, yID, zID, landID, patchID, tID)
        ALLOCATE(out%GWMoist(mp))
        out%GWMoist = 0.0 ! initialise
+    END IF
+    IF(output%soil .OR. output%GWMoist) THEN
+       CALL define_ovar(ncid_out, ovid%GWtemp, 'GWtemp', 'mm3/mm3',      &
+                        'Aquifer mositure content', patchout%GWtemp,     &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%GWtemp(mp))
+       out%GWtemp = 0.0 ! initialise
     END IF
 
     IF(output%soil .OR. output%SatFrac) THEN
@@ -2025,6 +2033,18 @@ CONTAINS
                out%GWMoist, ranges%GWwb, patchout%GWMoist, 'default', met)
           ! Reset temporary output variable:
           out%GWMoist = 0.0
+       END IF
+    END IF   
+    IF((output%soil .OR. output%GWMoist)  .and. cable_user%GW_MODEL) THEN
+       out%GWtemp = out%GWtemp + REAL(ssnow%GWtgg, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%GWtemp = out%GWtemp / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%GWtemp, 'GWtemp', &
+               out%GWtemp, ranges%GWwb, patchout%GWtemp, 'default', met)
+          ! Reset temporary output variable:
+          out%GWtemp = 0.0
        END IF
     END IF   
     IF((output%soil .OR. output%SatFrac)  .and. cable_user%GW_MODEL) THEN
@@ -3305,6 +3325,8 @@ CONTAINS
                      'Reference height (lowest atm. model layer) for scalars', &
                      .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
 
+    CALL define_ovar(ncid_restart, gwID, 'GWtgg', 'K','GW temperature',&
+                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
     CALL define_ovar(ncid_restart, gwID, 'GWwb', 'mm3/mm3','GW water content',&
                      .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
     CALL define_ovar(ncid_restart, wtdID, 'wtd', 'mm','water table depth',&
@@ -3698,6 +3720,8 @@ CONTAINS
          REAL(rad%trad, 4), ranges%RadT, .TRUE., 'real', .TRUE.)
 
     CALL write_ovar (ncid_restart, gwID, 'GWwb', ssnow%GWwb,       &
+                     (/-1.0e25,1.0e25/), .TRUE., 'real', .TRUE.)
+    CALL write_ovar (ncid_restart, gwID, 'GWtgg', ssnow%GWtgg,       &
                      (/-1.0e25,1.0e25/), .TRUE., 'real', .TRUE.)
     CALL write_ovar (ncid_restart, gwID, 'wtd', ssnow%wtd,       &
                      (/0.0,1.0e25/), .TRUE., 'real', .TRUE.)

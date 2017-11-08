@@ -261,7 +261,8 @@ PROGRAM cable_offline_driver
        wiltParam,	 &
        satuParam,	 &
        cable_user,       &   ! additional USER switches
-       gw_params
+       gw_params,        &
+       ms
 
   !mpidiff
   INTEGER :: i,x,kk

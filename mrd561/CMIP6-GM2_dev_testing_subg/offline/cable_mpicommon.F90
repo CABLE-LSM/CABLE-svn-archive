@@ -42,7 +42,7 @@ MODULE cable_mpicommon
   !only5 in master cable params
   !send ssnow%smp to workers so they can send back values if gw=false
   !INTEGER, PARAMETER :: nparam =331!  add back in elev 330! 329 !326!308   
-  INTEGER, PARAMETER :: nparam =337 !flow frac, dist, elev, zse_vec,css_vec,cnds_vec
+  INTEGER, PARAMETER :: nparam =338 !flow frac, dist, elev, zse_vec,css_vec,cnds_vec
   ! MPI: extra params sent only if nsoilparmnew is true
   INTEGER, PARAMETER :: nsoilnew = 1
 
@@ -110,8 +110,8 @@ MODULE cable_mpicommon
   ! vh sli nvec + 6 162 -> 168
   ! INTEGER, PARAMETER :: nvec = 172! 168
   ! INH REV_CORR +3  (SSEB +2 will be needed)
-  ! sublayer_dz
-   INTEGER, PARAMETER :: nvec = 176 !175
+  ! sublayer_dz,Qconv
+   INTEGER, PARAMETER :: nvec = 178 !175
 
   ! MPI: number of final casa result matrices and vectors to receive
   ! by the master for casa_poolout and casa_fluxout
