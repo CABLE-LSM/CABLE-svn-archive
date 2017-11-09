@@ -1825,6 +1825,7 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
              soil%cnsd_vec(:,klev)  = soil%sand_vec(:,klev) * 0.3 + soil%clay_vec(:,klev) * 0.25                          &
                       + soil%silt_vec(:,klev) * 0.265 ! set dry soil thermal conductivity
              soil%css_vec(:,klev)  = 900.0*soil%sand_vec(:,klev) + 1100.0*soil%clay_vec(:,klev)     
+                                       !dry soil thermal heat capacity
 
 
           ENDDO
