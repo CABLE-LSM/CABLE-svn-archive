@@ -348,6 +348,9 @@ MODULE cable_common_module
   
   character(len=200) :: fprintf_dir
 
+  real, allocatable, dimension(:), save :: optimized_vegin
+  real, allocatable, dimension(:,:), save :: soil_texture
+
 interface fudge_out
    module procedure fudge_out_r2D, fudge_out_r1D, fudge_out_r3D, fudge_out_i2D
 End interface fudge_out
@@ -468,6 +471,26 @@ CONTAINS
           READ(40,*) vegin%a1gs(jveg), vegin%d0gs(jveg), vegin%alpha(jveg), vegin%convex(jveg), vegin%cfrd(jveg)
           READ(40,*) vegin%gswmin(jveg), vegin%conkc0(jveg), vegin%conko0(jveg), vegin%ekc(jveg), vegin%eko(jveg)
           READ(40,*) vegin%g0(jveg), vegin%g1(jveg)      ! Ticket #56
+          !force use of optimized params
+          vegin%hc(jveg)       = optimized_vegin(1)
+          vegin%xfang(jveg)    = optimized_vegin(2)
+          vegin%length(jveg)   = optimized_vegin(3)
+          vegin%refl(1,jveg)   = optimized_vegin(4)
+          vegin%refl(2,jveg)   = optimized_vegin(5)
+          vegin%refl(3,jveg)   = optimized_vegin(6)
+          vegin%taul(1,jveg)    = optimized_vegin(4)
+          vegin%taul(2,jveg)    = optimized_vegin(5)
+          vegin%taul(3,jveg)    = optimized_vegin(6)
+
+
+          vegin%vbeta(jveg)    = optimized_vegin(7)
+          vegin%rootbeta(jveg) = optimized_vegin(8)
+          vegin%rs20(jveg)     = optimized_vegin(9)
+          vegin%vcmax(jveg)    = optimized_vegin(10)
+          vegin%rp20(jveg)     = optimized_vegin(11)
+          vegin%shelrb(jveg)   = optimized_vegin(12)
+          vegin%wai(jveg)      = optimized_vegin(13)
+          vegin%canst1(jveg)   = optimized_vegin(14)
 
        END DO
 
