@@ -1684,7 +1684,7 @@ CONTAINS
 
     REAL, DIMENSION(:,:), POINTER :: gswmin ! min stomatal conductance
 
-    REAL, DIMENSION(mp,2) ::  gsw_term, lower_limit2  ! local temp var
+    REAL, DIMENSION(mp,2) ::  gsw_term, lower_limit2, fw  ! local temp var
 
     REAL :: trans_mmol, conv
     REAL, PARAMETER :: KG_2_G = 1000.0
@@ -1970,7 +1970,7 @@ CONTAINS
             ! Medlyn BE et al (2011) Global Change Biology 17: 2134-2144.
             ELSEIF(cable_user%GS_SWITCH == 'medlyn') THEN
 
-                 gswmin = veg%g0(i)
+                gswmin = veg%g0(i)
 
                 IF (dsx(i) < 50.0) THEN
                     vpd  = 0.05 ! kPa
@@ -1982,6 +1982,14 @@ CONTAINS
 
                 gs_coeff(i,1) = (1.0 + (g1 * fwsoil(i)) / SQRT(vpd)) / csx(i,1)
                 gs_coeff(i,2) = (1.0 + (g1 * fwsoil(i)) / SQRT(vpd)) / csx(i,2)
+
+            ELSE IF (cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
+
+               ! here the LWP represents the previous time step
+               fw(i,1) = f_tuzet(canopy%lwp(1))
+               fw(i,2) = f_tuzet(canopy%lwp(2))
+               gs_coeff(i,1) = (g1 * csx(i,1)) / fw(i,1)
+               gs_coeff(i,2) = (g1 * csx(i,2)) / fw(i,2)
 
             ELSE
                 STOP 'gs_model_switch failed.'
@@ -2015,20 +2023,12 @@ CONTAINS
                 STOP
              END IF
 
-             inferred_stress = 0.0
-             DO kk = 1, mf
-                gsc(kk) = MAX(1.e-3, (gswmin(i,kk) / C%RGSWC) + &
-                              MAX(0.0, (gs_coeff(i,kk) * anx(i,kk))))
 
-                CALL calculate_emax(canopy, veg, ssnow, dsx(:), par(:,:),      &
-                                    csx(:,:), SPREAD(cx1(:), 2, mf), rdx(:,:), &
-                                    vcmxt3(:,:), gsc(:), anx(:,:), ktot,       &
-                                    co2cp3, inferred_stress, i, kk)
-             END DO
              ! fwsoil means nothing when using the plant hydraulics, but we
              ! still need an inferred fwsoil as this is used in SOM
-             ! decomposition calculations
-             canopy%fwsoil(i) = inferred_stress / 2.0
+             ! decomposition calculations. Will fix later. Work out ratio to
+             ! EMAX
+             canopy%fwsoil(i) = 1.0
           END DO
        END IF
 
@@ -2838,7 +2838,35 @@ CONTAINS
   END SUBROUTINE getrex_1d
   !*********************************************************************************************************************
 
-  
+  ! ----------------------------------------------------------------------------
+  FUNCTION f_tuzet(psi_leaf_prev) RESULT(fw)
+     ! Empirical logistic function to describe the sensitivity of stomata
+     ! to leaf water potential. Function assumes that stomata are insensitive
+     ! to LWP at values close to zero and that stomata rapidly close with
+     ! decreasing LWP.
+     !
+     ! Reference:
+     ! ----------
+     ! * Tuzet et al. (2003) A coupled model of stomatal conductance,
+     !   photosynthesis and transpiration. Plant, Cell and Environment 26,
+     !   1097–1116
+     !
+     ! Martin De Kauwe, 27th Nov, 2017
+
+     IMPLICIT NONE
+
+     REAL :: num, den, fw
+     REAL, INTENT(IN) :: psi_leaf_prev
+     REAL, PARAMETER  :: sf = 8.0
+     REAL, PARAMETER  :: psi_f = -3 ! psi_f is the reference potential (MPa)
+
+     num = 1.0 + exp(sf * psi_f)
+     den = 1.0 + exp(sf * (psi_f - psi_leaf_prev))
+     fw = num / den
+
+  END FUNCTION f_tuzet
+  ! ----------------------------------------------------------------------------
+
   ! ----------------------------------------------------------------------------
   FUNCTION calc_lwp(ssnow, ktot, transpiration, i) RESULT(lwp)
      ! Calculate the leaf water potential (MPa)
