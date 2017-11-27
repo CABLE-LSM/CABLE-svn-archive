@@ -2915,7 +2915,22 @@ CONTAINS
   END FUNCTION fsig_hydr
   ! ----------------------------------------------------------------------------
 
+  ! ----------------------------------------------------------------------------
+  FUNCTION calc_flux_to_leaf(canopy, transpiration, i) RESULT(Jsl)
+     ! Flux from stem to leaf = change in leaf storage, plus transpiration
+     IMPLICIT NONE
 
+     REAL :: Jsl, timestep_sec
+
+     ! obviously we need to unset this!
+     timestep_sec = 60. * 30.
+
+     Jsl = (canopy%psi_leaf - canopy%psi_leaf_prev) * \
+            canopy%Cl / timestep_sec + canopy%vlaiw(i) * transpiration
+
+
+  END FUNCTION calc_flux_to_leaf
+  ! ----------------------------------------------------------------------------
 
   ! ----------------------------------------------------------------------------
   SUBROUTINE calc_lwp(canopy, transpiration, i)
@@ -2948,16 +2963,16 @@ CONTAINS
      timestep_sec = 60. * 30.
 
      ! both are the previous timestep as neither has been updated as yet
-     psi_leaf_prev = canopy%psi_leaf(i)
-     psi_stem_prev = canopy%psi_stem
+     canopy%psi_leaf_prev(i) = canopy%psi_leaf(i)
+     canopy%psi_stem_prev = canopy%psi_stem
 
      ! canopy%psi_stem represents the previous timestep as we've not updated it
      ! yet
-     bp = (canopy%vlaiw(i) * 2.0 * canopy%kstl * psi_stem_prev - &
+     bp = (canopy%vlaiw(i) * 2.0 * canopy%kstl * canopy%psi_stem_prev - &
             canopy%vlaiw(i) * transpiration) / canopy%Cl
      ap = -(canopy%vlaiw(i) * 2.0 * canopy%kstl / canopy%Cl)
 
-     canopy%psi_leaf(i) = ((ap * psi_leaf_prev + bp) *  &
+     canopy%psi_leaf(i) = ((ap * canopy%psi_leaf_prev + bp) *  &
                           EXP(ap * timestep_sec) - bp) / ap
 
   END SUBROUTINE calc_lwp
