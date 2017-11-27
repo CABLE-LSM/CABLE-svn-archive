@@ -143,6 +143,7 @@ SUBROUTINE get_default_inits(met,soil,ssnow,canopy,logn, EMSOIL)
 
    ! mgk576, 27 Nov 2016
    canopy%lwp = -1.0
+   canopy%xwp = -0.5
 
 END SUBROUTINE get_default_inits
 
