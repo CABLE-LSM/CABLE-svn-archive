@@ -2137,6 +2137,7 @@ CONTAINS
 
                 CALL calc_lwp(canopy, trans_mmol, i)
                 CALL calc_flux_to_leaf(canopy, trans_mmol, i)
+                CALL update_stem_wp(canopy, i)
              ENDIF
 
              ! Update canopy sensible heat flux:
@@ -2919,7 +2920,12 @@ CONTAINS
   ! ----------------------------------------------------------------------------
   SUBROUTINE calc_flux_to_leaf(canopy, transpiration, i)
      ! Flux from stem to leaf = change in leaf storage, plus transpiration
+     USE cable_common_module
+     USE cable_def_types_mod
+
      IMPLICIT NONE
+
+     TYPE (canopy_type), INTENT(INOUT)    :: canopy
 
      REAL :: Jsl, timestep_sec
 
@@ -2928,6 +2934,45 @@ CONTAINS
 
      canopy%Jsl = (canopy%psi_leaf - canopy%psi_leaf_prev) * &
                    canopy%Cl / timestep_sec + canopy%vlaiw(i) * transpiration
+
+
+  END SUBROUTINE calc_flux_to_leaf
+  ! ----------------------------------------------------------------------------
+
+  ! ----------------------------------------------------------------------------
+  SUBROUTINE update_stem_wp(canopy, transpiration, i)
+     ! Following Xu et al, see Appendix + code
+     ! Reference:
+     ! ==========
+     ! * Xu, X., Medvigy, D., Powers, J. S., Becknell, J. M. and Guan, K.
+     !   (2016), Diversity in plant hydraulic traits explains seasonal and
+     !    inter-annual variations of vegetation dynamics in seasonally dry
+     !    tropical forests. New Phytol, 212: 80–95. doi:10.1111/nph.14009.
+     !
+     ! Can write the dynamic equation as: dpsi_leaf_dt = b + a*psi_leaf
+     ! Then it follows (Xu et al. 2016, Appendix, and Code).”
+     ! Martin De Kauwe, 10th Oct, 2017
+
+     USE cable_common_module
+     USE cable_def_types_mod
+
+     IMPLICIT NONE
+
+     TYPE (canopy_type), INTENT(INOUT)    :: canopy
+
+
+     REAL :: psi_soil_prev, timestep_sec, ap, bp
+
+     ! obviously we need to unset this!
+     timestep_sec = 60. * 30.
+
+     psi_soil_prev = ssnow%weighted_swp
+
+     bp = (canopy%vlaiw(i) * 2.0 * canopy%krst * psi_soil_prev - canopy%Jsl) / &
+           canopy%Cs
+     ap = -(canopy%vlaiw(i) * 2.0 * canopy%krst / canopy%Cs)
+     canopy%psi_stem = ((ap * psi_stem_prev + bp) * &
+                       EXP(ap * timestep_sec) - bp) / ap
 
 
   END SUBROUTINE calc_flux_to_leaf
