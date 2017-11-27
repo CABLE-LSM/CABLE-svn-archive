@@ -2136,6 +2136,7 @@ CONTAINS
                 trans_mmol = (canopy%fevc(i) / air%rlam(i)) * conv
 
                 CALL calc_lwp(canopy, trans_mmol, i)
+                CALL calc_flux_to_leaf(canopy, trans_mmol, i)
              ENDIF
 
              ! Update canopy sensible heat flux:
@@ -2916,7 +2917,7 @@ CONTAINS
   ! ----------------------------------------------------------------------------
 
   ! ----------------------------------------------------------------------------
-  FUNCTION calc_flux_to_leaf(canopy, transpiration, i) RESULT(Jsl)
+  SUBROUTINE calc_flux_to_leaf(canopy, transpiration, i)
      ! Flux from stem to leaf = change in leaf storage, plus transpiration
      IMPLICIT NONE
 
@@ -2925,11 +2926,11 @@ CONTAINS
      ! obviously we need to unset this!
      timestep_sec = 60. * 30.
 
-     Jsl = (canopy%psi_leaf - canopy%psi_leaf_prev) * \
-            canopy%Cl / timestep_sec + canopy%vlaiw(i) * transpiration
+     canopy%Jsl = (canopy%psi_leaf - canopy%psi_leaf_prev) * &
+                   canopy%Cl / timestep_sec + canopy%vlaiw(i) * transpiration
 
 
-  END FUNCTION calc_flux_to_leaf
+  END SUBROUTINE calc_flux_to_leaf
   ! ----------------------------------------------------------------------------
 
   ! ----------------------------------------------------------------------------
