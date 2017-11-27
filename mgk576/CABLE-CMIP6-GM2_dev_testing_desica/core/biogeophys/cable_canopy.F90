@@ -1967,9 +1967,6 @@ CONTAINS
                 gs_coeff(i,2) = ( fwsoil(i) / ( csx(i,2) - co2cp3 ) )              &
                           * ( veg%a1gs(i) / ( 1.0 + dsx(i)/veg%d0gs(i)))
 
-                gs_coeff(i,1) = gs_coeff(i,1) * C%RGSWC
-                gs_coeff(i,2) = gs_coeff(i,2) * C%RGSWC
-                
             ! Medlyn BE et al (2011) Global Change Biology 17: 2134-2144.
             ELSEIF(cable_user%GS_SWITCH == 'medlyn') THEN
 
@@ -1986,9 +1983,6 @@ CONTAINS
                 gs_coeff(i,1) = (1.0 + (g1 * fwsoil(i)) / SQRT(vpd)) / csx(i,1)
                 gs_coeff(i,2) = (1.0 + (g1 * fwsoil(i)) / SQRT(vpd)) / csx(i,2)
 
-                gs_coeff(i,1) = gs_coeff(i,1) * C%RGSWC
-                gs_coeff(i,2) = gs_coeff(i,2) * C%RGSWC
-
             ELSE IF (cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
 
                ! here the LWP represents the previous time step
@@ -1997,6 +1991,7 @@ CONTAINS
                gs_coeff(i,1) = (g1 * csx(i,1)) / fw(i,1)
                gs_coeff(i,2) = (g1 * csx(i,2)) / fw(i,2)
 
+               ! convert to conductance to CO2
                gs_coeff(i,1) = gs_coeff(i,1) / C%RGSWC
                gs_coeff(i,2) = gs_coeff(i,2) / C%RGSWC
 
@@ -2053,21 +2048,12 @@ CONTAINS
                         gbhu(i,kk) + gbhf(i,kk) )
                    csx(i,kk) = MAX( 1.0e-4_r_2, csx(i,kk) )
 
-                   ! PH: mgk576, 13/10/17
-                   ! can't decide which is these is the best way to infer gsw?
-                   IF (cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
 
-                      !canopy%gswx(i,kk) = gsc(kk) * C%RGSWC
-                      canopy%gswx(i,kk) = MAX(1.e-3, gswmin(i,kk) +           &
-                                              MAX(0.0,               &
-                                              gs_coeff(i,kk) * anx(i,kk)))
+                   ! Ticket #56, xleuning replaced with gs_coeff here
+                   canopy%gswx(i,kk) = MAX(1.e-3, gswmin(i,kk)*fwsoil(i) + &
+                                           MAX(0.0, C%RGSWC *              &
+                                           gs_coeff(i,kk) * anx(i,kk)))
 
-                   ELSE
-                      ! Ticket #56, xleuning replaced with gs_coeff here
-                      canopy%gswx(i,kk) = MAX(1.e-3, gswmin(i,kk)*fwsoil(i) + &
-                                              MAX(0.0,               &
-                                              gs_coeff(i,kk) * anx(i,kk)))
-                   END IF
 
                    !Recalculate conductance for water:
                    gw(i,kk) = 1.0 / ( 1.0 / canopy%gswx(i,kk) +                &
