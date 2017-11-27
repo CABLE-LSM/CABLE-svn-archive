@@ -2137,7 +2137,7 @@ CONTAINS
 
                 CALL calc_lwp(canopy, trans_mmol, i)
                 CALL calc_flux_to_leaf(canopy, trans_mmol, i)
-                CALL update_stem_wp(canopy, i)
+                CALL update_stem_wp(canopy, ssnow, i)
              ENDIF
 
              ! Update canopy sensible heat flux:
@@ -2928,11 +2928,13 @@ CONTAINS
      TYPE (canopy_type), INTENT(INOUT)    :: canopy
 
      REAL :: Jsl, timestep_sec
+     REAL, INTENT(IN) :: transpiration
+     INTEGER, INTENT(IN) :: i
 
      ! obviously we need to unset this!
      timestep_sec = 60. * 30.
 
-     canopy%Jsl = (canopy%psi_leaf - canopy%psi_leaf_prev) * &
+     canopy%Jsl = (canopy%psi_leaf(i) - canopy%psi_leaf_prev(i)) * &
                    canopy%Cl / timestep_sec + canopy%vlaiw(i) * transpiration
 
 
@@ -2940,7 +2942,7 @@ CONTAINS
   ! ----------------------------------------------------------------------------
 
   ! ----------------------------------------------------------------------------
-  SUBROUTINE update_stem_wp(canopy, transpiration, i)
+  SUBROUTINE update_stem_wp(canopy, ssnow, i)
      ! Following Xu et al, see Appendix + code
      ! Reference:
      ! ==========
@@ -2959,9 +2961,10 @@ CONTAINS
      IMPLICIT NONE
 
      TYPE (canopy_type), INTENT(INOUT)    :: canopy
-
+     TYPE (soil_snow_type), INTENT(INOUT) :: ssnow
 
      REAL :: psi_soil_prev, timestep_sec, ap, bp
+     INTEGER, INTENT(IN) :: i
 
      ! obviously we need to unset this!
      timestep_sec = 60. * 30.
@@ -2971,11 +2974,11 @@ CONTAINS
      bp = (canopy%vlaiw(i) * 2.0 * canopy%krst * psi_soil_prev - canopy%Jsl) / &
            canopy%Cs
      ap = -(canopy%vlaiw(i) * 2.0 * canopy%krst / canopy%Cs)
-     canopy%psi_stem = ((ap * psi_stem_prev + bp) * &
+     canopy%psi_stem = ((ap * canopy%psi_stem_prev + bp) * &
                        EXP(ap * timestep_sec) - bp) / ap
 
 
-  END SUBROUTINE calc_flux_to_leaf
+  END SUBROUTINE update_stem_wp
   ! ----------------------------------------------------------------------------
 
   ! ----------------------------------------------------------------------------
@@ -3018,7 +3021,7 @@ CONTAINS
             canopy%vlaiw(i) * transpiration) / canopy%Cl
      ap = -(canopy%vlaiw(i) * 2.0 * canopy%kstl / canopy%Cl)
 
-     canopy%psi_leaf(i) = ((ap * canopy%psi_leaf_prev + bp) *  &
+     canopy%psi_leaf(i) = ((ap * canopy%psi_leaf_prev(i) + bp) *  &
                           EXP(ap * timestep_sec) - bp) / ap
 
   END SUBROUTINE calc_lwp
