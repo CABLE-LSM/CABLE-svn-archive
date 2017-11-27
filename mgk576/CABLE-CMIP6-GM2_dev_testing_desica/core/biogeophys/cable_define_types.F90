@@ -503,7 +503,7 @@ MODULE cable_def_types_mod
       ! mgk576, 10/10/2017: plant hydraulics
       REAL, DIMENSION(:), POINTER :: psi_leaf
       REAL, DIMENSION(:), POINTER :: psi_leaf_prev
-      REAL :: psi_stem, psi_stem_prev, kp, krst, kstl, Cl, Cs, Jsl
+      REAL :: psi_stem, psi_stem_prev, kp, krst, kstl, Cl, Cs, Jsl, Jrs
 
 
    END TYPE canopy_type

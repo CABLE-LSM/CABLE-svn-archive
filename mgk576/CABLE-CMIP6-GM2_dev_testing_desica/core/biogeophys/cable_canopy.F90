@@ -2138,6 +2138,7 @@ CONTAINS
                 CALL calc_lwp(canopy, trans_mmol, i)
                 CALL calc_flux_to_leaf(canopy, trans_mmol, i)
                 CALL update_stem_wp(canopy, ssnow, i)
+                CALL calc_flux_soil_to_stem(canopy)
              ENDIF
 
              ! Update canopy sensible heat flux:
@@ -2979,6 +2980,27 @@ CONTAINS
 
 
   END SUBROUTINE update_stem_wp
+  ! ----------------------------------------------------------------------------
+
+  ! ----------------------------------------------------------------------------
+  SUBROUTINE calc_flux_soil_to_stem(canopy)
+     ! flux from soil to stem, i.e. root water uptake (mmol s-1) = change in
+     ! stem storage, plus Jsl
+     USE cable_common_module
+     USE cable_def_types_mod
+
+     IMPLICIT NONE
+
+     TYPE (canopy_type), INTENT(INOUT)    :: canopy
+
+     REAL :: timestep_sec
+     ! obviously we need to unset this!
+     timestep_sec = 60. * 30.
+
+     canopy%Jrs = (canopy%psi_stem - canopy%psi_stem_prev) * &
+                   canopy%Cs / timestep_sec + canopy%self.Jsl
+
+  END SUBROUTINE calc_flux_soil_to_stem
   ! ----------------------------------------------------------------------------
 
   ! ----------------------------------------------------------------------------
