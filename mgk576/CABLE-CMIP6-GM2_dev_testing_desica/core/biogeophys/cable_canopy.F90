@@ -2125,7 +2125,7 @@ CONTAINS
                 ENDIF
 
              ENDIF
-
+             print*, "******", dels
              ! PH: mgk576, 13/10/17
              ! This is over the combined direct & diffuse leaves due to the
              ! way the loops fall above
@@ -2135,10 +2135,10 @@ CONTAINS
                 conv = KG_2_G * G_WATER_TO_MOL * MOL_2_MMOL
                 trans_mmol = (canopy%fevc(i) / air%rlam(i)) * conv
 
-                CALL calc_lwp(canopy, trans_mmol, i)
-                CALL calc_flux_to_leaf(canopy, trans_mmol, i)
-                CALL update_stem_wp(canopy, ssnow, i)
-                CALL calc_flux_soil_to_stem(canopy, i)
+                CALL calc_lwp(canopy, trans_mmol, dels, i)
+                CALL calc_flux_to_leaf(canopy, trans_mmol, dels, i)
+                CALL update_stem_wp(canopy, ssnow, dels, i)
+                CALL calc_flux_soil_to_stem(canopy, dels, i)
              ENDIF
 
              ! Update canopy sensible heat flux:
@@ -2919,7 +2919,7 @@ CONTAINS
   ! ----------------------------------------------------------------------------
 
   ! ----------------------------------------------------------------------------
-  SUBROUTINE calc_flux_to_leaf(canopy, transpiration, i)
+  SUBROUTINE calc_flux_to_leaf(canopy, transpiration, dels, i)
      ! Flux from stem to leaf = change in leaf storage, plus transpiration
      USE cable_common_module
      USE cable_def_types_mod
@@ -2928,22 +2928,20 @@ CONTAINS
 
      TYPE (canopy_type), INTENT(INOUT)    :: canopy
 
-     REAL :: Jsl, timestep_sec
+     REAL :: Jsl
      REAL, INTENT(IN) :: transpiration
+     REAL, INTENT(IN)               :: dels ! integration time setp (s)
      INTEGER, INTENT(IN) :: i
 
-     ! obviously we need to unset this!
-     timestep_sec = 60. * 30.
-
      canopy%Jsl = (canopy%psi_leaf(i) - canopy%psi_leaf_prev(i)) * &
-                   canopy%Cl / timestep_sec + canopy%vlaiw(i) * transpiration
+                   canopy%Cl / dels + canopy%vlaiw(i) * transpiration
 
 
   END SUBROUTINE calc_flux_to_leaf
   ! ----------------------------------------------------------------------------
 
   ! ----------------------------------------------------------------------------
-  SUBROUTINE update_stem_wp(canopy, ssnow, i)
+  SUBROUTINE update_stem_wp(canopy, ssnow, dels, i)
      ! Following Xu et al, see Appendix + code
      ! Reference:
      ! ==========
@@ -2964,11 +2962,9 @@ CONTAINS
      TYPE (canopy_type), INTENT(INOUT)    :: canopy
      TYPE (soil_snow_type), INTENT(INOUT) :: ssnow
 
-     REAL :: psi_soil_prev, timestep_sec, ap, bp
+     REAL :: psi_soil_prev, ap, bp
+     REAL, INTENT(IN)               :: dels ! integration time setp (s)
      INTEGER, INTENT(IN) :: i
-
-     ! obviously we need to unset this!
-     timestep_sec = 60. * 30.
 
      psi_soil_prev = ssnow%weighted_swp
 
@@ -2976,14 +2972,14 @@ CONTAINS
            canopy%Cs
      ap = -(canopy%vlaiw(i) * 2.0 * canopy%krst / canopy%Cs)
      canopy%psi_stem = ((ap * canopy%psi_stem_prev + bp) * &
-                       EXP(ap * timestep_sec) - bp) / ap
+                       EXP(ap * dels) - bp) / ap
 
 
   END SUBROUTINE update_stem_wp
   ! ----------------------------------------------------------------------------
 
   ! ----------------------------------------------------------------------------
-  SUBROUTINE calc_flux_soil_to_stem(canopy, i)
+  SUBROUTINE calc_flux_soil_to_stem(canopy, dels, i)
      ! flux from soil to stem, i.e. root water uptake (mmol s-1) = change in
      ! stem storage, plus Jsl
      USE cable_common_module
@@ -2994,21 +2990,19 @@ CONTAINS
      TYPE (canopy_type), INTENT(INOUT)    :: canopy
 
      INTEGER, INTENT(IN) :: i
-
-     REAL :: timestep_sec, conv
-     ! obviously we need to unset this!
-     timestep_sec = 60. * 30.
+     REAL, INTENT(IN)               :: dels ! integration time setp (s)
+     REAL :: conv
 
      conv = 1E-06 * 18.
 
      canopy%Jrs(i) = ((canopy%psi_stem - canopy%psi_stem_prev) * &
-                   canopy%Cs / timestep_sec + canopy%Jsl) * conv
+                   canopy%Cs / dels + canopy%Jsl) * conv
 
   END SUBROUTINE calc_flux_soil_to_stem
   ! ----------------------------------------------------------------------------
 
   ! ----------------------------------------------------------------------------
-  SUBROUTINE calc_lwp(canopy, transpiration, i)
+  SUBROUTINE calc_lwp(canopy, transpiration, dels, i)
      ! Calculate the leaf water potential (MPa)
      ! Following Xu et al, see Appendix + code
      !
@@ -3032,10 +3026,8 @@ CONTAINS
 
      INTEGER, INTENT(IN) :: i
      REAL, INTENT(IN) :: transpiration
-     REAL :: psi_leaf_prev, psi_stem_prev, timestep_sec, ap, bp
-
-     ! obviously we need to unset this!
-     timestep_sec = 60. * 30.
+     REAL :: psi_leaf_prev, psi_stem_prev, ap, bp
+     REAL, INTENT(IN) :: dels ! integration time setp (s)
 
      ! both are the previous timestep as neither has been updated as yet
      canopy%psi_leaf_prev(i) = canopy%psi_leaf(i)
@@ -3048,7 +3040,7 @@ CONTAINS
      ap = -(canopy%vlaiw(i) * 2.0 * canopy%kstl / canopy%Cl)
 
      canopy%psi_leaf(i) = ((ap * canopy%psi_leaf_prev(i) + bp) *  &
-                          EXP(ap * timestep_sec) - bp) / ap
+                          EXP(ap * dels) - bp) / ap
 
   END SUBROUTINE calc_lwp
   ! ----------------------------------------------------------------------------
