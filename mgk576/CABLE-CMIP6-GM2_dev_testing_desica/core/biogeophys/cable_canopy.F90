@@ -2866,11 +2866,11 @@ CONTAINS
   ! ----------------------------------------------------------------------------
   SUBROUTINE calc_hydr_conduc()
 
-  REAL, PARAMETER :: kp_sat = 3.0
-
      TYPE (canopy_type), INTENT(INOUT) :: canopy
 
      IMPLICIT NONE
+
+     REAL, PARAMETER :: kp_sat = 3.0
 
      ! Plant hydraulic conductance (mmol m-2 s-1 MPa-1). NB. depends
      ! on stem water potential from the previous timestep. At this
