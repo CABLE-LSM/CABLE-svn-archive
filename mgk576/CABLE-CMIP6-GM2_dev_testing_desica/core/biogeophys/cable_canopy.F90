@@ -2138,7 +2138,7 @@ CONTAINS
                 CALL calc_lwp(canopy, trans_mmol, i)
                 CALL calc_flux_to_leaf(canopy, trans_mmol, i)
                 CALL update_stem_wp(canopy, ssnow, i)
-                CALL calc_flux_soil_to_stem(canopy)
+                CALL calc_flux_soil_to_stem(canopy, i)
              ENDIF
 
              ! Update canopy sensible heat flux:
@@ -2983,7 +2983,7 @@ CONTAINS
   ! ----------------------------------------------------------------------------
 
   ! ----------------------------------------------------------------------------
-  SUBROUTINE calc_flux_soil_to_stem(canopy)
+  SUBROUTINE calc_flux_soil_to_stem(canopy, i)
      ! flux from soil to stem, i.e. root water uptake (mmol s-1) = change in
      ! stem storage, plus Jsl
      USE cable_common_module
