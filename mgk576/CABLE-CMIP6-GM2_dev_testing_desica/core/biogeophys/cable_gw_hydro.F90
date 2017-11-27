@@ -221,8 +221,10 @@ SUBROUTINE remove_transGW(dels, soil, ssnow, canopy, veg)
 
       DO k = 1, ms
          DO i = 1, mp
-            IF (canopy%fevc(i) .gt. 0._r_2) THEN
-               xx(i) = canopy%fevc(i) * dels / C%HL * &
+            !IF (canopy%fevc(i) .gt. 0._r_2) THEN
+            IF (canopy%Jrs(i) .gt. 0._r_2) THEN
+               !xx(i) = canopy%fevc(i) * dels / C%HL * &
+               xx(i) = canopy%Jrs(i) / C%HL * &
                        MAX(0.00000005, ssnow%fraction_uptake(i,k)) + diff(i,k-1)
 
                diff(i,k) = max(0._r_2,ssnow%wbliq(i,k)-soil%swilt_vec(i,k)) * &

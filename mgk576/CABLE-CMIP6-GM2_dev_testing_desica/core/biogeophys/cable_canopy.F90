@@ -2993,12 +2993,16 @@ CONTAINS
 
      TYPE (canopy_type), INTENT(INOUT)    :: canopy
 
-     REAL :: timestep_sec
+     INTEGER, INTENT(IN) :: i
+
+     REAL :: timestep_sec, conv
      ! obviously we need to unset this!
      timestep_sec = 60. * 30.
 
-     canopy%Jrs = (canopy%psi_stem - canopy%psi_stem_prev) * &
-                   canopy%Cs / timestep_sec + canopy%self.Jsl
+     conv = 1E-06 * 18.
+
+     canopy%Jrs(i) = ((canopy%psi_stem - canopy%psi_stem_prev) * &
+                   canopy%Cs / timestep_sec + canopy%Jsl) * conv
 
   END SUBROUTINE calc_flux_soil_to_stem
   ! ----------------------------------------------------------------------------
