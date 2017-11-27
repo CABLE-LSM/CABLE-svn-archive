@@ -2125,7 +2125,7 @@ CONTAINS
                 ENDIF
 
              ENDIF
-             print*, "******", dels
+             
              ! PH: mgk576, 13/10/17
              ! This is over the combined direct & diffuse leaves due to the
              ! way the loops fall above
