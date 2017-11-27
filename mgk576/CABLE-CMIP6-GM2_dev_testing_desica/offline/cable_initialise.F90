@@ -141,6 +141,9 @@ SUBROUTINE get_default_inits(met,soil,ssnow,canopy,logn, EMSOIL)
    canopy%fhs     = 0.0   ! sensible heat flux from soil (W/m2)
    canopy%us = 0.1 ! friction velocity (needed in roughness before first call to canopy: should in be in restart?)
 
+   ! mgk576, 27 Nov 2016
+   canopy%lwp = -1.0
+
 END SUBROUTINE get_default_inits
 
 !==============================================================================
@@ -410,9 +413,9 @@ SUBROUTINE get_restart_data(logn,ssnow,canopy,rough,bgc,                       &
 
    !MD
    ok = NF90_INQ_VARID(ncid_rin,'GWwb',parID)
-   IF(ok == NF90_NOERR) THEN 
+   IF(ok == NF90_NOERR) THEN
      CALL readpar(ncid_rin,'GWwb',dummy,ssnow%GWwb,filename%restart_in,            &
-                max_vegpatches,'def',from_restart,mp)   
+                max_vegpatches,'def',from_restart,mp)
    ELSE
       ssnow%GWwb = 0.95*soil%ssat
    END IF
@@ -632,7 +635,7 @@ ENDIF
    CALL readpar(ncid_rin,'g0',dummy,veg%g0,filename%restart_in,            &
                 max_vegpatches,'def',from_restart,mp) ! Ticket #56
    CALL readpar(ncid_rin,'g1',dummy,veg%g1,filename%restart_in,            &
-                max_vegpatches,'def',from_restart,mp) ! Ticket #56 
+                max_vegpatches,'def',from_restart,mp) ! Ticket #56
    CALL readpar(ncid_rin,'meth',dummy,veg%meth,filename%restart_in,            &
                 max_vegpatches,'def',from_restart,mp)
    ! special treatment of za with the introduction of za_uv and za_tq
@@ -850,4 +853,3 @@ SUBROUTINE extraRestart(INpatch,ssnow,canopy,rough,bgc,                        &
 END SUBROUTINE extraRestart
 
 END MODULE cable_init_module
-
