@@ -1984,7 +1984,7 @@ CONTAINS
                 gs_coeff(i,2) = (1.0 + (g1 * fwsoil(i)) / SQRT(vpd)) / csx(i,2)
 
             ELSE IF (cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
-               CALL calc_hydr_conduc()
+               CALL calc_hydr_conduc(canopy, ssnow, i)
 
                ! here the LWP represents the previous time step
                fw(i,1) = f_tuzet(canopy%psi_leaf(1))
@@ -2864,13 +2864,21 @@ CONTAINS
   ! ----------------------------------------------------------------------------
 
   ! ----------------------------------------------------------------------------
-  SUBROUTINE calc_hydr_conduc()
-
-     TYPE (canopy_type), INTENT(INOUT) :: canopy
+  SUBROUTINE calc_hydr_conduc(canopy, ssnow, i)
+     USE cable_common_module
+     USE cable_def_types_mod
 
      IMPLICIT NONE
 
+     TYPE (canopy_type), INTENT(INOUT)    :: canopy
+     TYPE (soil_snow_type), INTENT(INOUT) :: ssnow
+
+     INTEGER, INTENT(IN) :: i ! patch
      REAL, PARAMETER :: kp_sat = 3.0
+     REAL :: ks
+
+     ! soil-to-root hydraulic conductance (mmol m-2 s-1 MPa-1)
+     ks = 1.0 / ssnow%total_soil_resist(i)
 
      ! Plant hydraulic conductance (mmol m-2 s-1 MPa-1). NB. depends
      ! on stem water potential from the previous timestep. At this
@@ -2878,7 +2886,7 @@ CONTAINS
      canopy%kp = kp_sat * fsig_hydr(canopy%psi_stem)
 
      ! Conductance from soil to stem water store (mmol m-2 s-1 MPa-1)
-     canopy%krst = 1.0 / (1.0 / canopy%ks + 1.0 / (2.0 * canopy%kp))
+     canopy%krst = 1.0 / (1.0 / ks + 1.0 / (2.0 * canopy%kp))
 
      ! Conductance from stem water store to leaf (mmol m-2 s-1 MPa-1)
      canopy%kstl = 2.0 * canopy%kp
