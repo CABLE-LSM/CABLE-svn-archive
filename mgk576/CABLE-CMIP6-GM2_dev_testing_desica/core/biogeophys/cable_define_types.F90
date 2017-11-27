@@ -503,6 +503,8 @@ MODULE cable_def_types_mod
       ! mgk576, 10/10/2017: plant hydraulics
       REAL, DIMENSION(:), POINTER ::                                           &
          lwp
+      REAL, DIMENSION(:), POINTER ::                                           &
+         xwp
 
 
    END TYPE canopy_type
@@ -1183,6 +1185,7 @@ SUBROUTINE alloc_canopy_type(var, mp)
 
    ! mgk576, 10/10/2017: plant hydraulics
    ALLOCATE( var%lwp(mf) )
+   ALLOCATE( var%xwp(mf) )
 
 END SUBROUTINE alloc_canopy_type
 
@@ -1790,6 +1793,7 @@ SUBROUTINE dealloc_canopy_type(var)
 
    ! mgk576, 10/10/2017: plant hydraulics
    DEALLOCATE( var%lwp )
+   DEALLOCATE( var%xwp )
 
 END SUBROUTINE dealloc_canopy_type
 
