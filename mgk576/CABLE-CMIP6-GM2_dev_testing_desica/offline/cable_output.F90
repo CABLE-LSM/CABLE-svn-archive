@@ -2031,7 +2031,7 @@ CONTAINS
     ! This will do for now
     IF((output%soil) .and. cable_user%GW_MODEL) THEN
        ! Add current timestep's value to total of temporary output variable:
-       out%swp2 = out%swp2 + REAL(canopy%lwp, 4)
+       out%swp2 = out%swp2 + REAL(canopy%psi_leaf, 4)
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
           out%swp2 = out%swp2 / REAL(output%interval, 4)

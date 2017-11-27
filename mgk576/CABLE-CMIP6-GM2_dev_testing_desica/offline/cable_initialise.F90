@@ -142,8 +142,8 @@ SUBROUTINE get_default_inits(met,soil,ssnow,canopy,logn, EMSOIL)
    canopy%us = 0.1 ! friction velocity (needed in roughness before first call to canopy: should in be in restart?)
 
    ! mgk576, 27 Nov 2016
-   canopy%lwp = -1.0
-   canopy%xwp = -0.5
+   canopy%psi_leaf = -1.0
+   canopy%psi_stem = -0.5
 
 END SUBROUTINE get_default_inits
 
