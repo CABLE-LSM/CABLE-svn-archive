@@ -1686,7 +1686,7 @@ CONTAINS
 
     REAL, DIMENSION(mp,2) ::  gsw_term, lower_limit2, fw  ! local temp var
 
-    REAL :: trans_mmol, conv
+    REAL :: trans_mmol, conv, kp_sat
     REAL, PARAMETER :: KG_2_G = 1000.0
     REAL, PARAMETER :: G_WATER_TO_MOL = 1.0 / 18.01528
     REAL, PARAMETER :: MOL_2_MMOL = 1000.0
@@ -1985,9 +1985,12 @@ CONTAINS
 
             ELSE IF (cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
 
+               kp_sat = 3.0
+               canopy%kp = kp_sat * fsig_hydr(canopy%psi_stem)
+
                ! here the LWP represents the previous time step
-               fw(i,1) = f_tuzet(canopy%lwp(1))
-               fw(i,2) = f_tuzet(canopy%lwp(2))
+               fw(i,1) = f_tuzet(canopy%psi_leaf(1))
+               fw(i,2) = f_tuzet(canopy%psi_leaf(2))
                gs_coeff(i,1) = (g1 * csx(i,1)) / fw(i,1)
                gs_coeff(i,2) = (g1 * csx(i,2)) / fw(i,2)
 
@@ -2133,7 +2136,7 @@ CONTAINS
                 ! Transpiration: kg m-2 s-1 -> mmol m-2 s-1
                 conv = KG_2_G * G_WATER_TO_MOL * MOL_2_MMOL
                 trans_mmol = (canopy%fevc(i) / air%rlam(i)) * conv
-                canopy%lwp(i) = calc_lwp(ssnow, ktot, trans_mmol, i)
+                canopy%psi_leaf(i) = calc_lwp(ssnow, ktot, trans_mmol, i)
              ENDIF
 
              ! Update canopy sensible heat flux:
@@ -2863,7 +2866,27 @@ CONTAINS
   ! ----------------------------------------------------------------------------
 
   ! ----------------------------------------------------------------------------
-  FUNCTION calc_lwp(ssnow, ktot, transpiration, i) RESULT(lwp)
+  FUNCTION fsig_hydr(psi_stem) RESULT(relk)
+
+     IMPLICIT NONE
+
+     REAL :: X, PX, V, p, relk, p50, s50, psi_stemX
+     REAL, INTENT(IN) :: psi_stem
+
+     X = 50.0
+     p50 = -4.    ! MPa
+     s50 = 30.0
+     psi_stemX = ABS(psi_stem)
+     PX = ABS(p50)
+     V = (X - 100.) * LOG(1.0 - X / 100.)
+     p = (psi_stemX / PX)**((PX * s50) / V)
+     relk = (1. - X / 100.)**p
+
+  END FUNCTION fsig_hydr
+  ! ----------------------------------------------------------------------------
+
+  ! ----------------------------------------------------------------------------
+  FUNCTION calc_lwp(ssnow, ktot, transpiration, i) RESULT(psi_leaf)
      ! Calculate the leaf water potential (MPa)
      !
      ! Martin De Kauwe, 10th Oct, 2017
@@ -2876,17 +2899,17 @@ CONTAINS
      TYPE (soil_snow_type), INTENT(INOUT) :: ssnow
      INTEGER, INTENT(IN) :: i
      REAL, INTENT(IN) :: ktot, transpiration
-     REAL :: lwp
+     REAL :: psi_leaf
 
      IF (ktot > 0.0) THEN
-        lwp = ssnow%weighted_swp - (transpiration / ktot)
+        psi_leaf = ssnow%weighted_swp - (transpiration / ktot)
      ELSE
-        lwp = ssnow%weighted_swp
+        psi_leaf = ssnow%weighted_swp
      END IF
 
      ! Set lower limit to LWP
-     IF (lwp < -20.0) THEN
-        lwp = -20.0
+     IF (psi_leaf < -20.0) THEN
+        psi_leaf = -20.0
      END IF
 
   END FUNCTION calc_lwp
