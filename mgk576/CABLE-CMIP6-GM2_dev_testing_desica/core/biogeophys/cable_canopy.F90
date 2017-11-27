@@ -1686,7 +1686,7 @@ CONTAINS
 
     REAL, DIMENSION(mp,2) ::  gsw_term, lower_limit2, fw  ! local temp var
 
-    REAL :: trans_mmol, conv, kp_sat
+    REAL :: trans_mmol, conv
     REAL, PARAMETER :: KG_2_G = 1000.0
     REAL, PARAMETER :: G_WATER_TO_MOL = 1.0 / 18.01528
     REAL, PARAMETER :: MOL_2_MMOL = 1000.0
@@ -1984,9 +1984,7 @@ CONTAINS
                 gs_coeff(i,2) = (1.0 + (g1 * fwsoil(i)) / SQRT(vpd)) / csx(i,2)
 
             ELSE IF (cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
-
-               kp_sat = 3.0
-               canopy%kp = kp_sat * fsig_hydr(canopy%psi_stem)
+               CALL calc_hydr_conduc()
 
                ! here the LWP represents the previous time step
                fw(i,1) = f_tuzet(canopy%psi_leaf(1))
@@ -2866,6 +2864,29 @@ CONTAINS
   ! ----------------------------------------------------------------------------
 
   ! ----------------------------------------------------------------------------
+  SUBROUTINE calc_hydr_conduc()
+
+  REAL, PARAMETER :: kp_sat = 3.0
+
+     TYPE (canopy_type), INTENT(INOUT) :: canopy
+
+     IMPLICIT NONE
+
+     ! Plant hydraulic conductance (mmol m-2 s-1 MPa-1). NB. depends
+     ! on stem water potential from the previous timestep. At this
+     ! point psi_stem represents the previous timestep
+     canopy%kp = kp_sat * fsig_hydr(canopy%psi_stem)
+
+     ! Conductance from soil to stem water store (mmol m-2 s-1 MPa-1)
+     canopy%krst = 1.0 / (1.0 / canopy%ks + 1.0 / (2.0 * canopy%kp))
+
+     ! Conductance from stem water store to leaf (mmol m-2 s-1 MPa-1)
+     canopy%kstl = 2.0 * canopy%kp
+
+  END SUBROUTINE calc_hydr_conduc
+  ! ----------------------------------------------------------------------------
+
+  ! ----------------------------------------------------------------------------
   FUNCTION fsig_hydr(psi_stem) RESULT(relk)
 
      IMPLICIT NONE
@@ -2884,6 +2905,7 @@ CONTAINS
 
   END FUNCTION fsig_hydr
   ! ----------------------------------------------------------------------------
+
 
   ! ----------------------------------------------------------------------------
   FUNCTION calc_lwp(ssnow, ktot, transpiration, i) RESULT(psi_leaf)
