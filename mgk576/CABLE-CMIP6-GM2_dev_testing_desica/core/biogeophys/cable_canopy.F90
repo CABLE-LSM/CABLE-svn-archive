@@ -2134,7 +2134,8 @@ CONTAINS
                 ! Transpiration: kg m-2 s-1 -> mmol m-2 s-1
                 conv = KG_2_G * G_WATER_TO_MOL * MOL_2_MMOL
                 trans_mmol = (canopy%fevc(i) / air%rlam(i)) * conv
-                canopy%psi_leaf(i) = calc_lwp(ssnow, ktot, trans_mmol, i)
+
+                CALL calc_lwp(canopy, trans_mmol, i)
              ENDIF
 
              ! Update canopy sensible heat flux:
@@ -2915,10 +2916,21 @@ CONTAINS
   ! ----------------------------------------------------------------------------
 
 
+
   ! ----------------------------------------------------------------------------
-  FUNCTION calc_lwp(ssnow, ktot, transpiration, i) RESULT(psi_leaf)
+  SUBROUTINE calc_lwp(canopy, transpiration, i)
      ! Calculate the leaf water potential (MPa)
+     ! Following Xu et al, see Appendix + code
      !
+     ! Reference:
+     ! ==========
+     ! * Xu, X., Medvigy, D., Powers, J. S., Becknell, J. M. and Guan, K.
+     !   (2016), Diversity in plant hydraulic traits explains seasonal and
+     !    inter-annual variations of vegetation dynamics in seasonally dry
+     !    tropical forests. New Phytol, 212: 80–95. doi:10.1111/nph.14009.
+     !
+     ! Can write the dynamic equation as: dpsi_leaf_dt = b + a*psi_leaf
+     ! Then it follows (Xu et al. 2016, Appendix, and Code).”
      ! Martin De Kauwe, 10th Oct, 2017
 
      USE cable_common_module
@@ -2926,23 +2938,29 @@ CONTAINS
 
      IMPLICIT NONE
 
-     TYPE (soil_snow_type), INTENT(INOUT) :: ssnow
+     TYPE (canopy_type), INTENT(INOUT)    :: canopy
+
      INTEGER, INTENT(IN) :: i
-     REAL, INTENT(IN) :: ktot, transpiration
-     REAL :: psi_leaf
+     REAL, INTENT(IN) :: transpiration
+     REAL :: psi_leaf_prev, psi_stem_prev, timestep_sec, ap, bp
 
-     IF (ktot > 0.0) THEN
-        psi_leaf = ssnow%weighted_swp - (transpiration / ktot)
-     ELSE
-        psi_leaf = ssnow%weighted_swp
-     END IF
+     ! obviously we need to unset this!
+     timestep_sec = 60. * 30.
 
-     ! Set lower limit to LWP
-     IF (psi_leaf < -20.0) THEN
-        psi_leaf = -20.0
-     END IF
+     ! both are the previous timestep as neither has been updated as yet
+     psi_leaf_prev = canopy%psi_leaf(i)
+     psi_stem_prev = canopy%psi_stem
 
-  END FUNCTION calc_lwp
+     ! canopy%psi_stem represents the previous timestep as we've not updated it
+     ! yet
+     bp = (canopy%vlaiw(i) * 2.0 * canopy%kstl * psi_stem_prev - &
+            canopy%vlaiw(i) * transpiration) / canopy%Cl
+     ap = -(canopy%vlaiw(i) * 2.0 * canopy%kstl / canopy%Cl)
+
+     canopy%psi_leaf(i) = ((ap * psi_leaf_prev + bp) *  &
+                          EXP(ap * timestep_sec) - bp) / ap
+
+  END SUBROUTINE calc_lwp
   ! ----------------------------------------------------------------------------
 
 END MODULE cable_canopy_module
