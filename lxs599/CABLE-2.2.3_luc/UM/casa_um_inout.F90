@@ -25,7 +25,7 @@
 !
 !
 ! ==============================================================================
-
+!
 ! Lauren Stevens Jan-Apr 2011
 ! Casa CNP for UM
 !
@@ -39,7 +39,7 @@
 
 MODULE casa_um_inout_mod
 
-!!  USE cable_um_tech_mod    !, ONLY : um1, veg, soil   
+!!  USE cable_um_tech_mod    !, ONLY : um1, veg, soil           ! cable types (replaces cable_variables)
 !!  USE define_dimensions    ! mp, r_1, r_2, i_d
 !!  USE casadimension        ! icycle,mplant,mlitter,msoil
 !!  USE cable_common_module  ! ktau_gl, kend_gl
@@ -52,9 +52,13 @@ CONTAINS
 !========================================================================
 !========================================================================
 
+!SUBROUTINE cable_casa_init(sin_theta_latitude,um1,cpool_tile,npool_tile,ppool_tile, &
 SUBROUTINE init_casacnp(sin_theta_latitude,cpool_tile,npool_tile,ppool_tile, &
-                           soil_order,nidep,nifix,pwea,pdust,GLAI,PHENPHASE)
-! Les 20 Jan 2011
+                           soil_order,nidep,nifix,pwea,pdust,&
+                           wood_hvest_c,wood_hvest_n,wood_hvest_P,&
+                           wood_flux_c,wood_flux_n,wood_flux_P,&
+                           GLAI,PHENPHASE,PREV_YR_SFRAC,idoy)
+! Lest 20 Jan 2011
     USE cable_def_types_mod
     !USE define_dimensions
     !USE define_types
@@ -80,6 +84,14 @@ IMPLICIT NONE
     REAL   , INTENT(INOUT) :: GLAI(um1%land_pts,um1%ntiles)
     REAL   , INTENT(INOUT) :: PHENPHASE(um1%land_pts,um1%ntiles)
     !INTEGER, INTENT(INOUT) :: PHENPHASE(um1%land_pts,um1%ntiles)
+    REAL   , INTENT(INOUT) :: PREV_YR_SFRAC(um1%land_pts,um1%ntiles)
+    REAL   , INTENT(INOUT) :: WOOD_HVEST_C(um1%land_pts,um1%ntiles,3)
+    REAL   , INTENT(INOUT) :: WOOD_HVEST_N(um1%land_pts,um1%ntiles,3)
+    REAL   , INTENT(INOUT) :: WOOD_HVEST_P(um1%land_pts,um1%ntiles,3)
+    REAL   , INTENT(INOUT) :: WOOD_FLUX_C(um1%land_pts,um1%ntiles)
+    REAL   , INTENT(INOUT) :: WOOD_FLUX_N(um1%land_pts,um1%ntiles)
+    REAL   , INTENT(INOUT) :: WOOD_FLUX_P(um1%land_pts,um1%ntiles)
+    INTEGER :: idoy
 
 !    casafile%cnpbiome ='/home/599/lxs599/surface_data/pftlookup_csiro_v16_17tiles.csv'
 !    casafile%phen     ='/home/599/lxs599/surface_data/modis_phenology_v1.txt'
@@ -91,18 +103,21 @@ IMPLICIT NONE
 !!   casafile%cnpmetin ='/home/599/lxs599/surface_data/casametDH.csv'
 !    casafile%cnpflux  =' '
 
-!print *,'Les um_inout',mp,um1%land_pts,um1%ntiles
+!print *,'Lest um_inout',mp,um1%land_pts,um1%ntiles
 
     CALL alloc_casavariable(casabiome,casapool,casaflux,casamet,casabal,mp)
     CALL alloc_phenvariable(phen,mp)
 
+    !CALL casa_readpoint_pk(sin_theta_latitude,veg,soil,casaflux,casamet,um1, &
     CALL casa_readpoint_pk(sin_theta_latitude,veg,soil,casaflux,casamet, &
                           nidep,nifix,pwea,pdust,soil_order)
     CALL casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
     CALL casa_readphen(veg,casamet,phen)
-    CALL casa_init_pk(casabiome,casaflux,casamet,casapool,casabal,canopy,phen, &
-                     cpool_tile,npool_tile,ppool_tile,GLAI,PHENPHASE)
-
+    CALL casa_init_pk(casabiome,casaflux,casamet,casapool,casabal,veg,canopy,phen, &
+                     cpool_tile,npool_tile,ppool_tile,wood_hvest_c,wood_hvest_n,wood_hvest_p,&
+                     wood_flux_c,wood_flux_n,wood_flux_p,&
+                     GLAI,PHENPHASE,PREV_YR_SFRAC,idoy)
+                     !um1,cpool_tile,npool_tile,ppool_tile,GLAI,PHENPHASE)
  return
 END SUBROUTINE init_casacnp
 
@@ -112,6 +127,7 @@ END SUBROUTINE init_casacnp
 
 SUBROUTINE casa_readpoint_pk(sin_theta_latitude,veg,soil,casaflux,casamet, &
                            nidep,nifix,pwea,pdust,soil_order)
+!SUBROUTINE casa_readpoint_pk(sin_theta_latitude,veg,soil,casaflux,casamet,um1, &
 
     USE cable_def_types_mod
     !USE define_dimensions    ! mp, r_1, r_2, i_d
@@ -167,8 +183,10 @@ IMPLICIT NONE
     call um2cable_rr((asin(sin_theta_latitude)/math%pi180) ,casamet%lat)
     !call um2cable_rr(um1%latitude ,casamet%lat)
     call um2cable_rr(um1%longitude,casamet%lon)
-! Les Nov2011 - not correct, but areacell not needed/used for UM ?
+! Lest Nov2011 - not correct, but areacell not needed/used for UM ?
+! Lest Feb2014 - use UM's A_BOXAREAS
     casamet%areacell = pack(um1%tile_frac,um1%l_tile_pts)
+    !casamet%areacell = pack(,um1%l_tile_pts)
 
     sorder = INT(soil_order)
     call um2cable_ilp(sorder,sorder(1:10),casamet%isorder,soil%isoilm,skip)
@@ -199,16 +217,19 @@ END SUBROUTINE casa_readpoint_pk
 !========================================================================
 !========================================================================
 
-SUBROUTINE casa_init_pk(casabiome,casaflux,casamet,casapool,casabal,canopy,phen, &
-                       cpool_tile,npool_tile,ppool_tile,GLAI,PHENPHASE)
+SUBROUTINE casa_init_pk(casabiome,casaflux,casamet,casapool,casabal,veg,canopy,phen, &
+                       cpool_tile,npool_tile,ppool_tile,wood_hvest_c,wood_hvest_n,wood_hvest_p,&
+                       wood_flux_c,wood_flux_n,wood_flux_p,&
+                       GLAI,PHENPHASE,PREV_YR_SFRAC,idoy)
 !                       um1,cpool_tile,npool_tile,ppool_tile,GLAI,PHENPHASE)
 !  initialize some values in phenology parameters and leaf growth phase
 
    USE cable_def_types_mod
-!!  USE define_dimensions    ! mp, r_1, r_2, i_d
+!!  USE define_dimensions    ! mp, r_2
   USE casadimension        ! icycle,mplant,mlitter,msoil
 !  USE define_types
   USE cable_um_tech_mod, ONLY : um1!, veg
+  USE cable_common_module, ONLY : ktau_gl, l_luc
   USE casaparm             !, ONLY : initcasa
   USE casavariable
   USE phenvariable
@@ -220,7 +241,8 @@ IMPLICIT NONE
   TYPE (casa_met),     INTENT(INOUT)    :: casamet
   TYPE (casa_pool),    INTENT(INOUT)    :: casapool
   TYPE (casa_balance), INTENT(INOUT)    :: casabal
-  TYPE (canopy_type),  INTENT(INOUT)       :: canopy
+  TYPE (canopy_type), INTENT(INOUT)     :: canopy
+  TYPE (veg_parameter_type), INTENT(IN) :: veg
   TYPE (phen_variable),   INTENT(INOUT) :: phen
 !  TYPE (um_dimensions), INTENT(IN)      :: um1
 ! LOGICAL, INTENT(INOUT),DIMENSION(um1%land_pts, um1%ntiles) :: L_tile_pts
@@ -230,11 +252,22 @@ IMPLICIT NONE
   REAL   , INTENT(INOUT) :: GLAI(um1%land_pts,um1%ntiles)
   REAL   , INTENT(INOUT) ::PHENPHASE(um1%land_pts,um1%ntiles)
   !INTEGER, INTENT(INOUT) :: PHENPHASE(um1%land_pts,um1%ntiles)
+  REAL   , INTENT(INOUT) ::PREV_YR_SFRAC(um1%land_pts,um1%ntiles)
+  REAL   , INTENT(INOUT) ::WOOD_HVEST_C(um1%land_pts,um1%ntiles,3)
+  REAL   , INTENT(INOUT) ::WOOD_HVEST_N(um1%land_pts,um1%ntiles,3)
+  REAL   , INTENT(INOUT) ::WOOD_HVEST_P(um1%land_pts,um1%ntiles,3)
+  REAL   , INTENT(INOUT) ::WOOD_FLUX_C(um1%land_pts,um1%ntiles)
+  REAL   , INTENT(INOUT) ::WOOD_FLUX_N(um1%land_pts,um1%ntiles)
+  REAL   , INTENT(INOUT) ::WOOD_FLUX_P(um1%land_pts,um1%ntiles)
+  INTEGER :: idoy,mtau
+
+  print *, 'LUC1', l_luc
+  !l_luc = .TRUE.
+  print *, 'LUC2', l_luc
 
 !  PRINT *, 'initcasa,mp ', initcasa,mp
 
-! Les 6dec11 - copied from bgcdriver
-! implications for cruns if not init. here
+! Lest 6dec11 - moved from bgcdriver
   casamet%tairk(:)   = 0.0
   casamet%tsoil(:,:) = 0.0
   casamet%moist(:,:) = 0.0
@@ -244,11 +277,33 @@ IMPLICIT NONE
   casaflux%crgplant(:)   = canopy%frp*86400. !0.0
   casaflux%crmplant(:,:) = 0.0
   casaflux%clabloss(:)   = 0.0
-!print *,'Les - Crsoil',casaflux%Crsoil
+!print *,'Lest - Crsoil',casaflux%Crsoil
+
+
+  ! Lest 19/2/14 - will work for coupled and amip
+  ! mtau is the step number of the day (1,2,..47,0)
+  mtau = mod(ktau_gl,int(24.*3600./um1%timestep))
+  print *, 'Lest mtau', ktau_gl, mtau, idoy, um1%timestep, l_luc
 
   IF (initcasa==1) THEN
-   CALL pack_cnppool(casamet,casapool,casabal,phen,cpool_tile,npool_tile, &
-                     ppool_tile,GLAI,PHENPHASE)
+     IF (l_luc .and. idoy == 1 .and. mtau == 1) THEN
+
+        print *, 'Lest LUC', mtau
+        CALL casa_reinit_pk(casabiome,casamet,casapool,casabal,veg,phen, &
+                          cpool_tile,npool_tile,ppool_tile,&
+                          wood_hvest_c,wood_hvest_n,wood_hvest_p,&
+                          wood_flux_c,wood_flux_n,wood_flux_p,&
+                          GLAI,PHENPHASE,PREV_YR_SFRAC)
+        print *, 'TEST_LS reinit DONE'
+
+     ELSE
+
+        print *, 'Lest No LUC', mtau
+        ! CALL pack_cnppool(casamet,casapool,casabal,phen,um1,cpool_tile,npool_tile, &
+        CALL pack_cnppool(casamet,casapool,casabal,phen,cpool_tile,npool_tile, &
+                          ppool_tile,GLAI,PHENPHASE)
+     ENDIF
+
   ENDIF
 
 ! reset labile C pool,comment out by Q.Zhang 10/09/2011
@@ -290,7 +345,7 @@ IMPLICIT NONE
     casapool%pplant       = MAX(1.0e-7,casapool%pplant)
     casapool%plitter      = MAX(1.0e-7,casapool%plitter)
     casapool%psoil        = MAX(1.0e-7,casapool%psoil)
-    casapool%Psoillab     = MAX(1.0e-7,casapool%psoillab)  ! was 2.0, YPW
+    casapool%Psoillab     = MAX(1.0e-7,casapool%psoillab)  ! was 2.0, changed according to  YP
     casapool%psoilsorb    = MAX(1.0e-7,casapool%psoilsorb) ! was 10.0, -
     casapool%psoilocc     = MAX(1.0e-7,casapool%psoilocc)  ! was 50.0, -
     casabal%pplantlast    = casapool%pplant
@@ -310,7 +365,388 @@ END SUBROUTINE casa_init_pk
 !========================================================================
 !========================================================================
 
+SUBROUTINE casa_reinit_pk(casabiome,casamet,casapool,casabal,veg,phen, &
+                          cpool_tile,npool_tile,ppool_tile,&
+                          slogc,slogn,slogp,&
+                          logc,logn,logp,&
+                          GLAI,PHENPHASE,PREV_YR_SFRAC)
+
+   USE cable_def_types_mod ! combines def_dimensions (mp,r_2) and define_types (mland)  
+   USE casadimension
+   USE casaparm
+   USE casavariable
+   USE phenvariable
+   USE cable_common_module, ONLY : ktau_gl
+   
+   USE cable_um_tech_mod, ONLY : um1
+
+   IMPLICIT NONE
+
+   TYPE(casa_biome),         INTENT(IN)    :: casabiome
+   TYPE(casa_met),           INTENT(INOUT) :: casamet
+   TYPE(casa_pool),          INTENT(INOUT) :: casapool
+   TYPE(casa_balance),       INTENT(INOUT) :: casabal    
+   TYPE(veg_parameter_type), INTENT(IN)    :: veg
+   TYPE(phen_variable),      INTENT(INOUT) :: phen
+
+   REAL,  INTENT(INOUT)  :: cpool_tile(um1%land_pts,um1%ntiles,10)
+   REAL,  INTENT(INOUT)  :: npool_tile(um1%land_pts,um1%ntiles,10)
+   REAL,  INTENT(INOUT)  :: ppool_tile(um1%land_pts,um1%ntiles,12)
+   REAL,  INTENT(INOUT)  :: GLAI(um1%land_pts,um1%ntiles)
+   REAL,  INTENT(INOUT)  :: PHENPHASE(um1%land_pts,um1%ntiles)
+   REAL,  INTENT(INOUT)  :: PREV_YR_SFRAC(um1%land_pts,um1%ntiles)
+
+   ! local variables
+   REAL(r_2) :: clabile_x(um1%land_pts,um1%ntiles)
+   REAL(r_2) :: cplant_x(um1%land_pts,um1%ntiles,mplant)
+   REAL(r_2) :: clitter_x(um1%land_pts,um1%ntiles,mlitter)
+   REAL(r_2) :: csoil_x(um1%land_pts,um1%ntiles,msoil)
+   REAL(r_2) :: nplant_x(um1%land_pts,um1%ntiles,mplant)
+   REAL(r_2) :: nlitter_x(um1%land_pts,um1%ntiles,mlitter)
+   REAL(r_2) :: nsoil_x(um1%land_pts,um1%ntiles,msoil)
+   REAL(r_2) :: nsoilmin_x(um1%land_pts,um1%ntiles)
+   REAL(r_2) :: pplant_x(um1%land_pts,um1%ntiles,mplant)
+   REAL(r_2) :: plitter_x(um1%land_pts,um1%ntiles,mlitter)
+   REAL(r_2) :: psoil_x(um1%land_pts,um1%ntiles,msoil)
+   REAL(r_2) :: psoillab_x(um1%land_pts,um1%ntiles)
+   REAL(r_2) :: psoilsorb_x(um1%land_pts,um1%ntiles)
+   REAL(r_2) :: psoilocc_x(um1%land_pts,um1%ntiles)
+
+   REAL(r_2) :: clabile_y(um1%land_pts,um1%ntiles)
+   REAL(r_2) :: cplant_y(um1%land_pts,um1%ntiles,mplant)
+   REAL(r_2) :: clitter_y(um1%land_pts,um1%ntiles,mlitter)
+   REAL(r_2) :: csoil_y(um1%land_pts,um1%ntiles,msoil)
+   REAL(r_2) :: nplant_y(um1%land_pts,um1%ntiles,mplant)
+   REAL(r_2) :: nlitter_y(um1%land_pts,um1%ntiles,mlitter)
+   REAL(r_2) :: nsoil_y(um1%land_pts,um1%ntiles,msoil)
+   REAL(r_2) :: nsoilmin_y(um1%land_pts,um1%ntiles)
+   REAL(r_2) :: pplant_y(um1%land_pts,um1%ntiles,mplant)
+   REAL(r_2) :: plitter_y(um1%land_pts,um1%ntiles,mlitter)
+   REAL(r_2) :: psoil_y(um1%land_pts,um1%ntiles,msoil)
+   REAL(r_2) :: psoillab_y(um1%land_pts,um1%ntiles)
+   REAL(r_2) :: psoilsorb_y(um1%land_pts,um1%ntiles)
+   REAL(r_2) :: psoilocc_y(um1%land_pts,um1%ntiles)
+
+   REAL    :: frac_x(um1%land_pts,um1%ntiles), frac_y(um1%land_pts,um1%ntiles)
+   LOGICAL :: ifpre_x(um1%land_pts,um1%ntiles), ifpre_y(um1%land_pts,um1%ntiles)
+   ! To be recorded wood log variables.
+   REAL(r_2) :: logc(um1%land_pts,um1%ntiles), logn(um1%land_pts,um1%ntiles),logp(um1%land_pts,um1%ntiles)
+   REAL(r_2) :: slogc(um1%land_pts,um1%ntiles,3),slogn(um1%land_pts,um1%ntiles,3),slogp(um1%land_pts,um1%ntiles,3)
+   REAL(r_2), DIMENSION(3) :: pool_frac, pool_time
+   !REAL,PARAMETER:: POOL_FRAC(3) =(/0.33, 0.33, 0.34/)
+   !REAL,PARAMETER:: POOL_TIME(3) =(/1.00, 0.10, 0.01/)
+
+   ! check if all of them are required
+   INTEGER   :: g, p, k, y ! np
+   REAL(r_2) :: cbal,nbal,pbal
+
+! Initialize temporary variables
+
+  cplant_x = 0.
+  nplant_x = 0.
+  pplant_x = 0.
+
+  clitter_x = 0.
+  nlitter_x = 0.
+  plitter_x = 0.
+
+  csoil_x = 0.
+  nsoil_x = 0.
+  psoil_x = 0.
+
+  clabile_x = 0.
+  nsoilmin_x = 0.
+  psoillab_x = 0.
+  psoilsorb_x = 0.
+  psoilocc_x = 0.
+
+  cplant_y = 0.
+  nplant_y = 0.
+  pplant_y = 0.
+
+  clitter_y = 0.
+  nlitter_y = 0.
+  plitter_y = 0.
+
+  csoil_y = 0.
+  nsoil_y = 0.
+  psoil_y = 0.
+
+  clabile_y = 0.
+  nsoilmin_y = 0.
+  psoillab_y = 0.
+  psoilsorb_y = 0.
+  psoilocc_y = 0.
+
+  frac_x = 0.
+  frac_y = 0.
+  ifpre_x = .FALSE.
+  ifpre_y = .FALSE.
+
+  logc = 0.
+  logn = 0.
+  logp = 0.
+
+
+  ! assign "old" cnp pool values (from last dump file, initilization)
+  clabile_x(:,:)   = cpool_tile(:,:,1)
+  cplant_x(:,:,1)  = cpool_tile(:,:,2)
+  cplant_x(:,:,2)  = cpool_tile(:,:,3)
+  cplant_x(:,:,3)  = cpool_tile(:,:,4)
+  clitter_x(:,:,1) = cpool_tile(:,:,5)
+  clitter_x(:,:,2) = cpool_tile(:,:,6)
+  clitter_x(:,:,3) = cpool_tile(:,:,7)
+  csoil_x(:,:,1)   = cpool_tile(:,:,8)
+  csoil_x(:,:,2)   = cpool_tile(:,:,9)
+  csoil_x(:,:,3)   = cpool_tile(:,:,10)
+
+  IF (icycle>1) THEN
+     nplant_x(:,:,1)  = npool_tile(:,:,1)
+     nplant_x(:,:,2)  = npool_tile(:,:,2)
+     nplant_x(:,:,3)  = npool_tile(:,:,3)
+     nlitter_x(:,:,1) = npool_tile(:,:,4)
+     nlitter_x(:,:,2) = npool_tile(:,:,5)
+     nlitter_x(:,:,3) = npool_tile(:,:,6)
+     nsoil_x(:,:,1)   = npool_tile(:,:,7)
+     nsoil_x(:,:,2)   = npool_tile(:,:,8)
+     nsoil_x(:,:,3)   = npool_tile(:,:,9)
+     nsoilmin_x(:,:)  = npool_tile(:,:,10)
+  END IF
+
+  IF (icycle>2) THEN
+     pplant_x(:,:,1)  = ppool_tile(:,:,1)
+     pplant_x(:,:,2)  = ppool_tile(:,:,2)
+     pplant_x(:,:,3)  = ppool_tile(:,:,3)
+     plitter_x(:,:,1) = ppool_tile(:,:,4)
+     plitter_x(:,:,2) = ppool_tile(:,:,5)
+     plitter_x(:,:,3) = ppool_tile(:,:,6)
+     psoil_x(:,:,1)   = ppool_tile(:,:,7)
+     psoil_x(:,:,2)   = ppool_tile(:,:,8)
+     psoil_x(:,:,3)   = ppool_tile(:,:,9)
+     psoillab_x(:,:)  = ppool_tile(:,:,10)
+     psoilsorb_x(:,:) = ppool_tile(:,:,11)
+     psoilocc_x(:,:)  = ppool_tile(:,:,12)
+  END IF
+
+  ! assign fractions (previous) (need to get fractions from previous year)
+  !frac_x(:,:) = um1%tile_frac(:,:)
+  frac_x(:,:) = PREV_YR_SFRAC(:,:)
+
+  !!!! DEBUG START !!! 
+  !if (mp.ge.4) then
+  !   write(6,*)"DEBUG frac first 17 tiles  :", frac_x(1,:)
+  !   write(6,*)"DEBUG lon of first point   :", casamet%lon(1:4)
+  !   write(6,*)"DEBUG lat of first point   :", casamet%lat(1:4)
+  !   write(6,*)"DEBUG frac from metcasa    :", casamet%areacell(1:4)
+  !   write(6,*)"DEBUG mp           :", mp
+  !   write(6,*)"DEBUG mland        :", mland
+  !   write(6,*)"DEBUG um1%land_pts :", um1%land_pts
+  !   write(6,*)"DEBUG mvtype       :", mvtype
+  !   write(6,*)"DEBUG um1%ntiles   :", um1%ntiles
+  !end if
+  !!!! DEBUG END !!!!!
+
+  ! assign fractions (current)
+  frac_y(:,:) = um1%tile_frac(:,:)
+
+  ! set the ifpre_x and ifpre_y values to true where fractions are .ne. 0
+  where(frac_x > 0.) ifpre_x = .TRUE.
+  where(frac_y > 0.) ifpre_y = .TRUE.
+
+  !Do k = 1,um1%ntiles
+  !DO g = 1, um1%land_pts
+  !print *,'Lest frac', g, k, frac_y(g,k), frac_x(g,k)
+  !END DO
+  !END DO
+
+  ! start main loop
+  DO g = 1, um1%land_pts
+!DO N=1,um1%NTILES
+! DO K=1,um1%TILE_PTS(N)
+!    g = um1%TILE_INDEX(K,N)
+
+     !write(6,*)"TEST_TZ start of main loop"
+
+     ! Check all glacier tiles
+     IF (ifpre_x(g,iceland).and.ifpre_y(g,iceland)) THEN
+         IF (abs(frac_x(g,iceland)-1.0)>0.01 .or. abs(frac_y(g,iceland)-1.0)>0.01) THEN
+         print *,'Lest Glacier',g,ifpre_x(g,iceland),ifpre_y(g,iceland),&
+                                 frac_x(g,iceland), frac_y(g,iceland)
+            STOP "Glacier fraction .ne. 1"
+         ELSE
+            print *, 'Lest cycle', g,ifpre_x(g,iceland),ifpre_y(g,iceland),&
+                                 frac_x(g,iceland), frac_y(g,iceland)
+            cycle
+         END IF
+     ELSEIF (.not.ifpre_x(g,iceland) .and. .not.ifpre_y(g,iceland)) THEN
+         IF (abs(frac_x(g,iceland)-0.0)>0.01 .or. abs(frac_y(g,iceland)-0.0)>0.01) THEN
+         print *, 'Lest landpt fracs x', frac_x(g,:)
+         print *, 'Lest landpt fracs y', frac_y(g,:)
+         print *,'Lest Glacier',g,ifpre_x(g,iceland),ifpre_y(g,iceland),&
+                                 frac_x(g,iceland), frac_y(g,iceland)
+            STOP "Glacier fraction .ne. 0"
+         END IF
+     ELSE
+         print *,'Lest Glacier',g,ifpre_x(g,iceland),ifpre_y(g,iceland),&
+                                 frac_x(g,iceland), frac_y(g,iceland)
+         STOP "Glacier tiles not consistent"
+     END IF
+
+     !write(6,*)"TEST_TZ just before call newplant"
+
+     ! For none glacier tiles
+     ! Re-calculate plant C, N, P pools
+     CALL newplant(cplant_x(g,:,:),frac_x(g,:),ifpre_x(g,:), &
+                   cplant_y(g,:,:),frac_y(g,:),ifpre_y(g,:),logc(g,:))
+     IF (icycle > 1) CALL newplant(nplant_x(g,:,:),frac_x(g,:),ifpre_x(g,:), &
+                                   nplant_y(g,:,:),frac_y(g,:),ifpre_y(g,:),logn(g,:))
+     IF (icycle > 2) CALL newplant(pplant_x(g,:,:),frac_x(g,:),ifpre_x(g,:), &
+                                   pplant_y(g,:,:),frac_y(g,:),ifpre_y(g,:),logp(g,:))
+
+     write(6,*)"TEST_TZ just after call newplant"
+
+! Lestevens 24 Nov 2017 - Implement Yingping's flux to state pools
+     DATA pool_frac/0.33,0.33,0.34/
+     DATA pool_time/1.0 ,0.1 ,0.01/
+     DO y = 1,3
+      slogc(g,:,y) = slogc(g,:,y) + pool_frac(y)*logc(g,:) - pool_time(y)*slogc(g,:,y)
+      slogn(g,:,y) = slogn(g,:,y) + pool_frac(y)*logn(g,:) - pool_time(y)*slogn(g,:,y)
+      slogp(g,:,y) = slogp(g,:,y) + pool_frac(y)*logp(g,:) - pool_time(y)*slogp(g,:,y)
+     END DO
+
+     ! Re-calculate litter C, N, P pools
+     CALL newlitter(casabiome,frac_x(g,:),ifpre_x(g,:),frac_y(g,:),ifpre_y(g,:), &
+                    cplant_x(g,:,:),nplant_x(g,:,:),pplant_x(g,:,:), &
+                    cplant_y(g,:,:),nplant_y(g,:,:),pplant_y(g,:,:), &
+                    clitter_x(g,:,:),nlitter_x(g,:,:),plitter_x(g,:,:), &
+                    clitter_y(g,:,:),nlitter_y(g,:,:),plitter_y(g,:,:))
+
+     ! Re-calculate soil C, N, P pools
+     CALL newsoil(msoil,csoil_x(g,:,:),frac_x(g,:),ifpre_x(g,:),&
+                  csoil_y(g,:,:),frac_y(g,:),ifpre_y(g,:))
+     CALL newsoil(1,clabile_x(g,:),frac_x(g,:),ifpre_x(g,:),&
+                  clabile_y(g,:),frac_y(g,:),ifpre_y(g,:))
+
+     ! Re-calculate soil C, N, P pools
+     CALL newsoil(msoil,csoil_x(g,:,:),frac_x(g,:),ifpre_x(g,:),&
+                  csoil_y(g,:,:),frac_y(g,:),ifpre_y(g,:))
+     CALL newsoil(1,clabile_x(g,:),frac_x(g,:),ifpre_x(g,:),&
+                  clabile_y(g,:),frac_y(g,:),ifpre_y(g,:))
+     IF (icycle > 1) THEN
+        CALL newsoil(msoil,nsoil_x(g,:,:),frac_x(g,:),ifpre_x(g,:),&
+                     nsoil_y(g,:,:),frac_y(g,:),ifpre_y(g,:))
+        CALL newsoil(1,nsoilmin_x(g,:),frac_x(g,:),ifpre_x(g,:),&
+                     nsoilmin_y(g,:),frac_y(g,:),ifpre_y(g,:))
+     ENDIF
+
+     IF (icycle > 2) THEN
+        CALL newsoil(msoil,psoil_x(g,:,:),frac_x(g,:),ifpre_x(g,:),&
+                     psoil_y(g,:,:),frac_y(g,:),ifpre_y(g,:))
+        CALL newsoil(1,psoillab_x(g,:),frac_x(g,:),ifpre_x(g,:),&
+                     psoillab_y(g,:),frac_y(g,:),ifpre_y(g,:))
+        CALL newsoil(1,psoilsorb_x(g,:),frac_x(g,:),ifpre_x(g,:),&
+                     psoilsorb_y(g,:),frac_y(g,:),ifpre_y(g,:))
+        CALL newsoil(1,psoilocc_x(g,:),frac_x(g,:),ifpre_x(g,:),&
+                     psoilocc_y(g,:),frac_y(g,:),ifpre_y(g,:))
+     ENDIF
+
+
+     ! Balance check
+     cbal = sum((sum(cplant_x(g,:,:),2) + sum(clitter_x(g,:,:),2)  &
+          + sum(csoil_x(g,:,:),2) + clabile_x(g,:)) * frac_x(g,:))  &
+          - (sum((sum(cplant_y(g,:,:),2) + sum(clitter_y(g,:,:),2)  &
+          + sum(csoil_y(g,:,:),2) + clabile_y(g,:)) * frac_y(g,:)) + sum(logc(g,:)))
+
+     IF (icycle > 1) nbal = sum((sum(nplant_x(g,:,:),2) + sum(nlitter_x(g,:,:),2)  &
+                          + sum(nsoil_x(g,:,:),2) + nsoilmin_x(g,:)) * frac_x(g,:))  &
+                          - (sum((sum(nplant_y(g,:,:),2) + sum(nlitter_y(g,:,:),2)  &
+                          + sum(nsoil_y(g,:,:),2) + nsoilmin_y(g,:)) * frac_y(g,:)) + sum(logn(g,:)))
+
+     IF (icycle > 2) pbal = sum((sum(pplant_x(g,:,:),2) + sum(plitter_x(g,:,:),2)  &
+                          + sum(psoil_x(g,:,:),2) + psoillab_x(g,:)  &
+                          + psoilsorb_x(g,:) + psoilocc_x(g,:)) * frac_x(g,:))  &
+                          - (sum((sum(pplant_y(g,:,:),2) + sum(plitter_y(g,:,:),2)  &
+                          + sum(psoil_y(g,:,:),2) + psoillab_y(g,:) + psoilsorb_y(g,:)  &
+                          + psoilocc_y(g,:)) * frac_y(g,:)) + sum(logp(g,:)))
+
+
+     IF(abs(cbal)>1.e-3 .or.abs(nbal)>1.e-4 .or.abs(pbal)>1.e-4) THEN
+        print*, 'imbalance on grid:',g,cbal,nbal,pbal
+     END IF
+
+  END DO ! end main loop
+  !END DO ! end main loop
+
+  ! write values back into cnp pool files
+  cpool_tile(:,:,1)  = clabile_y(:,:)
+  cpool_tile(:,:,2)  = cplant_y(:,:,1)
+  cpool_tile(:,:,3)  = cplant_y(:,:,2)
+  cpool_tile(:,:,4)  = cplant_y(:,:,3)
+  cpool_tile(:,:,5)  = clitter_y(:,:,1)
+  cpool_tile(:,:,6)  = clitter_y(:,:,2)
+  cpool_tile(:,:,7)  = clitter_y(:,:,3)
+  cpool_tile(:,:,8)  = csoil_y(:,:,1)
+  cpool_tile(:,:,9)  = csoil_y(:,:,2)
+  cpool_tile(:,:,10) = csoil_y(:,:,3)
+
+  ! if n is switched on
+  IF (icycle > 1) THEN
+     npool_tile(:,:,1)  = nplant_y(:,:,1)
+     npool_tile(:,:,2)  = nplant_y(:,:,2)
+     npool_tile(:,:,3)  = nplant_y(:,:,3)
+     npool_tile(:,:,4)  = nlitter_y(:,:,1)
+     npool_tile(:,:,5)  = nlitter_y(:,:,2)
+     npool_tile(:,:,6)  = nlitter_y(:,:,3)
+     npool_tile(:,:,7)  = nsoil_y(:,:,1)
+     npool_tile(:,:,8)  = nsoil_y(:,:,2)
+     npool_tile(:,:,9)  = nsoil_y(:,:,3)
+     npool_tile(:,:,10) = nsoilmin_y(:,:)     
+  END IF
+
+  ! if p is switched on
+  IF (icycle > 2) THEN
+     ppool_tile(:,:,1)  = pplant_y(:,:,1)
+     ppool_tile(:,:,2)  = pplant_y(:,:,2)
+     ppool_tile(:,:,3)  = pplant_y(:,:,3)
+     ppool_tile(:,:,4)  = plitter_y(:,:,1)
+     ppool_tile(:,:,5)  = plitter_y(:,:,2)
+     ppool_tile(:,:,6)  = plitter_y(:,:,3)
+     ppool_tile(:,:,7)  = psoil_y(:,:,1)
+     ppool_tile(:,:,8)  = psoil_y(:,:,2)
+     ppool_tile(:,:,9)  = psoil_y(:,:,3)
+     ppool_tile(:,:,10) = psoillab_y(:,:)
+     ppool_tile(:,:,11) = psoilsorb_y(:,:)
+     ppool_tile(:,:,12) = psoilocc_y(:,:)
+  END IF
+
+  ! pack everything
+  CALL pack_cnppool(casamet,casapool,casabal,phen,cpool_tile,npool_tile, &
+                    ppool_tile,GLAI,PHENPHASE)
+
+
+  ! update LAI, Vcmax
+  IF (icycle > 1) call casa_feedback(ktau_gl,veg,casabiome,casapool,casamet)
+
+  DO p=1,mp
+     IF (casamet%iveg2(p) == icewater) THEN
+        casamet%glai(p)   = 0.0
+     ELSE
+        casamet%glai(p)   = MIN(casabiome%glaimax(veg%iveg(p)), MAX(casabiome%glaimin(veg%iveg(p)), &
+                               casabiome%sla(veg%iveg(p)) * casapool%cplant(p,leaf)))
+     ENDIF
+  ! PRINT *, 'p,ivt,glai,vcmax = ', p,veg%iveg(p),casamet%glai(p),veg%vcmax(p)*1.0e6
+  END DO
+
+  
+
+END SUBROUTINE casa_reinit_pk
+
+!========================================================================
+!========================================================================
+!========================================================================
+
 SUBROUTINE pack_cnppool(casamet,casapool,casabal,phen,cpool_tile,npool_tile, &
+!SUBROUTINE pack_cnppool(casamet,casapool,casabal,phen,um1,cpool_tile,npool_tile, &
                         ppool_tile,GLAI,PHENPHASE)
 
     USE cable_um_tech_mod, ONLY : um1
@@ -392,12 +828,22 @@ IMPLICIT NONE
     endif
 
 ! pack variables
+
+!! test initialization of LAI
+!    casamet%glai = pack(GLAI(:,:)/2.  ,um1%l_tile_pts)
+!! test end
+
     casamet%glai = pack(GLAI(:,:)  ,um1%l_tile_pts)
     phenph = INT(PHENPHASE)
     phen%phase   = pack(phenph(:,:),um1%l_tile_pts)
 
     casapool%clabile       = pack(clabile(:,:)  ,um1%l_tile_pts)
     do k=1,3
+
+!! test initilization of plant pool  
+!     casapool%cplant(:,k)  = pack(cplant(:,:,k)/2. ,um1%l_tile_pts)
+!! test end
+
      casapool%cplant(:,k)  = pack(cplant(:,:,k) ,um1%l_tile_pts)
      casapool%clitter(:,k) = pack(clitter(:,:,k),um1%l_tile_pts)
      casapool%csoil(:,k)   = pack(csoil(:,:,k)  ,um1%l_tile_pts)
@@ -521,6 +967,7 @@ IMPLICIT NONE
   ENDDO
 
 ! Lestevens 28 Jan 2011
+!    CALL unpack_cnppool(casamet,casapool,casabal,phen,um1,cpool_tile,npool_tile, &
     CALL unpack_cnppool(casamet,casapool,casabal,phen,cpool_tile,npool_tile, &
                         ppool_tile,GLAI,PHENPHASE)
 
@@ -531,10 +978,11 @@ END SUBROUTINE casa_poolout_unpk
 !========================================================================
 !========================================================================
 
+!SUBROUTINE unpack_cnppool(casamet,casapool,casabal,phen,um1,cpool_tile,npool_tile, &
 SUBROUTINE unpack_cnppool(casamet,casapool,casabal,phen,cpool_tile,npool_tile, &
                           ppool_tile,GLAI,PHENPHASE)
 
-! Les 25 Jan 2011 - casa_poolout
+! Lest 25 Jan 2011 - casa_poolout
 
   USE cable_um_tech_mod, ONLY : um1
   USE cable_def_types_mod
@@ -654,35 +1102,35 @@ END SUBROUTINE unpack_cnppool
 !========================================================================
 !========================================================================
 
-!SUBROUTINE unpack_glai(casamet,phen,GLAI,PHENPHASE)
-!
-!! Les 15 Jan 2013 - casa_poolout
-!
-!  USE cable_um_tech_mod, ONLY : um1
-!  USE cable_def_types_mod
-!  USE casadimension
-!  USE casavariable
-!  USE phenvariable
-!
-! IMPLICIT NONE
-!
-!! passed in
-!    TYPE (casa_met), INTENT(INOUT)      :: casamet
-!    TYPE (phen_variable), INTENT(INOUT) :: phen
-!    REAL, INTENT(INOUT)                 :: GLAI(um1%land_pts,um1%ntiles)
-!    REAL, INTENT(INOUT)                 ::PHENPHASE(um1%land_pts,um1%ntiles)
-!    !INTEGER, INTENT(INOUT)              :: PHENPHASE(um1%land_pts,um1%ntiles)
-!! local vars
-!    REAL(r_2) :: miss   = 0.0
-!    !INTEGER   :: i_miss = 0
-!
-!! unpack variables
-!
-!    GLAI      = unpack(casamet%glai,um1%l_tile_pts,miss)
-!    PHENPHASE = unpack(REAL(phen%phase),um1%l_tile_pts,miss)
-!!   PHENPHASE = unpack(phen%phase,um1%l_tile_pts,i_miss)
-!
-!END SUBROUTINE unpack_glai
+SUBROUTINE unpack_glai(casamet,phen,GLAI,PHENPHASE)
+
+! Lest 15 Jan 2013 - casa_poolout
+
+  USE cable_um_tech_mod, ONLY : um1
+  USE cable_def_types_mod
+  USE casadimension
+  USE casavariable
+  USE phenvariable
+
+ IMPLICIT NONE
+
+! passed in
+    TYPE (casa_met), INTENT(INOUT)      :: casamet
+    TYPE (phen_variable), INTENT(INOUT) :: phen
+    REAL, INTENT(INOUT)                 :: GLAI(um1%land_pts,um1%ntiles)
+    REAL, INTENT(INOUT)                 ::PHENPHASE(um1%land_pts,um1%ntiles)
+    !INTEGER, INTENT(INOUT)              :: PHENPHASE(um1%land_pts,um1%ntiles)
+! local vars
+    REAL(r_2) :: miss   = 0.0
+    !INTEGER   :: i_miss = 0
+
+! unpack variables
+
+    GLAI      = unpack(casamet%glai,um1%l_tile_pts,miss)
+    PHENPHASE = unpack(REAL(phen%phase),um1%l_tile_pts,miss)
+!   PHENPHASE = unpack(phen%phase,um1%l_tile_pts,i_miss)
+
+END SUBROUTINE unpack_glai
 
 !========================================================================
 !========================================================================
@@ -736,6 +1184,83 @@ END SUBROUTINE unpack_cnppool
 
          return
    END SUBROUTINE um2cable_ilp
+
+  SUBROUTINE redistr_luc(prev_yr_sfrac,inVar,outVar)
+      USE cable_um_tech_mod, ONLY : um1
+      IMPLICIT NONE
+
+      REAL, INTENT(IN) ,DIMENSION(um1%land_pts,um1%ntiles) :: prev_yr_sfrac
+      REAL, INTENT(IN) ,DIMENSION(um1%land_pts,um1%ntiles) :: inVar
+      REAL, INTENT(INOUT),DIMENSION(um1%land_pts,um1%ntiles) :: outVar
+      ! local variables
+      REAL, DIMENSION(um1%ntiles) :: dfrac
+      REAL                        :: tmpVar, Rcount
+      INTEGER                     :: L,N
+  
+      !DO L = 1, um1%LAND_PTS
+      !  !dfrac = prev_yr_sfrac(L,:) - um1%tile_frac(L,:)
+      !  DO N = 1,um1%NTILES
+      !    IF (um1%tile_frac(L,N)>=1.e-6) THEN
+      !       outVar(L,N) = inVar(L,N)
+      !  !  ELSE
+      !  !    itype = maxloc(dfrac)
+      !  !    outVar(L,N) = inVar(L,itype)  !check
+      !  !    if (prev_yr_sfrac(L,itype)<1.e-6) stop "ERROR: CABLE redistr_luc"
+      !    ENDIF
+      !  END DO
+      !END DO
+
+    DO L = 1, um1%land_pts
+      dfrac(:) = um1%tile_frac(L,:) - prev_yr_sfrac(L,:)
+      ! Collect all cut out areas from various decreasing tiles for averaging
+      tmpVar = 0.0
+      Rcount = 0.0
+      DO N = 1, um1%ntiles
+        IF (dfrac(N) < 0.0) THEN
+          tmpVar = tmpVar + ABS(dfrac(N)) * inVar(L,N)
+          Rcount = Rcount + ABS(dfrac(N))
+        ENDIF
+      Enddo
+      tmpVar = tmpVar / Rcount
+    
+      ! Add the averaged amount to those increasing tiles
+      DO N = 1, um1%ntiles
+        IF (dfrac(N) > 0.0) THEN   ! those tiles increasing in size
+          outVar(L,N) = (dfrac(N) * tmpVar + &
+                        prev_yr_sfrac(L,N) * inVar(L,N)) / um1%tile_frac(L,N)
+        ELSE   ! those that are decreasing or no change in size
+          outVar(L,N) = inVar(L,N)
+        ENDIF
+      Enddo
+    Enddo
+  
+  END SUBROUTINE redistr_luc
+
+  !SUBROUTINE redistr_luc_i(prev_yr_sfrac,inVar,outVar)
+  !    USE cable_um_tech_mod, ONLY : um1
+  !   IMPLICIT NONE
+  !    REAL, INTENT(IN) ,DIMENSION(um1%land_pts,um1%ntiles) :: prev_yr_sfrac
+  !    INTEGER, INTENT(IN) ,DIMENSION(um1%land_pts,um1%ntiles) :: inVar
+  !    INTEGER, INTENT(INOUT),DIMENSION(um1%land_pts,um1%ntiles) :: outVar
+  !    ! local variables
+  !    !REAL, DIMENSION(um1%ntiles) :: dfrac
+  !    !INTEGER                     :: itype
+  !    INTEGER           :: L,N
+  !
+  !    DO L = 1, um1%LAND_PTS
+  !      !dfrac = prev_yr_sfrac(L,:) - um1%tile_frac(L,:)
+  !      DO N = 1,um1%NTILES
+  !        IF (um1%tile_frac(L,N)>=1.e-6) THEN
+  !           outVar(L,N) = inVar(L,N)
+  !      !  ELSE
+  !      !    itype = maxloc(dfrac)
+  !      !    outVar(L,N) = inVar(L,itype)  !check
+  !      !    if (prev_yr_sfrac(L,itype)<1.e-6) stop "ERROR: CABLE redistr_luc"
+  !        ENDIF
+  !      END DO
+  !    END DO
+  !
+  !END SUBROUTINE redistr_luc_i
 
 END MODULE casa_um_inout_mod
 

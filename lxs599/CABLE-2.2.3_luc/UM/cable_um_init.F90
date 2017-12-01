@@ -52,7 +52,9 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
                               tsoil_tile, canht_ft, lai_ft, sin_theta_latitude,&
                               dzsoil, CPOOL_TILE, NPOOL_TILE, PPOOL_TILE,      &
                               SOIL_ORDER, NIDEP, NIFIX, PWEA, PDUST, GLAI,     &
-                              PHENPHASE, NPP_FT_ACC, RESP_W_FT_ACC )
+                              PHENPHASE,WOOD_HVEST_C,WOOD_HVEST_N,WOOD_HVEST_P,& 
+                              WOOD_FLUX_C,WOOD_FLUX_N,WOOD_FLUX_P,& 
+                              PREV_YR_SFRAC, NPP_FT_ACC, RESP_W_FT_ACC, iday )
 
    USE cable_um_init_subrs_mod          ! where most subrs called from here reside
    
@@ -70,7 +72,7 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
       l_casacnp,           & !
       knode_gl               !
 
-   USE cable_def_types_mod, ONLY : mp ! number of points CABLE works on
+   USE cable_def_types_mod, ONLY : mp, mland ! number of points CABLE works on
 
    USE casa_um_inout_mod
 
@@ -171,7 +173,8 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
    LOGICAL, INTENT(IN) :: L_CO2_INTERACTIVE
    INTEGER, INTENT(IN) ::                              &
       CO2_DIM_LEN                                      &
-     ,CO2_DIM_ROW
+     ,CO2_DIM_ROW &
+     , iday
    REAL, INTENT(IN) :: CO2_3D(CO2_DIM_LEN,CO2_DIM_ROW)  ! co2 mass mixing ratio
 
    LOGICAL, INTENT(INOUT),DIMENSION(land_pts, ntiles) ::                       &
@@ -198,7 +201,16 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
    REAL, INTENT(INOUT), DIMENSION(land_pts,ntiles) :: &
       GLAI, &
    !INTEGER, INTENT(INOUT), DIMENSION(land_pts,ntiles) :: &
-      PHENPHASE
+      PHENPHASE, &
+      PREV_YR_SFRAC,&
+      WOOD_FLUX_C,&
+      WOOD_FLUX_N,&
+      WOOD_FLUX_P
+
+  REAL, INTENT(INOUT), DIMENSION(land_pts,ntiles,3) :: &
+      WOOD_HVEST_C,&
+      WOOD_HVEST_N,&
+      WOOD_HVEST_P
 
    REAL, INTENT(INOUT), DIMENSION(land_pts,ntiles) :: &
       NPP_FT_ACC,   &
@@ -238,6 +250,9 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
                                     rho_water  )
 
 
+      !print *, 'DEBUG tile_frac', tile_frac(6805,:), um1%tile_frac(6805,:)
+
+
 
       !---------------------------------------------------------------------!
       !--- CABLE vars are initialized/updated from passed UM vars       ----!
@@ -249,6 +264,7 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
       
          um1%L_TILE_PTS = .FALSE.
          mp = SUM(um1%TILE_PTS)
+         mland = LAND_PTS
          
          CALL alloc_cable_types()
          
@@ -325,7 +341,9 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
            endif
            call init_casacnp(sin_theta_latitude,cpool_tile,npool_tile,&
                              ppool_tile,soil_order,nidep,nifix,pwea,pdust,&
-                             GLAI,PHENPHASE)
+                             wood_hvest_c,wood_hvest_n,wood_hvest_p, &
+                             wood_flux_c,wood_flux_n,wood_flux_p, &
+                             GLAI,PHENPHASE,PREV_YR_SFRAC,iday)
          endif
 
          CALL dealloc_vegin_soilin()

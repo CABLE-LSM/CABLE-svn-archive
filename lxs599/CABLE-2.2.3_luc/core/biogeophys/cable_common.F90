@@ -44,6 +44,7 @@ MODULE cable_common_module
    !---Lestevens Sept2012
    !---CASACNP switches and cycle index
    LOGICAL, SAVE :: l_casacnp,l_laiFeedbk,l_vcmaxFeedbk
+   LOGICAL :: l_luc = .FALSE.
    
    !---CABLE runtime switches def in this type
    TYPE kbl_internal_switches

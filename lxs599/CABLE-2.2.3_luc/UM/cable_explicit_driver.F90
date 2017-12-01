@@ -56,8 +56,11 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
                                   Z0M_TILE, RECIP_L_MO_TILE, EPOT_TILE,        &
                                   CPOOL_TILE, NPOOL_TILE, PPOOL_TILE,          &
                                   SOIL_ORDER, NIDEP, NIFIX, PWEA, PDUST,       &
-                                  GLAI, PHENPHASE, NPP_FT_ACC, RESP_W_FT_ACC,  &
-                                  endstep, timestep_number, mype )    
+                                  GLAI, PHENPHASE, PREV_YR_SFRAC, &
+                                  WOOD_HVEST_C,WOOD_HVEST_n,WOOD_HVEST_p,&
+                                  WOOD_FLUX_C,WOOD_FLUX_n,WOOD_FLUX_p,&
+                                  NPP_FT_ACC, RESP_W_FT_ACC,  &
+                                  iday, endstep, timestep_number, mype )    
    
    !--- reads runtime and user switches and reports
    USE cable_um_tech_mod, ONLY : cable_um_runtime_vars, air, bgc, canopy,      &
@@ -67,7 +70,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    USE cable_common_module, ONLY : cable_runtime, cable_user, ktau_gl,         &
                                    knode_gl, kwidth_gl, kend_gl,               &
                                    report_version_no,                          & 
-                                   l_vcmaxFeedbk, l_laiFeedbk
+                                   l_vcmaxFeedbk, l_laiFeedbk,l_luc
    
    !--- subr to (manage)interface UM data to CABLE
    USE cable_um_init_mod, ONLY : interface_UM_data
@@ -80,6 +83,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
 
    !--- include subr called to write data for testing purposes 
    USE cable_diag_module
+   USE casa_um_inout_mod
    USE casavariable
    USE casa_types_mod
 
@@ -105,7 +109,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    ! # of land points on each tile
    INTEGER, INTENT(IN), DIMENSION(ntiles) :: tile_pts 
    
-   INTEGER, INTENT(IN), DIMENSION(land_pts, ntiles) ::                         & 
+   INTEGER, INTENT(INOUT), DIMENSION(land_pts, ntiles) ::                         & 
       tile_index ,& ! index of tile points being processed
       isnow_flg3l   ! 3 layer snow flag
 
@@ -149,7 +153,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    REAL, INTENT(INOUT), DIMENSION(land_pts, ntiles) ::                         &
       snow_tile
 
-   REAL, INTENT(IN), DIMENSION(land_pts, ntiles) ::                            &
+   REAL, INTENT(INOUT), DIMENSION(land_pts, ntiles) ::                            &
       tile_frac,  &    
       snow_rho1l, &
       snage_tile
@@ -160,13 +164,13 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    REAL, INTENT(IN), DIMENSION(land_pts, npft) ::                              &
       canht_ft, lai_ft 
    
-   REAL, INTENT(IN),DIMENSION(land_pts, ntiles) ::                             &
+   REAL, INTENT(INOUT),DIMENSION(land_pts, ntiles) ::                             &
       canopy_tile
    
    REAL, INTENT(INOUT), DIMENSION(land_pts, ntiles,3) ::                       &
       snow_cond
    
-   REAL, INTENT(IN), DIMENSION(land_pts, ntiles,3) ::                          &
+   REAL, INTENT(INOUT), DIMENSION(land_pts, ntiles,3) ::                          &
       snow_rho3l,    &
       snow_depth3l,  &
       snow_mass3l,   &
@@ -175,7 +179,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    REAL, INTENT(IN), DIMENSION(land_pts, sm_levels) ::                         &
       sthu 
    
-   REAL, INTENT(IN), DIMENSION(land_pts, ntiles, sm_levels) :: & 
+   REAL, INTENT(INOUT), DIMENSION(land_pts, ntiles, sm_levels) :: & 
       sthu_tile, &
       sthf_tile, &
       smcl_tile, &
@@ -229,10 +233,11 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
       U_S_CAB     ! Surface friction velocity (m/s)
 
    ! end step of experiment, this step, step width, processor num
-   INTEGER, INTENT(IN) :: endstep, timestep_number, mype
+   INTEGER, INTENT(IN) :: endstep, timestep_number, mype, iday
    REAL, INTENT(IN) ::  timestep     
    
    INTEGER:: itimestep
+   INTEGER:: mtau
     
    !___return miscelaneous 
    REAL, INTENT(OUT), DIMENSION(land_pts,ntiles) :: &
@@ -263,7 +268,16 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
 
    REAL, INTENT(INOUT), DIMENSION(land_pts,ntiles) :: &
       GLAI, &          ! Leaf Area Index for Prognostics LAI
-      PHENPHASE        ! Phenology Phase for Casa-CNP
+      PHENPHASE, &     ! Phenology Phase for Casa-CNP
+      PREV_YR_SFRAC,&    ! user_anc1, previous years surface fractions
+      WOOD_FLUX_C,&
+      WOOD_FLUX_N,&
+      WOOD_FLUX_P
+
+   REAL, INTENT(INOUT), DIMENSION(land_pts,ntiles,3) :: &
+      WOOD_HVEST_C,&
+      WOOD_HVEST_N,&
+      WOOD_HVEST_P
                                   
    REAL, INTENT(INOUT), DIMENSION(land_pts,ntiles) :: &
       NPP_FT_ACC,     &
@@ -301,8 +315,8 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    ktau_gl = timestep_number     !timestep of EXPERIMENT not necesarily 
                                  !the same as timestep of particular RUN
    knode_gl = mype               !which processor am i on?
-   itimestep = INT(timestep)    !realize for 'call cbm' pass
-   kwidth_gl = itimestep          !width of timestep (secs)
+   itimestep = INT(timestep)     !realize for 'call cbm' pass
+   kwidth_gl = itimestep         !width of timestep (secs)
    kend_gl = endstep             !timestep of EXPERIMENT not necesarily 
 
    !--- internal FLAGS def. specific call of CABLE from UM
@@ -317,8 +331,25 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
       first_cable_call = .FALSE.
    ENDIF      
 
-
-
+  mtau = mod(ktau_gl,int(24.*3600./timestep))
+  if (l_luc .and. iday==1 .and. mtau==1) then
+   ! resdistr(frac,in,out) - Lestevens 10oct17
+   call redistr_luc(PREV_YR_SFRAC,tsoil_tile   ,tsoil_tile)   ! ssnow%tgg
+   call redistr_luc(PREV_YR_SFRAC,smcl_tile    ,smcl_tile)    ! ssnow%wb
+   call redistr_luc(PREV_YR_SFRAC,sthf_tile    ,sthf_tile)    ! ssnow%wbice
+   call redistr_luc(PREV_YR_SFRAC,snow_depth3L ,snow_depth3l) ! ssnow%sdepth
+   call redistr_luc(PREV_YR_SFRAC,snow_mass3L  ,snow_mass3l)  ! ssnow%smass
+   call redistr_luc(PREV_YR_SFRAC,snow_tmp3L   ,snow_tmp3l)   ! ssnow%tggsn
+   call redistr_luc(PREV_YR_SFRAC,snow_rho3L   ,snow_rho3l)   ! ssnow%ssdn
+   call redistr_luc(PREV_YR_SFRAC,snow_rho1l   ,snow_rho1l)   ! ssnow%ssdnn
+   call redistr_luc(PREV_YR_SFRAC,snage_tile   ,snage_tile)   ! ssnow%snage
+   !call redistr_luc_i(PREV_YR_SFRAC,isnow_flg3l  ,isnow_flg3l)  ! ssnow%isflag
+   call redistr_luc(PREV_YR_SFRAC,snow_tile    ,snow_tile)    ! ssnow%snowd
+   call redistr_luc(PREV_YR_SFRAC,snow_cond    ,snow_cond)    ! scond
+   call redistr_luc(PREV_YR_SFRAC,canopy_tile  ,canopy_tile)  ! canopy%oldcansto
+   call redistr_luc(PREV_YR_SFRAC,npp_ft_acc   ,npp_ft_acc)   ! frs
+   call redistr_luc(PREV_YR_SFRAC,resp_w_ft_acc,resp_w_ft_acc)! frp
+  endif
 
    !---------------------------------------------------------------------!
    !--- initialize CABLE using UM forcings etc. these args are passed ---!
@@ -341,7 +372,9 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
                            sin_theta_latitude, dzsoil,                         &
                            CPOOL_TILE, NPOOL_TILE, PPOOL_TILE, SOIL_ORDER,     &
                            NIDEP, NIFIX, PWEA, PDUST, GLAI, PHENPHASE,         &
-                           NPP_FT_ACC,RESP_W_FT_ACC )
+                           WOOD_HVEST_C,WOOD_HVEST_N,WOOD_HVEST_P, &
+                           WOOD_FLUX_C,WOOD_FLUX_N,WOOD_FLUX_P, &
+                           PREV_YR_SFRAC,NPP_FT_ACC,RESP_W_FT_ACC, iday )
 
    !---------------------------------------------------------------------!
    !--- Feedback prognostic vcmax and daily LAI from casaCNP to CABLE ---!
