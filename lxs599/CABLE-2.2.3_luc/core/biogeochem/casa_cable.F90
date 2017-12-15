@@ -91,15 +91,18 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
          casamet%tairk = met%tk
          casamet%tsoil = ssnow%tgg
          casamet%moist = ssnow%wb
-         casaflux%cgpp = (-canopy%fpn+canopy%frday)*dels
-         casaflux%crmplant(:,leaf) = canopy%frday*dels
+!         casaflux%cgpp = (-canopy%fpn+canopy%frday)*dels
+!         casaflux%crmplant(:,leaf) = canopy%frday*dels
+         casaflux%meangpp = (-canopy%fpn+canopy%frday)*dels
+         casaflux%meanrleaf = canopy%frday*dels
       ELSE
          Casamet%tairk  =casamet%tairk + met%tk
          casamet%tsoil = casamet%tsoil + ssnow%tgg
          casamet%moist = casamet%moist + ssnow%wb
-         casaflux%cgpp = casaflux%cgpp + (-canopy%fpn+canopy%frday)*dels
-         casaflux%crmplant(:,leaf) = casaflux%crmplant(:,leaf) + &
-                                       canopy%frday*dels
+!         casaflux%cgpp = casaflux%cgpp + (-canopy%fpn+canopy%frday)*dels
+!         casaflux%crmplant(:,leaf) = casaflux%crmplant(:,leaf) + canopy%frday*dels
+         casaflux%meangpp = casaflux%meangpp + (-canopy%fpn+canopy%frday)*dels
+         casaflux%meanrleaf = casaflux%meanrleaf + canopy%frday*dels
       ENDIF
 
       IF(mod((ktau-kstart+1),ktauday)==0) THEN
@@ -107,6 +110,9 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
          casamet%tairk  =casamet%tairk/FLOAT(ktauday)
          casamet%tsoil=casamet%tsoil/FLOAT(ktauday)
          casamet%moist=casamet%moist/FLOAT(ktauday)
+
+         casaflux%cgpp = casaflux%meangpp
+         casaflux%crmplant(:,leaf) = casaflux%meanrleaf
    
          CALL biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
                     casamet,casabal,phen)
@@ -299,7 +305,9 @@ END SUBROUTINE bgcdriver
   real, dimension(17)                   ::  nintercept,nslope,xnslope
 ! Will move to look-up table in later version
   data nintercept/6.32,4.19,6.32,5.73,14.71,6.42,2.00,14.71,4.71,14.71,14.71,7.00,14.71,14.71,14.71,14.71,14.71/
-  data nslope/18.15,26.19,18.15,29.81,23.15,40.96,8.00,23.15,59.23,23.15,23.15,10.00,23.15,23.15,23.15,23.15,23.15/
+   data nslope/9.00,18.00,18.15,44.00,20.15,40.96,40.00,5.00,45.00,23.15,23.15,10.00,23.15,23.15,23.15,23.15,23.15/
+! data nslope/11.00,18.00,18.15,40.00,23.15,40.96,40.00,5.00,45.00,23.15,23.15,10.00,23.15,23.15,23.15,23.15,23.15/
+! data nslope/18.15,26.19,18.15,29.81,23.15,40.96,8.00,23.15,59.23,23.15,23.15,10.00,23.15,23.15,23.15,23.15,23.15/
 !  data xnslope/0.41,0.67,0.79,0.63,0.29,0.28,0.25,0.48,0.27,1.00,1.00,1.00,1.00,0.35,1.00,1.00,1.00/
 !  data xnslope/0.60,0.75,0.75,0.70,0.40,0.36,0.30,0.54,0.30,1.00,1.00,1.00,1.00,0.35,1.00,1.00,1.00/
 !  data xnslope/0.86,0.80,0.70,0.78,0.53,0.46,0.34,0.57,0.35,1.00,1.00,1.00,1.00,0.25,1.00,1.00,1.00/

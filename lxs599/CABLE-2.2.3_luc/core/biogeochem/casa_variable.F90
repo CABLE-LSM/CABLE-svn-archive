@@ -242,6 +242,8 @@ MODULE casavariable
     REAL(r_2), DIMENSION(:,:),POINTER    :: FluxNtosoil
     REAL(r_2), DIMENSION(:,:),POINTER    :: FluxPtosoil
     REAL(r_2), DIMENSION(:),POINTER      :: FluxCtoCO2
+    REAL(r_2), DIMENSION(:),POINTER      :: meangpp
+    REAL(r_2), DIMENSION(:),POINTER      :: meanrleaf 
   END TYPE casa_flux
 
   TYPE casa_met
@@ -443,6 +445,9 @@ SUBROUTINE alloc_casavariable(casabiome,casapool,casaflux,casamet, &
            casaflux%FluxPtosoil(arraysize,msoil))
 
   ALLOCATE(casaflux%FluxCtoco2(arraysize))
+
+  ALLOCATE(casaflux%meangpp(arraysize))
+  ALLOCATE(casaflux%meanrleaf(arraysize))
 
   ALLOCATE(casamet%glai(arraysize),                &
            casamet%lnonwood(arraysize),            &
