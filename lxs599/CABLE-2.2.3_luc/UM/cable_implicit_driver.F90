@@ -341,6 +341,7 @@ SUBROUTINE implicit_unpack( TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,                &
    USE cable_data_module,   ONLY : PHYS
    USE cable_um_tech_mod,   ONLY : um1 ,canopy, rad, soil, ssnow, air
    USE cable_common_module, ONLY : cable_runtime, cable_user
+   USE casa_types_mod
    IMPLICIT NONE
  
    !jhan:these need to be cleaned out to what is actualllly passed
@@ -571,20 +572,32 @@ SUBROUTINE implicit_unpack( TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,                &
      CANOPY_GB      = SUM(um1%TILE_FRAC * CANOPY_TILE,2)
 
      ! Lestevens - Passing CO2 from CABLE to bl_trmix_dd.F90
-     FRS_TILE       = UNPACK(canopy%frs, um1%L_TILE_PTS, miss)
-     NEE_TILE       = UNPACK(canopy%fnee, um1%L_TILE_PTS, miss)
-     NPP_TILE       = UNPACK(canopy%fnpp, um1%L_TILE_PTS, miss)
-     GLEAF_TILE     = UNPACK(canopy%frday,um1%L_TILE_PTS, miss)
+!     FRS_TILE       = UNPACK(canopy%frs, um1%L_TILE_PTS, miss)
+!     NEE_TILE       = UNPACK(canopy%fnee, um1%L_TILE_PTS, miss)
+!     NPP_TILE       = UNPACK(canopy%fnpp, um1%L_TILE_PTS, miss)
+!     GLEAF_TILE     = UNPACK(canopy%frday,um1%L_TILE_PTS, miss)
 
-      IF( cable_user%leaf_respiration == 'on' .OR.                             &
-           cable_user%leaf_respiration == 'ON') THEN
-         GPP_TILE = UNPACK(canopy%fnpp+canopy%frp, um1%L_TILE_PTS, miss)
-      ELSE 
-         GPP_TILE = UNPACK(canopy%fnpp+canopy%frp+canopy%frday,  &
-                            um1%L_TILE_PTS, miss)
-      ENDIF
+! TZ: output casa fluxes instead of canopy fluxes
+     FRS_TILE    = UNPACK((casaflux%crsoil)/86400.0, um1%L_TILE_PTS, miss)
+     NPP_TILE    = UNPACK((casaflux%cnpp)/86400.0, um1%L_TILE_PTS, miss)
+     NEE_TILE    = UNPACK((casaflux%crsoil-casaflux%cnpp)/86400.0, um1%L_TILE_PTS, miss)
+     GLEAF_TILE  = UNPACK((casaflux%crmplant(:,1))/86400.0, um1%L_TILE_PTS, miss)
+     FRP_TILE    = UNPACK((casaflux%crmplant(:,2)+casaflux%crmplant(:,3)+casaflux%crgplant)/86400.0, um1%L_TILE_PTS, miss)
+     IF( cable_user%leaf_respiration == 'on' .OR. cable_user%leaf_respiration == 'ON') THEN
+        GPP_TILE = UNPACK((casaflux%cnpp+casaflux%crmplant(:,2)+casaflux%crmplant(:,3)+casaflux%crgplant)/86400.0, um1%L_TILE_PTS, miss)
+     ELSE  
+        GPP_TILE = UNPACK((casaflux%cnpp+casaflux%crmplant(:,1)+casaflux%crmplant(:,2)+casaflux%crmplant(:,3)+casaflux%crgplant)/86400.0, um1%L_TILE_PTS, miss)
+     ENDIF
 
-     FRP_TILE       = UNPACK(canopy%frp, um1%L_TILE_PTS, miss)
+!      IF( cable_user%leaf_respiration == 'on' .OR.                             &
+!           cable_user%leaf_respiration == 'ON') THEN
+!         GPP_TILE = UNPACK(canopy%fnpp+canopy%frp, um1%L_TILE_PTS, miss)
+!      ELSE 
+!         GPP_TILE = UNPACK(canopy%fnpp+canopy%frp+canopy%frday,  &
+!                            um1%L_TILE_PTS, miss)
+!      ENDIF
+
+!     FRP_TILE       = UNPACK(canopy%frp, um1%L_TILE_PTS, miss)
      NPP_FT_old     = NPP_FT
      GPP_FT_old     = GPP_FT
      RESP_P_FT_old  = RESP_P_FT
