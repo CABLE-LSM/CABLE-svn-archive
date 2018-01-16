@@ -57,6 +57,7 @@ SUBROUTINE init_casacnp(sin_theta_latitude,cpool_tile,npool_tile,ppool_tile, &
                            soil_order,nidep,nifix,pwea,pdust,&
                            wood_hvest_c,wood_hvest_n,wood_hvest_P,&
                            wood_flux_c,wood_flux_n,wood_flux_P,&
+                           wresp_c,wresp_n,wresp_P,&
                            GLAI,PHENPHASE,PREV_YR_SFRAC,idoy)
 ! Lest 20 Jan 2011
     USE cable_def_types_mod
@@ -88,6 +89,9 @@ IMPLICIT NONE
     REAL   , INTENT(INOUT) :: WOOD_HVEST_C(um1%land_pts,um1%ntiles,3)
     REAL   , INTENT(INOUT) :: WOOD_HVEST_N(um1%land_pts,um1%ntiles,3)
     REAL   , INTENT(INOUT) :: WOOD_HVEST_P(um1%land_pts,um1%ntiles,3)
+    REAL   , INTENT(INOUT) :: WRESP_C(um1%land_pts,um1%ntiles,3)
+    REAL   , INTENT(INOUT) :: WRESP_N(um1%land_pts,um1%ntiles,3)
+    REAL   , INTENT(INOUT) :: WRESP_P(um1%land_pts,um1%ntiles,3)
     REAL   , INTENT(INOUT) :: WOOD_FLUX_C(um1%land_pts,um1%ntiles)
     REAL   , INTENT(INOUT) :: WOOD_FLUX_N(um1%land_pts,um1%ntiles)
     REAL   , INTENT(INOUT) :: WOOD_FLUX_P(um1%land_pts,um1%ntiles)
@@ -115,7 +119,7 @@ IMPLICIT NONE
     CALL casa_readphen(veg,casamet,phen)
     CALL casa_init_pk(casabiome,casaflux,casamet,casapool,casabal,veg,canopy,phen, &
                      cpool_tile,npool_tile,ppool_tile,wood_hvest_c,wood_hvest_n,wood_hvest_p,&
-                     wood_flux_c,wood_flux_n,wood_flux_p,&
+                     wood_flux_c,wood_flux_n,wood_flux_p,wresp_c,wresp_n,wresp_p,&
                      GLAI,PHENPHASE,PREV_YR_SFRAC,idoy)
                      !um1,cpool_tile,npool_tile,ppool_tile,GLAI,PHENPHASE)
  return
@@ -219,7 +223,7 @@ END SUBROUTINE casa_readpoint_pk
 
 SUBROUTINE casa_init_pk(casabiome,casaflux,casamet,casapool,casabal,veg,canopy,phen, &
                        cpool_tile,npool_tile,ppool_tile,wood_hvest_c,wood_hvest_n,wood_hvest_p,&
-                       wood_flux_c,wood_flux_n,wood_flux_p,&
+                       wood_flux_c,wood_flux_n,wood_flux_p,wresp_c,wresp_n,wresp_p,&
                        GLAI,PHENPHASE,PREV_YR_SFRAC,idoy)
 !                       um1,cpool_tile,npool_tile,ppool_tile,GLAI,PHENPHASE)
 !  initialize some values in phenology parameters and leaf growth phase
@@ -256,6 +260,9 @@ IMPLICIT NONE
   REAL   , INTENT(INOUT) ::WOOD_HVEST_C(um1%land_pts,um1%ntiles,3)
   REAL   , INTENT(INOUT) ::WOOD_HVEST_N(um1%land_pts,um1%ntiles,3)
   REAL   , INTENT(INOUT) ::WOOD_HVEST_P(um1%land_pts,um1%ntiles,3)
+  REAL   , INTENT(INOUT) ::WRESP_C(um1%land_pts,um1%ntiles,3)
+  REAL   , INTENT(INOUT) ::WRESP_N(um1%land_pts,um1%ntiles,3)
+  REAL   , INTENT(INOUT) ::WRESP_P(um1%land_pts,um1%ntiles,3)
   REAL   , INTENT(INOUT) ::WOOD_FLUX_C(um1%land_pts,um1%ntiles)
   REAL   , INTENT(INOUT) ::WOOD_FLUX_N(um1%land_pts,um1%ntiles)
   REAL   , INTENT(INOUT) ::WOOD_FLUX_P(um1%land_pts,um1%ntiles)
@@ -293,6 +300,7 @@ IMPLICIT NONE
                           cpool_tile,npool_tile,ppool_tile,&
                           wood_hvest_c,wood_hvest_n,wood_hvest_p,&
                           wood_flux_c,wood_flux_n,wood_flux_p,&
+                          wresp_c,wresp_n,wresp_p,&
                           GLAI,PHENPHASE,PREV_YR_SFRAC)
         print *, 'TEST_LS reinit DONE'
 
@@ -369,6 +377,7 @@ SUBROUTINE casa_reinit_pk(casabiome,casamet,casapool,casabal,veg,phen, &
                           cpool_tile,npool_tile,ppool_tile,&
                           slogc,slogn,slogp,&
                           logc,logn,logp,&
+                          wresp_c,wresp_n,wresp_p,&
                           GLAI,PHENPHASE,PREV_YR_SFRAC)
 
    USE cable_def_types_mod ! combines def_dimensions (mp,r_2) and define_types (mland)  
@@ -432,9 +441,10 @@ SUBROUTINE casa_reinit_pk(casabiome,casamet,casapool,casabal,veg,phen, &
    ! To be recorded wood log variables.
    REAL(r_2) :: logc(um1%land_pts,um1%ntiles), logn(um1%land_pts,um1%ntiles),logp(um1%land_pts,um1%ntiles)
    REAL(r_2) :: slogc(um1%land_pts,um1%ntiles,3),slogn(um1%land_pts,um1%ntiles,3),slogp(um1%land_pts,um1%ntiles,3)
-   REAL(r_2), DIMENSION(3) :: pool_frac, pool_time
-   !REAL,PARAMETER:: POOL_FRAC(3) =(/0.33, 0.33, 0.34/)
-   !REAL,PARAMETER:: POOL_TIME(3) =(/1.00, 0.10, 0.01/)
+   REAL(r_2) :: wresp_c(um1%land_pts,um1%ntiles,3),wresp_n(um1%land_pts,um1%ntiles,3),wresp_p(um1%land_pts,um1%ntiles,3)
+   !REAL(r_2), DIMENSION(3) :: pool_frac, pool_time
+   REAL,PARAMETER:: POOL_FRAC(3) =(/0.33, 0.33, 0.34/)
+   REAL,PARAMETER:: POOL_TIME(3) =(/1.00, 0.10, 0.01/)
 
    ! check if all of them are required
    INTEGER   :: g, p, k, y ! np
@@ -606,12 +616,16 @@ SUBROUTINE casa_reinit_pk(casabiome,casamet,casapool,casabal,veg,phen, &
      write(6,*)"TEST_TZ just after call newplant"
 
 ! Lestevens 24 Nov 2017 - Implement Yingping's flux to state pools
-     DATA pool_frac/0.33,0.33,0.34/
-     DATA pool_time/1.0 ,0.1 ,0.01/
+     !DATA pool_frac/0.33,0.33,0.34/
+     !DATA pool_time/1.0 ,0.1 ,0.01/
      DO y = 1,3
-      slogc(g,:,y) = slogc(g,:,y) + pool_frac(y)*logc(g,:) - pool_time(y)*slogc(g,:,y)
-      slogn(g,:,y) = slogn(g,:,y) + pool_frac(y)*logn(g,:) - pool_time(y)*slogn(g,:,y)
-      slogp(g,:,y) = slogp(g,:,y) + pool_frac(y)*logp(g,:) - pool_time(y)*slogp(g,:,y)
+                      wresp_c(g,:,y) = pool_time(y)*slogc(g,:,y)
+      IF (icycle > 1) wresp_n(g,:,y) = pool_time(y)*slogn(g,:,y)
+      IF (icycle > 2) wresp_p(g,:,y) = pool_time(y)*slogp(g,:,y)
+      !----
+                      slogc(g,:,y) = slogc(g,:,y) + pool_frac(y)*logc(g,:) - pool_time(y)*slogc(g,:,y)
+      IF (icycle > 1) slogn(g,:,y) = slogn(g,:,y) + pool_frac(y)*logn(g,:) - pool_time(y)*slogn(g,:,y)
+      IF (icycle > 2) slogp(g,:,y) = slogp(g,:,y) + pool_frac(y)*logp(g,:) - pool_time(y)*slogp(g,:,y)
      END DO
 
      ! Re-calculate litter C, N, P pools

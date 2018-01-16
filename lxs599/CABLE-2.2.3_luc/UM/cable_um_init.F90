@@ -54,6 +54,7 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
                               SOIL_ORDER, NIDEP, NIFIX, PWEA, PDUST, GLAI,     &
                               PHENPHASE,WOOD_HVEST_C,WOOD_HVEST_N,WOOD_HVEST_P,& 
                               WOOD_FLUX_C,WOOD_FLUX_N,WOOD_FLUX_P,& 
+                              WRESP_C,WRESP_N,WRESP_P,& 
                               PREV_YR_SFRAC, NPP_FT_ACC, RESP_W_FT_ACC, iday )
 
    USE cable_um_init_subrs_mod          ! where most subrs called from here reside
@@ -210,7 +211,10 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
   REAL, INTENT(INOUT), DIMENSION(land_pts,ntiles,3) :: &
       WOOD_HVEST_C,&
       WOOD_HVEST_N,&
-      WOOD_HVEST_P
+      WOOD_HVEST_P,&
+      WRESP_C,&
+      WRESP_N,&
+      WRESP_P
 
    REAL, INTENT(INOUT), DIMENSION(land_pts,ntiles) :: &
       NPP_FT_ACC,   &
@@ -343,6 +347,7 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
                              ppool_tile,soil_order,nidep,nifix,pwea,pdust,&
                              wood_hvest_c,wood_hvest_n,wood_hvest_p, &
                              wood_flux_c,wood_flux_n,wood_flux_p, &
+                             wresp_c,wresp_n,wresp_p, &
                              GLAI,PHENPHASE,PREV_YR_SFRAC,iday)
          endif
 

@@ -59,6 +59,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
                                   GLAI, PHENPHASE, PREV_YR_SFRAC, &
                                   WOOD_HVEST_C,WOOD_HVEST_n,WOOD_HVEST_p,&
                                   WOOD_FLUX_C,WOOD_FLUX_n,WOOD_FLUX_p,&
+                                  WRESP_C,WRESP_n,WRESP_p,&
                                   NPP_FT_ACC, RESP_W_FT_ACC,  &
                                   iday, endstep, timestep_number, mype )    
    
@@ -277,7 +278,10 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    REAL, INTENT(INOUT), DIMENSION(land_pts,ntiles,3) :: &
       WOOD_HVEST_C,&
       WOOD_HVEST_N,&
-      WOOD_HVEST_P
+      WOOD_HVEST_P,&
+      WRESP_C,&
+      WRESP_N,&
+      WRESP_P
                                   
    REAL, INTENT(INOUT), DIMENSION(land_pts,ntiles) :: &
       NPP_FT_ACC,     &
@@ -374,6 +378,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
                            NIDEP, NIFIX, PWEA, PDUST, GLAI, PHENPHASE,         &
                            WOOD_HVEST_C,WOOD_HVEST_N,WOOD_HVEST_P, &
                            WOOD_FLUX_C,WOOD_FLUX_N,WOOD_FLUX_P, &
+                           WRESP_C,WRESP_N,WRESP_P, &
                            PREV_YR_SFRAC,NPP_FT_ACC,RESP_W_FT_ACC, iday )
 
    !---------------------------------------------------------------------!

@@ -53,6 +53,7 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
                                   PPOOL_TILE, GLAI, PHENPHASE, WOOD_HVEST_C, &
                                   WOOD_HVEST_N,WOOD_HVEST_P,&
                                   WOOD_FLUX_C,WOOD_FLUX_N,WOOD_FLUX_P,&
+                                  WRESP_C,WRESP_N,WRESP_P,&
                                   NPP_FT_ACC,RESP_W_FT_ACC, idoy )
 
    USE cable_def_types_mod, ONLY : mp
@@ -207,7 +208,10 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
    REAL, DIMENSION(um1%LAND_PTS,um1%NTILES,3) ::                                 &
       WOOD_HVEST_C,&
       WOOD_HVEST_N,&
-      WOOD_HVEST_P
+      WOOD_HVEST_P,&
+      WRESP_C,&
+      WRESP_N,&
+      WRESP_P
 
    ! Lestevens 23apr13
    REAL, DIMENSION(um1%LAND_PTS,um1%NTILES) ::                                 &
