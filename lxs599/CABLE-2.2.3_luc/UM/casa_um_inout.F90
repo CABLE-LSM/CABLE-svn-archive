@@ -619,13 +619,15 @@ SUBROUTINE casa_reinit_pk(casabiome,casamet,casapool,casabal,veg,phen, &
      !DATA pool_frac/0.33,0.33,0.34/
      !DATA pool_time/1.0 ,0.1 ,0.01/
      DO y = 1,3
-                      wresp_c(g,:,y) = pool_time(y)*slogc(g,:,y)
-      IF (icycle > 1) wresp_n(g,:,y) = pool_time(y)*slogn(g,:,y)
-      IF (icycle > 2) wresp_p(g,:,y) = pool_time(y)*slogp(g,:,y)
-      !----
-                      slogc(g,:,y) = slogc(g,:,y) + pool_frac(y)*logc(g,:) - pool_time(y)*slogc(g,:,y)
-      IF (icycle > 1) slogn(g,:,y) = slogn(g,:,y) + pool_frac(y)*logn(g,:) - pool_time(y)*slogn(g,:,y)
-      IF (icycle > 2) slogp(g,:,y) = slogp(g,:,y) + pool_frac(y)*logp(g,:) - pool_time(y)*slogp(g,:,y)
+                      slogc(g,:,y) = slogc(g,:,y) + pool_frac(y)*logc(g,:) !- pool_time(y)*slogc(g,:,y)
+      IF (icycle > 1) slogn(g,:,y) = slogn(g,:,y) + pool_frac(y)*logn(g,:) !- pool_time(y)*slogn(g,:,y)
+      IF (icycle > 2) slogp(g,:,y) = slogp(g,:,y) + pool_frac(y)*logp(g,:) !- pool_time(y)*slogp(g,:,y)
+                      wresp_c(g,:,y) = slogc(g,:,y)*(1.-exp(-1.*pool_time(y))) !pool_time(y)*slogc(g,:,y)
+      IF (icycle > 1) wresp_n(g,:,y) = slogn(g,:,y)*(1.-exp(-1.*pool_time(y))) !pool_time(y)*slogn(g,:,y)
+      IF (icycle > 2) wresp_p(g,:,y) = slogp(g,:,y)*(1.-exp(-1.*pool_time(y))) !pool_time(y)*slogp(g,:,y)
+                      slogc(g,:,y) = slogc(g,:,y) - wresp_c(g,:,y)
+      IF (icycle > 1) slogn(g,:,y) = slogn(g,:,y) - wresp_n(g,:,y)
+      IF (icycle > 2) slogp(g,:,y) = slogp(g,:,y) - wresp_p(g,:,y)
      END DO
 
      ! Re-calculate litter C, N, P pools

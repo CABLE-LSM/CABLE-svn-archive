@@ -175,6 +175,7 @@ SUBROUTINE newsoil(nd,csoil_x,frac_x,ifpre_x,csoil_y,frac_y,ifpre_y)
 ! Call by casa_reinit
 ! Re-allocate soil C,N and P pools
 ! Q.Zhang @ 29/05/2011
+! L.stevens @ 19/01/2018
   USE cable_def_types_mod
   USE casadimension
   USE casaparm
@@ -186,22 +187,64 @@ SUBROUTINE newsoil(nd,csoil_x,frac_x,ifpre_x,csoil_y,frac_y,ifpre_y)
   real,DIMENSION(mvtype),INTENT(in) :: frac_x,frac_y
   real(r_2),DIMENSION(mvtype,nd),INTENT(inout) :: csoil_x,csoil_y
 ! local variable
-  real(r_2),DIMENSION(nd) :: dcY
+  real,DIMENSION(nd)     :: tmpVar,Rcount
+  real,DIMENSION(mvtype) :: dfrac
   integer nv
 
-  dcY = 0. 
+  dfrac = frac_y - frac_x ! current minus previous
+  tmpVar = 0.0
+  Rcount = 0.0
 
-! plant clear, pft patch 'disappear'
   DO nv=1,mvtype
-    IF (ifpre_x(nv) .and. .not.ifpre_y(nv)) THEN
-      dcY(:) = dcY(:) + csoil_x(nv,:) * frac_x(nv)
+    IF (dfrac(nv)<0.0) THEN
+      tmpVar = tmpVar + ABS(dfrac(nv))*csoil_x(nv,:)
+      Rcount = Rcount + ABS(dfrac(nv))
     ENDIF
   END DO
-! Q.Zhang: should not put the bellow IF() into the above DO loop. 
+  tmpVar = tmpVar/Rcount
   DO nv=1,mvtype
-    IF (ifpre_y(nv)) THEN   ! pft exist in the 2nd year
-      csoil_y(nv,:) = csoil_x(nv,:) * frac_x(nv) / frac_y(nv) + dcY(:)
+    IF (dfrac(nv) > 0.0) THEN   ! pft exist in the 2nd year
+      csoil_y(nv,:) = (dfrac(nv)*tmpVar + &
+                 csoil_x(nv,:) * frac_x(nv)) / frac_y(nv)
+    ELSE
+      csoil_y(nv,:) = csoil_x(nv,:)
     ENDIF
   END DO
 
 END SUBROUTINE newsoil
+
+!SUBROUTINE newsoil(nd,csoil_x,frac_x,ifpre_x,csoil_y,frac_y,ifpre_y)
+!! Used for LAND USE CHANGE SIMULATION
+!! Call by casa_reinit
+!! Re-allocate soil C,N and P pools
+!! Q.Zhang @ 29/05/2011
+!  USE cable_def_types_mod
+!  USE casadimension
+!  USE casaparm
+!
+!  implicit none
+!
+!  integer,INTENT(in) :: nd  ! dimension of soil pool
+!  integer,DIMENSION(mvtype),INTENT(in) :: ifpre_x,ifpre_y
+!  real,DIMENSION(mvtype),INTENT(in) :: frac_x,frac_y
+!  real(r_2),DIMENSION(mvtype,nd),INTENT(inout) :: csoil_x,csoil_y
+!! local variable
+!  real(r_2),DIMENSION(nd) :: dcY
+!  integer nv
+!
+!  dcY = 0.
+!
+!! plant clear, pft patch 'disappear'
+!  DO nv=1,mvtype
+!    IF (ifpre_x(nv) .and. .not.ifpre_y(nv)) THEN
+!      dcY(:) = dcY(:) + csoil_x(nv,:) * frac_x(nv)
+!    ENDIF
+!  END DO
+!! Q.Zhang: should not put the bellow IF() into the above DO loop.
+!  DO nv=1,mvtype
+!    IF (ifpre_y(nv)) THEN   ! pft exist in the 2nd year
+!      csoil_y(nv,:) = csoil_x(nv,:) * frac_x(nv) / frac_y(nv) + dcY(:)
+!    ENDIF
+!  END DO
+!
+!END SUBROUTINE newsoil
