@@ -1237,8 +1237,9 @@ END SUBROUTINE unpack_glai
           Rcount = Rcount + ABS(dfrac(N))
         ENDIF
       Enddo
+      where (Rcount > 0)
       tmpVar = tmpVar / Rcount
-    
+      endwhere
       ! Add the averaged amount to those increasing tiles
       DO N = 1, um1%ntiles
         IF (dfrac(N) > 0.0) THEN   ! those tiles increasing in size

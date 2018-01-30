@@ -201,7 +201,9 @@ SUBROUTINE newsoil(nd,csoil_x,frac_x,ifpre_x,csoil_y,frac_y,ifpre_y)
       Rcount = Rcount + ABS(dfrac(nv))
     ENDIF
   END DO
+  where (Rcount > 0)
   tmpVar = tmpVar/Rcount
+  endwhere
   DO nv=1,mvtype
     IF (dfrac(nv) > 0.0) THEN   ! pft exist in the 2nd year
       csoil_y(nv,:) = (dfrac(nv)*tmpVar + &
