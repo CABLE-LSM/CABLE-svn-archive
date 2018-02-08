@@ -2,7 +2,7 @@
 
 known_hosts()
 {
-   set -A kh cher burn shin  raij pear
+   set -A kh  raij pear
 }
 
 ## raijin.nci.org.au
@@ -24,53 +24,7 @@ host_raij()
    build_status
 }
 
-## shine-cl.nexus.csiro.au 
-host_shin()
-{
-   export NCDIR='/usr/local/intel/'
-   export NCMOD='/usr/local/intel/'
-   export FC=ifort    ## need to check ??
-   export CFLAGS='-O2 -fp-model precise -ftz -fpe0'
-   export LD='-lnetcdf'
-   export LDFLAGS='-L/usr/local/intel/lib -O2'
-   build_build
-   cd ../
-   build_status
-}
 
-
-## burnet.hpsc.csiro.au 
-host_burn()
-{
-   . /apps/modules/Modules/default/init/ksh
-   module add netcdf/3.6.3 openmpi
-
-
-   export NCDIR=$NETCDF_ROOT'/lib/'
-   export NCMOD=$NETCDF_ROOT'/include/'
-   export FC='mpif90'
-   export CFLAGS='-O2 -fp-model precise'
-   export LDFLAGS='-L'$NCDIR' -O2'
-   export LD='-lnetcdf -lnetcdff'
-   build_build
-   cd ../
-   build_status
-}
-
-
-## cherax.hpsc.csiro.au 
-host_cher()
-{
-   export NCDIR=$NETCDF_ROOT'/lib/'
-   export NCMOD=$NETCDF_ROOT'/include/'
-   export FC='mpif90'
-   export CFLAGS='-O2 -fp-model precise'
-   export LDFLAGS='-L'$NCDIR' -O2'
-   export LD='-lnetcdf -lnetcdff'
-   build_build
-   cd ../
-   build_status
-}
 
 ## pearcey.hpsc.csiro.au 
 host_pear()
