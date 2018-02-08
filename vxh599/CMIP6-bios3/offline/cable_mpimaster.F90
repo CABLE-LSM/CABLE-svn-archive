@@ -40,7 +40,7 @@
 !              open_output_file
 !              get_met_data
 !              write_output
-!              casa_poolout
+!              !casa_poolout
 !              casa_fluxout
 !              create_restart
 !              close_met_file
@@ -8203,8 +8203,8 @@ write(*,*) 'nloop =', nloop
 write(*,*) 'b4 master receive'
 CALL master_receive (ocomm, 0, casa_ts)
 write(*,*) 'after master receive'
-CALL casa_poolout( ktau, veg, soil, casabiome,                           &
-            casapool, casaflux, casamet, casabal, phen )
+!CALL casa_poolout( ktau, veg, soil, casabiome,                           &
+!            casapool, casaflux, casamet, casabal, phen )
 
 
 CALL write_casa_restart_nc ( casamet, casapool,casaflux,phen,.TRUE. )

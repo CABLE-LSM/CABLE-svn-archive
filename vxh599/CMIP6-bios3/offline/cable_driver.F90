@@ -37,7 +37,7 @@
 !	       bgcdriver
 !	       sumcflux
 !	       write_output
-!	       casa_poolout
+!	       !casa_poolout
 !	       casa_fluxout
 !	       create_restart
 !	       close_met_file
@@ -1077,8 +1077,8 @@ PROGRAM cable_offline_driver
 
   IF (icycle > 0) THEN
 
-     CALL casa_poolout( ktau, veg, soil, casabiome,		  &
-	  casapool, casaflux, casamet, casabal, phen )
+    ! CALL casa_poolout( ktau, veg, soil, casabiome,		  &
+    !	  casapool, casaflux, casamet, casabal, phen )
      CALL write_casa_restart_nc ( casamet, casapool,casaflux,phen, CASAONLY )
 
   END IF
