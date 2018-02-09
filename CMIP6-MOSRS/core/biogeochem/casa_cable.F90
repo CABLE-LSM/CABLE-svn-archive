@@ -261,6 +261,7 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, climate, ncall, kend
       USE casadimension,         ONLY : mplant,mdyear
       USE casavariable,          ONLY : casa_met, casa_flux
       USE phenvariable
+      USE cable_common_module,  ONLY:  CABLE_USER
 #     ifndef UM_BUILD
       USE cable_diag_module,     ONLY : get_var_ncr2, &
                                         get_var_ncr3, stderr_nc
@@ -406,6 +407,7 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, phen, climate, n_call, ke
   USE casavariable,          ONLY : CASA_MET, CASA_FLUX
   USE casadimension,         ONLY : mplant
   USE phenvariable
+  USE cable_common_module,  ONLY:  CABLE_USER
 
   IMPLICIT NONE
 
