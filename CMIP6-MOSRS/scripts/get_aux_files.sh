@@ -36,7 +36,7 @@ svn export --force ${CABLE_AUX}/core/biogeophys/def_soil_params.txt ${OUTDIR}/de
 
 if [[ $MODE == offline* ]]; then
     # Files required for offline modes
-    svn export --force ${CABLE_AUX}/offline/cable.nml.CMIP6-bios3 ${OUTDIR}/cable.nml
+    svn export --force ${CABLE_AUX}/offline/cable.nml ${OUTDIR}/cable.nml
     svn export --force ${CABLE_AUX}/offline/TumbaFluxnet.1.3_met.nc ${OUTDIR}/TumbaFluxnet.1.3_met.nc
     svn export --force ${CABLE_AUX}/offline/gridinfo_CSIRO_1x1.nc ${OUTDIR}/gridinfo_CSIRO_1x1.nc
 
