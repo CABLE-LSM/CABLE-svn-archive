@@ -42,7 +42,7 @@ MODULE cable_def_types_mod
 
    INTEGER, PARAMETER ::                                                        &
       i_d  = KIND(9), &
-      r_2  = SELECTED_REAL_KIND(12, 50), &
+      r_2  = kind(1.d0),&!SELECTED_REAL_KIND(12, 50), &
       n_tiles = 17,  & ! # possible no of different
       ncp = 3,       & ! # vegetation carbon stores
       ncs = 2,       & ! # soil carbon stores
@@ -54,7 +54,7 @@ MODULE cable_def_types_mod
  !      ms = 12          ! # soil layers
        ms = 6         ! # soil layers - standard
 !       ms = 13          ! for Loetschental experiment
-
+    INTEGER, PARAMETER :: n_ktherm = 3
 !   PRIVATE :: r_2, ms, msn, mf, nrb, ncp, ncs
 
 ! .............................................................................
@@ -127,11 +127,14 @@ MODULE cable_def_types_mod
          soilcol, & ! keep color for all patches/tiles
          albsoilf   ! soil reflectance
 
-      REAL, DIMENSION(:,:), POINTER :: &  !leaving as r_1 now preserves bit reproductin of trunks
-        zse_vec,css_vec
+      REAL(r_2), DIMENSION(:,:), POINTER :: &
+         heat_cap_lower_limit
 
-      REAL(r_2), DIMENSION(:,:), POINTER :: & 
-        cnsd_vec
+      REAL(r_2), DIMENSION(:,:), POINTER :: &
+        zse_vec,css_vec,cnsd_vec
+
+      REAL(r_2), DIMENSION(:,:,:), POINTER :: &
+          Ktherm_const
 
       REAL(r_2), DIMENSION(:), POINTER ::                                      &
          cnsd,    & ! thermal conductivity of dry soil [W/m/K]
@@ -145,10 +148,10 @@ MODULE cable_def_types_mod
          sucs_vec, & !psi at saturation in [mm]
          hyds_vec,  & !saturated hydraulic conductivity  [mm/s]
          bch_vec, & !C and H B [none]
-         clay_vec,  & !fraction of soil that is clay [frac]
-         sand_vec,  & !fraction of soil that is sand [frac]
-         silt_vec,  & !fraction of soil that is silt [frac]
-         org_vec,   & !fration of soil made of organic soils [frac]
+         Fclay,  & !fraction of soil that is clay [frac]
+         Fsand,  & !fraction of soil that is sand [frac]
+         Fsilt,  & !fraction of soil that is silt [frac]
+         Forg,   & !fration of soil made of organic soils [frac]
          rhosoil_vec,& !soil density  [kg/m3]
          ssat_vec, & !volumetric water content at saturation [mm3/mm3]
          watr,   & !residual water content of the soil [mm3/mm3]
@@ -156,9 +159,6 @@ MODULE cable_def_types_mod
          swilt_vec     ! wilting point (hk = 0.02 mm/day)
 
       REAL(r_2), DIMENSION(:), POINTER ::                                      &
-         drain_dens,&!  drainage density ( mean dist to rivers/streams )
-         elev, &  !elevation above sea level
-         elev_std, &  !elevation above sea level
          slope,  &  !mean slope of grid cell
          slope_std  !stddev of grid cell slope
 
@@ -169,6 +169,7 @@ MODULE cable_def_types_mod
          GWbch_vec,  & !clapp and horn b of the aquifer   [none]
          GWssat_vec,  & !saturated water content of the aquifer [mm3/mm3]
          GWwatr,    & !residual water content of the aquifer [mm3/mm3]
+         GWz,       & !node depth of the aquifer    [m]
          GWdz,      & !thickness of the aquifer   [m]
          GWrhosoil_vec    !density of the aquifer substrate [kg/m3]
 
@@ -181,7 +182,6 @@ MODULE cable_def_types_mod
      !REAL(r_2), DIMENSION(:,:), POINTER :: swilt_vec ! vol H2O @ wilting
      !REAL(r_2), DIMENSION(:,:), POINTER :: ssat_vec  ! vol H2O @ sat
      !REAL(r_2), DIMENSION(:,:), POINTER :: sfc_vec   ! vol H2O @ fc
-     real, dimension(:,:), pointer :: froot
 
   END TYPE soil_parameter_type
 
@@ -268,7 +268,6 @@ MODULE cable_def_types_mod
          wbfice     !
 
      !mrd561
-     logical, dimension(:), pointer :: apply_qrecharge
       !MD variables for the revised soil moisture + GW scheme
       REAL(r_2), DIMENSION(:), POINTER   ::                                     &
          GWwb,    &  ! water content in aquifer [mm3/mm3]
@@ -383,8 +382,8 @@ MODULE cable_def_types_mod
 
       REAL, DIMENSION(:,:), POINTER ::                                         &
          refl,    &
-         taul!,    &
-         !froot      ! fraction of root in each soil layer
+         taul,    &
+         froot      ! fraction of root in each soil layer
 
      ! Additional  veg parameters:
      REAL(r_2), DIMENSION(:), POINTER :: rootbeta ! parameter for estimating vertical root mass distribution (froot)
@@ -461,6 +460,7 @@ MODULE cable_def_types_mod
          ga_cor  ! correction to ground heat flux (W/m2)
 
       REAL, DIMENSION(:,:), POINTER ::                                         &
+         evapfbl, &
          gswx,    & ! stom cond for water
          zetar, &   ! stability parameter (ref height)
           !! vh_js !!
@@ -838,12 +838,15 @@ SUBROUTINE alloc_soil_parameter_type(var, mp)
    allocate( var%GWssat_vec(mp) )
    allocate( var%GWwatr(mp) )
    var%GWwatr(:) = 0.05
+   allocate( var%GWz(mp) )
    allocate( var%GWdz(mp) )
    allocate( var%GWrhosoil_vec(mp) )
    !soil properties (vary by layer)
    allocate( var% zse_vec(mp,ms) )
+   allocate( var% heat_cap_lower_limit(mp,ms) )
    allocate( var% css_vec(mp,ms) )
    allocate( var% cnsd_vec(mp,ms) )
+   allocate( var% Ktherm_const(mp,ms,n_ktherm) )
    allocate( var%hyds_vec(mp,ms) )
    allocate( var%sucs_vec(mp,ms) )
    allocate( var%bch_vec(mp,ms) )
@@ -852,15 +855,12 @@ SUBROUTINE alloc_soil_parameter_type(var, mp)
    var%watr(:,:) = 0.05
    allocate( var%sfc_vec(mp,ms) )
    allocate( var%swilt_vec(mp,ms) )
-   allocate( var%sand_vec(mp,ms) )
-   allocate( var%clay_vec(mp,ms) )
-   allocate( var%silt_vec(mp,ms) )
-   allocate( var%org_vec(mp,ms) )
+   allocate( var%Fsand(mp,ms) )
+   allocate( var%Fclay(mp,ms) )
+   allocate( var%Fsilt(mp,ms) )
+   allocate( var%Forg(mp,ms) )
    allocate( var%rhosoil_vec(mp,ms) )
 
-   allocate( var%drain_dens(mp) )
-   allocate( var%elev(mp) )
-   allocate( var%elev_std(mp) )
    allocate( var%slope(mp) )
    allocate( var%slope_std(mp) )
 
@@ -876,7 +876,6 @@ SUBROUTINE alloc_soil_parameter_type(var, mp)
    IF(.NOT.(ASSOCIATED(var % swilt_vec))) ALLOCATE ( var % swilt_vec(mp,ms) )
    IF(.NOT.(ASSOCIATED(var % ssat_vec))) ALLOCATE ( var % ssat_vec(mp,ms) )
    IF(.NOT.(ASSOCIATED(var % sfc_vec))) ALLOCATE ( var % sfc_vec(mp,ms) )
-   ALLOCATE( var%froot(mp,ms) )
 
 
 END SUBROUTINE alloc_soil_parameter_type
@@ -959,7 +958,6 @@ SUBROUTINE alloc_soil_snow_type(var, mp)
    !mrd561
    !MD
    !Aquifer variables
-   ALLOCATE( var%apply_qrecharge(mp) )
    ALLOCATE( var%GWwb(mp) )
    ALLOCATE( var%GWhk(mp) )
    ALLOCATE( var%GWdhkdw(mp) )
@@ -1055,6 +1053,7 @@ SUBROUTINE alloc_veg_parameter_type(var, mp)
    ALLOCATE( var%extkn(mp) )
    ALLOCATE( var%wai(mp) )
    ALLOCATE( var%deciduous(mp) )
+   ALLOCATE( var%froot(mp,ms) )
    !was nrb(=3), but never uses (:,3) in model
    ALLOCATE( var%refl(mp,2) ) !jhan:swb?
    ALLOCATE( var%taul(mp,2) )
@@ -1137,6 +1136,7 @@ SUBROUTINE alloc_canopy_type(var, mp)
    ALLOCATE( var% fwet(mp) )
    ALLOCATE( var% fns_cor(mp) )    !REV_CORR variable
    ALLOCATE( var% ga_cor(mp) )     !REV_CORR variable
+   ALLOCATE ( var % evapfbl(mp,ms) )
    ALLOCATE( var% epot(mp) )
    ALLOCATE( var% fnpp(mp) )
    ALLOCATE( var% fevw_pot(mp) )
@@ -1458,12 +1458,15 @@ SUBROUTINE dealloc_soil_parameter_type(var)
    DEALLOCATE( var%GWbch_vec )
    DEALLOCATE( var%GWssat_vec )
    DEALLOCATE( var%GWwatr )
+   DEALLOCATE( var%GWz )
    DEALLOCATE( var%GWdz )
    DEALLOCATE( var%GWrhosoil_vec )
    !soil properties (vary by layer)
    deallocate( var% zse_vec )
+   deallocate( var% heat_cap_lower_limit )
    deallocate( var% css_vec )
    deallocate( var% cnsd_vec )
+   deallocate( var% Ktherm_const )
    DEALLOCATE( var%hyds_vec )
    DEALLOCATE( var%sucs_vec )
    DEALLOCATE( var%bch_vec )
@@ -1471,14 +1474,11 @@ SUBROUTINE dealloc_soil_parameter_type(var)
    DEALLOCATE( var%watr )
    DEALLOCATE( var%sfc_vec )
    DEALLOCATE( var%swilt_vec )
-   DEALLOCATE( var%sand_vec )
-   DEALLOCATE( var%clay_vec )
-   DEALLOCATE( var%silt_vec )
-   DEALLOCATE( var%org_vec  )
+   DEALLOCATE( var%Fsand )
+   DEALLOCATE( var%Fclay )
+   DEALLOCATE( var%Fsilt )
+   DEALLOCATE( var%Forg  )
    DEALLOCATE( var%rhosoil_vec )   
-   DEALLOCATE( var%drain_dens )
-   DEALLOCATE( var%elev )
-   DEALLOCATE( var%elev_std )
    DEALLOCATE( var%slope )
    DEALLOCATE( var%slope_std )
     ! Deallocate variables for SLI soil model:
@@ -1495,7 +1495,6 @@ SUBROUTINE dealloc_soil_parameter_type(var)
     IF(ASSOCIATED(var % ssat_vec)) DEALLOCATE ( var % ssat_vec )
     IF(ASSOCIATED(var % sfc_vec)) DEALLOCATE ( var % sfc_vec )
     !END IF
-    DEALLOCATE( var%froot)
 
 
 END SUBROUTINE dealloc_soil_parameter_type
@@ -1575,7 +1574,6 @@ SUBROUTINE dealloc_soil_snow_type(var)
    DEALLOCATE( var%qssrf )
    !MD
    !Aquifer variables
-   DEALLOCATE( var%apply_qrecharge )
    DEALLOCATE( var%GWwb )
    DEALLOCATE( var%GWhk )
    DEALLOCATE( var%GWdhkdw )
@@ -1669,6 +1667,7 @@ SUBROUTINE dealloc_veg_parameter_type(var)
    DEALLOCATE( var%extkn )
    DEALLOCATE( var%wai )
    DEALLOCATE( var%deciduous )
+   DEALLOCATE( var%froot)
    DEALLOCATE( var%refl )
    DEALLOCATE( var%taul )
    DEALLOCATE( var%a1gs )
@@ -1748,6 +1747,7 @@ SUBROUTINE dealloc_canopy_type(var)
    DEALLOCATE( var% fwet )
    DEALLOCATE( var% fns_cor )   !REV_CORR variable
    DEALLOCATE( var% ga_cor )    !REV_CORR variable
+   DEALLOCATE ( var % evapfbl )
    DEALLOCATE( var% epot )
    DEALLOCATE( var% fnpp )
    DEALLOCATE( var% fevw_pot )
