@@ -32,21 +32,24 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
                               npft, sm_levels, itimestep, latitude, longitude, &
                               land_index, tile_frac, tile_pts, tile_index,     &
                               bexp, hcon, satcon, sathh, smvcst, smvcwt,       &
-                              smvccl, albsoil, snow_tile, snow_rho1l,          &
-                              snage_tile, isnow_flg3l, snow_rho3l, snow_cond,  &
+                              smvccl, albsoil, slope_avg,slope_std,dz_gw,           &
+                              snow_tile, snow_rho1l,                           &
+                              snow_age, isnow_flg3l, snow_rho3l, snow_cond,  &
                               snow_depth3l, snow_tmp3l, snow_mass3l, sw_down,  &
                               lw_down, cos_zenith_angle, surf_down_sw, ls_rain,&
                               ls_snow, tl_1, qw_1, vshr_land, pstar, z1_tq,    &
-                              z1_uv, rho_water, L_tile_pts, canopy_tile, Fland,&
-! rml 2/7/13 pass 3d co2 through to cable if required
-                   CO2_MMR,CO2_3D,CO2_DIM_LEN,CO2_DIM_ROW,L_CO2_INTERACTIVE,   &
-                              sthu_tile, smcl_tile, sthf_tile, sthu,           &
+                              z1_uv, rho_water, rho_ice,L_tile_pts, canopy_tile, Fland,&
+                              ! rml 2/7/13 pass 3d co2 through to cable if required
+                              CO2_MMR,&
+                              !r935 CO2_3D,CO2_DIM_LEN,CO2_DIM_ROW,L_CO2_INTERACTIVE,   &
+                              sthu_tile, smcl_tile, smgw_tile,sthf_tile, sthu, &
                               tsoil_tile, canht_ft, lai_ft, sin_theta_latitude,&
                               dzsoil, CPOOL_TILE, NPOOL_TILE, PPOOL_TILE,      &
                               SOIL_ORDER, NIDEP, NIFIX, PWEA, PDUST, GLAI,     &
                               PHENPHASE, NPP_FT_ACC, RESP_W_FT_ACC )
 
    USE cable_um_init_subrs_mod          ! where most subrs called from here reside
+  USE casa_um_inout_mod
    
    USE cable_um_tech_mod,   ONLY :                                             &
       alloc_um_interface_types,  & ! mem. allocation subr (um1, kblum%) 
@@ -57,45 +60,46 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
    USE cable_common_module, ONLY :                                             &
       cable_user,          & ! cable_user% type inherits user definition
                              ! via namelist (cable.nml) 
-      get_type_parameters, & ! veg and soil parameters READ subroutine  
-                             !
       l_casacnp,           & !
       knode_gl               !
 
    USE cable_def_types_mod, ONLY : mp ! number of points CABLE works on
-
-   USE casa_um_inout_mod
+  
+  use cable_pft_params_mod, ONLY : cable_pft_params ! subr
+  use cable_soil_params_mod, ONLY : cable_soil_params !subr
+  
+   !USE casa_um_inout_mod
 
 
    !-------------------------------------------------------------------------- 
    !--- INPUT ARGS FROM cable_explicit_driver() ------------------------------
    !-------------------------------------------------------------------------- 
    !___UM dimensions, array indexes, flags
-   INTEGER, INTENT(IN) ::                                                      &
+   INTEGER ::                                                      &
       row_length, rows, & ! UM resolution
       land_pts,         & ! number of land_pts
       ntiles,           & ! number of tiles
       npft,             & ! number of Plant Functional Types
       sm_levels           ! number of soil layers
 
-   INTEGER, INTENT(IN), DIMENSION(land_pts) ::                                 &
+   INTEGER, DIMENSION(land_pts) ::                                 &
       land_index  ! index of land point 
    
-   INTEGER, INTENT(IN), DIMENSION(ntiles) ::                                   &
+   INTEGER, DIMENSION(ntiles) ::                                   &
       tile_pts    ! number of land_pts per tile type
   
-   INTEGER, INTENT(IN), DIMENSION(land_pts, ntiles) ::                         &
+   INTEGER, DIMENSION(land_pts, ntiles) ::                         &
       tile_index, &  ! index of tile 
       isnow_flg3l    ! flag for 3-layer snow 
 
    !___UM parameters 
-   INTEGER, INTENT(IN) :: itimestep
-   REAL, INTENT(IN) :: rho_water 
-   REAL, INTENT(IN), DIMENSION(sm_levels) ::                                   &
+   INTEGER :: itimestep
+   REAL :: rho_water ,rho_ice
+   REAL, DIMENSION(sm_levels) ::                                   &
       dzsoil
 
    !___UM soil/snow/radiation/met vars
-   REAL, INTENT(IN), DIMENSION(land_pts) ::                                    &
+   REAL, DIMENSION(land_pts) ::                                    &
       bexp, &     !
       hcon, &     !  
       satcon, &   !
@@ -106,11 +110,16 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
       albsoil,&   !
       fland       !
        
-   REAL, INTENT(INOUT), DIMENSION(row_length,rows) ::                          &
+   REAL, DIMENSION(land_pts) ::                                    &
+      slope_avg,&
+      slope_std,&
+      dz_gw
+
+   REAL, DIMENSION(row_length,rows) ::                          &
       sw_down, &        !
       cos_zenith_angle  !
 
-   REAL, INTENT(IN), DIMENSION(row_length,rows) ::                             &
+   REAL, DIMENSION(row_length,rows) ::                             &
       latitude, longitude, &
       lw_down, &  !
       ls_rain, &  !
@@ -122,77 +131,80 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
       z1_tq,   &  !
       z1_uv       !
 
-   REAL, INTENT(INOUT), DIMENSION(land_pts, ntiles) ::                         &
+   REAL, DIMENSION(land_pts, ntiles) ::                         &
       snow_tile   !
    
-   REAL, INTENT(IN), DIMENSION(land_pts, ntiles) ::                            & 
+   REAL, DIMENSION(land_pts, ntiles) ::                            & 
       tile_frac, &   !   
       snow_rho1l,&   !
-      snage_tile     !
+      snow_age     !
 
-   REAL, INTENT(IN), DIMENSION(row_length, rows, 4) ::                         &
+   REAL, DIMENSION(row_length, rows, 4) ::                         &
       surf_down_sw 
 
-   REAL, INTENT(IN), DIMENSION(land_pts, npft) ::                              &
+   REAL, DIMENSION(land_pts, npft) ::                              &
       canht_ft, & !
       lai_ft      !
 
-   REAL, INTENT(IN),DIMENSION(land_pts, ntiles) ::                             &
+   REAL,DIMENSION(land_pts, ntiles) ::                             &
       canopy_tile !
 
-   REAL, INTENT(INOUT), DIMENSION(land_pts, ntiles,3) ::                       &
+   REAL, DIMENSION(land_pts, ntiles,3) ::                       &
       snow_cond   !
 
-   REAL, INTENT(IN), DIMENSION(land_pts, ntiles,3) ::                          &
+   REAL, DIMENSION(land_pts, ntiles,3) ::                          &
       snow_rho3l, &     !
       snow_depth3l, &   ! 
       snow_mass3l,  &   ! 
       snow_tmp3l
 
-   REAL, INTENT(IN), DIMENSION(land_pts, sm_levels) ::                         &
+   REAL, DIMENSION(land_pts, sm_levels) ::                         &
       sthu  !
 
-   REAL, INTENT(IN), DIMENSION(land_pts, ntiles, sm_levels) ::                 &
+   REAL, DIMENSION(land_pts, ntiles, sm_levels) ::                 &
       sthu_tile, &   !
       sthf_tile, &   !
       smcl_tile, &   !
       tsoil_tile     !
 
-   REAL, INTENT(IN) :: co2_mmr
-! rml 2/7/13 Extra atmospheric co2 variables
-   LOGICAL, INTENT(IN) :: L_CO2_INTERACTIVE
-   INTEGER, INTENT(IN) ::                              &
-      CO2_DIM_LEN                                      &
-     ,CO2_DIM_ROW
-   REAL, INTENT(IN) :: CO2_3D(CO2_DIM_LEN,CO2_DIM_ROW)  ! co2 mass mixing ratio
+   REAL, DIMENSION(land_pts, ntiles) ::                 &
+      smgw_tile
 
-   LOGICAL, INTENT(INOUT),DIMENSION(land_pts, ntiles) ::                       &
+   REAL :: co2_mmr
+! ~r935 rml 2/7/13 Extra atmospheric co2 variables
+   LOGICAL  :: L_CO2_INTERACTIVE
+   INTEGER ::                              &
+      CO2_DIM_LEN                                     &
+     ,CO2_DIM_ROW 
+   REAL :: CO2_3D(1,1)  ! co2 mass mixing ratio
+
+   LOGICAL,DIMENSION(land_pts, ntiles) ::                       &
       L_tile_pts  ! true IF vegetation (tile) fraction is greater than 0
   
-   REAL, INTENT(IN), DIMENSION(row_length,rows) ::                             & 
+   REAL, DIMENSION(row_length,rows) ::                             & 
       sin_theta_latitude
 
 ! Les 28 Spet 2012 - CASA-CNP Pools
-   REAL, INTENT(INOUT), DIMENSION(land_pts,ntiles,10) :: &
+   REAL, DIMENSION(land_pts,ntiles,10) :: &
       CPOOL_TILE, &
       NPOOL_TILE
 
-   REAL, INTENT(INOUT), DIMENSION(land_pts,ntiles,12) :: &
+   REAL, DIMENSION(land_pts,ntiles,12) :: &
       PPOOL_TILE
 
-   REAL, INTENT(INOUT), DIMENSION(land_pts) :: &
+   REAL, DIMENSION(land_pts) :: &
       SOIL_ORDER, &
       NIDEP,      &
       NIFIX,      &
       PWEA,       &
       PDUST
 
-   REAL, INTENT(INOUT), DIMENSION(land_pts,ntiles) :: &
+   REAL, DIMENSION(land_pts,ntiles) :: &
       GLAI, &
-   !INTEGER, INTENT(INOUT), DIMENSION(land_pts,ntiles) :: &
+   !INTEGER, DIMENSION(land_pts,ntiles) :: &
       PHENPHASE
 
-   REAL, INTENT(INOUT), DIMENSION(land_pts,ntiles) :: &
+   REAL, DIMENSION(land_pts,ntiles) :: &
       NPP_FT_ACC,   &
       RESP_W_FT_ACC
 
@@ -211,25 +223,26 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
    !--- logn, vegparmnew can be set thru cable.nml
    INTEGER :: logn=6       ! 6=write to std out
    LOGICAL :: vegparmnew=.true.   ! true=read std veg params false=CASA file 
-         
 
+
+   !write(6,*) 'in um interface data'
       !---------------------------------------------------------------------!
       !--- code to create type um1% conaining UM basic vars describing    --! 
       !--- dimensions etc, which are used frequently throughout interfaces. !
       !--- and then assign every time explicit is called (shouldn't need to)!
       !---------------------------------------------------------------------!
       IF(first_call) THEN
+         !write(6,*) 'calling alloc_um_interface_types'
          CALL alloc_um_interface_types( row_length, rows, land_pts,            &
                                         ntiles, sm_levels )
       ENDIF       
-      
+         !write(6,*) 'calling assign_um_basics'
+
       CALL assign_um_basics_to_um1( row_length, rows, land_pts, ntiles,        &
                                     npft, sm_levels, itimestep, latitude,      &
                                     longitude, land_index, tile_frac,          &
                                     tile_pts, tile_index, l_tile_pts,          &
-                                    rho_water  )
-
-
+                                    rho_water,rho_ice  )
 
       !---------------------------------------------------------------------!
       !--- CABLE vars are initialized/updated from passed UM vars       ----!
@@ -243,13 +256,12 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
          mp = SUM(um1%TILE_PTS)
          
          CALL alloc_cable_types()
-         
+
          DO i=1,land_pts
             DO j=1,ntiles
                
                IF( um1%TILE_FRAC(i,j) .GT. 0.0 ) THEN 
-                     um1%L_TILE_PTS(i,j) = .TRUE.
-                  !jhan:can set veg%iveg from  here ?
+                  um1%L_TILE_PTS(i,j) = .TRUE.
                   tile_index_mp(i,j) = j 
                ENDIF
             
@@ -257,54 +269,64 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
          ENDDO
       
       ENDIF
-         
+
       !jhan: turn this off until implementation finalised
       !--- initialize latitude/longitude & mapping IF required
-      if ( first_call ) & 
-         call initialize_maps(latitude,longitude, tile_index_mp)
-
-
+      !if ( first_call ) & 
+      !   call initialize_maps(latitude,longitude, tile_index_mp)
 
       !--- read in soil (and veg) parameters 
-      IF(first_call)                                                        & 
-         CALL  get_type_parameters(logn,vegparmnew)
+      IF(first_call ) then
+         !write(6,*) 'calling pft params'
+        call cable_pft_params()
+         !write(6,*) 'calling soil params'
+        call cable_soil_params()
+      endif
+         !write(6,*) 'init veg'
 
       !--- initialize veg   
       CALL initialize_veg( canht_ft, lai_ft ) 
  
       !--- initialize soil
+         !write(6,*) 'init soil'
       CALL initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,      &
                             smvccl, albsoil, tsoil_tile, sthu, sthu_tile,   &
-                            dzsoil ) 
-        
+                            dzsoil, slope_avg, slope_std, dz_gw ) 
       !--- initialize roughness
+         !write(6,*) 'init rough'
       CALL initialize_roughness( z1_tq, z1_uv, kblum_veg%htveg ) 
        
+         !write(6,*) 'init soilsnow'
       !--- initialize soilsnow
       CALL initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,   &
-                                snow_tile, snow_rho1l, snage_tile,          &
+                                smgw_tile, snow_tile, snow_rho1l, snow_age, &
                                 isnow_flg3l, snow_rho3l, snow_cond,         &
                                 snow_depth3l, snow_mass3l, snow_tmp3l,      &
                                 fland, sin_theta_latitude ) 
 
+         !write(6,*) 'init canopy'
       !--- initialize canopy   
       CALL initialize_canopy(CANOPY_TILE)
  
       !--- initialize radiation & met forcing
+         !write(6,*) 'init radiation'
       CALL initialize_radiation( sw_down, lw_down, cos_zenith_angle,        &
                                  surf_down_sw, sin_theta_latitude, ls_rain, &
                                  ls_snow, tl_1, qw_1, vshr_land, pstar,     &
 ! rml 2/7/13 pass 3d co2 through to cable if required
                    CO2_MMR,CO2_3D,CO2_DIM_LEN,CO2_DIM_ROW,L_CO2_INTERACTIVE )   
+         !write(6,*) 'init bgc vars?'
 
- 
       IF( first_call ) THEN
+         !write(6,*) 'init bgc vars'
          CALL init_bgc_vars() 
+         !write(6,*) 'init bgc vars'
          CALL init_sumflux_zero() 
 
       !--- initialize respiration for CASA-CNP
       !--- Lestevens 23apr13
       !IF (l_casacnp) THEN ?
+         !write(6,*) 'init respiration'
          CALL init_respiration(NPP_FT_ACC,RESP_W_FT_ACC)
 
       ! Lestevens 28 Sept 2012 - Initialize CASA-CNP here
@@ -323,7 +345,8 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
          CALL dealloc_vegin_soilin()
          first_call = .FALSE. 
       ENDIF      
-      
+
+ return
 END SUBROUTINE interface_UM_data
                                    
 !============================================================================
@@ -334,14 +357,14 @@ SUBROUTINE assign_um_basics_to_um1( row_length, rows, land_pts, ntiles,     &
                                     npft, sm_levels, timestep, latitude,    &
                                     longitude, land_index, tile_frac,       &
                                     tile_pts, tile_index, l_tile_pts,       &
-                                    rho_water  )
+                                    rho_water,rho_ice  )
    USE cable_um_tech_mod,   ONLY : um1
    USE cable_common_module, ONLY : cable_user
 
    INTEGER, INTENT(IN) :: row_length, rows, land_pts, ntiles, npft, sm_levels
    INTEGER, INTENT(IN) :: timestep 
    REAL, INTENT(IN), DIMENSION(row_length,rows) :: latitude, longitude 
-   REAL,INTENT(IN):: rho_water
+   REAL,INTENT(IN):: rho_water,rho_ice
    INTEGER, INTENT(IN), DIMENSION(land_pts)  :: land_index 
    INTEGER, INTENT(IN), DIMENSION(ntiles)  :: tile_pts 
    INTEGER, INTENT(IN), DIMENSION(land_pts, ntiles)  :: tile_index
@@ -362,6 +385,7 @@ SUBROUTINE assign_um_basics_to_um1( row_length, rows, land_pts, ntiles,     &
       um1%tile_pts = tile_pts
       um1%tile_index = tile_index
       um1%rho_water= rho_water 
+      um1%rho_ice  = rho_ice
 
 END SUBROUTINE assign_um_basics_to_um1
 
