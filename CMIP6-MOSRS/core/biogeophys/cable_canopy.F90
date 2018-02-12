@@ -450,6 +450,7 @@ CONTAINS
        ! Saturation specific humidity at soil/snow surface temperature:
       call qsatfjh(ssnow%qstss,ssnow%tss-C%tfrz,met%pmb)
 
+      if (cable_user%gw_model .OR.  cable_user%or_evap) & 
       call pore_space_relative_humidity(ssnow,soil,veg)
 
        If (cable_user%soil_struc=='default') THEN
@@ -1619,6 +1620,7 @@ CONTAINS
 
     !calc the surface wetness for soil evap in this routine
     !include the default wetfac when or_evap and gw_model are not used
+!switches contained within subr and defaults to original calc
     CALL calc_srf_wet_fraction(ssnow,soil,met%tk,veg%iveg)
 
   END SUBROUTINE Surf_wetness_fact

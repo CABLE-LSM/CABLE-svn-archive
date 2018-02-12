@@ -146,9 +146,11 @@ MODULE cable_common_module
           !! vh_js !!
          litter = .FALSE.
 
+     !INH - new switch for revised coupling on implicit step of ACCESS-CM2 Ticket #132
+      LOGICAL :: l_revised_coupling = .FALSE.
+
      !INH -apply revised sensitvity/correction terms to soilsnow energy balance
-      LOGICAL ::                                                               &
-          L_REV_CORR = .FALSE.     !switch to revert to unchanged code
+      LOGICAL :: L_REV_CORR = .FALSE.     !switch to revert to unchanged code
 
      !MD
       LOGICAL :: GW_MODEL = .FALSE.
@@ -248,7 +250,7 @@ MODULE cable_common_module
 
   !CABLE_LSM: intro'd quick writing capbility. remove from here. keep for ref
   character(len=*), parameter :: &
-    fprintf_dir_root = "/short/p66/jxs599/10.6/diag/March1/"
+    fprintf_dir_root = "/short/p66/jxs599/CMIP6/diag/"
   
   character(len=200) :: fprintf_dir
 

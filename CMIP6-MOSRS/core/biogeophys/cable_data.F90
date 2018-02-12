@@ -78,7 +78,8 @@ module cable_data_module
       zetneg = -15.0, & ! negative limit on za/L when niter>=3
       zetpos = 1.0,  & ! positive limit on za/L when niter>=3
       zdlin  = 1.0,  & ! height frac of d below which TL linear
-      umin   = 0.01
+      !revised upwards from 0.01 to guarantee convergence, unnecessary now ?
+      umin   = 1.0
 
    END TYPE physical_constants
 
@@ -138,7 +139,7 @@ module cable_data_module
    TYPE icbm_type
       REAL, POINTER ::                                                         &
          ! physical constants
-         GRAV, CAPP
+         GRAV, CAPP, EMLEAF, EMSOIL
    END TYPE icbm_type
 
 
@@ -273,6 +274,8 @@ SUBROUTINE cbm_type_ptr(C)
    ! physical constants
    C%GRAV  => PHYS%GRAV
    C%CAPP  => PHYS%CAPP
+   C%EMLEAF => PHYS%EMLEAF
+   C%EMSOIL => PHYS%EMSOIL
 END SUBROUTINE cbm_type_ptr
 
 ! ------------------------------------------------------------------------------

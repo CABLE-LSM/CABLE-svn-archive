@@ -94,8 +94,8 @@ CONTAINS
 
       IF( cable_runtime%um_explicit ) THEN
          CALL ruff_resist(veg, rough, ssnow, canopy)
-         met%tk = met%tk + C%grav/C%capp*(rough%zref_tq + 0.9*rough%z0m)
       ENDIF
+         met%tk = met%tk + C%grav/C%capp*(rough%zref_tq + 0.9*rough%z0m)
 
       CALL define_air (met, air)
 
@@ -118,7 +118,7 @@ CONTAINS
    !! vh_js !!
    !CABLE_LSM:check
    IF( cable_runtime%um .AND. first_call ) then
-     ssnow%tss = ssnow%tgg(:,1)
+     ssnow%tss=(1-ssnow%isflag)*ssnow%tgg(:,1) + ssnow%isflag*ssnow%tggsn(:,1) 
      ssnow%otss = ssnow%tss
      first_call = .false.
    endif
@@ -224,8 +224,17 @@ CONTAINS
    canopy%rnet = canopy%fns + canopy%fnv
 
    ! Calculate radiative/skin temperature:
+   if (cable_runtime%um) then
+       !Jan 2018: UM assumes a single emissivity for the surface in the radiation scheme
+       !To accommodate this a single value of is 1. is assumed in ACCESS
+       ! any leaf/soil emissivity /=1 must be incorporated into rad%trad.  
+       ! check that emissivities (pft and nvg) set = 1 within the UM i/o configuration
+       rad%trad = ( ( 1.-rad%transd ) * C%emleaf * canopy%tv**4 +                             &
+              rad%transd * C%emsoil * ssnow%tss**4 )**0.25
+   else       
    rad%trad = ( ( 1.-rad%transd ) * canopy%tv**4 +                             &
               rad%transd * ssnow%tss**4 )**0.25
+   endif
 
    ! rml 17/1/11 move all plant resp and soil resp calculations here
    ! from canopy. in UM only call on implicit step.
