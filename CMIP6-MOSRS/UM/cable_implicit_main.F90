@@ -42,8 +42,8 @@ SUBROUTINE cable_implicit_main(                                                &
         ls_snow_cable, conv_snow_cable, & !
 !forcing: temp and humidity 
         tl_1, qw_1,&
-!forcing: increments to temp and humidity 
-        dtl1_1, dqw1_1,  &
+!forcing: increments to temp and humidity & Jan 2018: Ticket #132 needs ctctq1
+        dtl1_1, dqw1_1, ctctq1, &
 !prog: canopy water storage
         canopy_gb, & ! aggregate over tiles, per land_pt 
         canopy,    & ! per tile
@@ -117,6 +117,10 @@ SUBROUTINE cable_implicit_main(                                                &
    tl_1, qw_1,       &  !forcing: temp and humidity 
    dtl1_1, dqw1_1       !forcing: increments to temp and humidity 
 
+  !Ticket #132 needs ctctq1
+  REAL, DIMENSION(row_length,rows) :: &
+   ctctq1               !forcing: information for temp and humidity increment
+  
   REAL ::                                                                       &
     canopy_gb(land_pts),         & !prog: canopy water store aggregate over tiles 
     canopy(land_pts, ntiles)       !prog:  per tile
@@ -217,6 +221,8 @@ dim_cs1, dim_cs2,                                                &
 Fland,                                                           &
 LS_RAIN_cable, CONV_RAIN_cable, LS_SNOW_cable, CONV_SNOW_cable,                           &
 DTL1_1,DQW1_1, &
+!Ticket #132 needs ctctq1
+ctctq1, &
 T_SOIL, &
 soil_temp_cable, &
 SMCL,        &

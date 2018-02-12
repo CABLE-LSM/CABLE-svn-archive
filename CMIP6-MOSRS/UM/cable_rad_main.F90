@@ -34,7 +34,7 @@ contains
 
 SUBROUTINE cable_rad_main( mype, timestep_number, cycleno, numcycles,          &
               row_length, rows, land_pts, ntiles,                              &
-              sm_levels, tile_frac, fland, surf_down_sw, cosine_zenith_angle, snow_tile,  &
+              sm_levels, tile_frac, surf_down_sw, cosine_zenith_angle, snow_tile,  &
               soil_alb, land_albedo, alb_surft, land_alb )
           !cable% snow_temp, 
           !cable% snow_avg_rho,                  &
@@ -53,7 +53,6 @@ SUBROUTINE cable_rad_main( mype, timestep_number, cycleno, numcycles,          &
   integer :: row_length, rows, land_pts, ntiles, sm_levels ! grid
   real :: surf_down_sw(row_length,rows,4) ! 4-band ShortWave forcing
   real :: tile_frac(land_pts,ntiles)      ! surface type fraction 
-  real :: fland(land_pts)                 ! land fraction 
   real :: cosine_zenith_angle(row_length,rows)        ! cosine_zenith_angle          
   real :: snow_tile(land_pts,ntiles)     ! formerly snow tile        
   real :: soil_alb(land_pts)              ! Snow-free, bare soil albedo: 
@@ -94,7 +93,7 @@ SUBROUTINE cable_rad_main( mype, timestep_number, cycleno, numcycles,          &
   endif
      
   call cable_rad_driver( cycleno, row_length, rows, land_pts, ntiles,          &
-              sm_levels, tile_frac, fland,                                                & 
+              sm_levels, tile_frac, & 
               snow_temp_cable, snow_avg_rho_cable, soil_temp_cable,            &
                                 isnow_flg_cable,                               & 
               surf_down_sw, cosine_zenith_angle, snow_tile,                    &

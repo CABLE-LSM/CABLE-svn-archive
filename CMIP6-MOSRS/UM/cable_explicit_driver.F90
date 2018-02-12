@@ -436,7 +436,8 @@ integer ::  i,j
                            canopy%fe, canopy%fh, canopy%us, canopy%cdtq,       &
                            canopy%fwet, canopy%wetfac_cs, canopy%rnet,         &
                            canopy%zetar, canopy%epot, met%ua, rad%trad,        &
-                           rad%transd, rough%z0m, rough%zref_tq )
+                           rad%transd, rough%z0m, rough%zref_tq, &
+                           canopy%fes, canopy%fev )
 
    cable_runtime%um_explicit = .FALSE.
 

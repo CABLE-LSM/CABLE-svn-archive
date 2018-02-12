@@ -50,7 +50,8 @@ SUBROUTINE cable_expl_unpack( latitude, longitude, FTL_TILE, FQW_TILE,       &
                            canopy_fe, canopy_fh, canopy_us, canopy_cdtq,       &
                            canopy_fwet, canopy_wetfac_cs, canopy_rnet,         &
                            canopy_zetar, canopy_epot, met_ua, rad_trad,        &
-                           rad_transd, rough_z0m, rough_zref_tq )
+                           rad_transd, rough_z0m, rough_zref_tq, &
+                           canopy_fes, canopy_fev )
 
    USE cable_def_types_mod, ONLY : mp, NITER 
    USE cable_data_module,   ONLY : PHYS
@@ -139,6 +140,8 @@ use arraydiag_m
   
   ! total latent heat (W/m2), total sensible heat (W/m2)
   REAL, INTENT(IN), DIMENSION(mp) :: canopy_fe, canopy_fh  
+  
+  REAL, INTENT(IN), DIMENSION(mp) :: canopy_fes, canopy_fev  
   
   ! fraction of canopy wet
   REAL, INTENT(IN), DIMENSION(mp) :: canopy_fwet, canopy_wetfac_cs
@@ -236,7 +239,9 @@ use arraydiag_m
   FTL_TILE = FTL_TILE / CAPP
 
   vname='canopy_fe' ! FQW_TILE 
-  fe_dlh = canopy_fe/(air_rlam*ssnow_cls)
+  fe_dlh = ( canopy_fes/(air_rlam*ssnow_cls) )  &
+         + ( canopy_fev/air_rlam )
+
   call cable_fprintf( cDiag1, vname, fe_dlh, mp, L_fprint )
   FQW_TILE = UNPACK(fe_dlh, um1%l_tile_pts, miss)
 

@@ -232,7 +232,7 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
    INTEGER :: i,j,k,L,n
    REAL, ALLOCATABLE :: tempvar(:), tempvar2(:)
    LOGICAL, PARAMETER :: skip =.TRUE. 
-   REAL, DIMENSION(10) :: dummy 
+   REAL, DIMENSION(mstype) :: dummy 
       
       dummy=0. 
 
@@ -288,7 +288,7 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
          ! parameter b in Campbell equation 
          CALL um2cable_lp( BEXP, soilin%bch, soil%bch, soil%isoilm)
          
-         ALLOCATE( tempvar(10), tempvar2(mp) )
+         ALLOCATE( tempvar(mstype), tempvar2(mp) )
          tempvar = soilin%sand(9) * 0.3  + soilin%clay(9) *0.25 +              &
                    soilin%silt(9) * 0.265
          
@@ -648,7 +648,7 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
                                 snow_mass3l, snow_tmp3l, fland,                &
                                 sin_theta_latitude ) 
 
-   USE cable_def_types_mod,  ONLY : mp, msn, ms, r_2
+   USE cable_def_types_mod,  ONLY : mp, msn, ms, r_2,mstype
    USE cable_data_module,   ONLY : PHYS
    USE cable_um_tech_mod,   ONLY : um1, soil, ssnow, met, bal, veg
    USE cable_common_module, ONLY : cable_runtime, cable_user, ktau_gl
@@ -686,12 +686,15 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
    REAL, POINTER :: TFRZ
    LOGICAL :: skip =.TRUE. 
    LOGICAL, save :: first_call = .TRUE.
-   REAL, DIMENSION(10) :: dummy 
+   REAL, DIMENSION(mstype) :: dummy 
       
       dummy=0. 
 
 !     not sure if this is in restart file hence repeated again
-      ssnow%pudsto = 0.0; ssnow%pudsmx = 0.0
+      IF( first_call) THEN 
+        ssnow%pudsto = 0.0 
+      endif
+      ssnow%pudsmx = 0.0
       ssnow%wbtot1 = 0
       ssnow%wbtot2 = 0
       ssnow%wb_lake = 0.
