@@ -97,7 +97,7 @@ END MODULE physical_constants
 
 MODULE other_constants
 
-  USE cable_def_types_mod, ONLY : i_d, nrb
+  USE cable_def_types_mod, ONLY : i_d, nrb, r_2
 
   IMPLICIT NONE
 
