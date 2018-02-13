@@ -115,14 +115,12 @@ CONTAINS
       CALL surface_albedo(ssnow, veg, met, rad, soil, canopy)
    ENDIf
 
-   !! vh_js !!
    !CABLE_LSM:check
    IF( cable_runtime%um .AND. first_call ) then
      ssnow%tss=(1-ssnow%isflag)*ssnow%tgg(:,1) + ssnow%isflag*ssnow%tggsn(:,1) 
      ssnow%otss = ssnow%tss
      first_call = .false.
    endif
-
    ssnow%otss_0 = ssnow%otss  ! vh should be before call to canopy?
    ssnow%otss = ssnow%tss
 
@@ -133,9 +131,6 @@ CONTAINS
    END IF
 
    CALL define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,climate)
-   
-   !ssnow%otss_0 = ssnow%otss
-   !ssnow%otss = ssnow%tss
 
    ! RML moved out of following IF after discussion with Eva
    ssnow%owetfac = ssnow%wetfac

@@ -964,7 +964,7 @@ SUBROUTINE surfbv (dels, met, ssnow, soil, veg, canopy )
    TYPE(soil_parameter_type), INTENT(INOUT)  :: soil  ! soil parameters
 
 !jhan:cable.nml
-   INTEGER, PARAMETER      :: nglacier = 2 ! 0 original, 1 off, 2 new Eva
+   INTEGER            :: nglacier  ! 0 original, 1 off, 2 new Eva
 
    REAL, DIMENSION(mp) ::                                                      &
       rnof5,      & !
@@ -981,6 +981,12 @@ SUBROUTINE surfbv (dels, met, ssnow, soil, veg, canopy )
    INTEGER :: k,j
 
    !CALL point2constants( C )
+
+   IF( cable_runtime%UM ) THEN
+     nglacier = 0
+   else 
+     nglacier = 2 
+   endif
 
    CALL smoisturev( dels, ssnow, soil, veg )
 
