@@ -35,8 +35,8 @@ SUBROUTINE cable_hyd_driver( land_pts, ntiles, lying_snow, SNOW_TILE, SURF_ROFF,
    USE cable_um_tech_mod, only : um1, ssnow, canopy, veg
   USE cable_decs_mod, ONLY : L_tile_pts
   USE cable_um_tech_mod,   ONLY : um1
+  USE cable_wblake_mod   
 !C!  USE cable_hyd_nunpack_mod
-   
 
    IMPLICIT NONE
 
@@ -55,17 +55,12 @@ SUBROUTINE cable_hyd_driver( land_pts, ntiles, lying_snow, SNOW_TILE, SURF_ROFF,
       SURF_CAB_ROFF,    &
       TOT_TFALL_TILE                
 
-   ! Lestevens 25sep13 - water balance fix for lakes
-   REAL, DIMENSION(land_pts,ntiles) ::                                 &
-      WB_LAKE         ! unpack CABLE wb_lake
-
    REAL :: miss =0. 
    REAL, POINTER :: TFRZ
       
       TFRZ => PHYS%TFRZ
    
 SNOW_TILE= UNPACK(ssnow%snowd, L_TILE_PTS, miss) 
-     !jh:really - we dont want this
 
 LYING_SNOW = SUM(um1%TILE_FRAC * SNOW_TILE,2) !gridbox snow mass
 
@@ -81,7 +76,7 @@ SUB_SURF_ROFF  = SUM(um1%TILE_FRAC * SURF_CAB_ROFF,2)
 TOT_TFALL      = SUM(um1%TILE_FRAC * TOT_TFALL_TILE,2)
 
      ! Lest 25sep13 - wb_lake fix
-     WB_LAKE        = UNPACK(ssnow%wb_lake, L_TILE_PTS, miss)
+     WBLAKE_cable        = UNPACK(ssnow%wb_lake, L_TILE_PTS, miss)
 
 
 !  call cable_hyd_nunpack( land_pts, ntiles, SNOW_TILE, SURF_ROFF,           &
