@@ -293,7 +293,7 @@ TL_1, QW_1, SURF_HTF_TILE, &
        
       !additonal variables Jan 2018
       real, dimension(:), allocatable ::                &
-         puddle, rtsoil
+         puddle, rtsoil, wblake
          
       !additional variable for GW module
       real, dimension(:), allocatable ::                &
@@ -400,6 +400,7 @@ TL_1, QW_1, SURF_HTF_TILE, &
          allocate( PB(ipb)%puddle(mp) )
          allocate( PB(ipb)%owetfac(mp) )
          allocate( PB(ipb)%rtsoil(mp) )
+         allocate( PB(ipb)%wblake(mp) )
          !carbon variables - may not be needed unless CASA
          allocate( PB(ipb)%cplant(mp,ncp) )
          allocate( PB(ipb)%csoil(mp,ncs) )
@@ -440,6 +441,7 @@ TL_1, QW_1, SURF_HTF_TILE, &
    PB(ipb)%puddle    = ssnow%pudsto
    PB(ipb)%rtsoil    = ssnow%rtsoil !?needed
    PB(ipb)%owetfac   = ssnow%owetfac
+   PB(ipb)%wblake    = ssnow%wb_lake 
    !carbon variables - may not be needed unless CASA
    PB(ipb)%cplant = bgc%cplant
    PB(ipb)%csoil = bgc%csoil
@@ -476,6 +478,7 @@ TL_1, QW_1, SURF_HTF_TILE, &
       ssnow%pudsto  = PB(1)%puddle
       ssnow%rtsoil  = PB(1)%rtsoil  !?needed
       ssnow%owetfac = PB(1)%owetfac
+      ssnow%wb_lake = PB(1)%wblake  
       !carbon variables - may not be needed unless CASA
       bgc%cplant = PB(1)%cplant
       bgc%csoil = PB(1)%csoil
