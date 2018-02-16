@@ -33,6 +33,8 @@
 !                 casadimension
 !                 casavariable
 !                 phenvariable
+!                 casa_cable
+!                 casa_inout_module
 !
 ! CALLs:       point2constants
 !              casa_feedback
@@ -64,7 +66,9 @@
 MODULE cable_mpiworker
 
   USE cable_mpicommon
-
+  USE casa_inout_module
+  USE casa_cable   
+  
  
   IMPLICIT NONE
 

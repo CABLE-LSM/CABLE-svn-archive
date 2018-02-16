@@ -33,6 +33,8 @@
 !                 casadimension
 !                 casavariable
 !                 phenvariable
+!                 casa_cable
+!                 casa_inout_module
 !
 ! CALLs:       point2constants
 !              open_met_file
@@ -75,6 +77,8 @@
 MODULE cable_mpimaster
 
   USE cable_mpicommon
+  USE casa_cable
+  USE casa_inout_module
 
   IMPLICIT NONE
 
@@ -177,6 +181,8 @@ CONTAINS
     USE casavariable,         ONLY: casafile, casa_biome, casa_pool, casa_flux,  &
          casa_met, casa_balance, zero_sum_casa, update_sum_casa
     USE phenvariable,         ONLY: phen_variable
+    USE casa_cable
+    USE casa_inout_module
 
     !CLN added
     ! modules related to POP
@@ -8160,7 +8166,7 @@ SUBROUTINE master_spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapoo
   nloop1= max(1,mloop-3)
 
   DO nloop=1,mloop
-write(*,*) 'nloop =', nloop
+     write(*,*) 'nloop =', nloop
      !!CLN  OPEN(91,file=fcnpspin)
      !!CLN  read(91,*)
      DO nyear=1,myearspin
@@ -8542,7 +8548,7 @@ SUBROUTINE LUCdriver( casabiome,casapool, &
   USE POPLUC_Module, ONLY: POPLUCStep, POPLUC_weights_Transfer, WRITE_LUC_OUTPUT_NC, &
        POP_LUC_CASA_transfer,  WRITE_LUC_RESTART_NC, READ_LUC_RESTART_NC
 
-
+   USE casa_cable
 
   IMPLICIT NONE
 

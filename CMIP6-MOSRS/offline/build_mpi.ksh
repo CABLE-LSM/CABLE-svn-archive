@@ -12,7 +12,7 @@ host_raij()
    export NCDIR=$NETCDF_ROOT'/lib/Intel'
    export NCMOD=$NETCDF_ROOT'/include/Intel'
    export FC='mpif90'
-   export CFLAGS='-O2 -fp-model precise'
+   export CFLAGS='-O0 -fp-model precise'
    if [[ $1 = 'debug' ]]; then
       #export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0 -check all,noarg_temp_created'
       export CFLAGS='-O0 -traceback -g -check all,noarg_temp_created'
@@ -51,11 +51,11 @@ module add netcdf/4.3.3.1 openmpi/1.8.8
 #   export CFLAGS='-O0 -C -g -debug all -traceback   -check all,noarg_temp_created, -C  '
 #   export CFLAGS='-O0 '
 #   export CFLAGS='-O0 -fp-model precise -g -debug -traceback -C'
-   export CFLAGS='-O2 -fp-model precise -g -debug all -traceback '
+   export CFLAGS='-O0 -fp-model precise -g -debug all -traceback '
 #   export CFLAGS='  -g -debug -traceback -fp-stack-check -O0 -debug -fpe=0 -fpe-all=0 -no-ftz -ftrapuv'
 #   best debugg flags
 #   export LDFLAGS='-g -L'$NCDIR  #'-L'$NCDIR' -O2'
-   export LDFLAGS='-O2 -L'$NCDIR''
+   export LDFLAGS='-O0 -L'$NCDIR''
    export LD='-lnetcdf -lnetcdff'
    build_build
    cd ../
@@ -315,10 +315,12 @@ build_build()
    fi
    
    CORE="../core/biogeophys"
+   UTIL="../core/utils"
    DRV="."
    CASA="../core/biogeochem"
    
    /bin/cp -p $CORE/*90 ./.mpitmp
+    /bin/cp -p $UTIL/*90 ./.mpitmp
    /bin/cp -p $DRV/*90 ./.mpitmp
    /bin/cp -p $CASA/*90 ./.mpitmp
    
