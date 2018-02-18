@@ -11,7 +11,7 @@ contains
 subroutine cable_wblake_fix_alloc( land_points, ntiles )
   integer :: land_points, ntiles
 
-  if(.NOT. allocated) & 
+  if(.NOT. allocated( wblake_cable ) ) & 
     allocate ( WBLAKE_cable(land_points,ntiles) )
 
 End subroutine cable_wblake_fix_alloc

@@ -51,7 +51,7 @@ MODULE cable_um_tech_mod
                  sm_levels, timestep 
       INTEGER, ALLOCATABLE, DIMENSION(:) :: tile_pts, land_index
       INTEGER, ALLOCATABLE, DIMENSION(:,:) :: tile_index
-      REAL :: rho_water
+      REAL :: rho_water,rho_ice
       REAL,ALLOCATABLE, DIMENSION(:,:) :: tile_frac
       REAL,ALLOCATABLE, DIMENSION(:,:) :: latitude, longitude
       LOGICAL,ALLOCATABLE, DIMENSION(:,:) :: l_tile_pts
@@ -90,7 +90,7 @@ SUBROUTINE cable_um_runtime_vars(runtime_vars_file)
    USE cable_common_module, ONLY : cable_runtime, cable_user, filename,        &
                                    cable_user, knode_gl, redistrb, wiltParam,  &
                                    satuParam, l_casacnp, l_laiFeedbk,          &
-                                   l_vcmaxFeedbk
+                                   l_vcmaxFeedbk, gw_params
    USE casavariable, ONLY : casafile
    USE casadimension, ONLY : icycle
 
@@ -100,7 +100,7 @@ SUBROUTINE cable_um_runtime_vars(runtime_vars_file)
    
    !--- namelist for CABLE runtime vars, files, switches 
    NAMELIST/CABLE/filename, l_casacnp, l_laiFeedbk, l_vcmaxFeedbk, icycle,   &
-                  casafile, cable_user, redistrb, wiltParam, satuParam
+                  casafile, cable_user, redistrb, wiltParam, satuParam,gw_params
 
       !--- assume namelist exists. no iostatus check 
       OPEN(unit=funit,FILE= runtime_vars_file)

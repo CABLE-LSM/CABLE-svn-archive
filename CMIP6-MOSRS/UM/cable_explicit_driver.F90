@@ -31,7 +31,8 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
                                   sm_levels, timestep, latitude, longitude,    &
                                   land_index, tile_frac,  tile_pts, tile_index,&
                                   bexp, hcon, satcon, sathh, smvcst,           &
-                                  smvcwt,  smvccl, albsoil, snow_tile,         &
+                                 smvcwt,  smvccl, albsoil, slope_avg,slope_std,&
+                                  dz_gw,snow_tile,                             &
                                   snow_rho1l, snow_age, snow_flg3l, snow_rho3l,&
                                   snow_depth3l, snow_tmp3l, snow_mass3l,       & 
                                   lw_down, cos_zenith_angle, surf_down_sw,     &
@@ -39,7 +40,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
                                   pstar, z1_tq, z1_uv, canopy_tile, Fland,     &
                                   CO2_MMR, & 
                                   !CO2_3D,CO2_DIM_LEN,CO2_DIM_ROW,L_CO2_INTERACTIVE,   &
-                                  smcl_tile, sthf_tile, sthu, tsoil_tile,      &
+                                  smcl_tile, smgw_tile,sthf_tile, sthu, tsoil_tile, &
                                   canht_ft, lai_ft, sin_theta_latitude, dzsoil,&
                                   FTL_TILE, FQW_TILE, TSTAR_TILE,              &
                                   U_S, U_S_STD_TILE, CD_TILE, CH_TILE,         &
@@ -72,7 +73,8 @@ endstep, timestep_number, mype )
 
    USE cable_expl_unpack_mod, ONLY : cable_expl_unpack
   
-  USE cable_decs_mod, only : L_tile_pts, rho_water
+  USE cable_decs_mod, only : L_tile_pts!, rho_water
+  USE cable_data_module, only : PHYS
 
    USE casavariable
    USE casa_types_mod
@@ -127,6 +129,12 @@ endstep, timestep_number, mype )
       albsoil, &
       fland 
    
+   REAL,  DIMENSION(land_pts) :: & 
+      slope_avg,&
+      slope_std,&
+      dz_gw
+
+   
    REAL,  DIMENSION(row_length,rows) :: &
       sw_down,          & 
       cos_zenith_angle
@@ -179,6 +187,9 @@ endstep, timestep_number, mype )
       smcl_tile, &
       tsoil_tile
    
+   REAL, DIMENSION(land_pts, ntiles) :: & 
+      smgw_tile
+
    REAL :: co2_mmr
 ! rml 2/7/13 Extra atmospheric co2 variables
    !LOGICAL, INTENT(IN) :: L_CO2_INTERACTIVE
@@ -302,6 +313,19 @@ integer ::  i,j
   logical, parameter :: L_fprint_HW = .false.
   logical :: L_fprint
   
+   real :: tmp_vr
+
+   real  :: rho_water, rho_ice
+
+
+  rho_water = PHYS%density_liq
+
+  IF (cable_user%GW_model) then
+     rho_ice = PHYS%density_ice
+  ELSE
+     rho_ice = PHYS%density_liq
+  END IF
+  
   L_fprint = .false. ! default
   
   !if( L_fprint_HW ) then
@@ -347,16 +371,17 @@ integer ::  i,j
                            longitude,         &
                            land_index, tile_frac, tile_pts, tile_index,        &
                            bexp, hcon, satcon, sathh, smvcst, smvcwt,          &
-                           smvccl, albsoil, snow_tile, snow_rho1l,             &
+                           smvccl, albsoil, slope_avg,slope_std,dz_gw,              &
+                           snow_tile, snow_rho1l,                              &
                            snow_age, snow_flg3l, snow_rho3l, snow_cond,     &
                            snow_depth3l, snow_tmp3l, snow_mass3l, sw_down,     &
                            lw_down, cos_zenith_angle, surf_down_sw, ls_rain,   &
                            ls_snow, tl_1, qw_1, vshr_land, pstar, z1_tq,       &
-                           z1_uv, rho_water, L_tile_pts, canopy_tile, Fland,   &
+                           z1_uv, rho_water, rho_ice,L_tile_pts, canopy_tile, Fland,   &
                            CO2_MMR, &
 ! r935 rml 2/7/13 pass 3d co2 through to cable if required
                    !CO2_3D,CO2_DIM_LEN,CO2_DIM_ROW,L_CO2_INTERACTIVE,   &
-                           sthu_tile, smcl_tile, sthf_tile,                    &
+                           sthu_tile, smcl_tile, smgw_tile,sthf_tile,          &
                            sthu, tsoil_tile, canht_ft, lai_ft,                 &
                            sin_theta_latitude, dzsoil,                         &
                            ! r825	

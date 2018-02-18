@@ -33,7 +33,7 @@ Fland,                                                           &
 LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
 !Ticket #132 needs ctctq1
                                   DTL_1,DQW_1, ctctq1, TSOIL, TSOIL_TILE, SMCL,&
-                                  SMCL_TILE, timestep, SMVCST,STHF, STHF_TILE, &
+                                  SMCL_TILE, SMGW_TILE,timestep, SMVCST,STHF, STHF_TILE, &
                                   STHU,&
 !STHU_TILE, &
 snow_tile, SNOW_RHO1L,       &
@@ -164,6 +164,9 @@ TL_1, QW_1, SURF_HTF_TILE, &
       TSOIL_TILE,& !
       STHF_TILE    !
 
+   REAL, dimension(land_pts,ntiles) ::                &
+      SMGW_TILE
+
    !___flag for 3 layer snow pack
    INTEGER :: ISNOW_FLG3L(LAND_PTS,NTILES)
    
@@ -289,7 +292,7 @@ TL_1, QW_1, SURF_HTF_TILE, &
          fes_cor,fhs_cor
 
       real, dimension(:), allocatable ::                &
-         osnowd,owetfac,otss
+         osnowd,owetfac,otss,GWwb
        
       !additonal variables Jan 2018
       real, dimension(:), allocatable ::                &
@@ -404,10 +407,9 @@ TL_1, QW_1, SURF_HTF_TILE, &
          !carbon variables - may not be needed unless CASA
          allocate( PB(ipb)%cplant(mp,ncp) )
          allocate( PB(ipb)%csoil(mp,ncs) )
-         !GW model variables
-         if (cable_user%gw_model) then
+         !GW model variables no need to test always has a value
+         !so do not introduce issues with restarting a GW run 
              allocate (PB(ipb)%GWaq(mp) )
-         endif
          !SLI variables - Jhan please check the second dimension
          if (cable_user%soil_struc=='sli') then
              allocate(PB(ipb)%SLI_nsnow(mp) )
@@ -446,9 +448,7 @@ TL_1, QW_1, SURF_HTF_TILE, &
    PB(ipb)%cplant = bgc%cplant
    PB(ipb)%csoil = bgc%csoil
    !GW model variables
-   if (cable_user%gw_model) then
      PB(ipb)%GWaq   = ssnow%GWwb
-   endif
    !SLI variables
    if (cable_user%soil_struc=='sli') then
       PB(ipb)%SLI_nsnow   = ssnow%nsnow
@@ -483,9 +483,7 @@ TL_1, QW_1, SURF_HTF_TILE, &
       bgc%cplant = PB(1)%cplant
       bgc%csoil = PB(1)%csoil
       !GW model variables
-      if (cable_user%gw_model) then
           ssnow%GWwb = PB(1)%GWaq
-      endif
       !SLI variables
       if (cable_user%soil_struc=='sli') then
           ssnow%nsnow    = PB(1)%SLI_nsnow
@@ -635,7 +633,7 @@ TL_1, QW_1, SURF_HTF_TILE, &
                             cycleno,                                         & 
                             row_length,rows, land_pts, ntiles, npft, sm_levels, &
                             dim_cs1, dim_cs2,                                   & 
-                            TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,                &
+                            TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,SMGW_TILE,     &
                            SMVCST, STHF, STHF_TILE, STHU, STHU_TILE,          &
                            snow_tile, SNOW_RHO1L ,ISNOW_FLG3L, SNOW_DEPTH3L,  &
                            SNOW_MASS3L, SNOW_RHO3L, SNOW_TMP3L, SNOW_COND,    &

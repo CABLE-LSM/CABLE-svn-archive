@@ -66,7 +66,9 @@ SUBROUTINE cable_explicit_main(                                                &
                                   C_pool_casa, N_pool_casa, P_pool_casa,       &
                                   SOIL_ORDER_casa, N_DEP_casa, N_FIX_casa,     &
                                   P_DUST_casa, P_weath_casa, LAI_casa,         &
-                                  PHENPHASE_casa, NPP_PFT_ACC, RSP_W_PFT_ACC
+                                  PHENPHASE_casa, NPP_PFT_ACC, RSP_W_PFT_ACC,  &
+                                  aquifer_moist_cable,aquifer_thickness_cable, &
+                                  slope_avg_cable,slope_std_cable
 
   USE cable_explicit_driv_mod, ONLY : cable_explicit_driver
 
@@ -268,14 +270,17 @@ SUBROUTINE cable_explicit_main(                                                &
                               sm_levels, timestep_width, latitude_deg, longitude_deg,&
                               land_index, tile_frac,  tile_pts, tile_index,    &
                               bexp, hcon, satcon, sathh, smvcst,               &
-                              smvcwt,  smvccl, albsoil, snow_tile,             &
+                              smvcwt,  smvccl, albsoil,                        &
+                              slope_avg_cable,slope_std_cable,&
+                              aquifer_thickness_cable,snow_tile,    &
                               snow_avg_rho_cable, snow_age_cable,              &
                               isnow_flg_cable, snow_rho_cable, snow_dpth_cable,&
                               snow_temp_cable, snow_mass_cable,                &
                               lw_down, cosine_zenith_angle, surf_down_sw,      &
                               ls_rain, ls_snow, tl_1, qw_1, vshr_land, pstar,  &
                               z1_tq, z1_uv,  canopy_tile, Fland, CO2_MMR,      &
-                              soil_moist_cable, soil_froz_frac_cable, sthu,    &
+                              soil_moist_cable, aquifer_moist_cable,           &
+                              soil_froz_frac_cable, sthu,                      &
                               soil_temp_cable, canht_ft, lai_ft,               &
                               sin_theta_latitude, dzsoil, FTL_TILE, FQW_TILE,  &
                               TSTAR_TILE, U_S, U_S_STD_TILE, CD_TILE, CH_TILE, &

@@ -83,7 +83,8 @@ SUBROUTINE cable_implicit_main(                                                &
                                   soil_froz_frac_cable, snow_dpth_cable,       & 
                                   snow_mass_cable, snow_temp_cable,            &
                                   snow_rho_cable, snow_avg_rho_cable,          &   
-                                  snow_age_cable, snow_flg_cable
+                                  snow_age_cable, snow_flg_cable,              &
+                                  aquifer_moist_cable
   
   USE cable_gather_um_data_decs, ONLY : smvcst_cable  
   USE atmos_physics2_alloc_mod, ONLY : resp_s_tile
@@ -227,6 +228,7 @@ T_SOIL, &
 soil_temp_cable, &
 SMCL,        &
 soil_moist_cable, &
+aquifer_moist_cable, &
 real(kwidth_gl), &
 SMVCST_cable,&
 STHF, &
