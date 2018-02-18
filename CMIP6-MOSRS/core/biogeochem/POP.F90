@@ -271,9 +271,6 @@ CONTAINS
 
 
     np = SIZE(pop%pop_grid)
-  
-
-
 ! optional interger n intended for zeroing secondary forest tiles
     
     IF (PRESENT(n)) THEN
@@ -3310,7 +3307,7 @@ END FUNCTION Area_Triangle
     
     
     POP%it_pop(n) = 0
-    CALL ZeroPOP(pop,n)
+    CALL ZeroPOP(pop,INT(n))   !mrd561: types do not match unless converted here
     CALL InitPOP2D_Poisson(pop,INT(disturbance_interval,i4b),n)
 
     DO j=n,n
