@@ -163,6 +163,8 @@ MODULE cable_common_module
      LOGICAL :: sync_nc_file=.false.
      INTEGER :: max_spins = -1
      LOGICAL :: fix_access_roots = .false.  !use pft dependent roots in ACCESS
+     !ticket#179
+     LOGICAL :: soil_thermal_fix=.false.
 
   END TYPE kbl_user_switches
 
@@ -199,17 +201,6 @@ MODULE cable_common_module
   ! hydraulic_redistribution parameters _soilsnow module
   REAL :: wiltParam=0.5, satuParam=0.8
   
-  !CABLE_LSM: soil/veg params types & subr deleted here 
-  ! vn10.6-CABLE hacks-hardwires these
-  !use these as the basis for namelist vars/files later in offline apps
-  
-  !CABLE_LSM: verify these are set if commented here
-  !   !---parameters, tolerances, etc. could be set in _directives.h
-  !jhan:cable.nml   real, parameter :: RAD_TOLS = 1.0e-2
-
-  !jhan:temporary measure. improve hiding
-  !   real, dimension(:,:), pointer,save :: c1, rhoch
-
    TYPE organic_soil_params
         !Below are the soil properties for fully organic soil
 
@@ -227,32 +218,56 @@ MODULE cable_common_module
    TYPE gw_parameters_type
 
       REAL ::                   &
-        MaxHorzDrainRate=1e-3,  & !anisintropy * q_max [qsub]
-        EfoldHorzDrainRate=2.5, & !e fold rate of q_horz
-        MaxSatFraction=900,     & !parameter controll max sat fraction
-        hkrz=0.0,               & !hyds_vec variation with z
-        zdepth=1.0,             & !level where hyds_vec(z) = hyds_vec(no z)
+        MaxHorzDrainRate=2e-4,  & !anisintropy * q_max [qsub]
+        EfoldHorzDrainRate=2.0, & !e fold rate of q_horz
+        MaxSatFraction=2500.0,     & !parameter controll max sat fraction
+        hkrz=0.5,               & !hyds_vec variation with z
+        zdepth=1.5,             & !level where hyds_vec(z) = hyds_vec(no z)
         frozen_frac=0.05,       & !ice fraction to determine first non-frozen layer for qsub
         SoilEvapAlpha = 1.0,    & !modify field capacity dependence of soil evap limit
         IceAlpha=3.0,           &
         IceBeta=1.0           
+
+      REAL :: ice_impedence=5.0
 
       TYPE(organic_soil_params) :: org
 
       INTEGER :: level_for_satfrac = 6
       LOGICAL :: ssgw_ice_switch = .false.
  
-      LOGICAL :: subsurface_sat_drainage = .false.
+      LOGICAL :: subsurface_sat_drainage = .true.
 
    END TYPE gw_parameters_type
 
    TYPE(gw_parameters_type), SAVE :: gw_params
+
+   REAL, SAVE ::        &!should be able to change parameters!!!
+      max_glacier_snowd=1100.0,&
+      snow_ccnsw = 2.0, &
+!jh!an:clobber - effectively force single layer snow
+      !snmin = 100.0,      & ! for 1-layer; 
+      snmin = 1.,          & ! for 3-layer;
+      max_ssdn = 750.0,    & !
+      max_sconds = 2.51,   & !
+      frozen_limit = 0.85    ! EAK Feb2011 (could be 0.95)
+
+  !CABLE_LSM: soil/veg params types & subr deleted here 
+  ! vn10.6-CABLE hacks-hardwires these
+  !use these as the basis for namelist vars/files later in offline apps
+  
+  !CABLE_LSM: verify these are set if commented here
+  !   !---parameters, tolerances, etc. could be set in _directives.h
+  !jhan:cable.nml   real, parameter :: RAD_TOLS = 1.0e-2
+
+  !jhan:temporary measure. improve hiding
+  !   real, dimension(:,:), pointer,save :: c1, rhoch
 
   !CABLE_LSM: intro'd quick writing capbility. remove from here. keep for ref
   character(len=*), parameter :: &
     fprintf_dir_root = "/short/p66/jxs599/CMIP6/diag/"
   
   character(len=200) :: fprintf_dir
+
 
 interface fudge_out
    module procedure fudge_out_r2D, fudge_out_r1D, fudge_out_r3D, fudge_out_i2D
@@ -271,7 +286,7 @@ CONTAINS
        IF ( PRESENT( msg ) ) WRITE(*,*)msg
 !#define Vanessas_common
 !#ifdef Vanessas_common
-       WRITE(*,*) TRIM(NF90_strerror(status))
+       WRITE(*,*) TRIM(NF90_strerror(INT(status,4)))
 !#else       
 !       WRITE(*,*) "UM builds with -i8. Therefore call to nf90_strerror is ", & 
 !       " invalid. Quick fix to eliminate for now. Build NF90 with -i8, force -i4?" 

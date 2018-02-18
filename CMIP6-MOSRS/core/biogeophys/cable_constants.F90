@@ -35,6 +35,19 @@ MODULE physical_constants
 
   IMPLICIT NONE
 
+  !mrd561
+  !constants from/for soilsnow and gw_hydro
+  REAL,    PARAMETER :: hl = 2.5014e6  ! air spec. heat (J/kg/K)
+  REAL,    PARAMETER :: hlf = 0.334e6  ! latent heat of fusion
+  REAL,    PARAMETER :: hls = 2.8350e6  ! latent heat of sublimation (J/kg)
+  REAL,    PARAMETER :: cgsnow = 2090.0      ! specific heat capacity for snow
+  REAL,    PARAMETER :: cs_rho_ice = 1.9341e6    !heat capacity * density ice
+  REAL,    PARAMETER :: cs_rho_wat = 4.218e6    ! heat capacity * density  water
+  REAL,    PARAMETER :: csice = 2.100e3      ! specific heat capacity for ice
+  REAL,    PARAMETER :: cswat = 4.218e3      ! specific heat capacity for water
+  REAL,    PARAMETER :: density_liq = 1000.0    !density of liquid water
+  REAL,    PARAMETER :: density_ice = 921.0     !denisty of ice
+
   REAL,    PARAMETER :: capp   = 1004.64  ! air spec. heat capacity (J/kg/K)
   REAL,    PARAMETER :: dheat  = 21.5E-6  ! molecular diffusivity for heat
   REAL,    PARAMETER :: grav   = 9.80     ! gravity acceleration (m/s2)
@@ -47,6 +60,10 @@ MODULE physical_constants
   REAL,    PARAMETER :: tetena = 6.106    ! ??? refs?
   REAL,    PARAMETER :: tetenb = 17.27
   REAL,    PARAMETER :: tetenc = 237.3
+  !mrd561 the parameters for sat above ice
+  REAL,    PARAMETER :: tetena_ice = 6.1078  ! ??? refs?
+  REAL,    PARAMETER :: tetenb_ice = 21.875 
+  REAL,    PARAMETER :: tetenc_ice = 265.5 
   ! Aerodynamic parameters, diffusivities, water density:
   REAL,    PARAMETER :: vonk   = 0.40     ! von Karman constant
   REAL,    PARAMETER :: a33    = 1.25     ! inertial sublayer sw/us
@@ -58,7 +75,7 @@ MODULE physical_constants
   REAL,    PARAMETER :: diffwc = 1.60     ! diffw/diffc = H2O/CO2 diffusivity
   REAL,    PARAMETER :: rhow   = 1000.0   ! liquid water density   [kg/m3]
   REAL,    PARAMETER :: emleaf = 1.0      ! leaf emissivity
-  REAL,    PARAMETER :: emsoil = 0.95     ! soil emissivity
+  REAL,    PARAMETER :: emsoil = 1.0      ! soil emissivity
   REAL,    PARAMETER :: cr     = 0.3      ! element drag coefficient
   REAL,    PARAMETER :: cs     = 0.003    ! substrate drag coefficient
   REAL,    PARAMETER :: beta   = cr/cs    ! ratio cr/cs
@@ -80,7 +97,7 @@ END MODULE physical_constants
 
 MODULE other_constants
 
-  USE cable_def_types_mod, ONLY : i_d, nrb
+  USE cable_def_types_mod, ONLY : i_d, nrb,r_2
 
   IMPLICIT NONE
 
@@ -102,8 +119,33 @@ MODULE other_constants
   REAL,    PARAMETER                 :: dbde    = 1.3333                 ! d(beta)/d(etar): 4/3, 8 for D78,KGK91
   INTEGER(i_d), PARAMETER                 :: istsw   = 1                      !
   INTEGER(i_d), PARAMETER                 :: iresp   = 0                      ! unscaled (iresp=0) or scaled (iresp=1) respiration
+  !mrd561
+  ! these precomputed values are taken by the sample code in Wikipedia,
+  ! and the sample itself takes them from the GNU Scientific Library
+  REAL(r_2), DIMENSION(0:8), parameter :: gamma_pre = &
+         (/ 0.99999999999980993, 676.5203681218851, -1259.1392167224028, &
+         771.32342877765313, -176.61502916214059, 12.507343278686905, &
+         -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7 /)
+  INTEGER, PARAMETER                      :: c_gamma = 7
 
 END MODULE other_constants
+
+MODULE gwhydro_constants
+
+  USE cable_def_types_mod, ONLY : r_2
+
+  IMPLICIT NONE
+
+
+  REAL(r_2), PARAMETER :: sucmin       = -1.0e8      ! minimum soil pressure head [mm]
+  REAL(r_2), PARAMETER :: volwatmin    = 1e-4        !min soil water [mm]      
+  REAL(r_2), PARAMETER :: wtd_uncert   = 0.1         ! uncertaintiy in wtd calcultations [mm]
+  REAL(r_2), PARAMETER :: wtd_max      = 1000000.0   ! maximum wtd [mm]
+  REAL(r_2), PARAMETER :: wtd_min      = 10.0        ! minimum wtd [mm]
+
+  INTEGER, PARAMETER :: wtd_iter_max = 20 ! maximum number of iterations to find the water table depth                    
+
+END MODULE gwhydro_constants
 
 !=========================================================================
 

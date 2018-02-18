@@ -29,7 +29,7 @@ module cable_data_module
    TYPE physical_constants
       real ::                                                                  &
       capp   = 1004.64, & ! air spec. heat (J/kg/K)
-      hl = 2.5014e6, & ! air spec. heat (J/kg/K)
+      hl = 2.5014e6, & ! latent heat of vaporization (J/s/m2)
       hlf = 0.334e6, & ! latent heat of fusion
       hls = 2.8350e6, & ! latent heat of sublimation (J/kg)
       !hl = 2.5104e6, & ! air spec. heat (J/kg/K)
@@ -42,13 +42,17 @@ module cable_data_module
       rmh2o  = 0.018016, & ! molecular wt: water        (kg/mol)
       sboltz = 5.67e-8, & ! Stefan-Boltz. constant (W/m2/K4)
       tfrz   = 273.16, & ! Temp (K) corresp. to 0 C
-      denliq = 1000.0,  &  !density of liquid water
-      denice = 1000.0,  &   !denisty of ice
+      density_liq = 1000.0,  &  !density of liquid water
+      density_ice = 1000.0,  &   !denisty of ice
 
       ! Teten coefficients
-      tetena = 6.106, & ! ??? refs?
+      tetena = 6.106, & ! ??? refs?  mrd561 Magnus Tetans (Murray 1967)
       tetenb = 17.27, &
       tetenc = 237.3, &
+      !mrd561 the parameters for sat above ice
+      tetena_ice = 6.1078, & ! ??? refs?
+      tetenb_ice = 21.875, &
+      tetenc_ice = 265.5, &
 
       ! Aerodynamic parameters, diffusivities, water density:
       vonk   = 0.40, & ! von Karman constant
@@ -148,6 +152,7 @@ module cable_data_module
          ! physical constants
          TFRZ, RMAIR, RGAS,                                                    &
          TETENA, TETENB, TETENC,                                               &
+         TETENA_ICE, TETENB_ICE, TETENC_ICE,                                   &
          CAPP, RMH2O, HL
    END TYPE iair_type
 
@@ -178,7 +183,8 @@ module cable_data_module
          ! math constants
          PI_C,                                                                 &
          ! other constants
-         LAI_THRESH
+         LAI_THRESH,                                                           &
+         TETENA_ICE, TETENB_ICE, TETENC_ICE
 
       INTEGER, POINTER :: MAXITER
 
@@ -220,7 +226,7 @@ module cable_data_module
    TYPE issnow_type
       REAL, POINTER ::                                                         &
          ! physical constants
-         CAPP, TFRZ, HL, HLF, HLS,denliq, denice
+         CAPP, TFRZ, HL, HLF, HLS,density_liq, density_ice
    END TYPE issnow_type
 
 
@@ -287,6 +293,9 @@ SUBROUTINE air_type_ptr(C)
    C%TFRZ  => PHYS%TFRZ
    C%RMAIR => PHYS%RMAIR
    C%RGAS  => PHYS%RGAS
+   C%TETENA_ICE => PHYS%TETENA_ICE
+   C%TETENB_ICE => PHYS%TETENB_ICE
+   C%TETENC_ICE => PHYS%TETENC_ICE
    C%TETENA => PHYS%TETENA
    C%TETENB => PHYS%TETENB
    C%TETENC => PHYS%TETENC
@@ -323,6 +332,9 @@ SUBROUTINE canopy_type_ptr(C)
    C%ZETPOS => PHYS%ZETPOS
    C%GRAV  => PHYS%GRAV
    C%UMIN  => PHYS%UMIN
+   C%TETENA_ICE => PHYS%TETENA_ICE
+   C%TETENB_ICE => PHYS%TETENB_ICE
+   C%TETENC_ICE => PHYS%TETENC_ICE
    C%TETENA => PHYS%TETENA
    C%TETENB => PHYS%TETENB
    C%TETENC => PHYS%TETENC
@@ -417,8 +429,8 @@ SUBROUTINE ssnow_type_ptr(C)
    C%HL    => PHYS%HL
    C%HLF   => PHYS%HLF
    C%HLS   => PHYS%HLS
-   C%denice=> PHYS%denice
-   C%denliq=> PHYS%denliq
+   C%density_ice=> PHYS%density_ice
+   C%density_liq=> PHYS%density_liq
    !C% => PHYS%
 END SUBROUTINE ssnow_type_ptr
 

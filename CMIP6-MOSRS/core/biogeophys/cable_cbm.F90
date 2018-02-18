@@ -30,9 +30,6 @@
 
 MODULE cable_cbm_module
 
-   USE cable_canopy_module
-   USE cable_albedo_module
-  USE sli_main_mod
 
    IMPLICIT NONE
 
@@ -49,15 +46,20 @@ CONTAINS
    USE cable_carbon_module
    USE cable_soil_snow_module, only : soil_snow
    USE cable_def_types_mod
-   USE cable_roughness_module
-   USE cable_radiation_module
-   USE cable_air_module
+   USE cable_roughness_module, only : ruff_resist
+   USE cable_radiation_module, only : init_radiation
+   USE cable_air_module, only : define_air
 #ifndef NO_CASA_YET
    USE casadimension,     only : icycle ! used in casa_cnp
 #endif
    USE cable_data_module, ONLY : icbm_type, point2constants
    !mrd561
-   USE cable_gw_hydro_module
+   USE cable_gw_hydro_module, only : sli_hydrology,&
+                                     soil_snow_gw
+   USE cable_canopy_module, only : define_canopy
+   USE cable_albedo_module, only : surface_albedo
+   USE sli_main_mod, only : sli_main
+                                   
 
    !ptrs to local constants
    TYPE( icbm_type ) :: C
@@ -85,6 +87,8 @@ CONTAINS
    ICYCLE = 0
 #endif
 
+  cable_user%soil_struc="default"
+
    ! assign local ptrs to constants defined in cable_data_module
    CALL point2constants(C)
 
@@ -95,14 +99,14 @@ CONTAINS
       IF( cable_runtime%um_explicit ) THEN
          CALL ruff_resist(veg, rough, ssnow, canopy)
       ENDIF
-         met%tk = met%tk + C%grav/C%capp*(rough%zref_tq + 0.9*rough%z0m)
+      met%tk = met%tk + C%grav/C%capp*(rough%zref_tq + 0.9*rough%z0m)
 
       CALL define_air (met, air)
 
    ELSE
       call ruff_resist(veg, rough, ssnow, canopy)
    ENDIF
-   
+
    CALL init_radiation(met,rad,veg, canopy) ! need to be called at every dt
 
    IF( cable_runtime%um ) THEN
@@ -115,6 +119,9 @@ CONTAINS
       CALL surface_albedo(ssnow, veg, met, rad, soil, canopy)
    ENDIf
 
+   ! Calculate canopy variables:
+
+   !! vh_js !!
    !CABLE_LSM:check
    IF( cable_runtime%um .AND. first_call ) then
      ssnow%tss=(1-ssnow%isflag)*ssnow%tgg(:,1) + ssnow%isflag*ssnow%tggsn(:,1) 
@@ -124,14 +131,7 @@ CONTAINS
    ssnow%otss_0 = ssnow%otss  ! vh should be before call to canopy?
    ssnow%otss = ssnow%tss
 
-   ! Calculate canopy variables:
-   IF (.not.(cable_user%or_evap .or. cable_user%gw_model .or. &
-            (cable_user%SOIL_STRUC=='sli' .and. cable_user%test_new_gw) ) ) THEN
-      call set_unsed_gw_vars(ssnow,soil,canopy)
-   END IF
-
    CALL define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,climate)
-
    ! RML moved out of following IF after discussion with Eva
    ssnow%owetfac = ssnow%wetfac
 
@@ -139,7 +139,7 @@ CONTAINS
 
      IF( cable_runtime%um_implicit ) THEN
         IF (cable_user%gw_model) then
-           if (mp .ge. 1) CALL soil_snow_gw(dels, soil, ssnow, canopy, met, bal,veg)
+           CALL soil_snow_gw(dels, soil, ssnow, canopy, met, bal,veg)
         ELSE
             CALL soil_snow(dels, soil, ssnow, canopy, met, bal,veg)
          ENDIF
@@ -148,7 +148,7 @@ CONTAINS
    ELSE
       IF(cable_user%SOIL_STRUC=='default') THEN
         IF (cable_user%gw_model) then
-           if (mp .ge. 1) CALL soil_snow_gw(dels, soil, ssnow, canopy, met, bal,veg)
+           CALL soil_snow_gw(dels, soil, ssnow, canopy, met, bal,veg)
         ELSE
             CALL soil_snow(dels, soil, ssnow, canopy, met, bal,veg)
          ENDIF
@@ -209,6 +209,7 @@ CONTAINS
       ENDIF
    ENDIF
    
+
    ! need to adjust fe after soilsnow
    canopy%fev  = canopy%fevc + canopy%fevw
 
