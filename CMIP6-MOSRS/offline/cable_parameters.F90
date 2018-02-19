@@ -1326,9 +1326,9 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
                    = inALB(landpt(e)%ilon, landpt(e)%ilat, is, ir) ! various rad band
            ENDIF
         END DO
-        ! total depth, change from m to mm
+        ! total depth, change from m to mm !see Ticket #57
         ssnow%snowd(landpt(e)%cstart + is - 1)                                 &
-                     = inSND(landpt(e)%ilon, landpt(e)%ilat, is, month) * 1000.0
+                     = inSND(landpt(e)%ilon, landpt(e)%ilat, is, month) * 140.0
       END DO
 
       ! Set default LAI values
