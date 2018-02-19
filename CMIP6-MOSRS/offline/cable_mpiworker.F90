@@ -3610,6 +3610,10 @@ ENDIF
     ! MPI: sanity check
     IF (bidx /= ntyp) THEN
        WRITE (*,*) 'worker ',rank,': invalid intype nmat, nvec or n3d constant, fix it!'
+       WRITE(*,*) 'bidx: ', bidx
+       WRITE(*,*) 'nvec: ', nvec
+       WRITE(*,*) 'n3d:', n3d
+       WRITE(*,*) 'ntyp', ntyp
        CALL MPI_Abort (comm, 1, ierr)
     END IF
 
@@ -4446,6 +4450,11 @@ ENDIF
     CALL MPI_Get_address (canopy%fns(off), displs(bidx), ierr)
     blocks(bidx) = r1len
 
+     bidx = bidx + 1
+    CALL MPI_Get_address (canopy%fns_cor(off), displs(bidx), ierr)
+    blocks(bidx) = r1len
+
+
     !vidx = vidx + 1
     ! REAL(r_1)
     !CALL MPI_Get_address (canopy%fes(off), vaddr(vidx), ierr) ! 42
@@ -4508,6 +4517,10 @@ ENDIF
     !blen(vidx) = cnt * extr1
     bidx = bidx + 1
     CALL MPI_Get_address (canopy%ga(off), displs(bidx), ierr)
+    blocks(bidx) = r1len
+
+      bidx = bidx + 1
+    CALL MPI_Get_address (canopy%ga_cor(off), displs(bidx), ierr)
     blocks(bidx) = r1len
 
     !vidx = vidx + 1
@@ -4671,6 +4684,10 @@ ENDIF
 
     bidx = bidx + 1
     CALL MPI_Get_address (ssnow%dfe_ddq(off), displs(bidx), ierr) ! +1
+    blocks(bidx) = r1len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (ssnow%dfe_dtg(off), displs(bidx), ierr) ! +1
     blocks(bidx) = r1len
 
     !vidx = vidx + 1
@@ -5577,6 +5594,10 @@ ENDIF
     ! MPI: sanity check
     IF (bidx /= ntyp) THEN
        WRITE (*,*) 'worker ',rank,': invalid outtype nmat, nvec or n3d constant, fix it!'
+       WRITE(*,*) 'bidx: ', bidx
+       WRITE(*,*) 'nvec: ', nvec
+       WRITE(*,*) 'n3d:', n3d
+       WRITE(*,*) 'ntyp', ntyp
        CALL MPI_Abort (comm, 1, ierr)
     END IF
 

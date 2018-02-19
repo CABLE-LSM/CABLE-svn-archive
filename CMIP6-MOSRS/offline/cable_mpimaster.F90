@@ -1852,17 +1852,18 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
      blen(bidx) = r1len
 
      bidx = bidx + 1
-     CALL MPI_Get_address (ssnow%dfe_ddq(off), displs(bidx), ierr)
+     CALL MPI_Get_address (ssnow%dfe_dtg(off), displs(bidx), ierr)
      blen(bidx) = r1len
 
      bidx = bidx + 1
-     CALL MPI_Get_address (ssnow%ddq_dtg(off), displs(bidx), ierr)
+     CALL MPI_Get_address (ssnow%dfe_ddq(off), displs(bidx), ierr)
      blen(bidx) = r1len
 
      !INH - REV_CORR new variable
      bidx = bidx + 1
-     CALL MPI_Get_address (ssnow%dfe_dtg(off), displs(bidx), ierr)
+     CALL MPI_Get_address (ssnow%ddq_dtg(off), displs(bidx), ierr)
      blen(bidx) = r1len
+
 
      bidx = bidx + 1
      CALL MPI_Get_address (ssnow%evapsn(off), displs(bidx), ierr)
@@ -3122,11 +3123,6 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
      CALL MPI_Get_address (ssnow%wbtot1(off), displs(bidx), ierr)
      blen(bidx) = r1len
 
-! Maciej: duplicate!
-!     bidx = bidx + 1
-!     CALL MPI_Get_address (ssnow%wbtot1(off), displs(bidx), ierr)
-!     blen(bidx) = r1len
-
      bidx = bidx + 1
      CALL MPI_Get_address (ssnow%tprecip(off), displs(bidx), ierr)
      blen(bidx) = r1len
@@ -3270,6 +3266,7 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   bidx = bidx + 1
   CALL MPI_Get_address (soil%GWdz(off), displs(bidx), ierr)
   blen(bidx) = r2len
+  write(*,*) 'after gwdz', bidx
 
   bidx = bidx + 1
   CALL MPI_Get_address (ssnow%GWwb(off), displs(bidx), ierr)
