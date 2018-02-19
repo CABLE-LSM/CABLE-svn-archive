@@ -1362,19 +1362,19 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
       !possibly heterogeneous soil properties
       DO klev=1,ms
 
-        soil%Fclay(landpt(e)%cstart:landpt(e)%cend,klev) =                    &
+        soil%clay_vec(landpt(e)%cstart:landpt(e)%cend,klev) =                    &
             real(inclay(landpt(e)%ilon, landpt(e)%ilat),r_2)                 
 
-        soil%Fsand(landpt(e)%cstart:landpt(e)%cend,klev) =                    &
+        soil%sand_vec(landpt(e)%cstart:landpt(e)%cend,klev) =                    &
             real(insand(landpt(e)%ilon, landpt(e)%ilat),r_2)                  
 
-        soil%Fsilt(landpt(e)%cstart:landpt(e)%cend,klev) =                    &
+        soil%silt_vec(landpt(e)%cstart:landpt(e)%cend,klev) =                    &
             real(insilt(landpt(e)%ilon, landpt(e)%ilat),r_2)
 
-        soil%densoil(landpt(e)%cstart:landpt(e)%cend,klev) =                  &
+        soil%rhosoil_vec(landpt(e)%cstart:landpt(e)%cend,klev) =                  &
            real(inrhosoil(landpt(e)%ilon, landpt(e)%ilat),r_2)                    
 
-        soil%Forg(landpt(e)%cstart:landpt(e)%cend,klev) =                    &
+        soil%org_vec(landpt(e)%cstart:landpt(e)%cend,klev) =                    &
            real(inORG(landpt(e)%ilon, landpt(e)%ilat),r_2)
 
         soil%watr(landpt(e)%cstart:landpt(e)%cend,klev) =                    &
@@ -1392,7 +1392,7 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
       soil%GWbch_vec(landpt(e)%cstart:landpt(e)%cend) =                        &
           real(inGWbch(landpt(e)%ilon, landpt(e)%ilat),r_2)
 
-      soil%GWdensoil(landpt(e)%cstart:landpt(e)%cend) =                       &
+      soil%GWrhosoil_vec(landpt(e)%cstart:landpt(e)%cend) =                       &
          real(inGWrhosoil(landpt(e)%ilon, landpt(e)%ilat),r_2)
 
       soil%GWssat_vec(landpt(e)%cstart:landpt(e)%cend) =                        &
@@ -1479,16 +1479,16 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
             soil%sand(h)    =  soilin%sand(soil%isoilm(h))
              !MDeck
             do klev=1,ms
-               soil%Fclay(h,klev) = real(soilin%clay(soil%isoilm(h)),r_2)
-               soil%Fsand(h,klev) = real(soilin%sand(soil%isoilm(h)),r_2)
-               soil%Fsilt(h,klev) = real(soilin%silt(soil%isoilm(h)),r_2)
-               soil%densoil(h,klev) = real(soilin%rhosoil(soil%isoilm(h)),r_2)
+               soil%clay_vec(h,klev) = real(soilin%clay(soil%isoilm(h)),r_2)
+               soil%sand_vec(h,klev) = real(soilin%sand(soil%isoilm(h)),r_2)
+               soil%silt_vec(h,klev) = real(soilin%silt(soil%isoilm(h)),r_2)
+               soil%rhosoil_vec(h,klev) = real(soilin%rhosoil(soil%isoilm(h)),r_2)
                soil%watr(h,klev)    = 0.01
             end do
             soil%GWsucs_vec(h)  = real(abs(soilin%sucs(soil%isoilm(h)))*1000.0,r_2)
             soil%GWhyds_vec(h)   = real(soilin%hyds(soil%isoilm(h))*1000.0,r_2)
             soil%GWbch_vec(h)  = real(soilin%bch(soil%isoilm(h)),r_2)
-            soil%GWdensoil(h) = real(soilin%rhosoil(soil%isoilm(h)),r_2)
+            soil%GWrhosoil_vec(h) = real(soilin%rhosoil(soil%isoilm(h)),r_2)
             soil%GWssat_vec(h)  = real(soilin%ssat(soil%isoilm(h)),r_2)
             soil%GWwatr(h)    = 0.01
 
@@ -1758,12 +1758,12 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
     IF (cable_user%GW_MODEL) then
 
        DO klev=1,ms
-          soil%hyds_vec(:,klev) = 0.0070556*10.0**(-0.884 + 0.0153*soil%Fsand(:,klev)*100.0)* &
+          soil%hyds_vec(:,klev) = 0.0070556*10.0**(-0.884 + 0.0153*soil%Sand_Vec(:,klev)*100.0)* &
                                   exp(-gw_params%hkrz*(max(0.,soil_depth(klev)-gw_params%zdepth)))
-          soil%sucs_vec(:,klev) = 10.0 * 10.0**(1.88 -0.0131*soil%Fsand(:,klev)*100.0)
-          soil%bch_vec(:,klev) = 2.91 + 0.159*soil%Fclay(:,klev)*100.0
-          soil%ssat_vec(:,klev) = 0.489 - 0.00126*soil%Fsand(:,klev)*100.0
-          soil%watr(:,klev) = 0.02 + 0.00018*soil%Fclay(:,klev)*100.0
+          soil%sucs_vec(:,klev) = 10.0 * 10.0**(1.88 -0.0131*soil%Sand_Vec(:,klev)*100.0)
+          soil%bch_vec(:,klev) = 2.91 + 0.159*soil%Clay_Vec(:,klev)*100.0
+          soil%ssat_vec(:,klev) = 0.489 - 0.00126*soil%Sand_Vec(:,klev)*100.0
+          soil%watr(:,klev) = 0.02 + 0.00018*soil%Clay_Vec(:,klev)*100.0
        ENDDO
        !aquifer share non-organic with last layer if not found in param file
        if (found_explicit_gw_parameters .eqv. .false.) THEN
@@ -1775,19 +1775,19 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
        endif
        !include organin impact.  fraction of grid cell where percolation through
        !organic macropores dominates
-       soil%Forg = max(0._r_2,soil%Forg)
-       soil%Forg = min(1._r_2,soil%Forg)
+       soil%Org_Vec = max(0._r_2,soil%Org_Vec)
+       soil%Org_Vec = min(1._r_2,soil%Org_Vec)
        DO klev=1,3  !0-23.3 cm, data really is to 30cm
-          soil%hyds_vec(:,klev)  = (1.-soil%Forg(:,klev))*soil%hyds_vec(:,klev) + &
-                                       soil%Forg(:,klev)*gw_params%org%hyds_vec_organic
-          soil%sucs_vec(:,klev) = (1.-soil%Forg(:,klev))*soil%sucs_vec(:,klev) + &
-                                      soil%Forg(:,klev)*gw_params%org%sucs_vec_organic
-          soil%bch_vec(:,klev) = (1.-soil%Forg(:,klev))*soil%bch_vec(:,klev) +&
-                                     soil%Forg(:,klev)*gw_params%org%clappb_organic
-          soil%ssat_vec(:,klev) = (1.-soil%Forg(:,klev))*soil%ssat_vec(:,klev) + &
-                                      soil%Forg(:,klev)*gw_params%org%ssat_vec_organic
-          soil%watr(:,klev)   = (1.-soil%Forg(:,klev))*soil%watr(:,klev) + &
-                                    soil%Forg(:,klev)*gw_params%org%watr_organic
+          soil%hyds_vec(:,klev)  = (1.-soil%Org_Vec(:,klev))*soil%hyds_vec(:,klev) + &
+                                       soil%Org_Vec(:,klev)*gw_params%org%hyds_vec_organic
+          soil%sucs_vec(:,klev) = (1.-soil%Org_Vec(:,klev))*soil%sucs_vec(:,klev) + &
+                                      soil%Org_Vec(:,klev)*gw_params%org%sucs_vec_organic
+          soil%bch_vec(:,klev) = (1.-soil%Org_Vec(:,klev))*soil%bch_vec(:,klev) +&
+                                     soil%Org_Vec(:,klev)*gw_params%org%clappb_organic
+          soil%ssat_vec(:,klev) = (1.-soil%Org_Vec(:,klev))*soil%ssat_vec(:,klev) + &
+                                      soil%Org_Vec(:,klev)*gw_params%org%ssat_vec_organic
+          soil%watr(:,klev)   = (1.-soil%Org_Vec(:,klev))*soil%watr(:,klev) + &
+                                    soil%Org_Vec(:,klev)*gw_params%org%watr_organic
        END DO
 
        !!vegetation dependent field capacity (point plants get stressed) and
