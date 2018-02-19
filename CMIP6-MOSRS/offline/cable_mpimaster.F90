@@ -3266,8 +3266,7 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   bidx = bidx + 1
   CALL MPI_Get_address (soil%GWdz(off), displs(bidx), ierr)
   blen(bidx) = r2len
-  write(*,*) 'after gwdz', bidx
-
+ 
   bidx = bidx + 1
   CALL MPI_Get_address (ssnow%GWwb(off), displs(bidx), ierr)
   blen(bidx) = r2len
