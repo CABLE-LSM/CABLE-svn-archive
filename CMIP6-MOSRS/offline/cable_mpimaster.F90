@@ -854,7 +854,7 @@ CONTAINS
                    ! receive casa update from worker
                    CALL master_receive (ocomm, oktau, casa_ts)
                    
-    
+                   CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
                    ! receive casa dump requirements from worker
                    IF ( ((.NOT.spinup).OR.(spinup.AND.spinConv)) .AND.   &
                         ( IS_CASA_TIME("dwrit", yyyy, oktau, kstart, &
@@ -1038,40 +1038,35 @@ CONTAINS
           oktau    = oktau + 1
           ktau_tot = ktau_tot + 1
           ktau_gl  = oktau
-      
-          IF( icycle >0 ) THEN
 
+          IF ( .NOT. CASAONLY ) THEN
 
-             IF ( IS_CASA_TIME("write", yyyy, oktau, kstart, &
-                  koffset, kend, ktauday, logn) ) THEN
+             IF ( icycle >0 ) THEN
+
                 CALL master_receive (ocomm, oktau, casa_ts)
 
-!                CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)              
+                IF ( ((.NOT.spinup).OR.(spinup.AND.spinConv)) .AND. &
+                     ( IS_CASA_TIME("dwrit", yyyy, oktau, kstart, &
+                     koffset, kend, ktauday, logn) ) ) THEN
+                    CALL master_receive ( ocomm, oktau, casa_dump_ts )
+           
+                ENDIF
 
              ENDIF
-
-
-             IF( ((.NOT.spinup).OR.(spinup.AND.spinConv)) .AND. &
-                  CABLE_USER%CASA_DUMP_WRITE )  THEN
-                CALL master_receive ( ocomm, oktau, casa_dump_ts )
-        !        CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
-             ENDIF
-
-          ENDIF
         
-          IF ( .NOT. CASAONLY ) THEN
+           
              CALL master_receive (ocomm, oktau, recv_ts)
-      !       CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
+      
           ENDIF
-
+      
           met%ofsd = met%fsd(:,1) + met%fsd(:,2)
           canopy%oldcansto=canopy%cansto
                     
           IF ( (TRIM(cable_user%MetType) .EQ. "gswp") .or. (TRIM(cable_user%MetType) .EQ. "gswp3") ) &
                CALL close_met_file
 
-IF (icycle>0 .and.   cable_user%CALL_POP)  THEN
-  write(*,*), 'b4 annual calcs'
+          IF (icycle>0 .and.   cable_user%CALL_POP)  THEN
+             write(*,*), 'b4 annual calcs'
        
                       IF (CABLE_USER%POPLUC) THEN
 
@@ -1115,7 +1110,7 @@ IF (icycle>0 .and.   cable_user%CALL_POP)  THEN
      
                  
                    ENDIF
-write(*,*) 'after annual calcs'
+                   write(*,*) 'after annual calcs'
 
 
           ! WRITE OUTPUT
