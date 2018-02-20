@@ -42,7 +42,7 @@ MODULE cable_def_types_mod
 
    INTEGER, PARAMETER ::                                                        &
       i_d  = KIND(9), &
-      r_2  = SELECTED_REAL_KIND(12, 50), &
+      r_2  = kind(1.d0),&!SELECTED_REAL_KIND(12, 50), &
       n_tiles = 17,  & ! # possible no of different
       ncp = 3,       & ! # vegetation carbon stores
       ncs = 2,       & ! # soil carbon stores
@@ -54,7 +54,6 @@ MODULE cable_def_types_mod
  !      ms = 12          ! # soil layers
        ms = 6         ! # soil layers - standard
 !       ms = 13          ! for Loetschental experiment
-
 !   PRIVATE :: r_2, ms, msn, mf, nrb, ncp, ncs
 
 ! .............................................................................
@@ -127,11 +126,11 @@ MODULE cable_def_types_mod
          soilcol, & ! keep color for all patches/tiles
          albsoilf   ! soil reflectance
 
-      REAL, DIMENSION(:,:), POINTER :: &  !leaving as r_1 now preserves bit reproductin of trunks
-        zse_vec,css_vec
+      REAL(r_2), DIMENSION(:,:), POINTER :: &
+         heat_cap_lower_limit
 
-      REAL(r_2), DIMENSION(:,:), POINTER :: & 
-        cnsd_vec
+      REAL(r_2), DIMENSION(:,:), POINTER :: &
+        zse_vec,css_vec,cnsd_vec
 
       REAL(r_2), DIMENSION(:), POINTER ::                                      &
          cnsd,    & ! thermal conductivity of dry soil [W/m/K]
@@ -156,8 +155,7 @@ MODULE cable_def_types_mod
          swilt_vec     ! wilting point (hk = 0.02 mm/day)
 
       REAL(r_2), DIMENSION(:), POINTER ::                                      &
-         elev, &  !elevation above sea level
-         slope,  &  !mean slope of grid cell
+         slope,elev,  &  !mean slope of grid cell
          slope_std  !stddev of grid cell slope
 
       !MD parameters for GW module for the aquifer
@@ -167,6 +165,7 @@ MODULE cable_def_types_mod
          GWbch_vec,  & !clapp and horn b of the aquifer   [none]
          GWssat_vec,  & !saturated water content of the aquifer [mm3/mm3]
          GWwatr,    & !residual water content of the aquifer [mm3/mm3]
+         GWz,       & !node depth of the aquifer    [m]
          GWdz,      & !thickness of the aquifer   [m]
          GWrhosoil_vec    !density of the aquifer substrate [kg/m3]
 
@@ -835,10 +834,12 @@ SUBROUTINE alloc_soil_parameter_type(var, mp)
    allocate( var%GWssat_vec(mp) )
    allocate( var%GWwatr(mp) )
    var%GWwatr(:) = 0.05
+   allocate( var%GWz(mp) )
    allocate( var%GWdz(mp) )
    allocate( var%GWrhosoil_vec(mp) )
    !soil properties (vary by layer)
    allocate( var% zse_vec(mp,ms) )
+   allocate( var% heat_cap_lower_limit(mp,ms) )
    allocate( var% css_vec(mp,ms) )
    allocate( var% cnsd_vec(mp,ms) )
    allocate( var%hyds_vec(mp,ms) )
@@ -1453,18 +1454,17 @@ SUBROUTINE dealloc_soil_parameter_type(var)
    DEALLOCATE( var%GWbch_vec )
    DEALLOCATE( var%GWssat_vec )
    DEALLOCATE( var%GWwatr )
+   DEALLOCATE( var%GWz )
    DEALLOCATE( var%GWdz )
    DEALLOCATE( var%GWrhosoil_vec )
    !soil properties (vary by layer)
    deallocate( var% zse_vec )
+   deallocate( var% heat_cap_lower_limit )
    deallocate( var% css_vec )
    deallocate( var% cnsd_vec )
    DEALLOCATE( var%hyds_vec )
    DEALLOCATE( var%sucs_vec )
    DEALLOCATE( var%bch_vec )
-   DEALLOCATE( var%ssat_vec )
-   DEALLOCATE( var%watr )
-   DEALLOCATE( var%sfc_vec )
    DEALLOCATE( var%swilt_vec )
    DEALLOCATE( var%sand_vec )
    DEALLOCATE( var%clay_vec )

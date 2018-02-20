@@ -1748,6 +1748,7 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
     REAL(r_2), DIMENSION(17)    :: psi_o,psi_c
     REAL(r_2), DIMENSION(mp,ms) :: psi_tmp
     REAL(r_2), DIMENSION(ms) :: soil_depth
+    REAL(r_2), ALLOCATABLE :: rho_soil_bulk(:,:),ssat_bounded(:,:)
 
     soil_depth(1) = real(soil%zse(1),r_2)
     do klev=2,ms
@@ -1802,35 +1803,35 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
           end do
        END DO
 
-       DO klev=1,ms
-         do i=1,mp
-            !soil%css_vec(:,klev) = real( (2.128*soil%sand_vec(:,klev)+2.385*soil%clay_vec(:,klev))/&
-            !                       (soil%clay_vec(:,klev)+soil%sand_vec(:,klev))+0.1 )*1.0e6
-            if (soil%isoilm(i) .ne. 9) then
-              soil%css_vec(i,klev) =  max(910.6479*soil%silt_vec(i,klev) + 916.4438 * soil%clay_vec(i,klev) + 740.7491*soil%sand_vec(i,klev), 800.0)
-                                     !took avg of results from  
-                                     !A New Perspective on Soil Thermal
-                                     !Properties
-                                     !Tyson E. Ochsner, Robert Horton,* and Tusheng Re
-                                     !Soil Sci Soc America 2001
-                                     !to find what silt (1.0-sand-clay) is  simply
-                                     !regress to his means
-                                     !in J/kg/K
-              soil%rhosoil_vec(i,klev) =  2700.0 !density of solids
-              !Heuscher SA, Brandt CC, Jardine PM. Using soil physical and
-              !chemical properties to estimate bulk density. Soil Sci Soc Am J 2005
-              !divide by (1-ssat) to get solid denisty from bulk
-              soil%rhosoil_vec(i,klev) = (1685.0 -  &
-                                          13.3*soil%ssat_vec(i,klev)+790.0*soil%clay_vec(i,klev) -  &
-                                          70.0*soil%silt_vec(i,klev))
-              !BD = 1.685 - 0.198OC**0.5 - 0.0133WC + 0.0079Clay + 0.00014Depth
-              !- 0.0007Silt
-              soil%cnsd_vec(i,klev) = (0.135*soil%rhosoil_vec(i,klev)+64.7)/&
-                                      (2700.0-0.947*soil%rhosoil_vec(i,klev))
-               
-            end if
-         end do
-       ENDDO
+       !DO klev=1,ms
+       !  do i=1,mp
+       !     !soil%css_vec(:,klev) = real( (2.128*soil%sand_vec(:,klev)+2.385*soil%clay_vec(:,klev))/&
+       !     !                       (soil%clay_vec(:,klev)+soil%sand_vec(:,klev))+0.1 )*1.0e6
+       !     if (soil%isoilm(i) .ne. 9) then
+       !       soil%css_vec(i,klev) =  max(910.6479*soil%silt_vec(i,klev) + 916.4438 * soil%clay_vec(i,klev) + 740.7491*soil%sand_vec(i,klev), 800.0)
+       !                              !took avg of results from  
+       !                              !A New Perspective on Soil Thermal
+       !                              !Properties
+       !                              !Tyson E. Ochsner, Robert Horton,* and Tusheng Re
+       !                              !Soil Sci Soc America 2001
+       !                              !to find what silt (1.0-sand-clay) is  simply
+       !                              !regress to his means
+       !                              !in J/kg/K
+       !       soil%rhosoil_vec(i,klev) =  2700.0 !density of solids
+       !       !Heuscher SA, Brandt CC, Jardine PM. Using soil physical and
+       !       !chemical properties to estimate bulk density. Soil Sci Soc Am J 2005
+       !       !divide by (1-ssat) to get solid denisty from bulk
+       !       !soil%rhosoil_vec(i,klev) = (1685.0 -  &
+       !                                   13.3*soil%ssat_vec(i,klev)+790.0*soil%clay_vec(i,klev) -  &
+       !                                   70.0*soil%silt_vec(i,klev))
+       !       !BD = 1.685 - 0.198OC**0.5 - 0.0133WC + 0.0079Clay + 0.00014Depth
+       !       !- 0.0007Silt
+       !       soil%cnsd_vec(i,klev) = (0.135*soil%rhosoil_vec(i,klev)+64.7)/&
+       !                               (2700.0-0.947*soil%rhosoil_vec(i,klev))
+       !        
+       !     end if
+       !  end do
+       !ENDDO
        !aquifer share non-organic with last layer if not found in param file
        if (found_explicit_gw_parameters .eq. .false.) THEN
           soil%GWhyds_vec(:)  = soil%hyds_vec(:,ms)
@@ -1860,8 +1861,8 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
                                           soil%org_vec(i,klev)*gw_params%org%watr
                 soil%css_vec(i,klev) = (1.-soil%org_vec(i,klev))*soil%css_vec(i,klev) + &
                                           real(soil%org_vec(i,klev)*gw_params%org%css)
-                soil%cnsd_vec(i,klev) = (1.-soil%org_vec(i,klev))*soil%cnsd_vec(i,klev) + &
-                                          soil%org_vec(i,klev)*gw_params%org%cnsd
+               ! soil%cnsd_vec(i,klev) = (1.-soil%org_vec(i,klev))*soil%cnsd_vec(i,klev) + &
+               !                           soil%org_vec(i,klev)*gw_params%org%cnsd
                ! !soil%rhosoil_vec(i,klev) = soil%rhosoil_vec(i,klev)*&
                ! !                            (0.43 + 0.57*exp(-29.0*soil%org_vec(i,klev)))
                !                          !uses the empirical curve from 
@@ -1871,15 +1872,11 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
                !                           !i match at org=0 to my rho_soil, then
                !                           !use org frac
                 !Heuscher et al. 2005  has nearly 50,000 samples
-                soil%rhosoil_vec(i,klev) = soil%rhosoil_vec(i,klev) - 198.0*sqrt(soil%org_vec(i,klev)*100.0)
+                !soil%rhosoil_vec(i,klev) = soil%rhosoil_vec(i,klev) - 198.0*sqrt(soil%org_vec(i,klev)*100.0)
                                          
              end if
           END DO
        END DO
-
-       !rho_soil is currently the bulk density, soilsnow uses (1-ssat)*css*rho
-       !to find the heat capacity, so convert to density of solids
-       soil%rhosoil_vec = soil%rhosoil_vec / (1.0-soil%ssat_vec)
 
        !!vegetation dependent field capacity (point plants get stressed) and
 
@@ -1927,6 +1924,76 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
 
     END IF
 
+
+    IF (cable_user%soil_thermal_fix) then
+
+       if (allocated(ssat_bounded)) deallocate(ssat_bounded)
+       if (allocated(rho_soil_bulk)) deallocate(rho_soil_bulk)
+
+       allocate(ssat_bounded(mp,ms) )
+       allocate(rho_soil_bulk(mp,ms) )
+
+       ssat_bounded(:,:) = min( 0.9, max(0.05, &
+                                          soil%ssat_vec(:,:) ) )
+
+       rho_soil_bulk(:,:) = min(2500.0, max(900.0 , &
+                                  (2700.0*(1.0 - ssat_bounded(:,:)) ) ) )
+
+       do k=1,ms
+          do i=1,mp
+
+
+             if (soil%isoilm(i) .ne. 9) then 
+
+                soil%rhosoil_vec(i,k) = 2700.0
+
+                soil%Ktherm_const_one(i,k)   = 1.06 * 0.001 * &
+                                             rho_soil_bulk(i,k)
+
+                soil%Ktherm_const_two(i,k)   = 2.6 / sqrt(min(1.0,max(0.1,&
+                                             soil%clay_vec(i,k)))) !prevent /0
+
+                soil%Ktherm_const_three(i,k) = 0.03 + 0.1* &
+                                            (0.001*rho_soil_bulk(i,k))*&
+                                            (0.001*rho_soil_bulk(i,k))
+
+
+                soil%cnsd_vec(i,k) = ( (0.135*(1.0-ssat_bounded(i,k))) +&
+                                    (64.7/rho_soil_bulk(i,k)) ) / &
+                                  (1.0 - 0.947*(1.0-ssat_bounded(i,k)))
+
+             end if
+
+          end do
+       end do
+
+       k=1
+       do i=1,mp
+          if (soil%isoilm(i) .ne. 9) then
+             soil%rhosoil(i) = soil%rhosoil_vec(i,1)
+             soil%cnsd(i)    = soil%cnsd_vec(i,1)
+          end if
+       end do
+
+       if (allocated(ssat_bounded)) deallocate(ssat_bounded)
+       if (allocated(rho_soil_bulk)) deallocate(rho_soil_bulk)
+
+    END IF
+
+    IF (cable_user%gw_model) then
+       DO klev=1,3  !0-23.3 cm, data really is to 30cm
+          do i=1,mp
+             if (soil%isoilm(i) .ne. 9 .and. soil%org_vec(i,klev) .gt. 1.0e-6) then
+                soil%css_vec(i,klev) = (1.-soil%org_vec(i,klev))*soil%css_vec(i,klev) + &
+                                          real(soil%org_vec(i,klev)*gw_params%org%css)
+                soil%cnsd_vec(i,klev) = (1.-soil%org_vec(i,klev))*soil%cnsd_vec(i,klev) + &
+                                          soil%org_vec(i,klev)*gw_params%org%cnsd
+               soil%rhosoil_vec(i,klev) = soil%rhosoil_vec(i,klev)*&
+                                           (0.43 + 0.57*exp(-29.0*soil%org_vec(i,klev)))
+             end if
+          END DO
+       END DO
+    END IF
 
     IF ( .NOT. soilparmnew) THEN  ! Q,Zhang @ 12/20/2010
       soil%cnsd  = soil%sand * 0.3 + soil%clay * 0.25                          &
@@ -2844,10 +2911,10 @@ subroutine read_tiled_soil_params(soil)
 
        ok = nf90_inq_varid(ncid,'soil_depth'  ,tmpid(0))
 
-       ok = nf90_inq_varid(ncid,'Fsand' ,tmpid(1))
-       ok = nf90_inq_varid(ncid,'Fclay' ,tmpid(2))
-       ok = nf90_inq_varid(ncid,'Fsilt' ,tmpid(3))
-       ok = nf90_inq_varid(ncid,'Forg' ,tmpid(4))
+       ok = nf90_inq_varid(ncid,'sand_vec' ,tmpid(1))
+       ok = nf90_inq_varid(ncid,'clay_vec' ,tmpid(2))
+       ok = nf90_inq_varid(ncid,'silt_vec' ,tmpid(3))
+       ok = nf90_inq_varid(ncid,'org_vec' ,tmpid(4))
        ok = nf90_inq_varid(ncid,'rho_soil' ,tmpid(5))
        allocate(horizon_depth(num_horz))
        allocate(tmp1d_horz(num_horz))

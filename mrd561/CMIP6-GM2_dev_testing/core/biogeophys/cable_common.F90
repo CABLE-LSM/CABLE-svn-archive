@@ -24,6 +24,9 @@
 
 MODULE cable_common_module
 
+  use cable_pft_params_mod, ONLY : vegin
+  use cable_soil_params_mod, ONLY : soilin
+  
   IMPLICIT NONE
 
   !---allows reference to "gl"obal timestep in run (from atm_step)
@@ -42,15 +45,7 @@ MODULE cable_common_module
           ! L.Stevens - Test Switches
           L_NEW_ROUGHNESS_SOIL  = .FALSE., & ! from Ticket?
           L_NEW_RUNOFF_SPEED    = .FALSE., & ! from Ticket?
-          L_NEW_REDUCE_SOILEVP  = .FALSE., & ! from Ticket?
-          Ticket46 = .FALSE.,              & !
-          !jhan: default should be FALSE, bu set up nml etc
-          Ticket49Bug1 = .false.,           & !
-          Ticket49Bug2 = .false.,           & !
-          Ticket49Bug3 = .false.,           & !
-          Ticket49Bug4 = .false.,           & !
-          Ticket49Bug5 = .false.,           & !
-          Ticket49Bug6 = .false.              !
+          L_NEW_REDUCE_SOILEVP  = .FALSE.    ! from Ticket?
 
   END TYPE hide_switches
 
@@ -150,28 +145,32 @@ MODULE cable_common_module
 
           !! vh_js !!
          litter = .FALSE.
+    
+     !INH - new switch for revised coupling on implicit step of ACCESS-CM2 Ticket #132
+      LOGICAL :: l_revised_coupling = .FALSE.
 
      !INH -apply revised sensitvity/correction terms to soilsnow energy balance
-      LOGICAL ::                                                               &
-          L_REV_CORR = .FALSE.     !switch to revert to unchanged code
+      LOGICAL :: L_REV_CORR = .FALSE.     !switch to revert to unchanged code
 
      !MD
+      LOGICAL :: GW_MODEL = .FALSE.
+      LOGICAL :: alt_forcing = .FALSE.
  
      !using GSWP3 forcing?
-     LOGICAL :: GW_MODEL = .FALSE.
      LOGICAL :: GSWP3 = .FALSE.
-     LOGICAL :: or_evap = .FALSE. 
-     LOGICAL :: test_new_gw=.false.   !sli + ssgw
-     LOGICAL :: sync_nc_file=.false. !write data to file to preserve if model crashed
-     INTEGER :: max_spins = 99999999
+     LOGICAL :: or_evap = .FALSE.
+     LOGICAL :: test_new_gw=.false.
+     LOGICAL :: sync_nc_file=.false.
+     INTEGER :: max_spins = -1
+     !just need to test
      LOGICAL :: fix_access_roots = .false.  !use pft dependent roots in ACCESS
-     LOGICAL :: fix_um_soil_comps = .false. !inverse pedotransfer funcs to get
-                                            !sand,clay,silt and then use these to get isoilm
+     !ticket#179
+     LOGICAL :: soil_thermal_fix=.false.
+
   END TYPE kbl_user_switches
 
   ! instantiate internal switches
   TYPE(kbl_user_switches), SAVE :: cable_user
-
 
   ! external files read/written by CABLE
   TYPE filenames_type
@@ -190,9 +189,8 @@ MODULE cable_common_module
           soilcolor,  & ! file for soil color(soilcolor_global_1x1.nc)
           inits,      & ! name of file for initialisations
           soilIGBP,   & ! name of file for IGBP soil map
-          gw_elev,    &  !name of file for gw/elevation data
-          gw_soils,   & !file with vertical profiles of soil texture
-          gw_tiles
+          gw_elev,    & !name of file for gw/elevation data
+          gw_soils      !tiled and veritically varying soils
 
   END TYPE filenames_type
 
@@ -204,7 +202,66 @@ MODULE cable_common_module
 
   ! hydraulic_redistribution parameters _soilsnow module
   REAL :: wiltParam=0.5, satuParam=0.8
-  
+
+   TYPE organic_soil_params
+        !Below are the soil properties for fully organic soil
+
+      REAL ::    &    
+        hyds_vec  = 1.0e-4,&
+        sucs_vec = 10.3,   &
+        clappb = 2.91,     &    
+        ssat_vec = 0.9,    &    
+        watr   = 0.1,&
+        css  = 2.5e6,&
+        cnsd = 0.05 
+
+   END TYPE organic_soil_params
+
+   TYPE gw_parameters_type
+
+      REAL ::                   &
+        MaxHorzDrainRate=2e-4,  & !anisintropy * q_max [qsub]
+        EfoldHorzDrainRate=2.0, & !e fold rate of q_horz
+        MaxSatFraction=2500.0,     & !parameter controll max sat fraction
+        hkrz=0.5,               & !hyds_vec variation with z
+        zdepth=1.5,             & !level where hyds_vec(z) = hyds_vec(no z)
+        frozen_frac=0.05,       & !ice fraction to determine first non-frozen layer for qsub
+        SoilEvapAlpha = 1.0,    & !modify field capacity dependence of soil evap limit
+        IceAlpha=3.0,           &
+        IceBeta=1.0           ,&
+        sfc_vec_hk      = 1.157407e-06, &
+        swilt_vec_hk      = 2.31481481e-8
+
+     REAL :: ice_impedence=5.0
+
+     logical :: default_aq = .true.  !false means calc flux using head at wtd
+
+     LOGICAL :: sfc_clm_func=.false.
+     LOGICAL :: swilt_clm_func=.false.
+     LOGICAL :: no_aquifer_flux=.false.
+
+      TYPE(organic_soil_params) :: org
+
+      INTEGER :: level_for_satfrac = 6
+      LOGICAL :: ssgw_ice_switch = .false.
+ 
+ 
+      LOGICAL :: subsurface_sat_drainage = .true.
+
+   END TYPE gw_parameters_type
+
+   TYPE(gw_parameters_type), SAVE :: gw_params
+
+   REAL, SAVE ::        &!should be able to change parameters!!!
+      max_glacier_snowd=1100.0,&
+      snow_ccnsw = 2.0, &
+!jh!an:clobber - effectively force single layer snow
+      !snmin = 100.0,      & ! for 1-layer; 
+      snmin = 1.,          & ! for 3-layer;
+      max_ssdn = 750.0,    & !
+      max_sconds = 2.51,   & !
+      frozen_limit = 0.85    ! EAK Feb2011 (could be 0.95)
+
   !CABLE_LSM: soil/veg params types & subr deleted here 
   ! vn10.6-CABLE hacks-hardwires these
   !use these as the basis for namelist vars/files later in offline apps
@@ -216,137 +273,16 @@ MODULE cable_common_module
   !jhan:temporary measure. improve hiding
   !   real, dimension(:,:), pointer,save :: c1, rhoch
 
-  !jhan:cable.nml
-
-   TYPE organic_soil_params
-        !Below are the soil properties for fully organic soil
-
-      REAL ::    &
-        hyds_vec  = 1.0e-4,&
-        sucs_vec = 10.3,   &
-        clappb = 2.91,     &
-        ssat_vec = 0.9,    &
-        watr   = 0.1,&
-        css  = 2.5e6,&
-        cnsd = 0.05
-
-   END TYPE organic_soil_params
-
-   TYPE gw_parameters_type
-
-      REAL ::                   &
-        MaxHorzDrainRate=1e-3,  & !anisintropy * q_max [qsub]
-        EfoldHorzDrainRate=2.5, & !e fold rate of q_horz
-        MaxSatFraction=900,     & !parameter controll max sat fraction
-        hkrz=0.0,               & !hyds_vec variation with z
-        zdepth=1.0,             & !level where hyds_vec(z) = hyds_vec(no z)
-        frozen_frac=0.05,       & !ice fraction to determine first non-frozen layer for qsub
-        SoilEvapAlpha = 1.0,    & !modify field capacity dependence of soil evap limit
-        IceAlpha=3.0,           &
-        IceBeta=1.0,            &
-        sfc_vec_hk      = 1.157407e-06, &
-        swilt_vec_hk      = 2.31481481e-8
-
-     REAL :: ice_impedence=5.0
-
-     LOGICAL :: sfc_clm_func=.false.
-     LOGICAL :: swilt_clm_func=.false.
-     LOGICAL :: no_aquifer_flux=.false.
-
-      TYPE(organic_soil_params) :: org
-
-      INTEGER :: level_for_satfrac = 6
-      LOGICAL :: ssgw_ice_switch = .false.
- 
-      LOGICAL :: subsurface_sat_drainage = .false.
-
-   END TYPE gw_parameters_type
-
-   TYPE(gw_parameters_type), SAVE :: gw_params
-
-  ! soil parameters read from file(filename%soil def. in cable.nml)
-  ! & veg parameters read from file(filename%veg def. in cable.nml)
-  TYPE soilin_type
-
-     REAL, DIMENSION(:),ALLOCATABLE ::                                        &
-          silt,    & !
-          clay,    & !
-          sand,    & !
-          swilt,   & !
-          sfc,     & !
-          ssat,    & !
-          bch,     & !
-          hyds,    & !
-          sucs,    & !
-          rhosoil, & !
-          css,     & !
-          c3         !
-
-  END TYPE soilin_type
-
-
-  TYPE vegin_type
-
-     REAL, DIMENSION(:),ALLOCATABLE ::                                        &
-          canst1,     & !
-          dleaf,      & !
-          length,     & !
-          width,      & !
-          vcmax,      & !
-          ejmax,      & !
-          hc,         & !
-          xfang,      & !
-          rp20,       & !
-          rpcoef,     & !
-          rs20,       & !
-          wai,        & !
-          rootbeta,   & !
-          shelrb,     & !
-          vegcf,      & !
-          frac4,      & !
-          xalbnir,    & !
-          extkn,      & !
-          tminvj,     & !
-          tmaxvj,     & !
-          vbeta,      &
-          a1gs,       &
-          d0gs,       &
-          alpha,      &
-          convex,     &
-          cfrd,       &
-          gswmin,     &
-          conkc0,     &
-          conko0,     &
-          ekc,        &
-          eko,        &
-          g0,         & !  Ticket #56
-          g1,         & !  Ticket #56 
-          zr,         &
-          clitt
-
-     REAL, DIMENSION(:,:),ALLOCATABLE ::                                      &
-          froot,      & !
-          cplant,     & !
-          csoil,      & !
-          ratecp,     & !
-          ratecs,     & !
-          refl,     & !
-          taul        !
-
-  END TYPE vegin_type
+  !CABLE_LSM: intro'd quick writing capbility. remove from here. keep for ref
+  character(len=*), parameter :: &
+    fprintf_dir_root = "/short/w35/mrd561/10.6/diag/"
+  
+  character(len=200) :: fprintf_dir
 
   CHARACTER(LEN=70), DIMENSION(:), POINTER ::                                 &
        veg_desc,   & ! decriptions of veg type
        soil_desc     ! decriptns of soil type
 
-  TYPE(soilin_type), SAVE  :: soilin
-  TYPE(vegin_type),  SAVE  :: vegin
-
-  !CABLE_LSM: intro'd quick writing capbility. remove from here. keep for ref
-  character(len=*), parameter :: &
-    fprintf_dir_root = "/short/p66/jxs599/10.6/diag/March1/"
-  
-  character(len=200) :: fprintf_dir
 
 interface fudge_out
    module procedure fudge_out_r2D, fudge_out_r1D, fudge_out_r3D, fudge_out_i2D
@@ -583,6 +519,8 @@ CONTAINS
     CLOSE(40)
 
   END SUBROUTINE get_type_parameters
+
+
     !--- LN ------------------------------------------[
   SUBROUTINE HANDLE_ERR( status, msg )
     ! LN 06/2013
@@ -594,7 +532,7 @@ CONTAINS
        IF ( PRESENT( msg ) ) WRITE(*,*)msg
 !#define Vanessas_common
 !#ifdef Vanessas_common
-       WRITE(*,*) TRIM(NF90_strerror(status))
+       WRITE(*,*) TRIM(NF90_strerror(INT(status,4)))
 !#else       
 !       WRITE(*,*) "UM builds with -i8. Therefore call to nf90_strerror is ", & 
 !       " invalid. Quick fix to eliminate for now. Build NF90 with -i8, force -i4?" 
