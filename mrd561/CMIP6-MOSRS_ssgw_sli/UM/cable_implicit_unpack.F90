@@ -40,7 +40,7 @@ SUBROUTINE implicit_unpack( &
                             cycleno,                                                         & 
                             row_length,rows, land_pts, ntiles, npft, sm_levels,              &
                             dim_cs1, dim_cs2,                                                & 
-                            TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,                &
+                            TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,SMGW_TILE,                    &
                             SMVCST, STHF, STHF_TILE, STHU, STHU_TILE,          &
                             snow_tile, SNOW_RHO1L ,ISNOW_FLG3L, SNOW_DEPTH3L,  &
                             SNOW_MASS3L, SNOW_RHO3L, SNOW_TMP3L, SNOW_COND,    &
@@ -61,7 +61,7 @@ SUBROUTINE implicit_unpack( &
    USE cable_common_module!, ONLY : cable_runtime, cable_user, fudge_out,       &
                           !         L_fudge, ktau_gl
 
-  USE cable_decs_mod, ONLY : L_tile_pts, rho_water
+  USE cable_decs_mod, ONLY : L_tile_pts!, rho_water
 
   USE cable_um_tech_mod,   ONLY : um1
   !fprintf
@@ -121,6 +121,9 @@ use arraydiag_m
       STHU_TILE,  &
       TSOIL_TILE, &
       STHF_TILE  
+
+   REAL, DIMENSION(land_pts,ntiles) ::                   &
+      SMGW_TILE
 
    !___flag for 3 layer snow pack
    INTEGER :: ISNOW_FLG3L(LAND_PTS,NTILES)
@@ -247,6 +250,7 @@ use arraydiag_m
   !--- set UM vars to zero
   SMCL_TILE = 0.; STHF_TILE = 0.; STHU_TILE = 0.
   TSOIL_TILE = 0.
+  SMGW_TILE = 0.
 
   if( L_fprint_HW ) L_fprint = .true.
 
@@ -264,30 +268,38 @@ use arraydiag_m
 
   DO j = 1,SM_LEVELS
      TSOIL_TILE(:,:,j)= UNPACK(ssnow%tgg(:,j), L_TILE_PTS, miss)
-     SMCL_TILE(:,:,j)= UNPACK(REAL(ssnow%wb(:,j)), L_TILE_PTS, miss)
-     SMCL_TILE(:,:,j)=SMCL_TILE(:,:,j)*soil%zse(j)*RHO_WATER
+     !liquid mass first
+     SMCL_TILE(:,:,j)= UNPACK(REAL(ssnow%wbliq(:,j)), L_TILE_PTS, miss)
+     SMCL_TILE(:,:,j)=SMCL_TILE(:,:,j)*soil%zse(j)*um1%RHO_WATER
+     !ice volumetric
      STHF_TILE(:,:,j)= UNPACK(REAL(ssnow%wbice(:,j)), L_TILE_PTS, miss)
-     SMCL(:,j) = SUM(um1%TILE_FRAC * SMCL_TILE(:,:,j),2)
-     TSOIL(:,j) = SUM(um1%TILE_FRAC * TSOIL_TILE(:,:,j),2)
-     
+     !calcualte sthu_tilebefore smcl_tile incoudes ice mass
      DO N=1,NTILES
         DO K=1,um1%TILE_PTS(N)
            I = um1%TILE_INDEX(K,N)
            IF ( SMVCST(I) > 0. ) THEN ! Exclude permanent ice - mrd
-              STHF_TILE(I,N,J)= STHF_TILE(I,N,J)/SMVCST(I)
-              STHU_TILE(I,N,J)= MAX( 0., SMCL_TILE(I,N,J) -                &
-                                STHF_TILE(I,N,J) * SMVCST(I) * soil%zse(J) &
-                                * RHO_WATER ) / ( soil%zse(J) *        &
-                                RHO_WATER * SMVCST(I) )
+              !liq mass relaative to max
+              STHU_TILE(I,N,J)= MAX( 0., SMCL_TILE(I,N,J)/     &
+                                (soil%zse(j)*SMVCST(I)*um1%RHO_WATER))
            ENDIF
+           !add ice mass to liq mass
+           SMCL_TILE(I,N,j)=SMCL_TILE(I,N,j) + &
+                      STHF_TILE(I,N,j)*soil%zse(j)*um1%RHO_ICE
+           !relqative ice vol 
+           IF ( SMVCST(I) > 0. ) &
+               STHF_TILE(I,N,j)= STHF_TILE(I,N,j)/SMVCST(I)
+
         ENDDO
      ENDDO
+
+     SMCL(:,j) = SUM(um1%TILE_FRAC * SMCL_TILE(:,:,j),2)
+     TSOIL(:,j) = SUM(um1%TILE_FRAC * TSOIL_TILE(:,:,j),2)
 
      STHF(:,J) = SUM(um1%TILE_FRAC * STHF_TILE(:,:,J),2)
      STHU(:,J) = SUM(um1%TILE_FRAC * STHU_TILE(:,:,J),2)
   ENDDO
 
-
+  SMGW_TILE(:,:) = UNPACK(ssnow%GWwb(:), L_TILE_PTS, miss)
 
 
 

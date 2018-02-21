@@ -25,14 +25,15 @@ module cable_implicit_driv_mod
   
 contains
 
-subroutine cable_implicit_driver( &
+subroutine cable_implicit_driver( i_day_number, &
 cycleno,                                                         & 
 row_length,rows, land_pts, ntiles, npft, sm_levels,              &
 dim_cs1, dim_cs2,                                                & 
 Fland,                                                           &
 LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
-                                  DTL_1,DQW_1, TSOIL, TSOIL_TILE, SMCL,        &
-                                  SMCL_TILE, timestep, SMVCST,STHF, STHF_TILE, &
+!Ticket #132 needs ctctq1
+                                  DTL_1,DQW_1, ctctq1, TSOIL, TSOIL_TILE, SMCL,&
+                                  SMCL_TILE, SMGW_TILE,timestep, SMVCST,STHF, STHF_TILE, &
                                   STHU,&
 !STHU_TILE, &
 snow_tile, SNOW_RHO1L,       &
@@ -65,7 +66,7 @@ TL_1, QW_1, SURF_HTF_TILE, &
                                   NPP_FT_ACC, RESP_W_FT_ACC )
 
   USE cable_implicit_unpack_mod, ONLY : implicit_unpack
-   USE cable_def_types_mod, ONLY : mp, msn
+   USE cable_def_types_mod, ONLY : mp, msn, ncs,ncp
    USE cable_data_module,   ONLY : PHYS
    !USE cable_data_mod,      ONLY : cable
    USE cable_um_tech_mod,   ONLY : um1, conv_rain_prevstep, conv_snow_prevstep,&
@@ -111,6 +112,10 @@ TL_1, QW_1, SURF_HTF_TILE, &
       QW_1,     & !
       DTL_1,    & ! IN Level 1 increment to T field 
       DQW_1       ! IN Level 1 increment to q field 
+
+!Ticket #132 needs ctctq1
+   REAL, DIMENSION(ROW_LENGTH,ROWS) ::                                 &
+      ctctq1      ! IN information needed for increment to T an q field   
 
    REAL :: timestep
 
@@ -158,6 +163,9 @@ TL_1, QW_1, SURF_HTF_TILE, &
       STHU_TILE, & !
       TSOIL_TILE,& !
       STHF_TILE    !
+
+   REAL, dimension(land_pts,ntiles) ::                &
+      SMGW_TILE
 
    !___flag for 3 layer snow pack
    INTEGER :: ISNOW_FLG3L(LAND_PTS,NTILES)
@@ -225,14 +233,21 @@ TL_1, QW_1, SURF_HTF_TILE, &
       RESP_W_FT_ACC
 
    INTEGER ::     &
-      ktauday,    &  ! day counter for CASA-CNP
-      idoy           ! day of year (1:365) counter for CASA-CNP
+      ktauday,      & ! day counter for CASA-CNP
+      i_day_number, & ! day of year (1:365) counter for CASA-CNP
+      idoy            ! day of year (1:365) counter for CASA-CNP
    INTEGER, SAVE :: &
       kstart = 1
 
    REAL, DIMENSION(mp) ::                                                      & 
       dtlc, & 
       dqwc
+
+   !Ticket 132 - need ctctq1, incoming values of ftl_1 and fqw_1 on tiles
+   REAL, DIMENSION(mp) ::                                                      & 
+      ctctq1c,      &  ! UM boundary layer coefficient
+      ftl1c,        &  ! grid box averaged FTL
+      fqw1c            ! gird box averaged FQW
    
    REAL, DIMENSION(LAND_PTS) ::                               &
       LYING_SNOW,    & ! OUT Gridbox snowmass (kg/m2)        
@@ -251,6 +266,12 @@ TL_1, QW_1, SURF_HTF_TILE, &
    LOGICAL, SAVE :: first_cable_call = .TRUE.
    REAL, ALLOCATABLE:: fwork(:,:,:)
 
+   !Prog Bank copies all prognostic and other variables whose
+   !values need to be retain from UM timestep to UM timestep.
+   !these are owetfac, rtsoil, fes_cor
+   !
+   !NOTE that canopy%cansto is a prognostic variable but is handled
+   !differently through the canopy%oldcansto variable
    type ProgBank
       
       real, dimension(:,:), allocatable ::                &
@@ -271,8 +292,30 @@ TL_1, QW_1, SURF_HTF_TILE, &
          fes_cor,fhs_cor
 
       real, dimension(:), allocatable ::                &
-         osnowd,owetfac,otss
+         osnowd,owetfac,otss,GWwb
+       
+      !additonal variables Jan 2018
+      real, dimension(:), allocatable ::                &
+         puddle, rtsoil, wblake
+         
+      !additional variable for GW module
+      real, dimension(:), allocatable ::                &
+         GWaq
 
+      !additional variables for SLI module
+      real, dimension (:,:), allocatable ::             &
+         SLI_S, SLI_Tsoil, SLI_sconds, SLI_snowliq
+         
+      real, dimension(:), allocatable ::                &
+         SLI_h0, SLI_Tsurf
+         
+      integer, dimension(:), allocatable ::             &
+         SLI_nsnow
+      
+      !carbon variables
+      real, dimension(:,:), allocatable ::               &
+         cplant, csoil
+      
    End type ProgBank
 
    !integer :: cpb
@@ -315,7 +358,7 @@ TL_1, QW_1, SURF_HTF_TILE, &
   L_fprint = .false. !default
 
   IF(cable_user%run_diag_level == "fprint")                                    &     
-    fprintf_dir=trim(fprintf_dir_root)//trim("impl_driver")//"/"
+  fprintf_dir=trim(fprintf_dir_root)//trim("impl_driver")//"/"
   
   !if( L_fprint_HW ) then
   !  if ( ktau_gl==1 .OR. ktau_gl==54 .OR. ktau_gl==154 .OR. &
@@ -355,6 +398,29 @@ TL_1, QW_1, SURF_HTF_TILE, &
          allocate( PB(ipb)%snow_flg3l(mp) )
          allocate( PB(ipb)%snow_tile(mp) )
          allocate( PB(ipb)%ocanopy(mp) )
+         !Jan 2018 new PB variables
+         allocate( PB(ipb)%fes_cor(mp) )
+         allocate( PB(ipb)%puddle(mp) )
+         allocate( PB(ipb)%owetfac(mp) )
+         allocate( PB(ipb)%rtsoil(mp) )
+         allocate( PB(ipb)%wblake(mp) )
+         !carbon variables - may not be needed unless CASA
+         allocate( PB(ipb)%cplant(mp,ncp) )
+         allocate( PB(ipb)%csoil(mp,ncs) )
+         !GW model variables no need to test always has a value
+         !so do not introduce issues with restarting a GW run 
+             allocate (PB(ipb)%GWaq(mp) )
+         !SLI variables - Jhan please check the second dimension
+         if (cable_user%soil_struc=='sli') then
+             allocate(PB(ipb)%SLI_nsnow(mp) )
+             allocate(PB(ipb)%SLI_S(mp,sm_levels) )
+             allocate(PB(ipb)%SLI_Tsoil(mp,sm_levels) )
+             allocate(PB(ipb)%SLI_sconds(mp,3) )
+             allocate(PB(ipb)%SLI_h0(mp) )
+             allocate(PB(ipb)%SLI_Tsurf(mp) )
+             allocate(PB(ipb)%SLI_snowliq(mp,3) )
+         endif
+         
       enddo
    endif   
 
@@ -372,6 +438,27 @@ TL_1, QW_1, SURF_HTF_TILE, &
    PB(ipb)%snow_flg3l= ssnow%isflag
    PB(ipb)%snow_tile = ssnow%snowd
    PB(ipb)%ocanopy   = canopy%oldcansto
+   !Jan 2018 new PB variables
+   PB(ipb)%fes_cor   = canopy%fes_cor
+   PB(ipb)%puddle    = ssnow%pudsto
+   PB(ipb)%rtsoil    = ssnow%rtsoil !?needed
+   PB(ipb)%owetfac   = ssnow%owetfac
+   PB(ipb)%wblake    = ssnow%wb_lake 
+   !carbon variables - may not be needed unless CASA
+   PB(ipb)%cplant = bgc%cplant
+   PB(ipb)%csoil = bgc%csoil
+   !GW model variables
+     PB(ipb)%GWaq   = ssnow%GWwb
+   !SLI variables
+   if (cable_user%soil_struc=='sli') then
+      PB(ipb)%SLI_nsnow   = ssnow%nsnow
+      PB(ipb)%SLI_S       = ssnow%S
+      PB(ipb)%Tsoil       = ssnow%Tsoil
+      PB(ipb)%SLI_sconds  = ssnow%sconds
+      PB(ipb)%SLI_h0      = ssnow%h0
+      PB(ipb)%SLI_Tsurf   = ssnow%Tsurface
+      PB(ipb)%SLI_snowliq = ssnow%snowliq
+   endif
 
    if (ipb == cpb) then
       ssnow%tgg     = PB(1)%tsoil
@@ -386,6 +473,29 @@ TL_1, QW_1, SURF_HTF_TILE, &
       ssnow%isflag  = PB(1)%snow_flg3l
       ssnow%snowd   = PB(1)%snow_tile
       canopy%oldcansto = PB(1)%ocanopy
+      !Jan 2018 new PB variables 
+      canopy%fes_cor = PB(1)%fes_cor
+      ssnow%pudsto  = PB(1)%puddle
+      ssnow%rtsoil  = PB(1)%rtsoil  !?needed
+      ssnow%owetfac = PB(1)%owetfac
+      ssnow%wb_lake = PB(1)%wblake  
+      !carbon variables - may not be needed unless CASA
+      bgc%cplant = PB(1)%cplant
+      bgc%csoil = PB(1)%csoil
+      !GW model variables
+          ssnow%GWwb = PB(1)%GWaq
+      !SLI variables
+      if (cable_user%soil_struc=='sli') then
+          ssnow%nsnow    = PB(1)%SLI_nsnow
+          ssnow%S        = PB(1)%SLI_S
+          ssnow%Tsoil    = PB(1)%SLI_Tsoil
+          ssnow%sconds   = PB(1)%SLI_sconds
+          ssnow%h0       = PB(1)%SLI_h0
+          ssnow%Tsurface = PB(1)%SLI_Tsurf
+          ssnow%snowliq  = PB(1)%SLI_snowliq
+      endif
+      
+    
     endif
 
       IF(cable_user%run_diag_level == "BASIC") &     
@@ -469,6 +579,18 @@ TL_1, QW_1, SURF_HTF_TILE, &
   call cable_fprintf( cDiag7, vname, conv_snow_prevstep, mp, L_fprint )
   !-----------------------------------------------------------------------
 
+  !Ticket #132 implementation --------------------------------------------
+  !dtlc, dqwc found on tiles above - these are the corrected dtlc and dqwc 
+  if (cable_user%l_revised_coupling) then
+      CALL um2cable_rr( ctctq1, ctctq1c)
+      CALL um2cable_rr( FTL_1, ftl1c)
+      CALL um2cable_rr( FQW_1, fqw1c)
+      !NB FTL_1 is in W/m2 so divide through by CAPP
+      dtlc = dtlc - ctctq1c*ftl1c/PHYS%CAPP
+      dqwc = dqwc - ctctq1c*fqw1c
+  endif
+  !-----------------------------------------------------------------------
+
   met%precip   =  met%precip + met%precip_sn
   met%tk = met%tk + dtlc
   
@@ -489,9 +611,13 @@ TL_1, QW_1, SURF_HTF_TILE, &
 
       ! Lestevens - temporary ?
       ktauday = int(24.0*3600.0/TIMESTEP)
+      idoy=i_day_number
 !      IF(idoy==0) idoy =365
   
-! Call CASA-CNP
+      !Jan 2018: Only call carbon cycle prognostics updates on the last call to 
+      !cable_implicit per atmospheric time step
+      if (ipb==cpb) then
+!Call CASA-CNP
       if (l_casacnp) then
       CALL bgcdriver(ktau_gl,kstart,kend_gl,timestep,met,ssnow,canopy,veg,soil, &
                      climate,casabiome,casapool,casaflux,casamet,casabal,phen, &
@@ -501,12 +627,13 @@ TL_1, QW_1, SURF_HTF_TILE, &
 
       CALL sumcflux(ktau_gl,kstart,kend_gl,TIMESTEP,bgc,canopy,soil,ssnow,      &
                     sum_flux,veg,met,casaflux,l_vcmaxFeedbk)
+    endif
 
      CALL implicit_unpack(& 
                             cycleno,                                         & 
                             row_length,rows, land_pts, ntiles, npft, sm_levels, &
                             dim_cs1, dim_cs2,                                   & 
-                            TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,                &
+                            TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,SMGW_TILE,     &
                            SMVCST, STHF, STHF_TILE, STHU, STHU_TILE,          &
                            snow_tile, SNOW_RHO1L ,ISNOW_FLG3L, SNOW_DEPTH3L,  &
                            SNOW_MASS3L, SNOW_RHO3L, SNOW_TMP3L, SNOW_COND,    &
@@ -519,8 +646,10 @@ TL_1, QW_1, SURF_HTF_TILE, &
                            RESP_S_TOT, RESP_S_TILE, RESP_P, RESP_P_FT, G_LEAF,& 
                            TRANSP_TILE, NPP_FT_ACC, RESP_W_FT_ACC,SURF_HTF_TILE )
 
-
-! CASA-CNP
+      !Jan 2018: Only call carbon cycle prognostics updates on the last call to 
+      !cable_implicit per atmospheric time step
+      if (ipb==cpb) then
+! Call CASA-CNP
       if (l_casacnp) then
         if (knode_gl==0 .and. ktau_gl==kend_gl) then
          print *, '  '; print *, 'CASA_log:'
@@ -532,6 +661,7 @@ TL_1, QW_1, SURF_HTF_TILE, &
        CALL casa_poolout_unpk(casapool,casaflux,casamet,casabal,phen,  &
                               CPOOL_TILE,NPOOL_TILE,PPOOL_TILE, &
                               GLAI,PHENPHASE)
+      endif
       endif
 
       cable_runtime%um_implicit = .FALSE.

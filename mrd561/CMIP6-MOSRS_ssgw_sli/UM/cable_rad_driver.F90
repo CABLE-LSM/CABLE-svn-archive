@@ -25,7 +25,7 @@ contains
 
 
 subroutine cable_rad_driver( cycleno, row_length, rows, land_pts, ntiles,      &
-              sm_levels, tile_frac, fland,                                                & 
+              sm_levels, tile_frac, & 
               snow_tmp3L, snow_rho1L, Tsoil_tile,                              &
                                 isnow_flg3L,                                   & 
               surf_down_sw, cos_zenith_angle, snow_tile,                       &
@@ -52,7 +52,6 @@ subroutine cable_rad_driver( cycleno, row_length, rows, land_pts, ntiles,      &
   integer :: row_length, rows, land_pts, ntiles, sm_levels ! grid
   real :: surf_down_sw(row_length,rows,4) ! 4-band ShortWave forcing
   real :: tile_frac(land_pts,ntiles)      ! surface type fraction 
-  real :: fland(land_pts)                 ! land fraction 
   real :: cos_zenith_angle(row_length,rows)        ! cosine_zenith_angle          
   real :: snow_tile(land_pts,ntiles)     ! formerly snow tile        
   real :: albsoil(land_pts)              ! Snow-free, bare soil albedo: 

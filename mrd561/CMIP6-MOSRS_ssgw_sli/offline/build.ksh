@@ -4,7 +4,7 @@ export dosvn=1 # 1/0: do/do not check svn
 
 known_hosts()
 {
-   set -A kh vayu cher pear shin jigg nXXX raij ces2 ccrc mael
+   set -A kh  pear jigg nXXX raij ces2 ccrc mael
 }
 
 host_mael()
@@ -119,23 +119,6 @@ host_jigg()
 }
 
 
-## shine-cl.nexus.csiro.au 
-host_shin()
-{
-   export NCDIR='/usr/local/intel/lib'
-   export NCMOD='/usr/local/intel/include'
-   export FC=ifort
-   export CFLAGS='-O2 -fp-model precise -ftz -fpe0'
-   export LD='-lnetcdf'
-   export LDFLAGS='-L/usr/local/intel/lib -O2'
-   build_build
-   cd ../
-   build_status
-}
-
- #export CFLAGS='  -g -debug -traceback -fp-stack-check -O0 -debug -fpe=0 -fpe-all=0 -no-ftz -ftrapuv'
-#export CFLAGS='-warn all,nounused  -check all,noarg_temp_created -g -debug -traceback -fp-stack-check -O0 -debug -fpe1 -no-ftz -ftrapuv'
-
 
 ## pearcey.hpsc.csiro.au 
 host_pear()
@@ -160,42 +143,14 @@ host_pear()
 }
 
 
-## cherax.hpsc.csiro.au 
-host_cher()
-{
-   export NCDIR=$NETCDF_ROOT'/lib/'
-   export NCMOD=$NETCDF_ROOT'/include/'
-   export FC=$F90
-   export CFLAGS='-O2 -fp-model precise'
-   export LDFLAGS='-L'$NCDIR' -O2'
-   export LD='-lnetcdf -lnetcdff'
-   build_build
-   cd ../
-   build_status
-}
-
-
-## vayu.nci.org.au
-host_vayu()
-{
-   export NCDIR=$NETCDF_ROOT'/lib/Intel'
-   export NCMOD=$NETCDF_ROOT'/include/Intel'
-   export FC=$F90
-   export CFLAGS='-O0 -fp-model precise'
-   if [[ $1 = 'debug' ]]; then      
-      export CFLAGS='-O2 -traceback -g -fp-model precise -ftz -fpe0' 
-   fi
-   export LDFLAGS='-L'$NCDIR' -O0'
-   export LD='-lnetcdf'
-   build_build
-   cd ../
-   build_status
-}
 
 ## raijin.nci.org.au
 host_raij()
 {
-   module load netcdf
+   module del intel-cc intel-fc
+   module add intel-cc/16.0.1.150 intel-fc/16.0.1.150
+   module add netcdf/4.3.3.1
+
    export NCDIR=$NETCDF_ROOT'/lib/Intel'
    export NCMOD=$NETCDF_ROOT'/include/Intel'
    export FC=$F90

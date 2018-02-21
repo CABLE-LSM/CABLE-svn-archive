@@ -42,8 +42,8 @@ SUBROUTINE cable_implicit_main(                                                &
         ls_snow_cable, conv_snow_cable, & !
 !forcing: temp and humidity 
         tl_1, qw_1,&
-!forcing: increments to temp and humidity 
-        dtl1_1, dqw1_1,  &
+!forcing: increments to temp and humidity & Jan 2018: Ticket #132 needs ctctq1
+        dtl1_1, dqw1_1, ctctq1, &
 !prog: canopy water storage
         canopy_gb, & ! aggregate over tiles, per land_pt 
         canopy,    & ! per tile
@@ -83,7 +83,8 @@ SUBROUTINE cable_implicit_main(                                                &
                                   soil_froz_frac_cable, snow_dpth_cable,       & 
                                   snow_mass_cable, snow_temp_cable,            &
                                   snow_rho_cable, snow_avg_rho_cable,          &   
-                                  snow_age_cable, snow_flg_cable
+                                  snow_age_cable, snow_flg_cable,              &
+                                  aquifer_moist_cable
   
   USE cable_gather_um_data_decs, ONLY : smvcst_cable  
   USE atmos_physics2_alloc_mod, ONLY : resp_s_tile
@@ -94,6 +95,9 @@ SUBROUTINE cable_implicit_main(                                                &
                                   P_DUST_casa, P_weath_casa, LAI_casa,         &
                                   PHENPHASE_casa, NPP_PFT_ACC, RSP_W_PFT_ACC
 
+ USE model_time_mod, ONLY: &
+    target_end_stepim, i_day, i_day_number
+     
   implicit none
  
   !--- IN ARGS FROM sf_impl2_cable, passed from surf_couple_implicit() down ----
@@ -114,6 +118,10 @@ SUBROUTINE cable_implicit_main(                                                &
    tl_1, qw_1,       &  !forcing: temp and humidity 
    dtl1_1, dqw1_1       !forcing: increments to temp and humidity 
 
+  !Ticket #132 needs ctctq1
+  REAL, DIMENSION(row_length,rows) :: &
+   ctctq1               !forcing: information for temp and humidity increment
+  
   REAL ::                                                                       &
     canopy_gb(land_pts),         & !prog: canopy water store aggregate over tiles 
     canopy(land_pts, ntiles)       !prog:  per tile
@@ -207,17 +215,20 @@ REAL ::                                                     &
   
   isnow_flg_cable = int(snow_flg_cable)
 
- call cable_implicit_driver(                               &
+ call cable_implicit_driver( i_day_number,                             &
 cycleno,                                                         & 
 row_length,rows, land_pts, ntiles, npft, sm_levels,              &
 dim_cs1, dim_cs2,                                                & 
 Fland,                                                           &
 LS_RAIN_cable, CONV_RAIN_cable, LS_SNOW_cable, CONV_SNOW_cable,                           &
 DTL1_1,DQW1_1, &
+!Ticket #132 needs ctctq1
+ctctq1, &
 T_SOIL, &
 soil_temp_cable, &
 SMCL,        &
 soil_moist_cable, &
+aquifer_moist_cable, &
 real(kwidth_gl), &
 SMVCST_cable,&
 STHF, &

@@ -2572,7 +2572,7 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,climate,bgc,soil,canopy,rough,rad, 
 
     ! Write parameter values to CABLE's parameter variables:
     CALL write_default_params(met,air,ssnow,veg,bgc,soil,canopy,rough, &
-            rad,logn,vegparmnew,smoy, TFRZ)
+            rad,logn,vegparmnew,smoy, TFRZ, LUC_EXPT)
 
 
 

@@ -33,7 +33,8 @@ module cable_explicit_main_mod
 contains
 
 SUBROUTINE cable_explicit_main(                                                &
-            mype, timestep, timestep_number, cycleno, numcycles,               &
+            mype, timestep_width, timestep_number, endstep,                    & 
+            cycleno, numcycles,               &
             ! grid, model, dimensions. PFT frac per landpoint    
             row_length, rows, land_pts, ntiles,                                &
             npft, sm_levels,                                                   &
@@ -65,7 +66,9 @@ SUBROUTINE cable_explicit_main(                                                &
                                   C_pool_casa, N_pool_casa, P_pool_casa,       &
                                   SOIL_ORDER_casa, N_DEP_casa, N_FIX_casa,     &
                                   P_DUST_casa, P_weath_casa, LAI_casa,         &
-                                  PHENPHASE_casa, NPP_PFT_ACC, RSP_W_PFT_ACC
+                                  PHENPHASE_casa, NPP_PFT_ACC, RSP_W_PFT_ACC,  &
+                                  aquifer_moist_cable,aquifer_thickness_cable, &
+                                  slope_avg_cable,slope_std_cable
 
   USE cable_explicit_driv_mod, ONLY : cable_explicit_driver
 
@@ -80,8 +83,8 @@ SUBROUTINE cable_explicit_main(                                                &
  
   !--- IN ARGS FROM sf_exch_cable, passed from surf_couple_explicit() down ----
    INTEGER ::                                                      & 
-     mype, timestep_number, cycleno, numcycles
-   real :: timestep
+     mype, timestep_number, endstep, cycleno, numcycles
+   real :: timestep_width
    INTEGER ::                                                      & 
       row_length, rows, & ! UM grid resolution
       land_pts,         & ! # of land points being processed
@@ -225,7 +228,6 @@ SUBROUTINE cable_explicit_main(                                                &
 
   character(len=*), parameter :: subr_name = "cable_explicit_main"
   logical, save :: first_call = .true.
-  integer :: endstep = 0 !dummy 
   real :: radians_degrees
   REAL,  DIMENSION(row_length,rows) ::                             &
       latitude_deg,   &
@@ -251,7 +253,7 @@ SUBROUTINE cable_explicit_main(                                                &
   !is first CABLE call in model. However make this more generic
   if( first_call ) then
    knode_gl  = mype 
-   kwidth_gl = int(timestep)
+   kwidth_gl = int(timestep_width)
   endif
   ktau_gl   = timestep_number
   kend_gl   = endstep   !dummy initialization
@@ -265,17 +267,20 @@ SUBROUTINE cable_explicit_main(                                                &
   isnow_flg_cable = int(snow_flg_cable)
 
   call cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,         &
-                              sm_levels, timestep, latitude_deg, longitude_deg,&
+                              sm_levels, timestep_width, latitude_deg, longitude_deg,&
                               land_index, tile_frac,  tile_pts, tile_index,    &
                               bexp, hcon, satcon, sathh, smvcst,               &
-                              smvcwt,  smvccl, albsoil, snow_tile,             &
+                              smvcwt,  smvccl, albsoil,                        &
+                              slope_avg_cable,slope_std_cable,&
+                              aquifer_thickness_cable,snow_tile,    &
                               snow_avg_rho_cable, snow_age_cable,              &
                               isnow_flg_cable, snow_rho_cable, snow_dpth_cable,&
                               snow_temp_cable, snow_mass_cable,                &
                               lw_down, cosine_zenith_angle, surf_down_sw,      &
                               ls_rain, ls_snow, tl_1, qw_1, vshr_land, pstar,  &
                               z1_tq, z1_uv,  canopy_tile, Fland, CO2_MMR,      &
-                              soil_moist_cable, soil_froz_frac_cable, sthu,    &
+                              soil_moist_cable, aquifer_moist_cable,           &
+                              soil_froz_frac_cable, sthu,                      &
                               soil_temp_cable, canht_ft, lai_ft,               &
                               sin_theta_latitude, dzsoil, FTL_TILE, FQW_TILE,  &
                               TSTAR_TILE, U_S, U_S_STD_TILE, CD_TILE, CH_TILE, &

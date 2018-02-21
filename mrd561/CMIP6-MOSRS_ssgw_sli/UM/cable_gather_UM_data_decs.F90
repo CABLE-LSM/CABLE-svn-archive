@@ -75,14 +75,10 @@ subroutine cable_set_shortwave( row_length, rows, nbands,                     &
 
   logical :: first_call
   
-  if( first_call ) then
+  if( .NOT. allocated(surf_down_sw_cable) ) & 
     allocate(surf_down_sw_cable(row_length,rows, nbands) )
-    surf_down_sw_cable = 0.0 
-    return
-  endif
-    
-  if( .NOT. first_call ) &
-    surf_down_sw_cable = surf_down_sw
+  
+  surf_down_sw_cable = surf_down_sw
   
   return
 

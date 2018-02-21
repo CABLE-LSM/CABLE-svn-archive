@@ -32,16 +32,17 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
                               npft, sm_levels, itimestep, latitude, longitude, &
                               land_index, tile_frac, tile_pts, tile_index,     &
                               bexp, hcon, satcon, sathh, smvcst, smvcwt,       &
-                              smvccl, albsoil, snow_tile, snow_rho1l,          &
+                              smvccl, albsoil, slope_avg,slope_std,dz_gw,           &
+                              snow_tile, snow_rho1l,                           &
                               snow_age, isnow_flg3l, snow_rho3l, snow_cond,  &
                               snow_depth3l, snow_tmp3l, snow_mass3l, sw_down,  &
                               lw_down, cos_zenith_angle, surf_down_sw, ls_rain,&
                               ls_snow, tl_1, qw_1, vshr_land, pstar, z1_tq,    &
-                              z1_uv, rho_water, L_tile_pts, canopy_tile, Fland,&
+                              z1_uv, rho_water, rho_ice,L_tile_pts, canopy_tile, Fland,&
                               ! rml 2/7/13 pass 3d co2 through to cable if required
                               CO2_MMR,&
                               !r935 CO2_3D,CO2_DIM_LEN,CO2_DIM_ROW,L_CO2_INTERACTIVE,   &
-                              sthu_tile, smcl_tile, sthf_tile, sthu,           &
+                              sthu_tile, smcl_tile, smgw_tile,sthf_tile, sthu, &
                               tsoil_tile, canht_ft, lai_ft, sin_theta_latitude,&
                               dzsoil, CPOOL_TILE, NPOOL_TILE, PPOOL_TILE,      &
                               SOIL_ORDER, NIDEP, NIFIX, PWEA, PDUST, GLAI,     &
@@ -49,7 +50,7 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
 
    USE cable_um_init_subrs_mod          ! where most subrs called from here reside
   USE casa_um_inout_mod
-
+   
    USE cable_um_tech_mod,   ONLY :                                             &
       alloc_um_interface_types,  & ! mem. allocation subr (um1, kblum%) 
       dealloc_vegin_soilin,      & ! mem. allocation subr (vegin%,soilin%)
@@ -93,7 +94,7 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
 
    !___UM parameters 
    INTEGER :: itimestep
-   REAL :: rho_water 
+   REAL :: rho_water ,rho_ice
    REAL, DIMENSION(sm_levels) ::                                   &
       dzsoil
 
@@ -109,6 +110,11 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
       albsoil,&   !
       fland       !
        
+   REAL, DIMENSION(land_pts) ::                                    &
+      slope_avg,&
+      slope_std,&
+      dz_gw
+
    REAL, DIMENSION(row_length,rows) ::                          &
       sw_down, &        !
       cos_zenith_angle  !
@@ -160,6 +166,9 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
       sthf_tile, &   !
       smcl_tile, &   !
       tsoil_tile     !
+
+   REAL, DIMENSION(land_pts, ntiles) ::                 &
+      smgw_tile
 
    REAL :: co2_mmr
 ! ~r935 rml 2/7/13 Extra atmospheric co2 variables
@@ -230,7 +239,7 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
                                     npft, sm_levels, itimestep, latitude,      &
                                     longitude, land_index, tile_frac,          &
                                     tile_pts, tile_index, l_tile_pts,          &
-                                    rho_water  )
+                                    rho_water,rho_ice  )
 
       !---------------------------------------------------------------------!
       !--- CABLE vars are initialized/updated from passed UM vars       ----!
@@ -275,13 +284,13 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
       !--- initialize soil
       CALL initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,      &
                             smvccl, albsoil, tsoil_tile, sthu, sthu_tile,   &
-                            dzsoil ) 
+                            dzsoil, slope_avg, slope_std, dz_gw ) 
       !--- initialize roughness
       CALL initialize_roughness( z1_tq, z1_uv, kblum_veg%htveg ) 
        
       !--- initialize soilsnow
       CALL initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,   &
-                                snow_tile, snow_rho1l, snow_age,          &
+                                smgw_tile, snow_tile, snow_rho1l, snow_age, &
                                 isnow_flg3l, snow_rho3l, snow_cond,         &
                                 snow_depth3l, snow_mass3l, snow_tmp3l,      &
                                 fland, sin_theta_latitude ) 
@@ -333,14 +342,14 @@ SUBROUTINE assign_um_basics_to_um1( row_length, rows, land_pts, ntiles,     &
                                     npft, sm_levels, timestep, latitude,    &
                                     longitude, land_index, tile_frac,       &
                                     tile_pts, tile_index, l_tile_pts,       &
-                                    rho_water  )
+                                    rho_water,rho_ice  )
    USE cable_um_tech_mod,   ONLY : um1
    USE cable_common_module, ONLY : cable_user
 
    INTEGER, INTENT(IN) :: row_length, rows, land_pts, ntiles, npft, sm_levels
    INTEGER, INTENT(IN) :: timestep 
    REAL, INTENT(IN), DIMENSION(row_length,rows) :: latitude, longitude 
-   REAL,INTENT(IN):: rho_water
+   REAL,INTENT(IN):: rho_water,rho_ice
    INTEGER, INTENT(IN), DIMENSION(land_pts)  :: land_index 
    INTEGER, INTENT(IN), DIMENSION(ntiles)  :: tile_pts 
    INTEGER, INTENT(IN), DIMENSION(land_pts, ntiles)  :: tile_index
@@ -361,6 +370,7 @@ SUBROUTINE assign_um_basics_to_um1( row_length, rows, land_pts, ntiles,     &
       um1%tile_pts = tile_pts
       um1%tile_index = tile_index
       um1%rho_water= rho_water 
+      um1%rho_ice  = rho_ice
 
 END SUBROUTINE assign_um_basics_to_um1
 
