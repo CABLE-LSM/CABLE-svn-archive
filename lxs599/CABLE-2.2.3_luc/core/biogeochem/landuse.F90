@@ -187,7 +187,8 @@ SUBROUTINE newsoil(nd,csoil_x,frac_x,ifpre_x,csoil_y,frac_y,ifpre_y)
   real,DIMENSION(mvtype),INTENT(in) :: frac_x,frac_y
   real(r_2),DIMENSION(mvtype,nd),INTENT(inout) :: csoil_x,csoil_y
 ! local variable
-  real,DIMENSION(nd)     :: tmpVar,Rcount
+  real,DIMENSION(nd)     :: tmpVar
+  real                   :: Rcount
   real,DIMENSION(mvtype) :: dfrac
   integer nv
 
@@ -201,9 +202,8 @@ SUBROUTINE newsoil(nd,csoil_x,frac_x,ifpre_x,csoil_y,frac_y,ifpre_y)
       Rcount = Rcount + ABS(dfrac(nv))
     ENDIF
   END DO
-  where (Rcount > 0)
-  tmpVar = tmpVar/Rcount
-  endwhere
+  if (Rcount > 0) tmpVar = tmpVar/Rcount
+  
   DO nv=1,mvtype
     IF (dfrac(nv) > 0.0) THEN   ! pft exist in the 2nd year
       csoil_y(nv,:) = (dfrac(nv)*tmpVar + &
