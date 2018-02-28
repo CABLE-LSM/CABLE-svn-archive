@@ -715,10 +715,15 @@ PROGRAM cable_offline_driver
  
           IF ( .NOT. CASAONLY ) THEN
              
+	     ! Alexis
+	     write(logn,*) 'Value of vcmax ',  veg%vcmax
+
              ! Feedback prognostic vcmax and daily LAI from casaCNP to CABLE
              IF (l_vcmaxFeedbk) CALL casa_feedback( ktau, veg, casabiome,	 &
                   casapool, casamet, climate, ktauday )
              
+	     write(logn,*) 'Value of vcmax ',  veg%vcmax
+
              IF (l_laiFeedbk.and.icycle>0) veg%vlai(:) = casamet%glai(:)
              !veg%vlai = 1.5 ! test
              ! Call land surface scheme for this timestep, all grid points:

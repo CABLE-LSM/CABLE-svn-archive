@@ -68,7 +68,7 @@ MODULE cable_output_module
                     PlantTurnoverWood, PlantTurnoverWoodDist, PlantTurnoverWoodCrowding, &
                     PlantTurnoverWoodResourceLim, dCdt, Area, LandUseFlux, patchfrac, &
                     vcmax, hc, GPP_sh, GPP_sl, GPP_shC, GPP_slC, GPP_shJ, GPP_slJ, eta_GPP_cs, &
-                    dGPPdcs, CO2s
+                    dGPPdcs, CO2s, gsw_sl, gsw_sh
   END TYPE out_varID_type
   TYPE(out_varID_type) :: ovid ! netcdf variable IDs for output variables
   TYPE(parID_type) :: opid ! netcdf variable IDs for output variables
@@ -103,6 +103,8 @@ MODULE cable_output_module
                                                   ! [kg/m2/s]
     REAL(KIND=4), POINTER, DIMENSION(:) :: TVeg   ! 25 vegetation transpiration
                                                   ! [kg/m2/s]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: gsw_sl   ! ALEXIS
+    REAL(KIND=4), POINTER, DIMENSION(:) :: gsw_sh   ! ALEXIS
     REAL(KIND=4), POINTER, DIMENSION(:) :: ECanop ! 26 interception evaporation
                                                   ! [kg/m2/s]
     ! 27 potential evapotranspiration [kg/m2/s]
@@ -502,6 +504,20 @@ CONTAINS
        ALLOCATE(out%TVeg(mp))
        out%TVeg = 0.0 ! initialise
     END IF
+    ! Alexis
+    IF(output%flux ) THEN
+       CALL define_ovar(ncid_out, ovid%gsw_sl, 'gsw_sl', 'units',               &
+                        'stomatal conductance sl leaves', patchout%TVeg, 'dummy',    &
+                        xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%gsw_sl(mp))
+       out%gsw_sl = 0.0 ! initialise
+
+       CALL define_ovar(ncid_out, ovid%gsw_sh, 'gsw_sh', 'units',               &
+                        'stomatal conductance sh leaves', patchout%TVeg, 'dummy',    &
+                        xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%gsw_sh(mp))
+       out%gsw_sh = 0.0 ! initialise
+    END IF
     IF(output%flux .OR. output%ESoil) THEN
        CALL define_ovar(ncid_out, ovid%ESoil, 'ESoil', 'kg/m^2/s',             &
                         'Evaporation from soil', patchout%ESoil, 'dummy',      &
@@ -688,6 +704,17 @@ CONTAINS
        ALLOCATE(out%LAI(mp))
        out%LAI = 0.0 ! initialise
     END IF
+
+    ! Alexis
+    IF(output%veg) THEN
+       CALL define_ovar(ncid_out, ovid%vcmax, 'vcmax', '-',                        &
+                        'Vcmax', patchout%LAI, 'dummy', xID,         &
+                        yID, zID, landID, patchID, tID)
+       ALLOCATE(out%vcmax(mp))
+       out%vcmax = 0.0 ! initialise
+    END IF
+    ! Alexis
+
     ! Define balance variables in output file and allocate temp output vars:
     IF(output%balances .OR. output%Ebal) THEN
        CALL define_ovar(ncid_out, ovid%Ebal, 'Ebal', 'W/m^2',                  &
@@ -1054,9 +1081,10 @@ CONTAINS
     IF(output%params .OR. output%ejmax) CALL define_ovar(ncid_out, opid%ejmax, &
        'ejmax', 'mol/m^2/s', 'Max potential electron transport rate top leaf', &
                          patchout%ejmax, 'real', xID, yID, zID, landID, patchID)
-    IF(output%params .OR. output%vcmax) CALL define_ovar(ncid_out, opid%vcmax, &
-             'vcmax', 'mol/m^2/s', 'Maximum RuBP carboxylation rate top leaf', &
-                         patchout%vcmax, 'real', xID, yID, zID, landID, patchID)
+    ! Alexis
+    !IF(output%params .OR. output%vcmax) CALL define_ovar(ncid_out, opid%vcmax, &
+    !         'vcmax', 'mol/m^2/s', 'Maximum RuBP carboxylation rate top leaf', &
+    !                     patchout%vcmax, 'real', xID, yID, zID, landID, patchID)
     IF(output%params .OR. output%rp20) CALL define_ovar(ncid_out, opid%rp20,   &
                           'rp20', '-', 'Plant respiration coefficient at 20C', &
                           patchout%rp20, 'real', xID, yID, zID, landID, patchID)
@@ -1272,8 +1300,9 @@ CONTAINS
               'dleaf', REAL(veg%dleaf, 4), ranges%dleaf, patchout%dleaf, 'real')
     IF(output%params .OR. output%ejmax) CALL write_ovar(ncid_out, opid%ejmax,  &
               'ejmax', REAL(veg%ejmax, 4), ranges%ejmax, patchout%ejmax, 'real')
-    IF(output%params .OR. output%vcmax) CALL write_ovar(ncid_out, opid%vcmax,  &
-              'vcmax', REAL(veg%vcmax, 4), ranges%vcmax, patchout%vcmax, 'real')
+    !Alexis
+    !IF(output%params .OR. output%vcmax) CALL write_ovar(ncid_out, opid%vcmax,  &
+    !          'vcmax', REAL(veg%vcmax, 4), ranges%vcmax, patchout%vcmax, 'real')
     IF(output%params .OR. output%frac4) CALL write_ovar(ncid_out, opid%frac4,  &
               'frac4', REAL(veg%frac4, 4), ranges%frac4, patchout%frac4, 'real')
     
@@ -1747,6 +1776,32 @@ CONTAINS
           out%TVeg = 0.0
        END IF
     END IF
+    !Alexis
+    IF(output%flux ) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%gsw_sl = out%gsw_sl + REAL(canopy%gswx(:,1), 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%gsw_sl = out%gsw_sl / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%gsw_sl, 'gsw_sl', out%gsw_sl, &
+                          ranges%gsw_sl, patchout%Tveg, 'default', met)
+          ! Reset temporary output variable:
+          out%gsw_sl = 0.0
+       END IF
+       ! Add current timestep's value to total of temporary output variable:
+       out%gsw_sh = out%gsw_sh + REAL(canopy%gswx(:,2), 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%gsw_sh = out%gsw_sh / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%gsw_sh, 'gsw_sh', out%gsw_sh, &
+                          ranges%gsw_sh, patchout%Tveg, 'default', met)
+          ! Reset temporary output variable:
+          out%gsw_sh = 0.0
+       END IF
+
+    END IF
     ! ESoil: bare soil evaporation [kg/m^2/s]
     IF(output%flux .OR. output%ESoil) THEN
        ! Add current timestep's value to total of temporary output variable:
@@ -2117,6 +2172,22 @@ CONTAINS
           out%LAI = 0.0
        END IF
     END IF
+  
+   !Alexis
+   IF(output%veg) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%vcmax = out%vcmax + REAL(veg%vcmax, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%vcmax = out%vcmax/REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%vcmax, 'vcmax', out%vcmax,    &
+                          ranges%vcmax, patchout%LAI, 'default', met)
+          ! Reset temporary output variable:
+          out%vcmax = 0.0
+       END IF
+    END IF
+
     !------------------------WRITE BALANCES DATA--------------------------------
     ! Ebal: cumulative energy balance [W/m^2]
     IF(output%balances .OR. output%Ebal) THEN

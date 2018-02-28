@@ -604,9 +604,6 @@ END SUBROUTINE write_casa_dump
           veg%ejmax(np) =bjvref * veg%vcmax(np)
        endif
        !veg%ejmax(np) = 2.0 * veg%vcmax(np)
-      
-       
-       
 
        if (cable_user%finite_gm) then
           ! vcmax and jmax modifications according to Sun et al. 2014 Table S3
@@ -629,17 +626,19 @@ END SUBROUTINE write_casa_dump
              veg%vcmax(np) = veg%vcmax(np) * 1.6
              veg%ejmax(np) = veg%vcmax(np) * 1.2
           endif
-          
        endif
-   
- else
-    stop('invalid vcmax flag')
+   elseif (TRIM(cable_user%vcmax).eq.'user_prescribed') then
+        ! keep value that was read in the met
+
+   else
+   ! stop('invalid vcmax flag')
  endif
  
 ENDDO
 
 if (mod(ktau,ktauday) ==1) then
-   if (cable_user%call_climate .and. TRIM(cable_user%vcmax).eq.'Walker2014' ) then
+   !if (cable_user%call_climate .and. TRIM(cable_user%vcmax).eq.'Walker2014' ) then
+    if (cable_user%call_climate) then
       CALL optimise_JV(veg,climate,ktauday,bjvref)
 
     else
