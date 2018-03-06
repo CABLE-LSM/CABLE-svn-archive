@@ -1779,7 +1779,7 @@ CONTAINS
     !Alexis
     IF(output%flux ) THEN
        ! Add current timestep's value to total of temporary output variable:
-       out%gsw_sl = out%gsw_sl + REAL(canopy%gswx(:,1), 4)
+       out%gsw_sl = out%gsw_sl + REAL(canopy%gswx(:,1)*rad%fvlai(:,1), 4)
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
           out%gsw_sl = out%gsw_sl / REAL(output%interval, 4)
@@ -1790,7 +1790,7 @@ CONTAINS
           out%gsw_sl = 0.0
        END IF
        ! Add current timestep's value to total of temporary output variable:
-       out%gsw_sh = out%gsw_sh + REAL(canopy%gswx(:,2), 4)
+       out%gsw_sh = out%gsw_sh + REAL(canopy%gswx(:,2)*rad%fvlai(:,2), 4)
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
           out%gsw_sh = out%gsw_sh / REAL(output%interval, 4)

@@ -1709,7 +1709,6 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
       ALLOCATE(tmpDat4x(xdimsize,ydimsize,nmetpatches,1))
 
       ! Get SWdown data for mask grid:
-      print*, "met_read check:", ktau, kend
       ok= NF90_GET_VAR(ncid_met,id%SWdown,tmpDat3, &
            start=(/1,1,ktau/),count=(/xdimsize,ydimsize,1/))
       IF(ok /= NF90_NOERR) CALL nc_abort &
