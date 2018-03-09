@@ -232,6 +232,7 @@ MODULE cable_common_module
           d0gs,       &
           alpha,      &
           convex,     &
+	  gamma,      &
           cfrd,       &
           gswmin,     &
           conkc0,     &
@@ -343,6 +344,7 @@ CONTAINS
          veg_desc( mvtype ),                                                   &
          vegin%a1gs(mvtype), vegin%d0gs(mvtype),                               &
          vegin%alpha(mvtype),vegin%convex(mvtype),vegin%cfrd(mvtype),          &
+	 vegin%gamma(mvtype),						       &
          vegin%gswmin(mvtype),vegin%conkc0(mvtype), vegin%conko0(mvtype),      &
          vegin%ekc(mvtype), vegin%eko(mvtype),                                 &
          ! Ticket #56
@@ -384,7 +386,7 @@ CONTAINS
           READ(40,*) vegin%a1gs(jveg), vegin%d0gs(jveg), vegin%alpha(jveg), vegin%convex(jveg), vegin%cfrd(jveg)
           READ(40,*) vegin%gswmin(jveg), vegin%conkc0(jveg), vegin%conko0(jveg), vegin%ekc(jveg), vegin%eko(jveg)
           READ(40,*) vegin%g0(jveg), vegin%g1(jveg)      ! Ticket #56
-
+          READ(40,*) vegin%gamma(jveg)
        END DO
 
     ELSE
@@ -424,6 +426,7 @@ CONTAINS
        READ(40,*) vegin%d0gs
        READ(40,*) vegin%alpha
        READ(40,*) vegin%convex
+       READ(40,*) vegin%gamma
        READ(40,*) vegin%cfrd
        READ(40,*) vegin%gswmin
        READ(40,*) vegin%conkc0
@@ -756,6 +759,7 @@ CONTAINS
             veg%d0gs(h)   = vegin%d0gs(veg%iveg(h))
             veg%alpha(h)  = vegin%alpha(veg%iveg(h))
             veg%convex(h) = vegin%convex(veg%iveg(h))
+	    veg%gamma(h) = vegin%gamma(veg%iveg(h))
             veg%cfrd(h)   = vegin%cfrd(veg%iveg(h))
             veg%gswmin(h) = vegin%gswmin(veg%iveg(h))
             veg%conkc0(h) = vegin%conkc0(veg%iveg(h))

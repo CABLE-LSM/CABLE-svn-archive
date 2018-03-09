@@ -164,10 +164,12 @@ host_raij()
    export NCMOD=$NETCDF_ROOT'/include/Intel'
    export FC=$F90
    export CFLAGS='-O2 -fp-model precise'
+   #export CFLAGS='-O0 -fp-model precise -g -debug -traceback -fp-stack-check -no-ftz -ftrapuv -fpe=0   -check all,noarg_temp_created -C 
    if [[ $1 = 'debug' ]]; then
       export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0'
    fi
    export LDFLAGS='-L'$NCDIR' -O2'
+   #export LDFLAGS='-L'$NCDIR' -O0'
    export LD='-lnetcdf -lnetcdff'
    build_build
    cd ../

@@ -1285,6 +1285,8 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
 
           endif
           veg%convex(h) = vegin%convex(veg%iveg(h))
+	  ! Alexis, adding gamma
+	  veg%gamma(h) = vegin%gamma(veg%iveg(h))
           veg%cfrd(h)   = vegin%cfrd(veg%iveg(h))
           veg%gswmin(h) = vegin%gswmin(veg%iveg(h))
           veg%conkc0(h) = vegin%conkc0(veg%iveg(h))
@@ -1350,7 +1352,8 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
                vegin%tmaxvj, vegin%vbeta,vegin%clitt, vegin%zr, vegin%rootbeta, vegin%froot,         &
                vegin%cplant, vegin%csoil, vegin%ratecp, vegin%ratecs,          &
                vegin%xalbnir, vegin%length, vegin%width,                       &
-               vegin%g0, vegin%g1,                                             & 
+	       ! gamma added by Alexis below
+               vegin%g0, vegin%g1, vegin%gamma,                               & 
                vegin%a1gs, vegin%d0gs, vegin%alpha, vegin%convex, vegin%cfrd,  &
                vegin%gswmin, vegin%conkc0,vegin%conko0,vegin%ekc,vegin%eko   )
     !         vegf_temp,urbanf_temp,lakef_temp,icef_temp, &
@@ -1423,16 +1426,16 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
          veg%F10 = 0.85
          veg%ZR = 5.0
       END IF
-
-      IF(cable_user%SOIL_STRUC=='sli'.or.cable_user%FWSOIL_SWITCH=='Haverd2013') THEN
+      ! Alexis - we added veg%gamma in user custom param, so we comment out forced value below
+     ! IF(cable_user%SOIL_STRUC=='sli'.or.cable_user%FWSOIL_SWITCH=='Haverd2013') THEN
 
         ! where (veg%iveg.eq.2 ) 
         !    veg%gamma = 1.e-2
         ! elsewhere
-            veg%gamma = 1.e-2
+      !      veg%gamma = 1.e-2
         !endwhere
          !veg%clitt = 5.0 ! (tC / ha)
-      ENDIF
+     ! ENDIF
 !! vh_js !!
       IF(cable_user%CALL_POP) THEN
          veg%disturbance_interval = 100
