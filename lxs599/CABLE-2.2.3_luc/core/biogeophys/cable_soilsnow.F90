@@ -1061,6 +1061,7 @@ END SUBROUTINE surfbv
 ! ga - heat flux from the atmosphere (ground heat flux)
 ! ccnsw - soil thermal conductivity, including water/ice
 SUBROUTINE stempv(dels, canopy, ssnow, soil)
+   USE cable_common_module, only: cable_user
    REAL, INTENT(IN) :: dels ! integration time step (s)
    
    TYPE(canopy_type),    INTENT(INOUT) :: canopy
@@ -1099,42 +1100,12 @@ SUBROUTINE stempv(dels, canopy, ssnow, soil)
    coeff = 0.0
    snow_ccnsw = 2.0
 
-   DO k = 1, ms
-      
-      DO j = 1, mp
-      
-         IF( soil%isoilm(j) == 9 ) THEN
-            ! permanent ice: fix hard-wired number in next version
-            ccnsw(j,k) = snow_ccnsw
-         ELSE
-            ew(j) = ssnow%wblf(j,k) * soil%ssat(j)
-            exp_arg = ( ew(j) * LOG( 60.0 ) ) + ( ssnow%wbfice(j,k)            &
-                      * soil%ssat(j) * LOG( 250.0 ) )
-
-            IF( exp_arg > 30 ) direct2min = .TRUE.
-            
-            IF( direct2min) THEN
-               
-               ccnsw(j,k) = 1.5 * MAX( 1.0_r_2, SQRT( MIN( 2.0_r_2, 0.5 *      &
-                            soil%ssat(j) /                                     &
-                            MIN( ew(j), 0.5_r_2 * soil%ssat(j) ) ) ) )
-
-            ELSE         
-               
-               ccnsw(j,k) = MIN( soil%cnsd(j) * EXP( exp_arg ), 1.5_r_2 )      &
-                            * MAX( 1.0_r_2, SQRT( MIN( 2.0_r_2, 0.5 *          &
-                            soil%ssat(j) /                                     &
-                            MIN( ew(j), 0.5_r_2 * soil%ssat(j) ) ) ) )
-            
-            ENDIF          
-           
-            direct2min = .FALSE.
-        
-         ENDIF 
-      
-      END DO
-    
-   END DO
+   IF (cable_user%soil_thermal_fix) THEN
+      ccnsw = total_soil_conductivity(ssnow,soil)
+      !ccnsw = sli_soil_cond(ssnow,soil)
+   ELSE
+      ccnsw = old_soil_conductivity(ssnow,soil)
+   ENDIF
     
    xx = 0. 
     
@@ -1161,11 +1132,12 @@ SUBROUTINE stempv(dels, canopy, ssnow, soil)
 
       wblfsp = ssnow%wblf(:,k)
       
-      xx = soil%css * soil%rhosoil
-      
-      ssnow%gammzz(:,k) = MAX( ( 1.0 - soil%ssat ) * soil%css * soil%rhosoil   &
+      xx = soil%heat_cap_lower_limit(:,1)
+
+      ssnow%gammzz(:,k) = MAX((soil%heat_cap_lower_limit(:,1)), &
+                          ( 1.0 - soil%ssat ) * soil%css * soil%rhosoil   &
                           + soil%ssat * ( wblfsp * cswat * rhowat +            &
-                          ssnow%wbfice(:,k) * csice * rhowat * 0.9 ), xx )     &
+                          ssnow%wbfice(:,k) * csice * rhowat * 0.9 ) )     &
                           * soil%zse(k)
 
       ssnow%gammzz(:,k) = ssnow%gammzz(:,k) + cgsnow * ssnow%snowd
@@ -1185,9 +1157,10 @@ SUBROUTINE stempv(dels, canopy, ssnow, soil)
          wblfsp = ssnow%wblf(:,k)
          xx = soil%css * soil%rhosoil
 
-         ssnow%gammzz(:,k) = MAX( ( 1.0 - soil%ssat ) * soil%css * soil%rhosoil&
+         ssnow%gammzz(:,k) = MAX( real(soil%heat_cap_lower_limit(:,1)), &
+                             ( 1.0 - soil%ssat ) * soil%css * soil%rhosoil  &
                              + soil%ssat * ( wblfsp * cswat * rhowat +         &
-                             ssnow%wbfice(:,k) * csice * rhowat * 0.9 ), xx )  &
+                             ssnow%wbfice(:,k) * csice * rhowat * 0.9 ) )  &
                              * soil%zse(k)
 
          dtg = dels / ssnow%gammzz(:,k)
@@ -1258,7 +1231,7 @@ SUBROUTINE stempv(dels, canopy, ssnow, soil)
          ssnow%gammzz(:,k) = MAX( ( 1.0 - soil%ssat ) * soil%css *             &
                              soil%rhosoil + soil%ssat * ( wblfsp * cswat *     &
                              rhowat + ssnow%wbfice(:,k) * csice * rhowat *     &
-                             0.9) , xx ) * soil%zse(k)
+                             0.9) , (soil%heat_cap_lower_limit(:,k)) ) * soil%zse(k)
 
          dtg = dels / ssnow%gammzz(:,k)
          at(:,k) = - dtg * coeff(:,k)
@@ -1720,6 +1693,13 @@ SUBROUTINE soil_snow(dels, soil, ssnow, canopy, met, bal, veg)
    ssnow%dtmlt = 0.0 
    ssnow%osnowd = ssnow%snowd
 
+   IF (cable_user%soil_thermal_fix) then
+      soil%heat_cap_lower_limit(:,:) = 0.01  !never allow /0
+   ELSE
+      do k=1,ms
+         soil%heat_cap_lower_limit(:,k) = soil%css(:) * soil%rhosoil(:)
+      end do
+   END IF
 
    IF( .NOT.cable_user%cable_runtime_coupled ) THEN
    
@@ -1768,7 +1748,7 @@ SUBROUTINE soil_snow(dels, soil, ssnow, canopy, met, bal, veg)
             ssnow%wbice(:,6) = 0.90 * ssnow%wb(:,6)
          ENDWHERE
          
-         xx=soil%css * soil%rhosoil
+         xx=real(soil%heat_cap_lower_limit(:,1))
          
          ssnow%gammzz(:,1) = MAX( (1.0 - soil%ssat) * soil%css * soil%rhosoil &
               & + (ssnow%wb(:,1) - ssnow%wbice(:,1) ) * cswat * rhowat &
@@ -1776,13 +1756,15 @@ SUBROUTINE soil_snow(dels, soil, ssnow, canopy, met, bal, veg)
       END IF
    ENDIF  ! if(.NOT.cable_runtime_coupled)
 
-   xx=soil%css * soil%rhosoil
    IF (ktau <= 1)                                                              &
+     xx=soil%heat_cap_lower_limit(:,1)
      ssnow%gammzz(:,1) = MAX( (1.0 - soil%ssat) * soil%css * soil%rhosoil      &
             & + (ssnow%wb(:,1) - ssnow%wbice(:,1) ) * cswat * rhowat           &
             & + ssnow%wbice(:,1) * csice * rhowat * .9, xx ) * soil%zse(1) +   &
             & (1. - ssnow%isflag) * cgsnow * ssnow%snowd
 
+
+   ssnow%wbliq = ssnow%wb - ssnow%wbice
 
 
    DO k = 1, ms ! for stempv
@@ -1865,6 +1847,8 @@ SUBROUTINE soil_snow(dels, soil, ssnow, canopy, met, bal, veg)
 
    ! Set weighted soil/snow surface temperature
    ssnow%tss=(1-ssnow%isflag)*ssnow%tgg(:,1) + ssnow%isflag*ssnow%tggsn(:,1)
+
+   ssnow%wbliq = ssnow%wb - ssnow%wbice
 
    ssnow%wbtot = 0.0
    DO k = 1, ms
@@ -2085,5 +2069,142 @@ SUBROUTINE hydraulic_redistribution(dels, soil, ssnow, canopy, veg, met)
    ENDDO
                           
 END SUBROUTINE hydraulic_redistribution
+
+       ! soil thermal conductivity (incl water/ice)
+ function total_soil_conductivity(ssnow,soil) 
+
+   REAL(r_2), DIMENSION(mp,ms) ::  total_soil_conductivity
+
+   TYPE(soil_snow_type), INTENT(INOUT) :: ssnow
+   TYPE(soil_parameter_type), INTENT(INOUT) :: soil
+
+   REAL(r_2) :: exp_arg
+   real(r_2) :: dels_r2
+   real(r_2) :: Ko,Ktmp
+   real(r_2), dimension(mp,ms) :: Ke,quartz,Sr,Ksat,liq_frac
+   real      :: tfreeze
+   integer :: k,j,i
+   REAL :: snow_ccnsw
+
+   snow_ccnsw = 2.0
+
+   total_soil_conductivity(:,:) = soil%cnsd_vec(:,:)
+
+   DO k = 1, ms
+      DO j = 1, mp
+         IF (soil%isoilm(j) .eq. 9) THEN
+            total_soil_conductivity(j,k) = snow_ccnsw
+         ELSE
+            quartz(j,k) = max(0.0,min(0.8,soil%sand_vec(j,k)*0.92))
+            if (quartz(j,k) .gt. 0.2) then 
+              Ko = 2.0
+            else
+              Ko = 3.0
+            end if
+
+            Ktmp      = ( (7.7**(quartz(j,k))) * &
+                          (Ko**(1.0-quartz(j,k))) ) **(1.0-soil%ssat_vec(j,k))
+
+            if (ssnow%wb(j,k) .ge. 1.0e-15) then
+               liq_frac(j,k) = min(1._r_2, max(0._r_2, ssnow%wbliq(j,k) / ssnow%wb(j,k)))
+            else
+               liq_frac(j,k) = 0.0
+            end if
+
+            Ksat(j,k) =  Ktmp * &
+                         (2.2 ** (soil%ssat_vec(j,k)*(1.0-liq_frac(j,k) ) ) )*&
+                         (0.57**(liq_frac(j,k)))
+
+            Sr(j,k) = min( 0.9999 , &
+            max(0., ssnow%wb(j,k)-soil%watr(j,k))/(soil%ssat_vec(j,k)-soil%watr(j,k)) )
+
+            !frozen or not?
+            if (Sr(j,k) .ge. 0.05) then 
+               Ke(j,k) = 0.7*log10(Sr(j,k)) + 1.0
+            else
+               Ke(j,k) = 0.0
+            end if
+
+            if ((ssnow%wbice(j,k) .gt. 0.0) .or. &
+                (ssnow%tgg(j,k) .lt. C%TFRZ) .or. &
+                (ssnow%isflag(j) .ne. 0) .or.     &
+                (ssnow%snowd(j) .ge. 0.1) )   then
+
+               Ke(j,k) = Sr(j,k)
+
+            end if
+
+            total_soil_conductivity(j,k) = Ke(j,k)*Ksat(j,k) + &
+                                           (1.0-Ke(j,k))*soil%cnsd_vec(j,k)
+
+            total_soil_conductivity(j,k) = min(Ksat(j,k), max(soil%cnsd_vec(j,k),&
+                                              total_soil_conductivity(j,k) ) )
+
+
+         ENDIF
+
+      END DO
+
+   END DO
+
+END function total_soil_conductivity
+
+function old_soil_conductivity(ssnow, soil)
+   TYPE(soil_snow_type), INTENT(IN) :: ssnow
+   TYPE(soil_parameter_type), INTENT(IN) :: soil
+
+   REAL(r_2), DIMENSION(mp,ms) ::                                              &
+      old_soil_conductivity  ! soil thermal conductivity (incl water/ice)
+
+   REAL, DIMENSION(mp) ::                                                 &
+      dtg,     & !
+      ew       !
+
+   INTEGER :: j,k
+   REAL :: exp_arg
+   LOGICAL :: direct2min = .FALSE.
+   REAL :: snow_ccnsw
+
+   snow_ccnsw = 2.0
+
+   DO k = 1, ms
+
+      DO j = 1, mp
+
+         IF( soil%isoilm(j) == 9 ) THEN
+            ! permanent ice: fix hard-wired number in next version
+            old_soil_conductivity(j,k) = snow_ccnsw
+         ELSE
+            ew(j) = ssnow%wblf(j,k) * soil%ssat(j)
+            exp_arg = ( ew(j) * LOG( 60.0 ) ) + ( ssnow%wbfice(j,k)            &
+                      * soil%ssat(j) * LOG( 250.0 ) )
+
+            IF( exp_arg > 30 ) direct2min = .TRUE.
+
+            IF( direct2min) THEN
+
+               old_soil_conductivity(j,k) = 1.5 * MAX( 1.0_r_2, SQRT( MIN( 2.0_r_2, 0.5 *      &
+                            soil%ssat(j) /                                     &
+                            MIN( ew(j), 0.5_r_2 * soil%ssat(j) ) ) ) )
+
+            ELSE
+
+               old_soil_conductivity(j,k) = MIN( soil%cnsd(j) * EXP( exp_arg ), 1.5_r_2 )      &
+                            * MAX( 1.0_r_2, SQRT( MIN( 2.0_r_2, 0.5 *          &
+                            soil%ssat(j) /                                     &
+                            MIN( ew(j), 0.5_r_2 * soil%ssat(j) ) ) ) )
+
+            ENDIF
+
+            direct2min = .FALSE.
+
+         ENDIF
+
+      END DO
+
+   END DO
+
+end function old_soil_conductivity
+
 
 END MODULE cable_soil_snow_module

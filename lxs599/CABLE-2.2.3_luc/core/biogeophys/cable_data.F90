@@ -39,6 +39,7 @@ module cable_data_module
       capp   = 1004.64, & ! air spec. heat (J/kg/K)
       hl = 2.5014e6, & ! air spec. heat (J/kg/K)
       hlf = 0.334e6, & ! latent heat of fusion
+      !hls = 2.8350e6, & ! latent heat of sublimation (J/kg)
       !hl = 2.5104e6, & ! air spec. heat (J/kg/K)
       !hlf = 0.335e6, & ! latent heat of fusion
       dheat  = 21.5E-6, & ! molecular diffusivity for heat
@@ -49,6 +50,13 @@ module cable_data_module
       rmh2o  = 0.018016, & ! molecular wt: water	(kg/mol)
       sboltz = 5.67e-8, & ! Stefan-Boltz. constant (W/m2/K4)
       tfrz   = 273.16, & ! Temp (K) corresp. to 0 C
+      cgsnow = 2090.0,&      ! specific heat capacity for snow
+      !cs_rho_ice = 1.9341e6,&    !heat capacity * density ice
+      !cs_rho_wat = 4.218e6,&    ! heat capacity * density  water
+      csice = 2.100e3,&      ! specific heat capacity for ice
+      cswat = 4.218e3,&      ! specific heat capacity for water
+      density_liq = 1000.0,&  !density of liquid water
+      density_ice = 921.0,&     !denisty of ice
       
       ! Teten coefficients
       tetena = 6.106, & ! ??? refs?
@@ -110,7 +118,7 @@ module cable_data_module
       real :: a1c4 = 4.0
       real :: alpha3 = 0.200
       real :: alpha4  = 0.05
-      real :: cfrd3  = 0.015
+      real :: cfrd3  = 0.010
       real :: cfrd4  = 0.025
       real :: conkc0 = 302.e-6  !mol mol^-1
       real :: conko0 = 256.e-3  !mol mol^-1
@@ -241,7 +249,8 @@ module cable_data_module
    TYPE issnow_type
       REAL, POINTER ::                                                         &
          ! physical constants
-         CAPP, TFRZ, HL, HLF
+         CAPP, TFRZ, HL, HLF, density_liq,&
+         density_ice,cgsnow,cswat,csice
    END TYPE issnow_type
 
 
@@ -432,6 +441,11 @@ SUBROUTINE ssnow_type_ptr(C)
    C%TFRZ  => PHYS%TFRZ
    C%HL    => PHYS%HL
    C%HLF   => PHYS%HLF
+   C%density_ice=> PHYS%density_ice
+   C%density_liq=> PHYS%density_liq
+   C%CSWAT   => PHYS%CSWAT
+   C%CGSNOW   => PHYS%CGSNOW
+   C%CSICE   => PHYS%CSICE
    !C% => PHYS%
 END SUBROUTINE ssnow_type_ptr 
 

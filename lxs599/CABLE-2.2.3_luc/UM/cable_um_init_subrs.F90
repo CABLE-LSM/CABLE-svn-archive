@@ -130,7 +130,7 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
 
    USE cable_def_types_mod, ONLY : ms, mstype, mp, r_2
    USE cable_um_tech_mod,   ONLY : um1, soil, veg, ssnow 
-   USE cable_common_module, ONLY : cable_runtime, cable_user,                  &
+   USE cable_common_module, ONLY : cable_runtime, cable_user,&
                                    soilin, get_type_parameters
    
    REAL, INTENT(IN), DIMENSION(um1%land_pts) :: &
@@ -156,6 +156,13 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
    INTEGER :: i,j,k,L,n
    REAL, ALLOCATABLE :: tempvar(:), tempvar2(:)
    LOGICAL, PARAMETER :: skip =.TRUE. 
+   REAL, ALLOCATABLE :: ssat_bounded(:,:),rho_soil_bulk(:,:)
+
+   REAL, PARAMETER :: snow_ccnsw = 2.0,&
+                      ssat_lo = 0.15,&
+                      ssat_hi = 0.65,&
+                      rhob_lo = 810.0,&
+                      rhob_hi = 2300.0
 
       IF( first_call ) THEN 
 
@@ -247,12 +254,104 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
          soil%rhosoil =  soilin%rhosoil(soil%isoilm)
          soil%css     =  soilin%css(soil%isoilm)
 
+         do k=1,ms
+            soil%ssat_vec(:,k)      = real(soil%ssat(:)   ,r_2)    
+            soil%rhosoil_vec(:,k)   = real(soil%rhosoil(:),r_2)   
+            soil%cnsd_vec(:,k)      = real(soil%cnsd      ,r_2)
+            soil%sfc_vec(:,k)       = real(soil%sfc(:)    ,r_2)
+            soil%watr(:,k)          = 0.001_r_2
+         end do
+
+         where (soil%ssat_vec .le. 0.0 .and. soil%sfc_vec .gt. 0.0)
+              soil%ssat_vec = soil%sfc_vec + 0.05
+         end where
+
+
          !--- Lestevens 28 Sept 2012 - Fix Init for soil% textures 
          !--- needed for CASA-CNP
          soil%clay = soilin%clay(soil%isoilm)
          soil%silt = soilin%silt(soil%isoilm)
          soil%sand = soilin%sand(soil%isoilm)
+
+        do k=1,ms
+             !should read texture by layer evantually
+              soil%clay_vec(:,k) = soil%clay(:)
+              soil%sand_vec(:,k) = soil%sand(:)
+              soil%silt_vec(:,k) = soil%silt(:)
+         end do
          
+         do k=1,ms
+            do i=1,mp
+
+               if ( (soil%silt_vec(i,k) .gt. 0.99) .or. &
+                    (soil%silt_vec(i,k) .lt. 0.01) .or. &
+                    (soil%sand_vec(i,k) .gt. 0.99) .or. &
+                    (soil%sand_vec(i,k) .lt. 0.01) .or. &
+                    (soil%clay_vec(i,k) .gt. 0.99) .or. &
+                    (soil%clay_vec(i,k) .lt. 0.01) ) then
+
+                    !all bad
+                    soil%clay_vec(i,k) = 0.3
+                    soil%sand_vec(i,k) = 0.3
+                    soil%silt_vec(i,k) = 0.4
+
+               end if
+
+            end do
+
+         end do
+
+
+ 
+         IF (cable_user%soil_thermal_fix) then
+
+           if (allocated(ssat_bounded)) deallocate(ssat_bounded)
+           if (allocated(rho_soil_bulk)) deallocate(rho_soil_bulk)
+
+           allocate(ssat_bounded(size(soil%ssat_vec,dim=1),&
+                                 size(soil%ssat_vec,dim=2) ) )
+
+           ssat_bounded(:,:) = min( ssat_hi, max(ssat_lo, &
+                                              soil%ssat_vec(:,:) ) )
+
+           allocate(rho_soil_bulk(size(soil%rhosoil_vec,dim=1),&
+                                  size(soil%rhosoil_vec,dim=2) ) )
+
+           rho_soil_bulk(:,:) = min(rhob_hi, max(rhob_lo , &
+                                  (2700.0*(1.0 - ssat_bounded(:,:)) ) ) )
+
+
+            do k=1,ms
+               do i=1,mp
+
+
+                  if (soil%isoilm(i) .ne. 9) then
+
+                     soil%rhosoil_vec(i,k) = 2700.0
+
+                     soil%cnsd_vec(i,k) = ( (0.135*(1.0-ssat_bounded(i,k))) +&
+                                         (64.7/rho_soil_bulk(i,k)) ) / &
+                                       (1.0 - 0.947*(1.0-ssat_bounded(i,k)))
+
+                  end if
+
+               end do
+            end do
+
+            k=1
+            do i=1,mp
+               if (soil%isoilm(i) .ne. 9) then
+                  soil%rhosoil(i) = soil%rhosoil_vec(i,1)
+                  soil%cnsd(i)    = soil%cnsd_vec(i,1)
+               end if
+            end do
+
+           if (allocated(ssat_bounded)) deallocate(ssat_bounded)
+           if (allocated(rho_soil_bulk)) deallocate(rho_soil_bulk)
+
+         END IF
+
+        
             
          first_call= .FALSE.
       ENDIF

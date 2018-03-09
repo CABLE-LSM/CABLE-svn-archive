@@ -129,6 +129,17 @@ MODULE cable_def_types_mod
       REAL, DIMENSION(:,:), POINTER ::                                         &
          albsoil    ! soil reflectance (2nd dim. BP 21Oct2009)
 
+     ! Additional SLI parameters
+     REAL(r_2), DIMENSION(:,:), POINTER :: ssat_vec  ! vol H2O @ sat
+     REAL(r_2), DIMENSION(:,:), POINTER :: rhosoil_vec   
+     REAL(r_2), DIMENSION(:,:), POINTER :: cnsd_vec	 
+     REAL(r_2), DIMENSION(:,:), POINTER :: sfc_vec
+     REAL(r_2), DIMENSION(:,:), POINTER :: heat_cap_lower_limit
+     REAL(r_2), DIMENSION(:,:), POINTER :: clay_vec
+     REAL(r_2), DIMENSION(:,:), POINTER :: sand_vec
+     REAL(r_2), DIMENSION(:,:), POINTER :: silt_vec
+     REAL(r_2), DIMENSION(:,:), POINTER :: watr
+
   END TYPE soil_parameter_type
 
 ! .............................................................................
@@ -210,7 +221,8 @@ MODULE cable_def_types_mod
          wb,      & ! volumetric soil moisture (solid+liq)
          wbice,   & ! soil ice
          wblf,    & !
-         wbfice     !
+         wbfice,  & !
+         wbliq      ! 
 
    END TYPE soil_snow_type
 
