@@ -2913,127 +2913,127 @@ SUBROUTINE allocate_cable_vars(air,bgc,canopy,met,bal,                         &
 
 END SUBROUTINE allocate_cable_vars
 
-subroutine adjust_gridcell_forcing(dels,met,soil)
-   use cable_data_module, only : phys
-   real,                      intent(in)    :: dels
-   type(met_type),            intent(inout) :: met
-   type(soil_parameter_type), intent(in)    :: soil
-
-   real(r_2), parameter :: dry_lapse_rate = 9.81/1005.0  !k/m
-   integer :: i,j,k,ib
-   real(r_2), dimension(mland) :: heat_change,liq_change,ice_change,elev_mean
-   real(r_2), dimension(mland) :: delta_qv,mean_qv
-   real(r_2), dimension(ntiles) :: scle
-   real :: rho_tmp,tmp_rl
-   integer :: tmp_mx
-
-
-  elev_mean = 0.0
-
-  !grid cell mean elevation
-   do j=1,mland
-      do i=landpt(j)%cstart,landpt(j)%cend
-         elev_mean(j) = elev_mean(j) + soil%elev(i)/real(landpt(j)%nap,r_2)
-      end do
-   end do
-
-   delta_qv(:) = 0._r_2
-
-   do j=1,mland
-
-      mean_qv(j) = met%qv(landpt(j)%cstart)
-
-      do i=landpt(j)%cstart,landpt(j)%cend
-
-         rho_tmp = met%tk(i)/met%pmb(i)/287.0
-
-         met%tk(i) = met%tk(i) -(soil%elev(i)-elev_mean(j))*dry_lapse_rate! + dtk(i)
-         met%pmb(i) = met%pmb(i) - (soil%elev(i)-elev_mean(j))*9.81*rho_tmp
-         met%qv(i) = min(met%qv(i) , qsat(met%tk(i),met%pmb(i)))
-
-         delta_qv(j) = delta_qv(j) + mean_qv(j) - met%qv(i)
-
-         if (met%precip(i) .gt. 0.0) then
-            if (met%tk(i)-phys%tfrz .le. -1.5 .and. met%precip(i) .gt. met%precip_sn(i)) then
-               met%precip_sn(i) = met%precip(i)
-            elseif (met%tk(i)-phys%tfrz .ge. 1.5 .and. met%precip_sn(i) .gt. 0.0) then
-               met%precip_sn(i) = 0.0
-            end if
-         end if
-
-      end do
-   end do
-
-!now check to see if we had to remove water from higher elevations, if so add to
-!lower
-
-   do j=1,mland
-      if (delta_qv(j) .lt. 0.0) then  !need to add
-
-         do i=landpt(j)%cstart,landpt(j)%cend
-            if (soil%elev(i) .lt. elev_mean(j)) then
-               scle(i-landpt(j)%cstart+1) = abs(soil%elev(i) .lt. elev_mean(j))
-            end if
-         end do
-
-         if (sum(scle,dim=1) .gt. 0.0) then
-            scle(:) = scle(:) / sum(scle,dim=1)
-         end if
-         
-         do i=landpt(j)%cstart,landpt(j)%cend
-            met%qv(i) = met%qv(i) - scle(i-landpt(j)%cstart+1)*delta_qv(j)
-         end do
-
-         !now triple check all below qsat
-         !if now add to rain on highest tiles
-         delta_qv(j) = 0.0
-         do i=landpt(j)%cstart,landpt(j)%cend
-            if (met%qv(i) .gt. qsat(met%tk(i),met%pmb(i)) ) then  ! met%qv(i) + scle(i-landpt(j)%cstart+1)*delta_qv(j)
-               delta_qv(j) = delta_qv(j) + (met%qv(i) - qsat(met%tk(i),met%pmb(i)))
-               met%qv(i) =  qsat(met%tk(i),met%pmb(i))
-            end if
-         end do
-
-         if (delta_qv(j) .ne. 0.0) then
-
-           tmp_rl = -9999.0
-           do i=landpt(j)%cstart,landpt(j)%cend
-              if (soil%elev(i) - elev_mean(j) .gt. tmp_rl) then
-                 tmp_rl = soil%elev(i) - elev_mean(j)
-                 tmp_mx = i + 1 - landpt(j)%cstart
-               end if
-            end do
-
-            i = landpt(j)%cstart - 1 + tmp_mx
-
-            met%precip(i) = met%precip(i) + delta_qv(j)/dels*met%tk(i)/met%pmb(i)/287.0
-
-            if (met%tk(i)-phys%tfrz .le. -1.5) then
-               met%precip_sn(i) = met%precip_sn(i) + delta_qv(j)/dels*met%tk(i)/met%pmb(i)/287.0
-            end if
- 
-         end if
-
-      end if !init dq check
-   end do !land cell loop
-            
-
-
-
-      met%qv(i) = min(met%qv(i) , qsat(met%tk(i),met%pmb(i)))
-
-
-end subroutine adjust_gridcell_forcing
-
-real elemental function qsat(T,P)
-
-   use cable_data_module, only : phys!rmh2o,rmair,tetena,tetenb,tetenc,tfrz
-   real, intent(in) :: T,P
-
-   qsat = (phys%rmh2o/phys%rmair) * (phys%tetena*EXP(phys%tetenb*(T-phys%tfrz)/(phys%tetenc+(T-phys%tfrz)))) / P
-
-end function qsat
-
+!subroutine adjust_gridcell_forcing(dels,met,soil)
+!   use cable_data_module, only : phys
+!   real,                      intent(in)    :: dels
+!   type(met_type),            intent(inout) :: met
+!   type(soil_parameter_type), intent(in)    :: soil
+!
+!   real(r_2), parameter :: dry_lapse_rate = 9.81/1005.0  !k/m
+!   integer :: i,j,k,ib
+!   real(r_2), dimension(mland) :: heat_change,liq_change,ice_change,elev_mean
+!   real(r_2), dimension(mland) :: delta_qv,mean_qv
+!   real(r_2), dimension(ntiles) :: scle
+!   real :: rho_tmp,tmp_rl
+!   integer :: tmp_mx
+!
+!
+!  elev_mean = 0.0
+!
+!  !grid cell mean elevation
+!   do j=1,mland
+!      do i=landpt(j)%cstart,landpt(j)%cend
+!         elev_mean(j) = elev_mean(j) + soil%elev(i)/real(landpt(j)%nap,r_2)
+!      end do
+!   end do
+!
+!   delta_qv(:) = 0._r_2
+!
+!   do j=1,mland
+!
+!      mean_qv(j) = met%qv(landpt(j)%cstart)
+!
+!      do i=landpt(j)%cstart,landpt(j)%cend
+!
+!         rho_tmp = met%tk(i)/met%pmb(i)/287.0
+!
+!         met%tk(i) = met%tk(i) -(soil%elev(i)-elev_mean(j))*dry_lapse_rate! + dtk(i)
+!         met%pmb(i) = met%pmb(i) - (soil%elev(i)-elev_mean(j))*9.81*rho_tmp
+!         met%qv(i) = min(met%qv(i) , qsat(met%tk(i),met%pmb(i)))
+!
+!         delta_qv(j) = delta_qv(j) + mean_qv(j) - met%qv(i)
+!
+!         if (met%precip(i) .gt. 0.0) then
+!            if (met%tk(i)-phys%tfrz .le. -1.5 .and. met%precip(i) .gt. met%precip_sn(i)) then
+!               met%precip_sn(i) = met%precip(i)
+!            elseif (met%tk(i)-phys%tfrz .ge. 1.5 .and. met%precip_sn(i) .gt. 0.0) then
+!               met%precip_sn(i) = 0.0
+!            end if
+!         end if
+!
+!      end do
+!   end do
+!
+!!now check to see if we had to remove water from higher elevations, if so add to
+!!lower
+!
+!   do j=1,mland
+!      if (delta_qv(j) .lt. 0.0) then  !need to add
+!
+!         do i=landpt(j)%cstart,landpt(j)%cend
+!            if (soil%elev(i) .lt. elev_mean(j)) then
+!               scle(i-landpt(j)%cstart+1) = abs(soil%elev(i) .lt. elev_mean(j))
+!            end if
+!         end do
+!
+!         if (sum(scle,dim=1) .gt. 0.0) then
+!            scle(:) = scle(:) / sum(scle,dim=1)
+!         end if
+!         
+!         do i=landpt(j)%cstart,landpt(j)%cend
+!            met%qv(i) = met%qv(i) - scle(i-landpt(j)%cstart+1)*delta_qv(j)
+!         end do
+!
+!         !now triple check all below qsat
+!         !if now add to rain on highest tiles
+!         delta_qv(j) = 0.0
+!         do i=landpt(j)%cstart,landpt(j)%cend
+!            if (met%qv(i) .gt. qsat(met%tk(i),met%pmb(i)) ) then  ! met%qv(i) + scle(i-landpt(j)%cstart+1)*delta_qv(j)
+!               delta_qv(j) = delta_qv(j) + (met%qv(i) - qsat(met%tk(i),met%pmb(i)))
+!               met%qv(i) =  qsat(met%tk(i),met%pmb(i))
+!            end if
+!         end do
+!
+!         if (delta_qv(j) .ne. 0.0) then
+!
+!           tmp_rl = -9999.0
+!           do i=landpt(j)%cstart,landpt(j)%cend
+!              if (soil%elev(i) - elev_mean(j) .gt. tmp_rl) then
+!                 tmp_rl = soil%elev(i) - elev_mean(j)
+!                 tmp_mx = i + 1 - landpt(j)%cstart
+!               end if
+!            end do
+!
+!            i = landpt(j)%cstart - 1 + tmp_mx
+!
+!            met%precip(i) = met%precip(i) + delta_qv(j)/dels*met%tk(i)/met%pmb(i)/287.0
+!
+!            if (met%tk(i)-phys%tfrz .le. -1.5) then
+!               met%precip_sn(i) = met%precip_sn(i) + delta_qv(j)/dels*met%tk(i)/met%pmb(i)/287.0
+!            end if
+! 
+!         end if
+!
+!      end if !init dq check
+!   end do !land cell loop
+!            
+!
+!
+!
+!      met%qv(i) = min(met%qv(i) , qsat(met%tk(i),met%pmb(i)))
+!
+!
+!end subroutine adjust_gridcell_forcing
+!
+!real elemental function qsat(T,P)
+!
+!   use cable_data_module, only : phys!rmh2o,rmair,tetena,tetenb,tetenc,tfrz
+!   real, intent(in) :: T,P
+!
+!   qsat = (phys%rmh2o/phys%rmair) * (phys%tetena*EXP(phys%tetenb*(T-phys%tfrz)/(phys%tetenc+(T-phys%tfrz)))) / P
+!
+!end function qsat
+!
 
 END MODULE cable_input_module
 !==============================================================================

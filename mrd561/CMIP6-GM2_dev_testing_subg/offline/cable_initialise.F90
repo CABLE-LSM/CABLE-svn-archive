@@ -409,37 +409,33 @@ SUBROUTINE get_restart_data(logn,ssnow,canopy,rough,bgc,                       &
         max_vegpatches,'def',from_restart,mp)
 
    !MD
-   ok = NF90_INQ_VARID(ncid_rin,'GWwb',parID)
-   IF(ok == NF90_NOERR) THEN 
-     CALL readpar(ncid_rin,'GWwb',dummy,ssnow%GWwb,filename%restart_in,            &
-                max_vegpatches,'def',from_restart,mp)   
-   ELSE
-      ssnow%GWwb = 0.95*soil%ssat
+   ssnow%GWwb = 0.95*soil%ssat
+   IF (cable_user%gw_model) then
+      ok = NF90_INQ_VARID(ncid_rin,'GWwb',parID)
+      IF(ok == NF90_NOERR) THEN 
+        CALL readpar(ncid_rin,'GWwb',dummy,ssnow%GWwb,filename%restart_in,            &
+                   max_vegpatches,'def',from_restart,mp)   
+      ELSE
+         ssnow%GWwb = 0.95*soil%ssat
+      END IF
+   
+      !MD
+      ssnow%wtd(:) = -9999.0
+      ok = NF90_INQ_VARID(ncid_rin,'wtd',parID)
+      IF(ok == NF90_NOERR) THEN 
+        CALL readpar(ncid_rin,'wtd',dummy,ssnow%wtd,filename%restart_in,            &
+                   max_vegpatches,'def',from_restart,mp)   
+      END IF
+
    END IF
 
-   !MD
-   ok = NF90_INQ_VARID(ncid_rin,'GWtgg',parID)
-   IF(ok == NF90_NOERR) THEN 
-     CALL readpar(ncid_rin,'GWtgg',dummy,ssnow%GWtgg,filename%restart_in,            &
-                max_vegpatches,'def',from_restart,mp)   
-   ELSE
-      ssnow%GWtgg = ssnow%tgg(:,size(ssnow%tgg,dim=2))
-   END IF
-
-   ok = NF90_INQ_VARID(ncid_rin,'wtd',parID)
-   IF(ok == NF90_NOERR) THEN 
-     CALL readpar(ncid_rin,'wtd',dummy,ssnow%wtd,filename%restart_in,            &
-                max_vegpatches,'def',from_restart,mp)   
-   ELSE
-      ssnow%wtd = -9999.0
-   END IF
-
-   ok = NF90_INQ_VARID(ncid_rin,'sublayer_dz',parID)
-   IF(ok == NF90_NOERR) THEN 
-     CALL readpar(ncid_rin,'sublayer_dz',dummy,canopy%sublayer_dz,filename%restart_in,            &
-                max_vegpatches,'def',from_restart,mp)   
-   ELSE
-      canopy%sublayer_dz = 0.01
+   canopy%sublayer_dz = 0.01
+   IF (cable_user%or_evap) THEN
+      ok = NF90_INQ_VARID(ncid_rin,'sublayer_dz',parID)
+      IF(ok == NF90_NOERR) THEN 
+        CALL readpar(ncid_rin,'sublayer_dz',dummy,canopy%sublayer_dz,filename%restart_in,            &
+                   max_vegpatches,'def',from_restart,mp)   
+      END IF
    END IF
 
    IF(cable_user%SOIL_STRUC=='sli'.or.cable_user%FWSOIL_SWITCH=='Haverd2013') THEN

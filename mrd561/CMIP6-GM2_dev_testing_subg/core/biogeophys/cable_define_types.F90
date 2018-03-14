@@ -52,12 +52,7 @@ MODULE cable_def_types_mod
       swb = 2,       & ! # shortwave bands
       niter = 4,     & ! number of iterations for za/L
  !      ms = 12          ! # soil layers
-       !ms = 6         ! # soil layers - standard
-       pms = 7,      & ! # soil layers - standard
-       ntiles=8       ! # number of clusters per gridcell
-
-   INTEGER :: ms = 6
-
+       ms = 6         ! # soil layers - standard
 !       ms = 13          ! for Loetschental experiment
 
 !   PRIVATE :: r_2, ms, msn, mf, nrb, ncp, ncs
@@ -165,7 +160,8 @@ MODULE cable_def_types_mod
       REAL(r_2), DIMENSION(:), POINTER ::                                      &
          elev, &  !elevation above sea level
          slope,  &  !mean slope of grid cell
-         slope_std  !stddev of grid cell slope
+         slope_std,&  !stddev of grid cell slope
+         drain_dens
 
       !MD parameters for GW module for the aquifer
       REAL(r_2), DIMENSION(:), POINTER ::                                       &
@@ -188,7 +184,7 @@ MODULE cable_def_types_mod
      !REAL(r_2), DIMENSION(:,:), POINTER :: sfc_vec   ! vol H2O @ fc
 
 
-     real(r_2), dimension(:,:), pointer :: flow_elev,flow_dist,flow_frac
+     !real(r_2), dimension(:,:), pointer :: flow_elev,flow_dist,flow_frac
 
   END TYPE soil_parameter_type
 
@@ -877,6 +873,7 @@ SUBROUTINE alloc_soil_parameter_type(var, mp)
    allocate( var%elev(mp) )
    allocate( var%slope(mp) )
    allocate( var%slope_std(mp) )
+   allocate( var%drain_dens(mp) )
 
    ! Allocate variables for SLI soil model:
    ALLOCATE ( var % nhorizons(mp) )
@@ -891,9 +888,9 @@ SUBROUTINE alloc_soil_parameter_type(var, mp)
    IF(.NOT.(ASSOCIATED(var % ssat_vec))) ALLOCATE ( var % ssat_vec(mp,ms) )
    IF(.NOT.(ASSOCIATED(var % sfc_vec))) ALLOCATE ( var % sfc_vec(mp,ms) )
 
-   allocate( var%flow_dist(mp,ntiles) )
-   allocate( var%flow_elev(mp,ntiles) )
-   allocate( var%flow_frac(mp,ntiles) )
+   !allocate( var%flow_dist(mp,ntiles) )
+   !allocate( var%flow_elev(mp,ntiles) )
+   !allocate( var%flow_frac(mp,ntiles) )
 
 
 END SUBROUTINE alloc_soil_parameter_type
@@ -1500,6 +1497,7 @@ SUBROUTINE dealloc_soil_parameter_type(var)
    DEALLOCATE( var%elev )
    DEALLOCATE( var%slope )
    DEALLOCATE( var%slope_std )
+   DEALLOCATE( var%drain_dens )
     ! Deallocate variables for SLI soil model:
     !IF(cable_user%SOIL_STRUC=='sli') THEN
     DEALLOCATE ( var % nhorizons)
@@ -1515,9 +1513,9 @@ SUBROUTINE dealloc_soil_parameter_type(var)
     IF(ASSOCIATED(var % sfc_vec)) DEALLOCATE ( var % sfc_vec )
     !END IF
 
-   deallocate( var%flow_dist )
-   deallocate( var%flow_elev )
-   deallocate( var%flow_frac )
+   !deallocate( var%flow_dist )
+   !deallocate( var%flow_elev )
+   !deallocate( var%flow_frac )
 
 END SUBROUTINE dealloc_soil_parameter_type
 

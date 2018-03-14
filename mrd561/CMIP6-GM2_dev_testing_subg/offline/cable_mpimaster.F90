@@ -349,8 +349,7 @@ CONTAINS
          wiltParam,        &
          satuParam,        &
          cable_user,       &  ! additional USER switches 
-         gw_params,        &
-         ms
+         gw_params
 
     INTEGER :: i,x,kk
     INTEGER :: LALLOC
@@ -365,9 +364,6 @@ CONTAINS
     READ( 10, NML=CABLE )   !where NML=CABLE defined above
     CLOSE(10)
 
-
-    !set number of soil layers
-    ms = cable_user%number_soil_levels
 
     ! Open, read and close the consistency check file.
     ! Check triggered by cable_user%consistency_check = .TRUE. in cable.nml
@@ -3235,25 +3231,25 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   &                             types(bidx), ierr)
   blen(bidx) = 1
 
-  bidx = bidx + 1
-  CALL MPI_Get_address (soil%flow_dist(off,1), displs(bidx), ierr)
-  CALL MPI_Type_create_hvector (ntiles, r2len, r2stride, MPI_BYTE, &
-  &                             types(bidx), ierr)
-  blen(bidx) = 1
-
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (soil%flow_frac(off,1), displs(bidx), ierr)
-  CALL MPI_Type_create_hvector (ntiles, r2len, r2stride, MPI_BYTE, &
-  &                             types(bidx), ierr)
-  blen(bidx) = 1
-
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (soil%flow_elev(off,1), displs(bidx), ierr)
-  CALL MPI_Type_create_hvector (ntiles, r2len, r2stride, MPI_BYTE, &
-  &                             types(bidx), ierr)
-  blen(bidx) = 1
+!  bidx = bidx + 1
+!  CALL MPI_Get_address (soil%flow_dist(off,1), displs(bidx), ierr)
+!  CALL MPI_Type_create_hvector (ntiles, r2len, r2stride, MPI_BYTE, &
+!  &                             types(bidx), ierr)
+!  blen(bidx) = 1
+!
+!
+!  bidx = bidx + 1
+!  CALL MPI_Get_address (soil%flow_frac(off,1), displs(bidx), ierr)
+!  CALL MPI_Type_create_hvector (ntiles, r2len, r2stride, MPI_BYTE, &
+!  &                             types(bidx), ierr)
+!  blen(bidx) = 1
+!
+!
+!  bidx = bidx + 1
+!  CALL MPI_Get_address (soil%flow_elev(off,1), displs(bidx), ierr)
+!  CALL MPI_Type_create_hvector (ntiles, r2len, r2stride, MPI_BYTE, &
+!  &                             types(bidx), ierr)
+!  blen(bidx) = 1
 
   bidx = bidx + 1
   CALL MPI_Get_address (soil%zse_vec(off,1), displs(bidx), ierr)
@@ -3318,12 +3314,16 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   blen(bidx) = r2len
 
   bidx = bidx + 1
+  CALL MPI_Get_address (soil%drain_dens(off), displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
   CALL MPI_Get_address (ssnow%GWwb(off), displs(bidx), ierr)
   blen(bidx) = r2len
 
   bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%GWtgg(off), displs(bidx), ierr)
-  blen(bidx) = r1len
+  CALL MPI_Get_address (canopy%sublayer_dz(off), displs(bidx), ierr)
+  blen(bidx) = r2len
 
   write(*,*) 'master bidx ',bidx
      ! MPI: sanity check
@@ -6045,11 +6045,6 @@ SUBROUTINE master_outtypes (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
 
      vidx = vidx + 1
      ! REAL(r_2)
-     CALL MPI_Get_address (ssnow%GWtgg(off), vaddr(vidx), ierr) ! 40
-     blen(vidx) = cnt * extr1
-
-     vidx = vidx + 1
-     ! REAL(r_2)
      CALL MPI_Get_address (ssnow%wtd(off), vaddr(vidx), ierr) ! 40
      blen(vidx) = cnt * extr2
 
@@ -6061,11 +6056,6 @@ SUBROUTINE master_outtypes (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
      vidx = vidx + 1
      ! REAL(r_2)
      CALL MPI_Get_address (ssnow%Qrecharge(off), vaddr(vidx), ierr) ! 40
-     blen(vidx) = cnt * extr2
-
-     vidx = vidx + 1
-     ! REAL(r_2)
-     CALL MPI_Get_address (ssnow%Qconv(off), vaddr(vidx), ierr) ! 40
      blen(vidx) = cnt * extr2
 
      vidx = vidx + 1

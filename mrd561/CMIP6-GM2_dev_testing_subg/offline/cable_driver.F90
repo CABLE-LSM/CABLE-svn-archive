@@ -261,8 +261,7 @@ PROGRAM cable_offline_driver
        wiltParam,	 &
        satuParam,	 &
        cable_user,       &   ! additional USER switches
-       gw_params,        &
-       ms
+       gw_params
 
   !mpidiff
   INTEGER :: i,x,kk
@@ -294,9 +293,6 @@ PROGRAM cable_offline_driver
   OPEN( 10, FILE = CABLE_NAMELIST )
   READ( 10, NML=CABLE )	  !where NML=CABLE defined above
   CLOSE(10)
-
-  !set number of soil levels
-  ms = cable_user%number_soil_levels
 
   ! Open, read and close the consistency check file.
   ! Check triggered by cable_user%consistency_check = .TRUE. in cable.nml

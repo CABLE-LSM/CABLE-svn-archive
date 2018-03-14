@@ -443,7 +443,8 @@ END SUBROUTINE remove_transGW
 ! wtd_lev(:) = ms+1
 !  do k=1,ms
 !     do i=1,mp
-!        if (all(ssnow%wb(i,k:ms) .ge. 0.995*soil%ssat_vec(i,k:ms)) then
+!        if (all(ssnow%wbliq(i,k:ms) .ge.&
+!           0.999*(soil%ssat_vec(i,k:ms)-ssnow%wbice(i,k:ms)) then
 !           wtd_lev(i) = k
 !         end if
 !      end do
@@ -1123,6 +1124,8 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
 
    end do
 
+   CALL iterative_wtd (ssnow, soil, veg, .true. ,use_single_level(:))  
+
    CALL snowcheck (dels, ssnow, soil, met )
 
    CALL snowdensity (dels, ssnow, soil)
@@ -1161,21 +1164,12 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
    ssnow%fwtop = canopy%precis/dels + ssnow%smelt/dels   !water from canopy and snowmelt [mm/s]   
    !ssnow%rnof1 = ssnow%rnof1 + ssnow%smelt / dels          !adding snow melt directly to the runoff
 
-   if (first_gw_hydro_call) &
-      CALL iterative_wtd (ssnow, soil, veg, .true. ,use_single_level)  
-
    CALL ovrlndflx (dels, ssnow, soil, veg, canopy,use_sli )         !surface runoff, incorporate ssnow%pudsto?
 
    ssnow%sinfil = ssnow%fwtop - canopy%segg  !canopy%fes/C%HL               !remove soil evap from throughfall
 
    CALL smoistgw (dels,ktau,ssnow,soil,veg,canopy)               !vertical soil moisture movement. 
 
-   if (cable_user%super_hydro) then
-      !calc explicit horz transfer and update the wtd
-      call subgrid_sm_transfer(dels,ssnow,soil,veg)
-   end if 
-
-   !CALL iterative_wtd (ssnow, soil, veg, .true. )  
 
    ! correction required for energy balance in online simulations 
    IF( cable_runtime%um) THEN
@@ -1718,8 +1712,8 @@ END SUBROUTINE calc_soil_hydraulic_props
        !work on router and add river type cells
        ssnow%qhz(i)  = min(max(soil%slope(i),0.00001),0.1)*&
                        gw_params%MaxHorzDrainRate* &
-                        exp(-ssnow%wtd(i)/(1000._r_2*&
-                       (gw_params%EfoldHorzDrainRate*Efold_mod(veg%iveg(i)))))
+                       exp(-0.001*ssnow%wtd(i)/gw_params%EfoldHorzDrainRate/&
+                       (1.0+soil%drain_dens(i)))
 
        if (gw_params%subsurface_sat_drainage) then
           !drain from sat layers
@@ -1945,193 +1939,6 @@ END SUBROUTINE calc_soil_hydraulic_props
   my_erf = 1.0 - tmp_val
 
   end function my_erf
-
-SUBROUTINE subgrid_sm_transfer(dels,ssnow,soil,veg)
-  USE cable_IO_vars_module , ONLY : landpt
-  
-  implicit none
-  REAL, INTENT(IN)                              :: dels
-  TYPE (soil_snow_type), INTENT(INOUT)      :: ssnow ! soil and snow variables
-  TYPE (soil_parameter_type), INTENT(INOUT)    :: soil  ! soil parameters
-  TYPE (veg_parameter_type), INTENT(INOUT)     :: veg
-  
-  !local variables
-  integer :: i,ii,k,kk,ib,ie,j,jj,klev
-  real(r_2), dimension(mp)     :: qsrf_store_n,qsrf_flow_n, q_tot, wb_avg
-  real(r_2), dimension(mp,ms+1) :: q_lev
-  
-  real(r_2) :: def, theta, ani,f, slope  !ani = anisotopic factor (2e3 for chen kumar 2001)
-  real(r_2) :: q_tmp,space_avail,water_avail
-
-  logical :: verbose_debug
-
-  verbose_debug = .false.
-  ani = 2.0e3
-  f = 1. / sum(soil%zse)
- 
-  ssnow%qhlev(:,:) = 0.  !horz flux in unsat zone
-  q_tot(:) = 0.0         !horz flux in sat zone
-
-  do i=1,mland
-  
-    ib = landpt(i)%cstart
-    ie = landpt(i)%cend
-
-    do ii=ib,ie
-
-       do jj=ii+1,ie
-
-        q_tmp  =  0.5*(soil%hyds_vec(ii,ms)+soil%hyds_vec(jj,ms))*&
-                                   ani * dels *  &
-                                   min(1.0-ssnow%fracice(ii,ms),1.0-ssnow%fracice(jj,ms))*&
-                                   exp(-0.0005*gw_params%EfoldHorzDrainRate*(ssnow%wtd(jj)+ssnow%wtd(ii))) *&
-                                   ((ssnow%wtd(jj)-ssnow%wtd(ii))/soil%flow_dist(ii,jj-ib) + &
-                                   soil%flow_elev(ii,jj-ib)/soil%flow_dist(ii,jj-ib) )*&
-                                   soil%flow_frac(ii,jj-ib)
-
-        q_tot(ii) = q_tot(ii) + q_tmp
-
-        q_tot(jj) = q_tot(jj) - q_tmp
-
-        !!simple predict correct?
-        !simple method for explicit horz fluxes, could it be stable?
-        !do klev=1,ms
-
-        !   q_tmp =   ani * 1._r_2/(sqrt(1._r_2 + &
-        !             (soil%flow_elev(ii,jj-ib)/soil%flow_dist(ii,jj-ib))**2.0)*&
-        !              0.5*(ssnow%hk(ii,klev) + ssnow%hk(jj,klev)) *&
-        !             -(ssnow%smp(jj,klev)-ssnow%smp(ii,klev))/soil%flow_dist(ii,jj-ib)/1000._r_2
-
-        !   ssnow%qhlev(ii,klev) = ssnow%qhlev(ii,klev) - q_tmp
-        !   ssnow%qhlev(jj,klev) = ssnow%qhlev(jj,klev) + q_tmp
-        !end do
-       end do
-    end do
-
-  end do
-
-  ssnow%Qconv(:) = q_tot(:)
-
-
-  do i=1,mp
-
-
-     if (q_tot(i) .gt. 0._r_2) then
-
-        if (ssnow%GWwb(i) .lt. soil%GWssat(i)) then 
-
-           space_avail = (soil%GWssat(i) - ssnow%GWwb(i)) * soil%GWdz(i) * 1000._r_2
-
-           if (q_tot(i) .le. space_avail) then
-              ssnow%qhlev(i,ms+1) = ssnow%qhlev(i,ms+1) - q_tot(i)/dels
-              ssnow%GWwb(i) = ssnow%GWwb(i) + q_tot(i)/(1000._r_2 * soil%GWdz(i))
-              q_tot(i) = 0._r_2
-           else
-              ssnow%qhlev(i,ms+1) = ssnow%qhlev(i,ms+1) -  space_avail/dels
-              q_tot(i) = q_tot(i) - space_avail
-              ssnow%GWwb(i) = soil%GWssat(i)
-           end if
-        end if
-
-        do k=ms,1,-1
-
-           if (q_tot(i) .gt. 0._r_2 .and. ((soil%ssat_vec(i,k)-ssnow%wbice(i,k)) .gt. ssnow%wbliq(i,k)) ) then
-
-              space_avail = ((soil%ssat_vec(i,k)-ssnow%wbice(i,k))  - &
-                             ssnow%wbliq(i,k)) * soil%zse(k) * 1000._r_2
-
-              if (q_tot(i) .le. space_avail) then
-                 ssnow%qhlev(i,k) = ssnow%qhlev(i,k) - q_tot(i)/dels
-                 ssnow%wbliq(i,k) = ssnow%wbliq(i,k) + q_tot(i)/(1000._r_2 * soil%zse(k))
-                 q_tot(i) = 0._r_2
-              else
-                 ssnow%qhlev(i,k) = ssnow%qhlev(i,k) - space_avail/dels
-                 q_tot(i) = q_tot(i) - space_avail
-                 ssnow%wbliq(i,k) = soil%ssat_vec(i,k) - ssnow%wbice(i,k)
-              end if
-           end if
-
-        end do
-
-        !if any left add to srf runoff
-        ssnow%rnof1(i) = ssnow%rnof1(i) + q_tot(i)/dels
-        q_tot(i) = 0._r_2
-
-
-     else
-
-     !find wtd layer
-   
-        klev = ms+1
-        do k=ms,1,-1
-   
-           if (sum(soil%ssat_vec(i,k:ms) - (ssnow%wbliq(i,k:ms)+ssnow%wbice(i,k:ms)),dim=1) .le. 0.01 ) then
-              klev = k
-            end if
-        end do
-   
-        if (klev .eq. ms+1 .and. abs(q_tot(i)) .gt. 0._r_2)  then  !remove from aq
-   
-           water_avail = (ssnow%GWwb(i)-soil%GWwatr(i))*soil%GWdz(i)*1000._r_2
-   
-           if (abs(q_tot(i)) .le. water_avail) then
-              ssnow%GWwb(i) = ssnow%GWwb(i) + q_tot(i)/soil%GWdz(i)/1000._r_2
-              ssnow%qhlev(i,ms+1) = ssnow%qhlev(i,ms+1) - q_tot(i)/dels
-              q_tot(i) = 0._r_2
-           else
-              ssnow%qhlev(i,ms+1) = ssnow%qhlev(i,ms+1) + (q_tot(i) + water_avail)/dels
-              q_tot(i) = q_tot(i) + water_avail
-              ssnow%GWwb(i) = soil%GWwatr(i)
-           end if
-   
-        end if
-   
-        do k=klev,ms
-   
-           if (abs(q_tot(i)) .gt. 0._r_2) then
-              water_avail = (ssnow%wbliq(i,k)-soil%watr(i,k))*soil%zse(k)*1000._r_2
-   
-              if (abs(q_tot(i)) .le. water_avail) then
-                 ssnow%wbliq(i,k) = ssnow%wbliq(i,k) + q_tot(i)/soil%zse(k)/1000._r_2
-                 ssnow%qhlev(i,k) = ssnow%qhlev(i,k) - q_tot(i)/dels
-                 q_tot(i) = 0._r_2
-              else
-                 ssnow%qhlev(i,k) = ssnow%qhlev(i,k) + water_avail/dels
-                 q_tot(i) = q_tot(i) + water_avail
-                 ssnow%wbliq(i,k) = soil%watr(i,k)
-              end if
-   
-           end if
-        end do
-
-     end if  !convergence or divergence
-
-   end do           
-  
-  !ensure conserve water 
-  do i=1,mland         
-    ib = landpt(i)%cstart
-    ie = landpt(i)%cend
-
-     do ii=ib,ie
-  
-        if (abs(q_tot(ii)) .gt. 0._r_2) then
-           if (ii .lt. ie) then  !remove from next cell
-
-              q_tot(ii+1) = q_tot(ii+1) + q_tot(ii)
-
-           else
-              ssnow%qhz(ii) = q_tot(ii)/dels
-           end if
-
-           q_tot(ii) = 0._r_2
-
-        end if   
-     end do
-   end do
-
-  
-END SUBROUTINE  subgrid_sm_transfer
 
 ! calculates temperatures of the soil
 ! tgg - new soil/snow temperature

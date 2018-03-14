@@ -274,8 +274,7 @@ CONTAINS
          wiltParam,        &
          satuParam,        &
          cable_user,       &  ! additional USER switches
-         gw_params,        &
-         ms
+         gw_params
 
     INTEGER :: i,x,kk
     INTEGER :: LALLOC, iu
@@ -288,9 +287,6 @@ CONTAINS
     OPEN( 10, FILE = CABLE_NAMELIST )
     READ( 10, NML=CABLE )   !where NML=CABLE defined above
     CLOSE(10)
-
-    !set number of soil layers
-    ms = cable_user%number_soil_levels
 
     IF( IARGC() > 0 ) THEN
        CALL GETARG(1, filename%met)
@@ -2386,20 +2382,20 @@ ENDIF
   blen(bidx) = ms * r2len
 
 
-  bidx = bidx + 1
-  CALL MPI_Get_address (soil%flow_dist, displs(bidx), ierr)
-  blen(bidx) = ntiles * r2len
-
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (soil%flow_frac, displs(bidx), ierr)
-  blen(bidx) = ntiles * r2len
-
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (soil%flow_elev, displs(bidx), ierr)
-  blen(bidx) = ntiles * r2len
-
+!  bidx = bidx + 1
+!  CALL MPI_Get_address (soil%flow_dist, displs(bidx), ierr)
+!  blen(bidx) = ntiles * r2len
+!
+!
+!  bidx = bidx + 1
+!  CALL MPI_Get_address (soil%flow_frac, displs(bidx), ierr)
+!  blen(bidx) = ntiles * r2len
+!
+!
+!  bidx = bidx + 1
+!  CALL MPI_Get_address (soil%flow_elev, displs(bidx), ierr)
+!  blen(bidx) = ntiles * r2len
+!
 
   bidx = bidx + 1
   CALL MPI_Get_address (soil%zse_vec, displs(bidx), ierr)
@@ -2457,12 +2453,16 @@ ENDIF
   blen(bidx) = r2len
 
   bidx = bidx + 1
+  CALL MPI_Get_address (soil%drain_dens, displs(bidx), ierr)
+  blen(bidx) = r2len
+
+  bidx = bidx + 1
   CALL MPI_Get_address (ssnow%GWwb, displs(bidx), ierr)
   blen(bidx) = r2len
 
   bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%GWtgg, displs(bidx), ierr)
-  blen(bidx) = r1len
+  CALL MPI_Get_address (canopy%sublayer_dz, displs(bidx), ierr)
+  blen(bidx) = r2len
 
   write(*,*) 'worker ',rank,' bidx of ',bidx
 
@@ -5596,10 +5596,6 @@ ENDIF
      blocks(bidx) = r2len
 
      bidx = bidx + 1
-     CALL MPI_Get_address (ssnow%GWtgg(off), displs(bidx), ierr)
-     blocks(bidx) = r1len
-
-     bidx = bidx + 1
      CALL MPI_Get_address (ssnow%wtd(off), displs(bidx), ierr)
      blocks(bidx) = r2len
 
@@ -5609,10 +5605,6 @@ ENDIF
 
      bidx = bidx + 1
      CALL MPI_Get_address (ssnow%Qrecharge(off), displs(bidx), ierr)
-     blocks(bidx) = r2len
-
-     bidx = bidx + 1
-     CALL MPI_Get_address (ssnow%Qconv(off), displs(bidx), ierr)
      blocks(bidx) = r2len
 
      bidx = bidx + 1

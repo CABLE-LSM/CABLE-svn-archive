@@ -42,7 +42,7 @@ MODULE cable_mpicommon
   !only5 in master cable params
   !send ssnow%smp to workers so they can send back values if gw=false
   !INTEGER, PARAMETER :: nparam =331!  add back in elev 330! 329 !326!308   
-  INTEGER, PARAMETER :: nparam =338 !flow frac, dist, elev, zse_vec,css_vec,cnds_vec
+  INTEGER, PARAMETER :: nparam =336 !flow frac, dist, elev, zse_vec,css_vec,cnds_vec
   ! MPI: extra params sent only if nsoilparmnew is true
   INTEGER, PARAMETER :: nsoilnew = 1
 

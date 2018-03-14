@@ -3325,15 +3325,17 @@ CONTAINS
                      'Reference height (lowest atm. model layer) for scalars', &
                      .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
 
-    CALL define_ovar(ncid_restart, gwID, 'GWtgg', 'K','GW temperature',&
-                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
-    CALL define_ovar(ncid_restart, gwID, 'GWwb', 'mm3/mm3','GW water content',&
-                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
-    CALL define_ovar(ncid_restart, wtdID, 'wtd', 'mm','water table depth',&
-                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
-    CALL define_ovar(ncid_restart, subdzID, 'sublayer_dz', 'm','thickness of viscous sublayer',&
-                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+    IF (cable_user%gw_model) THEN
+       CALL define_ovar(ncid_restart, gwID, 'GWwb', 'mm3/mm3','GW water content',&
+                        .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+       CALL define_ovar(ncid_restart, wtdID, 'wtd', 'mm','water table depth',&
+                        .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+    ENDIF
 
+    IF (cable_user%or_evap) THEN
+       CALL define_ovar(ncid_restart, subdzID, 'sublayer_dz', 'm','thickness of viscous sublayer',&
+                        .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+    ENDIF
 
     !tiled and hetero soil properteis
 
@@ -3427,13 +3429,8 @@ CONTAINS
       CALL define_ovar(ncid_restart, rpid%GWdz, 'GWdz', 'm',    &
                        'aquifer thickness ', &
                        .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
-  
-  
-      CALL define_ovar(ncid_restart, rpid%GWrhosoil, 'GWrhosoil', 'mm',    &
-                       'aquifer bullk density', &
-                       .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
-  
-  
+ 
+ 
       CALL define_ovar(ncid_restart, rpid%slope, 'slope', 'm/m',    &
                        'mean surface slope', &
                        .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
@@ -3444,6 +3441,10 @@ CONTAINS
   
       CALL define_ovar(ncid_restart, rpid%elev, 'elevation', 'm',    &
                        'mean surface elevation above sea level', &
+                       .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+ 
+      CALL define_ovar(ncid_restart, rpid%draindens, 'drain_dens', 'm',    &
+                       'dist to river', &
                        .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
  
     end if
@@ -3811,10 +3812,6 @@ CONTAINS
                        (/-99999.0, 9999999.0/), .TRUE., 'real', .TRUE.) 
 
 
-    CALL write_ovar (ncid_restart, rpid%GWrhosoil, 'GWrhosoil', soil%GWrhosoil,       &
-                       (/-99999.0, 9999999.0/), .TRUE., 'real', .TRUE.) 
-
-
     CALL write_ovar (ncid_restart, rpid%slope, 'slope', soil%slope,       &
                        (/-99999.0, 9999999.0/), .TRUE., 'real', .TRUE.) 
 
@@ -3823,6 +3820,9 @@ CONTAINS
                        (/-99999.0, 9999999.0/), .TRUE., 'real', .TRUE.) 
 
     CALL write_ovar (ncid_restart, rpid%elev, 'elevation', soil%elev,       &
+                       (/-99999.0, 9999999.0/), .TRUE., 'real', .TRUE.) 
+
+    CALL write_ovar (ncid_restart, rpid%draindens, 'drain_dens', soil%drain_dens,       &
                        (/-99999.0, 9999999.0/), .TRUE., 'real', .TRUE.) 
 
 

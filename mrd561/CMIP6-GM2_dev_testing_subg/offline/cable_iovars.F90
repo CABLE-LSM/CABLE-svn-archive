@@ -140,7 +140,7 @@ MODULE cable_IO_vars_module
           slope,slope_std,SatFracmax,Qhmax,QhmaxEfold,HKefold,HKdepth,&
           clayv,siltv,sandv,orgv,GWhyds,GWssat,GWwatr,GWbch,GWdz,GWrhosoil,&
           zsev,sfcv,swiltv,watrv,bchv,cssv,cnsdv,rhosoilv,ssatv,sucsv,hydsv,&
-          elev,GWsucs
+          elev,GWsucs,draindens
      INTEGER :: ishorizon,nhorizons,clitt, &
           zeta,fsatmax, &
           gamma,ZR,F10
