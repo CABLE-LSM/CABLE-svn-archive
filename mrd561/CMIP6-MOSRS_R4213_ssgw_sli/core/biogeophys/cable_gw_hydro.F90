@@ -56,7 +56,10 @@ MODULE cable_gw_hydro_module
    IMPLICIT NONE
 
    PRIVATE
-      
+   
+  TYPE ( issnow_type ) :: C
+  
+
    !mrd561 GW params
    !Should read some in from namelist
    REAL(r_2), PARAMETER :: sucmin  = -1.0e8, &! minimum soil pressure head [mm]
@@ -76,7 +79,7 @@ MODULE cable_gw_hydro_module
    PRIVATE subsurface_drainage,iterative_wtd,ovrlndflx,aquifer_recharge, calc_soil_hydraulic_props
    PRIVATE calc_equilibrium_water_content
    PRIVATE GWsoilfreeze, remove_transGW,simple_wtd
-   PRIVATE smoistgw
+   PRIVATE smoistgw,my_erf
 
 CONTAINS
 
@@ -90,6 +93,7 @@ SUBROUTINE GWsoilfreeze(dels, soil, ssnow)
    REAL, DIMENSION(mp)                :: xx, ice_mass,liq_mass,tot_mass
    INTEGER :: i,j,k
    REAL(r_2),DIMENSION(mp,ms) :: frozen_limit,iceF  !Decker and Zeng 2009
+   CALL point2constants( C ) 
 
    do k=1,ms
    do i=1,mp
@@ -1208,7 +1212,7 @@ END SUBROUTINE calc_equilibrium_water_content
 
 SUBROUTINE calc_srf_wet_fraction(ssnow,soil,met,veg)
   USE cable_data_module
-
+USE cable_common_module, ONLY : gw_params,cable_user
   IMPLICIT NONE
     TYPE(soil_snow_type), INTENT(INOUT)      :: ssnow  ! soil+snow variables
     TYPE(soil_parameter_type), INTENT(IN)    :: soil ! soil parameters

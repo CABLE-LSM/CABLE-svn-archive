@@ -191,10 +191,10 @@ CONTAINS
     tlfy = met%tk  ! initialise current leaf temp (K)
 
     ortsoil = ssnow%rtsoil
-    IF (cable_user%soil_struc=='default') then
-       ssnow%tss =  real((1-ssnow%isflag))*ssnow%tgg(:,1) + real(ssnow%isflag)*ssnow%tggsn(:,1)
-    elseif (cable_user%soil_struc=='sli') then
+    IF (cable_user%soil_struc=='sli') then
        ssnow%tss = real(ssnow%Tsurface) + C%tfrz
+    ELSE
+       ssnow%tss =  real((1-ssnow%isflag))*ssnow%tgg(:,1) + real(ssnow%isflag)*ssnow%tggsn(:,1)
     endif
     tss4 = ssnow%tss**4
     canopy%fes = 0.
@@ -425,7 +425,12 @@ CONTAINS
 
       call pore_space_relative_humidity(ssnow,soil,veg)
 
-       If (cable_user%soil_struc=='default') THEN
+       IF (cable_user%soil_struc=='sli') THEN
+          ! SLI SEB to get canopy%fhs, canopy%fess, canopy%ga
+          ! (Based on old Tsoil, new canopy%tv, new canopy%fns)
+          CALL sli_main(1,dels,veg,soil,ssnow,met,canopy,air,rad,1)
+
+       ELSE
 
           IF(cable_user%ssnow_POTEV== "P-M") THEN
 
@@ -459,10 +464,6 @@ CONTAINS
              canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tk) /ssnow%rtsoil
           ENDIF
 
-       ELSEIF (cable_user%soil_struc=='sli') THEN
-          ! SLI SEB to get canopy%fhs, canopy%fess, canopy%ga
-          ! (Based on old Tsoil, new canopy%tv, new canopy%fns)
-          CALL sli_main(1,dels,veg,soil,ssnow,met,canopy,air,rad,1)
        ENDIF
 
        CALL within_canopy( gbhu, gbhf )
@@ -470,7 +471,12 @@ CONTAINS
        ! Saturation specific humidity at soil/snow surface temperature:
        call qsatfjh(ssnow%qstss,ssnow%tss-C%tfrz,met%pmb)
 
-       IF (cable_user%soil_struc=='default') THEN
+       IF (cable_user%soil_struc=='sli') THEN
+          ! SLI SEB to get canopy%fhs, canopy%fess, canopy%ga
+          ! (Based on old Tsoil, new canopy%tv, new canopy%fns)
+          CALL sli_main(1,dels,veg,soil,ssnow,met,canopy,air,rad,1)
+
+       ELSE
 
           IF(cable_user%ssnow_POTEV== "P-M") THEN
 
@@ -507,10 +513,6 @@ CONTAINS
           !! Ticket #90 ssnow%cls factor should be retained: required for energy balance
           canopy%ga = canopy%fns-canopy%fhs-canopy%fes !*ssnow%cls
 
-       ELSEIF (cable_user%soil_struc=='sli') THEN
-          ! SLI SEB to get canopy%fhs, canopy%fess, canopy%ga
-          ! (Based on old Tsoil, new canopy%tv, new canopy%fns)
-          CALL sli_main(1,dels,veg,soil,ssnow,met,canopy,air,rad,1)
        ENDIF
 
        ! Set total latent heat:
@@ -864,9 +866,22 @@ CONTAINS
               dqu(j) = 0.0
          END IF
 
+              dqu(j) = max( -0.1e-3, dqu(j))
+         END IF
+
+         IF (dq(j) .le. 0.0 .and. dqu(j) .lt. dq(j)) THEN
+           dqu(j) = dq(j)
+         END IF
+
+         IF (dq(j) .ge. 0.0 .and. dqu(j) .lt. 0.0) THEN
+            dqu(j) = 0.0
+         ENDIF
       ENDDO
 
       IF (cable_user%or_evap .or. cable_user%gw_model) then
+
+        IF (cable_user%or_evap) &  !no need for some resistances when flux down
+            CALL update_or_soil_resis(ssnow,canopy,veg,dq,dqu)
 
          ssnowpotev = air%rho * air%rlam * ( &
                       real(ssnow%satfrac) * dq /(ssnow%rtsoil + real(ssnow%rtevap_sat)) + &
@@ -1906,11 +1921,12 @@ CONTAINS
                            soil%zse(kk) * 1000.0 )
 
                    ENDDO
-                   IF (cable_user%soil_struc=='default') then
+
+                   IF (cable_user%soil_struc=='sli') then
+                      canopy%fevc(i) = ecx(i)*(1.0-canopy%fwet(i))
+                   ELSE
                       canopy%fevc(i) = SUM(ssnow%evapfbl(i,:))*air%rlam(i)/dels
                       ecx(i) = canopy%fevc(i) / (1.0-canopy%fwet(i))
-                   ELSEIF (cable_user%soil_struc=='sli') then
-                      canopy%fevc(i) = ecx(i)*(1.0-canopy%fwet(i))
                    ENDIF
 
                 ENDIF

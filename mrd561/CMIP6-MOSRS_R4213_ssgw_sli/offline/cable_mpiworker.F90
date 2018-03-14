@@ -2363,14 +2363,6 @@ ENDIF
   blen(bidx) = r2len
 
   bidx = bidx + 1
-  CALL MPI_Get_address (soil%GWz, displs(bidx), ierr)
-  blen(bidx) = r2len
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (soil%GWdz, displs(bidx), ierr)
-  blen(bidx) = r2len
-
-  bidx = bidx + 1
   CALL MPI_Get_address (soil%slope, displs(bidx), ierr)
   blen(bidx) = r2len
 

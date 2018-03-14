@@ -362,9 +362,9 @@ SUBROUTINE smoisturev (dels,ssnow,soil,veg)
       END DO
 
       bt = 1. - at - ct
-      ssnow%wblf(:,1) = ssnow%wblf(:,1) + dtt(:,1) * ssnow%fwtop1 / rhowat
-      ssnow%wblf(:,2) = ssnow%wblf(:,2) + dtt(:,2) * ssnow%fwtop2 / rhowat
-      ssnow%wblf(:,3) = ssnow%wblf(:,3) + dtt(:,3) * ssnow%fwtop3 / rhowat
+      ssnow%wblf(:,1) = ssnow%wblf(:,1) + dtt(:,1) * ssnow%fwtop1 / C%density_liq
+      ssnow%wblf(:,2) = ssnow%wblf(:,2) + dtt(:,2) * ssnow%fwtop2 / C%density_liq
+      ssnow%wblf(:,3) = ssnow%wblf(:,3) + dtt(:,3) * ssnow%fwtop3 / C%density_liq
 
    END IF
    ! END: IF (nmeth <= 0) THEN
@@ -524,9 +524,9 @@ SUBROUTINE smoisturev (dels,ssnow,soil,veg)
          END DO
       END IF
 
-      ssnow%wblf(:,1) = ssnow%wblf(:,1) + dtt(:,1) * ssnow%fwtop1 / rhowat
-      ssnow%wblf(:,2) = ssnow%wblf(:,2) + dtt(:,2) * ssnow%fwtop2 / rhowat
-      ssnow%wblf(:,3) = ssnow%wblf(:,3) + dtt(:,3) * ssnow%fwtop3 / rhowat
+      ssnow%wblf(:,1) = ssnow%wblf(:,1) + dtt(:,1) * ssnow%fwtop1 / C%density_liq
+      ssnow%wblf(:,2) = ssnow%wblf(:,2) + dtt(:,2) * ssnow%fwtop2 / C%density_liq
+      ssnow%wblf(:,3) = ssnow%wblf(:,3) + dtt(:,3) * ssnow%fwtop3 / C%density_liq
 
    END IF  ! IF (nmeth > 0)
 
@@ -708,7 +708,7 @@ SUBROUTINE snow_melting (dels, snowmlt, ssnow, soil )
          osm = ssnow%smass(:,k)
          ssnow%smass(:,k) = ssnow%smass(:,k) + smelt1(:,k-1)
          ssnow%ssdn(:,k) = MAX( 120.0, MIN( ssnow%ssdn(:,k) * osm /            &
-                           ssnow%smass(:,k) + rhowat * ( 1.0 - osm /           &
+                           ssnow%smass(:,k) + C%density_liq * ( 1.0 - osm /           &
                            ssnow%smass(:,k)), max_ssdn ) )
 
          ! permanent ice: fix hard-wired number in next version
@@ -1159,8 +1159,8 @@ SUBROUTINE stempv(dels, canopy, ssnow, soil)
       xx = soil%css * soil%rhosoil
 
       ssnow%gammzz(:,k) = MAX( ( 1.0 - soil%ssat ) * soil%css * soil%rhosoil   &
-                          + soil%ssat * ( wblfsp * cswat * rhowat +            &
-                          ssnow%wbfice(:,k) * csice * rhowat * 0.9 ), xx )     &
+                          + soil%ssat * ( wblfsp * cswat * C%density_liq +            &
+                          ssnow%wbfice(:,k) * csice * C%density_liq * 0.9 ), xx )     &
                           * soil%zse(k)
 
       ssnow%gammzz(:,k) = ssnow%gammzz(:,k) + cgsnow * ssnow%snowd
@@ -1181,8 +1181,8 @@ SUBROUTINE stempv(dels, canopy, ssnow, soil)
          xx = soil%css * soil%rhosoil
 
          ssnow%gammzz(:,k) = MAX( ( 1.0 - soil%ssat ) * soil%css * soil%rhosoil&
-                             + soil%ssat * ( wblfsp * cswat * rhowat +         &
-                             ssnow%wbfice(:,k) * csice * rhowat * 0.9 ), xx )  &
+                             + soil%ssat * ( wblfsp * cswat * C%density_liq +         &
+                             ssnow%wbfice(:,k) * csice * C%density_liq * 0.9 ), xx )  &
                              * soil%zse(k)
 
          dtg = dels / ssnow%gammzz(:,k)
@@ -1252,7 +1252,7 @@ SUBROUTINE stempv(dels, canopy, ssnow, soil)
 
          ssnow%gammzz(:,k) = MAX( ( 1.0 - soil%ssat ) * soil%css *             &
                              soil%rhosoil + soil%ssat * ( wblfsp * cswat *     &
-                             rhowat + ssnow%wbfice(:,k) * csice * rhowat *     &
+                             C%density_liq + ssnow%wbfice(:,k) * csice * C%density_liq *     &
                              0.9) , xx ) * soil%zse(k)
 
          dtg = dels / ssnow%gammzz(:,k)
@@ -1415,6 +1415,8 @@ SUBROUTINE snowl_adjust(dels, ssnow, canopy )
 
    INTEGER :: api ! active patch counter
 
+   CALL point2constants( C )
+
 
    ! adjust levels in the snowpack due to snow accumulation/melting,
    ! snow aging etc...
@@ -1569,8 +1571,8 @@ SUBROUTINE soilfreeze(dels, soil, ssnow)
          xx = soil%css * soil%rhosoil
          ssnow%gammzz(:,k) = MAX(                                              &
              REAL((1.0 - soil%ssat) * soil%css * soil%rhosoil ,r_2)            &
-             + (ssnow%wb(:,k) - ssnow%wbice(:,k)) * REAL(cswat * rhowat,r_2)   &
-             + ssnow%wbice(:,k) * REAL(csice * rhowat * 0.9,r_2),              &
+             + (ssnow%wb(:,k) - ssnow%wbice(:,k)) * REAL(cswat * C%density_liq,r_2)   &
+             + ssnow%wbice(:,k) * REAL(csice * C%density_liq * 0.9,r_2),              &
              REAL(xx,r_2)) * REAL( soil%zse(k),r_2 )
 
          WHERE (k == 1 .AND. ssnow%isflag == 0)
@@ -1589,8 +1591,8 @@ SUBROUTINE soilfreeze(dels, soil, ssnow)
          xx = soil%css * soil%rhosoil
          ssnow%gammzz(:,k) = MAX(                                              &
               REAL((1.0-soil%ssat) * soil%css * soil%rhosoil,r_2)             &
-              + (ssnow%wb(:,k) - ssnow%wbice(:,k)) * REAL(cswat*rhowat,r_2)   &
-              + ssnow%wbice(:,k) * REAL(csice * rhowat * 0.9,r_2),            &
+              + (ssnow%wb(:,k) - ssnow%wbice(:,k)) * REAL(cswat*C%density_liq,r_2)   &
+              + ssnow%wbice(:,k) * REAL(csice * C%density_liq * 0.9,r_2),            &
               REAL(xx,r_2) ) * REAL(soil%zse(k),r_2)
          WHERE (k == 1 .AND. ssnow%isflag == 0)
             ssnow%gammzz(:,k) = ssnow%gammzz(:,k) + cgsnow * ssnow%snowd
@@ -1776,16 +1778,16 @@ SUBROUTINE soil_snow(dels, soil, ssnow, canopy, met, bal, veg)
          xx=soil%css * soil%rhosoil
 
          ssnow%gammzz(:,1) = MAX( (1.0 - soil%ssat) * soil%css * soil%rhosoil &
-              & + (ssnow%wb(:,1) - ssnow%wbice(:,1) ) * cswat * rhowat &
-              & + ssnow%wbice(:,1) * csice * rhowat * .9, xx ) * soil%zse(1)
+              & + (ssnow%wb(:,1) - ssnow%wbice(:,1) ) * cswat * C%density_liq &
+              & + ssnow%wbice(:,1) * csice * C%density_liq * .9, xx ) * soil%zse(1)
       END IF
    ENDIF  ! if(.NOT.cable_runtime_coupled)
 
    xx=soil%css * soil%rhosoil
    IF (ktau <= 1)                                                              &
      ssnow%gammzz(:,1) = MAX( (1.0 - soil%ssat) * soil%css * soil%rhosoil      &
-            & + (ssnow%wb(:,1) - ssnow%wbice(:,1) ) * cswat * rhowat           &
-            & + ssnow%wbice(:,1) * csice * rhowat * .9, xx ) * soil%zse(1) +   &
+            & + (ssnow%wb(:,1) - ssnow%wbice(:,1) ) * cswat * C%density_liq           &
+            & + ssnow%wbice(:,1) * csice * C%density_liq * .9, xx ) * soil%zse(1) +   &
             & (1. - ssnow%isflag) * cgsnow * ssnow%snowd
 
 
@@ -1834,11 +1836,11 @@ SUBROUTINE soil_snow(dels, soil, ssnow, canopy, met, bal, veg)
    weting = totwet + max(0._r_2,ssnow%pudsto - canopy%fesp/C%HL*dels)
    xxx=soil%ssat - ssnow%wb(:,1)
 
-   sinfil1 = MIN( 0.95*xxx*soil%zse(1)*rhowat, weting) !soil capacity
+   sinfil1 = MIN( 0.95*xxx*soil%zse(1)*C%density_liq, weting) !soil capacity
    xxx=soil%ssat - ssnow%wb(:,2)
-   sinfil2 = MIN( 0.95*xxx*soil%zse(2)*rhowat, weting - real(sinfil1)) !soil capacity
+   sinfil2 = MIN( 0.95*xxx*soil%zse(2)*C%density_liq, weting - real(sinfil1)) !soil capacity
    xxx=soil%ssat - ssnow%wb(:,3)
-   sinfil3 = MIN( 0.95*xxx*soil%zse(3)*rhowat,weting-real(sinfil1)-real(sinfil2))
+   sinfil3 = MIN( 0.95*xxx*soil%zse(3)*C%density_liq,weting-real(sinfil1)-real(sinfil2))
 
    ! net water flux to the soil
    ssnow%fwtop1 = sinfil1 / dels - canopy%segg
