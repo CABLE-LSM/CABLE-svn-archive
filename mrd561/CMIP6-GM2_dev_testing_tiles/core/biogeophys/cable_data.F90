@@ -189,7 +189,7 @@ module cable_data_module
          PI_C,                                                                 &
          ! other constants
          LAI_THRESH,                                                           &
-         TETENA_ICE, TETENB_ICE, TETENC_ICE
+         TETENA_ICE, TETENB_ICE, TETENC_ICE,denice,denliq
 
       INTEGER, POINTER :: MAXITER
 
@@ -367,6 +367,8 @@ SUBROUTINE canopy_type_ptr(C)
    C%A33   => PHYS%A33
    C%VONK  => PHYS%VONK
    C%ZETA0 => PHYS%ZETA0
+   C%denice=> PHYS%density_ice
+   C%denliq=> PHYS%density_liq
 
    C%MAXITER  => PHOTO%MAXITER ! only integer here
 

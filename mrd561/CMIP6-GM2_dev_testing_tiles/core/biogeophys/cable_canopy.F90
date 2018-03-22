@@ -192,7 +192,7 @@ CONTAINS
     met%qvair = met%qv
     canopy%tv = met%tvair
 
-    ssnow%wbliq = ssnow%wb - ssnow%wbice
+    ssnow%wbliq = ssnow%wb - real(C%denice/C%denliq,r_2)* ssnow%wbice
 
     CALL define_air (met, air)
 
@@ -209,7 +209,7 @@ CONTAINS
        ssnow%tss = real(ssnow%Tsurface) + C%tfrz
     ELSE
        ssnow%tss =  real((1-ssnow%isflag))*ssnow%tgg(:,1) +                    &
-                        real(ssnow%isflag)*ssnow%tggsn(:,1)
+                         real(ssnow%isflag)*ssnow%tggsn(:,1)
     endif
     tss4 = ssnow%tss**4
     canopy%fes = 0.

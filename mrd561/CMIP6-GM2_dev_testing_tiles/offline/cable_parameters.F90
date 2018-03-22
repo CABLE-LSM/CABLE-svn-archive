@@ -2867,6 +2867,8 @@ END SUBROUTINE report_parameters
           soil%sfc_vec(landpt(e)%cstart:landpt(e)%cend,klev) =& !2
                    inGW3dtmp(landpt(e)%ilon,landpt(e)%ilat,klev)
        END DO
+       soil%GWssat_vec(landpt(e)%cstart:landpt(e)%cend) = &
+                  soil%ssat_vec(landpt(e)%cstart:landpt(e)%cend,ms)
     END DO
 
 
