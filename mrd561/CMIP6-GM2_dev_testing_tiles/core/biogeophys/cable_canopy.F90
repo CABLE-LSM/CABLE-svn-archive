@@ -192,7 +192,7 @@ CONTAINS
     met%qvair = met%qv
     canopy%tv = met%tvair
 
-    ssnow%wbliq = ssnow%wb - real(C%denice/C%denliq,r_2)* ssnow%wbice
+    ssnow%wbliq = ssnow%wb - ssnow%wbice 
 
     CALL define_air (met, air)
 
