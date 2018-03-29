@@ -232,7 +232,7 @@ module cable_data_module
       REAL, POINTER ::                                                         &
          ! physical constants
          CAPP, TFRZ, HL, HLF, HLS,density_liq,&
-         density_ice,cgsnow,cswat,csice,cs_rho_wat,cs_rho_ice
+         density_ice,cgsnow,cswat,csice,cs_rho_wat,cs_rho_ice,grav
    END TYPE issnow_type
 
 
@@ -454,6 +454,7 @@ SUBROUTINE ssnow_type_ptr(C)
    C%CSICE   => PHYS%CSICE
    C%cs_rho_wat   => PHYS%cs_rho_wat
    C%cs_rho_ice   => PHYS%cs_rho_ice
+   C%grav => PHYS%grav
    !C% => PHYS%
 END SUBROUTINE ssnow_type_ptr
 
