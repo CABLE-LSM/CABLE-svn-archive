@@ -213,7 +213,7 @@ MODULE cable_common_module
 
       REAL ::    &    
         hyds_vec = 1.0e-4,&
-        sucs_vec = 10.3,   &
+        sucs_vec = 1.03,   &
         bch_vec  = 2.91,     &    
         ssat_vec = 0.9,    &    
         watr     = 0.1,&
@@ -225,17 +225,21 @@ MODULE cable_common_module
    TYPE gw_parameters_type
 
       REAL ::                   &
+        Tmlt=270.16,            & ![K] at which to melt soil ice
         MaxHorzDrainRate=2e-4,  & !anisintropy * q_max [qsub]
         EfoldHorzDrainRate=2.0, & !e fold rate of q_horz
         MaxSatFraction=2500.0,     & !parameter controll max sat fraction
-        hkrz=0.5,               & !hyds_vec variation with z
+        hkrz=0.0,               & !hyds_vec variation with z
         zdepth=1.5,             & !level where hyds_vec(z) = hyds_vec(no z)
         frozen_frac=0.05,       & !ice fraction to determine first non-frozen layer for qsub
         SoilEvapAlpha = 1.0,    & !modify field capacity dependence of soil evap limit
         IceAlpha=3.0,           &
-        IceBeta=1.0,            &
+        IceBeta=3.0,            &
         sfc_vec_hk      = 1.157407e-06, &
-        swilt_vec_hk      = 2.31481481e-8
+        swilt_vec_hk      = 2.31481481e-8 ,&
+        sub_exp = 4.0,         &
+        gw_sub_exp = 2.0
+
 
 
       REAL :: ice_impedence=5.0
