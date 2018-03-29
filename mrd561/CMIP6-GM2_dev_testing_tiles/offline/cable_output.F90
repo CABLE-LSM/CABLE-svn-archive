@@ -2090,7 +2090,7 @@ CONTAINS
     IF((output%soil .OR. output%SMP)  .and. cable_user%GW_MODEL) THEN
        !write(*,*) 'Qinfl'    !MDeck
        ! Add current timestep's value to total of temporary output variable:
-       out%SMP = out%SMP + REAL(ssnow%smp, 4)
+       out%SMP = out%SMP + REAL(ssnow%smp/1000.0, 4)
        IF(writenow) THEN
           out%SMP = out%SMP / REAL(output%interval, 4)
           ! Write value to file:
