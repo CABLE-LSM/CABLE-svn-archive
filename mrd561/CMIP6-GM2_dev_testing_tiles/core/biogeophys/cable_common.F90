@@ -237,7 +237,7 @@ MODULE cable_common_module
         IceBeta=3.0,            &
         sfc_vec_hk      = 1.157407e-06, &
         swilt_vec_hk      = 2.31481481e-8 ,&
-        sub_exp = 4.0,         &
+        sub_exp = 2.0,         &
         gw_sub_exp = 2.0
 
 
