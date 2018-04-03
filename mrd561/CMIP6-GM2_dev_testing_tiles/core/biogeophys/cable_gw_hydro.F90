@@ -163,7 +163,7 @@ SUBROUTINE GWsoilfreeze(dels, soil, ssnow)
                            iceF(i,k)*ssnow%tgg(i,k)
 
             Aconst =max(0.2,min(0.95,ssnow%wb(i,k)/soil%ssat_vec(i,k) ) )
-            Dconst = exp(1. Aconst  )
+            Dconst = exp(1. - Aconst  )
 
             if (tgg_tmp(i,k) .lt. C%TFRZ) then
             max_ice_frac(i,k) = max(zero,ssnow%wb(i,k)-soil%Watr(i,k))*&
@@ -189,7 +189,7 @@ SUBROUTINE GWsoilfreeze(dels, soil, ssnow)
             tgg_tmp(i,k) = C%TFRZ
 
             Aconst =max(0.2,min(0.95,ssnow%wb(i,k)/soil%ssat_vec(i,k) ) )
-            Dconst = exp(1. Aconst  )
+            Dconst = exp(1.  - Aconst  )
 
             if (tgg_tmp(i,k) .lt. C%TFRZ) then
             max_ice_frac(i,k) = max(zero,ssnow%wb(i,k)-soil%Watr(i,k))*&
@@ -1421,7 +1421,7 @@ SUBROUTINE calc_soil_hydraulic_props(ssnow,soil,veg)
              if (soil%isoilm(i) .eq. 9) then
                 hk_ice_factor(i,k) = (1._r_2 - soil%ssat_vec(i,k))**gw_params%ice_impedence
              else
-                hk_ice_factor(i,k) =0.5*(( 1._r_2 - ssnow%wbice(i,k ))**gw_params%ice_impedence + 
+                hk_ice_factor(i,k) =0.5*(( 1._r_2 - ssnow%wbice(i,k ))**gw_params%ice_impedence +  &
                                          ( 1._r_2 - ssnow%wbice(i,kk))**gw_params%ice_impedence   )
              end if
           end do
@@ -1652,7 +1652,7 @@ END SUBROUTINE calc_soil_hydraulic_props
          do i=1,mp
             if (k .ge. k_drain(i)) then
                sm_tot(i) = sm_tot(i) + max(zero,ssnow%wbliq(i,k)-soil%watr(i,k))
-            end do
+            end if
          end do
       end do
      !normalize by sum water content 
