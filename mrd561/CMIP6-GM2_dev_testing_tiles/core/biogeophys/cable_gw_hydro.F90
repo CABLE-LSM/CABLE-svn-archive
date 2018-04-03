@@ -59,9 +59,7 @@
 !      exponential function can be derived using topmodel approach and exp
 !      distribution of topo index.
 
-!      FALSE: Full qhlev for liq > sfc
-!      else multiply by liq like true
-!      but qhlev is wbliq2b+3*hyds/(sum)
+!      FALSE:normalize by total water content so base flow amount fully determined by wtd
 !     
 !
 ! ==============================================================================
@@ -1421,10 +1419,10 @@ SUBROUTINE calc_soil_hydraulic_props(ssnow,soil,veg)
           kk = min(k+1,ms)
           do i=1,mp
              if (soil%isoilm(i) .eq. 9) then
-                hk_ice_factor(i,k) = (1._r_2 - soil%ssat_vec(i,k))**3._r_2
+                hk_ice_factor(i,k) = (1._r_2 - soil%ssat_vec(i,k))**gw_params%ice_impedence
              else
-                hk_ice_factor(i,k) =0.5*(( 1._r_2 - ssnow%wbice(i,k ))**3._r_2 + 
-                                         ( 1._r_2 - ssnow%wbice(i,kk))**3._r_2   )
+                hk_ice_factor(i,k) =0.5*(( 1._r_2 - ssnow%wbice(i,k ))**gw_params%ice_impedence + 
+                                         ( 1._r_2 - ssnow%wbice(i,kk))**gw_params%ice_impedence   )
              end if
           end do
        end do

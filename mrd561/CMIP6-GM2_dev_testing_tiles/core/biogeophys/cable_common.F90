@@ -242,7 +242,7 @@ MODULE cable_common_module
 
 
 
-      REAL :: ice_impedence=5.0
+      REAL :: ice_impedence=3.0  !Mao et al. 2007
 
       TYPE(organic_soil_params) :: org
 
