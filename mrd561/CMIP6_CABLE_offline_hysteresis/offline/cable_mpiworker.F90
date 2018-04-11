@@ -2425,6 +2425,32 @@ ENDIF
   CALL MPI_Get_address (soil%org_vec, displs(bidx), ierr)
   blen(bidx) = ms * r2len
 
+  bidx = bidx + 1
+  CALL MPI_Get_address (ssnow%ssat_hys, displs(bidx), ierr)
+  blen(bidx) = ms * r2len
+
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (ssnow%watr_hys, displs(bidx), ierr)
+  blen(bidx) = ms * r2len
+
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (ssnow%smp_hys, displs(bidx), ierr)
+  blen(bidx) = ms * r2len
+
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (ssnow%wb_hys, displs(bidx), ierr)
+  blen(bidx) = ms * r2len
+
+
+  bidx = bidx + 1
+  CALL MPI_Get_address (ssnow%hys_fac, displs(bidx), ierr)
+  blen(bidx) = ms * r2len
+
+
+
 !1d
   bidx = bidx + 1
   CALL MPI_Get_address (soil%GWssat_vec, displs(bidx), ierr)
@@ -3957,6 +3983,26 @@ ENDIF
 
     bidx = bidx + 1
     CALL MPI_Get_address (ssnow%smp(off,1), displs(bidx), ierr)
+    blocks(bidx) = r2len * ms
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (ssnow%wb_hys(off,1), displs(bidx), ierr)
+    blocks(bidx) = r2len * ms
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (ssnow%smp_hys(off,1), displs(bidx), ierr)
+    blocks(bidx) = r2len * ms
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (ssnow%ssat_hys(off,1), displs(bidx), ierr)
+    blocks(bidx) = r2len * ms
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (ssnow%watr_hys(off,1), displs(bidx), ierr)
+    blocks(bidx) = r2len * ms
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (ssnow%hys_fac(off,1), displs(bidx), ierr)
     blocks(bidx) = r2len * ms
 
     bidx = bidx + 1

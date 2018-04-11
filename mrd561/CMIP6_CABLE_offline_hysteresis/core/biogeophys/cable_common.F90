@@ -240,6 +240,8 @@ MODULE cable_common_module
 
 
       REAL :: ice_impedence=5.0
+      real :: ssat_wet_factor=0.85
+                    !hysteresis reduces ssat due to air entra[pment
 
       TYPE(organic_soil_params) :: org
       INTEGER :: aquifer_recharge_function=-1  !0=>no flux,1=>assume gw at hydrostat eq
@@ -249,7 +251,10 @@ MODULE cable_common_module
       LOGICAL :: subsurface_sat_drainage = .true.
       LOGICAL :: cosby_univariate=.false.
       LOGICAL :: cosby_multivariate=.false.
-
+      LOGICAL :: HC_SWC=.false. !use Hutson Cass modified brooks corey
+                                !seperates wet/dry to remove need for watr and
+                                !gives better numerical behavoir for soln
+      LOGICAL :: BC_hysteresis=.false.
    END TYPE gw_parameters_type
 
    TYPE(gw_parameters_type), SAVE :: gw_params
