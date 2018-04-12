@@ -160,7 +160,7 @@ CONTAINS
          verbose, fixedCO2,output,check,patchout,    &
          patch_type,soilparmnew,&
          defaultLAI, sdoy, smoy, syear, timeunits, exists, output, &
-         latitude,longitude,patch
+         latitude,longitude,patch,wlogn
     USE cable_common_module,  ONLY: ktau_gl, kend_gl, knode_gl, cable_user,     &
          cable_runtime, fileName, myhome,            &
          redistrb, wiltParam, satuParam, CurYear,    &
@@ -356,7 +356,7 @@ CONTAINS
          satuParam,        &
          cable_user,       &  ! additional USER switches 
          gw_params
-    INTEGER :: i,x,kk
+    INTEGER :: i,x,kk,klev
     INTEGER :: LALLOC
     INTEGER, PARAMETER ::	 mloop	= 30   ! CASA-CNP PreSpinup loops
     REAL    :: etime
@@ -972,24 +972,63 @@ CONTAINS
 !!$                         new_sumfe/count_bal, new_sumfpn/count_bal
 
                     ! check for Nans in biophysical outputs and abort if there are any          
-                IF (any( canopy%fe.NE. canopy%fe)) THEN
                     DO kk=1,mp
 
                      IF (canopy%fe(kk).NE. canopy%fe(kk)) THEN
-                      WRITE(*,*) 'Nan in evap flux,', kk, patch(kk)%latitude, patch(kk)%longitude 
-                      write(*,*) 'fe nan', kk, ktau,met%qv(kk), met%precip(kk),met%precip_sn(kk), &
-                               met%fld(kk), met%fsd(kk,:), met%tk(kk), met%ua(kk), &
-                               ssnow%potev(kk), met%pmb(kk), &
-                               canopy%ga(kk), ssnow%tgg(kk,:), canopy%fwsoil(kk), &
-                               rad%fvlai(kk,:) ,  rad%fvlai(kk,1), &
-                               rad%fvlai(kk,2), canopy%vlaiw(kk)
+                      WRITE(*,*) 'Nan in evap flux'
+                      write(*,*) 'mp ',kk
+                      write(*,*) 'lat',patch(kk)%latitude
+                      write(*,*) 'lon-',patch(kk)%longitude 
+                      write(*,*) 'ktau ',ktau
+                       write(*,*) 'qv-',met%qv(kk)
+                       write(*,*) 'precip',met%precip(kk)
+                       write(*,*) 'sn-',met%precip_sn(kk)
+                      write(*,*) 'fld-',met%fld(kk)
+                      write(*,*) 'fsd1',met%fsd(kk,1)
+                      write(*,*) 'fsd2',met%fsd(kk,2)
+                      write(*,*) 'tk', met%tk(kk)
+                      write(*,*) 'ua', met%ua(kk)
+                      write(*,*) 'potev',ssnow%potev(kk)
+                      write(*,*) 'pmb', met%pmb(kk)
+                      write(*,*) 'ga', canopy%ga(kk)
+                      do klev=1,ms
+                         write(*,*) 'lvl',klev,'tgg',ssnow%tgg(kk,klev)
+                         write(*,*) 'lvl',klev,'wb',ssnow%wb(kk,klev)
+                         write(*,*) 'lvl',klev,'wbliq',ssnow%wbliq(kk,klev)
+                         write(*,*) 'lvl',klev,'wbice',ssnow%wbice   (kk,klev)  
+                         write(*,*) 'lvl',klev,'smp',ssnow%smp     (kk,klev)  
+                         write(*,*) 'lvl',klev,'hk',ssnow%hk      (kk,klev) 
+                         write(*,*) 'lvl',klev,'smp_hys',ssnow%smp_hys (kk,klev) 
+                         write(*,*) 'lvl',klev,'ssat_hys',ssnow%ssat_hys(kk,klev)  
+                         write(*,*) 'lvl',klev,'watr_hys',ssnow%watr_hys(kk,klev)  
+                         write(*,*) 'lvl',klev,'wb_hys',ssnow%wb_hys  (kk,klev) 
+                         write(*,*) 'lvl',klev,'hys_fac',ssnow%hys_fac (kk,klev)  
 
-                      CALL MPI_Abort(comm, 0, ierr)
-                     ENDIF
+                         write(*,*) 'lvl',klev,'ssuc_vec',soil%sucs_vec(kk,klev)  
+                         write(*,*) 'lvl',klev,'ssat_vec',soil%ssat_vec(kk,klev)  
+                         write(*,*) 'lvl',klev,'watr_hys',soil%watr(kk,klev)  
+                      end do
+                      write(*,*) 'rh',ssnow%rh_srf(kk)
+                      write(*,*) 'or sat',ssnow%rtevap_sat(kk)
+                      write(*,*) 'or unsat',ssnow%rtevap_unsat(kk)
+                      write(*,*) 'sub dz',canopy%sublayer_dz(kk)
+                      write(*,*) 'fwsoil',canopy%fwsoil(kk)
+                      write(*,*) 'vlai1',rad%fvlai(kk,1) 
+                      write(*,*) 'vlai2',rad%fvlai(kk,2)
+                      write(*,*) 'vlaiw', canopy%vlaiw(kk)
+                      write(*,*) 'snowd',ssnow%snowd(kk)
+                      write(*,*) 'satfrac',ssnow%satfrac(kk)
+                      write(*,*) 'GWwb',ssnow%GWwb(kk)
+                      write(*,*) 'wtd',ssnow%wtd(kk)
+                      write(*,*) 'rnof1',ssnow%rnof1(kk)
+                      write(*,*) 'rnof2',ssnow%rnof2(kk)
+                      write(*,*) 'isoil',soil%isoilm(kk)
+                      write(*,*) 'iveg',veg%iveg(kk)
+                     end if
+
                       
                     ENDDO
               
-                 ENDIF
                 IF(ktau==(kend-1)) THEN 
 
                    nkend = nkend+1
@@ -1996,7 +2035,7 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
      !blen(bidx) = ms * r1len
 
      bidx = bidx + 1
-     CALL MPI_Get_address (ssnow%wbice(off,1), displs(bidx), ierr)
+     CALL MPI_Get_address (ssnow%wbliq(off,1), displs(bidx), ierr)
      CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
           &                             types(bidx), ierr)
      blen(bidx) = 1
@@ -3310,41 +3349,6 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
   CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
   &                             types(bidx), ierr)
   blen(bidx) = 1
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%ssat_hys(off,1), displs(bidx), ierr)
-  CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
-  &                             types(bidx), ierr)
-  blen(bidx) = 1
-
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%watr_hys(off,1), displs(bidx), ierr)
-  CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
-  &                             types(bidx), ierr)
-  blen(bidx) = 1
-
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%smp_hys(off,1), displs(bidx), ierr)
-  CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
-  &                             types(bidx), ierr)
-  blen(bidx) = 1
-
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%wb_hys(off,1), displs(bidx), ierr)
-  CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
-  &                             types(bidx), ierr)
-  blen(bidx) = 1
-
-  bidx = bidx + 1
-  CALL MPI_Get_address (ssnow%hys_fac(off,1), displs(bidx), ierr)
-  CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
-  &                             types(bidx), ierr)
-  blen(bidx) = 1
-
-
 
 !1D
   bidx = bidx + 1
@@ -4825,7 +4829,6 @@ SUBROUTINE master_intypes (comm,met,veg)
      CALL MPI_Get_address (met%hod(off), displs(bidx), ierr)
      blocks(bidx) = r1len
 
-
      ! MPI: sanity check
      IF (bidx /= ntyp) THEN
         WRITE (*,*) 'master: invalid intype nmat, nvec or n3d constant, fix it!'
@@ -5077,43 +5080,6 @@ SUBROUTINE master_outtypes (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
      ! REAL(r_1)
      CALL MPI_Get_address (ssnow%tgg(off,1), maddr(midx), ierr) ! 10
      CALL MPI_Type_create_hvector (ms, r1len, r1stride, MPI_BYTE, &
-          &                        mat_t(midx, rank), ierr)
-     CALL MPI_Type_commit (mat_t(midx, rank), ierr)
-     midx = midx + 1
-
-     ! REAL(r_2)
-     CALL MPI_Get_address (ssnow%wb_hys(off,1), maddr(midx), ierr) ! 12
-     CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
-          &                        mat_t(midx, rank), ierr)
-     CALL MPI_Type_commit (mat_t(midx, rank), ierr)
-     midx = midx + 1
-
-     ! REAL(r_2)
-     CALL MPI_Get_address (ssnow%smp_hys(off,1), maddr(midx), ierr) ! 12
-     CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
-          &                        mat_t(midx, rank), ierr)
-     CALL MPI_Type_commit (mat_t(midx, rank), ierr)
-     midx = midx + 1
-
-     ! REAL(r_2)
-     CALL MPI_Get_address (ssnow%ssat_hys(off,1), maddr(midx), ierr) ! 12
-     CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
-          &                        mat_t(midx, rank), ierr)
-     CALL MPI_Type_commit (mat_t(midx, rank), ierr)
-     midx = midx + 1
-
-
-     ! REAL(r_2)
-     CALL MPI_Get_address (ssnow%watr_hys(off,1), maddr(midx), ierr) ! 12
-     CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
-          &                        mat_t(midx, rank), ierr)
-     CALL MPI_Type_commit (mat_t(midx, rank), ierr)
-     midx = midx + 1
-
-
-     ! REAL(r_2)
-     CALL MPI_Get_address (ssnow%hys_fac(off,1), maddr(midx), ierr) ! 12
-     CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
           &                        mat_t(midx, rank), ierr)
      CALL MPI_Type_commit (mat_t(midx, rank), ierr)
      midx = midx + 1

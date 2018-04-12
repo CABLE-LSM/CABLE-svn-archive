@@ -41,7 +41,7 @@ MODULE cable_gw_hydro_module
 
    USE cable_common_module, ONLY : gw_params,cable_user,&
                                    cable_runtime,&
-                                   max_glacier_snowd,ktau_gl
+                                   max_glacier_snowd,ktau_gl,psi_c,psi_o
 
    USE cable_soil_snow_module, ONLY : trimb, snow_processes_soil_thermal
 
@@ -756,7 +756,7 @@ END SUBROUTINE remove_transGW
        
     k = ms   !Bottom soil layer
     do i=1,mp
-       den(i)     = 0.5*(soil%zse_vec(i,k)+soil%zse_vec(i,k+1) )*m2mm
+       den(i)     = 0.5*(soil%zse_vec(i,k)+soil%zse_vec(i,k-1) )*m2mm
        dne(i)     = (ssnow%zq(i,k)-ssnow%zq(i,k-1))
        num(i)     = (ssnow%smp(i,k)-ssnow%smp(i,k-1)) - dne(i)
        qin(i)     = -ssnow%hk(i,k-1)*num(i)/den(i)
@@ -1025,7 +1025,7 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
    CALL smoistgw (dels,ktau,ssnow,soil,veg,canopy)               !vertical soil moisture movement. 
 
    IF (gw_params%BC_hysteresis)  &
-             CALL swc_hyst_direction(soil,ssnow)
+             CALL swc_hyst_direction(soil,ssnow,veg)
   
    ! correction required for energy balance in online simulations
    IF( cable_runtime%um ) THEN 
@@ -1706,8 +1706,8 @@ SUBROUTINE calc_soil_hydraulic_props(ssnow,soil,veg)
              else
                 !hk_ice_factor(i,k) = sqrt((1.0-ssnow%wbice(i,k))**(gw_params%ice_impedence) *&
                 !                     (1.0-ssnow%wbice(i,kk))**(gw_params%ice_impedence))
-                hk_ice_factor(i,k) = sqrt(10.0**(gw_params%ice_impedence*ssnow%wbice(i,k)/(ssnow%ssat_hys(i,k)-ssnow%watr_hys(i,k))) *&
-                                          10.0**(gw_params%ice_impedence*ssnow%wbice(i,kk)/(ssnow%ssat_hys(i,kk)-ssnow%watr_hys(i,kk))))
+                hk_ice_factor(i,k) = min(10.0**(gw_params%ice_impedence*ssnow%wbice(i,k)/(soil%ssat_vec(i,k)-soil%watr(i,k))) ,&
+                                          10.0**(gw_params%ice_impedence*ssnow%wbice(i,kk)/(soil%ssat_vec(i,kk)-soil%watr(i,kk))))
              end if
           end do
        end do
@@ -2390,7 +2390,7 @@ END SUBROUTINE calc_soil_hydraulic_props
 
    real(r_2), dimension(mp,ms) :: delta_wbliq
    real(r_2), dimension(mp) :: s_mid
-   integer :: i,k
+   integer :: i,k,klev
    real(r_2), dimension(mp,ms+1) :: wb_temp
    real(r_2) :: tmp_smp
 
@@ -2401,41 +2401,43 @@ END SUBROUTINE calc_soil_hydraulic_props
          wb_temp(:,1:ms) = ssnow%wb(:,:)
          wb_temp(:,ms+1) = ssnow%GWwb(:)
       end if
-   
-    do k=1,ms
-       do i=1,mp
-          !on dry or wet?
-          IF (ssnow%hys_fac(i,k) .gt. 0.75) then
-             !on drying
-             ssnow%watr_hys(i,k) = soil%watr(i,k)
-             ssnow%hys_fac(i,k)      = 1.0  !drying
-             ssnow%sucs_hys(i,k) = ssnow%hys_fac(i,k)*soil%sucs_vec(i,k)
-             if (ssnow%smp_hys(i,k) .lt. -ssnow%sucs_hys(i,k)) then
-                tmp_smp = (min(0.99,-ssnow%smp_hys(i,k)/ssnow%sucs_hys(i,k)))**(-soil%bch_vec(i,k))
-                ssnow%ssat_hys(i,k) = (ssnow%wb_hys(i,k)  - ssnow%watr_hys(i,k)*(1.0-tmp_smp))/&
-                                       tmp_smp
-             else
-                ssnow%ssat_hys(i,k) = ssnow%wb_hys(i,k)
-             end if
-             ssnow%ssat_hys(i,k) = max(0.001+ssnow%watr_hys(i,k),ssnow%ssat_hys(i,k))
 
-          ELSE  !wetting
-             ssnow%ssat_hys(i,k) = gw_params%ssat_wet_factor*soil%ssat_vec(i,k)
-             ssnow%hys_fac(i,k)        = 0.5  !wetting
-             ssnow%sucs_hys(i,k) = ssnow%hys_fac(i,k)*soil%sucs_vec(i,k)
-
-             if (ssnow%smp_hys(i,k) .lt. -ssnow%sucs_hys(i,k) ) then
-                tmp_smp = (min(0.99,-ssnow%smp_hys(i,k)/ssnow%sucs_hys(i,k)))**(-soil%bch_vec(i,k))
-                ssnow%watr_hys(i,k) = (ssnow%wb_hys(i,k) - ssnow%ssat_hys(i,k) *tmp_smp)/&
-                                      (1._r_2 - tmp_smp)
-             else
-                ssnow%watr_hys(i,k) = ssnow%wb_hys(i,k)
-             end if
-
-             ssnow%watr_hys(i,k) = max(0._r_2,min(ssnow%ssat_hys(i,k)-0.001, ssnow%watr_hys(i,k) ) )
-          END IF
-       END DO
-    END DO
+     !ensure sucs_hys is set
+     ssnow%sucs_hys = ssnow%hys_fac * soil%sucs_vec   
+!    do k=1,ms
+!       do i=1,mp
+!          !on dry or wet?
+!          IF (ssnow%hys_fac(i,k) .gt. 0.75) then
+!             !on drying
+!             ssnow%watr_hys(i,k) = soil%watr(i,k)
+!             ssnow%hys_fac(i,k)      = 1.0  !drying
+!             ssnow%sucs_hys(i,k) = ssnow%hys_fac(i,k)*soil%sucs_vec(i,k)
+!             if (ssnow%smp_hys(i,k) .lt. -ssnow%sucs_hys(i,k)) then
+!                tmp_smp = (min(0.99,-ssnow%smp_hys(i,k)/ssnow%sucs_hys(i,k)))**(-soil%bch_vec(i,k))
+!                ssnow%ssat_hys(i,k) = (ssnow%wb_hys(i,k)  - ssnow%watr_hys(i,k)*(1.0-tmp_smp))/&
+!                                       tmp_smp
+!             else
+!                ssnow%ssat_hys(i,k) = ssnow%wb_hys(i,k)
+!             end if
+!             ssnow%ssat_hys(i,k) = max(0.001+ssnow%watr_hys(i,k),ssnow%ssat_hys(i,k))
+!
+!          ELSE  !wetting
+!             ssnow%ssat_hys(i,k) = gw_params%ssat_wet_factor*soil%ssat_vec(i,k)
+!             ssnow%hys_fac(i,k)        = 0.5  !wetting
+!             ssnow%sucs_hys(i,k) = ssnow%hys_fac(i,k)*soil%sucs_vec(i,k)
+!
+!             if (ssnow%smp_hys(i,k) .lt. -ssnow%sucs_hys(i,k) ) then
+!                tmp_smp = (min(0.99,-ssnow%smp_hys(i,k)/ssnow%sucs_hys(i,k)))**(-soil%bch_vec(i,k))
+!                ssnow%watr_hys(i,k) = (ssnow%wb_hys(i,k) - ssnow%ssat_hys(i,k) *tmp_smp)/&
+!                                      (1._r_2 - tmp_smp)
+!             else
+!                ssnow%watr_hys(i,k) = soil%watr(i,k)
+!             end if
+!
+!             ssnow%watr_hys(i,k) = max(0._r_2,min(ssnow%ssat_hys(i,k)-0.001, ssnow%watr_hys(i,k) ) )
+!          END IF
+!       END DO
+!    END DO
 
     do k=1,ms 
        do i=1,mp
@@ -2466,26 +2468,31 @@ END SUBROUTINE calc_soil_hydraulic_props
 
   end subroutine brook_corey_hysteresis_swc_smp
 
-subroutine swc_hyst_direction(soil,ssnow)
+subroutine swc_hyst_direction(soil,ssnow,veg)
    type(soil_parameter_type), intent(inout) :: soil
    type(soil_snow_type),      intent(inout) :: ssnow
+   TYPE(veg_parameter_type) , INTENT(INOUT)    :: veg  ! veg parameters
 
-   real(r_2), dimension(mp,ms) :: delta_wbliq
-   integer :: i,k
+   real(r_2), dimension(mp,ms) :: delta_wbliq,psi_tmp
+   integer :: i,k,klev
    real(r_2) :: tmp_smp
 
    delta_wbliq = ssnow%wbliq - ssnow%wbliq_old
     !switch drying/wetting curve
     do k=1,ms
        do i=1,mp
-          if (delta_wbliq(i,k) .gt. 0.0 .and. ssnow%hys_fac(i,k) .gt. 0.75.and.ssnow%smp(i,k).lt.-0.5*soil%sucs_vec(i,k)) then  !avoid testing .eq. 1.0
+          if (delta_wbliq(i,k) .gt. 0.0 .and. &
+              ssnow%hys_fac(i,k) .gt. 0.75.and.&
+              ssnow%wb(i,k).lt.gw_params%ssat_wet_factor * soil%ssat_vec(i,k)) then  !avoid testing .eq. 1.0
            !layer was drying now it is wetting!
               ssnow%smp_hys(i,k) = ssnow%smp(i,k)
               ssnow%wb_hys(i,k)  = ssnow%wb(i,k)
               ssnow%ssat_hys(i,k)= gw_params%ssat_wet_factor * soil%ssat_vec(i,k)
               ssnow%hys_fac(i,k) = 0.5
               ssnow%sucs_hys(i,k) = ssnow%hys_fac(i,k)*soil%sucs_vec(i,k)
-          elseif (delta_wbliq(i,k) .le. 0.0 .and. ssnow%hys_fac(i,k) .lt. 0.75 .and. ssnow%smp(i,k).lt.-soil%sucs_vec(i,k)) then
+          elseif (delta_wbliq(i,k) .le. 0.0 .and. &
+                  ssnow%hys_fac(i,k) .lt. 0.75 .and.&
+                  ssnow%wb(i,k) .gt. soil%watr(i,k)) then
              !swtiched wetting to drying
              ssnow%smp_hys(i,k) = ssnow%smp(i,k)
              ssnow%wb_hys(i,k)  = ssnow%wb(i,k)
@@ -2499,7 +2506,7 @@ subroutine swc_hyst_direction(soil,ssnow)
              if (ssnow%smp_hys(i,k) .lt. -ssnow%sucs_hys(i,k) ) then
 
                 tmp_smp = (min(0.99,-ssnow%smp_hys(i,k)/ssnow%sucs_hys(i,k)))**(-soil%bch_vec(i,k))
-                ssnow%watr_hys(i,k) = (ssnow%wb_hys(i,k) - ssnow%ssat_hys(i,k) * tmp_smp)/&
+                ssnow%watr_hys(i,k) = (ssnow%wb_hys(i,k) - soil%ssat_vec(i,k) * tmp_smp)/&
                                      (1.0 - tmp_smp)
              else
                 ssnow%watr_hys(i,k) = ssnow%wb_hys(i,k)
@@ -2512,7 +2519,7 @@ subroutine swc_hyst_direction(soil,ssnow)
                                                !watr_hys .eq. watr
              if (ssnow%smp_hys(i,k) .lt. -ssnow%sucs_hys(i,k)) then
                 tmp_smp = (min(0.99,-ssnow%smp_hys(i,k)/ssnow%sucs_hys(i,k)))**(-soil%bch_vec(i,k))
-                ssnow%ssat_hys(i,k) = (ssnow%wb_hys(i,k)  - ssnow%watr_hys(i,k)*(1.0-tmp_smp))/&
+                ssnow%ssat_hys(i,k) = (ssnow%wb_hys(i,k)  - soil%watr(i,k)*(1.0-tmp_smp))/&
                                        tmp_smp
              else
                 ssnow%ssat_hys(i,k) = ssnow%wb_hys(i,k)
@@ -2523,6 +2530,26 @@ subroutine swc_hyst_direction(soil,ssnow)
 
        end do
     end do
+
+  if (cable_user%gw_model .and. gw_params%bc_hysteresis) then
+      do klev=1,ms
+         do i=1,mp
+            if (soil%isoilm(i) .ne. 9 .and. veg%iveg(i) .le. 16) then
+
+               psi_tmp(i,klev) = abs(psi_c(veg%iveg(i)))
+        
+               soil%swilt_vec(i,klev) = (ssnow%ssat_hys(i,klev)-ssnow%watr_hys(i,klev)) * &
+                                        (psi_tmp(i,klev)/soil%sucs_vec(i,klev))&
+                                         **(-1.0/soil%bch_vec(i,klev))+&
+                                        ssnow%watr_hys(i,klev)
+               soil%sfc_vec(i,klev) = (gw_params%sfc_vec_hk/soil%hyds_vec(i,klev))&
+                                       **(1.0/(2.0*soil%bch_vec(i,klev)+3.0)) *&
+                                       (ssnow%ssat_hys(i,klev)-ssnow%watr_hys(i,klev)) + ssnow%watr_hys(i,klev)
+            end if
+        end do
+     end do
+
+   end if
          
     end subroutine swc_hyst_direction
 

@@ -61,7 +61,7 @@ MODULE cable_param_module
   USE cable_IO_vars_module
   USE cable_common_module, ONLY: cable_user, hide, &
                                  gw_params,init_veg_from_vegin,filename,&
-                                 report_parameters_to_log
+                                 report_parameters_to_log,psi_c,psi_o
   USE cable_pft_params_mod
   USE cable_soil_params_mod
   USE CABLE_LUC_EXPT, ONLY: LUC_EXPT, LUC_EXPT_TYPE, LUC_EXPT_SET_TILES
@@ -1556,7 +1556,7 @@ CONTAINS
     REAL    :: tmp2(mp)
 
     REAL(r_2), dimension(mp,ms) :: perc_frac
-    REAL(r_2), DIMENSION(17)    :: psi_o,psi_c
+    !REAL(r_2), DIMENSION(17)    :: psi_o,psi_c
     REAL(r_2), DIMENSION(mp,ms) :: psi_tmp
     REAL(r_2), DIMENSION(mp,ms) :: soil_depth,rhosoil_temp
     REAL(r_2), DIMENSION(:,:), ALLOCATABLE :: ssat_bounded,rho_soil_bulk
@@ -1568,14 +1568,14 @@ CONTAINS
        soil_depth(:,klev) = soil_depth(:,klev-1) + soil%zse_vec(:,klev)
     end do
 
-    psi_o(1:3)  = -66000._r_2
-    psi_o(4)    = -35000._r_2
-    psi_o(5)    = -83000._r_2
-    psi_o(6:17) = -74000._r_2
-    psi_c(1:3)  = -2550000._r_2
-    psi_c(4)    = -2240000._r_2
-    psi_c(5)    = -4280000._r_2
-    psi_c(6:17) = -2750000._r_2
+    !psi_o(1:3)  = -66000._r_2
+    !psi_o(4)    = -35000._r_2
+    !psi_o(5)    = -83000._r_2
+    !psi_o(6:17) = -74000._r_2
+    !psi_c(1:3)  = -2550000._r_2
+    !psi_c(4)    = -2240000._r_2
+    !psi_c(5)    = -4280000._r_2
+    !psi_c(6:17) = -2750000._r_2
     ! Construct derived parameters and zero initialisations,
     ! regardless of where parameters and other initialisations
     ! have loaded from:
@@ -1723,13 +1723,21 @@ CONTAINS
 
                    psi_tmp(i,klev) = abs(psi_c(veg%iveg(i)))
             
-                   soil%swilt_vec(i,klev) = (soil%ssat_vec(i,klev)-soil%watr(i,klev)) * &
+                   soil%swilt_vec(i,klev) = (ssnow%ssat_hys(i,klev)-ssnow%watr_hys(i,klev)) * &
                                             (psi_tmp(i,klev)/soil%sucs_vec(i,klev))&
                                              **(-1.0/soil%bch_vec(i,klev))+&
-                                            soil%watr(i,klev)
+                                            ssnow%watr_hys(i,klev)
                    soil%sfc_vec(i,klev) = (gw_params%sfc_vec_hk/soil%hyds_vec(i,klev))&
                                            **(1.0/(2.0*soil%bch_vec(i,klev)+3.0)) *&
-                                           (soil%ssat_vec(i,klev)-soil%watr(i,klev)) + soil%watr(i,klev)
+                                           (ssnow%ssat_hys(i,klev)-ssnow%watr_hys(i,klev)) + ssnow%watr_hys(i,klev)
+            
+                   !soil%swilt_vec(i,klev) = (soil%ssat_vec(i,klev)-soil%watr(i,klev)) * &
+                   !                         (psi_tmp(i,klev)/soil%sucs_vec(i,klev))&
+                   !                          **(-1.0/soil%bch_vec(i,klev))+&
+                   !                         soil%watr(i,klev)
+                   !soil%sfc_vec(i,klev) = (gw_params%sfc_vec_hk/soil%hyds_vec(i,klev))&
+                   !                        **(1.0/(2.0*soil%bch_vec(i,klev)+3.0)) *&
+                   !                        (soil%ssat_vec(i,klev)-soil%watr(i,klev)) + soil%watr(i,klev)
             
                    soil%swilt_vec(i,klev) = min(0.95*soil%sfc_vec(i,klev),soil%swilt_vec(i,klev))
 
@@ -1946,7 +1954,26 @@ CONTAINS
        ssnow%smp_hys(i,k) = max(-1.0e10,min(-soil%sucs_vec(i,k),ssnow%smp_hys(i,k) ))
     end do
   end do
+  
+  if (cable_user%gw_model .and. gw_params%bc_hysteresis) then
+      do klev=1,ms
+         do i=1,mp
+            if (soil%isoilm(i) .ne. 9 .and. veg%iveg(i) .le. 16) then
 
+               psi_tmp(i,klev) = abs(psi_c(veg%iveg(i)))
+        
+               soil%swilt_vec(i,klev) = (ssnow%ssat_hys(i,klev)-ssnow%watr_hys(i,klev)) * &
+                                        (psi_tmp(i,klev)/soil%sucs_vec(i,klev))&
+                                         **(-1.0/soil%bch_vec(i,klev))+&
+                                        ssnow%watr_hys(i,klev)
+               soil%sfc_vec(i,klev) = (gw_params%sfc_vec_hk/soil%hyds_vec(i,klev))&
+                                       **(1.0/(2.0*soil%bch_vec(i,klev)+3.0)) *&
+                                       (ssnow%ssat_hys(i,klev)-ssnow%watr_hys(i,klev)) + ssnow%watr_hys(i,klev)
+            end if
+        end do
+     end do
+
+   end if
   END SUBROUTINE derived_parameters
   !============================================================================
   SUBROUTINE check_parameter_values(soil, veg, ssnow)

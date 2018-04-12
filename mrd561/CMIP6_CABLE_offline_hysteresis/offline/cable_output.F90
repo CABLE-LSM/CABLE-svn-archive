@@ -3495,23 +3495,6 @@ CONTAINS
             .TRUE.,soilID,'soil',0,0,0,mpID,dummy,.TRUE.)
     end if
 
-    if (cable_user%gw_model .and. gw_params%bc_hysteresis) then
-       CALL define_ovar(ncid_restart,hys(1),'wb_hys','-',&
-            'water (volumetric) at dry/wet switch', &
-            .TRUE.,soilID,'soil',0,0,0,mpID,dummy,.TRUE.)
-       CALL define_ovar(ncid_restart,hys(2),'smp_hys','-',&
-            'smp [mm] at dry/wet switch', &
-            .TRUE.,soilID,'soil',0,0,0,mpID,dummy,.TRUE.)
-       CALL define_ovar(ncid_restart,hys(3),'ssat_hys','-',&
-            'ssat water (volumetric) from hyst', &
-            .TRUE.,soilID,'soil',0,0,0,mpID,dummy,.TRUE.)
-       CALL define_ovar(ncid_restart,hys(4),'watr_hys','-',&
-            'ssat water (volumetric) from hyst', &
-            .TRUE.,soilID,'soil',0,0,0,mpID,dummy,.TRUE.)
-       CALL define_ovar(ncid_restart,hys(5),'hys_fac','-',&
-            'water (volumetric) at dry/wet switch', &
-            .TRUE.,soilID,'soil',0,0,0,mpID,dummy,.TRUE.)
-    end if
 
     ! Write global attributes for file:
     CALL DATE_AND_TIME(todaydate, nowtime)
