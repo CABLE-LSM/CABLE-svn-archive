@@ -89,7 +89,7 @@ MODULE POP_Constants
   REAL(dp),PARAMETER:: ALPHA_CPC = 3.5
   REAL(dp),PARAMETER:: k_allom1 = 200.0 ! crown area =  k_allom1 * diam ** k_rp
   REAL(dp),PARAMETER:: k_rp = 1.67  ! constant in crown area relation to tree diameter
-  REAL(dp),PARAMETER:: ksapwood = 0.05 ! rate constant for conversion of sapwood to heartwood (y-1)
+  REAL(dp),PARAMETER:: ksapwood = 0.04 ! rate constant for conversion of sapwood to heartwood (y-1)
   REAL(dp),PARAMETER:: Q=7.0 ! governs rate of increase of mortality with age (2=exponential)
   REAL(dp),PARAMETER:: shootfrac = 0.63
   REAL(dp),PARAMETER:: CtoNw = 400

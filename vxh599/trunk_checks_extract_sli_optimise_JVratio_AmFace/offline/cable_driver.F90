@@ -622,6 +622,7 @@ PROGRAM cable_offline_driver
                       ' .., .., .., gP/m2/d, .., .., .., ..'
   OPEN(125,file='litterInput.csv')
   OPEN(126,file='oldpools.txt')
+  OPEN(127,file='fluxptase.txt')
   OPEN(15, file='sumgbh.txt')
 ! End hacking for AmazonFACE
 

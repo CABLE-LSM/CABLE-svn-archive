@@ -800,6 +800,11 @@ CONTAINS
          + C%CAPP*C%rmair * (tlfy-met%tk) * SUM(rad%gradis,2) *          &
          canopy%fwet  ! YP nov2009
 
+
+    ! AmazonFACE output
+    WRITE(15,*) SUM((gbhu+gbhf),2), fwsoil
+    ! end AmazonFACE output
+
     DEALLOCATE(cansat,gbhu)
     DEALLOCATE(dsx, fwsoil, tlfx, tlfy)
     DEALLOCATE(ecy, hcy, rny)
@@ -1788,7 +1793,7 @@ CONTAINS
 
 
                  ! Atkin et al. 2015, Table S4, 
-                 ! modified by saling factor to reduce leaf respiration to 
+                 ! modified by scaling factor to reduce leaf respiration to 
                  ! expected proportion of GPP
                  !Broad-leaved trees: Rdark a25 = 
                  !1.2818 + (0.0116 × Vcmax,a25) – (0.0334 × TWQ)
@@ -1800,7 +1805,7 @@ CONTAINS
 
              if (veg%iveg(i).eq.2  ) then ! evergreen broadleaf forest
 
-                rdx(i,1) = 0.90*(1.2818e-6+0.0116*veg%vcmax(i)- &
+                rdx(i,1) = 0.83*(1.2818e-6+0.0116*veg%vcmax(i)- &
                      0.0334*climate%qtemp_max_last_year(i)*1e-6)
 
                 if (cable_user%finite_gm) then

@@ -1513,8 +1513,14 @@ SUBROUTINE biogeochem(ktau,dels,idoY,LALLOC,veg,soil,casabiome,casapool,casaflux
   ! for spinning up only
   ! casapool%Nsoilmin = max(casapool%Nsoilmin,0.5)
   ! casapool%Psoillab = max(casapool%Psoillab,0.1)
-
-
+! output for AmazonFACE
+  WRITE(125,'(I8,",",15(E16.8,",") )') ktau, &
+                         cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,  &
+                         nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,  &
+                         pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd
+ 
+  
+! end hack for AmazonFACE
 
 
 END SUBROUTINE biogeochem

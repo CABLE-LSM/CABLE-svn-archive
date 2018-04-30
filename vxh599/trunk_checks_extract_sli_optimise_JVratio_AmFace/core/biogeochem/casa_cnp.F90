@@ -253,6 +253,7 @@ SUBROUTINE casa_allocation(veg,soil,casabiome,casaflux,casapool,casamet,phen,LAL
      ! below target value of 5000, where phen%phase = 1 or 2 
      !(requires casaflux%sapwood_area, which is inherited from the 
      ! POP tree demography module. (Ticket #61)
+     
     WHERE(casamet%lnonwood==0)
         casaflux%fracCalloc(:,FROOT) =  casabiome%fracnpptop(veg%iveg(:),FROOT)
         casaflux%fracCalloc(:,WOOD) = 0.01
@@ -1666,7 +1667,8 @@ IF(casamet%iveg2(nland)/=icewater) THEN
 !!$                                 , casaflux%Nminleach(nland)   &
 !!$                                 , casaflux%Nupland(nland)
 
-91  format(20(e12.4,2x))
+91 format(20(e12.4,2x))
+   fluxptase = 0.0
    IF(icycle >2) THEN
 
       fluxptase(nland) =  casabiome%prodptase( veg%iveg(nland) ) * deltcasa    &
@@ -1722,6 +1724,10 @@ IF(casamet%iveg2(nland)/=icewater) THEN
       casaflux%Ploss(nland)       = 0.0
    ENDIF
 ENDIF
+
+! output for AmazonFACE
+WRITE(127,'(5(E16.8,",") )') fluxptase
+
 ENDDO
 
 END SUBROUTINE casa_delsoil
@@ -2375,6 +2381,8 @@ SUBROUTINE casa_cnpbal(casapool,casaflux,casabal)
    casabal%cbalance(:) = Cbalplant(:) + Cbalsoil(:)
 
 
+
+
 !!$ do npt=1,mp
 !!$    IF(abs(casabal%cbalance(npt))>1e-10) THEN
 !!$      write(*,*) 'cbalance',  npt, Cbalplant(npt), Cbalsoil(npt)
@@ -2389,7 +2397,10 @@ SUBROUTINE casa_cnpbal(casapool,casaflux,casabal)
 !!$    ENDIF
 !!$ ENDDO
 
-
+! output for AmazonFACE
+ WRITE(126,'(15(E16.8,",") )') &
+casabal%cplantlast, casabal%nplantlast, casabal%nplantlast,casabal%clabilelast 
+! end hack for AmazonFACE
 
 
    casapool%ctot_0 = sum(casabal%cplantlast,2)+sum(casabal%clitterlast,2) &
