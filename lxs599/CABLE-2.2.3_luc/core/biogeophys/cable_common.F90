@@ -45,9 +45,6 @@ MODULE cable_common_module
    !---CASACNP switches and cycle index
    LOGICAL, SAVE :: l_casacnp,l_laiFeedbk,l_vcmaxFeedbk
    LOGICAL :: l_luc = .FALSE.
-
-!   !ticket#179
-!   LOGICAL :: soil_thermal_fix = .FALSE.
    
    !---CABLE runtime switches def in this type
    TYPE kbl_internal_switches
@@ -85,8 +82,7 @@ MODULE cable_common_module
          L_NEW_ROUGHNESS_SOIL  = .FALSE., & !
          L_NEW_RUNOFF_SPEED    = .FALSE., & !
          L_NEW_REDUCE_SOILEVP  = .FALSE.!
-      !ticket#179
-      LOGICAL :: soil_thermal_fix = .FALSE.
+
 
    END TYPE kbl_user_switches
 
