@@ -67,8 +67,9 @@ CONTAINS
     IMPLICIT NONE
     
     TYPE (LUC_EXPT_TYPE), INTENT(INOUT) :: LUC_EXPT
-    
-    REAL    :: tmparr(720,360), tmp
+    REAL :: tmp
+    REAL,ALLOCATABLE :: tmparr(:,:)  
+   ! REAL    :: tmparr(720,360), tmp
     INTEGER :: t, i, ii, k, x, y, realk
     INTEGER :: fID, vID, timID,latID, lonID, tdimsize, xdimsize, ydimsize
     INTEGER :: xds, yds, tds
@@ -215,6 +216,7 @@ CONTAINS
   ! Set internal counter
     LUC_EXPT%CTSTEP = 1 +  LUC_EXPT%YearStart- LUC_EXPT%FirstYEAR
 
+     allocate(tmparr(xds,yds))
  ! READ initial states
     i = grassfrac
     IF ( LUC_EXPT%DirectRead ) THEN

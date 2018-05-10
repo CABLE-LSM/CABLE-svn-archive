@@ -523,19 +523,21 @@ write(*,*) 'after alloc landmask'
   IMPLICIT NONE
   
   TYPE(CRU_TYPE), INTENT(INOUT) :: CRU           ! All the info needed for CRU met runs
-  REAL    :: tmparr(720,360)        ! Temporary array for reading one day of met before 
+  !REAL    :: tmparr(720,360)        ! Temporary array for reading one day of met before 
                                     ! packing into CRU%NdepVALS(k)
  
   INTEGER              :: i, iunit, iyear, IOS = 0, k, t  
   INTEGER :: xds, yds        ! Ndep file dimensions of long (x), lat (y)
  
   LOGICAL,        SAVE :: CALL1 = .TRUE.  ! A *local* variable recording the first call of this routine 
-  CHARACTER(200) :: NdepFILE
+  CHARACTER(400) :: NdepFILE
+  REAL,ALLOCATABLE :: tmparr(:,:) 
 
   ! Abbreviate dimensions for readability.
   xds = CRU%xdimsize
   yds = CRU%ydimsize
 
+  allocate(tmparr(xds,yds))
   ! For S0_TRENDY, use only static 1860 CO2 value and return immediately
 
 
@@ -709,7 +711,7 @@ END SUBROUTINE GET_CRU_Ndep
 
   TYPE(CRU_TYPE) :: CRU
   LOGICAL, INTENT(IN)  :: LastDayOfYear, LastYearOfMet
-  REAL    :: tmparr(720,360)        ! Temporary array for reading one day of met before 
+  !REAL    :: tmparr(720,360)        ! Temporary array for reading one day of met before 
                                     ! packing into CRU%MET(iVar)%METVALS(k)
   REAL    :: tmp, stmp(365)
   INTEGER :: iVar, ii, k, x, y, realk
@@ -719,6 +721,7 @@ END SUBROUTINE GET_CRU_Ndep
   INTEGER :: MetYear                ! Year of meteorology currently in use
   INTEGER :: NextMetYear            ! Next met year: Where to look for the nextTmin on Dec 31st
   CHARACTER(LEN=200) :: filename
+  REAL,ALLOCATABLE :: tmparr(:,:)
 
   INTEGER, SAVE       :: RunStartYear    ! The value of CRU%CYEAR on the first call, also equals syear.
                                          ! Allows the calculation of MetYear during S0_TRENDY and init runs.
@@ -758,7 +761,7 @@ END SUBROUTINE GET_CRU_Ndep
 ! Abbreviate dimensions for readability.
   xds = CRU%xdimsize
   yds = CRU%ydimsize
-
+  allocate(tmparr(xds,yds))
 ! Loop through all 9 met variables (not including prevTmax and nextTmin, which are addressed 
 ! separately as special cases of Tmax and Tmin)
 
