@@ -56,11 +56,11 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
                                   Z0M_TILE, RECIP_L_MO_TILE, EPOT_TILE,        &
                                   CPOOL_TILE, NPOOL_TILE, PPOOL_TILE,          &
                                   SOIL_ORDER, NIDEP, NIFIX, PWEA, PDUST,       &
-                                  GLAI, PHENPHASE, PREV_YR_SFRAC, &
-                                  WOOD_HVEST_C,WOOD_HVEST_n,WOOD_HVEST_p,&
-                                  WOOD_FLUX_C,WOOD_FLUX_n,WOOD_FLUX_p,&
-                                  WRESP_C,WRESP_n,WRESP_p,&
-                                  NPP_FT_ACC, RESP_W_FT_ACC,  &
+                                  GLAI, PHENPHASE, PREV_YR_SFRAC,              &
+                                  WOOD_HVEST_C,WOOD_HVEST_n,WOOD_HVEST_p,      &
+                                  WOOD_FLUX_C,WOOD_FLUX_n,WOOD_FLUX_p,         &
+                                  WRESP_C,WRESP_n,WRESP_p,THINNING,            &
+                                  NPP_FT_ACC, RESP_W_FT_ACC,                   &
                                   iday, endstep, timestep_number, mype )    
    
    !--- reads runtime and user switches and reports
@@ -268,12 +268,13 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
       PDUST            ! Phosphorus from Dust
 
    REAL, INTENT(INOUT), DIMENSION(land_pts,ntiles) :: &
-      GLAI, &          ! Leaf Area Index for Prognostics LAI
-      PHENPHASE, &     ! Phenology Phase for Casa-CNP
+      GLAI,         &    ! Leaf Area Index for Prognostics LAI
+      PHENPHASE,    &    ! Phenology Phase for Casa-CNP
       PREV_YR_SFRAC,&    ! user_anc1, previous years surface fractions
-      WOOD_FLUX_C,&
-      WOOD_FLUX_N,&
-      WOOD_FLUX_P
+      WOOD_FLUX_C,  &
+      WOOD_FLUX_N,  &
+      WOOD_FLUX_P,  &
+      THINNING
 
    REAL, INTENT(INOUT), DIMENSION(land_pts,ntiles,3) :: &
       WOOD_HVEST_C,&
@@ -376,9 +377,9 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
                            sin_theta_latitude, dzsoil,                         &
                            CPOOL_TILE, NPOOL_TILE, PPOOL_TILE, SOIL_ORDER,     &
                            NIDEP, NIFIX, PWEA, PDUST, GLAI, PHENPHASE,         &
-                           WOOD_HVEST_C,WOOD_HVEST_N,WOOD_HVEST_P, &
-                           WOOD_FLUX_C,WOOD_FLUX_N,WOOD_FLUX_P, &
-                           WRESP_C,WRESP_N,WRESP_P, &
+                           WOOD_HVEST_C,WOOD_HVEST_N,WOOD_HVEST_P,             &
+                           WOOD_FLUX_C,WOOD_FLUX_N,WOOD_FLUX_P,                &
+                           WRESP_C,WRESP_N,WRESP_P, THINNING,                  &
                            PREV_YR_SFRAC,NPP_FT_ACC,RESP_W_FT_ACC, iday )
 
    !---------------------------------------------------------------------!

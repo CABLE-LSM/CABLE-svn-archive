@@ -57,7 +57,7 @@ SUBROUTINE init_casacnp(sin_theta_latitude,cpool_tile,npool_tile,ppool_tile, &
                            soil_order,nidep,nifix,pwea,pdust,&
                            wood_hvest_c,wood_hvest_n,wood_hvest_P,&
                            wood_flux_c,wood_flux_n,wood_flux_P,&
-                           wresp_c,wresp_n,wresp_P,&
+                           wresp_c,wresp_n,wresp_P,thinning,&
                            GLAI,PHENPHASE,PREV_YR_SFRAC,idoy)
 ! Lest 20 Jan 2011
     USE cable_def_types_mod
@@ -95,6 +95,7 @@ IMPLICIT NONE
     REAL   , INTENT(INOUT) :: WOOD_FLUX_C(um1%land_pts,um1%ntiles)
     REAL   , INTENT(INOUT) :: WOOD_FLUX_N(um1%land_pts,um1%ntiles)
     REAL   , INTENT(INOUT) :: WOOD_FLUX_P(um1%land_pts,um1%ntiles)
+    REAL   , INTENT(INOUT) :: THINNING(um1%land_pts,um1%ntiles)
     INTEGER :: idoy
 
 !    casafile%cnpbiome ='/home/599/lxs599/surface_data/pftlookup_csiro_v16_17tiles.csv'
@@ -119,7 +120,7 @@ IMPLICIT NONE
     CALL casa_readphen(veg,casamet,phen)
     CALL casa_init_pk(casabiome,casaflux,casamet,casapool,casabal,veg,canopy,phen, &
                      cpool_tile,npool_tile,ppool_tile,wood_hvest_c,wood_hvest_n,wood_hvest_p,&
-                     wood_flux_c,wood_flux_n,wood_flux_p,wresp_c,wresp_n,wresp_p,&
+                     wood_flux_c,wood_flux_n,wood_flux_p,wresp_c,wresp_n,wresp_p,thinning,&
                      GLAI,PHENPHASE,PREV_YR_SFRAC,idoy)
                      !um1,cpool_tile,npool_tile,ppool_tile,GLAI,PHENPHASE)
  return
@@ -223,7 +224,7 @@ END SUBROUTINE casa_readpoint_pk
 
 SUBROUTINE casa_init_pk(casabiome,casaflux,casamet,casapool,casabal,veg,canopy,phen, &
                        cpool_tile,npool_tile,ppool_tile,wood_hvest_c,wood_hvest_n,wood_hvest_p,&
-                       wood_flux_c,wood_flux_n,wood_flux_p,wresp_c,wresp_n,wresp_p,&
+                       wood_flux_c,wood_flux_n,wood_flux_p,wresp_c,wresp_n,wresp_p,thinning,&
                        GLAI,PHENPHASE,PREV_YR_SFRAC,idoy)
 !                       um1,cpool_tile,npool_tile,ppool_tile,GLAI,PHENPHASE)
 !  initialize some values in phenology parameters and leaf growth phase
@@ -266,6 +267,7 @@ IMPLICIT NONE
   REAL   , INTENT(INOUT) ::WOOD_FLUX_C(um1%land_pts,um1%ntiles)
   REAL   , INTENT(INOUT) ::WOOD_FLUX_N(um1%land_pts,um1%ntiles)
   REAL   , INTENT(INOUT) ::WOOD_FLUX_P(um1%land_pts,um1%ntiles)
+  REAL   , INTENT(INOUT) ::THINNING(um1%land_pts,um1%ntiles)
   INTEGER :: idoy,mtau
 
   print *, 'LUC1', l_luc
@@ -300,7 +302,7 @@ IMPLICIT NONE
                           cpool_tile,npool_tile,ppool_tile,&
                           wood_hvest_c,wood_hvest_n,wood_hvest_p,&
                           wood_flux_c,wood_flux_n,wood_flux_p,&
-                          wresp_c,wresp_n,wresp_p,&
+                          wresp_c,wresp_n,wresp_p,thinning,&
                           GLAI,PHENPHASE,PREV_YR_SFRAC)
         print *, 'TEST_LS reinit DONE'
 
@@ -375,9 +377,9 @@ END SUBROUTINE casa_init_pk
 
 SUBROUTINE casa_reinit_pk(casabiome,casamet,casapool,casabal,veg,phen, &
                           cpool_tile,npool_tile,ppool_tile,&
-                          slogc,slogn,slogp,&
+                          woodhvest_c,woodhvest_n,woodhvest_p,&
                           logc,logn,logp,&
-                          wresp_c,wresp_n,wresp_p,&
+                          wresp_c,wresp_n,wresp_p,thinning,&
                           GLAI,PHENPHASE,PREV_YR_SFRAC)
 
    USE cable_def_types_mod ! combines def_dimensions (mp,r_2) and define_types (mland)  
@@ -385,7 +387,7 @@ SUBROUTINE casa_reinit_pk(casabiome,casamet,casapool,casabal,veg,phen, &
    USE casaparm
    USE casavariable
    USE phenvariable
-   USE cable_common_module, ONLY : ktau_gl
+   USE cable_common_module, ONLY : ktau_gl, l_thinforest
    
    USE cable_um_tech_mod, ONLY : um1
 
@@ -439,12 +441,16 @@ SUBROUTINE casa_reinit_pk(casabiome,casamet,casapool,casabal,veg,phen, &
    REAL    :: frac_x(um1%land_pts,um1%ntiles), frac_y(um1%land_pts,um1%ntiles)
    LOGICAL :: ifpre_x(um1%land_pts,um1%ntiles), ifpre_y(um1%land_pts,um1%ntiles)
    ! To be recorded wood log variables.
-   REAL(r_2) :: logc(um1%land_pts,um1%ntiles), logn(um1%land_pts,um1%ntiles),logp(um1%land_pts,um1%ntiles)
-   REAL(r_2) :: slogc(um1%land_pts,um1%ntiles,3),slogn(um1%land_pts,um1%ntiles,3),slogp(um1%land_pts,um1%ntiles,3)
+   REAL(r_2) :: logc(um1%land_pts,um1%ntiles), logn(um1%land_pts,um1%ntiles),logp(um1%land_pts,um1%ntiles) ! wood_flux
+   REAL(r_2) :: woodhvest_c(um1%land_pts,um1%ntiles,3),woodhvest_n(um1%land_pts,um1%ntiles,3),woodhvest_p(um1%land_pts,um1%ntiles,3)
    REAL(r_2) :: wresp_c(um1%land_pts,um1%ntiles,3),wresp_n(um1%land_pts,um1%ntiles,3),wresp_p(um1%land_pts,um1%ntiles,3)
+   REAL(r_2) :: thinning(um1%land_pts,um1%ntiles)
    !REAL(r_2), DIMENSION(3) :: pool_frac, pool_time
    REAL,PARAMETER:: POOL_FRAC(3) =(/0.33, 0.33, 0.34/)
    REAL,PARAMETER:: POOL_TIME(3) =(/1.00, 0.10, 0.01/)
+   REAL(r_2) :: cplant_z(um1%land_pts,um1%ntiles,mplant)
+   REAL(r_2) :: nplant_z(um1%land_pts,um1%ntiles,mplant)
+   REAL(r_2) :: pplant_z(um1%land_pts,um1%ntiles,mplant)
 
    ! check if all of them are required
    INTEGER   :: g, p, k, y ! np
@@ -497,6 +503,9 @@ SUBROUTINE casa_reinit_pk(casabiome,casamet,casapool,casabal,veg,phen, &
   logn = 0.
   logp = 0.
 
+  cplant_z = 0.
+  nplant_z = 0.
+  pplant_z = 0.
 
   ! assign "old" cnp pool values (from last dump file, initilization)
   clabile_x(:,:)   = cpool_tile(:,:,1)
@@ -618,17 +627,12 @@ SUBROUTINE casa_reinit_pk(casabiome,casamet,casapool,casabal,veg,phen, &
 ! Lestevens 24 Nov 2017 - Implement Yingping's flux to state pools
      !DATA pool_frac/0.33,0.33,0.34/
      !DATA pool_time/1.0 ,0.1 ,0.01/
-     DO y = 1,3
-                      slogc(g,:,y) = slogc(g,:,y) + pool_frac(y)*logc(g,:) !- pool_time(y)*slogc(g,:,y)
-      IF (icycle > 1) slogn(g,:,y) = slogn(g,:,y) + pool_frac(y)*logn(g,:) !- pool_time(y)*slogn(g,:,y)
-      IF (icycle > 2) slogp(g,:,y) = slogp(g,:,y) + pool_frac(y)*logp(g,:) !- pool_time(y)*slogp(g,:,y)
-                      wresp_c(g,:,y) = slogc(g,:,y)*(1.-exp(-1.*pool_time(y))) !pool_time(y)*slogc(g,:,y)
-      IF (icycle > 1) wresp_n(g,:,y) = slogn(g,:,y)*(1.-exp(-1.*pool_time(y))) !pool_time(y)*slogn(g,:,y)
-      IF (icycle > 2) wresp_p(g,:,y) = slogp(g,:,y)*(1.-exp(-1.*pool_time(y))) !pool_time(y)*slogp(g,:,y)
-                      slogc(g,:,y) = slogc(g,:,y) - wresp_c(g,:,y)
-      IF (icycle > 1) slogn(g,:,y) = slogn(g,:,y) - wresp_n(g,:,y)
-      IF (icycle > 2) slogp(g,:,y) = slogp(g,:,y) - wresp_p(g,:,y)
+     DO y = 1,3 ! pools NOT leaf/wood/root
+                      woodhvest_c(g,:,y) = woodhvest_c(g,:,y) + pool_frac(y)*logc(g,:)     !slogc
+      IF (icycle > 1) woodhvest_n(g,:,y) = woodhvest_n(g,:,y) + pool_frac(y)*logn(g,:)     !slogn
+      IF (icycle > 2) woodhvest_p(g,:,y) = woodhvest_p(g,:,y) + pool_frac(y)*logp(g,:)     !slogp
      END DO
+! Lestevens 24 Nov 2017 - Implement Yingping's flux to state pools
 
      ! Re-calculate litter C, N, P pools
      CALL newlitter(casabiome,frac_x(g,:),ifpre_x(g,:),frac_y(g,:),ifpre_y(g,:), &
@@ -637,11 +641,11 @@ SUBROUTINE casa_reinit_pk(casabiome,casamet,casapool,casabal,veg,phen, &
                     clitter_x(g,:,:),nlitter_x(g,:,:),plitter_x(g,:,:), &
                     clitter_y(g,:,:),nlitter_y(g,:,:),plitter_y(g,:,:))
 
-     ! Re-calculate soil C, N, P pools
-     CALL newsoil(msoil,csoil_x(g,:,:),frac_x(g,:),ifpre_x(g,:),&
-                  csoil_y(g,:,:),frac_y(g,:),ifpre_y(g,:))
-     CALL newsoil(1,clabile_x(g,:),frac_x(g,:),ifpre_x(g,:),&
-                  clabile_y(g,:),frac_y(g,:),ifpre_y(g,:))
+     !! Re-calculate soil C, N, P pools
+     !CALL newsoil(msoil,csoil_x(g,:,:),frac_x(g,:),ifpre_x(g,:),&
+     !             csoil_y(g,:,:),frac_y(g,:),ifpre_y(g,:))
+     !CALL newsoil(1,clabile_x(g,:),frac_x(g,:),ifpre_x(g,:),&
+     !             clabile_y(g,:),frac_y(g,:),ifpre_y(g,:))
 
      ! Re-calculate soil C, N, P pools
      CALL newsoil(msoil,csoil_x(g,:,:),frac_x(g,:),ifpre_x(g,:),&
@@ -665,6 +669,50 @@ SUBROUTINE casa_reinit_pk(casabiome,casamet,casapool,casabal,veg,phen, &
         CALL newsoil(1,psoilocc_x(g,:),frac_x(g,:),ifpre_x(g,:),&
                      psoilocc_y(g,:),frac_y(g,:),ifpre_y(g,:))
      ENDIF
+
+
+     ! TEST Lestevens 6june18 - thinning forests after luc ----
+     IF (l_thinforest) THEN
+                      cplant_z(g,:,:) = cplant_y(g,:,:)
+      if (icycle > 1) nplant_z(g,:,:) = nplant_y(g,:,:)
+      if (icycle > 2) pplant_z(g,:,:) = pplant_y(g,:,:)
+      DO y=1,3 ! pools for whvest
+                        woodhvest_c(g,:,y) = woodhvest_c(g,:,y) + &
+                                   (1-thinning(g,:)) * pool_frac(y) * cplant_y(g,:,wood)
+        if (icycle > 1) woodhvest_n(g,:,y) = woodhvest_n(g,:,y) + &
+                                   (1-thinning(g,:)) * pool_frac(y) * nplant_y(g,:,wood)
+        if (icycle > 2) woodhvest_p(g,:,y) = woodhvest_p(g,:,y) + &
+                                   (1-thinning(g,:)) * pool_frac(y) * pplant_y(g,:,wood)
+      END DO
+      DO y=1,mplant
+                        cplant_z(g,:,y) = thinning(g,:) * cplant_y(g,:,y)
+        if (icycle > 1) nplant_z(g,:,y) = thinning(g,:) * nplant_y(g,:,y)
+        if (icycle > 2) pplant_z(g,:,y) = thinning(g,:) * pplant_y(g,:,y)
+      END DO
+      CALL newlitter_thin(casabiome,frac_y(g,:),ifpre_y(g,:),frac_y(g,:),ifpre_y(g,:), &
+                     cplant_y(g,:,:),nplant_y(g,:,:),pplant_y(g,:,:), &
+                     cplant_z(g,:,:),nplant_z(g,:,:),pplant_z(g,:,:), &
+                     clitter_y(g,:,:),nlitter_y(g,:,:),plitter_y(g,:,:), &
+                     clitter_y(g,:,:),nlitter_y(g,:,:),plitter_y(g,:,:),thinning(g,:))
+                      cplant_y(g,:,:) = cplant_z(g,:,:)
+      if (icycle > 1) nplant_y(g,:,:) = nplant_z(g,:,:)
+      if (icycle > 2) pplant_y(g,:,:) = pplant_z(g,:,:)
+     ENDIF
+     ! TEST Lestevens 6june18 - thinning forests after luc ----
+
+! Lestevens 24 Nov 2017 - Implement Yingping's flux to state pools
+! Lestevens 7 June 2018 - Moved to after thinning
+     !DATA pool_frac/0.33,0.33,0.34/
+     !DATA pool_time/1.0 ,0.1 ,0.01/
+     DO y = 1,3 ! pools NOT leaf/wood/root
+                      wresp_c(g,:,y)     = woodhvest_c(g,:,y) * (1.-exp(-1.*pool_time(y))) !
+      IF (icycle > 1) wresp_n(g,:,y)     = woodhvest_n(g,:,y) * (1.-exp(-1.*pool_time(y))) !
+      IF (icycle > 2) wresp_p(g,:,y)     = woodhvest_p(g,:,y) * (1.-exp(-1.*pool_time(y))) !
+                      woodhvest_c(g,:,y) = woodhvest_c(g,:,y) - wresp_c(g,:,y)
+      IF (icycle > 1) woodhvest_n(g,:,y) = woodhvest_n(g,:,y) - wresp_n(g,:,y)
+      IF (icycle > 2) woodhvest_p(g,:,y) = woodhvest_p(g,:,y) - wresp_p(g,:,y)
+     END DO
+! Lestevens 24 Nov 2017 - Implement Yingping's flux to state pools
 
 
      ! Balance check
