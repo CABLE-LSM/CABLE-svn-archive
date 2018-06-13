@@ -30,138 +30,112 @@
 !
 ! ==============================================================================
 
+!uncomment per subr for now - can update to namelist
+!#define FPPcable_fprint 0  
+!#define FPPcable_Pyfprint 0  
+
+MODULE cable_expl_unpack_mod
+
 !---------------------------------------------------------------------!
 !--- pass land-surface quantities calc'd by CABLE in explicit call ---!
 !--- back to UM.                                                   ---!
 !---------------------------------------------------------------------!
-MODULE cable_expl_unpack_mod
 
 implicit none
 
 contains
 
-SUBROUTINE cable_expl_unpack( latitude, longitude, FTL_TILE, FQW_TILE,       &
-                           TSTAR_TILE, &
-                           U_S, U_S_STD_TILE, &
-                           CD_TILE, CH_TILE, FLAND, RADNET_TILE,       &
-                           FRACA, rESFS, RESFT, Z0H_TILE, Z0M_TILE,            &
-                           RECIP_L_MO_TILE, EPOT_TILE, l_tile_pts,             &
-                           ssnow_snowd, ssnow_cls, air_rlam, air_rho,          &
-                           canopy_fe, canopy_fh, canopy_us, canopy_cdtq,       &
-                           canopy_fwet, canopy_wetfac_cs, canopy_rnet,         &
-                           canopy_zetar, canopy_epot, met_ua, rad_trad,        &
-                           rad_transd, rough_z0m, rough_zref_tq, &
-                           canopy_fes, canopy_fev )
+SUBROUTINE cable_expl_unpack( latitude, longitude, FTL_TILE, FQW_TILE,         &
+                              TSTAR_TILE, U_S, U_S_STD_TILE, CD_TILE, CH_TILE, &
+                              FLAND, RADNET_TILE, FRACA, rESFS, RESFT,         &
+                              Z0H_TILE, Z0M_TILE, RECIP_L_MO_TILE, EPOT_TILE,  &
+                              l_tile_pts, ssnow_snowd, ssnow_cls, air_rlam,    &
+                              air_rho, canopy_fe, canopy_fh, canopy_us,        &
+                              canopy_cdtq, canopy_fwet, canopy_wetfac_cs,      &
+                              canopy_rnet, canopy_zetar, canopy_epot, met_ua,  &
+                              rad_trad, rad_transd, rough_z0m, rough_zref_tq,  &
+                              canopy_fes, canopy_fev )
 
-   USE cable_def_types_mod, ONLY : mp, NITER 
-   USE cable_data_module,   ONLY : PHYS
-   USE cable_um_tech_mod,   ONLY : um1, basic_diag
-   USE cable_common_module!, ONLY : cable_runtime, cable_user, &
-                          !         ktau_gl, knode_gl, kend_gl, &
-                          !         fudge_out, L_fudge,         &
-                          !         fprintf_dir_root, fprintf_dir
-   
-  USE cable_unpack_checks_mod, ONLY : cable_unpack_check
-!fprintf
-  USE cable_common_module, ONLY :    fprintf_dir_root, fprintf_dir
+  !subrs called 
+  !diag 
+  USE cable_fprint_module, ONLY : cable_fprintf
+  USE cable_Pyfprint_module, ONLY : cable_Pyfprintf
+  USE cable_fFile_module, ONLY : fprintf_dir_root, fprintf_dir
+  
   USE cable_diag_module
 
-use arraydiag_m
+  !processor number, timestep number / width, endstep
+  USE cable_common_module, ONLY : knode_gl, ktau_gl, kwidth_gl, kend_gl
+  USE cable_common_module, ONLY : cable_runtime
+                                
+  USE cable_common_module!, ONLY : cable_runtime, cable_user, &
+                          !         ktau_gl, knode_gl, kend_gl, &
+   
+  USE cable_def_types_mod, ONLY : mp, NITER 
+  USE cable_data_module,   ONLY : PHYS
+  USE cable_um_tech_mod,   ONLY : um1, basic_diag
+  
+  implicit none         
 
-  IMPLICIT NONE         
+  !___ re-decl input args
+  REAL,  DIMENSION(um1%row_length,um1%rows) :: latitude, longitude
 
-
-  character(len=*), parameter :: subr_name = "cable_explicit_unpack"
-  !-------------------------------------------------------------------------- 
-  !--- INPUT ARGS FROM cable_explicit_driver() ------------------------------
-  !-------------------------------------------------------------------------- 
-
-
-  !___ UM variables to recieve unpacked CABLE vars
-
-  REAL,  DIMENSION(um1%row_length,um1%rows) ::                             &
-     latitude,   &
-     longitude
-
+  !___ return fluxes UM vars recieve unpacked CABLE vars
   REAL, INTENT(OUT), DIMENSION(um1%land_pts,um1%ntiles) :: &
-     TSTAR_TILE
-       
-  !___return fluxes
-  REAL, INTENT(OUT), DIMENSION(um1%land_pts,um1%ntiles) :: &
-     FTL_TILE,   &  ! Surface FTL for land tiles     
-     FQW_TILE      ! Surface FQW for land tiles     
+    TSTAR_TILE,  & ! surface temperature
+    FTL_TILE,    & ! Surface FTL for land tiles     
+    FQW_TILE,    & ! Surface FQW for land tiles     
+    Z0H_TILE,    & ! roughness
+    Z0M_TILE,    & ! roughness
+    CD_TILE,     & ! Drag coefficient
+    CH_TILE,     & ! Transfer coefficient for heat & moisture
+    U_S_STD_TILE,& ! Surface friction velocity
+    RADNET_TILE,   & ! Surface net radiation
+    RESFS,         & ! Combined soil, stomatal & aerodynamic resistance
+                     ! factor for fraction (1-FRACA) of snow-free land tiles
+    RESFT,         & ! Total resistance factor.
+                     ! FRACA+(1-FRACA)*RESFS for snow-free l_tile_pts,
+                     ! 1 for snow.    
+    FRACA,         & ! Fraction of surface moisture
+    RECIP_L_MO_TILE,&! Reciprocal of the Monin-Obukhov length for tiles (m^-1).
+    EPOT_TILE
 
-  !___return temp and roughness
-  REAL, INTENT(OUT), DIMENSION(um1%land_pts,um1%ntiles) :: &
-     Z0H_TILE,         &
-     Z0M_TILE
-
-  !___return friction velocities/drags/ etc
-  REAL, INTENT(OUT), DIMENSION(um1%land_pts,um1%ntiles) :: &
-     CD_TILE,    &     ! Drag coefficient
-     CH_TILE,    &     ! Transfer coefficient for heat & moisture
-     U_S_STD_TILE      ! Surface friction velocity
   REAL, INTENT(OUT), DIMENSION(um1%row_length,um1%rows)  :: &
-     U_S               ! Surface friction velocity (m/s)
+    U_S               ! Surface friction velocity (m/s)
 
-  !___return miscelaneous 
-  REAL, INTENT(OUT), DIMENSION(um1%land_pts,um1%ntiles) :: &
-     RADNET_TILE,   & ! Surface net radiation
-     RESFS,         & ! Combined soil, stomatal & aerodynamic resistance
-                      ! factor for fraction (1-FRACA) of snow-free land tiles
-     RESFT,         & ! Total resistance factor.
-                      ! FRACA+(1-FRACA)*RESFS for snow-free l_tile_pts,
-                      ! 1 for snow.    
-     FRACA,         & ! Fraction of surface moisture
-     RECIP_L_MO_TILE,&! Reciprocal of the Monin-Obukhov length for tiles (m^-1).
-     EPOT_TILE
-
-     
   LOGICAL,DIMENSION(um1%land_pts,um1%ntiles) :: l_tile_pts
 
   !___UM vars used but NOT returned 
   REAL, INTENT(IN), DIMENSION(um1%land_pts) ::   &
-     FLAND(um1%land_pts)              ! IN Land fraction on land tiles.
+    FLAND(um1%land_pts)              ! IN Land fraction on land tiles.
 
+  !___ CABLE variables to be unpacked
 
-  !___ decs of intent(in) CABLE variables to be unpacked
+  REAL, INTENT(IN), DIMENSION(mp) :: &
+    ssnow_snowd,      & ! snow depth (liquid water)
+    ssnow_cls,        & ! factor for latent heat
+    met_ua,           & ! surface wind speed (m/s)
+    air_rlam,         & ! latent heat for water (j/kg)
+    air_rho,          & ! dry air density (kg m-3) 
+    rad_trad,         & ! frac SW diffuse transmitted thru canopy
+    rad_transd,       & !  rad. temp. (soil and veg)
+    canopy_fe,        & ! total latent heat (W/m2)
+    canopy_fh,        & ! total sensible heat (W/m2) 
+    canopy_fes,       & !  
+    canopy_fev,       & ! 
+    canopy_fwet,      & ! fraction of canopy wet 
+    canopy_wetfac_cs, & ! fraction of canopy wet
+    canopy_us,        & ! friction velocity 
+    canopy_cdtq,      & ! drag coefficient for momentum
+    canopy_rnet,      & ! net rad. absorbed by surface (W/m2) 
+    canopy_epot,      & ! total potential evaporation        
+    rough_z0m,        & ! roughness length 
+    rough_zref_tq       ! Reference height for met forcing
+  
+  REAL, INTENT(IN), DIMENSION(mp,niter) :: canopy_zetar! stability correction
+  
+  !___ local vars
 
-  ! snow depth (liquid water), factor for latent heat
-  REAL, INTENT(IN), DIMENSION(mp) :: ssnow_snowd, ssnow_cls
-  
-  ! surface wind speed (m/s)
-  REAL, INTENT(IN), DIMENSION(mp) :: met_ua 
-  
-  ! latent heat for water (j/kg), dry air density (kg m-3)
-  REAL, INTENT(IN), DIMENSION(mp) :: air_rlam, air_rho 
-  
-  ! frac SW diffuse transmitted thru canopy, rad. temp. (soil and veg)
-  REAL, INTENT(IN), DIMENSION(mp) :: rad_trad,rad_transd 
-  
-  ! total latent heat (W/m2), total sensible heat (W/m2)
-  REAL, INTENT(IN), DIMENSION(mp) :: canopy_fe, canopy_fh  
-  
-  REAL, INTENT(IN), DIMENSION(mp) :: canopy_fes, canopy_fev  
-  
-  ! fraction of canopy wet
-  REAL, INTENT(IN), DIMENSION(mp) :: canopy_fwet, canopy_wetfac_cs
-  
-  ! friction velocity, drag coefficient for momentum
-  REAL, INTENT(IN), DIMENSION(mp) :: canopy_us, canopy_cdtq
-  
-  ! net rad. absorbed by surface (W/m2), total potential evaporation 
-  REAL, INTENT(IN), DIMENSION(mp) :: canopy_rnet, canopy_epot        
-  
-  ! stability correction
-  REAL, INTENT(IN), DIMENSION(mp,niter) :: canopy_zetar
-  
-  ! roughness length, Reference height for met forcing
-  REAL, INTENT(IN), DIMENSION(mp) :: rough_z0m, rough_zref_tq 
-
-  !-------------------------------------------------------------------------- 
-  !--- end INPUT ARGS FROM cable_explicit_driver() ------------------------------
-  !-------------------------------------------------------------------------- 
-  
   !___vars in local calc. of latent heat fluxes
   REAL, DIMENSION(um1%land_pts,um1%ntiles) ::                  &
      LE_TILE
@@ -175,7 +149,6 @@ use arraydiag_m
   REAL, DIMENSION(um1%land_pts,um1%ntiles) ::                  &
      Lpts_nTILE
 
-
   !___local miscelaneous
   REAL, DIMENSION(mp)  :: &
     THETAST,fraca_cab,rfsfs_cab, RECIPLMOTILE, fe_dlh
@@ -186,128 +159,89 @@ use arraydiag_m
   LOGICAL :: Lunpack = .false.
   LOGICAL :: checks = .false.
   real :: tols = 0.25
-
-  !fprintf{_____________________________________________________________________  
-  !USE cable_common_module, ONLY :    fprintf_dir_root, fprintf_dir
-  !USE cable_diag_module
-  character(len=25) :: vname
-  character(len=70) :: dir
- 
-  INTEGER, SAVE ::                                                            &
-   cDiag00=0, cDiag0=0, cDiag1=0, cDiag2=0, cDiag3=0, cDiag4=0,                &
-   cDiag5=0, cDiag6=0, cDiag7=0, cDiag8=0, cDiag9=0, cDiag10=0,    cDiag11=0,  &  
-   cDiag12=0, cDiag13=0, cDiag14=0, cDiag15=0, cDiag16=0, cDiag17=0, cDiag18=0,& 
-   cDiag19=0,cDiag20=0, cDiag21=0, cDiag22=0, cDiag23=0, cDiag24=0, cDiag25=0, &
-   cDiag26=0, cDiag27=0, cDiag28=0, cDiag29=0, cDiag30=0, cDiag31=0, cDiag32=0,&  
-   cDiag33=0, cDiag34=0, cDiag35=0, cDiag36=0, cDiag37=0, cDiag38=0, cDiag39=0,& 
-   cDiag40=0, cDiag41=0, cDiag42=0, cDiag43=0, cDiag44=0, cDiag45=0, cDiag46=0,& 
-   cDiag47=0, cDiag48=0, cDiag49=0, cDiag50=0, cDiag51=0, cDiag52=0, cDiag53=0,& 
-   cDiag54=0, cDiag55=0, cDiag56=0, cDiag57=0, cDiag58=0, cDiag59=0, cDiag60=0,& 
-   cDiag61=0, cDiag62=0, cDiag63=0, cDiag64=0, cDiag65=0, cDiag66=0, cDiag67=0,& 
-   cDiag68=0, cDiag69=0
-
-  logical, parameter :: L_fprint_HW = .false.
-  logical :: L_fprint
-
-  L_fprint = .false. !default
-
-  !if( L_fprint_HW ) then
-  !  if ( ktau_gl==1 .OR. ktau_gl==54 .OR. ktau_gl==154 .OR. &
-  !       ktau_gl==154 .OR. ktau_gl==154 .OR. mod(ktau_gl,10)==0. ) then
-  !    L_fprint = .true.
-  !  endif  
-  !endif  
-
-  IF(cable_user%run_diag_level == "fprint")                                    &     
-    fprintf_dir=trim(fprintf_dir_root)//trim("expl_unpack")//"/"
   
-  !vname='' 
-  !call cable_fprintf( cDiagX, vname, %, mp, L_fprint )
-  !fprintf_____________________________________________________________________} 
-        
+  ! std template args 
+  character(len=*), parameter :: subr_name = "cable_explicit_unpack"
+
+# if defined(FPPcable_fprint) || defined(FPPcable_Pyfprint)
+#   include "../../../core/utils/diag/cable_fprint.txt"
+    ! e.g. unique_subdir = "727/"
+# endif
+
+  !-------- Unique subroutine body -----------
   CAPP => PHYS%CAPP
      
   !___return fluxes
-
-  IF(cable_user%run_diag_level == "fprint") then 
-    if( L_fprint_HW ) L_fprint = .true.
-  endif
-
-  vname='canopy_fh' ! FTL_TILE 
-  call cable_fprintf( cDiag0, vname, canopy_fh/CAPP, mp, L_fprint )
   FTL_TILE = UNPACK(canopy_fh,  um1%l_tile_pts, miss)
   FTL_TILE = FTL_TILE / CAPP
 
-  vname='canopy_fe' ! FQW_TILE 
   fe_dlh = ( canopy_fes/(air_rlam*ssnow_cls) )  &
          + ( canopy_fev/air_rlam )
 
-  call cable_fprintf( cDiag1, vname, fe_dlh, mp, L_fprint )
   FQW_TILE = UNPACK(fe_dlh, um1%l_tile_pts, miss)
 
   !___return temp and roughness
-  vname='rad_trad' ! FTL_TILE 
-  call cable_fprintf( cDiag2, vname, rad_trad, mp, L_fprint )
-    !testing TSTAR_TILE v miss: test if makes difference outside CABLE
-    !Lpts_nTILE = tstar_tile
-    !TSTAR_TILE = UNPACK(rad_trad,  um1%l_tile_pts, Lpts_nTILE )
-    !call arraydiag("jhA_Tstar",tstar_tile)
   TSTAR_TILE = UNPACK(rad_trad,  um1%l_tile_pts, miss )
-    !call arraydiag("jhB_Tstar",tstar_tile)
 
-
-
-
-Z0M_TILE = UNPACK(rough_z0m,  um1%l_tile_pts, miss)
-Z0H_TILE = Z0M_TILE
+  Z0M_TILE = UNPACK(rough_z0m,  um1%l_tile_pts, miss)
+  Z0H_TILE = Z0M_TILE
       
-      !___return friction velocities/drags/ etc
-U_S_TILE  =  UNPACK(canopy_us, um1%l_tile_pts, miss)
-      CDCAB = canopy_us**2/met_ua**2   ! met%ua is always above umin = 0.1m/s
-      ! for Cable CD*
-CD_TILE =  UNPACK(CDCAB,um1%l_tile_pts, miss)
-      ! for Cable CH*
-CH_TILE =  UNPACK(canopy_cdtq,um1%l_tile_pts, miss)
+  !___return friction velocities/drags/ etc
+  U_S_TILE  =  UNPACK(canopy_us, um1%l_tile_pts, miss)
+  CDCAB = canopy_us**2/met_ua**2   ! met%ua is always above umin = 0.1m/s
+  CD_TILE =  UNPACK(CDCAB,um1%l_tile_pts, miss)
+  CH_TILE =  UNPACK(canopy_cdtq,um1%l_tile_pts, miss)
 
-U_S_STD_TILE=U_S_TILE
+  U_S_STD_TILE=U_S_TILE
 
-U_S = 0.
-      DO N=1,um1%ntiles
-         DO K=1,um1%TILE_PTS(N)
-            L = um1%TILE_INDEX(K,N)
-            J=(um1%LAND_INDEX(L)-1)/um1%row_length + 1
-            I = um1%LAND_INDEX(L) - (J-1)*um1%row_length
-U_S(I,J) = U_S(I,J)+FLAND(L)*um1%TILE_FRAC(L,N)*U_S_TILE(L,N)
-         ENDDO
-      ENDDO
+  U_S = 0.
+  DO N=1,um1%ntiles
+    DO K=1,um1%TILE_PTS(N)
+      L = um1%TILE_INDEX(K,N)
+      J=(um1%LAND_INDEX(L)-1)/um1%row_length + 1
+      I = um1%LAND_INDEX(L) - (J-1)*um1%row_length
+      U_S(I,J) = U_S(I,J)+FLAND(L)*um1%TILE_FRAC(L,N)*U_S_TILE(L,N)
+    ENDDO
+  ENDDO
 
+  !___return miscelaneous 
+  fraca_cab = canopy_fwet * (1.-rad_transd)
+  WHERE( ssnow_snowd > 1.0 ) fraca_cab = 1.0
+  
+  rfsfs_cab = MIN( 1., MAX( 0.01, canopy_wetfac_cs - fraca_cab ) /         &
+              MAX( 0.01,1. - fraca_cab ) )
+  FRACA = UNPACK( fraca_cab, um1%l_tile_pts, miss )
+  RESFT = UNPACK( canopy_wetfac_cs,um1%l_tile_pts, miss )
+  RESFS = UNPACK( rfsfs_cab , um1%l_tile_pts, miss )
 
-      !___return miscelaneous 
-      fraca_cab = canopy_fwet * (1.-rad_transd)
-      WHERE( ssnow_snowd > 1.0 ) fraca_cab = 1.0
-      rfsfs_cab = MIN( 1., MAX( 0.01, canopy_wetfac_cs - fraca_cab ) /         &
-                  MAX( 0.01,1. - fraca_cab ) )
-FRACA = UNPACK( fraca_cab, um1%l_tile_pts, miss )
-RESFT = UNPACK( canopy_wetfac_cs,um1%l_tile_pts, miss )
-RESFS = UNPACK( rfsfs_cab , um1%l_tile_pts, miss )
+  RADNET_TILE = UNPACK( canopy_rnet , um1%l_tile_pts, miss )
 
-RADNET_TILE = UNPACK( canopy_rnet , um1%l_tile_pts, miss )
+  THETAST = ABS( canopy_fh ) / ( air_rho * capp*canopy_us )
+  RECIPLMOTILE =  canopy_zetar(:,niter) / rough_zref_tq
+  RECIP_L_MO_TILE = UNPACK( RECIPLMOTILE, um1%l_tile_pts, miss )
+  EPOT_TILE = UNPACK( canopy_epot, um1%l_tile_pts, miss )
 
-      THETAST = ABS( canopy_fh ) / ( air_rho * capp*canopy_us )
-      RECIPLMOTILE =  canopy_zetar(:,niter) / rough_zref_tq
-RECIP_L_MO_TILE = UNPACK( RECIPLMOTILE, um1%l_tile_pts, miss )
-EPOT_TILE = UNPACK( canopy_epot, um1%l_tile_pts, miss )
+  IF(first_cable_call) THEN 
+    l_tile_pts = um1%l_tile_pts
+    first_cable_call = .FALSE.
+  ENDIF
+  !-------- End Unique subroutine body -----------
+  
+  if (knode_gl == 0 .and. ktau_gl == 1)   & 
+    call cable_fprintf( subr_name, .true. ) !to std output stream
+  
+# ifdef FPPcable_fprint
+  !fprintf_dir=trim(fprintf_dir_root)//trim(unique_subdir)//trim(subr_name)//"/"
+  !call cable_fprintf( cDiag00, subr_name, knode_gl, ktau_gl, .true. )
+# endif
 
-      IF(first_cable_call) THEN 
-         l_tile_pts = um1%l_tile_pts
-         first_cable_call = .FALSE.
-      ENDIF
+# ifdef FPPcable_Pyfprint
+  !vname='latitude'; dimx=size(latitude,1); dimy=size(latitude,2)
+  !call cable_Pyfprintf( cDiag1, vname, latitude, dimx, dimy, .true.)
+# endif
 
+return
 
-END SUBROUTINE cable_expl_unpack
+End subroutine cable_expl_unpack
     
-!============================================================================
-!============================================================================
-!============================================================================
-
-END MODULE cable_expl_unpack_mod
+End module cable_expl_unpack_mod

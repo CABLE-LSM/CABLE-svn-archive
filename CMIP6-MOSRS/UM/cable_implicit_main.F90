@@ -27,80 +27,68 @@
 !
 !
 ! ==============================================================================
+!uncomment per subr for now - can update to namelist
+!#define FPPcable_fprint 0  
+!#define FPPcable_Pyfprint 0  
 
 module cable_implicit_main_mod
   
 contains
 
-SUBROUTINE cable_implicit_main(                                                &        
-              cycleno,                                                         & 
-              row_length,rows, land_pts, ntiles, npft, sm_levels,              &
-        dim_cs1, dim_cs2,                  & 
-        Fland,                      &
-!forcing: precip
-        ls_rain_cable, conv_rain_cable,                                        &
-        ls_snow_cable, conv_snow_cable, & !
-!forcing: temp and humidity 
-        tl_1, qw_1,&
-!forcing: increments to temp and humidity & Jan 2018: Ticket #132 needs ctctq1
-        dtl1_1, dqw1_1, ctctq1, &
-!prog: canopy water storage
-        canopy_gb, & ! aggregate over tiles, per land_pt 
-        canopy,    & ! per tile
-!prog: UM soil quantities, non-tiled  aggregate over CABLE tiles per land_pt
-        T_SOIL, &
-        smcl, &
-        STHF,&
-        STHU,&
-        snow_surft, & 
-        ftl_1,                   &
-        ftl_surft, &
-        fqw_1, &
-        fqw_surft,  &
-        tstar_surft, &
-        surf_ht_flux_land,         &
-        surf_htf_surft,     &
-        ecan_surft, esoil_surft,                 &
-        ei_surft, radnet_surft,                  &
-        gs, &
-        gs_surft, &
-        t1p5m_surft, &
-        q1p5m_surft, &
-        melt_surft, &
-        NPP, NPP_FT, GPP, GPP_FT,                                             &
-        RESP_S, RESP_S_TOT, &   !RESP_S_TILE, !Kathy intro-ed as diag         &
-        RESP_P, RESP_P_FT, G_LEAF,                                            &
-        snow_depth                                                            &
-)
-  
-  USE cable_implicit_driv_mod, ONLY :cable_implicit_driver
+subroutine cable_implicit_main( cycleno, & ! num_cycles
+              row_length, rows, land_pts, ntiles, npft, sm_levels,             &
+              dim_cs1, dim_cs2, Fland,                                         &
+              !forcing: precip
+              ls_rain_cable, conv_rain_cable, ls_snow_cable, conv_snow_cable,  &
+              !forcing & increments: temp and humidity 
+              tl_1, qw_1, dtl1_1, dqw1_1, ctctq1,                              &
+              !prog: canopy water storage [per landpoint, per tile ]
+              canopy_gb, canopy,                                               & 
+              !prog: UM soi , per land_pt
+              T_SOIL, smcl, STHF, STHU, snow_surft,                            & 
+              ftl_1, ftl_surft, fqw_1, fqw_surft,                              &
+              tstar_surft, surf_ht_flux_land, surf_htf_surft,                  &
+              ecan_surft, esoil_surft, ei_surft, radnet_surft,                 &
+              gs, gs_surft, t1p5m_surft, q1p5m_surft, melt_surft,              &
+              NPP, NPP_FT, GPP, GPP_FT,                                        &
+              RESP_S, RESP_S_TOT, & !RESP_S_TILE, !Kathy intro-ed as diag 
+              RESP_P, RESP_P_FT, G_LEAF, snow_depth )
+  !subrs called 
+  USE cable_implicit_driv_mod, ONLY : cable_implicit_driver
+  USE cable_implicit_unpack_mod, ONLY : implicit_unpack
 
-  USE cable_common_module, ONLY : knode_gl,        & ! processor number
-                                  ktau_gl,         & ! number
-                                  kwidth_gl          ! width in S 
+  ! processor number, timestep number & width
+  USE cable_common_module, ONLY : knode_gl, ktau_gl, kwidth_gl
   
+# if defined(UM_JULES)
+  ! CABLE prognostics declared at top_level
   USE atm_fields_real_mod, ONLY : soil_temp_cable, soil_moist_cable,           &
                                   soil_froz_frac_cable, snow_dpth_cable,       & 
                                   snow_mass_cable, snow_temp_cable,            &
                                   snow_rho_cable, snow_avg_rho_cable,          &   
                                   snow_age_cable, snow_flg_cable,              &
                                   aquifer_moist_cable
-  
-  USE cable_gather_um_data_decs, ONLY : smvcst_cable  
-  USE atmos_physics2_alloc_mod, ONLY : resp_s_tile
-
-
+  ! CASA prognostics declared at top_level
   USE atm_fields_real_mod, ONLY : C_pool_casa, N_pool_casa, P_pool_casa,       &
                                   SOIL_ORDER_casa, N_DEP_casa, N_FIX_casa,     &
                                   P_DUST_casa, P_weath_casa, LAI_casa,         &
                                   PHENPHASE_casa, NPP_PFT_ACC, RSP_W_PFT_ACC
+  !UM: time info 
+  USE model_time_mod, ONLY:    target_end_stepim, i_day, i_day_number
+#endif
 
- USE model_time_mod, ONLY: &
-    target_end_stepim, i_day, i_day_number
+  USE cable_gather_um_data_decs, ONLY : smvcst_cable  
+  USE atmos_physics2_alloc_mod, ONLY : resp_s_tile
+  
      
+  !diag 
+  USE cable_fprint_module, ONLY : cable_fprintf
+  USE cable_Pyfprint_module, ONLY : cable_Pyfprintf
+  USE cable_fFile_module, ONLY : fprintf_dir_root, fprintf_dir
+  
   implicit none
- 
-  !--- IN ARGS FROM sf_impl2_cable, passed from surf_couple_implicit() down ----
+  
+  !___ re-decl input args
   integer :: cycleno
   integer :: row_length,rows, land_pts, ntiles, npft, sm_levels
   integer :: dim_cs1, dim_cs2 
@@ -126,71 +114,73 @@ SUBROUTINE cable_implicit_main(                                                &
     canopy_gb(land_pts),         & !prog: canopy water store aggregate over tiles 
     canopy(land_pts, ntiles)       !prog:  per tile
 
-!prog: UM soil quantities, non-tiled  aggregate over CABLE tiles per land_pt
-real, dimension(land_pts,sm_levels) ::                           &
-  T_SOIL, &
-  smcl, &
-  STHF,&
-  STHU
-
-real, dimension( land_pts, ntiles ) ::                           &
-  snow_surft, &     ! snow ammount on tile nee:snow_tile 
-  ftl_surft, &
-  fqw_surft,  &
-  tstar_surft, &
-  surf_htf_surft, &
-  ecan_surft, esoil_surft,                 &
-  ei_surft, radnet_surft, &
-  gs_surft, &
-  t1p5m_surft, &
-  q1p5m_surft, &
-  melt_surft, &
-  snow_depth
+  !prog: UM soil quantities, non-tiled  aggregate over CABLE tiles per land_pt
+  real, dimension(land_pts,sm_levels) ::                                       &
+    T_SOIL, &
+    smcl, &
+    STHF,&
+    STHU
   
-real, dimension( land_pts ) ::                           &
-  gs
-  
-real, dimension(row_length,rows) ::      &
-  ftl_1, &
-  fqw_1, &
-  surf_ht_flux_land
+  real, dimension( land_pts, ntiles ) ::                                       &
+    snow_surft, &     ! snow ammount on tile nee:snow_tile 
+    ftl_surft, &
+    fqw_surft,  &
+    tstar_surft, &
+    surf_htf_surft, &
+    ecan_surft, esoil_surft,                 &
+    ei_surft, radnet_surft, &
+    gs_surft, &
+    t1p5m_surft, &
+    q1p5m_surft, &
+    melt_surft, &
+    snow_depth
+    
+  real, dimension( land_pts ) ::                           &
+    gs !
+    
+  real, dimension(row_length,rows) ::      &
+    ftl_1, &
+    fqw_1, &
+    surf_ht_flux_land
 
-REAL ::                                                     &
-   gpp(land_pts),                                                    &
-                                ! IN Gross primary productivity
-                                !    (kg C/m2/s).
-   gpp_ft(land_pts,ntiles),                                            &
-                                ! IN Gross primary productivity
-                                !    on PFTs (kg C/m2/s).
-   npp(land_pts),                                                    &
-                                ! IN Net primary productivity
-                                !    (kg C/m2/s).
-   npp_ft(land_pts,ntiles),                                            &
-                                ! IN Net primary productivity
-                                !    on PFTs (kg C/m2/s).
-   resp_p(land_pts),                                                 &
-                                ! IN Plant respiration (kg C/m2/s).
-   resp_p_ft(land_pts,ntiles),                                         &
-                                  !IN Plant respiration on PFTs
-                                !     (kg C/m2/s).
-   resp_s(land_pts,dim_cs1),                                         &
-                                   ! IN Soil respiration (kg C/m2/s).
-   resp_s_tot(dim_cs2),                                               &
-                                   ! IN Total soil resp'n (kg C/m2/s).
-   g_leaf(land_pts,ntiles)
-                                ! IN Leaf turnover rate (/360days).
+  real, dimension( land_pts ) ::                                               &
+    gpp,   & ! IN Gross primary productivity (kg C/m2/s).
+    npp,   & ! IN Net primary productivity   (kg C/m2/s).
+    resp_p   ! IN Plant respiration (kg C/m2/s).
+
+  real, dimension( land_pts,ntiles ) ::                           &
+    gpp_ft,   & ! IN Gross primary productivity  on PFTs (kg C/m2/s).
+    npp_ft,   & ! IN Net primary productivity  on PFTs (kg C/m2/s).
+    g_leaf,   & ! IN Leaf turnover rate (/360days).
+    resp_p_ft   ! IN Plant respiration on PFTs  (kg C/m2/s).
+   
+   real :: resp_s(land_pts,dim_cs1) ! IN Soil respiration (kg C/m2/s).
+   real :: resp_s_tot(dim_cs2)      ! IN Total soil resp'n (kg C/m2/s).
  
+  !___ local vars
 
+  ! UM type vars but no feedback 
+  REAL, dimension(land_pts,ntiles,sm_levels) :: STHU_surft
+  REAL, dimension(land_pts,ntiles) ::  TOT_ALB, TRANSP_surft
+  REAL, dimension(land_pts,ntiles,3) :: SNOW_COND        
 
-  !--- End IN ARGS  -----------------------------------------------------------
-
-  !--- declare local vars ------------------------------------------------------ 
-
-  character(len=*), parameter :: subr_name = "cable_implicit_main"
   logical, save :: first_call = .true.
   integer,  DIMENSION(land_pts, ntiles) :: isnow_flg_cable
+
+  ! std template args  
+  character(len=*), parameter :: subr_name = "cable_implicit_main"
+
+# if defined(FPPcable_fprint) || defined(FPPcable_Pyfprint)
+#   include "../../../core/utils/diag/cable_fprint.txt"
+    ! e.g. unique_subdir = "727/"
+# endif
   
-  !--- End header -------------------------------------------------------------
+  !-------- Unique subroutine body -----------
+  
+  !----------------------------------------------------------------------------
+  !--- Organize report writing for CABLE.                         -------------
+  !--- Progress log and IN args @ timestep X,Y,Z                  -------------
+  !----------------------------------------------------------------------------
   
   if(knode_gl==0) then
     write (6, *) "CABLE_LSM:Start Subr: ", subr_name
@@ -201,94 +191,66 @@ REAL ::                                                     &
   endif
      
   !----------------------------------------------------------------------------
-  !--- Organize report writing for CABLE.                         -------------
-  !--- Progress log and IN args @ timestep X,Y,Z                  -------------
-  !----------------------------------------------------------------------------
-  
-  !----------------------------------------------------------------------------
-  !----------------------------------------------------------------------------
-  
-  !----------------------------------------------------------------------------
   !--- CALL _driver to run specific and necessary components of CABLE with IN -
   !--- args PACKED to force CABLE
   !----------------------------------------------------------------------------
   
   isnow_flg_cable = int(snow_flg_cable)
 
- call cable_implicit_driver( i_day_number,                             &
-cycleno,                                                         & 
-row_length,rows, land_pts, ntiles, npft, sm_levels,              &
-dim_cs1, dim_cs2,                                                & 
-Fland,                                                           &
-LS_RAIN_cable, CONV_RAIN_cable, LS_SNOW_cable, CONV_SNOW_cable,                           &
-DTL1_1,DQW1_1, &
-!Ticket #132 needs ctctq1
-ctctq1, &
-T_SOIL, &
-soil_temp_cable, &
-SMCL,        &
-soil_moist_cable, &
-aquifer_moist_cable, &
-real(kwidth_gl), &
-SMVCST_cable,&
-STHF, &
-soil_froz_frac_cable, &
-STHU,&
-!STHU_TILE, &
-snow_surft, &
-snow_avg_rho_cable,       &
-isnow_flg_cable, &
-snow_dpth_cable, &
-snow_mass_cable,      &
-snow_rho_cable, &
-snow_temp_cable,&
-! this is diag only. initialize to huge(-1.)
-!snow_cond, &
-FTL_1, FTL_surft, FQW_1, FQW_surft,    &
-TSTAR_surft, &
-SURF_HT_FLUX_LAND, ECAN_surft, ESOIL_surft,    &
-EI_surft, RADNET_surft, &
-!TOT_ALB, &
-SNOW_AGE_cable,   &
-CANOPY, GS, &
-gs_surft, &
-T1P5M_surft, Q1P5M_surft,     &
-CANOPY_GB, MELT_surft, &
-NPP, NPP_FT, GPP, GPP_FT, RESP_S,   &
-RESP_S_TOT, &
-!Kathy intro'ed as a diag
-RESP_S_TILE, &
-RESP_P, RESP_P_FT,  &
-G_LEAF, & 
-TL_1, QW_1, &
-SURF_HTF_surft, &
-                              C_pool_casa, N_pool_casa, P_pool_casa,           &
-                              LAI_casa, PHENPHASE_casa,            &
-                              NPP_PFT_ACC, RSP_W_PFT_ACC )
+  call cable_implicit_driver( i_day_number, cycleno, &! num_cycles  
+        row_length,rows, land_pts, ntiles, npft, sm_levels,                    &
+        dim_cs1, dim_cs2, Fland,                                               &
+        LS_RAIN_cable, CONV_RAIN_cable, LS_SNOW_cable, CONV_SNOW_cable,        &
+        DTL1_1, DQW1_1, ctctq1, T_SOIL, soil_temp_cable,                       &
+        SMCL, soil_moist_cable, aquifer_moist_cable, real(kwidth_gl),          &
+        SMVCST_cable, STHF, soil_froz_frac_cable, STHU,                        &
+        snow_surft, snow_avg_rho_cable, isnow_flg_cable, snow_dpth_cable,      &
+        snow_mass_cable, snow_rho_cable, snow_temp_cable,                      & 
+        FTL_1, FTL_surft, FQW_1, FQW_surft,                                    &
+        TSTAR_surft, SURF_HT_FLUX_LAND, ECAN_surft, ESOIL_surft,               &
+        EI_surft, RADNET_surft, SNOW_AGE_cable, CANOPY, GS, gs_surft,          &
+        T1P5M_surft, Q1P5M_surft, CANOPY_GB, MELT_surft,                       &
+        NPP, NPP_FT, GPP, GPP_FT, RESP_S, RESP_S_TOT, RESP_S_TILE,             &
+        RESP_P, RESP_P_FT, G_LEAF, TL_1, QW_1, SURF_HTF_surft,                 &
+        C_pool_casa, N_pool_casa, P_pool_casa, LAI_casa, PHENPHASE_casa,       &
+        NPP_PFT_ACC, RSP_W_PFT_ACC )
  
-  !----------------------------------------------------------------------------
-  !----------------------------------------------------------------------------
-  
-  !----------------------------------------------------------------------------
-  !--- CALL _driver to run specific and necessary components of CABLE with IN -
-  !--- args PACKED to force CABLE
-  !----------------------------------------------------------------------------
-  
-  !----------------------------------------------------------------------------
-  !----------------------------------------------------------------------------
+   CALL implicit_unpack( cycleno, row_length,rows, land_pts, ntiles, npft,     &
+                        sm_levels, dim_cs1, dim_cs2, T_SOIL, soil_temp_cable,  &
+                        SMCL, soil_moist_cable, aquifer_moist_cable,           &
+                        SMVCST_cable, STHF, &
+                        soil_froz_frac_cable, STHU, STHU_surft, snow_surft,    &
+                        snow_avg_rho_cable, isnow_flg_cable, snow_dpth_cable,  &
+                        snow_mass_cable, snow_rho_cable, snow_temp_cable,      &
+                        SNOW_COND, FTL_1, FTL_surft, FQW_1, FQW_surft,         &
+                        TSTAR_surft, SURF_HT_FLUX_LAND, ECAN_surft,            &
+                        ESOIL_surft, EI_surft, RADNET_surft, TOT_ALB,          &
+                        SNOW_AGE_cable, CANOPY, GS,GS_surft,                   &
+                        T1P5M_surft, Q1P5M_surft,                              &
+                        CANOPY_GB, FLAND, MELT_surft,                          &
+                        NPP, NPP_FT, GPP, GPP_FT, RESP_S, RESP_S_TOT,          &
+                        RESP_S_tile, RESP_P, RESP_P_FT, G_LEAF, TRANSP_surft,  &
+                        NPP_PFT_ACC, RSP_W_PFT_ACC,SURF_HTF_surft )
+
+
   
   snow_flg_cable = real(isnow_flg_cable)
-  !----------------------------------------------------------------------------
-  !--- Organize report writing for CABLE.                         -------------
-  !--- OUT args @ timestep X,Y,Z                                  -------------
-  !----------------------------------------------------------------------------
-
-  !jhan: call checks as required by namelis      
-  
-  !----------------------------------------------------------------------------
-  !----------------------------------------------------------------------------
     
   first_call = .false.        
+  !-------- End Unique subroutine body -----------
+
+  if (knode_gl == 0 .and. ktau_gl == 1)   & 
+    call cable_fprintf( subr_name, .true. ) !to std output stream
+  
+# ifdef FPPcable_fprint
+  !fprintf_dir=trim(fprintf_dir_root)//trim(unique_subdir)//trim(subr_name)//"/"
+  !call cable_fprintf( cDiag00, subr_name, knode_gl, ktau_gl, .true. )
+# endif
+
+# ifdef FPPcable_Pyfprint
+  !vname='latitude'; dimx=size(latitude,1); dimy=size(latitude,2)
+  !call cable_Pyfprintf( cDiag1, vname, latitude, dimx, dimy, .true.)
+# endif
 
 return
 

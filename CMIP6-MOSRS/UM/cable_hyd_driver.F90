@@ -20,6 +20,8 @@
 !          In future could be combined with standard unpacking of cable 
 !          variables at end of implicit call
 !
+!          2018 WB_LAKE extraction removed and placed in a separate routine
+!          as needed for interation with ACCESS rivers' scheme
 !
 ! ==============================================================================
 module cable_hyd_driv_mod
@@ -35,7 +37,7 @@ SUBROUTINE cable_hyd_driver( land_pts, ntiles, lying_snow, SNOW_TILE, SURF_ROFF,
    USE cable_um_tech_mod, only : um1, ssnow, canopy, veg
   USE cable_decs_mod, ONLY : L_tile_pts
   USE cable_um_tech_mod,   ONLY : um1
-  USE cable_wblake_mod   
+  !USE cable_wblake_mod   
 !C!  USE cable_hyd_nunpack_mod
 
    IMPLICIT NONE
@@ -76,7 +78,7 @@ SUB_SURF_ROFF  = SUM(um1%TILE_FRAC * SURF_CAB_ROFF,2)
 TOT_TFALL      = SUM(um1%TILE_FRAC * TOT_TFALL_TILE,2)
 
      ! Lest 25sep13 - wb_lake fix
-     WBLAKE_cable        = UNPACK(ssnow%wb_lake, L_TILE_PTS, miss)
+     ! WBLAKE_cable        = UNPACK(ssnow%wb_lake, L_TILE_PTS, miss)
 
 
 !  call cable_hyd_nunpack( land_pts, ntiles, SNOW_TILE, SURF_ROFF,           &
@@ -84,7 +86,32 @@ TOT_TFALL      = SUM(um1%TILE_FRAC * TOT_TFALL_TILE,2)
        
 
 END SUBROUTINE cable_hyd_driver
+
+SUBROUTINE cable_lakesrivers(TOT_WB_LAKE)
+    
+    USE cable_um_tech_mod, ONLY : um1, ssnow
+    USE cable_decs_mod, ONLY : L_tile_pts
+    
+    IMPLICIT NONE
+    
+    !routine extracts daily integrated ssnow%totwblake - water added to keep 
+    !lake tiles saturated - and grid cell averages (over land fraction)
+    !for use in river flow scaling routines
+    
+    REAL, INTENT(OUT), DIMENSION(um1%LAND_PTS) :: TOT_WB_LAKE
+    
+    !working variables
+    REAL :: miss = 0.
+    REAL, DIMENSION(um1%LAND_PTS, um1%ntiles) :: TOT_WB_LAKE_TILE
+    
+    TOT_WB_LAKE_TILE = UNPACK(ssnow%totwblake, um1%L_TILE_PTS, miss)
+    TOT_WB_LAKE = SUM(um1%TILE_FRAC * TOT_WB_LAKE_TILE,2)
       
+    !zero the current integration
+    ssnow%totwblake = 0.
+
+END SUBROUTINE cable_lakesrivers
+
 End module cable_hyd_driv_mod
 
 

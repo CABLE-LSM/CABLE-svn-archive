@@ -33,12 +33,13 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
                               land_index, tile_frac, tile_pts, tile_index,     &
                               bexp, hcon, satcon, sathh, smvcst, smvcwt,       &
                               smvccl, albsoil, slope_avg,slope_std,dz_gw,           &
-                              snow_tile, snow_rho1l,                           &
+                              perm_gw,drain_gw,snow_tile, snow_rho1l,    &
                               snow_age, isnow_flg3l, snow_rho3l, snow_cond,  &
                               snow_depth3l, snow_tmp3l, snow_mass3l, sw_down,  &
                               lw_down, cos_zenith_angle, surf_down_sw, ls_rain,&
                               ls_snow, tl_1, qw_1, vshr_land, pstar, z1_tq,    &
-                              z1_uv, rho_water, rho_ice,L_tile_pts, canopy_tile, Fland,&
+                              z1_uv, rho_water, rho_ice,L_tile_pts,            &
+                              visc_sublayer_depth, canopy_tile, Fland,         &
                               ! rml 2/7/13 pass 3d co2 through to cable if required
                               CO2_MMR,&
                               !r935 CO2_3D,CO2_DIM_LEN,CO2_DIM_ROW,L_CO2_INTERACTIVE,   &
@@ -113,7 +114,10 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
    REAL, DIMENSION(land_pts) ::                                    &
       slope_avg,&
       slope_std,&
-      dz_gw
+      dz_gw,&
+      sy_gw,&
+      perm_gw,&
+      drain_gw
 
    REAL, DIMENSION(row_length,rows) ::                          &
       sw_down, &        !
@@ -149,6 +153,8 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
    REAL,DIMENSION(land_pts, ntiles) ::                             &
       canopy_tile !
 
+   REAL,DIMENSION(land_pts, ntiles) ::                             &
+      visc_sublayer_depth !
    REAL, DIMENSION(land_pts, ntiles,3) ::                       &
       snow_cond   !
 
@@ -284,7 +290,8 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
       !--- initialize soil
       CALL initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,      &
                             smvccl, albsoil, tsoil_tile, sthu, sthu_tile,   &
-                            dzsoil, slope_avg, slope_std, dz_gw ) 
+                            dzsoil, slope_avg, slope_std, dz_gw,            &
+                            perm_gw,drain_gw ) 
       !--- initialize roughness
       CALL initialize_roughness( z1_tq, z1_uv, kblum_veg%htveg ) 
        
@@ -296,7 +303,7 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
                                 fland, sin_theta_latitude ) 
 
       !--- initialize canopy   
-      CALL initialize_canopy(CANOPY_TILE)
+      CALL initialize_canopy(CANOPY_TILE,visc_sublayer_depth)
  
       !--- initialize radiation & met forcing
       CALL initialize_radiation( sw_down, lw_down, cos_zenith_angle,        &

@@ -202,7 +202,8 @@ return
         
 SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
                             smvccl, albsoil, tsoil_tile, sthu, sthu_tile,      &
-                            dzsoil, slope_avg, slope_std, dz_gw ) 
+                            dzsoil, slope_avg, slope_std,&
+                             dz_gw,aq_perm,drain_dens ) 
 
    USE cable_def_types_mod, ONLY : ms, mstype, mp, r_2
    USE cable_um_tech_mod,   ONLY : um1, soil, veg, ssnow 
@@ -222,7 +223,7 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
    REAL, INTENT(IN), DIMENSION(um1%land_pts) :: &
       slope_avg, &
       slope_std, &
-      dz_gw
+      dz_gw,aq_perm,drain_dens
 
    REAL, INTENT(IN), DIMENSION(um1%land_pts, um1%sm_levels) :: sthu
    
@@ -356,7 +357,7 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
          soil%GWdz(:) = pack(fwork(:,:),um1%l_tile_pts)
 
          do i=1,mp 
-            if (soil%GWdz(i) .lt. 2.5) soil%GWdz(i) = 2.5
+            if (soil%GWdz(i) .lt. 20.0) soil%GWdz(i) = 20.0
             if (soil%GWdz(i) .gt. 150.0) soil%GWdz(i) = 150.0
             if (veg%iveg(i) .eq. 16) soil%GWdz(i) = 150.0
          end do
@@ -388,6 +389,46 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
             if (soil%slope_std(i) .gt. 0.2) soil%slope_std(i) = 0.2
             if (veg%iveg(i) .eq. 16) soil%slope_std(i) = 0.00002
          end do
+         fwork(:,:) = 0.0008
+         soil%drain_dens(:) = 0.0
+         DO n=1,um1%NTILES
+           do k=1,um1%TILE_PTS(N)
+              i = um1%tile_index(k,n)
+              fwork(i,n) = drain_dens(i)
+            end do
+         end do
+         soil%drain_dens(:) = pack(fwork(:,:),um1%l_tile_pts)
+         do i=1,mp 
+            if (soil%drain_dens(i) .lt. 1.0e-6) soil%drain_dens(i) = 1.0e-6
+            if (soil%drain_dens(i) .gt. 0.02) soil%drain_dens(i) = 0.02
+            if (veg%iveg(i) .eq. 16) soil%drain_dens(i) = 0.02
+         end do
+
+         WRITE(6,*) 'maxval soil%drain_dens',maxval(soil%drain_dens,dim=1)
+         WRITE(6,*) 'minval soil%drain_dens',minval(soil%drain_dens,dim=1)
+         IF (any(soil%drain_dens(:) .eq. 0.0)) &
+                           write(*,*) 'drain_dens has values of zero'
+
+ 
+
+         soil%GWhyds_vec(:) = 0.0
+         fwork = 3.0e-6
+         DO n=1,um1%NTILES
+           do k=1,um1%TILE_PTS(N)
+              i = um1%tile_index(k,n)
+              fwork(i,n) = aq_perm(i)/10.0
+            end do
+         end do
+         soil%GWhyds_vec(:) = pack(fwork(:,:),um1%l_tile_pts) 
+         do i=1,mp 
+            if (soil%GWhyds_vec(i) .lt. 1.0e-8) soil%GWhyds_vec(i) =1.0e-8
+            if (soil%GWhyds_vec(i) .gt. 1.0e-3) soil%GWhyds_vec(i) =1.0e-3
+         end do
+
+         WRITE(6,*) 'maxval soil%GWhyds_vec',maxval(soil%GWhyds_vec,dim=1)
+         WRITE(6,*) 'minval soil%GWhyds_vec',minval(soil%GWhyds_vec,dim=1)
+         IF (any(soil%GWhyds_vec(:) .eq. 0.0)) &
+                           write(*,*) 'hyds_vec has values of zero'
 
          deallocate(fwork) 
             
@@ -537,11 +578,15 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
 
          !always set these though not needed unless gw_model - true
          !should read in the values but they need calibration
+         !where (soil%GWssat_vec .lt. 0.0) &
+         where(soil%isoilm .eq. 9 .or. veg%iveg .eq. 16)
+         !CAN leave these read in, not enough testing for now
+                soil%GWhyds_vec = soil%hyds_vec(:,ms)
+         endwhere
          soil%GWssat_vec = soil%ssat_vec(:,ms)
          soil%GWsucs_vec = soil%sucs_vec(:,ms)
-         soil%GWhyds_vec = soil%hyds_vec(:,ms)
          soil%GWbch_vec  = soil%bch_vec(:,ms)
-         soil%GWwatr     = soil%watr(:,ms)
+         soil%GWwatr     = 0.0
 
          
          !for sli   
@@ -839,11 +884,12 @@ END SUBROUTINE initialize_radiation
 !========================================================================
 !========================================================================
           
-SUBROUTINE initialize_canopy(canopy_tile)
+SUBROUTINE initialize_canopy(canopy_tile,visc_sublayer_dz)
    USE cable_um_tech_mod,   ONLY : um1, canopy 
    USE cable_common_module, ONLY : cable_runtime, cable_user
    
    REAL, INTENT(IN),DIMENSION(um1%land_pts, um1%ntiles) :: canopy_tile
+   REAL, INTENT(IN),DIMENSION(um1%land_pts, um1%ntiles) :: visc_sublayer_dz
    
    ! defs 1st call to CABLE in this run. OK in UM & coupled
    LOGICAL, SAVE :: first_call= .TRUE.
@@ -854,7 +900,6 @@ SUBROUTINE initialize_canopy(canopy_tile)
          canopy%ga = 0.
          canopy%us = 0.01
          canopy%fes_cor = 0.
-         canopy%sublayer_dz = 0.001 
          canopy%fhs_cor = 0.
          canopy%fwsoil = 1.
          first_call = .FALSE.
@@ -863,6 +908,17 @@ SUBROUTINE initialize_canopy(canopy_tile)
      !---set canopy storage (already in dim(land_pts,ntiles) ) 
      canopy%cansto = pack(CANOPY_TILE, um1%l_tile_pts)
      canopy%oldcansto=canopy%cansto
+     canopy%sublayer_dz(:) = 0.0  !junk
+     canopy%sublayer_dz(:) = pack(visc_sublayer_dz(:,:),um1%l_tile_pts) 
+     where (canopy%sublayer_dz .lt. 1.0e-8) canopy%sublayer_dz = 1.0e-8
+     where (canopy%sublayer_dz .gt. 1.0) canopy%sublayer_dz = 1.0
+
+     IF (first_call ) THEN
+
+        WRITE(6,*) 'maxval canopy%sublayer_dz',maxval(canopy%sublayer_dz,dim=1)
+        WRITE(6,*) 'minval canopy%sublayer_dz',minval(canopy%sublayer_dz,dim=1)
+
+     END IF
 
 END SUBROUTINE initialize_canopy
 
@@ -960,11 +1016,13 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile,smcl_tile,smgw_til
       ssnow%snage = PACK(SNOW_AGE, um1%l_tile_pts)
 
       ssnow%GWwb(:) = pack(smgw_tile(:,:),um1%l_tile_pts)
+      where (ssnow%GWwb .gt. soil%GWssat_vec) ssnow%GWwb = soil%GWssat_vec
 
       IF( first_call) THEN 
         
          ssnow%wbtot = 0.
          ssnow%wb_lake = 0.0
+         ssnow%totwblake = 0.0  ! wb_lake integrated over river timestep
          ssnow%tggav = 0.
          ssnow%rtsoil = 50.
          ssnow%t_snwlr = 0.05
@@ -1155,6 +1213,8 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile,smcl_tile,smgw_til
           
       ELSE
 !     DO J=1, msn
+         ssnow%wbtot1 = 0.0
+         ssnow%wbtot2 = 0.0
       DO J=1, 1
 
             WHERE( veg%iveg == 16 .and. ssnow%wb(:,J) < soil%sfc ) 
