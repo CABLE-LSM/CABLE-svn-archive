@@ -5,10 +5,6 @@ MODULE cable_psm
                                   roughness_type
    USE cable_common_module, only : cable_user
 
-   USE math_constants, ONLY : pi_r_2
-
-   USE other_constants, ONLY : gamma_pre,c_gamma
-
 implicit none
 
 
@@ -18,6 +14,13 @@ implicit none
                       litter_thermal_diff=2.7e-5  !param based on vh thermal diffusivity
 
    real(r_2), parameter :: rtevap_max = 10000.0
+   REAL(r_2), DIMENSION(0:8), parameter :: gamma_pre = &
+         (/ 0.99999999999980993, 676.5203681218851, -1259.1392167224028, &
+         771.32342877765313, -176.61502916214059, 12.507343278686905, &
+         -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7 /)
+   INTEGER, PARAMETER                      :: c_gamma = 7
+    real(r_2),parameter :: pi_r_2=3.14159
+
 
 PUBLIC  or_soil_evap_resistance,update_or_soil_resis,rtevap_max,rt_Dff
 
