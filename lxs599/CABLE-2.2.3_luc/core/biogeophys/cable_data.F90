@@ -110,7 +110,7 @@ module cable_data_module
       real :: a1c4 = 4.0
       real :: alpha3 = 0.200
       real :: alpha4  = 0.05
-      real :: cfrd3  = 0.015
+      real :: cfrd3  = 0.010
       real :: cfrd4  = 0.025
       real :: conkc0 = 302.e-6  !mol mol^-1
       real :: conko0 = 256.e-3  !mol mol^-1
