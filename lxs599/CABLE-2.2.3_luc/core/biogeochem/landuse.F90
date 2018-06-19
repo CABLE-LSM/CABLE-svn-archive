@@ -161,9 +161,18 @@ SUBROUTINE newlitter( casabiome,frac_x,ifpre_x,frac_y,ifpre_y, &
 
   DO nv=1,mvtype
     IF (ifpre_y(nv)) THEN   ! pft exist in the 2nd year
-      clitter_y(nv,:) = clitter_g(nv,:)/frac_y(nv) + dcY(:)
-      IF (icycle > 1) nlitter_y(nv,:) = nlitter_g(nv,:)/frac_y(nv) + dnY(:)
-      IF (icycle > 2) plitter_y(nv,:) = plitter_g(nv,:)/frac_y(nv) + dpY(:)
+      IF ((frac_x(p)-frac_y(p))>0.) THEN  ! patch weight decrease 
+                        clitter_y(nv,:) = clitter_g(nv,:)/frac_y(nv) !+ dcY(:)
+        IF (icycle > 1) nlitter_y(nv,:) = nlitter_g(nv,:)/frac_y(nv) !+ dnY(:)
+        IF (icycle > 2) plitter_y(nv,:) = plitter_g(nv,:)/frac_y(nv) !+ dpY(:)
+      ELSE ! patch increase
+                        clitter_y(nv,:) = clitter_g(nv,:)/frac_y(nv) &
+                                        + dcY(:)*(frac_y(nv)-frac_x(nv))/frac_y(nv)
+        IF (icycle > 1) nlitter_y(nv,:) = nlitter_g(nv,:)/frac_y(nv) &
+                                        + dnY(:)*(frac_y(nv)-frac_x(nv))/frac_y(nv)
+        IF (icycle > 2) plitter_y(nv,:) = plitter_g(nv,:)/frac_y(nv) &
+                                        + dpY(:)*(frac_y(nv)-frac_x(nv))/frac_y(nv)
+      ENDIF
     ENDIF
   END DO
 
