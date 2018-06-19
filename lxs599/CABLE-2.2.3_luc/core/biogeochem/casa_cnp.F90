@@ -380,7 +380,7 @@ SUBROUTINE casa_rplant(veg,casabiome,casapool,casaflux,casamet)
                                  * exp(308.56*(1.0/56.02-1.0            &
                                  / (casamet%tsoilavg(:)+46.02-tkzeroc)))
     ENDWHERE
-!    casaflux%crmplant(:,leaf) = casaflux%crmplant(:,leaf) + casaflux%clabloss(:)
+    casaflux%crmplant(:,leaf) = casaflux%crmplant(:,leaf) + casaflux%clabloss(:)
 
     WHERE((casaflux%Cgpp-SUM(casaflux%crmplant,2))>0.0)
     !casaflux%crgplant(:)  = 0.25* max(0.0,casaflux%Cgpp(:)-SUM(casaflux%crmplant(:,:),2))
