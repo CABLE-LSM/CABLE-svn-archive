@@ -129,7 +129,7 @@ SUBROUTINE newlitter( casabiome,frac_x,ifpre_x,frac_y,ifpre_y, &
 
       DO nL=1,mlitter
         DO nP=1,mplant
-           dclitter(nv,nL) = fromPtoL(nv,nL,nP) * dcplant(nv,nP)
+           dclitter(nv,nL) = dclitter(nv,nL)+ fromPtoL(nv,nL,nP) * dcplant(nv,nP)
            !clitter_g(nv,nL) = clitter_g(nv,nL) + fromPtoL(nv,nL,nP) * dcplant(nv,nP)
         ENDDO
       ENDDO
