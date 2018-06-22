@@ -598,7 +598,7 @@ END SUBROUTINE write_casa_dump
           veg%vcmax(np) = vcmax_np(nleafx(np), pleafx(np))
        endif
     else
-       stop('invalid vcmax flag')
+       stop ('invalid vcmax flag')
     endif
   
   ENDDO
