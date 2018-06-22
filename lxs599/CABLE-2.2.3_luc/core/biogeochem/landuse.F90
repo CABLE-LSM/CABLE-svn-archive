@@ -120,17 +120,12 @@ SUBROUTINE newlitter( casabiome,frac_x,ifpre_x,frac_y,ifpre_y, &
   ENDWHERE
 
   DO nv=1, mvtype
-  ! average litter pools on gridcell
-!     clitter_g(nv,:) = clitter_x(nv,:) *  frac_x(nv)
-!     nlitter_g(nv,:) = nlitter_x(nv,:) *  frac_x(nv)
-!     plitter_g(nv,:) = plitter_x(nv,:) *  frac_x(nv)
   ! transfer removed C,N,P pools from plant to litter 
     IF(ifpre_x(nv) .and. frac_x(nv)>frac_y(nv))THEN
 
       DO nL=1,mlitter
         DO nP=1,mplant
            dclitter(nv,nL) = dclitter(nv,nL)+ fromPtoL(nv,nL,nP) * dcplant(nv,nP)
-           !clitter_g(nv,nL) = clitter_g(nv,nL) + fromPtoL(nv,nL,nP) * dcplant(nv,nP)
         ENDDO
       ENDDO
   
@@ -150,10 +145,6 @@ SUBROUTINE newlitter( casabiome,frac_x,ifpre_x,frac_y,ifpre_y, &
     ENDIF
   END DO
 
-!                  clitter_g = clitter_g + dclitter
-!  IF (icycle > 1) nlitter_g = nlitter_g + dnlitter
-!  IF (icycle > 2) plitter_g = plitter_g + dplitter
-   
 ! II. re-allocate litter pools according to patch weights. 
 ! average pool variables from gridcell to new patches.
   DO nv=1,mvtype
@@ -168,9 +159,9 @@ SUBROUTINE newlitter( casabiome,frac_x,ifpre_x,frac_y,ifpre_y, &
   DO nv=1,mvtype
     IF (ifpre_y(nv)) THEN   ! pft exist in the 2nd year
       IF ((frac_x(nv)-frac_y(nv))>0.) THEN  ! patch weight decrease 
-                        clitter_y(nv,:) = clitter_x(nv,:)!/frac_y(nv) !+ dcY(:)
-        IF (icycle > 1) nlitter_y(nv,:) = nlitter_x(nv,:)!/frac_y(nv) !+ dnY(:)
-        IF (icycle > 2) plitter_y(nv,:) = plitter_x(nv,:)!/frac_y(nv) !+ dpY(:)
+                        clitter_y(nv,:) = clitter_x(nv,:)
+        IF (icycle > 1) nlitter_y(nv,:) = nlitter_x(nv,:)
+        IF (icycle > 2) plitter_y(nv,:) = plitter_x(nv,:)
       ELSE ! patch increase
                         clitter_y(nv,:) = (clitter_x(nv,:)*frac_x(nv) + dcY(:))/frac_y(nv)
         IF (icycle > 1) nlitter_y(nv,:) = (nlitter_x(nv,:)*frac_x(nv) + dnY(:))/frac_y(nv)
