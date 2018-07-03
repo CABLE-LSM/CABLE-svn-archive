@@ -52,7 +52,7 @@ subroutine cable_implicit_main( cycleno, & ! num_cycles
               gs, gs_surft, t1p5m_surft, q1p5m_surft, melt_surft,              &
               NPP, NPP_FT, GPP, GPP_FT,                                        &
               RESP_S, RESP_S_TOT, & !RESP_S_TILE, !Kathy intro-ed as diag 
-              RESP_P, RESP_P_FT, G_LEAF, snow_depth )
+              RESP_P, RESP_P_FT, G_LEAF, snow_depth, dtstar_surft )
   !subrs called 
   USE cable_implicit_driv_mod, ONLY : cable_implicit_driver
   USE cable_implicit_unpack_mod, ONLY : implicit_unpack
@@ -133,10 +133,12 @@ subroutine cable_implicit_main( cycleno, & ! num_cycles
     t1p5m_surft, &
     q1p5m_surft, &
     melt_surft, &
-    snow_depth
+    snow_depth, &
+    dtstar_surft
     
   real, dimension( land_pts ) ::                           &
-    gs !
+    gs, &             ! conductance for use in dust scheme
+    dtrad
     
   real, dimension(row_length,rows) ::      &
     ftl_1, &
@@ -213,7 +215,7 @@ subroutine cable_implicit_main( cycleno, & ! num_cycles
         NPP, NPP_FT, GPP, GPP_FT, RESP_S, RESP_S_TOT, RESP_S_TILE,             &
         RESP_P, RESP_P_FT, G_LEAF, TL_1, QW_1, SURF_HTF_surft,                 &
         C_pool_casa, N_pool_casa, P_pool_casa, LAI_casa, PHENPHASE_casa,       &
-        NPP_PFT_ACC, RSP_W_PFT_ACC )
+        NPP_PFT_ACC, RSP_W_PFT_ACC, dtrad)
  
    CALL implicit_unpack( cycleno, row_length,rows, land_pts, ntiles, npft,     &
                         sm_levels, dim_cs1, dim_cs2, T_SOIL, soil_temp_cable,  &
@@ -230,7 +232,8 @@ subroutine cable_implicit_main( cycleno, & ! num_cycles
                         CANOPY_GB, FLAND, MELT_surft,                          &
                         NPP, NPP_FT, GPP, GPP_FT, RESP_S, RESP_S_TOT,          &
                         RESP_S_tile, RESP_P, RESP_P_FT, G_LEAF, TRANSP_surft,  &
-                        NPP_PFT_ACC, RSP_W_PFT_ACC,SURF_HTF_surft )
+                        NPP_PFT_ACC, RSP_W_PFT_ACC,SURF_HTF_surft,             &
+                        dtrad, dtstar_surft)
 
 
   

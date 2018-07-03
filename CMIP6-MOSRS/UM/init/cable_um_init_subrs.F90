@@ -770,7 +770,7 @@ SUBROUTINE initialize_radiation( sw_down, lw_down, cos_zenith_angle,           &
 
    USE cable_def_types_mod, ONLY : mp
    USE cable_data_module,   ONLY : PHYS, OTHER
-   USE cable_um_tech_mod,   ONLY : um1, rad, soil, met,                        & 
+   USE cable_um_tech_mod,   ONLY : um1, rad, soil, met,                        &
                                    conv_rain_prevstep, conv_snow_prevstep
    USE cable_common_module, ONLY : cable_runtime, cable_user, ktau_gl
 
@@ -810,7 +810,7 @@ SUBROUTINE initialize_radiation( sw_down, lw_down, cos_zenith_angle,           &
      
       IF( first_call ) THEN
          rad%albedo_T = soil%albsoil(:,1)
-         first_call = .FALSE.
+         !first_call = .FALSE.            !second use of first_call later
          ALLOCATE( conv_rain_prevstep(mp), conv_snow_prevstep(mp) )
          conv_rain_prevstep = 0. 
          conv_snow_prevstep = 0.
@@ -851,7 +851,13 @@ SUBROUTINE initialize_radiation( sw_down, lw_down, cos_zenith_angle,           &
       !               + (met%precip_sn +  conv_rain_prevstep)
       met%tvair =     met%tk
       met%tvrad =     met%tk
-      met%coszen =    max(met%coszen,1e-8) 
+      met%coszen =    max(met%coszen,1e-8)
+
+      !initialise rad%trad on first call only
+      IF (first_call) THEN
+         rad%trad = met%tk
+         first_call = .FALSE.
+      END IF 
 
       !---this is necessary clobrring at present 
       WHERE(met%ua < 0.001 ) met%ua = 0.001
@@ -991,7 +997,10 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile,smcl_tile,smgw_til
       TFRZ => PHYS%TFRZ
        !why is snow updated from um values every timestep
        !but soil moisture not?
-      snow_tile = MIN(max_snow_depth, snow_tile)
+      
+      !line removed Jun 2018 to assist with water conservation
+      !in coupled runs alongside the ice-berg scheme
+      !snow_tile = MIN(max_snow_depth, snow_tile)
 
       ssnow%snowd  = PACK(SNOW_TILE,um1%l_tile_pts)
       ssnow%ssdnn  = PACK(SNOW_RHO1L,um1%l_tile_pts)  

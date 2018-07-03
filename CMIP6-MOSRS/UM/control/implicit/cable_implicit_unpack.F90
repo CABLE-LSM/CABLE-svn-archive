@@ -51,7 +51,7 @@ subroutine Implicit_unpack( cycleno, & ! nucycles
                             NPP, NPP_FT, GPP, GPP_FT, RESP_S,                  &
                             RESP_S_TOT, RESP_S_TILE, RESP_P, RESP_P_FT, G_LEAF,&
                             TRANSP_TILE, NPP_FT_ACC, RESP_W_FT_ACC,            &
-                            SURF_HTF_TILE )
+                            SURF_HTF_TILE, DTRAD, DTSTAR_TILE )
 
   !diag 
   USE cable_fprint_module, ONLY : cable_fprintf
@@ -122,14 +122,16 @@ subroutine Implicit_unpack( cycleno, & ! nucycles
     TSTAR_TILE,    &
     RESP_S_TILE,   & 
     TRANSP_TILE,   &
-    SMGW_TILE
+    SMGW_TILE,     &
+    DTSTAR_TILE      !change in tstar_tile over time step
 
   REAL, dimension(land_pts) ::                                            &
     RESP_P,     & ! 
     NPP,        & !
     GPP,        & !
     SNOW_GRD,   &  
-    CANOPY_GB
+    CANOPY_GB,  &
+    DTRAD         ! CABLE change in rad%trad over time step
 
   REAL, DIMENSION(land_pts,ntiles,3) ::                               &
     SNOW_DEPTH3L,  &
@@ -279,10 +281,21 @@ subroutine Implicit_unpack( cycleno, & ! nucycles
   RADNET_TILE   = unpack( canopy%rnet , l_tile_pts, miss)
   TOT_ALB       =UNPACK(rad%albedo_T,L_TILE_PTS, miss) 
   ECAN_TILE     = UNPACK(fev_dlh,  L_TILE_PTS, miss)
-  ESOIL_TILE    = UNPACK(fes_dlh, L_TILE_PTS, miss)
+  !ESOIL_TILE    = UNPACK(fes_dlh, L_TILE_PTS, miss)
   SURF_HTF_TILE = UNPACK(canopy%ga,L_TILE_PTS,miss)
   
-  EI_TILE = 0.
+  !EI_TILE = 0.
+
+  !Jun 2018 - need to split %fes into evaporation and sublimation
+  fes_dlh = 0.
+  WHERE (ssnow%cls==1.)  fes_dlh = canopy%fes/(air%rlam*ssnow%cls)
+  ESOIL_TILE = UNPACK(fes_dlh, L_TILE_PTS, miss)
+  fes_dlh = 0.
+  WHERE (ssnow%cls==1.1335) fes_dlh = canopy%fes/(air%rlam*ssnow%cls)
+  EI_TILE = UNPACK(fes_dlh, L_TILE_PTS, miss)
+
+  !Jun 2018 - dtstar_tile unpacking
+  DTSTAR_TILE = UNPACK(DTRAD, L_TILE_PTS, miss)
 
   SNOW_AGE = UNPACK(ssnow%snage, L_TILE_PTS, miss) 
 
@@ -330,9 +343,13 @@ subroutine Implicit_unpack( cycleno, & ! nucycles
       I = um1%LAND_INDEX(L) - (J-1)*ROW_LENGTH
       FTL_1(I,J) = FTL_1(I,J)+FLAND(L)*um1%TILE_FRAC(L,N)*FTL_TILE(L,N)
       FQW_1(I,J) = FQW_1(I,J)+FLAND(L)*um1%TILE_FRAC(L,N)*FQW_TILE(L,N)
+      
+      !Jun 2018 SURF_HT_FLUX_LAND is averaged over land not grid cell
+      !SURF_HT_FLUX_LAND(I,J) = SURF_HT_FLUX_LAND(I,J) +                   &
+      !                         FLAND(L)*um1%TILE_FRAC(L,N) *              &
+      !                         SURF_HTF_TILE(L,N)
       SURF_HT_FLUX_LAND(I,J) = SURF_HT_FLUX_LAND(I,J) +                   &
-                               FLAND(L)*um1%TILE_FRAC(L,N) *              &
-                               SURF_HTF_TILE(L,N)
+                               um1%TILE_FRAC(L,N) * SURF_HTF_TILE(L,N)
 
     ENDDO
 

@@ -44,7 +44,7 @@ subroutine cable_implicit_driver( i_day_number, cycleno, &! num_cycles
                           RESP_S_TOT, RESP_S_TILE, RESP_P, RESP_P_FT,          &
                           G_LEAF, TL_1, QW_1, SURF_HTF_TILE,                   &
                           CPOOL_TILE, NPOOL_TILE, PPOOL_TILE,                  &
-                          GLAI, PHENPHASE, NPP_FT_ACC, RESP_W_FT_ACC )
+                          GLAI, PHENPHASE, NPP_FT_ACC, RESP_W_FT_ACC, DTRAD )
 
   !subrs called 
   USE cable_um_init_subrs_mod, ONLY : um2cable_rr
@@ -159,7 +159,8 @@ subroutine cable_implicit_driver( i_day_number, cycleno, &! num_cycles
     CANOPY_GB,   & !
     RESP_P,      & !
     NPP,         & !
-    GPP            !
+    GPP,         & !
+    DTRAD          !change in Trad over the time step
       
   REAL, DIMENSION( land_pts,ntiles ) ::                               &
     SNOW_TILE,     &
@@ -349,6 +350,9 @@ subroutine cable_implicit_driver( i_day_number, cycleno, &! num_cycles
       if (ipb == cpb) THEN
         ssnow%totwblake = ssnow%totwblake + ssnow%wb_lake/river_step
       end if
+ 
+  !Jun 2018 - change in Trad over time step
+  DTRAD = rad%trad - rad%otrad
 
   ! Lestevens - temporary ?
   ktauday = int(24.0*3600.0/TIMESTEP)
