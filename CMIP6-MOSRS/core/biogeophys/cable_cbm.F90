@@ -99,7 +99,8 @@ CONTAINS
       IF( cable_runtime%um_explicit ) THEN
          CALL ruff_resist(veg, rough, ssnow, canopy)
       ENDIF
-      met%tk = met%tk + C%grav/C%capp*(rough%zref_tq + 0.9*rough%z0m)
+      ! Height adjustment not used in ACCESS CM2. See CABLE ticket 197
+      ! met%tk = met%tk + C%grav/C%capp*(rough%zref_tq + 0.9*rough%z0m)
 
       CALL define_air (met, air)
 

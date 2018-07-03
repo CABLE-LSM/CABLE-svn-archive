@@ -519,7 +519,8 @@ MODULE cable_def_types_mod
          lwabv,   & ! long wave absorbed by vegetation
          qssabs,  & ! absorbed short-wave radiation for soil
          transd,  & ! frac SW diffuse transmitted through canopy
-         trad       !  radiative temperature (soil and veg)
+         trad,    & !  radiative temperature (soil and veg)
+         otrad      ! radiative temperature on previous timestep (ACCESS)
 
       REAL, DIMENSION(:,:), POINTER  ::                                        &
          fvlai,   & ! leaf area index of big leaf
@@ -1198,6 +1199,7 @@ SUBROUTINE alloc_radiation_type(var, mp)
    ALLOCATE( var% scalex(mp,mf) )
    ALLOCATE( var% transd(mp) )
    ALLOCATE( var% trad(mp) )
+   ALLOCATE( var% otrad(mp) )
    ALLOCATE( var% reffdf(mp,nrb) )
    ALLOCATE( var% reffbm(mp,nrb) )
    ALLOCATE( var% extkbm(mp,nrb) )
@@ -1802,6 +1804,7 @@ SUBROUTINE dealloc_radiation_type(var)
    DEALLOCATE( var% scalex )
    DEALLOCATE( var% transd )
    DEALLOCATE( var% trad )
+   DEALLOCATE( var% otrad )
    DEALLOCATE( var% reffdf )
    DEALLOCATE( var% reffbm )
    DEALLOCATE( var% extkbm )

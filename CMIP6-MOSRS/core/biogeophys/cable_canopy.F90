@@ -423,19 +423,19 @@ CONTAINS
              !! vh_js !!
 
              if (  (rad%lwabv(j) / (2.0*(1.0-rad%transd(j))            &
-                  * C%SBOLTZ*C%EMLEAF)+met%tk(j)**4) .gt. 0.0) then
+                  * C%SBOLTZ*C%EMLEAF)+met%tvrad(j)**4) .gt. 0.0) then
 
                 canopy%tv(j) = (rad%lwabv(j) / (2.0*(1.0-rad%transd(j))            &
-                     * C%SBOLTZ*C%EMLEAF)+met%tk(j)**4)**0.25
+                     * C%SBOLTZ*C%EMLEAF)+met%tvrad(j)**4)**0.25
 
              else
-                canopy%tv(j) = met%tk(j)
+                canopy%tv(j) = met%tvrad(j)
              endif
 
 
           ELSE! sparse canopy
 
-             canopy%tv(j) = met%tk(j)
+             canopy%tv(j) = met%tvrad(j)
 
           ENDIF
 
@@ -595,7 +595,7 @@ CONTAINS
 
        canopy%rniso = sum(rad%rniso,2) + rad%qssabs + rad%transd*met%fld + &
             (1.0-rad%transd)*C%EMLEAF* &
-            C%SBOLTZ*met%tk**4 - C%EMSOIL*C%SBOLTZ*met%tk**4
+            C%SBOLTZ*met%tvrad**4 - C%EMSOIL*C%SBOLTZ*met%tvrad**4
 
        rlower_limit = canopy%epot * air%rlam / dels
        where (rlower_limit == 0 ) rlower_limit = 1.e-7 !prevent from 0. by adding 1.e-7 (W/m2)
