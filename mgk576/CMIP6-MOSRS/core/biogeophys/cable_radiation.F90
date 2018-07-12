@@ -231,14 +231,14 @@ SUBROUTINE radiation( ssnow, veg, air, met, rad, canopy )
 
       ! Define radiative conductance (Leuning et al, 1995), eq. D7:
       rad%gradis(:,1) = ( 4.0 * C%EMLEAF / (C%CAPP * air%rho) ) * flpwb        &
-                        / (met%tk) * rad%extkd                              &
+                        / (met%tvrad) * rad%extkd                              &
                         * ( ( 1.0 - rad%transb * rad%transd ) /                &
                         ( rad%extkb + rad%extkd )                              &
                         + ( rad%transd - rad%transb ) /                        &
                         ( rad%extkb - rad%extkd ) )
 
       rad%gradis(:,2) = ( 8.0 * C%EMLEAF / ( C%CAPP * air%rho ) ) *            &
-                        flpwb / met%tk * rad%extkd *                        &
+                        flpwb / met%tvrad * rad%extkd *                        &
                         ( 1.0 - rad%transd ) / rad%extkd - rad%gradis(:,1)
 
       ! Longwave radiation absorbed by sunlit canopy fraction:

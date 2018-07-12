@@ -1,19 +1,19 @@
 !==============================================================================
-! This source code is part of the 
+! This source code is part of the
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
-! This work is licensed under the CABLE Academic User Licence Agreement 
+! This work is licensed under the CABLE Academic User Licence Agreement
 ! (the "Licence").
 ! You may not use this file except in compliance with the Licence.
-! A copy of the Licence and registration form can be obtained from 
+! A copy of the Licence and registration form can be obtained from
 ! http://www.accessimulator.org.au/cable
 ! You need to register and read the Licence agreement before use.
-! Please contact cable_help@nf.nci.org.au for any questions on 
+! Please contact cable_help@nf.nci.org.au for any questions on
 ! registration and the Licence.
 !
-! Unless required by applicable law or agreed to in writing, 
+! Unless required by applicable law or agreed to in writing,
 ! software distributed under the Licence is distributed on an "AS IS" BASIS,
 ! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-! See the Licence for the specific language governing permissions and 
+! See the Licence for the specific language governing permissions and
 ! limitations under the Licence.
 ! ==============================================================================
 !
@@ -23,8 +23,8 @@
 ! Contact: Eva.Kowalczyk@csiro.au
 !
 ! History: v2.0 Tighter water budget
-!          v2.0 Hydraulic redistribution subroutine (with namelist switch). 
-!               NB Currently hard-wired to veg types 2 and 7 
+!          v2.0 Hydraulic redistribution subroutine (with namelist switch).
+!               NB Currently hard-wired to veg types 2 and 7
 !                  (usually evergreen broadleaf and c4 grass)
 !          v2.0 ssoil variable renamed ssnow
 !          Mark Decker - used ssnow as base for ssgw.  Could be part of same module
@@ -34,10 +34,10 @@
 ! ==============================================================================
 
 MODULE cable_gw_hydro_module
-   
+
    USE cable_def_types_mod, ONLY : soil_snow_type, soil_parameter_type,        &
                              veg_parameter_type, canopy_type, met_type,        &
-                             balances_type, r_2, ms, mp           
+                             balances_type, r_2, ms, mp
 
    USE cable_common_module, ONLY : gw_params,cable_user,&
                                    cable_runtime,&
@@ -45,25 +45,31 @@ MODULE cable_gw_hydro_module
 
    USE cable_soil_snow_module, ONLY : trimb, snow_processes_soil_thermal
 
-   USE physical_constants, ONLY : cgsnow,cs_rho_ice,cs_rho_wat,&
-                                  density_ice,density_liq,tfrz,&
-                                  hl,hlf,hls
+   USE cable_data_module, only: igwhydro_type,point2constants
 
-   USE math_constants, ONLY : pi_r_2
-
-   USE gwhydro_constants, ONLY : wtd_iter_max,sucmin,volwatmin,&
-                                 wtd_uncert,wtd_max,wtd_min
 
    IMPLICIT NONE
 
    PRIVATE
 
+   TYPE(igwhydro_type), SAVE :: C
+
    !mrd561 GW params
    REAL(r_2), SAVE :: smp_cor = 8.0
+   REAL(r_2), PARAMETER :: sucmin       = -1.0e8      ! minimum soil pressure head [mm]
+   REAL(r_2), PARAMETER :: volwatmin    = 1e-4        !min soil water [mm]
+   REAL(r_2), PARAMETER :: wtd_uncert   = 0.1         ! uncertaintiy in wtd calcultations [mm]
+   REAL(r_2), PARAMETER :: wtd_max      = 1000000.0   ! maximum wtd [mm]
+   REAL(r_2), PARAMETER :: wtd_min      = 10.0        ! minimum wtd [mm]
+   REAL(r_2), PARAMETER :: close_to_one = 0.9999
+   REAL(r_2), PARAMETER :: Sy_deep = 0.1
+   REAL(r_2), PARAMETER :: dz_deep = 50000.0
+
+  INTEGER, PARAMETER :: wtd_iter_max = 20 ! maximum number of iterations to find the water table depth
 
   ! ! This module contains the following subroutines that
   !are called from other modules
-   PUBLIC :: soil_snow_gw,calc_srf_wet_fraction,sli_hydrology,& ! must be available outside this module
+   PUBLIC :: soil_snow_gw,calc_srf_wet_fraction,sli_hydrology,&
              pore_space_relative_humidity,set_unsed_gw_vars
 
 CONTAINS
@@ -75,7 +81,7 @@ SUBROUTINE GWsoilfreeze(dels, soil, ssnow,tgg_old)
   !NOTE: this is only included because gw_model uses parameters XXX_vec
   !these are r_2.  this breaks bitwise compatibility with trunk
   !if acceptable this routine does the same thing but with r_2 soil params
-  ! if max_ice_frac always set to frozen_limit and tgg_tmp is always TFRZ
+  ! if max_ice_frac always set to frozen_limit and tgg_tmp is always C%TFRZ
 
    REAL, INTENT(IN)                    :: dels ! integration time step (s)
    TYPE(soil_snow_type), INTENT(INOUT)      :: ssnow
@@ -83,19 +89,30 @@ SUBROUTINE GWsoilfreeze(dels, soil, ssnow,tgg_old)
    REAL, INTENT(INOUT), DIMENSION(mp,ms) :: tgg_old
    REAL(r_2), DIMENSION(mp)           :: sicefreeze
    REAL(r_2), DIMENSION(mp)           :: sicemelt
-   REAL(r_2), DIMENSION(mp)                :: ice_mass,liq_mass,tot_mass
+   REAL(r_2), DIMENSION(mp,ms)        :: wbice_delta,avail_por
+   REAL(r_2), DIMENSION(mp)           :: ice_mass,liq_mass,tot_mass
    INTEGER :: i,j,k
    REAL, DIMENSION(mp,ms) :: tgg_tmp
    REAL(r_2),DIMENSION(mp,ms) :: xx,max_ice_frac,iceF,den_css  !Decker and Zeng 2009
- 
+
+   max_ice_frac(:,:) = 0.0
    do k=1,ms
    do i=1,mp
-      if  (ssnow%tgg(i,k) .lt. TFRZ .and. soil%ssat_vec(i,k) .gt. 1.0e-8) then
+      if  (ssnow%tgg(i,k) .lt. C%TFRZ .and. soil%ssat_vec(i,k) .gt. 1.0e-8) then
          max_ice_frac(i,k) = (1. - exp(-2.*(ssnow%wb(i,k)/soil%ssat_vec(i,k))**4.0 *&
-                          (ssnow%tgg(i,k)-TFRZ)))/exp(1. - ssnow%wb(i,k)/soil%ssat_vec(i,k))
+                          (ssnow%tgg(i,k)-C%TFRZ)))/exp(1. - ssnow%wb(i,k)/soil%ssat_vec(i,k))
          max_ice_frac(i,k) = max(0.4,max_ice_frac(i,k))*ssnow%wb(i,k)
-      else
-         max_ice_frac(i,k) = 0.
+
+         wbice_delta(i,k) = max(0.,max_ice_frac(i,k) - ssnow%wbice(i,k))
+
+         avail_por(i,k) = soil%ssat_vec(i,k) - ssnow%wbliq(i,k)+&
+                            C%density_ice/C%density_liq*wbice_delta(i,k) - &
+                           ssnow%wbice(i,k)
+
+         wbice_delta(i,k) = min(wbice_delta(i,k),avail_por(i,k))
+
+         max_ice_frac(i,k) = ssnow%wbice(i,k) + wbice_delta(i,k)
+
       endif
    end do
    end do
@@ -105,107 +122,109 @@ SUBROUTINE GWsoilfreeze(dels, soil, ssnow,tgg_old)
    do k=1,ms
    do i=1,mp
       if (soil%isoilm(i) .eq. 9) then
-         tgg_tmp(i,k) = TFRZ
+         tgg_tmp(i,k) = C%TFRZ
       else
-         if  (ssnow%tgg(i,k) .le. TFRZ) then
-            if (tgg_old(i,k) .gt. TFRZ) then
-               tgg_tmp(i,k) = TFRZ
+         if  (ssnow%tgg(i,k) .le. C%TFRZ) then
+            if (tgg_old(i,k) .gt. C%TFRZ) then
+               tgg_tmp(i,k) = C%TFRZ
             end if
          else
-            if (tgg_old(i,k) .le. TFRZ) then
-                  tgg_tmp(i,k) = TFRZ
+            if (tgg_old(i,k) .le. C%TFRZ) then
+                  tgg_tmp(i,k) = C%TFRZ
              end if
          end if
       end if
    end do
    end do
-         
+
 
 
    !allow more freezing for permenant glacier ice regions
    do i=1,mp
-      if (soil%isoilm(i) .eq. 9) max_ice_frac(i,:) = 0.95_r_2*ssnow%wb(i,:)
+      if (soil%isoilm(i) .eq. 9) max_ice_frac(i,:) = 0.85_r_2*ssnow%wb(i,:)
    end do
 
    DO k = 1, ms
    DO i=1,mp
 
-      ice_mass(i) = ssnow%wbice(i,k)*soil%zse_vec(i,k)*real(DENSITY_ICE,r_2)
-      liq_mass(i) = ssnow%wbliq(i,k)*soil%zse_vec(i,k)*real(DENSITY_LIQ,r_2)
+      ice_mass(i) = ssnow%wbice(i,k)*soil%zse_vec(i,k)*real(C%density_ice,r_2)
+      liq_mass(i) = ssnow%wbliq(i,k)*soil%zse_vec(i,k)*real(C%density_liq,r_2)
       tot_mass(i) = liq_mass(i) + ice_mass(i)
-      
-      if (ssnow%tgg(i,k) .le. TFRZ .and. &
+
+      if (ssnow%tgg(i,k) .le. C%TFRZ .and. &
           ssnow%tgg(i,k) .lt. tgg_tmp(i,k) .and. &
            max_ice_frac(i,k) - ssnow%wbice(i,k) > .001) then
-         
+
          sicefreeze(i) = MIN( MAX( 0.0_r_2, ( max_ice_frac(i,k)  -      &
-                      ssnow%wbice(i,k) ) ) * soil%zse_vec(i,k) * DENSITY_ICE,             &
-                      ( tgg_tmp(i,k) - ssnow%tgg(i,k) ) * ssnow%gammzz(i,k) / HLF )
-         ssnow%wbice(i,k) = MIN( ssnow%wbice(i,k) + sicefreeze(i) / (soil%zse_vec(i,k)  &
-                            * DENSITY_ICE), max_ice_frac(i,k) )
+                      ssnow%wbice(i,k) ) ) * soil%zse_vec(i,k) * C%density_ice,             &
+                      ( tgg_tmp(i,k) - ssnow%tgg(i,k) ) * ssnow%gammzz(i,k) / C%hlf )
+
+         ssnow%wbice(i,k) = MIN( ssnow%wbice(i,k) +&
+                                  sicefreeze(i)/soil%zse_vec(i,k)/C%density_ice,&
+                                  max_ice_frac(i,k) )
          ssnow%gammzz(i,k) = max(soil%heat_cap_lower_limit(i,k),  &
                               (1.0-soil%ssat_vec(i,k))*soil%css_vec(i,k)*soil%rhosoil_vec(i,k) &
-                            + (ssnow%wb(i,k)-ssnow%wbice(i,k)) * REAL(CS_RHO_WAT,r_2)   &
-                            + ssnow%wbice(i,k) * REAL(CS_RHO_ICE,r_2)&
-                            )*soil%zse_vec(i,k) 
+                            + (ssnow%wb(i,k)-ssnow%wbice(i,k)) * REAL(C%cs_rho_wat,r_2)   &
+                            + ssnow%wbice(i,k) * REAL(C%cs_rho_ice,r_2)&
+                            )*soil%zse_vec(i,k)
 
         if (k .eq. 1 .and. ssnow%isflag(i) .eq. 0) then
-           ssnow%gammzz(i,k) = ssnow%gammzz(i,k) + cgsnow * ssnow%snowd(i)
+           ssnow%gammzz(i,k) = ssnow%gammzz(i,k) + C%cgsnow * ssnow%snowd(i)
         end if
 
          ssnow%tgg(i,k) = ssnow%tgg(i,k) + REAL(sicefreeze(i))                    &
-                             * HLF / REAL(ssnow%gammzz(i,k) )
+                             * C%hlf / REAL(ssnow%gammzz(i,k) )
 
      elseif ( ssnow%tgg(i,k) .gt. tgg_tmp(i,k) .and. &
              ssnow%wbice(i,k) .gt.  max_ice_frac(i,k) ) then
 
-         sicemelt(i) = MIN( ssnow%wbice(i,k) * soil%zse_vec(i,k) * DENSITY_ICE,              &
-                    ( ssnow%tgg(i,k) - tgg_tmp(i,k) ) * ssnow%gammzz(i,k) / HLF )
-         
+         sicemelt(i) = MIN( ssnow%wbice(i,k) * soil%zse_vec(i,k) * C%density_ice,              &
+                    ( ssnow%tgg(i,k) - tgg_tmp(i,k) ) * ssnow%gammzz(i,k) / C%hlf )
+
          ssnow%wbice(i,k) = MAX( 0.0_r_2, ssnow%wbice(i,k) - sicemelt(i)          &
-                            / (soil%zse_vec(i,k) * DENSITY_ICE) )
+                            / (soil%zse_vec(i,k) * C%density_ice) )
 
          ssnow%gammzz(i,k) =max(soil%heat_cap_lower_limit(i,k), &
                            (1.0-soil%ssat_vec(i,k))*soil%css_vec(i,k)*soil%rhosoil_vec(i,k)&
-              + (ssnow%wb(i,k)-ssnow%wbice(i,k)) * REAL(CS_RHO_WAT,r_2)   &
-              + ssnow%wbice(i,k) * REAL(CS_RHO_ICE,r_2)&
-                             )*soil%zse_vec(i,k)            
+              + (ssnow%wb(i,k)-ssnow%wbice(i,k)) * REAL(C%cs_rho_wat,r_2)   &
+              + ssnow%wbice(i,k) * REAL(C%cs_rho_ice,r_2)&
+                             )*soil%zse_vec(i,k)
 
          if (k .eq. 1 .and. ssnow%isflag(i) .eq. 0) then
-           ssnow%gammzz(i,k) = ssnow%gammzz(i,k) + cgsnow * ssnow%snowd(i)
+           ssnow%gammzz(i,k) = ssnow%gammzz(i,k) + C%cgsnow * ssnow%snowd(i)
          end if
          ssnow%tgg(i,k) = ssnow%tgg(i,k) - REAL(sicemelt(i))                     &
-                          * HLF / REAL(ssnow%gammzz(i,k))
-      !if for some reason end up here     
-      ELSEIF( tgg_tmp(i,k) .ge. TFRZ .and. &
+                          * C%hlf / REAL(ssnow%gammzz(i,k))
+      !if for some reason end up here
+      ELSEIF( tgg_tmp(i,k) .ge. C%TFRZ .and. &
               ssnow%tgg(i,k) > tgg_tmp(i,k) .AND. ssnow%wbice(i,k) > 0. ) then
-         
-         sicemelt(i) = MIN( ssnow%wbice(i,k) * soil%zse_vec(i,k) * DENSITY_ICE,              &
-                    ( ssnow%tgg(i,k) - tgg_tmp(i,k) ) * ssnow%gammzz(i,k) / HLF )
-         
+
+         sicemelt(i) = MIN( ssnow%wbice(i,k) * soil%zse_vec(i,k) * C%density_ice,              &
+                    ( ssnow%tgg(i,k) - tgg_tmp(i,k) ) * ssnow%gammzz(i,k) / C%hlf )
+
          ssnow%wbice(i,k) = MAX( 0.0_r_2, ssnow%wbice(i,k) - sicemelt(i)          &
-                            / (soil%zse_vec(i,k) * DENSITY_ICE) )
+                            / (soil%zse_vec(i,k) * C%density_ice) )
 
          ssnow%gammzz(i,k) =max(soil%heat_cap_lower_limit(i,k), &
                            (1.0-soil%ssat_vec(i,k))*soil%css_vec(i,k)*soil%rhosoil_vec(i,k)&
-              + (ssnow%wb(i,k)-ssnow%wbice(i,k)) * REAL(CS_RHO_WAT,r_2)   &
-              + ssnow%wbice(i,k) * REAL(CS_RHO_ICE,r_2)&
-                             )*soil%zse_vec(i,k)            
+              + (ssnow%wb(i,k)-ssnow%wbice(i,k)) * REAL(C%cs_rho_wat,r_2)   &
+              + ssnow%wbice(i,k) * REAL(C%cs_rho_ice,r_2)&
+                             )*soil%zse_vec(i,k)
 
          if (k .eq. 1 .and. ssnow%isflag(i) .eq. 0) then
-           ssnow%gammzz(i,k) = ssnow%gammzz(i,k) + cgsnow * ssnow%snowd(i)
+           ssnow%gammzz(i,k) = ssnow%gammzz(i,k) + C%cgsnow * ssnow%snowd(i)
          end if
          ssnow%tgg(i,k) = ssnow%tgg(i,k) - REAL(sicemelt(i))                     &
-                          * HLF / REAL(ssnow%gammzz(i,k))
-       
+                          * C%hlf / REAL(ssnow%gammzz(i,k))
+
       END IF
       !update the liq and ice volume and mass
-      ice_mass(i)   = ssnow%wbice(i,k)*soil%zse_vec(i,k)*real(DENSITY_ICE,r_2)
+      ice_mass(i)   = ssnow%wbice(i,k)*soil%zse_vec(i,k)*real(C%density_ice,r_2)
       liq_mass(i)   = tot_mass(i) - ice_mass(i)
-      ssnow%wbliq(i,k) = liq_mass(i) / soil%zse_vec(i,k)/real(DENSITY_LIQ,r_2)
-      ssnow%wbice(i,k) = ice_mass(i) / soil%zse_vec(i,k)/real(DENSITY_ICE,r_2)
+      ssnow%wbliq(i,k) = liq_mass(i) / soil%zse_vec(i,k)/real(C%density_liq,r_2)
+      ssnow%wbice(i,k) = ice_mass(i) / soil%zse_vec(i,k)/real(C%density_ice,r_2)
       ssnow%wb(i,k)    = ssnow%wbliq(i,k) + ssnow%wbice(i,k)
-    
+
    END DO
    END DO
 
@@ -218,41 +237,41 @@ SUBROUTINE remove_transGW(dels, soil, ssnow, canopy, veg)
   !NOTE: this is only included because gw_model uses parameters XXX_vec
   !these are r_2.  this breaks bitwise compatibility with trunk
   !if acceptable this routine does the same thing but with r_2 soil params
- 
+
    ! Removes transpiration water from soil.
    REAL, INTENT(IN)                    :: dels ! integration time step (s)
    TYPE(canopy_type), INTENT(INOUT)         :: canopy
    TYPE(soil_snow_type), INTENT(INOUT)      :: ssnow
    TYPE(soil_parameter_type), INTENT(INOUT)    :: soil
    TYPE(veg_parameter_type), INTENT(INOUT)  :: veg
-   REAL(r_2), DIMENSION(mp,0:ms+1) :: diff 
+   REAL(r_2), DIMENSION(mp,0:ms+1) :: diff
    REAL(r_2), DIMENSION(mp)      :: xx,xxd,evap_cur
    REAL(r_2), DIMENSION(mp,ms) :: zse_mp_mm
    INTEGER :: k,i
 
    do k=1,ms
       do i=1,mp
-         zse_mp_mm(i,k)  = real(soil%zse_vec(i,k)*DENSITY_LIQ,r_2)
+         zse_mp_mm(i,k)  = real(soil%zse_vec(i,k)*C%density_liq,r_2)
       end do
    end do
 
    IF (cable_user%FWSOIL_switch.ne.'Haverd2013') THEN
- 
+
       xx(:) = 0._r_2
       xxd(:) = 0._r_2
       diff(:,:) = 0._r_2
-   
-      DO k = 1,ms  
-   
+
+      DO k = 1,ms
+
          DO i=1,mp
-   
+
             if (canopy%fevc(i) .gt. 0._r_2) then
-   
-               xx(i) = canopy%fevc(i) * dels / HL * veg%froot(i,k) + diff(i,k-1)
+
+               xx(i) = canopy%fevc(i) * dels / C%hl * veg%froot(i,k) + diff(i,k-1)
                diff(i,k) = max(0._r_2,ssnow%wbliq(i,k)-soil%swilt_vec(i,k)) &
                           * zse_mp_mm(i,k)
                xxd(i) = xx(i) - diff(i,k)
-   
+
                if (xxd(i) .gt. 0._r_2) then
                   ssnow%wbliq(i,k) = ssnow%wbliq(i,k) - diff(i,k)/zse_mp_mm(i,k)
                   diff(i,k) = xxd(i)
@@ -260,10 +279,10 @@ SUBROUTINE remove_transGW(dels, soil, ssnow, canopy, veg)
                   ssnow%wbliq(i,k) = ssnow%wbliq(i,k) - xx(i)/zse_mp_mm(i,k)
                   diff(i,k) = 0._r_2
                end if
-   
-   
+
+
              end if  !fvec > 0
-   
+
          END DO  !mp
       END DO     !ms
 
@@ -273,7 +292,7 @@ SUBROUTINE remove_transGW(dels, soil, ssnow, canopy, veg)
         canopy%fevw = canopy%fevw+canopy%fevc
         canopy%fevc = 0.0_r_2
      END WHERE
-     DO k = 1,ms 
+     DO k = 1,ms
         ssnow%wbliq(:,k) = ssnow%wbliq(:,k) - ssnow%evapfbl(:,k)/zse_mp_mm(:,k)
      ENDDO
 
@@ -291,12 +310,12 @@ SUBROUTINE remove_transGW(dels, soil, ssnow, canopy, veg)
 END SUBROUTINE remove_transGW
 
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 !!!!!!!!!!!!!!MD GW code from here on!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !----------------------------------------------------------------------
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!   
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   !-------------------------------------------------------------------------
   SUBROUTINE ovrlndflx (dels, ssnow, soil,veg, canopy,sli_call )
   USE cable_common_module, ONLY : gw_params,cable_user
@@ -336,7 +355,7 @@ END SUBROUTINE remove_transGW
    !amount of ice in surface layer
    do i = 1,mp
       efpor(i) = max(0.001_r_2, soil%ssat_vec(i,1) - ssnow%wbice(i,1))
-      icemass  = ssnow%wbice(i,1) * dzmm 
+      icemass  = ssnow%wbice(i,1) * dzmm
       liqmass  = (ssnow%wb(i,1)-ssnow%wbice(i,1)) * dzmm
       totmass  = max(liqmass+icemass,real(1e-2,r_2))
       icef(i)     = max(0._r_2,min(1._r_2,gw_params%IceBeta*icemass / totmass))
@@ -373,7 +392,7 @@ END SUBROUTINE remove_transGW
         ssnow%rnof1(i) = 0._r_2
      end if
   end do
-           
+
    !---  glacier formation
    rnof5= 0.
 
@@ -392,7 +411,7 @@ END SUBROUTINE remove_transGW
          !---- change local tg to account for energy - clearly not best method
          WHERE( ssnow%isflag == 0 )
             smasstot = 0.0
-            ssnow%tgg(:,1) = ssnow%tgg(:,1) - rnof5 * HLF                    &
+            ssnow%tgg(:,1) = ssnow%tgg(:,1) - rnof5 * C%hlf                    &
                              / REAL( ssnow%gammzz(:,1) )
             ssnow%snowd = ssnow%snowd - rnof5
          ELSEWHERE
@@ -402,21 +421,21 @@ END SUBROUTINE remove_transGW
       END WHERE
 
       DO k = 1, 3
-         
+
          WHERE( ssnow%snowd > max_glacier_snowd  .AND.  ssnow%isflag > 0 )
-            sgamm = ssnow%ssdn(:,k) * cgsnow * ssnow%sdepth(:,k)
+            sgamm = ssnow%ssdn(:,k) * C%cgsnow * ssnow%sdepth(:,k)
             smelt1(:,k) = MIN( rnof5 * ssnow%smass(:,k) / smasstot,            &
                           0.2 * ssnow%smass(:,k) )
             ssnow%smass(:,k) = ssnow%smass(:,k) - smelt1(:,k)
             ssnow%snowd = ssnow%snowd - smelt1(:,k)
          END WHERE
-      
+
       END DO
-   
+
       WHERE( ssnow%isflag > 0 ) rnof5 = smelt1(:,1) + smelt1(:,2) + smelt1(:,3)
 
       ssnow%rnof1 = ssnow%rnof1 + rnof5/dels   !include this runoff in suface runoff term
-   
+
    END IF
 
   END SUBROUTINE ovrlndflx
@@ -424,7 +443,7 @@ END SUBROUTINE remove_transGW
 
 
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   SUBROUTINE simple_wtd(ssnow, soil, veg)
   !This was only for testing purposes
   IMPLICIT NONE
@@ -457,19 +476,19 @@ END SUBROUTINE remove_transGW
   end do
 
   END SUBROUTINE simple_wtd
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!  
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
   !----------------------------------------------------------------------
   ! SUBROUTINE iterative_wtd
   !
   ! Iteratively calcs the water table depth by equating the mass of water in the
-  ! soil column to the mass of a hydrostatic column inegrated from the surface to the 
+  ! soil column to the mass of a hydrostatic column inegrated from the surface to the
   ! water table depth
-  !  
+  !
   SUBROUTINE iterative_wtd (ssnow, soil, veg, include_aquifer)
   IMPLICIT NONE
   TYPE (soil_snow_type), INTENT(INOUT)      :: ssnow ! soil and snow variables
@@ -477,8 +496,8 @@ END SUBROUTINE remove_transGW
   TYPE (veg_parameter_type), INTENT(INOUT)     :: veg
   LOGICAL, INTENT(IN)                       :: include_aquifer  !use GWwb or only wb to find wtd?
 
- 
-  !Local vars 
+
+  !Local vars
   REAL(r_2), DIMENSION(mp,ms)   :: dzmm_mp,tmp_def
   REAL(r_2), DIMENSION(0:ms)    :: zimm
   REAL(r_2), DIMENSION(ms)      :: zmm
@@ -489,7 +508,7 @@ END SUBROUTINE remove_transGW
   REAL(r_2), DIMENSION(mp)      :: invB,Nsucs_vec  !inverse of C&H B,Nsucs_vec
   INTEGER :: k,i,wttd,jlp
 
-  !make code cleaner define these here 
+  !make code cleaner define these here
   invB     = 1._r_2/soil%bch_vec(:,ms)                                !1 over C&H B
   Nsucs_vec  = soil%sucs_vec(:,ms)                                !psi_saturated mm
   dzmm_mp  = real(spread((soil%zse(:)) * 1000.0,1,mp),r_2)    !layer thickness mm
@@ -507,7 +526,7 @@ END SUBROUTINE remove_transGW
      do i=1,mp
         total_depth_column(i) = zimm(ms) + soil%GWdz(i)*1000._r_2
         def(i) = def(i) + max(0._r_2,soil%GWssat_vec(i)-ssnow%GWwb(i))*soil%GWdz(i)*1000._r_2
-     end do   
+     end do
 
   end if
 
@@ -523,8 +542,8 @@ END SUBROUTINE remove_transGW
   !find the deficit if the water table is at the bottom of the soil column
   do i=1,mp
      defc(i) = (soil%ssat_vec(i,ms))*(total_depth_column(i)+Nsucs_vec(i)/(1._r_2-invB(i))*            &
-             (1._r_2-((Nsucs_vec(i)+total_depth_column(i))/Nsucs_vec(i))**(1._r_2-invB(i)))) 
-     defc(i) = max(0.1_r_2,defc(i)) 
+             (1._r_2-((Nsucs_vec(i)+total_depth_column(i))/Nsucs_vec(i))**(1._r_2-invB(i))))
+     defc(i) = max(0.1_r_2,defc(i))
 
      !initial guess at wtd
      ssnow%wtd(:) = total_depth_column(:)*def(:)/defc(:)
@@ -532,9 +551,9 @@ END SUBROUTINE remove_transGW
 
 
  !use newtons method to solve for wtd, note this assumes homogenous column but
- !that is ok 
+ !that is ok
   do i=1,mp
-    if ((soil%isoilm(i) .ne. 9) .and. (veg%iveg(i) .ne. 16)) then      
+    if ((soil%isoilm(i) .ne. 9) .and. (veg%iveg(i) .ne. 16)) then
 
       if (defc(i) > def(i)) then                 !iterate tfor wtd
 
@@ -620,9 +639,9 @@ END SUBROUTINE remove_transGW
 
   end do   !mp loop
 
-
   !limit wtd to be within a psecified range
   do i=1,mp
+     if (veg%iveg(i) .ge. 16) ssnow%wtd(i) = wtd_min
      ssnow%wtd(i) = min(wtd_max,max(wtd_min,ssnow%wtd(i) ) )
   end do
 
@@ -639,15 +658,15 @@ END SUBROUTINE remove_transGW
   USE cable_common_module
 
   IMPLICIT NONE
-  
+
     REAL, INTENT(IN)                          :: dels  ! time step size (s)
     INTEGER, INTENT(IN)                       :: ktau  ! integration step number
     TYPE (soil_snow_type), INTENT(INOUT)      :: ssnow ! soil and snow variables
     TYPE (soil_parameter_type), INTENT(INOUT)    :: soil  ! soil parameters
     TYPE (veg_parameter_type), INTENT(INOUT)     :: veg
     TYPE(canopy_type), INTENT(INOUT)          :: canopy ! vegetation variables
-    
-    !Local variables.  
+
+    !Local variables.
     REAL(r_2), DIMENSION(mp,ms+1)       :: at     ! coef "A" in finite diff eq
     REAL(r_2), DIMENSION(mp,ms+1)       :: bt     ! coef "B" in finite diff eq
     REAL(r_2), DIMENSION(mp,ms+1)       :: ct     ! coef "C" in finite diff eq
@@ -655,7 +674,7 @@ END SUBROUTINE remove_transGW
 
     INTEGER                             :: k,kk,i
     REAL(r_2), DIMENSION(mp,ms)         :: eff_por,old_wb  !effective porosity (mm3/mm3),wb(mm3/mm3),mass (mm) of eff_por
-    REAL(r_2), DIMENSION(mp,ms)         :: msliq,msice             !mass of the soil liquid and ice water    
+    REAL(r_2), DIMENSION(mp,ms)         :: msliq,msice             !mass of the soil liquid and ice water
     REAL(r_2), DIMENSION(mp)            :: den
     REAL(r_2), DIMENSION(mp)            :: dne
     REAL(r_2), DIMENSION(mp)            :: num
@@ -684,7 +703,9 @@ END SUBROUTINE remove_transGW
     end do
 
     zimm(0) = 0._r_2
-    zimm(1:ms) = zimm(0:(ms-1)) + dzmm(1:ms)
+    do k=1,ms
+       zimm(k) = zimm(k-1) + dzmm(k)
+    end do
     zmm(1:ms)  = zimm(0:(ms-1)) + 0.5_r_2*dzmm(1:ms)
 
     do i=1,mp
@@ -692,8 +713,8 @@ END SUBROUTINE remove_transGW
        GWzimm(i) = zimm(ms)+GWdzmm(i)
        zaq(i)    = zimm(ms) + 0.5_r_2*GWdzmm(i)
     end do
-    
-    ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+
+    ! - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     ! preset to allow for non-land & snow points in trimb
     do k=1,ms
        do i=1,mp
@@ -704,7 +725,7 @@ END SUBROUTINE remove_transGW
           ct(i,k) = 0._r_2
        end do
     end do
-    
+
     !equilibrium water content
     CALL calc_equilibrium_water_content(ssnow,soil)
 
@@ -724,7 +745,7 @@ END SUBROUTINE remove_transGW
        rt(i,k) =  qin(i) - qout(i)
        at(i,k) =  0._r_2
        bt(i,k) =  dzmm(k)/dels + dqodw1(i)
-       ct(i,k) =  dqodw2(i)      
+       ct(i,k) =  dqodw2(i)
     end do
     do k = 2, ms - 1     !middle soil layers
        do i=1,mp
@@ -746,7 +767,7 @@ END SUBROUTINE remove_transGW
           ct(i,k) =  dqodw2(i)
        end do
     end do
-       
+
     k = ms   !Bottom soil layer
     do i=1,mp
        den(i)     = (zmm(k) - zmm(k-1))
@@ -764,9 +785,9 @@ END SUBROUTINE remove_transGW
        rt(i,k) =  qin(i) - qout(i)
        at(i,k) = -dqidw0(i)
        bt(i,k) =  dzmm(k)/dels - dqidw1(i) + dqodw1(i)
-       ct(i,k) =  dqodw2(i) 
+       ct(i,k) =  dqodw2(i)
     end do
-       
+
     CALL aquifer_recharge(dels,ssnow,soil,veg,zaq,zmm,dzmm)
 
     CALL trimb(at,bt,ct,rt,ms)                       !use the defulat cable tridiag solution
@@ -806,7 +827,7 @@ END SUBROUTINE remove_transGW
              ssnow%wbliq(i,k) = eff_por(i,k)
            end if
        end do
-     
+
        do k = ms,1,-1  !loop from bottom to top adding extra water to each layer
           if (xsi .gt. 0._r_2) then
              if (xsi .lt. (eff_por(i,k)-ssnow%wbliq(i,k))*dzmm(k)) then
@@ -836,7 +857,7 @@ END SUBROUTINE remove_transGW
              end if
           end if
        end do  !ms loop
- 
+
        if ( (ssnow%GWwb(i) .lt. volwatmin) .and. (soil%isoilm(i) .ne. 9) ) then
           xsi = (volwatmin - ssnow%GWwb(i)) / GWdzmm(i)  !mm
           ssnow%GWwb(i) = volwatmin
@@ -847,21 +868,21 @@ END SUBROUTINE remove_transGW
 
    do k=1,ms
       do i=1,mp
-         
+
        !update mass variables
          ssnow%wmliq(i,k)      = ssnow%wbliq(i,k) * &
-                                         soil%zse_vec(i,k)*DENSITY_LIQ
+                                         soil%zse_vec(i,k)*C%density_liq
          ssnow%wmice(i,k)      = ssnow%wbice(i,k) * &
-                                         soil%zse_vec(i,k)*DENSITY_ICE
+                                         soil%zse_vec(i,k)*C%density_ice
          ssnow%wb(i,k)         = ssnow%wbliq(i,k) + ssnow%wbice(i,k)
          ssnow%wmtot(i,k)      = ssnow%wmliq(i,k) + ssnow%wmice(i,k)
       end do
    end do
 
    do i=1,mp
-       ssnow%rnof2(i)        = ssnow%qhz(i)               !rnof2 is default cable deep runoff var 
+       ssnow%rnof2(i)        = ssnow%qhz(i)               !rnof2 is default cable deep runoff var
    end do  !mp loop
-       
+
 
  END SUBROUTINE smoistgw
 
@@ -899,17 +920,19 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
    REAL, DIMENSION(mp) :: tggsn_old,wbtot_ic,del_wbtot
    REAL(r_2), DIMENSION(mp) :: xx
    REAL                :: zsetot
-   INTEGER, SAVE :: ktau =0 
+   INTEGER, SAVE :: ktau =0
    REAL(r_2) :: wb_lake_T, rnof2_T
    LOGICAL :: use_sli
    LOGICAL, SAVE :: first_gw_hydro_call = .true.
 
-   use_sli = .false. 
+   use_sli = .false.
 
-   ktau = ktau +1 
-   
-   zsetot = sum(soil%zse) 
+   ktau = ktau +1
+
+   zsetot = sum(soil%zse)
    ssnow%tggav = 0.
+
+   CALL point2constants( C )
 
    DO k = 1, ms
 
@@ -928,10 +951,10 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
       ssnow%rnof1(i) = 0.0 ! initialise surface runoff
       ssnow%rnof2(i) = 0.0 ! initialise deep drainage
       ssnow%smelt(i) = 0.0 ! initialise snowmelt
-      ssnow%dtmlt(i,:) = 0.0 
+      ssnow%dtmlt(i,:) = 0.0
       ssnow%osnowd(i) = ssnow%snowd(i)
       ! Scaling  runoff to kg/m^2/s (mm/s) to match rest of the model
-      ssnow%sinfil(i) = 0.0   
+      ssnow%sinfil(i) = 0.0
       ssnow%qhz(i) = 0.0
    end do
 
@@ -942,24 +965,24 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
    END IF
 
    IF( (.NOT.cable_user%cable_runtime_coupled ) .and. (first_gw_hydro_call)) THEN
-   
+
          IF (cable_runtime%um) canopy%dgdtg = 0.0 ! RML added um condition
                                                   ! after discussion with BP
          ! N.B. snmin should exceed sum of layer depths, i.e. .11 m
          ssnow%wbtot = 0.0
-         ssnow%wb(:,:)  = MIN( soil%ssat_vec(:,:), MAX ( ssnow%wb(:,:), 0.5*soil%swilt_vec(:,:) ) )   
+         ssnow%wb(:,:)  = MIN( soil%ssat_vec(:,:), MAX ( ssnow%wb(:,:), 0.5*soil%swilt_vec(:,:) ) )
 
          DO k = 1, ms
-            
-            WHERE( ssnow%tgg(:,k) <= TFRZ .AND. ssnow%wbice(:,k) <= 0.001*ssnow%wb(:,k) )   &
+
+            WHERE( ssnow%tgg(:,k) <= C%TFRZ .AND. ssnow%wbice(:,k) <= 0.001*ssnow%wb(:,k) )   &
                ssnow%wbice(:,k) = 0.5 * ssnow%wb(:,k)
 
-            !WHERE( ssnow%tgg(:,k) < TFRZ)                                    &
+            !WHERE( ssnow%tgg(:,k) < C%TFRZ)                                    &
             !   ssnow%wbice(:,k) = 0.8 * ssnow%wb(:,k)
-            
+
          END DO
 
-         WHERE ( soil%isoilm .eq. 9)! .and. ssnow%snowd .le. 0.1*max_glacier_snowd) 
+         WHERE ( soil%isoilm .eq. 9)! .and. ssnow%snowd .le. 0.1*max_glacier_snowd)
 
             ! permanent ice: fix hard-wired number in next version
             ssnow%snowd = max_glacier_snowd
@@ -985,8 +1008,8 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
    do k=1,ms
       do i=1,mp
          ssnow%wbliq(i,k) = ssnow%wb(i,k) - ssnow%wbice(i,k)                     !liquid volume
-         ssnow%wmice(i,k) = ssnow%wbice(i,k)*real(DENSITY_ICE*soil%zse(k),r_2) !ice mass
-         ssnow%wmliq(i,k) = ssnow%wbliq(i,k)*real(DENSITY_LIQ*soil%zse(k),r_2) !liquid mass
+         ssnow%wmice(i,k) = ssnow%wbice(i,k)*real(C%density_ice*soil%zse(k),r_2) !ice mass
+         ssnow%wmliq(i,k) = ssnow%wbliq(i,k)*real(C%density_liq*soil%zse(k),r_2) !liquid mass
          ssnow%wmtot(i,k) = ssnow%wmice(i,k) + ssnow%wmliq(i,k)                  !liq+ice mass
          ssnow%wblf(i,k)   = max(ssnow%wbliq(i,k)/soil%ssat_vec(i,k),0.01_r_2)
          ssnow%wbfice(i,k) = max(ssnow%wbice(i,k)/soil%ssat_vec(i,k),0._r_2)
@@ -994,17 +1017,17 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
       end do
    end do
 
-         
+
    IF( first_gw_hydro_call ) THEN
 
        do i=1,mp
             ssnow%gammzz(i,1) = max(soil%heat_cap_lower_limit(i,1),&
                                (1.0-soil%ssat_vec(i,1))*&
                                soil%css_vec(i,1) * soil%rhosoil_vec(i,1)  &
-                & + ssnow%wbliq(i,1) * CS_RHO_WAT           &
-                & + ssnow%wbice(i,1) * CS_RHO_ICE ) * soil%zse(1) +   &
-                & (1. - ssnow%isflag(i)) * cgsnow * ssnow%snowd(i)
-    
+                & + ssnow%wbliq(i,1) * C%cs_rho_wat           &
+                & + ssnow%wbice(i,1) * C%cs_rho_ice ) * soil%zse(1) +   &
+                & (1. - ssnow%isflag(i)) * C%cgsnow * ssnow%snowd(i)
+
        end do
 
    ENDIF  ! if(.NOT.cable_runtime_coupled) and first_gw_hydro_call
@@ -1012,10 +1035,10 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
 
    do i=1,mp
       !initial water in the soil column
-      wbtot_ic(i)  = sum(ssnow%wbliq(i,:)*DENSITY_LIQ*soil%zse(:),1) + &
-                     sum(ssnow%wbice(i,:)*DENSITY_ICE*soil%zse(:),1) + &
-                     ssnow%GWwb(i)*soil%GWdz(i)*DENSITY_LIQ
-                  
+      wbtot_ic(i)  = sum(ssnow%wbliq(i,:)*C%density_liq*soil%zse(:),1) + &
+                     sum(ssnow%wbice(i,:)*C%density_ice*soil%zse(:),1) + &
+                     ssnow%GWwb(i)*soil%GWdz(i)*C%density_liq
+
       GWwb_ic(i) = ssnow%GWwb(i)
 
    end do
@@ -1030,18 +1053,18 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
 
    CALL  GWsoilfreeze(dels, soil, ssnow,tgg_old)
 
-   ssnow%fwtop = canopy%precis/dels + ssnow%smelt/dels   !water from canopy and snowmelt [mm/s]   
+   ssnow%fwtop = canopy%precis/dels + ssnow%smelt/dels   !water from canopy and snowmelt [mm/s]
 
-   CALL iterative_wtd (ssnow, soil, veg, .true. )  
+   CALL iterative_wtd (ssnow, soil, veg, .true. )
 
    CALL ovrlndflx (dels, ssnow, soil, veg, canopy,use_sli )         !surface runoff, incorporate ssnow%pudsto?
 
-   ssnow%sinfil = ssnow%fwtop - canopy%segg  !canopy%fes/HL               !remove soil evap from throughfall
+   ssnow%sinfil = ssnow%fwtop - canopy%segg  !canopy%fes/C%hl               !remove soil evap from throughfall
 
-   CALL smoistgw (dels,ktau,ssnow,soil,veg,canopy)               !vertical soil moisture movement. 
-  
+   CALL smoistgw (dels,ktau,ssnow,soil,veg,canopy)               !vertical soil moisture movement.
+
    ! correction required for energy balance in online simulations
-   IF( cable_runtime%um ) THEN 
+   IF( cable_runtime%um ) THEN
 
       !cls package - rewritten for flexibility
       canopy%fhs_cor = ssnow%dtmlt(:,1)*ssnow%dfh_dtg
@@ -1054,7 +1077,7 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
       !REV_CORR associated changes to other energy balance terms
       !NB canopy%fns changed not rad%flws as the correction term needs to
       !pass through the canopy in entirety, not be partially absorbed
-      IF (cable_user%L_REV_CORR) THEN 
+      IF (cable_user%L_REV_CORR) THEN
          canopy%fns_cor = ssnow%dtmlt(:,1)*ssnow%dfn_dtg
          canopy%ga_cor = ssnow%dtmlt(:,1)*canopy%dgdtg
 
@@ -1074,12 +1097,12 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
       ssnow%tss(i) =  (1-ssnow%isflag(i))*ssnow%tgg(i,1) + ssnow%isflag(i)*ssnow%tggsn(i,1)
 
       !total water mass at the end of the soilsnow_GW routine
-      ssnow%wbtot(i)  = sum(ssnow%wbliq(i,:)*DENSITY_LIQ*soil%zse(:),dim=1) + &
-                     sum(ssnow%wbice(i,:)*DENSITY_ICE*soil%zse(:),dim=1) + &
-                     ssnow%GWwb(i)*soil%GWdz(i)*DENSITY_LIQ
-                    
+      ssnow%wbtot(i)  = sum(ssnow%wbliq(i,:)*C%density_liq*soil%zse(:),dim=1) + &
+                     sum(ssnow%wbice(i,:)*C%density_ice*soil%zse(:),dim=1) + &
+                     ssnow%GWwb(i)*soil%GWdz(i)*C%density_liq
+
       !for debug water balance.  del_wbtot = fluxes = infiltration [though-evap] - trans - qhorz drainage
-      del_wbtot(i)   = dels * (ssnow%sinfil(i) - ssnow%rnof2(i) - canopy%fevc(i) / HL)
+      del_wbtot(i)   = dels * (ssnow%sinfil(i) - ssnow%rnof2(i) - canopy%fevc(i) / C%hl)
       !set below to keep track of water imbalance within the GW module explicitly.  also must change cable_checks
       !ssnow%wbtot(i) = ssnow%wbtot(i)-wbtot_ic(i)
 
@@ -1091,7 +1114,7 @@ SUBROUTINE calc_equilibrium_water_content(ssnow,soil)
   !find layer mean soil moisture and potential at equilibrium with wtd
 
   IMPLICIT NONE
-  
+
     TYPE (soil_snow_type), INTENT(INOUT)      :: ssnow ! soil and snow variables
     TYPE (soil_parameter_type), INTENT(INOUT)    :: soil  ! soil parameters
     !local variables
@@ -1099,7 +1122,7 @@ SUBROUTINE calc_equilibrium_water_content(ssnow,soil)
     REAL(r_2), dimension(ms)    :: dzmm     !layer thickness for single tile
     REAL(r_2), dimension(mp)    :: GWdzmm   !aquifer thickness at each tile
     REAL(r_2), dimension(mp)    :: GWzimm   !aquifer layer interface depth
-    REAL(r_2), dimension(0:ms)  :: zimm     !layer interface depth in mm  
+    REAL(r_2), dimension(0:ms)  :: zimm     !layer interface depth in mm
     REAL(r_2), dimension(ms)    :: zmm      !node depths in mm
     REAL(r_2)                   :: tempi, temp0,voleq1,wbrat
     REAL(r_2), dimension(mp,ms+1) :: ice_correction
@@ -1119,7 +1142,7 @@ SUBROUTINE calc_equilibrium_water_content(ssnow,soil)
     do k=1,ms
        zimm(k) = zimm(k-1) + dzmm(k)
        zmm(k)  = zimm(k-1) + 0.5_r_2*dzmm(k)
-    end do 
+    end do
 
     do i=1,mp
        GWdzmm(i) = real(soil%GWdz(i),r_2)*1000._r_2
@@ -1153,14 +1176,14 @@ SUBROUTINE calc_equilibrium_water_content(ssnow,soil)
           if ((ssnow%wtd(i) .le. zimm(k-1))) then         !fully saturated
 
              ssnow%wbeq(i,k) = soil%ssat_vec(i,k)
-             
+
           elseif ((ssnow%wtd(i) .le. zimm(k)) .and. &
                   (ssnow%wtd(i) .gt. zimm(k-1))) then
 
              tempi = 1._r_2
              temp0 = &
                    (((soil%sucs_vec(i,k)+ssnow%wtd(i)-zimm(k-1))/&
-                      soil%sucs_vec(i,k)))**(1._r_2-1._r_2/soil%bch_vec(i,k))               
+                      soil%sucs_vec(i,k)))**(1._r_2-1._r_2/soil%bch_vec(i,k))
              voleq1 = -soil%sucs_vec(i,k)*(soil%ssat_vec(i,k)-soil%watr(i,k))/&
                        (1._r_2-1._r_2/soil%bch_vec(i,k))/&
                        (ssnow%wtd(i)-zimm(k-1))*(tempi-temp0)
@@ -1174,13 +1197,13 @@ SUBROUTINE calc_equilibrium_water_content(ssnow,soil)
              tempi = (((soil%sucs_vec(i,k)+ssnow%wtd(i)-zimm(k))/&
                       soil%sucs_vec(i,k)))**(1._r_2-1._r_2/soil%bch_vec(i,k))
              temp0 = (((soil%sucs_vec(i,k)+ssnow%wtd(i)-zimm(k-1))/&
-                     soil%sucs_vec(i,k)))**(1._r_2-1._r_2/soil%bch_vec(i,k))   
+                     soil%sucs_vec(i,k)))**(1._r_2-1._r_2/soil%bch_vec(i,k))
              ssnow%wbeq(i,k) = -soil%sucs_vec(i,k)*(soil%ssat_vec(i,k)-soil%watr(i,k))/&
                                (1._r_2-1._r_2/soil%bch_vec(i,k))/&
                                (zimm(k)-zimm(k-1))*(tempi-temp0)+soil%watr(i,k)
              ssnow%wbeq(i,k) = ssnow%wbeq(i,k)*ice_correction(i,k)
           end if
-          
+
           ssnow%wbeq(i,k) = min(max(ssnow%wbeq(i,k),soil%watr(i,k)),soil%ssat_vec(i,k))
 
           ssnow%wbeq(i,k) = ssnow%wbeq(i,k)*ice_correction(i,k)
@@ -1197,10 +1220,10 @@ SUBROUTINE calc_equilibrium_water_content(ssnow,soil)
                             -soil%sucs_vec(i,k)*(1._r_2+smp_cor*ssnow%wbice(i,k))*(wbrat**(-soil%bch_vec(i,k))),sucmin)
           end if
 
-          
+
        end do  !mp
     end do  !ms
- 
+
     do i=1,mp
     !Aquifer Equilibrium water content
        if (ssnow%wtd(i) .le. zimm(ms)) then      !fully saturated
@@ -1213,16 +1236,16 @@ SUBROUTINE calc_equilibrium_water_content(ssnow,soil)
                 (((soil%GWsucs_vec(i)+ssnow%wtd(i)-GWzimm(i))/&
                   soil%GWsucs_vec(i)))**(1._r_2-1._r_2/soil%GWbch_vec(i))
           temp0 = (((soil%GWsucs_vec(i)+ssnow%wtd(i)-zimm(ms))/&
-                     soil%GWsucs_vec(i)))**(1._r_2-1._r_2/soil%GWbch_vec(i))   
+                     soil%GWsucs_vec(i)))**(1._r_2-1._r_2/soil%GWbch_vec(i))
           ssnow%GWwbeq(i) = -soil%GWsucs_vec(i)*soil%GWssat_vec(i)/&
                           (1._r_2-1._r_2/soil%GWbch_vec(i))/&
-                           (GWzimm(i)-zimm(ms))*(tempi-temp0) + soil%GWwatr(i)   
+                           (GWzimm(i)-zimm(ms))*(tempi-temp0) + soil%GWwatr(i)
 
-       else           
+       else
 
           tempi  = 1._r_2
           temp0  = (((soil%GWsucs_vec(i)+ssnow%wtd(i)-zimm(ms))/&
-                     soil%GWsucs_vec(i)))**(1._r_2-1._r_2/soil%GWbch_vec(i))               
+                     soil%GWsucs_vec(i)))**(1._r_2-1._r_2/soil%GWbch_vec(i))
           voleq1 = -soil%GWsucs_vec(i)*(soil%GWssat_vec(i)-soil%GWwatr(i))/&
                     (1._r_2-1._r_2/soil%GWbch_vec(i))/&
                     (ssnow%wtd(i)-zimm(ms))*(tempi-temp0) + soil%GWwatr(i)
@@ -1237,7 +1260,7 @@ SUBROUTINE calc_equilibrium_water_content(ssnow,soil)
        ssnow%GWzq(i) = -soil%GWsucs_vec(i)*(max((ssnow%GWwbeq(i)-soil%GWwatr(i))/     &
                     (soil%GWssat_vec(i)-soil%GWwatr(i)),0.001_r_2))**(-soil%GWbch_vec(i))
        ssnow%GWzq(i) = max(sucmin, ssnow%GWzq(i))
-       
+
     end do
 
 END SUBROUTINE calc_equilibrium_water_content
@@ -1259,6 +1282,8 @@ SUBROUTINE calc_srf_wet_fraction(ssnow,soil,met,veg)
     REAL(r_2)                          :: derv,slopeSTDmm,func_step
     REAL(r_2)                          :: wb_evap_threshold
 
+    CALL point2constants( C )
+
 
     IF (cable_user%or_evap) THEN
 
@@ -1268,11 +1293,11 @@ SUBROUTINE calc_srf_wet_fraction(ssnow,soil,met,veg)
 
       do i=1,mp
          IF( ssnow%snowd(i) > 0.1) ssnow%wetfac(i) = 0.9
-   
-         IF ( veg%iveg(i) == 16 .and. met%tk(i) >= TFRZ + 5. )   &
+
+         IF ( veg%iveg(i) == 16 .and. met%tk(i) >= C%TFRZ + 5. )   &
                  ssnow%wetfac(i) = 1.0 ! lakes: hard-wired number to be removed
-   
-         IF( veg%iveg(i) == 16 .and. met%tk(i) < TFRZ + 5. )   &
+
+         IF( veg%iveg(i) == 16 .and. met%tk(i) < C%TFRZ + 5. )   &
                  ssnow%wetfac(i) = 0.7 ! lakes: hard-wired number to be removed
       end do
 
@@ -1280,7 +1305,7 @@ SUBROUTINE calc_srf_wet_fraction(ssnow,soil,met,veg)
 
        call saturated_fraction(ssnow,soil,veg)
 
-   
+
        do i = 1,mp
           dzmm_one  = 1000._r_2 * real(soil%zse_vec(i,1),r_2)
           icemass  = ssnow%wbice(i,1) * dzmm_one
@@ -1288,32 +1313,32 @@ SUBROUTINE calc_srf_wet_fraction(ssnow,soil,met,veg)
           totmass  = max(liqmass+icemass,real(1e-2,r_2))
           icef(i)     = max(0._r_2,min(1._r_2, gw_params%IceBeta*icemass / totmass))
       end do
-   
-   
+
+
       !srf frozen fraction.  should be based on topography
       do i = 1,mp
          fice = (exp(-gw_params%IceAlpha*(1._r_2-icef(i)))-&
                  exp(-gw_params%IceAlpha))/&
                  (1._r_2-exp(-gw_params%IceAlpha))
          fice = min(1._r_2,max(0._r_2,fice))
-   
+
          satfrac_liqice(i) = fice + (1._r_2-fice)*ssnow%satfrac(i)
-   
+
          wb_unsat = ((ssnow%wb(i,1)-ssnow%wbice(i,1)) -&
                      ssnow%satfrac(i)*soil%ssat_vec(i,1))/(1.-ssnow%satfrac(i))
          wb_unsat = min(soil%ssat_vec(i,1),max(0.,wb_unsat))
-   
+
          wb_evap_threshold = min( max( &
                              gw_params%SoilEvapAlpha*soil%sfc_vec(i,1), &
                              soil%swilt_vec(i,1) ), soil%ssat_vec(i,1) )
-   
+
          !Sakguchi and Zeng 2009
          if (wb_unsat .ge. wb_evap_threshold) then
             xx = 1.
          else
-            xx = 0.25 * (1._r_2 - cos(pi_r_2*wb_unsat/(wb_evap_threshold)))**2.0
+            xx = 0.25 * (1._r_2 - cos(C%pi*wb_unsat/(wb_evap_threshold)))**2.0
          end if
-   
+
          ssnow%wetfac(i) = max(0.0,min(1.0,satfrac_liqice(i) +&
                                         (1. - satfrac_liqice(i))*xx ) )
 
@@ -1328,22 +1353,22 @@ SUBROUTINE calc_srf_wet_fraction(ssnow,soil,met,veg)
        ssnow%wetfac = MAX( 1.e-6, MIN( 1.0,&
             ( REAL (ssnow%wb(:,1) ) - soil%swilt/ 2.0 )                  &
             / ( soil%sfc - soil%swilt/2.0 ) ) )
-   
+
        DO i=1,mp
-   
+
           IF( ssnow%wbice(i,1) > 0. )&
                ssnow%wetfac(i) = ssnow%wetfac(i) * &
                                 real(MAX( 0.5_r_2, 1._r_2 - MIN( 0.2_r_2, &
                                  ( ssnow%wbice(i,1) / ssnow%wb(i,1) )**2 ) ) )
-   
+
           IF( ssnow%snowd(i) > 0.1) ssnow%wetfac(i) = 0.9
-   
-          IF ( veg%iveg(i) == 16 .and. met%tk(i) >= tfrz + 5. )   &
+
+          IF ( veg%iveg(i) == 16 .and. met%tk(i) >= C%tfrz + 5. )   &
                ssnow%wetfac(i) = 1.0 ! lakes: hard-wired number to be removed
-   
-          IF( veg%iveg(i) == 16 .and. met%tk(i) < tfrz + 5. )   &
+
+          IF( veg%iveg(i) == 16 .and. met%tk(i) < C%tfrz + 5. )   &
                ssnow%wetfac(i) = 0.7 ! lakes: hard-wired number to be removed
-   
+
        ENDDO
        ! owetfac introduced to reduce sharp changes in dry regions,
        ! especially in offline runs in which there may be discrepancies b/n
@@ -1356,7 +1381,7 @@ END SUBROUTINE calc_srf_wet_fraction
 
 !SUBROUTINE calc_soil_hydraulic_props(ssnow,soil,veg)
 !   USE cable_common_module
-!   TYPE(soil_parameter_type), INTENT(INOUT)     :: soil 
+!   TYPE(soil_parameter_type), INTENT(INOUT)     :: soil
 !   TYPE(soil_snow_type)     , INTENT(INOUT)  :: ssnow
 !   TYPE(veg_parameter_type) , INTENT(INOUT)     :: veg
 !
@@ -1369,9 +1394,9 @@ END SUBROUTINE calc_srf_wet_fraction
 !                               Dliq_ratio_Dz
 !
 !   REAL(r_2), DIMENSION(0:ms) :: zimm  !depths at interface between layers
-!   REAL(r_2), dimension(mp,ms) ::wb_temp 
+!   REAL(r_2), dimension(mp,ms) ::wb_temp
 !
-!    !soil matric potential, hydraulic conductivity, and 
+!    !soil matric potential, hydraulic conductivity, and
 !         derivatives of each with respect to water (calculated using total (not liquid))
 !
 !    do k=1,ms
@@ -1416,7 +1441,7 @@ END SUBROUTINE calc_srf_wet_fraction
 !
 !    liq_ratio(:) = 1.0
 !
-!    k = ms 
+!    k = ms
 !       do i=1,mp
 !
 !          if (gw_params%ssgw_ice_switch) then
@@ -1439,8 +1464,8 @@ END SUBROUTINE calc_srf_wet_fraction
 !             ssnow%dhkdw(i,k) =  (1.-ssnow%fracice(i,k))*ssnow%dhkdw(i,k)
 !          endif
 !       end do
-! 
-!    do k=1,ms 
+!
+!    do k=1,ms
 !       do i=1,mp
 !          s_mid(i) = (ssnow%wb(i,k)-soil%watr(i,k))/&  !+dri*ssnow%wbice(:,k)
 !              (soil%ssat_vec(i,k)-soil%watr(i,k))
@@ -1452,8 +1477,8 @@ END SUBROUTINE calc_srf_wet_fraction
 !          ssnow%smp(i,k) = max(min(ssnow%smp(i,k),-soil%sucs_vec(i,k)),sucmin)
 !
 !          ssnow%dsmpdw(i,k) = -soil%bch_vec(i,k)*ssnow%smp(i,k)/&
-!                    (max(s_mid(i)*(soil%ssat_vec(i,k)-soil%watr(i,k)),0.001_r_2))       
-!       end do   
+!                    (max(s_mid(i)*(soil%ssat_vec(i,k)-soil%watr(i,k)),0.001_r_2))
+!       end do
 !    end do
 !
 !    do i=1,mp
@@ -1486,7 +1511,7 @@ END SUBROUTINE calc_srf_wet_fraction
 
 SUBROUTINE calc_soil_hydraulic_props(ssnow,soil,veg)
    USE cable_common_module
-   TYPE(soil_parameter_type), INTENT(INOUT)     :: soil 
+   TYPE(soil_parameter_type), INTENT(INOUT)     :: soil
    TYPE(soil_snow_type)     , INTENT(INOUT)  :: ssnow
    TYPE(veg_parameter_type) , INTENT(INOUT)     :: veg
 
@@ -1499,7 +1524,7 @@ SUBROUTINE calc_soil_hydraulic_props(ssnow,soil,veg)
                                Dliq_ratio_Dz
 
    REAL(r_2), DIMENSION(0:ms) :: zimm  !depths at interface between layers
-   REAL(r_2), dimension(mp,ms+1) ::wb_temp 
+   REAL(r_2), dimension(mp,ms+1) ::wb_temp
    REAL(r_2), DIMENSION(mp,ms+1) :: hk_ice_factor
 
     !soil matric potential, hydraulic conductivity, and derivatives of each with respect to water (calculated using total (not liquid))
@@ -1521,10 +1546,14 @@ SUBROUTINE calc_soil_hydraulic_props(ssnow,soil,veg)
        do k=1,ms
           kk = min(k+1,ms)
           do i=1,mp
-              hk_ice_factor(i,k) = 10.0**(-gw_params%ice_impedence* &
+             if (soil%isoilm(i) .eq. 9) then
+                hk_ice_factor(i,k) = 10.0**(-gw_params%ice_impedence)
+             else
+                hk_ice_factor(i,k) = 10.0**(-gw_params%ice_impedence* &
                                          ( 0.5*(ssnow%wbice(i,k)/max(1.0e-8,ssnow%wb(i,k)) + &
                                                 ssnow%wbice(i,kk)/max(1.0e-8,ssnow%wb(i,kk))) ) &
                                          )
+             end if
           end do
        end do
        hk_ice_factor(:,ms+1) = hk_ice_factor(:,ms)
@@ -1542,16 +1571,16 @@ SUBROUTINE calc_soil_hydraulic_props(ssnow,soil,veg)
     end if
 
     liq_ratio(:) = 1.0
-    k = ms 
+    k = ms
     do i=1,mp
        liq_ratio(i) =min(1.,max(0.,wb_temp(i,k)/max(ssnow%wb(i,k),1e-6) ) )
     end do
-    !aquifer ice 
+    !aquifer ice
     wb_temp(:,ms+1) = liq_ratio(:) * wb_temp(:,ms+1)
 
     !potential from soil water rention function
     !defined as layer average
-    do k=1,ms 
+    do k=1,ms
        do i=1,mp
           s_mid(i) = (wb_temp(i,k)-soil%watr(i,k))/&  !+dri*ssnow%wbice(:,k)
               (soil%ssat_vec(i,k)-soil%watr(i,k))
@@ -1566,7 +1595,7 @@ SUBROUTINE calc_soil_hydraulic_props(ssnow,soil,veg)
           ssnow%dsmpdw(i,k) = -soil%bch_vec(i,k)*ssnow%smp(i,k)/&
                     (max(s_mid(i)*(soil%ssat_vec(i,k)-soil%watr(i,k)),0.001_r_2)) *&
                      ((1._r_2 + smp_cor*ssnow%wbice(i,k))**2.0)
-       end do   
+       end do
     end do
 
     !Aquifer potential
@@ -1576,11 +1605,17 @@ SUBROUTINE calc_soil_hydraulic_props(ssnow,soil,veg)
        s_mid(i) = min(max(s_mid(i),0.001_r_2),1._r_2)
        s2(i)    = soil%GWhyds_vec(i)*s_mid(i)**(2._r_2*soil%GWbch_vec(i)+2._r_2)
 
-       ssnow%GWhk(i)     =s_mid(i)*s2(i) * hk_ice_factor(i,ms+1)
+       !ssnow%GWhk(i)     =s_mid(i)*s2(i) * hk_ice_factor(i,ms+1)
+       !ssnow%GWdhkdw(i)  =  (2._r_2*soil%GWbch_vec(i)+3._r_2)*&
+       !                    s2(i)*0.5_r_2/(soil%GWssat_vec(i)-soil%GWwatr(i)) *&
+       !                    hk_ice_factor(i,ms+1)
 
-       ssnow%GWdhkdw(i)  =  (2._r_2*soil%GWbch_vec(i)+3._r_2)*&
-                           s2(i)*0.5_r_2/(soil%GWssat_vec(i)-soil%GWwatr(i)) *&
-                           hk_ice_factor(i,ms+1)
+       ssnow%GWhk(i)     = soil%GWhyds_vec(i) * hk_ice_factor(i,ms+1)*&
+                            exp(-ssnow%wtd(i)/1000._r_2/&
+                            (1.0/(120*(soil%drain_dens(i)+1.0e-3))))
+       !d(h)*Sy=dW
+       ssnow%GWdhkdw(i)  = ssnow%GWhk(i)/(soil%GWssat_vec(i)-soil%GWwatr(i))*&
+                           (0.001/(120*(soil%drain_dens(i)+1.0e-3)))
 
        s_mid(i) = (wb_temp(i,ms+1)-soil%GWwatr(i))/(soil%GWssat_vec(i)-soil%GWwatr(i))
        s_mid(i) = min(max(s_mid(i),0.001_r_2),1._r_2)
@@ -1594,14 +1629,20 @@ SUBROUTINE calc_soil_hydraulic_props(ssnow,soil,veg)
     !hydraulic conductivity
     !Interfacial so uses layer i and i+1
     do k=1,ms
-       kk=min(ms,k+1)
+       kk=min(ms+1,k+1)
        do i=1,mp
 
-          s1(i) = 0.5_r_2*(max(wb_temp(i,k)-soil%watr(i,k),0.) + &
-                           max(wb_temp(i,kk)-soil%watr(i,kk),0.)) / &
+          if (k .lt. ms) then
+          s1(i) = 0.5_r_2*((wb_temp(i,k)-soil%watr(i,k)) + &
+                           (wb_temp(i,kk)-soil%watr(i,kk))) / &
                          (0.5_r_2*((soil%ssat_vec(i,k)-soil%watr(i,k)) + &
                          (soil%ssat_vec(i,kk)-soil%watr(i,kk))))
-
+          else
+          s1(i) = 0.5_r_2*((wb_temp(i,k)-soil%watr(i,k)) + &
+                           (wb_temp(i,kk)-soil%GWwatr(i))) / &
+                         (0.5_r_2*((soil%ssat_vec(i,k)-soil%watr(i,k)) + &
+                         (soil%GWssat_vec(i)-soil%GWwatr(i))))
+          end if
           s1(i) = min(max(s1(i),0.01_r_2),1._r_2)
           s2(i) = soil%hyds_vec(i,k)*s1(i)**(2._r_2*soil%bch_vec(i,k)+2._r_2)
 
@@ -1613,7 +1654,7 @@ SUBROUTINE calc_soil_hydraulic_props(ssnow,soil,veg)
     end do
 
     !conductivity between soil column and aquifer
-    k = ms 
+    k = ms
     kk = ms+1
        do i=1,mp
 
@@ -1625,11 +1666,12 @@ SUBROUTINE calc_soil_hydraulic_props(ssnow,soil,veg)
           s1(i) = min(max(s1(i),0.01_r_2),1._r_2)
           s2(i) = soil%hyds_vec(i,k)*s1(i)**(2._r_2*soil%bch_vec(i,k)+2._r_2)
 
-          ssnow%hk(i,k)    = s1(i)*s2(i)
+          ssnow%hk(i,k)    = s1(i)*s2(i)*hk_ice_factor(i,k)
           ssnow%dhkdw(i,k) = (2._r_2*soil%bch_vec(i,k)+3._r_2)*&
+                             hk_ice_factor(i,k)*&
                              s2(i)*0.5_r_2/(soil%ssat_vec(i,k)-soil%watr(i,k))
        end do
- 
+
 
 END SUBROUTINE calc_soil_hydraulic_props
 
@@ -1638,16 +1680,16 @@ END SUBROUTINE calc_soil_hydraulic_props
   USE cable_common_module
 
   IMPLICIT NONE
-    real, intent(in) :: dt 
+    real, intent(in) :: dt
     TYPE (soil_snow_type), INTENT(INOUT)      :: ssnow ! soil and snow variables
     TYPE (soil_parameter_type), INTENT(INOUT)    :: soil  ! soil parameters
     TYPE (veg_parameter_type), INTENT(INOUT)     :: veg
     REAL(r_2), dimension(:), intent(in)       :: zaq
     REAL(r_2), dimension(:), intent(in)       :: zmm,dzmm
 
-    integer :: i    
+    integer :: i
     !Doing the recharge outside of the soln of Richards Equation makes it easier to track total recharge amount.
-    !Add to ssnow at some point 
+    !Add to ssnow at some point
     do i=1,mp
        if ((ssnow%wtd(i) .le. sum(dzmm,dim=1)) .or. &
            (veg%iveg(i) .ge. 16) .or. &
@@ -1655,10 +1697,11 @@ END SUBROUTINE calc_soil_hydraulic_props
 
           ssnow%Qrecharge(i) = 0._r_2
        else
-          ssnow%Qrecharge(i) = -ssnow%hk(i,ms)*&
-                               ((ssnow%GWsmp(i)-ssnow%smp(i,ms)) -&
-                                (ssnow%GWzq(i)-ssnow%zq(i,ms))) / &
-                                (zaq(i) - zmm(ms))
+          ssnow%Qrecharge(i) = -0.5*(ssnow%hk(i,ms)*ssnow%GWhk(i))*&
+                               ((-ssnow%smp(i,ms)) -&
+                                (-ssnow%zq(i,ms))) / &
+                                (ssnow%wtd(i) - &
+                                 (zmm(ms)-0.5*soil%zse_vec(i,ms)*1000.0))
        end if
     end do
 
@@ -1669,12 +1712,15 @@ END SUBROUTINE calc_soil_hydraulic_props
   USE cable_common_module
 
   IMPLICIT NONE
-  
+
     TYPE (soil_snow_type), INTENT(INOUT)      :: ssnow ! soil and snow variables
     TYPE (soil_parameter_type), INTENT(INOUT)    :: soil  ! soil parameters
     TYPE (veg_parameter_type), INTENT(INOUT)     :: veg
     REAL(r_2), dimension(:), intent(in)       :: dzmm
-    REAL(r_2), dimension(mp)                  :: sm_tot
+    REAL(r_2), dimension(mp)                  :: sm_tot,&!sum var
+                                                 ice_factor_tot  !avg ice factor
+    REAL(r_2), dimension(mp,ms)               :: ice_factor  !ice limitation on
+                                                  !subsurface drainage
     INTEGER, dimension(mp)                    :: k_drain
     integer :: i,k
 
@@ -1687,10 +1733,12 @@ END SUBROUTINE calc_soil_hydraulic_props
 
        !Note: future revision will have interaction with river here. nned to
        !work on router and add river type cells
-       ssnow%qhz(i)  = min(max(soil%slope(i),0.00001),0.1)*&
+       ssnow%qhz(i)  = min(max(soil%slope(i),0.000001),0.9)*&
                        gw_params%MaxHorzDrainRate* &
-                        exp(-ssnow%wtd(i)/(1000._r_2*&
-                       (gw_params%EfoldHorzDrainRate*Efold_mod(veg%iveg(i)))))
+                        exp(-ssnow%wtd(i)/1000._r_2/&
+                        (1.0/(60.0*gw_params%EfoldHorzDrainRate*&
+                         (soil%drain_dens(i)+1.0e-3))*Efold_mod(veg%iveg(i))))
+
 
        if (gw_params%subsurface_sat_drainage) then
           !drain from sat layers
@@ -1707,45 +1755,80 @@ END SUBROUTINE calc_soil_hydraulic_props
 
    end do
 
+   if (gw_params%ssgw_ice_switch) then
+      do k=1,ms
+         do i=1,mp
+            ice_factor(i,k) = (10.0**(-gw_params%ice_impedence*ssnow%wbice(i,k)/&
+                                      (ssnow%wb(i,k)+1.0e-12)))
+         end do
+      end do
+   else
+      do k=1,ms
+         do i=1,mp
+            ice_factor(i,k) = (1._r_2-ssnow%fracice(i,k))
+         end do
+      end do
+
+   end if
    do i=1,mp
+
+       ice_factor(i,:)  = 0._r_2
+       ice_factor_tot(i)= 0._r_2
        ssnow%qhlev(i,:) = 0._r_2
-       sm_tot(i) = 0._r_2
-       ssnow%qhlev(i,:) = 0._r_2
+       sm_tot(i)        = 0._r_2
+
+   end do
+
+   do i=1,mp
 
        if (gw_params%subsurface_sat_drainage) then
-          sm_tot(i) = max((ssnow%GWwb(i) - soil%watr(i,ms))*&
-                          (1._r_2-ssnow%fracice(i,ms)), 0.)
+          sm_tot(i) = max((ssnow%GWwb(i) - soil%watr(i,ms)),0._r_2)*&
+                          ice_factor(i,ms)
+
+          ice_factor_tot(i) = (sum(ice_factor(i,k_drain(i):ms)*&
+                                 soil%zse_vec(i,k_drain(i):ms),dim=1)+&
+                                   ice_factor(i,ms)*soil%GWdz(i))/&
+                                   (sum(soil%zse_vec(i,:),dim=1)+&
+                                    soil%GWdz(i))
 
           do k=k_drain(i),ms
-             sm_tot(i) = sm_tot(i) +max(ssnow%wbliq(i,k)-soil%watr(i,k),0._r_2)
+             sm_tot(i) = sm_tot(i) + max(ssnow%wbliq(i,k)-soil%watr(i,k),0._r_2)*&
+                                      ice_factor(i,k)
           end do
+
+          ssnow%qhz(i) = ssnow%qhz(i)*ice_factor_tot(i)  !reduced due to ice
 
           if (sm_tot(i) .ge. 1.0e-12) then
               do k=k_drain(i),ms
-                 ssnow%qhlev(i,k) = ssnow%qhz(i)*max(&
-                                   ssnow%wbliq(i,k)-soil%watr(i,k),0._r_2)/sm_tot(i)
+                 ssnow%qhlev(i,k) = ssnow%qhz(i)*ice_factor(i,k)*&
+                                   max(0.0,ssnow%wbliq(i,k)-soil%watr(i,k))/sm_tot(i)
               end do
-              ssnow%qhlev(i,ms+1) = max((ssnow%GWwb(i) - soil%watr(i,ms))*&
-                                    (1._r_2-ssnow%fracice(i,ms)), 0.)*ssnow%qhz(i)/sm_tot(i)
+              ssnow%qhlev(i,ms+1) = max((ssnow%GWwb(i) - soil%watr(i,ms)),0.0)*&
+                                     ice_factor(i,ms)*ssnow%qhz(i)/sm_tot(i)
           endif
 
        else  !second option
           if (k_drain(i) .le. ms) then
-             sm_tot(i) = 0.
              do k=k_drain(i),ms
-                sm_tot(i) = sm_tot(i) + max(ssnow%wbliq(i,k)-soil%watr(i,k),0._r_2)
+                sm_tot(i) = sm_tot(i) + max(ssnow%wbliq(i,k)-soil%watr(i,k),0._r_2)*&
+                                        ice_factor(i,k)
              end do
+             ice_factor_tot(i) = (sum(ice_factor(i,k_drain(i):ms)*&
+                                 soil%zse_vec(i,k_drain(i):ms),dim=1))/&
+                                   (sum(soil%zse_vec(i,:),dim=1))
 
+             ssnow%qhz(i) = ssnow%qhz(i)*ice_factor_tot(i)  !reduced due to ice
              if (sm_tot(i) .ge. 1.0e-12) then
                  do k=k_drain(i),ms
-                    ssnow%qhlev(i,k) = ssnow%qhz(i)*max(&
-                                        ssnow%wbliq(i,k)-soil%watr(i,k),0._r_2)/sm_tot(i)
+                    ssnow%qhlev(i,k) = (ssnow%qhz(i)*ice_factor(i,k)/sm_tot(i))*&
+                                        max(0.0,ssnow%wbliq(i,k)-soil%watr(i,k))
                  end do
              endif
 
           else
-
-             ssnow%qhlev(i,ms+1) = ssnow%qhz(i)*(1._r_2-ssnow%fracice(i,ms))
+             ice_factor_tot(i) = ice_factor(i,ms)
+             ssnow%qhz(i)        = ssnow%qhz(i)*ice_factor_tot(i)
+             ssnow%qhlev(i,ms+1) = ssnow%qhz(i)*max(ssnow%GWwb(i)-soil%watr(i,ms),0.0)
 
           end if
 
@@ -1760,7 +1843,7 @@ END SUBROUTINE calc_soil_hydraulic_props
           ssnow%qhlev(i,:) = 0._r_2
        end if
 
-    end do  
+    end do
 
 
   END SUBROUTINE subsurface_drainage
@@ -1795,13 +1878,13 @@ END SUBROUTINE calc_soil_hydraulic_props
      !srf frozen fraction.  should be based on topography
       do i = 1,mp
          !Saturated fraction
-          if (gw_params%MaxSatFraction .gt. 1e-7 .and. veg%iveg(i) .lt. 16) then 
+          if (gw_params%MaxSatFraction .gt. 1e-7 .and. veg%iveg(i) .lt. 16) then
              slopeSTDmm = sqrt(min(max(&
                            gw_params%MaxSatFraction*soil%slope_std(i),&
                            1e-5),10000._r_2)) ! ensure some variability
              ssnow%satfrac(i)    = max(0._r_2,min(0.99_r_2,&
                  !note UM wants std03, and erf is not included then
-                                   1._r_2 - my_erf( slopeSTDmm / sqrt(2.0* S(i)) ) ) )  
+                                   1._r_2 - my_erf( slopeSTDmm / sqrt(2.0* S(i)) ) ) )
           elseif (veg%iveg(i) .lt. 16) then
              ssnow%satfrac(i) = 0._r_2
           else
@@ -1820,10 +1903,12 @@ END SUBROUTINE calc_soil_hydraulic_props
     REAL(r_2), DIMENSION(mp) :: unsat_wb,unsat_smp
     INTEGER :: i
 
-    !if gw_model = true 
+    CALL point2constants( C )
+
+    !if gw_model = true
                    !cable_um_init_subrs.F90 or cable_parameters:
                            ! ssat(i) = ssat_vec(i,1)
-    !if gw_model = false 
+    !if gw_model = false
                    !cable_um_init_subrs.F90 or cable_parameters:
                             !ssat_vec(i,:) = ssat(i)
                             !so ssat_vec can be used although soilsnow uses ssat
@@ -1845,13 +1930,13 @@ END SUBROUTINE calc_soil_hydraulic_props
 
           ssnow%rh_srf(i) = max(0.,min(1., &
                          exp(9.81*unsat_smp(i)/(ssnow%tgg(i,1)*461.4)) ) )
-         
+
        else
 
           ssnow%rh_srf(i) = 1.0
 
        end if
-    end do  
+    end do
 
 
   END SUBROUTINE pore_space_relative_humidity
@@ -1869,20 +1954,22 @@ END SUBROUTINE calc_soil_hydraulic_props
     REAL(r_2), DIMENSION(mp) :: zmm
     REAL(r_2), DIMENSION(mp) :: zaq
 
-   call iterative_wtd (ssnow, soil, veg, cable_user%test_new_gw)
+    CALL point2constants( C )
 
-   CALL calc_soil_hydraulic_props(ssnow,soil,veg)
+    call iterative_wtd (ssnow, soil, veg, cable_user%test_new_gw)
 
-   call  ovrlndflx (dels, ssnow, soil, veg,canopy,sli_call )
+    CALL calc_soil_hydraulic_props(ssnow,soil,veg)
 
-   dzmm = real(soil%zse(:),r_2)*1000._r_2
+    call  ovrlndflx (dels, ssnow, soil, veg,canopy,sli_call )
 
-   CALL subsurface_drainage(ssnow,soil,veg,dzmm)
+    dzmm = real(soil%zse(:),r_2)*1000._r_2
 
-   zmm(:) = 1000._r_2*(sum(real(soil%zse,r_2),dim=1))
-   zaq(:) = zmm(:) + 0.5_r_2*soil%GWdz(:)*1000._r_2
+    CALL subsurface_drainage(ssnow,soil,veg,dzmm)
 
-   call aquifer_recharge(dels,ssnow,soil,veg,zaq,zmm,zmm)
+    zmm(:) = 1000._r_2*(sum(real(soil%zse,r_2),dim=1))
+    zaq(:) = zmm(:) + 0.5_r_2*soil%GWdz(:)*1000._r_2
+
+    call aquifer_recharge(dels,ssnow,soil,veg,zaq,zmm,zmm)
 
 
 
@@ -1915,7 +2002,7 @@ END SUBROUTINE calc_soil_hydraulic_props
 
   implicit none
 
-  real(r_2), intent(in) :: x 
+  real(r_2), intent(in) :: x
   real(r_2)             :: tmp_val, tmp
 
 

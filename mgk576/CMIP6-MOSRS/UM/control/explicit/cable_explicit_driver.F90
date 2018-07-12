@@ -317,6 +317,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
   IF(l_laiFeedbk) veg%vlai(:) = casamet%glai(:)
 
   canopy%oldcansto=canopy%cansto
+  rad%otrad = rad%trad
 
   !---------------------------------------------------------------------!
   !--- cbm "mainly" controls the calling of model components         ---!  

@@ -9,7 +9,7 @@ MODULE cable_fFile_module
   character(len=*), parameter :: &
     fprintf_dir_root = "/short/p66/jxs599/CMIP6/diag/"
   
-  character(len=200) :: fprintf_dir
+  character(len=300) :: fprintf_dir
 
 CONTAINS
 
@@ -56,18 +56,10 @@ subroutine open_iDiag( iDiag, infilename, gopenstatus)
    
    ffilename=trim( trim(infilename)// '.txt' )
 
-  write(6,*) "jh:fopen:filename ",ffilename
-   !if( cable_user%check_write ) then 
-   if( ktau_gl==1) then 
-      open( unit=iDiag, file=ffilename, status="unknown", &
-         action="write", iostat=gopenstatus, form="formatted", &
-         position='append' )
-   !else
-   !   open( unit=iDiag, file=ffilename, status="old", &
-   !      action="write", iostat=gopenstatus, form="formatted", &
-   !      position='append' )
-   endif 
-  write(6,*) "jh:fopen:filename ",ffilename
+  write(6,*) "jh:Pytest:fname ", ffilename 
+   open( unit=iDiag, file=ffilename, status="unknown", &
+     action="write", iostat=gopenstatus, form="formatted", &
+     position='append' )
 
 End subroutine open_iDiag
 

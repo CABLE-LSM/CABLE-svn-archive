@@ -15,7 +15,7 @@ MODULE CABLE_LUC_EXPT
   END TYPE LUC_INPUT_TYPE
 
   TYPE LUC_EXPT_TYPE
-     CHARACTER(len=200)::	TransitionFilePath,ClimateFile, Run  
+     CHARACTER(len=200)::	TransitionFilePath,ClimateFile, Run
      LOGICAL  :: DirectRead, READrst, WRITErst
      LOGICAL, ALLOCATABLE ::  prim_only(:)
      LOGICAL, ALLOCATABLE :: ptos(:), ptog(:), stog(:), gtos(:)
@@ -56,9 +56,9 @@ CONTAINS
   SUBROUTINE LUC_EXPT_INIT( LUC_EXPT)
 
     IMPLICIT NONE
-    
+
     TYPE (LUC_EXPT_TYPE), INTENT(INOUT) :: LUC_EXPT
-    
+
     REAL    :: tmparr(720,360), tmp
     INTEGER :: t, i, ii, k, x, y, realk
     INTEGER :: fID, vID, timID,latID, lonID, tdimsize, xdimsize, ydimsize
@@ -69,9 +69,9 @@ CONTAINS
     LOGICAL :: DirectRead
     INTEGER :: YearStart, YearEnd
     REAL, ALLOCATABLE :: tmpvec(:), tmparr3(:,:,:)
-       
+
     NAMELIST /LUCNML/  TransitionFilePath, ClimateFile, Run, DirectRead, YearStart, YearEnd
-    
+
     ALLOCATE( LUC_EXPT%prim_only(mland) )
     ALLOCATE( LUC_EXPT%ivegp(mland) )
     ALLOCATE( LUC_EXPT%biome(mland) )
@@ -84,8 +84,8 @@ CONTAINS
     ALLOCATE( LUC_EXPT%grass(mland) )
     ALLOCATE( LUC_EXPT%mtemp_min20(mland) )
 
-    
-    
+
+
     ! READ LUC_EXPT settings
     CALL GET_UNIT(iu)
     OPEN (iu,FILE="LUC.nml",STATUS='OLD',ACTION='READ')
@@ -135,7 +135,7 @@ CONTAINS
 
        WRITE(*   ,*) 'LUC input data file: ', LUC_EXPT%TransFile(i)
        WRITE(logn,*) 'LUC input data file: ', LUC_EXPT%TransFile(i)
-      
+
        STATUS = NF90_OPEN(TRIM(LUC_EXPT%TransFile(i)), NF90_NOWRITE, LUC_EXPT%F_ID(i))
        CALL HANDLE_ERR(STATUS, "Opening LUH2 file "//LUC_EXPT%TransFile(i) )
        STATUS = NF90_INQ_VARID(LUC_EXPT%F_ID(i),TRIM(LUC_EXPT%VAR_NAME(i)), LUC_EXPT%V_ID(i))
@@ -164,7 +164,7 @@ CONTAINS
 !!$               start=(/1,1,1/) )
 !!$          CALL HANDLE_ERR(STATUS, "Reading from "//LUC_EXPT%TransFile(i) )
 
-         
+
 
           xds = LUC_EXPT%xdimsize
           yds = LUC_EXPT%ydimsize
@@ -192,7 +192,7 @@ CONTAINS
        STATUS = NF90_GET_VAR(LUC_EXPT%F_ID(i), LUC_EXPT%V_ID(i), tmparr, &
             start=(/1,1,LUC_EXPT%CTSTEP/),count=(/xds,yds,1/) )
        CALL HANDLE_ERR(STATUS, "Reading from "//LUC_EXPT%TransFile(i) )
-       
+
        DO k = 1, mland
           LUC_EXPT%grass(k) = tmparr( land_x(k), land_y(k) )
        END DO
@@ -211,7 +211,7 @@ CONTAINS
        STATUS = NF90_GET_VAR(LUC_EXPT%F_ID(i), LUC_EXPT%V_ID(i), tmparr, &
             start=(/1,1,LUC_EXPT%CTSTEP/),count=(/xds,yds,1/) )
        CALL HANDLE_ERR(STATUS, "Reading from "//LUC_EXPT%TransFile(i) )
-       
+
        DO k = 1, mland
           LUC_EXPT%primaryf(k) = tmparr( land_x(k), land_y(k) )
        END DO
@@ -249,12 +249,12 @@ CONTAINS
        LUC_EXPT%primaryf =  LUC_EXPT%primaryf *0.7
        LUC_EXPT%secdf =  LUC_EXPT%secdf * 0.7
     END WHERE
-   
 
 
- 
+
+
 ! READ transitions from primary to see if primary remains primary
-         
+
     LUC_EXPT%prim_only = .TRUE.
     IF(.NOT.ALLOCATED(tmpvec)) ALLOCATE(tmpvec(tdimsize))
     IF(.NOT.ALLOCATED(tmparr3)) ALLOCATE(tmparr3(xds,yds,tdimsize))
@@ -288,7 +288,7 @@ CONTAINS
 
     ! set secondary vegetation area to be zero where land use transitions don't occur
     ! set grass component of primary vegetation cover
-    WHERE (LUC_EXPT%prim_only .eq. .TRUE.)
+    WHERE (LUC_EXPT%prim_only .eqv. .TRUE.)
        LUC_EXPT%secdf = 0.0
        LUC_EXPT%primaryf = 1.0
        LUC_EXPT%grass = 0.0
@@ -313,9 +313,9 @@ CONTAINS
 !!$    WHERE (LUC_EXPT%ivegp == 14)
 !!$       LUC_EXPT%prim_only = .TRUE.
 !!$    END WHERE
-    
+
  END SUBROUTINE LUC_EXPT_INIT
-  
+
 ! ==============================================================================
 
 
@@ -328,9 +328,9 @@ CONTAINS
  TYPE (LUC_EXPT_TYPE), INTENT(INOUT) :: LUC_EXPT
  INTEGER :: k, m, n
 
- 
 
-  
+
+
    DO k=1,mland
         m = landpt(k)%ilon
         n = landpt(k)%ilat
@@ -353,7 +353,7 @@ CONTAINS
                  inPFrac(m,n,1) =  min(LUC_EXPT%primaryf(k),1.0)
                  inPFrac(m,n,2) = 1.0 -  min(LUC_EXPT%primaryf(k),1.0)
               endif
-              
+
            elseif ((.NOT.LUC_EXPT%prim_only(k)) ) then
               inVeg(m,n,1) = LUC_EXPT%ivegp(k)
               inVeg(m,n,2) = LUC_EXPT%ivegp(k)
@@ -365,7 +365,7 @@ CONTAINS
               ENDIF
               inPFrac(m,n,1) = min(LUC_EXPT%primaryf(k),1.0)
               inPFrac(m,n,2) = min(LUC_EXPT%secdf(k),1.0)
-              inPFrac(m,n,3) = 1.0 - inPFrac(m,n,1) - inPFrac(m,n,2) 
+              inPFrac(m,n,3) = 1.0 - inPFrac(m,n,1) - inPFrac(m,n,2)
 
 
            endif
@@ -387,10 +387,10 @@ CONTAINS
 
 
      ENDDO
-  
 
 
-991  format(1166(e12.4,2x)) 
+
+991  format(1166(e12.4,2x))
 
 END SUBROUTINE LUC_EXPT_SET_TILES
 ! ==============================================================================
@@ -417,7 +417,7 @@ USE netcdf
   CHARACTER(len=20),DIMENSION(3) :: A1
  ! 1 dim arrays (integer) (npt )
   CHARACTER(len=20),DIMENSION(2) :: AI1
- 
+
   REAL(r_2), DIMENSION(mland)          :: LAT, LON, TMP
   INTEGER*4 :: TMPI(mland), TMPI0
   LOGICAL            ::  EXISTFILE
@@ -429,11 +429,11 @@ USE netcdf
   A1(1) = 'latitude'
   A1(2) = 'longitude'
   A1(3) = 'mtemp_min20'
- 
- 
+
+
   AI1(1) = 'iveg'
   AI1(2) = 'biome'
- 
+
   fname = TRIM(LUC_EXPT%ClimateFile)
 
   INQUIRE( FILE=TRIM( fname ), EXIST=EXISTFILE )
@@ -451,12 +451,12 @@ USE netcdf
   ! dimensions:
   ! Land (number of points)
 
-  
+
   STATUS = NF90_INQ_DIMID(FILE_ID, 'land'   , dID)
   IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
   STATUS = NF90_INQUIRE_DIMENSION( FILE_ID, dID, LEN=land_dim )
   IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-  
+
   IF ( land_dim .NE. mland) THEN
      WRITE(*,*) "Dimension misfit, ", fname
      WRITE(*,*) "land_dim", land_dim
@@ -521,20 +521,20 @@ END SUBROUTINE READ_CLIMATEFILE
 SUBROUTINE READ_LUH2(LUC_EXPT)
 
 IMPLICIT NONE
-    
+
     TYPE (LUC_EXPT_TYPE), INTENT(INOUT) :: LUC_EXPT
-    
+
     REAL    ::  tmp
     REAL, ALLOCATABLE :: tmparr(:,:)
     INTEGER :: t, i, ii, k, x, y, realk
     INTEGER :: fid, vid, tid
     INTEGER :: xds, yds, tds
     INTEGER :: STATUS,  iu
-   
- yds = LUC_EXPT%ydimsize 
- xds = LUC_EXPT%xdimsize  
+
+ yds = LUC_EXPT%ydimsize
+ xds = LUC_EXPT%xdimsize
  t = LUC_EXPT%CTSTEP
- IF(.NOT.ALLOCATED(tmparr)) ALLOCATE(tmparr(xds,yds))   
+ IF(.NOT.ALLOCATED(tmparr)) ALLOCATE(tmparr(xds,yds))
 
  if (t.LE. LUC_EXPT%nrec) then
     DO i=1, LUC_EXPT%nfile
@@ -569,7 +569,7 @@ IMPLICIT NONE
  endif
 
 
- ! Adjust transition areas based on primary wooded fraction 
+ ! Adjust transition areas based on primary wooded fraction
  WHERE (LUC_EXPT%biome .eq. 3 .or. LUC_EXPT%biome .eq. 11)  ! savanna/ xerophytic woods
     LUC_EXPT%INPUT(ptos)%VAL =  LUC_EXPT%INPUT(ptos)%VAL * 1.0/2.0
     LUC_EXPT%INPUT(ptog)%VAL =  LUC_EXPT%INPUT(ptog)%VAL * 1.0/2.0

@@ -36,6 +36,8 @@
 !#define UM_BUILD YES
 MODULE cable_diag_module
   use cable_def_types_mod, only : r_2
+ USE cable_fFile_module, ONLY : fprintf_dir
+   
    IMPLICIT NONE
    INTEGER, PARAMETER :: gok=0
    INTEGER :: galloctest=1

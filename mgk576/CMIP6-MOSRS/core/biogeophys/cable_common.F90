@@ -262,13 +262,6 @@ MODULE cable_common_module
   !jhan:temporary measure. improve hiding
   !   real, dimension(:,:), pointer,save :: c1, rhoch
 
-  !CABLE_LSM: intro'd quick writing capbility. remove from here. keep for ref
-  character(len=*), parameter :: &
-    fprintf_dir_root = "/short/p66/jxs599/CMIP6/diag/"
-  
-  character(len=200) :: fprintf_dir
-
-
 interface fudge_out
    module procedure fudge_out_r2D, fudge_out_r1D, fudge_out_r3D, fudge_out_i2D
 End interface fudge_out

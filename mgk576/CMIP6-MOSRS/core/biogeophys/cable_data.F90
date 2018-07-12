@@ -42,8 +42,13 @@ module cable_data_module
       rmh2o  = 0.018016, & ! molecular wt: water        (kg/mol)
       sboltz = 5.67e-8, & ! Stefan-Boltz. constant (W/m2/K4)
       tfrz   = 273.16, & ! Temp (K) corresp. to 0 C
+      cgsnow = 2090.0,&      ! specific heat capacity for snow
+      cs_rho_ice = 1.9341e6,&    !heat capacity * density ice
+      cs_rho_wat = 4.218e6,&    ! heat capacity * density  water
+      csice = 2.100e3,&      ! specific heat capacity for ice
+      cswat = 4.218e3,&      ! specific heat capacity for water
       density_liq = 1000.0,  &  !density of liquid water
-      density_ice = 1000.0,  &   !denisty of ice
+      density_ice = 921.0,&     !denisty of ice
 
       ! Teten coefficients
       tetena = 6.106, & ! ??? refs?  mrd561 Magnus Tetans (Murray 1967)
@@ -226,8 +231,18 @@ module cable_data_module
    TYPE issnow_type
       REAL, POINTER ::                                                         &
          ! physical constants
-         CAPP, TFRZ, HL, HLF, HLS,density_liq, density_ice
+         CAPP, TFRZ, HL, HLF, HLS,density_liq,&
+         density_ice,cgsnow,cswat,csice,cs_rho_wat,cs_rho_ice
    END TYPE issnow_type
+
+
+   TYPE igwhydro_type
+      REAL, POINTER ::                                                         &
+         ! physical constants
+         TFRZ, HL, HLF, HLS,density_liq,&
+         density_ice,cgsnow,cs_rho_wat,cs_rho_ice,PI
+   END TYPE igwhydro_type
+
 
 
    TYPE const_type
@@ -256,7 +271,8 @@ module cable_data_module
    INTERFACE point2constants
       MODULE PROCEDURE driver_type_ptr, cbm_type_ptr, air_type_ptr,            &
                        albedo_type_ptr, canopy_type_ptr, carbon_type_ptr,      &
-                       rad_type_ptr, rough_type_ptr, ssnow_type_ptr
+                       rad_type_ptr, rough_type_ptr, ssnow_type_ptr,&
+                        gwhydro_type_ptr
    END INTERFACE
 
 CONTAINS
@@ -431,7 +447,29 @@ SUBROUTINE ssnow_type_ptr(C)
    C%HLS   => PHYS%HLS
    C%density_ice=> PHYS%density_ice
    C%density_liq=> PHYS%density_liq
+   C%CSWAT   => PHYS%CSWAT
+   C%CGSNOW   => PHYS%CGSNOW
+   C%CSICE   => PHYS%CSICE
+   C%cs_rho_wat   => PHYS%cs_rho_wat
+   C%cs_rho_ice   => PHYS%cs_rho_ice
    !C% => PHYS%
 END SUBROUTINE ssnow_type_ptr
+
+
+SUBROUTINE gwhydro_type_ptr(C)
+   TYPE(igwhydro_type) :: C
+   ! physical constants
+   C%PI    => MATH%PI_C
+   C%TFRZ  => PHYS%TFRZ
+   C%HL    => PHYS%HL
+   C%HLF   => PHYS%HLF
+   C%HLS   => PHYS%HLS
+   C%density_ice=> PHYS%density_ice
+   C%density_liq=> PHYS%density_liq
+   C%cs_rho_wat   => PHYS%cs_rho_wat
+   C%cs_rho_ice   => PHYS%cs_rho_ice
+   C%CGSNOW   => PHYS%CGSNOW
+   !C% => PHYS%
+END SUBROUTINE gwhydro_type_ptr
 
 END MODULE cable_data_module

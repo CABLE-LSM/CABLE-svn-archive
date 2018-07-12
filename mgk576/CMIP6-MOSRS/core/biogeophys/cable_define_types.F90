@@ -156,6 +156,9 @@ MODULE cable_def_types_mod
          swilt_vec     ! wilting point (hk = 0.02 mm/day)
 
       REAL(r_2), DIMENSION(:), POINTER ::                                      &
+         drain_dens,&!  drainage density ( mean dist to rivers/streams )
+         elev, &  !elevation above sea level
+         elev_std, &  !elevation above sea level
          slope,  &  !mean slope of grid cell
          slope_std  !stddev of grid cell slope
 
@@ -213,6 +216,7 @@ MODULE cable_def_types_mod
          wbtot1,  & ! total soil water (mm)
          wbtot2,  & ! total soil water (mm)
          wb_lake, &
+         totwblake, & !daily integrated wb_lake: used in ACCESS
          sinfil,  &
          qstss,   &
          wetfac,  & ! surface wetness fact. at current time step
@@ -515,7 +519,8 @@ MODULE cable_def_types_mod
          lwabv,   & ! long wave absorbed by vegetation
          qssabs,  & ! absorbed short-wave radiation for soil
          transd,  & ! frac SW diffuse transmitted through canopy
-         trad       !  radiative temperature (soil and veg)
+         trad,    & !  radiative temperature (soil and veg)
+         otrad      ! radiative temperature on previous timestep (ACCESS)
 
       REAL, DIMENSION(:,:), POINTER  ::                                        &
          fvlai,   & ! leaf area index of big leaf
@@ -857,6 +862,9 @@ SUBROUTINE alloc_soil_parameter_type(var, mp)
    allocate( var%org_vec(mp,ms) )
    allocate( var%rhosoil_vec(mp,ms) )
 
+   allocate( var%drain_dens(mp) )
+   allocate( var%elev(mp) )
+   allocate( var%elev_std(mp) )
    allocate( var%slope(mp) )
    allocate( var%slope_std(mp) )
 
@@ -928,6 +936,7 @@ SUBROUTINE alloc_soil_snow_type(var, mp)
    ALLOCATE( var%wbtot1(mp) )
    ALLOCATE( var%wbtot2(mp) )
    ALLOCATE( var%wb_lake(mp) )
+   ALLOCATE( var%totwblake(mp) )
    ALLOCATE( var%sinfil(mp) )
    ALLOCATE( var%evapfbl(mp,ms) )
    ALLOCATE( var%qstss(mp) )
@@ -1190,6 +1199,7 @@ SUBROUTINE alloc_radiation_type(var, mp)
    ALLOCATE( var% scalex(mp,mf) )
    ALLOCATE( var% transd(mp) )
    ALLOCATE( var% trad(mp) )
+   ALLOCATE( var% otrad(mp) )
    ALLOCATE( var% reffdf(mp,nrb) )
    ALLOCATE( var% reffbm(mp,nrb) )
    ALLOCATE( var% extkbm(mp,nrb) )
@@ -1474,6 +1484,9 @@ SUBROUTINE dealloc_soil_parameter_type(var)
    DEALLOCATE( var%silt_vec )
    DEALLOCATE( var%org_vec  )
    DEALLOCATE( var%rhosoil_vec )   
+   DEALLOCATE( var%drain_dens )
+   DEALLOCATE( var%elev )
+   DEALLOCATE( var%elev_std )
    DEALLOCATE( var%slope )
    DEALLOCATE( var%slope_std )
     ! Deallocate variables for SLI soil model:
@@ -1545,6 +1558,7 @@ SUBROUTINE dealloc_soil_snow_type(var)
    DEALLOCATE( var%wbtot1 )
    DEALLOCATE( var%wbtot2 )
    DEALLOCATE( var%wb_lake )
+   DEALLOCATE( var%totwblake )
    DEALLOCATE( var%sinfil )
    DEALLOCATE( var%evapfbl)
    DEALLOCATE( var%qstss)
@@ -1790,6 +1804,7 @@ SUBROUTINE dealloc_radiation_type(var)
    DEALLOCATE( var% scalex )
    DEALLOCATE( var% transd )
    DEALLOCATE( var% trad )
+   DEALLOCATE( var% otrad )
    DEALLOCATE( var% reffdf )
    DEALLOCATE( var% reffbm )
    DEALLOCATE( var% extkbm )
