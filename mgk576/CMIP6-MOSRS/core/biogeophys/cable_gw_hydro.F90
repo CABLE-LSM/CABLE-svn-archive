@@ -1901,6 +1901,11 @@ END SUBROUTINE calc_soil_hydraulic_props
     TYPE(veg_parameter_type), INTENT(INOUT)      :: veg
 
     REAL(r_2), DIMENSION(mp) :: unsat_wb,unsat_smp
+
+    ! Need a matching array of ones to use in Mark's call to the intrinsic
+    ! sign func below
+    REAL(r_2), DIMENSION(mp,ms) :: ones
+
     INTEGER :: i
 
     CALL point2constants( C )
@@ -1922,7 +1927,13 @@ END SUBROUTINE calc_soil_hydraulic_props
 
           unsat_wb(i) = max(soil%watr(i,1)+1e-2, min(soil%ssat_vec(i,1), unsat_wb(i) ) )
 
-          unsat_smp(i) = sign(soil%sucs_vec(i,1),-1.0) * min(1.0, &
+          ! Commented out and replaced by mgdk, 13 July, 2018 as the use of a float
+          ! and an array in the sign func isn't liked by gfortran
+          !unsat_smp(i) = sign(soil%sucs_vec(i,1),-1.0) * min(1.0, &
+          !               (max(0.001, (unsat_wb(i)-soil%watr(i,1))/(soil%ssat_vec(i,1)-&
+          !                soil%watr(i,1)) ) )** (-soil%bch_vec(i,1)) )
+
+          unsat_smp(i) = sign(soil%sucs_vec(i,1),ones(i,1)) * min(1.0, &
                          (max(0.001, (unsat_wb(i)-soil%watr(i,1))/(soil%ssat_vec(i,1)-&
                          soil%watr(i,1)) ) )** (-soil%bch_vec(i,1)) )
 
@@ -1937,7 +1948,6 @@ END SUBROUTINE calc_soil_hydraulic_props
 
        end if
     end do
-
 
   END SUBROUTINE pore_space_relative_humidity
 
