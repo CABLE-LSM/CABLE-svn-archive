@@ -55,6 +55,8 @@ MODULE cable_input_module
    USE netcdf ! link must be made in cd to netcdf-x.x.x/src/f90/netcdf.mod
    USE cable_common_module, ONLY : filename, cable_user, CurYear, HANDLE_ERR, is_leapyear
 
+   USE BLAZE_MODULE,            ONLY: TYPE_BLAZE
+   
    IMPLICIT NONE
 
    PRIVATE
@@ -2514,6 +2516,29 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,climate,bgc,soil,canopy,rough,rad, 
          CALL POPLUC_init(POPLUC,LUC_EXPT, casapool, casaflux, casabiome, veg, POP, mland)
       ENDIF
 
+      ! CLN ALLOCATE BLAZE Arrays 
+      IF ( cable_user%CALL_BLAZE ) THEN
+         IF ( cable_user%CALL_POP ) THEN
+            CALL INI_BLAZE ( cable_user%CALL_POP, cable_user%BURNT_AREA, &
+                 cable_user%BLAZE_TSTEP, mland, 1, BLAZE)
+            !CLN CALL INI_BLAZE ( cable_user%CALL_POP, cable_user%BURNT_AREA, &
+            !CLN     cable_user%BLAZE_TSTEP, mland, npatch, BLAZE)
+            PRINT*,"CLN cable_input.F90 npatches must go into this call!"
+         ELSE
+            CALL INI_BLAZE ( cable_user%CALL_POP, cable_user%BURNT_AREA, &
+                 cable_user%BLAZE_TSTEP, mland, 1, BLAZE)
+         END IF
+
+         IF ( .NOT. spinup) CALL READ_BLAZE_RESTART(...)
+
+         IF ( TRIM(BLAZE%BURNT_AREA) == "SIMFIRE" ) THEN
+            CALL INI_SIMFIRE(mland,1,cable_user%SIMFIRE_REGION,SF) !CLN here we need to check for the SIMFIRE biome setting
+            IF ( .NOT. spinup) CALL READ_SIMFIRE_RESTART(...)
+         END IF
+
+         ! CLN enter gfed & PRESCRIBED here
+         
+         ! Read restart values
    ENDIF
 
 ! removed get_default_inits and get_default_lai as they are already done

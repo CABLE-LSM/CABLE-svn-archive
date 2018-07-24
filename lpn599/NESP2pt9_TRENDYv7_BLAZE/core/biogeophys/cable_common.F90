@@ -92,17 +92,17 @@ MODULE cable_common_module
     ! GS_SWITCH='leuning'
      GS_SWITCH='medlyn'
       
-     CHARACTER(LEN=10) :: RunIden       = 'STANDARD'  !
-     CHARACTER(LEN=4)  :: MetType       = ' ' !
-     CHARACTER(LEN=20) :: SOIL_STRUC    = "default" ! 'default' or 'sli'
-     CHARACTER(LEN=3)  :: POP_out       = 'rst' ! POP output type ('epi' or 'rst' or 'ini')
-     CHARACTER(LEN=50) :: POP_rst       = '' !
+     CHARACTER(LEN=10)  :: RunIden       = 'STANDARD'  !
+     CHARACTER(LEN=4)   :: MetType       = ' ' !
+     CHARACTER(LEN=20)  :: SOIL_STRUC    = "default" ! 'default' or 'sli'
+     CHARACTER(LEN=3)   :: POP_out       = 'rst' ! POP output type ('epi' or 'rst' or 'ini')
+     CHARACTER(LEN=50)  :: POP_rst       = '' !
      CHARACTER(LEN=200) :: POP_restart_in = ''
      CHARACTER(LEN=200) :: POP_restart_out = ''
      CHARACTER(LEN=200) :: POP_outfile       = '' !
      CHARACTER(LEN=200) :: climate_restart_in = ''
      CHARACTER(LEN=200) :: climate_restart_out = ''
-     CHARACTER(LEN=8)  :: CASA_OUT_FREQ = 'annually' ! 'daily', 'monthly', 'annually'
+     CHARACTER(LEN=8)   :: CASA_OUT_FREQ = 'annually' ! 'daily', 'monthly', 'annually'
      CHARACTER(LEN=10)  :: vcmax = 'standard' ! "standard" or "Walker2014"
      CHARACTER(LEN=10)  :: POPLUC_RunType = 'static' ! 'static', 'init', 'restart' 
      LOGICAL ::                                                               &
@@ -112,7 +112,7 @@ MODULE cable_common_module
           Climate_fromZero       = .FALSE., &
           CASA_fromZero          = .FALSE., &
           POPLUC                 = .FALSE., &
-          finite_gm              = .FALSE.     ! finite mesophyll conductance
+          finite_gm              = .FALSE.    ! finite mesophyll conductance
     
      INTEGER  :: &
           CASA_SPIN_STARTYEAR = 1950, &
@@ -120,6 +120,12 @@ MODULE cable_common_module
           YEARSTART           = 0, &
           YEAREND             = 0, &
           CASA_NREP           = 1
+
+     ! BLAZE Fire Model settings
+     LOGICAL           :: CALL_BLAZE  = .FALSE.    ! Call fire model BLAZE     
+     CHARACTER(LEN=7)  :: BLAZE_TSTEP = "daily"	   ! Call frequency ("daily","monthly","annually")
+     CHARACTER(LEN=10) :: BURNT_AREA  = "SIMFIRE"  ! Burnt Area source("PRESCRIBED","SIMFIRE","GFED3.1")
+
     !--- LN ------------------------------------------]
 
      CHARACTER(LEN=5) ::                                                      &

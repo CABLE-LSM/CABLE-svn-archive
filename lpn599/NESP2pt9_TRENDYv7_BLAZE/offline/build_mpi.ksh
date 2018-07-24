@@ -2,7 +2,7 @@
 
 known_hosts()
 {
-   set -A kh cher burn shin  raij pear
+   set -A kh cher burn shin raij pear
 }
 
 ## raijin.nci.org.au
@@ -375,10 +375,12 @@ build_build()
    CORE="../core/biogeophys"
    DRV="."
    CASA="../core/biogeochem"
+   BLAZE="../core/blaze"
    
    /bin/cp -p $CORE/*90 ./.mpitmp
    /bin/cp -p $DRV/*90 ./.mpitmp
    /bin/cp -p $CASA/*90 ./.mpitmp
+   /bin/cp -p $BLAZE/*90 ./.mpitmp
    
    print "\n\n\tPlease note: CASA-CNP files are included in build only for " 
    print "\ttechnical reasons. Implementation is not officially available with" 

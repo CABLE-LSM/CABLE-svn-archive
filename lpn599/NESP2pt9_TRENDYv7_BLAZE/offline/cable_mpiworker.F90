@@ -101,6 +101,16 @@ MODULE cable_mpiworker
   ! worker's struct for rec'ing/sending pop io to/from the master
   INTEGER :: pop_t
 
+  ! worker's struct for rec'ing/sending blaze restart to/from the master
+  INTEGER :: blaze_recv_t
+  INTEGER :: restart_blaze_t
+  
+  ! worker's struct for rec'ing/sending pop io to/from the master
+  INTEGER :: simfire_inp_t
+  INTEGER :: simfire_send_t
+  INTEGER :: restart_simfire_t
+  
+  
   ! worker's struct for restart data to the master
   INTEGER :: restart_t
 
@@ -324,6 +334,7 @@ CONTAINS
        CABLE_USER%CASA_DUMP_READ  = .FALSE.
        spincasa                   = .FALSE.
        CABLE_USER%CALL_POP        = .FALSE.
+       CABLE_USER%CALL_BLAZE      = .FALSE.
     ENDIF
 
     !! vh_js !!
@@ -341,7 +352,6 @@ CONTAINS
     ENDIF
 
     IF ( TRIM(cable_user%MetType) .EQ. 'gpgs' ) THEN
-       leaps = .TRUE.
        cable_user%MetType = 'gswp'
     ENDIF
 
@@ -407,7 +417,7 @@ CONTAINS
 
     ktau_tot = 0 
     SPINLOOP:DO
-       YEAR: DO YYYY= CABLE_USER%YearStart,  CABLE_USER%YearEnd
+       YEARLOOP: DO YYYY= CABLE_USER%YearStart,  CABLE_USER%YearEnd
           CurYear = YYYY
 
          
@@ -463,6 +473,10 @@ CONTAINS
 
                 ! MPI: POP restart received only if pop module AND casa are active 
                 IF ( CABLE_USER%CALL_POP ) CALL worker_pop_types (comm,veg,casamet,pop)
+                ! CLN:  
+                IF ( CABLE_USER%CALL_BLAZE ) CALL worker_blaze_types (comm,BLAZE,pop)
+                ! CLN:  BURNT_AREA
+                IF ( CABLE_USER%BURNT_AREA == "SIMFIRE" ) CALL worker_simfire_types (comm,SIMFIRE,pop)
 
              END IF
 
@@ -566,7 +580,7 @@ CONTAINS
              ! globally (WRT code) accessible kend through USE cable_common_module
              ktau_gl = ktau_gl + 1
 
-             ! somethings (e.g. CASA-CNP) only need to be done once per day  
+             ! some things (e.g. CASA-CNP) only need to be done once per day  
              ktauday=int(24.0*3600.0/dels)
 !!$             idoy = mod(ktau/ktauday,365)
 !!$             IF(idoy==0) idoy=365
@@ -574,7 +588,7 @@ CONTAINS
 !!$             ! needed for CASA-CNP
 !!$             nyear =INT((kend-kstart+1)/(365*ktauday))
 
-             ! some things (e.g. CASA-CNP) only need to be done once per day  
+             ! Check for today's day-of-year
              idoy =INT( MOD((REAL(ktau+koffset)/REAL(ktauday)),REAL(LOY)))
              IF ( idoy .EQ. 0 ) idoy = LOY
 
@@ -653,6 +667,11 @@ CONTAINS
                   write(wlogn,*) 'after casa mpi_send', ktau
                  ENDIF
 
+                 call blazedriver(BLAZE,)
+                 
+                 !!! CLN HERE BLAZE daily
+
+                 
                 IF ( IS_CASA_TIME("write", yyyy, ktau, kstart, &
                      koffset, kend, ktauday, wlogn) ) THEN
                    write(wlogn,*), 'IN IS_CASA', casapool%cplant(:,1)
@@ -698,29 +717,31 @@ CONTAINS
     
           call flush(wlogn)
        
-IF (icycle >0 .and.   cable_user%CALL_POP) THEN
+          IF (icycle >0 .and.   cable_user%CALL_POP) THEN
    
-   IF (CABLE_USER%POPLUC) THEN
+             IF (CABLE_USER%POPLUC) THEN
       
-      write(wlogn,*), 'before MPI_Send casa_LUC'
-      ! worker sends casa updates required for LUC calculations here
-      CALL MPI_Send (MPI_BOTTOM, 1, casa_LUC_t, 0, 0, ocomm, ierr) 
-      write(wlogn,*), 'after MPI_Send casa_LUC'                     
-      ! master calls LUCDriver here
-      ! worker receives casa and POP updates
-      CALL MPI_Recv( POP%pop_grid(1), POP%np, pop_t, 0, 0, icomm, stat, ierr )
-                      
-   ENDIF
-   ! one annual time-step of POP
-!write(wlogn,*) 'laimax',  casabal%LAImax
-   CALL POPdriver(casaflux,casabal,veg, POP)
+                write(wlogn,*), 'before MPI_Send casa_LUC'
+                ! worker sends casa updates required for LUC calculations here
+                CALL MPI_Send (MPI_BOTTOM, 1, casa_LUC_t, 0, 0, ocomm, ierr) 
+                write(wlogn,*), 'after MPI_Send casa_LUC'                     
+                ! master calls LUCDriver here
+                ! worker receives casa and POP updates
+                CALL MPI_Recv( POP%pop_grid(1), POP%np, pop_t, 0, 0, icomm, stat, ierr )
+                
+             ENDIF
+             ! one annual time-step of POP
+             !write(wlogn,*) 'laimax',  casabal%LAImax
+             CALL POPdriver(casaflux,casabal,veg, POP)
 
-   CALL worker_send_pop (POP, ocomm) 
-   
-   IF (CABLE_USER%POPLUC) &               
-        CALL MPI_Recv (MPI_BOTTOM, 1, casa_LUC_t, 0, nyear, icomm, stat, ierr) 
-   
-ENDIF
+             !! CLN Here BLAZE TURNOVER
+             
+             CALL worker_send_pop (POP, ocomm) 
+             
+             IF (CABLE_USER%POPLUC) &               
+                  CALL MPI_Recv (MPI_BOTTOM, 1, casa_LUC_t, 0, nyear, icomm, stat, ierr) 
+             
+          ENDIF
                    
 
 
@@ -744,7 +765,7 @@ ENDIF
           ENDIF
 
         
-       END DO YEAR
+       END DO YEARLOOP
 
 
          IF (spincasa .or. casaonly) THEN
@@ -7354,6 +7375,10 @@ SUBROUTINE worker_spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapoo
              nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,         &
              pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
 
+
+            !! CLN BLAZE here
+
+            
         IF (cable_user%CALL_POP .and. POP%np.gt.0) THEN ! CALL_POP
 !!$           ! accumulate annual variables for use in POP
            IF(MOD(ktau/ktauday,LOY)==1 ) THEN
@@ -7373,6 +7398,7 @@ SUBROUTINE worker_spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapoo
 
               CALL POPdriver(casaflux,casabal,veg, POP)
 
+              !! CLN BLAZE TURNOVER
 
            ENDIF  ! end of year
         ELSE
@@ -7501,7 +7527,7 @@ SUBROUTINE worker_spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapoo
                 nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,         &
                 pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
 
-
+           !! CLN BLAZE here
 
            IF (cable_user%CALL_POP .and. POP%np.gt.0) THEN ! CALL_POP
 
@@ -7524,6 +7550,8 @@ SUBROUTINE worker_spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapoo
               IF(idoy==mdyear) THEN ! end of year
                  
                  CALL POPdriver(casaflux,casabal,veg, POP)
+                 
+                 !! CLN BLAZE TURNOVER
                  
               ENDIF  ! end of year
            ELSE
@@ -7643,6 +7671,7 @@ SUBROUTINE worker_CASAONLY_LUC( dels,kstart,kend,veg,soil,casabiome,casapool, &
              nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,         &
              pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
 
+        !! CLN BLAZE here
 
         ! accumulate annual variables for use in POP
         IF(idoy==1 ) THEN
@@ -7680,7 +7709,8 @@ SUBROUTINE worker_CASAONLY_LUC( dels,kstart,kend,veg,soil,casabiome,casapool, &
 write(wlogn,*), 'b4  POPdriver', POP%pop_grid%cmass_sum
             CALL POPdriver(casaflux,casabal,veg, POP)
             
-           ENDIF
+            !! CLN BLAZE TURNOVER
+          ENDIF
 !!$           write(wlogn,*)
 !!$           write(wlogn,*) 'after POPstep cmass: ', POP%pop_grid%cmass_sum
            write(wlogn,*) 'after POPstep ',  POP%pop_grid%cmass_sum
