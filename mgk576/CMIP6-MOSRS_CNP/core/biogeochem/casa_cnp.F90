@@ -2126,9 +2126,9 @@ SUBROUTINE casa_cnpcycle(veg,casabiome,casapool,casaflux,casamet, LALLOC)
     casamet%glai(np)   = MAX(casabiome%glaimin(veg%iveg(np)), &
                                casabiome%sla(veg%iveg(np)) * casapool%cplant(np,leaf))
    ! vh !
-    IF (LALLOC.ne.3) THEN
+    !IF (LALLOC.ne.3) THEN
        casamet%glai(np)   = MIN(casabiome%glaimax(veg%iveg(np)), casamet%glai(np))
-    ENDIF
+    !ENDIF
     casapool%clitter(np,:) = casapool%clitter(np,:) &
                            + casapool%dClitterdt(np,:) * deltpool
     casapool%csoil(np,:)   = casapool%csoil(np,:)   &
@@ -2150,8 +2150,9 @@ SUBROUTINE casa_cnpcycle(veg,casabiome,casapool,casaflux,casamet, LALLOC)
                              + casapool%dPlitterdt(np,:)* deltpool
       casapool%Psoil(np,:)   = casapool%Psoil(np,:)   &
                              + casapool%dPsoildt(np,:)  * deltpool
-      casapool%Psoillab(np)  = casapool%Psoillab(np)  &
-                             + casapool%dPsoillabdt(np) * deltpool
+      ! vh ! put lower bound of 1.e-3 to prevent Psoillab from going negative
+      casapool%Psoillab(np)  = max(casapool%Psoillab(np)  &
+                             + casapool%dPsoillabdt(np) * deltpool, 1.e-3)
       casapool%Psoilsorb(np) = casaflux%Psorbmax(np)*casapool%Psoillab(np) &
                              /(casaflux%kmlabp(np)+casapool%Psoillab(np))
 !      casapool%Psoilsorb(np) = casapool%Psoilsorb(np)  &
