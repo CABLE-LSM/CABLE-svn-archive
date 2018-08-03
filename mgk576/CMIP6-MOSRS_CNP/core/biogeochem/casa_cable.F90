@@ -299,7 +299,8 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, climate, ncall, kend
                             "phendoyphase3", &
                             "phendoyphase4", &
                             "mtemp        ", &
-                            "Ndep         " /)
+                            "Ndep         ", &
+                            "Pdep         " /)
 
       REAL     , DIMENSION(mp)        :: lat, lon
       REAL(r_2), DIMENSION(mp)        :: tairk,  cgpp, mtemp, Ndep
