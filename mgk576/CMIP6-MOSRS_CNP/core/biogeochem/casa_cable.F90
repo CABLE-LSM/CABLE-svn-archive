@@ -331,6 +331,7 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, climate, ncall, kend
             CALL get_var_ncr2(ncrid, var_name(12), phendoyphase4, idoy)
             CALL get_var_ncr2(ncrid, var_name(13), mtemp   , idoy )
             CALL get_var_ncr2(ncrid, var_name(14), Ndep   , idoy )
+            CALL get_var_ncr2(ncrid, var_name(15), Pdep   , idoy )
 
             casamet%Tairkspin(:,idoy) = tairk
             casamet%cgppspin (:,idoy) = cgpp
