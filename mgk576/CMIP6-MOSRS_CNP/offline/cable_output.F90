@@ -2460,7 +2460,8 @@ CONTAINS
        ! in order to avoid negative carbon stores.
 
        IF(output%casa) THEN
-          out%AutoResp = out%AutoResp + REAL((sum(casaflux%crmplant,2)/86400.0 + &
+          out%AutoResp = out%AutoResp + REAL(canopy%frday / 1.201E-5, 4) + &
+               REAL((casaflux%crmplant(:,2)/86400.0 + casaflux%crmplant(:,3)/86400.0 + &
                casaflux%crgplant/86400.0 + casaflux%clabloss/86400.)/ 1.201E-5, 4)
        ELSE
           out%AutoResp = out%AutoResp + REAL((canopy%frp + canopy%frday)          &
