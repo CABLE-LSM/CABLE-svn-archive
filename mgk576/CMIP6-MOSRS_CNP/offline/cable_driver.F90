@@ -520,11 +520,52 @@ PROGRAM cable_offline_driver
                             00:00"
                  calendar = "noleap"
 
-
-	      ENDIF
+          ENDIF
 	       LOY = 365
-	      kend = NINT(24.0*3600.0/dels) * LOY
-	   ENDIF
+	       kend = NINT(24.0*3600.0/dels) * LOY
+	    ELSE IF ( TRIM(cable_user%MetType) .EQ. 'site' ) THEN
+         ! site experiment eg AmazonFace (spinup or  transient run type)
+
+       IF ( CALL1 ) THEN
+          CALL CPU_TIME(etime)
+          CALL site_INIT( site )
+          write(str1,'(i4)') CurYear
+          str1 = adjustl(str1)
+          write(str2,'(i2)') 1
+          str2 = adjustl(str2)
+          write(str3,'(i2)') 1
+          str3 = adjustl(str3)
+          timeunits="seconds since "//trim(str1)//"-"//trim(str2)//"-"//trim(str3)//" &
+               00:00"
+          calendar = 'standard'
+
+       ENDIF
+       LOY = 365
+
+      IF (IS_LEAPYEAR(CurYear)) LOY = 366
+       kend = NINT(24.0*3600.0/dels) * LOY
+       ! get koffset to add to time-step of sitemet
+       IF (TRIM(site%RunType)=='historical') THEN
+          MetYear = CurYear
+       ELSEIF (TRIM(site%RunType)=='spinup' .OR. TRIM(site%RunType)=='transient') THEN
+       ! setting met year so we end the spin-up at the end of the site data-years.
+          MetYear = site%spinstartyear + &
+               MOD(CurYear- &
+               (site%spinstartyear-(site%spinendyear-site%spinstartyear +1)*100), &
+               (site%spinendyear-site%spinstartyear +1))
+       ENDIF
+       write(*,*) 'MetYear: ', MetYear
+       write(*,*) 'Simulation Year: ', CurYear
+       koffset_met = 0
+       if (MetYear .gt. site%spinstartyear) then
+           DO Y = site%spinstartyear, MetYear-1
+             LOYtmp = 365
+             IF (IS_LEAPYEAR(Y)) LOYtmp = 366
+             koffset_met = koffset_met + INT( REAL(LOYtmp) * 86400./REAL(dels) )
+          ENDDO
+       endif
+
+    ENDIF
 
     ! somethings (e.g. CASA-CNP) only need to be done once per day
 	   ktauday=INT(24.0*3600.0/dels)
