@@ -236,6 +236,13 @@ SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
   ENDDO
 !@@@@@@@@@@@@@@@@@@@@@
 
+  READ(101,*)
+  READ(101,*)
+  DO nv=1,mvtype
+    READ(101,*) nv12, &
+         la_to_sa(nv),vcmax_scalar(nv)
+  ENDDO
+
   CLOSE(101)
 
   fracroot   = 0.0
@@ -281,6 +288,9 @@ SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
     casabiome%maxcwd(nv)          = xmaxcwd(nv)
     casabiome%nintercept(nv)      = xnintercept(nv)
     casabiome%nslope(nv)          = xnslope(nv)
+
+    casabiome%la_to_sa(nv)        = la_to_sa(nv)
+    casabiome%vcmax_scalar(nv)    = vcmax_scalar(nv)
 !@@@@@@@@@@@@@@
   ENDDO
 
