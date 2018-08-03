@@ -922,6 +922,8 @@ endif
   ! reset labile C pool,comment out by Q.Zhang 10/09/2011
   !  casapool%clabile    = 0.0
   ! check pool sizes
+  casapool%Ctot_0 = 0.0
+  casapool%Ctot = 0.0
   casapool%cplant     = MAX(0.0,casapool%cplant)
   casapool%clitter    = MAX(0.0,casapool%clitter)
   casapool%csoil      = MAX(0.0,casapool%csoil)
