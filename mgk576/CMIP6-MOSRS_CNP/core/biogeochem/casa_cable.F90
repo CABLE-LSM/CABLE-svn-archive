@@ -279,7 +279,7 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, climate, ncall, kend
       LOGICAL, INTENT(in)             :: allATonce
 
       !netcdf IDs/ names
-      INTEGER, PARAMETER :: num_vars=14
+      INTEGER, PARAMETER :: num_vars=15
       INTEGER, PARAMETER :: num_dims=3
       INTEGER, SAVE                        :: ncrid  ! netcdf file ID
       INTEGER , DIMENSION(num_vars)        :: varrID ! (1) tvair, (2) pmb
