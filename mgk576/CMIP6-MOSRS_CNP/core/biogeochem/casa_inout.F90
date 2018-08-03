@@ -2180,8 +2180,10 @@ SUBROUTINE WRITE_CASA_OUTPUT_NC ( veg, casamet, casapool, casabal, casaflux, &
 
   IF ( CALL1 ) THEN
      ! Get File-Name
-
-     IF (TRIM(cable_user%MetType).NE.'' ) THEN
+     IF (TRIM(casafile%out).NE.'' ) THEN
+        fname = TRIM(casafile%out)
+     ELSE
+        IF (TRIM(cable_user%MetType).NE.'' ) THEN
 
         WRITE( dum, FMT="(I4,'_',I4)")CABLE_USER%YEARSTART,CABLE_USER%YEAREND
         IF (CABLE_USER%YEARSTART.lt.1000.and.CABLE_USER%YEAREND.lt.1000) THEN
