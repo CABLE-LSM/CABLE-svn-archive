@@ -357,6 +357,7 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, climate, ncall, kend
             phen%doyphasespin_4(:,idoy) = int(phendoyphase4)
             casamet%mtempspin(:,idoy) = mtemp
             casaflux%Nmindep = Ndep
+            casaflux%Pdep = Pdep
          END DO
       ELSE
 
