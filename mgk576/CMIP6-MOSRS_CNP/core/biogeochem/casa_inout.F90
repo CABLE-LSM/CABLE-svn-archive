@@ -1305,8 +1305,10 @@ SUBROUTINE casa_cnpflux(casaflux,casapool,casabal,zeroflux)
      ! change made ypwang 17-nov-2013 to accoutn for change in labile carbon pool  size
      casabal%FCnppyear        = casabal%FCnppyear + (casaflux%Cnpp+casapool%dClabiledt)   * deltpool
      casabal%FCrsyear  = casabal%FCrsyear  + casaflux%Crsoil * deltpool
+     !casabal%FCneeyear = casabal%FCneeyear &
+     !     + (casaflux%Cnpp+casapool%dClabiledt-casaflux%Crsoil) * deltpool
      casabal%FCneeyear = casabal%FCneeyear &
-          + (casaflux%Cnpp+casapool%dClabiledt-casaflux%Crsoil) * deltpool
+          + (casaflux%Cnpp-casaflux%Crsoil) * deltpool
      casabal%dCdtyear =  casabal%dCdtyear + (casapool%Ctot-casapool%Ctot_0)*deltpool
 
      !  DO n=1,3
