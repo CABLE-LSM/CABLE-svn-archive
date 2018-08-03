@@ -1397,7 +1397,7 @@ IF(casamet%iveg2(nland)/=icewater) THEN
            casapool%Plitter(nland,:)+casaflux%fluxPtolitter(nland,:)) &
            casaflux%klitter(nland,:) = 0.0
    endif
-   
+
    DO nL=1,mlitter
       casaflux%fluxCtoCO2(nland) = casaflux%fluxCtoCO2(nland)  &
                         + casaflux%fromLtoCO2(nland,nL)  &
@@ -1564,6 +1564,9 @@ IF(casamet%iveg2(nland)/=icewater) THEN
    ENDIF
 ENDIF  ! end of /=icewater
 ENDDO  ! end of nland
+
+write(55,*) casapool%ratioNPsoil(1,:)
+write(56,*)  casapool%ratioPCsoil(1,:)/casapool%ratioNCsoil(1,:)
 
 DO nland=1,mp
 IF(casamet%iveg2(nland)/=icewater) THEN
@@ -2114,6 +2117,10 @@ SUBROUTINE casa_cnpcycle(veg,casabiome,casapool,casaflux,casamet, LALLOC)
       IF(icycle >2) casapool%Pplant(np,:) = casapool%Pplant(np,:) &
                                  +casapool%dPplantdt(np,:)*deltpool
     ENDIF
+    ! avoid high ratios of n to p in plant material
+    casapool%Nplant(np,3) = min(casapool%Nplant(np,3), &
+         casabiome%ratioNCplantmax(veg%iveg(np),froot) *  casapool%cplant(np,3))
+
 !    casamet%glai(np)   = MIN(0.0, casabiome%sla(veg%iveg(np))  &
 !                                  * casapool%cplant(np,leaf))
     casamet%glai(np)   = MAX(casabiome%glaimin(veg%iveg(np)), &
