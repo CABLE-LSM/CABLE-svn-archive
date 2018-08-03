@@ -948,23 +948,27 @@ write(*,*) 'pop_io, after define dimensionsm, mp: ', mp
 
   ELSE IF ( INDEX(ACTION,'READ') .GT. 0 ) THEN
 
-     WRITE( dum, FMT="(I4)")YEAR-1
-     fname = TRIM(cable_user%POP_rst)//'/'//TRIM(dum)//'_pop_'//TRIM(cable_user%RunIDEN)//'_'//typ//'.nc'
+     IF (LEN_TRIM(TRIM(cable_user%POP_restart_in)).gt.0) THEN
+        fname = TRIM(cable_user%POP_restart_in)
+     ELSE
+        WRITE( dum, FMT="(I4)")YEAR-1
+        fname = TRIM(cable_user%POP_rst)//'/'//TRIM(dum)//'_pop_'//TRIM(cable_user%RunIDEN)//'_'//typ//'.nc'
+     ENDIF
      INQUIRE( FILE=TRIM(fname), EXIST=EXISTFILE )
      ! If suitable restart-file, try ini-restart
      IF ( .NOT. EXISTFILE ) THEN
         WRITE(*,*) "Restart file not found: ",TRIM(fname)
         WRITE(*,*) "Looking for initialization file..."
         fname = TRIM(cable_user%POP_rst)//'/'//'pop_'//TRIM(cable_user%RunIDEN)//'_ini.nc'
-        INQUIRE( FILE=TRIM(fname), EXIST=EXISTFILE )
-        IF (.NOT. EXISTFILE) THEN
-           WRITE(*,*) " No ini-restart file found either! ", TRIM(fname)
-           STOP -1
-        ELSE
-           typ = "ini"
-        ENDIF
-
-     END IF
+     ENDIF
+     INQUIRE( FILE=TRIM(fname), EXIST=EXISTFILE )
+     IF (.NOT. EXISTFILE) THEN
+        WRITE(*,*) " No ini-restart file found either! ", TRIM(fname)
+        STOP -1
+     ELSE
+        typ = "ini"
+     ENDIF
+     
      WRITE(*,*)"Reading POP-rst file: ", TRIM(fname)
 
      STATUS = NF90_OPEN( TRIM(fname), NF90_NOWRITE, FILE_ID )
