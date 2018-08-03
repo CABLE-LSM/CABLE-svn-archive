@@ -2589,6 +2589,7 @@ CONTAINS
           out%NBP = 0.0
        END IF
 
+       IF(output%casa) THEN
        ! Add current timestep's value to total of temporary output variable:
        out%dCdt = out%dCdt + REAL((casapool%ctot-casapool%ctot_0)/86400.0 &
             / 1.201E-5, 4)
