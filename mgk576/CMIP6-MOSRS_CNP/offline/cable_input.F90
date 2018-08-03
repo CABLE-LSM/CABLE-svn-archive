@@ -892,7 +892,8 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
     END IF
     ! IF A CERTAIN PERIOD IS DESIRED AND WE ARE NOT RUNNING ON GSWP DATA or special site
     ! RECALCULATE STARTING AND ENDING INDICES
-    IF ( CABLE_USER%YEARSTART .GT. 0 .AND. .NOT. ncciy.GT.0) THEN
+    IF ( CABLE_USER%YEARSTART .GT. 0 .AND. .NOT. ncciy.GT.0 .and. &
+         TRIM(cable_user%MetType) .NE. "site") THEN
        IF ( syear.GT.CABLE_USER%YEARSTART .OR. eyear.LE.CABLE_USER%YEAREND .OR. &
             ( syear.EQ.CABLE_USER%YEARSTART .AND. sdoy.gt.1 ) ) THEN
           WRITE(*,*) "Chosen period doesn't match dataset period!"
