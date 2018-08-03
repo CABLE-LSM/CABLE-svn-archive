@@ -692,9 +692,24 @@ PROGRAM cable_offline_driver
                             YYYY.EQ.CABLE_USER%YearEnd)
                     ENDIF
            ELSE
-             CALL get_met_data( spinup, spinConv, met, soil,		 &
+             IF (TRIM(cable_user%MetType) .EQ. 'site') &
+                  CALL get_met_data( spinup, spinConv, met, soil,		 &
+                  rad, veg, kend, dels, C%TFRZ, ktau+koffset_met,		 &
+                         kstart+koffset_met )
+             IF (TRIM(cable_user%MetType) .EQ. '') &
+                  CALL get_met_data( spinup, spinConv, met, soil,		 &
                   rad, veg, kend, dels, C%TFRZ, ktau+koffset,		 &
                          kstart+koffset )
+
+             IF (TRIM(cable_user%MetType) .EQ. 'site' ) THEN
+                 CALL site_get_CO2_Ndep(site)
+                 met%ca = site%CO2 / 1.e+6
+                 met%Ndep = site%Ndep  *1000./10000./365. ! kg ha-1 y-1 > g m-2 d-1
+                 met%Pdep = site%Pdep  *1000./10000./365. ! kg ha-1 y-1 > g m-2 d-1
+                 met%fsd = max(met%fsd,0.0)
+              ENDIF
+
+
           ENDIF
 
           IF (TRIM(cable_user%MetType).EQ.'' ) THEN
