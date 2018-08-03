@@ -71,13 +71,14 @@ USE casa_inout_module
    REAL(dp), allocatable, save ::  LAImax(:)    , Cleafmean(:),  Crootmean(:)
    REAL(dp), allocatable :: NPPtoGPP(:)
    INTEGER, allocatable :: Iw(:) ! array of indices corresponding to woody (shrub or forest) tiles
-
+   INTEGER ::ctime
    if (.NOT.Allocated(LAIMax)) allocate(LAIMax(mp))
    if (.NOT.Allocated(Cleafmean))  allocate(Cleafmean(mp))
    if (.NOT.Allocated(Crootmean)) allocate(Crootmean(mp))
    if (.NOT.Allocated(NPPtoGPP)) allocate(NPPtoGPP(mp))
    if (.NOT.Allocated(Iw)) allocate(Iw(POP%np))
 
+   ctime = 1
    LOY = 365
    !! vh_js !!
     IF (cable_user%CALL_POP) THEN
@@ -175,7 +176,7 @@ USE casa_inout_module
                casaflux%stemnpp = 0.
             ENDIF ! CALL_POP
 
- 
+
            IF(idoy==mdyear) THEN ! end of year
 
               CALL POPdriver(casaflux,casabal,veg, POP)
@@ -300,7 +301,7 @@ USE casa_inout_module
         DO idoy=1,mdyear
            ktauy=idoy*ktauday
            ktau=(idoy-1)*ktauday +1
-      
+
            casamet%tairk(:)       = casamet%Tairkspin(:,idoy)
            casamet%tsoil(:,1)     = casamet%Tsoilspin_1(:,idoy)
            casamet%tsoil(:,2)     = casamet%Tsoilspin_2(:,idoy)
@@ -324,7 +325,7 @@ USE casa_inout_module
            phen%doyphase(:,3) =  phen%doyphasespin_3(:,idoy)
            phen%doyphase(:,4) =  phen%doyphasespin_4(:,idoy)
            climate%qtemp_max_last_year(:) =  casamet%mtempspin(:,idoy)
-           
+
 
 
            call biogeochem(ktauy,dels,idoy,LALLOC,veg,soil,casabiome,casapool,casaflux, &
@@ -354,23 +355,23 @@ USE casa_inout_module
               ELSE
                  casaflux%stemnpp = 0.
               ENDIF ! CALL_POP
-              
-           
+
+
               IF(idoy==mdyear) THEN ! end of year
 
                  CALL POPdriver(casaflux,casabal,veg, POP)
 
-                 
+
            ENDIF  ! end of year
         ELSE
            casaflux%stemnpp = 0.
         ENDIF ! CALL_POP
-        
-        
+
+
      ENDDO   ! end of idoy
   ENDDO   ! end of nyear
 
-  
+
 !!$  if(nloop>=nloop1) &
 !!$       call totcnppools(2+nloop-nloop1,veg,casamet,casapool,bmcplant,bmnplant,bmpplant,bmclitter,bmnlitter,bmplitter, &
 !!$       bmcsoil,bmnsoil,bmpsoil,bmnsoilmin,bmpsoillab,bmpsoilsorb,bmpsoilocc,bmarea)
