@@ -529,7 +529,7 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, phen, climate, n_call, ke
      CALL put_var_ncr2(ncid, var_name(13), real(climate%mtemp_max,r_2)    ,n_call )
   ENDIF
   CALL put_var_ncr2(ncid, var_name(14), real(casaflux%Nmindep,r_2)    ,n_call )
-  CALL put_var_ncr2(ncid, var_name(15), real(casaflux%Pdep,r_2)    ,n_call ) 
+  CALL put_var_ncr2(ncid, var_name(15), real(casaflux%Pdep,r_2)    ,n_call )
 
   IF (n_call == kend ) &
        ncok = nf90_close(ncid)            ! close: save new netCDF dataset
@@ -558,20 +558,24 @@ END SUBROUTINE write_casa_dump
 
   ! first initialize
   ncleafx(:) = casabiome%ratioNCplantmax(veg%iveg(:),leaf)
-  npleafx = 14.2
+  npleafx(:) = casabiome%ratioNPplantmin(veg%iveg(:),leaf)
+  bjvref = 1.7 ! Walker 2014
 
   DO np=1,mp
     ivt=veg%iveg(np)
     IF (casamet%iveg2(np)/=icewater &
         .AND. casamet%glai(np)>casabiome%glaimin(ivt)  &
         .AND. casapool%cplant(np,leaf)>0.0) THEN
-      ncleafx(np) = MIN(casabiome%ratioNCplantmax(ivt,leaf), &
-                        MAX(casabiome%ratioNCplantmin(ivt,leaf), &
-                            casapool%nplant(np,leaf)/casapool%cplant(np,leaf)))
-      IF (icycle>2 .AND. casapool%pplant(np,leaf)>0.0) THEN
-        npleafx(np) = MIN(30.0,MAX(8.0,real(casapool%nplant(np,leaf) &
-                /casapool%pplant(np,leaf))))
-      ENDIF
+
+       IF (icycle>1 .AND. casapool%cplant(np,leaf)>0.0) THEN
+          ncleafx(np) = MIN(casabiome%ratioNCplantmax(ivt,leaf), &
+               MAX(casabiome%ratioNCplantmin(ivt,leaf), &
+               casapool%nplant(np,leaf)/casapool%cplant(np,leaf)))
+       ENDIF
+       IF (icycle>2 .AND. casapool%pplant(np,leaf)>0.0) THEN
+          npleafx(np) = MIN(30.0,MAX(8.0,real(casapool%nplant(np,leaf) &
+               /casapool%pplant(np,leaf))))
+       ENDIF
     ENDIF
 
     IF (TRIM(cable_user%vcmax).eq.'standard') then
