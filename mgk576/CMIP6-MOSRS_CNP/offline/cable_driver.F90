@@ -379,6 +379,7 @@ PROGRAM cable_offline_driver
 
   IF ( TRIM(cable_user%MetType) .EQ. 'gpgs' ) THEN
      leaps = .TRUE.
+     calendar = "standard"
      cable_user%MetType = 'gswp'
   ENDIF
 
