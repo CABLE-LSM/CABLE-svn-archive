@@ -181,8 +181,23 @@ USE casa_inout_module
 
               CALL POPdriver(casaflux,casabal,veg, POP)
 
+              CALL POP_IO( pop, casamet, nyear, 'WRITE_EPI', &
+              		 (.FALSE.))
+             CALL WRITE_CASA_OUTPUT_NC (veg, casamet, casapool, casabal, casaflux, &
+              .true., ctime, .FALSE.  )
+             ctime = ctime+1
+
            ENDIF  ! end of year
+
         ELSE
+           IF(idoy==mdyear) THEN ! end of year
+
+             CALL WRITE_CASA_OUTPUT_NC (veg, casamet, casapool, casabal, casaflux, &
+              .true., ctime, .FALSE.  )
+             ctime = ctime+1
+
+           ENDIF  ! end of year
+
            casaflux%stemnpp = 0.
         ENDIF ! CALL_POP
 
