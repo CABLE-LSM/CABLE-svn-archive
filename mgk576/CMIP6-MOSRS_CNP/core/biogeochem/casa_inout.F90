@@ -2185,18 +2185,20 @@ SUBROUTINE WRITE_CASA_OUTPUT_NC ( veg, casamet, casapool, casabal, casaflux, &
      ELSE
         IF (TRIM(cable_user%MetType).NE.'' ) THEN
 
-        WRITE( dum, FMT="(I4,'_',I4)")CABLE_USER%YEARSTART,CABLE_USER%YEAREND
-        IF (CABLE_USER%YEARSTART.lt.1000.and.CABLE_USER%YEAREND.lt.1000) THEN
-           WRITE( dum, FMT="(I3,'_',I3)")CABLE_USER%YEARSTART,CABLE_USER%YEAREND
-        ELSEIF (CABLE_USER%YEARSTART.lt.1000) THEN
-           WRITE( dum, FMT="(I3,'_',I4)")CABLE_USER%YEARSTART,CABLE_USER%YEAREND
+           WRITE( dum, FMT="(I4,'_',I4)")CABLE_USER%YEARSTART,CABLE_USER%YEAREND
+           IF (CABLE_USER%YEARSTART.lt.1000.and.CABLE_USER%YEAREND.lt.1000) THEN
+              WRITE( dum, FMT="(I3,'_',I3)")CABLE_USER%YEARSTART,CABLE_USER%YEAREND
+           ELSEIF (CABLE_USER%YEARSTART.lt.1000) THEN
+              WRITE( dum, FMT="(I3,'_',I4)")CABLE_USER%YEARSTART,CABLE_USER%YEAREND
+           ENDIF
+           fname = TRIM(filename%path)//'/'//TRIM(cable_user%RunIden)//'_'//&
+                TRIM(dum)//'_casa_out.nc'
+        ELSE
+           ! site data
+           fname = TRIM(filename%path)//'/'//TRIM(cable_user%RunIden)//'_casa_out.nc'
         ENDIF
-        fname = TRIM(filename%path)//'/'//TRIM(cable_user%RunIden)//'_'//&
-             TRIM(dum)//'_casa_out.nc'
-     ELSE
-        ! site data
-        fname = TRIM(filename%path)//'/'//TRIM(cable_user%RunIden)//'_casa_out.nc'
      ENDIF
+     
      INQUIRE( FILE=TRIM( fname ), EXIST=EXRST )
      EXRST = .FALSE.
      IF ( EXRST ) THEN
