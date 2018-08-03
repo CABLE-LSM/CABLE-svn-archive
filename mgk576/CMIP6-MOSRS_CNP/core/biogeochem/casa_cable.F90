@@ -303,7 +303,7 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, climate, ncall, kend
                             "Pdep         " /)
 
       REAL     , DIMENSION(mp)        :: lat, lon
-      REAL(r_2), DIMENSION(mp)        :: tairk,  cgpp, mtemp, Ndep
+      REAL(r_2), DIMENSION(mp)        :: tairk,  cgpp, mtemp, Ndep, Pdep
       REAL(r_2), DIMENSION(mp,ms)     :: tsoil, moist
       REAL(r_2), DIMENSION(mp,mplant) :: crmplant
       REAL(r_2), DIMENSION(mp)        :: phenphase, phendoyphase1, &
