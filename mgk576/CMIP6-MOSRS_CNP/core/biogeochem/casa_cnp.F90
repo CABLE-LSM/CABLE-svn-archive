@@ -1390,6 +1390,14 @@ IF(casamet%iveg2(nland)/=icewater) THEN
            casaflux%klitter(nland,:) = 0.0
    endif
 
+   IF(icycle > 2) THEN
+      !vh! set klitter to zero where Plitter will go -ve
+      !(occurs occasionally for metabolic litter pool) Ticket#108
+      where (casaflux%klitter(nland,:) * max(0.0,casapool%Plitter(nland,:)).gt. &
+           casapool%Plitter(nland,:)+casaflux%fluxPtolitter(nland,:)) &
+           casaflux%klitter(nland,:) = 0.0
+   endif
+   
    DO nL=1,mlitter
       casaflux%fluxCtoCO2(nland) = casaflux%fluxCtoCO2(nland)  &
                         + casaflux%fromLtoCO2(nland,nL)  &
