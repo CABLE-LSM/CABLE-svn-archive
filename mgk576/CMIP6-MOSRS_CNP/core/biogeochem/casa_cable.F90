@@ -373,6 +373,7 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, climate, ncall, kend
          CALL get_var_ncr2(ncrid, var_name(12), phendoyphase4    ,ncall )
          CALL get_var_ncr2(ncrid, var_name(13), mtemp   , ncall )
          CALL get_var_ncr2(ncrid, var_name(14), Ndep   , ncall )
+         CALL get_var_ncr2(ncrid, var_name(15), Pdep   , ncall )
 
          casamet%tairk     = tairk
          casamet%tsoil     = tsoil
