@@ -2590,17 +2590,17 @@ CONTAINS
        END IF
 
        IF(output%casa) THEN
-       ! Add current timestep's value to total of temporary output variable:
-       out%dCdt = out%dCdt + REAL((casapool%ctot-casapool%ctot_0)/86400.0 &
-            / 1.201E-5, 4)
-       IF(writenow) THEN
-          ! Divide accumulated variable by number of accumulated time steps:
-          out%dCdt = out%dCdt / REAL(output%interval, 4)
-          ! Write value to file:
-          CALL write_ovar(out_timestep, ncid_out, ovid%dCdt, 'dCdt', out%dCdt,    &
-                          ranges%NEE, patchout%dCdt, 'default', met)
-          ! Reset temporary output variable:
-          out%dCdt = 0.0
+          ! Add current timestep's value to total of temporary output variable:
+          out%dCdt = out%dCdt + REAL((casapool%ctot-casapool%ctot_0)/86400.0 &
+               / 1.201E-5, 4)
+          IF(writenow) THEN
+             ! Divide accumulated variable by number of accumulated time steps:
+             out%dCdt = out%dCdt / REAL(output%interval, 4)
+             ! Write value to file:
+             CALL write_ovar(out_timestep, ncid_out, ovid%dCdt, 'dCdt', out%dCdt,    &
+                             ranges%NEE, patchout%dCdt, 'default', met)
+             ! Reset temporary output variable:
+             out%dCdt = 0.0
        END IF
 
        ! Add current timestep's value to total of temporary output variable:
@@ -3027,6 +3027,10 @@ CONTAINS
     ok = NF90_PUT_ATT(ncid_restart, tvarID, 'coordinate', time_coord)
     IF (ok /= NF90_NOERR) CALL nc_abort                                        &
             (ok, 'Error defining time variable attributes in restart file. '// &
+             '(SUBROUTINE create_restart)')
+    ok = NF90_PUT_ATT(ncid_restart, tvarID, 'calendar', calendar)
+    IF (ok /= NF90_NOERR) CALL nc_abort                                        &
+            (ok, 'Error defining time variable attribute calendar in restart file. '// &
              '(SUBROUTINE create_restart)')
     ! Define latitude and longitude variable:
     ok=NF90_DEF_VAR(ncid_restart, 'latitude', NF90_FLOAT, (/mlandID/), latID)
