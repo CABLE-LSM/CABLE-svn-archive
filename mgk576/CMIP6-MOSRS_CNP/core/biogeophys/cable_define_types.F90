@@ -1300,7 +1300,8 @@ SUBROUTINE alloc_met_type(var, mp)
    ALLOCATE ( var % dva(mp) )
    ALLOCATE ( var % coszen(mp) )
    ALLOCATE ( var % Ndep(mp) )
-
+   ALLOCATE ( var % Pdep(mp) )
+   
 END SUBROUTINE alloc_met_type
 
 ! ------------------------------------------------------------------------------
