@@ -389,6 +389,7 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, climate, ncall, kend
             climate%mtemp_max = mtemp
          ENDIF
          casaflux%Nmindep = Ndep
+         casaflux%Pdep = Pdep
 
       ENDIF
 
@@ -450,7 +451,8 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, phen, climate, n_call, ke
        "phendoyphase3", &
        "phendoyphase4", &
        "mtemp        ", &
-       "Ndep         " /)
+       "Ndep         ", &
+       "Pdep         " /)
 
 
   INTEGER, DIMENSION(num_vars) :: varID ! (1) tvair, (2) pmb
