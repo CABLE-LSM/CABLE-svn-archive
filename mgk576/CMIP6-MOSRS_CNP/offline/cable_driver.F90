@@ -142,6 +142,7 @@ PROGRAM cable_offline_driver
        kend,	   &  ! no. of time steps in run
                                 !CLN	  kstart = 1, &	 ! timestep to start at
        koffset = 0, &  ! timestep to start at
+       koffset_met = 0, &  !offfset for site met data ('site' only) 
        ktauday,	   &  ! day counter for CASA-CNP
        idoy,	   &  ! day of year (1:365) counter for CASA-CNP
        nyear,	   &  ! year counter for CASA-CNP
