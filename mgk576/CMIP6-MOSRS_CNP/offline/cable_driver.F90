@@ -518,6 +518,7 @@ PROGRAM cable_offline_driver
                  str3 = adjustl(str3)
                  timeunits="seconds since "//trim(str1)//"-"//trim(str2)//"-"//trim(str3)//" &
                             00:00"
+                 calendar = "noleap"
 
 
 	      ENDIF
