@@ -847,7 +847,7 @@ PROGRAM cable_offline_driver
                           IF (TRIM(cable_user%MetType).EQ.'' ) THEN
                              !jhan:assuming doy for mp=1 is same as ....
                              CALL write_casa_dump( ncfile, casamet , casaflux, phen, climate,&
-                                  INT(met%doy(1)), LOY )
+                                  INT(met%doy), LOY )
                           ELSE
                              CALL write_casa_dump( ncfile, casamet , casaflux, &
                                     phen, climate, idoy, kend/ktauday )
@@ -875,16 +875,19 @@ PROGRAM cable_offline_driver
 
                  IF ( (.NOT. CASAONLY) .AND. spinConv ) THEN
                     !mpidiff
-                    if ( TRIM(cable_user%MetType) .EQ. 'plum' .OR.  &
-                         TRIM(cable_user%MetType) .EQ. 'cru' .OR.  &
-                       TRIM(cable_user%MetType) .EQ. 'gswp' ) then
+                    IF ( TRIM(cable_user%MetType) .EQ. 'plum'  .OR.  &
+                         TRIM(cable_user%MetType) .EQ. 'cru'   .OR.  &
+                         TRIM(cable_user%MetType) .EQ. 'bios'  .OR.  &
+                         TRIM(cable_user%MetType) .EQ. 'gswp'  .OR.  &
+                         TRIM(cable_user%MetType) .EQ. 'site' ) then
+
 
                        CALL write_output( dels, ktau_tot, met, canopy, casaflux, casapool, casamet, &
                             ssnow,   rad, bal, air, soil, veg, C%SBOLTZ, C%EMLEAF, C%EMSOIL )
-                    else
+                    ELSE
                        CALL write_output( dels, ktau, met, canopy, casaflux, casapool, casamet, &
                             ssnow,rad, bal, air, soil, veg, C%SBOLTZ, C%EMLEAF, C%EMSOIL )
-                    endif
+                    ENDIF
                  ENDIF
 
 
