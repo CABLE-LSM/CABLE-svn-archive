@@ -2477,7 +2477,39 @@ CONTAINS
           ! Reset temporary output variable:
           out%AutoResp = 0.0
        END IF
+
+       IF(output%casa) THEN
+          out%RootResp = out%RootResp + REAL(casaflux%crmplant(:,3)/86400.0/ 1.201E-5, 4) !+ &
+               ! REAL(0.3*casaflux%crmplant(:,2)/86400.0/ 1.201E-5, 4)
+          IF(writenow) THEN
+             ! Divide accumulated variable by number of accumulated time steps:
+             out%RootResp = out%RootResp/REAL(output%interval, 4)
+             ! Write value to file:
+             CALL write_ovar(out_timestep, ncid_out, ovid%RootResp, 'RootResp',   &
+                  out%RootResp, ranges%AutoResp, patchout%AutoResp, 'default', met)
+             ! Reset temporary output variable:
+             out%RootResp = 0.0
+          END IF
+       END IF
+
+
+
+       IF(output%casa) THEN
+          out%StemResp = out%StemResp + REAL(casaflux%crmplant(:,2)/86400.0/ 1.201E-5, 4)
+          IF(writenow) THEN
+             ! Divide accumulated variable by number of accumulated time steps:
+             out%StemResp = out%StemResp/REAL(output%interval, 4)
+             ! Write value to file:
+             CALL write_ovar(out_timestep, ncid_out, ovid%StemResp, 'StemResp',   &
+                  out%StemResp, ranges%AutoResp, patchout%AutoResp, 'default', met)
+             ! Reset temporary output variable:
+             out%StemResp = 0.0
+          END IF
+       END IF
+       
     END IF
+
+
     ! LeafResp: Leaf respiration [umol/m^2/s]
     IF(output%carbon .OR. output%LeafResp) THEN
        ! Add current timestep's value to total of temporary output variable:
