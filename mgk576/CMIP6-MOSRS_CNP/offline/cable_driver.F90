@@ -392,7 +392,7 @@ PROGRAM cable_offline_driver
        STOP 'icycle must be 1 to 3 when using casaCNP'
   !IF( ( l_laiFeedbk .OR. l_vcmaxFeedbk ) )	  &
   !   STOP 'casaCNP required to get prognostic LAI or Vcmax'
-  IF( l_vcmaxFeedbk .AND. icycle < 2 )					   &
+  IF( l_vcmaxFeedbk .AND. icycle < 1 )					   &
        STOP 'icycle must be 2 to 3 to get prognostic Vcmax'
   IF( icycle > 0 .AND. ( .NOT. soilparmnew ) )				   &
        STOP 'casaCNP must use new soil parameters'
