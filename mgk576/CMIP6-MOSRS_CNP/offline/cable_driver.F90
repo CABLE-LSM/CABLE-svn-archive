@@ -142,7 +142,7 @@ PROGRAM cable_offline_driver
        kend,	   &  ! no. of time steps in run
                                 !CLN	  kstart = 1, &	 ! timestep to start at
        koffset = 0, &  ! timestep to start at
-       koffset_met = 0, &  !offfset for site met data ('site' only) 
+       koffset_met = 0, &  !offfset for site met data ('site' only)
        ktauday,	   &  ! day counter for CASA-CNP
        idoy,	   &  ! day of year (1:365) counter for CASA-CNP
        nyear,	   &  ! year counter for CASA-CNP
@@ -195,6 +195,7 @@ PROGRAM cable_offline_driver
   TYPE(POPLUC_TYPE) :: POPLUC
   TYPE (PLUME_MIP_TYPE) :: PLUME
   TYPE (CRU_TYPE)       :: CRU
+  TYPE (site_TYPE)       :: site
   TYPE (LUC_EXPT_TYPE) :: LUC_EXPT
   CHARACTER		:: cyear*4
   CHARACTER		:: ncfile*99
@@ -219,6 +220,7 @@ PROGRAM cable_offline_driver
        delsoilM,	 & ! allowed variation in soil moisture for spin up
        delsoilT		   ! allowed variation in soil temperature for spin up
 
+  INTEGER :: Metyear, Y, LOYtmp
   REAL :: delgwM = 1e-4
 
   ! temporary storage for soil moisture/temp. in spin up mode
