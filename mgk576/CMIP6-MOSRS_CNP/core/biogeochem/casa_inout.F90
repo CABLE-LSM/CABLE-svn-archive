@@ -1593,10 +1593,12 @@ SUBROUTINE WRITE_CASA_RESTART_NC ( casamet, casapool, casaflux, phen, CASAONLY )
   ! Get File-Name
   WRITE(CYEAR, FMT='(I4)') CurYear + 1
 
-  !fname = TRIM(filename%path)//'/'//TRIM( cable_user%RunIden )//&
-  !     '_'//CYEAR//'_casa_rst.nc'
-  fname = TRIM(filename%path)//'/'//TRIM( cable_user%RunIden )//&
-       '_casa_rst.nc'
+  IF (( LEN_TRIM(casafile%cnpepool) ) .gt. 0) THEN
+        fname=TRIM(casafile%cnpepool)
+    ELSE
+        fname = TRIM(filename%path)//'/'//TRIM( cable_user%RunIden )//&
+            '_casa_rst.nc'
+    ENDIF
   ! Create NetCDF file:
   STATUS = NF90_create(fname, NF90_CLOBBER, FILE_ID)
   IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
