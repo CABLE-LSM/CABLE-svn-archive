@@ -35,6 +35,8 @@ MODULE cable_IO_vars_module
 
    CHARACTER(LEN=200) :: timeunits ! timing info read from nc file
 
+   CHARACTER(LEN=10) :: calendar ! 'noleap' for no leap years, 'standard' for leap years
+   
    CHARACTER(LEN=3) :: time_coord ! GMT or LOCal time variables
 
    REAL(r_2),POINTER,DIMENSION(:) :: timevar ! time variable from file
@@ -328,9 +330,9 @@ MODULE cable_IO_vars_module
          hc = .FALSE.,        & ! height of canopy [m]
          rp20  = .FALSE.,     & ! plant respiration coefficient at
                                 ! 20 C [-] 0.1 - 10 (frp 0 - 15e-6 mol/m2/s)
-         g0   = .FALSE.,      & ! Ticket #56      
+         g0   = .FALSE.,      & ! Ticket #56
          g1   = .FALSE.,      & ! Ticket #56
-         rpcoef  = .FALSE.,   & ! temperature coef nonleaf plant 
+         rpcoef  = .FALSE.,   & ! temperature coef nonleaf plant
                                 ! respiration [1/C] (0.8 - 1.5)
          shelrb  = .FALSE.,   & ! sheltering factor [-] {avoid - insensitive?}
          vcmax  = .FALSE.,    & ! maximum RuBP carboxylation rate
