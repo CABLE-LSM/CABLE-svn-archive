@@ -410,17 +410,17 @@ SUBROUTINE get_restart_data(logn,ssnow,canopy,rough,bgc,                       &
 
    !MD
    ok = NF90_INQ_VARID(ncid_rin,'GWwb',parID)
-   IF(ok == NF90_NOERR) THEN 
+   IF(ok == NF90_NOERR) THEN
      CALL readpar(ncid_rin,'GWwb',dummy,ssnow%GWwb,filename%restart_in,            &
-                max_vegpatches,'def',from_restart,mp)   
+                max_vegpatches,'def',from_restart,mp)
    ELSE
       ssnow%GWwb = 0.95*soil%ssat
    END IF
 
-   IF(cable_user%SOIL_STRUC=='sli'.or.cable_user%FWSOIL_SWITCH=='Haverd2013') THEN
-      CALL readpar(ncid_rin,'gamma',dummy,veg%gamma,filename%restart_in,           &
-           max_vegpatches,'def',from_restart,mp)
-   ENDIF
+!!$   IF(cable_user%SOIL_STRUC=='sli'.or.cable_user%FWSOIL_SWITCH=='Haverd2013') THEN
+!!$      CALL readpar(ncid_rin,'gamma',dummy,veg%gamma,filename%restart_in,           &
+!!$           max_vegpatches,'def',from_restart,mp)
+!!$   ENDIF
 
     IF(cable_user%SOIL_STRUC=='sli') THEN
        CALL readpar(ncid_rin,'S',dummy,ssnow%S,filename%restart_in, &
@@ -632,7 +632,7 @@ ENDIF
    CALL readpar(ncid_rin,'g0',dummy,veg%g0,filename%restart_in,            &
                 max_vegpatches,'def',from_restart,mp) ! Ticket #56
    CALL readpar(ncid_rin,'g1',dummy,veg%g1,filename%restart_in,            &
-                max_vegpatches,'def',from_restart,mp) ! Ticket #56 
+                max_vegpatches,'def',from_restart,mp) ! Ticket #56
    CALL readpar(ncid_rin,'meth',dummy,veg%meth,filename%restart_in,            &
                 max_vegpatches,'def',from_restart,mp)
    ! special treatment of za with the introduction of za_uv and za_tq
@@ -850,4 +850,3 @@ SUBROUTINE extraRestart(INpatch,ssnow,canopy,rough,bgc,                        &
 END SUBROUTINE extraRestart
 
 END MODULE cable_init_module
-
