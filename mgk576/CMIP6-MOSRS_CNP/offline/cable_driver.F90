@@ -133,7 +133,7 @@ PROGRAM cable_offline_driver
 
   ! timing variables
   INTEGER, PARAMETER ::	 kstart = 1   ! start of simulation
-  INTEGER, PARAMETER ::	 mloop	= 5   ! CASA-CNP PreSpinup loops
+  INTEGER, PARAMETER ::	 mloop	= 30   ! CASA-CNP PreSpinup loops
   INTEGER :: LALLOC ! allocation coefficient for passing to spincasa
 
   INTEGER	 ::							      &
