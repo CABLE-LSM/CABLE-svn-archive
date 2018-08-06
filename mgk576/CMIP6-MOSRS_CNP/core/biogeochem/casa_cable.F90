@@ -555,7 +555,7 @@ END SUBROUTINE write_casa_dump
   real, dimension(mp)  :: ncleafx,npleafx, pleafx, nleafx ! local variables
   real, dimension(17)                   ::  xnslope
   data xnslope/0.80,1.00,2.00,1.00,1.00,1.00,0.50,1.00,0.34,1.00,1.00,1.00,1.00,1.00,1.00,1.00,1.00/
-
+  real:: bjvref
   ! first initialize
   ncleafx(:) = casabiome%ratioNCplantmax(veg%iveg(:),leaf)
   npleafx(:) = casabiome%ratioNPplantmin(veg%iveg(:),leaf)
