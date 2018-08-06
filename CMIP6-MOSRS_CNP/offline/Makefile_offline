@@ -52,10 +52,10 @@ LSRC = cable_pft_params.F90 cable_soil_params.F90 casa_dimension.F90 \
 	cable_sli_solve.F90 cable_sli_utils.F90  spincasacnp.F90 \
 	cable_diag.F90 POP.F90 pop_io.F90 cable_plume_mip.F90 \
 	cable_weathergenerator.F90 cable_climate.F90 cable_phenology.F90 \
-	cable_cru_TRENDY.F90 POPLUC.F90 cable_site.F90 CASAONLY_LUC.F90 \
-    cable_LUC_EXPT.F90 \
+	cable_cru_TRENDY.F90 POPLUC.F90 CASAONLY_LUC.F90 cable_LUC_EXPT.F90 \
 	cable_gw_hydro.F90 cable_psm.F90 cable_namelist_input.F90 \
-	cable_constants.F90 cable_fFile.F90 cable_fprint.F90 cable_PyFprint.F90
+	cable_constants.F90 cable_fFile.F90 cable_fprint.F90 cable_PyFprint.F90 \
+    cable_site.F90
 
 # this is the executable we are building
 PROG = cable
@@ -116,8 +116,8 @@ cable_driver.o: cable_driver.F90 pop_io.o cable_diag.o cable_output.o \
 		cable_iovars.o cable_cbm.o casa_variable.o casa_cable.o casa_cnp.o \
 		casa_inout.o cable_input.o cable_common.o cable_data.o cable_sli_main.o \
 		cable_plume_mip.o cable_climate.o cable_cru_TRENDY.o POPLUC.o cable_LUC_EXPT.o \
-		CASAONLY_LUC.o cable_site.o spincasacnp.o cable_namelist_input.o \
-		cable_PyFprint.o cable_fprint.o
+		CASAONLY_LUC.o spincasacnp.o cable_namelist_input.o \
+		cable_PyFprint.o cable_fprint.o cable_site.o
 
 cable_define_types.o: cable_define_types.F90
 
@@ -178,7 +178,7 @@ cable_sli_solve.o: cable_sli_solve.F90 cable_sli_numbers.o cable_sli_roots.o cab
 cable_sli_utils.o: cable_sli_utils.F90 cable_sli_numbers.o  cable_define_types.o
 
 cable_plume_mip.o: cable_plume_mip.F90 cable_iovars.o cable_define_types.o cable_checks.o cable_weathergenerator.o
-cable_site.o: cable_site.F90 cable_iovars.o cable_common.o
+
 cable_cru_TRENDY.o: cable_cru_TRENDY.F90 cable_iovars.o cable_define_types.o cable_checks.o \
                     cable_weathergenerator.o casa_variable.o
 
@@ -195,6 +195,7 @@ cable_psm.o: cable_psm.F90 cable_define_types.o cable_common.o cable_air.o cable
 cable_namelist_input.o: cable_namelist_input.F90
 
 cable_constants.o: cable_constants.F90 cable_define_types.o
+cable_site.o: cable_site.F90 cable_iovars.o cable_common.o
 
 # make clean option
 clean:
