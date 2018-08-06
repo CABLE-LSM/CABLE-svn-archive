@@ -114,7 +114,8 @@ PROGRAM cable_offline_driver
        PLUME_MIP_INIT
 
   USE CABLE_CRU,            ONLY: CRU_TYPE, CRU_GET_SUBDIURNAL_MET, CRU_INIT
-
+  USE CABLE_site,           ONLY: site_TYPE, site_INIT, site_GET_CO2_Ndep
+  
  ! LUC_EXPT only
  USE CABLE_LUC_EXPT, ONLY: LUC_EXPT_TYPE, LUC_EXPT_INIT
 #ifdef NAG
