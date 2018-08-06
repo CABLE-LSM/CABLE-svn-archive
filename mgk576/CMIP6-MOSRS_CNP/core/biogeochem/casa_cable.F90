@@ -626,7 +626,11 @@ END SUBROUTINE write_casa_dump
           veg%vcmax(np) = vcmax_np(nleafx(np), pleafx(np))*casabiome%vcmax_scalar(ivt)
           veg%ejmax(np) =bjvref * veg%vcmax(np)
        endif
+ else
+    stop ('invalid vcmax flag')
+ endif
 
+ ENDDO
 
        !veg%ejmax(np) = 2.0 * veg%vcmax(np)
 !991 format(i6,2x,i4,2x,2(f9.3,2x))
