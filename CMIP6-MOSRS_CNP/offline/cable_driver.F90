@@ -115,7 +115,7 @@ PROGRAM cable_offline_driver
 
   USE CABLE_CRU,            ONLY: CRU_TYPE, CRU_GET_SUBDIURNAL_MET, CRU_INIT
   USE CABLE_site,           ONLY: site_TYPE, site_INIT, site_GET_CO2_Ndep
-  
+
  ! LUC_EXPT only
  USE CABLE_LUC_EXPT, ONLY: LUC_EXPT_TYPE, LUC_EXPT_INIT
 #ifdef NAG
@@ -407,7 +407,7 @@ PROGRAM cable_offline_driver
   ! Open met data and get site information from netcdf file. (NON-GSWP ONLY!)
   ! This retrieves time step size, number of timesteps, starting date,
   ! latitudes, longitudes, number of sites.
-  IIF (TRIM(cable_user%MetType) .EQ. 'site' .OR. &
+  IF (TRIM(cable_user%MetType) .EQ. 'site' .OR. &
        TRIM(cable_user%MetType) .EQ. '') THEN
      CALL open_met_file( dels, koffset, kend, spinup, C%TFRZ )
      IF ( koffset .NE. 0 .AND. CABLE_USER%CALL_POP ) THEN
