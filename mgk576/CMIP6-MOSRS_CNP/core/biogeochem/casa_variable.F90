@@ -61,7 +61,9 @@ MODULE casavariable
                                        maxfinelitter,  &
                                        maxcwd,         &
                                        nintercept,     &
-                                       nslope
+                                       nslope,         &
+                                       la_to_sa,       &
+                                       vcmax_scalar
 
     REAL(r_2), DIMENSION(:,:),POINTER :: plantrate,     &
                                        rmplant,         &
