@@ -336,6 +336,8 @@ SUBROUTINE alloc_casavariable(casabiome,casapool,casaflux, &
            casabiome%maxcwd(mvtype),                 &
            casabiome%nintercept(mvtype),             &
            casabiome%nslope(mvtype),                 &
+           casabiome%la_to_sa(mvtype),               &
+           casabiome%vcmax_scalar(mvtype),           &
            casabiome%plantrate(mvtype,mplant),       &
            casabiome%rmplant(mvtype,mplant),         &
            casabiome%fracnpptoP(mvtype,mplant),      &
