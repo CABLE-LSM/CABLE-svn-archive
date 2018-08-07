@@ -553,7 +553,7 @@ ENDIF
 !                max_vegpatches,'def',from_restart,mp)
 !   CALL readpar(ncid_rin,'silt',dummy,soil%silt,filename%restart_in,           &
 !                max_vegpatches,'def',from_restart,mp)
-   IF ( .NOT. soilparmnew) THEN  ! Q.Zhang @12/20/2010
+!   IF ( .NOT. soilparmnew) THEN  ! Q.Zhang @12/20/2010
 !      CALL readpar(ncid_rin,'ssat',dummy,soil%ssat,filename%restart_in,        &
 !                   max_vegpatches,'def',from_restart,mp)
 !      CALL readpar(ncid_rin,'sfc',dummy,soil%sfc,filename%restart_in,          &
@@ -570,24 +570,24 @@ ENDIF
 !                   max_vegpatches,'def',from_restart,mp)
 !      CALL readpar(ncid_rin,'rhosoil',dummy,soil%rhosoil,filename%restart_in,  &
 !                   max_vegpatches,'def',from_restart,mp)
-      IF (ncciy > 0 .AND. filename%restart_in(22:23) == 'HQ') THEN
-         ok = NF90_INQ_VARID(ncid_rin,'albsoil',parID)
-         IF(ok == NF90_NOERR) THEN
-            ALLOCATE(var_r(mp))
-            ok= NF90_GET_VAR(ncid_rin,parID,var_r,start=(/1/),count=(/mp/))
-            IF(ok /= NF90_NOERR) CALL nc_abort                                 &
-                 (ok,'Error reading '//'albsoil'//' in file '                  &
-                 //TRIM(filename%restart_in)//' (SUBROUTINE get_restart_data)')
-            soil%albsoil(:,1) = var_r / 3.0
-            soil%albsoil(:,2) = var_r * 2.0 / 3.0
-            soil%albsoil(:,3) = 0.005
-            DEALLOCATE(var_r)
-         END IF
-      ELSE
-         CALL readpar(ncid_rin,'albsoil',dummy,soil%albsoil,filename%restart_in, &
-                      max_vegpatches,'nrb',from_restart,mp)
-      END IF
-   END IF
+!      IF (ncciy > 0 .AND. filename%restart_in(22:23) == 'HQ') THEN
+!         ok = NF90_INQ_VARID(ncid_rin,'albsoil',parID)
+!         IF(ok == NF90_NOERR) THEN
+!            ALLOCATE(var_r(mp))
+!            ok= NF90_GET_VAR(ncid_rin,parID,var_r,start=(/1/),count=(/mp/))
+!            IF(ok /= NF90_NOERR) CALL nc_abort                                 &
+!                 (ok,'Error reading '//'albsoil'//' in file '                  &
+!                 //TRIM(filename%restart_in)//' (SUBROUTINE get_restart_data)')
+!            soil%albsoil(:,1) = var_r / 3.0
+!            soil%albsoil(:,2) = var_r * 2.0 / 3.0
+!            soil%albsoil(:,3) = 0.005
+!            DEALLOCATE(var_r)
+!         END IF
+!      ELSE
+!         CALL readpar(ncid_rin,'albsoil',dummy,soil%albsoil,filename%restart_in, &
+!                      max_vegpatches,'nrb',from_restart,mp)
+!      END IF
+!   END IF
 !    CALL readpar(ncid_rin,'rs20',dummy,soil%rs20,filename%restart_in,          &
 !         max_vegpatches,'def',from_restart,mp)
 !   CALL readpar(ncid_rin,'rs20',dummy,veg%rs20,filename%restart_in,            &
@@ -628,7 +628,7 @@ ENDIF
 !                max_vegpatches,'def',from_restart,mp)
 !   CALL readpar(ncid_rin,'xalbnir',dummy,veg%xalbnir,filename%restart_in,      &
 !                max_vegpatches,'def',from_restart,mp)
-   veg%xalbnir = 1.0   ! xalbnir will soon be removed totally
+!   veg%xalbnir = 1.0   ! xalbnir will soon be removed totally
 !   CALL readpar(ncid_rin,'g0',dummy,veg%g0,filename%restart_in,            &
 !                max_vegpatches,'def',from_restart,mp) ! Ticket #56
 !   CALL readpar(ncid_rin,'g1',dummy,veg%g1,filename%restart_in,            &
@@ -649,8 +649,8 @@ ENDIF
 !      CALL readpar(ncid_rin,'za_tq',dummy,rough%za_tq,filename%restart_in,     &
 !                   max_vegpatches,'def',from_restart,mp)
 !   ENDIF
-!   CALL readpar(ncid_rin,'zse',dummy,soil%zse,filename%restart_in,             &
-!                max_vegpatches,'ms',from_restart,mp)
+   CALL readpar(ncid_rin,'zse',dummy,soil%zse,filename%restart_in,             &
+                max_vegpatches,'ms',from_restart,mp)
 !   CALL readpar(ncid_rin,'ratecp',dummy,bgc%ratecp,filename%restart_in,        &
 !                max_vegpatches,'ncp',from_restart,mp)
 !   CALL readpar(ncid_rin,'ratecs',dummy,bgc%ratecs,filename%restart_in,        &
