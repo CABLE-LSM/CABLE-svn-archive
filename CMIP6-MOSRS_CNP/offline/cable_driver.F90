@@ -704,7 +704,15 @@ PROGRAM cable_offline_driver
 
              IF (TRIM(cable_user%MetType) .EQ. 'site' ) THEN
                  CALL site_get_CO2_Ndep(site)
-                 met%ca = site%CO2 / 1.e+6
+
+                 ! Two options: (i) if we have sub-annual varying CO2, then
+                 ! these data should be put into the met file and in site.nml
+                 ! CO2 should be set to -9999; or (ii) if we only have annual
+                 ! CO2 numbers then these should be read from the site csv file
+                 WHERE (met%ca .eq. fixedCO2/1000000.0)
+                    met%ca = site%CO2 / 1.e+6
+                 END WHERE
+
                  met%Ndep = site%Ndep  *1000./10000./365. ! kg ha-1 y-1 > g m-2 d-1
                  met%Pdep = site%Pdep  *1000./10000./365. ! kg ha-1 y-1 > g m-2 d-1
                  met%fsd = max(met%fsd,0.0)
@@ -848,7 +856,7 @@ PROGRAM cable_offline_driver
                           IF (TRIM(cable_user%MetType).EQ.'' ) THEN
                              !jhan:assuming doy for mp=1 is same as ....
                              CALL write_casa_dump( ncfile, casamet , casaflux, phen, climate,&
-                                  INT(met%doy), LOY )
+                                  INT(met%doy(1)), LOY )
                           ELSE
                              CALL write_casa_dump( ncfile, casamet , casaflux, &
                                     phen, climate, idoy, kend/ktauday )
