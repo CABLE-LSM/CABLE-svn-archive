@@ -3338,7 +3338,9 @@ CONTAINS
 !!$    CALL define_ovar(ncid_restart, rpid%za_tq, 'za_tq', 'm',                   &
 !!$                     'Reference height (lowest atm. model layer) for scalars', &
 !!$                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
-!!$
+       CALL define_ovar(ncid_restart, gwID, 'GWwb', 'mm3/mm3','GW water content', &
+                        .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+
 !!$    IF(cable_user%SOIL_STRUC=='sli'.OR.cable_user%FWSOIL_SWITCH=='Haverd2013') THEN
 !!$      CALL define_ovar(ncid_restart,rpid%gamma,'gamma','-', &
 !!$            'Parameter in root efficiency function (Lai and Katul 2000)', &
