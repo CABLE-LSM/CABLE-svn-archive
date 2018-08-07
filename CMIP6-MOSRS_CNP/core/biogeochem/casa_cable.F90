@@ -285,7 +285,7 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, climate, ncall, kend
 
 
       !vars
-      CHARACTER, DIMENSION(:), POINTER :: var_name
+      CHARACTER, DIMENSION(:), POINTER :: var_name*15
  
       REAL     , DIMENSION(mp)        :: lat, lon
       REAL(r_2), DIMENSION(mp)        :: tairk,  cgpp, mtemp, Ndep, Pdep
@@ -300,6 +300,14 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, climate, ncall, kend
       !amu561 fixing definitions when not calling climate
       !Number of variables
       num_vars=14
+
+      !Add extra mtemp variable when running with climate
+      IF(cable_user%CALL_climate) THEN
+          num_vars=num_vars+1
+      ENDIF
+
+      allocate(var_name(num_vars))
+
 
       !Variable names
       var_name =  (/"lat          ", &
@@ -319,8 +327,7 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, climate, ncall, kend
 
       !Add extra mtemp variable when running with climate
       IF (cable_user%CALL_climate) THEN
-        num_vars=num_vars+1
-        var_name=(/var_name, "mtemp"/)
+        var_name(num_vars)="mtemp"
       ENDIF 
 
 
@@ -330,7 +337,6 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, climate, ncall, kend
       ENDIF
       IF ( allATonce ) THEN
          DO idoy=1,mdyear
-
             CALL get_var_ncr2(ncrid, var_name(3), tairk   , idoy )
             CALL get_var_ncr3(ncrid, var_name(4), tsoil   , idoy ,ms)
             CALL get_var_ncr3(ncrid, var_name(5), moist   , idoy ,ms)
@@ -343,7 +349,6 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, climate, ncall, kend
             CALL get_var_ncr2(ncrid, var_name(12), phendoyphase4, idoy)
             CALL get_var_ncr2(ncrid, var_name(13), Ndep   , idoy )
             CALL get_var_ncr2(ncrid, var_name(14), Pdep   , idoy )
-
 
            !amu561 this need to be in if-block
            IF (cable_user%CALL_climate ) THEN
