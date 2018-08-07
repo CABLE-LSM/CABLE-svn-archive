@@ -2198,7 +2198,7 @@ SUBROUTINE WRITE_CASA_OUTPUT_NC ( veg, casamet, casapool, casabal, casaflux, &
            fname = TRIM(filename%path)//'/'//TRIM(cable_user%RunIden)//'_casa_out.nc'
         ENDIF
      ENDIF
-     
+
      INQUIRE( FILE=TRIM( fname ), EXIST=EXRST )
      EXRST = .FALSE.
      IF ( EXRST ) THEN

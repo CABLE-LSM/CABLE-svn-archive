@@ -375,10 +375,24 @@ USE casa_inout_module
               IF(idoy==mdyear) THEN ! end of year
 
                  CALL POPdriver(casaflux,casabal,veg, POP)
+                 CALL POP_IO( pop, casamet, NYEAR, 'WRITE_EPI', &
+                 	 (nloop.eq.mloop .and. nyear.eq.myearspin) )
+                 CALL WRITE_CASA_OUTPUT_NC (veg, casamet, casapool, casabal, casaflux, &
+                                             .TRUE., ctime, &
+                             (nloop.eq.mloop .and. nyear.eq.myearspin.and.idoy.eq.mdyear)  )
+                 ctime = ctime+1
 
-
-           ENDIF  ! end of year
+              ENDIF  ! end of year
         ELSE
+           IF(idoy==mdyear) THEN ! end of year
+
+
+                 CALL WRITE_CASA_OUTPUT_NC (veg, casamet, casapool, casabal, casaflux, &
+                                             .TRUE., ctime, &
+                             (nloop.eq.mloop .and. nyear.eq.myearspin.and.idoy.eq.mdyear)  )
+                 ctime = ctime+1
+
+            ENDIF  ! end of year
            casaflux%stemnpp = 0.
         ENDIF ! CALL_POP
 
