@@ -3234,9 +3234,9 @@ CONTAINS
     ok = NF90_PUT_ATT(ncid_restart, rpid%zse, "long_name",                     &
                       "Depth of each soil layer")
     ok = NF90_PUT_ATT(ncid_restart, rpid%zse, "units", "m")
-!!$    CALL define_ovar(ncid_restart, rpid%froot, 'froot', '-',                   &
-!!$                     'Fraction of roots in each soil layer',                   &
-!!$                      .TRUE., soilID, 'soil', 0, 0, 0, mpID, dummy, .TRUE.)
+    CALL define_ovar(ncid_restart, rpid%froot, 'froot', '-',                   &
+                     'Fraction of roots in each soil layer',                   &
+                      .TRUE., soilID, 'soil', 0, 0, 0, mpID, dummy, .TRUE.)
 !!$    CALL define_ovar(ncid_restart, rpid%bch, 'bch', '-',                       &
 !!$                     'Parameter b, Campbell eqn 1985',                         &
 !!$                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
