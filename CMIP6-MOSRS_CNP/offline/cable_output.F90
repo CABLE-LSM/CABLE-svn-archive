@@ -3255,9 +3255,9 @@ CONTAINS
 !!$    CALL define_ovar(ncid_restart, rpid%rs20, 'rs20', '-',                     &
 !!$                     'Soil respiration coefficient at 20C',                    &
 !!$                      .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
-!!$    CALL define_ovar(ncid_restart, rpid%albsoil, 'albsoil', '-',               &
-!!$                     'Soil reflectance', .TRUE.,                               &
-!!$                     radID, 'radiation', 0, 0, 0, mpID, dummy, .TRUE.)
+    CALL define_ovar(ncid_restart, rpid%albsoil, 'albsoil', '-',               &
+                     'Soil reflectance', .TRUE.,                               &
+                     radID, 'radiation', 0, 0, 0, mpID, dummy, .TRUE.)
 !!$    CALL define_ovar(ncid_restart, rpid%hc, 'hc', 'm',                         &
 !!$                     'Height of canopy', .TRUE.,                               &
 !!$                     'real', 0, 0, 0, mpID, dummy, .TRUE.)
