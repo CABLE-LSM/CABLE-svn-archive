@@ -854,10 +854,11 @@ PROGRAM cable_offline_driver
                           ncfile = TRIM(casafile%c2cdumppath)//'c2c_'//CYEAR//'_dump.nc'
 
                           IF (TRIM(cable_user%MetType).EQ.'' ) THEN
-                             !jhan:assuming doy for mp=1 is same as ....
+                              !jhan:assuming doy for mp=1 is same as ....
                              CALL write_casa_dump( ncfile, casamet , casaflux, phen, climate,&
                                   INT(met%doy(1)), LOY )
                           ELSE
+                              print*, "DOY: ", idoy
                              CALL write_casa_dump( ncfile, casamet , casaflux, &
                                     phen, climate, idoy, kend/ktauday )
                           ENDIF
