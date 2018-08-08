@@ -857,7 +857,6 @@ PROGRAM cable_offline_driver
                              !jhan:assuming doy for mp=1 is same as ....
                              CALL write_casa_dump( ncfile, casamet , casaflux, phen, climate,&
                                   INT(met%doy(1)), LOY )
-                             print*, "*********", INT(met%doy(1)), INT(met%doy)
                           ELSE
                              CALL write_casa_dump( ncfile, casamet , casaflux, &
                                     phen, climate, idoy, kend/ktauday )
