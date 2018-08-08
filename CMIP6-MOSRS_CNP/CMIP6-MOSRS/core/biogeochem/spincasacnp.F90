@@ -178,27 +178,27 @@ SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
 
            IF(idoy==mdyear) THEN ! end of year
 
-	              CALL POPdriver(casaflux,casabal,veg, POP)
+              CALL POPdriver(casaflux,casabal,veg, POP)
 
-	             ! CALL POP_IO( pop, casamet, nyear, 'WRITE_EPI', &
-	             !           (.FALSE.))
-	             !CALL WRITE_CASA_OUTPUT_NC (veg, casamet, casapool, casabal, casaflux, &
-	             ! .true., ctime, .FALSE.  )
-	             ctime = ctime+1
+             ! CALL POP_IO( pop, casamet, nyear, 'WRITE_EPI', &
+             ! 		 (.FALSE.))
+             !CALL WRITE_CASA_OUTPUT_NC (veg, casamet, casapool, casabal, casaflux, &
+             ! .true., ctime, .FALSE.  )
+             ctime = ctime+1
 
-	           ENDIF  ! end of year
+           ENDIF  ! end of year
 
-	     ELSE
-	           IF(idoy==mdyear) THEN ! end of year
+        ELSE
+           IF(idoy==mdyear) THEN ! end of year
 
-	             !CALL WRITE_CASA_OUTPUT_NC (veg, casamet, casapool, casabal, casaflux, &
-	             ! .true., ctime, .FALSE.  )
-	             ctime = ctime+1
+             !CALL WRITE_CASA_OUTPUT_NC (veg, casamet, casapool, casabal, casaflux, &
+             ! .true., ctime, .FALSE.  )
+             ctime = ctime+1
 
-	           ENDIF  ! end of year
+           ENDIF  ! end of year
 
-	           casaflux%stemnpp = 0.
-	     ENDIF ! CALL_POP
+           casaflux%stemnpp = 0.
+        ENDIF ! CALL_POP
 
 
 !!$        WHERE(xkNlimiting .eq. 0)  !Chris Lu 4/June/2012
@@ -373,25 +373,28 @@ SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
 
               IF(idoy==mdyear) THEN ! end of year
 
-	              CALL POPdriver(casaflux,casabal,veg, POP)
-	              !CALL POP_IO( pop, casamet, NYEAR, 'WRITE_EPI', &
-	              !        (nloop.eq.mloop .and. nyear.eq.myearspin) )
-	              !CALL WRITE_CASA_OUTPUT_NC (veg, casamet, casapool, casabal, casaflux, &
-	              !                            .TRUE., ctime, &
-	              !           (nloop.eq.mloop .and. nyear.eq.myearspin.and.idoy.eq.mdyear)  )
-	              ctime = ctime+1
+                 CALL POPdriver(casaflux,casabal,veg, POP)
+                 !CALL POP_IO( pop, casamet, NYEAR, 'WRITE_EPI', &
+                ! 	 (nloop.eq.mloop .and. nyear.eq.myearspin) )
+                 !CALL WRITE_CASA_OUTPUT_NC (veg, casamet, casapool, casabal, casaflux, &
+                 !                            .TRUE., ctime, &
+                  !           (nloop.eq.mloop .and. nyear.eq.myearspin.and.idoy.eq.mdyear)  )
+                 ctime = ctime+1
 
-	          ENDIF  ! end of year
-        ELSE
+              ENDIF  ! end of year
+
+           ELSE
+
            IF(idoy==mdyear) THEN ! end of year
 
-             ! CALL WRITE_CASA_OUTPUT_NC (veg, casamet, casapool, casabal, casaflux, &
-             !                             .TRUE., ctime, &
-             !             (nloop.eq.mloop .and. nyear.eq.myearspin.and.idoy.eq.mdyear)  )
-             ctime = ctime+1
 
-	        ENDIF  ! end of year
-	        casaflux%stemnpp = 0.
+                ! CALL WRITE_CASA_OUTPUT_NC (veg, casamet, casapool, casabal, casaflux, &
+                !                             .TRUE., ctime, &
+                !             (nloop.eq.mloop .and. nyear.eq.myearspin.and.idoy.eq.mdyear)  )
+                 ctime = ctime+1
+
+            ENDIF  ! end of year
+           casaflux%stemnpp = 0.
         ENDIF ! CALL_POP
 
 
