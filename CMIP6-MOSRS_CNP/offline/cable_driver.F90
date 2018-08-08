@@ -622,9 +622,9 @@ PROGRAM cable_offline_driver
        CALL zero_sum_casa(sum_casapool, sum_casaflux)
        count_sum_casa = 0
 
-       if (cable_user%call_climate) CALL climate_init ( climate, mp )
+       if (cable_user%call_climate) CALL climate_init ( climate, mp, ktauday )
        if (cable_user%call_climate .AND.(.NOT.cable_user%climate_fromzero)) &
-            CALL READ_CLIMATE_RESTART_NC (climate)
+            CALL READ_CLIMATE_RESTART_NC (climate, ktauday)
 
        spinConv = .FALSE. ! initialise spinup convergence variable
        IF (.NOT.spinup)	spinConv=.TRUE.
@@ -635,7 +635,7 @@ PROGRAM cable_offline_driver
           SPINon = .FALSE.
           SPINconv = .FALSE.
 
-       ELSEIF ( casaonly .AND. (.NOT. spincasa) .AND. cable_user%popluc) THEN
+       ELSEIF ( casaonly .AND. (.NOT. spincasa) ) THEN !.AND. cable_user%popluc) THEN
 
            CALL CASAONLY_LUC(dels,kstart,kend,veg,soil,casabiome,casapool, &
                casaflux,casamet,casabal,phen,POP,climate,LALLOC, LUC_EXPT, POPLUC, &
@@ -756,7 +756,7 @@ PROGRAM cable_offline_driver
 
                  if (cable_user%CALL_climate) &
                   CALL cable_climate(ktau_tot,kstart,kend,ktauday,idoy,LOY,met, &
-                  climate, canopy, air, dels, mp)
+                  climate, canopy, air, rad, dels, mp)
 
 
                     ssnow%smelt = ssnow%smelt*dels
@@ -858,7 +858,6 @@ PROGRAM cable_offline_driver
                              CALL write_casa_dump( ncfile, casamet , casaflux, phen, climate,&
                                   INT(met%doy(1)), LOY )
                           ELSE
-                              print*, "DOY: ", idoy
                              CALL write_casa_dump( ncfile, casamet , casaflux, &
                                     phen, climate, idoy, kend/ktauday )
                           ENDIF
@@ -1154,8 +1153,8 @@ PROGRAM cable_offline_driver
 
   IF (icycle > 0) THEN
 
-     CALL casa_poolout( ktau, veg, soil, casabiome,		  &
-	  casapool, casaflux, casamet, casabal, phen )
+     !CALL casa_poolout( ktau, veg, soil, casabiome,		  &
+	 ! casapool, casaflux, casamet, casabal, phen )
      CALL write_casa_restart_nc ( casamet, casapool,casaflux,phen, CASAONLY )
 
   END IF
@@ -1171,7 +1170,7 @@ PROGRAM cable_offline_driver
 	  canopy, rough, rad, bgc, bal, met )
      !mpidiff
      if (cable_user%CALL_climate) &
-          CALL WRITE_CLIMATE_RESTART_NC ( climate )
+          CALL WRITE_CLIMATE_RESTART_NC ( climate, ktauday )
 
      !--- LN ------------------------------------------[
   ENDIF
