@@ -3234,9 +3234,9 @@ CONTAINS
     ok = NF90_PUT_ATT(ncid_restart, rpid%zse, "long_name",                     &
                       "Depth of each soil layer")
     ok = NF90_PUT_ATT(ncid_restart, rpid%zse, "units", "m")
-    CALL define_ovar(ncid_restart, rpid%froot, 'froot', '-',                   &
-                     'Fraction of roots in each soil layer',                   &
-                      .TRUE., soilID, 'soil', 0, 0, 0, mpID, dummy, .TRUE.)
+!!$    CALL define_ovar(ncid_restart, rpid%froot, 'froot', '-',                   &
+!!$                     'Fraction of roots in each soil layer',                   &
+!!$                      .TRUE., soilID, 'soil', 0, 0, 0, mpID, dummy, .TRUE.)
 !!$    CALL define_ovar(ncid_restart, rpid%bch, 'bch', '-',                       &
 !!$                     'Parameter b, Campbell eqn 1985',                         &
 !!$                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
@@ -3480,8 +3480,8 @@ CONTAINS
 !!$    CALL write_ovar (ncid_restart, rpid%swilt, 'swilt', REAL(soil%swilt, 4),   &
 !!$                     ranges%swilt, .TRUE., 'real', .TRUE.)
    ! Soil dimensioned variables/parameters:
-    CALL write_ovar (ncid_restart, rpid%froot, 'froot', REAL(veg%froot, 4),    &
-                     ranges%froot, .TRUE., 'soil', .TRUE.)
+!!$    CALL write_ovar (ncid_restart, rpid%froot, 'froot', REAL(veg%froot, 4),    &
+!!$                     ranges%froot, .TRUE., 'soil', .TRUE.)
     CALL write_ovar (ncid_restart, tggID, 'tgg', REAL(ssnow%tgg, 4),           &
                      ranges%SoilTemp, .TRUE., 'soil', .TRUE.)
     CALL write_ovar (ncid_restart, wbID, 'wb', ssnow%wb, ranges%SoilMoist,     &
