@@ -814,19 +814,6 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
        READ(timeunits(20:21),*) smoy ! integer month
        READ(timeunits(23:24),*) sdoytmp ! integer day of that month
        READ(timeunits(26:27),*) shod  ! starting hour of day
-
-       ! if site data, shift start time to middle of timestep
-       ! only do this if not already at middle of timestep
-       !! vh_js !!
-       IF ((TRIM(cable_user%MetType).EQ.'' .OR. &
-                     TRIM(cable_user%MetType).EQ.'site').and. MOD(shod*3600, dels)==0 .and. &
-            (shod.gt.dels/3600./2.) ) THEN
-          shod = shod - dels/3600./2.
-       ELSEIF (TRIM(cable_user%MetType).EQ.''.OR. &
-                     (TRIM(cable_user%MetType).EQ.'site') .and. MOD(shod*3600, dels)==0 .and. &
-            (shod.lt.dels/3600./2.) ) THEN
-          shod = shod + dels/3600./2.
-       ENDIF
     ELSE
        syear=ncciy
        smoy=1
