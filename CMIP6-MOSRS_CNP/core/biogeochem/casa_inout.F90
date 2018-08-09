@@ -86,7 +86,7 @@ SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
   INTEGER :: nv0,nv1,nv2,nv3,nv4,nv5,nv6,nv7,nv8,nv9,nv10,nv11,nv12
   REAL(r_2), DIMENSION(mvtype)       :: xxnpmax,xq10soil,xxkoptlitter,xxkoptsoil,xprodptase, &
                                         xcostnpup,xmaxfinelitter,xmaxcwd,xnintercept,xnslope
-  REAL(r_2), DIMENSION(mvtype)       :: la_to_sa, vcmax_scalar
+  REAL(r_2), DIMENSION(mvtype)       :: la_to_sa, vcmax_scalar, junk_to_match_vh_file
   REAL(r_2), DIMENSION(mso)          :: xxkplab,xxkpsorb,xxkpocc
 
 
@@ -236,11 +236,12 @@ SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
   ENDDO
 !@@@@@@@@@@@@@@@@@@@@@
 
+  ! MDK, we need to add an extra read tag to match vh's files.
   READ(101,*)
   READ(101,*)
   DO nv=1,mvtype
     READ(101,*) nv12, &
-         la_to_sa(nv),vcmax_scalar(nv)
+         la_to_sa(nv),junk_to_match_vh_file(nv),vcmax_scalar(nv)
   ENDDO
 
   CLOSE(101)

@@ -286,7 +286,7 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, climate, ncall, kend
 
       !vars
       CHARACTER, DIMENSION(:), POINTER :: var_name*15
- 
+
       REAL     , DIMENSION(mp)        :: lat, lon
       REAL(r_2), DIMENSION(mp)        :: tairk,  cgpp, mtemp, Ndep, Pdep
       REAL(r_2), DIMENSION(mp,ms)     :: tsoil, moist
@@ -318,7 +318,7 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, climate, ncall, kend
                     "cgpp         ", &
                     "crmplant     ", &
                     "phenphase    ", &
-                    "phendoyphase1", &  
+                    "phendoyphase1", &
                     "phendoyphase2", &
                     "phendoyphase3", &
                     "phendoyphase4", &
@@ -328,7 +328,7 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, climate, ncall, kend
       !Add extra mtemp variable when running with climate
       IF (cable_user%CALL_climate) THEN
         var_name(num_vars)="mtemp"
-      ENDIF 
+      ENDIF
 
 
    IF ( allATonce .OR. ncall .EQ. 1 ) THEN
@@ -522,7 +522,7 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, phen, climate, n_call, ke
                 "cgpp         ", &
                 "crmplant     ", &
                 "phenphase    ", &
-                "phendoyphase1", &  
+                "phendoyphase1", &
                 "phendoyphase2", &
                 "phendoyphase3", &
                 "phendoyphase4", &
