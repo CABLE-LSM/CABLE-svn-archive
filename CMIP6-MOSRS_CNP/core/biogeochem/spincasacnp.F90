@@ -145,7 +145,12 @@ USE casa_inout_module
         phen%doyphase(:,2) =  phen%doyphasespin_2(:,idoy)
         phen%doyphase(:,3) =  phen%doyphasespin_3(:,idoy)
         phen%doyphase(:,4) =  phen%doyphasespin_4(:,idoy)
-        climate%qtemp_max_last_year(:) =  casamet%mtempspin(:,idoy)
+        ! should be in an if block
+        IF(cable_user%CALL_climate) THEN
+           climate%qtemp_max_last_year(:) =  casamet%mtempspin(:,idoy)
+        ENDIF
+
+
 
       ! write(6699,*) casaflux%cgpp(1), climate%mtemp(1),  casaflux%crmplant(1,1)
 
@@ -339,8 +344,10 @@ USE casa_inout_module
            phen%doyphase(:,2) =  phen%doyphasespin_2(:,idoy)
            phen%doyphase(:,3) =  phen%doyphasespin_3(:,idoy)
            phen%doyphase(:,4) =  phen%doyphasespin_4(:,idoy)
-           climate%qtemp_max_last_year(:) =  casamet%mtempspin(:,idoy)
-
+           ! should be in an if block
+           IF(cable_user%CALL_climate) THEN
+              climate%qtemp_max_last_year(:) =  casamet%mtempspin(:,idoy)
+           ENDIF
 
 
            call biogeochem(ktauy,dels,idoy,LALLOC,veg,soil,casabiome,casapool,casaflux, &
