@@ -81,8 +81,8 @@ MODULE cable_common_module
          CASA_DUMP_READ = .FALSE.,     & !
          CASA_DUMP_WRITE = .FALSE.,    & !
          CABLE_RUNTIME_COUPLED  = .FALSE., & !
-         L_newProfile          = .FALSE.     ! BP 2015 - new transpiration extraction profile
-
+         L_newProfile           = .FALSE., & ! BP 2015 - new transpiration extraction profile
+         L_landuse              = .FALSE.    ! BP 2018
 
    END TYPE kbl_user_switches
 
@@ -96,7 +96,7 @@ MODULE cable_common_module
       out,        & ! name of file for CABLE output
       log,        & ! name of file for execution log
       restart_in, & ! name of restart file to read
-      restart_out,& ! name of restart file to read
+      restart_out,& ! name of restart file to write
       LAI,        & ! name of file for default LAI
       type,       & ! file for default veg/soil type
       veg,        & ! file for vegetation parameters

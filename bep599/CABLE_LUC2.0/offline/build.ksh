@@ -315,10 +315,12 @@ build_build()
    CORE="../core/biogeophys"
    DRV="."
    CASA="../core/biogeochem"
-   
+   LUC="../core/landuse"
+
    /bin/cp -p $CORE/*90 ./.tmp
-   /bin/cp -p $DRV/*90 ./.tmp
+   /bin/cp -p $DRV/*90  ./.tmp
    /bin/cp -p $CASA/*90 ./.tmp
+   /bin/cp -p $LUC/*90  ./.tmp
    
    print "\n\n\tPlease note: CASA-CNP files are included in build only for " 
    print "\ttechnical reasons. Implementation is not officially available with" 

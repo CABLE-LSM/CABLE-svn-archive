@@ -51,6 +51,7 @@ MODULE casadimension
   INTEGER, PARAMETER :: mplant = 3         ! plant pools
   INTEGER, PARAMETER :: mlitter= 3         ! litter pools
   INTEGER, PARAMETER :: msoil  = 3         ! soil pools
+  INTEGER, PARAMETER :: mwood  = 3         ! wood product pools
   INTEGER, PARAMETER :: mso    = 12        ! soil order number
 ! BP put icycle into namelist file
   INTEGER            :: icycle
@@ -193,6 +194,9 @@ MODULE casavariable
                                        ratioNPsoil,   &
                                        ratioNCsoilmin,&
                                        ratioNCsoilmax
+    REAL(r_2), DIMENSION(:,:),POINTER :: cwoodprod,   &
+                                         nwoodprod,   &
+                                         pwoodprod
   END TYPE casa_pool
 
   TYPE casa_flux

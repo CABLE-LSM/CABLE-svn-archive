@@ -70,7 +70,7 @@ PROGRAM cable_offline_driver
    USE cable_def_types_mod
    USE cable_IO_vars_module, ONLY: logn,globalMetfile,ncciy,leaps,             &
                                    verbose, fixedCO2,output,check,patchout,    &
-                                   patch_type,soilparmnew
+                                   land_type,patch_type,soilparmnew
    USE cable_common_module,  ONLY: ktau_gl, kend_gl, knode_gl, cable_user,     &
                                    cable_runtime, filename, redistrb,          & 
                                    report_version_no, wiltParam, satuParam
@@ -89,6 +89,9 @@ PROGRAM cable_offline_driver
    USE casavariable,        ONLY: casafile, casa_biome, casa_pool, casa_flux,  &
                                   casa_met, casa_balance, mdyear
    USE phenvariable,        ONLY: phen_variable
+
+   ! modules related to landuse change
+   USE landuse_variable,    ONLY: fpft,fxpft,fxluh2cable
 
    IMPLICIT NONE
    
@@ -110,6 +113,9 @@ PROGRAM cable_offline_driver
 
    REAL :: dels                        ! time step size in seconds
    
+   TYPE (land_type)      :: landpt
+   TYPE (patch_type)     :: patch
+
    ! CABLE variables
    TYPE (met_type)       :: met     ! met input variables
    TYPE (air_type)       :: air     ! air property variables
@@ -189,8 +195,10 @@ PROGRAM cable_offline_driver
                   redistrb,         &
                   wiltParam,        &
                   satuParam,        &
-                  cable_user           ! additional USER switches 
-
+                  cable_user,       &  ! additional USER switches 
+                  fpft,             &
+                  fxpft,            &
+                  fxluh2cable
    ! END header
 
    kstart = 1
@@ -509,6 +517,20 @@ PROGRAM cable_offline_driver
                            sum_flux, veg )
 
    !WRITE(logn,*) bal%wbal_tot, bal%ebal_tot, bal%ebal_tot_cncheck
+
+   ! Perform LUC if switched on, then write another restart file
+   IF(cable_user%L_landuse) THEN
+      CALL rename(filename%restart_out,TRIM(filename%restart_out)//'_old'//CHAR(ncciy))  ! no need of new file name for LUC
+      CALL landuse_driver(ssnow,soil,veg,bal,canopy,rough,rad,phen,casapool,casabal,casamet)  ! need file names in namelist file
+      CALL create_restart( logn, dels, ktau, soil, veg, ssnow,                 &
+                           canopy, rough, rad, bgc, bal )  ! need new restart file name
+      IF (icycle > 0) THEN                       ! will CASACNP be mandatory for LUC?
+         WRITE(logn, '(A36)') '   Re-open LUC restart file for CASACNP.'
+         CALL casa_poolout(ktau,veg,casabiome,casapool,casaflux,casamet, &
+                           casabal,phen)         ! need the new file name in arguments
+         WRITE(logn, '(A36)') '   LUC Restart file complete and closed.'
+      END IF
+   END IF
 
    ! Close log file
    CLOSE(logn)
