@@ -44,6 +44,8 @@ INTEGER, DIMENSION(16,2), PARAMETER :: IGBP2BIOME = &
      (/ 2, 3, 2, 3, 4, 5, 5, 6, 6, 6, 0, 1, 1, 1, 0, 8 , &  ! LAT  < 50 
         2, 3, 2, 3, 4, 7, 7, 6, 6, 6, 0, 1, 1, 1, 0, 7 /)   ! LAT >= 50
 
+INTEGER, PARAMETER :: FAPAR_AVG_INT = 3
+
 CONTAINS
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -401,6 +403,7 @@ SUBROUTINE SIMFIRE ( SF, RAINF, TMAX, TMIN, DOY, YEAR, AB )
   PRINT*, "Put different timesteps in!"
   IF ( DOY.EQ. 1 ) THEN
      SF%MAX_NESTEROV(:) = 0.
+     !CLN needs to go to 
      CALL GET_POPDENS ( SF, YEAR )
   ENDIF
 

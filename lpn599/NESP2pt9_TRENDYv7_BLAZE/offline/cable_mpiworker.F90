@@ -102,13 +102,13 @@ MODULE cable_mpiworker
   INTEGER :: pop_t
 
   ! worker's struct for rec'ing/sending blaze restart to/from the master
-  INTEGER :: blaze_recv_t
-  INTEGER :: restart_blaze_t
+  INTEGER :: blaze_out_t
+  INTEGER :: blaze_restart_t
   
   ! worker's struct for rec'ing/sending pop io to/from the master
   INTEGER :: simfire_inp_t
   INTEGER :: simfire_send_t
-  INTEGER :: restart_simfire_t
+  INTEGER :: simfire_restart_t
   
   
   ! worker's struct for restart data to the master
@@ -474,10 +474,17 @@ CONTAINS
                 ! MPI: POP restart received only if pop module AND casa are active 
                 IF ( CABLE_USER%CALL_POP ) CALL worker_pop_types (comm,veg,casamet,pop)
                 ! CLN:  
-                IF ( CABLE_USER%CALL_BLAZE ) CALL worker_blaze_types (comm,BLAZE,pop)
+                IF ( CABLE_USER%CALL_BLAZE ) THEN
+                   CALL worker_blaze_types (comm,mp, BLAZE, blaze_restart_t,blaze_out_t)
+                   IF ( .NOT. spinup ) &
+                        CALL MPI_recv(icomm, blaze_restart_ts)
+                ENDIF
                 ! CLN:  BURNT_AREA
-                IF ( CABLE_USER%BURNT_AREA == "SIMFIRE" ) CALL worker_simfire_types (comm,SIMFIRE,pop)
-
+                IF ( CABLE_USER%BURNT_AREA == "SIMFIRE" ) THEN
+                   CALL worker_simfire_types (comm, mp, SF, simfire_restart_t, simfire_inp_t, simfire_out_t)
+                   IF ( .NOT. spinup ) &
+                        CALL MPI_Recv(icomm,simfire_restart_ts)
+                   
              END IF
 
              ! MPI: create inp_t type to receive input data from the master
@@ -667,7 +674,7 @@ CONTAINS
                   write(wlogn,*) 'after casa mpi_send', ktau
                  ENDIF
 
-                 call blazedriver(BLAZE,)
+                 call blaze_driver(BLAZE,)
                  
                  !!! CLN HERE BLAZE daily
 

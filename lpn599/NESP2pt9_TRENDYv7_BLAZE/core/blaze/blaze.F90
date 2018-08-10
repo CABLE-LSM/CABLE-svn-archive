@@ -3,8 +3,9 @@ MODULE BLAZE
 TYPE TYPE_BLAZE
    INTEGER,  DIMENSION(:),  ALLOCATABLE :: DSLR,ilon, jlat,Flix
    REAL,     DIMENSION(:),  ALLOCATABLE :: RAINF, KBDI, LR, U10,RH,TMAX,TMIN,AREA
-   REAL,     DIMENSION(:),  ALLOCATABLE :: F,FLI,ROS,Z,D,w, LAT, LON,DFLI,AB
+   REAL,     DIMENSION(:),  ALLOCATABLE :: FFDI,FLI,ROS,Z,D,w, LAT, LON,DFLI,AB,CAvgAnnRF
    REAL,     DIMENSION(:,:),ALLOCATABLE :: AnnRAINF, DEADWOOD, ABM, TO, AGC_g, AGC_w
+   REAL,     DIMENSION(:,:),ALLOCATABLE :: AvgAnnRAINF
    CHARACTER,DIMENSION(:),  ALLOCATABLE :: FTYPE*6
    INTEGER                              :: T_AVG, YEAR, MONTH, DAY, DOY, NCELLS
    INTEGER                              :: BURNMODE ! 1=BLAZE only, 2=BLAZE with POP
@@ -150,6 +151,110 @@ SUBROUTINE INI_BLAZE (POPFLAG, BURNT_AREA_SOURCE, TSTEP, np, npatch, BLAZE)
   ! CLN check for validity and more options...
   
 END SUBROUTINE INI_BLAZE
+
+SUBROUTINE BLAZE_ACCOUNTING(BLAZE, met, ktau, dels, year, doy)
+
+  IMPLICIT NONE 
+
+  TYPE (TYPE_BLAZE) :: BLAZE
+  TYPE (MET_TYPE)   :: met
+  LOGICAL, SAVE     :: CALL1 = .TRUE.
+  INTEGER           :: mp
+  REAL              :: t_fac
+  REAL,PARAMETER    :: sod = 86400.
+  LOGICAL           :: is_new_day, is_end_of_day
+
+
+  mp = BLAZE%NCELLS
+  
+  is_new_day    = (((ktau-1) * dels ) % sod == 0 )
+  is_end_of_day = (( ktau    * dels ) % sod == 0 )
+  
+  ! factor to get to daily data
+  t_fac = 86400. / dels
+ 
+  ! 1.Jan
+  ! Update avg ann rainfall 
+
+  ! Add last years 
+  x = year % T_AVG + 1
+  IF ( is_new_day) THEN
+     IF ( doy == 1 ) THEN
+        BLAZE%AvgAnnRainf(:,x) = SUM(BLAZE%AnnRAINF(:,:),dim=2) 
+        BLAZE%CAvgAnnRainf(:)  = SUM(BLAZE%AvgAnnRainf(:,:),dim=2) /REAL(T_AVG)
+     END IF
+     BLAZE%AnnRAINF(:) = 0.
+     BLAZE%U10 (:) = 0.
+     BLAZE%RH  (:) = 0.
+     BLAZE%TMAX(:) = 0.
+     BLAZE%TMIN(:) = 999.
+  END IF
+
+  DO i = 1, mp
+     BLAZE%AnnRAINF(i,doy) = BLAZE%AnnRAINF(i,doy) + met%precip(i)    
+     BLAZE%U10 (i) = MAX(met%u10(i) ,BLAZE%U10(i))
+     BLAZE%RH  (i) = BLAZE%RH(i) + met%rhum(i)/t_fac
+     BLAZE%TMAX(i) = MAX(met%tvair(i),BLAZE%TMAX(i))
+     BLAZE%TMIN(i) = MIN(met%tvair(i),BLAZE%TMIN(i))     
+  END DO
+
+  if ( .NOT. is_leap_year(year) .AND. doy .EQ. 365 ) BLAZE%AnnRAINF(:,366) = 0.
+
+  ! End of the day prepare daily data 
+  IF ( is_end_of_day ) THEN
+  
+     do i = 1, mp
+        v        = BLAZE%U10(i) * 3.6 ! m/s->km/h
+        ! Gust parameterisation following ???
+        v        = (214.7* (v+10)**(-1.6968) + 1 ) * v  
+        rh       = BLAZE%RH(i)
+        t        = BLAZE%TMAX(i)
+        prec     = BLAZE%AnnRAINF(i,doy)
+        avgAnnRF = BLAZE%CAvgAnnRainf(i)
+        
+        ! Days-since-last-rain and Last-Rainfall
+        IF ( prec > 0.01 ) THEN
+           IF ( BLAZE%DSLR > 0 ) THEN
+              BLAZE%LR = prec
+           ELSE
+              BLAZE%LR = BLAZE%LR + prec
+           END IF
+           BLAZE%DSLR = 0
+        ELSE
+           BLAZE%DSLR = BLAZE%DSLR + 1
+        END IF
+
+        ! Keetch-Byram Drought Index
+        IF ( BLAZE%DSLR == 0 ) THEN
+           IF ( BLAZE%LR > 5. ) THEN
+              dkbdi = 5. - BLAZE%LR 
+           ELSE
+              dkbdi = 0.
+           END IF
+
+        ELSE
+           dkbdi = (( 800. - BLAZE%KBDI ) * (.968 * EXP(.0486 * (t * 9./5. + 32.)) &
+                - 8.3) / 1000. / (1. + 10.88 * EXP(-.0441 * avgAnnRF/25.4)) * .254)
+        END IF
+        BLAZE%KBDI(i) = MAX(0., BLAZE%KBDI(i) + dkbdi)
+
+        ! MacArthur Drought-Factor D
+        BLAZE%D(i) = .191 * (BLAZE%KBDI(i) + 104.) * (BLAZE(i)%DSLR + 1.)**1.5 / &
+             ( 3.52 * (BLAZE(i)%DSLR + 1.)**1.5 + BLAZE%LR - 1. )
+        BLAZE(i)%D = MAX(0.,MIN(10.,BLAZE%D(i)))
+
+        ! MacArthur FFDI
+        FFDI = 2. * EXP( -.45 + .987 * LOG(BLAZE%D(i)+.001) &
+             - .03456 * RH + .0338 * T + .0234 * V )
+
+        BLAZE%FFDI(i) = MAX(BLAZE%FFDI(i),FFDI)
+
+     END do
+  
+  END IF
+  
+END SUBROUTINE BLAZE_ACCOUNTING
+
 
 FUNCTION AVAIL_FUEL(FLIx, CPLANT_w, CPLANT_g, AGL_w, AGL_g)
 
@@ -350,7 +455,7 @@ SUBROUTINE COMBUST (BLAZE, np, CPLANT_g, CPLANT_w, AGL_g, AGL_w, DEADWOOD, TO, B
   REAL,               INTENT(IN)    :: CPLANT_w(3), CPLANT_g(3)
   REAL,               INTENT(IN)    :: AGL_w(3),AGL_g(3), DEADWOOD
   LOGICAL,            INTENT(IN)    :: BURN
-  TYPE(TYPE_TURNOVER),INTENT(INOUT)   :: TO(7)
+  TYPE(TYPE_TURNOVER),INTENT(INOUT) :: TO(NTO)
 
   REAL, PARAMETER       :: H = 20. ! Heat Yield, [MJ/kg]
   REAL      :: FT, LR, dKBDI
@@ -472,7 +577,7 @@ SUBROUTINE COMBUST (BLAZE, np, CPLANT_g, CPLANT_w, AGL_g, AGL_w, DEADWOOD, TO, B
   END DO
 
   BLAZE%FLIX(np) = flix
-  BLAZE%F(np)    = F
+  BLAZE%FFDI(np) = F
   BLAZE%FLI(np)  = FLI
   BLAZE%ROS(np)  = ROS
   BLAZE%Z(np)    = Z
@@ -721,6 +826,8 @@ SUBROUTINE RUN_BLAZE(BLAZEFLAG, ncells, LAT, LON, shootfrac,CPLANT_g, CPLANT_w, 
 !       CALL BLAZE_DIAG( NCELLS, BLAZE, CPLANT_g, CPLANT_w, AGL_g, AGL_w, TO, "dref")
 
 END SUBROUTINE RUN_BLAZE
+
+
 
 END MODULE BLAZE
 

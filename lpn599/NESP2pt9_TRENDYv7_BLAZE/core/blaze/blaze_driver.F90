@@ -1,4 +1,4 @@
-SUBROUTINE BLAZEDRIVER ( BLAZEFLAG, NCELLS, casapool, casaflux, lat, lon, shootfrac, ddvp09, ddvp15, ddprec, &
+SUBROUTINE BLAZE_DRIVER ( BLAZEFLAG, NCELLS, casapool, casaflux, lat, lon, shootfrac, ddvp09, ddvp15, ddprec, &
      ddTmin, ddTmax, ddwind,AvgAnnMaxFAPAR, modis_igbp, AvgAnnRainf, idoy, curyear, FLI, DFLI, FFDI, AB, &
      POPFLAG, CTLFLAG, BLAZEFLX, POP_TO, POP_CWD,POP_STR, IAC, popd, mnest, BLAZE_FSTEP &
      , AGL_wo1,AGL_wo2,AGL_wo3 )
@@ -90,6 +90,8 @@ SUBROUTINE BLAZEDRIVER ( BLAZEFLAG, NCELLS, casapool, casaflux, lat, lon, shootf
   CLITTER_g = REAL(casapool%clitter(t1,:))
   CLITTER_w = REAL(casapool%clitter(t2,:))
 
+! CLN needs to be altered for beginning of spinup only!!!
+  
   IF ( CALL1 ) THEN
      ALLOCATE( AGL_g(NCELLS,NPOOLS),AGL_w(NCELLS,NPOOLS) )
      ALLOCATE( BGL_g(NCELLS,NPOOLS),BGL_w(NCELLS,NPOOLS) )
@@ -219,7 +221,7 @@ SUBROUTINE BLAZEDRIVER ( BLAZEFLAG, NCELLS, casapool, casaflux, lat, lon, shootf
              POPFLAG, BLAZEFLX(np,:), POP_TO(np) )
      END DO
   ELSE
-     STOP "Wrong MODE in blaze_casa.f90!"
+     STOP "Wrong MODE in blaze_driver.f90!"
   ENDIF
 
   ! When TURNOVERS have been computed, update LITTER with AGL
@@ -293,4 +295,4 @@ SUBROUTINE BLAZEDRIVER ( BLAZEFLAG, NCELLS, casapool, casaflux, lat, lon, shootf
   casapool%clitter(t1,:) = DBLE(CLITTER_g)
   casapool%clitter(t2,:) = DBLE(CLITTER_w)
 
-END SUBROUTINE BLAZEDRIVER
+END SUBROUTINE BLAZE_DRIVER

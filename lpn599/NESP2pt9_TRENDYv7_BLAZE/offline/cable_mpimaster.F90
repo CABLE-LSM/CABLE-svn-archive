@@ -126,13 +126,13 @@ MODULE cable_mpimaster
   INTEGER, ALLOCATABLE, DIMENSION(:) :: climate_ts
 
   ! MPI derived datatype handles for Sending/receiving vals results for BLAZE
-  INTEGER, ALLOCATABLE, DIMENSION(:) :: blaze_recv_ts
-  INTEGER, ALLOCATABLE, DIMENSION(:) :: restart_blaze_ts
+  INTEGER, ALLOCATABLE, DIMENSION(:) :: blaze_out_ts
+  INTEGER, ALLOCATABLE, DIMENSION(:) :: blaze_restart_ts
   
   ! MPI derived datatype handles for Sending/receiving vals results for SIMFIRE
   INTEGER, ALLOCATABLE, DIMENSION(:) :: simfire_inp_ts
   INTEGER, ALLOCATABLE, DIMENSION(:) :: simfire_recv_ts
-  INTEGER, ALLOCATABLE, DIMENSION(:) :: restart_simfire_ts
+  INTEGER, ALLOCATABLE, DIMENSION(:) :: simfire_restart_ts
     
   ! POP related derived types
   
@@ -201,8 +201,8 @@ CONTAINS
          POP_LUC_CASA_transfer,  WRITE_LUC_RESTART_NC, POPLUC_set_patchfrac, &
          READ_LUC_RESTART_NC, alloc_popluc
     
-    ! CLN Fire Model 
-    USE SIMFIRE_MOD,          ONLY: 
+    ! BLAZE Fire Model 
+    USE SIMFIRE_MOD,          ONLY: SF
     USE BLAZE,                ONLY: BLAZE
 
     ! PLUME-MIP only
@@ -614,7 +614,7 @@ CONTAINS
                   bal, logn, vegparmnew, casabiome, casapool,		 &
                   casaflux, sum_casapool, sum_casaflux, &
                   casamet, casabal, phen, POP, spinup,	       &
-                  C%EMSOIL, C%TFRZ, LUC_EXPT, POPLUC, BLAZE, SIMFIRE )
+                  C%EMSOIL, C%TFRZ, LUC_EXPT, POPLUC, BLAZE, SF )
 
              IF (CABLE_USER%POPLUC .AND. TRIM(CABLE_USER%POPLUC_RunType) .EQ. 'static') &
                   CABLE_USER%POPLUC= .FALSE.
@@ -636,7 +636,7 @@ CONTAINS
 
              !! CLN BLAZE
              IF ( cable_user%CALL_BLAZE ) &
-
+                  
 
              IF (.NOT.spinup)	spinConv=.TRUE.
              
@@ -691,9 +691,23 @@ CONTAINS
                 CALL master_casa_params (comm,casabiome,casapool,casaflux,casamet,&
                      &                        casabal,phen)
 
+                ! Create and Send POP ini/restart data
                 IF ( CABLE_USER%CALL_POP ) CALL master_pop_types (comm,casamet,pop)
-                !!CLN SIMFIRE init
-
+                
+                ! Fire init and 
+                IF ( CABLE_USER%CALL_BLAZE ) THEN
+                   !CREATE handles for restart-data 
+                   CALL master_blaze_types(comm, wland, mp, BLAZE, blaze_restart_ts, blaze_out_ts)
+                   IF ( .NOT. spinup ) &
+                        CALL MPI_Send(icomm, blaze_restart_ts)
+                   IF ( TRIM(cable_user%ignition) == "SIMFIRE" ) THEN
+                      CALL master_simfire_types(comm, wland, mp, SF, &
+                           simfire_restart_ts, simfire_inp_ts,simfire_out_ts)
+                      IF ( .NOT. spinup ) &
+                           CALL MPI_Send(icomm,simfire_restart_ts)
+                   END IF
+                END IF
+                
              END IF
 
              ! MPI: allocate read ahead buffers for input met and veg data
