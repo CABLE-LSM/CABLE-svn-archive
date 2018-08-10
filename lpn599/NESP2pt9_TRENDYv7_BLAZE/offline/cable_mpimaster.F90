@@ -699,12 +699,12 @@ CONTAINS
                    !CREATE handles for restart-data 
                    CALL master_blaze_types(comm, wland, mp, BLAZE, blaze_restart_ts, blaze_out_ts)
                    IF ( .NOT. spinup ) &
-                        CALL MPI_Send(icomm, blaze_restart_ts)
+                        CALL master_send_input(icomm, blaze_restart_ts)
                    IF ( TRIM(cable_user%ignition) == "SIMFIRE" ) THEN
                       CALL master_simfire_types(comm, wland, mp, SF, &
                            simfire_restart_ts, simfire_inp_ts,simfire_out_ts)
                       IF ( .NOT. spinup ) &
-                           CALL MPI_Send(icomm,simfire_restart_ts)
+                           CALL master_send_input(icomm,simfire_restart_ts)
                    END IF
                 END IF
                 
