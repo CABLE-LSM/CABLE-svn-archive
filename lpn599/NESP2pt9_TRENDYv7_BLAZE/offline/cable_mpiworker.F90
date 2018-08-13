@@ -640,7 +640,7 @@ CONTAINS
 
              if (cable_user%CALL_climate) &
                  CALL cable_climate(ktau,kstart,kend,ktauday,idoy,LOY,met, &
-                      climate, canopy,air,rad, dels,mp)
+                      climate, canopy, ssnow, air,rad, dels,mp)
 
 
              ! CALL land surface scheme for this timestep, all grid points:
@@ -2617,6 +2617,7 @@ CONTAINS
     CALL MPI_Get_address (casabiome%nslope, displs(bidx), ierr)
     blen(bidx) = mvtype * extr2
 
+    
     !===================================================================
     bidx = bidx + 1
     CALL MPI_Get_address (casabiome%plantrate, displs(bidx), ierr)
@@ -2695,6 +2696,27 @@ CONTAINS
     bidx = bidx + 1
     CALL MPI_Get_address (casabiome%disturbance_interval, displs(bidx), ierr)
     blen(bidx) = mvtype  * extr2
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (casabiome%DAMM_EnzPool, displs(bidx), ierr)
+    blen(bidx) = mvtype * extr2
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (casabiome%DAMM_KMO2, displs(bidx), ierr)
+    blen(bidx) = mvtype * extr2
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (casabiome%DAMM_KMcp, displs(bidx), ierr)
+    blen(bidx) = mvtype * extr2
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (casabiome%DAMM_Ea, displs(bidx), ierr)
+    blen(bidx) = mvtype * extr2
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (casabiome%DAMM_alpha, displs(bidx), ierr)
+    blen(bidx) = mvtype * extr2
+
 
     ! ------ casapool ----
 
@@ -6625,6 +6647,16 @@ print*, 'worker, nd ny mp nsd', nd, ny,mp, nsd
 
     bidx = bidx + 1
     CALL MPI_Get_address (climate%dmoist_max20(off), displs(bidx), ierr)
+    blocks(bidx) = r1len
+    types(bidx)  = MPI_BYTE
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (climate%fapar_ann_max(off), displs(bidx), ierr)
+    blocks(bidx) = r1len
+    types(bidx)  = MPI_BYTE
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (climate%fapar_ann_max_last_year(off), displs(bidx), ierr)
     blocks(bidx) = r1len
     types(bidx)  = MPI_BYTE
 

@@ -86,6 +86,7 @@ CONTAINS
     INTEGER :: TimeVarID, Idash
     CHARACTER(len=100)    :: time_units
     CHARACTER(len=4) :: yearstr
+    REAL :: projection_factor
 
     NAMELIST /LUCNML/  TransitionFilePath, ClimateFile, Run, DirectRead, YearStart, YearEnd, &
          NotPrimOnlyFile
@@ -325,6 +326,7 @@ CONTAINS
        ! adjust fraction woody cover based on Major Vegetation Group
        LUC_EXPT%biome = MVG
        LUC_EXPT%ivegp = 2
+       projection_factor = 0.71 
        WHERE (LUC_EXPT%biome .eq. 1)
           CPC = 0.89
        ELSEWHERE (LUC_EXPT%biome .eq. 2)
@@ -392,6 +394,8 @@ CONTAINS
        ELSEWHERE
           CPC= 0.1
        ENDWHERE
+
+       CPC = max(CPC/projection_factor, 1.0)
 
        LUC_EXPT%grass = LUC_EXPT%grass + (LUC_EXPT%primaryf+LUC_EXPT%secdf)*(1-CPC)
        LUC_EXPT%primaryf =  LUC_EXPT%primaryf * CPC
@@ -484,7 +488,7 @@ CONTAINS
 
 
     IF (TRIM(cable_user%MetType) .EQ. "bios") THEN
-       WHERE (LUC_EXPT%prim_only .eq. .TRUE.)
+       WHERE (LUC_EXPT%prim_only .eqv. .TRUE.)
            LUC_EXPT%grass = LUC_EXPT%primaryf*(1-CPC)
            LUC_EXPT%primaryf =  LUC_EXPT%primaryf *CPC 
 
@@ -494,7 +498,7 @@ CONTAINS
     ELSE
        ! set secondary vegetation area to be zero where land use transitions don't occur
        ! set grass component of primary vegetation cover
-       WHERE (LUC_EXPT%prim_only .eq. .TRUE.)
+       WHERE (LUC_EXPT%prim_only .eqv. .TRUE.)
           LUC_EXPT%secdf = 0.0
           LUC_EXPT%primaryf = 1.0
           LUC_EXPT%grass = 0.0
@@ -700,9 +704,8 @@ USE netcdf
      write(*,*) 'reading biome from : ', fname
   ENDIF
   ! Open NetCDF file:
-  STATUS = NF90_OPEN(fname, NF90_NOWRITE, FILE_ID)
+  STATUS = NF90_OPEN(TRIM(fname), NF90_NOWRITE, FILE_ID)
   IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-
 
   ! dimensions:
   ! Land (number of points)
@@ -768,6 +771,7 @@ USE netcdf
   STATUS = NF90_close(FILE_ID)
   IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
 
+write(*,*) "end read_climatefile"  
 
 END SUBROUTINE READ_CLIMATEFILE
 

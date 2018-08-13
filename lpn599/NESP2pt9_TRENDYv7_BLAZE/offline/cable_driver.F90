@@ -379,7 +379,7 @@ PROGRAM cable_offline_driver
        STOP 'icycle must be 1 to 3 when using casaCNP'
   !IF( ( l_laiFeedbk .OR. l_vcmaxFeedbk ) )	  &
   !   STOP 'casaCNP required to get prognostic LAI or Vcmax'
-  IF( l_vcmaxFeedbk .AND. icycle < 2 )					   &
+  IF( l_vcmaxFeedbk .AND. icycle < 1 )					   &
        STOP 'icycle must be 2 to 3 to get prognostic Vcmax'
   IF( icycle > 0 .AND. ( .NOT. soilparmnew ) )				   &
        STOP 'casaCNP must use new soil parameters'
@@ -554,6 +554,7 @@ print *, "CABLE_USER%YearStart,  CABLE_USER%YearEnd", CABLE_USER%YearStart,  CAB
           str3 = adjustl(str3)
           timeunits="seconds since "//trim(str1)//"-"//trim(str2)//"-"//trim(str3)//" &
                00:00"
+          calendar = 'standard'
 
        ENDIF
        LOY = 365
@@ -649,15 +650,17 @@ print *, "CABLE_USER%YearStart,  CABLE_USER%YearEnd", CABLE_USER%YearStart,  CAB
        
        spinConv = .FALSE. ! initialise spinup convergence variable
        IF (.NOT.spinup)	spinConv=.TRUE.
+
+      
        IF( icycle>0 .AND. spincasa) THEN
           PRINT *, 'EXT spincasacnp enabled with mloop= ', mloop
-          PRINT *, 'Nminsoil', casapool%Nsoilmin
           CALL spincasacnp(dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
                casaflux,casamet,casabal,phen,POP,climate,LALLOC)
           SPINon = .FALSE.
           SPINconv = .FALSE. 
 
-       ELSEIF ( casaonly .AND. (.NOT. spincasa) .AND. cable_user%popluc) THEN
+       !ELSEIF ( casaonly .AND. (.NOT. spincasa) .AND. cable_user%popluc) THEN
+       ELSEIF ( casaonly .AND. (.NOT. spincasa)) THEN
 
            CALL CASAONLY_LUC(dels,kstart,kend,veg,soil,casabiome,casapool, &
                casaflux,casamet,casabal,phen,POP,climate,LALLOC, LUC_EXPT, POPLUC, &
@@ -729,9 +732,11 @@ print *, "CABLE_USER%YearStart,  CABLE_USER%YearEnd", CABLE_USER%YearStart,  CAB
                   rad, veg, kend, dels, C%TFRZ, ktau+koffset,		 &
                          kstart+koffset )
 
-             IF (TRIM(cable_user%MetType) .EQ. 'site' .and. ktau.eq.1.) THEN
-                 CALL site_get_CO2_Ndep(site)
-                 met%ca = site%CO2 / 1.e+6
+             IF (TRIM(cable_user%MetType) .EQ. 'site' ) THEN
+                CALL site_get_CO2_Ndep(site)
+                 WHERE ( met%ca .eq. fixedCO2 /1000000.0)  ! not read in metfile
+                    met%ca = site%CO2 / 1.e+6
+                 ENDWHERE
                  met%Ndep = site%Ndep  *1000./10000./365. ! kg ha-1 y-1 > g m-2 d-1
                  met%Pdep = site%Pdep  *1000./10000./365. ! kg ha-1 y-1 > g m-2 d-1
                  met%fsd = max(met%fsd,0.0)
@@ -765,19 +770,28 @@ print *, "CABLE_USER%YearStart,  CABLE_USER%YearEnd", CABLE_USER%YearStart,  CAB
           IF ( .NOT. CASAONLY ) THEN
              
              ! Feedback prognostic vcmax and daily LAI from casaCNP to CABLE
-             IF (l_vcmaxFeedbk) CALL casa_feedback( ktau, veg, casabiome,	 &
-                  casapool, casamet, climate, ktauday )
+             IF (l_vcmaxFeedbk) then
+                CALL casa_feedback( ktau, veg, casabiome,	 &
+                     casapool, casamet, climate, ktauday )
+             ELSE
+                veg%vcmax_shade = veg%vcmax
+                veg%ejmax_shade = veg%ejmax
+       
+                veg%vcmax_sun = veg%vcmax
+                veg%ejmax_sun = veg%ejmax
+             ENDIF
              
              IF (l_laiFeedbk.and.icycle>0) veg%vlai(:) = casamet%glai(:)
              !veg%vlai = 2 ! test
              ! Call land surface scheme for this timestep, all grid points:
+ 
                     CALL cbm(ktau, dels, air, bgc, canopy, met,		      &
                          bal, rad, rough, soil, ssnow,			      &
                          sum_flux, veg,climate )
 
                  if (cable_user%CALL_climate) &
                   CALL cable_climate(ktau_tot,kstart,kend,ktauday,idoy,LOY,met, &
-                  climate, canopy, air, rad, dels, mp)
+                  climate, canopy, ssnow,air, rad, dels, mp)
                     
                     
                     ssnow%smelt = ssnow%smelt*dels
@@ -979,7 +993,7 @@ print *, "CABLE_USER%YearStart,  CABLE_USER%YearEnd", CABLE_USER%YearStart,  CAB
 			 canopy%ga(kk), ssnow%tgg(kk,:), canopy%fwsoil(kk)
 
 
-		    !stop
+		    stop
 		 endif
 		 if ( casaflux%cnpp(kk).NE. casaflux%cnpp(kk)) then
 		    write(*,*) 'npp nan', kk, ktau,  casaflux%cnpp(kk)
@@ -1294,7 +1308,7 @@ SUBROUTINE LUCdriver( casabiome,casapool, &
 
  
  
-  write(*,*) 'cablecasa_LUC', CurYear
+  
   yyyy = CurYear
 
 

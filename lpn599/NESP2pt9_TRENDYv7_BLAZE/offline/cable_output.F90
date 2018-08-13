@@ -57,7 +57,7 @@ MODULE cable_output_module
                     visAlbedo, nirAlbedo, SoilMoistIce,                        &
                     Qs, Qsb, Evap, BaresoilT, SWE, SnowT,                      &
                     RadT, VegT, Ebal, Wbal, AutoResp, RootResp,                &
-                    LeafResp, HeteroResp, GPP, NPP, LAI,                       &
+                    StemResp,LeafResp, HeteroResp, GPP, NPP, LAI,                       &
                     ECanop, TVeg, ESoil, CanopInt, SnowDepth,                  &
                     HVeg, HSoil, Rnet, tvar, CanT,Fwsoil, RnetSoil, SnowMelt, &
                     NBP, TotSoilCarb, TotLivBiomass, &
@@ -212,8 +212,8 @@ MODULE cable_output_module
     REAL(KIND=4), POINTER, DIMENSION(:) :: eta_GPP_cs
     REAL(KIND=4), POINTER, DIMENSION(:) :: dGPPdcs
     REAL(KIND=4), POINTER, DIMENSION(:) :: CO2s
-    REAL(KIND=4), POINTER, DIMENSION(:) :: RootResp   !  autotrophic root
-                                                      ! respiration [umol/m2/s]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: RootResp   !  autotrophic root respiration [umol/m2/s]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: StemResp   !  autotrophic stem respiration [umol/m2/s]
  END TYPE output_temporary_type
   TYPE(output_temporary_type), SAVE :: out
   INTEGER :: ok   ! netcdf error status
@@ -729,12 +729,20 @@ CONTAINS
        ALLOCATE(out%AutoResp(mp))
        out%AutoResp = 0.0 ! initialise
     END IF
-    IF(output%carbon .OR. output%AutoResp) THEN
+    IF(output%casa .OR. output%AutoResp) THEN
        CALL define_ovar(ncid_out, ovid%RootResp, 'RootResp', 'umol/m^2/s',     &
                         'Fine Root Autotrophic respiration', patchout%AutoResp,          &
                         'dummy', xID, yID, zID, landID, patchID, tID)
        ALLOCATE(out%RootResp(mp))
        out%RootResp = 0.0 ! initialise
+    END IF
+
+    IF(output%casa .OR. output%AutoResp) THEN
+       CALL define_ovar(ncid_out, ovid%StemResp, 'StemResp', 'umol/m^2/s',     &
+                        'StemWood Autotrophic respiration', patchout%AutoResp,          &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%StemResp(mp))
+       out%StemResp = 0.0 ! initialise
     END IF
     
     IF(output%carbon .OR. output%LeafResp) THEN
@@ -2325,7 +2333,8 @@ CONTAINS
        ! in order to avoid negative carbon stores.
 
        IF(output%casa) THEN
-          out%AutoResp = out%AutoResp + REAL((sum(casaflux%crmplant,2)/86400.0 + &
+          out%AutoResp = out%AutoResp + REAL(canopy%frday / 1.201E-5, 4) + &
+               REAL((casaflux%crmplant(:,2)/86400.0 + casaflux%crmplant(:,3)/86400.0 + &
                casaflux%crgplant/86400.0 + casaflux%clabloss/86400.)/ 1.201E-5, 4)
        ELSE
           out%AutoResp = out%AutoResp + REAL((canopy%frp + canopy%frday)          &
@@ -2344,7 +2353,8 @@ CONTAINS
 
 
        IF(output%casa) THEN
-          out%RootResp = out%RootResp + REAL(casaflux%crmplant(:,3)/86400.0/ 1.201E-5, 4)
+          out%RootResp = out%RootResp + REAL(casaflux%crmplant(:,3)/86400.0/ 1.201E-5, 4) !+ &
+               ! REAL(0.3*casaflux%crmplant(:,2)/86400.0/ 1.201E-5, 4)
           IF(writenow) THEN
              ! Divide accumulated variable by number of accumulated time steps:
              out%RootResp = out%RootResp/REAL(output%interval, 4)
@@ -2353,6 +2363,21 @@ CONTAINS
                   out%RootResp, ranges%AutoResp, patchout%AutoResp, 'default', met)
              ! Reset temporary output variable:
              out%RootResp = 0.0
+          END IF
+       END IF
+
+
+       
+       IF(output%casa) THEN
+          out%StemResp = out%StemResp + REAL(casaflux%crmplant(:,2)/86400.0/ 1.201E-5, 4)
+          IF(writenow) THEN
+             ! Divide accumulated variable by number of accumulated time steps:
+             out%StemResp = out%StemResp/REAL(output%interval, 4)
+             ! Write value to file:
+             CALL write_ovar(out_timestep, ncid_out, ovid%StemResp, 'StemResp',   &
+                  out%StemResp, ranges%AutoResp, patchout%AutoResp, 'default', met)
+             ! Reset temporary output variable:
+             out%StemResp = 0.0
           END IF
        END IF
 
@@ -3309,30 +3334,30 @@ CONTAINS
 !!$    ! Soil dimensioned variables/parameters:
 !!$    CALL write_ovar (ncid_restart, rpid%froot, 'froot', REAL(veg%froot, 4),    &
 !!$                     ranges%froot, .TRUE., 'soil', .TRUE.)
-!!$    CALL write_ovar (ncid_restart, tggID, 'tgg', REAL(ssnow%tgg, 4),           &
-!!$                     ranges%SoilTemp, .TRUE., 'soil', .TRUE.)
-!!$    CALL write_ovar (ncid_restart, wbID, 'wb', ssnow%wb, ranges%SoilMoist,     &
-!!$                     .TRUE., 'soil', .TRUE.)
-!!$    CALL write_ovar (ncid_restart, wbiceID, 'wbice', ssnow%wbice,              &
-!!$                     ranges%SoilMoist, .TRUE., 'soil', .TRUE.)
-!!$    CALL write_ovar (ncid_restart, gammzzID, 'gammzz', ssnow%gammzz,           &
-!!$                     (/-99999.0, 9999999.0/), .TRUE., 'soil', .TRUE.)
-!!$    ! Snow dimensioned variables/parameters:
-!!$    CALL write_ovar (ncid_restart, ssdnID, 'ssdn', REAL(ssnow%ssdn, 4),        &
-!!$                     (/0.0, 9999.0/), .TRUE., 'snow', .TRUE.)
-!!$    CALL write_ovar (ncid_restart, smassID, 'smass', REAL(ssnow%smass, 4),     &
-!!$                     (/0.0, 9999.0/), .TRUE., 'snow', .TRUE.)
-!!$    CALL write_ovar (ncid_restart, sdepthID, 'sdepth', REAL(ssnow%sdepth, 4),  &
-!!$                     (/0.0, 9999.0/), .TRUE., 'snow', .TRUE.)
-!!$    CALL write_ovar (ncid_restart, tggsnID, 'tggsn', REAL(ssnow%tggsn, 4),     &
-!!$                     (/100.0, 300.0/), .TRUE., 'snow', .TRUE.)
-!!$    ! Other dims
-!!$    CALL write_ovar (ncid_restart, albsoilsnID, 'albsoilsn',                   &
-!!$            REAL(ssnow%albsoilsn, 4), (/0.0, 1.0/), .TRUE., 'radiation', .TRUE.)
-!!$    CALL write_ovar (ncid_restart, cplantID, 'cplant', REAL(bgc%cplant, 4),    &
-!!$                     (/-99999.0, 9999999.0/), .TRUE., 'plantcarbon', .TRUE.)
-!!$    CALL write_ovar (ncid_restart, csoilID, 'csoil', REAL(bgc%csoil, 4),       &
-!!$                     (/-99999.0, 9999999.0/), .TRUE., 'soilcarbon', .TRUE.)
+    CALL write_ovar (ncid_restart, tggID, 'tgg', REAL(ssnow%tgg, 4),           &
+                     ranges%SoilTemp, .TRUE., 'soil', .TRUE.)
+    CALL write_ovar (ncid_restart, wbID, 'wb', ssnow%wb, ranges%SoilMoist,     &
+                     .TRUE., 'soil', .TRUE.)
+    CALL write_ovar (ncid_restart, wbiceID, 'wbice', ssnow%wbice,              &
+                     ranges%SoilMoist, .TRUE., 'soil', .TRUE.)
+    CALL write_ovar (ncid_restart, gammzzID, 'gammzz', ssnow%gammzz,           &
+                     (/-99999.0, 9999999.0/), .TRUE., 'soil', .TRUE.)
+    ! Snow dimensioned variables/parameters:
+    CALL write_ovar (ncid_restart, ssdnID, 'ssdn', REAL(ssnow%ssdn, 4),        &
+                     (/0.0, 9999.0/), .TRUE., 'snow', .TRUE.)
+    CALL write_ovar (ncid_restart, smassID, 'smass', REAL(ssnow%smass, 4),     &
+                     (/0.0, 9999.0/), .TRUE., 'snow', .TRUE.)
+    CALL write_ovar (ncid_restart, sdepthID, 'sdepth', REAL(ssnow%sdepth, 4),  &
+                     (/0.0, 9999.0/), .TRUE., 'snow', .TRUE.)
+    CALL write_ovar (ncid_restart, tggsnID, 'tggsn', REAL(ssnow%tggsn, 4),     &
+                     (/100.0, 300.0/), .TRUE., 'snow', .TRUE.)
+    ! Other dims
+    CALL write_ovar (ncid_restart, albsoilsnID, 'albsoilsn',                   &
+            REAL(ssnow%albsoilsn, 4), (/0.0, 1.0/), .TRUE., 'radiation', .TRUE.)
+    CALL write_ovar (ncid_restart, cplantID, 'cplant', REAL(bgc%cplant, 4),    &
+                     (/-99999.0, 9999999.0/), .TRUE., 'plantcarbon', .TRUE.)
+    CALL write_ovar (ncid_restart, csoilID, 'csoil', REAL(bgc%csoil, 4),       &
+                     (/-99999.0, 9999999.0/), .TRUE., 'soilcarbon', .TRUE.)
     ok = NF90_PUT_VAR(ncid_restart, rpid%zse, REAL(soil%zse, 4))
     IF(ok /= NF90_NOERR) CALL nc_abort(ok, 'Error writing zse parameter to '   &
          //TRIM(frst_out)// '(SUBROUTINE create_restart)')

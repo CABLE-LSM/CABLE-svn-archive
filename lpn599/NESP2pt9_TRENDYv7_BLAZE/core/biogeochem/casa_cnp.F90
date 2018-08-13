@@ -163,7 +163,8 @@ SUBROUTINE casa_xnp(xnplimit,xNPuptake,veg,casabiome,casapool,casaflux,casamet)
      if(casamet%iveg2(np)/=icewater.and.casaflux%cnpp(np) > 0.0.and.xNPuptake(np) < 1.0) then
 
         if (casaflux%fHarvest(np) .lt. 0.1) then   ! N limitation on growth not applied to crop/pasture
-           casaflux%fracClabile(np) =min(1.0,max(0.0,(1.0- xNPuptake(np)))) * max(0.0,casaflux%cnpp(np))/(casaflux%cgpp(np) +1.0e-10)
+           casaflux%fracClabile(np) =min(1.0,max(0.0,(1.0- xNPuptake(np)))) * &
+                max(0.0,casaflux%cnpp(np))/(casaflux%cgpp(np) +1.0e-10)
            casaflux%cnpp(np)    = casaflux%cnpp(np) - casaflux%fracClabile(np) * casaflux%cgpp(np)
         endif
      endif
@@ -576,9 +577,9 @@ SUBROUTINE casa_rplant(veg,casabiome,casapool,casaflux,casamet,climate)
         pleaf(npt) = casabiome%ratioPcplantmax(ivt,leaf)/casabiome%sla(ivt)  
         if (ivt .EQ. 7) then
            ! special for C4 grass: set here to value from  parameter file
-           vcmaxmax(npt) = 1.0e-5 
+           vcmaxmax(npt) = veg%vcmax(npt)
         else
-           vcmaxmax(npt) = vcmax_np(nleaf(npt), pleaf(npt))
+           vcmaxmax(npt) = vcmax_np(nleaf(npt), pleaf(npt))*casabiome%vcmax_scalar(ivt)
         endif
          
         if (cable_user%finite_gm) then
@@ -817,7 +818,7 @@ SUBROUTINE casa_xrateplant(xkleafcold,xkleafdry,xkleaf,veg,casabiome, &
     if (trim(cable_user%PHENOLOGY_SWITCH)=='climate') then
        ! increases base turnover rate by a factor of 13 (for base turnover time of 1y, this reduces it to 4 weeks)
        IF ((phen%phase(npt)==3.or.phen%phase(npt)==0).and.casamet%lnonwood(npt)==0) &
-                xkleaf(npt)= 13.*2.
+                xkleaf(npt)= 13.
         IF ((phen%phase(npt)==3.or.phen%phase(npt)==0).and.casamet%lnonwood(npt)==1) &
                 xkleaf(npt)= 13.
            
@@ -893,6 +894,14 @@ SUBROUTINE casa_xratesoil(xklitter,xksoil,veg,soil,casamet,casabiome)
 !!$REAL(r_2), parameter :: wfpswidth0 = 0.0
 !!$REAL(r_2), parameter :: wfpsquad=0
 
+
+ ! DAMM parameters
+ REAL(r_2), parameter ::  EnzPool = 10.0
+ REAL(r_2), parameter :: KMO2 = 0.01
+ REAL(r_2), parameter :: KMcp = 0.1
+ REAL(r_2), parameter :: Ea = 62
+ REAL(r_2), parameter :: alpha  = 10.6
+ REAL(r_2) :: O2, vol_air_content, Enz
 
   REAL(r_2), DIMENSION(mp)       :: xkwater,xktemp
   REAL(r_2), DIMENSION(mp)       :: fwps,tsavg
@@ -990,15 +999,39 @@ SUBROUTINE casa_xratesoil(xklitter,xksoil,veg,soil,casamet,casabiome)
         ! Lloyd & Taylor, Func. Ec. 8, 315, 1994, Eq 11.
          strf(npt)= exp(308.56*(1.0/56.02-1.0         &
                    / (max(tsoil(npt),-20.0)+46.02)))/5.65 
-   ! factor of 5.65 gives same value as q10=2 response at 10 degC (ref T 35 degC).
+         ! factor of 5.65 gives same value as q10=2 response at 10 degC (ref T 35 degC).
          !strf(npt)= exp(388.56*(1.0/56.02-1.0         &
          !          / (max(tsoil(npt),-20.0)+46.02)))/7.45 
          ! factor of 5.65 gives same value as q10=2 response at 10 degC (ref T 35 degC).
       END IF
+
+      IF (trim(cable_user%STRF_NAME)=='DAMM' .and. trim(cable_user%SMRF_NAME)=='DAMM') THEN
+                   vol_air_content = max(soil%ssat(npt) - casamet%moistavg(npt), 0.0)
+                   O2 = 1.67 * 0.209 * (vol_air_content**(4./3.))
+                   Enz=casabiome%DAMM_EnzPool(veg%iveg(npt))*3.17 &
+                        *( casamet%moistavg(npt)**3)
+                   xksoil(npt) = (10**casabiome%DAMM_alpha(veg%iveg(npt)))* &
+                        exp(-casabiome%DAMM_Ea(veg%iveg(npt))/(8.314e-3 &
+                        * (casamet%tsoilavg(npt)))) * &
+                        (Enz/(Enz+casabiome%DAMM_KMcp(veg%iveg(npt)))) &
+                        * (O2/(casabiome%DAMM_KMO2(veg%iveg(npt))+O2))
+                   xklitter(npt) = xksoil(npt)
+
+        
+!!$                   vol_air_content = max(soil%ssat(npt) - casamet%moist(npt,1), 0.0)
+!!$                   O2 = 1.67 * 0.209 * (vol_air_content**(4./3.))
+!!$                   Enz=Enzpool*3.17*( casamet%moist(npt,1)**3)
+!!$                   xklitter(npt) = (10**alpha)* &
+!!$                         exp(-Ea/(8.314e-3 * (casamet%tsoil(npt,1)))) * &
+!!$				 (Enz/(Enz+KMcp)) * (O2/(KMO2+O2))
+
+				
+      ELSE
       !xksoil(npt) = casabiome%xkoptsoil(veg%iveg(npt))*strf(npt)*smrf(npt)
       !xklitter(npt) = casabiome%xkoptlitter(veg%iveg(npt)) *strf(npt)*smrf(npt)
       xksoil(npt) = strf(npt)*smrf(npt)
       xklitter(npt) = strf(npt)*smrf(npt)
+      ENDIF
 
 !write(67,"(i8,18e16.6)") npt, fwps(npt), smrf(npt), strf(npt),xkwater(npt),  xktemp(npt), xklitter(npt)
 !write(67,"(i8,18e16.6)") npt, tsoil(npt), strf(npt),  xktemp(npt)
@@ -1445,8 +1478,7 @@ SUBROUTINE casa_delplant(veg,casabiome,casapool,casaflux,casamet,            &
                 + casaflux%Plabuptake(npt)*casaflux%fracPalloc(npt,:)
            !       casapool%Psoillab(npt)    = casapool%Psoillab(npt) - casaflux%Plabuptake(npt) * deltpool
         ENDIF  !of "icycle >2"
-    
-
+  
      ENDIF
   ENDDO
 npt=2
@@ -1509,7 +1541,16 @@ IF(casamet%iveg2(nland)/=icewater) THEN
       !vh! set klitter to zero where Nlitter will go -ve 
       !(occurs occasionally for metabolic litter pool) Ticket#108
       where (casaflux%klitter(nland,:) * max(0.0,casapool%Nlitter(nland,:)).gt. &
-           casapool%Nlitter(nland,:)+casaflux%fluxNtolitter(nland,:)) casaflux%klitter(nland,:) = 0.0
+           casapool%Nlitter(nland,:)+casaflux%fluxNtolitter(nland,:)) &
+           casaflux%klitter(nland,:) = 0.0
+   endif
+
+   IF(icycle > 2) THEN
+      !vh! set klitter to zero where Plitter will go -ve 
+      !(occurs occasionally for metabolic litter pool) Ticket#108
+      where (casaflux%klitter(nland,:) * max(0.0,casapool%Plitter(nland,:)).gt. &
+           casapool%Plitter(nland,:)+casaflux%fluxPtolitter(nland,:)) &
+           casaflux%klitter(nland,:) = 0.0
    endif
 
    DO nL=1,mlitter
@@ -1670,7 +1711,9 @@ IF(casamet%iveg2(nland)/=icewater) THEN
                                     * casaflux%ksoil(nland,kk)      &
                                     * casapool%Nsoil(nland,kk)      &
                                     /casapool%ratioNPsoil(nland,k)
-!                                    * casapool%ratioPCsoil(nland,k)/casapool%ratioNCsoil(nland,k)
+               !                                    * casapool%ratioPCsoil(nland,k)/casapool%ratioNCsoil(nland,k)
+
+             
             ENDIF
          ENDDO ! end of "kk"
       ENDDO    ! end of "k"
@@ -1678,6 +1721,9 @@ IF(casamet%iveg2(nland)/=icewater) THEN
    ENDIF
 ENDIF  ! end of /=icewater
 ENDDO  ! end of nland
+
+
+
 
 DO nland=1,mp
 IF(casamet%iveg2(nland)/=icewater) THEN
@@ -1752,6 +1798,22 @@ IF(casamet%iveg2(nland)/=icewater) THEN
                                  + casaflux%kpocc(nland) * casapool%Psoilocc(nland)
       ! here the dPsoillabdt =(dPsoillabdt+dPsoilsorbdt)
       ! dPsoilsorbdt  = xdplabsorb
+
+!  np=1
+!!$  write(66,912) casaflux%Psnet(nland) , fluxptase(nland),         &
+!!$                                 + casaflux%Pdep(nland) , casaflux%Pwea(nland)   ,   &
+!!$                                 - casaflux%Pleach(nland),-casaflux%pupland(nland) ,   &
+!!$                                 - casaflux%kpsorb(nland)*casapool%Psoilsorb(nland) , &
+!!$                                 + casaflux%kpocc(nland) * casapool%Psoilocc(nland), &
+!!$                                 casapool%dPsoillabdt(nland), xdplabsorb(nland), &
+!!$                                 casapool%dPsoillabdt(nland)/xdplabsorb(nland)
+!!$               
+!!$
+!!$
+!!$
+!!$912 format(100(e12.3,2x))
+
+      
       casapool%dPsoillabdt(nland)  = casapool%dPsoillabdt(nland)/xdplabsorb(nland)
       casapool%dPsoilsorbdt(nland) = 0.0
 
@@ -1802,9 +1864,6 @@ SUBROUTINE avgsoil(veg,soil,casamet)
     ENDIF
 
 
-
-
- 
 
  ! Ticket#121
 
@@ -2279,9 +2338,10 @@ SUBROUTINE casa_cnpcycle(veg,casabiome,casapool,casaflux,casamet, LALLOC)
       casapool%Plitter(np,:) = casapool%Plitter(np,:) &
                              + casapool%dPlitterdt(np,:)* deltpool
       casapool%Psoil(np,:)   = casapool%Psoil(np,:)   &
-                             + casapool%dPsoildt(np,:)  * deltpool
-      casapool%Psoillab(np)  = casapool%Psoillab(np)  &
-                             + casapool%dPsoillabdt(np) * deltpool
+           + casapool%dPsoildt(np,:)  * deltpool
+      ! vh ! put lower bound of 1.e-3 to prevent Psoillab from going negative
+      casapool%Psoillab(np)  = max(casapool%Psoillab(np)  &
+                             + casapool%dPsoillabdt(np) * deltpool, 1.e-3)
       casapool%Psoilsorb(np) = casaflux%Psorbmax(np)*casapool%Psoillab(np) &
                              /(casaflux%kmlabp(np)+casapool%Psoillab(np))
 !      casapool%Psoilsorb(np) = casapool%Psoilsorb(np)  &

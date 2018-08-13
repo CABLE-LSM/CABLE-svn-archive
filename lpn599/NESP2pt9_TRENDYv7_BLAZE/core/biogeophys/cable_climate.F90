@@ -19,7 +19,7 @@
 ! ==============================================================================
 MODULE cable_climate_mod
 
- Use cable_def_types_mod, ONLY: met_type, climate_type, canopy_type, mp, &
+ Use cable_def_types_mod, ONLY: met_type, climate_type, canopy_type,soil_snow_type, mp, &
       r_2, alloc_cbm_var, air_type, radiation_type
  USE TypeDef,              ONLY: i4b, dp
  USE cable_IO_vars_module, ONLY: patch
@@ -30,7 +30,7 @@ CONTAINS
 
 
 SUBROUTINE cable_climate(ktau,kstart,kend,ktauday,idoy,LOY,met,climate, canopy, &
-     air, rad, dels, np)
+     ssnow,air, rad, dels, np)
 
 
   IMPLICIT NONE
@@ -44,6 +44,7 @@ SUBROUTINE cable_climate(ktau,kstart,kend,ktauday,idoy,LOY,met,climate, canopy, 
   TYPE (met_type), INTENT(IN)       :: met  ! met input variables
   TYPE (climate_type), INTENT(INOUT)       :: climate  ! climate variables
   TYPE (canopy_type), INTENT(IN) :: canopy ! vegetation variables
+  TYPE (soil_snow_type), INTENT(IN) :: ssnow
   TYPE (air_type), INTENT(IN)       :: air
   TYPE (radiation_type), INTENT(IN)  :: rad	   ! radiation variables
   REAL, INTENT(IN)               :: dels ! integration time setp (s)
@@ -92,12 +93,13 @@ SUBROUTINE cable_climate(ktau,kstart,kend,ktauday,idoy,LOY,met,climate, canopy, 
   EpSA = Epsif(met%tk - 273.16, met%pmb)
   phiEq = canopy%rniso * (PPc*EpsA) / (PPc*EpsA + 1.0)      ! equil ltnt heat flux  [W/m2]
 
-  IF (idoy==1 .and. MOD(ktau,ktauday)==1 ) THEN
+  IF (idoy==1 .and. MOD(ktau,ktauday)==1 ) THEN   ! first time step of year
       !  climate%evap_PT =  max(phiEq,1.0)*CoeffPT/air%rlam*dels  ! mm
         climate%evap_PT =  phiEq*CoeffPT/2.5014e6*dels  ! mm
       !  climate%evap_PT = canopy%epot  ! mm
       !  climate%aevap  =   canopy%fe/air%rlam*dels ! mm
         climate%aevap = met%precip ! mm
+        climate%fapar_ann_max = 0.0 
   ELSE
      climate%evap_PT = climate%evap_PT + phiEq*CoeffPT/2.5014e6*dels  ! mm
     ! climate%evap_PT = climate%evap_PT + max(phiEq,1.0)*CoeffPT/air%rlam*dels  ! mm
@@ -109,11 +111,13 @@ SUBROUTINE cable_climate(ktau,kstart,kend,ktauday,idoy,LOY,met,climate, canopy, 
   ! accumulate daily temperature, evap and potential evap
   IF(MOD(ktau,ktauday)==1) THEN
      climate%dtemp = met%tk - 273.15
-     climate%dmoist = canopy%fwsoil
+    ! climate%dmoist = canopy%fwsoil
+     climate%dmoist = ssnow%wb(:,2)
      climate%dtemp_min =  climate%dtemp 
   ELSE
      climate%dtemp = climate%dtemp + met%tk - 273.15
-     climate%dmoist = climate%dmoist + canopy%fwsoil
+     !climate%dmoist = climate%dmoist + canopy%fwsoil
+     climate%dmoist =  ssnow%wb(:,2)
      climate%dtemp_min = min(met%tk - 273.15, climate%dtemp_min)
   ENDIF
 
@@ -121,6 +125,18 @@ SUBROUTINE cable_climate(ktau,kstart,kend,ktauday,idoy,LOY,met,climate, canopy, 
      climate%dtemp = climate%dtemp/FLOAT(ktauday)
      climate%dmoist = climate%dmoist/FLOAT(ktauday)
   ENDIF
+
+  !  midday fraction of incoming visible radiation absorbed by the canopy
+  IF ( mod(ktau,INT(24.0*3600.0/dels)) == INT(24.0*3600.0/dels)/2 &
+               ) THEN
+    ! climate%fapar_ann_max =   max( (1.-rad%rhocdf(:,1))*(1.-rad%fbeam(:,1)) + &
+    !      (1.-rad%rhocbm(:,1))*rad%fbeam(:,1) , climate%fapar_ann_max)
+     WHERE (rad%fbeam(:,1).GE.0.01)
+        climate%fapar_ann_max = max(1.- rad%extkbm(:,1)*canopy%vlaiw,  &
+             climate%fapar_ann_max)
+     ENDWHERE
+  
+   ENDIF
 
   ! accumulate sub-diurnal sun- and shade-leaf met variables that are relevant for calc of Anet
   climate%APAR_leaf_sun(:,1:nsd-1) =  climate%APAR_leaf_sun(:,2:nsd)
@@ -338,6 +354,8 @@ SUBROUTINE cable_climate(ktau,kstart,kend,ktauday,idoy,LOY,met,climate, canopy, 
 
            climate%dmoist_min20 = 0.0
            climate%dmoist_max20 = 0.0
+
+           climate%fapar_ann_max_last_year =  climate%fapar_ann_max 
 
            if (startyear<20) then
               DO y=startyear,19
@@ -765,6 +783,7 @@ if (cable_user%climate_fromzero) then
    climate%dmoist_max20 = 0.0
    climate%dmoist_min_20 = 0.0
    climate%dmoist_max_20 = 0.0
+   climate%fapar_ann_max_last_year = 0.0
    
 else
    CALL READ_CLIMATE_RESTART_NC (climate, ktauday )
@@ -798,7 +817,7 @@ SUBROUTINE WRITE_CLIMATE_RESTART_NC ( climate, ktauday )
   ! 0 dim arrays
   CHARACTER(len=20),DIMENSION(2) :: A0
   ! 1 dim arrays (npt )
-  CHARACTER(len=20),DIMENSION(25) :: A1
+  CHARACTER(len=30),DIMENSION(26) :: A1
  ! 1 dim arrays (integer) (npt )
   CHARACTER(len=20),DIMENSION(4) :: AI1
   ! 2 dim arrays (npt,20)
@@ -844,6 +863,7 @@ SUBROUTINE WRITE_CLIMATE_RESTART_NC ( climate, ktauday )
   A1(23) = 'fdorm'
   A1(24) = 'dmoist_min20'
   A1(25) = 'dmoist_max20'
+  A1(26) =  'fapar_ann_max_last_year'
 
   AI1(1) = 'chilldays'
   AI1(2) = 'iveg'
@@ -1035,6 +1055,9 @@ STATUS = NF90_PUT_VAR(FILE_ID, VID1(5), climate%qtemp )
   STATUS = NF90_PUT_VAR(FILE_ID, VID1(25), climate%dmoist_max20 )
   IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
 
+  STATUS = NF90_PUT_VAR(FILE_ID, VID1(26), climate%fapar_ann_max_last_year )
+  IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+
   STATUS = NF90_PUT_VAR(FILE_ID, VIDI1(1), climate%chilldays )
   IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
 
@@ -1130,7 +1153,7 @@ SUBROUTINE READ_CLIMATE_RESTART_NC ( climate, ktauday )
   ! 0 dim arrays
   CHARACTER(len=20),DIMENSION(2) :: A0
   ! 1 dim arrays (npt )
-  CHARACTER(len=20),DIMENSION(25) :: A1
+  CHARACTER(len=30),DIMENSION(26) :: A1
  ! 1 dim arrays (integer) (npt )
   CHARACTER(len=20),DIMENSION(4) :: AI1
   ! 2 dim arrays (npt,20)
@@ -1179,6 +1202,7 @@ SUBROUTINE READ_CLIMATE_RESTART_NC ( climate, ktauday )
   A1(23) = 'fdorm'
   A1(24) = 'dmoist_min20'
   A1(25) = 'dmoist_max20'
+  A1(26) =  'fapar_ann_max_last_year'
   
   AI1(1) = 'chilldays'
   AI1(2) = 'iveg'
@@ -1303,6 +1327,7 @@ write(*,*) 'patch%latitude',  SIZE(patch%latitude)
      CASE ('fdorm'  ) ; climate%fdorm  = TMP
      CASE ('dmoist_min20'  ) ; climate%dmoist_min20  = TMP
      CASE ('dmoist_max20'  ) ; climate%dmoist_max20  = TMP
+     CASE ('fapar_ann_max_last_year'  ) ; climate%fapar_ann_max_last_year  = TMP
      END SELECT
   END DO
 
