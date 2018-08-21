@@ -113,6 +113,42 @@ host_Mart(){
     build_status
 }
 
+host_Mart(){
+    export NCDIR='/opt/local/lib/'
+    export NCMOD='/opt/local/include/'
+    export FC=gfortran
+    export CFLAGS='-O2'
+    export LD='-lnetcdf -lnetcdff'
+    export LDFLAGS='-L/opt/local/lib -O2'
+    build_build
+    cd ../
+    build_status
+}
+
+host_Mart(){
+    export NCDIR='/opt/local/lib/'
+    export NCMOD='/opt/local/include/'
+    export FC=gfortran
+    export CFLAGS='-O2'
+    export LD='-lnetcdf -lnetcdff'
+    export LDFLAGS='-L/opt/local/lib -O2'
+    build_build
+    cd ../
+    build_status
+}
+
+host_Mart(){
+    export NCDIR='/opt/local/lib/'
+    export NCMOD='/opt/local/include/'
+    export FC=gfortran
+    export CFLAGS='-O2'
+    export LD='-lnetcdf -lnetcdff'
+    export LDFLAGS='-L/opt/local/lib -O2'
+    build_build
+    cd ../
+    build_status
+}
+
 host_ccrc(){
     export NCDIR='/opt/local/lib/'
     export NCMOD='/opt/local/include/'
