@@ -410,6 +410,7 @@ PROGRAM cable_offline_driver
   IF (TRIM(cable_user%MetType) .EQ. 'site' .OR. &
        TRIM(cable_user%MetType) .EQ. '') THEN
      CALL open_met_file( dels, koffset, kend, spinup, C%TFRZ )
+
      IF ( koffset .NE. 0 .AND. CABLE_USER%CALL_POP ) THEN
 	WRITE(*,*)"When using POP, episode must start at Jan 1st!"
 	STOP 991
@@ -903,7 +904,7 @@ PROGRAM cable_offline_driver
                  ! dump bitwise reproducible testing data
                  IF( cable_user%RUN_DIAG_LEVEL == 'zero') THEN
                     IF (.NOT.CASAONLY) THEN
-                       WRITE(*,*) 'before diags'
+                       !WRITE(*,*) 'before diags'
                        IF((.NOT.spinup).OR.(spinup.AND.spinConv))			 &
                             CALL cable_diag( iDiagZero, "FLUXES", mp, kend, ktau,			 &
                             knode_gl, "FLUXES",				&
