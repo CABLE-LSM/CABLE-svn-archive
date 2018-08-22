@@ -285,7 +285,7 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
       endif
 
       !--- initialize veg   
-      CALL initialize_veg( canht_ft, lai_ft ) 
+      CALL initialize_veg( canht_ft, lai_ft, dzsoil ) 
  
       !--- initialize soil
       CALL initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,      &
