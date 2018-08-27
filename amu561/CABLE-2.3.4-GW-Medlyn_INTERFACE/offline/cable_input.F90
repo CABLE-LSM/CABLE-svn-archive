@@ -1443,6 +1443,8 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
        exists%parameters = .TRUE.
        ! Allocate space for user-defined veg type variable:
        ALLOCATE(vegtype_metfile(mland,nmetpatches))
+       ALLOCATE(vegpatch_metfile(mland,nmetpatches))
+
        ! Check dimension of veg type:
        ok=NF90_INQUIRE_VARIABLE(ncid_met,id%iveg,ndims=iveg_dims)
        IF(metGrid=='mask') THEN ! i.e. at least two spatial dimensions
@@ -1472,6 +1474,15 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
                 IF(ok /= NF90_NOERR) CALL nc_abort & ! check read ok
                      (ok,'Error reading iveg in met data file ' &
                      //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
+
+
+               !Anna: also read patch fractions 
+                ok= NF90_GET_VAR(ncid_met,id%patchfrac,vegpatch_metfile(i,:), & 
+                                 start=(/land_x(i),land_y(i),1/),count=(/1,1,nmetpatches/)) 
+                IF(ok /= NF90_NOERR) CALL nc_abort & ! check read ok 
+                     (ok,'Error reading patchfrac in met data file ' & 
+                         //TRIM(filename%met)//' (SUBROUTINE open_met_file)') 
+                                    
              END DO
           END IF
        ELSE IF(metGrid=='land') THEN
@@ -1503,6 +1514,12 @@ SUBROUTINE open_met_file(dels,kend,spinup, TFRZ)
                 IF(ok /= NF90_NOERR) CALL nc_abort &
                      (ok,'Error reading iveg in met data file ' &
                      //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
+                !Anna: also read patch fractions 
+                ok= NF90_GET_VAR(ncid_met,id%patchfrac,vegpatch_metfile(i,:), & 
+                                 start=(/land_x(i),land_y(i),1/),count=(/1,1,nmetpatches/)) 
+                IF(ok /= NF90_NOERR) CALL nc_abort & ! check read ok 
+                     (ok,'Error reading patchfrac in met data file ' & 
+                         //TRIM(filename%met)//' (SUBROUTINE open_met_file)') 
              END DO
           END IF
        END IF

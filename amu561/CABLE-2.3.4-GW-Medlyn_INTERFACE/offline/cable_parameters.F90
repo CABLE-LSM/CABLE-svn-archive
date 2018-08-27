@@ -155,7 +155,7 @@ CONTAINS
     WRITE(logn,*) ' Reading grid info from ', TRIM(filename%type)
     WRITE(logn,*) ' And assigning C4 fraction according to veg classification.'
     WRITE(logn,*) 
-    CALL read_gridinfo(nlon,nlat,npatch)
+    CALL read_gridinfo(nlon,nlat,nmetpatches)
 
     IF (soilparmnew) THEN
       PRINT *,      'Use spatially-specific soil properties; ', nlon, nlat
@@ -209,13 +209,13 @@ CONTAINS
     IMPLICIT NONE
     INTEGER, INTENT(OUT) :: nlon
     INTEGER, INTENT(OUT) :: nlat
-    INTEGER, INTENT(OUT) :: npatch
+    INTEGER, INTENT(INOUT) :: npatch
 
     ! local variables
     INTEGER :: ncid, ok
     INTEGER :: xID, yID, pID, sID, tID, bID
     INTEGER :: varID
-    INTEGER :: nslayer, ntime, nband, nlai_dims !number of dimensions for lai
+    INTEGER :: nslayer, ntime, nband, nlai_dims,lat,lon !number of dimensions for lai
     INTEGER :: ii, jj, kk
     INTEGER, DIMENSION(:, :),     ALLOCATABLE :: idummy
     REAL,    DIMENSION(:, :),     ALLOCATABLE :: rdummy
@@ -234,10 +234,10 @@ CONTAINS
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error inquiring y dimension.')
     ok = NF90_INQUIRE_DIMENSION(ncid, yID, LEN=nlat)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error getting y dimension.')
-    ok = NF90_INQ_DIMID(ncid, 'patch', pID)
-    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error inquiring patch dimension.')
-    ok = NF90_INQUIRE_DIMENSION(ncid, pID, LEN=npatch)
-    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error getting patch dimension.')
+!    ok = NF90_INQ_DIMID(ncid, 'patch', pID)
+!    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error inquiring patch dimension.')
+!    ok = NF90_INQUIRE_DIMENSION(ncid, pID, LEN=npatch)
+!    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error getting patch dimension.')
     ok = NF90_INQ_DIMID(ncid, 'soil', sID)
     ok = NF90_INQUIRE_DIMENSION(ncid, sID, LEN=nslayer)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error getting soil dimension.')
@@ -289,31 +289,42 @@ CONTAINS
     ok = NF90_GET_VAR(ncid, varID, inLat)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable latitude.')
 
-    ok = NF90_INQ_VARID(ncid, 'iveg', varID)
-    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable iveg.')
-
-    ok = NF90_GET_VAR(ncid, varID, inVeg)
-    IF (ok /= NF90_NOERR) THEN
-       if (npatch .eq. 1) then
-          ok = NF90_GET_VAR(ncid, varID, idummy)
-          IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable iveg.')
-          do kk=1,npatch
-             inVeg(:, :,kk) = idummy(:,:) ! npatch=1 in 1x1 degree input
-          end do
-       else
-          ok = NF90_GET_VAR(ncid, varID, inVeg)
-          IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable iveg.')
-       end if
-    END IF
-
-    ok = NF90_INQ_VARID(ncid, 'patchfrac', varID)
-    IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                    &
-                                        'Error finding variable patchfrac.')
-    ok = NF90_GET_VAR(ncid, varID, inPFrac)
-    IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                    &
-                                        'Error reading variable patchfrac.')
-
+!    ok = NF90_INQ_VARID(ncid, 'iveg', varID)
+!    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable iveg.')
+!
+!    ok = NF90_GET_VAR(ncid, varID, inVeg)
+!    IF (ok /= NF90_NOERR) THEN
+!       if (npatch .eq. 1) then
+!          ok = NF90_GET_VAR(ncid, varID, idummy)
+!          IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable iveg.')
+!          do kk=1,npatch
+!             inVeg(:, :,kk) = idummy(:,:) ! npatch=1 in 1x1 degree input
+!          end do
+!       else
+!          ok = NF90_GET_VAR(ncid, varID, inVeg)
+!          IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable iveg.')
+!       end if
+!    END IF
+!
+!    ok = NF90_INQ_VARID(ncid, 'patchfrac', varID)
+!    IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                    &
+!                                        'Error finding variable patchfrac.')
+!    ok = NF90_GET_VAR(ncid, varID, inPFrac)
+!    IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                    &
+!                                        'Error reading variable patchfrac.')
+!
     !inPFrac(:, :, 1) = rdummy(:, :)  !rdummy has been allocated but not set.
+
+
+    !loop through lat and lon to fill patch and veg vars 
+    DO lon = 1,nlon 
+        DO lat = 1, nlat 
+            inPFrac(lon,lat,:) = vegpatch_metfile(1,:) !Anna: passing met patchfrac here 
+            inVeg(lon,lat,:) = vegtype_metfile(1,:) 
+        ENDDO 
+    ENDDO 
+
+
     ok = NF90_INQ_VARID(ncid, 'isoil', varID)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable isoil.')
     ok = NF90_GET_VAR(ncid, varID, inSoil)
@@ -350,6 +361,8 @@ CONTAINS
          inSND(:, :, jj, kk) = r3dum2(:, :, kk)
       ENDDO
     ENDDO
+
+
     ok = NF90_INQ_VARID(ncid, 'LAI', varID)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable LAI.')
     ok = NF90_INQUIRE_VARIABLE(ncid,varID,ndims=nlai_dims)
@@ -1464,7 +1477,9 @@ SUBROUTINE read_g1map(logn)
           ! which are currently set to def values above:
           veg%iveg(landpt(e)%cstart:landpt(e)%cstart + nmetpatches - 1) =      &
                                                            vegtype_metfile(e, :)
-          ! In case gridinfo file provides more patches than met file(BP may08)
+          patch(landpt(e)%cstart:landpt(e)%cstart)%frac =      &
+                                                           vegpatch_metfile(e, :)
+        ! In case gridinfo file provides more patches than met file(BP may08)
           DO f = nmetpatches+1, landpt(e)%nap
              IF (patch(landpt(e)%cstart + f - 1)%frac > 0.0) THEN
                 patch(landpt(e)%cstart)%frac = patch(landpt(e)%cstart)%frac    &
@@ -1586,6 +1601,7 @@ SUBROUTINE read_g1map(logn)
     END DO ! over all land points
     soil%albsoil = min(ssnow%albsoilsn,0.2)
     ! check tgg and alb
+
     IF(ANY(ssnow%tgg > 350.0) .OR. ANY(ssnow%tgg < 180.0))                     &
            CALL abort('Soil temps nuts')
     IF(ANY(ssnow%albsoilsn > 1.0) .OR. ANY(ssnow%albsoilsn < 0.0))             &
