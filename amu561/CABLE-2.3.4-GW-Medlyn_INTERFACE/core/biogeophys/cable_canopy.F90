@@ -2161,9 +2161,9 @@ SUBROUTINE photosynthesis( csxz, cx1z, cx2z, gswmin3z, gswmin4z,               &
                          + MIN(anrubisco4z(i,j),anrubp4z(i,j),ansink4z(i,j))
 
                ! just for checking the CO2 concentration
-               ciz(i,j)  = csxz(i,j) -anxz(i,j)         &
-                         / ( gs_coeffz(i,j)*anxz(i,j)   &
-                           + fwsoilz(i) *(gswmin3z(i,j) +gswmin4z(i,j))/C%RGSWC)
+               !ciz(i,j)  = csxz(i,j) -anxz(i,j)         &
+                !         / ( gs_coeffz(i,j)*anxz(i,j)   &
+                 !          + fwsoilz(i) *(gswmin3z(i,j) +gswmin4z(i,j))/C%RGSWC)
         
             ENDIF
       

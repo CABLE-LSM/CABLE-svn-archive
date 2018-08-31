@@ -2083,8 +2083,8 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
 
       ! Get CO2air data for mask grid:- - - - - - - - - - - - - - - - - -
       IF(exists%CO2air) THEN ! If CO2air exists in met file
-        ok= NF90_GET_VAR(ncid_met,id%CO2air,tmpDat3, &
-             start=(/1,1,ktau/),count=(/xdimsize,ydimsize,1/))
+        ok= NF90_GET_VAR(ncid_met,id%CO2air,tmpDat4, &
+             start=(/1,1,1,ktau/),count=(/xdimsize,ydimsize,1,1/))
         IF(ok /= NF90_NOERR) CALL nc_abort &
              (ok,'Error reading CO2air in met data file ' &
              //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
