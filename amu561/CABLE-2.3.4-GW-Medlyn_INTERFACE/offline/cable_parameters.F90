@@ -160,7 +160,7 @@ CONTAINS
     IF (soilparmnew) THEN
       PRINT *,      'Use spatially-specific soil properties; ', nlon, nlat
       WRITE(logn,*) 'Use spatially-specific soil properties; ', nlon, nlat
-      CALL spatialSoil(nlon, nlat, npatch, logn)
+      CALL spatialSoil(nlon, nlat, nmetpatches, logn)
     ENDIF
 
     ! include prescribed soil colour in determining albedo - Ticket #27
@@ -343,6 +343,9 @@ CONTAINS
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable Albedo.')
     ok = NF90_GET_VAR(ncid, varID, r3dum)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable Albedo.')
+
+    
+    print *, "INalb npatch", npatch 
     DO kk = 1, nband
       DO jj=1,npatch
          inALB(:,:,jj,kk) = r3dum(:,:,kk)
@@ -776,6 +779,7 @@ CONTAINS
     END WHERE
     dummy2(:, :) = 2.0 * in2alb(:, :) / (1.0 + sfact(:, :))
 
+print *, "npatch", npatch
     do ii=1,npatch
        inALB(:, :, ii, 2) = dummy2(:, :)
        inALB(:, :, ii, 1) = sfact(:, :) * dummy2(:, :)
