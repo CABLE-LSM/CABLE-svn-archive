@@ -170,6 +170,8 @@ MODULE cable_common_module
      LOGICAL :: fix_access_roots = .false.  !use pft dependent roots in ACCESS
      !ticket#179
      LOGICAL :: soil_thermal_fix=.false.
+     !ACCESS roots
+     LOGICAL :: access13roots = .false.     !switch to use ACCESS1.3 %froot
 
   END TYPE kbl_user_switches
 
@@ -488,13 +490,17 @@ CONTAINS
 
   END SUBROUTINE report_version_no
 
-  SUBROUTINE init_veg_from_vegin(ifmp,fmp, veg)
-     use cable_def_types_mod, ONLY : veg_parameter_type
-     integer ::  ifmp,  & ! start local mp, # landpoints (jhan:when is this not 1 )
-                 fmp     ! local mp, # landpoints
+  SUBROUTINE init_veg_from_vegin(ifmp,fmp, veg, soil_zse ) 
+     use cable_def_types_mod, ONLY : veg_parameter_type, ms 
 
+     integer ::  ifmp,  & ! start local mp, # landpoints (jhan:when is this not 1 )      
+                 fmp     ! local mp, # landpoints       
+     real, dimension(ms) :: soil_zse 
+  
      type(veg_parameter_type) :: veg
 
+    INTEGER :: is
+    REAL :: totdepth
      integer :: h
 
          ! Prescribe parameters for current gridcell based on veg/soil type (which
@@ -536,10 +542,28 @@ CONTAINS
             veg%conko0(h) = vegin%conko0(veg%iveg(h))
             veg%ekc(h)    = vegin%ekc(veg%iveg(h))
             veg%eko(h)    = vegin%eko(veg%iveg(h))
-            veg%froot(h,:)  = vegin%froot(:, veg%iveg(h))
+            veg%rootbeta(h)  = vegin%rootbeta(veg%iveg(h))
             veg%zr(h)       = vegin%zr(veg%iveg(h))
             veg%clitt(h)    = vegin%clitt(veg%iveg(h))
          END DO ! over each veg patch in land point
+ 
+  ! calculate vegin%froot from using rootbeta and soil depth
+  ! (Jackson et al. 1996, Oceologica, 108:389-411)
+  totdepth = 0.0
+  DO is = 1, ms-1
+    totdepth = totdepth + soil_zse(is) * 100.0  ! unit in centimetres
+    veg%froot(:, is) = MIN( 1.0, 1.0-veg%rootbeta(:)**totdepth )
+  END DO
+  veg%froot(:, ms) = 1.0 - veg%froot(:, ms-1)
+  DO is = ms-1, 2, -1
+    veg%froot(:, is) = veg%froot(:, is)-veg%froot(:,is-1)
+  END DO
+
+
+ 
+ 
+  
+  END SUBROUTINE init_veg_from_vegin 
 
   END SUBROUTINE init_veg_from_vegin
 
