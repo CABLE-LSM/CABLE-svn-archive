@@ -79,7 +79,7 @@ SUBROUTINE surface_albedo(ssnow, veg, met, rad, soil, canopy)
    rad%reffdf = ssnow%albsoilsn
    rad%albedo = ssnow%albsoilsn
 
-   ! Define vegetation mask:
+   ! Define sunlit vegetation mask:
    mask = canopy%vlaiw > C%LAI_THRESH .AND.                                    &
           ( met%fsd(:,1) + met%fsd(:,2) ) > C%RAD_THRESH
 
