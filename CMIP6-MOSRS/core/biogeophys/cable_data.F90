@@ -148,7 +148,7 @@ module cable_data_module
    TYPE icbm_type
       REAL, POINTER ::                                                         &
          ! physical constants
-         GRAV, CAPP, EMLEAF, EMSOIL
+         GRAV, CAPP, EMLEAF, EMSOIL, SBOLTZ
    END TYPE icbm_type
 
 
@@ -298,6 +298,7 @@ SUBROUTINE cbm_type_ptr(C)
    C%CAPP  => PHYS%CAPP
    C%EMLEAF => PHYS%EMLEAF
    C%EMSOIL => PHYS%EMSOIL
+   C%SBOLTZ => PHYS%SBOLTZ
 END SUBROUTINE cbm_type_ptr
 
 ! ------------------------------------------------------------------------------

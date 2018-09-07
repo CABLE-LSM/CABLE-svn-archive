@@ -226,8 +226,9 @@ CONTAINS
        !To accommodate this a single value of is 1. is assumed in ACCESS
        ! any leaf/soil emissivity /=1 must be incorporated into rad%trad.  
        ! check that emissivities (pft and nvg) set = 1 within the UM i/o configuration
-       rad%trad = ( ( 1.-rad%transd ) * C%emleaf * canopy%tv**4 +                             &
-              rad%transd * C%emsoil * ssnow%tss**4 )**0.25
+       ! CM2 - further adapted to pass the correction term onto %trad correctly
+       rad%trad = ( ( 1.-rad%transd ) * C%emleaf * canopy%tv**4 +                      &
+              rad%transd * C%emsoil * ssnow%otss**4 + canopy%fns_cor/C%sboltz )**0.25
    else       
    rad%trad = ( ( 1.-rad%transd ) * canopy%tv**4 +                             &
               rad%transd * ssnow%tss**4 )**0.25
