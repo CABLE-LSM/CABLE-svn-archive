@@ -450,7 +450,7 @@ subroutine cable_pft_params()
       vegin%eko(6) =    36000.000000
        vegin%g0(6) =        0.000000
        vegin%g1(6) =        5.248500
-       vegin%zr(6) =        0.500000
+       vegin%zr(6) =        0.500000    !1.5 in Haverd et al. (2016)
     vegin%clitt(6) =        2.000000
  
  !PFT: C4                                                                    
@@ -509,7 +509,7 @@ subroutine cable_pft_params()
       vegin%eko(7) =    36000.000000
        vegin%g0(7) =        0.000000
        vegin%g1(7) =        1.616178
-       vegin%zr(7) =        0.500000
+       vegin%zr(7) =        0.500000    !2.4 in Haverd et al. (2016)
     vegin%clitt(7) =        0.300000
  
  !PFT: Tundra                                                                
@@ -627,7 +627,7 @@ subroutine cable_pft_params()
       vegin%eko(9) =    36000.000000
        vegin%g0(9) =        0.000000
        vegin%g1(9) =        5.789377
-       vegin%zr(9) =        0.500000
+       vegin%zr(9) =        0.500000    !1.5 in Haverd et al. (2016)
     vegin%clitt(9) =        0.000000
  
  !PFT: C4                                                                    
@@ -686,7 +686,7 @@ subroutine cable_pft_params()
       vegin%eko(10) =    36000.000000
        vegin%g0(10) =        0.000000
        vegin%g1(10) =        1.616178
-       vegin%zr(10) =        0.500000
+       vegin%zr(10) =        0.500000    !1.5 in Haverd et al. (2016)
     vegin%clitt(10) =        0.000000
  
  !PFT: wetland                                                               
