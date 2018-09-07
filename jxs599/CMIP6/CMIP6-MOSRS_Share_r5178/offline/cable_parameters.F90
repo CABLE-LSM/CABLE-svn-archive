@@ -1229,17 +1229,6 @@ CONTAINS
 
     veg%meth = 1 ! canopy turbulence parameterisation method: 0 or 1
 
-    ! calculate vegin%froot from using rootbeta and soil depth
-    ! (Jackson et al. 1996, Oceologica, 108:389-411)
-    totdepth = 0.0
-    DO is = 1, ms
-       totdepth = totdepth + soil%zse(is) * 100.0  ! unit in centimetres
-       vegin%froot(is, :) = MIN(1.0, 1.0-vegin%rootbeta(:)**totdepth)
-    END DO
-    DO is = ms, 2, -1
-       vegin%froot(is, :) = vegin%froot(is, :)-vegin%froot(is-1, :)
-    END DO
-
     ALLOCATE(defaultLAI(mp, 12))
 
     DO e = 1, mland ! over all land grid points
@@ -1454,7 +1443,7 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
        END IF
 ! offline only above
        !call veg% init that is common   
-       CALL init_veg_from_vegin(landpt(e)%cstart, landpt(e)%cend, veg)
+       CALL init_veg_from_vegin(landpt(e)%cstart, landpt(e)%cend, veg, soil%zse )
 
        ! Prescribe parameters for current gridcell based on veg/soil type (which
        ! may have loaded from default value file or met file):
