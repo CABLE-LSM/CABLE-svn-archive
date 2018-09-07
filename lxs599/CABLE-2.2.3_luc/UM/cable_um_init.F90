@@ -62,7 +62,7 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
    USE cable_um_tech_mod,   ONLY :                                             &
       alloc_um_interface_types,  & ! mem. allocation subr (um1, kblum%) 
       dealloc_vegin_soilin,      & ! mem. allocation subr (vegin%,soilin%)
-      um1,                       & ! um1% type UM basics 4 convenience
+      um1,soil,                  & ! um1% type UM basics 4 convenience
       kblum_veg                    ! kblum_veg% reset UM veg vars 4 CABLE use
 
    USE cable_common_module, ONLY :                                             &
@@ -335,6 +335,7 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
       !--- Lestevens 23apr13
       !IF (l_casacnp) THEN ?
          CALL init_respiration(NPP_FT_ACC,RESP_W_FT_ACC)
+      ENDIF      
 
       ! Lestevens 28 Sept 2012 - Initialize CASA-CNP here
          if (l_casacnp) then
@@ -344,14 +345,20 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
              print *, '  l_casacnp = ',l_casacnp
              print *, 'End CASA_log:'; print *, '  '
            endif
+      IF( first_call ) THEN
            call init_casacnp(sin_theta_latitude,cpool_tile,npool_tile,&
                              ppool_tile,soil_order,nidep,nifix,pwea,pdust,&
                              wood_hvest_c,wood_hvest_n,wood_hvest_p, &
                              wood_flux_c,wood_flux_n,wood_flux_p, &
                              wresp_c,wresp_n,wresp_p,thinning, &
                              GLAI,PHENPHASE,PREV_YR_SFRAC,iday)
+      ENDIF      
+      ! Lestevens 4 sept 2018 - init Ndep every tstep for ancil updates
+           call casa_ndep_pk(nidep)
+
          endif
 
+      IF( first_call ) THEN
          CALL dealloc_vegin_soilin()
          first_call = .FALSE. 
       ENDIF      

@@ -195,12 +195,12 @@ IMPLICIT NONE
 
     sorder = INT(soil_order)
     call um2cable_ilp(sorder,sorder(1:10),casamet%isorder,soil%isoilm,skip)
-    call um2cable_lp(nidep,nidep(1:10),annNdep ,soil%isoilm, skip)
+    !call um2cable_lp(nidep,nidep(1:10),annNdep ,soil%isoilm, skip)
     call um2cable_lp(nifix,nifix(1:10),annNfix ,soil%isoilm, skip)
     call um2cable_lp(pwea ,pwea(1:10) ,annPwea ,soil%isoilm, skip)
     call um2cable_lp(pdust,pdust(1:10),annPdust,soil%isoilm, skip)
 
-    casaflux%Nmindep = annNdep/365.0      ! gN/m2/day
+    !casaflux%Nmindep = annNdep/365.0      ! gN/m2/day
     casaflux%Nminfix = annNfix/365.0      ! gN/m2/day
     casaflux%Pdep    = annPdust/365.0     ! gP/m2/day
     casaflux%Pwea    = annPwea/365.0      ! gP/m2/day
@@ -1325,6 +1325,26 @@ END SUBROUTINE unpack_glai
   !    END DO
   !
   !END SUBROUTINE redistr_luc_i
+
+SUBROUTINE casa_ndep_pk(nidep)
+
+    USE cable_um_tech_mod, ONLY : um1,soil
+    USE cable_def_types_mod
+    USE casavariable
+    USE casa_types_mod
+    USE cable_um_init_subrs_mod, ONLY : um2cable_lp
+
+IMPLICIT NONE
+
+! passed in
+    REAL, DIMENSION(um1%land_pts)       :: nidep
+! local variables
+    LOGICAL                             :: skip =.TRUE.
+
+! pack variables gN/m2/day
+    call um2cable_lp(nidep,nidep(1:10),casaflux%Nmindep,soil%isoilm,skip)
+
+END SUBROUTINE casa_ndep_pk
 
 END MODULE casa_um_inout_mod
 
