@@ -559,12 +559,6 @@ CONTAINS
     veg%froot(:, is) = veg%froot(:, is)-veg%froot(:,is-1)
   END DO
 
-
- 
- 
-  
-  END SUBROUTINE init_veg_from_vegin 
-
   END SUBROUTINE init_veg_from_vegin
 
 
