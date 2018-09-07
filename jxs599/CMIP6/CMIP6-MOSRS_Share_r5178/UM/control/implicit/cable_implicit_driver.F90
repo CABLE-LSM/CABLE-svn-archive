@@ -243,7 +243,7 @@ subroutine cable_implicit_driver( i_day_number, cycleno, &! num_cycles
     real, dimension(:), allocatable ::                                         &
       SNOW_RHO1L, SNOW_AGE, SNOW_TILE,                                         &
       OCANOPY,                                                                 &
-      fes_cor,fhs_cor, osnowd,owetfac,otss,GWwb,                               &
+      fes_cor,fhs_cor, osnowd,owetfac,otss,GWwb,tss0,                        &
       puddle, rtsoil, wblake, GWaq,                                            &
       SLI_h0, SLI_Tsurf
     
@@ -446,6 +446,8 @@ subroutine cable_store_prognostics()
       !GW model variables no need to test always has a value
       !so do not introduce issues with restarting a GW run 
       allocate (PB(ipb)%GWaq(mp) )
+      !otss - July 2018
+      allocate(PB(ipb)%tss0(mp) )
       
       !SLI variables - Jhan please check the second dimension
       if (cable_user%soil_struc=='sli') then
@@ -487,6 +489,8 @@ subroutine cable_store_prognostics()
   PB(ipb)%csoil = bgc%csoil
   !GW model variables
   PB(ipb)%GWaq   = ssnow%GWwb
+  !otss added July 2018
+  PB(ipb)%tss0 = ssnow%tss
   
   !SLI variables
   if (cable_user%soil_struc=='sli') then
@@ -528,6 +532,8 @@ SUBROUTINE cable_reinstate_prognostics()
   bgc%csoil = PB(1)%csoil
   !GW model variables
   ssnow%GWwb = PB(1)%GWaq
+  !%tss added July 2018
+  ssnow%tss = PB(1)%tss0
   
   !SLI variables
   if (cable_user%soil_struc=='sli') then

@@ -601,11 +601,12 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
 !========================================================================
 !========================================================================
           
-SUBROUTINE initialize_veg( canht_ft, lai_ft) 
+SUBROUTINE initialize_veg( canht_ft, lai_ft, soil_zse ) 
    USE cable_um_tech_mod
    USE cable_common_module, ONLY : cable_runtime, cable_user, vegin
    
-   REAL, INTENT(IN), DIMENSION(um1%land_pts, um1%npft) :: canht_ft, lai_ft 
+  REAL, INTENT(IN), DIMENSION(um1%land_pts, um1%npft) :: canht_ft, lai_ft 
+  real, dimension(ms) :: soil_zse 
    
    LOGICAL, SAVE :: first_call= .TRUE. ! defs 1st call to CABLE in this run
 
@@ -614,7 +615,7 @@ SUBROUTINE initialize_veg( canht_ft, lai_ft)
       
       !--- veg params were read from initialize_soil() 
       IF(first_call)  THEN
-         CALL init_veg_pars_fr_vegin() 
+         CALL init_veg_pars_fr_vegin( soil_zse ) 
          ! Fix in-canopy turbulence scheme globally:
          veg%meth = 1
       ENDIF
@@ -725,36 +726,31 @@ END SUBROUTINE init_respiration
 !========================================================================
 !========================================================================
 
-SUBROUTINE init_veg_pars_fr_vegin() 
-   USE cable_common_module, ONLY : vegin, init_veg_from_vegin,cable_user
-   USE cable_um_tech_mod,   ONLY : veg, soil 
-   USE cable_def_types_mod, ONLY : mp,ms
+SUBROUTINE init_veg_pars_fr_vegin( soil_zse ) 
+  USE cable_common_module, ONLY : vegin, init_veg_from_vegin,cable_user, &
+                                  knode_gl, ktau_gl
+  USE cable_um_tech_mod,   ONLY : veg, soil 
+  USE cable_def_types_mod, ONLY : mp,ms
 
-   INTEGER :: j, k
-   REAL :: totdepth
-   real, dimension(mp) :: sum_froot
+  real, dimension(ms) :: soil_zse 
 
-   CALL init_veg_from_vegin(1, mp, veg) 
+  CALL init_veg_from_vegin(1, mp, veg, soil_zse) 
 
-      !froot fixed here for all vegetation types for ACCESS
-      !need more flexibility in next version to read in or parameterise
-      veg%froot(:,1) = 0.05
-      veg%froot(:,2) = 0.20
-      veg%froot(:,3) = 0.20
-      veg%froot(:,4) = 0.20
-      veg%froot(:,5) = 0.20
-      veg%froot(:,6) = 0.15
+  !For Legacy sake - ACCESS1.3 froot distribution WAS fixed for all veg types
+  IF (cable_user%access13roots) THEN
+    veg%froot(:,1) = 0.05
+    veg%froot(:,2) = 0.20
+    veg%froot(:,3) = 0.20
+    veg%froot(:,4) = 0.20
+    veg%froot(:,5) = 0.20
+    veg%froot(:,6) = 0.15
+  ENDIF
 
-      veg%ejmax    = 2.*veg%vcmax
-
-    !for Haverd2013 switch
-    veg%gamma = 3.e-2
-    !for SLI
-    veg%clitt = 5.0 ! (tC / ha)
-    veg%F10 = 0.85 
-    veg%ZR = 5.0
-
-
+  veg%ejmax    = 2.*veg%vcmax
+  
+  !offline set init _parameters
+  veg%gamma = 3.e-2 !for Haverd2013 switch 
+  veg%F10 = 0.85 
 
 END SUBROUTINE init_veg_pars_fr_vegin
 
