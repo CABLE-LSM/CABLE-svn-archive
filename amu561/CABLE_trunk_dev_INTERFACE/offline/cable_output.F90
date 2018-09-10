@@ -57,7 +57,7 @@ MODULE cable_output_module
                     visAlbedo, nirAlbedo, SoilMoistIce,                        &
                     Qs, Qsb, Evap, BaresoilT, SWE, SnowT,                      &
                     RadT, VegT, Ebal, Wbal, AutoResp,                          &
-                    LeafResp, HeteroResp, GPP, NPP, LAI,                       &
+                    LeafResp, HeteroResp, GPP, NPP, ANPP, LAI,                 &
                     ECanop, TVeg, ESoil, CanopInt, SnowDepth,                  &
                     HVeg, HSoil, Rnet, tvar, CanT,Fwsoil, RnetSoil, SnowMelt, &
                     NBP, TotSoilCarb, TotLivBiomass, &
@@ -145,7 +145,8 @@ MODULE cable_output_module
                                                      ! [umol/m2/s]
     REAL(KIND=4), POINTER, DIMENSION(:) :: NPP       ! 47 net primary production
                                                      ! of C by veg [umol/m2/s]
-    ! 48 gross primary production C by veg [umol/m2/s]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: ANPP
+                                                     ! 48 gross primary production C by veg [umol/m2/s]
     REAL(KIND=4), POINTER, DIMENSION(:) :: GPP
     REAL(KIND=4), POINTER, DIMENSION(:) :: AutoResp   ! 49 autotrophic
                                                       ! respiration [umol/m2/s]
@@ -736,6 +737,14 @@ CONTAINS
        ALLOCATE(out%NPP(mp))
        out%NPP = 0.0 ! initialise
     END IF
+    IF(output%carbon .OR. output%ANPP) THEN
+       CALL define_ovar(ncid_out, ovid%ANPP, 'ANPP', 'umol/m^2/s',               &
+                        'Aboveground net primary production', patchout%ANPP,                &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%ANPP(mp))
+       out%ANPP = 0.0 ! initialise
+    END IF
+
 
     !MD groundwater related variables
     IF(output%soil .OR. output%WatTable) THEN
@@ -2211,6 +2220,35 @@ CONTAINS
           out%NPP = 0.0
        END IF
     END IF
+    ! ANPP: aboveground net primary production of C by veg [umol/m^2/s]
+    IF(output%carbon .OR. output%ANPP) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       !out%NPP = out%NPP + REAL((-1.0 * canopy%fpn - canopy%frp &
+       !     - casaflux%clabloss/86400.0) / 1.201E-5, 4)
+       ! vh ! expression below can be slightly different form that above in cases where 
+       ! leaf maintenance respiration is reduced in CASA
+       ! (relative to its original value calculated in cable_canopy)
+       ! in order to avoid negative carbon stores.
+       IF(output%casa) THEN
+          out%ANPP = out%ANPP + REAL(casaflux%cnpp/86400.0 / 1.201E-5, 4) * &       
+                     SUM(casaflux%fracCalloc(:, 1:2))   
+          
+          
+       ELSE
+          !  out%NPP = out%NPP + REAL((canopy%frday) / 1.201E-5, 4)
+       ENDIF
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%ANPP = out%ANPP / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%ANPP, 'NPP', out%ANPP,    &
+                          ranges%ANPP, patchout%ANPP, 'default', met)
+          ! Reset temporary output variable:
+          out%ANPP = 0.0
+       END IF
+    END IF
+ 
+
     ! AutoResp: autotrophic respiration [umol/m^2/s]
     IF(output%carbon .OR. output%AutoResp) THEN
        ! Add current timestep's value to total of temporary output variable:

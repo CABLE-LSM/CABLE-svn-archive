@@ -126,6 +126,8 @@ MODULE cable_IO_vars_module
       soiltype_metfile(:,:),  & ! user defined soil type (from met file)
       vegtype_metfile(:,:)      ! user-def veg type (from met file)
 
+   REAL, POINTER :: vegpatch_metfile(:,:) !Anna: patchfrac for met file veg
+
    TYPE parID_type ! model parameter IDs in netcdf file
 
       INTEGER :: bch,latitude,clay,css,rhosoil,hyds,rs20,sand,sfc,silt,        &
@@ -250,7 +252,8 @@ MODULE cable_IO_vars_module
          NEE  = .FALSE.,      & ! 46 net ecosystem exchange [umol/m2/s]
          NPP  = .FALSE.,      & ! 47 net primary production of C
                                 ! by veg [umol/m2/s]
-         GPP = .FALSE.,       & ! 48 gross primary production C
+        ANPP = .FALSE.,       & !amu561 10//9/2018, aboveground NPP
+        GPP = .FALSE.,       & ! 48 gross primary production C
                                 ! by veg [umol/m2/s]
          AutoResp = .FALSE.,  & ! 49 autotrophic respiration [umol/m2/s]
          LeafResp = .FALSE.,  & ! 51 autotrophic respiration [umol/m2/s]

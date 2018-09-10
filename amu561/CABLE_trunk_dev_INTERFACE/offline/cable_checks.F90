@@ -104,6 +104,7 @@ MODULE cable_checks_module
            CanopInt = (/0.0,100.0/),           &
            NEE = (/-70.0,50.0/),               & ! umol/m2/s
            NPP = (/-20.0,75.0/),               & ! umol/m2/s
+           ANPP = (/-20.0,75.0/),               & ! umol/m2/s
            GPP = (/-20.0,100.0/),              & ! umol/m2/s
            AutoResp = (/-50.0,20.0/),          & ! umol/m2/s
            LeafResp = (/-50.0,20.0/),          & ! umol/m2/s

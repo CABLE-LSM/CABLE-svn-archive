@@ -150,7 +150,7 @@ CONTAINS
     WRITE(logn,*) ' Reading grid info from ', TRIM(filename%type)
     WRITE(logn,*) ' And assigning C4 fraction according to veg classification.'
     WRITE(logn,*)
-    CALL read_gridinfo(nlon,nlat,npatch)
+    CALL read_gridinfo(nlon,nlat,nmetpatches)
    
 ! Overwrite veg type and inital patch frac with land-use info 
     IF (CABLE_USER%POPLUC) then
@@ -206,13 +206,13 @@ CONTAINS
     IMPLICIT NONE
     INTEGER, INTENT(OUT) :: nlon
     INTEGER, INTENT(OUT) :: nlat
-    INTEGER, INTENT(OUT) :: npatch
+    INTEGER, INTENT(INOUT) :: npatch
 
     ! local variables
     INTEGER :: ncid, ok
     INTEGER :: xID, yID, pID, sID, tID, bID
     INTEGER :: varID
-    INTEGER :: nslayer, ntime, nband
+    INTEGER :: nslayer, ntime, nband, lat, lon
     INTEGER :: ii, jj, kk,pp
     INTEGER, DIMENSION(:, :),     ALLOCATABLE :: idummy
     REAL,    DIMENSION(:, :),     ALLOCATABLE :: rdummy
@@ -231,9 +231,9 @@ CONTAINS
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error inquiring y dimension.')
     ok = NF90_INQUIRE_DIMENSION(ncid, yID, LEN=nlat)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error getting y dimension.')
-    ok = NF90_INQ_DIMID(ncid, 'patch', pID)
-    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error inquiring patch dimension.')
-    ok = NF90_INQUIRE_DIMENSION(ncid, pID, LEN=npatch)
+!    ok = NF90_INQ_DIMID(ncid, 'patch', pID)
+!    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error inquiring patch dimension.')
+!    ok = NF90_INQUIRE_DIMENSION(ncid, pID, LEN=npatch)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error getting patch dimension.')
     ok = NF90_INQ_DIMID(ncid, 'soil', sID)
     ok = NF90_INQUIRE_DIMENSION(ncid, sID, LEN=nslayer)
@@ -292,20 +292,29 @@ CONTAINS
     ok = NF90_GET_VAR(ncid, varID, inLat)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable latitude.')
 
-    ok = NF90_INQ_VARID(ncid, 'iveg', varID)
-    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable iveg.')
-!CLN    ok = NF90_GET_VAR(ncid, varID, idummy)
-    ok = NF90_GET_VAR(ncid, varID, inVeg)
-    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable iveg.')
-!CLN    inVeg(:, :, 1) = idummy(:,:) ! npatch=1 in 1x1 degree input
+!    ok = NF90_INQ_VARID(ncid, 'iveg', varID)
+!    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable iveg.')
+!!CLN    ok = NF90_GET_VAR(ncid, varID, idummy)
+!    ok = NF90_GET_VAR(ncid, varID, inVeg)
+!    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable iveg.')
+!!CLN    inVeg(:, :, 1) = idummy(:,:) ! npatch=1 in 1x1 degree input
+!
+!    ok = NF90_INQ_VARID(ncid, 'patchfrac', varID)
+!    IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                    &
+!                                        'Error finding variable patchfrac.')
+!    ok = NF90_GET_VAR(ncid, varID, inPFrac)
+!    IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                    &
+!                                        'Error reading variable patchfrac.')
+!!CLN    inPFrac(:, :, 1) = rdummy(:, :)
 
-    ok = NF90_INQ_VARID(ncid, 'patchfrac', varID)
-    IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                    &
-                                        'Error finding variable patchfrac.')
-    ok = NF90_GET_VAR(ncid, varID, inPFrac)
-    IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                    &
-                                        'Error reading variable patchfrac.')
-!CLN    inPFrac(:, :, 1) = rdummy(:, :)
+
+    !loop through lat and lon to fill patch and veg vars  
+    DO lon = 1,nlon  
+         DO lat = 1, nlat  
+            inPFrac(lon,lat,:) = vegpatch_metfile(1,:)  !Anna: passing met patchfrac here  
+            inVeg(lon,lat,:) = vegtype_metfile(1,:)  
+         ENDDO  
+    ENDDO  
 
     ok = NF90_INQ_VARID(ncid, 'isoil', varID)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable isoil.')
@@ -1222,7 +1231,7 @@ CONTAINS
       veg%iveg(landpt(e)%cstart:landpt(e)%cend) =                              &
                           inVeg(landpt(e)%ilon, landpt(e)%ilat, 1:landpt(e)%nap)
       patch(landpt(e)%cstart:landpt(e)%cend)%frac =                            &
-                        inPFrac(landpt(e)%ilon, landpt(e)%ilat, 1:landpt(e)%nap)
+                       vegpatch_metfile(e,:)  ! inPFrac(landpt(e)%ilon, landpt(e)%ilat, 1:landpt(e)%nap)
 
 write(*,*) 'iveg', e,  veg%iveg(landpt(e)%cstart:landpt(e)%cend) 
 write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
