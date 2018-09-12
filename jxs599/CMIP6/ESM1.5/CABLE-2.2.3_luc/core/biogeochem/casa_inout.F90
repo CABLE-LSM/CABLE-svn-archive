@@ -37,6 +37,9 @@
 !   casa_poolout
 !   casa_cnpflux  (not used?)
 !   biogeochem
+module casa_inout_mod
+
+contains
 
 SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
 ! mst actually not used in this routine (BP sep2010)
@@ -1059,3 +1062,4 @@ SUBROUTINE biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
 
 END SUBROUTINE biogeochem
 
+End module casa_inout_mod
