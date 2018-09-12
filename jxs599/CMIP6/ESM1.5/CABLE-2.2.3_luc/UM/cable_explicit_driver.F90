@@ -88,6 +88,8 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    USE casavariable
    USE casa_types_mod
 
+  USE feedback_mod
+
    IMPLICIT NONE
  
  

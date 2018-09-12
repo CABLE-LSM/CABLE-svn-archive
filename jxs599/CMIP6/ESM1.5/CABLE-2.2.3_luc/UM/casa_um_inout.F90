@@ -43,6 +43,9 @@ MODULE casa_um_inout_mod
 !!  USE define_dimensions    ! mp, r_1, r_2, i_d
 !!  USE casadimension        ! icycle,mplant,mlitter,msoil
 !!  USE cable_common_module  ! ktau_gl, kend_gl
+  USE landuse_mod
+  USE feedback_mod
+  USE casa_inout_mod
 
 IMPLICIT NONE 
 
@@ -247,7 +250,7 @@ IMPLICIT NONE
   TYPE (casa_pool),    INTENT(INOUT)    :: casapool
   TYPE (casa_balance), INTENT(INOUT)    :: casabal
   TYPE (canopy_type), INTENT(INOUT)     :: canopy
-  TYPE (veg_parameter_type), INTENT(IN) :: veg
+  TYPE (veg_parameter_type), INTENT(INOUT) :: veg
   TYPE (phen_variable),   INTENT(INOUT) :: phen
 !  TYPE (um_dimensions), INTENT(IN)      :: um1
 ! LOGICAL, INTENT(INOUT),DIMENSION(um1%land_pts, um1%ntiles) :: L_tile_pts
@@ -397,7 +400,7 @@ SUBROUTINE casa_reinit_pk(casabiome,casamet,casapool,casabal,veg,phen, &
    TYPE(casa_met),           INTENT(INOUT) :: casamet
    TYPE(casa_pool),          INTENT(INOUT) :: casapool
    TYPE(casa_balance),       INTENT(INOUT) :: casabal    
-   TYPE(veg_parameter_type), INTENT(IN)    :: veg
+   TYPE(veg_parameter_type), INTENT(INOUT)    :: veg
    TYPE(phen_variable),      INTENT(INOUT) :: phen
 
    REAL,  INTENT(INOUT)  :: cpool_tile(um1%land_pts,um1%ntiles,10)

@@ -69,7 +69,8 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
    USE casavariable
    USE phenvariable
    USE casa_types_mod
-   !USE casa_cable
+   USE bgcdriver_mod, ONLY : bgcdriver
+   USE sumcflux_mod, ONLY : sumcflux
    USE casa_um_inout_mod
 
    IMPLICIT NONE
