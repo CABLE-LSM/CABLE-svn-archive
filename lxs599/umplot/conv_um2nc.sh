@@ -42,7 +42,7 @@ set a = a
        if ($ext == $Ptimes && $RES == 320) then
        set fillist = `ls $RUNID$a.$ext????? | head -$nod`
        else
-       if ($VN == 85) then
+       if ($VN >= 85) then
        set fillist = `ls $RUNID$a.$ext??????? | head -$nom`
        else
        set fillist = `ls $RUNID$a.$ext????? | head -$nom`
@@ -70,6 +70,7 @@ set a = a
          if (! -e $newlist[$i].nc) then
           echo "Converting " $file " to " $newlist[$i]".nc"
           if ($ext == $Ptimes) then
+           #$CONV2NC -i $file -o $newlist[$i]_all.nc
            python $FLDSUBSET -i $file -o $file.sub2 -x 1201 -x 1235 -x 2201 -x 2207 -x 0238 -x 2204 -x 2407
            $CONV2NC -i $file.sub2 -o $newlist[$i]_noswlw.nc
            python $FLDSUBSET -i $file -o $file.sub3 -v 1201 -v 1235 -v 2201 -v 2207 -v 0238 -v 2204 -v 2407
@@ -83,7 +84,12 @@ set a = a
            rm $file.sub $file.sub2 $file.sub3
           else # Ptimes
            if ($ext == $Pdaily && $Ptemp1 != $Ptemps ) then
+            #$CONV2NC -i $file -o $newlist[$i]_all.nc
+            if ($VN > 85) then
+            python $FLDSUBSET -i $file -o $file.sub
+            else
             python $FLDSUBSET -i $file -o $file.sub -v 3236
+            endif
             $CONV2NC -i $file.sub -o $newlist[$i].nc
             #python $CONV2NC4 -i $file.sub -o $newlist[$i].nc
             rm $file.sub
@@ -103,6 +109,7 @@ set a = a
          if ($VN == 73) then
          if (($ext == pc && $ntime >= 224)) then # 224 = 8ts * 1month
           if (! -e $newlist[$i]_swlw.nc) then
+           #$CONV2NC -i $file -o $newlist[$i]_all.nc
            python $FLDSUBSET -i $file -o $file.sub2 -x 1201 -x 1235 -x 2201 -x 2207 -x 0238 -x 2204 -x 2407
            $CONV2NC -i $file.sub2 -o $newlist[$i]_noswlw.nc
            python $FLDSUBSET -i $file -o $file.sub3 -v 1201 -v 1235 -v 2201 -v 2207 -v 0238 -v 2204 -v 2407
@@ -114,6 +121,7 @@ set a = a
          endif
          if (($ext == pg || $ext == ph)) then
           if (! -e $newlist[$i]_swlw.nc) then
+           #$CONV2NC -i $file -o $newlist[$i]_all.nc
            python $FLDSUBSET -i $file -o $file.sub2 -x 1201 -x 1208 -x 1209 -x 1210 -x 1211 -x 2204 -x 2205 -x 2206 -x 2207 -x 2208
            $CONV2NC -i $file.sub2 -o $newlist[$i]_noswlw.nc
            python $FLDSUBSET -i $file -o $file.sub3 -v 1201 -v 1208 -v 1209 -v 1210 -v 1211 -v 2204 -v 2205 -v 2206 -v 2207 -v 2208

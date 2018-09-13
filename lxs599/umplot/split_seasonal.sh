@@ -256,9 +256,9 @@ endif
 cdo mergetime $pbls Tempseries_5yrs.nc
 #cdo copy $pbls Tempseries_5yrs.nc
 
-#cdo mergetime $pmls Mmonthly_means_5yrs.nc
-cdo copy $cdo_blk Mmonthly_means_5yrs.nc
-cdo yearmean Mmonthly_means_5yrs.nc yearly_means_5yrs.nc
+##cdo mergetime $pmls Mmonthly_means_5yrs.nc
+#cdo copy $cdo_blk Mmonthly_means_5yrs.nc
+#cdo yearmonmean Mmonthly_means_5yrs.nc yearly_means_5yrs.nc
 
  cdo yseasmean Tempseries_5yrs.nc Tseasonal_means_5yrs.nc
  cdo ymonmean Tempseries_5yrs.nc Tmonthly_means_5yrs.nc

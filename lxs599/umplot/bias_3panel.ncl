@@ -19,8 +19,8 @@ loadscript(hdir+"/"+usr+"/umplot/regrid.ncl")
 begin
 
 usr = systemfunc("echo $USERID")
-cabDir = systemfunc("echo $CABLE")
-mosDir = systemfunc("echo $MOSES")
+cabDir = systemfunc("echo $MID")
+mosDir = systemfunc("echo $TOP")
 nres   = systemfunc("echo $RES")
 ;cabsea = systemfunc("echo $cabsea")
 ;mossea = systemfunc("echo $mossea")

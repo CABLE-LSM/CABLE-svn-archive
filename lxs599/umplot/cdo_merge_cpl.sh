@@ -35,19 +35,19 @@ while ( $year <= ($nof + $yr1) )
     if ($count != 12 && $count != 0) then
      setenv fullstrt F
     if ( $year <= 999 ) then
-     cdo mergetime $dir/$rid.$ext-*0$year??????.nc tmp.nc
+     cdo -O mergetime $dir/$rid.$ext-*0$year??????.nc tmp.nc
     else 
-     cdo mergetime $dir/$rid.$ext-$year??????.nc tmp.nc
+     cdo -O mergetime $dir/$rid.$ext-$year??????.nc tmp.nc
     endif
     else 
      setenv fullstrt T
     if ( $year <= 999 ) then
      if ( -e $dir/$rid.$ext-*0$year\001???.nc && -e $dir/$rid.$ext-*0$year\012???.nc ) then
-      cdo -b 64 mergetime $dir/$rid.$ext-*0$year??????.nc tmp.nc
+      cdo -O -b 64 mergetime $dir/$rid.$ext-*0$year??????.nc tmp.nc
      endif
     else
      if ( -e $dir/$rid.$ext-$year\001???.nc && -e $dir/$rid.$ext-$year\012???.nc ) then
-      cdo -b 64 mergetime $dir/$rid.$ext-$year??????.nc tmp.nc
+      cdo -O -b 64 mergetime $dir/$rid.$ext-$year??????.nc tmp.nc
      endif
     endif
     endif
@@ -77,13 +77,13 @@ if ($SPLIT == n) then
 
   set short = `ls y????.nc | head -${numyr}`
   cdo mergetime $short Mmonthly_means_${YR}yrs.nc
-  cdo yearmean Mmonthly_means_${YR}yrs.nc yearly_means_${YR}yrs.nc
+  cdo yearmonmean Mmonthly_means_${YR}yrs.nc yearly_means_${YR}yrs.nc
 
  else
 
   set short = `ls y????.nc | head -${YR}`  
   cdo mergetime $short Mmonthly_means_${YR}yrs.nc  
-  cdo yearmean Mmonthly_means_${YR}yrs.nc yearly_means_${YR}yrs.nc
+  cdo yearmonmean Mmonthly_means_${YR}yrs.nc yearly_means_${YR}yrs.nc
 
  endif
 

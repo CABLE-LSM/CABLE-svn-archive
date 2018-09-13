@@ -31,7 +31,7 @@ end if
 
 tsDir    = hdir+"/"+usr+"/umplot/obs/"
 home     = hdir+"/"+usr+"/"
-flxobs   = hdir+"/"+usr+"/umplot/obs/"
+flxobs   = hdir+"/"+usr+"/umplot/obs/fluxnet/"
 
 hayfil = addfile( tsDir + "hayobsjuly.nc"         ,"r")
 manfil = addfile( tsDir + "mmdc_ma96_roll.nc"     ,"r")

@@ -111,8 +111,8 @@ endif
  #cdo mergetime $pcsw ts_pc_5yrs_swlw.nc
  #cdo mergetime $pcno ts_pc_5yrs_noswlw.nc
  cdo mergetime $pbls Tempseries_5yrs.nc
- cdo mergetime $pmls Mmonthly_means_5yrs.nc
- cdo yearmean Mmonthly_means_5yrs.nc yearly_means_5yrs.nc
+ #cdo mergetime $pmls Mmonthly_means_5yrs.nc
+ #cdo yearmonmean Mmonthly_means_5yrs.nc yearly_means_5yrs.nc
  cdo yseasmean Tempseries_5yrs.nc Tseasonal_means_5yrs.nc
  cdo ymonmean Tempseries_5yrs.nc Tmonthly_means_5yrs.nc
 

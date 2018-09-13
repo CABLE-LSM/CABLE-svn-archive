@@ -9,16 +9,16 @@ load "$NCARG_ROOT/lib/ncarg/nclscripts/csm/contributed.ncl"
 ; =================================================================
 
 procedure Panel_Plot(Dir:string,varName:string,Yr:string,pltType:string,pltColor:string,\
-                        field:numeric,region:logical,smthFlag:logical,cnLevels:numeric,  \
+                        field:numeric,region:logical,regno:numeric,smthFlag:logical,cnLevels:numeric,  \
                         lmask:logical,jpeg:logical)
 
 begin
 
-  if (varName.eq."mondiff_sndep") then
-   regno = 4
-  else
-   regno = 1
-  end if
+  ;if (varName.eq."mondiff_sndep") then
+  ; regno = 4
+  ;else
+  ; regno = 1
+  ;end if
   hdir = systemfunc("echo $hdir")
   usr = systemfunc("echo $USERID")
 

@@ -16,8 +16,8 @@ begin
 
 hdir = systemfunc("echo $hdir")
 usr = systemfunc("echo $USERID")
-cabDir = systemfunc("echo $CABLE")
-mosDir = systemfunc("echo $MOSES")
+cabDir = systemfunc("echo $MID")
+mosDir = systemfunc("echo $TOP")
 numYr  = systemfunc("echo $YR")
 resol  = systemfunc("echo $RES")
 lcable = systemfunc("echo $MODEL")
@@ -183,6 +183,18 @@ else
 end if
 prM             = prM1(0:nmon-1,:,:,:)
 prC             = prC1(0:nmon-1,:,:,:)
+
+if (dimsizes(dimsizes(tscrnC)).eq.4) then
+ tscrnC!2 = "latitude"
+ tscrnC!3 = "longitude"
+ prC!2 = "latitude"
+ prC!3 = "longitude"
+else
+ tscrnC!1 = "latitude"
+ tscrnC!2 = "longitude"
+ prC!1 = "latitude"
+ prC!2 = "longitude"
+end if
 
 LandTm          = tscrnM 
 LandTc          = tscrnC

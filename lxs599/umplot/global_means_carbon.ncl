@@ -9,6 +9,7 @@ usr = systemfunc("echo $USERID")
 numYr = systemfunc("echo $YR")
 resol = systemfunc("echo $RES")
 vMask = systemfunc("echo $MASK")
+vers  = stringtoint(systemfunc("echo $VN"))
 t = 12*stringtoint(numYr)
 y = stringtoint(numYr)
 
@@ -46,8 +47,13 @@ delete(lin)
 ; load area for each grid cell
 
    Dir = hdir+"/"+usr+"/umplot/"
+   if (vers.ge.85) then
+   ain = addfile(Dir+"data/areas_n"+resol+"e_v85.nc","r")
+   grid_area = doubletofloat(ain->areacella)
+   else
    ain = addfile(Dir+"data/areacella_N"+resol+".nc","r")
    grid_area = ain->areacella
+   end if
    ;ain = addfile("grid_area.nc","r")
    ;grid_area = ain->grid_area
 delete(ain)
@@ -83,10 +89,14 @@ delete(Sfrac)
     fland   = addfile(Dir+"data/landfrac_n"+resol+".nc","r")
    end if
    if (resol.eq.96) then
+   if (vers.ge.85) then
+     fland   = addfile(Dir+"data/landfrac_N"+resol+"_v85.nc","r")
+   else
     if (vMask.eq.2) then
      fland   = addfile(Dir+"data/landfrac_N"+resol+".nc","r")
     else ; v1 mask
      fland   = addfile(Dir+"data/landfrac_ACCESS_N"+resol+".nc","r")
+    end if
     end if
    else 
      fland   = addfile(Dir+"data/landfrac_N"+resol+".nc","r")

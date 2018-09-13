@@ -125,8 +125,8 @@ endif
 #echo "TILE   =" $TILE                         #
 #echo "SOIL   =" $SOIL                         #
 #echo "FullYrs=" $FullYrs                      #
-#echo "MOSES  =" $MOSES                        #
-#echo "CABLE  =" $CABLE                        #
+#echo "TOP    =" $TOP                          #
+#echo "MID    =" $MID                          #
 #echo "BLOCK  =" $BLOCK                        #
 #echo "cabsea =" $cabsea                       #
 #echo "cabtem =" $cabtem                       #

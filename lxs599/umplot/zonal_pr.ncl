@@ -14,8 +14,8 @@ begin
 hdir  = systemfunc("echo $hdir") 
 numYr = systemfunc("echo $YR") 
 ;wDir  = systemfunc("echo $PWD")
-mDir  = systemfunc("echo $MOSES")
-cDir  = systemfunc("echo $CABLE")
+mDir  = systemfunc("echo $TOP")
+cDir  = systemfunc("echo $MID")
 tDir  = hdir+"/"+usr+"/umplot/data"
 ;tDir  = hdir+"/ste69f/access/access13/amip" ;systemfunc("echo $CABLE3")
 ;tDir  = hdir+"/"+usr+"/access/access13/amip" ;systemfunc("echo $CABLE3")

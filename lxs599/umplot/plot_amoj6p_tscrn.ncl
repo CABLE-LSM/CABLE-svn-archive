@@ -14,8 +14,8 @@ loadscript(hdir+"/"+usr+"/umplot/regrid.ncl")
 begin
 
 numYr = systemfunc("echo $YR")
-cDir  = systemfunc("echo $CABLE")
-mDir  = systemfunc("echo $MOSES")
+cDir  = systemfunc("echo $MID")
+mDir  = systemfunc("echo $TOP")
 tname = systemfunc("echo $tname")
 cname = systemfunc("echo $CNM")
 jpg   = systemfunc("echo $CHFMT")
@@ -41,7 +41,7 @@ if ( cname.eq. "H" ) then
 end if
 if ( cname.eq. "PI" ) then
  rtype = "pi"
- a14 = True
+ a14 = False
 end if
 
 if (isfilevar(moses,"tscrn")) then
@@ -327,7 +327,9 @@ cmap_bT = RGBtoCmap(hdir+"/"+usr+"/umplot/colormap/BlueOrangeRed.rgb")
   res@gsnLeftString = "A1.3: Tscrn (K)"
   ;res@gsnLeftString = "A1.3 "+rtype
   else
-  res@gsnLeftString = "UM8.5+JULES: Tscrn (K)"
+  res@gsnLeftString = "Old: Tscrn (K)"
+  ;res@gsnLeftString = "UM8.5+CABLE: Tscrn (K)"
+  ;res@gsnLeftString = "UM8.5+JULES: Tscrn (K)"
   ;res@gsnLeftString = "A1.0: Tscrn (K)"
   ;res@gsnLeftString = "A1.0 "+rtype
   end if
@@ -341,7 +343,9 @@ cmap_bT = RGBtoCmap(hdir+"/"+usr+"/umplot/colormap/BlueOrangeRed.rgb")
   res@gsnLeftString = "A1.4: Tscrn (K)"
   ;res@gsnLeftString = "A1.4 "+rtype
   else
-  res@gsnLeftString = "UM8.5+CABLE: Tscrn (K)"
+  res@gsnLeftString = "New: Tscrn (K)"
+  ;res@gsnLeftString = "UM10.1+CABLE: Tscrn (K)"
+  ;res@gsnLeftString = "UM8.5+CABLE: Tscrn (K)"
   ;res@gsnLeftString = "A1.1: Tscrn (K)"
   ;res@gsnLeftString = "A1.1 "+rtype
   end if
@@ -358,7 +362,9 @@ cmap_bT = RGBtoCmap(hdir+"/"+usr+"/umplot/colormap/BlueOrangeRed.rgb")
   res@gsnLeftString = "A1.4 - A1.3: Tscrn (K)"
   ;res@gsnLeftString = "A1.4 - A1.3 "+rtype
   else
-  res@gsnLeftString = "UM8.5: CABLE-JULES: Tscrn (K)"
+  res@gsnLeftString = "New-Old: Tscrn (K)"
+  ;res@gsnLeftString = "CABLE UM10.1-UM8.5: Tscrn (K)"
+  ;res@gsnLeftString = "UM8.5: CABLE-JULES: Tscrn (K)"
   ;res@gsnLeftString = "A1.1 - A1.0: Tscrn (K)"
   ;res@gsnLeftString = "A1.1 - A1.0 "+rtype
   end if

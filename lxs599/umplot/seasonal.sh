@@ -74,10 +74,10 @@ else
 endif
 if ( ${#pelist} > 0 ) then
  cdo mergetime $pelist Timeseries_${YR}yrs.nc
- if ( $Ptimes == pf && ${#pflist} > 0 ) then
+ #if ( $Ptimes == pf && ${#pflist} > 0 ) then
   cdo mergetime $DIR/$RUNID$a.$Ptimes?????_noswlw.nc Timeseries_${YR}yrs_noswlw.nc
   cdo mergetime $DIR/$RUNID$a.$Ptimes?????_swlw.nc Timeseries_${YR}yrs_swlw.nc
- endif
+ #endif
 set hname=`echo $HOST | head -c4`
 if ($hname == chip || $hname == raij)  then
  ncrename -d t,time Timeseries_${YR}yrs.nc 

@@ -35,12 +35,12 @@ ModDir = systemfunc("echo $PWD")
 resol  = systemfunc("echo $RES")
 vMask  = systemfunc("echo $MASK")
 ;Runid  = systemfunc("echo $RUNID")
-;cabdir = systemfunc("echo $CABLE")
-;mosdir = systemfunc("echo $MOSES")
+;cabdir = systemfunc("echo $MID")
+;mosdir = systemfunc("echo $TOP")
 tname =  systemfunc("echo $tname")
 txname =  systemfunc("echo $txname")
 tiname =  systemfunc("echo $tiname")
-Vers   = systemfunc("echo $VN")
+Vers   = stringtoint(systemfunc("echo $VN"))
 
 ; FILES --------------------------------------------------------------
 
@@ -59,7 +59,7 @@ if (resol.eq.48) then
  frac_file = addfile(PltDir+"landfrac_n"+resol+".nc","r")
 end if
 if (resol.eq.96) then 
-if (Vers.eq."85") then
+if (Vers.ge.85) then
   lsm_file = addfile(PltDir+"mask_accessV85_n"+resol+".nc","r")
   frac_file = addfile(PltDir+"landfrac_N"+resol+"_v85.nc","r")
 else
@@ -75,7 +75,7 @@ else
   lsm_file = addfile(PltDir+"mask_access_N"+resol+".nc","r")
   frac_file = addfile(PltDir+"landfrac_N"+resol+".nc","r")
 end if
-if (Vers.eq."85") then
+if (Vers.ge.85) then
   area_file = addfile(PltDir+"areas_n"+resol+"e_v85.nc","r")
 else
   area_file = addfile(PltDir+"areacella_N"+resol+".nc","r")

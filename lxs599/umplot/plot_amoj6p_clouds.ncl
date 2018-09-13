@@ -15,8 +15,8 @@ begin
 
 hdir  = systemfunc("echo $hdir")
 numYr = systemfunc("echo $YR")
-cDir  = systemfunc("echo $CABLE")
-mDir  = systemfunc("echo $MOSES")
+cDir  = systemfunc("echo $MID")
+mDir  = systemfunc("echo $TOP")
 cname = systemfunc("echo $CNM")
 resol = systemfunc("echo $RES")
 ObsDir = hdir+"/"+usr+"/umplot/obs/"

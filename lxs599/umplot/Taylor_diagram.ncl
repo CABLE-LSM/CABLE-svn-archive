@@ -15,8 +15,8 @@ begin
 fileDir =systemfunc("echo $DIR")
 ;Runid=systemfunc("echo $RUNID")
 numYr=systemfunc("echo $YR")
-;CABLE=systemfunc("echo $CABLE")
-;MOSES=systemfunc("echo $MOSES")
+;CABLE=systemfunc("echo $MID")
+;MOSES=systemfunc("echo $TOP")
 mossea=systemfunc("echo $mossea")
 cabsea=systemfunc("echo $cabsea")
 mostem=systemfunc("echo $mostem")
@@ -70,6 +70,18 @@ clh   = cable_file ->lh
 csh   = cable_file ->sh
 csw   = cable_file ->solar
 clw   = cable_file ->longwave
+
+if (dimsizes(dimsizes(ctmax)).eq.4) then
+ ctmax!2 = "latitude"
+ ctmax!3 = "longitude"
+ ctmin!2 = "latitude"
+ ctmin!3 = "longitude"
+else
+ ctmax!1 = "latitude"
+ ctmax!2 = "longitude"
+ ctmin!1 = "latitude"
+ ctmin!2 = "longitude"
+end if
 
 if (isfilevar(moses_file,"tscrn")) then
 mtemp = moses_file ->tscrn

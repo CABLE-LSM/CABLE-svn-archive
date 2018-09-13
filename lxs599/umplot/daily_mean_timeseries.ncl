@@ -18,7 +18,7 @@ begin
  vMask = systemfunc("echo $MASK")
  Pdai  = systemfunc("echo $Pdaily")
  Ptem  = systemfunc("echo $Ptemps")
- Vers  = systemfunc("echo $VN")
+ Vers  = stringtoint(systemfunc("echo $VN"))
 
  nfil = stringtoint(numyr)*4
  ;print(nfil)
@@ -27,7 +27,7 @@ begin
 
  ; read in files----------
 
-if (Vers.eq."85") then
+if (Vers.ge.85) then
  fila = systemfunc("ls "+dir+"/"+rid+"a."+Pdai+"???????.nc | head -"+nfil)
 else
  fila = systemfunc("ls "+dir+"/"+rid+"a."+Pdai+"?????.nc | head -"+nfil)
@@ -35,7 +35,7 @@ end if
  fa   = addfiles(fila,"r")
  ListSetType(fa,"cat")    ; "join" adds extra dim (5,12,nlat,nlon)
 
-if (Vers.eq."85") then
+if (Vers.ge.85) then
  filb = systemfunc("ls "+dir+"/"+rid+"a."+Ptem+"???????.nc | head -"+nfil)
 else
  filb = systemfunc("ls "+dir+"/"+rid+"a."+Ptem+"?????.nc | head -"+nfil)

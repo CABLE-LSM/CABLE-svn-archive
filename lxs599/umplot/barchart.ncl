@@ -21,8 +21,8 @@ begin
 ;filDir = systemfunc("echo $DIR")
 numYr  = systemfunc("echo $YR")
 resol  = systemfunc("echo $RES")
-mosDir = systemfunc("echo $MOSES")
-cabDir = systemfunc("echo $CABLE")
+mosDir = systemfunc("echo $TOP")
+cabDir = systemfunc("echo $MID")
 vMask  = systemfunc("echo $MASK")
 tname =  systemfunc("echo $tname")
 

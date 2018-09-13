@@ -37,18 +37,25 @@ begin
   ;newvar = linint2(var&longitude,var&latitude,var,True,lon,var_gd&latitude,0)
   newvar = linint2(lonv,latv,var,True,lon,lat,0)
 
+  ;printVarSummary(var)
+  ;printVarSummary(var_gd)
   ;printVarSummary(newvar)
+  ;copy_VarMeta(var_gd,var)
 
-  ;copy_VarMeta(var_gd(:,0,:,:),var)
-if (nsiz.ge.3) then
-  newvar!1         = "latitude"
-  newvar!2         = "longitude"
+if (nsiz.eq.4) then
+  newvar!2         = ""+dNam(2)+""
+  newvar!3         = ""+dNam(3)+""
 else
-  newvar!0         = "latitude"
-  newvar!1         = "longitude"
+ if (nsiz.eq.3) then
+  newvar!1         = ""+dNam(1)+""
+  newvar!2         = ""+dNam(2)+""
+ else
+  newvar!0         = ""+dNam(2)+""
+  newvar!1         = ""+dNam(3)+""
+ end if
 end if
-  newvar&latitude  = var_gd&$dNames(nSize-2)$ ;newlat
-  newvar&longitude = var_gd&$dNames(nSize-1)$ ;newlon
+  newvar&$dNam(nsiz-2)$ = var_gd&$dNames(nSize-2)$ ;newlat
+  newvar&$dNam(nsiz-1)$ = var_gd&$dNames(nSize-1)$ ;newlon
 
   return(newvar)
 

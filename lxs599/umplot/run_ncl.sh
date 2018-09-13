@@ -412,7 +412,7 @@ ncl ~$USERID/umplot/run.ncl
 ncl ~$USERID/umplot/global_means_wbal.ncl
 ncl ~$USERID/umplot/global_means_tables.ncl
 if ($BMRK == y) then
- if ( -e ${CABLE}/Timeseries_${YR}yrs.nc && -e ${MOSES}/Timeseries_${YR}yrs.nc ) then
+ if ( -e ${MID}/Timeseries_${YR}yrs.nc && -e ${TOP}/Timeseries_${YR}yrs.nc ) then
   ncl ~$USERID/umplot/global_means_ctables.ncl
  endif
 endif
@@ -462,7 +462,7 @@ endif # if Timeseries
 
 # Benchmarking =============================================
 if ($BMRK == y) then
- if ( -e ${CABLE}/seasonal_means_${YR}yrs.nc && -e ${MOSES}/seasonal_means_${YR}yrs.nc) then
+ if ( -e ${MID}/seasonal_means_${YR}yrs.nc && -e ${TOP}/seasonal_means_${YR}yrs.nc) then
   ncl ~$USERID/umplot/Taylor_diagram.ncl
   ncl ~$USERID/umplot/Mon_IntAnnVar.ncl
   ncl ~$USERID/umplot/Mon_IntAnnVar_Aust.ncl
@@ -475,7 +475,7 @@ if ($BMRK == y) then
   ncl ~$USERID/umplot/zonal_clt.ncl
   ncl ~$USERID/umplot/plot_amoj6p_precip.ncl
   ncl ~$USERID/umplot/plot_amoj6p_tscrn.ncl
-  if ( -e ${CABLE}/Tseasonal_means_${YR}yrs.nc && -e ${MOSES}/Tseasonal_means_${YR}yrs.nc) then
+  if ( -e ${MID}/Tseasonal_means_${YR}yrs.nc && -e ${TOP}/Tseasonal_means_${YR}yrs.nc) then
    ncl ~$USERID/umplot/plot_amoj6p_tmin.ncl
    ncl ~$USERID/umplot/plot_amoj6p_tmax.ncl
   endif
@@ -491,7 +491,7 @@ if ($BMRK == y) then
   echo "(1)     e.g. seasonal_means_${YR}yrs.nc"
   echo ""
  endif
- if ( -e ${CABLE}/Timeseries_${YR}yrs.nc && -e ${MOSES}/Timeseries_${YR}yrs.nc) then
+ if ( -e ${MID}/Timeseries_${YR}yrs.nc && -e ${TOP}/Timeseries_${YR}yrs.nc) then
   ncl ~$USERID/umplot/mmdc_hyytiala.ncl
   ncl ~$USERID/umplot/mmdc_bondville.ncl
   ncl ~$USERID/umplot/mmdc_hay.ncl
@@ -585,7 +585,7 @@ ncl ~$USERID/umplot/run.ncl
 ncl ~$USERID/umplot/global_means_wbal.ncl
 ncl ~$USERID/umplot/global_means_tables.ncl
 if ($BMRK == y) then
- if ( -e ${CABLE}/Timeseries_${YR}yrs.nc && -e ${MOSES}/Timeseries_${YR}yrs.nc ) then
+ if ( -e ${MID}/Timeseries_${YR}yrs.nc && -e ${TOP}/Timeseries_${YR}yrs.nc ) then
   ncl ~$USERID/umplot/global_means_ctables.ncl
  endif
 endif
@@ -635,7 +635,7 @@ endif # if Timeseries
 
 # Benchmarking =============================================
 if ($BMRK == y) then
- if ( -e ${CABLE}/seasonal_means_${YR}yrs.nc && -e ${MOSES}/seasonal_means_${YR}yrs.nc) then
+ if ( -e ${MID}/seasonal_means_${YR}yrs.nc && -e ${TOP}/seasonal_means_${YR}yrs.nc) then
   ncl ~$USERID/umplot/Taylor_diagram.ncl
   ncl ~$USERID/umplot/Mon_IntAnnVar.ncl
   ncl ~$USERID/umplot/Mon_IntAnnVar_Aust.ncl
@@ -648,7 +648,7 @@ if ($BMRK == y) then
   ncl ~$USERID/umplot/zonal_clt.ncl
   ncl ~$USERID/umplot/plot_amoj6p_precip.ncl
   ncl ~$USERID/umplot/plot_amoj6p_tscrn.ncl
-  if ( -e ${CABLE}/Tseasonal_means_${YR}yrs.nc && -e ${MOSES}/Tseasonal_means_${YR}yrs.nc) then
+  if ( -e ${MID}/Tseasonal_means_${YR}yrs.nc && -e ${TOP}/Tseasonal_means_${YR}yrs.nc) then
    ncl ~$USERID/umplot/plot_amoj6p_tmin.ncl
    ncl ~$USERID/umplot/plot_amoj6p_tmax.ncl
   endif
@@ -664,7 +664,7 @@ if ($BMRK == y) then
   echo "(1)     e.g. seasonal_means_${YR}yrs.nc"
   echo ""
  endif
- if ( -e ${CABLE}/Timeseries_${YR}yrs.nc && -e ${MOSES}/Timeseries_${YR}yrs.nc) then
+ if ( -e ${MID}/Timeseries_${YR}yrs.nc && -e ${TOP}/Timeseries_${YR}yrs.nc) then
   ncl ~$USERID/umplot/mmdc_hyytiala.ncl
   ncl ~$USERID/umplot/mmdc_bondville.ncl
   ncl ~$USERID/umplot/mmdc_hay.ncl

@@ -28,7 +28,7 @@ end if
 
 tsDir    = hdir+"/"+usr+"/umplot/obs/"
 home     = hdir+"/"+usr+"/"
-flxobs   = hdir+"/"+usr+"/umplot/obs/"
+flxobs   = hdir+"/"+usr+"/umplot/obs/fluxnet/"
 
 ;obs ---
  flux_ma = addfile(tsDir  + "MA96_lu_u0_mm_flx.nc"    ,"r")

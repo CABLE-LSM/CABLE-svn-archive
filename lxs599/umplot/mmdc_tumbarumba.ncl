@@ -33,7 +33,8 @@ home     = hdir+"/"+usr+"/"
 
 ;system("dmget " + tsDir + "mmdc_*_fv.nc" )
 flux1  = addfile(tsDir + "mmdc_tumbarumba_fv.nc" ,"r")
-flux   = addfile(home  + "obsdata/fluxnet/PALS/flxnt_mon/mmdc_ts_Tumba.nc","r")
+flux   = addfile(tsDir + "fluxnet/mmdc_ts_Tumba.nc","r")
+;flux   = addfile(home  + "obsdata/fluxnet/PALS/flxnt_mon/mmdc_ts_Tumba.nc","r")
 mosfil = addfile(mossf,"r")
 cabfil = addfile(cabsf,"r")
 

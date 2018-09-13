@@ -183,7 +183,11 @@ end if
    mean_soil_y_1!0 = "time"
    mean_soil_y_1!1 = "latitude"
    mean_soil_y_1&time     = ispan(1,stringtoint(numYr),1)
+   if (isdim(soil,"latitude")) then
    mean_soil_y_1&latitude = soil&latitude
+   else
+   mean_soil_y_1&latitude = soil&lat
+   end if
    copy_VarMeta(mean_soil_y_1,mean_soil_y_2)
    copy_VarMeta(mean_soil_y_1,mean_soil_y_3)
    copy_VarMeta(mean_soil_y_1,mean_soil_y_4)
@@ -218,7 +222,11 @@ end if
 ;  res@tiYAxisString    = soil@title ;"Soil Respiration [gC/m2/yr] Zonal Mean"
 
 ;  generate x vector (lat)
+if (isdim(soil,"latitude")) then
   x = soil&latitude
+else
+  x = soil&lat
+end if
 if (var_name(m).eq."gpp") then
   ox = ogpp&latitude
 end if

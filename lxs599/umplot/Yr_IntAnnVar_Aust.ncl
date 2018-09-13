@@ -17,8 +17,8 @@ begin
 
 hdir = systemfunc("echo $hdir")
 usr = systemfunc("echo $USERID")
-mosDir = systemfunc("echo $MOSES")
-cabDir = systemfunc("echo $CABLE")
+mosDir = systemfunc("echo $TOP")
+cabDir = systemfunc("echo $MID")
 numYr  = systemfunc("echo $YR")
 resol  = systemfunc("echo $RES")
 lcable = systemfunc("echo $MODEL")

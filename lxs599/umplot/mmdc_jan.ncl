@@ -31,7 +31,7 @@ end if
 
 tsDir    = hdir+"/"+usr+"/umplot/obs/"
 home     = hdir+"/"+usr+"/"
-flxobs   = hdir+"/"+usr+"/umplot/obs/"
+flxobs   = hdir+"/"+usr+"/umplot/obs/fluxnet/"
 
 manfil = addfile( tsDir + "mmdc_ma96_roll.nc"     ,"r")
 tbfil  = addfile( tsDir + "mmdc_tumbarumba_fv.nc" ,"r")

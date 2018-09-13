@@ -28,9 +28,9 @@ ModDir = systemfunc("echo $PWD")
 resol  = systemfunc("echo $RES")
 vMask  = systemfunc("echo $MASK")
 ;Runid  = systemfunc("echo $RUNID")
-;cable  = systemfunc("echo $CABLE")
-;moses  = systemfunc("echo $MOSES")
-Vers   = systemfunc("echo $VN")
+;cable  = systemfunc("echo $MID")
+;moses  = systemfunc("echo $TOP")
+Vers   = stringtoint(systemfunc("echo $VN"))
 
 ; FILES -----------------------------------------------------------
 ;moses_file = addfile(moses+"/season_`YR`yrs.nc","r") 
@@ -47,7 +47,7 @@ if (resol.eq.48) then
  frac_file = addfile(DatDir+"landfrac_n"+resol+".nc","r")
 end if
 if (resol.eq.96) then 
-if (Vers.eq."85") then
+if (Vers.ge.85) then
   lsm_file = addfile(DatDir+"mask_accessV85_n"+resol+".nc","r")
   frac_file = addfile(DatDir+"landfrac_N"+resol+"_v85.nc","r")
 else
@@ -63,7 +63,7 @@ else
   lsm_file = addfile(DatDir+"mask_access_N"+resol+".nc","r")
   frac_file = addfile(DatDir+"landfrac_N"+resol+".nc","r")
 end if
-if (Vers.eq."85") then
+if (Vers.ge.85) then
   area_file = addfile(DatDir+"areas_n"+resol+"e_v85.nc","r")
 else
   area_file = addfile(DatDir+"areacella_N"+resol+".nc","r")
@@ -392,7 +392,7 @@ x3          = (/0.085,0.995/)
 y3          = (/0.415,0.800/)
 text_values = (/land,ocean,globe/)
 
-pltName = "wbal_table" + "_" + numYr + "yrs"
+pltName = "table_wbal" + "_" + numYr + "yrs"
 wks     = gsn_open_wks("ps",pltName)
 
 res1               = True
@@ -422,7 +422,7 @@ gsn_table(wks,ncr3,x3,y3,text_values,res3)
 
 delete(wks)
 system("ps2epsi "+pltName+".ps "+pltName+".eps")
-;system("rm "+pltName+".ps")
+system("rm "+pltName+".ps")
 ;system("convert -density 500 -rotate 270 "+pltName+".ps "+pltName+".jpg")
 
 end

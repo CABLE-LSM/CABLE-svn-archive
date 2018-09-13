@@ -115,7 +115,7 @@ x3          = (/0.080,0.995/)
 y3          = (/0.415,0.800/)
 text_values = (/land,ocean,globe/)
 
-pltName = "ebal_table" + "_" + numYr + "yrs"
+pltName = "table_ebal" + "_" + numYr + "yrs"
 wks     = gsn_open_wks("ps",pltName)
 
 res1               = True
@@ -189,7 +189,7 @@ x3          = (/0.085,0.995/)
 y3          = (/0.415,0.800/)
 text_values = (/land,ocean,globe/)
 
-pltName = "wBal_table" + "_" + numYr + "yrs"
+pltName = "table_wBal" + "_" + numYr + "yrs"
 wks     = gsn_open_wks("ps",pltName)
 
 res1               = True
@@ -284,7 +284,7 @@ x3          = (/0.085,0.995/)
 y3          = (/0.415,0.800/)
 text_values = (/land,ocean,globe/)
 
-pltName = "temp_table" + "_" + numYr + "yrs"
+pltName = "table_temp" + "_" + numYr + "yrs"
 wks     = gsn_open_wks("ps",pltName)
 
 res1               = True
@@ -388,7 +388,7 @@ x3          = (/0.080,0.995/)
 y3          = (/0.415,0.800/)
 text_values = (/source,land,ocean,globe/)
 
-pltName = "ecomps_ctable" + "_" + numYr + "yrs"
+pltName = "ctable_ecomps" + "_" + numYr + "yrs"
 wks     = gsn_open_wks("ps",pltName)
 
 res1               = True
@@ -486,7 +486,7 @@ x3          = (/0.085,0.995/)
 y3          = (/0.415,0.800/)
 text_values = (/source,land,ocean,globe/)
 
-pltName = "temp_ctable" + "_" + numYr + "yrs"
+pltName = "ctable_temp" + "_" + numYr + "yrs"
 wks     = gsn_open_wks("ps",pltName)
 
 res1               = True
@@ -580,7 +580,7 @@ x3          = (/0.085,0.995/)
 y3          = (/0.415,0.800/)
 text_values = (/source,land,ocean,globe/)
 
-pltName = "ebal_ctable" + "_" + numYr + "yrs"
+pltName = "ctable_ebal" + "_" + numYr + "yrs"
 wks     = gsn_open_wks("ps",pltName)
 
 res1               = True
@@ -686,7 +686,7 @@ x3          = (/0.085,0.995/)
 y3          = (/0.415,0.800/)
 text_values = (/source,land,ocean,globe/)
 
-pltName = "wbal_ctable" + "_" + numYr + "yrs"
+pltName = "ctable_wbal" + "_" + numYr + "yrs"
 wks     = gsn_open_wks("ps",pltName)
 
 res1               = True

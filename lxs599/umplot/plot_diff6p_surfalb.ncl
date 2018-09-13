@@ -14,8 +14,8 @@ usr = systemfunc("echo $USERID")
 begin
 
 numYr = systemfunc("echo $YR") 
-cDir  = systemfunc("echo $CABLE")
-mDir  = systemfunc("echo $MOSES")
+cDir  = systemfunc("echo $MID")
+mDir  = systemfunc("echo $TOP")
 ObsDir = hdir+"/"+usr+"/umplot/obs/"
 cname = systemfunc("echo $CNM")
 
@@ -200,7 +200,8 @@ gsn_define_colormap(wks,"BlAqGrYeOrReVi200")
   res@tmXBLabelsOn = False
   res@gsnRightString      = "DJF"
 if (a14) then
-  res@gsnLeftString       = "ACCESS1.3 "+rtype
+  res@gsnLeftString       = "Prog "+rtype
+  ;res@gsnLeftString       = "ACCESS1.3 "+rtype
 else
   res@gsnLeftString       = "ACCESS1.0 "+rtype
 end if
@@ -213,7 +214,8 @@ end if
   res@tmXBLabelsOn = False
   res@gsnRightString      = "JJA"
 if (a14) then
-  res@gsnLeftString       = "ACCESS1.3 "+rtype
+  res@gsnLeftString       = "Prog "+rtype
+  ;res@gsnLeftString       = "ACCESS1.3 "+rtype
 else
   res@gsnLeftString       = "ACCESS1.0 "+rtype
 end if
@@ -226,7 +228,8 @@ end if
   res@tmXBLabelsOn = True
   res@gsnRightString      = "DJF"
 if (a14) then
-  res@gsnLeftString       = "ACCESS1.4 "+rtype
+  res@gsnLeftString       = "Pres "+rtype
+  ;res@gsnLeftString       = "ACCESS1.4 "+rtype
 else
   res@gsnLeftString       = "ACCESS1.1 "+rtype
 end if
@@ -234,7 +237,8 @@ end if
   res@tmYLLabelsOn = False
   res@gsnRightString      = "JJA"
 if (a14) then
-  res@gsnLeftString       = "ACCESS1.4 "+rtype
+  res@gsnLeftString       = "Pres "+rtype
+  ;res@gsnLeftString       = "ACCESS1.4 "+rtype
 else
   res@gsnLeftString       = "ACCESS1.1 "+rtype
 end if
@@ -272,7 +276,8 @@ end if
   res1@tmYLLabelsOn = True
   res1@gsnRightString      = "DJF"
 if (a14) then
-  res1@gsnLeftString       = "ACCESS1.4 - ACCESS1.3 "+rtype
+  res@gsnLeftString       = "Pres-Prog "+rtype
+  ;res1@gsnLeftString       = "ACCESS1.4 - ACCESS1.3 "+rtype
 else
   res1@gsnLeftString       = "ACCESS1.1 - ACCESS1.0 "+rtype
 end if
@@ -280,7 +285,8 @@ end if
   res1@tmYLLabelsOn = False
   res1@gsnRightString      = "JJA"
 if (a14) then
-  res1@gsnLeftString       = "ACCESS1.4 - ACCESS1.3 "+rtype
+  res@gsnLeftString       = "Pres-Prog "+rtype
+  ;res1@gsnLeftString       = "ACCESS1.4 - ACCESS1.3 "+rtype
 else
   res1@gsnLeftString       = "ACCESS1.1 - ACCESS1.0 "+rtype
 end if

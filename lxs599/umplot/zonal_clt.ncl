@@ -12,9 +12,9 @@ loadscript(hdir+"/"+usr+"/umplot/wgt_func.ncl")
 begin
 
 numYr = systemfunc("echo $YR")
-mDir  = systemfunc("echo $MOSES")
-cDir  = systemfunc("echo $CABLE")
-tDir  = hdir+"/"+usr+"/access/access13/amip" ;systemfunc("echo $CABLE")
+mDir  = systemfunc("echo $TOP")
+cDir  = systemfunc("echo $MID")
+tDir  = hdir+"/"+usr+"/access/access13/amip" ;systemfunc("echo $MID")
 cname = systemfunc("echo $CNM")
 resol = systemfunc("echo $RES")
 
@@ -36,10 +36,12 @@ end if
 
 PltDir    = hdir+"/"+usr+"/umplot/data/"
 ObsDir    = hdir+"/"+usr+"/umplot/obs/"
+raijinDir = "/short/p66/lxs599/from_dcc/lxs599/umplot/analysis/access13/amip/clouds/"
 
 fmos  = addfile(mDir+"/monthly_means_"+numYr+"yrs.nc","r")
 fcab  = addfile(cDir+"/monthly_means_"+numYr+"yrs.nc","r")
-fcab3 = addfile(tDir+"/clt_yseasmean.nc","r")
+fcab3 = addfile(raijinDir+"/clt_yseasmean.nc","r")
+;fcab3 = addfile(tDir+"/clt_yseasmean.nc","r")
 fobs  = addfile(ObsDir+"/ERAi_clouds_yseasmean.nc","r")
 if (resol .eq. 96) then
 lsm_file  = addfile(PltDir+"mask_accessV2_n"+resol+".nc","r")

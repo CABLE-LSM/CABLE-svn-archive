@@ -13,8 +13,8 @@ loadscript(hdir+"/"+usr+"/umplot/regrid.ncl")
 begin
 
 numYr = systemfunc("echo $YR")
-cDir  = systemfunc("echo $CABLE")
-mDir  = systemfunc("echo $MOSES")
+cDir  = systemfunc("echo $MID")
+mDir  = systemfunc("echo $TOP")
 cname = systemfunc("echo $CNM")
 resol = systemfunc("echo $RES")
 ObsDir = hdir+"/"+usr+"/umplot/obs/"
@@ -44,7 +44,7 @@ end if
 if (isfilevar(cable,"tmin")) then
 tas_c = cable  ->tmin ;tasmin
 else
-tas_c = cable  ->temp_1 ;tasmin
+tas_c = cable  ->temp_2 ;tasmin
 end if
 tas_l = tas_c - tas_m
 ;tas_l = tas_c(:,0,:,:) - tas_m
@@ -65,10 +65,11 @@ era_t              = regrid_bilin(tas_o,tas_m)
 era_t@long_name    = "ERAi Min Tscrn regridded to UM N"+resol+""
 era_t@units        = "~S~o~N~K"
 
+;era_T           = new((/4,144,192/),double)
 era_T           = new((/4,145,192/),double)
 era_T(0,:,:)    = (era_t(0,:,:)+era_t(1,:,:)+era_t(11,:,:))/3
-era_T(1,:,:)    = (era_t(2,:,:)+era_t(3,:,:)+era_t(4,:,:))/3
-era_T(2,:,:)    = (era_t(5,:,:)+era_t(6,:,:)+era_t(7,:,:))/3
+era_T(1,:,:)    = (era_t(2,:,:)+era_t(3,:,:)+era_t( 4,:,:))/3
+era_T(2,:,:)    = (era_t(5,:,:)+era_t(6,:,:)+era_t( 7,:,:))/3
 era_T(3,:,:)    = (era_t(8,:,:)+era_t(9,:,:)+era_t(10,:,:))/3
 ;copy_VarMeta(era_t,era_T)
 era_T@long_name = "ERA Interim Minimum Temperature at 2m"
@@ -270,7 +271,8 @@ cmap_bT = RGBtoCmap(hdir+"/"+usr+"/umplot/colormap/BlueOrangeRed.rgb")
 if (a14) then
   res@gsnLeftString = "ACCESS1.3 "+rtype
 else
-  res@gsnLeftString = "ACCESS1.0 "+rtype
+  res@gsnLeftString = "UM8.5 "+rtype
+  ;res@gsnLeftString = "ACCESS1.0 "+rtype
 end if
   plot(0) = gsn_csm_contour_map(wks,bias_tasm(0,{latS:latN},{lonL:lonR}),res)
   res@tmYLLabelsOn = False
@@ -281,7 +283,8 @@ end if
 if (a14) then
   res@gsnLeftString = "ACCESS1.4 "+rtype
 else
-  res@gsnLeftString = "ACCESS1.1 "+rtype
+  res@gsnLeftString = "UM10.1 "+rtype
+  ;res@gsnLeftString = "ACCESS1.1 "+rtype
 end if
   res@gsnRightString = "DJF"
   plot(2) = gsn_csm_contour_map(wks,bias_tasc(0,{latS:latN},{lonL:lonR}),res)
@@ -295,7 +298,8 @@ end if
 if (a14) then
   res@gsnLeftString = "ACCESS1.4 - ACCESS1.3 "+rtype
 else
-  res@gsnLeftString = "ACCESS1.1 - ACCESS1.0 "+rtype
+  res@gsnLeftString = "UM10.1-UM8.5 "+rtype
+  ;res@gsnLeftString = "ACCESS1.1 - ACCESS1.0 "+rtype
 end if
   res@gsnRightString = "DJF"
   plot(4) = gsn_csm_contour_map(wks,bias_tas(0,{latS:latN},{lonL:lonR}),res)
