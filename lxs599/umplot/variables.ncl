@@ -1351,46 +1351,46 @@ print("")
 nHem = "NH"
 sHem = "SH"
 if (dims.gt.3) then
- Polar_Plot(pltDir,"seas_mp"+nHem+"_tscrn_",numYr,type,"perc2_9lev",tscrn(:,0,:,:),False,True,levtp,nHem,False)
- Polar_Plot(pltDir,"seas_mp"+sHem+"_tscrn_",numYr,type,"perc2_9lev",tscrn(:,0,:,:),False,True,levtp,sHem,False)
+ Polar_Plot(pltDir,"seas_mp"+nHem+"_tscrn",numYr,type,"perc2_9lev",tscrn(:,0,:,:),False,True,levtp,nHem,False)
+ Polar_Plot(pltDir,"seas_mp"+sHem+"_tscrn",numYr,type,"perc2_9lev",tscrn(:,0,:,:),False,True,levtp,sHem,False)
 else
- Polar_Plot(pltDir,"seas_mp"+nHem+"_tscrn_",numYr,type,"perc2_9lev",tscrn(:,:,:),False,True,levtp,nHem,False)
- Polar_Plot(pltDir,"seas_mp"+sHem+"_tscrn_",numYr,type,"perc2_9lev",tscrn(:,:,:),False,True,levtp,sHem,False)
+ Polar_Plot(pltDir,"seas_mp"+nHem+"_tscrn",numYr,type,"perc2_9lev",tscrn(:,:,:),False,True,levtp,nHem,False)
+ Polar_Plot(pltDir,"seas_mp"+sHem+"_tscrn",numYr,type,"perc2_9lev",tscrn(:,:,:),False,True,levtp,sHem,False)
 end if
-Polar_Plot(pltDir,"bias_seas_mp"+nHem+"_tscrn_",numYr,type,"BlueDarkRed18",bias_tscrn,False,True,lev_bT,nHem,False)
-Polar_Plot(pltDir,"bias_seas_mp"+sHem+"_tscrn_",numYr,type,"BlueDarkRed18",bias_tscrn,False,True,lev_bT,sHem,False)
+Polar_Plot(pltDir,"bias_seas_mp"+nHem+"_tscrn",numYr,type,"BlueDarkRed18",bias_tscrn,False,True,lev_bT,nHem,False)
+Polar_Plot(pltDir,"bias_seas_mp"+sHem+"_tscrn",numYr,type,"BlueDarkRed18",bias_tscrn,False,True,lev_bT,sHem,False)
 
 if(isvar("tmax")) then
 if (dims.gt.3) then
- Polar_Plot(pltDir,"seas_mp"+nHem+"_tmax_",numYr,type,"perc2_9lev",tmax(:,0,:,:),False,True,levtp,nHem,False)
- Polar_Plot(pltDir,"seas_mp"+sHem+"_tmax_",numYr,type,"perc2_9lev",tmax(:,0,:,:),False,True,levtp,sHem,False)
+ Polar_Plot(pltDir,"seas_mp"+nHem+"_tmax",numYr,type,"perc2_9lev",tmax(:,0,:,:),False,True,levtp,nHem,False)
+ Polar_Plot(pltDir,"seas_mp"+sHem+"_tmax",numYr,type,"perc2_9lev",tmax(:,0,:,:),False,True,levtp,sHem,False)
 else
- Polar_Plot(pltDir,"seas_mp"+nHem+"_tmax_",numYr,type,"perc2_9lev",tmax(:,0,:,:),False,True,levtp,nHem,False)
- Polar_Plot(pltDir,"seas_mp"+sHem+"_tmax_",numYr,type,"perc2_9lev",tmax(:,0,:,:),False,True,levtp,sHem,False)
+ Polar_Plot(pltDir,"seas_mp"+nHem+"_tmax",numYr,type,"perc2_9lev",tmax(:,0,:,:),False,True,levtp,nHem,False)
+ Polar_Plot(pltDir,"seas_mp"+sHem+"_tmax",numYr,type,"perc2_9lev",tmax(:,0,:,:),False,True,levtp,sHem,False)
 end if
-Polar_Plot(pltDir,"bias_seas_mp"+nHem+"_tmax_",numYr,type,"BlueDarkRed18",bias_tmax,False,True,lev_bT,nHem,False)
-Polar_Plot(pltDir,"bias_seas_mp"+sHem+"_tmax_",numYr,type,"BlueDarkRed18",bias_tmax,False,True,lev_bT,sHem,False)
+Polar_Plot(pltDir,"bias_seas_mp"+nHem+"_tmax",numYr,type,"BlueDarkRed18",bias_tmax,False,True,lev_bT,nHem,False)
+Polar_Plot(pltDir,"bias_seas_mp"+sHem+"_tmax",numYr,type,"BlueDarkRed18",bias_tmax,False,True,lev_bT,sHem,False)
 
 if (dims.gt.3) then
-Polar_Plot(pltDir,"seas_mp"+nHem+"_tmin_",numYr,type,"perc2_9lev",tmin(:,0,:,:),False,True,levtp,nHem,False)
-Polar_Plot(pltDir,"seas_mp"+sHem+"_tmin_",numYr,type,"perc2_9lev",tmin(:,0,:,:),False,True,levtp,sHem,False)
+Polar_Plot(pltDir,"seas_mp"+nHem+"_tmin",numYr,type,"perc2_9lev",tmin(:,0,:,:),False,True,levtp,nHem,False)
+Polar_Plot(pltDir,"seas_mp"+sHem+"_tmin",numYr,type,"perc2_9lev",tmin(:,0,:,:),False,True,levtp,sHem,False)
 else
-Polar_Plot(pltDir,"seas_mp"+nHem+"_tmin_",numYr,type,"perc2_9lev",tmin(:,0,:,:),False,True,levtp,nHem,False)
-Polar_Plot(pltDir,"seas_mp"+sHem+"_tmin_",numYr,type,"perc2_9lev",tmin(:,0,:,:),False,True,levtp,sHem,False)
+Polar_Plot(pltDir,"seas_mp"+nHem+"_tmin",numYr,type,"perc2_9lev",tmin(:,0,:,:),False,True,levtp,nHem,False)
+Polar_Plot(pltDir,"seas_mp"+sHem+"_tmin",numYr,type,"perc2_9lev",tmin(:,0,:,:),False,True,levtp,sHem,False)
 end if
-Polar_Plot(pltDir,"bias_seas_mp"+nHem+"_tmin_",numYr,type,"BlueDarkRed18",bias_tmin,False,True,lev_bT,nHem,False)
-Polar_Plot(pltDir,"bias_seas_mp"+sHem+"_tmin_",numYr,type,"BlueDarkRed18",bias_tmin,False,True,lev_bT,sHem,False)
+Polar_Plot(pltDir,"bias_seas_mp"+nHem+"_tmin",numYr,type,"BlueDarkRed18",bias_tmin,False,True,lev_bT,nHem,False)
+Polar_Plot(pltDir,"bias_seas_mp"+sHem+"_tmin",numYr,type,"BlueDarkRed18",bias_tmin,False,True,lev_bT,sHem,False)
 end if
 
 if (dims.gt.3) then
-Polar_Plot(pltDir,"seas_mp"+nHem+"_precip_",numYr,type,cmapr,precip(:,0,:,:),False,True,levpr,nHem,False)
-Polar_Plot(pltDir,"seas_mp"+sHem+"_precip_",numYr,type,cmapr,precip(:,0,:,:),False,True,levpr,sHem,False)
+Polar_Plot(pltDir,"seas_mp"+nHem+"_precip",numYr,type,cmapr,precip(:,0,:,:),False,True,levpr,nHem,False)
+Polar_Plot(pltDir,"seas_mp"+sHem+"_precip",numYr,type,cmapr,precip(:,0,:,:),False,True,levpr,sHem,False)
 else
-Polar_Plot(pltDir,"seas_mp"+nHem+"_precip_",numYr,type,cmapr,precip(:,:,:),False,True,levpr,nHem,False)
-Polar_Plot(pltDir,"seas_mp"+sHem+"_precip_",numYr,type,cmapr,precip(:,:,:),False,True,levpr,sHem,False)
+Polar_Plot(pltDir,"seas_mp"+nHem+"_precip",numYr,type,cmapr,precip(:,:,:),False,True,levpr,nHem,False)
+Polar_Plot(pltDir,"seas_mp"+sHem+"_precip",numYr,type,cmapr,precip(:,:,:),False,True,levpr,sHem,False)
 end if
-Polar_Plot(pltDir,"bias_seas_mp"+nHem+"_precip_",numYr,type,"BlueDarkRed18",bias_precip,False,True,lev_bP,nHem,False)
-Polar_Plot(pltDir,"bias_seas_mp"+sHem+"_precip_",numYr,type,"BlueDarkRed18",bias_precip,False,True,lev_bP,sHem,False)
+Polar_Plot(pltDir,"bias_seas_mp"+nHem+"_precip",numYr,type,"BlueDarkRed18",bias_precip,False,True,lev_bP,nHem,False)
+Polar_Plot(pltDir,"bias_seas_mp"+sHem+"_precip",numYr,type,"BlueDarkRed18",bias_precip,False,True,lev_bP,sHem,False)
 ; annual ?
 
 ; Global Wbal Table ===============================================
