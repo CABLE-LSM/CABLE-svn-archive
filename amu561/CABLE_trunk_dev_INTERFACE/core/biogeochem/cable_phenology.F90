@@ -133,6 +133,9 @@ DO np= 1,mp
 
  endif
 
+
+print *, "phenphase", phen%phase
+
 ENDDO  ! end loop over patches
 
 

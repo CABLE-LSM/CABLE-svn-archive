@@ -451,6 +451,10 @@ SUBROUTINE casa_readphen(veg,casamet,phen)
 
  ENDDO
 
+
+ print *, "Phenology doy phase", phen%doyphase
+
+
 END SUBROUTINE casa_readphen
 
 !SUBROUTINE casa_readpoint(veg,soil,casaflux,casamet,rad)
@@ -755,14 +759,15 @@ ENDIF
 
   casaflux%Cplant_turnover = 0.
 
-  phen%doyphase(:,1) = -50
-  phen%doyphase(:,2) = phen%doyphase(:,1) +14
-  phen%doyphase(:,3) = 367
-  phen%doyphase(:,4) = phen%doyphase(:,3) + 14
+ ! phen%doyphase(:,1) = -50
+ ! phen%doyphase(:,2) = phen%doyphase(:,1) +14
+ ! phen%doyphase(:,3) = 367
+ ! phen%doyphase(:,4) = phen%doyphase(:,3) + 14
   phen%phase(:) = 2
   phen%phen(:) = 1
   phen%aphen(:) = 0
   !CLN add more if necessary
+
 
   IF (initcasa==1) THEN
      if (.NOT.cable_user%casa_fromzero) THEN
@@ -1358,6 +1363,7 @@ SUBROUTINE biogeochem(ktau,dels,idoY,LALLOC,veg,soil,casabiome,casapool,casaflux
 
  ! zero annual sums
   if (idoy==1) CALL casa_cnpflux(casaflux,casapool,casabal,.TRUE.)
+
 
   IF (cable_user%PHENOLOGY_SWITCH.eq.'MODIS') THEN
      call phenology(idoy,veg,phen)

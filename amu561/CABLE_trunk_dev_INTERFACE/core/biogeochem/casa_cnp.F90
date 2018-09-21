@@ -166,6 +166,9 @@ SUBROUTINE casa_xnp(xnplimit,xNPuptake,veg,casabiome,casapool,casaflux,casamet)
 
    enddo
 
+
+!print *, "LabileFrac", casaflux%fracClabile
+
 !write(59,91)  xNuptake(1),casapool%Nsoilmin(1), totNreqmin(1)*deltpool 
 91  format(20(e12.4,2x))
 !  casaflux%cnpp(:) = xNPuptake(:) * xnplimit(:) * casaflux%cnpp(:)
@@ -213,6 +216,7 @@ SUBROUTINE casa_allocation(veg,soil,casabiome,casaflux,casapool,casamet,phen,LAL
   newLAI = 0.0
   SELECT CASE (LALLOC)
 
+
   CASE(2)   !
     ! calculate the allocation coefficients
     call casa_wolf(veg,casabiome,casaflux,casapool,casamet)
@@ -248,6 +252,8 @@ SUBROUTINE casa_allocation(veg,soil,casabiome,casaflux,casapool,casamet,phen,LAL
     END WHERE
   CASE (0)   ! fixed allocation
     casaflux%fracCalloc(:,:) = casabiome%fracnpptop(veg%iveg(:),:)
+
+
 
   CASE (3) ! leaf:wood allocation set to maintain LA:SA ratio
      ! below target value of 4000, where phen%phase = 1 or 2 
@@ -289,6 +295,8 @@ SUBROUTINE casa_allocation(veg,soil,casabiome,casaflux,casapool,casamet,phen,LAL
 
 991 format(1166(e14.7,2x)) 
 
+
+!print *, "ALLOC scheme", LALLOC
   ! during leaf growth phase 0 or 3, no carbon is allocated to leaf,
   ! during maximal leaf growth phase, all C is allocated to leaf
   ! during steady growth period, C allocation is estimated in such
@@ -332,6 +340,7 @@ SUBROUTINE casa_allocation(veg,soil,casabiome,casaflux,casapool,casamet,phen,LAL
 
         ! IF Prognostic LAI reached glaimax, no C is allocated to leaf
         ! Q.Zhang 17/03/2011
+!        print *, "glai, maxlai", casamet%glai, casabiome%glaimax(veg%iveg(:))
         WHERE(casamet%glai(:)>=casabiome%glaimax(veg%iveg(:)))
            casaflux%fracCalloc(:,leaf)  = 0.0
            casaflux%fracCalloc(:,froot) =  casaflux%fracCalloc(:,froot) &
@@ -356,6 +365,7 @@ SUBROUTINE casa_allocation(veg,soil,casabiome,casaflux,casapool,casamet,phen,LAL
            casaflux%fracCalloc(:,froot) = casapool%Cplant(:,froot)/sum(casapool%Cplant,2)
         ENDWHERE
      ENDWHERE
+
 
   ELSE
      WHERE(casamet%iveg2/=icewater)
@@ -457,6 +467,10 @@ SUBROUTINE casa_allocation(veg,soil,casabiome,casaflux,casapool,casamet,phen,LAL
   casaflux%fracCalloc(:,leaf) = casaflux%fracCalloc(:,leaf)/totfracCalloc(:)
   casaflux%fracCalloc(:,wood) = casaflux%fracCalloc(:,wood)/totfracCalloc(:)
   casaflux%fracCalloc(:,froot) = casaflux%fracCalloc(:,froot)/totfracCalloc(:)
+
+
+  !print *, "Calloc", casaflux%fracCalloc(:,leaf)
+
 
 END SUBROUTINE casa_allocation
 
@@ -2099,6 +2113,9 @@ SUBROUTINE casa_cnpcycle(veg,casabiome,casapool,casaflux,casamet, LALLOC)
 
 
 
+!print *, "Clabile", casapool%clabile
+
+
     IF(casapool%cplant(np,leaf) > 0.0) THEN
       IF(icycle >1) casapool%Nplant(np,:) = casapool%Nplant(np,:) &
                                  +casapool%dNplantdt(np,:)*deltpool
@@ -2416,6 +2433,7 @@ SUBROUTINE phenology(iday,veg,phen)
   WHERE(veg%iveg==1 .or. veg%iveg ==2 )
        phen%phase = 2
   ENDWHERE
+
 
 END SUBROUTINE phenology
 
