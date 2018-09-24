@@ -296,7 +296,6 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    
 
 
-   
    !___ declare local vars 
    
    !___ location of namelist file defining runtime vars
@@ -308,6 +307,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    LOGICAL, SAVE :: first_cable_call = .TRUE.
  
 
+   
 
    !--- initialize cable_runtime% switches 
    IF(first_cable_call) THEN
@@ -316,6 +316,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
       write(6,*) "CABLE_log"
       CALL report_version_no(6) ! wriite revision number to stdout(6)
    ENDIF
+   
       
    !--- basic info from global model passed to cable_common_module 
    !--- vars so don't need to be passed around, just USE _module
@@ -330,6 +331,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    !--- from cable_common_module
    cable_runtime%um_explicit = .TRUE.
 
+   
    !--- user FLAGS, variables etc def. in cable.nml is read on 
    !--- first time step of each run. these variables are read at 
    !--- runtime and for the most part do not require a model rebuild.
@@ -337,6 +339,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
       CALL cable_um_runtime_vars(runtime_vars_file) 
       first_cable_call = .FALSE.
    ENDIF      
+   
 
   mtau = mod(ktau_gl,int(24.*3600./timestep))
   if (l_luc .and. iday==1 .and. mtau==1) then

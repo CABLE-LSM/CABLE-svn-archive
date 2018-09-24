@@ -156,6 +156,9 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
    INTEGER :: i,j,k,L,n
    REAL, ALLOCATABLE :: tempvar(:), tempvar2(:)
    LOGICAL, PARAMETER :: skip =.TRUE. 
+   REAL, DIMENSION(mstype) :: dummy 
+
+      dummy=0. 
 
       IF( first_call ) THEN 
 
@@ -178,7 +181,7 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
            
          !--- set CABLE-var soil%albsoil from UM var albsoil
          ! (see below ~ um2cable_lp)
-         CALL um2cable_lp( albsoil, albsoil, soil%albsoil(:,1),                &
+         CALL um2cable_lp( albsoil, dummy, soil%albsoil(:,1),                &
                            soil%isoilm, skip )
 
          !--- defined in soil_thick.h in UM
@@ -209,7 +212,7 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
          ! parameter b in Campbell equation 
          CALL um2cable_lp( BEXP, soilin%bch, soil%bch, soil%isoilm)
          
-         ALLOCATE( tempvar(um1%land_pts), tempvar2(mp) )
+         ALLOCATE( tempvar(mstype), tempvar2(mp) )
          tempvar = soilin%sand(9) * 0.3  + soilin%clay(9) *0.25 +              &
                    soilin%silt(9) * 0.265
          
@@ -942,11 +945,11 @@ END SUBROUTINE um2cable_rr
 !--- conditional "mask" l_tile_pts(land_pts,ntiles) which is .true.
 !--- if the land point is/has an active tile
 SUBROUTINE um2cable_lp(umvar, defaultin, cablevar, soiltype, skip )
-   USE cable_def_types_mod, ONLY : mp
+   USE cable_def_types_mod, ONLY : mp, mstype
    USE cable_um_tech_mod,   ONLY :um1
   
    REAL, INTENT(IN), DIMENSION(um1%land_pts) :: umvar
-   REAL, INTENT(IN), DIMENSION(10) :: defaultin    
+   REAL, INTENT(IN), DIMENSION(mstype) :: defaultin    
    REAL, INTENT(INOUT), DIMENSION(mp) :: cablevar
    INTEGER, INTENT(INOUT), DIMENSION(mp) :: soiltype
    REAL, DIMENSION(:,:), ALLOCATABLE:: fvar   
@@ -957,11 +960,17 @@ SUBROUTINE um2cable_lp(umvar, defaultin, cablevar, soiltype, skip )
       ALLOCATE( fvar(um1%land_pts,um1%ntiles) )
       fvar = 0.0
 
+      ! loop over Ntiles
       DO N=1,um1%NTILES
+         ! loop over number of points per tile
          DO K=1,um1%TILE_PTS(N)
+            ! index of each point per tile in an array of dim=(land_pts,ntiles)
             L = um1%TILE_INDEX(K,N)
+            ! at this point fvar=umvar, ELSE=0.0 
             fvar(L,N) = umvar(L)
+            ! unless explicitly SKIPPED by including arg in subr call
             IF(.NOT. PRESENT(skip) ) THEN
+               ! on perma frost tile, set fvar=defaultin
                IF( N == um1%ntiles ) THEN
                   fvar(L,N) =  defaultin(9)
                ENDIF
@@ -971,8 +980,10 @@ SUBROUTINE um2cable_lp(umvar, defaultin, cablevar, soiltype, skip )
      
       cablevar     =  PACK(fvar,um1%l_tile_pts)
   
+      ! unless explicitly SKIPPED by including arg in subr call
       IF(.NOT. PRESENT(skip) ) THEN
          DO i=1,mp
+            ! soiltype=9 for perma-frost tiles 
             IF(soiltype(i)==9) cablevar(i) =  defaultin(9)         
          ENDDO        
       ENDIF
