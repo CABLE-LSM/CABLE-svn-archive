@@ -468,7 +468,6 @@ SUBROUTINE casa_allocation(veg,soil,casabiome,casaflux,casapool,casamet,phen,LAL
   casaflux%fracCalloc(:,wood) = casaflux%fracCalloc(:,wood)/totfracCalloc(:)
   casaflux%fracCalloc(:,froot) = casaflux%fracCalloc(:,froot)/totfracCalloc(:)
 
-
   !print *, "Calloc", casaflux%fracCalloc(:,leaf)
 
 
@@ -2434,6 +2433,10 @@ SUBROUTINE phenology(iday,veg,phen)
        phen%phase = 2
   ENDWHERE
 
+
+
+  !print*, "iday", iday
+  !print *, "phenphase", phen%phase
 
 END SUBROUTINE phenology
 

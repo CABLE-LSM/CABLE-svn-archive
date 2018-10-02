@@ -1206,8 +1206,8 @@ CONTAINS
 
    !ENDIF
 
-    rough%za_uv = 40.0 ! lowest atm. model layer/reference height
-    rough%za_tq = 40.0
+    rough%za_uv = 2.0 + veg%hc !40.0 ! lowest atm. model layer/reference height
+    rough%za_tq = 2.0 + veg%hc !40.0
 
     veg%meth = 1 ! canopy turbulence parameterisation method: 0 or 1
 
