@@ -623,8 +623,8 @@ END SUBROUTINE write_casa_dump
           veg%ejmax(np) = 2.0 * veg%vcmax(np)
        elseif (ivt.eq.1) then
            ! account here for spring recovery
-          veg%vcmax(np) = vcmax_np(nleafx(np), pleafx(np))*casabiome%vcmax_scalar(ivt) &
-               *climate%frec(np) 
+          veg%vcmax(np) = vcmax_np(nleafx(np), pleafx(np))*casabiome%vcmax_scalar(ivt) ! &
+              ! *climate%frec(np) 
           veg%ejmax(np) =bjvref * veg%vcmax(np)
        else
           veg%vcmax(np) = vcmax_np(nleafx(np), pleafx(np))*casabiome%vcmax_scalar(ivt)
