@@ -1809,6 +1809,8 @@ CONTAINS
                      0.0334*climate%qtemp_max_last_year(i)*1e-6)
                 endif
 
+                
+                rdx(i,1) = 0.90 * 1.3805e-6 ! null model
                 rdx(i,2) = rdx(i,1)
 
              elseif ( veg%iveg(i).eq. 4  ) then ! decid broadleaf forest
@@ -1819,6 +1821,8 @@ CONTAINS
                    rdx(i,1) = 1.0*(1.2818e-6+0.0116*veg%vcmax(i)/1.45- &
                      0.0334*climate%qtemp_max_last_year(i)*1e-6)
                 endif
+
+                rdx(i,1) = 1.0 * 1.3805e-6 ! null model
                 rdx(i,2) = rdx(i,1)
 
              elseif (veg%iveg(i).eq.1   ) then ! evergreen needleleaf forest
@@ -1830,7 +1834,7 @@ CONTAINS
                          0.0334*climate%qtemp_max_last_year(i)*1e-6)
                  endif
 
-
+                 rdx(i,1) = 1.0 * 1.3247e-6 ! null model
                  rdx(i,2) = rdx(i,1)
 
 
@@ -1842,6 +1846,7 @@ CONTAINS
                       0.0334*climate%qtemp_max_last_year(i)*1e-6)
                  endif
 
+                 rdx(i,1) = 1.0 * 1.3247e-6 ! null model
                  rdx(i,2) = rdx(i,1)
 
               elseif (veg%iveg(i).eq.6 .or. veg%iveg(i).eq.8 .or. &
@@ -1853,11 +1858,15 @@ CONTAINS
                     rdx(i,1) = 0.8*(1.6737e-6+0.0116*veg%vcmax(i)/1.6- &
                       0.0334*climate%qtemp_max_last_year(i)*1e-6)
                  endif
+
+                 rdx(i,1) = 0.8 * 1.8904e-6 ! null model
                  rdx(i,2) = rdx(i,1)
 
               else  ! shrubs and other (C4 grass and crop)
                  rdx(i,1) = 0.7*(1.5758e-6+0.0116*veg%vcmax(i)- &
                       0.0334*climate%qtemp_max_last_year(i)*1e-6)
+
+                 rdx(i,1) = 0.7 * 1.7265e-6 ! null model
                  rdx(i,2) = rdx(i,1)
               endif
               veg%cfrd(i) = rdx(i,1) / veg%vcmax(i)
