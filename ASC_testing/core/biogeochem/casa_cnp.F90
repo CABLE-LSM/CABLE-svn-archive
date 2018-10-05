@@ -1879,7 +1879,8 @@ SUBROUTINE avgsoil(veg,soil,casamet)
      
      
   ENDDO
-     casamet%tsoilavg = casamet%tairk  ! test for ASC work Oct 2018
+  !casamet%tsoilavg = casamet%tairk  ! test for ASC work Oct 2018
+  casamet%moistavg = 0.2 ! test for ASC work Oct 2018
 
 
 END SUBROUTINE avgsoil
