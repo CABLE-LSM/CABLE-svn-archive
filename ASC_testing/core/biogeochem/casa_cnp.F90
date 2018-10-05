@@ -1848,38 +1848,39 @@ SUBROUTINE avgsoil(veg,soil,casamet)
   casamet%btran      = 0.0
 
   DO ns = 1, ms
-  DO nland=1,mp
-    casamet%tsoilavg(nland)  = casamet%tsoilavg(nland)+veg%froot(nland,ns)  &
-                             * casamet%tsoil(nland,ns)
+     DO nland=1,mp
+        casamet%tsoilavg(nland)  = casamet%tsoilavg(nland)+veg%froot(nland,ns)  &
+             * casamet%tsoil(nland,ns)
 
     
-    IF (trim(cable_user%SMRF_NAME)=='Trudinger2016' .OR. &
-        trim(cable_user%SMRF_NAME)=='DAMM' ) THEN
-      
-        casamet%moistavg(nland)  = casamet%moistavg(nland)+ veg%froot(nland,ns) &
-            *casamet%moist(nland,ns) 
-    ELSE
+        IF (trim(cable_user%SMRF_NAME)=='Trudinger2016' .OR. &
+             trim(cable_user%SMRF_NAME)=='DAMM' ) THEN
+           
+           casamet%moistavg(nland)  = casamet%moistavg(nland)+ veg%froot(nland,ns) &
+                *casamet%moist(nland,ns) 
+        ELSE
+           
+           casamet%moistavg(nland)  = casamet%moistavg(nland)+ veg%froot(nland,ns) &
+                * min(soil%sfc(nland),casamet%moist(nland,ns))
+        ENDIF
 
-       casamet%moistavg(nland)  = casamet%moistavg(nland)+ veg%froot(nland,ns) &
-                           * min(soil%sfc(nland),casamet%moist(nland,ns))
-    ENDIF
-
-
-
+       
  ! Ticket#121
 
   ! casamet%btran(nland)     = casamet%btran(nland)+ veg%froot(nland,ns)  &
    !         * (min(soil%sfc(nland),casamet%moist(nland,ns))-soil%swilt(nland)) &
    !         /(soil%sfc(nland)-soil%swilt(nland))
 
-    casamet%btran(nland)     = casamet%btran(nland)+ veg%froot(nland,ns)  &
-            * (max(min(soil%sfc(nland),casamet%moist(nland,ns))-soil%swilt(nland),0.0)) &
-            /(soil%sfc(nland)-soil%swilt(nland))
-
+        casamet%btran(nland)     = casamet%btran(nland)+ veg%froot(nland,ns)  &
+             * (max(min(soil%sfc(nland),casamet%moist(nland,ns))-soil%swilt(nland),0.0)) &
+             /(soil%sfc(nland)-soil%swilt(nland))
+        
+     ENDDO
+     
+     
   ENDDO
+     casamet%tsoilavg = casamet%tairk  ! test for ASC work Oct 2018
 
- 
-  ENDDO
 
 END SUBROUTINE avgsoil
 SUBROUTINE casa_xkN(xkNlimiting,casapool,casaflux,casamet,casabiome,veg)
