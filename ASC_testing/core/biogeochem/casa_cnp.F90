@@ -615,13 +615,13 @@ SUBROUTINE casa_rplant(veg,casabiome,casapool,casaflux,casamet,climate)
                 0.0334* climate%qtemp_max_last_year(npt) * 1.e-6 *casapool%nplant(npt,wood) * &
                 casaflux%frac_sapwood(npt)/vcmaxmax(npt)/0.0116      )
 
-             ! null model
-           resp_coeff_root(npt) = casapool%nplant(npt,froot)/vcmaxmax(npt) &
-                /0.0116* 1.3805e-6
-
-           resp_coeff_sapwood(npt) = casapool%nplant(npt,wood)* &
-                casaflux%frac_sapwood(npt)/vcmaxmax(npt) &
-                /0.0116* 1.3805e-6
+!!$             ! null model
+!!$           resp_coeff_root(npt) = casapool%nplant(npt,froot)/vcmaxmax(npt) &
+!!$                /0.0116* 1.3805e-6
+!!$
+!!$           resp_coeff_sapwood(npt) = casapool%nplant(npt,wood)* &
+!!$                casaflux%frac_sapwood(npt)/vcmaxmax(npt) &
+!!$                /0.0116* 1.3805e-6
 
 
         elseif (veg%iveg(npt).eq.1 .or. veg%iveg(npt).eq. 3  ) then 
@@ -639,13 +639,13 @@ SUBROUTINE casa_rplant(veg,casabiome,casapool,casaflux,casamet,climate)
                 0.0334* climate%qtemp_max_last_year(npt) * 1.e-6 *casapool%nplant(npt,wood) * &
                 casaflux%frac_sapwood(npt)/vcmaxmax(npt)/0.0116      ) 
 
-                 ! null model
-           resp_coeff_root(npt) = casapool%nplant(npt,froot)/vcmaxmax(npt) &
-                /0.0116*  1.3247e-6
-
-           resp_coeff_sapwood(npt) = casapool%nplant(npt,wood)* &
-                casaflux%frac_sapwood(npt)/vcmaxmax(npt) &
-                /0.0116*  1.3247e-6
+!!$                 ! null model
+!!$           resp_coeff_root(npt) = casapool%nplant(npt,froot)/vcmaxmax(npt) &
+!!$                /0.0116*  1.3247e-6
+!!$
+!!$           resp_coeff_sapwood(npt) = casapool%nplant(npt,wood)* &
+!!$                casaflux%frac_sapwood(npt)/vcmaxmax(npt) &
+!!$                /0.0116*  1.3247e-6
 
         elseif (veg%iveg(npt).eq.6 .or. veg%iveg(npt).eq.8 .or. veg%iveg(npt).eq. 9  ) then 
            ! C3 grass, tundra, crop
@@ -663,13 +663,13 @@ SUBROUTINE casa_rplant(veg,casabiome,casapool,casaflux,casamet,climate)
                 casaflux%frac_sapwood(npt)/vcmaxmax(npt)/0.0116      )
 
 
-           ! null model
-           resp_coeff_root(npt) = casapool%nplant(npt,froot)/vcmaxmax(npt) &
-                /0.0116* 1.8904e-6
-
-           resp_coeff_sapwood(npt) = casapool%nplant(npt,wood)* &
-                casaflux%frac_sapwood(npt)/vcmaxmax(npt) &
-                /0.0116* 1.8904e-6
+!!$           ! null model
+!!$           resp_coeff_root(npt) = casapool%nplant(npt,froot)/vcmaxmax(npt) &
+!!$                /0.0116* 1.8904e-6
+!!$
+!!$           resp_coeff_sapwood(npt) = casapool%nplant(npt,wood)* &
+!!$                casaflux%frac_sapwood(npt)/vcmaxmax(npt) &
+!!$                /0.0116* 1.8904e-6
         else 
            ! shrubs and other (C4 grass and crop)
            resp_coeff_root(npt) = (1.5758 * 1.e-6 *casapool%nplant(npt,froot)/ &
@@ -683,13 +683,13 @@ SUBROUTINE casa_rplant(veg,casabiome,casapool,casaflux,casamet,climate)
                 casapool%nplant(npt,wood) * casaflux%frac_sapwood(npt)  - &
                 0.0334* climate%qtemp_max_last_year(npt) * 1.e-6 *casapool%nplant(npt,wood) * &
                 casaflux%frac_sapwood(npt)/vcmaxmax(npt)/0.0116      )
-           ! null model
-           resp_coeff_root(npt) = casapool%nplant(npt,froot)/vcmaxmax(npt) &
-                /0.0116* 1.7265e-6
-
-           resp_coeff_sapwood(npt) = casapool%nplant(npt,wood)* &
-                casaflux%frac_sapwood(npt)/vcmaxmax(npt) &
-                /0.0116*1.7265e-6
+!!$           ! null model
+!!$           resp_coeff_root(npt) = casapool%nplant(npt,froot)/vcmaxmax(npt) &
+!!$                /0.0116* 1.7265e-6
+!!$
+!!$           resp_coeff_sapwood(npt) = casapool%nplant(npt,wood)* &
+!!$                casaflux%frac_sapwood(npt)/vcmaxmax(npt) &
+!!$                /0.0116*1.7265e-6
            
         endif
      ENDDO
