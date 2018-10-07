@@ -1888,13 +1888,13 @@ CONTAINS
                  ! Rc = Rd 0 < Io < 10 μmol quantam−2s−1
                  ! Rc = [0.5 − 0.05 ln(Io)] Rd Io > 10μmol quantam−2s−1
                  
-!!$                 if (jtomol*1.0e6*rad%qcan(i,1,1).gt.10.0) &
-!!$                      rdx(i,1) = rdx(i,1) * &
-!!$                      (0.5 - 0.05*log(jtomol*1.0e6*rad%qcan(i,1,1)))
-!!$
-!!$                 if (jtomol*1.0e6*rad%qcan(i,1,2).gt.10.0) &
-!!$                      rdx(i,2) = rdx(i,2) * &
-!!$                      (0.5 - 0.05*log(jtomol*1.0e6*rad%qcan(i,1,2)))
+                 if (jtomol*1.0e6*rad%qcan(i,1,1).gt.10.0) &
+                      rdx(i,1) = rdx(i,1) * &
+                      (0.5 - 0.05*log(jtomol*1.0e6*rad%qcan(i,1,1)))
+
+                 if (jtomol*1.0e6*rad%qcan(i,1,2).gt.10.0) &
+                      rdx(i,2) = rdx(i,2) * &
+                      (0.5 - 0.05*log(jtomol*1.0e6*rad%qcan(i,1,2)))
                 
                  ! special for YP photosynthesis
                  rdx3(i,1) = rdx(i,1);
