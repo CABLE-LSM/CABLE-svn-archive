@@ -78,7 +78,7 @@ SUBROUTINE optimise_JV (veg, climate, ktauday, bjvref)
           !fwsoil =(climate%dmoist_31(k,31))
           ! soil-moisture modifier to stomatal conductance
           fwsoil = climate%fwsoil(k,:)
-          alpha = veg%alpha(k) ! quantum efficiency for
+          alpha = climate%frec(k)*veg%alpha(k) ! quantum efficiency for
           ! electron transport 
           convex = veg%convex(k) 
           Neff = vcmax00 + relcost_J*bjvref*vcmax00/4. ! effective nitrogen amount 
