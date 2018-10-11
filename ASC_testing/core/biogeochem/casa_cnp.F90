@@ -544,10 +544,10 @@ SUBROUTINE casa_rplant(veg,casabiome,casapool,casaflux,casamet,climate)
   real(r_2), dimension(mp)        :: Ygrow        ! growth efficiency Q.Zhang 22/02/2011
   real(r_2), dimension(mp,mplant) :: ratioPNplant ! Q.Zhang 22/02/2011
   real(r_2), dimension(mp)        :: delcrmwood,delcrmfroot    ! reduction in wood and root respiration when NPP <0.0
-  real(r_2), dimension(mp)        :: resp_coeff_root, resp_coeff_sapwood, resp_coeff
+  real(r_2), dimension(mp)        :: resp_coeff_root, resp_coeff_sapwood
   real,  dimension(mp)        :: nleaf, pleaf, vcmaxmax
+  real(r_2) :: c1, c2, c3, c5 ! coefficients for acclimation of maintenance respiration
 
-  resp_coeff = 1
   resp_coeff_root = 1
   resp_coeff_sapwood = 1
   ratioPNplant = 0.0
@@ -579,122 +579,40 @@ SUBROUTINE casa_rplant(veg,casabiome,casapool,casaflux,casamet,climate)
            ! special for C4 grass: set here to value from  parameter file
            vcmaxmax(npt) = veg%vcmax(npt)
         else
-           vcmaxmax(npt) = vcmax_np(nleaf(npt), pleaf(npt))*casabiome%vcmax_scalar(ivt)*climate%frec(npt) 
+           vcmaxmax(npt) = vcmax_np(nleaf(npt), pleaf(npt))*casabiome%vcmax_scalar(ivt)
         endif
          
-        if (cable_user%finite_gm) then
-           if (ivt.eq.1) then
-              vcmaxmax(npt) = vcmaxmax(npt) * 2.2
-           elseif (ivt.eq.2) then
-              vcmaxmax(npt) = vcmaxmax(npt) * 1.9
-           elseif (ivt.eq.3) then
-              vcmaxmax(npt) = vcmaxmax(npt) * 1.4
-           elseif (ivt.eq.4) then
-              vcmaxmax(npt) = vcmaxmax(npt) * 1.45
-           elseif (ivt.eq.5) then
-              vcmaxmax(npt) = vcmaxmax(npt) * 1.7
-           elseif (ivt.eq.6 .OR. ivt.eq.8  .OR. ivt.eq.9) then
-              vcmaxmax(npt) = vcmaxmax(npt) * 1.6
-           endif
-        endif
-
         if (veg%iveg(npt).eq.2 .or. veg%iveg(npt).eq. 4  ) then 
            ! broadleaf forest
-
-           resp_coeff_root(npt) = (1.2818 * 1.e-6 *casapool%nplant(npt,froot)/ &
-                vcmaxmax(npt)/0.0116   + &
-                casapool%nplant(npt,froot)  - &
-                0.0334* climate%qtemp_max_last_year(npt) * 1.e-6 * &
-                casapool%nplant(npt,froot)/vcmaxmax(npt)/0.0116      )
-
-         
-
-           resp_coeff_sapwood(npt) = (1.2818 * 1.e-6 *casapool%nplant(npt,wood) * &
-                casaflux%frac_sapwood(npt)/vcmaxmax(npt)/0.0116  + &
-                casapool%nplant(npt,wood) * casaflux%frac_sapwood(npt)  - &
-                0.0334* climate%qtemp_max_last_year(npt) * 1.e-6 *casapool%nplant(npt,wood) * &
-                casaflux%frac_sapwood(npt)/vcmaxmax(npt)/0.0116      )
-
-!!$             ! null model
-!!$           resp_coeff_root(npt) = casapool%nplant(npt,froot)/vcmaxmax(npt) &
-!!$                /0.0116* 1.3805e-6
-!!$
-!!$           resp_coeff_sapwood(npt) = casapool%nplant(npt,wood)* &
-!!$                casaflux%frac_sapwood(npt)/vcmaxmax(npt) &
-!!$                /0.0116* 1.3805e-6
-
-
-        elseif (veg%iveg(npt).eq.1 .or. veg%iveg(npt).eq. 3  ) then 
+           c1 = 1.2818 * 1.e-6
+           ! c1 = 1.3805e-6 ! null model
+        elseif(veg%iveg(npt).eq.1 .or. veg%iveg(npt).eq. 3  ) then 
            ! needleleaf forest
-
-           resp_coeff_root(npt) = (1.2877 * 1.e-6 *casapool%nplant(npt,froot) &
-                /vcmaxmax(npt)/0.0116   + &
-                casapool%nplant(npt,froot)  - &
-                0.0334* climate%qtemp_max_last_year(npt) * 1.e-6 * &
-                casapool%nplant(npt,froot)/vcmaxmax(npt)/0.0116      )  
-
-           resp_coeff_sapwood(npt) = (1.2877 * 1.e-6 *casapool%nplant(npt,wood) * &
-                casaflux%frac_sapwood(npt)/vcmaxmax(npt)/0.0116  + &
-                casapool%nplant(npt,wood) * casaflux%frac_sapwood(npt)  - &
-                0.0334* climate%qtemp_max_last_year(npt) * 1.e-6 *casapool%nplant(npt,wood) * &
-                casaflux%frac_sapwood(npt)/vcmaxmax(npt)/0.0116      ) 
-
-!!$                 ! null model
-!!$           resp_coeff_root(npt) = casapool%nplant(npt,froot)/vcmaxmax(npt) &
-!!$                /0.0116*  1.3247e-6
-!!$
-!!$           resp_coeff_sapwood(npt) = casapool%nplant(npt,wood)* &
-!!$                casaflux%frac_sapwood(npt)/vcmaxmax(npt) &
-!!$                /0.0116*  1.3247e-6
-
+           c1 = 1.2877 * 1.e-6
+           ! c1 = 1.3247e-6 ! null model
         elseif (veg%iveg(npt).eq.6 .or. veg%iveg(npt).eq.8 .or. veg%iveg(npt).eq. 9  ) then 
            ! C3 grass, tundra, crop
-
-           resp_coeff_root(npt) = (1.6737 * 1.e-6 *casapool%nplant(npt,froot)/ &
-                vcmaxmax(npt)/0.0116   + &
-                casapool%nplant(npt,froot)  - &
-                0.0334* climate%qtemp_max_last_year(npt) * 1.e-6 * &
-                casapool%nplant(npt,froot)/vcmaxmax(npt)/0.0116      )  
-
-           resp_coeff_sapwood(npt) = (1.6737 * 1.e-6 *casapool%nplant(npt,wood) * &
-                casaflux%frac_sapwood(npt)/vcmaxmax(npt)/0.0116  + &
-                casapool%nplant(npt,wood) * casaflux%frac_sapwood(npt)  - &
-                0.0334* climate%qtemp_max_last_year(npt) * 1.e-6 *casapool%nplant(npt,wood) * &
-                casaflux%frac_sapwood(npt)/vcmaxmax(npt)/0.0116      )
-
-
-!!$           ! null model
-!!$           resp_coeff_root(npt) = casapool%nplant(npt,froot)/vcmaxmax(npt) &
-!!$                /0.0116* 1.8904e-6
-!!$
-!!$           resp_coeff_sapwood(npt) = casapool%nplant(npt,wood)* &
-!!$                casaflux%frac_sapwood(npt)/vcmaxmax(npt) &
-!!$                /0.0116* 1.8904e-6
+           c1 = 1.6737 * 1.e-6
+           ! c1 = 1.8904e-6 ! null model
         else 
            ! shrubs and other (C4 grass and crop)
-           resp_coeff_root(npt) = (1.5758 * 1.e-6 *casapool%nplant(npt,froot)/ &
-                vcmaxmax(npt)/0.0116   + &
-                casapool%nplant(npt,froot)  - &
-                0.0334* climate%qtemp_max_last_year(npt) * 1.e-6 * &
-                casapool%nplant(npt,froot)/vcmaxmax(npt)/0.0116      )  
-
-           resp_coeff_sapwood(npt) = (1.5758 * 1.e-6 *casapool%nplant(npt,wood) * &
-                casaflux%frac_sapwood(npt)/vcmaxmax(npt)/0.0116  + &
-                casapool%nplant(npt,wood) * casaflux%frac_sapwood(npt)  - &
-                0.0334* climate%qtemp_max_last_year(npt) * 1.e-6 *casapool%nplant(npt,wood) * &
-                casaflux%frac_sapwood(npt)/vcmaxmax(npt)/0.0116      )
-!!$           ! null model
-!!$           resp_coeff_root(npt) = casapool%nplant(npt,froot)/vcmaxmax(npt) &
-!!$                /0.0116* 1.7265e-6
-!!$
-!!$           resp_coeff_sapwood(npt) = casapool%nplant(npt,wood)* &
-!!$                casaflux%frac_sapwood(npt)/vcmaxmax(npt) &
-!!$                /0.0116*1.7265e-6
-           
+           c1 = 1.5758 * 1.e-6
+           c1 = 1.7265e-6 ! null model
         endif
-     ENDDO
-     resp_coeff = 0.60
-  ENDIF  ! end coefficients for acclimation of autotrophic respiration Ticket #110
+          c2 = 0.0116
+          c3 = -0.0334*1.e-6 
+          c5 = 1./vcmaxmax(npt)/0.0116*0.60
+          resp_coeff_root(npt) = casapool%nplant(npt,froot) * c5 * &
+               (c1 + c2 *vcmaxmax(npt)*climate%frec(npt)  + c3 * climate%qtemp_max_last_year(npt) )
+
+          resp_coeff_sapwood(npt) = casapool%nplant(npt,wood) *casaflux%frac_sapwood(npt)* c5 * &
+                (c1 + c2 *vcmaxmax(npt)*climate%frec(npt)  + c3 * climate%qtemp_max_last_year(npt) )
+          ! null model (use this with numm-model c1 coefft to turno off T-acclimation)
+!!$          resp_coeff_root(npt) = casapool%nplant(npt,froot) *c1
+!!$          resp_coeff_sapwood(npt) = casapool%nplant(npt,wood) *casaflux%frac_sapwood(npt)*c1
+           
+       ENDDO
+    ENDIF  ! end coefficients for acclimation of autotrophic respiration Ticket #110
 
  
 IF (cable_user%CALL_climate) then 
@@ -702,7 +620,7 @@ IF (cable_user%CALL_climate) then
      WHERE(casamet%iveg2/=icewater)
         WHERE(casamet%tairk >250.0)
            WHERE(casapool%cplant(:,wood)>1.0e-6)
-              casaflux%crmplant(:,wood)  =  resp_coeff  * resp_coeff_sapwood * &
+              casaflux%crmplant(:,wood)  =   resp_coeff_sapwood * &
                    casabiome%rmplant(veg%iveg(:),wood) &
                    * exp(308.56*(1.0/56.02-1.0           &
                    / (casamet%tairk(:)+46.02-tkzeroc)))
@@ -720,7 +638,7 @@ IF (cable_user%CALL_climate) then
 
         WHERE(casamet%tsoilavg >250.0.and.casapool%cplant(:,froot)>1.0e-6)
 
-           casaflux%crmplant(:,froot) =  resp_coeff * resp_coeff_root * &
+           casaflux%crmplant(:,froot) =   resp_coeff_root * &
                 casabiome%rmplant(veg%iveg(:),froot) &
                 * exp(308.56*(1.0/56.02-1.0            &
                 / (casamet%tsoilavg(:)+46.02-tkzeroc)))
@@ -746,7 +664,7 @@ IF (cable_user%CALL_climate) then
      WHERE(casamet%iveg2/=icewater)
         WHERE(casamet%tairk >250.0)
            WHERE(casapool%cplant(:,wood)>1.0e-6)
-              casaflux%crmplant(:,wood)  =  resp_coeff * casaflux%frac_sapwood(:) * &
+              casaflux%crmplant(:,wood)  =   casaflux%frac_sapwood(:) * &
                    casabiome%rmplant(veg%iveg(:),wood) &
                    * casapool%nplant(:,wood)             &
                    * exp(308.56*(1.0/56.02-1.0           &
@@ -761,7 +679,7 @@ IF (cable_user%CALL_climate) then
         ENDWHERE
         WHERE(casamet%tsoilavg >250.0.and.casapool%cplant(:,froot)>1.0e-6)
 
-           casaflux%crmplant(:,froot) =  resp_coeff * casabiome%rmplant(veg%iveg(:),froot) &
+           casaflux%crmplant(:,froot) =   casabiome%rmplant(veg%iveg(:),froot) &
                 * casapool%nplant(:,froot)             &
                 * exp(308.56*(1.0/56.02-1.0            &
                 / (casamet%tsoilavg(:)+46.02-tkzeroc)))
