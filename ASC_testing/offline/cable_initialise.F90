@@ -414,20 +414,21 @@ SUBROUTINE get_restart_data(logn,ssnow,canopy,rough,bgc,                       &
 !!$   ENDIF
 
     IF(cable_user%SOIL_STRUC=='sli') THEN
-       CALL readpar(ncid_rin,'S',dummy,ssnow%S,filename%restart_in, &
-            max_vegpatches,'ms',from_restart,mp)
-      CALL readpar(ncid_rin,'Tsoil',dummy,ssnow%Tsoil,filename%restart_in, &
-            max_vegpatches,'ms',from_restart,mp)
-       CALL readpar(ncid_rin,'h0',dummy,ssnow%h0,filename%restart_in, &
-            max_vegpatches,'def',from_restart,mp)
-       CALL readpar(ncid_rin,'nsnow',dummy,ssnow%nsnow,filename%restart_in, &
-            max_vegpatches,'def',from_restart,mp)
-       CALL readpar(ncid_rin,'Tsurface',dummy,ssnow%Tsurface,filename%restart_in, &
-            max_vegpatches,'def',from_restart,mp)
-       CALL readpar(ncid_rin,'snowliq',dummy,ssnow%snowliq,filename%restart_in, &
-            max_vegpatches,'snow',from_restart,mp)
-       CALL readpar(ncid_rin,'sconds',dummy,ssnow%sconds,filename%restart_in, &
-            max_vegpatches,'snow',from_restart,mp)
+!!$       CALL readpar(ncid_rin,'S',dummy,ssnow%S,filename%restart_in, &
+!!$            max_vegpatches,'ms',from_restart,mp)
+!!$      CALL readpar(ncid_rin,'Tsoil',dummy,ssnow%Tsoil,filename%restart_in, &
+!!$            max_vegpatches,'ms',from_restart,mp)
+!!$       CALL readpar(ncid_rin,'h0',dummy,ssnow%h0,filename%restart_in, &
+!!$            max_vegpatches,'def',from_restart,mp)
+!!$       CALL readpar(ncid_rin,'nsnow',dummy,ssnow%nsnow,filename%restart_in, &
+!!$            max_vegpatches,'def',from_restart,mp)
+!!$       CALL readpar(ncid_rin,'Tsurface',dummy,ssnow%Tsurface,filename%restart_in, &
+!!$            max_vegpatches,'def',from_restart,mp)
+!!$       CALL readpar(ncid_rin,'snowliq',dummy,ssnow%snowliq,filename%restart_in, &
+!!$            max_vegpatches,'snow',from_restart,mp)
+!!$       CALL readpar(ncid_rin,'sconds',dummy,ssnow%sconds,filename%restart_in, &
+!!$            max_vegpatches,'snow',from_restart,mp)
+       
 !!$       CALL readpar(ncid_rin,'ZR',dummy,veg%ZR, &
 !!$            filename%restart_in,max_vegpatches,'def',from_restart,mp)
 !!$       CALL readpar(ncid_rin,'F10',dummy,veg%F10, &

@@ -1511,7 +1511,7 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
          soil%nhorizons = 1 ! use 1 soil horizon globally
         ! veg%clitt = 5.0 ! (tC / ha)
          veg%F10 = 0.85
-         veg%ZR = 5.0
+        ! veg%ZR = 5.0
       END IF
 
      
