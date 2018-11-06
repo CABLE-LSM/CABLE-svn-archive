@@ -2562,6 +2562,11 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,climate,bgc,soil,canopy,rough,rad, 
     CALL get_default_params(logn,vegparmnew,LUC_EXPT)
     CALL allocate_cable_vars(air,bgc,canopy,met,bal,rad,rough,soil,ssnow, &
             sum_flux,veg,mp)
+
+    !CALL for gw_model false and true
+    !   sets constants when false
+    CALL GWspatialParameters(logn,soil,ssnow)
+
     WRITE(logn,*) ' CABLE variables allocated with ', mp, ' patch(es).'
 
     IF (icycle > 0 .OR. CABLE_USER%CASA_DUMP_WRITE ) &
