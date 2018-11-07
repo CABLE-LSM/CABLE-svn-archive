@@ -69,8 +69,8 @@ MODULE cable_output_module
                     PlantTurnover, PlantTurnoverLeaf, PlantTurnoverFineRoot, &
                     PlantTurnoverWood, PlantTurnoverWoodDist, PlantTurnoverWoodCrowding, &
                     PlantTurnoverWoodResourceLim, dCdt, Area, LandUseFlux, patchfrac, &
-                    vcmax,hc,WatTable,GWMoist,SatFrac,Qrecharge, &
-                    GPP_sha, GPP_sun, PAR_sha, PAR_sun
+                    vcmax,hc,WatTable,GWMoist,SatFrac,Qrecharge,SMP,SMP_hys,WB_hys,SSAT_hys,&
+                    GPP_sha, GPP_sun, PAR_sha, PAR_sun, WATR_hys,hys_fac
   END TYPE out_varID_type
   TYPE(out_varID_type) :: ovid ! netcdf variable IDs for output variables
   TYPE(parID_type) :: opid ! netcdf variable IDs for output variables
@@ -231,7 +231,12 @@ MODULE cable_output_module
     REAL(KIND=4), POINTER, DIMENSION(:)   :: Qrecharge         !recharge rate Grid Cell
     REAL(KIND=4), POINTER, DIMENSION(:)   :: GWMoist       ! water balance of aquifer [mm3/mm3]
     REAL(KIND=4), POINTER, DIMENSION(:)   :: WatTable      ! water table depth [m]
-
+    REAL(KIND=4), POINTER, DIMENSION(:,:) :: SMP      ! soil pressure [m]
+    REAL(KIND=4), POINTER, DIMENSION(:,:) :: SMP_hys  ! soil pressure [m]
+    REAL(KIND=4), POINTER, DIMENSION(:,:) :: WB_hys    ! soil pressure [m]
+    REAL(KIND=4), POINTER, DIMENSION(:,:) :: SSAT_hys   ! soil pressure [m]
+    REAL(KIND=4), POINTER, DIMENSION(:,:) :: WATR_hys   ! soil pressure [m]
+    REAL(KIND=4), POINTER, DIMENSION(:,:) :: hys_fac   ! soil pressure [m]
     REAL(KIND=4), POINTER, DIMENSION(:) :: RootResp   !  autotrophic root respiration [umol/m2/s]
     REAL(KIND=4), POINTER, DIMENSION(:) :: StemResp   !  autotrophic stem respiration [umol/m2/s]
  END TYPE output_temporary_type
@@ -1281,7 +1286,7 @@ CONTAINS
                           'slope_std', '-', 'Mean subgrid topographic slope_std', &
                           patchout%slope_std, 'real', xID, yID, zID, landID, patchID)
    
-           CALL define_ovar(ncid_out, opid%GWdz,
+           CALL define_ovar(ncid_out, opid%GWdz,                              &
                           'GWdz', '-', 'Mean aquifer layer thickness ', &
                           patchout%GWdz, 'real', xID, yID, zID, landID, patchID)
 
@@ -3170,6 +3175,7 @@ CONTAINS
                     fevID, fesID, fhsID, wbtot0ID, osnowd0ID, cplantID,        &
                     csoilID, tradID, albedoID, gwID
     INTEGER :: h0ID, snowliqID, SID, TsurfaceID, scondsID, nsnowID, TsoilID
+    INTEGER :: hys(6)
     CHARACTER(LEN=10) :: todaydate, nowtime ! used to timestamp netcdf file
     ! CHARACTER         :: FRST_OUT*100, CYEAR*4
     CHARACTER         :: FRST_OUT*200, CYEAR*4

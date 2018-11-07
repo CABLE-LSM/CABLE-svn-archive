@@ -59,7 +59,8 @@ MODULE cable_param_module
   USE phenvariable
   USE cable_abort_module
   USE cable_IO_vars_module
-  USE cable_common_module, ONLY: cable_user, hide, gw_params,init_veg_from_vegin
+  USE cable_common_module, ONLY: cable_user, hide, &
+              gw_params,init_veg_from_vegin, filename, report_parameters_to_log, psi_c, psi_o
   USE cable_pft_params_mod
   USE cable_soil_params_mod
   USE CABLE_LUC_EXPT, ONLY: LUC_EXPT, LUC_EXPT_TYPE, LUC_EXPT_SET_TILES
@@ -67,7 +68,7 @@ MODULE cable_param_module
   PRIVATE
   PUBLIC get_default_params, write_default_params, derived_parameters,         &
          check_parameter_values, report_parameters, parID_type,                &
-         write_cnp_params
+         write_cnp_params, GWspatialParameters
   INTEGER :: patches_in_parfile=4 ! # patches in default global parameter
                                        ! file
 
@@ -124,6 +125,15 @@ MODULE cable_param_module
 
   ! vars intro for Ticket #27
   INTEGER, DIMENSION(:, :),     ALLOCATABLE :: inSoilColor
+
+  INTERFACE get_gw_data
+     MODULE PROCEDURE get_gw_2d_var_constdef
+     MODULE PROCEDURE get_gw_3d_var_constdef
+     MODULE PROCEDURE get_gw_4d_var_constdef
+     MODULE PROCEDURE get_gw_2d_var
+     MODULE PROCEDURE get_gw_3d_var
+     MODULE PROCEDURE get_gw_4d_var
+  END INTERFACE
 
 CONTAINS
 
@@ -1719,18 +1729,18 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
     TYPE (balances_type),       INTENT(INOUT) :: bal
     TYPE (roughness_type),      INTENT(INOUT) :: rough
 
-    INTEGER :: j,i,klev ! do loop counter
+    INTEGER :: j,i,k,klev ! do loop counter
     REAL(r_2)    :: temp(mp)
     REAL    :: tmp2(mp)
 
     REAL(r_2), dimension(mp,ms) :: perc_frac
     REAL(r_2), DIMENSION(17)    :: psi_o,psi_c
-    REAL(r_2), DIMENSION(mp,ms) :: psi_tmp
-    REAL(r_2), DIMENSION(ms) :: soil_depth
+    REAL(r_2), DIMENSION(mp,ms) :: psi_tmp, soil_depth, rhosoil_temp
+    REAL(r_2), DIMENSION(:,:), ALLOCATABLE :: ssat_bounded,rho_soil_bulk
 
-    soil_depth(1) = real(soil%zse(1),r_2)
+    soil_depth(:,1) = soil%zse_vec(:,1)
     do klev=2,ms
-       soil_depth(klev) = soil_depth(klev-1) + real(soil%zse(klev),r_2)
+      soil_depth(:,klev) = soil_depth(:,klev-1) + soil%zse_vec(:,klev)
     end do
 
     psi_o(1:3)  = -66000._r_2
@@ -1772,63 +1782,63 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
 !          soil%GWssat_vec(:) = soil%ssat_vec(:,ms)
 !          soil%GWwatr(:)   = soil%watr(:,ms)
 !       endif
-       !include organin impact.  fraction of grid cell where percolation through
-       !organic macropores dominates
-       soil%Org_Vec = max(0._r_2,soil%Org_Vec)
-       soil%Org_Vec = min(1._r_2,soil%Org_Vec)
-       DO klev=1,3  !0-23.3 cm, data really is to 30cm
-          soil%hyds_vec(:,klev)  = (1.-soil%Org_Vec(:,klev))*soil%hyds_vec(:,klev) + &
-                                       soil%Org_Vec(:,klev)*gw_params%org%hyds_vec_organic
-          soil%sucs_vec(:,klev) = (1.-soil%Org_Vec(:,klev))*soil%sucs_vec(:,klev) + &
-                                      soil%Org_Vec(:,klev)*gw_params%org%sucs_vec_organic
-          soil%bch_vec(:,klev) = (1.-soil%Org_Vec(:,klev))*soil%bch_vec(:,klev) +&
-                                     soil%Org_Vec(:,klev)*gw_params%org%clappb_organic
-          soil%ssat_vec(:,klev) = (1.-soil%Org_Vec(:,klev))*soil%ssat_vec(:,klev) + &
-                                      soil%Org_Vec(:,klev)*gw_params%org%ssat_vec_organic
-          soil%watr(:,klev)   = (1.-soil%Org_Vec(:,klev))*soil%watr(:,klev) + &
-                                    soil%Org_Vec(:,klev)*gw_params%org%watr_organic
-       END DO
-
-       !!vegetation dependent field capacity (point plants get stressed) and
-       !wilting point
-       DO i=1,mp
-          psi_tmp(i,:) = -psi_c(veg%iveg(i))
-       END DO
-       soil%sfc_vec = (soil%ssat_vec-soil%watr) * (abs(psi_tmp)/(abs(soil%sucs_vec)))**(-1.0/soil%bch_vec)+&
-                        soil%watr
-       DO i=1,mp
-          psi_tmp(i,:) = -psi_c(veg%iveg(i))
-       END DO
-       soil%swilt_vec = (soil%ssat_vec-soil%watr) * (abs(psi_tmp)/(abs(soil%sucs_vec)))**(-1.0/soil%bch_vec)+&
-                        soil%watr
-
-       !set the non-vectored values to srf value
-       soil%sfc(:) = real(soil%sfc_vec(:,1))
-       soil%swilt(:) = real(soil%swilt_vec(:,1))
-
-       !convert the units back to what default uses and GW only uses the
-       !vectored versions
-       soil%hyds = real(soil%hyds_vec(:,1))/1000.0
-       soil%sucs = real(soil%sucs_vec(:,1))/1000.0
-       soil%ssat = real(soil%ssat_vec(:,1))
-       soil%bch  = real(soil%bch_vec(:,1))
-
-       do i=1,mp
-          soil%slope(i) = min(0.9,max(1e-9,soil%slope(i)))
-          soil%slope_std(i) = min(0.9,max(1e-9,soil%slope_std(i)))
-       end do
-
-       if ((gw_params%MaxSatFraction .lt. -9999.9) .and. (mp .eq. 1)) soil%slope(:) = 0.01    
-
-    ELSE
-     
-      soil%sfc_vec = real(spread(soil%sfc(:),2,ms),r_2)
-      soil%swilt_vec = real(spread(soil%swilt(:),2,ms),r_2)
-      !These are not used when gw_model == false
-      soil%watr = 0._r_2
-      soil%GWwatr = 0._r_2
-
-    END IF
+!       !include organin impact.  fraction of grid cell where percolation through
+!       !organic macropores dominates
+!       soil%Org_Vec = max(0._r_2,soil%Org_Vec)
+!       soil%Org_Vec = min(1._r_2,soil%Org_Vec)
+!       DO klev=1,3  !0-23.3 cm, data really is to 30cm
+!          soil%hyds_vec(:,klev)  = (1.-soil%Org_Vec(:,klev))*soil%hyds_vec(:,klev) + &
+!                                       soil%Org_Vec(:,klev)*gw_params%org%hyds_vec_organic
+!          soil%sucs_vec(:,klev) = (1.-soil%Org_Vec(:,klev))*soil%sucs_vec(:,klev) + &
+!                                      soil%Org_Vec(:,klev)*gw_params%org%sucs_vec_organic
+!          soil%bch_vec(:,klev) = (1.-soil%Org_Vec(:,klev))*soil%bch_vec(:,klev) +&
+!                                     soil%Org_Vec(:,klev)*gw_params%org%clappb_organic
+!          soil%ssat_vec(:,klev) = (1.-soil%Org_Vec(:,klev))*soil%ssat_vec(:,klev) + &
+!                                      soil%Org_Vec(:,klev)*gw_params%org%ssat_vec_organic
+!          soil%watr(:,klev)   = (1.-soil%Org_Vec(:,klev))*soil%watr(:,klev) + &
+!                                    soil%Org_Vec(:,klev)*gw_params%org%watr_organic
+!       END DO
+!
+!       !!vegetation dependent field capacity (point plants get stressed) and
+!       !wilting point
+!       DO i=1,mp
+!          psi_tmp(i,:) = -psi_c(veg%iveg(i))
+!       END DO
+!       soil%sfc_vec = (soil%ssat_vec-soil%watr) * (abs(psi_tmp)/(abs(soil%sucs_vec)))**(-1.0/soil%bch_vec)+&
+!                        soil%watr
+!       DO i=1,mp
+!          psi_tmp(i,:) = -psi_c(veg%iveg(i))
+!       END DO
+!       soil%swilt_vec = (soil%ssat_vec-soil%watr) * (abs(psi_tmp)/(abs(soil%sucs_vec)))**(-1.0/soil%bch_vec)+&
+!                        soil%watr
+!
+!       !set the non-vectored values to srf value
+!       soil%sfc(:) = real(soil%sfc_vec(:,1))
+!       soil%swilt(:) = real(soil%swilt_vec(:,1))
+!
+!       !convert the units back to what default uses and GW only uses the
+!       !vectored versions
+!       soil%hyds = real(soil%hyds_vec(:,1))/1000.0
+!       soil%sucs = real(soil%sucs_vec(:,1))/1000.0
+!       soil%ssat = real(soil%ssat_vec(:,1))
+!       soil%bch  = real(soil%bch_vec(:,1))
+!
+!       do i=1,mp
+!          soil%slope(i) = min(0.9,max(1e-9,soil%slope(i)))
+!          soil%slope_std(i) = min(0.9,max(1e-9,soil%slope_std(i)))
+!       end do
+!
+!       if ((gw_params%MaxSatFraction .lt. -9999.9) .and. (mp .eq. 1)) soil%slope(:) = 0.01    
+!
+!    ELSE
+!     
+!      soil%sfc_vec = real(spread(soil%sfc(:),2,ms),r_2)
+!      soil%swilt_vec = real(spread(soil%swilt(:),2,ms),r_2)
+!      !These are not used when gw_model == false
+!      soil%watr = 0._r_2
+!      soil%GWwatr = 0._r_2
+!
+!    END IF
 
     IF (cable_user%GW_MODEL) then
 
@@ -1863,9 +1873,8 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
        if (gw_params%cosby_univariate .or. &
            gw_params%cosby_multivariate .or. &
            gw_params%HC_SWC ) THEN
-
            rhosoil_temp(:,:) = (1.0-soil%org_vec(:,:))*2.7*(1.0-soil%ssat_vec(:,:))+&
-                          soil%org_vec(:,:)*gw_params%org%ssat_vec
+                          soil%org_vec(:,:)*gw_params%org%ssat_vec_organic
 
           DO klev=1,ms;do i=1,mp
             if (gw_params%cosby_univariate) then
@@ -1950,16 +1959,16 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
              DO klev=1,ms  !0-23.3 cm, data really is to 30cm
                 do i=1,mp
                    soil%hyds_vec(i,klev)  = (1.-soil%org_vec(i,klev))*soil%hyds_vec(i,klev) + &
-                                                soil%org_vec(i,klev)*gw_params%org%hyds_vec*&
+                                                soil%org_vec(i,klev)*gw_params%org%hyds_vec_organic*&
                                                  exp(-soil%hkrz(i)*(soil_depth(i,klev)-soil%zdepth(i)))
                    soil%sucs_vec(i,klev) = (1.-soil%org_vec(i,klev))*soil%sucs_vec(i,klev) + &
-                                               soil%org_vec(i,klev)*gw_params%org%sucs_vec
+                                               soil%org_vec(i,klev)*gw_params%org%sucs_vec_organic
                    soil%bch_vec(i,klev) = (1.-soil%org_vec(i,klev))*soil%bch_vec(i,klev) +&
-                                              soil%org_vec(i,klev)*gw_params%org%bch_vec
+                                              soil%org_vec(i,klev)*gw_params%org%bch_vec_organic
                    soil%ssat_vec(i,klev) = (1.-soil%org_vec(i,klev))*soil%ssat_vec(i,klev) + &
-                                               soil%org_vec(i,klev)*gw_params%org%ssat_vec
+                                               soil%org_vec(i,klev)*gw_params%org%ssat_vec_organic
                    soil%watr(i,klev)   = (1.-soil%org_vec(i,klev))*soil%watr(i,klev) + &
-                                             soil%org_vec(i,klev)*gw_params%org%watr
+                                             soil%org_vec(i,klev)*gw_params%org%watr_organic
                 END DO
              END DO
           end if
@@ -2106,9 +2115,9 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
           do klev=1,ms
              do i=1,mp
                 soil%css_vec(i,klev) = (1.-soil%org_vec(i,klev))*soil%css_vec(i,klev) + &
-                                          real(soil%org_vec(i,klev)*gw_params%org%css_vec)
+                                          real(soil%org_vec(i,klev)*gw_params%org%css_vec_organic)
                 soil%cnsd_vec(i,klev) = (1.-soil%org_vec(i,klev))*soil%cnsd_vec(i,klev) + &
-                                          soil%org_vec(i,klev)*gw_params%org%cnsd_vec
+                                          soil%org_vec(i,klev)*gw_params%org%cnsd_vec_organic
               end do
            end do
       END IF
@@ -3002,30 +3011,26 @@ END SUBROUTINE report_parameters
        file_status = NF90_OPEN(trim(filename%gw_elev),NF90_NOWRITE,ncid_elev)
 
        IF( NF90_INQ_DIMID(ncid_elev,'longitude',lon_id)  .eq. nf90_noerr) THEN
-          IF (NF90_INQUIRE_DIMENSION(ncid_elev,lon_id,LEN=nlon) .ne. nf90_noerr)
-nlon = xdimsize
+          IF (NF90_INQUIRE_DIMENSION(ncid_elev,lon_id,LEN=nlon) .ne. nf90_noerr) nlon = xdimsize
        ELSE
           nlon = -1
        ENDIF
 
        IF( NF90_INQ_DIMID(ncid_elev,'latitude',lat_id)  .eq. nf90_noerr) THEN
-          IF (NF90_INQUIRE_DIMENSION(ncid_elev,lat_id,LEN=nlat) .ne. nf90_noerr)
-nlat = ydimsize
+          IF (NF90_INQUIRE_DIMENSION(ncid_elev,lat_id,LEN=nlat) .ne. nf90_noerr) nlat = ydimsize
        ELSE
           nlat = -1
        ENDIF
 
        !Have not used tiling yet, will be the future :-)
        IF(  NF90_INQ_DIMID(ncid_elev,'num_tiles',tile_id) .eq. nf90_noerr) THEN
-         IF ( NF90_INQUIRE_DIMENSION(ncid_elev,tile_id,LEN=npatch) .ne.
-nf90_noerr) npatch=1
+         IF ( NF90_INQUIRE_DIMENSION(ncid_elev,tile_id,LEN=npatch) .ne. nf90_noerr) npatch=1
        ELSE
           npatch=-1
        ENDIF
        
        IF(  NF90_INQ_DIMID(ncid_elev,'nhorz',layer_id) .eq. nf90_noerr) THEN
-         IF ( NF90_INQUIRE_DIMENSION(ncid_elev,layer_id,LEN=nhorz) .ne.
-nf90_noerr) nhorz=1
+         IF ( NF90_INQUIRE_DIMENSION(ncid_elev,layer_id,LEN=nhorz) .ne. nf90_noerr) nhorz=1
        ELSE
           nhorz=ms
        ENDIF
@@ -3034,20 +3039,15 @@ nf90_noerr) nhorz=1
           WRITE(logn,*) 'Errors reading the dimensions from '//filename%gw_elev
 
           IF (nlon .lt. 0 .or. nlon .ne. xdimsize) &
-             WRITE(logn,*) 'nlon: found ',nlon,' need to have ',xdimsize,' to
-match forcing.'
+             WRITE(logn,*) 'nlon: found ',nlon,' need to have ',xdimsize,' to match forcing.'
           IF (nlat .lt. 0 .or. nlat .ne. ydimsize) &
-             WRITE(logn,*) 'nlat: found ',nlat,' need to have ',ydimsize,' to
-match forcing.'
+             WRITE(logn,*) 'nlat: found ',nlat,' need to have ',ydimsize,' to match forcing.'
           IF (nhorz .lt. 0 .or. nhorz .ne. ms) &
-             WRITE(logn,*) 'nhorz: found ',nhorz,' need to have ',ms,' to match
-forcing.'
+             WRITE(logn,*) 'nhorz: found ',nhorz,' need to have ',ms,' to match forcing.'
           IF (npatch .lt. 0) &
-             WRITE(logn,*) 'npatch: found ',npatch,' need to have ',mpatch,' to
-match forcing.'
+             WRITE(logn,*) 'npatch: found ',npatch,' need to have ',mpatch,' to match forcing.'
    
-             WRITE(logn,*) 'Setting dims to forcing file values, CHECK THE
-OUTPUT!'
+             WRITE(logn,*) 'Setting dims to forcing file values, CHECK THE OUTPUT!'
              nlon=xdimsize; nlat=ydimsize; npatch=mpatch; nhorz=ms
        ENDIF
 
@@ -3058,25 +3058,21 @@ OUTPUT!'
     !1
     soil%elev(:) = get_gw_data(ncid_elev,file_status,'elevation',50.0,nlon,nlat)
     !2
-    soil%elev_std(:) =
-get_gw_data(ncid_elev,file_status,'elevation_std',25.0,nlon,nlat)
+    soil%elev_std(:) = get_gw_data(ncid_elev,file_status,'elevation_std',25.0,nlon,nlat)
     !3
     soil%slope(:) = get_gw_data(ncid_elev,file_status,'slope',0.08,nlon,nlat)
     !4
-    soil%slope_std(:) =
-get_gw_data(ncid_elev,file_status,'slope_std',0.03,nlon,nlat)
+    soil%slope_std(:) = get_gw_data(ncid_elev,file_status,'slope_std',0.03,nlon,nlat)
     !5
     soil%GWdz(:) = get_gw_data(ncid_elev,file_status,'dtb',25.0,nlon,nlat)
     where(soil%GWdz(:) .lt. 5.0)  soil%GWdz(:) = 5.0
     where(soil%GWdz(:) .gt. 50.0) soil%GWdz(:) = 50.0
     !6
-    soil%drain_dens(:) =
-get_gw_data(ncid_elev,file_status,'drainage_density',0.0008,nlon,nlat)
+    soil%drain_dens(:) = get_gw_data(ncid_elev,file_status,'drainage_density',0.0008,nlon,nlat)
     where( soil%drain_dens(:) .lt. 1.0e-6) soil%drain_dens(:)=1.0e-6
     where( soil%drain_dens(:) .gt. 0.02  ) soil%drain_dens(:)=0.02
     !7
-    soil%GWhyds_vec(:) =
-get_gw_data(ncid_elev,file_status,'permeability',1.0e-6,nlon,nlat)
+    soil%GWhyds_vec(:) = get_gw_data(ncid_elev,file_status,'permeability',1.0e-6,nlon,nlat)
     soil%GWhyds_vec(:) = 1000._r_2 * soil%GWhyds_vec(:) 
     !8
     soil%GWssat_vec(:) = get_gw_data(ncid_elev,file_status,'Sy',inssat(:,:),nlon,nlat)
@@ -3196,6 +3192,362 @@ get_gw_data(ncid_elev,file_status,'permeability',1.0e-6,nlon,nlat)
 
 
   END SUBROUTINE GWspatialParameters
+
+   function get_gw_2d_var_constdef(ncfile_id,try_it,varname,default_const,nlon,nlat) result(data_vec)
+         use netcdf
+         use cable_def_types_mod, only : r_2,mp
+         real, intent(in) :: default_const
+         integer, intent(in) :: try_it,nlon,nlat
+         character(len=*), intent(in) :: varname
+         integer, intent(in)               :: ncfile_id
+         real(r_2), dimension(mp) :: data_vec
+
+         real, dimension(nlon,nlat) :: GW2d_data
+         real, dimension(nlon,nlat) :: default_data
+         integer :: i,j,k,n
+         integer :: varid
+         integer :: varinq_status,varget_status
+
+         default_data(:,:) = default_const
+
+         if (.not.cable_user%gw_model) then
+
+            GW2d_data(:,:) = default_data(:,:)
+
+         else
+
+         if (try_it .ne. nf90_noerr) then
+            varinq_status = try_it
+            varget_status = try_it
+         else
+
+            varinq_status = nf90_inq_varid(ncfile_id,trim(varname),varid)
+            varget_status = varinq_status
+
+            if (varinq_status .eq. nf90_noerr) then
+               varget_status = nf90_get_var(ncfile_id,varid,GW2d_data)
+            endif
+
+         end if
+
+         if (try_it.ne. nf90_noerr .or. varget_status .ne. nf90_noerr) then
+            GW2d_data(:,:) = default_data(:,:)
+         end if
+         end if
+
+         do i=1,mland  
+            data_vec(landpt(i)%cstart:landpt(i)%cend) = &
+                   real(GW2d_data(landpt(i)%ilon,landpt(i)%ilat),r_2)
+         end do
+
+         return
+
+   end function
+
+
+   function get_gw_2d_var(ncfile_id,try_it,varname,default_data,nlon,nlat) result(data_vec)
+         use netcdf
+         use cable_def_types_mod, only : r_2,mp
+         real, dimension(:,:), intent(in) :: default_data
+         integer, intent(in) :: try_it,nlon,nlat
+         character(len=*), intent(in) :: varname
+         integer, intent(in)               :: ncfile_id
+         real(r_2), dimension(mp) :: data_vec
+
+         real, dimension(nlon,nlat) :: GW2d_data
+         integer :: i,j,k,n
+         integer :: varid
+         integer :: varinq_status,varget_status
+
+         if (.not.cable_user%gw_model) then
+
+            GW2d_data(:,:) = default_data(:,:)
+
+         else
+
+         if (try_it .ne. nf90_noerr) then
+            varinq_status = try_it
+            varget_status = try_it
+         else
+
+            varinq_status = nf90_inq_varid(ncfile_id,trim(varname),varid)
+            varget_status = varinq_status
+
+            if (varinq_status .eq. nf90_noerr) then
+               varget_status = nf90_get_var(ncfile_id,varid,GW2d_data)
+            endif
+
+         end if
+
+         if (try_it.ne. nf90_noerr .or. varget_status .ne. nf90_noerr) then
+            GW2d_data(:,:) = default_data(:,:)
+         end if
+         end if
+
+         do i=1,mland  
+            data_vec(landpt(i)%cstart:landpt(i)%cend) = &
+                   real(GW2d_data(landpt(i)%ilon,landpt(i)%ilat),r_2)
+         end do
+
+         return
+
+   end function
+
+
+
+   function get_gw_3d_var_constdef(ncfile_id,try_it,varname,default_const,nlon,nlat,ms) result(data_vec)
+         use netcdf
+         use cable_def_types_mod, only : r_2,mp
+         real, intent(in) :: default_const
+         integer, intent(in) :: try_it,nlon,nlat,ms
+         character(len=*), intent(in) :: varname
+         integer, intent(in)               :: ncfile_id
+         real(r_2), dimension(mp,ms) :: data_vec
+
+         real, dimension(nlon,nlat,ms) :: GW3d_data
+         integer :: i,j,k,n
+         integer :: varid
+         integer :: varinq_status,varget_status
+         real, dimension(nlon,nlat) :: default_data
+
+          default_data(:,:) = default_const
+
+         if (.not. cable_user%gw_model) then
+            do k=1,ms
+               GW3d_data(:,:,k) = default_data(:,:)
+            end do
+
+         else
+         if (try_it .ne. nf90_noerr) then
+            varinq_status = try_it
+            varget_status = try_it
+         else
+
+            varinq_status = nf90_inq_varid(ncfile_id,trim(varname),varid)
+            varget_status = varinq_status
+
+            if (varinq_status .eq. nf90_noerr) then
+               varget_status = nf90_get_var(ncfile_id,varid,GW3d_data)
+            endif
+
+         end if
+
+         if (try_it.ne. nf90_noerr .or. varget_status .ne. nf90_noerr) then
+            do k=1,ms
+               GW3d_data(:,:,k) = default_data(:,:)
+            end do
+         end if
+
+
+         end if
+
+         do i=1,mland  
+            do k=1,ms
+               data_vec(landpt(i)%cstart:landpt(i)%cend,k) = &
+                      real(GW3d_data(landpt(i)%ilon,landpt(i)%ilat,k),r_2)
+            end do
+         end do
+
+         return
+
+   end function
+
+
+
+   function get_gw_3d_var(ncfile_id,try_it,varname,default_data,nlon,nlat,ms) result(data_vec)
+         use netcdf
+         use cable_def_types_mod, only : r_2,mp
+         real, dimension(:,:), intent(in) :: default_data
+         integer, intent(in) :: try_it,nlon,nlat,ms
+         character(len=*), intent(in) :: varname
+         integer, intent(in)               :: ncfile_id
+         real(r_2), dimension(mp,ms) :: data_vec
+
+         real, dimension(nlon,nlat,ms) :: GW3d_data
+         integer :: i,j,k,n
+         integer :: varid
+         integer :: varinq_status,varget_status
+
+         if (.not. cable_user%gw_model) then
+            do k=1,ms
+               GW3d_data(:,:,k) = default_data(:,:)
+            end do
+
+         else
+         if (try_it .ne. nf90_noerr) then
+            varinq_status = try_it
+            varget_status = try_it
+         else
+
+            varinq_status = nf90_inq_varid(ncfile_id,trim(varname),varid)
+            varget_status = varinq_status
+
+            if (varinq_status .eq. nf90_noerr) then
+               varget_status = nf90_get_var(ncfile_id,varid,GW3d_data)
+            endif
+
+         end if
+
+         if (try_it.ne. nf90_noerr .or. varget_status .ne. nf90_noerr) then
+            do k=1,ms
+               GW3d_data(:,:,k) = default_data(:,:)
+            end do
+         end if
+
+
+         end if
+
+         do i=1,mland  
+            do k=1,ms
+               data_vec(landpt(i)%cstart:landpt(i)%cend,k) = &
+                      real(GW3d_data(landpt(i)%ilon,landpt(i)%ilat,k),r_2)
+            end do
+         end do
+
+         return
+
+   end function
+
+
+
+   function get_gw_4d_var_constdef(ncfile_id,try_it,varname,default_const,nlon,nlat,ms,npatch) result(data_vec)
+         use netcdf
+         use cable_def_types_mod, only : r_2,mp
+         real, intent(in) :: default_const
+         integer, intent(in) :: try_it,nlon,nlat,ms,npatch
+         character(len=*),  intent(in) :: varname
+         integer, intent(in)               :: ncfile_id
+         real(r_2), dimension(mp,ms,mpatch) :: data_vec
+
+         integer :: i,j,k,n
+         integer :: varid
+         integer :: varinq_status,varget_status
+         real, dimension(nlon,nlat,ms,mpatch) :: GW4d_data
+         real, dimension(nlon,nlat,ms)        :: GW3d_data
+         real, dimension(nlon,nlat) :: default_data
+
+         default_data(:,:) = default_const
+
+         if (.not.cable_user%gw_model) then
+            do k=1,ms
+               do n=1,npatch
+                  GW4d_data(:,:,k,n) = default_data(:,:)
+               end do
+            end do
+         else
+         if (try_it .ne. nf90_noerr) then
+            varinq_status = try_it
+            varget_status = try_it
+         else
+
+            varinq_status = nf90_inq_varid(ncfile_id,trim(varname),varid)
+            varget_status = varinq_status
+
+            if (varinq_status .eq. nf90_noerr) then
+               if (mpatch .gt. 1) then
+                  varget_status = nf90_get_var(ncfile_id,varid,GW4d_data)
+               else
+                  varget_status = nf90_get_var(ncfile_id,varid,GW3d_data)
+                  GW4d_data(:,:,:,1) = GW3d_data(:,:,:)
+               end if
+            endif
+
+         end if
+
+         if (try_it.ne. nf90_noerr .or. varget_status .ne. nf90_noerr) then
+            do k=1,ms
+               do n=1,mpatch
+                  GW4d_data(:,:,k,n) = default_data(:,:)
+               end do
+            end do
+         end if
+
+
+         end if
+
+         do i=1,mland  
+            do k=1,ms
+               do j=1,mpatch
+                  data_vec(landpt(i)%cstart:landpt(i)%cend,k,j) = &
+                         real(GW4d_data(landpt(i)%ilon,landpt(i)%ilat,k,j),r_2)
+               end do
+            end do
+         end do
+
+         return
+
+   end function
+
+
+
+
+   function get_gw_4d_var(ncfile_id,try_it,varname,default_data,nlon,nlat,ms,npatch) result(data_vec)
+         use netcdf
+         use cable_def_types_mod, only : r_2,mp
+         real, dimension(:,:), intent(in) :: default_data
+         integer, intent(in) :: try_it,nlon,nlat,ms,npatch
+         character(len=*),  intent(in) :: varname
+         integer, intent(in)               :: ncfile_id
+         real(r_2), dimension(mp,ms,mpatch) :: data_vec
+
+         integer :: i,j,k,n
+         integer :: varid
+         integer :: varinq_status,varget_status
+         real, dimension(nlon,nlat,ms,mpatch) :: GW4d_data
+         real, dimension(nlon,nlat,ms)        :: GW3d_data
+
+
+         if (.not.cable_user%gw_model) then
+            do k=1,ms
+               do n=1,npatch
+                  GW4d_data(:,:,k,n) = default_data(:,:)
+               end do
+            end do
+         else
+         if (try_it .ne. nf90_noerr) then
+            varinq_status = try_it
+            varget_status = try_it
+         else
+
+            varinq_status = nf90_inq_varid(ncfile_id,trim(varname),varid)
+            varget_status = varinq_status
+
+            if (varinq_status .eq. nf90_noerr) then
+               if (mpatch .gt. 1) then
+                  varget_status = nf90_get_var(ncfile_id,varid,GW4d_data)
+               else
+                  varget_status = nf90_get_var(ncfile_id,varid,GW3d_data)
+                  GW4d_data(:,:,:,1) = GW3d_data(:,:,:)
+               end if
+
+            endif
+
+         end if
+
+         if (try_it.ne. nf90_noerr .or. varget_status .ne. nf90_noerr) then
+            do k=1,ms
+               do n=1,mpatch
+                  GW4d_data(:,:,k,n) = default_data(:,:)
+               end do
+            end do
+         end if
+
+
+         end if
+
+         do i=1,mland  
+            do k=1,ms
+               do j=1,mpatch
+                  data_vec(landpt(i)%cstart:landpt(i)%cend,k,j) = &
+                         real(GW4d_data(landpt(i)%ilon,landpt(i)%ilat,k,j),r_2)
+               end do
+            end do
+         end do
+
+         return
+
+   end function
+
 
 
 END MODULE cable_param_module

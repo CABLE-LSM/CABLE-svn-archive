@@ -160,7 +160,7 @@ CONTAINS
          verbose, fixedCO2,output,check,patchout,    &
          patch_type,soilparmnew,&
          defaultLAI, sdoy, smoy, syear, timeunits, exists, output, &
-         latitude,longitude
+         latitude,longitude, ptach, wlogn
     USE cable_common_module,  ONLY: ktau_gl, kend_gl, knode_gl, cable_user,     &
          cable_runtime, fileName, myhome,            &
          redistrb, wiltParam, satuParam, CurYear,    &
@@ -356,7 +356,7 @@ CONTAINS
          satuParam,        &
          cable_user,       &  ! additional USER switches 
          gw_params
-    INTEGER :: i,x,kk
+    INTEGER :: i,x,kk, klev
     INTEGER :: LALLOC
     INTEGER, PARAMETER ::	 mloop	= 30   ! CASA-CNP PreSpinup loops
     REAL    :: etime

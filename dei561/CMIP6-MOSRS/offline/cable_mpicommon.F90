@@ -39,7 +39,9 @@ MODULE cable_mpicommon
   !Vanessa Haverd: add 4 new params 295 -> 299
   ! VH add 9 params for sli 299 -> 308
   ! INH add 7 params for REV_CORR package
-  INTEGER, PARAMETER :: nparam = 331 !326!308   
+!DE
+  ! mrd561 9 more: vector soils
+  INTEGER, PARAMETER :: nparam =351!hysteresis 346! 341!1 !326!308  
   ! MPI: extra params sent only if nsoilparmnew is true
   INTEGER, PARAMETER :: nsoilnew = 1
 
@@ -90,7 +92,9 @@ MODULE cable_mpicommon
   !INTEGER, PARAMETER :: nmat = 29
   ! MPI: CABLE_r491, after following up with Bernard on the new variables
   ! vh sli nmat + 4 36 -> 40
-  INTEGER, PARAMETER :: nmat = 40
+!DE
+!  INTEGER, PARAMETER :: nmat = 40
+   INTEGER, PARAMETER :: nmat = 46  !hysteresis 41
 
   ! MPI: number of contig vector parts / worker (results)
   !INTEGER, PARAMETER :: nvec = 149
@@ -107,7 +111,9 @@ MODULE cable_mpicommon
   ! vh sli nvec + 6 162 -> 168
   ! INTEGER, PARAMETER :: nvec = 172! 168
   ! INH REV_CORR +3  (SSEB +2 will be needed)
-   INTEGER, PARAMETER :: nvec = 175
+!DE
+!   INTEGER, PARAMETER :: nvec = 175
+   INTEGER, PARAMETER :: nvec = 176! 176!175
 
   ! MPI: number of final casa result matrices and vectors to receive
   ! by the master for casa_poolout and casa_fluxout
