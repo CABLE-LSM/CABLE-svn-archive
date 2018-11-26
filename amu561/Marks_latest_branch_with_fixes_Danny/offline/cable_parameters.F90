@@ -2013,11 +2013,6 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
           end do
 
        ELSE
-           print *, "zse", soil%zse_vec
-           print *, "hyds", soil%hyds_vec
-           print *, "hkrz", soil%hkrz
-           print *, "soil depth", soil_depth
-           print *, "zdepth", soil%zdepth
           DO klev=1,ms
               soil%hyds_vec(:,klev) = soil%hyds_vec(:,klev)*exp(-soil%hkrz(:)*(soil_depth(:,klev)-soil%zdepth(:)))
           END DO

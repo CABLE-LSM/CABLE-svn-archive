@@ -896,6 +896,8 @@ CONTAINS
                             start = (/1, 1, 1, ktau/),                         &
                       count = (/xdimsize, ydimsize, 1, 1/)) ! write data to file
         ELSE ! normal x-y-t mask grid
+
+            print *, "vname", vname
           DO i = 1, mland ! over all land grid points
             ! Write to temporary variable (area weighted average across all
             ! patches):
