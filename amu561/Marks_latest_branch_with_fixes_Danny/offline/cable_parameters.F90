@@ -485,13 +485,13 @@ CONTAINS
 
 !DE
     !MD Aquifer properties
-!    ALLOCATE(    inGWssat(nlon, nlat) )
-!    ALLOCATE(     inGWbch(nlon, nlat) )
-!    ALLOCATE(    inGWhyds(nlon, nlat) )
-!    ALLOCATE(    inGWsucs(nlon, nlat) )
-!    ALLOCATE( inGWrhosoil(nlon, nlat) )
-!    ALLOCATE(    inGWWatr(nlon, nlat) )
-!    ALLOCATE(      inWatr(nlon, nlat) )
+    ALLOCATE(    inGWssat(nlon, nlat) )
+    ALLOCATE(     inGWbch(nlon, nlat) )
+    ALLOCATE(    inGWhyds(nlon, nlat) )
+    ALLOCATE(    inGWsucs(nlon, nlat) )
+    ALLOCATE( inGWrhosoil(nlon, nlat) )
+    ALLOCATE(    inGWWatr(nlon, nlat) )
+    ALLOCATE(      inWatr(nlon, nlat) )
     ALLOCATE(       inORG(nlon, nlat) )
 
     ! 1
@@ -561,79 +561,79 @@ CONTAINS
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable UM albedo')
 
 !DE
-!    !MD try to read aquifer properties from the file
-!    ! if they don't exist set aquifer properties to the same as the soil
-!    ok = NF90_INQ_VARID(ncid, 'Watr', fieldID)
-!    write(*,*) NF90_NOERR
-!    ok2= ok
-!    IF (ok .eq. NF90_NOERR) then
-!      ok2 = NF90_GET_VAR(ncid, fieldID, inWatr)
-!    end if
-!    IF ((ok2 .ne. NF90_NOERR) .or. (ok .ne. NF90_NOERR)) then
-!      inWatr(:,:) = 0.05
-!    END IF
-!
-!    found_explicit_gw_parameters = .true.
-!
-!    ok = NF90_INQ_VARID(ncid, 'GWssat', fieldID)
-!    write(*,*) NF90_NOERR
-!    ok2= ok
-!    IF (ok .eq. NF90_NOERR) then
-!      ok2 = NF90_GET_VAR(ncid, fieldID, inGWssat)
-!    end if
-!    IF ((ok2 .ne. NF90_NOERR) .or. (ok .ne. NF90_NOERR)) then
-!      inGWssat(:,:) = inssat(:,:)
-!      found_explicit_gw_parameters = .false.
-!    END IF
-!    
-!    ok = NF90_INQ_VARID(ncid, 'GWWatr', fieldID)
-!    ok2 = ok
-!    IF (ok .eq. NF90_NOERR) then
-!      ok2 = NF90_GET_VAR(ncid, fieldID, inGWssat)
-!    end if
-!    IF ((ok2 .ne. NF90_NOERR) .or. (ok .ne. NF90_NOERR)) then
-!      inGWWatr(:,:) = 0.05
-!    END IF    
-!    
-!    ok = NF90_INQ_VARID(ncid, 'GWsucs', fieldID)
-!    ok2 = ok
-!    IF (ok .eq. NF90_NOERR) then
-!      ok2 = NF90_GET_VAR(ncid, fieldID, inGWsucs)
-!    end if
-!    IF ((ok2 .ne. NF90_NOERR) .or. (ok .ne. NF90_NOERR)) then
-!      inGWsucs(:,:) = abs(insucs(:,:)) * 1000.0
-!      found_explicit_gw_parameters = .false.
-!    END IF    
-!    
-!    ok = NF90_INQ_VARID(ncid, 'GWbch', fieldID)
-!    ok2 = ok
-!    IF (ok .eq. NF90_NOERR) then
-!      ok2 = NF90_GET_VAR(ncid, fieldID, inGWbch)
-!    end if
-!    IF ((ok2 .ne. NF90_NOERR) .or. (ok .ne. NF90_NOERR)) then
-!      inGWbch(:,:) = inbch(:,:)
-!      found_explicit_gw_parameters = .false.
-!    END IF    
-!        
-!    ok = NF90_INQ_VARID(ncid, 'GWhyds', fieldID)
-!    ok2 = ok
-!    IF (ok .eq. NF90_NOERR) then
-!      ok2 = NF90_GET_VAR(ncid, fieldID, inGWhyds)
-!    end if
-!    IF ((ok2 .ne. NF90_NOERR) .or. (ok .ne. NF90_NOERR)) then
-!      inGWhyds(:,:) = inhyds(:,:)*1000.0
-!      found_explicit_gw_parameters = .false.
-!    END IF    
-!    
-!    ok = NF90_INQ_VARID(ncid, 'GWrhosoil', fieldID)
-!    ok2 = ok
-!    IF (ok .eq. NF90_NOERR) then
-!      ok2 = NF90_GET_VAR(ncid, fieldID, inGWrhosoil)
-!    end if
-!    IF ((ok2 .ne. NF90_NOERR) .or. (ok .ne. NF90_NOERR)) then
-!      inGWrhosoil(:,:) = inrhosoil(:,:)
-!    END IF    
- 
+    !MD try to read aquifer properties from the file
+    ! if they don't exist set aquifer properties to the same as the soil
+    ok = NF90_INQ_VARID(ncid, 'Watr', fieldID)
+    write(*,*) NF90_NOERR
+    ok2= ok
+    IF (ok .eq. NF90_NOERR) then
+      ok2 = NF90_GET_VAR(ncid, fieldID, inWatr)
+    end if
+    IF ((ok2 .ne. NF90_NOERR) .or. (ok .ne. NF90_NOERR)) then
+      inWatr(:,:) = 0.05
+    END IF
+
+    found_explicit_gw_parameters = .true.
+
+    ok = NF90_INQ_VARID(ncid, 'GWssat', fieldID)
+    write(*,*) NF90_NOERR
+    ok2= ok
+    IF (ok .eq. NF90_NOERR) then
+      ok2 = NF90_GET_VAR(ncid, fieldID, inGWssat)
+    end if
+    IF ((ok2 .ne. NF90_NOERR) .or. (ok .ne. NF90_NOERR)) then
+      inGWssat(:,:) = inssat(:,:)
+      found_explicit_gw_parameters = .false.
+    END IF
+    
+    ok = NF90_INQ_VARID(ncid, 'GWWatr', fieldID)
+    ok2 = ok
+    IF (ok .eq. NF90_NOERR) then
+      ok2 = NF90_GET_VAR(ncid, fieldID, inGWssat)
+    end if
+    IF ((ok2 .ne. NF90_NOERR) .or. (ok .ne. NF90_NOERR)) then
+      inGWWatr(:,:) = 0.05
+    END IF    
+    
+    ok = NF90_INQ_VARID(ncid, 'GWsucs', fieldID)
+    ok2 = ok
+    IF (ok .eq. NF90_NOERR) then
+      ok2 = NF90_GET_VAR(ncid, fieldID, inGWsucs)
+    end if
+    IF ((ok2 .ne. NF90_NOERR) .or. (ok .ne. NF90_NOERR)) then
+      inGWsucs(:,:) = abs(insucs(:,:)) * 1000.0
+      found_explicit_gw_parameters = .false.
+    END IF    
+    
+    ok = NF90_INQ_VARID(ncid, 'GWbch', fieldID)
+    ok2 = ok
+    IF (ok .eq. NF90_NOERR) then
+      ok2 = NF90_GET_VAR(ncid, fieldID, inGWbch)
+    end if
+    IF ((ok2 .ne. NF90_NOERR) .or. (ok .ne. NF90_NOERR)) then
+      inGWbch(:,:) = inbch(:,:)
+      found_explicit_gw_parameters = .false.
+    END IF    
+        
+    ok = NF90_INQ_VARID(ncid, 'GWhyds', fieldID)
+    ok2 = ok
+    IF (ok .eq. NF90_NOERR) then
+      ok2 = NF90_GET_VAR(ncid, fieldID, inGWhyds)
+    end if
+    IF ((ok2 .ne. NF90_NOERR) .or. (ok .ne. NF90_NOERR)) then
+      inGWhyds(:,:) = inhyds(:,:)*1000.0
+      found_explicit_gw_parameters = .false.
+    END IF    
+    
+    ok = NF90_INQ_VARID(ncid, 'GWrhosoil', fieldID)
+    ok2 = ok
+    IF (ok .eq. NF90_NOERR) then
+      ok2 = NF90_GET_VAR(ncid, fieldID, inGWrhosoil)
+    end if
+    IF ((ok2 .ne. NF90_NOERR) .or. (ok .ne. NF90_NOERR)) then
+      inGWrhosoil(:,:) = inrhosoil(:,:)
+    END IF    
+
     ok = NF90_INQ_VARID(ncid, 'organic', fieldID)
     ok2 = ok
     IF (ok .eq. NF90_NOERR) then
@@ -762,50 +762,49 @@ CONTAINS
     inALB(:, :, 1, 1) = sfact(:, :) * dummy2(:, :)
 
 !DE
-!    allocate(inSlope(nlon,nlat),stat=ok)
-!    if (ok .ne. 0) CALL nc_abort(ok, 'Error allocating inSlope ')
-!    inSlope(:,:) = 0.0
-!
-!    allocate(inSlopeSTD(nlon,nlat),stat=ok)
-!    if (ok .ne. 0) CALL nc_abort(ok, 'Error allocating inSlopeSTD ')
-!    inSlopeSTD(:,:) = 0.0
-!
-!    allocate(inGWdz(nlon,nlat),stat=ok)
-!    if (ok .ne. 0) CALL nc_abort(ok, 'Error allocating inGWdz ')
-!    inGWdz(:,:) = 20.0
-!
-!    IF (cable_user%GW_MODEL) THEN
-!       ok = NF90_OPEN(trim(filename%gw_elev),NF90_NOWRITE,ncid_elev)
-!       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error opening GW elev param file.')
-!
-!       ok = NF90_INQ_VARID(ncid_elev, 'slope', fieldID)
-!       IF (ok /= NF90_NOERR) WRITE(logn,*) 'Error finding variable slope'
-!       ok = NF90_GET_VAR(ncid_elev, fieldID, inSlope)
-!       IF (ok /= NF90_NOERR) THEN
-!          inSlope = 0.0
-!          WRITE(logn, *) 'Could not read slope data for SSGW, set to 0.0'
-!       END IF
-!
-!       ok = NF90_INQ_VARID(ncid_elev, 'slope_std', fieldID)   !slope_std
-!       IF (ok /= NF90_NOERR) WRITE(logn,*) 'Error finding variable slope std'
-!       ok = NF90_GET_VAR(ncid_elev, fieldID, inSlopeSTD)
-!       IF (ok /= NF90_NOERR) THEN
-!          inSlopeSTD = 0.0
-!          WRITE(logn, *) 'Could not read slope stddev data for SSGW, set to 0.0'
-!       END IF
-!
-!       ok = NF90_INQ_VARID(ncid_elev, 'dtb', fieldID)
-!       IF (ok /= NF90_NOERR) WRITE(logn,*) 'Error finding variable dtb'
-!       ok = NF90_GET_VAR(ncid_elev, fieldID, inGWdz)
-!       IF (ok /= NF90_NOERR) THEN
-!          inGWdz = 20.0
-!          WRITE(logn, *) 'Could not read dtb data for SSGW, set to 0.0'
-!       END IF
-!
-!       ok = NF90_CLOSE(ncid_elev)
-!
-!    ENDIF  !running gw model
- 
+    allocate(inSlope(nlon,nlat),stat=ok)
+    if (ok .ne. 0) CALL nc_abort(ok, 'Error allocating inSlope ')
+    inSlope(:,:) = 0.0
+
+    allocate(inSlopeSTD(nlon,nlat),stat=ok)
+    if (ok .ne. 0) CALL nc_abort(ok, 'Error allocating inSlopeSTD ')
+    inSlopeSTD(:,:) = 0.0
+
+    allocate(inGWdz(nlon,nlat),stat=ok)
+    if (ok .ne. 0) CALL nc_abort(ok, 'Error allocating inGWdz ')
+    inGWdz(:,:) = 20.0
+
+    IF (cable_user%GW_MODEL) THEN
+       ok = NF90_OPEN(trim(filename%gw_elev),NF90_NOWRITE,ncid_elev)
+       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error opening GW elev param file.')
+
+       ok = NF90_INQ_VARID(ncid_elev, 'slope', fieldID)
+       IF (ok /= NF90_NOERR) WRITE(logn,*) 'Error finding variable slope'
+       ok = NF90_GET_VAR(ncid_elev, fieldID, inSlope)
+       IF (ok /= NF90_NOERR) THEN
+          inSlope = 0.0
+          WRITE(logn, *) 'Could not read slope data for SSGW, set to 0.0'
+       END IF
+
+       ok = NF90_INQ_VARID(ncid_elev, 'slope_std', fieldID)   !slope_std
+       IF (ok /= NF90_NOERR) WRITE(logn,*) 'Error finding variable slope std'
+       ok = NF90_GET_VAR(ncid_elev, fieldID, inSlopeSTD)
+       IF (ok /= NF90_NOERR) THEN
+          inSlopeSTD = 0.0
+          WRITE(logn, *) 'Could not read slope stddev data for SSGW, set to 0.0'
+       END IF
+
+       ok = NF90_INQ_VARID(ncid_elev, 'dtb', fieldID)
+       IF (ok /= NF90_NOERR) WRITE(logn,*) 'Error finding variable dtb'
+       ok = NF90_GET_VAR(ncid_elev, fieldID, inGWdz)
+       IF (ok /= NF90_NOERR) THEN
+          inGWdz = 20.0
+          WRITE(logn, *) 'Could not read dtb data for SSGW, set to 0.0'
+       END IF
+
+       ok = NF90_CLOSE(ncid_elev)
+
+    ENDIF  !running gw model
 
     DEALLOCATE(in2alb, sfact, dummy2)
 !    DEALLOCATE(in2alb,sfact,dummy2,indummy)
@@ -1228,7 +1227,10 @@ CONTAINS
               0.3000,    0.3000 ,   0.3000,    0.3000,    0.7500,  1.50 /)
 
       end select
+ 
 
+    !amu561: for calculating vertically varying soil params
+    soil%zse_vec = real(spread(soil%zse,1,mp),r_2)
 
    !ELSE
 
@@ -2011,7 +2013,11 @@ write(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
           end do
 
        ELSE
-
+           print *, "zse", soil%zse_vec
+           print *, "hyds", soil%hyds_vec
+           print *, "hkrz", soil%hkrz
+           print *, "soil depth", soil_depth
+           print *, "zdepth", soil%zdepth
           DO klev=1,ms
               soil%hyds_vec(:,klev) = soil%hyds_vec(:,klev)*exp(-soil%hkrz(:)*(soil_depth(:,klev)-soil%zdepth(:)))
           END DO
@@ -3035,7 +3041,8 @@ END SUBROUTINE report_parameters
           nhorz=ms
        ENDIF
 
-       IF ((nlon*nlat*npatch*nhorz .ne. xdimsize*ydimsize*ms*mpatch)) THEN
+       IF ((nlon*nlat*npatch*nhorz .ne. xdimsize*ydimsize*ms*mpatch) .and. &
+           cable_user%MetType .ne. 'site') THEN
           WRITE(logn,*) 'Errors reading the dimensions from '//filename%gw_elev
 
           IF (nlon .lt. 0 .or. nlon .ne. xdimsize) &

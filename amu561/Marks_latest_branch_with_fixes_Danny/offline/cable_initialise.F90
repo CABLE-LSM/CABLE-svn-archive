@@ -417,47 +417,47 @@ SUBROUTINE get_restart_data(logn,ssnow,canopy,rough,bgc,                       &
          ssnow%GWwb = 0.95*soil%ssat
       END IF
 
-      ok = NF90_INQ_VARID(ncid_rin,'wb_hys',parID)
-      IF(ok == NF90_NOERR) THEN 
-        CALL readpar(ncid_rin,'wb_hys',dummy,ssnow%wb_hys,filename%restart_in, &
-                   max_vegpatches,'msd',from_restart,mp)   
-      ELSE
-         ssnow%wb_hys = 0.99*soil%ssat_vec
-      END IF
-
-      ok = NF90_INQ_VARID(ncid_rin,'smp_hys',parID)
-      IF(ok == NF90_NOERR) THEN 
-        CALL readpar(ncid_rin,'smp_hys',dummy,ssnow%smp_hys,                   &
-                   filename%restart_in, max_vegpatches,'msd',from_restart,mp)   
-      ELSE
-         ssnow%smp_hys = -1.0*abs(soil%sucs_vec)*0.99
-      END IF
-
-      ok = NF90_INQ_VARID(ncid_rin,'ssat_hys',parID)
-      IF(ok == NF90_NOERR) THEN 
-        CALL readpar(ncid_rin,'ssat_hys',dummy,ssnow%ssat_hys,filename%restart_in,&
-                   max_vegpatches,'msd',from_restart,mp)   
-      ELSE
-         ssnow%ssat_hys = soil%ssat_vec
-      END IF
-
-      ok = NF90_INQ_VARID(ncid_rin,'watr_hys',parID)
-      IF(ok == NF90_NOERR) THEN 
-        CALL readpar(ncid_rin,'watr_hys',dummy,ssnow%watr_hys,filename%restart_in, &
-                   max_vegpatches,'msd',from_restart,mp)   
-      ELSE
-         ssnow%watr_hys = soil%watr
-      END IF
-
-
-      ok = NF90_INQ_VARID(ncid_rin,'hys_fac',parID)
-      IF(ok == NF90_NOERR) THEN 
-        CALL readpar(ncid_rin,'hys_fac',dummy,ssnow%hys_fac,filename%restart_in, &
-                   max_vegpatches,'msd',from_restart,mp)   
-      ELSE
-         ssnow%hys_fac = 1.0
-      END IF
-
+!      ok = NF90_INQ_VARID(ncid_rin,'wb_hys',parID)
+!      IF(ok == NF90_NOERR) THEN 
+!        CALL readpar(ncid_rin,'wb_hys',dummy,ssnow%wb_hys,filename%restart_in, &
+!                   max_vegpatches,'msd',from_restart,mp)   
+!      ELSE
+!         ssnow%wb_hys = 0.99*soil%ssat_vec
+!      END IF
+!
+!      ok = NF90_INQ_VARID(ncid_rin,'smp_hys',parID)
+!      IF(ok == NF90_NOERR) THEN 
+!        CALL readpar(ncid_rin,'smp_hys',dummy,ssnow%smp_hys,                   &
+!                   filename%restart_in, max_vegpatches,'msd',from_restart,mp)   
+!      ELSE
+!         ssnow%smp_hys = -1.0*abs(soil%sucs_vec)*0.99
+!      END IF
+!
+!      ok = NF90_INQ_VARID(ncid_rin,'ssat_hys',parID)
+!      IF(ok == NF90_NOERR) THEN 
+!        CALL readpar(ncid_rin,'ssat_hys',dummy,ssnow%ssat_hys,filename%restart_in,&
+!                   max_vegpatches,'msd',from_restart,mp)   
+!      ELSE
+!         ssnow%ssat_hys = soil%ssat_vec
+!      END IF
+!
+!      ok = NF90_INQ_VARID(ncid_rin,'watr_hys',parID)
+!      IF(ok == NF90_NOERR) THEN 
+!        CALL readpar(ncid_rin,'watr_hys',dummy,ssnow%watr_hys,filename%restart_in, &
+!                   max_vegpatches,'msd',from_restart,mp)   
+!      ELSE
+!         ssnow%watr_hys = soil%watr
+!      END IF
+!
+!
+!      ok = NF90_INQ_VARID(ncid_rin,'hys_fac',parID)
+!      IF(ok == NF90_NOERR) THEN 
+!        CALL readpar(ncid_rin,'hys_fac',dummy,ssnow%hys_fac,filename%restart_in, &
+!                   max_vegpatches,'msd',from_restart,mp)   
+!      ELSE
+!         ssnow%hys_fac = 1.0
+!      END IF
+!
    END IF
 
    IF (cable_user%or_evap) then

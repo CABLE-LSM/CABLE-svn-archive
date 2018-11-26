@@ -112,8 +112,8 @@ MODULE cable_common_module
           CALL_Climate           = .FALSE., &
           Climate_fromZero       = .TRUE., &
           CASA_fromZero          = .TRUE., &
-          POPLUC                 = .FALSE.
-
+          POPLUC                 = .FALSE., &
+          compress_output        = .FALSE.
      INTEGER  :: &
           CASA_SPIN_STARTYEAR = 1950, &
           CASA_SPIN_ENDYEAR   = 1960, &

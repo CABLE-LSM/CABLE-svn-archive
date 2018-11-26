@@ -600,34 +600,34 @@ CONTAINS
        out%SoilTemp = 0.0 ! initialise
     END IF
 
-    if (cable_user%gw_model .and. gw_params%BC_hysteresis) then
-       CALL define_ovar(ncid_out, ovid%SMP_hys, 'SMP_hys', 'm',      &
-                        'Average layer soil pressure at hys trans', patchout%SMP_hys,&
-                        'soil', xID, yID, zID, landID, patchID, soilID, tID)
-       ALLOCATE(out%SMP_hys(mp,ms))
-       out%SMP_hys = 0.0 ! initialise
-       CALL define_ovar(ncid_out, ovid%WB_hys, 'WB_hys', 'm',      &
-                        'wb at wet/dry or dry/wet transition', patchout%WB_hys,&
-                        'soil', xID, yID, zID, landID, patchID, soilID, tID)
-       ALLOCATE(out%WB_hys(mp,ms))
-       out%WB_hys = 0.0 ! initialise
-       CALL define_ovar(ncid_out, ovid%SSAT_hys, 'SSAT_hys', 'm',      &
-                        'hysteresis adj  ssat', patchout%SSAT_hys,     &
-                        'soil', xID, yID, zID, landID, patchID, soilID, tID)
-       ALLOCATE(out%SSAT_hys(mp,ms))
-       out%SSAT_hys = 0.0 ! initialise
-       CALL define_ovar(ncid_out, ovid%WATR_hys, 'WATR_hys', 'm',      &
-                        'hysteresis adj watr', patchout%WATR_hys,     &
-                        'soil', xID, yID, zID, landID, patchID, soilID, tID)
-       ALLOCATE(out%WATR_hys(mp,ms))
-       out%WATR_hys = 0.0 ! initialise
-       CALL define_ovar(ncid_out, ovid%hys_fac, 'hys_fac', 'm',      &
-                        '1.0 wet 0.5 dry', patchout%hys_fac,     &
-                        'soil', xID, yID, zID, landID, patchID, soilID, tID)
-       ALLOCATE(out%hys_fac(mp,ms))
-       out%hys_fac = 0.0 ! initialise
-    end if
-
+!    if (cable_user%gw_model .and. gw_params%BC_hysteresis) then
+!       CALL define_ovar(ncid_out, ovid%SMP_hys, 'SMP_hys', 'm',      &
+!                        'Average layer soil pressure at hys trans', patchout%SMP_hys,&
+!                        'soil', xID, yID, zID, landID, patchID, soilID, tID)
+!       ALLOCATE(out%SMP_hys(mp,ms))
+!       out%SMP_hys = 0.0 ! initialise
+!       CALL define_ovar(ncid_out, ovid%WB_hys, 'WB_hys', 'm',      &
+!                        'wb at wet/dry or dry/wet transition', patchout%WB_hys,&
+!                        'soil', xID, yID, zID, landID, patchID, soilID, tID)
+!       ALLOCATE(out%WB_hys(mp,ms))
+!       out%WB_hys = 0.0 ! initialise
+!       CALL define_ovar(ncid_out, ovid%SSAT_hys, 'SSAT_hys', 'm',      &
+!                        'hysteresis adj  ssat', patchout%SSAT_hys,     &
+!                        'soil', xID, yID, zID, landID, patchID, soilID, tID)
+!       ALLOCATE(out%SSAT_hys(mp,ms))
+!       out%SSAT_hys = 0.0 ! initialise
+!       CALL define_ovar(ncid_out, ovid%WATR_hys, 'WATR_hys', 'm',      &
+!                        'hysteresis adj watr', patchout%WATR_hys,     &
+!                        'soil', xID, yID, zID, landID, patchID, soilID, tID)
+!       ALLOCATE(out%WATR_hys(mp,ms))
+!       out%WATR_hys = 0.0 ! initialise
+!       CALL define_ovar(ncid_out, ovid%hys_fac, 'hys_fac', 'm',      &
+!                        '1.0 wet 0.5 dry', patchout%hys_fac,     &
+!                        'soil', xID, yID, zID, landID, patchID, soilID, tID)
+!       ALLOCATE(out%hys_fac(mp,ms))
+!       out%hys_fac = 0.0 ! initialise
+!    end if
+!
     IF(output%soil .OR. output%BaresoilT) THEN
        CALL define_ovar(ncid_out, ovid%BaresoilT, 'BaresoilT',                 &
                         'K', 'Bare soil temperature', patchout%BaresoilT,      &
@@ -1548,17 +1548,17 @@ CONTAINS
                'SatFracmax', spread(REAL(sqrt(gw_params%MaxSatFraction),4),1,mp), &
                 (/0.0,1000000.0/), patchout%SatFracmax, 'real')
 
-          CALL write_ovar(ncid_out, opid%Qhmax,    &
-               'Qhmax', REAL(soil%qhz_max, 4), &
-               (/0.0,1000000.0/), patchout%Qhmax, 'real')
-
-          CALL write_ovar(ncid_out, opid%HKefold,    &
-               'HKefold', REAL(soil%hkrz, 4), &
-                (/0.0,1000000.0/), patchout%HKefold, 'real')
-
-          CALL write_ovar(ncid_out, opid%HKdepth,    &
-               'HKdepth', REAL(soil%zdepth, 4), &
-                (/0.0,1000000.0/), patchout%HKdepth, 'real')
+!          CALL write_ovar(ncid_out, opid%Qhmax,    &
+!               'Qhmax', REAL(soil%qhz_max, 4), &
+!               (/0.0,1000000.0/), patchout%Qhmax, 'real')
+!
+!          CALL write_ovar(ncid_out, opid%HKefold,    &
+!               'HKefold', REAL(soil%hkrz, 4), &
+!                (/0.0,1000000.0/), patchout%HKefold, 'real')
+!
+!          CALL write_ovar(ncid_out, opid%HKdepth,    &
+!               'HKdepth', REAL(soil%zdepth, 4), &
+!                (/0.0,1000000.0/), patchout%HKdepth, 'real')
      END IF
 
 
@@ -2172,47 +2172,47 @@ CONTAINS
        END IF
     END IF      
 
-    IF(gw_params%bc_hysteresis .and. cable_user%GW_MODEL) THEN
-       !write(*,*) 'Qinfl'    !MDeck
-       ! Add current timestep's value to total of temporary output variable:
-       out%smp_hys  = out%smp_hys  + REAL(ssnow%smp_hys, 4)
-       out%wb_hys   = out%wb_hys   + REAL(ssnow%wb_hys, 4)
-       out%ssat_hys = out%ssat_hys + REAL(ssnow%ssat_hys, 4)
-       out%watr_hys = out%watr_hys + REAL(ssnow%watr_hys, 4)
-       out%hys_fac  = out%hys_fac  + REAL(ssnow%hys_fac, 4)
-
-       IF(writenow) THEN
-          out%smp_hys = out%smp_hys / REAL(output%interval, 4)
-          out%wb_hys   = out%wb_hys  / REAL(output%interval, 4) 
-          out%ssat_hys = out%ssat_hys/ REAL(output%interval, 4) 
-          out%watr_hys = out%watr_hys/ REAL(output%interval, 4) 
-          out%hys_fac  = out%hys_fac / REAL(output%interval, 4) 
-
-          ! Write value to file:
-          CALL write_ovar(out_timestep, ncid_out, ovid%SMP_hys, 'SMP_hys', &
-               out%SMP_hys, (/-1.0e36,1.0e36/), patchout%SMP_hys, 'soil', met)
-
-          CALL write_ovar(out_timestep, ncid_out, ovid%WB_hys, 'WB_hys', &
-               out%WB_hys, (/-1.0e36,1.0e36/), patchout%wb_hys, 'soil', met)
-
-          CALL write_ovar(out_timestep, ncid_out, ovid%SSAT_hys, 'SSAT_hys', &
-               out%SSAT_hys, (/-1.0e36,1.0e36/), patchout%ssat_hys, 'soil', met)
-
-          CALL write_ovar(out_timestep, ncid_out, ovid%WATR_hys, 'WATR_hys', &
-               out%WATR_hys, (/-1.0e36,1.0e36/), patchout%watr_hys, 'soil', met)
-
-          CALL write_ovar(out_timestep, ncid_out, ovid%hys_fac, 'hys_fac', &
-               out%hys_fac, (/-1.0e36,1.0e36/), patchout%hys_fac, 'soil', met)
-
-          ! Reset temporary output variable:
-          out%smp_hys = 0.0
-          out%wb_hys   =0.0 
-          out%ssat_hys =0.0
-          out%watr_hys =0.0
-          out%hys_fac  =0.0
-       END IF
-    END IF      
-
+!    IF(gw_params%bc_hysteresis .and. cable_user%GW_MODEL) THEN
+!       !write(*,*) 'Qinfl'    !MDeck
+!       ! Add current timestep's value to total of temporary output variable:
+!       out%smp_hys  = out%smp_hys  + REAL(ssnow%smp_hys, 4)
+!       out%wb_hys   = out%wb_hys   + REAL(ssnow%wb_hys, 4)
+!       out%ssat_hys = out%ssat_hys + REAL(ssnow%ssat_hys, 4)
+!       out%watr_hys = out%watr_hys + REAL(ssnow%watr_hys, 4)
+!       out%hys_fac  = out%hys_fac  + REAL(ssnow%hys_fac, 4)
+!
+!       IF(writenow) THEN
+!          out%smp_hys = out%smp_hys / REAL(output%interval, 4)
+!          out%wb_hys   = out%wb_hys  / REAL(output%interval, 4) 
+!          out%ssat_hys = out%ssat_hys/ REAL(output%interval, 4) 
+!          out%watr_hys = out%watr_hys/ REAL(output%interval, 4) 
+!          out%hys_fac  = out%hys_fac / REAL(output%interval, 4) 
+!
+!          ! Write value to file:
+!          CALL write_ovar(out_timestep, ncid_out, ovid%SMP_hys, 'SMP_hys', &
+!               out%SMP_hys, (/-1.0e36,1.0e36/), patchout%SMP_hys, 'soil', met)
+!
+!          CALL write_ovar(out_timestep, ncid_out, ovid%WB_hys, 'WB_hys', &
+!               out%WB_hys, (/-1.0e36,1.0e36/), patchout%wb_hys, 'soil', met)
+!
+!          CALL write_ovar(out_timestep, ncid_out, ovid%SSAT_hys, 'SSAT_hys', &
+!               out%SSAT_hys, (/-1.0e36,1.0e36/), patchout%ssat_hys, 'soil', met)
+!
+!          CALL write_ovar(out_timestep, ncid_out, ovid%WATR_hys, 'WATR_hys', &
+!               out%WATR_hys, (/-1.0e36,1.0e36/), patchout%watr_hys, 'soil', met)
+!
+!          CALL write_ovar(out_timestep, ncid_out, ovid%hys_fac, 'hys_fac', &
+!               out%hys_fac, (/-1.0e36,1.0e36/), patchout%hys_fac, 'soil', met)
+!
+!          ! Reset temporary output variable:
+!          out%smp_hys = 0.0
+!          out%wb_hys   =0.0 
+!          out%ssat_hys =0.0
+!          out%watr_hys =0.0
+!          out%hys_fac  =0.0
+!       END IF
+!    END IF      
+!
     ! recharge rate
     IF(output%soil .OR. output%Qrecharge) THEN
        ! Add current timestep's value to total of temporary output variable:
@@ -3875,19 +3875,19 @@ CONTAINS
 
     END IF
 
-    if (cable_user%gw_model) then
-       CALL write_ovar (ncid_restart,hys(1),'wb_hys',REAL(ssnow%wb_hys,4), &
-            (/0.0,1.0/),.TRUE.,'soil',.TRUE.)
-       CALL write_ovar (ncid_restart,hys(2),'smp_hys',REAL(ssnow%smp_hys,4), &
-            (/-1.0e10,1.0e10/),.TRUE.,'soil',.TRUE.)
-       CALL write_ovar (ncid_restart,hys(3),'ssat_hys',REAL(ssnow%ssat_hys,4), &
-            (/0.0,1.0/),.TRUE.,'soil',.TRUE.)
-       CALL write_ovar (ncid_restart,hys(4),'watr_hys',REAL(ssnow%watr_hys,4), &
-            (/0.0,1.0/),.TRUE.,'soil',.TRUE.)
-       CALL write_ovar (ncid_restart,hys(5),'watr_hys',REAL(ssnow%hys_fac,4), &
-            (/0.0,1.0/),.TRUE.,'soil',.TRUE.)
-    end if
-
+!    if (cable_user%gw_model) then
+!       CALL write_ovar (ncid_restart,hys(1),'wb_hys',REAL(ssnow%wb_hys,4), &
+!            (/0.0,1.0/),.TRUE.,'soil',.TRUE.)
+!       CALL write_ovar (ncid_restart,hys(2),'smp_hys',REAL(ssnow%smp_hys,4), &
+!            (/-1.0e10,1.0e10/),.TRUE.,'soil',.TRUE.)
+!       CALL write_ovar (ncid_restart,hys(3),'ssat_hys',REAL(ssnow%ssat_hys,4), &
+!            (/0.0,1.0/),.TRUE.,'soil',.TRUE.)
+!       CALL write_ovar (ncid_restart,hys(4),'watr_hys',REAL(ssnow%watr_hys,4), &
+!            (/0.0,1.0/),.TRUE.,'soil',.TRUE.)
+!       CALL write_ovar (ncid_restart,hys(5),'watr_hys',REAL(ssnow%hys_fac,4), &
+!            (/0.0,1.0/),.TRUE.,'soil',.TRUE.)
+!    end if
+!
     ! Close restart file
     ok = NF90_CLOSE(ncid_restart)
 
