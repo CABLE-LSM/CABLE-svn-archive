@@ -1,12 +1,13 @@
-SUBROUTINE BLAZE_DRIVER ( BLAZEFLAG, NCELLS, casapool, casaflux, lat, lon, shootfrac, ddvp09, ddvp15, ddprec, &
-     ddTmin, ddTmax, ddwind,AvgAnnMaxFAPAR, modis_igbp, AvgAnnRainf, idoy, curyear, FLI, DFLI, FFDI, AB, &
-     POPFLAG, CTLFLAG, BLAZEFLX, POP_TO, POP_CWD,POP_STR, IAC, popd, mnest, BLAZE_FSTEP &
+SUBROUTINE BLAZE_DRIVER ( casapool, casaflux, shootfrac, ddvp09, ddvp15, ddprec, ddTmin, ddTmax, ddwind, idoy, curyear, CTLFLAG, BLAZEFLX, POP_TO, POP_CWD,POP_STR, IAC, popd, mnest, BLAZE_FSTEP &
      , AGL_wo1,AGL_wo2,AGL_wo3 )
+!CLNSUBROUTINE BLAZE_DRIVER ( casapool, casaflux, lat, lon, shootfrac, ddvp09, ddvp15, ddprec, &
+!CLN     ddTmin, ddTmax, ddwind,AvgAnnMaxFAPAR, modis_igbp, AvgAnnRainf, idoy, curyear, FLI, DFLI, FFDI, AB, &
+!CLN     POPFLAG, CTLFLAG, BLAZEFLX, POP_TO, POP_CWD,POP_STR, IAC, popd, mnest, BLAZE_FSTEP &
+!CLN     , AGL_wo1,AGL_wo2,AGL_wo3 )
 
   USE commonutils,         ONLY: IS_LEAPYEAR, DOYSOD2MDHMS
   USE casavariable,        ONLY: casa_pool, casa_flux
-  USE POP_TYPES,           ONLY: POP_TYPE
-  USE BLAZE_MODULE,        ONLY: RUN_BLAZE, TYPE_TURNOVER, BLAZE_TURNOVER, NTO, &
+  USE BLAZE,               ONLY: RUN_BLAZE, TYPE_TURNOVER, BLAZE_TURNOVER, NTO, &
        METB, STR, CWD, LEAF, WOOD, FROOT, TYPE_BLAZE
   USE SIMFIRE_MOD,         ONLY: TYPE_SIMFIRE
   USE UTILS,               ONLY: Esatf
@@ -21,7 +22,7 @@ SUBROUTINE BLAZE_DRIVER ( BLAZEFLAG, NCELLS, casapool, casaflux, lat, lon, shoot
   TYPE (casa_pool), INTENT(INOUT)      :: casapool
   REAL,DIMENSION(NCELLS,3),INTENT(OUT) :: IAC
   TYPE (casa_flux), INTENT(IN)         :: casaflux
-  INTEGER,          INTENT(IN)         :: NCELLS,idoy, CurYear, BLAZEFLAG, POPFLAG, CTLFLAG
+  INTEGER,          INTENT(IN)         :: NCELLS,idoy, CurYear, POPFLAG, CTLFLAG
   REAL,DIMENSION(NCELLS),INTENT(IN)    :: ddvp09, ddvp15, ddprec, shootfrac
   REAL,DIMENSION(NCELLS),INTENT(IN)    :: ddTmin, ddTmax, ddwind, lon, lat
   REAL,DIMENSION(NCELLS),INTENT(IN)    :: POP_TO, POP_CWD, POP_STR
@@ -31,7 +32,7 @@ SUBROUTINE BLAZE_DRIVER ( BLAZEFLAG, NCELLS, casapool, casaflux, lat, lon, shoot
 !CLN  REAL,DIMENSION(NCELLS,3),OPTIONAL :: IAC
 !CLN  TYPE (POP_TYPE), OPTIONAL         :: pop
 
-  TYPE(TYPE_TURNOVER) ,ALLOCATABLE,SAVE   :: TO(:,:)
+  TYPE(TYPE_TURNOVER)   ,ALLOCATABLE,SAVE :: TO(:,:)
   REAL,   DIMENSION(:,:),ALLOCATABLE,SAVE :: AGL_w, AGL_g      ! Above-Ground Carbon
   REAL,   DIMENSION(:,:),ALLOCATABLE,SAVE :: BGL_w, BGL_g      ! Below-Ground Carbon
   REAL,   DIMENSION(NCELLS) :: AGL_wo1,AGL_wo2,AGL_wo3
@@ -41,12 +42,11 @@ SUBROUTINE BLAZE_DRIVER ( BLAZEFLAG, NCELLS, casapool, casaflux, lat, lon, shoot
   REAL,   DIMENSION(NCELLS) :: AB, relhum, U10, FLI, DFLI, FFDI, popd, mnest
   REAL,   DIMENSION(NCELLS) :: AvgAnnMaxFAPAR, AvgAnnRainf, ag_lit, tot_lit
 
-  INTEGER                   :: MM, DD, i, np
-  REAL                      :: TSTP, C_CHKSUM
-  REAL                      :: CPLANT_g (ncells,3),CPLANT_w (ncells,3)
-  REAL                      :: CLITTER_g(ncells,3),CLITTER_w(ncells,3)
-  LOGICAL                   :: EOY
-  INTEGER, SAVE :: BURNMODE = -1
+  INTEGER       :: MM, DD, i, np
+  REAL          :: TSTP, C_CHKSUM
+  REAL          :: CPLANT_g (ncells,3),CPLANT_w (ncells,3)
+  REAL          :: CLITTER_g(ncells,3),CLITTER_w(ncells,3)
+  LOGICAL       :: EOY
   LOGICAL, SAVE :: CALL1 = .TRUE.
   LOGICAL, SAVE :: YEAR1 = .TRUE.
 
@@ -61,27 +61,9 @@ SUBROUTINE BLAZE_DRIVER ( BLAZEFLAG, NCELLS, casapool, casaflux, lat, lon, shoot
  
   IF ( BURNMODE .EQ. 0 ) RETURN
 
-  IF ( CALL1 ) THEN
-     ALLOCATE( TO(NCELLS,NTO) )
-     ! CHECK SETTINGS FOR BLAZE (BLAZEFLAG)
-     ! 0th bit: off | on
-     ! 1st bit: FLI-only     | Full-BLAZE
-     ! 2nd bit: Ignition: other GFED | SIMFIRE [more possible] set in 
-     IF ( .NOT. BTEST( BLAZEFLAG, 0 ) ) THEN
-        BURNMODE = 0
-        WRITE(*,*)"BLAZE is OFF!"
-     ELSE
-        SELECT CASE( BTEST( BLAZEFLAG, 1) )
-        CASE (.TRUE. ); BURNMODE = 1    ! Full. All Fluxes copmuted by BLAZE
-        CASE (.FALSE.); BURNMODE = 2    ! POP-MODE, FLI generated, Fluxes according to POP
-        END SELECT
-        IF ( POPFLAG .NE. 0 .EQV. BURNMODE .EQ. 1 ) &
-             STOP "BLAZE and POP modi not compatible !"
-     END IF
-  ENDIF
-
   BLAZEFLX = 0.
 
+  !CLN ???
   t1 = tile_index(:,1)
   t2 = tile_index(:,2)
 
@@ -90,9 +72,9 @@ SUBROUTINE BLAZE_DRIVER ( BLAZEFLAG, NCELLS, casapool, casaflux, lat, lon, shoot
   CLITTER_g = REAL(casapool%clitter(t1,:))
   CLITTER_w = REAL(casapool%clitter(t2,:))
 
-! CLN needs to be altered for beginning of spinup only!!!
+  ! CLN needs to be altered for beginning of spinup only!!!
   
-  IF ( CALL1 ) THEN
+  IF ( CALL1 .AND. ) THEN
      ALLOCATE( AGL_g(NCELLS,NPOOLS),AGL_w(NCELLS,NPOOLS) )
      ALLOCATE( BGL_g(NCELLS,NPOOLS),BGL_w(NCELLS,NPOOLS) )
      ! Initialise above / below-ground partitioning by using fluxes
@@ -198,7 +180,7 @@ SUBROUTINE BLAZE_DRIVER ( BLAZEFLAG, NCELLS, casapool, casaflux, lat, lon, shoot
              MIN(1.,ddvp15(i) / Esatf(ddTmax(i)))) * 100.        ! [%]
      END DO
 
-     CALL RUN_BLAZE( BLAZEFLAG, NCELLS, lat, lon, shootfrac,CPLANT_g, CPLANT_w, AGL_g, AGL_w, &
+     CALL RUN_BLAZE( NCELLS, lat, lon, shootfrac,CPLANT_g, CPLANT_w, AGL_g, AGL_w, &
           BGL_g, BGL_w, ddprec, ddTMIN, ddTMAX, relhum, U10,AvgAnnMaxFAPAR, &
           modis_igbp, AvgAnnRainf, AB, FLI, DFLI, FFDI, TO, tstp, CurYear, idoy, 1, &
           POPFLAG, popd, mnest,BLAZE_FSTEP )

@@ -7404,47 +7404,42 @@ SUBROUTINE worker_spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapoo
      !call read_casa_dump( ncfile,casamet, casaflux, phen,climate, ktau ,kend,.TRUE. )
    
 
-     do idoy=1,mdyear
-        ktau=(idoy-1)*ktauday +1
-         CALL MPI_Recv (MPI_BOTTOM, 1, casa_dump_t, 0, idoy, icomm, stat, ierr) 
-            CALL biogeochem(ktau,dels,idoy,LALLOC,veg,soil,casabiome,casapool,casaflux, &
-             casamet,casabal,phen,POP,climate,xnplimit,xkNlimiting,xklitter, &
-             xksoil,xkleaf,xkleafcold,xkleafdry,&
-             cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,         &
-             nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,         &
-             pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
-
-
-            !! CLN BLAZE here
-
-            
-        IF (cable_user%CALL_POP .and. POP%np.gt.0) THEN ! CALL_POP
+  do idoy=1,mdyear
+     ktau=(idoy-1)*ktauday +1
+     CALL MPI_Recv (MPI_BOTTOM, 1, casa_dump_t, 0, idoy, icomm, stat, ierr) 
+     CALL biogeochem(ktau,dels,idoy,LALLOC,veg,soil,casabiome,casapool,casaflux, &
+          casamet,casabal,phen,POP,climate,xnplimit,xkNlimiting,xklitter, &
+          xksoil,xkleaf,xkleafcold,xkleafdry,&
+          cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,         &
+          nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,         &
+          pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
+     
+     
+     IF (cable_user%CALL_POP .and. POP%np.gt.0) THEN ! CALL_POP
 !!$           ! accumulate annual variables for use in POP
-           IF(MOD(ktau/ktauday,LOY)==1 ) THEN
-              casaflux%stemnpp =  casaflux%cnpp * casaflux%fracCalloc(:,2) * 0.7 ! (assumes 70% of wood NPP is allocated above ground)
-              casabal%LAImax = casamet%glai
-              casabal%Cleafmean = casapool%cplant(:,1)/real(LOY)/1000.
-              casabal%Crootmean = casapool%cplant(:,3)/real(LOY)/1000.
-           ELSE
-              casaflux%stemnpp = casaflux%stemnpp + casaflux%cnpp * casaflux%fracCalloc(:,2) * 0.7
-              casabal%LAImax = max(casamet%glai, casabal%LAImax)
-              casabal%Cleafmean = casabal%Cleafmean + casapool%cplant(:,1)/real(LOY)/1000.
-              casabal%Crootmean = casabal%Crootmean + casapool%cplant(:,3)/real(LOY)/1000.
-           ENDIF
- 
-           IF(idoy==mdyear) THEN ! end of year
+        IF(MOD(ktau/ktauday,LOY)==1 ) THEN
+           casaflux%stemnpp =  casaflux%cnpp * casaflux%fracCalloc(:,2) * 0.7 ! (assumes 70% of wood NPP is allocated above ground)
+           casabal%LAImax = casamet%glai
+           casabal%Cleafmean = casapool%cplant(:,1)/real(LOY)/1000.
+           casabal%Crootmean = casapool%cplant(:,3)/real(LOY)/1000.
+        ELSE
+           casaflux%stemnpp = casaflux%stemnpp + casaflux%cnpp * casaflux%fracCalloc(:,2) * 0.7
+           casabal%LAImax = max(casamet%glai, casabal%LAImax)
+           casabal%Cleafmean = casabal%Cleafmean + casapool%cplant(:,1)/real(LOY)/1000.
+           casabal%Crootmean = casabal%Crootmean + casapool%cplant(:,3)/real(LOY)/1000.
+        ENDIF
+        
+        IF(idoy==mdyear) THEN ! end of year
 
 
               CALL POPdriver(casaflux,casabal,veg, POP)
-
-              !! CLN BLAZE TURNOVER
 
            ENDIF  ! end of year
         ELSE
            casaflux%stemnpp = 0.
         ENDIF ! CALL_POP
 
-
+        CALL BLAZE_DRIVER(...)
 
        ! WHERE(xkNlimiting .eq. 0)  !Chris Lu 4/June/2012
        !    xkNlimiting = 0.001
@@ -7567,6 +7562,8 @@ SUBROUTINE worker_spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapoo
                 pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
 
            !! CLN BLAZE here
+           blaze_spin_year = 1900 - myearspin + nyear
+           CALL BLAZE_DRIVER(casapool,casaflux,shootfrac, met..., idoy,blaze_spin_year, DO_BLAZE_TO
 
            IF (cable_user%CALL_POP .and. POP%np.gt.0) THEN ! CALL_POP
 
@@ -7590,6 +7587,8 @@ SUBROUTINE worker_spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapoo
                  
                  CALL POPdriver(casaflux,casabal,veg, POP)
                  
+                 CALL BLAZE_DRIVER(casapool,casaflux,shootfrac, met..., idoy,blaze_spin_year, DO_POP_TO
+
                  !! CLN BLAZE TURNOVER
                  
               ENDIF  ! end of year

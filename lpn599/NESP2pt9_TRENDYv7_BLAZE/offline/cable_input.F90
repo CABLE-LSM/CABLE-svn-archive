@@ -2371,7 +2371,7 @@ END SUBROUTINE close_met_file
 SUBROUTINE load_parameters(met,air,ssnow,veg,climate,bgc,soil,canopy,rough,rad,        &
        sum_flux,bal,logn,vegparmnew,casabiome,casapool,    &
        casaflux,sum_casapool, sum_casaflux,casamet,casabal,phen,POP,spinup,EMSOIL, &
-       TFRZ, LUC_EXPT, POPLUC)
+       TFRZ, LUC_EXPT, POPLUC, BLAZE, SIMFIRE)
    ! Input variables not listed:
    !   filename%type  - via cable_IO_vars_module
    !   exists%type    - via cable_IO_vars_module
@@ -2381,9 +2381,11 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,climate,bgc,soil,canopy,rough,rad, 
    !   landpt%type    - via cable_IO_vars_module (nap,cstart,cend,ilon,ilat)
    !   max_vegpatches - via cable_IO_vars_module
 !! vh_js !!
-   USE POPmodule, ONLY: POP_INIT
-   USE POPLUC_module, ONLY: POPLUC_INIT 
+   USE POPmodule,      ONLY: POP_INIT
+   USE POPLUC_module,  ONLY: POPLUC_INIT 
    USE CABLE_LUC_EXPT, ONLY: LUC_EXPT_TYPE
+   USE BLAZE,          ONLY: TYPE_BLAZE
+   USE SIMFIRE_MOD,    ONLY: TYPE_SIMFIRE
 
    IMPLICIT NONE
 
@@ -2392,7 +2394,7 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,climate,bgc,soil,canopy,rough,rad, 
    TYPE (air_type), INTENT(INOUT)          :: air
    TYPE (soil_snow_type), INTENT(OUT)      :: ssnow
    TYPE (veg_parameter_type), INTENT(OUT)  :: veg
-   TYPE (climate_type), INTENT(INOUT)          :: climate
+   TYPE (climate_type), INTENT(INOUT)      :: climate
    TYPE (bgc_pool_type), INTENT(OUT)       :: bgc
    TYPE (soil_parameter_type), INTENT(OUT) :: soil
    TYPE (canopy_type), INTENT(OUT)         :: canopy
@@ -2409,8 +2411,10 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,climate,bgc,soil,canopy,rough,rad, 
    TYPE (casa_balance), INTENT(OUT)        :: casabal
    TYPE(phen_variable), INTENT(OUT)        :: phen
    TYPE( POP_TYPE ), INTENT(INOUT)         :: POP
-   TYPE( POPLUC_TYPE ), INTENT(INOUT)         :: POPLUC
-   TYPE (LUC_EXPT_TYPE), INTENT(INOUT) :: LUC_EXPT
+   TYPE( POPLUC_TYPE ), INTENT(INOUT)      :: POPLUC
+   TYPE (LUC_EXPT_TYPE), INTENT(INOUT)     :: LUC_EXPT
+   TYPE (TYPE_BLAZE), INTENT(INOUT)        :: BLAZE
+   TYPE (TYPE_SIMFIRE), INTENT(INOUT)      :: SIMFIRE
    INTEGER,INTENT(IN)                      :: logn     ! log file unit number
    LOGICAL,INTENT(IN)                      :: &
          vegparmnew, &  ! are we using the new format?
@@ -2516,26 +2520,23 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,climate,bgc,soil,canopy,rough,rad, 
 
       ! CLN ALLOCATE BLAZE Arrays 
       IF ( cable_user%CALL_BLAZE ) THEN
-         IF ( cable_user%CALL_POP ) THEN
-            CALL INI_BLAZE ( cable_user%CALL_POP, cable_user%BURNT_AREA, &
-                 cable_user%BLAZE_TSTEP, mland, 1, BLAZE)
-            !CLN CALL INI_BLAZE ( cable_user%CALL_POP, cable_user%BURNT_AREA, &
-            !CLN     cable_user%BLAZE_TSTEP, mland, npatch, BLAZE)
-            PRINT*,"CLN cable_input.F90 npatches must go into this call!"
-         ELSE
-            CALL INI_BLAZE ( cable_user%CALL_POP, cable_user%BURNT_AREA, &
-                 cable_user%BLAZE_TSTEP, mland, 1, BLAZE)
-         END IF
-
+         CALL INI_BLAZE ( cable_user%CALL_POP, cable_user%BURNT_AREA, &
+                 cable_user%BLAZE_TSTEP, mland, BLAZE )
          IF ( .NOT. spinup) CALL READ_BLAZE_RESTART(...)
 
          IF ( TRIM(BLAZE%BURNT_AREA) == "SIMFIRE" ) THEN
-            CALL INI_SIMFIRE(mland,1,cable_user%SIMFIRE_REGION,SF) !CLN here we need to check for the SIMFIRE biome setting
-            IF ( .NOT. spinup) CALL READ_SIMFIRE_RESTART(...)
+            CALL INI_SIMFIRE(mland,cable_user%SIMFIRE_REGION,SF) !CLN here we need to check for the SIMFIRE biome setting
+            
+            IF ( spinup ) THEN
+               !get_biomes
+            ELSE
+               CALL READ_SIMFIRE_RESTART(...)
+            END IF
          END IF
 
          ! CLN enter gfed & PRESCRIBED here
          
+         IF ( BLAZE%ERR ) RETURN            
          ! Read restart values
    ENDIF
 

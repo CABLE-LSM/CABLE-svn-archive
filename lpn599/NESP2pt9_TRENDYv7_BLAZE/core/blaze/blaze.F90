@@ -11,7 +11,7 @@ TYPE TYPE_BLAZE
    INTEGER                              :: BURNMODE ! 1=BLAZE only, 2=BLAZE with POP
    INTEGER                              :: IGNITION ! 0=GFED3, 1=SIMFIRE
    REAL                                 :: FT,tstp
-   LOGICAL                              :: USE_POP = .FALSE.
+   LOGICAL                              :: USE_POP = .FALSE., ERR=.FALSE.
    CHARACTER                            :: GFEDP*80, FSTEP*7
    CHARACTER                            :: OUTMODE = "std" ! "full" for diagnostical purposes
 END TYPE TYPE_BLAZE
@@ -41,6 +41,10 @@ INTEGER, PARAMETER :: T_AVG   = 5
 REAL,    PARAMETER :: fbranch = 0.05 ! fraction of CPLANT_w(wood) attributed to branches
 REAL,    PARAMETER :: fbark   = 0.01 ! fraction of CPLANT_w(wood) attributed to bark
 
+! Controlflag to determine whether full blaze or blaze/POP turn-overs used
+INTEGER, PARAMETER :: DO_BLAZE_TO = 1
+INTEGER, PARAMETER :: DO_POP_TO   = -1
+
 !CLN !WRONG VARNAME! REAL, DIMENSION(5),PARAMETER :: SF = (/ 50.,50.,30.,20.,15./) !Euc*2, pinus123
 
 ! Turn Over Factors Suravski et al. 2012
@@ -65,13 +69,15 @@ REAL, PARAMETER :: MIN_FUEL = 120. ! Min fuel to spark a fire [g(C)/m2]
 
 CONTAINS
 
-SUBROUTINE INI_BLAZE (POPFLAG, BURNT_AREA_SOURCE, TSTEP, np, npatch, BLAZE)
+SUBROUTINE INI_BLAZE (POPFLAG, BURNT_AREA_SOURCE, TSTEP, np, BLAZE)
+
+  !! Called from cable_input now
 
   IMPLICIT NONE
   
   LOGICAL         , INTENT(IN)    :: POPFLAG
   CHARACTER(LEN=*), INTENT(IN)    :: BURNT_AREA_SOURCE, TSTEP
-  INTEGER         , INTENT(IN)    :: np, npatch
+  INTEGER         , INTENT(IN)    :: np
   TYPE(TYPE_BLAZE), INTENT(INOUT) :: BLAZE
 
   ! READ ini-nml
@@ -102,7 +108,7 @@ SUBROUTINE INI_BLAZE (POPFLAG, BURNT_AREA_SOURCE, TSTEP, np, npatch, BLAZE)
   ALLOCATE ( BLAZE%w       ( np ) )
   ALLOCATE ( BLAZE%TO      ( np, NTO ) )
   ALLOCATE ( BLAZE%AnnRainf( np, 366 ) )
-  ALLOCATE ( BLAZE%DEADWOOD( np, npatch) ) ! CLN not sure if that's correct here
+  ALLOCATE ( BLAZE%DEADWOOD( np ) ) 
 
   ! SETTINGS FOR BLAZE (BLAZEFLAG)
   ! bit value:               0            | 1
@@ -117,23 +123,24 @@ SUBROUTINE INI_BLAZE (POPFLAG, BURNT_AREA_SOURCE, TSTEP, np, npatch, BLAZE)
   IF ( POPFLAG ) THEN
      BLAZE%BURNMODE = 2    ! POP-MODE, FLI generated, Fluxes according to POP
      WRITE(*,*) " BLAZE: POP-MODE (FLI and POP related fluxes)"
+     PRINT*,"CLN request tstep = 1yr here!"
   ELSE
      BLAZE%BURNMODE = 1    ! Full. All Fluxes copmuted by BLAZE
      WRITE(*,*) " BLAZE: Full Mode"
   END IF
-  IF ( TRIM(BURNT_AREA_SOURCE) == "GFED3.1" ) THEN
-     BLAZE%IGNITION = 0    
-     WRITE(*,*) " Burnt-area source: GFED3.1"
-  ELSE IF ( TRIM(BURNT_AREA_SOURCE) == "SIMFIRE" ) THEN
+  IF ( TRIM(BURNT_AREA_SOURCE) == "SIMFIRE" ) THEN
      BLAZE%IGNITION = 1    
-     WRITE(*,*) " Burnt-area source: SIMFIRE"
   ELSE IF ( TRIM(BURNT_AREA_SOURCE) == "PRESCRIBED" )
      BLAZE%IGNITION = 2    
-     WRITE(*,*) " Burnt-area source: PRESCRIBED"
+  ELSE IF ( TRIM(BURNT_AREA_SOURCE) == "GFED3.1" ) THEN
+     BLAZE%IGNITION = 3    
   ELSE 
-     WRITE(*,*) " Invalid cable_user%BURNT_AREA : ",TRIM(BURNT_AREA_SOURCE)
-     STOP
+     WRITE(*,*) " ERROR: Invalid cable_user%BURNT_AREA : ",TRIM(BURNT_AREA_SOURCE)
+!!!CLN hier MPI-tauglichen abbruch!!!
+     BLAZE%ERR = .TRUE.
+     RETURN
   END IF
+  WRITE(*,*) " Burnt-area source: ", TRIM(BURNT_AREA_SOURCE)
 
   BLAZE%DSLR      = 0
   BLAZE%RAINF     = 0.
@@ -626,7 +633,7 @@ SUBROUTINE COMBUST (BLAZE, np, CPLANT_g, CPLANT_w, AGL_g, AGL_w, DEADWOOD, TO, B
 END SUBROUTINE COMBUST
 
 
-SUBROUTINE RUN_BLAZE(BLAZEFLAG, ncells, LAT, LON, shootfrac,CPLANT_g, CPLANT_w, AGL_g, AGL_w, &
+SUBROUTINE RUN_BLAZE(ncells, LAT, LON, shootfrac,CPLANT_g, CPLANT_w, AGL_g, AGL_w, &
      BGL_g, BGL_w, RAINF, TMIN, TMAX, RH, U10,AvgAnnMaxFAPAR, modis_igbp, &
      AvgAnnRainf, AB, FLI, DFLI, FFDI, TO, tstp, YYYY, doy, npatch, POPFLAG,popd,mnest,BLAZE_FSTEP ) !, CTRL)
 
@@ -635,7 +642,7 @@ SUBROUTINE RUN_BLAZE(BLAZEFLAG, ncells, LAT, LON, shootfrac,CPLANT_g, CPLANT_w, 
 
   IMPLICIT NONE
 
-  INTEGER, INTENT(IN) :: BLAZEFLAG, POPFLAG
+  INTEGER, INTENT(IN) :: POPFLAG
 
   TYPE(TYPE_BLAZE)  ,SAVE  :: BLAZE
   TYPE(TYPE_SIMFIRE),SAVE  :: SF
@@ -683,27 +690,29 @@ SUBROUTINE RUN_BLAZE(BLAZEFLAG, ncells, LAT, LON, shootfrac,CPLANT_g, CPLANT_w, 
   DD = BLAZE%DAY
   MM = BLAZE%MONTH
 
-  IF ( BCALL1 ) THEN 
-     ALLOCATE( TOsav(NCELLS,NTO), FLIsav(NCELLS) )
-     CALL INI_BLAZE( BLAZEFLAG, BLAZE, ncells, npatch)
-     BLAZE%tstp = tstp
+!!CLN Go to init part
 
-     BLAZE%LAT = LAT
-     BLAZE%LON = LON
-
-     ! SET STARTING VALS ON AnnRainf (avg. 1990 - 2012)
-     DO i = 1, ncells
-        BLAZE%AnnRAINF(i,1:365) = AvgAnnRainf(i)/ 365.25
-        BLAZE%AnnRAINF(i,366)   = AvgAnnRainf(i)/(365.25*4.)
-     END DO
-
-!CLN     IF ( BLAZE%IGNITION .EQ. 1 ) THEN
-     CALL INI_SIMFIRE( NCELLS, SF, modis_igbp, LAT, LON )
-     SF%FAPAR = AvgAnnMaxFAPAR
-     IF ( BLAZE%IGNITION .EQ. 1 ) BLAZE%FSTEP = "annual"
-
-     BCALL1 = .FALSE.
-  END IF
+!!CLN  IF ( BCALL1 ) THEN 
+!!CLN     ALLOCATE( TOsav(NCELLS,NTO), FLIsav(NCELLS) )
+!!CLN     CALL INI_BLAZE( BLAZE, ncells, npatch)
+!!CLN     BLAZE%tstp = tstp
+!!CLN
+!!CLN     BLAZE%LAT = LAT
+!!CLN     BLAZE%LON = LON
+!!CLN
+!!CLN     ! SET STARTING VALS ON AnnRainf (avg. 1990 - 2012)
+!!CLN     DO i = 1, ncells
+!!CLN        BLAZE%AnnRAINF(i,1:365) = AvgAnnRainf(i)/ 365.25
+!!CLN        BLAZE%AnnRAINF(i,366)   = AvgAnnRainf(i)/(365.25*4.)
+!!CLN     END DO
+!!CLN
+!!CLN!CLN     IF ( BLAZE%IGNITION .EQ. 1 ) THEN
+!!CLN     CALL INI_SIMFIRE( NCELLS, SF, modis_igbp, LAT, LON )
+!!CLN     SF%FAPAR = AvgAnnMaxFAPAR
+!!CLN     IF ( BLAZE%IGNITION .EQ. 1 ) BLAZE%FSTEP = "annual"
+!!CLN
+!!CLN     BCALL1 = .FALSE.
+!!CLN  END IF
 
   IF ( DD .EQ. 1 ) BLAZE%FLI(:) = 0.
 
