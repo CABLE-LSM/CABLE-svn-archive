@@ -7439,7 +7439,7 @@ SUBROUTINE worker_spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapoo
            casaflux%stemnpp = 0.
         ENDIF ! CALL_POP
 
-        CALL BLAZE_DRIVER(...)
+       !CLN CALL BLAZE_DRIVER(...)
 
        ! WHERE(xkNlimiting .eq. 0)  !Chris Lu 4/June/2012
        !    xkNlimiting = 0.001

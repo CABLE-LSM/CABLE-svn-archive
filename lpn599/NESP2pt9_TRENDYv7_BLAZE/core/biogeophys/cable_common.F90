@@ -124,9 +124,12 @@ MODULE cable_common_module
           YEARSTART           = 0, &
           YEAREND             = 0, &
           CASA_NREP           = 1
-     CHARACTER :: &
-          BURNT_AREA(len=7)   ="SIMFIRE" &
-          BLAZE_TSTEP(len=8)  = "DAILY"
+     CHARACTER(len=7) :: &
+          BURNT_AREA          = "SIMFIRE" ! either SIMFIRE or GFED31
+     CHARACTER(len=8) :: &
+          BLAZE_TSTEP         = "DAILY"   ! either DAILY, MONTHLY, ANNUALLY
+     CHARACTER(len=6) :: &
+          SIMFIRE_REGION      = "GLOBAL"  ! either GLOBAL, EUROPE, ANZ
      
     !--- LN ------------------------------------------]
 

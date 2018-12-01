@@ -131,6 +131,7 @@ MODULE cable_mpimaster
   
   ! MPI derived datatype handles for Sending/receiving vals results for SIMFIRE
   INTEGER, ALLOCATABLE, DIMENSION(:) :: simfire_inp_ts
+  INTEGER, ALLOCATABLE, DIMENSION(:) :: simfire_out_ts
   INTEGER, ALLOCATABLE, DIMENSION(:) :: simfire_recv_ts
   INTEGER, ALLOCATABLE, DIMENSION(:) :: simfire_restart_ts
     
@@ -202,8 +203,8 @@ CONTAINS
          READ_LUC_RESTART_NC, alloc_popluc
     
     ! BLAZE Fire Model 
-    USE SIMFIRE_MOD,          ONLY: SF
-    USE BLAZE,                ONLY: BLAZE
+    USE BLAZE,                ONLY: TYPE_BLAZE
+    USE SIMFIRE_MOD,          ONLY: TYPE_SIMFIRE
 
     ! PLUME-MIP only
     USE CABLE_PLUME_MIP,      ONLY: PLUME_MIP_TYPE, PLUME_MIP_GET_MET,&
@@ -273,13 +274,17 @@ CONTAINS
     TYPE (casa_balance)   :: casabal
     TYPE (phen_variable)  :: phen
     TYPE (POP_TYPE)       :: POP
-    TYPE(POPLUC_TYPE) :: POPLUC
-    TYPE (LUC_EXPT_TYPE) :: LUC_EXPT
+    TYPE (POPLUC_TYPE)    :: POPLUC
+    TYPE (LUC_EXPT_TYPE)  :: LUC_EXPT
     TYPE (PLUME_MIP_TYPE) :: PLUME
     TYPE (CRU_TYPE)       :: CRU
     CHARACTER             :: cyear*4
     CHARACTER             :: ncfile*99
 
+    ! BLAZE variables
+    TYPE (TYPE_BLAZE)    :: BLAZET
+    TYPE (TYPE_SIMFIRE)  :: SIMFIRE
+    
     ! declare vars for switches (default .FALSE.) etc declared thru namelist
     LOGICAL, SAVE           :: &
          vegparmnew    = .FALSE., & ! using new format input file (BP dec 2007)
@@ -614,10 +619,10 @@ CONTAINS
                   bal, logn, vegparmnew, casabiome, casapool,		 &
                   casaflux, sum_casapool, sum_casaflux, &
                   casamet, casabal, phen, POP, spinup,	       &
-                  C%EMSOIL, C%TFRZ, LUC_EXPT, POPLUC, BLAZE, SIMFIRE )
+                  C%EMSOIL, C%TFRZ, LUC_EXPT, POPLUC, BLAZET, SIMFIRE )
 
              ! Abort, if an error occurred during BLAZE/SIMFIRE init
-             IF ( BLAZE%ERR ) CALL MPI_Abort(comm,0,ierr)
+             IF ( BLAZET%ERR ) CALL MPI_Abort(comm,0,ierr)
              
              IF (CABLE_USER%POPLUC .AND. TRIM(CABLE_USER%POPLUC_RunType) .EQ. 'static') &
                   CABLE_USER%POPLUC= .FALSE.
@@ -638,7 +643,7 @@ CONTAINS
 
 
              !! CLN BLAZE
-             IF ( cable_user%CALL_BLAZE ) &
+             !! IF ( cable_user%CALL_BLAZE ) &
                   
 
              IF (.NOT.spinup)	spinConv=.TRUE.
@@ -700,14 +705,14 @@ CONTAINS
                 ! Fire init and 
                 IF ( CABLE_USER%CALL_BLAZE ) THEN
                    !CREATE handles for restart-data 
-                   CALL master_blaze_types(comm, wland, mp, BLAZE, blaze_restart_ts, blaze_out_ts)
+                   CALL master_blaze_types(comm, wland, mp, BLAZET, blaze_restart_ts, blaze_out_ts)
                    IF ( .NOT. spinup ) &
-                        CALL master_send_input(icomm, blaze_restart_ts)
-                   IF ( TRIM(cable_user%ignition) == "SIMFIRE" ) THEN
-                      CALL master_simfire_types(comm, wland, mp, SF, &
+                        CALL master_send_input(icomm, blaze_restart_ts, ktau)
+                   IF ( TRIM(cable_user%BURNT_AREA) == "SIMFIRE" ) THEN
+                      CALL master_simfire_types(comm, wland, mp, SIMFIRE, &
                            simfire_restart_ts, simfire_inp_ts,simfire_out_ts)
                       IF ( .NOT. spinup ) &
-                           CALL master_send_input(icomm,simfire_restart_ts)
+                           CALL master_send_input(icomm,simfire_restart_ts, ktau)
                    END IF
                 END IF
                 

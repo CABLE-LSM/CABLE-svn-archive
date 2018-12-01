@@ -55,6 +55,7 @@ MODULE cable_input_module
    USE netcdf                   ! link must be made in cd to netcdf-x.x.x/src/f90/netcdf.mod
    USE cable_common_module,     ONLY : filename, cable_user, CurYear, HANDLE_ERR, is_leapyear
    USE BLAZE,                   ONLY: TYPE_BLAZE
+   USE SIMFIRE_MOD,             ONLY: TYPE_SIMFIRE
    
    IMPLICIT NONE
 
@@ -2383,8 +2384,6 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,climate,bgc,soil,canopy,rough,rad, 
    USE POPmodule,      ONLY: POP_INIT
    USE POPLUC_module,  ONLY: POPLUC_INIT 
    USE CABLE_LUC_EXPT, ONLY: LUC_EXPT_TYPE
-   USE BLAZE,          ONLY: TYPE_BLAZE
-   USE SIMFIRE_MOD,    ONLY: TYPE_SIMFIRE
 
    IMPLICIT NONE
 
@@ -2523,8 +2522,8 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,climate,bgc,soil,canopy,rough,rad, 
                  cable_user%BLAZE_TSTEP, mland, BLAZE )
          !CLNIF ( .NOT. spinup) CALL READ_BLAZE_RESTART(...)
 
-         IF ( TRIM(BLAZE%BURNT_AREA) == "SIMFIRE" ) THEN
-            CALL INI_SIMFIRE(mland,cable_user%SIMFIRE_REGION,SF) !CLN here we need to check for the SIMFIRE biome setting
+         IF ( TRIM(cable_user%BURNT_AREA) == "SIMFIRE" ) THEN
+            CALL INI_SIMFIRE(mland,cable_user%SIMFIRE_REGION,SIMFIRE) !CLN here we need to check for the SIMFIRE biome setting
             
             IF ( spinup ) THEN
                !CLN get_biomes
@@ -2537,6 +2536,7 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,climate,bgc,soil,canopy,rough,rad, 
          
          IF ( BLAZE%ERR ) RETURN            
          ! Read restart values
+      ENDIF
    ENDIF
 
 ! removed get_default_inits and get_default_lai as they are already done
