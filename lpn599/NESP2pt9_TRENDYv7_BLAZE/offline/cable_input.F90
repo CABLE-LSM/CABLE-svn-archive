@@ -2522,7 +2522,7 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,climate,bgc,soil,canopy,rough,rad, 
       IF ( cable_user%CALL_BLAZE ) THEN
          CALL INI_BLAZE ( cable_user%CALL_POP, cable_user%BURNT_AREA, &
                  cable_user%BLAZE_TSTEP, mland, BLAZE )
-         IF ( .NOT. spinup) CALL READ_BLAZE_RESTART(...)
+         !CLNIF ( .NOT. spinup) CALL READ_BLAZE_RESTART(...)
 
          IF ( TRIM(BLAZE%BURNT_AREA) == "SIMFIRE" ) THEN
             CALL INI_SIMFIRE(mland,cable_user%SIMFIRE_REGION,SF) !CLN here we need to check for the SIMFIRE biome setting

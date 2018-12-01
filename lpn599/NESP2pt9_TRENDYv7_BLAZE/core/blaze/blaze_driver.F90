@@ -5,7 +5,7 @@ SUBROUTINE BLAZE_DRIVER ( casapool, casaflux, shootfrac, ddvp09, ddvp15, ddprec,
 !CLN     POPFLAG, CTLFLAG, BLAZEFLX, POP_TO, POP_CWD,POP_STR, IAC, popd, mnest, BLAZE_FSTEP &
 !CLN     , AGL_wo1,AGL_wo2,AGL_wo3 )
 
-  USE commonutils,         ONLY: IS_LEAPYEAR, DOYSOD2MDHMS
+  USE CABLE_COMMON_MODULE, ONLY: IS_LEAPYEAR, DOYSOD2MDHMS
   USE casavariable,        ONLY: casa_pool, casa_flux
   USE BLAZE,               ONLY: RUN_BLAZE, TYPE_TURNOVER, BLAZE_TURNOVER, NTO, &
        METB, STR, CWD, LEAF, WOOD, FROOT, TYPE_BLAZE
