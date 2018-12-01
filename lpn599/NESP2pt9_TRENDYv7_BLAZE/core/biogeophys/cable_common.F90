@@ -109,6 +109,7 @@ MODULE cable_common_module
           CALL_POP               = .FALSE., & !
           POP_fromZero           = .FALSE., &
           CALL_Climate           = .FALSE., &
+          CALL_BLAZE             = .FALSE., &
           Climate_fromZero       = .FALSE., &
           CASA_fromZero          = .FALSE., &
           POPLUC                 = .FALSE., &
@@ -123,6 +124,10 @@ MODULE cable_common_module
           YEARSTART           = 0, &
           YEAREND             = 0, &
           CASA_NREP           = 1
+     CHARACTER :: &
+          BURNT_AREA(len=7)   ="SIMFIRE" &
+          BLAZE_TSTEP(len=8)  = "DAILY"
+     
     !--- LN ------------------------------------------]
 
      CHARACTER(LEN=5) ::                                                      &

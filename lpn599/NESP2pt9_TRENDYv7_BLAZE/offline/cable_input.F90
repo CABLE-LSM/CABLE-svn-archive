@@ -39,23 +39,22 @@ MODULE cable_input_module
 !
    USE cable_abort_module,      ONLY: abort, nc_abort
    USE cable_def_types_mod
-   USE casadimension,     ONLY: icycle
+   USE casadimension,           ONLY: icycle
    USE casavariable
-   USE casaparm, ONLY: forest, shrub
+   USE casaparm,                ONLY: forest, shrub
    USE phenvariable
 !! vh_js !!
    USE POP_Types,               Only: POP_TYPE
-   USE POPLUC_Types,               Only: POPLUC_TYPE
+   USE POPLUC_Types,            Only: POPLUC_TYPE
    USE cable_param_module
    USE cable_checks_module,     ONLY: ranges, rh_sh
    USE cable_radiation_module,  ONLY: sinbet
    USE cable_IO_vars_module
    USE cable_read_module,       ONLY: readpar
    USE cable_init_module
-   USE netcdf ! link must be made in cd to netcdf-x.x.x/src/f90/netcdf.mod
-   USE cable_common_module, ONLY : filename, cable_user, CurYear, HANDLE_ERR, is_leapyear
-
-   USE BLAZE_MODULE,            ONLY: TYPE_BLAZE
+   USE netcdf                   ! link must be made in cd to netcdf-x.x.x/src/f90/netcdf.mod
+   USE cable_common_module,     ONLY : filename, cable_user, CurYear, HANDLE_ERR, is_leapyear
+   USE BLAZE,                   ONLY: TYPE_BLAZE
    
    IMPLICIT NONE
 
@@ -302,7 +301,7 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
    REAL, INTENT(IN) :: TFRZ
    INTEGER, INTENT(INOUT)      :: koffset ! offset between met file and desired period
    INTEGER, INTENT(OUT)        :: kend   ! number of time steps in simulation
-   LOGICAL, INTENT(IN)              :: spinup ! will a model spinup be performed?
+   LOGICAL, INTENT(IN)         :: spinup ! will a model spinup be performed?
 
    ! Local variables
    INTEGER                     ::                                         &
@@ -2528,9 +2527,9 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,climate,bgc,soil,canopy,rough,rad, 
             CALL INI_SIMFIRE(mland,cable_user%SIMFIRE_REGION,SF) !CLN here we need to check for the SIMFIRE biome setting
             
             IF ( spinup ) THEN
-               !get_biomes
+               !CLN get_biomes
             ELSE
-               CALL READ_SIMFIRE_RESTART(...)
+               !CLN CALL READ_SIMFIRE_RESTART(...)
             END IF
          END IF
 
