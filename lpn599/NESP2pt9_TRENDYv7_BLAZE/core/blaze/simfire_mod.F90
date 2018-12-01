@@ -52,12 +52,14 @@ CONTAINS
 
 SUBROUTINE INI_SIMFIRE( NCELLS, SF, modis_igbp, SIMFIRE_REGION )
 
-  USE CABLE_COMMON_MODULE, ONLY : GET_UNIT
+  USE CABLE_COMMON_MODULE,  ONLY: GET_UNIT
+  USE CABLE_IO_VARS_MODULE, ONLY: LATITUDE, LONGITUDE
 
   IMPLICIT NONE
   
   TYPE (TYPE_SIMFIRE), INTENT(INOUT) :: SF
   INTEGER, INTENT(IN)                :: NCELLS, modis_igbp(NCELLS)
+  CHARACTER(len=*), INTENT(IN)       :: SIMFIRE_REGION
 
   INTEGER :: i
   
@@ -69,16 +71,16 @@ SUBROUTINE INI_SIMFIRE( NCELLS, SF, modis_igbp, SIMFIRE_REGION )
   ALLOCATE( SF%IGBP        (NCELLS) )
   SF%IGBP = modis_igbp
   ALLOCATE( SF%BIOME       (NCELLS) )
-!CLN  ALLOCATE( SF%REGION      (NCELLS) )
+  ALLOCATE( SF%REGION      (NCELLS) )
   ALLOCATE( SF%POPD        (NCELLS) )
   ALLOCATE( SF%MAX_NESTEROV(NCELLS) )
   ALLOCATE( SF%CNEST       (NCELLS) )
   ALLOCATE( SF%NDAY        (NCELLS) )
   ALLOCATE( SF%FAPAR       (NCELLS) )
   ALLOCATE( SF%LAT         (NCELLS) )
-  SF%LAT  = LAT
+  SF%LAT  = LATITUDE
   ALLOCATE( SF%LON         (NCELLS) )
-  SF%LON  = LON
+  SF%LON  = LONGITUDE
   
 
   !=============================================================================
@@ -92,7 +94,7 @@ SUBROUTINE INI_SIMFIRE( NCELLS, SF, modis_igbp, SIMFIRE_REGION )
      IF ( SF%IGBP(i) .LT. 1 .OR. SF%IGBP(i) .GT. 16 ) THEN
         WRITE(*,*) "Pixel i:",i," doesn't have proper IGBP veg:",SF%IGBP(i)
         SF%BIOME(i) = 0
-     ELSEIF ( ABS(LAT(i)) .GE. 50. ) THEN
+     ELSEIF ( ABS(SF%LAT(i)) .GE. 50. ) THEN
         SF%BIOME(i) = IGBP2BIOME(SF%IGBP(i),2)
      ELSE
         SF%BIOME(i) = IGBP2BIOME(SF%IGBP(i),1)
@@ -323,7 +325,7 @@ INTEGER :: ai
 ! BIOME COEFFICIENTS a(BIOME)
 REAL, DIMENSION(8,3), PARAMETER :: a = &
      (/0.110,  0.095    ,0.092  ,0.127  ,0.470  ,0.889 ,0.059  ,0.113, & ! GLOBAL
-       0.06974,0.6535   ,0.6341 ,0.6438 ,2.209  ,1.710 ,    0  ,2.572, & ! ANZ
+       0.06974,0.6535   ,0.6341 ,0.6438 ,2.209  ,1.710 ,    0. ,2.572, & ! ANZ
        0.02589,0.0008087,0.04896,0.06248,0.01966,0.1191,0.01872,0.08873/)! EUR   
 ! Biome:  crop NLfor     BLfor   mixedfor shrub  grass  tundra  barren 
 !

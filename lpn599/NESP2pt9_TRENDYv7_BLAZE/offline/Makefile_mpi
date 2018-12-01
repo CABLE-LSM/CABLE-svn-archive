@@ -48,7 +48,6 @@ LSRC = cable_data.F90 cable_common.F90 cable_define_types.F90 cable_iovars.F90 \
 	cable_weathergenerator.F90 cable_climate.F90 cable_phenology.F90 \
 	cable_cru_TRENDY.F90 POPLUC.F90 CASAONLY_LUC.F90 cable_LUC_EXPT.F90 \
 	cable_optimiseJVratio.F90 cable_bios_met_obs_params.F90	\
-	# BLAZE related files
 	blaze.F90 blaze_mpi.F90 blaze_driver.F90 simfire.F90
 
 # this is the executable we are building
@@ -124,7 +123,7 @@ cable_write.o: cable_write.F90 cable_iovars.o cable_abort.o cable_define_types.o
 
 cable_input.o: cable_input.F90 POP.o cable_checks.o cable_abort.o cable_read.o \
 	 cable_initialise.o cable_radiation.o cable_parameters.o cable_common.o \
-	 cable_LUC_EXPT.o POPLUC.o
+	 cable_LUC_EXPT.o POPLUC.o simfire_mod.o blaze.o
 
 cable_output.o: cable_output.F90 cable_checks.o cable_write.o cable_common.o \
 	cable_abort.o casa_variable.o

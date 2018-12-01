@@ -1,9 +1,9 @@
 MODULE BLAZE
 
 TYPE TYPE_BLAZE
-   INTEGER,  DIMENSION(:),  ALLOCATABLE :: DSLR,ilon, jlat,Flix
+   INTEGER,  DIMENSION(:),  ALLOCATABLE :: DSLR,ilon, jlat, Flix
    REAL,     DIMENSION(:),  ALLOCATABLE :: RAINF, KBDI, LR, U10,RH,TMAX,TMIN,AREA
-   REAL,     DIMENSION(:),  ALLOCATABLE :: FFDI,FLI,ROS,Z,D,w, LAT, LON,DFLI,AB,CAvgAnnRF
+   REAL,     DIMENSION(:),  ALLOCATABLE :: FFDI,FLI,ROS,Z,D,w, LAT, LON,DFLI,AB,CAvgAnnRainf
    REAL,     DIMENSION(:,:),ALLOCATABLE :: AnnRAINF, DEADWOOD, ABM, TO, AGC_g, AGC_w
    REAL,     DIMENSION(:,:),ALLOCATABLE :: AvgAnnRAINF
    CHARACTER,DIMENSION(:),  ALLOCATABLE :: FTYPE*6
@@ -98,7 +98,7 @@ SUBROUTINE INI_BLAZE (POPFLAG, BURNT_AREA_SOURCE, TSTEP, np, BLAZE)
   ALLOCATE ( BLAZE%ILON    ( np ) )
   ALLOCATE ( BLAZE%TMAX    ( np ) )
   ALLOCATE ( BLAZE%TMIN    ( np ) )
-  ALLOCATE ( BLAZE%F       ( np ) )
+!  ALLOCATE ( BLAZE%F       ( np ) )
   ALLOCATE ( BLAZE%FLI     ( np ) )
   ALLOCATE ( BLAZE%FLIx    ( np ) )
   ALLOCATE ( BLAZE%DFLI    ( np ) )
@@ -108,7 +108,7 @@ SUBROUTINE INI_BLAZE (POPFLAG, BURNT_AREA_SOURCE, TSTEP, np, BLAZE)
   ALLOCATE ( BLAZE%w       ( np ) )
   ALLOCATE ( BLAZE%TO      ( np, NTO ) )
   ALLOCATE ( BLAZE%AnnRainf( np, 366 ) )
-  ALLOCATE ( BLAZE%DEADWOOD( np ) ) 
+!  ALLOCATE ( BLAZE%DEADWOOD( np ) ) 
 
   ! SETTINGS FOR BLAZE (BLAZEFLAG)
   ! bit value:               0            | 1
@@ -130,7 +130,7 @@ SUBROUTINE INI_BLAZE (POPFLAG, BURNT_AREA_SOURCE, TSTEP, np, BLAZE)
   END IF
   IF ( TRIM(BURNT_AREA_SOURCE) == "SIMFIRE" ) THEN
      BLAZE%IGNITION = 1    
-  ELSE IF ( TRIM(BURNT_AREA_SOURCE) == "PRESCRIBED" )
+  ELSE IF ( TRIM(BURNT_AREA_SOURCE) == "PRESCRIBED" ) THEN
      BLAZE%IGNITION = 2    
   ELSE IF ( TRIM(BURNT_AREA_SOURCE) == "GFED3.1" ) THEN
      BLAZE%IGNITION = 3    
@@ -161,21 +161,25 @@ END SUBROUTINE INI_BLAZE
 
 SUBROUTINE BLAZE_ACCOUNTING(BLAZE, met, ktau, dels, year, doy)
 
+  USE CABLE_DEF_TYPES_MOD, ONLY: MET_TYPE
+  USE CABLE_COMMON_MODULE, ONLY: IS_LEAPYEAR
+
   IMPLICIT NONE 
 
-  TYPE (TYPE_BLAZE) :: BLAZE
-  TYPE (MET_TYPE)   :: met
-  LOGICAL, SAVE     :: CALL1 = .TRUE.
-  INTEGER           :: mp
-  REAL              :: t_fac
-  REAL,PARAMETER    :: sod = 86400.
-  LOGICAL           :: is_new_day, is_end_of_day
-
+  TYPE (TYPE_BLAZE)   :: BLAZE
+  TYPE (MET_TYPE)     :: met
+  INTEGER, INTENT(IN) :: ktau, dels, year, doy
+  LOGICAL, SAVE       :: CALL1 = .TRUE.
+  INTEGER             :: mp, x, i
+  REAL                :: t_fac
+  INTEGER,PARAMETER   :: sod = 86400
+  LOGICAL             :: is_new_day, is_end_of_day
+  REAL                :: v, rh, t, prec, avgAnnRf, dkbdi, FFDI
 
   mp = BLAZE%NCELLS
   
-  is_new_day    = (((ktau-1) * dels ) % sod == 0 )
-  is_end_of_day = (( ktau    * dels ) % sod == 0 )
+  is_new_day    = (MOD((ktau-1) * dels, sod) == 0 )
+  is_end_of_day = (MOD( ktau    * dels, sod) == 0 )
   
   ! factor to get to daily data
   t_fac = 86400. / dels
@@ -184,13 +188,13 @@ SUBROUTINE BLAZE_ACCOUNTING(BLAZE, met, ktau, dels, year, doy)
   ! Update avg ann rainfall 
 
   ! Add last years 
-  x = year % T_AVG + 1
+  x = MOD(year, T_AVG) + 1
   IF ( is_new_day) THEN
      IF ( doy == 1 ) THEN
         BLAZE%AvgAnnRainf(:,x) = SUM(BLAZE%AnnRAINF(:,:),dim=2) 
         BLAZE%CAvgAnnRainf(:)  = SUM(BLAZE%AvgAnnRainf(:,:),dim=2) /REAL(T_AVG)
      END IF
-     BLAZE%AnnRAINF(:) = 0.
+     BLAZE%AnnRAINF(:,:) = 0.
      BLAZE%U10 (:) = 0.
      BLAZE%RH  (:) = 0.
      BLAZE%TMAX(:) = 0.
@@ -205,7 +209,7 @@ SUBROUTINE BLAZE_ACCOUNTING(BLAZE, met, ktau, dels, year, doy)
      BLAZE%TMIN(i) = MIN(met%tvair(i),BLAZE%TMIN(i))     
   END DO
 
-  if ( .NOT. is_leap_year(year) .AND. doy .EQ. 365 ) BLAZE%AnnRAINF(:,366) = 0.
+  if ( .NOT. is_leapyear(year) .AND. doy .EQ. 365 ) BLAZE%AnnRAINF(:,366) = 0.
 
   ! End of the day prepare daily data 
   IF ( is_end_of_day ) THEN
@@ -221,34 +225,34 @@ SUBROUTINE BLAZE_ACCOUNTING(BLAZE, met, ktau, dels, year, doy)
         
         ! Days-since-last-rain and Last-Rainfall
         IF ( prec > 0.01 ) THEN
-           IF ( BLAZE%DSLR > 0 ) THEN
-              BLAZE%LR = prec
+           IF ( BLAZE%DSLR(i) > 0 ) THEN
+              BLAZE%LR(i) = prec
            ELSE
-              BLAZE%LR = BLAZE%LR + prec
+              BLAZE%LR(i) = BLAZE%LR(i) + prec
            END IF
-           BLAZE%DSLR = 0
+           BLAZE%DSLR(i) = 0
         ELSE
-           BLAZE%DSLR = BLAZE%DSLR + 1
+           BLAZE%DSLR(i) = BLAZE%DSLR(i) + 1
         END IF
 
         ! Keetch-Byram Drought Index
-        IF ( BLAZE%DSLR == 0 ) THEN
-           IF ( BLAZE%LR > 5. ) THEN
-              dkbdi = 5. - BLAZE%LR 
+        IF ( BLAZE%DSLR(i) == 0 ) THEN
+           IF ( BLAZE%LR(i) > 5. ) THEN
+              dkbdi = 5. - BLAZE%LR(i)
            ELSE
               dkbdi = 0.
            END IF
 
         ELSE
-           dkbdi = (( 800. - BLAZE%KBDI ) * (.968 * EXP(.0486 * (t * 9./5. + 32.)) &
+           dkbdi = (( 800. - BLAZE%KBDI(i) ) * (.968 * EXP(.0486 * (t * 9./5. + 32.)) &
                 - 8.3) / 1000. / (1. + 10.88 * EXP(-.0441 * avgAnnRF/25.4)) * .254)
         END IF
         BLAZE%KBDI(i) = MAX(0., BLAZE%KBDI(i) + dkbdi)
 
         ! MacArthur Drought-Factor D
-        BLAZE%D(i) = .191 * (BLAZE%KBDI(i) + 104.) * (BLAZE(i)%DSLR + 1.)**1.5 / &
-             ( 3.52 * (BLAZE(i)%DSLR + 1.)**1.5 + BLAZE%LR - 1. )
-        BLAZE(i)%D = MAX(0.,MIN(10.,BLAZE%D(i)))
+        BLAZE%D(i) = .191 * (BLAZE%KBDI(i) + 104.) * (BLAZE%DSLR(i) + 1.)**1.5 / &
+             ( 3.52 * (BLAZE%DSLR(i) + 1.)**1.5 + BLAZE%LR(i) - 1. )
+        BLAZE%D(i) = MAX(0.,MIN(10.,BLAZE%D(i)))
 
         ! MacArthur FFDI
         FFDI = 2. * EXP( -.45 + .987 * LOG(BLAZE%D(i)+.001) &
@@ -420,7 +424,7 @@ END SUBROUTINE BLAZE_TURNOVER
 
 FUNCTION BURNTIME( YEAR, DOY, FSTEP )
 
-  USE CABLE_COMMON_MODULE, ONLY : DOYSOD2MDHMS, IS_LEAPYEAR
+  USE CABLE_COMMON_MODULE, ONLY : DOYSOD2YMDHMS, IS_LEAPYEAR
 
   INTEGER,  INTENT(IN):: YEAR, DOY
   CHARACTER(LEN=*),INTENT(IN):: FSTEP
@@ -430,7 +434,7 @@ FUNCTION BURNTIME( YEAR, DOY, FSTEP )
 
   BURNTIME = .FALSE.
   
-  CALL DOYSOD2MDHMS( YEAR, DOY, 1, MM=MM, DD=DD )
+  CALL DOYSOD2YMDHMS( YEAR, DOY, 1, MM, DD )
   IF ( TRIM(FSTEP) .EQ. "annual" ) THEN
      IF ( (.NOT. (IS_LEAPYEAR(YEAR)) .AND. DOY .EQ. 365 ) .OR. DOY .EQ. 366 ) & 
           BURNTIME = .TRUE.
@@ -637,7 +641,7 @@ SUBROUTINE RUN_BLAZE(ncells, LAT, LON, shootfrac,CPLANT_g, CPLANT_w, AGL_g, AGL_
      BGL_g, BGL_w, RAINF, TMIN, TMAX, RH, U10,AvgAnnMaxFAPAR, modis_igbp, &
      AvgAnnRainf, AB, FLI, DFLI, FFDI, TO, tstp, YYYY, doy, npatch, POPFLAG,popd,mnest,BLAZE_FSTEP ) !, CTRL)
 
-  USE CABLE_COMMON_MODULE, ONLY: IS_LEAPYEAR, DOYSOD2MDHMS
+  USE CABLE_COMMON_MODULE, ONLY: IS_LEAPYEAR, DOYSOD2YMDHMS
   USE SIMFIRE_MOD 
 
   IMPLICIT NONE
@@ -685,10 +689,10 @@ SUBROUTINE RUN_BLAZE(ncells, LAT, LON, shootfrac,CPLANT_g, CPLANT_w, AGL_g, AGL_
 
   BLAZE%YEAR = YYYY
   BLAZE%DOY  = DOY
-  CALL DOYSOD2MDHMS( YYYY, doy, 0, MM=BLAZE%MONTH, DD=BLAZE%DAY )
+  CALL DOYSOD2YMDHMS( YYYY, doy,10, MM, DD )
 
-  DD = BLAZE%DAY
-  MM = BLAZE%MONTH
+  BLAZE%DAY   = DD
+  BLAZE%MONTH = MM
 
 !!CLN Go to init part
 
@@ -824,7 +828,7 @@ SUBROUTINE RUN_BLAZE(ncells, LAT, LON, shootfrac,CPLANT_g, CPLANT_w, AGL_g, AGL_
 
   END DO
 
-  FFDI        = BLAZE%F
+  FFDI        = BLAZE%FFDI
   BLAZE_FSTEP = BLAZE%FSTEP
 
 !  WHERE ( BLAZE%AB .GT. 0. ) 

@@ -87,16 +87,14 @@ host_pear()
 {
 #    export LD_PRELOAD=/apps/netcdf/4.3.3/lib/libnetcdf.so
 #    export LD_PRELOAD=/apps/openmpi/1.8.4/lib/libopen-rte.so.7:/apps/openmpi/1.8.4/lib/libopen-pal.so.6
-#   . /apps/modules/Modules/default/init/ksh
+   . /apps/modules/Modules/default/init/ksh
 
 #   module add netcdf/4.3.3.1 openmpi/1.7.5
 #   module add netcdf/4.3.3.1 openmpi/1.8.8 
 
-module del intel-cc intel-fc
-module add intel-cc/16.0.1.150 intel-fc/16.0.1.150
-module add netcdf/4.3.3.1 openmpi/1.8.8
-
-
+   module del intel-cc intel-fc
+   module add intel-cc/16.0.1.150 intel-fc/16.0.1.150
+   module add netcdf/4.3.3.1 openmpi/1.8.8
 
    export NCDIR=$NETCDF_ROOT'/lib/'
    export NCMOD=$NETCDF_ROOT'/include/'
