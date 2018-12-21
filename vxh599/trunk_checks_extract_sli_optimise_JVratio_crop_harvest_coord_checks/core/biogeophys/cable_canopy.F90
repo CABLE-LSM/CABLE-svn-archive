@@ -171,6 +171,8 @@ CONTAINS
     ! BATS-type canopy saturation proportional to LAI:
     cansat = veg%canst1 * canopy%vlaiw
 
+    
+
     !---compute surface wetness factor, update cansto, through
     CALL surf_wetness_fact( cansat, canopy, ssnow,veg,met, soil, dels )
 
@@ -186,7 +188,13 @@ CONTAINS
     met%tvair = met%tk
     met%qvair = met%qv
     canopy%tv = met%tvair
+    
+! initialise dsx and csx
+    dsx = met%dva
+    csx(:,1) = met%ca
+    csx(:,2) = met%ca
 
+    
     CALL define_air (met, air)
 
     CALL qsatfjh(qstvair,met%tvair-C%tfrz,met%pmb)
@@ -1934,8 +1942,17 @@ CONTAINS
                    gs_coeff(i,1) = (1.0* fwsoil(i) + (g1 * fwsoil(i)) / SQRT(vpd)) / csx(i,1)
                    gs_coeff(i,2) = (1.0* fwsoil(i) + (g1 * fwsoil(i)) / SQRT(vpd)) / csx(i,2)
                 else
-                   gs_coeff(i,1) = (1.0 + (g1 * fwsoil(i)) / SQRT(vpd)) / csx(i,1)
-                   gs_coeff(i,2) = (1.0 + (g1 * fwsoil(i)) / SQRT(vpd)) / csx(i,2)
+                   IF (vpd > 0 .and.  csx(i,1) > 0 .and. fwsoil(i)>0) THEN
+                      gs_coeff(i,1) = (1.0 + (g1 * fwsoil(i)) / SQRT(vpd)) / csx(i,1)
+                   ELSE
+                      write(*,*) g1, met%ca(i)
+                      gs_coeff(i,1) = (1.0 + (g1 ) / SQRT(500e-3)) / met%ca(i)
+                   ENDIF
+                   IF (vpd > 0 .and.  csx(i,2) > 0) THEN
+                      gs_coeff(i,2) = (1.0 + (g1 * fwsoil(i)) / SQRT(vpd)) / csx(i,2)
+                   ELSE
+                      gs_coeff(i,2) = (1.0 + (g1 ) / SQRT(500e-3)) / met%ca(i)
+                   ENDIF
                 endif
 
             ELSE
@@ -2279,34 +2296,77 @@ CONTAINS
 
     ! additional diagnostic variables for assessing contributions of rubisco and rubp limited photosynthesis to
     ! gross photosynthesis in sunlit and shaded leaves.
-    canopy%A_sh = an_y(:,2) + rdy(:,2) 
-    canopy%A_sl =  an_y(:,1) + rdy(:,1)
-    canopy%A_shC = anrubiscoy(:,2) + rdy(:,2)
-    canopy%A_shJ = anrubpy(:,2) + rdy(:,2)
+    canopy%A_sh = an_y(:,2) 
+    canopy%A_sl =  an_y(:,1)
+
+    canopy%GPP_sh = an_y(:,2)  + rdy(:,2)
+    canopy%GPP_sl =  an_y(:,1) + rdy(:,1)
+
+    canopy%fevc_sh = ecx(1)*(1.0-canopy%fwet(1))/ air%rlam(:) ! mm s-1
+    canopy%fevc_sl =  ecx(2)*(1.0-canopy%fwet(2))/ air%rlam(:) ! mm s-1
+    
+    canopy%A_shC = anrubiscoy(:,2)
+    canopy%A_shJ = anrubpy(:,2)
+    
     where (anrubiscoy(:,2) .gt. an_y(:,2)) canopy%A_shC = 0.0
     where (anrubpy(:,2) .gt. an_y(:,2))    canopy%A_shJ = 0.0
   
-    canopy%A_slC = anrubiscoy(:,1) + rdy(:,1)
-    canopy%A_slJ = anrubpy(:,1) + rdy(:,1)
+    canopy%A_slC = anrubiscoy(:,1)
+    canopy%A_slJ = anrubpy(:,1)
+    
     where (anrubiscoy(:,1) .gt. an_y(:,1)) canopy%A_slC = 0.0
     where (anrubpy(:,1) .gt. an_y(:,1))    canopy%A_slJ = 0.0
 
-!!$    where (sum(met%fsd,2) < 40.0)
-!!$       canopy%A_shC = 0.0
-!!$       canopy%A_shJ = 0.0
-!!$       canopy%A_slC = 0.0
-!!$       canopy%A_slJ = 0.0
-!!$       canopy%A_sh = 0.0
-!!$       canopy%A_sl = 0.0
-!!$    end where
-    
     canopy%eta_A_cs = canopy%A_sh *min(eta_y(:,2),5.0) + canopy%A_sl *min(eta_y(:,1),5.0)
+    where (canopy%GPP_sl-rdy(:,1) .gt. 0.0 .and. canopy%GPP_sh-rdy(:,2) .gt. 0.0)
+       canopy%eta_GPP_cs = canopy%GPP_sh  *min(eta_y(:,2),5.0) * (canopy%GPP_sh/(canopy%GPP_sh-rdy(:,2))) + &
+            canopy%GPP_sl *min(eta_y(:,1),5.0)* (canopy%GPP_sl/(canopy%GPP_sl-rdy(:,1)))
+    elsewhere  ((canopy%GPP_sl-rdy(:,1)) .le. 0.0 .and. (canopy%GPP_sh-rdy(:,2)) .gt. 0.0)
+        canopy%eta_GPP_cs =  canopy%GPP_sh  *min(eta_y(:,2),5.0) * (canopy%GPP_sh/(canopy%GPP_sh-rdy(:,2)))
+    elsewhere
+        canopy%eta_GPP_cs =  canopy%eta_A_cs
+    end where
+
+    where (canopy%GPP_sl-rdy(:,1) .gt. 0.0 )
+       canopy%eta_GPP_cs_sl = min(eta_y(:,1),5.0)
+    elsewhere
+       canopy%eta_GPP_cs_sl = 0.0
+    endwhere
+
+    where (canopy%GPP_sh-rdy(:,2) .gt. 0.0 )
+       canopy%eta_GPP_cs_sh = min(eta_y(:,2),5.0)
+    elsewhere
+       canopy%eta_GPP_cs_sh = 0.0
+    endwhere
+    
+    where ( canopy%fevc_sl.gt.0.0 .and. canopy%gswx(:,1).gt.0.0 .and. &
+         canopy%fevc_sh.gt.0.0 .and. canopy%gswx(:,2).gt.0.0  )
+    
+       canopy%eta_fevc_cs = (canopy%fevc_sh *(min(eta_y(:,2),5.0) - 1.0) *  &
+            MAX( 0.0, C%RGSWC * gs_coeff(:,2)*an_y(:,2) ) / canopy%gswx(:,2) / csx(:,2)  &
+                         + canopy%fevc_sl *min(eta_y(:,1),5.0 -1.0) * &
+                         MAX( 0.0, C%RGSWC * gs_coeff(:,1)*an_y(:,1) ) / canopy%gswx(:,1) / csx(:,1)) / air%rlam(:)
+       
+    elsewhere (canopy%fevc_sh.gt.0.0 .and. canopy%gswx(:,2).gt.0.0  )
+       canopy%eta_fevc_cs =  canopy%fevc_sh *(min(eta_y(:,2),5.0) - 1.0) *  &
+            MAX( 0.0, C%RGSWC * gs_coeff(:,2)*an_y(:,2) ) / canopy%gswx(:,2) / csx(:,2)
+    elsewhere
+       canopy%eta_fevc_cs = 0.0
+    end where
+
     canopy%dAdcs = canopy%A_sh *dAn_y(:,2) + canopy%A_sl *dAn_y(:,1)
-    canopy%cs =  canopy%A_sh*csx(:,2)*1e6 + canopy%A_sl*csx(:,1)*1e6
+    
+    canopy%cs =  canopy%A_sh*csx(:,2)*1e6 + canopy%A_sl*csx(:,1)*1e6  ! cs multiplied by Anet
     canopy%cs_sl = csx(:,1)*1e6
     canopy%cs_sh =  csx(:,2)*1e6
     canopy%tlf = tlfy
     canopy%dlf = dsx
+
+    canopy%ci_sl = (csx(:,1) - C%RGBWC*an_y(:,1) / (                &
+         max( canopy%gswx(:,1), 0.01) )) * 1.e6
+
+    canopy%ci_sh = (csx(:,2) - C%RGBWC*an_y(:,2) / (                &
+                      max( canopy%gswx(:,2), 0.01) )) * 1.e6
 
     canopy%evapfbl = ssnow%evapfbl
 

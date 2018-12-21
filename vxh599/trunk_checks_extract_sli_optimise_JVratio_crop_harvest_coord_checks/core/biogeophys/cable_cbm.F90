@@ -75,6 +75,10 @@ CONTAINS
    REAL, INTENT(IN)               :: dels ! time setp size (s)
    INTEGER, INTENT(IN) :: ktau
    INTEGER :: k,kk,j
+   REAL, PARAMETER :: ca_array(13) = (/  100e-6, 150e-6, &
+        200e-6, 250e-6, 300e-6, &
+        350e-6, 400e-6, 450e-6, &
+        500e-6, 550e-6, 600e-6, 650e-6, 700e-6/)
 
 #ifdef NO_CASA_YET
    INTEGER :: ICYCLE
@@ -116,12 +120,36 @@ CONTAINS
 
    ssnow%otss_0 = ssnow%otss  ! vh should be before call to canopy?
    ssnow%otss = ssnow%tss
+   met%ca = 400e-6
+  
+   IF ( met%doy(1).eq. 182 .and. met%hod(1) .gt. 11.0 .and. met%hod(1) .lt. 13.0 ) THEN
+  
+      DO j=1,13
+  
+         met%ca = ca_array(j)
+  
+         CALL define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,climate)
+         
+         write(3355,"(200f16.6)") met%ca(1)*1e6, canopy%ci_sh(7), canopy%A_sh(7)*1e6,  canopy%eta_GPP_cs_sh(7)
+         write(*,*)  rad%qcan(7,2,1) * 4.6
+         
+      ENDDO
+      
+      STOP
+   ENDIF
 
+   
+      
+   
    ! Calculate canopy variables:
         CALL define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,climate)
 
    !ssnow%otss_0 = ssnow%otss
-   !ssnow%otss = ssnow%tss
+        !ssnow%otss = ssnow%tss
+
+
+       
+           
 
    ! RML moved out of following IF after discussion with Eva
    ssnow%owetfac = ssnow%wetfac
