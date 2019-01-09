@@ -1,12 +1,11 @@
-SUBROUTINE BLAZE_DRIVER ( casapool, casaflux, shootfrac, ddvp09, ddvp15, ddprec, ddTmin, ddTmax, ddwind, idoy, curyear, CTLFLAG, BLAZEFLX, POP_TO, POP_CWD,POP_STR, IAC, popd, mnest, BLAZE_FSTEP &
-     , AGL_wo1,AGL_wo2,AGL_wo3 )
+SUBROUTINE BLAZE_DRIVER ( BLAZE, SF, met, casapool, casaflux, shootfrac, idoy, curyear, CTLFLAG )
 !CLNSUBROUTINE BLAZE_DRIVER ( casapool, casaflux, lat, lon, shootfrac, ddvp09, ddvp15, ddprec, &
 !CLN     ddTmin, ddTmax, ddwind,AvgAnnMaxFAPAR, modis_igbp, AvgAnnRainf, idoy, curyear, FLI, DFLI, FFDI, AB, &
 !CLN     POPFLAG, CTLFLAG, BLAZEFLX, POP_TO, POP_CWD,POP_STR, IAC, popd, mnest, BLAZE_FSTEP &
 !CLN     , AGL_wo1,AGL_wo2,AGL_wo3 )
 
   USE CABLE_COMMON_MODULE, ONLY: IS_LEAPYEAR, DOYSOD2MDHMS
-  USE casavariable,        ONLY: casa_pool, casa_flux
+  USE CASAVARIABLE,        ONLY: casa_pool, casa_flux
   USE BLAZE,               ONLY: RUN_BLAZE, TYPE_TURNOVER, BLAZE_TURNOVER, NTO, &
        METB, STR, CWD, LEAF, WOOD, FROOT, TYPE_BLAZE
   USE SIMFIRE_MOD,         ONLY: TYPE_SIMFIRE
@@ -15,7 +14,7 @@ SUBROUTINE BLAZE_DRIVER ( casapool, casaflux, shootfrac, ddvp09, ddvp15, ddprec,
 
   IMPLICIT NONE
 
-  ! CTLFLAG  : Control whether only FLI (or FLI AND POP-related TO) 
+  ! CTLFLAG  : Only, when POP is on. Control whether only FLI (or FLI AND POP-related TO) 
   ! POPFLAG  : Check, how POP is set
   ! MODE     : 
 
@@ -74,7 +73,7 @@ SUBROUTINE BLAZE_DRIVER ( casapool, casaflux, shootfrac, ddvp09, ddvp15, ddprec,
 
   ! CLN needs to be altered for beginning of spinup only!!!
   
-  IF ( CALL1 .AND. ) THEN
+  IF ( CALL1 ) THEN
      ALLOCATE( AGL_g(NCELLS,NPOOLS),AGL_w(NCELLS,NPOOLS) )
      ALLOCATE( BGL_g(NCELLS,NPOOLS),BGL_w(NCELLS,NPOOLS) )
      ! Initialise above / below-ground partitioning by using fluxes
@@ -114,7 +113,7 @@ SUBROUTINE BLAZE_DRIVER ( casapool, casaflux, shootfrac, ddvp09, ddvp15, ddprec,
 
   CALL DOYSOD2MDHMS( CurYear, idoy, 0, MM=MM, DD=DD )
 
-  IF ( idoy .eq. 366 .OR. ( idoy .eq. 365 .AND. .NOT. is_leapyear(CurYear)) ) THEN
+  IF ( idoy .EQ. 366 .OR. ( idoy .EQ. 365 .AND. .NOT. is_leapyear(CurYear)) ) THEN
      EOY = .TRUE.
   ELSE
      EOY = .FALSE.
@@ -184,15 +183,15 @@ SUBROUTINE BLAZE_DRIVER ( casapool, casaflux, shootfrac, ddvp09, ddvp15, ddprec,
           BGL_g, BGL_w, ddprec, ddTMIN, ddTMAX, relhum, U10,AvgAnnMaxFAPAR, &
           modis_igbp, AvgAnnRainf, AB, FLI, DFLI, FFDI, TO, tstp, CurYear, idoy, 1, &
           POPFLAG, popd, mnest,BLAZE_FSTEP )
-     IF ( idoy .eq. 1 ) IAC = 0.
+     IF ( idoy .EQ. 1 ) IAC = 0.
      
-     IF ( POPFLAG .NE. 0 ) THEN       
-        WHERE(AB .GT. 0. )
-           IAC (:,1) = (FLI * AB + IAC(:,1) * IAC(:,2)) / (IAC(:,3)+1.)
-           IAC (:,2) = IAC(:,2)+AB
-           IAC (:,3) = IAC(:,3)+1.
-        END WHERE
-     END IF
+!!CRM     IF ( POPFLAG .NE. 0 ) THEN       
+!!CRM        WHERE(AB .GT. 0. )
+!!CRM           IAC (:,1) = (FLI * AB + IAC(:,1) * IAC(:,2)) / (IAC(:,3)+1.)
+!!CRM           IAC (:,2) = IAC(:,2)+AB
+!!CRM           IAC (:,3) = IAC(:,3)+1.
+!!CRM        END WHERE
+!!CRM     END IF
 
   ! compute c-pool turnovers after POP has provided biomass TO 
   ELSE IF ( CTLFLAG .EQ. -1 ) THEN

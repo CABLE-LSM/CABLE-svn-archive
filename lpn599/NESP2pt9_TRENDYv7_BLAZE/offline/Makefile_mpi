@@ -199,9 +199,9 @@ cable_bios_met_obs_params.o: cable_bios_met_obs_params.F90 cable_iovars.o cable_
 # BLAZE related dependencies
 blaze.o: blaze.F90
 
-simfire_mod.o: simfire_mod.F90
+simfire.o: simfire.F90
 
-blaze_driver.o: blaze_driver.F90 blaze.o simfire_mod.o
+blaze_driver.o: blaze_driver.F90 blaze.o simfire.o
 
 blaze_mpi.o: blaze_mpi.F90 
 

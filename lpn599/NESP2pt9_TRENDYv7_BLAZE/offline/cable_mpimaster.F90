@@ -202,7 +202,7 @@ CONTAINS
          POP_LUC_CASA_transfer,  WRITE_LUC_RESTART_NC, POPLUC_set_patchfrac, &
          READ_LUC_RESTART_NC, alloc_popluc
     
-    ! BLAZE Fire Model 
+    ! modules related to fire
     USE BLAZE,                ONLY: TYPE_BLAZE
     USE SIMFIRE_MOD,          ONLY: TYPE_SIMFIRE
 
@@ -282,7 +282,7 @@ CONTAINS
     CHARACTER             :: ncfile*99
 
     ! BLAZE variables
-    TYPE (TYPE_BLAZE)    :: BLAZET
+    TYPE (TYPE_BLAZE)    :: BLAZE
     TYPE (TYPE_SIMFIRE)  :: SIMFIRE
     
     ! declare vars for switches (default .FALSE.) etc declared thru namelist

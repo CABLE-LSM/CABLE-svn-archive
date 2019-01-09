@@ -153,7 +153,11 @@ CONTAINS
     ! modules related to POP
     USE POPmodule,            ONLY: POP_INIT
     USE POP_Types,            ONLY: POP_TYPE
-    USE POP_Constants,        ONLY: HEIGHT_BINS, NCOHORT_MAX
+    USE POP_Constants,        ONLY: HEIGHT_BINS, NCOHORT_MAX, shootfrac
+
+    ! modules related to fire
+    USE BLAZE,                ONLY: TYPE_BLAZE
+    USE SIMFIRE_MOD,          ONLY: TYPE_SIMFIRE
 
     ! PLUME-MIP only
     USE CABLE_PLUME_MIP,      ONLY: PLUME_MIP_TYPE
@@ -220,6 +224,10 @@ CONTAINS
     TYPE (PLUME_MIP_TYPE) :: PLUME
     CHARACTER             :: cyear*4
     CHARACTER             :: ncfile*99
+
+    ! BLAZE variables
+    TYPE (TYPE_BLAZE)     :: BLAZE
+    TYPE (TYPE_SIMFIRE)   :: SIMFIRE
 
     ! declare vars for switches (default .FALSE.) etc declared thru namelist
     LOGICAL, SAVE           :: &
@@ -569,10 +577,10 @@ CONTAINS
 
 
           ! globally (WRT code) accessible kend through USE cable_common_module
-          ktau_gl  = 0
+          ktau_gl   = 0
           kwidth_gl = int(dels)
-          kend_gl  = kend
-          knode_gl = 0
+          kend_gl   = kend
+          knode_gl  = 0
         
           IF (spincasa .or. casaonly) THEN
              EXIT
@@ -674,7 +682,8 @@ CONTAINS
                   write(wlogn,*) 'after casa mpi_send', ktau
                  ENDIF
 
-                 call blaze_driver(BLAZE,)
+                 IF ( cable_user%CALL_BLAZE ) &
+                      call blaze_driver(blaze, simfire, met, casapool, casaflux, shootfrac, idoy, YYYY, 1)
                  
                  !!! CLN HERE BLAZE daily
 
@@ -741,7 +750,10 @@ CONTAINS
              !write(wlogn,*) 'laimax',  casabal%LAImax
              CALL POPdriver(casaflux,casabal,veg, POP)
 
-             !! CLN Here BLAZE TURNOVER
+             ! Call BLAZE again to compute turnovers depending on POP mortalities
+             IF ( cable_user%CALL_BLAZE ) &
+                  call blaze_driver(blaze, simfire, met, casapool, casaflux, shootfrac, idoy, YYYY, -1)
+             
              
              CALL worker_send_pop (POP, ocomm) 
              
@@ -7563,7 +7575,7 @@ SUBROUTINE worker_spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapoo
 
            !! CLN BLAZE here
            blaze_spin_year = 1900 - myearspin + nyear
-           CALL BLAZE_DRIVER(casapool,casaflux,shootfrac, met..., idoy,blaze_spin_year, DO_BLAZE_TO
+           !CLN CALL BLAZE_DRIVER(casapool,casaflux,shootfrac, met..., idoy,blaze_spin_year, DO_BLAZE_TO
 
            IF (cable_user%CALL_POP .and. POP%np.gt.0) THEN ! CALL_POP
 
@@ -7587,7 +7599,7 @@ SUBROUTINE worker_spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapoo
                  
                  CALL POPdriver(casaflux,casabal,veg, POP)
                  
-                 CALL BLAZE_DRIVER(casapool,casaflux,shootfrac, met..., idoy,blaze_spin_year, DO_POP_TO
+                 !CLN CALL BLAZE_DRIVER(casapool,casaflux,shootfrac, met..., idoy,blaze_spin_year, DO_POP_TO
 
                  !! CLN BLAZE TURNOVER
                  

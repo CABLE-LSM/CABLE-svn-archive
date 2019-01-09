@@ -1,4 +1,4 @@
-MODULE BLAZE
+MODULE BLAZE_MOD
 
 TYPE TYPE_BLAZE
    INTEGER,  DIMENSION(:),  ALLOCATABLE :: DSLR,ilon, jlat, Flix
@@ -8,7 +8,7 @@ TYPE TYPE_BLAZE
    REAL,     DIMENSION(:,:),ALLOCATABLE :: AvgAnnRAINF
    CHARACTER,DIMENSION(:),  ALLOCATABLE :: FTYPE*6
    INTEGER                              :: T_AVG, YEAR, MONTH, DAY, DOY, NCELLS
-   INTEGER                              :: BURNMODE ! 1=BLAZE only, 2=BLAZE with POP
+   INTEGER                              :: BURNMODE ! 0=off, 1=BLAZE only, 2=BLAZE with POP
    INTEGER                              :: IGNITION ! 0=GFED3, 1=SIMFIRE
    REAL                                 :: FT,tstp
    LOGICAL                              :: USE_POP = .FALSE., ERR=.FALSE.
@@ -20,7 +20,7 @@ TYPE TYPE_TURNOVER
    REAL :: TO_ATM, TO_CWD, TO_STR
 END TYPE TYPE_TURNOVER
 
-REAL, DIMENSION(:,:), ALLOCATABLE  :: BLAZEFLX
+REAL, DIMENSION(:,:), ALLOCATABLE  :: BLAZEFLX ! To BLAZE!!!
 
 INTEGER, PARAMETER :: NTO     = 7 ! Number of TurnOver Parameters ,i.e. #lines below
 INTEGER, PARAMETER :: LEAF    = 1
@@ -840,7 +840,5 @@ SUBROUTINE RUN_BLAZE(ncells, LAT, LON, shootfrac,CPLANT_g, CPLANT_w, AGL_g, AGL_
 
 END SUBROUTINE RUN_BLAZE
 
-
-
-END MODULE BLAZE
+END MODULE BLAZE_MOD
 
