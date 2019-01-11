@@ -668,6 +668,8 @@ PROGRAM cable_offline_driver
                             YYYY, ktau, kend, &
                             YYYY.EQ.CABLE_USER%YearEnd)  
                     ENDIF
+               
+                    
           ELSE
              IF (TRIM(cable_user%MetType) .EQ. 'site') &
                   CALL get_met_data( spinup, spinConv, met, soil,		 &

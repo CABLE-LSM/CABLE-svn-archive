@@ -414,8 +414,10 @@ MODULE cable_def_types_mod
          fevc_sh, &  ! dry canopy transpiration shaded leaves (W/m2)
          eta_A_cs, &      ! elasticity of net photosynthesis wrt cs, mulitplied by net photosythesis
          eta_GPP_cs, &      ! elasticity of gross photosynthesis wrt cs, mulitplied by net photosythesis
-         eta_GPP_cs_sl, &      ! elasticity of net photosynthesis wrt cs, sl leaves
-         eta_GPP_cs_sh, &      ! elasticity of net photosynthesis wrt cs, sh leaves
+         eta_A_cs_sl, &      ! elasticity of net photosynthesis wrt cs, sl leaves
+         eta_A_cs_sh, &      ! elasticity of net photosynthesis wrt cs, sh leaves
+         eta_fevc_cs_sl, &      ! elasticity of net photosynthesis wrt cs, sl leaves
+         eta_fevc_cs_sh, &      ! elasticity of net photosynthesis wrt cs, sh leaves
          eta_fevc_cs, & ! elasticity of transpiration wrt cs, mulitplied by transpiration
          dAdcs, & ! sensitivity of net photosynthesis wrt cs, mulitplied by net photosythesis
          cs, &       ! leaf surface CO2 (ppm), mulitplied by gross photosythesis
@@ -1041,8 +1043,10 @@ SUBROUTINE alloc_canopy_type(var, mp)
    ALLOCATE( var% eta_GPP_cs(mp) )
    ALLOCATE( var% eta_fevc_cs(mp) )
    ALLOCATE( var% eta_A_cs(mp) )
-   ALLOCATE( var% eta_GPP_cs_sh(mp) )
-   ALLOCATE( var% eta_GPP_cs_sl(mp) )
+   ALLOCATE( var% eta_A_cs_sh(mp) )
+   ALLOCATE( var% eta_A_cs_sl(mp) )
+   ALLOCATE( var% eta_fevc_cs_sh(mp) )
+   ALLOCATE( var% eta_fevc_cs_sl(mp) )
    ALLOCATE( var% cs(mp) )
    ALLOCATE( var% dAdcs(mp) )
    ALLOCATE( var% cs_sl(mp) )

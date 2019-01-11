@@ -561,7 +561,13 @@ END SUBROUTINE write_casa_dump
         npleafx(np) = MIN(30.0,MAX(8.0,real(casapool%nplant(np,leaf) &
                 /casapool%pplant(np,leaf))))
       ENDIF
-    ENDIF
+   ENDIF
+
+!!$   ! test effect of reducing leaf n
+!!$   ncleafx(np) = 0.7*ncleafx(np)
+!!$   npleafx(np) = 0.7*npleafx(np)
+!!$   
+   
 
     IF (TRIM(cable_user%vcmax).eq.'standard') then
        IF (casamet%glai(np) > casabiome%glaimin(ivt)) THEN

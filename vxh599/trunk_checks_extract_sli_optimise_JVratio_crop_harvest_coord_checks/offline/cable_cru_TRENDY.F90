@@ -321,9 +321,8 @@ CONTAINS
     CALL HANDLE_ERR(ErrStatus, "Reading 'longitudes'"//TRIM(LandMaskFile))
 
     ! Allocate the landmask arrays for... 
-write(*,*) 'b4 alloc landmask'
+
     ALLOCATE( CRU%landmask ( xdimsize, ydimsize) )  ! Passing out to other CRU routines (logical)
-write(*,*) 'after alloc landmask'
     ALLOCATE( landmask ( xdimsize, ydimsize) )      ! Local use in this routine (integer)
     ALLOCATE ( mask( xdimsize, ydimsize) )          ! Use by CABLE
 
@@ -490,8 +489,8 @@ write(*,*) 'after alloc landmask'
 ! On the first call, allocate the CRU%CO2VALS array to store the entire history of annual CO2 
 ! values, open the (ascii) CO2 file and read the values into the array. 
     IF (CALL1) THEN
-      ALLOCATE( CRU%CO2VALS( 1750:2016 ) )
-      CO2FILE = TRIM(CRU%BasePath)//"/co2/1750_2015_globalCO2_time_series.csv"
+      ALLOCATE( CRU%CO2VALS( 1700:2017 ) )
+      CO2FILE = TRIM(CRU%BasePath)//"/co2/global_co2_ann_1700_2017.csv"
       CALL GET_UNIT(iunit)
       OPEN (iunit, FILE=TRIM(CO2FILE), STATUS="OLD", ACTION="READ")
       DO WHILE( IOS .EQ. 0 )
@@ -501,7 +500,8 @@ write(*,*) 'after alloc landmask'
       
       CALL1 = .FALSE.
 
-    END IF
+   END IF
+
 
 ! In all varying CO2 cases, return the element of the array for the current year
 ! as a single CO2 value.
@@ -1282,11 +1282,14 @@ END SUBROUTINE GET_CRU_Ndep
 ! It's a new day if the hour of the day is zero. 
   newday = ( met%hod(landpt(1)%cstart).EQ. 0 )
 
+  
 ! Beginning-of-year accounting
   IF (ktau .EQ. 1) THEN  ! ktau is always reset to 1 at the start of the year.
 
+   
 ! Read a new annual CO2 value and convert it from ppm to mol/mol
-    CALL GET_CRU_CO2( CRU, CO2air )
+     CALL GET_CRU_CO2( CRU, CO2air )
+     
     met%ca(:) = CO2air / 1.e+6  ! 
 
     CALL GET_CRU_Ndep( CRU )

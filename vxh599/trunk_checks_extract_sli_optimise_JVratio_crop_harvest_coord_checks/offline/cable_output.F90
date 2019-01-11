@@ -68,7 +68,7 @@ MODULE cable_output_module
                     PlantTurnoverWood, PlantTurnoverWoodDist, PlantTurnoverWoodCrowding, &
                     PlantTurnoverWoodResourceLim, dCdt, Area, LandUseFlux, patchfrac, &
                     vcmax, hc, GPP_sh, GPP_sl, GPP_shC, GPP_slC, GPP_shJ, GPP_slJ, eta_GPP_cs, &
-                    dGPPdcs, CO2s
+                    eta_TVeg_cs, dGPPdcs, CO2s, gsw_TVeg, vcmax_ts, jmax_ts
   END TYPE out_varID_type
   TYPE(out_varID_type) :: ovid ! netcdf variable IDs for output variables
   TYPE(parID_type) :: opid ! netcdf variable IDs for output variables
@@ -210,8 +210,12 @@ MODULE cable_output_module
     REAL(KIND=4), POINTER, DIMENSION(:) :: GPP_shJ
     REAL(KIND=4), POINTER, DIMENSION(:) :: GPP_slJ
     REAL(KIND=4), POINTER, DIMENSION(:) :: eta_GPP_cs
+    REAL(KIND=4), POINTER, DIMENSION(:) :: eta_TVeg_cs
     REAL(KIND=4), POINTER, DIMENSION(:) :: dGPPdcs
     REAL(KIND=4), POINTER, DIMENSION(:) :: CO2s
+    REAL(KIND=4), POINTER, DIMENSION(:) :: gsw_TVeg
+    REAL(KIND=4), POINTER, DIMENSION(:) :: vcmax_ts
+    REAL(KIND=4), POINTER, DIMENSION(:) :: jmax_ts
  END TYPE output_temporary_type
   TYPE(output_temporary_type), SAVE :: out
   INTEGER :: ok   ! netcdf error status
@@ -782,6 +786,20 @@ CONTAINS
        ALLOCATE(out%eta_GPP_cs(mp))
        out%eta_GPP_cs = 0.0 ! initialise
 
+        CALL define_ovar(ncid_out, ovid%eta_TVeg_cs, 'eta_TVeg_cs', 'kg/m^2/s',               &
+            'elasticity of Transpiration wrt cs, multiplied by Transpiration', &
+            patchout%GPP,              &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%eta_TVeg_cs(mp))
+       out%eta_TVeg_cs = 0.0 ! initialise
+
+       CALL define_ovar(ncid_out, ovid%gsw_TVeg, 'gsw_TVeg', 'mol/m^s/s * kg/m^2/s',               &
+            'stomatal conductance, multiplied by Transpiration', &
+            patchout%GPP,              &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%gsw_TVeg(mp))
+       out%gsw_TVeg = 0.0 ! initialise
+       
        CALL define_ovar(ncid_out, ovid%dGPPdcs, 'dGPPdcs', '(umol/m^2/s)^2',               &
             'sensitivity of Gross primary production wrt cs, multiplied by GPP', &
             patchout%GPP,              &
@@ -796,7 +814,20 @@ CONTAINS
        ALLOCATE(out%CO2s(mp))
        out%CO2s = 0.0 ! initialise
 
+       CALL define_ovar(ncid_out, ovid%vcmax_ts, 'vcmax_time_series', 'mol/m^2/s',               &
+            'vcmax', &
+            patchout%GPP,              &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%vcmax_ts(mp))
+       out%vcmax_ts = 0.0 ! initialise
 
+       CALL define_ovar(ncid_out, ovid%jmax_ts, 'jmax_time_series', 'mol/m^2/s',               &
+            'jmax', &
+            patchout%GPP,              &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%jmax_ts(mp))
+       out%jmax_ts = 0.0 ! initialise
+       
     END IF
     
     IF(output%carbon .OR. output%NPP) THEN
@@ -2174,6 +2205,33 @@ CONTAINS
        out%GPP_shJ = out%GPP_shJ +  REAL(canopy%A_shJ/ 1e-6 , 4)
        out%GPP_slJ = out%GPP_slJ +  REAL(canopy%A_slJ/ 1e-6 , 4)
        out%eta_GPP_cs =  out%eta_GPP_cs + REAL(canopy%eta_A_cs/ 1e-6 , 4)
+       out%eta_TVeg_cs =  out%eta_TVeg_cs + REAL(canopy%eta_fevc_cs/ air%rlam , 4)
+
+
+       where ((rad%fvlai(:,1)+rad%fvlai(:,2)).gt.0.01)
+          out%gsw_TVeg =  out%gsw_TVeg + &
+               REAL((canopy%gswx(:,1) * rad%fvlai(:,1)/(rad%fvlai(:,1)+rad%fvlai(:,2)) + &
+               canopy%gswx(:,2) * rad%fvlai(:,2)/(rad%fvlai(:,1)+rad%fvlai(:,2))) * &
+               canopy%fevc / air%rlam, 4)
+
+          out%jmax_ts =  out%jmax_ts + &
+               REAL((veg%ejmax_sun * rad%fvlai(:,1)/(rad%fvlai(:,1)+rad%fvlai(:,2)) + &
+               veg%ejmax_shade * rad%fvlai(:,2)/(rad%fvlai(:,1)+rad%fvlai(:,2))), 4)
+
+          out%vcmax_ts =  out%vcmax_ts + &
+               REAL((veg%vcmax_sun * rad%fvlai(:,1)/(rad%fvlai(:,1)+rad%fvlai(:,2)) + &
+               veg%vcmax_shade * rad%fvlai(:,2)/(rad%fvlai(:,1)+rad%fvlai(:,2))), 4)
+
+       elsewhere
+          out%gsw_TVeg =  out%gsw_TVeg
+
+          out%vcmax_ts = out%vcmax_ts + REAL(veg%vcmax_shade, 4)
+          out%jmax_ts = out%jmax_ts + REAL(veg%ejmax_shade, 4)
+          
+       endwhere
+
+         
+      
        out%dGPPdcs =  out%dGPPdcs + REAL(canopy%dAdcs/ 1e-6 , 4)
        out%CO2s =  out%CO2s + REAL(canopy%cs/ 1e-6 , 4)
        IF(writenow) THEN
@@ -2185,8 +2243,13 @@ CONTAINS
           out%GPP_shJ = out%GPP_shJ/REAL(output%interval, 4)
           out%GPP_slJ = out%GPP_slJ/REAL(output%interval, 4)
           out%eta_GPP_cs = out%eta_GPP_cs/REAL(output%interval, 4)
+          out%eta_TVeg_cs = out%eta_TVeg_cs/REAL(output%interval, 4)
+          out%gsw_TVeg = out%gsw_TVeg/REAL(output%interval, 4)
+         !  write(*,*)'eta_fevc: ', out%eta_TVeg_cs(7)
           out%dGPPdcs = out%dGPPdcs/REAL(output%interval, 4)
           out%CO2s = out%CO2s/REAL(output%interval, 4)
+          out%vcmax_ts = out%vcmax_ts/REAL(output%interval, 4)
+          out%jmax_ts = out%jmax_ts/REAL(output%interval, 4)
           
           ! Write value to file:
           CALL write_ovar(out_timestep, ncid_out, ovid%GPP_sh, 'GPP_sh', out%GPP_sh,    &
@@ -2212,6 +2275,14 @@ CONTAINS
           CALL write_ovar(out_timestep, ncid_out, ovid%eta_GPP_cs, 'eta_GPP_cs', &
                out%eta_GPP_cs,    &
                ranges%GPP, patchout%GPP, 'default', met)
+          
+          CALL write_ovar(out_timestep, ncid_out, ovid%eta_TVeg_cs, 'eta_TVeg_cs', &
+               out%eta_TVeg_cs,    &
+               ranges%TVeg, patchout%GPP, 'default', met)
+
+          CALL write_ovar(out_timestep, ncid_out, ovid%gsw_TVeg, 'gsw_TVeg', &
+               out%gsw_TVeg,    &
+               ranges%TVeg, patchout%GPP, 'default', met)
 
           CALL write_ovar(out_timestep, ncid_out, ovid%dGPPdcs, 'dGPPdcs', &
                out%dGPPdcs,    &
@@ -2220,6 +2291,14 @@ CONTAINS
           CALL write_ovar(out_timestep, ncid_out, ovid%CO2s, 'CO2s', &
                out%CO2s,    &
                ranges%GPP, patchout%GPP, 'default', met)
+
+          CALL write_ovar(out_timestep, ncid_out, ovid%vcmax_ts, 'time-varying vcmax', &
+               out%vcmax_ts,    &
+               ranges%vcmax, patchout%GPP, 'default', met)
+
+          CALL write_ovar(out_timestep, ncid_out, ovid%jmax_ts, 'time-varying jmax', &
+               out%jmax_ts,    &
+               ranges%vcmax, patchout%GPP, 'default', met)
        
 
           ! Reset temporary output variable:
@@ -2230,8 +2309,12 @@ CONTAINS
           out%GPP_shJ= 0.0
           out%GPP_slJ = 0.0
           out%eta_GPP_cs = 0.0
+          out%eta_TVeg_cs = 0.0
+          out%gsw_TVeg = 0.0
           out%dGPPdcs = 0.0
           out%CO2s = 0.0
+          out%vcmax_ts = 0.0
+          out%jmax_ts = 0.0
 
        ENDIF
 
