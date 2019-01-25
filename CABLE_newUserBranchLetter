@@ -1,0 +1,19 @@
+
+A branch has now been made for you in the CABLE repository with your NCI user ID (e.g. ab1234).
+
+[https://trac.nci.org.au/svn/cable/branches/Users/$USERID]
+
+Please copy the most recent tagged version of the trunk from
+
+[https://trac.nci.org.au/svn/cable/tags]
+
+to your branch and then check this out as your working copy. This is described in detail in Section 2
+<https://trac.nci.org.au/trac/cable/wiki/CableUserGuide/GettingCable> 
+of the CABLE user guide
+<https://trac.nci.org.au/trac/cable/wiki/CableUserGuide> .
+
+Cheers,
+
+CABLE
+
+ 
