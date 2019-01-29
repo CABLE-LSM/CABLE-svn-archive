@@ -2204,7 +2204,7 @@ CONTAINS
        out%GPP_slC = out%GPP_slC +  REAL(canopy%A_slC/ 1e-6 , 4)
        out%GPP_shJ = out%GPP_shJ +  REAL(canopy%A_shJ/ 1e-6 , 4)
        out%GPP_slJ = out%GPP_slJ +  REAL(canopy%A_slJ/ 1e-6 , 4)
-       out%eta_GPP_cs =  out%eta_GPP_cs + REAL(canopy%eta_A_cs/ 1e-6 , 4)
+       out%eta_GPP_cs =  out%eta_GPP_cs + REAL(canopy%eta_GPP_cs/ 1e-6 , 4)
        out%eta_TVeg_cs =  out%eta_TVeg_cs + REAL(canopy%eta_fevc_cs/ air%rlam , 4)
 
 
