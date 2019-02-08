@@ -107,6 +107,7 @@ MODULE cable_mpiworker
   
   ! worker's struct for rec'ing/sending pop io to/from the master
   INTEGER :: simfire_inp_t
+  INTEGER :: simfire_out_t
   INTEGER :: simfire_send_t
   INTEGER :: simfire_restart_t
   
@@ -156,7 +157,7 @@ CONTAINS
     USE POP_Constants,        ONLY: HEIGHT_BINS, NCOHORT_MAX, shootfrac
 
     ! modules related to fire
-    USE BLAZE,                ONLY: TYPE_BLAZE
+    USE BLAZE_MOD,            ONLY: TYPE_BLAZE
     USE SIMFIRE_MOD,          ONLY: TYPE_SIMFIRE
 
     ! PLUME-MIP only
@@ -485,14 +486,14 @@ CONTAINS
                 IF ( CABLE_USER%CALL_BLAZE ) THEN
                    CALL worker_blaze_types (comm,mp, BLAZE, blaze_restart_t,blaze_out_t)
                    IF ( .NOT. spinup ) &
-                        CALL MPI_recv(icomm, blaze_restart_ts)
+                        CALL MPI_recv(icomm, blaze_restart_t)
                 ENDIF
                 ! CLN:  BURNT_AREA
                 IF ( CABLE_USER%BURNT_AREA == "SIMFIRE" ) THEN
-                   CALL worker_simfire_types (comm, mp, SF, simfire_restart_t, simfire_inp_t, simfire_out_t)
+                   CALL worker_simfire_types (comm, mp, SIMFIRE, simfire_restart_t, simfire_inp_t, simfire_out_t)
                    IF ( .NOT. spinup ) &
-                        CALL MPI_Recv(icomm,simfire_restart_ts)
-                   
+                        CALL MPI_Recv(icomm,simfire_restart_t)
+                ENDIF
              END IF
 
              ! MPI: create inp_t type to receive input data from the master
@@ -547,7 +548,7 @@ CONTAINS
           
              IF( icycle>0 .AND. spincasa) THEN
                 WRITE(wlogn,*) 'EXT spincasacnp enabled with mloop= ', mloop
-               CALL worker_spincasacnp(dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
+                CALL worker_spincasacnp(dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
                      casaflux,casamet,casabal,phen,POP,climate,LALLOC, icomm, ocomm)
                 SPINconv = .FALSE.
                 CASAONLY                   = .TRUE.
@@ -561,7 +562,7 @@ CONTAINS
                 SPINconv = .FALSE. 
                 ktau_gl = 0
                 ktau = 0
-            ENDIF
+             ENDIF
 
           ELSE
              IF (icycle.gt.0) THEN
@@ -588,7 +589,7 @@ CONTAINS
          ! IF (.NOT.spincasa) THEN 
           ! time step loop over ktau
           KTAULOOP:DO ktau=kstart, kend 
-              CALL CPU_TIME(etimelast)  
+             CALL CPU_TIME(etimelast)  
              ! increment total timstep counter
              ktau_tot = ktau_tot + 1
 
@@ -609,8 +610,6 @@ CONTAINS
 
              ! needed for CASA-CNP
              nyear =INT((kend-kstart+1)/(LOY*ktauday))
-
-
 
 
              canopy%oldcansto=canopy%cansto
@@ -676,14 +675,14 @@ CONTAINS
                      casapool, casaflux, casamet, casabal,              &
                      phen, pop, spinConv, spinup, ktauday, idoy, loy,   &
                      .FALSE., .FALSE., LALLOC )
-                 write(wlogn,*) 'after bgcdriver', MPI_BOTTOM,1, casa_t,0,ktau_gl,ocomm,ierr
-                 IF(MOD((ktau-kstart+1),ktauday).EQ.0) THEN
+                write(wlogn,*) 'after bgcdriver', MPI_BOTTOM,1, casa_t,0,ktau_gl,ocomm,ierr
+                IF(MOD((ktau-kstart+1),ktauday).EQ.0) THEN
                    CALL MPI_Send (MPI_BOTTOM,1, casa_t,0,ktau_gl,ocomm,ierr)
-                  write(wlogn,*) 'after casa mpi_send', ktau
-                 ENDIF
-
-                 IF ( cable_user%CALL_BLAZE ) &
-                      call blaze_driver(blaze, simfire, met, casapool, casaflux, shootfrac, idoy, YYYY, 1)
+                   write(wlogn,*) 'after casa mpi_send', ktau
+                ENDIF
+                
+                IF ( cable_user%CALL_BLAZE ) &
+                     call blaze_driver(blaze, simfire, met, casapool, casaflux, shootfrac, idoy, YYYY, 1)
                  
                  !!! CLN HERE BLAZE daily
 
@@ -700,7 +699,7 @@ CONTAINS
                      IS_CASA_TIME("dwrit", yyyy, ktau, kstart, &
                      koffset, kend, ktauday, logn))  &
                      CALL MPI_Send (MPI_BOTTOM, 1, casa_dump_t, 0, ktau_gl, ocomm, ierr)
-
+                
              ENDIF
 
              ! sumcflux is pulled out of subroutine cbm
@@ -727,7 +726,7 @@ CONTAINS
           END DO KTAULOOP ! END Do loop over timestep ktau
       ! ELSE 
 
-          CALL1 = .FALSE.
+      !    CALL1 = .FALSE.
       ! ENDIF
 
     
@@ -778,12 +777,12 @@ CONTAINS
 
           IF ( ((.NOT.spinup).OR.(spinup.AND.spinConv)).AND. &
                CABLE_USER%CALL_POP) THEN
-
+             CONTINUE
              !CALL worker_send_pop (POP, ocomm) 
 
           ENDIF
 
-        
+          
        END DO YEARLOOP
 
 
@@ -7574,7 +7573,7 @@ SUBROUTINE worker_spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapoo
                 pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
 
            !! CLN BLAZE here
-           blaze_spin_year = 1900 - myearspin + nyear
+           !!CLNblaze_spin_year = 1900 - myearspin + nyear
            !CLN CALL BLAZE_DRIVER(casapool,casaflux,shootfrac, met..., idoy,blaze_spin_year, DO_BLAZE_TO
 
            IF (cable_user%CALL_POP .and. POP%np.gt.0) THEN ! CALL_POP

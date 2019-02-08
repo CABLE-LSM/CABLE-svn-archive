@@ -1,29 +1,32 @@
-SUBROUTINE BLAZE_DRIVER ( BLAZE, SF, met, casapool, casaflux, shootfrac, idoy, curyear, CTLFLAG )
+SUBROUTINE BLAZE_DRIVER ( ncells, BLAZE, SF, met, casapool, casaflux, casamet, shootfrac, idoy, curyear, CTLFLAG )
 !CLNSUBROUTINE BLAZE_DRIVER ( casapool, casaflux, lat, lon, shootfrac, ddvp09, ddvp15, ddprec, &
 !CLN     ddTmin, ddTmax, ddwind,AvgAnnMaxFAPAR, modis_igbp, AvgAnnRainf, idoy, curyear, FLI, DFLI, FFDI, AB, &
 !CLN     POPFLAG, CTLFLAG, BLAZEFLX, POP_TO, POP_CWD,POP_STR, IAC, popd, mnest, BLAZE_FSTEP &
 !CLN     , AGL_wo1,AGL_wo2,AGL_wo3 )
 
-  USE CABLE_COMMON_MODULE, ONLY: IS_LEAPYEAR, DOYSOD2MDHMS
-  USE CASAVARIABLE,        ONLY: casa_pool, casa_flux
-  USE BLAZE,               ONLY: RUN_BLAZE, TYPE_TURNOVER, BLAZE_TURNOVER, NTO, &
+  USE CABLE_COMMON_MODULE, ONLY: IS_LEAPYEAR, DOYSOD2YMDHMS, Esatf, kbl_user_switches
+  USE CABLE_DEF_TYPES_MOD, ONLY: met_type
+  USE CASAVARIABLE,        ONLY: casa_pool, casa_flux, casa_met
+  USE BLAZE_MOD,           ONLY: RUN_BLAZE, TYPE_TURNOVER, BLAZE_TURNOVER, NTO, &
        METB, STR, CWD, LEAF, WOOD, FROOT, TYPE_BLAZE
   USE SIMFIRE_MOD,         ONLY: TYPE_SIMFIRE
-  USE UTILS,               ONLY: Esatf
-  USE BGCMODULE,           ONLY: tile_index
+  !RLN USE UTILS,               ONLY: Esatf
+  !RLN USE BGCMODULE,           ONLY: tile_index
 
   IMPLICIT NONE
 
   ! CTLFLAG  : Only, when POP is on. Control whether only FLI (or FLI AND POP-related TO) 
-  ! POPFLAG  : Check, how POP is set
   ! MODE     : 
+  TYPE(kbl_user_switches) :: cable_user
+
+  TYPE (met_type)         :: met     ! met input variables: see below for imet in MPI variables
 
   TYPE (casa_pool), INTENT(INOUT)      :: casapool
-  REAL,DIMENSION(NCELLS,3),INTENT(OUT) :: IAC
   TYPE (casa_flux), INTENT(IN)         :: casaflux
-  INTEGER,          INTENT(IN)         :: NCELLS,idoy, CurYear, POPFLAG, CTLFLAG
-  REAL,DIMENSION(NCELLS),INTENT(IN)    :: ddvp09, ddvp15, ddprec, shootfrac
-  REAL,DIMENSION(NCELLS),INTENT(IN)    :: ddTmin, ddTmax, ddwind, lon, lat
+  TYPE (casa_met ), INTENT(IN)         :: casamet
+  INTEGER,          INTENT(IN)         :: NCELLS,idoy, CurYear, CTLFLAG
+  REAL,DIMENSION(NCELLS),INTENT(IN)    :: shootfrac
+  REAL,DIMENSION(NCELLS),INTENT(IN)    :: ddTmin, ddTmax, lon, lat
   REAL,DIMENSION(NCELLS),INTENT(IN)    :: POP_TO, POP_CWD, POP_STR
   REAL,DIMENSION(NCELLS,13), INTENT(INOUT) :: BLAZEFLX
 
@@ -58,13 +61,13 @@ SUBROUTINE BLAZE_DRIVER ( BLAZE, SF, met, casapool, casaflux, shootfrac, idoy, c
 
   ! INITIALISATION ============================================================
  
-  IF ( BURNMODE .EQ. 0 ) RETURN
+  IF ( BLAZE%BURNMODE .EQ. 0 ) RETURN
 
-  BLAZEFLX = 0.
+  !CLNBLAZEFLX = 0.
 
-  !CLN ???
-  t1 = tile_index(:,1)
-  t2 = tile_index(:,2)
+  !CLN  ?VH: Remove tile_indeces?
+  !RLNt1 = tile_index(:,1)
+  !RLNt2 = tile_index(:,2)
 
   CPLANT_g  = REAL(casapool%cplant (t1,:))
   CPLANT_w  = REAL(casapool%cplant (t2,:))
@@ -111,7 +114,7 @@ SUBROUTINE BLAZE_DRIVER ( BLAZE, SF, met, casapool, casaflux, shootfrac, idoy, c
 
   END IF
 
-  CALL DOYSOD2MDHMS( CurYear, idoy, 0, MM=MM, DD=DD )
+  CALL DOYSOD2MDHMS( CurYear, idoy, 0, MM, DD )
 
   IF ( idoy .EQ. 366 .OR. ( idoy .EQ. 365 .AND. .NOT. is_leapyear(CurYear)) ) THEN
      EOY = .TRUE.
@@ -119,8 +122,7 @@ SUBROUTINE BLAZE_DRIVER ( BLAZE, SF, met, casapool, casaflux, shootfrac, idoy, c
      EOY = .FALSE.
   END IF
 
-  ! POPFLAG  
-  IF ( POPFLAG .EQ. -1 ) THEN ! POP on -> Run on annual Timestep
+  IF ( cable_user%CALL_POP ) THEN ! POP on -> Run on annual Timestep
      TSTP = 1.
   ELSE IF ( IS_LEAPYEAR(CurYear) ) THEN ! POP off
      TSTP = 1./366.
@@ -150,7 +152,7 @@ SUBROUTINE BLAZE_DRIVER ( BLAZE, SF, met, casapool, casaflux, shootfrac, idoy, c
 
   ! If the pools are going to be updated split CLITTER into AGL and BGL 
   ! later add updated AGL at the end of this routine again
-  IF ( BURNMODE .EQ. 1 .OR. CTLFLAG .EQ. -1 ) THEN
+  IF ( BLAZE%BURNMODE .EQ. 1 .OR. CTLFLAG .EQ. -1 ) THEN
      DO i = 1, 3
         BGL_g(:,i) = CLITTER_g(:,i) - AGL_g(:,i)
         BGL_w(:,i) = CLITTER_w(:,i) - AGL_w(:,i)
@@ -158,7 +160,7 @@ SUBROUTINE BLAZE_DRIVER ( BLAZE, SF, met, casapool, casaflux, shootfrac, idoy, c
   ENDIF
 
   ! BLAZE used to compute ALL or FLI_ONLY
-  IF ( BURNMODE .EQ. 1 .OR.  CTLFLAG .EQ. 1 ) THEN
+  IF ( BLAZE%BURNMODE .EQ. 1 .OR.  CTLFLAG .EQ. 1 ) THEN
 
      ! BURNMode 1: BLAZE computes mortality| BURNMode 2: BLAZE computes FLI only 
      !
@@ -171,19 +173,22 @@ SUBROUTINE BLAZE_DRIVER ( BLAZE, SF, met, casapool, casaflux, shootfrac, idoy, c
      ! Conversion to Windmax following S. Matthews, 2014 (pers. comm. so far)
      ! in km/h
 
-     U10 = ddwind * 3.6 ! m/s -> km/h
+     U10 = met%u10 * 3.6 ! m/s -> km/h
      U10 = ( 214.7 * ( U10 + 10. ) ** (-1.6968 ) + 1. ) * U10
-     
-     DO i=1, NCELLS
-        relhum(i) = 0.5*(MIN(1.,ddvp09(i) / Esatf(ddTmin(i))) + &
-             MIN(1.,ddvp15(i) / Esatf(ddTmax(i)))) * 100.        ! [%]
-     END DO
 
-     CALL RUN_BLAZE( NCELLS, lat, lon, shootfrac,CPLANT_g, CPLANT_w, AGL_g, AGL_w, &
-          BGL_g, BGL_w, ddprec, ddTMIN, ddTMAX, relhum, U10,AvgAnnMaxFAPAR, &
-          modis_igbp, AvgAnnRainf, AB, FLI, DFLI, FFDI, TO, tstp, CurYear, idoy, 1, &
-          POPFLAG, popd, mnest,BLAZE_FSTEP )
-     IF ( idoy .EQ. 1 ) IAC = 0.
+     relhum = met%rhum
+     PREC   = met%precip
+ 
+!RLN     DO i=1, NCELLS
+!RLN        relhum(i) = 0.5*(MIN(1.,ddvp09(i) / Esatf(ddTmin(i))) + &
+!RLN             MIN(1.,ddvp15(i) / Esatf(ddTmax(i)))) * 100.        ! [%]
+!RLN     END DO
+
+     CALL RUN_BLAZE( NCELLS, casamet%lat, casamet%lon, shootfrac,CPLANT_g, CPLANT_w, AGL_g, AGL_w, &
+          BGL_g, BGL_w, PREC, ddTMIN, ddTMAX, relhum, U10, AvgAnnMaxFAPAR, &
+          modis_igbp, AvgAnnRainf, AB, FLI, DFLI, FFDI, TO, tstp, CurYear, idoy, &
+          popd, mnest,BLAZE_FSTEP )
+!!CRM     IF ( idoy .EQ. 1 ) IAC = 0.
      
 !!CRM     IF ( POPFLAG .NE. 0 ) THEN       
 !!CRM        WHERE(AB .GT. 0. )
@@ -199,7 +204,7 @@ SUBROUTINE BLAZE_DRIVER ( BLAZE, SF, met, casapool, casaflux, shootfrac, idoy, c
      DO np = 1, NCELLS
         CALL BLAZE_TURNOVER( AB(np), CPLANT_g(np,:), CPLANT_w(np,:), AGL_g(np,:), &
              AGL_w(np,:), BGL_g(np,:), BGL_w(np,:),shootfrac(np),TO(np,:), &
-             POPFLAG, BLAZEFLX(np,:), POP_TO(np) )
+             BLAZEFLX(np,:), POP_TO(np) )
      END DO
   ELSE
      STOP "Wrong MODE in blaze_driver.f90!"
@@ -207,13 +212,13 @@ SUBROUTINE BLAZE_DRIVER ( BLAZE, SF, met, casapool, casaflux, shootfrac, idoy, c
 
   ! When TURNOVERS have been computed, update LITTER with AGL
   ! then add POP non-fire disturbance litter to AGL
-  IF ( BURNMODE .EQ. 1 .OR. CTLFLAG .EQ. -1 ) THEN
+  IF ( BLAZE%BURNMODE .EQ. 1 .OR. CTLFLAG .EQ. -1 ) THEN
      DO i = 1, 3
         CLITTER_g(:,i) = BGL_g(:,i) + AGL_g(:,i)
         CLITTER_w(:,i) = BGL_w(:,i) + AGL_w(:,i)
      END DO
      ! Update AGL only (BGL not saved)
-     IF ( POPFLAG .NE. 0 ) THEN
+     IF ( cable_user%CALL_POP ) THEN
         AGL_w(:, CWD) = AGL_w(:, CWD) + POP_CWD * shootfrac
         AGL_w(:, STR) = AGL_w(:, STR) + POP_STR 
      ENDIF
@@ -226,50 +231,50 @@ SUBROUTINE BLAZE_DRIVER ( BLAZE, SF, met, casapool, casaflux, shootfrac, idoy, c
 
 
   ! C - CLOSURE check
-  IF ( CLOSURE_TEST ) THEN
-     C_BIOMASS = (SUM( casapool%cplant ) + SUM(casapool%clitter) ) - &
-          (SUM(cplant_g) + SUM(cplant_w) + SUM(clitter_g) + SUM(clitter_w))
-          
-     C_FIRE = SUM(BLAZEFLX(:,1:2)) + SUM(BLAZEFLX(:,6:9)) + SUM(BLAZEFLX(:,11:13))
-     IF ( ABS(C_BIOMASS - C_FIRE) .GT. .5 ) THEN
-        PRINT*," IMBALANCE in BLAZE ", C_BIOMASS , C_FIRE, C_BIOMASS - C_FIRE
-        PRINT*," GRASS : "
-        PRINT*," Live 1 : ", SUM(cplant_g(:,1)),SUM(casapool%cplant(t1,1)), -SUM(BLAZEFLX(:,11)),&
-             SUM(cplant_g(:,1))+SUM(BLAZEFLX(:,11))-SUM(casapool%cplant(t1,1))
-        PRINT*," Live 2 : ", SUM(cplant_g(:,2)),SUM(casapool%cplant(t1,2)),SUM(cplant_g(:,2))-SUM(casapool%cplant(t1,2))
-        PRINT*," Live 3 : ", SUM(cplant_g(:,3)),SUM(casapool%cplant(t1,3)),SUM(cplant_g(:,3))-SUM(casapool%cplant(t1,3))
-
-        PRINT*," Litter1: ", SUM(clitter_g(:,1)),SUM(casapool%clitter(t1,1)),-SUM(BLAZEFLX(:,12)),&
-             (SUM(clitter_g(:,1))-SUM(casapool%clitter(t1,1)))+SUM(BLAZEFLX(:,12))
-        PRINT*," Litter2: ", SUM(clitter_g(:,2)),SUM(casapool%clitter(t1,2)),-SUM(BLAZEFLX(:,13)),&
-             (SUM(clitter_g(:,2))-SUM(casapool%clitter(t1,2)))+SUM(BLAZEFLX(:,13))
-        PRINT*," Litter3: ", SUM(clitter_g(:,3)),SUM(casapool%clitter(t1,3)),(SUM(clitter_g(:,3))-SUM(casapool%clitter(t1,3)))
-        PRINT*," WOOD : "
-        PRINT*," Live  LEAF:  ", SUM(cplant_w(:,LEAF)),SUM(casapool%cplant(t2,LEAF)),-(SUM(BLAZEFLX(:,1))+SUM(BLAZEFLX(:,3))),&
-             SUM(cplant_w(:,LEAF))-SUM(casapool%cplant(t2,LEAF))+(SUM(BLAZEFLX(:,1))+SUM(BLAZEFLX(:,3))) 
-        PRINT*," Live  WOOD:  ", SUM(cplant_w(:,WOOD)),SUM(casapool%cplant(t2,WOOD)),-(SUM(BLAZEFLX(:,2))+SUM(BLAZEFLX(:,4:5))),&
-             SUM(cplant_w(:,WOOD))-SUM(casapool%cplant(t2,WOOD))+(SUM(BLAZEFLX(:,2))+SUM(BLAZEFLX(:,4:5)))  
-        
-        PRINT*," Live  FROOT: ", SUM(cplant_w(:,FROOT)),SUM(casapool%cplant(t2,FROOT)),-SUM(BLAZEFLX(:,9:10)), &
-             SUM(cplant_w(:,FROOT))-SUM(casapool%cplant(t2,FROOT))+SUM(BLAZEFLX(:,9:10)) 
-        PRINT*," Litter METB: ", SUM(clitter_w(:,METB)),SUM(casapool%clitter(t2,METB)),-SUM(BLAZEFLX(:,6)),&
-             SUM(clitter_w(:,METB))-SUM(casapool%clitter(t2,METB))+SUM(BLAZEFLX(:,6))
-        PRINT*," Litter STR:  ", SUM(clitter_w(:,STR )),SUM(casapool%clitter(t2,STR )),-SUM(BLAZEFLX(:,7))+SUM(BLAZEFLX(:,3:4))+SUM(BLAZEFLX(:,9)),&
-             SUM(clitter_w(:,STR ))-SUM(casapool%clitter(t2,STR ))+SUM(BLAZEFLX(:,7))-(SUM(BLAZEFLX(:,3:4))+SUM(BLAZEFLX(:,9)))
-        PRINT*," Litter CWD : ", SUM(clitter_w(:,CWD)),SUM(casapool%clitter(t2,CWD)),-SUM(BLAZEFLX(:,8))+SUM(BLAZEFLX(:,5)),&
-             SUM(clitter_w(:,CWD))-SUM(casapool%clitter(t2,CWD))+SUM(BLAZEFLX(:,8))-SUM(BLAZEFLX(:,5))
-
-        PRINT*,"MTO(LEAF )%TO_STR : ", SUM(BLAZEFLX(:,3))
-        PRINT*,"MTO(WOOD )%TO_STR : ", SUM(BLAZEFLX(:,4))
-        PRINT*,"MTO(WOOD )%TO_CWD : ", SUM(BLAZEFLX(:,5))
-        PRINT*,"MTO(FROOT)%TO_STR : ", SUM(BLAZEFLX(:,9))
-        PRINT*,"MTO(MLIT )%TO_ATM : ", -SUM(BLAZEFLX(:,6))
-        PRINT*,"MTO(SLIT )%TO_ATM : ", -SUM(BLAZEFLX(:,7))
-        PRINT*,"MTO(CLIT )%TO_ATM : ", -SUM(BLAZEFLX(:,8))
-        PRINT*,"AB * AGL_g(METB)  : ", -SUM(BLAZEFLX(:,12))
-        PRINT*,"AB * AGL_g(STR )  : ", -SUM(BLAZEFLX(:,13))
-     ENDIF
-  ENDIF
+!CLN  IF ( CLOSURE_TEST ) THEN
+!CLN     C_BIOMASS = (SUM( casapool%cplant ) + SUM(casapool%clitter) ) - &
+!CLN          (SUM(cplant_g) + SUM(cplant_w) + SUM(clitter_g) + SUM(clitter_w))
+!CLN          
+!CLN     C_FIRE = SUM(BLAZEFLX(:,1:2)) + SUM(BLAZEFLX(:,6:9)) + SUM(BLAZEFLX(:,11:13))
+!CLN     IF ( ABS(C_BIOMASS - C_FIRE) .GT. .5 ) THEN
+!CLN        PRINT*," IMBALANCE in BLAZE ", C_BIOMASS , C_FIRE, C_BIOMASS - C_FIRE
+!CLN        PRINT*," GRASS : "
+!CLN        PRINT*," Live 1 : ", SUM(cplant_g(:,1)),SUM(casapool%cplant(t1,1)), -SUM(BLAZEFLX(:,11)),&
+!CLN             SUM(cplant_g(:,1))+SUM(BLAZEFLX(:,11))-SUM(casapool%cplant(t1,1))
+!CLN        PRINT*," Live 2 : ", SUM(cplant_g(:,2)),SUM(casapool%cplant(t1,2)),SUM(cplant_g(:,2))-SUM(casapool%cplant(t1,2))
+!CLN        PRINT*," Live 3 : ", SUM(cplant_g(:,3)),SUM(casapool%cplant(t1,3)),SUM(cplant_g(:,3))-SUM(casapool%cplant(t1,3))
+!CLN
+!CLN        PRINT*," Litter1: ", SUM(clitter_g(:,1)),SUM(casapool%clitter(t1,1)),-SUM(BLAZEFLX(:,12)),&
+!CLN             (SUM(clitter_g(:,1))-SUM(casapool%clitter(t1,1)))+SUM(BLAZEFLX(:,12))
+!CLN        PRINT*," Litter2: ", SUM(clitter_g(:,2)),SUM(casapool%clitter(t1,2)),-SUM(BLAZEFLX(:,13)),&
+!CLN             (SUM(clitter_g(:,2))-SUM(casapool%clitter(t1,2)))+SUM(BLAZEFLX(:,13))
+!CLN        PRINT*," Litter3: ", SUM(clitter_g(:,3)),SUM(casapool%clitter(t1,3)),(SUM(clitter_g(:,3))-SUM(casapool%clitter(t1,3)))
+!CLN        PRINT*," WOOD : "
+!CLN        PRINT*," Live  LEAF:  ", SUM(cplant_w(:,LEAF)),SUM(casapool%cplant(t2,LEAF)),-(SUM(BLAZEFLX(:,1))+SUM(BLAZEFLX(:,3))),&
+!CLN             SUM(cplant_w(:,LEAF))-SUM(casapool%cplant(t2,LEAF))+(SUM(BLAZEFLX(:,1))+SUM(BLAZEFLX(:,3))) 
+!CLN        PRINT*," Live  WOOD:  ", SUM(cplant_w(:,WOOD)),SUM(casapool%cplant(t2,WOOD)),-(SUM(BLAZEFLX(:,2))+SUM(BLAZEFLX(:,4:5))),&
+!CLN             SUM(cplant_w(:,WOOD))-SUM(casapool%cplant(t2,WOOD))+(SUM(BLAZEFLX(:,2))+SUM(BLAZEFLX(:,4:5)))  
+!CLN        
+!CLN        PRINT*," Live  FROOT: ", SUM(cplant_w(:,FROOT)),SUM(casapool%cplant(t2,FROOT)),-SUM(BLAZEFLX(:,9:10)), &
+!CLN             SUM(cplant_w(:,FROOT))-SUM(casapool%cplant(t2,FROOT))+SUM(BLAZEFLX(:,9:10)) 
+!CLN        PRINT*," Litter METB: ", SUM(clitter_w(:,METB)),SUM(casapool%clitter(t2,METB)),-SUM(BLAZEFLX(:,6)),&
+!CLN             SUM(clitter_w(:,METB))-SUM(casapool%clitter(t2,METB))+SUM(BLAZEFLX(:,6))
+!CLN        PRINT*," Litter STR:  ", SUM(clitter_w(:,STR )),SUM(casapool%clitter(t2,STR )),-SUM(BLAZEFLX(:,7))+SUM(BLAZEFLX(:,3:4))+SUM(BLAZEFLX(:,9)),&
+!CLN             SUM(clitter_w(:,STR ))-SUM(casapool%clitter(t2,STR ))+SUM(BLAZEFLX(:,7))-(SUM(BLAZEFLX(:,3:4))+SUM(BLAZEFLX(:,9)))
+!CLN        PRINT*," Litter CWD : ", SUM(clitter_w(:,CWD)),SUM(casapool%clitter(t2,CWD)),-SUM(BLAZEFLX(:,8))+SUM(BLAZEFLX(:,5)),&
+!CLN             SUM(clitter_w(:,CWD))-SUM(casapool%clitter(t2,CWD))+SUM(BLAZEFLX(:,8))-SUM(BLAZEFLX(:,5))
+!CLN
+!CLN        PRINT*,"MTO(LEAF )%TO_STR : ", SUM(BLAZEFLX(:,3))
+!CLN        PRINT*,"MTO(WOOD )%TO_STR : ", SUM(BLAZEFLX(:,4))
+!CLN        PRINT*,"MTO(WOOD )%TO_CWD : ", SUM(BLAZEFLX(:,5))
+!CLN        PRINT*,"MTO(FROOT)%TO_STR : ", SUM(BLAZEFLX(:,9))
+!CLN        PRINT*,"MTO(MLIT )%TO_ATM : ", -SUM(BLAZEFLX(:,6))
+!CLN        PRINT*,"MTO(SLIT )%TO_ATM : ", -SUM(BLAZEFLX(:,7))
+!CLN        PRINT*,"MTO(CLIT )%TO_ATM : ", -SUM(BLAZEFLX(:,8))
+!CLN        PRINT*,"AB * AGL_g(METB)  : ", -SUM(BLAZEFLX(:,12))
+!CLN        PRINT*,"AB * AGL_g(STR )  : ", -SUM(BLAZEFLX(:,13))
+!CLN     ENDIF
+!CLN  ENDIF
 
   casapool%cplant (t1,:) = DBLE(CPLANT_g )
   casapool%cplant (t2,:) = DBLE(CPLANT_w )

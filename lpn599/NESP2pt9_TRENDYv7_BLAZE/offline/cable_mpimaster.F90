@@ -203,7 +203,7 @@ CONTAINS
          READ_LUC_RESTART_NC, alloc_popluc
     
     ! modules related to fire
-    USE BLAZE,                ONLY: TYPE_BLAZE
+    USE BLAZE_MOD,            ONLY: TYPE_BLAZE
     USE SIMFIRE_MOD,          ONLY: TYPE_SIMFIRE
 
     ! PLUME-MIP only
@@ -619,10 +619,10 @@ CONTAINS
                   bal, logn, vegparmnew, casabiome, casapool,		 &
                   casaflux, sum_casapool, sum_casaflux, &
                   casamet, casabal, phen, POP, spinup,	       &
-                  C%EMSOIL, C%TFRZ, LUC_EXPT, POPLUC, BLAZET, SIMFIRE )
+                  C%EMSOIL, C%TFRZ, LUC_EXPT, POPLUC, BLAZE, SIMFIRE )
 
              ! Abort, if an error occurred during BLAZE/SIMFIRE init
-             IF ( BLAZET%ERR ) CALL MPI_Abort(comm,0,ierr)
+             IF ( BLAZE%ERR ) CALL MPI_Abort(comm,0,ierr)
              
              IF (CABLE_USER%POPLUC .AND. TRIM(CABLE_USER%POPLUC_RunType) .EQ. 'static') &
                   CABLE_USER%POPLUC= .FALSE.
@@ -705,7 +705,7 @@ CONTAINS
                 ! Fire init and 
                 IF ( CABLE_USER%CALL_BLAZE ) THEN
                    !CREATE handles for restart-data 
-                   CALL master_blaze_types(comm, wland, mp, BLAZET, blaze_restart_ts, blaze_out_ts)
+                   CALL master_blaze_types(comm, wland, mp, BLAZE, blaze_restart_ts, blaze_out_ts)
                    IF ( .NOT. spinup ) &
                         CALL master_send_input(icomm, blaze_restart_ts, ktau)
                    IF ( TRIM(cable_user%BURNT_AREA) == "SIMFIRE" ) THEN

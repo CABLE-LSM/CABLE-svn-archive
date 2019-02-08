@@ -4,7 +4,9 @@ TYPE TYPE_BLAZE
    INTEGER,  DIMENSION(:),  ALLOCATABLE :: DSLR,ilon, jlat, Flix
    REAL,     DIMENSION(:),  ALLOCATABLE :: RAINF, KBDI, LR, U10,RH,TMAX,TMIN,AREA
    REAL,     DIMENSION(:),  ALLOCATABLE :: FFDI,FLI,ROS,Z,D,w, LAT, LON,DFLI,AB,CAvgAnnRainf
-   REAL,     DIMENSION(:,:),ALLOCATABLE :: AnnRAINF, DEADWOOD, ABM, TO, AGC_g, AGC_w
+   REAL,     DIMENSION(:),  ALLOCATABLE :: DEADWOOD
+   REAL,     DIMENSION(:,:),ALLOCATABLE :: AnnRAINF, ABM, TO, AGC_g, AGC_w
+   REAL,     DIMENSION(:,:),ALLOCATABLE :: AGLB_w, AGLB_g, AGLit_w, AGLit_g
    REAL,     DIMENSION(:,:),ALLOCATABLE :: AvgAnnRAINF
    CHARACTER,DIMENSION(:),  ALLOCATABLE :: FTYPE*6
    INTEGER                              :: T_AVG, YEAR, MONTH, DAY, DOY, NCELLS
@@ -108,7 +110,7 @@ SUBROUTINE INI_BLAZE (POPFLAG, BURNT_AREA_SOURCE, TSTEP, np, BLAZE)
   ALLOCATE ( BLAZE%w       ( np ) )
   ALLOCATE ( BLAZE%TO      ( np, NTO ) )
   ALLOCATE ( BLAZE%AnnRainf( np, 366 ) )
-!  ALLOCATE ( BLAZE%DEADWOOD( np ) ) 
+  ALLOCATE ( BLAZE%DEADWOOD( np ) ) 
 
   ! SETTINGS FOR BLAZE (BLAZEFLAG)
   ! bit value:               0            | 1
@@ -639,7 +641,7 @@ END SUBROUTINE COMBUST
 
 SUBROUTINE RUN_BLAZE(ncells, LAT, LON, shootfrac,CPLANT_g, CPLANT_w, AGL_g, AGL_w, &
      BGL_g, BGL_w, RAINF, TMIN, TMAX, RH, U10,AvgAnnMaxFAPAR, modis_igbp, &
-     AvgAnnRainf, AB, FLI, DFLI, FFDI, TO, tstp, YYYY, doy, npatch, POPFLAG,popd,mnest,BLAZE_FSTEP ) !, CTRL)
+     AvgAnnRainf, AB, FLI, DFLI, FFDI, TO, tstp, YYYY, doy, POPFLAG,popd,mnest,BLAZE_FSTEP ) !, CTRL)
 
   USE CABLE_COMMON_MODULE, ONLY: IS_LEAPYEAR, DOYSOD2YMDHMS
   USE SIMFIRE_MOD 
@@ -656,7 +658,7 @@ SUBROUTINE RUN_BLAZE(ncells, LAT, LON, shootfrac,CPLANT_g, CPLANT_w, AGL_g, AGL_
   REAL               ,ALLOCATABLE,SAVE :: FLIsav(:)
 
   INTEGER          :: np, doy, ncells, YYYY, CTRL, MM, DD, DOM(12)
-  INTEGER          :: npatch,i
+  INTEGER          :: i
   REAL             :: CPLANT_g(ncells,3), CPLANT_w(ncells,3), tstp
   REAL, DIMENSION(ncells,3) :: AGL_g, AGL_w, BGL_g, BGL_w
   REAL, DIMENSION(ncells)   :: &
@@ -680,7 +682,7 @@ SUBROUTINE RUN_BLAZE(ncells, LAT, LON, shootfrac,CPLANT_g, CPLANT_w, AGL_g, AGL_
 
   LOGICAL, SAVE :: BCALL1 = .TRUE.
 
-  REAL          :: DEADWOOD(ncells,npatch)
+  REAL          :: DEADWOOD(ncells)
 
   CHARACTER     :: BLAZE_FSTEP*7
 
@@ -764,7 +766,7 @@ SUBROUTINE RUN_BLAZE(ncells, LAT, LON, shootfrac,CPLANT_g, CPLANT_w, AGL_g, AGL_
 !CLN     AGL(np,CWD) = AGL(np,CWD) + &
 !CLN          !       (1.-exp(-0.5*tstp/SF(ft))) * SUM(DEADWOOD,dim=2) 
 !CLN          (1.-exp(-0.5*tstp/15.)) * SUM( DEADWOOD(np,:)) 
-!CLN     DEADWOOD(np,:)  = DEADWOOD(np,:) * exp(-0.5*tstp/15.)
+!CLN      DEADWOOD(np,:)  = DEADWOOD(np,:) * exp(-0.5*tstp/15.)
      
      IF ( BLAZE%FSTEP .NE. "daily" ) THEN
         IF ( DD.EQ.1 ) THEN
@@ -775,7 +777,7 @@ SUBROUTINE RUN_BLAZE(ncells, LAT, LON, shootfrac,CPLANT_g, CPLANT_w, AGL_g, AGL_
      ENDIF
 
      CALL COMBUST( BLAZE, np, CPLANT_g(np,:), CPLANT_w(np,:), AGL_g(np,:), &
-          AGL_w(np,:),DEADWOOD(np,1), TO(np,:), BLAZE%AB(np).GT.0 )
+          AGL_w(np,:),DEADWOOD(np), TO(np,:), BLAZE%AB(np).GT.0 )
 
      BLAZE%DFLI(np) = BLAZE%FLI(np)
      IF ( BLAZE%FSTEP .NE. "daily" ) THEN

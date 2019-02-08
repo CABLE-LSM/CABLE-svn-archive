@@ -105,8 +105,8 @@ PROGRAM cable_offline_driver
   USE POP_Constants,	    ONLY: HEIGHT_BINS, NCOHORT_MAX
 
   ! Fire Model BLAZE
+  USE BLAZE_MOD,            ONLY: TYPE_BLAZE
   USE SIMFIRE_MOD,          ONLY: TYPE_SIMFIRE
-  USE BLAZE,                ONLY: TYPE_BLAZE
 
   ! PLUME-MIP only
   USE CABLE_PLUME_MIP,	    ONLY: PLUME_MIP_TYPE, PLUME_MIP_GET_MET,&
