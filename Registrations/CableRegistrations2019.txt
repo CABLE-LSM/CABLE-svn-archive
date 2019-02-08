@@ -1,0 +1,6 @@
+Date    NCI ID    Name                  Institution                     Country     Student   Comments
+15/01   jk8585    Juergen Knauer        CSIRO                           Australia
+20/01   dp9426    David Patterson       CSIRO                           Australia             retired@TimeOfReg
+22/01   ep6367    Elise Pendall         Uni. of Western Sydney          Australia
+23/01   lt0205    Lina Teckentrup       UNSW                            Australia  
+24/01   ss2856    Stephen Stewart       CSIRO                           Australia             PENDING
