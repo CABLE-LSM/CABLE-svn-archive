@@ -4,10 +4,10 @@ TYPE TYPE_BLAZE
    INTEGER,  DIMENSION(:),  ALLOCATABLE :: DSLR,ilon, jlat, Flix
    REAL,     DIMENSION(:),  ALLOCATABLE :: RAINF, KBDI, LR, U10,RH,TMAX,TMIN,AREA
    REAL,     DIMENSION(:),  ALLOCATABLE :: FFDI,FLI,ROS,Z,D,w, LAT, LON,DFLI,AB,CAvgAnnRainf
-   REAL,     DIMENSION(:),  ALLOCATABLE :: DEADWOOD
+   REAL,     DIMENSION(:),  ALLOCATABLE :: DEADWOOD,POP_TO, POP_CWD, POP_STR
    REAL,     DIMENSION(:,:),ALLOCATABLE :: AnnRAINF, ABM, TO, AGC_g, AGC_w
    REAL,     DIMENSION(:,:),ALLOCATABLE :: AGLB_w, AGLB_g, AGLit_w, AGLit_g
-   REAL,     DIMENSION(:,:),ALLOCATABLE :: AvgAnnRAINF
+   REAL,     DIMENSION(:,:),ALLOCATABLE :: AvgAnnRAINF, FLUXES
    CHARACTER,DIMENSION(:),  ALLOCATABLE :: FTYPE*6
    INTEGER                              :: T_AVG, YEAR, MONTH, DAY, DOY, NCELLS
    INTEGER                              :: BURNMODE ! 0=off, 1=BLAZE only, 2=BLAZE with POP
@@ -46,6 +46,7 @@ REAL,    PARAMETER :: fbark   = 0.01 ! fraction of CPLANT_w(wood) attributed to 
 ! Controlflag to determine whether full blaze or blaze/POP turn-overs used
 INTEGER, PARAMETER :: DO_BLAZE_TO = 1
 INTEGER, PARAMETER :: DO_POP_TO   = -1
+INTEGER, PARAMETER :: NFLUX       = 12
 
 !CLN !WRONG VARNAME! REAL, DIMENSION(5),PARAMETER :: SF = (/ 50.,50.,30.,20.,15./) !Euc*2, pinus123
 
@@ -63,6 +64,7 @@ REAL, DIMENSION(5,12),PARAMETER   ::   &
               .5 , .75, .75, .8 , .8 , &  ! 10 Deadwood    -> ATM
               .6 , .65, .85, 1. , 1. , &  ! 11 Bark Litter -> ATM
               .6 , .65, .85, 1. , 1. /)   ! 12 Leaf Litter -> ATM
+!CLN DEADWOOD!!!
 !CLN              .7 , .75, .8, .8 , .8 , &  ! 10 Deadwood    -> ATM
 !CLN              .9 , .95, .95, 1. , 1. , &  ! 11 Bark Litter -> ATM
 !CLN              .9 , .95, .95, 1. , 1. /)   ! 12 Leaf Litter -> ATM
@@ -71,16 +73,17 @@ REAL, PARAMETER :: MIN_FUEL = 120. ! Min fuel to spark a fire [g(C)/m2]
 
 CONTAINS
 
-SUBROUTINE INI_BLAZE (POPFLAG, BURNT_AREA_SOURCE, TSTEP, np, BLAZE)
+SUBROUTINE INI_BLAZE (POPFLAG, BURNT_AREA_SOURCE, TSTEP, np, BLAZE, LAT, LON)
 
   !! Called from cable_input now
 
   IMPLICIT NONE
   
-  LOGICAL         , INTENT(IN)    :: POPFLAG
-  CHARACTER(LEN=*), INTENT(IN)    :: BURNT_AREA_SOURCE, TSTEP
-  INTEGER         , INTENT(IN)    :: np
-  TYPE(TYPE_BLAZE), INTENT(INOUT) :: BLAZE
+  LOGICAL            , INTENT(IN)    :: POPFLAG
+  CHARACTER(LEN=*)   , INTENT(IN)    :: BURNT_AREA_SOURCE, TSTEP
+  INTEGER            , INTENT(IN)    :: np
+  REAL, DIMENSION(np), INTENT(IN)    :: LAT, LON
+  TYPE(TYPE_BLAZE)   , INTENT(INOUT) :: BLAZE
 
   ! READ ini-nml
   BLAZE%NCELLS = np
@@ -111,7 +114,11 @@ SUBROUTINE INI_BLAZE (POPFLAG, BURNT_AREA_SOURCE, TSTEP, np, BLAZE)
   ALLOCATE ( BLAZE%TO      ( np, NTO ) )
   ALLOCATE ( BLAZE%AnnRainf( np, 366 ) )
   ALLOCATE ( BLAZE%DEADWOOD( np ) ) 
-
+  ! POP related vars
+  ALLOCATE ( BLAZE%POP_TO  ( np ) )
+  ALLOCATE ( BLAZE%POP_CWD ( np ) )
+  ALLOCATE ( BLAZE%POP_STR ( np ) )
+  ALLOCATE ( BLAZE%FLUXES  ( np, 13 ) )
   ! SETTINGS FOR BLAZE (BLAZEFLAG)
   ! bit value:               0            | 1
   ! 0th bit(1), general    : off          | on
@@ -152,7 +159,10 @@ SUBROUTINE INI_BLAZE (POPFLAG, BURNT_AREA_SOURCE, TSTEP, np, BLAZE)
   BLAZE%DEADWOOD  = 0. 
   BLAZE%FSTEP     = TRIM(TSTEP)
 
-  ! time for avging rainfall [a]
+  BLAZE%LAT       = LAT
+  BLAZE%LON       = LON
+
+  ! time for averaging annual rainfall [a]
   BLAZE%T_AVG = 5            
   ! deadwood decay scale time [a]  
   BLAZE%FT    = 30               
@@ -205,8 +215,8 @@ SUBROUTINE BLAZE_ACCOUNTING(BLAZE, met, ktau, dels, year, doy)
 
   DO i = 1, mp
      BLAZE%AnnRAINF(i,doy) = BLAZE%AnnRAINF(i,doy) + met%precip(i)    
-     BLAZE%U10 (i) = MAX(met%u10(i) ,BLAZE%U10(i))
-     BLAZE%RH  (i) = BLAZE%RH(i) + met%rhum(i)/t_fac
+     BLAZE%U10 (i) = MAX(met%u10(i),BLAZE%U10(i))        ! m/s -> km/s
+     BLAZE%RH  (i) = BLAZE%RH(i) + met%rhum(i)/t_fac     ! daily average rel. humidity
      BLAZE%TMAX(i) = MAX(met%tvair(i),BLAZE%TMAX(i))
      BLAZE%TMIN(i) = MIN(met%tvair(i),BLAZE%TMIN(i))     
   END DO
@@ -459,14 +469,14 @@ FUNCTION BURNTIME( YEAR, DOY, FSTEP )
 
 END FUNCTION BURNTIME
 
-SUBROUTINE COMBUST (BLAZE, np, CPLANT_g, CPLANT_w, AGL_g, AGL_w, DEADWOOD, TO, BURN )
+SUBROUTINE COMBUST (BLAZE, np, CPLANT_w(3), CPLANT_g(3), BURN )
 
   IMPLICIT NONE
 
   TYPE(TYPE_BLAZE),   INTENT(INOUT) :: BLAZE
   INTEGER,            INTENT(IN)    :: NP
   REAL,               INTENT(IN)    :: CPLANT_w(3), CPLANT_g(3)
-  REAL,               INTENT(IN)    :: AGL_w(3),AGL_g(3), DEADWOOD
+!CRM  REAL,               INTENT(IN)    :: AGL_w(3),AGL_g(3), DEADWOOD
   LOGICAL,            INTENT(IN)    :: BURN
   TYPE(TYPE_TURNOVER),INTENT(INOUT) :: TO(NTO)
 
@@ -639,9 +649,11 @@ SUBROUTINE COMBUST (BLAZE, np, CPLANT_g, CPLANT_w, AGL_g, AGL_w, DEADWOOD, TO, B
 END SUBROUTINE COMBUST
 
 
-SUBROUTINE RUN_BLAZE(ncells, LAT, LON, shootfrac,CPLANT_g, CPLANT_w, AGL_g, AGL_w, &
-     BGL_g, BGL_w, RAINF, TMIN, TMAX, RH, U10,AvgAnnMaxFAPAR, modis_igbp, &
-     AvgAnnRainf, AB, FLI, DFLI, FFDI, TO, tstp, YYYY, doy, POPFLAG,popd,mnest,BLAZE_FSTEP ) !, CTRL)
+SUBROUTINE RUN_BLAZE(BLAZE, SF, CPLANT_g, CPLANT_w, modis_igbp, &
+     AvgAnnRainf, tstp, YYYY, doy, POPFLAG, popd, mnest, BLAZE_FSTEP ) !, CTRL)
+!CRMSUBROUTINE RUN_BLAZE(ncells, LAT, LON, shootfrac,CPLANT_g, CPLANT_w, AGL_g, AGL_w, &
+!CRM     BGL_g, BGL_w, RAINF, TMIN, TMAX, RH, U10,AvgAnnMaxFAPAR, modis_igbp, &
+!CRM     AvgAnnRainf, AB, FLI, DFLI, FFDI, TO, tstp, YYYY, doy, POPFLAG,popd,mnest,BLAZE_FSTEP ) !, CTRL)
 
   USE CABLE_COMMON_MODULE, ONLY: IS_LEAPYEAR, DOYSOD2YMDHMS
   USE SIMFIRE_MOD 
@@ -650,18 +662,18 @@ SUBROUTINE RUN_BLAZE(ncells, LAT, LON, shootfrac,CPLANT_g, CPLANT_w, AGL_g, AGL_
 
   INTEGER, INTENT(IN) :: POPFLAG
 
-  TYPE(TYPE_BLAZE)  ,SAVE  :: BLAZE
-  TYPE(TYPE_SIMFIRE),SAVE  :: SF
-  TYPE(TYPE_TURNOVER)      :: TO(NCELLS,7)
+  TYPE(TYPE_BLAZE)    :: BLAZE
+  TYPE(TYPE_SIMFIRE)  :: SF
+  TYPE(TYPE_TURNOVER) :: TO(BLAZE%NCELLS,7)
 
   TYPE(TYPE_TURNOVER),ALLOCATABLE,SAVE :: TOsav(:,:)
   REAL               ,ALLOCATABLE,SAVE :: FLIsav(:)
 
-  INTEGER          :: np, doy, ncells, YYYY, CTRL, MM, DD, DOM(12)
+  INTEGER          :: np, doy, YYYY, CTRL, MM, DD, DOM(12)
   INTEGER          :: i
-  REAL             :: CPLANT_g(ncells,3), CPLANT_w(ncells,3), tstp
-  REAL, DIMENSION(ncells,3) :: AGL_g, AGL_w, BGL_g, BGL_w
-  REAL, DIMENSION(ncells)   :: &
+  REAL             :: CPLANT_g(BLAZE%NCELLS,3), CPLANT_w(BLAZE%NCELLS,3), tstp
+  REAL, DIMENSION(BLAZE%NCELLS,3) :: AGL_g, AGL_w, BGL_g, BGL_w
+  REAL, DIMENSION(BLAZE%NCELLS)   :: &
        RAINF,             & ! [mm/d]
        TMIN,              & ! [deg C]
        TMAX,              & ! [deg C]
@@ -676,13 +688,13 @@ SUBROUTINE RUN_BLAZE(ncells, LAT, LON, shootfrac,CPLANT_g, CPLANT_w, AGL_g, AGL_
        popd,              & ! [kW/m]
        mnest,             &
        shootfrac
-                
-  REAL,DIMENSION(ncells)     :: LAT,LON
-  INTEGER,DIMENSION(ncells)  :: modis_igbp  ! [0,17] landcover index
+               
+! CLN to simfire!!! 
+  INTEGER,DIMENSION(BLAZE%NCELLS)  :: modis_igbp  ! [0,17] landcover index
 
   LOGICAL, SAVE :: BCALL1 = .TRUE.
 
-  REAL          :: DEADWOOD(ncells)
+!CRM  REAL          :: DEADWOOD(ncells)
 
   CHARACTER     :: BLAZE_FSTEP*7
 
@@ -740,7 +752,7 @@ SUBROUTINE RUN_BLAZE(ncells, LAT, LON, shootfrac,CPLANT_g, CPLANT_w, AGL_g, AGL_
      CALL SIMFIRE ( SF, RAINF, TMAX, TMIN, DOY, YYYY, AB )
 
      BLAZE%AB(:) = AB(:)
-     DO np = 1, ncells
+     DO np = 1, BLAZE%NCELLS
         IF ( MIN_FUEL .GE. AVAIL_FUEL(1, CPLANT_w(np,:), CPLANT_g(np,:), AGL_w(np,:), AGL_g(np,:)))&
              BLAZE%AB(np) = 0.
      END DO
@@ -751,7 +763,7 @@ SUBROUTINE RUN_BLAZE(ncells, LAT, LON, shootfrac,CPLANT_g, CPLANT_w, AGL_g, AGL_
      STOP -1
   ENDIF
   
-  DEADWOOD    = BLAZE%DEADWOOD
+!CRM  DEADWOOD    = BLAZE%DEADWOOD
   BLAZE%Rainf = RAINF
   BLAZE%TMAX  = TMAX ! deg C
   BLAZE%TMIN  = TMIN ! deg C
@@ -761,7 +773,7 @@ SUBROUTINE RUN_BLAZE(ncells, LAT, LON, shootfrac,CPLANT_g, CPLANT_w, AGL_g, AGL_
   ! Apply half of former deadwood to atm now How to distribut (str
   ! set following Fraver 2013 pinus rosinosa (hardwood/decid. wood to be added
    
-  DO np = 1, ncells
+  DO np = 1, BLAZE%NCELLS
 
 !CLN     AGL(np,CWD) = AGL(np,CWD) + &
 !CLN          !       (1.-exp(-0.5*tstp/SF(ft))) * SUM(DEADWOOD,dim=2) 
@@ -776,8 +788,9 @@ SUBROUTINE RUN_BLAZE(ncells, LAT, LON, shootfrac,CPLANT_g, CPLANT_w, AGL_g, AGL_
         ENDIF
      ENDIF
 
-     CALL COMBUST( BLAZE, np, CPLANT_g(np,:), CPLANT_w(np,:), AGL_g(np,:), &
-          AGL_w(np,:),DEADWOOD(np), TO(np,:), BLAZE%AB(np).GT.0 )
+     CALL COMBUST( BLAZE, np, CPLANT_g(np,:), CPLANT_w(np,:),TO(np,:),BLAZE%AB(np).GT.0 )
+!CRM     CALL COMBUST( BLAZE, np, CPLANT_g(np,:), CPLANT_w(np,:), AGL_g(np,:), &
+!CRM          AGL_w(np,:),DEADWOOD(np), TO(np,:), BLAZE%AB(np).GT.0 )
 
      BLAZE%DFLI(np) = BLAZE%FLI(np)
      IF ( BLAZE%FSTEP .NE. "daily" ) THEN
@@ -789,7 +802,6 @@ SUBROUTINE RUN_BLAZE(ncells, LAT, LON, shootfrac,CPLANT_g, CPLANT_w, AGL_g, AGL_
            BLAZE%FLI(np) = FLIsav(np)
         ENDIF
      ENDIF
-
 
      
      BLAZE%TO(np,:) = 0.

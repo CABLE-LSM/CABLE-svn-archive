@@ -1,12 +1,11 @@
-SUBROUTINE BLAZE_DRIVER ( ncells, BLAZE, SF, met, casapool, casaflux, casamet, shootfrac, idoy, curyear, CTLFLAG )
+SUBROUTINE BLAZE_DRIVER ( BLAZE, SF, casapool, casaflux, shootfrac, idoy, curyear, CTLFLAG )
 !CLNSUBROUTINE BLAZE_DRIVER ( casapool, casaflux, lat, lon, shootfrac, ddvp09, ddvp15, ddprec, &
 !CLN     ddTmin, ddTmax, ddwind,AvgAnnMaxFAPAR, modis_igbp, AvgAnnRainf, idoy, curyear, FLI, DFLI, FFDI, AB, &
 !CLN     POPFLAG, CTLFLAG, BLAZEFLX, POP_TO, POP_CWD,POP_STR, IAC, popd, mnest, BLAZE_FSTEP &
 !CLN     , AGL_wo1,AGL_wo2,AGL_wo3 )
 
-  USE CABLE_COMMON_MODULE, ONLY: IS_LEAPYEAR, DOYSOD2YMDHMS, Esatf, kbl_user_switches
-  USE CABLE_DEF_TYPES_MOD, ONLY: met_type
-  USE CASAVARIABLE,        ONLY: casa_pool, casa_flux, casa_met
+  USE CABLE_COMMON_MODULE, ONLY: IS_LEAPYEAR, DOYSOD2YMDHMS, kbl_user_switches !, Esatf
+  USE CASAVARIABLE,        ONLY: casa_pool, casa_flux
   USE BLAZE_MOD,           ONLY: RUN_BLAZE, TYPE_TURNOVER, BLAZE_TURNOVER, NTO, &
        METB, STR, CWD, LEAF, WOOD, FROOT, TYPE_BLAZE
   USE SIMFIRE_MOD,         ONLY: TYPE_SIMFIRE
@@ -19,16 +18,13 @@ SUBROUTINE BLAZE_DRIVER ( ncells, BLAZE, SF, met, casapool, casaflux, casamet, s
   ! MODE     : 
   TYPE(kbl_user_switches) :: cable_user
 
-  TYPE (met_type)         :: met     ! met input variables: see below for imet in MPI variables
+!CLN  TYPE (met_type)         :: met     ! met input variables: see below for imet in MPI variables
 
   TYPE (casa_pool), INTENT(INOUT)      :: casapool
   TYPE (casa_flux), INTENT(IN)         :: casaflux
-  TYPE (casa_met ), INTENT(IN)         :: casamet
-  INTEGER,          INTENT(IN)         :: NCELLS,idoy, CurYear, CTLFLAG
+  INTEGER,          INTENT(IN)         :: idoy, CurYear, CTLFLAG
   REAL,DIMENSION(NCELLS),INTENT(IN)    :: shootfrac
-  REAL,DIMENSION(NCELLS),INTENT(IN)    :: ddTmin, ddTmax, lon, lat
-  REAL,DIMENSION(NCELLS),INTENT(IN)    :: POP_TO, POP_CWD, POP_STR
-  REAL,DIMENSION(NCELLS,13), INTENT(INOUT) :: BLAZEFLX
+!CLN  REAL,DIMENSION(NCELLS,13), INTENT(INOUT) :: BLAZEFLX
 
   INTEGER, PARAMETER        :: NPOOLS = 3
 !CLN  REAL,DIMENSION(NCELLS,3),OPTIONAL :: IAC
@@ -173,21 +169,15 @@ SUBROUTINE BLAZE_DRIVER ( ncells, BLAZE, SF, met, casapool, casaflux, casamet, s
      ! Conversion to Windmax following S. Matthews, 2014 (pers. comm. so far)
      ! in km/h
 
-     U10 = met%u10 * 3.6 ! m/s -> km/h
-     U10 = ( 214.7 * ( U10 + 10. ) ** (-1.6968 ) + 1. ) * U10
+     BLAZE%U10 = BLAZE%u10 * 3.6 ! m/s -> km/h
+     BLAZE%U10 = ( 214.7 * ( U10 + 10. ) ** (-1.6968 ) + 1. ) * BLAZE%U10
 
-     relhum = met%rhum
-     PREC   = met%precip
- 
-!RLN     DO i=1, NCELLS
-!RLN        relhum(i) = 0.5*(MIN(1.,ddvp09(i) / Esatf(ddTmin(i))) + &
-!RLN             MIN(1.,ddvp15(i) / Esatf(ddTmax(i)))) * 100.        ! [%]
-!RLN     END DO
-
-     CALL RUN_BLAZE( NCELLS, casamet%lat, casamet%lon, shootfrac,CPLANT_g, CPLANT_w, AGL_g, AGL_w, &
-          BGL_g, BGL_w, PREC, ddTMIN, ddTMAX, relhum, U10, AvgAnnMaxFAPAR, &
-          modis_igbp, AvgAnnRainf, AB, FLI, DFLI, FFDI, TO, tstp, CurYear, idoy, &
+     CALL RUN_BLAZE( BLAZE, SF, CPLANT_g, CPLANT_w, modis_igbp, AvgAnnRainf, tstp, CurYear, idoy, &
           popd, mnest,BLAZE_FSTEP )
+!CRM     CALL RUN_BLAZE( NCELLS, BLAZE, casamet%lat, casamet%lon, shootfrac,CPLANT_g, CPLANT_w, AGL_g, AGL_w, &
+!CRM          BGL_g, BGL_w, PREC, ddTMIN, ddTMAX, relhum, U10, AvgAnnMaxFAPAR, &
+!CRM          modis_igbp, AvgAnnRainf, AB, FLI, DFLI, FFDI, TO, tstp, CurYear, idoy, &
+!CRM          popd, mnest,BLAZE_FSTEP )
 !!CRM     IF ( idoy .EQ. 1 ) IAC = 0.
      
 !!CRM     IF ( POPFLAG .NE. 0 ) THEN       
@@ -202,9 +192,12 @@ SUBROUTINE BLAZE_DRIVER ( ncells, BLAZE, SF, met, casapool, casaflux, casamet, s
   ELSE IF ( CTLFLAG .EQ. -1 ) THEN
 !     IF ( .NOT. PRESENT(POP_TO) ) STOP "Provide POP_TO to blaze_casa.f90!"
      DO np = 1, NCELLS
-        CALL BLAZE_TURNOVER( AB(np), CPLANT_g(np,:), CPLANT_w(np,:), AGL_g(np,:), &
-             AGL_w(np,:), BGL_g(np,:), BGL_w(np,:),shootfrac(np),TO(np,:), &
-             BLAZEFLX(np,:), POP_TO(np) )
+        CALL BLAZE_TURNOVER( BLAZE%AB(np), CPLANT_g(np,:), CPLANT_w(np,:), BLAZE%AGL_g(np,:), &
+             BLAZE%AGL_w(np,:), BLAZE%BGL_g(np,:), BLAZE%BGL_w(np,:),BLAZE%shootfrac(np),TO(np,:), &
+             BLAZE%FLUXES(np,:), BLAZE%POP_TO(np) )
+!CRM        CALL BLAZE_TURNOVER( AB(np), CPLANT_g(np,:), CPLANT_w(np,:), AGL_g(np,:), &
+!CRM             AGL_w(np,:), BGL_g(np,:), BGL_w(np,:),shootfrac(np),TO(np,:), &
+!CRM             BLAZEFLX(np,:), POP_TO(np) )
      END DO
   ELSE
      STOP "Wrong MODE in blaze_driver.f90!"

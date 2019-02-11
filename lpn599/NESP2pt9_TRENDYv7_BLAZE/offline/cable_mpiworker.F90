@@ -157,7 +157,7 @@ CONTAINS
     USE POP_Constants,        ONLY: HEIGHT_BINS, NCOHORT_MAX, shootfrac
 
     ! modules related to fire
-    USE BLAZE_MOD,            ONLY: TYPE_BLAZE
+    USE BLAZE_MOD,            ONLY: TYPE_BLAZE, BLAZE_ACCOUNTING
     USE SIMFIRE_MOD,          ONLY: TYPE_SIMFIRE
 
     ! PLUME-MIP only
@@ -681,9 +681,11 @@ CONTAINS
                    write(wlogn,*) 'after casa mpi_send', ktau
                 ENDIF
                 
-                IF ( cable_user%CALL_BLAZE ) &
-                     call blaze_driver(blaze, simfire, met, casapool, casaflux, shootfrac, idoy, YYYY, 1)
-                 
+                IF ( cable_user%CALL_BLAZE ) THEN
+                   CALL BLAZE_ACCOUNTING(BLAZE, met, ktau, dels, year, doy)
+                   IF ( MOD(ktau,ktauday).EQ.0 ) &
+                        call blaze_driver(blaze, simfire, casapool, casaflux, shootfrac, idoy, YYYY, 1)
+                ENDIF
                  !!! CLN HERE BLAZE daily
 
                  
@@ -750,9 +752,10 @@ CONTAINS
              CALL POPdriver(casaflux,casabal,veg, POP)
 
              ! Call BLAZE again to compute turnovers depending on POP mortalities
-             IF ( cable_user%CALL_BLAZE ) &
-                  call blaze_driver(blaze, simfire, met, casapool, casaflux, shootfrac, idoy, YYYY, -1)
-             
+             IF ( cable_user%CALL_BLAZE ) THEN
+                !CLN compute here:  POP_TO, POP_CWD,POP_STR
+                call blaze_driver(blaze, simfire, casapool, casaflux, shootfrac, idoy, YYYY, -1)
+             ENDIF
              
              CALL worker_send_pop (POP, ocomm) 
              
@@ -7598,7 +7601,7 @@ SUBROUTINE worker_spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapoo
                  
                  CALL POPdriver(casaflux,casabal,veg, POP)
                  
-                 !CLN CALL BLAZE_DRIVER(casapool,casaflux,shootfrac, met..., idoy,blaze_spin_year, DO_POP_TO
+                 CALL BLAZE_DRIVER(blaze, simfire, casapool, casaflux, shootfrac, idoy, YYYY, 1)
 
                  !! CLN BLAZE TURNOVER
                  
