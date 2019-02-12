@@ -2385,6 +2385,10 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,climate,bgc,soil,canopy,rough,rad, 
    USE POPLUC_module,  ONLY: POPLUC_INIT 
    USE CABLE_LUC_EXPT, ONLY: LUC_EXPT_TYPE
 
+   USE BLAZE_MOD,      ONLY: TYPE_BLAZE, INI_BLAZE
+   USE SIMFIRE_MOD,    ONLY: TYPE_SIMFIRE, INI_SIMFIRE
+
+
    IMPLICIT NONE
 
    ! Input arguments
@@ -2518,8 +2522,9 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,climate,bgc,soil,canopy,rough,rad, 
 
       ! CLN ALLOCATE BLAZE Arrays 
       IF ( cable_user%CALL_BLAZE ) THEN
+         ! CLN ?VH is rad%lat/lon below correct? 
          CALL INI_BLAZE ( cable_user%CALL_POP, cable_user%BURNT_AREA, &
-                 cable_user%BLAZE_TSTEP, mland, BLAZE, casamet%lat, casamet%lon )
+                 cable_user%BLAZE_TSTEP, mland, rad%latitude, rad%longitude, BLAZE )
          !CLNIF ( .NOT. spinup) CALL READ_BLAZE_RESTART(...)
 
          IF ( TRIM(cable_user%BURNT_AREA) == "SIMFIRE" ) THEN

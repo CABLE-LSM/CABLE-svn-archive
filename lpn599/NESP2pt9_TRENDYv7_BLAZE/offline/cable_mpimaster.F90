@@ -204,6 +204,7 @@ CONTAINS
     
     ! modules related to fire
     USE BLAZE_MOD,            ONLY: TYPE_BLAZE
+    USE BLAZE_MPI,            ONLY: MASTER_BLAZE_TYPES, MASTER_SIMFIRE_TYPES
     USE SIMFIRE_MOD,          ONLY: TYPE_SIMFIRE
 
     ! PLUME-MIP only

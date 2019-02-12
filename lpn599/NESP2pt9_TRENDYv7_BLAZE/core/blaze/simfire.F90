@@ -51,7 +51,7 @@ CONTAINS
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-SUBROUTINE INI_SIMFIRE( NCELLS, SF, modis_igbp, SIMFIRE_REGION )
+SUBROUTINE INI_SIMFIRE( NCELLS, SIMFIRE_REGION, SF )
 
   USE CABLE_COMMON_MODULE,  ONLY: GET_UNIT
   USE CABLE_IO_VARS_MODULE, ONLY: LATITUDE, LONGITUDE
@@ -59,8 +59,9 @@ SUBROUTINE INI_SIMFIRE( NCELLS, SF, modis_igbp, SIMFIRE_REGION )
   IMPLICIT NONE
   
   TYPE (TYPE_SIMFIRE), INTENT(INOUT) :: SF
-  INTEGER, INTENT(IN)                :: NCELLS, modis_igbp(NCELLS)
-  CHARACTER(len=*), INTENT(IN)       :: SIMFIRE_REGION
+  INTEGER,             INTENT(IN)    :: NCELLS
+  CHARACTER(len=*),    INTENT(IN)    :: SIMFIRE_REGION
+  INTEGER, DIMENSION(NCELLS)         :: modis_igbp
 
   INTEGER :: i
   
@@ -90,6 +91,8 @@ SUBROUTINE INI_SIMFIRE( NCELLS, SF, modis_igbp, SIMFIRE_REGION )
 
   ! Assign SIMFIRE Parameters
   ! IGBP, SF-BIOME and REGION(of optimization)
+
+  !CLN READ modis-IGBP here!!!
 
   DO i = 1, NCELLS
      IF ( SF%IGBP(i) .LT. 1 .OR. SF%IGBP(i) .GT. 16 ) THEN

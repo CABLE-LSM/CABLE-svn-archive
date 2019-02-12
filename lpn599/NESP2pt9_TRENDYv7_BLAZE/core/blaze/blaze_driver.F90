@@ -1,4 +1,4 @@
-SUBROUTINE BLAZE_DRIVER ( BLAZE, SF, casapool, casaflux, shootfrac, idoy, curyear, CTLFLAG )
+SUBROUTINE BLAZE_DRIVER ( NCELLS, BLAZE, SF, casapool, casaflux, shootfrac, idoy, curyear, CTLFLAG )
 !CLNSUBROUTINE BLAZE_DRIVER ( casapool, casaflux, lat, lon, shootfrac, ddvp09, ddvp15, ddprec, &
 !CLN     ddTmin, ddTmax, ddwind,AvgAnnMaxFAPAR, modis_igbp, AvgAnnRainf, idoy, curyear, FLI, DFLI, FFDI, AB, &
 !CLN     POPFLAG, CTLFLAG, BLAZEFLX, POP_TO, POP_CWD,POP_STR, IAC, popd, mnest, BLAZE_FSTEP &
@@ -22,7 +22,7 @@ SUBROUTINE BLAZE_DRIVER ( BLAZE, SF, casapool, casaflux, shootfrac, idoy, curyea
 
   TYPE (casa_pool), INTENT(INOUT)      :: casapool
   TYPE (casa_flux), INTENT(IN)         :: casaflux
-  INTEGER,          INTENT(IN)         :: idoy, CurYear, CTLFLAG
+  INTEGER,          INTENT(IN)         :: idoy, CurYear, CTLFLAG,ncells
   REAL,DIMENSION(NCELLS),INTENT(IN)    :: shootfrac
 !CLN  REAL,DIMENSION(NCELLS,13), INTENT(INOUT) :: BLAZEFLX
 
@@ -34,11 +34,13 @@ SUBROUTINE BLAZE_DRIVER ( BLAZE, SF, casapool, casaflux, shootfrac, idoy, curyea
   REAL,   DIMENSION(:,:),ALLOCATABLE,SAVE :: AGL_w, AGL_g      ! Above-Ground Carbon
   REAL,   DIMENSION(:,:),ALLOCATABLE,SAVE :: BGL_w, BGL_g      ! Below-Ground Carbon
   REAL,   DIMENSION(NCELLS) :: AGL_wo1,AGL_wo2,AGL_wo3
+  REAL,   DIMENSION(NCELLS) :: POP_TO,POP_CWD,POP_STR
 
   INTEGER,DIMENSION(NCELLS) :: modis_igbp
   INTEGER,DIMENSION(NCELLS) :: t1, t2
-  REAL,   DIMENSION(NCELLS) :: AB, relhum, U10, FLI, DFLI, FFDI, popd, mnest
-  REAL,   DIMENSION(NCELLS) :: AvgAnnMaxFAPAR, AvgAnnRainf, ag_lit, tot_lit
+  REAL,   DIMENSION(NCELLS) :: AB, relhum, U10, FLI, DFLI, FFDI !CRM , popd, mnest
+  REAL,   DIMENSION(NCELLS) :: ag_lit, tot_lit
+!CRM  REAL,   DIMENSION(NCELLS) :: AvgAnnMaxFAPAR, AvgAnnRainf, ag_lit, tot_lit
 
   INTEGER       :: MM, DD, i, np
   REAL          :: TSTP, C_CHKSUM
@@ -53,18 +55,20 @@ SUBROUTINE BLAZE_DRIVER ( BLAZE, SF, casapool, casaflux, shootfrac, idoy, curyea
 
   REAL    :: C_BIOMASS, C_FIRE
   LOGICAL,PARAMETER :: CLOSURE_TEST = .FALSE.
-  CHARACTER         :: BLAZE_FSTEP*7
+!CRM  CHARACTER         :: BLAZE_FSTEP*7
 
   ! INITIALISATION ============================================================
  
   IF ( BLAZE%BURNMODE .EQ. 0 ) RETURN
+
+  BLAZE%shootfrac = shootfrac
 
   !CLNBLAZEFLX = 0.
 
   !CLN  ?VH: Remove tile_indeces?
   !RLNt1 = tile_index(:,1)
   !RLNt2 = tile_index(:,2)
-
+  !CLN ?VH can you please indices below?
   CPLANT_g  = REAL(casapool%cplant (t1,:))
   CPLANT_w  = REAL(casapool%cplant (t2,:))
   CLITTER_g = REAL(casapool%clitter(t1,:))
@@ -104,13 +108,13 @@ SUBROUTINE BLAZE_DRIVER ( BLAZE, SF, casapool, casaflux, shootfrac, idoy, curyea
           MAX(casapool%cplant(t2,FROOT),1.e-5) 
      AGL_w(:, STR) = CLITTER_w(:, STR) * ag_lit / tot_lit
 
-     AGL_w(:, CWD) = CLITTER_w(:, CWD) * shootfrac
+     AGL_w(:, CWD) = CLITTER_w(:, CWD) * BLAZE%shootfrac
 
      CALL1 = .FALSE.
 
   END IF
 
-  CALL DOYSOD2MDHMS( CurYear, idoy, 0, MM, DD )
+  CALL DOYSOD2YMDHMS( CurYear, idoy, 0, MM, DD )
 
   IF ( idoy .EQ. 366 .OR. ( idoy .EQ. 365 .AND. .NOT. is_leapyear(CurYear)) ) THEN
      EOY = .TRUE.
@@ -144,7 +148,7 @@ SUBROUTINE BLAZE_DRIVER ( BLAZE, SF, casapool, casaflux, shootfrac, idoy, curyea
   AGL_w(:, STR) = (1. - casaflux%klitter(t2,STR )) * AGL_w(:, STR) + &
        casaflux%fromPtoL(t2,STR ,LEAF) * casaflux%kplant(t2,LEAF) * CPLANT_w(:,LEAF) 
   AGL_w(:, CWD) = (1. - casaflux%klitter(t2,CWD )) * AGL_w(:, CWD) + &
-       casaflux%fromPtoL(t2,CWD ,WOOD) * casaflux%kplant(t2,WOOD) * CPLANT_w(:,WOOD) * shootfrac
+       casaflux%fromPtoL(t2,CWD ,WOOD) * casaflux%kplant(t2,WOOD) * CPLANT_w(:,WOOD) * BLAZE%shootfrac
 
   ! If the pools are going to be updated split CLITTER into AGL and BGL 
   ! later add updated AGL at the end of this routine again
@@ -154,6 +158,9 @@ SUBROUTINE BLAZE_DRIVER ( BLAZE, SF, casapool, casaflux, shootfrac, idoy, curyea
         BGL_w(:,i) = CLITTER_w(:,i) - AGL_w(:,i)
      END DO
   ENDIF
+
+  BLAZE%AGLit_g = AGL_g
+  BLAZE%AGLit_w = AGL_w
 
   ! BLAZE used to compute ALL or FLI_ONLY
   IF ( BLAZE%BURNMODE .EQ. 1 .OR.  CTLFLAG .EQ. 1 ) THEN
@@ -172,8 +179,7 @@ SUBROUTINE BLAZE_DRIVER ( BLAZE, SF, casapool, casaflux, shootfrac, idoy, curyea
      BLAZE%U10 = BLAZE%u10 * 3.6 ! m/s -> km/h
      BLAZE%U10 = ( 214.7 * ( U10 + 10. ) ** (-1.6968 ) + 1. ) * BLAZE%U10
 
-     CALL RUN_BLAZE( BLAZE, SF, CPLANT_g, CPLANT_w, modis_igbp, AvgAnnRainf, tstp, CurYear, idoy, &
-          popd, mnest,BLAZE_FSTEP )
+     CALL RUN_BLAZE( BLAZE, SF, CPLANT_g, CPLANT_w, tstp, CurYear, idoy, TO)
 !CRM     CALL RUN_BLAZE( NCELLS, BLAZE, casamet%lat, casamet%lon, shootfrac,CPLANT_g, CPLANT_w, AGL_g, AGL_w, &
 !CRM          BGL_g, BGL_w, PREC, ddTMIN, ddTMAX, relhum, U10, AvgAnnMaxFAPAR, &
 !CRM          modis_igbp, AvgAnnRainf, AB, FLI, DFLI, FFDI, TO, tstp, CurYear, idoy, &
@@ -192,9 +198,9 @@ SUBROUTINE BLAZE_DRIVER ( BLAZE, SF, casapool, casaflux, shootfrac, idoy, curyea
   ELSE IF ( CTLFLAG .EQ. -1 ) THEN
 !     IF ( .NOT. PRESENT(POP_TO) ) STOP "Provide POP_TO to blaze_casa.f90!"
      DO np = 1, NCELLS
-        CALL BLAZE_TURNOVER( BLAZE%AB(np), CPLANT_g(np,:), CPLANT_w(np,:), BLAZE%AGL_g(np,:), &
-             BLAZE%AGL_w(np,:), BLAZE%BGL_g(np,:), BLAZE%BGL_w(np,:),BLAZE%shootfrac(np),TO(np,:), &
-             BLAZE%FLUXES(np,:), BLAZE%POP_TO(np) )
+        CALL BLAZE_TURNOVER( BLAZE%AB(np), CPLANT_g(np,:), CPLANT_w(np,:), AGL_g(np,:), &
+             AGL_w(np,:), BGL_g(np,:), BGL_w(np,:),BLAZE%shootfrac(np),TO(np,:), &
+             BLAZE%FLUXES(np,:), BLAZE%BURNMODE, POP_TO(np) )
 !CRM        CALL BLAZE_TURNOVER( AB(np), CPLANT_g(np,:), CPLANT_w(np,:), AGL_g(np,:), &
 !CRM             AGL_w(np,:), BGL_g(np,:), BGL_w(np,:),shootfrac(np),TO(np,:), &
 !CRM             BLAZEFLX(np,:), POP_TO(np) )

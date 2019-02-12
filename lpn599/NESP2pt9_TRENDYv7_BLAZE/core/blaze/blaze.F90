@@ -4,7 +4,7 @@ TYPE TYPE_BLAZE
    INTEGER,  DIMENSION(:),  ALLOCATABLE :: DSLR,ilon, jlat, Flix
    REAL,     DIMENSION(:),  ALLOCATABLE :: RAINF, KBDI, LR, U10,RH,TMAX,TMIN,AREA
    REAL,     DIMENSION(:),  ALLOCATABLE :: FFDI,FLI,ROS,Z,D,w, LAT, LON,DFLI,AB,CAvgAnnRainf
-   REAL,     DIMENSION(:),  ALLOCATABLE :: DEADWOOD,POP_TO, POP_CWD, POP_STR
+   REAL,     DIMENSION(:),  ALLOCATABLE :: DEADWOOD,POP_TO, POP_CWD, POP_STR,shootfrac
    REAL,     DIMENSION(:,:),ALLOCATABLE :: AnnRAINF, ABM, TO, AGC_g, AGC_w
    REAL,     DIMENSION(:,:),ALLOCATABLE :: AGLB_w, AGLB_g, AGLit_w, AGLit_g
    REAL,     DIMENSION(:,:),ALLOCATABLE :: AvgAnnRAINF, FLUXES
@@ -73,7 +73,7 @@ REAL, PARAMETER :: MIN_FUEL = 120. ! Min fuel to spark a fire [g(C)/m2]
 
 CONTAINS
 
-SUBROUTINE INI_BLAZE (POPFLAG, BURNT_AREA_SOURCE, TSTEP, np, BLAZE, LAT, LON)
+SUBROUTINE INI_BLAZE (POPFLAG, BURNT_AREA_SOURCE, TSTEP, np, LAT, LON, BLAZE)
 
   !! Called from cable_input now
 
@@ -180,7 +180,8 @@ SUBROUTINE BLAZE_ACCOUNTING(BLAZE, met, ktau, dels, year, doy)
 
   TYPE (TYPE_BLAZE)   :: BLAZE
   TYPE (MET_TYPE)     :: met
-  INTEGER, INTENT(IN) :: ktau, dels, year, doy
+  INTEGER, INTENT(IN) :: ktau, year, doy
+  REAL,    INTENT(IN) :: dels
   LOGICAL, SAVE       :: CALL1 = .TRUE.
   INTEGER             :: mp, x, i
   REAL                :: t_fac
@@ -190,8 +191,8 @@ SUBROUTINE BLAZE_ACCOUNTING(BLAZE, met, ktau, dels, year, doy)
 
   mp = BLAZE%NCELLS
   
-  is_new_day    = (MOD((ktau-1) * dels, sod) == 0 )
-  is_end_of_day = (MOD( ktau    * dels, sod) == 0 )
+  is_new_day    = (MOD((ktau-1) * NINT(dels), sod) == 0 )
+  is_end_of_day = (MOD( ktau    * NINT(dels), sod) == 0 )
   
   ! factor to get to daily data
   t_fac = 86400. / dels
@@ -298,15 +299,17 @@ FUNCTION AVAIL_FUEL(FLIx, CPLANT_w, CPLANT_g, AGL_w, AGL_g)
 END FUNCTION AVAIL_FUEL
 
 SUBROUTINE BLAZE_TURNOVER(AB, CPLANT_g, CPLANT_w, AGL_g, AGL_w, &
-     BGL_g, BGL_w, shootfrac, TO, POPFLAG, BT, POP_TO)
-  
+     BGL_g, BGL_w, shootfrac, TO, BT, BURNMODE, POP_TO)
+!CRM SUBROUTINE BLAZE_TURNOVER(AB, CPLANT_g, CPLANT_w, AGL_g, AGL_w, &
+!CRM     BGL_g, BGL_w, shootfrac, TO, POPFLAG, BT, POP_TO)
+ 
   IMPLICIT NONE
 
   !get index of relativ life-biomass loss in TOF table plus fract between 2bins 
   !-> apply idx and factor on other TOs 
 
   TYPE(TYPE_TURNOVER),INTENT(INOUT) :: TO(7)
-  INTEGER,            INTENT(IN)    :: POPFLAG
+  INTEGER,            INTENT(IN)    :: BURNMODE
   REAL,               INTENT(IN)    :: AB, shootfrac
   REAL,               INTENT(INOUT) :: CPLANT_w(3) , CPLANT_g(3)
   REAL, DIMENSION(3), INTENT(INOUT) :: AGL_w, AGL_g, BGL_w, BGL_g
@@ -319,7 +322,8 @@ SUBROUTINE BLAZE_TURNOVER(AB, CPLANT_g, CPLANT_w, AGL_g, AGL_w, &
 
   ! TOF Tuning:
 
-  IF ( POPFLAG .EQ. -1 ) THEN ! woody TO done by POP if active
+!CRM  IF ( POPFLAG .EQ. -1 ) THEN ! woody TO done by POP if active
+  IF ( BURNMODE .EQ. 2 ) THEN ! woody TO done by POP if active
      IF ( .NOT. PRESENT( POP_TO ) ) STOP  "Please provide POP TO!"
 
      ! Leave TO is adjusted to fraction of total leaf loss = fraction of total wood loos
@@ -469,7 +473,7 @@ FUNCTION BURNTIME( YEAR, DOY, FSTEP )
 
 END FUNCTION BURNTIME
 
-SUBROUTINE COMBUST (BLAZE, np, CPLANT_w(3), CPLANT_g(3), BURN )
+SUBROUTINE COMBUST (BLAZE, np, CPLANT_g, CPLANT_w, TO, BURN )
 
   IMPLICIT NONE
 
@@ -566,7 +570,7 @@ SUBROUTINE COMBUST (BLAZE, np, CPLANT_w(3), CPLANT_g(3), BURN )
   ! Factor 0.6 / 0.5  taken from fires < 750 kW/m of Suravski et al. 2012
   FLIx = 1
 
-  w = AVAIL_FUEL(FLIx, CPLANT_w, CPLANT_g, AGL_w, AGL_g )
+  w = AVAIL_FUEL(FLIx, CPLANT_w, CPLANT_g, BLAZE%AGLit_w(np,:), BLAZE%AGLit_g(np,:) )
   
   DO i = 1, 4 ! THE LADDER
 
@@ -596,7 +600,7 @@ SUBROUTINE COMBUST (BLAZE, np, CPLANT_w(3), CPLANT_g(3), BURN )
      ENDIF
      ! End here if available fuel doesn't get you into next regime
      IF ( i .GE. FLIx ) EXIT
-     w = AVAIL_FUEL(FLIx, CPLANT_w, CPLANT_g, AGL_w, AGL_g )
+     w = AVAIL_FUEL(FLIx, CPLANT_w, CPLANT_g, BLAZE%AGLit_w(np,:), BLAZE%AGLit_g(np,:) )
   END DO
 
   BLAZE%FLIX(np) = flix
@@ -649,8 +653,7 @@ SUBROUTINE COMBUST (BLAZE, np, CPLANT_w(3), CPLANT_g(3), BURN )
 END SUBROUTINE COMBUST
 
 
-SUBROUTINE RUN_BLAZE(BLAZE, SF, CPLANT_g, CPLANT_w, modis_igbp, &
-     AvgAnnRainf, tstp, YYYY, doy, POPFLAG, popd, mnest, BLAZE_FSTEP ) !, CTRL)
+SUBROUTINE RUN_BLAZE(BLAZE, SF, CPLANT_g, CPLANT_w, tstp, YYYY, doy, TO ) !, CTRL)
 !CRMSUBROUTINE RUN_BLAZE(ncells, LAT, LON, shootfrac,CPLANT_g, CPLANT_w, AGL_g, AGL_w, &
 !CRM     BGL_g, BGL_w, RAINF, TMIN, TMAX, RH, U10,AvgAnnMaxFAPAR, modis_igbp, &
 !CRM     AvgAnnRainf, AB, FLI, DFLI, FFDI, TO, tstp, YYYY, doy, POPFLAG,popd,mnest,BLAZE_FSTEP ) !, CTRL)
@@ -660,7 +663,7 @@ SUBROUTINE RUN_BLAZE(BLAZE, SF, CPLANT_g, CPLANT_w, modis_igbp, &
 
   IMPLICIT NONE
 
-  INTEGER, INTENT(IN) :: POPFLAG
+!CRM  INTEGER, INTENT(IN) :: POPFLAG
 
   TYPE(TYPE_BLAZE)    :: BLAZE
   TYPE(TYPE_SIMFIRE)  :: SF
@@ -679,8 +682,8 @@ SUBROUTINE RUN_BLAZE(BLAZE, SF, CPLANT_g, CPLANT_w, modis_igbp, &
        TMAX,              & ! [deg C]
        RH,                & ! [%]
        U10,               & ! [km/h]
-       AvgAnnMaxFAPAR,    & ! [frac.]
-       AvgAnnRainf,       & ! [mm/a]
+!CRM       AvgAnnMaxFAPAR,    & ! [frac.]
+!CRM       AvgAnnRainf,       & ! [mm/a]
        AB,                & ! [frac.]
        FLI,               & ! [kW/m]
        DFLI,              & ! [kW/m]
@@ -690,13 +693,13 @@ SUBROUTINE RUN_BLAZE(BLAZE, SF, CPLANT_g, CPLANT_w, modis_igbp, &
        shootfrac
                
 ! CLN to simfire!!! 
-  INTEGER,DIMENSION(BLAZE%NCELLS)  :: modis_igbp  ! [0,17] landcover index
+!CRM  INTEGER,DIMENSION(BLAZE%NCELLS)  :: modis_igbp  ! [0,17] landcover index
 
   LOGICAL, SAVE :: BCALL1 = .TRUE.
 
 !CRM  REAL          :: DEADWOOD(ncells)
 
-  CHARACTER     :: BLAZE_FSTEP*7
+!CRM  CHARACTER     :: BLAZE_FSTEP*7
 
   DOM = (/ 31,28,31,30,31,30,31,31,30,31,30,31 /)
   IF ( IS_LEAPYEAR(YYYY) ) DOM(2) = 29
@@ -738,8 +741,10 @@ SUBROUTINE RUN_BLAZE(BLAZE, SF, CPLANT_g, CPLANT_w, modis_igbp, &
   AB(:) = 0.
   IF ( BLAZE%IGNITION .EQ. 0 ) THEN 
 !     CALL GET_GFED( BLAZE )
-     CALL GET_GFED4_BA( BLAZE )
+!     CALL GET_GFED4_BA( BLAZE )
 !     CALL GET_GFED41s_BA( BLAZE )
+     WRITE(*,*)'GFED4 BA not available. Set cable_user%BURNT_AREA == "SIMFIRE"'
+     STOP(-1)
      IF ( TRIM(BLAZE%FSTEP) .EQ. "none" ) THEN
         CALL SIMFIRE ( SF, RAINF, TMAX, TMIN, DOY, YYYY, AB )
         BLAZE%AB(:) = AB(:)
@@ -810,11 +815,14 @@ SUBROUTINE RUN_BLAZE(BLAZE, SF, CPLANT_g, CPLANT_w, modis_igbp, &
         !Apply to patches or only cell
         CALL BLAZE_TURNOVER( BLAZE%AB(np), CPLANT_g(np,:), CPLANT_w(np,:), &
              AGL_g(np,:), AGL_w(np,:),BGL_g(np,:), BGL_w(np,:), &
-             shootfrac(np), TO(np,:), POPFLAG, BLAZEFLX(np,:) )
+             BLAZE%shootfrac(np), TO(np,:), BLAZE%FLUXES(np,:), BLAZE%BURNMODE )
+!CRM        CALL BLAZE_TURNOVER( BLAZE%AB(np), CPLANT_g(np,:), CPLANT_w(np,:), &
+!CRM             AGL_g(np,:), AGL_w(np,:),BGL_g(np,:), BGL_w(np,:), &
+!CRM             shootfrac(np), TO(np,:), POPFLAG, BLAZEFLX(np,:) )
      ENDIF
 
      ! FLI Accounting for POP
-     if ( POPFLAG .EQ. -1 ) THEN
+     if ( BLAZE%BURNMODE .EQ. 2 ) THEN
         IF ( DOY.EQ. 1 )FLI(np) = 0.
         FLI(np) = MAX(BLAZE%FLI(np),FLI(np))
      ENDIF
@@ -842,8 +850,8 @@ SUBROUTINE RUN_BLAZE(BLAZE, SF, CPLANT_g, CPLANT_w, modis_igbp, &
 
   END DO
 
-  FFDI        = BLAZE%FFDI
-  BLAZE_FSTEP = BLAZE%FSTEP
+!CRM  FFDI        = BLAZE%FFDI
+!CRM  BLAZE_FSTEP = BLAZE%FSTEP
 
 !  WHERE ( BLAZE%AB .GT. 0. ) 
 !  FLI = SF%FLI

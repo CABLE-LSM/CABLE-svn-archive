@@ -158,6 +158,7 @@ CONTAINS
 
     ! modules related to fire
     USE BLAZE_MOD,            ONLY: TYPE_BLAZE, BLAZE_ACCOUNTING
+    USE BLAZE_MPI,            ONLY: WORKER_BLAZE_TYPES, WORKER_SIMFIRE_TYPES
     USE SIMFIRE_MOD,          ONLY: TYPE_SIMFIRE
 
     ! PLUME-MIP only
@@ -229,7 +230,8 @@ CONTAINS
     ! BLAZE variables
     TYPE (TYPE_BLAZE)     :: BLAZE
     TYPE (TYPE_SIMFIRE)   :: SIMFIRE
-
+    REAL, DIMENSION(:),ALLOCATABLE :: POP_TO, POP_CWD, POP_STR
+  
     ! declare vars for switches (default .FALSE.) etc declared thru namelist
     LOGICAL, SAVE           :: &
          vegparmnew    = .FALSE., & ! using new format input file (BP dec 2007)
@@ -484,6 +486,10 @@ CONTAINS
                 IF ( CABLE_USER%CALL_POP ) CALL worker_pop_types (comm,veg,casamet,pop)
                 ! CLN:  
                 IF ( CABLE_USER%CALL_BLAZE ) THEN
+                   ! Allocate biomass turnover pools when both POP and BLAZE are active
+                   IF ( CABLE_USER%CALL_POP ) &
+                        ALLOCATE( POP_TO(mp), POP_CWD(mp), POP_STR(mp) )
+                    
                    CALL worker_blaze_types (comm,mp, BLAZE, blaze_restart_t,blaze_out_t)
                    IF ( .NOT. spinup ) &
                         CALL MPI_recv(icomm, blaze_restart_t)
@@ -682,9 +688,9 @@ CONTAINS
                 ENDIF
                 
                 IF ( cable_user%CALL_BLAZE ) THEN
-                   CALL BLAZE_ACCOUNTING(BLAZE, met, ktau, dels, year, doy)
+                   CALL BLAZE_ACCOUNTING(BLAZE, met, ktau, dels, YYYY, idoy)
                    IF ( MOD(ktau,ktauday).EQ.0 ) &
-                        call blaze_driver(blaze, simfire, casapool, casaflux, shootfrac, idoy, YYYY, 1)
+                        call blaze_driver(blaze%ncells,blaze, simfire, casapool, casaflux, shootfrac, idoy, YYYY, 1)
                 ENDIF
                  !!! CLN HERE BLAZE daily
 
@@ -754,7 +760,28 @@ CONTAINS
              ! Call BLAZE again to compute turnovers depending on POP mortalities
              IF ( cable_user%CALL_BLAZE ) THEN
                 !CLN compute here:  POP_TO, POP_CWD,POP_STR
-                call blaze_driver(blaze, simfire, casapool, casaflux, shootfrac, idoy, YYYY, -1)
+! ?VH see below the tiling of the Cplants is that correct?
+                WHERE (POP%pop_grid(:)%cmass_sum_old .GT. 1.e-12)
+                   POP_TO  = POP%pop_grid(:)%fire_mortality_smoothed * &
+                        casapool%Cplant(:,2)/POP%pop_grid(:)%cmass_sum_old
+                   ! wood loss from stress mortalit
+                   POP_CWD = (POP%pop_grid(:)%stress_mortality +  &
+                        POP%pop_grid(:)%crowding_mortality ) * &
+                        casapool%Cplant(:,2)/POP%pop_grid(:)%cmass_sum_old 
+                   ! wood loss from stress mortality
+                   POP_CWD = POP_CWD + POP%pop_grid(:)%cat_mortality * &
+                        casapool%Cplant(:,2)/POP%pop_grid(:)%cmass_sum_old 
+                   ! woody root loss from stress mortality
+                   POP_STR = casapool%Cplant(:,1) * &
+                        (POP%pop_grid(:)%stress_mortality + POP%pop_grid(:)%crowding_mortality + &
+                        POP%pop_grid(:)%cat_mortality) / POP%pop_grid(:)%cmass_sum_old 
+                ELSEWHERE
+                   POP_TO  = 0.
+                   POP_CWD = 0.
+                   POP_STR = 0.
+                END WHERE
+
+                call blaze_driver(blaze%ncells,blaze, simfire, casapool, casaflux, shootfrac, idoy, YYYY, -1)
              ENDIF
              
              CALL worker_send_pop (POP, ocomm) 
@@ -7311,6 +7338,10 @@ SUBROUTINE worker_spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapoo
   USE POPMODULE,            ONLY: POPStep
   USE TypeDef,              ONLY: i4b, dp
   USE mpi
+  ! modules related to fire
+  USE BLAZE_MOD,            ONLY: TYPE_BLAZE, BLAZE_ACCOUNTING
+  USE SIMFIRE_MOD,          ONLY: TYPE_SIMFIRE
+  USE POP_Constants,        ONLY: shootfrac
 
   IMPLICIT NONE
   !!CLN  CHARACTER(LEN=99), INTENT(IN)  :: fcnpspin
@@ -7374,6 +7405,11 @@ SUBROUTINE worker_spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapoo
     INTEGER :: stat(MPI_STATUS_SIZE)
     INTEGER :: ierr
 
+    ! BLAZE variables
+    TYPE (TYPE_BLAZE)     :: BLAZE
+    TYPE (TYPE_SIMFIRE)   :: SIMFIRE
+    REAL, DIMENSION(:),ALLOCATABLE :: POP_TO, POP_CWD, POP_STR
+  
 
    
    if (.NOT.Allocated(Iw)) allocate(Iw(POP%np))
@@ -7600,8 +7636,8 @@ SUBROUTINE worker_spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapoo
               IF(idoy==mdyear) THEN ! end of year
                  
                  CALL POPdriver(casaflux,casabal,veg, POP)
-                 
-                 CALL BLAZE_DRIVER(blaze, simfire, casapool, casaflux, shootfrac, idoy, YYYY, 1)
+                 !CLN Check here accounting missing
+                 CALL BLAZE_DRIVER(blaze, simfire, casapool, casaflux, shootfrac, idoy, 1900, 1)
 
                  !! CLN BLAZE TURNOVER
                  
