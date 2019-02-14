@@ -1,11 +1,11 @@
-SUBROUTINE BLAZE_DRIVER ( NCELLS, BLAZE, SF, casapool, casaflux, shootfrac, idoy, curyear, CTLFLAG )
+SUBROUTINE BLAZE_DRIVER ( NCELLS, BLAZE, SF, casapool, casaflux, casamet, shootfrac, idoy, curyear, CTLFLAG )
 !CLNSUBROUTINE BLAZE_DRIVER ( casapool, casaflux, lat, lon, shootfrac, ddvp09, ddvp15, ddprec, &
 !CLN     ddTmin, ddTmax, ddwind,AvgAnnMaxFAPAR, modis_igbp, AvgAnnRainf, idoy, curyear, FLI, DFLI, FFDI, AB, &
 !CLN     POPFLAG, CTLFLAG, BLAZEFLX, POP_TO, POP_CWD,POP_STR, IAC, popd, mnest, BLAZE_FSTEP &
 !CLN     , AGL_wo1,AGL_wo2,AGL_wo3 )
 
   USE CABLE_COMMON_MODULE, ONLY: IS_LEAPYEAR, DOYSOD2YMDHMS, kbl_user_switches !, Esatf
-  USE CASAVARIABLE,        ONLY: casa_pool, casa_flux
+  USE CASAVARIABLE,        ONLY: casa_pool, casa_flux, casa_met
   USE BLAZE_MOD,           ONLY: RUN_BLAZE, TYPE_TURNOVER, BLAZE_TURNOVER, NTO, &
        METB, STR, CWD, LEAF, WOOD, FROOT, TYPE_BLAZE
   USE SIMFIRE_MOD,         ONLY: TYPE_SIMFIRE
@@ -22,6 +22,7 @@ SUBROUTINE BLAZE_DRIVER ( NCELLS, BLAZE, SF, casapool, casaflux, shootfrac, idoy
 
   TYPE (casa_pool), INTENT(INOUT)      :: casapool
   TYPE (casa_flux), INTENT(IN)         :: casaflux
+  TYPE (casa_met ), INTENT(IN)         :: casamet
   INTEGER,          INTENT(IN)         :: idoy, CurYear, CTLFLAG,ncells
   REAL,DIMENSION(NCELLS),INTENT(IN)    :: shootfrac
 !CLN  REAL,DIMENSION(NCELLS,13), INTENT(INOUT) :: BLAZEFLX
@@ -31,19 +32,19 @@ SUBROUTINE BLAZE_DRIVER ( NCELLS, BLAZE, SF, casapool, casaflux, shootfrac, idoy
 !CLN  TYPE (POP_TYPE), OPTIONAL         :: pop
 
   TYPE(TYPE_TURNOVER)   ,ALLOCATABLE,SAVE :: TO(:,:)
-  REAL,   DIMENSION(:,:),ALLOCATABLE,SAVE :: AGL_w, AGL_g      ! Above-Ground Carbon
-  REAL,   DIMENSION(:,:),ALLOCATABLE,SAVE :: BGL_w, BGL_g      ! Below-Ground Carbon
+!CRM  REAL,   DIMENSION(:,:),ALLOCATABLE,SAVE :: AGL_w, AGL_g      ! Above-Ground Carbon
+!CRM  REAL,   DIMENSION(:,:),ALLOCATABLE,SAVE :: BGL_w, BGL_g      ! Below-Ground Carbon
   REAL,   DIMENSION(NCELLS) :: AGL_wo1,AGL_wo2,AGL_wo3
   REAL,   DIMENSION(NCELLS) :: POP_TO,POP_CWD,POP_STR
 
   INTEGER,DIMENSION(NCELLS) :: modis_igbp
   INTEGER,DIMENSION(NCELLS) :: t1, t2
   REAL,   DIMENSION(NCELLS) :: AB, relhum, U10, FLI, DFLI, FFDI !CRM , popd, mnest
-  REAL,   DIMENSION(NCELLS) :: ag_lit, tot_lit
 !CRM  REAL,   DIMENSION(NCELLS) :: AvgAnnMaxFAPAR, AvgAnnRainf, ag_lit, tot_lit
 
   INTEGER       :: MM, DD, i, np
   REAL          :: TSTP, C_CHKSUM
+  REAL          :: ag_lit, tot_lit
   REAL          :: CPLANT_g (ncells,3),CPLANT_w (ncells,3)
   REAL          :: CLITTER_g(ncells,3),CLITTER_w(ncells,3)
   LOGICAL       :: EOY
@@ -65,51 +66,72 @@ SUBROUTINE BLAZE_DRIVER ( NCELLS, BLAZE, SF, casapool, casaflux, shootfrac, idoy
 
   !CLNBLAZEFLX = 0.
 
-  !CLN  ?VH: Remove tile_indeces?
+  !CLN  Remove tile_indeces?
   !RLNt1 = tile_index(:,1)
   !RLNt2 = tile_index(:,2)
-  !CLN ?VH can you please indices below?
-  CPLANT_g  = REAL(casapool%cplant (t1,:))
-  CPLANT_w  = REAL(casapool%cplant (t2,:))
-  CLITTER_g = REAL(casapool%clitter(t1,:))
-  CLITTER_w = REAL(casapool%clitter(t2,:))
+  !CLN ?VH can you please check the new wood/grass partition below?
+
+  CPLANT_g  = 0.
+  CLITTER_g = 0.
+  CPLANT_w  = 0.
+  CLITTER_w = 0.
+
+  DO i = 1, 3 
+     WHERE ( casamet%lnonwood == 1 ) ! Here non-wood
+        CPLANT_g (:,i) = casapool%cplant (:,i)
+        CLITTER_g(:,i) = casapool%clitter(:,i)
+     ELSEWHERE
+        CPLANT_w (:,i) = casapool%cplant (:,i)
+        CLITTER_w(:,i) = casapool%clitter(:,i)
+     END WHERE
+  END DO
 
   ! CLN needs to be altered for beginning of spinup only!!!
   
   IF ( CALL1 ) THEN
-     ALLOCATE( AGL_g(NCELLS,NPOOLS),AGL_w(NCELLS,NPOOLS) )
-     ALLOCATE( BGL_g(NCELLS,NPOOLS),BGL_w(NCELLS,NPOOLS) )
-     ! Initialise above / below-ground partitioning by using fluxes
-     ! Grass
-     ag_lit  = casaflux%fromPtoL(t1,METB,LEAF) * casaflux%kplant(t1,LEAF) * &
-          MAX(casapool%cplant(t1,LEAF),1.e-5) 
-     tot_lit = ag_lit + casaflux%fromPtoL(t1,METB,FROOT) * casaflux%kplant(t1,FROOT) * &
-          MAX(casapool%cplant(t1,FROOT),1.e-5) 
-     AGL_g(:,METB) = CLITTER_g(:,METB) * ag_lit / tot_lit
+     ALLOCATE( BLAZE%AGLit_g(NCELLS,NPOOLS),BLAZE%AGLit_w(NCELLS,NPOOLS) )
+     ALLOCATE( BLAZE%BGLit_g(NCELLS,NPOOLS),BLAZE%BGLit_w(NCELLS,NPOOLS) )
+     ! Initialise above / below-ground partitioning by using fluxes only
+     DO i = 1, BLAZE%NCELLS
+        ! Grass
+        IF ( casamet%lnonwood(i) .EQ. 1 ) THEN
 
-     ag_lit  = casaflux%fromPtoL(t1, STR,LEAF) * casaflux%kplant(t1,LEAF) * &
-          MAX(casapool%cplant(t1,LEAF),1.e-5) 
-     tot_lit = ag_lit + casaflux%fromPtoL(t1, STR,FROOT) * casaflux%kplant(t1,FROOT) * &
-          MAX(casapool%cplant(t1,FROOT),1.e-5) 
-     AGL_g(:,STR ) = CLITTER_g(:, STR) * ag_lit / tot_lit
+           ag_lit  = casaflux%fromPtoL(i,METB,LEAF) * casaflux%kplant(i,LEAF) * &
+                MAX(casapool%cplant(i,LEAF),1.e-5) 
+           tot_lit = ag_lit + casaflux%fromPtoL(i,METB,FROOT) * casaflux%kplant(i,FROOT) * &
+                MAX(casapool%cplant(i,FROOT),2.e-5) 
 
-     AGL_g(:,CWD)  = 0.
-     ! Wood
-     ag_lit  = casaflux%fromPtoL(t2,METB,LEAF) * casaflux%kplant(t2,LEAF) * &
-          MAX(casapool%cplant(t2,LEAF),1.e-5) 
-     tot_lit = ag_lit + casaflux%fromPtoL(t2,METB,FROOT) * casaflux%kplant(t2,FROOT) * &
-          MAX(casapool%cplant(t2,FROOT),1.e-5) 
-     AGL_w(:,METB) = CLITTER_w(:,METB) * ag_lit / tot_lit
+           BLAZE%AGLit_g(i,METB) = CLITTER_g(i,METB) * ag_lit / tot_lit
 
+           ag_lit  = casaflux%fromPtoL(i, STR,LEAF) * casaflux%kplant(i,LEAF) * &
+                MAX(casapool%cplant(i,LEAF),1.e-5) 
+           tot_lit = ag_lit + casaflux%fromPtoL(i, STR,FROOT) * casaflux%kplant(i,FROOT) * &
+                MAX(casapool%cplant(i,FROOT),2.e-5) 
 
-     ag_lit  = casaflux%fromPtoL(t2, STR,LEAF) * casaflux%kplant(t2,LEAF) * &
-          MAX(casapool%cplant(t2,LEAF),1.e-5) 
-     tot_lit = ag_lit + casaflux%fromPtoL(t2, STR,FROOT) * casaflux%kplant(t2,FROOT) * &
-          MAX(casapool%cplant(t2,FROOT),1.e-5) 
-     AGL_w(:, STR) = CLITTER_w(:, STR) * ag_lit / tot_lit
+           BLAZE%AGLit_g(i,STR ) = CLITTER_g(i, STR) * ag_lit / tot_lit
 
-     AGL_w(:, CWD) = CLITTER_w(:, CWD) * BLAZE%shootfrac
+           BLAZE%AGLit_g(:,CWD)  = 0.
 
+        ! Wood
+        ELSE
+           
+           ag_lit  = casaflux%fromPtoL(i,METB,LEAF) * casaflux%kplant(i,LEAF) * &
+                MAX(casapool%cplant(i,LEAF),1.e-5) 
+           tot_lit = ag_lit + casaflux%fromPtoL(i,METB,FROOT) * casaflux%kplant(i,FROOT) * &
+                MAX(casapool%cplant(i,FROOT),2.e-5) 
+
+           BLAZE%AGLit_w(:,METB) = CLITTER_w(:,METB) * ag_lit / tot_lit
+                      
+           ag_lit  = casaflux%fromPtoL(i, STR,LEAF) * casaflux%kplant(i,LEAF) * &
+                MAX(casapool%cplant(i,LEAF),1.e-5) 
+           tot_lit = ag_lit + casaflux%fromPtoL(i, STR,FROOT) * casaflux%kplant(i,FROOT) * &
+                MAX(casapool%cplant(i,FROOT),2.e-5) 
+
+           BLAZE%AGLit_w(i, STR) = CLITTER_w(i, STR) * ag_lit / tot_lit
+           
+           BLAZE%AGLit_w(i, CWD) = CLITTER_w(i, CWD) * BLAZE%shootfrac(i)
+        END IF
+     END DO
      CALL1 = .FALSE.
 
   END IF
@@ -138,29 +160,27 @@ SUBROUTINE BLAZE_DRIVER ( NCELLS, BLAZE, SF, casapool, casaflux, shootfrac, idoy
 !     
  
   ! Update above-ground-partition of metb/str litter pools
-  AGL_g(:,METB) = (1. - casaflux%klitter(t1,METB)) * AGL_g(:,METB) + &
-       casaflux%fromPtoL(t1,METB,LEAF) * casaflux%kplant(t1,LEAF) * CPLANT_g(:,LEAF)
-  AGL_g(:, STR) = (1. - casaflux%klitter(t1,STR )) * AGL_g(:, STR) + &
-       casaflux%fromPtoL(t1,STR ,LEAF) * casaflux%kplant(t1,LEAF) * CPLANT_g(:,LEAF) 
-  
-  AGL_w(:,METB) = (1. - casaflux%klitter(t2,METB)) * AGL_w(:,METB) + &
-       casaflux%fromPtoL(t2,METB,LEAF) * casaflux%kplant(t2,LEAF) * CPLANT_w(:,LEAF)
-  AGL_w(:, STR) = (1. - casaflux%klitter(t2,STR )) * AGL_w(:, STR) + &
-       casaflux%fromPtoL(t2,STR ,LEAF) * casaflux%kplant(t2,LEAF) * CPLANT_w(:,LEAF) 
-  AGL_w(:, CWD) = (1. - casaflux%klitter(t2,CWD )) * AGL_w(:, CWD) + &
-       casaflux%fromPtoL(t2,CWD ,WOOD) * casaflux%kplant(t2,WOOD) * CPLANT_w(:,WOOD) * BLAZE%shootfrac
-
+  WHERE ( casamet%lnonwood == 1 ) ! Here non-wood
+     BLAZE%AGLit_g(:,METB) = (1. - casaflux%klitter(:,METB)) * BLAZE%AGLit_g(:,METB) + &
+          casaflux%fromPtoL(:,METB,LEAF) * casaflux%kplant(:,LEAF) * CPLANT_g(:,LEAF)
+     BLAZE%AGLit_g(:, STR) = (1. - casaflux%klitter(:,STR )) * BLAZE%AGLit_g(:, STR) + &
+          casaflux%fromPtoL(:,STR ,LEAF) * casaflux%kplant(:,LEAF) * CPLANT_g(:,LEAF) 
+  ELSEWHERE
+     BLAZE%AGLit_w(:,METB) = (1. - casaflux%klitter(:,METB)) * BLAZE%AGLit_w(:,METB) + &
+          casaflux%fromPtoL(:,METB,LEAF) * casaflux%kplant(:,LEAF) * CPLANT_w(:,LEAF)
+     BLAZE%AGLit_w(:, STR) = (1. - casaflux%klitter(:,STR )) * BLAZE%AGLit_w(:, STR) + &
+          casaflux%fromPtoL(:,STR ,LEAF) * casaflux%kplant(:,LEAF) * CPLANT_w(:,LEAF) 
+     BLAZE%AGLit_w(:, CWD) = (1. - casaflux%klitter(:,CWD )) * BLAZE%AGLit_w(:, CWD) + &
+          casaflux%fromPtoL(:,CWD ,WOOD) * casaflux%kplant(:,WOOD) * CPLANT_w(:,WOOD) * BLAZE%shootfrac
+  END WHERE
   ! If the pools are going to be updated split CLITTER into AGL and BGL 
   ! later add updated AGL at the end of this routine again
   IF ( BLAZE%BURNMODE .EQ. 1 .OR. CTLFLAG .EQ. -1 ) THEN
      DO i = 1, 3
-        BGL_g(:,i) = CLITTER_g(:,i) - AGL_g(:,i)
-        BGL_w(:,i) = CLITTER_w(:,i) - AGL_w(:,i)
+        BLAZE%BGLit_g(:,i) = CLITTER_g(:,i) - BLAZE%AGLit_g(:,i)
+        BLAZE%BGLit_w(:,i) = CLITTER_w(:,i) - BLAZE%AGLit_w(:,i)
      END DO
   ENDIF
-
-  BLAZE%AGLit_g = AGL_g
-  BLAZE%AGLit_w = AGL_w
 
   ! BLAZE used to compute ALL or FLI_ONLY
   IF ( BLAZE%BURNMODE .EQ. 1 .OR.  CTLFLAG .EQ. 1 ) THEN
@@ -198,8 +218,8 @@ SUBROUTINE BLAZE_DRIVER ( NCELLS, BLAZE, SF, casapool, casaflux, shootfrac, idoy
   ELSE IF ( CTLFLAG .EQ. -1 ) THEN
 !     IF ( .NOT. PRESENT(POP_TO) ) STOP "Provide POP_TO to blaze_casa.f90!"
      DO np = 1, NCELLS
-        CALL BLAZE_TURNOVER( BLAZE%AB(np), CPLANT_g(np,:), CPLANT_w(np,:), AGL_g(np,:), &
-             AGL_w(np,:), BGL_g(np,:), BGL_w(np,:),BLAZE%shootfrac(np),TO(np,:), &
+        CALL BLAZE_TURNOVER( BLAZE%AB(np), CPLANT_g(np,:), CPLANT_w(np,:), BLAZE%AGLit_g(np,:), &
+             BLAZE%AGLit_w(np,:), BLAZE%BGLit_g(np,:), BLAZE%BGLit_w(np,:),BLAZE%shootfrac(np),TO(np,:), &
              BLAZE%FLUXES(np,:), BLAZE%BURNMODE, POP_TO(np) )
 !CRM        CALL BLAZE_TURNOVER( AB(np), CPLANT_g(np,:), CPLANT_w(np,:), AGL_g(np,:), &
 !CRM             AGL_w(np,:), BGL_g(np,:), BGL_w(np,:),shootfrac(np),TO(np,:), &
@@ -213,20 +233,20 @@ SUBROUTINE BLAZE_DRIVER ( NCELLS, BLAZE, SF, casapool, casaflux, shootfrac, idoy
   ! then add POP non-fire disturbance litter to AGL
   IF ( BLAZE%BURNMODE .EQ. 1 .OR. CTLFLAG .EQ. -1 ) THEN
      DO i = 1, 3
-        CLITTER_g(:,i) = BGL_g(:,i) + AGL_g(:,i)
-        CLITTER_w(:,i) = BGL_w(:,i) + AGL_w(:,i)
+        CLITTER_g(:,i) = BLAZE%BGLit_g(:,i) + BLAZE%AGLit_g(:,i)
+        CLITTER_w(:,i) = BLAZE%BGLit_w(:,i) + BLAZE%AGLit_w(:,i)
      END DO
      ! Update AGL only (BGL not saved)
      IF ( cable_user%CALL_POP ) THEN
-        AGL_w(:, CWD) = AGL_w(:, CWD) + POP_CWD * shootfrac
-        AGL_w(:, STR) = AGL_w(:, STR) + POP_STR 
+        BLAZE%AGLit_w(:, CWD) = BLAZE%AGLit_w(:, CWD) + POP_CWD * shootfrac
+        BLAZE%AGLit_w(:, STR) = BLAZE%AGLit_w(:, STR) + POP_STR 
      ENDIF
   ENDIF
 
 
-  AGL_wo1 = ( AGL_w(:,METB))
-  AGL_wo2 = ( AGL_w(:,STR ))
-  AGL_wo3 = ( AGL_w(:,CWD ))
+!CLN  AGL_wo1 = ( AGL_w(:,METB))
+!CLN  AGL_wo2 = ( AGL_w(:,STR ))
+!CLN  AGL_wo3 = ( AGL_w(:,CWD ))
 
 
   ! C - CLOSURE check
@@ -275,9 +295,14 @@ SUBROUTINE BLAZE_DRIVER ( NCELLS, BLAZE, SF, casapool, casaflux, shootfrac, idoy
 !CLN     ENDIF
 !CLN  ENDIF
 
-  casapool%cplant (t1,:) = DBLE(CPLANT_g )
-  casapool%cplant (t2,:) = DBLE(CPLANT_w )
-  casapool%clitter(t1,:) = DBLE(CLITTER_g)
-  casapool%clitter(t2,:) = DBLE(CLITTER_w)
+  DO i = 1, 3
+     WHERE ( casamet%lnonwood .eq. 1 )
+        casapool%cplant (:,i) = DBLE(CPLANT_g (:,i))
+        casapool%clitter(:,i) = DBLE(CLITTER_g(:,i))
+     ELSEWHERE
+        casapool%cplant (:,i) = DBLE(CPLANT_w (:,i))
+        casapool%clitter(:,i) = DBLE(CLITTER_w(:,i))
+     END WHERE
+  END DO
 
 END SUBROUTINE BLAZE_DRIVER

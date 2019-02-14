@@ -6,7 +6,7 @@ TYPE TYPE_BLAZE
    REAL,     DIMENSION(:),  ALLOCATABLE :: FFDI,FLI,ROS,Z,D,w, LAT, LON,DFLI,AB,CAvgAnnRainf
    REAL,     DIMENSION(:),  ALLOCATABLE :: DEADWOOD,POP_TO, POP_CWD, POP_STR,shootfrac
    REAL,     DIMENSION(:,:),ALLOCATABLE :: AnnRAINF, ABM, TO, AGC_g, AGC_w
-   REAL,     DIMENSION(:,:),ALLOCATABLE :: AGLB_w, AGLB_g, AGLit_w, AGLit_g
+   REAL,     DIMENSION(:,:),ALLOCATABLE :: AGLit_w, AGLit_g, BGLit_w, BGLit_g
    REAL,     DIMENSION(:,:),ALLOCATABLE :: AvgAnnRAINF, FLUXES
    CHARACTER,DIMENSION(:),  ALLOCATABLE :: FTYPE*6
    INTEGER                              :: T_AVG, YEAR, MONTH, DAY, DOY, NCELLS
@@ -137,18 +137,18 @@ SUBROUTINE INI_BLAZE (POPFLAG, BURNT_AREA_SOURCE, TSTEP, np, LAT, LON, BLAZE)
      BLAZE%BURNMODE = 1    ! Full. All Fluxes copmuted by BLAZE
      WRITE(*,*) " BLAZE: Full Mode"
   END IF
-  IF ( TRIM(BURNT_AREA_SOURCE) == "SIMFIRE" ) THEN
-     BLAZE%IGNITION = 1    
-  ELSE IF ( TRIM(BURNT_AREA_SOURCE) == "PRESCRIBED" ) THEN
-     BLAZE%IGNITION = 2    
-  ELSE IF ( TRIM(BURNT_AREA_SOURCE) == "GFED3.1" ) THEN
-     BLAZE%IGNITION = 3    
-  ELSE 
-     WRITE(*,*) " ERROR: Invalid cable_user%BURNT_AREA : ",TRIM(BURNT_AREA_SOURCE)
-!!!CLN hier MPI-tauglichen abbruch!!!
-     BLAZE%ERR = .TRUE.
-     RETURN
-  END IF
+!CRM  IF ( TRIM(BURNT_AREA_SOURCE) == "SIMFIRE" ) THEN
+!CRM     BLAZE%IGNITION = 1    
+!CRM  ELSE IF ( TRIM(BURNT_AREA_SOURCE) == "PRESCRIBED" ) THEN
+!CRM     BLAZE%IGNITION = 2    
+!CRM  ELSE IF ( TRIM(BURNT_AREA_SOURCE) == "GFED3.1" ) THEN
+!CRM     BLAZE%IGNITION = 3    
+!CRM  ELSE 
+!CRM     WRITE(*,*) " ERROR: Invalid cable_user%BURNT_AREA : ",TRIM(BURNT_AREA_SOURCE)
+!CRM!!!CLN hier MPI-tauglichen abbruch!!!
+!CRM     BLAZE%ERR = .TRUE.
+!CRM     RETURN
+!CRM  END IF
   WRITE(*,*) " Burnt-area source: ", TRIM(BURNT_AREA_SOURCE)
 
   BLAZE%DSLR      = 0
@@ -206,12 +206,12 @@ SUBROUTINE BLAZE_ACCOUNTING(BLAZE, met, ktau, dels, year, doy)
      IF ( doy == 1 ) THEN
         BLAZE%AvgAnnRainf(:,x) = SUM(BLAZE%AnnRAINF(:,:),dim=2) 
         BLAZE%CAvgAnnRainf(:)  = SUM(BLAZE%AvgAnnRainf(:,:),dim=2) /REAL(T_AVG)
-     END IF
-     BLAZE%AnnRAINF(:,:) = 0.
+        BLAZE%AnnRAINF(:,:) = 0.
+    END IF
      BLAZE%U10 (:) = 0.
      BLAZE%RH  (:) = 0.
-     BLAZE%TMAX(:) = 0.
-     BLAZE%TMIN(:) = 999.
+     BLAZE%TMAX(:) = -999.
+     BLAZE%TMIN(:) =  999.
   END IF
 
   DO i = 1, mp
@@ -739,41 +739,39 @@ SUBROUTINE RUN_BLAZE(BLAZE, SF, CPLANT_g, CPLANT_w, tstp, YYYY, doy, TO ) !, CTR
 
   ! READ GFED BA DATA
   AB(:) = 0.
-  IF ( BLAZE%IGNITION .EQ. 0 ) THEN 
+  IF ( TRIM(cable_user%BURNT_AREA) .EQ. "GFED3.1" ) THEN 
 !     CALL GET_GFED( BLAZE )
 !     CALL GET_GFED4_BA( BLAZE )
 !     CALL GET_GFED41s_BA( BLAZE )
      WRITE(*,*)'GFED4 BA not available. Set cable_user%BURNT_AREA == "SIMFIRE"'
      STOP(-1)
      IF ( TRIM(BLAZE%FSTEP) .EQ. "none" ) THEN
-        CALL SIMFIRE ( SF, RAINF, TMAX, TMIN, DOY, YYYY, AB )
-        BLAZE%AB(:) = AB(:)
+        CALL SIMFIRE ( SF, RAINF, TMAX, TMIN, DOY, YYYY, BLAZE%AB )
         popd = SF%POPD
         mnest= SF%MAX_NESTEROV
         BLAZE%FSTEP = "annual"
      ENDIF
-  ELSEIF ( BLAZE%IGNITION .EQ. 1 ) THEN
+  ELSEIF ( TRIM(cable_user%BURNT_AREA) .EQ. "SIMFIRE" ) THEN
      ! CALL SIMFIRE DAILY FOR ACOUNTING OF PARAMETERS
-     CALL SIMFIRE ( SF, RAINF, TMAX, TMIN, DOY, YYYY, AB )
+     CALL SIMFIRE ( SF, RAINF, TMAX, TMIN, DOY, YYYY, BLAZE%AB )
 
-     BLAZE%AB(:) = AB(:)
      DO np = 1, BLAZE%NCELLS
-        IF ( MIN_FUEL .GE. AVAIL_FUEL(1, CPLANT_w(np,:), CPLANT_g(np,:), AGL_w(np,:), AGL_g(np,:)))&
+        IF ( AVAIL_FUEL(1, CPLANT_w(np,:), CPLANT_g(np,:), AGL_w(np,:), AGL_g(np,:)) .LE. MIN_FUEL ) &
              BLAZE%AB(np) = 0.
      END DO
      popd = SF%POPD
      mnest= SF%MAX_NESTEROV
   ELSE
-     WRITE(*,*) "Wrong ignition type chosen!",BLAZE%IGNITION
+     WRITE(*,*) "Wrong ignition type chosen: ",cable_user%BURNT_AREA
      STOP -1
   ENDIF
   
 !CRM  DEADWOOD    = BLAZE%DEADWOOD
-  BLAZE%Rainf = RAINF
-  BLAZE%TMAX  = TMAX ! deg C
-  BLAZE%TMIN  = TMIN ! deg C
-  BLAZE%U10   = U10 
-  BLAZE%RH    = RH 
+!CRM  BLAZE%Rainf = RAINF
+!CRM  BLAZE%TMAX  = TMAX ! deg C
+!CRM  BLAZE%TMIN  = TMIN ! deg C
+!CRM  BLAZE%U10   = U10 
+!CRM  BLAZE%RH    = RH 
  
   ! Apply half of former deadwood to atm now How to distribut (str
   ! set following Fraver 2013 pinus rosinosa (hardwood/decid. wood to be added
