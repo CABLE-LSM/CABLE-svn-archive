@@ -11,10 +11,10 @@ TYPE TYPE_BLAZE
    CHARACTER,DIMENSION(:),  ALLOCATABLE :: FTYPE*6
    INTEGER                              :: T_AVG, YEAR, MONTH, DAY, DOY, NCELLS
    INTEGER                              :: BURNMODE ! 0=off, 1=BLAZE only, 2=BLAZE with POP
-   INTEGER                              :: IGNITION ! 0=GFED3, 1=SIMFIRE
+!CRM   INTEGER                              :: IGNITION ! 0=GFED3, 1=SIMFIRE
    REAL                                 :: FT,tstp
    LOGICAL                              :: USE_POP = .FALSE., ERR=.FALSE.
-   CHARACTER                            :: GFEDP*80, FSTEP*7
+   CHARACTER                            :: GFEDP*80, FSTEP*7, BURNT_AREA_SRC*10
    CHARACTER                            :: OUTMODE = "std" ! "full" for diagnostical purposes
 END TYPE TYPE_BLAZE
 
@@ -739,7 +739,7 @@ SUBROUTINE RUN_BLAZE(BLAZE, SF, CPLANT_g, CPLANT_w, tstp, YYYY, doy, TO ) !, CTR
 
   ! READ GFED BA DATA
   AB(:) = 0.
-  IF ( TRIM(cable_user%BURNT_AREA) .EQ. "GFED3.1" ) THEN 
+  IF ( TRIM(BLAZE%BURNT_AREA_SRC) .EQ. "GFED3.1" ) THEN 
 !     CALL GET_GFED( BLAZE )
 !     CALL GET_GFED4_BA( BLAZE )
 !     CALL GET_GFED41s_BA( BLAZE )
@@ -751,7 +751,7 @@ SUBROUTINE RUN_BLAZE(BLAZE, SF, CPLANT_g, CPLANT_w, tstp, YYYY, doy, TO ) !, CTR
         mnest= SF%MAX_NESTEROV
         BLAZE%FSTEP = "annual"
      ENDIF
-  ELSEIF ( TRIM(cable_user%BURNT_AREA) .EQ. "SIMFIRE" ) THEN
+  ELSEIF ( TRIM(BLAZE%BURNT_AREA_SRC) .EQ. "SIMFIRE" ) THEN
      ! CALL SIMFIRE DAILY FOR ACOUNTING OF PARAMETERS
      CALL SIMFIRE ( SF, RAINF, TMAX, TMIN, DOY, YYYY, BLAZE%AB )
 
@@ -762,7 +762,7 @@ SUBROUTINE RUN_BLAZE(BLAZE, SF, CPLANT_g, CPLANT_w, tstp, YYYY, doy, TO ) !, CTR
      popd = SF%POPD
      mnest= SF%MAX_NESTEROV
   ELSE
-     WRITE(*,*) "Wrong ignition type chosen: ",cable_user%BURNT_AREA
+     WRITE(*,*) "Wrong ignition type chosen: ",BLAZE%BURNT_AREA_SRC
      STOP -1
   ENDIF
   
