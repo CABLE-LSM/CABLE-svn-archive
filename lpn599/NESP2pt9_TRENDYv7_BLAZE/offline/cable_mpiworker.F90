@@ -493,13 +493,13 @@ CONTAINS
                    CALL worker_blaze_types (comm,mp, BLAZE, blaze_restart_t,blaze_out_t)
                    IF ( .NOT. spinup ) &
                         CALL MPI_recv(icomm, blaze_restart_t)
-                ENDIF
-                ! CLN:  BURNT_AREA
-                IF ( CABLE_USER%BURNT_AREA == "SIMFIRE" ) THEN
-                   CALL worker_simfire_types (comm, mp, SIMFIRE, simfire_restart_t, simfire_inp_t, simfire_out_t)
-                   IF ( .NOT. spinup ) &
-                        CALL MPI_Recv(icomm,simfire_restart_t)
-                ENDIF
+                   ! CLN:  BURNT_AREA
+                   IF ( CABLE_USER%BURNT_AREA == "SIMFIRE" ) THEN
+                      CALL worker_simfire_types (comm, mp, SIMFIRE, simfire_restart_t, simfire_inp_t, simfire_out_t)
+                      IF ( .NOT. spinup ) &
+                           CALL MPI_Recv(icomm,simfire_restart_t)
+                   ENDIF
+                 ENDIF
              END IF
 
              ! MPI: create inp_t type to receive input data from the master
