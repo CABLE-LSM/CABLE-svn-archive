@@ -93,19 +93,19 @@ SUBROUTINE master_blaze_types (comm, wland, mp, BLAZE, blaze_restart_ts, blaze_o
      &                             types(bidx), ierr)
      blocks(bidx) = 1
 
-     ! Above ground life woody biomass 
-     bidx = bidx + 1
-     CALL MPI_Get_address (BLAZE%AGLB_w(off,1), displs(bidx), ierr) ! 2
-     CALL MPI_Type_create_hvector (ncp, r1len, r1stride, MPI_BYTE, &
-     &                             types(bidx), ierr)
-     blocks(bidx) = 1
-
-     ! Above ground life grassy biomass 
-     bidx = bidx + 1
-     CALL MPI_Get_address (BLAZE%AGLB_g(off,1), displs(bidx), ierr) ! 3
-     CALL MPI_Type_create_hvector (ncp, r1len, r1stride, MPI_BYTE, &
-     &                             types(bidx), ierr)
-     blocks(bidx) = 1
+!CLN     ! Above ground life woody biomass 
+!CLN     bidx = bidx + 1
+!CLN     CALL MPI_Get_address (BLAZE%AGLB_w(off,1), displs(bidx), ierr) ! 2
+!CLN     CALL MPI_Type_create_hvector (ncp, r1len, r1stride, MPI_BYTE, &
+!CLN     &                             types(bidx), ierr)
+!CLN     blocks(bidx) = 1
+!CLN
+!CLN     ! Above ground life grassy biomass 
+!CLN     bidx = bidx + 1
+!CLN     CALL MPI_Get_address (BLAZE%AGLB_g(off,1), displs(bidx), ierr) ! 3
+!CLN     CALL MPI_Type_create_hvector (ncp, r1len, r1stride, MPI_BYTE, &
+!CLN     &                             types(bidx), ierr)
+!CLN     blocks(bidx) = 1
 
      ! Above ground woody litter
      bidx = bidx + 1
@@ -230,19 +230,19 @@ SUBROUTINE master_blaze_types (comm, wland, mp, BLAZE, blaze_restart_ts, blaze_o
              &                             types(bidx), ierr)
         blocks(bidx) = 1
         
-        ! Above ground life woody biomass 
-        bidx = bidx + 1
-        CALL MPI_Get_address (BLAZE%AGLB_w(off,1), displs(bidx), ierr) ! 2
-        CALL MPI_Type_create_hvector (ncp, r1len, r1stride, MPI_BYTE, &
-             &                             types(bidx), ierr)
-        blocks(bidx) = 1
-        
-        ! Above ground life grassy biomass 
-        bidx = bidx + 1
-        CALL MPI_Get_address (BLAZE%AGLB_g(off,1), displs(bidx), ierr) ! 3
-        CALL MPI_Type_create_hvector (ncp, r1len, r1stride, MPI_BYTE, &
-             &                             types(bidx), ierr)
-        blocks(bidx) = 1
+!CLN        ! Above ground life woody biomass 
+!CLN        bidx = bidx + 1
+!CLN        CALL MPI_Get_address (BLAZE%AGLB_w(off,1), displs(bidx), ierr) ! 2
+!CLN        CALL MPI_Type_create_hvector (ncp, r1len, r1stride, MPI_BYTE, &
+!CLN             &                             types(bidx), ierr)
+!CLN        blocks(bidx) = 1
+!CLN        
+!CLN        ! Above ground life grassy biomass 
+!CLN        bidx = bidx + 1
+!CLN        CALL MPI_Get_address (BLAZE%AGLB_g(off,1), displs(bidx), ierr) ! 3
+!CLN        CALL MPI_Type_create_hvector (ncp, r1len, r1stride, MPI_BYTE, &
+!CLN             &                             types(bidx), ierr)
+!CLN        blocks(bidx) = 1
         
         ! Above ground woody litter
         bidx = bidx + 1
@@ -460,15 +460,15 @@ SUBROUTINE worker_blaze_types(comm, mp, BLAZE, blaze_restart_t, blaze_out_t)
   CALL MPI_Get_address (BLAZE%AnnRainf(off,1), displs(bidx), ierr)
   blocks(bidx) = r1len * ndoy
 
-  ! Above ground life woody biomass 
-  bidx = bidx + 1
-  CALL MPI_Get_address (BLAZE%AGLB_w(off,1), displs(bidx), ierr)
-  blocks(bidx) = r1len * ncp
-
-  ! Above ground life grassy biomass 
-  bidx = bidx + 1
-  CALL MPI_Get_address (BLAZE%AGLB_g(off,1), displs(bidx), ierr)
-  blocks(bidx) = r1len * ncp
+!CLN  ! Above ground life woody biomass 
+!CLN  bidx = bidx + 1
+!CLN  CALL MPI_Get_address (BLAZE%AGLB_w(off,1), displs(bidx), ierr)
+!CLN  blocks(bidx) = r1len * ncp
+!CLN
+!CLN  ! Above ground life grassy biomass 
+!CLN  bidx = bidx + 1
+!CLN  CALL MPI_Get_address (BLAZE%AGLB_g(off,1), displs(bidx), ierr)
+!CLN  blocks(bidx) = r1len * ncp
 
   ! Above ground woody litter
   bidx = bidx + 1
@@ -554,13 +554,13 @@ SUBROUTINE worker_blaze_types(comm, mp, BLAZE, blaze_restart_t, blaze_out_t)
      CALL MPI_Get_address (BLAZE%TO(off,1), displs(bidx), ierr)
      blocks(bidx) = r1len * NTO
 
-     bidx = bidx + 1
-     CALL MPI_Get_address (BLAZE%AGLB_w(off,1), displs(bidx), ierr)
-     blocks(bidx) = r1len * ncp
-
-     bidx = bidx + 1
-     CALL MPI_Get_address (BLAZE%AGLB_g(off,1), displs(bidx), ierr)
-     blocks(bidx) = r1len * ncp
+!CLN     bidx = bidx + 1
+!CLN     CALL MPI_Get_address (BLAZE%AGLB_w(off,1), displs(bidx), ierr)
+!CLN     blocks(bidx) = r1len * ncp
+!CLN
+!CLN     bidx = bidx + 1
+!CLN     CALL MPI_Get_address (BLAZE%AGLB_g(off,1), displs(bidx), ierr)
+!CLN     blocks(bidx) = r1len * ncp
 
      bidx = bidx + 1
      CALL MPI_Get_address (BLAZE%AGLit_w(off,1), displs(bidx), ierr)
