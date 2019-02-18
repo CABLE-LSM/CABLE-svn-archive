@@ -287,6 +287,19 @@ MODULE cable_def_types_mod
          rtevap_unsat,&
          rt_qh_sublayer
 
+      ! mgk576
+      ! Plant hydraulics variables
+      REAL(r_2), DIMENSION(:), POINTER ::                                      &
+         total_soil_resist! Total soil resistance across layers (excludes
+                              ! root resistance).
+
+
+      REAL(r_2) ::  weighted_swp
+
+      REAL(r_2), DIMENSION(:,:), POINTER ::                                      &
+         soilR, & !
+         fraction_uptake
+
       REAL(r_2), DIMENSION(:,:), POINTER  ::                                     &
          wbeq,    &    ! equilibrium water content [mm3/mm3]
          zq,      &    ! equilibrium smp       [mm]
@@ -500,6 +513,9 @@ MODULE cable_def_types_mod
 !! vh_js !! !litter thermal conductivity (Wm-2K-1) and vapour diffusivity (m2s-1)
       REAL(r_2), DIMENSION(:), POINTER :: kthLitt, DvLitt
 
+      ! mgk576, 10/10/2017: plant hydraulics
+      REAL, DIMENSION(:), POINTER ::                                           &
+         lwp
 
    END TYPE canopy_type
 
@@ -998,6 +1014,11 @@ SUBROUTINE alloc_soil_snow_type(var, mp)
    ALLOCATE( var%wmice(mp,ms) )
    ALLOCATE( var%wmtot(mp,ms) )
 
+   ! Allocate variables for plant hydraulics, mgk576, 9/10/17
+    ALLOCATE ( var%total_soil_resist(mp) )
+    ALLOCATE ( var%soilR(mp,ms) )
+    ALLOCATE ( var%fraction_uptake(mp,ms) )
+
     ! Allocate variables for SLI soil model:
     !IF(cable_user%SOIL_STRUC=='sli') THEN
     ALLOCATE ( var % S(mp,ms) )
@@ -1183,6 +1204,9 @@ SUBROUTINE alloc_canopy_type(var, mp)
 !! vh_js !! liiter resistances to heat and vapour transfer
    ALLOCATE (var % kthLitt(mp))
    ALLOCATE (var % DvLitt(mp))
+
+   !  mgk576, 10/10/2017: plant hydraulics
+   ALLOCATE( var%lwp(mf) )
 
 END SUBROUTINE alloc_canopy_type
 
@@ -1623,6 +1647,11 @@ SUBROUTINE dealloc_soil_snow_type(var)
    DEALLOCATE( var%wmice )
    DEALLOCATE( var%wmtot )
 
+   ! Deallocate variables for plant hydraulics, mgk576, 9/10/17
+   DEALLOCATE( var%total_soil_resist  )
+   DEALLOCATE( var%soilR  )
+   DEALLOCATE( var%fraction_uptake  )
+   
     !IF(cable_user%SOIL_STRUC=='sli') THEN
     DEALLOCATE ( var % S )
     DEALLOCATE ( var % Tsoil )
@@ -1794,6 +1823,9 @@ SUBROUTINE dealloc_canopy_type(var)
 !! vh_js !! liiter resistances to heat and vapour transfer
    DEALLOCATE (var % kthLitt)
    DEALLOCATE (var % DvLitt)
+
+   ! mgk576, 10/10/2017: plant hydraulics
+   DEALLOCATE( var%lwp )
 
 END SUBROUTINE dealloc_canopy_type
 
