@@ -82,8 +82,8 @@ export NCDIR='/home/mm/local/lib'
 export NCMOD='/home/mm/local/include'
 export LD_LIBRARY_PATH='${NCDIR}:{LD_LIBRARY_PATH}' 
 export FC=ifort
-export CFLAGS='-O0 -g -fp-model precise -check all'
-#export CFLAGS='-fp-model precise'
+#export CFLAGS='-O0 -g -fp-model precise -check all'
+export CFLAGS='-fp-model precise'
 export LD='-L${NCDIR} -lnetcdff -L${NCDIR} -lnetcdf'
 export LDFLAGS='-L/home/mm/local/lib -O2'
 build_build

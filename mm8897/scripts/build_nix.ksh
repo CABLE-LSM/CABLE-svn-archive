@@ -81,12 +81,9 @@ build_build()
 if [[ $1 = 'clean' ]]; then
    clean_build
 fi
-#export NCDIR=$NIX_LDFLAGS
-#'/home/mm/.nix-profile/lib'
-#export NCMOD=$NIX_CFLAGS_COMPILE
-#'/home/mm/.nix-profile/include'
 export FC=gfortran
-export CFLAGS='-g -O0 -x f95-cpp-input -Wall'
+#export CFLAGS='-g -O0 -x f95-cpp-input -Wall'
+export CFLAGS='-x f95-cpp-input'
 export LD='-lnetcdff'
 export LDFLAGS="-L ${NCDIR} -O2"
 build_build
