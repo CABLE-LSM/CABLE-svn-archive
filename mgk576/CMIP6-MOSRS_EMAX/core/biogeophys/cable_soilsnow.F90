@@ -1707,6 +1707,7 @@ SUBROUTINE soil_snow(dels, soil, ssnow, canopy, met, bal, veg, bgc)
    REAL, DIMENSION(mp) :: totwet
    REAL, DIMENSION(mp) :: weting
    REAL, DIMENSION(mp) :: xx, tgg_old, tggsn_old
+   REAL, DIMENSION(ms)  :: psi_soil
    REAL(r_2), DIMENSION(mp) :: xxx,deltat,sinfil1,sinfil2,sinfil3
    REAL                :: zsetot
    INTEGER, SAVE :: ktau =0
@@ -1857,7 +1858,7 @@ SUBROUTINE soil_snow(dels, soil, ssnow, canopy, met, bal, veg, bgc)
    IF (cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
       DO i = 1, mp
          CALL calc_soil_root_resistance(ssnow, soil, veg, bgc, i)
-         !CALL calc_swp(ssnow, soil)
+         CALL calc_swp(ssnow, soil, psi_soil)
          !CALL calc_weighted_swp_and_frac_uptake(ssnow, soil, i)
       END DO
    END IF
@@ -2645,6 +2646,48 @@ END SUBROUTINE GWstempv
      ssnow%total_soil_resist(i) = 1.0 / rsum
 
   END SUBROUTINE calc_soil_root_resistance
+  ! ----------------------------------------------------------------------------
+
+  ! ----------------------------------------------------------------------------
+  SUBROUTINE calc_swp(ssnow, soil, psi_soil)
+     ! Calculate the soil water potential. Mark does this, but we need this
+     ! information earlier in the code so that we can figure out the
+     ! root extraction for transpiration.
+     !
+     ! There is a probably a better way to rework Mark's logic - speak to him.
+     !
+     ! Martin De Kauwe, 16th Oct, 2017
+
+     USE cable_def_types_mod
+     USE cable_common_module
+
+     IMPLICIT NONE
+
+     TYPE (soil_snow_type), INTENT(INOUT)        :: ssnow
+     TYPE (soil_parameter_type), INTENT(INOUT)   :: soil
+
+     REAL, DIMENSION(ms), INTENT(INOUT) :: psi_soil
+     REAL, DIMENSION(ms)  :: t_over_t_sat, cond_per_layer
+
+     INTEGER :: ns
+     REAL :: psi_sat_mpa
+
+     ! Soil matric potential at saturation (m of head to MPA -> 9.81 * KPA_2_MPA)
+     psi_sat_mpa = soil%sucs(1) * 9.81 * 0.001
+
+     DO ns = 1, ms
+
+         t_over_t_sat(ns) = MAX(1.0e-9, MIN(1.0, ssnow%wb(1,ns) / soil%ssat(1)))
+         psi_soil(ns) = psi_sat_mpa * t_over_t_sat(ns)**(-soil%bch(1))
+         cond_per_layer(ns) = 1.0 / ssnow%soilR(1,ns)
+
+      END DO
+
+      ! weighted soil water potential
+      !psi_swp = sum(psi_swp_per_lay * cond_per_layer) / sum(cond_per_layer)
+
+
+  END SUBROUTINE calc_swp
   ! ----------------------------------------------------------------------------
 
 END MODULE cable_soil_snow_module
