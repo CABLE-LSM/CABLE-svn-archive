@@ -35,7 +35,7 @@ MODULE cable_soil_snow_module
 
    USE cable_def_types_mod, ONLY : soil_snow_type, soil_parameter_type,        &
                              veg_parameter_type, canopy_type, met_type,        &
-                             balances_type, r_2, ms, mp
+                             balances_type, r_2, ms, mp, bgc_pool_type
 
    USE cable_data_module, ONLY : issnow_type, point2constants
 
@@ -763,7 +763,7 @@ do i=1,mp
    if(canopy%precis(i) > 0.0 .and. ssnow%isflag(i) == 0) then
 
       ! accumulate solid part
-      ssnow%snowd(i) = MAX( ssnow%snowd(i) + met%precip_sn(i), 0.0 ) 
+      ssnow%snowd(i) = MAX( ssnow%snowd(i) + met%precip_sn(i), 0.0 )
 
       canopy%precis(i) = canopy%precis(i) - met%precip_sn(i)
 
@@ -778,7 +778,7 @@ do i=1,mp
          ssnow%snowd(i) = MAX(ssnow%snowd(i) + canopy%precis(i), 0.0)
 
          ssnow%tgg(i,1) = ssnow%tgg(i,1) + canopy%precis(i) * C%HLF               &
-                          / ( REAL( ssnow%gammzz(i,1) ) + C%cswat *canopy%precis(i) )  
+                          / ( REAL( ssnow%gammzz(i,1) ) + C%cswat *canopy%precis(i) )
          ! change density due to water being added
          ssnow%ssdn(i,1) = MIN( max_ssdn, MAX( 120.0, ssnow%ssdn(i,1)          &
                            * ssnow%osnowd(i) / MAX( 0.01, ssnow%snowd(i) ) + C%density_liq  &
@@ -791,9 +791,9 @@ do i=1,mp
          canopy%precis(i) = 0.0
          ssnow%ssdnn(i) = ssnow%ssdn(i,1)
 
-      END if   
+      END if
 
-   END if ! (canopy%precis > 0. .and. ssnow%isflag == 0) 
+   END if ! (canopy%precis > 0. .and. ssnow%isflag == 0)
 
    if(canopy%precis(i) > 0.0 .and.  ssnow%isflag(i) > 0) then
 
@@ -868,11 +868,11 @@ do i=1,mp
 
          canopy%precis(i) = 0.0
 
-      ENDif 
+      ENDif
 
-   ENDif 
+   ENDif
 
-ENDdo 
+ENDdo
 
    ! 'fess' is for soil evap and 'fes' is for soil evap plus soil puddle evap
    canopy%segg = canopy%fess / C%HL
@@ -880,11 +880,11 @@ ENDdo
 
    ! Initialise snow evaporation:
    ssnow%evapsn = 0
-do i=1,mp    
+do i=1,mp
    ! Snow evaporation and dew on snow
    ! NB the conditions on when %fes applies to %segg or %evapsn MUST(!!)
-   ! match those used to set %cls in the latent_heat_flux calculations 
-   ! for moisture conservation purposes 
+   ! match those used to set %cls in the latent_heat_flux calculations
+   ! for moisture conservation purposes
    ! Ticket 137 - using %cls as the trigger not %snowd
    if( ssnow%cls(i) == 1.1335 ) then
    !WHERE( ssnow%snowd > 0.1 )
@@ -903,17 +903,17 @@ do i=1,mp
       if( ssnow%isflag(i) > 0 ) then
          ssnow%smass(i,1) = ssnow%smass(i,1)  - ssnow%evapsn(i)
          ssnow%sdepth(i,1) = MAX( 0.02, ssnow%smass(i,1) / ssnow%ssdn(i,1) )
-      ENDif 
+      ENDif
 
       canopy%segg(i) = 0.0
 
-      !INH: cls package 
+      !INH: cls package
       !we still need to conserve moisture/energy when evapsn is limited
       !this is a key point of moisture non-conservation
 
-   ENDif 
+   ENDif
 
-ENDdo 
+ENDdo
 END SUBROUTINE snow_accum
 
 ! -----------------------------------------------------------------------------
@@ -951,8 +951,8 @@ SUBROUTINE surfbv (dels, met, ssnow, soil, veg, canopy )
 
    IF( cable_runtime%UM ) THEN
      nglacier = 0
-   else 
-     nglacier = 2 
+   else
+     nglacier = 2
    endif
 
    CALL smoisturev( dels, ssnow, soil, veg )
@@ -1597,9 +1597,43 @@ SUBROUTINE remove_trans(dels, soil, ssnow, canopy, veg)
    TYPE(veg_parameter_type), INTENT(INOUT)  :: veg
    REAL(r_2), DIMENSION(mp,0:ms) :: diff
    REAL(r_2), DIMENSION(mp)      :: xx,xxd,evap_cur
-   INTEGER k
+   REAL(r_2), DIMENSION(mp,ms) :: zse_mp_mm
+   INTEGER k, i
 
-  IF (cable_user%FWSOIL_switch.ne.'Haverd2013') THEN
+  IF (cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
+
+      ! This follows the default extraction logic, but instead of weighting
+      ! by froot, we are weighting by the frac uptake we calculated when we
+      ! were weighting the soil water potential.
+      !
+      ! Martin De Kauwe, 13/10/17
+
+      xx(:) = 0._r_2
+      xxd(:) = 0._r_2
+      diff(:,:) = 0._r_2
+
+      DO k = 1, ms
+         DO i = 1, mp
+            IF (canopy%fevc(i) .gt. 0._r_2) THEN
+               xx(i) = canopy%fevc(i) * dels / C%HL * &
+                       ssnow%fraction_uptake(i,k) + diff(i,k-1)
+
+               diff(i,k) = max(0._r_2,ssnow%wbliq(i,k)-soil%swilt_vec(i,k)) * &
+                               zse_mp_mm(i,k)
+               xxd(i) = xx(i) - diff(i,k)
+
+               IF (xxd(i) .gt. 0._r_2) THEN
+                  ssnow%wbliq(i,k) = ssnow%wbliq(i,k) - diff(i,k)/zse_mp_mm(i,k)
+                  diff(i,k) = xxd(i)
+               ELSE
+                  ssnow%wbliq(i,k) = ssnow%wbliq(i,k) - xx(i)/zse_mp_mm(i,k)
+                  diff(i,k) = 0._r_2
+               END IF
+            END IF   !fvec > 0
+         END DO   !mp
+      END DO   !ms
+
+  ELSE IF (cable_user%FWSOIL_switch.ne.'Haverd2013') THEN
      xx = 0.; xxd = 0.; diff(:,:) = 0.
      DO k = 1,ms
 
@@ -1657,7 +1691,7 @@ END SUBROUTINE remove_trans
 !        ivegt - vegetation type
 ! Output
 !        ssnow
-SUBROUTINE soil_snow(dels, soil, ssnow, canopy, met, bal, veg)
+SUBROUTINE soil_snow(dels, soil, ssnow, canopy, met, bal, veg, bgc)
    USE cable_common_module
    REAL, INTENT(IN)                    :: dels ! integration time step (s)
    TYPE(soil_parameter_type), INTENT(INOUT) :: soil
@@ -1666,7 +1700,9 @@ SUBROUTINE soil_snow(dels, soil, ssnow, canopy, met, bal, veg)
    TYPE(veg_parameter_type), INTENT(INOUT)  :: veg
    TYPE(met_type), INTENT(INOUT)            :: met ! all met forcing
    TYPE (balances_type), INTENT(INOUT)      :: bal
-   INTEGER             :: k
+   TYPE (bgc_pool_type), INTENT(IN)         :: bgc
+
+   INTEGER             :: k, i
    REAL, DIMENSION(mp) :: snowmlt
    REAL, DIMENSION(mp) :: totwet
    REAL, DIMENSION(mp) :: weting
@@ -1816,6 +1852,15 @@ SUBROUTINE soil_snow(dels, soil, ssnow, canopy, met, bal, veg)
 
    ! Add new snow melt to global snow melt variable:
    ssnow%smelt = ssnow%smelt + snowmlt
+
+   ! PH: mgk576, 13/10/17, added two funcs
+   IF (cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
+      DO i = 1, mp
+         CALL calc_soil_root_resistance(ssnow, soil, veg, bgc, i)
+         !CALL calc_swp(ssnow, soil)
+         !CALL calc_weighted_swp_and_frac_uptake(ssnow, soil, i)
+      END DO
+   END IF
 
    CALL remove_trans(dels, soil, ssnow, canopy, veg)
 
@@ -2103,7 +2148,7 @@ SUBROUTINE hydraulic_redistribution(dels, soil, ssnow, canopy, veg, met)
 END SUBROUTINE hydraulic_redistribution
 
        ! soil thermal conductivity (incl water/ice)
- function total_soil_conductivity(ssnow,soil) 
+ function total_soil_conductivity(ssnow,soil)
 
    REAL(r_2), DIMENSION(mp,ms) ::  total_soil_conductivity
 
@@ -2125,7 +2170,7 @@ END SUBROUTINE hydraulic_redistribution
             total_soil_conductivity(j,k) = snow_ccnsw
          ELSE
             quartz(j,k) = max(0.0,min(0.8,soil%sand_vec(j,k)*0.92))
-            if (quartz(j,k) .gt. 0.2) then 
+            if (quartz(j,k) .gt. 0.2) then
               Ko = 2.0
             else
               Ko = 3.0
@@ -2148,7 +2193,7 @@ END SUBROUTINE hydraulic_redistribution
             max(0., ssnow%wb(j,k)-soil%watr(j,k))/(soil%ssat_vec(j,k)-soil%watr(j,k)) )
 
             !frozen or not?
-            if (Sr(j,k) .ge. 0.05) then 
+            if (Sr(j,k) .ge. 0.05) then
                Ke(j,k) = 0.7*log10(Sr(j,k)) + 1.0
             else
                Ke(j,k) = 0.0
@@ -2269,8 +2314,8 @@ subroutine snow_processes_soil_thermal(dels,ssnow,soil,veg,canopy,met,bal,snowml
    end do
 
    CALL snow_melting (dels, snowmlt, ssnow, soil )
-   
-   ! Add new snow melt to global snow melt variable: 
+
+   ! Add new snow melt to global snow melt variable:
   ssnow%smelt(:) = ssnow%smelt(:) + snowmlt(:)
 
 end subroutine snow_processes_soil_thermal
@@ -2306,7 +2351,7 @@ SUBROUTINE GWstempv(dels, canopy, ssnow, soil)
 
    INTEGER :: j,k
    REAL :: exp_arg
-  
+
    LOGICAL :: direct2min = .FALSE.
 
    at = 0.0
@@ -2481,5 +2526,125 @@ SUBROUTINE GWstempv(dels, canopy, ssnow, soil)
    canopy%ghflux = coefb * ( ssnow%tgg(:,1) - ssnow%tgg(:,2) ) ! +ve downwards
 
 END SUBROUTINE GWstempv
+
+! ----------------------------------------------------------------------------
+ SUBROUTINE calc_soil_root_resistance(ssnow, soil, veg, bgc, i)
+     ! Calculate root & soil hydraulic resistance following SPA approach
+     ! (Williams et al.)
+     !
+     ! Root hydraulic resistance declines linearly with increasing root
+     ! biomass according to root resistivity (400) [MPA s m2 mmol-1].
+     !
+     ! Soil hydraulic resistance depends on soil conductivity, root length,
+     ! depth of layer and distance between roots.
+     !
+     ! In units conversion, useful to recall that:
+     ! m s-1 = m3 m-1 m-1 s-1
+     ! m3 (amount of water) m-1 (per unit length) m-1 (per unit hydraulic head,
+     !                                                 measured in meters) s-1
+     !
+     ! References:
+     ! -----------
+     ! * Duursma, R. A. 2008. Predicting the decline in daily maximum
+     !   transpiration rate of two pine stands during drought based on
+     !   constant minimum leaf water potential and plant hydraulic conductance.
+     !   Tree Physiology, 28, 265–276.
+     ! * Gardner, W.R. 1964. Relation of root distribution to water uptake
+     !   and availability. Agron. J. 56:41–45.
+     ! * Newman, E.I. 1969. Resistance to water flow in soil and plant. I.
+     !   Soil resistance in relation to amounts of root: theoretical
+     !   estimates. J. Appl. Ecol. 6:1–12.
+     ! * Williams, M. et al. 1996. Modeling the soil–plant–atmosphere continuum
+     !   in a Quercus–Acer stand at Harvard Forest: the regulation of stomatal
+     !   conductance by light, nitrogen and soil/plant hydraulic properties.
+     !   Plant Cell Environ. 19:911–927.
+     !
+     ! Martin De Kauwe, 9th Oct, 2017
+
+     USE cable_def_types_mod
+     USE cable_common_module
+
+     IMPLICIT NONE
+
+     TYPE (soil_snow_type), INTENT(INOUT)        :: ssnow
+     TYPE (soil_parameter_type), INTENT(INOUT)   :: soil
+     TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
+     TYPE (bgc_pool_type),  INTENT(IN)           :: bgc
+
+     REAL, PARAMETER :: pi = 3.1415927
+     REAL, PARAMETER :: root_radius = 0.0005                 ! m
+     REAL, PARAMETER :: root_xsec_area = pi * root_radius**2 ! m2
+     REAL, PARAMETER :: root_density = 0.5e6                ! g biomass m-3 root
+     REAL, PARAMETER :: root_resistivity = 400.0             ! MPa s g mmol-1
+     REAL, PARAMETER :: head = 0.009807             ! head of pressure  (MPa/m)
+     REAL, PARAMETER :: C_2_BIOMASS = 2.0
+     REAL, PARAMETER :: MM_TO_M = 0.001
+     REAL, PARAMETER :: KPA_2_MPa = 0.001
+     REAL, PARAMETER :: M_HEAD_TO_MPa = 9.8 * KPA_2_MPa
+     REAL, PARAMETER :: G_WATER_TO_MOLE = 1.0 / 18.01528
+     REAL, PARAMETER :: CUBIC_M_WATER_2_GRAMS = 1E6
+     REAL, PARAMETER :: MOL_2_MMOL = 1000.0
+     REAL, PARAMETER :: TINY_NUMBER = 1E-35
+     REAL, PARAMETER :: HUGE_NUMBER = 1E35
+
+     REAL :: Ks, Lsoil, soilR1, soilR2, arg1, arg2, root_biomass, root_length
+     REAL :: soil_root_resist, rs, soil_resistance, root_resistance, rsum, conv
+     REAL :: root_mass
+
+     INTEGER, INTENT(IN) :: i
+     INTEGER :: j
+
+     ! Store each layers resistance, used in LWP calculatons
+     rsum = 0.0
+     DO j = 1, ms ! Loop over 6 soil layers
+        !root_biomass = bgc%cplant(i,3) * veg%froot(i,j) * C_2_BIOMASS
+
+        ! (m root m-3 soil surface)
+        !root_length = root_biomass / (root_density * root_xsec_area)
+
+        root_mass = bgc%cplant(i,3) * veg%froot(i,j)
+
+        root_length = root_mass / (root_density * root_xsec_area)
+
+        ! Soil hydraulic conductivity for layer, mm/s -> m s-1
+        !Ks = ssnow%hk(i,j) * MM_TO_M
+
+        Ks = soil%hyds(1) * (ssnow%wb(i,j) / &
+                              soil%ssat(1))**(2.0 * soil%bch(1) + 3.0)
+
+        ! converts from m s-1 to m2 s-1 MPa-1
+        Lsoil = Ks / head
+
+        ! prevent floating point error
+        IF (Lsoil < TINY_NUMBER) THEN
+           ssnow%soilR(i,j) = HUGE_NUMBER
+        ELSE
+           ! Conductance of the soil-to-root pathway can be estimated assuming
+           ! that the root system consists of one long root that has access to
+           ! a surrounding cylinder of soil (Gardner 1960, Newman 1969)
+           rs = sqrt(1.0 / (root_length * pi))
+           soil_resistance = log(rs / root_radius) /                         &
+                             (2.0 * pi * root_length * soil%zse(j) * Lsoil)
+
+           ! convert from MPa s m2 m-3 to MPa s m2 mmol-1
+           conv = 1.0 / (CUBIC_M_WATER_2_GRAMS * G_WATER_TO_MOLE * MOL_2_MMOL)
+           soil_resistance = soil_resistance * conv
+
+           ! second component of below ground resistance related to root
+           ! hydraulics
+           root_resistance = root_resistivity / (soil%zse(j) * root_biomass)
+
+           ! MPa s m2 mmol-1
+           ssnow%soilR(i,j) = soil_resistance + root_resistance
+
+           ! Need to combine resistances in parallel, but we only want the
+           ! soil term as the root component is part of the plant resistance
+           rsum = rsum + 1.0 / soil_resistance
+        END IF
+     END DO
+     ssnow%total_soil_resist(i) = 1.0 / rsum
+
+  END SUBROUTINE calc_soil_root_resistance
+  ! ----------------------------------------------------------------------------
 
 END MODULE cable_soil_snow_module

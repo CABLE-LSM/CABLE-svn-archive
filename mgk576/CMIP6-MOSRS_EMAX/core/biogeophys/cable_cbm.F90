@@ -22,7 +22,7 @@
 !
 ! History: Calling sequence changes for ACCESS compared to v1.4b
 !
-!          REV_CORR package of fixes for the sensitivity/correction terms 
+!          REV_CORR package of fixes for the sensitivity/correction terms
 !
 ! ==============================================================================
 
@@ -59,7 +59,7 @@ CONTAINS
    USE cable_canopy_module, only : define_canopy
    USE cable_albedo_module, only : surface_albedo
    USE sli_main_mod, only : sli_main
-                                   
+
 
    !ptrs to local constants
    TYPE( icbm_type ) :: C
@@ -125,7 +125,7 @@ CONTAINS
    !! vh_js !!
    !CABLE_LSM:check
    IF( cable_runtime%um .AND. first_call ) then
-     ssnow%tss=(1-ssnow%isflag)*ssnow%tgg(:,1) + ssnow%isflag*ssnow%tggsn(:,1) 
+     ssnow%tss=(1-ssnow%isflag)*ssnow%tgg(:,1) + ssnow%isflag*ssnow%tggsn(:,1)
      ssnow%otss = ssnow%tss
      first_call = .false.
    endif
@@ -142,7 +142,7 @@ CONTAINS
         IF (cable_user%gw_model) then
            CALL soil_snow_gw(dels, soil, ssnow, canopy, met, bal,veg)
         ELSE
-            CALL soil_snow(dels, soil, ssnow, canopy, met, bal,veg)
+            CALL soil_snow(dels, soil, ssnow, canopy, met, bal,veg, bgc)
          ENDIF
       ENDIF
 
@@ -151,7 +151,7 @@ CONTAINS
         IF (cable_user%gw_model) then
            CALL soil_snow_gw(dels, soil, ssnow, canopy, met, bal,veg)
         ELSE
-            CALL soil_snow(dels, soil, ssnow, canopy, met, bal,veg)
+            CALL soil_snow(dels, soil, ssnow, canopy, met, bal,veg, bgc)
          ENDIF
       ELSEIF (cable_user%SOIL_STRUC=='sli') THEN
 
@@ -161,7 +161,7 @@ CONTAINS
          CALL sli_main(ktau,dels,veg,soil,ssnow,met,canopy,air,rad,0)
       ENDIF
    ENDIF
-   
+
 
    ssnow%deltss = ssnow%tss-ssnow%otss
    ! correction required for energy balance in online simulations
@@ -182,22 +182,22 @@ CONTAINS
       !canopy%fes_cor = canopy%fes_cor + ( ssnow%tss-ssnow%otss ) *            &
       !                      ( ssnow%dfe_ddq * ssnow%ddq_dtg )
       !               ( ssnow%cls * ssnow%dfe_ddq * ssnow%ddq_dtg )
- 
+
       !INH rewritten in terms of %dfe_dtg - NB factor %cls above was a bug
       canopy%fes = canopy%fes + ( ssnow%tss-ssnow%otss ) * ssnow%dfe_dtg
-  
+
       !INH NB factor %cls in %fes_cor above was a bug - see Ticket #135 #137
       canopy%fes_cor = canopy%fes_cor + (ssnow%tss-ssnow%otss) * ssnow%dfe_dtg
-      !canopy%fes_cor = canopy%fes_cor + ssnow%cls*(ssnow%tss-ssnow%otss) & 
+      !canopy%fes_cor = canopy%fes_cor + ssnow%cls*(ssnow%tss-ssnow%otss) &
       !       * ssnow%dfe_dtg
-      
+
       IF (cable_user%L_REV_CORR) THEN
          !INH need to add on corrections to all terms in the soil energy balance
          canopy%fns_cor = canopy%fns_cor + (ssnow%tss-ssnow%otss)*ssnow%dfn_dtg
 
          !NB %fns_cor also added onto out%Rnet and out%LWnet in cable_output and
-         !cable_checks as the correction term needs to pass through the 
-         !canopy in entirity not be partially absorbed and %fns not used there 
+         !cable_checks as the correction term needs to pass through the
+         !canopy in entirity not be partially absorbed and %fns not used there
          !(as would be the case if rad%flws were changed)
          canopy%fns = canopy%fns + ( ssnow%tss-ssnow%otss )*ssnow%dfn_dtg
 
@@ -209,7 +209,7 @@ CONTAINS
 
       ENDIF
    ENDIF
-   
+
 
    ! need to adjust fe after soilsnow
    canopy%fev  = canopy%fevc + canopy%fevw
@@ -224,12 +224,12 @@ CONTAINS
    if (cable_runtime%um) then
        !Jan 2018: UM assumes a single emissivity for the surface in the radiation scheme
        !To accommodate this a single value of is 1. is assumed in ACCESS
-       ! any leaf/soil emissivity /=1 must be incorporated into rad%trad.  
+       ! any leaf/soil emissivity /=1 must be incorporated into rad%trad.
        ! check that emissivities (pft and nvg) set = 1 within the UM i/o configuration
        ! CM2 - further adapted to pass the correction term onto %trad correctly
        rad%trad = ( ( 1.-rad%transd ) * C%emleaf * canopy%tv**4 +                      &
               rad%transd * C%emsoil * ssnow%otss**4 + canopy%fns_cor/C%sboltz )**0.25
-   else       
+   else
    rad%trad = ( ( 1.-rad%transd ) * canopy%tv**4 +                             &
               rad%transd * ssnow%tss**4 )**0.25
    endif
@@ -257,5 +257,3 @@ CONTAINS
 END SUBROUTINE cbm
 
 END MODULE cable_cbm_module
-
-
