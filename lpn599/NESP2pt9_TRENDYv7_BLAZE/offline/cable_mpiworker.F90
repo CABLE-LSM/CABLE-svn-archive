@@ -492,12 +492,12 @@ CONTAINS
                     
                    CALL worker_blaze_types (comm,mp, BLAZE, blaze_restart_t,blaze_out_t)
                    IF ( .NOT. spinup ) &
-                        CALL MPI_recv(icomm, blaze_restart_t)
+                        CALL MPI_recv(MPI_BOTTOM, 1, blaze_restart_t, 0, ktau_gl, icomm, stat, ierr)
                    ! CLN:  BURNT_AREA
                    IF ( CABLE_USER%BURNT_AREA == "SIMFIRE" ) THEN
                       CALL worker_simfire_types (comm, mp, SIMFIRE, simfire_restart_t, simfire_inp_t, simfire_out_t)
                       IF ( .NOT. spinup ) &
-                           CALL MPI_Recv(icomm,simfire_restart_t)
+                           CALL MPI_Recv(MPI_BOTTOM, 1, simfire_restart_t, 0, ktau_gl, icomm, stat, ierr)
                    ENDIF
                  ENDIF
              END IF
