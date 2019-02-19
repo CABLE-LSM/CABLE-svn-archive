@@ -2632,7 +2632,7 @@ END SUBROUTINE GWstempv
 
            ! second component of below ground resistance related to root
            ! hydraulics
-           root_resistance = root_resistivity / (soil%zse(j) * root_biomass)
+           root_resistance = root_resistivity / (soil%zse(j) * root_mass)
 
            ! MPa s m2 mmol-1
            ssnow%soilR(i,j) = soil_resistance + root_resistance
@@ -2755,6 +2755,7 @@ END SUBROUTINE GWstempv
            END IF
         END DO
         ssnow%weighted_psi_soil = ssnow%weighted_psi_soil / total_est_evap
+        
      ELSE
         ! No water was evaporated
         ssnow%fraction_uptake(i,:) = 1.0 / FLOAT(ms)
