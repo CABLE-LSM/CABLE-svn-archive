@@ -2256,7 +2256,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                 ! Transpiration: kg m-2 s-1 -> mmol m-2 s-1
                 conv = KG_2_G * G_WATER_TO_MOL * MOL_2_MMOL
                 trans_mmol = (canopy%fevc(i) / air%rlam(i)) * conv
-                canopy%lwp(i) = calc_lwp(ssnow, ktot, trans_mmol)
+                canopy%lwp(i) = calc_psi_leaf(ssnow, ktot, trans_mmol)
              ENDIF
 
              ! Update canopy sensible heat flux:
@@ -3173,7 +3173,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
   ! ----------------------------------------------------------------------------
 
   ! ----------------------------------------------------------------------------
-  FUNCTION calc_lwp(ssnow, ktot, transpiration) RESULT(psi_leaf)
+  FUNCTION calc_psi_leaf(ssnow, ktot, transpiration) RESULT(psi_leaf)
      ! Calculate the leaf water potential (MPa)
      !
      ! The result is obtained from re-arranging eqn 4 in Duursma et al.
@@ -3211,7 +3211,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
         psi_leaf = -20.0
      END IF
 
-  END FUNCTION calc_lwp
+  END FUNCTION calc_psi_leaf
   ! ----------------------------------------------------------------------------
 
 END MODULE cable_canopy_module
