@@ -2588,7 +2588,7 @@ END SUBROUTINE GWstempv
      REAL, PARAMETER :: TINY_NUMBER = 1E-35
      REAL, PARAMETER :: HUGE_NUMBER = 1E35
 
-     REAL :: Ks, Lsoil, root_length, root_mass
+     REAL :: Ks, Lsoil, root_length, root_mass, rs
      REAL :: soil_resistance, root_resistance, rsum, conv
 
      INTEGER, INTENT(IN) :: i
