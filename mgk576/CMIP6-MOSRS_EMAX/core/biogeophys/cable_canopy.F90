@@ -2597,7 +2597,14 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                 ENDIF
 
                 ! minimal of three limited rates
-                anxz(i,j) = MIN(anrubiscoz(i,j),anrubpz(i,j),ansinkz(i,j))
+                !anxz(i,j) = MIN(anrubiscoz(i,j),anrubpz(i,j),ansinkz(i,j))
+
+                ! min of two limitation rates, ignore sink for hydraulics
+                ! we can add the appropriate calculation for the ansinkz
+                ! emax rate but given this shouldn't come up let's ignore it
+                ! for now
+                ! MGK, 19th Feb 2019
+                anxz(i,j) = MIN(anrubiscoz(i,j),anrubpz(i,j))
 
 
              ENDIF
@@ -3113,8 +3120,8 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
 
      ! Solution when Rubisco rate is limiting */
      A = 1.0 / gsc
-     !B = (rd - vcmax) / gsc - cs - km
-     B = (0.0 - vcmax) / gsc - cs - km
+     B = (rd - vcmax) / gsc - cs - km
+     !B = (0.0 - vcmax) / gsc - cs - km
      C = vcmax * (cs - gamma_star) - rd * (cs + km)
      an_rubisco = quadm(A, B, C)
 
