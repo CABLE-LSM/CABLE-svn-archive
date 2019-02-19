@@ -176,6 +176,13 @@ MODULE cable_checks_module
            TotSoilCarb =  (/0.0, 1000./),      &
            TotLittCarb =  (/0.0, 1000./), &
            Area = (/0.0, 5000./),&
+
+           !mgk576, 10/10/2017
+           weighted_psi_soil = (/-100.,100./),          &
+           psi_soil = (/-100.,100./),                   &
+           psi_leaf = (/-100.,100./),                   &
+
+
            !MD
            WatTable = (/0.0,1.0e10/),          &
            GWwb = (/0.0,1.0/),              &
