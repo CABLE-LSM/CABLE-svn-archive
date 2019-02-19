@@ -2136,7 +2136,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                 CALL calculate_emax(canopy, veg, ssnow, dsx(:), par(:,:),      &
                                     csx(:,:), SPREAD(cx1(:), 2, mf), rdx(:,:), &
                                     vcmxt3(:,:), gsc(:), anx(:,:), ktot,       &
-                                    co2cp3, inferred_stress, i, kk)
+                                    co2cp3, inferred_stress, met%pmb, i, kk)
              END DO
              ! fwsoil means nothing when using the plant hydraulics, but we
              ! still need an inferred fwsoil as this is used in SOM
@@ -2225,6 +2225,18 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
 
              ELSE
 
+                ! PH: mgk576, 13/10/17
+                ! This is over the combined direct & diffuse leaves due to the
+                ! way the loops fall above
+                IF (cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
+
+                   ! Transpiration: kg m-2 s-1 -> mmol m-2 s-1
+                   conv = KG_2_G * G_WATER_TO_MOL * MOL_2_MMOL
+                   !trans_mmol = (canopy%fevc(i) / air%rlam(i)) * conv
+                   trans_mmol = (ecx(i) / air%rlam(i)) * conv
+                   canopy%psi_leaf(i) = calc_psi_leaf(ssnow, ktot, trans_mmol)
+                ENDIF
+
                 IF (ecx(i) > 0.0 .AND. canopy%fwet(i) < 1.0) Then
                    evapfb(i) = ( 1.0 - canopy%fwet(i)) * REAL( ecx(i) ) *dels      &
                         / air%rlam(i)
@@ -2248,16 +2260,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
 
              ENDIF
 
-             ! PH: mgk576, 13/10/17
-             ! This is over the combined direct & diffuse leaves due to the
-             ! way the loops fall above
-             IF (cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
 
-                ! Transpiration: kg m-2 s-1 -> mmol m-2 s-1
-                conv = KG_2_G * G_WATER_TO_MOL * MOL_2_MMOL
-                trans_mmol = (canopy%fevc(i) / air%rlam(i)) * conv
-                canopy%lwp(i) = calc_psi_leaf(ssnow, ktot, trans_mmol)
-             ENDIF
 
              ! Update canopy sensible heat flux:
              hcx(i) = (SUM(rad%rniso(i,:))-ecx(i)                               &
@@ -2955,7 +2958,8 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
 
   ! ----------------------------------------------------------------------------
   SUBROUTINE calculate_emax(canopy, veg, ssnow, dleaf, par, cs, km, rd, vcmax, &
-                            gsc, an, ktot, gamma_star, inferred_stress, i, j)
+                            gsc, an, ktot, gamma_star, inferred_stress, pmb,   &
+                            i, j)
      !
      ! Transpiration is calculated assuming a maximum "supply" driven by
      ! darcy's law. Once the "demand" exceeds the supply, we infer a new
@@ -2985,20 +2989,29 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
      TYPE (canopy_type), INTENT(INOUT)         :: canopy
 
      ! met stuff
-     REAL(R_2),INTENT(IN), DIMENSION(:,:) :: cs  ! leaf surface CO2
-     REAL, INTENT(IN), DIMENSION(:) ::  dleaf    ! leaf surface vpd
-     REAL, DIMENSION(mp,mf), INTENT(IN) :: par   ! leaf surface PAR
-     REAL :: press = 101325.0 ! Pascals, where is this in CABLE?????
+     REAL(R_2), DIMENSION(:,:), INTENT(IN) :: cs     ! leaf surface CO2
+     REAL, DIMENSION(:), INTENT(IN)        :: dleaf  ! leaf surface vpd
+     REAL, DIMENSION(:,:), INTENT(IN)      :: par    ! leaf surface PAR
+     REAL, DIMENSION(:), INTENT(IN)        :: pmb    ! pressure PMB (mb)
 
-     ! Hydraulic conductance of the entire soil-to-leaf pathway, this is passed
-     ! back out to LWP calculation
-     REAL, INTENT(INOUT) :: ktot
+     REAL, DIMENSION(mp,mf), INTENT(IN)    :: rd, vcmax, km
+     REAL, DIMENSION(mp,mf), INTENT(INOUT) :: an
+     REAL, DIMENSION(mf), INTENT(INOUT)    :: gsc
+     REAL, INTENT(IN)                      :: gamma_star
+     REAL, INTENT(INOUT)                   :: inferred_stress
+
+     REAL(R_2), DIMENSION(mp,mf) :: csx
+     REAL, DIMENSION(mp,mf) :: parx, rdx, vcmaxx, kmx
+     REAL, DIMENSION(mp) :: dleafx
+     REAL :: gamma_starx, press
+     REAL :: e_demand, e_supply, gsw
+     INTEGER, INTENT(IN) :: i,j ! patch, leaf
 
      ! plant component of the leaf-specific hydraulic conductance
-     ! (mmol m-2 s-1 MPa-1 )
+     ! (mmol m-2 s-1 MPa-1 ) ... we should be passing this
      REAL, PARAMETER :: plant_k = 2.0
 
-     ! minimum leaf water potential (MPa)
+     ! minimum leaf water potential (MPa) ... we should be passing this
      REAL, PARAMETER :: min_lwp = -2.0
 
      ! Cuticular conductance (mol m-2 s-1) - obvs should be passed
@@ -3006,24 +3019,16 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
      ! (1e-09 for numerical reasons)
      REAL, PARAMETER :: gs_min = 1E-09 !1E-09
 
+     ! Hydraulic conductance of the entire soil-to-leaf pathway, this is passed
+     ! back out to LWP calculation
+     REAL, INTENT(INOUT) :: ktot
+
      ! constants
      REAL, PARAMETER :: MOL_2_MMOL = 1000.0
      REAL, PARAMETER :: MOL_2_UMOL = 1E6
      REAL, PARAMETER :: MMOL_2_MOL = 1E-03
      REAL, PARAMETER :: MM_TO_M = 0.001
-
-     REAL, DIMENSION(mp,mf), INTENT(IN) :: rd, vcmax, km
-     REAL, DIMENSION(mp,mf), INTENT(INOUT) :: an
-     REAL, DIMENSION(mf), INTENT(INOUT) :: gsc
-     REAL, INTENT(IN) :: gamma_star
-     REAL, INTENT(INOUT) :: inferred_stress
-
-     REAL(R_2), DIMENSION(mp,mf) :: csx
-     REAL, DIMENSION(mp,mf) :: parx, rdx, vcmaxx, kmx
-     REAL, DIMENSION(mp) :: dleafx
-     REAL :: gamma_starx
-     REAL :: e_demand, e_supply, gsw
-     INTEGER, INTENT(IN) :: i,j ! patch, leaf
+     REAL, PARAMETER :: MB_TO_PA = 100.
 
      ! need to change units to be consistent with what I deem the units should
      ! be in, i.e. umol m-2 s-1, not mol m-2 s-1
@@ -3033,6 +3038,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
      rdx = rd * MOL_2_UMOL
      kmx = km * MOL_2_UMOL
      gamma_starx = gamma_star * MOL_2_UMOL
+     press = pmb(i) * MB_TO_PA ! Pa
 
      ! Hydraulic conductance of the entire soil-to-leaf pathway
      ! (mmol m–2 s–1 MPa–1)
@@ -3041,7 +3047,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
      ! Maximum transpiration rate (mmol m-2 s-1) is given by Darcy's law,
      ! which estimates the water flow from the bulk soil to the leaf at the
      ! minimum leaf water potential (min_lwp)
-     e_supply = MAX(0.0, ktot * (ssnow%weighted_swp - min_lwp))
+     e_supply = MAX(0.0, ktot * (ssnow%weighted_psi_soil - min_lwp))
 
      ! Transpiration (mmol m-2 s-1) demand ignoring boundary layer effects!
      e_demand = MOL_2_MMOL * (dleaf(i) / press) * gsc(j) * C%RGSWC
@@ -3055,15 +3061,15 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
         ! gs cannot be lower than minimum (cuticular conductance)
         IF (gsc(j) < gs_min) THEN
            gsc(j) = gs_min
-           !gsw = gsc(j) * C%RGSWC
         END IF
 
         ! Need to calculate an effective beta to use in soil decomposition
         inferred_stress = inferred_stress + e_supply / e_demand
 
         ! Re-solve An for the new gs
-        CALL photosynthesis_C3_emax(veg, vcmaxx, parx, csx, &
-                                    rdx, kmx, gamma_starx, gsc, an, i, j)
+        CALL photosynthesis_C3_emax(veg, vcmaxx(i,j), parx(i,j), csx(i,j), &
+                                    rdx(i,j), kmx(i,j), gamma_starx, gsc(j), &
+                                    an, i, j)
      ELSE
         ! This needs to be initialised somewhere.
         inferred_stress = inferred_stress + 1.0
@@ -3086,41 +3092,36 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
 
      TYPE (veg_parameter_type), INTENT(INOUT) :: veg
 
-     INTEGER, INTENT(IN) :: i, j ! patch index, leaf index
-     REAL :: A, B, C, jmax, JJ, Vj, an_rubisco, an_rubp
-     REAL(R_2),INTENT(IN), DIMENSION(:,:) :: cs
      REAL, DIMENSION(mp,mf), INTENT(INOUT) :: an
-     REAL, DIMENSION(mf), INTENT(IN) :: gsc
-     REAL, DIMENSION(mp,mf), INTENT(IN) :: vcmax, par, rd, km
-     REAL, PARAMETER :: UMOL_2_MOL = 1E-6
-     REAL, INTENT(IN) :: gamma_star
+     REAL, INTENT(IN)                      :: gsc
+     REAL(R_2), INTENT(IN)                 :: cs
+     REAL, INTENT(IN)                      :: vcmax, par, rd, km
+     REAL, INTENT(IN)                      :: gamma_star
+     REAL, PARAMETER                       :: UMOL_2_MOL = 1E-6
+     REAL :: A, B, C, jmax, JJ, Vj, an_rubisco, an_rubp
 
-     ! where is the JV ratio set in the code? Use that instead
-     jmax = vcmax(i,j) * 2.0
-     !print*, "***", gsc(j)
-     ! What I thought was theta in CABLE doesn't appear to be in the right
-     ! order or mangitude - check units and whether it was the right thing
-     ! for now use what we use in GDAY
-     !A = veg%convex(i)
-     A = 0.7
-     B = -(veg%alpha(i) * par(i,j) + jmax)
-     C = veg%alpha(i) * par(i,j) * jmax
+     INTEGER, INTENT(IN) :: i, j ! patch index, leaf index
+
+     ! JV ratio is hardwired in the code in cable_parameters.F90
+     jmax = vcmax * 2.0
+
+     A = veg%convex(i)
+     B = -(veg%alpha(i) * par + jmax)
+     C = veg%alpha(i) * par * jmax
      JJ = quadm(A, B, C)
      Vj = JJ / 4.0
 
      ! Solution when Rubisco rate is limiting */
-     A = 1.0 / gsc(j)
-     !B = (rd(i,j) - vcmax(i,j)) / gsc(j) - cs(i,j) - km(i,j)
-     B = (0.0 - vcmax(i,j)) / gsc(j) - cs(i,j) - km(i,j)
-     C = vcmax(i,j) * (cs(i,j) - gamma_star) - &
-         rd(i,j) * (cs(i,j) + km(i,j))
+     A = 1.0 / gsc
+     !B = (rd - vcmax) / gsc - cs - km
+     B = (0.0 - vcmax) / gsc - cs - km
+     C = vcmax * (cs - gamma_star) - rd * (cs + km)
      an_rubisco = quadm(A, B, C)
 
      ! Solution when electron transport rate is limiting
-     A = 1.0 / gsc(j)
-     B = (rd(i,j) - Vj) / gsc(j) - cs(i,j) - 2.0 * gamma_star
-     C = Vj * (cs(i,j) - gamma_star) - &
-         rd(i,j) * (cs(i,j) + 2.0 * gamma_star)
+     A = 1.0 / gsc
+     B = (rd - Vj) / gsc - cs - 2.0 * gamma_star
+     C = Vj * (cs - gamma_star) - rd * (cs + 2.0 * gamma_star)
      an_rubp = quadm(A, B, C)
 
      ! CABLE is expecting to find An returned in mol m-2 s-1
@@ -3199,16 +3200,13 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
      REAL, INTENT(IN) :: ktot !
      REAL, INTENT(IN) :: transpiration ! mmol m-2 s-1
      REAL :: psi_leaf    ! MPa
+     REAL, PARAMETER :: psi_min = -20.0
 
      IF (ktot > 0.0) THEN
-        psi_leaf = ssnow%weighted_swp - (transpiration / ktot)
+        psi_leaf = MIN(psi_min, &
+                       ssnow%weighted_psi_soil - (transpiration / ktot))
      ELSE
-        psi_leaf = ssnow%weighted_swp
-     END IF
-
-     ! Set lower limit to LWP
-     IF (psi_leaf < -20.0) THEN
-        psi_leaf = -20.0
+        psi_leaf = MIN(psi_min, ssnow%weighted_psi_soil)
      END IF
 
   END FUNCTION calc_psi_leaf

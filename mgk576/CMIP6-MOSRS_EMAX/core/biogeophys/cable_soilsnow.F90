@@ -1707,7 +1707,6 @@ SUBROUTINE soil_snow(dels, soil, ssnow, canopy, met, bal, veg, bgc)
    REAL, DIMENSION(mp) :: totwet
    REAL, DIMENSION(mp) :: weting
    REAL, DIMENSION(mp) :: xx, tgg_old, tggsn_old
-   REAL, DIMENSION(ms)  :: psi_soil
    REAL(r_2), DIMENSION(mp) :: xxx,deltat,sinfil1,sinfil2,sinfil3
    REAL                :: zsetot
    INTEGER, SAVE :: ktau =0
@@ -1858,8 +1857,8 @@ SUBROUTINE soil_snow(dels, soil, ssnow, canopy, met, bal, veg, bgc)
    IF (cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
       DO i = 1, mp
          CALL calc_soil_root_resistance(ssnow, soil, veg, bgc, i)
-         CALL calc_swp(ssnow, soil, psi_soil)
-         CALL calc_weighted_swp_and_frac_uptake(ssnow, soil, i, psi_soil)
+         CALL calc_swp(ssnow, soil)
+         CALL calc_weighted_swp_and_frac_uptake(ssnow, soil, i)
       END DO
    END IF
 
@@ -2649,7 +2648,7 @@ END SUBROUTINE GWstempv
   ! ----------------------------------------------------------------------------
 
   ! ----------------------------------------------------------------------------
-  SUBROUTINE calc_swp(ssnow, soil, psi_soil)
+  SUBROUTINE calc_swp(ssnow, soil)
      ! Calculate the soil water potential. Mark does this, but we need this
      ! information earlier in the code so that we can figure out the
      ! root extraction for transpiration.
@@ -2666,11 +2665,10 @@ END SUBROUTINE GWstempv
      TYPE (soil_snow_type), INTENT(INOUT)        :: ssnow
      TYPE (soil_parameter_type), INTENT(INOUT)   :: soil
 
-     REAL, DIMENSION(ms), INTENT(INOUT) :: psi_soil
      REAL, DIMENSION(ms)  :: t_over_t_sat, cond_per_layer
 
      INTEGER :: ns
-     REAL :: psi_sat_mpa
+     REAL    :: psi_sat_mpa
 
      ! Soil matric potential at saturation (m of head to MPA -> 9.81 * KPA_2_MPA)
      psi_sat_mpa = soil%sucs(1) * 9.81 * 0.001
@@ -2678,7 +2676,7 @@ END SUBROUTINE GWstempv
      DO ns = 1, ms
 
          t_over_t_sat(ns) = MAX(1.0e-9, MIN(1.0, ssnow%wb(1,ns) / soil%ssat(1)))
-         psi_soil(ns) = psi_sat_mpa * t_over_t_sat(ns)**(-soil%bch(1))
+         ssnow%psi_soil(ns) = psi_sat_mpa * t_over_t_sat(ns)**(-soil%bch(1))
          cond_per_layer(ns) = 1.0 / ssnow%soilR(1,ns)
 
       END DO
@@ -2691,7 +2689,7 @@ END SUBROUTINE GWstempv
   ! ----------------------------------------------------------------------------
 
   ! ----------------------------------------------------------------------------
-  SUBROUTINE calc_weighted_swp_and_frac_uptake(ssnow, soil, i, psi_soil)
+  SUBROUTINE calc_weighted_swp_and_frac_uptake(ssnow, soil, i)
      !
      ! Determine weighted SWP given the the maximum rate of water supply from
      ! each rooted soil layer and hydraulic resistance of each layer. We are
@@ -2711,8 +2709,6 @@ END SUBROUTINE GWstempv
      TYPE (soil_snow_type), INTENT(INOUT) :: ssnow
      TYPE (soil_parameter_type), INTENT(INOUT) :: soil
 
-     REAL, DIMENSION(ms), INTENT(IN) :: psi_soil
-
      REAL, PARAMETER :: MM_TO_M = 0.001
      REAL, PARAMETER :: KPA_2_MPa = 0.001
      REAL, PARAMETER :: M_HEAD_TO_MPa = 9.8 * KPA_2_MPa
@@ -2726,13 +2722,14 @@ END SUBROUTINE GWstempv
 
      total_est_evap = 0.0
      est_evap = 0.0
-     ssnow%weighted_swp = 0.0
+     ssnow%weighted_psi_soil = 0.0
      ssnow%fraction_uptake = 0.0
 
      ! Estimate max transpiration from gradient-gravity / soil resistance
      DO j = 1, ms ! Loop over 6 soil layers
 
-        est_evap(j) = MAX(0.0, (psi_soil(j) - min_lwp) / ssnow%soilR(i,j))
+        est_evap(j) = MAX(0.0, &
+                          (ssnow%psi_soil(j) - min_lwp) / ssnow%soilR(i,j))
         ! NEED TO ADD SOMETHING IF THE SOIL IS FROZEN, what is ice in CABLE?
         !IF ( iceprop(i) .gt. 0. ) THEN
         !  est_evap(i) = 0.0
@@ -2743,7 +2740,8 @@ END SUBROUTINE GWstempv
 
      IF (total_est_evap > 0.0) THEN
         DO j = 1, ms ! Loop over 6 soil layers
-           ssnow%weighted_swp = ssnow%weighted_swp + psi_soil(j) * est_evap(j)
+           ssnow%weighted_psi_soil = ssnow%weighted_psi_soil + &
+                                          ssnow%psi_soil(j) * est_evap(j)
            ! fraction of water taken from layer, I've lower bounded frac uptake
            ! because when soilR is set to a huge number
            ! (see calc_soil_root_resistance), then frac_uptake will be so small
@@ -2756,7 +2754,7 @@ END SUBROUTINE GWstempv
               STOP
            END IF
         END DO
-        ssnow%weighted_swp = ssnow%weighted_swp / total_est_evap
+        ssnow%weighted_psi_soil = ssnow%weighted_psi_soil / total_est_evap
      ELSE
         ! No water was evaporated
         ssnow%fraction_uptake(i,:) = 1.0 / FLOAT(ms)

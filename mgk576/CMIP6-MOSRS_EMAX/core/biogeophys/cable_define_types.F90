@@ -293,8 +293,8 @@ MODULE cable_def_types_mod
          total_soil_resist! Total soil resistance across layers (excludes
                               ! root resistance).
 
-
-      REAL(r_2) ::  weighted_swp
+      REAL(r_2) ::  weighted_psi_soil
+      REAL(r_2), DIMENSION(:), POINTER :: psi_soil
 
       REAL(r_2), DIMENSION(:,:), POINTER ::                                      &
          soilR, & !
@@ -514,8 +514,7 @@ MODULE cable_def_types_mod
       REAL(r_2), DIMENSION(:), POINTER :: kthLitt, DvLitt
 
       ! mgk576, 10/10/2017: plant hydraulics
-      REAL, DIMENSION(:), POINTER ::                                           &
-         lwp
+      REAL, DIMENSION(:), POINTER ::  psi_leaf
 
    END TYPE canopy_type
 
@@ -1018,6 +1017,7 @@ SUBROUTINE alloc_soil_snow_type(var, mp)
     ALLOCATE ( var%total_soil_resist(mp) )
     ALLOCATE ( var%soilR(mp,ms) )
     ALLOCATE ( var%fraction_uptake(mp,ms) )
+    ALLOCATE ( var%psi_soil(ms) )
 
     ! Allocate variables for SLI soil model:
     !IF(cable_user%SOIL_STRUC=='sli') THEN
@@ -1206,7 +1206,7 @@ SUBROUTINE alloc_canopy_type(var, mp)
    ALLOCATE (var % DvLitt(mp))
 
    !  mgk576, 10/10/2017: plant hydraulics
-   ALLOCATE( var%lwp(mf) )
+   ALLOCATE( var%psi_leaf(mf) )
 
 END SUBROUTINE alloc_canopy_type
 
@@ -1651,7 +1651,8 @@ SUBROUTINE dealloc_soil_snow_type(var)
    DEALLOCATE( var%total_soil_resist  )
    DEALLOCATE( var%soilR  )
    DEALLOCATE( var%fraction_uptake  )
-   
+   DEALLOCATE ( var%psi_soil )
+
     !IF(cable_user%SOIL_STRUC=='sli') THEN
     DEALLOCATE ( var % S )
     DEALLOCATE ( var % Tsoil )
@@ -1825,7 +1826,7 @@ SUBROUTINE dealloc_canopy_type(var)
    DEALLOCATE (var % DvLitt)
 
    ! mgk576, 10/10/2017: plant hydraulics
-   DEALLOCATE( var%lwp )
+   DEALLOCATE( var%psi_leaf )
 
 END SUBROUTINE dealloc_canopy_type
 
