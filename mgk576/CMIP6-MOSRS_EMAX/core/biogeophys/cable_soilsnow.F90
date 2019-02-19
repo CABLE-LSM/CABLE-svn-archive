@@ -2664,17 +2664,17 @@ END SUBROUTINE GWstempv
 
      REAL, DIMENSION(ms)  :: t_over_t_sat, cond_per_layer
 
-     INTEGER :: ns
+     INTEGER :: j
      REAL    :: psi_sat_mpa
 
      ! Soil matric potential at saturation (m of head to MPA -> 9.81 * KPA_2_MPA)
      psi_sat_mpa = soil%sucs(1) * 9.81 * 0.001
 
-     DO ns = 1, ms
+     DO j = 1, ms ! Loop over 6 soil layers
 
-         t_over_t_sat(ns) = MAX(1.0e-9, MIN(1.0, ssnow%wb(1,ns) / soil%ssat(1)))
-         ssnow%psi_soil(ns) = psi_sat_mpa * t_over_t_sat(ns)**(-soil%bch(1))
-         cond_per_layer(ns) = 1.0 / ssnow%soilR(1,ns)
+         t_over_t_sat(j) = MAX(1.0e-9, MIN(1.0, ssnow%wb(1,j) / soil%ssat(1)))
+         ssnow%psi_soil(j) = psi_sat_mpa * t_over_t_sat(j)**(-soil%bch(1))
+         cond_per_layer(j) = 1.0 / ssnow%soilR(1,j)
 
       END DO
 
