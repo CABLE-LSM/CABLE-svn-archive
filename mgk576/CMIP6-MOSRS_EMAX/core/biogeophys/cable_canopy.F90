@@ -1786,7 +1786,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
          par
 
     REAL, DIMENSION(mf) :: gsc
-    
+
     REAL, DIMENSION(:,:), POINTER :: gswmin ! min stomatal conductance
 
     REAL, DIMENSION(mp,2) ::  gsw_term, lower_limit2  ! local temp var
@@ -2256,7 +2256,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                 ! Transpiration: kg m-2 s-1 -> mmol m-2 s-1
                 conv = KG_2_G * G_WATER_TO_MOL * MOL_2_MMOL
                 trans_mmol = (canopy%fevc(i) / air%rlam(i)) * conv
-                canopy%lwp(i) = calc_lwp(ssnow, ktot, trans_mmol, i)
+                canopy%lwp(i) = calc_lwp(ssnow, ktot, trans_mmol)
              ENDIF
 
              ! Update canopy sensible heat flux:
@@ -3173,8 +3173,17 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
   ! ----------------------------------------------------------------------------
 
   ! ----------------------------------------------------------------------------
-  FUNCTION calc_lwp(ssnow, ktot, transpiration, i) RESULT(lwp)
+  FUNCTION calc_lwp(ssnow, ktot, transpiration) RESULT(psi_leaf)
      ! Calculate the leaf water potential (MPa)
+     !
+     ! The result is obtained from re-arranging eqn 4 in Duursma et al.
+     !
+     ! Reference
+     ! ---------
+     ! * Duursma et al. (2008) Predicting the decline in daily maximum
+     !   transpiration rate of two pine stands during drought based on constant
+     !   minimum leaf water potential and plant hydraulic conductance. Tree
+     !   Physiology 28, 265–276
      !
      ! Martin De Kauwe, 10th Oct, 2017
 
@@ -3184,19 +3193,22 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
      IMPLICIT NONE
 
      TYPE (soil_snow_type), INTENT(INOUT) :: ssnow
-     INTEGER, INTENT(IN) :: i
-     REAL, INTENT(IN) :: ktot, transpiration
-     REAL :: lwp
+
+     ! Hydraulic conductance of the entire soil-to-leaf pathway
+     ! (mmol m–2 s–1 MPa–1)
+     REAL, INTENT(IN) :: ktot !
+     REAL, INTENT(IN) :: transpiration ! mmol m-2 s-1
+     REAL :: psi_leaf    ! MPa
 
      IF (ktot > 0.0) THEN
-        lwp = ssnow%weighted_swp - (transpiration / ktot)
+        psi_leaf = ssnow%weighted_swp - (transpiration / ktot)
      ELSE
-        lwp = ssnow%weighted_swp
+        psi_leaf = ssnow%weighted_swp
      END IF
 
      ! Set lower limit to LWP
-     IF (lwp < -20.0) THEN
-        lwp = -20.0
+     IF (psi_leaf < -20.0) THEN
+        psi_leaf = -20.0
      END IF
 
   END FUNCTION calc_lwp
