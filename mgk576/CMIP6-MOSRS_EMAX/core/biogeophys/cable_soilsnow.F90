@@ -2571,12 +2571,14 @@ END SUBROUTINE GWstempv
      TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
      TYPE (bgc_pool_type),  INTENT(IN)           :: bgc
 
+     ! All from Williams et al. 2001, Tree phys
      REAL, PARAMETER :: pi = 3.1415927
      REAL, PARAMETER :: root_radius = 0.0005                 ! m
      REAL, PARAMETER :: root_xsec_area = pi * root_radius**2 ! m2
      REAL, PARAMETER :: root_density = 0.5e6                ! g biomass m-3 root
      REAL, PARAMETER :: root_resistivity = 400.0             ! MPa s g mmol-1
      REAL, PARAMETER :: head = 0.009807             ! head of pressure  (MPa/m)
+
      REAL, PARAMETER :: C_2_BIOMASS = 2.0
      REAL, PARAMETER :: MM_TO_M = 0.001
      REAL, PARAMETER :: KPA_2_MPa = 0.001
@@ -2587,7 +2589,7 @@ END SUBROUTINE GWstempv
      REAL, PARAMETER :: TINY_NUMBER = 1E-35
      REAL, PARAMETER :: HUGE_NUMBER = 1E35
 
-     REAL :: Ks, Lsoil, soilR1, soilR2, arg1, arg2, root_biomass, root_length
+     REAL :: Ks, Lsoil, soilR1, soilR2, arg1, arg2, root_length
      REAL :: soil_root_resist, rs, soil_resistance, root_resistance, rsum, conv
      REAL :: root_mass
 
@@ -2604,6 +2606,7 @@ END SUBROUTINE GWstempv
 
         root_mass = bgc%cplant(i,3) * veg%froot(i,j)
 
+        ! (m m-3 soil)
         root_length = root_mass / (root_density * root_xsec_area)
 
         ! Soil hydraulic conductivity for layer, mm/s -> m s-1
@@ -2630,6 +2633,10 @@ END SUBROUTINE GWstempv
            conv = 1.0 / (CUBIC_M_WATER_2_GRAMS * G_WATER_TO_MOLE * MOL_2_MMOL)
            soil_resistance = soil_resistance * conv
 
+           ! Need to combine resistances in parallel, but we only want the
+           ! soil term as the root component is part of the plant resistance
+           rsum = rsum + 1.0 / soil_resistance
+
            ! second component of below ground resistance related to root
            ! hydraulics
            root_resistance = root_resistivity / (soil%zse(j) * root_mass)
@@ -2637,12 +2644,10 @@ END SUBROUTINE GWstempv
            ! MPa s m2 mmol-1
            ssnow%soilR(i,j) = soil_resistance + root_resistance
 
-           ! Need to combine resistances in parallel, but we only want the
-           ! soil term as the root component is part of the plant resistance
-           rsum = rsum + 1.0 / soil_resistance
         END IF
      END DO
      ssnow%total_soil_resist(i) = 1.0 / rsum
+    
 
   END SUBROUTINE calc_soil_root_resistance
   ! ----------------------------------------------------------------------------
@@ -2755,7 +2760,7 @@ END SUBROUTINE GWstempv
            END IF
         END DO
         ssnow%weighted_psi_soil = ssnow%weighted_psi_soil / total_est_evap
-        
+
      ELSE
         ! No water was evaporated
         ssnow%fraction_uptake(i,:) = 1.0 / FLOAT(ms)
