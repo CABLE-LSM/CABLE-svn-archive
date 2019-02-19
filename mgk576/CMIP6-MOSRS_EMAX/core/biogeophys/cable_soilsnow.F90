@@ -2579,7 +2579,6 @@ END SUBROUTINE GWstempv
      REAL, PARAMETER :: root_resistivity = 400.0             ! MPa s g mmol-1
      REAL, PARAMETER :: head = 0.009807             ! head of pressure  (MPa/m)
 
-     REAL, PARAMETER :: C_2_BIOMASS = 2.0
      REAL, PARAMETER :: MM_TO_M = 0.001
      REAL, PARAMETER :: KPA_2_MPa = 0.001
      REAL, PARAMETER :: M_HEAD_TO_MPa = 9.8 * KPA_2_MPa
@@ -2589,9 +2588,8 @@ END SUBROUTINE GWstempv
      REAL, PARAMETER :: TINY_NUMBER = 1E-35
      REAL, PARAMETER :: HUGE_NUMBER = 1E35
 
-     REAL :: Ks, Lsoil, soilR1, soilR2, arg1, arg2, root_length
-     REAL :: soil_root_resist, rs, soil_resistance, root_resistance, rsum, conv
-     REAL :: root_mass
+     REAL :: Ks, Lsoil, root_length, root_mass
+     REAL :: soil_resistance, root_resistance, rsum, conv
 
      INTEGER, INTENT(IN) :: i
      INTEGER :: j
@@ -2599,10 +2597,6 @@ END SUBROUTINE GWstempv
      ! Store each layers resistance, used in LWP calculatons
      rsum = 0.0
      DO j = 1, ms ! Loop over 6 soil layers
-        !root_biomass = bgc%cplant(i,3) * veg%froot(i,j) * C_2_BIOMASS
-
-        ! (m root m-3 soil surface)
-        !root_length = root_biomass / (root_density * root_xsec_area)
 
         root_mass = bgc%cplant(i,3) * veg%froot(i,j)
 
@@ -2610,8 +2604,6 @@ END SUBROUTINE GWstempv
         root_length = root_mass / (root_density * root_xsec_area)
 
         ! Soil hydraulic conductivity for layer, mm/s -> m s-1
-        !Ks = ssnow%hk(i,j) * MM_TO_M
-
         Ks = soil%hyds(1) * (ssnow%wb(i,j) / &
                               soil%ssat(1))**(2.0 * soil%bch(1) + 3.0)
 
@@ -2647,7 +2639,7 @@ END SUBROUTINE GWstempv
         END IF
      END DO
      ssnow%total_soil_resist(i) = 1.0 / rsum
-    
+
 
   END SUBROUTINE calc_soil_root_resistance
   ! ----------------------------------------------------------------------------
