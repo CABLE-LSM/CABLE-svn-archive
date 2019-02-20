@@ -28,9 +28,6 @@
 ! History: Developed for CABLE v1.8
 !
 ! ==============================================================================
-!uncomment per subr for now - can update to namelist
-!#define FPPcable_fprint 0  
-!#define FPPcable_Pyfprint 0  
 
 module cable_implicit_unpack_mod
   
@@ -56,7 +53,8 @@ subroutine Implicit_unpack( cycleno, & ! nucycles
   !diag 
   USE cable_fprint_module, ONLY : cable_fprintf
   USE cable_Pyfprint_module, ONLY : cable_Pyfprintf
-  USE cable_fFile_module, ONLY : fprintf_dir_root, fprintf_dir
+  USE cable_fFile_module, ONLY : fprintf_dir_root, fprintf_dir, L_cable_fprint,&
+                                 L_cable_Pyfprint, unique_subdir
 
   USE cable_diag_module  
 
@@ -131,6 +129,7 @@ subroutine Implicit_unpack( cycleno, & ! nucycles
     GPP,        & !
     SNOW_GRD,   &  
     CANOPY_GB,  &
+    T1P5M,      &
     DTRAD         ! CABLE change in rad%trad over time step
 
   REAL, DIMENSION(land_pts,ntiles,3) ::                               &
@@ -188,13 +187,9 @@ subroutine Implicit_unpack( cycleno, & ! nucycles
   ! std template args 
   character(len=*), parameter :: subr_name = "cable_implicit_unpack"
 
-# if defined(FPPcable_fprint) || defined(FPPcable_Pyfprint)
-#   include "../../../core/utils/diag/cable_fprint.txt"
-    ! e.g. unique_subdir = "727/"
-# endif
+# include "../../../core/utils/diag/cable_fprint.txt"
   
   !-------- Unique subroutine body -----------
-  !IF(cable_user%run_diag_level == "BASIC") CALL basic_diag(subr_name, "Called.") 
 
   TFRZ => PHYS%TFRZ
   
@@ -392,28 +387,30 @@ subroutine Implicit_unpack( cycleno, & ! nucycles
                       FLAND(L)*um1%TILE_FRAC(L,N)*RESP_S_TILE(L,N)
       ENDDO
       RESP_S_TOT(L)=sum(RESP_S(L,:))
+      t1p5m(L)=sum(t1p5m_tile(L,:))
     ENDDO
   ENDDO
+
   !-------- End Unique subroutine body -----------
 
-  if (knode_gl == 0 .and. ktau_gl == 1)   & 
-    call cable_fprintf( subr_name, .true. ) !to std output stream
-  
-# ifdef FPPcable_fprint
-  !fprintf_dir=trim(fprintf_dir_root)//trim(unique_subdir)//trim(subr_name)//"/"
-  !call cable_fprintf( cDiag00, subr_name, knode_gl, ktau_gl, .true. )
-# endif
+  fprintf_dir=trim(fprintf_dir_root)//trim(unique_subdir)//"/"
+  if(L_cable_fprint) then 
+    !basics to std output stream
+    if (knode_gl == 0 .and. ktau_gl == 1)  call cable_fprintf(subr_name, .true.) 
+    !more detailed output
+    vname=trim(subr_name//'_')
+    call cable_fprintf( cDiag00, vname, knode_gl, ktau_gl, .true. )
+  endif
 
-# ifdef FPPcable_Pyfprint
-  !vname='latitude'; dimx=size(latitude,1); dimy=size(latitude,2)
-  !call cable_Pyfprintf( cDiag1, vname, latitude, dimx, dimy, .true.)
-# endif
+  if(L_cable_Pyfprint) then 
+    !vname='canopy_tscrn'; dimx=mp
+    !call cable_Pyfprintf( cDiag2, vname, (canopy%tscrn+tfrz), dimx, .true.)
+    !vname='tscrn'; dimx=land_pts
+    !call cable_Pyfprintf( cDiag2, vname, t1p5m, dimx, .true.)
+  endif
 
 return
 
-
-
 END SUBROUTINE Implicit_unpack
-
 
 End module cable_implicit_unpack_mod

@@ -27,9 +27,6 @@
 !
 !
 ! ==============================================================================
-!uncomment per subr for now - can update to namelist
-!#define FPPcable_fprint 0  
-!#define FPPcable_Pyfprint 0  
 
 module cable_implicit_main_mod
   
@@ -58,7 +55,7 @@ subroutine cable_implicit_main( cycleno, & ! num_cycles
   USE cable_implicit_unpack_mod, ONLY : implicit_unpack
 
   ! processor number, timestep number & width
-  USE cable_common_module, ONLY : knode_gl, ktau_gl, kwidth_gl
+  USE cable_common_module, ONLY : knode_gl, ktau_gl, kwidth_gl, cable_runtime
   
 # if defined(UM_JULES)
   ! CABLE prognostics declared at top_level
@@ -84,7 +81,8 @@ subroutine cable_implicit_main( cycleno, & ! num_cycles
   !diag 
   USE cable_fprint_module, ONLY : cable_fprintf
   USE cable_Pyfprint_module, ONLY : cable_Pyfprintf
-  USE cable_fFile_module, ONLY : fprintf_dir_root, fprintf_dir
+  USE cable_fFile_module, ONLY : fprintf_dir_root, fprintf_dir, L_cable_fprint,&
+                                 L_cable_Pyfprint, unique_subdir
   
   implicit none
   
@@ -172,30 +170,14 @@ subroutine cable_implicit_main( cycleno, & ! num_cycles
   ! std template args  
   character(len=*), parameter :: subr_name = "cable_implicit_main"
 
-# if defined(FPPcable_fprint) || defined(FPPcable_Pyfprint)
-#   include "../../../core/utils/diag/cable_fprint.txt"
-    ! e.g. unique_subdir = "727/"
-# endif
+# include "../../../core/utils/diag/cable_fprint.txt"
   
   !-------- Unique subroutine body -----------
   
-  !----------------------------------------------------------------------------
-  !--- Organize report writing for CABLE.                         -------------
-  !--- Progress log and IN args @ timestep X,Y,Z                  -------------
-  !----------------------------------------------------------------------------
-  
-  if(knode_gl==0) then
-    write (6, *) "CABLE_LSM:Start Subr: ", subr_name
-    write (6, *) "@ knode_gl: ", knode_gl 
-    write (6, *) "@ timestep: ", ktau_gl         
-    write (6, *) "@ cycleno: ", cycleno         
-    write (6, *) "============================="
-  endif
-     
-  !----------------------------------------------------------------------------
-  !--- CALL _driver to run specific and necessary components of CABLE with IN -
-  !--- args PACKED to force CABLE
-  !----------------------------------------------------------------------------
+  ! FLAGS def. specific call to CABLE from UM
+  cable_runtime%um          = .TRUE.
+  cable_runtime%um_implicit = .TRUE.
+  cable_runtime%um_explicit = .FALSE.
   
   isnow_flg_cable = int(snow_flg_cable)
 
@@ -235,25 +217,27 @@ subroutine cable_implicit_main( cycleno, & ! num_cycles
                         NPP_PFT_ACC, RSP_W_PFT_ACC,SURF_HTF_surft,             &
                         dtrad, dtstar_surft)
 
-
-  
   snow_flg_cable = real(isnow_flg_cable)
     
   first_call = .false.        
+
+  cable_runtime%um_implicit = .FALSE.
+
   !-------- End Unique subroutine body -----------
 
-  if (knode_gl == 0 .and. ktau_gl == 1)   & 
-    call cable_fprintf( subr_name, .true. ) !to std output stream
-  
-# ifdef FPPcable_fprint
-  !fprintf_dir=trim(fprintf_dir_root)//trim(unique_subdir)//trim(subr_name)//"/"
-  !call cable_fprintf( cDiag00, subr_name, knode_gl, ktau_gl, .true. )
-# endif
+  fprintf_dir=trim(fprintf_dir_root)//trim(unique_subdir)//"/"
+  if(L_cable_fprint) then 
+    !basics to std output stream
+    if (knode_gl == 0 .and. ktau_gl == 1)  call cable_fprintf(subr_name, .true.) 
+    !more detailed output
+    vname=trim(subr_name//'_')
+    call cable_fprintf( cDiag00, vname, knode_gl, ktau_gl, .true. )
+  endif
 
-# ifdef FPPcable_Pyfprint
-  !vname='latitude'; dimx=size(latitude,1); dimy=size(latitude,2)
-  !call cable_Pyfprintf( cDiag1, vname, latitude, dimx, dimy, .true.)
-# endif
+  if(L_cable_Pyfprint) then 
+    !vname='latitude'; dimx=mp
+    !call cable_Pyfprintf( cDiag1, vname, cable%lat, dimx, .true.)
+  endif
 
 return
 

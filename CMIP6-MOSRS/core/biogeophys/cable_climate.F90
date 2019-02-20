@@ -16,11 +16,11 @@
 ! History: Vanessa Haverd Jan 2015
 
 ! ==============================================================================
-!#define UM_BUILD YES
+#define UM_BUILD YES
 MODULE cable_climate_mod
 
  Use cable_def_types_mod, ONLY: met_type, climate_type, canopy_type, mp, &
-      r_2, alloc_cbm_var, air_type, radiation_type
+      r_2, alloc_cbm_var, air_type
  USE TypeDef,              ONLY: i4b, dp
 !CABLE_LSM: see CABLE Ticket#149. yet still inclueded file?? legacy-hack??
 # ifndef UM_BUILD
@@ -33,7 +33,7 @@ CONTAINS
 
 
 SUBROUTINE cable_climate(ktau,kstart,kend,ktauday,idoy,LOY,met,climate, canopy, &
-     air, rad, dels, np)
+     air, dels, np)
 
 
   IMPLICIT NONE
@@ -48,7 +48,6 @@ SUBROUTINE cable_climate(ktau,kstart,kend,ktauday,idoy,LOY,met,climate, canopy, 
   TYPE (climate_type), INTENT(INOUT)       :: climate  ! climate variables
   TYPE (canopy_type), INTENT(IN) :: canopy ! vegetation variables
   TYPE (air_type), INTENT(IN)       :: air
-  TYPE (radiation_type), INTENT(IN)  :: rad        ! radiation variables
   REAL, INTENT(IN)               :: dels ! integration time setp (s)
   INTEGER,      INTENT(IN)                  :: np
   INTEGER :: d, y, k
@@ -568,11 +567,11 @@ END SUBROUTINE BIOME1_PFT
 
 ! ==============================================================================
 
-SUBROUTINE climate_init ( climate,np, ktauday )
+SUBROUTINE climate_init ( climate,np )
 IMPLICIT NONE
 
 TYPE (climate_type), INTENT(INOUT)       :: climate  ! climate variables
-INTEGER, INTENT(IN) :: np, ktauday
+INTEGER, INTENT(IN) :: np
 INTEGER :: d
 
 CALL alloc_cbm_var(climate,np)
@@ -619,7 +618,7 @@ if (cable_user%climate_fromzero .or. .not.cable_user%call_climate) then
 
 
 else
-   CALL READ_CLIMATE_RESTART_NC (climate, ktauday)
+   CALL READ_CLIMATE_RESTART_NC (climate)
 
 endif
 !else
@@ -631,7 +630,7 @@ END SUBROUTINE climate_init
 
 ! ==============================================================================
 
-SUBROUTINE WRITE_CLIMATE_RESTART_NC ( climate, ktauday )
+SUBROUTINE WRITE_CLIMATE_RESTART_NC ( climate )
 
   USE netcdf
 
@@ -639,7 +638,7 @@ SUBROUTINE WRITE_CLIMATE_RESTART_NC ( climate, ktauday )
   IMPLICIT NONE
 
   TYPE (climate_type), INTENT(IN)       :: climate  ! climate variables
-  INTEGER, INTENT(IN) :: ktauday
+
   INTEGER*4 :: mp4
   INTEGER*4, parameter   :: pmp4 =0
   INTEGER, parameter   :: fmp4 = kind(pmp4)
@@ -872,7 +871,7 @@ STATUS = NF90_PUT_VAR(FILE_ID, VID1(5), climate%qtemp )
 END SUBROUTINE WRITE_CLIMATE_RESTART_NC
 ! ==============================================================================
 
-SUBROUTINE READ_CLIMATE_RESTART_NC ( climate, ktauday )
+SUBROUTINE READ_CLIMATE_RESTART_NC ( climate )
 
   USE netcdf
 
@@ -880,7 +879,7 @@ SUBROUTINE READ_CLIMATE_RESTART_NC ( climate, ktauday )
   IMPLICIT NONE
 
   TYPE (climate_type), INTENT(INOUT)       :: climate  ! climate variables
-  INTEGER, INTENT(IN) :: ktauday
+
   INTEGER*4 :: mp4
   INTEGER*4, parameter   :: pmp4 =0
   INTEGER, parameter   :: fmp4 = kind(pmp4)

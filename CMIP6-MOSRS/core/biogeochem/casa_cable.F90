@@ -1,11 +1,11 @@
 !==============================================================================
-! This source code is part of the
+! This source code is part of the 
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
 ! This work is licensed under the CSIRO Open Source Software License
 ! Agreement (variation of the BSD / MIT License).
-!
+! 
 ! You may not use this file except in compliance with this License.
-! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located
+! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located 
 ! in each directory containing CABLE code.
 !
 ! ==============================================================================
@@ -22,7 +22,7 @@
 !
 ! ==============================================================================
 !CABLE_LSM:This has to be commented for offline
-!#define UM_BUILD YES
+#define UM_BUILD YES
 
 module casa_cable
 
@@ -82,16 +82,14 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
    REAL(dp)                               :: StemNPP(mp,2)
    CHARACTER                                 :: cyear*4
    CHARACTER                                 :: ncfile*99
-
+ 
 
   ! INTEGER, INTENT(IN) :: wlogn
    INTEGER , parameter :: wlogn=6
 
-
+  
    IF ( .NOT. dump_read ) THEN  ! construct casa met and flux inputs from current CABLE run
-      IF ( TRIM(cable_user%MetType) .EQ. 'cru' .OR. &
-           TRIM(cable_user%MetType) .EQ. 'plum') THEN
-         casaflux%Pdep = met%Pdep
+      IF ( TRIM(cable_user%MetType) .EQ. 'cru' ) THEN
          casaflux%Nmindep = met%Ndep
       ENDIF
 
@@ -99,7 +97,7 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
          casamet%tairk  = 0.0
          casamet%tsoil  = 0.0
          casamet%moist  = 0.0
-
+  
       ENDIF
 
       IF(MOD(ktau,ktauday)==1) THEN
@@ -127,7 +125,7 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
                call cable_phenology_clim(veg, climate, phen)
 
             ENDIF
-
+  
             CALL biogeochem(ktau,dels,idoy,LALLOC,veg,soil,casabiome,casapool,casaflux, &
                 casamet,casabal,phen,POP,climate, xnplimit,xkNlimiting,xklitter,xksoil, &
                 xkleaf,xkleafcold,xkleafdry,&
@@ -138,7 +136,7 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
             IF (cable_user%CALL_POP) THEN ! accumulate input variables for POP
                ! accumulate annual variables for use in POP
                IF(MOD(ktau/ktauday,LOY)==1 ) THEN
-                  casaflux%stemnpp =  casaflux%cnpp * casaflux%fracCalloc(:,2) * 0.7
+                  casaflux%stemnpp =  casaflux%cnpp * casaflux%fracCalloc(:,2) * 0.7 
                   ! (assumes 70% of wood NPP is allocated above ground)
                   casabal%LAImax = casamet%glai
                   casabal%Cleafmean = casapool%cplant(:,1)/real(LOY)/1000.
@@ -172,7 +170,7 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
 
             ! accumulate annual variables for use in POP
             IF(MOD(ktau/ktauday,LOY)==1) THEN
-               casaflux%stemnpp =  casaflux%cnpp * casaflux%fracCalloc(:,2) * 0.7
+               casaflux%stemnpp =  casaflux%cnpp * casaflux%fracCalloc(:,2) * 0.7 
                ! (assumes 70% of wood NPP is allocated above ground)
                casabal%LAImax = casamet%glai
                casabal%Cleafmean = casapool%cplant(:,1)/real(LOY)/1000.
@@ -210,7 +208,7 @@ SUBROUTINE POPdriver(casaflux,casabal,veg, POP)
 
   IMPLICIT NONE
 
-
+  
   TYPE (veg_parameter_type),  INTENT(IN) :: veg  ! vegetation parameters
   TYPE (casa_flux),           INTENT(IN) :: casaflux
   TYPE (casa_balance),        INTENT(IN) :: casabal
@@ -237,7 +235,7 @@ SUBROUTINE POPdriver(casaflux,casabal,veg, POP)
   IF (cable_user%CALL_POP .and. POP%np.gt.0) THEN ! CALL_POP
      Iw = POP%Iwood
 
-     StemNPP(:,1) = casaflux%stemnpp
+     StemNPP(:,1) = casaflux%stemnpp 
      StemNPP(:,2) = 0.0
      WHERE (casabal%FCgppyear > 1.e-5 .and. casabal%FCnppyear > 1.e-5  )
         NPPtoGPP = casabal%FCnppyear/casabal%FCgppyear
@@ -279,16 +277,30 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, climate, ncall, kend
       LOGICAL, INTENT(in)             :: allATonce
 
       !netcdf IDs/ names
-      INTEGER            :: num_vars
+      INTEGER, PARAMETER :: num_vars=14
       INTEGER, PARAMETER :: num_dims=3
-      INTEGER, SAVE      :: ncrid  ! netcdf file ID
-
+      INTEGER, SAVE                        :: ncrid  ! netcdf file ID
+      INTEGER , DIMENSION(num_vars)        :: varrID ! (1) tvair, (2) pmb
 
       !vars
-      CHARACTER, DIMENSION(:), POINTER :: var_name*15
+      CHARACTER(len=*), DIMENSION(num_vars), PARAMETER :: &
+            var_name =  (/  "lat          ", &
+                            "lon          ", &
+                            "casamet_tairk", &
+                            "tsoil        ", &
+                            "moist        ", &
+                            "cgpp         ", &
+                            "crmplant     ", &
+                            "phenphase    ", &
+                            "phendoyphase1", &
+                            "phendoyphase2", &
+                            "phendoyphase3", &
+                            "phendoyphase4", &
+                            "mtemp        ", &
+                            "Ndep         " /)
 
       REAL     , DIMENSION(mp)        :: lat, lon
-      REAL(r_2), DIMENSION(mp)        :: tairk,  cgpp, mtemp, Ndep, Pdep
+      REAL(r_2), DIMENSION(mp)        :: tairk,  cgpp, mtemp, Ndep
       REAL(r_2), DIMENSION(mp,ms)     :: tsoil, moist
       REAL(r_2), DIMENSION(mp,mplant) :: crmplant
       REAL(r_2), DIMENSION(mp)        :: phenphase, phendoyphase1, &
@@ -297,46 +309,13 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, climate, ncall, kend
 
 #     ifndef UM_BUILD
 
-      !amu561 fixing definitions when not calling climate
-      !Number of variables
-      num_vars=14
-
-      !Add extra mtemp variable when running with climate
-      IF(cable_user%CALL_climate) THEN
-          num_vars=num_vars+1
-      ENDIF
-
-      allocate(var_name(num_vars))
-
-
-      !Variable names
-      var_name =  (/"lat          ", &
-                    "lon          ", &
-                    "casamet_tairk", &
-                    "tsoil        ", &
-                    "moist        ", &
-                    "cgpp         ", &
-                    "crmplant     ", &
-                    "phenphase    ", &
-                    "phendoyphase1", &
-                    "phendoyphase2", &
-                    "phendoyphase3", &
-                    "phendoyphase4", &
-                    "Ndep         ", &
-                    "Pdep         "/)
-
-      !Add extra mtemp variable when running with climate
-      IF (cable_user%CALL_climate) THEN
-        var_name(num_vars)="mtemp"
-      ENDIF
-
-
-   IF ( allATonce .OR. ncall .EQ. 1 ) THEN
+ IF ( allATonce .OR. ncall .EQ. 1 ) THEN
          ncok = NF90_OPEN(TRIM(ncfile), nf90_nowrite, ncrid)
          IF (ncok /= nf90_noerr ) CALL stderr_nc(ncok,'re-opening ', ncfile)
       ENDIF
       IF ( allATonce ) THEN
          DO idoy=1,mdyear
+
             CALL get_var_ncr2(ncrid, var_name(3), tairk   , idoy )
             CALL get_var_ncr3(ncrid, var_name(4), tsoil   , idoy ,ms)
             CALL get_var_ncr3(ncrid, var_name(5), moist   , idoy ,ms)
@@ -347,13 +326,8 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, climate, ncall, kend
             CALL get_var_ncr2(ncrid, var_name(10), phendoyphase2, idoy)
             CALL get_var_ncr2(ncrid, var_name(11), phendoyphase3, idoy)
             CALL get_var_ncr2(ncrid, var_name(12), phendoyphase4, idoy)
-            CALL get_var_ncr2(ncrid, var_name(13), Ndep   , idoy )
-            CALL get_var_ncr2(ncrid, var_name(14), Pdep   , idoy )
-
-           !amu561 this need to be in if-block
-           IF (cable_user%CALL_climate ) THEN
-              CALL get_var_ncr2(ncrid, var_name(15), mtemp   , idoy )
-           ENDIF
+            CALL get_var_ncr2(ncrid, var_name(13), mtemp   , idoy )
+            CALL get_var_ncr2(ncrid, var_name(14), Ndep   , idoy )
 
             casamet%Tairkspin(:,idoy) = tairk
             casamet%cgppspin (:,idoy) = cgpp
@@ -377,15 +351,8 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, climate, ncall, kend
             phen%doyphasespin_2(:,idoy) = int(phendoyphase2)
             phen%doyphasespin_3(:,idoy) = int(phendoyphase3)
             phen%doyphasespin_4(:,idoy) = int(phendoyphase4)
+            casamet%mtempspin(:,idoy) = mtemp
             casaflux%Nmindep = Ndep
-            casaflux%Pdep = Pdep
-
-           !amu561 this need to be in if-block
-           IF(cable_user%CALL_climate) THEN
-              casamet%mtempspin(:,idoy) = mtemp
-           ENDIF
-
-
          END DO
       ELSE
 
@@ -399,13 +366,8 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, climate, ncall, kend
          CALL get_var_ncr2(ncrid, var_name(10), phendoyphase2    ,ncall )
          CALL get_var_ncr2(ncrid, var_name(11), phendoyphase3    ,ncall )
          CALL get_var_ncr2(ncrid, var_name(12), phendoyphase4    ,ncall )
-         CALL get_var_ncr2(ncrid, var_name(13), Ndep   , ncall )
-         CALL get_var_ncr2(ncrid, var_name(14), Pdep   , ncall )
-
-         !amu561 this need to be in if-block
-         IF(cable_user%CALL_climate) THEN
-            CALL get_var_ncr2(ncrid, var_name(15), mtemp   , ncall )
-         ENDIF
+         CALL get_var_ncr2(ncrid, var_name(13), mtemp   , ncall )
+         CALL get_var_ncr2(ncrid, var_name(14), Ndep   , ncall )
 
          casamet%tairk     = tairk
          casamet%tsoil     = tsoil
@@ -417,13 +379,10 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, climate, ncall, kend
          phen%doyphase(:,2) = int(phendoyphase2)
          phen%doyphase(:,3) = int(phendoyphase3)
          phen%doyphase(:,4) = int(phendoyphase4)
-         casaflux%Nmindep = Ndep
-         casaflux%Pdep = Pdep
-
-         ! mgk576, 25/10/17: this should have been in an IF block
-         IF (cable_user%CALL_climate) THEN
-            climate%mtemp_max = mtemp
+         IF (cable_user%CALL_climate) THEN 
+         climate%mtemp_max = mtemp
          ENDIF
+         casaflux%Nmindep = Ndep
 
       ENDIF
 
@@ -466,14 +425,29 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, phen, climate, n_call, ke
 
   !netcdf IDs/ names
   CHARACTER(len=*)   :: ncfile
-  INTEGER            :: num_vars
+  INTEGER, PARAMETER :: num_vars=14
   INTEGER, PARAMETER :: num_dims=3
   INTEGER, SAVE :: ncid       ! netcdf file ID
 
   !vars
-  CHARACTER, DIMENSION(:), POINTER :: var_name*15
+  CHARACTER(len=*), DIMENSION(num_vars), PARAMETER :: &
+       var_name =  (/  "lat          ", &
+       "lon          ", &
+       "casamet_tairk", &
+       "tsoil        ", &
+       "moist        ", &
+       "cgpp         ", &
+       "crmplant     " , &
+       "phenphase    ", &
+       "phendoyphase1", &
+       "phendoyphase2", &
+       "phendoyphase3", &
+       "phendoyphase4", &
+       "mtemp        ", &
+       "Ndep         " /)
 
-  INTEGER, DIMENSION(:), POINTER :: varID ! (1) tvair, (2) pmb
+
+  INTEGER, DIMENSION(num_vars) :: varID ! (1) tvair, (2) pmb
 
   !dims
   CHARACTER(len=*), DIMENSION(num_dims), PARAMETER :: &
@@ -502,42 +476,10 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, phen, climate, n_call, ke
   dim_len(1)        = mp
   dim_len(num_dims) = NF90_unlimited
 
-  !amu561 fixing definitions when not calling climate
-  !Number of variables
-  num_vars=14
-
-  !Add extra mtemp variable when running with climate
-  IF (cable_user%CALL_climate) THEN
-    num_vars=num_vars+1
-  ENDIF
-
-  allocate(var_name(num_vars))
-  allocate(varID(num_vars))
-
-  var_name =  (/"lat          ", &
-                "lon          ", &
-                "casamet_tairk", &
-                "tsoil        ", &
-                "moist        ", &
-                "cgpp         ", &
-                "crmplant     ", &
-                "phenphase    ", &
-                "phendoyphase1", &
-                "phendoyphase2", &
-                "phendoyphase3", &
-                "phendoyphase4", &
-                "Ndep         ", &
-                "Pdep         "/)
-
-
-  !Add extra mtemp variable when running with climate
-  IF (cable_user%CALL_climate) THEN
-    var_name(num_vars)="mtemp"
-  ENDIF
 
 
   IF (n_call == 1) THEN
-
+ 
      ! create netCDF dataset: enter define mode
      ncok = nf90_create(path = TRIM(ncfile), cmode = nf90_clobber, ncid = ncid)
      IF (ncok /= nf90_noerr) CALL stderr_nc(ncok,'ncdf creating ', ncfile)
@@ -557,10 +499,10 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, phen, climate, n_call, ke
      ncok = nf90_enddef(ncid)
      if (ncok /= nf90_noerr) call stderr_nc(ncok,'end def mode', ncfile)
 
-
+ 
      CALL put_var_ncr1(ncid, var_name(1), REAL(casamet%lat)  )
      CALL put_var_ncr1(ncid, var_name(2), REAL(casamet%lon)  )
-
+    
 
   ENDIF
 
@@ -575,16 +517,10 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, phen, climate, n_call, ke
   CALL put_var_ncr2(ncid, var_name(10), real(phen%doyphase(:,2), r_2)    ,n_call )
   CALL put_var_ncr2(ncid, var_name(11), real(phen%doyphase(:,3), r_2)    ,n_call )
   CALL put_var_ncr2(ncid, var_name(12), real(phen%doyphase(:,4), r_2)    ,n_call )
-  CALL put_var_ncr2(ncid, var_name(13), real(casaflux%Nmindep,r_2)    ,n_call )
-  CALL put_var_ncr2(ncid, var_name(14), real(casaflux%Pdep,r_2)    ,n_call )
-
-  ! mgk576, 25/10/17: this should have been in an IF block
-  if (cable_user%CALL_climate) then
-     CALL put_var_ncr2(ncid, var_name(15), real(climate%mtemp_max,r_2)    ,n_call )
-  endif
-
-  deallocate(var_name)
-  deallocate(varID)
+  IF (cable_user%CALL_climate) THEN 
+  CALL put_var_ncr2(ncid, var_name(13), real(climate%mtemp_max,r_2)    ,n_call )
+  ENDIF
+  CALL put_var_ncr2(ncid, var_name(14), real(casaflux%Nmindep,r_2)    ,n_call )
 
 
   IF (n_call == kend ) &
@@ -611,27 +547,23 @@ END SUBROUTINE write_casa_dump
   real, dimension(mp)  :: ncleafx,npleafx, pleafx, nleafx ! local variables
   real, dimension(17)                   ::  xnslope
   data xnslope/0.80,1.00,2.00,1.00,1.00,1.00,0.50,1.00,0.34,1.00,1.00,1.00,1.00,1.00,1.00,1.00,1.00/
-  real:: bjvref
+
   ! first initialize
   ncleafx(:) = casabiome%ratioNCplantmax(veg%iveg(:),leaf)
-  npleafx(:) = casabiome%ratioNPplantmin(veg%iveg(:),leaf)
-  bjvref = 1.7 ! Walker 2014
+  npleafx = 14.2
 
   DO np=1,mp
     ivt=veg%iveg(np)
     IF (casamet%iveg2(np)/=icewater &
         .AND. casamet%glai(np)>casabiome%glaimin(ivt)  &
         .AND. casapool%cplant(np,leaf)>0.0) THEN
-
-       IF (icycle>1 .AND. casapool%cplant(np,leaf)>0.0) THEN
-          ncleafx(np) = MIN(casabiome%ratioNCplantmax(ivt,leaf), &
-               MAX(casabiome%ratioNCplantmin(ivt,leaf), &
-               casapool%nplant(np,leaf)/casapool%cplant(np,leaf)))
-       ENDIF
-       IF (icycle>2 .AND. casapool%pplant(np,leaf)>0.0) THEN
-          npleafx(np) = MIN(30.0,MAX(8.0,real(casapool%nplant(np,leaf) &
-               /casapool%pplant(np,leaf))))
-       ENDIF
+      ncleafx(np) = MIN(casabiome%ratioNCplantmax(ivt,leaf), &
+                        MAX(casabiome%ratioNCplantmin(ivt,leaf), &
+                            casapool%nplant(np,leaf)/casapool%cplant(np,leaf)))
+      IF (icycle>2 .AND. casapool%pplant(np,leaf)>0.0) THEN
+        npleafx(np) = MIN(30.0,MAX(8.0,real(casapool%nplant(np,leaf) &
+                /casapool%pplant(np,leaf))))
+      ENDIF
     ENDIF
 
     IF (TRIM(cable_user%vcmax).eq.'standard') then
@@ -653,42 +585,25 @@ END SUBROUTINE write_casa_dump
        ENDIF
 
     elseif (TRIM(cable_user%vcmax).eq.'Walker2014') then
-       !Walker, A. P. et al.: The relationship of leaf photosynthetic traits – Vcmax and Jmax –
-       !to leaf nitrogen, leaf phosphorus, and specific leaf area:
+       !Walker, A. P. et al.: The relationship of leaf photosynthetic traits – Vcmax and Jmax – 
+       !to leaf nitrogen, leaf phosphorus, and specific leaf area: 
        !a meta-analysis and modeling study, Ecology and Evolution, 4, 3218-3235, 2014.
        ! veg%vcmax(np) = exp(3.946 + 0.921*log(nleafx(np)) + 0.121*log(pleafx(np)) + &
        !      0.282*log(pleafx(np))*log(nleafx(np))) * 1.0e-6
        nleafx(np) = ncleafx(np)/casabiome%sla(ivt) ! leaf N in g N m-2 leaf
        pleafx(np) = nleafx(np)/npleafx(np) ! leaf P in g P m-2 leaf
-       !$       if (ivt .EQ. 7 .OR.ivt .EQ. 9  ) then
-!!$          veg%vcmax(np) = 1.0e-5 ! special for C4 grass: set here to value from  parameter file
-!!$          veg%ejmax(np) = 2.0 * veg%vcmax(np)
-!!$       elseif (ivt.eq.2) then
-!!$          veg%vcmax(np) = vcmax_np(nleafx(np), pleafx(np)) * 1.10
-!!$          veg%ejmax(np) =bjvref * veg%vcmax(np)
-!!$       elseif (ivt.eq.1) then
-!!$          ! account here for spring recovery
-!!$          veg%vcmax(np) = vcmax_np(nleafx(np), pleafx(np))*1.25*climate%frec(np)
-!!$          veg%ejmax(np) =bjvref * veg%vcmax(np)
-!!$       else
-!!$          veg%vcmax(np) = vcmax_np(nleafx(np), pleafx(np))*1.25
-!!$          veg%ejmax(np) =bjvref * veg%vcmax(np)
-!!$       endif
-
-       if (ivt .EQ. 7 .OR.ivt .EQ. 9  ) then
+       if (ivt .EQ. 7) then
           veg%vcmax(np) = 1.0e-5 ! special for C4 grass: set here to value from  parameter file
-          veg%ejmax(np) = 2.0 * veg%vcmax(np)
        else
-          veg%vcmax(np) = vcmax_np(nleafx(np), pleafx(np))*casabiome%vcmax_scalar(ivt)
-          veg%ejmax(np) =bjvref * veg%vcmax(np)
+          veg%vcmax(np) = vcmax_np(nleafx(np), pleafx(np))
        endif
- else
-    stop ('invalid vcmax flag')
- endif
+    else
+       stop('invalid vcmax flag')
+    endif
+  
+  ENDDO
 
- ENDDO
-
-       !veg%ejmax(np) = 2.0 * veg%vcmax(np)
+  veg%ejmax = 2.0 * veg%vcmax
 !991 format(i6,2x,i4,2x,2(f9.3,2x))
  END SUBROUTINE casa_feedback
 
@@ -1004,8 +919,8 @@ END SUBROUTINE sumcflux
 
         IF (icycle<=2) THEN
             totpsoil(npt)          = psorder(casamet%isorder(npt)) *xpsoil50(casamet%isorder(npt))
-           !casapool%plitter(npt,:)= casapool%Nlitter(npt,:)/casapool%ratioNPlitter(npt,:)
-            !casapool%psoil(npt,:)  = casapool%Nsoil(npt,:)/casapool%ratioNPsoil(npt,:)
+           casapool%plitter(npt,:)= casapool%Nlitter(npt,:)/casapool%ratioNPlitter(npt,:)
+            casapool%psoil(npt,:)  = casapool%Nsoil(npt,:)/casapool%ratioNPsoil(npt,:)
             ! why is this commented here but used in UM
             ! casapool%plitter(npt,:)= casapool%ratiopclitter(npt,:)  * casapool%clitter(npt,:)
             ! casapool%psoil(npt,:)  = casapool%ratioPCsoil(npt,:)    * casapool%Csoil(npt,:)
@@ -1014,45 +929,23 @@ END SUBROUTINE sumcflux
                                     /(casaflux%kmlabp(npt)+casapool%psoillab(npt))
             casapool%psoilocc(npt) = totpsoil(npt) *fracPocc(casamet%isorder(npt))
         ELSE
-                ! compute the steady-state litter and soil P pools
-!!$          casapool%plitter(npt,metb) = (avgpleaf2met(npt)+avgproot2met(npt))/casaflux%klitter(npt,metb)
-!!$          casapool%plitter(npt,str) = (avgpleaf2str(npt)+avgproot2str(npt))/casaflux%klitter(npt,str)
-!!$          casapool%plitter(npt,cwd) = (avgpwood2cwd(npt))/casaflux%klitter(npt,cwd)
-!!$
-!!$          casapool%psoil(npt,mic)   = (casaflux%fromLtoS(npt,mic,metb)*casaflux%klitter(npt,metb)*casapool%clitter(npt,metb)   &
-!!$                                     +casaflux%fromLtoS(npt,mic,str) *casaflux%klitter(npt,str)*casapool%clitter(npt,str)  &
-!!$                                     +casaflux%fromLtoS(npt,mic,cwd) *casaflux%klitter(npt,cwd)*casapool%clitter(npt,cwd) ) &
-!!$                                     * (casapool%ratioNCsoil(npt,mic)/casapool%ratioNPsoil(npt,mic))/casaflux%ksoil(npt,mic)
-!!$
-!!$          casapool%psoil(npt,slow)  = (casaflux%fromLtoS(npt,slow,metb)*casaflux%klitter(npt,metb)*casapool%clitter(npt,metb) &
-!!$                                     + casaflux%fromLtoS(npt,slow,str)*casaflux%klitter(npt,str)*casapool%clitter(npt,str) &
-!!$                                     + casaflux%fromLtoS(npt,slow,cwd)*casaflux%klitter(npt,cwd)*casapool%clitter(npt,cwd) &
-!!$                                     + casaflux%fromStoS(npt,slow,mic) *casaflux%ksoil(npt,mic) *casapool%csoil(npt,mic)  ) &
-!!$                                   * (casapool%ratioNCsoil(npt,slow)/casapool%ratioNPsoil(npt,slow))/casaflux%ksoil(npt,slow)
-!!$          casapool%psoil(npt,pass)  = (casaflux%fromStoS(npt,pass,mic) *casaflux%ksoil(npt,mic) *casapool%csoil(npt,mic)    &
-!!$                                     +casaflux%fromStoS(npt,pass,slow)*casaflux%ksoil(npt,slow)*casapool%csoil(npt,slow) ) &
-!!$                                     *  (casapool%ratioNCsoil(npt,pass)/casapool%ratioNPsoil(npt,pass))/casaflux%ksoil(npt,pass)
-
-
-              casapool%plitter(npt,metb) = (avgpleaf2met(npt)+avgproot2met(npt))/casaflux%klitter(npt,metb)
+        ! compute the steady-state litter and soil P pools
+          casapool%plitter(npt,metb) = (avgpleaf2met(npt)+avgproot2met(npt))/casaflux%klitter(npt,metb)
           casapool%plitter(npt,str) = (avgpleaf2str(npt)+avgproot2str(npt))/casaflux%klitter(npt,str)
           casapool%plitter(npt,cwd) = (avgpwood2cwd(npt))/casaflux%klitter(npt,cwd)
 
-          casapool%psoil(npt,mic)   = (casaflux%fromLtoS(npt,mic,metb)*casaflux%klitter(npt,metb)*casapool%Nlitter(npt,metb)   &
-                                     +casaflux%fromLtoS(npt,mic,str) *casaflux%klitter(npt,str)*casapool%Nlitter(npt,str)  &
-                                     +casaflux%fromLtoS(npt,mic,cwd) *casaflux%klitter(npt,cwd)*casapool%Nlitter(npt,cwd) ) &
-                                     / casapool%ratioNPsoil(npt,mic)/casaflux%ksoil(npt,mic)
-
-
-
-          casapool%psoil(npt,slow)  = (casaflux%fromLtoS(npt,slow,metb)*casaflux%klitter(npt,metb)*casapool%Nlitter(npt,metb) &
-                                     + casaflux%fromLtoS(npt,slow,str)*casaflux%klitter(npt,str)*casapool%Nlitter(npt,str) &
-                                     + casaflux%fromLtoS(npt,slow,cwd)*casaflux%klitter(npt,cwd)*casapool%Nlitter(npt,cwd) &
-                                     + casaflux%fromStoS(npt,slow,mic) *casaflux%ksoil(npt,mic) *casapool%Nsoil(npt,mic)  ) &
-                                    /casapool%ratioNPsoil(npt,slow)/casaflux%ksoil(npt,slow)
-          casapool%psoil(npt,pass)  = (casaflux%fromStoS(npt,pass,mic) *casaflux%ksoil(npt,mic) *casapool%Nsoil(npt,mic)    &
-                                     +casaflux%fromStoS(npt,pass,slow)*casaflux%ksoil(npt,slow)*casapool%Nsoil(npt,slow) ) &
-                                  /casapool%ratioNPsoil(npt,pass)/casaflux%ksoil(npt,pass)
+          casapool%psoil(npt,mic)   = (casaflux%fromLtoS(npt,mic,metb)*casaflux%klitter(npt,metb)*casapool%clitter(npt,metb)   &
+                                     +casaflux%fromLtoS(npt,mic,str) *casaflux%klitter(npt,str)*casapool%clitter(npt,str)  &
+                                     +casaflux%fromLtoS(npt,mic,cwd) *casaflux%klitter(npt,cwd)*casapool%clitter(npt,cwd) ) &
+                                   * (casapool%ratioNCsoil(npt,mic)/casapool%ratioNPsoil(npt,mic))/casaflux%ksoil(npt,mic)
+          casapool%psoil(npt,slow)  = (casaflux%fromLtoS(npt,slow,metb)*casaflux%klitter(npt,metb)*casapool%clitter(npt,metb) &
+                                     + casaflux%fromLtoS(npt,slow,str)*casaflux%klitter(npt,str)*casapool%clitter(npt,str) &
+                                     + casaflux%fromLtoS(npt,slow,cwd)*casaflux%klitter(npt,cwd)*casapool%clitter(npt,cwd) &
+                                     + casaflux%fromStoS(npt,slow,mic) *casaflux%ksoil(npt,mic) *casapool%csoil(npt,mic)  ) &
+                                   * (casapool%ratioNCsoil(npt,slow)/casapool%ratioNPsoil(npt,slow))/casaflux%ksoil(npt,slow)
+          casapool%psoil(npt,pass)  = (casaflux%fromStoS(npt,pass,mic) *casaflux%ksoil(npt,mic) *casapool%csoil(npt,mic)    &
+                                     +casaflux%fromStoS(npt,pass,slow)*casaflux%ksoil(npt,slow)*casapool%csoil(npt,slow) ) &
+                                   *  (casapool%ratioNCsoil(npt,pass)/casapool%ratioNPsoil(npt,pass))/casaflux%ksoil(npt,pass)
           ! assign the mineral pools
           casapool%psoillab(npt)      = avgpsoillab(npt)
           casapool%psoilsorb(npt)     = avgPsoilsorb(npt)

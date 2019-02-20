@@ -119,13 +119,11 @@ CONTAINS
             
             call um2cable_rr( longitude, cable%lon )
             
-            !==================================================================
-         
-return          
             !--- get tile index/fraction  corresponding to cable points
             cable%tile = pack(tile_index_mp, um1%l_tile_pts)
             cable%tile_frac = pack(um1%tile_frac, um1%l_tile_pts)
 
+return          
             !--- write all these maps.  cable_user%initialize_mapping can be 
             !--- set in namelist cable.nml
             !if ( cable_user%initialize_mapping ) then
@@ -768,7 +766,7 @@ SUBROUTINE initialize_radiation( sw_down, lw_down, cos_zenith_angle,           &
    USE cable_data_module,   ONLY : PHYS, OTHER
    USE cable_um_tech_mod,   ONLY : um1, rad, soil, met,                        &
                                    conv_rain_prevstep, conv_snow_prevstep
-   USE cable_common_module, ONLY : cable_runtime, cable_user, ktau_gl
+   USE cable_common_module, ONLY : cable_runtime, cable_user, ktau_gl, kwidth_gl
 
    REAL, INTENT(INOUT), DIMENSION(um1%row_length, um1%rows) :: sw_down
    
@@ -832,8 +830,8 @@ SUBROUTINE initialize_radiation( sw_down, lw_down, cos_zenith_angle,           &
       
       ! CABLE met type forcings, not set by um2cable_met_rad()
       CALL um2cable_rr( LW_DOWN, met%fld)
-      CALL um2cable_rr( (LS_RAIN*um1%TIMESTEP), met%precip)
-      CALL um2cable_rr( (LS_SNOW*um1%TIMESTEP), met%precip_sn)
+      CALL um2cable_rr( (LS_RAIN*kwidth_gl), met%precip)
+      CALL um2cable_rr( (LS_SNOW*kwidth_gl), met%precip_sn)
       CALL um2cable_rr( TL_1, met%tk)
 
       CALL um2cable_rr( QW_1, met%qv)

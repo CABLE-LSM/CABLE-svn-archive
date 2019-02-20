@@ -27,9 +27,6 @@
 !
 !
 ! ==============================================================================
-!uncomment per subr for now - can update to namelist
-!#define FPPcable_fprint 0  
-!#define FPPcable_Pyfprint 0  
 
 module cable_explicit_main_mod
   
@@ -57,6 +54,7 @@ SUBROUTINE cable_explicit_main(                                                &
             RADNET_TILE, FRACA, rESFS, RESFT, Z0H_TILE, Z0M_TILE,              &
             RECIP_L_MO_TILE, EPOT_TILE &
 # else  
+            !jhan:this looks like I was testing standalone
             ,timestep_number                                                   &
 # endif
             )
@@ -66,10 +64,15 @@ SUBROUTINE cable_explicit_main(                                                &
   !diag 
   USE cable_fprint_module, ONLY : cable_fprintf
   USE cable_Pyfprint_module, ONLY : cable_Pyfprintf
-  USE cable_fFile_module, ONLY : fprintf_dir_root, fprintf_dir
+  USE cable_fFile_module, ONLY : fprintf_dir_root, fprintf_dir, L_cable_fprint,&
+                                 L_cable_Pyfprint, unique_subdir
+  USE cable_def_types_mod, ONLY : mp !only need for fprint here
+
   !processor number, timestep number / width, endstep
   USE cable_common_module, ONLY : knode_gl, ktau_gl, kwidth_gl, kend_gl
   USE cable_common_module, ONLY : cable_runtime
+  USE cable_data_module, ONLY : cable
+!jhan:this looks like I was testing standalone
 # if !defined(UM_JULES)
   USE model_grid_mod, ONLY: latitude, longitude
 # endif
@@ -180,12 +183,12 @@ SUBROUTINE cable_explicit_main(                                                &
     RECIP_L_MO_TILE,& ! Reciprocal of the Monin-Obukhov length for tiles (m^-1)
     EPOT_TILE
 
+!jhan:this looks like I was testing standalone
 # if !defined(UM_JULES)
   integer :: timestep_number  
 # endif
 
   !___ local vars
-  integer :: dimx, dimy
   integer,  DIMENSION(land_pts, ntiles) :: isnow_flg_cable
   logical, save :: first_call = .true.
   real :: radians_degrees
@@ -194,31 +197,31 @@ SUBROUTINE cable_explicit_main(                                                &
   ! std template args 
   character(len=*), parameter :: subr_name = "cable_explicit_main"
 
-# if defined(FPPcable_fprint) || defined(FPPcable_Pyfprint)
-#   include "../../../core/utils/diag/cable_fprint.txt"
-    unique_subdir = "727/"
-# endif
+# include "../../../core/utils/diag/cable_fprint.txt"
   
   !-------- Unique subroutine body -----------
   
+  !--- initialize cable_runtime% switches 
+  cable_runtime%um =          .TRUE.
+  cable_runtime%um_explicit = .TRUE.
+   
   ! initialize processor number, timestep width & number, endstep 
   ! UM overwrites these defaults. Not yet done in StandAlone 
   if( first_call ) then
-    knode_gl =0; kwidth_gl = 1800.; kend_gl=-1
+    knode_gl =0; kwidth_gl = 1200.; kend_gl=-1
 # if defined(UM_JULES)
     knode_gl  = mype 
-    write(6,*) 'jh:mype ',  mype 
     kwidth_gl = int(timestep_width)
     kend_gl   = endstep   
 # endif
+
+  !--- Convert lat/long to degrees
+    radians_degrees = 180.0 / ( 4.0*atan(1.0) ) ! 180 / PI
+  latitude_deg  = latitude * radians_degrees
+  longitude_deg  = longitude * radians_degrees
   endif
 
   ktau_gl   = timestep_number
-
-  !--- Convert lat/long to degrees
-  radians_degrees = 180.0 / ( 4.0*atan(1.0) ) ! * 180 / PI
-  latitude_deg  = latitude * radians_degrees
-  longitude_deg  = longitude * radians_degrees
   
   if( .NOT. allocated(L_tile_pts) ) allocate( L_tile_pts(land_pts, ntiles) ) 
 
@@ -275,28 +278,27 @@ SUBROUTINE cable_explicit_main(                                                &
                            rad%transd, rough%z0m, rough%zref_tq, &
                            canopy%fes, canopy%fev )
 
-
-  !----------------------------------------------------------------------------
-  !--- Organize report writing for CABLE.                         -------------
-  !--- OUT args @ timestep X,Y,Z !jhan: call checks as required by namelis ----
-  !----------------------------------------------------------------------------
-  
   !-------- End Unique subroutine body -----------
   
-  if (knode_gl == 0 .and. ktau_gl == 1)   & 
-    call cable_fprintf( subr_name, .true. ) !to std output stream
-  
-# ifdef FPPcable_fprint
-  fprintf_dir=trim(fprintf_dir_root)//trim(unique_subdir)//trim(subr_name)//"/"
-  call cable_fprintf( cDiag00, subr_name, knode_gl, ktau_gl, .true. )
-# endif
+  fprintf_dir=trim(fprintf_dir_root)//trim(unique_subdir)//"/"
+  if(L_cable_fprint) then 
+    !basics to std output stream
+    if (knode_gl == 0 .and. ktau_gl == 1)  call cable_fprintf(subr_name, .true.) 
+    !more detailed output
+    vname=trim(subr_name//'_')
+    call cable_fprintf( cDiag00, vname, knode_gl, ktau_gl, .true. )
+  endif
 
-# ifdef FPPcable_Pyfprint
-  vname='latitude'; dimx=size(latitude,1); dimy=size(latitude,2)
-  call cable_Pyfprintf( cDiag1, vname, latitude, dimx, dimy, .true.)
-  vname='longitude'; dimx=size(longitude,1); dimy=size(longitude,2)
-  call cable_Pyfprintf( cDiag2, vname, longitude, dimx, dimy, .true.)
-# endif
+  if(L_cable_Pyfprint .and. ktau_gl == 1) then 
+    vname='latitude'; dimx=land_pts
+    call cable_Pyfprintf( cDiag1, vname, latitude_deg(:,1), dimx, .true.)
+    vname='longitude'
+    call cable_Pyfprintf( cDiag2, vname, longitude_deg(:,1), dimx, .true.)
+    !vname='latitude'; dimx=mp
+    !call cable_Pyfprintf( cDiag1, vname, cable%lat, dimx, .true.)
+    !vname='longitude'; dimx=mp
+    !call cable_Pyfprintf( cDiag2, vname, cable%lon, dimx, .true.)
+  endif
 
   cable_runtime%um_explicit = .FALSE.
   first_call = .false.        

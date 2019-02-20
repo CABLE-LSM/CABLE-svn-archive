@@ -30,10 +30,6 @@
 !
 ! ==============================================================================
 
-!uncomment per subr for now - can update to namelist
-!#define FPPcable_fprint 0  
-!#define FPPcable_Pyfprint 0  
-
 MODULE cable_expl_unpack_mod
 
 !---------------------------------------------------------------------!
@@ -60,7 +56,8 @@ SUBROUTINE cable_expl_unpack( latitude, longitude, FTL_TILE, FQW_TILE,         &
   !diag 
   USE cable_fprint_module, ONLY : cable_fprintf
   USE cable_Pyfprint_module, ONLY : cable_Pyfprintf
-  USE cable_fFile_module, ONLY : fprintf_dir_root, fprintf_dir
+  USE cable_fFile_module, ONLY : fprintf_dir_root, fprintf_dir, L_cable_fprint,&
+                                 L_cable_Pyfprint, unique_subdir
   
   USE cable_diag_module
 
@@ -163,10 +160,7 @@ SUBROUTINE cable_expl_unpack( latitude, longitude, FTL_TILE, FQW_TILE,         &
   ! std template args 
   character(len=*), parameter :: subr_name = "cable_explicit_unpack"
 
-# if defined(FPPcable_fprint) || defined(FPPcable_Pyfprint)
-#   include "../../../core/utils/diag/cable_fprint.txt"
-    ! e.g. unique_subdir = "727/"
-# endif
+# include "../../../core/utils/diag/cable_fprint.txt"
 
   !-------- Unique subroutine body -----------
   CAPP => PHYS%CAPP
@@ -226,20 +220,21 @@ SUBROUTINE cable_expl_unpack( latitude, longitude, FTL_TILE, FQW_TILE,         &
     first_cable_call = .FALSE.
   ENDIF
   !-------- End Unique subroutine body -----------
-  
-  if (knode_gl == 0 .and. ktau_gl == 1)   & 
-    call cable_fprintf( subr_name, .true. ) !to std output stream
-  
-# ifdef FPPcable_fprint
-  !fprintf_dir=trim(fprintf_dir_root)//trim(unique_subdir)//trim(subr_name)//"/"
-  !call cable_fprintf( cDiag00, subr_name, knode_gl, ktau_gl, .true. )
-# endif
+ 
+  fprintf_dir=trim(fprintf_dir_root)//trim(unique_subdir)//"/"
+  if(L_cable_fprint) then 
+    !basics to std output stream
+    if (knode_gl == 0 .and. ktau_gl == 1)  call cable_fprintf(subr_name, .true.) 
+    !more detailed output
+    vname=trim(subr_name//'_')
+    call cable_fprintf( cDiag00, vname, knode_gl, ktau_gl, .true. )
+  endif
 
-# ifdef FPPcable_Pyfprint
-  !vname='latitude'; dimx=size(latitude,1); dimy=size(latitude,2)
-  !call cable_Pyfprintf( cDiag1, vname, latitude, dimx, dimy, .true.)
-# endif
-
+  if(L_cable_Pyfprint) then 
+    !vname='latitude'; dimx=mp
+    !call cable_Pyfprintf( cDiag1, vname, cable%lat, dimx, .true.)
+  endif
+ 
 return
 
 End subroutine cable_expl_unpack
