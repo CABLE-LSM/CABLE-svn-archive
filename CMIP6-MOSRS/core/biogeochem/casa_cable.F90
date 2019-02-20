@@ -22,7 +22,7 @@
 !
 ! ==============================================================================
 !CABLE_LSM:This has to be commented for offline
-#define UM_BUILD YES
+!#define UM_BUILD YES
 
 module casa_cable
 

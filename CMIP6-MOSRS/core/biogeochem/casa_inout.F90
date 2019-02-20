@@ -30,7 +30,7 @@
 !   casa_cnpflux  (zeros casabal quantites on doy 1 and updates casabal at end of biogeochem)
 !   biogeochem
 !CABLE_LSM:This has to be commented for offline
-#define UM_BUILD YES
+!#define UM_BUILD YES
 module casa_inout_module
 
 contains 

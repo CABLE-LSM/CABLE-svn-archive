@@ -6,9 +6,13 @@ MODULE cable_fFile_module
   INTEGER :: galloctest=1
 
   !CABLE_LSM: intro'd quick writing capbility. remove from here. keep for ref
-  character(len=*), parameter :: &
-    fprintf_dir_root = "/short/p66/jxs599/CMIP6/diag/"
+  character(len=200) :: fprintf_dir_root = "/"
   
+  character(len=15) :: unique_subdir = "./"
+
+  logical :: L_cable_fprint   = .FALSE.,    &  
+             L_cable_Pyfprint = .FALSE. 
+              
   character(len=300) :: fprintf_dir
 
 CONTAINS
@@ -41,6 +45,7 @@ SUBROUTINE open_file_per_node( iDiag,pDiag, dir, basename, node, fbasename )
       return
    else
       write (*,*) infilename,' NOT open for write. Error(open_file_per_node)'
+      write (*,*) '???Check that the path exists???'
       STOP
    endif
 
