@@ -2671,7 +2671,7 @@ END SUBROUTINE GWstempv
      ssnow%psi_soil(:,:) = 0.0
 
      ! Soil matric potential at saturation (m of head to MPA -> 9.81 * KPA_2_MPA)
-     psi_sat_mpa = soil%sucs(1) * 9.81 * 0.001
+     psi_sat_mpa = soil%sucs(i) * 9.81 * 0.001
 
      DO j = 1, ms ! Loop over 6 soil layers
 
