@@ -2673,7 +2673,7 @@ END SUBROUTINE GWstempv
      DO j = 1, ms ! Loop over 6 soil layers
 
          t_over_t_sat(j) = MAX(1.0e-9, MIN(1.0, ssnow%wb(1,j) / soil%ssat(1)))
-         ssnow%psi_soil(j) = psi_sat_mpa * t_over_t_sat(j)**(-soil%bch(1))
+         ssnow%psi_soil(1,j) = psi_sat_mpa * t_over_t_sat(j)**(-soil%bch(1))
          cond_per_layer(j) = 1.0 / ssnow%soilR(1,j)
 
       END DO
@@ -2719,14 +2719,14 @@ END SUBROUTINE GWstempv
 
      total_est_evap = 0.0
      est_evap = 0.0
-     ssnow%weighted_psi_soil = 0.0
+     ssnow%weighted_psi_soil(:) = 0.0
      ssnow%fraction_uptake = 0.0
 
      ! Estimate max transpiration from gradient-gravity / soil resistance
      DO j = 1, ms ! Loop over 6 soil layers
 
         est_evap(j) = MAX(0.0, &
-                          (ssnow%psi_soil(j) - min_lwp) / ssnow%soilR(i,j))
+                          (ssnow%psi_soil(i,j) - min_lwp) / ssnow%soilR(i,j))
         ! NEED TO ADD SOMETHING IF THE SOIL IS FROZEN, what is ice in CABLE?
         !IF ( iceprop(i) .gt. 0. ) THEN
         !  est_evap(i) = 0.0
@@ -2737,8 +2737,8 @@ END SUBROUTINE GWstempv
 
      IF (total_est_evap > 0.0) THEN
         DO j = 1, ms ! Loop over 6 soil layers
-           ssnow%weighted_psi_soil = ssnow%weighted_psi_soil + &
-                                          ssnow%psi_soil(j) * est_evap(j)
+           ssnow%weighted_psi_soil(1) = ssnow%weighted_psi_soil(1) + &
+                                          ssnow%psi_soil(i,j) * est_evap(j)
            ! fraction of water taken from layer, I've lower bounded frac uptake
            ! because when soilR is set to a huge number
            ! (see calc_soil_root_resistance), then frac_uptake will be so small
@@ -2751,7 +2751,7 @@ END SUBROUTINE GWstempv
               STOP
            END IF
         END DO
-        ssnow%weighted_psi_soil = ssnow%weighted_psi_soil / total_est_evap
+        ssnow%weighted_psi_soil(1) = ssnow%weighted_psi_soil(1) / total_est_evap
 
      ELSE
         ! No water was evaporated
