@@ -2668,20 +2668,19 @@ END SUBROUTINE GWstempv
 
      ssnow%psi_soil(:,:) = 0.0
 
-     ! Soil matric potential at saturation (m of head to MPA -> 9.81 * KPA_2_MPA)
+     ! Soil matric potential at saturation (m of head to MPa: 9.81 * KPA_2_MPA)
      psi_sat_mpa = soil%sucs(i) * 9.81 * 0.001
 
      DO j = 1, ms ! Loop over 6 soil layers
 
          t_over_t_sat = MAX(1.0e-9, MIN(1.0, ssnow%wb(i,j) / soil%ssat(i)))
          ssnow%psi_soil(i,j) = psi_sat_mpa * t_over_t_sat**(-soil%bch(i))
-         !cond_per_layer = 1.0 / ssnow%soilR(i,j)
+
+         IF (ssnow%psi_soil(i,j) < -8.0) THEN
+            ssnow%psi_soil(i,j) = -8.0
+         END IF
 
       END DO
-
-      ! weighted soil water potential
-      !psi_swp = sum(psi_swp_per_lay * cond_per_layer) / sum(cond_per_layer)
-
 
   END SUBROUTINE calc_swp
   ! ----------------------------------------------------------------------------
