@@ -2662,11 +2662,9 @@ END SUBROUTINE GWstempv
      TYPE (soil_snow_type), INTENT(INOUT)        :: ssnow
      TYPE (soil_parameter_type), INTENT(INOUT)   :: soil
 
-     REAL, DIMENSION(ms)  :: t_over_t_sat, cond_per_layer
-
-     INTEGER :: j
+     INTEGER             :: j
      INTEGER, INTENT(IN) :: i
-     REAL    :: psi_sat_mpa
+     REAL                :: psi_sat_mpa, t_over_t_sat, cond_per_layer
 
      ssnow%psi_soil(:,:) = 0.0
 
@@ -2675,9 +2673,9 @@ END SUBROUTINE GWstempv
 
      DO j = 1, ms ! Loop over 6 soil layers
 
-         t_over_t_sat(j) = MAX(1.0e-9, MIN(1.0, ssnow%wb(i,j) / soil%ssat(i)))
-         ssnow%psi_soil(i,j) = psi_sat_mpa * t_over_t_sat(j)**(-soil%bch(i))
-         cond_per_layer(j) = 1.0 / ssnow%soilR(i,j)
+         t_over_t_sat = MAX(1.0e-9, MIN(1.0, ssnow%wb(i,j) / soil%ssat(i)))
+         ssnow%psi_soil(i,j) = psi_sat_mpa * t_over_t_sat**(-soil%bch(i))
+         !cond_per_layer = 1.0 / ssnow%soilR(i,j)
 
       END DO
 
