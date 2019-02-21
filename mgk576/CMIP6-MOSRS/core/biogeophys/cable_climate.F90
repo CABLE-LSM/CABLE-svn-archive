@@ -630,7 +630,7 @@ END SUBROUTINE climate_init
 
 ! ==============================================================================
 
-SUBROUTINE WRITE_CLIMATE_RESTART_NC ( climate )
+SUBROUTINE WRITE_CLIMATE_RESTART_NC ( climate, ktauday )
 
   USE netcdf
 
@@ -638,7 +638,7 @@ SUBROUTINE WRITE_CLIMATE_RESTART_NC ( climate )
   IMPLICIT NONE
 
   TYPE (climate_type), INTENT(IN)       :: climate  ! climate variables
-
+  INTEGER, INTENT(IN) :: ktauday
   INTEGER*4 :: mp4
   INTEGER*4, parameter   :: pmp4 =0
   INTEGER, parameter   :: fmp4 = kind(pmp4)
