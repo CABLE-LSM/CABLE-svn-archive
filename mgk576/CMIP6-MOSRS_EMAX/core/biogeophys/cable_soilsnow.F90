@@ -1600,7 +1600,7 @@ SUBROUTINE remove_trans(dels, soil, ssnow, canopy, veg)
    REAL(r_2), DIMENSION(mp,ms) :: zse_mp_mm
    INTEGER k, i
 
-  IF (cable_user%FWSOIL_SWITCH == 'OLD') THEN
+  IF (cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
 
       ! This follows the default extraction logic, but instead of weighting
       ! by froot, we are weighting by the frac uptake we calculated when we
@@ -1632,34 +1632,6 @@ SUBROUTINE remove_trans(dels, soil, ssnow, canopy, veg)
             END IF   !fvec > 0
          END DO   !mp
       END DO   !ms
-
-  ELSE IF (cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
-
-     xx = 0.; xxd = 0.; diff(:,:) = 0.
-     DO k = 1,ms
-
-        ! Removing transpiration from soil:
-        WHERE (canopy%fevc > 0.0 )     ! convert to mm/dels
-
-           ! Calculate the amount (perhaps moisture/ice limited)
-           ! which can be removed:
-           xx = canopy%fevc * dels / C%HL * veg%froot(:,k) + diff(:,k-1)   ! kg/m2
-           diff(:,k) = MAX( 0.0_r_2, ssnow%wb(:,k) - soil%swilt) &      ! m3/m3
-                * soil%zse(k)*1000.0
-           xxd = xx - diff(:,k)
-
-           WHERE ( xxd .GT. 0.0 )
-              ssnow%wb(:,k) = ssnow%wb(:,k) - diff(:,k) / (soil%zse(k)*1000.0)
-              diff(:,k) = xxd
-           ELSEWHERE
-              ssnow%wb(:,k) = ssnow%wb(:,k) - xx / (soil%zse(k)*1000.0)
-              diff(:,k) = 0.0
-           ENDWHERE
-
-        END WHERE
-
-     END DO
-
 
   ELSE IF (cable_user%FWSOIL_switch.ne.'Haverd2013') THEN
      xx = 0.; xxd = 0.; diff(:,:) = 0.
