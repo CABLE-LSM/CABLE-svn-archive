@@ -3205,11 +3205,10 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
 
      ! Hydraulic conductance of the entire soil-to-leaf pathway
      ! (mmol m–2 s–1 MPa–1)
-     REAL, INTENT(IN) :: ktot !
-     REAL, INTENT(IN) :: transpiration ! mmol m-2 s-1
-     REAL :: psi_leaf    ! MPa
-     REAL, PARAMETER :: psi_min = -20.0
-
+     REAL, INTENT(IN)    :: ktot
+     REAL, INTENT(IN)    :: transpiration   ! mmol m-2 s-1
+     REAL, PARAMETER     :: psi_min = -20.0 ! MPa
+     REAL                :: psi_leaf        ! MPa
      INTEGER, INTENT(IN) :: i
 
      IF (ktot > 0.0) THEN
