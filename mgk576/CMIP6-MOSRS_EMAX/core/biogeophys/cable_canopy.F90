@@ -2130,15 +2130,21 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
 
              inferred_stress = 0.0
              DO kk = 1, mf
+
                 gsc(kk) = MAX(1.e-3, (gswmin(i,kk) / C%RGSWC) + &
                               MAX(0.0, (gs_coeff(i,kk) * anx(i,kk))))
+
 
                 CALL calculate_emax(canopy, veg, ssnow, dsx(:), par(:,:),      &
                                     csx(:,:), SPREAD(cx1(:), 2, mf), rdx(:,:), &
                                     vcmxt3(:,:), gsc(:), anx(:,:), ktot,       &
                                     co2cp3, inferred_stress, met%pmb, i, kk)
+
+
              END DO
-             ! fwsoil means nothing when using the plant hydraulics, but we
+
+
+             !fwsoil means nothing when using the plant hydraulics, but we
              ! still need an inferred fwsoil as this is used in SOM
              ! decomposition calculations
              canopy%fwsoil(i) = inferred_stress / 2.0
@@ -2162,10 +2168,10 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                    ! can't decide which is these is the best way to infer gsw?
                    IF (cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
 
-                      !canopy%gswx(i,kk) = gsc(kk) * C%RGSWC
-                      canopy%gswx(i,kk) = MAX(1.e-3, gswmin(i,kk) +           &
-                                              MAX(0.0, C%RGSWC *              &
-                                              gs_coeff(i,kk) * anx(i,kk)))
+                      canopy%gswx(i,kk) = gsc(kk) * C%RGSWC
+                      !canopy%gswx(i,kk) = MAX(1.e-3, gswmin(i,kk) +           &
+                     !                         MAX(0.0, C%RGSWC *              &
+                     !                         gs_coeff(i,kk) * anx(i,kk)))
 
                    ELSE
                       ! Ticket #56, xleuning replaced with gs_coeff here
@@ -3212,10 +3218,10 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
      INTEGER, INTENT(IN) :: i
 
      IF (ktot > 0.0) THEN
-        psi_leaf = MIN(psi_min, &
+        psi_leaf = MAX(psi_min, &
                        ssnow%weighted_psi_soil(i) - (transpiration / ktot))
      ELSE
-        psi_leaf = MIN(psi_min, ssnow%weighted_psi_soil(i))
+        psi_leaf = MAX(psi_min, ssnow%weighted_psi_soil(i))
      END IF
      !print*, psi_leaf, ssnow%weighted_psi_soil, transpiration, ktot, transpiration / ktot
   END FUNCTION calc_psi_leaf
