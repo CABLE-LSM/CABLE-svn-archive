@@ -2670,14 +2670,17 @@ END SUBROUTINE GWstempv
 
      ! Soil matric potential at saturation (m of head to MPa: 9.81 * KPA_2_MPA)
      psi_sat_mpa = soil%sucs(i) * 9.81 * 0.001
-
+        
      DO j = 1, ms ! Loop over 6 soil layers
-
-         t_over_t_sat = MAX(1.0e-9, MIN(1.0, ssnow%wb(i,j) / soil%ssat(i)))
-         ssnow%psi_soil(i,j) = psi_sat_mpa * t_over_t_sat**(-soil%bch(i))
-
-         IF (ssnow%psi_soil(i,j) < -8.0) THEN
-            ssnow%psi_soil(i,j) = -8.0
+         ! Below the wilting point (-1.5 MPa) the water potential drops to
+         ! silly value, if we enter this territory set the soil water potential
+         ! based on the wilting point
+         IF ( ssnow%wb(i,j) < soil%swilt(i) ) then
+            t_over_t_sat = MAX(1.0e-9, MIN(1.0, soil%swilt(i) / soil%ssat(i)))
+            ssnow%psi_soil(i,j) = psi_sat_mpa * t_over_t_sat**(-soil%bch(i))
+         ELSE
+            t_over_t_sat = MAX(1.0e-9, MIN(1.0, ssnow%wb(i,j) / soil%ssat(i)))
+            ssnow%psi_soil(i,j) = psi_sat_mpa * t_over_t_sat**(-soil%bch(i))
          END IF
 
       END DO
