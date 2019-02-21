@@ -567,11 +567,11 @@ END SUBROUTINE BIOME1_PFT
 
 ! ==============================================================================
 
-SUBROUTINE climate_init ( climate,np )
+SUBROUTINE climate_init ( climate,np, ktauday )
 IMPLICIT NONE
 
 TYPE (climate_type), INTENT(INOUT)       :: climate  ! climate variables
-INTEGER, INTENT(IN) :: np
+INTEGER, INTENT(IN) :: np, ktauday
 INTEGER :: d
 
 CALL alloc_cbm_var(climate,np)
