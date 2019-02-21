@@ -3223,7 +3223,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
      ELSE
         psi_leaf = MAX(psi_min, ssnow%weighted_psi_soil(i))
      END IF
-     !print*, psi_leaf, ssnow%weighted_psi_soil, transpiration, ktot, transpiration / ktot
+     
   END FUNCTION calc_psi_leaf
   ! ----------------------------------------------------------------------------
 
