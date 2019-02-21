@@ -69,8 +69,7 @@ MODULE cable_output_module
                     PlantTurnover, PlantTurnoverLeaf, PlantTurnoverFineRoot, &
                     PlantTurnoverWood, PlantTurnoverWoodDist, PlantTurnoverWoodCrowding, &
                     PlantTurnoverWoodResourceLim, dCdt, Area, LandUseFlux, patchfrac, &
-                    vcmax,hc,WatTable,GWMoist,SatFrac,Qrecharge, &
-                    GPP_sha, GPP_sun, PAR_sha, PAR_sun
+                    vcmax,hc,WatTable,GWMoist,SatFrac,Qrecharge
   END TYPE out_varID_type
   TYPE(out_varID_type) :: ovid ! netcdf variable IDs for output variables
   TYPE(parID_type) :: opid ! netcdf variable IDs for output variables
@@ -223,10 +222,6 @@ MODULE cable_output_module
     REAL(KIND=4), POINTER, DIMENSION(:) :: vcmax
     REAL(KIND=4), POINTER, DIMENSION(:) :: patchfrac
     REAL(KIND=4), POINTER, DIMENSION(:) :: hc
-    REAL(KIND=4), POINTER, DIMENSION(:) :: GPP_sha
-    REAL(KIND=4), POINTER, DIMENSION(:) :: GPP_sun
-    REAL(KIND=4), POINTER, DIMENSION(:) :: PAR_sha
-    REAL(KIND=4), POINTER, DIMENSION(:) :: PAR_sun
     REAL(KIND=4), POINTER, DIMENSION(:)   :: SatFrac         !Saturated Fraction of Grid Cell
     REAL(KIND=4), POINTER, DIMENSION(:)   :: Qrecharge         !recharge rate Grid Cell
     REAL(KIND=4), POINTER, DIMENSION(:)   :: GWMoist       ! water balance of aquifer [mm3/mm3]
@@ -833,34 +828,6 @@ CONTAINS
        ALLOCATE(out%GPP(mp))
        out%GPP = 0.0 ! initialise
 
-
-       CALL define_ovar(ncid_out, ovid%GPP_sha, 'GPP_shaded', 'umol/m^2/s',    &
-                        'Gross primary production from shaded leaves',         &
-                        patchout%GPP, 'dummy', xID, yID, zID, landID, patchID, &
-                        tID)
-       ALLOCATE(out%GPP_sha(mp))
-       out%GPP_sha = 0.0 ! initialise
-
-       CALL define_ovar(ncid_out, ovid%GPP_sun, 'GPP_sunlit', 'umol/m^2/s',    &
-                        'Gross primary production from sunlit leaves',         &
-                        patchout%GPP, 'dummy', xID, yID, zID, landID, patchID, &
-                        tID)
-       ALLOCATE(out%GPP_sun(mp))
-       out%GPP_sun = 0.0 ! initialise
-
-       CALL define_ovar(ncid_out, ovid%PAR_sha, 'PAR_shaded', 'umol/m^2/s',    &
-                        'PAR absorbed by shaded leaves',         &
-                        patchout%GPP, 'dummy', xID, yID, zID, landID, patchID, &
-                        tID)
-       ALLOCATE(out%PAR_sha(mp))
-       out%PAR_sha = 0.0 ! initialise
-
-       CALL define_ovar(ncid_out, ovid%PAR_sun, 'PAR_sunlit', 'umol/m^2/s',    &
-                        'GPAR absorbed by sunlit leaves',         &
-                        patchout%GPP, 'dummy', xID, yID, zID, landID, patchID, &
-                        tID)
-       ALLOCATE(out%PAR_sun(mp))
-       out%PAR_sun = 0.0 ! initialise
 
     END IF
 
@@ -2481,47 +2448,6 @@ CONTAINS
           out%GPP = 0.0
        END IF
 
-       ! Write out other components of GPP
-       out%GPP_sha = out%GPP_sha + REAL(canopy%A_sha/ 1e-6 , 4)
-       out%GPP_sun = out%GPP_sun + REAL(canopy%A_sun/ 1e-6 , 4)
-       IF(writenow) THEN
-          ! Divide accumulated variable by number of accumulated time steps:
-          out%GPP_sha = out%GPP_sha / REAL(output%interval, 4)
-          out%GPP_sun = out%GPP_sun / REAL(output%interval, 4)
-
-          ! Write value to file:
-          CALL write_ovar(out_timestep, ncid_out, ovid%GPP_sha, 'GPP_sha', &
-                          out%GPP_sha, ranges%GPP, patchout%GPP, 'default', met)
-
-          CALL write_ovar(out_timestep, ncid_out, ovid%GPP_sun, 'GPP_sun', &
-                          out%GPP_sun, ranges%GPP, patchout%GPP, 'default', met)
-
-          ! Reset temporary output variable:
-          out%GPP_sha = 0.0
-          out%GPP_sun = 0.0
-
-       ENDIF
-
-       ! Write out PAR for sunlit/shaded
-       out%PAR_sha = out%PAR_sha + REAL(canopy%PAR_sha / 1e-6, 4)
-       out%PAR_sun = out%PAR_sun + REAL(canopy%PAR_sun / 1e-6, 4)
-       IF(writenow) THEN
-          ! Divide accumulated variable by number of accumulated time steps:
-          out%PAR_sha = out%PAR_sha / REAL(output%interval, 4)
-          out%PAR_sun = out%PAR_sun / REAL(output%interval, 4)
-          !print*, out%PAR_sun, out%PAR_sha
-          ! Write value to file:
-          CALL write_ovar(out_timestep, ncid_out, ovid%PAR_sha, 'PAR_sha', &
-                          out%PAR_sha, ranges%PAR, patchout%GPP, 'default', met)
-
-          CALL write_ovar(out_timestep, ncid_out, ovid%PAR_sun, 'PAR_sun', &
-                          out%PAR_sun, ranges%PAR, patchout%GPP, 'default', met)
-
-          ! Reset temporary output variable:
-          out%PAR_sha = 0.0
-          out%PAR_sun = 0.0
-
-       ENDIF
     END IF
 
 
