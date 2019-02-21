@@ -2670,7 +2670,7 @@ END SUBROUTINE GWstempv
 
      ! Soil matric potential at saturation (m of head to MPa: 9.81 * KPA_2_MPA)
      psi_sat_mpa = soil%sucs(i) * 9.81 * 0.001
-        
+
      DO j = 1, ms ! Loop over 6 soil layers
          ! Below the wilting point (-1.5 MPa) the water potential drops to
          ! silly value, if we enter this territory set the soil water potential
