@@ -237,7 +237,7 @@ MODULE cable_output_module
     REAL(KIND=4), POINTER, DIMENSION(:) :: StemResp   !  autotrophic stem respiration [umol/m2/s]
 
     REAL(KIND=4), POINTER, DIMENSION(:) :: weighted_psi_soil      ! mgk576
-    REAL(KIND=4), POINTER, DIMENSION(:) :: psi_soil               ! mgk576
+    REAL(KIND=4), POINTER, DIMENSION(:,:) :: psi_soil               ! mgk576
     REAL(KIND=4), POINTER, DIMENSION(:) :: psi_leaf               ! mgk576
 
  END TYPE output_temporary_type
@@ -651,9 +651,9 @@ CONTAINS
     IF(output%soil .OR. cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
        CALL define_ovar(ncid_out, ovid%psi_soil, &
                         'psi_soil', 'MPa', 'psi soil', &
-                        patchout%psi_soil, 'dummy', xID, yID, zID, &
-                        landID, patchID, tID)
-       ALLOCATE(out%psi_soil(mp))
+                        patchout%psi_soil, 'soil', xID, yID, zID, &
+                        landID, patchID, soilID, tID)
+       ALLOCATE(out%psi_soil(mp,ms))
        out%psi_soil = 0.0 ! initialise
     END IF
 
