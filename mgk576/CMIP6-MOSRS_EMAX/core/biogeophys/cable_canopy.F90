@@ -2234,7 +2234,8 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                    conv = KG_2_G * G_WATER_TO_MOL * MOL_2_MMOL
                    !trans_mmol = (canopy%fevc(i) / air%rlam(i)) * conv
                    trans_mmol = (ecx(i) / air%rlam(i)) * conv
-                   canopy%psi_leaf(i) = calc_psi_leaf(ssnow, ktot, trans_mmol)
+                   canopy%psi_leaf(i) = calc_psi_leaf(ssnow, ktot, &
+                                                      trans_mmol, i)
                 ENDIF
 
                 IF (ecx(i) > 0.0 .AND. canopy%fwet(i) < 1.0) Then
@@ -3181,7 +3182,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
   ! ----------------------------------------------------------------------------
 
   ! ----------------------------------------------------------------------------
-  FUNCTION calc_psi_leaf(ssnow, ktot, transpiration) RESULT(psi_leaf)
+  FUNCTION calc_psi_leaf(ssnow, ktot, transpiration, i) RESULT(psi_leaf)
      ! Calculate the leaf water potential (MPa)
      !
      ! The result is obtained from re-arranging eqn 4 in Duursma et al.
@@ -3209,11 +3210,13 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
      REAL :: psi_leaf    ! MPa
      REAL, PARAMETER :: psi_min = -20.0
 
+     INTEGER, INTENT(IN) :: i
+
      IF (ktot > 0.0) THEN
         psi_leaf = MIN(psi_min, &
-                       ssnow%weighted_psi_soil(1) - (transpiration / ktot))
+                       ssnow%weighted_psi_soil(i) - (transpiration / ktot))
      ELSE
-        psi_leaf = MIN(psi_min, ssnow%weighted_psi_soil(1))
+        psi_leaf = MIN(psi_min, ssnow%weighted_psi_soil(i))
      END IF
      !print*, psi_leaf, ssnow%weighted_psi_soil
   END FUNCTION calc_psi_leaf
