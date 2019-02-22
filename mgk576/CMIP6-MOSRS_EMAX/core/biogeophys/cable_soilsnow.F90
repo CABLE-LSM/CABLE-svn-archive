@@ -1590,50 +1590,60 @@ SUBROUTINE remove_trans(dels, soil, ssnow, canopy, veg)
    USE cable_common_module, ONLY : redistrb, cable_user
 
    ! Removes transpiration water from soil.
-   REAL, INTENT(IN)                    :: dels ! integration time step (s)
+
    TYPE(canopy_type), INTENT(INOUT)         :: canopy
    TYPE(soil_snow_type), INTENT(INOUT)      :: ssnow
    TYPE(soil_parameter_type), INTENT(INOUT) :: soil
    TYPE(veg_parameter_type), INTENT(INOUT)  :: veg
-   REAL(r_2), DIMENSION(mp,0:ms) :: diff
-   REAL(r_2), DIMENSION(mp)      :: xx,xxd,evap_cur
-   REAL(r_2), DIMENSION(mp,ms) :: zse_mp_mm
-   INTEGER k, i
 
-  IF (cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
+   REAL, INTENT(IN)         :: dels ! integration time step (s)
+   REAL(r_2), DIMENSION(mp,0:ms) :: diff, available
+   REAL(r_2), DIMENSION(mp)      :: xx,xxd
+   REAL(r_2), DIMENSION(mp)      :: needed, extracted
+
+
+   INTEGER                  :: k, i
+
+   IF (cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
 
       ! This follows the default extraction logic, but instead of weighting
       ! by froot, we are weighting by the frac uptake we calculated when we
       ! were weighting the soil water potential.
       !
-      ! Martin De Kauwe, 13/10/17
+      ! Martin De Kauwe, 22/02/19
 
-      xx(:) = 0._r_2
-      xxd(:) = 0._r_2
-      diff(:,:) = 0._r_2
+      needed(:) = 0._r_2
+      extracted(:) = 0._r_2
+      available(:,:) = 0._r_2
 
       DO k = 1, ms
          DO i = 1, mp
-            IF (canopy%fevc(i) .gt. 0._r_2) THEN
-               xx(i) = canopy%fevc(i) * dels / C%HL * &
-                       ssnow%fraction_uptake(i,k) + diff(i,k-1)
+            IF (canopy%fevc(i) > 0.0) THEN
 
-               diff(i,k) = max(0._r_2,ssnow%wbliq(i,k)-soil%swilt_vec(i,k)) * &
-                               zse_mp_mm(i,k)
-               xxd(i) = xx(i) - diff(i,k)
+               ! Calculate the amount of water we wish to extract from each
+               ! layer, kg/m2
+               needed(i) = canopy%fevc(i) * dels / C%HL * &
+                           ssnow%fraction_uptake(i,k) + available(i,k-1)
 
-               IF (xxd(i) .gt. 0._r_2) THEN
-                  ssnow%wbliq(i,k) = ssnow%wbliq(i,k) - diff(i,k)/zse_mp_mm(i,k)
-                  diff(i,k) = xxd(i)
+               ! Calculate the amount of water available in the layer
+               available(i,k) = max(0.0, ssnow%wb(i,k) - soil%swilt(i)) * &
+                               (soil%zse(k) * C%density_liq)
+               extracted(i) = needed(i) - available(i,k)
+
+               IF (extracted(i) .gt. 0.0) THEN
+                  ssnow%wb(i,k) = ssnow%wb(i,k) - available(i,k) / &
+                                    (soil%zse(k) * C%density_liq)
+                  available(i,k) = extracted(i)
                ELSE
-                  ssnow%wbliq(i,k) = ssnow%wbliq(i,k) - xx(i)/zse_mp_mm(i,k)
-                  diff(i,k) = 0._r_2
+                  ssnow%wb(i,k) = ssnow%wb(i,k) - needed(i) / &
+                                    (soil%zse(k) * C%density_liq)
+                  available(i,k) = 0.0
                END IF
             END IF   !fvec > 0
          END DO   !mp
       END DO   !ms
 
-  ELSE IF (cable_user%FWSOIL_switch.ne.'Haverd2013') THEN
+   ELSE IF (cable_user%FWSOIL_switch.ne.'Haverd2013') THEN
      xx = 0.; xxd = 0.; diff(:,:) = 0.
      DO k = 1,ms
 
@@ -2682,6 +2692,9 @@ END SUBROUTINE GWstempv
             t_over_t_sat = MAX(1.0e-9, MIN(1.0, ssnow%wb(i,j) / soil%ssat(i)))
             ssnow%psi_soil(i,j) = psi_sat_mpa * t_over_t_sat**(-soil%bch(i))
          END IF
+         !t_over_t_sat = MAX(1.0e-9, MIN(1.0, ssnow%wb(i,j) / soil%ssat(i)))
+         !ssnow%psi_soil(i,j) = psi_sat_mpa * t_over_t_sat**(-soil%bch(i))
+
 
       END DO
 
