@@ -142,8 +142,8 @@ MODULE cable_common_module
           !SMRF_NAME = 'Trudinger2016',   & ! Soil Moist Respiration Function
           !STRF_NAME = 'CASA-CNP'     ! Soil Temp Respiration Function
           !STRF_NAME = 'LT1994'    ! Soil Temp Respiration Function
-          STRF_NAME = 'CASA-CNP',  &     ! DAMM Reverse M-M Enzyme Kinetics (Sihi et al, AFM 2018)
-          SMRF_NAME = 'CASA-CNP'       ! ditto
+          STRF_NAME = 'DAMM',  &     ! DAMM Reverse M-M Enzyme Kinetics (Sihi et al, AFM 2018)
+          SMRF_NAME = 'DAMM'       ! ditto
      LOGICAL ::                                                               &
           INITIALIZE_MAPPING    = .FALSE., & !
           CONSISTENCY_CHECK     = .FALSE., & !

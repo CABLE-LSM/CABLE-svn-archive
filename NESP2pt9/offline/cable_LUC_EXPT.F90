@@ -326,17 +326,17 @@ CONTAINS
        ! adjust fraction woody cover based on Major Vegetation Group
        LUC_EXPT%biome = MVG
        LUC_EXPT%ivegp = 2
-       projection_factor = 0.65
+       projection_factor = 0.5
        WHERE (LUC_EXPT%biome .eq. 1)
-          CPC = 0.89
+          CPC = 0.83
        ELSEWHERE (LUC_EXPT%biome .eq. 2)
-          CPC = 0.81
+          CPC = 0.75
        ELSEWHERE (LUC_EXPT%biome .eq. 3)
-          CPC = 0.79
+          CPC = 0.81
        ELSEWHERE (LUC_EXPT%biome .eq. 4)
           CPC = 0.50
        ELSEWHERE (LUC_EXPT%biome .eq. 5)
-          CPC = 0.31
+          CPC = 0.35
        ELSEWHERE (LUC_EXPT%biome .eq. 6)
           CPC = 0.15
        ELSEWHERE (LUC_EXPT%biome .eq. 7)
@@ -344,13 +344,13 @@ CONTAINS
        ELSEWHERE (LUC_EXPT%biome .eq. 8)
           CPC = 0.27
        ELSEWHERE (LUC_EXPT%biome .eq. 9)
-          CPC = 0.23
+          CPC = 0.31
        ELSEWHERE (LUC_EXPT%biome .eq. 10)
-          CPC = 0.24
+          CPC = 0.26
        ELSEWHERE (LUC_EXPT%biome .eq. 11)
-          CPC = 0.19
+          CPC = 0.21
        ELSEWHERE (LUC_EXPT%biome .eq. 12)
-          CPC = 0.25
+          CPC = 0.30
        ELSEWHERE (LUC_EXPT%biome .eq. 13)
           CPC = 0.14
        ELSEWHERE (LUC_EXPT%biome .eq. 14)
@@ -364,7 +364,7 @@ CONTAINS
        ELSEWHERE (LUC_EXPT%biome .eq. 18)
           CPC = 0.34
        ELSEWHERE (LUC_EXPT%biome .eq. 19)
-          CPC = 0.05
+          CPC = 0.1
        ELSEWHERE (LUC_EXPT%biome .eq. 20)
           CPC = 0.16
        ELSEWHERE (LUC_EXPT%biome .eq. 21)
@@ -380,7 +380,7 @@ CONTAINS
        ELSEWHERE (LUC_EXPT%biome .eq. 26)
           CPC= 0.1
        ELSEWHERE (LUC_EXPT%biome .eq. 27)
-          CPC = 0.02
+          CPC = 0.22
        ELSEWHERE (LUC_EXPT%biome .eq. 28)
           CPC = 0.1
        ELSEWHERE (LUC_EXPT%biome .eq. 29)
@@ -388,7 +388,7 @@ CONTAINS
        ELSEWHERE (LUC_EXPT%biome .eq. 30)
           CPC = 0.5
        ELSEWHERE (LUC_EXPT%biome .eq. 31)
-          CPC= 0.20
+          CPC= 0.15
        ELSEWHERE (LUC_EXPT%biome .eq. 32)
           CPC = 0.24
        ELSEWHERE
