@@ -62,7 +62,7 @@ SUBROUTINE cable_climate(ktau,kstart,kend,ktauday,idoy,LOY,met,climate, canopy, 
   real, PARAMETER:: Gaero = 0.015  ! (m s-1) aerodynmaic conductance (for use in PT evap)
   real, PARAMETER:: Capp   = 29.09    ! isobaric spec heat air    [J/molA/K]
   real, PARAMETER:: SBoltz  = 5.67e-8  ! Stefan-Boltzmann constant [W/m2/K4]
-  real, PARAMETER:: moisture_min = 0.20 ! threshold for setting "growing moisture days", as required for drought-deciduous phenology
+  real, PARAMETER:: moisture_min = 0.15 ! threshold for setting "growing moisture days", as required for drought-deciduous phenology
   real, PARAMETER:: T1 = 0.0, T2 = -3.0, T3 = -4.0, T6 = -5.0 ! for computing fractional spring recovery
   real, PARAMETER:: ffrost = 0.1, fdorm0 = 0.15  ! for computing fractional spring recovery
   real, PARAMETER:: gdd0_rec0 = 500.0
