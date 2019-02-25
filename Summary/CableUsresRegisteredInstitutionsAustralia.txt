@@ -1,0 +1,41 @@
+== Institutions ==
+
+Users from these institutions have registered, often working in collaboration with a specific project.
+
+=== University Sector ===
+
+1. CoECSS (UNSW, ANU, UoM, Monash, UTS,….)	''( collaborative partners: NSW Dept of Environment, NASA-GSFC)''
+
+2. University of Tasmania		
+	
+3. ANU			
+
+4. Monash University			
+
+5. UNSW			
+
+6. University of Western Sydney 			
+
+7. University of Melbourne			
+
+8. Macquarie University			
+
+9. University of Newcastle, NSW			
+
+10. Murdoch University			
+
+11. Curtin University, WA			
+
+12. University of Southern Queensland, QLD			
+			
+	
+=== Others ===			
+			
+1. BoM			
+
+2. Ozflux			
+
+3. NSW Dept of Primary Industries			
+
+4. ANSTO			
+
