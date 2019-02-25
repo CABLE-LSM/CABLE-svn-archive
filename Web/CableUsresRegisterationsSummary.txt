@@ -1,0 +1,23 @@
+'''Total number of registered CABLE users:       164 '''       
+
+CSIRO employees:       26
+
+Total less  CSIRO employees:       139
+
+
+''Pleas Note: These numbers do not capture the likelihood of individuals moving on to other careers, especially students'' 
+
+
+[https://trac.nci.org.au/trac/cable/wiki/jhan/RegisteredCountries Countries other than Australia: ]    16
+
+'''Institutions other than CSIRO: '''     69
+
+[https://trac.nci.org.au/trac/cable/wiki/jhan/RegisteredInstitutionsAustralian Australian: ]                         16
+
+[https://trac.nci.org.au/trac/cable/wiki/jhan/RegisteredInstitutionsOS International: ]                         53
+
+'''Students:'''                          52
+
+
+
+[https://trac.nci.org.au/trac/cable/wiki/jhan/CableRegistrations Previous]
