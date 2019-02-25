@@ -1596,14 +1596,13 @@ SUBROUTINE remove_trans(dels, soil, ssnow, canopy, veg, doy)
    TYPE(soil_parameter_type), INTENT(INOUT) :: soil
    TYPE(veg_parameter_type), INTENT(INOUT)  :: veg
 
-   REAL, INTENT(IN) :: doy
-   REAL, INTENT(IN)         :: dels ! integration time step (s)
+   REAL, INTENT(IN)              :: doy
+   REAL, INTENT(IN)              :: dels ! integration time step (s)
    REAL(r_2), DIMENSION(mp,0:ms) :: diff
    REAL(r_2), DIMENSION(mp)      :: xx,xxd
-
    REAL(r_2)                     :: needed, extract, available
 
-   INTEGER                  :: k, i
+   INTEGER                       :: k, i
 
    IF (cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
 
@@ -1625,13 +1624,6 @@ SUBROUTINE remove_trans(dels, soil, ssnow, canopy, veg, doy)
             needed = canopy%fevc(1) * dels / C%HL * &
                         ssnow%fraction_uptake(1,k)
 
-            !if (canopy%fevc(1) > 20.0 .and. doy > 130) then
-            !   print*, "**", doy, canopy%fevc(1)
-            !   stop
-            !else
-            !   print*, "**", doy, canopy%fevc(1)
-            !endif
-
             ! Calculate the amount of water available in the layer
             available = max(0.0, ssnow%wb(1,k) - soil%swilt(1)) * &
                                  (soil%zse(k) * C%density_liq)
@@ -1650,6 +1642,10 @@ SUBROUTINE remove_trans(dels, soil, ssnow, canopy, veg, doy)
                                  (soil%zse(k) * C%density_liq)
             END IF
 
+
+            !if (ssnow%wb(1,k) < soil%swilt(1)) then
+            !   ssnow%wb(1,k) = soil%swilt(1)
+            !end if
 
             END IF   !fvec > 0
       END DO   !ms
@@ -2752,6 +2748,9 @@ END SUBROUTINE GWstempv
      est_evap = 0.0
      ssnow%weighted_psi_soil(:) = 0.0
      ssnow%fraction_uptake = 0.0
+
+     ! Soil matric potential at saturation (m of head to MPa: 9.81 * KPA_2_MPA)
+     psi_sat_mpa = soil%sucs(i) * 9.81 * 0.001
 
      ! Estimate max transpiration from gradient-gravity / soil resistance
      DO j = 1, ms ! Loop over 6 soil layers
