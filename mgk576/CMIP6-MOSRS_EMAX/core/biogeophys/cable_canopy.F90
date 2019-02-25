@@ -2168,10 +2168,10 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                    ! can't decide which is these is the best way to infer gsw?
                    IF (cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
 
-                      canopy%gswx(i,kk) = gsc(kk) * C%RGSWC
-                      !canopy%gswx(i,kk) = MAX(1.e-3, gswmin(i,kk) +           &
-                     !                         MAX(0.0, C%RGSWC *              &
-                     !                         gs_coeff(i,kk) * anx(i,kk)))
+                      !canopy%gswx(i,kk) = gsc(kk) * C%RGSWC
+                      canopy%gswx(i,kk) = MAX(1.e-3, gswmin(i,kk) +           &
+                                             MAX(0.0, C%RGSWC *              &
+                                           gs_coeff(i,kk) * anx(i,kk)))
 
                    ELSE
                       ! Ticket #56, xleuning replaced with gs_coeff here
@@ -3223,7 +3223,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
      ELSE
         psi_leaf = MAX(psi_min, ssnow%weighted_psi_soil(i))
      END IF
-     
+
   END FUNCTION calc_psi_leaf
   ! ----------------------------------------------------------------------------
 

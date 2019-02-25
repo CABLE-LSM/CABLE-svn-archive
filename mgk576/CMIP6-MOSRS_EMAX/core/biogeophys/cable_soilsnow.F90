@@ -1585,7 +1585,7 @@ END SUBROUTINE soilfreeze
 
 ! -----------------------------------------------------------------------------
 
-SUBROUTINE remove_trans(dels, soil, ssnow, canopy, veg)
+SUBROUTINE remove_trans(dels, soil, ssnow, canopy, veg, doy)
 
    USE cable_common_module, ONLY : redistrb, cable_user
 
@@ -1596,11 +1596,12 @@ SUBROUTINE remove_trans(dels, soil, ssnow, canopy, veg)
    TYPE(soil_parameter_type), INTENT(INOUT) :: soil
    TYPE(veg_parameter_type), INTENT(INOUT)  :: veg
 
+   REAL, INTENT(IN) :: doy
    REAL, INTENT(IN)         :: dels ! integration time step (s)
-   REAL(r_2), DIMENSION(mp,0:ms) :: diff, available
+   REAL(r_2), DIMENSION(mp,0:ms) :: diff
    REAL(r_2), DIMENSION(mp)      :: xx,xxd
-   REAL(r_2), DIMENSION(mp)      :: needed, extracted
 
+   REAL(r_2)                     :: needed, extract, available
 
    INTEGER                  :: k, i
 
@@ -1612,36 +1613,50 @@ SUBROUTINE remove_trans(dels, soil, ssnow, canopy, veg)
       !
       ! Martin De Kauwe, 22/02/19
 
-      needed(:) = 0._r_2
-      extracted(:) = 0._r_2
-      available(:,:) = 0._r_2
+      needed = 0._r_2
+      extract = 0._r_2
+      available = 0._r_2
 
       DO k = 1, ms
-         DO i = 1, mp
-            IF (canopy%fevc(i) > 0.0) THEN
+         IF (canopy%fevc(1) > 0.0) THEN
 
-               ! Calculate the amount of water we wish to extract from each
-               ! layer, kg/m2
-               needed(i) = canopy%fevc(i) * dels / C%HL * &
-                           ssnow%fraction_uptake(i,k) + available(i,k-1)
+            ! Calculate the amount of water we wish to extract from each
+            ! layer, kg/m2
+            needed = canopy%fevc(1) * dels / C%HL * &
+                        ssnow%fraction_uptake(1,k)
 
-               ! Calculate the amount of water available in the layer
-               available(i,k) = max(0.0, ssnow%wb(i,k) - soil%swilt(i)) * &
-                               (soil%zse(k) * C%density_liq)
-               extracted(i) = needed(i) - available(i,k)
+            !if (canopy%fevc(1) > 20.0 .and. doy > 130) then
+            !   print*, "**", doy, canopy%fevc(1)
+            !   stop
+            !else
+            !   print*, "**", doy, canopy%fevc(1)
+            !endif
 
-               IF (extracted(i) .gt. 0.0) THEN
-                  ssnow%wb(i,k) = ssnow%wb(i,k) - available(i,k) / &
-                                    (soil%zse(k) * C%density_liq)
-                  available(i,k) = extracted(i)
-               ELSE
-                  ssnow%wb(i,k) = ssnow%wb(i,k) - needed(i) / &
-                                    (soil%zse(k) * C%density_liq)
-                  available(i,k) = 0.0
-               END IF
+            ! Calculate the amount of water available in the layer
+            available = max(0.0, ssnow%wb(1,k) - soil%swilt(1)) * &
+                                 (soil%zse(k) * C%density_liq)
+
+            extract = available - needed
+
+            ! We don't have sufficent water to supply demand, extract only the
+            ! remaining SW in the layer
+            IF (extract .lt. 0.0) THEN
+               ssnow%wb(1,k) = ssnow%wb(1,k) - available / &
+                                 (soil%zse(k) * C%density_liq)
+            ! We have sufficent water to supply demand, extract needed SW from
+            ! the layer
+            ELSE
+               ssnow%wb(1,k) = ssnow%wb(1,k) - needed / &
+                                 (soil%zse(k) * C%density_liq)
+            END IF
+
+
             END IF   !fvec > 0
-         END DO   !mp
       END DO   !ms
+
+      !if (doy .gt. 132.) then
+      !   stop
+      !end if
 
    ELSE IF (cable_user%FWSOIL_switch.ne.'Haverd2013') THEN
      xx = 0.; xxd = 0.; diff(:,:) = 0.
@@ -1872,7 +1887,7 @@ SUBROUTINE soil_snow(dels, soil, ssnow, canopy, met, bal, veg, bgc)
       END DO
    END IF
 
-   CALL remove_trans(dels, soil, ssnow, canopy, veg)
+   CALL remove_trans(dels, soil, ssnow, canopy, veg, met%doy(1))
 
    CALL  soilfreeze(dels, soil, ssnow)
 
