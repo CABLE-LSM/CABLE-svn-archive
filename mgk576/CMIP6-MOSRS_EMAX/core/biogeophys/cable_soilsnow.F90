@@ -1637,15 +1637,15 @@ SUBROUTINE remove_trans(dels, soil, ssnow, canopy, veg, doy)
                ssnow%wb(1,k) = ssnow%wb(1,k) - available / &
                                  (soil%zse(k) * C%density_liq)
 
-
+               print*, ssnow%wb(1,k), soil%swilt(1)
                ! recalc transpiration
                canopy%fevc(1) = canopy%fevc(1) - (needed - available) * C%HL / dels
 
             ELSE IF (difference < 0.0 .and. &
                      available < soil%swilt(1) * (soil%zse(k) * C%density_liq)) THEN
 
-               !ssnow%wb(1,k) = soil%swilt(1)
-               print*, ssnow%wb(1,k), soil%swilt(1)
+               ssnow%wb(1,k) = soil%swilt(1)
+               !print*, ssnow%wb(1,k), soil%swilt(1)
                ! recalc transpiration
                canopy%fevc(1) = canopy%fevc(1) - (needed) * C%HL / dels
 
