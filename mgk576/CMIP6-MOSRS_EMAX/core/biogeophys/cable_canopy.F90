@@ -2134,7 +2134,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                 gsc(kk) = MAX(1.e-3, (gswmin(i,kk) / C%RGSWC) + &
                               MAX(0.0, (gs_coeff(i,kk) * anx(i,kk))))
 
-
+                print*, sum(anx), sum(gsc)
                 CALL calculate_emax(canopy, veg, ssnow, dsx(:), par(:,:),      &
                                     csx(:,:), SPREAD(cx1(:), 2, mf), rdx(:,:), &
                                     vcmxt3(:,:), gsc(:), anx(:,:), ktot,       &
@@ -2240,6 +2240,9 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                    conv = KG_2_G * G_WATER_TO_MOL * MOL_2_MMOL
                    !trans_mmol = (canopy%fevc(i) / air%rlam(i)) * conv
                    trans_mmol = (ecx(i) / air%rlam(i)) * conv
+
+                   ! we need to weight this by the frac sun, frac shade, as in
+                   ! SPA
                    canopy%psi_leaf(i) = calc_psi_leaf(ssnow, ktot, &
                                                       trans_mmol, i)
                 ENDIF
