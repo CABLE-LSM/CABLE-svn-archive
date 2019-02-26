@@ -2241,8 +2241,8 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                    !trans_mmol = (canopy%fevc(i) / air%rlam(i)) * conv
                    trans_mmol = (ecx(i) / air%rlam(i)) * conv
 
-                   ! we need to weight this by the frac sun, frac shade, as in
-                   ! SPA
+                   ! would it be better to do this over seperate leaves and
+                   ! weight?
                    canopy%psi_leaf(i) = calc_psi_leaf(ssnow, ktot, &
                                                       trans_mmol, i)
                 ENDIF
