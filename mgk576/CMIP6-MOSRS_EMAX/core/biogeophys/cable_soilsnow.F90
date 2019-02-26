@@ -2749,9 +2749,6 @@ END SUBROUTINE GWstempv
      ssnow%weighted_psi_soil(:) = 0.0
      ssnow%fraction_uptake = 0.0
 
-     ! Soil matric potential at saturation (m of head to MPa: 9.81 * KPA_2_MPA)
-     psi_sat_mpa = soil%sucs(i) * 9.81 * 0.001
-
      ! Estimate max transpiration from gradient-gravity / soil resistance
      DO j = 1, ms ! Loop over 6 soil layers
 
