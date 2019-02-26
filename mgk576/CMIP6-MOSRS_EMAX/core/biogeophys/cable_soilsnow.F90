@@ -1600,7 +1600,7 @@ SUBROUTINE remove_trans(dels, soil, ssnow, canopy, veg, doy)
    REAL, INTENT(IN)              :: dels ! integration time step (s)
    REAL(r_2), DIMENSION(mp,0:ms) :: diff
    REAL(r_2), DIMENSION(mp)      :: xx,xxd
-   REAL(r_2)                     :: needed, extract, available
+   REAL(r_2)                     :: needed, difference, available
 
    INTEGER                       :: k, i
 
@@ -1613,7 +1613,7 @@ SUBROUTINE remove_trans(dels, soil, ssnow, canopy, veg, doy)
       ! Martin De Kauwe, 22/02/19
 
       needed = 0._r_2
-      extract = 0._r_2
+      difference = 0._r_2
       available = 0._r_2
 
       DO k = 1, ms
@@ -1628,13 +1628,36 @@ SUBROUTINE remove_trans(dels, soil, ssnow, canopy, veg, doy)
             available = max(0.0, ssnow%wb(1,k) - soil%swilt(1)) * &
                                  (soil%zse(k) * C%density_liq)
 
-            extract = available - needed
+            difference = available - needed
 
             ! We don't have sufficent water to supply demand, extract only the
             ! remaining SW in the layer
-            IF (extract .lt. 0.0) THEN
+            IF (difference < 0.0 .and. &
+                available > soil%swilt(1) * (soil%zse(k) * C%density_liq)) THEN
                ssnow%wb(1,k) = ssnow%wb(1,k) - available / &
                                  (soil%zse(k) * C%density_liq)
+
+
+               ! recalc transpiration
+               canopy%fevc(1) = canopy%fevc(1) - (needed - available) * C%HL / dels
+
+            ELSE IF (difference < 0.0 .and. &
+                     available < soil%swilt(1) * (soil%zse(k) * C%density_liq)) THEN
+
+               !ssnow%wb(1,k) = soil%swilt(1)
+               print*, ssnow%wb(1,k), soil%swilt(1)
+               ! recalc transpiration
+               canopy%fevc(1) = canopy%fevc(1) - (needed) * C%HL / dels
+
+
+            !IF (difference < 0.0) THEN
+            !   ssnow%wb(1,k) = ssnow%wb(1,k) - available / &
+            !                     (soil%zse(k) * C%density_liq)
+            !
+            !   ! recalc transpiration
+            !   canopy%fevc(1) = canopy%fevc(1) - (needed - available) * C%HL / dels
+
+
             ! We have sufficent water to supply demand, extract needed SW from
             ! the layer
             ELSE
@@ -1650,6 +1673,8 @@ SUBROUTINE remove_trans(dels, soil, ssnow, canopy, veg, doy)
             END IF   !fvec > 0
       END DO   !ms
 
+
+      canopy%fe(1) = canopy%fevw(1) + canopy%fevc(1) + canopy%fes(1)
       !if (doy .gt. 132.) then
       !   stop
       !end if

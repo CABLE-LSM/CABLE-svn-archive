@@ -2134,11 +2134,11 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                 gsc(kk) = MAX(1.e-3, (gswmin(i,kk) / C%RGSWC) + &
                               MAX(0.0, (gs_coeff(i,kk) * anx(i,kk))))
 
-                print*, sum(anx), sum(gsc)
                 CALL calculate_emax(canopy, veg, ssnow, dsx(:), par(:,:),      &
                                     csx(:,:), SPREAD(cx1(:), 2, mf), rdx(:,:), &
                                     vcmxt3(:,:), gsc(:), anx(:,:), ktot,       &
-                                    co2cp3, inferred_stress, met%pmb, i, kk)
+                                    co2cp3, inferred_stress, met%pmb, rad,     &
+                                    i, kk)
 
 
              END DO
@@ -2976,7 +2976,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
   ! ----------------------------------------------------------------------------
   SUBROUTINE calculate_emax(canopy, veg, ssnow, dleaf, par, cs, km, rd, vcmax, &
                             gsc, an, ktot, gamma_star, inferred_stress, pmb,   &
-                            i, j)
+                            rad, i, j)
      !
      ! Transpiration is calculated assuming a maximum "supply" driven by
      ! darcy's law. Once the "demand" exceeds the supply, we infer a new
@@ -3004,6 +3004,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
      TYPE (veg_parameter_type), INTENT(INOUT)  :: veg
      TYPE (soil_snow_type), INTENT(INOUT)      :: ssnow
      TYPE (canopy_type), INTENT(INOUT)         :: canopy
+     TYPE (radiation_type), INTENT(INOUT) :: rad
 
      ! met stuff
      REAL(R_2), DIMENSION(:,:), INTENT(IN) :: cs     ! leaf surface CO2
@@ -3059,7 +3060,14 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
 
      ! Hydraulic conductance of the entire soil-to-leaf pathway
      ! (mmol m–2 s–1 MPa–1)
-     ktot = 1.0 / (ssnow%total_soil_resist(i) + 1.0 / plant_k)
+
+     if (rad%fvlai(i,j) > 0.0) then
+        ! Convert total soil to root resistance to leaf-specific resistance.
+        ktot = 1.0 / ((ssnow%total_soil_resist(i) * rad%fvlai(i,j)) + 1.0 / plant_k)
+     else
+        ktot = 1.0 / (ssnow%total_soil_resist(i) + 1.0 / plant_k)
+     end if
+     !ktot = 1.0 / (ssnow%total_soil_resist(i) + 1.0 / plant_k)
 
      ! Maximum transpiration rate (mmol m-2 s-1) is given by Darcy's law,
      ! which estimates the water flow from the bulk soil to the leaf at the
@@ -3087,6 +3095,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
         CALL photosynthesis_C3_emax(veg, vcmaxx(i,j), parx(i,j), csx(i,j), &
                                     rdx(i,j), kmx(i,j), gamma_starx, gsc(j), &
                                     an, i, j)
+
      ELSE
         ! This needs to be initialised somewhere.
         inferred_stress = inferred_stress + 1.0
