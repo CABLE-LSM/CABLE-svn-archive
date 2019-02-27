@@ -437,7 +437,7 @@ PROGRAM cable_offline_driver
     IF(.NOT.ALLOCATED(GSWP_MID)) &
       ALLOCATE( GSWP_MID( 8, CABLE_USER%YearStart:CABLE_USER%YearEnd ) )
   
-  ENDIF
+  ENDIF !cable_user%MetType
 
   ! outer loop - spinup loop no. ktau_tot :
   RYEAR = 0
