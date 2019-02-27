@@ -416,10 +416,13 @@ PROGRAM cable_offline_driver
         WRITE(*,*)"When using POP, episode must start at Jan 1st!"
         STOP 991
       ENDIF
+    
     else
+    
       WRITE(*,*)"MetType=site only works with CASA-CNP turned on"
       STOP 991
-    endif
+    
+    endif !l_casacnp
 
   ELSEIF (TRIM(cable_user%MetType) .EQ. '') THEN
      
@@ -430,7 +433,10 @@ PROGRAM cable_offline_driver
      ENDIF
 
   ELSE IF ( NRRRR .GT. 1 ) THEN
-     IF(.NOT.ALLOCATED(GSWP_MID)) ALLOCATE( GSWP_MID( 8, CABLE_USER%YearStart:CABLE_USER%YearEnd ) )
+    
+    IF(.NOT.ALLOCATED(GSWP_MID)) &
+      ALLOCATE( GSWP_MID( 8, CABLE_USER%YearStart:CABLE_USER%YearEnd ) )
+  
   ENDIF
 
   ! outer loop - spinup loop no. ktau_tot :
