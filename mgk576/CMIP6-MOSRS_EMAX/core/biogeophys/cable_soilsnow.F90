@@ -2624,7 +2624,6 @@ END SUBROUTINE GWstempv
      REAL, PARAMETER :: root_density = 0.5e6                ! g biomass m-3 root
      REAL, PARAMETER :: root_resistivity = 400.0             ! MPa s g mmol-1
      REAL, PARAMETER :: head = 0.009807             ! head of pressure  (MPa/m)
-
      REAL, PARAMETER :: MM_TO_M = 0.001
      REAL, PARAMETER :: KPA_2_MPa = 0.001
      REAL, PARAMETER :: M_HEAD_TO_MPa = 9.8 * KPA_2_MPa
@@ -2634,17 +2633,18 @@ END SUBROUTINE GWstempv
      REAL, PARAMETER :: TINY_NUMBER = 1E-35
      REAL, PARAMETER :: HUGE_NUMBER = 1E35
 
-     REAL :: Ks, Lsoil, root_length, root_mass, rs
-     REAL :: soil_resistance, root_resistance, rsum, conv
+     REAL            :: Ks, Lsoil, root_length, root_mass, rs
+     REAL            :: soil_resistance, root_resistance, rsum, conv
 
      INTEGER, INTENT(IN) :: i
      INTEGER :: j
+     INTEGER, PARAMETER :: ROOT_INDEX = 3
 
      ! Store each layers resistance, used in LWP calculatons
      rsum = 0.0
      DO j = 1, ms ! Loop over 6 soil layers
 
-        root_mass = bgc%cplant(i,3) * veg%froot(i,j)
+        root_mass = bgc%cplant(i,ROOT_INDEX) * veg%froot(i,j)
 
         ! (m m-3 soil)
         root_length = root_mass / (root_density * root_xsec_area)
