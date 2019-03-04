@@ -178,7 +178,7 @@ MODULE cable_checks_module
            Area = (/0.0, 5000./),&
 
            !mgk576, 10/10/2017
-           psi_soil_weight = (/-100.,100./),          &
+           weighted_psi_soil = (/-100.,100./),          &
            psi_soil = (/-100.,100./),                   &
            psi_leaf = (/-100.,100./),                   &
 
