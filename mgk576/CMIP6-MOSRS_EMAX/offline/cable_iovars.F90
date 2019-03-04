@@ -305,7 +305,7 @@ MODULE cable_IO_vars_module
          LandUseFlux = .FALSE., &
 
          !mgdk, 19/2/2019, plant hydraulics
-         weighted_psi_soil = .FALSE., &
+         psi_soil_weight = .FALSE., &
          psi_soil = .FALSE., &
          psi_leaf = .FALSE., &
 
