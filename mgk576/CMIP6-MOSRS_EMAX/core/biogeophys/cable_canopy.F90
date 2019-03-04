@@ -3021,7 +3021,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
      REAL(R_2), DIMENSION(mp,mf) :: csx
      REAL, DIMENSION(mp,mf) :: parx, rdx, vcmaxx, kmx
      REAL, DIMENSION(mp) :: dleafx
-     REAL :: gamma_starx, press
+     REAL :: gamma_starx, press, tot_soil_res
      REAL :: e_demand, e_supply, gsw
      INTEGER, INTENT(IN) :: i,j ! patch, leaf
 
@@ -3058,21 +3058,20 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
      gamma_starx = gamma_star * MOL_2_UMOL
      press = pmb(i) * MB_TO_PA ! Pa
 
+     ! Convert total soil to root resistance to leaf-specific resistance.
+     IF (rad%fvlai(i,j) > 0.0) then
+        tot_soil_res = ssnow%total_soil_resist(i) * rad%fvlai(i,j)
+     END IF
+
      ! Hydraulic conductance of the entire soil-to-leaf pathway
      ! (mmol m–2 s–1 MPa–1)
-
-     if (rad%fvlai(i,j) > 0.0) then
-        ! Convert total soil to root resistance to leaf-specific resistance.
-        ktot = 1.0 / ((ssnow%total_soil_resist(i) * rad%fvlai(i,j)) + 1.0 / plant_k)
-     else
-        ktot = 1.0 / (ssnow%total_soil_resist(i) + 1.0 / plant_k)
-     end if
+     ktot = 1.0 / (tot_soil_res + 1.0 / plant_k)
      !ktot = 1.0 / (ssnow%total_soil_resist(i) + 1.0 / plant_k)
 
      ! Maximum transpiration rate (mmol m-2 s-1) is given by Darcy's law,
      ! which estimates the water flow from the bulk soil to the leaf at the
      ! minimum leaf water potential (min_lwp)
-     e_supply = MAX(0.0, ktot * (ssnow%weighted_psi_soil(i) - min_lwp))
+     e_supply = MAX(0.0, ktot * (ssnow%psi_soil_weight(i) - min_lwp))
 
      ! Transpiration (mmol m-2 s-1) demand ignoring boundary layer effects!
      e_demand = MOL_2_MMOL * (dleaf(i) / press) * gsc(j) * C%RGSWC
@@ -3231,9 +3230,9 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
 
      IF (ktot > 0.0) THEN
         psi_leaf = MAX(psi_min, &
-                       ssnow%weighted_psi_soil(i) - (transpiration / ktot))
+                       ssnow%psi_soil_weight(i) - (transpiration / ktot))
      ELSE
-        psi_leaf = MAX(psi_min, ssnow%weighted_psi_soil(i))
+        psi_leaf = MAX(psi_min, ssnow%psi_soil_weight(i))
      END IF
 
   END FUNCTION calc_psi_leaf

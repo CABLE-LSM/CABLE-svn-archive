@@ -1632,30 +1632,27 @@ SUBROUTINE remove_trans(dels, soil, ssnow, canopy, veg, doy)
 
             ! We don't have sufficent water to supply demand, extract only the
             ! remaining SW in the layer
-            IF (difference < 0.0 .and. &
-                available > soil%swilt(1) * (soil%zse(k) * C%density_liq)) THEN
-               ssnow%wb(1,k) = ssnow%wb(1,k) - available / &
-                                 (soil%zse(k) * C%density_liq)
-
-               print*, ssnow%wb(1,k), soil%swilt(1)
-               ! recalc transpiration
-               canopy%fevc(1) = canopy%fevc(1) - (needed - available) * C%HL / dels
-
-            ELSE IF (difference < 0.0 .and. &
-                     available < soil%swilt(1) * (soil%zse(k) * C%density_liq)) THEN
-
-               ssnow%wb(1,k) = soil%swilt(1)
-               !print*, ssnow%wb(1,k), soil%swilt(1)
-               ! recalc transpiration
-               canopy%fevc(1) = canopy%fevc(1) - (needed) * C%HL / dels
-
-
-            !IF (difference < 0.0) THEN
+            !IF (difference < 0.0 .and. &
+            !    available > soil%swilt(1) * (soil%zse(k) * C%density_liq)) THEN
             !   ssnow%wb(1,k) = ssnow%wb(1,k) - available / &
             !                     (soil%zse(k) * C%density_liq)
             !
             !   ! recalc transpiration
             !   canopy%fevc(1) = canopy%fevc(1) - (needed - available) * C%HL / dels
+            !
+            !ELSE IF (difference < 0.0 .and. &
+            !         available < soil%swilt(1) * (soil%zse(k) * C%density_liq)) THEN
+            !
+            !   ssnow%wb(1,k) = soil%swilt(1)
+            !   !print*, ssnow%wb(1,k), soil%swilt(1)
+            !   ! recalc transpiration
+            !   canopy%fevc(1) = canopy%fevc(1) - (needed) * C%HL / dels
+
+            ! We don't have sufficent water to supply demand, extract only the
+            ! remaining SW in the layer
+            IF (difference < 0.0) THEN
+               ssnow%wb(1,k) = ssnow%wb(1,k) - available / &
+                                 (soil%zse(k) * C%density_liq)
 
 
             ! We have sufficent water to supply demand, extract needed SW from
@@ -1674,7 +1671,7 @@ SUBROUTINE remove_trans(dels, soil, ssnow, canopy, veg, doy)
       END DO   !ms
 
 
-      canopy%fe(1) = canopy%fevw(1) + canopy%fevc(1) + canopy%fes(1)
+      !canopy%fe(1) = canopy%fevw(1) + canopy%fevc(1) + canopy%fes(1)
       !if (doy .gt. 132.) then
       !   stop
       !end if
@@ -1756,6 +1753,8 @@ SUBROUTINE soil_snow(dels, soil, ssnow, canopy, met, bal, veg, bgc)
    REAL(r_2), DIMENSION(mp) :: xxx,deltat,sinfil1,sinfil2,sinfil3
    REAL                :: zsetot
    INTEGER, SAVE :: ktau =0
+
+   REAL, DIMENSION(ms) :: root_length
 
    CALL point2constants( C )
 
@@ -1902,9 +1901,10 @@ SUBROUTINE soil_snow(dels, soil, ssnow, canopy, met, bal, veg, bgc)
    ! PH: mgk576, 13/10/17, added two funcs
    IF (cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
       DO i = 1, mp
-         CALL calc_soil_root_resistance(ssnow, soil, veg, bgc, i)
+         CALL calc_soil_root_resistance(ssnow, soil, veg, bgc, root_length, i)
          CALL calc_swp(ssnow, soil, i)
-         CALL calc_weighted_swp_and_frac_uptake(ssnow, soil, i)
+         CALL calc_weighted_swp_and_frac_uptake(ssnow, soil, canopy, &
+                                                root_length, i)
       END DO
    END IF
 
@@ -2574,7 +2574,7 @@ SUBROUTINE GWstempv(dels, canopy, ssnow, soil)
 END SUBROUTINE GWstempv
 
 ! ----------------------------------------------------------------------------
- SUBROUTINE calc_soil_root_resistance(ssnow, soil, veg, bgc, i)
+ SUBROUTINE calc_soil_root_resistance(ssnow, soil, veg, bgc, root_length, i)
      ! Calculate root & soil hydraulic resistance following SPA approach
      ! (Williams et al.)
      !
@@ -2623,6 +2623,8 @@ END SUBROUTINE GWstempv
      REAL, PARAMETER :: root_xsec_area = pi * root_radius**2 ! m2
      REAL, PARAMETER :: root_density = 0.5e6                ! g biomass m-3 root
      REAL, PARAMETER :: root_resistivity = 400.0             ! MPa s g mmol-1
+
+     ! unit conv
      REAL, PARAMETER :: head = 0.009807             ! head of pressure  (MPa/m)
      REAL, PARAMETER :: MM_TO_M = 0.001
      REAL, PARAMETER :: KPA_2_MPa = 0.001
@@ -2632,57 +2634,94 @@ END SUBROUTINE GWstempv
      REAL, PARAMETER :: MOL_2_MMOL = 1000.0
      REAL, PARAMETER :: TINY_NUMBER = 1E-35
      REAL, PARAMETER :: HUGE_NUMBER = 1E35
+     REAL, PARAMETER :: BIG_NUMBER = 1E9
 
-     REAL            :: Ks, Lsoil, root_length, root_mass, rs
-     REAL            :: soil_resistance, root_resistance, rsum, conv
+     ! partial mol vol of water at 20C (m3 mol-1)
+     REAL, PARAMETER :: H2OVW = 18.05e-6
 
+     REAL            :: Ks, Lsoil, root_mass, rs, soil_cond, Ksoil
+     REAL            :: soil_resistance, root_resistance, rsum, conv, la
+     REAL            :: root_res_cons
+
+     REAL, DIMENSION(:), INTENT(INOUT) :: root_length
      INTEGER, INTENT(IN) :: i
      INTEGER :: j
      INTEGER, PARAMETER :: ROOT_INDEX = 3
+
+     ! New representation of root resistance following Hacke et al.
+     ! Root resistance in a layer is proportional to 1/rootmass and proportional
+     ! to root length (i.e. depth of layer)
+     la = 0.0
+     root_length = 0.0
+     DO j = 1, ms ! Loop over 6 soil layers
+
+        ! Divide root mass up by the frac roots in the layer (g m-3)
+        root_mass = bgc%cplant(i,ROOT_INDEX) * veg%froot(i,j) / soil%zse(j)
+
+        ! (m m-3 soil)
+        root_length(j) = root_mass / (root_density * root_xsec_area)
+
+        IF (root_length(j) .GT. 0.0) THEN
+            la = la + soil%zse(j) / root_length(j)
+        ENDIF
+     END DO
+
+     IF (la .GT. 0.0) THEN
+        root_res_cons = root_res_cons / la
+     ELSE
+        root_res_cons = BIG_NUMBER   ! Arbitrarily large number
+     ENDIF
+
 
      ! Store each layers resistance, used in LWP calculatons
      rsum = 0.0
      DO j = 1, ms ! Loop over 6 soil layers
 
-        root_mass = bgc%cplant(i,ROOT_INDEX) * veg%froot(i,j)
-
-        ! (m m-3 soil)
-        root_length = root_mass / (root_density * root_xsec_area)
-
         ! Soil hydraulic conductivity for layer, mm/s -> m s-1
         Ks = soil%hyds(i) * (ssnow%wb(i,j) / &
                               soil%ssat(i))**(2.0 * soil%bch(i) + 3.0)
 
-        ! converts from m s-1 to m2 s-1 MPa-1
-        Lsoil = Ks / head
+        ! Campbell 1974
+        soil_cond = soil%hyds(i) * (ssnow%wb(i,j) / &
+                     soil%ssat(i))**(2.0 * soil%bch(i) + 3.0)
+
+        ! ... in mol m-1 s-1 MPa-1.
+        Ksoil = soil_cond / (H2OVW * M_HEAD_TO_MPa)
 
         ! prevent floating point error
-        IF (Lsoil < TINY_NUMBER) THEN
+        IF (Ksoil < TINY_NUMBER) THEN
            ssnow%soilR(i,j) = HUGE_NUMBER
         ELSE
-           ! Conductance of the soil-to-root pathway can be estimated assuming
-           ! that the root system consists of one long root that has access to
-           ! a surrounding cylinder of soil (Gardner 1960, Newman 1969)
-           rs = sqrt(1.0 / (root_length * pi))
-           soil_resistance = log(rs / root_radius) /                         &
-                             (2.0 * pi * root_length * soil%zse(j) * Lsoil)
+            ! Reformulated to match Duursma et al. 2008.
+            IF (root_length(j) .GT. 0.0) THEN
 
-           ! convert from MPa s m2 m-3 to MPa s m2 mmol-1
-           conv = 1.0 / (CUBIC_M_WATER_2_GRAMS * G_WATER_TO_MOLE * MOL_2_MMOL)
-           soil_resistance = soil_resistance * conv
+               ! Conductance of the soil-to-root pathway can be estimated assuming
+               ! that the root system consists of one long root that has access to
+               ! a surrounding cylinder of soil (Gardner 1960, Newman 1969)
+               rs = sqrt(1.0 / (root_length(j) * pi))
 
+               Ks = root_length(j) * soil%zse(j) * 2.0 * pi * Ksoil /&
+                        log(rs / root_radius)
+
+               soil_resistance = 1.0 / Ks
+
+               ! second component of below ground resistance related to root
+               ! hydraulics
+               root_resistance = root_res_cons * soil%zse(j) / root_length(j)
+           ELSE
+              soil_resistance = 0.0
+              root_resistance = 0.0
+           END IF
+           ! MPa s m2 mmol-1
+           ssnow%soilR(i,j) = soil_resistance !+ root_resistance
+        END IF
+
+        IF (soil_resistance .GT. 0.0) THEN
            ! Need to combine resistances in parallel, but we only want the
            ! soil term as the root component is part of the plant resistance
            rsum = rsum + 1.0 / soil_resistance
+        ENDIF
 
-           ! second component of below ground resistance related to root
-           ! hydraulics
-           root_resistance = root_resistivity / (soil%zse(j) * root_mass)
-
-           ! MPa s m2 mmol-1
-           ssnow%soilR(i,j) = soil_resistance + root_resistance
-
-        END IF
      END DO
      ssnow%total_soil_resist(i) = 1.0 / rsum
 
@@ -2738,7 +2777,8 @@ END SUBROUTINE GWstempv
   ! ----------------------------------------------------------------------------
 
   ! ----------------------------------------------------------------------------
-  SUBROUTINE calc_weighted_swp_and_frac_uptake(ssnow, soil, i)
+  SUBROUTINE calc_weighted_swp_and_frac_uptake(ssnow, soil, canopy, &
+                                               root_length, i)
      !
      ! Determine weighted SWP given the the maximum rate of water supply from
      ! each rooted soil layer and hydraulic resistance of each layer. We are
@@ -2755,30 +2795,40 @@ END SUBROUTINE GWstempv
 
      IMPLICIT NONE
 
-     TYPE (soil_snow_type), INTENT(INOUT) :: ssnow
+     TYPE (soil_snow_type), INTENT(INOUT)      :: ssnow
      TYPE (soil_parameter_type), INTENT(INOUT) :: soil
+     TYPE(canopy_type), INTENT(INOUT)          :: canopy ! vegetation variables
 
      REAL, PARAMETER :: MM_TO_M = 0.001
      REAL, PARAMETER :: KPA_2_MPa = 0.001
      REAL, PARAMETER :: M_HEAD_TO_MPa = 9.8 * KPA_2_MPa
      REAL, PARAMETER :: min_lwp = -2.0 ! we obv need to pass this
 
-     REAL, DIMENSION(ms) :: swp, est_evap
-     REAL :: total_est_evap
+     REAL, DIMENSION(ms)            :: swp, est_evap
+     REAL, DIMENSION(:), INTENT(IN) :: root_length
+     REAL                           :: total_est_evap, swp_diff
 
      INTEGER, INTENT(IN) :: i
-     INTEGER :: j
+     INTEGER             :: j
+
+     ! SPA method to figure out relative water uptake.
+     LOGICAL :: SPA_relative_uptake
+     SPA_relative_uptake = .False.
 
      total_est_evap = 0.0
      est_evap = 0.0
-     ssnow%weighted_psi_soil(:) = 0.0
+     ssnow%psi_soil_weight(:) = 0.0
      ssnow%fraction_uptake = 0.0
 
      ! Estimate max transpiration from gradient-gravity / soil resistance
      DO j = 1, ms ! Loop over 6 soil layers
 
-        est_evap(j) = MAX(0.0, &
-                          (ssnow%psi_soil(i,j) - min_lwp) / ssnow%soilR(i,j))
+        IF (ssnow%soilR(i,j) .GT. 0.0) THEN
+           est_evap(j) = MAX(0.0, &
+                           (ssnow%psi_soil(i,j) - min_lwp) / ssnow%soilR(i,j))
+        ELSE
+           est_evap(j) = 0.0 ! when no roots present
+        ENDIF
         ! NEED TO ADD SOMETHING IF THE SOIL IS FROZEN, what is ice in CABLE?
         !IF ( iceprop(i) .gt. 0. ) THEN
         !  est_evap(i) = 0.0
@@ -2787,28 +2837,62 @@ END SUBROUTINE GWstempv
      END DO
      total_est_evap = SUM(est_evap)
 
-     IF (total_est_evap > 0.0) THEN
-        DO j = 1, ms ! Loop over 6 soil layers
-           ssnow%weighted_psi_soil(i) = ssnow%weighted_psi_soil(i) + &
-                                          ssnow%psi_soil(i,j) * est_evap(j)
-           ! fraction of water taken from layer, I've lower bounded frac uptake
-           ! because when soilR is set to a huge number
-           ! (see calc_soil_root_resistance), then frac_uptake will be so small
-           ! you end up with numerical issues.
-           ssnow%fraction_uptake(i,j) = MAX(1E-09, est_evap(j) / total_est_evap)
+     ! SPA method to figure out relative water uptake.
+     ! Fraction uptake in each layer by Emax in each layer
+     IF (SPA_relative_uptake) THEN
 
-           IF ((ssnow%fraction_uptake(i,j) > 1.0) .or. &
-               (ssnow%fraction_uptake(i,j) < 0.0)) THEN
-              PRINT *, 'Problem with the uptake fraction (either >1 or 0<)'
-              STOP
-           END IF
-        END DO
-        ssnow%weighted_psi_soil(i) = ssnow%weighted_psi_soil(i) / total_est_evap
+        IF (total_est_evap > 0.0) THEN
+           DO j = 1, ms ! Loop over 6 soil layers
+              ssnow%psi_soil_weight(i) = ssnow%psi_soil_weight(i) + &
+                                             ssnow%psi_soil(i,j) * est_evap(j)
+              ! fraction of water taken from layer, I've lower bounded frac
+              ! uptake because when soilR is set to a huge number
+              ! (see calc_soil_root_resistance), then frac_uptake will be so
+              ! small you end up with numerical issues.
+              ssnow%fraction_uptake(i,j) = MAX(1E-09, &
+                                               est_evap(j) / total_est_evap)
 
+              IF ((ssnow%fraction_uptake(i,j) > 1.0) .or. &
+                  (ssnow%fraction_uptake(i,j) < 0.0)) THEN
+                 PRINT *, 'Problem with the uptake fraction (either >1 or 0<)'
+                 STOP
+              END IF
+           END DO
+
+           ! Soil water potential is weighted by total_est_evap.
+           ssnow%psi_soil_weight(i) = ssnow%psi_soil_weight(i) / total_est_evap
+
+        ELSE
+           ! No water was evaporated
+           ssnow%fraction_uptake(i,:) = 1.0 / FLOAT(ms)
+        END IF
+
+     ! Use Taylor-Keppler root water uptake distribution.
      ELSE
-        ! No water was evaporated
-        ssnow%fraction_uptake(i,:) = 1.0 / FLOAT(ms)
-     END IF
+        ! Taylor and Keppler: relative water uptake is
+        ! proportional to root length density and Psi difference.
+        ! See : Taylor, H.M. and B. Keppler. 1975. Water uptake by cotton root
+        ! systems: an examination of assumptions in the single root model.
+        ! Soil Science. 120:57-67.
+        DO j = 1, ms ! Loop over 6 soil layers
+           IF (total_est_evap .GT. 0.) THEN
+             swp_diff = MAX(0., (ssnow%psi_soil(i,j) - min_lwp))
+             ssnow%fraction_uptake(i,j) = root_length(j) * swp_diff
+          ELSE
+             ! no water uptake possible
+             ssnow%fraction_uptake(i,j) = 0.0
+             END IF
+        END DO
+
+        IF (SUM(ssnow%fraction_uptake) .GT. 0) THEN
+           ! Make sure that it sums to 1.
+           ssnow%fraction_uptake = ssnow%fraction_uptake / &
+                                          SUM(ssnow%fraction_uptake)
+        ELSE
+           ssnow%fraction_uptake = 0.0
+        ENDIF
+
+     ENDIF
 
   END SUBROUTINE calc_weighted_swp_and_frac_uptake
   ! ----------------------------------------------------------------------------
