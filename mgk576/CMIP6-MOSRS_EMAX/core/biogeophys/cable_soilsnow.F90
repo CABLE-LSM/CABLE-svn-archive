@@ -2788,7 +2788,7 @@ END SUBROUTINE GWstempv
    ! Actual water from each layer is determined using the estimated value as a
    ! weighted factor.
    !
-   ! Martin De Kauwe, 9th Oct, 2017
+   ! Martin De Kauwe, 4th March, 2019
 
    USE cable_def_types_mod
    USE cable_common_module
