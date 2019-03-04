@@ -1630,51 +1630,21 @@ SUBROUTINE remove_trans(dels, soil, ssnow, canopy, veg, doy)
 
             difference = available - needed
 
-            ! We don't have sufficent water to supply demand, extract only the
-            ! remaining SW in the layer
-            !IF (difference < 0.0 .and. &
-            !    available > soil%swilt(1) * (soil%zse(k) * C%density_liq)) THEN
-            !   ssnow%wb(1,k) = ssnow%wb(1,k) - available / &
-            !                     (soil%zse(k) * C%density_liq)
-            !
-            !   ! recalc transpiration
-            !   canopy%fevc(1) = canopy%fevc(1) - (needed - available) * C%HL / dels
-            !
-            !ELSE IF (difference < 0.0 .and. &
-            !         available < soil%swilt(1) * (soil%zse(k) * C%density_liq)) THEN
-            !
-            !   ssnow%wb(1,k) = soil%swilt(1)
-            !   !print*, ssnow%wb(1,k), soil%swilt(1)
-            !   ! recalc transpiration
-            !   canopy%fevc(1) = canopy%fevc(1) - (needed) * C%HL / dels
-
-            ! We don't have sufficent water to supply demand, extract only the
-            ! remaining SW in the layer
+            ! Calculate new layer water balance
             IF (difference < 0.0) THEN
+               ! We don't have sufficent water to supply demand, extract only the
+               ! remaining SW in the layer
                ssnow%wb(1,k) = ssnow%wb(1,k) - available / &
                                  (soil%zse(k) * C%density_liq)
-
-
-            ! We have sufficent water to supply demand, extract needed SW from
-            ! the layer
             ELSE
+               ! We have sufficent water to supply demand, extract needed SW from
+               ! the layer
                ssnow%wb(1,k) = ssnow%wb(1,k) - needed / &
                                  (soil%zse(k) * C%density_liq)
             END IF
 
-
-            !if (ssnow%wb(1,k) < soil%swilt(1)) then
-            !   ssnow%wb(1,k) = soil%swilt(1)
-            !end if
-
-            END IF   !fvec > 0
+         END IF   !fvec > 0
       END DO   !ms
-
-
-      !canopy%fe(1) = canopy%fevw(1) + canopy%fevc(1) + canopy%fes(1)
-      !if (doy .gt. 132.) then
-      !   stop
-      !end if
 
    ELSE IF (cable_user%FWSOIL_switch.ne.'Haverd2013') THEN
      xx = 0.; xxd = 0.; diff(:,:) = 0.
