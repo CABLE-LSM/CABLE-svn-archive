@@ -3071,7 +3071,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
      ! Maximum transpiration rate (mmol m-2 s-1) is given by Darcy's law,
      ! which estimates the water flow from the bulk soil to the leaf at the
      ! minimum leaf water potential (min_lwp)
-     e_supply = MAX(0.0, ktot * (ssnow%psi_soil_weight(i) - min_lwp))
+     e_supply = MAX(0.0, ktot * (ssnow%weighted_psi_soil(i) - min_lwp))
 
      ! Transpiration (mmol m-2 s-1) demand ignoring boundary layer effects!
      e_demand = MOL_2_MMOL * (dleaf(i) / press) * gsc(j) * C%RGSWC
@@ -3230,9 +3230,9 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
 
      IF (ktot > 0.0) THEN
         psi_leaf = MAX(psi_min, &
-                       ssnow%psi_soil_weight(i) - (transpiration / ktot))
+                       ssnow%weighted_psi_soil(i) - (transpiration / ktot))
      ELSE
-        psi_leaf = MAX(psi_min, ssnow%psi_soil_weight(i))
+        psi_leaf = MAX(psi_min, ssnow%weighted_psi_soil(i))
      END IF
 
   END FUNCTION calc_psi_leaf

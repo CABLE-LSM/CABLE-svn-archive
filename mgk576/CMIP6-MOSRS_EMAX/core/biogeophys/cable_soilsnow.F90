@@ -2608,12 +2608,15 @@ END SUBROUTINE GWstempv
 
      ! partial mol vol of water at 20C (m3 mol-1)
      REAL, PARAMETER :: H2OVW = 18.05e-6
-
-     REAL            :: Ks, Lsoil, root_mass, rs, soil_cond, Ksoil
+     REAL, DIMENSION(ms) :: depth
+     REAL            :: root_mass, rs, soil_cond, Ksoil, Ks
      REAL            :: soil_resistance, root_resistance, rsum, conv, la
      REAL            :: root_res_cons
 
      REAL, DIMENSION(:), INTENT(INOUT) :: root_length
+
+
+
      INTEGER, INTENT(IN) :: i
      INTEGER :: j
      INTEGER, PARAMETER :: ROOT_INDEX = 3
@@ -2631,8 +2634,11 @@ END SUBROUTINE GWstempv
         ! (m m-3 soil)
         root_length(j) = root_mass / (root_density * root_xsec_area)
 
+        ! Depth to middle of layer (ca. root path length)
+        depth(j) = sum(soil%zse(1:j)) - soil%zse(j) / 2.
+
         IF (root_length(j) .GT. 0.0) THEN
-            la = la + soil%zse(j) / root_length(j)
+            la = la + depth(j) / root_length(j)
         ENDIF
      END DO
 
@@ -2646,10 +2652,6 @@ END SUBROUTINE GWstempv
      ! Store each layers resistance, used in LWP calculatons
      rsum = 0.0
      DO j = 1, ms ! Loop over 6 soil layers
-
-        ! Soil hydraulic conductivity for layer, mm/s -> m s-1
-        Ks = soil%hyds(i) * (ssnow%wb(i,j) / &
-                              soil%ssat(i))**(2.0 * soil%bch(i) + 3.0)
 
         ! Campbell 1974
         soil_cond = soil%hyds(i) * (ssnow%wb(i,j) / &
@@ -2677,7 +2679,7 @@ END SUBROUTINE GWstempv
 
                ! second component of below ground resistance related to root
                ! hydraulics
-               root_resistance = root_res_cons * soil%zse(j) / root_length(j)
+               root_resistance = root_res_cons * depth(j) / root_length(j)
            ELSE
               soil_resistance = 0.0
               root_resistance = 0.0
@@ -2787,7 +2789,7 @@ END SUBROUTINE GWstempv
 
    total_est_evap = 0.0
    est_evap = 0.0
-   ssnow%psi_soil_weight(:) = 0.0
+   ssnow%weighted_psi_soil(:) = 0.0
    ssnow%fraction_uptake = 0.0
 
    ! Estimate max transpiration from gradient-gravity / soil resistance
@@ -2805,7 +2807,7 @@ END SUBROUTINE GWstempv
      !ENDIF
 
      ! Soil water potential weighted by layer Emax (from SPA)
-     ssnow%psi_soil_weight(i) = ssnow%psi_soil_weight(i) + &
+     ssnow%weighted_psi_soil(i) = ssnow%weighted_psi_soil(i) + &
                                     ssnow%psi_soil(i,j) * est_evap(j)
    END DO
    total_est_evap = SUM(est_evap)
@@ -2813,14 +2815,14 @@ END SUBROUTINE GWstempv
    ! calculate the weighted psi_soil
    IF (total_est_evap > 0.0) THEN
       ! Soil water potential is weighted by total_est_evap.
-      ssnow%psi_soil_weight(i) = ssnow%psi_soil_weight(i) / total_est_evap
+      ssnow%weighted_psi_soil(i) = ssnow%weighted_psi_soil(i) / total_est_evap
    ELSE
-      ssnow%psi_soil_weight(i) = 0.0
+      ssnow%weighted_psi_soil(i) = 0.0
       DO j = 1, ms ! Loop over 6 soil layers
-         ssnow%psi_soil_weight(i) = ssnow%psi_soil_weight(i) + &
+         ssnow%weighted_psi_soil(i) = ssnow%weighted_psi_soil(i) + &
                                        ssnow%psi_soil(i,j) * soil%zse(j)
       END DO
-      ssnow%psi_soil_weight(i) = ssnow%psi_soil_weight(i) / sum(soil%zse)
+      ssnow%weighted_psi_soil(i) = ssnow%weighted_psi_soil(i) / sum(soil%zse)
    END IF
 
    ! SPA method to figure out relative water uptake.
@@ -2856,15 +2858,9 @@ END SUBROUTINE GWstempv
       ! Soil Science. 120:57-67.
       DO j = 1, ms ! Loop over 6 soil layers
 
-         ssnow%psi_soil_weight(i) = ssnow%psi_soil_weight(i) + &
-                                       ssnow%psi_soil(i,j) * est_evap(j)
-
          IF (total_est_evap .GT. 0.) THEN
             swp_diff = MAX(0., (ssnow%psi_soil(i,j) - min_lwp))
             ssnow%fraction_uptake(i,j) = root_length(j) * swp_diff
-
-            ! Soil water potential is weighted by total_est_evap.
-            ssnow%psi_soil_weight(i) = ssnow%psi_soil_weight(i) / total_est_evap
          ELSE
             ! no water uptake possible
             ssnow%fraction_uptake(i,j) = 0.0

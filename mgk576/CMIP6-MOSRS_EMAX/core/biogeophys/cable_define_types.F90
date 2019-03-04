@@ -293,7 +293,7 @@ MODULE cable_def_types_mod
          total_soil_resist! Total soil resistance across layers (excludes
                               ! root resistance).
 
-      REAL(r_2), DIMENSION(:), POINTER :: psi_soil_weight
+      REAL(r_2), DIMENSION(:), POINTER :: weighted_psi_soil
 
       REAL(r_2), DIMENSION(:,:), POINTER ::                                      &
          soilR, & !
@@ -1018,7 +1018,7 @@ SUBROUTINE alloc_soil_snow_type(var, mp)
     ALLOCATE ( var%soilR(mp,ms) )
     ALLOCATE ( var%fraction_uptake(mp,ms) )
     ALLOCATE ( var%psi_soil(mp,ms) )
-    ALLOCATE ( var%psi_soil_weight(mp) )
+    ALLOCATE ( var%weighted_psi_soil(mp) )
 
     ! Allocate variables for SLI soil model:
     !IF(cable_user%SOIL_STRUC=='sli') THEN
@@ -1653,7 +1653,7 @@ SUBROUTINE dealloc_soil_snow_type(var)
    DEALLOCATE( var%soilR  )
    DEALLOCATE( var%fraction_uptake  )
    DEALLOCATE( var%psi_soil )
-   DEALLOCATE( var%psi_soil_weight )
+   DEALLOCATE( var%weighted_psi_soil )
 
     !IF(cable_user%SOIL_STRUC=='sli') THEN
     DEALLOCATE ( var % S )
