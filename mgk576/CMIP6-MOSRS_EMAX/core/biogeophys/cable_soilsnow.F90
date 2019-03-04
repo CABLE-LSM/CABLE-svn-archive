@@ -1632,13 +1632,13 @@ SUBROUTINE remove_trans(dels, soil, ssnow, canopy, veg, doy)
 
             ! Calculate new layer water balance
             IF (difference < 0.0) THEN
-               ! We don't have sufficent water to supply demand, extract only the
-               ! remaining SW in the layer
+               ! We don't have sufficent water to supply demand, extract only
+               ! the remaining SW in the layer
                ssnow%wb(1,k) = ssnow%wb(1,k) - available / &
                                  (soil%zse(k) * C%density_liq)
             ELSE
-               ! We have sufficent water to supply demand, extract needed SW from
-               ! the layer
+               ! We have sufficent water to supply demand, extract needed SW
+               ! from the layer
                ssnow%wb(1,k) = ssnow%wb(1,k) - needed / &
                                  (soil%zse(k) * C%density_liq)
             END IF
