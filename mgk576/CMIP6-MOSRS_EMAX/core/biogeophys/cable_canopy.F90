@@ -192,6 +192,10 @@ CONTAINS
     canopy%tv = met%tvair
     canopy%fwsoil = 1.0
 
+    ! plant component of the leaf-specific hydraulic conductance
+    ! (mmol m-2 s-1 MPa-1 ) ... we should be passing this
+    canopy%kplant = 3.0
+
     CALL define_air (met, air)
 
     CALL qsatfjh(qstvair,met%tvair-C%tfrz,met%pmb)
@@ -1791,10 +1795,11 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
 
     REAL, DIMENSION(mp,2) ::  gsw_term, lower_limit2  ! local temp var
 
-    REAL :: trans_mmol, conv
+    REAL :: trans_mmol, conv, e_test
     REAL, PARAMETER :: KG_2_G = 1000.0
     REAL, PARAMETER :: G_WATER_TO_MOL = 1.0 / 18.01528
     REAL, PARAMETER :: MOL_2_MMOL = 1000.0
+    REAL, PARAMETER :: MB_TO_PA = 100.
 
     INTEGER :: i, j, k, kk  ! iteration count
     REAL :: vpd, g1, ktot, inferred_stress ! Ticket #56
@@ -2245,6 +2250,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                    ! weight?
                    canopy%psi_leaf(i) = calc_psi_leaf(ssnow, ktot, &
                                                       trans_mmol, i)
+
                 ENDIF
 
                 IF (ecx(i) > 0.0 .AND. canopy%fwet(i) < 1.0) Then
@@ -3025,10 +3031,6 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
      REAL :: e_demand, e_supply, gsw
      INTEGER, INTENT(IN) :: i,j ! patch, leaf
 
-     ! plant component of the leaf-specific hydraulic conductance
-     ! (mmol m-2 s-1 MPa-1 ) ... we should be passing this
-     REAL, PARAMETER :: plant_k = 2.0
-
      ! minimum leaf water potential (MPa) ... we should be passing this
      REAL, PARAMETER :: min_lwp = -2.0
 
@@ -3065,8 +3067,8 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
 
      ! Hydraulic conductance of the entire soil-to-leaf pathway
      ! (mmol m–2 s–1 MPa–1)
-     ktot = 1.0 / (tot_soil_res + 1.0 / plant_k)
-     !ktot = 1.0 / (ssnow%total_soil_resist(i) + 1.0 / plant_k)
+     ktot = 1.0 / (tot_soil_res + 1.0 / canopy%kplant(i))
+     !ktot = 1.0 / (ssnow%total_soil_resist(i) + 1.0 / canopy%kplant)
 
      ! Maximum transpiration rate (mmol m-2 s-1) is given by Darcy's law,
      ! which estimates the water flow from the bulk soil to the leaf at the
