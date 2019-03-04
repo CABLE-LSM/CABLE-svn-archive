@@ -3066,7 +3066,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
      END IF
 
      ! Hydraulic conductance of the entire soil-to-leaf pathway
-     ! (mmol m–2 s–1 MPa–1)
+     ! (mmol H2O m–2 leaf area s–1 MPa–1)
      ktot = 1.0 / (tot_soil_res + 1.0 / canopy%kplant(i))
      !ktot = 1.0 / (ssnow%total_soil_resist(i) + 1.0 / canopy%kplant)
 
