@@ -2609,8 +2609,8 @@ END SUBROUTINE GWstempv
      ! partial mol vol of water at 20C (m3 mol-1)
      REAL, PARAMETER :: H2OVW = 18.05e-6
      REAL, DIMENSION(ms) :: depth
-     REAL            :: root_mass, rs, soil_cond, Ksoil, Ks
-     REAL            :: soil_resistance, root_resistance, rsum, conv, la
+     REAL            :: root_mass, rs, Ksoil
+     REAL            :: soil_resist, root_resist, rsum, conv, la
      REAL            :: root_res_cons
 
      REAL, DIMENSION(:), INTENT(INOUT) :: root_length
@@ -2628,10 +2628,13 @@ END SUBROUTINE GWstempv
      root_length = 0.0
      DO j = 1, ms ! Loop over 6 soil layers
 
+        ! Root biomass density (g biomass m-3 soil)
         ! Divide root mass up by the frac roots in the layer (g m-3)
+        ! plant carbon is g C m-2
         root_mass = bgc%cplant(i,ROOT_INDEX) * veg%froot(i,j) / soil%zse(j)
+        root_mass = MAX(1e-09, root_mass)
 
-        ! (m m-3 soil)
+        ! Root length density (m root m-3 soil)
         root_length(j) = root_mass / (root_density * root_xsec_area)
 
         ! Depth to middle of layer (ca. root path length)
@@ -2653,12 +2656,12 @@ END SUBROUTINE GWstempv
      rsum = 0.0
      DO j = 1, ms ! Loop over 6 soil layers
 
-        ! Campbell 1974
-        soil_cond = soil%hyds(i) * (ssnow%wb(i,j) / &
+        ! Soil Hydraulic conductivity (mm s-1), Campbell 1974
+        Ksoil = soil%hyds(i) * (ssnow%wb(i,j) / &
                      soil%ssat(i))**(2.0 * soil%bch(i) + 3.0)
 
-        ! ... in mol m-1 s-1 MPa-1.
-        Ksoil = soil_cond / (H2OVW * M_HEAD_TO_MPa)
+        ! Soil Hydraulic conductivity (mmol m-1 s-1 MPa-1)
+        Ksoil = Ksoil / (H2OVW * M_HEAD_TO_MPa)
 
         ! prevent floating point error
         IF (Ksoil < TINY_NUMBER) THEN
@@ -2667,33 +2670,34 @@ END SUBROUTINE GWstempv
             ! Reformulated to match Duursma et al. 2008.
             IF (root_length(j) .GT. 0.0) THEN
 
-               ! Conductance of the soil-to-root pathway can be estimated assuming
-               ! that the root system consists of one long root that has access to
-               ! a surrounding cylinder of soil (Gardner 1960, Newman 1969)
+               ! Conductance of the soil-to-root pathway can be estimated
+               ! assuming that the root system consists of one long root that
+               ! has access to a surrounding cylinder of soil
+               ! (Gardner 1960, Newman 1969)
                rs = sqrt(1.0 / (root_length(j) * pi))
 
-               Ks = root_length(j) * soil%zse(j) * 2.0 * pi * Ksoil /&
-                        log(rs / root_radius)
-
-               soil_resistance = 1.0 / Ks
+               ! Soil-to-root resistance (MPa s m2 mmol-1 H2O)
+               soil_resist = log(rs / root_radius) / &
+                              (root_length(j) * soil%zse(j) * 2.0 * pi * Ksoil)
 
                ! second component of below ground resistance related to root
-               ! hydraulics
-               root_resistance = root_res_cons * depth(j) / root_length(j)
+               ! hydraulics (MPa s m2 mmol-1 H2O)
+               root_resist = root_res_cons * depth(j) / root_length(j)
            ELSE
-              soil_resistance = 0.0
-              root_resistance = 0.0
+              soil_resist = 0.0
+              root_resist = 0.0
            END IF
-           ! MPa s m2 mmol-1
+
+           ! MPa s m2 mmol-1 H2O
            ! root_resistance is commented out : don't use root-component of
            ! resistance (is part of plant resistance)
-           ssnow%soilR(i,j) = soil_resistance !+ root_resistance
+           ssnow%soilR(i,j) = soil_resist !+ root_resist
         END IF
 
-        IF (soil_resistance .GT. 0.0) THEN
+        IF (soil_resist .GT. 0.0) THEN
            ! Need to combine resistances in parallel, but we only want the
            ! soil term as the root component is part of the plant resistance
-           rsum = rsum + 1.0 / soil_resistance
+           rsum = rsum + 1.0 / soil_resist
         ENDIF
 
      END DO
