@@ -2685,6 +2685,8 @@ END SUBROUTINE GWstempv
               root_resistance = 0.0
            END IF
            ! MPa s m2 mmol-1
+           ! root_resistance is commented out : don't use root-component of
+           ! resistance (is part of plant resistance)
            ssnow%soilR(i,j) = soil_resistance !+ root_resistance
         END IF
 
