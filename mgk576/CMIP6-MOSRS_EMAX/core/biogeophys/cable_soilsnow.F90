@@ -2695,7 +2695,7 @@ END SUBROUTINE GWstempv
         ENDIF
 
      END DO
-     ssnow%total_soil_resist(i) = 1.0 / rsum
+     ssnow%tot_bg_resist(i) = 1.0 / rsum
 
 
   END SUBROUTINE calc_soil_root_resistance

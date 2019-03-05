@@ -3027,7 +3027,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
      REAL(R_2), DIMENSION(mp,mf) :: csx
      REAL, DIMENSION(mp,mf) :: parx, rdx, vcmaxx, kmx
      REAL, DIMENSION(mp) :: dleafx
-     REAL :: gamma_starx, press, tot_soil_res
+     REAL :: gamma_starx, press
      REAL :: e_demand, e_supply, gsw
      INTEGER, INTENT(IN) :: i,j ! patch, leaf
 
@@ -3060,15 +3060,20 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
      gamma_starx = gamma_star * MOL_2_UMOL
      press = pmb(i) * MB_TO_PA ! Pa
 
-     ! Convert total soil to root resistance to leaf-specific resistance.
+     ! Convert total below ground resistance to leaf-specific resistance.
+     ! Belowground resistance is calculated on a ground area basis;
+     ! multiplying by LAI converts to leaf area. his assumes that each canopy
+     ! layer is connected to each soil layer, so that the roots in each soil
+     ! layer supply water to each canopy layer, and that the fraction of roots
+     ! supplying each canopy layer is the same as the leaf area in that layer.
      IF (rad%fvlai(i,j) > 0.0) then
-        tot_soil_res = ssnow%total_soil_resist(i) * rad%fvlai(i,j)
+        ssnow%tot_bg_resist(i) = ssnow%tot_bg_resist(i) * rad%fvlai(i,j)
      END IF
 
      ! Hydraulic conductance of the entire soil-to-leaf pathway
      ! (mmol H2O m–2 leaf area s–1 MPa–1)
-     ktot = 1.0 / (tot_soil_res + 1.0 / canopy%kplant(i))
-     !ktot = 1.0 / (ssnow%total_soil_resist(i) + 1.0 / canopy%kplant)
+     ktot = 1.0 / (ssnow%tot_bg_resist(i) + 1.0 / canopy%kplant(i))
+     !ktot = 1.0 / (ssnow%tot_bg_resist(i) + 1.0 / canopy%kplant)
 
      ! Maximum transpiration rate (mmol m-2 s-1) is given by Darcy's law,
      ! which estimates the water flow from the bulk soil to the leaf at the

@@ -290,7 +290,7 @@ MODULE cable_def_types_mod
       ! mgk576
       ! Plant hydraulics variables
       REAL(r_2), DIMENSION(:), POINTER ::                                      &
-         total_soil_resist! Total soil resistance across layers (excludes
+         tot_bg_resist! Total belowground resistance across layers (excludes
                               ! root resistance).
 
       REAL(r_2), DIMENSION(:), POINTER :: weighted_psi_soil
@@ -1014,7 +1014,7 @@ SUBROUTINE alloc_soil_snow_type(var, mp)
    ALLOCATE( var%wmtot(mp,ms) )
 
    ! Allocate variables for plant hydraulics, mgk576, 9/10/17
-    ALLOCATE ( var%total_soil_resist(mp) )
+    ALLOCATE ( var%tot_bg_resist(mp) )
     ALLOCATE ( var%soilR(mp,ms) )
     ALLOCATE ( var%fraction_uptake(mp,ms) )
     ALLOCATE ( var%psi_soil(mp,ms) )
@@ -1650,7 +1650,7 @@ SUBROUTINE dealloc_soil_snow_type(var)
    DEALLOCATE( var%wmtot )
 
    ! Deallocate variables for plant hydraulics, mgk576, 9/10/17
-   DEALLOCATE( var%total_soil_resist  )
+   DEALLOCATE( var%tot_bg_resist  )
    DEALLOCATE( var%soilR  )
    DEALLOCATE( var%fraction_uptake  )
    DEALLOCATE( var%psi_soil )
