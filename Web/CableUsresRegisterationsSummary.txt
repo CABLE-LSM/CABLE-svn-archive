@@ -1,8 +1,8 @@
-'''Total number of registered CABLE users:       164 '''       
+'''Total number of registered CABLE users:       165 '''       
 
 CSIRO employees:       26
 
-Total less  CSIRO employees:       139
+Total less  CSIRO employees:       140
 
 
 ''Pleas Note: These numbers do not capture the likelihood of individuals moving on to other careers, especially students'' 

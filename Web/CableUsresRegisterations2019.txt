@@ -1,4 +1,3 @@
-
 {{{
 #!html
 <table cellpadding=15 cellspacing=0 style='background-color:#f8f8f8; border-top: 1px solid black; border-bottom: 1px solid black;'>
@@ -9,9 +8,10 @@
     <tr>  <th>3</th>     <th>22/01</th>  <th>ep6367</th> <th>Elise Pendall</th>   <th>Uni. of Western Sydney</th> <th>Australia</th> <th></th>           <th></th>                         <th>201</th>        </tr>
     <tr>  <th>4</th>     <th>23/01</th>  <th>lt0205</th> <th>Lina Teckentrup</th> <th>UNSW</th>                   <th>Australia</th> <th></th>           <th></th>                         <th>   </th>        </tr>
     <tr>  <th>5</th>     <th>08/02</th>  <th>wlw599</th> <th>Will Woodgate</th>   <th>CSIRO</th>                  <th>Australia</th> <th></th>           <th>Tot Users:153-old format</th> <th>241</th>        </tr>
-    <tr>  <th>6</th>     <th>08/02</th>  <th>mm8897</th> <th>Markus Muller</th>   <th>Max Plank</th>              <th>Germany</th>   <th></th>           <th></th>                         <th>242</th>        </tr>
+    <tr>  <th>6</th>     <th>08/02</th>  <th>mm8897</th> <th>Markus Muller</th>   <th>Max Plank</th>              <th>Germany</th>   <th></th>           <th></th>                         <th>236</th>        </tr>
     <tr>  <th>7</th>     <th>25/02</th>  <th>rg6346</th> <th>Rong Gan</th>        <th>Uni. of Tech. Sydney</th>   <th>Australia</th> <th>PhD</th>        <th></th>                         <th>269</th>        </tr>
-    <tr>  <th>8</th>     <th>24/01</th>  <th>ss2856</th> <th>Stephen Stewart</th> <th>CSIRO</th>                  <th>Australia</th> <th></th>           <th>PENDING</th>                  <th>207</th>        </tr>
+    <tr>  <th>8</th>     <th>05/03</th>  <th>yc7441</th> <th>Yizhao Chen</th>     <th>Cambridge University</th>   <th>UK </th>       <th></th>           <th></th>                         <th>282</th>        </tr>
+    <tr>  <th>9</th>     <th>24/01</th>  <th>ss2856</th> <th>Stephen Stewart</th> <th>CSIRO</th>                  <th>Australia</th> <th></th>           <th>PENDING</th>                  <th>207</th>        </tr>
     </tbody>
 </table>
 }}}
@@ -19,4 +19,3 @@
 where CWS Tickets [https://track.nci.org.au/browse/CWSHELP-269 here]
 
 [https://trac.nci.org.au/trac/cable/wiki/jhan/CableRegistrations Previous]
-
