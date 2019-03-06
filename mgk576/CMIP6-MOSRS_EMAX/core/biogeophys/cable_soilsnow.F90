@@ -2592,7 +2592,7 @@ END SUBROUTINE GWstempv
      REAL, PARAMETER :: root_radius = 0.0005                 ! m
      REAL, PARAMETER :: root_xsec_area = pi * root_radius**2 ! m2
      REAL, PARAMETER :: root_density = 0.5e6                ! g biomass m-3 root
-     REAL, PARAMETER :: root_resistivity = 400.0             ! MPa s g mmol-1
+     REAL, PARAMETER :: root_resistivity = 25.             ! MPa s g mmol-1, Bonan
 
      ! unit conv
      REAL, PARAMETER :: head = 0.009807             ! head of pressure  (MPa/m)
@@ -2650,8 +2650,7 @@ END SUBROUTINE GWstempv
      ELSE
         root_res_cons = BIG_NUMBER   ! Arbitrarily large number
      ENDIF
-
-
+    
      ! Store each layers resistance, used in LWP calculatons
      rsum = 0.0
      DO j = 1, ms ! Loop over 6 soil layers
@@ -2678,11 +2677,12 @@ END SUBROUTINE GWstempv
 
                ! Soil-to-root resistance (MPa s m2 mmol-1 H2O)
                soil_resist = log(rs / root_radius) / &
-                              (root_length(j) * soil%zse(j) * 2.0 * pi * Ksoil)
+                              (2.0 * pi * root_length(j) * soil%zse(j) * Ksoil)
 
                ! second component of below ground resistance related to root
                ! hydraulics (MPa s m2 mmol-1 H2O)
-               root_resist = root_res_cons * depth(j) / root_length(j)
+               root_resist = root_resistivity * soil%zse(j) / root_mass(j)
+               !root_resist = root_res_cons * depth(j) / root_length(j)
            ELSE
               soil_resist = 0.0
               root_resist = 0.0
