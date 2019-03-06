@@ -2650,7 +2650,7 @@ END SUBROUTINE GWstempv
      ELSE
         root_res_cons = BIG_NUMBER   ! Arbitrarily large number
      ENDIF
-    
+
      ! Store each layers resistance, used in LWP calculatons
      rsum = 0.0
      DO j = 1, ms ! Loop over 6 soil layers
@@ -2681,7 +2681,7 @@ END SUBROUTINE GWstempv
 
                ! second component of below ground resistance related to root
                ! hydraulics (MPa s m2 mmol-1 H2O)
-               root_resist = root_resistivity * soil%zse(j) / root_mass(j)
+               root_resist = root_resistivity * soil%zse(j) / root_mass
                !root_resist = root_res_cons * depth(j) / root_length(j)
            ELSE
               soil_resist = 0.0
