@@ -3032,7 +3032,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
      ! Plant hydraulic conductance (mmol m-2 s-1 MPa-1). NB. depends
      ! on stem water potential from the previous timestep. At this
      ! point psi_stem represents the previous timestep
-     kplant = kp_sat * fsig_hydr(canopy%psi_stem_prev)
+     kplant = kp_sat * fsig_tuzet(canopy%psi_stem_prev)
 
      ! Conductance from root surface to the stem water pool (assumed to be
      ! halfway to the leaves)
@@ -3048,24 +3048,30 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
   ! ----------------------------------------------------------------------------
 
   ! ----------------------------------------------------------------------------
-  FUNCTION fsig_hydr(psi_stem) RESULT(relk)
+  FUNCTION fsig_tuzet(psi_stem_prev) RESULT(relk)
 
      IMPLICIT NONE
 
-     REAL :: X, PX, V, p, relk, p50, s50, psi_stemX
-     REAL, INTENT(IN) :: psi_stem
+     REAL :: X, PX, V, p, relk, p50, s50, PX50
+     REAL, INTENT(IN) :: psi_stem_prev
 
      X = 50.0
      p50 = -4.    ! MPa
      s50 = 30.0
 
-     psi_stemX = ABS(psi_stem)
-     PX = ABS(p50)
+     ! xylem pressure
+     PX = ABS(psi_stem_prev)
+
+     ! the xylem pressure (P) x% of the conductivity is lost
+     PX50 = ABS(p50)
+
      V = (X - 100.) * LOG(1.0 - X / 100.)
-     p = (psi_stemX / PX)**((PX * s50) / V)
+     p = (PX / PX50)**((PX50 * s50) / V)
+
+     ! relative conductance (K/Kmax) as a funcion of xylem pressure
      relk = (1. - X / 100.)**p
 
-  END FUNCTION fsig_hydr
+  END FUNCTION fsig_tuzet
   ! ----------------------------------------------------------------------------
 
   ! ----------------------------------------------------------------------------
@@ -3088,6 +3094,30 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
 
 
   END SUBROUTINE calc_flux_to_leaf
+  ! ----------------------------------------------------------------------------
+
+  ! ----------------------------------------------------------------------------
+  SUBROUTINE calc_flux_to_stem(canopy, dels, i)
+     ! Calculate the flux from the root to the stem, i.e. the root water
+     ! uptake (mmol s-1) = change in stem storage plus flux_to_leaf
+
+     USE cable_common_module
+     USE cable_def_types_mod
+
+     IMPLICIT NONE
+
+     TYPE (canopy_type), INTENT(INOUT)    :: canopy
+
+     INTEGER, INTENT(IN) :: i
+     REAL, INTENT(IN)               :: dels ! integration time setp (s)
+     REAL :: conv
+
+     !conv = 1E-06 * 18.
+
+     canopy%flux_to_stem(i) = ((canopy%psi_stem - canopy%psi_stem_prev) * &
+                               canopy%Cs / dels + canopy%flux_to_leaf)
+
+  END SUBROUTINE calc_flux_to_stem
   ! ----------------------------------------------------------------------------
 
   ! ----------------------------------------------------------------------------
@@ -3132,29 +3162,6 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
   END SUBROUTINE update_stem_wp
   ! ----------------------------------------------------------------------------
 
-  ! ----------------------------------------------------------------------------
-  SUBROUTINE calc_flux_to_stem(canopy, dels, i)
-     ! Calculate the flux from the root to the stem, i.e. the root water
-     ! uptake (mmol s-1) = change in stem storage plus flux_to_leaf
-
-     USE cable_common_module
-     USE cable_def_types_mod
-
-     IMPLICIT NONE
-
-     TYPE (canopy_type), INTENT(INOUT)    :: canopy
-
-     INTEGER, INTENT(IN) :: i
-     REAL, INTENT(IN)               :: dels ! integration time setp (s)
-     REAL :: conv
-
-     !conv = 1E-06 * 18.
-
-     canopy%flux_to_stem(i) = ((canopy%psi_stem - canopy%psi_stem_prev) * &
-                               canopy%Cs / dels + canopy%flux_to_leaf)
-
-  END SUBROUTINE calc_flux_to_stem
-  ! ----------------------------------------------------------------------------
 
   ! ----------------------------------------------------------------------------
   SUBROUTINE calc_psi_leaf(canopy, transpiration, dels, i)
