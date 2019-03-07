@@ -2108,7 +2108,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
 
                ! here the LWP represents the previous time step
                fw = f_tuzet(canopy%psi_leaf_prev)
-               print*, fw
+
                gs_coeff(i,1) = (g1 / csx(i,1)) * fw
                gs_coeff(i,2) = (g1 / csx(i,2)) * fw
 
@@ -3058,6 +3058,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
      X = 50.0
      p50 = -4.    ! MPa
      s50 = 30.0
+
      psi_stemX = ABS(psi_stem)
      PX = ABS(p50)
      V = (X - 100.) * LOG(1.0 - X / 100.)
@@ -3120,7 +3121,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
      REAL, INTENT(IN)               :: dels ! integration time setp (s)
      INTEGER, INTENT(IN) :: i
 
-     ap = -(canopy%vlaiw(i) * 2.0 * canopy%ksoil2stem / canopy%Cs)
+     ap = -(canopy%vlaiw(i) * canopy%ksoil2stem / canopy%Cs)
      bp = (canopy%vlaiw(i) * canopy%ksoil2stem * canopy%psi_soil_prev - &
            canopy%flux_to_leaf) / canopy%Cs
 
