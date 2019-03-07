@@ -3015,8 +3015,8 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
      TYPE (radiation_type), INTENT(INOUT) :: rad
 
      INTEGER, INTENT(IN) :: i ! patch
-     REAL, PARAMETER :: kp_sat = 3.0
-     REAL :: ks, kroot2stem, kplant
+     REAL, PARAMETER     :: kp_sat = 4.0 ! Tim Brodribb pers comm
+     REAL                :: ks, kroot2stem, kplant
 
      ! Convert total below ground resistance to leaf-specific resistance.
      ! Belowground resistance is calculated on a ground area basis;
