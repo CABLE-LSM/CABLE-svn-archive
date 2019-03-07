@@ -3031,9 +3031,8 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
      ! soil-to-root hydraulic conductance (mmol m-2 leaf area s-1 MPa-1)
      ks = 1.0 / ssnow%tot_bg_resist(i)
 
-     ! Plant hydraulic conductance (mmol m-2 s-1 MPa-1). NB. depends
-     ! on stem water potential from the previous timestep. At this
-     ! point psi_stem represents the previous timestep
+     ! Plant hydraulic conductance (mmol m-2 s-1 MPa-1). NB. depends on stem
+     ! water potential from the previous timestep.
      kplant = kp_sat * fsig_hydr(canopy%psi_stem_prev)
 
      ! Conductance from root surface to the stem water pool (assumed to be
