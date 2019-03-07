@@ -2147,22 +2147,10 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                         gbhu(i,kk) + gbhf(i,kk) )
                    csx(i,kk) = MAX( 1.0e-4_r_2, csx(i,kk) )
 
-
-                   ! PH: mgk576, 13/10/17
-                   ! can't decide which is these is the best way to infer gsw?
-                   IF (cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
-
-                      !canopy%gswx(i,kk) = gsc(kk) * C%RGSWC
-                      canopy%gswx(i,kk) = MAX(1.e-3, gswmin(i,kk) +           &
-                                             MAX(0.0, C%RGSWC *              &
-                                           gs_coeff(i,kk) * anx(i,kk)))
-
-                   ELSE
-                      ! Ticket #56, xleuning replaced with gs_coeff here
-                      canopy%gswx(i,kk) = MAX(1.e-3, gswmin(i,kk)*fwsoil(i) + &
-                                              MAX(0.0, C%RGSWC *              &
-                                              gs_coeff(i,kk) * anx(i,kk)))
-                   END IF
+                   ! Ticket #56, xleuning replaced with gs_coeff here
+                   canopy%gswx(i,kk) = MAX( 1.e-3, gswmin(i,kk)*fwsoil(i) +     &
+                        MAX( 0.0, C%RGSWC * gs_coeff(i,kk) *     &
+                        anx(i,kk) ) )
 
 
                    !Recalculate conductance for water:
