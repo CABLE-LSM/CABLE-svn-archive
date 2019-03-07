@@ -2992,8 +2992,8 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
 
      REAL             :: num, den, fw
      REAL, INTENT(IN) :: psi_leaf
-     REAL, PARAMETER  :: sf = 8.0
-     REAL, PARAMETER  :: psi_f = -3 ! psi_f is the reference potential (MPa)
+     REAL, PARAMETER  :: sf = 8.0     ! sensitivity parameter, MPa-1
+     REAL, PARAMETER  :: psi_f = -2.0 ! reference potential for Tuzet model, MPa
 
      num = 1.0 + exp(sf * psi_f)
      den = 1.0 + exp(sf * (psi_f - psi_leaf))
