@@ -2109,7 +2109,9 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                ! Sensitivity of stomata to leaf water potential [0-1]
                fw = f_tuzet(canopy%psi_leaf_prev)
 
-               g1 = veg%g1(i)
+               !g1 = veg%g1(i)
+               ! JED 15 for teretoconis seedlings, using Jim's value for Eucface
+               g1 = 12.0
 
                gs_coeff(i,1) = g1 / csx(i,1) * fw
                gs_coeff(i,2) = g1 / csx(i,2) * fw
