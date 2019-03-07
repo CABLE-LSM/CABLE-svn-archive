@@ -3057,9 +3057,10 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
      REAL :: X, PX, V, p, relk, p50, s50, PX50
      REAL, INTENT(IN) :: psi_stem_prev
 
-     X = 50.0
-     p50 = -4.    ! MPa
-     s50 = 30.0
+     X = 50.0     ! pressure loss (%)
+     p50 = -4.    ! xylem pressure inducing 50% loss of hydraulic
+                  ! conductivity due to embolism, MPa
+     s50 = 30.0   ! is slope of the curve at P50 used in weibull model, % MPa-1
 
      ! xylem pressure
      PX = ABS(psi_stem_prev)
