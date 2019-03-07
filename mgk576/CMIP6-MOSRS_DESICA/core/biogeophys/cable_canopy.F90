@@ -192,10 +192,6 @@ CONTAINS
     canopy%tv = met%tvair
     canopy%fwsoil = 1.0
 
-    ! plant component of the leaf-specific hydraulic conductance
-    ! (mmol m-2 s-1 MPa-1 ) ... we should be passing this
-    canopy%kplant = 3.0
-
     CALL define_air (met, air)
 
     CALL qsatfjh(qstvair,met%tvair-C%tfrz,met%pmb)
@@ -2273,9 +2269,9 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                    ! flux_to_leaf
                    CALL calc_flux_to_stem(canopy, dels, i)
 
-                   canopy%psi_leaf_prev(i) = canopy%psi_leaf(i)
-                   canopy%psi_soil_prev(i) = ssnow%weighted_psi_soil(i)
-                   canopy%psi_stem_prev(i) = psi_stem(i)
+                   canopy%psi_leaf_prev = canopy%psi_leaf(i)
+                   canopy%psi_soil_prev = ssnow%weighted_psi_soil(i)
+                   canopy%psi_stem_prev = psi_stem(i)
                 ENDIF
 
 
@@ -3049,7 +3045,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
 
      INTEGER, INTENT(IN) :: i ! patch
      REAL, PARAMETER :: kp_sat = 3.0
-     REAL :: ks, kroot2stem
+     REAL :: ks, kroot2stem, kplant
 
      print*, rad%fvlai, canopy%vlaiw(i)
      stop
@@ -3069,17 +3065,17 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
      ! Plant hydraulic conductance (mmol m-2 s-1 MPa-1). NB. depends
      ! on stem water potential from the previous timestep. At this
      ! point psi_stem represents the previous timestep
-     canopy%kp = kp_sat * fsig_hydr(canopy%psi_stem_prev)
+     kplant = kp_sat * fsig_hydr(canopy%psi_stem_prev)
 
      ! Conductance from root surface to the stem water pool (assumed to be
      ! halfway to the leaves)
-     kroot2stem = 2.0 * out.kplant[i]
+     kroot2stem = 2.0 * kplant
 
      ! Conductance from soil to stem water store (mmol m-2 s-1 MPa-1)
-     canopy%ksoil2stem = 1.0 / (1.0 / ks + 1.0 / (2.0 * canopy%kp))
+     canopy%ksoil2stem = 1.0 / (1.0 / ks + 1.0 / kroot2stem)
 
      ! Conductance from stem water store to leaf (mmol m-2 s-1 MPa-1)
-     canopy%kstem2leaf = 2.0 * canopy%kp
+     canopy%kstem2leaf = 2.0 * kplant
 
   END SUBROUTINE calc_hydr_conduc
   ! ----------------------------------------------------------------------------
@@ -3119,7 +3115,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
      REAL, INTENT(IN)               :: dels ! integration time setp (s)
      INTEGER, INTENT(IN) :: i
 
-     canopy%flux_to_leaf = (canopy%psi_leaf(i) - canopy%psi_leaf_prev(i)) * &
+     canopy%flux_to_leaf = (canopy%psi_leaf(i) - canopy%psi_leaf_prev) * &
                             canopy%Cl / dels + canopy%vlaiw(i) * transpiration
 
 
@@ -3153,14 +3149,12 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
      TYPE (canopy_type), INTENT(INOUT)    :: canopy
      TYPE (soil_snow_type), INTENT(INOUT) :: ssnow
 
-     REAL :: psi_soil_prev, ap, bp
+     REAL :: ap, bp
      REAL, INTENT(IN)               :: dels ! integration time setp (s)
      INTEGER, INTENT(IN) :: i
 
-     psi_soil_prev = ssnow%weighted_psi_soil(i)
-
      ap = -(canopy%vlaiw(i) * 2.0 * canopy%ksoil2stem / canopy%Cs)
-     bp = (canopy%vlaiw(i) * canopy%ksoil2stem * psi_soil_prev - &
+     bp = (canopy%vlaiw(i) * canopy%ksoil2stem * canopy%psi_soil_prev - &
            canopy%flux_to_leaf) / canopy%Cs
 
      canopy%psi_stem = ((ap * canopy%psi_stem_prev + bp) * &
@@ -3222,15 +3216,11 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
      REAL :: psi_leaf_prev, psi_stem_prev, ap, bp
      REAL, INTENT(IN) :: dels ! integration time setp (s)
 
-     ! both are the previous timestep as neither has been updated as yet
-     canopy%psi_leaf_prev(i) = canopy%psi_leaf(i)
-     canopy%psi_stem_prev = canopy%psi_stem
-
-     ap = -(canopy%vlaiw(i) * canopy%flux_to_leaf / canopy%Cl)
-     bp = (canopy%vlaiw(i) * canopy%flux_to_leaf * canopy%psi_stem_prev - &
+     ap = -(canopy%vlaiw(i) * canopy%kstem2leaf / canopy%Cl)
+     bp = (canopy%vlaiw(i) * canopy%kstem2leaf * canopy%psi_stem_prev - &
             canopy%vlaiw(i) * transpiration) / canopy%Cl
 
-     canopy%psi_leaf(i) = ((ap * canopy%psi_leaf_prev(i) + bp) *  &
+     canopy%psi_leaf(i) = ((ap * canopy%psi_leaf_prev + bp) *  &
                           EXP(ap * dels) - bp) / ap
 
   END SUBROUTINE calc_psi_leaf

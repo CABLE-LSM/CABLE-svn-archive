@@ -144,9 +144,13 @@ SUBROUTINE get_default_inits(met,soil,ssnow,canopy,logn, EMSOIL)
    ! mgk576, 27 Nov 2016
    canopy%psi_leaf = -1.0
    canopy%psi_stem = -0.5
+   canopy%psi_leaf_prev = -1.0
+   canopy%psi_stem_prev = -0.5
+   canopy%psi_soil_prev = -0.001
+
    canopy%Cl = 10000.  ! Leaf capacitance (mmol MPa-1) (total plant)
    canopy%Cs = 120000. ! Stem capacitance (mmol MPa-1)
-   
+
 END SUBROUTINE get_default_inits
 
 !==============================================================================
