@@ -2076,7 +2076,8 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                           * ( veg%a1gs(i) / ( 1.0 + dsx(i)/veg%d0gs(i)))
 
             ! Medlyn BE et al (2011) Global Change Biology 17: 2134-2144.
-            ELSEIF(cable_user%GS_SWITCH == 'medlyn') THEN
+         ELSEIF(cable_user%GS_SWITCH == 'medlyn' .AND. &
+                cable_user%FWSOIL_SWITCH  /= 'hydraulics') THEN
 
                  gswmin = veg%g0(i)
 
@@ -2099,7 +2100,8 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                    gs_coeff(i,2) = (fwsoil(i) / medlyn_lim + (g1 * fwsoil(i)) / SQRT(vpd)) / csx(i,2)
                 END IF
 
-            ELSE IF (cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
+            ELSE IF (cable_user%GS_SWITCH == 'medlyn' .AND. &
+                     cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
 
                CALL calc_hydr_conduc(canopy, ssnow, rad, i)
 
@@ -3035,16 +3037,14 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
      REAL, PARAMETER :: kp_sat = 3.0
      REAL :: ks, kroot2stem, kplant
 
-     print*, rad%fvlai, canopy%vlaiw(i)
-     stop
      ! Convert total below ground resistance to leaf-specific resistance.
      ! Belowground resistance is calculated on a ground area basis;
      ! multiplying by LAI converts to leaf area. his assumes that each canopy
      ! layer is connected to each soil layer, so that the roots in each soil
      ! layer supply water to each canopy layer, and that the fraction of roots
      ! supplying each canopy layer is the same as the leaf area in that layer.
-     IF (sum(rad%fvlai) > 0.0) then
-        ssnow%tot_bg_resist(i) = ssnow%tot_bg_resist(i) * sum(rad%fvlai)
+     IF (canopy%vlaiw(i) > 0.0) then
+        ssnow%tot_bg_resist(i) = ssnow%tot_bg_resist(i) * canopy%vlaiw(i)
      END IF
 
      ! soil-to-root hydraulic conductance (mmol m-2 leaf area s-1 MPa-1)
