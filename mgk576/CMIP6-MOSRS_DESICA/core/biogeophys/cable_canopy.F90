@@ -2109,9 +2109,11 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                ! Sensitivity of stomata to leaf water potential [0-1]
                fw = f_tuzet(canopy%psi_leaf_prev)
 
-               gs_coeff(i,1) = (g1 / csx(i,1)) * fw
-               gs_coeff(i,2) = (g1 / csx(i,2)) * fw
+               g1 = veg%g1(i)
 
+               gs_coeff(i,1) = g1 / (csx(i,1) * 1E6) * fw
+               gs_coeff(i,2) = g1 / (csx(i,2) * 1E6) * fw
+               
                ! convert to conductance to CO2
                gs_coeff(i,1) = gs_coeff(i,1) / C%RGSWC
                gs_coeff(i,2) = gs_coeff(i,2) / C%RGSWC
