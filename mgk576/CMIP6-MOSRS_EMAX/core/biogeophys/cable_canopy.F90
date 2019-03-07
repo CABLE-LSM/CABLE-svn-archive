@@ -1803,8 +1803,8 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
 
     REAL, PARAMETER :: H2OLV0 = 2.501e6    ! latent heat H2O (J/kg)
     REAL, PARAMETER :: H2OMW = 18.e-3      ! mol mass H2O (kg/mol)
-    REAL :: LHV
-    
+    REAL :: lhv
+
     INTEGER :: i, j, k, kk  ! iteration count
     REAL :: vpd, g1, ktot, inferred_stress ! Ticket #56
 #define VanessasCanopy
