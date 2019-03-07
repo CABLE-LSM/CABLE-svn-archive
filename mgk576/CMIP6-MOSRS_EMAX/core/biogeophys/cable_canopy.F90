@@ -2241,10 +2241,10 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                 ! way the loops fall above
                 IF (cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
 
-                   ! Transpiration: kg m-2 s-1 -> mmol m-2 s-1
+                   ! Transpiration: W m-2 -> mol H20 m-2 s-1 -> mmol m-2 s-1
                    conv = KG_2_G * G_WATER_TO_MOL * MOL_2_MMOL
                    !trans_mmol = (canopy%fevc(i) / air%rlam(i)) * conv
-                   trans_mmol = (ecx(i) / air%rlam(i)) * conv
+                   trans_mmol = ecx(i) / air%rlam(i) * MOL_2_MMOL
 
                    ! would it be better to do this over seperate leaves and
                    ! weight?
