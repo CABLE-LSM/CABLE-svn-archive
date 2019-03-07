@@ -141,6 +141,12 @@ SUBROUTINE get_default_inits(met,soil,ssnow,canopy,logn, EMSOIL)
    canopy%fhs     = 0.0   ! sensible heat flux from soil (W/m2)
    canopy%us = 0.1 ! friction velocity (needed in roughness before first call to canopy: should in be in restart?)
 
+   ! mgk576, 27 Nov 2016
+   canopy%psi_leaf = -1.0
+   canopy%psi_stem = -0.5
+   canopy%Cl = 10000.  ! Leaf capacitance (mmol MPa-1) (total plant)
+   canopy%Cs = 120000. ! Stem capacitance (mmol MPa-1)
+   
 END SUBROUTINE get_default_inits
 
 !==============================================================================

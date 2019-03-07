@@ -514,8 +514,10 @@ MODULE cable_def_types_mod
       REAL(r_2), DIMENSION(:), POINTER :: kthLitt, DvLitt
 
       ! mgk576, 10/10/2017: plant hydraulics
-      REAL, DIMENSION(:), POINTER ::  psi_leaf, kplant
-
+      REAL, DIMENSION(:), POINTER ::  psi_leaf, psi_leaf_prev, kplant, flux_to_stem
+      REAL :: psi_stem, psi_stem_prev, kp, ksoil2stem, flux_to_leaf, Cl, Cs, flux_to_leaf
+      REAL :: psi_soil_prev
+      
    END TYPE canopy_type
 
 ! .............................................................................
@@ -1209,6 +1211,8 @@ SUBROUTINE alloc_canopy_type(var, mp)
    !  mgk576, 10/10/2017: plant hydraulics
    ALLOCATE( var%psi_leaf(mp) )
    ALLOCATE( var%kplant(mp) )
+   ALLOCATE( var%psi_leaf_prev (mp) )
+   ALLOCATE( var%flux_to_stem (mp) )
 
 END SUBROUTINE alloc_canopy_type
 
@@ -1831,6 +1835,8 @@ SUBROUTINE dealloc_canopy_type(var)
    ! mgk576, 10/10/2017: plant hydraulics
    DEALLOCATE( var%psi_leaf )
    DEALLOCATE( var%kplant )
+   DEALLOCATE( var%psi_leaf_prev )
+   DEALLOCATE( var%flux_to_stem )
 
 END SUBROUTINE dealloc_canopy_type
 
