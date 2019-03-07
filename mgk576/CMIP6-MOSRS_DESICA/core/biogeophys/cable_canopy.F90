@@ -2135,29 +2135,6 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                            SPREAD( abs_deltlf, 2, mf ),                        &
                            anx(:,:), fwsoil(:) )
 
-       ! PH: mgk576, 13/10/17
-       ! Check if transpiration exceeds Emax, if it does we recalculate gs & An
-       IF (cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
-
-          DO i = 1, mp
-
-             IF (veg%iveg(i) > 4) THEN
-                print*, veg%iveg(i)
-                PRINT*, "Plant Hydraulics only works for trees"
-                STOP
-             END IF
-
-             !inferred_stress = 0.0
-
-
-
-             !fwsoil means nothing when using the plant hydraulics, but we
-             ! still need an inferred fwsoil as this is used in SOM
-             ! decomposition calculations
-             !canopy%fwsoil(i) = inferred_stress / 2.0
-          END DO
-       END IF
-
        DO i=1,mp
 
           IF (canopy%vlaiw(i) > C%LAI_THRESH .AND. abs_deltlf(i) > 0.1 ) Then
