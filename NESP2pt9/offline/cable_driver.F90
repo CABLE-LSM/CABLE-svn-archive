@@ -690,7 +690,8 @@ print *, "CABLE_USER%YearStart,  CABLE_USER%YearEnd", CABLE_USER%YearStart,  CAB
           ! globally (WRT code) accessible kend through USE cable_common_module
           ktau_gl = ktau_tot
           
-          idoy =INT( MOD(REAL(CEILING(REAL((ktau+koffset)/ktauday))),REAL(LOY)))
+          !idoy =INT( MOD(REAL(CEILING(REAL((ktau+koffset)/ktauday))),REAL(LOY)))
+          idoy =INT( MOD(REAL(CEILING((real(ktau+koffset))/real(ktauday))),REAL(LOY)))
           IF ( idoy .EQ. 0 ) idoy = LOY
 
           ! needed for CASA-CNP
