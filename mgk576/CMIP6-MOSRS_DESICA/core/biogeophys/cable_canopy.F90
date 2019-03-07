@@ -2227,6 +2227,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                    ! flux_to_leaf
                    CALL calc_flux_to_stem(canopy, dels, i)
 
+                   ! store current water potentials for next time step
                    canopy%psi_leaf_prev = canopy%psi_leaf(i)
                    canopy%psi_soil_prev = ssnow%weighted_psi_soil(i)
                    canopy%psi_stem_prev = canopy%psi_stem
