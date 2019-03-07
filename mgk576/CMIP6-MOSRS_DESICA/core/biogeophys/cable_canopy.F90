@@ -1799,6 +1799,10 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
     REAL, PARAMETER :: MOL_2_MMOL = 1000.0
     REAL, PARAMETER :: MB_TO_PA = 100.
 
+    REAL, PARAMETER :: H2OLV0 = 2.501e6    ! latent heat H2O (J/kg)
+    REAL, PARAMETER :: H2OMW = 18.e-3      ! mol mass H2O (kg/mol)
+    REAL :: LHV
+
     INTEGER :: i, j, k, kk  ! iteration count
     REAL :: vpd, g1, ktot, inferred_stress, fw ! Ticket #56
 #define VanessasCanopy
@@ -2211,7 +2215,11 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
 
                    ! Transpiration: W m-2 -> mol H20 m-2 s-1 -> mmol m-2 s-1
                    IF (ecx(i) > 0.0) THEN
-                      trans_mmol = ecx(i) / air%rlam(i) * MOL_2_MMOL
+
+                      ! Latent heat of water vapour at air temp (J mol-1)
+                      LHV = (H2OLV0 - 2.365E3 * (met%tvair(i)-C%tfrz)) * H2OMW
+
+                      trans_mmol = ecx(i) / LHV * MOL_2_MMOL
                    ELSE
                       trans_mmol = 0.0
                    END IF
