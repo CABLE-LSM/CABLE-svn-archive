@@ -2113,12 +2113,9 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                ! JED 15 for teretoconis seedlings, using Jim's value for Eucface
                g1 = 12.0
 
-               gs_coeff(i,1) = g1 / csx(i,1) * fw
-               gs_coeff(i,2) = g1 / csx(i,2) * fw
-
                ! convert to conductance to CO2
-               !gs_coeff(i,1) = gs_coeff(i,1) / C%RGSWC
-               !gs_coeff(i,2) = gs_coeff(i,2) / C%RGSWC
+               gs_coeff(i,1) = (g1 / csx(i,1) * fw) / C%RGSWC
+               gs_coeff(i,2) = (g1 / csx(i,2) * fw) / C%RGSWC
 
             ELSE
                 STOP 'gs_model_switch failed.'
