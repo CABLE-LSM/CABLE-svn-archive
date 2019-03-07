@@ -2107,8 +2107,8 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                CALL calc_hydr_conduc(canopy, ssnow, rad, i)
 
                ! here the LWP represents the previous time step
-               fw = f_tuzet(canopy%psi_leaf(i))
-
+               fw = f_tuzet(canopy%psi_leaf_prev)
+               print*, fw
                gs_coeff(i,1) = (g1 / csx(i,1)) * fw
                gs_coeff(i,2) = (g1 / csx(i,2)) * fw
 
@@ -2995,7 +2995,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
   !*********************************************************************************************************************
 
   ! ----------------------------------------------------------------------------
-  FUNCTION f_tuzet(psi_leaf_prev) RESULT(fw)
+  FUNCTION f_tuzet(psi_leaf) RESULT(fw)
      ! Empirical logistic function to describe the sensitivity of stomata
      ! to leaf water potential. Function assumes that stomata are insensitive
      ! to LWP at values close to zero and that stomata rapidly close with
@@ -3012,12 +3012,12 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
      IMPLICIT NONE
 
      REAL :: num, den, fw
-     REAL, INTENT(IN) :: psi_leaf_prev
+     REAL, INTENT(IN) :: psi_leaf
      REAL, PARAMETER  :: sf = 8.0
      REAL, PARAMETER  :: psi_f = -3 ! psi_f is the reference potential (MPa)
 
      num = 1.0 + exp(sf * psi_f)
-     den = 1.0 + exp(sf * (psi_f - psi_leaf_prev))
+     den = 1.0 + exp(sf * (psi_f - psi_leaf))
      fw = num / den
 
   END FUNCTION f_tuzet
@@ -3212,7 +3212,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
 
      canopy%psi_leaf(i) = ((ap * canopy%psi_leaf_prev + bp) *  &
                           EXP(ap * dels) - bp) / ap
-     
+
   END SUBROUTINE calc_psi_leaf
   ! ----------------------------------------------------------------------------
 
