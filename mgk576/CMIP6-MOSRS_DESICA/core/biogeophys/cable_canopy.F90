@@ -2106,7 +2106,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
 
                CALL calc_hydr_conduc(canopy, ssnow, rad, i)
 
-               ! here the LWP represents the previous time step
+               ! Sensitivity of stomata to leaf water potential [0-1]
                fw = f_tuzet(canopy%psi_leaf_prev)
 
                gs_coeff(i,1) = (g1 / csx(i,1)) * fw
@@ -2974,9 +2974,11 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
   ! ----------------------------------------------------------------------------
   FUNCTION f_tuzet(psi_leaf) RESULT(fw)
      ! Empirical logistic function to describe the sensitivity of stomata
-     ! to leaf water potential. Function assumes that stomata are insensitive
-     ! to LWP at values close to zero and that stomata rapidly close with
-     ! decreasing LWP.
+     ! to leaf water potential.
+     !
+     ! Sigmoid function assumes that stomata are insensitive to psi_leaf at
+     ! values close to zero and that stomata rapidly close with decreasing
+     ! psi_leaf.
      !
      ! Reference:
      ! ----------
@@ -2988,7 +2990,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
 
      IMPLICIT NONE
 
-     REAL :: num, den, fw
+     REAL             :: num, den, fw
      REAL, INTENT(IN) :: psi_leaf
      REAL, PARAMETER  :: sf = 8.0
      REAL, PARAMETER  :: psi_f = -3 ! psi_f is the reference potential (MPa)
@@ -3032,7 +3034,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
      ! Plant hydraulic conductance (mmol m-2 s-1 MPa-1). NB. depends
      ! on stem water potential from the previous timestep. At this
      ! point psi_stem represents the previous timestep
-     kplant = kp_sat * fsig_tuzet(canopy%psi_stem_prev)
+     kplant = kp_sat * fsig_hydr(canopy%psi_stem_prev)
 
      ! Conductance from root surface to the stem water pool (assumed to be
      ! halfway to the leaves)
@@ -3048,7 +3050,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
   ! ----------------------------------------------------------------------------
 
   ! ----------------------------------------------------------------------------
-  FUNCTION fsig_tuzet(psi_stem_prev) RESULT(relk)
+  FUNCTION fsig_hydr(psi_stem_prev) RESULT(relk)
 
      IMPLICIT NONE
 
@@ -3071,7 +3073,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
      ! relative conductance (K/Kmax) as a funcion of xylem pressure
      relk = (1. - X / 100.)**p
 
-  END FUNCTION fsig_tuzet
+  END FUNCTION fsig_hydr
   ! ----------------------------------------------------------------------------
 
   ! ----------------------------------------------------------------------------
