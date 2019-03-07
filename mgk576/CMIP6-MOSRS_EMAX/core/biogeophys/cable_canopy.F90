@@ -1801,10 +1801,6 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
     REAL, PARAMETER :: MOL_2_MMOL = 1000.0
     REAL, PARAMETER :: MB_TO_PA = 100.
 
-    REAL, PARAMETER :: H2OLV0 = 2.501e6    ! latent heat H2O (J/kg)
-    REAL, PARAMETER :: H2OMW = 18.e-3      ! mol mass H2O (kg/mol)
-    REAL :: lhv
-
     INTEGER :: i, j, k, kk  ! iteration count
     REAL :: vpd, g1, ktot, inferred_stress ! Ticket #56
 #define VanessasCanopy
@@ -2245,12 +2241,10 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                 ! way the loops fall above
                 IF (cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
 
-                   ! Latent heat of water vapour at air temp (J mol-1)
-                   lhv = (H2OLV0 - 2.365E3 * (met%tvair(i)-C%tfrz)) * H2OMW
-
-                   ! Transpiration: W m-2 -> mol H20 m-2 s-1 -> mmol m-2 s-1
+                   ! Transpiration: W m-2 -> kg m-2 s-1 -> mmol m-2 s-1
                    IF (ecx(i) > 0.0) THEN
-                      trans_mmol = ecx(i) / lhv * MOL_2_MMOL
+                      conv = KG_2_G * G_WATER_TO_MOL * MOL_2_MMOL
+                      trans_mmol = ecx(i) / air%rlam(i) * conv
                    ELSE
                       trans_mmol = 0.0
                    END IF
