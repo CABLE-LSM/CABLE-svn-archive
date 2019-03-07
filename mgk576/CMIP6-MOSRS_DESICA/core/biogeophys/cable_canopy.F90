@@ -2143,26 +2143,14 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                 STOP
              END IF
 
-             inferred_stress = 0.0
-             DO kk = 1, mf
+             !inferred_stress = 0.0
 
-                gsc(kk) = MAX(1.e-3, (gswmin(i,kk) / C%RGSWC) + &
-                              MAX(0.0, (gs_coeff(i,kk) * anx(i,kk))))
-
-                CALL calculate_emax(canopy, veg, ssnow, dsx(:), par(:,:),      &
-                                    csx(:,:), SPREAD(cx1(:), 2, mf), rdx(:,:), &
-                                    vcmxt3(:,:), gsc(:), anx(:,:), ktot,       &
-                                    co2cp3, inferred_stress, met%pmb, rad,     &
-                                    i, kk)
-
-
-             END DO
 
 
              !fwsoil means nothing when using the plant hydraulics, but we
              ! still need an inferred fwsoil as this is used in SOM
              ! decomposition calculations
-             canopy%fwsoil(i) = inferred_stress / 2.0
+             !canopy%fwsoil(i) = inferred_stress / 2.0
           END DO
        END IF
 
@@ -2271,7 +2259,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
 
                    canopy%psi_leaf_prev = canopy%psi_leaf(i)
                    canopy%psi_soil_prev = ssnow%weighted_psi_soil(i)
-                   canopy%psi_stem_prev = psi_stem(i)
+                   canopy%psi_stem_prev = canopy%psi_stem
                 ENDIF
 
 
@@ -3183,7 +3171,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
      !conv = 1E-06 * 18.
 
      canopy%flux_to_stem(i) = ((canopy%psi_stem - canopy%psi_stem_prev) * &
-                               canopy%Cs / dels + canopy%flux_to_leaf(i))
+                               canopy%Cs / dels + canopy%flux_to_leaf)
 
   END SUBROUTINE calc_flux_to_stem
   ! ----------------------------------------------------------------------------
