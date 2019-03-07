@@ -193,17 +193,6 @@ CONTAINS
     canopy%fwsoil = 1.0
 
 
-    canopy%psi_leaf(1) = -0.5
-    canopy%psi_stem = -0.5
-    canopy%psi_leaf_prev = -1.0
-    canopy%psi_stem_prev = -0.5
-    canopy%psi_soil_prev = -0.001
-
-    ssnow%tot_bg_resist = 1E9
-
-    canopy%Cl = 10000.  ! Leaf capacitance (mmol MPa-1) (total plant)
-    canopy%Cs = 120000. ! Stem capacitance (mmol MPa-1)
-
     CALL define_air (met, air)
 
     CALL qsatfjh(qstvair,met%tvair-C%tfrz,met%pmb)
@@ -3223,7 +3212,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
 
      canopy%psi_leaf(i) = ((ap * canopy%psi_leaf_prev + bp) *  &
                           EXP(ap * dels) - bp) / ap
-    
+     
   END SUBROUTINE calc_psi_leaf
   ! ----------------------------------------------------------------------------
 
