@@ -3016,7 +3016,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
 
      INTEGER, INTENT(IN) :: i ! patch
      REAL, PARAMETER     :: kp_sat = 4.0 ! Tim Brodribb pers comm
-     REAL                :: ks, kroot2stem, kplant
+     REAL                :: ksoil, kroot2stem, kplant
 
      ! Convert total below ground resistance to leaf-specific resistance.
      ! Belowground resistance is calculated on a ground area basis;
@@ -3029,7 +3029,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
      END IF
 
      ! soil-to-root hydraulic conductance (mmol m-2 leaf area s-1 MPa-1)
-     ks = 1.0 / ssnow%tot_bg_resist(i)
+     ksoil = 1.0 / ssnow%tot_bg_resist(i)
 
      ! Plant hydraulic conductance (mmol m-2 s-1 MPa-1). NB. depends on stem
      ! water potential from the previous timestep.
@@ -3040,7 +3040,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
      kroot2stem = 2.0 * kplant
 
      ! Conductance from soil to stem water store (mmol m-2 s-1 MPa-1)
-     canopy%ksoil2stem = 1.0 / (1.0 / ks + 1.0 / kroot2stem)
+     canopy%ksoil2stem = 1.0 / (1.0 / ksoil + 1.0 / kroot2stem)
 
      ! Conductance from stem water store to leaf (mmol m-2 s-1 MPa-1)
      canopy%kstem2leaf = 2.0 * kplant
