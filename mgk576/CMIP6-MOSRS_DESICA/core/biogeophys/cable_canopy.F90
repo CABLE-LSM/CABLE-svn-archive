@@ -2208,9 +2208,8 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                 ! way the loops fall above
                 IF (cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
 
-                   ! Transpiration: kg m-2 s-1 -> mmol m-2 s-1
-                   conv = KG_2_G * G_WATER_TO_MOL * MOL_2_MMOL
-                   trans_mmol = (ecx(i) / air%rlam(i)) * conv
+                   ! Transpiration: W m-2 -> mol H20 m-2 s-1 -> mmol m-2 s-1
+                   trans_mmol = ecx(i) / air%rlam(i) * MOL_2_MMOL
 
                    ! Calculate the leaf water potential.
                    CALL calc_psi_leaf(canopy, trans_mmol, dels, i)
