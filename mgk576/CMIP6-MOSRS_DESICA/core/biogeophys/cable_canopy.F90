@@ -3223,9 +3223,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
 
      canopy%psi_leaf(i) = ((ap * canopy%psi_leaf_prev + bp) *  &
                           EXP(ap * dels) - bp) / ap
-     print*, canopy%psi_leaf(i), canopy%kstem2leaf, canopy%Cl, canopy%psi_stem_prev, transpiration
-     stop
-
+    
   END SUBROUTINE calc_psi_leaf
   ! ----------------------------------------------------------------------------
 
