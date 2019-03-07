@@ -2217,9 +2217,9 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
                    IF (ecx(i) > 0.0) THEN
 
                       ! Latent heat of water vapour at air temp (J mol-1)
-                      LHV = (H2OLV0 - 2.365E3 * (met%tvair(i)-C%tfrz)) * H2OMW
+                      lhv = (H2OLV0 - 2.365E3 * (met%tvair(i)-C%tfrz)) * H2OMW
 
-                      trans_mmol = ecx(i) / LHV * MOL_2_MMOL
+                      trans_mmol = ecx(i) / lhv * MOL_2_MMOL
                    ELSE
                       trans_mmol = 0.0
                    END IF
