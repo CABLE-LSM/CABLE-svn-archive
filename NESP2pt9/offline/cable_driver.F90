@@ -553,16 +553,20 @@ print *, "CABLE_USER%YearStart,  CABLE_USER%YearEnd", CABLE_USER%YearStart,  CAB
        ! get koffset to add to time-step of sitemet
        IF (TRIM(site%RunType)=='historical') THEN
           MetYear = CurYear
+          LOY = 365
+          IF (IS_LEAPYEAR(MetYear)) LOY = 366
+          kend = NINT(24.0*3600.0/dels) * LOY
        ELSEIF (TRIM(site%RunType)=='spinup' .OR. TRIM(site%RunType)=='transient') THEN
        ! setting met year so we end the spin-up at the end of the site data-years.
           MetYear = site%spinstartyear + &
                MOD(CurYear- &
                (site%spinstartyear-(site%spinendyear-site%spinstartyear +1)*100), &
                (site%spinendyear-site%spinstartyear +1))
+          LOY = 365
+          kend = NINT(24.0*3600.0/dels) * LOY
+          
        ENDIF
-       LOY = 365
-       IF (IS_LEAPYEAR(MetYear)) LOY = 366
-       kend = NINT(24.0*3600.0/dels) * LOY
+       
        
        write(*,*) 'MetYear: ', MetYear
        write(*,*) 'Simulation Year: ', CurYear
@@ -858,6 +862,7 @@ print *, "CABLE_USER%YearStart,  CABLE_USER%YearEnd", CABLE_USER%YearStart,  CAB
 
                     IF ( IS_CASA_TIME("write", yyyy, ktau, kstart, &
                          koffset, kend, ktauday, logn) ) THEN
+
                        ctime = ctime +1
                        !mpidiff
                        CALL update_sum_casa(sum_casapool, sum_casaflux, casapool, casaflux, &
