@@ -691,7 +691,8 @@ PROGRAM cable_offline_driver
           ! globally (WRT code) accessible kend through USE cable_common_module
           ktau_gl = ktau_tot
 
-          idoy =INT( MOD(REAL(CEILING(REAL((ktau+koffset)/ktauday))),REAL(LOY)))
+          !idoy =INT( MOD(REAL(CEILING(REAL((ktau+koffset)/ktauday))),REAL(LOY)))
+          idoy =INT( MOD(REAL(CEILING((real(ktau+koffset))/real(ktauday))),REAL(LOY)))
           IF ( idoy .EQ. 0 ) idoy = LOY
 
           ! needed for CASA-CNP
@@ -873,7 +874,7 @@ PROGRAM cable_offline_driver
                              WRITE(CYEAR,FMT="(I4)") CurYear + INT((ktau-kstart)/(LOY*ktauday))
                           ENDIF
                           ncfile = TRIM(casafile%c2cdumppath)//'c2c_'//CYEAR//'_dump.nc'
-                          print*, CYEAR
+                          
                           IF (TRIM(cable_user%MetType).EQ.'' ) THEN
                               !jhan:assuming doy for mp=1 is same as ....
                              !CALL write_casa_dump( ncfile, casamet , casaflux, phen, climate,&
