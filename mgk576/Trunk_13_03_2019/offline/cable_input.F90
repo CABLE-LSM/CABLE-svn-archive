@@ -1001,6 +1001,7 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
     ! Look for Rainf (essential):- - - - - - - - - - - - - - - - - -
     IF (ncciy > 0) ncid_met = ncid_rain
     ok = NF90_INQ_VARID(ncid_met,'Rainf',id%Rainf)
+    IF(ok .ne. NF90_NOERR) ok = NF90_INQ_VARID(ncid_met,'Precip',id%Rainf)
     IF(ok /= NF90_NOERR) CALL nc_abort &
          (ok,'Error finding Rainf in met data file ' &
          //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
