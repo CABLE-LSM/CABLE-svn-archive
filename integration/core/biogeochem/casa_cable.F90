@@ -281,13 +281,13 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, climate, ncall, kend
       INTEGER, PARAMETER :: num_dims=3
       INTEGER, SAVE                        :: ncrid  ! netcdf file ID
       !INTEGER , DIMENSION(num_vars)        :: varrID ! (1) tvair, (2) pmb
-      
+
 
       !vars
       CHARACTER, DIMENSION(:), POINTER :: var_name*15
 
       REAL     , DIMENSION(mp)        :: lat, lon
-      REAL(r_2), DIMENSION(mp)        :: tairk,  cgpp, mtemp, Ndep
+      REAL(r_2), DIMENSION(mp)        :: tairk,  cgpp, mtemp, Ndep, Pdep
       REAL(r_2), DIMENSION(mp,ms)     :: tsoil, moist
       REAL(r_2), DIMENSION(mp,mplant) :: crmplant
       REAL(r_2), DIMENSION(mp)        :: phenphase, phendoyphase1, &
