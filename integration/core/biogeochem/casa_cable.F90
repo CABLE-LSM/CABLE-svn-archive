@@ -1,4 +1,4 @@
-!==============================================================================
+   !==============================================================================
 ! This source code is part of the
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
 ! This work is licensed under the CSIRO Open Source Software License
@@ -280,7 +280,8 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, climate, ncall, kend
       INTEGER            :: num_vars
       INTEGER, PARAMETER :: num_dims=3
       INTEGER, SAVE                        :: ncrid  ! netcdf file ID
-      INTEGER , DIMENSION(num_vars)        :: varrID ! (1) tvair, (2) pmb
+      !INTEGER , DIMENSION(num_vars)        :: varrID ! (1) tvair, (2) pmb
+      
 
       !vars
       CHARACTER, DIMENSION(:), POINTER :: var_name*15
@@ -463,7 +464,7 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, phen, climate, n_call, ke
   CHARACTER, DIMENSION(:), POINTER :: var_name*15
 
 
-  INTEGER, DIMENSION(num_vars) :: varID ! (1) tvair, (2) pmb
+  INTEGER, DIMENSION(:), POINTER :: varID ! (1) tvair, (2) pmb
 
   !dims
   CHARACTER(len=*), DIMENSION(num_dims), PARAMETER :: &
@@ -492,7 +493,7 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, phen, climate, n_call, ke
   dim_len(1)        = mp
   dim_len(num_dims) = NF90_unlimited
 
-  num_vars=14
+  num_vars = 14
 
   !Add extra mtemp variable when running with climate
   IF (cable_user%CALL_climate) THEN
