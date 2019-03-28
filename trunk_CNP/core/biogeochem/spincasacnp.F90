@@ -4,7 +4,7 @@ SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
 
   USE cable_def_types_mod
   USE cable_carbon_module
-  USE cable_common_module, ONLY: CABLE_USER
+  USE cable_common_module, ONLY: CABLE_USER, IS_LEAPYEAR
   USE casadimension
   USE casaparm
 USE casa_cable !jhan:also put this in mod
@@ -66,6 +66,7 @@ USE casa_inout_module
   real,      dimension(5,mvtype)         :: bmnsoilmin,bmpsoillab,bmpsoilsorb, bmpsoilocc
   real,      dimension(mvtype)           :: bmarea
   integer nptx,nvt,kloop
+  integer :: YYYY
 
    REAL(dp)                               :: StemNPP(mp,2)
    REAL(dp), allocatable, save ::  LAImax(:)    , Cleafmean(:),  Crootmean(:)
@@ -117,9 +118,12 @@ USE casa_inout_module
      ncfile = TRIM(casafile%c2cdumppath)//'c2c_'//CYEAR//'_dump.nc'
 
 
-     call read_casa_dump( ncfile,casamet, casaflux, phen,climate, ktau ,kend,.TRUE. )
+     !call read_casa_dump( ncfile,casamet, casaflux, phen,climate, ktau ,kend,.TRUE. )
+     call read_casa_dump( ncfile,casamet, casaflux, phen,climate, ktau ,kend, &
+                          LOY, .TRUE. )
      !!CLN901  format(A99)
-     do idoy=1,mdyear
+     !do idoy=1,mdyear
+     do idoy=1,LOY
         ktau=(idoy-1)*ktauday +1
 
         casamet%tairk(:)       = casamet%Tairkspin(:,idoy)
@@ -175,7 +179,7 @@ USE casa_inout_module
                casaflux%stemnpp = 0.
             ENDIF ! CALL_POP
 
- 
+
            IF(idoy==mdyear) THEN ! end of year
 
               CALL POPdriver(casaflux,casabal,veg, POP)
@@ -295,12 +299,23 @@ USE casa_inout_module
         !write(*,*) 'spincasa CYEAR', CYEAR, ncfile
         WRITE(CYEAR,FMT="(I4)") CABLE_USER%CASA_SPIN_STARTYEAR + nyear - 1
         ncfile = TRIM(casafile%c2cdumppath)//'c2c_'//CYEAR//'_dump.nc'
-        call read_casa_dump( ncfile, casamet, casaflux, phen,climate, ktau, kend, .TRUE. )
+
+      !!! NOT RIGHT, NOT CHECKING LEAP FLAG !!!!
+        read(CYEAR , *) YYYY
+        IF ( IS_LEAPYEAR( YYYY ) ) THEN
+        !IF ( leaps .AND. IS_LEAPYEAR( YYYY ) ) THEN
+ 	        LOY = 366
+ 	     ELSE
+ 	         LOY = 365
+ 	     ENDIF
+
+        call read_casa_dump( ncfile, casamet, casaflux, phen,climate, ktau, kend, LOY, .TRUE. )
+        !call read_casa_dump( ncfile, casamet, casaflux, phen,climate, ktau, kend, .TRUE. )
 
         DO idoy=1,mdyear
            ktauy=idoy*ktauday
            ktau=(idoy-1)*ktauday +1
-      
+
            casamet%tairk(:)       = casamet%Tairkspin(:,idoy)
            casamet%tsoil(:,1)     = casamet%Tsoilspin_1(:,idoy)
            casamet%tsoil(:,2)     = casamet%Tsoilspin_2(:,idoy)
@@ -324,7 +339,7 @@ USE casa_inout_module
            phen%doyphase(:,3) =  phen%doyphasespin_3(:,idoy)
            phen%doyphase(:,4) =  phen%doyphasespin_4(:,idoy)
            climate%qtemp_max_last_year(:) =  casamet%mtempspin(:,idoy)
-           
+
 
 
            call biogeochem(ktauy,dels,idoy,LALLOC,veg,soil,casabiome,casapool,casaflux, &
@@ -354,23 +369,23 @@ USE casa_inout_module
               ELSE
                  casaflux%stemnpp = 0.
               ENDIF ! CALL_POP
-              
-           
+
+
               IF(idoy==mdyear) THEN ! end of year
 
                  CALL POPdriver(casaflux,casabal,veg, POP)
 
-                 
+
            ENDIF  ! end of year
         ELSE
            casaflux%stemnpp = 0.
         ENDIF ! CALL_POP
-        
-        
+
+
      ENDDO   ! end of idoy
   ENDDO   ! end of nyear
 
-  
+
 !!$  if(nloop>=nloop1) &
 !!$       call totcnppools(2+nloop-nloop1,veg,casamet,casapool,bmcplant,bmnplant,bmpplant,bmclitter,bmnlitter,bmplitter, &
 !!$       bmcsoil,bmnsoil,bmpsoil,bmnsoilmin,bmpsoillab,bmpsoilsorb,bmpsoilocc,bmarea)
