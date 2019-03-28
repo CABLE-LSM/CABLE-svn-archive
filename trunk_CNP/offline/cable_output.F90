@@ -45,6 +45,9 @@ MODULE cable_output_module
   USE netcdf
   USE cable_common_module, ONLY: filename, calcsoilalbedo, CurYear,IS_LEAPYEAR, cable_user,&
                                  gw_params
+
+  USE casadimension
+
   IMPLICIT NONE
   PRIVATE
   PUBLIC open_output_file, write_output, close_output_file, create_restart
@@ -69,7 +72,8 @@ MODULE cable_output_module
                     PlantTurnover, PlantTurnoverLeaf, PlantTurnoverFineRoot, &
                     PlantTurnoverWood, PlantTurnoverWoodDist, PlantTurnoverWoodCrowding, &
                     PlantTurnoverWoodResourceLim, dCdt, Area, LandUseFlux, patchfrac, &
-                    vcmax,hc,WatTable,GWMoist,SatFrac,Qrecharge
+                    vcmax,hc,WatTable,GWMoist,SatFrac,Qrecharge, &
+                    fracCalloc
   END TYPE out_varID_type
   TYPE(out_varID_type) :: ovid ! netcdf variable IDs for output variables
   TYPE(parID_type) :: opid ! netcdf variable IDs for output variables
@@ -229,6 +233,10 @@ MODULE cable_output_module
 
     REAL(KIND=4), POINTER, DIMENSION(:) :: RootResp   !  autotrophic root respiration [umol/m2/s]
     REAL(KIND=4), POINTER, DIMENSION(:) :: StemResp   !  autotrophic stem respiration [umol/m2/s]
+
+    REAL(KIND=4), POINTER, DIMENSION(:,:) :: fracCalloc   !  allocation fractions [-]
+
+
  END TYPE output_temporary_type
   TYPE(output_temporary_type), SAVE :: out
   INTEGER :: ok   ! netcdf error status
@@ -1013,6 +1021,18 @@ CONTAINS
        ALLOCATE(out%PlantTurnoverWoodResourceLim(mp))
        out%PlantTurnoverWoodResourceLim = 0.0
 
+       ! mgk576
+       CALL define_ovar(ncid_out, ovid%fracCalloc, 'fracCalloc', '-',          &
+                        'Allocation fraction', patchout%fracCalloc,            &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%fracCalloc(mp,mplant))
+       out%fracCalloc = 0.0 ! initialise
+
+
+
+
+
+
        IF (cable_user%POPLUC) THEN
 
           CALL define_ovar(ncid_out, ovid%LandUseFlux, 'LandUseFlux ', &
@@ -1224,7 +1244,6 @@ CONTAINS
                           'HKdepth', 'm', 'Depth at which HKsat(z) is HKsat(0) ', &
                           patchout%HKdepth, 'real', xID, yID, zID, landID, patchID)
     END IF
-
 
     ! Write global attributes for file:
     CALL DATE_AND_TIME(todaydate, nowtime)
@@ -2441,10 +2460,6 @@ CONTAINS
           !  - casaflux%clabloss/86400.0) / 1.201E-5, 4)
        ENDIF
 
-
-      ! out%GPP = out%GPP + REAL((-1.0 * canopy%fpn)             &
-       !                         / 1.201E-5, 4)
-
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
           out%GPP = out%GPP/REAL(output%interval, 4)
@@ -2734,6 +2749,20 @@ CONTAINS
           ! Reset temporary output variable:
           out%PlantTurnoverWoodResourceLim = 0.0
        END IF
+
+       !mgk576
+       
+
+
+
+
+
+
+
+
+
+
+
        IF (cable_user%POPLUC) THEN
        ! Add current timestep's value to total of temporary output variable:
        out%LandUseFlux = out%LandUseFlux + &

@@ -36,7 +36,7 @@ MODULE cable_IO_vars_module
    CHARACTER(LEN=200) :: timeunits ! timing info read from nc file
 
    CHARACTER(LEN=10) :: calendar ! 'noleap' for no leap years, 'standard' for leap years
-   
+
    CHARACTER(LEN=3) :: time_coord ! GMT or LOCal time variables
 
    REAL(r_2),POINTER,DIMENSION(:) :: timevar ! time variable from file
@@ -303,6 +303,12 @@ MODULE cable_IO_vars_module
          PlantTurnoverWoodCrowding = .FALSE., &
          PlantTurnoverWoodResourceLim = .FALSE., &
          LandUseFlux = .FALSE., &
+
+         ! mgk576
+         fracCalloc, &
+
+
+
          !parameters
          bch = .FALSE.,       & ! parameter b in Campbell equation 1985
          latitude = .FALSE.,  & ! site latitude
