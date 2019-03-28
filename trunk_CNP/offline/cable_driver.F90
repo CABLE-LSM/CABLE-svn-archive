@@ -408,7 +408,7 @@ PROGRAM cable_offline_driver
   ! This retrieves time step size, number of timesteps, starting date,
   ! latitudes, longitudes, number of sites.
   IF (TRIM(cable_user%MetType) .EQ. 'site' ) THEN
-  
+
     IF (l_casacnp) THEN
 
       CALL open_met_file( dels, koffset, kend, spinup, C%TFRZ )
@@ -416,16 +416,16 @@ PROGRAM cable_offline_driver
         WRITE(*,*)"When using POP, episode must start at Jan 1st!"
         STOP 991
       ENDIF
-    
+
     else
-    
+
       WRITE(*,*)"MetType=site only works with CASA-CNP turned on"
       STOP 991
-    
+
     endif !l_casacnp
 
   ELSEIF (TRIM(cable_user%MetType) .EQ. '') THEN
-     
+
      CALL open_met_file( dels, koffset, kend, spinup, C%TFRZ )
      IF ( koffset .NE. 0 .AND. CABLE_USER%CALL_POP ) THEN
        WRITE(*,*)"When using POP, episode must start at Jan 1st!"
@@ -433,10 +433,10 @@ PROGRAM cable_offline_driver
      ENDIF
 
   ELSE IF ( NRRRR .GT. 1 ) THEN
-    
+
     IF(.NOT.ALLOCATED(GSWP_MID)) &
       ALLOCATE( GSWP_MID( 8, CABLE_USER%YearStart:CABLE_USER%YearEnd ) )
-  
+
   ENDIF !cable_user%MetType
 
   ! outer loop - spinup loop no. ktau_tot :
@@ -795,7 +795,8 @@ PROGRAM cable_offline_driver
                     ncfile	 = TRIM(casafile%c2cdumppath)//'c2c_'//CYEAR//'_dump.nc'
                     casa_it = NINT( REAL(ktau / ktauday) )
 
-                    CALL read_casa_dump( ncfile, casamet, casaflux,phen, climate, casa_it, kend, .FALSE. )
+                    CALL read_casa_dump( ncfile, casamet, casaflux,phen, climate, casa_it, kend, LOY, .FALSE. )
+                    !CALL read_casa_dump( ncfile, casamet, casaflux,phen, climate, casa_it, kend, .FALSE. )
                  ENDIF
 
                  !jhan this is insufficient testing. condition for
