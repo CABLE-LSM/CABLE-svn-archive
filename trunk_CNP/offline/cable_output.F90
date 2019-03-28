@@ -2433,8 +2433,15 @@ CONTAINS
     !      added frday in the calculation of GPP (BP may08)
     IF(output%carbon .OR. output%GPP) THEN
        ! Add current timestep's value to total of temporary output variable:
-       out%GPP = out%GPP + REAL((-1.0 * canopy%fpn + canopy%frday)             &
-                                / 1.201E-5, 4)
+       IF(output%casa) THEN
+          out%GPP = out%GPP + REAL(casaflux%cgpp/86400.0 / 1.201E-5, 4)
+       ELSE
+          out%GPP = out%GPP + REAL((-1.0 * canopy%fpn + canopy%frday)             &
+                                   / 1.201E-5, 4)
+          !  - casaflux%clabloss/86400.0) / 1.201E-5, 4)
+       ENDIF
+
+
       ! out%GPP = out%GPP + REAL((-1.0 * canopy%fpn)             &
        !                         / 1.201E-5, 4)
 
