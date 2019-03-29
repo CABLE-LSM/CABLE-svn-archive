@@ -458,8 +458,17 @@ PROGRAM cable_offline_driver
 	   ELSE
 	      LOY = 365
 	   ENDIF
-    ! Check for gswp run
-	   IF ( TRIM(cable_user%MetType) .EQ. 'gswp' ) THEN
+
+      IF ( TRIM(cable_user%MetType) .EQ. '' ) THEN
+         IF (leaps) THEN
+            calendar = "standard"
+         ELSE
+            calendar = "noleap"
+         ENDIF
+      ENDIF
+
+      ! Check for gswp run
+      IF ( TRIM(cable_user%MetType) .EQ. 'gswp' ) THEN
 	      ncciy = CurYear
 
 	      CALL prepareFiles(ncciy)
