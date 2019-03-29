@@ -123,7 +123,6 @@ SUBROUTINE casa_xnp(xnplimit,xNPuptake,veg,casabiome,casapool,casaflux,casamet)
     totNreqmax = 0.0
     totNreqmin = 0.0
     xNuptake   = 1.0
-
     xnCnpp = max(0.0,casaflux%Cnpp)
     call casa_Nrequire(xnCnpp,Nreqmin,Nreqmax,NtransPtoP,veg, &
                      casabiome,casapool,casaflux,casamet)
@@ -156,7 +155,7 @@ SUBROUTINE casa_xnp(xnplimit,xNPuptake,veg,casabiome,casapool,casaflux,casamet)
     ENDDO
   ENDIF
 
-  xnplimit(:)  = 1.0
+  xnplimit(:)  = 1.0 ! disable the empirical method for nutrient limitation
   xNPuptake(:)     = min(xnuptake(:), xpuptake(:))
   do np =1, mp
      if(casamet%iveg2(np)/=icewater.and.casaflux%cnpp(np) > 0.0.and.xNPuptake(np) < 1.0) then
@@ -167,7 +166,7 @@ SUBROUTINE casa_xnp(xnplimit,xNPuptake,veg,casabiome,casapool,casaflux,casamet)
    enddo
 
 !write(59,91)  xNuptake(1),casapool%Nsoilmin(1), totNreqmin(1)*deltpool
-91  format(20(e12.4,2x))
+!91  format(20(e12.4,2x))
 !  casaflux%cnpp(:) = xNPuptake(:) * xnplimit(:) * casaflux%cnpp(:)
 
 
