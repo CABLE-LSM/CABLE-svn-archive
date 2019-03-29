@@ -106,7 +106,9 @@ MODULE cable_input_module
            avPrecip,     &
            iveg,         &
            isoil,        &
-           patchfrac
+           patchfrac,    &
+           Ndep,         &
+           Pdep
    END TYPE met_varID_type
    TYPE(met_varID_type)              :: id ! netcdf variable IDs for input met variables
    TYPE met_units_type
@@ -122,7 +124,9 @@ MODULE cable_input_module
            Snowf,        &
            CO2air,       &
            Elev,         &
-           avPrecip
+           avPrecip,     &
+           Ndep,         &
+           Pdep
    END TYPE met_units_type
    TYPE(met_units_type)              :: metunits ! units for meteorological variables
    TYPE convert_units_type
