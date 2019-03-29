@@ -316,6 +316,12 @@ MODULE cable_IO_vars_module
          Nfix = .FALSE., &
          Ndep = .FALSE., &
          Nloss = .FALSE., &
+         Nleach = .FALSE., &
+         Nup = .FALSE., &
+         Ngrossmin = .FALSE., &
+         Nnetmin = .FALSE., &
+         Nimmob = .FALSE., &
+         
 
 
 
