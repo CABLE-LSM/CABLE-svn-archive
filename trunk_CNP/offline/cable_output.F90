@@ -74,7 +74,7 @@ MODULE cable_output_module
                     PlantTurnoverWoodResourceLim, dCdt, Area, LandUseFlux, patchfrac, &
                     vcmax,hc,WatTable,GWMoist,SatFrac,Qrecharge, &
                     fracCallocLeaf, fracCallocStem, fracCallocRoot, clabile,&
-                    PlantNLeaf, PlantNRoot, PlantNWood, Nfix, Ndep
+                    PlantNLeaf, PlantNRoot, PlantNWood, Nfix, Ndep, Nloss
 
   END TYPE out_varID_type
   TYPE(out_varID_type) :: ovid ! netcdf variable IDs for output variables
@@ -245,6 +245,7 @@ MODULE cable_output_module
     REAL(KIND=4), POINTER, DIMENSION(:) :: PlantNRoot   !
     REAL(KIND=4), POINTER, DIMENSION(:) :: Nfix         ! g N/m^2/year
     REAL(KIND=4), POINTER, DIMENSION(:) :: Ndep         ! g N/m^2/year
+    REAL(KIND=4), POINTER, DIMENSION(:) :: Nloss        ! g N/m^2/year
 
 
  END TYPE output_temporary_type
@@ -1077,6 +1078,12 @@ CONTAINS
                         'dummy', xID, yID, zID, landID, patchID, tID)
        ALLOCATE(out%Ndep(mp))
        out%Ndep = 0.0 ! initialise
+
+       CALL define_ovar(ncid_out, ovid%Nloss, 'Nloss', '-',  &
+                        'N loss', patchout%Nloss,   &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%Nloss(mp))
+       out%Nloss = 0.0 ! initialise
 
        CALL define_ovar(ncid_out, ovid%PlantNLeaf, 'PlantNLeaf', 'kg C/m^2',               &
                         'Plant Nitrogen: leaf', patchout%PlantNLeaf,         &
@@ -2914,7 +2921,17 @@ CONTAINS
          out%Ndep = 0.0
       END IF
 
-
+      out%Nloss = out%Nloss + REAL(casaflux%Nminloss, 4)
+      IF(writenow) THEN
+         ! Divide accumulated variable by number of accumulated time steps:
+         out%Nloss = out%Nloss / REAL(output%interval, 4)
+         ! Write value to file:
+         CALL write_ovar(out_timestep, ncid_out, ovid%Nloss, 'Nloss', &
+                        out%Nloss, ranges%NPP, patchout%Nloss, &
+                        'default', met)
+         ! Reset temporary output variable:
+         out%Nloss = 0.0
+      END IF
 
 
 

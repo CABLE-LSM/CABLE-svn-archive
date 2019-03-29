@@ -315,6 +315,7 @@ MODULE cable_IO_vars_module
          PlantNRoot = .FALSE., &
          Nfix = .FALSE., &
          Ndep = .FALSE., &
+         Nloss = .FALSE., &
 
 
 
