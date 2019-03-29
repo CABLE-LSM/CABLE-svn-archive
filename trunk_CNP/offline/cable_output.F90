@@ -1092,13 +1092,13 @@ CONTAINS
        ALLOCATE(out%Nloss(mp))
        out%Nloss = 0.0 ! initialise
 
-       CALL define_ovar(ncid_out, ovid%Nloss, 'Nleach', '-',  &
+       CALL define_ovar(ncid_out, ovid%Nleach, 'Nleach', '-',  &
                         'N leach', patchout%Nleach,   &
                         'dummy', xID, yID, zID, landID, patchID, tID)
        ALLOCATE(out%Nleach(mp))
        out%Nleach = 0.0 ! initialise
 
-       CALL define_ovar(ncid_out, ovid%Nloss, 'Nup', '-',  &
+       CALL define_ovar(ncid_out, ovid%Nup, 'Nup', '-',  &
                         'N uptake', patchout%Nup,   &
                         'dummy', xID, yID, zID, landID, patchID, tID)
        ALLOCATE(out%Nup(mp))
