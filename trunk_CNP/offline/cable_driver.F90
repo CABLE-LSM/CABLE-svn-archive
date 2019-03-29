@@ -459,13 +459,16 @@ PROGRAM cable_offline_driver
 	      LOY = 365
 	   ENDIF
 
+      ! Add calendar to standard out
+      ! This could go as an else below but its impossible to see where
+      ! due to the poor indenting
       IF ( TRIM(cable_user%MetType) .EQ. '' ) THEN
-         IF (leaps) THEN
+         IF (leaps) then
             calendar = "standard"
          ELSE
             calendar = "noleap"
-         ENDIF
-      ENDIF
+         END IF
+      END IF
 
       ! Check for gswp run
       IF ( TRIM(cable_user%MetType) .EQ. 'gswp' ) THEN
