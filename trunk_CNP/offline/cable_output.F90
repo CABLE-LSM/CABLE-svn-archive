@@ -2804,22 +2804,6 @@ CONTAINS
 
 
 
-       IF(output%casa) THEN
-          out%NPP = out%NPP + REAL(casaflux%cnpp/86400.0 / 1.201E-5, 4)
-       ELSE
-          out%NPP = out%NPP + REAL((-1.0 * canopy%fpn - canopy%frp) / 1.201E-5, 4)
-          !  - casaflux%clabloss/86400.0) / 1.201E-5, 4)
-       ENDIF
-       IF(writenow) THEN
-          ! Divide accumulated variable by number of accumulated time steps:
-          out%NPP = out%NPP / REAL(output%interval, 4)
-          ! Write value to file:
-          CALL write_ovar(out_timestep, ncid_out, ovid%NPP, 'NPP', out%NPP,    &
-                          ranges%NPP, patchout%NPP, 'default', met)
-          ! Reset temporary output variable:
-          out%NPP = 0.0
-       END IF
-
 
 
 
