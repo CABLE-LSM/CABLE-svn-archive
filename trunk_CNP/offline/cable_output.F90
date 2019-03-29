@@ -75,7 +75,7 @@ MODULE cable_output_module
                     vcmax,hc,WatTable,GWMoist,SatFrac,Qrecharge, &
                     fracCallocLeaf, fracCallocStem, fracCallocRoot, clabile,&
                     PlantNLeaf, PlantNRoot, PlantNWood, Nfix, Ndep, Nloss, &
-                    Nleach, Nup, Ngrossmin, Nnetmin, Nimmob
+                    Nleach, Nup, Ngrossmin, Nnetmin, Nimmob, Pdep
 
 
   END TYPE out_varID_type
@@ -253,6 +253,7 @@ MODULE cable_output_module
     REAL(KIND=4), POINTER, DIMENSION(:) :: Ngrossmin        ! g N/m^2/year
     REAL(KIND=4), POINTER, DIMENSION(:) :: Nnetmin        ! g N/m^2/year
     REAL(KIND=4), POINTER, DIMENSION(:) :: Nimmob        ! g N/m^2/year
+    REAL(KIND=4), POINTER, DIMENSION(:) :: Pdep        ! g P/m^2/year
 
 
  END TYPE output_temporary_type
@@ -1081,7 +1082,7 @@ CONTAINS
        out%Nfix = 0.0 ! initialise
 
        CALL define_ovar(ncid_out, ovid%Ndep, 'Ndep', '-',  &
-                        'N Fixation', patchout%Ndep,   &
+                        'N Deposition', patchout%Ndep,   &
                         'dummy', xID, yID, zID, landID, patchID, tID)
        ALLOCATE(out%Ndep(mp))
        out%Ndep = 0.0 ! initialise
@@ -1140,6 +1141,12 @@ CONTAINS
                         'dummy', xID, yID, zID, landID, patchID, tID)
        ALLOCATE(out%PlantNWood(mp))
        out%PlantNWood = 0.0 ! initialise
+
+       CALL define_ovar(ncid_out, ovid%Pdep, 'Pdep', '-',  &
+                        'P Deposition', patchout%Pdep,   &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%Pdep(mp))
+       out%Pdep = 0.0 ! initialise
 
 
        IF (cable_user%POPLUC) THEN
@@ -3031,7 +3038,17 @@ CONTAINS
          out%Nimmob = 0.0
       END IF
 
-
+      out%Pdep = out%Pdep + REAL(casaflux%Pdep, 4)
+      IF(writenow) THEN
+         ! Divide accumulated variable by number of accumulated time steps:
+         out%Pdep = out%Pdep / REAL(output%interval, 4)
+         ! Write value to file:
+         CALL write_ovar(out_timestep, ncid_out, ovid%Pdep, 'Pdep', &
+                        out%Pdep, ranges%NPP, patchout%Pdep, &
+                        'default', met)
+         ! Reset temporary output variable:
+         out%Pdep = 0.0
+      END IF
 
 
        IF (cable_user%POPLUC) THEN
