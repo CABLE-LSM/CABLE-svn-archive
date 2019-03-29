@@ -323,7 +323,15 @@ MODULE cable_IO_vars_module
          Nnetmin = .FALSE., &
          Nimmob = .FALSE., &
          Pdep = .FALSE., &
-
+         Pleach = .FALSE., &
+         Ploss = .FALSE., &
+         Pup = .FALSE., &
+         Pgrossmin = .FALSE., &
+         Pimmob = .FALSE., &
+         Psnetmin = .FALSE., &
+         PlantPLeaf = .FALSE., &
+         PlantPWood = .FALSE., &
+         PlantPRoot = .FALSE., &
 
 
          !parameters
