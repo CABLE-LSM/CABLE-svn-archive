@@ -73,7 +73,7 @@ MODULE cable_output_module
                     PlantTurnoverWood, PlantTurnoverWoodDist, PlantTurnoverWoodCrowding, &
                     PlantTurnoverWoodResourceLim, dCdt, Area, LandUseFlux, patchfrac, &
                     vcmax,hc,WatTable,GWMoist,SatFrac,Qrecharge, &
-                    fracCallocLeaf, fracCallocStem, fracCallocRoot
+                    fracCallocLeaf, fracCallocStem, fracCallocRoot, clabile
   END TYPE out_varID_type
   TYPE(out_varID_type) :: ovid ! netcdf variable IDs for output variables
   TYPE(parID_type) :: opid ! netcdf variable IDs for output variables
@@ -237,6 +237,7 @@ MODULE cable_output_module
     REAL(KIND=4), POINTER, DIMENSION(:) :: fracCallocLeaf   !  allocation fractions [-]
     REAL(KIND=4), POINTER, DIMENSION(:) :: fracCallocStem   !  allocation fractions [-]
     REAL(KIND=4), POINTER, DIMENSION(:) :: fracCallocRoot   !  allocation fractions [-]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: clabile   !  labile C
 
 
  END TYPE output_temporary_type
@@ -1051,6 +1052,12 @@ CONTAINS
                         'dummy', xID, yID, zID, landID, patchID, tID)
        ALLOCATE(out%fracCallocRoot(mp))
        out%fracCallocRoot = 0.0 ! initialise
+
+       CALL define_ovar(ncid_out, ovid%clabile, 'clabile', '-',  &
+                        'Labile C', patchout%clabile,   &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%clabile(mp))
+       out%clabile = 0.0 ! initialise
 
 
        IF (cable_user%POPLUC) THEN
@@ -2826,9 +2833,25 @@ CONTAINS
           out%fracCallocRoot = 0.0
        END IF
 
+       out%fracCallocLeaf =  out%fracCallocLeaf + &
+                                 REAL(casaflux%fracCalloc(:,1), 4)
 
 
 
+      out%fracCallocLeaf =  out%fracCallocLeaf + &
+                                REAL(casaflux%fracCalloc(:,1), 4)
+
+      out%clabile = out%clabile + REAL(casapool%clabile/86400.0 / 1.201E-5, 4)
+      IF(writenow) THEN
+         ! Divide accumulated variable by number of accumulated time steps:
+         out%clabile = out%clabile / REAL(output%interval, 4)
+         ! Write value to file:
+         CALL write_ovar(out_timestep, ncid_out, ovid%clabile, 'clabile', &
+                        out%clabile, ranges%NPP, patchout%clabile, &
+                        'default', met)
+         ! Reset temporary output variable:
+         out%clabile = 0.0
+      END IF
 
 
 

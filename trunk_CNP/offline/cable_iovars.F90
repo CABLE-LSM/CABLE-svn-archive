@@ -307,7 +307,7 @@ MODULE cable_IO_vars_module
          ! mgk576
          !fracCalloc, &
          fracCallocLeaf,fracCallocStem,fracCallocRoot, &
-
+         clabile, &
 
 
          !parameters
