@@ -306,11 +306,14 @@ MODULE cable_IO_vars_module
 
          ! mgk576
          !fracCalloc, &
-         fracCallocLeaf,fracCallocStem,fracCallocRoot, &
-         clabile, &
+         fracCallocLeaf  = .FALSE., &
+         fracCallocStem = .FALSE., &
+         fracCallocRoot = .FALSE., &
+         clabile = .FALSE., &
          PlantNLeaf = .FALSE., &
          PlantNWood = .FALSE., &
          PlantNRoot = .FALSE., &
+         Nfix = .FALSE., &
 
 
 
