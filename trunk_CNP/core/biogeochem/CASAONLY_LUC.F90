@@ -85,7 +85,7 @@ use casa_inout_module
   INTEGER :: count_sum_casa ! number of time steps over which casa pools &
   !and fluxes are aggregated (for output)
 
-  
+
   if (.NOT.Allocated(Iw)) allocate(Iw(POP%np))
 
 
@@ -124,8 +124,8 @@ use casa_inout_module
 
      ncfile = TRIM(casafile%c2cdumppath)//'c2c_'//CYEAR//'_dump.nc'
 
-
-     call read_casa_dump( ncfile,casamet, casaflux, phen,climate, 1,1,.TRUE. )
+     ! Mgk576, this won't work, temp compile fix
+     call read_casa_dump( ncfile,casamet, casaflux, phen,climate, 1,1, -9999, .TRUE. )
      !!CLN901  format(A99)
      do idoy=1,mdyear
         ktau=(idoy-1)*ktauday +ktauday
@@ -154,7 +154,7 @@ use casa_inout_module
         phen%doyphase(:,4) =  phen%doyphasespin_4(:,idoy)
         climate%qtemp_max_last_year(:) =  casamet%mtempspin(:,idoy)
 
-      
+
         CALL biogeochem(ktau,dels,idoy,LALLOC,veg,soil,casabiome,casapool,casaflux, &
              casamet,casabal,phen,POP,climate,xnplimit,xkNlimiting,xklitter, &
              xksoil,xkleaf,xkleafcold,xkleafdry,&
@@ -168,7 +168,7 @@ use casa_inout_module
         count_sum_casa = count_sum_casa + 1
 
 
-        
+
         ! accumulate annual variables for use in POP
         IF(idoy==1 ) THEN
            casaflux%stemnpp =  casaflux%cnpp * casaflux%fracCalloc(:,2) * 0.7 ! (assumes 70% of wood NPP is allocated above ground)
@@ -192,7 +192,7 @@ use casa_inout_module
               POPLUC%ptos(k) = LUC_EXPT%INPUT(ptos)%VAL(k)
               POPLUC%ptog(k) = LUC_EXPT%INPUT(ptog)%VAL(k)
               POPLUC%stop(k) = 0.0
-              POPLUC%stog(k) = LUC_EXPT%INPUT(stog)%VAL(k) 
+              POPLUC%stog(k) = LUC_EXPT%INPUT(stog)%VAL(k)
               POPLUC%gtop(k) = 0.0
               POPLUC%gtos(k) = LUC_EXPT%INPUT(gtos)%VAL(k)
               POPLUC%pharv(k) = LUC_EXPT%INPUT(pharv)%VAL(k)
@@ -255,14 +255,14 @@ use casa_inout_module
 !!$               WHERE (pop%pop_grid(:)%cmass_sum_old.gt.0.1 .and. pop%pop_grid(:)%cmass_sum.gt.0.1 )
 !!$               casapool%Cplant(Iw,2) = casapool%Cplant(Iw,2)*(1.0- min( POP%pop_grid(:)%cat_mortality/(POP%pop_grid(:)%cmass_sum_old),0.99))
 !!$               casapool%Nplant(Iw,2) = casapool%Nplant(Iw,2)*(1.0- min( POP%pop_grid(:)%cat_mortality/(POP%pop_grid(:)%cmass_sum_old),0.99))
-!!$               ENDWHERE  
+!!$               ENDWHERE
 
 
            CALL POP_LUC_CASA_transfer(POPLUC,POP,LUC_EXPT,casapool,casabal,casaflux,ktauday)
-      
+
            CALL WRITE_LUC_OUTPUT_GRID_NC( POPLUC, YYYY, ( YYYY.EQ.cable_user%YearEnd ))
 
-           CALL POPLUC_set_patchfrac(POPLUC,LUC_EXPT) 
+           CALL POPLUC_set_patchfrac(POPLUC,LUC_EXPT)
 
         ENDIF  ! end of year
 
@@ -287,4 +287,3 @@ use casa_inout_module
 
 
 END SUBROUTINE CASAONLY_LUC
-
