@@ -314,6 +314,7 @@ MODULE cable_IO_vars_module
          PlantNWood = .FALSE., &
          PlantNRoot = .FALSE., &
          Nfix = .FALSE., &
+         Ndep = .FALSE., &
 
 
 
