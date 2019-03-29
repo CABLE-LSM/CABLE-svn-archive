@@ -164,8 +164,9 @@ MODULE cable_IO_vars_module
          parameters,&! TRUE if non-default parameters are found
          initial, & ! switched to TRUE when initialisation data are loaded
          patch,   & ! T=> met file have a subgrid veg/soil patch dimension
-         laiPatch   ! T=> LAI file have a subgrid veg patch dimension
-
+         laiPatch,& ! T=> LAI file have a subgrid veg patch dimension
+         Ndep, &
+         Pdep
    END TYPE input_details_type
 
    TYPE(input_details_type) :: exists
@@ -321,7 +322,7 @@ MODULE cable_IO_vars_module
          Ngrossmin = .FALSE., &
          Nnetmin = .FALSE., &
          Nimmob = .FALSE., &
-         
+
 
 
 
