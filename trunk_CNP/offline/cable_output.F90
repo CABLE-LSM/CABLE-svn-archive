@@ -74,7 +74,7 @@ MODULE cable_output_module
                     PlantTurnoverWoodResourceLim, dCdt, Area, LandUseFlux, patchfrac, &
                     vcmax,hc,WatTable,GWMoist,SatFrac,Qrecharge, &
                     fracCallocLeaf, fracCallocStem, fracCallocRoot, clabile,&
-                    PlantNLeaf, PlantNRoot, PlantNWood
+                    PlantNLeaf, PlantNRoot, PlantNWood, Nfix
 
   END TYPE out_varID_type
   TYPE(out_varID_type) :: ovid ! netcdf variable IDs for output variables
@@ -243,6 +243,7 @@ MODULE cable_output_module
     REAL(KIND=4), POINTER, DIMENSION(:) :: PlantNLeaf   !
     REAL(KIND=4), POINTER, DIMENSION(:) :: PlantNWood   !
     REAL(KIND=4), POINTER, DIMENSION(:) :: PlantNRoot   !
+    REAL(KIND=4), POINTER, DIMENSION(:) :: Nfix         ! g N/m^2/year
 
 
  END TYPE output_temporary_type
@@ -1063,6 +1064,12 @@ CONTAINS
                         'dummy', xID, yID, zID, landID, patchID, tID)
        ALLOCATE(out%clabile(mp))
        out%clabile = 0.0 ! initialise
+
+       CALL define_ovar(ncid_out, ovid%Nfix, 'Nfix', '-',  &
+                        'N Fixation', patchout%Nfix,   &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%Nfix(mp))
+       out%Nfix = 0.0 ! initialise
 
        CALL define_ovar(ncid_out, ovid%PlantNLeaf, 'PlantNLeaf', 'kg C/m^2',               &
                         'Plant Nitrogen: leaf', patchout%PlantNLeaf,         &
@@ -2874,6 +2881,18 @@ CONTAINS
                         'default', met)
          ! Reset temporary output variable:
          out%clabile = 0.0
+      END IF
+
+      out%Nfix = out%Nfix + REAL(casaflux%Nminfix, 4)
+      IF(writenow) THEN
+         ! Divide accumulated variable by number of accumulated time steps:
+         out%Nfix = out%Nfix / REAL(output%interval, 4)
+         ! Write value to file:
+         CALL write_ovar(out_timestep, ncid_out, ovid%Nfix, 'Nfix', &
+                        out%Nfix, ranges%NPP, patchout%Nfix, &
+                        'default', met)
+         ! Reset temporary output variable:
+         out%Nfix = 0.0
       END IF
 
 
