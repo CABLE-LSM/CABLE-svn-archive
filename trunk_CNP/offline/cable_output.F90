@@ -885,6 +885,16 @@ CONTAINS
        out%Qrecharge = 0.0 ! initialise
     END IF
 
+    ! mgk576
+    IF(output%veg) THEN
+       CALL define_ovar(ncid_out, ovid%vcmax, 'vcmax', '-',                        &
+                        'Vcmax', patchout%LAI, 'dummy', xID,         &
+                        yID, zID, landID, patchID, tID)
+       ALLOCATE(out%vcmax(mp))
+       out%vcmax = 0.0 ! initialise
+    END IF
+
+
     IF(output%casa) THEN
        CALL define_ovar(ncid_out, ovid%NBP, 'NBP', 'umol/m^2/s',               &
                         'Net Biosphere Production &
@@ -1152,9 +1162,9 @@ CONTAINS
     IF(output%params .OR. output%ejmax) CALL define_ovar(ncid_out, opid%ejmax, &
        'ejmax', 'mol/m^2/s', 'Max potential electron transport rate top leaf', &
                          patchout%ejmax, 'real', xID, yID, zID, landID, patchID)
-    IF(output%params .OR. output%vcmax) CALL define_ovar(ncid_out, opid%vcmax, &
-             'vcmax', 'mol/m^2/s', 'Maximum RuBP carboxylation rate top leaf', &
-                         patchout%vcmax, 'real', xID, yID, zID, landID, patchID)
+    !IF(output%params .OR. output%vcmax) CALL define_ovar(ncid_out, opid%vcmax, &
+      !       'vcmax', 'mol/m^2/s', 'Maximum RuBP carboxylation rate top leaf', &
+      !                   patchout%vcmax, 'real', xID, yID, zID, landID, patchID)
     IF(output%params .OR. output%rp20) CALL define_ovar(ncid_out, opid%rp20,   &
                           'rp20', '-', 'Plant respiration coefficient at 20C', &
                           patchout%rp20, 'real', xID, yID, zID, landID, patchID)
@@ -1401,8 +1411,8 @@ CONTAINS
               'dleaf', REAL(veg%dleaf, 4), ranges%dleaf, patchout%dleaf, 'real')
     IF(output%params .OR. output%ejmax) CALL write_ovar(ncid_out, opid%ejmax,  &
               'ejmax', REAL(veg%ejmax, 4), ranges%ejmax, patchout%ejmax, 'real')
-    IF(output%params .OR. output%vcmax) CALL write_ovar(ncid_out, opid%vcmax,  &
-              'vcmax', REAL(veg%vcmax, 4), ranges%vcmax, patchout%vcmax, 'real')
+    !IF(output%params .OR. output%vcmax) CALL write_ovar(ncid_out, opid%vcmax,  &
+   !           'vcmax', REAL(veg%vcmax, 4), ranges%vcmax, patchout%vcmax, 'real')
     IF(output%params .OR. output%frac4) CALL write_ovar(ncid_out, opid%frac4,  &
               'frac4', REAL(veg%frac4, 4), ranges%frac4, patchout%frac4, 'real')
 
@@ -2428,6 +2438,22 @@ CONTAINS
           out%LAI = 0.0
        END IF
     END IF
+
+    ! mgk576
+    IF(output%veg) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%vcmax = out%vcmax + REAL(veg%vcmax, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%vcmax = out%vcmax/REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%vcmax, 'vcmax', out%vcmax,    &
+                          ranges%vcmax, patchout%LAI, 'default', met)
+          ! Reset temporary output variable:
+          out%vcmax = 0.0
+       END IF
+    END IF
+
     !------------------------WRITE BALANCES DATA--------------------------------
     ! Ebal: cumulative energy balance [W/m^2]
     IF(output%balances .OR. output%Ebal) THEN
