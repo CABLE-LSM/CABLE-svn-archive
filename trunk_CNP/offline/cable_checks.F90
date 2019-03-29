@@ -180,7 +180,12 @@ MODULE cable_checks_module
            WatTable = (/0.0,1.0e10/),          &
            GWwb = (/0.0,1.0/),              &
            SatFrac = (/0.0,1.0/),              &
-           Qrecharge = (/-9999.0,9999.0/)
+           Qrecharge = (/-9999.0,9999.0/), &
+
+
+           ! mgk576
+           fracCalloc = (/0.0,1.0/)
+
    END TYPE ranges_type
    TYPE(ranges_type),SAVE :: ranges
 

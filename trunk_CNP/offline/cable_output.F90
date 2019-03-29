@@ -73,7 +73,7 @@ MODULE cable_output_module
                     PlantTurnoverWood, PlantTurnoverWoodDist, PlantTurnoverWoodCrowding, &
                     PlantTurnoverWoodResourceLim, dCdt, Area, LandUseFlux, patchfrac, &
                     vcmax,hc,WatTable,GWMoist,SatFrac,Qrecharge, &
-                    fracCalloc
+                    fracCallocLeaf, fracCallocStem, fracCallocRoot
   END TYPE out_varID_type
   TYPE(out_varID_type) :: ovid ! netcdf variable IDs for output variables
   TYPE(parID_type) :: opid ! netcdf variable IDs for output variables
@@ -234,7 +234,9 @@ MODULE cable_output_module
     REAL(KIND=4), POINTER, DIMENSION(:) :: RootResp   !  autotrophic root respiration [umol/m2/s]
     REAL(KIND=4), POINTER, DIMENSION(:) :: StemResp   !  autotrophic stem respiration [umol/m2/s]
 
-    REAL(KIND=4), POINTER, DIMENSION(:,:) :: fracCalloc   !  allocation fractions [-]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: fracCallocLeaf   !  allocation fractions [-]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: fracCallocStem   !  allocation fractions [-]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: fracCallocRoot   !  allocation fractions [-]
 
 
  END TYPE output_temporary_type
@@ -1022,15 +1024,23 @@ CONTAINS
        out%PlantTurnoverWoodResourceLim = 0.0
 
        ! mgk576
-       CALL define_ovar(ncid_out, ovid%fracCalloc, 'fracCalloc', '-',          &
-                        'Allocation fraction', patchout%fracCalloc,            &
+       CALL define_ovar(ncid_out, ovid%fracCallocLeaf, 'fracCallocLeaf', '-',  &
+                        'Leaf allocation fraction', patchout%fracCallocLeaf,   &
                         'dummy', xID, yID, zID, landID, patchID, tID)
-       ALLOCATE(out%fracCalloc(mp,mplant))
-       out%fracCalloc = 0.0 ! initialise
+       ALLOCATE(out%fracCallocLeaf(mp))
+       out%fracCallocLeaf = 0.0 ! initialise
 
+       CALL define_ovar(ncid_out, ovid%fracCallocStem, 'fracCallocStem', '-',  &
+                        'Stem allocation fraction', patchout%fracCallocStem,   &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%fracCallocStem(mp))
+       out%fracCallocStem = 0.0 ! initialise
 
-
-
+       CALL define_ovar(ncid_out, ovid%fracCallocRoot, 'fracCallocRoot', '-',  &
+                        'Root allocation fraction', patchout%fracCallocRoot,   &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%fracCallocRoot(mp))
+       out%fracCallocRoot = 0.0 ! initialise
 
 
        IF (cable_user%POPLUC) THEN
@@ -2751,13 +2761,64 @@ CONTAINS
        END IF
 
        !mgk576
-       
+       ! Add current timestep's value to total of temporary output variable:
+       !out%fracCalloc = out%fracCalloc + &
+       !                     REAL((casaflux%fracCalloc(:,:))/86400.0, 4)
+
+       out%fracCallocLeaf =  out%fracCallocLeaf + &
+                                 REAL(casaflux%fracCalloc(:,1), 4)
+       out%fracCallocStem =  out%fracCallocStem + &
+                                 REAL(casaflux%fracCalloc(:,2), 4)
+       out%fracCallocRoot =  out%fracCallocRoot + &
+                                 REAL(casaflux%fracCalloc(:,3), 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%fracCallocLeaf = out%fracCallocLeaf / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%fracCallocLeaf, &
+                          'fracCallocLeaf', out%fracCallocLeaf, ranges%fraccalloc, &
+                          patchout%fracCallocLeaf, 'default', met)
+          ! Reset temporary output variable:
+          out%fracCallocLeaf = 0.0
+
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%fracCallocStem = out%fracCallocStem / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%fracCallocStem, &
+                          'fracCallocStem', out%fracCallocStem, ranges%fraccalloc, &
+                          patchout%fracCallocStem, 'default', met)
+          ! Reset temporary output variable:
+          out%fracCallocStem = 0.0
+
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%fracCallocRoot = out%fracCallocRoot / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%fracCallocRoot, &
+                          'fracCallocRoot', out%fracCallocRoot, ranges%fraccalloc, &
+                          patchout%fracCallocRoot, 'default', met)
+          ! Reset temporary output variable:
+          out%fracCallocRoot = 0.0
+       END IF
 
 
 
 
 
-
+       IF(output%casa) THEN
+          out%NPP = out%NPP + REAL(casaflux%cnpp/86400.0 / 1.201E-5, 4)
+       ELSE
+          out%NPP = out%NPP + REAL((-1.0 * canopy%fpn - canopy%frp) / 1.201E-5, 4)
+          !  - casaflux%clabloss/86400.0) / 1.201E-5, 4)
+       ENDIF
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%NPP = out%NPP / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%NPP, 'NPP', out%NPP,    &
+                          ranges%NPP, patchout%NPP, 'default', met)
+          ! Reset temporary output variable:
+          out%NPP = 0.0
+       END IF
 
 
 

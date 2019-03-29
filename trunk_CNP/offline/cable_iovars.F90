@@ -305,7 +305,8 @@ MODULE cable_IO_vars_module
          LandUseFlux = .FALSE., &
 
          ! mgk576
-         fracCalloc, &
+         !fracCalloc, &
+         fracCallocLeaf,fracCallocStem,fracCallocRoot, &
 
 
 
