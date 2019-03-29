@@ -308,6 +308,10 @@ MODULE cable_IO_vars_module
          !fracCalloc, &
          fracCallocLeaf,fracCallocStem,fracCallocRoot, &
          clabile, &
+         PlantNLeaf = .FALSE., &
+         PlantNWood = .FALSE., &
+         PlantNRoot = .FALSE., &
+
 
 
          !parameters

@@ -73,7 +73,9 @@ MODULE cable_output_module
                     PlantTurnoverWood, PlantTurnoverWoodDist, PlantTurnoverWoodCrowding, &
                     PlantTurnoverWoodResourceLim, dCdt, Area, LandUseFlux, patchfrac, &
                     vcmax,hc,WatTable,GWMoist,SatFrac,Qrecharge, &
-                    fracCallocLeaf, fracCallocStem, fracCallocRoot, clabile
+                    fracCallocLeaf, fracCallocStem, fracCallocRoot, clabile,&
+                    PlantNLeaf, PlantNRoot, PlantNWood
+
   END TYPE out_varID_type
   TYPE(out_varID_type) :: ovid ! netcdf variable IDs for output variables
   TYPE(parID_type) :: opid ! netcdf variable IDs for output variables
@@ -238,6 +240,9 @@ MODULE cable_output_module
     REAL(KIND=4), POINTER, DIMENSION(:) :: fracCallocStem   !  allocation fractions [-]
     REAL(KIND=4), POINTER, DIMENSION(:) :: fracCallocRoot   !  allocation fractions [-]
     REAL(KIND=4), POINTER, DIMENSION(:) :: clabile   !  labile C
+    REAL(KIND=4), POINTER, DIMENSION(:) :: PlantNLeaf   !
+    REAL(KIND=4), POINTER, DIMENSION(:) :: PlantNWood   !
+    REAL(KIND=4), POINTER, DIMENSION(:) :: PlantNRoot   !
 
 
  END TYPE output_temporary_type
@@ -1058,6 +1063,24 @@ CONTAINS
                         'dummy', xID, yID, zID, landID, patchID, tID)
        ALLOCATE(out%clabile(mp))
        out%clabile = 0.0 ! initialise
+
+       CALL define_ovar(ncid_out, ovid%PlantNLeaf, 'PlantNLeaf', 'kg C/m^2',               &
+                        'Plant Nitrogen: leaf', patchout%PlantNLeaf,         &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%PlantNLeaf(mp))
+       out%PlantNLeaf = 0.0 ! initialise
+
+       CALL define_ovar(ncid_out, ovid%PlantNRoot, 'PlantNRoot', 'kg C/m^2',               &
+                        'Plant Nitrogen: roots', patchout%PlantNRoot,         &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%PlantNRoot(mp))
+       out%PlantNRoot = 0.0 ! initialise
+
+       CALL define_ovar(ncid_out, ovid%PlantNWood, 'PlantNWood', 'kg C/m^2',               &
+                        'Plant Nitrogen: wood (above- and below-ground', patchout%PlantCarbWood,         &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%PlantNWood(mp))
+       out%PlantNWood = 0.0 ! initialise
 
 
        IF (cable_user%POPLUC) THEN
@@ -3005,6 +3028,43 @@ CONTAINS
           ! Reset temporary output variable:
           out%PlantCarbWood = 0.0
        END IF
+
+       out%PlantNLeaf = out%PlantNLeaf + REAL(casapool%nplant(:,1) / 1000.0, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%PlantNLeaf = out%PlantNLeaf / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%PlantNLeaf, 'PlantNLeaf', out%PlantNLeaf,    &
+                          ranges%TotLittCarb, patchout%PlantNLeaf, 'default', met)
+          ! Reset temporary output variable:
+          out%PlantNLeaf = 0.0
+       END IF
+
+       out%PlantNWood = out%PlantNWood + REAL(casapool%nplant(:,2) / 1000.0, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%PlantNWood = out%PlantNWood / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%PlantNWood, 'PlantNWood', out%PlantNWood,    &
+                          ranges%TotLittCarb, patchout%PlantNWood, 'default', met)
+          ! Reset temporary output variable:
+          out%PlantNWood = 0.0
+       END IF
+
+       out%PlantNRoot = out%PlantNRoot + REAL(casapool%nplant(:,3) / 1000.0, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%PlantNRoot = out%PlantNRoot / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%PlantNRoot, 'PlantNRoot', &
+               out%PlantNRoot,    &
+                          ranges%TotLittCarb, patchout%PlantNRoot, 'default', met)
+          ! Reset temporary output variable:
+          out%PlantNRoot = 0.0
+       END IF
+
+
+
 
       out%TotLivBiomass = out%TotLivBiomass + REAL((SUM(casapool%cplant,2)) &
         / 1000.0, 4)
