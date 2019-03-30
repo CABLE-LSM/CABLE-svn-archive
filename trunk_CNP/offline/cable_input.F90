@@ -1171,6 +1171,7 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
        WRITE(logn,*) 'PSurf not present in met file; values will be ', &
             'synthesised based on elevation and temperature.'
     END IF
+
     ! Look for CO2air (can be assumed to be static):- - - - - - - - - - -
     ok = NF90_INQ_VARID(ncid_met,'CO2air',id%CO2air)
     IF(ok == NF90_NOERR) THEN ! If inquiry is okay
@@ -1192,6 +1193,50 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
        WRITE(logn,'(A33,A24,I4,A5)') ' CO2air not present in met file; ', &
             'values will be fixed at ',INT(fixedCO2),' ppmv'
     END IF
+
+    ! Look for Ndep
+    ok = NF90_INQ_VARID(ncid_met,'Ndep',id%Ndep)
+    IF(ok == NF90_NOERR) THEN ! If inquiry is okay
+       exists%Ndep = .TRUE. ! Ndep is present in met file
+       ! Get Ndep units:
+       ok = NF90_GET_ATT(ncid_met,id%Ndep,'units',metunits%Ndep)
+       IF(ok /= NF90_NOERR) CALL nc_abort &
+            (ok,'Error finding Ndep units in met data file ' &
+            //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
+       IF(metunits%Ndep(1:10)/='gN/m^2/d^1') THEN
+          WRITE(*,*) metunits%Ndep, metunits%Ndep(1:10)
+          CALL abort('Unknown units for Ndep'// &
+               ' in '//TRIM(filename%met)//' (SUBROUTINE open_met_data)')
+       END IF
+    ELSE ! Ndep not present
+       exists%Ndep = .FALSE. ! Ndep is not present in met file
+       all_met=.FALSE. ! not all met variables are present in file
+       ! Note this in log file:
+       WRITE(logn,*) 'Ndep not present in met file'
+    END IF
+
+    ! Look for Pdep
+    ok = NF90_INQ_VARID(ncid_met,'Pdep',id%Pdep)
+    IF(ok == NF90_NOERR) THEN ! If inquiry is okay
+       exists%Pdep = .TRUE. ! Ndep is present in met file
+       ! Get Ndep units:
+       ok = NF90_GET_ATT(ncid_met,id%Pdep,'units',metunits%Pdep)
+       IF(ok /= NF90_NOERR) CALL nc_abort &
+            (ok,'Error finding Ndep units in met data file ' &
+            //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
+       IF(metunits%Pdep(1:10)/='gP/m^2/d^1') THEN
+          WRITE(*,*) metunits%Pdep
+          CALL abort('Unknown units for Pdep'// &
+               ' in '//TRIM(filename%met)//' (SUBROUTINE open_met_data)')
+       END IF
+    ELSE ! Pdep not present
+       exists%Pdep = .FALSE. ! Pdep is not present in met file
+       all_met=.FALSE. ! not all met variables are present in file
+       ! Note this in log file:
+       WRITE(logn,*) 'Pdep not present in met file'
+    END IF
+
+
     ! Look for Snowf (could be part of Rainf variable):- - - - - - - - - -
     IF (ncciy > 0) ncid_met = ncid_snow
     ok = NF90_INQ_VARID(ncid_met,'Snowf',id%Snowf)
@@ -1400,6 +1445,8 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
                      //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
              END DO
           END IF
+
+
        ELSE IF(metGrid=='land') THEN
           ! Collect data from land only grid in netcdf file:
           IF(iveg_dims==1) THEN ! i.e. no patch specific iveg information
@@ -2029,21 +2076,21 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
              (ok,'Error reading Ndep in met data file ' &
              //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
         DO i=1,mland ! over all land points/grid cells
-          met%Ndep(landpt(i)%cstart:landpt(i)%cend) = &
-                  REAL(tmpDat4(land_x(i),land_y(i),1,1)) ! g N m-2 d-1
+          met%ndep(landpt(i)%cstart:landpt(i)%cend) = &
+                  REAL(tmpDat4(land_x(i),land_y(i),1,1))
         ENDDO
       END IF
 
       ! Get Pdep data for mask grid:- - - - - - - - - - - - - - - - - -
-      IF(exists%Pdep) THEN ! If Pdep exists in met file
+      IF(exists%Pdep) THEN ! If Ndep exists in met file
         ok= NF90_GET_VAR(ncid_met,id%Pdep,tmpDat4, &
              start=(/1,1,1,ktau/),count=(/xdimsize,ydimsize,1,1/))
         IF(ok /= NF90_NOERR) CALL nc_abort &
              (ok,'Error reading Pdep in met data file ' &
              //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
         DO i=1,mland ! over all land points/grid cells
-          met%Pdep(landpt(i)%cstart:landpt(i)%cend) = &
-                  REAL(tmpDat4(land_x(i),land_y(i),1,1)) ! g P m-2 d-1
+          met%pdep(landpt(i)%cstart:landpt(i)%cend) = &
+                  REAL(tmpDat4(land_x(i),land_y(i),1,1))
         ENDDO
       END IF
 
