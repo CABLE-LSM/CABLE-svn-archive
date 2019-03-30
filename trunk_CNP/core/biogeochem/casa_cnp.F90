@@ -2107,12 +2107,17 @@ SUBROUTINE casa_cnpcycle(veg,casabiome,casapool,casaflux,casamet, LALLOC)
     ENDIF
 !    casamet%glai(np)   = MIN(0.0, casabiome%sla(veg%iveg(np))  &
 !                                  * casapool%cplant(np,leaf))
-    casamet%glai(np)   = MAX(casabiome%glaimin(veg%iveg(np)), &
+
+! avoid high ratios of n to p in plant material
+ casapool%Nplant(np,3) = min(casapool%Nplant(np,3), &
+      casabiome%ratioNCplantmax(veg%iveg(np),froot) *  casapool%cplant(np,3))
+
+   casamet%glai(np)   = MAX(casabiome%glaimin(veg%iveg(np)), &
                                casabiome%sla(veg%iveg(np)) * casapool%cplant(np,leaf))
    ! vh !
-    IF (LALLOC.ne.3) THEN
+    !IF (LALLOC.ne.3) THEN
        casamet%glai(np)   = MIN(casabiome%glaimax(veg%iveg(np)), casamet%glai(np))
-    ENDIF
+    !ENDIF
     casapool%clitter(np,:) = casapool%clitter(np,:) &
                            + casapool%dClitterdt(np,:) * deltpool
     casapool%csoil(np,:)   = casapool%csoil(np,:)   &
@@ -2131,11 +2136,12 @@ SUBROUTINE casa_cnpcycle(veg,casabiome,casapool,casaflux,casamet, LALLOC)
 
     IF(icycle >2) THEN
       casapool%Plitter(np,:) = casapool%Plitter(np,:) &
-                             + casapool%dPlitterdt(np,:)* deltpool
+                               + casapool%dPlitterdt(np,:)* deltpool
       casapool%Psoil(np,:)   = casapool%Psoil(np,:)   &
-                             + casapool%dPsoildt(np,:)  * deltpool
-      casapool%Psoillab(np)  = casapool%Psoillab(np)  &
-                             + casapool%dPsoillabdt(np) * deltpool
+                               + casapool%dPsoildt(np,:)  * deltpool
+      ! vh ! put lower bound of 1.e-3 to prevent Psoillab from going negative
+      casapool%Psoillab(np)  = max(casapool%Psoillab(np)  &
+                             + casapool%dPsoillabdt(np) * deltpool, 1.e-3)
       casapool%Psoilsorb(np) = casaflux%Psorbmax(np)*casapool%Psoillab(np) &
                              /(casaflux%kmlabp(np)+casapool%Psoillab(np))
 !      casapool%Psoilsorb(np) = casapool%Psoilsorb(np)  &
