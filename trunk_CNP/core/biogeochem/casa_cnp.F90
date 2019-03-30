@@ -680,7 +680,7 @@ IF (cable_user%CALL_climate) then
         ENDWHERE
      ENDWHERE
 
-     casaflux%cnpp(:) = casaflux%Cgpp(:)-Sum(casaflux%crmplant(:,:),2) - casaflux%crgplant(:)
+     casaflux%cnpp(:) = casaflux%Cgpp(:)-SUM(casaflux%crmplant(:,:),2) - casaflux%crgplant(:)
 
   ELSE
 
