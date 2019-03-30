@@ -1385,7 +1385,8 @@ IF(casamet%iveg2(nland)/=icewater) THEN
       !vh! set klitter to zero where Nlitter will go -ve
       !(occurs occasionally for metabolic litter pool) Ticket#108
       where (casaflux%klitter(nland,:) * max(0.0,casapool%Nlitter(nland,:)).gt. &
-           casapool%Nlitter(nland,:)+casaflux%fluxNtolitter(nland,:)) casaflux%klitter(nland,:) = 0.0
+           casapool%Nlitter(nland,:)+casaflux%fluxNtolitter(nland,:)) &
+           casaflux%klitter(nland,:) = 0.0
    endif
 
    DO nL=1,mlitter
