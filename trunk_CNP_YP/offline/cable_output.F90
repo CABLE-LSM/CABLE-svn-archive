@@ -45,9 +45,6 @@ MODULE cable_output_module
   USE netcdf
   USE cable_common_module, ONLY: filename, calcsoilalbedo, CurYear,IS_LEAPYEAR, cable_user,&
                                  gw_params
-
-  USE casadimension
-
   IMPLICIT NONE
   PRIVATE
   PUBLIC open_output_file, write_output, close_output_file, create_restart
@@ -72,14 +69,7 @@ MODULE cable_output_module
                     PlantTurnover, PlantTurnoverLeaf, PlantTurnoverFineRoot, &
                     PlantTurnoverWood, PlantTurnoverWoodDist, PlantTurnoverWoodCrowding, &
                     PlantTurnoverWoodResourceLim, dCdt, Area, LandUseFlux, patchfrac, &
-                    vcmax,hc,WatTable,GWMoist,SatFrac,Qrecharge, &
-                    fracCallocLeaf, fracCallocStem, fracCallocRoot, clabile,&
-                    PlantNLeaf, PlantNRoot, PlantNWood, Nfix, Ndep, Nloss, &
-                    Nleach, Nup, Ngrossmin, Nnetmin, Nimmob, Pdep, &
-                    Pleach, Ploss, Pup, Pgrossmin, Pimmob, Psnetmin,&
-                    PlantPLeaf, PlantPWood, PlantPRoot
-
-
+                    vcmax,hc,WatTable,GWMoist,SatFrac,Qrecharge
   END TYPE out_varID_type
   TYPE(out_varID_type) :: ovid ! netcdf variable IDs for output variables
   TYPE(parID_type) :: opid ! netcdf variable IDs for output variables
@@ -239,33 +229,6 @@ MODULE cable_output_module
 
     REAL(KIND=4), POINTER, DIMENSION(:) :: RootResp   !  autotrophic root respiration [umol/m2/s]
     REAL(KIND=4), POINTER, DIMENSION(:) :: StemResp   !  autotrophic stem respiration [umol/m2/s]
-
-    REAL(KIND=4), POINTER, DIMENSION(:) :: fracCallocLeaf   !  allocation fractions [-]
-    REAL(KIND=4), POINTER, DIMENSION(:) :: fracCallocStem   !  allocation fractions [-]
-    REAL(KIND=4), POINTER, DIMENSION(:) :: fracCallocRoot   !  allocation fractions [-]
-    REAL(KIND=4), POINTER, DIMENSION(:) :: clabile   !  labile C
-    REAL(KIND=4), POINTER, DIMENSION(:) :: PlantNLeaf   !
-    REAL(KIND=4), POINTER, DIMENSION(:) :: PlantNWood   !
-    REAL(KIND=4), POINTER, DIMENSION(:) :: PlantNRoot   !
-    REAL(KIND=4), POINTER, DIMENSION(:) :: Nfix         ! g N/m^2/year
-    REAL(KIND=4), POINTER, DIMENSION(:) :: Ndep         ! g N/m^2/year
-    REAL(KIND=4), POINTER, DIMENSION(:) :: Nloss        ! g N/m^2/year
-    REAL(KIND=4), POINTER, DIMENSION(:) :: Nleach        ! g N/m^2/year
-    REAL(KIND=4), POINTER, DIMENSION(:) :: Nup        ! g N/m^2/year
-    REAL(KIND=4), POINTER, DIMENSION(:) :: Ngrossmin        ! g N/m^2/year
-    REAL(KIND=4), POINTER, DIMENSION(:) :: Nnetmin        ! g N/m^2/year
-    REAL(KIND=4), POINTER, DIMENSION(:) :: Nimmob        ! g N/m^2/year
-    REAL(KIND=4), POINTER, DIMENSION(:) :: Pdep        ! g P/m^2/year
-    REAL(KIND=4), POINTER, DIMENSION(:) :: Pleach        ! g P/m^2/year
-    REAL(KIND=4), POINTER, DIMENSION(:) :: Ploss        ! g P/m^2/year
-    REAL(KIND=4), POINTER, DIMENSION(:) :: Pup        ! g P/m^2/year
-    REAL(KIND=4), POINTER, DIMENSION(:) :: Pgrossmin        ! g P/m^2/year
-    REAL(KIND=4), POINTER, DIMENSION(:) :: Pimmob        ! g P/m^2/year
-    REAL(KIND=4), POINTER, DIMENSION(:) :: Psnetmin        ! g P/m^2/year
-    REAL(KIND=4), POINTER, DIMENSION(:) :: PlantPLeaf   !
-    REAL(KIND=4), POINTER, DIMENSION(:) :: PlantPWood   !
-    REAL(KIND=4), POINTER, DIMENSION(:) :: PlantPRoot   !
-
  END TYPE output_temporary_type
   TYPE(output_temporary_type), SAVE :: out
   INTEGER :: ok   ! netcdf error status
@@ -912,16 +875,6 @@ CONTAINS
        out%Qrecharge = 0.0 ! initialise
     END IF
 
-    ! mgk576
-    IF(output%veg) THEN
-       CALL define_ovar(ncid_out, ovid%vcmax, 'vcmax', '-',                        &
-                        'Vcmax', patchout%LAI, 'dummy', xID,         &
-                        yID, zID, landID, patchID, tID)
-       ALLOCATE(out%vcmax(mp))
-       out%vcmax = 0.0 ! initialise
-    END IF
-
-
     IF(output%casa) THEN
        CALL define_ovar(ncid_out, ovid%NBP, 'NBP', 'umol/m^2/s',               &
                         'Net Biosphere Production &
@@ -1060,159 +1013,6 @@ CONTAINS
        ALLOCATE(out%PlantTurnoverWoodResourceLim(mp))
        out%PlantTurnoverWoodResourceLim = 0.0
 
-       ! mgk576
-       CALL define_ovar(ncid_out, ovid%fracCallocLeaf, 'fracCallocLeaf', '-',  &
-                        'Leaf allocation fraction', patchout%fracCallocLeaf,   &
-                        'dummy', xID, yID, zID, landID, patchID, tID)
-       ALLOCATE(out%fracCallocLeaf(mp))
-       out%fracCallocLeaf = 0.0 ! initialise
-
-       CALL define_ovar(ncid_out, ovid%fracCallocStem, 'fracCallocStem', '-',  &
-                        'Stem allocation fraction', patchout%fracCallocStem,   &
-                        'dummy', xID, yID, zID, landID, patchID, tID)
-       ALLOCATE(out%fracCallocStem(mp))
-       out%fracCallocStem = 0.0 ! initialise
-
-       CALL define_ovar(ncid_out, ovid%fracCallocRoot, 'fracCallocRoot', '-',  &
-                        'Root allocation fraction', patchout%fracCallocRoot,   &
-                        'dummy', xID, yID, zID, landID, patchID, tID)
-       ALLOCATE(out%fracCallocRoot(mp))
-       out%fracCallocRoot = 0.0 ! initialise
-
-       CALL define_ovar(ncid_out, ovid%clabile, 'clabile', '-',  &
-                        'Labile C', patchout%clabile,   &
-                        'dummy', xID, yID, zID, landID, patchID, tID)
-       ALLOCATE(out%clabile(mp))
-       out%clabile = 0.0 ! initialise
-
-       CALL define_ovar(ncid_out, ovid%Nfix, 'Nfix', '-',  &
-                        'N Fixation', patchout%Nfix,   &
-                        'dummy', xID, yID, zID, landID, patchID, tID)
-       ALLOCATE(out%Nfix(mp))
-       out%Nfix = 0.0 ! initialise
-
-       CALL define_ovar(ncid_out, ovid%Ndep, 'Ndep', '-',  &
-                        'N Deposition', patchout%Ndep,   &
-                        'dummy', xID, yID, zID, landID, patchID, tID)
-       ALLOCATE(out%Ndep(mp))
-       out%Ndep = 0.0 ! initialise
-
-       CALL define_ovar(ncid_out, ovid%Nloss, 'Nloss', '-',  &
-                        'N loss', patchout%Nloss,   &
-                        'dummy', xID, yID, zID, landID, patchID, tID)
-       ALLOCATE(out%Nloss(mp))
-       out%Nloss = 0.0 ! initialise
-
-       CALL define_ovar(ncid_out, ovid%Nleach, 'Nleach', '-',  &
-                        'N leach', patchout%Nleach,   &
-                        'dummy', xID, yID, zID, landID, patchID, tID)
-       ALLOCATE(out%Nleach(mp))
-       out%Nleach = 0.0 ! initialise
-
-       CALL define_ovar(ncid_out, ovid%Nup, 'Nup', '-',  &
-                        'N uptake', patchout%Nup,   &
-                        'dummy', xID, yID, zID, landID, patchID, tID)
-       ALLOCATE(out%Nup(mp))
-       out%Nup = 0.0 ! initialise
-
-       CALL define_ovar(ncid_out, ovid%Ngrossmin, 'Ngrossmin', '-',  &
-                        'N gross mineralisation', patchout%Ngrossmin,   &
-                        'dummy', xID, yID, zID, landID, patchID, tID)
-       ALLOCATE(out%Ngrossmin(mp))
-       out%Ngrossmin = 0.0 ! initialise
-
-       CALL define_ovar(ncid_out, ovid%Nnetmin, 'Nnetmin', '-',  &
-                        'N net mineralisation', patchout%Nnetmin,   &
-                        'dummy', xID, yID, zID, landID, patchID, tID)
-       ALLOCATE(out%Nnetmin(mp))
-       out%Nnetmin = 0.0 ! initialise
-
-       CALL define_ovar(ncid_out, ovid%Nimmob, 'Nimmob', '-',  &
-                        'N immobilisation', patchout%Nimmob,   &
-                        'dummy', xID, yID, zID, landID, patchID, tID)
-       ALLOCATE(out%Nimmob(mp))
-       out%Nimmob = 0.0 ! initialise
-
-
-       CALL define_ovar(ncid_out, ovid%PlantNLeaf, 'PlantNLeaf', 'kg C/m^2',               &
-                        'Plant Nitrogen: leaf', patchout%PlantNLeaf,         &
-                        'dummy', xID, yID, zID, landID, patchID, tID)
-       ALLOCATE(out%PlantNLeaf(mp))
-       out%PlantNLeaf = 0.0 ! initialise
-
-       CALL define_ovar(ncid_out, ovid%PlantNRoot, 'PlantNRoot', 'kg C/m^2',               &
-                        'Plant Nitrogen: roots', patchout%PlantNRoot,         &
-                        'dummy', xID, yID, zID, landID, patchID, tID)
-       ALLOCATE(out%PlantNRoot(mp))
-       out%PlantNRoot = 0.0 ! initialise
-
-       CALL define_ovar(ncid_out, ovid%PlantNWood, 'PlantNWood', 'kg C/m^2',               &
-                        'Plant Nitrogen: wood (above- and below-ground', patchout%PlantCarbWood,         &
-                        'dummy', xID, yID, zID, landID, patchID, tID)
-       ALLOCATE(out%PlantNWood(mp))
-       out%PlantNWood = 0.0 ! initialise
-
-       CALL define_ovar(ncid_out, ovid%Pdep, 'Pdep', '-',  &
-                        'P Deposition', patchout%Pdep,   &
-                        'dummy', xID, yID, zID, landID, patchID, tID)
-       ALLOCATE(out%Pdep(mp))
-       out%Pdep = 0.0 ! initialise
-
-       CALL define_ovar(ncid_out, ovid%Pleach, 'Pleach', '-',  &
-                        'P Leaching', patchout%Pleach,   &
-                        'dummy', xID, yID, zID, landID, patchID, tID)
-       ALLOCATE(out%Pleach(mp))
-       out%Pleach = 0.0 ! initialise
-
-       CALL define_ovar(ncid_out, ovid%Ploss, 'Ploss', '-',  &
-                        'P loss', patchout%Ploss,   &
-                        'dummy', xID, yID, zID, landID, patchID, tID)
-       ALLOCATE(out%Ploss(mp))
-       out%Ploss = 0.0 ! initialise
-
-       CALL define_ovar(ncid_out, ovid%Pup, 'Pup', '-',  &
-                        'P uptake', patchout%Pup,   &
-                        'dummy', xID, yID, zID, landID, patchID, tID)
-       ALLOCATE(out%Pup(mp))
-       out%Pup = 0.0 ! initialise
-
-       CALL define_ovar(ncid_out, ovid%Pgrossmin, 'Pgrossmin', '-',  &
-                        'P gross mineralisation', patchout%Pgrossmin,   &
-                        'dummy', xID, yID, zID, landID, patchID, tID)
-       ALLOCATE(out%Pgrossmin(mp))
-       out%Pgrossmin = 0.0 ! initialise
-
-       CALL define_ovar(ncid_out, ovid%Pimmob, 'Pimmob', '-',  &
-                        'P immobilisation', patchout%Pimmob,   &
-                        'dummy', xID, yID, zID, landID, patchID, tID)
-       ALLOCATE(out%Pimmob(mp))
-       out%Pimmob = 0.0 ! initialise
-
-       CALL define_ovar(ncid_out, ovid%Psnetmin, 'Psnetmin', '-',  &
-                        'P net mineralisation', patchout%Psnetmin,   &
-                        'dummy', xID, yID, zID, landID, patchID, tID)
-       ALLOCATE(out%Psnetmin(mp))
-       out%Psnetmin = 0.0 ! initialise
-
-       CALL define_ovar(ncid_out, ovid%PlantPLeaf, 'PlantPLeaf', 'kg C/m^2',               &
-                        'Plant Phosphorus: leaf', patchout%PlantPLeaf,         &
-                        'dummy', xID, yID, zID, landID, patchID, tID)
-       ALLOCATE(out%PlantPLeaf(mp))
-       out%PlantPLeaf = 0.0 ! initialise
-
-       CALL define_ovar(ncid_out, ovid%PlantPRoot, 'PlantPRoot', 'kg C/m^2',               &
-                        'Plant Phosphorus: roots', patchout%PlantPRoot,         &
-                        'dummy', xID, yID, zID, landID, patchID, tID)
-       ALLOCATE(out%PlantPRoot(mp))
-       out%PlantPRoot = 0.0 ! initialise
-
-       CALL define_ovar(ncid_out, ovid%PlantPWood, 'PlantPWood', 'kg C/m^2',               &
-                        'Plant Phosphorus: wood (above- and below-ground', &
-                        patchout%PlantPWood,         &
-                        'dummy', xID, yID, zID, landID, patchID, tID)
-       ALLOCATE(out%PlantPWood(mp))
-       out%PlantPWood = 0.0 ! initialise
-
        IF (cable_user%POPLUC) THEN
 
           CALL define_ovar(ncid_out, ovid%LandUseFlux, 'LandUseFlux ', &
@@ -1322,9 +1122,9 @@ CONTAINS
     IF(output%params .OR. output%ejmax) CALL define_ovar(ncid_out, opid%ejmax, &
        'ejmax', 'mol/m^2/s', 'Max potential electron transport rate top leaf', &
                          patchout%ejmax, 'real', xID, yID, zID, landID, patchID)
-    !IF(output%params .OR. output%vcmax) CALL define_ovar(ncid_out, opid%vcmax, &
-      !       'vcmax', 'mol/m^2/s', 'Maximum RuBP carboxylation rate top leaf', &
-      !                   patchout%vcmax, 'real', xID, yID, zID, landID, patchID)
+    IF(output%params .OR. output%vcmax) CALL define_ovar(ncid_out, opid%vcmax, &
+             'vcmax', 'mol/m^2/s', 'Maximum RuBP carboxylation rate top leaf', &
+                         patchout%vcmax, 'real', xID, yID, zID, landID, patchID)
     IF(output%params .OR. output%rp20) CALL define_ovar(ncid_out, opid%rp20,   &
                           'rp20', '-', 'Plant respiration coefficient at 20C', &
                           patchout%rp20, 'real', xID, yID, zID, landID, patchID)
@@ -1424,6 +1224,7 @@ CONTAINS
                           'HKdepth', 'm', 'Depth at which HKsat(z) is HKsat(0) ', &
                           patchout%HKdepth, 'real', xID, yID, zID, landID, patchID)
     END IF
+
 
     ! Write global attributes for file:
     CALL DATE_AND_TIME(todaydate, nowtime)
@@ -1571,8 +1372,8 @@ CONTAINS
               'dleaf', REAL(veg%dleaf, 4), ranges%dleaf, patchout%dleaf, 'real')
     IF(output%params .OR. output%ejmax) CALL write_ovar(ncid_out, opid%ejmax,  &
               'ejmax', REAL(veg%ejmax, 4), ranges%ejmax, patchout%ejmax, 'real')
-    !IF(output%params .OR. output%vcmax) CALL write_ovar(ncid_out, opid%vcmax,  &
-   !           'vcmax', REAL(veg%vcmax, 4), ranges%vcmax, patchout%vcmax, 'real')
+    IF(output%params .OR. output%vcmax) CALL write_ovar(ncid_out, opid%vcmax,  &
+              'vcmax', REAL(veg%vcmax, 4), ranges%vcmax, patchout%vcmax, 'real')
     IF(output%params .OR. output%frac4) CALL write_ovar(ncid_out, opid%frac4,  &
               'frac4', REAL(veg%frac4, 4), ranges%frac4, patchout%frac4, 'real')
 
@@ -2598,22 +2399,6 @@ CONTAINS
           out%LAI = 0.0
        END IF
     END IF
-
-    ! mgk576
-    IF(output%veg) THEN
-       ! Add current timestep's value to total of temporary output variable:
-       out%vcmax = out%vcmax + REAL(veg%vcmax, 4)
-       IF(writenow) THEN
-          ! Divide accumulated variable by number of accumulated time steps:
-          out%vcmax = out%vcmax/REAL(output%interval, 4)
-          ! Write value to file:
-          CALL write_ovar(out_timestep, ncid_out, ovid%vcmax, 'vcmax', out%vcmax,    &
-                          ranges%vcmax, patchout%LAI, 'default', met)
-          ! Reset temporary output variable:
-          out%vcmax = 0.0
-       END IF
-    END IF
-
     !------------------------WRITE BALANCES DATA--------------------------------
     ! Ebal: cumulative energy balance [W/m^2]
     IF(output%balances .OR. output%Ebal) THEN
@@ -2648,13 +2433,10 @@ CONTAINS
     !      added frday in the calculation of GPP (BP may08)
     IF(output%carbon .OR. output%GPP) THEN
        ! Add current timestep's value to total of temporary output variable:
-       IF(output%casa) THEN
-          out%GPP = out%GPP + REAL(casaflux%Cgpp/86400.0 / 1.201E-5, 4)
-       ELSE
-          out%GPP = out%GPP + REAL((-1.0 * canopy%fpn + canopy%frday)             &
-                                   / 1.201E-5, 4)
-          !  - casaflux%clabloss/86400.0) / 1.201E-5, 4)
-       ENDIF
+       out%GPP = out%GPP + REAL((-1.0 * canopy%fpn + canopy%frday)             &
+                                / 1.201E-5, 4)
+      ! out%GPP = out%GPP + REAL((-1.0 * canopy%fpn)             &
+       !                         / 1.201E-5, 4)
 
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
@@ -2681,7 +2463,7 @@ CONTAINS
        IF(output%casa) THEN
           out%NPP = out%NPP + REAL(casaflux%cnpp/86400.0 / 1.201E-5, 4)
        ELSE
-          out%NPP = out%NPP + REAL((-1.0 * canopy%fpn - canopy%frp) / 1.201E-5, 4)
+          out%NPP = out%NPP + REAL((-1.0 * canopy%fpn - canopy%frp))! &
           !  - casaflux%clabloss/86400.0) / 1.201E-5, 4)
        ENDIF
        IF(writenow) THEN
@@ -2945,248 +2727,6 @@ CONTAINS
           ! Reset temporary output variable:
           out%PlantTurnoverWoodResourceLim = 0.0
        END IF
-
-       !mgk576
-       ! Add current timestep's value to total of temporary output variable:
-       !out%fracCalloc = out%fracCalloc + &
-       !                     REAL((casaflux%fracCalloc(:,:))/86400.0, 4)
-
-       out%fracCallocLeaf =  out%fracCallocLeaf + &
-                                 REAL(casaflux%fracCalloc(:,1), 4)
-       out%fracCallocStem =  out%fracCallocStem + &
-                                 REAL(casaflux%fracCalloc(:,2), 4)
-       out%fracCallocRoot =  out%fracCallocRoot + &
-                                 REAL(casaflux%fracCalloc(:,3), 4)
-       IF(writenow) THEN
-          ! Divide accumulated variable by number of accumulated time steps:
-          out%fracCallocLeaf = out%fracCallocLeaf / REAL(output%interval, 4)
-          ! Write value to file:
-          CALL write_ovar(out_timestep, ncid_out, ovid%fracCallocLeaf, &
-                          'fracCallocLeaf', out%fracCallocLeaf, ranges%fraccalloc, &
-                          patchout%fracCallocLeaf, 'default', met)
-          ! Reset temporary output variable:
-          out%fracCallocLeaf = 0.0
-
-          ! Divide accumulated variable by number of accumulated time steps:
-          out%fracCallocStem = out%fracCallocStem / REAL(output%interval, 4)
-          ! Write value to file:
-          CALL write_ovar(out_timestep, ncid_out, ovid%fracCallocStem, &
-                          'fracCallocStem', out%fracCallocStem, ranges%fraccalloc, &
-                          patchout%fracCallocStem, 'default', met)
-          ! Reset temporary output variable:
-          out%fracCallocStem = 0.0
-
-          ! Divide accumulated variable by number of accumulated time steps:
-          out%fracCallocRoot = out%fracCallocRoot / REAL(output%interval, 4)
-          ! Write value to file:
-          CALL write_ovar(out_timestep, ncid_out, ovid%fracCallocRoot, &
-                          'fracCallocRoot', out%fracCallocRoot, ranges%fraccalloc, &
-                          patchout%fracCallocRoot, 'default', met)
-          ! Reset temporary output variable:
-          out%fracCallocRoot = 0.0
-       END IF
-
-       out%fracCallocLeaf =  out%fracCallocLeaf + &
-                                 REAL(casaflux%fracCalloc(:,1), 4)
-
-
-
-      out%fracCallocLeaf =  out%fracCallocLeaf + &
-                                REAL(casaflux%fracCalloc(:,1), 4)
-
-      out%clabile = out%clabile + REAL(casapool%clabile/86400.0 / 1.201E-5, 4)
-      IF(writenow) THEN
-         ! Divide accumulated variable by number of accumulated time steps:
-         out%clabile = out%clabile / REAL(output%interval, 4)
-         ! Write value to file:
-         CALL write_ovar(out_timestep, ncid_out, ovid%clabile, 'clabile', &
-                        out%clabile, ranges%NPP, patchout%clabile, &
-                        'default', met)
-         ! Reset temporary output variable:
-         out%clabile = 0.0
-      END IF
-
-      out%Nfix = out%Nfix + REAL(casaflux%Nminfix, 4)
-      IF(writenow) THEN
-         ! Divide accumulated variable by number of accumulated time steps:
-         out%Nfix = out%Nfix / REAL(output%interval, 4)
-         ! Write value to file:
-         CALL write_ovar(out_timestep, ncid_out, ovid%Nfix, 'Nfix', &
-                        out%Nfix, ranges%NPP, patchout%Nfix, &
-                        'default', met)
-         ! Reset temporary output variable:
-         out%Nfix = 0.0
-      END IF
-
-      out%Ndep = out%Ndep + REAL(casaflux%Nmindep, 4)
-      IF(writenow) THEN
-         ! Divide accumulated variable by number of accumulated time steps:
-         out%Ndep = out%Ndep / REAL(output%interval, 4)
-         ! Write value to file:
-         CALL write_ovar(out_timestep, ncid_out, ovid%Ndep, 'Ndep', &
-                        out%Ndep, ranges%NPP, patchout%Ndep, &
-                        'default', met)
-         ! Reset temporary output variable:
-         out%Ndep = 0.0
-      END IF
-
-      out%Nloss = out%Nloss + REAL(casaflux%Nminloss, 4)
-      IF(writenow) THEN
-         ! Divide accumulated variable by number of accumulated time steps:
-         out%Nloss = out%Nloss / REAL(output%interval, 4)
-         ! Write value to file:
-         CALL write_ovar(out_timestep, ncid_out, ovid%Nloss, 'Nloss', &
-                        out%Nloss, ranges%NPP, patchout%Nloss, &
-                        'default', met)
-         ! Reset temporary output variable:
-         out%Nloss = 0.0
-      END IF
-
-      out%Nleach = out%Nleach + REAL(casaflux%Nminleach, 4)
-      IF(writenow) THEN
-         ! Divide accumulated variable by number of accumulated time steps:
-         out%Nleach = out%Nleach / REAL(output%interval, 4)
-         ! Write value to file:
-         CALL write_ovar(out_timestep, ncid_out, ovid%Nleach, 'Nleach', &
-                        out%Nleach, ranges%NPP, patchout%Nleach, &
-                        'default', met)
-         ! Reset temporary output variable:
-         out%Nleach = 0.0
-      END IF
-
-      out%Nup = out%Nup + REAL(casaflux%Nupland, 4)
-      IF(writenow) THEN
-         ! Divide accumulated variable by number of accumulated time steps:
-         out%Nup = out%Nup / REAL(output%interval, 4)
-         ! Write value to file:
-         CALL write_ovar(out_timestep, ncid_out, ovid%Nup, 'Nup', &
-                        out%Nup, ranges%NPP, patchout%Nup, &
-                        'default', met)
-         ! Reset temporary output variable:
-         out%Nup = 0.0
-      END IF
-
-      out%Ngrossmin = out%Ngrossmin + REAL(casaflux%Nsmin, 4)
-      IF(writenow) THEN
-         ! Divide accumulated variable by number of accumulated time steps:
-         out%Ngrossmin = out%Ngrossmin / REAL(output%interval, 4)
-         ! Write value to file:
-         CALL write_ovar(out_timestep, ncid_out, ovid%Ngrossmin, 'Ngrossmin', &
-                        out%Ngrossmin, ranges%NPP, patchout%Ngrossmin, &
-                        'default', met)
-         ! Reset temporary output variable:
-         out%Ngrossmin = 0.0
-      END IF
-
-      out%Nnetmin = out%Nnetmin + REAL(casaflux%Nsnet, 4)
-      IF(writenow) THEN
-         ! Divide accumulated variable by number of accumulated time steps:
-         out%Nnetmin = out%Nnetmin / REAL(output%interval, 4)
-         ! Write value to file:
-         CALL write_ovar(out_timestep, ncid_out, ovid%Nnetmin, 'Nnetmin', &
-                        out%Nnetmin, ranges%NPP, patchout%Nnetmin, &
-                        'default', met)
-         ! Reset temporary output variable:
-         out%Nnetmin = 0.0
-      END IF
-
-      out%Nimmob = out%Nimmob + REAL(casaflux%Nsimm, 4)
-      IF(writenow) THEN
-         ! Divide accumulated variable by number of accumulated time steps:
-         out%Nimmob = out%Nimmob / REAL(output%interval, 4)
-         ! Write value to file:
-         CALL write_ovar(out_timestep, ncid_out, ovid%Nimmob, 'Nimmob', &
-                        out%Nimmob, ranges%NPP, patchout%Nimmob, &
-                        'default', met)
-         ! Reset temporary output variable:
-         out%Nimmob = 0.0
-      END IF
-
-      out%Pdep = out%Pdep + REAL(casaflux%Pdep, 4)
-      IF(writenow) THEN
-         ! Divide accumulated variable by number of accumulated time steps:
-         out%Pdep = out%Pdep / REAL(output%interval, 4)
-         ! Write value to file:
-         CALL write_ovar(out_timestep, ncid_out, ovid%Pdep, 'Pdep', &
-                        out%Pdep, ranges%NPP, patchout%Pdep, &
-                        'default', met)
-         ! Reset temporary output variable:
-         out%Pdep = 0.0
-      END IF
-
-      out%Pleach = out%Pleach + REAL(casaflux%Pleach, 4)
-      IF(writenow) THEN
-         ! Divide accumulated variable by number of accumulated time steps:
-         out%Pleach = out%Pleach / REAL(output%interval, 4)
-         ! Write value to file:
-         CALL write_ovar(out_timestep, ncid_out, ovid%Pleach, 'Pdep', &
-                        out%Pleach, ranges%NPP, patchout%Pleach, &
-                        'default', met)
-         ! Reset temporary output variable:
-         out%Pleach = 0.0
-      END IF
-
-      out%Ploss = out%Ploss + REAL(casaflux%Ploss, 4)
-      IF(writenow) THEN
-         ! Divide accumulated variable by number of accumulated time steps:
-         out%Ploss = out%Ploss / REAL(output%interval, 4)
-         ! Write value to file:
-         CALL write_ovar(out_timestep, ncid_out, ovid%Ploss, 'Ploss', &
-                        out%Ploss, ranges%NPP, patchout%Ploss, &
-                        'default', met)
-         ! Reset temporary output variable:
-         out%Ploss = 0.0
-      END IF
-
-      out%Pup = out%Pup + REAL(casaflux%Pupland, 4)
-      IF(writenow) THEN
-         ! Divide accumulated variable by number of accumulated time steps:
-         out%Pup = out%Pup / REAL(output%interval, 4)
-         ! Write value to file:
-         CALL write_ovar(out_timestep, ncid_out, ovid%Pup, 'Pup', &
-                        out%Pup, ranges%NPP, patchout%Pup, &
-                        'default', met)
-         ! Reset temporary output variable:
-         out%Pup = 0.0
-      END IF
-
-      out%Pgrossmin = out%Pgrossmin + REAL(casaflux%Psmin, 4)
-      IF(writenow) THEN
-         ! Divide accumulated variable by number of accumulated time steps:
-         out%Pgrossmin = out%Pgrossmin / REAL(output%interval, 4)
-         ! Write value to file:
-         CALL write_ovar(out_timestep, ncid_out, ovid%Pgrossmin, 'Pgrossmin', &
-                        out%Pgrossmin, ranges%NPP, patchout%Pgrossmin, &
-                        'default', met)
-         ! Reset temporary output variable:
-         out%Pgrossmin = 0.0
-      END IF
-
-      out%Pimmob = out%Pimmob + REAL(casaflux%Psimm, 4)
-      IF(writenow) THEN
-         ! Divide accumulated variable by number of accumulated time steps:
-         out%Pimmob = out%Pimmob / REAL(output%interval, 4)
-         ! Write value to file:
-         CALL write_ovar(out_timestep, ncid_out, ovid%Pimmob, 'Pimmob', &
-                        out%Pimmob, ranges%NPP, patchout%Pimmob, &
-                        'default', met)
-         ! Reset temporary output variable:
-         out%Pimmob = 0.0
-      END IF
-
-      out%Psnetmin = out%Psnetmin + REAL(casaflux%Psnet, 4)
-      IF(writenow) THEN
-         ! Divide accumulated variable by number of accumulated time steps:
-         out%Psnetmin = out%Psnetmin / REAL(output%interval, 4)
-         ! Write value to file:
-         CALL write_ovar(out_timestep, ncid_out, ovid%Psnetmin, 'Psnetmin', &
-                        out%Psnetmin, ranges%NPP, patchout%Psnetmin, &
-                        'default', met)
-         ! Reset temporary output variable:
-         out%Psnetmin = 0.0
-      END IF
-
-
        IF (cable_user%POPLUC) THEN
        ! Add current timestep's value to total of temporary output variable:
        out%LandUseFlux = out%LandUseFlux + &
@@ -3335,76 +2875,6 @@ CONTAINS
           ! Reset temporary output variable:
           out%PlantCarbWood = 0.0
        END IF
-
-       out%PlantNLeaf = out%PlantNLeaf + REAL(casapool%nplant(:,1) / 1000.0, 4)
-       IF(writenow) THEN
-          ! Divide accumulated variable by number of accumulated time steps:
-          out%PlantNLeaf = out%PlantNLeaf / REAL(output%interval, 4)
-          ! Write value to file:
-          CALL write_ovar(out_timestep, ncid_out, ovid%PlantNLeaf, 'PlantNLeaf', out%PlantNLeaf,    &
-                          ranges%TotLittCarb, patchout%PlantNLeaf, 'default', met)
-          ! Reset temporary output variable:
-          out%PlantNLeaf = 0.0
-       END IF
-
-       out%PlantNWood = out%PlantNWood + REAL(casapool%nplant(:,2) / 1000.0, 4)
-       IF(writenow) THEN
-          ! Divide accumulated variable by number of accumulated time steps:
-          out%PlantNWood = out%PlantNWood / REAL(output%interval, 4)
-          ! Write value to file:
-          CALL write_ovar(out_timestep, ncid_out, ovid%PlantNWood, 'PlantNWood', out%PlantNWood,    &
-                          ranges%TotLittCarb, patchout%PlantNWood, 'default', met)
-          ! Reset temporary output variable:
-          out%PlantNWood = 0.0
-       END IF
-
-       out%PlantNRoot = out%PlantNRoot + REAL(casapool%nplant(:,3) / 1000.0, 4)
-       IF(writenow) THEN
-          ! Divide accumulated variable by number of accumulated time steps:
-          out%PlantNRoot = out%PlantNRoot / REAL(output%interval, 4)
-          ! Write value to file:
-          CALL write_ovar(out_timestep, ncid_out, ovid%PlantNRoot, 'PlantNRoot', &
-               out%PlantNRoot,    &
-                          ranges%TotLittCarb, patchout%PlantNRoot, 'default', met)
-          ! Reset temporary output variable:
-          out%PlantNRoot = 0.0
-       END IF
-
-       out%PlantPLeaf = out%PlantPLeaf + REAL(casapool%pplant(:,1) / 1000.0, 4)
-       IF(writenow) THEN
-          ! Divide accumulated variable by number of accumulated time steps:
-          out%PlantPLeaf = out%PlantPLeaf / REAL(output%interval, 4)
-          ! Write value to file:
-          CALL write_ovar(out_timestep, ncid_out, ovid%PlantPLeaf, 'PlantPLeaf', out%PlantPLeaf,    &
-                          ranges%TotLittCarb, patchout%PlantPLeaf, 'default', met)
-          ! Reset temporary output variable:
-          out%PlantPLeaf = 0.0
-       END IF
-
-       out%PlantPWood = out%PlantPWood + REAL(casapool%pplant(:,2) / 1000.0, 4)
-       IF(writenow) THEN
-          ! Divide accumulated variable by number of accumulated time steps:
-          out%PlantPWood = out%PlantPWood / REAL(output%interval, 4)
-          ! Write value to file:
-          CALL write_ovar(out_timestep, ncid_out, ovid%PlantPWood, 'PlantPWood', out%PlantPWood,    &
-                          ranges%TotLittCarb, patchout%PlantPWood, 'default', met)
-          ! Reset temporary output variable:
-          out%PlantPWood = 0.0
-       END IF
-
-       out%PlantPRoot = out%PlantPRoot + REAL(casapool%pplant(:,3) / 1000.0, 4)
-       IF(writenow) THEN
-          ! Divide accumulated variable by number of accumulated time steps:
-          out%PlantPRoot = out%PlantPRoot / REAL(output%interval, 4)
-          ! Write value to file:
-          CALL write_ovar(out_timestep, ncid_out, ovid%PlantPRoot, 'PlantPRoot', &
-               out%PlantPRoot,    &
-                          ranges%TotLittCarb, patchout%PlantPRoot, 'default', met)
-          ! Reset temporary output variable:
-          out%PlantPRoot = 0.0
-       END IF
-
-
 
       out%TotLivBiomass = out%TotLivBiomass + REAL((SUM(casapool%cplant,2)) &
         / 1000.0, 4)
