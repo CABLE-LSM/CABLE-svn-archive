@@ -453,6 +453,7 @@ PROGRAM cable_offline_driver
 
 	YEAR: DO YYYY= CABLE_USER%YearStart,  CABLE_USER%YearEnd
 	   CurYear = YYYY
+
 	   IF ( leaps .AND. IS_LEAPYEAR( YYYY ) ) THEN
 	      LOY = 366
 	   ELSE
@@ -807,8 +808,7 @@ PROGRAM cable_offline_driver
                     ncfile	 = TRIM(casafile%c2cdumppath)//'c2c_'//CYEAR//'_dump.nc'
                     casa_it = NINT( REAL(ktau / ktauday) )
 
-                    CALL read_casa_dump( ncfile, casamet, casaflux,phen, climate, casa_it, kend, LOY, .FALSE. )
-                    !CALL read_casa_dump( ncfile, casamet, casaflux,phen, climate, casa_it, kend, .FALSE. )
+                    CALL read_casa_dump( ncfile, casamet, casaflux,phen, climate, casa_it, kend, .FALSE. )
                  ENDIF
 
                  !jhan this is insufficient testing. condition for
