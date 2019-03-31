@@ -117,13 +117,10 @@ USE casa_inout_module
      WRITE(CYEAR,FMT="(I4)") CABLE_USER%CASA_SPIN_STARTYEAR + nyear - 1
      ncfile = TRIM(casafile%c2cdumppath)//'c2c_'//CYEAR//'_dump.nc'
 
+     call read_casa_dump( ncfile,casamet, casaflux, phen,climate, ktau ,kend,.TRUE. )
 
-     !call read_casa_dump( ncfile,casamet, casaflux, phen,climate, ktau ,kend,.TRUE. )
-     call read_casa_dump( ncfile,casamet, casaflux, phen,climate, ktau ,kend, &
-                          LOY, .TRUE. )
      !!CLN901  format(A99)
-     !do idoy=1,mdyear
-     do idoy=1,LOY
+     do idoy=1,mdyear
         ktau=(idoy-1)*ktauday +1
 
         casamet%tairk(:)       = casamet%Tairkspin(:,idoy)
@@ -301,17 +298,7 @@ USE casa_inout_module
         WRITE(CYEAR,FMT="(I4)") CABLE_USER%CASA_SPIN_STARTYEAR + nyear - 1
         ncfile = TRIM(casafile%c2cdumppath)//'c2c_'//CYEAR//'_dump.nc'
 
-      !!! NOT RIGHT, NOT CHECKING LEAP FLAG !!!!
-        read(CYEAR , *) YYYY
-        IF ( IS_LEAPYEAR( YYYY ) ) THEN
-        !IF ( leaps .AND. IS_LEAPYEAR( YYYY ) ) THEN
- 	        LOY = 366
- 	     ELSE
- 	         LOY = 365
- 	     ENDIF
-
-        call read_casa_dump( ncfile, casamet, casaflux, phen,climate, ktau, kend, LOY, .TRUE. )
-        !call read_casa_dump( ncfile, casamet, casaflux, phen,climate, ktau, kend, .TRUE. )
+        call read_casa_dump( ncfile, casamet, casaflux, phen,climate, ktau, kend, .TRUE. )
 
         DO idoy=1,mdyear
            ktauy=idoy*ktauday

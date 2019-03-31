@@ -125,7 +125,7 @@ use casa_inout_module
      ncfile = TRIM(casafile%c2cdumppath)//'c2c_'//CYEAR//'_dump.nc'
 
      ! Mgk576, this won't work, temp compile fix
-     call read_casa_dump( ncfile,casamet, casaflux, phen,climate, 1,1, -9999, .TRUE. )
+     call read_casa_dump( ncfile,casamet, casaflux, phen,climate, 1,1, .TRUE. )
      !!CLN901  format(A99)
      do idoy=1,mdyear
         ktau=(idoy-1)*ktauday +ktauday

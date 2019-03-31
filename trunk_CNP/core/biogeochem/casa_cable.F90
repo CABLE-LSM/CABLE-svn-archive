@@ -258,7 +258,7 @@ SUBROUTINE POPdriver(casaflux,casabal,veg, POP)
 
 END SUBROUTINE POPdriver
 ! ==============================================================================
-SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, climate, ncall, kend, days_in_yr, allATonce )
+SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, climate, ncall, kend, allATonce )
       USE netcdf
       USE cable_def_types_mod,   ONLY : r_2,ms,mp, climate_type
       USE casadimension,         ONLY : mplant,mdyear
@@ -275,7 +275,7 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, climate, ncall, kend
       TYPE (casa_met), INTENT(inout)  :: casamet
       TYPE (phen_variable),         INTENT(INOUT) :: phen
       TYPE (climate_type), INTENT(INOUT)       :: climate  ! climate variables
-      INTEGER, INTENT(in)             :: kend, ncall, days_in_yr
+      INTEGER, INTENT(in)             :: kend, ncall
       CHARACTER(len=*), INTENT(in)    :: ncfile
       LOGICAL, INTENT(in)             :: allATonce
 
@@ -334,8 +334,7 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, climate, ncall, kend
          IF (ncok /= nf90_noerr ) CALL stderr_nc(ncok,'re-opening ', ncfile)
       ENDIF
       IF ( allATonce ) THEN
-         !DO idoy=1,mdyear
-         DO idoy=1,days_in_yr
+         DO idoy=1,mdyear
             CALL get_var_ncr2(ncrid, var_name(3), tairk   , idoy )
             CALL get_var_ncr3(ncrid, var_name(4), tsoil   , idoy ,ms)
             CALL get_var_ncr3(ncrid, var_name(5), moist   , idoy ,ms)
