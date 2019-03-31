@@ -857,6 +857,30 @@ PROGRAM cable_offline_driver
                  ! WRITE CASA OUTPUT
                  IF(icycle >0) THEN
 
+                    IF (.NOT.spinup) THEN
+                       ! mgk576, hack for now for CASA outputs
+                       IF(MOD((ktau-kstart+1),ktauday)==0) THEN  ! end of day
+                          ctime = ctime +1
+                          CALL update_sum_casa(sum_casapool, sum_casaflux, &
+                                               casapool, casaflux, &
+                               .FALSE. , .TRUE. , count_sum_casa)
+
+                          IF (ktau == kend) THEN
+                             CALL WRITE_CASA_OUTPUT_NC (veg, casamet, &
+                                                        sum_casapool, casabal, &
+                                                        sum_casaflux, &
+                                                        CASAONLY, ctime, .TRUE. )
+                          ELSE
+                             CALL WRITE_CASA_OUTPUT_NC (veg, casamet, &
+                                                        sum_casapool, casabal, &
+                                                        sum_casaflux, &
+                                                        CASAONLY, ctime, .FALSE. )
+                          END IF
+
+                          count_sum_casa = 0
+                          CALL zero_sum_casa(sum_casapool, sum_casaflux)
+                       ENDIF
+                    ENDIF
 
                     IF ( IS_CASA_TIME("write", yyyy, ktau, kstart, &
                          koffset, kend, ktauday, logn) ) THEN
