@@ -30,7 +30,7 @@ contains
 
 SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
                      climate,casabiome,casapool,casaflux,casamet,casabal,phen, &
-                     pop, spinConv, spinup, ktauday, idoy,loy, dump_read,   &
+                     pop, spinConv, spinup, spincasa, ktauday, idoy,loy, dump_read,   &
                      dump_write, LALLOC)
 
    USE cable_def_types_mod
@@ -53,7 +53,7 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
 
    INTEGER,      INTENT(IN)                  :: idoy ,LOY ! day of year (1-365) , Length oy
    INTEGER,      INTENT(IN)                  :: ktauday
-   logical,      INTENT(IN) :: spinConv, spinup
+   logical,      INTENT(IN) :: spinConv, spinup, spincasa
    logical,      INTENT(IN) :: dump_read, dump_write
    INTEGER,      INTENT(IN)                  :: LALLOC
 
@@ -129,7 +129,7 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
 
             ENDIF
 
-            CALL biogeochem(ktau,dels,idoy,LALLOC,veg,soil,casabiome,casapool,casaflux, &
+            CALL biogeochem(ktau,dels,idoy,LALLOC,spincasa, veg,soil,casabiome,casapool,casaflux, &
                 casamet,casabal,phen,POP,climate, xnplimit,xkNlimiting,xklitter,xksoil, &
                 xkleaf,xkleafcold,xkleafdry,&
                 cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,         &
@@ -162,7 +162,7 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
 
       IF( MOD((ktau-kstart+1),ktauday) == 0 ) THEN  ! end of day
 
-         CALL biogeochem(ktau,dels,idoy,LALLOC,veg,soil,casabiome,casapool,casaflux, &
+         CALL biogeochem(ktau,dels,idoy,LALLOC,spincasa, veg,soil,casabiome,casapool,casaflux, &
               casamet,casabal,phen,POP,climate,xnplimit,xkNlimiting,xklitter,xksoil,xkleaf, &
               xkleafcold,xkleafdry,&
               cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,         &
