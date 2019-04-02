@@ -1492,7 +1492,7 @@ SUBROUTINE biogeochem(ktau,dels,idoY,LALLOC,veg,soil,casabiome,casapool,casaflux
   call casa_cnpflux(casaflux,casapool,casabal,.false.)
 
   ! only in the analytical spin step
-  IF ( icycle .GE. > 3 ) THEN
+  IF ( icycle > 3 ) THEN
     ! for spinning up only; YP has the N one commented out, mgk576 30/03/19
     casapool%Nsoilmin = max(casapool%Nsoilmin,0.5)
     casapool%Psoillab = max(casapool%Psoillab,0.1)
