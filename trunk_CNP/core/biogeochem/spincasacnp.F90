@@ -1,5 +1,5 @@
 SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
-     casaflux,casamet,casabal,phen,POP,climate,LALLOC,spincasa )
+     casaflux,casamet,casabal,phen,POP,climate,LALLOC )
 
 
   USE cable_def_types_mod
@@ -22,7 +22,6 @@ USE casa_inout_module
   INTEGER, INTENT(IN)    :: kend
   INTEGER, INTENT(IN)    :: mloop
   INTEGER, INTENT(IN)    :: LALLOC
-  logical,      INTENT(IN) :: spincasa
   TYPE (veg_parameter_type),    INTENT(INOUT) :: veg  ! vegetation parameters
   TYPE (soil_parameter_type),   INTENT(INOUT) :: soil ! soil parameters
   TYPE (casa_biome),            INTENT(INOUT) :: casabiome
@@ -151,7 +150,7 @@ USE casa_inout_module
         END IF
       ! write(6699,*) casaflux%cgpp(1), climate%mtemp(1),  casaflux%crmplant(1,1)
 
-        CALL biogeochem(ktau,dels,idoy,LALLOC,spincasa,veg,soil,casabiome,casapool,casaflux, &
+        CALL biogeochem(ktau,dels,idoy,LALLOC,veg,soil,casabiome,casapool,casaflux, &
              casamet,casabal,phen,POP,climate,xnplimit,xkNlimiting,xklitter, &
              xksoil,xkleaf,xkleafcold,xkleafdry,&
              cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,         &
@@ -332,7 +331,7 @@ USE casa_inout_module
            END IF
 
 
-           call biogeochem(ktauy,dels,idoy,LALLOC,spincasa,veg,soil,casabiome,casapool,casaflux, &
+           call biogeochem(ktauy,dels,idoy,LALLOC,veg,soil,casabiome,casapool,casaflux, &
                 casamet,casabal,phen,POP,climate,xnplimit,xkNlimiting,xklitter,xksoil,xkleaf,&
                 xkleafcold,xkleafdry,&
                 cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,         &

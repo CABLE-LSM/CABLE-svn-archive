@@ -1322,7 +1322,7 @@ SUBROUTINE casa_cnpflux(casaflux,casapool,casabal,zeroflux)
   ENDIF
 END SUBROUTINE casa_cnpflux
 ! changed by yp wang following Chris Lu 5/nov/2012
-SUBROUTINE biogeochem(ktau,dels,idoY,LALLOC,spincasa, veg,soil,casabiome,casapool,casaflux, &
+SUBROUTINE biogeochem(ktau,dels,idoY,LALLOC,veg,soil,casabiome,casapool,casaflux, &
      casamet,casabal,phen,POP,climate,xnplimit,xkNlimiting,xklitter,xksoil,xkleaf,xkleafcold,xkleafdry,&
      cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,         &
      nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,         &
@@ -1336,7 +1336,6 @@ SUBROUTINE biogeochem(ktau,dels,idoY,LALLOC,spincasa, veg,soil,casabiome,casapoo
   REAL,    INTENT(IN)    :: dels
   INTEGER, INTENT(IN)    :: idoy
   INTEGER, INTENT(IN)    :: LALLOC
-  logical,      INTENT(IN) :: spincasa
   TYPE (veg_parameter_type),    INTENT(INOUT) :: veg  ! vegetation parameters
   TYPE (soil_parameter_type),   INTENT(INOUT) :: soil ! soil parameters
   TYPE (casa_biome),            INTENT(INOUT) :: casabiome
@@ -1492,10 +1491,9 @@ SUBROUTINE biogeochem(ktau,dels,idoY,LALLOC,spincasa, veg,soil,casabiome,casapoo
 
   call casa_cnpflux(casaflux,casapool,casabal,.false.)
 
-  IF (icycle< 10 .AND. spincasa) THEN
-    casapool%Nsoilmin = max(casapool%Nsoilmin,0.5)
-    casapool%Psoillab = max(casapool%Psoillab,0.1)
-  END IF
+  ! for spinning up only; YP has the N one commented out, mgk576 30/03/19
+  !casapool%Nsoilmin = max(casapool%Nsoilmin,0.5)
+  !casapool%Psoillab = max(casapool%Psoillab,0.1)
 
 
 
