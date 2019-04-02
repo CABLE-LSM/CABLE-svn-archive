@@ -334,8 +334,8 @@ SUBROUTINE casa_allocation(veg,soil,casabiome,casaflux,casapool,casamet,phen,LAL
         WHERE(casamet%glai(:)>=casabiome%glaimax(veg%iveg(:)))
            casaflux%fracCalloc(:,leaf)  = 0.0
            casaflux%fracCalloc(:,froot) =  casaflux%fracCalloc(:,froot) &
-                /(casaflux%fracCalloc(:,froot) &
-                +casaflux%fracCalloc(:,wood))
+                                          /(casaflux%fracCalloc(:,froot) &
+                                          +casaflux%fracCalloc(:,wood))
            casaflux%fracCalloc(:,wood)  = 1.0 -casaflux%fracCalloc(:,froot)
         ENDWHERE
 
