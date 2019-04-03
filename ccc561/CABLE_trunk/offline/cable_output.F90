@@ -1,15 +1,15 @@
 !==============================================================================
-! This source code is part of the 
+! This source code is part of the
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
 ! This work is licensed under the CSIRO Open Source Software License
 ! Agreement (variation of the BSD / MIT License).
-! 
+!
 ! You may not use this file except in compliance with this License.
-! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located 
+! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located
 ! in each directory containing CABLE code.
 !
 ! ==============================================================================
-! Purpose: Output module for CABLE offline 
+! Purpose: Output module for CABLE offline
 !
 ! Contact: Bernard.Pak@csiro.au
 !
@@ -38,11 +38,13 @@ MODULE cable_output_module
 
   USE cable_abort_module, ONLY: abort, nc_abort
   USE cable_def_types_mod
+  USE casavariable, ONLY: casa_pool, casa_flux, casa_met
   USE cable_IO_vars_module
   USE cable_checks_module, ONLY: mass_balance, energy_balance, ranges
   USE cable_write_module
   USE netcdf
-  USE cable_common_module, ONLY: filename, calcsoilalbedo
+  USE cable_common_module, ONLY: filename, calcsoilalbedo, CurYear,IS_LEAPYEAR, cable_user,&
+                                 gw_params
   IMPLICIT NONE
   PRIVATE
   PUBLIC open_output_file, write_output, close_output_file, create_restart
@@ -50,15 +52,24 @@ MODULE cable_output_module
   REAL :: missing_value = -999999.0 ! for netcdf output
   TYPE out_varID_type ! output variable IDs in netcdf file
     INTEGER ::      SWdown, LWdown, Wind, Wind_E, PSurf,                       &
-                    Tair, Qair, Rainf, Snowf, CO2air,                          &
-                    Qle, Qh, Qg, NEE, SWnet,                                   &
+                    Tair, Qair, Tscrn, Qscrn, Rainf, Snowf, CO2air,            &
+                    Tmx, Tmn, Txx, Tnn,                                        &
+                    Qmom, Qle, Qh, Qg, NEE, SWnet,                             &
                     LWnet, SoilMoist, SoilTemp, Albedo,                        &
-                    visAlbedo, nirAlbedo,                                      &
+                    visAlbedo, nirAlbedo, SoilMoistIce,                        &
                     Qs, Qsb, Evap, BaresoilT, SWE, SnowT,                      &
-                    RadT, VegT, Ebal, Wbal, AutoResp,                          &
-                    LeafResp, HeteroResp, GPP, NPP, LAI,                       &
+                    RadT, VegT, Ebal, Wbal, AutoResp, RootResp,                &
+                    StemResp, LeafResp, HeteroResp, GPP, NPP, LAI,             &
                     ECanop, TVeg, ESoil, CanopInt, SnowDepth,                  &
-                    HVeg, HSoil, Rnet, tvar
+                    HVeg, HSoil, Rnet, tvar, CanT,Fwsoil, RnetSoil, SnowMelt, &
+                    NBP, TotSoilCarb, TotLivBiomass, &
+                    TotLittCarb, SoilCarbFast, SoilCarbSlow, SoilCarbPassive, &
+                    LittCarbMetabolic, LittCarbStructural, LittCarbCWD, &
+                    PlantCarbLeaf, PlantCarbFineRoot, PlantCarbWood, &
+                    PlantTurnover, PlantTurnoverLeaf, PlantTurnoverFineRoot, &
+                    PlantTurnoverWood, PlantTurnoverWoodDist, PlantTurnoverWoodCrowding, &
+                    PlantTurnoverWoodResourceLim, dCdt, Area, LandUseFlux, patchfrac, &
+                    vcmax,hc,WatTable,GWMoist,SatFrac,Qrecharge
   END TYPE out_varID_type
   TYPE(out_varID_type) :: ovid ! netcdf variable IDs for output variables
   TYPE(parID_type) :: opid ! netcdf variable IDs for output variables
@@ -73,6 +84,23 @@ MODULE cable_output_module
     REAL(KIND=4), POINTER, DIMENSION(:) :: Tair   ! 11 surface air temperature
                                                   ! [K]
     REAL(KIND=4), POINTER, DIMENSION(:) :: Qair   ! 12 specific humidity [kg/kg]
+    !INH new output variables
+    REAL(KIND=4), POINTER, DIMENSION(:) :: Tscrn  ! -- screen-level air
+                                                  ! temperature [oC]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: Qscrn  ! -- screen level specific
+                                                  ! humidity [kg/kg]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: Tmx    ! -- averaged daily maximum
+                                                  ! screen level temp [oC]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: Txx    ! -- max screen level temp
+                                                  ! in averaging period [oC]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: Tmn    ! -- averaged daily minimum
+                                                  ! screen level temp [oC]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: Tnn    ! -- min screen level temp
+                                                  ! in averaging period [oC]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: Tdaymx ! -- daily maximum
+                                                  ! screen level temp [oC]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: Tdaymn ! -- daily maximum
+                                                  ! screen level temp [oC]
     REAL(KIND=4), POINTER, DIMENSION(:) :: CO2air ! 13 CO2 concentration [ppmv]
     REAL(KIND=4), POINTER, DIMENSION(:) :: Wind   ! 14 windspeed [m/s]
     REAL(KIND=4), POINTER, DIMENSION(:) :: Wind_N ! 15 surface wind speed, N
@@ -80,6 +108,7 @@ MODULE cable_output_module
     REAL(KIND=4), POINTER, DIMENSION(:) :: Wind_E ! 16 surface wind speed, E
                                                   ! component [m/s]
     REAL(KIND=4), POINTER, DIMENSION(:) :: LAI
+    REAL(KIND=4), POINTER, DIMENSION(:) :: Qmom   ! -- momentum flux [kg/m/s2]
     REAL(KIND=4), POINTER, DIMENSION(:) :: Qh     ! 17 sensible heat flux [W/m2]
     REAL(KIND=4), POINTER, DIMENSION(:) :: Qle    ! 18 latent heat flux [W/m2]
     REAL(KIND=4), POINTER, DIMENSION(:) :: Qg     ! 19 ground heat flux [W/m2]
@@ -102,13 +131,15 @@ MODULE cable_output_module
     REAL(KIND=4), POINTER, DIMENSION(:) :: SoilWet ! 29 total soil wetness [-]
     REAL(KIND=4), POINTER, DIMENSION(:) :: Albedo  ! 30 albedo [-]
     REAL(KIND=4), POINTER, DIMENSION(:) :: visAlbedo  ! vars intro for Ticket #27
-    REAL(KIND=4), POINTER, DIMENSION(:) :: nirAlbedo  ! vars intro for Ticket #27 
+    REAL(KIND=4), POINTER, DIMENSION(:) :: nirAlbedo  ! vars intro for Ticket #27
     REAL(KIND=4), POINTER, DIMENSION(:) :: VegT    ! 31 vegetation temperature
                                                    ! [K]
     REAL(KIND=4), POINTER, DIMENSION(:,:) :: SoilTemp  ! 32 av.layer soil
                                                        ! temperature [K]
     REAL(KIND=4), POINTER, DIMENSION(:,:) :: SoilMoist ! 33 av.layer soil
                                                        ! moisture [kg/m2]
+     REAL(KIND=4), POINTER, DIMENSION(:,:) :: SoilMoistIce ! 33 av.layer soil
+     ! frozen moisture [kg/m2]
     REAL(KIND=4), POINTER, DIMENSION(:) :: Qs  ! 34 surface runoff [kg/m2/s]
     REAL(KIND=4), POINTER, DIMENSION(:) :: Qsb ! 35 subsurface runoff [kg/m2/s]
     ! 36 change in soilmoisture (sum layers) [kg/m2]
@@ -150,18 +181,62 @@ MODULE cable_output_module
                                                  ! [W/m2]
     REAL(KIND=4), POINTER, DIMENSION(:) :: HSoil ! sensible heat from soil
                                                  ! [W/m2]
+     REAL(KIND=4), POINTER, DIMENSION(:) :: RnetSoil ! latent heat from soil
+      ! [kg/m2/s]
+     REAL(KIND=4), POINTER, DIMENSION(:) :: SnowMelt ! snow melt
+     ! [W/m2]
     REAL(KIND=4), POINTER, DIMENSION(:) :: Ebal  ! cumulative energy balance
                                                  ! [W/m2]
     REAL(KIND=4), POINTER, DIMENSION(:) :: Wbal  ! cumulative water balance
                                                  ! [W/m2]
-  END TYPE output_temporary_type
+    REAL(KIND=4), POINTER, DIMENSION(:) :: CanT  ! within-canopy temperature
+    ! [K]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: Fwsoil  ! soil-moisture modfier to stomatal conductance
+                                                 ! [-]
+
+    ![umol/m2/s]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: NBP
+    REAL(KIND=4), POINTER, DIMENSION(:) :: dCdt
+    ! [kg C /m2]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: TotSoilCarb
+    REAL(KIND=4), POINTER, DIMENSION(:) :: TotLivBiomass
+    REAL(KIND=4), POINTER, DIMENSION(:) :: TotLittCarb
+    REAL(KIND=4), POINTER, DIMENSION(:) :: SoilCarbFast
+    REAL(KIND=4), POINTER, DIMENSION(:) :: SoilCarbSlow
+    REAL(KIND=4), POINTER, DIMENSION(:) :: SoilCarbPassive
+    REAL(KIND=4), POINTER, DIMENSION(:) :: LittCarbMetabolic
+    REAL(KIND=4), POINTER, DIMENSION(:) :: LittCarbStructural
+    REAL(KIND=4), POINTER, DIMENSION(:) :: LittCarbCWD
+    REAL(KIND=4), POINTER, DIMENSION(:) :: PlantCarbLeaf
+    REAL(KIND=4), POINTER, DIMENSION(:) :: PlantCarbFineRoot
+    REAL(KIND=4), POINTER, DIMENSION(:) :: PlantCarbWood
+    REAL(KIND=4), POINTER, DIMENSION(:) :: PlantTurnover
+    REAL(KIND=4), POINTER, DIMENSION(:) :: PlantTurnoverLeaf
+    REAL(KIND=4), POINTER, DIMENSION(:) :: PlantTurnoverFineRoot
+    REAL(KIND=4), POINTER, DIMENSION(:) :: PlantTurnoverWood
+    REAL(KIND=4), POINTER, DIMENSION(:) :: PlantTurnoverWoodDist
+    REAL(KIND=4), POINTER, DIMENSION(:) :: PlantTurnoverWoodCrowding
+    REAL(KIND=4), POINTER, DIMENSION(:) :: PlantTurnoverWoodResourceLim
+    REAL(KIND=4), POINTER, DIMENSION(:) :: Area
+    REAL(KIND=4), POINTER, DIMENSION(:) :: LandUseFlux
+    REAL(KIND=4), POINTER, DIMENSION(:) :: vcmax
+    REAL(KIND=4), POINTER, DIMENSION(:) :: patchfrac
+    REAL(KIND=4), POINTER, DIMENSION(:) :: hc
+    REAL(KIND=4), POINTER, DIMENSION(:)   :: SatFrac         !Saturated Fraction of Grid Cell
+    REAL(KIND=4), POINTER, DIMENSION(:)   :: Qrecharge         !recharge rate Grid Cell
+    REAL(KIND=4), POINTER, DIMENSION(:)   :: GWMoist       ! water balance of aquifer [mm3/mm3]
+    REAL(KIND=4), POINTER, DIMENSION(:)   :: WatTable      ! water table depth [m]
+
+    REAL(KIND=4), POINTER, DIMENSION(:) :: RootResp   !  autotrophic root respiration [umol/m2/s]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: StemResp   !  autotrophic stem respiration [umol/m2/s]
+ END TYPE output_temporary_type
   TYPE(output_temporary_type), SAVE :: out
   INTEGER :: ok   ! netcdf error status
 
 CONTAINS
 
   SUBROUTINE open_output_file(dels, soil, veg, bgc, rough)
-    ! Creates netcdf output file, defines all variables 
+    ! Creates netcdf output file, defines all variables
     ! and writes parameters to it if requested by user.
     REAL, INTENT(IN) :: dels ! time step size
     TYPE (soil_parameter_type), INTENT(IN) :: soil ! soil parameters
@@ -172,11 +247,14 @@ CONTAINS
 
     INTEGER :: xID, yID, zID, radID, soilID, soilcarbID,                  &
                     plantcarbID, tID, landID, patchID ! dimension IDs
-    INTEGER :: latID, lonID ! time,lat,lon variable ID
+    INTEGER :: latID, lonID, llatvID, llonvID ! time,lat,lon variable ID
     INTEGER :: xvID, yvID   ! coordinate variable IDs for GrADS readability
     !    INTEGER :: surffracID         ! surface fraction varaible ID
     CHARACTER(LEN=10) :: todaydate, nowtime ! used to timestamp netcdf file
-  
+
+
+
+
     ! Create output file:
     ok = NF90_CREATE(filename%out, NF90_CLOBBER, ncid_out)
     IF(ok /= NF90_NOERR) CALL nc_abort(ok, 'Error creating output file '       &
@@ -198,7 +276,7 @@ CONTAINS
                        (ok,'Error defining patch dimension in output file. '// &
                                                 '(SUBROUTINE open_output_file)')
     !   ! Define surftype dimension (currently only used for surffrac variable):
-    !    ok = NF90_DEF_DIM(ncid_out,'surftype',4,surftypeID) 
+    !    ok = NF90_DEF_DIM(ncid_out,'surftype',4,surftypeID)
     !    IF (ok /= NF90_NOERR) CALL nc_abort &
     !         (ok,'Error defining syrftype dimension in output file. '// &
     !         '(SUBROUTINE open_output_file)')
@@ -214,7 +292,7 @@ CONTAINS
     IF (ok /= NF90_NOERR) CALL nc_abort                                        &
            (ok, 'Error defining soil carbon pool dimension in output file. '// &
                                                 '(SUBROUTINE open_output_file)')
-    ok = NF90_DEF_DIM(ncid_out,'plant_carbon_pools',ncp,plantcarbID) 
+    ok = NF90_DEF_DIM(ncid_out,'plant_carbon_pools',ncp,plantcarbID)
     IF (ok /= NF90_NOERR) CALL nc_abort                                        &
            (ok,'Error defining plant carbon pool dimension in output file. '// &
                                                 '(SUBROUTINE open_output_file)')
@@ -238,6 +316,24 @@ CONTAINS
        IF (ok /= NF90_NOERR) CALL nc_abort                                     &
                        (ok, 'Error defining land dimension in output file. '// &
                                                 '(SUBROUTINE open_output_file)')
+
+       ok = NF90_DEF_VAR(ncid_out, 'local_lat', NF90_FLOAT, (/landID/), llatvID)
+       IF (ok /= NF90_NOERR) CALL nc_abort                                        &
+                        (ok, 'Error defining land lat variable in output file. '// &
+                                                '(SUBROUTINE open_output_file)')
+       ok = NF90_PUT_ATT(ncid_out, llatvID, 'units', "degrees_north")
+       IF (ok /= NF90_NOERR) CALL nc_abort                                        &
+            (ok, 'Error defining local lat variable attributes in output file. '// &
+                                                '(SUBROUTINE open_output_file)')
+       ok = NF90_DEF_VAR(ncid_out, 'local_lon', NF90_FLOAT, (/landID/), llonvID)
+       IF (ok /= NF90_NOERR) CALL nc_abort                                        &
+                        (ok, 'Error defining land lon variable in output file. '// &
+                                                '(SUBROUTINE open_output_file)')
+       ok = NF90_PUT_ATT(ncid_out, llonvID, 'units', "degrees_east")
+       IF (ok /= NF90_NOERR) CALL nc_abort                                        &
+            (ok, 'Error defining local lon variable attributes in output file. '// &
+                                                '(SUBROUTINE open_output_file)')
+
     END IF
     ! Define "time" variable and its attributes:
     ok = NF90_DEF_VAR(ncid_out, 'time', NF90_DOUBLE, (/tID/), ovid%tvar)
@@ -249,6 +345,10 @@ CONTAINS
              (ok, 'Error defining time variable attributes in output file. '// &
                                                 '(SUBROUTINE open_output_file)')
     ok = NF90_PUT_ATT(ncid_out, ovid%tvar, 'coordinate', time_coord)
+    IF (ok /= NF90_NOERR) CALL nc_abort                                        &
+             (ok, 'Error defining time variable attributes in output file. '// &
+                                                '(SUBROUTINE open_output_file)')
+    ok = NF90_PUT_ATT(ncid_out, ovid%tvar, 'calendar', calendar)
     IF (ok /= NF90_NOERR) CALL nc_abort                                        &
              (ok, 'Error defining time variable attributes in output file. '// &
                                                 '(SUBROUTINE open_output_file)')
@@ -368,6 +468,13 @@ CONTAINS
     END IF
     ! Define surface flux variables in output file and allocate temp output
     ! vars:
+    IF(output%flux .OR. output%Qmom) THEN
+       CALL define_ovar(ncid_out, ovid%Qmom, 'Qmom', 'kg/m/s2',                &
+                        'Surface momentum flux',patchout%Qmom,'dummy',       &
+                        xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%Qmom(mp))
+       out%Qmom = 0.0 ! initialise
+    END IF
     IF(output%flux .OR. output%Qle) THEN
        CALL define_ovar(ncid_out, ovid%Qle, 'Qle', 'W/m^2',                    &
                         'Surface latent heat flux',patchout%Qle,'dummy',       &
@@ -445,6 +552,12 @@ CONTAINS
                         xID, yID, zID, landID, patchID, tID)
        ALLOCATE(out%HSoil(mp))
        out%HSoil = 0.0 ! initialise
+
+       CALL define_ovar(ncid_out, ovid%RnetSoil, 'RnetSoil', 'W/m^2',                &
+            'Net radiation absorbed by ground', patchout%RnetSoil, 'dummy',    &
+            xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%RnetSoil(mp))
+       out%RnetSoil = 0.0 ! initialise
     END IF
     IF(output%flux .OR. output%carbon .OR. output%NEE) THEN
        CALL define_ovar(ncid_out, ovid%NEE, 'NEE', 'umol/m^2/s',               &
@@ -453,13 +566,21 @@ CONTAINS
        ALLOCATE(out%NEE(mp))
        out%NEE = 0.0 ! initialise
     END IF
+
+
+
     ! Define soil state variables in output file and allocate temp output vars:
     IF(output%soil .OR. output%SoilMoist) THEN
        CALL define_ovar(ncid_out, ovid%SoilMoist, 'SoilMoist', 'm^3/m^3',      &
                         'Average layer soil moisture', patchout%SoilMoist,     &
                         'soil', xID, yID, zID, landID, patchID, soilID, tID)
+       CALL define_ovar(ncid_out, ovid%SoilMoistIce, 'SoilMoistIce', 'm^3/m^3',      &
+            'Average layer frozen soil moisture', patchout%SoilMoistIce,     &
+            'soil', xID, yID, zID, landID, patchID, soilID, tID)
        ALLOCATE(out%SoilMoist(mp,ms))
+       ALLOCATE(out%SoilMoistIce(mp,ms))
        out%SoilMoist = 0.0 ! initialise
+       out%SoilMoistIce = 0.0 ! initialise
     END IF
     IF(output%soil .OR. output%SoilTemp) THEN
        CALL define_ovar(ncid_out, ovid%SoilTemp, 'SoilTemp', 'K',              &
@@ -482,6 +603,12 @@ CONTAINS
                         'dummy', xID, yID, zID, landID, patchID, tID)
        ALLOCATE(out%SWE(mp))
        out%SWE = 0.0 ! initialise
+
+       CALL define_ovar(ncid_out, ovid%SnowMelt, 'SnowMelt', 'kg/m^2/s',                   &
+            'Snow Melt Rate', patchout%SnowMelt,                 &
+            'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%SnowMelt(mp))
+       out%SnowMelt = 0.0 ! initialise
     END IF
     IF(output%snow .OR. output%SnowT) THEN
        CALL define_ovar(ncid_out, ovid%SnowT, 'SnowT', 'K',                    &
@@ -529,7 +656,7 @@ CONTAINS
        out%Albedo = 0.0 ! initialise
     END IF
 
-	 ! output calc of soil albedo based on colour? - Ticket #27
+         ! output calc of soil albedo based on colour? - Ticket #27
      IF (calcsoilalbedo) THEN
       IF(output%radiation .OR. output%visAlbedo) THEN
          CALL define_ovar(ncid_out, ovid%visAlbedo, 'visAlbedo', '-',          &
@@ -555,12 +682,77 @@ CONTAINS
        out%RadT = 0.0 ! initialise
     END IF
     ! Define vegetation variables in output file and allocate temp output vars:
+    ! REV_CORR - new output variables.
+    IF(output%Tscrn .OR. output%veg) THEN
+       CALL define_ovar(ncid_out, ovid%Tscrn,                                  &
+                        'Tscrn', 'oC', 'screen level air temperature', &
+                        patchout%Tscrn, &
+                        'ALMA', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%Tscrn(mp))
+       out%Tscrn = 0.0 ! initialise
+    END IF
+    IF (output%Tex .OR. output%veg) THEN
+       IF((output%averaging(1:2) == 'da').OR.(output%averaging(1:2)=='mo')) THEN
+          CALL define_ovar(ncid_out, ovid%Txx,                                 &
+                         'Txx', 'oC', 'max screen-level T in reporting period',&
+                         patchout%Tex,                                         &
+                         'ALMA', xID, yID, zID, landID, patchID, tID)
+           ALLOCATE(out%Txx(mp))
+           out%Txx = -1.0E6 !initialise extremes at unreasonable value
+           CALL define_ovar(ncid_out, ovid%Tnn,                                &
+                         'Tnn', 'oC', 'min screen-level T in reporting period',&
+                         patchout%Tex,                                         &
+                         'ALMA', xID, yID, zID, landID, patchID, tID)
+           ALLOCATE(out%Tnn(mp))
+           out%Tnn = 1.0E6 !initialise extremes at unreasonable value
+       ENDIF
+       IF (output%averaging(1:2)=='mo') THEN
+           !%Tdaymx is the current day max T - this is a working variable)
+           !%Tmx is average of those values to be output
+           CALL define_ovar(ncid_out, ovid%Tmx,                                &
+                         'Tmx', 'oC', 'averaged daily maximum screen-level T', &
+                         patchout%Tex,                                         &
+                         'ALMA', xID, yID, zID, landID, patchID, tID)
+           ALLOCATE(out%Tmx(mp), out%Tdaymx(mp))
+           out%Tmx = 0.0 !initialise average
+           out%Tdaymx = -1.0E6 !initialise extremes at unreasonable value
+           CALL define_ovar(ncid_out, ovid%Tmn,                                &
+                         'Tmn', 'oC', 'averaged daily minimum screen-level T', &
+                         patchout%Tex,                                         &
+                         'ALMA', xID, yID, zID, landID, patchID, tID)
+           ALLOCATE(out%Tmn(mp),out%Tdaymn(mp))
+           out%Tmn = 0.0
+           out%Tdaymn = 1.0E6
+       ENDIF
+    ENDIF
+    IF(output%Qscrn .OR. output%veg) THEN
+       CALL define_ovar(ncid_out, ovid%Qscrn,                                  &
+                        'Qscrn', 'kg/kg', 'screen level specific humdity',     &
+                        patchout%Qscrn, &
+                        'ALMA', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%Qscrn(mp))
+       out%Qscrn = 0.0 ! initialise
+    END IF
     IF(output%veg .OR. output%VegT) THEN
        CALL define_ovar(ncid_out, ovid%VegT, 'VegT', 'K',                      &
                         'Average vegetation temperature', patchout%VegT,       &
                         'dummy', xID, yID, zID, landID, patchID, tID)
        ALLOCATE(out%VegT(mp))
        out%VegT = 0.0 ! initialise
+    END IF
+    IF(output%veg .OR. output%CanT) THEN
+       CALL define_ovar(ncid_out, ovid%CanT, 'CanT', 'K', &
+                        'Within-canopy temperature', patchout%CanT, &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%CanT(mp))
+       out%CanT = 0.0 ! initialise
+    END IF
+    IF(output%veg .OR. output%Fwsoil) THEN
+       CALL define_ovar(ncid_out, ovid%Fwsoil, 'Fwsoil', '[-]', &
+                        'soil moisture modifier to stomatal conductance', patchout%Fwsoil, &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%Fwsoil(mp))
+       out%Fwsoil = 0.0 ! initialise
     END IF
     IF(output%veg .OR. output%CanopInt) THEN
        CALL define_ovar(ncid_out, ovid%CanopInt, 'CanopInt', 'kg/m^2',         &
@@ -599,6 +791,22 @@ CONTAINS
        ALLOCATE(out%AutoResp(mp))
        out%AutoResp = 0.0 ! initialise
     END IF
+    IF(output%casa .OR. output%AutoResp) THEN
+       CALL define_ovar(ncid_out, ovid%RootResp, 'RootResp', 'umol/m^2/s',     &
+                        'Fine Root Autotrophic respiration', patchout%AutoResp,          &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%RootResp(mp))
+       out%RootResp = 0.0 ! initialise
+    END IF
+
+    IF(output%casa .OR. output%AutoResp) THEN
+       CALL define_ovar(ncid_out, ovid%StemResp, 'StemResp', 'umol/m^2/s',     &
+                        'StemWood Autotrophic respiration', patchout%AutoResp,          &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%StemResp(mp))
+       out%StemResp = 0.0 ! initialise
+    END IF
+
     IF(output%carbon .OR. output%LeafResp) THEN
        CALL define_ovar(ncid_out, ovid%LeafResp, 'LeafResp', 'umol/m^2/s',     &
                         'Leaf respiration', patchout%LeafResp,                 &
@@ -619,7 +827,14 @@ CONTAINS
                         'dummy', xID, yID, zID, landID, patchID, tID)
        ALLOCATE(out%GPP(mp))
        out%GPP = 0.0 ! initialise
+
+
     END IF
+
+
+
+
+
     IF(output%carbon .OR. output%NPP) THEN
        CALL define_ovar(ncid_out, ovid%NPP, 'NPP', 'umol/m^2/s',               &
                         'Net primary production', patchout%NPP,                &
@@ -628,16 +843,219 @@ CONTAINS
        out%NPP = 0.0 ! initialise
     END IF
 
+    !MD groundwater related variables
+    IF(output%soil .OR. output%WatTable) THEN
+       CALL define_ovar(ncid_out, ovid%WatTable, 'WatTable', 'm',      &
+                        'Water Table Depth', patchout%WatTable,     &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%WatTable(mp))
+       out%WatTable = 0.0 ! initialise
+    END IF
+    IF(output%soil .OR. output%GWMoist) THEN
+       CALL define_ovar(ncid_out, ovid%GWMoist, 'GWMoist', 'mm3/mm3',      &
+                        'Aquifer mositure content', patchout%GWMoist,     &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%GWMoist(mp))
+       out%GWMoist = 0.0 ! initialise
+    END IF
+
+    IF(output%soil .OR. output%SatFrac) THEN
+       CALL define_ovar(ncid_out, ovid%SatFrac, 'SatFrac', 'unitless',      &
+                        'Saturated Fraction of Gridcell', patchout%SatFrac,     &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%SatFrac(mp))
+       out%SatFrac = 0.0 ! initialise
+    END IF
+
+    IF(output%soil .OR. output%Qrecharge) THEN
+       CALL define_ovar(ncid_out, ovid%Qrecharge, 'Qrecharge', 'mm/s',      &
+                           'Recharge to or from Aquifer', patchout%Qrecharge,     &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%Qrecharge(mp))
+       out%Qrecharge = 0.0 ! initialise
+    END IF
+
+    IF(output%casa) THEN
+       CALL define_ovar(ncid_out, ovid%NBP, 'NBP', 'umol/m^2/s',               &
+                        'Net Biosphere Production &
+                        (uptake +ve)', patchout%NBP,         &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%NBP(mp))
+       out%NBP = 0.0 ! initialise
+
+       CALL define_ovar(ncid_out, ovid%dCdt, 'dCdt', 'umol/m^2/s',               &
+                        'Carbon accumulation rate (uptake +ve)', patchout%dCdt,         &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%dCdt(mp))
+       out%dCdt = 0.0 ! initialise
+
+       CALL define_ovar(ncid_out, ovid%TotSoilCarb, 'TotSoilCarb', 'kg C/m^2',               &
+                        'Total Soil and Litter Carbon', patchout%TotSoilCarb,         &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%TotSoilCarb(mp))
+       out%TotSoilCarb = 0.0 ! initialise
+
+       CALL define_ovar(ncid_out, ovid%TotLittCarb, 'TotLittCarb', 'kg C/m^2',               &
+                        'Total Litter Carbon', patchout%TotLittCarb,         &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%TotLittCarb(mp))
+       out%TotLittCarb = 0.0 ! initialise
+
+       CALL define_ovar(ncid_out, ovid%SoilCarbFast, 'SoilCarbFast', 'kg C/m^2',               &
+                        'Soil Carbon: Fast Turnover', patchout%SoilCarbFast,         &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%SoilCarbFast(mp))
+       out%SoilCarbFast = 0.0 ! initialise
+
+       CALL define_ovar(ncid_out, ovid%SoilCarbSlow, 'SoilCarbSlow', 'kg C/m^2',               &
+                        'Soil Carbon: Slow Turnover', patchout%SoilCarbSlow,         &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%SoilCarbSlow(mp))
+       out%SoilCarbSlow = 0.0 ! initialise
+
+       CALL define_ovar(ncid_out, ovid%SoilCarbPassive, 'SoilCarbPassive', 'kg C/m^2',               &
+                        'Soil Carbon: Passive', patchout%SoilCarbPassive,         &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%SoilCarbPassive(mp))
+       out%SoilCarbPassive = 0.0 ! initialise
+
+
+       CALL define_ovar(ncid_out, ovid%LittCarbMetabolic, 'LittCarbMetabolic', 'kg C/m^2',               &
+                        'Litter Carbon: metabolic', patchout%LittCarbMetabolic,         &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%LittCarbMetabolic(mp))
+       out%LittCarbMetabolic = 0.0 ! initialise
+
+       CALL define_ovar(ncid_out, ovid%LittCarbStructural, 'LittCarbStructural', 'kg C/m^2',               &
+                        'Litter Carbon: structural', patchout%LittCarbStructural,         &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%LittCarbStructural(mp))
+       out%LittCarbStructural = 0.0 ! initialise
+
+       CALL define_ovar(ncid_out, ovid%LittCarbCWD, 'LittCarbCWD', 'kg C/m^2',               &
+                        'Litter Carbon: CWD', patchout%LittCarbCWD,         &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%LittCarbCWD(mp))
+       out%LittCarbCWD = 0.0 ! initialise
+
+       CALL define_ovar(ncid_out, ovid%PlantCarbLeaf, 'PlantCarbLeaf', 'kg C/m^2',               &
+                        'Plant Carbon: leaf', patchout%PlantCarbLeaf,         &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%PlantCarbLeaf(mp))
+       out%PlantCarbLeaf = 0.0 ! initialise
+
+       CALL define_ovar(ncid_out, ovid%PlantCarbFineRoot, 'PlantCarbFineRoot', 'kg C/m^2',               &
+                        'Plant Carbon: Fine roots', patchout%PlantCarbFineRoot,         &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%PlantCarbFineRoot(mp))
+       out%PlantCarbFineRoot = 0.0 ! initialise
+
+       CALL define_ovar(ncid_out, ovid%PlantCarbWood, 'PlantCarbWood', 'kg C/m^2',               &
+                        'Plant Carbon: wood (above- and below-ground', patchout%PlantCarbWood,         &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%PlantCarbWood(mp))
+       out%PlantCarbWood = 0.0 ! initialise
+
+       CALL define_ovar(ncid_out, ovid%TotLivBiomass, 'TotLivBiomass', 'kg C/m^2',               &
+                        'Total Biomass', patchout%TotLivBiomass,         &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%TotLivBiomass(mp))
+       out%TotLivBiomass = 0.0 ! initialise
+
+
+       CALL define_ovar(ncid_out, ovid%PlantTurnover, 'PlantTurnover', 'umol/m^2/s',               &
+                        'Total Biomass Turnover', patchout%PlantTurnover,         &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%PlantTurnover(mp))
+       out%PlantTurnover = 0.0
+
+       CALL define_ovar(ncid_out, ovid%PlantTurnoverLeaf, 'PlantTurnoverLeaf ', &
+            'umol/m^2/s',               &
+            'Leaf Biomass Turnover', patchout%PlantTurnoverLeaf,         &
+            'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%PlantTurnoverLeaf(mp))
+       out%PlantTurnoverLeaf = 0.0
+
+       CALL define_ovar(ncid_out, ovid%PlantTurnoverFineRoot, 'PlantTurnoverFineRoot ', &
+            'umol/m^2/s',               &
+            'FineRoot Biomass Turnover', patchout%PlantTurnoverFineRoot,         &
+            'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%PlantTurnoverFineRoot(mp))
+       out%PlantTurnoverFineRoot = 0.0
+
+
+       CALL define_ovar(ncid_out, ovid%PlantTurnoverWood, 'PlantTurnoverWood ', &
+            'umol/m^2/s',               &
+                        'Woody Biomass Turnover', patchout%PlantTurnoverWood,         &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%PlantTurnoverWood(mp))
+       out%PlantTurnoverWood = 0.0
+
+       CALL define_ovar(ncid_out, ovid%PlantTurnoverWoodDist, 'PlantTurnoverWoodDist ', &
+            'umol/m^2/s',               &
+            'Woody Biomass Turnover (disturbance)', patchout%PlantTurnoverWoodDist,         &
+            'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%PlantTurnoverWoodDist(mp))
+       out%PlantTurnoverWoodDist = 0.0
+
+
+       CALL define_ovar(ncid_out, ovid%PlantTurnoverWoodCrowding, 'PlantTurnoverWoodCrowding ', &
+            'umol/m^2/s',               &
+            'Woody Biomass Turnover (crowding)', patchout%PlantTurnoverWoodCrowding,         &
+            'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%PlantTurnoverWoodCrowding(mp))
+       out%PlantTurnoverWoodCrowding = 0.0
+
+       CALL define_ovar(ncid_out, ovid%PlantTurnoverWoodResourceLim, 'PlantTurnoverWoodResourceLim ', &
+            'umol/m^2/s',               &
+            'Woody Biomass Turnover (Resource Limitation)', patchout%PlantTurnoverWoodResourceLim,         &
+            'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%PlantTurnoverWoodResourceLim(mp))
+       out%PlantTurnoverWoodResourceLim = 0.0
+
+       IF (cable_user%POPLUC) THEN
+
+          CALL define_ovar(ncid_out, ovid%LandUseFlux, 'LandUseFlux ', &
+               'umol/m^2/s',               &
+               'Sum of wood harvest and clearing fluxes', patchout%LandUseFlux,         &
+               'dummy', xID, yID, zID, landID, patchID, tID)
+          ALLOCATE(out%LandUseFlux(mp))
+          out%LandUseFlux = 0.0
+       ENDIF
+
+
+    END IF
+
+!! vh_js !!
+    CALL define_ovar(ncid_out, ovid%Area, 'Area', 'km2',               &
+                        'Patch Area', patchout%Area,         &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+     ALLOCATE(out%Area(mp))
+     out%Area = 0.0 ! initialise
+
+
     ! Define CABLE parameters in output file:
     IF(output%params .OR. output%iveg) CALL define_ovar(ncid_out, opid%iveg,   &
                      'iveg', '-', 'Vegetation type', patchout%iveg, 'integer', &
                                                  xID, yID, zID, landID, patchID)
 
-    IF((output%params .OR. output%patchfrac)                                   &
-         .AND. (patchout%patchfrac .OR. output%patch))                         &
-         CALL define_ovar(ncid_out, opid%patchfrac, 'patchfrac', '-',          &
-         'Fractional cover of vegetation patches', patchout%patchfrac, 'real', &
-                          xID, yID, zID, landID, patchID)
+    IF (cable_user%POPLUC) THEN
+
+       CALL define_ovar(ncid_out, opid%patchfrac, 'patchfrac', '-',          &
+            'Fractional cover of vegetation patches', patchout%patchfrac, 'real', &
+            xID, yID, zID, landID, patchID, tID)
+
+    ELSE
+
+       IF((output%params .OR. output%patchfrac)                                   &
+            .AND. (patchout%patchfrac .OR. output%patch))                         &
+            CALL define_ovar(ncid_out, opid%patchfrac, 'patchfrac', '-',          &
+            'Fractional cover of vegetation patches', patchout%patchfrac, 'real', &
+            xID, yID, zID, landID, patchID)
+
+    ENDIF
+
+
     IF(output%params .OR. output%isoil) CALL define_ovar(ncid_out, opid%isoil, &
                          'isoil', '-', 'Soil type', patchout%isoil, 'integer', &
                                                  xID, yID, zID, landID, patchID)
@@ -681,9 +1099,17 @@ CONTAINS
                                                  opid%albsoil, 'albsoil', '-', &
                               'Snow free shortwave soil reflectance fraction', &
            patchout%albsoil, radID, 'radiation', xID, yID, zID, landID, patchID)
-    IF(output%params .OR. output%hc) CALL define_ovar(ncid_out, opid%hc,       &
+    !! vh_js !!
+    IF (cable_user%CALL_POP) THEN
+       IF(output%params .OR. output%hc) CALL define_ovar(ncid_out, opid%hc,    &
                                    'hc', 'm', 'Height of canopy', patchout%hc, &
-                                         'real', xID, yID, zID, landID, patchID)
+                                      'real', xID, yID, zID, landID, patchID,tID)
+    ELSE
+       IF(output%params .OR. output%hc) CALL define_ovar(ncid_out, opid%hc,    &
+            'hc', 'm', 'Height of canopy', patchout%hc, &
+            'real', xID, yID, zID, landID, patchID)
+    ENDIF
+
     IF(output%params .OR. output%canst1) CALL define_ovar(ncid_out,            &
            opid%canst1, 'canst1', 'mm/LAI', 'Max water intercepted by canopy', &
                         patchout%canst1, 'real', xID, yID, zID, landID, patchID)
@@ -709,7 +1135,7 @@ CONTAINS
     IF(output%params .OR. output%g1) CALL define_ovar(ncid_out, opid%g1,   &
                           'g1', '-', 'g1 term in Medlyn Stom Cond. Param', &
                           patchout%g1, 'real', xID, yID, zID, landID, patchID)
-    ! end Ticket #56 
+    ! end Ticket #56
 
     IF(output%params .OR. output%rpcoef) CALL define_ovar(ncid_out,            &
                                                  opid%rpcoef, 'rpcoef', '1/C', &
@@ -768,6 +1194,37 @@ CONTAINS
     IF(output%params .OR. output%froot) CALL define_ovar(ncid_out, opid%froot, &
                          'froot', '-', 'Fraction of roots in each soil layer', &
                  patchout%froot, soilID, 'soil', xID, yID, zID, landID, patchID)
+
+!    IF(output%params .OR. output%slope) CALL define_ovar(ncid_out, opid%slope,   &
+!           'slope', '-', 'Mean subgrid topographic slope', &
+!                          patchout%slope, 'real', xID, yID, zID, landID, patchID)
+!
+!    IF(output%params .OR. output%slope_std) CALL define_ovar(ncid_out, opid%slope_std,   &
+!           'slope_std', '-', 'Mean subgrid topographic slope_std', &
+!                          patchout%slope_std, 'real', xID, yID, zID, landID, patchID)
+!
+!    IF(output%params .OR. output%GWdz) CALL define_ovar(ncid_out, opid%GWdz,   &
+!           'GWdz', '-', 'Mean aquifer layer thickness ', &
+!                          patchout%GWdz, 'real', xID, yID, zID, landID, patchID)
+!
+    IF(output%params .and. cable_user%gw_model) THEN
+           CALL define_ovar(ncid_out, opid%Qhmax,   &
+                          'Qhmax', 'mm/s', 'Maximum subsurface drainage ', &
+                          patchout%Qhmax, 'real', xID, yID, zID, landID, patchID)
+           CALL define_ovar(ncid_out, opid%QhmaxEfold,   &
+                          'QhmaxEfold', 'm', 'Maximum subsurface drainage decay rate', &
+                          patchout%QhmaxEfold, 'real', xID, yID, zID, landID, patchID)
+           CALL define_ovar(ncid_out, opid%SatFracmax,   &
+                          'SatFracmax', '-', 'Controls max saturated fraction ', &
+                          patchout%SatFracmax, 'real', xID, yID, zID, landID, patchID)
+           CALL define_ovar(ncid_out, opid%HKefold,   &
+                          'HKefold', '1/m', 'Rate HK decays with depth ', &
+                          patchout%HKefold, 'real', xID, yID, zID, landID, patchID)
+           CALL define_ovar(ncid_out, opid%HKdepth,   &
+                          'HKdepth', 'm', 'Depth at which HKsat(z) is HKsat(0) ', &
+                          patchout%HKdepth, 'real', xID, yID, zID, landID, patchID)
+    END IF
+
 
     ! Write global attributes for file:
     CALL DATE_AND_TIME(todaydate, nowtime)
@@ -832,6 +1289,7 @@ CONTAINS
                         //TRIM(filename%out)// ' (SUBROUTINE open_output_file)')
 
     ! Write latitude and longitude variables:
+
     ok = NF90_PUT_VAR(ncid_out, latID, REAL(lat_all, 4))
     IF(ok /= NF90_NOERR) CALL nc_abort                                         &
                                     (ok, 'Error writing latitude variable to ' &
@@ -840,6 +1298,22 @@ CONTAINS
     IF(ok /= NF90_NOERR) CALL nc_abort                                         &
                                    (ok, 'Error writing longitude variable to ' &
                         //TRIM(filename%out)// ' (SUBROUTINE open_output_file)')
+
+    IF (output%grid == 'land' .OR. &
+         (metGrid == 'land' .AND. output%grid == 'default'))  THEN
+
+       ok = NF90_PUT_VAR(ncid_out, llatvID, REAL(latitude) )
+       IF(ok /= NF90_NOERR) CALL nc_abort                                         &
+                                   (ok, 'Error writing loc lat variable to ' &
+                        //TRIM(filename%out)// ' (SUBROUTINE open_output_file)')
+
+       ok = NF90_PUT_VAR(ncid_out, llonvID, REAL(longitude) )
+       IF(ok /= NF90_NOERR) CALL nc_abort                                         &
+                                   (ok, 'Error writing loc lon variable to ' &
+                        //TRIM(filename%out)// ' (SUBROUTINE open_output_file)')
+
+    ENDIF
+
     ! Write GrADS coordinate variables
     ok = NF90_PUT_VAR(ncid_out, xvID, REAL(lon_all(:, 1), 4))
     IF(ok /= NF90_NOERR) CALL nc_abort                                         &
@@ -853,10 +1327,13 @@ CONTAINS
     ! Write model parameters if requested:
     IF(output%params .OR. output%iveg) CALL write_ovar(ncid_out, opid%iveg,    &
                'iveg', REAL(veg%iveg, 4), ranges%iveg, patchout%iveg, 'integer')
-    IF((output%params .OR. output%patchfrac)                                   &
-       .AND. (patchout%patchfrac .OR. output%patch))                           &
+
+    IF (.not.cable_user%POPLUC) THEN
+       IF((output%params .OR. output%patchfrac)                                   &
+            .AND. (patchout%patchfrac .OR. output%patch))                           &
        CALL write_ovar(ncid_out, opid%patchfrac, 'patchfrac',                  &
-               REAL(patch(:)%frac, 4), (/0.0, 1.0/), patchout%patchfrac, 'real')
+       REAL(patch(:)%frac, 4), (/0.0, 1.0/), patchout%patchfrac, 'real')
+    ENDIF
     IF(output%params .OR. output%isoil) CALL write_ovar(ncid_out, opid%isoil,  &
           'isoil', REAL(soil%isoilm, 4), ranges%isoil, patchout%isoil,'integer')
     IF(output%params .OR. output%bch) CALL write_ovar(ncid_out, opid%bch,      &
@@ -899,8 +1376,11 @@ CONTAINS
               'vcmax', REAL(veg%vcmax, 4), ranges%vcmax, patchout%vcmax, 'real')
     IF(output%params .OR. output%frac4) CALL write_ovar(ncid_out, opid%frac4,  &
               'frac4', REAL(veg%frac4, 4), ranges%frac4, patchout%frac4, 'real')
-    IF(output%params .OR. output%hc) CALL write_ovar(ncid_out, opid%hc,        &
-                          'hc', REAL(veg%hc, 4), ranges%hc, patchout%hc, 'real')
+
+    IF (.not.cable_user%CALL_POP) THEN
+       IF(output%params .OR. output%hc) CALL write_ovar(ncid_out, opid%hc,        &
+            'hc', REAL(veg%hc, 4), ranges%hc, patchout%hc, 'real')
+    ENDIF
     IF(output%params .OR. output%rp20) CALL write_ovar(ncid_out, opid%rp20,    &
                    'rp20', REAL(veg%rp20, 4),ranges%rp20, patchout%rp20, 'real')
     ! Ticket #56
@@ -954,17 +1434,47 @@ CONTAINS
                            'zse', SPREAD(REAL(soil%zse, 4), 1, mp),ranges%zse, &
                                 patchout%zse, 'soil')! no spatial dim at present
 
+!    IF(output%params .OR. output%slope) CALL write_ovar(ncid_out, opid%slope,    &
+!                 'slope', REAL(soil%slope, 4), (/0.0,1.0/), patchout%slope, 'real')
+!    IF(output%params .OR. output%slope_std) CALL write_ovar(ncid_out, opid%slope_std,    &
+!                 'slope_std', REAL(soil%slope_std, 4), (/0.0,1.0/), patchout%slope_std, 'real')
+!    IF(output%params .OR. output%GWdz) CALL write_ovar(ncid_out, opid%GWdz,    &
+!                 'GWdz', REAL(soil%GWdz, 4), (/0.0,10000.0/), patchout%GWdz, 'real')
+!
+    IF(output%params .and. cable_user%gw_model) THEN
+                  CALL write_ovar(ncid_out, opid%SatFracmax,    &
+                       'SatFracmax', spread(REAL(gw_params%MaxSatFraction,4),1,mp), &
+                        (/0.0,100000000.0/), patchout%SatFracmax, 'real')
+
+                  CALL write_ovar(ncid_out, opid%Qhmax,    &
+                       'Qhmax', spread(REAL(gw_params%MaxHorzDrainRate, 4),1,mp), &
+                       (/0.0,100000000.0/), patchout%Qhmax, 'real')
+
+                  CALL write_ovar(ncid_out, opid%QhmaxEfold,    &
+                       'QhmaxEfold', spread(REAL(gw_params%EfoldHorzDrainRate, 4),1,mp), &
+                        (/0.0,100000000.0/), patchout%QhmaxEfold, 'real')
+
+                  CALL write_ovar(ncid_out, opid%HKefold,    &
+                       'HKefold', spread(REAL(gw_params%hkrz, 4),1,mp), &
+                        (/0.0,100000000.0/), patchout%HKefold, 'real')
+
+                  CALL write_ovar(ncid_out, opid%HKdepth,    &
+                       'HKdepth', spread(REAL(gw_params%zdepth, 4),1,mp), &
+                        (/0.0,100000000.0/), patchout%HKdepth, 'real')
+     END IF
+
+
   END SUBROUTINE open_output_file
   !=============================================================================
-  SUBROUTINE write_output(dels, ktau, met, canopy, ssnow,                       &
+  SUBROUTINE write_output(dels, ktau, met, canopy, casaflux, casapool, casamet, ssnow,                       &
                           rad, bal, air, soil, veg, SBOLTZ, EMLEAF, EMSOIL)
     ! Writes model output variables and, if requested, calls
-    ! energy and mass balance routines. This subroutine is called 
+    ! energy and mass balance routines. This subroutine is called
     ! each timestep, but may only write to the output file periodically,
-    ! depending on whether the user has specified that output should be 
+    ! depending on whether the user has specified that output should be
     ! aggregated, e.g. to monthly or 6-hourly averages.
     REAL, INTENT(IN)              :: dels ! time step size
-    INTEGER, INTENT(IN)           :: ktau ! timestep number in loop which include spinup 
+    INTEGER, INTENT(IN)           :: ktau ! timestep number in loop which include spinup
     REAL, INTENT(IN) :: SBOLTZ, EMLEAF, EMSOIL
     TYPE(met_type), INTENT(IN)         :: met  ! met data
     TYPE(canopy_type), INTENT(IN)      :: canopy ! canopy variable data
@@ -973,7 +1483,10 @@ CONTAINS
     TYPE(radiation_type), INTENT(IN)  :: rad   ! radiation data
     TYPE(air_type), INTENT(IN)        :: air
     TYPE(veg_parameter_type), INTENT(IN) :: veg ! vegetation parameters
+    TYPE(casa_flux), INTENT(IN) :: casaflux ! casa fluxes
+    TYPE(casa_pool), INTENT(IN) :: casapool ! casa fluxes
     TYPE(balances_type), INTENT(INOUT) :: bal
+    TYPE (casa_met), INTENT(IN)	:: casamet
 
     REAL(r_2), DIMENSION(1) :: timetemp ! temporary variable for storing time
                                         ! value
@@ -983,21 +1496,33 @@ CONTAINS
     INTEGER, DIMENSION(mp) :: realyear ! fix problem for yr b4 leap yr
     INTEGER :: backtrack  ! modify timetemp for averaged output
 
+    INTEGER :: dday ! number of past-years days for monthly output LN
+    INTEGER :: iy   ! Counter
+    !MC - use met%year(1) instead of CABLE_USER%YearStart for non-GSWP forcing and leap years
+    INTEGER, SAVE :: YearStart
+
+    INTEGER :: ok
+
     ! IF asked to check mass/water balance:
     IF(check%mass_bal) CALL mass_balance(dels, ktau, ssnow, soil, canopy,            &
                                          met,air,bal)
 
     ! IF asked to check energy balance:
-    IF(check%energy_bal) CALL energy_balance(dels,met,rad,                     &
+    IF(check%energy_bal) CALL energy_balance(dels,ktau,met,rad,                     &
                                              canopy,bal,ssnow,                 &
-                                             SBOLTZ, EMLEAF, EMSOIL ) 
+                                             SBOLTZ, EMLEAF, EMSOIL )
 
     ! Initialise output time step counter and month counter:
     IF(ktau == 1) THEN
        out_timestep = 0
        out_month = 0
+       !MC - use met%year(1) instead of CABLE_USER%YearStart for non-GSWP forcing and leap years
+       IF ( TRIM(cable_user%MetType) .EQ. '' ) then
+          YearStart = met%year(1)
+       ELSE
+          YearStart = CABLE_USER%YearStart
+       ENDIF
     END IF
-
     ! Decide on output averaging regime:
     IF(output%averaging(1:3) == 'all') THEN ! write every time step to file
        ! Set flag to write data for current time step:
@@ -1010,7 +1535,7 @@ CONTAINS
        ! user defined output interval or daily output
        IF(MOD(ktau, output%interval) == 0) THEN ! i.e.ktau divisible by
                                                    ! interval
-          ! write to output file this time step 
+          ! write to output file this time step
           writenow = .TRUE.
           ! increment output time step counter:
           out_timestep = out_timestep + 1
@@ -1019,21 +1544,32 @@ CONTAINS
           writenow = .FALSE.
        END IF
     ELSE IF(output%averaging(1:2) == 'mo') THEN ! write monthly averages to file
-       realyear = met%year
+       !realyear = met%year
+       realyear = real(CurYear)
        IF(ktau >= 365*24*3600/INT(dels)) THEN
          WHERE(met%doy == 1) realyear = realyear - 1   ! last timestep of year
        END IF
-       
+
+       ! LN Inserted for multiyear output
+       dday = 0
+       !MC - use met%year(1) instead of CABLE_USER%YearStart for non-GSWP forcing and leap years
+       DO iy=YearStart, CurYear-1
+          IF (IS_LEAPYEAR(iy) .AND. leaps) THEN
+             dday = dday + 366
+          ELSE
+             dday = dday + 365
+          ENDIF
+       END DO
+       ! LN Inserted for multiyear output
+
        ! Are we using leap year calendar?
-       IF(leaps) THEN
+       IF (leaps) THEN
           ! If currently a leap year:
-          IF(((ANY(MOD(realyear,4)==0).AND.ANY(MOD(realyear,100)/=0)).OR. &
-               (ANY(MOD(realyear,4)==0).AND.ANY(MOD(realyear,400)==0)))) THEN
-             
-             IF(ANY((lastdayl * 24 * 3600 / INT(dels)) == ktau)) THEN
-                ! increment output month counter
+          if (is_leapyear(CurYear)) then
+!! vh_js !!
+             IF(ANY(INT(real(lastdayl+dday) * 24. * 3600. / dels) == ktau)) THEN
                 out_month = MOD(out_month, 12) + 1 ! can only be 1 - 12
-                ! write to output file this time step 
+                ! write to output file this time step
                 writenow = .TRUE.
                 ! increment output time step counter:
                 out_timestep = out_timestep + 1
@@ -1044,10 +1580,11 @@ CONTAINS
              END IF
           ELSE ! not currently a leap year
              ! last time step of month
-             IF(ANY((lastday * 24 * 3600 / INT(dels)) == ktau)) THEN
+!! vh_js !!
+             IF(ANY(INT(real(lastday+dday) * 24. * 3600. / dels) == ktau)) THEN
                 ! increment output month counter
                 out_month = MOD(out_month, 12) + 1 ! can only be 1 - 12
-                ! write to output file this time step 
+                ! write to output file this time step
                 writenow = .TRUE.
                 ! increment output time step counter:
                 out_timestep = out_timestep + 1
@@ -1058,11 +1595,13 @@ CONTAINS
              END IF
           END IF
        ELSE ! not using leap year timing in this run
-          IF(ANY((lastday*24*3600/INT(dels))==ktau)) THEN ! last time step of
-                                                             ! month
+
+!! vh_js !!
+           IF(ANY(INT((real((lastday+dday))*24.*3600./real(INT(dels))))==ktau)) THEN ! last time step of month
+         ! IF(ANY(((lastday+dday)*24*3600/INT(dels))==ktau)) THEN ! last time step of month
              ! increment output month counter
              out_month = MOD(out_month, 12) + 1 ! can only be 1 - 12
-             ! write to output file this time step 
+             ! write to output file this time step
              writenow = .TRUE.
              ! increment output time step counter:
              out_timestep = out_timestep + 1
@@ -1073,12 +1612,14 @@ CONTAINS
           END IF
        END IF ! using leap year timing or not
        backtrack = output%interval / 2
+
+
     ELSE ! type of output aggregation
        CALL abort('Unknown output averaging request in namelist file.'//       &
                   '(SUBROUTINE write_output)')
     END IF
 
-    ! Note that size of averaging interval, output%interval, is set when opening 
+    ! Note that size of averaging interval, output%interval, is set when opening
     ! output file unless output is monthly (in which case it's set above)
 
     ! If this time step is an output time step:
@@ -1094,8 +1635,8 @@ CONTAINS
     END IF
 
     ! Arguments to write_ovar: current time step; output file netcdf file ID;
-    ! netcdf variable ID; variable name; variable data; variable ranges; 
-    ! non-land fill value; include patch info for this var; any specific 
+    ! netcdf variable ID; variable name; variable data; variable ranges;
+    ! non-land fill value; include patch info for this var; any specific
     ! formatting info; met variables for reporting in case of abort.
 
     ! SWdown:  downward short-wave radiation [W/m^2]
@@ -1115,8 +1656,8 @@ CONTAINS
     ! LWdown: downward long-wave radiation [W/m^2]
     IF(output%met .OR. output%LWdown) THEN
        ! Add current timestep's value to total of temporary output variable:
-       out%LWdown = out%LWdown + REAL(met%fld, 4)
-       IF(writenow) THEN
+        out%LWdown = out%LWdown + REAL(met%fld, 4)
+        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
           out%LWdown = out%LWdown/REAL(output%interval, 4)
           ! Write value to file:
@@ -1225,6 +1766,20 @@ CONTAINS
        END IF
     END IF
     !-----------------------WRITE FLUX DATA-------------------------------------
+    ! Qmom: momentum flux [kg/m/s2] INH
+    IF(output%flux .OR. output%Qmom) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%Qmom = out%Qmom + REAL(air%rho,4)*(REAL(canopy%us,4)**2.)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%Qmom = out%Qmom / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%Qmom, 'Qmom', out%Qmom, &
+                          ranges%Qmom, patchout%Qmom, 'default', met)
+          ! Reset temporary output variable:
+          out%Qmom = 0.0
+       END IF
+    END IF
     ! Qle: latent heat flux [W/m^2]
     IF(output%flux .OR. output%Qle) THEN
        ! Add current timestep's value to total of temporary output variable:
@@ -1341,7 +1896,11 @@ CONTAINS
     ! ESoil: bare soil evaporation [kg/m^2/s]
     IF(output%flux .OR. output%ESoil) THEN
        ! Add current timestep's value to total of temporary output variable:
+       IF(cable_user%SOIL_STRUC=='sli') THEN
+          out%ESoil = out%ESoil + REAL(ssnow%evap/dels, 4) !vh!
+       ELSE
        out%ESoil = out%ESoil + REAL(canopy%fes / air%rlam, 4)
+       ENDIF
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
           out%ESoil = out%ESoil / REAL(output%interval, 4)
@@ -1379,6 +1938,17 @@ CONTAINS
           ! Reset temporary output variable:
           out%HSoil = 0.0
        END IF
+
+        out%RnetSoil = out%RnetSoil + REAL(canopy%fns, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%RnetSoil = out%RnetSoil / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%RnetSoil, 'RnetSoil',         &
+               out%RnetSoil, ranges%HSoil, patchout%HSoil, 'default', met)
+          ! Reset temporary output variable:
+          out%RnetSoil = 0.0
+       END IF
     END IF
     ! NEE: net ecosystem exchange [umol/m^2/s]
     IF(output%flux .OR. output%carbon .OR. output%NEE) THEN
@@ -1394,19 +1964,28 @@ CONTAINS
           out%NEE = 0.0
        END IF
     END IF
+
+
+
+
     !-----------------------WRITE SOIL STATE DATA-------------------------------
     ! SoilMoist: av.layer soil moisture [kg/m^2]
     IF(output%soil .OR. output%SoilMoist) THEN
        ! Add current timestep's value to total of temporary output variable:
        out%SoilMoist = out%SoilMoist + REAL(ssnow%wb, 4)
+       out%SoilMoistIce = out%SoilMoistIce + REAL(ssnow%wbice, 4)
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
           out%SoilMoist = out%SoilMoist / REAL(output%interval, 4)
+          out%SoilMoistIce = out%SoilMoistIce / REAL(output%interval, 4)
           ! Write value to file:
           CALL write_ovar(out_timestep, ncid_out, ovid%SoilMoist, 'SoilMoist', &
                out%SoilMoist, ranges%SoilMoist, patchout%SoilMoist, 'soil', met)
+          CALL write_ovar(out_timestep, ncid_out, ovid%SoilMoistIce, 'SoilMoistIce', &
+               out%SoilMoistIce, ranges%SoilMoist, patchout%SoilMoistIce, 'soil', met)
           ! Reset temporary output variable:
           out%SoilMoist = 0.0
+          out%SoilMoistIce = 0.0
        END IF
     END IF
     ! SoilTemp: av.layer soil temperature [K]
@@ -1437,6 +2016,64 @@ CONTAINS
           out%BaresoilT = 0.0
        END IF
     END IF
+
+    !MD Write the hydrology output data from the groundwater module calculations
+    !water table depth
+    IF((output%soil .OR. output%WatTable) .and. cable_user%GW_MODEL) THEN
+       !write(*,*) 'wtd'    !MDeck
+       ! Add current timestep's value to total of temporary output variable:
+       out%WatTable = out%WatTable + REAL(ssnow%wtd/1000.0, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%WatTable = out%WatTable / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%WatTable, 'WatTable', &
+               out%WatTable, ranges%WatTable, patchout%WatTable, 'default', met)
+          ! Reset temporary output variable:
+          out%WatTable = 0.0
+       END IF
+    END IF
+    !aquifer water content
+    IF((output%soil .OR. output%GWMoist)  .and. cable_user%GW_MODEL) THEN
+       out%GWMoist = out%GWMoist + REAL(ssnow%GWwb, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%GWMoist = out%GWMoist / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%GWMoist, 'GWMoist', &
+               out%GWMoist, ranges%GWwb, patchout%GWMoist, 'default', met)
+          ! Reset temporary output variable:
+          out%GWMoist = 0.0
+       END IF
+    END IF
+    IF((output%soil .OR. output%SatFrac)  .and. cable_user%GW_MODEL) THEN
+       !write(*,*) 'Qinfl'    !MDeck
+       ! Add current timestep's value to total of temporary output variable:
+       out%SatFrac = out%SatFrac + REAL(ssnow%satfrac, 4)
+       IF(writenow) THEN
+          out%SatFrac = out%SatFrac / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%SatFrac, 'SatFrac', &
+               out%SatFrac, ranges%SatFrac, patchout%SatFrac, 'default', met)
+          ! Reset temporary output variable:
+          out%SatFrac = 0.0
+       END IF
+    END IF
+
+    ! recharge rate
+    IF(output%soil .OR. output%Qrecharge) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%Qrecharge = out%Qrecharge + REAL(ssnow%Qrecharge, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%Qrecharge = out%Qrecharge / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%Qrecharge, 'Qrecharge', &
+                       out%Qrecharge, ranges%Qrecharge, patchout%Qrecharge, 'default', met)
+          ! Reset temporary output variable:
+          out%Qrecharge = 0.0
+       END IF
+    END IF
     !----------------------WRITE SNOW STATE DATA--------------------------------
     ! SWE: snow water equivalent [kg/m^2]
     IF(output%snow .OR. output%SWE) THEN
@@ -1451,6 +2088,21 @@ CONTAINS
           ! Reset temporary output variable:
           out%SWE = 0.0
        END IF
+
+      ! Add current timestep's value to total of temporary output variable:
+      out%SnowMelt = out%SnowMelt + REAL(ssnow%smelt, 4)/dels
+! temp test vh !
+      !out%SnowMelt = out%SnowMelt + REAL(ssnow%nsteps, 4)/dels
+      IF(writenow) THEN
+         ! Divide accumulated variable by number of accumulated time steps:
+         out%SnowMelt = out%SnowMelt / REAL(output%interval, 4)
+         ! Write value to file:
+         CALL write_ovar(out_timestep, ncid_out, ovid%SnowMelt, 'SnowMelt', out%SnowMelt,    &
+              (/-99999.0, 9999999.0/), patchout%SnowMelt, 'default', met)
+         ! Reset temporary output variable:
+         out%SnowMelt = 0.0
+      END IF
+
     END IF
     ! SnowT: snow surface temp [K]
     IF(output%snow .OR. output%SnowT) THEN
@@ -1502,6 +2154,14 @@ CONTAINS
        out%LWnet = out%LWnet +                                                 &
           REAL(met%fld - sboltz * emleaf * canopy%tv ** 4 * (1 - rad%transd) - &
                rad%flws * rad%transd, 4)
+
+       ! REV_CORR (needed for testing and offline-as-online cases):
+       ! correction term added in entirety onto %LWnet not (1-rad%transd)*
+       ! for standard offline cases %fns_cor = 0.
+       IF (cable_user%L_REV_CORR) THEN
+          out%LWnet = out%LWnet + canopy%fns_cor
+       ENDIF
+
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
           out%LWnet = out%LWnet / REAL(output%interval, 4)
@@ -1519,6 +2179,14 @@ CONTAINS
                                   (1 - rad%transd) -rad%flws * rad%transd +    &
                                   SUM(rad%qcan(:, :, 1), 2) +                  &
                                   SUM(rad%qcan(:, :, 2), 2) + rad%qssabs, 4)
+
+       ! REV_CORR (needed for testing and offline-as-online cases):
+       ! correction term added in entirety onto %Rnet not (1-rad%transd)*
+       ! for standard offline cases %fns_cor = 0.
+       IF (cable_user%L_REV_CORR) THEN
+          out%Rnet = out%Rnet + canopy%fns_cor
+       ENDIF
+
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
           out%Rnet = out%Rnet / REAL(output%interval, 4)
@@ -1549,7 +2217,7 @@ CONTAINS
          ! Reset temporary output variable:
          out%Albedo = 0.0
 
-       	 ! output calc of soil albedo based on colour? - Ticket #27
+         ! output calc of soil albedo based on colour? - Ticket #27
          IF (calcsoilalbedo) THEN
            out%visAlbedo = out%visAlbedo / REAL(output%interval, 4)
            CALL write_ovar(out_timestep, ncid_out, ovid%visAlbedo, 'visAlbedo',&
@@ -1566,8 +2234,7 @@ CONTAINS
     IF(output%radiation .OR. output%RadT) THEN
        ! Add current timestep's value to total of temporary output variable:
        out%RadT = out%RadT + REAL((((1.0 - rad%transd) * emleaf * sboltz *     &
-       canopy%tv ** 4 + rad%transd * emsoil * sboltz * ((1 - ssnow%isflag) *   &
-       ssnow%tgg(:, 1) + ssnow%isflag * ssnow%tggsn(:, 1)) ** 4) / sboltz)     &
+       canopy%tv ** 4 + rad%transd * emsoil * sboltz * (ssnow%tss) ** 4) / sboltz)     &
        ** 0.25, 4)
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
@@ -1580,6 +2247,89 @@ CONTAINS
        END IF
     END IF
     !------------------------WRITE VEGETATION DATA------------------------------
+    ! Tscrn: screen level air temperature [oC]
+    IF(output%Tscrn .OR. output%veg) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%Tscrn = out%Tscrn + REAL(canopy%tscrn, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%Tscrn = out%Tscrn/REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%Tscrn, 'Tscrn',         &
+                           out%Tscrn, ranges%Tscrn, patchout%Tscrn, 'ALMA', met)
+          ! Reset temporary output variable:
+          out%Tscrn = 0.0
+       END IF
+    END IF
+    !INH - extremes in screen level air temperature [oC]
+    IF(output%Tex .OR. output%veg) THEN
+       !if 'daily' then only daily values - using variables Txx and Tnn
+       IF (output%averaging(1:2) == 'da') THEN
+          DO iy=1,mp
+             out%Txx(iy) = MAX(out%Txx(iy),REAL(canopy%tscrn(iy),4))
+             out%Tnn(iy) = MIN(out%Tnn(iy),REAL(canopy%tscrn(iy),4))
+          ENDDO
+          IF(writenow) THEN
+             CALL write_ovar(out_timestep,ncid_out,ovid%Txx, 'Txx',            &
+                           out%Txx, ranges%Tscrn, patchout%Tex, 'ALMA', met)
+             CALL write_ovar(out_timestep,ncid_out,ovid%Tnn, 'Tnn',           &
+                           out%Tnn, ranges%Tscrn, patchout%Tex, 'ALMA', met)
+             !Reset temporary output variables:
+             out%Txx = -1.0E6
+             out%Tnn = 1.0E6
+          ENDIF
+       ENDIF
+
+       IF (output%averaging(1:2)=='mo') THEN
+          !if monthly then both full extremes and averaged extremes
+          DO iy=1,mp
+             out%Txx(iy) = MAX(out%Txx(iy),REAL(canopy%tscrn(iy),4))
+             out%Tnn(iy) = MIN(out%Tnn(iy),REAL(canopy%tscrn(iy),4))
+             out%Tdaymx(iy) = MAX(out%Tdaymx(iy),REAL(canopy%tscrn(iy),4))
+             out%Tdaymn(iy) = MIN(out%Tdaymn(iy),REAL(canopy%tscrn(iy),4))
+          ENDDO
+          !take copy of day's max/min for averaged output - reset Tdaymx/mn
+          IF (mod(ktau,24*3600/INT(dels))==0) THEN
+             out%Tmx = out%Tmx + out%Tdaymx
+             out%Tmn = out%Tmn + out%Tdaymn
+             out%Tdaymx = -1.0E6
+             out%Tdaymn = 1.0E6
+          ENDIF
+          IF(writenow) THEN
+             !divide by number of records in average (dels*%interval/24/3600)
+             out%Tmx = REAL(86400,4)*out%Tmx/REAL(output%interval*INT(dels),4)
+             out%Tmn = REAL(86400,4)*out%Tmn/REAL(output%interval*INT(dels),4)
+             !write to file
+             CALL write_ovar(out_timestep,ncid_out,ovid%Txx, 'Txx',            &
+                           out%Txx, ranges%Tscrn, patchout%Tex, 'ALMA', met)
+             CALL write_ovar(out_timestep,ncid_out,ovid%Tnn, 'Tnn',           &
+                          out%Tnn, ranges%Tscrn, patchout%Tex, 'ALMA', met)
+             CALL write_ovar(out_timestep,ncid_out,ovid%Tmx, 'Tmx',           &
+                          out%Tmx, ranges%Tscrn, patchout%Tex, 'ALMA', met)
+             CALL write_ovar(out_timestep,ncid_out,ovid%Tmn, 'Tmn',           &
+                          out%Tmn, ranges%Tscrn, patchout%Tex, 'ALMA', met)
+             !Reset temporary output variables:
+             out%Txx = -1.0E6
+             out%Tnn = 1.0E6
+             out%Tmx = 0.0
+             out%Tmn = 0.0
+          ENDIF
+       ENDIF
+    ENDIF
+    ! Qscrn: screen level specific humdity [kg/kg]
+    IF(output%Qscrn .OR. output%veg) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%Qscrn = out%Qscrn + REAL(canopy%qscrn, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%qscrn = out%qscrn/REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%Qscrn, 'Qscrn',        &
+                           out%Qscrn, ranges%Qscrn, patchout%Qscrn, 'ALMA', met)
+          ! Reset temporary output variable:
+          out%Qscrn = 0.0
+       END IF
+    END IF
     ! VegT: vegetation temperature [K]
     IF(output%veg .OR. output%VegT) THEN
        ! Add current timestep's value to total of temporary output variable:
@@ -1592,6 +2342,33 @@ CONTAINS
                           ranges%VegT, patchout%VegT, 'default', met)
           ! Reset temporary output variable:
           out%VegT = 0.0
+       END IF
+    END IF
+    ! CanT: within-canopy temperature [K]
+    IF(output%veg .OR. output%CanT) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%CanT = out%CanT + REAL(met%tvair, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%CanT = out%CanT / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%CanT, 'CanT', out%CanT, &
+                          ranges%CanT, patchout%CanT, 'default', met)
+          ! Reset temporary output variable:
+          out%CanT = 0.0
+       END IF
+    END IF
+     IF(output%veg .OR. output%Fwsoil) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%Fwsoil = out%Fwsoil + REAL(canopy%fwsoil, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%Fwsoil = out%Fwsoil / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%Fwsoil, 'Fwsoil', out%Fwsoil, &
+                          ranges%Fwsoil, patchout%Fwsoil, 'default', met)
+          ! Reset temporary output variable:
+          out%Fwsoil = 0.0
        END IF
     END IF
     ! CanopInt: total canopy water storage [kg/m^2]
@@ -1658,6 +2435,9 @@ CONTAINS
        ! Add current timestep's value to total of temporary output variable:
        out%GPP = out%GPP + REAL((-1.0 * canopy%fpn + canopy%frday)             &
                                 / 1.201E-5, 4)
+      ! out%GPP = out%GPP + REAL((-1.0 * canopy%fpn)             &
+       !                         / 1.201E-5, 4)
+
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
           out%GPP = out%GPP/REAL(output%interval, 4)
@@ -1667,11 +2447,25 @@ CONTAINS
           ! Reset temporary output variable:
           out%GPP = 0.0
        END IF
+
     END IF
+
+
     ! NPP: net primary production of C by veg [umol/m^2/s]
     IF(output%carbon .OR. output%NPP) THEN
        ! Add current timestep's value to total of temporary output variable:
-       out%NPP = out%NPP + REAL((-1.0 * canopy%fpn - canopy%frp) / 1.201E-5, 4)
+       !out%NPP = out%NPP + REAL((-1.0 * canopy%fpn - canopy%frp &
+       !     - casaflux%clabloss/86400.0) / 1.201E-5, 4)
+       ! vh ! expression below can be slightly different form that above in cases where
+       ! leaf maintenance respiration is reduced in CASA
+       ! (relative to its original value calculated in cable_canopy)
+       ! in order to avoid negative carbon stores.
+       IF(output%casa) THEN
+          out%NPP = out%NPP + REAL(casaflux%cnpp/86400.0 / 1.201E-5, 4)
+       ELSE
+          out%NPP = out%NPP + REAL((-1.0 * canopy%fpn - canopy%frp))! &
+          !  - casaflux%clabloss/86400.0) / 1.201E-5, 4)
+       ENDIF
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
           out%NPP = out%NPP / REAL(output%interval, 4)
@@ -1685,8 +2479,22 @@ CONTAINS
     ! AutoResp: autotrophic respiration [umol/m^2/s]
     IF(output%carbon .OR. output%AutoResp) THEN
        ! Add current timestep's value to total of temporary output variable:
-       out%AutoResp = out%AutoResp + REAL((canopy%frp + canopy%frday)          &
-                                           / 1.201E-5, 4)
+       !out%AutoResp = out%AutoResp + REAL((canopy%frp + canopy%frday + casaflux%clabloss/86400.0)          &
+       !                                    / 1.201E-5, 4)
+       ! vh ! expression below can be slightly different form that above in cases where
+       ! leaf maintenance respiration is reduced in CASA
+       ! (relative to its original value calculated in cable_canopy)
+       ! in order to avoid negative carbon stores.
+
+       IF(output%casa) THEN
+          out%AutoResp = out%AutoResp + REAL(canopy%frday / 1.201E-5, 4) + &
+               REAL((casaflux%crmplant(:,2)/86400.0 + casaflux%crmplant(:,3)/86400.0 + &
+               casaflux%crgplant/86400.0 + casaflux%clabloss/86400.)/ 1.201E-5, 4)
+       ELSE
+          out%AutoResp = out%AutoResp + REAL((canopy%frp + canopy%frday)          &
+                                          / 1.201E-5, 4)
+       ENDIF
+
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
           out%AutoResp = out%AutoResp/REAL(output%interval, 4)
@@ -1696,7 +2504,36 @@ CONTAINS
           ! Reset temporary output variable:
           out%AutoResp = 0.0
        END IF
+
+       IF(output%casa) THEN
+          out%RootResp = out%RootResp + REAL(casaflux%crmplant(:,3)/86400.0/ 1.201E-5, 4) !+ &
+               ! REAL(0.3*casaflux%crmplant(:,2)/86400.0/ 1.201E-5, 4)
+          IF(writenow) THEN
+             ! Divide accumulated variable by number of accumulated time steps:
+             out%RootResp = out%RootResp/REAL(output%interval, 4)
+             ! Write value to file:
+             CALL write_ovar(out_timestep, ncid_out, ovid%RootResp, 'RootResp',   &
+                  out%RootResp, ranges%AutoResp, patchout%AutoResp, 'default', met)
+             ! Reset temporary output variable:
+             out%RootResp = 0.0
+          END IF
+       END IF
+
+       IF(output%casa) THEN
+          out%StemResp = out%StemResp + REAL(casaflux%crmplant(:,2)/86400.0/ 1.201E-5, 4)
+          IF(writenow) THEN
+             ! Divide accumulated variable by number of accumulated time steps:
+             out%StemResp = out%StemResp/REAL(output%interval, 4)
+             ! Write value to file:
+             CALL write_ovar(out_timestep, ncid_out, ovid%StemResp, 'StemResp',   &
+                  out%StemResp, ranges%AutoResp, patchout%AutoResp, 'default', met)
+             ! Reset temporary output variable:
+             out%StemResp = 0.0
+          END IF
+       END IF
+
     END IF
+
     ! LeafResp: Leaf respiration [umol/m^2/s]
     IF(output%carbon .OR. output%LeafResp) THEN
        ! Add current timestep's value to total of temporary output variable:
@@ -1727,11 +2564,341 @@ CONTAINS
        END IF
     END IF
 
+    ! output patch area
+    IF(output%casa) THEN
+     out%Area = casamet%areacell/1e6 ! km2
+     IF(writenow) THEN
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%Area, 'Area', out%Area,    &
+                          ranges%Area, patchout%Area, 'default', met)
+      END IF
+      IF (cable_user%POPLUC) THEN
+         ! output patch fraction
+         IF(writenow) THEN
+            CALL write_ovar(out_timestep, ncid_out, opid%patchfrac, 'patchfrac',                  &
+                 REAL(patch(:)%frac, 4), (/0.0, 1.0/), patchout%patchfrac, 'default',met)
+
+         END IF
+      ENDIF
+   ENDIF
+   IF (cable_user%CALL_POP) THEN
+      IF(writenow) THEN
+         IF(output%params .OR. output%hc) CALL write_ovar(out_timestep,ncid_out, opid%hc,        &
+              'hc', REAL(veg%hc, 4), ranges%hc, patchout%hc, 'default', met)
+      ENDIF
+   ENDIF
+
+    ! NBP and turnover fluxes [umol/m^2/s]
+    IF((output%carbon .OR. output%NBP) .and. output%casa) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       IF (cable_user%POPLUC) THEN
+           out%NBP = out%NBP + -REAL((casaflux%Crsoil-casaflux%cnpp &
+            - casapool%dClabiledt)/86400.0 &
+            / 1.201E-5, 4) !-  &
+            !REAL((casaflux%FluxCtohwp + casaflux%FluxCtoclear  )/86400.0 &
+            !/ 1.201E-5, 4)
+       ELSE
+          out%NBP = out%NBP + -REAL((casaflux%Crsoil-casaflux%cnpp &
+               - casapool%dClabiledt)/86400.0 &
+               / 1.201E-5, 4)
+       ENDIF
+
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%NBP = out%NBP / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%NBP, 'NBP', out%NBP,    &
+                          ranges%NEE, patchout%NBP, 'default', met)
+          ! Reset temporary output variable:
+          out%NBP = 0.0
+       END IF
+      ENDIF
+      IF(output%casa) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%dCdt = out%dCdt + REAL((casapool%ctot-casapool%ctot_0)/86400.0 &
+            / 1.201E-5, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%dCdt = out%dCdt / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%dCdt, 'dCdt', out%dCdt,    &
+                          ranges%NEE, patchout%dCdt, 'default', met)
+          ! Reset temporary output variable:
+          out%dCdt = 0.0
+       END IF
+
+       ! Add current timestep's value to total of temporary output variable:
+       out%PlantTurnover = out%PlantTurnover + REAL((sum(casaflux%Cplant_turnover,2))/86400.0 &
+            / 1.201E-5, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%PlantTurnover = out%PlantTurnover / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%PlantTurnover, 'PlantTurnover', out%PlantTurnover,    &
+                          ranges%NEE, patchout%PlantTurnover, 'default', met)
+          ! Reset temporary output variable:
+          out%PlantTurnover = 0.0
+       END IF
+
+       ! Add current timestep's value to total of temporary output variable:
+       out%PlantTurnoverLeaf = out%PlantTurnoverLeaf + REAL((casaflux%Cplant_turnover(:,1))/86400.0 &
+            / 1.201E-5, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%PlantTurnoverLeaf = out%PlantTurnoverLeaf / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%PlantTurnoverLeaf, 'PlantTurnoverLeaf', out%PlantTurnoverLeaf,    &
+                          ranges%NEE, patchout%PlantTurnoverLeaf, 'default', met)
+          ! Reset temporary output variable:
+          out%PlantTurnoverLeaf = 0.0
+       END IF
+
+       ! Add current timestep's value to total of temporary output variable:
+       out%PlantTurnoverFineRoot = out%PlantTurnoverFineRoot + REAL((casaflux%Cplant_turnover(:,3))/86400.0 &
+            / 1.201E-5, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%PlantTurnoverFineRoot = out%PlantTurnoverFineRoot / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%PlantTurnoverFineRoot, 'PlantTurnoverFineRoot', &
+               out%PlantTurnoverFineRoot,    &
+               ranges%NEE, patchout%PlantTurnoverFineRoot, 'default', met)
+          ! Reset temporary output variable:
+          out%PlantTurnoverFineRoot = 0.0
+       END IF
+
+      ! Add current timestep's value to total of temporary output variable:
+       out%PlantTurnoverWood = out%PlantTurnoverWood + REAL((casaflux%Cplant_turnover(:,2))/86400.0 &
+            / 1.201E-5, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%PlantTurnoverWood = out%PlantTurnoverWood / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%PlantTurnoverWood, 'PlantTurnoverWood', out%PlantTurnoverWood,    &
+                          ranges%NEE, patchout%PlantTurnoverWood, 'default', met)
+          ! Reset temporary output variable:
+          out%PlantTurnoverWood = 0.0
+       END IF
+
+       ! Add current timestep's value to total of temporary output variable:
+       out%PlantTurnoverWoodDist = out%PlantTurnoverWoodDist + &
+            REAL((casaflux%Cplant_turnover_disturbance)/86400.0 &
+            / 1.201E-5, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%PlantTurnoverWoodDist = out%PlantTurnoverWoodDist / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%PlantTurnoverWoodDist, 'PlantTurnoverWoodDist', &
+               out%PlantTurnoverWoodDist,    &
+               ranges%NEE, patchout%PlantTurnoverWoodDist, 'default', met)
+          ! Reset temporary output variable:
+          out%PlantTurnoverWoodDist = 0.0
+       END IF
+
+       ! Add current timestep's value to total of temporary output variable:
+       out%PlantTurnoverWoodCrowding = out%PlantTurnoverWoodCrowding + &
+            REAL((casaflux%Cplant_turnover_crowding)/86400.0 &
+            / 1.201E-5, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%PlantTurnoverWoodCrowding = out%PlantTurnoverWoodCrowding / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%PlantTurnoverWoodCrowding, 'PlantTurnoverWoodCrowding', &
+               out%PlantTurnoverWoodCrowding,    &
+                          ranges%NEE, patchout%PlantTurnoverWoodCrowding, 'default', met)
+          ! Reset temporary output variable:
+          out%PlantTurnoverWoodCrowding = 0.0
+       END IF
+
+
+       ! Add current timestep's value to total of temporary output variable:
+       out%PlantTurnoverWoodResourceLim = out%PlantTurnoverWoodResourceLim + &
+            REAL((casaflux%Cplant_turnover_resource_limitation)/86400.0 &
+            / 1.201E-5, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%PlantTurnoverWoodResourceLim = out%PlantTurnoverWoodResourceLim / &
+               REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%PlantTurnoverWoodResourceLim, &
+               'PlantTurnoverWoodResourceLim', &
+               out%PlantTurnoverWoodResourceLim,    &
+               ranges%NEE, patchout%PlantTurnoverWoodResourceLim, 'default', met)
+          ! Reset temporary output variable:
+          out%PlantTurnoverWoodResourceLim = 0.0
+       END IF
+       IF (cable_user%POPLUC) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%LandUseFlux = out%LandUseFlux + &
+            REAL((casaflux%FluxCtohwp + casaflux%FluxCtoclear  )/86400.0 &
+            / 1.201E-5, 4)
+
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%LandUseFlux = out%LandUseFlux / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%LandUseFlux, 'LandUseFlux', &
+               out%LandUseFlux,    &
+               ranges%NEE, patchout%LandUseFlux, 'default', met)
+          ! Reset temporary output variable:
+          out%LandUseFlux = 0.0
+       END IF
+    ENDIF
+
+ END IF
+
+    ! plant carbon [kg C m-2]
+    IF(output%casa) THEN
+       out%TotSoilCarb = out%TotSoilCarb + REAL((SUM(casapool%csoil,2)+SUM(casapool%clitter,2)) &
+             / 1000.0, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%TotSoilCarb = out%TotSoilCarb / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%TotSoilCarb, 'TotSoilCarb', out%TotSoilCarb,    &
+                          ranges%TotSoilCarb, patchout%TotSoilCarb, 'default', met)
+          ! Reset temporary output variable:
+          out%TotSoilCarb = 0.0
+       END IF
+
+       out%TotLittCarb = out%TotLittCarb + REAL(SUM(casapool%clitter,2) / 1000.0, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%TotLittCarb = out%TotLittCarb / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%TotLittCarb, 'TotLittCarb', out%TotLittCarb,    &
+                          ranges%TotLittCarb, patchout%TotLittCarb, 'default', met)
+          ! Reset temporary output variable:
+          out%TotLittCarb = 0.0
+       END IF
+
+       out%SoilCarbFast = out%SoilCarbFast + REAL(casapool%csoil(:,1) / 1000.0, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%SoilCarbFast = out%SoilCarbFast / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%SoilCarbFast, 'SoilCarbFast' &
+               , out%SoilCarbFast,    &
+               ranges%TotSoilCarb, patchout%SoilCarbFast, 'default', met)
+          ! Reset temporary output variable:
+          out%SoilCarbFast = 0.0
+       END IF
+
+       out%SoilCarbSlow = out%SoilCarbSlow + REAL(casapool%csoil(:,2)/ 1000.0, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%SoilCarbSlow = out%SoilCarbSlow / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%SoilCarbSlow, 'SoilCarbSlow' &
+               , out%SoilCarbSlow,    &
+               ranges%TotSoilCarb, patchout%SoilCarbSlow, 'default', met)
+          ! Reset temporary output variable:
+          out%SoilCarbSlow = 0.0
+       END IF
+
+       out%SoilCarbPassive = out%SoilCarbPassive + REAL(casapool%csoil(:,3) / 1000.0, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%SoilCarbPassive = out%SoilCarbPassive / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%SoilCarbPassive, 'SoilCarbPassive' &
+               , out%SoilCarbPassive,    &
+               ranges%TotSoilCarb, patchout%SoilCarbPassive, 'default', met)
+          ! Reset temporary output variable:
+          out%SoilCarbPassive = 0.0
+       END IF
+
+       out%LittCarbMetabolic = out%LittCarbMetabolic + REAL(casapool%clitter(:,1) / 1000.0, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%LittCarbMetabolic = out%LittCarbMetabolic / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%LittCarbMetabolic, 'LittCarbMetabolic', out%LittCarbMetabolic,    &
+                          ranges%TotLittCarb, patchout%LittCarbMetabolic, 'default', met)
+          ! Reset temporary output variable:
+          out%LittCarbMetabolic = 0.0
+       END IF
+
+       out%LittCarbStructural = out%LittCarbStructural + REAL(casapool%clitter(:,2) / 1000.0, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%LittCarbStructural = out%LittCarbStructural / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%LittCarbStructural, 'LittCarbStructural', out%LittCarbStructural, &
+                          ranges%TotLittCarb, patchout%LittCarbStructural, 'default', met)
+          ! Reset temporary output variable:
+          out%LittCarbStructural = 0.0
+       END IF
+
+       out%LittCarbCWD = out%LittCarbCWD + REAL(casapool%clitter(:,3) / 1000.0, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%LittCarbCWD = out%LittCarbCWD / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%LittCarbCWD, 'LittCarbCWD', out%LittCarbCWD,    &
+                          ranges%TotLittCarb, patchout%LittCarbCWD, 'default', met)
+          ! Reset temporary output variable:
+          out%LittCarbCWD = 0.0
+       END IF
+
+
+       out%PlantCarbLeaf = out%PlantCarbLeaf + REAL(casapool%cplant(:,1) / 1000.0, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%PlantCarbLeaf = out%PlantCarbLeaf / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%PlantCarbLeaf, 'PlantCarbLeaf', out%PlantCarbLeaf,    &
+                          ranges%TotLittCarb, patchout%PlantCarbLeaf, 'default', met)
+          ! Reset temporary output variable:
+          out%PlantCarbLeaf = 0.0
+       END IF
+
+       out%PlantCarbFineRoot = out%PlantCarbFineRoot + REAL(casapool%cplant(:,3) / 1000.0, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%PlantCarbFineRoot = out%PlantCarbFineRoot / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%PlantCarbFineRoot, 'PlantCarbFineRoot', &
+               out%PlantCarbFineRoot,    &
+                          ranges%TotLittCarb, patchout%PlantCarbFineRoot, 'default', met)
+          ! Reset temporary output variable:
+          out%PlantCarbFineRoot = 0.0
+       END IF
+
+       out%PlantCarbWood = out%PlantCarbWood + REAL(casapool%cplant(:,2) / 1000.0, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%PlantCarbWood = out%PlantCarbWood / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%PlantCarbWood, 'PlantCarbWood', out%PlantCarbWood,    &
+                          ranges%TotLittCarb, patchout%PlantCarbWood, 'default', met)
+          ! Reset temporary output variable:
+          out%PlantCarbWood = 0.0
+       END IF
+
+      out%TotLivBiomass = out%TotLivBiomass + REAL((SUM(casapool%cplant,2)) &
+        / 1000.0, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%TotLivBiomass = out%TotLivBiomass / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%TotLivBiomass, 'TotLivBiomass', out%TotLivBiomass,    &
+                          ranges%TotLivBiomass, patchout%TotLivBiomass, 'default', met)
+          ! Reset temporary output variable:
+          out%TotLivBiomass = 0.0
+       END IF
+
+    END IF
+
+    if (cable_user%sync_nc_file) &
+    ok = NF90_SYNC(ncid_out)
+
+
   END SUBROUTINE write_output
   !=============================================================================
   SUBROUTINE close_output_file(bal, air, bgc, canopy, met,                     &
                                rad, rough, soil, ssnow, sum_flux, veg)
-    ! Closes output file, reports cumulative mass and energy 
+    ! Closes output file, reports cumulative mass and energy
     ! balances, and deallocates variables.
     TYPE (met_type), INTENT(INOUT)       :: met
     TYPE (air_type), INTENT(INOUT)       :: air
@@ -1779,13 +2946,14 @@ CONTAINS
   END SUBROUTINE close_output_file
   !=============================================================================
   SUBROUTINE create_restart(logn, dels, ktau, soil, veg, ssnow,                      &
-                            canopy, rough, rad, bgc, bal)
+                            canopy, rough, rad, bgc, bal, met)
     ! Creates a restart file for CABLE using a land only grid with mland
     ! land points and max_vegpatches veg/soil patches (some of which may
     ! not be active). It uses CABLE's internal variable names.
     INTEGER, INTENT(IN) :: logn ! log file number
     REAL, INTENT(IN) :: dels ! time step size
-    INTEGER, INTENT(IN)           :: ktau ! timestep number in loop which include spinup 
+    INTEGER, INTENT(IN)           :: ktau ! timestep number in loop which include spinup
+    TYPE (met_type),INTENT(IN)             :: met ! meteorological data
     TYPE (soil_parameter_type), INTENT(IN) :: soil ! soil parameters
     TYPE (veg_parameter_type), INTENT(IN)  :: veg  ! vegetation parameters
     TYPE (soil_snow_type), INTENT(IN)      :: ssnow  ! soil and snow variables
@@ -1811,15 +2979,29 @@ CONTAINS
                     canstoID, albsoilsnID, gammzzID, tggsnID, sghfluxID,       &
                     ghfluxID, runoffID, rnof1ID, rnof2ID, gaID, dgdtgID,       &
                     fevID, fesID, fhsID, wbtot0ID, osnowd0ID, cplantID,        &
-                    csoilID, tradID, albedoID
+                    csoilID, tradID, albedoID, gwID
+    INTEGER :: h0ID, snowliqID, SID, TsurfaceID, scondsID, nsnowID, TsoilID
     CHARACTER(LEN=10) :: todaydate, nowtime ! used to timestamp netcdf file
+    ! CHARACTER         :: FRST_OUT*100, CYEAR*4
+    CHARACTER         :: FRST_OUT*200, CYEAR*4
+
+
     dummy = 0 ! initialise
 
     WRITE(logn, '(A24)') ' Writing restart file...'
+    IF ( TRIM(filename%path) .EQ. '' ) filename%path = './'
+    frst_out = TRIM(filename%path)//'/'//TRIM(filename%restart_out)
+    ! Look for explicit restart file (netCDF). If not, asssume input is path
+    IF ( INDEX(TRIM(frst_out),'.nc',BACK=.TRUE.) .NE. LEN_TRIM(frst_out)-2 ) THEN
+       WRITE( CYEAR,FMT="(I4)" ) CurYear + 1
+       frst_out = TRIM(filename%path)//'/'//TRIM(cable_user%RunIden)//&
+            '_'//CYEAR//'_cable_rst.nc'
+    ENDIF
+
     ! Create output file:
-    ok = NF90_CREATE(filename%restart_out, NF90_CLOBBER, ncid_restart)
+    ok = NF90_CREATE(frst_out, NF90_CLOBBER, ncid_restart)
     IF(ok /= NF90_NOERR) CALL nc_abort(ok, 'Error creating restart file '      &
-                   //TRIM(filename%restart_out)// '(SUBROUTINE create_restart)')
+         //TRIM(frst_out)// '(SUBROUTINE create_restart)')
     ! Put the file in define mode:
     ok = NF90_REDEF(ncid_restart)
     ! Define dimensions:
@@ -1827,9 +3009,9 @@ CONTAINS
     IF (ok /= NF90_NOERR) CALL nc_abort                                        &
                      (ok, 'Error defining mland dimension in restart file. '// &
                       '(SUBROUTINE create_restart)')
-    ok = NF90_DEF_DIM(ncid_restart, 'mp_patch', mp, mpID)
+    ok = NF90_DEF_DIM(ncid_restart, 'mp', mp, mpID)
     IF (ok /= NF90_NOERR) CALL nc_abort                                        &
-                  (ok, 'Error defining mp_patch dimension in restart file. '// &
+         (ok, 'Error defining mp dimension in restart file. '// &
                    '(SUBROUTINE create_restart)')
     ok = NF90_DEF_DIM(ncid_restart, 'soil', ms, soilID) ! number of soil layers
     IF (ok /= NF90_NOERR) CALL nc_abort                                        &
@@ -1869,6 +3051,10 @@ CONTAINS
     ok = NF90_PUT_ATT(ncid_restart, tvarID, 'coordinate', time_coord)
     IF (ok /= NF90_NOERR) CALL nc_abort                                        &
             (ok, 'Error defining time variable attributes in restart file. '// &
+             '(SUBROUTINE create_restart)')
+    ok = NF90_PUT_ATT(ncid_restart, tvarID, 'calendar', calendar)
+    IF (ok /= NF90_NOERR) CALL nc_abort                                        &
+            (ok, 'Error defining time variable attribute calendar in restart file. '// &
              '(SUBROUTINE create_restart)')
     ! Define latitude and longitude variable:
     ok=NF90_DEF_VAR(ncid_restart, 'latitude', NF90_FLOAT, (/mlandID/), latID)
@@ -1925,7 +3111,7 @@ CONTAINS
                       "Number of soil types")
 
     !======begin defining state variables=======================================
-    ! Interface arguments: netcdf file ID, variableID, variable name, variable 
+    ! Interface arguments: netcdf file ID, variableID, variable name, variable
     ! units, variable long name, YES to write patch info (as this is a restart
     ! file), OPTIONAL extra dimension ID (e.g. for soil dimensioned variables),
     ! dimension switch to indicate what extra dimension is real or integer for
@@ -2025,30 +3211,30 @@ CONTAINS
     CALL define_ovar(ncid_restart, tradID, 'trad', 'K',                        &
                     'Surface radiative temperature (soil/snow/veg inclusive)', &
                      .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
-    !---------------------MODEL PARAMETERS---------------------------------   
+    !---------------------MODEL PARAMETERS---------------------------------
     WRITE(logn,'(A43)') '   Writing model parameters to restart file'
     CALL define_ovar(ncid_restart, rpid%iveg, 'iveg', '-',                     &
              'Vegetation type', .TRUE., 'integer', 0, 0, 0, mpID, dummy, .TRUE.)
     CALL define_ovar(ncid_restart, rpid%isoil, 'isoil', '-',                   &
                    'Soil type', .TRUE., 'integer', 0, 0, 0, mpID, dummy, .TRUE.)
-    CALL define_ovar(ncid_restart, rpid%clay, 'clay', '-',                     &
-                     'Fraction of soil which is clay',                         &
-                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
-    CALL define_ovar(ncid_restart, rpid%sand, 'sand', '-',                     &
-                     'Fraction of soil which is sand',                         &
-                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
-    CALL define_ovar(ncid_restart, rpid%silt, 'silt', '-',                     &
-                     'Fraction of soil which is silt',                         &
-                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
-    CALL define_ovar(ncid_restart, rpid%ssat, 'ssat', '-',                     &
-                     'Fraction of soil volume which is water @ saturation',    &
-                    .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
-    CALL define_ovar(ncid_restart, rpid%sfc, 'sfc', '-',                       &
-                    'Fraction of soil volume which is water @ field capacity', &
-                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
-    CALL define_ovar(ncid_restart, rpid%swilt, 'swilt', '-',                   &
-                     'Fraction of soil volume which is water @ wilting point', &
-                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+!!$    CALL define_ovar(ncid_restart, rpid%clay, 'clay', '-',                     &
+!!$                     'Fraction of soil which is clay',                         &
+!!$                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+!!$    CALL define_ovar(ncid_restart, rpid%sand, 'sand', '-',                     &
+!!$                     'Fraction of soil which is sand',                         &
+!!$                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+!!$    CALL define_ovar(ncid_restart, rpid%silt, 'silt', '-',                     &
+!!$                     'Fraction of soil which is silt',                         &
+!!$                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+!!$    CALL define_ovar(ncid_restart, rpid%ssat, 'ssat', '-',                     &
+!!$                     'Fraction of soil volume which is water @ saturation',    &
+!!$                    .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+!!$    CALL define_ovar(ncid_restart, rpid%sfc, 'sfc', '-',                       &
+!!$                    'Fraction of soil volume which is water @ field capacity', &
+!!$                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+!!$    CALL define_ovar(ncid_restart, rpid%swilt, 'swilt', '-',                   &
+!!$                     'Fraction of soil volume which is water @ wilting point', &
+!!$                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
     ! zse (depth of each soil layer):
     ok = NF90_DEF_VAR(ncid_restart, 'zse', NF90_FLOAT, (/soilID/), rpid%zse)
     IF (ok /= NF90_NOERR) CALL nc_abort                                        &
@@ -2057,110 +3243,159 @@ CONTAINS
     ok = NF90_PUT_ATT(ncid_restart, rpid%zse, "long_name",                     &
                       "Depth of each soil layer")
     ok = NF90_PUT_ATT(ncid_restart, rpid%zse, "units", "m")
-    CALL define_ovar(ncid_restart, rpid%froot, 'froot', '-',                   &
-                     'Fraction of roots in each soil layer',                   &
-                      .TRUE., soilID, 'soil', 0, 0, 0, mpID, dummy, .TRUE.)
-    CALL define_ovar(ncid_restart, rpid%bch, 'bch', '-',                       &
-                     'Parameter b, Campbell eqn 1985',                         &
-                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
-    CALL define_ovar(ncid_restart, rpid%hyds, 'hyds', 'm/s',                   &
-                     'Hydraulic conductivity @ saturation',                    &
-                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
-    CALL define_ovar(ncid_restart, rpid%sucs, 'sucs', 'm',                     &
-                     'Suction @ saturation', .TRUE.,                           &
-                     'real', 0, 0, 0, mpID, dummy, .TRUE.)
-    CALL define_ovar(ncid_restart, rpid%css, 'css', 'J/kg/C',                  &
-                     'Heat capacity of soil minerals',                         &
-                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
-    CALL define_ovar(ncid_restart, rpid%rhosoil, 'rhosoil', 'kg/m^3',          &
-                     'Density of soil minerals',                               &
-                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
-    CALL define_ovar(ncid_restart, rpid%rs20, 'rs20', '-',                     &
-                     'Soil respiration coefficient at 20C',                    &
-                      .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+!!$    CALL define_ovar(ncid_restart, rpid%froot, 'froot', '-',                   &
+!!$                     'Fraction of roots in each soil layer',                   &
+!!$                      .TRUE., soilID, 'soil', 0, 0, 0, mpID, dummy, .TRUE.)
+!!$    CALL define_ovar(ncid_restart, rpid%bch, 'bch', '-',                       &
+!!$                     'Parameter b, Campbell eqn 1985',                         &
+!!$                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+!!$    CALL define_ovar(ncid_restart, rpid%hyds, 'hyds', 'm/s',                   &
+!!$                     'Hydraulic conductivity @ saturation',                    &
+!!$                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+!!$    CALL define_ovar(ncid_restart, rpid%sucs, 'sucs', 'm',                     &
+!!$                     'Suction @ saturation', .TRUE.,                           &
+!!$                     'real', 0, 0, 0, mpID, dummy, .TRUE.)
+!!$    CALL define_ovar(ncid_restart, rpid%css, 'css', 'J/kg/C',                  &
+!!$                     'Heat capacity of soil minerals',                         &
+!!$                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+!!$    CALL define_ovar(ncid_restart, rpid%rhosoil, 'rhosoil', 'kg/m^3',          &
+!!$                     'Density of soil minerals',                               &
+!!$                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+!!$    CALL define_ovar(ncid_restart, rpid%rs20, 'rs20', '-',                     &
+!!$                     'Soil respiration coefficient at 20C',                    &
+!!$                      .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
     CALL define_ovar(ncid_restart, rpid%albsoil, 'albsoil', '-',               &
                      'Soil reflectance', .TRUE.,                               &
                      radID, 'radiation', 0, 0, 0, mpID, dummy, .TRUE.)
-    CALL define_ovar(ncid_restart, rpid%hc, 'hc', 'm',                         &
-                     'Height of canopy', .TRUE.,                               &
-                     'real', 0, 0, 0, mpID, dummy, .TRUE.)
-    CALL define_ovar(ncid_restart, rpid%canst1, 'canst1', 'mm/LAI',            &
-                     'Max water intercepted by canopy',                        &
-                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
-    CALL define_ovar(ncid_restart, rpid%dleaf, 'dleaf', 'm',                   &
-                     'Chararacteristic length of leaf',                        &
-                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
-    CALL define_ovar(ncid_restart, rpid%frac4, 'frac4', '-',                   &
-                     'Fraction of plants which are C4',                        &
-                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
-    CALL define_ovar(ncid_restart, rpid%ejmax, 'ejmax', 'mol/m^2/s',           &
-                     'Max potential electron transport rate top leaf', .TRUE., &
-                     'real', 0, 0, 0, mpID, dummy, .TRUE.)
-    CALL define_ovar(ncid_restart, rpid%vcmax, 'vcmax', 'mol/m^2/s',           &
-                     'Maximum RuBP carboxylation rate top leaf', .TRUE.,       &
-                     'real', 0, 0, 0, mpID, dummy, .TRUE.)
-    CALL define_ovar(ncid_restart, rpid%rp20, 'rp20', '-',                     &
-                     'Plant respiration coefficient at 20C', .TRUE., 'real',   &
-                     0, 0, 0, mpID, dummy, .TRUE.)
-    CALL define_ovar(ncid_restart, rpid%g0, 'g0', '-',                     &
-                     'g0 term in Medlyn Stomatal Cond. Param', .TRUE.,'real',&
-                     0, 0, 0, mpID, dummy, .TRUE.) ! Ticket #56
-    CALL define_ovar(ncid_restart, rpid%g1, 'g1', '-',                     &
-                     'g1 term in Medlyn Stomatal Cond. Param', .TRUE.,'real',&
-                     0, 0, 0, mpID, dummy, .TRUE.)  ! Ticket #56
-    CALL define_ovar(ncid_restart, rpid%rpcoef, 'rpcoef', '1/C',               &
-                     'Temperature coef nonleaf plant respiration', .TRUE.,     &
-                     'real', 0, 0, 0, mpID, dummy, .TRUE.)
-    CALL define_ovar(ncid_restart, rpid%shelrb, 'shelrb', '-',                 &
-              'Sheltering factor', .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
-    CALL define_ovar(ncid_restart, rpid%xfang, 'xfang', '-',                   &
-           'Leaf angle parameter', .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
-    CALL define_ovar(ncid_restart, rpid%wai, 'wai', '-',                       &
-                'Wood area index', .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
-    CALL define_ovar(ncid_restart, rpid%vegcf, 'vegcf', '-',                   &
-                     'vegcf', .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
-    CALL define_ovar(ncid_restart, rpid%extkn, 'extkn', '-',                   &
-                     'Extinction coef for vertical nitrogen profile',          &
-                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
-    CALL define_ovar(ncid_restart, rpid%tminvj, 'tminvj', 'C',                 &
-                     'Min temperature for the start of photosynthesis',        &
-                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
-    CALL define_ovar(ncid_restart, rpid%tmaxvj, 'tmaxvj', 'C',                 &
-                     'Max temperature for the start of photosynthesis',        &
-                      .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
-    CALL define_ovar(ncid_restart, rpid%vbeta, 'vbeta', '-',                   &
-                     'Stomatal sensitivity to soil water',                     &
-                      .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
-    CALL define_ovar(ncid_restart, rpid%xalbnir, 'xalbnir', '-',               &
-                     'modifier for albedo in near ir band',                    &
-                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
-    ! ratecp (Plant carbon rate constant):
-    ok = NF90_DEF_VAR(ncid_restart, 'ratecp', NF90_FLOAT, (/plantcarbID/),     &
-                      rpid%ratecp)
-    IF (ok /= NF90_NOERR) CALL nc_abort                                        &
-                     (ok, 'Error defining ratecp variable in restart file. '// &
-                      '(SUBROUTINE create_restart)')
-    ok = NF90_PUT_ATT(ncid_restart, rpid%ratecp, "long_name",                  &
-                      "Plant carbon rate constant")
-    ok = NF90_PUT_ATT(ncid_restart, rpid%ratecp, "units", "1/year")
-    ! ratecs (Soil carbon rate constant):
-    ok = NF90_DEF_VAR(ncid_restart, 'ratecs', NF90_FLOAT, (/soilcarbID/),      &
-                      rpid%ratecs)
-    IF (ok /= NF90_NOERR) CALL nc_abort                                        &
-                     (ok, 'Error defining ratecs variable in restart file. '// &
-                      '(SUBROUTINE create_restart)')
-    ok = NF90_PUT_ATT(ncid_restart, rpid%ratecs, "long_name",                  &
-                      "Soil carbon rate constant")
-    ok = NF90_PUT_ATT(ncid_restart, rpid%ratecs, "units", "1/year")
-    CALL define_ovar(ncid_restart, rpid%meth, 'meth', '-',                     &
-                     'Canopy turbulence parameterisation switch',              &
-                     .TRUE., 'integer', 0, 0, 0, mpID, dummy, .TRUE.)
-    CALL define_ovar(ncid_restart, rpid%za_uv, 'za_uv', 'm',                   &
-                    'Reference height (lowest atm. model layer) for momentum', &
-                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
-    CALL define_ovar(ncid_restart, rpid%za_tq, 'za_tq', 'm',                   &
-                     'Reference height (lowest atm. model layer) for scalars', &
-                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+!!$    CALL define_ovar(ncid_restart, rpid%hc, 'hc', 'm',                         &
+!!$                     'Height of canopy', .TRUE.,                               &
+!!$                     'real', 0, 0, 0, mpID, dummy, .TRUE.)
+!!$    CALL define_ovar(ncid_restart, rpid%canst1, 'canst1', 'mm/LAI',            &
+!!$                     'Max water intercepted by canopy',                        &
+!!$                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+!!$    CALL define_ovar(ncid_restart, rpid%dleaf, 'dleaf', 'm',                   &
+!!$                     'Chararacteristic length of leaf',                        &
+!!$                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+!!$    CALL define_ovar(ncid_restart, rpid%frac4, 'frac4', '-',                   &
+!!$                     'Fraction of plants which are C4',                        &
+!!$                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+!!$    CALL define_ovar(ncid_restart, rpid%ejmax, 'ejmax', 'mol/m^2/s',           &
+!!$                     'Max potential electron transport rate top leaf', .TRUE., &
+!!$                     'real', 0, 0, 0, mpID, dummy, .TRUE.)
+!!$    CALL define_ovar(ncid_restart, rpid%vcmax, 'vcmax', 'mol/m^2/s',           &
+!!$                     'Maximum RuBP carboxylation rate top leaf', .TRUE.,       &
+!!$                     'real', 0, 0, 0, mpID, dummy, .TRUE.)
+!!$    CALL define_ovar(ncid_restart, rpid%rp20, 'rp20', '-',                     &
+!!$                     'Plant respiration coefficient at 20C', .TRUE., 'real',   &
+!!$                     0, 0, 0, mpID, dummy, .TRUE.)
+!!$    CALL define_ovar(ncid_restart, rpid%g0, 'g0', '-',                     &
+!!$                     'g0 term in Medlyn Stomatal Cond. Param', .TRUE.,'real',&
+!!$                     0, 0, 0, mpID, dummy, .TRUE.) ! Ticket #56
+!!$    CALL define_ovar(ncid_restart, rpid%g1, 'g1', '-',                     &
+!!$                     'g1 term in Medlyn Stomatal Cond. Param', .TRUE.,'real',&
+!!$                     0, 0, 0, mpID, dummy, .TRUE.)  ! Ticket #56
+!!$    CALL define_ovar(ncid_restart, rpid%rpcoef, 'rpcoef', '1/C',               &
+!!$                     'Temperature coef nonleaf plant respiration', .TRUE.,     &
+!!$                     'real', 0, 0, 0, mpID, dummy, .TRUE.)
+!!$    CALL define_ovar(ncid_restart, rpid%shelrb, 'shelrb', '-',                 &
+!!$              'Sheltering factor', .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+!!$    CALL define_ovar(ncid_restart, rpid%xfang, 'xfang', '-',                   &
+!!$           'Leaf angle parameter', .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+!!$    CALL define_ovar(ncid_restart, rpid%wai, 'wai', '-',                       &
+!!$                'Wood area index', .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+!!$    CALL define_ovar(ncid_restart, rpid%vegcf, 'vegcf', '-',                   &
+!!$                     'vegcf', .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+!!$    CALL define_ovar(ncid_restart, rpid%extkn, 'extkn', '-',                   &
+!!$                     'Extinction coef for vertical nitrogen profile',          &
+!!$                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+!!$    CALL define_ovar(ncid_restart, rpid%tminvj, 'tminvj', 'C',                 &
+!!$                     'Min temperature for the start of photosynthesis',        &
+!!$                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+!!$    CALL define_ovar(ncid_restart, rpid%tmaxvj, 'tmaxvj', 'C',                 &
+!!$                     'Max temperature for the start of photosynthesis',        &
+!!$                      .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+!!$    CALL define_ovar(ncid_restart, rpid%vbeta, 'vbeta', '-',                   &
+!!$                     'Stomatal sensitivity to soil water',                     &
+!!$                      .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+!!$    CALL define_ovar(ncid_restart, rpid%xalbnir, 'xalbnir', '-',               &
+!!$                     'modifier for albedo in near ir band',                    &
+!!$                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+!!$    ! ratecp (Plant carbon rate constant):
+!!$    ok = NF90_DEF_VAR(ncid_restart, 'ratecp', NF90_FLOAT, (/plantcarbID/),     &
+!!$                      rpid%ratecp)
+!!$    IF (ok /= NF90_NOERR) CALL nc_abort                                        &
+!!$                     (ok, 'Error defining ratecp variable in restart file. '// &
+!!$                      '(SUBROUTINE create_restart)')
+!!$    ok = NF90_PUT_ATT(ncid_restart, rpid%ratecp, "long_name",                  &
+!!$                      "Plant carbon rate constant")
+!!$    ok = NF90_PUT_ATT(ncid_restart, rpid%ratecp, "units", "1/year")
+!!$    ! ratecs (Soil carbon rate constant):
+!!$    ok = NF90_DEF_VAR(ncid_restart, 'ratecs', NF90_FLOAT, (/soilcarbID/),      &
+!!$                      rpid%ratecs)
+!!$    IF (ok /= NF90_NOERR) CALL nc_abort                                        &
+!!$                     (ok, 'Error defining ratecs variable in restart file. '// &
+!!$                      '(SUBROUTINE create_restart)')
+!!$    ok = NF90_PUT_ATT(ncid_restart, rpid%ratecs, "long_name",                  &
+!!$                      "Soil carbon rate constant")
+!!$    ok = NF90_PUT_ATT(ncid_restart, rpid%ratecs, "units", "1/year")
+!!$    CALL define_ovar(ncid_restart, rpid%meth, 'meth', '-',                     &
+!!$                     'Canopy turbulence parameterisation switch',              &
+!!$                     .TRUE., 'integer', 0, 0, 0, mpID, dummy, .TRUE.)
+!!$    CALL define_ovar(ncid_restart, rpid%za_uv, 'za_uv', 'm',                   &
+!!$                    'Reference height (lowest atm. model layer) for momentum', &
+!!$                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+!!$    CALL define_ovar(ncid_restart, rpid%za_tq, 'za_tq', 'm',                   &
+!!$                     'Reference height (lowest atm. model layer) for scalars', &
+!!$                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+       CALL define_ovar(ncid_restart, gwID, 'GWwb', 'mm3/mm3','GW water content', &
+                        .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
+
+!!$    IF(cable_user%SOIL_STRUC=='sli'.OR.cable_user%FWSOIL_SWITCH=='Haverd2013') THEN
+!!$      CALL define_ovar(ncid_restart,rpid%gamma,'gamma','-', &
+!!$            'Parameter in root efficiency function (Lai and Katul 2000)', &
+!!$            .TRUE.,'real',0,0,0,mpID,dummy,.TRUE.)
+!!$    ENDIF
+    ! Soil-Litter-Iso soil model
+    IF(cable_user%SOIL_STRUC=='sli') THEN
+       ! Parameters for SLI:
+!!$       CALL define_ovar(ncid_restart,rpid%nhorizons,'nhorizons','-', &
+!!$            'Number of soil horizons',.TRUE.,'integer',0,0,0,mpID,dummy,.TRUE.)
+!!$       CALL define_ovar(ncid_restart,rpid%zeta,'zeta','[ ]', &
+!!$            'exponent factor in Topmodel eq',.TRUE.,'real',0,0,0,mpID,dummy,.TRUE.)
+!!$       CALL define_ovar(ncid_restart,rpid%fsatmax,'fsatmax','[ ]', &
+!!$            'param in Topmodel eq',.TRUE.,'real',0,0,0,mpID,dummy,.TRUE.)
+!!$       CALL define_ovar(ncid_restart,rpid%ishorizon,'ishorizon','-', &
+!!$            'Horizon number',.TRUE., soilID, 'soil', 0, 0, 0, mpID, dummy, .TRUE.)
+!!$       CALL define_ovar(ncid_restart,rpid%clitt,'clitt','tC/ha', &
+!!$            'Litter layer carbon content',.TRUE.,'real',0,0,0,mpID,dummy,.TRUE.)
+!!$       CALL define_ovar(ncid_restart,rpid%ZR,'ZR','cm', &
+!!$            'Maximum rooting depth',.TRUE.,'real',0,0,0,mpID,dummy,.TRUE.)
+!!$       CALL define_ovar(ncid_restart,rpid%F10,'F10','-', &
+!!$            'Fraction of roots in top 10 cm', &
+!!$            .TRUE.,'real',0,0,0,mpID,dummy,.TRUE.)
+       ! Variables for SLI:
+       CALL define_ovar(ncid_restart,SID,'S','-',&
+            'Fractional soil moisture content relative to saturated value', &
+            .TRUE.,soilID,'soil',0,0,0,mpID,dummy,.TRUE.)
+       CALL define_ovar(ncid_restart,TsoilID,'Tsoil','degC',&
+            'Tsoil', &
+            .TRUE.,soilID,'soil',0,0,0,mpID,dummy,.TRUE.)
+       CALL define_ovar(ncid_restart,snowliqID,'snowliq','mm',&
+            'liquid water content of snowpack', &
+            .TRUE.,snowID,'snow',0,0,0,mpID,dummy,.TRUE.)
+       CALL define_ovar(ncid_restart,scondsID,'sconds','Wm-1K-1',&
+            'thermal cond of snowpack', &
+            .TRUE.,snowID,'snow',0,0,0,mpID,dummy,.TRUE.)
+       CALL define_ovar(ncid_restart,h0ID,'h0','m',&
+            'Pond height above soil', &
+            .TRUE.,'real',0,0,0,mpID,dummy,.TRUE.)
+       CALL define_ovar(ncid_restart,nsnowID,'nsnow','-',&
+            'number of snow layers', &
+            .TRUE.,'integer',0,0,0,mpID,dummy,.TRUE.)
+       CALL define_ovar(ncid_restart,TsurfaceID,'Tsurface','degC',&
+            'soil or snow surface T', &
+            .TRUE.,'real',0,0,0,mpID,dummy,.TRUE.)
+    END IF ! SLI soil model
 
     ! Write global attributes for file:
     CALL DATE_AND_TIME(todaydate, nowtime)
@@ -2169,91 +3404,93 @@ CONTAINS
     ok = NF90_PUT_ATT(ncid_restart, NF90_GLOBAL, "Production",                 &
                       TRIM(todaydate)//' at '//TRIM(nowtime))
     IF(ok /= NF90_NOERR) CALL nc_abort(ok, 'Error writing global detail to '   &
-                  //TRIM(filename%restart_out)// ' (SUBROUTINE create_restart)')
+         //TRIM(frst_out)// ' (SUBROUTINE create_restart)')
     ok = NF90_PUT_ATT(ncid_restart, NF90_GLOBAL, "Source",                     &
                       'CABLE LSM restart file')
     IF(ok /= NF90_NOERR) CALL nc_abort(ok, 'Error writing global detail to '   &
-         //TRIM(filename%restart_out)// ' (SUBROUTINE create_restart)')
+         //TRIM(frst_out)// ' (SUBROUTINE create_restart)')
     ok = NF90_PUT_ATT(ncid_restart, NF90_GLOBAL, "CABLE_input_file",           &
                       TRIM(filename%met))
     IF(ok /= NF90_NOERR) CALL nc_abort(ok, 'Error writing global detail to '   &
-                  //TRIM(filename%restart_out)// ' (SUBROUTINE create_restart)')
+         //TRIM(frst_out)// ' (SUBROUTINE create_restart)')
 
     ! End netcdf define mode:
     ok = NF90_ENDDEF(ncid_restart)
     IF(ok /= NF90_NOERR) CALL nc_abort(ok, 'Error creating restart file '      &
-                   //TRIM(filename%restart_out)// '(SUBROUTINE create_restart)')
+         //TRIM(frst_out)// '(SUBROUTINE create_restart)')
 
     ! Write time variable:
-    ok = NF90_PUT_VAR(ncid_restart, tvarID, DBLE(REAL(ktau) * dels))
+    ok = NF90_PUT_VAR(ncid_restart, tvarID, REAL(REAL(ktau) * dels, r_2))
     IF(ok /= NF90_NOERR) CALL nc_abort(ok, 'Error time variable to '           &
-                   //TRIM(filename%restart_out)// '(SUBROUTINE create_restart)')
+         //TRIM(frst_out)// '(SUBROUTINE create_restart)')
 
     ! Write latitude and longitude variables:
     ok = NF90_PUT_VAR(ncid_restart, latID, latitude)
     IF(ok /= NF90_NOERR) CALL nc_abort(ok,                                     &
                                        'Error writing latitude variable to '   &
-                   //TRIM(filename%restart_out)// '(SUBROUTINE create_restart)')
+         //TRIM(frst_out)// '(SUBROUTINE create_restart)')
     ok = NF90_PUT_VAR(ncid_restart, lonID, longitude)
     IF(ok /= NF90_NOERR) CALL nc_abort(ok,                                     &
                                        'Error writing longitude variable to '  &
-                   //TRIM(filename%restart_out)// '(SUBROUTINE create_restart)')
+         //TRIM(frst_out)// '(SUBROUTINE create_restart)')
 
     ! Write number of active patches for each land grid cell:
     ok = NF90_PUT_VAR(ncid_restart, napID, landpt(:)%nap)
     IF(ok /= NF90_NOERR) CALL nc_abort(ok,                                     &
                                        'Error writing nap variable to '        &
-                   //TRIM(filename%restart_out)// '(SUBROUTINE create_restart)')
+         //TRIM(frst_out)// '(SUBROUTINE create_restart)')
 
     ! Write vegetated patch fractions
     ok = NF90_PUT_VAR(ncid_restart, rpid%patchfrac,                            &
                       patch(:)%frac, start = (/1/), count = (/mp/))
     IF(ok /= NF90_NOERR) CALL nc_abort(ok, 'Error writing patchfrac to '       &
-                   //TRIM(filename%restart_out)// '(SUBROUTINE create_restart)')
+         //TRIM(frst_out)// '(SUBROUTINE create_restart)')
 
     ! Write number of veg and soil types
     ok = NF90_PUT_VAR(ncid_restart, rpid%mvtype,mvtype)
     IF(ok /= NF90_NOERR) CALL nc_abort(ok,                                     &
                                        'Error writing mvtype parameter to '    &
-                   //TRIM(filename%restart_out)// '(SUBROUTINE create_restart)')
+         //TRIM(frst_out)// '(SUBROUTINE create_restart)')
     ok = NF90_PUT_VAR(ncid_restart, rpid%mstype,mstype)
     IF(ok /= NF90_NOERR) CALL nc_abort(ok,                                     &
                                        'Error writing mstype parameter to '    &
-                   //TRIM(filename%restart_out)// '(SUBROUTINE create_restart)')
+         //TRIM(frst_out)// '(SUBROUTINE create_restart)')
 
     ! Write parameters:
     CALL write_ovar (ncid_restart, rpid%iveg, 'iveg', REAL(veg%iveg, 4),       &
                      ranges%iveg, .TRUE., 'integer', .TRUE.)
     CALL write_ovar (ncid_restart, rpid%isoil, 'isoil', REAL(soil%isoilm, 4),  &
                      ranges%isoil, .TRUE., 'integer', .TRUE.)
-    CALL write_ovar (ncid_restart, rpid%bch, 'bch', REAL(soil%bch, 4),         &
-                     ranges%bch, .TRUE., 'real', .TRUE.)
-    CALL write_ovar (ncid_restart, rpid%clay, 'clay', REAL(soil%clay, 4),      &
-                     ranges%clay, .TRUE., 'real', .TRUE.)
-    CALL write_ovar (ncid_restart, rpid%sand, 'sand', REAL(soil%sand, 4),      &
-                     ranges%sand, .TRUE., 'real', .TRUE.)
-    CALL write_ovar (ncid_restart, rpid%silt, 'silt', REAL(soil%silt, 4),      &
-                     ranges%silt, .TRUE., 'real', .TRUE.)
-    CALL write_ovar (ncid_restart, rpid%css, 'css', REAL(soil%css, 4),         &
-                     ranges%css, .TRUE., 'real', .TRUE.)
-    CALL write_ovar (ncid_restart, rpid%rhosoil, 'rhosoil',                    &
-                     REAL(soil%rhosoil,4), ranges%rhosoil, .TRUE., 'real',     &
-                     .TRUE.)
-    CALL write_ovar (ncid_restart, rpid%hyds, 'hyds', REAL(soil%hyds, 4),      &
-                     ranges%hyds, .TRUE., 'real', .TRUE.)
-    CALL write_ovar (ncid_restart, rpid%sucs, 'sucs', REAL(soil%sucs, 4),      &
-                     ranges%sucs, .TRUE., 'real', .TRUE.)
-    CALL write_ovar (ncid_restart, rpid%rs20, 'rs20', REAL(veg%rs20, 4),       &
-                     ranges%rs20, .TRUE., 'real', .TRUE.)
-    CALL write_ovar (ncid_restart, rpid%ssat, 'ssat', REAL(soil%ssat, 4),      &
-                     ranges%ssat, .TRUE., 'real', .TRUE.)
-    CALL write_ovar (ncid_restart, rpid%sfc, 'sfc', REAL(soil%sfc, 4),         &
-                     ranges%sfc, .TRUE., 'real', .TRUE.)
-    CALL write_ovar (ncid_restart, rpid%swilt, 'swilt', REAL(soil%swilt, 4),   &
-                     ranges%swilt, .TRUE., 'real', .TRUE.)
-    ! Soil dimensioned variables/parameters:
-    CALL write_ovar (ncid_restart, rpid%froot, 'froot', REAL(veg%froot, 4),    &
-                     ranges%froot, .TRUE., 'soil', .TRUE.)
+!!$    CALL write_ovar (ncid_restart, rpid%bch, 'bch', REAL(soil%bch, 4),         &
+!!$                     ranges%bch, .TRUE., 'real', .TRUE.)
+!!$    CALL write_ovar (ncid_restart, rpid%bch, 'bch', REAL(soil%bch, 4),         &
+!!$                     ranges%bch, .TRUE., 'real', .TRUE.)
+!!$    CALL write_ovar (ncid_restart, rpid%clay, 'clay', REAL(soil%clay, 4),      &
+!!$                     ranges%clay, .TRUE., 'real', .TRUE.)
+!!$    CALL write_ovar (ncid_restart, rpid%sand, 'sand', REAL(soil%sand, 4),      &
+!!$                     ranges%sand, .TRUE., 'real', .TRUE.)
+!!$    CALL write_ovar (ncid_restart, rpid%silt, 'silt', REAL(soil%silt, 4),      &
+!!$                     ranges%silt, .TRUE., 'real', .TRUE.)
+!!$    CALL write_ovar (ncid_restart, rpid%css, 'css', REAL(soil%css, 4),         &
+!!$                     ranges%css, .TRUE., 'real', .TRUE.)
+!!$    CALL write_ovar (ncid_restart, rpid%rhosoil, 'rhosoil',                    &
+!!$                     REAL(soil%rhosoil,4), ranges%rhosoil, .TRUE., 'real',     &
+!!$                     .TRUE.)
+!!$    CALL write_ovar (ncid_restart, rpid%hyds, 'hyds', REAL(soil%hyds, 4),      &
+!!$                     ranges%hyds, .TRUE., 'real', .TRUE.)
+!!$    CALL write_ovar (ncid_restart, rpid%sucs, 'sucs', REAL(soil%sucs, 4),      &
+!!$                     ranges%sucs, .TRUE., 'real', .TRUE.)
+!!$    CALL write_ovar (ncid_restart, rpid%rs20, 'rs20', REAL(veg%rs20, 4),       &
+!!$                     ranges%rs20, .TRUE., 'real', .TRUE.)
+!!$    CALL write_ovar (ncid_restart, rpid%ssat, 'ssat', REAL(soil%ssat, 4),      &
+!!$                     ranges%ssat, .TRUE., 'real', .TRUE.)
+!!$    CALL write_ovar (ncid_restart, rpid%sfc, 'sfc', REAL(soil%sfc, 4),         &
+!!$                     ranges%sfc, .TRUE., 'real', .TRUE.)
+!!$    CALL write_ovar (ncid_restart, rpid%swilt, 'swilt', REAL(soil%swilt, 4),   &
+!!$                     ranges%swilt, .TRUE., 'real', .TRUE.)
+   ! Soil dimensioned variables/parameters:
+!!$    CALL write_ovar (ncid_restart, rpid%froot, 'froot', REAL(veg%froot, 4),    &
+!!$                     ranges%froot, .TRUE., 'soil', .TRUE.)
     CALL write_ovar (ncid_restart, tggID, 'tgg', REAL(ssnow%tgg, 4),           &
                      ranges%SoilTemp, .TRUE., 'soil', .TRUE.)
     CALL write_ovar (ncid_restart, wbID, 'wb', ssnow%wb, ranges%SoilMoist,     &
@@ -2280,66 +3517,66 @@ CONTAINS
                      (/-99999.0, 9999999.0/), .TRUE., 'soilcarbon', .TRUE.)
     ok = NF90_PUT_VAR(ncid_restart, rpid%zse, REAL(soil%zse, 4))
     IF(ok /= NF90_NOERR) CALL nc_abort(ok, 'Error writing zse parameter to '   &
-                   //TRIM(filename%restart_out)// '(SUBROUTINE create_restart)')
+         //TRIM(frst_out)// '(SUBROUTINE create_restart)')
     ! Single dim:
     CALL write_ovar (ncid_restart, rpid%albsoil, 'albsoil',                    &
                      REAL(soil%albsoil, 4), ranges%albsoil, .TRUE.,            &
                      'radiation', .TRUE.)
-    CALL write_ovar (ncid_restart, rpid%canst1, 'canst1', REAL(veg%canst1, 4), &
-                     ranges%canst1, .TRUE., 'real', .TRUE.)
-    CALL write_ovar (ncid_restart, rpid%dleaf, 'dleaf', REAL(veg%dleaf, 4),    &
-                     ranges%dleaf, .TRUE., 'real', .TRUE.)
-    CALL write_ovar (ncid_restart, rpid%ejmax, 'ejmax', REAL(veg%ejmax, 4),    &
-                     ranges%ejmax, .TRUE., 'real', .TRUE.)
-    CALL write_ovar (ncid_restart, rpid%vcmax, 'vcmax', REAL(veg%vcmax, 4),    &
-                     ranges%vcmax, .TRUE., 'real', .TRUE.)
-    CALL write_ovar (ncid_restart, rpid%frac4, 'frac4', REAL(veg%frac4, 4),    &
-                     ranges%frac4, .TRUE., 'real', .TRUE.)
-    CALL write_ovar (ncid_restart, rpid%hc, 'hc', REAL(veg%hc, 4),             &
-                     ranges%hc, .TRUE., 'real', .TRUE.)
-    CALL write_ovar (ncid_restart, rpid%rp20, 'rp20', REAL(veg%rp20, 4),       &
-                     ranges%rp20, .TRUE., 'real', .TRUE.)
-    CALL write_ovar (ncid_restart, rpid%g0, 'g0', REAL(veg%g0, 4),       &
-                     ranges%g0, .TRUE., 'real', .TRUE.) ! Ticket #56
-    CALL write_ovar (ncid_restart, rpid%g1, 'g1', REAL(veg%g1, 4),       &
-                     ranges%g1, .TRUE., 'real', .TRUE.) ! Ticket #56
-    CALL write_ovar (ncid_restart, rpid%rpcoef, 'rpcoef', REAL(veg%rpcoef, 4), &
-                     ranges%rpcoef, .TRUE., 'real', .TRUE.)
-    CALL write_ovar (ncid_restart, rpid%shelrb, 'shelrb', REAL(veg%shelrb, 4), &
-                     ranges%shelrb, .TRUE., 'real', .TRUE.)
-    CALL write_ovar (ncid_restart, rpid%xfang, 'xfang', REAL(veg%xfang, 4),    &
-                     ranges%xfang, .TRUE., 'real', .TRUE.)
-    CALL write_ovar (ncid_restart, rpid%wai, 'wai', REAL(veg%wai, 4),          &
-                     ranges%wai, .TRUE., 'real', .TRUE.)
-    CALL write_ovar (ncid_restart, rpid%vegcf, 'vegcf', REAL(veg%vegcf, 4),    &
-                     ranges%vegcf, .TRUE., 'real', .TRUE.)
-    CALL write_ovar (ncid_restart, rpid%extkn, 'extkn', REAL(veg%extkn, 4),    &
-                     ranges%extkn, .TRUE., 'real', .TRUE.)
-    CALL write_ovar (ncid_restart, rpid%tminvj, 'tminvj', REAL(veg%tminvj, 4), &
-                     ranges%tminvj, .TRUE., 'real', .TRUE.)
-    CALL write_ovar (ncid_restart, rpid%tmaxvj, 'tmaxvj', REAL(veg%tmaxvj, 4), &
-                     ranges%tmaxvj, .TRUE., 'real', .TRUE.)
-    CALL write_ovar (ncid_restart, rpid%vbeta, 'vbeta', REAL(veg%vbeta, 4),    &
-                     ranges%vbeta, .TRUE., 'real', .TRUE.)
-    CALL write_ovar (ncid_restart, rpid%xalbnir, 'xalbnir',                    &
-                     REAL(veg%xalbnir, 4), ranges%xalbnir, .TRUE.,             &
-                     'real', .TRUE.)
-    CALL write_ovar (ncid_restart, rpid%tmaxvj, 'tmaxvj', REAL(veg%tmaxvj, 4), &
-                     ranges%tmaxvj, .TRUE., 'real', .TRUE.)
-    ok = NF90_PUT_VAR(ncid_restart, rpid%ratecp, REAL(bgc%ratecp, 4))
-    IF(ok /= NF90_NOERR) CALL nc_abort(ok,                                     &
-                                       'Error writing ratecp parameter to '    &
-                   //TRIM(filename%restart_out)// '(SUBROUTINE create_restart)')
-    ok = NF90_PUT_VAR(ncid_restart, rpid%ratecs, REAL(bgc%ratecs, 4))
-    IF(ok /= NF90_NOERR) CALL nc_abort(ok,                                     &
-                                       'Error writing ratecs parameter to '    &
-                   //TRIM(filename%restart_out)// '(SUBROUTINE create_restart)')
-    CALL write_ovar (ncid_restart, rpid%meth, 'meth', REAL(veg%meth, 4),       &
-                     ranges%meth, .TRUE., 'integer', .TRUE.)
-    CALL write_ovar (ncid_restart, rpid%za_uv, 'za_uv', REAL(rough%za_uv, 4),  &
-                     ranges%za, .TRUE., 'real', .TRUE.)
-    CALL write_ovar (ncid_restart, rpid%za_tq, 'za_tq', REAL(rough%za_tq, 4),  &
-                     ranges%za, .TRUE., 'real', .TRUE.)
+!!$    CALL write_ovar (ncid_restart, rpid%canst1, 'canst1', REAL(veg%canst1, 4), &
+!!$                     ranges%canst1, .TRUE., 'real', .TRUE.)
+!!$    CALL write_ovar (ncid_restart, rpid%dleaf, 'dleaf', REAL(veg%dleaf, 4),    &
+!!$                     ranges%dleaf, .TRUE., 'real', .TRUE.)
+!!$    CALL write_ovar (ncid_restart, rpid%ejmax, 'ejmax', REAL(veg%ejmax, 4),    &
+!!$                     ranges%ejmax, .TRUE., 'real', .TRUE.)
+!!$    CALL write_ovar (ncid_restart, rpid%vcmax, 'vcmax', REAL(veg%vcmax, 4),    &
+!!$                     ranges%vcmax, .TRUE., 'real', .TRUE.)
+!!$    CALL write_ovar (ncid_restart, rpid%frac4, 'frac4', REAL(veg%frac4, 4),    &
+!!$                     ranges%frac4, .TRUE., 'real', .TRUE.)
+!!$    CALL write_ovar (ncid_restart, rpid%hc, 'hc', REAL(veg%hc, 4),             &
+!!$                     ranges%hc, .TRUE., 'real', .TRUE.)
+!!$    CALL write_ovar (ncid_restart, rpid%rp20, 'rp20', REAL(veg%rp20, 4),       &
+!!$                     ranges%rp20, .TRUE., 'real', .TRUE.)
+!!$    CALL write_ovar (ncid_restart, rpid%g0, 'g0', REAL(veg%g0, 4),       &
+!!$                     ranges%g0, .TRUE., 'real', .TRUE.) ! Ticket #56
+!!$    CALL write_ovar (ncid_restart, rpid%g1, 'g1', REAL(veg%g1, 4),       &
+!!$                     ranges%g1, .TRUE., 'real', .TRUE.) ! Ticket #56
+!!$    CALL write_ovar (ncid_restart, rpid%rpcoef, 'rpcoef', REAL(veg%rpcoef, 4), &
+!!$                     ranges%rpcoef, .TRUE., 'real', .TRUE.)
+!!$    CALL write_ovar (ncid_restart, rpid%shelrb, 'shelrb', REAL(veg%shelrb, 4), &
+!!$                     ranges%shelrb, .TRUE., 'real', .TRUE.)
+!!$    CALL write_ovar (ncid_restart, rpid%xfang, 'xfang', REAL(veg%xfang, 4),    &
+!!$                     ranges%xfang, .TRUE., 'real', .TRUE.)
+!!$    CALL write_ovar (ncid_restart, rpid%wai, 'wai', REAL(veg%wai, 4),          &
+!!$                     ranges%wai, .TRUE., 'real', .TRUE.)
+!!$    CALL write_ovar (ncid_restart, rpid%vegcf, 'vegcf', REAL(veg%vegcf, 4),    &
+!!$                     ranges%vegcf, .TRUE., 'real', .TRUE.)
+!!$    CALL write_ovar (ncid_restart, rpid%extkn, 'extkn', REAL(veg%extkn, 4),    &
+!!$                     ranges%extkn, .TRUE., 'real', .TRUE.)
+!!$    CALL write_ovar (ncid_restart, rpid%tminvj, 'tminvj', REAL(veg%tminvj, 4), &
+!!$                     ranges%tminvj, .TRUE., 'real', .TRUE.)
+!!$    CALL write_ovar (ncid_restart, rpid%tmaxvj, 'tmaxvj', REAL(veg%tmaxvj, 4), &
+!!$                     ranges%tmaxvj, .TRUE., 'real', .TRUE.)
+!!$    CALL write_ovar (ncid_restart, rpid%vbeta, 'vbeta', REAL(veg%vbeta, 4),    &
+!!$                     ranges%vbeta, .TRUE., 'real', .TRUE.)
+!!$    CALL write_ovar (ncid_restart, rpid%xalbnir, 'xalbnir',                    &
+!!$                     REAL(veg%xalbnir, 4), ranges%xalbnir, .TRUE.,             &
+!!$                     'real', .TRUE.)
+!!$    CALL write_ovar (ncid_restart, rpid%tmaxvj, 'tmaxvj', REAL(veg%tmaxvj, 4), &
+!!$                     ranges%tmaxvj, .TRUE., 'real', .TRUE.)
+!!$    ok = NF90_PUT_VAR(ncid_restart, rpid%ratecp, REAL(bgc%ratecp, 4))
+!!$    IF(ok /= NF90_NOERR) CALL nc_abort(ok,                                     &
+!!$                                       'Error writing ratecp parameter to '    &
+!!$         //TRIM(frst_out)// '(SUBROUTINE create_restart)')
+!!$    ok = NF90_PUT_VAR(ncid_restart, rpid%ratecs, REAL(bgc%ratecs, 4))
+!!$    IF(ok /= NF90_NOERR) CALL nc_abort(ok,                                     &
+!!$                                       'Error writing ratecs parameter to '    &
+!!$         //TRIM(frst_out)// '(SUBROUTINE create_restart)')
+!!$    CALL write_ovar (ncid_restart, rpid%meth, 'meth', REAL(veg%meth, 4),       &
+!!$                     ranges%meth, .TRUE., 'integer', .TRUE.)
+!!$    CALL write_ovar (ncid_restart, rpid%za_uv, 'za_uv', REAL(rough%za_uv, 4),  &
+!!$                     ranges%za, .TRUE., 'real', .TRUE.)
+!!$    CALL write_ovar (ncid_restart, rpid%za_tq, 'za_tq', REAL(rough%za_tq, 4),  &
+!!$                     ranges%za, .TRUE., 'real', .TRUE.)
     CALL write_ovar (ncid_restart, tssID, 'tss', REAL(ssnow%tss, 4),           &
                      (/-99999.0, 9999999.0/), .TRUE., 'real', .TRUE.)
     CALL write_ovar (ncid_restart, ssdnnID, 'ssdnn', REAL(ssnow%ssdnn, 4),     &
@@ -2384,7 +3621,46 @@ CONTAINS
     CALL write_ovar (ncid_restart, albedoID, 'albedo', REAL(rad%albedo, 4),    &
                      ranges%Albedo, .TRUE., 'radiation', .TRUE.)
     CALL write_ovar (ncid_restart, tradID, 'trad',                             &
-                     REAL(rad%trad, 4), ranges%RadT, .TRUE., 'real', .TRUE.)
+         REAL(rad%trad, 4), ranges%RadT, .TRUE., 'real', .TRUE.)
+
+    CALL write_ovar (ncid_restart, gwID, 'GWwb', REAL(ssnow%GWwb, 4),       &
+                     ranges%GWwb, .TRUE., 'real', .TRUE.)
+
+!!$    IF(cable_user%SOIL_STRUC=='sli'.OR.cable_user%FWSOIL_SWITCH=='Haverd2013') THEN
+!!$       CALL write_ovar (ncid_restart,rpid%gamma,'gamma', &
+!!$            REAL(veg%gamma,4),(/-99999.0,99999.0/),.TRUE.,'real',.TRUE.)
+!!$    ENDIF
+!!$
+
+        IF(cable_user%SOIL_STRUC=='sli') THEN
+       ! Write SLI parameters:
+!!$       CALL write_ovar (ncid_restart,rpid%nhorizons,'nhorizons', &
+!!$            REAL(soil%nhorizons,4),(/-99999.0,99999.0/),.TRUE.,'integer',.TRUE.)
+!!$       CALL write_ovar (ncid_restart,rpid%ishorizon,'ishorizon', &
+!!$            REAL(soil%ishorizon,4),(/-99999.0,99999.0/),.TRUE.,'soil',.TRUE.)
+!!$       CALL write_ovar (ncid_restart,rpid%clitt,'clitt', &
+!!$            REAL(veg%clitt,4),(/-99999.0,99999.0/),.TRUE.,'real',.TRUE.)
+!!$       CALL write_ovar (ncid_restart,rpid%ZR,'ZR', &
+!!$            REAL(veg%ZR,4),(/-99999.0,99999.0/),.TRUE.,'real',.TRUE.)
+!!$       CALL write_ovar (ncid_restart,rpid%F10,'F10', &
+!!$            REAL(veg%F10,4),(/-99999.0,99999.0/),.TRUE.,'real',.TRUE.)
+       ! Write SLI variables:
+       CALL write_ovar (ncid_restart,SID,'S',REAL(ssnow%S,4), &
+            (/0.0,1.5/),.TRUE.,'soil',.TRUE.)
+       CALL write_ovar (ncid_restart,TsoilID,'Tsoil',REAL(ssnow%Tsoil,4), &
+            (/-100.0,100.0/),.TRUE.,'soil',.TRUE.)
+       CALL write_ovar (ncid_restart,snowliqID,'snowliq',REAL(ssnow%snowliq,4), &
+            (/-99999.0,99999.0/),.TRUE.,'snow',.TRUE.)
+       CALL write_ovar (ncid_restart,scondsID,'sconds',REAL(ssnow%sconds,4), &
+            (/-99999.0,99999.0/),.TRUE.,'snow',.TRUE.)
+       CALL write_ovar (ncid_restart,h0ID,'h0',REAL(ssnow%h0,4), &
+            (/-99999.0,99999.0/),.TRUE.,'real',.TRUE.)
+       CALL write_ovar (ncid_restart,nsnowID,'nsnow',REAL(ssnow%nsnow,4), &
+            (/-99999.0,99999.0/),.TRUE.,'integer',.TRUE.)
+       CALL write_ovar (ncid_restart,TsurfaceID,'Tsurface',REAL(ssnow%Tsurface,4), &
+            (/-99999.0,99999.0/),.TRUE.,'real',.TRUE.)
+
+    END IF
 
     ! Close restart file
     ok = NF90_CLOSE(ncid_restart)
