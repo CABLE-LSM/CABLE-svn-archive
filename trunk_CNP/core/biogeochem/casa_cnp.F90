@@ -535,7 +535,7 @@ SUBROUTINE casa_rplant(veg,casabiome,casapool,casaflux,casamet,climate)
 
   real(r_2), dimension(mp)        :: Ygrow        ! growth efficiency Q.Zhang 22/02/2011
   real(r_2), dimension(mp,mplant) :: ratioPNplant ! Q.Zhang 22/02/2011
-  real(r_2), dimension(mp)        :: delcrmwood,delcrmfroot    ! reduction in wood and root respiration when NPP <0.0
+  real(r_2), dimension(mp)        :: delcrmleaf, delcrmwood,delcrmfroot    ! reduction in wood and root respiration when NPP <0.0
   real(r_2), dimension(mp)        :: resp_coeff_root, resp_coeff_sapwood, resp_coeff
   real,  dimension(mp)        :: nleaf, pleaf, vcmaxmax
 
@@ -553,6 +553,7 @@ SUBROUTINE casa_rplant(veg,casabiome,casapool,casaflux,casamet,climate)
 
   casaflux%crmplant(:,wood) = 0.0
   casaflux%crmplant(:,froot) = 0.0
+  delcrmleaf   = 0.0
   delcrmwood   = 0.0
   delcrmfroot  = 0.0
   casaflux%crgplant = 0.0
@@ -721,6 +722,24 @@ IF (cable_user%CALL_climate) then
            casaflux%crgplant(:) = 0.0
         ENDWHERE
 
+        WHERE(casaflux%Cnpp < 0.0)
+      	! change made here by ypw on 11-7-2016 to include leaf maintenance respiration
+	      delcrmleaf(:)  = casaflux%Cnpp(:) * casaflux%crmplant(:,leaf) &
+	                     / max(0.01,(casaflux%crmplant(:,leaf)+casaflux%crmplant(:,wood) &
+	                               + casaflux%crmplant(:,froot)))
+	      delcrmwood(:)  = casaflux%Cnpp(:) * casaflux%crmplant(:,wood) &
+	                     / max(0.01,(casaflux%crmplant(:,leaf)+casaflux%crmplant(:,wood) &
+	                               + casaflux%crmplant(:,froot)))
+	      delcrmfroot(:) = casaflux%Cnpp(:) * casaflux%crmplant(:,froot) &
+	                     / max(0.01,(casaflux%crmplant(:,leaf)+casaflux%crmplant(:,wood) &
+	                               + casaflux%crmplant(:,froot)))
+
+	      casaflux%crmplant(:,leaf)  = casaflux%crmplant(:,leaf)  + delcrmleaf(:)
+	      casaflux%crmplant(:,wood)  = casaflux%crmplant(:,wood)  + delcrmwood(:)
+	      casaflux%crmplant(:,froot) = casaflux%crmplant(:,froot) + delcrmfroot(:)
+	  !    casaflux%Cnpp(:) = casaflux%Cnpp(:) -delcrmwood(:)-delcrmfroot(:)
+	      casaflux%crgplant(:) = 0.0
+        ENDWHERE
 
         !casaflux%Cnpp(:) = MAX(0.0,(casaflux%Cgpp(:)-SUM(casaflux%crmplant(:,:),2) &
         !                 - casaflux%crgplant(:)))
