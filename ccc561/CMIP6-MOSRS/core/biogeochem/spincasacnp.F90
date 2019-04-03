@@ -71,14 +71,13 @@ USE casa_inout_module
    REAL(dp), allocatable, save ::  LAImax(:)    , Cleafmean(:),  Crootmean(:)
    REAL(dp), allocatable :: NPPtoGPP(:)
    INTEGER, allocatable :: Iw(:) ! array of indices corresponding to woody (shrub or forest) tiles
-   INTEGER ::ctime
+
    if (.NOT.Allocated(LAIMax)) allocate(LAIMax(mp))
    if (.NOT.Allocated(Cleafmean))  allocate(Cleafmean(mp))
    if (.NOT.Allocated(Crootmean)) allocate(Crootmean(mp))
    if (.NOT.Allocated(NPPtoGPP)) allocate(NPPtoGPP(mp))
    if (.NOT.Allocated(Iw)) allocate(Iw(POP%np))
 
-   ctime = 1
    LOY = 365
    !! vh_js !!
     IF (cable_user%CALL_POP) THEN
@@ -145,12 +144,7 @@ USE casa_inout_module
         phen%doyphase(:,2) =  phen%doyphasespin_2(:,idoy)
         phen%doyphase(:,3) =  phen%doyphasespin_3(:,idoy)
         phen%doyphase(:,4) =  phen%doyphasespin_4(:,idoy)
-        ! should be in an if block
-        IF(cable_user%CALL_climate) THEN
-           climate%qtemp_max_last_year(:) =  casamet%mtempspin(:,idoy)
-        ENDIF
-
-
+        climate%qtemp_max_last_year(:) =  casamet%mtempspin(:,idoy)
 
       ! write(6699,*) casaflux%cgpp(1), climate%mtemp(1),  casaflux%crmplant(1,1)
 
@@ -181,28 +175,13 @@ USE casa_inout_module
                casaflux%stemnpp = 0.
             ENDIF ! CALL_POP
 
-
+ 
            IF(idoy==mdyear) THEN ! end of year
 
               CALL POPdriver(casaflux,casabal,veg, POP)
 
-           !   CALL POP_IO( pop, casamet, nyear, 'WRITE_EPI', &
-           !   		 (.FALSE.))
-           !  CALL WRITE_CASA_OUTPUT_NC (veg, casamet, casapool, casabal, casaflux, &
-           !   .true., ctime, .FALSE.  )
-             ctime = ctime+1
-
            ENDIF  ! end of year
-
         ELSE
-           IF(idoy==mdyear) THEN ! end of year
-
-           !  CALL WRITE_CASA_OUTPUT_NC (veg, casamet, casapool, casabal, casaflux, &
-           !   .true., ctime, .FALSE.  )
-             ctime = ctime+1
-
-           ENDIF  ! end of year
-
            casaflux%stemnpp = 0.
         ENDIF ! CALL_POP
 
@@ -321,7 +300,7 @@ USE casa_inout_module
         DO idoy=1,mdyear
            ktauy=idoy*ktauday
            ktau=(idoy-1)*ktauday +1
-
+      
            casamet%tairk(:)       = casamet%Tairkspin(:,idoy)
            casamet%tsoil(:,1)     = casamet%Tsoilspin_1(:,idoy)
            casamet%tsoil(:,2)     = casamet%Tsoilspin_2(:,idoy)
@@ -344,10 +323,8 @@ USE casa_inout_module
            phen%doyphase(:,2) =  phen%doyphasespin_2(:,idoy)
            phen%doyphase(:,3) =  phen%doyphasespin_3(:,idoy)
            phen%doyphase(:,4) =  phen%doyphasespin_4(:,idoy)
-           ! should be in an if block
-           IF(cable_user%CALL_climate) THEN
-              climate%qtemp_max_last_year(:) =  casamet%mtempspin(:,idoy)
-           ENDIF
+           climate%qtemp_max_last_year(:) =  casamet%mtempspin(:,idoy)
+           
 
 
            call biogeochem(ktauy,dels,idoy,LALLOC,veg,soil,casabiome,casapool,casaflux, &
@@ -377,37 +354,23 @@ USE casa_inout_module
               ELSE
                  casaflux%stemnpp = 0.
               ENDIF ! CALL_POP
-
-
+              
+           
               IF(idoy==mdyear) THEN ! end of year
 
                  CALL POPdriver(casaflux,casabal,veg, POP)
-                 !CALL POP_IO( pop, casamet, NYEAR, 'WRITE_EPI', &
-                 !	 (nloop.eq.mloop .and. nyear.eq.myearspin) )
-                ! CALL WRITE_CASA_OUTPUT_NC (veg, casamet, casapool, casabal, casaflux, &
-                !                             .TRUE., ctime, &
-                !             (nloop.eq.mloop .and. nyear.eq.myearspin.and.idoy.eq.mdyear)  )
-                 ctime = ctime+1
 
-             ENDIF  ! end of year
+                 
+           ENDIF  ! end of year
         ELSE
-           IF(idoy==mdyear) THEN ! end of year
-
-
-                ! CALL WRITE_CASA_OUTPUT_NC (veg, casamet, casapool, casabal, casaflux, &
-                !                             .TRUE., ctime, &
-                !             (nloop.eq.mloop .and. nyear.eq.myearspin.and.idoy.eq.mdyear)  )
-                 ctime = ctime+1
-
-            ENDIF  ! end of year
            casaflux%stemnpp = 0.
         ENDIF ! CALL_POP
-
-
+        
+        
      ENDDO   ! end of idoy
   ENDDO   ! end of nyear
 
-
+  
 !!$  if(nloop>=nloop1) &
 !!$       call totcnppools(2+nloop-nloop1,veg,casamet,casapool,bmcplant,bmnplant,bmpplant,bmclitter,bmnlitter,bmplitter, &
 !!$       bmcsoil,bmnsoil,bmpsoil,bmnsoilmin,bmpsoillab,bmpsoilsorb,bmpsoilocc,bmarea)
@@ -418,35 +381,35 @@ CALL casa_fluxout(CABLE_USER%CASA_SPIN_STARTYEAR + myearspin - 1 , veg, soil, ca
 
 !STOP
 
-!!$! write the last five loop pool size by PFT type
-!!$open(92,file='cnpspinlast5.txt')
-!!$write(92,921)
-!!$921 format('PFT total area in 10**12 m2', f12.4)
-!!$  do nvt=1,mvtype
-!!$     write(92,*) bmarea(nvt)
-!!$  enddo
-!!$
-!!$  do nvt=1,mvtype
-!!$     if(bmarea(nvt) >0.0) then
-!!$        do kloop=1,5
-!!$           write(92,922) nvt, bmcplant(kloop,nvt,:),bmclitter(kloop,nvt,:),bmcsoil(kloop,nvt,:)
-!!$        enddo
-!!$        if (icycle >1) then
-!!$           do kloop=1,5
-!!$              write(92,922) nvt, bmnplant(kloop,nvt,:),bmnlitter(kloop,nvt,:),bmnsoil(kloop,nvt,:), bmnsoilmin(kloop,nvt)
-!!$           enddo
-!!$        endif
-!!$
-!!$        if(icycle >2) then
-!!$           do kloop=1,5
-!!$              write(92,922) nvt, bmpplant(kloop,nvt,:),bmplitter(kloop,nvt,:),bmpsoil(kloop,nvt,:),  &
-!!$                   bmpsoillab(kloop,nvt), bmpsoilsorb(kloop,nvt), bmpsoilocc(kloop,nvt)
-!!$           enddo
-!!$        endif
-!!$     endif
-!!$  enddo
-!!$922 format(i4,20(f10.4,2x))
-!!$  CLOSE(92)
+! write the last five loop pool size by PFT type
+open(92,file='cnpspinlast5.txt')
+write(92,921)
+921 format('PFT total area in 10**12 m2', f12.4)
+  do nvt=1,mvtype
+     write(92,*) bmarea(nvt)
+  enddo
+
+  do nvt=1,mvtype
+     if(bmarea(nvt) >0.0) then
+        do kloop=1,5
+           write(92,922) nvt, bmcplant(kloop,nvt,:),bmclitter(kloop,nvt,:),bmcsoil(kloop,nvt,:)
+        enddo
+        if (icycle >1) then
+           do kloop=1,5
+              write(92,922) nvt, bmnplant(kloop,nvt,:),bmnlitter(kloop,nvt,:),bmnsoil(kloop,nvt,:), bmnsoilmin(kloop,nvt)
+           enddo
+        endif
+
+        if(icycle >2) then
+           do kloop=1,5
+              write(92,922) nvt, bmpplant(kloop,nvt,:),bmplitter(kloop,nvt,:),bmpsoil(kloop,nvt,:),  &
+                   bmpsoillab(kloop,nvt), bmpsoilsorb(kloop,nvt), bmpsoilocc(kloop,nvt)
+           enddo
+        endif
+     endif
+  enddo
+922 format(i4,20(f10.4,2x))
+  CLOSE(92)
 
 
 151 FORMAT(i6,100(f12.5,2x))

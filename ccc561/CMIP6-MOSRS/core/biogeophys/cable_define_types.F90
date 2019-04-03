@@ -197,8 +197,8 @@ MODULE cable_def_types_mod
          pudsto,  & ! puddle storage
          pudsmx,  & ! puddle storage
          cls,     & ! factor for latent heat
-         dfn_dtg, & ! d(canopy%fns)/d(ssnow%tgg) 
-         dfh_dtg, & ! d(canopy%fhs)/d(ssnow%tgg) 
+         dfn_dtg, & ! d(canopy%fns)/d(ssnow%tgg)
+         dfh_dtg, & ! d(canopy%fhs)/d(ssnow%tgg)
          dfe_ddq, & ! d(canopy%fes)/d(dq)        - REV_CORR: no longer necessary
          ddq_dtg, & ! d(dq)/d(ssnow%tgg)         - REV_CORR: no longer necessary
          dfe_dtg, & ! d(canopy%fes)/d(ssnow%tgg) - REV_CORR: covers above vars
@@ -279,14 +279,14 @@ MODULE cable_def_types_mod
          GWsmp,   &  ! aquifer soil matric potential [mm]
          GWwbeq,  &  ! equilibrium aquifer water content [mm3/mm3]
          GWzq,    &  ! equilibrium aquifer smp   [mm]
-         qhz,     &  ! horizontal hydraulic conductivity in 1D gw model for soil layers  [mm/s] 
+         qhz,     &  ! horizontal hydraulic conductivity in 1D gw model for soil layers  [mm/s]
          satfrac, &
          Qrecharge,&
          rh_srf,   &
          rtevap_sat,&
          rtevap_unsat,&
          rt_qh_sublayer
-     
+
       REAL(r_2), DIMENSION(:,:), POINTER  ::                                     &
          wbeq,    &    ! equilibrium water content [mm3/mm3]
          zq,      &    ! equilibrium smp       [mm]
@@ -376,7 +376,7 @@ MODULE cable_def_types_mod
          ekc,     &  ! activation energy for caroxylagse
          eko,     &  ! acvtivation enegery for oxygenase
          g0,      & ! Belinda's stomatal model intercept, Ticket #56.
-         g1         ! Belinda's stomatal model slope, Ticket #56.   
+         g1         ! Belinda's stomatal model slope, Ticket #56.
 
       LOGICAL, DIMENSION(:), POINTER ::                                        &
          deciduous ! flag used for phenology fix
@@ -479,7 +479,7 @@ MODULE cable_def_types_mod
       !SSEB - new variables limits on correction terms - for future use
       !REAL(r_2), DIMENSION(:), POINTER ::                                     &
       !  fescor_upp,& ! upper limit on the correction term fes_cor (W/m2)
-      !  fescor_low   ! lower limit on the correction term fes_cor (W/m2)      
+      !  fescor_low   ! lower limit on the correction term fes_cor (W/m2)
 
       REAL(r_2), DIMENSION(:), POINTER :: &
          sublayer_dz
@@ -668,7 +668,7 @@ MODULE cable_def_types_mod
       atemp_mean,  & ! annual average temperature
       AGDD5,       &
       GDD5,        & ! growing degree day sum relative to 5deg base temperature
-      AGDD0,        & ! 
+      AGDD0,        & !
       GDD0,        & ! growing degree day sum relative to 0deg base temperature
       alpha_PT,    & ! ratio of annual evap to annual PT evap
       evap_PT,    & ! annual PT evap [mm]
@@ -1074,7 +1074,7 @@ SUBROUTINE alloc_veg_parameter_type(var, mp)
    ALLOCATE( var%conko0(mp) )
    ALLOCATE( var%ekc(mp) )
    ALLOCATE( var%eko(mp) )
-   ALLOCATE( var% g0(mp) )   ! Ticket #56. 
+   ALLOCATE( var% g0(mp) )   ! Ticket #56.
    ALLOCATE( var% g1(mp) )   ! Ticket #56.
 
 
@@ -1485,7 +1485,7 @@ SUBROUTINE dealloc_soil_parameter_type(var)
    DEALLOCATE( var%clay_vec )
    DEALLOCATE( var%silt_vec )
    DEALLOCATE( var%org_vec  )
-   DEALLOCATE( var%rhosoil_vec )   
+   DEALLOCATE( var%rhosoil_vec )
    DEALLOCATE( var%drain_dens )
    DEALLOCATE( var%elev )
    DEALLOCATE( var%elev_std )
@@ -1609,7 +1609,7 @@ SUBROUTINE dealloc_soil_snow_type(var)
    DEALLOCATE( var%hk )
    DEALLOCATE( var%smp )
    DEALLOCATE( var%dhkdw )
-   DEALLOCATE( var%dsmpdw )   
+   DEALLOCATE( var%dsmpdw )
    DEALLOCATE( var%wbliq )
    DEALLOCATE( var%wmliq )
    DEALLOCATE( var%wmice )
@@ -1692,7 +1692,7 @@ SUBROUTINE dealloc_veg_parameter_type(var)
    DEALLOCATE( var%ekc )
    DEALLOCATE( var%eko )
    DEALLOCATE( var%g0 ) ! Ticket #56.
-   DEALLOCATE( var%g1 ) ! Ticket #56. 
+   DEALLOCATE( var%g1 ) ! Ticket #56.
 
     ! Deallocate variables for SLI soil model:
     !IF(cable_user%SOIL_STRUC=='sli') THEN
@@ -1901,8 +1901,8 @@ SUBROUTINE dealloc_met_type(var)
    DEALLOCATE ( var % dva )
    DEALLOCATE ( var % coszen )
    DEALLOCATE ( var % Ndep )
-
    DEALLOCATE ( var % Pdep )
+   
 END SUBROUTINE dealloc_met_type
 
 ! ------------------------------------------------------------------------------

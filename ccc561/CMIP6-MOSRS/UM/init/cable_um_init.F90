@@ -57,6 +57,9 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
       dealloc_vegin_soilin,      & ! mem. allocation subr (vegin%,soilin%)
       um1,                       & ! um1% type UM basics 4 convenience
       kblum_veg                    ! kblum_veg% reset UM veg vars 4 CABLE use
+   !diag
+   USE cable_fFile_module, ONLY : fprintf_dir_root, L_cable_fprint,            &
+                                  L_cable_Pyfprint, unique_subdir
 
    USE cable_common_module, ONLY :                                             &
       cable_user,          & ! cable_user% type inherits user definition
@@ -275,8 +278,8 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
 
       !jhan: turn this off until implementation finalised
       !--- initialize latitude/longitude & mapping IF required
-      !if ( first_call ) & 
-      !   call initialize_maps(latitude,longitude, tile_index_mp)
+      if ( first_call ) & 
+         call initialize_maps(latitude,longitude, tile_index_mp)
 
       !--- read in soil (and veg) parameters 
       IF(first_call ) then

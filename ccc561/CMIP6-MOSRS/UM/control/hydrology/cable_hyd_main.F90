@@ -32,19 +32,28 @@ module cable_hyd_main_mod
   
 contains
 
-SUBROUTINE cable_hyd_main( land_pts, ntiles, lying_snow, SNOW_surft, SURF_ROFF, SUB_SURF_ROFF,  &
-                             TOT_TFALL )
+SUBROUTINE cable_hyd_main( land_pts, ntiles, lying_snow, SNOW_surft, SURF_ROFF,&
+                           SUB_SURF_ROFF, TOT_TFALL )
   
-  USE cable_common_module, ONLY : knode_gl,        & ! processor number
-                                  ktau_gl,         & ! number
-                                  kwidth_gl          ! width in S 
-  
+  !subrs called 
   USE cable_hyd_driv_mod, ONLY : cable_hyd_driver
+  
+  !processor number, timestep number / width, endstep
+  USE cable_common_module, ONLY : knode_gl, ktau_gl, kwidth_gl, kend_gl
+  USE cable_common_module, ONLY : cable_runtime
+  USE cable_data_module, ONLY : cable
 
+  !diag 
+  USE cable_fprint_module, ONLY : cable_fprintf
+  USE cable_Pyfprint_module, ONLY : cable_Pyfprintf
+  USE cable_fFile_module, ONLY : fprintf_dir_root, fprintf_dir, L_cable_fprint,&
+                                 L_cable_Pyfprint, unique_subdir
+  USE cable_def_types_mod, ONLY : mp !only need for fprint here
+  
   implicit none
  
-  !--- IN ARGS FROM sf_exch_cable, passed from surf_couple_hyd() down ----
-  
+  !___ re-decl input args
+
   integer :: land_pts, ntiles
   
   real :: snow_surft(land_pts,ntiles)
@@ -55,56 +64,41 @@ SUBROUTINE cable_hyd_main( land_pts, ntiles, lying_snow, SNOW_surft, SURF_ROFF, 
     surf_roff,      & ! OUT Surface runoff (kg/m2/s).
     tot_tfall         ! OUT Total throughfall (kg/m2/s).
 
-  !--- End IN ARGS  -----------------------------------------------------------
-
-  !--- declare local vars ------------------------------------------------------ 
-
-  character(len=*), parameter :: subr_name = "cable_hyd_main"
+  !___ local vars
   logical, save :: first_call = .true.
   
-  !--- End header -------------------------------------------------------------
+  ! std template args 
+  character(len=*), parameter :: subr_name = "cable_hyd_main"
+ 
+# include "../../../core/utils/diag/cable_fprint.txt"
   
-  if(knode_gl==0) then
-    write (6, *) "CABLE_LSM:Subr: ", subr_name,  "@ timestep: ",ktau_gl 
-  endif
-     
-  !----------------------------------------------------------------------------
-  !--- Organize report writing for CABLE.                         -------------
-  !--- Progress log and IN args @ timestep X,Y,Z                  -------------
-  !----------------------------------------------------------------------------
+  !-------- Unique subroutine body -----------
   
-  !----------------------------------------------------------------------------
-  !----------------------------------------------------------------------------
-  
-  !----------------------------------------------------------------------------
-  !--- CALL _driver to run specific and necessary components of CABLE with IN -
-  !--- args PACKED to force CABLE
-  !----------------------------------------------------------------------------
+  !--- initialize cable_runtime% switches 
+  cable_runtime%um =          .TRUE.
+  cable_runtime%um_hydrology =.TRUE.
   
   CALL cable_hyd_driver( land_pts, ntiles, lying_snow, SNOW_surft, SURF_ROFF,   &
                          SUB_SURF_ROFF, TOT_TFALL )
   
-  !----------------------------------------------------------------------------
-  !----------------------------------------------------------------------------
+  cable_runtime%um_hydrology =.FALSE.
   
-  !----------------------------------------------------------------------------
-  !--- CALL _driver to run specific and necessary components of CABLE with IN -
-  !--- args PACKED to force CABLE
-  !----------------------------------------------------------------------------
+  !-------- End Unique subroutine body -----------
   
-  !----------------------------------------------------------------------------
-  !----------------------------------------------------------------------------
-  
-  !----------------------------------------------------------------------------
-  !--- Organize report writing for CABLE.                         -------------
-  !--- OUT args @ timestep X,Y,Z                                  -------------
-  !----------------------------------------------------------------------------
+  fprintf_dir=trim(fprintf_dir_root)//trim(unique_subdir)//"/"
+  if(L_cable_fprint) then 
+    !basics to std output stream
+    if (knode_gl == 0 .and. ktau_gl == 1)  call cable_fprintf(subr_name, .true.) 
+    !more detailed output
+    vname=trim(subr_name//'_')
+    call cable_fprintf( cDiag00, vname, knode_gl, ktau_gl, .true. )
+  endif
 
-  !jhan: call checks as required by namelis      
-  
-  !----------------------------------------------------------------------------
-  !----------------------------------------------------------------------------
-  
+  if(L_cable_Pyfprint .and. ktau_gl == 1) then 
+    !vname='latitude'; dimx=mp
+    !call cable_Pyfprintf( cDiag1, vname, cable%lat, dimx, .true.)
+  endif
+
   first_call = .false.        
 
 return

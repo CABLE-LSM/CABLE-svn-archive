@@ -86,7 +86,6 @@ SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
   INTEGER :: nv0,nv1,nv2,nv3,nv4,nv5,nv6,nv7,nv8,nv9,nv10,nv11,nv12
   REAL(r_2), DIMENSION(mvtype)       :: xxnpmax,xq10soil,xxkoptlitter,xxkoptsoil,xprodptase, &
                                         xcostnpup,xmaxfinelitter,xmaxcwd,xnintercept,xnslope
-  REAL(r_2), DIMENSION(mvtype)       :: la_to_sa, vcmax_scalar, junk_to_match_vh_file
   REAL(r_2), DIMENSION(mso)          :: xxkplab,xxkpsorb,xxkpocc
 
 
@@ -236,14 +235,6 @@ SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
   ENDDO
 !@@@@@@@@@@@@@@@@@@@@@
 
-  ! MDK, we need to add an extra read tag to match vh's files.
-  READ(101,*)
-  READ(101,*)
-  DO nv=1,mvtype
-    READ(101,*) nv12, &
-         la_to_sa(nv),junk_to_match_vh_file(nv),vcmax_scalar(nv)
-  ENDDO
-
   CLOSE(101)
 
   fracroot   = 0.0
@@ -289,9 +280,6 @@ SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
     casabiome%maxcwd(nv)          = xmaxcwd(nv)
     casabiome%nintercept(nv)      = xnintercept(nv)
     casabiome%nslope(nv)          = xnslope(nv)
-
-    casabiome%la_to_sa(nv)        = la_to_sa(nv)
-    casabiome%vcmax_scalar(nv)    = vcmax_scalar(nv)
 !@@@@@@@@@@@@@@
   ENDDO
 
@@ -923,8 +911,6 @@ endif
   ! reset labile C pool,comment out by Q.Zhang 10/09/2011
   !  casapool%clabile    = 0.0
   ! check pool sizes
-  casapool%Ctot_0 = 0.0
-  casapool%Ctot = 0.0
   casapool%cplant     = MAX(0.0,casapool%cplant)
   casapool%clitter    = MAX(0.0,casapool%clitter)
   casapool%csoil      = MAX(0.0,casapool%csoil)
@@ -1306,10 +1292,8 @@ SUBROUTINE casa_cnpflux(casaflux,casapool,casabal,zeroflux)
      ! change made ypwang 17-nov-2013 to accoutn for change in labile carbon pool  size
      casabal%FCnppyear        = casabal%FCnppyear + (casaflux%Cnpp+casapool%dClabiledt)   * deltpool
      casabal%FCrsyear  = casabal%FCrsyear  + casaflux%Crsoil * deltpool
-     !casabal%FCneeyear = casabal%FCneeyear &
-     !     + (casaflux%Cnpp+casapool%dClabiledt-casaflux%Crsoil) * deltpool
      casabal%FCneeyear = casabal%FCneeyear &
-          + (casaflux%Cnpp-casaflux%Crsoil) * deltpool
+          + (casaflux%Cnpp+casapool%dClabiledt-casaflux%Crsoil) * deltpool
      casabal%dCdtyear =  casabal%dCdtyear + (casapool%Ctot-casapool%Ctot_0)*deltpool
 
      !  DO n=1,3
@@ -1508,8 +1492,8 @@ SUBROUTINE biogeochem(ktau,dels,idoY,LALLOC,veg,soil,casabiome,casapool,casaflux
   call casa_cnpflux(casaflux,casapool,casabal,.false.)
 
   ! for spinning up only
-   casapool%Nsoilmin = max(casapool%Nsoilmin,0.5)
-   casapool%Psoillab = max(casapool%Psoillab,0.1)
+  ! casapool%Nsoilmin = max(casapool%Nsoilmin,0.5)
+  ! casapool%Psoillab = max(casapool%Psoillab,0.1)
 
 
 
@@ -1594,12 +1578,12 @@ SUBROUTINE WRITE_CASA_RESTART_NC ( casamet, casapool, casaflux, phen, CASAONLY )
   ! Get File-Name
   WRITE(CYEAR, FMT='(I4)') CurYear + 1
 
-  IF (( LEN_TRIM(casafile%cnpepool) ) .gt. 0) THEN
-        fname=TRIM(casafile%cnpepool)
-    ELSE
-        fname = TRIM(filename%path)//'/'//TRIM( cable_user%RunIden )//&
-            '_casa_rst.nc'
-    ENDIF
+  IF (len( TRIM(casafile%cnpepool) ) .gt. 0) THEN
+     fname=TRIM(casafile%cnpepool)
+  ELSE
+  fname = TRIM(filename%path)//'/'//TRIM( cable_user%RunIden )//&
+       '_casa_rst.nc'
+  ENDIF
   ! Create NetCDF file:
   STATUS = NF90_create(fname, NF90_CLOBBER, FILE_ID)
   IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
@@ -2181,25 +2165,21 @@ SUBROUTINE WRITE_CASA_OUTPUT_NC ( veg, casamet, casapool, casabal, casaflux, &
 
   IF ( CALL1 ) THEN
      ! Get File-Name
-     IF (TRIM(casafile%out).NE.'' ) THEN
-        fname = TRIM(casafile%out)
-     ELSE
-        IF (TRIM(cable_user%MetType).NE.'' ) THEN
 
-           WRITE( dum, FMT="(I4,'_',I4)")CABLE_USER%YEARSTART,CABLE_USER%YEAREND
-           IF (CABLE_USER%YEARSTART.lt.1000.and.CABLE_USER%YEAREND.lt.1000) THEN
-              WRITE( dum, FMT="(I3,'_',I3)")CABLE_USER%YEARSTART,CABLE_USER%YEAREND
-           ELSEIF (CABLE_USER%YEARSTART.lt.1000) THEN
-              WRITE( dum, FMT="(I3,'_',I4)")CABLE_USER%YEARSTART,CABLE_USER%YEAREND
-           ENDIF
-           fname = TRIM(filename%path)//'/'//TRIM(cable_user%RunIden)//'_'//&
-                TRIM(dum)//'_casa_out.nc'
-        ELSE
-           ! site data
-           fname = TRIM(filename%path)//'/'//TRIM(cable_user%RunIden)//'_casa_out.nc'
+     IF (TRIM(cable_user%MetType).NE.'' ) THEN
+
+        WRITE( dum, FMT="(I4,'_',I4)")CABLE_USER%YEARSTART,CABLE_USER%YEAREND
+        IF (CABLE_USER%YEARSTART.lt.1000.and.CABLE_USER%YEAREND.lt.1000) THEN
+           WRITE( dum, FMT="(I3,'_',I3)")CABLE_USER%YEARSTART,CABLE_USER%YEAREND
+        ELSEIF (CABLE_USER%YEARSTART.lt.1000) THEN
+           WRITE( dum, FMT="(I3,'_',I4)")CABLE_USER%YEARSTART,CABLE_USER%YEAREND
         ENDIF
+        fname = TRIM(filename%path)//'/'//TRIM(cable_user%RunIden)//'_'//&
+             TRIM(dum)//'_casa_out.nc'
+     ELSE
+        ! site data
+        fname = TRIM(filename%path)//'/'//TRIM(cable_user%RunIden)//'_casa_out.nc'
      ENDIF
-
      INQUIRE( FILE=TRIM( fname ), EXIST=EXRST )
      EXRST = .FALSE.
      IF ( EXRST ) THEN

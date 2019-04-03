@@ -108,6 +108,7 @@ MODULE cable_checks_module
            NEE = (/-70.0,50.0/),               & ! umol/m2/s
            NPP = (/-20.0,75.0/),               & ! umol/m2/s
            GPP = (/-20.0,100.0/),              & ! umol/m2/s
+           PAR = (/-1000.0,5000.0/),              & ! umol/m2/s
            AutoResp = (/-50.0,20.0/),          & ! umol/m2/s
            LeafResp = (/-50.0,20.0/),          & ! umol/m2/s
            HeteroResp = (/-50.0,20.0/),        & ! umol/m2/s
@@ -179,7 +180,7 @@ MODULE cable_checks_module
            WatTable = (/0.0,1.0e10/),          &
            GWwb = (/0.0,1.0/),              &
            SatFrac = (/0.0,1.0/),              &
-           Qrecharge = (/-9999.0,9999.0/) 
+           Qrecharge = (/-9999.0,9999.0/)
    END TYPE ranges_type
    TYPE(ranges_type),SAVE :: ranges
 
@@ -261,16 +262,16 @@ SUBROUTINE mass_balance(dels,ktau, ssnow,soil,canopy,met,                       
       ! delwcol includes change in soil water, pond and snowpack
       bal%wbal = canopy_wbal + REAL(canopy%through - ssnow%delwcol-ssnow%runoff &
                   - ssnow%evap - max(canopy%fevc,0.0)*dels/air%rlam, r_2)
-   
+
    ENDIF
 
 
-   if(ktau==1) then 
-      bal%wbal_tot = 0.; bal%precip_tot = 0. 
+   if(ktau==1) then
+      bal%wbal_tot = 0.; bal%precip_tot = 0.
       bal%rnoff_tot = 0.; bal%evap_tot = 0.
-   endif   
-   
-   IF(ktau>10) THEN ! Avoid wobbly balances for ktau<10 pending later fix 
+   endif
+
+   IF(ktau>10) THEN ! Avoid wobbly balances for ktau<10 pending later fix
       ! Add to accumulation variables:
       bal%wbal_tot = bal%wbal_tot + bal%wbal
       bal%precip_tot = bal%precip_tot + met%precip
@@ -321,7 +322,7 @@ SUBROUTINE energy_balance( dels,ktau,met,rad,canopy,bal,ssnow,                  
          - canopy%fnv - canopy%fns
 
     !  soil energy - INH Ticket #133 corrected for consistency with %Ebal
-    !  this includes the correction terms 
+    !  this includes the correction terms
     bal%EbalSoil =canopy%fns - canopy%fes & !*ssnow%cls &
          & -canopy%fhs -canopy%ga
 

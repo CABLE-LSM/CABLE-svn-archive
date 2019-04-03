@@ -480,7 +480,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
   ! Water balance variables:
   ipi = sum(ssnow%thetai*dx,2)  + h0*ssnow%thetai(:,1)/par(:,1)%thre       ! ice in profile initially
   ! water in profile initially
-  wpi = sum((par%thr + (par%the-par%thr)*S)*dx,2)  + plit%thre*SL*dxL
+  wpi = sum((par%thr + (par%the-par%thr)*S)*dx,2)  + plit%thre*SL*dxL 
 
   nsteps = 0
   ti     = zero
@@ -611,7 +611,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
      end do
      ip  = sum(ssnow%thetai*dx,2) + h0*ssnow%thetai(:,1)/par(:,1)%thre   ! ice in profile at tf
      ! water at tf
-     wp  = sum((par%thr + (par%the-par%thr)*S)*dx,2) + plit%thre*SL*dxL
+     wp  = sum((par%thr + (par%the-par%thr)*S)*dx,2) + plit%thre*SL*dxL 
      win = win + (qprec+qprec_snow)*(tf-ti)
 
      if (verbose) then
@@ -621,7 +621,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
              evap(k), evap_pot(k), infil(k), &
              drn(k), h0(k), Etrans(k)*dt, discharge(k), fws(k), (ip(k)-ipi(k)), fsat(k), runoff_sat(k), qb(k)
 
-!!$if (ktau==5) then
+!!$if (ktau==5) then 
 !!$
 !!$ write(*,*) win(k), (wp(k)-wpi(k)), deltah0(k),runoff(k), evap(k), drn(k), Etrans(k)*dt, canopy%fwsoil(k), canopy%fevc(k)
 !!$stop
@@ -674,7 +674,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
         canopy%fhs     = canopy%fns - canopy%ga - canopy%fes
         ssnow%rnof1    = real(runoff*thousand/dt )
         ssnow%rnof2    = real(drn*thousand/dt )
-        ssnow%runoff = ssnow%rnof1 + ssnow%rnof2
+        ssnow%runoff = ssnow%rnof1 + ssnow%rnof2 
         ssnow%zdelta   = zdelta
         ssnow%SL       = SL
         ssnow%TL       = TL
@@ -707,7 +707,7 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
      else
         where (err(1:mp) == 0) ssnow%rlitt = dxL/vlit%Dv
      endif
-
+    
      ! update CABLE snow variables
      do kk=1, mp
         if (err(kk) == 0) then
@@ -753,3 +753,4 @@ SUBROUTINE sli_main(ktau, dt, veg, soil, ssnow, met, canopy, air, rad, SEB_only)
 
 END SUBROUTINE sli_main
 End module sli_main_mod
+

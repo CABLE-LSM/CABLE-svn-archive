@@ -146,7 +146,7 @@ subroutine cable_pft_params()
      vegin%a1gs(1) =        9.000000
      vegin%d0gs(1) =     1500.000000
     vegin%alpha(1) =        0.200000
-   vegin%convex(1) =        0.010000
+   vegin%convex(1) =        0.700000
      vegin%cfrd(1) =        0.015000
    vegin%gswmin(1) =        0.010000
    vegin%conkc0(1) =        0.000302
@@ -205,7 +205,7 @@ subroutine cable_pft_params()
      vegin%a1gs(2) =        9.000000
      vegin%d0gs(2) =     1500.000000
     vegin%alpha(2) =        0.200000
-   vegin%convex(2) =        0.010000
+   vegin%convex(2) =        0.700000
      vegin%cfrd(2) =        0.015000
    vegin%gswmin(2) =        0.010000
    vegin%conkc0(2) =        0.000302
@@ -264,7 +264,7 @@ subroutine cable_pft_params()
      vegin%a1gs(3) =        9.000000
      vegin%d0gs(3) =     1500.000000
     vegin%alpha(3) =        0.200000
-   vegin%convex(3) =        0.010000
+   vegin%convex(3) =        0.700000
      vegin%cfrd(3) =        0.015000
    vegin%gswmin(3) =        0.010000
    vegin%conkc0(3) =        0.000302
@@ -323,7 +323,7 @@ subroutine cable_pft_params()
      vegin%a1gs(4) =        9.000000
      vegin%d0gs(4) =     1500.000000
     vegin%alpha(4) =        0.200000
-   vegin%convex(4) =        0.010000
+   vegin%convex(4) =        0.700000
      vegin%cfrd(4) =        0.015000
    vegin%gswmin(4) =        0.010000
    vegin%conkc0(4) =        0.000302
@@ -382,7 +382,7 @@ subroutine cable_pft_params()
      vegin%a1gs(5) =        9.000000
      vegin%d0gs(5) =     1500.000000
     vegin%alpha(5) =        0.200000
-   vegin%convex(5) =        0.010000
+   vegin%convex(5) =        0.700000
      vegin%cfrd(5) =        0.015000
    vegin%gswmin(5) =        0.010000
    vegin%conkc0(5) =        0.000302
@@ -441,7 +441,7 @@ subroutine cable_pft_params()
      vegin%a1gs(6) =        9.000000
      vegin%d0gs(6) =     1500.000000
     vegin%alpha(6) =        0.200000
-   vegin%convex(6) =        0.010000
+   vegin%convex(6) =        0.700000
      vegin%cfrd(6) =        0.015000
    vegin%gswmin(6) =        0.010000
    vegin%conkc0(6) =        0.000302
@@ -559,7 +559,7 @@ subroutine cable_pft_params()
      vegin%a1gs(8) =        9.000000
      vegin%d0gs(8) =     1500.000000
     vegin%alpha(8) =        0.200000
-   vegin%convex(8) =        0.010000
+   vegin%convex(8) =        0.700000
      vegin%cfrd(8) =        0.015000
    vegin%gswmin(8) =        0.010000
    vegin%conkc0(8) =        0.000302
@@ -618,7 +618,7 @@ subroutine cable_pft_params()
      vegin%a1gs(9) =        9.000000
      vegin%d0gs(9) =     1500.000000
     vegin%alpha(9) =        0.200000
-   vegin%convex(9) =        0.010000
+   vegin%convex(9) =        0.700000
      vegin%cfrd(9) =        0.015000
    vegin%gswmin(9) =        0.010000
    vegin%conkc0(9) =        0.000302
@@ -736,7 +736,7 @@ subroutine cable_pft_params()
      vegin%a1gs(11) =        9.000000
      vegin%d0gs(11) =     1500.000000
     vegin%alpha(11) =        0.200000
-   vegin%convex(11) =        0.010000
+   vegin%convex(11) =        0.700000
      vegin%cfrd(11) =        0.015000
    vegin%gswmin(11) =        0.010000
    vegin%conkc0(11) =        0.000302
@@ -795,7 +795,7 @@ subroutine cable_pft_params()
      vegin%a1gs(12) =        9.000000
      vegin%d0gs(12) =     1500.000000
     vegin%alpha(12) =        0.200000
-   vegin%convex(12) =        0.010000
+   vegin%convex(12) =        0.700000
      vegin%cfrd(12) =        0.015000
    vegin%gswmin(12) =        0.010000
    vegin%conkc0(12) =        0.000302
@@ -854,7 +854,7 @@ subroutine cable_pft_params()
      vegin%a1gs(13) =        9.000000
      vegin%d0gs(13) =     1500.000000
     vegin%alpha(13) =        0.200000
-   vegin%convex(13) =        0.010000
+   vegin%convex(13) =        0.700000
      vegin%cfrd(13) =        0.015000
    vegin%gswmin(13) =        0.010000
    vegin%conkc0(13) =        0.000302
@@ -913,7 +913,7 @@ subroutine cable_pft_params()
      vegin%a1gs(14) =        9.000000
      vegin%d0gs(14) =     1500.000000
     vegin%alpha(14) =        0.200000
-   vegin%convex(14) =        0.010000
+   vegin%convex(14) =        0.700000
      vegin%cfrd(14) =        0.015000
    vegin%gswmin(14) =        0.010000
    vegin%conkc0(14) =        0.000302
@@ -972,7 +972,7 @@ subroutine cable_pft_params()
      vegin%a1gs(15) =        9.000000
      vegin%d0gs(15) =     1500.000000
     vegin%alpha(15) =        0.200000
-   vegin%convex(15) =        0.010000
+   vegin%convex(15) =        0.700000
      vegin%cfrd(15) =        0.015000
    vegin%gswmin(15) =        0.010000
    vegin%conkc0(15) =        0.000302
@@ -1031,7 +1031,7 @@ subroutine cable_pft_params()
      vegin%a1gs(16) =        9.000000
      vegin%d0gs(16) =     1500.000000
     vegin%alpha(16) =        0.200000
-   vegin%convex(16) =        0.010000
+   vegin%convex(16) =        0.700000
      vegin%cfrd(16) =        0.015000
    vegin%gswmin(16) =        0.010000
    vegin%conkc0(16) =        0.000302
@@ -1090,7 +1090,7 @@ subroutine cable_pft_params()
      vegin%a1gs(17) =        9.000000
      vegin%d0gs(17) =     1500.000000
     vegin%alpha(17) =        0.200000
-   vegin%convex(17) =        0.010000
+   vegin%convex(17) =        0.700000
      vegin%cfrd(17) =        0.015000
    vegin%gswmin(17) =        0.010000
    vegin%conkc0(17) =        0.000302

@@ -21,10 +21,6 @@
 !
 !
 ! ==============================================================================
- 
-!uncomment per subr for now - can update to namelist
-!#define FPPcable_fprint 0  
-!#define FPPcable_Pyfprint 0  
 
 module cable_explicit_driv_mod
   
@@ -64,7 +60,8 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
   !diag 
   USE cable_fprint_module, ONLY : cable_fprintf
   USE cable_Pyfprint_module, ONLY : cable_Pyfprintf
-  USE cable_fFile_module, ONLY : fprintf_dir_root, fprintf_dir
+  USE cable_fFile_module, ONLY : fprintf_dir_root, fprintf_dir, L_cable_fprint,&
+                                 L_cable_Pyfprint, unique_subdir
   
   USE cable_diag_module
   
@@ -77,6 +74,8 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
                          !         report_version_no,                          &
                          !         l_vcmaxFeedbk, l_laiFeedbk
    
+  USE cable_data_module, ONLY : cable
+
   !--- reads runtime and user switches and reports
   USE cable_um_tech_mod, ONLY : cable_um_runtime_vars, air, bgc, canopy,      &
                                 met, bal, rad, rough, soil, ssnow, sum_flux,  &
@@ -257,17 +256,10 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
   ! std template args 
   character(len=*), parameter :: subr_name = "cable_explicit_driver"
    
-# if defined(FPPcable_fprint) || defined(FPPcable_Pyfprint)
-#   include "../../../core/utils/diag/cable_fprint.txt"
-    ! e.g. unique_subdir = "727/"
-# endif
+# include "../../../core/utils/diag/cable_fprint.txt"
   
   !-------- Unique subroutine body -----------
   
-  !--- initialize cable_runtime% switches 
-  cable_runtime%um = .TRUE.
-  cable_runtime%um_explicit = .TRUE.
-   
   !--- user FLAGS, variables etc def. in cable.nml is read on 
   !--- first time step of each run. these variables are read at 
   !--- runtime and for the most part do not require a model rebuild.
@@ -327,15 +319,17 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
   
   !-------- End Unique subroutine body -----------
 
-# ifdef FPPcable_fprint
-  !fprintf_dir=trim(fprintf_dir_root)//trim(unique_subdir)//trim(subr_name)//"/"
-  !call cable_fprintf( cDiag00, subr_name, knode_gl, ktau_gl, .true. )
-# endif
+  fprintf_dir=trim(fprintf_dir_root)//trim(unique_subdir)//"/"
+  if(L_cable_fprint) then 
+    !basics to std output stream
+    if (knode_gl == 0 .and. ktau_gl == 1)  call cable_fprintf(subr_name, .true.) 
+    !more detailed output
+    vname=trim(subr_name//'_')
+    call cable_fprintf( cDiag00, vname, knode_gl, ktau_gl, .true. )
+  endif
 
-# ifdef FPPcable_Pyfprint
-  !vname='latitude'; dimx=size(latitude,1); dimy=size(latitude,2)
-  !call cable_Pyfprintf( cDiag1, vname, latitude, dimx, dimy, .true.)
-# endif
+  if(L_cable_Pyfprint) then 
+  endif
 
   return
 

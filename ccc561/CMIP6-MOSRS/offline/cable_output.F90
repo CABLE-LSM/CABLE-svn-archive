@@ -222,7 +222,6 @@ MODULE cable_output_module
     REAL(KIND=4), POINTER, DIMENSION(:) :: vcmax
     REAL(KIND=4), POINTER, DIMENSION(:) :: patchfrac
     REAL(KIND=4), POINTER, DIMENSION(:) :: hc
-
     REAL(KIND=4), POINTER, DIMENSION(:)   :: SatFrac         !Saturated Fraction of Grid Cell
     REAL(KIND=4), POINTER, DIMENSION(:)   :: Qrecharge         !recharge rate Grid Cell
     REAL(KIND=4), POINTER, DIMENSION(:)   :: GWMoist       ! water balance of aquifer [mm3/mm3]
@@ -828,7 +827,14 @@ CONTAINS
                         'dummy', xID, yID, zID, landID, patchID, tID)
        ALLOCATE(out%GPP(mp))
        out%GPP = 0.0 ! initialise
+
+
     END IF
+
+
+
+
+
     IF(output%carbon .OR. output%NPP) THEN
        CALL define_ovar(ncid_out, ovid%NPP, 'NPP', 'umol/m^2/s',               &
                         'Net primary production', patchout%NPP,                &
@@ -1189,18 +1195,18 @@ CONTAINS
                          'froot', '-', 'Fraction of roots in each soil layer', &
                  patchout%froot, soilID, 'soil', xID, yID, zID, landID, patchID)
 
-    IF(output%params .OR. output%slope) CALL define_ovar(ncid_out, opid%slope,   &
-           'slope', '-', 'Mean subgrid topographic slope', &
-                          patchout%slope, 'real', xID, yID, zID, landID, patchID)
-
-    IF(output%params .OR. output%slope_std) CALL define_ovar(ncid_out, opid%slope_std,   &
-           'slope_std', '-', 'Mean subgrid topographic slope_std', &
-                          patchout%slope_std, 'real', xID, yID, zID, landID, patchID)
-
-    IF(output%params .OR. output%GWdz) CALL define_ovar(ncid_out, opid%GWdz,   &
-           'GWdz', '-', 'Mean aquifer layer thickness ', &
-                          patchout%GWdz, 'real', xID, yID, zID, landID, patchID)
-
+!    IF(output%params .OR. output%slope) CALL define_ovar(ncid_out, opid%slope,   &
+!           'slope', '-', 'Mean subgrid topographic slope', &
+!                          patchout%slope, 'real', xID, yID, zID, landID, patchID)
+!
+!    IF(output%params .OR. output%slope_std) CALL define_ovar(ncid_out, opid%slope_std,   &
+!           'slope_std', '-', 'Mean subgrid topographic slope_std', &
+!                          patchout%slope_std, 'real', xID, yID, zID, landID, patchID)
+!
+!    IF(output%params .OR. output%GWdz) CALL define_ovar(ncid_out, opid%GWdz,   &
+!           'GWdz', '-', 'Mean aquifer layer thickness ', &
+!                          patchout%GWdz, 'real', xID, yID, zID, landID, patchID)
+!
     IF(output%params .and. cable_user%gw_model) THEN
            CALL define_ovar(ncid_out, opid%Qhmax,   &
                           'Qhmax', 'mm/s', 'Maximum subsurface drainage ', &
@@ -1428,13 +1434,13 @@ CONTAINS
                            'zse', SPREAD(REAL(soil%zse, 4), 1, mp),ranges%zse, &
                                 patchout%zse, 'soil')! no spatial dim at present
 
-    IF(output%params .OR. output%slope) CALL write_ovar(ncid_out, opid%slope,    &
-                 'slope', REAL(soil%slope, 4), (/0.0,1.0/), patchout%slope, 'real')
-    IF(output%params .OR. output%slope_std) CALL write_ovar(ncid_out, opid%slope_std,    &
-                 'slope_std', REAL(soil%slope_std, 4), (/0.0,1.0/), patchout%slope_std, 'real')
-    IF(output%params .OR. output%GWdz) CALL write_ovar(ncid_out, opid%GWdz,    &
-                 'GWdz', REAL(soil%GWdz, 4), (/0.0,10000.0/), patchout%GWdz, 'real')
-
+!    IF(output%params .OR. output%slope) CALL write_ovar(ncid_out, opid%slope,    &
+!                 'slope', REAL(soil%slope, 4), (/0.0,1.0/), patchout%slope, 'real')
+!    IF(output%params .OR. output%slope_std) CALL write_ovar(ncid_out, opid%slope_std,    &
+!                 'slope_std', REAL(soil%slope_std, 4), (/0.0,1.0/), patchout%slope_std, 'real')
+!    IF(output%params .OR. output%GWdz) CALL write_ovar(ncid_out, opid%GWdz,    &
+!                 'GWdz', REAL(soil%GWdz, 4), (/0.0,10000.0/), patchout%GWdz, 'real')
+!
     IF(output%params .and. cable_user%gw_model) THEN
                   CALL write_ovar(ncid_out, opid%SatFracmax,    &
                        'SatFracmax', spread(REAL(gw_params%MaxSatFraction,4),1,mp), &
@@ -2441,7 +2447,10 @@ CONTAINS
           ! Reset temporary output variable:
           out%GPP = 0.0
        END IF
+
     END IF
+
+
     ! NPP: net primary production of C by veg [umol/m^2/s]
     IF(output%carbon .OR. output%NPP) THEN
        ! Add current timestep's value to total of temporary output variable:
@@ -2454,8 +2463,8 @@ CONTAINS
        IF(output%casa) THEN
           out%NPP = out%NPP + REAL(casaflux%cnpp/86400.0 / 1.201E-5, 4)
        ELSE
-          out%NPP = out%NPP + REAL((-1.0 * canopy%fpn - canopy%frp &
-            - casaflux%clabloss/86400.0) / 1.201E-5, 4)
+          out%NPP = out%NPP + REAL((-1.0 * canopy%fpn - canopy%frp))! &
+          !  - casaflux%clabloss/86400.0) / 1.201E-5, 4)
        ENDIF
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
@@ -2580,7 +2589,7 @@ CONTAINS
    ENDIF
 
     ! NBP and turnover fluxes [umol/m^2/s]
-    IF(output%carbon .OR. output%NBP) THEN
+    IF((output%carbon .OR. output%NBP) .and. output%casa) THEN
        ! Add current timestep's value to total of temporary output variable:
        IF (cable_user%POPLUC) THEN
            out%NBP = out%NBP + -REAL((casaflux%Crsoil-casaflux%cnpp &

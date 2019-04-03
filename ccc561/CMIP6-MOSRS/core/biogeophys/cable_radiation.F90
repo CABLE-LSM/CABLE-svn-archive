@@ -34,6 +34,9 @@ CONTAINS
 
 SUBROUTINE init_radiation( met, rad, veg, canopy )
 
+   ! Alternate version of init_radiation that uses only the
+   ! zenith angle instead of the fluxes. This means it can be called
+   ! before the cable albedo calculation.
    USE cable_def_types_mod, ONLY : radiation_type, met_type, canopy_type,      &
                                    veg_parameter_type, nrb, mp
    USE cable_common_module
@@ -61,7 +64,6 @@ SUBROUTINE init_radiation( met, rad, veg, canopy )
       rhoch
 
 
-   LOGICAL, DIMENSION(mp)    :: mask   ! select points for calculation
 
    INTEGER :: ictr
 
@@ -100,8 +102,6 @@ SUBROUTINE init_radiation( met, rad, veg, canopy )
       rad%extkd = 0.7
    END WHERE
 
-   mask = canopy%vlaiw > C%LAI_THRESH  .AND.                                   &
-          ( met%fsd(:,1) + met%fsd(:,2) ) > C%RAD_THRESH
 
    CALL calc_rhoch( veg, c1, rhoch )
 
@@ -133,7 +133,7 @@ SUBROUTINE init_radiation( met, rad, veg, canopy )
    ! In gridcells where vegetation exists....
 
 !!vh !! include RAD_THRESH in condition
-   WHERE (canopy%vlaiw > C%LAI_THRESH .and. rad%fbeam(:,1).GE.C%RAD_THRESH   )
+   WHERE (canopy%vlaiw > C%LAI_THRESH .and. met%coszen > 1.e-6 )
 
       ! SW beam extinction coefficient ("black" leaves, extinction neglects
       ! leaf SW transmittance and REFLectance):
@@ -147,7 +147,7 @@ SUBROUTINE init_radiation( met, rad, veg, canopy )
       rad%extkb = rad%extkd + 0.001
    END WHERE
 
-   WHERE(rad%fbeam(:,1) < C%RAD_THRESH )
+   WHERE( met%coszen < 1.e-6 )
       ! higher value precludes sunlit leaves at night. affects
       ! nighttime evaporation - Ticket #90 
       rad%extkb=1.0e5 
