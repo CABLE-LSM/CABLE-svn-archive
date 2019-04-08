@@ -74,7 +74,8 @@ MODULE CABLE_ERA
   INTEGER, PRIVATE :: ErrStatus
 
   REAL, PRIVATE, PARAMETER :: SecDay = 86400. ! Number of seconds in a day
-
+  REAL, PRIVATE, PARAMETER :: Pi = 3.14159265 ! copied from cable_weathergenerator.f90
+  
 ! Filename prefix expected in the names of met files. Used by CRU_GET_FILENAME to construct met file names.
 !  CHARACTER(len=6), DIMENSION(9), PARAMETER, PRIVATE :: &
 !     !  PREF = (/ "rain  ", "lwdown", "swdown", "press ", "qair  ", "tmax  ", "tmin  ", "uwind ", "vwind " /)
@@ -705,8 +706,8 @@ END SUBROUTINE GET_ERA_Ndep
   USE cable_def_types_mod,   ONLY: MET_TYPE
   USE cable_IO_vars_module,  ONLY: LANDPT, latitude
   USE cable_common_module,   ONLY: DOYSOD2YMDHMS
-  !USE cable_weathergenerator,ONLY: WEATHER_GENERATOR_TYPE, WGEN_INIT, &
-  !     WGEN_DAILY_CONSTANTS, WGEN_SUBDIURNAL_MET
+  USE cable_weathergenerator,ONLY: WEATHER_GENERATOR_TYPE, WGEN_INIT, &
+                                   WGEN_DAILY_CONSTANTS
   USE cable_checks_module,   ONLY: rh_sh
 
   IMPLICIT NONE
@@ -748,7 +749,7 @@ END SUBROUTINE GET_ERA_Ndep
   dt = ERA%DTsecs
 
 ! On first step read and check CRU settings and read land-mask (only needed for coszen now)
-  IF ( CALL1 ) CALL WGEN_INIT( WG, CRU%mland, latitude, dt )
+  IF ( CALL1 ) CALL WGEN_INIT( WG, ERA%mland, latitude, dt )
 
 ! Pass time-step information to CRU 
   ERA%CYEAR = CurYear
@@ -808,7 +809,7 @@ END SUBROUTINE GET_ERA_Ndep
 
   ! calculate coszen (code taken from cable_weathergenerator.f90)
   ritime = REAL(itime)     * dt/3600.  ! Convert the current time to real
-  rntime = REAL(NINT(REAL(86400.))/dt) * dt/3600.  ! Convert ntime to real
+  rntime = REAL(NINT(REAL(SecDay))/dt) * dt/3600.  ! Convert ntime to real
 
   TimeNoon = ritime/rntime - 0.5
   TimeRad  = 2.0*Pi*TimeNoon
