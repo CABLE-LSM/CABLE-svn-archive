@@ -548,12 +548,39 @@ CONTAINS
                  timeunits="seconds since "//trim(str1)//"-"//trim(str2)//"-"//trim(str3)//" 00:00:00"
                  calendar = "standard"
 
+          ELSE IF (TRIM(cable_user%MetType) .EQ. 'era' ) THEN
+          ! JK: ERA5 forcing for 2018 Europe heatwave simulations 		
+		  
+	        IF ( CALL1 ) THEN
+
+		      CALL CPU_TIME(etime)
+		      CALL ERA_INIT( ERA )
+		   
+		      dels	    = ERA%dtsecs
+		      koffset  = 0
+		      leaps    = .false.      ! No leap years in CRU-NCEP
+              exists%Snowf = .false.  ! No snow in CRU-NCEP, so ensure it will
+                                         ! be determined from temperature in CABLE
+
+              write(str1,'(i4)') CurYear
+              str1 = adjustl(str1)
+              write(str2,'(a)') '01'
+              str2 = adjustl(str2)
+              write(str3,'(a)') '01'
+              str3 = adjustl(str3)
+              timeunits="seconds since "//trim(str1)//"-"//trim(str2)//"-"//trim(str3)//" 00:00:00"
+              calendar = "noleap"
 
 	      ENDIF
+	       
+		  LOY = 365
+	      kend = NINT(24.0*3600.0/dels) * LOY
+	      
 
-	       LOY = 365
-	       kend = NINT(24.0*3600.0/dels) * LOY
-          ELSE IF (TRIM(cable_user%MetType) .EQ. 'gswp' ) THEN
+	      LOY = 365
+	      kend = NINT(24.0*3600.0/dels) * LOY
+          
+		  ELSE IF (TRIM(cable_user%MetType) .EQ. 'gswp' ) THEN
              ncciy = CurYear
              WRITE(*,*) 'Looking for global offline run info.'
              CALL prepareFiles(ncciy)
@@ -788,7 +815,15 @@ write(*,*) 'after CALL1'
              ELSE IF ( TRIM(cable_user%MetType) .EQ. 'cru' ) THEN
               
                 CALL CRU_GET_SUBDIURNAL_MET(CRU, imet, YYYY, 1, kend, &
-                     (YYYY.EQ.CABLE_USER%YearEnd))  
+                     (YYYY.EQ.CABLE_USER%YearEnd))
+            
+			 ELSE IF ( TRIM(cable_user%MetType) .EQ. 'era' ) THEN
+               IF (( .NOT. CASAONLY ).OR. (CASAONLY.and.CALL1))  THEN
+                 CALL ERA_GET_SUBDIURNAL_MET(ERA, met, &
+                            YYYY, ktau, kend, &
+                            YYYY.EQ.CABLE_USER%YearEnd)  
+               ENDIF			
+					 
              ELSE
                 CALL get_met_data( spinup, spinConv, imet, soil,                 &
                      rad, iveg, kend, dels, C%TFRZ, iktau+koffset,                &
@@ -982,6 +1017,7 @@ write(*,*) 'after CALL1'
 
                    IF ( TRIM(cable_user%MetType) .EQ. 'plum' &
                         .OR. TRIM(cable_user%MetType) .EQ. 'cru'   &
+						.OR. TRIM(cable_user%MetType) .EQ. 'era'   &
                         .OR. TRIM(cable_user%MetType) .EQ. 'bios'  &
                         .OR. TRIM(cable_user%MetType) .EQ. 'gswp') then
                       CALL write_output( dels, ktau_tot, met, canopy, casaflux, casapool, &

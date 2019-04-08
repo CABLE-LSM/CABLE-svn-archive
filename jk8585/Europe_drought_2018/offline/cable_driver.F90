@@ -108,7 +108,8 @@ PROGRAM cable_offline_driver
   USE CABLE_PLUME_MIP,	    ONLY: PLUME_MIP_TYPE, PLUME_MIP_GET_MET,&
        PLUME_MIP_INIT
 
-  USE CABLE_CRU,            ONLY: CRU_TYPE, CRU_GET_SUBDIURNAL_MET, CRU_INIT
+  USE CABLE_CRU,            ONLY: CRU_TYPE, CRU_INIT, CRU_GET_SUBDIURNAL_MET
+  USE CABLE_ERA,            ONLY: ERA_TYPE, ERA_INIT, ERA_GET_SUBDIURNAL_MET
   USE CABLE_site,           ONLY: site_TYPE, site_INIT, site_GET_CO2_Ndep
 
   ! BIOS only
@@ -190,6 +191,7 @@ PROGRAM cable_offline_driver
   TYPE(POPLUC_TYPE) :: POPLUC
   TYPE (PLUME_MIP_TYPE) :: PLUME
   TYPE (CRU_TYPE)       :: CRU
+  TYPE (ERA_TYPE)       :: ERA
   TYPE (site_TYPE)       :: site
   TYPE (LUC_EXPT_TYPE) :: LUC_EXPT
   CHARACTER		:: cyear*4
@@ -533,6 +535,36 @@ print *, "CABLE_USER%YearStart,  CABLE_USER%YearEnd", CABLE_USER%YearStart,  CAB
 	      ENDIF
 	       LOY = 365
 	      kend = NINT(24.0*3600.0/dels) * LOY
+		
+       ELSE IF (TRIM(cable_user%MetType) .EQ. 'era' ) THEN
+          ! JK: ERA5 forcing for 2018 Europe heatwave simulations 		
+		  
+	     IF ( CALL1 ) THEN
+
+		   CALL CPU_TIME(etime)
+		   CALL ERA_INIT( ERA )
+		   
+		   dels	    = ERA%dtsecs
+		   koffset  = 0
+		   leaps    = .false.      ! No leap years in CRU-NCEP
+           exists%Snowf = .false.  ! No snow in CRU-NCEP, so ensure it will
+                                         ! be determined from temperature in CABLE
+
+           write(str1,'(i4)') CurYear
+           str1 = adjustl(str1)
+           write(str2,'(a)') '01'
+           str2 = adjustl(str2)
+           write(str3,'(a)') '01'
+           str3 = adjustl(str3)
+           timeunits="seconds since "//trim(str1)//"-"//trim(str2)//"-"//trim(str3)//" 00:00:00"
+           calendar = "noleap"
+
+	     ENDIF
+	       
+		   LOY = 365
+	       kend = NINT(24.0*3600.0/dels) * LOY
+		  
+		  
     ELSE IF ( TRIM(cable_user%MetType) .EQ. 'site' ) THEN
        ! site experiment eg AmazonFace (spinup or  transient run type)  
        
@@ -717,11 +749,19 @@ print *, "CABLE_USER%YearStart,  CABLE_USER%YearEnd", CABLE_USER%YearStart,  CAB
                
              END IF
           ELSE IF ( TRIM(cable_user%MetType) .EQ. 'cru' ) THEN
-                    IF (( .NOT. CASAONLY ).OR. (CASAONLY.and.CALL1))  THEN
-                       CALL CRU_GET_SUBDIURNAL_MET(CRU, met, &
+            IF (( .NOT. CASAONLY ).OR. (CASAONLY.and.CALL1))  THEN
+              CALL CRU_GET_SUBDIURNAL_MET(CRU, met, &
                             YYYY, ktau, kend, &
                             YYYY.EQ.CABLE_USER%YearEnd)  
-                    ENDIF
+            ENDIF
+          ELSE IF ( TRIM(cable_user%MetType) .EQ. 'era' ) THEN
+            IF (( .NOT. CASAONLY ).OR. (CASAONLY.and.CALL1))  THEN
+              CALL ERA_GET_SUBDIURNAL_MET(ERA, met, &
+                            YYYY, ktau, kend, &
+                            YYYY.EQ.CABLE_USER%YearEnd)  
+            ENDIF			
+					
+					
           ELSE
              IF (TRIM(cable_user%MetType) .EQ. 'site') &
                   CALL get_met_data( spinup, spinConv, met, soil,		 &
@@ -921,6 +961,7 @@ print *, "CABLE_USER%YearStart,  CABLE_USER%YearEnd", CABLE_USER%YearStart,  CAB
                     !mpidiff
                     IF ( TRIM(cable_user%MetType) .EQ. 'plum'  .OR.  &
                          TRIM(cable_user%MetType) .EQ. 'cru'   .OR.  &
+						 TRIM(cable_user%MetType) .EQ. 'era'   .OR.  &
                          TRIM(cable_user%MetType) .EQ. 'bios'  .OR.  &
                          TRIM(cable_user%MetType) .EQ. 'gswp'  .OR.  &
                          TRIM(cable_user%MetType) .EQ. 'site' ) then
