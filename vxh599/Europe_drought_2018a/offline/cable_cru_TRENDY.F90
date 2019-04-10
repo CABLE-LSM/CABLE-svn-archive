@@ -79,9 +79,7 @@ MODULE CABLE_CRU
 
 ! Filename prefix expected in the names of met files. Used by CRU_GET_FILENAME to construct met file names.
   CHARACTER(len=6), DIMENSION(9), PARAMETER, PRIVATE :: &
-     !  PREF = (/ "rain  ", "lwdown", "swdown", "press ", "qair  ", "tmax  ", "tmin  ", "uwind ", "vwind " /)
-
-         PREF = (/ "pre   ", "dlwrf ", "dswrf ", "pres  ", "spfh  ", "tmax  ", "tmin  ", "ugrd  ", "vgrd  " /)
+       PREF = (/ "rain  ", "lwdown", "swdown", "press ", "qair  ", "tmax  ", "tmin  ", "uwind ", "vwind " /)
 
 CONTAINS
 
@@ -270,30 +268,18 @@ CONTAINS
     !ENDIF
 
     ! Set variable names to their NetCDF 'Names' (i.e. not their 'Titles')
-!!$    CRU%NMET = 9
-!!$    CRU%VAR_NAME(rain)  = "Total_Precipitation"
-!!$    CRU%VAR_NAME(lwdn)  = "Incoming_Long_Wave_Radiation"
-!!$    CRU%VAR_NAME(swdn)  = "Incoming_Short_Wave_Radiation"
-!!$    CRU%VAR_NAME(pres)  = "Pression"
-!!$    CRU%VAR_NAME(qair)  = "Air_Specific_Humidity"
-!!$   ! CRU%VAR_NAME(tmax)  = "maximum_6h_air_temperature"
-!!$   ! CRU%VAR_NAME(tmin)  = "minimum_6h_air_temperature"
-!!$    CRU%VAR_NAME(tmax)  = "maximum_air_temperature"
-!!$    CRU%VAR_NAME(tmin)  = "minimum_air_temperature"
-!!$    CRU%VAR_NAME(uwind) = "U_wind_component"
-!!$    CRU%VAR_NAME(vwind) = "V_wind_component"
-
-
     CRU%NMET = 9
-    CRU%VAR_NAME(rain)  = "pre"
-    CRU%VAR_NAME(lwdn)  = "dlwrf"
-    CRU%VAR_NAME(swdn)  = "dswrf"
-    CRU%VAR_NAME(pres)  = "pres"
-    CRU%VAR_NAME(qair)  = "spfh"
-    CRU%VAR_NAME(tmax)  = "tmax"
-    CRU%VAR_NAME(tmin)  = "tmin"
-    CRU%VAR_NAME(uwind) = "ugrd"
-    CRU%VAR_NAME(vwind) = "vgrd"
+    CRU%VAR_NAME(rain)  = "Total_Precipitation"
+    CRU%VAR_NAME(lwdn)  = "Incoming_Long_Wave_Radiation"
+    CRU%VAR_NAME(swdn)  = "Incoming_Short_Wave_Radiation"
+    CRU%VAR_NAME(pres)  = "Pression"
+    CRU%VAR_NAME(qair)  = "Air_Specific_Humidity"
+   ! CRU%VAR_NAME(tmax)  = "maximum_6h_air_temperature"
+   ! CRU%VAR_NAME(tmin)  = "minimum_6h_air_temperature"
+    CRU%VAR_NAME(tmax)  = "maximum_air_temperature"
+    CRU%VAR_NAME(tmin)  = "minimum_air_temperature"
+    CRU%VAR_NAME(uwind) = "U_wind_component"
+    CRU%VAR_NAME(vwind) = "V_wind_component" 
 
     WRITE(*   ,*)"========================================= CRU ============"
     WRITE(logn,*)"========================================= CRU ============"
@@ -335,9 +321,8 @@ CONTAINS
     CALL HANDLE_ERR(ErrStatus, "Reading 'longitudes'"//TRIM(LandMaskFile))
 
     ! Allocate the landmask arrays for... 
-write(*,*) 'b4 alloc landmask'
+
     ALLOCATE( CRU%landmask ( xdimsize, ydimsize) )  ! Passing out to other CRU routines (logical)
-write(*,*) 'after alloc landmask'
     ALLOCATE( landmask ( xdimsize, ydimsize) )      ! Local use in this routine (integer)
     ALLOCATE ( mask( xdimsize, ydimsize) )          ! Use by CABLE
 
@@ -462,29 +447,16 @@ write(*,*) 'after alloc landmask'
 !!$    END SELECT
 
 
-!!$    SELECT CASE ( par )
-!!$    CASE(rain) ; FN = TRIM(FN)//"/rain/cruncepV8_rain_"//cy//".daytot.nc"
-!!$    CASE(lwdn) ; FN = TRIM(FN)//"/lwdown/cruncepV8_lwdown_"//cy//".daymean.nc"
-!!$    CASE(swdn) ; FN = TRIM(FN)//"/swdown/cruncepV8_swdown_"//cy//".daymean.nc"
-!!$    CASE(pres) ; FN = TRIM(FN)//"/press/cruncepV8_press_"//cy//".daymean.nc"
-!!$    CASE(qair) ; FN = TRIM(FN)//"/qair/cruncepV8_qair_"//cy//".daymean.nc"
-!!$    CASE(tmax,PrevTmax) ; FN = TRIM(FN)//"/tmax/cruncepV8_tmax_"//cy//".daymax.nc"
-!!$    CASE(tmin,NextTmin) ; FN = TRIM(FN)//"/tmin/cruncepV8_tmin_"//cy//".daymin.nc"
-!!$    CASE(uwind) ; FN = TRIM(FN)//"/uwind/cruncepV8_uwind_"//cy//".daymean.nc"
-!!$    CASE(vwind) ; FN = TRIM(FN)//"/vwind/cruncepV8_vwind_"//cy//".daymean.nc"
-!!$    END SELECT
-
-   
     SELECT CASE ( par )
-    CASE(rain) ; FN = TRIM(FN)//"/pre/crujra.V1.1.5d.pre."//cy//".365d.noc.daytot.1deg.nc"
-    CASE(lwdn) ; FN = TRIM(FN)//"/dlwrf/crujra.V1.1.5d.dlwrf."//cy//".365d.noc.daymean.1deg.nc"
-    CASE(swdn) ; FN = TRIM(FN)//"/dswrf/crujra.V1.1.5d.dswrf."//cy//".365d.noc.daymean.1deg.nc"
-    CASE(pres) ; FN = TRIM(FN)//"/pres/crujra.V1.1.5d.pres."//cy//".365d.noc.daymean.1deg.nc"
-    CASE(qair) ; FN = TRIM(FN)//"/spfh/crujra.V1.1.5d.spfh."//cy//".365d.noc.daymean.1deg.nc"
-    CASE(tmax,PrevTmax) ; FN = TRIM(FN)//"/tmax/crujra.V1.1.5d.tmax."//cy//".365d.noc.daymax.1deg.nc"
-    CASE(tmin,NextTmin) ; FN = TRIM(FN)//"/tmin/crujra.V1.1.5d.tmin."//cy//".365d.noc.daymin.1deg.nc"
-    CASE(uwind) ; FN = TRIM(FN)//"/ugrd/crujra.V1.1.5d.ugrd."//cy//".365d.noc.daymean.1deg.nc"
-    CASE(vwind) ; FN = TRIM(FN)//"/vgrd/crujra.V1.1.5d.vgrd."//cy//".365d.noc.daymean.1deg.nc"
+    CASE(rain) ; FN = TRIM(FN)//"/rain/cruncepV8_rain_"//cy//".daytot.nc"
+    CASE(lwdn) ; FN = TRIM(FN)//"/lwdown/cruncepV8_lwdown_"//cy//".daymean.nc"
+    CASE(swdn) ; FN = TRIM(FN)//"/swdown/cruncepV8_swdown_"//cy//".daymean.nc"
+    CASE(pres) ; FN = TRIM(FN)//"/press/cruncepV8_press_"//cy//".daymean.nc"
+    CASE(qair) ; FN = TRIM(FN)//"/qair/cruncepV8_qair_"//cy//".daymean.nc"
+    CASE(tmax,PrevTmax) ; FN = TRIM(FN)//"/tmax/cruncepV8_tmax_"//cy//".daymax.nc"
+    CASE(tmin,NextTmin) ; FN = TRIM(FN)//"/tmin/cruncepV8_tmin_"//cy//".daymin.nc"
+    CASE(uwind) ; FN = TRIM(FN)//"/uwind/cruncepV8_uwind_"//cy//".daymean.nc"
+    CASE(vwind) ; FN = TRIM(FN)//"/vwind/cruncepV8_vwind_"//cy//".daymean.nc"
     END SELECT
 
   END SUBROUTINE CRU_GET_FILENAME
@@ -508,8 +480,7 @@ write(*,*) 'after alloc landmask'
 
 ! For S0_TRENDY, use only static 1860 CO2 value and return immediately
   IF ( TRIM(CRU%CO2) .EQ. "static1860") THEN
-    !CO2air = 286.42   ! CO2 in ppm for 1860
-    CO2air = 276.59   ! CO2 in ppm for 1700
+    CO2air = 286.42   ! CO2 in ppm for 1860
     RETURN
 
 ! If not S0_TRENDY, varying CO2 values will be used...
@@ -529,7 +500,8 @@ write(*,*) 'after alloc landmask'
       
       CALL1 = .FALSE.
 
-    END IF
+   END IF
+
 
 ! In all varying CO2 cases, return the element of the array for the current year
 ! as a single CO2 value.
@@ -551,16 +523,19 @@ write(*,*) 'after alloc landmask'
   IMPLICIT NONE
   
   TYPE(CRU_TYPE), INTENT(INOUT) :: CRU           ! All the info needed for CRU met runs
-  REAL,ALLOCATABLE :: tmparr(:,:) 
+  REAL    :: tmparr(720,360)        ! Temporary array for reading one day of met before 
+                                    ! packing into CRU%NdepVALS(k)
+ 
   INTEGER              :: i, iunit, iyear, IOS = 0, k, t  
   INTEGER :: xds, yds        ! Ndep file dimensions of long (x), lat (y)
  
   LOGICAL,        SAVE :: CALL1 = .TRUE.  ! A *local* variable recording the first call of this routine 
-  CHARACTER(400) :: NdepFILE
+  CHARACTER(200) :: NdepFILE
+
   ! Abbreviate dimensions for readability.
   xds = CRU%xdimsize
   yds = CRU%ydimsize
-  allocate(tmparr(xds,yds))
+
   ! For S0_TRENDY, use only static 1860 CO2 value and return immediately
 
 
@@ -570,8 +545,8 @@ write(*,*) 'after alloc landmask'
   IF (CALL1) THEN
 
      NdepFILE = TRIM(CRU%BasePath)// &
-          "/ndep/NOy_plus_NHx_dry_plus_wet_deposition_hist_1850_2015_annual_1deg.nc"
-    
+          "/ndep/NOy_plus_NHx_dry_plus_wet_deposition_hist_1850_2015_annual.nc"
+
      ! Open the NDep and access the variables by their name and variable id.
      WRITE(*   ,*) 'Opening ndep data file: ', NdepFILE
      WRITE(logn,*) 'Opening ndep data file: ', NdepFILE
@@ -586,7 +561,7 @@ write(*,*) 'after alloc landmask'
      ! Set internal counter
      CRU%Ndep_CTSTEP = 1
 
-     IF ( TRIM(CRU%Ndep) .EQ. "static1860" .OR. CRU%CYEAR<=1860) THEN
+     IF ( TRIM(CRU%Ndep) .EQ. "static1860") THEN
        ! read Ndep at year 1860 (noting that file starts at 1850)
         CRU%Ndep_CTSTEP = 11
         t =  CRU%Ndep_CTSTEP
@@ -602,8 +577,8 @@ write(*,*) 'after alloc landmask'
      CALL1 = .FALSE.
   END IF
 
-  IF ( TRIM(CRU%Ndep) .NE. "static1860" .and.  CRU%CYEAR>1860) THEN
-  
+  IF ( TRIM(CRU%Ndep) .NE. "static1860") THEN
+
      ! read Ndep at current year (noting that file starts at 1850 and ends in 2015)
      CRU%Ndep_CTSTEP = min(CRU%CYEAR, 2015) - 1850 + 1
      t =  CRU%Ndep_CTSTEP
@@ -734,6 +709,8 @@ END SUBROUTINE GET_CRU_Ndep
 
   TYPE(CRU_TYPE) :: CRU
   LOGICAL, INTENT(IN)  :: LastDayOfYear, LastYearOfMet
+  REAL    :: tmparr(720,360)        ! Temporary array for reading one day of met before 
+                                    ! packing into CRU%MET(iVar)%METVALS(k)
   REAL    :: tmp, stmp(365)
   INTEGER :: iVar, ii, k, x, y, realk
   INTEGER :: t, tplus1              ! The current and next timestep
@@ -746,7 +723,7 @@ END SUBROUTINE GET_CRU_Ndep
   INTEGER, SAVE       :: RunStartYear    ! The value of CRU%CYEAR on the first call, also equals syear.
                                          ! Allows the calculation of MetYear during S0_TRENDY and init runs.
   LOGICAL, SAVE :: CALL1 = .TRUE.   ! A *local* variable recording the first call of this routine
-  REAL,ALLOCATABLE :: tmparr(:,:)  ! packing into CRU%MET(iVar)%METVALS(k)
+
 
 ! If first call...
 ! Keep the initial value of CYEAR for calculation of different MetYear if required.
@@ -761,11 +738,7 @@ END SUBROUTINE GET_CRU_Ndep
   ELSE
     CRU%MET(prevTmax)%METVALS(:) = CRU%MET(  Tmax  )%METVALS(:)
     CRU%MET(  Tmin  )%METVALS(:) = CRU%MET(NextTmin)%METVALS(:)
- ENDIF
-
-  xds = CRU%xdimsize
-  yds = CRU%ydimsize
-  allocate(tmparr(xds,yds))
+  ENDIF
 
 ! For S0_TRENDY and initialisation, calculate the year of meteorology as mod 50, so we repeatedly cycle  
 ! through the 50 years of 1951-2000 spinup meteorology. For normal runs 1901-2015, MetYear = CYEAR.
@@ -1309,11 +1282,14 @@ END SUBROUTINE GET_CRU_Ndep
 ! It's a new day if the hour of the day is zero. 
   newday = ( met%hod(landpt(1)%cstart).EQ. 0 )
 
+  
 ! Beginning-of-year accounting
   IF (ktau .EQ. 1) THEN  ! ktau is always reset to 1 at the start of the year.
 
+   
 ! Read a new annual CO2 value and convert it from ppm to mol/mol
-    CALL GET_CRU_CO2( CRU, CO2air )
+     CALL GET_CRU_CO2( CRU, CO2air )
+     
     met%ca(:) = CO2air / 1.e+6  ! 
 
     CALL GET_CRU_Ndep( CRU )

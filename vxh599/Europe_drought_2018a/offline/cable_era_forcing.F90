@@ -34,8 +34,9 @@ MODULE CABLE_ERA
 	INTEGER, DIMENSION(8) :: V_ID  ! NetCDF object id's for variables (NetCDF bookkeeping stuff) 
     REAL, DIMENSION(:), ALLOCATABLE :: CO2VALS  ! Global annual CO2 values (dim is the number of years of data, or 1 if time-invariant)
     REAL, DIMENSION(:), ALLOCATABLE :: SeqYears ! Sequence of MetYears in the S0 runs
-	REAL, DIMENSION(:), ALLOCATABLE :: MetYear  ! MetYear used for runs
-	LOGICAL  :: DirectRead     ! Flag to do with reading small numbers of points efficiently. Set true for small numbers of points
+    !REAL, DIMENSION(:), ALLOCATABLE :: MetYear  ! MetYear used for runs
+    INTEGER :: MetYear  ! MetYear used for runs
+    LOGICAL  :: DirectRead     ! Flag to do with reading small numbers of points efficiently. Set true for small numbers of points
     LOGICAL  :: LeapYears      ! Flag for whether leaps years occur, required by CABLE. (If False -> no Feb 29th) 
     LOGICAL,DIMENSION(:,:),ALLOCATABLE :: LandMask ! Logical landmask, true for land, false for non-land
   !
@@ -280,18 +281,16 @@ CONTAINS
     CALL HANDLE_ERR(ErrStatus, "Reading 'longitudes'"//TRIM(LandMaskFile))
 
     ! Allocate the landmask arrays for... 
-write(*,*) 'b4 alloc landmask'
     ALLOCATE( ERA%landmask ( xdimsize, ydimsize) )  ! Passing out to other ERA routines (logical)
-write(*,*) 'after alloc landmask'
     ALLOCATE( landmask ( xdimsize, ydimsize) )      ! Local use in this routine (integer)
     ALLOCATE ( mask( xdimsize, ydimsize) )          ! Use by CABLE
 
     ! Check that the land mask variable is called "land" in the land mask file,
     ! and read it into local variable landmask
-    ErrStatus = NF90_INQ_VARID(FID,'land',landID)
-    CALL HANDLE_ERR(ErrStatus, "Inquiring 'land' "//TRIM(LandMaskFile))
+    ErrStatus = NF90_INQ_VARID(FID,'lsm',landID)
+    CALL HANDLE_ERR(ErrStatus, "Inquiring 'lsm' "//TRIM(LandMaskFile))
     ErrStatus = NF90_GET_VAR(FID,landID,landmask)
-    CALL HANDLE_ERR(ErrStatus, "Reading 'land' "//TRIM(LandMaskFile))
+    CALL HANDLE_ERR(ErrStatus, "Reading 'lsm' "//TRIM(LandMaskFile))
 
     ! Convert the integer landmask into the logical ERA%landmask
     WHERE ( landmask .GT. 0 )
@@ -534,6 +533,7 @@ END SUBROUTINE GET_ERA_Ndep
   LOGICAL, SAVE       :: CALL1 = .TRUE.  ! A *local* variable recording the first call of this routine
   CHARACTER(300)      :: SEQFILE         ! Sequence of years for the S0 run
   CHARACTER(4)        :: CY              ! Character representation of ERA%MetYear
+  REAL :: tmp
 
 ! Keep the initial value of CYEAR for calculation of different MetYear if required. 
   !IF (CALL1) RunStartYear = 1710 ! edit vh !
@@ -554,16 +554,16 @@ END SUBROUTINE GET_ERA_Ndep
       CALL GET_UNIT(iunit)
       OPEN (iunit, FILE=TRIM(SEQFILE), STATUS="OLD", ACTION="READ")
       DO WHILE( IOS .EQ. 0 )
-        READ(iunit, FMT=*, IOSTAT=IOS) iyear, ERA%SeqYears(iyear)
+         READ(iunit, FMT=*, IOSTAT=IOS) iyear, tmp
+         ERA%SeqYears(iyear) = tmp
       END DO
       CLOSE(iunit)
 	  
-	  CALL1 = .FALSE.
+      CALL1 = .FALSE.
 	  
     END IF
-	  
-    ERA%MetYear = ERA%SeqYears( ERA%CYEAR )
-	
+    ERA%MetYear = INT(ERA%SeqYears( ERA%CYEAR ))
+    
   ELSE
 	
     ERA%MetYear = ERA%CYEAR
@@ -573,6 +573,7 @@ END SUBROUTINE GET_ERA_Ndep
 
   !CALL CRU_GET_FILENAME( CRU, MetYear, iVar, CRU%MetFile(iVar) ) ! Call routine to build the filenames.
   WRITE(CY,FMT='(I4)')ERA%MetYear
+  
   ERA%MetFile = TRIM(ERA%MetPath)//"era5_europe_S2.1_"//CY//"_0.5deg.nc"
   
   ! Open the new met files and access the variables by their name and variable id.
@@ -597,105 +598,6 @@ END SUBROUTINE GET_ERA_Ndep
 
   END SUBROUTINE OPEN_ERA_MET
 
-  
-!**************************************************************************************************
-
-  SUBROUTINE GET_ERA_DAILY_MET( ERA, LastDayOfYear, LastYearOfMet ) !! JK: not used anymore for ERA forcing
-
-  IMPLICIT NONE
-
-  TYPE(ERA_TYPE) :: ERA
-  LOGICAL, INTENT(IN)  :: LastDayOfYear, LastYearOfMet    !! JK: not needed here?
-  REAL    :: tmp, stmp(365)
-  INTEGER :: iVar, ii, k, x, y, realk
-  INTEGER :: t, tplus1              ! The current and next timestep
-  INTEGER :: fid, vid, tid          ! Netcdf id's for file, variable, and time
-  INTEGER :: xds, yds, tds          ! Metfile dimensions of long (x), lat (y), and time (t) 
-  !INTEGER :: MetYear                ! Year of meteorology currently in use
-  !INTEGER :: NextMetYear            ! Next met year: Where to look for the nextTmin on Dec 31st
-  CHARACTER(LEN=200) :: filename
-
-  INTEGER, SAVE       :: RunStartYear    ! The value of ERA%CYEAR on the first call, also equals syear.
-                                         ! Allows the calculation of MetYear during S0_TRENDY and init runs.
-  LOGICAL, SAVE :: CALL1 = .TRUE.   ! A *local* variable recording the first call of this routine
-  REAL,ALLOCATABLE :: tmparr(:,:)  ! packing into ERA%MET(iVar)%METVALS(k)
-
-! If first call...
-! Keep the initial value of CYEAR for calculation of different MetYear if required.
-  IF (CALL1) THEN  
-    !RunStartYear = ERA%CYEAR
-    RunStartYear = 1691
-  ENDIF
-
-  xds = ERA%xdimsize
-  yds = ERA%ydimsize
-  allocate(tmparr(xds,yds))
-
-! For S0_TRENDY and initialisation, calculate the year of meteorology as mod 50, so we repeatedly cycle  
-! through the 50 years of 1951-2000 spinup meteorology. For normal runs 1901-2015, MetYear = CYEAR.
-! Stop with error for anything else.
-
-! Abbreviate dimensions for readability (JK: why is this done twice?).
-  xds = ERA%xdimsize
-  yds = ERA%ydimsize
-
-! Loop through all 8 met variables 
-
-!print *,  "CRU%CTSTEP, LastDayOfYear, LastYearOfMet", CRU%CTSTEP, LastDayOfYear, LastYearOfMet
-  DO iVar = 1, ERA%NMET
-
-    ! iVar is not Tmin or Tmax so the variable index and timestep index are unchanged.
-    ii = iVar
-    t  = ERA%CTSTEP
-
-	
-    ! Standard read of the current variable, for the current timestep:
-    ! Directly read the current points into the met vector (more efficient for small domains), 
-    ! or read the whole grid into tmparr and extract them from there. 
-    IF ( ERA%DirectRead ) THEN
-
-      DO k = 1, ERA%mland
-        ErrStatus = NF90_GET_VAR(ERA%F_ID, ERA%V_ID(iVar), ERA%MET(ii)%METVALS(k), &
-                    start=(/land_x(k),land_y(k),t/) )
-        CALL HANDLE_ERR(ErrStatus, "Reading directly from "//ERA%MetFile)
-      END DO
-
-    ELSE
-
-      ErrStatus = NF90_GET_VAR(ERA%F_ID, ERA%V_ID(iVar), tmparr, &
-                  start=(/1,1,t/),count=(/xds,yds,1/) )
-      CALL HANDLE_ERR(ErrStatus, "Reading from "//ERA%MetFile)
-      DO k = 1, ERA%mland
-        ERA%MET(ii)%METVALS(k) = tmparr( land_x(k), land_y(k) )
-      END DO
-    ENDIF
-
-  END DO  ! End of loop through all met variables
-
-
-!print *, 'CRU%CTSTEP ', CRU%CTSTEP
-
-! Increment the internal timestep counter
-  ERA%CTSTEP = ERA%CTSTEP + 1
-
-! CALL1 can only happen once!
-  IF (CALL1) CALL1 = .FALSE.
-
-!  print *, 'CRU%MET(tmin)%METVALS(:)'
-!  print *, CRU%MET(tmin)%METVALS(:)
-!  print *, 'CRU%MET(nexttmin)%METVALS(:)'
-!  print *, CRU%MET(nexttmin)%METVALS(:)
-!  print *, 'CRU%MET(prevtmax)%METVALS(:)'
-!  print *, CRU%MET(prevtmax)%METVALS(:)
-!  print *, 'CRU%MET(tmax)%METVALS(:)'
-!  print *, CRU%MET(tmax)%METVALS(:)
-!  print *, 'CRU%MET(pres)%METVALS(:)'
-!  print *, CRU%MET(pres)%METVALS(:)
-!  print *, 'CRU%MET(rain)%METVALS(:)'
-!  print *, CRU%MET(rain)%METVALS(:)
-
-  END SUBROUTINE GET_ERA_DAILY_MET
-
 !**************************************************************************************************
 
   SUBROUTINE ERA_GET_SUBDIURNAL_MET(ERA, MET, CurYear, ktau, kend, LastYearOfMet )
@@ -709,6 +611,7 @@ END SUBROUTINE GET_ERA_Ndep
   USE cable_weathergenerator,ONLY: WEATHER_GENERATOR_TYPE, WGEN_INIT, &
                                    WGEN_DAILY_CONSTANTS
   USE cable_checks_module,   ONLY: rh_sh
+ 
 
   IMPLICIT NONE
 
@@ -815,7 +718,7 @@ END SUBROUTINE GET_ERA_Ndep
   TimeRad  = 2.0*Pi*TimeNoon
 
   WG%coszen = MAX(0.0, ( SIN(WG%DecRad)*SIN(WG%LatRad) + COS(WG%DecRad)*COS(WG%LatRad)*COS(TimeRad) ))
-
+  
 
   
   ! JK: Main routine from GET_ERA_DAILY_MET is called here directly 
@@ -829,6 +732,8 @@ END SUBROUTINE GET_ERA_Ndep
     ! iVar is not Tmin or Tmax so the variable index and timestep index are unchanged.
     ii = iVar
     t  = ERA%CTSTEP
+
+   
 
     ! Standard read of the current variable, for the current timestep:
     ! Directly read the current points into the met vector (more efficient for small domains), 
@@ -849,7 +754,8 @@ END SUBROUTINE GET_ERA_Ndep
       DO k = 1, ERA%mland
         ERA%MET(ii)%METVALS(k) = tmparr( land_x(k), land_y(k) )
       END DO
-    ENDIF
+  
+   ENDIF
 
   END DO  ! End of loop through all met variables
   
@@ -873,35 +779,22 @@ END SUBROUTINE GET_ERA_Ndep
     ! Cable's swdown is split into two components, visible and nir, which 
     ! get half of the CRU-NCEP swdown each.
     met%fsd(is:ie,1) = ERA%MET(swdown)%METVALS(iland) * 0.5  ! Visible 
-    met%fsd(is:ie,2) = ERA%MET(swdown)%METVALS(iland) * 0.5  ! NIR  
+    met%fsd(is:ie,2) = ERA%MET(swdown)%METVALS(iland) * 0.5  ! NIR
 
 
-    
-    ! calculate coszen --> calculated above now!
-    !YearRad    = 2.0*Pi*(met%doy(1)-1)/365.0              ! day of year in radians
-    !DecRad = 0.006918 - 0.399912*COS(YearRad) + 0.070257*SIN(YearRad)     &
-    !         - 0.006758*COS(2.0*YearRad) + 0.000907*SIN(2.0*YearRad)      &
-    !         - 0.002697*COS(3.0*YearRad) + 0.001480*SIN(3.0*YearRad)
+ END DO
 
-    !LatDeg1 = SIGN(MIN(ABS(latitude),89.9), latitude)   ! avoid singularity at pole
-    !LatRad  = LatDeg1*Pi/180.0                          ! latitude in radians
+ where (met%fsd .lt. 1.e-2)
+    met%fsd = 0.0
+ endwhere
 
-    !itime  = NINT(met%hod(1)*3600./dt)
-    !ritime = REAL(itime)     * dt/3600.  ! Convert the current time to real
-    !rntime = REAL(NINT(REAL(86400)/dt)) * dt/3600.  ! Convert ntime to real
+ where (met%precip .lt. 0.0)
+    met%precip = 0.0
+ endwhere
 
-    !TimeNoon = ritime/rntime - 0.5   ! Time in day frac (-0.5 to 0.5, zero at noon)
-    !TimeRad  = 2.0*Pi*TimeNoon       ! Time in day frac (-Pi to Pi, zero at noon)
-
-    met%coszen(is:ie) = WG%coszen(iland)
-
-
-    !CALL WGEN_DAILY_CONSTANTS( WG, CRU%mland, INT(met%doy(1))+1 )
-
-  ! Decision has been made, that first tstep of the day is at 0:01 am
-  !CALL WGEN_SUBDIURNAL_MET( WG, CRU%mland, NINT(met%hod(1)*3600./dt) )
-
-  END DO
+ where (met%precip_sn .lt. 0.0)
+    met%precip_sn = 0.0
+ endwhere
 
   ! initialise within canopy air temp
   met%tvair = met%tk
@@ -916,6 +809,9 @@ END SUBROUTINE GET_ERA_Ndep
     CALL HANDLE_ERR(ErrStatus, "Closing ERA file"//ERA%MetFile)
     !END DO
   END IF
+
+ ! Increment the internal timestep counter
+  ERA%CTSTEP = ERA%CTSTEP + 1
 
   ! CALL1 is over...
   CALL1 = .FALSE.

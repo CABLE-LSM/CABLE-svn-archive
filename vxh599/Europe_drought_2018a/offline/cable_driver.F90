@@ -95,7 +95,7 @@ PROGRAM cable_offline_driver
        !mpidiff
        casa_met, casa_balance, zero_sum_casa, update_sum_casa
   USE phenvariable,	    ONLY: phen_variable
-
+  USE cable_radiation_module,  ONLY: sinbet
   !! vh_js !!
   ! modules related to POP
   USE POP_Types,	    ONLY: POP_TYPE
@@ -436,7 +436,7 @@ PROGRAM cable_offline_driver
           calendar = 'standard'
         ENDIF
 
-print *, "CABLE_USER%YearStart,  CABLE_USER%YearEnd", CABLE_USER%YearStart,  CABLE_USER%YearEnd
+
 
 	YEAR: DO YYYY= CABLE_USER%YearStart,  CABLE_USER%YearEnd
 	   CurYear = YYYY
@@ -758,7 +758,9 @@ print *, "CABLE_USER%YearStart,  CABLE_USER%YearEnd", CABLE_USER%YearStart,  CAB
             IF (( .NOT. CASAONLY ).OR. (CASAONLY.and.CALL1))  THEN
               CALL ERA_GET_SUBDIURNAL_MET(ERA, met, &
                             YYYY, ktau, kend, &
-                            YYYY.EQ.CABLE_USER%YearEnd)  
+                            YYYY.EQ.CABLE_USER%YearEnd)
+
+              met%coszen = sinbet(met%doy, rad%latitude, met%hod)
             ENDIF			
 					
 					
@@ -825,6 +827,8 @@ print *, "CABLE_USER%YearStart,  CABLE_USER%YearEnd", CABLE_USER%YearStart,  CAB
              IF (l_laiFeedbk.and.icycle>0) veg%vlai(:) = casamet%glai(:)
              !veg%vlai = 2 ! test
              ! Call land surface scheme for this timestep, all grid points:
+
+   
  
              CALL cbm(ktau, dels, air, bgc, canopy, met,		      &
                          bal, rad, rough, soil, ssnow,			      &
@@ -961,7 +965,7 @@ print *, "CABLE_USER%YearStart,  CABLE_USER%YearEnd", CABLE_USER%YearStart,  CAB
                     !mpidiff
                     IF ( TRIM(cable_user%MetType) .EQ. 'plum'  .OR.  &
                          TRIM(cable_user%MetType) .EQ. 'cru'   .OR.  &
-						 TRIM(cable_user%MetType) .EQ. 'era'   .OR.  &
+			 TRIM(cable_user%MetType) .EQ. 'era'   .OR.  &
                          TRIM(cable_user%MetType) .EQ. 'bios'  .OR.  &
                          TRIM(cable_user%MetType) .EQ. 'gswp'  .OR.  &
                          TRIM(cable_user%MetType) .EQ. 'site' ) then
@@ -1243,7 +1247,8 @@ print *, "CABLE_USER%YearStart,  CABLE_USER%YearEnd", CABLE_USER%YearStart,  CAB
   IF ( TRIM(cable_user%MetType) .NE. "gswp" .AND. &
        TRIM(cable_user%MetType) .NE. "bios" .AND. &
        TRIM(cable_user%MetType) .NE. "plum" .AND. & 
-       TRIM(cable_user%MetType) .NE. "cru" ) CALL close_met_file
+       TRIM(cable_user%MetType) .NE. "cru" .AND. &
+       TRIM(cable_user%MetType) .NE. "era") CALL close_met_file
 
   !WRITE(logn,*) bal%wbal_tot, bal%ebal_tot, bal%ebal_tot_cncheck
   CALL CPU_TIME(etime)

@@ -176,7 +176,7 @@ CONTAINS
     USE casavariable,         ONLY: casafile, casa_biome, casa_pool, casa_flux,  &
          casa_met, casa_balance, zero_sum_casa, update_sum_casa
     USE phenvariable,         ONLY: phen_variable
-
+    USE cable_radiation_module,  ONLY: sinbet
     !CLN added
     ! modules related to POP
     USE POP_Types,            ONLY: POP_TYPE
@@ -193,6 +193,7 @@ CONTAINS
     USE CABLE_PLUME_MIP,      ONLY: PLUME_MIP_TYPE, PLUME_MIP_GET_MET,&
          PLUME_MIP_INIT
     USE CABLE_CRU,            ONLY: CRU_TYPE, CRU_GET_SUBDIURNAL_MET, CRU_INIT
+    USE CABLE_ERA,            ONLY: ERA_TYPE, ERA_INIT, ERA_GET_SUBDIURNAL_MET
 
     ! BIOS only
     USE cable_bios_met_obs_params,   ONLY:  cable_bios_read_met, cable_bios_init, &
@@ -261,6 +262,7 @@ CONTAINS
     TYPE (LUC_EXPT_TYPE) :: LUC_EXPT
     TYPE (PLUME_MIP_TYPE) :: PLUME
     TYPE (CRU_TYPE)       :: CRU
+    TYPE (ERA_TYPE)       :: ERA
     CHARACTER             :: cyear*4
     CHARACTER             :: ncfile*99
 
@@ -456,7 +458,8 @@ CONTAINS
          TRIM(cable_user%MetType) .NE. "gpgs" .AND. &
          TRIM(cable_user%MetType) .NE. "plum" .AND. &
          TRIM(cable_user%MetType) .NE. "bios" .AND. &
-         TRIM(cable_user%MetType) .NE. "cru") THEN
+         TRIM(cable_user%MetType) .NE. "cru".AND. &
+         TRIM(cable_user%MetType) .NE. "era" ) THEN
        CALL open_met_file( dels, koffset, kend, spinup, C%TFRZ )
        IF ( koffset .NE. 0 .AND. CABLE_USER%CALL_POP ) THEN
           WRITE(*,*)"When using POP, episode must start at Jan 1st!"
@@ -547,31 +550,32 @@ CONTAINS
                  str3 = adjustl(str3)
                  timeunits="seconds since "//trim(str1)//"-"//trim(str2)//"-"//trim(str3)//" 00:00:00"
                  calendar = "standard"
+              ENDIF
 
           ELSE IF (TRIM(cable_user%MetType) .EQ. 'era' ) THEN
           ! JK: ERA5 forcing for 2018 Europe heatwave simulations 		
 		  
-	        IF ( CALL1 ) THEN
-
-		      CALL CPU_TIME(etime)
-		      CALL ERA_INIT( ERA )
-		   
-		      dels	    = ERA%dtsecs
-		      koffset  = 0
-		      leaps    = .false.      ! No leap years in CRU-NCEP
-              exists%Snowf = .false.  ! No snow in CRU-NCEP, so ensure it will
-                                         ! be determined from temperature in CABLE
-
-              write(str1,'(i4)') CurYear
-              str1 = adjustl(str1)
-              write(str2,'(a)') '01'
-              str2 = adjustl(str2)
-              write(str3,'(a)') '01'
-              str3 = adjustl(str3)
-              timeunits="seconds since "//trim(str1)//"-"//trim(str2)//"-"//trim(str3)//" 00:00:00"
+             IF ( CALL1 ) THEN
+                
+                CALL CPU_TIME(etime)
+                CALL ERA_INIT( ERA )
+                
+                dels	    = ERA%dtsecs
+                koffset  = 0
+                leaps    = .false.      ! No leap years in CRU-NCEP
+                exists%Snowf = .True.  ! No snow in CRU-NCEP, so ensure it will
+                ! be determined from temperature in CABLE
+                
+                write(str1,'(i4)') CurYear
+                str1 = adjustl(str1)
+                write(str2,'(a)') '01'
+                str2 = adjustl(str2)
+                write(str3,'(a)') '01'
+                str3 = adjustl(str3)
+                timeunits="seconds since "//trim(str1)//"-"//trim(str2)//"-"//trim(str3)//" 00:00:00"
               calendar = "noleap"
 
-	      ENDIF
+           ENDIF
 	       
 		  LOY = 365
 	      kend = NINT(24.0*3600.0/dels) * LOY
@@ -580,7 +584,7 @@ CONTAINS
 	      LOY = 365
 	      kend = NINT(24.0*3600.0/dels) * LOY
           
-		  ELSE IF (TRIM(cable_user%MetType) .EQ. 'gswp' ) THEN
+          ELSE IF (TRIM(cable_user%MetType) .EQ. 'gswp' ) THEN
              ncciy = CurYear
              WRITE(*,*) 'Looking for global offline run info.'
              CALL prepareFiles(ncciy)
@@ -817,12 +821,12 @@ write(*,*) 'after CALL1'
                 CALL CRU_GET_SUBDIURNAL_MET(CRU, imet, YYYY, 1, kend, &
                      (YYYY.EQ.CABLE_USER%YearEnd))
             
-			 ELSE IF ( TRIM(cable_user%MetType) .EQ. 'era' ) THEN
-               IF (( .NOT. CASAONLY ).OR. (CASAONLY.and.CALL1))  THEN
-                 CALL ERA_GET_SUBDIURNAL_MET(ERA, met, &
-                            YYYY, ktau, kend, &
-                            YYYY.EQ.CABLE_USER%YearEnd)  
-               ENDIF			
+             ELSE IF ( TRIM(cable_user%MetType) .EQ. 'era' ) THEN
+              
+                 CALL ERA_GET_SUBDIURNAL_MET(ERA, imet, &
+                            YYYY, iktau, kend, &
+                            YYYY.EQ.CABLE_USER%YearEnd)
+                  met%coszen = sinbet(met%doy, rad%latitude, met%hod)			
 					 
              ELSE
                 CALL get_met_data( spinup, spinConv, imet, soil,                 &
@@ -896,7 +900,13 @@ write(*,*) 'after CALL1'
                 END IF
              ELSE IF ( TRIM(cable_user%MetType) .EQ. 'cru' ) THEN
                 CALL CRU_GET_SUBDIURNAL_MET(CRU, imet, YYYY, iktau, kend, &
-                            (YYYY.EQ.CABLE_USER%YearEnd) )  
+                     (YYYY.EQ.CABLE_USER%YearEnd) )
+             ELSE IF ( TRIM(cable_user%MetType) .EQ. 'era' ) THEN
+                CALL ERA_GET_SUBDIURNAL_MET(ERA, imet, &
+                            YYYY, iktau, kend, &
+                            (YYYY.EQ.CABLE_USER%YearEnd))
+                met%coszen = sinbet(met%doy, rad%latitude, met%hod)
+           
              ELSE
               
                 CALL get_met_data( spinup, spinConv, imet, soil,                 &
@@ -1017,7 +1027,7 @@ write(*,*) 'after CALL1'
 
                    IF ( TRIM(cable_user%MetType) .EQ. 'plum' &
                         .OR. TRIM(cable_user%MetType) .EQ. 'cru'   &
-						.OR. TRIM(cable_user%MetType) .EQ. 'era'   &
+			.OR. TRIM(cable_user%MetType) .EQ. 'era'   &
                         .OR. TRIM(cable_user%MetType) .EQ. 'bios'  &
                         .OR. TRIM(cable_user%MetType) .EQ. 'gswp') then
                       CALL write_output( dels, ktau_tot, met, canopy, casaflux, casapool, &
@@ -1150,8 +1160,8 @@ write(*,*) 'after CALL1'
           IF ( TRIM(cable_user%MetType) .EQ. "gswp" ) &
                CALL close_met_file
 
-IF (icycle>0 .and.   cable_user%CALL_POP)  THEN
-  write(*,*), 'b4 annual calcs'
+          IF (icycle>0 .and.   cable_user%CALL_POP)  THEN
+ 
        
                       IF (CABLE_USER%POPLUC) THEN
 
@@ -1242,8 +1252,9 @@ write(*,*) 'after annual calcs'
              IF ( (.NOT. CASAONLY) .AND. spinConv ) THEN
                 IF ( TRIM(cable_user%MetType) .EQ. 'plum' &
                      .OR. TRIM(cable_user%MetType) .EQ. 'cru'   &
-                      .OR. TRIM(cable_user%MetType) .EQ. 'bios'   &
-                       .OR. TRIM(cable_user%MetType) .EQ. 'gswp') then
+                     .OR. TRIM(cable_user%MetType) .EQ. 'era'   &
+                     .OR. TRIM(cable_user%MetType) .EQ. 'bios'   &
+                     .OR. TRIM(cable_user%MetType) .EQ. 'gswp') then
 
                    CALL write_output( dels, ktau_tot, met, canopy, casaflux, casapool, &
                         casamet, ssnow,         &
@@ -1444,7 +1455,9 @@ write(*,*) 'after annual calcs'
     IF ( TRIM(cable_user%MetType) .NE. "gswp" .AND. &
          TRIM(cable_user%MetType) .NE. "bios" .AND. &
          TRIM(cable_user%MetType) .NE. "plum" .AND. &
-         TRIM(cable_user%MetType) .NE. "cru") CALL close_met_file
+         TRIM(cable_user%MetType) .NE. "cru" .AND. &
+         TRIM(cable_user%MetType) .NE. "era") CALL close_met_file
+
     IF  (.NOT. CASAONLY) THEN
        ! Close output file and deallocate main variables:
        CALL close_output_file( bal, air, bgc, canopy, met,                         &
