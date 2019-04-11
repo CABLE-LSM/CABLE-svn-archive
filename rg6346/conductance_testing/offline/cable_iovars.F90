@@ -257,6 +257,7 @@ MODULE cable_IO_vars_module
          SnowDepth = .FALSE., & ! actual depth of snow in [m]
          !variables
          Rnet = .FALSE.,      & ! net absorbed radiation [W/m2]
+         PARnet = .FALSE.,    & ! net absorbed PAR photosynthetic active radiation [W/m2]
          HVeg = .FALSE.,      & ! sensible heat from vegetation [W/m2]
          HSoil = .FALSE.,     & ! sensible heat from soil [W/m2]
          RnetSoil = .FALSE.,     & ! sensible heat from soil [W/m2] !vh!

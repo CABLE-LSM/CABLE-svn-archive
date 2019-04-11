@@ -533,9 +533,9 @@ print *, "CABLE_USER%YearStart,  CABLE_USER%YearEnd", CABLE_USER%YearStart,  CAB
 	      ENDIF
 	       LOY = 365
 	      kend = NINT(24.0*3600.0/dels) * LOY
-	   ELSE IF ( TRIM(cable_user%MetType) .EQ. 'site' ) THEN
-         ! site experiment eg AmazonFace (spinup or  transient run type)  
-           
+    ELSE IF ( TRIM(cable_user%MetType) .EQ. 'site' ) THEN
+       ! site experiment eg AmazonFace (spinup or  transient run type)  
+       
        IF ( CALL1 ) THEN
           CALL CPU_TIME(etime)
           CALL site_INIT( site )
@@ -549,20 +549,25 @@ print *, "CABLE_USER%YearStart,  CABLE_USER%YearEnd", CABLE_USER%YearStart,  CAB
           calendar = 'standard'
 
        ENDIF
-       LOY = 365
-
-      IF (IS_LEAPYEAR(CurYear)) LOY = 366
-       kend = NINT(24.0*3600.0/dels) * LOY
+       
        ! get koffset to add to time-step of sitemet
        IF (TRIM(site%RunType)=='historical') THEN
           MetYear = CurYear
+          LOY = 365
+          IF (IS_LEAPYEAR(MetYear)) LOY = 366
+          kend = NINT(24.0*3600.0/dels) * LOY
        ELSEIF (TRIM(site%RunType)=='spinup' .OR. TRIM(site%RunType)=='transient') THEN
        ! setting met year so we end the spin-up at the end of the site data-years.
           MetYear = site%spinstartyear + &
                MOD(CurYear- &
                (site%spinstartyear-(site%spinendyear-site%spinstartyear +1)*100), &
                (site%spinendyear-site%spinstartyear +1))
+          LOY = 365
+          kend = NINT(24.0*3600.0/dels) * LOY
+          
        ENDIF
+       
+       
        write(*,*) 'MetYear: ', MetYear
        write(*,*) 'Simulation Year: ', CurYear
        koffset_met = 0
@@ -689,7 +694,8 @@ print *, "CABLE_USER%YearStart,  CABLE_USER%YearEnd", CABLE_USER%YearStart,  CAB
           ! globally (WRT code) accessible kend through USE cable_common_module
           ktau_gl = ktau_tot
           
-          idoy =INT( MOD(REAL(CEILING(REAL((ktau+koffset)/ktauday))),REAL(LOY)))
+          !idoy =INT( MOD(REAL(CEILING(REAL((ktau+koffset)/ktauday))),REAL(LOY)))
+          idoy =INT( MOD(REAL(CEILING((real(ktau+koffset))/real(ktauday))),REAL(LOY)))
           IF ( idoy .EQ. 0 ) idoy = LOY
 
           ! needed for CASA-CNP
@@ -856,6 +862,7 @@ print *, "CABLE_USER%YearStart,  CABLE_USER%YearEnd", CABLE_USER%YearStart,  CAB
 
                     IF ( IS_CASA_TIME("write", yyyy, ktau, kstart, &
                          koffset, kend, ktauday, logn) ) THEN
+
                        ctime = ctime +1
                        !mpidiff
                        CALL update_sum_casa(sum_casapool, sum_casaflux, casapool, casaflux, &

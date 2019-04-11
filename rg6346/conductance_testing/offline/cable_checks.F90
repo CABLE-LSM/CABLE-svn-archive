@@ -75,6 +75,7 @@ MODULE cable_checks_module
            ! SWnet = (/0.0,1250.0/),            & ! W/m^2
            LWnet = (/-500.0,510.0/),           & ! W/m^2
            Rnet = (/-500.0,1250.0/),           & ! W/m^2
+           PARnet = (/0.0,1250.0/),         & ! W/m^2
           Evap = (/-0.0045,0.0045/),         &  ! note this is also used for snow melt !
           Ewater = (/-0.0005,0.0005/),        &
           ESoil = (/-0.0015,0.0015/),         &
