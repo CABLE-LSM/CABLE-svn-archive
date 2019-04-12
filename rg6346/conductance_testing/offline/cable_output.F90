@@ -59,7 +59,7 @@ MODULE cable_output_module
                     RadT, VegT, Ebal, Wbal, AutoResp, RootResp,                &
                     StemResp,LeafResp, HeteroResp, GPP, NPP, LAI,                       &
                     ECanop, TVeg, ESoil, CanopInt, SnowDepth,                  &
-                    HVeg, HSoil, Rnet, PARnet, tvar, CanT,Fwsoil, RnetSoil, SnowMelt, &
+                    HVeg, HSoil, Rnet, PARslt, PARshd, tvar, CanT,Fwsoil, RnetSoil, SnowMelt, &
                     NBP, TotSoilCarb, TotLivBiomass, &
                     TotLittCarb, SoilCarbFast, SoilCarbSlow, SoilCarbPassive, &
                     LittCarbMetabolic, LittCarbStructural, LittCarbCWD, &
@@ -158,7 +158,8 @@ MODULE cable_output_module
                                                       ! [m]
     ! Non-Alma variables
     REAL(KIND=4), POINTER, DIMENSION(:) :: Rnet  ! net absorbed radiation [W/m2]
-    REAL(KIND=4), POINTER, DIMENSION(:) :: PARnet  ! net absorbed PAR [W/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: PARslt  ! net absorbed PAR by sunlit leaf [W/m2]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: PARshd  ! net absorbed PAR by shaded leaf [W/m2]
     REAL(KIND=4), POINTER, DIMENSION(:) :: HVeg  ! sensible heat from vegetation
                                                  ! [W/m2]
     REAL(KIND=4), POINTER, DIMENSION(:) :: HSoil ! sensible heat from soil
@@ -627,13 +628,20 @@ CONTAINS
        ALLOCATE(out%Rnet(mp))
        out%Rnet = 0.0 ! initialise
     END IF
-    IF(output%radiation .OR. output%PARnet) THEN
-       CALL define_ovar(ncid_out, ovid%PARnet, 'PARnet', 'W/m^2',                  &
-                        'Net PAR absorbed by vegetation', patchout%PARnet,    &
+    IF(output%radiation .OR. output%PARslt) THEN
+       CALL define_ovar(ncid_out, ovid%PARslt, 'PARslt', 'W/m^2',                  &
+                        'Net PAR absorbed by sunlit leaf', patchout%PARslt,    &
                         'dummy', xID, yID, zID, landID, patchID, tID)
-       ALLOCATE(out%PARnet(mp))
-       out%PARnet = 0.0 ! initialise
+       ALLOCATE(out%PARslt(mp))
+       out%PARslt = 0.0 ! initialise
     END IF
+    IF(output%radiation .OR. output%PARshd) THEN
+       CALL define_ovar(ncid_out, ovid%PARshd, 'PARshd', 'W/m^2',                  &
+                        'Net PAR absorbed by shaded leaf', patchout%PARshd,    &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%PARshd(mp))
+       out%PARshd = 0.0 ! initialise
+    END IF    
     IF(output%radiation .OR. output%Albedo) THEN
        CALL define_ovar(ncid_out, ovid%Albedo, 'Albedo', '-',                  &
                         'Surface albedo', patchout%Albedo,                     &
@@ -1987,7 +1995,7 @@ CONTAINS
        END IF
     END IF
     !-------------------------WRITE RADIATION DATA------------------------------
-    ! SWnet: net shortwave [W/m^2]
+    ! SWnet: net shortwave [W/m^2] qssabs: radiation absorbed by soil and snow surface
     IF(output%radiation .OR. output%SWnet) THEN
        ! Add current timestep's value to total of temporary output variable:
        out%SWnet = out%SWnet + REAL(SUM(rad%qcan(:, :, 1), 2) +                &
@@ -2000,6 +2008,34 @@ CONTAINS
                         out%SWnet, ranges%SWnet, patchout%SWnet, 'default', met)
           ! Reset temporary output variable:
           out%SWnet = 0.0
+       END IF
+    END IF
+    ! PARslt: net absorbed PAR [W/m^2] for sunlit leaf
+    IF(output%radiation .OR. output%PARslt) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%PARslt = out%PARslt + REAL(SUM(rad%qcan(:, 1, 1)))
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%PARslt = out%PARslt / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%PARslt, 'PARslt', out%PARslt, &
+                          ranges%PARslt, patchout%PARslt, 'default', met)
+          ! Reset temporary output variable:
+          out%PARslt = 0.0
+       END IF
+    END IF
+    ! PARshd: net absorbed PAR [W/m^2] for shaded leaf
+    IF(output%radiation .OR. output%PARshd) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%PARshd = out%PARshd + REAL(SUM(rad%qcan(:, 2, 1)))
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%PARshd = out%PARshd / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%PARshd, 'PARshd', out%PARshd, &
+                          ranges%PARshd, patchout%PARshd, 'default', met)
+          ! Reset temporary output variable:
+          out%PARshd = 0.0
        END IF
     END IF
     ! LWnet: net longwave [W/m^2]
@@ -2035,23 +2071,7 @@ CONTAINS
           out%Rnet = 0.0
        END IF
     END IF
-    ! PARnet: net absorbed PAR [W/m^2]
-    IF(output%radiation .OR. output%PARnet) THEN
-       ! Add current timestep's value to total of temporary output variable:
-       out%PARnet = out%PARnet + REAL(met%fld - sboltz * emleaf * canopy%tv ** 4 * &
-                                  (1 - rad%transd) -rad%flws * rad%transd +    &
-                                  SUM(rad%qcan(:, :, 1), 2) +                  &
-                                  + rad%qssabs, 4)
-       IF(writenow) THEN
-          ! Divide accumulated variable by number of accumulated time steps:
-          out%PARnet = out%PARnet / REAL(output%interval, 4)
-          ! Write value to file:
-          CALL write_ovar(out_timestep, ncid_out, ovid%PARnet, 'PARnet', out%PARnet, &
-                          ranges%PARnet, patchout%PARnet, 'default', met)
-          ! Reset temporary output variable:
-          out%PARnet = 0.0
-       END IF
-    END IF
+    
     ! Albedo:
     IF(output%radiation .OR. output%Albedo) THEN
        ! Add current timestep's value to total of temporary output variable:
