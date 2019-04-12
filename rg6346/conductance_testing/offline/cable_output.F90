@@ -160,6 +160,7 @@ MODULE cable_output_module
     REAL(KIND=4), POINTER, DIMENSION(:) :: Rnet  ! net absorbed radiation [W/m2]
     REAL(KIND=4), POINTER, DIMENSION(:) :: PARslt  ! net absorbed PAR by sunlit leaf [W/m2]
     REAL(KIND=4), POINTER, DIMENSION(:) :: PARshd  ! net absorbed PAR by shaded leaf [W/m2]
+   ! REAL(KIND=4), POINTER, DIMENSION(:,:,:) :: qcan  ! canopy absorbed radiation [W/m2]
     REAL(KIND=4), POINTER, DIMENSION(:) :: HVeg  ! sensible heat from vegetation
                                                  ! [W/m2]
     REAL(KIND=4), POINTER, DIMENSION(:) :: HSoil ! sensible heat from soil
@@ -641,7 +642,7 @@ CONTAINS
                         'dummy', xID, yID, zID, landID, patchID, tID)
        ALLOCATE(out%PARshd(mp))
        out%PARshd = 0.0 ! initialise
-    END IF    
+    END IF
     IF(output%radiation .OR. output%Albedo) THEN
        CALL define_ovar(ncid_out, ovid%Albedo, 'Albedo', '-',                  &
                         'Surface albedo', patchout%Albedo,                     &
