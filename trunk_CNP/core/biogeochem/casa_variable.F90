@@ -201,7 +201,7 @@ MODULE casavariable
     REAL(r_2), DIMENSION(:),POINTER    :: FluxPtoclear
     REAL(r_2), DIMENSION(:),POINTER    :: CtransferLUC
 
-  
+
   END TYPE casa_flux
 
   TYPE casa_met
@@ -249,7 +249,7 @@ MODULE casavariable
             LAImax, Cleafmean, Crootmean,                          &
             FNdepyear,FNfixyear, FNsnetyear,FNupyear, FNleachyear,FNlossyear, &
             FPweayear,FPdustyear,FPsnetyear,FPupyear, FPleachyear,FPlossyear
- 
+
     REAL(r_2), DIMENSION(:,:),POINTER :: glaimon,glaimonx
     REAL(r_2), DIMENSION(:,:),POINTER :: cplantlast,nplantlast,pplantlast
     REAL(r_2), DIMENSION(:,:),POINTER :: clitterlast,nlitterlast,plitterlast
@@ -395,8 +395,8 @@ SUBROUTINE alloc_casavariable(casabiome,casapool,casaflux, &
            casapool%ratioPcplant(arraysize,mplant),   &
            casapool%ratioPclitter(arraysize,mlitter), &
            casapool%Ctot_0(arraysize),                &
-           casapool%Ctot(arraysize)   )               
-    
+           casapool%Ctot(arraysize)   )
+
   ALLOCATE(casaflux%Cgpp(arraysize),                     &
            casaflux%Cnpp(arraysize),                     &
            casaflux%Crp(arraysize),                      &
@@ -506,7 +506,7 @@ SUBROUTINE alloc_casavariable(casabiome,casapool,casaflux, &
            casamet%moistspin_4(arraysize,mdyear),   &
            casamet%moistspin_5(arraysize,mdyear),   &
            casamet%moistspin_6(arraysize,mdyear),  &
-           casamet%mtempspin(arraysize,mdyear))     
+           casamet%mtempspin(arraysize,mdyear))
 
   ALLOCATE(casabal%FCgppyear(arraysize),           &
            casabal%FCnppyear(arraysize),           &
@@ -529,12 +529,12 @@ SUBROUTINE alloc_casavariable(casabiome,casapool,casaflux, &
            casabal%FPupyear(arraysize),            &
            casabal%FPleachyear(arraysize),         &
            casabal%FPlossyear(arraysize),          &
-           casabal%dCdtyear(arraysize),            & 
-           casabal%LAImax(arraysize),              &  
-           casabal%Cleafmean(arraysize),           & 
-           casabal%Crootmean(arraysize)            ) 
-  
-     
+           casabal%dCdtyear(arraysize),            &
+           casabal%LAImax(arraysize),              &
+           casabal%Cleafmean(arraysize),           &
+           casabal%Crootmean(arraysize)            )
+
+
   ALLOCATE(casabal%glaimon(arraysize,12),          &
            casabal%glaimonx(arraysize,12))
 
@@ -560,7 +560,7 @@ SUBROUTINE alloc_casavariable(casabiome,casapool,casaflux, &
            casabal%sumcbal(arraysize),             &
            casabal%sumnbal(arraysize),             &
            casabal%sumpbal(arraysize),             &
-           casabal%clabilelast(arraysize))       
+           casabal%clabilelast(arraysize))
 END SUBROUTINE alloc_casavariable
 
 SUBROUTINE alloc_sum_casavariable(  sum_casapool, sum_casaflux &
@@ -865,7 +865,8 @@ SUBROUTINE update_sum_casa(sum_casapool, sum_casaflux, casapool, casaflux, &
            sum_casaflux%Plabuptake =  sum_casaflux%Plabuptake + casaflux%Plabuptake
            sum_casaflux%Clabloss =  sum_casaflux%Clabloss + casaflux%Clabloss
            sum_casaflux%fracClabile = sum_casaflux%fracClabile +  casaflux%fracClabile
-           sum_casaflux%fracCalloc =  sum_casaflux%fracCalloc + casaflux%fracCalloc*casapool%cplant
+           !sum_casaflux%fracCalloc =  sum_casaflux%fracCalloc + casaflux%fracCalloc*casapool%cplant
+           sum_casaflux%fracCalloc =  sum_casaflux%fracCalloc + casaflux%fracCalloc
            sum_casaflux%fracNalloc = sum_casaflux%fracNalloc + casaflux%fracNalloc
            sum_casaflux%fracPalloc =  sum_casaflux%fracPalloc + casaflux%fracPalloc
            sum_casaflux%kplant =  sum_casaflux%kplant + casaflux%kplant*casapool%cplant
@@ -930,13 +931,14 @@ SUBROUTINE update_sum_casa(sum_casapool, sum_casaflux, casapool, casaflux, &
            if (average_now) then
            sum_casapool%Clabile = sum_casapool%Clabile/real(nsteps)
            sum_casapool%dClabiledt = sum_casapool%Clabile/real(nsteps)
-           where (sum_casapool%Cplant.gt.1.e-12) 
-              sum_casaflux%fracCalloc =  sum_casaflux%fracCalloc/sum_casapool%Cplant
-           elsewhere
-              sum_casaflux%fracCalloc = 0.0
-           endwhere
+           sum_casaflux%fracCalloc =  sum_casaflux%fracCalloc/real(nsteps)
+           !where (sum_casapool%Cplant.gt.1.e-12)
+           !   sum_casaflux%fracCalloc =  sum_casaflux%fracCalloc/sum_casapool%Cplant
+           !elsewhere
+           !     sum_casaflux%fracCalloc = 0.0
+           !endwhere
 
-           where (sum_casapool%Cplant.gt.1.e-12) 
+           where (sum_casapool%Cplant.gt.1.e-12)
               sum_casaflux%kplant =  sum_casaflux%kplant/sum_casapool%Cplant
            elsewhere
               sum_casaflux%kplant = 0.0
@@ -994,7 +996,7 @@ SUBROUTINE update_sum_casa(sum_casapool, sum_casaflux, casapool, casaflux, &
            sum_casaflux%fracPalloc =  sum_casaflux%fracPalloc/real(nsteps)
           ! sum_casaflux%kplant =  sum_casaflux%kplant/real(nsteps)
 
-          
+
            sum_casaflux%Crmplant =   sum_casaflux%Crmplant/real(nsteps)
            sum_casaflux%fromPtoL =  sum_casaflux%fromPtoL/real(nsteps)
            sum_casaflux%Cnep =  sum_casaflux%Cnep/real(nsteps)
@@ -1055,6 +1057,3 @@ END SUBROUTINE update_sum_casa
 
 
 END MODULE casavariable
-
-
-
