@@ -339,21 +339,14 @@ SUBROUTINE casa_allocation(veg,soil,casabiome,casaflux,casapool,casamet,phen,LAL
            casaflux%fracCalloc(:,wood)  = 1.0 -casaflux%fracCalloc(:,froot)
         ENDWHERE
 
-        ! added in for negative NPP and one of biomass pool being zero ypw 27/jan/2014
-        WHERE(casaflux%Cnpp<0.0)
-           casaflux%fracCalloc(:,leaf)  = casaflux%Crmplant(:,leaf)/sum(casaflux%Crmplant,2)
-           casaflux%fracCalloc(:,wood)  = casaflux%Crmplant(:,wood)/sum(casaflux%Crmplant,2)
-           casaflux%fracCalloc(:,froot) = casaflux%Crmplant(:,froot)/sum(casaflux%Crmplant,2)
-        ENDWHERE
-
         !! vh_js !!
         !! as long as biomass is positive, adjust allocation to be
         !! proportional to stock when NPP -ve   (Ticket#108)
-        WHERE(casaflux%Cnpp<0.0 .and. sum(casapool%Cplant,2)>0  )
-           casaflux%fracCalloc(:,leaf)  = casapool%Cplant(:,leaf)/sum(casapool%Cplant,2)
-           casaflux%fracCalloc(:,wood)  = casapool%Cplant(:,wood)/sum(casapool%Cplant,2)
-           casaflux%fracCalloc(:,froot) = casapool%Cplant(:,froot)/sum(casapool%Cplant,2)
-        ENDWHERE
+!!$        WHERE(casaflux%Cnpp<0.0 .and. sum(casapool%Cplant,2)>0  )
+!!$           casaflux%fracCalloc(:,leaf)  = casapool%Cplant(:,leaf)/sum(casapool%Cplant,2)
+!!$           casaflux%fracCalloc(:,wood)  = casapool%Cplant(:,wood)/sum(casapool%Cplant,2)
+!!$           casaflux%fracCalloc(:,froot) = casapool%Cplant(:,froot)/sum(casapool%Cplant,2)
+!!$        ENDWHERE
      ENDWHERE
 
   ELSE
