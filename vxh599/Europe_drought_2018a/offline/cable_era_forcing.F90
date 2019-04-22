@@ -769,8 +769,8 @@ END SUBROUTINE GET_ERA_Ndep
     ie = landpt(iland)%cend   
 	
     met%ua(is:ie)        = ERA%MET(wind)%METVALS(iland)
-    met%precip(is:ie)    = ERA%MET(rainf)%METVALS(iland) + ERA%MET(snowf)%METVALS(iland)
-    met%precip_sn(is:ie) = ERA%MET(snowf)%METVALS(iland)
+    met%precip(is:ie)    = (ERA%MET(rainf)%METVALS(iland) + ERA%MET(snowf)%METVALS(iland)) * ERA%DTsecs
+    met%precip_sn(is:ie) = ERA%MET(snowf)%METVALS(iland)* ERA%DTsecs
     met%tk(is:ie)        = ERA%MET(tair)%METVALS(iland)
     met%fld(is:ie)       = ERA%MET(lwdown)%METVALS(iland)
     met%qv(is:ie)        = ERA%MET(qair)%METVALS(iland)
