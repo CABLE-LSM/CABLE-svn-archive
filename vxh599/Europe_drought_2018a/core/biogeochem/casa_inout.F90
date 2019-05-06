@@ -277,6 +277,8 @@ SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
     casabiome%litterrate(nv,cwd)  = deltcasa/cwdage(nv)
     casabiome%soilrate(nv,mic)    = deltcasa/micage(nv)
     casabiome%soilrate(nv,slow)   = deltcasa/slowage(nv)
+write(600,*) nv, deltcasa, casabiome%soilrate(nv,slow), slowage(nv), &
+1./casabiome%soilrate(nv,slow)/365.
     casabiome%soilrate(nv,pass)   = deltcasa/passage(nv)
     casabiome%xkleafcoldmax(nv)   = deltcasa * xxkleafcoldmax(nv)
     casabiome%xkleafdrymax(nv)    = deltcasa * xxkleafdrymax(nv)

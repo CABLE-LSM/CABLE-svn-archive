@@ -947,10 +947,14 @@ SUBROUTINE casa_xratesoil(xklitter,xksoil,veg,soil,casamet,casabiome)
       ELSE if (trim(cable_user%STRF_NAME)=='LT1994') THEN
          ! Lloyd & Taylor, Func. Ec. 8, 315, 1994, Eq 11.
          ! Normalised to 10 deg C
+!!$         strf(npt)= exp(308.56*(1.0/56.02-1.0         &
+!!$              / (max(tsoil(npt),-20.0)+46.02)))/ &
+!!$              (exp(308.56*(1.0/56.02-1.0         &
+!!$              / (10.0 + 46.02))))
+
          strf(npt)= exp(308.56*(1.0/56.02-1.0         &
-              / (max(tsoil(npt),-20.0)+46.02)))/ &
-              (exp(308.56*(1.0/56.02-1.0         &
-              / (10.0 + 46.02))))
+                   / (max(tsoil(npt),-20.0)+46.02)))/5.65 
+          ! factor of 5.65 gives same value as q10=2 response at 10 degC (ref T 35 degC).
          
       ELSE if (trim(cable_user%STRF_NAME)=='Q10') THEN
          ! Q10 normalised to 10 deg C
@@ -1001,7 +1005,10 @@ SUBROUTINE casa_xratesoil(xklitter,xksoil,veg,soil,casamet,casabiome)
       xksoil(npt) = strf(npt)*smrf(npt)
       xklitter(npt) = strf(npt)*smrf(npt)
       ENDIF
-
+!!$if (casamet%lat(npt)==46.75.and.  casamet%lon(npt)==-0.25) then
+!!$ WRITE(799,*)  veg%iveg(npt), 1./casabiome%soilrate(veg%iveg(npt),slow)/365., &
+!!$ xksoil(npt), strf(npt),smrf(npt),trim(cable_user%STRF_NAME)
+!!$endif
 !write(67,"(i8,18e16.6)") npt, fwps(npt), smrf(npt), strf(npt),xkwater(npt),  xktemp(npt), xklitter(npt)
 !write(67,"(i8,18e16.6)") npt, tsoil(npt), strf(npt),  xktemp(npt)
 
@@ -1009,12 +1016,13 @@ SUBROUTINE casa_xratesoil(xklitter,xksoil,veg,soil,casamet,casabiome)
   END IF
   END DO
 
-!!$ write(63,"(100e16.6)") xklitter
-!!$ write(64,"(100e16.6)") xksoil
-!!$ write(65,"(100e16.6)") smrf
-!!$ write(66,"(100e16.6)") strf
-!!$ write(67,"(100e16.6)") fwps
-!!$ write(68,"(100e16.6)") tsoil
+!!$print*, 'xklitter: ', xklitter(1)
+!!$print*, 'xksoil: ', xksoil(1)
+!!$print*, 'smrf: ', smrf(1)
+!!$print*, 'strf:', strf(1)
+!!$print*, 'fwps:', fwps(1)
+!!$print*, 'tsoil:', tsoil(1)
+!!$print*, 'soil turnover:', 1./casabiome%soilrate(veg%iveg(1),slow)
 END SUBROUTINE casa_xratesoil
 
 SUBROUTINE casa_coeffplant(xkleafcold,xkleafdry,xkleaf,veg,casabiome,casapool, &
@@ -1548,6 +1556,11 @@ IF(casamet%iveg2(nland)/=icewater) THEN
                         + casaflux%fromStoCO2(nland,nS) &
                         * casaflux%ksoil(nland,nS) &
                         * casapool%csoil(nland,nS)
+
+!!$if (casamet%lat(nland)==46.75.and.  casamet%lon(nland)==-0.25) then
+!!$ WRITE(599,*)  veg%iveg(nland), 1./casabiome%soilrate(veg%iveg(nland),slow)/365., 1/casaflux%ksoil(nland,2)/365.
+!!$endif
+
    ENDDO
 
    IF(icycle>1) THEN
