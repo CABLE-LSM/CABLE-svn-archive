@@ -7,7 +7,7 @@ jls_radiation ,        &
 veg_mask,              &
 sunlit_mask,           &
 sunlit_veg_mask,       &
-reducedLAIdue2snow,           &
+reducedLAIdue2snow,    &
 coszen,                &
 ExtCoeff_beam,         &
 ExtCoeff_dif,          &
