@@ -152,7 +152,7 @@ USE p_s_parms,      ONLY : smvcst_cable => smvcst_soilt
   character(len=*), parameter :: subr_name = "cable_implicit_main"
 real :: dummy(1)
 
-# include "../../../core/utils/diag/cable_fprint.txt"
+# include "../../../utils/diag/cable_fprint.txt"
   !-------- Unique subroutine body -----------
   
 t_soil(:,:) = t_soil_soilt(:,1,:) 

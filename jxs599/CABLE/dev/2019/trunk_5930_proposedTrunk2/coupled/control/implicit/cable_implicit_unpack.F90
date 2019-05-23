@@ -20,13 +20,13 @@ subroutine Implicit_unpack( cycleno, & ! nucycles
                             !TRANSP_TILE, NPP_FT_ACC, RESP_W_FT_ACC,            &
                             SURF_HTF_TILE, DTRAD, DTSTAR_TILE )
 
-  !diag 
-  USE cable_fprint_module, ONLY : cable_fprintf
-  USE cable_Pyfprint_module, ONLY : cable_Pyfprintf
-  USE cable_fFile_module, ONLY : fprintf_dir_root, fprintf_dir, L_cable_fprint,&
-                                 L_cable_Pyfprint, unique_subdir
-
-  USE cable_diag_module  
+!H!  !diag 
+!H!  USE cable_fprint_module, ONLY : cable_fprintf
+!H!  USE cable_Pyfprint_module, ONLY : cable_Pyfprintf
+!H!  USE cable_fFile_module, ONLY : fprintf_dir_root, fprintf_dir, L_cable_fprint,&
+!H!                                 L_cable_Pyfprint, unique_subdir
+!H!
+!H!  USE cable_diag_module  
 
   !processor number, timestep number / width, endstep
   USE cable_common_module, ONLY : knode_gl, ktau_gl, kwidth_gl, kend_gl
@@ -160,7 +160,7 @@ LOGICAL,DIMENSION(land_pts, ntiles) ::                       &
   ! std template args 
   character(len=*), parameter :: subr_name = "cable_implicit_unpack"
 
-# include "../../../core/utils/diag/cable_fprint.txt"
+!H!# include "../../../core/utils/diag/cable_fprint.txt"
   
   !-------- Unique subroutine body -----------
 
@@ -366,21 +366,21 @@ LOGICAL,DIMENSION(land_pts, ntiles) ::                       &
 
   !-------- End Unique subroutine body -----------
 
-  fprintf_dir=trim(fprintf_dir_root)//trim(unique_subdir)//"/"
-  if(L_cable_fprint) then 
-    !basics to std output stream
-    if (knode_gl == 0 .and. ktau_gl == 1)  call cable_fprintf(subr_name, .true.) 
-    !more detailed output
-    vname=trim(subr_name//'_')
-    call cable_fprintf( cDiag00, vname, knode_gl, ktau_gl, .true. )
-  endif
-
-  if(L_cable_Pyfprint) then 
-    !vname='canopy_tscrn'; dimx=mp
-    !call cable_Pyfprintf( cDiag2, vname, (canopy%tscrn+tfrz), dimx, .true.)
-    !vname='tscrn'; dimx=land_pts
-    !call cable_Pyfprintf( cDiag2, vname, t1p5m, dimx, .true.)
-  endif
+!H!  fprintf_dir=trim(fprintf_dir_root)//trim(unique_subdir)//"/"
+!H!  if(L_cable_fprint) then 
+!H!    !basics to std output stream
+!H!    if (knode_gl == 0 .and. ktau_gl == 1)  call cable_fprintf(subr_name, .true.) 
+!H!    !more detailed output
+!H!    vname=trim(subr_name//'_')
+!H!    call cable_fprintf( cDiag00, vname, knode_gl, ktau_gl, .true. )
+!H!  endif
+!H!
+!H!  if(L_cable_Pyfprint) then 
+!H!    !vname='canopy_tscrn'; dimx=mp
+!H!    !call cable_Pyfprintf( cDiag2, vname, (canopy%tscrn+tfrz), dimx, .true.)
+!H!    !vname='tscrn'; dimx=land_pts
+!H!    !call cable_Pyfprintf( cDiag2, vname, t1p5m, dimx, .true.)
+!H!  endif
 
 return
 
