@@ -1,25 +1,3 @@
-!==============================================================================
-! This source code is part of the 
-! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
-! This work is licensed under the CSIRO Open Source Software License
-! Agreement (variation of the BSD / MIT License).
-! 
-! You may not use this file except in compliance with this License.
-! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located 
-! in each directory containing CABLE code.
-!
-! ==============================================================================
-! Purpose: Updates CABLE variables (as altered by first pass through boundary 
-!          layer and convection scheme), calls cbm, passes CABLE variables back 
-!          to UM. 'Implicit' is the second call to cbm in each UM timestep.
-!
-! Called from: UM codecable_implicit_main 
-!
-! Contact: Jhan.Srbinovsky@csiro.au
-!
-! History: Developed for CABLE v1.8
-!
-! ==============================================================================
 
 module cable_implicit_driv_mod
   
@@ -30,29 +8,38 @@ subroutine cable_implicit_driver( i_day_number, cycleno, &! num_cycles
                           sm_levels, dim_cs1, dim_cs2, Fland,                  &
                           LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,               &
                           DTL_1,DQW_1, ctctq1, TSOIL, TSOIL_TILE, SMCL,        &
-                          SMCL_TILE, SMGW_TILE, timestep, SMVCST, STHF,        &
+                          SMCL_TILE, &!SMGW_TILE, 
+                          timestep, SMVCST, STHF,        &
                           STHF_TILE, STHU, snow_tile, SNOW_RHO1L, ISNOW_FLG3L, &
                           SNOW_DEPTH3L, SNOW_MASS3L, SNOW_RHO3L, SNOW_TMP3L,   &
                           FTL_1, FTL_TILE, FQW_1, FQW_TILE, TSTAR_TILE,        &
                           SURF_HT_FLUX_LAND, ECAN_TILE, ESOIL_TILE, EI_TILE,   &
                           RADNET_TILE, SNOW_AGE, CANOPY_TILE, GS, GS_TILE,     &
                           T1P5M_TILE, Q1P5M_TILE, CANOPY_GB, MELT_TILE,        &
-                          NPP, NPP_FT, GPP, GPP_FT, RESP_S,                    &
-                          RESP_S_TOT, RESP_S_TILE, RESP_P, RESP_P_FT,          &
-                          G_LEAF, TL_1, QW_1, SURF_HTF_TILE,                   &
-                          CPOOL_TILE, NPOOL_TILE, PPOOL_TILE,                  &
-                          GLAI, PHENPHASE, NPP_FT_ACC, RESP_W_FT_ACC, DTRAD )
+                          !NPP, NPP_FT, GPP, GPP_FT, RESP_S,                    &
+                          !RESP_S_TOT,  RESP_P, RESP_P_FT,          &
+                          !G_LEAF, 
+                          TL_1, QW_1, SURF_HTF_TILE,                   &
+                          !CPOOL_TILE, NPOOL_TILE, PPOOL_TILE,                  &
+                          !GLAI, PHENPHASE, NPP_FT_ACC, RESP_W_FT_ACC, 
+                          DTRAD )
 
   !subrs called 
+USE cbl_model_driver_mod, ONLY : cbl_model_driver
+use cable_wide_mod, ONLY : allocate_cable_wide
   USE cable_um_init_subrs_mod, ONLY : um2cable_rr
-  USE cable_cbm_module,    ONLY : cbm
   USE casa_cable, only : bgcdriver, sumcflux
   
-  USE cable_def_types_mod, ONLY : mp, msn, ncs,ncp
+!data
+use cable_wide_mod, ONLY :  LAI_pft => LAI_pft_cbl, & 
+                                          HGT_pft => HGT_pft_cbl
+USE cable_other_constants_mod, ONLY : z0surf_min
+  USE cable_def_types_mod, ONLY : mp, msn, ncs,ncp, nrb
   USE cable_data_module,   ONLY : PHYS
-  USE cable_um_tech_mod,   ONLY : um1, conv_rain_prevstep, conv_snow_prevstep,&
-                                 air, bgc, canopy, met, bal, rad, rough, soil,&
-                                 ssnow, sum_flux, veg, basic_diag
+  USE cable_um_tech_mod,   ONLY : um1, conv_rain_prevstep, conv_snow_prevstep
+  USE cbl_allocate_types_mod, ONLY : air, bgc, canopy,      &
+                                met, bal, rad, rough, soil, ssnow, sum_flux,  &
+                                veg
   USE cable_common_module, ONLY : cable_runtime, cable_user, l_casacnp,       &
                                   l_vcmaxFeedbk, knode_gl, ktau_gl, kend_gl
   
@@ -62,7 +49,7 @@ subroutine cable_implicit_driver( i_day_number, cycleno, &! num_cycles
   USE casa_um_inout_mod
   USE cable_climate_mod
   use POP_TYPES, only : pop_type
-  USE river_inputs_mod,   ONLY: river_step
+  !C!USE river_inputs_mod,   ONLY: river_step
   
   !diag 
   USE cable_fprint_module, ONLY : cable_fprintf
@@ -328,16 +315,20 @@ subroutine cable_implicit_driver( i_day_number, cycleno, &! num_cycles
 
   canopy%cansto = canopy%oldcansto
 
-  CALL cbm( ktau_gl,timestep, air, bgc, canopy, met, bal,                             &
-            rad, rough, soil, ssnow, sum_flux, veg, climate )
+  CALL cbl_model_driver( mp, nrb, land_pts, npft, ktau_gl,timestep, air, bgc, canopy, met, bal,      &
+            rad, rough, soil, ssnow, sum_flux, veg, z0surf_min, &
+            !H!shouuld already work from here LAI_pft, HGT_pft )
+            veg%vlai, veg%hc, met%doy )
+  !CALL cbm( ktau_gl,timestep, air, bgc, canopy, met, bal,                             &
+  !          rad, rough, soil, ssnow, sum_flux, veg, climate )
 
       ! Integrate wb_lake over the river timestep.
       ! Used to scale river flow within ACCESS
       ! Zeroed each river step in subroutine cable_lakesriver and on restarts.
       !  ssnow_wb_lake in kg/m^2
-      if (ipb == cpb) THEN
-        ssnow%totwblake = ssnow%totwblake + ssnow%wb_lake/river_step
-      end if
+      !C!if (ipb == cpb) THEN
+      !C!  ssnow%totwblake = ssnow%totwblake + ssnow%wb_lake/river_step
+      !C!end if
  
   !Jun 2018 - change in Trad over time step
   DTRAD = rad%trad - rad%otrad
