@@ -11,8 +11,6 @@ module cable_decs_mod
   
   LOGICAL, allocatable, DIMENSION(:,:), save :: L_tile_pts
   
-  real, allocatable, DIMENSION(:,:,:), save ::sw_down_diag
-  
   !___UM parameters: water density
   REAL, parameter :: rho_water = 1000.
 

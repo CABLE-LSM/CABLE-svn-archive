@@ -52,6 +52,9 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
    USE cable_um_init_subrs_mod          ! where most subrs called from here reside
   USE casa_um_inout_mod
    
+  USE cbl_allocate_types_mod, ONLY : air, bgc, canopy,      &
+                                met, bal, rad, rough, soil, ssnow, sum_flux,  &
+                                veg
    USE cable_um_tech_mod,   ONLY :                                             &
       alloc_um_interface_types,  & ! mem. allocation subr (um1, kblum%) 
       dealloc_vegin_soilin,      & ! mem. allocation subr (vegin%,soilin%)
@@ -71,6 +74,8 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
   
   use cable_pft_params_mod, ONLY : cable_pft_params ! subr
   use cable_soil_params_mod, ONLY : cable_soil_params !subr
+!USE cbl_masks_mod, ONLY : L_tile_pts
+!USE cbl_allocate_types_mod, ONLY 
   
    !USE casa_um_inout_mod
 
@@ -258,21 +263,22 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
       !--- IF the tile is "active"
       IF ( first_call ) THEN
       
-         um1%L_TILE_PTS = .FALSE.
+         !H!um1%L_TILE_PTS = .FALSE.
+         um1%L_TILE_PTS = L_TILE_PTS 
          mp = SUM(um1%TILE_PTS)
          
-         CALL alloc_cable_types()
+         CALL alloc_cable_types( mp )
 
-         DO i=1,land_pts
-            DO j=1,ntiles
-               
-               IF( um1%TILE_FRAC(i,j) .GT. 0.0 ) THEN 
-                  um1%L_TILE_PTS(i,j) = .TRUE.
-                  tile_index_mp(i,j) = j 
-               ENDIF
-            
-            ENDDO
-         ENDDO
+         !H!DO i=1,land_pts
+         !H!   DO j=1,ntiles
+         !H!      
+         !H!      IF( um1%TILE_FRAC(i,j) .GT. 0.0 ) THEN 
+         !H!         um1%L_TILE_PTS(i,j) = .TRUE.
+         !H!         tile_index_mp(i,j) = j 
+         !H!      ENDIF
+         !H!   
+         !H!   ENDDO
+         !H!ENDDO
       
       ENDIF
 
