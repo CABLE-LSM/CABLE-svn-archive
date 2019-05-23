@@ -26,7 +26,7 @@ LOGICAL :: sunlit_veg_mask(mp)      ! this "mp" is BOTH sunlit AND  vegetated
 
 integer:: surface_type(mp)          ! Integer index of Surface type (veg%iveg)
 
-real :: reducedLAIdue2snow(mp)             ! Reduced LAI given snow coverage
+real :: reducedLAIdue2snow(mp)      ! Reduced LAI given snow coverage
 
 ! Albedos
 !-------------------------------------------------------------------------------
