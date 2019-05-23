@@ -50,7 +50,7 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
                               PHENPHASE, NPP_FT_ACC, RESP_W_FT_ACC )
 
    USE cable_um_init_subrs_mod          ! where most subrs called from here reside
-  USE casa_um_inout_mod
+!H!  USE casa_um_inout_mod
    
   USE cbl_allocate_types_mod, ONLY : air, bgc, canopy,      &
                                 met, bal, rad, rough, soil, ssnow, sum_flux,  &
@@ -330,18 +330,18 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
       !IF (l_casacnp) THEN ?
          CALL init_respiration(NPP_FT_ACC,RESP_W_FT_ACC)
 
-      ! Lestevens 28 Sept 2012 - Initialize CASA-CNP here
-         if (l_casacnp) then
-           if (knode_gl==0) then
-             print *, '  '; print *, 'CASA_log:'
-             print *, '  Calling CasaCNP - Initialise '
-             print *, '  l_casacnp = ',l_casacnp
-             print *, 'End CASA_log:'; print *, '  '
-           endif
-           call init_casacnp(sin_theta_latitude,cpool_tile,npool_tile,&
-                             ppool_tile,soil_order,nidep,nifix,pwea,pdust,&
-                             GLAI,PHENPHASE)
-         endif
+!H!      ! Lestevens 28 Sept 2012 - Initialize CASA-CNP here
+!H!         if (l_casacnp) then
+!H!           if (knode_gl==0) then
+!H!             print *, '  '; print *, 'CASA_log:'
+!H!             print *, '  Calling CasaCNP - Initialise '
+!H!             print *, '  l_casacnp = ',l_casacnp
+!H!             print *, 'End CASA_log:'; print *, '  '
+!H!           endif
+!H!           call init_casacnp(sin_theta_latitude,cpool_tile,npool_tile,&
+!H!                             ppool_tile,soil_order,nidep,nifix,pwea,pdust,&
+!H!                             GLAI,PHENPHASE)
+!H!         endif
 
          CALL dealloc_vegin_soilin()
          first_call = .FALSE. 

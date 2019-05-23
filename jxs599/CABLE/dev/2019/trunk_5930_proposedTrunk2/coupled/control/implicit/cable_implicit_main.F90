@@ -23,22 +23,22 @@ USE cbl_masks_mod, ONLY : L_tile_pts
   ! processor number, timestep number & width
   USE cable_common_module, ONLY : knode_gl, ktau_gl, kwidth_gl, cable_runtime
   
-# if defined(UM_JULES)
-  ! CABLE prognostics declared at top_level
-  USE atm_fields_real_mod, ONLY : soil_temp_cable, soil_moist_cable,           &
-                                  soil_froz_frac_cable, snow_dpth_cable,       & 
-                                  snow_mass_cable, snow_temp_cable,            &
-                                  snow_rho_cable, snow_avg_rho_cable,          &   
-                                  snow_age_cable, snow_flg_cable,              &
-                                  aquifer_moist_cable
-  ! CASA prognostics declared at top_level
-  USE atm_fields_real_mod, ONLY : C_pool_casa, N_pool_casa, P_pool_casa,       &
-                                  SOIL_ORDER_casa, N_DEP_casa, N_FIX_casa,     &
-                                  P_DUST_casa, P_weath_casa, LAI_casa,         &
-                                  PHENPHASE_casa, NPP_PFT_ACC, RSP_W_PFT_ACC
-  !UM: time info 
-  USE model_time_mod, ONLY:    target_end_stepim, i_day, i_day_number
-#endif
+!H!# if defined(UM_JULES)
+!H!  ! CABLE prognostics declared at top_level
+!H!  USE atm_fields_real_mod, ONLY : soil_temp_cable, soil_moist_cable,           &
+!H!                                  soil_froz_frac_cable, snow_dpth_cable,       & 
+!H!                                  snow_mass_cable, snow_temp_cable,            &
+!H!                                  snow_rho_cable, snow_avg_rho_cable,          &   
+!H!                                  snow_age_cable, snow_flg_cable,              &
+!H!                                  aquifer_moist_cable
+!H!  ! CASA prognostics declared at top_level
+!H!  USE atm_fields_real_mod, ONLY : C_pool_casa, N_pool_casa, P_pool_casa,       &
+!H!                                  SOIL_ORDER_casa, N_DEP_casa, N_FIX_casa,     &
+!H!                                  P_DUST_casa, P_weath_casa, LAI_casa,         &
+!H!                                  PHENPHASE_casa, NPP_PFT_ACC, RSP_W_PFT_ACC
+!H!  !UM: time info 
+!H!  USE model_time_mod, ONLY:    target_end_stepim, i_day, i_day_number
+!H!#endif
 
 USE jules_surface_types_mod, ONLY : npft
  

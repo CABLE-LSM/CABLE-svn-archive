@@ -93,12 +93,15 @@ SUBROUTINE cable_um_runtime_vars(runtime_vars_file)
                                    l_vcmaxFeedbk, gw_params
    USE cable_fFile_module, ONLY : fprintf_dir_root, L_cable_fprint,            &
                                   L_cable_Pyfprint, unique_subdir
-   USE casavariable, ONLY : casafile
-   USE casadimension, ONLY : icycle
+!H!   USE casavariable, ONLY : casafile
+!H!   USE casadimension, ONLY : icycle
 
 
    CHARACTER(LEN=*), INTENT(IN) :: runtime_vars_file
    INTEGER :: funit=88
+!H!
+   INTEGER :: icycle = 0 
+   CHARACTER(LEN=100) :: casafile
    
    !--- namelist for CABLE runtime vars, files, switches 
    NAMELIST/CABLE/filename, l_casacnp, l_laiFeedbk, l_vcmaxFeedbk, icycle,     &

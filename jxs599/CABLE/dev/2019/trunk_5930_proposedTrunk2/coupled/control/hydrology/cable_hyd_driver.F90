@@ -119,7 +119,7 @@ END SUBROUTINE cable_hyd_driver
 SUBROUTINE cable_lakesrivers(TOT_WB_LAKE)
     
     USE cable_um_tech_mod, ONLY : um1, ssnow
-    USE cable_decs_mod, ONLY : L_tile_pts
+    USE cbl_masks_mod, ONLY : L_tile_pts
     
     IMPLICIT NONE
     

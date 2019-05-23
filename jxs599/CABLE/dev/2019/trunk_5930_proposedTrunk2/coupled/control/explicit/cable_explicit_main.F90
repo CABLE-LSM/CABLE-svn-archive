@@ -76,7 +76,6 @@ USE allocate_cable_progs_mod, ONLY :               &
   snow_age_cable  => SnowAge_CABLE,                 &
   snow_avg_rho_cable => OneLyrSnowDensity_CABLE
 
-  USE cable_decs_mod, only : rho_water
   USE cbl_allocate_types_mod, ONLY : air, bgc, canopy,      &
                                 met, bal, rad, rough, soil, ssnow, sum_flux,  &
                                 veg

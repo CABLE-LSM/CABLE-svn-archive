@@ -28,7 +28,7 @@ subroutine cable_implicit_driver( i_day_number, cycleno, &! num_cycles
 USE cbl_model_driver_mod, ONLY : cbl_model_driver
 use cable_wide_mod, ONLY : allocate_cable_wide
   USE cable_um_init_subrs_mod, ONLY : um2cable_rr
-  USE casa_cable, only : bgcdriver, sumcflux
+!H!  USE casa_cable, only : bgcdriver, sumcflux
   
 !data
 use cable_wide_mod, ONLY :  LAI_pft => LAI_pft_cbl, & 
@@ -43,12 +43,12 @@ USE cable_other_constants_mod, ONLY : z0surf_min
   USE cable_common_module, ONLY : cable_runtime, cable_user, l_casacnp,       &
                                   l_vcmaxFeedbk, knode_gl, ktau_gl, kend_gl
   
-  USE casavariable
-  USE phenvariable
-  USE casa_types_mod
-  USE casa_um_inout_mod
-  USE cable_climate_mod
-  use POP_TYPES, only : pop_type
+!H!  USE casavariable
+!H!  USE phenvariable
+!H!  USE casa_types_mod
+!H!  USE casa_um_inout_mod
+!H!  USE cable_climate_mod
+!H!  use POP_TYPES, only : pop_type
   !C!USE river_inputs_mod,   ONLY: river_step
   
 !H!  !diag 
@@ -62,10 +62,10 @@ USE cable_other_constants_mod, ONLY : z0surf_min
   implicit none
 
   !___ re-decl input args
-  TYPE (climate_type)  :: climate     ! climate variables
+  !H!TYPE (climate_type)  :: climate     ! climate variables
   !necessary as arg checking is enforce in modular structure that now present 
   ! - HOWEVER *NB*  this POP is not initialized anywhere
-  TYPE(POP_TYPE) :: POP 
+  !H!TYPE(POP_TYPE) :: POP 
   
   integer :: cycleno
   integer :: row_length,rows, land_pts, ntiles, npft, sm_levels
@@ -341,23 +341,23 @@ USE cable_other_constants_mod, ONLY : z0surf_min
   !cable_implicit per atmospheric time step
   if (ipb==cpb) then
     !Call CASA-CNP
-    if (l_casacnp) & 
-      CALL bgcdriver(ktau_gl,kstart,kend_gl,timestep,met,ssnow,canopy,veg,soil, &
-                     climate,casabiome,casapool,casaflux,casamet,casabal,phen, &
-                     pop, spinConv,spinup, ktauday, idoy,loy, dump_read,   &
-                     dump_write, LALLOC)
-
-    CALL sumcflux(ktau_gl,kstart,kend_gl,TIMESTEP,bgc,canopy,soil,ssnow,      &
-                  sum_flux,veg,met,casaflux,l_vcmaxFeedbk)
+    !H!if (l_casacnp) & 
+    !H!  CALL bgcdriver(ktau_gl,kstart,kend_gl,timestep,met,ssnow,canopy,veg,soil, &
+    !H!                 climate,casabiome,casapool,casaflux,casamet,casabal,phen, &
+    !H!                 pop, spinConv,spinup, ktauday, idoy,loy, dump_read,   &
+    !H!                 dump_write, LALLOC)
+!H! have to comment out as we dont havecasaflux yet
+    !H!CALL sumcflux(ktau_gl,kstart,kend_gl,TIMESTEP,bgc,canopy,soil,ssnow,      &
+    !H!              sum_flux,veg,met,casaflux,l_vcmaxFeedbk)
   endif
 
   ! Only call carbon cycle prognostics updates on the last call to 
   ! cable_implicit per atmospheric time step
   ! Call CASA-CNP collect pools
-  if (ipb==cpb .AND. l_casacnp) & 
-    CALL casa_poolout_unpk(casapool,casaflux,casamet,casabal,phen,  &
-                          CPOOL_TILE,NPOOL_TILE,PPOOL_TILE, &
-                          GLAI,PHENPHASE)
+  !H!if (ipb==cpb .AND. l_casacnp) & 
+  !H!  CALL casa_poolout_unpk(casapool,casaflux,casamet,casabal,phen,  &
+  !H!                        CPOOL_TILE,NPOOL_TILE,PPOOL_TILE, &
+  !H!                        GLAI,PHENPHASE)
 
   !-------- End Unique subroutine body -----------
 
