@@ -1,9 +1,9 @@
 MODULE cbl_rhoch_module
 
-   IMPLICIT NONE
+  IMPLICIT NONE
 
-   PUBLIC calc_rhoch
-   PRIVATE
+  PUBLIC calc_rhoch
+  PRIVATE
 
 CONTAINS
 
