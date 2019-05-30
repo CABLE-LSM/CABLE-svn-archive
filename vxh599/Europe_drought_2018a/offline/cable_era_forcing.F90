@@ -399,7 +399,7 @@ CONTAINS
 ! On the first call, allocate the ERA%CO2VALS array to store the entire history of annual CO2 
 ! values, open the (ascii) CO2 file and read the values into the array. 
     IF (CALL1) THEN
-      ALLOCATE( ERA%CO2VALS( 1700:2017 ) )
+      ALLOCATE( ERA%CO2VALS( 1700:2018 ) )
       CO2FILE = TRIM(ERA%BasePath)//"/co2/global_co2_ann_1700_2018.txt"
       CALL GET_UNIT(iunit)
       OPEN (iunit, FILE=TRIM(CO2FILE), STATUS="OLD", ACTION="READ")
@@ -493,8 +493,9 @@ CONTAINS
   IF ( TRIM(ERA%Ndep) .NE. "static1979" .and.  ERA%CYEAR>1979) THEN
   
      ! read Ndep at current year (noting that file starts at 1850 and ends in 2015)
-     ERA%Ndep_CTSTEP = (min(ERA%CYEAR, 2016) - 1860 + 1)*12 + month
+     ERA%Ndep_CTSTEP = (min(ERA%CYEAR, 2016) - 1860 )*12 + month
      t =  ERA%Ndep_CTSTEP
+     print*,  "ERA%Ndep_CTSTEP: ", t
      ErrStatus = NF90_GET_VAR(ERA%NdepF_ID, ERA%NdepV_ID, tmparr, &
           start=(/1,1,t/),count=(/xds,yds,1/) )
      CALL HANDLE_ERR(ErrStatus, "Reading from "//NdepFILE )
@@ -710,15 +711,15 @@ END SUBROUTINE GET_ERA_Ndep
   ENDIF
 
 
-  ! calculate coszen (code taken from cable_weathergenerator.f90)
-  ritime = REAL(itime)     * dt/3600.  ! Convert the current time to real
-  rntime = REAL(NINT(REAL(SecDay))/dt) * dt/3600.  ! Convert ntime to real
-
-  TimeNoon = ritime/rntime - 0.5
-  TimeRad  = 2.0*Pi*TimeNoon
-
-  WG%coszen = MAX(0.0, ( SIN(WG%DecRad)*SIN(WG%LatRad) + COS(WG%DecRad)*COS(WG%LatRad)*COS(TimeRad) ))
-  
+!!$  ! calculate coszen (code taken from cable_weathergenerator.f90)
+!!$  ritime = REAL(itime)     * dt/3600.  ! Convert the current time to real
+!!$  rntime = REAL(NINT(REAL(SecDay))/dt) * dt/3600.  ! Convert ntime to real
+!!$
+!!$  TimeNoon = ritime/rntime - 0.5
+!!$  TimeRad  = 2.0*Pi*TimeNoon
+!!$
+!!$  WG%coszen = MAX(0.0, ( SIN(WG%DecRad)*SIN(WG%LatRad) + COS(WG%DecRad)*COS(WG%LatRad)*COS(TimeRad) ))
+!!$  
 
   
   ! JK: Main routine from GET_ERA_DAILY_MET is called here directly 
