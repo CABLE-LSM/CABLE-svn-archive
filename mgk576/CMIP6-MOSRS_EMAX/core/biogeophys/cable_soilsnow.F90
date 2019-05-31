@@ -2593,6 +2593,7 @@ END SUBROUTINE GWstempv
      REAL, PARAMETER :: root_xsec_area = pi * root_radius**2 ! m2
      REAL, PARAMETER :: root_density = 0.5e6                ! g biomass m-3 root
      REAL, PARAMETER :: root_resistivity = 25.             ! MPa s g mmol-1, Bonan
+     REAL, PARAMETER :: root_k = 100.0
 
      ! unit conv
      REAL, PARAMETER :: head = 0.009807             ! head of pressure  (MPa/m)
@@ -2608,8 +2609,9 @@ END SUBROUTINE GWstempv
 
      ! partial mol vol of water at 20C (m3 mol-1)
      REAL, PARAMETER :: H2OVW = 18.05e-6
+
      REAL, DIMENSION(ms) :: depth
-     REAL            :: root_mass, rs, Ksoil
+     REAL            :: root_mass, rs, Ksoil, root_biomass, root_depth
      REAL            :: soil_resist, root_resist, rsum, conv, la
      REAL            :: root_res_cons
 
@@ -2621,6 +2623,16 @@ END SUBROUTINE GWstempv
      INTEGER :: j
      INTEGER, PARAMETER :: ROOT_INDEX = 3
 
+     ! convert from gC to g biomass, i.e. twice the C content
+     root_biomass = bgc%cplant(i,ROOT_INDEX) * 2.
+
+     !always provide a minimum root biomass
+     root_biomass = MAX(5., root_biomass)
+
+     root_depth = sum(soil%zse) * root_biomass / (root_k + root_biomass)
+
+
+
      ! New representation of root resistance following Hacke et al.
      ! Root resistance in a layer is proportional to 1/rootmass and proportional
      ! to root length (i.e. depth of layer)
@@ -2628,17 +2640,17 @@ END SUBROUTINE GWstempv
      root_length = 0.0
      DO j = 1, ms ! Loop over 6 soil layers
 
+        ! Depth to middle of layer (ca. root path length)
+        depth(j) = sum(soil%zse(1:j)) - soil%zse(j) / 2.
+
         ! Root biomass density (g biomass m-3 soil)
         ! Divide root mass up by the frac roots in the layer (g m-3)
         ! plant carbon is g C m-2
-        root_mass = bgc%cplant(i,ROOT_INDEX) * veg%froot(i,j) / soil%zse(j)
-        root_mass = MAX(1e-09, root_mass)
+        root_mass = root_biomass * veg%froot(i,j)
+
 
         ! Root length density (m root m-3 soil)
         root_length(j) = root_mass / (root_density * root_xsec_area)
-
-        ! Depth to middle of layer (ca. root path length)
-        depth(j) = sum(soil%zse(1:j)) - soil%zse(j) / 2.
 
         IF (root_length(j) .GT. 0.0) THEN
             la = la + depth(j) / root_length(j)
@@ -2655,12 +2667,12 @@ END SUBROUTINE GWstempv
      rsum = 0.0
      DO j = 1, ms ! Loop over 6 soil layers
 
-        ! Soil Hydraulic conductivity (mm s-1), Campbell 1974
+        ! Soil Hydraulic conductivity (m s-1), Campbell 1974
         Ksoil = soil%hyds(i) * (ssnow%wb(i,j) / &
                      soil%ssat(i))**(2.0 * soil%bch(i) + 3.0)
 
-        ! Soil Hydraulic conductivity (mmol m-1 s-1 MPa-1)
-        Ksoil = Ksoil / (H2OVW * M_HEAD_TO_MPa)
+        ! converts from m s-1 to m2 s-1 MPa-1
+        Ksoil = Ksoil / head
 
         ! prevent floating point error
         IF (Ksoil < TINY_NUMBER) THEN
@@ -2678,6 +2690,9 @@ END SUBROUTINE GWstempv
                ! Soil-to-root resistance (MPa s m2 mmol-1 H2O)
                soil_resist = log(rs / root_radius) / &
                               (2.0 * pi * root_length(j) * soil%zse(j) * Ksoil)
+
+               ! convert from MPa s m2 m-3 to MPa s m2 mmol-1
+               soil_resist = soil_resist * 1E-6 * 18. * 0.001
 
                ! second component of below ground resistance related to root
                ! hydraulics (MPa s m2 mmol-1 H2O)
