@@ -2612,12 +2612,10 @@ END SUBROUTINE GWstempv
 
      REAL, DIMENSION(ms) :: depth
      REAL            :: root_mass, rs, Ksoil, root_biomass, root_depth
-     REAL            :: soil_resist, root_resist, rsum, conv, la
-     REAL            :: root_res_cons
+     REAL            :: soil_resist, rsum, conv
+
 
      REAL, DIMENSION(:), INTENT(INOUT) :: root_length
-
-
 
      INTEGER, INTENT(IN) :: i
      INTEGER :: j
@@ -2626,17 +2624,14 @@ END SUBROUTINE GWstempv
      ! convert from gC to g biomass, i.e. twice the C content
      root_biomass = bgc%cplant(i,ROOT_INDEX) * 2.
 
-     !always provide a minimum root biomass
+     ! Always provide a minimum root biomass
      root_biomass = MAX(5., root_biomass)
 
-     root_depth = sum(soil%zse) * root_biomass / (root_k + root_biomass)
-
-
+     !root_depth = sum(soil%zse) * root_biomass / (root_k + root_biomass)
 
      ! New representation of root resistance following Hacke et al.
      ! Root resistance in a layer is proportional to 1/rootmass and proportional
      ! to root length (i.e. depth of layer)
-     la = 0.0
      root_length = 0.0
      DO j = 1, ms ! Loop over 6 soil layers
 
@@ -2648,20 +2643,10 @@ END SUBROUTINE GWstempv
         ! plant carbon is g C m-2
         root_mass = root_biomass * veg%froot(i,j)
 
-
         ! Root length density (m root m-3 soil)
         root_length(j) = root_mass / (root_density * root_xsec_area)
 
-        IF (root_length(j) .GT. 0.0) THEN
-            la = la + depth(j) / root_length(j)
-        ENDIF
      END DO
-
-     IF (la .GT. 0.0) THEN
-        root_res_cons = root_res_cons / la
-     ELSE
-        root_res_cons = BIG_NUMBER   ! Arbitrarily large number
-     ENDIF
 
      ! Store each layers resistance, used in LWP calculatons
      rsum = 0.0
@@ -2678,30 +2663,18 @@ END SUBROUTINE GWstempv
         IF (Ksoil < TINY_NUMBER) THEN
            ssnow%soilR(i,j) = HUGE_NUMBER
         ELSE
-            ! Reformulated to match Duursma et al. 2008.
-            IF (root_length(j) .GT. 0.0) THEN
+            ! Conductance of the soil-to-root pathway can be estimated
+            ! assuming that the root system consists of one long root that
+            ! has access to a surrounding cylinder of soil
+            ! (Gardner 1960, Newman 1969)
+            rs = sqrt(1.0 / (root_length(j) * pi))
 
-               ! Conductance of the soil-to-root pathway can be estimated
-               ! assuming that the root system consists of one long root that
-               ! has access to a surrounding cylinder of soil
-               ! (Gardner 1960, Newman 1969)
-               rs = sqrt(1.0 / (root_length(j) * pi))
+            ! Soil-to-root resistance (MPa s m2 mmol-1 H2O)
+            soil_resist = log(rs / root_radius) / &
+                           (2.0 * pi * root_length(j) * soil%zse(j) * Ksoil)
 
-               ! Soil-to-root resistance (MPa s m2 mmol-1 H2O)
-               soil_resist = log(rs / root_radius) / &
-                              (2.0 * pi * root_length(j) * soil%zse(j) * Ksoil)
-
-               ! convert from MPa s m2 m-3 to MPa s m2 mmol-1
-               soil_resist = soil_resist * 1E-6 * 18. * 0.001
-
-               ! second component of below ground resistance related to root
-               ! hydraulics (MPa s m2 mmol-1 H2O)
-               root_resist = root_resistivity * soil%zse(j) / root_mass
-               !root_resist = root_res_cons * depth(j) / root_length(j)
-           ELSE
-              soil_resist = 0.0
-              root_resist = 0.0
-           END IF
+            ! convert from MPa s m2 m-3 to MPa s m2 mmol-1
+            soil_resist = soil_resist * 1E-6 * 18. * 0.001
 
            ! MPa s m2 mmol-1 H2O
            ! root_resistance is commented out : don't use root-component of
@@ -2709,15 +2682,14 @@ END SUBROUTINE GWstempv
            ssnow%soilR(i,j) = soil_resist !+ root_resist
         END IF
 
-        IF (soil_resist .GT. 0.0) THEN
+        IF (ssnow%soilR(i,j) .GT. 0.0) THEN
            ! Need to combine resistances in parallel, but we only want the
            ! soil term as the root component is part of the plant resistance
-           rsum = rsum + 1.0 / soil_resist
+           rsum = rsum + ( 1.0 / ssnow%soilR(i,j) )
         ENDIF
 
      END DO
      ssnow%tot_bg_resist(i) = 1.0 / rsum
-
 
   END SUBROUTINE calc_soil_root_resistance
   ! ----------------------------------------------------------------------------
