@@ -2965,236 +2965,245 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
   END SUBROUTINE getrex_1d
   !*********************************************************************************************************************
 
-  ! ----------------------------------------------------------------------------
-  FUNCTION f_tuzet(psi_leaf) RESULT(fw)
-     ! Empirical logistic function to describe the sensitivity of stomata
-     ! to leaf water potential.
-     !
-     ! Sigmoid function assumes that stomata are insensitive to psi_leaf at
-     ! values close to zero and that stomata rapidly close with decreasing
-     ! psi_leaf.
-     !
-     ! Reference:
-     ! ----------
-     ! * Tuzet et al. (2003) A coupled model of stomatal conductance,
-     !   photosynthesis and transpiration. Plant, Cell and Environment 26,
-     !   1097–1116
-     !
-     ! Martin De Kauwe, 27th Nov, 2017
+! ----------------------------------------------------------------------------
+FUNCTION f_tuzet(psi_leaf) RESULT(fw)
+  ! Empirical logistic function to describe the sensitivity of stomata
+  ! to leaf water potential.
+  !
+  ! Sigmoid function assumes that stomata are insensitive to psi_leaf at
+  ! values close to zero and that stomata rapidly close with decreasing
+  ! psi_leaf.
+  !
+  ! Reference:
+  ! ----------
+  ! * Tuzet et al. (2003) A coupled model of stomatal conductance,
+  !   photosynthesis and transpiration. Plant, Cell and Environment 26,
+  !   1097–1116
+  !
+  ! Martin De Kauwe, 3rd June, 2019
 
-     IMPLICIT NONE
+  IMPLICIT NONE
 
-     REAL             :: num, den, fw
-     REAL, INTENT(IN) :: psi_leaf
-     REAL, PARAMETER  :: sf = 8.0     ! sensitivity parameter, MPa-1
-     REAL, PARAMETER  :: psi_f = -2.0 ! reference potential for Tuzet model, MPa
+  REAL             :: num, den, fw
+  REAL, INTENT(IN) :: psi_leaf
+  REAL, PARAMETER  :: sf = 8.0     ! sensitivity parameter, MPa-1
+  REAL, PARAMETER  :: psi_f = -2.0 ! reference potential for Tuzet model, MPa
 
-     num = 1.0 + exp(sf * psi_f)
-     den = 1.0 + exp(sf * (psi_f - psi_leaf))
-     fw = num / den
+  num = 1.0 + EXP(sf * psi_f)
+  den = 1.0 + EXP(sf * (psi_f - psi_leaf))
+  fw = num / den
 
-  END FUNCTION f_tuzet
-  ! ----------------------------------------------------------------------------
+END FUNCTION f_tuzet
+! ----------------------------------------------------------------------------
 
+! ----------------------------------------------------------------------------
+SUBROUTINE calc_hydr_conduc(canopy, ssnow, rad, i)
+  ! Calculate conductance terms (root to stem & stem to leaf)
+  !
+  ! Martin De Kauwe, 3rd June, 2019
 
-  ! ----------------------------------------------------------------------------
-  SUBROUTINE calc_hydr_conduc(canopy, ssnow, rad, i)
-     USE cable_common_module
-     USE cable_def_types_mod
+  USE cable_common_module
+  USE cable_def_types_mod
 
-     IMPLICIT NONE
+  IMPLICIT NONE
 
-     TYPE (canopy_type), INTENT(INOUT)    :: canopy
-     TYPE (soil_snow_type), INTENT(INOUT) :: ssnow
-     TYPE (radiation_type), INTENT(INOUT) :: rad
+  TYPE (canopy_type), INTENT(INOUT)    :: canopy
+  TYPE (soil_snow_type), INTENT(INOUT) :: ssnow
+  TYPE (radiation_type), INTENT(INOUT) :: rad
 
-     INTEGER, INTENT(IN) :: i ! patch
-     REAL, PARAMETER     :: kp_sat = 4.0 ! Tim Brodribb pers comm
-     REAL                :: ksoil, kroot2stem, kplant
+  INTEGER, INTENT(IN) :: i ! patch
+  REAL, PARAMETER     :: kp_sat = 4.0 ! Tim Brodribb pers comm
+  REAL                :: ksoil, kroot2stem, kplant
 
-     ! Convert total below ground resistance to leaf-specific resistance.
-     ! Belowground resistance is calculated on a ground area basis;
-     ! multiplying by LAI converts to leaf area. his assumes that each canopy
-     ! layer is connected to each soil layer, so that the roots in each soil
-     ! layer supply water to each canopy layer, and that the fraction of roots
-     ! supplying each canopy layer is the same as the leaf area in that layer.
-     IF (canopy%vlaiw(i) > 0.0) then
-        ssnow%tot_bg_resist(i) = ssnow%tot_bg_resist(i) * canopy%vlaiw(i)
-     END IF
+  ! Convert total below ground resistance to leaf-specific resistance.
+  ! Belowground resistance is calculated on a ground area basis;
+  ! multiplying by LAI converts to leaf area. his assumes that each canopy
+  ! layer is connected to each soil layer, so that the roots in each soil
+  ! layer supply water to each canopy layer, and that the fraction of roots
+  ! supplying each canopy layer is the same as the leaf area in that layer.
+  IF (canopy%vlaiw(i) > 0.0) THEN
+     ssnow%tot_bg_resist(i) = ssnow%tot_bg_resist(i) * canopy%vlaiw(i)
+  END IF
 
-     ! soil-to-root hydraulic conductance (mmol m-2 leaf area s-1 MPa-1)
-     ksoil = 1.0 / ssnow%tot_bg_resist(i)
+  ! soil-to-root hydraulic conductance (mmol m-2 leaf area s-1 MPa-1)
+  ksoil = 1.0 / ssnow%tot_bg_resist(i)
 
-     ! Plant hydraulic conductance (mmol m-2 s-1 MPa-1). NB. depends on stem
-     ! water potential from the previous timestep.
-     kplant = kp_sat * fsig_hydr(canopy%psi_stem_prev)
+  ! Plant hydraulic conductance (mmol m-2 s-1 MPa-1). NB. depends on stem
+  ! water potential from the previous timestep.
+  kplant = kp_sat * fsig_hydr(canopy%psi_stem_prev)
 
-     ! Conductance from root surface to the stem water pool (assumed to be
-     ! halfway to the leaves)
-     kroot2stem = 2.0 * kplant
+  ! Conductance from root surface to the stem water pool (assumed to be
+  ! halfway to the leaves)
+  kroot2stem = 2.0 * kplant
 
-     ! Conductance from soil to stem water store (mmol m-2 s-1 MPa-1)
-     canopy%ksoil2stem = 1.0 / (1.0 / ksoil + 1.0 / kroot2stem)
+  ! Conductance from soil to stem water store (mmol m-2 s-1 MPa-1)
+  canopy%ksoil2stem = 1.0 / (1.0 / ksoil + 1.0 / kroot2stem)
 
-     ! Conductance from stem water store to leaf (mmol m-2 s-1 MPa-1)
-     canopy%kstem2leaf = 2.0 * kplant
+  ! Conductance from stem water store to leaf (mmol m-2 s-1 MPa-1)
+  canopy%kstem2leaf = 2.0 * kplant
 
-  END SUBROUTINE calc_hydr_conduc
-  ! ----------------------------------------------------------------------------
+END SUBROUTINE calc_hydr_conduc
+! ----------------------------------------------------------------------------
 
-  ! ----------------------------------------------------------------------------
-  FUNCTION fsig_hydr(psi_stem_prev) RESULT(relk)
+! ----------------------------------------------------------------------------
+FUNCTION fsig_hydr(psi_stem_prev) RESULT(relk)
+  ! Calculate relative plant conductance as a function of xylem pressure
+  !
+  ! Martin De Kauwe, 3rd June, 2019
 
-     IMPLICIT NONE
+  IMPLICIT NONE
 
-     REAL :: X, PX, V, p, relk, p50, s50, PX50
-     REAL, INTENT(IN) :: psi_stem_prev
+  REAL             :: X, PX, V, p, relk, p50, s50, PX50
+  REAL, INTENT(IN) :: psi_stem_prev
 
-     X = 50.0     ! pressure loss (%)
-     p50 = -4.    ! xylem pressure inducing 50% loss of hydraulic
-                  ! conductivity due to embolism, MPa
-     s50 = 30.0   ! is slope of the curve at P50 used in weibull model, % MPa-1
+  X = 50.0     ! pressure loss (%)
+  p50 = -4.    ! xylem pressure inducing 50% loss of hydraulic
+               ! conductivity due to embolism, MPa
+  s50 = 30.0   ! is slope of the curve at P50 used in weibull model, % MPa-1
 
-     ! xylem pressure
-     PX = ABS(psi_stem_prev)
+  ! xylem pressure
+  PX = ABS(psi_stem_prev)
 
-     ! the xylem pressure (P) x% of the conductivity is lost
-     PX50 = ABS(p50)
+  ! the xylem pressure (P) x% of the conductivity is lost
+  PX50 = ABS(p50)
 
-     V = (X - 100.) * LOG(1.0 - X / 100.)
-     p = (PX / PX50)**((PX50 * s50) / V)
+  V = (X - 100.) * LOG(1.0 - X / 100.)
+  p = (PX / PX50)**((PX50 * s50) / V)
 
-     ! relative conductance (K/Kmax) as a funcion of xylem pressure
-     relk = (1. - X / 100.)**p
+  ! relative conductance (K/Kmax) as a funcion of xylem pressure
+  relk = (1. - X / 100.)**p
 
-  END FUNCTION fsig_hydr
-  ! ----------------------------------------------------------------------------
+END FUNCTION fsig_hydr
+! ----------------------------------------------------------------------------
 
-  ! ----------------------------------------------------------------------------
-  SUBROUTINE calc_flux_to_leaf(canopy, transpiration, dels, i)
-     ! Flux from stem to leaf = change in leaf storage, plus transpiration
-     USE cable_common_module
-     USE cable_def_types_mod
+! ----------------------------------------------------------------------------
+SUBROUTINE calc_flux_to_leaf(canopy, transpiration, dels, i)
+  ! Flux from stem to leaf = change in leaf storage, plus transpiration
+  !
+  ! Martin De Kauwe, 3rd June, 2019
 
-     IMPLICIT NONE
+  USE cable_common_module
+  USE cable_def_types_mod
 
-     TYPE (canopy_type), INTENT(INOUT)    :: canopy
+  IMPLICIT NONE
 
+  TYPE (canopy_type), INTENT(INOUT)    :: canopy
 
-     REAL, INTENT(IN) :: transpiration
-     REAL, INTENT(IN)               :: dels ! integration time setp (s)
-     INTEGER, INTENT(IN) :: i
+  REAL, INTENT(IN)    :: transpiration
+  REAL, INTENT(IN)    :: dels ! integration time step (s)
+  INTEGER, INTENT(IN) :: i
 
-     canopy%flux_to_leaf = (canopy%psi_leaf(i) - canopy%psi_leaf_prev) * &
-                            canopy%Cl / dels + canopy%vlaiw(i) * transpiration
-
-
-  END SUBROUTINE calc_flux_to_leaf
-  ! ----------------------------------------------------------------------------
-
-  ! ----------------------------------------------------------------------------
-  SUBROUTINE calc_flux_to_stem(canopy, dels, i)
-     ! Calculate the flux from the root to the stem, i.e. the root water
-     ! uptake (mmol s-1) = change in stem storage plus flux_to_leaf
-
-     USE cable_common_module
-     USE cable_def_types_mod
-
-     IMPLICIT NONE
-
-     TYPE (canopy_type), INTENT(INOUT)    :: canopy
-
-     INTEGER, INTENT(IN) :: i
-     REAL, INTENT(IN)               :: dels ! integration time setp (s)
-     REAL :: conv
-
-     !conv = 1E-06 * 18.
-
-     canopy%flux_to_stem(i) = ((canopy%psi_stem - canopy%psi_stem_prev) * &
-                               canopy%Cs / dels + canopy%flux_to_leaf)
-
-  END SUBROUTINE calc_flux_to_stem
-  ! ----------------------------------------------------------------------------
-
-  ! ----------------------------------------------------------------------------
-  SUBROUTINE update_stem_wp(canopy, ssnow, dels, i)
-     ! Calculate the flux from the stem to the leaf = change in leaf storage
-     ! plus transpiration
-     !
-     !  This is a simplified equation based on Xu et al., using the water
-     !  potentials from the previous timestep
-     !
-     ! Reference:
-     ! ==========
-     ! * Xu, X., Medvigy, D., Powers, J. S., Becknell, J. M. and Guan, K.
-     !   (2016), Diversity in plant hydraulic traits explains seasonal and
-     !    inter-annual variations of vegetation dynamics in seasonally dry
-     !    tropical forests. New Phytol, 212: 80–95. doi:10.1111/nph.14009.
-     !
-     ! Can write the dynamic equation as: dpsi_leaf_dt = b + a*psi_leaf
-     ! Then it follows (Xu et al. 2016, Appendix, and Code).”
-     ! Martin De Kauwe, 10th Oct, 2017
-
-     USE cable_common_module
-     USE cable_def_types_mod
-
-     IMPLICIT NONE
-
-     TYPE (canopy_type), INTENT(INOUT)    :: canopy
-     TYPE (soil_snow_type), INTENT(INOUT) :: ssnow
-
-     REAL :: ap, bp
-     REAL, INTENT(IN)               :: dels ! integration time setp (s)
-     INTEGER, INTENT(IN) :: i
-
-     ap = -(canopy%vlaiw(i) * canopy%ksoil2stem / canopy%Cs)
-     bp = (canopy%vlaiw(i) * canopy%ksoil2stem * canopy%psi_soil_prev - &
-           canopy%flux_to_leaf) / canopy%Cs
-
-     canopy%psi_stem = ((ap * canopy%psi_stem_prev + bp) * &
-                         EXP(ap * dels) - bp) / ap
+  canopy%flux_to_leaf = (canopy%psi_leaf(i) - canopy%psi_leaf_prev) * &
+                           canopy%Cl / dels + canopy%vlaiw(i) * transpiration
 
 
-  END SUBROUTINE update_stem_wp
-  ! ----------------------------------------------------------------------------
+END SUBROUTINE calc_flux_to_leaf
+! ----------------------------------------------------------------------------
+
+! ----------------------------------------------------------------------------
+SUBROUTINE calc_flux_to_stem(canopy, dels, i)
+  ! Calculate the flux from the root to the stem, i.e. the root water
+  ! uptake (mmol s-1) = change in stem storage plus flux_to_leaf
+  !
+  ! Martin De Kauwe, 3rd June, 2019
+
+  USE cable_common_module
+  USE cable_def_types_mod
+
+  IMPLICIT NONE
+
+  TYPE (canopy_type), INTENT(INOUT)    :: canopy
+
+  INTEGER, INTENT(IN) :: i
+  REAL, INTENT(IN)    :: dels ! integration time step (s)
+
+  canopy%flux_to_stem(i) = ((canopy%psi_stem - canopy%psi_stem_prev) * &
+                              canopy%Cs / dels + canopy%flux_to_leaf)
+
+END SUBROUTINE calc_flux_to_stem
+! ----------------------------------------------------------------------------
+
+! ----------------------------------------------------------------------------
+SUBROUTINE update_stem_wp(canopy, ssnow, dels, i)
+  ! Calculate the flux from the stem to the leaf = change in leaf storage
+  ! plus transpiration
+  !
+  !  This is a simplified equation based on Xu et al., using the water
+  !  potentials from the previous timestep
+  !
+  ! Reference:
+  ! ==========
+  ! * Xu, X., Medvigy, D., Powers, J. S., Becknell, J. M. and Guan, K.
+  !   (2016), Diversity in plant hydraulic traits explains seasonal and
+  !    inter-annual variations of vegetation dynamics in seasonally dry
+  !    tropical forests. New Phytol, 212: 80–95. doi:10.1111/nph.14009.
+  !
+  ! Can write the dynamic equation as: dpsi_leaf_dt = b + a*psi_leaf
+  ! Then it follows (Xu et al. 2016, Appendix, and Code).”
+  !
+  ! Martin De Kauwe, 3rd June, 2019
+
+  USE cable_common_module
+  USE cable_def_types_mod
+
+  IMPLICIT NONE
+
+  TYPE (canopy_type), INTENT(INOUT)    :: canopy
+  TYPE (soil_snow_type), INTENT(INOUT) :: ssnow
+
+  REAL                :: ap, bp
+  REAL, INTENT(IN)    :: dels ! integration time step (s)
+  INTEGER, INTENT(IN) :: i
+
+  ap = -(canopy%vlaiw(i) * canopy%ksoil2stem / canopy%Cs)
+  bp = (canopy%vlaiw(i) * canopy%ksoil2stem * canopy%psi_soil_prev - &
+         canopy%flux_to_leaf) / canopy%Cs
+
+  canopy%psi_stem = ((ap * canopy%psi_stem_prev + bp) * &
+                        EXP(ap * dels) - bp) / ap
 
 
-  ! ----------------------------------------------------------------------------
-  SUBROUTINE calc_psi_leaf(canopy, transpiration, dels, i)
-     ! Calculate the leaf water potential (MPa)
-     ! Following Xu et al, see Appendix + code
-     !
-     ! Reference:
-     ! ==========
-     ! * Xu, X., Medvigy, D., Powers, J. S., Becknell, J. M. and Guan, K.
-     !   (2016), Diversity in plant hydraulic traits explains seasonal and
-     !    inter-annual variations of vegetation dynamics in seasonally dry
-     !    tropical forests. New Phytol, 212: 80–95. doi:10.1111/nph.14009.
-     !
-     ! Can write the dynamic equation as: dpsi_leaf_dt = b + a*psi_leaf
-     ! Then it follows (Xu et al. 2016, Appendix, and Code).”
-     ! Martin De Kauwe, 10th Oct, 2017
+END SUBROUTINE update_stem_wp
+! ----------------------------------------------------------------------------
 
-     USE cable_common_module
-     USE cable_def_types_mod
 
-     IMPLICIT NONE
+! ----------------------------------------------------------------------------
+SUBROUTINE calc_psi_leaf(canopy, transpiration, dels, i)
+  ! Calculate the leaf water potential (MPa)
+  ! Following Xu et al, see Appendix + code
+  !
+  ! Reference:
+  ! ==========
+  ! * Xu, X., Medvigy, D., Powers, J. S., Becknell, J. M. and Guan, K.
+  !   (2016), Diversity in plant hydraulic traits explains seasonal and
+  !    inter-annual variations of vegetation dynamics in seasonally dry
+  !    tropical forests. New Phytol, 212: 80–95. doi:10.1111/nph.14009.
+  !
+  ! Can write the dynamic equation as: dpsi_leaf_dt = b + a*psi_leaf
+  ! Then it follows (Xu et al. 2016, Appendix, and Code).”
+  !
+  ! Martin De Kauwe, 3rd June, 2019
 
-     TYPE (canopy_type), INTENT(INOUT)    :: canopy
+  USE cable_common_module
+  USE cable_def_types_mod
 
-     INTEGER, INTENT(IN) :: i
-     REAL, INTENT(IN) :: transpiration
-     REAL :: psi_leaf_prev, psi_stem_prev, ap, bp
-     REAL, INTENT(IN) :: dels ! integration time setp (s)
+  IMPLICIT NONE
 
-     ap = -(canopy%vlaiw(i) * canopy%kstem2leaf / canopy%Cl)
-     bp = (canopy%vlaiw(i) * canopy%kstem2leaf * canopy%psi_stem_prev - &
-            canopy%vlaiw(i) * transpiration) / canopy%Cl
+  TYPE (canopy_type), INTENT(INOUT)    :: canopy
 
-     canopy%psi_leaf(i) = ((ap * canopy%psi_leaf_prev + bp) *  &
-                          EXP(ap * dels) - bp) / ap
+  INTEGER, INTENT(IN) :: i
+  REAL, INTENT(IN)    :: transpiration
+  REAL                :: psi_leaf_prev, psi_stem_prev, ap, bp
+  REAL, INTENT(IN)    :: dels ! integration time step (s)
 
-  END SUBROUTINE calc_psi_leaf
-  ! ----------------------------------------------------------------------------
+  ap = -(canopy%vlaiw(i) * canopy%kstem2leaf / canopy%Cl)
+  bp = (canopy%vlaiw(i) * canopy%kstem2leaf * canopy%psi_stem_prev - &
+         canopy%vlaiw(i) * transpiration) / canopy%Cl
+
+  canopy%psi_leaf(i) = ((ap * canopy%psi_leaf_prev + bp) *  &
+                           EXP(ap * dels) - bp) / ap
+
+END SUBROUTINE calc_psi_leaf
+! ----------------------------------------------------------------------------
 
 END MODULE cable_canopy_module
