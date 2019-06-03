@@ -1606,45 +1606,46 @@ SUBROUTINE remove_trans(dels, soil, ssnow, canopy, veg, doy)
 
    IF (cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
 
-      ! This follows the default extraction logic, but instead of weighting
-      ! by froot, we are weighting by the frac uptake we calculated when we
-      ! were weighting the soil water potential.
-      !
-      ! Martin De Kauwe, 22/02/19
+     ! This follows the default extraction logic, but instead of weighting
+     ! by froot, we are weighting by the frac uptake we calculated when we
+     ! were weighting the soil water potential.
+     !
+     ! Martin De Kauwe, 22/02/19
 
-      needed = 0._r_2
-      difference = 0._r_2
-      available = 0._r_2
+     needed = 0._r_2
+     difference = 0._r_2
+     available = 0._r_2
 
-      DO k = 1, ms
-         IF (canopy%fevc(1) > 0.0) THEN
+     DO k = 1, ms
+        IF (canopy%fevc > 0.0) THEN
 
-            ! Calculate the amount of water we wish to extract from each
-            ! layer, kg/m2
-            needed = canopy%fevc(1) * dels / C%HL * &
-                        ssnow%fraction_uptake(1,k)
+           ! Calculate the amount of water we wish to extract from each
+           ! layer, kg/m2
+           needed = canopy%fevc * dels / C%HL * &
+                        ssnow%fraction_uptake(:,k)
 
-            ! Calculate the amount of water available in the layer
-            available = max(0.0, ssnow%wb(1,k) - soil%swilt(1)) * &
+           ! Calculate the amount of water available in the layer
+           available = MAX(0.0, ssnow%wb(:,k) - soil%swilt) * &
+                           (soil%zse(k) * C%density_liq)
+
+           difference = available - needed
+
+           ! Calculate new layer water balance
+           IF (difference < 0.0) THEN
+              ! We don't have sufficent water to supply demand, extract only
+              ! the remaining SW in the layer
+              ssnow%wb(1,k) = ssnow%wb(:,k) - available / &
                                  (soil%zse(k) * C%density_liq)
-
-            difference = available - needed
-
-            ! Calculate new layer water balance
-            IF (difference < 0.0) THEN
-               ! We don't have sufficent water to supply demand, extract only
-               ! the remaining SW in the layer
-               ssnow%wb(1,k) = ssnow%wb(1,k) - available / &
+           ELSE
+              ! We have sufficent water to supply demand, extract needed SW
+              ! from the layer
+              ssnow%wb(:,k) = ssnow%wb(:,k) - needed / &
                                  (soil%zse(k) * C%density_liq)
-            ELSE
-               ! We have sufficent water to supply demand, extract needed SW
-               ! from the layer
-               ssnow%wb(1,k) = ssnow%wb(1,k) - needed / &
-                                 (soil%zse(k) * C%density_liq)
-            END IF
+           END IF
 
-         END IF   !fvec > 0
-      END DO   !ms
+        END IF   !fvec > 0
+     END DO   !ms
+
 
    ELSE IF (cable_user%FWSOIL_switch.ne.'Haverd2013') THEN
      xx = 0.; xxd = 0.; diff(:,:) = 0.
