@@ -1600,7 +1600,8 @@ SUBROUTINE remove_trans(dels, soil, ssnow, canopy, veg, doy)
    REAL, INTENT(IN)              :: dels ! integration time step (s)
    REAL(r_2), DIMENSION(mp,0:ms) :: diff
    REAL(r_2), DIMENSION(mp)      :: xx,xxd
-   REAL(r_2)                     :: needed, difference, available
+   REAL(r_2), DIMENSION(mp)      :: needed, available, difference
+
 
    INTEGER                       :: k, i
 
@@ -1617,7 +1618,7 @@ SUBROUTINE remove_trans(dels, soil, ssnow, canopy, veg, doy)
      available = 0._r_2
 
      DO k = 1, ms
-        IF (canopy%fevc > 0.0) THEN
+        WHERE (canopy%fevc > 0.0)
 
            ! Calculate the amount of water we wish to extract from each
            ! layer, kg/m2
@@ -1631,19 +1632,19 @@ SUBROUTINE remove_trans(dels, soil, ssnow, canopy, veg, doy)
            difference = available - needed
 
            ! Calculate new layer water balance
-           IF (difference < 0.0) THEN
+           WHERE (difference < 0.0)
               ! We don't have sufficent water to supply demand, extract only
               ! the remaining SW in the layer
-              ssnow%wb(1,k) = ssnow%wb(:,k) - available / &
+              ssnow%wb(:,k) = ssnow%wb(:,k) - available / &
                                  (soil%zse(k) * C%density_liq)
-           ELSE
+           ELSEWHERE
               ! We have sufficent water to supply demand, extract needed SW
               ! from the layer
               ssnow%wb(:,k) = ssnow%wb(:,k) - needed / &
                                  (soil%zse(k) * C%density_liq)
-           END IF
+           ENDWHERE
 
-        END IF   !fvec > 0
+        END WHERE   !fvec > 0
      END DO   !ms
 
 
