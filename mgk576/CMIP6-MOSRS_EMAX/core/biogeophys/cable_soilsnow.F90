@@ -1606,45 +1606,45 @@ SUBROUTINE remove_trans(dels, soil, ssnow, canopy, veg, doy)
 
    IF (cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
 
-      ! This follows the default extraction logic, but instead of weighting
-      ! by froot, we are weighting by the frac uptake we calculated when we
-      ! were weighting the soil water potential.
-      !
-      ! Martin De Kauwe, 22/02/19
+     ! This follows the default extraction logic, but instead of weighting
+     ! by froot, we are weighting by the frac uptake we calculated when we
+     ! were weighting the soil water potential.
+     !
+     ! Martin De Kauwe, 22/02/19
 
-      needed = 0._r_2
-      difference = 0._r_2
-      available = 0._r_2
+     needed = 0._r_2
+     difference = 0._r_2
+     available = 0._r_2
 
-      DO k = 1, ms
-         IF (canopy%fevc(1) > 0.0) THEN
+     DO k = 1, ms
+        IF (canopy%fevc > 0.0) THEN
 
-            ! Calculate the amount of water we wish to extract from each
-            ! layer, kg/m2
-            needed = canopy%fevc(1) * dels / C%HL * &
-                        ssnow%fraction_uptake(1,k)
+           ! Calculate the amount of water we wish to extract from each
+           ! layer, kg/m2
+           needed = canopy%fevc * dels / C%HL * &
+                        ssnow%fraction_uptake(:,k)
 
-            ! Calculate the amount of water available in the layer
-            available = max(0.0, ssnow%wb(1,k) - soil%swilt(1)) * &
+           ! Calculate the amount of water available in the layer
+           available = MAX(0.0, ssnow%wb(:,k) - soil%swilt) * &
+                           (soil%zse(k) * C%density_liq)
+
+           difference = available - needed
+
+           ! Calculate new layer water balance
+           IF (difference < 0.0) THEN
+              ! We don't have sufficent water to supply demand, extract only
+              ! the remaining SW in the layer
+              ssnow%wb(1,k) = ssnow%wb(:,k) - available / &
                                  (soil%zse(k) * C%density_liq)
-
-            difference = available - needed
-
-            ! Calculate new layer water balance
-            IF (difference < 0.0) THEN
-               ! We don't have sufficent water to supply demand, extract only
-               ! the remaining SW in the layer
-               ssnow%wb(1,k) = ssnow%wb(1,k) - available / &
+           ELSE
+              ! We have sufficent water to supply demand, extract needed SW
+              ! from the layer
+              ssnow%wb(:,k) = ssnow%wb(:,k) - needed / &
                                  (soil%zse(k) * C%density_liq)
-            ELSE
-               ! We have sufficent water to supply demand, extract needed SW
-               ! from the layer
-               ssnow%wb(1,k) = ssnow%wb(1,k) - needed / &
-                                 (soil%zse(k) * C%density_liq)
-            END IF
+           END IF
 
-         END IF   !fvec > 0
-      END DO   !ms
+        END IF   !fvec > 0
+     END DO   !ms
 
    ELSE IF (cable_user%FWSOIL_switch.ne.'Haverd2013') THEN
      xx = 0.; xxd = 0.; diff(:,:) = 0.
@@ -2693,13 +2693,9 @@ END SUBROUTINE calc_soil_root_resistance
 
 ! ----------------------------------------------------------------------------
 SUBROUTINE calc_swp(ssnow, soil, i)
-  ! Calculate the soil water potential. Mark does this, but we need this
-  ! information earlier in the code so that we can figure out the
-  ! root extraction for transpiration.
+  ! Calculate the soil water potential.
   !
-  ! There is a probably a better way to rework Mark's logic - speak to him.
-  !
-  ! Martin De Kauwe, 16th Oct, 2017
+  ! Martin De Kauwe, 3rd June, 2019
 
   USE cable_def_types_mod
   USE cable_common_module
@@ -2712,6 +2708,10 @@ SUBROUTINE calc_swp(ssnow, soil, i)
   INTEGER             :: j
   INTEGER, INTENT(IN) :: i
   REAL                :: psi_sat_mpa, t_over_t_sat, cond_per_layer
+  REAL, PARAMETER     :: sucmin  = -1E5 ! minimum soil pressure head [m]
+
+  REAL, PARAMETER :: KPA_2_MPa = 0.001
+  REAL, PARAMETER :: M_HEAD_TO_MPa = 9.8 * KPA_2_MPa
 
   ssnow%psi_soil(:,:) = 0.0
 
@@ -2724,15 +2724,22 @@ SUBROUTINE calc_swp(ssnow, soil, i)
      ! based on the wilting point. This really only an issue for the v.top
      ! two layers and has negligble impact on the weighted psi_soil which is
      ! what is used anyway, but for aesthetics...
-     IF ( ssnow%wb(i,j) < soil%swilt(i) ) THEN
-        t_over_t_sat = MAX(1.0e-9, MIN(1.0, soil%swilt(i) / soil%ssat(i)))
-        ssnow%psi_soil(i,j) = psi_sat_mpa * t_over_t_sat**(-soil%bch(i))
-     ELSE
-        t_over_t_sat = MAX(1.0e-9, MIN(1.0, ssnow%wb(i,j) / soil%ssat(i)))
-        ssnow%psi_soil(i,j) = psi_sat_mpa * t_over_t_sat**(-soil%bch(i))
-     END IF
+     !IF ( ssnow%wb(i,j) < soil%swilt(i) ) THEN
+   !     t_over_t_sat = MAX(1.0e-9, MIN(1.0, soil%swilt(i) / soil%ssat(i)))
+   !     ssnow%psi_soil(i,j) = psi_sat_mpa * t_over_t_sat**(-soil%bch(i))
+    ! ELSE
+      !  t_over_t_sat = MAX(1.0e-9, MIN(1.0, ssnow%wb(i,j) / soil%ssat(i)))
+       ! ssnow%psi_soil(i,j) = psi_sat_mpa * t_over_t_sat**(-soil%bch(i))
+     !END IF
      !t_over_t_sat = MAX(1.0e-9, MIN(1.0, ssnow%wb(i,j) / soil%ssat(i)))
      !ssnow%psi_soil(i,j) = psi_sat_mpa * t_over_t_sat**(-soil%bch(i))
+
+     t_over_t_sat = MAX(1.0e-9, MIN(1.0, ssnow%wb(i,j) / soil%ssat(i)))
+     ssnow%psi_soil(i,j) = soil%sucs(i) * t_over_t_sat**(-soil%bch(i))
+     ssnow%psi_soil(i,j) = MAX(MIN(ssnow%psi_soil(i,j), soil%sucs(i)), sucmin)
+
+     ! Convert psi_soil: m/s -> MPa
+     ssnow%psi_soil(i,j) = ssnow%psi_soil(i,j) * M_HEAD_TO_MPa
 
   END DO
 
@@ -2788,7 +2795,7 @@ SUBROUTINE calc_weighted_swp_and_frac_uptake(ssnow, soil, canopy, &
 
      IF (ssnow%soilR(i,j) .GT. 0.0) THEN
         est_evap(j) = MAX(0.0, &
-             (ssnow%psi_soil(i,j) - min_lwp) / ssnow%soilR(i,j))
+                           (ssnow%psi_soil(i,j) - min_lwp) / ssnow%soilR(i,j))
      ELSE
         est_evap(j) = 0.0 ! when no roots present
      ENDIF
@@ -2799,7 +2806,7 @@ SUBROUTINE calc_weighted_swp_and_frac_uptake(ssnow, soil, canopy, &
 
      ! Soil water potential weighted by layer Emax (from SPA)
      ssnow%weighted_psi_soil(i) = ssnow%weighted_psi_soil(i) + &
-          ssnow%psi_soil(i,j) * est_evap(j)
+                                    ssnow%psi_soil(i,j) * est_evap(j)
   END DO
   total_est_evap = SUM(est_evap)
 
@@ -2811,7 +2818,7 @@ SUBROUTINE calc_weighted_swp_and_frac_uptake(ssnow, soil, canopy, &
      ssnow%weighted_psi_soil(i) = 0.0
      DO j = 1, ms ! Loop over 6 soil layers
         ssnow%weighted_psi_soil(i) = ssnow%weighted_psi_soil(i) + &
-             ssnow%psi_soil(i,j) * soil%zse(j)
+                                       ssnow%psi_soil(i,j) * soil%zse(j)
      END DO
      ssnow%weighted_psi_soil(i) = ssnow%weighted_psi_soil(i) / SUM(soil%zse)
   END IF
@@ -2827,7 +2834,7 @@ SUBROUTINE calc_weighted_swp_and_frac_uptake(ssnow, soil, canopy, &
            ! (see calc_soil_root_resistance), then frac_uptake will be so
            ! small you end up with numerical issues.
            ssnow%fraction_uptake(i,j) = MAX(1E-09, &
-                est_evap(j) / total_est_evap)
+                                             est_evap(j) / total_est_evap)
 
            IF ((ssnow%fraction_uptake(i,j) > 1.0) .OR. &
                 (ssnow%fraction_uptake(i,j) < 0.0)) THEN
@@ -2861,7 +2868,7 @@ SUBROUTINE calc_weighted_swp_and_frac_uptake(ssnow, soil, canopy, &
      IF (SUM(ssnow%fraction_uptake) .GT. 0) THEN
         ! Make sure that it sums to 1.
         ssnow%fraction_uptake = ssnow%fraction_uptake / &
-             SUM(ssnow%fraction_uptake)
+                                    SUM(ssnow%fraction_uptake)
      ELSE
         ssnow%fraction_uptake = 0.0
      ENDIF
