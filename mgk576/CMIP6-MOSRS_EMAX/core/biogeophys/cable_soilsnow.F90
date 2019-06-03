@@ -2651,7 +2651,7 @@ SUBROUTINE calc_soil_root_resistance(ssnow, soil, veg, bgc, root_length, i)
 
      ! Soil Hydraulic conductivity (m s-1), Campbell 1974
      Ksoil = soil%hyds(i) * (ssnow%wb(i,j) / &
-          soil%ssat(i))**(2.0 * soil%bch(i) + 3.0)
+               soil%ssat(i))**(2.0 * soil%bch(i) + 3.0)
 
      ! converts from m s-1 to m2 s-1 MPa-1
      Ksoil = Ksoil / head
@@ -2721,7 +2721,9 @@ SUBROUTINE calc_swp(ssnow, soil, i)
   DO j = 1, ms ! Loop over 6 soil layers
      ! Below the wilting point (-1.5 MPa) the water potential drops to
      ! silly value, if we enter this territory set the soil water potential
-     ! based on the wilting point
+     ! based on the wilting point. This really only an issue for the v.top
+     ! two layers and has negligble impact on the weighted psi_soil which is
+     ! what is used anyway, but for aesthetics...
      IF ( ssnow%wb(i,j) < soil%swilt(i) ) THEN
         t_over_t_sat = MAX(1.0e-9, MIN(1.0, soil%swilt(i) / soil%ssat(i)))
         ssnow%psi_soil(i,j) = psi_sat_mpa * t_over_t_sat**(-soil%bch(i))
@@ -2731,7 +2733,6 @@ SUBROUTINE calc_swp(ssnow, soil, i)
      END IF
      !t_over_t_sat = MAX(1.0e-9, MIN(1.0, ssnow%wb(i,j) / soil%ssat(i)))
      !ssnow%psi_soil(i,j) = psi_sat_mpa * t_over_t_sat**(-soil%bch(i))
-
 
   END DO
 
