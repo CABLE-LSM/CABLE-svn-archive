@@ -2722,19 +2722,9 @@ SUBROUTINE calc_swp(ssnow, soil, i)
 
   DO j = 1, ms ! Loop over 6 soil layers
      ! Below the wilting point (-1.5 MPa) the water potential drops to
-     ! silly value, if we enter this territory set the soil water potential
-     ! based on the wilting point. This really only an issue for the v.top
+     ! silly value. This really only an issue for the v.top
      ! two layers and has negligble impact on the weighted psi_soil which is
      ! what is used anyway, but for aesthetics...
-     !IF ( ssnow%wb(i,j) < soil%swilt(i) ) THEN
-   !     t_over_t_sat = MAX(1.0e-9, MIN(1.0, soil%swilt(i) / soil%ssat(i)))
-   !     ssnow%psi_soil(i,j) = psi_sat_mpa * t_over_t_sat**(-soil%bch(i))
-    ! ELSE
-      !  t_over_t_sat = MAX(1.0e-9, MIN(1.0, ssnow%wb(i,j) / soil%ssat(i)))
-       ! ssnow%psi_soil(i,j) = psi_sat_mpa * t_over_t_sat**(-soil%bch(i))
-     !END IF
-     !t_over_t_sat = MAX(1.0e-9, MIN(1.0, ssnow%wb(i,j) / soil%ssat(i)))
-     !ssnow%psi_soil(i,j) = psi_sat_mpa * t_over_t_sat**(-soil%bch(i))
 
      t_over_t_sat = MAX(1.0e-9, MIN(1.0, ssnow%wb(i,j) / soil%ssat(i)))
      ssnow%psi_soil(i,j) = soil%sucs(i) * t_over_t_sat**(-soil%bch(i))
