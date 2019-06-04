@@ -2662,7 +2662,7 @@ SUBROUTINE calc_soil_root_resistance(ssnow, soil, veg, bgc, root_length, i)
 
         ! Soil-to-root resistance (MPa s m2 mmol-1 H2O)
         soil_resist = LOG(rs / root_radius) / &
-             (2.0 * pi * root_length(j) * soil%zse(j) * Ksoil)
+                           (2.0 * pi * root_length(j) * soil%zse(j) * Ksoil)
 
         ! convert from MPa s m2 m-3 to MPa s m2 mmol-1
         soil_resist = soil_resist * 1E-6 * 18. * 0.001
