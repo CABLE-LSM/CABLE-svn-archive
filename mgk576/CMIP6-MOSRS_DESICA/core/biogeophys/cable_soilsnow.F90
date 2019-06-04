@@ -2774,7 +2774,10 @@ SUBROUTINE calc_weighted_swp_and_frac_uptake(ssnow, soil, canopy, &
   REAL, PARAMETER :: MM_TO_M = 0.001
   REAL, PARAMETER :: KPA_2_MPa = 0.001
   REAL, PARAMETER :: M_HEAD_TO_MPa = 9.8 * KPA_2_MPa
-  REAL, PARAMETER :: min_lwp = -2.0 ! we obv need to pass this
+
+  ! the minimum root water potential (MPa), used in determining fractional
+  ! water uptake in soil layers
+  REAL, PARAMETER :: min_root_wp = -3
 
   REAL, DIMENSION(ms)            :: swp, est_evap
   REAL, DIMENSION(:), INTENT(IN) :: root_length
@@ -2797,7 +2800,8 @@ SUBROUTINE calc_weighted_swp_and_frac_uptake(ssnow, soil, canopy, &
 
      IF (ssnow%soilR(i,j) .GT. 0.0) THEN
         est_evap(j) = MAX(0.0, &
-                           (ssnow%psi_soil(i,j) - min_lwp) / ssnow%soilR(i,j))
+                          (ssnow%psi_soil(i,j) - min_root_wp) / &
+                           ssnow%soilR(i,j))
      ELSE
         est_evap(j) = 0.0 ! when no roots present
      ENDIF
@@ -2859,7 +2863,7 @@ SUBROUTINE calc_weighted_swp_and_frac_uptake(ssnow, soil, canopy, &
      DO j = 1, ms ! Loop over 6 soil layers
 
         IF (total_est_evap .GT. 0.) THEN
-           swp_diff = MAX(0., (ssnow%psi_soil(i,j) - min_lwp))
+           swp_diff = MAX(0., (ssnow%psi_soil(i,j) - min_root_wp))
            ssnow%fraction_uptake(i,j) = root_length(j) * swp_diff
         ELSE
            ! no water uptake possible
