@@ -2713,6 +2713,7 @@ SUBROUTINE calc_swp(ssnow, soil, i)
   psi_sat = soil%sucs(i) * M_HEAD_TO_MPa
 
   DO j = 1, ms ! Loop over 6 soil layers
+
      ! Below the wilting point (-1.5 MPa) the water potential drops to
      ! silly value. This really only an issue for the v.top
      ! two layers and has negligble impact on the weighted psi_soil which is
@@ -2720,6 +2721,7 @@ SUBROUTINE calc_swp(ssnow, soil, i)
      t_over_t_sat = MAX(1.0e-9, MIN(1.0, ssnow%wb(i,j) / soil%ssat(i)))
      ssnow%psi_soil(i,j) = psi_sat * t_over_t_sat**(-soil%bch(i))
      ssnow%psi_soil(i,j) = MAX(MIN(ssnow%psi_soil(i,j), soil%sucs(i)), sucmin)
+
   END DO
 
 END SUBROUTINE calc_swp
@@ -2811,6 +2813,7 @@ SUBROUTINE calc_weighted_swp_and_frac_uptake(ssnow, soil, canopy, &
 
      IF (total_est_evap > 0.0) THEN
         DO j = 1, ms ! Loop over 6 soil layers
+
            ! fraction of water taken from layer, I've lower bounded frac
            ! uptake because when soilR is set to a huge number
            ! (see calc_soil_root_resistance), then frac_uptake will be so
@@ -2823,6 +2826,7 @@ SUBROUTINE calc_weighted_swp_and_frac_uptake(ssnow, soil, canopy, &
               PRINT *, 'Problem with the uptake fraction (either >1 or 0<)'
               STOP
            END IF
+
         END DO
      ELSE
         ! No water was evaporated
