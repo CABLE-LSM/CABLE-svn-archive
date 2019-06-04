@@ -2626,16 +2626,8 @@ SUBROUTINE calc_soil_root_resistance(ssnow, soil, veg, bgc, root_length, i)
   ! Always provide a minimum root biomass
   root_biomass = MAX(5., root_biomass)
 
-  !root_depth = sum(soil%zse) * root_biomass / (root_k + root_biomass)
-
-  ! New representation of root resistance following Hacke et al.
-  ! Root resistance in a layer is proportional to 1/rootmass and proportional
-  ! to root length (i.e. depth of layer)
   root_length = 0.0
   DO j = 1, ms ! Loop over 6 soil layers
-
-     ! Depth to middle of layer (ca. root path length)
-     depth(j) = SUM(soil%zse(1:j)) - soil%zse(j) / 2.
 
      ! Root biomass density (g biomass m-3 soil)
      ! Divide root mass up by the frac roots in the layer (g m-3)
@@ -2724,8 +2716,7 @@ SUBROUTINE calc_swp(ssnow, soil, i)
      ! Below the wilting point (-1.5 MPa) the water potential drops to
      ! silly value. This really only an issue for the v.top
      ! two layers and has negligble impact on the weighted psi_soil which is
-     ! what is used anyway, but for aesthetics...
-
+     ! what is used anyway
      t_over_t_sat = MAX(1.0e-9, MIN(1.0, ssnow%wb(i,j) / soil%ssat(i)))
      ssnow%psi_soil(i,j) = soil%sucs(i) * t_over_t_sat**(-soil%bch(i))
      ssnow%psi_soil(i,j) = MAX(MIN(ssnow%psi_soil(i,j), soil%sucs(i)), sucmin)
