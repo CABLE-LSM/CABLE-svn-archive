@@ -2701,16 +2701,16 @@ SUBROUTINE calc_swp(ssnow, soil, i)
 
   INTEGER             :: j
   INTEGER, INTENT(IN) :: i
-  REAL                :: psi_sat_mpa, t_over_t_sat, cond_per_layer
-  REAL, PARAMETER     :: sucmin  = -1E5 ! minimum soil pressure head [m]
+  REAL                :: psi_sat, t_over_t_sat, cond_per_layer
+  REAL, PARAMETER     :: sucmin = -1E5 ! minimum soil pressure head [m]
 
   REAL, PARAMETER :: KPA_2_MPa = 0.001
   REAL, PARAMETER :: M_HEAD_TO_MPa = 9.8 * KPA_2_MPa
 
-  ssnow%psi_soil(:,:) = 0.0
+  ssnow%psi_soil(:,:) = 0.0 ! MPa
 
   ! Soil matric potential at saturation (m of head to MPa: 9.81 * KPA_2_MPA)
-  psi_sat_mpa = soil%sucs(i) * 9.81 * 0.001
+  psi_sat = soil%sucs(i) * M_HEAD_TO_MPa
 
   DO j = 1, ms ! Loop over 6 soil layers
      ! Below the wilting point (-1.5 MPa) the water potential drops to
@@ -2718,12 +2718,8 @@ SUBROUTINE calc_swp(ssnow, soil, i)
      ! two layers and has negligble impact on the weighted psi_soil which is
      ! what is used anyway
      t_over_t_sat = MAX(1.0e-9, MIN(1.0, ssnow%wb(i,j) / soil%ssat(i)))
-     ssnow%psi_soil(i,j) = soil%sucs(i) * t_over_t_sat**(-soil%bch(i))
+     ssnow%psi_soil(i,j) = psi_sat * t_over_t_sat**(-soil%bch(i))
      ssnow%psi_soil(i,j) = MAX(MIN(ssnow%psi_soil(i,j), soil%sucs(i)), sucmin)
-
-     ! Convert psi_soil: m/s -> MPa
-     ssnow%psi_soil(i,j) = ssnow%psi_soil(i,j) * M_HEAD_TO_MPa
-
   END DO
 
 END SUBROUTINE calc_swp
@@ -2756,7 +2752,7 @@ SUBROUTINE calc_weighted_swp_and_frac_uptake(ssnow, soil, canopy, &
   REAL, PARAMETER :: KPA_2_MPa = 0.001
   REAL, PARAMETER :: M_HEAD_TO_MPa = 9.8 * KPA_2_MPa
 
-  ! the minimum root water potential (MPa), used in determining fractional
+  ! The minimum root water potential (MPa), used in determining fractional
   ! water uptake in soil layers
   REAL, PARAMETER :: min_root_wp = -3
 
@@ -2781,8 +2777,7 @@ SUBROUTINE calc_weighted_swp_and_frac_uptake(ssnow, soil, canopy, &
 
      IF (ssnow%soilR(i,j) .GT. 0.0) THEN
         est_evap(j) = MAX(0.0, &
-                          (ssnow%psi_soil(i,j) - min_root_wp) / &
-                           ssnow%soilR(i,j))
+                          (ssnow%psi_soil(i,j) - min_root_wp) / ssnow%soilR(i,j))
      ELSE
         est_evap(j) = 0.0 ! when no roots present
      ENDIF
