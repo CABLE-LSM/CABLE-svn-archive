@@ -2622,6 +2622,15 @@ SUBROUTINE calc_soil_root_resistance(ssnow, soil, veg, bgc, root_length, i)
   INTEGER :: j
   INTEGER, PARAMETER :: ROOT_INDEX = 3
 
+  REAL               :: ht, stem_biomass
+  REAL, PARAMETER    :: Kbiometric = 50.0 ! cst in height-diameter relationship
+  REAL, PARAMETER    :: WD = 300.0 ! Wood density kgC/m3
+  INTEGER, PARAMETER :: STEM_INDEX = 2
+
+  stem_biomass = bgc%cplant(i,STEM_INDEX) * gC2DM
+  ht = (Kbiometric**(3.0/4.0))*(4.*stem_biomass/(WD*PI))**(1.0/4.0)
+  !print*, ht
+
   ! convert from gC to g biomass, i.e. twice the C content
   root_biomass = bgc%cplant(i,ROOT_INDEX) * gC2DM
 
