@@ -2615,13 +2615,15 @@ SUBROUTINE calc_soil_root_resistance(ssnow, soil, veg, bgc, root_length, i)
 
 
   REAL, DIMENSION(:), INTENT(INOUT) :: root_length
+  ! ratio Dry matter mass to g(C)
+  REAL, PARAMETER                   :: gC2DM = 1./0.49
 
   INTEGER, INTENT(IN) :: i
   INTEGER :: j
   INTEGER, PARAMETER :: ROOT_INDEX = 3
 
   ! convert from gC to g biomass, i.e. twice the C content
-  root_biomass = bgc%cplant(i,ROOT_INDEX) * 2.
+  root_biomass = bgc%cplant(i,ROOT_INDEX) * gC2DM
 
   ! Always provide a minimum root biomass
   root_biomass = MAX(5., root_biomass)
