@@ -374,12 +374,8 @@ MODULE cable_IO_vars_module
          WB_hys=.false.,&
          SSAT_hys=.false.,&
          WATR_hys=.false.,&
-         hys_fac=.false.,&
-         GWzq=.false., & ! MMY
-         GWwbeq=.false.,&! MMY
-         zq=.false.,&    ! MMY
-         wbeq=.false.    ! MMY
-     
+         hys_fac=.false.
+
 
    END TYPE output_inclusion_type
 
