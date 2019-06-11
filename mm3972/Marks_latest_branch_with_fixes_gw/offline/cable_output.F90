@@ -70,9 +70,7 @@ MODULE cable_output_module
                     PlantTurnoverWood, PlantTurnoverWoodDist, PlantTurnoverWoodCrowding, &
                     PlantTurnoverWoodResourceLim, dCdt, Area, LandUseFlux, patchfrac, &
                     vcmax,hc,WatTable,GWMoist,SatFrac,Qrecharge,SMP,SMP_hys,WB_hys,SSAT_hys,&
-                    WATR_hys,hys_fac,                                         &
-                    GWwbeq,GWzq,wbeq,zq                                      ! MMY
-
+                    WATR_hys,hys_fac
   END TYPE out_varID_type
   TYPE(out_varID_type) :: ovid ! netcdf variable IDs for output variables
   TYPE(parID_type) :: opid ! netcdf variable IDs for output variables
@@ -237,12 +235,6 @@ MODULE cable_output_module
     REAL(KIND=4), POINTER, DIMENSION(:,:) :: WATR_hys   ! soil pressure [m]
     REAL(KIND=4), POINTER, DIMENSION(:,:) :: hys_fac   ! soil pressure [m]
 
-    
-    REAL(KIND=4), POINTER, DIMENSION(:) :: GWzq    ! equilibrium aquifer smp   [mm]    ! MMY
-    REAL(KIND=4), POINTER, DIMENSION(:) :: GWwbeq  ! equilibrium aquifer water content [mm3/mm3] ! MMY
-    REAL(KIND=4), POINTER, DIMENSION(:,:) :: zq      ! equilibrium smp [mm] ! MMY
-    REAL(KIND=4), POINTER, DIMENSION(:,:) :: wbeq    ! equilibrium water content [mm3/mm3] ! MMY
-    
  END TYPE output_temporary_type
   TYPE(output_temporary_type), SAVE :: out
   INTEGER :: ok   ! netcdf error status
@@ -889,6 +881,7 @@ CONTAINS
        out%SatFrac = 0.0 ! initialise
     END IF         
 
+
     IF(output%soil .OR. output%Qrecharge) THEN
        CALL define_ovar(ncid_out, ovid%Qrecharge, 'Qrecharge', 'mm/s',      &
                            'Recharge to or from Aquifer', patchout%Qrecharge,     &
@@ -896,42 +889,7 @@ CONTAINS
        ALLOCATE(out%Qrecharge(mp))
        out%Qrecharge = 0.0 ! initialise
     END IF   
-    
-    ! ________________________ MMY ______________________
-    IF(output%soil .OR. output%GWzq) THEN
-       CALL define_ovar(ncid_out, ovid%GWzq, 'GWzq', 'mm',      &
-                  'equilibrium aquifer smp', patchout%GWzq,     &
-                  'dummy', xID, yID, zID, landID, patchID, tID)
-       ALLOCATE(out%GWzq(mp))
-       out%GWzq = 0.0 ! initialise
-    END IF   
-        
-    IF(output%soil .OR. output%GWwbeq) THEN
-       CALL define_ovar(ncid_out, ovid%GWwbeq, 'GWwbeq', 'mm3/mm3',      &
-               'equilibrium aquifer water content', patchout%GWwbeq,     &
-               'dummy', xID, yID, zID, landID, patchID, tID)
-       ALLOCATE(out%GWwbeq(mp))
-       out%GWwbeq = 0.0 ! initialise
-    END IF   
-            
-    IF(output%soil .OR. output%zq) THEN
-       CALL define_ovar(ncid_out, ovid%zq, 'zq', 'mm',      &
-                'equilibrium smp', patchout%zq,             &
-                'dummy', xID, yID, zID, landID, patchID, tID)
-       ALLOCATE(out%zq(mp,ms))
-       out%zq = 0.0 ! initialise
-    END IF   
-                
-    IF(output%soil .OR. output%wbeq) THEN
-       CALL define_ovar(ncid_out, ovid%wbeq, 'wbeq', 'mm3/mm3',   &
-                  'equilibrium water content', patchout%wbeq,     &
-                  'dummy', xID, yID, zID, landID, patchID, tID)
-       ALLOCATE(out%wbeq(mp,ms))
-       out%wbeq = 0.0 ! initialise
-    END IF   
-    
-    ! _________________________________________________________
-                    
+
     IF(output%casa) THEN
        CALL define_ovar(ncid_out, ovid%NBP, 'NBP', 'umol/m^2/s',               &
                         'Net Biosphere Production &
@@ -2230,71 +2188,6 @@ CONTAINS
           out%Qrecharge = 0.0
        END IF
     END IF   
-    
-    ! ____________________________ MMY ___________________________
-    
-    ! recharge rate
-    IF(output%soil .OR. output%GWzq) THEN
-       ! Add current timestep's value to total of temporary output variable:
-       out%GWzq = out%GWzq + REAL(ssnow%GWzq, 4)
-       IF(writenow) THEN
-          ! Divide accumulated variable by number of accumulated time steps:
-          out%GWzq = out%GWzq / REAL(output%interval, 4)
-          ! Write value to file:
-          CALL write_ovar(out_timestep, ncid_out, ovid%GWzq, 'GWzq', &
-                       out%GWzq, ranges%GWzq, patchout%GWzq, 'default', met)
-          ! Reset temporary output variable:
-          out%GWzq = 0.0
-       END IF
-    END IF   
-    
-    ! recharge rate
-    IF(output%soil .OR. output%GWwbeq) THEN
-       ! Add current timestep's value to total of temporary output variable:
-       out%GWwbeq = out%GWwbeq + REAL(ssnow%GWwbeq, 4)
-       IF(writenow) THEN
-          ! Divide accumulated variable by number of accumulated time steps:
-          out%GWwbeq = out%GWwbeq / REAL(output%interval, 4)
-          ! Write value to file:
-          CALL write_ovar(out_timestep, ncid_out, ovid%GWwbeq, 'GWwbeq', &
-                       out%GWwbeq, ranges%GWwbeq, patchout%GWwbeq, 'default', met)
-          ! Reset temporary output variable:
-          out%GWwbeq = 0.0
-       END IF
-    END IF   
-    
-        ! recharge rate
-    IF(output%soil .OR. output%zq) THEN
-       ! Add current timestep's value to total of temporary output variable:
-       out%zq = out%zq + REAL(ssnow%zq, 4)
-       IF(writenow) THEN
-          ! Divide accumulated variable by number of accumulated time steps:
-          out%zq = out%zq / REAL(output%interval, 4)
-          ! Write value to file:
-          CALL write_ovar(out_timestep, ncid_out, ovid%zq, 'zq', &
-                       out%zq, ranges%zq, patchout%zq, 'default', met)
-          ! Reset temporary output variable:
-          out%zq = 0.0
-       END IF
-    END IF   
-    
-        ! recharge rate
-    IF(output%soil .OR. output%wbeq) THEN
-       ! Add current timestep's value to total of temporary output variable:
-       out%wbeq = out%wbeq + REAL(ssnow%wbeq, 4)
-       IF(writenow) THEN
-          ! Divide accumulated variable by number of accumulated time steps:
-          out%wbeq = out%wbeq / REAL(output%interval, 4)
-          ! Write value to file:
-          CALL write_ovar(out_timestep, ncid_out, ovid%wbeq, 'wbeq', &
-                       out%wbeq, ranges%wbeq, patchout%wbeq, 'default', met)
-          ! Reset temporary output variable:
-          out%wbeq = 0.0
-       END IF
-    END IF   
-    ! _________________________________________________________
-    
-    
     !----------------------WRITE SNOW STATE DATA--------------------------------
     ! SWE: snow water equivalent [kg/m^2]
     IF(output%snow .OR. output%SWE) THEN
