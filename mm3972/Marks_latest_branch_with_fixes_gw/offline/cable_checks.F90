@@ -179,7 +179,12 @@ MODULE cable_checks_module
            WatTable = (/0.0,1.0e10/),          &
            GWwb = (/0.0,1.0/),              &
            SatFrac = (/0.0,1.0/),              &
-           Qrecharge = (/-9999.0,9999.0/) 
+           Qrecharge = (/-9999.0,9999.0/),     &
+           GWzq = (/-11000000.,11000000./),    & ! MMY
+           GWwbeq = (/0.0,1.0/),               & ! MMY 
+           zq = (/-11000000.,11000000./),      & ! MMY
+           wbeq = (/0.0,1.0/)                    ! MMY
+
    END TYPE ranges_type
    TYPE(ranges_type),SAVE :: ranges
 
