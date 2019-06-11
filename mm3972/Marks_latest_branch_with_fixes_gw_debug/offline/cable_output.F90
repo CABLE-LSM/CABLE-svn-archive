@@ -912,20 +912,20 @@ CONTAINS
                'dummy', xID, yID, zID, landID, patchID, tID)
        ALLOCATE(out%GWwbeq(mp))
        out%GWwbeq = 0.0 ! initialise
-    END IF   
-            
+    END IF
+
     IF(output%soil .OR. output%zq) THEN
        CALL define_ovar(ncid_out, ovid%zq, 'zq', 'mm',      &
                 'equilibrium smp', patchout%zq,             &
-                'dummy', xID, yID, zID, landID, patchID, tID)
+                'soil', xID, yID, zID, landID, patchID, soilID, tID)
        ALLOCATE(out%zq(mp,ms))
        out%zq = 0.0 ! initialise
-    END IF   
-                
+    END IF  
+              
     IF(output%soil .OR. output%wbeq) THEN
        CALL define_ovar(ncid_out, ovid%wbeq, 'wbeq', 'mm3/mm3',   &
-                  'equilibrium water content', patchout%wbeq,     &
-                  'dummy', xID, yID, zID, landID, patchID, tID)
+               'equilibrium water content', patchout%wbeq,     &
+               'soil', xID, yID, zID, landID, patchID, soilID, tID)
        ALLOCATE(out%wbeq(mp,ms))
        out%wbeq = 0.0 ! initialise
     END IF   
@@ -2240,6 +2240,7 @@ CONTAINS
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
           out%GWzq = out%GWzq / REAL(output%interval, 4)
+          !PRINT *, "out%GWzq: ", out%GWzq ! MMY
           ! Write value to file:
           CALL write_ovar(out_timestep, ncid_out, ovid%GWzq, 'GWzq', &
                        out%GWzq, ranges%GWzq, patchout%GWzq, 'default', met)
@@ -2255,9 +2256,12 @@ CONTAINS
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
           out%GWwbeq = out%GWwbeq / REAL(output%interval, 4)
-          ! Write value to file:
+          !PRINT *, "out%GWwbeq: ", out%GWwbeq ! MMY 
+          ! Write value to file: 
           CALL write_ovar(out_timestep, ncid_out, ovid%GWwbeq, 'GWwbeq', &
                        out%GWwbeq, ranges%GWwbeq, patchout%GWwbeq, 'default', met)
+          ! MMY  Here 'default' or 'soil' or 'snow' means has only 3 dims or
+          !      4 dims and the other dim is soil layers, or 4 dims and the other dim is snow layers
           ! Reset temporary output variable:
           out%GWwbeq = 0.0
        END IF
@@ -2270,9 +2274,10 @@ CONTAINS
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
           out%zq = out%zq / REAL(output%interval, 4)
+          !PRINT *, "out%zq: ", out%zq ! MMY
           ! Write value to file:
           CALL write_ovar(out_timestep, ncid_out, ovid%zq, 'zq', &
-                       out%zq, ranges%zq, patchout%zq, 'default', met)
+                       out%zq, ranges%zq, patchout%zq, 'soil', met)
           ! Reset temporary output variable:
           out%zq = 0.0
        END IF
@@ -2285,15 +2290,15 @@ CONTAINS
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
           out%wbeq = out%wbeq / REAL(output%interval, 4)
+          !PRINT *, "out%wbeq: ", out%wbeq ! MMY
           ! Write value to file:
           CALL write_ovar(out_timestep, ncid_out, ovid%wbeq, 'wbeq', &
-                       out%wbeq, ranges%wbeq, patchout%wbeq, 'default', met)
+                       out%wbeq, ranges%wbeq, patchout%wbeq, 'soil', met)
           ! Reset temporary output variable:
           out%wbeq = 0.0
        END IF
-    END IF   
+    END IF 
     ! _________________________________________________________
-    
     
     !----------------------WRITE SNOW STATE DATA--------------------------------
     ! SWE: snow water equivalent [kg/m^2]
