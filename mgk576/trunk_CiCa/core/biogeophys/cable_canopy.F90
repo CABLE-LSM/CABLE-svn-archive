@@ -2898,7 +2898,8 @@ CONTAINS
   !*****************************************************************************
   SUBROUTINE calc_weighted_cica(canopy, rad, met, gswmin, anx, gs_coeff, &
                                 fwsoil, i)
-    ! Calculate the weighted (sunlit/shaded LAI) Ci:Ca
+    ! Calculate the weighted (sunlit/shaded LAI) ratio of intercellular to
+    ! atmospheric CO2, Ci:Ca
     !
     ! Martin De Kauwe, 21st June, 2019
 
