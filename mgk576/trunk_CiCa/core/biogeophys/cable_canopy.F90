@@ -1787,7 +1787,7 @@ CONTAINS
     REAL, DIMENSION(:,:), POINTER :: gswmin ! min stomatal conductance
 
     REAL, DIMENSION(mp,2) ::  gsw_term, lower_limit2  ! local temp var
-    real :: ci_ca1, ci_ca2, ci_ca_weight, gsc1, gsc2, Ci1, Ci2, g01, g02
+
     INTEGER :: i, j, k, kk  ! iteration count
     REAL :: vpd, g1 ! Ticket #56
 #define VanessasCanopy
@@ -2238,29 +2238,19 @@ CONTAINS
              ! save last values calculated for ssnow%evapfbl
              oldevapfbl(i,:) = ssnow%evapfbl(i,:)
 
-             g01 = (gswmin(i,1) * fwsoil(i) / C%RGSWC)
-             gsc1 = max(0.0, g01 + gs_coeff(i,1) * anx(i,1))
-             if (gsc1 > 0.0 .AND. anx(i,1) > 0.0) then
-                Ci1 = csx(i,1) - anx(i,1) / gsc1
-             else
-                Ci1 = csx(i,1)
-             endif
+             CALL photosynthesis( csx(:,:),                                           &
+                 SPREAD( cx1(:), 2, mf ),                            &
+                 SPREAD( cx2(:), 2, mf ),                            &
+                 gswmin(:,:), rdx(:,:), vcmxt3(:,:),                 &
+                 vcmxt4(:,:), vx3(:,:), vx4(:,:),                    &
+                                     ! Ticket #56, xleuning replaced with gs_coeff here
+                 gs_coeff(:,:), rad%fvlai(:,:),&
+                 SPREAD( abs_deltlf, 2, mf ),                        &
+                 anx(:,:), fwsoil(:) )
 
-             g02 = (gswmin(i,2) * fwsoil(i) / C%RGSWC)
-             gsc2 = max(0.0, g02 + gs_coeff(i,2) * anx(i,2))
-             if (gsc2 > 0.0 .AND. anx(i,2) > 0.0) then
-                Ci2 = csx(i,2) - anx(i,2) / gsc2
-             else
-                Ci2 = csx(i,2)
-             endif
-
-             ci_ca1 = Ci1 / met%ca(1)
-             ci_ca2 = Ci2 / met%ca(1)
-             ci_ca_weight = (ci_ca1 * rad%fvlai(i,1)/canopy%vlaiw(1)) + &
-                            (ci_ca2 * rad%fvlai(i,2)/canopy%vlaiw(1))
-             canopy%cica = max(0.0, min(1.0, ci_ca_weight))
-
-
+             ! This isn't used, just a useful diagnostic to save.
+             CALL calc_weighted_cica(canopy, rad, met, gswmin(:,:), anx(:,:), &
+                                     gs_coeff(:,:), csx(:,:), fwsoil(:), i)
 
           ENDIF
 
@@ -2904,5 +2894,59 @@ CONTAINS
 
   END SUBROUTINE getrex_1d
   !*********************************************************************************************************************
+
+  !*****************************************************************************
+  SUBROUTINE calc_weighted_cica(canopy, rad, met, gswmin, anx, gs_coeff, csx, &
+                                fwsoil, i)
+    ! Calculate the weighted (sunlit/shaded LAI) Ci:Ca
+    !
+    ! Martin De Kauwe, 21st June, 2019
+
+     USE cable_def_types_mod!, ONLY : mp, mf
+     USE cable_common_module
+
+     IMPLICIT NONE
+
+     TYPE (canopy_type), INTENT(INOUT)    :: canopy
+     TYPE (radiation_type), INTENT(IN)    :: rad
+     TYPE (met_type), INTENT(INOUT)       :: met
+
+     REAL(r_2), DIMENSION(mp,mf), INTENT(IN) :: csx
+     REAL, DIMENSION(mp,mf), INTENT(IN) :: anx, gs_coeff, gswmin
+     REAL, DIMENSION(mp), INTENT(IN) :: fwsoil
+     REAL, DIMENSION(mf) :: g0, gsc, ci, ci_ca
+
+     INTEGER, INTENT(IN) :: i
+     INTEGER             :: j
+
+     g0 = 0.0
+     gsc = 0.0
+     ci = 0.0
+     ci_ca = 0.0
+
+     DO j=1, mf ! sunlit, shaded leaves...
+
+        g0(j) = gswmin(i,j) * fwsoil(i) / C%RGSWC
+        gsc(j) = MAX(0.0, g0(j) + gs_coeff(i,j) * anx(i,j))
+
+        ! Using the diffusion equation, retrieve Ci.
+        IF (gsc(j) > 0.0 .AND. anx(i,j) > 0.0) THEN
+           Ci(j) = csx(i,j) - anx(i,j) / gsc(j)
+        ELSE
+           Ci(j)= csx(i,j)
+        ENDIF
+
+        ci_ca(j) = Ci(j) / met%ca(i)
+
+     END DO
+
+     ! weight sunlit/shaded Ci:Ca by sunlit/shaded LAI fracs
+     canopy%cica = (ci_ca(1) * rad%fvlai(i,1) / canopy%vlaiw(:)) + &
+                   (ci_ca(2) * rad%fvlai(i,2) / canopy%vlaiw(:))
+     canopy%cica = MAX(0.0, MIN(1.0, canopy%cica))
+     
+END SUBROUTINE calc_weighted_cica
+!*******************************************************************************
+
 
 END MODULE cable_canopy_module
