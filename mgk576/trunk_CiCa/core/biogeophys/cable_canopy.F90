@@ -2250,7 +2250,7 @@ CONTAINS
 
              ! This isn't used, just a useful diagnostic to save.
              CALL calc_weighted_cica(canopy, rad, met, gswmin(:,:), anx(:,:), &
-                                     gs_coeff(:,:), csx(:,:), fwsoil(:), i)
+                                     gs_coeff(:,:), fwsoil(:), i)
 
           ENDIF
 
@@ -2896,7 +2896,7 @@ CONTAINS
   !*********************************************************************************************************************
 
   !*****************************************************************************
-  SUBROUTINE calc_weighted_cica(canopy, rad, met, gswmin, anx, gs_coeff, csx, &
+  SUBROUTINE calc_weighted_cica(canopy, rad, met, gswmin, anx, gs_coeff, &
                                 fwsoil, i)
     ! Calculate the weighted (sunlit/shaded LAI) Ci:Ca
     !
@@ -2911,7 +2911,6 @@ CONTAINS
      TYPE (radiation_type), INTENT(IN)    :: rad
      TYPE (met_type), INTENT(INOUT)       :: met
 
-     REAL(r_2), DIMENSION(mp,mf), INTENT(IN) :: csx
      REAL, DIMENSION(mp,mf), INTENT(IN) :: anx, gs_coeff, gswmin
      REAL, DIMENSION(mp), INTENT(IN) :: fwsoil
      REAL, DIMENSION(mf) :: g0, gsc, ci, ci_ca
@@ -2931,9 +2930,9 @@ CONTAINS
 
         ! Using the diffusion equation, retrieve Ci.
         IF (gsc(j) > 0.0 .AND. anx(i,j) > 0.0) THEN
-           Ci(j) = csx(i,j) - anx(i,j) / gsc(j)
+           Ci(j) = met%ca(i) - anx(i,j) / gsc(j)
         ELSE
-           Ci(j)= csx(i,j)
+           Ci(j) = met%ca(i)
         ENDIF
 
         ci_ca(j) = Ci(j) / met%ca(i)
@@ -2944,7 +2943,7 @@ CONTAINS
      canopy%cica = (ci_ca(1) * rad%fvlai(i,1) / canopy%vlaiw(:)) + &
                    (ci_ca(2) * rad%fvlai(i,2) / canopy%vlaiw(:))
      canopy%cica = MAX(0.0, MIN(1.0, canopy%cica))
-     
+
 END SUBROUTINE calc_weighted_cica
 !*******************************************************************************
 

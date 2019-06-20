@@ -453,8 +453,8 @@ MODULE cable_def_types_mod
           uscrn,   & ! wind speed at screen height (m/s)
           vlaiw,   & ! lai adj for snow depth for calc of resistances
           rghlai,  & ! lai adj for snow depth for calc of resistances
-          cica, &
-          fwet       ! fraction of canopy wet
+          fwet,    & ! fraction of canopy wet
+          cica       ! ratio of intercellular to atmospheric CO2 (Ci:Ca). 
 
      !INH - new REV_CORR coupling variables
      REAL, DIMENSION(:), POINTER ::                                           &
