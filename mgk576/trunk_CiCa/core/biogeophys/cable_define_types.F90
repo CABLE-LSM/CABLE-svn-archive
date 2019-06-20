@@ -453,6 +453,7 @@ MODULE cable_def_types_mod
           uscrn,   & ! wind speed at screen height (m/s)
           vlaiw,   & ! lai adj for snow depth for calc of resistances
           rghlai,  & ! lai adj for snow depth for calc of resistances
+          cica, &
           fwet       ! fraction of canopy wet
 
      !INH - new REV_CORR coupling variables
@@ -1140,6 +1141,7 @@ CONTAINS
     ALLOCATE( var% rghlai(mp) )
     ALLOCATE( var% vlaiw(mp) )
     ALLOCATE( var% fwet(mp) )
+    ALLOCATE( var% cica(mp) )
     ALLOCATE( var% fns_cor(mp) )    !REV_CORR variable
     ALLOCATE( var% ga_cor(mp) )     !REV_CORR variable
     ALLOCATE ( var % evapfbl(mp,ms) )
@@ -1756,6 +1758,7 @@ CONTAINS
     DEALLOCATE( var% rghlai )
     DEALLOCATE( var% vlaiw )
     DEALLOCATE( var% fwet )
+    DEALLOCATE( var% cica )
     DEALLOCATE( var% fns_cor )   !REV_CORR variable
     DEALLOCATE( var% ga_cor )    !REV_CORR variable
     DEALLOCATE ( var % evapfbl )

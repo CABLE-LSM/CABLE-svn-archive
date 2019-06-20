@@ -1787,7 +1787,7 @@ CONTAINS
     REAL, DIMENSION(:,:), POINTER :: gswmin ! min stomatal conductance
 
     REAL, DIMENSION(mp,2) ::  gsw_term, lower_limit2  ! local temp var
-
+    real :: ci_ca1, ci_ca2, ci_ca_weight
     INTEGER :: i, j, k, kk  ! iteration count
     REAL :: vpd, g1 ! Ticket #56
 #define VanessasCanopy
@@ -2236,6 +2236,16 @@ CONTAINS
 
              ! save last values calculated for ssnow%evapfbl
              oldevapfbl(i,:) = ssnow%evapfbl(i,:)
+
+
+             ci_ca1 = (csx(i,1)*1e6) / (met%ca(1)*1e6)
+             ci_ca2 = (csx(i,2)*1e6) / (met%ca(1)*1e6)
+             ci_ca_weight = (ci_ca1 * rad%fvlai(i,1)/canopy%vlaiw(1)) + &
+                            (ci_ca2 * rad%fvlai(i,2)/canopy%vlaiw(1))
+             canopy%cica = max(0.0, min(1.0, ci_ca_weight))
+
+             !print*, ci_ca_weight
+
 
           ENDIF
 
