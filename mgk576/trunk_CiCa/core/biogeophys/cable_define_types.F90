@@ -454,7 +454,7 @@ MODULE cable_def_types_mod
           vlaiw,   & ! lai adj for snow depth for calc of resistances
           rghlai,  & ! lai adj for snow depth for calc of resistances
           fwet,    & ! fraction of canopy wet
-          cica       ! ratio of intercellular to atmospheric CO2 (Ci:Ca). 
+          cica       ! ratio of intercellular to atmospheric CO2 (Ci:Ca).
 
      !INH - new REV_CORR coupling variables
      REAL, DIMENSION(:), POINTER ::                                           &
@@ -1141,7 +1141,6 @@ CONTAINS
     ALLOCATE( var% rghlai(mp) )
     ALLOCATE( var% vlaiw(mp) )
     ALLOCATE( var% fwet(mp) )
-    ALLOCATE( var% cica(mp) )
     ALLOCATE( var% fns_cor(mp) )    !REV_CORR variable
     ALLOCATE( var% ga_cor(mp) )     !REV_CORR variable
     ALLOCATE ( var % evapfbl(mp,ms) )
@@ -1177,6 +1176,8 @@ CONTAINS
     !! vh_js !! liiter resistances to heat and vapour transfer
     ALLOCATE (var % kthLitt(mp))
     ALLOCATE (var % DvLitt(mp))
+
+    ALLOCATE( var% cica(mp) )
 
   END SUBROUTINE alloc_canopy_type
 
@@ -1758,7 +1759,6 @@ CONTAINS
     DEALLOCATE( var% rghlai )
     DEALLOCATE( var% vlaiw )
     DEALLOCATE( var% fwet )
-    DEALLOCATE( var% cica )
     DEALLOCATE( var% fns_cor )   !REV_CORR variable
     DEALLOCATE( var% ga_cor )    !REV_CORR variable
     DEALLOCATE ( var % evapfbl )
@@ -1786,6 +1786,8 @@ CONTAINS
     DEALLOCATE (var % kthLitt)
     DEALLOCATE (var % DvLitt)
 
+    DEALLOCATE( var% cica )
+    
   END SUBROUTINE dealloc_canopy_type
 
   ! ------------------------------------------------------------------------------
