@@ -2257,7 +2257,8 @@ CONTAINS
              ci_ca2 = Ci2 / met%ca(1)
              ci_ca_weight = (ci_ca1 * rad%fvlai(i,1)/canopy%vlaiw(1)) + &
                             (ci_ca2 * rad%fvlai(i,2)/canopy%vlaiw(1))
-             canopy%cica = max(0.0, min(1.0, ci_ca_weight))
+             !canopy%cica = max(0.0, min(1.0, ci_ca_weight))
+             canopy%cica = max(0.0, min(1.0, ci_ca1))
 
              !print*, ci_ca_weight
 
