@@ -59,7 +59,7 @@ MODULE cable_output_module
           visAlbedo, nirAlbedo, SoilMoistIce,                        &
           Qs, Qsb, Evap, BaresoilT, SWE, SnowT,                      &
           RadT, VegT, Ebal, Wbal, AutoResp, RootResp,                &
-          StemResp, LeafResp, HeteroResp, GPP, NPP, LAI,             &
+          StemResp, LeafResp, HeteroResp, GPP, cica, NPP, LAI,             &
           ECanop, TVeg, ESoil, CanopInt, SnowDepth,                  &
           HVeg, HSoil, Rnet, tvar, CanT,Fwsoil, RnetSoil, SnowMelt, &
           NBP, TotSoilCarb, TotLivBiomass, &
@@ -167,6 +167,8 @@ MODULE cable_output_module
      ! of C by veg [umol/m2/s]
      ! 48 gross primary production C by veg [umol/m2/s]
      REAL(KIND=4), POINTER, DIMENSION(:) :: GPP
+     REAL(KIND=4), POINTER, DIMENSION(:) :: cica
+
      REAL(KIND=4), POINTER, DIMENSION(:) :: AutoResp   ! 49 autotrophic
      ! respiration [umol/m2/s]
      REAL(KIND=4), POINTER, DIMENSION(:) :: LeafResp   ! 51 autotrophic
@@ -827,6 +829,16 @@ CONTAINS
             'dummy', xID, yID, zID, landID, patchID, tID)
        ALLOCATE(out%GPP(mp))
        out%GPP = 0.0 ! initialise
+
+
+    END IF
+
+    IF(output%carbon.OR.output%cica) THEN
+       CALL define_ovar(ncid_out, ovid%cica, 'cica', '-',               &
+            'CiCa', patchout%cica,              &
+            'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%cica(mp))
+       out%cica = 0.0 ! initialise
 
 
     END IF
@@ -2450,6 +2462,21 @@ CONTAINS
 
     END IF
 
+    IF(output%carbon .OR. output%cica) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%cica = out%cica + canopy%cica
+
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%cica = out%cica/REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%cica, 'cica', out%cica,    &
+               ranges%GPP, patchout%cica, 'default', met)
+          ! Reset temporary output variable:
+          out%cica = 0.0
+       END IF
+
+    END IF
 
     ! NPP: net primary production of C by veg [umol/m^2/s]
     IF(output%carbon .OR. output%NPP) THEN
