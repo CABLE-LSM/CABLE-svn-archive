@@ -1787,7 +1787,7 @@ CONTAINS
     REAL, DIMENSION(:,:), POINTER :: gswmin ! min stomatal conductance
 
     REAL, DIMENSION(mp,2) ::  gsw_term, lower_limit2  ! local temp var
-    real :: ci_ca1, ci_ca2, ci_ca_weight, gsc1, gsc2, Ci1, Ci2
+    real :: ci_ca1, ci_ca2, ci_ca_weight, gsc1, gsc2, Ci1, Ci2, g01, g02
     INTEGER :: i, j, k, kk  ! iteration count
     REAL :: vpd, g1 ! Ticket #56
 #define VanessasCanopy
@@ -2238,17 +2238,18 @@ CONTAINS
              ! save last values calculated for ssnow%evapfbl
              oldevapfbl(i,:) = ssnow%evapfbl(i,:)
 
-
-             gsc1 = max(0.0, (gswminz(i,1)*fwsoilz(i) / C%RGSWC) + gs_coeff(i,1) * anx(i,1))
+             g01 = (gswmin(i,1) * fwsoil(i) / C%RGSWC)
+             gsc1 = max(0.0, g01 + gs_coeff(i,1) * anx(i,1))
              if (gsc1 > 0.0 .AND. anx(i,1) > 0.0) then
-                Ci1 = csx(i,1)  - anx(i,1) / gsc1
+                Ci1 = csx(i,1) - anx(i,1) / gsc1
              else
                 Ci1 = csx(i,1)
              endif
 
-             gsc2 = max(0.0, (gswminz(i,2)*fwsoilz(i) / C%RGSWC + gs_coeff(i,2) * anx(i,2))
+             g02 = (gswmin(i,2) * fwsoil(i) / C%RGSWC)
+             gsc2 = max(0.0, g02 + gs_coeff(i,2) * anx(i,2))
              if (gsc2 > 0.0 .AND. anx(i,2) > 0.0) then
-                Ci2 = csx(i,2)  - anx(i,2) / gsc2
+                Ci2 = csx(i,2) - anx(i,2) / gsc2
              else
                 Ci2 = csx(i,2)
              endif
