@@ -1787,7 +1787,7 @@ CONTAINS
     REAL, DIMENSION(:,:), POINTER :: gswmin ! min stomatal conductance
 
     REAL, DIMENSION(mp,2) ::  gsw_term, lower_limit2  ! local temp var
-    real :: ci_ca1, ci_ca2, ci_ca_weight, gsc1, gsc1, Ci1, Ci2
+    real :: ci_ca1, ci_ca2, ci_ca_weight, gsc1, gsc2, Ci1, Ci2
     INTEGER :: i, j, k, kk  ! iteration count
     REAL :: vpd, g1 ! Ticket #56
 #define VanessasCanopy
@@ -2240,26 +2240,21 @@ CONTAINS
 
 
              gsc1 = max(0.0, gs_coeff(i,1) * anx(i,1))
-             gsc2 = max(0.0, gs_coeff(i,2) * anx(i,2))
-
              if (gsc1 > 0.0 .AND. anx(i,1) > 0.0) then
-               Ci1 = csx(i,1)  - anx(i,1) / gsc1
+                Ci1 = csx(i,1)  - anx(i,1) / gsc1
              else
-               Ci1 = csx(i,1)
+                Ci1 = csx(i,1)
              endif
 
+             gsc2 = max(0.0, gs_coeff(i,2) * anx(i,2))
              if (gsc2 > 0.0 .AND. anx(i,2) > 0.0) then
-               Ci2 = csx(i,2)  - anx(i,2) / gsc2
+                Ci2 = csx(i,2)  - anx(i,2) / gsc2
              else
-               Ci2 = csx(i,2)
+                Ci2 = csx(i,2)
              endif
 
-             ! this isn't right, this will be cs, need to calculate ci from
-             ! photosynth and return it,a rgh
-             !ci_ca1 = csx(i,1) / met%ca(1)
-             !ci_ca2 = csx(i,2) / (met%ca(1)
              ci_ca1 = Ci1 / met%ca(1)
-             ci_ca2 = Ci2 / (met%ca(1)
+             ci_ca2 = Ci2 / met%ca(1)
              ci_ca_weight = (ci_ca1 * rad%fvlai(i,1)/canopy%vlaiw(1)) + &
                             (ci_ca2 * rad%fvlai(i,2)/canopy%vlaiw(1))
              canopy%cica = max(0.0, min(1.0, ci_ca_weight))
