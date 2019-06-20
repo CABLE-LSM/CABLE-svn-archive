@@ -2239,14 +2239,14 @@ CONTAINS
              oldevapfbl(i,:) = ssnow%evapfbl(i,:)
 
 
-             gsc1 = max(0.0, gs_coeff(i,1) * anx(i,1))
+             gsc1 = max(0.0, (gswminz(i,1)*fwsoilz(i) / C%RGSWC) + gs_coeff(i,1) * anx(i,1))
              if (gsc1 > 0.0 .AND. anx(i,1) > 0.0) then
                 Ci1 = csx(i,1)  - anx(i,1) / gsc1
              else
                 Ci1 = csx(i,1)
              endif
 
-             gsc2 = max(0.0, gs_coeff(i,2) * anx(i,2))
+             gsc2 = max(0.0, (gswminz(i,2)*fwsoilz(i) / C%RGSWC + gs_coeff(i,2) * anx(i,2))
              if (gsc2 > 0.0 .AND. anx(i,2) > 0.0) then
                 Ci2 = csx(i,2)  - anx(i,2) / gsc2
              else
