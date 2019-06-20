@@ -2237,9 +2237,10 @@ CONTAINS
              ! save last values calculated for ssnow%evapfbl
              oldevapfbl(i,:) = ssnow%evapfbl(i,:)
 
-
-             ci_ca1 = (csx(i,1)*1e6) / (met%ca(1)*1e6)
-             ci_ca2 = (csx(i,2)*1e6) / (met%ca(1)*1e6)
+             ! this isn't right, this will be cs, need to calculate ci from
+             ! photosynth and return it,a rgh
+             ci_ca1 = csx(i,1) / met%ca(1)
+             ci_ca2 = csx(i,2) / (met%ca(1)
              ci_ca_weight = (ci_ca1 * rad%fvlai(i,1)/canopy%vlaiw(1)) + &
                             (ci_ca2 * rad%fvlai(i,2)/canopy%vlaiw(1))
              canopy%cica = max(0.0, min(1.0, ci_ca_weight))
