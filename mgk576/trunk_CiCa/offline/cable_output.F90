@@ -59,7 +59,7 @@ MODULE cable_output_module
           visAlbedo, nirAlbedo, SoilMoistIce,                        &
           Qs, Qsb, Evap, BaresoilT, SWE, SnowT,                      &
           RadT, VegT, Ebal, Wbal, AutoResp, RootResp,                &
-          StemResp, LeafResp, HeteroResp, GPP, cica, NPP, LAI,             &
+          StemResp, LeafResp, HeteroResp, GPP, NPP, LAI,             &
           ECanop, TVeg, ESoil, CanopInt, SnowDepth,                  &
           HVeg, HSoil, Rnet, tvar, CanT,Fwsoil, RnetSoil, SnowMelt, &
           NBP, TotSoilCarb, TotLivBiomass, &
@@ -69,7 +69,7 @@ MODULE cable_output_module
           PlantTurnover, PlantTurnoverLeaf, PlantTurnoverFineRoot, &
           PlantTurnoverWood, PlantTurnoverWoodDist, PlantTurnoverWoodCrowding, &
           PlantTurnoverWoodResourceLim, dCdt, Area, LandUseFlux, patchfrac, &
-          vcmax,hc,WatTable,GWMoist,SatFrac,Qrecharge
+          vcmax,hc,WatTable,GWMoist,SatFrac,Qrecharge, cica
   END TYPE out_varID_type
   TYPE(out_varID_type) :: ovid ! netcdf variable IDs for output variables
   TYPE(parID_type) :: opid ! netcdf variable IDs for output variables
@@ -167,7 +167,6 @@ MODULE cable_output_module
      ! of C by veg [umol/m2/s]
      ! 48 gross primary production C by veg [umol/m2/s]
      REAL(KIND=4), POINTER, DIMENSION(:) :: GPP
-     REAL(KIND=4), POINTER, DIMENSION(:) :: cica
 
      REAL(KIND=4), POINTER, DIMENSION(:) :: AutoResp   ! 49 autotrophic
      ! respiration [umol/m2/s]
@@ -231,6 +230,9 @@ MODULE cable_output_module
 
      REAL(KIND=4), POINTER, DIMENSION(:) :: RootResp   !  autotrophic root respiration [umol/m2/s]
      REAL(KIND=4), POINTER, DIMENSION(:) :: StemResp   !  autotrophic stem respiration [umol/m2/s]
+
+     REAL(KIND=4), POINTER, DIMENSION(:) :: cica ! Ci:Ca (-)
+
   END TYPE output_temporary_type
   TYPE(output_temporary_type), SAVE :: out
   INTEGER :: ok   ! netcdf error status
@@ -833,20 +835,6 @@ CONTAINS
 
     END IF
 
-    IF(output%carbon.OR.output%cica) THEN
-       CALL define_ovar(ncid_out, ovid%cica, 'cica', '-',               &
-            'CiCa', patchout%cica,              &
-            'dummy', xID, yID, zID, landID, patchID, tID)
-       ALLOCATE(out%cica(mp))
-       out%cica = 0.0 ! initialise
-
-
-    END IF
-
-
-
-
-
     IF(output%carbon .OR. output%NPP) THEN
        CALL define_ovar(ncid_out, ovid%NPP, 'NPP', 'umol/m^2/s',               &
             'Net primary production', patchout%NPP,                &
@@ -885,6 +873,14 @@ CONTAINS
             'dummy', xID, yID, zID, landID, patchID, tID)
        ALLOCATE(out%Qrecharge(mp))
        out%Qrecharge = 0.0 ! initialise
+    END IF
+
+    IF (output%cica) THEN
+       CALL define_ovar(ncid_out, ovid%cica, 'cica', '-',               &
+                        'CiCa', patchout%cica,              &
+                        'dummy', xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%cica(mp))
+       out%cica = 0.0 ! initialise
     END IF
 
     IF(output%casa) THEN
@@ -2462,22 +2458,6 @@ CONTAINS
 
     END IF
 
-    IF(output%carbon .OR. output%cica) THEN
-       ! Add current timestep's value to total of temporary output variable:
-       out%cica = out%cica + canopy%cica
-
-       IF(writenow) THEN
-          ! Divide accumulated variable by number of accumulated time steps:
-          out%cica = out%cica/REAL(output%interval, 4)
-          ! Write value to file:
-          CALL write_ovar(out_timestep, ncid_out, ovid%cica, 'cica', out%cica,    &
-               ranges%GPP, patchout%cica, 'default', met)
-          ! Reset temporary output variable:
-          out%cica = 0.0
-       END IF
-
-    END IF
-
     ! NPP: net primary production of C by veg [umol/m^2/s]
     IF(output%carbon .OR. output%NPP) THEN
        ! Add current timestep's value to total of temporary output variable:
@@ -2916,6 +2896,21 @@ CONTAINS
        END IF
 
     END IF
+
+     IF (output%cica) THEN
+        ! Add current timestep's value to total of temporary output variable:
+        out%cica = out%cica + canopy%cica
+
+        IF(writenow) THEN
+           ! Divide accumulated variable by number of accumulated time steps:
+           out%cica = out%cica/REAL(output%interval, 4)
+           ! Write value to file:
+           CALL write_ovar(out_timestep, ncid_out, ovid%cica, 'cica', out%cica,&
+                           ranges%cica, patchout%cica, 'default', met)
+           ! Reset temporary output variable:
+           out%cica = 0.0
+        END IF
+     END IF
 
     IF (cable_user%sync_nc_file) &
          ok = NF90_SYNC(ncid_out)

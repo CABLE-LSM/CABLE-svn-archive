@@ -141,7 +141,7 @@ MODULE cable_IO_vars_module
           slope,slope_std,GWdz,SatFracmax,Qhmax,QhmaxEfold,HKefold,HKdepth
      INTEGER :: ishorizon,nhorizons,clitt, &
           zeta,fsatmax, &
-          gamma,ZR,F10
+          gamma,ZR,F10, cica
 
      INTEGER :: g0,g1 ! Ticket #56
 
@@ -368,7 +368,7 @@ MODULE cable_IO_vars_module
           QhmaxEfold=.FALSE.,&
           HKefold=.FALSE.,&
           HKdepth,&
-          cica = .FALSE., & ! ratio of intercellular to atmospheric CO2 (Ci:Ca).
+          cica = .FALSE. ! ratio of intercellular to atmospheric CO2 (Ci:Ca).
 
   END TYPE output_inclusion_type
 
