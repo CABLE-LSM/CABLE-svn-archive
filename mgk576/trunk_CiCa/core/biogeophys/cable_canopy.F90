@@ -2250,7 +2250,7 @@ CONTAINS
 
              ! This isn't used, just a useful diagnostic to save.
              CALL calc_weighted_cica(canopy, rad, met, gswmin(:,:), anx(:,:), &
-                                     gs_coeff(:,:), fwsoil(:), i)
+                                     gs_coeff(:,:), fwsoil(:), i, gbhu(:,:), gbhf(:,:))
 
           ENDIF
 
@@ -2897,7 +2897,7 @@ CONTAINS
 
   !*****************************************************************************
   SUBROUTINE calc_weighted_cica(canopy, rad, met, gswmin, anx, gs_coeff, &
-                                fwsoil, i)
+                                fwsoil, i, gbhu, gbhf)
     ! Calculate the weighted (sunlit/shaded LAI) ratio of intercellular to
     ! atmospheric CO2, Ci:Ca
     !
@@ -2908,13 +2908,14 @@ CONTAINS
 
      IMPLICIT NONE
 
-     TYPE (canopy_type), INTENT(INOUT)    :: canopy
-     TYPE (radiation_type), INTENT(IN)    :: rad
-     TYPE (met_type), INTENT(INOUT)       :: met
+     TYPE (canopy_type), INTENT(INOUT)  :: canopy
+     TYPE (radiation_type), INTENT(IN)  :: rad
+     TYPE (met_type), INTENT(INOUT)     :: met
 
-     REAL, DIMENSION(mp,mf), INTENT(IN) :: anx, gs_coeff, gswmin
-     REAL, DIMENSION(mp), INTENT(IN) :: fwsoil
-     REAL, DIMENSION(mf) :: g0, gsc, ci, ci_ca
+     REAL, DIMENSION(mp,mf), INTENT(IN)      :: anx, gs_coeff, gswmin
+     REAL(r_2), DIMENSION(mp,mf), INTENT(IN) :: gbhu, gbhf
+     REAL, DIMENSION(mp), INTENT(IN)         :: fwsoil
+     REAL, DIMENSION(mf)                     :: g0, gsc, ci, cs, ci_ca
 
      INTEGER, INTENT(IN) :: i
      INTEGER             :: j
@@ -2922,6 +2923,7 @@ CONTAINS
      g0 = 0.0
      gsc = 0.0
      ci = 0.0
+     cs = 0.0
      ci_ca = 0.0
 
      DO j=1, mf ! sunlit, shaded leaves...
@@ -2931,19 +2933,24 @@ CONTAINS
 
         ! Using the diffusion equation, retrieve Ci.
         IF (gsc(j) > 0.0 .AND. anx(i,j) > 0.0) THEN
-           Ci(j) = met%ca(i) - anx(i,j) / gsc(j)
+           ci(j) = met%ca(i) - anx(i,j) / gsc(j)
+           cs(j) = met%ca(i) - C%RGBWC * anx(i,j) / (gbhu(i,j) + gbhf(i,j))
         ELSE
-           Ci(j) = met%ca(i)
+           ci(j) = met%ca(i)
+           cs(j) = met%ca(i)
         ENDIF
 
-        ci_ca(j) = Ci(j) / met%ca(i)
+        ci_ca(j) = ci(j) / met%ca(i)
 
      END DO
 
      ! weight sunlit/shaded Ci:Ca by sunlit/shaded LAI fracs
-     canopy%cica = (ci_ca(1) * rad%fvlai(i,1) / canopy%vlaiw(:)) + &
-                   (ci_ca(2) * rad%fvlai(i,2) / canopy%vlaiw(:))
+     canopy%cica = (ci_ca(1) * rad%fvlai(i,1) / canopy%vlaiw(i)) + &
+                   (ci_ca(2) * rad%fvlai(i,2) / canopy%vlaiw(i))
      canopy%cica = MAX(0.0, MIN(1.0, canopy%cica))
+     !print*, met%ca(i)*1e6, cs(1)*1e6, cs(2)*1e6, ci(1)*1e6, ci(2)*1e6, &
+     !          canopy%cica, fwsoil
+     !print*, " "
 
 END SUBROUTINE calc_weighted_cica
 !*******************************************************************************
