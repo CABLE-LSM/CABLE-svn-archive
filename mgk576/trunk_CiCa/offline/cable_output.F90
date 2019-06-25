@@ -2902,8 +2902,6 @@ CONTAINS
         out%cica = out%cica + canopy%cica
 
         IF(writenow) THEN
-           ! Divide accumulated variable by number of accumulated time steps:
-           out%cica = out%cica/REAL(output%interval, 4)
            ! Write value to file:
            CALL write_ovar(out_timestep, ncid_out, ovid%cica, 'cica', out%cica,&
                            ranges%cica, patchout%cica, 'default', met)
