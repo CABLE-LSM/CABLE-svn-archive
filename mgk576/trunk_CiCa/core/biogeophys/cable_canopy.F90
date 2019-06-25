@@ -2945,7 +2945,7 @@ CONTAINS
      END DO
 
      ! ignore night-time data, or periods when the stomata are completely shut
-     IF (ci(1) < -500.0 or ci(2) < -500.0) THEN
+     IF (ci(1) < -500.0 .OR. ci(2) < -500.0) THEN
         canopy%cica = -999.9
      ELSE
         ! weight sunlit/shaded Ci:Ca by sunlit/shaded LAI fracs
