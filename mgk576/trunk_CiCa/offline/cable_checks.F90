@@ -182,7 +182,7 @@ MODULE cable_checks_module
           SatFrac = (/0.0,1.0/),              &
           Qrecharge = (/-9999.0,9999.0/), &
 
-          cica = (/0.0,1.0/)                 ![-]
+          cica = (/-9999.0,1.0/)                 ![-]
 
   END TYPE ranges_type
   TYPE(ranges_type),SAVE :: ranges
