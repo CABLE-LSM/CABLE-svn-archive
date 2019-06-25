@@ -2932,12 +2932,13 @@ CONTAINS
         gsc(j) = MAX(0.0, g0(j) + gs_coeff(i,j) * anx(i,j))
 
         ! Using the diffusion equation, retrieve Ci.
-        IF (gsc(j) > 0.0 .AND. anx(i,j) > 0.0) THEN
+        IF (gsc(1) > 0.0 .AND. gsc(2) > 0.0 .AND. &
+            anx(i,1) > 0.0 .AND. anx(i,2) > 0.0) THEN
 
            IF (j .EQ. 1) THEN
              canopy%cica(i) = 0.0
            ENDIF
-           
+
            ci(j) = met%ca(i) - anx(i,j) / gsc(j)
            cs(j) = met%ca(i) - C%RGBWC * anx(i,j) / (gbhu(i,j) + gbhf(i,j))
            ci_ca(j) = ci(j) / met%ca(i)
