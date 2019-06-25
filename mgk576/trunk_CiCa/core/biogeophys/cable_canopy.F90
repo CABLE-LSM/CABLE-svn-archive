@@ -2933,12 +2933,17 @@ CONTAINS
 
         ! Using the diffusion equation, retrieve Ci.
         IF (gsc(j) > 0.0 .AND. anx(i,j) > 0.0) THEN
+
+           IF (j .EQ. 1) THEN
+             canopy%cica(i) = 0.0
+           ENDIF
+           
            ci(j) = met%ca(i) - anx(i,j) / gsc(j)
            cs(j) = met%ca(i) - C%RGBWC * anx(i,j) / (gbhu(i,j) + gbhf(i,j))
            ci_ca(j) = ci(j) / met%ca(i)
 
            ! weight sunlit/shaded Ci:Ca by sunlit/shaded LAI fracs
-           canopy%cica = canopy%cica + &
+           canopy%cica(i) = canopy%cica(i) + &
                               (ci_ca(j) * rad%fvlai(i,j) / canopy%vlaiw(i))
         ENDIF
 
