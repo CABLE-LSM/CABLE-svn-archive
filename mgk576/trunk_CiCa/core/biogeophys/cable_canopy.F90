@@ -2923,8 +2923,8 @@ CONTAINS
      g0 = 0.0
      gsc = 0.0
      ci = 0.0
-     cs = 0.0
-     ci_ca = 0.0
+     cs = -999.9
+     ci_ca = -999.9 ! signify night-time data, or times when gs and A are 0
 
      DO j=1, mf ! sunlit, shaded leaves...
 
@@ -2935,27 +2935,15 @@ CONTAINS
         IF (gsc(j) > 0.0 .AND. anx(i,j) > 0.0) THEN
            ci(j) = met%ca(i) - anx(i,j) / gsc(j)
            cs(j) = met%ca(i) - C%RGBWC * anx(i,j) / (gbhu(i,j) + gbhf(i,j))
-        ELSE
-           ci(j) = -999.9
-           cs(j) = -999.9
-        ENDIF
+           ci_ca(j) = ci(j) / met%ca(i)
 
-        ci_ca(j) = ci(j) / met%ca(i)
+           ! weight sunlit/shaded Ci:Ca by sunlit/shaded LAI fracs
+           canopy%cica = canopy%cica + &
+                              (ci_ca(j) * rad%fvlai(i,j) / canopy%vlaiw(i))
+        ENDIF
 
      END DO
 
-     ! ignore night-time data, or periods when the stomata are completely shut
-     IF (ci(1) < -500.0 .OR. ci(2) < -500.0) THEN
-        canopy%cica = -999.9
-     ELSE
-        ! weight sunlit/shaded Ci:Ca by sunlit/shaded LAI fracs
-       canopy%cica = (ci_ca(1) * rad%fvlai(i,1) / canopy%vlaiw(i)) + &
-                     (ci_ca(2) * rad%fvlai(i,2) / canopy%vlaiw(i))
-       canopy%cica = MAX(0.0, MIN(1.0, canopy%cica))
-       !print*, met%ca(i)*1e6, cs(1)*1e6, cs(2)*1e6, ci(1)*1e6, ci(2)*1e6, &
-       !          canopy%cica, fwsoil
-       !print*, " "
-     END IF
 
 END SUBROUTINE calc_weighted_cica
 !*******************************************************************************
