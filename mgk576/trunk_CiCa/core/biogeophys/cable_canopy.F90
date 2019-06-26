@@ -2925,7 +2925,6 @@ CONTAINS
      ci_ca = 0.0 ! signify night-time data, or times when gs and A are 0
      canopy%cica = 0.0
 
-
      DO j = 1, mf ! sunlit, shaded leaves...
 
         g0(j) = gswmin(i,j) * fwsoil(i) / C%RGSWC
@@ -2936,12 +2935,12 @@ CONTAINS
 
            ci(j) = met%ca(i) - anx(i,j) / gsc(j)
            ci_ca(j) = ci(j) / met%ca(i)
+           ci_ca(j)  = MAX(0.0, MIN(1.0, ci_ca(j)))
 
         END IF
 
      END DO
 
-     !print*, gsc(1), gsc(2), anx(i,1), anx(i,2)
      ! Only calculate this for daytime valid data, otherwise set a value we
      ! can filter by
      IF (gsc(1) > 0.0 .AND. gsc(2) > 0.0 .AND. &
@@ -2953,17 +2952,10 @@ CONTAINS
          !print*, met%ca(i)*1e6, ci(1)*1e6, ci(2)*1e6, canopy%cica, fwsoil
 
      ELSE
-        canopy%cica = -999.9
-        !print*, gsc(1), gsc(2), anx(i,1), anx(i,2)
+        canopy%cica(i) = -999.9
+
      ENDIF
-     !print*, " "
-     !IF (gsc(1) > 0.0 .AND. gsc(2) > 0.0 .AND. &
-   !      anx(i,1) > 0.0 .AND. anx(i,2) > 0.0) THEN
-   !      print*, met%ca(i)*1e6, ci(1)*1e6, ci(2)*1e6, &
-   !               canopy%cica, fwsoil
-    !
-     !ENDIF
-     !print*, met%ca(i)*1e6, canopy%cica
+
 END SUBROUTINE calc_weighted_cica
 !*******************************************************************************
 
