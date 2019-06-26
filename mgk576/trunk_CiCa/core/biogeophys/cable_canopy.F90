@@ -2924,7 +2924,7 @@ CONTAINS
      g0 = 0.0
      gsc = 0.0
      ci = 0.0
-     ci_ca = 0.0 
+     ci_ca = 0.0
      canopy%cica = 0.0
 
      DO j = 1, 2 ! sunlit, shaded leaves...
@@ -2946,7 +2946,6 @@ CONTAINS
      ! Only calculate this for daytime valid data, otherwise set a value we
      ! can filter by
      IF (gsc(1) > 0.0 .AND. gsc(2) > 0.0 .AND. &
-
          anx(i,1) > 0.0 .AND. anx(i,2) > 0.0) THEN
 
          ! weight sunlit/shaded Ci:Ca by sunlit/shaded LAI fracs
