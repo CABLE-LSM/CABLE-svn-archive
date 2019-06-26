@@ -2925,8 +2925,9 @@ CONTAINS
      ci = 0.0
      cs = -999.9
      ci_ca = -999.9 ! signify night-time data, or times when gs and A are 0
+     canopy%cica = -999.9
 
-     DO j=1, mf ! sunlit, shaded leaves...
+     DO j = 1, mf ! sunlit, shaded leaves...
 
         g0(j) = gswmin(i,j) * fwsoil(i) / C%RGSWC
         gsc(j) = MAX(0.0, g0(j) + gs_coeff(i,j) * anx(i,j))
@@ -2946,10 +2947,19 @@ CONTAINS
            ! weight sunlit/shaded Ci:Ca by sunlit/shaded LAI fracs
            canopy%cica(i) = canopy%cica(i) + &
                               (ci_ca(j) * rad%fvlai(i,j) / canopy%vlaiw(i))
+
         ENDIF
 
      END DO
 
+     IF (gsc(1) > 0.0 .AND. gsc(2) > 0.0 .AND. &
+         anx(i,1) > 0.0 .AND. anx(i,2) > 0.0) THEN
+         print*, met%ca(i)*1e6, cs(1)*1e6, cs(2)*1e6, ci(1)*1e6, ci(2)*1e6, &
+                  canopy%cica, fwsoil
+     ELSE
+        print*, met%ca(i)*1e6, cs(1), cs(2), ci(1), ci(2), &
+                canopy%cica, fwsoil
+     ENDIF
 
 END SUBROUTINE calc_weighted_cica
 !*******************************************************************************
