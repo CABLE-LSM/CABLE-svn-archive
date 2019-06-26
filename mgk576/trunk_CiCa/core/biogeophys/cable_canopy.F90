@@ -2238,17 +2238,6 @@ CONTAINS
              ! save last values calculated for ssnow%evapfbl
              oldevapfbl(i,:) = ssnow%evapfbl(i,:)
 
-             CALL photosynthesis( csx(:,:),                                           &
-                 SPREAD( cx1(:), 2, mf ),                            &
-                 SPREAD( cx2(:), 2, mf ),                            &
-                 gswmin(:,:), rdx(:,:), vcmxt3(:,:),                 &
-                 vcmxt4(:,:), vx3(:,:), vx4(:,:),                    &
-                                     ! Ticket #56, xleuning replaced with gs_coeff here
-                 gs_coeff(:,:), rad%fvlai(:,:),&
-                 SPREAD( abs_deltlf, 2, mf ),                        &
-                 anx(:,:), fwsoil(:) )
-
-
           ENDIF
 
           IF( abs_deltlf(i) > 0.1 )                                             &
