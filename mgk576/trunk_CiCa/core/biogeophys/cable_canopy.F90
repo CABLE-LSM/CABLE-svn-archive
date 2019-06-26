@@ -2928,10 +2928,11 @@ CONTAINS
 
      DO j = 1, mf ! sunlit, shaded leaves...
 
+        g0(j) = gswmin(i,j) * fwsoil(i) / C%RGSWC
+        gsc(j) = MAX(0.0, g0(j) + gs_coeff(i,j) * anx(i,j))
+
         IF (gsc(j) > 0.0 .AND. anx(i,j) > 0.0) THEN
 
-           g0(j) = gswmin(i,j) * fwsoil(i) / C%RGSWC
-           gsc(j) = MAX(0.0, g0(j) + gs_coeff(i,j) * anx(i,j))
            ci(j) = met%ca(i) - anx(i,j) / gsc(j)
            ci_ca(j) = ci(j) / met%ca(i)
 
@@ -2950,16 +2951,19 @@ CONTAINS
          canopy%cica(i) = canopy%cica(i) + &
                             (ci_ca(1) * fsun(1)) + (ci_ca(2) * fsun(2))
 
+         !print*, met%ca(i)*1e6, ci(1)*1e6, ci(2)*1e6, canopy%cica, fwsoil
+
      ELSE
         canopy%cica = -999.9
+        !print*, gsc(1), gsc(2), anx(i,1), anx(i,2)
      ENDIF
 
-     IF (gsc(1) > 0.0 .AND. gsc(2) > 0.0 .AND. &
-         anx(i,1) > 0.0 .AND. anx(i,2) > 0.0) THEN
-         print*, met%ca(i)*1e6, ci(1)*1e6, ci(2)*1e6, &
-                  canopy%cica, fwsoil
-    
-     ENDIF
+     !IF (gsc(1) > 0.0 .AND. gsc(2) > 0.0 .AND. &
+   !      anx(i,1) > 0.0 .AND. anx(i,2) > 0.0) THEN
+   !      print*, met%ca(i)*1e6, ci(1)*1e6, ci(2)*1e6, &
+   !               canopy%cica, fwsoil
+    !
+     !ENDIF
 
 END SUBROUTINE calc_weighted_cica
 !*******************************************************************************
