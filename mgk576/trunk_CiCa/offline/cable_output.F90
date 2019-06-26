@@ -876,7 +876,7 @@ CONTAINS
     END IF
 
     IF (output%cica) THEN
-       CALL define_ovar(ncid_out, ovid%cica, 'cica', '-',               &
+       CALL define_ovar(ncid_out, ovid%cica, 'cica', '[-]',               &
                         'CiCa', patchout%cica,              &
                         'dummy', xID, yID, zID, landID, patchID, tID)
        ALLOCATE(out%cica(mp))
