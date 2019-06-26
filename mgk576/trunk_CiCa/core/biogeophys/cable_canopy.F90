@@ -2903,7 +2903,7 @@ CONTAINS
     !
     ! Martin De Kauwe, 21st June, 2019
 
-     USE cable_def_types_mod!, ONLY : mp, mf
+     USE cable_def_types_mod
      USE cable_common_module
 
      IMPLICIT NONE
@@ -2914,7 +2914,7 @@ CONTAINS
 
      REAL, DIMENSION(mp,mf), INTENT(IN)      :: anx, gs_coeff, gswmin
      REAL, DIMENSION(mp), INTENT(IN)         :: fwsoil
-     REAL, DIMENSION(mf)                     :: g0, gsc, ci, cs, ci_ca
+     REAL, DIMENSION(mf)                     :: g0, gsc, ci, cs, ci_ca, fsun
 
      INTEGER, INTENT(IN) :: i
      INTEGER             :: j
@@ -2922,41 +2922,43 @@ CONTAINS
      g0 = 0.0
      gsc = 0.0
      ci = 0.0
-     ci_ca = -999.9 ! signify night-time data, or times when gs and A are 0
-     canopy%cica = -999.9
+     ci_ca = 0.0 ! signify night-time data, or times when gs and A are 0
+     canopy%cica = 0.0
+
 
      DO j = 1, mf ! sunlit, shaded leaves...
 
-        g0(j) = gswmin(i,j) * fwsoil(i) / C%RGSWC
-        gsc(j) = MAX(0.0, g0(j) + gs_coeff(i,j) * anx(i,j))
+        IF (gsc(j) > 0.0 .AND. anx(i,j) > 0.0) THEN
 
-        ! Using the diffusion equation, retrieve Ci.
-        IF (gsc(1) > 0.0 .AND. gsc(2) > 0.0 .AND. &
-            anx(i,1) > 0.0 .AND. anx(i,2) > 0.0) THEN
-
-           IF (j .EQ. 1) THEN
-             canopy%cica(i) = 0.0
-           ENDIF
-
+           g0(j) = gswmin(i,j) * fwsoil(i) / C%RGSWC
+           gsc(j) = MAX(0.0, g0(j) + gs_coeff(i,j) * anx(i,j))
            ci(j) = met%ca(i) - anx(i,j) / gsc(j)
-           !cs(j) = met%ca(i) - C%RGBWC * anx(i,j) / (gbhu(i,j) + gbhf(i,j))
            ci_ca(j) = ci(j) / met%ca(i)
 
-           ! weight sunlit/shaded Ci:Ca by sunlit/shaded LAI fracs
-           canopy%cica(i) = canopy%cica(i) + &
-                              (ci_ca(j) * rad%fvlai(i,j) / canopy%vlaiw(i))
+        END IF
 
-        ENDIF
+        fsun(j) = rad%fvlai(i,j) / canopy%vlaiw(i)
 
      END DO
+
+     ! Only calculate this for daytime valid data, otherwise set a value we
+     ! can filter by
+     IF (gsc(1) > 0.0 .AND. gsc(2) > 0.0 .AND. &
+         anx(i,1) > 0.0 .AND. anx(i,2) > 0.0) THEN
+
+         ! weight sunlit/shaded Ci:Ca by sunlit/shaded LAI fracs
+         canopy%cica(i) = canopy%cica(i) + &
+                            (ci_ca(1) * fsun(1)) + (ci_ca(2) * fsun(2))
+
+     ELSE
+        canopy%cica = -999.9
+     ENDIF
 
      IF (gsc(1) > 0.0 .AND. gsc(2) > 0.0 .AND. &
          anx(i,1) > 0.0 .AND. anx(i,2) > 0.0) THEN
          print*, met%ca(i)*1e6, ci(1)*1e6, ci(2)*1e6, &
                   canopy%cica, fwsoil
-     ELSE
-        print*, met%ca(i)*1e6, ci(1), ci(2), &
-                canopy%cica, fwsoil
+    
      ENDIF
 
 END SUBROUTINE calc_weighted_cica
