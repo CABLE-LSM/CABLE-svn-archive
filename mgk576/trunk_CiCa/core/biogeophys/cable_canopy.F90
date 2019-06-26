@@ -2250,7 +2250,7 @@ CONTAINS
 
              ! This isn't used, just a useful diagnostic to save.
              CALL calc_weighted_cica(canopy, rad, met, gswmin(:,:), anx(:,:), &
-                                     gs_coeff(:,:), fwsoil(:), i, gbhu(:,:), gbhf(:,:))
+                                     gs_coeff(:,:), fwsoil(:), i)
 
           ENDIF
 
@@ -2897,7 +2897,7 @@ CONTAINS
 
   !*****************************************************************************
   SUBROUTINE calc_weighted_cica(canopy, rad, met, gswmin, anx, gs_coeff, &
-                                fwsoil, i, gbhu, gbhf)
+                                fwsoil, i)
     ! Calculate the weighted (sunlit/shaded LAI) ratio of intercellular to
     ! atmospheric CO2, Ci:Ca
     !
@@ -2913,7 +2913,6 @@ CONTAINS
      TYPE (met_type), INTENT(INOUT)     :: met
 
      REAL, DIMENSION(mp,mf), INTENT(IN)      :: anx, gs_coeff, gswmin
-     REAL(r_2), DIMENSION(mp,mf), INTENT(IN) :: gbhu, gbhf
      REAL, DIMENSION(mp), INTENT(IN)         :: fwsoil
      REAL, DIMENSION(mf)                     :: g0, gsc, ci, cs, ci_ca
 
@@ -2923,7 +2922,6 @@ CONTAINS
      g0 = 0.0
      gsc = 0.0
      ci = 0.0
-     cs = -999.9
      ci_ca = -999.9 ! signify night-time data, or times when gs and A are 0
      canopy%cica = -999.9
 
@@ -2941,7 +2939,7 @@ CONTAINS
            ENDIF
 
            ci(j) = met%ca(i) - anx(i,j) / gsc(j)
-           cs(j) = met%ca(i) - C%RGBWC * anx(i,j) / (gbhu(i,j) + gbhf(i,j))
+           !cs(j) = met%ca(i) - C%RGBWC * anx(i,j) / (gbhu(i,j) + gbhf(i,j))
            ci_ca(j) = ci(j) / met%ca(i)
 
            ! weight sunlit/shaded Ci:Ca by sunlit/shaded LAI fracs
@@ -2954,10 +2952,10 @@ CONTAINS
 
      IF (gsc(1) > 0.0 .AND. gsc(2) > 0.0 .AND. &
          anx(i,1) > 0.0 .AND. anx(i,2) > 0.0) THEN
-         print*, met%ca(i)*1e6, cs(1)*1e6, cs(2)*1e6, ci(1)*1e6, ci(2)*1e6, &
+         print*, met%ca(i)*1e6, ci(1)*1e6, ci(2)*1e6, &
                   canopy%cica, fwsoil
      ELSE
-        print*, met%ca(i)*1e6, cs(1), cs(2), ci(1), ci(2), &
+        print*, met%ca(i)*1e6, ci(1), ci(2), &
                 canopy%cica, fwsoil
      ENDIF
 
