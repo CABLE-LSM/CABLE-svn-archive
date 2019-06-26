@@ -2930,6 +2930,7 @@ CONTAINS
 
         g0(j) = gswmin(i,j) * fwsoil(i) / C%RGSWC
         gsc(j) = MAX(0.0, g0(j) + gs_coeff(i,j) * anx(i,j))
+        fsun(j) = rad%fvlai(i,j) / canopy%vlaiw(i)
 
         IF (gsc(j) > 0.0 .AND. anx(i,j) > 0.0) THEN
 
@@ -2938,18 +2939,16 @@ CONTAINS
 
         END IF
 
-        fsun(j) = rad%fvlai(i,j) / canopy%vlaiw(i)
-
      END DO
 
+     !print*, gsc(1), gsc(2), anx(i,1), anx(i,2)
      ! Only calculate this for daytime valid data, otherwise set a value we
      ! can filter by
      IF (gsc(1) > 0.0 .AND. gsc(2) > 0.0 .AND. &
          anx(i,1) > 0.0 .AND. anx(i,2) > 0.0) THEN
 
          ! weight sunlit/shaded Ci:Ca by sunlit/shaded LAI fracs
-         canopy%cica(i) = canopy%cica(i) + &
-                            (ci_ca(1) * fsun(1)) + (ci_ca(2) * fsun(2))
+         canopy%cica(i) = (ci_ca(1) * fsun(1)) + (ci_ca(2) * fsun(2))
 
          !print*, met%ca(i)*1e6, ci(1)*1e6, ci(2)*1e6, canopy%cica, fwsoil
 
@@ -2957,14 +2956,14 @@ CONTAINS
         canopy%cica = -999.9
         !print*, gsc(1), gsc(2), anx(i,1), anx(i,2)
      ENDIF
-
+     !print*, " "
      !IF (gsc(1) > 0.0 .AND. gsc(2) > 0.0 .AND. &
    !      anx(i,1) > 0.0 .AND. anx(i,2) > 0.0) THEN
    !      print*, met%ca(i)*1e6, ci(1)*1e6, ci(2)*1e6, &
    !               canopy%cica, fwsoil
     !
      !ENDIF
-
+     !print*, met%ca(i)*1e6, canopy%cica
 END SUBROUTINE calc_weighted_cica
 !*******************************************************************************
 
