@@ -2899,7 +2899,7 @@ CONTAINS
 
      IF (output%cica) THEN
         ! Add current timestep's value to total of temporary output variable:
-        out%cica = out%cica + canopy%cica
+        out%cica = out%cica + REAL(canopy%cica, 4)
 
         IF(writenow) THEN
            ! Divide accumulated variable by number of accumulated time steps:
