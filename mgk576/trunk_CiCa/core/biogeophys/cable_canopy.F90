@@ -2248,9 +2248,6 @@ CONTAINS
                  SPREAD( abs_deltlf, 2, mf ),                        &
                  anx(:,:), fwsoil(:) )
 
-             ! This isn't used, just a useful diagnostic to save.
-             CALL calc_weighted_cica(canopy, rad, met, gswmin(:,:), anx(:,:), &
-                                     gs_coeff(:,:), fwsoil(:), i)
 
           ENDIF
 
@@ -2332,6 +2329,11 @@ CONTAINS
     !! vh !! inserted min to avoid -ve values of GPP
     canopy%fpn = MIN(-12.0 * SUM(an_y, 2), canopy%frday)
     canopy%evapfbl = ssnow%evapfbl
+
+    ! This isn't used, just a useful diagnostic to save. We need to pass i-1,
+    ! as the i counter will have been incremented by this point
+    CALL calc_weighted_cica(canopy, rad, met, gswmin(:,:), anx(:,:), &
+                            gs_coeff(:,:), fwsoil(:), i-1)
 
 
     DEALLOCATE( gswmin )
@@ -2925,7 +2927,7 @@ CONTAINS
      ci_ca = 0.0 ! signify night-time data, or times when gs and A are 0
      canopy%cica = 0.0
 
-     DO j = 1, mf ! sunlit, shaded leaves...
+     DO j = 1, 2 ! sunlit, shaded leaves...
 
         g0(j) = gswmin(i,j) * fwsoil(i) / C%RGSWC
         gsc(j) = MAX(0.0, g0(j) + gs_coeff(i,j) * anx(i,j))
@@ -2944,17 +2946,18 @@ CONTAINS
      ! Only calculate this for daytime valid data, otherwise set a value we
      ! can filter by
      IF (gsc(1) > 0.0 .AND. gsc(2) > 0.0 .AND. &
+
          anx(i,1) > 0.0 .AND. anx(i,2) > 0.0) THEN
 
          ! weight sunlit/shaded Ci:Ca by sunlit/shaded LAI fracs
          canopy%cica(i) = (ci_ca(1) * fsun(1)) + (ci_ca(2) * fsun(2))
 
-         !print*, met%ca(i)*1e6, ci(1)*1e6, ci(2)*1e6, canopy%cica, fwsoil
-
      ELSE
+
         canopy%cica(i) = -999.9
 
      ENDIF
+     !print*, canopy%cica(i)
 
 END SUBROUTINE calc_weighted_cica
 !*******************************************************************************
