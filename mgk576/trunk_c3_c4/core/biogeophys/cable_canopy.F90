@@ -197,8 +197,7 @@ CONTAINS
     CALL qsatfjh(qstvair,met%tvair-C%tfrz,met%pmb)
 
     met%dva = (qstvair - met%qvair) *  C%rmair/C%rmh2o * met%pmb * 100.0
-    dsx = met%dva     ! init. leaf surface vpd
-    dsx= MAX(dsx,0.0)
+    dsx = MAX(0.0, met%dva)     ! init. leaf surface vpd
     tlfx = met%tk  ! initialise leaf temp iteration memory variable (K)
     tlfy = met%tk  ! initialise current leaf temp (K)
 
@@ -1766,10 +1765,10 @@ CONTAINS
          ghr,        & ! dry canopy cond for heat & thermal rad
          anx,        & ! net photos. prev iteration
          an_y,       & ! net photosynthesis soln
-         rdx,        & ! daytime leaf resp rate, prev iteration
-         rdy,        & ! daytime leaf resp rate
          rdx3,       & ! daytime leaf resp rate, prev iteration - C3
          rdx4,       & ! daytime leaf resp rate, prev iteration - C4
+         rdx,        & ! daytime leaf resp rate, prev iteration
+         rdy,        & ! daytime leaf resp rate
          ejmax2,     & ! jmax of big leaf
          ejmxt3,     & ! jmax big leaf C3 plants
          vcmxt3,     & ! vcmax big leaf C3
@@ -1963,9 +1962,8 @@ CONTAINS
              vx4(i,1)  = ej4x(temp2(i,1),veg%alpha(i),veg%convex(i),vcmxt4(i,1))
              vx4(i,2)  = ej4x(temp2(i,2),veg%alpha(i),veg%convex(i),vcmxt4(i,2))
 
-             !!xrdx(i,1) = (veg%cfrd(i)*Vcmxt3(i,1) + veg%cfrd(i)*vcmxt4(i,1))
-             !!xrdx(i,2) = (veg%cfrd(i)*vcmxt3(i,2) + veg%cfrd(i)*vcmxt4(i,2))
-
+             rdx(i,1) = (veg%cfrd(i)*vcmxt3(i,1) + veg%cfrd(i)*vcmxt4(i,1))
+             rdx(i,2) = (veg%cfrd(i)*vcmxt3(i,2) + veg%cfrd(i)*vcmxt4(i,2))
              rdx3(i,1) = veg%cfrd(i) * vcmxt3(i,1)
              rdx3(i,2) = veg%cfrd(i) * vcmxt3(i,2)
              rdx4(i,1) = veg%cfrd(i) * vcmxt4(i,1)
