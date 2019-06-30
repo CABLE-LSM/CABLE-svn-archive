@@ -1801,6 +1801,9 @@ CONTAINS
     ! END header
 
     ALLOCATE( gswmin(mp,mf ))
+    ALLOCATE( gswmin3(mp,mf ))
+    ALLOCATE( gswmin4(mp,mf ))
+
 
     ! Soil water limitation on stomatal conductance:
     IF( iter ==1) THEN
@@ -1916,7 +1919,6 @@ CONTAINS
              ! Leuning 2002 (P C & E) equation for temperature response
              ! used for Vcmax for C3 plants:
              temp(i) =  xvcmxt3(tlfx(i)) * veg%vcmax(i) * (1.0-veg%frac4(i))
-
              vcmxt3(i,1) = rad%scalex(i,1) * temp(i)
              vcmxt3(i,2) = rad%scalex(i,2) * temp(i)
 
@@ -2096,6 +2098,7 @@ CONTAINS
           ENDIF !IF (canopy%vlaiw(i) > C%LAI_THRESH .AND. abs_deltlf(i) > 0.1)
 
        ENDDO !i=1,mp
+
 
        CALL photosynthesis( csx(:,:),                                           &
 	                         SPREAD( cx1(:), 2, mf ),                            &
@@ -2326,6 +2329,8 @@ CONTAINS
 
 
     DEALLOCATE( gswmin )
+    DEALLOCATE( gswmin3 )
+    DEALLOCATE( gswmin4 )
 
   END SUBROUTINE dryLeaf
   ! -----------------------------------------------------------------------------
