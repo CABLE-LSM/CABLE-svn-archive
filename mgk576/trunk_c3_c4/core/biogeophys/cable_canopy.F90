@@ -1768,6 +1768,8 @@ CONTAINS
          an_y,       & ! net photosynthesis soln
          rdx,        & ! daytime leaf resp rate, prev iteration
          rdy,        & ! daytime leaf resp rate
+         rdx3,       & ! daytime leaf resp rate, prev iteration - C3
+         rdx4,       & ! daytime leaf resp rate, prev iteration - C4
          ejmax2,     & ! jmax of big leaf
          ejmxt3,     & ! jmax big leaf C3 plants
          vcmxt3,     & ! vcmax big leaf C3
@@ -1784,7 +1786,7 @@ CONTAINS
          frac42,     & ! 2D frac4
          temp2
 
-    REAL, DIMENSION(:,:), POINTER :: gswmin ! min stomatal conductance
+    REAL, DIMENSION(:,:), POINTER :: gswmin, gswmin3, gswmin4 ! min gs conductance
 
     REAL, DIMENSION(mp,2) ::  gsw_term, lower_limit2  ! local temp var
 
@@ -1826,7 +1828,8 @@ CONTAINS
     gsw_term = SPREAD(veg%gswmin,2,mf)
     lower_limit2 = rad%scalex * gsw_term
     gswmin = MAX(1.e-6,lower_limit2)
-
+    gswmin3 = gswmin
+    gswmin4 = gswmin
 
     gw = 1.0e-3 ! default values of conductance
     gh = 1.0e-3
@@ -1960,8 +1963,13 @@ CONTAINS
              vx4(i,1)  = ej4x(temp2(i,1),veg%alpha(i),veg%convex(i),vcmxt4(i,1))
              vx4(i,2)  = ej4x(temp2(i,2),veg%alpha(i),veg%convex(i),vcmxt4(i,2))
 
-             rdx(i,1) = (veg%cfrd(i)*Vcmxt3(i,1) + veg%cfrd(i)*vcmxt4(i,1))
-             rdx(i,2) = (veg%cfrd(i)*vcmxt3(i,2) + veg%cfrd(i)*vcmxt4(i,2))
+             !!xrdx(i,1) = (veg%cfrd(i)*Vcmxt3(i,1) + veg%cfrd(i)*vcmxt4(i,1))
+             !!xrdx(i,2) = (veg%cfrd(i)*vcmxt3(i,2) + veg%cfrd(i)*vcmxt4(i,2))
+
+             rdx3(i,1) = veg%cfrd(i) * vcmxt3(i,1)
+             rdx3(i,2) = veg%cfrd(i) * vcmxt3(i,2)
+             rdx4(i,1) = veg%cfrd(i) * vcmxt4(i,1)
+             rdx4(i,2) = veg%cfrd(i) * vcmxt4(i,2)
 
              !Vanessa - the trunk does not contain xleauning as of Ticket#56 inclusion
              !as well as other inconsistencies here that need further investigation. In the
@@ -2092,14 +2100,14 @@ CONTAINS
        ENDDO !i=1,mp
 
        CALL photosynthesis( csx(:,:),                                           &
-            SPREAD( cx1(:), 2, mf ),                            &
-            SPREAD( cx2(:), 2, mf ),                            &
-            gswmin(:,:), rdx(:,:), vcmxt3(:,:),                 &
-            vcmxt4(:,:), vx3(:,:), vx4(:,:),                    &
-                                ! Ticket #56, xleuning replaced with gs_coeff here
-            gs_coeff(:,:), rad%fvlai(:,:),&
-            SPREAD( abs_deltlf, 2, mf ),                        &
-            anx(:,:), fwsoil(:) )
+	                         SPREAD( cx1(:), 2, mf ),                            &
+	                         SPREAD( cx2(:), 2, mf ),                            &
+	                         gswmin3(:,:),gswmin4(:,:),                          &
+	                         rdx3(:,:), rdx4(:,:),                               &
+	                         vcmxt3(:,:),vcmxt4(:,:),vx3(:,:),vx4(:,:),          &
+	                         gs_coeff(:,:),gs_coeff(:,:),rad%fvlai(:,:),         &
+	                         SPREAD( abs_deltlf, 2, mf ),                        &
+	                         anx(:,:), fwsoil(:) )
 
        DO i=1,mp
 
@@ -2326,9 +2334,9 @@ CONTAINS
 
 
   ! Ticket #56, xleuningz repalced with gs_coeffz
-  SUBROUTINE photosynthesis( csxz, cx1z, cx2z, gswminz,                          &
-       rdxz, vcmxt3z, vcmxt4z, vx3z,                       &
-       vx4z, gs_coeffz, vlaiz, deltlfz, anxz, fwsoilz )
+  SUBROUTINE photosynthesis( csxz, cx1z, cx2z, gswmin3z,gswmin4z,                         &
+                             rdx3z, rdx4z,vcmxt3z, vcmxt4z, vx3z,                         &
+                             vx4z, gs_coeff3z, gs_coeff4z, vlaiz, deltlfz, anxz, fwsoilz )
     USE cable_def_types_mod, ONLY : mp, mf, r_2
 
     REAL(r_2), DIMENSION(mp,mf), INTENT(IN) :: csxz
@@ -2336,13 +2344,16 @@ CONTAINS
     REAL, DIMENSION(mp,mf), INTENT(IN) ::                                       &
          cx1z,       & !
          cx2z,       & !
-         gswminz,    & !
-         rdxz,       & !
+         gswmin3z,   & !
+         gswmin4z,   & !
+         rdx3z,      & !
+         rdx4z,      & !
          vcmxt3z,    & !
          vcmxt4z,    & !
          vx4z,       & !
          vx3z,       & !
-         gs_coeffz,  & ! Ticket #56, xleuningz repalced with gs_coeffz
+         gs_coeff3z, & !
+         gs_coeff4z, & !
          vlaiz,      & !
          deltlfz       !
 
@@ -2351,7 +2362,8 @@ CONTAINS
     ! local variables
     REAL(r_2), DIMENSION(mp,mf) ::                                              &
          coef0z,coef1z,coef2z, ciz,delcxz,                                        &
-         anrubiscoz,anrubpz,ansinkz
+         anrubisco3z,anrubp3z,ansink3z,                                           &
+         anrubisco4z,anrubp4z,ansink4z
 
     REAL, DIMENSION(mp) :: fwsoilz
 
@@ -2369,20 +2381,18 @@ CONTAINS
              IF( vlaiz(i,j) .GT. C%LAI_THRESH .AND. deltlfz(i,j) .GT. 0.1) THEN
 
                 ! Rubisco limited:
-                coef2z(i,j) = gswminz(i,j)*fwsoilz(i) / C%RGSWC + gs_coeffz(i,j) * &
-                     ( vcmxt3z(i,j) - ( rdxz(i,j)-vcmxt4z(i,j) ) )
+                coef2z(i,j) = gswmin3z(i,j)*fwsoilz(i) / C%RGSWC + gs_coeff3z(i,j) * &
+ 	                            ( vcmxt3z(i,j) -  rdx3z(i,j) )
 
-                coef1z(i,j) = (1.0-csxz(i,j)*gs_coeffz(i,j)) *                  &
-                     (vcmxt3z(i,j)+vcmxt4z(i,j)-rdxz(i,j))             &
-                     + (gswminz(i,j)*fwsoilz(i)/C%RGSWC)*(cx1z(i,j)-csxz(i,j)) &
-                     - gs_coeffz(i,j)*(vcmxt3z(i,j)*cx2z(i,j)/2.0      &
-                     + cx1z(i,j)*(rdxz(i,j)-vcmxt4z(i,j) ) )
+ 	             coef1z(i,j) = (1.0-csxz(i,j)*gs_coeff3z(i,j)) * (vcmxt3z(i,j)-rdx3z(i,j)) &
+ 	                            + (gswmin3z(i,j)*fwsoilz(i)/C%RGSWC)*(cx1z(i,j)-csxz(i,j)) &
+ 	                            - gs_coeff3z(i,j)*(vcmxt3z(i,j)*cx2z(i,j)/2.0 + cx1z(i,j)*(rdx3z(i,j) ) )
 
 
-                coef0z(i,j) = -(1.0-csxz(i,j)*gs_coeffz(i,j)) *                 &
-                     (vcmxt3z(i,j)*cx2z(i,j)/2.0                       &
-                     + cx1z(i,j)*( rdxz(i,j)-vcmxt4z(i,j ) ) )         &
-                     -( gswminz(i,j)*fwsoilz(i)/C%RGSWC ) * cx1z(i,j)*csxz(i,j)
+ 	             coef0z(i,j) = -(1.0-csxz(i,j)*gs_coeff3z(i,j)) *(vcmxt3z(i,j)*cx2z(i,j)/2.0   &
+ 	                            + cx1z(i,j)*( rdx3z(i,j)) )                                      &
+ 	                            -( gswmin3z(i,j)*fwsoilz(i)/C%RGSWC ) * cx1z(i,j)*csxz(i,j)
+
 
 
                 ! kdcorbin,09/10 - new calculations
@@ -2393,7 +2403,7 @@ CONTAINS
                    ! quadratic below cannot handle zero denominator
                    ciz(i,j) = 99999.0
 
-                   anrubiscoz(i,j) = 99999.0 ! OR do ciz=0 and calc anrubiscoz
+                   anrubisco3z(i,j) = 99999.0 ! OR do ciz=0 and calc anrubiscoz
 
                 ENDIF
 
@@ -2406,9 +2416,8 @@ CONTAINS
 
                    ciz(i,j) = MAX( 0.0_r_2, ciz(i,j) )
 
-                   anrubiscoz(i,j) = vcmxt3z(i,j)*(ciz(i,j)-cx2z(i,j) / 2.0 ) / &
-                        ( ciz(i,j) + cx1z(i,j)) + vcmxt4z(i,j) -   &
-                        rdxz(i,j)
+                   anrubisco3z(i,j) = vcmxt3z(i,j)*(ciz(i,j)-cx2z(i,j) / 2.0 ) / &
+ 	                                    ( ciz(i,j) + cx1z(i,j))  - rdx3z(i,j)
 
                 ENDIF
 
@@ -2423,32 +2432,32 @@ CONTAINS
 
                    ciz(i,j) = MAX( 0.0_r_2, ciz(i,j) )   ! must be positive, why?
 
-                   anrubiscoz(i,j) = vcmxt3z(i,j) * ( ciz(i,j) - cx2z(i,j)      &
-                        / 2.0)  / ( ciz(i,j) + cx1z(i,j) ) +       &
-                        vcmxt4z(i,j) - rdxz(i,j)
+                   anrubisco3z(i,j) = vcmxt3z(i,j) * ( ciz(i,j) - cx2z(i,j)      &
+ 		                                    / 2.0)  / ( ciz(i,j) + cx1z(i,j) ) - rdx3z(i,j)
 
-                ENDIF
+ 		          ENDIF
+ 		          anrubisco4z(i,j) = vcmxt4z(i,j) - rdx4z(i,j)
 
                 ! RuBP limited:
-                coef2z(i,j) = gswminz(i,j)*fwsoilz(i) / C%RGSWC + gs_coeffz(i,j) &
-                     * ( vx3z(i,j) - ( rdxz(i,j) - vx4z(i,j) ) )
+                coef2z(i,j) = gswmin3z(i,j)*fwsoilz(i) / C%RGSWC + gs_coeff3z(i,j) &
+	                             * ( vx3z(i,j) -  rdx3z(i,j) )
 
-                coef1z(i,j) = ( 1.0 - csxz(i,j) * gs_coeffz(i,j) ) *            &
-                     ( vx3z(i,j) + vx4z(i,j) - rdxz(i,j) )             &
-                     + ( gswminz(i,j)*fwsoilz(i) / C%RGSWC ) *          &
-                     ( cx2z(i,j) - csxz(i,j) ) - gs_coeffz(i,j)        &
-                     * ( vx3z(i,j) * cx2z(i,j) / 2.0 + cx2z(i,j) *     &
-                     ( rdxz(i,j) - vx4z(i,j) ) )
+	             coef1z(i,j) = ( 1.0 - csxz(i,j) * gs_coeff3z(i,j) ) *            &
+	                             ( vx3z(i,j)  - rdx3z(i,j) )             &
+	                             + ( gswmin3z(i,j)*fwsoilz(i) / C%RGSWC ) *          &
+	                             ( cx2z(i,j) - csxz(i,j) ) - gs_coeff3z(i,j)        &
+	                             * ( vx3z(i,j) * cx2z(i,j) / 2.0 + cx2z(i,j) *     &
+	                             ( rdx3z(i,j)  ) )
 
-                coef0z(i,j) = -(1.0-csxz(i,j)*gs_coeffz(i,j)) *   &
-                     (vx3z(i,j)*cx2z(i,j)/2.0                          &
-                     + cx2z(i,j)*(rdxz(i,j)-vx4z(i,j)))                &
-                     - (gswminz(i,j)*fwsoilz(i)/C%RGSWC)*cx2z(i,j)*csxz(i,j)
+	             coef0z(i,j) = -(1.0-csxz(i,j)*gs_coeff3z(i,j)) *   &
+	                             (vx3z(i,j)*cx2z(i,j)/2.0                          &
+	                             + cx2z(i,j)*(rdx3z(i,j)))                &
+	                         - (gswmin3z(i,j)*fwsoilz(i)/C%RGSWC)*cx2z(i,j)*csxz(i,j)
 
 
                 !Ticket #117 - initialize at all times
                 ciz(i,j) = 99999.0
-                anrubpz(i,j)  = 99999.0
+                anrubp3z(i,j)  = 99999.0
 
                 ! solve linearly
                 IF( ABS( coef2z(i,j) ) < 1.e-9 .AND.                            &
@@ -2458,8 +2467,8 @@ CONTAINS
 
                    ciz(i,j) = MAX(0.0_r_2,ciz(i,j))
 
-                   anrubpz(i,j) = vx3z(i,j)*(ciz(i,j)-cx2z(i,j)/2.0) /          &
-                        (ciz(i,j)+cx2z(i,j)) +vx4z(i,j)-rdxz(i,j)
+                   anrubp3z(i,j) = vx3z(i,j)*(ciz(i,j)-cx2z(i,j)/2.0) /          &
+                                    (ciz(i,j)+cx2z(i,j)) -rdx3z(i,j)
 
                 ENDIF
 
@@ -2473,29 +2482,27 @@ CONTAINS
 
                    ciz(i,j) = MAX(0.0_r_2,ciz(i,j))
 
-                   anrubpz(i,j)  = vx3z(i,j)*(ciz(i,j)-cx2z(i,j)/2.0) /         &
-                        (ciz(i,j)+cx2z(i,j)) +vx4z(i,j)-rdxz(i,j)
+                   anrubp3z(i,j)  = vx3z(i,j)*(ciz(i,j)-cx2z(i,j)/2.0) /         &
+ 		                                  (ciz(i,j)+cx2z(i,j)) -rdx3z(i,j)
 
-                ENDIF
+ 		          ENDIF
+                anrubp4z(i,j)  = vx4z(i,j) - rdx4z(i,j)
 
                 ! Sink limited:
-                coef2z(i,j) = gs_coeffz(i,j)
+                coef2z(i,j) = gs_coeff4z(i,j)
 
-                coef1z(i,j) = gswminz(i,j)*fwsoilz(i)/C%RGSWC + gs_coeffz(i,j)   &
-                     * (rdxz(i,j) - 0.5*vcmxt3z(i,j))                  &
-                     + effc4 * vcmxt4z(i,j) - gs_coeffz(i,j)           &
-                     * csxz(i,j) * effc4 * vcmxt4z(i,j)
+                coef1z(i,j) = gswmin4z(i,j)*fwsoilz(i)/C%RGSWC + gs_coeff4z(i,j) * rdx4z(i,j)                  &
+                               + effc4 * vcmxt4z(i,j)  * (1.0 - gs_coeff4z(i,j) * csxz(i,j) )
 
-                coef0z(i,j) = -( gswminz(i,j)*fwsoilz(i)/C%RGSWC )*csxz(i,j)*effc4 &
-                     * vcmxt4z(i,j) + ( rdxz(i,j)                      &
-                     - 0.5 * vcmxt3z(i,j)) * gswminz(i,j)*fwsoilz(i)/C%RGSWC
+                coef0z(i,j) = -( gswmin4z(i,j)*fwsoilz(i)/C%RGSWC )*csxz(i,j)*effc4 &
+                               * vcmxt4z(i,j) + rdx4z(i,j) * gswmin4z(i,j)*fwsoilz(i)/C%RGSWC
 
                 ! no solution, give it a huge number
                 IF( ABS( coef2z(i,j) ) < 1.0e-9 .AND.                           &
                      ABS( coef1z(i,j)) < 1.0e-9 ) THEN
 
                    ciz(i,j) = 99999.0
-                   ansinkz(i,j)  = 99999.0
+                   ansink4z(i,j)  = 99999.0
 
                 ENDIF
 
@@ -2504,7 +2511,7 @@ CONTAINS
                      ABS( coef1z(i,j) ) >= 1.e-9 ) THEN
 
                    ciz(i,j) = -1.0 * coef0z(i,j) / coef1z(i,j)
-                   ansinkz(i,j)  = ciz(i,j)
+                   ansink4z(i,j)  = ciz(i,j)
 
                 ENDIF
 
@@ -2513,16 +2520,19 @@ CONTAINS
 
                    delcxz(i,j) = coef1z(i,j)**2 -4.0*coef0z(i,j)*coef2z(i,j)
 
-                   ciz(i,j) = (-coef1z(i,j)+SQRT (MAX(0.0_r_2,delcxz(i,j)) ) )  &
-                        / ( 2.0 * coef2z(i,j) )
+                   ansink4z(i,j) = (-coef1z(i,j)+SQRT (MAX(0.0_r_2,delcxz(i,j)) ) )  &
+                                   / ( 2.0 * coef2z(i,j) )
 
-                   ansinkz(i,j) = ciz(i,j)
-
-                ENDIF
+                   ENDIF
+                   ansink3z(i,j)  = 0.5 * vcmxt3z(i,j) - rdx3z(i,j)
 
                 ! minimal of three limited rates
-                anxz(i,j) = MIN(anrubiscoz(i,j),anrubpz(i,j),ansinkz(i,j))
+                anxz(i,j) = MIN(anrubisco3z(i,j),anrubp3z(i,j),ansink3z(i,j)) &
+ 	                          + MIN(anrubisco4z(i,j),anrubp4z(i,j),ansink4z(i,j))
 
+                ciz(i,j)  = csxz(i,j) -anxz(i,j) /        &
+                            (gs_coeff3z(i,j)*anxz(i,j) + fwsoilz(i) * &
+                            (gswmin3z(i,j) +gswmin4z(i,j))/C%RGSWC)
 
              ENDIF
 
