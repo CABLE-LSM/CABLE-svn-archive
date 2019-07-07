@@ -6,17 +6,10 @@ known_hosts()
 {
    set -A kh  pear jigg nXXX raij ces2 ccrc mael
 }
-host_bsh1(){
-    export NCDIR='/opt/local/lib/'
-    export NCMOD='/opt/local/include/'
-    export FC=gfortran
-    export CFLAGS='-O2'
-    export LD='-lnetcdf -lnetcdff'
-    export LDFLAGS='-L/opt/local/lib -O2'
-    build_build
-    cd ../
-    build_status
-}
+
+
+
+
 
 host_mael()
 {
