@@ -1,114 +1,114 @@
-!==============================================================================
-! This source code is part of the 
-! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
-! This work is licensed under the CABLE Academic User Licence Agreement 
-! (the "Licence").
-! You may not use this file except in compliance with the Licence.
-! A copy of the Licence and registration form can be obtained from 
-! http://www.cawcr.gov.au/projects/access/cable
-! You need to register and read the Licence agreement before use.
-! Please contact cable_help@nf.nci.org.au for any questions on 
-! registration and the Licence.
-!
-! Unless required by applicable law or agreed to in writing, 
-! software distributed under the Licence is distributed on an "AS IS" BASIS,
-! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-! See the Licence for the specific language governing permissions and 
-! limitations under the Licence.
-! ==============================================================================
-!
-! Purpose:
-!
-! Called from: JULES: surf_couple_
-!
-! Contact: Jhan.Srbinovsky@csiro.au
-!
-! History: Developed for CABLE-JULES coupling in UM 10.5
-!
-!
-! ==============================================================================
-
 module cable_explicit_main_mod
   
 contains
-
+!H!revised arg list to include only what is necessary !rm surf_down_sw
 SUBROUTINE cable_explicit_main(                                                &
-# if defined(UM_JULES)
-            ! grid, model, dimensions. PFT frac per landpoint etc   
-            mype, timestep_width, timestep_number, endstep,                    &
+            timestep_width,                     &
             cycleno, numcycles,                                                &
-            row_length, rows, land_pts, ntiles,                                &
+            land_pts, ntiles,                                &
             npft, sm_levels,                                                   &
-            latitude, longitude,                                               &
             land_index, tile_frac, tile_pts, tile_index,                       &
-            ! Soil parameters **jhan: could be undef.@some point  issue here
-            bexp, hcon, satcon, sathh,                                         &
-            smvcst, smvcwt, smvccl, albsoil,                                   &
-            ! packs/ unpacked ssnow% snowd 
-            snow_tile, lw_down, cosine_zenith_angle,                           &
-            surf_down_sw, ls_rain, ls_snow,                                    &
+            snow_tile, lw_down, & 
+            surf_down_sw, &
             tl_1, qw_1, vshr_land, pstar, z1_tq, z1_uv, canopy_tile,           &
             Fland, CO2_MMR, sthu, canht_ft, lai_ft ,                           &
-            sin_theta_latitude, dzsoil, FTL_TILE, FQW_TILE,                    &
+            FTL_TILE, FQW_TILE,                    &
             TSTAR_TILE, U_S, U_S_STD_TILE, CD_TILE, CH_TILE,                   &
             RADNET_TILE, FRACA, rESFS, RESFT, Z0H_TILE, Z0M_TILE,              &
-            RECIP_L_MO_TILE, EPOT_TILE &
-# else  
-            !jhan:this looks like I was testing standalone
-            ,timestep_number                                                   &
-# endif
+            RECIP_L_MO_TILE, EPOT_TILE, doy &
             )
   !subrs called 
   USE cable_explicit_driv_mod, ONLY : cable_explicit_driver
   USE cable_expl_unpack_mod, ONLY : cable_expl_unpack
+!subrs:HaC1.3 rm these allocation and types
+use cable_wide_mod, ONLY : allocate_cable_wide
+USE radiation_albedo_mod,    ONLY : allocate_rad_albedo
+
   !diag 
   USE cable_fprint_module, ONLY : cable_fprintf
   USE cable_Pyfprint_module, ONLY : cable_Pyfprintf
   USE cable_fFile_module, ONLY : fprintf_dir_root, fprintf_dir, L_cable_fprint,&
                                  L_cable_Pyfprint, unique_subdir
-  USE cable_def_types_mod, ONLY : mp !only need for fprint here
+
+!data !H! pass this in
+USE cable_other_constants_mod, ONLY : z0surf_min
 
   !processor number, timestep number / width, endstep
   USE cable_common_module, ONLY : knode_gl, ktau_gl, kwidth_gl, kend_gl
   USE cable_common_module, ONLY : cable_runtime
   USE cable_data_module, ONLY : cable
 !jhan:this looks like I was testing standalone
-# if !defined(UM_JULES)
-  USE model_grid_mod, ONLY: latitude, longitude
-# endif
-# if defined(UM_JULES)
-  USE atm_fields_real_mod, ONLY : soil_temp_cable, soil_moist_cable,           &
-                                  soil_froz_frac_cable, snow_dpth_cable,       &
-                                  snow_mass_cable, snow_temp_cable,            &
-                                  snow_rho_cable, snow_avg_rho_cable,          &
-                                  snow_age_cable, snow_flg_cable,              &
-                                  C_pool_casa, N_pool_casa, P_pool_casa,       &
-                                  SOIL_ORDER_casa, N_DEP_casa, N_FIX_casa,     &
-                                  P_DUST_casa, P_weath_casa, LAI_casa,         &
-                                  PHENPHASE_casa, NPP_PFT_ACC, RSP_W_PFT_ACC,  &
-                                  aquifer_moist_cable,aquifer_thickness_cable, &
-                                  slope_avg_cable,slope_std_cable,&
-                                  visc_sublayer_depth,aquifer_perm_cable,&
-                                  aquifer_draindens_cable
-#endif
-  !make availble these vars and CABLE % types - to be tidied
-  USE cable_decs_mod, only : L_tile_pts, rho_water
-  USE cable_um_tech_mod, ONLY : air, bgc, canopy, met, bal, rad, rough, soil,  &
-                                ssnow, sum_flux, veg
+
+!JULES5.3 !H! !pass this in
+!C!USE parallel_mod,   ONLY : mype => task_id 
+USE timestep_mod,   ONLY : rtimestep => timestep
+
+!H! !pass this in
+USE atm_fields_bounds_mod, ONLY : tdims
+
+!H! !pass this in
+USE jules_soil_mod, ONLY: dzsoil
+
+!H! !pass this in althoughnot even necessary for now
+use model_grid_mod, ONLY : latitude, longitude
+
+!H! !pass this in
+USE p_s_parms,      ONLY : bexp   => bexp_soilt,                               &
+                           hcon   => hcon_soilt,                               &
+                           satcon => satcon_soilt,                             &
+                           sathh  => sathh_soilt,                              &
+                           smvcst => smvcst_soilt,                             & 
+                           smvcwt => smvcwt_soilt,                             &
+                           smvccl => smvccl_soilt,                             &
+                           albsoil =>albsoil_soilt,                            &
+                           cosine_zenith_angle =>  cosz_ij 
+
+!Imports for driving and flux variables
+!H! !pass this in
+USE forcing, ONLY : ls_rain => ls_rain_ij, &
+                    ls_snow => ls_snow_ij
+
+!H! !pass this in
+!cable progs are set here
+USE allocate_cable_progs_mod, ONLY :               &
+  SoilTemp        =>  SoilTemp_CABLE,             &
+  SoilMoisture    =>  SoilMoisture_CABLE,         &
+  FrozenSoilFrac  => FrozenSoilFrac_CABLE,     &
+  SnowDepth   => SnowDepth_CABLE,               &
+  SnowMass    => SnowMass_CABLE,                &
+  SnowTemp    => SnowTemp_CABLE,                &
+  SnowDensity => SnowDensity_CABLE,             &
+  SnowAge     => SnowAge_CABLE,                 &
+  ThreeLayerSnowFlag  => ThreeLayerSnowFlag_CABLE,      &
+  OneLyrSnowDensity   => OneLyrSnowDensity_CABLE
+!H!elminate eventually
+  USE cbl_allocate_types_mod, ONLY : air, bgc, canopy,      &
+                                met, bal, rad, rough, soil, ssnow, sum_flux,  &
+                                veg
+!H! !pass this in
+!data
+USE cbl_masks_mod, ONLY : L_tile_pts
+ 
   implicit none
  
+!H! !pass this in
+!JaC:todo:***Hack: get from jules
+integer, parameter :: mp =1
+integer, parameter :: nrb=3
+
   !___ re-decl input args
-  integer :: mype, timestep_number, endstep, cycleno, numcycles
+  integer :: endstep, cycleno, numcycles
   real :: timestep_width
+  INTEGER :: row_length, rows
+
   INTEGER ::                                                      & 
-    row_length, rows, & ! UM grid resolution
     land_pts,         & ! # of land points being processed
     ntiles,           & ! # of tiles 
     npft,             & ! # of plant functional types
     sm_levels          ! # of soil layers 
 
 # if defined(UM_JULES)
-  REAL,  DIMENSION(row_length,rows) :: latitude,  longitude
+  REAL,  DIMENSION(tdims%i_end,tdims%j_end) :: latitude,  longitude
 # endif   
   INTEGER, DIMENSION(land_pts) :: land_index  ! index of land points processed
 
@@ -118,29 +118,15 @@ SUBROUTINE cable_explicit_main(                                                &
 
   REAL, DIMENSION(land_pts, ntiles) :: tile_frac
    
-  !___UM soil/snow/radiation/met vars
-  REAL,  DIMENSION(land_pts) :: & 
-    bexp,    & ! => parameter b in Campbell equation 
-    hcon,    & ! Soil thermal conductivity (W/m/K).
-    satcon,  & ! hydraulic conductivity @ saturation [mm/s]
-    sathh,   &
-    smvcst,  &
-    smvcwt,  &
-    smvccl,  &
-    albsoil
-
-  REAL,  DIMENSION(land_pts, ntiles) :: snow_tile
+    REAL,  DIMENSION(land_pts, ntiles) :: snow_tile
    
-  REAL,  DIMENSION(row_length,rows) ::                                         &
-   cosine_zenith_angle,   &
-   lw_down,               &
-   ls_rain,               &
-   ls_snow
+  REAL,  DIMENSION(tdims%i_end,tdims%j_end) ::                                         &
+  lw_down!,               &
 
-  REAL, DIMENSION(row_length, rows, 4) ::                         &
+  REAL, DIMENSION(tdims%i_end, tdims%j_end, 4) ::                         &
     surf_down_sw 
   
-  REAL,  DIMENSION(row_length,rows) ::                             &
+  REAL,  DIMENSION(tdims%i_end,tdims%j_end) ::                             &
     tl_1,       &
     qw_1,       &  
     vshr_land,  &
@@ -158,10 +144,8 @@ SUBROUTINE cable_explicit_main(                                                &
    
   REAL, DIMENSION(land_pts, npft) :: canht_ft, lai_ft 
   
-  REAL :: sin_theta_latitude(row_length,rows) 
+  REAL :: sin_theta_latitude(tdims%i_end,tdims%j_end) 
     
-  REAL,  DIMENSION(sm_levels) :: dzsoil
-
   !___return miscelaneous 
   REAL, DIMENSION(land_pts,ntiles) :: &
     FTL_TILE,    & ! Surface FTL for land tiles     
@@ -183,26 +167,22 @@ SUBROUTINE cable_explicit_main(                                                &
     RECIP_L_MO_TILE,& ! Reciprocal of the Monin-Obukhov length for tiles (m^-1)
     EPOT_TILE
 
-!jhan:this looks like I was testing standalone
-# if !defined(UM_JULES)
   integer :: timestep_number  
-# endif
+  integer :: doy
 
   !___ local vars
-  integer,  DIMENSION(land_pts, ntiles) :: isnow_flg_cable
+  integer,  DIMENSION(land_pts, ntiles) :: iThreeLayerSnowFlag
   logical, save :: first_call = .true.
   real :: radians_degrees
-  REAL,  DIMENSION(row_length,rows) :: latitude_deg, longitude_deg
 
   ! std template args 
   character(len=*), parameter :: subr_name = "cable_explicit_main"
 
-# include "../../../core/utils/diag/cable_fprint.txt"
-  
-  !-------- Unique subroutine body -----------
+  row_length = tdims%i_end
+  rows = tdims%j_end
   
   !--- initialize cable_runtime% switches 
-  cable_runtime%um =          .TRUE.
+  cable_runtime%um =          .true.
   cable_runtime%um_explicit = .TRUE.
    
   ! initialize processor number, timestep width & number, endstep 
@@ -210,58 +190,34 @@ SUBROUTINE cable_explicit_main(                                                &
   if( first_call ) then
     knode_gl =0; kwidth_gl = 1200.; kend_gl=-1
 # if defined(UM_JULES)
-    knode_gl  = mype 
+    !knode_gl  = mype 
     kwidth_gl = int(timestep_width)
     kend_gl   = endstep   
 # endif
 
-  !--- Convert lat/long to degrees
+    !--- Convert lat/long to degrees
     radians_degrees = 180.0 / ( 4.0*atan(1.0) ) ! 180 / PI
-  latitude_deg  = latitude * radians_degrees
-  longitude_deg  = longitude * radians_degrees
+    latitude  = latitude * radians_degrees
+    longitude  = longitude * radians_degrees
   endif
 
+  timestep_number = int(rtimestep)
   ktau_gl   = timestep_number
   
-  if( .NOT. allocated(L_tile_pts) ) allocate( L_tile_pts(land_pts, ntiles) ) 
-
   !----------------------------------------------------------------------------
   !--- CALL _driver to run specific and necessary components of CABLE with IN -
   !--- args PACKED to force CABLE
   !----------------------------------------------------------------------------
-  isnow_flg_cable = int(snow_flg_cable)
+  iThreeLayerSnowFlag= int(ThreeLayerSnowFlag)
 
-  call cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,         &
-                              sm_levels, timestep_width,                       &
-                              latitude_deg, longitude_deg,                     &
-                              land_index, tile_frac,  tile_pts, tile_index,    &
-                              bexp, hcon, satcon, sathh, smvcst,               &
-                              smvcwt,  smvccl, albsoil,                        &
-                              slope_avg_cable,slope_std_cable,                 &
-                              aquifer_thickness_cable,                         &
-                              aquifer_perm_cable,aquifer_draindens_cable,      &
-                              snow_tile,    &
-                              snow_avg_rho_cable, snow_age_cable,              &
-                              isnow_flg_cable, snow_rho_cable, snow_dpth_cable,&
-                              snow_temp_cable, snow_mass_cable,                &
-                              lw_down, cosine_zenith_angle, surf_down_sw,      &
-                              ls_rain, ls_snow, tl_1, qw_1, vshr_land, pstar,  &
-                              z1_tq, z1_uv,visc_sublayer_depth,  canopy_tile,  &
-                              Fland, CO2_MMR,                                  &
-                              soil_moist_cable, aquifer_moist_cable,           &
-                              soil_froz_frac_cable, sthu,                      &
-                              soil_temp_cable, canht_ft, lai_ft,               &
-                              sin_theta_latitude, dzsoil, FTL_TILE, FQW_TILE,  &
-                              TSTAR_TILE, U_S, U_S_STD_TILE, CD_TILE, CH_TILE, &
-                              RADNET_TILE, FRACA, RESFS, RESFT,                &
-                              Z0H_TILE, Z0M_TILE,                              &
-                              RECIP_L_MO_TILE, EPOT_TILE,                      &
-                              C_pool_casa, N_pool_casa, P_pool_casa,           &
-                              SOIL_ORDER_casa, N_DEP_casa, N_FIX_casa,         &
-                              P_weath_casa, P_DUST_casa, LAI_casa,             &
-                              PHENPHASE_casa, NPP_PFT_ACC, RSP_W_PFT_ACC,      &
-                              endstep, timestep_number, mype )    
+! define variables common cross CABLE (or at least >2 pathways)
+call allocate_cable_wide( mp )
+! define variables common to rad/albedo pathway
+call allocate_rad_albedo( mp, nrb )
 
+  call cable_explicit_driver(  &
+#                                include "cbl_explicit_driver_args.inc"
+                            ) 
   
   !----------------------------------------------------------------------------
   !--- CALL _unpack to unpack variables from CABLE back to UM format to return
@@ -277,28 +233,6 @@ SUBROUTINE cable_explicit_main(                                                &
                            canopy%zetar, canopy%epot, met%ua, rad%trad,        &
                            rad%transd, rough%z0m, rough%zref_tq, &
                            canopy%fes, canopy%fev )
-
-  !-------- End Unique subroutine body -----------
-  
-  fprintf_dir=trim(fprintf_dir_root)//trim(unique_subdir)//"/"
-  if(L_cable_fprint) then 
-    !basics to std output stream
-    if (knode_gl == 0 .and. ktau_gl == 1)  call cable_fprintf(subr_name, .true.) 
-    !more detailed output
-    vname=trim(subr_name//'_')
-    call cable_fprintf( cDiag00, vname, knode_gl, ktau_gl, .true. )
-  endif
-
-  if(L_cable_Pyfprint .and. ktau_gl == 1) then 
-    vname='latitude'; dimx=land_pts
-    call cable_Pyfprintf( cDiag1, vname, latitude_deg(:,1), dimx, .true.)
-    vname='longitude'
-    call cable_Pyfprintf( cDiag2, vname, longitude_deg(:,1), dimx, .true.)
-    !vname='latitude'; dimx=mp
-    !call cable_Pyfprintf( cDiag1, vname, cable%lat, dimx, .true.)
-    !vname='longitude'; dimx=mp
-    !call cable_Pyfprintf( cDiag2, vname, cable%lon, dimx, .true.)
-  endif
 
   cable_runtime%um_explicit = .FALSE.
   first_call = .false.        

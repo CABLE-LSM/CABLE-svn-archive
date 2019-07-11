@@ -1,25 +1,3 @@
-!==============================================================================
-! This source code is part of the 
-! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
-! This work is licensed under the CSIRO Open Source Software License
-! Agreement (variation of the BSD / MIT License).
-! 
-! You may not use this file except in compliance with this License.
-! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located 
-! in each directory containing CABLE code.
-!
-! ==============================================================================
-! Purpose: Updates CABLE variables (as altered by first pass through boundary 
-!          layer and convection scheme), calls cbm, passes CABLE variables back 
-!          to UM. 'Implicit' is the second call to cbm in each UM timestep.
-!
-! Called from: UM codecable_implicit_main 
-!
-! Contact: Jhan.Srbinovsky@csiro.au
-!
-! History: Developed for CABLE v1.8
-!
-! ==============================================================================
 
 module cable_implicit_driv_mod
   
@@ -30,55 +8,64 @@ subroutine cable_implicit_driver( i_day_number, cycleno, &! num_cycles
                           sm_levels, dim_cs1, dim_cs2, Fland,                  &
                           LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,               &
                           DTL_1,DQW_1, ctctq1, TSOIL, TSOIL_TILE, SMCL,        &
-                          SMCL_TILE, SMGW_TILE, timestep, SMVCST, STHF,        &
+                          SMCL_TILE, &!SMGW_TILE, 
+                          timestep, SMVCST, STHF,        &
                           STHF_TILE, STHU, snow_tile, SNOW_RHO1L, ISNOW_FLG3L, &
                           SNOW_DEPTH3L, SNOW_MASS3L, SNOW_RHO3L, SNOW_TMP3L,   &
                           FTL_1, FTL_TILE, FQW_1, FQW_TILE, TSTAR_TILE,        &
                           SURF_HT_FLUX_LAND, ECAN_TILE, ESOIL_TILE, EI_TILE,   &
                           RADNET_TILE, SNOW_AGE, CANOPY_TILE, GS, GS_TILE,     &
                           T1P5M_TILE, Q1P5M_TILE, CANOPY_GB, MELT_TILE,        &
-                          NPP, NPP_FT, GPP, GPP_FT, RESP_S,                    &
-                          RESP_S_TOT, RESP_S_TILE, RESP_P, RESP_P_FT,          &
-                          G_LEAF, TL_1, QW_1, SURF_HTF_TILE,                   &
-                          CPOOL_TILE, NPOOL_TILE, PPOOL_TILE,                  &
-                          GLAI, PHENPHASE, NPP_FT_ACC, RESP_W_FT_ACC, DTRAD )
+                          !NPP, NPP_FT, GPP, GPP_FT, RESP_S,                    &
+                          !RESP_S_TOT,  RESP_P, RESP_P_FT,          &
+                          !G_LEAF, 
+                          TL_1, QW_1, SURF_HTF_TILE,                   &
+                          !CPOOL_TILE, NPOOL_TILE, PPOOL_TILE,                  &
+                          !GLAI, PHENPHASE, NPP_FT_ACC, RESP_W_FT_ACC, 
+                          DTRAD )
 
   !subrs called 
+USE cbl_model_driver_mod, ONLY : cbl_model_driver
+use cable_wide_mod, ONLY : allocate_cable_wide
   USE cable_um_init_subrs_mod, ONLY : um2cable_rr
-  USE cable_cbm_module,    ONLY : cbm
-  USE casa_cable, only : bgcdriver, sumcflux
+!H!  USE casa_cable, only : bgcdriver, sumcflux
   
-  USE cable_def_types_mod, ONLY : mp, msn, ncs,ncp
+!data
+use cable_wide_mod, ONLY :  LAI_pft => LAI_pft_cbl, & 
+                                          HGT_pft => HGT_pft_cbl
+USE cable_other_constants_mod, ONLY : z0surf_min
+  USE cable_def_types_mod, ONLY : mp, msn, ncs,ncp, nrb
   USE cable_data_module,   ONLY : PHYS
-  USE cable_um_tech_mod,   ONLY : um1, conv_rain_prevstep, conv_snow_prevstep,&
-                                 air, bgc, canopy, met, bal, rad, rough, soil,&
-                                 ssnow, sum_flux, veg, basic_diag
+  USE cable_um_tech_mod,   ONLY : um1, conv_rain_prevstep, conv_snow_prevstep
+  USE cbl_allocate_types_mod, ONLY : air, bgc, canopy,      &
+                                met, bal, rad, rough, soil, ssnow, sum_flux,  &
+                                veg
   USE cable_common_module, ONLY : cable_runtime, cable_user, l_casacnp,       &
                                   l_vcmaxFeedbk, knode_gl, ktau_gl, kend_gl
   
-  USE casavariable
-  USE phenvariable
-  USE casa_types_mod
-  USE casa_um_inout_mod
-  USE cable_climate_mod
-  use POP_TYPES, only : pop_type
-  USE river_inputs_mod,   ONLY: river_step
+!H!  USE casavariable
+!H!  USE phenvariable
+!H!  USE casa_types_mod
+!H!  USE casa_um_inout_mod
+!H!  USE cable_climate_mod
+!H!  use POP_TYPES, only : pop_type
+  !C!USE river_inputs_mod,   ONLY: river_step
   
-  !diag 
-  USE cable_fprint_module, ONLY : cable_fprintf
-  USE cable_Pyfprint_module, ONLY : cable_Pyfprintf
-  USE cable_fFile_module, ONLY : fprintf_dir_root, fprintf_dir, L_cable_fprint,&
-                                 L_cable_Pyfprint, unique_subdir
-
-  USE cable_diag_module
+!H!  !diag 
+!H!  USE cable_fprint_module, ONLY : cable_fprintf
+!H!  USE cable_Pyfprint_module, ONLY : cable_Pyfprintf
+!H!  USE cable_fFile_module, ONLY : fprintf_dir_root, fprintf_dir, L_cable_fprint,&
+!H!                                 L_cable_Pyfprint, unique_subdir
+!H!
+!H!  USE cable_diag_module
   
   implicit none
 
   !___ re-decl input args
-  TYPE (climate_type)  :: climate     ! climate variables
+  !H!TYPE (climate_type)  :: climate     ! climate variables
   !necessary as arg checking is enforce in modular structure that now present 
   ! - HOWEVER *NB*  this POP is not initialized anywhere
-  TYPE(POP_TYPE) :: POP 
+  !H!TYPE(POP_TYPE) :: POP 
   
   integer :: cycleno
   integer :: row_length,rows, land_pts, ntiles, npft, sm_levels
@@ -260,7 +247,7 @@ subroutine cable_implicit_driver( i_day_number, cycleno, &! num_cycles
   ! std template args 
   character(len=*), parameter :: subr_name = "cable_implicit_driver"
 
-# include "../../../core/utils/diag/cable_fprint.txt"
+!H!# include "../../../core/utils/diag/cable_fprint.txt"
   
   !-------- Unique subroutine body -----------
         
@@ -328,16 +315,20 @@ subroutine cable_implicit_driver( i_day_number, cycleno, &! num_cycles
 
   canopy%cansto = canopy%oldcansto
 
-  CALL cbm( ktau_gl,timestep, air, bgc, canopy, met, bal,                             &
-            rad, rough, soil, ssnow, sum_flux, veg, climate )
+  CALL cbl_model_driver( mp, nrb, land_pts, npft, ktau_gl,timestep, air, bgc, canopy, met, bal,      &
+            rad, rough, soil, ssnow, sum_flux, veg, z0surf_min, &
+            !H!shouuld already work from here LAI_pft, HGT_pft )
+            veg%vlai, veg%hc, met%doy )
+  !CALL cbm( ktau_gl,timestep, air, bgc, canopy, met, bal,                             &
+  !          rad, rough, soil, ssnow, sum_flux, veg, climate )
 
       ! Integrate wb_lake over the river timestep.
       ! Used to scale river flow within ACCESS
       ! Zeroed each river step in subroutine cable_lakesriver and on restarts.
       !  ssnow_wb_lake in kg/m^2
-      if (ipb == cpb) THEN
-        ssnow%totwblake = ssnow%totwblake + ssnow%wb_lake/river_step
-      end if
+      !C!if (ipb == cpb) THEN
+      !C!  ssnow%totwblake = ssnow%totwblake + ssnow%wb_lake/river_step
+      !C!end if
  
   !Jun 2018 - change in Trad over time step
   DTRAD = rad%trad - rad%otrad
@@ -350,52 +341,52 @@ subroutine cable_implicit_driver( i_day_number, cycleno, &! num_cycles
   !cable_implicit per atmospheric time step
   if (ipb==cpb) then
     !Call CASA-CNP
-    if (l_casacnp) & 
-      CALL bgcdriver(ktau_gl,kstart,kend_gl,timestep,met,ssnow,canopy,veg,soil, &
-                     climate,casabiome,casapool,casaflux,casamet,casabal,phen, &
-                     pop, spinConv,spinup, ktauday, idoy,loy, dump_read,   &
-                     dump_write, LALLOC)
-
-    CALL sumcflux(ktau_gl,kstart,kend_gl,TIMESTEP,bgc,canopy,soil,ssnow,      &
-                  sum_flux,veg,met,casaflux,l_vcmaxFeedbk)
+    !H!if (l_casacnp) & 
+    !H!  CALL bgcdriver(ktau_gl,kstart,kend_gl,timestep,met,ssnow,canopy,veg,soil, &
+    !H!                 climate,casabiome,casapool,casaflux,casamet,casabal,phen, &
+    !H!                 pop, spinConv,spinup, ktauday, idoy,loy, dump_read,   &
+    !H!                 dump_write, LALLOC)
+!H! have to comment out as we dont havecasaflux yet
+    !H!CALL sumcflux(ktau_gl,kstart,kend_gl,TIMESTEP,bgc,canopy,soil,ssnow,      &
+    !H!              sum_flux,veg,met,casaflux,l_vcmaxFeedbk)
   endif
 
   ! Only call carbon cycle prognostics updates on the last call to 
   ! cable_implicit per atmospheric time step
   ! Call CASA-CNP collect pools
-  if (ipb==cpb .AND. l_casacnp) & 
-    CALL casa_poolout_unpk(casapool,casaflux,casamet,casabal,phen,  &
-                          CPOOL_TILE,NPOOL_TILE,PPOOL_TILE, &
-                          GLAI,PHENPHASE)
+  !H!if (ipb==cpb .AND. l_casacnp) & 
+  !H!  CALL casa_poolout_unpk(casapool,casaflux,casamet,casabal,phen,  &
+  !H!                        CPOOL_TILE,NPOOL_TILE,PPOOL_TILE, &
+  !H!                        GLAI,PHENPHASE)
 
   !-------- End Unique subroutine body -----------
 
-  fprintf_dir=trim(fprintf_dir_root)//trim(unique_subdir)//"/"
-  if(L_cable_fprint) then 
-    !basics to std output stream
-    if (knode_gl == 0 .and. ktau_gl == 1)  call cable_fprintf(subr_name, .true.) 
-    !more detailed output
-    vname=trim(subr_name//'_')
-    call cable_fprintf( cDiag00, vname, knode_gl, ktau_gl, .true. )
-  endif
-
-  if(L_cable_Pyfprint) then 
-    !vname='longitude'; dimx=mp
-    !call cable_Pyfprintf( cDiag2, vname, cable%lon, dimx, .true.)
-  endif
-
-!Testing puroses:
-!#define CABLE_TESTING
-# if defined(CABLE_TESTING)
-if (ktau_gl==72) then
-  L_fprint = .true.; vname='combined' 
-  
-  call cable_Pyfprintf( cDiag1, vname,&
-               ssnow%tgg(:,1) + ssnow%wb(:,1) + canopy%fes(:) + canopy%fhs(:), &
-               mp, L_fprint )
-  L_fprint = .false.
-endif
-# endif
+!H!  fprintf_dir=trim(fprintf_dir_root)//trim(unique_subdir)//"/"
+!H!  if(L_cable_fprint) then 
+!H!    !basics to std output stream
+!H!    if (knode_gl == 0 .and. ktau_gl == 1)  call cable_fprintf(subr_name, .true.) 
+!H!    !more detailed output
+!H!    vname=trim(subr_name//'_')
+!H!    call cable_fprintf( cDiag00, vname, knode_gl, ktau_gl, .true. )
+!H!  endif
+!H!
+!H!  if(L_cable_Pyfprint) then 
+!H!    !vname='longitude'; dimx=mp
+!H!    !call cable_Pyfprintf( cDiag2, vname, cable%lon, dimx, .true.)
+!H!  endif
+!H!
+!H!!Testing puroses:
+!H!!#define CABLE_TESTING
+!H!# if defined(CABLE_TESTING)
+!H!if (ktau_gl==72) then
+!H!  L_fprint = .true.; vname='combined' 
+!H!  
+!H!  call cable_Pyfprintf( cDiag1, vname,&
+!H!               ssnow%tgg(:,1) + ssnow%wb(:,1) + canopy%fes(:) + canopy%fhs(:), &
+!H!               mp, L_fprint )
+!H!  L_fprint = .false.
+!H!endif
+!H!# endif
 !End Testing puroses:
 
 return
