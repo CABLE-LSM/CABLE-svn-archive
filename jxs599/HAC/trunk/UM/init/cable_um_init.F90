@@ -50,8 +50,13 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
                               PHENPHASE, NPP_FT_ACC, RESP_W_FT_ACC )
 
    USE cable_um_init_subrs_mod          ! where most subrs called from here reside
-  USE casa_um_inout_mod
-   
+!H! Don't bothe with maintaining CASA within a framework that is changing
+!H!  USE casa_um_inout_mod
+!H! use temporary allocation avenue ehere   
+USE cbl_allocate_types_mod, ONLY : air, bgc, canopy,      &
+                                met, bal, rad, rough, soil, ssnow, sum_flux,  &
+                                veg
+
    USE cable_um_tech_mod,   ONLY :                                             &
       alloc_um_interface_types,  & ! mem. allocation subr (um1, kblum%) 
       dealloc_vegin_soilin,      & ! mem. allocation subr (vegin%,soilin%)
@@ -71,6 +76,8 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
   
   use cable_pft_params_mod, ONLY : cable_pft_params ! subr
   use cable_soil_params_mod, ONLY : cable_soil_params !subr
+!H!why this is commented I am not sure possibly because we want passed in anyway
+!USE cbl_masks_mod, ONLY : L_tile_pts
   
    !USE casa_um_inout_mod
 
@@ -257,22 +264,26 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
       !---def. vector length for cable(mp) & logical l_tile_pts
       !--- IF the tile is "active"
       IF ( first_call ) THEN
-      
-         um1%L_TILE_PTS = .FALSE.
+!H!ultimately calculate this outside of CABLE and pass in    
+         !H!um1%L_TILE_PTS = .FALSE.
+         um1%L_TILE_PTS = L_TILE_PTS 
          mp = SUM(um1%TILE_PTS)
+!H!call to allocate is still here - although I suspect will not be eecuted as 
+!H!on rad path will preceed it as firstcall
          
-         CALL alloc_cable_types()
+         CALL alloc_cable_types( mp )
+!H!ultimately calculate this outside of CABLE and pass in    
 
-         DO i=1,land_pts
-            DO j=1,ntiles
-               
-               IF( um1%TILE_FRAC(i,j) .GT. 0.0 ) THEN 
-                  um1%L_TILE_PTS(i,j) = .TRUE.
-                  tile_index_mp(i,j) = j 
-               ENDIF
-            
-            ENDDO
-         ENDDO
+         !H!DO i=1,land_pts
+         !H!   DO j=1,ntiles
+         !H!      
+         !H!      IF( um1%TILE_FRAC(i,j) .GT. 0.0 ) THEN 
+         !H!         um1%L_TILE_PTS(i,j) = .TRUE.
+         !H!         tile_index_mp(i,j) = j 
+         !H!      ENDIF
+         !H!   
+         !H!   ENDDO
+         !H!ENDDO
       
       ENDIF
 
@@ -324,18 +335,19 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
       !IF (l_casacnp) THEN ?
          CALL init_respiration(NPP_FT_ACC,RESP_W_FT_ACC)
 
-      ! Lestevens 28 Sept 2012 - Initialize CASA-CNP here
-         if (l_casacnp) then
-           if (knode_gl==0) then
-             print *, '  '; print *, 'CASA_log:'
-             print *, '  Calling CasaCNP - Initialise '
-             print *, '  l_casacnp = ',l_casacnp
-             print *, 'End CASA_log:'; print *, '  '
-           endif
-           call init_casacnp(sin_theta_latitude,cpool_tile,npool_tile,&
-                             ppool_tile,soil_order,nidep,nifix,pwea,pdust,&
-                             GLAI,PHENPHASE)
-         endif
+!H! we are ignoring everything CASA for the time being
+!H!      ! Lestevens 28 Sept 2012 - Initialize CASA-CNP here
+!H!         if (l_casacnp) then
+!H!           if (knode_gl==0) then
+!H!             print *, '  '; print *, 'CASA_log:'
+!H!             print *, '  Calling CasaCNP - Initialise '
+!H!             print *, '  l_casacnp = ',l_casacnp
+!H!             print *, 'End CASA_log:'; print *, '  '
+!H!           endif
+!H!           call init_casacnp(sin_theta_latitude,cpool_tile,npool_tile,&
+!H!                             ppool_tile,soil_order,nidep,nifix,pwea,pdust,&
+!H!                             GLAI,PHENPHASE)
+!H!         endif
 
          CALL dealloc_vegin_soilin()
          first_call = .FALSE. 

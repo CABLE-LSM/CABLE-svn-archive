@@ -27,7 +27,9 @@ CONTAINS
 
    subroutine initialize_maps(latitude,longitude, tile_index_mp)
       use cable_data_module, only : cable
-      use cable_um_tech_mod, only : um1, veg
+      use cable_um_tech_mod, only : um1
+!H!we are allocating types elsewher eas as a temporary measure only in HAC
+USE cbl_allocate_types_mod, ONLY :  veg
       use cable_def_types_mod, only : mp
 
       use cable_diag_module, only : cable_diag 
@@ -204,7 +206,9 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
                              dz_gw,aq_perm,drain_dens ) 
 
    USE cable_def_types_mod, ONLY : ms, mstype, mp, r_2
-   USE cable_um_tech_mod,   ONLY : um1, soil, veg, ssnow 
+   USE cable_um_tech_mod,   ONLY : um1
+!H!we are allocating types elsewher eas as a temporary measure only in HAC
+   USE cbl_allocate_types_mod,   ONLY : soil, veg, ssnow 
    USE cable_common_module, ONLY : cable_runtime, cable_user,                  &
                                    soilin, knode_gl, gw_params
    
@@ -600,7 +604,12 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
 !========================================================================
           
 SUBROUTINE initialize_veg( canht_ft, lai_ft, soil_zse ) 
-   USE cable_um_tech_mod
+!H!we are allocating types elsewher eas as a temporary measure only in HAC
+USE cbl_allocate_types_mod, ONLY : veg
+!H!we were inheriting ms
+USE cable_def_types_mod, ONLY : ms
+!still need um1 from here - for now
+USE cable_um_tech_mod,   ONLY : um1
    USE cable_common_module, ONLY : cable_runtime, cable_user, vegin
    
   REAL, INTENT(IN), DIMENSION(um1%land_pts, um1%npft) :: canht_ft, lai_ft 
@@ -626,7 +635,9 @@ END SUBROUTINE initialize_veg
 !========================================================================
 
 SUBROUTINE clobber_height_lai( um_htveg, um_lai )
-   USE cable_um_tech_mod, ONLY : um1, kblum_veg, veg
+   USE cable_um_tech_mod,   ONLY : um1, kblum_veg
+!H!we are allocating types elsewher eas as a temporary measure only in HAC
+   USE cbl_allocate_types_mod, ONLY : veg
 
    REAL, INTENT(IN), DIMENSION(um1%land_pts, um1%npft) ::                      &
                                                           um_htveg, um_lai
@@ -674,7 +685,9 @@ END SUBROUTINE clobber_height_lai
 
 SUBROUTINE init_respiration(NPP_FT_ACC,RESP_W_FT_ACC)
    ! Lestevens 23apr13 - for reading in prog soil & plant resp
-   USE cable_um_tech_mod,   ONLY : um1, canopy
+   USE cable_um_tech_mod,   ONLY : um1
+!H!we are allocating types elsewher eas as a temporary measure only in HAC
+USE cbl_allocate_types_mod, ONLY : canopy
    !USE cable_common_module, ONLY : cable_runtime, cable_user
 
    REAL, INTENT(INOUT),DIMENSION(um1%land_pts, um1%ntiles) :: NPP_FT_ACC
@@ -727,7 +740,7 @@ END SUBROUTINE init_respiration
 SUBROUTINE init_veg_pars_fr_vegin( soil_zse ) 
   USE cable_common_module, ONLY : vegin, init_veg_from_vegin,cable_user, &
                                   knode_gl, ktau_gl
-  USE cable_um_tech_mod,   ONLY : veg, soil 
+USE cbl_allocate_types_mod, ONLY : veg, soil
   USE cable_def_types_mod, ONLY : mp,ms
 
   real, dimension(ms) :: soil_zse 
@@ -764,8 +777,9 @@ SUBROUTINE initialize_radiation( sw_down, lw_down, cos_zenith_angle,           &
 
    USE cable_def_types_mod, ONLY : mp
    USE cable_data_module,   ONLY : PHYS, OTHER
-   USE cable_um_tech_mod,   ONLY : um1, rad, soil, met,                        &
-                                   conv_rain_prevstep, conv_snow_prevstep
+   USE cable_um_tech_mod,   ONLY : um1, conv_rain_prevstep, conv_snow_prevstep
+!H!we are allocating types elsewher eas as a temporary measure only in HAC
+USE cbl_allocate_types_mod, ONLY : met, soil, rad
    USE cable_common_module, ONLY : cable_runtime, cable_user, ktau_gl, kwidth_gl
 
    REAL, INTENT(INOUT), DIMENSION(um1%row_length, um1%rows) :: sw_down
@@ -812,13 +826,18 @@ SUBROUTINE initialize_radiation( sw_down, lw_down, cos_zenith_angle,           &
       
       ! re-set UM rad. forcings to suit CABLE. also called in explicit call to 
       ! CABLE from subr cable_um_expl_update() 
-      CALL update_kblum_radiation( sw_down, cos_zenith_angle, surf_down_sw )
+!H!      !CALL update_kblum_radiation( surf_down_sw ) deleted subr
       
       ! set met. and rad. forcings to CABLE. also called in radiation call to 
       ! CABLE from subr cable_rad_() !jhan?
       ! subr.  um2cable_met_rad_alb() USES CABLE types met%, rad%, soil%
       ! and kblum% rad. calculated in  update_kblum_radiation() above 
-      CALL um2cable_met_rad( cos_zenith_angle)
+!H!we already set this on rad path
+      !CALL um2cable_met_rad( cos_zenith_angle)
+!H!this is sufficient for forced run
+CALL um2cable_rr( cos_zenith_angle, met%coszen)
+CALL um2cable_rr( 0.5 * surf_down_sw, met%fsd(:,1))
+CALL um2cable_rr( 0.5 * surf_down_sw, met%fsd(:,2))
          
       ! UM met forcing vars needed by CABLE which have UM dimensions
       !(row_length,rows)[_rr], which is no good to cable. These have to be 
@@ -885,7 +904,9 @@ END SUBROUTINE initialize_radiation
 !========================================================================
           
 SUBROUTINE initialize_canopy(canopy_tile,visc_sublayer_dz)
-   USE cable_um_tech_mod,   ONLY : um1, canopy 
+   USE cable_um_tech_mod,   ONLY : um1 
+!H!we are allocating types elsewher eas as a temporary measure only in HAC
+USE cbl_allocate_types_mod, ONLY : canopy
    USE cable_common_module, ONLY : cable_runtime, cable_user
    
    REAL, INTENT(IN),DIMENSION(um1%land_pts, um1%ntiles) :: canopy_tile
@@ -934,7 +955,9 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile,smcl_tile,smgw_til
 
    USE cable_def_types_mod,  ONLY : mp, msn, ms, r_2,mstype
    USE cable_data_module,   ONLY : PHYS
-   USE cable_um_tech_mod,   ONLY : um1, soil, ssnow, met, bal, veg
+   USE cable_um_tech_mod,   ONLY : um1
+!H!we are allocating types elsewher eas as a temporary measure only in HAC
+USE cbl_allocate_types_mod, ONLY : soil, ssnow, met, bal, veg
    USE cable_common_module, ONLY : cable_runtime, cable_user, ktau_gl
    
    REAL, INTENT(IN), DIMENSION(um1%land_pts) :: smvcst
@@ -1240,7 +1263,9 @@ END SUBROUTINE initialize_soilsnow
 !========================================================================
           
 SUBROUTINE initialize_roughness( z1_tq, z1_uv, htveg )  
-   USE cable_um_tech_mod,   ONLY : um1, rough, veg
+   USE cable_um_tech_mod,   ONLY : um1
+!H!we are allocating types elsewher eas as a temporary measure only in HAC
+USE cbl_allocate_types_mod, ONLY : rough, veg
    USE cable_common_module, ONLY : ktau_gl
    USE cable_def_types_mod, ONLY : mp
    USE cable_common_module, ONLY : cable_runtime, cable_user
@@ -1280,73 +1305,26 @@ SUBROUTINE initialize_roughness( z1_tq, z1_uv, htveg )
 
 END SUBROUTINE initialize_roughness
 
-!========================================================================
-!========================================================================
-!========================================================================
-
-SUBROUTINE update_kblum_radiation( sw_down, cos_zenith_angle, surf_down_sw )
-   USE cable_um_tech_mod!, only : um1, um_rad, kblum_rad
-  
-   REAL, INTENT(INOUT), DIMENSION(um1%row_length, um1%rows) :: sw_down
-   REAL, INTENT(IN), DIMENSION(um1%row_length, um1%rows) :: cos_zenith_angle
-   REAL, INTENT(IN), DIMENSION(um1%row_length, um1%rows, 4) :: surf_down_sw 
-
-      !jhan: do you really want to be changing sw_down            
-      SW_DOWN = ( surf_down_sw(:,:,1)                                          &
-                        + surf_down_sw(:,:,2)                                  &
-                        + surf_down_sw(:,:,3)                                  &
-                        + surf_down_sw(:,:,4) )                                &
-                        * cos_zenith_angle(:,:)
-
-      kblum_rad%SW_DOWN_DIR = ( surf_down_sw(:,:,1)                            &
-                        + surf_down_sw(:,:,3) )                                &
-                        * cos_zenith_angle(:,:)
-
-      kblum_rad%SW_DOWN_DIF = ( surf_down_sw(:,:,2)                            & 
-                              + surf_down_sw(:,:,4) )                          &
-                              *cos_zenith_angle(:,:)
-
-      kblum_rad%SW_DOWN_VIS = (surf_down_sw(:,:,1)                             & 
-                              + surf_down_sw(:,:,2) )                          &
-                              * cos_zenith_angle(:,:)
-
-      kblum_rad%SW_DOWN_NIR = ( surf_down_sw(:,:,3)                            &
-                              + surf_down_sw(:,:,4) )                          &
-                              *cos_zenith_angle(:,:)
-      ! fbeam for VIS
-      kblum_rad%FBEAM(:,:,1) = surf_down_sw(:,:,1)                             &
-                              * cos_zenith_angle(:,:)                          &
-                                 / max( 0.1, kblum_rad%SW_DOWN_VIS )
-      ! fbeam for NIR
-      kblum_rad%FBEAM(:,:,2) = surf_down_sw(:,:,3)                             &
-                              * cos_zenith_angle(:,:)                          &
-                              / max( 0.1, kblum_rad%SW_DOWN_NIR )
-      !---fbeam for all solar 
-      kblum_rad%FBEAM(:,:,3) = kblum_rad%SW_DOWN_DIR /                         &
-                              MAX( 0.1, SW_DOWN )
-       
-END SUBROUTINE Update_kblum_radiation
-
-!========================================================================
-!========================================================================
-!========================================================================
 
 SUBROUTINE  um2cable_met_rad( cos_zenith_angle)
-   USE cable_um_tech_mod, ONLY :um1, kblum_rad, rad, met
-
+   USE cable_um_tech_mod, ONLY :um1, kblum_rad 
+!H!we are allocating types elsewher eas as a temporary measure only in HAC
+USE cbl_allocate_types_mod, ONLY : rad, met
    !___ from UM, cosine zenith angle and soil albedo
    REAL, INTENT(INOUT) :: cos_zenith_angle(um1%row_length, um1%rows)
 
       !--- CABLE met type forcings
-      CALL um2cable_rr( cos_zenith_angle, met%coszen)
-      CALL um2cable_rr( kblum_rad%SW_DOWN_VIS, met%fsd(:,1))
-      CALL um2cable_rr( kblum_rad%SW_DOWN_NIR, met%fsd(:,2))
-      
+!Hac - we d these directly now
+!      CALL um2cable_rr( cos_zenith_angle, met%coszen)
+!      CALL um2cable_rr( kblum_rad%SW_DOWN_VIS, met%fsd(:,1))
+!      CALL um2cable_rr( kblum_rad%SW_DOWN_NIR, met%fsd(:,2))
+ 
       !--- CABLE radiation type forcings
       !--- kblum_rad% vars are computed in subroutine update_kblum_radiation 
-      CALL um2cable_rr( kblum_rad%FBEAM(:,:,1), rad%fbeam(:,1))
-      CALL um2cable_rr( kblum_rad%FBEAM(:,:,2), rad%fbeam(:,2))
-      CALL um2cable_rr( kblum_rad%FBEAM(:,:,3), rad%fbeam(:,3))
+!H! for HaC we should be computing fbeam from Spitter for forced run
+!H!      CALL um2cable_rr( kblum_rad%FBEAM(:,:,1), rad%fbeam(:,1))
+!H!      CALL um2cable_rr( kblum_rad%FBEAM(:,:,2), rad%fbeam(:,2))
+!H!      CALL um2cable_rr( kblum_rad%FBEAM(:,:,3), rad%fbeam(:,3))
 
 END SUBROUTINE  um2cable_met_rad
 
@@ -1469,7 +1447,7 @@ END SUBROUTINE um2cable_lp
 
 SUBROUTINE init_bgc_vars() 
    USE cable_def_types_mod, ONLY : ncs, ncp 
-   USE cable_um_tech_mod,   ONLY : bgc, veg   
+USE cbl_allocate_types_mod, ONLY : bgc, veg
    USE cable_common_module, ONLY : vegin
    
    INTEGER :: k
@@ -1491,7 +1469,7 @@ END SUBROUTINE init_bgc_vars
 !========================================================================
 
 subroutine init_sumflux_zero() 
-   USE cable_um_tech_mod, ONLY : sum_flux
+USE cbl_allocate_types_mod, ONLY : sum_flux
       sum_flux%sumpn = 0.; sum_flux%sumrp = 0.; sum_flux%sumrpw = 0.
       sum_flux%sumrpr = 0.; sum_flux%sumrs = 0.; sum_flux%sumrd = 0.
       sum_flux%dsumpn = 0.; sum_flux%dsumrp = 0.; sum_flux%dsumrs = 0.
@@ -1502,22 +1480,24 @@ END SUBROUTINE init_sumflux_zero
 !========================================================================
 !========================================================================
 
-SUBROUTINE alloc_cable_types()
-   USE cable_def_types_mod, ONLY : mp, alloc_cbm_var
-   USE cable_um_tech_mod,   ONLY : air, canopy, met, bal, rad, rough,          &
-                                   soil, ssnow, sum_flux, veg, bgc
+SUBROUTINE alloc_cable_types (mp)
 
-      CALL alloc_cbm_var(air, mp)
-      CALL alloc_cbm_var(canopy, mp)
-      CALL alloc_cbm_var(met, mp)
-      CALL alloc_cbm_var(bal, mp)
-      CALL alloc_cbm_var(rad, mp)
-      CALL alloc_cbm_var(rough, mp)
-      CALL alloc_cbm_var(soil, mp)
-      CALL alloc_cbm_var(ssnow, mp)
-      CALL alloc_cbm_var(sum_flux, mp)
-      CALL alloc_cbm_var(veg, mp)
-      CALL alloc_cbm_var(bgc, mp)
+use cbl_allocate_types_mod, ONLY : alloc_cbl_types
+implicit none
+integer :: mp
+!H!we are allocating types elsewher eas as a temporary measure only in HAC
+call alloc_cbl_types (mp)
+!H!      CALL alloc_cbm_var(air, mp)
+!H!      CALL alloc_cbm_var(canopy, mp)
+!H!      CALL alloc_cbm_var(met, mp)
+!H!      CALL alloc_cbm_var(bal, mp)
+!H!      CALL alloc_cbm_var(rad, mp)
+!H!      CALL alloc_cbm_var(rough, mp)
+!H!      CALL alloc_cbm_var(soil, mp)
+!H!      CALL alloc_cbm_var(ssnow, mp)
+!H!      CALL alloc_cbm_var(sum_flux, mp)
+!H!      CALL alloc_cbm_var(veg, mp)
+!H!      CALL alloc_cbm_var(bgc, mp)
 
 END SUBROUTINE alloc_cable_types
 
