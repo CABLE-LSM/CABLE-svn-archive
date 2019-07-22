@@ -548,10 +548,10 @@ CONTAINS
              CALL open_met_file( dels, koffset, kend, spinup, C%TFRZ )
 
              IF ( leaps .AND. IS_LEAPYEAR( YYYY ) ) THEN
-               calendar = "standard"
-            ELSE
-               calendar = "noleap"
-            ENDIF
+                calendar = "standard"
+             ELSE
+                calendar = "noleap"
+             ENDIF
 
 
           ENDIF
