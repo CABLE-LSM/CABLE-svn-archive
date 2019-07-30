@@ -1401,9 +1401,9 @@ CONTAINS
                                  opid%rhosoil, 'rhosoil',REAL(soil%rhosoil_vec,4), &
                                        ranges%rhosoil, patchout%rhosoil, 'soil')
     IF(output%params .OR. output%hyds) CALL write_ovar(ncid_out, opid%hyds,    &
-                 'hyds', REAL(soil%hyds_vec, 4), ranges%hyds, patchout%hyds, 'soil')
+                 'hyds', REAL(soil%hyds_vec/1000., 4), ranges%hyds, patchout%hyds, 'soil') ! MMY /1000. unit mm->m
     IF(output%params .OR. output%sucs) CALL write_ovar(ncid_out, opid%sucs,    &
-                 'sucs', REAL(soil%sucs_vec, 4), ranges%sucs, patchout%sucs, 'soil')
+                 'sucs', REAL(soil%sucs_vec/1000., 4), ranges%sucs, patchout%sucs, 'soil') ! MMY /1000. unit mm->m
     IF(output%params .OR. output%rs20) CALL write_ovar(ncid_out, opid%rs20,    &
                   'rs20', REAL(veg%rs20, 4), ranges%rs20, patchout%rs20, 'real')
 !         'rs20',REAL(soil%rs20,4),ranges%rs20,patchout%rs20,'real')
@@ -3489,7 +3489,7 @@ CONTAINS
             .TRUE.,'real',0,0,0,mpID,dummy,.TRUE.)
     END IF ! SLI soil model
 
-    if (cable_user%gw_model) then
+    ! if (cable_user%gw_model) then ! MMY
        CALL define_ovar(ncid_restart,hys(1),'wb_hys','-',&
             'water (volumetric) at dry/wet switch', &
             .TRUE.,soilID,'soil',0,0,0,mpID,dummy,.TRUE.)
@@ -3505,7 +3505,7 @@ CONTAINS
        CALL define_ovar(ncid_restart,hys(5),'hys_fac','-',&
             'water (volumetric) at dry/wet switch', &
             .TRUE.,soilID,'soil',0,0,0,mpID,dummy,.TRUE.)
-    end if
+   ! end if ! MMY
 
 
     ! Write global attributes for file:
@@ -3772,7 +3772,7 @@ CONTAINS
             (/-99999.0,99999.0/),.TRUE.,'real',.TRUE.)
 
     END IF
-    if (cable_user%gw_model) then
+    ! if (cable_user%gw_model) then ! MMY
        CALL write_ovar (ncid_restart,hys(1),'wb_hys',REAL(ssnow%wb_hys,4), &
             (/0.0,1.0/),.TRUE.,'soil',.TRUE.)
        CALL write_ovar (ncid_restart,hys(2),'smp_hys',REAL(ssnow%smp_hys,4), &
@@ -3783,7 +3783,7 @@ CONTAINS
             (/0.0,1.0/),.TRUE.,'soil',.TRUE.)
        CALL write_ovar (ncid_restart,hys(5),'watr_hys',REAL(ssnow%hys_fac,4), &
             (/0.0,1.0/),.TRUE.,'soil',.TRUE.)
-    end if
+    ! end if ! MMY
     ! Close restart file
     ok = NF90_CLOSE(ncid_restart)
 
