@@ -460,7 +460,9 @@ CONTAINS
              WRITE(wlogn,*) ' wb min',MINVAL(ssnow%wb),MINLOC(ssnow%wb)
              CALL flush(wlogn)
 
-             CALL worker_climate_types(comm, climate, ktauday )
+             IF (cable_user%call_climate) THEN ! MMY
+               CALL worker_climate_types(comm, climate, ktauday )
+             ENDIF ! MMY        
 
              ! MPI: mvtype and mstype send out here instead of inside worker_casa_params
              !      so that old CABLE carbon module can use them. (BP May 2013)

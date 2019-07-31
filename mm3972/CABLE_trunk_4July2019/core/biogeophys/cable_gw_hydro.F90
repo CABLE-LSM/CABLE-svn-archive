@@ -1870,11 +1870,15 @@ CONTAINS
 
     S(:) = 0._r_2
     DO k=1,gw_params%level_for_satfrac
+       !Print *, "MMY k = ", k ," soil%zse_vec(1,k)  = ", soil%zse_vec(1,k) ! MMY
        S(:) = S(:) + MAX(0.01,MIN(1.0, &
             (ssnow%wb(:,k)-ssnow%wbice(:,k)-soil%watr(:,k))/&
-            MAX(0.001,soil%ssat_vec(:,k)-soil%watr(:,k)) ) )*soil%zse_vec(:,k)
+            MAX(0.001,soil%ssat_vec(:,k)-soil%watr(:,k)) ) )*soil%zse(k) ! soil%zse_vec(:,k) MMY
     END DO
+    !Print *, "MMY Point 1 S(1) = ", S(1) ! MMY
+    !Print *, "MMY SUM(soil%zse(1:gw_params%level_for_satfrac),dim=1) = ", SUM(soil%zse(1:gw_params%level_for_satfrac),dim=1) ! MMY
     S(:) = S(:)/SUM(soil%zse(1:gw_params%level_for_satfrac),dim=1)
+    !Print *, "MMY Point 2 S(1) = ", S(1) ! MMY
     !srf frozen fraction.  should be based on topography
     DO i = 1,mp
        !Saturated fraction
@@ -1882,9 +1886,12 @@ CONTAINS
           slopeSTDmm = SQRT(MIN(MAX(&
                gw_params%MaxSatFraction*soil%slope_std(i),&
                1e-5),10000._r_2)) ! ensure some variability
+          !Print *, "MMY Point 3 i = ", i ," S(i) = ", S(i) ! MMY
+          !Print *, "MMY slopeSTDmm ", slopeSTDmm ! MMY
           ssnow%satfrac(i)    = MAX(0._r_2,MIN(0.99_r_2,&
                                 !note UM wants std03, and erf is not included then
                1._r_2 - my_erf( slopeSTDmm / SQRT(2.0* S(i)) ) ) )
+          !Print *, "MMY ssnow%satfrac(i) = ", ssnow%satfrac(i) ! MMY
        ELSEIF (veg%iveg(i) .LT. 16) THEN
           ssnow%satfrac(i) = 0._r_2
        ELSE

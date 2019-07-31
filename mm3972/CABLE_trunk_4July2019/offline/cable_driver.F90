@@ -459,7 +459,7 @@ PROGRAM cable_offline_driver
               LOY = 365
            ENDIF
            ! Check for gswp run
-           IF ( TRIM(cable_user%MetType) .EQ. 'gswp' ) THEN
+           IF ( TRIM(cable_user%MetType) .EQ. 'gswp' .OR. TRIM(cable_user%MetType) .EQ. 'gswp3' ) THEN ! MMY
               ncciy = CurYear
 
               CALL prepareFiles(ncciy)
@@ -489,6 +489,15 @@ PROGRAM cable_offline_driver
                  ncid_wd   = GSWP_MID(8,YYYY)
                  kend	   = ktauday * LOY
               ENDIF
+
+             ! _________ MMY ___________
+              IF (leaps) THEN
+                  calendar = "standard"
+              ELSE
+                  calendar = "noleap"
+              ENDIF
+             ! ___ MGK found the bug ___
+
            ELSE IF ( TRIM(cable_user%MetType) .EQ. 'plum' ) THEN
               ! PLUME experiment setup using WATCH
               IF ( CALL1 ) THEN

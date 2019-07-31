@@ -723,7 +723,10 @@ CONTAINS
        timevar(:) = (timevar(:)-timevar(1))*3600.0 + 1.5*3600.0  !convert hours to seconds
     END IF
     ! Set time step size:
+    !PRINT *,"MMY timevar(1)", timevar(1) ! MMY
+    !PRINT *,"MMY timevar(2)", timevar(2) ! MMY
     dels = REAL(timevar(2) - timevar(1))
+    !PRINT *,"MMY dels", dels ! MMY
     WRITE(logn,'(1X,A29,I8,A3,F10.3,A5)') 'Number of time steps in run: ',&
          kend,' = ', REAL(kend)/(3600/dels*24),' days'
 
@@ -2579,7 +2582,11 @@ CONTAINS
     CALL write_default_params(met,air,ssnow,veg,bgc,soil,canopy,rough, &
          rad,logn,vegparmnew,smoy, TFRZ, LUC_EXPT)
 
-
+    WRITE(logn,*) "MMY cable_input after CALL write_default_params,zse_vec", soil%zse_vec(18,3) ! MMY
+    !WRITE(logn,*) "MMY cable_input after CALL write_default_params, soil%zse ", soil%zse ! MMY
+    !WRITE(logn,*) "MMY cable_input after CALL write_default_params, soil%ssat ", soil%ssat ! MMY
+    !WRITE(logn,*) "MMY cable_input after CALL write_default_params, soil%silt ", soil%silt ! MMY
+    WRITE(logn,*) "MMY cable_input after CALL write_default_params,rhosoil_vec", soil%rhosoil_vec(18,3) ! MMY
 
     ! Zero out lai where there is no vegetation acc. to veg. index
     WHERE ( veg%iveg(:) .GE. 14 ) veg%vlai = 0.

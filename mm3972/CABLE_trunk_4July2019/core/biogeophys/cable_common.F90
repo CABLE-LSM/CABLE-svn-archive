@@ -544,9 +544,14 @@ CONTAINS
     ! calculate vegin%froot from using rootbeta and soil depth
     ! (Jackson et al. 1996, Oceologica, 108:389-411)
     totdepth = 0.0
+    WRITE(*,*) "MMY cable_common within init_veg_from_vegin soil_zse ", soil_zse ! MMY
     DO is = 1, ms-1
        totdepth = totdepth + soil_zse(is) * 100.0  ! unit in centimetres
        veg%froot(:, is) = MIN( 1.0, 1.0-veg%rootbeta(:)**totdepth )
+       WRITE(*,*) "MMY within init_veg_from_vegin totdepth ", totdepth ! MMY
+       WRITE(*,*) "MMY within init_veg_from_vegin veg%froot ", veg%froot(34,is) ! MMY
+       WRITE(*,*) "MMY within init_veg_from_vegin veg%rootbeta ", veg%rootbeta(:) ! MMY
+       WRITE(*,*) "MMY within init_veg_from_vegin soil_zse ", soil_zse ! MMY
     END DO
     veg%froot(:, ms) = 1.0 - veg%froot(:, ms-1)
     DO is = ms-1, 2, -1
