@@ -54,8 +54,8 @@ MODULE cable_def_types_mod
       swb = 2,       & ! # shortwave bands
       niter = 4,     & ! number of iterations for za/L
  !      ms = 12          ! # soil layers
-       ms = 6         ! # soil layers - standard
-!       ms = 13          ! for Loetschental experiment
+!       ms = 6         ! # soil layers - standard ! MMY
+       ms = 13          ! for Loetschental experiment ! MMY
 
 !   PRIVATE :: r_2, ms, msn, mf, nrb, ncp, ncs
 

@@ -328,7 +328,7 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, climate, ncall, kend
             CALL get_var_ncr2(ncrid, var_name(12), phendoyphase4, idoy)
             CALL get_var_ncr2(ncrid, var_name(13), mtemp   , idoy )
             CALL get_var_ncr2(ncrid, var_name(14), Ndep   , idoy )
-
+            ! MMY-NEED TO CHANGE !!!
             casamet%Tairkspin(:,idoy) = tairk
             casamet%cgppspin (:,idoy) = cgpp
             casamet%crmplantspin_1(:,idoy) = crmplant(:,1)
@@ -457,7 +457,7 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, phen, climate, n_call, ke
 
   INTEGER, PARAMETER :: soil_dim = 6
 
-  INTEGER, DIMENSION(soil_dim), PARAMETER  :: soil = (/ 1,2,3,4,5,6 /)
+  INTEGER, DIMENSION(soil_dim), PARAMETER  :: soil = (/ 1,2,3,4,5,6 /) ! MMY-NEED TO CHANGE !!!
 
   INTEGER, DIMENSION(num_dims)  :: &
        dimID   ! (1) x, (2) y, (3) time

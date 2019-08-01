@@ -1878,6 +1878,10 @@ CONTAINS
     rough%hruff = max(0.01, veg%hc - 1.2 * ssnow%snowd/max(ssnow%ssdnn, 100.))
     rough%hruff_grmx = rough%hruff
     ! owetfac introduced by EAK apr2009
+
+    print *,'MMY soil%sfc', soil%sfc ! MMY
+    print *,'MMY soil%swilt', soil%swilt ! MMY
+    
     ssnow%owetfac = MAX(0.0, MIN(1.0,                                          &
                    (REAL(ssnow%wb(:, 1)) - soil%swilt) /                  &
                    (soil%sfc - soil%swilt)))
@@ -1974,6 +1978,39 @@ CONTAINS
      end do
 
    end if
+   ! ____________________________ MMY ______________________________
+   PRINT *,"MMY soil%sfc", soil%sfc
+   PRINT *,"MMY soil%swilt", soil%swilt
+   PRINT *,"MMY soil%css", soil%css
+   PRINT *,"MMY soil%cnsd", soil%cnsd
+   PRINT *,"MMY soil%rhosoil", soil%rhosoil
+   PRINT *,"MMY soil%hyds", soil%hyds
+   PRINT *,"MMY soil%sucs", soil%sucs
+   PRINT *,"MMY soil%ssat", soil%ssat
+   PRINT *,"MMY soil%bch", soil%bch
+   PRINT *,"MMY soil%sand", soil%sfc
+   PRINT *,"MMY soil%clay", soil%swilt
+   PRINT *,"MMY soil%silt", soil%css
+   PRINT *,"MMY soil%cnsd", soil%cnsd
+   
+   PRINT *,"MMY soil%bch_vec", soil%bch_vec
+   PRINT *,"MMY soil%sfc_vec", soil%sfc_vec
+   PRINT *,"MMY soil%swilt_vec", soil%swilt_vec
+   PRINT *,"MMY soil%css_vec", soil%css_vec
+   PRINT *,"MMY soil%cnsd_vec", soil%cnsd_vec
+   PRINT *,"MMY soil%rhosoil_vec", soil%rhosoil_vec
+   PRINT *,"MMY soil%hyds_vec", soil%hyds_vec
+   PRINT *,"MMY soil%sucs_vec", soil%sucs_vec
+   PRINT *,"MMY soil%ssat_vec", soil%ssat_vec
+   PRINT *,"MMY soil%bch_vec", soil%bch_vec
+   PRINT *,"MMY soil%sand_vec", soil%sfc_vec
+   PRINT *,"MMY soil%clay_vec", soil%swilt_vec
+   PRINT *,"MMY soil%silt_vec", soil%css_vec
+   PRINT *,"MMY soil%cnsd_vec", soil%cnsd_vec  
+   PRINT *,"MMY soil%org_vec", soil%org_vec
+   PRINT *,"MMY soil%watr", soil%watr
+   ! _______________________________________________________________
+
   END SUBROUTINE derived_parameters
   !============================================================================
   SUBROUTINE check_parameter_values(soil, veg, ssnow)
@@ -2142,6 +2179,7 @@ SUBROUTINE report_parameters(logn, soil, veg, bgc, rough,                    &
    ! CALL get_type_parameters(filename_veg, filename_soil, logn, vegparmnew)
 
    ! Only report parameters for active vegetation patches:
+   ! MMY-NEED TO CHANGE !!!
    IF (report_parameters_to_log) THEN
    DO e = 1, mland
       WRITE(logn, *) '==================================================='//  &
@@ -2758,7 +2796,8 @@ END SUBROUTINE report_parameters
     IF (cable_user%gw_model) then
 
        file_status = NF90_OPEN(trim(filename%type),NF90_NOWRITE,ncid_elev) ! MMY
-
+       PRINT *, "MMY filename%gw_elev",trim(filename%gw_elev) ! MMY
+       PRINT *, "MMY file_status: ", file_status ! MMY
        IF( NF90_INQ_DIMID(ncid_elev,'longitude',lon_id)  .eq. nf90_noerr) THEN
           IF (NF90_INQUIRE_DIMENSION(ncid_elev,lon_id,LEN=nlon) .ne. nf90_noerr) nlon = xdimsize
        ELSE

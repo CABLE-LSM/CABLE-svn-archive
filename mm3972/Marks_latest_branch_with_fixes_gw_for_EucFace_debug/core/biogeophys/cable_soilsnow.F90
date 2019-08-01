@@ -1742,7 +1742,7 @@ SUBROUTINE soil_snow(dels, soil, ssnow, canopy, met, bal, veg)
 
          END DO
 
-         WHERE (soil%isoilm == 9)
+         WHERE (soil%isoilm == 9) ! MMY-NEED TO CHANGE !!!
             ! permanent ice: fix hard-wired number in next version
             ssnow%snowd = max_glacier_snowd
             ssnow%osnowd = max_glacier_snowd
