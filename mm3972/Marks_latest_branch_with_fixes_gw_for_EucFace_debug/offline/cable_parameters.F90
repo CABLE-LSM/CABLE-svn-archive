@@ -1106,8 +1106,10 @@ CONTAINS
         soil%zse = (/.022,  0.0500,    0.1300 ,   0.3250 ,   0.3250 ,   0.3000,&
              0.3000,    0.3000 ,   0.3000,    0.3000,    0.7500,  1.50 /)
      case(13)
-        soil%zse = (/.02,  0.0500,  0.06,  0.1300 ,   0.300 ,   0.300 ,   0.3000,&
-             0.3000,    0.3000 ,   0.3000,    0.3000,    0.7500,  1.50 /)
+     !   soil%zse = (/.02,  0.0500,  0.06,  0.1300 ,   0.300 ,   0.300 ,   0.3000,& ! MMY
+     !        0.3000,    0.3000 ,   0.3000,    0.3000,    0.7500,  1.50 /)          ! MMY
+        soil%zse = (/0.3538,  0.3538, 0.3538, 0.3538, 0.3538, 0.3538, 0.3538, &     ! MMY
+                     0.3538, 0.3538, 0.3538, 0.3538, 0.3538, 0.3538 /)              ! MMY
      end select
 
     soil%zse_vec = real(spread(soil%zse,1,mp),r_2)
@@ -1988,9 +1990,9 @@ CONTAINS
    PRINT *,"MMY soil%sucs", soil%sucs
    PRINT *,"MMY soil%ssat", soil%ssat
    PRINT *,"MMY soil%bch", soil%bch
-   PRINT *,"MMY soil%sand", soil%sfc
-   PRINT *,"MMY soil%clay", soil%swilt
-   PRINT *,"MMY soil%silt", soil%css
+   PRINT *,"MMY soil%sand", soil%sand
+   PRINT *,"MMY soil%clay", soil%clay
+   PRINT *,"MMY soil%silt", soil%silt
    PRINT *,"MMY soil%cnsd", soil%cnsd
    
    PRINT *,"MMY soil%bch_vec", soil%bch_vec
@@ -2003,9 +2005,9 @@ CONTAINS
    PRINT *,"MMY soil%sucs_vec", soil%sucs_vec
    PRINT *,"MMY soil%ssat_vec", soil%ssat_vec
    PRINT *,"MMY soil%bch_vec", soil%bch_vec
-   PRINT *,"MMY soil%sand_vec", soil%sfc_vec
-   PRINT *,"MMY soil%clay_vec", soil%swilt_vec
-   PRINT *,"MMY soil%silt_vec", soil%css_vec
+   PRINT *,"MMY soil%sand_vec", soil%sand_vec
+   PRINT *,"MMY soil%clay_vec", soil%clay_vec
+   PRINT *,"MMY soil%silt_vec", soil%silt_vec
    PRINT *,"MMY soil%cnsd_vec", soil%cnsd_vec  
    PRINT *,"MMY soil%org_vec", soil%org_vec
    PRINT *,"MMY soil%watr", soil%watr
