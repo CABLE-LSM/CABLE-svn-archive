@@ -39,7 +39,7 @@ MODULE cable_def_types_mod
               mvtype,& ! total # vegetation types,   from input
               mstype,& ! total # soil types,         from input
               mland,& !                         ! # land grid cells
-              mpatch  !number of patches per tile 
+              mpatch  !number of patches per tile
                       !allows for setting this to a const value
 
    INTEGER, PARAMETER ::                                                        &
@@ -162,7 +162,7 @@ MODULE cable_def_types_mod
       REAL(r_2), DIMENSION(:), POINTER ::                                      &
          hkrz,&! rate hyds changes with depth
          zdepth,&!  depth [m] where hkrz has zero impact
-         srf_frac_ma,&! fraction of surface with macropores 
+         srf_frac_ma,&! fraction of surface with macropores
          edepth_ma,&!  e fold depth macropore fraction
          qhz_max,&!  maximum base flow when fully sat
          qhz_efold,&!  base flow efold rate dep on wtd, from drain-dens and param
@@ -209,8 +209,8 @@ MODULE cable_def_types_mod
          pudsto,  & ! puddle storage
          pudsmx,  & ! puddle storage
          cls,     & ! factor for latent heat
-         dfn_dtg, & ! d(canopy%fns)/d(ssnow%tgg) 
-         dfh_dtg, & ! d(canopy%fhs)/d(ssnow%tgg) 
+         dfn_dtg, & ! d(canopy%fns)/d(ssnow%tgg)
+         dfh_dtg, & ! d(canopy%fhs)/d(ssnow%tgg)
          dfe_ddq, & ! d(canopy%fes)/d(dq)        - REV_CORR: no longer necessary
          ddq_dtg, & ! d(dq)/d(ssnow%tgg)         - REV_CORR: no longer necessary
          dfe_dtg, & ! d(canopy%fes)/d(ssnow%tgg) - REV_CORR: covers above vars
@@ -290,14 +290,14 @@ MODULE cable_def_types_mod
          GWsmp,   &  ! aquifer soil matric potential [mm]
          GWwbeq,  &  ! equilibrium aquifer water content [mm3/mm3]
          GWzq,    &  ! equilibrium aquifer smp   [mm]
-         qhz,     &  ! horizontal hydraulic conductivity in 1D gw model for soil layers  [mm/s] 
+         qhz,     &  ! horizontal hydraulic conductivity in 1D gw model for soil layers  [mm/s]
          satfrac, &
          Qrecharge,&
          rh_srf,   &
          rtevap_sat,&
          rtevap_unsat,&
          rt_qh_sublayer
-     
+
       REAL(r_2), DIMENSION(:,:), POINTER  ::                                     &
          wbeq,    &    ! equilibrium water content [mm3/mm3]
          zq,      &    ! equilibrium smp       [mm]
@@ -395,7 +395,7 @@ MODULE cable_def_types_mod
          ekc,     &  ! activation energy for caroxylagse
          eko,     &  ! acvtivation enegery for oxygenase
          g0,      & ! Belinda's stomatal model intercept, Ticket #56.
-         g1         ! Belinda's stomatal model slope, Ticket #56.   
+         g1         ! Belinda's stomatal model slope, Ticket #56.
 
       LOGICAL, DIMENSION(:), POINTER ::                                        &
          deciduous ! flag used for phenology fix
@@ -472,7 +472,8 @@ MODULE cable_def_types_mod
          uscrn,   & ! wind speed at screen height (m/s)
          vlaiw,   & ! lai adj for snow depth for calc of resistances
          rghlai,  & ! lai adj for snow depth for calc of resistances
-         fwet       ! fraction of canopy wet
+         fwet,    & ! fraction of canopy wet ! dummy
+         gsc        ! MMY
 
       !INH - new REV_CORR coupling variables
       REAL, DIMENSION(:), POINTER ::                                           &
@@ -498,7 +499,7 @@ MODULE cable_def_types_mod
       !SSEB - new variables limits on correction terms - for future use
       !REAL(r_2), DIMENSION(:), POINTER ::                                     &
       !  fescor_upp,& ! upper limit on the correction term fes_cor (W/m2)
-      !  fescor_low   ! lower limit on the correction term fes_cor (W/m2)      
+      !  fescor_low   ! lower limit on the correction term fes_cor (W/m2)
 
       REAL(r_2), DIMENSION(:), POINTER :: &
          sublayer_dz
@@ -685,7 +686,7 @@ MODULE cable_def_types_mod
       atemp_mean,  & ! annual average temperature
       AGDD5,       &
       GDD5,        & ! growing degree day sum relative to 5deg base temperature
-      AGDD0,        & ! 
+      AGDD0,        & !
       GDD0,        & ! growing degree day sum relative to 0deg base temperature
       alpha_PT,    & ! ratio of annual evap to annual PT evap
       evap_PT,    & ! annual PT evap [mm]
@@ -1025,7 +1026,7 @@ SUBROUTINE alloc_soil_snow_type(var, mp)
    allocate(var % watr_hys(mp,ms) )   !4
    allocate(var % hys_fac(mp,ms) )    !5
    allocate(var % sucs_hys(mp,ms) )    !5
-   allocate(var % wbliq_old(mp,ms) ) 
+   allocate(var % wbliq_old(mp,ms) )
 
 
     ! Allocate variables for SLI soil model:
@@ -1108,7 +1109,7 @@ SUBROUTINE alloc_veg_parameter_type(var, mp)
    ALLOCATE( var%conko0(mp) )
    ALLOCATE( var%ekc(mp) )
    ALLOCATE( var%eko(mp) )
-   ALLOCATE( var% g0(mp) )   ! Ticket #56. 
+   ALLOCATE( var% g0(mp) )   ! Ticket #56.
    ALLOCATE( var% g1(mp) )   ! Ticket #56.
 
 
@@ -1209,6 +1210,8 @@ SUBROUTINE alloc_canopy_type(var, mp)
 !! vh_js !! liiter resistances to heat and vapour transfer
    ALLOCATE (var % kthLitt(mp))
    ALLOCATE (var % DvLitt(mp))
+
+   ALLOCATE( var% gsc(mp) ) !MMY
 
 END SUBROUTINE alloc_canopy_type
 
@@ -1521,7 +1524,7 @@ SUBROUTINE dealloc_soil_parameter_type(var)
    DEALLOCATE( var%clay_vec )
    DEALLOCATE( var%silt_vec )
    DEALLOCATE( var%org_vec  )
-   DEALLOCATE( var%rhosoil_vec )   
+   DEALLOCATE( var%rhosoil_vec )
    DEALLOCATE( var%drain_dens )
    DEALLOCATE( var%elev )
    DEALLOCATE( var%elev_std )
@@ -1651,7 +1654,7 @@ SUBROUTINE dealloc_soil_snow_type(var)
    DEALLOCATE( var%hk )
    DEALLOCATE( var%smp )
    DEALLOCATE( var%dhkdw )
-   DEALLOCATE( var%dsmpdw )   
+   DEALLOCATE( var%dsmpdw )
    DEALLOCATE( var%wbliq )
    DEALLOCATE( var%wmliq )
    DEALLOCATE( var%wmice )
@@ -1742,7 +1745,7 @@ SUBROUTINE dealloc_veg_parameter_type(var)
    DEALLOCATE( var%ekc )
    DEALLOCATE( var%eko )
    DEALLOCATE( var%g0 ) ! Ticket #56.
-   DEALLOCATE( var%g1 ) ! Ticket #56. 
+   DEALLOCATE( var%g1 ) ! Ticket #56.
 
     ! Deallocate variables for SLI soil model:
     !IF(cable_user%SOIL_STRUC=='sli') THEN
@@ -1832,6 +1835,8 @@ SUBROUTINE dealloc_canopy_type(var)
 !! vh_js !! liiter resistances to heat and vapour transfer
    DEALLOCATE (var % kthLitt)
    DEALLOCATE (var % DvLitt)
+
+   DEALLOCATE( var% gsc ) ! MMY
 
 END SUBROUTINE dealloc_canopy_type
 
