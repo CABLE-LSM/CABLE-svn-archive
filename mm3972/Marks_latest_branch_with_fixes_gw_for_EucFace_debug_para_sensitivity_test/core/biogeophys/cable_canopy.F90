@@ -2912,8 +2912,7 @@ CONTAINS
    gsc = 0.0
    ci = 0.0
    ci_ca = 0.0
-   canopy%cica(i) = 0.0
-
+   
    DO j = 1, 2 ! sunlit, shaded leaves...
 
         g0(j) = gswmin(i,j) * fwsoil(i) / C%RGSWC

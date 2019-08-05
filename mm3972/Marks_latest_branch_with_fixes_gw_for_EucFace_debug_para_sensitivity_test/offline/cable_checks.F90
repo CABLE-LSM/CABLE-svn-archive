@@ -181,7 +181,7 @@ MODULE cable_checks_module
            SatFrac = (/0.0,1.0/),              &
            Qrecharge = (/-9999.0,9999.0/) ,    & ! MMY
 
-           cica = (/-9999.0,9999.0/)            ! MMY
+           gsc = (/-9999.0,9999.0/)            ! MMY
 
    END TYPE ranges_type
    TYPE(ranges_type),SAVE :: ranges
