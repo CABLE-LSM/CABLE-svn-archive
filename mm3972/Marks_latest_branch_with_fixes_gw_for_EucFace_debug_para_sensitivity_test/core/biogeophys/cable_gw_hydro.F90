@@ -1547,25 +1547,26 @@ SUBROUTINE calc_srf_wet_fraction(ssnow,soil,met,veg)
 
     !CALL point2constants( C )
 
+! _______________________ MMY _____________________
+!    IF (cable_user%or_evap) THEN
 
-    IF (cable_user%or_evap) THEN
+!       call saturated_fraction(ssnow,soil,veg)
 
-       call saturated_fraction(ssnow,soil,veg)
+!       ssnow%wetfac(:) = 1.0
 
-       ssnow%wetfac(:) = 1.0
-
-      do i=1,mp
-         IF( ssnow%snowd(i) > 0.1) ssnow%wetfac(i) = 0.9
+!      do i=1,mp
+!         IF( ssnow%snowd(i) > 0.1) ssnow%wetfac(i) = 0.9
    
-         IF ( veg%iveg(i) == 16 .and. met%tk(i) >= C%TFRZ + 5. )   &
-                 ssnow%wetfac(i) = 1.0 ! lakes: hard-wired number to be removed
+!         IF ( veg%iveg(i) == 16 .and. met%tk(i) >= C%TFRZ + 5. )   &
+!                 ssnow%wetfac(i) = 1.0 ! lakes: hard-wired number to be removed
    
-         IF( veg%iveg(i) == 16 .and. met%tk(i) < C%TFRZ + 5. )   &
-                 ssnow%wetfac(i) = 0.7 ! lakes: hard-wired number to be removed
-      end do
+!         IF( veg%iveg(i) == 16 .and. met%tk(i) < C%TFRZ + 5. )   &
+!                 ssnow%wetfac(i) = 0.7 ! lakes: hard-wired number to be removed
+!      end do
 
-    ELSEIF (cable_user%gw_model) THEN
-
+!    ELSEIF (cable_user%gw_model) THEN
+! _________________________________________________
+    IF (cable_user%gw_model) THEN ! MMY 
        call saturated_fraction(ssnow,soil,veg)
 
    
