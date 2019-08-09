@@ -2825,6 +2825,7 @@ SUBROUTINE get_parameters_met(soil,veg,bgc,rough,completeSet)
                 nmetpatches,'ms')
    CALL readpar(ncid_met,'sucs_vec',completeSet,soil%sucs_vec,filename%met,    &
                 nmetpatches,'ms')
+   soil%sucs_vec = 1000._r_2 * ( abs(soil%sucs_vec))   ! Copied from SUBROUTINE GWspatialParameters
    CALL readpar(ncid_met,'css_vec',completeSet,soil%css_vec,filename%met,      &
                 nmetpatches,'ms')
    CALL readpar(ncid_met,'rhosoil_vec',completeSet,soil%rhosoil_vec,filename%met,&

@@ -1122,13 +1122,15 @@ CONTAINS
     ! calculate vegin%froot from using rootbeta and soil depth
     ! (Jackson et al. 1996, Oceologica, 108:389-411)
     totdepth = 0.0
-    DO is = 1, ms
+    DO is = 1, ms ! MMY-NEED TO BE CHECKED
        totdepth = totdepth + soil%zse(is) * 100.0  ! unit in centimetres
        vegin%froot(is, :) = MIN(1.0, 1.0-vegin%rootbeta(:)**totdepth)
     END DO
     DO is = ms, 2, -1
        vegin%froot(is, :) = vegin%froot(is, :)-vegin%froot(is-1, :)
     END DO
+
+    PRINT *,"MMY vegin%froot(:, 2) in subroutine write_default_params", vegin%froot(:, 2) ! MMY
 
     ALLOCATE(defaultLAI(mp, 12))
 
