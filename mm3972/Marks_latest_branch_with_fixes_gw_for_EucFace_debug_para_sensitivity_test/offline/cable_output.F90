@@ -898,6 +898,8 @@ CONTAINS
                         'dummy', xID, yID, zID, landID, patchID, tID)
        ALLOCATE(out%gsc(mp))
        out%gsc = 0.0 ! initialise
+       PRINT *,'MMY output%gsc is ',output%gsc
+       PRINT *,'MMY define_ovar gsc '
     END IF
     ! ___________________________________________________
     IF(output%casa) THEN
@@ -2991,6 +2993,7 @@ CONTAINS
                            ranges%gsc, patchout%gsc, 'default', met)
            ! Reset temporary output variable:
            out%gsc = 0.0
+           PRINT *, 'MMY write_over gsc'
         END IF
      END IF
     ! _________________________________________________________

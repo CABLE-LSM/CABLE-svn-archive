@@ -1211,8 +1211,8 @@ SUBROUTINE alloc_canopy_type(var, mp)
    ALLOCATE (var % kthLitt(mp))
    ALLOCATE (var % DvLitt(mp))
 
-   ALLOCATE( var% gsc(mp) ) !MMY
-
+   ALLOCATE( var % gsc(mp) ) !MMY
+   PRINT *,'MMY allocated var%gsc(mp) in SUBROUTINE alloc_canopy_type' ! MMY
 END SUBROUTINE alloc_canopy_type
 
 ! ------------------------------------------------------------------------------
@@ -1837,6 +1837,7 @@ SUBROUTINE dealloc_canopy_type(var)
    DEALLOCATE (var % DvLitt)
 
    DEALLOCATE( var% gsc ) ! MMY
+   PRINT *,'MMY deallocate var%gsc(mp) in SUBROUTINE dealloc_canopy_type' ! MMY
 
 END SUBROUTINE dealloc_canopy_type
 

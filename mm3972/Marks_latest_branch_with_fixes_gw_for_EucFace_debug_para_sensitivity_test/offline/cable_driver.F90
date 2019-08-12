@@ -570,11 +570,13 @@ PROGRAM cable_offline_driver
        
        CALL zero_sum_casa(sum_casapool, sum_casaflux)
        count_sum_casa = 0
-       
+       PRINT *,'MMY finished CALL zero_sum_casa' ! MMY     
+      
        if (cable_user%call_climate) CALL climate_init ( climate, mp )
        if (cable_user%call_climate .AND.(.NOT.cable_user%climate_fromzero)) &
             CALL READ_CLIMATE_RESTART_NC (climate)
-       
+       PRINT *,'MMY finished CALL  READ_CLIMATE_RESTART_NC' ! MMY
+
        spinConv = .FALSE. ! initialise spinup convergence variable
        IF (.NOT.spinup)     spinConv=.TRUE.
        IF( icycle>0 .AND. spincasa) THEN
@@ -594,11 +596,13 @@ PROGRAM cable_offline_driver
           ktau = kend
           
        ENDIF
-       
-       
+
+          
        
     ENDIF ! CALL 1
     
+    PRINT *,'MMY finished CALL 1' ! MMY
+
     ! globally (WRT code) accessible kend through USE cable_common_module
      kwidth_gl = int(dels)
     kend_gl  = kend
@@ -666,6 +670,8 @@ PROGRAM cable_offline_driver
              if (icycle>1) CALL casa_cnpflux(casaflux,casapool,casabal,.TRUE.)
              if ( CABLE_USER%POPLUC) CALL POPLUC_set_patchfrac(POPLUC,LUC_EXPT)   
           ENDIF
+
+          PRINT *,'MMY IF (ktau == 1) THEN' ! MMY
           
           IF ( .NOT. CASAONLY ) THEN
              
@@ -680,6 +686,8 @@ PROGRAM cable_offline_driver
                          bal, rad, rough, soil, ssnow,                     &
                          sum_flux, veg,climate )
 
+                    PRINT *,'MMY after CALL cbm' ! MMY
+
                  if (cable_user%CALL_climate) &
                   CALL cable_climate(ktau_tot,kstart,kend,ktauday,idoy,LOY,met, &
                   climate, canopy, air, dels, mp)
@@ -690,7 +698,7 @@ PROGRAM cable_offline_driver
                     ssnow%rnof2 = ssnow%rnof2*dels
                     ssnow%runoff = ssnow%runoff*dels
                     
-                    
+                  PRINT *,'MMY after CALL cable_climate' ! MMY   
                     
                     
 
@@ -703,6 +711,8 @@ PROGRAM cable_offline_driver
                     CALL read_casa_dump( ncfile, casamet, casaflux,phen, climate, casa_it, kend, .FALSE. )
                  ENDIF
                  
+                 PRINT *,'MMY after CALL read_casa_dump' ! MMY
+                 
                  !jhan this is insufficient testing. condition for
                  !spinup=.false. & we want CASA_dump.nc (spinConv=.true.)
                  IF(icycle >0 .OR.      CABLE_USER%CASA_DUMP_WRITE ) THEN
@@ -714,6 +724,8 @@ PROGRAM cable_offline_driver
                          phen, pop, spinConv, spinup, ktauday, idoy, loy,            &
                          CABLE_USER%CASA_DUMP_READ, CABLE_USER%CASA_DUMP_WRITE,   &
                          LALLOC )
+
+                    PRINT *,'MMY after CALL bgcdriver' ! MMY
 
                     IF(MOD((ktau-kstart+1),ktauday)==0) THEN
                     
@@ -763,8 +775,9 @@ PROGRAM cable_offline_driver
                        count_sum_casa = 0
                        CALL zero_sum_casa(sum_casapool, sum_casaflux)
                     ENDIF
-
-
+                     
+                    PRINT *, 'MMY after CALL zero_sum_casa' ! MMY
+                 
                     IF (((.NOT.spinup).OR.(spinup.AND.spinConv)).and. &
                          MOD((ktau-kstart+1),ktauday)==0) THEN
                        IF ( CABLE_USER%CASA_DUMP_WRITE )  THEN
@@ -791,7 +804,7 @@ PROGRAM cable_offline_driver
 
                        ENDIF
                     ENDIF
-
+                   PRINT *, 'MMY after CALL write_casa_dump' ! MMY
                  ENDIF
 
 
@@ -803,9 +816,10 @@ PROGRAM cable_offline_driver
                          canopy, soil, ssnow, sum_flux, veg,                   &
                          met, casaflux, l_vcmaxFeedbk )
 
-
                  ENDIF
-
+                  
+                 PRINT *, 'MMY before CALL write_output' ! MMY
+             
                  ! Write timestep's output to file if either: we're not spinning up
                  ! or we're spinning up and the spinup has converged:
 
@@ -823,6 +837,7 @@ PROGRAM cable_offline_driver
                     endif
                  ENDIF
 
+                 PRINT *, 'MMY after CALL write_output' ! MMY
 
                  ! dump bitwise reproducible testing data
                  IF( cable_user%RUN_DIAG_LEVEL == 'zero') THEN
@@ -884,7 +899,8 @@ PROGRAM cable_offline_driver
 !!$
 !!$
 !!$           enddo
-
+	           
+                    PRINT *,'MMY before IF( ktau == kend ) THEN' ! MMY
                     IF( ktau == kend ) THEN
                        nkend = nkend+1
 

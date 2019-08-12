@@ -2318,14 +2318,18 @@ CONTAINS
     canopy%fpn = min(-12.0 * SUM(an_y, 2), canopy%frday)
     canopy%evapfbl = ssnow%evapfbl
 
-
-    DEALLOCATE( gswmin )
     ! ______________ MMY ______________
+    PRINT *, 'MMY before CALL calc_weighted_gsc'   
+
     ! This isn't used, just a useful diagnostic to save. We need to pass i-1,
     ! as the i counter will have been incremented by this point
     CALL calc_weighted_gsc(canopy, rad, met, gswmin(:,:), anx(:,:), &
                             gs_coeff(:,:), fwsoil(:), i-1)
+    PRINT *, 'MMY after CALL calc_weighted_gsc'
     ! __________________________________
+
+    DEALLOCATE( gswmin )
+
   END SUBROUTINE dryLeaf
   ! -----------------------------------------------------------------------------
 
@@ -2887,9 +2891,7 @@ CONTAINS
   ! ______________________ MMY copied from mgk576's trunk_CiCa ________________________________________
   SUBROUTINE calc_weighted_gsc(canopy, rad, met, gswmin, anx, gs_coeff, &
                               fwsoil, i)
-  ! Calculate the weighted (sunlit/shaded LAI) ratio of intercellular to
-  ! atmospheric CO2, Ci:Ca
-  !
+  ! Calculate the weighted (sunlit/shaded LAI) ratio of gsc 
   ! Martin De Kauwe, 21st June, 2019
 
    USE cable_def_types_mod
@@ -2903,28 +2905,38 @@ CONTAINS
 
    REAL, DIMENSION(mp,mf), INTENT(IN)      :: anx, gs_coeff, gswmin
    REAL, DIMENSION(mp), INTENT(IN)         :: fwsoil
-   REAL, DIMENSION(mf)                     :: g0, gsc, ci, cs, ci_ca, fsun
+   REAL, DIMENSION(mf)                     :: g0, gsc_tmp, fsun
 
    INTEGER, INTENT(IN) :: i
    INTEGER             :: j
 
    g0 = 0.0
-   gsc = 0.0
-   ci = 0.0
-   ci_ca = 0.0
+   gsc_tmp = 0.0
    
-   DO j = 1, 2 ! sunlit, shaded leaves...
+   PRINT *,'MMY after gsc_tmp = 0.0'   
+   
+   PRINT *,'MMY gswmin', gswmin
+   PRINT *,'MMY anx', anx
+   PRINT *,'MMY gs_coeff', gs_coeff
+   PRINT *,'MMY fwsoil', fwsoil
+   PRINT *,'MMY i', i
+   PRINT *,'MMY C%RGSWC', C%RGSWC
 
+   DO j = 1, 2 ! sunlit, shaded leaves...
+        PRINT *,'MMY DO j = 1, 2'
         g0(j) = gswmin(i,j) * fwsoil(i) / C%RGSWC
-        gsc(j) = MAX(0.0, g0(j) + gs_coeff(i,j) * anx(i,j))
+        PRINT *,'MMY after g0(j) = gswmin(i,j) * fwsoil(i) / C%RGSWC'
+        gsc_tmp(j) = MAX(0.0, g0(j) + gs_coeff(i,j) * anx(i,j))
+        PRINT *,'MMY after gsc_tmp(j) = MAX(0.0, g0(j) + gs_coeff(i,j) * anx(i,j))'        
         fsun(j) = rad%fvlai(i,j) / canopy%vlaiw(i)
+        PRINT *,'MMY after fsun(j) = rad%fvlai(i,j) / canopy%vlaiw(i)'
    END DO
 
    ! Only calculate this for daytime valid data, otherwise set a value we
    ! can filter by
    ! weight sunlit/shaded Ci:Ca by sunlit/shaded LAI fracs
-   canopy%gsc(i) = (gsc(1) * fsun(1)) + (gsc(2) * fsun(2))
-   !print*, canopy%gsc(i)
+   canopy%gsc(i) = (gsc_tmp(1) * fsun(1)) + (gsc_tmp(2) * fsun(2))
+   PRINT *,'MMY in subroutine calc_weighted_gsc, canopy%gsc: ', canopy%gsc(i)
 
    END SUBROUTINE calc_weighted_gsc
    ! ________________________________________________________________________
