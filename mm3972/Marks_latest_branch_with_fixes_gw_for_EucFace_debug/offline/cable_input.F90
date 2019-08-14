@@ -2631,9 +2631,10 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,climate,bgc,soil,canopy,rough,rad, 
     ! Look for explicit restart file (which will have parameters):
     IF ( TRIM(filename%restart_in) .EQ. '' ) filename%restart_in = './'
     frst_in = filename%restart_in
+    
     ok = NF90_OPEN(TRIM(frst_in),NF90_NOWRITE,ncid_rin)
     IF ( ok == NF90_NOERR ) EXRST = .TRUE.
-
+    
     ! If not an explicit rstfile, search for RunIden_YEAR...nc
     ! use (filename%restart_in) as path
     IF ( .NOT. EXRST .AND. CABLE_USER%YEARSTART .GT. 0 ) THEN
@@ -2687,7 +2688,7 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,climate,bgc,soil,canopy,rough,rad, 
     END IF ! if restart file exists
 
     ! Overwrite default values by those available in met file:
-    CALL get_parameters_met(soil,veg,bgc,rough,completeSet)
+    CALL get_parameters_met(soil,ssnow,veg,bgc,rough,completeSet) ! MMY add ssnow,
 
     ! Results of looking for parameters in the met file:
     WRITE(logn,*)
@@ -2740,9 +2741,10 @@ END SUBROUTINE load_parameters
 !
 !==============================================================================
 
-SUBROUTINE get_parameters_met(soil,veg,bgc,rough,completeSet)
+SUBROUTINE get_parameters_met(soil,ssnow,veg,bgc,rough,completeSet) ! MMY add ssnow
 
    TYPE (soil_parameter_type), INTENT(INOUT) :: soil
+   TYPE (soil_snow_type), INTENT(INOUT)      :: ssnow ! MMY
    TYPE (veg_parameter_type), INTENT(INOUT)  :: veg
    TYPE (bgc_pool_type), INTENT(INOUT)       :: bgc
    TYPE (roughness_type), INTENT(INOUT)      :: rough
@@ -2834,6 +2836,28 @@ SUBROUTINE get_parameters_met(soil,veg,bgc,rough,completeSet)
                 nmetpatches,'ms')
    CALL readpar(ncid_met,'watr',completeSet,soil%watr,filename%met,            &
                 nmetpatches,'ms')
+   CALL readpar(ncid_met,'SoilMoist',completeSet,ssnow%wb,filename%met,              &
+                nmetpatches,'ms') ! ssnow%wb(mp,ms)
+
+   PRINT *,'MMY ssnow%wb read from met is ', ssnow%wb
+
+   ssnow%GWwb(:)      = ssnow%wb(:,ms)
+   soil%GWhyds_vec(:) = soil%hyds_vec(:,ms) 
+   soil%GWssat_vec(:) = soil%ssat_vec(:,ms)
+   soil%GWsucs_vec(:) = soil%sucs_vec(:,ms)
+   soil%GWbch_vec(:)  = soil%bch_vec(:,ms)
+   soil%GWwatr(:)     = soil%watr(:,ms)
+
+   PRINT *,'MMY ssnow%GWwb read from met is ', ssnow%GWwb
+   PRINT *,'MMY soil%GWhyds_vec read from met is ', soil%GWhyds_vec
+   PRINT *,'MMY soil%GWssat_vec read from met is ', soil%GWssat_vec
+   PRINT *,'MMY soil%GWsucs_vec read from met is ', soil%GWsucs_vec
+   PRINT *,'MMY soil%GWbch_vec read from met is ', soil%GWbch_vec
+   PRINT *,'MMY soil%GWwatr read from met is ', soil%GWwatr
+   
+!   CALL readpar(ncid_met,'GWMoist',completeSet,ssnow%GWwb,filename%met,            &
+!                nmetpatches,'def') ! ssnow%GWwb(mp) 
+!   PRINT *,'MMY ssnow%GWwb read from met is ', ssnow%GWwb
 ! ______________________________________________________________________________
 
    CALL readpar(ncid_met,'rs20',completeSet,veg%rs20,filename%met,             &
