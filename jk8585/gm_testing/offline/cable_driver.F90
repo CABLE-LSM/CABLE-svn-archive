@@ -766,7 +766,6 @@ PROGRAM cable_offline_driver
            ! time step loop over ktau
            DO ktau=kstart, kend
 
-
               ! increment total timstep counter
               ktau_tot = ktau_tot + 1
 
@@ -859,7 +858,9 @@ PROGRAM cable_offline_driver
 
                  ! Feedback prognostic vcmax and daily LAI from casaCNP to CABLE
                  IF (l_vcmaxFeedbk) then
-                    CALL casa_feedback( ktau, veg, casabiome, casapool, casamet, climate, ktauday )
+                    IF (MOD(ktau,ktauday) == 1) THEN
+                       CALL casa_feedback( ktau, veg, casabiome, casapool, casamet, climate, ktauday )
+                    ENDIF
                  ELSE
                     veg%vcmax_shade = veg%vcmax
                     veg%ejmax_shade = veg%ejmax

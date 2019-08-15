@@ -672,9 +672,9 @@ END SUBROUTINE write_casa_dump
        !veg%ejmax(np) = 2.0 * veg%vcmax(np)
       
        
-write(90,'(3f18.10)') veg%vcmax(1), veg%ejmax(1), bjvref
-write(89,'(2f18.10)') veg%vcmaxcc(1), veg%ejmaxcc(1)
-write(67,'(2f18.10)') veg%gmmax(1), veg%cfrd(1)
+!write(90,'(3f18.10)') veg%vcmax(1), veg%ejmax(1), bjvref
+!write(89,'(2f18.10)') veg%vcmaxcc(1), veg%ejmaxcc(1)
+!write(67,'(2f18.10)') veg%gmmax(1), veg%cfrd(1)
 
        if (cable_user%finite_gm) then
  
@@ -696,11 +696,11 @@ bjvref = veg%ejmaxcc(np) / veg%vcmaxcc(np)
  
 ENDDO
 
-if (mod(ktau,ktauday) ==1) then
-   if (cable_user%coordinate_photosyn) then
-      CALL optimise_JV(veg,climate,ktauday,bjvref)
-   endif
+!if (mod(ktau,ktauday) ==1) then   ! JK: whole routine is now called once per day
+if (cable_user%coordinate_photosyn) then
+    CALL optimise_JV(veg,climate,ktauday,bjvref)
 endif
+!endif
 
 if (cable_user%coordinate_photosyn) then
    veg%vcmax = veg%vcmax_sun ! diagnostic only
