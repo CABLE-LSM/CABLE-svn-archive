@@ -136,7 +136,7 @@ CONTAINS
     REAL(r_2), DIMENSION(:,:), POINTER ::  gmes  ! mesophyll conductance      
     REAL, PARAMETER :: kg = 0.08997   ! 
     !mesophyll conductance extinction coeff't (Sun et al. 2014 SI Eq S7)      
-    REAL :: gmax0 ! max mesophyll conductacne at canopy top  
+    !REAL :: gmax0 ! max mesophyll conductacne at canopy top  
     REAL  :: rt_min
     REAL, DIMENSION(mp)       :: zstar, rL, phist, csw, psihat,rt0bus
 
@@ -368,24 +368,25 @@ CONTAINS
                   - gbhu(j,1)
 
              if (cable_user%finite_gm) then
-                gmax0 = 2.47/10.1 ! molm-2s-1 
-                if (veg%iveg(j).eq.1) then
-                   gmax0 = 1.21/10.1
-                elseif (veg%iveg(j).eq.2) then
-                   gmax0 = 1.36/10.1
-                elseif (veg%iveg(j).eq.3) then
-                   gmax0 = 2.14/10.1
-                elseif (veg%iveg(j).eq.7) then
-                   gmax0 = 0.3
-                endif
+               ! JK: gmmax now comes from param file
+                !gmax0 = 2.47/10.1 ! molm-2s-1 
+                !if (veg%iveg(j).eq.1) then
+                !   gmax0 = 1.21/10.1
+                !elseif (veg%iveg(j).eq.2) then
+                !   gmax0 = 1.36/10.1
+                !elseif (veg%iveg(j).eq.3) then
+                !   gmax0 = 2.14/10.1
+                !elseif (veg%iveg(j).eq.7) then
+                !   gmax0 = 0.3
+                !endif
 
-                gmes(j,1) = gmax0 * xgmesT(tlfx(j)) * &
+                gmes(j,1) = veg%gmmax(j) * xgmesT(tlfx(j)) * &
                      rad%extkb(j)/(rad%extkb(j)+kg) * &
                      (1 - exp(-(rad%extkb(j)+kg)*canopy%vlaiw(j))) / &
                      (1 - exp( -rad%extkb(j)*canopy%vlaiw(j)))
                 
                 
-                gmes(j,2) = gmax0 * xgmesT(tlfx(j)) * &
+                gmes(j,2) = veg%gmmax(j) * xgmesT(tlfx(j)) * &
                      (rad%extkb(j)/kg/(rad%extkb(j)+kg)) * &
                      (rad%extkb(j) - (rad%extkb(j)+kg)*exp(-kg*canopy%vlaiw(j)) + &
                      kg*exp(-(kg+rad%extkb(j))*canopy%vlaiw(j)))/ &
@@ -1574,6 +1575,15 @@ CONTAINS
          dAn_y, & !(actual rate)
          eta_y, &
          eta_x
+
+    REAL ::  gam0,    &
+             conkc0,  &
+             conko0,  &
+             egam,    &
+             ekc,     &
+             eko
+
+    
     REAL, DIMENSION(:,:), POINTER :: gswmin ! min stomatal conductance
 
     REAL, DIMENSION(mp,2) ::  gsw_term, lower_limit2  ! local temp var
@@ -1736,21 +1746,45 @@ CONTAINS
              ! Difference between leaf temperature and reference temperature:
              tdiff(i) = tlfx(i) - C%TREFK
 
+             
+             ! Choose Ci-based or Cc-based parameters
+             if (cable_user%finite_gm) then
+                gam0   = C%gam0cc
+                conkc0 = C%conkc0cc
+                conko0 = C%conko0cc
+                egam   = C%egamcc
+                ekc    = C%ekccc
+                eko    = C%ekocc
+             else
+                gam0   = C%gam0
+                conkc0 = C%conkc0
+                conko0 = C%conko0
+                egam   = C%egam
+                ekc    = C%ekc
+                eko    = C%eko
+             endif
+             
+
              ! Michaelis menten constant of Rubisco for CO2:
-             conkct(i) = veg%conkc0(i) * EXP( ( veg%ekc(i) / (C%rgas*C%trefk) ) &
-                                              * ( 1.0 - C%trefk/tlfx(i) ) )
+             conkct(i) = conkc0 * EXP( ( ekc / (C%rgas*C%trefk) ) &
+                                         * ( 1.0 - C%trefk/tlfx(i) ) )
 
              ! Michaelis menten constant of Rubisco for oxygen:
-             conkot(i) = veg%conko0(i) * EXP( ( veg%eko(i) / (C%rgas*C%trefk) ) &
-                                              * ( 1.0 - C%trefk/tlfx(i) ) )
+             conkot(i) = conko0 * EXP( ( eko / (C%rgas*C%trefk) ) &
+                                         * ( 1.0 - C%trefk/tlfx(i) ) )
 
              ! Store leaf temperature
              tlfxx(i) = tlfx(i)
 
              ! "d_{3}" in Wang and Leuning, 1998, appendix E:
              cx1(i) = conkct(i) * (1.0+0.21/conkot(i))
-             cx2(i) = 2.0 * C%gam0 * ( 1.0 + C%gam1 * tdiff(i)                  &
-                                          + C%gam2 * tdiff(i) * tdiff(i) )
+             !cx2(i) = 2.0 * C%gam0 * ( 1.0 + C%gam1 * tdiff(i)                  &
+             !                             + C%gam2 * tdiff(i) * tdiff(i) )
+             cx2(i) = 2.0 * gam0 * EXP( ( egam / (C%rgas*C%trefk) ) &
+                                          * ( 1.0 - C%trefk/tlfx(i) ) )
+
+!write(86,'(8f20.10)') tlfx(1), conkot(1), conkct(1), cx2(1), gmes(1,1), rad%extkb(1), canopy%vlaiw(1), veg%vlai(1)
+!write(85,'(8f20.10)') tlfx(2), conkot(2), conkct(2), cx2(2), gmes(2,1), rad%extkb(2), canopy%vlaiw(2), veg%vlai(2)
 
              ! All equations below in appendix E in Wang and Leuning 1998 are
              ! for calculating anx, csx and gswx for Rubisco limited,
@@ -1902,15 +1936,15 @@ CONTAINS
                  rdx4(i,2) = rdx(i,2);
              else !cable_user%call_climate
 
-            rdx(i,1) = (veg%cfrd(i)*vcmxt3(i,1) + veg%cfrd(i)*vcmxt4(i,1))
-            rdx(i,2) = (veg%cfrd(i)*vcmxt3(i,2) + veg%cfrd(i)*vcmxt4(i,2))
-            ! special for YP photosynthesis
-            rdx3(i,1) = veg%cfrd(i)*vcmxt3(i,1) 
-            rdx3(i,2) = veg%cfrd(i)*vcmxt3(i,2) 
-            rdx4(i,1) = veg%cfrd(i)*vcmxt4(i,1) 
-            rdx4(i,2) = veg%cfrd(i)*vcmxt4(i,2) 
+                 rdx(i,1) = (veg%cfrd(i)*vcmxt3(i,1) + veg%cfrd(i)*vcmxt4(i,1))
+                 rdx(i,2) = (veg%cfrd(i)*vcmxt3(i,2) + veg%cfrd(i)*vcmxt4(i,2))
+                 ! special for YP photosynthesis
+                 rdx3(i,1) = veg%cfrd(i)*vcmxt3(i,1) 
+                 rdx3(i,2) = veg%cfrd(i)*vcmxt3(i,2) 
+                 rdx4(i,1) = veg%cfrd(i)*vcmxt4(i,1) 
+                 rdx4(i,2) = veg%cfrd(i)*vcmxt4(i,2) 
 
-         endif !cable_user%call_climate
+            endif !cable_user%call_climate
 
 
 
@@ -2624,7 +2658,6 @@ CONTAINS
     REAL(r_2) :: a0, a1, a2, ap0, ap1, ap2,ap3, cc, x1, x2, x3
     REAL(r_2) :: Q, R,a, b, c1, Am, Am1, Am2, gsm
     INTEGER :: i,j
-    logical :: gmflag
 
    
     DO i=1,mp
@@ -2646,8 +2679,6 @@ CONTAINS
                 eta_p(i,j) = 0.0
                 eta(i,j) = 0.0
 
-                ! Rubisco limited:
-                gmflag = .FALSE.
 
                 if ( vcmxt3z(i,j).gt.1e-8 .and. gs_coeffz(i,j) .gt. 1e2  ) then  ! C3
 
@@ -2659,7 +2690,7 @@ CONTAINS
                    gammast = cx2z(i,j)/2.0 
                    Rd = rdxz(i,j)
                    gm = gmes(i,j)
-
+!write(81,'(1f22.10)') gm
                    ! get partial derivative of A wrt cs
                    CALL fAmdAm1(cs, g0, X*cs, gamma, beta, gammast, Rd, &
                         gm, Am, dAmc(i,j))
@@ -2677,6 +2708,7 @@ CONTAINS
                    eta_c(i,j) = 0.0
                 endif
 
+                ! RuBP regeneration-limited photosynthesis
                 if ( vcmxt3z(i,j).gt.0.0 .and. gs_coeffz(i,j) .gt. 1e2 .and. &
                      vx3z(i,j) .gt. 1e-8 ) then  ! C3
 
@@ -3076,30 +3108,20 @@ END SUBROUTINE photosynthesis
 
   FUNCTION xgmesT(x) RESULT(z)
 
-    !  Sun et al. 2104 SI Eq S8 for temperature response
-    !  of mesophyll conductance
+    ! Temperature response of mesophyll conductance
+    ! parameters as in Knauer et al. 2019 (from Bernacchi et al. 2002)
     REAL, INTENT(IN) :: x
-    REAL :: xnum,xden,z
+    REAL :: xgmes,z
 
-! original parameters (4-fold T increase between 15 & 40 degC)
-!!$    REAL, PARAMETER:: C0 = 20.0  ! Sun et al. 2014 SI Eq S8
-!!$    REAL, PARAMETER  :: EHa  = 49.6e3  ! J/mol 
-!!$    REAL, PARAMETER  :: EHd  = 437.4e3 ! J/mol 
-!!$    REAL, PARAMETER  :: Entrop = 1.4e3  ! J/mol/K 
-
-
-
-! modified parameters (1.5-fold T increase between 15 & 40 degC)
-    REAL, PARAMETER:: C0 = 6.35  ! Sun et al. 2014 SI Eq S8
-    REAL, PARAMETER  :: EHa  = 15.6e3  ! J/mol 
-    REAL, PARAMETER  :: EHd  = 445.4e3 ! J/mol 
+    REAL, PARAMETER  :: EHa  = 49.6e3  ! J/mol 
+    REAL, PARAMETER  :: EHd  = 437.4e3 ! J/mol 
     REAL, PARAMETER  :: Entrop = 1.4e3  ! J/mol/K 
 
-
+    xgmes = exp(EHa * (x - C%Trefk) / (C%Trefk * C%rgas * x )) *  &
+            (1.0 + exp((C%Trefk * Entrop - EHd) / (C%Trefk * C%rgas))) / &
+            (1.0 + exp((x * Entrop - EHd) / (x * C%rgas)))
     
-    xnum=exp(C0 - eha / ( C%rgas*x ) )
-    xden=1.0+exp( ( entrop*x-ehd ) / ( C%rgas*x ) )
-    z = max( 0.0,xnum / xden )
+    z = max( 0.0, xgmes )
   
  
   END FUNCTION xgmesT
@@ -3638,7 +3660,6 @@ elemental pure subroutine fdAm(a, b, c1, d, p, q, da, db, dc, dd, dp, dq, dAm)
        *3./2.*(dq/p*sqrt(1./p3) - q/p**2*dp*sqrt(1./p3) &
        + q/p*3./2.*1./sqrt(1./p3)*1./p**2*dp)) &
        - db/(3.*a) + b/(3.*a**2)*da)
-
 end subroutine fdAm
 
 elemental pure subroutine fdAm2(a, b, c1, da, db, dc, dAm)

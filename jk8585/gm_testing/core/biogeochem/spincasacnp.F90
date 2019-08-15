@@ -117,9 +117,6 @@ SUBROUTINE spincasacnp(dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
   avg_xnplimit=0.0;  avg_xkNlimiting=0.0; avg_xklitter=0.0; avg_xksoil=0.0
   avg_nsoilmin=0.0;  avg_psoillab=0.0;    avg_psoilsorb=0.0; avg_psoilocc=0.0
   avg_rationcsoilmic=0.0;avg_rationcsoilslow=0.0;avg_rationcsoilpass=0.0
-
-write(600,*) 'csoil3 init: ', casapool%csoil(3,:)
-  write(600,*) 'csoil1 init: ', casapool%csoil(1,:)
   
   do nyear=1,myearspin
      !     read(91,901) ncfile

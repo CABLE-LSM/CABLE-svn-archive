@@ -245,6 +245,7 @@ DO k=1,nt
       tdiff = Tleaf(k) - C%Trefk
       gammastar = C%gam0 * ( 1.0 + C%gam1 * tdiff                  &
                                           + C%gam2 * tdiff * tdiff )
+
       Rd  =Rd0*scalex(k)*xrdt(Tleaf(k))
       kct = kc0 * EXP( ( ekc / (C%rgas*C%trefk) ) &
                                               * ( 1.0 - C%trefk/Tleaf(k) ) )
@@ -557,11 +558,7 @@ FUNCTION rtbis(func,x1,x2,xacc)
                 if (abs(dx) < xacc .or. fmid == 0.0) RETURN
         end do
         stop('rtbis: too many bisections')
-        END FUNCTION rtbis
-
-
-
-
+END FUNCTION rtbis
 
 
 ! ==============================================================================

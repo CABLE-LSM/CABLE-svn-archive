@@ -578,6 +578,7 @@ END SUBROUTINE write_casa_dump
   USE casa_cnp_module, ONLY: vcmax_np
   USE cable_common_module,  ONLY:  CABLE_USER
   USE cable_optimise_JV_module
+  USE cable_adjust_JV_gm_module
   IMPLICIT NONE
   INTEGER,      INTENT(IN) :: ktau ! integration step number
   TYPE (veg_parameter_type),  INTENT(INOUT) :: veg  ! vegetation parameters
@@ -661,41 +662,33 @@ END SUBROUTINE write_casa_dump
            ! account here for spring recovery
           veg%vcmax(np) = vcmax_np(nleafx(np), pleafx(np))*casabiome%vcmax_scalar(ivt) &
                *climate%frec(np) 
-          veg%ejmax(np) =bjvref * veg%vcmax(np)
+          veg%ejmax(np) = bjvref * veg%vcmax(np)
        else
           veg%vcmax(np) = vcmax_np(nleafx(np), pleafx(np))*casabiome%vcmax_scalar(ivt)
-          veg%ejmax(np) =bjvref * veg%vcmax(np)
+          veg%ejmax(np) = bjvref * veg%vcmax(np)
        endif
           
        
        !veg%ejmax(np) = 2.0 * veg%vcmax(np)
       
        
-       
+!write(90,'(3f18.10)') veg%vcmax(1), veg%ejmax(1), bjvref
+!write(89,'(2f18.10)') veg%vcmaxcc(1), veg%ejmaxcc(1)
+!write(67,'(2f18.10)') veg%gmmax(1), veg%cfrd(1)
 
        if (cable_user%finite_gm) then
-          ! vcmax and jmax modifications according to Sun et al. 2014 Table S3
-          if (ivt.eq.1) then
-             veg%vcmax(np) = veg%vcmax(np) * 2.2
-             veg%ejmax(np) = veg%vcmax(np) * 1.1
-          elseif (ivt.eq.2) then
-             veg%vcmax(np) = veg%vcmax(np) * 1.9
-             veg%ejmax(np) = veg%vcmax(np) * 1.2
-          elseif (ivt.eq.3) then
-             veg%vcmax(np) = veg%vcmax(np) * 1.4
-             veg%ejmax(np) = veg%vcmax(np) * 1.5
-          elseif (ivt.eq.4) then
-             veg%vcmax(np) = veg%vcmax(np) * 1.45
-             veg%ejmax(np) = veg%vcmax(np) * 1.3
-          elseif (ivt.eq.5) then
-             veg%vcmax(np) = veg%vcmax(np) * 1.7
-             veg%ejmax(np) = veg%vcmax(np) * 1.2
-          elseif (ivt.eq.6 .OR. ivt.eq.8  .OR. ivt.eq.9) then
-             veg%vcmax(np) = veg%vcmax(np) * 1.6
-             veg%ejmax(np) = veg%vcmax(np) * 1.2
-          endif
+ 
+          ! The approach by Sun et al. 2014 is replaced with a subroutine
+          ! based on Knauer et al. 2019, GCB
+
+          CALL adjust_JV_gm(veg)
+
+!write(83,'(2f22.10)') veg%vcmaxcc(1), veg%ejmaxcc(1)
+bjvref = veg%ejmaxcc(np) / veg%vcmaxcc(np)
+!write(87,'(1f22.10)') bjvref
           
        endif
+       
    
  else
     stop('invalid vcmax flag')
