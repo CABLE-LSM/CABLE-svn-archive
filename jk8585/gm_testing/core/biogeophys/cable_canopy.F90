@@ -1523,7 +1523,9 @@ CONTAINS
          ghrwet,        & ! wet canopy cond: heat & thermal rad
          sum_gbh,       & !
          ccfevw,        & ! limitation term for
-                                ! wet canopy evaporation rate
+                          ! wet canopy evaporation rate
+         vcmax,         & ! Vcmax at 25 degC
+         ejmax,         & ! Jmax at 25 degC
          temp             !
 
     REAL(r_2), DIMENSION(mp)  ::                                                &
@@ -1716,45 +1718,18 @@ CONTAINS
              ! Conductance for heat and longwave radiation:
              ghr(i,:) = rad%gradis(i,:)+gh(i,:)
 
-             ! Leuning 2002 (P C & E) equation for temperature response
-             ! used for Vcmax for C3 plants:
-
-             temp(i) =  xvcmxt3(tlfx(i)) * veg%vcmax(i) * (1.0-veg%frac4(i))
-
-             vcmxt3(i,1) = rad%scalex(i,1) * temp(i)
-             vcmxt3(i,2) = rad%scalex(i,2) * temp(i)
-
-             ! Temperature response Vcmax, C4 plants (Collatz et al 1989):
-             temp(i) = xvcmxt4(tlfx(i)-C%tfrz) * veg%vcmax(i) * veg%frac4(i)
-             vcmxt4(i,1) = rad%scalex(i,1) * temp(i)
-             vcmxt4(i,2) = rad%scalex(i,2) * temp(i)
-
-             ! Leuning 2002 (P C & E) equation for temperature response
-             ! used for Jmax for C3 plants:
-             temp(i) = xejmxt3(tlfx(i)) * veg%ejmax(i) * (1.0-veg%frac4(i))
-             ejmxt3(i,1) = rad%scalex(i,1) * temp(i)
-             ejmxt3(i,2) = rad%scalex(i,2) * temp(i)
-
-             if (cable_user%CALL_climate) then
-
-                vcmxt3(i,1) = vcmxt3(i,1)/veg%vcmax(i) * veg%vcmax_sun(i)
-                vcmxt3(i,2) = vcmxt3(i,2)/veg%vcmax(i) * veg%vcmax_shade(i)
-                ejmxt3(i,1) = ejmxt3(i,1)/veg%ejmax(i) * veg%ejmax_sun(i)
-                ejmxt3(i,2) = ejmxt3(i,2)/veg%ejmax(i) * veg%ejmax_shade(i)
-             endif
-
-             ! Difference between leaf temperature and reference temperature:
-             tdiff(i) = tlfx(i) - C%TREFK
 
              
-             ! Choose Ci-based or Cc-based parameters
+             ! Choose Ci-based (infinite gm) or Cc-based (finite gm) parameters
              if (cable_user%finite_gm) then
-                gam0   = C%gam0cc
-                conkc0 = C%conkc0cc
-                conko0 = C%conko0cc
-                egam   = C%egamcc
-                ekc    = C%ekccc
-                eko    = C%ekocc
+                gam0    = C%gam0cc
+                conkc0  = C%conkc0cc
+                conko0  = C%conko0cc
+                egam    = C%egamcc
+                ekc     = C%ekccc
+                eko     = C%ekocc
+                vcmax   = veg%vcmaxcc  ! Vcmax at 25 degC
+                ejmax   = veg%ejmaxcc  ! Jmax at 25 degC
              else
                 gam0   = C%gam0
                 conkc0 = C%conkc0
@@ -1762,7 +1737,40 @@ CONTAINS
                 egam   = C%egam
                 ekc    = C%ekc
                 eko    = C%eko
+                vcmax  = veg%vcmax
+                ejmax  = veg%ejmax
              endif
+
+             
+             ! Leuning 2002 (P C & E) equation for temperature response
+             ! used for Vcmax for C3 plants:
+             temp(i) =  xvcmxt3(tlfx(i)) * vcmax(i) * (1.0-veg%frac4(i))
+
+             vcmxt3(i,1) = rad%scalex(i,1) * temp(i)
+             vcmxt3(i,2) = rad%scalex(i,2) * temp(i)
+
+             ! Temperature response Vcmax, C4 plants (Collatz et al 1989):
+             temp(i) = xvcmxt4(tlfx(i)-C%tfrz) * vcmax(i) * veg%frac4(i)
+             vcmxt4(i,1) = rad%scalex(i,1) * temp(i)
+             vcmxt4(i,2) = rad%scalex(i,2) * temp(i)
+
+             ! Leuning 2002 (P C & E) equation for temperature response
+             ! used for Jmax for C3 plants:
+             temp(i) = xejmxt3(tlfx(i)) * ejmax(i) * (1.0-veg%frac4(i))
+             ejmxt3(i,1) = rad%scalex(i,1) * temp(i)
+             ejmxt3(i,2) = rad%scalex(i,2) * temp(i)
+
+             if (cable_user%CALL_climate) then
+                !! JK: veg%vcmax_sun, veg%vcmax_shade, etc. are Cc-based if gm_finite = TRUE
+                !! Maybe this should be made more explicit for clarity.
+                vcmxt3(i,1) = vcmxt3(i,1)/vcmax(i) * veg%vcmax_sun(i)
+                vcmxt3(i,2) = vcmxt3(i,2)/vcmax(i) * veg%vcmax_shade(i)
+                ejmxt3(i,1) = ejmxt3(i,1)/ejmax(i) * veg%ejmax_sun(i)
+                ejmxt3(i,2) = ejmxt3(i,2)/ejmax(i) * veg%ejmax_shade(i)
+             endif
+
+             ! Difference between leaf temperature and reference temperature:
+             tdiff(i) = tlfx(i) - C%TREFK
              
 
              ! Michaelis menten constant of Rubisco for CO2:
@@ -1846,32 +1854,18 @@ CONTAINS
                 rdx(i,1) = 0.90*(1.2818e-6+0.0116*veg%vcmax(i)- &
                      0.0334*climate%qtemp_max_last_year(i)*1e-6)
 
-                if (cable_user%finite_gm) then
-                   rdx(i,1) = 0.9*(1.2818e-6+0.0116*veg%vcmax(i)/1.9- &
-                     0.0334*climate%qtemp_max_last_year(i)*1e-6)
-                endif
-
                 rdx(i,2) = rdx(i,1)
 
              elseif ( veg%iveg(i).eq. 4  ) then ! decid broadleaf forest
 
                 rdx(i,1) = 1.0*(1.2818e-6+0.0116*veg%vcmax(i)- &
                      0.0334*climate%qtemp_max_last_year(i)*1e-6)
-                if (cable_user%finite_gm) then
-                   rdx(i,1) = 1.0*(1.2818e-6+0.0116*veg%vcmax(i)/1.45- &
-                     0.0334*climate%qtemp_max_last_year(i)*1e-6)
-                endif
+
                 rdx(i,2) = rdx(i,1)
 
              elseif (veg%iveg(i).eq.1   ) then ! evergreen needleleaf forest
                  rdx(i,1) = 1.0*(1.2877e-6+0.0116*veg%vcmax(i)- &
                       0.0334*climate%qtemp_max_last_year(i)*1e-6)
-
-                 if (cable_user%finite_gm) then
-                    rdx(i,1) = 1.0*(1.2877e-6+0.0116*veg%vcmax(i)/2.2- &
-                         0.0334*climate%qtemp_max_last_year(i)*1e-6)
-                 endif
-
 
                  rdx(i,2) = rdx(i,1)
 
@@ -1879,10 +1873,6 @@ CONTAINS
               elseif ( veg%iveg(i).eq. 3  ) then ! decid needleleaf forest
                  rdx(i,1) = 1.0*(1.2877e-6+0.0116*veg%vcmax(i)- &
                       0.0334*climate%qtemp_max_last_year(i)*1e-6)
-                 if (cable_user%finite_gm) then
-                    rdx(i,1) = 1.0*(1.2877e-6+0.0116*veg%vcmax(i)/1.4- &
-                      0.0334*climate%qtemp_max_last_year(i)*1e-6)
-                 endif
 
                  rdx(i,2) = rdx(i,1)
 
@@ -1891,10 +1881,6 @@ CONTAINS
                  rdx(i,1) = 0.8*(1.6737e-6+0.0116*veg%vcmax(i)- &
                       0.0334*climate%qtemp_max_last_year(i)*1e-6)
 
-                 if (cable_user%finite_gm) then
-                    rdx(i,1) = 0.8*(1.6737e-6+0.0116*veg%vcmax(i)/1.6- &
-                      0.0334*climate%qtemp_max_last_year(i)*1e-6)
-                 endif
                  rdx(i,2) = rdx(i,1)
 
               else  ! shrubs and other (C4 grass and crop)
