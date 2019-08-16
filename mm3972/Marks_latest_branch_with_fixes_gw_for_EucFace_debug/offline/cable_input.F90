@@ -2841,14 +2841,15 @@ SUBROUTINE get_parameters_met(soil,ssnow,veg,bgc,rough,completeSet) ! MMY add ss
 
    PRINT *,'MMY ssnow%wb read from met is ', ssnow%wb
 
-   ssnow%GWwb(:)      = ssnow%wb(:,ms)
+!   ssnow%GWwb(:)      = ssnow%wb(:,ms)
    soil%GWhyds_vec(:) = soil%hyds_vec(:,ms) 
    soil%GWssat_vec(:) = soil%ssat_vec(:,ms)
    soil%GWsucs_vec(:) = soil%sucs_vec(:,ms)
    soil%GWbch_vec(:)  = soil%bch_vec(:,ms)
    soil%GWwatr(:)     = soil%watr(:,ms)
 
-   PRINT *,'MMY ssnow%GWwb read from met is ', ssnow%GWwb
+!   PRINT *,'MMY ssnow%GWwb read from met is ', ssnow%GWwb
+   PRINT *,'MMY ssnow%GWwb read from restart is ', ssnow%GWwb
    PRINT *,'MMY soil%GWhyds_vec read from met is ', soil%GWhyds_vec
    PRINT *,'MMY soil%GWssat_vec read from met is ', soil%GWssat_vec
    PRINT *,'MMY soil%GWsucs_vec read from met is ', soil%GWsucs_vec
