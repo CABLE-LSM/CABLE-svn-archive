@@ -45,7 +45,7 @@ MODULE cable_canopy_module
   USE cable_IO_vars_module, ONLY: wlogn
   IMPLICIT NONE
 
-  PUBLIC define_canopy,  xvcmxt3,xejmxt3, ej3x , xrdt
+  PUBLIC define_canopy, xvcmxt3, xejmxt3, ej3x, xrdt, xgmesT
   PRIVATE
 
   TYPE( icanopy_type ) :: C
@@ -134,7 +134,7 @@ CONTAINS
          gbhf,          & ! freeConvectionBndryLayerCond
          csx              ! leaf surface CO2 concentration
     REAL(r_2), DIMENSION(:,:), POINTER ::  gmes  ! mesophyll conductance      
-    REAL, PARAMETER :: kg = 0.08997   ! 
+    REAL, PARAMETER :: kg = 0.08997   !
     !mesophyll conductance extinction coeff't (Sun et al. 2014 SI Eq S7)      
     !REAL :: gmax0 ! max mesophyll conductacne at canopy top  
     REAL  :: rt_min
@@ -381,17 +381,20 @@ CONTAINS
                 !endif
 
                 gmes(j,1) = veg%gmmax(j) * xgmesT(tlfx(j)) * &
-                     rad%extkb(j)/(rad%extkb(j)+kg) * &
-                     (1 - exp(-(rad%extkb(j)+kg)*canopy%vlaiw(j))) / &
-                     (1 - exp( -rad%extkb(j)*canopy%vlaiw(j)))
+                     rad%scalex(j,1)
+                     !rad%extkb(j)/(rad%extkb(j)+kg) * &
+                     !(1 - exp(-(rad%extkb(j)+kg)*canopy%vlaiw(j))) / &
+                     !(1 - exp( -rad%extkb(j)*canopy%vlaiw(j)))
                 
                 
                 gmes(j,2) = veg%gmmax(j) * xgmesT(tlfx(j)) * &
-                     (rad%extkb(j)/kg/(rad%extkb(j)+kg)) * &
-                     (rad%extkb(j) - (rad%extkb(j)+kg)*exp(-kg*canopy%vlaiw(j)) + &
-                     kg*exp(-(kg+rad%extkb(j))*canopy%vlaiw(j)))/ &
-                     (exp(-rad%extkb(j)*canopy%vlaiw(j)) - 1 + rad%extkb(j)*canopy%vlaiw(j))
-               
+                     rad%scalex(j,2)   
+                     !(rad%extkb(j)/kg/(rad%extkb(j)+kg)) * &
+                     !(rad%extkb(j) - (rad%extkb(j)+kg)*exp(-kg*canopy%vlaiw(j)) + &
+                     !kg*exp(-(kg+rad%extkb(j))*canopy%vlaiw(j)))/ &
+                     !(exp(-rad%extkb(j)*canopy%vlaiw(j)) - 1 + rad%extkb(j)*canopy%vlaiw(j))
+
+                      
              endif              !
           ENDIF
 
@@ -1791,8 +1794,6 @@ CONTAINS
              cx2(i) = 2.0 * gam0 * EXP( ( egam / (C%rgas*C%trefk) ) &
                                           * ( 1.0 - C%trefk/tlfx(i) ) )
 
-!write(86,'(8f20.10)') tlfx(1), conkot(1), conkct(1), cx2(1), gmes(1,1), rad%extkb(1), canopy%vlaiw(1), veg%vlai(1)
-!write(85,'(8f20.10)') tlfx(2), conkot(2), conkct(2), cx2(2), gmes(2,1), rad%extkb(2), canopy%vlaiw(2), veg%vlai(2)
 
              ! All equations below in appendix E in Wang and Leuning 1998 are
              ! for calculating anx, csx and gswx for Rubisco limited,
@@ -2676,7 +2677,7 @@ CONTAINS
                    gammast = cx2z(i,j)/2.0 
                    Rd = rdxz(i,j)
                    gm = gmes(i,j)
-!write(81,'(1f22.10)') gm
+
                    ! get partial derivative of A wrt cs
                    CALL fAmdAm1(cs, g0, X*cs, gamma, beta, gammast, Rd, &
                         gm, Am, dAmc(i,j))
@@ -3099,9 +3100,9 @@ END SUBROUTINE photosynthesis
     REAL, INTENT(IN) :: x
     REAL :: xgmes,z
 
-    REAL, PARAMETER  :: EHa  = 49.6e3  ! J/mol 
-    REAL, PARAMETER  :: EHd  = 437.4e3 ! J/mol 
-    REAL, PARAMETER  :: Entrop = 1.4e3  ! J/mol/K 
+    REAL, PARAMETER  :: EHa    = 49.6e3  ! J/mol 
+    REAL, PARAMETER  :: EHd    = 437.4e3 ! J/mol 
+    REAL, PARAMETER  :: Entrop = 1.4e3   ! J/mol/K 
 
     xgmes = exp(EHa * (x - C%Trefk) / (C%Trefk * C%rgas * x )) *  &
             (1.0 + exp((C%Trefk * Entrop - EHd) / (C%Trefk * C%rgas))) / &
@@ -3554,6 +3555,7 @@ elemental pure subroutine fAndAn(Cs, g0, x, Gammastar, Rd, &
      dAn = dAn*Cs/An
   endif
 end subroutine fAndAn
+
 
 ! elemental pure subroutines for finite mesophyll conductance   
 elemental pure subroutine fabcd(Cs, g0, x, gamma, beta, Gammastar, Rd, gm, a,b,c1,d)

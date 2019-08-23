@@ -571,32 +571,41 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, phen, climate, n_call, ke
 END SUBROUTINE write_casa_dump
 
  SUBROUTINE casa_feedback(ktau,veg,casabiome,casapool,casamet,climate,ktauday)
+
   USE cable_def_types_mod
   USE casadimension
   USE casaparm
   USE casavariable
-  USE casa_cnp_module, ONLY: vcmax_np
-  USE cable_common_module,  ONLY:  CABLE_USER
+  USE casa_cnp_module,      ONLY: vcmax_np
+  USE cable_common_module,  ONLY: CABLE_USER
+  USE cable_data_module,    ONLY: icanopy_type
   USE cable_optimise_JV_module
   USE cable_adjust_JV_gm_module
+
   IMPLICIT NONE
+
   INTEGER,      INTENT(IN) :: ktau ! integration step number
-  TYPE (veg_parameter_type),  INTENT(INOUT) :: veg  ! vegetation parameters
-  TYPE (casa_biome),          INTENT(INOUT) :: casabiome
-  TYPE (casa_pool),           INTENT(IN) :: casapool
-  TYPE (casa_met),            INTENT(IN) :: casamet
-  TYPE (climate_type), INTENT(IN)       :: climate  ! climate variables
-  INTEGER,      INTENT(IN) :: ktauday ! number of time steps per day 
+  TYPE (veg_parameter_type), INTENT(INOUT) :: veg  ! vegetation parameters
+  TYPE (casa_biome),         INTENT(INOUT) :: casabiome
+  TYPE (casa_pool),          INTENT(IN)    :: casapool
+  TYPE (casa_met),           INTENT(IN)    :: casamet
+  TYPE (climate_type),       INTENT(IN)    :: climate  ! climate variables
+  INTEGER,      INTENT(IN) :: ktauday ! number of time steps per day
+  TYPE (icanopy_type)      :: PHOTO
 
   integer np,ivt
-  real, dimension(mp)  :: ncleafx,npleafx, pleafx, nleafx ! local variables
-  real, dimension(17)                   ::  xnslope
+  real, dimension(mp) :: ncleafx,npleafx, pleafx, nleafx ! local variables
+  real, dimension(17) ::  xnslope
   data xnslope/0.80,1.00,2.00,1.00,1.00,1.00,0.50,1.00,0.34,1.00,1.00,1.00,1.00,1.00,1.00,1.00,1.00/
-  real:: ajv, bjvref
+  real                :: relcostJCi
+  real, dimension(mp) :: ajv, bjvref, relcostJ, Nefftmp
+
+  
   ! first initialize
+  CALL point2constants(PHOTO)
   ncleafx(:) = casabiome%ratioNCplantmax(veg%iveg(:),leaf)
   npleafx(:) = casabiome%ratioNPplantmin(veg%iveg(:),leaf)
-  bjvref = 1.7 ! Walker 2014
+  bjvref(:)   = PHOTO%bjvref     ! 1.7, Walker et al. 2014
   DO np=1,mp
     ivt=veg%iveg(np)
     IF (casamet%iveg2(np)/=icewater &
@@ -662,19 +671,15 @@ END SUBROUTINE write_casa_dump
            ! account here for spring recovery
           veg%vcmax(np) = vcmax_np(nleafx(np), pleafx(np))*casabiome%vcmax_scalar(ivt) &
                *climate%frec(np) 
-          veg%ejmax(np) = bjvref * veg%vcmax(np)
+          veg%ejmax(np) = bjvref(np) * veg%vcmax(np)
        else
           veg%vcmax(np) = vcmax_np(nleafx(np), pleafx(np))*casabiome%vcmax_scalar(ivt)
-          veg%ejmax(np) = bjvref * veg%vcmax(np)
+          veg%ejmax(np) = bjvref(np) * veg%vcmax(np)
        endif
           
        
        !veg%ejmax(np) = 2.0 * veg%vcmax(np)
       
-       
-!write(90,'(3f18.10)') veg%vcmax(1), veg%ejmax(1), bjvref
-!write(89,'(2f18.10)') veg%vcmaxcc(1), veg%ejmaxcc(1)
-!write(67,'(2f18.10)') veg%gmmax(1), veg%cfrd(1)
 
        if (cable_user%finite_gm) then
  
@@ -683,10 +688,29 @@ END SUBROUTINE write_casa_dump
 
           CALL adjust_JV_gm(veg)
 
-!write(83,'(2f22.10)') veg%vcmaxcc(1), veg%ejmaxcc(1)
-bjvref = veg%ejmaxcc(np) / veg%vcmaxcc(np)
-!write(87,'(1f22.10)') bjvref
           
+          ! recalculate bjvref
+          bjvref(np) = veg%ejmaxcc(np) / veg%vcmaxcc(np)
+          
+          ! recalculate relcost_J in a way that Neff is the same with
+          ! finite and infinite gm
+          if (coord) then
+             relcostJCi = PHOTO%relcostJ_coord
+          else
+             relcostJCi = PHOTO%relcostJ_optim
+          endif
+          
+          Nefftmp(np) = veg%vcmax(np) + relcostJCi * PHOTO%bjvref *  &
+                        veg%vcmax(np) / 4.0
+          relcostJ(np) = 1.0 / (bjvref(np) * veg%vcmaxcc(np) / 4.0) * &
+                         (Nefftmp(np) - veg%vcmaxcc(np))
+       
+       else  ! infinite gm
+          if (coord) then
+             relcostJ(:) = PHOTO%relcostJ_coord
+          else
+             relcostJ(:) = PHOTO%relcostJ_optim
+          endif
        endif
        
    
@@ -698,7 +722,7 @@ ENDDO
 
 !if (mod(ktau,ktauday) ==1) then   ! JK: whole routine is now called once per day
 if (cable_user%coordinate_photosyn) then
-    CALL optimise_JV(veg,climate,ktauday,bjvref)
+    CALL optimise_JV(veg,climate,ktauday,bjvref,relcostJ)
 endif
 !endif
 
