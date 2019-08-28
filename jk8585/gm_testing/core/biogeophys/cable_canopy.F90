@@ -1527,9 +1527,8 @@ CONTAINS
          sum_gbh,       & !
          ccfevw,        & ! limitation term for
                           ! wet canopy evaporation rate
-         vcmax,         & ! Vcmax at 25 degC
-         ejmax,         & ! Jmax at 25 degC
-         temp             !
+         temp_sun,      & !
+         temp_shade       !
 
     REAL(r_2), DIMENSION(mp)  ::                                                &
          ecx,        & ! lat. hflux big leaf
@@ -1731,8 +1730,6 @@ CONTAINS
                 egam    = C%egamcc
                 ekc     = C%ekccc
                 eko     = C%ekocc
-                vcmax   = veg%vcmaxcc  ! Vcmax at 25 degC
-                ejmax   = veg%ejmaxcc  ! Jmax at 25 degC
              else
                 gam0   = C%gam0
                 conkc0 = C%conkc0
@@ -1740,38 +1737,39 @@ CONTAINS
                 egam   = C%egam
                 ekc    = C%ekc
                 eko    = C%eko
-                vcmax  = veg%vcmax
-                ejmax  = veg%ejmax
              endif
-
+             ! JK: veg%vcmax_sun and veg%vcmax_shade are Cc-based if cable_user%gm_finite = TRUE
+             !     and Ci-based otherwise. If cable_user%coordinate_photosyn = FALSE,
+             !     veg%vcmax_sun = veg%vcmax_shade = veg%vcmaxcc if cable_user%gm_finite = TRUE
+             !     and veg%vcmax_sun = veg%vcmax_shade = veg%vcmax otherwise.
+             !     See also Subroutine 'casa_feedback' in casa_cable.F90. Same applies to ejmax.
+             
              
              ! Leuning 2002 (P C & E) equation for temperature response
              ! used for Vcmax for C3 plants:
-             temp(i) =  xvcmxt3(tlfx(i)) * vcmax(i) * (1.0-veg%frac4(i))
-
-             vcmxt3(i,1) = rad%scalex(i,1) * temp(i)
-             vcmxt3(i,2) = rad%scalex(i,2) * temp(i)
+             temp_sun(i)   = xvcmxt3(tlfx(i)) * veg%vcmax_sun(i) * (1.0-veg%frac4(i))
+             temp_shade(i) = xvcmxt3(tlfx(i)) * veg%vcmax_shade(i) * (1.0-veg%frac4(i))
+             vcmxt3(i,1) = rad%scalex(i,1) * temp_sun(i)
+             vcmxt3(i,2) = rad%scalex(i,2) * temp_shade(i)
 
              ! Temperature response Vcmax, C4 plants (Collatz et al 1989):
-             temp(i) = xvcmxt4(tlfx(i)-C%tfrz) * vcmax(i) * veg%frac4(i)
-             vcmxt4(i,1) = rad%scalex(i,1) * temp(i)
-             vcmxt4(i,2) = rad%scalex(i,2) * temp(i)
+             temp_sun(i)   = xvcmxt4(tlfx(i)-C%tfrz) * veg%vcmax_sun(i) * veg%frac4(i)
+             temp_shade(i) = xvcmxt4(tlfx(i)-C%tfrz) * veg%vcmax_shade(i) * veg%frac4(i)
+             vcmxt4(i,1) = rad%scalex(i,1) * temp_sun(i)
+             vcmxt4(i,2) = rad%scalex(i,2) * temp_shade(i)
 
              ! Leuning 2002 (P C & E) equation for temperature response
              ! used for Jmax for C3 plants:
-             temp(i) = xejmxt3(tlfx(i)) * ejmax(i) * (1.0-veg%frac4(i))
-             ejmxt3(i,1) = rad%scalex(i,1) * temp(i)
-             ejmxt3(i,2) = rad%scalex(i,2) * temp(i)
-
+             temp_sun(i)   = xejmxt3(tlfx(i)) * veg%ejmax_sun(i) * (1.0-veg%frac4(i))
+             temp_shade(i) = xejmxt3(tlfx(i)) * veg%ejmax_shade(i) * (1.0-veg%frac4(i))
+             ejmxt3(i,1) = rad%scalex(i,1) * temp_sun(i)
+             ejmxt3(i,2) = rad%scalex(i,2) * temp_shade(i)
              if (cable_user%CALL_climate) then
-                !! JK: veg%vcmax_sun, veg%vcmax_shade, etc. are Cc-based if gm_finite = TRUE
-                !! Maybe this should be made more explicit for clarity.
-                vcmxt3(i,1) = vcmxt3(i,1)/vcmax(i) * veg%vcmax_sun(i)
-                vcmxt3(i,2) = vcmxt3(i,2)/vcmax(i) * veg%vcmax_shade(i)
-                ejmxt3(i,1) = ejmxt3(i,1)/ejmax(i) * veg%ejmax_sun(i)
-                ejmxt3(i,2) = ejmxt3(i,2)/ejmax(i) * veg%ejmax_shade(i)
+                vcmxt3(i,1) = vcmxt3(i,1)/veg%vcmax_sun(i)   * veg%vcmax_sun(i)
+                vcmxt3(i,2) = vcmxt3(i,2)/veg%vcmax_shade(i) * veg%vcmax_shade(i)
+                ejmxt3(i,1) = ejmxt3(i,1)/veg%ejmax_sun(i)   * veg%ejmax_sun(i)
+                ejmxt3(i,2) = ejmxt3(i,2)/veg%ejmax_shade(i) * veg%ejmax_shade(i)
              endif
-
              ! Difference between leaf temperature and reference temperature:
              tdiff(i) = tlfx(i) - C%TREFK
              

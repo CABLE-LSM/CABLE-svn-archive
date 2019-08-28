@@ -638,7 +638,7 @@ END SUBROUTINE write_casa_dump
                      + casabiome%nslope(ivt)*ncleafx(np)/casabiome%sla(ivt) )*1.0e-6
              ENDIF
           ENDIF
-          veg%vcmax(np) =veg%vcmax(np)* xnslope(ivt)
+          veg%vcmax(np) = veg%vcmax(np)* xnslope(ivt)
        ENDIF
        veg%ejmax = 2.0 * veg%vcmax
     elseif (TRIM(cable_user%vcmax).eq.'Walker2014') then
@@ -680,7 +680,7 @@ END SUBROUTINE write_casa_dump
        
        !veg%ejmax(np) = 2.0 * veg%vcmax(np)
       
-
+      
        if (cable_user%finite_gm) then
  
           ! The approach by Sun et al. 2014 is replaced with a subroutine
@@ -688,7 +688,6 @@ END SUBROUTINE write_casa_dump
 
           CALL adjust_JV_gm(veg)
 
-          
           ! recalculate bjvref
           bjvref(np) = veg%ejmaxcc(np) / veg%vcmaxcc(np)
           
@@ -726,15 +725,21 @@ if (cable_user%coordinate_photosyn) then
 endif
 !endif
 
-if (cable_user%coordinate_photosyn) then
-   veg%vcmax = veg%vcmax_sun ! diagnostic only
-   veg%ejmax = veg%ejmax_sun ! diagnostic only
-else
-   veg%vcmax_shade = veg%vcmax
-   veg%ejmax_shade = veg%ejmax
+
+if (.NOT. cable_user%coordinate_photosyn) then
+   if (cable_user%finite_gm) then
+      veg%vcmax_shade = veg%vcmaxcc
+      veg%ejmax_shade = veg%ejmaxcc
    
-   veg%vcmax_sun = veg%vcmax
-   veg%ejmax_sun = veg%ejmax
+      veg%vcmax_sun = veg%vcmaxcc
+      veg%ejmax_sun = veg%ejmaxcc
+   else    
+      veg%vcmax_shade = veg%vcmax
+      veg%ejmax_shade = veg%ejmax
+   
+      veg%vcmax_sun = veg%vcmax
+      veg%ejmax_sun = veg%ejmax
+   endif   
 endif
 
 

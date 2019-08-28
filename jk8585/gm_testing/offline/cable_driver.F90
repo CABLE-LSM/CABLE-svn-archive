@@ -865,7 +865,7 @@ PROGRAM cable_offline_driver
                     IF (MOD(ktau,ktauday) == 1) THEN
                        CALL casa_feedback( ktau, veg, casabiome, casapool, casamet, climate, ktauday )
                     ENDIF
-                 ELSE
+                 ELSE !JK: finite gm only effective if l_vcmaxFeedbk = .TRUE.
                     veg%vcmax_shade = veg%vcmax
                     veg%ejmax_shade = veg%ejmax
 
