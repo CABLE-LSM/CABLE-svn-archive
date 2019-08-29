@@ -254,6 +254,8 @@ SUBROUTINE remove_transGW(dels, soil, ssnow, canopy, veg)
       end do
    end do
 
+   !PRINT *,"soil%swilt_vec ", soil%swilt_vec ! MMY
+
    IF (cable_user%FWSOIL_switch.ne.'Haverd2013') THEN
  
       xx(:) = 0._r_2
@@ -268,7 +270,7 @@ SUBROUTINE remove_transGW(dels, soil, ssnow, canopy, veg)
    
                xx(i) = canopy%fevc(i) * dels / C%hl * veg%froot(i,k) + diff(i,k-1)
                diff(i,k) = max(0._r_2,ssnow%wbliq(i,k)-soil%swilt_vec(i,k)) &
-                          * zse_mp_mm(i,k)
+                          * zse_mp_mm(i,k)               
                xxd(i) = xx(i) - diff(i,k)
    
                if (xxd(i) .gt. 0._r_2) then

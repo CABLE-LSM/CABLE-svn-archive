@@ -1130,8 +1130,12 @@ CONTAINS
        vegin%froot(is, :) = vegin%froot(is, :)-vegin%froot(is-1, :)
     END DO
 
+    PRINT *,"MMY vegin%froot(:, 1) in subroutine write_default_params", vegin%froot(:, 1) ! MMY
     PRINT *,"MMY vegin%froot(:, 2) in subroutine write_default_params", vegin%froot(:, 2) ! MMY
-
+    PRINT *,"MMY vegin%froot(:, 3) in subroutine write_default_params", vegin%froot(:, 3) ! MMY
+    PRINT *,"MMY vegin%froot(:, 4) in subroutine write_default_params", vegin%froot(:, 4) ! MMY
+    PRINT *,"MMY vegin%froot(:, 5) in subroutine write_default_params", vegin%froot(:, 5) ! MMY
+    PRINT *,"MMY vegin%froot(:, 6) in subroutine write_default_params", vegin%froot(:, 6) ! MMY
     ALLOCATE(defaultLAI(mp, 12))
 
     DO e = 1, mland ! over all land grid points
