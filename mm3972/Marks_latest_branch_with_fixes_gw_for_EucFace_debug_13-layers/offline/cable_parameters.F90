@@ -1129,9 +1129,24 @@ CONTAINS
     DO is = ms, 2, -1
        vegin%froot(is, :) = vegin%froot(is, :)-vegin%froot(is-1, :)
     END DO
-
-    PRINT *,"MMY vegin%froot(:, 2) in subroutine write_default_params", vegin%froot(:, 2) ! MMY
-
+    
+    ! ____________________________ MMY ____________________________
+    vegin%froot(1, :) = 0.15
+    vegin%froot(2, :) = 0.15
+    vegin%froot(3, :) = 0.15
+    vegin%froot(4, :) = 0.15
+    vegin%froot(5, :) = 0.15
+    vegin%froot(6, :) = 0.05
+    vegin%froot(7, :) = 0.05
+    vegin%froot(8, :) = 0.05
+    vegin%froot(9, :) = 0.05
+    vegin%froot(10, :) = 0.05 
+    vegin%froot(11, :) = MIN(1.0, 1.0-vegin%rootbeta(:)**totdepth)
+    vegin%froot(12, :) = MIN(1.0, 1.0-vegin%rootbeta(:)**totdepth)
+    vegin%froot(13, :) = MIN(1.0, 1.0-vegin%rootbeta(:)**totdepth)
+    
+    PRINT *,"MMY vegin%froot(:, 2) in subroutine write_default_params", vegin%froot(:, 2) 
+    ! ______________________________________________________________
     ALLOCATE(defaultLAI(mp, 12))
 
     DO e = 1, mland ! over all land grid points
