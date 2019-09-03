@@ -39,7 +39,7 @@ MODULE cable_optimise_JV_module
  ! now moved to icanopy_type and (if Cc-based) recalculated in the
  ! adjust_JV_gm Subroutine
  !REAL, PARAMETER :: relcost_J = 2.3  ! use this value for optimisation algorithm
- LOGICAL, PARAMETER :: coord = .FALSE.  ! adjust ratioJV to force co-oridnation.
+ LOGICAL, PARAMETER :: coord = .TRUE.  ! adjust ratioJV to force co-oridnation.
  ! otherwise maximise photosynthesis
 CONTAINS
 ! ==============================================================================

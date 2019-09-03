@@ -593,19 +593,24 @@ END SUBROUTINE write_casa_dump
   INTEGER,      INTENT(IN) :: ktauday ! number of time steps per day
   TYPE (icanopy_type)      :: PHOTO
 
+  ! local variables
   integer np,ivt
   real, dimension(mp) :: ncleafx,npleafx, pleafx, nleafx ! local variables
   real, dimension(17) ::  xnslope
   data xnslope/0.80,1.00,2.00,1.00,1.00,1.00,0.50,1.00,0.34,1.00,1.00,1.00,1.00,1.00,1.00,1.00,1.00/
   real                :: relcostJCi
   real, dimension(mp) :: ajv, bjvref, relcostJ, Nefftmp
+  real, dimension(mp) :: vcmaxx, cfrdx  ! vcmax and cfrd of previous day
+  
 
+  vcmaxx = veg%vcmax
+  cfrdx  = veg%cfrd
   
   ! first initialize
   CALL point2constants(PHOTO)
   ncleafx(:) = casabiome%ratioNCplantmax(veg%iveg(:),leaf)
   npleafx(:) = casabiome%ratioNPplantmin(veg%iveg(:),leaf)
-  bjvref(:)   = PHOTO%bjvref     ! 1.7, Walker et al. 2014
+  bjvref(:)  = PHOTO%bjvref     ! 1.7, Walker et al. 2014
   DO np=1,mp
     ivt=veg%iveg(np)
     IF (casamet%iveg2(np)/=icewater &
@@ -676,18 +681,21 @@ END SUBROUTINE write_casa_dump
           veg%vcmax(np) = vcmax_np(nleafx(np), pleafx(np))*casabiome%vcmax_scalar(ivt)
           veg%ejmax(np) = bjvref(np) * veg%vcmax(np)
        endif
-          
        
-       !veg%ejmax(np) = 2.0 * veg%vcmax(np)
-      
-      
-       if (cable_user%finite_gm) then
  
-          ! The approach by Sun et al. 2014 is replaced with a subroutine
-          ! based on Knauer et al. 2019, GCB
+       ! adjust Vcmax and Jmax accounting for gm, but only if the implicit values
+       ! have changed.
+       if (cable_user%finite_gm) then
+          if ( ABS(vcmaxx(np) - veg%vcmax(np)) .GT. 1.0E-08 .OR. &
+               ABS(cfrdx(np) - veg%cfrd(np)) .GT. 1.0E-05 .OR. &
+               ktau .LT. ktauday ) then
 
-          CALL adjust_JV_gm(veg)
+             ! The approach by Sun et al. 2014 is replaced with a subroutine
+             ! based on Knauer et al. 2019, GCB
+             CALL adjust_JV_gm(veg)
 
+          endif
+             
           ! recalculate bjvref
           bjvref(np) = veg%ejmaxcc(np) / veg%vcmaxcc(np)
           
@@ -702,8 +710,8 @@ END SUBROUTINE write_casa_dump
           Nefftmp(np) = veg%vcmax(np) + relcostJCi * PHOTO%bjvref *  &
                         veg%vcmax(np) / 4.0
           relcostJ(np) = 1.0 / (bjvref(np) * veg%vcmaxcc(np) / 4.0) * &
-                         (Nefftmp(np) - veg%vcmaxcc(np))
-       
+               (Nefftmp(np) - veg%vcmaxcc(np))
+          
        else  ! infinite gm
           if (coord) then
              relcostJ(:) = PHOTO%relcostJ_coord
@@ -712,10 +720,9 @@ END SUBROUTINE write_casa_dump
           endif
        endif
        
-   
- else
+  else
     stop('invalid vcmax flag')
- endif
+  endif
  
 ENDDO
 

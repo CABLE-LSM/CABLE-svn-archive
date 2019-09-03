@@ -2697,7 +2697,7 @@ CONTAINS
                 if ( vcmxt3z(i,j).gt.0.0 .and. gs_coeffz(i,j) .gt. 1e2 .and. &
                      vx3z(i,j) .gt. 1e-8 ) then  ! C3
 
-                   gamma =   vx3z(i,j)
+                   gamma = vx3z(i,j)
                    beta = cx2z(i,j)
                    X = gs_coeffz(i,j) 
                    g0 = gswminz(i,j)*fwsoilz(i) / C%RGSWC
