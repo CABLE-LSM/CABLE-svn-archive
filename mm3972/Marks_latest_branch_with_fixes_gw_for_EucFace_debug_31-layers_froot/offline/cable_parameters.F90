@@ -1137,7 +1137,7 @@ CONTAINS
 
     ! ____________________ MMY uniform root for all layers _________________________
     vegin%froot(:, :) = 0.032258
-    vegin%froot(:, :) = 0.03226
+    vegin%froot(1, :) = 0.03226
     PRINT *,"MMY vegin%froot(:, 2) in subroutine write_default_params", vegin%froot(:, 2) ! MMY
     ! ______________________________________________________________________________
 
