@@ -1135,7 +1135,11 @@ CONTAINS
        vegin%froot(is, :) = vegin%froot(is, :)-vegin%froot(is-1, :)
     END DO
 
+    ! ____________________ MMY uniform root for all layers _________________________
+    vegin%froot(:, :) = 0.032258
+    vegin%froot(:, :) = 0.03226
     PRINT *,"MMY vegin%froot(:, 2) in subroutine write_default_params", vegin%froot(:, 2) ! MMY
+    ! ______________________________________________________________________________
 
     ALLOCATE(defaultLAI(mp, 12))
 
