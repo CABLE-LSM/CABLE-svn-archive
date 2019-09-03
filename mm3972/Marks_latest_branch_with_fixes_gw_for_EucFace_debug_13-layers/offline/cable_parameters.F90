@@ -1141,9 +1141,9 @@ CONTAINS
     vegin%froot(8, :) = 0.05
     vegin%froot(9, :) = 0.05
     vegin%froot(10, :) = 0.05 
-    vegin%froot(11, :) = MIN(1.0, 1.0-vegin%rootbeta(:)**totdepth)
-    vegin%froot(12, :) = MIN(1.0, 1.0-vegin%rootbeta(:)**totdepth)
-    vegin%froot(13, :) = MIN(1.0, 1.0-vegin%rootbeta(:)**totdepth)
+    vegin%froot(11, :) = 0.0
+    vegin%froot(12, :) = 0.0
+    vegin%froot(13, :) = 0.0
     
     PRINT *,"MMY vegin%froot(:, 2) in subroutine write_default_params", vegin%froot(:, 2) 
     ! ______________________________________________________________
