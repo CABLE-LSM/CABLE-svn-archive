@@ -161,8 +161,8 @@ subroutine cable_pft_params()
  !PFT: evergreen_broadleaf                                                   
  !=========================================================
     vegin%canst1(2) =        0.100000
-   vegin%length(2) =        0.100000
-    vegin%width(2) =        0.050000
+   vegin%length(2) =  0.055000      ! 0.100000 ! MMY
+    vegin%width(2) =  0.001000      ! 0.050000 ! MMY
     vegin%vcmax(2) =        0.000055
     vegin%ejmax(2) =        0.000000
        vegin%hc(2) =       35.000000
@@ -1107,7 +1107,10 @@ subroutine cable_pft_params()
       
    ! new calculation dleaf since April 2012 (cable v1.8 did not use width)
    vegin%dleaf = SQRT(vegin%width * vegin%length)
-    
+   print *," vegin%width is ", vegin%width   ! MMY
+   print *," vegin%length is ", vegin%length ! MMY
+   print *," vegin%dleaf is ", vegin%dleaf   ! MMY
+   
 End subroutine cable_pft_params
 
 END MODULE cable_pft_params_mod
