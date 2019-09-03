@@ -1107,7 +1107,10 @@ subroutine cable_pft_params()
       
    ! new calculation dleaf since April 2012 (cable v1.8 did not use width)
    vegin%dleaf = SQRT(vegin%width * vegin%length)
-    
+   print *," vegin%width is ", vegin%width   ! MMY
+   print *," vegin%length is ", vegin%length ! MMY
+   print *," vegin%dleaf is ", vegin%dleaf   ! MMY   
+ 
 End subroutine cable_pft_params
 
 END MODULE cable_pft_params_mod
