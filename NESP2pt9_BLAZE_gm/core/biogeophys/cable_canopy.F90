@@ -1,4 +1,4 @@
-!==============================================================================
+l!==============================================================================
 ! This source code is part of the 
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
 ! This work is licensed under the CSIRO Open Source Software License
@@ -1197,6 +1197,7 @@ CONTAINS
 
     FUNCTION psim(zeta) RESULT(r)
       USE cable_def_types_mod, only : mp
+      USE mo_constants, only: pi => pi_dp
       ! mrr, 16-sep-92 (from function psi: mrr, edinburgh 1977)
       ! computes integrated stability function psim(z/l) (z/l=zeta)
       ! for momentum, using the businger-dyer form for unstable cases
@@ -1229,7 +1230,7 @@ CONTAINS
       ! Beljaars and Holtslag (1991) for stable
       stable = -a*zeta - b*(zeta - xc/d)*exp( -d*zeta) - b*xc/d
       x      = (1.0 + gu*abs(zeta))**0.25
-      unstable = ALOG((1.0+x*x)*(1.0+x)**2/8) - 2.0*atan(x) + C%PI_C*0.5
+      unstable = ALOG((1.0+x*x)*(1.0+x)**2/8) - 2.0*atan(x) + pi*0.5
       r = z*stable + (1.0-z)*unstable
     END FUNCTION psim
 
@@ -3749,13 +3750,14 @@ end subroutine fdpq
 
 elemental pure subroutine fAm(a, b, c1, d, p, q, Am)
   USE cable_def_types_mod, only: r_2
+  USE mo_constants, only: pi => pi_dp
   REAL(r_2), INTENT(IN) :: a, b, c1, d, p, q
   REAL(r_2), INTENT(OUT) :: Am
   REAL(r_2) :: p3, pq, k
   p3 = -p/3.
   pq = 3*q/(2*p)*sqrt(1/p3)
   k  = 1
-  Am = 2*sqrt(p3)*cos(acos(pq)/3. - 2*C%PI_C*k/3.) - b/(3*a)
+  Am = 2*sqrt(p3)*cos(acos(pq)/3. - 2*pi*k/3.) - b/(3*a)
 end subroutine fAm
 
 elemental pure subroutine fAm2(a, b, c1, Am)
@@ -3769,14 +3771,15 @@ elemental pure subroutine fAm2(a, b, c1, Am)
 
 elemental pure subroutine fdAm(a, b, c1, d, p, q, da, db, dc, dd, dp, dq, dAm)
   USE cable_def_types_mod, only: r_2
+  USE mo_constants, only: pi => pi_dp
   REAL(r_2), INTENT(IN) :: a, b, c1, d, p, q, da, db, dc, dd, dp, dq
   REAL(r_2), INTENT(OUT) :: dAm
   REAL(r_2) :: k, p3, pq
   p3  = -p/3.
   pq  = 3.*q/(2.*p)*sqrt(1./p3)
   k   = 1
-  dAm = (-1./(3.*sqrt(p3))*cos(acos(pq)/3. - 2.*C%pi_C*k/3.)*dp &
-       + 2.*sqrt(p3) * (sin(acos(pq)/3. - 2.*C%pi_C*k/3.)/(3.*sqrt(1.-pq**2)) &
+  dAm = (-1./(3.*sqrt(p3))*cos(acos(pq)/3. - 2.*pi*k/3.)*dp &
+       + 2.*sqrt(p3) * (sin(acos(pq)/3. - 2.*pi*k/3.)/(3.*sqrt(1.-pq**2)) &
        *3./2.*(dq/p*sqrt(1./p3) - q/p**2*dp*sqrt(1./p3) &
        + q/p*3./2.*1./sqrt(1./p3)*1./p**2*dp)) &
        - db/(3.*a) + b/(3.*a**2)*da)
