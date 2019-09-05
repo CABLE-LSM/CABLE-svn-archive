@@ -158,8 +158,8 @@ SUBROUTINE spincasacnp(dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
       avg_c13wood2cwd = 0.0_dp
    endif
 
-   write(600,*) 'csoil3 init: ', casapool%csoil(3,:)
-   write(600,*) 'csoil1 init: ', casapool%csoil(1,:)
+!   write(600,*) 'csoil3 init: ', casapool%csoil(3,:)
+!   write(600,*) 'csoil1 init: ', casapool%csoil(1,:)
   
    do nyear=1, myearspin
      write(cyear,FMT="(I4)") CABLE_USER%CASA_SPIN_STARTYEAR + nyear - 1
@@ -358,8 +358,8 @@ SUBROUTINE spincasacnp(dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
 
   !write(600,*) 'pmet pre-analytic: ' ,  casapool%plitter(1,metb)
   !write(600,*) 'nmet pre-analytic: ' ,  casapool%nlitter(1,metb)
-  write(600,*) 'csoil3 pre-analytic: ', casapool%csoil(3,:)
-  write(600,*) 'csoil1 pre-analytic: ', casapool%csoil(1,:)
+ !write(600,*) 'csoil3 pre-analytic: ', casapool%csoil(3,:)
+ !write(600,*) 'csoil1 pre-analytic: ', casapool%csoil(1,:)
   call analyticpool(kend,veg,soil,casabiome,casapool,                                          &
        casaflux,casamet,casabal,phen,                                         &
        avg_cleaf2met,avg_cleaf2str,avg_croot2met,avg_croot2str,avg_cwood2cwd, &
@@ -371,8 +371,8 @@ SUBROUTINE spincasacnp(dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
        avg_nsoilmin,avg_psoillab,avg_psoilsorb,avg_psoilocc, &
        avg_c13leaf2met, avg_c13leaf2str, avg_c13root2met, &
        avg_c13root2str, avg_c13wood2cwd, c13o2pools)
-  write(600,*) 'csoil3 post-analytic: ', casapool%csoil(3,:)
-  write(600,*) 'csoil1 post-analytic: ', casapool%csoil(1,:)
+  !write(600,*) 'csoil3 post-analytic: ', casapool%csoil(3,:)
+  !write(600,*) 'csoil1 post-analytic: ', casapool%csoil(1,:)
 
   !write(600,*) 'pmet post analytic: ', avg_pleaf2met, avg_proot2met, casaflux%klitter(1,metb), casapool%plitter(1,metb)
   ! write(600,*) 'nmet post analytic: ', avg_nleaf2met, avg_nroot2met, casaflux%klitter(1,metb), casapool%nlitter(1,metb)
@@ -425,9 +425,9 @@ SUBROUTINE spincasacnp(dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
            endif
 
            if (nloop==1 .and. nyear==1) then
-              write(6002, "(200e16.6)") casamet%tairk(3), casamet%tsoil(3,:),  casamet%moist(3,:), &
-                   casaflux%cgpp(3) ,casaflux%crmplant(3,1), real(phen%phase(3)) ,  &
-                    real(phen%doyphase(3,:)), climate%qtemp_max_last_year(3)
+              !write(6002, "(200e16.6)") casamet%tairk(3), casamet%tsoil(3,:),  casamet%moist(3,:), &
+              !     casaflux%cgpp(3) ,casaflux%crmplant(3,1), real(phen%phase(3)) ,  &
+              !      real(phen%doyphase(3,:)), climate%qtemp_max_last_year(3)
            endif
 
            if (cable_user%c13o2) call c13o2_save_casapool(casapool, casasave)
@@ -505,8 +505,8 @@ SUBROUTINE spincasacnp(dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
   CALL casa_fluxout(CABLE_USER%CASA_SPIN_STARTYEAR + myearspin - 1 , veg, soil, casabal, casamet)
 
   !STOP
-  write(600,*) 'csoil3 end: ', casapool%csoil(3,:)
-  write(600,*) 'csoil1 end: ', casapool%csoil(1,:)
+  !write(600,*) 'csoil3 end: ', casapool%csoil(3,:)
+  !write(600,*) 'csoil1 end: ', casapool%csoil(1,:)
   
 !!$! write the last five loop pool size by PFT type
 !!$open(92,file='cnpspinlast5.txt')

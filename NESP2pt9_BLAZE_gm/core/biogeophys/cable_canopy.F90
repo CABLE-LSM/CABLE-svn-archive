@@ -46,7 +46,9 @@ MODULE cable_canopy_module
   USE cable_common_module, ONLY: cable_user
   IMPLICIT NONE
 
-  PUBLIC define_canopy,  xvcmxt3,xejmxt3, ej3x , xrdt,  xvcmxt3_acclim, xejmxt3_acclim 
+  PUBLIC define_canopy, xvcmxt3, xejmxt3, ej3x, xrdt, xgmesT, &
+         xvcmxt3_acclim, xejmxt3_acclim
+
   PRIVATE
 
   TYPE( icanopy_type ) :: C
@@ -135,9 +137,9 @@ CONTAINS
          gbhf,          & ! freeConvectionBndryLayerCond
          csx              ! leaf surface CO2 concentration
     REAL(r_2), DIMENSION(:,:), POINTER ::  gmes  ! mesophyll conductance      
-    REAL, PARAMETER :: kg = 0.08997   ! 
+    REAL, PARAMETER :: kg = 0.08997   !
     !mesophyll conductance extinction coeff't (Sun et al. 2014 SI Eq S7)      
-    REAL :: gmax0 ! max mesophyll conductacne at canopy top  
+    !REAL :: gmax0 ! max mesophyll conductacne at canopy top  
     REAL  :: rt_min
     REAL, DIMENSION(mp)       :: zstar, rL, phist, csw, psihat,rt0bus
 
@@ -373,29 +375,33 @@ CONTAINS
                   - gbhu(j,1)
 
              if (cable_user%finite_gm) then
-                gmax0 = 2.47/10.1 ! molm-2s-1 
-                if (veg%iveg(j).eq.1) then
-                   gmax0 = 1.21/10.1
-                elseif (veg%iveg(j).eq.2) then
-                   gmax0 = 1.36/10.1
-                elseif (veg%iveg(j).eq.3) then
-                   gmax0 = 2.14/10.1
-                elseif (veg%iveg(j).eq.7) then
-                   gmax0 = 0.3
-                endif
+               ! JK: gmmax now comes from param file
+                !gmax0 = 2.47/10.1 ! molm-2s-1 
+                !if (veg%iveg(j).eq.1) then
+                !   gmax0 = 1.21/10.1
+                !elseif (veg%iveg(j).eq.2) then
+                !   gmax0 = 1.36/10.1
+                !elseif (veg%iveg(j).eq.3) then
+                !   gmax0 = 2.14/10.1
+                !elseif (veg%iveg(j).eq.7) then
+                !   gmax0 = 0.3
+                !endif
 
-                gmes(j,1) = gmax0 * xgmesT(tlfx(j)) * &
-                     rad%extkb(j)/(rad%extkb(j)+kg) * &
-                     (1 - exp(-(rad%extkb(j)+kg)*canopy%vlaiw(j))) / &
-                     (1 - exp( -rad%extkb(j)*canopy%vlaiw(j)))
+                gmes(j,1) = veg%gmmax(j) * xgmesT(tlfx(j)) * &
+                     rad%scalex(j,1)
+                     !rad%extkb(j)/(rad%extkb(j)+kg) * &
+                     !(1 - exp(-(rad%extkb(j)+kg)*canopy%vlaiw(j))) / &
+                     !(1 - exp( -rad%extkb(j)*canopy%vlaiw(j)))
                 
                 
-                gmes(j,2) = gmax0 * xgmesT(tlfx(j)) * &
-                     (rad%extkb(j)/kg/(rad%extkb(j)+kg)) * &
-                     (rad%extkb(j) - (rad%extkb(j)+kg)*exp(-kg*canopy%vlaiw(j)) + &
-                     kg*exp(-(kg+rad%extkb(j))*canopy%vlaiw(j)))/ &
-                     (exp(-rad%extkb(j)*canopy%vlaiw(j)) - 1 + rad%extkb(j)*canopy%vlaiw(j))
-               
+                gmes(j,2) = veg%gmmax(j) * xgmesT(tlfx(j)) * &
+                     rad%scalex(j,2)   
+                     !(rad%extkb(j)/kg/(rad%extkb(j)+kg)) * &
+                     !(rad%extkb(j) - (rad%extkb(j)+kg)*exp(-kg*canopy%vlaiw(j)) + &
+                     !kg*exp(-(kg+rad%extkb(j))*canopy%vlaiw(j)))/ &
+                     !(exp(-rad%extkb(j)*canopy%vlaiw(j)) - 1 + rad%extkb(j)*canopy%vlaiw(j))
+
+                      
              endif              !
           ENDIF
 
@@ -1500,7 +1506,7 @@ CONTAINS
 
     INTEGER,INTENT(IN) :: iter
 
-    REAL, INTENT(IN)     :: dels ! integration time step (s)
+    REAL, INTENT(IN)   :: dels ! integration time step (s)
 
     !local variables
     REAL, PARAMETER  ::                                                         &
@@ -1524,8 +1530,11 @@ CONTAINS
          gwwet,         & ! cond for water for a wet canopy
          ghrwet,        & ! wet canopy cond: heat & thermal rad
          sum_gbh,       & !
-         ccfevw,        & ! limitation term for wet canopy evaporation rate
-         temp             !
+         ccfevw,        & ! limitation term for
+                          ! wet canopy evaporation rate
+         temp,          & !
+         temp_sun,      & !
+         temp_shade       !
 
     REAL(r_2), DIMENSION(mp)  ::                                                &
          ecx,        & ! lat. hflux big leaf
@@ -1575,6 +1584,15 @@ CONTAINS
          dAn_y, & !(actual rate)
          eta_y, &
          eta_x
+
+    REAL ::  gam0,    &
+             conkc0,  &
+             conko0,  &
+             egam,    &
+             ekc,     &
+             eko
+
+    
     REAL, DIMENSION(:,:), POINTER :: gswmin ! min stomatal conductance
 
     REAL, DIMENSION(mp,2) ::  gsw_term, lower_limit2  ! local temp var
@@ -1707,61 +1725,93 @@ CONTAINS
              ! Conductance for heat and longwave radiation:
              ghr(i,:) = rad%gradis(i,:)+gh(i,:)
 
+
+             
+             ! Choose Ci-based (infinite gm) or Cc-based (finite gm) parameters
+             if (cable_user%finite_gm) then
+                gam0    = C%gam0cc
+                conkc0  = C%conkc0cc
+                conko0  = C%conko0cc
+                egam    = C%egamcc
+                ekc     = C%ekccc
+                eko     = C%ekocc
+             else
+                gam0   = C%gam0
+                conkc0 = C%conkc0
+                conko0 = C%conko0
+                egam   = C%egam
+                ekc    = C%ekc
+                eko    = C%eko
+             endif
+             ! JK: veg%vcmax_sun and veg%vcmax_shade are Cc-based if cable_user%gm_finite = TRUE
+             !     and Ci-based otherwise. If cable_user%coordinate_photosyn = FALSE,
+             !     veg%vcmax_sun = veg%vcmax_shade = veg%vcmaxcc if cable_user%gm_finite = TRUE
+             !     and veg%vcmax_sun = veg%vcmax_shade = veg%vcmax otherwise.
+             !     See also Subroutine 'casa_feedback' in casa_cable.F90. Same applies to ejmax.
+             
+             
              ! Leuning 2002 (P C & E) equation for temperature response
              ! used for Vcmax for C3 plants:
-
              if (.not.cable_user%acclimate_photosyn) then
-                temp(i) =  xvcmxt3(tlfx(i)) * veg%vcmax(i) * (1.0-veg%frac4(i))
+                temp_sun(i)   = xvcmxt3(tlfx(i)) * veg%vcmax_sun(i) * (1.0-veg%frac4(i))
+                temp_shade(i) = xvcmxt3(tlfx(i)) * veg%vcmax_shade(i) * (1.0-veg%frac4(i))
              else
-                call  xvcmxt3_acclim(tlfx(i), climate%mtemp(i) , temp(i))
-                temp(i) = temp(i) * veg%vcmax(i) * (1.0-veg%frac4(i))
+                call xvcmxt3_acclim(tlfx(i), climate%mtemp(i) , temp(i))
+                temp_sun(i)   = temp(i) * veg%vcmax_sun(i) * (1.0-veg%frac4(i))
+                temp_shade(i) = temp(i) * veg%vcmax_shade(i) * (1.0-veg%frac4(i))
+write(87,'(4f18.10)') temp(1), climate%mtemp(1), temp_sun(1), temp_shade(1)
              endif
-
-             vcmxt3(i,1) = rad%scalex(i,1) * temp(i)
-             vcmxt3(i,2) = rad%scalex(i,2) * temp(i)
+             vcmxt3(i,1) = rad%scalex(i,1) * temp_sun(i)
+             vcmxt3(i,2) = rad%scalex(i,2) * temp_shade(i)
 
              ! Temperature response Vcmax, C4 plants (Collatz et al 1989):
-             temp(i) = xvcmxt4(tlfx(i)-C%tfrz) * veg%vcmax(i) * veg%frac4(i)
-             vcmxt4(i,1) = rad%scalex(i,1) * temp(i)
-             vcmxt4(i,2) = rad%scalex(i,2) * temp(i)
+             temp_sun(i)   = xvcmxt4(tlfx(i)-C%tfrz) * veg%vcmax_sun(i) * veg%frac4(i)
+             temp_shade(i) = xvcmxt4(tlfx(i)-C%tfrz) * veg%vcmax_shade(i) * veg%frac4(i)
+             vcmxt4(i,1) = rad%scalex(i,1) * temp_sun(i)
+             vcmxt4(i,2) = rad%scalex(i,2) * temp_shade(i)
 
+             
              ! Leuning 2002 (P C & E) equation for temperature response
              ! used for Jmax for C3 plants:
-              if (.not.cable_user%acclimate_photosyn) then
-                 temp(i) = xejmxt3(tlfx(i)) * veg%ejmax(i) * (1.0-veg%frac4(i))
-              else
-                 call xejmxt3_acclim(tlfx(i), climate%mtemp_max20(i), temp(i))
-                 temp(i) = temp(i)*  veg%ejmax(i) * (1.0-veg%frac4(i))
-              endif
-             ejmxt3(i,1) = rad%scalex(i,1) * temp(i)
-             ejmxt3(i,2) = rad%scalex(i,2) * temp(i)
-
-             if (cable_user%CALL_climate) then
-
-                vcmxt3(i,1) = vcmxt3(i,1)/veg%vcmax(i) * veg%vcmax_sun(i)
-                vcmxt3(i,2) = vcmxt3(i,2)/veg%vcmax(i) * veg%vcmax_shade(i)
-                ejmxt3(i,1) = ejmxt3(i,1)/veg%ejmax(i) * veg%ejmax_sun(i)
-                ejmxt3(i,2) = ejmxt3(i,2)/veg%ejmax(i) * veg%ejmax_shade(i)
+             if (.not.cable_user%acclimate_photosyn) then
+                temp_sun(i)   = xejmxt3(tlfx(i)) * veg%ejmax_sun(i) * (1.0-veg%frac4(i))
+                temp_shade(i) = xejmxt3(tlfx(i)) * veg%ejmax_shade(i) * (1.0-veg%frac4(i))
+             else
+                call xejmxt3_acclim(tlfx(i), climate%mtemp_max20(i), temp(i))
+                temp_sun(i)   = temp(i) * veg%ejmax_sun(i) * (1.0-veg%frac4(i))
+                temp_shade(i) = temp(i) * veg%ejmax_shade(i) * (1.0-veg%frac4(i))
              endif
-
+             ejmxt3(i,1) = rad%scalex(i,1) * temp_sun(i)
+             ejmxt3(i,2) = rad%scalex(i,2) * temp_shade(i)
+             
+             if (cable_user%CALL_climate) then
+                vcmxt3(i,1) = vcmxt3(i,1)/veg%vcmax_sun(i)   * veg%vcmax_sun(i)
+                vcmxt3(i,2) = vcmxt3(i,2)/veg%vcmax_shade(i) * veg%vcmax_shade(i)
+                ejmxt3(i,1) = ejmxt3(i,1)/veg%ejmax_sun(i)   * veg%ejmax_sun(i)
+                ejmxt3(i,2) = ejmxt3(i,2)/veg%ejmax_shade(i) * veg%ejmax_shade(i)
+             endif
+             
              ! Difference between leaf temperature and reference temperature:
              tdiff(i) = tlfx(i) - C%TREFK
-
+             
              ! Michaelis menten constant of Rubisco for CO2:
-             conkct(i) = veg%conkc0(i) * EXP( ( veg%ekc(i) / (C%rgas*C%trefk) ) &
-                                              * ( 1.0 - C%trefk/tlfx(i) ) )
+             conkct(i) = conkc0 * EXP( ( ekc / (C%rgas*C%trefk) ) &
+                                         * ( 1.0 - C%trefk/tlfx(i) ) )
 
              ! Michaelis menten constant of Rubisco for oxygen:
-             conkot(i) = veg%conko0(i) * EXP( ( veg%eko(i) / (C%rgas*C%trefk) ) &
-                                              * ( 1.0 - C%trefk/tlfx(i) ) )
+             conkot(i) = conko0 * EXP( ( eko / (C%rgas*C%trefk) ) &
+                                         * ( 1.0 - C%trefk/tlfx(i) ) )
 
              ! Store leaf temperature
              tlfxx(i) = tlfx(i)
 
              ! "d_{3}" in Wang and Leuning, 1998, appendix E:
              cx1(i) = conkct(i) * (1.0+0.21/conkot(i))
-             cx2(i) = 2.0 * C%gam0 * ( 1.0 + C%gam1 * tdiff(i)                  &
-                                          + C%gam2 * tdiff(i) * tdiff(i) )
+             !cx2(i) = 2.0 * C%gam0 * ( 1.0 + C%gam1 * tdiff(i)                  &
+             !                             + C%gam2 * tdiff(i) * tdiff(i) )
+             cx2(i) = 2.0 * gam0 * EXP( ( egam / (C%rgas*C%trefk) ) &
+                                          * ( 1.0 - C%trefk/tlfx(i) ) )
+
 
              ! All equations below in appendix E in Wang and Leuning 1998 are
              ! for calculating anx, csx and gswx for Rubisco limited,
@@ -1823,32 +1873,18 @@ CONTAINS
                 rdx(i,1) = 1.0*(1.2818e-6+0.0116*veg%vcmax(i)- &
                      0.0334*climate%qtemp_max_last_year(i)*1e-6)
 
-                if (cable_user%finite_gm) then
-                   rdx(i,1) = 0.9*(1.2818e-6+0.0116*veg%vcmax(i)/1.9- &
-                     0.0334*climate%qtemp_max_last_year(i)*1e-6)
-                endif
-
                 rdx(i,2) = rdx(i,1)
 
              elseif ( veg%iveg(i).eq. 4  ) then ! decid broadleaf forest
 
                 rdx(i,1) = 1.0*(1.2818e-6+0.0116*veg%vcmax(i)- &
                      0.0334*climate%qtemp_max_last_year(i)*1e-6)
-                if (cable_user%finite_gm) then
-                   rdx(i,1) = 1.0*(1.2818e-6+0.0116*veg%vcmax(i)/1.45- &
-                     0.0334*climate%qtemp_max_last_year(i)*1e-6)
-                endif
+
                 rdx(i,2) = rdx(i,1)
 
              elseif (veg%iveg(i).eq.1   ) then ! evergreen needleleaf forest
                  rdx(i,1) = 1.0*(1.2877e-6+0.0116*veg%vcmax(i)- &
                       0.0334*climate%qtemp_max_last_year(i)*1e-6)
-
-                 if (cable_user%finite_gm) then
-                    rdx(i,1) = 1.0*(1.2877e-6+0.0116*veg%vcmax(i)/2.2- &
-                         0.0334*climate%qtemp_max_last_year(i)*1e-6)
-                 endif
-
 
                  rdx(i,2) = rdx(i,1)
 
@@ -1856,10 +1892,6 @@ CONTAINS
               elseif ( veg%iveg(i).eq. 3  ) then ! decid needleleaf forest
                  rdx(i,1) = 1.0*(1.2877e-6+0.0116*veg%vcmax(i)- &
                       0.0334*climate%qtemp_max_last_year(i)*1e-6)
-                 if (cable_user%finite_gm) then
-                    rdx(i,1) = 1.0*(1.2877e-6+0.0116*veg%vcmax(i)/1.4- &
-                      0.0334*climate%qtemp_max_last_year(i)*1e-6)
-                 endif
 
                  rdx(i,2) = rdx(i,1)
 
@@ -1868,10 +1900,6 @@ CONTAINS
                  rdx(i,1) = 0.8*(1.6737e-6+0.0116*veg%vcmax(i)- &
                       0.0334*climate%qtemp_max_last_year(i)*1e-6)
 
-                 if (cable_user%finite_gm) then
-                    rdx(i,1) = 0.8*(1.6737e-6+0.0116*veg%vcmax(i)/1.6- &
-                      0.0334*climate%qtemp_max_last_year(i)*1e-6)
-                 endif
                  rdx(i,2) = rdx(i,1)
 
               else  ! shrubs and other (C4 grass and crop)
@@ -1911,15 +1939,15 @@ CONTAINS
                  rdx4(i,2) = rdx(i,2);
              else !cable_user%call_climate
 
-            rdx(i,1) = (veg%cfrd(i)*vcmxt3(i,1) + veg%cfrd(i)*vcmxt4(i,1))
-            rdx(i,2) = (veg%cfrd(i)*vcmxt3(i,2) + veg%cfrd(i)*vcmxt4(i,2))
-            ! special for YP photosynthesis
-            rdx3(i,1) = veg%cfrd(i)*vcmxt3(i,1) 
-            rdx3(i,2) = veg%cfrd(i)*vcmxt3(i,2) 
-            rdx4(i,1) = veg%cfrd(i)*vcmxt4(i,1) 
-            rdx4(i,2) = veg%cfrd(i)*vcmxt4(i,2) 
+                 rdx(i,1) = (veg%cfrd(i)*vcmxt3(i,1) + veg%cfrd(i)*vcmxt4(i,1))
+                 rdx(i,2) = (veg%cfrd(i)*vcmxt3(i,2) + veg%cfrd(i)*vcmxt4(i,2))
+                 ! special for YP photosynthesis
+                 rdx3(i,1) = veg%cfrd(i)*vcmxt3(i,1) 
+                 rdx3(i,2) = veg%cfrd(i)*vcmxt3(i,2) 
+                 rdx4(i,1) = veg%cfrd(i)*vcmxt4(i,1) 
+                 rdx4(i,2) = veg%cfrd(i)*vcmxt4(i,2) 
 
-         endif !cable_user%call_climate
+            endif !cable_user%call_climate
 
             ! Ticket #56 added switch for Belinda Medlyn's model
             IF (cable_user%GS_SWITCH == 'leuning') THEN
@@ -1965,7 +1993,6 @@ CONTAINS
 
     
        if (cable_user%finite_gm) then
-
           CALL photosynthesis_gm( csx(:,:),                                           &
                SPREAD( cx1(:), 2, mf ),                            &
                SPREAD( cx2(:), 2, mf ),                            &
@@ -2608,9 +2635,9 @@ CONTAINS
          gs_coeffz,  & ! Ticket #56, xleuningz repalced with gs_coeffz
          vlaiz,      & !
          deltlfz
-    REAL, DIMENSION(mp,mf), INTENT(INOUT) ::  gswminz
+    REAL, DIMENSION(mp,mf), INTENT(INOUT) :: gswminz
     REAL, DIMENSION(mp,mf), INTENT(INOUT) :: anxz, anrubiscoz, anrubpz
-    REAL(r_2), DIMENSION(mp,mf), INTENT(OUT):: eta, dA
+    REAL(r_2), DIMENSION(mp,mf), INTENT(OUT)   :: eta, dA
 
     ! local variables
     REAL(r_2), DIMENSION(mp,mf) ::                                              &
@@ -2647,7 +2674,6 @@ CONTAINS
                 eta_p(i,j) = 0.0
                 eta(i,j) = 0.0
 
-                ! Rubisco limited:
 
                 if ( vcmxt3z(i,j).gt.1e-8 .and. gs_coeffz(i,j) .gt. 1e2  ) then  ! C3
 
@@ -2687,10 +2713,11 @@ CONTAINS
                    eta_c(i,j) = 0.0
                 endif
 
+                ! RuBP regeneration-limited photosynthesis
                 if ( vcmxt3z(i,j).gt.0.0 .and. gs_coeffz(i,j) .gt. 1e2 .and. &
                      vx3z(i,j) .gt. 1e-8 ) then  ! C3
 
-                   gamma =   vx3z(i,j)
+                   gamma = vx3z(i,j)
                    beta = cx2z(i,j)
                    X = gs_coeffz(i,j) 
                    g0 = gswminz(i,j)*fwsoilz(i) / C%RGSWC
@@ -3149,31 +3176,21 @@ SUBROUTINE photosynthesis( csxz, cx1z, cx2z, gswminz,                          &
   ! ------------------------------------------------------------------------------
 
   FUNCTION xgmesT(x) RESULT(z)
-
-    !  Sun et al. 2104 SI Eq S8 for temperature response
-    !  of mesophyll conductance
+    USE cable_def_types_mod, only: r_2
+    ! Temperature response of mesophyll conductance
+    ! parameters as in Knauer et al. 2019 (from Bernacchi et al. 2002)
     REAL, INTENT(IN) :: x
-    REAL :: xnum,xden,z
+    REAL(r_2) :: xgmes,z
 
-! original parameters (4-fold T increase between 15 & 40 degC)
-!!$    REAL, PARAMETER:: C0 = 20.0  ! Sun et al. 2014 SI Eq S8
-!!$    REAL, PARAMETER  :: EHa  = 49.6e3  ! J/mol 
-!!$    REAL, PARAMETER  :: EHd  = 437.4e3 ! J/mol 
-!!$    REAL, PARAMETER  :: Entrop = 1.4e3  ! J/mol/K 
+    REAL(r_2), PARAMETER  :: EHa    = 49.6e3  ! J/mol 
+    REAL(r_2), PARAMETER  :: EHd    = 437.4e3 ! J/mol 
+    REAL(r_2), PARAMETER  :: Entrop = 1.4e3   ! J/mol/K 
 
-
-
-! modified parameters (1.5-fold T increase between 15 & 40 degC)
-    REAL, PARAMETER:: C0 = 6.35  ! Sun et al. 2014 SI Eq S8
-    REAL, PARAMETER  :: EHa  = 15.6e3  ! J/mol 
-    REAL, PARAMETER  :: EHd  = 445.4e3 ! J/mol 
-    REAL, PARAMETER  :: Entrop = 1.4e3  ! J/mol/K 
-
-
+    xgmes = exp(EHa * (x - C%Trefk) / (C%Trefk * C%rgas * x )) *  &
+            (1.0 + exp((C%Trefk * Entrop - EHd) / (C%Trefk * C%rgas))) / &
+            (1.0 + exp((x * Entrop - EHd) / (x * C%rgas)))
     
-    xnum=exp(C0 - eha / ( C%rgas*x ) )
-    xden=1.0+exp( ( entrop*x-ehd ) / ( C%rgas*x ) )
-    z = max( 0.0,xnum / xden )
+    z = max( 0.0, xgmes )
   
  
   END FUNCTION xgmesT
@@ -3195,7 +3212,7 @@ SUBROUTINE photosynthesis( csxz, cx1z, cx2z, gswminz,                          &
     CALL point2constants(C)
     xvcnum=xvccoef*exp( ( ehavc / ( C%rgas*C%TREFK ) )* ( 1.-C%TREFK/x ) )
     xvcden=1.0+exp( ( entropvc*x-ehdvc ) / ( C%rgas*x ) )
-    z = max( 0.0,xvcnum / xvcden )
+    z = max( 0.0, xvcnum / xvcden )
   
     
   END FUNCTION xvcmxt3
@@ -3210,7 +3227,7 @@ SUBROUTINE photosynthesis( csxz, cx1z, cx2z, gswminz,                          &
     REAL:: xVccoef, EHaVc, EHdVc,  EntropVc, aKK, bKK, rgas, TREFK, xvcnum, xvcden
 
 
-    EHaVc = 42.6 * 1000.0 + 1.14*Tgrowth*1000
+    EHaVc = 42.6 * 1000.0 + 1.14*Tgrowth*1000.0
     EHdVc  = 200000.0 
     aKK = 645.13
     bKK = -0.38
@@ -3219,9 +3236,9 @@ SUBROUTINE photosynthesis( csxz, cx1z, cx2z, gswminz,                          &
 
     entropvc = (aKK + bKK * Tgrowth) 
     xVccoef  = 1.0 + exp((entropvc * TREFK - EHdVc)/  ( rgas*TREFK ) )
-    xvcnum = xVccoef* exp( ( EHaVc / ( rgas*TREFK ) )* ( 1.-TREFK/Tk ) )
-    xvcden=1.0+ exp( ( entropvc*Tk-EHdVc ) / ( rgas*Tk ) )
-    trf = max( real(0.0),xvcnum / xvcden )
+    xvcnum = xVccoef * exp( ( EHaVc / ( rgas*TREFK ) )* ( 1.-TREFK/Tk ) )
+    xvcden=1.0 + exp( ( entropvc*Tk-EHdVc ) / ( rgas*Tk ) )
+    trf = max( real(0.0), xvcnum / xvcden )
     
   end subroutine xvcmxt3_acclim
   ! ------------------------------------------------------------------------------
@@ -3267,7 +3284,7 @@ SUBROUTINE photosynthesis( csxz, cx1z, cx2z, gswminz,                          &
     ! Eq 7 and Table 2
     REAL, INTENT(IN) :: Tk, Thome  ! instantaneous T in K, growth T in degC
     REAL, INTENT(OUT) :: trf
-    REAL:: xVccoef, EHaVc, EHdVc,  EntropVc, aKK, bKK, rgas, TREFK, xvcnum,xvcden
+    REAL:: xVccoef, EHaVc, EHdVc,  EntropVc, aKK, bKK, rgas, TREFK, xvcnum, xvcden
 
 
     EHaVc = 40.71 * 1000.0
@@ -3279,9 +3296,9 @@ SUBROUTINE photosynthesis( csxz, cx1z, cx2z, gswminz,                          &
     
     entropvc = (aKK + bKK * Thome) 
     xVccoef  = 1.0 + exp((entropvc * TREFK - EHdVc)/  ( rgas*TREFK ) )
-    xvcnum = xVccoef* exp( ( EHaVc / ( rgas*TREFK ) )* ( 1.-TREFK/Tk ) )
-    xvcden=1.0+ exp( ( entropvc*Tk-EHdVc ) / ( rgas*Tk ) )
-    trf = max( real(0.0),xvcnum / xvcden )
+    xvcnum = xVccoef * exp( ( EHaVc / ( rgas*TREFK ) )* ( 1.-TREFK/Tk ) )
+    xvcden=1.0 + exp( ( entropvc*Tk-EHdVc ) / ( rgas*Tk ) )
+    trf = max( real(0.0), xvcnum / xvcden )
 
    end subroutine xejmxt3_acclim  
 
@@ -3294,7 +3311,7 @@ SUBROUTINE photosynthesis( csxz, cx1z, cx2z, gswminz,                          &
     TYPE (soil_parameter_type), INTENT(INOUT)   :: soil
     TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
     REAL, INTENT(OUT), DIMENSION(:):: fwsoil ! soil water modifier of stom. cond
-    REAL, DIMENSION(mp) :: rwater ! soil water availability
+    REAL(r_2), DIMENSION(mp) :: rwater ! soil water availability
 
     rwater = MAX(1.0e-9,                                                    &
          SUM(veg%froot * MAX(1.0e-9,MIN(1.0, real(ssnow%wb) -                   &
@@ -3671,6 +3688,7 @@ elemental pure subroutine fAndAn(Cs, g0, x, Gammastar, Rd, &
   endif
 end subroutine fAndAn
 
+
 ! elemental pure subroutines for finite mesophyll conductance   
 elemental pure subroutine fabcd(Cs, g0, x, gamma, beta, Gammastar, Rd, gm, a,b,c1,d)
   USE cable_def_types_mod, only: r_2
@@ -3762,7 +3780,6 @@ elemental pure subroutine fdAm(a, b, c1, d, p, q, da, db, dc, dd, dp, dq, dAm)
        *3./2.*(dq/p*sqrt(1./p3) - q/p**2*dp*sqrt(1./p3) &
        + q/p*3./2.*1./sqrt(1./p3)*1./p**2*dp)) &
        - db/(3.*a) + b/(3.*a**2)*da)
-
 end subroutine fdAm
 
 elemental pure subroutine fdAm2(a, b, c1, da, db, dc, dAm)

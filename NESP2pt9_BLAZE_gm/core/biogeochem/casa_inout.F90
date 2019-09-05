@@ -107,8 +107,8 @@ SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
                 casabiome%kminN(nv), casabiome%kuplabP(nv),           &
                 xfherbivore(nv),leafage(nv),woodage(nv),frootage(nv), &
                 metage(nv),strage(nv),cwdage(nv),  &
-                micage(nv),slowage(nv),passage(nv),clabileage(nv),slax(nv)
-    write(59,*), nv, leafage(nv),woodage(nv),frootage(nv), &
+                micage(nv),slowage(nv),passage(nv),clabileage(nv),slax(nv), &
+   ! write(59,*), nv, leafage(nv),woodage(nv),frootage(nv), &
                 metage(nv),strage(nv),cwdage(nv),  &
                 micage(nv),slowage(nv),passage(nv)
   ENDDO
