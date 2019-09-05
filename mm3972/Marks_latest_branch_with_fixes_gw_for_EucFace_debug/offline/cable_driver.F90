@@ -624,7 +624,7 @@ PROGRAM cable_offline_driver
  
           ! needed for CASA-CNP
           nyear     =INT((kend+koffset)/(LOY*ktauday))
-          
+          print *, "year: ",nyear, " idoy: ", idoy, " ktau: ", ktau ! MMY       
           ! Get met data and LAI, set time variables.
           ! Rainfall input may be augmented for spinup purposes:
           IF ( TRIM(cable_user%MetType) .EQ. 'plum' ) THEN
