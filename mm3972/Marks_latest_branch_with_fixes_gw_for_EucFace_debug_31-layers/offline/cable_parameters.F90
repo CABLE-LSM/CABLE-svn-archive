@@ -1761,11 +1761,11 @@ CONTAINS
 
        ELSE
           ! _______________________ MMY ____________________________
-          !DO klev=1,ms
-          !    soil%hyds_vec(:,klev) = soil%hyds_vec(:,klev)*exp(-soil%hkrz(:)*(soil_depth(:,klev)-soil%zdepth(:)))
-          !END DO
+          DO klev=1,ms
+              soil%hyds_vec(:,klev) = soil%hyds_vec(:,klev)*exp(-soil%hkrz(:)*(soil_depth(:,klev)-soil%zdepth(:)))
+          END DO
           ! ________________________________________________________
-          PRINT *, "comment out soil%hyds_vec(:,klev) = soil%hyds_vec(:,klev)*exp(-soil%hkrz(:)*(soil_depth(:,klev)-soil%zdepth(:)))" ! MMY
+          ! PRINT *, "comment out soil%hyds_vec(:,klev) = soil%hyds_vec(:,klev)*exp(-soil%hkrz(:)*(soil_depth(:,klev)-soil%zdepth(:)))" ! MMY
 
        END IF  !use either uni or multi cosby transfer func
 
