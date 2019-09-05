@@ -1840,13 +1840,12 @@ CONTAINS
 
        ELSE
           PRINT *,"NOT (gw_params%cosby_univariate .or. gw_params%cosby_multivariate .or. gw_params%HC_SWC)" ! MMY
-          !DO klev=1,ms ! MMY
-          !    soil%hyds_vec(:,klev) = soil%hyds_vec(:,klev)*exp(-soil%hkrz(:)*(soil_depth(:,klev)-soil%zdepth(:)))! MMY
-          !END DO ! MMY
+          DO klev=1,ms ! MMY
+              soil%hyds_vec(:,klev) = soil%hyds_vec(:,klev)*exp(-soil%hkrz(:)*(soil_depth(:,klev)-soil%zdepth(:)))! MMY
+          END DO ! MMY
 
        END IF  !use either uni or multi cosby transfer func
-
-    END IF ! cable_user%GW_MODEL = True ！MMY
+    END IF ! cable_user%GW_MODEL = True ! MMY
 
        !set the non-vectored values to srf value
        soil%sfc(:) = real(soil%sfc_vec(:,3))

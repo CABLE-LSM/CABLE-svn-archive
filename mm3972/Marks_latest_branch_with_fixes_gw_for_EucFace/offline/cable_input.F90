@@ -2773,8 +2773,8 @@ SUBROUTINE get_parameters_met(soil,veg,bgc,rough,completeSet)
    !   in met file; switch to indicate size of dimensions of the parameter.
    ! ! Use 'defd' for single dim double precision.
    ! veg and soil types already obtained in sub open_met_file
-   CALL readpar(ncid_met,'iveg',completeSet,veg%iveg,filename%met, &
-           nmetpatches,'def')
+   CALL readpar(ncid_met,'iveg',completeSet,veg%iveg,filename%met, & ! MMY
+           nmetpatches,'def')                                        ! MMY
    CALL readpar(ncid_met,'patchfrac',completeSet,patch(:)%frac,filename%met,   &
                 nmetpatches,'def')
 !    CALL readpar(ncid_met,'isoil',completeSet,soil%isoilm,filename%met, &
