@@ -46,7 +46,8 @@ LSRC = cable_pft_params.F90 cable_soil_params.F90 casa_dimension.F90 \
 	cable_cru_TRENDY.F90 POPLUC.F90 CASAONLY_LUC.F90 cable_LUC_EXPT.F90 \
 	cable_gw_hydro.F90 cable_psm.F90 cable_namelist_input.F90 \
 	cable_constants.F90 cable_fFile.F90 cable_fprint.F90 cable_PyFprint.F90 \
-    cable_site.F90
+  cable_site.F90 cbl_hgtAbove_snow.F90  cabl_lai_eff.F90 \
+  cable_maths_constants.F90 cable_phys_constants.F90 cable_other_constants.F90 
 
 # this is the executable we are building
 PROG = cable
@@ -88,7 +89,8 @@ cable_PyFprint.o: cable_PyFprint.F90
 cable_abort.o: cable_abort.F90 cable_iovars.o cable_define_types.o
 
 cable_diag.o: cable_diag.F90 cable_common.o cable_fFile.o
-
+cbl_hgtAbove_snow.o: cbl_hgtAbove_snow.F90 
+cbl_lai_eff.o: cbl_lai_eff.F90 
 cable_air.o: cable_air.F90 cable_define_types.o cable_common.o cable_data.o
 
 cable_albedo.o: cable_albedo.F90 cable_define_types.o cable_common.o cable_data.o
