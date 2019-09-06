@@ -385,18 +385,41 @@ build_build()
    fi
 
    # directories contain source code
-   PHYS="../core/biogeophys"
-   UTIL="../core/utils"
-   DIAG=$UTIL"/diag"
-   DRV="."
-   CASA="../core/biogeochem"
+ALB="../science/albedo"
+CAN="../science/canopy"
+CNP="../science/casa-cnp"
+CBL="../science/cbl_model_driver.F90"
+GWH="../science/gw_hydro"
+MIS="../science/misc"
+RAD="../science/radiation"
+ROU="../science/roughness"
+SOI="../science/soilsnow"
+SUR="../science/surface"
+OFF="../offline"
+UTI="../util"
+PAR="../params"
+DIA="../util/diag"
+SLI="../offline/SLI"
+POP="../offline/POP"
+   /bin/cp -p $ALB/*90 ./.tmp
+   /bin/cp -p $CAN/*90 ./.tmp
+   /bin/cp -p $CNP/*90 ./.tmp
+   /bin/cp -p $CBL ./.tmp
+   /bin/cp -p $GWH/*90 ./.tmp
+   /bin/cp -p $MIS/*90 ./.tmp
+   /bin/cp -p $RAD/*90 ./.tmp
+   /bin/cp -p $ROU/*90 ./.tmp
+   /bin/cp -p $SOI/*90 ./.tmp
+   #/bin/cp -p $SUR/*90 ./.tmp
+   /bin/cp -p $OFF/*90 ./.tmp
+   
+   /bin/cp -p $UTI/*90 ./.tmp
+   /bin/cp -p $DIA/*90 ./.tmp
+   /bin/cp -p $PAR/*90 ./.tmp
 
-   /bin/cp -p $PHYS/*90 ./.tmp
-   /bin/cp -p $UTIL/*90 ./.tmp
-   /bin/cp -p $DIAG/*90 ./.tmp
-   /bin/cp -p $DRV/*90 ./.tmp
-   /bin/cp -p $CASA/*90 ./.tmp
-
+   /bin/cp -p $SLI/*90 ./.tmp
+   /bin/cp -p $POP/*90 ./.tmp
+   
    print "\n\n\tPlease note: CASA-CNP files are included in build only for "
    print "\ttechnical reasons. Implementation is not officially available with"
    print "\tthe release of CABLE 2.0\n"
