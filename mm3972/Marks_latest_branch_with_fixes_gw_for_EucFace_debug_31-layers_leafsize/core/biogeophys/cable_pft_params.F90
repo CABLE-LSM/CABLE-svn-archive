@@ -161,8 +161,8 @@ subroutine cable_pft_params()
  !PFT: evergreen_broadleaf                                                   
  !=========================================================
     vegin%canst1(2) =        0.100000
-   vegin%length(2) =  0.055000      ! 0.100000 ! MMY
-    vegin%width(2) =  0.001000      ! 0.050000 ! MMY
+   vegin%length(2) =  0.0900 ! 0.055000      ! 0.100000 ! MMY
+    vegin%width(2) =  0.0250 ! 0.001000      ! 0.050000 ! MMY
     vegin%vcmax(2) =        0.000055
     vegin%ejmax(2) =        0.000000
        vegin%hc(2) =       35.000000
