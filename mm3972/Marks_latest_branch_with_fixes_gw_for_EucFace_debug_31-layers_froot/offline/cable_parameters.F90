@@ -1206,6 +1206,38 @@ CONTAINS
      !vegin%froot(30, :) =0.062366
      !vegin%froot(31, :) =0.064516
 
+     ! parabola froot 31 layers
+     !vegin%froot(1, :) =0.090726
+     !vegin%froot(1, :) =0.079032
+     !vegin%froot(1, :) =0.068145
+     !vegin%froot(1, :) =0.058065
+     !vegin%froot(1, :) =0.04879
+     !vegin%froot(1, :) =0.040323
+     !vegin%froot(1, :) =0.032661
+     !vegin%froot(1, :) =0.025806
+     !vegin%froot(1, :) =0.019758
+     !vegin%froot(1, :) =0.014516
+     !vegin%froot(1, :) =0.010081
+     !vegin%froot(1, :) =0.006452
+     !vegin%froot(1, :) =0.003629
+     !vegin%froot(1, :) =0.001613
+     !vegin%froot(1, :) =0.000403
+     !vegin%froot(1, :) =0
+     !vegin%froot(1, :) =0.000403
+     !vegin%froot(1, :) =0.001613
+     !vegin%froot(1, :) =0.003629
+     !vegin%froot(1, :) =0.006452
+     !vegin%froot(1, :) =0.010081
+     !vegin%froot(1, :) =0.014516
+     !vegin%froot(1, :) =0.019758
+     !vegin%froot(1, :) =0.025806
+     !vegin%froot(1, :) =0.032661
+     !vegin%froot(1, :) =0.040323
+     !vegin%froot(1, :) =0.04879
+     !vegin%froot(1, :) =0.058065
+     !vegin%froot(1, :) =0.068145
+     !vegin%froot(1, :) =0.079032
+     !vegin%froot(1, :) =0.090726
 
 
     PRINT *,"MMY vegin%froot(:, 2) in subroutine write_default_params", vegin%froot(:, 2) ! MMY
