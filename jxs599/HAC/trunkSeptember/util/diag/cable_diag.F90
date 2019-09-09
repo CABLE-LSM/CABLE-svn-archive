@@ -33,7 +33,7 @@
 !+++ using a suite of tools. Currently, only zero_diff.ksh is supported.   +++!
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++!
 !CABLE_LSM:This has to be commented for offline
-#define UM_BUILD YES
+!#define UM_BUILD YES
 MODULE cable_diag_module
   use cable_def_types_mod, only : r_2
  USE cable_fFile_module, ONLY : fprintf_dir

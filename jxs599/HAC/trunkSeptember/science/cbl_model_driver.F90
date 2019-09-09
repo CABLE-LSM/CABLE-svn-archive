@@ -48,10 +48,12 @@ USE cable_def_types_mod,        ONLY : air_type, bgc_pool_type, &
    
    USE cable_canopy_module, only : define_canopy
                                    
+USE legacy_support_mod, ONLY : legacy_support
+
 integer :: mp
 integer :: nrb
 integer :: land_pts, npft
-REAL :: AlbSoil(mp,nrb)
+!REAL :: AlbSoil(mp,nrb)
 REAL :: MetTk(mp)
 real :: SnowDepth(mp) 
 real :: SnowDensity(mp)
@@ -101,11 +103,45 @@ real :: reducedLAIdue2snow(mp)
 logical :: veg_mask(mp),  sunlit_mask(mp),  sunlit_veg_mask(mp) 
 
 !co-efficients usoughout init_radiation ` called from _albedo as well
+!REAL :: c1(mp,nrb)
+!REAL :: rhoch(mp,nrb)
+!REAL :: xk(mp,nrb)
+!REAL :: CanopyRefl_dif(mp,nrb)
+!REAL :: CanopyRefl_beam(mp,nrb)
+! Albedos
+!-------------------------------------------------------------------------------
+REAL :: AlbSoil(mp,nrb)             !Bare Soil Albedo - parametrized (soil%albsoil)
+REAL :: AlbSnow(mp,nrb)             !Ground Albedo given a snow coverage (ssnow%albsoilsn)
+REAL :: RadAlbedo(mp,nrb)           !Total albedo given RadFbeam (rad%albedo)
+REAL :: EffSurfRefl_dif(mp,nrb)     !Effective Surface Relectance as seen by atmosphere [Diffuse SW]  (rad%reffdf)
+REAL :: EffSurfRefl_beam(mp,nrb)    !Effective Surface Relectance as seen by atmosphere [Direct Beam SW] (rad%reffbm)
+!-------------------------------------------------------------------------------
+REAL :: RadFbeam(mp,nrb)            !Computed Beam Fraction given total SW (rad%fbeam)
+
+!common radiation scalings [computed in albedo() ]
+!-------------------------------------------------------------------------------
+REAL :: xk(mp,nrb)
 REAL :: c1(mp,nrb)
 REAL :: rhoch(mp,nrb)
-REAL :: xk(mp,nrb)
-REAL :: CanopyRefl_dif(mp,nrb)
-REAL :: CanopyRefl_beam(mp,nrb)
+!-------------------------------------------------------------------------------
+
+!Variables shared primarily between radiation and albedo and possibly elsewhere
+!-------------------------------------------------------------------------------
+!Extinction co-efficients compued in init_radiation()
+REAL :: ExtCoeff_beam(mp)           !"raw" Extinction co-efficient for Direct Beam component of SW radiation (rad%extkb)
+REAL :: ExtCoeff_dif(mp)            !"raw"Extinction co-efficient for Diffuse component of SW radiation (rad%extkd)
+REAL :: EffExtCoeff_beam(mp,nrb)    !Effective Extinction co-efficient for Direct Beam component of SW radiation (rad%extkbm)
+REAL :: EffExtCoeff_dif(mp,nrb)     !Effective Extinction co-efficient for Diffuse component of SW radiation (rad%extkdm)
+
+!Canopy reflectance/transmitance compued in albedo() 
+REAL :: CanopyRefl_dif(mp,nrb)      !Canopy reflectance (rad%cexpkdm) 
+REAL :: CanopyRefl_beam(mp,nrb)     !Canopy reflectance (rad%cexpkbm)   
+REAL :: CanopyTransmit_dif(mp,nrb)  !Canopy Transmitance (rad%rhodf   
+REAL :: CanopyTransmit_beam(mp,nrb) !Canopy Transmitance (rad%rhobm)    
+!-------------------------------------------------------------------------------
+
+
+
   ! assign local ptrs to constants defined in cable_data_module
   CALL point2constants(C)
 
@@ -117,7 +153,8 @@ CALL define_air (met, air)
 
 !Define logical masks according to vegetation cover and sunlight. this is also 
 !done in radiation pathway but that could be out of step with explicit call
-reducedLAIdue2snow = canopy%Vlaiw
+!reducedLAIdue2snow = canopy%Vlaiw
+canopy%Vlaiw = reducedLAIdue2snow
 call fveg_mask( veg_mask,mp, Clai_thresh, reducedLAIdue2snow)
 call fsunlit_mask( sunlit_mask, mp, Ccoszen_tols, met%coszen )
 call fsunlit_veg_mask( sunlit_veg_mask, mp,  veg_mask, sunlit_mask )
@@ -222,6 +259,15 @@ rad%reffbm            &! = EffSurfRefl_beam
 !Rad%Fbeam  = RadFbeam 
 endif
 !need to do this for the rest of CABLE
+call legacy_support( mp, nrb, ExtCoeff_beam, ExtCoeff_dif, &
+EffExtCoeff_beam, EffExtCoeff_dif, &
+CanopyRefl_dif, CanopyRefl_beam, &
+CanopyTransmit_dif, CanopyTransmit_beam,&
+RadFbeam, AlbSnow, &
+RadAlbedo,AlbSoil, &
+EffSurfRefl_dif, EffSurfRefl_beam, &
+canopy, rad, ssnow )
+
 
    !CABLE_LSM:check
   IF( first_call ) then

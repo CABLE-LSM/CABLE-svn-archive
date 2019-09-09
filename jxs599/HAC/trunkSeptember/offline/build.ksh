@@ -143,6 +143,26 @@ host_pear()
    build_status
 }
 
+host_r97()
+{
+   module del intel-cc intel-fc
+   module add intel-cc/16.0.1.150 intel-fc/16.0.1.150
+   module add netcdf/4.3.3.1
+
+   export NCDIR=$NETCDF_ROOT'/lib/Intel'
+   export NCMOD=$NETCDF_ROOT'/include/Intel'
+   export FC=$F90
+   export CFLAGS='-O0 -fp-model precise'
+   if [[ $1 = 'debug' ]]; then
+      export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0'
+   fi
+   export LDFLAGS='-L'$NCDIR' -O0'
+   export LD='-lnetcdf -lnetcdff'
+   build_build
+   cd ../
+   build_status
+}
+
 
 
 ## raijin.nci.org.au
@@ -399,15 +419,18 @@ OFF="../offline"
 UTI="../util"
 PAR="../params"
 DIA="../util/diag"
+FRO="../util/FromHAC"
 SLI="../offline/SLI"
 POP="../offline/POP"
    /bin/cp -p $ALB/*90 ./.tmp
+   /bin/cp -p $ALB/*inc ./.tmp
    /bin/cp -p $CAN/*90 ./.tmp
    /bin/cp -p $CNP/*90 ./.tmp
    /bin/cp -p $CBL ./.tmp
    /bin/cp -p $GWH/*90 ./.tmp
    /bin/cp -p $MIS/*90 ./.tmp
    /bin/cp -p $RAD/*90 ./.tmp
+   /bin/cp -p $RAD/*inc ./.tmp
    /bin/cp -p $ROU/*90 ./.tmp
    /bin/cp -p $SOI/*90 ./.tmp
    #/bin/cp -p $SUR/*90 ./.tmp
@@ -415,6 +438,7 @@ POP="../offline/POP"
    
    /bin/cp -p $UTI/*90 ./.tmp
    /bin/cp -p $DIA/*90 ./.tmp
+   /bin/cp -p $FRO/*90 ./.tmp
    /bin/cp -p $PAR/*90 ./.tmp
 
    /bin/cp -p $SLI/*90 ./.tmp
@@ -440,12 +464,13 @@ if [[ $1 = 'clean' ]]; then
 fi
 
 
-known_hosts
+#known_hosts
 
-HOST_MACH=`uname -n | cut -c 1-4`
+#HOST_MACH=`uname -n | cut -c 1-4`
 
-do_i_no_u $1
+#do_i_no_u $1
 
-not_recognized
+#not_recognized
 
-i_do_now
+host_r97
+

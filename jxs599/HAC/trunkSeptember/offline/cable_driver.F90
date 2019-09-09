@@ -73,6 +73,7 @@ PROGRAM cable_offline_driver
   USE cable_namelist_util, ONLY : get_namelist_file_name,&
        CABLE_NAMELIST,arg_not_namelist
 
+  USE cable_other_constants_mod,    ONLY:  z0surf_min
 
   USE cable_data_module,    ONLY: driver_type, point2constants
   USE cable_input_module,   ONLY: open_met_file,load_parameters,	      &
@@ -89,7 +90,8 @@ PROGRAM cable_offline_driver
        write_output,close_output_file
   USE cable_write_module,   ONLY: nullify_write
   USE cable_IO_vars_module, ONLY: timeunits,calendar
-  USE cable_cbm_module
+  !USE cable_cbm_module
+USE cbl_model_driver_mod, ONLY : cbl_model_driver
   USE cable_diag_module
   !mpidiff
   USE cable_climate_mod
@@ -771,10 +773,11 @@ PROGRAM cable_offline_driver
                  IF (l_laiFeedbk.AND.icycle>0) veg%vlai(:) = casamet%glai(:)
 
                  ! Call land surface scheme for this timestep, all grid points:
-                 CALL cbm(ktau, dels, air, bgc, canopy, met,		      &
-                      bal, rad, rough, soil, ssnow,			      &
-                      sum_flux, veg,climate )
-
+  CALL cbl_model_driver( mp, nrb, 1, 13, ktau_gl,dels, air, bgc, canopy, met, bal,      &
+            rad, rough, soil, ssnow, sum_flux, veg, z0surf_min, &
+            !H!shouuld already work from here LAI_pft, HGT_pft )
+            veg%vlai, veg%hc, met%Doy, canopy%vlaiw )
+  
                  IF (cable_user%CALL_climate) &
                       CALL cable_climate(ktau_tot,kstart,kend,ktauday,idoy,LOY,met, &
                       climate, canopy, air, rad, dels, mp)
