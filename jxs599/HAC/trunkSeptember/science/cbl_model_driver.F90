@@ -147,14 +147,15 @@ REAL :: CanopyTransmit_beam(mp,nrb) !Canopy Transmitance (rad%rhobm)
 
 IF( cable_runtime%um_explicit ) CALL ruff_resist( veg, rough, ssnow, canopy, &
                                                     LAI_pft, HGT_pft,        & 
-                                                    reducedLAIdue2snow )
+                                                    canopy%vlaiw )
+                                                    !reducedLAIdue2snow )
       
 CALL define_air (met, air)
 
 !Define logical masks according to vegetation cover and sunlight. this is also 
 !done in radiation pathway but that could be out of step with explicit call
-!reducedLAIdue2snow = canopy%Vlaiw
-canopy%Vlaiw = reducedLAIdue2snow
+reducedLAIdue2snow = canopy%Vlaiw
+!canopy%Vlaiw = reducedLAIdue2snow
 call fveg_mask( veg_mask,mp, Clai_thresh, reducedLAIdue2snow)
 call fsunlit_mask( sunlit_mask, mp, Ccoszen_tols, met%coszen )
 call fsunlit_veg_mask( sunlit_veg_mask, mp,  veg_mask, sunlit_mask )
@@ -242,9 +243,10 @@ rad%extkd,             &!ExtCoeff_beam,         &
 rad%extkb,             & !ExtCoeff_dif,          &
 rad%extkdm,           & ! EffExtCoeff_beam
 rad%extkbm,           & ! = EffExtCoeff_dif
-  CanopyRefl_dif,    & 
+  CanopyRefl_dif,    &  !rad%cexpkdm ?
   CanopyRefl_beam,   &
-rad%cexpkdm,          & ! = CanopyTransmit_dif 
+rad%cexpkdm,          & ! = CanopyTransmit_dif  this should Refl. rho is
+                        !transmittanc
 rad%cexpkbm,          & ! = CanopyTransmit_beam
 rad%reffdf,           &! = EffSurfRefl_dif
 rad%reffbm            &! = EffSurfRefl_beam
@@ -259,14 +261,15 @@ rad%reffbm            &! = EffSurfRefl_beam
 !Rad%Fbeam  = RadFbeam 
 endif
 !need to do this for the rest of CABLE
-call legacy_support( mp, nrb, ExtCoeff_beam, ExtCoeff_dif, &
-EffExtCoeff_beam, EffExtCoeff_dif, &
-CanopyRefl_dif, CanopyRefl_beam, &
-CanopyTransmit_dif, CanopyTransmit_beam,&
-RadFbeam, AlbSnow, &
-RadAlbedo,AlbSoil, &
-EffSurfRefl_dif, EffSurfRefl_beam, &
-canopy, rad, ssnow )
+!we dont need to do this yet ass pasing cable DDT % anyway
+!call legacy_support( mp, nrb, ExtCoeff_beam, ExtCoeff_dif, &
+!EffExtCoeff_beam, EffExtCoeff_dif, &
+!CanopyRefl_dif, CanopyRefl_beam, &
+!CanopyTransmit_dif, CanopyTransmit_beam,&
+!RadFbeam, AlbSnow, &
+!RadAlbedo,AlbSoil, &
+!EffSurfRefl_dif, EffSurfRefl_beam, &
+!canopy, rad, ssnow )
 
 
    !CABLE_LSM:check

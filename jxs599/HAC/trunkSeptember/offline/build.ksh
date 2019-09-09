@@ -152,10 +152,7 @@ host_r97()
    export NCDIR=$NETCDF_ROOT'/lib/Intel'
    export NCMOD=$NETCDF_ROOT'/include/Intel'
    export FC=$F90
-   export CFLAGS='-O0 -fp-model precise'
-   if [[ $1 = 'debug' ]]; then
-      export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0'
-   fi
+   export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0'
    export LDFLAGS='-L'$NCDIR' -O0'
    export LD='-lnetcdf -lnetcdff'
    build_build
@@ -261,7 +258,7 @@ host_write()
    print '' >> junk
    print 'known_hosts()' >> junk
    print '{' >> junk
-   print '   set -A kh' ${kh[*]} $HOST_MACH >> junk ccrc ccrc Mart Mart Mart Mart Mart Mart Mart Mart Mart Mart Mart Mart Mart Mart Mart Mart Mart ccrc ccrc Mart ccrc ccrc ccrc ccrc ccrc ccrc ccrc ccrc Mart Mart Mart Mart Mart Mart Mart Mart Mart Mart Mart Mart Mart Mart Mart Mart Mart Mart Mart Mart Mart Mart
+   print '   set -A kh' ${kh[*]} $HOST_MACH >> junk 
    print '}' >> junk
    print '' >> junk
    print '' >> junk
