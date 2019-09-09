@@ -155,10 +155,10 @@ host_raij()
    export NCDIR=$NETCDF_ROOT'/lib/Intel'
    export NCMOD=$NETCDF_ROOT'/include/Intel'
    export FC=$F90
-   export CFLAGS='-O0 -fp-model precise'
-   if [[ $1 = 'debug' ]]; then
+   #export CFLAGS='-O0 -fp-model precise'
+   #if [[ $1 = 'debug' ]]; then
       export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0'
-   fi
+   #fi
    export LDFLAGS='-L'$NCDIR' -O0'
    export LD='-lnetcdf -lnetcdff'
    build_build
@@ -386,12 +386,14 @@ build_build()
 
    # directories contain source code
    PHYS="../core/biogeophys"
+   RAD="../science/radiation"
    UTIL="../core/utils"
    DIAG=$UTIL"/diag"
    DRV="."
    CASA="../core/biogeochem"
 
    /bin/cp -p $PHYS/*90 ./.tmp
+   /bin/cp -p $RAD/*90 ./.tmp
    /bin/cp -p $UTIL/*90 ./.tmp
    /bin/cp -p $DIAG/*90 ./.tmp
    /bin/cp -p $DRV/*90 ./.tmp
@@ -416,13 +418,14 @@ if [[ $1 = 'clean' ]]; then
    clean_build
 fi
 
+host_raij
 
-known_hosts
-
-HOST_MACH=`uname -n | cut -c 1-4`
-
-do_i_no_u $1
-
-not_recognized
-
-i_do_now
+##known_hosts
+##
+##HOST_MACH=`uname -n | cut -c 1-4`
+##
+##do_i_no_u $1
+##
+##not_recognized
+##
+##i_do_now
