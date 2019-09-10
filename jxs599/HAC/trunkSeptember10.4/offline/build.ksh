@@ -385,8 +385,7 @@ build_build()
    fi
 
    # directories contain source code
-CBM="../science/cable_cbm.F90"
-#CBM="../science/cbl_model_driver_offline.F90"
+CBM="../science/cbl_model_driver_offline.F90"
 ALB="../science/albedo"
 RAD="../science/radiation"
 CAN="../science/canopy"
