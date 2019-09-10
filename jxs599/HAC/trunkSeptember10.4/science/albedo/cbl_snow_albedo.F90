@@ -20,13 +20,13 @@
 !
 ! ==============================================================================
 
-MODULE cable_albedo_module
+MODULE cbl_snow_albedo_module
 
   USE cable_data_module, ONLY : ialbedo_type, point2constants
 
   IMPLICIT NONE
 
-  PUBLIC surface_albedo
+  PUBLIC surface_albedosn
   PRIVATE
 
   TYPE(ialbedo_type) :: C
@@ -35,108 +35,12 @@ MODULE cable_albedo_module
 CONTAINS
 
 
-  SUBROUTINE surface_albedo(ssnow, veg, met, rad, soil, canopy)
-
-    USE cable_common_module
-    USE cable_def_types_mod, ONLY : veg_parameter_type, soil_parameter_type,    &
-         canopy_type, met_type, radiation_type,      &
-         soil_snow_type, mp, r_2, nrb
-
-    TYPE (canopy_type),INTENT(IN)       :: canopy
-    TYPE (met_type),INTENT(INOUT)       :: met
-    TYPE (radiation_type),INTENT(INOUT) :: rad
-    TYPE (soil_snow_type),INTENT(INOUT) :: ssnow
-
-    TYPE (veg_parameter_type),INTENT(INOUT)  :: veg
-    TYPE(soil_parameter_type), INTENT(INOUT) :: soil
-
-    REAL(r_2), DIMENSION(mp)  ::                                                &
-         dummy2, & !
-         dummy
-
-    REAL, DIMENSION(:,:), ALLOCATABLE, SAVE :: c1, rhoch
-
-    LOGICAL, DIMENSION(mp)  :: mask ! select points for calculation
-
-    INTEGER :: b    !rad. band 1=visible, 2=near-infrared, 3=long-wave
-
-    ! END header
-
-    CALL point2constants(C)
-
-    IF (.NOT. ALLOCATED(c1)) &
-         ALLOCATE( c1(mp,nrb), rhoch(mp,nrb) )
-
-
-    CALL surface_albedosn(ssnow, veg, met, soil)
-
-    rad%cexpkbm = 0.0
-    rad%extkbm  = 0.0
-    rad%rhocbm  = 0.0
-
-    ! Initialise effective conopy beam reflectance:
-    rad%reffbm = ssnow%albsoilsn
-    rad%reffdf = ssnow%albsoilsn
-    rad%albedo = ssnow%albsoilsn
-
-    ! Define vegetation mask:
-    mask = canopy%vlaiw > C%LAI_THRESH .AND.                                    &
-         ( met%fsd(:,1) + met%fsd(:,2) ) > C%RAD_THRESH
-
-    CALL calc_rhoch( veg, c1, rhoch )
-
-    ! Update extinction coefficients and fractional transmittance for
-    ! leaf transmittance and reflection (ie. NOT black leaves):
-    !---1 = visible, 2 = nir radiaition
-    DO b = 1, 2
-
-       rad%extkdm(:,b) = rad%extkd * c1(:,b)
-
-       !--Define canopy diffuse transmittance (fraction):
-       rad%cexpkdm(:,b) = EXP(-rad%extkdm(:,b) * canopy%vlaiw)
-
-       !---Calculate effective diffuse reflectance (fraction):
-       WHERE( canopy%vlaiw > 1e-2 )                                             &
-            rad%reffdf(:,b) = rad%rhocdf(:,b) + (ssnow%albsoilsn(:,b)             &
-            - rad%rhocdf(:,b)) * rad%cexpkdm(:,b)**2
-
-       !---where vegetated and sunlit
-       WHERE (mask)
-
-          rad%extkbm(:,b) = rad%extkb * c1(:,b)
-
-          ! Canopy reflection (6.21) beam:
-          rad%rhocbm(:,b) = 2. * rad%extkb / ( rad%extkb + rad%extkd )          &
-               * rhoch(:,b)
-
-          ! Canopy beam transmittance (fraction):
-          dummy2 = MIN(rad%extkbm(:,b)*canopy%vlaiw, 20.)
-          dummy  = EXP(-dummy2)
-          rad%cexpkbm(:,b) = REAL(dummy)
-
-          ! Calculate effective beam reflectance (fraction):
-          rad%reffbm(:,b) = rad%rhocbm(:,b) + (ssnow%albsoilsn(:,b)             &
-               - rad%rhocbm(:,b))*rad%cexpkbm(:,b)**2
-
-       END WHERE
-
-       ! Define albedo:
-       WHERE( canopy%vlaiw> C%LAI_THRESH )                                      &
-            rad%albedo(:,b) = ( 1. - rad%fbeam(:,b) )*rad%reffdf(:,b) +           &
-            rad%fbeam(:,b) * rad%reffbm(:,b)
-
-    END DO
-
-
-  END SUBROUTINE surface_albedo
-
-  ! ------------------------------------------------------------------------------
-
   SUBROUTINE surface_albedosn(ssnow, veg, met, soil)
 
     USE cable_def_types_mod, ONLY : veg_parameter_type, soil_parameter_type,    &
          met_type, soil_snow_type, mp
     USE cable_common_module
+use cbl_soilColour_albedo_module, only : soilcol_albedo
 
     TYPE (soil_snow_type),INTENT(INOUT) :: ssnow
     TYPE (met_type),INTENT(INOUT)       :: met
@@ -166,6 +70,8 @@ CONTAINS
 
     soil%albsoilf = soil%albsoil(:,1)
 
+CALL point2constants(C)
+    
     ! lakes: hard-wired number to be removed in future
     WHERE( veg%iveg == 16 )                                                     &
          soil%albsoilf = -0.022*( MIN( 275., MAX( 260., met%tk ) ) - 260. ) + 0.45
@@ -313,73 +219,4 @@ CONTAINS
 
   END SUBROUTINE surface_albedosn
 
-  ! ------------------------------------------------------------------------------
-
-  !jhan:subr was reintroduced here to temporarily resolve issue when
-  !creating libcable.a  (repeated in cable_radiation.F90)
-  SUBROUTINE calc_rhoch(veg,c1,rhoch)
-
-    USE cable_def_types_mod, ONLY : veg_parameter_type
-    TYPE (veg_parameter_type), INTENT(INOUT) :: veg
-    REAL, INTENT(INOUT), DIMENSION(:,:) :: c1, rhoch
-
-    c1(:,1) = SQRT(1. - veg%taul(:,1) - veg%refl(:,1))
-    c1(:,2) = SQRT(1. - veg%taul(:,2) - veg%refl(:,2))
-    c1(:,3) = 1.
-
-    ! Canopy reflection black horiz leaves
-    ! (eq. 6.19 in Goudriaan and van Laar, 1994):
-    rhoch = (1.0 - c1) / (1.0 + c1)
-
-  END SUBROUTINE calc_rhoch
-
-  ! -----------------------------------------------------------------------------
-  ! subr to calc soil albedo based on colour - Ticket #27
-  SUBROUTINE soilcol_albedo(ssnow, soil)
-
-    USE cable_def_types_mod, ONLY : soil_snow_type, soil_parameter_type,        &
-         r_2, mp, nrb
-    ! Arguments
-    TYPE(soil_snow_type), INTENT(INOUT)      :: ssnow      ! soil+snow variables
-    TYPE(soil_parameter_type), INTENT(INOUT) :: soil       ! soil parameters
-
-    ! Local Variables
-    INTEGER   :: ib
-    REAL(r_2), DIMENSION(mp)      :: inc
-    REAL(r_2), DIMENSION(mp, nrb) :: albsod,          & ! soil albedo (direct)
-         albsoi             ! soil albedo (indirect)
-
-    ! Look-up tables for soil albedo
-    ! saturated soil albedos for 20 color classes and 2 wavebands (1=vis, 2=nir)
-    REAL(r_2), DIMENSION(20,nrb) ::                                  &
-         albsat,                                                                  &
-         albdry
-
-    REAL(r_2), PARAMETER, DIMENSION(20*nrb) ::                                  &
-         albsat1D = (/ 0.25,0.23,0.21,0.20,0.19,0.18,0.17,0.16,0.15,0.14,0.13,    &
-         0.12,0.11,0.10,0.09,0.08,0.07,0.06,0.05,0.04 ,             &
-         0.50,0.46,0.42,0.40,0.38,0.36,0.34,0.32,0.30,0.28,0.26,    &
-         0.24,0.22,0.20,0.18,0.16,0.14,0.12,0.10,0.08,              &
-         0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,                    &
-         0., 0., 0., 0., 0., 0., 0., 0., 0., 0. /),                    &
-                                ! dry soil albedos for 20 color classes and 2 wavebands (1=vis, 2=nir)
-         albdry1D = (/  0.36,0.34,0.32,0.31,0.30,0.29,0.28,0.27,0.26,0.25,0.24,   &
-         0.23,0.22,0.20,0.18,0.16,0.14,0.12,0.10,0.08,             &
-         0.61,0.57,0.53,0.51,0.49,0.48,0.45,0.43,0.41,0.39,0.37,   &
-         0.35,0.33,0.31,0.29,0.27,0.25,0.23,0.21,0.16,             &
-         0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,                   &
-         0., 0., 0., 0., 0., 0., 0., 0., 0., 0. /)
-
-    albsat = RESHAPE( albsat1D, (/20, nrb/) )
-    albdry = RESHAPE( albdry1D, (/20, nrb/) )
-
-    DO ib = 1,2 ! Number of wavebands (vis, nir)
-       inc = MAX(0.11-0.40*ssnow%wb(:,1), 0._r_2)
-       albsod(:,ib) = MIN(albsat(INT(soil%soilcol),ib)+inc, albdry(INT(soil%soilcol),ib))
-       albsoi(:,ib) = albsod(:,ib)
-    END DO
-    ssnow%albsoilsn = REAL(0.5*(albsod + albsoi))
-
-  END SUBROUTINE soilcol_albedo
-
-END MODULE cable_albedo_module
+END MODULE cbl_snow_albedo_module
