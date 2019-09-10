@@ -41,6 +41,9 @@ CONTAINS
          veg_parameter_type, nrb, mp
     USE cable_common_module
 
+USE cbl_spitter_module, ONLY : spitter
+USE cbl_rhoch_module, ONLY : calc_rhoch
+
     TYPE (radiation_type), INTENT(INOUT) :: rad
     TYPE (met_type),       INTENT(INOUT) :: met
 
@@ -103,7 +106,7 @@ CONTAINS
     END WHERE
 
 
-    CALL calc_rhoch( veg, c1, rhoch )
+call calc_rhoch( c1,rhoch, mp, nrb, veg%taul, veg%refl )
 
     ! Canopy REFLection of diffuse radiation for black leaves:
     DO ictr=1,nrb
@@ -118,8 +121,8 @@ CONTAINS
     IF( .NOT. cable_runtime%um) THEN
 
        ! Define beam fraction, fbeam:
-       rad%fbeam(:,1) = spitter(met%doy, met%coszen, met%fsd(:,1))
-       rad%fbeam(:,2) = spitter(met%doy, met%coszen, met%fsd(:,2))
+       rad%fbeam(:,1) = spitter(mp,C%pi_c, met%doy, met%coszen, met%fsd(:,1))
+       rad%fbeam(:,2) = spitter(mp,C%pi_c, met%doy, met%coszen, met%fsd(:,2))
 
        ! coszen is set during met data read in.
 

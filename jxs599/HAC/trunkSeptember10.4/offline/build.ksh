@@ -418,7 +418,7 @@ POP="../science/pop"
 /bin/cp -p $UTI/*90 ./.tmp
 /bin/cp -p $DIA/*90 ./.tmp
 #/bin/cp -p $FRO/*90 ./.tmp
-#/bin/cp -p $PAR/*90 ./.tmp
+/bin/cp -p $PAR/*90 ./.tmp
 
    print "\n\n\tPlease note: CASA-CNP files are included in build only for "
    print "\ttechnical reasons. Implementation is not officially available with"
