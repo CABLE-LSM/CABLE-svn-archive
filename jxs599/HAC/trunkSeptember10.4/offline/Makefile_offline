@@ -37,6 +37,7 @@ LSRC = cable_pft_params.F90 cable_soil_params.F90 casa_dimension.F90 \
 	cable_abort.F90 casa_variable.F90 cable_parameters.F90 cable_soilsnow.F90 \
 	cbl_albedo.F90 \
 	cbl_math_constants_mod.F90 \
+	cbl_other_constants_mod.F90 \
 	cbl_snow_albedo.F90 \
 	cbl_soilColour_albedo.F90 \
 	cbl_rhoch.F90  \
@@ -44,6 +45,9 @@ LSRC = cable_pft_params.F90 cable_soil_params.F90 casa_dimension.F90 \
 	cbl_sinbet.F90  \
 	cbl_radiation.F90 \
 	cbl_init_radiation.F90 \
+	cbl_masks.F90 \
+	cbl_hgtAbove_snow.F90 \
+	cbl_lai_eff.F90 \
 	cable_air.F90 cable_roughness.F90 \
 	cable_carbon.F90 cable_canopy.F90 cbl_model_driver_offline.F90 cable_checks.F90 \
 	cable_read.F90 cable_initialise.F90 cable_input.F90 cable_write.F90 \
@@ -95,7 +99,10 @@ cable_fprint.o: cable_fprint.F90 cable_common.o
 cable_PyFprint.o: cable_PyFprint.F90
 #
 cbl_math_constants_mod.o: cbl_math_constants_mod.F90
+cbl_other_constants_mod.o: cbl_other_constants_mod.F90
 cbl_masks.o: cbl_masks.F90
+cbl_hgtAbove_snow.o: cbl_hgtAbove_snow.F90
+cbl_lai_eff.o: cbl_lai_eff.F90
 cbl_rhoch.o: cbl_rhoch.F90
 cbl_spitter.o: cbl_spitter.F90
 cbl_sinbet.o: cbl_sinbet.F90 cbl_math_constants_mod.o
@@ -146,7 +153,7 @@ cable_parameters.o: cable_parameters.F90 cable_define_types.o cable_iovars.o cab
 cbl_radiation.o: cbl_radiation.F90 cable_define_types.o cable_common.o cable_data.o cbl_init_radiation.o  
 cbl_init_radiation.o: cbl_init_radiation.F90 cable_define_types.o cable_common.o cable_data.o cbl_spitter.o cbl_rhoch.o
 
-cable_roughness.o: cable_roughness.F90 cable_define_types.o cable_common.o cable_data.o
+cable_roughness.o: cable_roughness.F90 cable_define_types.o cable_common.o cable_data.o cbl_hgtAbove_snow.o cbl_lai_eff.o cbl_other_constants_mod.o
 
 cable_soilsnow.o: cable_soilsnow.F90 cable_iovars.o cable_define_types.o cable_common.o cable_data.o cable_constants.o
 

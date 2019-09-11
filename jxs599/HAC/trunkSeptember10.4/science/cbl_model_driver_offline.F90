@@ -101,10 +101,8 @@ logical :: veg_mask(mp),  sunlit_mask(mp),  sunlit_veg_mask(mp)
     !   CALL define_air (met, air)
 
     !ELSE
-       CALL ruff_resist(veg, rough, ssnow, canopy)
-       !H!CALL ruff_resist( veg, rough, ssnow, canopy, &
-       !H!                                             LAI_pft, HGT_pft,        & 
-       !H!                                             reducedLAIdue2snow )
+CALL ruff_resist( veg, rough, ssnow, canopy, veg%vlai, veg%hc,        & 
+                  canopy%vlaiw)
     
     !ENDIF
 
