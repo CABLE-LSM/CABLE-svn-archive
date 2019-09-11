@@ -1889,7 +1889,7 @@ CONTAINS
       if (allocated(rho_soil_bulk)) deallocate(rho_soil_bulk)
 
     ELSEIF ( .NOT. soilparmnew) THEN  ! Q,Zhang @ 12/20/2010
-      print("soilparmnew = False and soil_thermal_fix = False, so CABLE will calculate cnsd and cnsd_vec") ! MMY
+      print *, "soilparmnew = False and soil_thermal_fix = False, so CABLE will calculate cnsd and cnsd_vec" ! MMY
       soil%cnsd  = soil%sand * 0.3 + soil%clay * 0.25                          &
                    + soil%silt * 0.265 ! set dry soil thermal conductivity
                                        ! [W/m/K]
