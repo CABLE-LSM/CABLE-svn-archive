@@ -55,6 +55,7 @@ CONTAINS
     USE cable_albedo_module, ONLY : surface_albedo
     USE sli_main_mod, ONLY : sli_main
 
+use cbl_masks_mod, ONLY :  fveg_mask,  fsunlit_mask,  fsunlit_veg_mask
 
     !ptrs to local constants
     TYPE( icbm_type ) :: C
@@ -77,6 +78,8 @@ CONTAINS
     INTEGER, INTENT(IN) :: ktau
     INTEGER :: k,kk,j
     LOGICAL, SAVE :: first_call = .TRUE.
+!masks
+logical :: veg_mask(mp),  sunlit_mask(mp),  sunlit_veg_mask(mp) 
     
     ICYCLE = 0
 
@@ -85,43 +88,129 @@ CONTAINS
     ! assign local ptrs to constants defined in cable_data_module
     CALL point2constants(C)
 
-    IF( cable_runtime%um ) THEN
+    !IF( cable_runtime%um ) THEN
 
-       cable_runtime%um_radiation = .FALSE.
+    !   cable_runtime%um_radiation = .FALSE.
 
-       IF( cable_runtime%um_explicit ) THEN
-          CALL ruff_resist(veg, rough, ssnow, canopy)
-       ENDIF
-       ! Height adjustment not used in ACCESS CM2. See CABLE ticket 197
-       ! met%tk = met%tk + C%grav/C%capp*(rough%zref_tq + 0.9*rough%z0m)
+    !   IF( cable_runtime%um_explicit ) THEN
+    !      CALL ruff_resist(veg, rough, ssnow, canopy)
+    !   ENDIF
+    !   ! Height adjustment not used in ACCESS CM2. See CABLE ticket 197
+    !   ! met%tk = met%tk + C%grav/C%capp*(rough%zref_tq + 0.9*rough%z0m)
 
-       CALL define_air (met, air)
+    !   CALL define_air (met, air)
 
-    ELSE
+    !ELSE
        CALL ruff_resist(veg, rough, ssnow, canopy)
-    ENDIF
+       !H!CALL ruff_resist( veg, rough, ssnow, canopy, &
+       !H!                                             LAI_pft, HGT_pft,        & 
+       !H!                                             reducedLAIdue2snow )
+    
+    !ENDIF
 
+!Define logical masks according to vegetation cover and sunlight. this is also 
+!done in radiation pathway but that could be out of step with explicit call
+!!reducedLAIdue2snow = canopy%Vlaiw
+!H!call fveg_mask( veg_mask,mp, Clai_thresh, reducedLAIdue2snow)
+!H!call fsunlit_mask( sunlit_mask, mp, Ccoszen_tols, met%coszen )
+!H!call fsunlit_veg_mask( sunlit_veg_mask, mp,  veg_mask, sunlit_mask )
+
+!H!metDoy = int(RmetDoy)
+  
     CALL init_radiation(met,rad,veg, canopy) ! need to be called at every dt
-
-    IF( cable_runtime%um ) THEN
-
-       IF( cable_runtime%um_explicit ) THEN
-          CALL surface_albedo(ssnow, veg, met, rad, soil, canopy)
-       ENDIF
-
-    ELSE
+!H!CALL init_radiation(   &
+!H!mp,                    &  
+!H!nrb,                   &
+!H!Clai_thresh,           &
+!H!Ccoszen_tols,          &
+!H!jls_standalone,        &
+!H!jls_radiation ,        &
+!H!veg_mask,              &
+!H!sunlit_mask,           &
+!H!sunlit_veg_mask,       &
+!H!reducedLAIdue2snow,    &
+!H!met%coszen,            &!coszen,                &
+!H!!get
+!H!rad%extkb,              &   !ExtCoeff_beam,         &
+!H!rad%extkd,              &   !ExtCoeff_dif,          &
+!H!rad%extkbm,            & ! EffExtCoeff_beam
+!H!rad%extkdm,            &! = EffExtCoeff_dif
+!H!!params
+!H!Veg%Xfang,             &
+!H!Veg%Taul,              &
+!H!Veg%Refl,              &
+!H!!
+!H!c1,                    &
+!H!rhoch,                 &
+!H!metDoY,                &
+!H!met%fsd,               &
+!H!Rad%Fbeam,             &
+!H!xk,                    &
+!H!!constants
+!H!CGauss_w,              &
+!H!Cpi,                   &
+!H!Cpi180,                &
+!H!subr_name              &
+!H! )
+ 
+!    IF( cable_runtime%um ) THEN
+!
+!       IF( cable_runtime%um_explicit ) THEN
+!          CALL surface_albedo(ssnow, veg, met, rad, soil, canopy)
+!       ENDIF
+!
+!    ELSE
        CALL surface_albedo(ssnow, veg, met, rad, soil, canopy)
-    ENDIF
+!H!  call Albedo(        &
+!H!ssnow%AlbSoilsn,      &!AlbSnow,              & 
+!H!soil%AlbSoil,         &!AlbSoil,              & 
+!H!mp,                   &  
+!H!nrb,                  &
+!H!jls_radiation ,       &
+!H!veg_mask,             & 
+!H!sunlit_mask,          & 
+!H!sunlit_veg_mask,      & 
+!H!Ccoszen_tols,         &
+!H!CGAUSS_W,             & 
+!H!veg%iveg,             & !   surface_type,         &
+!H!met%tk,               & !  metTk,                & 
+!H!met%coszen,           &!  coszen,               & 
+!H!canopy%vlaiw,         &!  reducedLAIdue2snow,          &
+!H!ssnow%snowd,          &!  SnowDepth,            &  
+!H!ssnow%osnowd,         &!  SnowODepth,           & 
+!H!ssnow%isflag,         & !  SnowFlag_3L,          & 
+!H!ssnow%ssdnn,          & !   SnowDensity,          & 
+!H!ssnow%tgg(:,1),       &   !   SoilTemp,             & 
+!H!ssnow%snage,          & !   SnowAge,              &
+!H!xk,                   &  
+!H!c1,                   &  
+!H!rhoch,                &
+!H!Rad%Fbeam,            & 
+!H!Rad%Albedo,           &
+!H!rad%extkd,             &!ExtCoeff_beam,         &
+!H!rad%extkb,             & !ExtCoeff_dif,          &
+!H!rad%extkdm,           & ! EffExtCoeff_beam
+!H!rad%extkbm,           & ! = EffExtCoeff_dif
+!H!  CanopyRefl_dif,    & 
+!H!  CanopyRefl_beam,   &
+!H!rad%cexpkdm,          & ! = CanopyTransmit_dif 
+!H!rad%cexpkbm,          & ! = CanopyTransmit_beam
+!H!rad%reffdf,           &! = EffSurfRefl_dif
+!H!rad%reffbm            &! = EffSurfRefl_beam
+!H!             )
+
+
+!    ENDIF
 
     ! Calculate canopy variables:
 
     !! vh_js !!
     !CABLE_LSM:check
-    IF( cable_runtime%um .AND. first_call ) THEN
-       ssnow%tss=(1-ssnow%isflag)*ssnow%tgg(:,1) + ssnow%isflag*ssnow%tggsn(:,1)
-       ssnow%otss = ssnow%tss
-       first_call = .FALSE.
-    ENDIF
+!    IF( cable_runtime%um .AND. first_call ) THEN
+!       ssnow%tss=(1-ssnow%isflag)*ssnow%tgg(:,1) + ssnow%isflag*ssnow%tggsn(:,1)
+!       ssnow%otss = ssnow%tss
+!       first_call = .FALSE.
+!    ENDIF
     ssnow%otss_0 = ssnow%otss  ! vh should be before call to canopy?
     ssnow%otss = ssnow%tss
 
@@ -129,17 +218,17 @@ CONTAINS
     ! RML moved out of following IF after discussion with Eva
     ssnow%owetfac = ssnow%wetfac
 
-    IF( cable_runtime%um ) THEN
-
-       IF( cable_runtime%um_implicit ) THEN
-          IF (cable_user%gw_model) THEN
-             CALL soil_snow_gw(dels, soil, ssnow, canopy, met, bal,veg)
-          ELSE
-             CALL soil_snow(dels, soil, ssnow, canopy, met, bal,veg)
-          ENDIF
-       ENDIF
-
-    ELSE
+!    IF( cable_runtime%um ) THEN
+!
+!       IF( cable_runtime%um_implicit ) THEN
+!          IF (cable_user%gw_model) THEN
+!             CALL soil_snow_gw(dels, soil, ssnow, canopy, met, bal,veg)
+!          ELSE
+!             CALL soil_snow(dels, soil, ssnow, canopy, met, bal,veg)
+!          ENDIF
+!       ENDIF
+!
+!    ELSE
        IF(cable_user%SOIL_STRUC=='default') THEN
           IF (cable_user%gw_model) THEN
              CALL soil_snow_gw(dels, soil, ssnow, canopy, met, bal,veg)
@@ -153,7 +242,7 @@ CONTAINS
 
           CALL sli_main(ktau,dels,veg,soil,ssnow,met,canopy,air,rad,0)
        ENDIF
-    ENDIF
+!    ENDIF
 
 
     ssnow%deltss = ssnow%tss-ssnow%otss
@@ -161,47 +250,47 @@ CONTAINS
     ! REV_CORR - multiple changes to address %cls bugs and revised correction
     ! terms.  Also - do not apply correction terms if using SLI
     ! SSEB package will move these calculations to within soilsnow
-    IF( cable_runtime%um .AND. cable_user%SOIL_STRUC=='default') THEN
-
-       canopy%fhs = canopy%fhs + ( ssnow%tss-ssnow%otss ) * ssnow%dfh_dtg
-       canopy%fhs_cor = canopy%fhs_cor + ( ssnow%tss-ssnow%otss ) * ssnow%dfh_dtg
-       canopy%fh = canopy%fhv + canopy%fhs
-
-       !canopy%fes = canopy%fes + ( ssnow%tss-ssnow%otss ) *                    &
-       !          ( ssnow%dfe_ddq * ssnow%ddq_dtg )
-       !          !( ssnow%cls * ssnow%dfe_ddq * ssnow%ddq_dtg )
-       !
-       !Ticket 137 - remove double couting of %cls
-       !canopy%fes_cor = canopy%fes_cor + ( ssnow%tss-ssnow%otss ) *            &
-       !                      ( ssnow%dfe_ddq * ssnow%ddq_dtg )
-       !               ( ssnow%cls * ssnow%dfe_ddq * ssnow%ddq_dtg )
-
-       !INH rewritten in terms of %dfe_dtg - NB factor %cls above was a bug
-       canopy%fes = canopy%fes + ( ssnow%tss-ssnow%otss ) * ssnow%dfe_dtg
-
-       !INH NB factor %cls in %fes_cor above was a bug - see Ticket #135 #137
-       canopy%fes_cor = canopy%fes_cor + (ssnow%tss-ssnow%otss) * ssnow%dfe_dtg
-       !canopy%fes_cor = canopy%fes_cor + ssnow%cls*(ssnow%tss-ssnow%otss) &
-       !       * ssnow%dfe_dtg
-
-       IF (cable_user%L_REV_CORR) THEN
-          !INH need to add on corrections to all terms in the soil energy balance
-          canopy%fns_cor = canopy%fns_cor + (ssnow%tss-ssnow%otss)*ssnow%dfn_dtg
-
-          !NB %fns_cor also added onto out%Rnet and out%LWnet in cable_output and
-          !cable_checks as the correction term needs to pass through the
-          !canopy in entirity not be partially absorbed and %fns not used there
-          !(as would be the case if rad%flws were changed)
-          canopy%fns = canopy%fns + ( ssnow%tss-ssnow%otss )*ssnow%dfn_dtg
-
-          canopy%ga_cor = canopy%ga_cor + ( ssnow%tss-ssnow%otss )*canopy%dgdtg
-          canopy%ga = canopy%ga + ( ssnow%tss-ssnow%otss )*canopy%dgdtg
-
-          !assign all the correction to %fes to %fess - none to %fesp
-          canopy%fess = canopy%fess + ( ssnow%tss-ssnow%otss ) * ssnow%dfe_dtg
-
-       ENDIF
-    ENDIF
+!    IF( cable_runtime%um .AND. cable_user%SOIL_STRUC=='default') THEN
+!
+!       canopy%fhs = canopy%fhs + ( ssnow%tss-ssnow%otss ) * ssnow%dfh_dtg
+!       canopy%fhs_cor = canopy%fhs_cor + ( ssnow%tss-ssnow%otss ) * ssnow%dfh_dtg
+!       canopy%fh = canopy%fhv + canopy%fhs
+!
+!       !canopy%fes = canopy%fes + ( ssnow%tss-ssnow%otss ) *                    &
+!       !          ( ssnow%dfe_ddq * ssnow%ddq_dtg )
+!       !          !( ssnow%cls * ssnow%dfe_ddq * ssnow%ddq_dtg )
+!       !
+!       !Ticket 137 - remove double couting of %cls
+!       !canopy%fes_cor = canopy%fes_cor + ( ssnow%tss-ssnow%otss ) *            &
+!       !                      ( ssnow%dfe_ddq * ssnow%ddq_dtg )
+!       !               ( ssnow%cls * ssnow%dfe_ddq * ssnow%ddq_dtg )
+!
+!       !INH rewritten in terms of %dfe_dtg - NB factor %cls above was a bug
+!       canopy%fes = canopy%fes + ( ssnow%tss-ssnow%otss ) * ssnow%dfe_dtg
+!
+!       !INH NB factor %cls in %fes_cor above was a bug - see Ticket #135 #137
+!       canopy%fes_cor = canopy%fes_cor + (ssnow%tss-ssnow%otss) * ssnow%dfe_dtg
+!       !canopy%fes_cor = canopy%fes_cor + ssnow%cls*(ssnow%tss-ssnow%otss) &
+!       !       * ssnow%dfe_dtg
+!
+!       IF (cable_user%L_REV_CORR) THEN
+!          !INH need to add on corrections to all terms in the soil energy balance
+!          canopy%fns_cor = canopy%fns_cor + (ssnow%tss-ssnow%otss)*ssnow%dfn_dtg
+!
+!          !NB %fns_cor also added onto out%Rnet and out%LWnet in cable_output and
+!          !cable_checks as the correction term needs to pass through the
+!          !canopy in entirity not be partially absorbed and %fns not used there
+!          !(as would be the case if rad%flws were changed)
+!          canopy%fns = canopy%fns + ( ssnow%tss-ssnow%otss )*ssnow%dfn_dtg
+!
+!          canopy%ga_cor = canopy%ga_cor + ( ssnow%tss-ssnow%otss )*canopy%dgdtg
+!          canopy%ga = canopy%ga + ( ssnow%tss-ssnow%otss )*canopy%dgdtg
+!
+!          !assign all the correction to %fes to %fess - none to %fesp
+!          canopy%fess = canopy%fess + ( ssnow%tss-ssnow%otss ) * ssnow%dfe_dtg
+!
+!       ENDIF
+!    ENDIF
 
 
     ! need to adjust fe after soilsnow
@@ -214,18 +303,18 @@ CONTAINS
     canopy%rnet = canopy%fns + canopy%fnv
 
     ! Calculate radiative/skin temperature:
-    IF (cable_runtime%um) THEN
-       !Jan 2018: UM assumes a single emissivity for the surface in the radiation scheme
-       !To accommodate this a single value of is 1. is assumed in ACCESS
-       ! any leaf/soil emissivity /=1 must be incorporated into rad%trad.
-       ! check that emissivities (pft and nvg) set = 1 within the UM i/o configuration
-       ! CM2 - further adapted to pass the correction term onto %trad correctly
-       rad%trad = ( ( 1.-rad%transd ) * C%emleaf * canopy%tv**4 +                      &
-            rad%transd * C%emsoil * ssnow%otss**4 + canopy%fns_cor/C%sboltz )**0.25
-    ELSE
+!    IF (cable_runtime%um) THEN
+!       !Jan 2018: UM assumes a single emissivity for the surface in the radiation scheme
+!       !To accommodate this a single value of is 1. is assumed in ACCESS
+!       ! any leaf/soil emissivity /=1 must be incorporated into rad%trad.
+!       ! check that emissivities (pft and nvg) set = 1 within the UM i/o configuration
+!       ! CM2 - further adapted to pass the correction term onto %trad correctly
+!       rad%trad = ( ( 1.-rad%transd ) * C%emleaf * canopy%tv**4 +                      &
+!            rad%transd * C%emsoil * ssnow%otss**4 + canopy%fns_cor/C%sboltz )**0.25
+!    ELSE
        rad%trad = ( ( 1.-rad%transd ) * canopy%tv**4 +                             &
             rad%transd * ssnow%tss**4 )**0.25
-    ENDIF
+!    ENDIF
 
     ! rml 17/1/11 move all plant resp and soil resp calculations here
     ! from canopy. in UM only call on implicit step.
