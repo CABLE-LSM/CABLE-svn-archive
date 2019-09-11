@@ -38,7 +38,7 @@ subroutine HgtAboveSnow( HeightAboveSnow, mp, z0surf_min, HGT_pft, &
   HgtAboveSnow_min =  fmin * z0surf_min 
   
   !Canopy Hgt above snow given computed snow depth & PFT height 
-  HgtAboveSnow_comp =   HGT_pft - 1.2 * SnowDepth / SnowDensity_eff
+  HgtAboveSnow_comp =   HGT_pft - ( 1.2 * SnowDepth / SnowDensity_eff )
 
   ! Finally Set Effective canopy height above snow level 
   HeightAboveSnow = max( HgtAboveSnow_min,  HgtAboveSnow_comp )      
