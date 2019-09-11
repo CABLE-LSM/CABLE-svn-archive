@@ -26,6 +26,8 @@ MODULE cable_roughness_module
 
   IMPLICIT NONE
 
+  real, parameter :: z0soilsn_min = 1.e-7
+  real, parameter :: z0soilsn_min_PF = 1.e-4
   TYPE ( irough_type ) :: C
   PRIVATE
   PUBLIC ruff_resist
@@ -33,10 +35,8 @@ MODULE cable_roughness_module
 CONTAINS
 
 
+SUBROUTINE ruff_resist(veg, rough, ssnow, canopy, LAI_pft, HGT_pft, reducedLAIdue2snow )
 
-  SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
-
-    ! m.r. raupach, 24-oct-92
     ! see: Raupach, 1992, BLM 60 375-395
     !      MRR notes "Simplified wind model for canopy", 23-oct-92
     !      MRR draft paper "Simplified expressions...", dec-92
@@ -45,17 +45,29 @@ CONTAINS
     USE cable_common_module, ONLY : cable_user
     USE cable_def_types_mod, ONLY : veg_parameter_type, roughness_type,         &
          soil_snow_type, canopy_type, mp
+!subrs
+USE cbl_hruff_mod, ONLY : HgtAboveSnow
+USE cbl_LAI_eff_mod, ONLY : LAI_eff
+!data
+USE cable_other_constants_mod, ONLY : z0surf_min
+
+implicit none
+
+!result returned from called subr. Avail. in cross_*paths_module - but unsure
+!yet
+real :: HeightAboveSnow(mp) 
+real :: reducedLAIdue2snow(mp) 
 
     TYPE(roughness_type), INTENT(INOUT) :: rough
     TYPE (canopy_type),   INTENT(INOUT) :: canopy
     TYPE(soil_snow_type), INTENT(IN)    :: ssnow
     TYPE (veg_parameter_type),  INTENT(INOUT) :: veg
 
+real :: LAI_pft(mp)
+real :: HGT_pft(mp)
     REAL, DIMENSION(mp) ::                                                      &
          xx,      & ! =C%CCD*LAI; working variable
          dh         ! d/h where d is zero-plane displacement
-    REAL, PARAMETER :: z0soilsn_min = 1.e-7
-    REAL, PARAMETER :: z0soilsn_min_PF = 1.e-4
 
     CALL point2constants( C )
 
