@@ -95,6 +95,7 @@ cable_fprint.o: cable_fprint.F90 cable_common.o
 cable_PyFprint.o: cable_PyFprint.F90
 #
 cbl_math_constants_mod.o: cbl_math_constants_mod.F90
+cbl_masks.o: cbl_masks.F90
 cbl_rhoch.o: cbl_rhoch.F90
 cbl_spitter.o: cbl_spitter.F90
 cbl_sinbet.o: cbl_sinbet.F90 cbl_math_constants_mod.o
@@ -114,7 +115,7 @@ cable_canopy.o: cable_canopy.F90 cable_define_types.o cbl_radiation.o cable_roug
 
 cable_carbon.o: cable_carbon.F90 cable_define_types.o cable_common.o cable_data.o
 
-cbl_model_driver_offline.o: cbl_model_driver_offline.F90 cable_carbon.o cable_soilsnow.o cable_canopy.o cable_define_types.o cable_roughness.o cbl_radiation.o cbl_albedo.o casa_variable.o cable_common.o cable_data.o cable_gw_hydro.o cable_psm.o
+cbl_model_driver_offline.o: cbl_model_driver_offline.F90 cable_carbon.o cable_soilsnow.o cable_canopy.o cable_define_types.o cable_roughness.o cbl_radiation.o cbl_albedo.o casa_variable.o cable_common.o cable_data.o cable_gw_hydro.o cable_psm.o cbl_masks.o
 
 cable_checks.o: cable_checks.F90 cbl_radiation.o cable_common.o
 

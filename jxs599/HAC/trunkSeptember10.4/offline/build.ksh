@@ -439,6 +439,7 @@ if [[ $1 = 'clean' ]]; then
    clean_build
 fi
 
+module purge
 
 known_hosts
 
