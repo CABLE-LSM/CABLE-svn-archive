@@ -54,6 +54,12 @@ CONTAINS
     USE cable_canopy_module, ONLY : define_canopy
     USE cable_albedo_module, ONLY : surface_albedo
     USE sli_main_mod, ONLY : sli_main
+!data !jhan:pass these
+USE cable_other_constants_mod, ONLY : CLAI_THRESH => lai_thresh
+USE cable_other_constants_mod,  ONLY : Ccoszen_tols => coszen_tols
+USE cable_other_constants_mod, ONLY : CGAUSS_W => gauss_w
+USE cable_math_constants_mod, ONLY : CPI => pi
+USE cable_math_constants_mod, ONLY : CPI180 => pi180
 
 use cbl_masks_mod, ONLY :  fveg_mask,  fsunlit_mask,  fsunlit_veg_mask
 
@@ -78,6 +84,13 @@ use cbl_masks_mod, ONLY :  fveg_mask,  fsunlit_mask,  fsunlit_veg_mask
     INTEGER, INTENT(IN) :: ktau
     INTEGER :: k,kk,j
     LOGICAL, SAVE :: first_call = .TRUE.
+character(len=*), parameter :: subr_name = "cbm"
+LOGICAL :: jls_standalone= .false.
+LOGICAL :: jls_radiation= .false.
+
+!make local to rad_driver and also again in cbl_model_driver
+!CABLE variables to keep for all CABLE pathways across the timestep 
+real :: reducedLAIdue2snow(mp)
 !masks
 logical :: veg_mask(mp),  sunlit_mask(mp),  sunlit_veg_mask(mp) 
     
@@ -109,9 +122,9 @@ CALL ruff_resist( veg, rough, ssnow, canopy, veg%vlai, veg%hc,        &
 !Define logical masks according to vegetation cover and sunlight. this is also 
 !done in radiation pathway but that could be out of step with explicit call
 !!reducedLAIdue2snow = canopy%Vlaiw
-!H!call fveg_mask( veg_mask,mp, Clai_thresh, reducedLAIdue2snow)
-!H!call fsunlit_mask( sunlit_mask, mp, Ccoszen_tols, met%coszen )
-!H!call fsunlit_veg_mask( sunlit_veg_mask, mp,  veg_mask, sunlit_mask )
+call fveg_mask( veg_mask,mp, Clai_thresh, reducedLAIdue2snow)
+call fsunlit_mask( sunlit_mask, mp, Ccoszen_tols, met%coszen )
+call fsunlit_veg_mask( sunlit_veg_mask, mp,  veg_mask, sunlit_mask )
 
 !H!metDoy = int(RmetDoy)
   
