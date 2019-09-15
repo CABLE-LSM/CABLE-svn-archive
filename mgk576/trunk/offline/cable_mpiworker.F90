@@ -2422,9 +2422,9 @@ CONTAINS
     CALL MPI_Get_address (soil%slope_std, displs(bidx), ierr)
     blen(bidx) = r2len
 
-    !bidx = bidx + 1
-    !CALL MPI_Get_address (soil%GWdz, displs(bidx), ierr)
-    !blen(bidx) = r2len
+    bidx = bidx + 1
+    CALL MPI_Get_address (soil%GWdz, displs(bidx), ierr)
+    blen(bidx) = r2len
 
     bidx = bidx + 1
     CALL MPI_Get_address (ssnow%GWwb, displs(bidx), ierr)
