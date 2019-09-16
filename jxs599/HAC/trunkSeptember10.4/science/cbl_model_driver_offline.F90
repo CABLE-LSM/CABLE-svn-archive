@@ -93,6 +93,10 @@ LOGICAL :: jls_radiation= .false.
 real :: reducedLAIdue2snow(mp)
 !masks
 logical :: veg_mask(mp),  sunlit_mask(mp),  sunlit_veg_mask(mp) 
+!co-efficients usoughout init_radiation ` called from _albedo as well
+REAL :: c1(mp,nrb)
+REAL :: rhoch(mp,nrb)
+REAL :: xk(mp,nrb)
     
     ICYCLE = 0
 
@@ -128,41 +132,41 @@ call fsunlit_veg_mask( sunlit_veg_mask, mp,  veg_mask, sunlit_mask )
 
 !H!metDoy = int(RmetDoy)
   
-    CALL init_radiation(met,rad,veg, canopy) ! need to be called at every dt
-!H!CALL init_radiation(   &
-!H!mp,                    &  
-!H!nrb,                   &
-!H!Clai_thresh,           &
-!H!Ccoszen_tols,          &
-!H!jls_standalone,        &
-!H!jls_radiation ,        &
-!H!veg_mask,              &
-!H!sunlit_mask,           &
-!H!sunlit_veg_mask,       &
-!H!reducedLAIdue2snow,    &
-!H!met%coszen,            &!coszen,                &
-!H!!get
-!H!rad%extkb,              &   !ExtCoeff_beam,         &
-!H!rad%extkd,              &   !ExtCoeff_dif,          &
-!H!rad%extkbm,            & ! EffExtCoeff_beam
-!H!rad%extkdm,            &! = EffExtCoeff_dif
-!H!!params
-!H!Veg%Xfang,             &
-!H!Veg%Taul,              &
-!H!Veg%Refl,              &
-!H!!
-!H!c1,                    &
-!H!rhoch,                 &
-!H!metDoY,                &
-!H!met%fsd,               &
-!H!Rad%Fbeam,             &
-!H!xk,                    &
-!H!!constants
-!H!CGauss_w,              &
-!H!Cpi,                   &
-!H!Cpi180,                &
-!H!subr_name              &
-!H! )
+!    CALL init_radiation(met,rad,veg, canopy) ! need to be called at every dt
+CALL init_radiation(   &
+mp,                    &  
+nrb,                   &
+Clai_thresh,           &
+Ccoszen_tols,          &
+jls_standalone,        &
+jls_radiation ,        &
+veg_mask,              &
+sunlit_mask,           &
+sunlit_veg_mask,       &
+reducedLAIdue2snow,    &
+met%coszen,            &!coszen,                &
+!get
+rad%extkb,              &   !ExtCoeff_beam,         &
+rad%extkd,              &   !ExtCoeff_dif,          &
+rad%extkbm,            & ! EffExtCoeff_beam
+rad%extkdm,            &! = EffExtCoeff_dif
+!params
+Veg%Xfang,             &
+Veg%Taul,              &
+Veg%Refl,              &
+!
+c1,                    &
+rhoch,                 &
+int(met%DoY),                &
+met%fsd,               &
+Rad%Fbeam,             &
+xk,                    &
+!constants
+CGauss_w,              &
+Cpi,                   &
+Cpi180,                &
+subr_name              &
+ )
  
 !    IF( cable_runtime%um ) THEN
 !
