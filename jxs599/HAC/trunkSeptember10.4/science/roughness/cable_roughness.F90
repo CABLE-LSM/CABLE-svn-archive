@@ -73,9 +73,14 @@ real :: HGT_pft(mp)
     CALL point2constants( C )
 
     ! Set canopy height above snow level:
-    rough%hruff = MAX( 10. * z0soilsn_min, veg%hc - 1.2 * ssnow%snowd /                       &
-         MAX( ssnow%ssdnn, 100. ) )
+call HgtAboveSnow( HeightAboveSnow, mp, z0soilsn_min, veg%hc, ssnow%snowd, &
+                   ssnow%ssdnn )
+rough%hruff =  HeightAboveSnow
 
+! LAI decreases due to snow: formerly canopy%vlaiw
+!call LAI_eff( mp, veg%vlai, veg%hc, HeightAboveSnow, &
+!                reducedLAIdue2snow)
+!canopy%vlaiw = reducedLAIdue2snow
     ! LAI decreases due to snow:
     canopy%vlaiw = veg%vlai * rough%hruff / MAX( 0.01, veg%hc )
     canopy%rghlai = canopy%vlaiw
