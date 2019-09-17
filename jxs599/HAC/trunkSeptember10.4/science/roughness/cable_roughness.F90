@@ -82,7 +82,7 @@ rough%hruff =  HeightAboveSnow
 !                reducedLAIdue2snow)
 !canopy%vlaiw = reducedLAIdue2snow
     ! LAI decreases due to snow:
-    canopy%vlaiw = veg%vlai * rough%hruff / MAX( 0.01, veg%hc )
+    canopy%vlaiw = veg%vlai * ( rough%hruff / MAX( 0.01, veg%hc ) )
     canopy%rghlai = canopy%vlaiw
 
     IF (cable_user%soil_struc=='default') THEN
