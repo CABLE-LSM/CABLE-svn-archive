@@ -164,23 +164,23 @@ PROGRAM cable_offline_driver
   CHARACTER	:: dum*9, str1*9, str2*9, str3*9
 
   ! CABLE variables
-  TYPE (met_type)	:: met	   ! met input variables
-  TYPE (air_type)	:: air	   ! air property variables
-  TYPE (canopy_type)	:: canopy  ! vegetation variables
-  TYPE (radiation_type) :: rad	   ! radiation variables
-  TYPE (roughness_type) :: rough   ! roughness varibles
-  TYPE (balances_type)	:: bal	   ! energy and water balance variables
-  TYPE (soil_snow_type) :: ssnow   ! soil and snow variables
+  TYPE (met_type), save	:: met	   ! met input variables
+  TYPE (air_type), save	:: air	   ! air property variables
+  TYPE (canopy_type), save	:: canopy  ! vegetation variables
+  TYPE (radiation_type), save :: rad	   ! radiation variables
+  TYPE (roughness_type), save :: rough   ! roughness varibles
+  TYPE (balances_type), save	:: bal	   ! energy and water balance variables
+  TYPE (soil_snow_type), save :: ssnow   ! soil and snow variables
   !mpidiff
-  TYPE (climate_type)	:: climate     ! climate variables
+  TYPE (climate_type), save	:: climate     ! climate variables
 
   ! CABLE parameters
-  TYPE (soil_parameter_type) :: soil ! soil parameters
-  TYPE (veg_parameter_type)  :: veg  ! vegetation parameters
-  TYPE (driver_type)	:: C	     ! constants used locally
+  TYPE (soil_parameter_type), save :: soil ! soil parameters
+  TYPE (veg_parameter_type), save  :: veg  ! vegetation parameters
+  TYPE (driver_type), save	:: C	     ! constants used locally
 
-  TYPE (sum_flux_type)	:: sum_flux ! cumulative flux variables
-  TYPE (bgc_pool_type)	:: bgc	! carbon pool variables
+  TYPE (sum_flux_type), save	:: sum_flux ! cumulative flux variables
+  TYPE (bgc_pool_type), save	:: bgc	! carbon pool variables
 
   ! CASA-CNP variables
   TYPE (casa_biome)	:: casabiome
