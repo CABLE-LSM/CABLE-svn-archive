@@ -110,7 +110,8 @@ REAL :: xk(mp,nrb)
        cable_runtime%um_radiation = .FALSE.
 
        IF( cable_runtime%um_explicit ) THEN
-          CALL ruff_resist(veg, rough, ssnow, canopy)
+!CALL ruff_resist(veg, rough, ssnow, canopy, LAI_pft, HGT_pft, reducedLAIdue2snow )
+CALL ruff_resist(veg, rough, ssnow, canopy, veg%vlai, veg%hc, canopy%vlaiw)
        ENDIF
        ! Height adjustment not used in ACCESS CM2. See CABLE ticket 197
        ! met%tk = met%tk + C%grav/C%capp*(rough%zref_tq + 0.9*rough%z0m)
@@ -118,7 +119,8 @@ REAL :: xk(mp,nrb)
        CALL define_air (met, air)
 
     ELSE
-       CALL ruff_resist(veg, rough, ssnow, canopy)
+CALL ruff_resist(veg, rough, ssnow, canopy, veg%vlai, veg%hc, canopy%vlaiw)
+!CALL ruff_resist(veg, rough, ssnow, canopy, LAI_pft, HGT_pft, reducedLAIdue2snow )
     ENDIF
 
   

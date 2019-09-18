@@ -246,11 +246,8 @@ CONTAINS
        CALL comp_friction_vel()
 
        ! E.Kowalczyk 2014
-       !IF (cable_user%l_new_roughness_soil)                                     &
-       !  CALL ruff_resist( veg, rough, ssnow, canopy, veg%vlai, veg%hc,        & 
-       !           canopy%vlaiw)
        IF (cable_user%l_new_roughness_soil)                                     &
-            CALL ruff_resist(veg, rough, ssnow, canopy)
+CALL ruff_resist(veg, rough, ssnow, canopy, veg%vlai, veg%hc, canopy%vlaiw)
 
 
 
