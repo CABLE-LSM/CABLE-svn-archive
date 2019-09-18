@@ -82,7 +82,6 @@ rough%hruff =  HeightAboveSnow
 ! LAI decreases due to snow: formerly canopy%vlaiw
 call LAI_eff( mp, veg%vlai, veg%hc, HeightAboveSnow, &
                 reducedLAIdue2snow)
-canopy%vlaiw = reducedLAIdue2snow
 
    canopy%rghlai = canopy%vlaiw
 
