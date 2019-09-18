@@ -78,11 +78,9 @@ call HgtAboveSnow( HeightAboveSnow, mp, z0soilsn_min, veg%hc, ssnow%snowd, &
 rough%hruff =  HeightAboveSnow
 
 ! LAI decreases due to snow: formerly canopy%vlaiw
-!call LAI_eff( mp, veg%vlai, veg%hc, HeightAboveSnow, &
-!                reducedLAIdue2snow)
-!canopy%vlaiw = reducedLAIdue2snow
-    ! LAI decreases due to snow:
-    canopy%vlaiw = veg%vlai * ( rough%hruff / MAX( 0.01, veg%hc ) )
+call LAI_eff( mp, veg%vlai, veg%hc, HeightAboveSnow, &
+                reducedLAIdue2snow)
+canopy%vlaiw = reducedLAIdue2snow
     canopy%rghlai = canopy%vlaiw
 
     IF (cable_user%soil_struc=='default') THEN
