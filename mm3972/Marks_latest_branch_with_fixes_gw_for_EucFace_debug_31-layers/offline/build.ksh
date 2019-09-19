@@ -2,7 +2,7 @@
 
 known_hosts()
 {
-   set -A kh vayu cher pear shin jigg nXXX raij ces2 ccrc mael mons
+   set -A kh vayu cher pear shin jigg nXXX raij ces2 ccrc mael mons cycl hurr typh
 }
 
 ## 
