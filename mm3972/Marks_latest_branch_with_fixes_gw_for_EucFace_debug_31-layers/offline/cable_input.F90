@@ -2631,10 +2631,10 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,climate,bgc,soil,canopy,rough,rad, 
     ! Look for explicit restart file (which will have parameters):
     IF ( TRIM(filename%restart_in) .EQ. '' ) filename%restart_in = './'
     frst_in = filename%restart_in
-    
+
     ok = NF90_OPEN(TRIM(frst_in),NF90_NOWRITE,ncid_rin)
     IF ( ok == NF90_NOERR ) EXRST = .TRUE.
-    
+
     ! If not an explicit rstfile, search for RunIden_YEAR...nc
     ! use (filename%restart_in) as path
     IF ( .NOT. EXRST .AND. CABLE_USER%YEARSTART .GT. 0 ) THEN
@@ -2842,9 +2842,9 @@ SUBROUTINE get_parameters_met(soil,ssnow,veg,bgc,rough,completeSet) ! MMY add ss
    PRINT *,'MMY ssnow%wb read from met is ', ssnow%wb
 
 !   ssnow%GWwb(:)      = ssnow%wb(:,ms)
-   soil%GWhyds_vec(:) = soil%hyds_vec(:,ms) 
+   soil%GWhyds_vec(:) = soil%hyds_vec(:,ms)
    soil%GWssat_vec(:) = soil%ssat_vec(:,ms)
-   ssnow%GWwb(:)      = soil%GWssat_vec(:) * 0.9 
+   ssnow%GWwb(:)      = soil%GWssat_vec(:) * 0.9
    ! Set init GWwb as 0.9 ssat to avoid the aquifer saturates too quick
    soil%GWsucs_vec(:) = soil%sucs_vec(:,ms)
    soil%GWbch_vec(:)  = soil%bch_vec(:,ms)
@@ -2858,9 +2858,15 @@ SUBROUTINE get_parameters_met(soil,ssnow,veg,bgc,rough,completeSet) ! MMY add ss
    PRINT *,'MMY soil%GWsucs_vec read from met is ', soil%GWsucs_vec
    PRINT *,'MMY soil%GWbch_vec read from met is ', soil%GWbch_vec
    PRINT *,'MMY soil%GWwatr read from met is ', soil%GWwatr
-   
+   ! ____ MMY add from SUBROUTINE GWspatialParameters in cable_parameters.F90 _____
+   !set the default IC for hysteresis state
+   ssnow%smp_hys(:,:) = -soil%sucs_vec(:,:)
+   ssnow%hys_fac(:,:) = 1.0
+   ssnow%watr_hys(:,:) = soil%watr(:,:)
+   ssnow%ssat_hys(:,:) = soil%ssat_vec(:,:)
+   ! ______________________________________________________________________________
 !   CALL readpar(ncid_met,'GWMoist',completeSet,ssnow%GWwb,filename%met,            &
-!                nmetpatches,'def') ! ssnow%GWwb(mp) 
+!                nmetpatches,'def') ! ssnow%GWwb(mp)
 !   PRINT *,'MMY ssnow%GWwb read from met is ', ssnow%GWwb
 ! ______________________________________________________________________________
 
