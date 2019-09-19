@@ -5,6 +5,62 @@ known_hosts()
    set -A kh vayu cher pear shin jigg nXXX raij ces2 ccrc mael mons
 }
 
+## 
+host_cycl()
+{
+   export NCDIR='/share/apps/netcdf-f/intel/4.4.4/lib'
+   export NCMOD='/share/apps/netcdf-f/intel/4.4.4/include'
+   export FC=ifort
+   export CFLAGS='-O2 -fp-model precise  '
+   #export CFLAGS='-O3 -fp-model precise  -ipo --parallel '   
+   export LDFLAGS='-L/share/apps/netcdf-f/intel/4.4.4/lib -O2'
+   if [[ $1 = 'debug' ]]; then
+      export CFLAGS='-O0 -fp-model precise -fpe0 -g -traceback -nostand -check all,nobounds,noarg_temp_created -debug all ' 
+   fi
+   export LD='-lnetcdf -lnetcdff'
+   build_build
+   cd ../
+   build_status
+}
+
+
+## 
+host_hurr()
+{
+   export NCDIR='/share/apps/netcdf-f/intel/4.4.4/lib'
+   export NCMOD='/share/apps/netcdf-f/intel/4.4.4/include'
+   export FC=ifort
+   export CFLAGS='-O2 -fp-model precise  '
+   #export CFLAGS='-O3 -fp-model precise  -ipo --parallel '   
+   export LDFLAGS='-L/share/apps/netcdf-f/intel/4.4.4/lib -O2'
+   if [[ $1 = 'debug' ]]; then
+      export CFLAGS='-O0 -fp-model precise -fpe0 -g -traceback -nostand -check all,nobounds,noarg_temp_created -debug all ' 
+   fi
+   export LD='-lnetcdf -lnetcdff'
+   build_build
+   cd ../
+   build_status
+}
+
+
+## 
+host_typh()
+{
+   export NCDIR='/share/apps/netcdf-f/intel/4.4.4/lib'
+   export NCMOD='/share/apps/netcdf-f/intel/4.4.4/include'
+   export FC=ifort
+   export CFLAGS='-O2 -fp-model precise  '
+   #export CFLAGS='-O3 -fp-model precise  -ipo --parallel '   
+   export LDFLAGS='-L/share/apps/netcdf-f/intel/4.4.4/lib -O2'
+   if [[ $1 = 'debug' ]]; then
+      export CFLAGS='-O0 -fp-model precise -fpe0 -g -traceback -nostand -check all,nobounds,noarg_temp_created -debug all ' 
+   fi
+   export LD='-lnetcdf -lnetcdff'
+   build_build
+   cd ../
+   build_status
+}
+
 
 ## run with new gridinfo
 host_mons()
