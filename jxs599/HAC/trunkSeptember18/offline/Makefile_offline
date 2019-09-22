@@ -30,6 +30,13 @@
 # ==============================================================================
 ##########################################################################
 
+#NCDIR=/share/apps/netcdf/intel/4.3.3/lib
+#NCMOD=/share/apps/netcdf/intel/4.3.3/include
+#FC=ifort
+#CFLAGS=-O0 -fp-model precise
+#LDFLAGS=-L/share/apps/intel/Composer/lib/intel64 -L/share/apps/netcdf/intel/4.1.3/lib  -O2
+#LD=-lnetcdf -lnetcdff
+
 # these are all the files we are compiling
 LSRC = cable_pft_params.F90 cable_soil_params.F90 casa_dimension.F90 \
 	casa_phenology.F90 casa_param.F90 \
@@ -37,6 +44,7 @@ LSRC = cable_pft_params.F90 cable_soil_params.F90 casa_dimension.F90 \
 	cable_abort.F90 casa_variable.F90 cable_parameters.F90 cable_soilsnow.F90 \
 	cbl_albedo.F90 \
 	cbl_math_constants_mod.F90 \
+	cbl_phys_constants_mod.F90 \
 	cbl_other_constants_mod.F90 \
 	cbl_snow_albedo.F90 \
 	cbl_soilColour_albedo.F90 \
@@ -49,7 +57,8 @@ LSRC = cable_pft_params.F90 cable_soil_params.F90 casa_dimension.F90 \
 	cbl_hgtAbove_snow.F90 \
 	cbl_lai_eff.F90 \
 	cable_air.F90 cable_roughness.F90 \
-	cable_carbon.F90 cable_canopy.F90 cbl_model_driver_offline.F90 cable_checks.F90 \
+	cable_carbon.F90 cable_canopy.F90 cbl_model_driver_offline.F90 \
+	cable_checks.F90 \
 	cable_read.F90 cable_initialise.F90 cable_input.F90 cable_write.F90 \
 	cable_output.F90 casa_cnp.F90 casa_cable.F90 casa_inout.F90 cable_driver.F90 \
 	cable_sli_main.F90 cable_sli_numbers.F90 cable_sli_roots.F90 \
@@ -99,6 +108,7 @@ cable_fprint.o: cable_fprint.F90 cable_common.o
 cable_PyFprint.o: cable_PyFprint.F90
 #
 cbl_math_constants_mod.o: cbl_math_constants_mod.F90
+cbl_phys_constants_mod.o: cbl_phys_constants_mod.F90
 cbl_other_constants_mod.o: cbl_other_constants_mod.F90
 cbl_masks.o: cbl_masks.F90
 cbl_hgtAbove_snow.o: cbl_hgtAbove_snow.F90
@@ -114,7 +124,7 @@ cable_diag.o: cable_diag.F90 cable_common.o cable_fFile.o
 cable_air.o: cable_air.F90 cable_define_types.o cable_common.o cable_data.o
 
 cbl_albedo.o: cbl_albedo.F90 cbl_snow_albedo.o cbl_rhoch.o cable_define_types.o cable_common.o cable_data.o
-cbl_snow_albedo.o: cbl_snow_albedo.F90 cbl_soilColour_albedo.o
+cbl_snow_albedo.o: cbl_snow_albedo.F90 cbl_soilColour_albedo.o cbl_phys_constants_mod.o
 
 cbl_soilColour_albedo.o: cbl_soilColour_albedo.F90 
 
