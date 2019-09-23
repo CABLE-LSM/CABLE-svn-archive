@@ -89,12 +89,12 @@ REAL :: SW_down(mp,nrb)             !Downward shortwave "forced" (met%fsd)
 
 !Prognostics
 !-------------------------------------------------------------------------------
-REAL :: SnowDepth(mp)               !Total Snow depth - water eqivalent - packed from snow_surft (ssnow%snowd)
-REAL :: SnowODepth(mp)              !Total Snow depth before any update this timestep (ssnow%Osnowd)
-REAL :: SnowDensity(mp)             !Total Snow density (assumes 1 layer describes snow cover) (ssnow%ssdnn)
+REAL :: SnowDepth(mp)               !Total Snow depth - water eqivalent - packed from snow_surft (SnowDepth)
+REAL :: SnowODepth(mp)              !Total Snow depth before any update this timestep (SnowODepth)
+REAL :: SnowDensity(mp)             !Total Snow density (assumes 1 layer describes snow cover) (SnowDensity)
 REAL :: SoilTemp(mp)                !Soil Temperature of top layer (soil%tgg)
-REAL :: SnowAge(mp)                 !Snow age (assumes 1 layer describes snow cover) (ssnow%snage)
-integer:: SnowFlag_3L(mp)           !Flag to treat snow as 3 layer  - if enough present. Updated depending on total depth (ssnow%isflag)
+REAL :: SnowAge(mp)                 !Snow age (assumes 1 layer describes snow cover) (SnowAge)
+integer:: SnowFlag_3L(mp)           !Flag to treat snow as 3 layer  - if enough present. Updated depending on total depth (SnowFlag_3L)
 !-------------------------------------------------------------------------------
 
 REAL :: RadFbeam(mp,nrb)            !Computed Beam Fraction given total SW (rad%fbeam)
@@ -130,23 +130,11 @@ REAL :: VegRefl(mp,nrb)             !PARAMETER leaf reflectivity (veg%refl)
 
 
 call surface_albedosn( AlbSnow, AlbSoil, mp, surface_type, &
-                       ssnow%snowd, ssnow%Osnowd, sSnow%isFlag, &
-                       sSnow%ssdnn, &
-                       ssnow%tgg, sSnow%snAge, &
+                       SnowDepth, SnowODepth, SnowFlag_3L, &
+                       SnowDensity, &
+                       SoilTemp, SnowAge, &
                        metTk, coszen )
    
-!call surface_albedosn( ssnow%albsoilsn, soil%albsoil, mp, veg%iveg, &
-!                       ssnow%snowd, ssnow%Osnowd, sSnow%isFlag, &
-!                       sSnow%ssdnn, &
-!                       ssnow%tgg, sSnow%snAge, &
-!                       met%Tk, met%coszen )
-!   
-
-!call surface_albedosn( AlbSnow, AlbSoil, mp, surface_type, &
-!                       SnowDepth, SnowODepth, SnowFlag_3L, &
-!                       SnowDensity, &
-!                       SoilTemp, SnowAge, &
-!                       metTk, coszen )
 !   
 
     rad%cexpkbm = 0.0
