@@ -115,10 +115,10 @@ REAL :: EffExtCoeff_beam(mp,nrb)    !Effective Extinction co-efficient for Direc
 REAL :: EffExtCoeff_dif(mp,nrb)     !Effective Extinction co-efficient for Diffuse component of SW radiation (rad%extkdm)
 
 !Canopy reflectance/transmitance compued in albedo() 
-REAL :: CanopyRefl_dif(mp,nrb)      !Canopy reflectance (rad%cexpkdm) 
-REAL :: CanopyRefl_beam(mp,nrb)     !Canopy reflectance (rad%cexpkbm)   
-REAL :: CanopyTransmit_dif(mp,nrb)  !Canopy Transmitance (rad%rhodf   
-REAL :: CanopyTransmit_beam(mp,nrb) !Canopy Transmitance (rad%rhobm)    
+REAL :: CanopyRefl_dif(mp,nrb)      !Canopy reflectance  (rad%rhodf   
+REAL :: CanopyRefl_beam(mp,nrb)     !Canopy reflectance  (rad%rhobm)   
+REAL :: CanopyTransmit_dif(mp,nrb)  !Canopy Transmitance (rad%cexpkdm)   
+REAL :: CanopyTransmit_beam(mp,nrb) !Canopy Transmitance (rad%cexpkbm)
 !-------------------------------------------------------------------------------
 
 !Vegetation parameters
@@ -135,7 +135,7 @@ call surface_albedosn( AlbSnow, AlbSoil, mp, surface_type, &
                        SoilTemp, SnowAge, &
                        metTk, coszen )
    
-canopytransmit_beam = 0.0
+CanopyTransmit_beam = 0.0
     rad%extkbm  = 0.0
     rad%rhocbm  = 0.0
 
@@ -158,7 +158,7 @@ call calc_rhoch( c1,rhoch, mp, nrb, veg%taul, veg%refl )
        rad%extkdm(:,b) = rad%extkd * c1(:,b)
 
        !--Define canopy diffuse transmittance (fraction):
-canopytransmit_dif(:,b) = EXP(-rad%extkdm(:,b) * canopy%vlaiw)
+CanopyTransmit_dif(:,b) = EXP(-rad%extkdm(:,b) * canopy%vlaiw)
 
        !---Calculate effective diffuse reflectance (fraction):
        WHERE( canopy%vlaiw > 1e-2 )                                             &
@@ -177,7 +177,7 @@ canopytransmit_dif(:,b) = EXP(-rad%extkdm(:,b) * canopy%vlaiw)
           ! Canopy beam transmittance (fraction):
           dummy2 = MIN(rad%extkbm(:,b)*canopy%vlaiw, 20.)
           dummy  = EXP(-dummy2)
-canopytransmit_beam(:,b) = REAL(dummy)
+CanopyTransmit_beam(:,b) = REAL(dummy)
 
           ! Calculate effective beam reflectance (fraction):
           EffSurfRefl_beam(:,b) = rad%rhocbm(:,b) + (ssnow%albsoilsn(:,b)             &
