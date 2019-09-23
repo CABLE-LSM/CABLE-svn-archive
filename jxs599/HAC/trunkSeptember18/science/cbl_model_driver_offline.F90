@@ -52,7 +52,8 @@ CONTAINS
     USE cable_gw_hydro_module, ONLY : sli_hydrology,&
          soil_snow_gw
     USE cable_canopy_module, ONLY : define_canopy
-    USE cable_albedo_module, ONLY : surface_albedo
+    !USE cable_albedo_module, ONLY : surface_albedo
+    USE cbl_albedo_mod, ONLY : albedo
     USE sli_main_mod, ONLY : sli_main
 !data !jhan:pass these
 USE cable_other_constants_mod, ONLY : CLAI_THRESH => lai_thresh
@@ -129,11 +130,89 @@ CALL ruff_resist(veg, rough, ssnow, canopy, veg%vlai, veg%hc, canopy%vlaiw)
     IF( cable_runtime%um ) THEN
 
        IF( cable_runtime%um_explicit ) THEN
-          CALL surface_albedo(ssnow, veg, met, rad, soil, canopy)
+  call Albedo(        &
+ssnow%AlbSoilsn,      &!AlbSnow,              & 
+soil%AlbSoil,         &!AlbSoil,              & 
+mp,                   &  
+nrb,                  &
+jls_radiation ,       &
+veg_mask,             & 
+sunlit_mask,          & 
+sunlit_veg_mask,      & 
+Ccoszen_tols,         &
+CGAUSS_W,             & 
+veg%iveg,             & !   surface_type,         &
+met%tk,               & !  metTk,                & 
+met%coszen,           &!  coszen,               & 
+canopy%vlaiw,         &!  reducedLAIdue2snow,          &
+ssnow%snowd,          &!  SnowDepth,            &  
+ssnow%osnowd,         &!  SnowODepth,           & 
+ssnow%isflag,         & !  SnowFlag_3L,          & 
+ssnow%ssdnn,          & !   SnowDensity,          & 
+ssnow%tgg(:,1),       &   !   SoilTemp,             & 
+ssnow%snage,          & !   SnowAge,              &
+xk,                   &  
+c1,                   &  
+rhoch,                &
+Rad%Fbeam,            & 
+Rad%Albedo,           &
+rad%extkd,             &!ExtCoeff_beam,         &
+rad%extkb,             & !ExtCoeff_dif,          &
+rad%extkdm,           & ! EffExtCoeff_beam
+rad%extkbm,           & ! = EffExtCoeff_dif
+rad%rhocdf,          & 
+rad%rhocbm,          & 
+!  CanopyRefl_dif,    & 
+!  CanopyRefl_beam,   &
+rad%cexpkdm,          & ! = CanopyTransmit_dif 
+rad%cexpkbm,          & ! = CanopyTransmit_beam
+rad%reffdf,           &! = EffSurfRefl_dif
+rad%reffbm            &! = EffSurfRefl_beam
+             )
+
        ENDIF
 
     ELSE
-       CALL surface_albedo(ssnow, veg, met, rad, soil, canopy)
+  call Albedo(        &
+ssnow%AlbSoilsn,      &!AlbSnow,              & 
+soil%AlbSoil,         &!AlbSoil,              & 
+mp,                   &  
+nrb,                  &
+jls_radiation ,       &
+veg_mask,             & 
+sunlit_mask,          & 
+sunlit_veg_mask,      & 
+Ccoszen_tols,         &
+CGAUSS_W,             & 
+veg%iveg,             & !   surface_type,         &
+met%tk,               & !  metTk,                & 
+met%coszen,           &!  coszen,               & 
+canopy%vlaiw,         &!  reducedLAIdue2snow,          &
+ssnow%snowd,          &!  SnowDepth,            &  
+ssnow%osnowd,         &!  SnowODepth,           & 
+ssnow%isflag,         & !  SnowFlag_3L,          & 
+ssnow%ssdnn,          & !   SnowDensity,          & 
+ssnow%tgg(:,1),       &   !   SoilTemp,             & 
+ssnow%snage,          & !   SnowAge,              &
+xk,                   &  
+c1,                   &  
+rhoch,                &
+Rad%Fbeam,            & 
+Rad%Albedo,           &
+rad%extkd,             &!ExtCoeff_beam,         &
+rad%extkb,             & !ExtCoeff_dif,          &
+rad%extkdm,           & ! EffExtCoeff_beam
+rad%extkbm,           & ! = EffExtCoeff_dif
+rad%rhocdf,          & 
+rad%rhocbm,          & 
+!  CanopyRefl_dif,    & 
+!  CanopyRefl_beam,   &
+rad%cexpkdm,          & ! = CanopyTransmit_dif 
+rad%cexpkbm,          & ! = CanopyTransmit_beam
+rad%reffdf,           &! = EffSurfRefl_dif
+rad%reffbm            &! = EffSurfRefl_beam
+             )
+
     ENDIF
 
     ! Calculate canopy variables:
