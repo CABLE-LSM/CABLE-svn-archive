@@ -2,8 +2,25 @@
 
 known_hosts()
 {
-   set -A kh vayu cher pear shin jigg nXXX raij ces2 ccrc mael mons
+   set -A kh vayu cher pear shin jigg nXXX raij ces2 ccrc mael mons cycl
 }
+
+
+## 
+host_cycl()
+{
+   export NCDIR='/share/apps/netcdf-f/intel/4.4.4/lib'
+   export NCMOD='/share/apps/netcdf-f/intel/4.4.4/include'
+   export FC=ifort
+   export CFLAGS='-O2 -fp-model precise'
+   export LD='-lnetcdf -lnetcdff'
+   export LDFLAGS='-L/share/apps/netcdf-f/intel/4.4.4/lib -O2'
+   build_build
+   cd ../
+   build_status
+}
+
+
 
 
 ## run with new gridinfo
