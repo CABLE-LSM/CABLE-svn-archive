@@ -137,7 +137,7 @@ call surface_albedosn( AlbSnow, AlbSoil, mp, surface_type, &
    
 CanopyTransmit_beam = 0.0
     EffExtCoeff_beam  = 0.0
-    rad%rhocbm  = 0.0
+    CanopyRefl_beam  = 0.0
 
     ! Initialise effective conopy beam reflectance:
     EffSurfRefl_beam = ssnow%albsoilsn
@@ -171,7 +171,7 @@ CanopyTransmit_dif(:,b) = EXP(-rad%extkdm(:,b) * canopy%vlaiw)
           EffExtCoeff_beam(:,b) = rad%extkb * c1(:,b)
 
           ! Canopy reflection (6.21) beam:
-          rad%rhocbm(:,b) = 2. * rad%extkb / ( rad%extkb + rad%extkd )          &
+          CanopyRefl_beam(:,b) = 2. * rad%extkb / ( rad%extkb + rad%extkd )          &
                * rhoch(:,b)
 
           ! Canopy beam transmittance (fraction):
@@ -180,8 +180,8 @@ CanopyTransmit_dif(:,b) = EXP(-rad%extkdm(:,b) * canopy%vlaiw)
 CanopyTransmit_beam(:,b) = REAL(dummy)
 
           ! Calculate effective beam reflectance (fraction):
-          EffSurfRefl_beam(:,b) = rad%rhocbm(:,b) + (ssnow%albsoilsn(:,b)             &
-               - rad%rhocbm(:,b))*canopytransmit_beam(:,b)**2
+          EffSurfRefl_beam(:,b) = CanopyRefl_beam(:,b) + (ssnow%albsoilsn(:,b)             &
+               - CanopyRefl_beam(:,b))*canopytransmit_beam(:,b)**2
 
        END WHERE
 
