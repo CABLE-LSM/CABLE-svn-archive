@@ -136,13 +136,13 @@ call surface_albedosn( AlbSnow, AlbSoil, mp, surface_type, &
                        metTk, coszen )
    
 CanopyTransmit_beam = 0.0
-    EffExtCoeff_beam  = 0.0
-    CanopyRefl_beam  = 0.0
+EffExtCoeff_beam  = 0.0
+CanopyRefl_beam  = 0.0
 
     ! Initialise effective conopy beam reflectance:
-    EffSurfRefl_beam = ssnow%albsoilsn
-    EffSurfRefl_dif = ssnow%albsoilsn
-    rad%albedo = ssnow%albsoilsn
+!    EffSurfRefl_beam = ssnow%albsoilsn
+!    EffSurfRefl_dif = ssnow%albsoilsn
+!    rad%albedo = ssnow%albsoilsn
 
     ! Define vegetation mask:
     mask = canopy%vlaiw > 0.001 .AND.                                    &
@@ -187,7 +187,7 @@ CanopyTransmit_beam(:,b) = REAL(dummy)
 
        ! Define albedo:
        WHERE( canopy%vlaiw> .001 )                                      &
-            rad%albedo(:,b) = ( 1. - rad%fbeam(:,b) )*EffSurfRefl_dif(:,b) +           &
+            RadAlbedo(:,b) = ( 1. - rad%fbeam(:,b) )*EffSurfRefl_dif(:,b) +           &
             rad%fbeam(:,b) * EffSurfRefl_beam(:,b)
 
     END DO
