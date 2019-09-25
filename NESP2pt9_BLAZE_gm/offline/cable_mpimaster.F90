@@ -2386,8 +2386,11 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
      blen(bidx) = r1len
      ! Ticket #56, finish adding new veg parms 
    
+     bidx = bidx + 1
+     CALL MPI_Get_address (veg%gmmax(off), displs(bidx), ierr)
+     blen(bidx) = r1len
 
-
+     
   ! ----------- bgc --------------
 
      bidx = bidx + 1

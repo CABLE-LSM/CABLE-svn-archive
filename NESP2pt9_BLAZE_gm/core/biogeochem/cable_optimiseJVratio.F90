@@ -199,25 +199,28 @@ CONTAINS
 
  ! Copied from cable_canopy.f90 (is there a better way??)
  ! ------------------------------------------------------------------------------
-subroutine fAn(a,b,c,A2)
-  REAL, INTENT(IN) :: a,b,c
-  REAL, INTENT(OUT) :: A2
-  REAL :: s2
+  subroutine fAn(a,b,c,A2)
+  USE cable_def_types_mod, only: r_2
+  REAL(r_2), INTENT(IN) :: a,b,c
+  REAL(r_2), INTENT(OUT) :: A2
+  REAL(r_2) :: s2
   s2 = b**2 - 4.*a*c
   A2 = (-b - sqrt(s2))/(2.*a)
 end subroutine fAn
  ! ------------------------------------------------------------------------------
 subroutine fabc(Cs,g0,x,gamma,beta,Gammastar,Rd,a,b,c)
+  USE cable_def_types_mod, only: r_2
   REAL, INTENT(IN) :: Cs,g0,x,gamma,beta,Gammastar,Rd
-  REAL, INTENT(OUT) :: a,b,c
+  REAL(r_2), INTENT(OUT) :: a,b,c
   a = (1.-x)*Cs - x*beta
   b = -g0*Cs**2 + ((1.-x)*(Rd-gamma)-g0*beta)*Cs - x*(gamma*Gammastar+Rd*beta)
   c = -g0*(Rd-gamma)*Cs**2 - g0*(gamma*Gammastar+Rd*beta)*Cs
 end subroutine fabc
  ! ------------------------------------------------------------------------------
 subroutine fabcd(Cs, g0, x, gamma, beta, Gammastar, Rd, gm, a,b,c1,d)
+  USE cable_def_types_mod, only: r_2
   REAL, INTENT(IN) :: Cs, g0, x, gamma, beta, Gammastar, Rd, gm
-  REAL, INTENT(OUT) :: a,b,c1,d
+  REAL(r_2), INTENT(OUT) :: a,b,c1,d
   a = x
   b = (gm+g0-gm*x)*Cs + x*(Rd-gamma) - gm*x*beta
   c1 = -gm*g0*Cs**2 + ((gm+g0-gm*x)*(Rd-gamma)-gm*g0*beta)*Cs - &
@@ -226,36 +229,41 @@ subroutine fabcd(Cs, g0, x, gamma, beta, Gammastar, Rd, gm, a,b,c1,d)
 end subroutine fabcd
  ! ------------------------------------------------------------------------------
 subroutine  fpq(a,b,c,d, p,q)
-  REAL, INTENT(IN) :: a,b,c,d
-  REAL, INTENT(OUT) :: p, q
+  USE cable_def_types_mod, only: r_2
+  REAL(r_2), INTENT(IN) :: a,b,c,d
+  REAL(r_2), INTENT(OUT) :: p, q
   p = (3.*a*c - b**2)/(3.*a**2)
   q = (2.*b**3 - 9.*a*b*c + 27.*a**2*d)/(27.*a**3)        
 end subroutine fpq
  ! ------------------------------------------------------------------------------
 subroutine fAm(a, b, c1, d, p, q, Am)
-  REAL, INTENT(IN) :: a, b, c1, d, p, q
-  REAL, INTENT(OUT) :: Am
-  REAL :: p3, pq, k
+  USE cable_def_types_mod, only: r_2
+  USE mo_constants, only: pi => pi_dp
+  REAL(r_2), INTENT(IN) :: a, b, c1, d, p, q
+  REAL(r_2), INTENT(OUT) :: Am
+  REAL(r_2) :: p3, pq, k
   p3 = -p/3.
-  pq = 3*q/(2*p)*sqrt(1/p3)
+  pq = MIN(3*q/(2*p)*sqrt(1/p3),1._r_2)
   k  = 1
-  Am = 2*sqrt(p3)*cos(acos(pq)/3. - 2*C%PI_C*k/3.) - b/(3*a)
+  Am = 2*sqrt(p3)*cos(acos(pq)/3. - 2*pi*k/3.) - b/(3*a)
 end subroutine fAm
  ! ------------------------------------------------------------------------------
 
 
 
 REAL FUNCTION total_photosynthesis_cost(bjv)
-  USE cable_canopy_module, ONLY : xvcmxt3, xejmxt3, ej3x, xrdt, &
-                                  xgmesT, xvcmxt3_acclim, xejmxt3_acclim 
+   USE cable_canopy_module, ONLY : xvcmxt3, xejmxt3, ej3x, xrdt, &
+                                   xgmesT, xvcmxt3_acclim, xejmxt3_acclim 
+   USE cable_def_types_mod, only: r_2
    !TYPE( icanopy_type ) :: C
    REAL, INTENT(IN) :: bjv
-   INTEGER :: k, j  
-   REAL :: kct, kot, tdiff
-   REAL :: x, gamma,  beta, gammastar, Rd, a, b, c1, jmaxt
-   REAL :: gm, d, p, q  ! if finite_gm 
-   REAL :: Anc, Ane, vcmax0, trf
-   REAL :: An(nt), Ac(nt), Aj(nt)
+   INTEGER   :: k, j  
+   REAL(r_2) :: kct, kot, tdiff
+   REAL      :: x, gamma,  beta, gammastar, Rd, gm, jmaxt, trf 
+   REAL(r_2) :: a, b, c1
+   REAL(r_2) :: d, p, q  ! if finite_gm 
+   REAL(r_2) :: Anc, Ane, vcmax0
+   REAL      :: An(nt), Ac(nt), Aj(nt)
 
    CALL point2constants(C)
 
@@ -271,7 +279,6 @@ REAL FUNCTION total_photosynthesis_cost(bjv)
          if (cable_user%acclimate_photosyn) then
             CALL xvcmxt3_acclim(Tleaf(k), Tgrowth, trf)
             gamma = Vcmax0*scalex(k)*trf
-write(90,'(3f18.10)') Tgrowth, trf, gamma
          else
             gamma = Vcmax0*scalex(k)*xvcmxt3(Tleaf(k))
          endif
@@ -322,7 +329,6 @@ write(90,'(3f18.10)') Tgrowth, trf, gamma
          if (cable_user%acclimate_photosyn) then
             call xejmxt3_acclim(Tleaf(k), Thome, trf)
             jmaxt = bjv*Vcmax0*scalex(k)*trf
-write(89,'(3f18.10)') Thome, trf, jmaxt
          else
             jmaxt = bjv*Vcmax0*scalex(k)*xejmxt3(Tleaf(k))
          endif
@@ -382,12 +388,12 @@ REAL FUNCTION total_photosynthesis(bjv)
                                    xgmesT, xvcmxt3_acclim, xejmxt3_acclim
   !TYPE( icanopy_type ) :: C
   REAL, INTENT(IN) :: bjv
-  INTEGER :: k, j
-  REAL :: kct, kot, tdiff
-  REAL :: g0, x, gamma,  beta, gammastar, Rd, a, b, c1, jmaxt
-  REAL :: gm, d, p, q  ! if finite_gm 
-  REAL :: Anc, Ane, vcmax0, trf
-  REAL :: An(nt)
+  INTEGER   :: k, j
+  REAL      :: kct, kot, tdiff
+  REAL      :: g0, x, gamma,  beta, gammastar, Rd, jmaxt, gm, trf
+  REAL(r_2) :: a, b, c1, d, p, q 
+  REAL(r_2) :: Anc, Ane, vcmax0
+  REAL      :: An(nt)
 
   CALL point2constants(C)
   An = 0.0
@@ -498,17 +504,18 @@ END FUNCTION total_photosynthesis
 
 
 REAL FUNCTION diff_Ac_Aj(bjv)
-  USE cable_canopy_module, ONLY : xvcmxt3, xejmxt3, ej3x, xrdt, &
-                                  xgmesT, xvcmxt3_acclim, xejmxt3_acclim
+   USE cable_canopy_module, ONLY : xvcmxt3, xejmxt3, ej3x, xrdt, &
+                                   xgmesT, xvcmxt3_acclim, xejmxt3_acclim
+   USE cable_def_types_mod, only: r_2
    !TYPE( icanopy_type ) :: C
    REAL, INTENT(IN) :: bjv
-   INTEGER :: k, j  ! k is timestep!
-   REAL :: kct, kot, tdiff
-   REAL :: x, gamma,  beta, gammastar, Rd, a, b, c1, jmaxt ! c1 because C already taken
-   REAL :: gm, d, p, q  ! if finite_gm 
-   REAL :: Anc, Ane, vcmax0
-   REAL :: An(nt), Ac(nt), Aj(nt)
-   REAL :: total_An, total_Ac, total_Aj
+   INTEGER   :: k, j  ! k is timestep!
+   REAL      :: kct, kot, tdiff
+   REAL      :: x, gamma,  beta, gammastar, Rd, jmaxt, gm ! c1 because C already taken
+   REAL(r_2) :: a, b, c1, d, p, q  ! if finite_gm 
+   REAL(r_2) :: Anc, Ane, vcmax0
+   REAL      :: An(nt), Ac(nt), Aj(nt)
+   REAL      :: total_An, total_Ac, total_Aj
    CALL point2constants(C)
    An = 0.0
    Ac = 0.0
@@ -702,15 +709,16 @@ END FUNCTION diff_Ac_Aj
 
 
 SUBROUTINE total_An_Ac_Aj(bjv, total_An, total_Ac, total_Aj)
-  USE cable_canopy_module, ONLY :  xvcmxt3,xejmxt3, ej3x, xrdt, &
-                                   xgmesT, xvcmxt3_acclim, xejmxt3_acclim
+  USE cable_canopy_module, ONLY: xvcmxt3,xejmxt3, ej3x, xrdt, &
+                                 xgmesT, xvcmxt3_acclim, xejmxt3_acclim
+   USE cable_def_types_mod, only: r_2
    !TYPE( icanopy_type ) :: C
    REAL, INTENT(IN) :: bjv
    INTEGER :: k, j
    REAL :: kct, kot, tdiff
-   REAL :: x, gamma,  beta, gammastar, Rd, a, b, c1, jmaxt
-   REAL :: gm, d, p, q  ! if finite_gm
-   REAL :: Anc, Ane, vcmax0
+   REAL :: x, gamma,  beta, gammastar, Rd, jmaxt, gm
+   REAL(r_2) :: a, b, c1, d, p, q  ! if finite_gm
+   REAL(r_2) :: Anc, Ane, vcmax0
    REAL :: An(nt), Ac(nt), Aj(nt)
    REAL, INTENT(OUT) :: total_An, total_Ac, total_Aj
 

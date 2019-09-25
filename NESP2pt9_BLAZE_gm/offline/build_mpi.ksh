@@ -426,12 +426,13 @@ build_build()
    DRV="."
    CASA="../core/biogeochem"
    BLAZE="../core/blaze"
+   UTIL="../core/utils"
    
    /bin/cp -p $CORE/*90 ./.mpitmp
    /bin/cp -p $DRV/*90 ./.mpitmp
    /bin/cp -p $CASA/*90 ./.mpitmp
    /bin/cp -p $BLAZE/*90 ./.mpitmp
-   
+   /bin/cp -p $UTIL/*90 ./.mpitmp
        
    /bin/cp -p Makefile_mpi  ./.mpitmp
    

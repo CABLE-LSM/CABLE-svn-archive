@@ -1,4 +1,4 @@
-l!==============================================================================
+!==============================================================================
 ! This source code is part of the 
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
 ! This work is licensed under the CSIRO Open Source Software License
@@ -1760,7 +1760,6 @@ CONTAINS
                 call xvcmxt3_acclim(tlfx(i), climate%mtemp(i) , temp(i))
                 temp_sun(i)   = temp(i) * veg%vcmax_sun(i) * (1.0-veg%frac4(i))
                 temp_shade(i) = temp(i) * veg%vcmax_shade(i) * (1.0-veg%frac4(i))
-write(87,'(4f18.10)') temp(1), climate%mtemp(1), temp_sun(1), temp_shade(1)
              endif
              vcmxt3(i,1) = rad%scalex(i,1) * temp_sun(i)
              vcmxt3(i,2) = rad%scalex(i,2) * temp_shade(i)
@@ -2703,7 +2702,7 @@ write(87,'(4f18.10)') temp(1), climate%mtemp(1), temp_sun(1), temp_shade(1)
                    endif
                    anrubiscoz(i,j) = Am
                    gsm = (gm* (g0+X*Am))/(gm + (g0+X*Am))
-                   cc = cs - Am/gsm
+                   cc = cs - Am/MAX(gsm,1e-4_r_2)
                    if (Am > 0) eta_c(i,j) = dAmc(i,j)*cs/Am
                 endif  ! end Rubisco limited  c3 calculation that accounts for mesophyll conductance
 
@@ -2743,8 +2742,7 @@ write(87,'(4f18.10)') temp(1), climate%mtemp(1), temp_sun(1), temp_shade(1)
                    anrubpz(i,j) = Am
                    if (Am > 0) eta_e(i,j) = dAme(i,j)*cs/Am
                    gsm = (gm* (g0+X*Am))/(gm + (g0+X*Am))
-                   cc = cs - Am/gsm
-
+                   cc = cs - Am/MAX(gsm,1e-4_r_2)
                 endif  ! end RuBp c3 calculation that accounts for mesophyll conductance
 
                 ! C4 RubP calculation
@@ -3185,7 +3183,8 @@ SUBROUTINE photosynthesis( csxz, cx1z, cx2z, gswminz,                          &
 
     REAL(r_2), PARAMETER  :: EHa    = 49.6e3  ! J/mol 
     REAL(r_2), PARAMETER  :: EHd    = 437.4e3 ! J/mol 
-    REAL(r_2), PARAMETER  :: Entrop = 1.4e3   ! J/mol/K 
+    REAL(r_2), PARAMETER  :: Entrop = 1.4e3   ! J/mol/K
+    CALL point2constants(C)
 
     xgmes = exp(EHa * (x - C%Trefk) / (C%Trefk * C%rgas * x )) *  &
             (1.0 + exp((C%Trefk * Entrop - EHd) / (C%Trefk * C%rgas))) / &
@@ -3755,7 +3754,7 @@ elemental pure subroutine fAm(a, b, c1, d, p, q, Am)
   REAL(r_2), INTENT(OUT) :: Am
   REAL(r_2) :: p3, pq, k
   p3 = -p/3.
-  pq = 3*q/(2*p)*sqrt(1/p3)
+  pq = MIN(3*q/(2*p)*sqrt(1/p3),0.999999999999_r_2)
   k  = 1
   Am = 2*sqrt(p3)*cos(acos(pq)/3. - 2*pi*k/3.) - b/(3*a)
 end subroutine fAm
@@ -3776,7 +3775,7 @@ elemental pure subroutine fdAm(a, b, c1, d, p, q, da, db, dc, dd, dp, dq, dAm)
   REAL(r_2), INTENT(OUT) :: dAm
   REAL(r_2) :: k, p3, pq
   p3  = -p/3.
-  pq  = 3.*q/(2.*p)*sqrt(1./p3)
+  pq  = MIN(3.*q/(2.*p)*sqrt(1./p3),0.999999999999_r_2)
   k   = 1
   dAm = (-1./(3.*sqrt(p3))*cos(acos(pq)/3. - 2.*pi*k/3.)*dp &
        + 2.*sqrt(p3) * (sin(acos(pq)/3. - 2.*pi*k/3.)/(3.*sqrt(1.-pq**2)) &
