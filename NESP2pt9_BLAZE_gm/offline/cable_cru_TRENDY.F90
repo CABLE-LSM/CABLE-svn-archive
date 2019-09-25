@@ -442,9 +442,9 @@ CONTAINS
     character(len=4)   :: cy  ! Character representation of cyear
     character(len=200) :: mp  ! Local repr of met path
 #ifdef CRU2018
-    character(len=*), parameter :: cruver="crujra.V1.1" ! CRU version
-#else
     character(len=*), parameter :: cruver="crujra.v2.0" ! CRU version
+#else
+    character(len=*), parameter :: cruver="crujra.V1.1" ! CRU version
 #endif
 
     ! Create a character version of the year for building that part of the filename.
@@ -615,9 +615,9 @@ CONTAINS
   IF (CALL1) THEN
 
 #ifdef CRU2018
-     NdepFILE = trim(CRU%BasePath)//"/ndep/NOy_plus_NHx_dry_plus_wet_deposition_hist_1850_2015_annual_1deg.nc"
+     NdepFILE = trim(CRU%BasePath)//"/ndep/NOy_plus_NHx_dry_plus_wet_deposition_1850_2099_annual.1deg.nc"
 #else
-     NdepFILE = TRIM(CRU%BasePath)//"/ndep/NOy_plus_NHx_dry_plus_wet_deposition_1850_2099_annual.1deg.nc"
+     NdepFILE = TRIM(CRU%BasePath)//"/ndep/NOy_plus_NHx_dry_plus_wet_deposition_hist_1850_2015_annual_1deg.nc"
 #endif
 
          
