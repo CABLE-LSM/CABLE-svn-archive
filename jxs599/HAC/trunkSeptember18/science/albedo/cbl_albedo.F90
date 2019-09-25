@@ -144,9 +144,8 @@ CanopyRefl_beam  = 0.0
 !    EffSurfRefl_dif = ssnow%albsoilsn
 !    rad%albedo = ssnow%albsoilsn
 
-    ! Define vegetation mask:
-    mask = canopy%vlaiw > 0.001 .AND.                                    &
-         ( met%fsd(:,1) + met%fsd(:,2) ) > 0.001
+! Define vegetation mask:
+mask = sunlit_veg_mask 
 
 call calc_rhoch( c1,rhoch, mp, nrb, veg%taul, veg%refl )
 
