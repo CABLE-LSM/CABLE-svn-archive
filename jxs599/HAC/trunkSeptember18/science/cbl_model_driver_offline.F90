@@ -94,6 +94,8 @@ LOGICAL :: jls_radiation= .false.
 real :: reducedLAIdue2snow(mp)
 !masks
 logical :: veg_mask(mp),  sunlit_mask(mp),  sunlit_veg_mask(mp) 
+logical :: asunlit_veg_mask(mp) 
+logical :: asunlit_mask(mp) 
 !co-efficients usoughout init_radiation ` called from _albedo as well
 REAL :: c1(mp,nrb)
 REAL :: rhoch(mp,nrb)
@@ -103,6 +105,11 @@ REAL :: xk(mp,nrb)
 
     cable_user%soil_struc="default"
 
+!veg_mask =  canopy%vlaiw > .001
+call fveg_mask( veg_mask, mp, Clai_thresh, canopy%vlaiw )
+sunlit_mask = ( met%fsd(:,1) + met%fsd(:,2) ) > 0.001
+sunlit_veg_mask =  veg_mask .AND. sunlit_mask
+  
     ! assign local ptrs to constants defined in cable_data_module
     CALL point2constants(C)
 
@@ -121,16 +128,16 @@ CALL ruff_resist(veg, rough, ssnow, canopy, veg%vlai, veg%hc, canopy%vlaiw)
 
     ELSE
 CALL ruff_resist(veg, rough, ssnow, canopy, veg%vlai, veg%hc, canopy%vlaiw)
-!CALL ruff_resist(veg, rough, ssnow, canopy, LAI_pft, HGT_pft, reducedLAIdue2snow )
+
     ENDIF
 
-  
     CALL init_radiation(met,rad,veg, canopy) ! need to be called at every dt
  
     IF( cable_runtime%um ) THEN
 
        IF( cable_runtime%um_explicit ) THEN
   call Albedo(        &
+  ssnow, veg, met, rad, soil, canopy, &
 ssnow%AlbSoilsn,      &!AlbSnow,              & 
 soil%AlbSoil,         &!AlbSoil,              & 
 mp,                   &  
@@ -174,6 +181,7 @@ rad%reffbm            &! = EffSurfRefl_beam
 
     ELSE
   call Albedo(        &
+  ssnow, veg, met, rad, soil, canopy, &
 ssnow%AlbSoilsn,      &!AlbSnow,              & 
 soil%AlbSoil,         &!AlbSoil,              & 
 mp,                   &  
