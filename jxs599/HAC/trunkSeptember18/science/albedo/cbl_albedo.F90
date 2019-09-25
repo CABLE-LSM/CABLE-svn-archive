@@ -160,7 +160,7 @@ call calc_rhoch( c1,rhoch, mp, nrb, veg%taul, veg%refl )
 CanopyTransmit_dif(:,b) = EXP(-rad%extkdm(:,b) * canopy%vlaiw)
 
        !---Calculate effective diffuse reflectance (fraction):
-       WHERE( canopy%vlaiw > 1e-2 )                                             &
+       WHERE( veg_mask )                                             &
             EffSurfRefl_dif(:,b) = rad%rhocdf(:,b) + (ssnow%albsoilsn(:,b)             &
             - rad%rhocdf(:,b)) * canopytransmit_dif(:,b)**2
 
@@ -185,7 +185,7 @@ CanopyTransmit_beam(:,b) = REAL(dummy)
        END WHERE
 
        ! Define albedo:
-       WHERE( canopy%vlaiw> .001 )                                      &
+       WHERE( veg_mask )                                             &
             RadAlbedo(:,b) = ( 1. - rad%fbeam(:,b) )*EffSurfRefl_dif(:,b) +           &
             rad%fbeam(:,b) * EffSurfRefl_beam(:,b)
 

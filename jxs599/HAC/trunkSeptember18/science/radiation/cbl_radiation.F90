@@ -32,11 +32,14 @@ MODULE cbl_radiation_module
 
 CONTAINS
 
-  SUBROUTINE radiation( ssnow, veg, air, met, rad, canopy )
+  SUBROUTINE radiation( ssnow, veg, air, met, rad, canopy, sunlit_veg_mask )
 
     USE cable_def_types_mod, ONLY : radiation_type, met_type, canopy_type,      &
          veg_parameter_type, soil_snow_type,         &
          air_type, mp, mf, r_2
+
+implicit none
+logical :: sunlit_veg_mask(mp)
 
     TYPE (canopy_type),   INTENT(IN) :: canopy
     TYPE (air_type),      INTENT(IN) :: air
@@ -66,8 +69,7 @@ CONTAINS
     call_number = call_number + 1
 
     ! Define vegetation mask:
-    mask = canopy%vlaiw > C%LAI_THRESH .AND.                                    &
-         ( met%fsd(:,1)+met%fsd(:,2) ) > C%RAD_THRESH
+    mask = sunlit_veg_mask
 
     ! Relative leaf nitrogen concentration within canopy:
     cf2n = EXP(-veg%extkn * canopy%vlaiw)

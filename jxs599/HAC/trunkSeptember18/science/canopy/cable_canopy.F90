@@ -60,7 +60,7 @@ MODULE cable_canopy_module
 CONTAINS
 
 
-  SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,climate)
+  SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,climate, sunlit_veg_mask  )
     USE cable_def_types_mod
     USE cbl_radiation_module
     USE cable_air_module
@@ -231,7 +231,7 @@ logical :: sunlit_veg_mask(mp)
     alpm1  = 0.
     beta2  = 0.
 
-    CALL radiation( ssnow, veg, air, met, rad, canopy )
+    CALL radiation( ssnow, veg, air, met, rad, canopy, sunlit_veg_mask)
 
     canopy%zetar(:,1) = C%ZETA0 ! stability correction terms
     canopy%zetar(:,2) = C%ZETPOS + 1
