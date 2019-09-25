@@ -107,8 +107,8 @@ REAL :: xk(mp,nrb)
 
 !veg_mask =  canopy%vlaiw > .001
 call fveg_mask( veg_mask, mp, Clai_thresh, canopy%vlaiw )
-!call fsunlit_mask( sunlit_mask, mp, Ccoszen_tols, met%coszen )
-sunlit_mask = ( met%fsd(:,1) + met%fsd(:,2) ) > 0.001
+call fsunlit_mask( sunlit_mask, mp, Ccoszen_tols, met%coszen )
+!sunlit_mask = ( met%fsd(:,1) + met%fsd(:,2) ) > 0.001
 call fsunlit_veg_mask( sunlit_veg_mask, mp, veg_mask, sunlit_mask)
   
     ! assign local ptrs to constants defined in cable_data_module
