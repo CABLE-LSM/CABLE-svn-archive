@@ -136,7 +136,7 @@ call surface_albedosn( AlbSnow, AlbSoil, mp, surface_type, &
                        metTk, coszen )
    
 CanopyTransmit_beam = 0.0
-    rad%extkbm  = 0.0
+    EffExtCoeff_beam  = 0.0
     rad%rhocbm  = 0.0
 
     ! Initialise effective conopy beam reflectance:
@@ -168,14 +168,14 @@ CanopyTransmit_dif(:,b) = EXP(-rad%extkdm(:,b) * canopy%vlaiw)
        !---where vegetated and sunlit
        WHERE (mask)
 
-          rad%extkbm(:,b) = rad%extkb * c1(:,b)
+          EffExtCoeff_beam(:,b) = rad%extkb * c1(:,b)
 
           ! Canopy reflection (6.21) beam:
           rad%rhocbm(:,b) = 2. * rad%extkb / ( rad%extkb + rad%extkd )          &
                * rhoch(:,b)
 
           ! Canopy beam transmittance (fraction):
-          dummy2 = MIN(rad%extkbm(:,b)*canopy%vlaiw, 20.)
+          dummy2 = MIN(EffExtCoeff_beam(:,b)*canopy%vlaiw, 20.)
           dummy  = EXP(-dummy2)
 CanopyTransmit_beam(:,b) = REAL(dummy)
 
@@ -338,7 +338,7 @@ REAL :: EffExtCoeff_beam(mp)           !"raw" Extinction co-efficient for Direct
 REAL :: EffExtCoeff_dif(mp)            !"raw"Extinction co-efficient for Diffuse component of SW radiation (rad%extkd)
 
 !Zero initialization remains the calculated value where "mask"=FALSE
-CanopyTransmit_beam = 0.0 ! Formerly rad%rhocbm
+CanopyTransmit_beam = 0.0 ! Formerly rad%cexpbm
 
 call CanopyTransmitance_dif(CanopyTransmit_dif, mp, nrb, EffExtCoeff_dif, reducedLAIdue2snow)
 
