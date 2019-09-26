@@ -35,9 +35,11 @@ CONTAINS
     TYPE (veg_parameter_type), INTENT(INOUT)  :: veg  ! vegetation parameters
 
     ! local variables
+    LOGICAL   :: Cc_based_OK, sw ! sw = stability switch
     INTEGER   :: p,i,k
     INTEGER   :: kmax=20  ! maximum nr of iterations
     INTEGER   :: lAn, cntr
+    REAL(r_2) :: vstart, v
     REAL(r_2) :: Vcmax25Cct1  ! Vcmax25Cc of previous iteration
     REAL(r_2) :: Vcmax_diff
     REAL(r_2) :: maxdiff=0.002e-6
@@ -100,31 +102,59 @@ CONTAINS
         END DO
 
         
-        k = 0
-        Vcmax25Cct1 = Vcmax25Ci
-        Vcmax_diff = 1e-6
+        Cc_based_OK = .FALSE.
         !! 3) calculate Cc based on gm and An
-        DO WHILE (Vcmax_diff > maxdiff .AND. k < kmax)
+        DO WHILE(.NOT. Cc_based_OK) ! if it iterates more than once, check gm and Vcmax, Jmax
 
-           k = k + 1
+           k = 0
+           sw = .FALSE.
+           vstart = 1.0
+           Vcmax25Cct1 = Vcmax25Ci
+           Vcmax_diff = 1e-6
            An_Cc = An
-           Cc = Ci - An_Cc / gmmax25
+
+           DO WHILE (Vcmax_diff > maxdiff .AND. k < kmax)
+
+              k = k + 1
+              An_Cc = An_Cc
+              Cc = Ci - An_Cc / gmmax25
        
-           CALL LMDIF1(PHOTOSYN25_f,lAn,N,X,FVEC,tol,info,An_Cc,Cc,Rd,Km_cc,gammastar_cc)
-           Vcmax25Cc = X(1)
-           Jmax25Cc  = X(2)
+              CALL LMDIF1(PHOTOSYN25_f,lAn,N,X,FVEC,tol,info,An_Cc,Cc,Rd,Km_cc,gammastar_cc)
+              Vcmax25Cc = X(1)
+              Jmax25Cc  = X(2)
 
-           Vcmax_diff = ABS(Vcmax25Cc - Vcmax25Cct1)
-           Vcmax25Cct1 = Vcmax25Cc
+              Vcmax_diff = ABS(Vcmax25Cc - Vcmax25Cct1)
+              Vcmax25Cct1 = Vcmax25Cc
 
-           CALL PHOTOSYN25(Cc,lAn,Vcmax25Cc,Jmax25Cc,Rd,Km_cc,gammastar_cc,An)
+              CALL PHOTOSYN25(Cc,lAn,Vcmax25Cc,Jmax25Cc,Rd,Km_cc,gammastar_cc,An_Cc)
 
-        END DO   
+              ! security switch ensuring stability
+              IF (MINVAL(An_Cc) < 0.0 .AND. (.NOT. sw)) THEN
+                 sw = .TRUE.
+                 v  = vstart
+              ENDIF
+
+              IF (sw) THEN
+                 v = MAX(v - (vstart/(0.8*kmax)),0.0)
+                 An_Cc = v * An + (1.0-v) * An_Cc
+              ENDIF
+
+           END DO   
    
-        !! Avoid unrealistic Vcmax and Jmax values
-        veg%vcmaxcc(p) = MAX(MIN(Vcmax25Cc,2.0*Vcmax25Ci),0.9*Vcmax25Ci)
-        veg%ejmaxcc(p) = MAX(MIN(Jmax25Cc,1.5*Jmax25Ci),0.9*Jmax25Ci)
+           !! Avoid unrealistic Vcmax and Jmax values
+           IF (Vcmax25Cc < 0.9*Vcmax25Ci .OR. Vcmax25Cc > 2.5*Vcmax25Ci &
+               .OR. Jmax25Cc < 0.9*Jmax25Ci .OR. Jmax25Cc > 1.5*Jmax25Ci) THEN
 
+              gmmax25 = 1.2 * gmmax25  ! If no solution, try again with higher gmmax25
+           
+           ELSE       
+              Cc_based_OK = .TRUE.
+              veg%vcmaxcc(p) = Vcmax25Cc
+              veg%ejmaxcc(p) = Jmax25Cc
+           ENDIF
+
+        END DO
+     
         DEALLOCATE(An)
         DEALLOCATE(An_Cc)
         DEALLOCATE(Ci)
@@ -132,7 +162,7 @@ CONTAINS
         DEALLOCATE(FVEC)
         
        
-      ELSE  ! same as for Ci for now...
+      ELSE  ! For C4 plants same as for Ci for now...
 
         veg%vcmaxcc(p) = Vcmax25Ci
         veg%ejmaxcc(p) = Jmax25Ci 

@@ -1947,7 +1947,11 @@ CONTAINS
                  rdx4(i,1) = veg%cfrd(i)*vcmxt4(i,1) 
                  rdx4(i,2) = veg%cfrd(i)*vcmxt4(i,2) 
 
-            endif !cable_user%call_climate
+             endif !cable_user%call_climate
+
+             ! apply fwsoil to gmes
+             gmes(i,1) = MAX(gmes(i,1) * fwsoil(i),0.15 * veg%gmmax(i))
+             gmes(i,2) = MAX(gmes(i,2) * fwsoil(i),0.15 * veg%gmmax(i))
 
             ! Ticket #56 added switch for Belinda Medlyn's model
             IF (cable_user%GS_SWITCH == 'leuning') THEN
