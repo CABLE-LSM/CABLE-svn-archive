@@ -29,7 +29,7 @@ SUBROUTINE open_file_per_node( iDiag,pDiag, dir, basename, node, fbasename )
 
    write(chnode,10) node
 10 format(i3.3)   
-   infilename=trim( trim(dir)//trim(basename)//trim(chnode) )
+   infilename=trim( trim('/home/599/jxs599/')//trim(basename)//trim(chnode) )
     
    IF(iDiag==0) tHEN
       pDiag = pDiag+2  
