@@ -150,6 +150,8 @@ sunlit_veg_mask,      &
 Ccoszen_tols,         &
 CGAUSS_W,             & 
 veg%iveg,             & !   surface_type,         &
+veg%refl,             & !   
+veg%taul,             & !   
 met%tk,               & !  metTk,                & 
 met%coszen,           &!  coszen,               & 
 canopy%vlaiw,         &!  reducedLAIdue2snow,          &
@@ -194,6 +196,8 @@ sunlit_veg_mask,      &
 Ccoszen_tols,         &
 CGAUSS_W,             & 
 veg%iveg,             & !   surface_type,         &
+veg%refl,             & !   
+veg%taul,             & !   
 met%tk,               & !  metTk,                & 
 met%coszen,           &!  coszen,               & 
 canopy%vlaiw,         &!  reducedLAIdue2snow,          &
