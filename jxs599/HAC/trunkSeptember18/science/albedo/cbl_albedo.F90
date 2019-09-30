@@ -205,14 +205,20 @@ EffSurfRefl_beam(:,b) = CanopyRefl_beam(:,b) + ( AlbSnow(:,b)             &
 END WHERE
 
 ! Define albedo:
-WHERE( veg_mask )                                             &
-!RadAlbedo(:,b) = ( 1. - rad%fbeam(:,b) )*EffSurfRefl_dif(:,b) +           &
-!            rad%fbeam(:,b) * EffSurfRefl_beam(:,b)
-RadAlbedo(:,b) = ( 1. - RadFbeam(:,b) )*EffSurfRefl_dif(:,b) +           &
-            RadFbeam(:,b) * EffSurfRefl_beam(:,b)
+!origWHERE( veg_mask )                                             &
+!orig!RadAlbedo(:,b) = ( 1. - rad%fbeam(:,b) )*EffSurfRefl_dif(:,b) +           &
+!orig!            rad%fbeam(:,b) * EffSurfRefl_beam(:,b)
+!origRadAlbedo(:,b) = ( 1. - RadFbeam(:,b) )*EffSurfRefl_dif(:,b) +           &
+!orig            RadFbeam(:,b) * EffSurfRefl_beam(:,b)
+!orig
+END DO
 
-    END DO
-
+! Compute total albedo to SW given the Effective Surface Reflectance 
+! (considering Canopy/Soil/Snow contributions) 
+! we dont need to do this on rad call AND may not haveappropriate RadFbeam
+!H!if(.NOT. jls_radiation) &
+  call FbeamRadAlbedo( RadAlbedo, mp, nrb, veg_mask, radfbeam, &
+                       EffSurfRefl_dif, EffSurfRefl_beam, AlbSnow )
 
 
 
@@ -241,12 +247,6 @@ RadAlbedo(:,b) = ( 1. - RadFbeam(:,b) )*EffSurfRefl_dif(:,b) +           &
 !H!                                  CanopyTransmit_beam,CanopyTransmit_dif,      &
 !H!                                  AlbSnow )
 !H!
-!H!! Compute total albedo to SW given the Effective Surface Reflectance 
-!H!! (considering Canopy/Soil/Snow contributions) 
-!H!! we dont need to do this on rad call AND may not haveappropriate RadFbeam
-!H!if(.NOT. jls_radiation) &
-!H!  call FbeamRadAlbedo( RadAlbedo, mp, nrb, veg_mask, radfbeam, &
-!H!                       EffSurfRefl_dif, EffSurfRefl_beam, AlbSnow )
 
 END SUBROUTINE albedo
 
