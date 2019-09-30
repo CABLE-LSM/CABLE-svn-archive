@@ -11,7 +11,41 @@ CONTAINS
 
 subroutine Albedo( &
   ssnow, veg, met, rad, soil, canopy, &
-#                 include "cbl_albedo_args.inc" 
+AlbSnow,              & 
+AlbSoil,              & 
+mp,                   &  
+nrb,                  &
+jls_radiation ,       &
+veg_mask,             & 
+sunlit_mask,          & 
+sunlit_veg_mask,      & 
+Ccoszen_tols,         &
+CGAUSS_W,             & 
+surface_type,         &
+metTk,                & 
+coszen,               & 
+reducedLAIdue2snow,          &
+SnowDepth,            &  
+SnowODepth,           & 
+SnowFlag_3L,          & 
+SnowDensity,          & 
+SoilTemp,             & 
+SnowAge,              &
+xk,                   &  
+c1,                   &  
+rhoch,                &
+RadFbeam,             & 
+RadAlbedo,            &
+ExtCoeff_dif,         & 
+ExtCoeff_beam,        &
+EffExtCoeff_dif,      & 
+EffExtCoeff_beam,     &
+CanopyRefl_dif,       & 
+CanopyRefl_beam,      &
+CanopyTransmit_dif,   & 
+CanopyTransmit_beam,  &
+EffSurfRefl_dif,      & 
+EffSurfRefl_beam      &
                  )
 !subrs called
 USE cbl_rhoch_module, ONLY : calc_rhoch
@@ -129,6 +163,7 @@ REAL :: VegRefl(mp,nrb)             !PARAMETER leaf reflectivity (veg%refl)
 !-------------------------------------------------------------------------------
 
 
+!Modify albedo based on snow coverage 
 call surface_albedosn( AlbSnow, AlbSoil, mp, surface_type, &
                        SnowDepth, SnowODepth, SnowFlag_3L, &
                        SnowDensity, &
@@ -196,12 +231,7 @@ CanopyTransmit_beam(:,b) = REAL(dummy)
 
    
 !H!!Modify albedo based on snow coverage 
-!H!call surface_albedosn( AlbSnow, AlbSoil, mp, surface_type, &
-!H!                       SnowDepth, SnowODepth, SnowFlag_3L, &
-!H!                       SnowDensity, &
-!H!                       SoilTemp, SnowAge, &
-!H!                       metTk, coszen )
-!H!   
+
 !H!! Define canopy Reflectance for diffuse/direct radiation
 !H!! Formerly rad%rhocbm, rad%rhocdf
 !H!call CanopyReflectance( CanopyRefl_beam, CanopyRefl_dif, &
