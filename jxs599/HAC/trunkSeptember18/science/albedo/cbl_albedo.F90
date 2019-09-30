@@ -170,19 +170,15 @@ call surface_albedosn( AlbSnow, AlbSoil, mp, surface_type, &
                        SoilTemp, SnowAge, &
                        metTk, coszen )
    
+! Initialise effective conopy beam reflectance:
 CanopyTransmit_beam = 0.0
 EffExtCoeff_beam  = 0.0
 CanopyRefl_beam  = 0.0
 
-    ! Initialise effective conopy beam reflectance:
-!    EffSurfRefl_beam = ssnow%albsoilsn
-!    EffSurfRefl_dif = ssnow%albsoilsn
-!    rad%albedo = ssnow%albsoilsn
-
 ! Define vegetation mask:
 mask = sunlit_veg_mask 
 
-call calc_rhoch( c1,rhoch, mp, nrb, veg%taul, veg%refl )
+call calc_rhoch( c1,rhoch, mp, nrb, VegTaul, VegRefl )
 
     ! Update extinction coefficients and fractional transmittance for
     ! leaf transmittance and reflection (ie. NOT black leaves):
@@ -200,7 +196,7 @@ CanopyTransmit_dif(:,b) = EXP(-rad%extkdm(:,b) * canopy%vlaiw)
             - rad%rhocdf(:,b)) * canopytransmit_dif(:,b)**2
 
        !---where vegetated and sunlit
-       WHERE (mask)
+       WHERE (sunlit_veg_mask)
 
           EffExtCoeff_beam(:,b) = rad%extkb * c1(:,b)
 
