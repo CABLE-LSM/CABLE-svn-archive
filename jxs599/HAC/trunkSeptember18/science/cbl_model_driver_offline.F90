@@ -138,7 +138,6 @@ CALL ruff_resist(veg, rough, ssnow, canopy, veg%vlai, veg%hc, canopy%vlaiw)
 
        IF( cable_runtime%um_explicit ) THEN
   call Albedo(        &
-  ssnow, veg, met, rad, soil, canopy, &
 ssnow%AlbSoilsn,      &!AlbSnow,              & 
 soil%AlbSoil,         &!AlbSoil,              & 
 mp,                   &  
@@ -184,7 +183,6 @@ rad%reffbm            &! = EffSurfRefl_beam
 
     ELSE
   call Albedo(        &
-  ssnow, veg, met, rad, soil, canopy, &
 ssnow%AlbSoilsn,      &!AlbSnow,              & 
 soil%AlbSoil,         &!AlbSoil,              & 
 mp,                   &  

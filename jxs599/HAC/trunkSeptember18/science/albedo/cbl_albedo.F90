@@ -10,7 +10,6 @@ CONTAINS
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 subroutine Albedo( &
-  ssnow, veg, met, rad, soil, canopy, &
 AlbSnow,              & 
 AlbSoil,              & 
 mp,                   &  
@@ -60,21 +59,10 @@ USE cbl_snow_albedo_module, ONLY : surface_albedosn
          soil_snow_type, r_2
 
 implicit none
-    TYPE (canopy_type),INTENT(IN)       :: canopy
-    TYPE (met_type),INTENT(INOUT)       :: met
-    TYPE (radiation_type),INTENT(INOUT) :: rad
-    TYPE (soil_snow_type),INTENT(INOUT) :: ssnow
-
-    TYPE (veg_parameter_type),INTENT(INOUT)  :: veg
-    TYPE(soil_parameter_type), INTENT(INOUT) :: soil
 
     REAL(r_2), DIMENSION(mp)  ::                                                &
          dummy2, & !
          dummy
-
-!    REAL, DIMENSION(:,:), ALLOCATABLE, SAVE :: c1, rhoch
-
-    LOGICAL, DIMENSION(mp)  :: mask ! select points for calculation
 
     INTEGER :: b    !rad. band 1=visible, 2=near-infrared, 3=long-wave
 
@@ -220,8 +208,8 @@ END WHERE
 WHERE( veg_mask )                                             &
 !RadAlbedo(:,b) = ( 1. - rad%fbeam(:,b) )*EffSurfRefl_dif(:,b) +           &
 !            rad%fbeam(:,b) * EffSurfRefl_beam(:,b)
-RadAlbedo(:,b) = ( 1. - radfbeam(:,b) )*EffSurfRefl_dif(:,b) +           &
-            radfbeam(:,b) * EffSurfRefl_beam(:,b)
+RadAlbedo(:,b) = ( 1. - RadFbeam(:,b) )*EffSurfRefl_dif(:,b) +           &
+            RadFbeam(:,b) * EffSurfRefl_beam(:,b)
 
     END DO
 
