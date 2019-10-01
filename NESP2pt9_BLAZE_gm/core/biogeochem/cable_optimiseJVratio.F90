@@ -327,7 +327,7 @@ REAL FUNCTION total_photosynthesis_cost(bjv)
          endif
 
          if (cable_user%acclimate_photosyn) then
-            call xejmxt3_acclim(Tleaf(k), Thome, trf)
+            call xejmxt3_acclim(Tleaf(k), Tgrowth, Thome, trf)
             jmaxt = bjv*Vcmax0*scalex(k)*trf
          else
             jmaxt = bjv*Vcmax0*scalex(k)*xejmxt3(Tleaf(k))
@@ -453,7 +453,7 @@ REAL FUNCTION total_photosynthesis(bjv)
         endif
         
         if (cable_user%acclimate_photosyn) then
-           call xejmxt3_acclim(Tleaf(k), Thome, trf)
+           call xejmxt3_acclim(Tleaf(k), Tgrowth, Thome, trf)
            jmaxt = bjv*Vcmax0*scalex(k)*trf
         else
            jmaxt = bjv*Vcmax0*scalex(k)*xejmxt3(Tleaf(k))
@@ -579,7 +579,7 @@ REAL FUNCTION diff_Ac_Aj(bjv)
          endif
 
          if (cable_user%acclimate_photosyn) then
-            call xejmxt3_acclim(Tleaf(k), Thome, trf)
+            call xejmxt3_acclim(Tleaf(k), Tgrowth, Thome, trf)
             jmaxt = bjv*Vcmax0*scalex(k)*trf
          else
             jmaxt = bjv*Vcmax0*scalex(k)*xejmxt3(Tleaf(k))
@@ -775,7 +775,7 @@ SUBROUTINE total_An_Ac_Aj(bjv, total_An, total_Ac, total_Aj)
          endif
 
          if (cable_user%acclimate_photosyn) then
-            call xejmxt3_acclim(Tleaf(k), Thome, trf)
+            call xejmxt3_acclim(Tleaf(k), Tgrowth, Thome, trf)
             jmaxt = bjv*Vcmax0*scalex(k)*trf
          else
             jmaxt = bjv*Vcmax0*scalex(k)*xejmxt3(Tleaf(k))

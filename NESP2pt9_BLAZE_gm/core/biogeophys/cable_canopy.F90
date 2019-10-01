@@ -1777,7 +1777,7 @@ CONTAINS
                 temp_sun(i)   = xejmxt3(tlfx(i)) * veg%ejmax_sun(i) * (1.0-veg%frac4(i))
                 temp_shade(i) = xejmxt3(tlfx(i)) * veg%ejmax_shade(i) * (1.0-veg%frac4(i))
              else
-                call xejmxt3_acclim(tlfx(i), climate%mtemp_max20(i), temp(i))
+                call xejmxt3_acclim(tlfx(i), climate%mtemp(i), climate%mtemp_max20(i), temp(i))
                 temp_sun(i)   = temp(i) * veg%ejmax_sun(i) * (1.0-veg%frac4(i))
                 temp_shade(i) = temp(i) * veg%ejmax_shade(i) * (1.0-veg%frac4(i))
              endif
@@ -3282,11 +3282,11 @@ SUBROUTINE photosynthesis( csxz, cx1z, cx2z, gswminz,                          &
   END FUNCTION xejmxt3
 
   ! ------------------------------------------------------------------------------
-  elemental pure subroutine xejmxt3_acclim(Tk, Thome, trf)
+  elemental pure subroutine xejmxt3_acclim(Tk, Tgrowth, Thome, trf)
 
-    ! acclimated temperature response of Vcmax. Kumarathunge et al., New. Phyt., 2019,
+    ! acclimated temperature response of Jmax. Kumarathunge et al., New. Phyt., 2019,
     ! Eq 7 and Table 2
-    REAL, INTENT(IN) :: Tk, Thome  ! instantaneous T in K, growth T in degC
+    REAL, INTENT(IN) :: Tk, Tgrowth, Thome  ! instantaneous T in K, home and growth T in degC
     REAL, INTENT(OUT) :: trf
     REAL:: xVccoef, EHaVc, EHdVc,  EntropVc, aKK, bKK, rgas, TREFK, xvcnum, xvcden
 
@@ -3295,10 +3295,11 @@ SUBROUTINE photosynthesis( csxz, cx1z, cx2z, gswminz,                          &
     EHdVc  = 200000.0 
     aKK = 658.77
     bKK = -0.84
+    cKK = -0.52
     rgas = 8.314
     TREFK = 298.15
     
-    entropvc = (aKK + bKK * Thome) 
+    entropvc = (aKK + bKK * Thome) + cKK * (Tgrowth - Thome)
     xVccoef  = 1.0 + exp((entropvc * TREFK - EHdVc)/  ( rgas*TREFK ) )
     xvcnum = xVccoef * exp( ( EHaVc / ( rgas*TREFK ) )* ( 1.-TREFK/Tk ) )
     xvcden=1.0 + exp( ( entropvc*Tk-EHdVc ) / ( rgas*Tk ) )
