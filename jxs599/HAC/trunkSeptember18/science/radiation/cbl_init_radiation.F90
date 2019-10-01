@@ -174,29 +174,29 @@ rad%extkd = ExtCoeff_dif
 
     ENDDO
 
-!H!       ! Define beam fraction, fbeam:
-!H!       radfbeam(:,1) = spitter(mp,Cpi, real(metDoY), coszen, SW_down(:,1))
-!H!       radfbeam(:,2) = spitter(mp,Cpi, real(metDoY), coszen, SW_down(:,2))
-!H!
-!H!       ! coszen is set during met data read in.
-!H!
-!H!       WHERE (coszen <1.0e-2)
-!H!          RadFbeam(:,1) = 0.0
-!H!          RadFbeam(:,2) = 0.0
-!H!       END WHERE
-!H!rad%fbeam = radfbeam
-
        ! Define beam fraction, fbeam:
-       rad%fbeam(:,1) = spitter(mp,cpi, met%doy, met%coszen, met%fsd(:,1))
-       rad%fbeam(:,2) = spitter(mp,cpi, met%doy, met%coszen, met%fsd(:,2))
+       radfbeam(:,1) = spitter(mp,Cpi, real(metDoY), coszen, SW_down(:,1))
+       radfbeam(:,2) = spitter(mp,Cpi, real(metDoY), coszen, SW_down(:,2))
 
        ! coszen is set during met data read in.
 
-       WHERE (met%coszen <1.0e-2)
-          rad%fbeam(:,1) = 0.0
-          rad%fbeam(:,2) = 0.0
+       WHERE (coszen <1.0e-2)
+          RadFbeam(:,1) = 0.0
+          RadFbeam(:,2) = 0.0
        END WHERE
+rad%fbeam = radfbeam
 
+!o!       ! Define beam fraction, fbeam:
+!o!       rad%fbeam(:,1) = spitter(mp,cpi, met%doy, met%coszen, met%fsd(:,1))
+!o!       rad%fbeam(:,2) = spitter(mp,cpi, met%doy, met%coszen, met%fsd(:,2))
+!o!
+!o!       ! coszen is set during met data read in.
+!o!
+!o!       WHERE (met%coszen <1.0e-2)
+!o!          rad%fbeam(:,1) = 0.0
+!o!          rad%fbeam(:,2) = 0.0
+!o!       END WHERE
+!o!
 
     ! In gridcells where vegetation exists....
 
