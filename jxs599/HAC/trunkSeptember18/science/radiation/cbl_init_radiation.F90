@@ -127,25 +127,20 @@ REAL :: xphi2(mp)      ! leaf angle parmameter 2
     REAL, DIMENSION(nrb) ::                                                     &
          cos3       ! cos(15 45 75 degrees)
 
-
-!    CALL point2constants( C )
-
-!    IF(.NOT. ALLOCATED(c1) ) ALLOCATE( c1(mp,nrb), rhoch(mp,nrb) )
-
     cos3 = COS(cPI180 * (/ 15.0, 45.0, 75.0 /))
 
     ! See Sellers 1985, eq.13 (leaf angle parameters):
-    WHERE (canopy%vlaiw > cLAI_THRESH)
-       xphi1 = 0.5 - veg%xfang * (0.633 + 0.33 * veg%xfang)
+    WHERE (reducedLAIdue2snow> CLAI_THRESH)
+       xphi1 = 0.5 - vegxfang * (0.633 + 0.33 * vegxfang)
        xphi2 = 0.877 * (1.0 - 2.0 * xphi1)
     END WHERE
 
     ! 2 dimensional LAI
-    xvlai2 = SPREAD(canopy%vlaiw, 2, 3)
+    xvlai2 = SPREAD(reducedLAIdue2snow, 2, 3)
 
     ! Extinction coefficient for beam radiation and black leaves;
     ! eq. B6, Wang and Leuning, 1998
-    WHERE (xvlai2 > cLAI_THRESH) ! vegetated
+    WHERE (xvlai2 > CLAI_THRESH) ! vegetated
        xk = SPREAD(xphi1, 2, 3) / SPREAD(cos3, 1, mp) + SPREAD(xphi2, 2, 3)
     ELSEWHERE ! i.e. bare soil
        xk = 0.0
