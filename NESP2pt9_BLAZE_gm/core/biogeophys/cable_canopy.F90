@@ -3288,7 +3288,7 @@ SUBROUTINE photosynthesis( csxz, cx1z, cx2z, gswminz,                          &
     ! Eq 7 and Table 2
     REAL, INTENT(IN) :: Tk, Tgrowth, Thome  ! instantaneous T in K, home and growth T in degC
     REAL, INTENT(OUT) :: trf
-    REAL:: xVccoef, EHaVc, EHdVc,  EntropVc, aKK, bKK, rgas, TREFK, xvcnum, xvcden
+    REAL:: xVccoef, EHaVc, EHdVc,  EntropVc, aKK, bKK, cKK, rgas, TREFK, xvcnum, xvcden
 
 
     EHaVc = 40.71 * 1000.0
