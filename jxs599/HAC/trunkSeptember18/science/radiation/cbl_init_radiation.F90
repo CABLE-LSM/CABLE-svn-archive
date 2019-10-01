@@ -77,24 +77,6 @@ USE cbl_rhoch_module, ONLY : calc_rhoch
     TYPE (met_type),       INTENT(INOUT) :: met
     TYPE (canopy_type),    INTENT(IN)    :: canopy
     TYPE (veg_parameter_type), INTENT(INOUT) :: veg
-
-!    REAL, DIMENSION(nrb) ::                                                     &
-!         cos3       ! cos(15 45 75 degrees)
-    !!REAL, DIMENSION(mp,nrb) ::                                                  &
-     !!    xvlai2,  & ! 2D vlai
-       !!  xk         ! extinct. coef.for beam rad. and black leaves
-
-    !!REAL, DIMENSION(mp) ::                                                      &
-      !!   xphi1,   & ! leaf angle parmameter 1
-!!         xphi2      ! leaf angle parmameter 2
-!!
-!!    REAL, DIMENSION(:,:), ALLOCATABLE, SAVE ::                                  &
-!!!                                ! subr to calc these curr. appears twice. fix this
-!!         c1,      & !
-!!         rhoch
-
-
-
     INTEGER :: ictr
 
 !re-decl input args
@@ -146,14 +128,14 @@ REAL :: xphi2(mp)      ! leaf angle parmameter 2
          cos3       ! cos(15 45 75 degrees)
 
 
-    CALL point2constants( C )
+!    CALL point2constants( C )
 
 !    IF(.NOT. ALLOCATED(c1) ) ALLOCATE( c1(mp,nrb), rhoch(mp,nrb) )
 
-    cos3 = COS(C%PI180 * (/ 15.0, 45.0, 75.0 /))
+    cos3 = COS(cPI180 * (/ 15.0, 45.0, 75.0 /))
 
     ! See Sellers 1985, eq.13 (leaf angle parameters):
-    WHERE (canopy%vlaiw > C%LAI_THRESH)
+    WHERE (canopy%vlaiw > cLAI_THRESH)
        xphi1 = 0.5 - veg%xfang * (0.633 + 0.33 * veg%xfang)
        xphi2 = 0.877 * (1.0 - 2.0 * xphi1)
     END WHERE
@@ -163,17 +145,17 @@ REAL :: xphi2(mp)      ! leaf angle parmameter 2
 
     ! Extinction coefficient for beam radiation and black leaves;
     ! eq. B6, Wang and Leuning, 1998
-    WHERE (xvlai2 > C%LAI_THRESH) ! vegetated
+    WHERE (xvlai2 > cLAI_THRESH) ! vegetated
        xk = SPREAD(xphi1, 2, 3) / SPREAD(cos3, 1, mp) + SPREAD(xphi2, 2, 3)
     ELSEWHERE ! i.e. bare soil
        xk = 0.0
     END WHERE
 
-    WHERE (canopy%vlaiw > C%LAI_THRESH ) ! vegetated
+    WHERE (canopy%vlaiw > cLAI_THRESH ) ! vegetated
 
        ! Extinction coefficient for diffuse radiation for black leaves:
        rad%extkd = -LOG( SUM(                                                   &
-            SPREAD( C%GAUSS_W, 1, mp ) * EXP( -xk * xvlai2 ), 2) )       &
+            SPREAD( cGAUSS_W, 1, mp ) * EXP( -xk * xvlai2 ), 2) )       &
             / canopy%vlaiw
 
     ELSEWHERE ! i.e. bare soil
@@ -187,17 +169,17 @@ call calc_rhoch( c1,rhoch, mp, nrb, veg%taul, veg%refl )
     DO ictr=1,nrb
 
        rad%rhocdf(:,ictr) = rhoch(:,ictr) *  2. *                                &
-            ( C%GAUSS_W(1) * xk(:,1) / ( xk(:,1) + rad%extkd(:) )&
-            + C%GAUSS_W(2) * xk(:,2) / ( xk(:,2) + rad%extkd(:) )&
-            + C%GAUSS_W(3) * xk(:,3) / ( xk(:,3) + rad%extkd(:) ) )
+            ( cGAUSS_W(1) * xk(:,1) / ( xk(:,1) + rad%extkd(:) )&
+            + cGAUSS_W(2) * xk(:,2) / ( xk(:,2) + rad%extkd(:) )&
+            + cGAUSS_W(3) * xk(:,3) / ( xk(:,3) + rad%extkd(:) ) )
 
     ENDDO
 
     IF( .NOT. cable_runtime%um) THEN
 
        ! Define beam fraction, fbeam:
-       rad%fbeam(:,1) = spitter(mp,C%pi_c, met%doy, met%coszen, met%fsd(:,1))
-       rad%fbeam(:,2) = spitter(mp,C%pi_c, met%doy, met%coszen, met%fsd(:,2))
+       rad%fbeam(:,1) = spitter(mp,cpi, met%doy, met%coszen, met%fsd(:,1))
+       rad%fbeam(:,2) = spitter(mp,cpi, met%doy, met%coszen, met%fsd(:,2))
 
        ! coszen is set during met data read in.
 
@@ -211,7 +193,7 @@ call calc_rhoch( c1,rhoch, mp, nrb, veg%taul, veg%refl )
     ! In gridcells where vegetation exists....
 
     !!vh !! include RAD_THRESH in condition
-    WHERE (canopy%vlaiw > C%LAI_THRESH .AND. met%coszen > 1.e-6 )
+    WHERE (canopy%vlaiw > cLAI_THRESH .AND. met%coszen > 1.e-6 )
 
        ! SW beam extinction coefficient ("black" leaves, extinction neglects
        ! leaf SW transmittance and REFLectance):
