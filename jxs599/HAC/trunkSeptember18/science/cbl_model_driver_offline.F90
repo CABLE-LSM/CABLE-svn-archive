@@ -92,6 +92,7 @@ LOGICAL :: jls_radiation= .false.
 !make local to rad_driver and also again in cbl_model_driver
 !CABLE variables to keep for all CABLE pathways across the timestep 
 real :: reducedLAIdue2snow(mp)
+integer:: metDoy(mp)
 !masks
 logical :: veg_mask(mp),  sunlit_mask(mp),  sunlit_veg_mask(mp) 
 logical :: asunlit_veg_mask(mp) 
@@ -132,7 +133,39 @@ CALL ruff_resist(veg, rough, ssnow, canopy, veg%vlai, veg%hc, canopy%vlaiw)
 
     ENDIF
 
-    CALL init_radiation(met,rad,veg, canopy) ! need to be called at every dt
+metDoy=1
+
+CALL init_radiation(   &
+  met, rad, veg, canopy, &
+mp,                    &  
+nrb,                   &
+Clai_thresh,           &
+Ccoszen_tols,          &
+jls_standalone,        &
+jls_radiation ,        &
+veg_mask,              &
+sunlit_mask,           &
+sunlit_veg_mask,       &
+canopy%vlaiw,    &
+met%coszen,                &
+rad%extkb,         &
+rad%extkd,         &
+rad%extkbm,         &
+rad%extkdm,         &
+Veg%Xfang,              &
+Veg%Taul,               &
+Veg%Refl,               &
+c1,                    &
+rhoch,                 &
+metDoY,                &
+met%fsd,               &
+Rad%Fbeam,              &
+xk,                    &
+CGauss_w,              &
+Cpi,                   &
+Cpi180,                &
+subr_name              &
+) ! need to be called at every dt
  
     IF( cable_runtime%um ) THEN
 
