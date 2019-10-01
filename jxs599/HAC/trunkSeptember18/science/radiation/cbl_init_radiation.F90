@@ -163,7 +163,6 @@ call calc_rhoch( c1,rhoch, mp, nrb, vegtaul, vegrefl )
 
 rad%extkd = ExtCoeff_dif
 
-
     ! Canopy REFLection of diffuse radiation for black leaves:
     DO ictr=1,nrb
 
@@ -179,72 +178,36 @@ rad%extkd = ExtCoeff_dif
        radfbeam(:,2) = spitter(mp,Cpi, real(metDoY), coszen, SW_down(:,2))
 
        ! coszen is set during met data read in.
-
        WHERE (coszen <1.0e-2)
           RadFbeam(:,1) = 0.0
           RadFbeam(:,2) = 0.0
        END WHERE
-rad%fbeam = radfbeam
 
-!o!       ! Define beam fraction, fbeam:
-!o!       rad%fbeam(:,1) = spitter(mp,cpi, met%doy, met%coszen, met%fsd(:,1))
-!o!       rad%fbeam(:,2) = spitter(mp,cpi, met%doy, met%coszen, met%fsd(:,2))
-!o!
-!o!       ! coszen is set during met data read in.
-!o!
-!o!       WHERE (met%coszen <1.0e-2)
-!o!          rad%fbeam(:,1) = 0.0
-!o!          rad%fbeam(:,2) = 0.0
-!o!       END WHERE
-!o!
+rad%fbeam = radfbeam
 
     ! In gridcells where vegetation exists....
 
-    !!vh !! include RAD_THRESH in condition
-    WHERE (canopy%vlaiw > cLAI_THRESH .AND. met%coszen > 1.e-6 )
+    WHERE (reducedLAIdue2snow> CLAI_THRESH .AND. coszen > 1.e-6 )
 
        ! SW beam extinction coefficient ("black" leaves, extinction neglects
        ! leaf SW transmittance and REFLectance):
-       rad%extkb = xphi1 / met%coszen + xphi2
+       ExtCoeff_beam= xphi1 / coszen + xphi2
 
     ELSEWHERE ! i.e. bare soil
-       rad%extkb = 0.5
+       ExtCoeff_beam= 0.5
     END WHERE
 
-    WHERE ( ABS(rad%extkb - rad%extkd)  < 0.001 )
-       rad%extkb = rad%extkd + 0.001
+    WHERE ( ABS(ExtCoeff_beam - ExtCoeff_dif)  < 0.001 )
+       ExtCoeff_beam= ExtCoeff_dif+ 0.001
     END WHERE
 
-    WHERE( met%coszen < 1.e-6 )
+    WHERE( coszen < 1.e-6 )
        ! higher value precludes sunlit leaves at night. affects
        ! nighttime evaporation - Ticket #90
-       rad%extkb=1.0e5
+       ExtCoeff_beam=1.0e5
     END WHERE
+rad%extkb = ExtCoeff_beam
 
-!H!    ! In gridcells where vegetation exists....
-!H!
-!H!    !!vh !! include RAD_THRESH in condition
-!H!    WHERE (reducedLAIdue2snow> CLAI_THRESH .AND. coszen > 1.e-6 )
-!H!
-!H!       ! SW beam extinction coefficient ("black" leaves, extinction neglects
-!H!       ! leaf SW transmittance and REFLectance):
-!H!       ExtCoeff_beam= xphi1 / coszen + xphi2
-!H!
-!H!    ELSEWHERE ! i.e. bare soil
-!H!       ExtCoeff_beam= 0.5
-!H!    END WHERE
-!H!
-!H!    WHERE ( ABS(ExtCoeff_beam - ExtCoeff_dif)  < 0.001 )
-!H!       ExtCoeff_beam= ExtCoeff_dif+ 0.001
-!H!    END WHERE
-!H!
-!H!    WHERE( coszen < 1.e-6 )
-!H!       ! higher value precludes sunlit leaves at night. affects
-!H!       ! nighttime evaporation - Ticket #90
-!H!       ExtCoeff_beam=1.0e5
-!H!    END WHERE
-
-
-  END SUBROUTINE init_radiation
+END SUBROUTINE init_radiation
 
 END MODULE cbl_init_radiation_module
