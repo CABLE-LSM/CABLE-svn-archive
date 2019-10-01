@@ -157,7 +157,7 @@ Veg%Taul,               &
 Veg%Refl,               &
 c1,                    &
 rhoch,                 &
-metDoY,                &
+int(met%DoY),                &
 met%fsd,               &
 Rad%Fbeam,              &
 xk,                    &
