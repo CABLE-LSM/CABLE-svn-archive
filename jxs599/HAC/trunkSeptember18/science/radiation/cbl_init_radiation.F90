@@ -146,20 +146,22 @@ REAL :: xphi2(mp)      ! leaf angle parmameter 2
        xk = 0.0
     END WHERE
 
-    WHERE (canopy%vlaiw > cLAI_THRESH ) ! vegetated
+
+    WHERE (reducedLAIdue2snow> CLAI_THRESH ) ! vegetated
 
        ! Extinction coefficient for diffuse radiation for black leaves:
-       rad%extkd = -LOG( SUM(                                                   &
-            SPREAD( cGAUSS_W, 1, mp ) * EXP( -xk * xvlai2 ), 2) )       &
-            / canopy%vlaiw
+       ExtCoeff_dif = -LOG( SUM(                                                   &
+            SPREAD( CGAUSS_W, 1, mp ) * EXP( -xk * xvlai2 ), 2) )       &
+            / reducedLAIdue2snow
 
     ELSEWHERE ! i.e. bare soil
-       rad%extkd = 0.7
+       ExtCoeff_dif = 0.7
     END WHERE
 
 
-call calc_rhoch( c1,rhoch, mp, nrb, veg%taul, veg%refl )
+call calc_rhoch( c1,rhoch, mp, nrb, vegtaul, vegrefl )
 
+rad%extkd = ExtCoeff_dif
     ! Canopy REFLection of diffuse radiation for black leaves:
     DO ictr=1,nrb
 
