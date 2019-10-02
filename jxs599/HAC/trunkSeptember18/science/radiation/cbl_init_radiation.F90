@@ -125,6 +125,7 @@ REAL :: xvlai2(mp,nrb) ! 2D vlai
 REAL :: xphi1(mp)      ! leaf angle parmameter 1
 REAL :: xphi2(mp)      ! leaf angle parmameter 2
 
+! Comute common scaling co-efficients used throughout init_radiation
 call Common_InitRad_Scalings( xphi1, xphi2, xk, xvlai2, c1, rhoch,      &
                             mp, nrb, Cpi180,cLAI_thresh, veg_mask,             &
                             reducedLAIdue2snow,                &
@@ -132,24 +133,13 @@ call Common_InitRad_Scalings( xphi1, xphi2, xk, xvlai2, c1, rhoch,      &
 
 Ccoszen_tols_huge = Ccoszen_tols * 1e2 
 Ccoszen_tols_tiny = Ccoszen_tols * 1e-2 
-!H!! Define Raw extinction co-efficients for direct beam/diffuse radiation
-!H!! Largely parametrized per PFT. Does depend on zenith angle and effective LAI 
-!H!! [Formerly rad%extkb, rad%extkd]  
-!H!call ExtinctionCoeff( ExtCoeff_beam, ExtCoeff_dif, mp, nrb, CGauss_w,Ccoszen_tols_tiny, reducedLAIdue2snow, &
-!H!                      sunlit_mask, veg_mask, sunlit_veg_mask,  &
-!H!                      cLAI_thresh, coszen, xphi1, xphi2, xk, xvlai2)
-!H!
-    WHERE( veg_mask ) ! vegetated
 
-       ! Extinction coefficient for diffuse radiation for black leaves:
-       ExtCoeff_dif = -LOG( SUM(                                                   &
-            SPREAD( CGAUSS_W, 1, mp ) * EXP( -xk * xvlai2 ), 2) )       &
-            / reducedLAIdue2snow
-
-    ELSEWHERE ! i.e. bare soil
-       ExtCoeff_dif = 0.7
-    END WHERE
-
+! Define Raw extinction co-efficients for direct beam/diffuse radiation
+! Largely parametrized per PFT. Does depend on zenith angle and effective LAI 
+! [Formerly rad%extkb, rad%extkd]  
+call ExtinctionCoeff( ExtCoeff_beam, ExtCoeff_dif, mp, nrb, CGauss_w,Ccoszen_tols_tiny, reducedLAIdue2snow, &
+                      sunlit_mask, veg_mask, sunlit_veg_mask,  &
+                      cLAI_thresh, coszen, xphi1, xphi2, xk, xvlai2)
 rad%extkd = ExtCoeff_dif
 
     ! Canopy REFLection of diffuse radiation for black leaves:
@@ -174,29 +164,7 @@ END WHERE
 
 rad%fbeam = radfbeam
 
-    ! In gridcells where vegetation exists....
-
-    WHERE ( veg_mask .AND. coszen > Ccoszen_tols_tiny  )
-
-       ! SW beam extinction coefficient ("black" leaves, extinction neglects
-       ! leaf SW transmittance and REFLectance):
-       ExtCoeff_beam= xphi1 / coszen + xphi2
-
-    ELSEWHERE ! i.e. bare soil
-       ExtCoeff_beam= 0.5
-    END WHERE
-
-    WHERE ( ABS(ExtCoeff_beam - ExtCoeff_dif)  < 0.001 )
-       ExtCoeff_beam= ExtCoeff_dif+ 0.001
-    END WHERE
-
-    WHERE( coszen < Ccoszen_tols_tiny )
-       ! higher value precludes sunlit leaves at night. affects
-       ! nighttime evaporation - Ticket #90
-       ExtCoeff_beam=1.0e5
-    END WHERE
 rad%extkb = ExtCoeff_beam
-
 !H!! Define effective Extinction co-efficient for direct beam/diffuse radiation
 !H!! Extincion Co-eff defined by parametrized leaf reflect(transmit)ance - used in
 !H!! canopy transmitance calculations (cbl_albeo)
