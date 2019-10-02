@@ -140,8 +140,8 @@ Ccoszen_tols_tiny = Ccoszen_tols * 1e-2
 call ExtinctionCoeff( ExtCoeff_beam, ExtCoeff_dif, mp, nrb, CGauss_w,Ccoszen_tols_tiny, reducedLAIdue2snow, &
                       sunlit_mask, veg_mask, sunlit_veg_mask,  &
                       cLAI_thresh, coszen, xphi1, xphi2, xk, xvlai2)
-rad%extkd = ExtCoeff_dif
-rad%extkb = ExtCoeff_beam
+!rad%extkd = ExtCoeff_dif
+!rad%extkb = ExtCoeff_beam
 
 ! Define effective Extinction co-efficient for direct beam/diffuse radiation
 ! Extincion Co-eff defined by parametrized leaf reflect(transmit)ance - used in
@@ -170,8 +170,7 @@ WHERE (coszen < Ccoszen_tols_huge )
    RadFbeam(:,1) = 0.0
    RadFbeam(:,2) = 0.0
 END WHERE
-
-rad%fbeam = radfbeam
+!rad%fbeam = radfbeam
 
 !H!! Offline/standalone forcing gives us total downward Shortwave. We have
 !H!! previosuly, arbitratily split this into NIR/VIS (50/50). We use 
