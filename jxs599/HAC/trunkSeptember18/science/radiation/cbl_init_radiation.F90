@@ -151,15 +151,15 @@ call EffectiveExtinctCoeffs( EffExtCoeff_beam, EffExtCoeff_dif, &
                              mp, nrb, sunlit_veg_mask,                        &
                              ExtCoeff_beam, ExtCoeff_dif, c1 )
 
-    ! Canopy REFLection of diffuse radiation for black leaves:
-    DO ictr=1,nrb
-
-       rad%rhocdf(:,ictr) = rhoch(:,ictr) *  2. *                                &
-            ( cGAUSS_W(1) * xk(:,1) / ( xk(:,1) + rad%extkd(:) )&
-            + cGAUSS_W(2) * xk(:,2) / ( xk(:,2) + rad%extkd(:) )&
-            + cGAUSS_W(3) * xk(:,3) / ( xk(:,3) + rad%extkd(:) ) )
-
-    ENDDO
+!O!    ! Canopy REFLection of diffuse radiation for black leaves:
+!O!    DO ictr=1,nrb
+!O!
+!O!       rad%rhocdf(:,ictr) = rhoch(:,ictr) *  2. *                                &
+!O!            ( cGAUSS_W(1) * xk(:,1) / ( xk(:,1) + rad%extkd(:) )&
+!O!            + cGAUSS_W(2) * xk(:,2) / ( xk(:,2) + rad%extkd(:) )&
+!O!            + cGAUSS_W(3) * xk(:,3) / ( xk(:,3) + rad%extkd(:) ) )
+!O!
+!O!    ENDDO
 
 ! Offline/standalone forcing gives us total downward Shortwave. We have
 ! previosuly, arbitratily split this into NIR/VIS (50/50). We use 
