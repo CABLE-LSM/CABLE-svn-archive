@@ -86,6 +86,7 @@ use cbl_masks_mod, ONLY :  fveg_mask,  fsunlit_mask,  fsunlit_veg_mask
     INTEGER :: k,kk,j
     LOGICAL, SAVE :: first_call = .TRUE.
 character(len=*), parameter :: subr_name = "cbm"
+LOGICAL :: cbl_standalone= .true.
 LOGICAL :: jls_standalone= .false.
 LOGICAL :: jls_radiation= .false.
 
@@ -136,11 +137,11 @@ call fsunlit_mask( sunlit_mask, mp, Ccoszen_tols, met%coszen )
 call fsunlit_veg_mask( sunlit_veg_mask, mp, veg_mask, sunlit_mask)
 
 CALL init_radiation(   &
-  met, rad, veg, canopy, &
 mp,                    &  
 nrb,                   &
 Clai_thresh,           &
 Ccoszen_tols,          &
+cbl_standalone,        &
 jls_standalone,        &
 jls_radiation ,        &
 veg_mask,              &

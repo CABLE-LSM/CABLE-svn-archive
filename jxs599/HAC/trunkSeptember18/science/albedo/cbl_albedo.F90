@@ -152,7 +152,6 @@ REAL :: VegTaul(mp,nrb)             !PARAMETER leaf transmisivity (veg%taul)
 REAL :: VegRefl(mp,nrb)             !PARAMETER leaf reflectivity (veg%refl)
 !-------------------------------------------------------------------------------
 
-
 !Modify albedo based on snow coverage 
 call surface_albedosn( AlbSnow, AlbSoil, mp, surface_type, &
                        SnowDepth, SnowODepth, SnowFlag_3L, &
@@ -161,6 +160,13 @@ call surface_albedosn( AlbSnow, AlbSoil, mp, surface_type, &
                        metTk, coszen )
    
 call calc_rhoch( c1,rhoch, mp, nrb, VegTaul, VegRefl )
+
+! Define canopy Reflectance for diffuse/direct radiation
+! Formerly rad%rhocbm, rad%rhocdf
+call CanopyReflectance( CanopyRefl_beam, CanopyRefl_dif, &
+                        mp, nrb, CGauss_w, sunlit_veg_mask, &
+                        AlbSnow, xk, rhoch,                  &
+                        ExtCoeff_beam, ExtCoeff_dif)
 
 ! Update extinction coefficients and fractional transmittance for
 ! leaf transmittance and reflection (ie. NOT black leaves):
@@ -180,12 +186,7 @@ DO b = 1, 2
   !---where vegetated and sunlit
   WHERE (sunlit_veg_mask)
   
-    ! Canopy reflection (6.21) beam:
-    !CanopyRefl_beam(:,b) = 2. * ExtCoeff_beam / ( ExtCoeff_beam + rad%extkd )          &
-    CanopyRefl_beam(:,b) = 2. * ExtCoeff_beam / ( ExtCoeff_beam + ExtCoeff_dif )          &
-                   * rhoch(:,b)
-    
-              ! Canopy beam transmittance (fraction):
+    ! Canopy beam transmittance (fraction):
     dummy2 = MIN(EffExtCoeff_beam(:,b) * reducedLAIdue2snow, 20.)
     dummy  = EXP(-dummy2)
     CanopyTransmit_beam(:,b) = REAL(dummy)
@@ -205,13 +206,6 @@ if(.NOT. jls_radiation) &
   call FbeamRadAlbedo( RadAlbedo, mp, nrb, veg_mask, radfbeam, &
                        EffSurfRefl_dif, EffSurfRefl_beam, AlbSnow )
    
-!H!! Define canopy Reflectance for diffuse/direct radiation
-!H!! Formerly rad%rhocbm, rad%rhocdf
-!H!call CanopyReflectance( CanopyRefl_beam, CanopyRefl_dif, &
-!H!                        mp, nrb, CGauss_w, sunlit_veg_mask, &
-!H!                        AlbSnow, xk, rhoch,                  &
-!H!                        ExtCoeff_beam, ExtCoeff_dif)
-!H!
 !H!! Define canopy diffuse transmittance 
 !H!! Formerly rad%cexpkbm, rad%cexpkdm
 !H!call CanopyTransmitance(CanopyTransmit_beam, CanopyTransmit_dif, mp, nrb,&

@@ -32,7 +32,7 @@ MODULE cbl_init_radiation_module
 
 CONTAINS
 
-  SUBROUTINE init_radiation( rad, &
+  SUBROUTINE init_radiation( &
 mp,                    &  
 nrb,                   &
 Clai_thresh,           &
@@ -64,22 +64,8 @@ Cpi180,                &
 subr_name              &
                          )
  
-    ! Alternate version of init_radiation that uses only the
-    ! zenith angle instead of the fluxes. This means it can be called
-    ! before the cable albedo calculation.
-    USE cable_def_types_mod, ONLY : radiation_type
-!    USE cable_def_types_mod, ONLY : radiation_type, met_type, canopy_type,      &
-!         veg_parameter_type!!, nrb, mp
-!    USE cable_common_module
-
 USE cbl_spitter_module, ONLY : spitter
 USE cbl_rhoch_module, ONLY : calc_rhoch
-
-    TYPE (radiation_type), INTENT(INOUT) :: rad
-!    TYPE (met_type),       INTENT(INOUT) :: met
-!    TYPE (canopy_type),    INTENT(IN)    :: canopy
-!    TYPE (veg_parameter_type), INTENT(INOUT) :: veg
-    INTEGER :: ictr
 
 !re-decl input args
 integer :: mp                   !total number of "tiles"  
@@ -151,22 +137,11 @@ call EffectiveExtinctCoeffs( EffExtCoeff_beam, EffExtCoeff_dif, &
                              mp, nrb, sunlit_veg_mask,                        &
                              ExtCoeff_beam, ExtCoeff_dif, c1 )
 
-!O!    ! Canopy REFLection of diffuse radiation for black leaves:
-!O!    DO ictr=1,nrb
-!O!
-!O!       rad%rhocdf(:,ictr) = rhoch(:,ictr) *  2. *                                &
-!O!            ( cGAUSS_W(1) * xk(:,1) / ( xk(:,1) + rad%extkd(:) )&
-!O!            + cGAUSS_W(2) * xk(:,2) / ( xk(:,2) + rad%extkd(:) )&
-!O!            + cGAUSS_W(3) * xk(:,3) / ( xk(:,3) + rad%extkd(:) ) )
-!O!
-!O!    ENDDO
-
 ! Offline/standalone forcing gives us total downward Shortwave. We have
 ! previosuly, arbitratily split this into NIR/VIS (50/50). We use 
 !Spitter function to split these bands into direct beam and diffuse components
 IF( cbl_standalone .OR. jls_standalone .AND. .NOT. jls_radiation )  &
   CALL BeamFraction( RadFbeam, mp, nrb, Cpi, Ccoszen_tols_huge, real(metDoy), coszen, SW_down ) 
-
 
 END SUBROUTINE init_radiation
 
