@@ -32,11 +32,12 @@ MODULE cbl_init_radiation_module
 
 CONTAINS
 
-  SUBROUTINE init_radiation( met, rad, veg, canopy, &
+  SUBROUTINE init_radiation( rad, &
 mp,                    &  
 nrb,                   &
 Clai_thresh,           &
 Ccoszen_tols,          &
+cbl_standalone,        &
 jls_standalone,        &
 jls_radiation ,        &
 veg_mask,              &
@@ -66,17 +67,18 @@ subr_name              &
     ! Alternate version of init_radiation that uses only the
     ! zenith angle instead of the fluxes. This means it can be called
     ! before the cable albedo calculation.
-    USE cable_def_types_mod, ONLY : radiation_type, met_type, canopy_type,      &
-         veg_parameter_type!!, nrb, mp
-    USE cable_common_module
+    USE cable_def_types_mod, ONLY : radiation_type
+!    USE cable_def_types_mod, ONLY : radiation_type, met_type, canopy_type,      &
+!         veg_parameter_type!!, nrb, mp
+!    USE cable_common_module
 
 USE cbl_spitter_module, ONLY : spitter
 USE cbl_rhoch_module, ONLY : calc_rhoch
 
     TYPE (radiation_type), INTENT(INOUT) :: rad
-    TYPE (met_type),       INTENT(INOUT) :: met
-    TYPE (canopy_type),    INTENT(IN)    :: canopy
-    TYPE (veg_parameter_type), INTENT(INOUT) :: veg
+!    TYPE (met_type),       INTENT(INOUT) :: met
+!    TYPE (canopy_type),    INTENT(IN)    :: canopy
+!    TYPE (veg_parameter_type), INTENT(INOUT) :: veg
     INTEGER :: ictr
 
 !re-decl input args
@@ -87,6 +89,7 @@ real :: Ccoszen_tols            !threshold cosine of sun's zenith angle, below w
 real :: Cgauss_w(nrb)
 real :: Cpi                     !PI - from cable_math_constants originally
 real :: Cpi180                  !PI in radians - from cable_math_constants originally
+LOGICAL :: cbl_standalone       !runtime switch defined in cable_*main routines signifying this is cable_standalone
 LOGICAL :: jls_standalone       !runtime switch defined in cable_*main routines signifying this is jules_standalone
 LOGICAL :: jls_radiation        !runtime switch defined in cable_*main routines signifying this is the radiation pathway 
 !masks
@@ -140,9 +143,6 @@ Ccoszen_tols_tiny = Ccoszen_tols * 1e-2
 call ExtinctionCoeff( ExtCoeff_beam, ExtCoeff_dif, mp, nrb, CGauss_w,Ccoszen_tols_tiny, reducedLAIdue2snow, &
                       sunlit_mask, veg_mask, sunlit_veg_mask,  &
                       cLAI_thresh, coszen, xphi1, xphi2, xk, xvlai2)
-!rad%extkd = ExtCoeff_dif
-!rad%extkb = ExtCoeff_beam
-
 ! Define effective Extinction co-efficient for direct beam/diffuse radiation
 ! Extincion Co-eff defined by parametrized leaf reflect(transmit)ance - used in
 ! canopy transmitance calculations (cbl_albeo)
@@ -161,23 +161,12 @@ call EffectiveExtinctCoeffs( EffExtCoeff_beam, EffExtCoeff_dif, &
 
     ENDDO
 
-! Define beam fraction, fbeam:
-radfbeam(:,1) = spitter(mp,Cpi, real(metDoY), coszen, SW_down(:,1))
-radfbeam(:,2) = spitter(mp,Cpi, real(metDoY), coszen, SW_down(:,2))
+! Offline/standalone forcing gives us total downward Shortwave. We have
+! previosuly, arbitratily split this into NIR/VIS (50/50). We use 
+!Spitter function to split these bands into direct beam and diffuse components
+IF( cbl_standalone .OR. jls_standalone .AND. .NOT. jls_radiation )  &
+  CALL BeamFraction( RadFbeam, mp, nrb, Cpi, Ccoszen_tols_huge, real(metDoy), coszen, SW_down ) 
 
-! coszen is set during met data read in.
-WHERE (coszen < Ccoszen_tols_huge )
-   RadFbeam(:,1) = 0.0
-   RadFbeam(:,2) = 0.0
-END WHERE
-!rad%fbeam = radfbeam
-
-!H!! Offline/standalone forcing gives us total downward Shortwave. We have
-!H!! previosuly, arbitratily split this into NIR/VIS (50/50). We use 
-!H!!Spitter function to split these bands into direct beam and diffuse components
-!H!IF( jls_standalone .AND. .NOT. jls_radiation )  &
-!H!  CALL BeamFraction( RadFbeam, mp, nrb, Cpi, sunlit_mask, real(metDoy), coszen, SW_down ) 
-!H!
 
 END SUBROUTINE init_radiation
 
@@ -422,15 +411,16 @@ End subroutine EffectiveExtinctCoeff
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-subroutine BeamFraction( RadFbeam, mp, nrb, Cpi,sunlit_mask, metDoy, coszen, SW_down ) 
+subroutine BeamFraction( RadFbeam, mp, nrb, Cpi,Ccoszen_tols_huge, metDoy, &
+coszen, SW_down ) 
 USE cbl_spitter_module, ONLY : Spitter
 
 integer :: mp                   !total number of "tiles"  
 integer :: nrb                  !number of radiation bands [per legacy=3, but really=2 VIS,NIR. 3rd dim was for LW]
 REAL :: RadFbeam(mp,nrb)        !Beam Fraction of Downward SW radiation [formerly rad%fbeam]
 
-real :: Cpi                     !PI - from cable_math_constants originally
-logical :: sunlit_mask(mp)       !sunlit mask based on zenith angle
+real :: Cpi !PI - from cable_math_constants originally
+real :: Ccoszen_tols_huge !PI - from cable_math_constants originally
 
 real :: metDoY(mp)          !Day of the Year [formerly met%doy]
 real :: coszen(mp)          !Day of the Year [formerly met%doy]
@@ -442,7 +432,7 @@ RadFbeam(:,1) = spitter(mp, cpi, real(metDoy), coszen, SW_down(:,1))
 RadfBeam(:,2) = spitter(mp, cpi, real(metDoy), coszen, SW_down(:,2))
 
 ! coszen is set during met data read in.
-WHERE ( .NOT. sunlit_mask )
+WHERE (coszen < Ccoszen_tols_huge )
   RadFbeam(:,1) = 0.0
   RadFbeam(:,2) = 0.0
 END WHERE
