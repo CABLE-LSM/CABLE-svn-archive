@@ -752,6 +752,7 @@ END SUBROUTINE remove_transGW
           rt(i,k) =  qin(i) - qout(i)
           at(i,k) = -dqidw0(i)
           bt(i,k) =  m2mm*soil%zse_vec(i,k)/dels - dqidw1(i) + dqodw1(i)
+          ! MMY ??? why the sign od bt is different to CLM5's
           ct(i,k) =  dqodw2(i)
        end do
     end do
@@ -1745,20 +1746,22 @@ SUBROUTINE calc_soil_hydraulic_props(ssnow,soil,veg)
     !hydraulic conductivity
     !Interfacial so uses layer i and i+1
     do k=1,ms-1
-       kk=min(ms+1,k+1)
+!       kk=min(ms+1,k+1) ! MMY redundant
        do i=1,mp
 
-          if (k .lt. ms) then
+!          if (k .lt. ms) then ! MMY redundant
           s1(i) = 0.5_r_2*((wb_temp(i,k)-soil%watr(i,k)) + &
                            (wb_temp(i,kk)-soil%watr(i,kk))) / &
                          (0.5_r_2*((soil%ssat_vec(i,k)-soil%watr(i,k)) + &
                          (soil%ssat_vec(i,kk)-soil%watr(i,kk))))
-          else
-          s1(i) = 0.5_r_2*((wb_temp(i,k)-soil%watr(i,k)) + &
-                           (wb_temp(i,kk)-soil%GWwatr(i))) / &
-                         (0.5_r_2*((soil%ssat_vec(i,k)-soil%watr(i,k)) + &
-                         (soil%GWssat_vec(i)-soil%GWwatr(i))))
-          end if
+! __________________________ MMY this part is redundant ________________________
+!          else
+!          s1(i) = 0.5_r_2*((wb_temp(i,k)-soil%watr(i,k)) + &
+!                           (wb_temp(i,kk)-soil%GWwatr(i))) / &
+!                         (0.5_r_2*((soil%ssat_vec(i,k)-soil%watr(i,k)) + &
+!                         (soil%GWssat_vec(i)-soil%GWwatr(i))))
+!          end if
+! ______________________________________________________________________________
           s1(i) = min(max(s1(i),0.01_r_2),1._r_2)
           s2(i) = soil%hyds_vec(i,k)*s1(i)**(2._r_2*soil%bch_vec(i,k)+2._r_2)
 
@@ -1766,6 +1769,7 @@ SUBROUTINE calc_soil_hydraulic_props(ssnow,soil,veg)
           ssnow%dhkdw(i,k) = (2._r_2*soil%bch_vec(i,k)+3._r_2)*s2(i)*&
                             0.5_r_2/(soil%ssat_vec(i,k)-soil%watr(i,k))*&
                             hk_ice_factor(i,k)
+          ! MMY Note that the dhkdw equation doesn't exactly follow the finite difference
        end do
     end do
 
@@ -2304,10 +2308,22 @@ END SUBROUTINE calc_soil_hydraulic_props
            ssnow%smp(i,k) = max(min(ssnow%smp(i,k),-soil%sucs_vec(i,k)),sucmin)
 
            ssnow%dsmpdw(i,k) = -soil%bch_vec(i,k)*ssnow%smp(i,k)/&
-                     (max(s_mid(i)*(soil%ssat_vec(i,k)-soil%watr(i,k)),0.01_r_2))
+                            (max(s_mid(i)*(wb_temp(i,k)-soil%watr(i,k)),0.01_r_2)) !MMY
+                    ! MMY BUG in (max(s_mid(i)*(soil%ssat_vec(i,k)-soil%watr(i,k)),0.01_r_2))
         end do
      end do
+! _____________________ MMY BUG it forgot to calculate the aquifer __________________
+     !Aquifer potential
+     do i=1,mp
+        s_mid(i) = (wb_temp(i,ms+1)-soil%GWwatr(i))/(soil%GWssat_vec(i)-soil%GWwatr(i))
+        s_mid(i) = min(max(s_mid(i),0.001_r_2),1._r_2)
 
+        ssnow%GWsmp(i)    = -soil%GWsucs_vec(i)*s_mid(i)**(-soil%GWbch_vec(i))
+        ssnow%GWsmp(i)    = max(min(ssnow%GWsmp(i),-soil%GWsucs_vec(i)),sucmin)
+        ssnow%GWdsmpdw(i) = -soil%GWbch_vec(i)*ssnow%GWsmp(i)/&
+                             (max(s_mid(i)*(wb_temp(i,ms+1)-soil%GWwatr(i)),0.01_r_2)) !MMY
+     end do
+! ____________________________________________________________________________________
   end subroutine brook_corey_swc_smp
 
    subroutine hutson_cass_swc_smp(soil,ssnow)
@@ -2350,8 +2366,15 @@ END SUBROUTINE calc_soil_hydraulic_props
              ssnow%smp(i,k) = max(min(ssnow%smp(i,k),-soil%sucs_vec(i,k)),sucmin)
 
              ssnow%dsmpdw(i,k) = -soil%bch_vec(i,k)*ssnow%smp(i,k)/&
-                       (max(s_mid(i)*(soil%ssat_vec(i,k)-soil%watr(i,k)),0.001_r_2))
+                       (max(s_mid(i)*(wb_temp(i,k)-soil%watr(i,k)),0.001_r_2)) ! MMY
+                       ! MMY BUG in (max(s_mid(i)*(soil%ssat_vec(i,k)-soil%watr(i,k)),0.001_r_2))
           else
+             !!! MMY BUG: in Hutson & Cass 1987 using 'wb/ssat' as independent factor
+             !!! MMY      but here Mark uses effective saturation (wb-watr)/(ssat-watr)
+             !!! MMY      in wet soil and wb/ssat in wet soil. This leads to a iscontinuity
+             !!! MMY      in the water retention curve (smp-wb relationship), and causes
+             !!! MMY      abs(smp) in wet soil is larger than in dry soil. I suggest to
+             !!! MMY      use wb/ssat in HC_SWC
              ssnow%smp(i,k) = -soil%sucs_vec(i,k)* sqrt(1._r_2 - wb_temp(i,k)/soil%ssat_vec(i,k))/&
                                (sqrt(1._r_2-soil%wbc_vec(i,k)/soil%ssat_vec(i,k))*&
                               ( (soil%wbc_vec(i,k)/soil%ssat_vec(i,k))**soil%bch_vec(i,k) ))
@@ -2447,7 +2470,7 @@ END SUBROUTINE calc_soil_hydraulic_props
                      (ssnow%ssat_hys(i,k) - ssnow%watr_hys(i,k))
 
           s_mid(i) = min(max(s_mid(i),0.01_r_2),1._r_2)
-
+          ! MMY ??? why 0.01_r_2 here but 0.001_r_2 in aquifer
           ssnow%smp(i,k) = -ssnow%sucs_hys(i,k)*s_mid(i)**(-soil%bch_vec(i,k))
 
           ssnow%smp(i,k) = max(min(ssnow%smp(i,k),-ssnow%sucs_hys(i,k)),sucmin)
@@ -2464,7 +2487,7 @@ END SUBROUTINE calc_soil_hydraulic_props
        ssnow%GWsmp(i)    = -soil%GWsucs_vec(i)*s_mid(i)**(-soil%GWbch_vec(i))
        ssnow%GWsmp(i)    = max(min(ssnow%GWsmp(i),-soil%GWsucs_vec(i)),sucmin)
        ssnow%GWdsmpdw(i) = -soil%GWbch_vec(i)*ssnow%GWsmp(i)/&
-                            (s_mid(i)*(soil%GWssat_vec(i)-soil%GWwatr(i)))
+                          (max(s_mid(i)*(wb_temp(i,ms+1)-soil%GWwatr(i)),0.01_r_2)) !MMY
     end do
 
   end subroutine brook_corey_hysteresis_swc_smp
