@@ -20,15 +20,10 @@
 
 MODULE cbl_init_radiation_module
 
-  USE cable_data_module, ONLY : irad_type, point2constants
-
   IMPLICIT NONE
 
   PUBLIC init_radiation
   PRIVATE
-
-  TYPE ( irad_type ) :: C
-
 
 CONTAINS
 

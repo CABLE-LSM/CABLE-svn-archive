@@ -147,7 +147,6 @@ REAL :: CanopyTransmit_beam(mp,nrb) !Canopy Transmitance (rad%cexpkbm)
 REAL :: VegXfang(mp)                !leaf angle PARAMETER (veg%xfang)
 REAL :: VegTaul(mp,nrb)             !PARAMETER leaf transmisivity (veg%taul)
 REAL :: VegRefl(mp,nrb)             !PARAMETER leaf reflectivity (veg%refl)
-!-------------------------------------------------------------------------------
 
 !Modify albedo based on snow coverage 
 call surface_albedosn( AlbSnow, AlbSoil, mp, surface_type, &
@@ -176,9 +175,6 @@ call CanopyTransmitance(CanopyTransmit_beam, CanopyTransmit_dif, mp, nrb,&
 !---1 = visible, 2 = nir radiaition
 DO b = 1, 2
 
-  !--Define canopy diffuse transmittance (fraction):
-  !O!CanopyTransmit_dif(:,b) = EXP(-EffExtCoeff_dif(:,b) * reducedLAIdue2snow )
-  
   !---Calculate effective diffuse reflectance (fraction):
   WHERE( veg_mask )                                             &
     EffSurfRefl_dif(:,b) = CanopyRefl_dif(:,b) + (AlbSnow(:,b)             &
@@ -189,11 +185,6 @@ DO b = 1, 2
   !---where vegetated and sunlit
   WHERE (sunlit_veg_mask)
   
-    !O!! Canopy beam transmittance (fraction):
-    !O!dummy2 = MIN(EffExtCoeff_beam(:,b) * reducedLAIdue2snow, 20.)
-    !O!dummy  = EXP(-dummy2)
-    !O!CanopyTransmit_beam(:,b) = REAL(dummy)
-    
     ! Calculate effective beam reflectance (fraction):
     EffSurfRefl_beam(:,b) = CanopyRefl_beam(:,b) + ( AlbSnow(:,b)             &
       - CanopyRefl_beam(:,b) ) * canopytransmit_beam(:,b)**2
