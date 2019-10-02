@@ -1495,7 +1495,6 @@ CONTAINS
 #ifndef UM_BUILD
   SUBROUTINE WRITE_CASA_RESTART_NC ( casamet, casapool, casaflux, phen, CASAONLY )
 
-    USE CASAVARIABLE, ONLY : casa_met, casa_pool, casa_flux, icycle, mplant, mlitter, msoil
     USE CABLE_COMMON_MODULE
     USE CABLE_DEF_TYPES_MOD, ONLY: MET_TYPE, mp
     USE phenvariable
