@@ -161,7 +161,7 @@ cable_carbon.o: cable_carbon.F90 cable_define_types.o cable_common.o cable_data.
 
 cbl_model_driver_offline.o: cbl_model_driver_offline.F90 cable_carbon.o cable_soilsnow.o cable_canopy.o cable_define_types.o cable_roughness.o cbl_radiation.o cbl_albedo.o casa_variable.o cable_common.o cable_data.o cable_gw_hydro.o cable_psm.o
 
-cable_checks.o: cable_checks.F90 cbl_radiation.o cable_common.o cbl_sinbet.o
+cable_checks.o: cable_checks.F90 cbl_radiation.o cable_common.o cbl_sinbet.o cable_define_types.o
 
 cable_define_types.o: cable_define_types.F90
 
