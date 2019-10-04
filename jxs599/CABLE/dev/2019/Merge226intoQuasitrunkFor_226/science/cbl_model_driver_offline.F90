@@ -52,9 +52,17 @@ CONTAINS
     USE cable_gw_hydro_module, ONLY : sli_hydrology,&
          soil_snow_gw
     USE cable_canopy_module, ONLY : define_canopy
-    USE cable_albedo_module, ONLY : surface_albedo
+    !USE cable_albedo_module, ONLY : surface_albedo
+    USE cbl_albedo_mod, ONLY : albedo
     USE sli_main_mod, ONLY : sli_main
-
+!data !jhan:pass these
+USE cable_other_constants_mod, ONLY : CLAI_THRESH => lai_thresh
+USE cable_other_constants_mod,  ONLY : Ccoszen_tols => coszen_tols
+USE cable_other_constants_mod, ONLY : CGAUSS_W => gauss_w
+USE cable_math_constants_mod, ONLY : CPI => pi
+USE cable_math_constants_mod, ONLY : CPI180 => pi180
+USE cable_fFile_module, ONLY : fprintf_dir
+use cbl_masks_mod, ONLY :  fveg_mask,  fsunlit_mask,  fsunlit_veg_mask
 
     !ptrs to local constants
     TYPE( icbm_type ) :: C
@@ -77,11 +85,29 @@ CONTAINS
     INTEGER, INTENT(IN) :: ktau
     INTEGER :: k,kk,j
     LOGICAL, SAVE :: first_call = .TRUE.
-    
-    ICYCLE = 0
+character(len=*), parameter :: subr_name = "cbm"
+LOGICAL :: cbl_standalone= .true.
+LOGICAL :: jls_standalone= .false.
+LOGICAL :: jls_radiation= .false.
 
+!make local to rad_driver and also again in cbl_model_driver
+!CABLE variables to keep for all CABLE pathways across the timestep 
+real :: reducedLAIdue2snow(mp)
+integer:: metDoy(mp)
+!masks
+logical :: veg_mask(mp),  sunlit_mask(mp),  sunlit_veg_mask(mp) 
+logical :: asunlit_veg_mask(mp) 
+logical :: asunlit_mask(mp) 
+!co-efficients usoughout init_radiation ` called from _albedo as well
+REAL :: c1(mp,nrb)
+REAL :: rhoch(mp,nrb)
+REAL :: xk(mp,nrb)
+!iFor testing
+    fprintf_dir="/home/599/jxs599"
+    ICYCLE = 0
     cable_user%soil_struc="default"
 
+  
     ! assign local ptrs to constants defined in cable_data_module
     CALL point2constants(C)
 
@@ -90,7 +116,8 @@ CONTAINS
        cable_runtime%um_radiation = .FALSE.
 
        IF( cable_runtime%um_explicit ) THEN
-          CALL ruff_resist(veg, rough, ssnow, canopy)
+!CALL ruff_resist(veg, rough, ssnow, canopy, LAI_pft, HGT_pft, reducedLAIdue2snow )
+CALL ruff_resist(veg, rough, ssnow, canopy, veg%vlai, veg%hc, canopy%vlaiw)
        ENDIF
        ! Height adjustment not used in ACCESS CM2. See CABLE ticket 197
        ! met%tk = met%tk + C%grav/C%capp*(rough%zref_tq + 0.9*rough%z0m)
@@ -98,19 +125,139 @@ CONTAINS
        CALL define_air (met, air)
 
     ELSE
-       CALL ruff_resist(veg, rough, ssnow, canopy)
+CALL ruff_resist(veg, rough, ssnow, canopy, veg%vlai, veg%hc, canopy%vlaiw)
+
     ENDIF
 
-    CALL init_radiation(met,rad,veg, canopy) ! need to be called at every dt
+metDoy=1
 
+!veg_mask =  canopy%vlaiw > .001
+call fveg_mask( veg_mask, mp, Clai_thresh, canopy%vlaiw )
+call fsunlit_mask( sunlit_mask, mp, Ccoszen_tols, met%coszen )
+call fsunlit_veg_mask( sunlit_veg_mask, mp, veg_mask, sunlit_mask)
+
+CALL init_radiation(   &
+mp,                    &  
+nrb,                   &
+Clai_thresh,           &
+Ccoszen_tols,          &
+cbl_standalone,        &
+jls_standalone,        &
+jls_radiation ,        &
+veg_mask,              &
+sunlit_mask,           &
+sunlit_veg_mask,       &
+canopy%vlaiw,    &
+met%coszen,                &
+rad%extkb,         &
+rad%extkd,         &
+rad%extkbm,         &
+rad%extkdm,         &
+Veg%Xfang,              &
+Veg%Taul,               &
+Veg%Refl,               &
+c1,                    &
+rhoch,                 &
+int(met%DoY),                &
+met%fsd,               &
+Rad%Fbeam,              &
+xk,                    &
+CGauss_w,              &
+Cpi,                   &
+Cpi180,                &
+subr_name              &
+) ! need to be called at every dt
+ 
     IF( cable_runtime%um ) THEN
 
        IF( cable_runtime%um_explicit ) THEN
-          CALL surface_albedo(ssnow, veg, met, rad, soil, canopy)
+  call Albedo(        &
+ssnow%AlbSoilsn,      &!AlbSnow,              & 
+soil%AlbSoil,         &!AlbSoil,              & 
+mp,                   &  
+nrb,                  &
+jls_radiation ,       &
+veg_mask,             & 
+sunlit_mask,          & 
+sunlit_veg_mask,      & 
+Ccoszen_tols,         &
+CGAUSS_W,             & 
+veg%iveg,             & !   surface_type,         &
+veg%refl,             & !   
+veg%taul,             & !   
+met%tk,               & !  metTk,                & 
+met%coszen,           &!  coszen,               & 
+canopy%vlaiw,         &!  reducedLAIdue2snow,          &
+ssnow%snowd,          &!  SnowDepth,            &  
+ssnow%osnowd,         &!  SnowODepth,           & 
+ssnow%isflag,         & !  SnowFlag_3L,          & 
+ssnow%ssdnn,          & !   SnowDensity,          & 
+ssnow%tgg(:,1),       &   !   SoilTemp,             & 
+ssnow%snage,          & !   SnowAge,              &
+xk,                   &  
+c1,                   &  
+rhoch,                &
+Rad%Fbeam,            & 
+Rad%Albedo,           &
+rad%extkd,             &!ExtCoeff_beam,         &
+rad%extkb,             & !ExtCoeff_dif,          &
+rad%extkdm,           & ! EffExtCoeff_beam
+rad%extkbm,           & ! = EffExtCoeff_dif
+rad%rhocdf,          & 
+rad%rhocbm,          & 
+!  CanopyRefl_dif,    & 
+!  CanopyRefl_beam,   &
+rad%cexpkdm,          & ! = CanopyTransmit_dif 
+rad%cexpkbm,          & ! = CanopyTransmit_beam
+rad%reffdf,           &! = EffSurfRefl_dif
+rad%reffbm            &! = EffSurfRefl_beam
+             )
+
        ENDIF
 
     ELSE
-       CALL surface_albedo(ssnow, veg, met, rad, soil, canopy)
+  call Albedo(        &
+ssnow%AlbSoilsn,      &!AlbSnow,              & 
+soil%AlbSoil,         &!AlbSoil,              & 
+mp,                   &  
+nrb,                  &
+jls_radiation ,       &
+veg_mask,             & 
+sunlit_mask,          & 
+sunlit_veg_mask,      & 
+Ccoszen_tols,         &
+CGAUSS_W,             & 
+veg%iveg,             & !   surface_type,         &
+veg%refl,             & !   
+veg%taul,             & !   
+met%tk,               & !  metTk,                & 
+met%coszen,           &!  coszen,               & 
+canopy%vlaiw,         &!  reducedLAIdue2snow,          &
+ssnow%snowd,          &!  SnowDepth,            &  
+ssnow%osnowd,         &!  SnowODepth,           & 
+ssnow%isflag,         & !  SnowFlag_3L,          & 
+ssnow%ssdnn,          & !   SnowDensity,          & 
+ssnow%tgg(:,1),       &   !   SoilTemp,             & 
+ssnow%snage,          & !   SnowAge,              &
+xk,                   &  
+c1,                   &  
+rhoch,                &
+Rad%Fbeam,            & 
+Rad%Albedo,           &
+rad%extkd,             &!ExtCoeff_beam,         &
+rad%extkb,             & !ExtCoeff_dif,          &
+rad%extkdm,           & ! EffExtCoeff_beam
+rad%extkbm,           & ! = EffExtCoeff_dif
+rad%rhocdf,          & 
+rad%rhocbm,          & 
+!  CanopyRefl_dif,    & 
+!  CanopyRefl_beam,   &
+rad%cexpkdm,          & ! = CanopyTransmit_dif 
+rad%cexpkbm,          & ! = CanopyTransmit_beam
+rad%reffdf,           &! = EffSurfRefl_dif
+rad%reffbm            &! = EffSurfRefl_beam
+             )
+
     ENDIF
 
     ! Calculate canopy variables:
@@ -125,7 +272,7 @@ CONTAINS
     ssnow%otss_0 = ssnow%otss  ! vh should be before call to canopy?
     ssnow%otss = ssnow%tss
 
-    CALL define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,climate)
+    CALL define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,climate,sunlit_veg_mask)
     ! RML moved out of following IF after discussion with Eva
     ssnow%owetfac = ssnow%wetfac
 
