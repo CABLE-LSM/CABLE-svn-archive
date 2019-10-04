@@ -2231,6 +2231,7 @@ END SUBROUTINE calc_soil_hydraulic_props
 
 
   SUBROUTINE set_unsed_gw_vars(ssnow,soil,canopy)
+    ! MMY Actually, this subrountine isn't called by any where
     TYPE(soil_snow_type), INTENT(INOUT)      :: ssnow  ! soil+snow variables
     TYPE(soil_parameter_type), INTENT(INOUT)    :: soil ! soil parameters
     TYPE (canopy_type), INTENT(INOUT)           :: canopy

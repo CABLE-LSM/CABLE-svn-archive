@@ -54,7 +54,7 @@ MODULE cable_input_module
    USE cable_init_module
    USE netcdf ! link must be made in cd to netcdf-x.x.x/src/f90/netcdf.mod
    USE cable_common_module, ONLY : filename, cable_user, CurYear, HANDLE_ERR, is_leapyear
-   USE casa_inout_module, ONLY: casa_readbiome, casa_readphen, casa_init 
+   USE casa_inout_module, ONLY: casa_readbiome, casa_readphen, casa_init
 
    IMPLICIT NONE
 
@@ -425,7 +425,7 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
              CALL nc_abort(ok, "Error opening GSWP3 mask file")
           end if
           LAT1D = .true.   !GSWP3 forcing has 1d lat/lon variables
-          LON1D = .true.  
+          LON1D = .true.
        else
           ncid_mask = ncid_rain
        end if
@@ -534,9 +534,9 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
     ! (and allow neither if only one gridpoint). "mask" is a 2D variable
     ! with dims x,y and "land" is a 1D variable.
     if (.not.cable_user%gswp3) then
-       ok = NF90_INQ_VARID(ncid_mask, 'mask', maskID) ! check for "mask" 
+       ok = NF90_INQ_VARID(ncid_mask, 'mask', maskID) ! check for "mask"
     else
-       ok = NF90_INQ_VARID(ncid_mask, 'landsea', maskID) ! check for "mask" 
+       ok = NF90_INQ_VARID(ncid_mask, 'landsea', maskID) ! check for "mask"
     end if
     IF(ok /= NF90_NOERR) THEN ! if error, i.e. no "mask" variable:
        ! Check for "land" variable:
@@ -806,12 +806,12 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
     ! Use internal files to convert "time" variable units (giving the run's
     ! start time) from character to integer; calculate starting hour-of-day,
     ! day-of-year, year:
-    IF (.not.cable_user%GSWP3) then 
+    IF (.not.cable_user%GSWP3) then
        READ(timeunits(15:18),*) syear
        READ(timeunits(20:21),*) smoy ! integer month
        READ(timeunits(23:24),*) sdoytmp ! integer day of that month
-       READ(timeunits(26:27),*) shod  ! starting hour of day 
-    ELSE 
+       READ(timeunits(26:27),*) shod  ! starting hour of day
+    ELSE
        syear=ncciy
        smoy=1
        sdoytmp=1
@@ -827,8 +827,8 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
          (shod.lt.dels/3600./2.) ) THEN
        shod = shod + dels/3600./2.
     ENDIF
-    
-   
+
+
     ! Decide day-of-year for non-leap year:
     CALL YMDHMS2DOYSOD( syear, smoy, sdoytmp, INT(shod), 0, 0, sdoy, ssod )
        ! Number of days between start position and 1st timestep:
@@ -1893,7 +1893,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
                REAL(tmpDat3(land_x(i),land_y(i),1))**2)
         ENDDO
       END IF
-   
+
     ELSE ! Anna, site runs need extra z dimension
       IF(exists%Wind) THEN ! Scalar Wind
         ok= NF90_GET_VAR(ncid_met,id%Wind,tmpDat4, &
@@ -2090,7 +2090,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
 
            veg%vlai(landpt(i)%cstart:landpt(i)%cend) =  &
                 defaultLAI(landpt(i)%cstart:landpt(i)%cend,met%moy(landpt(i)%cstart))
-             
+
         ENDDO
       END IF
 
@@ -2486,7 +2486,7 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,climate,bgc,soil,canopy,rough,rad, 
    !   max_vegpatches - via cable_IO_vars_module
 !! vh_js !!
    USE POPmodule, ONLY: POP_INIT
-   USE POPLUC_module, ONLY: POPLUC_INIT 
+   USE POPLUC_module, ONLY: POPLUC_INIT
    USE CABLE_LUC_EXPT, ONLY: LUC_EXPT_TYPE
 
    IMPLICIT NONE
@@ -2518,7 +2518,7 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,climate,bgc,soil,canopy,rough,rad, 
    INTEGER,INTENT(IN)                      :: logn     ! log file unit number
    LOGICAL,INTENT(IN)                      :: &
          vegparmnew, &  ! are we using the new format?
-!! vh_js !!  
+!! vh_js !!
        spinup         ! for POP (initialize pop)
    REAL, INTENT(IN) :: TFRZ, EMSOIL
 
@@ -2615,7 +2615,7 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,climate,bgc,soil,canopy,rough,rad, 
          ! read POP_LUC restart file here
          ! set POP%LU here for secondary tiles if cable_user%POPLUC_RunType is not 'static'
          CALL POPLUC_init(POPLUC,LUC_EXPT, casapool, casaflux, casabiome, veg, POP, mland)
-         
+
       ENDIF
 
    ENDIF
@@ -2687,7 +2687,7 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,climate,bgc,soil,canopy,rough,rad, 
     END IF ! if restart file exists
 
     ! Overwrite default values by those available in met file:
-    CALL get_parameters_met(soil,veg,bgc,rough,completeSet)
+    CALL get_parameters_met(soil,ssnow,veg,bgc,rough,completeSet) ! MMY add ssnow,
 
     ! Results of looking for parameters in the met file:
     WRITE(logn,*)
@@ -2740,9 +2740,10 @@ END SUBROUTINE load_parameters
 !
 !==============================================================================
 
-SUBROUTINE get_parameters_met(soil,veg,bgc,rough,completeSet)
+SUBROUTINE get_parameters_met(soil,ssnow,veg,bgc,rough,completeSet) ! MMY add ssnow
 
    TYPE (soil_parameter_type), INTENT(INOUT) :: soil
+   TYPE (soil_snow_type), INTENT(INOUT)      :: ssnow ! MMY
    TYPE (veg_parameter_type), INTENT(INOUT)  :: veg
    TYPE (bgc_pool_type), INTENT(INOUT)       :: bgc
    TYPE (roughness_type), INTENT(INOUT)      :: rough
@@ -2801,6 +2802,82 @@ SUBROUTINE get_parameters_met(soil,veg,bgc,rough,completeSet)
                 nmetpatches,'def')
    CALL readpar(ncid_met,'rhosoil',completeSet,soil%rhosoil,filename%met,      &
                 nmetpatches,'def')
+
+! ___________________ MMY read_vec parameters from met file for EucFace _____________
+   CALL readpar(ncid_met,'cnsd',completeSet,soil%cnsd,filename%met,            &
+                nmetpatches,'def')
+   PRINT *,"MMY met soil%cnsd", soil%cnsd
+   CALL readpar(ncid_met,'clay_vec',completeSet,soil%clay_vec,filename%met,    &
+                nmetpatches,'ms')
+   PRINT *,"MMY met soil%clay_vec", soil%clay_vec
+   CALL readpar(ncid_met,'sand_vec',completeSet,soil%sand_vec,filename%met,    &
+                nmetpatches,'ms')
+   PRINT *,"MMY met soil%sand_vec", soil%sand_vec
+   CALL readpar(ncid_met,'silt_vec',completeSet,soil%silt_vec,filename%met,    &
+                nmetpatches,'ms')
+   PRINT *,"MMY met soil%silt_vec", soil%silt_vec
+   CALL readpar(ncid_met,'org_vec',completeSet,soil%org_vec,filename%met,      &
+                nmetpatches,'ms')
+   PRINT *,"MMY met soil%org_vec", soil%org_vec
+   CALL readpar(ncid_met,'ssat_vec',completeSet,soil%ssat_vec,filename%met,    &
+                nmetpatches,'ms')
+   PRINT *,"MMY met soil%ssat_vec", soil%ssat_vec
+   CALL readpar(ncid_met,'sfc_vec',completeSet,soil%sfc_vec,filename%met,      &
+                nmetpatches,'ms')
+   PRINT *,"MMY met soil%sfc_vec", soil%sfc_vec
+   CALL readpar(ncid_met,'swilt_vec',completeSet,soil%swilt_vec,filename%met,  &
+                nmetpatches,'ms')
+   PRINT *,"MMY met soil%swilt_vec", soil%swilt_vec
+   CALL readpar(ncid_met,'bch_vec',completeSet,soil%bch_vec,filename%met,      &
+                nmetpatches,'ms')
+   PRINT *,"MMY met soil%bch_vec", soil%bch_vec
+   CALL readpar(ncid_met,'hyds_vec',completeSet,soil%hyds_vec,filename%met,    &
+                nmetpatches,'ms')
+   PRINT *,"MMY met soil%hyds_vec", soil%hyds_vec
+   CALL readpar(ncid_met,'sucs_vec',completeSet,soil%sucs_vec,filename%met,    &
+                nmetpatches,'ms')
+   PRINT *,"MMY met soil%sucs_vec", soil%sucs_vec
+   soil%sucs_vec = 1000._r_2 * ( abs(soil%sucs_vec))   ! Copied from SUBROUTINE GWspatialParameters
+   CALL readpar(ncid_met,'css_vec',completeSet,soil%css_vec,filename%met,      &
+                nmetpatches,'ms')
+   PRINT *,"MMY met soil%css_vec", soil%css_vec
+   CALL readpar(ncid_met,'rhosoil_vec',completeSet,soil%rhosoil_vec,filename%met,&
+                nmetpatches,'ms')
+   PRINT *,"MMY met soil%rhosoil_vec", soil%rhosoil_vec
+   CALL readpar(ncid_met,'cnsd_vec',completeSet,soil%cnsd_vec,filename%met,    &
+                nmetpatches,'ms')
+   PRINT *,"MMY met soil%cnsd_vec", soil%cnsd_vec
+   CALL readpar(ncid_met,'watr',completeSet,soil%watr,filename%met,            &
+                nmetpatches,'ms')
+   PRINT *,"MMY met soil%watr", soil%watr
+   !CALL readpar(ncid_met,'SoilMoist',completeSet,ssnow%wb,filename%met,              &
+   !             nmetpatches,'ms') ! ssnow%wb(mp,ms)
+
+   !PRINT *,'MMY ssnow%wb read from met is ', ssnow%wb
+
+   !!!   ssnow%GWwb(:)      = ssnow%wb(:,ms)
+   soil%GWhyds_vec(:) = soil%hyds_vec(:,ms)
+   soil%GWssat_vec(:) = soil%ssat_vec(:,ms)
+   !ssnow%GWwb(:)      = soil%GWssat_vec(:) * 0.9
+   ! Set init GWwb as 0.9 ssat to avoid the aquifer saturates too quick
+   soil%GWsucs_vec(:) = soil%sucs_vec(:,ms)
+   soil%GWbch_vec(:)  = soil%bch_vec(:,ms)
+   soil%GWwatr(:)     = soil%watr(:,ms)
+
+  	!!   PRINT *,'MMY ssnow%GWwb read from met is ', ssnow%GWwb
+    !!   PRINT *,'MMY ssnow%GWwb read from restart is ', ssnow%GWwb
+   !PRINT *,'MMY ssnow%GWwb set as 0.9 GWssat_vec is ', ssnow%GWwb
+   PRINT *,'MMY soil%GWhyds_vec read from met is ', soil%GWhyds_vec
+   PRINT *,'MMY soil%GWssat_vec read from met is ', soil%GWssat_vec
+   PRINT *,'MMY soil%GWsucs_vec read from met is ', soil%GWsucs_vec
+   PRINT *,'MMY soil%GWbch_vec read from met is ', soil%GWbch_vec
+   PRINT *,'MMY soil%GWwatr read from met is ', soil%GWwatr
+
+   !   CALL readpar(ncid_met,'GWMoist',completeSet,ssnow%GWwb,filename%met,            &
+	 !                nmetpatches,'def') ! ssnow%GWwb(mp)
+	 !   PRINT *,'MMY ssnow%GWwb read from met is ', ssnow%GWwb
+! ______________________________________________________________________________
+
    CALL readpar(ncid_met,'rs20',completeSet,veg%rs20,filename%met,             &
                 nmetpatches,'def')
    CALL readpar(ncid_met,'albsoil',completeSet,soil%albsoil,filename%met,      &
