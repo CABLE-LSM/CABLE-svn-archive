@@ -32,44 +32,46 @@ mp,                    &
 nrb,                   &
 Clai_thresh,           &
 Ccoszen_tols,          &
+CGauss_w,              &
+Cpi,                   &
+Cpi180,                &
 cbl_standalone,        &
 jls_standalone,        &
 jls_radiation ,        &
+subr_name,             &
 veg_mask,              &
 sunlit_mask,           &
 sunlit_veg_mask,       &
+VegXfang,              &
+VegTaul,               &
+VegRefl,               &
 reducedLAIdue2snow,    &
 coszen,                &
+metDoY,                &
+SW_down,               &
 ExtCoeff_beam,         &
 ExtCoeff_dif,          &
 EffExtCoeff_beam,      &
 EffExtCoeff_dif,       &
-VegXfang,              &
-VegTaul,               &
-VegRefl,               &
+RadFbeam,              &
 c1,                    &
 rhoch,                 &
-metDoY,                &
-SW_down,               &
-RadFbeam,              &
-xk,                    &
-CGauss_w,              &
-Cpi,                   &
-Cpi180,                &
-subr_name              &
-                         )
+xk                     )
  
 USE cbl_spitter_module, ONLY : spitter
 USE cbl_rhoch_module, ONLY : calc_rhoch
 
 !re-decl input args
+!model dimensions
 integer :: mp                   !total number of "tiles"  
 integer :: nrb                  !number of radiation bands [per legacy=3, but really=2 VIS,NIR. 3rd dim was for LW]
+!constants
 real :: Clai_thresh             !threshold LAI below which considered UN-vegetated
 real :: Ccoszen_tols            !threshold cosine of sun's zenith angle, below which considered SUNLIT
 real :: Cgauss_w(nrb)
 real :: Cpi                     !PI - from cable_math_constants originally
 real :: Cpi180                  !PI in radians - from cable_math_constants originally
+!what model am i in
 LOGICAL :: cbl_standalone       !runtime switch defined in cable_*main routines signifying this is cable_standalone
 LOGICAL :: jls_standalone       !runtime switch defined in cable_*main routines signifying this is jules_standalone
 LOGICAL :: jls_radiation        !runtime switch defined in cable_*main routines signifying this is the radiation pathway 
@@ -124,6 +126,7 @@ Ccoszen_tols_tiny = Ccoszen_tols * 1e-2
 call ExtinctionCoeff( ExtCoeff_beam, ExtCoeff_dif, mp, nrb, CGauss_w,Ccoszen_tols_tiny, reducedLAIdue2snow, &
                       sunlit_mask, veg_mask, sunlit_veg_mask,  &
                       cLAI_thresh, coszen, xphi1, xphi2, xk, xvlai2)
+
 ! Define effective Extinction co-efficient for direct beam/diffuse radiation
 ! Extincion Co-eff defined by parametrized leaf reflect(transmit)ance - used in
 ! canopy transmitance calculations (cbl_albeo)
@@ -140,7 +143,6 @@ IF( cbl_standalone .OR. jls_standalone .AND. .NOT. jls_radiation )  &
 
 END SUBROUTINE init_radiation
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
