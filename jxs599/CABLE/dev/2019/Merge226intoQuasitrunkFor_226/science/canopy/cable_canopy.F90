@@ -61,6 +61,7 @@ CONTAINS
 
 
   SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,climate, sunlit_veg_mask  )
+  !880!SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,climate, sunlit_veg_mask, reducedLAIdue2snow )
     USE cable_def_types_mod
     USE cbl_radiation_module
     USE cable_air_module
@@ -249,6 +250,9 @@ logical :: sunlit_veg_mask(mp)
        ! E.Kowalczyk 2014
        IF (cable_user%l_new_roughness_soil)                                     &
 CALL ruff_resist(veg, rough, ssnow, canopy, veg%vlai, veg%hc, canopy%vlaiw)
+            !880!CALL ruff_resist( veg, rough, ssnow, canopy, &
+            !880!                  !H!hgt_pft, lai_pft )
+            !880!                  veg%hc, canopy%vlaiw, reducedLAIdue2snow )
 
 
 
@@ -616,6 +620,7 @@ write(6,*) "SLI is not an option right now"
        ENDDO
 
        CALL update_zetar()
+       !!880!CALL update_zetar(mp, sunlit_veg_mask)
 
     END DO           ! do iter = 1, NITER
 
