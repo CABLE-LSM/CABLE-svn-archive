@@ -2873,6 +2873,13 @@ SUBROUTINE get_parameters_met(soil,ssnow,veg,bgc,rough,completeSet) ! MMY add ss
    PRINT *,'MMY soil%GWbch_vec read from met is ', soil%GWbch_vec
    PRINT *,'MMY soil%GWwatr read from met is ', soil%GWwatr
 
+   ! ____ MMY add from SUBROUTINE GWspatialParameters in cable_parameters.F90 _____
+    !set the default IC for hysteresis state
+    ssnow%smp_hys(:,:) = -soil%sucs_vec(:,:)
+    ssnow%hys_fac(:,:) = 1.0
+    ssnow%watr_hys(:,:) = soil%watr(:,:)
+    ssnow%ssat_hys(:,:) = soil%ssat_vec(:,:)
+   ! ______________________________________________________________________________
    !   CALL readpar(ncid_met,'GWMoist',completeSet,ssnow%GWwb,filename%met,            &
 	 !                nmetpatches,'def') ! ssnow%GWwb(mp)
 	 !   PRINT *,'MMY ssnow%GWwb read from met is ', ssnow%GWwb
