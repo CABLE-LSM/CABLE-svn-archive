@@ -52,8 +52,8 @@ EffSurfRefl_beam      &
 USE cbl_rhoch_module, ONLY : calc_rhoch
 USE cbl_snow_albedo_module, ONLY : surface_albedosn
 
-    USE cable_common_module
-    USE cable_def_types_mod, ONLY : r_2
+    !USE cable_common_module
+    !USE cable_def_types_mod, ONLY : r_2
 
 implicit none
 
@@ -151,7 +151,7 @@ call surface_albedosn( AlbSnow, AlbSoil, mp, surface_type, &
                        SoilTemp, SnowAge, &
                        metTk, coszen )
    
-call calc_rhoch( c1,rhoch, mp, nrb, VegTaul, VegRefl )
+!trcall calc_rhoch( c1,rhoch, mp, nrb, VegTaul, VegRefl )
 
 ! Define canopy Reflectance for diffuse/direct radiation
 ! Formerly rad%rhocbm, rad%rhocdf
@@ -169,25 +169,16 @@ call CanopyTransmitance(CanopyTransmit_beam, CanopyTransmit_dif, mp, nrb,&
 ! Update extinction coefficients and fractional transmittance for
 ! leaf transmittance and reflection (ie. NOT black leaves):
 !---1 = visible, 2 = nir radiaition
-DO b = 1, 2
+! Finally compute Effective 4-band albedo for diffuse/direct radiation- 
+! In the UM this is the required variable to be passed back on the rad call
+! Formerly rad%reffbm, rad%reffdf
+call EffectiveSurfaceReflectance( EffSurfRefl_beam, EffSurfRefl_dif,           &
+                                  mp, nrb, veg_mask, sunlit_veg_mask,          &
+                                  CanopyRefl_beam, CanopyRefl_dif,             &
+                                  CanopyTransmit_beam,CanopyTransmit_dif,      &
+                                  AlbSnow )
 
-  !---Calculate effective diffuse reflectance (fraction):
-  WHERE( veg_mask )                                             &
-    EffSurfRefl_dif(:,b) = CanopyRefl_dif(:,b) + (AlbSnow(:,b)             &
-    - CanopyRefl_dif(:,b)) * canopytransmit_dif(:,b)**2
-END DO
-  
-DO b = 1, 2
-  !---where vegetated and sunlit
-  WHERE (sunlit_veg_mask)
-  
-    ! Calculate effective beam reflectance (fraction):
-    EffSurfRefl_beam(:,b) = CanopyRefl_beam(:,b) + ( AlbSnow(:,b)             &
-      - CanopyRefl_beam(:,b) ) * canopytransmit_beam(:,b)**2
-  
-  END WHERE
 
-END DO
 
 ! Compute total albedo to SW given the Effective Surface Reflectance 
 ! (considering Canopy/Soil/Snow contributions) 
@@ -196,16 +187,6 @@ if(.NOT. jls_radiation) &
   call FbeamRadAlbedo( RadAlbedo, mp, nrb, veg_mask, radfbeam, &
                        EffSurfRefl_dif, EffSurfRefl_beam, AlbSnow )
    
-!H!! Finally compute Effective 4-band albedo for diffuse/direct radiation- 
-!H!! In the UM this is the required variable to be passed back on the rad call
-!H!! Formerly rad%reffbm, rad%reffdf
-!H!call EffectiveSurfaceReflectance( EffSurfRefl_beam, EffSurfRefl_dif,           &
-!H!                                  mp, nrb, veg_mask, sunlit_veg_mask,          &
-!H!                                  CanopyRefl_beam, CanopyRefl_dif,             &
-!H!                                  CanopyTransmit_beam,CanopyTransmit_dif,      &
-!H!                                  AlbSnow )
-!H!
-
 END SUBROUTINE albedo
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -315,23 +296,10 @@ real :: dummy2(mp)
 integer :: i, b
 
 !Zero initialization remains the calculated value where "mask"=FALSE
-!CanopyTransmit_beam = 0.0 ! Formerly rad%cexpbm
+call CanopyTransmitance_dif(CanopyTransmit_dif, mp, nrb, EffExtCoeff_dif, reducedLAIdue2snow)
 
-DO b = 1, 2
-  !--Define canopy diffuse transmittance (fraction):
-  CanopyTransmit_dif(:,b) = EXP(-EffExtCoeff_dif(:,b) * reducedLAIdue2snow )
-
-  WHERE (sunlit_veg_mask)
-    ! Canopy beam transmittance (fraction):
-    dummy2 = MIN(EffExtCoeff_beam(:,b) * reducedLAIdue2snow, 20.)
-    dummy  = EXP(-dummy2)
-    CanopyTransmit_beam(:,b) = REAL(dummy)
-  END WHERE
-end do
-!H!call CanopyTransmitance_dif(CanopyTransmit_dif, mp, nrb, EffExtCoeff_dif, reducedLAIdue2snow)
-!H!
-!H!call CanopyTransmitance_beam( CanopyTransmit_beam, mp, nrb, EffExtCoeff_beam,  &
-!H!                              reducedLAIdue2snow, sunlit_veg_mask )
+call CanopyTransmitance_beam( CanopyTransmit_beam, mp, nrb, EffExtCoeff_beam,  &
+                              reducedLAIdue2snow, sunlit_veg_mask )
 
 End subroutine CanopyTransmitance
 
