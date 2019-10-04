@@ -26,10 +26,7 @@
 !
 ! ==============================================================================
 
-!#define NO_CASA_YET 1
-
 MODULE cable_cbm_module
-
 
   IMPLICIT NONE
 
@@ -47,11 +44,9 @@ CONTAINS
     USE cable_soil_snow_module, ONLY : soil_snow
     USE cable_def_types_mod
     USE cable_roughness_module, ONLY : ruff_resist
-    USE cable_radiation_module, ONLY : init_radiation
+    USE cbl_init_radiation_module, ONLY : init_radiation
     USE cable_air_module, ONLY : define_air
-#ifndef NO_CASA_YET
     USE casadimension,     ONLY : icycle ! used in casa_cnp
-#endif
     USE cable_data_module, ONLY : icbm_type, point2constants
     !mrd561
     USE cable_gw_hydro_module, ONLY : sli_hydrology,&
@@ -82,10 +77,8 @@ CONTAINS
     INTEGER, INTENT(IN) :: ktau
     INTEGER :: k,kk,j
     LOGICAL, SAVE :: first_call = .TRUE.
-#ifdef NO_CASA_YET
-    INTEGER :: ICYCLE
+    
     ICYCLE = 0
-#endif
 
     cable_user%soil_struc="default"
 
