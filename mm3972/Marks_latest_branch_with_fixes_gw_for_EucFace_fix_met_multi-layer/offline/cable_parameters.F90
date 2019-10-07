@@ -1109,10 +1109,26 @@ CONTAINS
         soil%zse = (/.02,  0.0500,  0.06,  0.1300 ,   0.300 ,   0.300 ,   0.3000,&
              0.3000,    0.3000 ,   0.3000,    0.3000,    0.7500,  1.50 /)
      case(31)
+! _____________________________________ MMY ________________________________________
+     ! uniform 31 layers
         soil%zse = (/0.1500, 0.1500, 0.1500, 0.1500, 0.1500, 0.1500, 0.1500, 0.1500, & ! MMY
                      0.1500, 0.1500, 0.1500, 0.1500, 0.1500, 0.1500, 0.1500, 0.1500, & ! MMY
                      0.1500, 0.1500, 0.1500, 0.1500, 0.1500, 0.1500, 0.1500, 0.1500, & ! MMY
                      0.1500, 0.1500, 0.1500, 0.1500, 0.1500, 0.1500, 0.1500/)          ! MMY
+     ! exp 31 layers
+     !   soil%zse = (/0.020440, 0.001760, 0.003957, 0.007035, 0.010993, 0.015829, 0.021546, & ! MMY
+     !                0.028141, 0.035616, 0.043971, 0.053205, 0.063318, 0.074311, 0.086183, & ! MMY
+     !                0.098934, 0.112565, 0.127076, 0.142465, 0.158735, 0.175883, 0.193911, & ! MMY
+     !                0.212819, 0.232606, 0.253272, 0.274818, 0.297243, 0.320547, 0.344731, & ! MMY
+     !                0.369794, 0.395737, 0.422559/) ! MMY
+
+     ! para 31 layers
+     !   soil%zse = (/0.020000, 0.029420, 0.056810, 0.082172, 0.105504, 0.126808, 0.146083, & ! MMY
+     !                0.163328, 0.178545, 0.191733, 0.202892, 0.212023, 0.219124, 0.224196, & ! MMY
+     !                0.227240, 0.228244, 0.227240, 0.224196, 0.219124, 0.212023, 0.202892, & ! MMY
+     !                0.191733, 0.178545, 0.163328, 0.146083, 0.126808, 0.105504, 0.082172, & ! MMY
+     !                0.056810, 0.029420, 0.020000/) ! MMY
+! __________________________________________________________________________________
      end select
 
     soil%zse_vec = real(spread(soil%zse,1,mp),r_2)
@@ -1132,6 +1148,110 @@ CONTAINS
     DO is = ms, 2, -1
        vegin%froot(is, :) = vegin%froot(is, :)-vegin%froot(is-1, :)
     END DO
+! ____________________ MMY uniform root for all layers _________________________
+    ! uniform froot 31 layers
+    !vegin%froot(:, :) = 0.032258
+    !vegin%froot(1, :) = 0.03226
+
+    ! triangle froot 31 layers
+    vegin%froot(1, :) =0.064516
+    vegin%froot(2, :) =0.062366
+    vegin%froot(3, :) =0.060215
+    vegin%froot(4, :) =0.058065
+    vegin%froot(5, :) =0.055914
+    vegin%froot(6, :) =0.053763
+    vegin%froot(7, :) =0.051613
+    vegin%froot(8, :) =0.049462
+    vegin%froot(9, :) =0.047312
+    vegin%froot(10, :) =0.045161
+    vegin%froot(11, :) =0.043011
+    vegin%froot(12, :) =0.040860
+    vegin%froot(13, :) =0.038710
+    vegin%froot(14, :) =0.036559
+    vegin%froot(15, :) =0.034409
+    vegin%froot(16, :) =0.032258
+    vegin%froot(17, :) =0.030108
+    vegin%froot(18, :) =0.027957
+    vegin%froot(19, :) =0.025806
+    vegin%froot(20, :) =0.023656
+    vegin%froot(21, :) =0.021505
+    vegin%froot(22, :) =0.019355
+    vegin%froot(23, :) =0.017204
+    vegin%froot(24, :) =0.015054
+    vegin%froot(25, :) =0.012903
+    vegin%froot(26, :) =0.010753
+    vegin%froot(27, :) =0.008602
+    vegin%froot(28, :) =0.006452
+    vegin%froot(29, :) =0.004301
+    vegin%froot(30, :) =0.002150
+    vegin%froot(31, :) =0.000000
+
+    ! inverse-triangle froot 31 layers
+    !vegin%froot(1, :) =0.000000
+    !vegin%froot(2, :) =0.002150
+    !vegin%froot(3, :) =0.004301
+    !vegin%froot(4, :) =0.006452
+    !vegin%froot(5, :) =0.008602
+    !vegin%froot(6, :) =0.010753
+    !vegin%froot(7, :) =0.012903
+    !vegin%froot(8, :) =0.015054
+    !vegin%froot(9, :) =0.017204
+    !vegin%froot(10, :) =0.019355
+    !vegin%froot(11, :) =0.021505
+    !vegin%froot(12, :) =0.023656
+    !vegin%froot(13, :) =0.025806
+    !vegin%froot(14, :) =0.027957
+    !vegin%froot(15, :) =0.030108
+    !vegin%froot(16, :) =0.032258
+    !vegin%froot(17, :) =0.034409
+    !vegin%froot(18, :) =0.036559
+    !vegin%froot(19, :) =0.038710
+    !vegin%froot(20, :) =0.040860
+    !vegin%froot(21, :) =0.043011
+    !vegin%froot(22, :) =0.045161
+    !vegin%froot(23, :) =0.047312
+    !vegin%froot(24, :) =0.049462
+    !vegin%froot(25, :) =0.051613
+    !vegin%froot(26, :) =0.053763
+    !vegin%froot(27, :) =0.055914
+    !vegin%froot(28, :) =0.058065
+    !vegin%froot(29, :) =0.060215
+    !vegin%froot(30, :) =0.062366
+    !vegin%froot(31, :) =0.064516
+
+    ! parabola froot 31 layers
+    !vegin%froot(1, :) =0.090726
+    !vegin%froot(1, :) =0.079032
+    !vegin%froot(1, :) =0.068145
+    !vegin%froot(1, :) =0.058065
+    !vegin%froot(1, :) =0.04879
+    !vegin%froot(1, :) =0.040323
+    !vegin%froot(1, :) =0.032661
+    !vegin%froot(1, :) =0.025806
+    !vegin%froot(1, :) =0.019758
+    !vegin%froot(1, :) =0.014516
+    !vegin%froot(1, :) =0.010081
+    !vegin%froot(1, :) =0.006452
+    !vegin%froot(1, :) =0.003629
+    !vegin%froot(1, :) =0.001613
+    !vegin%froot(1, :) =0.000403
+    !vegin%froot(1, :) =0
+    !vegin%froot(1, :) =0.000403
+    !vegin%froot(1, :) =0.001613
+    !vegin%froot(1, :) =0.003629
+    !vegin%froot(1, :) =0.006452
+    !vegin%froot(1, :) =0.010081
+    !vegin%froot(1, :) =0.014516
+    !vegin%froot(1, :) =0.019758
+    !vegin%froot(1, :) =0.025806
+    !vegin%froot(1, :) =0.032661
+    !vegin%froot(1, :) =0.040323
+    !vegin%froot(1, :) =0.04879
+    !vegin%froot(1, :) =0.058065
+    !vegin%froot(1, :) =0.068145
+    !vegin%froot(1, :) =0.079032
+    !vegin%froot(1, :) =0.090726
+! ____________________________________________________________
 
     ALLOCATE(defaultLAI(mp, 12))
 
