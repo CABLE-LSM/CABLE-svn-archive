@@ -42,7 +42,8 @@ REAL :: EffSurfRefl_beam(mp,nrb)    !Effective Surface Relectance as seen by atm
 !constants
 real :: Ccoszen_tols                !threshold cosine of sun's zenith angle, below which considered SUNLIT
 real :: Cgauss_w(nrb)
-LOGICAL :: jls_radiation            !runtime switch defined in cable_*main routines signifying this is the radiation pathway 
+LOGICAL :: jls_radiation            !runtime switch def. in cable_*main routines 
+                                    !signifying this is the radiation pathway 
 
 !masks
 LOGICAL :: veg_mask(mp)             ! this "mp" is vegetated (uses minimum LAI) 
@@ -53,9 +54,9 @@ LOGICAL :: sunlit_veg_mask(mp)      ! this "mp" is BOTH sunlit AND  vegetated
 REAL :: VegXfang(mp)                !leaf angle PARAMETER (veg%xfang)
 REAL :: VegTaul(mp,nrb)             !PARAMETER leaf transmisivity (veg%taul)
 REAL :: VegRefl(mp,nrb)             !PARAMETER leaf reflectivity (veg%refl)
-integer:: surface_type(mp)          ! Integer index of Surface type (veg%iveg)
+integer:: surface_type(mp)          !Integer index of Surface type (veg%iveg)
 
-real :: reducedLAIdue2snow(mp)             ! Reduced LAI given snow coverage
+real :: reducedLAIdue2snow(mp)      !Reduced LAI given snow coverage
 
 ! Albedos
 REAL :: AlbSoil(mp,nrb)             !Bare Soil Albedo - parametrized (soil%albsoil)
@@ -74,21 +75,26 @@ REAL :: SnowODepth(mp)              !Total Snow depth before any update this tim
 REAL :: SnowDensity(mp)             !Total Snow density (assumes 1 layer describes snow cover) (SnowDensity)
 REAL :: SoilTemp(mp)                !Soil Temperature of top layer (soil%tgg)
 REAL :: SnowAge(mp)                 !Snow age (assumes 1 layer describes snow cover) (SnowAge)
-integer:: SnowFlag_3L(mp)           !Flag to treat snow as 3 layer  - if enough present. Updated depending on total depth (SnowFlag_3L)
+integer:: SnowFlag_3L(mp)           !Flag to treat snow as 3 layer - if enough present 
+                                    !Updated depending on total depth (SnowFlag_3L)
 
 REAL :: RadFbeam(mp,nrb)            !Computed Beam Fraction given total SW (rad%fbeam)
 
-!common radiation scalings [computed in albedo() ]
+!common radiation scalings - computed  in init_radiation()
 REAL :: xk(mp,nrb)
 REAL :: c1(mp,nrb)
 REAL :: rhoch(mp,nrb)
 
 !Variables shared primarily between radiation and albedo and possibly elsewhere
-!Extinction co-efficients compued in init_radiation()
-REAL :: ExtCoeff_beam(mp)           !"raw" Extinction co-efficient for Direct Beam component of SW radiation (rad%extkb)
-REAL :: ExtCoeff_dif(mp)            !"raw"Extinction co-efficient for Diffuse component of SW radiation (rad%extkd)
-REAL :: EffExtCoeff_beam(mp,nrb)    !Effective Extinction co-efficient for Direct Beam component of SW radiation (rad%extkbm)
-REAL :: EffExtCoeff_dif(mp,nrb)     !Effective Extinction co-efficient for Diffuse component of SW radiation (rad%extkdm)
+!Extinction co-efficients computed in init_radiation()
+REAL :: ExtCoeff_beam(mp)           !"raw" Extinction co-efficient 
+                                    !Direct Beam component of SW radiation (rad%extkb)
+REAL :: ExtCoeff_dif(mp)            !"raw"Extinction co-efficient for 
+                                    !Diffuse component of SW radiation (rad%extkd)
+REAL :: EffExtCoeff_beam(mp,nrb)    !Effective Extinction co-eff 
+                                    !Direct Beam component of SW radiation (rad%extkbm)
+REAL :: EffExtCoeff_dif(mp,nrb)     !Effective Extinction co-eff 
+                                    !Diffuse component of SW radiation (rad%extkdm)
 
 !Canopy reflectance/transmitance compued in albedo() 
 REAL :: CanopyRefl_dif(mp,nrb)      !Canopy reflectance  (rad%rhocdf   

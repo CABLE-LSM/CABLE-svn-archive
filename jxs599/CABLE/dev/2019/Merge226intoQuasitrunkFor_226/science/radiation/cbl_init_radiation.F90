@@ -25,38 +25,23 @@ MODULE cbl_init_radiation_module
   PUBLIC init_radiation
   PRIVATE
 
+!FUDGED local pars -masks tuned at other times - review conssitency!!
+real :: Ccoszen_tols_huge  ! 1e-4 * threshold cosine of sun's zenith angle, below which considered SUNLIT
+real :: Ccoszen_tols_tiny  ! 1e-4 * threshold cosine of sun's zenith angle, below which considered SUNLIT
+
 CONTAINS
 
-  SUBROUTINE init_radiation( &
-mp,                    &  
-nrb,                   &
-Clai_thresh,           &
-Ccoszen_tols,          &
-CGauss_w,              &
-Cpi,                   &
-Cpi180,                &
-cbl_standalone,        &
-jls_standalone,        &
-jls_radiation ,        &
-subr_name,             &
-veg_mask,              &
-sunlit_mask,           &
-sunlit_veg_mask,       &
-VegXfang,              &
-VegTaul,               &
-VegRefl,               &
-reducedLAIdue2snow,    &
-coszen,                &
-metDoY,                &
-SW_down,               &
-ExtCoeff_beam,         &
-ExtCoeff_dif,          &
-EffExtCoeff_beam,      &
-EffExtCoeff_dif,       &
-RadFbeam,              &
-c1,                    &
-rhoch,                 &
-xk                     )
+SUBROUTINE init_radiation( ExtCoeff_beam, ExtCoeff_dif,                        &
+                        EffExtCoeff_beam, EffExtCoeff_dif, RadFbeam,           &
+                        c1, rhoch, xk,                                         &
+                        mp,nrb,                                                &
+                        Clai_thresh, Ccoszen_tols, CGauss_w, Cpi, Cpi180,      &
+                        cbl_standalone, jls_standalone, jls_radiation,         &
+                        subr_name,                                             &
+                        veg_mask, sunlit_mask, sunlit_veg_mask,                &
+                        VegXfang, VegTaul, VegRefl,                            &
+                        coszen, metDoY, SW_down,                               & 
+                        reducedLAIdue2snow )
  
 USE cbl_spitter_module, ONLY : spitter
 USE cbl_rhoch_module, ONLY : calc_rhoch
@@ -65,6 +50,15 @@ USE cbl_rhoch_module, ONLY : calc_rhoch
 !model dimensions
 integer :: mp                   !total number of "tiles"  
 integer :: nrb                  !number of radiation bands [per legacy=3, but really=2 VIS,NIR. 3rd dim was for LW]
+
+!returned variables
+REAL :: ExtCoeff_beam(mp)       !"raw" Extinction co-efficient for Direct Beam component of SW radiation
+REAL :: ExtCoeff_dif(mp)        !"raw"Extinction co-efficient for Diffuse component of SW radiation
+REAL :: EffExtCoeff_beam(mp,nrb)!Effective Extinction co-efficient for Direct Beam component of SW radiation
+REAL :: EffExtCoeff_dif(mp,nrb) !Effective Extinction co-efficient for Diffuse component of SW radiation
+REAL :: RadFbeam(mp,nrb)        !Beam Fraction of Downward SW radiation [formerly rad%fbeam]
+
+
 !constants
 real :: Clai_thresh             !threshold LAI below which considered UN-vegetated
 real :: Ccoszen_tols            !threshold cosine of sun's zenith angle, below which considered SUNLIT
@@ -80,31 +74,23 @@ character(len=*) :: subr_name !where am i called from
 logical :: veg_mask(mp)         !vegetated mask [formed by comparrisson of LAI CLAI_thresh ]
 logical :: sunlit_mask(mp)      !sunlit mask [formed by comparrisson of coszen to coszen_tols i.e. is the sun up]
 logical :: sunlit_veg_mask(mp)  !combined mask - BOTH sunlit and vegetated
+
 !vegetation parameters input via namelist
 REAL :: VegXfang(mp)
 REAL :: VegTaul(mp,nrb)
 REAL :: VegRefl(mp,nrb)
 
-REAL :: reducedLAIdue2snow(mp)         !Effective LAI given (potential sno coverage)
+REAL :: reducedLAIdue2snow(mp)  !Effective LAI given (potential sno coverage)
 REAL :: coszen(mp)              ! cosine zenith angle of sun
-
-REAL :: ExtCoeff_beam(mp)       !"raw" Extinction co-efficient for Direct Beam component of SW radiation
-REAL :: ExtCoeff_dif(mp)        !"raw"Extinction co-efficient for Diffuse component of SW radiation
-REAL :: EffExtCoeff_beam(mp,nrb)!Effective Extinction co-efficient for Direct Beam component of SW radiation
-REAL :: EffExtCoeff_dif(mp,nrb) !Effective Extinction co-efficient for Diffuse component of SW radiation
-
-integer :: metDoY(mp)           !Day of the Year [formerly met%doy]
 REAL :: SW_down(mp,nrb)         !Downward SW radiation [formerly met%fsd]
-REAL :: RadFbeam(mp,nrb)        !Beam Fraction of Downward SW radiation [formerly rad%fbeam]
+integer :: metDoY(mp)           !Day of the Year [formerly met%doy]
 
-!co-efficients used throughout init_radiation ` called from _albedo as well
+!co-efficients used throughout init_radiation used in albedo as well
 REAL :: c1(mp,nrb)
 REAL :: rhoch(mp,nrb)
 REAL :: xk(mp,nrb)              ! extinct. coef.for beam rad. and black leaves
 
 !local_vars - common scaling co-efficients used throughout init_radiation
-real :: Ccoszen_tols_huge  ! 1e-4 * threshold cosine of sun's zenith angle, below which considered SUNLIT
-real :: Ccoszen_tols_tiny  ! 1e-4 * threshold cosine of sun's zenith angle, below which considered SUNLIT
 REAL :: xvlai2(mp,nrb) ! 2D vlai
 REAL :: xphi1(mp)      ! leaf angle parmameter 1
 REAL :: xphi2(mp)      ! leaf angle parmameter 2
