@@ -182,7 +182,7 @@ IF ( cbl_standalone .OR. cable_runtime%um_explicit ) &
     ssnow%otss_0 = ssnow%otss  ! vh should be before call to canopy?
     ssnow%otss = ssnow%tss
 
-    CALL define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,climate,sunlit_veg_mask)
+    CALL define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,climate,sunlit_veg_mask, canopy%vlaiw)
     ! RML moved out of following IF after discussion with Eva
     ssnow%owetfac = ssnow%wetfac
 

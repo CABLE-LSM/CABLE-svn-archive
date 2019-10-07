@@ -602,7 +602,7 @@ if( allocated(vegin%zr    ) )  deallocate( vegin%zr     ) !! vh_veg_params !!
 if( allocated(vegin%clitt ) )  deallocate( vegin%clitt  ) !! vh_veg_params !!
 if( allocated(veg_desc    ) )  deallocate( veg_desc )
 
-
+endif
 
 
   END SUBROUTINE init_veg_from_vegin

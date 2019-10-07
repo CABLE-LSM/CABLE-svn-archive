@@ -43,9 +43,6 @@ SUBROUTINE init_radiation( ExtCoeff_beam, ExtCoeff_dif,                        &
                         coszen, metDoY, SW_down,                               & 
                         reducedLAIdue2snow )
  
-USE cbl_spitter_module, ONLY : spitter
-USE cbl_rhoch_module, ONLY : calc_rhoch
-
 !re-decl input args
 !model dimensions
 integer :: mp                   !total number of "tiles"  

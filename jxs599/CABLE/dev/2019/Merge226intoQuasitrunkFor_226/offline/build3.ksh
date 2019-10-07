@@ -65,7 +65,6 @@ build_build()
    fi
 
    # directories contain source code
-   CBM="../science/cbl_model_driver_offline.F90"
    ALB="../science/albedo"
    RAD="../science/radiation"
    CAN="../science/canopy"
@@ -83,7 +82,6 @@ build_build()
    /bin/cp -p $ALB/*90 ./.tmp
    /bin/cp -p $CAN/*90 ./.tmp
    /bin/cp -p $CNP/*90 ./.tmp
-   /bin/cp -p $CBM     ./.tmp
    /bin/cp -p $GWH/*90 ./.tmp
    /bin/cp -p $MIS/*90 ./.tmp
    /bin/cp -p $RAD/*90 ./.tmp
