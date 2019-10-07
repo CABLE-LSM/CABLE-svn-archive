@@ -141,32 +141,31 @@ mp,                    &
 nrb,                   &
 Clai_thresh,           &
 Ccoszen_tols,          &
+CGauss_w,              &
+Cpi,                   &
+Cpi180,                &
 cbl_standalone,        &
 jls_standalone,        &
-jls_radiation ,        &
+jls_radiation,         &
+subr_name,             &
 veg_mask,              &
 sunlit_mask,           &
 sunlit_veg_mask,       &
+Veg%Xfang,              &
+Veg%Taul,               &
+Veg%Refl,               &
 canopy%vlaiw,    &
 met%coszen,                &
+int(met%DoY),                &
+met%fsd,               &
 rad%extkb,         &
 rad%extkd,         &
 rad%extkbm,         &
 rad%extkdm,         &
-Veg%Xfang,              &
-Veg%Taul,               &
-Veg%Refl,               &
+Rad%Fbeam,              &
 c1,                    &
 rhoch,                 &
-int(met%DoY),                &
-met%fsd,               &
-Rad%Fbeam,              &
-xk,                    &
-CGauss_w,              &
-Cpi,                   &
-Cpi180,                &
-subr_name              &
-) ! need to be called at every dt
+xk ) 
  
     IF( cable_runtime%um ) THEN
 
@@ -205,8 +204,6 @@ rad%extkdm,           & ! EffExtCoeff_beam
 rad%extkbm,           & ! = EffExtCoeff_dif
 rad%rhocdf,          & 
 rad%rhocbm,          & 
-!  CanopyRefl_dif,    & 
-!  CanopyRefl_beam,   &
 rad%cexpkdm,          & ! = CanopyTransmit_dif 
 rad%cexpkbm,          & ! = CanopyTransmit_beam
 rad%reffdf,           &! = EffSurfRefl_dif
@@ -250,8 +247,6 @@ rad%extkdm,           & ! EffExtCoeff_beam
 rad%extkbm,           & ! = EffExtCoeff_dif
 rad%rhocdf,          & 
 rad%rhocbm,          & 
-!  CanopyRefl_dif,    & 
-!  CanopyRefl_beam,   &
 rad%cexpkdm,          & ! = CanopyTransmit_dif 
 rad%cexpkbm,          & ! = CanopyTransmit_beam
 rad%reffdf,           &! = EffSurfRefl_dif

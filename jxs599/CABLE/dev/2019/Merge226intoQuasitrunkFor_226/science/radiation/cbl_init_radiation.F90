@@ -75,10 +75,15 @@ real :: Cpi180                  !PI in radians - from cable_math_constants origi
 LOGICAL :: cbl_standalone       !runtime switch defined in cable_*main routines signifying this is cable_standalone
 LOGICAL :: jls_standalone       !runtime switch defined in cable_*main routines signifying this is jules_standalone
 LOGICAL :: jls_radiation        !runtime switch defined in cable_*main routines signifying this is the radiation pathway 
+character(len=*) :: subr_name !where am i called from
 !masks
 logical :: veg_mask(mp)         !vegetated mask [formed by comparrisson of LAI CLAI_thresh ]
 logical :: sunlit_mask(mp)      !sunlit mask [formed by comparrisson of coszen to coszen_tols i.e. is the sun up]
 logical :: sunlit_veg_mask(mp)  !combined mask - BOTH sunlit and vegetated
+!vegetation parameters input via namelist
+REAL :: VegXfang(mp)
+REAL :: VegTaul(mp,nrb)
+REAL :: VegRefl(mp,nrb)
 
 REAL :: reducedLAIdue2snow(mp)         !Effective LAI given (potential sno coverage)
 REAL :: coszen(mp)              ! cosine zenith angle of sun
@@ -92,17 +97,10 @@ integer :: metDoY(mp)           !Day of the Year [formerly met%doy]
 REAL :: SW_down(mp,nrb)         !Downward SW radiation [formerly met%fsd]
 REAL :: RadFbeam(mp,nrb)        !Beam Fraction of Downward SW radiation [formerly rad%fbeam]
 
-!vaegetation parameters input via namelist
-REAL :: VegXfang(mp)
-REAL :: VegTaul(mp,nrb)
-REAL :: VegRefl(mp,nrb)
-
 !co-efficients used throughout init_radiation ` called from _albedo as well
 REAL :: c1(mp,nrb)
 REAL :: rhoch(mp,nrb)
 REAL :: xk(mp,nrb)              ! extinct. coef.for beam rad. and black leaves
-
-character(len=*) :: subr_name !where am i called from
 
 !local_vars - common scaling co-efficients used throughout init_radiation
 real :: Ccoszen_tols_huge  ! 1e-4 * threshold cosine of sun's zenith angle, below which considered SUNLIT

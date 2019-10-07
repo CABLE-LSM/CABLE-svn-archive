@@ -2,7 +2,7 @@ MODULE cbl_albedo_mod
 
   IMPLICIT NONE
 
-  PUBLIC albedo
+  PUBLIC Albedo
   PRIVATE
 
 CONTAINS
@@ -237,9 +237,6 @@ LOGICAL :: sunlit_veg_mask(mp)      ! this "mp" is BOTH sunlit AND  vegetated
 real :: reducedLAIdue2snow(mp)
 REAL :: EffExtCoeff_beam(mp,nrb)           !"raw" Extinction co-efficient for Direct Beam component of SW radiation (rad%extkb)
 REAL :: EffExtCoeff_dif(mp,nrb)            !"raw"Extinction co-efficient for Diffuse component of SW radiation (rad%extkd)
-real :: dummy(mp) 
-real :: dummy2(mp) 
-integer :: i, b
 
 !Zero initialization remains the calculated value where "mask"=FALSE
 call CanopyTransmitance_dif(CanopyTransmit_dif, mp, nrb, EffExtCoeff_dif, reducedLAIdue2snow)
