@@ -51,10 +51,9 @@ MODULE cable_pft_params_mod
 
   END TYPE vegin_type
 
-   CHARACTER(LEN=70), DIMENSION(:), POINTER ::                                 &
-      veg_desc    ! decriptions of veg type
+   CHARACTER(LEN=70), allocatable :: veg_desc(:)    ! decriptions of veg type
 
-   TYPE(vegin_type),  SAVE  :: vegin
+TYPE(vegin_type) :: vegin
 
 CONTAINS
 
@@ -64,37 +63,58 @@ subroutine cable_pft_params()
    ! Gets parameter values for each vegetation type 
    USE cable_def_types_mod, ONLY : mvtype, ms, ncs, ncp, nrb 
 
+real :: darea
+integer :: i
    INTEGER :: a, jveg ! do loop counter
   logical, save :: first_call = .true.
-   mvtype=17    
-
+!HACK
+mvtype=17    
     ! Allocate memory for type-specific vegetation parameters:
-  if( first_call ) then
-  
-    ALLOCATE (                                                               &
-         vegin%canst1( mvtype ), vegin%dleaf( mvtype ),                        &
-         vegin%length( mvtype ), vegin%width( mvtype ),                        &
-         vegin%vcmax( mvtype ),  vegin%ejmax( mvtype ),                        &
-         vegin%hc( mvtype ), vegin%xfang( mvtype ),                            &
-         vegin%rp20( mvtype ), vegin%rpcoef( mvtype ),                         &
-         vegin%rs20( mvtype ), vegin%wai( mvtype ),                            &
-         vegin%rootbeta( mvtype ), vegin%shelrb( mvtype ),                     &
-         vegin%vegcf( mvtype ), vegin%frac4( mvtype ),                         &
-         vegin%xalbnir( mvtype ), vegin%extkn( mvtype ),                       &
-         vegin%tminvj( mvtype ), vegin%tmaxvj( mvtype ),                       &
-         vegin%vbeta( mvtype ), vegin%froot( ms, mvtype ),                     &
-         vegin%cplant( ncp, mvtype ), vegin%csoil( ncs, mvtype ),              &
-         vegin%ratecp( ncp, mvtype ), vegin%ratecs( ncs, mvtype ),             &
-         vegin%refl( nrb, mvtype ), vegin%taul( nrb, mvtype ),                 &
-         veg_desc( mvtype ),                                                   &
-         vegin%a1gs(mvtype), vegin%d0gs(mvtype),                               &
-         vegin%alpha(mvtype),vegin%convex(mvtype),vegin%cfrd(mvtype),          &
-         vegin%gswmin(mvtype),vegin%conkc0(mvtype), vegin%conko0(mvtype),      &
-         vegin%ekc(mvtype), vegin%eko(mvtype),                                 &
-         ! Ticket #56
-         vegin%g0( mvtype ), vegin%g1( mvtype ),                               &
-         !! vh_veg_params !!
-         vegin%zr(mvtype), vegin%clitt(mvtype) )
+print *, "icbl_masks nrb ",nrb
+! if(first_call ) &
+if( .NOT. allocated(vegin%canst1) )  allocate( vegin%canst1   ( mvtype ) )
+if( .NOT. allocated(vegin%dleaf ) )  allocate( vegin%dleaf    ( mvtype ) )
+if( .NOT. allocated(vegin%length) )  allocate( vegin%length   ( mvtype ) )
+if( .NOT. allocated(vegin%width ) )  allocate( vegin%width    ( mvtype ) )
+if( .NOT. allocated(vegin%vcmax ) )  allocate( vegin%vcmax    ( mvtype ) )
+if( .NOT. allocated(vegin%ejmax ) )  allocate( vegin%ejmax    ( mvtype ) )
+if( .NOT. allocated(vegin%hc    ) )  allocate( vegin%hc       ( mvtype ) )
+if( .NOT. allocated(vegin%xfang ) )  allocate( vegin%xfang    ( mvtype  ))
+if( .NOT. allocated(vegin%rp20  ) )  allocate( vegin%rp20     ( mvtype ) )
+if( .NOT. allocated(vegin%rpcoef) )  allocate( vegin%rpcoef   ( mvtype ) )
+if( .NOT. allocated(vegin%rs20  ) )  allocate( vegin%rs20     ( mvtype ) )
+if( .NOT. allocated(vegin%wai   ) )  allocate( vegin%wai      ( mvtype ) )
+if( .NOT. allocated(vegin%rootbeta) ) allocate( vegin%rootbeta ( mvtype ) )
+if( .NOT. allocated(vegin%shelrb) )  allocate( vegin%shelrb   ( mvtype ) )
+if( .NOT. allocated(vegin%vegcf ) )  allocate( vegin%vegcf    ( mvtype ) )
+if( .NOT. allocated(vegin%frac4 ) )  allocate( vegin%frac4    ( mvtype ) )
+if( .NOT. allocated(vegin%xalbnir) )  allocate( vegin%xalbnir  ( mvtype ) )
+if( .NOT. allocated(vegin%extkn ) )  allocate( vegin%extkn    ( mvtype ) )
+if( .NOT. allocated(vegin%tminvj) )  allocate( vegin%tminvj   ( mvtype ) )
+if( .NOT. allocated(vegin%tmaxvj) )  allocate( vegin%tmaxvj   ( mvtype ) )
+if( .NOT. allocated(vegin%vbeta ) )  allocate( vegin%vbeta    ( mvtype ) )
+if( .NOT. allocated(vegin%froot ) )  allocate( vegin%froot    ( ms, mvtype ) )
+if( .NOT. allocated(vegin%cplant) )  allocate( vegin%cplant   ( ncp, mvtype ) )
+if( .NOT. allocated(vegin%csoil ) )  allocate( vegin%csoil    ( ncs, mvtype ) )
+if( .NOT. allocated(vegin%ratecp) )  allocate( vegin%ratecp   ( ncp, mvtype ) )
+if( .NOT. allocated(vegin%ratecs) )  allocate( vegin%ratecs   ( ncs, mvtype ) )
+if( .NOT. allocated(vegin%refl  ) )  allocate( vegin%refl     ( nrb, mvtype ) )
+if( .NOT. allocated(vegin%taul  ) )  allocate( vegin%taul     ( nrb, mvtype ) )
+if( .NOT. allocated(veg_desc    ) )  allocate( veg_desc       ( mvtype ) )
+if( .NOT. allocated(vegin%a1gs  ) )  allocate( vegin%a1gs     (mvtype) )
+if( .NOT. allocated(vegin%d0gs  ) )  allocate( vegin%d0gs     (mvtype) )
+if( .NOT. allocated(vegin%alpha ) )  allocate( vegin%alpha    (mvtype) )
+if( .NOT. allocated(vegin%convex) )  allocate( vegin%convex   (mvtype) )
+if( .NOT. allocated(vegin%cfrd  ) )  allocate( vegin%cfrd     (mvtype) )
+if( .NOT. allocated(vegin%gswmin) )  allocate( vegin%gswmin   (mvtype) )
+if( .NOT. allocated(vegin%conkc0) )  allocate( vegin%conkc0   (mvtype) )
+if( .NOT. allocated(vegin%conko0) )  allocate( vegin%conko0   (mvtype) )
+if( .NOT. allocated(vegin%ekc   ) )  allocate( vegin%ekc      (mvtype) )
+if( .NOT. allocated(vegin%eko   ) )  allocate( vegin%eko      (mvtype) )
+if( .NOT. allocated(vegin%g0    ) )  allocate( vegin%g0       ( mvtype ) )! Ticket #56
+if( .NOT. allocated(vegin%g1    ) )  allocate( vegin%g1       ( mvtype ) )! Ticket #56
+if( .NOT. allocated(vegin%zr    ) )  allocate( vegin%zr       (mvtype) )!! vh_veg_params !!
+if( .NOT. allocated(vegin%clitt ) )  allocate( vegin%clitt    (mvtype) )!! vh_veg_params !!
 
  !PFT parameters: description and corresponding variable name in code. 
  !PFT parameters are assigned as TYPE vegin% but later used as veg%
@@ -1101,13 +1121,15 @@ subroutine cable_pft_params()
        vegin%g1(17) =        5.248500
        vegin%zr(17) =        1.000000
     vegin%clitt(17) =        0.000000
-  endif
 
-  first_call = .false.
-      
-   ! new calculation dleaf since April 2012 (cable v1.8 did not use width)
-   vegin%dleaf = SQRT(vegin%width * vegin%length)
-    
+! new calculation dleaf since April 2012 (cable v1.8 did not use width)
+do i=1, mvtype
+  darea= vegin%width(i) * vegin%length(i)
+  vegin%dleaf(i) = SQRT( darea )
+enddo
+
+first_call = .false. 
+   
 End subroutine cable_pft_params
 
 END MODULE cable_pft_params_mod
