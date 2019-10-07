@@ -7,124 +7,83 @@ MODULE cbl_albedo_mod
 
 CONTAINS
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+subroutine Albedo( AlbSnow, AlbSoil,              & 
+mp, nrb,                                          &
+jls_radiation ,                                   &
+veg_mask, sunlit_mask, sunlit_veg_mask,           &  
+Ccoszen_tols, CGAUSS_W,                           & 
+surface_type, VegRefl, VegTaul,                   &
+metTk, coszen,                                    & 
+reducedLAIdue2snow,                               &
+SnowDepth, SnowODepth, SnowFlag_3L,               & 
+SnowDensity, SoilTemp, SnowAge,                   &
+xk, c1, rhoch,                                    & 
+RadFbeam, RadAlbedo,                              &
+ExtCoeff_dif, ExtCoeff_beam,                      &
+EffExtCoeff_dif, EffExtCoeff_beam,                &
+CanopyRefl_dif,CanopyRefl_beam,                   &
+CanopyTransmit_dif, CanopyTransmit_beam,          &
+EffSurfRefl_dif, EffSurfRefl_beam                 )
 
-subroutine Albedo( &
-AlbSnow,              & 
-AlbSoil,              & 
-mp,                   &  
-nrb,                  &
-jls_radiation ,       &
-veg_mask,             & 
-sunlit_mask,          & 
-sunlit_veg_mask,      & 
-Ccoszen_tols,         &
-CGAUSS_W,             & 
-surface_type,         &
-VegRefl,              &
-VegTaul,              &
-metTk,                & 
-coszen,               & 
-reducedLAIdue2snow,          &
-SnowDepth,            &  
-SnowODepth,           & 
-SnowFlag_3L,          & 
-SnowDensity,          & 
-SoilTemp,             & 
-SnowAge,              &
-xk,                   &  
-c1,                   &  
-rhoch,                &
-RadFbeam,             & 
-RadAlbedo,            &
-ExtCoeff_dif,         & 
-ExtCoeff_beam,        &
-EffExtCoeff_dif,      & 
-EffExtCoeff_beam,     &
-CanopyRefl_dif,       & 
-CanopyRefl_beam,      &
-CanopyTransmit_dif,   & 
-CanopyTransmit_beam,  &
-EffSurfRefl_dif,      & 
-EffSurfRefl_beam      &
-                 )
 !subrs called
 USE cbl_rhoch_module, ONLY : calc_rhoch
 USE cbl_snow_albedo_module, ONLY : surface_albedosn
 
-    !USE cable_common_module
-    !USE cable_def_types_mod, ONLY : r_2
-
 implicit none
 
-    INTEGER :: b    !rad. band 1=visible, 2=near-infrared, 3=long-wave
-
 !model dimensions
-!-------------------------------------------------------------------------------
 integer :: mp                       !total number of "tiles"  
 integer :: nrb                      !number of radiation bands [per legacy=3, but really=2 VIS,NIR. 3rd dim was for LW]
-!-------------------------------------------------------------------------------
 
 !This is what we are returning here
-!-------------------------------------------------------------------------------REAL :: EffSurfRefl_dif(mp,nrb)     !Effective Surface Relectance as seen by atmosphere [Diffuse SW]  (rad%reffdf)
 REAL :: EffSurfRefl_dif(mp,nrb)     !Effective Surface Relectance as seen by atmosphere [Diffuse SW]  (rad%reffdf)
 REAL :: EffSurfRefl_beam(mp,nrb)    !Effective Surface Relectance as seen by atmosphere [Direct Beam SW] (rad%reffbm)
-!-------------------------------------------------------------------------------
 
 !constants
-!-------------------------------------------------------------------------------
 real :: Ccoszen_tols                !threshold cosine of sun's zenith angle, below which considered SUNLIT
 real :: Cgauss_w(nrb)
 LOGICAL :: jls_radiation            !runtime switch defined in cable_*main routines signifying this is the radiation pathway 
-!-------------------------------------------------------------------------------
 
 !masks
-!-------------------------------------------------------------------------------
 LOGICAL :: veg_mask(mp)             ! this "mp" is vegetated (uses minimum LAI) 
 LOGICAL :: sunlit_mask(mp)          ! this "mp" is sunlit (uses zenith angle)
 LOGICAL :: sunlit_veg_mask(mp)      ! this "mp" is BOTH sunlit AND  vegetated  
-!-------------------------------------------------------------------------------
 
+!Vegetation parameters
+REAL :: VegXfang(mp)                !leaf angle PARAMETER (veg%xfang)
+REAL :: VegTaul(mp,nrb)             !PARAMETER leaf transmisivity (veg%taul)
+REAL :: VegRefl(mp,nrb)             !PARAMETER leaf reflectivity (veg%refl)
 integer:: surface_type(mp)          ! Integer index of Surface type (veg%iveg)
 
 real :: reducedLAIdue2snow(mp)             ! Reduced LAI given snow coverage
 
 ! Albedos
-!-------------------------------------------------------------------------------
 REAL :: AlbSoil(mp,nrb)             !Bare Soil Albedo - parametrized (soil%albsoil)
 REAL :: AlbSnow(mp,nrb)             !Ground Albedo given a snow coverage (ssnow%albsoilsn)
 REAL :: RadAlbedo(mp,nrb)           !Total albedo given RadFbeam (rad%albedo)
-!-------------------------------------------------------------------------------
 
 !Forcing
-!-------------------------------------------------------------------------------
 REAL :: MetTk(mp)                   !Air Temperture at surface - atmospheric forcing (met%tk)
 REAL :: coszen(mp)                  !cosine zenith angle  (met%coszen)
 REAL :: metDoY(mp)                  !Day of the Year - not always available (met%doy)
 REAL :: SW_down(mp,nrb)             !Downward shortwave "forced" (met%fsd)
-!-------------------------------------------------------------------------------
 
 !Prognostics
-!-------------------------------------------------------------------------------
 REAL :: SnowDepth(mp)               !Total Snow depth - water eqivalent - packed from snow_surft (SnowDepth)
 REAL :: SnowODepth(mp)              !Total Snow depth before any update this timestep (SnowODepth)
 REAL :: SnowDensity(mp)             !Total Snow density (assumes 1 layer describes snow cover) (SnowDensity)
 REAL :: SoilTemp(mp)                !Soil Temperature of top layer (soil%tgg)
 REAL :: SnowAge(mp)                 !Snow age (assumes 1 layer describes snow cover) (SnowAge)
 integer:: SnowFlag_3L(mp)           !Flag to treat snow as 3 layer  - if enough present. Updated depending on total depth (SnowFlag_3L)
-!-------------------------------------------------------------------------------
 
 REAL :: RadFbeam(mp,nrb)            !Computed Beam Fraction given total SW (rad%fbeam)
 
 !common radiation scalings [computed in albedo() ]
-!-------------------------------------------------------------------------------
 REAL :: xk(mp,nrb)
 REAL :: c1(mp,nrb)
 REAL :: rhoch(mp,nrb)
-!-------------------------------------------------------------------------------
 
 !Variables shared primarily between radiation and albedo and possibly elsewhere
-!-------------------------------------------------------------------------------
 !Extinction co-efficients compued in init_radiation()
 REAL :: ExtCoeff_beam(mp)           !"raw" Extinction co-efficient for Direct Beam component of SW radiation (rad%extkb)
 REAL :: ExtCoeff_dif(mp)            !"raw"Extinction co-efficient for Diffuse component of SW radiation (rad%extkd)
@@ -136,13 +95,6 @@ REAL :: CanopyRefl_dif(mp,nrb)      !Canopy reflectance  (rad%rhocdf
 REAL :: CanopyRefl_beam(mp,nrb)     !Canopy reflectance  (rad%rhocbm)   
 REAL :: CanopyTransmit_dif(mp,nrb)  !Canopy Transmitance (rad%cexpkdm)   
 REAL :: CanopyTransmit_beam(mp,nrb) !Canopy Transmitance (rad%cexpkbm)
-!-------------------------------------------------------------------------------
-
-!Vegetation parameters
-!-------------------------------------------------------------------------------
-REAL :: VegXfang(mp)                !leaf angle PARAMETER (veg%xfang)
-REAL :: VegTaul(mp,nrb)             !PARAMETER leaf transmisivity (veg%taul)
-REAL :: VegRefl(mp,nrb)             !PARAMETER leaf reflectivity (veg%refl)
 
 !Modify albedo based on snow coverage 
 call surface_albedosn( AlbSnow, AlbSoil, mp, surface_type, &
@@ -151,8 +103,6 @@ call surface_albedosn( AlbSnow, AlbSoil, mp, surface_type, &
                        SoilTemp, SnowAge, &
                        metTk, coszen )
    
-!trcall calc_rhoch( c1,rhoch, mp, nrb, VegTaul, VegRefl )
-
 ! Define canopy Reflectance for diffuse/direct radiation
 ! Formerly rad%rhocbm, rad%rhocdf
 call CanopyReflectance( CanopyRefl_beam, CanopyRefl_dif, &
@@ -166,8 +116,6 @@ call CanopyTransmitance(CanopyTransmit_beam, CanopyTransmit_dif, mp, nrb,&
                               sunlit_veg_mask, reducedLAIdue2snow, &
                               EffExtCoeff_dif, EffExtCoeff_beam)
 
-! Update extinction coefficients and fractional transmittance for
-! leaf transmittance and reflection (ie. NOT black leaves):
 !---1 = visible, 2 = nir radiaition
 ! Finally compute Effective 4-band albedo for diffuse/direct radiation- 
 ! In the UM this is the required variable to be passed back on the rad call
@@ -177,8 +125,6 @@ call EffectiveSurfaceReflectance( EffSurfRefl_beam, EffSurfRefl_dif,           &
                                   CanopyRefl_beam, CanopyRefl_dif,             &
                                   CanopyTransmit_beam,CanopyTransmit_dif,      &
                                   AlbSnow )
-
-
 
 ! Compute total albedo to SW given the Effective Surface Reflectance 
 ! (considering Canopy/Soil/Snow contributions) 
