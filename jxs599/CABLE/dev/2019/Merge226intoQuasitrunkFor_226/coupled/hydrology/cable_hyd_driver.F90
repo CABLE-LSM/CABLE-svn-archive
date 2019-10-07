@@ -28,7 +28,7 @@ module cable_hyd_driv_mod
   
 contains
 
-SUBROUTINE cable_hyd_driver( land_pts, ntiles, lying_snow, SNOW_TILE, SURF_ROFF,&
+SUBROUTINE cable_hyd_driver( land_pts, ntiles, L_tile_pts, lying_snow, SNOW_TILE, SURF_ROFF,&
                              SUB_SURF_ROFF, TOT_TFALL )
 
   !processor number, timestep number / width, endstep
@@ -38,21 +38,21 @@ SUBROUTINE cable_hyd_driver( land_pts, ntiles, lying_snow, SNOW_TILE, SURF_ROFF,
   !from old version
   !USE cable_common_module!, only : cable_runtime, cable_user
   USE cable_data_module,   ONLY : PHYS, OTHER
-  USE cable_um_tech_mod, only : um1, ssnow, canopy, veg
-  USE cable_decs_mod, ONLY : L_tile_pts
+  USE cable_um_tech_mod, only : um1 
+  USE cbl_allocate_types_mod, ONLY : ssnow, canopy, veg
 
-  !diag 
-  USE cable_fprint_module, ONLY : cable_fprintf
-  USE cable_Pyfprint_module, ONLY : cable_Pyfprintf
-  USE cable_fFile_module, ONLY : fprintf_dir_root, fprintf_dir, L_cable_fprint,&
-                                 L_cable_Pyfprint, unique_subdir
+!H!  !diag 
+!H!  USE cable_fprint_module, ONLY : cable_fprintf
+!H!  USE cable_Pyfprint_module, ONLY : cable_Pyfprintf
+!H!  USE cable_fFile_module, ONLY : fprintf_dir_root, fprintf_dir, L_cable_fprint,&
+!H!                                 L_cable_Pyfprint, unique_subdir
   USE cable_def_types_mod, ONLY : mp !only need for fprint here
   
   implicit none
 
   !___ re-decl input args
-
   integer :: land_pts, ntiles
+  LOGICAL :: L_tile_pts(land_pts,ntiles)     ! packing mask 
   
   REAL, INTENT(OUT), DIMENSION(LAND_PTS,NTILES) ::                    &
     SNOW_TILE   ! IN Lying snow on tiles (kg/m2)        
@@ -75,7 +75,7 @@ SUBROUTINE cable_hyd_driver( land_pts, ntiles, lying_snow, SNOW_TILE, SURF_ROFF,
   ! std template args 
   character(len=*), parameter :: subr_name = "cable_explicit_main"
 
-# include "../../../core/utils/diag/cable_fprint.txt"
+!H!# include "../../../core/utils/diag/cable_fprint.txt"
   
   !-------- Unique subroutine body -----------
  
@@ -98,19 +98,19 @@ SUBROUTINE cable_hyd_driver( land_pts, ntiles, lying_snow, SNOW_TILE, SURF_ROFF,
 
   !-------- End Unique subroutine body -----------
   
-  fprintf_dir=trim(fprintf_dir_root)//trim(unique_subdir)//"/"
-  if(L_cable_fprint) then 
-    !basics to std output stream
-    if (knode_gl == 0 .and. ktau_gl == 1)  call cable_fprintf(subr_name, .true.) 
-    !more detailed output
-    vname=trim(subr_name//'_')
-    call cable_fprintf( cDiag00, vname, knode_gl, ktau_gl, .true. )
-  endif
-
-  if(L_cable_Pyfprint .and. ktau_gl == 1) then 
-    !vname='latitude'; dimx=mp
-    !call cable_Pyfprintf( cDiag1, vname, cable%lat, dimx, .true.)
-  endif
+!H!  fprintf_dir=trim(fprintf_dir_root)//trim(unique_subdir)//"/"
+!H!  if(L_cable_fprint) then 
+!H!    !basics to std output stream
+!H!    if (knode_gl == 0 .and. ktau_gl == 1)  call cable_fprintf(subr_name, .true.) 
+!H!    !more detailed output
+!H!    vname=trim(subr_name//'_')
+!H!    call cable_fprintf( cDiag00, vname, knode_gl, ktau_gl, .true. )
+!H!  endif
+!H!
+!H!  if(L_cable_Pyfprint .and. ktau_gl == 1) then 
+!H!    !vname='latitude'; dimx=mp
+!H!    !call cable_Pyfprintf( cDiag1, vname, cable%lat, dimx, .true.)
+!H!  endif
 
 return
 
@@ -119,7 +119,7 @@ END SUBROUTINE cable_hyd_driver
 SUBROUTINE cable_lakesrivers(TOT_WB_LAKE)
     
     USE cable_um_tech_mod, ONLY : um1, ssnow
-    USE cable_decs_mod, ONLY : L_tile_pts
+    USE cbl_masks_mod, ONLY : L_tile_pts
     
     IMPLICIT NONE
     

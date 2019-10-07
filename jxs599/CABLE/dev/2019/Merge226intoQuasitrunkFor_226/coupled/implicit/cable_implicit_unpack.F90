@@ -1,42 +1,12 @@
-!==============================================================================
-! This source code is part of the 
-! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
-! This work is licensed under the CABLE Academic User Licence Agreement 
-! (the "Licence").
-! You may not use this file except in compliance with the Licence.
-! A copy of the Licence and registration form can be obtained from 
-! http://www.cawcr.gov.au/projects/access/cable
-! You need to register and read the Licence agreement before use.
-! Please contact cable_help@nf.nci.org.au for any questions on 
-! registration and the Licence.
-!
-! Unless required by applicable law or agreed to in writing, 
-! software distributed under the Licence is distributed on an "AS IS" BASIS,
-! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-! See the Licence for the specific language governing permissions and 
-! limitations under the Licence.
-! ==============================================================================
-!
-! Purpose: Updates CABLE variables (as altered by first pass through boundary 
-!          layer and convection scheme), calls cbm, passes CABLE variables back 
-!          to UM. 'Implicit' is the second call to cbm in each UM timestep.
-!
-! Called from: UM/JULES cable_implicit_main
-!
-! Contact: Jhan.Srbinovsky@csiro.au
-!
-! History: Developed for CABLE v1.8
-!
-! ==============================================================================
-
 module cable_implicit_unpack_mod
   
 contains
 
 subroutine Implicit_unpack( cycleno, & ! nucycles
-                            row_length,rows, land_pts, ntiles, npft, sm_levels,&
+                            row_length,rows, land_pts, ntiles,L_tile_pts, &  
+                            npft, sm_levels,&
                             dim_cs1, dim_cs2,                                  &
-                            TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,SMGW_TILE,      &
+                            TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,&
                             SMVCST, STHF, STHF_TILE, STHU, STHU_TILE,          &
                             snow_tile, SNOW_RHO1L ,ISNOW_FLG3L, SNOW_DEPTH3L,  &
                             SNOW_MASS3L, SNOW_RHO3L, SNOW_TMP3L, SNOW_COND,    &
@@ -45,18 +15,18 @@ subroutine Implicit_unpack( cycleno, & ! nucycles
                             ESOIL_TILE, EI_TILE, RADNET_TILE, TOT_ALB,         &
                             SNOW_AGE, CANOPY_TILE, GS, gs_tile, T1P5M_TILE,    &
                             Q1P5M_TILE, CANOPY_GB, FLAND, MELT_TILE,           &
-                            NPP, NPP_FT, GPP, GPP_FT, RESP_S,                  &
-                            RESP_S_TOT, RESP_S_TILE, RESP_P, RESP_P_FT, G_LEAF,&
-                            TRANSP_TILE, NPP_FT_ACC, RESP_W_FT_ACC,            &
+                            !NPP, NPP_FT, GPP, GPP_FT, RESP_S,                  &
+                            !RESP_S_TOT, RESP_P, RESP_P_FT, G_LEAF,&
+                            !TRANSP_TILE, NPP_FT_ACC, RESP_W_FT_ACC,            &
                             SURF_HTF_TILE, DTRAD, DTSTAR_TILE )
 
-  !diag 
-  USE cable_fprint_module, ONLY : cable_fprintf
-  USE cable_Pyfprint_module, ONLY : cable_Pyfprintf
-  USE cable_fFile_module, ONLY : fprintf_dir_root, fprintf_dir, L_cable_fprint,&
-                                 L_cable_Pyfprint, unique_subdir
-
-  USE cable_diag_module  
+!H!  !diag 
+!H!  USE cable_fprint_module, ONLY : cable_fprintf
+!H!  USE cable_Pyfprint_module, ONLY : cable_Pyfprintf
+!H!  USE cable_fFile_module, ONLY : fprintf_dir_root, fprintf_dir, L_cable_fprint,&
+!H!                                 L_cable_Pyfprint, unique_subdir
+!H!
+!H!  USE cable_diag_module  
 
   !processor number, timestep number / width, endstep
   USE cable_common_module, ONLY : knode_gl, ktau_gl, kwidth_gl, kend_gl
@@ -66,10 +36,10 @@ subroutine Implicit_unpack( cycleno, & ! nucycles
   
   USE cable_def_types_mod, ONLY : mp
   USE cable_data_module,   ONLY : PHYS
-  USE cable_um_tech_mod,   ONLY : um1 ,canopy, rad, soil, ssnow, air,         &
-                                  basic_diag, veg
-
-  USE cable_decs_mod, ONLY : L_tile_pts!, rho_water
+  USE cable_um_tech_mod,   ONLY : um1 
+  USE cbl_allocate_types_mod, ONLY : air, bgc, canopy,      &
+                                met, bal, rad, rough, soil, ssnow, sum_flux,  &
+                                veg
 
   implicit none
         
@@ -78,6 +48,9 @@ subroutine Implicit_unpack( cycleno, & ! nucycles
   integer :: row_length,rows, land_pts, ntiles, npft, sm_levels
   integer :: dim_cs1, dim_cs2 
 
+LOGICAL,DIMENSION(land_pts, ntiles) ::                       &
+  L_tile_pts  ! true IF vegetation (tile) fraction is greater than 0
+  
   REAL, DIMENSION(land_pts) ::                                            &
     GS,         &  ! OUT "Stomatal" conductance to
     SMVCST,     &  ! IN Volumetric saturation point
@@ -181,13 +154,14 @@ subroutine Implicit_unpack( cycleno, & ! nucycles
 
   INTEGER:: i_miss = 0
   REAL :: miss = 0.0
+  !REAL(r_2) :: miss_r2 = 0.0
   
   REAL, POINTER :: TFRZ
 
   ! std template args 
   character(len=*), parameter :: subr_name = "cable_implicit_unpack"
 
-# include "../../../core/utils/diag/cable_fprint.txt"
+!H!# include "../../../core/utils/diag/cable_fprint.txt"
   
   !-------- Unique subroutine body -----------
 
@@ -393,21 +367,21 @@ subroutine Implicit_unpack( cycleno, & ! nucycles
 
   !-------- End Unique subroutine body -----------
 
-  fprintf_dir=trim(fprintf_dir_root)//trim(unique_subdir)//"/"
-  if(L_cable_fprint) then 
-    !basics to std output stream
-    if (knode_gl == 0 .and. ktau_gl == 1)  call cable_fprintf(subr_name, .true.) 
-    !more detailed output
-    vname=trim(subr_name//'_')
-    call cable_fprintf( cDiag00, vname, knode_gl, ktau_gl, .true. )
-  endif
-
-  if(L_cable_Pyfprint) then 
-    !vname='canopy_tscrn'; dimx=mp
-    !call cable_Pyfprintf( cDiag2, vname, (canopy%tscrn+tfrz), dimx, .true.)
-    !vname='tscrn'; dimx=land_pts
-    !call cable_Pyfprintf( cDiag2, vname, t1p5m, dimx, .true.)
-  endif
+!H!  fprintf_dir=trim(fprintf_dir_root)//trim(unique_subdir)//"/"
+!H!  if(L_cable_fprint) then 
+!H!    !basics to std output stream
+!H!    if (knode_gl == 0 .and. ktau_gl == 1)  call cable_fprintf(subr_name, .true.) 
+!H!    !more detailed output
+!H!    vname=trim(subr_name//'_')
+!H!    call cable_fprintf( cDiag00, vname, knode_gl, ktau_gl, .true. )
+!H!  endif
+!H!
+!H!  if(L_cable_Pyfprint) then 
+!H!    !vname='canopy_tscrn'; dimx=mp
+!H!    !call cable_Pyfprintf( cDiag2, vname, (canopy%tscrn+tfrz), dimx, .true.)
+!H!    !vname='tscrn'; dimx=land_pts
+!H!    !call cable_Pyfprintf( cDiag2, vname, t1p5m, dimx, .true.)
+!H!  endif
 
 return
 
