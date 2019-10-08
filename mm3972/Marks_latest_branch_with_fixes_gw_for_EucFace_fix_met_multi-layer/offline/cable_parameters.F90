@@ -1150,41 +1150,57 @@ CONTAINS
     END DO
 ! ____________________ MMY uniform root for all layers _________________________
     ! uniform froot 31 layers
-    !vegin%froot(:, :) = 0.032258
-    !vegin%froot(1, :) = 0.03226
+    ! vegin%froot(:, :) = 0.032258
+    ! vegin%froot(1, :) = 0.03226
+
+    ! lg 31 layers
+    vegin%froot(:, :)  = 0.0
+    vegin%froot(1, :)  = 0.104765
+    vegin%froot(2, :)  = 0.101823
+    vegin%froot(3, :)  = 0.098645
+    vegin%froot(4, :)  = 0.095191
+    vegin%froot(5, :)  = 0.091408
+    vegin%froot(6, :)  = 0.087225
+    vegin%froot(7, :)  = 0.082549
+    vegin%froot(8, :)  = 0.077248
+    vegin%froot(9, :)  = 0.071129
+    vegin%froot(10, :) = 0.063891
+    vegin%froot(11, :) = 0.055033
+    vegin%froot(12, :) = 0.043613
+    vegin%froot(13, :) = 0.027479
 
     ! triangle froot 31 layers
-    vegin%froot(1, :) =0.064516
-    vegin%froot(2, :) =0.062366
-    vegin%froot(3, :) =0.060215
-    vegin%froot(4, :) =0.058065
-    vegin%froot(5, :) =0.055914
-    vegin%froot(6, :) =0.053763
-    vegin%froot(7, :) =0.051613
-    vegin%froot(8, :) =0.049462
-    vegin%froot(9, :) =0.047312
-    vegin%froot(10, :) =0.045161
-    vegin%froot(11, :) =0.043011
-    vegin%froot(12, :) =0.040860
-    vegin%froot(13, :) =0.038710
-    vegin%froot(14, :) =0.036559
-    vegin%froot(15, :) =0.034409
-    vegin%froot(16, :) =0.032258
-    vegin%froot(17, :) =0.030108
-    vegin%froot(18, :) =0.027957
-    vegin%froot(19, :) =0.025806
-    vegin%froot(20, :) =0.023656
-    vegin%froot(21, :) =0.021505
-    vegin%froot(22, :) =0.019355
-    vegin%froot(23, :) =0.017204
-    vegin%froot(24, :) =0.015054
-    vegin%froot(25, :) =0.012903
-    vegin%froot(26, :) =0.010753
-    vegin%froot(27, :) =0.008602
-    vegin%froot(28, :) =0.006452
-    vegin%froot(29, :) =0.004301
-    vegin%froot(30, :) =0.002150
-    vegin%froot(31, :) =0.000000
+    ! vegin%froot(1, :) =0.064516
+    ! vegin%froot(2, :) =0.062366
+    ! vegin%froot(3, :) =0.060215
+    ! vegin%froot(4, :) =0.058065
+    ! vegin%froot(5, :) =0.055914
+    ! vegin%froot(6, :) =0.053763
+    ! vegin%froot(7, :) =0.051613
+    ! vegin%froot(8, :) =0.049462
+    ! vegin%froot(9, :) =0.047312
+    ! vegin%froot(10, :) =0.045161
+    ! vegin%froot(11, :) =0.043011
+    ! vegin%froot(12, :) =0.040860
+    ! vegin%froot(13, :) =0.038710
+    ! vegin%froot(14, :) =0.036559
+    ! vegin%froot(15, :) =0.034409
+    ! vegin%froot(16, :) =0.032258
+    ! vegin%froot(17, :) =0.030108
+    ! vegin%froot(18, :) =0.027957
+    ! vegin%froot(19, :) =0.025806
+    ! vegin%froot(20, :) =0.023656
+    ! vegin%froot(21, :) =0.021505
+    ! vegin%froot(22, :) =0.019355
+    ! vegin%froot(23, :) =0.017204
+    ! vegin%froot(24, :) =0.015054
+    ! vegin%froot(25, :) =0.012903
+    ! vegin%froot(26, :) =0.010753
+    ! vegin%froot(27, :) =0.008602
+    ! vegin%froot(28, :) =0.006452
+    ! vegin%froot(29, :) =0.004301
+    ! vegin%froot(30, :) =0.002150
+    ! vegin%froot(31, :) =0.000000
 
     ! inverse-triangle froot 31 layers
     !vegin%froot(1, :) =0.000000
@@ -1221,36 +1237,36 @@ CONTAINS
 
     ! parabola froot 31 layers
     !vegin%froot(1, :) =0.090726
-    !vegin%froot(1, :) =0.079032
-    !vegin%froot(1, :) =0.068145
-    !vegin%froot(1, :) =0.058065
-    !vegin%froot(1, :) =0.04879
-    !vegin%froot(1, :) =0.040323
-    !vegin%froot(1, :) =0.032661
-    !vegin%froot(1, :) =0.025806
-    !vegin%froot(1, :) =0.019758
-    !vegin%froot(1, :) =0.014516
-    !vegin%froot(1, :) =0.010081
-    !vegin%froot(1, :) =0.006452
-    !vegin%froot(1, :) =0.003629
-    !vegin%froot(1, :) =0.001613
-    !vegin%froot(1, :) =0.000403
-    !vegin%froot(1, :) =0
-    !vegin%froot(1, :) =0.000403
-    !vegin%froot(1, :) =0.001613
-    !vegin%froot(1, :) =0.003629
-    !vegin%froot(1, :) =0.006452
-    !vegin%froot(1, :) =0.010081
-    !vegin%froot(1, :) =0.014516
-    !vegin%froot(1, :) =0.019758
-    !vegin%froot(1, :) =0.025806
-    !vegin%froot(1, :) =0.032661
-    !vegin%froot(1, :) =0.040323
-    !vegin%froot(1, :) =0.04879
-    !vegin%froot(1, :) =0.058065
-    !vegin%froot(1, :) =0.068145
-    !vegin%froot(1, :) =0.079032
-    !vegin%froot(1, :) =0.090726
+    !vegin%froot(2, :) =0.079032
+    !vegin%froot(3, :) =0.068145
+    !vegin%froot(4, :) =0.058065
+    !vegin%froot(5, :) =0.04879
+    !vegin%froot(6, :) =0.040323
+    !vegin%froot(7, :) =0.032661
+    !vegin%froot(8, :) =0.025806
+    !vegin%froot(9, :) =0.019758
+    !vegin%froot(10, :) =0.014516
+    !vegin%froot(11, :) =0.010081
+    !vegin%froot(12, :) =0.006452
+    !vegin%froot(13, :) =0.003629
+    !vegin%froot(14, :) =0.001613
+    !vegin%froot(15, :) =0.000403
+    !vegin%froot(16, :) =0
+    !vegin%froot(17, :) =0.000403
+    !vegin%froot(18, :) =0.001613
+    !vegin%froot(19, :) =0.003629
+    !vegin%froot(20, :) =0.006452
+    !vegin%froot(21, :) =0.010081
+    !vegin%froot(22, :) =0.014516
+    !vegin%froot(23, :) =0.019758
+    !vegin%froot(24, :) =0.025806
+    !vegin%froot(25, :) =0.032661
+    !vegin%froot(26, :) =0.040323
+    !vegin%froot(27, :) =0.04879
+    !vegin%froot(28, :) =0.058065
+    !vegin%froot(29, :) =0.068145
+    !vegin%froot(30, :) =0.079032
+    !vegin%froot(31, :) =0.090726
 ! ____________________________________________________________
 
     ALLOCATE(defaultLAI(mp, 12))
