@@ -78,12 +78,13 @@ USE allocate_cable_progs_mod, ONLY :               &
                                 veg
 !data
 USE cable_types_mod, ONLY : L_tile_pts
- 
+!should be passed 
+USE cable_types_mod, ONLY : mp, nrb
   implicit none
  
 !JaC:todo:***Hack: get from jules
-integer, parameter :: mp =1
-integer, parameter :: nrb=3
+!integer, parameter :: mp =1
+!integer, parameter :: nrb=3
 
   !___ re-decl input args
   integer :: endstep, cycleno, numcycles

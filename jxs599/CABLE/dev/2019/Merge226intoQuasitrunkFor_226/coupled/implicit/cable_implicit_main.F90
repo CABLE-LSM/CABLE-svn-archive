@@ -23,23 +23,6 @@ USE cable_types_mod, ONLY : L_tile_pts
   ! processor number, timestep number & width
   USE cable_common_module, ONLY : knode_gl, ktau_gl, kwidth_gl, cable_runtime
   
-!H!# if defined(UM_JULES)
-!H!  ! CABLE prognostics declared at top_level
-!H!  USE atm_fields_real_mod, ONLY : soil_temp_cable, soil_moist_cable,           &
-!H!                                  soil_froz_frac_cable, snow_dpth_cable,       & 
-!H!                                  snow_mass_cable, snow_temp_cable,            &
-!H!                                  snow_rho_cable, snow_avg_rho_cable,          &   
-!H!                                  snow_age_cable, snow_flg_cable,              &
-!H!                                  aquifer_moist_cable
-!H!  ! CASA prognostics declared at top_level
-!H!  USE atm_fields_real_mod, ONLY : C_pool_casa, N_pool_casa, P_pool_casa,       &
-!H!                                  SOIL_ORDER_casa, N_DEP_casa, N_FIX_casa,     &
-!H!                                  P_DUST_casa, P_weath_casa, LAI_casa,         &
-!H!                                  PHENPHASE_casa, NPP_PFT_ACC, RSP_W_PFT_ACC
-!H!  !UM: time info 
-!H!  USE model_time_mod, ONLY:    target_end_stepim, i_day, i_day_number
-!H!#endif
-
 USE jules_surface_types_mod, ONLY : npft
  
 !cable progs are set here
@@ -77,6 +60,8 @@ USE p_s_parms,      ONLY : smvcst_cable => smvcst_soilt
   USE cable_fFile_module, ONLY : fprintf_dir_root, fprintf_dir, L_cable_fprint,&
                                  L_cable_Pyfprint, unique_subdir
   
+!should be passed 
+USE cable_types_mod, ONLY : mp, nrb
   implicit none
   
   !___ re-decl input args
@@ -210,6 +195,11 @@ sthf(:,:) = sthf_soilt(:,1,:)
                         dtrad, dtstar_surft)
 
   snow_flg_cable = real(isnow_flg_cable)
+t_soil_soilt(:,1,:) = t_soil(:,:) 
+smcl_soilt(:,1,:)   = smcl(:,:)   
+sthu_soilt(:,1,:)   = sthu(:,:)   
+sthf_soilt(:,1,:)   = sthf(:,:)   
+  
     
   first_call = .false.        
 

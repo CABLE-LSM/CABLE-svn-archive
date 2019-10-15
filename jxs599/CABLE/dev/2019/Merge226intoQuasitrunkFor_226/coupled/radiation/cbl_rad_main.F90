@@ -99,8 +99,6 @@ integer :: rows                             !grid cell y
 integer :: land_pts                         !grid cell land points on the x,y grid
 integer :: nsurft                           !grid cell number of surface types 
 integer :: npft                             !grid cell number of PFTs 
-!!integer :: sm_levels                        !grid cell number of soil levels 
-!!real :: dzsoil(sm_levels)                   !soil thicknesses in each layer  
 
 !Variables to be calculated and returned by CABLE
 real :: land_albedo(row_length,rows,4)      
@@ -138,18 +136,6 @@ real :: pi180_cbl                      !PI in radians
 real :: VegXfang(mp_cbl)
 real :: VegTaul(mp_cbl, nrb_cbl)
 real :: VegRefl(mp_cbl, nrb_cbl)
-!real :: SnowDepth(mp_cbl)             !Formerly: ssnow%snowd 
-!real :: SnowDensity(mp_cbl)           !Formerly: ssnow%ssdnn 
-!
-!real :: SnowODepth(mp_cbl)             !Formerly: ssnow%osnowd
-! 
-!!computed from UM HT(LAI)_PFT passed in explicit call - need at rad call
-!real :: LAI_pft_cbl(mp_cbl)           !Formerly: ~veg%vlai
-!real :: HGT_pft_cbl(mp_cbl)           !Formerly:  ~veg%hc 
-!
-!!can compute from  z0surf_min, HGT_pft_cbl, SnowDepth, SnowDensity )
-!real :: HeightAboveSnow(mp_cbl)       !Formerly: rough%hruff
-
 
 integer :: metDoY(mp_cbl)          !local dummy Day of the Year [formerly met%doy]
 !!below decs to rename IN args **for now**
@@ -187,13 +173,7 @@ REAL, ALLOCATABLE :: CanopyRefl_beam(:,:)
 REAL, ALLOCATABLE :: EffSurfRefl_dif(:,:)  
 REAL, ALLOCATABLE :: EffSurfRefl_beam(:,:)  
 
-!REAL, ALLOCATABLE :: reducedLAIdue2snow(:)
 REAL, ALLOCATABLE :: coszen(:)
-!REAL, ALLOCATABLE :: VegXfang(:)
-!REAL, ALLOCATABLE :: VegTaul(:,:)
-!REAL, ALLOCATABLE :: VegRefl(:,:)
-!REAL, ALLOCATABLE :: metDoY(:)
-!REAL, ALLOCATABLE :: SW_down(:,:)  
 REAL, ALLOCATABLE :: RadFbeam(:,:)  
 REAL, ALLOCATABLE :: RadAlbedo(:,:)  
 REAL, ALLOCATABLE :: AlbSnow(:,:)  
@@ -215,7 +195,6 @@ real :: HGT_pft_cbl(mp_cbl)           !Formerly:  ~veg%hc
 real :: HeightAboveSnow(mp_cbl)       !Formerly: rough%hruff
 
 REAL :: MetTk(mp_cbl) 
-!REAL :: SnowODepth(mp_cbl)
 REAL :: SoilTemp(mp_cbl)
 REAL :: SnowAge(mp_cbl)
 integer:: SnowFlag_3L(mp_cbl)
@@ -223,7 +202,6 @@ integer:: surface_type(mp_cbl)
 
 !--- declare vars local to CABLE -------------------------------------------- 
 !packed in pack
-!integer :: isnow_flg_cable(land_pts, nsurft)
 LOGICAL, save :: um_online = .FALSE. 
 LOGICAL, save :: jls_standalone = .FALSE. 
 LOGICAL, save :: jls_radiation = .FALSE. !um_radiation = jls_radiation
@@ -243,11 +221,6 @@ real :: surf_down_sw_NIR(row_length,rows)                  !1of2-band ShortWave 
 real :: surf_down_sw_VIS(row_length,rows)                  !2of2-band ShortWave forcing
 real :: SW_down(mp_cbl,2)
 
-!******************************************************************************
-!******************************************************************************
-!******************************************************************************
-!******************************************************************************
-!******************************************************************************
 !******************************************************************************
 
 !--- initialize runtime switches !JaCP: 
@@ -275,29 +248,15 @@ IF(first_call) call alloc_cbl_types (mp)
 
 ! allocate variables common to rad/albedo pathway
 call allocate_rad_albedo( mp, nrb, ExtCoeff_beam, ExtCoeff_dif, &
-EffExtCoeff_beam, EffExtCoeff_dif, &
-CanopyRefl_dif, CanopyRefl_beam, &
-CanopyTransmit_dif, CanopyTransmit_beam,&
-coszen,        &
-!VegXfang, VegTaul, VegRefl, 
-c1, rhoch, &
-RadFbeam, xk, AlbSnow, &
-RadAlbedo,AlbSoil, &
-EffSurfRefl_dif, EffSurfRefl_beam &
+                    EffExtCoeff_beam, EffExtCoeff_dif, &
+                    CanopyRefl_dif, CanopyRefl_beam, &
+                    CanopyTransmit_dif, CanopyTransmit_beam,&
+                    coszen,        &
+                    c1, rhoch, &
+                    RadFbeam, xk, AlbSnow, &
+                    RadAlbedo,AlbSoil, &
+                    EffSurfRefl_dif, EffSurfRefl_beam &
 )
-!------------------------------------------------------------------------------
-!Pack forcing and conditions for CABLE
-!------------------------------------------------------------------------------
-!JaCP:we can grab these veg parameters from JaC later
-!VegXfang = Veg%Xfang
-!VegTaul = Veg%Taul
-!VegRefl = Veg%Refl
-
-!convert to integer from D1 where everything is a float 
-!isnow_flg_cable = int(snow_flag_cable)
-
-!pack surface type: L_tile_pts mask set FROM surf_couple_rad
-surface_type = PACK( tile_frac, L_tile_pts )
 
 !At present only single value is used for each land point 
 albsoil(:,2) =0.; albsoil(:,3) =0.

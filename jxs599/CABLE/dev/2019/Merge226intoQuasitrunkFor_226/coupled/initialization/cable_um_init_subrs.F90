@@ -922,8 +922,10 @@ USE cbl_allocate_types_mod, ONLY : canopy
      canopy%oldcansto=canopy%cansto
      canopy%sublayer_dz(:) = 0.0  !junk
      canopy%sublayer_dz(:) = pack(visc_sublayer_dz(:,:),um1%l_tile_pts) 
-     where (canopy%sublayer_dz .lt. 1.0e-8) canopy%sublayer_dz = 1.0e-8
-     where (canopy%sublayer_dz .gt. 1.0) canopy%sublayer_dz = 1.0
+     !H!this is not used in HAC, not unpacked anyway AND why it didnt show up
+     !aserror until after mods to outpput.nml I'll never know
+     !H!where (canopy%sublayer_dz .lt. 1.0e-8) canopy%sublayer_dz = 1.0e-8
+     !H!where (canopy%sublayer_dz .gt. 1.0) canopy%sublayer_dz = 1.0
 
      IF (first_call ) THEN
 
@@ -1032,7 +1034,8 @@ USE cbl_allocate_types_mod, ONLY : soil, ssnow, met, bal, veg
       ssnow%snage = PACK(SNOW_AGE, um1%l_tile_pts)
 
       ssnow%GWwb(:) = pack(smgw_tile(:,:),um1%l_tile_pts)
-      where (ssnow%GWwb .gt. soil%GWssat_vec) ssnow%GWwb = soil%GWssat_vec
+     !H!this is not used in HAC, not unpacked anyway AND why it didnt show up
+      !H!where (ssnow%GWwb .gt. soil%GWssat_vec) ssnow%GWwb = soil%GWssat_vec
 
       IF( first_call) THEN 
         

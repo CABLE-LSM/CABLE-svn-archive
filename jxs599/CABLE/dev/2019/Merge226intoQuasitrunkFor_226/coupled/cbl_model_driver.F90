@@ -61,8 +61,6 @@ REAL :: SnowAge(mp)
 integer:: SnowFlag_3L(mp)
 integer:: surface_type(mp)
 
-
- 
 real :: z0surf_min
 REAL  :: hgt_pft(mp)
 REAL  :: lai_pft(mp) 
@@ -142,57 +140,6 @@ CALL init_radiation( rad%extkb, rad%extkd,                                     &
        !reducedLAIdue2snow )
  
 
-!d!CALL init_radiation(   &
-!d!!mp,                    &  
-!d!!nrb,                   &
-!d!!Clai_thresh,           &
-!d!!Ccoszen_tols,          &
-!d!!jls_standalone,        &
-!d!!jls_radiation ,        &
-!d!!veg_mask,              &
-!d!!sunlit_mask,           &
-!d!!sunlit_veg_mask,       &
-!d!reducedLAIdue2snow,    &
-!d!met%coszen,            &!coszen,                &
-!d!!get
-!d!rad%extkb,              &   !ExtCoeff_beam,         &
-!d!rad%extkd,              &   !ExtCoeff_dif,          &
-!d!rad%extkbm,            & ! EffExtCoeff_beam
-!d!rad%extkdm,            &! = EffExtCoeff_dif
-!d!!params
-!d!Veg%Xfang,             &
-!d!Veg%Taul,              &
-!d!Veg%Refl,              &
-!d!!
-!d!c1,                    &
-!d!rhoch,                 &
-!d!metDoY,                &
-!d!met%fsd,               &
-!d!Rad%Fbeam,             &
-!d!xk,                    &
-!d!!constants
-!d!!CGauss_w,              &
-!d!!Cpi,                   &
-!d!!Cpi180,                &
-!d!!subr_name              &
-!d! )
-  
-!rad%extkd = ExtCoeff_dif
-!rad%extkb = ExtCoeff_beam
-!rad%extkbm = EffExtCoeff_beam
-!rad%extkdm = EffExtCoeff_dif
-
-!AlbSoil        =     soil%AlbSoil
-!surface_type   =     veg%iveg
-!metTk          =     met%Tk
-!coszen         =     met%coszen
-!SnowDepth      =     ssnow%snowd
-!SnowODepth     =     ssnow%osnowd
-!SnowFlag_3L    =     ssnow%isflag
-!SnowDensity    =     ssnow%ssdnn
-!SoilTemp       =     ssnow%tgg(:,1)
-!SnowAge        =     ssnow%snage
-
 IF( cable_runtime%um_explicit ) &
   call Albedo( ssnow%AlbSoilsn, soil%AlbSoil,                                &
        !AlbSnow, AlbSoil,                                             &
@@ -222,56 +169,7 @@ IF( cable_runtime%um_explicit ) &
                rad%reffdf, rad%reffbm ) !                                       &
        !EffSurfRefl_dif, EffSurfRefl_beam )
 
-
-!d!  call Albedo(        &
-!d!ssnow%AlbSoilsn,      &!AlbSnow,              & 
-!d!soil%AlbSoil,         &!AlbSoil,              & 
-!d!mp,                   &  
-!d!nrb,                  &
-!d!jls_radiation ,       &
-!d!veg_mask,             & 
-!d!sunlit_mask,          & 
-!d!sunlit_veg_mask,      & 
-!d!Ccoszen_tols,         &
-!d!CGAUSS_W,             & 
-!d!veg%iveg,             & !   surface_type,         &
-!d!met%tk,               & !  metTk,                & 
-!d!met%coszen,           &!  coszen,               & 
-!d!canopy%vlaiw,         &!  reducedLAIdue2snow,          &
-!d!ssnow%snowd,          &!  SnowDepth,            &  
-!d!ssnow%osnowd,         &!  SnowODepth,           & 
-!d!ssnow%isflag,         & !  SnowFlag_3L,          & 
-!d!ssnow%ssdnn,          & !   SnowDensity,          & 
-!d!ssnow%tgg(:,1),       &   !   SoilTemp,             & 
-!d!ssnow%snage,          & !   SnowAge,              &
-!d!xk,                   &  
-!d!c1,                   &  
-!d!rhoch,                &
-!d!Rad%Fbeam,            & 
-!d!Rad%Albedo,           &
-!d!rad%extkd,             &!ExtCoeff_beam,         &
-!d!rad%extkb,             & !ExtCoeff_dif,          &
-!d!rad%extkdm,           & ! EffExtCoeff_beam
-!d!rad%extkbm,           & ! = EffExtCoeff_dif
-!d!  CanopyRefl_dif,    & 
-!d!  CanopyRefl_beam,   &
-!d!rad%cexpkdm,          & ! = CanopyTransmit_dif 
-!d!rad%cexpkbm,          & ! = CanopyTransmit_beam
-!d!rad%reffdf,           &! = EffSurfRefl_dif
-!d!rad%reffbm            &! = EffSurfRefl_beam
-!d!             )
-!!!rad%extkbm = EffExtCoeff_beam
-!!!rad%extkdm = EffExtCoeff_dif
-!rad%cexpkdm = CanopyTransmit_dif 
-!rad%cexpkbm = CanopyTransmit_beam
-!rad%reffdf = EffSurfRefl_dif
-!rad%reffbm = EffSurfRefl_beam
-!Rad%Albedo = RadAlbedo
-!Rad%Fbeam  = RadFbeam 
-!!!!!!!!!!!!endif
-!need to do this for the rest of CABLE
-
-   !CABLE_LSM:check
+!CABLE_LSM:check
   IF( first_call ) then
     ssnow%tss=(1-ssnow%isflag)*ssnow%tgg(:,1) + ssnow%isflag*ssnow%tggsn(:,1) 
     ssnow%otss = ssnow%tss
