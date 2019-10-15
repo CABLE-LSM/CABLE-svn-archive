@@ -1147,8 +1147,8 @@ DO j = tdims%j_start,tdims%j_end
     rhokm_land(i,j) = 0.0
 
     !print *, "i,j, pstar ", i,j, pstar(i,j) 
-    print *, "i,j, tstar ", i,j, tstar(i,j)
-    if ( tstar(i,j) < 200. ) tstar(i,j) = 273.16
+    !print *, "i,j, tstar ", i,j, tstar(i,j)
+    !if ( tstar(i,j) < 200. ) tstar(i,j) = 273.16
     rhostar(   i,j) = pstar(i,j) / ( r * tstar(i,j) )
     !                        ... surface air density from ideal gas equation
     cd_land(i,j) = 0.0

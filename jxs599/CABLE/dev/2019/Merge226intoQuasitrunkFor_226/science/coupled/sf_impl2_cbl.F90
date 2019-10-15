@@ -6,10 +6,10 @@
 MODULE sf_impl2_cbl_mod
 
 USE sf_melt_mod, ONLY: sf_melt
-USE screen_tq_mod, ONLY: screen_tq
 USE screen_tq_cbl_mod, ONLY: screen_tq_cbl
-USE sf_evap_mod, ONLY: sf_evap
+!C!USE sf_evap_mod, ONLY: sf_evap
 USE im_sf_pt2_mod, ONLY: im_sf_pt2
+!USE im_sf_pt2_cbl_mod, ONLY: im_sf_pt2_cbl
  
 IMPLICIT NONE
 
@@ -60,6 +60,7 @@ SUBROUTINE sf_impl2_cbl (                                                     &
  tstar,tstar_land,tstar_sice,le_surft,radnet_surft,e_sea,h_sea,               &
  taux_1,tauy_1,ecan_surft,ei,ei_sice,esoil_soilt,ext_soilt,                   &
  snowmelt, melt_surft,rhokh_mix,error                                         &
+!CABLE_LSM: see ACCESS-CM2 version for extra vars here
  )
 
 USE csigma,                   ONLY:                                           &
@@ -692,7 +693,9 @@ INTEGER(KIND=jpim), PARAMETER :: zhook_in  = 0
 INTEGER(KIND=jpim), PARAMETER :: zhook_out = 1
 REAL(KIND=jprb)               :: zhook_handle
 
-CHARACTER(LEN=*), PARAMETER :: RoutineName='SF_IMPL2'
+!CABLE_LSM: see ACCESS-CM2 version for extra vars here
+integer, parameter :: mm = 1
+CHARACTER(LEN=*), PARAMETER :: RoutineName='SF_IMPL2_cbl'
 
 IF (lhook) CALL dr_hook(ModuleName//':'//RoutineName,zhook_in,zhook_handle)
 
@@ -735,7 +738,8 @@ END IF
 
 !$OMP END PARALLEL
 
-CALL im_sf_pt2 (                                                              &
+!CALL im_sf_pt2_cbl (                                                              &
+CALL im_sf_pt2(                                                              &
  land_pts,land_index,nsurft,surft_index,surft_pts                             &
 ,flandg,tile_frac,snow_surft,nice_use,ice_fract,ice_fract_cat_use             &
 ,r_gamma,gamma1,gamma2,alpha1,alpha1_sea,alpha1_sice                          &
@@ -808,10 +812,54 @@ IF ( .NOT. l_correct ) THEN
     END DO
 !$OMP END DO NOWAIT
   END DO
+!CABLE_LSM:_CM2 inits to avoid packing problems. copied from below location 
+  ! initialise diagnostics to 0 to avoid packing problems
+  DO n = 1, nsurft
+!$OMP DO SCHEDULE(STATIC)
+    DO l = 1, land_pts
+      radnet_surft(l,n) = 0.0
+      le_surft(l,n) = 0.0
+    END DO
+!$OMP END DO NOWAIT
+  END DO
 
   !-----------------------------------------------------------------------
   ! Land surface calculations
   !-----------------------------------------------------------------------
+
+!CABLE_LSM: 
+!CABLE_LSM: -CM2 call cable here. moved from earlier below placement
+ !CABLE_LSM:
+  DO N=1,Nsurft
+    DO L=1,LAND_PTS
+      MELT_surft(L,N) = 0.
+    ENDDO
+  ENDDO
+
+ call cable_implicit_main( & 
+        1, &!C!cycleno,                                                               &
+        tdims%i_end,tdims%j_end, land_pts, nsurft, sm_levels,            &
+        Fland,                      &
+!forcing: temp and humidity & Jan 2018: Ticket #132 needs ctctq1
+                  tl_1, qw_1,&
+                  dtl1_1,  &
+                  dqw1_1,  &
+                  ctctq1,  &
+!returned fluxes etc
+                  ftl_1,                   &
+                  ftl_surft, &
+                  fqw_1, &
+                  fqw_surft,  &
+                  tstar_surft, &
+                  surf_ht_flux_land,         &
+                  surf_htf_surft,     &
+                  ecan_surft, esoil_surft,                 &
+                  ei_surft, radnet_surft,                  &
+            sf_diag% t1p5m_surft, &
+            sf_diag% q1p5m_surft, &
+            melt_surft, &
+        dtstar_surft  )
+!CABLE_LSM:End
 
   !-----------------------------------------------------------------------
   ! Optional error check : test for negative top soil layer temperature
@@ -843,7 +891,7 @@ IF ( .NOT. l_correct ) THEN
     DO k = 1,surft_pts(n)
       l = surft_index(k,n)
       tstar_surft_old(l,n) = tstar_surft(l,n)
-      tstar_surft(l,n) = tstar_surft_old(l,n) + dtstar_surft(l,n)
+!CABLE_LSM: tstar_surft(l,n) = tstar_surft_old(l,n) + dtstar_surft(l,n)
     END DO
 !$OMP END DO NOWAIT
   END DO
@@ -854,14 +902,45 @@ IF ( .NOT. l_correct ) THEN
   ! 7.  Surface evaporation components and updating of surface
   !     temperature (P245, routine SF_EVAP).
   !-----------------------------------------------------------------------
-  CALL sf_evap (                                                              &
-    land_pts,nsurft,                                                          &
-    land_index,surft_index,surft_pts,sm_levels,fland,                         &
-    ashtf_prime_surft,canopy,dtrdz_charney_grid_1,flake,fraca,                &
-    snow_surft,resfs,resft,rhokh_surft,tile_frac,smc_soilt,wt_ext_surft,      &
-    timestep,r_gamma,fqw_1,fqw_surft,ftl_1,ftl_surft,tstar_surft,             &
-    ecan,ecan_surft,elake_surft,esoil_soilt,esoil_surft,ei_surft,ext_soilt,   &
-    sf_diag)
+!CABLE_LSM: 
+!C!  CALL sf_evap (                                                              &
+!C!    land_pts,nsurft,                                                          &
+!C!    land_index,surft_index,surft_pts,sm_levels,fland,                         &
+!C!    ashtf_prime_surft,canopy,dtrdz_charney_grid_1,flake,fraca,                &
+!C!    snow_surft,resfs,resft,rhokh_surft,tile_frac,smc_soilt,wt_ext_surft,      &
+!C!    timestep,r_gamma,fqw_1,fqw_surft,ftl_1,ftl_surft,tstar_surft,             &
+!C!    ecan,ecan_surft,elake_surft,esoil_soilt,esoil_surft,ei_surft,ext_soilt,   &
+!C!    sf_diag)
+
+!CABLE_LSM:-CM2 hassection in here for elake, ecan and esoil - possibly missed
+!CABLE_LSM: sf_evap stuff 
+    DO N=1,Nsurft
+      DO L=1,LAND_PTS
+        ELAKE_surft(L,N) = 0.
+      ENDDO
+    ENDDO
+
+    DO j=tdims%j_start,tdims%j_end
+     DO i=tdims%i_start,tdims%i_end
+      ECAN(I,J) = 0.
+      ESOIL_soilt(I,J,:) = 0.
+     ENDDO
+    ENDDO
+!write(6,*) "WARNING: Hard-wiring of mm forces ssumption of 1 soil_type. sf_impl2_cbl"
+
+    DO N=1,Nsurft
+     DO K=1,surft_PTS(N)
+       L = surft_INDEX(K,N)
+       j=(land_index(l)-1)/tdims%i_end + 1
+       i = land_index(l) - (j-1)*tdims%i_end
+       ECAN(I,J) = ECAN(I,J) + TILE_FRAC(L,N)*ECAN_surft(L,N)
+       ESOIL_soilt(I,J,mm) = ESOIL_soilt(I,J,mm) + TILE_FRAC(L,N)*ESOIL_surft(L,N)          
+     ENDDO
+    ENDDO   
+    EXT_soilt = 0. ! MRD
+!CABLE_LSM:End
+
+
 
   !-----------------------------------------------------------------------
   !     Surface melting of sea-ice and snow on land tiles.
@@ -892,46 +971,47 @@ IF ( .NOT. l_correct ) THEN
 
 !$OMP END PARALLEL
 
+!CABLE_LSM: -CM2 dodges 
   DO n = 1,nsurft
-    CALL sf_melt (                                                            &
-      land_pts,land_index,                                                    &
-      surft_index(:,n),surft_pts(n),flandg,                                   &
-      alpha1(:,n),ashtf_prime_surft(:,n),dtrdz_charney_grid_1,                &
-      resft(:,n),rhokh_surft(:,n),tile_frac(:,n),timestep,r_gamma,            &
-      ei_surft(:,n),fqw_1,ftl_1,fqw_surft(:,n),ftl_surft(:,n),                &
-      tstar_surft(:,n),snow_surft(:,n),snowdep_surft(:,n),                    &
-      melt_surft(:,n)                                                         &
-      )
-
-    !-----------------------------------------------------------------------
-    ! thermodynamic, flux contribution of melting ice on the FLake lake tile
-    !-----------------------------------------------------------------------
-    IF (     (l_flake_model   )                                               &
-        .AND. ( .NOT. l_aggregate)                                            &
-        .AND. (n == lake       ) ) THEN
-
-      ! lake_h_ice_gb is only initialised if FLake is on.
-
-!$OMP PARALLEL DO                                                             &
-!$OMP SCHEDULE(STATIC)                                                        &
-!$OMP DEFAULT(NONE)                                                           &
-!$OMP PRIVATE(l)                                                              &
-!$OMP SHARED(land_pts,lake_ice_mass,lake_h_ice_gb)
-      DO l = 1, land_pts
-        lake_ice_mass(l) = lake_h_ice_gb(l) * rho_ice
-      END DO
-!$OMP END PARALLEL DO
-
-      CALL sf_melt (                                                          &
-        land_pts,land_index,                                                  &
-        surft_index(:,n),surft_pts(n),flandg,                                 &
-        alpha1(:,n),ashtf_prime_surft(:,n),dtrdz_charney_grid_1,              &
-        resft(:,n),rhokh_surft(:,n),tile_frac(:,n),timestep,r_gamma,          &
-        ei_surft(:,n),fqw_1,ftl_1,fqw_surft(:,n),ftl_surft(:,n),              &
-        tstar_surft(:,n),lake_ice_mass,lake_ice_mass / rho_snow_const,        &
-        melt_ice_surft(:,n)                                                   &
-          )
-    END IF
+!C!    CALL sf_melt (                                                            &
+!C!      land_pts,land_index,                                                    &
+!C!      surft_index(:,n),surft_pts(n),flandg,                                   &
+!C!      alpha1(:,n),ashtf_prime_surft(:,n),dtrdz_charney_grid_1,                &
+!C!      resft(:,n),rhokh_surft(:,n),tile_frac(:,n),timestep,r_gamma,            &
+!C!      ei_surft(:,n),fqw_1,ftl_1,fqw_surft(:,n),ftl_surft(:,n),                &
+!C!      tstar_surft(:,n),snow_surft(:,n),snowdep_surft(:,n),                    &
+!C!      melt_surft(:,n)                                                         &
+!C!      )
+!C!
+!C!    !-----------------------------------------------------------------------
+!C!    ! thermodynamic, flux contribution of melting ice on the FLake lake tile
+!C!    !-----------------------------------------------------------------------
+!C!    IF (     (l_flake_model   )                                               &
+!C!        .AND. ( .NOT. l_aggregate)                                            &
+!C!        .AND. (n == lake       ) ) THEN
+!C!
+!C!      ! lake_h_ice_gb is only initialised if FLake is on.
+!C!
+!C!!$OMP PARALLEL DO                                                             &
+!C!!$OMP SCHEDULE(STATIC)                                                        &
+!C!!$OMP DEFAULT(NONE)                                                           &
+!C!!$OMP PRIVATE(l)                                                              &
+!C!!$OMP SHARED(land_pts,lake_ice_mass,lake_h_ice_gb)
+!C!      DO l = 1, land_pts
+!C!        lake_ice_mass(l) = lake_h_ice_gb(l) * rho_ice
+!C!      END DO
+!C!!$OMP END PARALLEL DO
+!C!
+!C!      CALL sf_melt (                                                          &
+!C!        land_pts,land_index,                                                  &
+!C!        surft_index(:,n),surft_pts(n),flandg,                                 &
+!C!        alpha1(:,n),ashtf_prime_surft(:,n),dtrdz_charney_grid_1,              &
+!C!        resft(:,n),rhokh_surft(:,n),tile_frac(:,n),timestep,r_gamma,          &
+!C!        ei_surft(:,n),fqw_1,ftl_1,fqw_surft(:,n),ftl_surft(:,n),              &
+!C!        tstar_surft(:,n),lake_ice_mass,lake_ice_mass / rho_snow_const,        &
+!C!        melt_ice_surft(:,n)                                                   &
+!C!          )
+!C!    END IF
 
     !-----------------------------------------------------------------------
     !  Increment snow by sublimation and melt
@@ -977,6 +1057,7 @@ IF ( .NOT. l_correct ) THEN
   END DO
 !$OMP END DO NOWAIT
 
+!CABLE_LSM:ACCESS-1.3 had stuff here - see comment in -CM2 though 
   IF (     (l_flake_model   )                                                 &
       .AND. ( .NOT. l_aggregate) ) THEN
 !$OMP DO SCHEDULE(STATIC)
@@ -999,15 +1080,17 @@ IF ( .NOT. l_correct ) THEN
   END DO
 !$OMP END DO NOWAIT
 
-  ! initialise diagnostics to 0 to avoid packing problems
-  DO n = 1, nsurft
-!$OMP DO SCHEDULE(STATIC)
-    DO l = 1, land_pts
-      radnet_surft(l,n) = 0.0
-      le_surft(l,n) = 0.0
-    END DO
-!$OMP END DO NOWAIT
-  END DO
+!CABLE_LSM: 
+!CABLE_LSM:this section copied to above location 
+!C!  ! initialise diagnostics to 0 to avoid packing problems
+!C!  DO n = 1, nsurft
+!C!!$OMP DO SCHEDULE(STATIC)
+!C!    DO l = 1, land_pts
+!C!      radnet_surft(l,n) = 0.0
+!C!      le_surft(l,n) = 0.0
+!C!    END DO
+!C!!$OMP END DO NOWAIT
+!C!  END DO
 
   IF (sf_diag%l_lw_surft) THEN
     DO n = 1, nsurft
@@ -1023,18 +1106,19 @@ IF ( .NOT. l_correct ) THEN
 !$OMP BARRIER
 
   IF (l_skyview) THEN
-    DO n = 1,nsurft
-!$OMP DO SCHEDULE(STATIC)
-      DO k = 1,surft_pts(n)
-        l = surft_index(k,n)
-        j=(land_index(l) - 1) / tdims%i_end + 1
-        i = land_index(l) - (j-1) * tdims%i_end
-        radnet_surft(l,n) = sw_surft(l,n) +   emis_surft(l,n) *               &
-          sky(i,j) * ( lw_down(i,j) + lw_down_elevcorr_surft(l,n)             &
-                                  - sbcon * tstar_surft(l,n)**4 )
-      END DO
-!$OMP END DO
-    END DO
+!CABLE_LSM: 
+!C!    DO n = 1,nsurft
+!C!!$OMP DO SCHEDULE(STATIC)
+!C!      DO k = 1,surft_pts(n)
+!C!        l = surft_index(k,n)
+!C!        j=(land_index(l) - 1) / tdims%i_end + 1
+!C!        i = land_index(l) - (j-1) * tdims%i_end
+!C!        radnet_surft(l,n) = sw_surft(l,n) +   emis_surft(l,n) *               &
+!C!          sky(i,j) * ( lw_down(i,j) + lw_down_elevcorr_surft(l,n)             &
+!C!                                  - sbcon * tstar_surft(l,n)**4 )
+!C!      END DO
+!C!!$OMP END DO
+!C!    END DO
     IF (sf_diag%l_lw_surft) THEN
       DO n = 1,nsurft
 !$OMP DO SCHEDULE(STATIC)
@@ -1052,18 +1136,19 @@ IF ( .NOT. l_correct ) THEN
       END DO
     END IF
   ELSE
-    DO n = 1,nsurft
-!$OMP DO SCHEDULE(STATIC)
-      DO k = 1,surft_pts(n)
-        l = surft_index(k,n)
-        j=(land_index(l) - 1) / tdims%i_end + 1
-        i = land_index(l) - (j-1) * tdims%i_end
-        radnet_surft(l,n) = sw_surft(l,n) +   emis_surft(l,n) *               &
-                   ( lw_down(i,j) + lw_down_elevcorr_surft(l,n)               &
-                                  - sbcon * tstar_surft(l,n)**4 )
-      END DO
-!$OMP END DO
-    END DO
+!CABLE_LSM: 
+!C!    DO n = 1,nsurft
+!C!!$OMP DO SCHEDULE(STATIC)
+!C!      DO k = 1,surft_pts(n)
+!C!        l = surft_index(k,n)
+!C!        j=(land_index(l) - 1) / tdims%i_end + 1
+!C!        i = land_index(l) - (j-1) * tdims%i_end
+!C!        radnet_surft(l,n) = sw_surft(l,n) +   emis_surft(l,n) *               &
+!C!                   ( lw_down(i,j) + lw_down_elevcorr_surft(l,n)               &
+!C!                                  - sbcon * tstar_surft(l,n)**4 )
+!C!      END DO
+!C!!$OMP END DO
+!C!    END DO
     IF (sf_diag%l_lw_surft) THEN
       DO n = 1,nsurft
 !$OMP DO SCHEDULE(STATIC)
@@ -1094,11 +1179,12 @@ IF ( .NOT. l_correct ) THEN
                      lc * elake_surft(l,n) + ls * ei_surft(l,n)
       surf_ht_store_surft(l,n) = (canhc_surf(l) / timestep) *                 &
                            (tstar_surft(l,n) - tstar_surft_old(l,n))
-      surf_htf_surft(l,n) = radnet_surft(l,n) + anthrop_heat_surft(l,n) -     &
-                          ftl_surft(l,n) -                                    &
-                          le_surft(l,n) -                                     &
-                          lf * (melt_surft(l,n) + melt_ice_surft(l,n)) -      &
-                          surf_ht_store_surft(l,n)
+!CABLE_LSM: from -CM2 - replace w CABLE field 
+!C!      surf_htf_surft(l,n) = radnet_surft(l,n) + anthrop_heat_surft(l,n) -     &
+!C!                          ftl_surft(l,n) -                                    &
+!C!                          le_surft(l,n) -                                     &
+!C!                          lf * (melt_surft(l,n) + melt_ice_surft(l,n)) -      &
+!C!                          surf_ht_store_surft(l,n)
       ! separate out the lake heat flux for FLake
       ! and replace the snow-melt (NSMAX=0 only) and ice-melt heat fluxes
       ! so Flake can do its melting
@@ -1124,54 +1210,22 @@ IF ( .NOT. l_correct ) THEN
 !$OMP END DO
   END DO
 
-  ! normalise the non-lake surface heat flux
-  IF (     (l_flake_model   )                                                 &
-      .AND. ( .NOT. l_aggregate) ) THEN
-!$OMP DO SCHEDULE(STATIC)
-    DO j = tdims%j_start,tdims%j_end
-      DO i = tdims%i_start,tdims%i_end
-        ! be careful about gridboxes that are all lake
-        IF (non_lake_frac(i,j) > EPSILON(0.0)) THEN
-          surf_ht_flux_land(i,j) =   surf_ht_flux_land(i,j)                   &
-                                   / non_lake_frac(i,j)
-        END IF
-      END DO
-    END DO
-!$OMP END DO
-  END IF
-
-!CABLE_LSM:
-  DO N=1,Nsurft
-    DO L=1,LAND_PTS
-      MELT_surft(L,N) = 0.
-    ENDDO
-  ENDDO
-
- call cable_implicit_main( & 
-        1, &!C!cycleno,                                                               &
-        tdims%i_end,tdims%j_end, land_pts, nsurft, sm_levels,            &
-        Fland,                      &
-!forcing: temp and humidity & Jan 2018: Ticket #132 needs ctctq1
-                  tl_1, qw_1,&
-                  dtl1_1,  &
-                  dqw1_1,  &
-                  ctctq1,  &
-!returned fluxes etc
-                  ftl_1,                   &
-                  ftl_surft, &
-                  fqw_1, &
-                  fqw_surft,  &
-                  tstar_surft, &
-                  surf_ht_flux_land,         &
-                  surf_htf_surft,     &
-                  ecan_surft, esoil_surft,                 &
-                  ei_surft, radnet_surft,                  &
-            sf_diag% t1p5m_surft, &
-            sf_diag% q1p5m_surft, &
-            melt_surft, &
-        dtstar_surft  )
-!CABLE_LSM:End
-
+!CABLE_LSM:from -CM2
+!C!  ! normalise the non-lake surface heat flux
+!C!  IF (     (l_flake_model   )                                                 &
+!C!      .AND. ( .NOT. l_aggregate) ) THEN
+!C!!$OMP DO SCHEDULE(STATIC)
+!C!    DO j = tdims%j_start,tdims%j_end
+!C!      DO i = tdims%i_start,tdims%i_end
+!C!        ! be careful about gridboxes that are all lake
+!C!        IF (non_lake_frac(i,j) > EPSILON(0.0)) THEN
+!C!          surf_ht_flux_land(i,j) =   surf_ht_flux_land(i,j)                   &
+!C!                                   / non_lake_frac(i,j)
+!C!        END IF
+!C!      END DO
+!C!    END DO
+!C!!$OMP END DO
+!C!  END IF
 
 
   !-----------------------------------------------------------------------
@@ -1843,6 +1897,7 @@ IF ( .NOT. l_correct ) THEN
 
 !$OMP END PARALLEL
 
+!CABLE_LSM: cable vn - make sure modified
   !-----------------------------------------------------------------------
   !     Specific humidity and temperature at 1.5 metres.
   !-----------------------------------------------------------------------
