@@ -135,5 +135,5 @@ if [[ $1 = 'mpi' ]]; then
   echo "Building cable_mpi" 
 	host_raij mpi
 else
-	host_raij
+	host_raij $1
 fi
