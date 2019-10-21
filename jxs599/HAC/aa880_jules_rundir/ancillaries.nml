@@ -1,5 +1,5 @@
 &jules_frac
-file='tile_fractions.dat',
+file='loobos_frac.dat',
 /
 &jules_soil_props
 const_val=6.63,0.04946,0.004715,0.45815,0.242433,0.136328,1185676.0,
@@ -17,6 +17,19 @@ use_file=.false.,.false.,.false.,
 var='fexp','ti_mean','ti_sig',
 /
 &jules_agric
+/
+&cable_progs
+file='/g/data1/p66/jxs599/jules/loobos/cable_vars.nc',
+nvars=10,
+use_file=T T T T T T T T T T,
+var='SoilTemp_CABLE','SoilMoisture_CABLE',
+'FrozenSoilFrac_CABLE','SnowDepth_CABLE','SnowMass_CABLE',
+'SnowDensity_CABLE','SnowTemp_CABLE','SnowAge_CABLE',
+'OneLyrSnowDensity_CABLE','ThreeLayerSnowFlag_CABLE',
+var_name='SoilTemp_CABLE','SoilMoisture_CABLE',
+'FrozenSoilFrac_CABLE','SnowDepth_CABLE','SnowMass_CABLE',
+'SnowDensity_CABLE','SnowTemp_CABLE','SnowAge_CABLE',
+'OneLyrSnowDensity_CABLE','ThreeLayerSnowFlag_CABLE',
 /
 &jules_co2
 co2_mmr=5.94100e-4,
