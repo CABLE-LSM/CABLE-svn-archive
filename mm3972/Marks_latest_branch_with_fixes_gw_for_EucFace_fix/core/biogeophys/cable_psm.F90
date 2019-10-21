@@ -92,8 +92,8 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
       endwhere
    endif
 
-   !pore_radius(:) = 0.148  / (1000.0*9.81*abs(soil%sucs_vec(:,1))/1000.0)  !should replace 0.148 with surface tension, unit coversion, and angle ! MMY
-   pore_radius(:) = 0.148*0.707 / (1000.0*9.81*abs(soil%sucs_vec(:,1))/1000.0) !should replace 0.148 with surface tension, unit coversion, and angle ! MMY
+   pore_radius(:) = 0.148  / (1000.0*9.81*abs(soil%sucs_vec(:,1))/1000.0)  !should replace 0.148 with surface tension, unit coversion, and angle ! MMY
+!   pore_radius(:) = 0.148*0.707 / (1000.0*9.81*abs(soil%sucs_vec(:,1))/1000.0) !should replace 0.148 with surface tension, unit coversion, and angle ! MMY
 
    pore_size(:) = pore_radius(:)*sqrt((pi_r_2))
 
