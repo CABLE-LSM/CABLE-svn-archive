@@ -2720,7 +2720,7 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,climate,bgc,soil,canopy,rough,rad, 
     CALL report_parameters(logn,soil,veg,bgc,rough,ssnow,canopy, &
          casamet,casapool,casaflux,phen,vegparmnew,verbose)
 
-
+    print *,"watr is ", soil%watr ! MMY
 END SUBROUTINE load_parameters
 
 
