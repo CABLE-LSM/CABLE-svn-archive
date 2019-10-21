@@ -257,6 +257,7 @@ CONTAINS
        IF (cable_user%l_new_roughness_soil)                                     &
             CALL ruff_resist(veg, rough, ssnow, canopy)
 
+       print *, "rough%z0soilsn",rough%z0soilsn ! MMY
 
 
 
