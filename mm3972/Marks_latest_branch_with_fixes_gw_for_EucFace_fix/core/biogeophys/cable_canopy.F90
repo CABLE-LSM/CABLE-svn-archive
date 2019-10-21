@@ -253,6 +253,7 @@ CONTAINS
        CALL comp_friction_vel()
 
        ! E.Kowalczyk 2014
+       print *, "cable_user%l_new_roughness_soil", cable_user%l_new_roughness_soil ! MMY
        IF (cable_user%l_new_roughness_soil)                                     &
             CALL ruff_resist(veg, rough, ssnow, canopy)
 
