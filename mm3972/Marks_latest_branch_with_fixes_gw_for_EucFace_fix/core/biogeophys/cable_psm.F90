@@ -10,7 +10,8 @@ implicit none
 
 
    REAL(r_2), parameter ::rt_Dff=2.5e-5, & !diffusivity in air
-                      lm=1.73e-5, &       !converts units
+                      !lm=1.73e-5, &       !converts units
+                      lm= 0.00173,&        ! MMY
                       c2 = 2.0,&                  !params
                       litter_thermal_diff=2.7e-5  !param based on vh thermal diffusivity
 
@@ -155,8 +156,7 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
        end if
 
        canopy%sublayer_dz(i) = canopy%sublayer_dz(i) + litter_dz(i)
-
-       lm= 0.00173        !converts units ! MMY    
+           
        if (canopy%sublayer_dz(i) .ge. 1.0e-7 .and. hk_zero(i) .lt. 1.0e14) then
 ! _____________________________________ MMY ___________________________________
           ssnow%rtevap_unsat(i) = min(rtevap_max, &
