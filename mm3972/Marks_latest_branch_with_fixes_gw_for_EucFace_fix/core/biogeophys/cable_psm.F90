@@ -155,33 +155,34 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
        end if
 
        canopy%sublayer_dz(i) = canopy%sublayer_dz(i) + litter_dz(i)
-    
+
+       lm= 0.00173        !converts units ! MMY    
        if (canopy%sublayer_dz(i) .ge. 1.0e-7 .and. hk_zero(i) .lt. 1.0e14) then
 ! _____________________________________ MMY ___________________________________
-!          ssnow%rtevap_unsat(i) = min(rtevap_max, &
-!                                   rough%z0soil(i)/canopy%sublayer_dz(i) * (lm/ (4.0*hk_zero(i)) +&
-!                                   (canopy%sublayer_dz(i) + pore_size(i) * soil_moisture_mod(i)) / rt_Dff))
-!          ssnow%rtevap_sat(i)  = min(rtevap_max, &
-!                                   rough%z0soil(i)/canopy%sublayer_dz(i) * (lm/ (4.0*hk_zero_sat(i)) + &
-!                                  (canopy%sublayer_dz(i) + pore_size(i) * soil_moisture_mod_sat(i)) / rt_Dff))
-
           ssnow%rtevap_unsat(i) = min(rtevap_max, &
-                                   rough%z0soil(i)/canopy%sublayer_dz(i) * (lm/ (4.0*hk_zero(i))))
-          ssnow%rtevap_sat(i)   = min(rtevap_max, &
-                                   rough%z0soil(i)/canopy%sublayer_dz(i) * (lm/(4.0*hk_zero_sat(i))))
+                                   rough%z0soil(i)/canopy%sublayer_dz(i) * (lm/ (4.0*hk_zero(i)) +&
+                                   (canopy%sublayer_dz(i) + pore_size(i) * soil_moisture_mod(i)) / rt_Dff))
+          ssnow%rtevap_sat(i)  = min(rtevap_max, &
+                                   rough%z0soil(i)/canopy%sublayer_dz(i) * (lm/ (4.0*hk_zero_sat(i)) + &
+                                  (canopy%sublayer_dz(i) + pore_size(i) * soil_moisture_mod_sat(i)) / rt_Dff))
+
+!          ssnow%rtevap_unsat(i) = min(rtevap_max, &
+!                                   rough%z0soil(i)/canopy%sublayer_dz(i) * (lm/ (4.0*hk_zero(i))))
+!          ssnow%rtevap_sat(i)   = min(rtevap_max, &
+!                                   rough%z0soil(i)/canopy%sublayer_dz(i) * (lm/(4.0*hk_zero_sat(i))))
 
 ! _____________________________________________________________________________
           ssnow%rt_qh_sublayer(i) = canopy%sublayer_dz(i) / litter_thermal_diff
     
        else
 ! _____________________________________ MMY  ________________________________________
-!          ssnow%rtevap_unsat(i) = min(rtevap_max, &
-!                               lm/ (4.0*hk_zero(i)) + (canopy%sublayer_dz(i) + pore_size(i) * soil_moisture_mod(i)) / rt_Dff)
-!          ssnow%rtevap_sat(i)  = min(rtevap_max, &
-!                             lm/ (4.0*hk_zero_sat(i)) + (canopy%sublayer_dz(i) + pore_size(i) * soil_moisture_mod_sat(i)) / rt_Dff)
+          ssnow%rtevap_unsat(i) = min(rtevap_max, &
+                               lm/ (4.0*hk_zero(i)) + (canopy%sublayer_dz(i) + pore_size(i) * soil_moisture_mod(i)) / rt_Dff)
+          ssnow%rtevap_sat(i)  = min(rtevap_max, &
+                             lm/ (4.0*hk_zero_sat(i)) + (canopy%sublayer_dz(i) + pore_size(i) * soil_moisture_mod_sat(i)) / rt_Dff)
 
-          ssnow%rtevap_unsat(i) = min(rtevap_max,  lm/ (4.0*hk_zero(i)))
-          ssnow%rtevap_sat(i)   = min(rtevap_max, lm/ (4.0*hk_zero_sat(i)))
+!          ssnow%rtevap_unsat(i) = min(rtevap_max,  lm/ (4.0*hk_zero(i)))
+!          ssnow%rtevap_sat(i)   = min(rtevap_max, lm/ (4.0*hk_zero_sat(i)))
 ! ___________________________________________________________________________________
           ssnow%rt_qh_sublayer(i) = canopy%sublayer_dz(i) / litter_thermal_diff
        end if
