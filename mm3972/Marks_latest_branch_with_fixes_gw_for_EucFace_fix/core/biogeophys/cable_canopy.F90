@@ -1092,13 +1092,13 @@ CONTAINS
 
         END IF
 ! _______________________________________ MMY ____________________________________________
-!         ssnowpotev = air%rho * air%rlam * ( &
-!                      real(ssnow%satfrac) * dq /(ssnow%rtsoil + real(ssnow%rtevap_sat)) + &
-!               (1.0 - real(ssnow%satfrac))* dqu/( &
-!                              ssnow%rtsoil + real(ssnow%rtevap_unsat)) )
-         ssnowpotev = air%rho * air%rlam * ( &                       
-                      real(ssnow%satfrac) * dq /(real(ssnow%rtevap_sat)) + & 
-               (1.0 - real(ssnow%satfrac))* dqu/(real(ssnow%rtevap_unsat)) )
+         ssnowpotev = air%rho * air%rlam * ( &
+                      real(ssnow%satfrac) * dq /(ssnow%rtsoil + real(ssnow%rtevap_sat)) + &
+               (1.0 - real(ssnow%satfrac))* dqu/( &
+                              ssnow%rtsoil + real(ssnow%rtevap_unsat)) )
+!         ssnowpotev = air%rho * air%rlam * ( &                       
+!                      real(ssnow%satfrac) * dq /(real(ssnow%rtevap_sat)) + & 
+!               (1.0 - real(ssnow%satfrac))* dqu/(real(ssnow%rtevap_unsat)) )
 ! ________________________________________________________________________________________
       ELSEIF (cable_user%litter) THEN
          !! vh_js !!
