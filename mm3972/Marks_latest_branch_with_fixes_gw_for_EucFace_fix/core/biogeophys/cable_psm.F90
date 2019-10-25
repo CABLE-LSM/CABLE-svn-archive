@@ -145,7 +145,7 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
                     ((ssnow%wb(i,1)*0.022 + ssnow%wb(i,2)*0.058 + &
                       ssnow%wb(i,3)*0.154 + ssnow%wb(i,4)*0.266)/0.5 &
                     -(ssnow%wbice(i,1)*0.022 + ssnow%wbice(i,2)*0.058 + &
-                      ssnow%wbice(i,3)*0.154 + ssnow%wbice(i,4)*0.266)/0.5 
+                      ssnow%wbice(i,3)*0.154 + ssnow%wbice(i,4)*0.266)/0.5 &
                     -ssnow%satfrac(i)*soil%ssat_vec(i,1)) / &
                     max((1._r_2 - ssnow%satfrac(i)),1e-5) ) ) )
        print *, "MMY top 50cm wb_liq(i) is ", wb_liq(i)
