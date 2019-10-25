@@ -11,7 +11,7 @@ implicit none
 
    REAL(r_2), parameter ::rt_Dff=2.5e-5, & !diffusivity in air
                       !lm=1.73e-5, &       !converts units
-                      lm= 1.73e-7,&        ! MMY
+                      lm= 1.73e-9,&        ! MMY
                       c2 = 2.0,&                  !params
                       litter_thermal_diff=2.7e-5  !param based on vh thermal diffusivity
 
