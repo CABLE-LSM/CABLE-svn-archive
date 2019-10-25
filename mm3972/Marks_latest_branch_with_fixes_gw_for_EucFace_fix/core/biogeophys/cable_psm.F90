@@ -10,8 +10,8 @@ implicit none
 
 
    REAL(r_2), parameter ::rt_Dff=2.5e-5, & !diffusivity in air
-                      !lm=1.73e-5, &       !converts units
-                      lm= 1.73e-9,&        ! MMY
+                      lm=1.73e-5, &       !converts units
+                      !lm= 1.73e-9,&        ! MMY
                       c2 = 2.0,&                  !params
                       litter_thermal_diff=2.7e-5  !param based on vh thermal diffusivity
 
@@ -135,13 +135,36 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
    do i=1,mp
      if (veg%iveg(i) .lt. 16) then
   
+       ! ________________________________ MMY _______________________________
+       !wb_liq(i) = real(max(0.0001,min((pi_r_2)/4.0, &
+       !             (ssnow%wb(i,1)-ssnow%wbice(i,1) - ssnow%satfrac(i)*soil%ssat_vec(i,1)) / &
+       !             max((1._r_2 - ssnow%satfrac(i)),1e-5) ) ) )
+       !print *, "MMY First wb_liq(i) is ", wb_liq(i)
+       print *, "MMY ssnow%satfrac(i) is ", ssnow%satfrac(i)
        wb_liq(i) = real(max(0.0001,min((pi_r_2)/4.0, &
-                    (ssnow%wb(i,1)-ssnow%wbice(i,1) - ssnow%satfrac(i)*soil%ssat_vec(i,1)) / &
+                    ((ssnow%wb(i,1)*0.022 + ssnow%wb(i,2)*0.058 + &
+                      ssnow%wb(i,3)*0.154 + ssnow%wb(i,4)*0.266)/0.5 &
+                    -(ssnow%wbice(i,1)*0.022 + ssnow%wbice(i,2)*0.058 + &
+                      ssnow%wbice(i,3)*0.154 + ssnow%wbice(i,4)*0.266)/0.5 
+                    -ssnow%satfrac(i)*soil%ssat_vec(i,1)) / &
                     max((1._r_2 - ssnow%satfrac(i)),1e-5) ) ) )
-    
+       print *, "MMY top 50cm wb_liq(i) is ", wb_liq(i)
+       ! ____________________________________________________________________
        rel_s(i) = real( max(wb_liq(i)-soil%watr(i,1),0._r_2)/(soil%ssat_vec(i,1)-soil%watr(i,1)) )
        hk_zero(i) = max(0.001*soil%hyds_vec(i,1)*(min(max(rel_s(i),0.001_r_2),1._r_2)**(2._r_2*soil%bch_vec(i,1)+3._r_2) ),1e-12)
        hk_zero_sat(i) = max(0.001*soil%hyds_vec(i,1),1e-12)
+       print *, "MMY top 2cm soil%watr(i,1)  is ", soil%watr(i,1)
+       print *, "MMY top 2cm soil%ssat_vec(i,1) is ", soil%ssat_vec(i,1)
+       print *, "MMY top 2cm soil%hyds_vec(i,1) is ", soil%hyds_vec(i,1)
+       print *, "MMY top 50cm rel_s(i) is", rel_s(i)
+       ! _____________________________ MMY ADD ______________________________
+       wb_liq(i) = real(max(0.0001,min((pi_r_2)/4.0, &
+                    (ssnow%wb(i,1)-ssnow%wbice(i,1) -ssnow%satfrac(i)*soil%ssat_vec(i,1)) / &
+                    max((1._r_2 - ssnow%satfrac(i)),1e-5) ) ) )
+       !rel_s(i) = real(max(wb_liq(i)-soil%watr(i,1),0._r_2)/(soil%ssat_vec(i,1)-soil%watr(i,1)) )
+       print *, "MMY top 2cm wb_liq(i) is ", wb_liq(i)
+       !print *, "MMY top 2cm rel_s(i) is", rel_s(i)
+       ! ____________________________________________________________________
     
        soil_moisture_mod(i)     = 1.0/(pi_r_2)/sqrt(wb_liq(i))* ( sqrt((pi_r_2)/(4.0*wb_liq(i)))-1.0)
        soil_moisture_mod_sat(i) = 1.0/(pi_r_2)/sqrt(soil%ssat_vec(i,1))* ( sqrt((pi_r_2)/(4.0*soil%ssat_vec(i,1)))-1.0)
