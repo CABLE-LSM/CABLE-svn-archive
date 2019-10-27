@@ -152,7 +152,7 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
        ! ____________________________________________________________________
        rel_s(i) = real( max(wb_liq(i)-soil%watr(i,1),0._r_2)/(soil%ssat_vec(i,1)-soil%watr(i,1)) )
        !hk_zero(i) = max(0.001*soil%hyds_vec(i,1)*(min(max(rel_s(i),0.001_r_2),1._r_2)**(2._r_2*soil%bch_vec(i,1)+3._r_2) ),1e-12)
-       hk_zero(i) = max(0.001*soil%hyds_vec(i,1)*(min(max(rel_s(i),0.001_r_2),1._r_2)**(2._r_2*3.+3._r_2)),1e-12) ! bch_vec = 3.
+       hk_zero(i) = max(0.001*soil%hyds_vec(i,1)*(min(max(rel_s(i),0.001_r_2),1._r_2)**(2._r_2*2.+3._r_2)),1e-12) ! bch_vec = 2.
        hk_zero_sat(i) = max(0.001*soil%hyds_vec(i,1),1e-12)
        print *, "MMY top 2cm soil%watr(i,1)  is ", soil%watr(i,1)
        print *, "MMY top 2cm soil%ssat_vec(i,1) is ", soil%ssat_vec(i,1)
