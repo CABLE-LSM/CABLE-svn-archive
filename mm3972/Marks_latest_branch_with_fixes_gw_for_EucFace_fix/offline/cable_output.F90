@@ -3337,10 +3337,10 @@ CONTAINS
     CALL define_ovar(ncid_restart, rpid%bch, 'bch', '-',                       &
                      'Parameter b, Campbell eqn 1985',                         &
                      .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
-    CALL define_ovar(ncid_restart, rpid%hyds, 'hyds', 'm/s',                   &
+    CALL define_ovar(ncid_restart, rpid%hyds, 'hyds', 'mm/s',  & ! MMY m/s->mm/s
                      'Hydraulic conductivity @ saturation',                    &
                      .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
-    CALL define_ovar(ncid_restart, rpid%sucs, 'sucs', 'm',                     &
+    CALL define_ovar(ncid_restart, rpid%sucs, 'sucs', 'mm',        & ! MMY m->mm
                      'Suction @ saturation', .TRUE.,                           &
                      'real', 0, 0, 0, mpID, dummy, .TRUE.)
     CALL define_ovar(ncid_restart, rpid%css, 'css', 'J/kg/C',                  &
