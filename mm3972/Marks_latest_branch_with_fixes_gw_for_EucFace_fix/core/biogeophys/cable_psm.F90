@@ -31,9 +31,9 @@ contains
 
   recursive function my_gamma(a) result(g)
 
-   
-    real(r_2), intent(in) :: a 
-    real(r_2) :: g 
+
+    real(r_2), intent(in) :: a
+    real(r_2) :: g
 
     ! these precomputed values are taken by the sample code in Wikipedia,
     ! and the sample itself takes them from the GNU Scientific Library
@@ -42,17 +42,17 @@ contains
     !     771.32342877765313, -176.61502916214059, 12.507343278686905, &
     !     -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7 /)
 
-    real(r_2) :: t, w, x 
-    integer :: i 
+    real(r_2) :: t, w, x
+    integer :: i
 
     x = a
 
-    if ( x < 0.5 ) then 
+    if ( x < 0.5 ) then
        g = (pi_r_2) / ( sin((pi_r_2)*x) * my_gamma(1.0-x) )
-    else 
+    else
        x = x - 1.0
-       t = gamma_pre(0) 
-       do i=1, c_gamma+2 
+       t = gamma_pre(0)
+       do i=1, c_gamma+2
           t = t + gamma_pre(i-1)/(x+real(i,r_2))
        end do
        w = x + real(c_gamma,r_2) + 0.5
@@ -66,7 +66,7 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
    TYPE (met_type), INTENT(INOUT)       :: met
    TYPE (soil_snow_type), INTENT(INOUT) :: ssnow
    TYPE (canopy_type), INTENT(INOUT)    :: canopy
-   TYPE (soil_parameter_type), INTENT(INOUT)   :: soil 
+   TYPE (soil_parameter_type), INTENT(INOUT)   :: soil
    TYPE (veg_parameter_type), INTENT(INOUT) :: veg
    TYPE (roughness_type), INTENT(INOUT) :: rough
 
@@ -82,7 +82,7 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
 
    !
 
-   integer :: i,j,k 
+   integer :: i,j,k
 
    canopy%sublayer_dz(:) = 0.005
 
@@ -104,9 +104,9 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
    eddy_shape(:) = 1.0
    int_eddy_shape(:) = 0
 
-   do i=1,mp  
+   do i=1,mp
 
-     if (veg%iveg(i) .lt. 16) then 
+     if (veg%iveg(i) .lt. 16) then
 
         eddy_shape(i) = 0.3*met%ua(i)/ max(1.0e-4,max(1.0e-3,canopy%us(i))*&
                         exp(-rough%coexp(i)*(1.0-canopy%sublayer_dz(i)/max(1e-2,rough%hruff(i)))))
@@ -134,11 +134,12 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
 
    do i=1,mp
      if (veg%iveg(i) .lt. 16) then
-  
+
        ! ________________________________ MMY _______________________________
        wb_liq(i) = real(max(0.0001,min((pi_r_2)/4.0, &
                     (ssnow%wb(i,1)-ssnow%wbice(i,1) - ssnow%satfrac(i)*soil%ssat_vec(i,1)) / &
                     max((1._r_2 - ssnow%satfrac(i)),1e-5) ) ) )
+       print *, "MMY ssnow%wb(i,1) is ", ssnow%wb(i,1)
        print *, "MMY top 2cm wb_liq(i) is ", wb_liq(i)
        !print *, "MMY ssnow%satfrac(i) is ", ssnow%satfrac(i)
        !wb_liq(i) = real(max(0.0001,min((pi_r_2)/4.0, &
@@ -151,13 +152,14 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
        !print *, "MMY top 50cm wb_liq(i) is ", wb_liq(i)
        ! ____________________________________________________________________
        rel_s(i) = real( max(wb_liq(i)-soil%watr(i,1),0._r_2)/(soil%ssat_vec(i,1)-soil%watr(i,1)) )
-       !hk_zero(i) = max(0.001*soil%hyds_vec(i,1)*(min(max(rel_s(i),0.001_r_2),1._r_2)**(2._r_2*soil%bch_vec(i,1)+3._r_2) ),1e-12)
-       hk_zero(i) = max(0.001*soil%hyds_vec(i,1)*(min(max(rel_s(i),0.001_r_2),1._r_2)**(2._r_2*2.+3._r_2)),1e-12) ! bch_vec = 2.
+       hk_zero(i) = max(0.001*soil%hyds_vec(i,1)*(min(max(rel_s(i),0.001_r_2),1._r_2)**(2._r_2*soil%bch_vec(i,1)+3._r_2) ),1e-12)
        hk_zero_sat(i) = max(0.001*soil%hyds_vec(i,1),1e-12)
-       print *, "MMY top 2cm soil%watr(i,1)  is ", soil%watr(i,1)
-       print *, "MMY top 2cm soil%ssat_vec(i,1) is ", soil%ssat_vec(i,1)
-       print *, "MMY top 2cm soil%hyds_vec(i,1) is ", soil%hyds_vec(i,1)
-       print *, "MMY top 2cm rel_s(i) is", rel_s(i)
+       !print *, "MMY top 2cm soil%watr(i,1)  is ", soil%watr(i,1)
+       !print *, "MMY top 2cm soil%ssat_vec(i,1) is ", soil%ssat_vec(i,1)
+       !print *, "MMY top 2cm soil%hyds_vec(i,1) is ", soil%hyds_vec(i,1)
+       print *, "MMY rel_s(i) is ", rel_s(i)
+       print *, "MMY hk_zero(i) is ", hk_zero(i)
+       print *, "MMY hk_zero_sat(i) is ", hk_zero_sat(i)
        ! _____________________________ MMY ADD ______________________________
        !wb_liq(i) = real(max(0.0001,min((pi_r_2)/4.0, &
        !             (ssnow%wb(i,1)-ssnow%wbice(i,1) -ssnow%satfrac(i)*soil%ssat_vec(i,1)) / &
@@ -166,10 +168,10 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
        !print *, "MMY top 2cm wb_liq(i) is ", wb_liq(i)
        !print *, "MMY top 2cm rel_s(i) is", rel_s(i)
        ! ____________________________________________________________________
-    
+
        soil_moisture_mod(i)     = 1.0/(pi_r_2)/sqrt(wb_liq(i))* ( sqrt((pi_r_2)/(4.0*wb_liq(i)))-1.0)
        soil_moisture_mod_sat(i) = 1.0/(pi_r_2)/sqrt(soil%ssat_vec(i,1))* ( sqrt((pi_r_2)/(4.0*soil%ssat_vec(i,1)))-1.0)
-    
+
        if (ssnow%isflag(i) .eq. 1 .or. (ssnow%snowd(i) .gt. 0.1) ) then
 
           hk_zero(i)     = 1.0e15
@@ -180,7 +182,7 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
        end if
 
        canopy%sublayer_dz(i) = canopy%sublayer_dz(i) + litter_dz(i)
-           
+
        if (canopy%sublayer_dz(i) .ge. 1.0e-7 .and. hk_zero(i) .lt. 1.0e14) then
 ! _____________________________________ MMY ___________________________________
           ssnow%rtevap_unsat(i) = min(rtevap_max, &
@@ -189,7 +191,10 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
           ssnow%rtevap_sat(i)  = min(rtevap_max, &
                                    rough%z0soil(i)/canopy%sublayer_dz(i) * (lm/ (4.0*hk_zero_sat(i)) + &
                                   (canopy%sublayer_dz(i) + pore_size(i) * soil_moisture_mod_sat(i)) / rt_Dff))
-
+          print *, "MMY1 unsat rsv is ", lm/ (4.0*hk_zero(i))
+          print *, "MMY1 sat rsv is ", lm/ (4.0*hk_zero_sat(i))
+          print *, "MMY1 unsat rBL is ",(canopy%sublayer_dz(i)+pore_size(i)*soil_moisture_mod(i))/rt_Dff
+          print *, "MMY1 sat rBL is ",(canopy%sublayer_dz(i)+pore_size(i)*soil_moisture_mod_sat(i))/rt_Dff
 !          ssnow%rtevap_unsat(i) = min(rtevap_max, &
 !                                   rough%z0soil(i)/canopy%sublayer_dz(i) * (lm/ (4.0*hk_zero(i))))
 !          ssnow%rtevap_sat(i)   = min(rtevap_max, &
@@ -197,13 +202,18 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
 
 ! _____________________________________________________________________________
           ssnow%rt_qh_sublayer(i) = canopy%sublayer_dz(i) / litter_thermal_diff
-    
+
        else
 ! _____________________________________ MMY  ________________________________________
           ssnow%rtevap_unsat(i) = min(rtevap_max, &
                                lm/ (4.0*hk_zero(i)) + (canopy%sublayer_dz(i) + pore_size(i) * soil_moisture_mod(i)) / rt_Dff)
           ssnow%rtevap_sat(i)  = min(rtevap_max, &
                              lm/ (4.0*hk_zero_sat(i)) + (canopy%sublayer_dz(i) + pore_size(i) * soil_moisture_mod_sat(i)) / rt_Dff)
+
+          print *, "MMY2 unsat rsv is ", lm/ (4.0*hk_zero(i))
+          print *, "MMY2 sat rsv is ", lm/ (4.0*hk_zero_sat(i))
+          print *, "MMY2 unsat rBL is",(canopy%sublayer_dz(i)+pore_size(i)*soil_moisture_mod(i))/rt_Dff
+          print *, "MMY2 sat rBL is",(canopy%sublayer_dz(i)+pore_size(i)*soil_moisture_mod_sat(i))/rt_Dff
 
 !          ssnow%rtevap_unsat(i) = min(rtevap_max,  lm/ (4.0*hk_zero(i)))
 !          ssnow%rtevap_sat(i)   = min(rtevap_max, lm/ (4.0*hk_zero_sat(i)))
@@ -218,12 +228,14 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
         ssnow%satfrac(i) = 0.5
         if (veg%iveg(i) .eq. 16 .and. met%tk(i) .lt. 268.15 ) &
               ssnow%rtevap_sat(i) = 0.41*ssnow%rtsoil(i)
-  
+
     end if
 
   end do
 
-
+  print *, "MMY ssnow%rtevap_unsat is ", ssnow%rtevap_unsat ! MMY
+  print *, "MMY ssnow%rtevap_sat is ", ssnow%rtevap_sat ! MMY
+  print *, "MMY canopy%sublayer_dz is ", canopy%sublayer_dz ! MMY
 END SUBROUTINE or_soil_evap_resistance
 
 
@@ -261,4 +273,3 @@ SUBROUTINE update_or_soil_resis(ssnow,canopy,veg,dq,dqu)
 END SUBROUTINE update_or_soil_resis
 
 END MODULE cable_psm
-
