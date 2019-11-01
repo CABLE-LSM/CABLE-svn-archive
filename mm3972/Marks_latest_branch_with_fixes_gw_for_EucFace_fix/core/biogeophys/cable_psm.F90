@@ -139,8 +139,6 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
        wb_liq(i) = real(max(0.0001,min((pi_r_2)/4.0, &
                     (ssnow%wb(i,1)-ssnow%wbice(i,1) - ssnow%satfrac(i)*soil%ssat_vec(i,1)) / &
                     max((1._r_2 - ssnow%satfrac(i)),1e-5) ) ) )
-       print *, "MMY ssnow%wb(i,1) is ", ssnow%wb(i,1)
-       print *, "MMY top 2cm wb_liq(i) is ", wb_liq(i)
        !print *, "MMY ssnow%satfrac(i) is ", ssnow%satfrac(i)
        !wb_liq(i) = real(max(0.0001,min((pi_r_2)/4.0, &
        !             ((ssnow%wb(i,1)*0.022 + ssnow%wb(i,2)*0.058 + &
@@ -157,9 +155,6 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
        !print *, "MMY top 2cm soil%watr(i,1)  is ", soil%watr(i,1)
        !print *, "MMY top 2cm soil%ssat_vec(i,1) is ", soil%ssat_vec(i,1)
        !print *, "MMY top 2cm soil%hyds_vec(i,1) is ", soil%hyds_vec(i,1)
-       print *, "MMY rel_s(i) is ", rel_s(i)
-       print *, "MMY hk_zero(i) is ", hk_zero(i)
-       print *, "MMY hk_zero_sat(i) is ", hk_zero_sat(i)
        ! _____________________________ MMY ADD ______________________________
        !wb_liq(i) = real(max(0.0001,min((pi_r_2)/4.0, &
        !             (ssnow%wb(i,1)-ssnow%wbice(i,1) -ssnow%satfrac(i)*soil%ssat_vec(i,1)) / &
@@ -191,10 +186,7 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
           ssnow%rtevap_sat(i)  = min(rtevap_max, &
                                    rough%z0soil(i)/canopy%sublayer_dz(i) * (lm/ (4.0*hk_zero_sat(i)) + &
                                   (canopy%sublayer_dz(i) + pore_size(i) * soil_moisture_mod_sat(i)) / rt_Dff))
-          print *, "MMY1 unsat rsv is ", lm/ (4.0*hk_zero(i))
-          print *, "MMY1 sat rsv is ", lm/ (4.0*hk_zero_sat(i))
-          print *, "MMY1 unsat rBL is ",(canopy%sublayer_dz(i)+pore_size(i)*soil_moisture_mod(i))/rt_Dff
-          print *, "MMY1 sat rBL is ",(canopy%sublayer_dz(i)+pore_size(i)*soil_moisture_mod_sat(i))/rt_Dff
+
 !          ssnow%rtevap_unsat(i) = min(rtevap_max, &
 !                                   rough%z0soil(i)/canopy%sublayer_dz(i) * (lm/ (4.0*hk_zero(i))))
 !          ssnow%rtevap_sat(i)   = min(rtevap_max, &
@@ -209,12 +201,6 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
                                lm/ (4.0*hk_zero(i)) + (canopy%sublayer_dz(i) + pore_size(i) * soil_moisture_mod(i)) / rt_Dff)
           ssnow%rtevap_sat(i)  = min(rtevap_max, &
                              lm/ (4.0*hk_zero_sat(i)) + (canopy%sublayer_dz(i) + pore_size(i) * soil_moisture_mod_sat(i)) / rt_Dff)
-
-          print *, "MMY2 unsat rsv is ", lm/ (4.0*hk_zero(i))
-          print *, "MMY2 sat rsv is ", lm/ (4.0*hk_zero_sat(i))
-          print *, "MMY2 unsat rBL is",(canopy%sublayer_dz(i)+pore_size(i)*soil_moisture_mod(i))/rt_Dff
-          print *, "MMY2 sat rBL is",(canopy%sublayer_dz(i)+pore_size(i)*soil_moisture_mod_sat(i))/rt_Dff
-
 !          ssnow%rtevap_unsat(i) = min(rtevap_max,  lm/ (4.0*hk_zero(i)))
 !          ssnow%rtevap_sat(i)   = min(rtevap_max, lm/ (4.0*hk_zero_sat(i)))
 ! ___________________________________________________________________________________
@@ -233,6 +219,14 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
 
   end do
 
+  print *, "###### ",wb_liq," ", hk_zero," ", lm/ (4.0*hk_zero)  ! MMY
+  print *, "MMY rel_s is ", rel_s  ! MMY
+  print *, "MMY hk_zero is ", hk_zero ! MMY
+  print *, "MMY hk_zero_sat is ", hk_zero_sat ! MMY
+  print *, "MMY unsat rsv is ", lm/ (4.0*hk_zero) ! MMY
+  print *, "MMY sat rsv is ", lm/ (4.0*hk_zero_sat) ! MMY
+  print *, "MMY unsat rBL is ",(canopy%sublayer_dz+pore_size*soil_moisture_mod)/rt_Dff ! MMY
+  print *, "MMY sat rBL is ",(canopy%sublayer_dz+pore_size*soil_moisture_mod_sat)/rt_Dff ! MMY
   print *, "MMY ssnow%rtevap_unsat is ", ssnow%rtevap_unsat ! MMY
   print *, "MMY ssnow%rtevap_sat is ", ssnow%rtevap_sat ! MMY
   print *, "MMY canopy%sublayer_dz is ", canopy%sublayer_dz ! MMY

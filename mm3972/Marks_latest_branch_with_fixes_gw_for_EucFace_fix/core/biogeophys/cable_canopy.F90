@@ -518,7 +518,7 @@ CONTAINS
        ENDIF
 
        CALL within_canopy( gbhu, gbhf, rt0, rhlitt, relitt )
-       print *, "MMY met%tvair is ", met%tvair ! MMY
+       print *, "MMY met%tvair-C%tfrz is ", met%tvair-C%tfrz ! MMY
 
        ! Saturation specific humidity at soil/snow surface temperature:
        call qsatfjh(ssnow%qstss,ssnow%tss-C%tfrz,met%pmb)
@@ -541,7 +541,7 @@ CONTAINS
              print *, "MMY ssnow%rh_srf is ", ssnow%rh_srf ! MMY
              print *, "MMY met%qvair is ", met%qvair ! MMY
              ssnow%potev =  Humidity_deficit_method(dq, dq_unsat,ssnow%qstss)
-             print *, "MMY ssnow%potev is ", ssnow%potev ! MMY
+             print *,"****** ",ssnow%wb," ", ssnow%potev ! MMY
           ENDIF
 
           ! Soil latent heat:
