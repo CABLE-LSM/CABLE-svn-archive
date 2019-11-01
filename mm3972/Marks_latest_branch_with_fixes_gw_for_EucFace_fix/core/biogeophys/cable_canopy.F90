@@ -1098,26 +1098,26 @@ CONTAINS
 
         END IF
 
-        ! __________________________ MMY ____________________________
-        if (cable_user%gw_model) then
-           do j=1,mp
-              if (veg%iveg(j) .ne. 16 .and. soil%isoilm(j) .ne. 9) then
-                 ssnow%rtevap_unsat(j) = max(1.,ssnow%rtevap_unsat(j))
-                 dq(j) = max(0.,(ssnow%qstss(j)*ssnow%rh_srf(j)/(ssnow%rtevap_unsat(j))+met%qvair(j)/ssnow%rtsoil(j))/ &
-                         (1.0/ssnow%rtevap_unsat(j) + 1.0/ssnow%rtsoil(j)) - met%qvair(j))
-              else
-                 dq(j) = ssnow%qstss(j) - met%qvair(j)
-              end if
-           end do
-        end if
+        ! ___________________________________ ADD MMY ______________________________________
+        !if (cable_user%gw_model) then
+        !   do j=1,mp
+        !      if (veg%iveg(j) .ne. 16 .and. soil%isoilm(j) .ne. 9) then
+        !         ssnow%rtevap_unsat(j) = max(1.,ssnow%rtevap_unsat(j))
+        !         dq(j) = max(0.,(ssnow%qstss(j)*ssnow%rh_srf(j)/(ssnow%rtevap_unsat(j))+met%qvair(j)/ssnow%rtsoil(j))/ &
+        !                 (1.0/ssnow%rtevap_unsat(j) + 1.0/ssnow%rtsoil(j)) - met%qvair(j))
+        !      else
+        !         dq(j) = ssnow%qstss(j) - met%qvair(j)
+        !      end if
+        !   end do
+        !end if
 
-        if (cable_user%or_evap) then
-          do j=1,mp
-            ssnow%rtevap_sat(j) = max(1.,ssnow%rtevap_sat(j))
-            dqu(j) =  (ssnow%qstss(j)/(ssnow%rtevap_sat(j))+met%qvair(j)/ssnow%rtsoil(j))/ &
-                       (1.0/ssnow%rtevap_sat(j) + 1.0/ssnow%rtsoil(j)) - met%qvair(j)
-          end do
-        end if
+        !if (cable_user%or_evap) then
+        !  do j=1,mp
+        !    ssnow%rtevap_sat(j) = max(1.,ssnow%rtevap_sat(j))
+        !    dqu(j) =  (ssnow%qstss(j)/(ssnow%rtevap_sat(j))+met%qvair(j)/ssnow%rtsoil(j))/ &
+        !               (1.0/ssnow%rtevap_sat(j) + 1.0/ssnow%rtsoil(j)) - met%qvair(j)
+        !  end do
+        !end if
         ! __________________________________________________________________________________
 
 
