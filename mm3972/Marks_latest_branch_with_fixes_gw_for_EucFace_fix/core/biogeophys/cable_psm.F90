@@ -219,7 +219,8 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
 
   end do
 
-  print *, "###### ",wb_liq," ", hk_zero," ", lm/ (4.0*hk_zero)  ! MMY
+  print *, "# ",wb_liq," ", hk_zero ! MMY
+  print *, "+ ",wb_liq," ", lm/ (4.0*hk_zero)  ! MMY
   print *, "MMY rel_s is ", rel_s  ! MMY
   print *, "MMY hk_zero is ", hk_zero ! MMY
   print *, "MMY hk_zero_sat is ", hk_zero_sat ! MMY

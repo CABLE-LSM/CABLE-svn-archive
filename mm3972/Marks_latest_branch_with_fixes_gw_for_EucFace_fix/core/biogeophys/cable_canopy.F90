@@ -541,7 +541,7 @@ CONTAINS
              print *, "MMY ssnow%rh_srf is ", ssnow%rh_srf ! MMY
              print *, "MMY met%qvair is ", met%qvair ! MMY
              ssnow%potev =  Humidity_deficit_method(dq, dq_unsat,ssnow%qstss)
-             print *,"****** ",ssnow%wb," ", ssnow%potev ! MMY
+             print *,"@ ",ssnow%wb(:,1)," ",ssnow%potev ! MMY
           ENDIF
 
           ! Soil latent heat:
