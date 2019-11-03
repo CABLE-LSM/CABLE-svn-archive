@@ -2566,8 +2566,11 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
    end if
 
    rel_s = real( max(wb_liq(:)-soil%watr(:,1),0._r_2)/(soil%watsat(:,1)-soil%watr(:,1)) )
-   hk_zero = max(0.001*soil%hksat(:,1)*(min(max(rel_s,0.001_r_2),1._r_2)**(2._r_2*soil%clappB(:,1)+3._r_2) ),1e-8)
-   hk_zero_sat = max(0.001*soil%hksat(:,1),1e-8)
+   !hk_zero = max(0.001*soil%hksat(:,1)*(min(max(rel_s,0.001_r_2),1._r_2)**(2._r_2*soil%clappB(:,1)+3._r_2) ),1e-8) ! MMY
+   !hk_zero_sat = max(0.001*soil%hksat(:,1),1e-8) ! MMY
+  
+   hk_zero = max(0.001*soil%hksat(:,1)*(min(max(rel_s,0.001_r_2),1._r_2)**(2._r_2*soil%clappB(:,1)+3._r_2)),1e-12) ! MMY
+   hk_zero_sat = max(0.001*soil%hksat(:,1),1e-12) ! MMY
 
    soil_moisture_mod(:)     = 1.0/pi/sqrt(wb_liq)* ( sqrt(pi/(4.0*wb_liq))-1.0)
    soil_moisture_mod_sat(:) = 1.0/pi/sqrt(soil%watsat(:,1))* ( sqrt(pi/(4.0*soil%watsat(:,1)))-1.0)
