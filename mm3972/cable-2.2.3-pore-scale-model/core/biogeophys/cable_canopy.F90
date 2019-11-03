@@ -2594,7 +2594,7 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
 
    first_call = .false.
    print *,"# ",wb_liq," ", hk_zero ! MMY
-   print *,"+ ",wb_liq," ", ssnow%sv_rtevap  ! MMY
+   print *,"+ ",wb_liq," ", lm/ (4.0*hk_zero) ! MMY
    print *,"MMY soil%hksat(:,1) is ", soil%hksat(:,1) ! MMY
    print *,"MMY soil%clappB(:,1) is ", soil%clappB(:,1) ! MMY
    print *,"MMY wb_liq is ", wb_liq ! MMY
