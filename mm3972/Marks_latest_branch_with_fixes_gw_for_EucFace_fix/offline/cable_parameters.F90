@@ -2762,7 +2762,7 @@ END SUBROUTINE report_parameters
     !open filename%type (once was gw_elev) file 
     IF (cable_user%gw_model) then
 
-       file_status = NF90_OPEN(trim(filename%type),NF90_NOWRITE,ncid_elev) ! MMY
+       file_status = NF90_OPEN(trim(filename%gw_elev),NF90_NOWRITE,ncid_elev) ! MMY
 
        IF( NF90_INQ_DIMID(ncid_elev,'longitude',lon_id)  .eq. nf90_noerr) THEN
           IF (NF90_INQUIRE_DIMENSION(ncid_elev,lon_id,LEN=nlon) .ne. nf90_noerr) nlon = xdimsize
