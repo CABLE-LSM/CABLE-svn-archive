@@ -380,7 +380,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
 
          end if
          ssnow%potev =  Humidity_deficit_method(dq,dq2,ssnow%qstss )
-         print *,"****** ",ssnow%wb," ", ssnow%potev ! MMY
+         print *,"@ ",ssnow%wb(:,1)," ", ssnow%potev ! MMY
       ENDIF
 
       ! Soil latent heat:
@@ -829,10 +829,10 @@ FUNCTION humidity_deficit_method(dq,dq2,qstss ) RESULT(ssnowpotev)
    if (.not.cable_user%GW_MODEL) then
       ssnowpotev = air%rho * air%rlam * dq2 /ssnow%rtsoil
    elseif (cable_user%or_evap) then
-      !ssnowpotev = (1.0-ssnow%wetfac) * air%rho * air%rlam * dq /(ssnow%rtsoil+ssnow%rtevap_unsat) + &
-      !             ssnow%wetfac * air%rho * air%rlam * dq2 /(ssnow%rtsoil+ssnow%rtevap_sat)
-      ssnowpotev = (1.0-ssnow%wetfac) * air%rho * air%rlam * dq /(ssnow%rtsoil) + &
-                   ssnow%wetfac * air%rho * air%rlam * dq2 /(ssnow%rtsoil)
+      ssnowpotev = (1.0-ssnow%wetfac) * air%rho * air%rlam * dq /(ssnow%rtsoil+ssnow%rtevap_unsat) + & ! MMY
+                   ssnow%wetfac * air%rho * air%rlam * dq2 /(ssnow%rtsoil+ssnow%rtevap_sat) ! MMY
+      !ssnowpotev = (1.0-ssnow%wetfac) * air%rho * air%rlam * dq /(ssnow%rtsoil) + & ! MMY
+      !             ssnow%wetfac * air%rho * air%rlam * dq2 /(ssnow%rtsoil) ! MMY
    else
       ssnowpotev = air%rho * air%rlam * dq /(ssnow%rtsoil)
    end if
@@ -2593,10 +2593,11 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
    endwhere
 
    first_call = .false.
-   print *,"###### ",wb_liq," ", hk_zero," ", ssnow%sv_rtevap  ! MMY
+   print *,"# ",wb_liq," ", hk_zero ! MMY
+   print *,"+ ",wb_liq," ", ssnow%sv_rtevap  ! MMY
    print *,"MMY soil%hksat(:,1) is ", soil%hksat(:,1) ! MMY
    print *,"MMY soil%clappB(:,1) is ", soil%clappB(:,1) ! MMY
-   print *,"MMY wb_liq is ", wb_liq, ! MMY
+   print *,"MMY wb_liq is ", wb_liq ! MMY
    print *,"MMY rel_s is ", rel_s ! MMY
    print *,"MMY hk_zero is ", hk_zero ! MMY
    print *,"MMY hk_zero_sat is ", hk_zero_sat ! MMY
