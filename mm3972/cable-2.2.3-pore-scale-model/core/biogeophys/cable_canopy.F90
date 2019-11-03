@@ -351,13 +351,13 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
             do i=1,mp
                if (veg%iveg(i) .ne. 16 .and. soil%isoilm(i) .ne. 9) then
                   ssnow%rh_srf(i) = exp(9.81*ssnow%smp(i,1)/1000.0/ssnow%tss(i)/461.4)
-                  if (.not.cable_user%or_evap) then
+                  !if (.not.cable_user%or_evap) then ! MMY
                     dq(i) = max(0. , ssnow%qstss(i)*ssnow%rh_srf(i) - met%qvair(i))
-                  else
-                    ssnow%rtevap_unsat(i) = max(1.,ssnow%rtevap_unsat(i))
-                    dq(i) = max(0. , (ssnow%qstss(i)*ssnow%rh_srf(i)/(ssnow%rtevap_unsat(i))+met%qvair(i)/ssnow%rtsoil(i))/ &
-                                    (1.0/ssnow%rtevap_unsat(i) + 1.0/ssnow%rtsoil(i)) - met%qvair(i))
-                  end if
+                  !else ! MMY
+                  !  ssnow%rtevap_unsat(i) = max(1.,ssnow%rtevap_unsat(i)) ! MMY
+                  !  dq(i) = max(0. , (ssnow%qstss(i)*ssnow%rh_srf(i)/(ssnow%rtevap_unsat(i))+met%qvair(i)/ssnow%rtsoil(i))/ & ! MMY
+                  !                  (1.0/ssnow%rtevap_unsat(i) + 1.0/ssnow%rtsoil(i)) - met%qvair(i)) ! MMY
+                  !end if ! MMY
                else
                   ssnow%rh_srf(i) = 1._r_2
                   dq(i) = ssnow%qstss(i) - met%qvair(i)
@@ -369,16 +369,16 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
             dq = ssnow%qstss - met%qvair
          end if
 
-         if (cable_user%or_evap) then
-           do i=1,mp
-             ssnow%rtevap_sat(i) = max(1.,ssnow%rtevap_sat(i))
-             dq2(i) =  (ssnow%qstss(i)/(ssnow%rtevap_sat(i))+met%qvair(i)/ssnow%rtsoil(i))/ &
-                                    (1.0/ssnow%rtevap_sat(i) + 1.0/ssnow%rtsoil(i)) - met%qvair(i)
-           end do
-         else
+         !if (cable_user%or_evap) then ! MMY
+         !  do i=1,mp                  ! MMY
+         !    ssnow%rtevap_sat(i) = max(1.,ssnow%rtevap_sat(i)) ! MMY
+         !    dq2(i) =  (ssnow%qstss(i)/(ssnow%rtevap_sat(i))+met%qvair(i)/ssnow%rtsoil(i))/ & ! MMY
+         !                           (1.0/ssnow%rtevap_sat(i) + 1.0/ssnow%rtsoil(i)) - met%qvair(i) ! MMY
+         !  end do ! MMY
+         !else ! MMY
            dq2 = ssnow%qstss - met%qvair
 
-         end if
+         !end if ! MMY
          ssnow%potev =  Humidity_deficit_method(dq,dq2,ssnow%qstss )
          print *,"@ ",ssnow%wb(:,1)," ", ssnow%potev ! MMY
       ENDIF
