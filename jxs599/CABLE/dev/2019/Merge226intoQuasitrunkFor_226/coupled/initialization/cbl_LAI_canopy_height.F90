@@ -4,8 +4,10 @@ contains
 
 subroutine limit_HGT_LAI( LAI_pft_cbl, HGT_pft_cbl, mp, land_pts, ntiles, &
                           tile_pts, tile_index, tile_frac,L_tile_pts, &
-                          LAI_pft, HGT_pft )
+                          LAI_pft, HGT_pft, CLAI_thresh )
 
+implicit none
+real :: Clai_thresh                 !The minimum LAI below which a "cell" is considred NOT vegetated
 integer :: land_pts, ntiles
 integer :: tile_pts(ntiles) 
 integer:: tile_index(land_pts,ntiles) 
@@ -23,6 +25,7 @@ real :: HGT_pft_cbl(mp)
 !local vars
 real :: LAI_pft_temp(land_pts,ntiles)
 real :: HGT_pft_temp(land_pts,ntiles)
+integer :: i,j, N 
 
 !Retain init where tile_frac=0
 LAI_pft_temp = 0. 
@@ -35,7 +38,7 @@ DO N=1,NTILES
 
     IF( TILE_FRAC(i,N) .gt. 0.0 ) THEN
       
-      LAI_pft_temp(i,N) = max(0.01,LAI_pft(i,N)) 
+      LAI_pft_temp(i,N) = max(CLAI_thresh*.99,LAI_pft(i,N)) 
        
        ! hard-wired vegetation type numbers need to be removed
        IF(N < 5 ) THEN ! trees 
