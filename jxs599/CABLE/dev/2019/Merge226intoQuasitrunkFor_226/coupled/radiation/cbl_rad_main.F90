@@ -67,6 +67,7 @@ pi_cbl,                   &
 pi180_cbl,                &
 
 !Vegetation parameters!--------------------------------------------------------
+SurfaceType,        & 
 VegXfang,                 &
 VegTaul,                  &
 VegRefl                   &
@@ -133,6 +134,7 @@ real :: coszen_tols_cbl                !threshold cosine of sun's zenith angle, 
 real :: gauss_w_cbl(nrb_cbl)               !Gaussian integration weights
 real :: pi_cbl                         !PI - describing the ratio of circumference to diameter
 real :: pi180_cbl                      !PI in radians
+integer:: SurfaceType(mp_cbl) 
 real :: VegXfang(mp_cbl)
 real :: VegTaul(mp_cbl, nrb_cbl)
 real :: VegRefl(mp_cbl, nrb_cbl)
@@ -160,29 +162,30 @@ real :: z0surf_min                  !the minimum roughness of bare soil
 ! I = LAND_INDEX(L) - (J-1)*ROW_LENGTH
 ! FTL_1(I,J) = where ftl_1(row_length,rows) 
 !-------------------------------------------------------------------------------
-REAL, ALLOCATABLE :: ExtCoeff_beam(:)
-REAL, ALLOCATABLE :: ExtCoeff_dif(:)
-REAL, ALLOCATABLE :: EffExtCoeff_beam(:,:)
-REAL, ALLOCATABLE :: EffExtCoeff_dif(:,:)
+!are these local to CABLE and can be flushed every timestep
+REAL :: ExtCoeff_beam(mp_cbl)
+REAL :: ExtCoeff_dif(mp_cbl)
+REAL :: EffExtCoeff_beam(mp_cbl, nrb_cbl)
+REAL :: EffExtCoeff_dif(mp_cbl, nrb_cbl)
 
-REAL, ALLOCATABLE :: CanopyTransmit_dif(:,:)  
-REAL, ALLOCATABLE :: CanopyTransmit_beam(:,:)  
-REAL, ALLOCATABLE :: CanopyRefl_dif(:,:)  
-REAL, ALLOCATABLE :: CanopyRefl_beam(:,:)  
+REAL :: CanopyTransmit_dif(mp_cbl, nrb_cbl)
+REAL :: CanopyTransmit_beam(mp_cbl, nrb_cbl)
+REAL :: CanopyRefl_dif(mp_cbl, nrb_cbl)
+REAL :: CanopyRefl_beam(mp_cbl, nrb_cbl)
 
-REAL, ALLOCATABLE :: EffSurfRefl_dif(:,:)  
-REAL, ALLOCATABLE :: EffSurfRefl_beam(:,:)  
+REAL :: EffSurfRefl_dif(mp_cbl, nrb_cbl)
+REAL :: EffSurfRefl_beam(mp_cbl, nrb_cbl)
 
-REAL, ALLOCATABLE :: coszen(:)
-REAL, ALLOCATABLE :: RadFbeam(:,:)  
-REAL, ALLOCATABLE :: RadAlbedo(:,:)  
-REAL, ALLOCATABLE :: AlbSnow(:,:)  
-REAL, ALLOCATABLE :: AlbSoil(:,:)  
+REAL :: coszen(mp_cbl)
+REAL :: RadFbeam(mp_cbl, nrb_cbl)
+REAL :: RadAlbedo(mp_cbl, nrb_cbl)
+REAL :: AlbSnow(mp_cbl, nrb_cbl)
+REAL :: AlbSoil(mp_cbl, nrb_cbl)
 
 !co-efficients usoughout init_radiation ` called from _albedo as well
-REAL, ALLOCATABLE :: c1(:,:)
-REAL, ALLOCATABLE :: rhoch(:,:)
-REAL, ALLOCATABLE :: xk(:,:)     ! extinct. coef.for beam rad. and black leaves
+REAL :: c1(mp_cbl, nrb_cbl)
+REAL :: rhoch(mp_cbl, nrb_cbl)
+REAL :: xk(mp_cbl, nrb_cbl)
 !-------------------------------------------------------------------------------
 !already passed at rad call 
 real :: SnowDepth(mp_cbl)             !Formerly: ssnow%snowd 
@@ -198,7 +201,6 @@ REAL :: MetTk(mp_cbl)
 REAL :: SoilTemp(mp_cbl)
 REAL :: SnowAge(mp_cbl)
 integer:: SnowFlag_3L(mp_cbl)
-integer:: surface_type(mp_cbl) 
 
 !--- declare vars local to CABLE -------------------------------------------- 
 !packed in pack
@@ -220,14 +222,10 @@ LOGICAL :: skip =.TRUE.
 real :: surf_down_sw_NIR(row_length,rows)                  !1of2-band ShortWave forcing
 real :: surf_down_sw_VIS(row_length,rows)                  !2of2-band ShortWave forcing
 real :: SW_down(mp_cbl,2)
+integer,save :: iradcall =0
+logical, save :: albflip=.FALSE.
+real, save :: ialb_surft
 
-!******************************************************************************
-
-!--- initialize runtime switches !JaCP: 
-jls_standalone = .TRUE.  !jls_standalone can be passed as TRUE from control.F90
-jls_radiation = .TRUE.
-
-metDoY = 0
 !re-name locally 
 mp = mp_cbl
 nrb = nrb_cbl 
@@ -244,19 +242,36 @@ Clai_thresh  = lai_thresh_cbl
 Cpi          = pi_cbl
 Cpi180       = pi180_cbl
 
-IF(first_call) call alloc_cbl_types (mp)
+!******************************************************************************
+!from rose-app.conf!!canht_ft_io= !!lai_io=
+LAI_pft_um(1, :) = (/4.0,5.0,0.0,0.0,0.0,2.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0/) 
+HGT_pft_um(1,:) = (/16.38,19.01,0.0,0.0,0.0,0.79,0.0,0.0,0.0,0.0,0.0,0.0,0.0/)
 
-! allocate variables common to rad/albedo pathway
-call allocate_rad_albedo( mp, nrb, ExtCoeff_beam, ExtCoeff_dif, &
-                    EffExtCoeff_beam, EffExtCoeff_dif, &
-                    CanopyRefl_dif, CanopyRefl_beam, &
-                    CanopyTransmit_dif, CanopyTransmit_beam,&
-                    coszen,        &
-                    c1, rhoch, &
-                    RadFbeam, xk, AlbSnow, &
-                    RadAlbedo,AlbSoil, &
-                    EffSurfRefl_dif, EffSurfRefl_beam &
-)
+!--- initialize runtime switches !JaCP: 
+jls_standalone = .TRUE.  !jls_standalone can be passed as TRUE from control.F90
+jls_radiation = .TRUE.
+!--- initialize/zero each timestep 
+ExtCoeff_beam(:) = 0.0
+ExtCoeff_dif(:) = 0.0
+EffExtCoeff_beam(:,:) = 0.0
+EffExtCoeff_dif(:,:) = 0.0
+CanopyTransmit_dif(:,:) = 0.0
+CanopyTransmit_beam(:,:) = 0.0
+CanopyRefl_dif(:,:) = 0.0
+CanopyRefl_beam(:,:) = 0.0
+EffSurfRefl_dif(:,:) = 0.0
+EffSurfRefl_beam(:,:) = 0.0
+coszen(:) = 0.0
+RadFbeam(:,:) = 0.0
+RadAlbedo(:,:) = 0.0
+AlbSnow(:,:) = 0.0
+AlbSoil(:,:) = 0.0
+c1(:,:) = 0.0
+rhoch(:,:) = 0.0
+xk(:,:) = 0.0
+
+metDoY = 0
+IF(first_call) call alloc_cbl_types (mp)
 
 !At present only single value is used for each land point 
 albsoil(:,2) =0.; albsoil(:,3) =0.
@@ -290,7 +305,7 @@ SoilTemp =   PACK( SOIL_temp_cable(:,:,1), L_TILE_PTS )
 ! limit IN height, LAI  and initialize existing cable % types
 call limit_HGT_LAI( LAI_pft_cbl, HGT_pft_cbl, mp, land_pts, nsurft, &
                     tile_pts, tile_index, tile_frac, L_tile_pts, &
-                    LAI_pft_um, HGT_pft_um )
+                    LAI_pft_um, HGT_pft_um, CLAI_thresh )
 
 !------------------------------------------------------------------------------
 ! Call CABLE_rad_driver to run specific and necessary components of CABLE 
@@ -304,19 +319,32 @@ call cable_rad_driver(  &
 call cable_rad_unpack(  &
 #                      include "cbl_rad_unpack_args.inc"
                      )
-!flush cable
-! DEallocate variables common to rad/albedo pathway
-call deallocate_rad_albedo( mp, nrb, ExtCoeff_beam, ExtCoeff_dif, &
-EffExtCoeff_beam, EffExtCoeff_dif, &
-CanopyRefl_dif, CanopyRefl_beam, &
-CanopyTransmit_dif, CanopyTransmit_beam,&
-coszen,        &
-!VegXfang, VegTaul, VegRefl, 
-c1, rhoch, &
-RadFbeam, xk, AlbSnow, &
-RadAlbedo,AlbSoil, &
-EffSurfRefl_dif, EffSurfRefl_beam &
-)
+
+iradcall = iradcall +1
+!do i=1, Land_pts
+!do j=1, nsurft
+!  if(.NOT. albflip) then
+!    if( alb_surft(i,j,1) > 0.0 ) then
+!      albflip=.TRUE.
+!      ialb_surft = alb_surft(i,j,1)
+!!      iland_pts= Land_pts
+!!      insurft = nsurft
+!    endif
+!  endif
+!enddo
+!enddo
+
+if(iradcall>4104) then
+!if(albflip) then
+!  do i=1, Land_pts
+!  do j=1, nsurft
+!    if( alb_surft(Land_pts,nsurft,1) <=  ialb_surft) then
+      print *, "iradcall ", iradcall
+!    endif
+!  enddo
+!  enddo
+endif
+
 !flick switches before leaving  
 jls_radiation= .FALSE.
 first_call = .false.

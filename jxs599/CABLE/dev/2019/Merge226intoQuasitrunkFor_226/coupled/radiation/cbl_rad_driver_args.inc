@@ -11,7 +11,7 @@ Cpi180, &
 jls_standalone,          &
 jls_radiation, & 
 z0surf_min,          &
-surface_type, &
+SurfaceType, &
 LAI_pft_cbl,          &
 HGT_pft_cbl, &
 SnowDepth,         &

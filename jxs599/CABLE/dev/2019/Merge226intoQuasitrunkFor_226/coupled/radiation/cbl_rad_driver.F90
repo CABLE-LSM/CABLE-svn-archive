@@ -18,6 +18,7 @@ implicit none
 
 !___ re-decl input args
 #include "cbl_rad_driver_decs.inc"
+integer:: SurfaceType(mp) 
  
 character(len=*), parameter :: subr_name = "cable_rad_driver"
 
@@ -66,7 +67,7 @@ CALL init_radiation( &!rad%extkb, rad%extkd,                                    
                veg_mask, sunlit_mask, sunlit_veg_mask,                       &  
                Ccoszen_tols, CGAUSS_W,                                       & 
                !veg%iveg, veg%refl, veg%taul,                                 & 
-               surface_type, VegRefl, VegTaul,                               &
+               SurfaceType, VegRefl, VegTaul,                                &
                !met%tk, met%coszen, canopy%vlaiw,                             &
                metTk, coszen, reducedLAIdue2snow,                            &
                !ssnow%snowd, ssnow%osnowd, ssnow%isflag,                      & 
