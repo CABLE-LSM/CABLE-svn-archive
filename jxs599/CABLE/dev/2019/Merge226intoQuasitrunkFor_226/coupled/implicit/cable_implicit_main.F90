@@ -101,8 +101,8 @@ USE cable_types_mod, ONLY : mp, nrb
     dtstar_surft
     
   real, dimension( land_pts ) ::                           &
-    gs, &             ! conductance for use in dust scheme
-    dtrad
+    gs               ! conductance for use in dust scheme
+  real :: dtrad(mp)
     
   real, dimension(row_length,rows) ::      &
     ftl_1, &

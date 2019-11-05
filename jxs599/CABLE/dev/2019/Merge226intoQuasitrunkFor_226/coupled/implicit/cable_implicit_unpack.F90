@@ -102,8 +102,9 @@ LOGICAL,DIMENSION(land_pts, ntiles) ::                       &
     GPP,        & !
     SNOW_GRD,   &  
     CANOPY_GB,  &
-    T1P5M,      &
-    DTRAD         ! CABLE change in rad%trad over time step
+    T1P5M
+
+real :: dtrad(mp)  ! CABLE change in rad%trad over time step
 
   REAL, DIMENSION(land_pts,ntiles,3) ::                               &
     SNOW_DEPTH3L,  &

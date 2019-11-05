@@ -136,13 +136,14 @@ USE cable_other_constants_mod, ONLY : z0surf_min
     NPP_FT,     &
     GPP_FT      
 
+  REAL :: DTRAD(mp)          !change in Trad over the time step
+
   REAL, DIMENSION(land_pts) ::                                         &
     SNOW_GRD,    & !
     CANOPY_GB,   & !
     RESP_P,      & !
     NPP,         & !
-    GPP,         & !
-    DTRAD          !change in Trad over the time step
+    GPP
       
   REAL, DIMENSION( land_pts,ntiles ) ::                               &
     SNOW_TILE,     &
