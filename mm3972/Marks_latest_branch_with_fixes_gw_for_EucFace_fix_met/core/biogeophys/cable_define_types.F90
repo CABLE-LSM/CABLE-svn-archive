@@ -221,6 +221,7 @@ MODULE cable_def_types_mod
          fwtop3,  & ! water flux to the soil
          osnowd,  & ! snow depth from previous time step
          potev,   & ! potential evapotranspiration
+         potev_rg,& ! MMY potential evapotranspiration only consider rg
          runoff,  & ! total runoff (mm/dels)
          rnof1,   & ! surface runoff (mm/dels)
          rnof2,   & ! deep drainage (mm/dels)
@@ -939,6 +940,7 @@ SUBROUTINE alloc_soil_snow_type(var, mp)
    ALLOCATE( var% isflag(mp) )
    ALLOCATE( var% osnowd(mp) )
    ALLOCATE( var% potev(mp) )
+   ALLOCATE( var% potev_rg(mp) ) ! MMY
    ALLOCATE( var% runoff(mp) )
    ALLOCATE( var% rnof1(mp) )
    ALLOCATE( var% rnof2(mp) )
@@ -1578,6 +1580,7 @@ SUBROUTINE dealloc_soil_snow_type(var)
    DEALLOCATE( var% isflag )
    DEALLOCATE( var% osnowd )
    DEALLOCATE( var% potev )
+   DEALLOCATE( var% potev_rg ) ! MMY
    DEALLOCATE( var% runoff )
    DEALLOCATE( var% rnof1 )
    DEALLOCATE( var% rnof2 )

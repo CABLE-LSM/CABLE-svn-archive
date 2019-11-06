@@ -1987,8 +1987,9 @@ CONTAINS
        ! Add current timestep's value to total of temporary output variable:
        IF(cable_user%SOIL_STRUC=='sli') THEN
           out%PotEvap = out%PotEvap + REAL(ssnow%potev, 4) !REAL(ssnow%evap/dels, 4) !vh!
+          ! MMY ??? what is the unit here
        ELSE
-       out%PotEvap = out%PotEvap + REAL(ssnow%potev, 4) !REAL(canopy%fes / air%rlam, 4)
+       out%PotEvap = out%PotEvap + REAL(ssnow%potev_rg/air%rlam, 4) !REAL(canopy%fes / air%rlam, 4)
        ENDIF
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:

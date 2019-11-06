@@ -221,6 +221,7 @@ CONTAINS
     canopy%fess = 0.
     canopy%fesp = 0.
     ssnow%potev = 0.
+    ssnow%potev_rg = 0. ! MMY
     canopy%fevw_pot = 0.
 
     !L_REV_CORR - initialise sensitivity/ACCESS correction terms
@@ -534,6 +535,7 @@ CONTAINS
              dq = ssnow%qstss - met%qvair
              dq_unsat = ssnow%rh_srf*ssnow%qstss - met%qvair
              ssnow%potev =  Humidity_deficit_method(dq, dq_unsat,ssnow%qstss)
+             ssnow%potev_rg =  Humidity_deficit_method_rg(dq, dq_unsat,ssnow%qstss) ! MMY
 
           ENDIF
 
@@ -1106,6 +1108,32 @@ CONTAINS
     END FUNCTION Humidity_deficit_method
 
     ! ------------------------------------------------------------------------------
+! _____________________________________ MMY _________________________________________
+    ! method alternative to P-M formula above
+    FUNCTION humidity_deficit_method_rg(dq,dqu,qstss ) RESULT(ssnowpotev)
+
+      USE cable_def_types_mod, only : mp
+
+      REAL, DIMENSION(mp) ::                                                      &
+           ssnowpotev,    & !
+           dq,            & ! sat spec hum diff.
+           dqu,           & ! sat spec hum diff.
+           qstss             !dummy var for compilation
+
+      INTEGER :: j
+
+      DO j=1,mp
+         !if(ssnow%snowd(j) > 1.0) dq(j) = max( -0.1e-3, dq(j))
+         IF( ssnow%snowd(j)>1.0 .OR. ssnow%tgg(j,1).EQ.C%tfrz)   THEN
+              dq(j) = max( -0.1e-3, dq(j))
+         END IF
+
+      ENDDO
+
+      ssnowpotev =air%rho * air%rlam * dq /ssnow%rtsoil
+
+    END FUNCTION Humidity_deficit_method_rg
+! _________________________________________________________________________________
 
     SUBROUTINE Latent_heat_flux()
 
