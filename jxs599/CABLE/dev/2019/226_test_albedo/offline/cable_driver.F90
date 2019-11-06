@@ -124,6 +124,11 @@ PROGRAM cable_offline_driver
   USE casa_inout_module
   USE casa_cable
 
+  !diag 
+  USE cable_fprint_module, ONLY : cable_fprintf
+  USE cable_Pyfprint_module, ONLY : cable_Pyfprintf
+  USE cable_fFile_module, ONLY : fprintf_dir_root, fprintf_dir, L_cable_fprint,&
+                                 L_cable_Pyfprint, unique_subdir
   IMPLICIT NONE
 
   ! CABLE namelist: model configuration, runtime/user switches
@@ -288,6 +293,9 @@ PROGRAM cable_offline_driver
   INTEGER :: ioerror
   INTEGER :: count_bal = 0
   ! END header
+real, ALLOCATABLE :: Sumreffbm(:) 
+real, ALLOCATABLE :: Sumreffdf(:) 
+# include "cable_fprint.txt"
 
   !check to see if first argument passed to cable is
   !the name of the namelist file
@@ -1020,6 +1028,23 @@ PROGRAM cable_offline_driver
               ENDIF
 
               CALL1 = .FALSE.
+
+if( .NOT. aLLOCATED(Sumreffbm) )  ALLOCATE ( Sumreffbm(mp) )
+if( .NOT. aLLOCATED(Sumreffdf) )  ALLOCATE ( Sumreffdf(mp) )
+
+Sumreffbm = 0.0
+Sumreffdf = 0.0
+do i=1, mp
+  Sumreffbm(i) = Sumreffbm(i) + ( rad%Reffbm(i,1)+rad%Reffbm(i,2) )
+  Sumreffdf(i) = Sumreffdf(i) + ( rad%Reffdf(i,1)+rad%Reffdf(i,2) )
+enddo
+
+fprintf_dir="/home/599/jxs599/"
+vname='rad_reffbm'; dimx=mp 
+call cable_Pyfprintf( cDiag1, vname, Sumreffbm, dimx, .true.)
+vname='rad_reffdf'; dimx=mp 
+call cable_Pyfprintf( cDiag2, vname, Sumreffdf, dimx, .true.)
+
 
            END DO ! END Do loop over timestep ktau
 
