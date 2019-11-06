@@ -2,7 +2,8 @@ MODULE cbl_albedo_mod
 
   IMPLICIT NONE
 
-  PUBLIC Albedo
+  PUBLIC Albedo, CanopyTransmitance_beam, &
+                 CanopyTransmitance_dif
   PRIVATE
 
 CONTAINS
@@ -51,7 +52,6 @@ LOGICAL :: sunlit_mask(mp)          ! this "mp" is sunlit (uses zenith angle)
 LOGICAL :: sunlit_veg_mask(mp)      ! this "mp" is BOTH sunlit AND  vegetated  
 
 !Vegetation parameters
-REAL :: VegXfang(mp)                !leaf angle PARAMETER (veg%xfang)
 REAL :: VegTaul(mp,nrb)             !PARAMETER leaf transmisivity (veg%taul)
 REAL :: VegRefl(mp,nrb)             !PARAMETER leaf reflectivity (veg%refl)
 integer:: surface_type(mp)          !Integer index of Surface type (veg%iveg)
@@ -103,7 +103,7 @@ REAL :: CanopyTransmit_dif(mp,nrb)  !Canopy Transmitance (rad%cexpkdm)
 REAL :: CanopyTransmit_beam(mp,nrb) !Canopy Transmitance (rad%cexpkbm)
 
 !Modify albedo based on snow coverage 
-call surface_albedosn( AlbSnow, AlbSoil, mp, surface_type, &
+call surface_albedosn( AlbSnow, AlbSoil, mp, jls_radiation, surface_type, &
                        SnowDepth, SnowODepth, SnowFlag_3L, &
                        SnowDensity, &
                        SoilTemp, SnowAge, &
@@ -231,7 +231,7 @@ End subroutine CanopyReflectance_dif
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 subroutine CanopyTransmitance(CanopyTransmit_beam, CanopyTransmit_dif, mp, nrb,&
-                              sunlit_veg_mask, reducedLAIdue2snow, &
+                              mask, reducedLAIdue2snow, &
                               EffExtCoeff_dif, EffExtCoeff_beam)
 implicit none
 !re-decl in args
@@ -239,33 +239,38 @@ integer :: mp                       !total number of "tiles"
 integer :: nrb                      !number of radiation bands [per legacy=3, but really=2 VIS,NIR. 3rd dim was for LW]
 REAL :: CanopyTransmit_dif(mp,nrb)      !Canopy reflectance (rad%cexpkdm) 
 REAL :: CanopyTransmit_beam(mp,nrb)     !Canopy reflectance (rad%cexpkbm)   
-LOGICAL :: sunlit_veg_mask(mp)      ! this "mp" is BOTH sunlit AND  vegetated  
+LOGICAL :: mask(mp)      ! this "mp" is BOTH sunlit AND  vegetated  
+LOGICAL :: dummyMask(mp)
 real :: reducedLAIdue2snow(mp)
 REAL :: EffExtCoeff_beam(mp,nrb)           !"raw" Extinction co-efficient for Direct Beam component of SW radiation (rad%extkb)
 REAL :: EffExtCoeff_dif(mp,nrb)            !"raw"Extinction co-efficient for Diffuse component of SW radiation (rad%extkd)
 
+dummyMask(:) = .true. 
 !Zero initialization remains the calculated value where "mask"=FALSE
-call CanopyTransmitance_dif(CanopyTransmit_dif, mp, nrb, EffExtCoeff_dif, reducedLAIdue2snow)
+call CanopyTransmitance_dif( CanopyTransmit_dif, mp, nrb, EffExtCoeff_dif, &
+                             reducedLAIdue2snow, dummyMask )
 
 call CanopyTransmitance_beam( CanopyTransmit_beam, mp, nrb, EffExtCoeff_beam,  &
-                              reducedLAIdue2snow, sunlit_veg_mask )
+                              reducedLAIdue2snow, dummyMask )
 
 End subroutine CanopyTransmitance
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-subroutine CanopyTransmitance_dif(CanopyTransmit, mp, nrb, Eff_Transmit, reducedLAIdue2snow )
+subroutine CanopyTransmitance_dif(CanopyTransmit, mp, nrb, ExtinctionCoeff, reducedLAIdue2snow, mask )
 implicit none
 integer :: mp 
 integer :: nrb
+logical :: mask(mp) 
 real :: CanopyTransmit(mp,nrb) 
-real :: Eff_Transmit(mp,nrb) 
+real :: ExtinctionCoeff(mp,nrb) 
 real :: reducedLAIdue2snow(mp)
 integer :: i, b
  
 DO i = 1,mp
-  DO b = 1, 2
-    CanopyTransmit(i,b) = EXP( -1.* Eff_Transmit(i,b) * reducedLAIdue2snow(i) )
+  DO b = 1, nrb 
+    if( mask(i) ) &
+    CanopyTransmit(i,b) = EXP( -1.* ExtinctionCoeff(i,b) * reducedLAIdue2snow(i) )
   enddo
 enddo
 
@@ -273,21 +278,23 @@ End subroutine  CanopyTransmitance_dif
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-subroutine CanopyTransmitance_beam(CanopyTransmit, mp, nrb, Eff_Transmit, reducedLAIdue2snow, mask )
+subroutine CanopyTransmitance_beam(CanopyTransmit, mp, nrb, ExtinctionCoeff, reducedLAIdue2snow, mask )
 implicit none
 integer :: mp 
 integer :: nrb
 real :: CanopyTransmit(mp,nrb) 
-real :: Eff_Transmit(mp,nrb) 
+real :: ExtinctionCoeff(mp,nrb) 
 real :: reducedLAIdue2snow(mp)
 logical :: mask(mp) 
 real :: dummy(mp,nrb) 
 integer :: i, b
  
 DO i = 1,mp
-  DO b = 1, 2 !ithis is fixed as 2  because nrb=3 due to legacy  
-    dummy(i,b) = min( Eff_Transmit(i,b) * reducedLAIdue2snow(i), 20. )
-    CanopyTransmit(i,b) = EXP( -1.* dummy(i,b) )
+  DO b = 1, nrb!2 !ithis is fixed as 2  because nrb=3 due to legacy  
+    if( mask(i)) then
+      dummy(i,b) = min( ExtinctionCoeff(i,b) * reducedLAIdue2snow(i), 20. )
+      CanopyTransmit(i,b) = EXP( -1.* dummy(i,b) )
+    endif  
   enddo
 enddo
 
