@@ -66,6 +66,11 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,clima
     USE cable_air_module
     USE cable_common_module
     USE cable_roughness_module
+USE cable_other_constants_mod, ONLY : CLAI_thresh => lai_thresh
+USE cable_phys_constants_mod, ONLY : CCapp => Capp, &
+                                     Csboltz => Sboltz,         &
+                                     Cemsoil => emsoil,         &
+                                     Cemleaf => emleaf
 !H!    USE cable_psm, ONLY: or_soil_evap_resistance,rtevap_max,&
 !H!                         rt_Dff,update_or_soil_resis
     !USE cable_gw_hydro_module, ONLY : pore_space_relative_humidity
@@ -231,7 +236,9 @@ logical :: sunlit_veg_mask(mp)
     alpm1  = 0.
     beta2  = 0.
 
-    CALL radiation( ssnow, veg, air, met, rad, canopy, sunlit_veg_mask)
+    CALL radiation( ssnow, veg, air, met, rad, canopy, sunlit_veg_mask, &
+#include "../radiation/radArgs.inc"    
+    )
 
     canopy%zetar(:,1) = C%ZETA0 ! stability correction terms
     canopy%zetar(:,2) = C%ZETPOS + 1
