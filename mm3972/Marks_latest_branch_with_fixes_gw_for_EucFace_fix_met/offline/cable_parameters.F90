@@ -1101,7 +1101,11 @@ CONTAINS
      select case(ms)
    
      case(6)
-        soil%zse = (/.022, .058, .154, .409, 1.085, 2.872/) ! layer thicknessnov03
+        !soil%zse = (/.022, .058, .154, .409, 1.085, 2.872/) ! layer thicknessnov03 ! MMY
+        soil%zse = (/.05, .058, .154, .409, 1.085, 2.844/) ! MMY 5cm top layer
+        !soil%zse = (/.15, .058, .154, .409, 1.085, 2.744/) ! MMY 15cm top layer
+        !soil%zse = (/.50, .058, .154, .409, 1.085, 2.394/) ! MMY 50cm top layer
+         
      case(12)
         soil%zse = (/.022,  0.0500,    0.1300 ,   0.3250 ,   0.3250 ,   0.3000,&
              0.3000,    0.3000 ,   0.3000,    0.3000,    0.7500,  1.50 /)
