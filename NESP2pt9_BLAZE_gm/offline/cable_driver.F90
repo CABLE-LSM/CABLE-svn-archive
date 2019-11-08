@@ -112,7 +112,7 @@ PROGRAM cable_offline_driver
   USE SIMFIRE_MOD,          ONLY: TYPE_SIMFIRE
 
   ! 13C
-  use cable_c13o2_def,         only: c13o2_flux, c13o2_pool, c13o2_luc, c13o2_update_sum_pools, c13o2_zero_sum_pools
+  use cable_c13o2_def,         only: c13o2_delta_atm, c13o2_flux, c13o2_pool, c13o2_luc, c13o2_update_sum_pools, c13o2_zero_sum_pools
   use cable_c13o2,             only: c13o2_save_luc, c13o2_update_luc, &
        c13o2_write_restart_pools,  c13o2_write_restart_luc, &
        c13o2_create_output, c13o2_write_output, c13o2_close_output
@@ -237,6 +237,9 @@ PROGRAM cable_offline_driver
   logical,  dimension(:),   allocatable :: isc3
   real(dp), dimension(:,:), allocatable :: gpp, ci
   real(dp), dimension(:),   allocatable :: Ra
+  integer            :: syear, eyear
+  character(len=100) :: header
+  real(dp)           :: d13catm
 
   ! declare vars for switches (default .FALSE.) etc declared thru namelist
   LOGICAL, SAVE           :: &
@@ -649,6 +652,22 @@ PROGRAM cable_offline_driver
 
            ENDIF
 
+
+           ! Read atmospheric delta c13 values  
+           IF (cable_user%c13o2) THEN
+
+              CALL GET_UNIT(iunit)
+              OPEN(iunit, FILE=TRIM(cable_user%c13o2_delta_atm_file), STATUS="OLD", ACTION="READ")
+              READ(iunit, FMT=*, IOSTAT=IOS) syear, eyear
+              READ(iunit, FMT=*, IOSTAT=IOS) header
+              ALLOCATE(c13o2_delta_atm(syear:eyear))
+              DO WHILE (IOS == 0)
+                 READ(iunit, FMT=*, IOSTAT=IOS) iyear, c13o2_delta_atm(floor(iyear))
+              END DO
+              CLOSE(iunit)
+           ENDIF
+               
+            
            ! somethings (e.g. CASA-CNP) only need to be done once per day
            ktauday=INT(24.0*3600.0/dels)
 
@@ -843,12 +862,11 @@ PROGRAM cable_offline_driver
               ! Zero out lai where there is no vegetation acc. to veg. index
               WHERE ( veg%iveg(:) .GE. 14 ) veg%vlai = 0.
 
-              !MC13 ToDo - read input
-              ! if (cable_user%c13o2) then
-              !    call read_c13o2_input_file(dels, koffset, kend, spinup, C%TFRZ)
-              ! endif
-              if (cable_user%c13o2) c13o2flux%ca = 0.992_dp * met%ca ! * vpdbc13 / vpdbc13 ! -8 permil
-              !MC13 ToDo - read input
+          
+              if (cable_user%c13o2) then
+                 d13catm = c13o2_delta_atm(CurYear)/1000._dp
+                 c13o2flux%ca = (d13catm + 1.0_dp) * met%ca ! * vpdbc13 / vpdbc13
+              endif
 
               ! At first time step of year, set tile area according to updated LU areas
               ! and zero casa fluxes
