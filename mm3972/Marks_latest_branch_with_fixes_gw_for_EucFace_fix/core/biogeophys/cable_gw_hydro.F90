@@ -1548,7 +1548,6 @@ SUBROUTINE calc_srf_wet_fraction(ssnow,soil,met,veg)
 
     !CALL point2constants( C )
 
-! __________________________________ MMY ______________________________
     IF (cable_user%or_evap) THEN
 
        call saturated_fraction(ssnow,soil,veg)
@@ -1566,10 +1565,7 @@ SUBROUTINE calc_srf_wet_fraction(ssnow,soil,met,veg)
       end do
 
     ELSEIF (cable_user%gw_model) THEN
-! _____________________________________________________________________
-!    IF (cable_user%gw_model) THEN ! MMY
        call saturated_fraction(ssnow,soil,veg)
-
 
        do i = 1,mp
           dzmm_one  = m2mm * real(soil%zse_vec(i,1),r_2)
