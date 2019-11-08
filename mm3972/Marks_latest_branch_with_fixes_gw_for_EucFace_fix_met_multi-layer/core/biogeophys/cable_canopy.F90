@@ -1069,9 +1069,9 @@ CONTAINS
          ENDIF
       ENDDO
 
-      IF (cable_user%or_evap .or. cable_user%gw_model) then
+      IF (cable_user%or_evap) THEN ! .or. cable_user%gw_model) then ! MMY
 
-        IF (cable_user%or_evap) THEN
+        ! IF (cable_user%or_evap) THEN ! MMY
           do j=1,mp
 
              if (veg%iveg(j) .lt. 16 .and. ssnow%snowd(j) .lt. 1e-7) THEN
@@ -1088,7 +1088,7 @@ CONTAINS
 
           end do
 
-        END IF
+        ! END IF ! MMY
 
          ssnowpotev = air%rho * air%rlam * ( &
                       real(ssnow%satfrac) * dq /(ssnow%rtsoil + real(ssnow%rtevap_sat)) + &
