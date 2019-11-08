@@ -481,8 +481,8 @@ CONTAINS
           ELSE !by default assumes Humidity Deficit Method
              ! Humidity deficit
              ! INH: I think this should be - met%qvair
-             dq = ssnow%qstss - met%qv ! MMY
-             dq_unsat = ssnow%rh_srf*ssnow%qstss - met%qv ! MMY
+             dq = ssnow%qstss - met%qv
+             dq_unsat = ssnow%rh_srf*ssnow%qstss - met%qv
              ssnow%potev =  Humidity_deficit_method(dq, dq_unsat,ssnow%qstss)
 
           ENDIF
@@ -518,13 +518,13 @@ CONTAINS
        ENDIF
 
        CALL within_canopy( gbhu, gbhf, rt0, rhlitt, relitt )
-       print *, "MMY met%tvair-C%tfrz is ", met%tvair-C%tfrz ! MMY
+       ! print *, "MMY met%tvair-C%tfrz is ", met%tvair-C%tfrz ! MMY
 
        ! Saturation specific humidity at soil/snow surface temperature:
        call qsatfjh(ssnow%qstss,ssnow%tss-C%tfrz,met%pmb)
-       print *, "MMY ssnow%qstss is ", ssnow%qstss ! MMY
-       print *, "MMY ssnow%tss-C%tfrz is ", ssnow%tss-C%tfrz ! MMY
-       print *, "MMY met%pmb is ", met%pmb ! MMY
+       ! print *, "MMY ssnow%qstss is ", ssnow%qstss ! MMY
+       ! print *, "MMY ssnow%tss-C%tfrz is ", ssnow%tss-C%tfrz ! MMY
+       ! print *, "MMY met%pmb is ", met%pmb ! MMY
 
        IF (cable_user%soil_struc=='default') THEN
 
@@ -538,10 +538,10 @@ CONTAINS
              ! Humidity deficit
              dq = ssnow%qstss - met%qvair
              dq_unsat = ssnow%rh_srf*ssnow%qstss - met%qvair
-             print *, "MMY ssnow%rh_srf is ", ssnow%rh_srf ! MMY
-             print *, "MMY met%qvair is ", met%qvair ! MMY
+             !print *, "MMY ssnow%rh_srf is ", ssnow%rh_srf ! MMY
+             !print *, "MMY met%qvair is ", met%qvair ! MMY
              ssnow%potev =  Humidity_deficit_method(dq, dq_unsat,ssnow%qstss)
-             print *,"@ ",ssnow%wb(:,1)," ",ssnow%potev ! MMY
+             !print *,"@ ",ssnow%wb(:,1)," ",ssnow%potev ! MMY
           ENDIF
 
           ! Soil latent heat:
@@ -1001,8 +1001,8 @@ CONTAINS
       lower_limit = rescale / ( LOG(z_eff) - psim_1 + psim_2 )
 
       canopy%us = MIN(MAX(1.e-6, lower_limit ), 10.0 )
-      print *, "MMY met%ua is ", met%ua        ! MMY
-      print *, "MMY canopy%us is ", canopy%us ! MMY
+      !print *, "MMY met%ua is ", met%ua        ! MMY
+      !print *, "MMY canopy%us is ", canopy%us ! MMY
     END SUBROUTINE comp_friction_vel
 
     ! ------------------------------------------------------------------------------
@@ -1099,6 +1099,9 @@ CONTAINS
         END IF
 
         ! ___________________________________ ADD MMY ______________________________________
+        ! MMY To test the difference between cable-2.2.3-pore-scale-model and this version
+        ! MMY note that: the test here is wrong since dq should represent saturated, and
+        ! MMY            dqu should represent unsaturated. However I wrote them here oppositely
         !if (cable_user%gw_model) then
         !   do j=1,mp
         !      if (veg%iveg(j) .ne. 16 .and. soil%isoilm(j) .ne. 9) then
@@ -1120,16 +1123,11 @@ CONTAINS
         !end if
         ! __________________________________________________________________________________
 
-
-! _______________________________________ MMY ____________________________________________
          ssnowpotev = air%rho * air%rlam * ( &
                       real(ssnow%satfrac) * dq /(ssnow%rtsoil + real(ssnow%rtevap_sat)) + &
                (1.0 - real(ssnow%satfrac))* dqu/( &
                               ssnow%rtsoil + real(ssnow%rtevap_unsat)) )
-!         ssnowpotev = air%rho * air%rlam * ( &
-!                      real(ssnow%satfrac) * dq /(real(ssnow%rtevap_sat)) + &
-!               (1.0 - real(ssnow%satfrac))* dqu/(real(ssnow%rtevap_unsat)) )
-! ________________________________________________________________________________________
+
       ELSEIF (cable_user%litter) THEN
          !! vh_js !!
          ssnowpotev =air%rho * air%rlam * dq /(ssnow%rtsoil + &

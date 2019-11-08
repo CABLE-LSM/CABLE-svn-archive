@@ -191,12 +191,12 @@ SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
          ENDWHERE
       ENDIF
 
-      print *, "MMY rough%disp is ", rough%disp ! MMY
-      print *, "MMY rough%hruff is ", rough%hruff ! MMY
-      print *, "MMY canopy%rghlai is ", canopy%rghlai ! MMY
-      print *, "MMY rough%rt0us is ", rough%rt0us ! MMY
-      print *, "MMY rough%z0soilsn is ", rough%z0soilsn ! MMY
-      print *, "MMY rough%coexp is ",rough%coexp ! MMY
+      !print *, "MMY rough%disp is ", rough%disp ! MMY
+      !print *, "MMY rough%hruff is ", rough%hruff ! MMY
+      !print *, "MMY canopy%rghlai is ", canopy%rghlai ! MMY
+      !print *, "MMY rough%rt0us is ", rough%rt0us ! MMY
+      !print *, "MMY rough%z0soilsn is ", rough%z0soilsn ! MMY
+      !print *, "MMY rough%coexp is ",rough%coexp ! MMY
 END SUBROUTINE ruff_resist
 
 
