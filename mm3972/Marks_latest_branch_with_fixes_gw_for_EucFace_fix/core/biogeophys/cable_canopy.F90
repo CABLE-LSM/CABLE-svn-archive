@@ -1077,9 +1077,9 @@ CONTAINS
          ENDIF
       ENDDO
 
-      IF (cable_user%or_evap .or. cable_user%gw_model) then
+      IF (cable_user%or_evap) THEN ! .or. cable_user%gw_model) then ! MMY
 
-        IF (cable_user%or_evap) THEN
+      ! IF (cable_user%or_evap) THEN
           do j=1,mp
 
              if (veg%iveg(j) .lt. 16 .and. ssnow%snowd(j) .lt. 1e-7) THEN
@@ -1096,7 +1096,7 @@ CONTAINS
 
           end do
 
-        END IF
+      !  END IF
 
         ! ___________________________________ ADD MMY ______________________________________
         ! MMY To test the difference between cable-2.2.3-pore-scale-model and this version
