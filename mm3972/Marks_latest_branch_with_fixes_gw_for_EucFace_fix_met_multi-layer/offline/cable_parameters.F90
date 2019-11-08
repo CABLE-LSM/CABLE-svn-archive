@@ -1153,21 +1153,21 @@ CONTAINS
     ! vegin%froot(:, :) = 0.032258
     ! vegin%froot(1, :) = 0.03226
 
-    ! lg 31 layers
-    vegin%froot(:, :)  = 0.0
-    vegin%froot(1, :)  = 0.104765
-    vegin%froot(2, :)  = 0.101823
-    vegin%froot(3, :)  = 0.098645
-    vegin%froot(4, :)  = 0.095191
-    vegin%froot(5, :)  = 0.091408
-    vegin%froot(6, :)  = 0.087225
-    vegin%froot(7, :)  = 0.082549
-    vegin%froot(8, :)  = 0.077248
-    vegin%froot(9, :)  = 0.071129
-    vegin%froot(10, :) = 0.063891
-    vegin%froot(11, :) = 0.055033
-    vegin%froot(12, :) = 0.043613
-    vegin%froot(13, :) = 0.027479
+    ! log10 31 layers
+    ! vegin%froot(:, :)  = 0.0
+    ! vegin%froot(1, :)  = 0.104765
+    ! vegin%froot(2, :)  = 0.101823
+    ! vegin%froot(3, :)  = 0.098645
+    ! vegin%froot(4, :)  = 0.095191
+    ! vegin%froot(5, :)  = 0.091408
+    ! vegin%froot(6, :)  = 0.087225
+    ! vegin%froot(7, :)  = 0.082549
+    ! vegin%froot(8, :)  = 0.077248
+    ! vegin%froot(9, :)  = 0.071129
+    ! vegin%froot(10, :) = 0.063891
+    ! vegin%froot(11, :) = 0.055033
+    ! vegin%froot(12, :) = 0.043613
+    ! vegin%froot(13, :) = 0.027479
 
     ! triangle froot 31 layers
     ! vegin%froot(1, :) =0.064516
