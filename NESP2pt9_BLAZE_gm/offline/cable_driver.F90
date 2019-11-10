@@ -68,7 +68,7 @@ PROGRAM cable_offline_driver
   USE cable_common_module,  ONLY: ktau_gl, kend_gl, knode_gl, cable_user,     &
        cable_runtime, filename, myhome,            &
        redistrb, wiltParam, satuParam, CurYear,    &
-       IS_LEAPYEAR, IS_CASA_TIME, calcsoilalbedo,                &
+       IS_LEAPYEAR, IS_CASA_TIME, calcsoilalbedo, get_unit, &
        report_version_no, kwidth_gl
   USE cable_data_module,    ONLY: driver_type, icanopy_type, point2constants
   USE cable_input_module,   ONLY: open_met_file,load_parameters,              &
@@ -147,7 +147,7 @@ PROGRAM cable_offline_driver
 
   ! timing variables
   INTEGER, PARAMETER ::  kstart = 1   ! start of simulation
-  INTEGER, PARAMETER ::  mloop  = 30   ! CASA-CNP PreSpinup loops
+  INTEGER, PARAMETER ::  mloop  = 30  ! CASA-CNP PreSpinup loops
   INTEGER :: LALLOC ! allocation coefficient for passing to spincasa
 
   INTEGER        ::                                                           &
@@ -236,10 +236,12 @@ PROGRAM cable_offline_driver
   type(icanopy_type) :: cconst
   logical,  dimension(:),   allocatable :: isc3
   real(dp), dimension(:,:), allocatable :: gpp, ci
-  real(dp), dimension(:),   allocatable :: Ra
-  integer            :: syear, eyear
+  real(dp), dimension(:),   allocatable :: Ra 
+  ! delta-13C of atmospheric CO2
+  integer            :: iunit, ios
+  real               :: iyear
+  integer            :: c13o2_atm_syear, c13o2_atm_eyear
   character(len=100) :: header
-  real(dp)           :: d13catm
 
   ! declare vars for switches (default .FALSE.) etc declared thru namelist
   LOGICAL, SAVE           :: &
@@ -449,11 +451,21 @@ PROGRAM cable_offline_driver
      IF(.NOT.ALLOCATED(GSWP_MID)) ALLOCATE( GSWP_MID( 8, CABLE_USER%YearStart:CABLE_USER%YearEnd ) )
   ENDIF
 
-  !MC13 ToDo - open input file
-  ! if (cable_user%c13o2) then
-  !    call open_c13o2_input_file(dels, koffset, kend, spinup, C%TFRZ)
-  ! endif
-  !MC13 ToDo - open input file
+  ! 13C
+  ! Read atmospheric delta c13 values  
+  if (cable_user%c13o2) then
+     ! get start and end year
+     CALL GET_UNIT(iunit)
+     OPEN(iunit, FILE=TRIM(cable_user%c13o2_delta_atm_file), STATUS="OLD", ACTION="READ")
+     READ(iunit, FMT=*, IOSTAT=IOS) c13o2_atm_syear, c13o2_atm_eyear
+     READ(iunit, FMT=*, IOSTAT=IOS) header
+     ALLOCATE(c13o2_delta_atm(c13o2_atm_syear:c13o2_atm_eyear))
+     DO WHILE (IOS == 0)
+        READ(iunit, FMT=*, IOSTAT=IOS) iyear, c13o2_delta_atm(floor(iyear))
+     END DO
+     CLOSE(iunit)
+     c13o2_delta_atm = c13o2_delta_atm/1000._dp
+  endif
 
   ! outer loop - spinup loop no. ktau_tot :
   RYEAR = 0
@@ -652,21 +664,6 @@ PROGRAM cable_offline_driver
 
            ENDIF
 
-
-           ! Read atmospheric delta c13 values  
-           IF (cable_user%c13o2) THEN
-
-              CALL GET_UNIT(iunit)
-              OPEN(iunit, FILE=TRIM(cable_user%c13o2_delta_atm_file), STATUS="OLD", ACTION="READ")
-              READ(iunit, FMT=*, IOSTAT=IOS) syear, eyear
-              READ(iunit, FMT=*, IOSTAT=IOS) header
-              ALLOCATE(c13o2_delta_atm(syear:eyear))
-              DO WHILE (IOS == 0)
-                 READ(iunit, FMT=*, IOSTAT=IOS) iyear, c13o2_delta_atm(floor(iyear))
-              END DO
-              CLOSE(iunit)
-           ENDIF
-               
             
            ! somethings (e.g. CASA-CNP) only need to be done once per day
            ktauday=INT(24.0*3600.0/dels)
@@ -864,8 +861,7 @@ PROGRAM cable_offline_driver
 
           
               if (cable_user%c13o2) then
-                 d13catm = c13o2_delta_atm(CurYear)/1000._dp
-                 c13o2flux%ca = (d13catm + 1.0_dp) * met%ca ! * vpdbc13 / vpdbc13
+                 c13o2flux%ca = (c13o2_delta_atm(CurYear) + 1.0_dp) * real(met%ca,dp) ! * vpdbc13 / vpdbc13
               endif
 
               ! At first time step of year, set tile area according to updated LU areas
