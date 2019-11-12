@@ -324,7 +324,9 @@ SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
            phen%doyphase(:,2) =  phen%doyphasespin_2(:,idoy)
            phen%doyphase(:,3) =  phen%doyphasespin_3(:,idoy)
            phen%doyphase(:,4) =  phen%doyphasespin_4(:,idoy)
-           climate%qtemp_max_last_year(:) =  casamet%mtempspin(:,idoy)
+           IF (cable_user%call_climate) THEN
+              climate%qtemp_max_last_year(:) =  casamet%mtempspin(:,idoy)
+           ENDIF
 
 
 
