@@ -1483,7 +1483,7 @@ CONTAINS
 
     CALL casa_cnpflux(casaflux,casapool,casabal,.FALSE.)
 
-    ! for spinning up only
+    ! when spinning up only
     ! casapool%Nsoilmin = max(casapool%Nsoilmin,0.5)
     ! casapool%Psoillab = max(casapool%Psoillab,0.1)
 

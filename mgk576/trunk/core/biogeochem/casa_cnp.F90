@@ -536,7 +536,7 @@ CONTAINS
 
     REAL(r_2), DIMENSION(mp)        :: Ygrow        ! growth efficiency Q.Zhang 22/02/2011
     REAL(r_2), DIMENSION(mp,mplant) :: ratioPNplant ! Q.Zhang 22/02/2011
-    REAL(r_2), DIMENSION(mp)        :: delcrmwood,delcrmfroot    ! reduction in wood and root respiration when NPP <0.0
+    REAL(r_2), dimension(mp)        :: delcrmleaf, delcrmwood,delcrmfroot    ! reduction in wood and root respiration when NPP <0.0
     REAL(r_2), DIMENSION(mp)        :: resp_coeff_root, resp_coeff_sapwood, resp_coeff
     REAL,  DIMENSION(mp)        :: nleaf, pleaf, vcmaxmax
 
@@ -554,6 +554,7 @@ CONTAINS
 
     casaflux%crmplant(:,wood) = 0.0
     casaflux%crmplant(:,froot) = 0.0
+    delcrmleaf   = 0.0
     delcrmwood   = 0.0
     delcrmfroot  = 0.0
     casaflux%crgplant = 0.0
@@ -680,6 +681,26 @@ CONTAINS
              casaflux%crgplant(:) = 0.0
           ENDWHERE
        ENDWHERE
+
+       WHERE(casaflux%Cnpp < 0.0)
+      	! change made here by ypw on 11-7-2016 to include leaf maintenance respiration
+	      delcrmleaf(:)  = casaflux%Cnpp(:) * casaflux%crmplant(:,leaf) &
+	                     / max(0.01,(casaflux%crmplant(:,leaf)+casaflux%crmplant(:,wood) &
+	                               + casaflux%crmplant(:,froot)))
+	      delcrmwood(:)  = casaflux%Cnpp(:) * casaflux%crmplant(:,wood) &
+	                     / max(0.01,(casaflux%crmplant(:,leaf)+casaflux%crmplant(:,wood) &
+	                               + casaflux%crmplant(:,froot)))
+	      delcrmfroot(:) = casaflux%Cnpp(:) * casaflux%crmplant(:,froot) &
+	                     / max(0.01,(casaflux%crmplant(:,leaf)+casaflux%crmplant(:,wood) &
+	                               + casaflux%crmplant(:,froot)))
+
+	      casaflux%crmplant(:,leaf)  = casaflux%crmplant(:,leaf)  + delcrmleaf(:)
+	      casaflux%crmplant(:,wood)  = casaflux%crmplant(:,wood)  + delcrmwood(:)
+	      casaflux%crmplant(:,froot) = casaflux%crmplant(:,froot) + delcrmfroot(:)
+	  !    casaflux%Cnpp(:) = casaflux%Cnpp(:) -delcrmwood(:)-delcrmfroot(:)
+	      casaflux%crgplant(:) = 0.0
+       ENDWHERE
+
 
        Casaflux%cnpp(:) = casaflux%Cgpp(:)-SUM(casaflux%crmplant(:,:),2) - casaflux%crgplant(:)
 
