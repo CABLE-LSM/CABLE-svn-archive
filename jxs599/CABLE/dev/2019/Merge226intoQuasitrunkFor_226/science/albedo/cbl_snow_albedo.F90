@@ -7,18 +7,19 @@ MODULE cbl_snow_albedo_module
 
 CONTAINS
 
-SUBROUTINE surface_albedosn( AlbSnow, AlbSoil, mp, surface_type, &
+SUBROUTINE surface_albedosn( AlbSnow, AlbSoil, mp, jls_radiation, surface_type, &
                             SnowDepth, SnowODepth, SnowFlag_3L, SnowDensity, &
                             SoilTemp, SnowAge, & 
                             metTk, coszen )
   
-USE cable_common_module, ONLY : cable_runtime, kwidth_gl
+USE cable_common_module, ONLY : kwidth_gl
 use cable_phys_constants_mod, ONLY : CTFRZ => TFRZ
 
 implicit none
 
 !re-decl input args
 integer :: mp
+LOGICAL :: jls_radiation            !runtime switch def. in cable_*main routines 
 REAL :: AlbSnow(mp,2) 
 REAL :: AlbSoil(mp,2) 
 REAL :: MetTk(mp) 
@@ -82,7 +83,7 @@ REAL :: SoilAlbsoilf(mp)
    alir =0.
    alv  =0.
 
-   WHERE ( SnowDepth > 1. .AND. .NOT. cable_runtime%um_radiation )
+   WHERE ( SnowDepth > 1. .AND. .NOT. jls_radiation )
 
       ! new snow (cm H2O)
       dnsnow = MIN ( 1., .1 * MAX( 0., SnowDepth - SnowODepth ) )
@@ -146,7 +147,7 @@ REAL :: SoilAlbsoilf(mp)
 
    ! when it is called from cable_rad_driver (UM)
    ! no need to recalculate snage
-   WHERE (SnowDepth > 1 .and. cable_runtime%um_radiation )
+   WHERE (SnowDepth > 1 .and. jls_radiation )
 
       snr = SnowDepth / MAX (SnowDensity, 200.)
 

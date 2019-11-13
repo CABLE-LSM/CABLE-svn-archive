@@ -1530,6 +1530,12 @@ END IF
   V_S_surft = U_S_STD_surft
   V_S_STD = U_S_STD_surft
 !CABLE_LSM: End
+!CABLE_LSM:
+!if(first_call) then 
+!  z0m_eff_surft = 0.0003
+!else  
+  z0m_eff_surft = z0m_surft
+!endif
 
 !-----------------------------------------------------------------------
 ! Calculate RESFT with neutral CH and EPDT = 0 for use in calculation
@@ -2206,7 +2212,6 @@ END IF
 
 !CABLE_LSM:{ move from here to start?
 if(first_call) emis_surft = 1.0
-first_call = .false.
 !CABLE_LSM}:
 
 lw_down_elevcorr_surft(:,:) = 0.0
@@ -2455,7 +2460,6 @@ DO n = 1,nsurft
    q1_sd,t1_sd                                                                &
    )
 END DO
-
 !-----------------------------------------------------------------------
 ! Call SFL_INT to calculate CDR10M and CHR1P5M - interpolation coeffs
 ! used to calculate screen temperature, humidity and 10m winds.
@@ -3844,6 +3848,7 @@ DO n = 1, nsurft
   END IF
 END DO
 
+first_call = .false.
 
 IF (lhook) CALL dr_hook(ModuleName//':'//RoutineName,zhook_out,zhook_handle)
 RETURN

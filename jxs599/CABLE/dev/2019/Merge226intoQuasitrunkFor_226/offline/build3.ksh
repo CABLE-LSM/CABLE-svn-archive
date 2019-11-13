@@ -23,12 +23,18 @@ host_raij()
 	 else
    		module add intel-fc/16.0.1.150
       export FC=$F90
+      export FC='ifort'
    fi
 	 module add netcdf/4.3.3.1
 
-   export NCDIR=$NETCDF_ROOT'/lib/Intel'
-   export NCMOD=$NETCDF_ROOT'/include/Intel'
-   export CFLAGS='-O0 -fp-model precise'
+   #export NCDIR=$NETCDF_ROOT'/lib/Intel'
+   export NCDIR=$NETCDF_ROOT'/lib/'
+#   echo "$NETCDF_ROOT"
+#   exit
+   export NCMOD=$NETCDF_ROOT'/include/'
+   #export NCMOD=$NETCDF_ROOT'/include/Intel'
+   #export CFLAGS='-O0 -fp-model precise'
+   export CFLAGS='-O0 -g'
    if [[ $1 = 'debug' ]]; then
        export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0 -check all,noarg_temp_created'
    fi
