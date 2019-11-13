@@ -2,8 +2,7 @@ MODULE cbl_albedo_mod
 
   IMPLICIT NONE
 
-  PUBLIC Albedo, CanopyTransmitance_beam, &
-                 CanopyTransmitance_dif
+  PUBLIC Albedo, CanopyTransmitance_X
   PRIVATE
 
 CONTAINS
@@ -30,6 +29,11 @@ EffSurfRefl_dif, EffSurfRefl_beam                 )
 USE cbl_rhoch_module, ONLY : calc_rhoch
 USE cbl_snow_albedo_module, ONLY : surface_albedosn
 
+  !diag 
+  USE cable_fprint_module, ONLY : cable_fprintf
+  USE cable_Pyfprint_module, ONLY : cable_Pyfprintf
+  USE cable_fFile_module, ONLY : fprintf_dir_root, fprintf_dir, L_cable_fprint,&
+                                 L_cable_Pyfprint, unique_subdir
 implicit none
 
 !model dimensions
@@ -50,6 +54,8 @@ LOGICAL :: jls_radiation            !runtime switch def. in cable_*main routines
 LOGICAL :: veg_mask(mp)             ! this "mp" is vegetated (uses minimum LAI) 
 LOGICAL :: sunlit_mask(mp)          ! this "mp" is sunlit (uses zenith angle)
 LOGICAL :: sunlit_veg_mask(mp)      ! this "mp" is BOTH sunlit AND  vegetated  
+real :: iveg_mask(mp)             ! this "mp" is vegetated (uses minimum LAI) 
+real :: isunlit_veg_mask(mp)      ! this "mp" is BOTH sunlit AND  vegetated  
 
 !Vegetation parameters
 REAL :: VegTaul(mp,nrb)             !PARAMETER leaf transmisivity (veg%taul)
@@ -102,13 +108,25 @@ REAL :: CanopyRefl_beam(mp,nrb)     !Canopy reflectance  (rad%rhocbm)
 REAL :: CanopyTransmit_dif(mp,nrb)  !Canopy Transmitance (rad%cexpkdm)   
 REAL :: CanopyTransmit_beam(mp,nrb) !Canopy Transmitance (rad%cexpkbm)
 
+real :: SumEffSurfRefl_beam(1)
+real :: SumEffSurfRefl_dif(1)
+integer :: i
+# include "cable_fprint.txt"
+
+fprintf_dir="/home/599/jxs599/"
+
+CanopyTransmit_dif(:,:) = 0.0
+CanopyTransmit_beam(:,:) = 0.0
+CanopyRefl_dif(:,:) = 0.0
+CanopyRefl_beam(:,:) = 0.0
+AlbSnow(:,:) = 0.0
+
 !Modify albedo based on snow coverage 
 call surface_albedosn( AlbSnow, AlbSoil, mp, jls_radiation, surface_type, &
                        SnowDepth, SnowODepth, SnowFlag_3L, &
                        SnowDensity, &
                        SoilTemp, SnowAge, &
                        metTk, coszen )
-   
 ! Define canopy Reflectance for diffuse/direct radiation
 ! Formerly rad%rhocbm, rad%rhocdf
 call CanopyReflectance( CanopyRefl_beam, CanopyRefl_dif, &
@@ -126,15 +144,90 @@ call CanopyTransmitance(CanopyTransmit_beam, CanopyTransmit_dif, mp, nrb,&
 ! Finally compute Effective 4-band albedo for diffuse/direct radiation- 
 ! In the UM this is the required variable to be passed back on the rad call
 ! Formerly rad%reffbm, rad%reffdf
+EffSurfRefl_dif = AlbSnow
+EffSurfRefl_beam = AlbSnow
 call EffectiveSurfaceReflectance( EffSurfRefl_beam, EffSurfRefl_dif,           &
                                   mp, nrb, veg_mask, sunlit_veg_mask,          &
                                   CanopyRefl_beam, CanopyRefl_dif,             &
                                   CanopyTransmit_beam,CanopyTransmit_dif,      &
                                   AlbSnow )
+                               ! ( EffSurfRefl_beam, EffSurfRefl_dif,           &
+SumEffSurfRefl_beam(1) = EffSurfRefl_beam(1,1)
+vname='AlbEffSurfRefl_beam1'; dimx=1  
+call cable_Pyfprintf( cDiag1, vname, SumEffSurfRefl_beam, dimx, .true.)
+
+SumEffSurfRefl_beam(1) = EffSurfRefl_beam(1,2) 
+vname='AlbEffSurfRefl_beam2'; dimx=1  
+call cable_Pyfprintf( cDiag2, vname, SumEffSurfRefl_beam, dimx, .true.)
+
+                                  !veg_mask, sunlit_veg_mask,          &
+iveg_mask =0. ; isunlit_veg_mask =0.
+do i=1,mp
+  if(veg_mask(i) ) iveg_mask = 1.
+  if(sunlit_veg_mask(i) ) isunlit_veg_mask = 1.
+end do
+          
+vname='veg_mask'; dimx=1  
+call cable_Pyfprintf( cDiag3, vname, iveg_mask, dimx, .true.)
+                                  
+vname='sunlit_veg_mask'; dimx=1  
+call cable_Pyfprintf( cDiag4, vname, isunlit_veg_mask, dimx, .true.)
+
+                                  !CanopyRefl_beam, CanopyRefl_dif,             &
+SumEffSurfRefl_beam(1) = CanopyRefl_beam(1,1)
+vname='CanopyRefl_beam1'; dimx=1  
+call cable_Pyfprintf( cDiag5, vname, SumEffSurfRefl_beam, dimx, .true.)
+
+SumEffSurfRefl_beam(1) = CanopyRefl_beam(1,2) 
+vname='CanopyRefl_beam2'; dimx=1  
+call cable_Pyfprintf( cDiag6, vname, SumEffSurfRefl_beam, dimx, .true.)
+                                  
+                                  !CanopyTransmit_beam,CanopyTransmit_dif,      &
+SumEffSurfRefl_beam(1) = CanopyTransmit_beam(1,1)
+vname='CanopyTransmit_beam1'; dimx=1  
+call cable_Pyfprintf( cDiag7, vname, SumEffSurfRefl_beam, dimx, .true.)
+
+SumEffSurfRefl_beam(1) = CanopyTransmit_beam(1,2) 
+vname='CanopyTransmit_beam2'; dimx=1  
+call cable_Pyfprintf( cDiag8, vname, SumEffSurfRefl_beam, dimx, .true.)
+                                  
+                                  !1AlbSnow )
+SumEffSurfRefl_beam(1) = AlbSnow(1,1)
+vname='AlbSnow_beam1'; dimx=1  
+call cable_Pyfprintf( cDiag9, vname, SumEffSurfRefl_beam, dimx, .true.)
+
+SumEffSurfRefl_beam(1) = AlbSnow(1,2)
+vname='AlbSnow_beam2'; dimx=1  
+call cable_Pyfprintf( cDiag10, vname, SumEffSurfRefl_beam, dimx, .true.)
+
+SumEffSurfRefl_beam(1) = ExtCoeff_beam(1)
+vname='ExtCoeff_beam'; dimx=1  
+call cable_Pyfprintf( cDiag11, vname, SumEffSurfRefl_beam, dimx, .true.)
+
+SumEffSurfRefl_beam(1) = ExtCoeff_dif(1)
+vname='ExtCoeff_dif'; dimx=1  
+call cable_Pyfprintf( cDiag12, vname, SumEffSurfRefl_beam, dimx, .true.)
+
+SumEffSurfRefl_beam(1) = rhoch(1,1)
+vname='rhoch1'; dimx=1  
+call cable_Pyfprintf( cDiag13, vname, SumEffSurfRefl_beam, dimx, .true.)
+
+SumEffSurfRefl_beam(1) = rhoch(1,2)
+vname='rhoch2'; dimx=1  
+call cable_Pyfprintf( cDiag14, vname, SumEffSurfRefl_beam, dimx, .true.)
+
+!SumEffSurfRefl_dif(1) = EffSurfRefl_dif(1,1) + EffSurfRefl_dif(1,2) 
+!SumEffSurfRefl_beam(1) = EffSurfRefl_beam(1,1) + EffSurfRefl_beam(1,2) 
+!SumEffSurfRefl_dif(1) = EffSurfRefl_dif(1,1) + EffSurfRefl_dif(1,2) 
+!vname='AlbEffSurfRefl_beam'; dimx=1  
+!call cable_Pyfprintf( cDiag1, vname, SumEffSurfRefl_beam, dimx, .true.)
+!vname='AlbEffSurfRefl_dif'; dimx=1  
+!call cable_Pyfprintf( cDiag2, vname, SumEffSurfRefl_dif, dimx, .true.)
 
 ! Compute total albedo to SW given the Effective Surface Reflectance 
 ! (considering Canopy/Soil/Snow contributions) 
 ! we dont need to do this on rad call AND may not haveappropriate RadFbeam
+RadAlbedo = AlbSnow
 if(.NOT. jls_radiation) &
   call FbeamRadAlbedo( RadAlbedo, mp, nrb, veg_mask, radfbeam, &
                        EffSurfRefl_dif, EffSurfRefl_beam, AlbSnow )
@@ -163,8 +256,8 @@ REAL :: ExtCoeff_beam(mp)           !"raw" Extinction co-efficient for Direct Be
 REAL :: ExtCoeff_dif(mp)            !"raw"Extinction co-efficient for Diffuse component of SW radiation (rad%extkd)
 
 ! Initialise canopy beam reflectance:
-CanopyRefl_beam  = AlbSnow !Formerly rad%reffbm
-CanopyRefl_dif   = AlbSnow ! Formerly rad%refdfm
+!HACHvstrunk!CanopyRefl_beam  = AlbSnow !Formerly rad%reffbm
+!HACHvstrunk!CanopyRefl_dif   = AlbSnow ! Formerly rad%refdfm
 
 call CanopyReflectance_beam( CanopyRefl_beam, mp, nrb, sunlit_veg_mask, &
                              ExtCoeff_beam, ExtCoeff_dif, rhoch )
@@ -247,17 +340,17 @@ REAL :: EffExtCoeff_dif(mp,nrb)            !"raw"Extinction co-efficient for Dif
 
 dummyMask(:) = .true. 
 !Zero initialization remains the calculated value where "mask"=FALSE
-call CanopyTransmitance_dif( CanopyTransmit_dif, mp, nrb, EffExtCoeff_dif, &
+call CanopyTransmitance_X( CanopyTransmit_dif, mp, nrb, EffExtCoeff_dif, &
                              reducedLAIdue2snow, dummyMask )
 
-call CanopyTransmitance_beam( CanopyTransmit_beam, mp, nrb, EffExtCoeff_beam,  &
-                              reducedLAIdue2snow, dummyMask )
+call CanopyTransmitance_X( CanopyTransmit_beam, mp, nrb, EffExtCoeff_beam,  &
+                              reducedLAIdue2snow, mask )
 
 End subroutine CanopyTransmitance
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-subroutine CanopyTransmitance_dif(CanopyTransmit, mp, nrb, ExtinctionCoeff, reducedLAIdue2snow, mask )
+subroutine CanopyTransmitance_X(CanopyTransmit, mp, nrb, ExtinctionCoeff, reducedLAIdue2snow, mask )
 implicit none
 integer :: mp 
 integer :: nrb
@@ -265,41 +358,44 @@ logical :: mask(mp)
 real :: CanopyTransmit(mp,nrb) 
 real :: ExtinctionCoeff(mp,nrb) 
 real :: reducedLAIdue2snow(mp)
+real :: dummy(mp,nrb) 
 integer :: i, b
  
 DO i = 1,mp
   DO b = 1, nrb 
     if( mask(i) ) &
-    CanopyTransmit(i,b) = EXP( -1.* ExtinctionCoeff(i,b) * reducedLAIdue2snow(i) )
-  enddo
-enddo
-
-End subroutine  CanopyTransmitance_dif
-
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-subroutine CanopyTransmitance_beam(CanopyTransmit, mp, nrb, ExtinctionCoeff, reducedLAIdue2snow, mask )
-implicit none
-integer :: mp 
-integer :: nrb
-real :: CanopyTransmit(mp,nrb) 
-real :: ExtinctionCoeff(mp,nrb) 
-real :: reducedLAIdue2snow(mp)
-logical :: mask(mp) 
-real :: dummy(mp,nrb) 
-integer :: i, b
- 
-DO i = 1,mp
-  DO b = 1, nrb!2 !ithis is fixed as 2  because nrb=3 due to legacy  
-    if( mask(i)) then
       dummy(i,b) = min( ExtinctionCoeff(i,b) * reducedLAIdue2snow(i), 20. )
       CanopyTransmit(i,b) = EXP( -1.* dummy(i,b) )
-    endif  
+    !CanopyTransmit(i,b) = EXP( -1.* ExtinctionCoeff(i,b) * reducedLAIdue2snow(i) )
   enddo
 enddo
 
-End subroutine  CanopyTransmitance_beam
+End subroutine  CanopyTransmitance_X
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!
+!subroutine CanopyTransmitance_beam(CanopyTransmit, mp, nrb, ExtinctionCoeff, reducedLAIdue2snow, mask )
+!implicit none
+!integer :: mp 
+!integer :: nrb
+!real :: CanopyTransmit(mp,nrb) 
+!real :: ExtinctionCoeff(mp,nrb) 
+!real :: reducedLAIdue2snow(mp)
+!logical :: mask(mp) 
+!real :: dummy(mp,nrb) 
+!integer :: i, b
+! 
+!DO i = 1,mp
+!  DO b = 1, nrb!2 !ithis is fixed as 2  because nrb=3 due to legacy  
+!    if( mask(i)) then
+!      dummy(i,b) = min( ExtinctionCoeff(i,b) * reducedLAIdue2snow(i), 20. )
+!      CanopyTransmit(i,b) = EXP( -1.* dummy(i,b) )
+!    endif  
+!  enddo
+!enddo
+!
+!End subroutine  CanopyTransmitance_beam
+!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 

@@ -92,6 +92,16 @@ REAL :: xvlai2(mp,nrb) ! 2D vlai
 REAL :: xphi1(mp)      ! leaf angle parmameter 1
 REAL :: xphi2(mp)      ! leaf angle parmameter 2
 
+ExtCoeff_beam(:) = 0.0
+ExtCoeff_dif(:) = 0.0
+EffExtCoeff_beam(:,:) = 0.0
+EffExtCoeff_dif(:,:) = 0.0
+RadFbeam(:,:) = 0.0
+c1(:,:) = 0.0
+rhoch(:,:) = 0.0
+xk(:,:) = 0.0
+
+
 ! Comute common scaling co-efficients used throughout init_radiation
 call Common_InitRad_Scalings( xphi1, xphi2, xk, xvlai2, c1, rhoch,      &
                             mp, nrb, Cpi180,cLAI_thresh, veg_mask,             &

@@ -1039,11 +1039,15 @@ do i=1, mp
   Sumreffdf(i) = Sumreffdf(i) + ( rad%Reffdf(i,1)+rad%Reffdf(i,2) )
 enddo
 
-fprintf_dir="/home/599/jxs599/"
-vname='rad_reffbm'; dimx=mp 
-call cable_Pyfprintf( cDiag1, vname, Sumreffbm, dimx, .true.)
-vname='rad_reffdf'; dimx=mp 
-call cable_Pyfprintf( cDiag2, vname, Sumreffdf, dimx, .true.)
+print *, "jhan: mp ", mp
+print *, "jhan: veg%iveg ",veg%iveg 
+!print *, "jhan: patchfrac ", mp !offl concept of patch frac
+
+!fprintf_dir="/home/599/jxs599/"
+!vname='rad_reffbm'; dimx=mp 
+!call cable_Pyfprintf( cDiag1, vname, Sumreffbm, dimx, .true.)
+!vname='rad_reffdf'; dimx=mp 
+!call cable_Pyfprintf( cDiag2, vname, Sumreffdf, dimx, .true.)
 
 
            END DO ! END Do loop over timestep ktau

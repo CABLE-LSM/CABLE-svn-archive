@@ -1,5 +1,5 @@
 &cable
-   filename%met = '/projects/access/CABLE-AUX/offline/TumbaFluxnet.1.3_met.nc'
+   filename%met = '/home/599/jxs599/short/CABLE/CABLE_validation/src/Merge226intoQuasitrunkFor_226_inUSE2Compare_W_HAC/offline/test.nc'
    filename%out = 'out_cable.nc'
    filename%log = 'log_cable.txt'
    filename%restart_in  = ' ' 
