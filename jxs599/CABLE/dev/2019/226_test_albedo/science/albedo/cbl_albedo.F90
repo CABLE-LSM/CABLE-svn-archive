@@ -111,6 +111,7 @@ REAL :: CanopyTransmit_beam(mp,nrb) !Canopy Transmitance (rad%cexpkbm)
 real :: SumEffSurfRefl_beam(1)
 real :: SumEffSurfRefl_dif(1)
 integer :: i
+integer :: cntile
 # include "cable_fprint.txt"
 
 fprintf_dir="/home/599/jxs599/"
@@ -152,11 +153,12 @@ call EffectiveSurfaceReflectance( EffSurfRefl_beam, EffSurfRefl_dif,           &
                                   CanopyTransmit_beam,CanopyTransmit_dif,      &
                                   AlbSnow )
                                ! ( EffSurfRefl_beam, EffSurfRefl_dif,           &
-SumEffSurfRefl_beam(1) = EffSurfRefl_beam(1,1)
+cntile = 1
+SumEffSurfRefl_beam(1) = EffSurfRefl_beam(cntile,1)
 vname='AlbEffSurfRefl_beam1'; dimx=1  
 call cable_Pyfprintf( cDiag1, vname, SumEffSurfRefl_beam, dimx, .true.)
 
-SumEffSurfRefl_beam(1) = EffSurfRefl_beam(1,2) 
+SumEffSurfRefl_beam(1) = EffSurfRefl_beam(cntile,2) 
 vname='AlbEffSurfRefl_beam2'; dimx=1  
 call cable_Pyfprintf( cDiag2, vname, SumEffSurfRefl_beam, dimx, .true.)
 
@@ -174,47 +176,83 @@ vname='sunlit_veg_mask'; dimx=1
 call cable_Pyfprintf( cDiag4, vname, isunlit_veg_mask, dimx, .true.)
 
                                   !CanopyRefl_beam, CanopyRefl_dif,             &
-SumEffSurfRefl_beam(1) = CanopyRefl_beam(1,1)
+SumEffSurfRefl_beam(1) = CanopyRefl_beam(cntile,1)
 vname='CanopyRefl_beam1'; dimx=1  
 call cable_Pyfprintf( cDiag5, vname, SumEffSurfRefl_beam, dimx, .true.)
 
-SumEffSurfRefl_beam(1) = CanopyRefl_beam(1,2) 
+SumEffSurfRefl_beam(1) = CanopyRefl_beam(cntile,2) 
 vname='CanopyRefl_beam2'; dimx=1  
 call cable_Pyfprintf( cDiag6, vname, SumEffSurfRefl_beam, dimx, .true.)
                                   
                                   !CanopyTransmit_beam,CanopyTransmit_dif,      &
-SumEffSurfRefl_beam(1) = CanopyTransmit_beam(1,1)
+SumEffSurfRefl_beam(1) = CanopyTransmit_beam(cntile,1)
 vname='CanopyTransmit_beam1'; dimx=1  
 call cable_Pyfprintf( cDiag7, vname, SumEffSurfRefl_beam, dimx, .true.)
 
-SumEffSurfRefl_beam(1) = CanopyTransmit_beam(1,2) 
+SumEffSurfRefl_beam(1) = CanopyTransmit_beam(cntile,2) 
 vname='CanopyTransmit_beam2'; dimx=1  
 call cable_Pyfprintf( cDiag8, vname, SumEffSurfRefl_beam, dimx, .true.)
                                   
                                   !1AlbSnow )
-SumEffSurfRefl_beam(1) = AlbSnow(1,1)
+SumEffSurfRefl_beam(1) = AlbSnow(cntile,1)
 vname='AlbSnow_beam1'; dimx=1  
 call cable_Pyfprintf( cDiag9, vname, SumEffSurfRefl_beam, dimx, .true.)
 
-SumEffSurfRefl_beam(1) = AlbSnow(1,2)
+SumEffSurfRefl_beam(1) = AlbSnow(cntile,2)
 vname='AlbSnow_beam2'; dimx=1  
 call cable_Pyfprintf( cDiag10, vname, SumEffSurfRefl_beam, dimx, .true.)
 
-SumEffSurfRefl_beam(1) = ExtCoeff_beam(1)
+SumEffSurfRefl_beam(1) = ExtCoeff_beam(cntile)
 vname='ExtCoeff_beam'; dimx=1  
 call cable_Pyfprintf( cDiag11, vname, SumEffSurfRefl_beam, dimx, .true.)
 
-SumEffSurfRefl_beam(1) = ExtCoeff_dif(1)
+SumEffSurfRefl_beam(1) = ExtCoeff_dif(cntile)
 vname='ExtCoeff_dif'; dimx=1  
 call cable_Pyfprintf( cDiag12, vname, SumEffSurfRefl_beam, dimx, .true.)
 
-SumEffSurfRefl_beam(1) = rhoch(1,1)
+SumEffSurfRefl_beam(1) = rhoch(cntile,1)
 vname='rhoch1'; dimx=1  
 call cable_Pyfprintf( cDiag13, vname, SumEffSurfRefl_beam, dimx, .true.)
 
-SumEffSurfRefl_beam(1) = rhoch(1,2)
+SumEffSurfRefl_beam(1) = rhoch(cntile,2)
 vname='rhoch2'; dimx=1  
 call cable_Pyfprintf( cDiag14, vname, SumEffSurfRefl_beam, dimx, .true.)
+
+SumEffSurfRefl_beam(1) = AlbSoil(cntile,1)
+vname='AlbSoil1'; dimx=1  
+call cable_Pyfprintf( cDiag15, vname, SumEffSurfRefl_beam, dimx, .true.)
+
+SumEffSurfRefl_beam(1) = AlbSoil(cntile,2)
+vname='AlbSoil2'; dimx=1  
+call cable_Pyfprintf( cDiag16, vname, SumEffSurfRefl_beam, dimx, .true.)
+
+SumEffSurfRefl_beam(1) = SnowDepth(cntile)
+vname='SnowDepth'; dimx=1  
+call cable_Pyfprintf( cDiag17, vname, SumEffSurfRefl_beam, dimx, .true.)
+
+SumEffSurfRefl_beam(1) = SnowODepth(cntile)
+vname='SnowODepth'; dimx=1  
+call cable_Pyfprintf( cDiag18, vname, SumEffSurfRefl_beam, dimx, .true.)
+
+SumEffSurfRefl_beam(1) = real(SnowFlag_3L(cntile))
+vname='SnowFlag_3L'; dimx=1  
+call cable_Pyfprintf( cDiag19, vname, SumEffSurfRefl_beam, dimx, .true.)
+
+SumEffSurfRefl_beam(1) = SnowDensity(cntile)
+vname='SnowDensity'; dimx=1  
+call cable_Pyfprintf( cDiag20, vname, SumEffSurfRefl_beam, dimx, .true.)
+
+SumEffSurfRefl_beam(1) = SoilTemp(cntile)
+vname='SoilTemp'; dimx=1  
+call cable_Pyfprintf( cDiag21, vname, SumEffSurfRefl_beam, dimx, .true.)
+
+SumEffSurfRefl_beam(1) = SnowAge(cntile)
+vname='SnowAge'; dimx=1  
+call cable_Pyfprintf( cDiag22, vname, SumEffSurfRefl_beam, dimx, .true.)
+
+SumEffSurfRefl_beam(1) = metTk(cntile)
+vname='metTk'; dimx=1  
+call cable_Pyfprintf( cDiag23, vname, SumEffSurfRefl_beam, dimx, .true.)
 
 !SumEffSurfRefl_dif(1) = EffSurfRefl_dif(1,1) + EffSurfRefl_dif(1,2) 
 !SumEffSurfRefl_beam(1) = EffSurfRefl_beam(1,1) + EffSurfRefl_beam(1,2) 
