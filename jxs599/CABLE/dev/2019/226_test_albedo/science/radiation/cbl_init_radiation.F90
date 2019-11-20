@@ -20,6 +20,11 @@
 
 MODULE cbl_init_radiation_module
 
+  !diag 
+  USE cable_fprint_module, ONLY : cable_fprintf
+  USE cable_Pyfprint_module, ONLY : cable_Pyfprintf
+  USE cable_fFile_module, ONLY : fprintf_dir_root, fprintf_dir, L_cable_fprint,&
+                                 L_cable_Pyfprint, unique_subdir
   IMPLICIT NONE
 
   PUBLIC init_radiation
@@ -239,8 +244,38 @@ real :: xphi2(mp)
 REAL :: xvlai2(mp,nrb)  ! 2D vlai
 REAL :: xk(mp,nrb)      ! extinct. coef.for beam rad. and black leaves
 
+real :: SumEffSurfRefl_beam(1)
+real :: SumEffSurfRefl_dif(1)
+integer :: i
+integer :: cntile
+# include "cable_fprint.txt"
+
+fprintf_dir="/home/599/jxs599/"
+
 call ExtinctionCoeff_dif( ExtCoeff_dif, mp, nrb, CGauss_w, reducedLAIdue2snow, &
                           veg_mask, cLAI_thresh, xk, xvlai2)
+
+
+cntile = 1
+vname='reducedLAIdue2snow'; dimx=1  
+SumEffSurfRefl_beam(1) = reducedLAIdue2snow(cntile)
+call cable_Pyfprintf( cDiag1, vname, SumEffSurfRefl_beam, dimx, .true.)
+
+vname='xk1'; dimx=1  
+SumEffSurfRefl_beam(1) = xk(cntile,1)
+call cable_Pyfprintf( cDiag2, vname, SumEffSurfRefl_beam, dimx, .true.)
+
+vname='xvlai21'; dimx=1  
+SumEffSurfRefl_beam(1) = xvlai2(cntile,1)
+call cable_Pyfprintf( cDiag3, vname, SumEffSurfRefl_beam, dimx, .true.)
+
+vname='xk2'; dimx=1  
+SumEffSurfRefl_dif(1) = xk(cntile,2)
+call cable_Pyfprintf( cDiag2, vname, SumEffSurfRefl_dif, dimx, .true.)
+
+vname='xvlai22'; dimx=1  
+SumEffSurfRefl_dif(1) = xvlai2(cntile,2)
+call cable_Pyfprintf( cDiag3, vname, SumEffSurfRefl_dif, dimx, .true.)
 
 call ExtinctionCoeff_beam( ExtCoeff_beam, mp, nrb, Ccoszen_tols_tiny,&
                            sunlit_mask, veg_mask, sunlit_veg_mask,  &
