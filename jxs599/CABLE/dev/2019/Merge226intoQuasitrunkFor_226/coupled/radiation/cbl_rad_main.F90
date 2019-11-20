@@ -261,7 +261,7 @@ CanopyRefl_dif(:,:) = 0.0
 CanopyRefl_beam(:,:) = 0.0
 EffSurfRefl_dif(:,:) = 0.0
 EffSurfRefl_beam(:,:) = 0.0
-!coszen(:) = 0.0
+coszen(:) = 0.0
 RadFbeam(:,:) = 0.0
 RadAlbedo(:,:) = 0.0
 AlbSnow(:,:) = 0.0
@@ -273,9 +273,12 @@ xk(:,:) = 0.0
 metDoY = 0
 IF(first_call) call alloc_cbl_types (mp)
 
-!At present only single value is used for each land point 
-albsoil(:,2) =0.; albsoil(:,3) =0.
+!jhan:ubiquitous confusion between nrb, dir/dif radiation
+
+!JULES does not have seperate albedos per nrb so assume same value here
+albsoil(:,3) =0.
 CALL cable_pack_lp( soil_alb, soil_alb, albsoil(:,1), soil%isoilm, skip )
+CALL cable_pack_lp( soil_alb, soil_alb, albsoil(:,2), soil%isoilm, skip )
 
 !Pack zenith this timestep
 CALL cable_pack_rr( cosine_zenith_angle, coszen)
