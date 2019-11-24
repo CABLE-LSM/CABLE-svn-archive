@@ -186,10 +186,10 @@ CONTAINS
        vegin%froot(4,2) =        0.200000
        vegin%froot(5,2) =        0.200000
        vegin%froot(6,2) =        0.200000
-       vegin%refl(1,2) =        0.090000
-       vegin%taul(1,2) =        0.090000
-       vegin%refl(2,2) =        0.290000
-       vegin%taul(2,2) =        0.290000
+       vegin%refl(1,2) =        0.076000
+       vegin%taul(1,2) =        0.050000
+       vegin%refl(2,2) =        0.350000
+       vegin%taul(2,2) =        0.250000
        vegin%refl(3,2) =        0.010000
        vegin%taul(3,2) =        0.010000
        vegin%csoil(1,2) =      303.000000
