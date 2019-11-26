@@ -61,7 +61,6 @@ subroutine open_iDiag( iDiag, infilename, gopenstatus)
    
    ffilename=trim( trim(infilename)// '.txt' )
 
-  write(6,*) "jh:Pytest:fname ", ffilename 
    open( unit=iDiag, file=ffilename, status="unknown", &
      action="write", iostat=gopenstatus, form="formatted", &
      position='append' )
