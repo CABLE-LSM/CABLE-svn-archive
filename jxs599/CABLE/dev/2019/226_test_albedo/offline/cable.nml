@@ -1,5 +1,5 @@
 &cable
-   filename%met = 'Loobos_1997.nc'
+   filename%met = '/projects/access/CABLE-AUX/offline/TumbaFluxnet.1.3_met.nc'
    filename%out = 'out_cable.nc'
    filename%log = 'log_cable.txt'
    filename%restart_in  = ' ' 
