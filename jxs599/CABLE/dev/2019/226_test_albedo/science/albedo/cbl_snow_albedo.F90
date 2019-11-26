@@ -58,10 +58,10 @@ REAL :: SoilAlbsoilf(mp)
    SoilAlbsoilF = Albsoil(:,1)
 
    ! lakes: hard-wired number to be removed in future
-!   WHERE( surface_type == 16 )                                                     &
-!      soilalbsoilf = -0.022*( MIN( 275., MAX( 260., MetTk ) ) - 260. ) + 0.45
+   WHERE( surface_type == 16 )                                                     &
+      soilalbsoilf = -0.022*( MIN( 275., MAX( 260., MetTk ) ) - 260. ) + 0.45
 
-!   WHERE(SnowDepth > 1. .and. surface_type == 16 ) SoilAlbsoilF = 0.85
+   WHERE(SnowDepth > 1. .and. surface_type == 16 ) SoilAlbsoilF = 0.85
 
    sfact = 0.68
 
@@ -83,7 +83,7 @@ REAL :: SoilAlbsoilf(mp)
    alir =0.
    alv  =0.
 
-   !H!WHERE ( SnowDepth > 1. .AND. .NOT. jls_radiation )
+   WHERE ( SnowDepth > 1. .AND. .NOT. jls_radiation )
 
       ! new snow (cm H2O)
       dnsnow = MIN ( 1., .1 * MAX( 0., SnowDepth - SnowODepth ) )
@@ -143,44 +143,44 @@ REAL :: SoilAlbsoilf(mp)
       alir = .4 * fzenm * (1.0 - tmp) + tmp
       talb = .5 * (alv + alir) ! snow albedo
 
-   !H!ENDWHERE        ! snowd > 0
+   ENDWHERE        ! snowd > 0
 
-   !H!! when it is called from cable_rad_driver (UM)
-   !H!! no need to recalculate snage
-   !H!WHERE (SnowDepth > 1 .and. jls_radiation )
+   ! when it is called from cable_rad_driver (UM)
+   ! no need to recalculate snage
+   WHERE (SnowDepth > 1 .and. jls_radiation )
 
-   !H!   snr = SnowDepth / MAX (SnowDensity, 200.)
+      snr = SnowDepth / MAX (SnowDensity, 200.)
 
-!  !H!    WHERE (surface_type == 17 )
-!  !H!       ! permanent ice: hard-wired number to be removed
-!  !H!       snrat = 1.
-!  !H!    ELSEWHERE
-   !H!      snrat = MIN (1., snr / (snr + .1) )
-!  !H!    END WHERE
+      WHERE (surface_type == 17 )
+         ! permanent ice: hard-wired number to be removed
+         snrat = 1.
+      ELSEWHERE
+         snrat = MIN (1., snr / (snr + .1) )
+      END WHERE
 
-   !H!   fage = 1. - 1. / (1. + SnowAge ) !age factor
-   !H!   tmp = MAX (.17365, coszen )
-   !H!   fzenm = MAX( 0., MERGE( 0.0,                                             &
-   !H!           ( 1. + 1./2. ) / ( 1. + 2. * 2. * tmp ) - 1./2., tmp > 0.5 ) )
+      fage = 1. - 1. / (1. + SnowAge ) !age factor
+      tmp = MAX (.17365, coszen )
+      fzenm = MAX( 0., MERGE( 0.0,                                             &
+              ( 1. + 1./2. ) / ( 1. + 2. * 2. * tmp ) - 1./2., tmp > 0.5 ) )
 
-   !H!    tmp = alvo * (1.0 - 0.2 * fage)
-   !H!    alv = .4 * fzenm * (1. - tmp) + tmp
-   !H!    tmp = aliro * (1. - .5 * fage)
+       tmp = alvo * (1.0 - 0.2 * fage)
+       alv = .4 * fzenm * (1. - tmp) + tmp
+       tmp = aliro * (1. - .5 * fage)
 
-!  !H!    ! use dry snow albedo
-!  !H!    WHERE (surface_type == 17)
-!  !H!       ! permanent ice: hard-wired number to be removed
-!
-!  !H!       tmp = 0.95 * (1.0 - 0.2 * fage)
-!  !H!       alv = .4 * fzenm * (1. - tmp) + tmp
-!  !H!       tmp = 0.75 * (1. - .5 * fage)
-!
-!  !H!    END WHERE
+      ! use dry snow albedo
+      WHERE (surface_type == 17)
+         ! permanent ice: hard-wired number to be removed
 
-   !H!   alir = .4 * fzenm * (1.0 - tmp) + tmp
-   !H!   talb = .5 * (alv + alir) ! snow albedo
+         tmp = 0.95 * (1.0 - 0.2 * fage)
+         alv = .4 * fzenm * (1. - tmp) + tmp
+         tmp = 0.75 * (1. - .5 * fage)
 
-   !H!ENDWHERE        ! snowd > 0
+      END WHERE
+
+      alir = .4 * fzenm * (1.0 - tmp) + tmp
+      talb = .5 * (alv + alir) ! snow albedo
+
+   ENDWHERE        ! snowd > 0
 
    AlbSnow(:,2) = MIN( aliro,                                          &
                           ( 1. - snrat ) * AlbSnow(:,2) + snrat * alir)
@@ -188,10 +188,10 @@ REAL :: SoilAlbsoilf(mp)
    AlbSnow(:,1) = MIN( alvo,                                           &
                           ( 1. - snrat ) * AlbSnow(:,1) + snrat * alv )
 
-!   WHERE (surface_type == 17) ! use dry snow albedo: 1=vis, 2=nir
-!     AlbSnow(:,1) = alvo - 0.05 ! al*o = albedo appropriate for new snow 
-!     AlbSnow(:,2) = aliro - 0.05 ! => here al*o LESS arbitrary aging 0.05
-!   END WHERE
+   WHERE (surface_type == 17) ! use dry snow albedo: 1=vis, 2=nir
+     AlbSnow(:,1) = alvo - 0.05 ! al*o = albedo appropriate for new snow 
+     AlbSnow(:,2) = aliro - 0.05 ! => here al*o LESS arbitrary aging 0.05
+   END WHERE
 
 return
 
