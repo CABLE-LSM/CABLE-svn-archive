@@ -145,6 +145,9 @@ call CanopyTransmitance(CanopyTransmit_beam, CanopyTransmit_dif, mp, nrb,&
 ! Finally compute Effective 4-band albedo for diffuse/direct radiation- 
 ! In the UM this is the required variable to be passed back on the rad call
 ! Formerly rad%reffbm, rad%reffdf
+print *, "jh:mp", mp
+print *, "jh:surface_types ", surface_type
+
 EffSurfRefl_dif = AlbSnow
 EffSurfRefl_beam = AlbSnow
 call EffectiveSurfaceReflectance( EffSurfRefl_beam, EffSurfRefl_dif,           &
@@ -401,10 +404,10 @@ integer :: i, b
  
 DO i = 1,mp
   DO b = 1, nrb 
-    if( mask(i) ) &
+    if( mask(i) ) then 
       dummy(i,b) = min( ExtinctionCoeff(i,b) * reducedLAIdue2snow(i), 20. )
       CanopyTransmit(i,b) = EXP( -1.* dummy(i,b) )
-    !CanopyTransmit(i,b) = EXP( -1.* ExtinctionCoeff(i,b) * reducedLAIdue2snow(i) )
+    endif
   enddo
 enddo
 
