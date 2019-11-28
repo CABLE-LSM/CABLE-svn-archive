@@ -96,6 +96,11 @@ REAL :: xk(mp,nrb)              ! extinct. coef.for beam rad. and black leaves
 REAL :: xvlai2(mp,nrb) ! 2D vlai
 REAL :: xphi1(mp)      ! leaf angle parmameter 1
 REAL :: xphi2(mp)      ! leaf angle parmameter 2
+integer :: cntile
+real :: SumEffSurfRefl_dif(1)
+# include "cable_fprint.txt"
+
+fprintf_dir="/home/599/jxs599/"
 
 ExtCoeff_beam(:) = 0.0
 ExtCoeff_dif(:) = 0.0
@@ -136,6 +141,31 @@ call EffectiveExtinctCoeffs( EffExtCoeff_beam, EffExtCoeff_dif, &
 !Spitter function to split these bands into direct beam and diffuse components
 IF( cbl_standalone .OR. jls_standalone .AND. .NOT. jls_radiation )  &
   CALL BeamFraction( RadFbeam, mp, nrb, Cpi, Ccoszen_tols_huge, real(metDoy), coszen, SW_down ) 
+
+vname='c11'; dimx=1  
+SumEffSurfRefl_dif(1) = c1(cntile,1)
+call cable_Pyfprintf( cDiag6, vname, SumEffSurfRefl_dif, dimx, .true.)
+
+vname='c12'; dimx=1  
+SumEffSurfRefl_dif(1) = c1(cntile,2)
+call cable_Pyfprintf( cDiag7, vname, SumEffSurfRefl_dif, dimx, .true.)
+
+vname='vegTaul1'; dimx=1  
+SumEffSurfRefl_dif(1) = vegTaul(cntile,1)
+call cable_Pyfprintf( cDiag8, vname, SumEffSurfRefl_dif, dimx, .true.)
+
+vname='vegTaul2'; dimx=1  
+SumEffSurfRefl_dif(1) = vegTaul(cntile,2)
+call cable_Pyfprintf( cDiag9, vname, SumEffSurfRefl_dif, dimx, .true.)
+
+vname='vegRefl1'; dimx=1  
+SumEffSurfRefl_dif(1) = vegRefl(cntile,1)
+call cable_Pyfprintf( cDiag10, vname, SumEffSurfRefl_dif, dimx, .true.)
+
+vname='vegRefl2'; dimx=1  
+SumEffSurfRefl_dif(1) = vegRefl(cntile,2)
+call cable_Pyfprintf( cDiag11, vname, SumEffSurfRefl_dif, dimx, .true.)
+
 
 END SUBROUTINE init_radiation
 
@@ -271,11 +301,11 @@ call cable_Pyfprintf( cDiag3, vname, SumEffSurfRefl_beam, dimx, .true.)
 
 vname='xk2'; dimx=1  
 SumEffSurfRefl_dif(1) = xk(cntile,2)
-call cable_Pyfprintf( cDiag2, vname, SumEffSurfRefl_dif, dimx, .true.)
+call cable_Pyfprintf( cDiag4, vname, SumEffSurfRefl_dif, dimx, .true.)
 
 vname='xvlai22'; dimx=1  
 SumEffSurfRefl_dif(1) = xvlai2(cntile,2)
-call cable_Pyfprintf( cDiag3, vname, SumEffSurfRefl_dif, dimx, .true.)
+call cable_Pyfprintf( cDiag5, vname, SumEffSurfRefl_dif, dimx, .true.)
 
 call ExtinctionCoeff_beam( ExtCoeff_beam, mp, nrb, Ccoszen_tols_tiny,&
                            sunlit_mask, veg_mask, sunlit_veg_mask,  &
