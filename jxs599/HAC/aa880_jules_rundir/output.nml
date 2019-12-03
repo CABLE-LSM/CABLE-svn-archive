@@ -1,6 +1,6 @@
 &jules_output
 dump_period=1,
-nprofiles=5,
+nprofiles=6,
 output_dir='./output',
 run_id='jules',
 /
@@ -30,13 +30,14 @@ var_name=8*'',
 /
 &jules_output_profile
 file_period=0,
-nvars=7,
+nvars=11,
 output_main_run=.true.,
 output_period=3600,
 output_spinup=.false.,
 output_type=7*'S',
 var='cosz', 'fqw_gb', 'ftl_gb', 'latent_heat', 'q1p5m_gb',
- 't1p5m_gb', 'tstar_gb', 
+ 't1p5m_gb', 'tstar_gb', 'land_albedo_1', 'land_albedo_2',
+ 'land_albedo_3', 'land_albedo_4',
 profile_name='cable_gb_Timeseries',
 !!var='con_rain', 'con_snow', 'cosz', 'diff_frac','ecan_gb', 'ei_gb',
 !! 'esoil_gb', 'et_stom_gb', 'fqw_gb', 'ftl_gb', 'land_albedo_1',
@@ -45,7 +46,7 @@ profile_name='cable_gb_Timeseries',
 !! 'qw1', 	'rainfall', 'snomlt_surf_htf', 'snowfall', 'snow_mass_gb',
 !! 'surf_ht_flux_gb', 	'sw_down', 't1p5m_gb','taux1','tauy1', 	'tl1',
 !! 'tstar_gb', 'u1', 'u10m', 'v1', 'v10m', 'wind',
-var_name=7*'',
+var_name=11*'',
 /
 !!&jules_output_profile
 !!file_period=0,
@@ -64,6 +65,21 @@ var_name=7*'',
 !! 'tstar_gb', 'u1', 'u10m', 'v1', 'v10m', 'wind',
 !!var_name=38*'',
 !!/
+&jules_output_profile
+file_period=0,
+nvars=1,
+output_main_run=.true.,
+output_period=3600,
+output_spinup=.false.,
+output_type=15*'S',
+profile_name='cable_lgb_Timeseries',
+var='albedo_land'
+var_name=1*'',
+/
+
+
+
+
 !!&jules_output_profile
 !!file_period=0,
 !!nvars=15,
