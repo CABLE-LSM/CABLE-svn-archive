@@ -141,7 +141,7 @@ call EffectiveExtinctCoeffs( EffExtCoeff_beam, EffExtCoeff_dif, &
 !Spitter function to split these bands into direct beam and diffuse components
 IF( cbl_standalone .OR. jls_standalone .AND. .NOT. jls_radiation )  &
   CALL BeamFraction( RadFbeam, mp, nrb, Cpi, Ccoszen_tols_huge, real(metDoy), coszen, SW_down ) 
-
+cntile=1
 vname='c11'; dimx=1  
 SumEffSurfRefl_dif(1) = c1(cntile,1)
 call cable_Pyfprintf( cDiag6, vname, SumEffSurfRefl_dif, dimx, .true.)
@@ -165,6 +165,10 @@ call cable_Pyfprintf( cDiag10, vname, SumEffSurfRefl_dif, dimx, .true.)
 vname='vegRefl2'; dimx=1  
 SumEffSurfRefl_dif(1) = vegRefl(cntile,2)
 call cable_Pyfprintf( cDiag11, vname, SumEffSurfRefl_dif, dimx, .true.)
+
+vname='coszen'; dimx=1  
+SumEffSurfRefl_dif(1) = coszen(cntile)
+call cable_Pyfprintf( cDiag12, vname, SumEffSurfRefl_dif, dimx, .true.)
 
 
 END SUBROUTINE init_radiation
@@ -226,6 +230,11 @@ real:: cLAI_thresh
 
 !local vars
 REAL :: cos3(nrb)      ! cos(15 45 75 degrees)
+real :: ff(1)
+integer :: cntile
+# include "cable_fprint.txt"
+
+fprintf_dir="/home/599/jxs599/"
 
 cos3 = COS(CPI180 * (/ 15.0, 45.0, 75.0 /))
 
@@ -245,6 +254,19 @@ WHERE (xvlai2 > cLAI_THRESH) ! vegetated
 ELSEWHERE ! i.e. bare soil
    xk = 0.0
 END WHERE
+
+cntile=1
+vname='xphi1'; dimx=1  
+ff(1) = xphi1(cntile)
+call cable_Pyfprintf( cDiag1, vname, ff, dimx, .true.)
+
+vname='xphi2'; dimx=1  
+ff(1) = xphi2(cntile)
+call cable_Pyfprintf( cDiag2, vname, ff, dimx, .true.)
+
+vname='vegxfang'; dimx=1  
+ff(1) = vegxfang(cntile)
+call cable_Pyfprintf( cDiag3, vname, ff, dimx, .true.)
 
 End subroutine common_InitRad_coeffs
 
@@ -306,6 +328,10 @@ call cable_Pyfprintf( cDiag4, vname, SumEffSurfRefl_dif, dimx, .true.)
 vname='xvlai22'; dimx=1  
 SumEffSurfRefl_dif(1) = xvlai2(cntile,2)
 call cable_Pyfprintf( cDiag5, vname, SumEffSurfRefl_dif, dimx, .true.)
+
+vname='xk3'; dimx=1  
+SumEffSurfRefl_beam(1) = xk(cntile,3)
+call cable_Pyfprintf( cDiag6, vname, SumEffSurfRefl_beam, dimx, .true.)
 
 call ExtinctionCoeff_beam( ExtCoeff_beam, mp, nrb, Ccoszen_tols_tiny,&
                            sunlit_mask, veg_mask, sunlit_veg_mask,  &

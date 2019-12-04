@@ -771,6 +771,7 @@ CONTAINS
 
           IF( canopy%precis(i) > 0.0 .AND. ssnow%tgg(i,1) < C%TFRZ ) THEN
 
+          IF( canopy%precis(i) < .03 .AND. ssnow%tgg(i,1) < (C%TFRZ-20.) ) & 
              ssnow%snowd(i) = MAX(ssnow%snowd(i) + canopy%precis(i), 0.0)
 
              ssnow%tgg(i,1) = ssnow%tgg(i,1) + canopy%precis(i) * C%HLF               &

@@ -22,6 +22,11 @@
 
 MODULE cable_roughness_module
 
+  !diag 
+  USE cable_fprint_module, ONLY : cable_fprintf
+  USE cable_Pyfprint_module, ONLY : cable_Pyfprintf
+  USE cable_fFile_module, ONLY : fprintf_dir_root, fprintf_dir, L_cable_fprint,&
+                                 L_cable_Pyfprint, unique_subdir
   USE cable_data_module, ONLY : irough_type, point2constants
 
   IMPLICIT NONE
@@ -71,8 +76,13 @@ real :: HGT_pft(mp)
    REAL, DIMENSION(mp) ::                                                      &
       xx,      & ! =C%CCD*LAI; working variable
       dh         ! d/h where d is zero-plane displacement
- 
- 
+
+integer :: cntile
+real :: fprdummy(1)
+# include "cable_fprint.txt"
+
+fprintf_dir="/home/599/jxs599/"
+
    CALL point2constants( C )
 
 ! Set canopy height above snow level:
@@ -83,6 +93,41 @@ rough%hruff =  HeightAboveSnow
 ! LAI decreases due to snow: formerly canopy%vlaiw
 call LAI_eff( mp, veg%vlai, veg%hc, HeightAboveSnow, &
                 reducedLAIdue2snow)
+
+!!print *, 'HeightAboveSnow ', rough%hruff 
+!!print *, 'z0soilsn_min ', z0soilsn_min
+!!print *, 'veg%hc ', veg%hc
+!!print *, 'ssnow%snowd ', ssnow%snowd
+!!print *, 'ssnow%ssdnn ', ssnow%ssdnn 
+!!print *, 'veg%vlai ', veg%vlai
+!!print *, 'reducedLAIdue2snow ', reducedLAIdue2snow
+cntile=1
+vname='hruff'; dimx=1  
+fprdummy(1) = rough%hruff(cntile)
+call cable_Pyfprintf( cDiag1, vname, fprdummy, dimx, .true.)
+
+vname='veghc'; dimx=1  
+fprdummy(1) = veg%hc(cntile)
+call cable_Pyfprintf( cDiag2, vname, fprdummy, dimx, .true.)
+
+vname='vegvlai'; dimx=1  
+fprdummy(1) = veg%vlai(cntile)
+call cable_Pyfprintf( cDiag3, vname, fprdummy, dimx, .true.)
+
+vname='ssnowSnowd'; dimx=1  
+fprdummy(1) = ssnow%snowd(cntile)
+call cable_Pyfprintf( cDiag4, vname, fprdummy, dimx, .true.)
+
+vname='ssnowSsdnn'; dimx=1  
+fprdummy(1) = ssnow%ssdnn(cntile)
+call cable_Pyfprintf( cDiag5, vname, fprdummy, dimx, .true.)
+
+!vname='x'; dimx=1  
+!fprdummy(1) = x(cntile,1)
+!call cable_Pyfprintf( cDiagx, vname, fprdummy, dimx, .true.)
+
+!jhan: quick fix
+   canopy%vlaiw = reducedLAIdue2snow
 
    canopy%rghlai = canopy%vlaiw
 

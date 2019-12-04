@@ -2,7 +2,7 @@ MODULE cbl_albedo_mod
 
   IMPLICIT NONE
 
-  PUBLIC Albedo, CanopyTransmitance_X
+  PUBLIC Albedo
   PRIVATE
 
 CONTAINS
@@ -273,6 +273,26 @@ SumEffSurfRefl_beam(1) = EffExtCoeff_dif(cntile,2)
 vname='EffExtCoeff_dif2'; dimx=1  
 call cable_Pyfprintf( cDiag27, vname, SumEffSurfRefl_beam, dimx, .true.)
 
+SumEffSurfRefl_beam(1) = CanopyRefl_dif(cntile,1)
+vname='CanopyRefl_dif1'; dimx=1  
+call cable_Pyfprintf( cDiag28, vname, SumEffSurfRefl_beam, dimx, .true.)
+
+SumEffSurfRefl_beam(1) = CanopyRefl_dif(cntile,2) 
+vname='CanopyRefl_dif2'; dimx=1  
+call cable_Pyfprintf( cDiag29, vname, SumEffSurfRefl_beam, dimx, .true.)
+                                  
+SumEffSurfRefl_beam(1) = CanopyTransmit_dif(cntile,1)
+vname='CanopyTransmit_dif1'; dimx=1  
+call cable_Pyfprintf( cDiag30, vname, SumEffSurfRefl_beam, dimx, .true.)
+
+SumEffSurfRefl_beam(1) = CanopyTransmit_dif(cntile,2) 
+vname='CanopyTransmit_dif2'; dimx=1  
+call cable_Pyfprintf( cDiag31, vname, SumEffSurfRefl_beam, dimx, .true.)
+ 
+SumEffSurfRefl_beam(1) = CanopyTransmit_dif(cntile,2) 
+vname='CanopyTransmit_dif2'; dimx=1  
+call cable_Pyfprintf( cDiag31, vname, SumEffSurfRefl_beam, dimx, .true.)
+ 
 ! Compute total albedo to SW given the Effective Surface Reflectance 
 ! (considering Canopy/Soil/Snow contributions) 
 ! we dont need to do this on rad call AND may not haveappropriate RadFbeam
@@ -422,29 +442,7 @@ enddo
 End subroutine  CanopyTransmitance_X
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!
-!subroutine CanopyTransmitance_beam(CanopyTransmit, mp, nrb, ExtinctionCoeff, reducedLAIdue2snow, mask )
-!implicit none
-!integer :: mp 
-!integer :: nrb
-!real :: CanopyTransmit(mp,nrb) 
-!real :: ExtinctionCoeff(mp,nrb) 
-!real :: reducedLAIdue2snow(mp)
-!logical :: mask(mp) 
-!real :: dummy(mp,nrb) 
-!integer :: i, b
-! 
-!DO i = 1,mp
-!  DO b = 1, nrb!2 !ithis is fixed as 2  because nrb=3 due to legacy  
-!    if( mask(i)) then
-!      dummy(i,b) = min( ExtinctionCoeff(i,b) * reducedLAIdue2snow(i), 20. )
-!      CanopyTransmit(i,b) = EXP( -1.* dummy(i,b) )
-!    endif  
-!  enddo
-!enddo
-!
-!End subroutine  CanopyTransmitance_beam
-!
+
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
