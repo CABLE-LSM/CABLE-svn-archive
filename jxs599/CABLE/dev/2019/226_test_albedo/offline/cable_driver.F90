@@ -786,7 +786,9 @@ real, ALLOCATABLE :: Sumreffdf(:)
                  IF (l_laiFeedbk.AND.icycle>0) veg%vlai(:) = casamet%glai(:)
 
 !jhan:Hach to make soil albedo same as Loobos
-!soil%albsoil=0.11
+soil%albsoil=0.11
+veg%hc = 0.79 
+veg%vlai = 2.0
                  ! Call land surface scheme for this timestep, all grid points:
                  CALL cbm(ktau, dels, air, bgc, canopy, met,		      &
                       bal, rad, rough, soil, ssnow,			      &

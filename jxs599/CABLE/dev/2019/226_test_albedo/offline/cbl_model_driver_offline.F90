@@ -102,6 +102,7 @@ logical :: asunlit_mask(mp)
 REAL :: c1(mp,nrb)
 REAL :: rhoch(mp,nrb)
 REAL :: xk(mp,nrb)
+integer :: i
 
 !iFor testing
 fprintf_dir="/home/599/jxs599"
@@ -111,7 +112,20 @@ cable_user%soil_struc="default"
   
 ! assign local ptrs to constants defined in cable_data_module
 CALL point2constants(C)
-
+do i=1,mp
+  if(ssnow%snowd(1) .gt. 0.0) then
+    print *, 'ssnow%snowd', ssnow%snowd
+  endif
+  if(ktau .eq. 562) then
+    print *, 'ssnow%snowd', ssnow%snowd
+  endif
+  if(ktau .gt. 401) then
+    print *, 'ssnow%snowd', ssnow%snowd
+  endif
+  if(ssnow%snowd(i) .gt. 0) then
+    print *, 'ssnow%snowd', ssnow%snowd
+  endif
+end do
 IF ( cbl_standalone .OR. cable_runtime%um_explicit ) & 
   CALL ruff_resist(veg, rough, ssnow, canopy, veg%vlai, veg%hc, canopy%vlaiw)
 

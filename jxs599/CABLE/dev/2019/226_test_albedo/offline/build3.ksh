@@ -18,7 +18,7 @@ host_raij()
    module unload intel-fc netcdf
    if [[ $1 = 'mpi' ]]; then
    		module del openmpi
-      module add intel-mpi/5.1.3.210 intel-fc/17.0.1.132 openmpi/1.8.8
+      module add intel-mpi/5.1.3.210 intel-fc/17.0.1.132 openmpi/1.10.2
       export FC='mpif90'
 	 else
    		module add intel-fc/16.0.1.150
@@ -34,10 +34,10 @@ host_raij()
    export NCMOD=$NETCDF_ROOT'/include/'
    #export NCMOD=$NETCDF_ROOT'/include/Intel'
    #export CFLAGS='-O0 -fp-model precise'
-   export CFLAGS='-O0 -g'
-   if [[ $1 = 'debug' ]]; then
+   #export CFLAGS='-O0 -g'
+   #if [[ $1 = 'debug' ]]; then
        export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0 -check all,noarg_temp_created'
-   fi
+   #fi
    export LDFLAGS='-L'$NCDIR' '
    export LD='-lnetcdf -lnetcdff'
    

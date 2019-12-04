@@ -2397,6 +2397,10 @@ CONTAINS
 
     ! Set cosine of zenith angle (provided by GCM when online):
     met%coszen = sinbet(met%doy, rad%latitude, met%hod)
+print *,'    met%coszen  ',   met%coszen 
+print *,'    met%doy ', met%doy 
+print *,'    rad%latitude  ',     rad%latitude 
+print *,'    met%hod ',     met%hod
     ! initialise within canopy air temp
     met%tvair = met%tk
     met%tvrad = met%tk
