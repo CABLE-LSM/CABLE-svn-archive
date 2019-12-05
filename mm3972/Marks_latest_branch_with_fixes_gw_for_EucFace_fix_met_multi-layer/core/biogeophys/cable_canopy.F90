@@ -1819,6 +1819,10 @@ CONTAINS
              CALL fwsoil_calc_non_linear(fwsoil, soil, ssnow, veg)
           ELSEIF(cable_user%FWSOIL_SWITCH == 'Lai and Ktaul 2000') THEN
              CALL fwsoil_calc_Lai_Ktaul(fwsoil, soil, ssnow, veg)
+          ! _______________________ MMY test new fwsoil scheme  _______________________
+          ELSEIF(cable_user%FWSOIL_SWITCH == 'hie') THEN
+             CALL fwsoil_calc_hie(fwsoil, soil, ssnow, veg)
+          ! ___________________________________________________________________________
           ELSE
              STOP 'fwsoil_switch failed.'
           ENDIF
@@ -2695,6 +2699,45 @@ CONTAINS
   END SUBROUTINE fwsoil_calc_std
 
   ! ------------------------------------------------------------------------------
+  ! ____________________________ MMY test new fwsoil _____________________________
+
+  SUBROUTINE fwsoil_calc_hie(fwsoil, soil, ssnow, veg)
+    USE cable_def_types_mod
+    USE cable_common_module, only : cable_user
+    TYPE (soil_snow_type), INTENT(INOUT):: ssnow
+    TYPE (soil_parameter_type), INTENT(INOUT)   :: soil
+    TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
+    REAL, INTENT(OUT), DIMENSION(:):: fwsoil ! soil water modifier of stom. cond
+    REAL, DIMENSION(mp) :: rwater ! soil water availability
+
+    !note even though swilt_vec is defined in default model it is r_2
+    !and even using real(_vec) gives results different from trunk (rounding
+    !errors)
+
+    if (.not.cable_user%gw_model) THEN
+
+      rwater = MAX(1.0e-9,                                                    &
+           SUM(veg%froot * MAX(1.0e-9, (MIN( 1.0, real(ssnow%wb)              &
+           - SPREAD(soil%swilt, 2, ms) ) / (SPREAD(soil%sfc, 2, ms)           &
+           - SPREAD(soil%swilt, 2, ms))) ** 0.38) , 2))
+
+    else
+       rwater = MAX(1.0e-9,                                                    &
+            SUM(veg%froot * MAX(1.0e-9,MIN(1.0, real(((ssnow%wbliq -           &
+            soil%swilt_vec)/(soil%sfc_vec-soil%swilt_vec))** 0.38) )),2))
+    endif
+
+   ! Remove vbeta #56
+   IF(cable_user%GS_SWITCH == 'medlyn') THEN
+      fwsoil = MAX(1.0e-4,MIN(1.0, rwater))
+   ELSE
+      fwsoil = MAX(1.0e-9,MIN(1.0, veg%vbeta * rwater))
+   ENDIF
+
+  END SUBROUTINE fwsoil_calc_hie
+
+  ! __________________________________________________________________________
+      ! ------------------------------------------------------------------------------
 
   SUBROUTINE fwsoil_calc_non_linear(fwsoil, soil, ssnow, veg)
     USE cable_def_types_mod
