@@ -93,12 +93,15 @@ SUBROUTINE cable_um_runtime_vars(runtime_vars_file)
                                    l_vcmaxFeedbk, gw_params
    USE cable_fFile_module, ONLY : fprintf_dir_root, L_cable_fprint,            &
                                   L_cable_Pyfprint, unique_subdir
-   USE casavariable, ONLY : casafile
-   USE casadimension, ONLY : icycle
+!H!   USE casavariable, ONLY : casafile
+!H!   USE casadimension, ONLY : icycle
 
 
    CHARACTER(LEN=*), INTENT(IN) :: runtime_vars_file
    INTEGER :: funit=88
+!H!
+   INTEGER :: icycle = 0 
+   CHARACTER(LEN=100) :: casafile
    
    !--- namelist for CABLE runtime vars, files, switches 
    NAMELIST/CABLE/filename, l_casacnp, l_laiFeedbk, l_vcmaxFeedbk, icycle,     &
@@ -273,42 +276,42 @@ END SUBROUTINE alloc_um_interface_types
 SUBROUTINE dealloc_vegin_soilin()
    USE cable_common_module, ONLY : cable_runtime, cable_user, vegin, soilin
       
-      DEALLOCATE(vegin%canst1)
-      DEALLOCATE(vegin%dleaf)
-      DEALLOCATE(vegin%vcmax)
-      DEALLOCATE(vegin%ejmax)
-      DEALLOCATE(vegin%hc)
-      DEALLOCATE(vegin%xfang)
-      DEALLOCATE(vegin%rp20)
-      DEALLOCATE(vegin%rpcoef)
-      DEALLOCATE(vegin% rs20)
-      DEALLOCATE(vegin%shelrb)
-      DEALLOCATE(vegin%vegcf)
-      DEALLOCATE(vegin%frac4)
-      DEALLOCATE(vegin%refl)
-      DEALLOCATE(vegin%taul)
-      DEALLOCATE(vegin%xalbnir)
-      DEALLOCATE(vegin%extkn)
-      DEALLOCATE(vegin%froot)
-      DEALLOCATE(vegin%tminvj)
-      DEALLOCATE(vegin%tmaxvj)
-      DEALLOCATE(vegin%vbeta)
-      DEALLOCATE(vegin%cplant)
-      DEALLOCATE(vegin%csoil)
-      DEALLOCATE(vegin%ratecp)
-      DEALLOCATE(vegin%ratecs)
-     
-      DEALLOCATE(soilin%silt)
-      DEALLOCATE(soilin%clay)
-      DEALLOCATE(soilin%sand)
-      DEALLOCATE(soilin%swilt)
-      DEALLOCATE(soilin%sfc)
-      DEALLOCATE(soilin%ssat)
-      DEALLOCATE(soilin%bch)
-      DEALLOCATE(soilin%hyds)
-      DEALLOCATE(soilin%sucs)
-      DEALLOCATE(soilin%rhosoil)
-      DEALLOCATE(soilin%css)
+!      DEALLOCATE(vegin%canst1)
+!      DEALLOCATE(vegin%dleaf)
+!      DEALLOCATE(vegin%vcmax)
+!      DEALLOCATE(vegin%ejmax)
+!      DEALLOCATE(vegin%hc)
+!      DEALLOCATE(vegin%xfang)
+!      DEALLOCATE(vegin%rp20)
+!      DEALLOCATE(vegin%rpcoef)
+!      DEALLOCATE(vegin% rs20)
+!      DEALLOCATE(vegin%shelrb)
+!      DEALLOCATE(vegin%vegcf)
+!      DEALLOCATE(vegin%frac4)
+!      DEALLOCATE(vegin%refl)
+!      DEALLOCATE(vegin%taul)
+!      DEALLOCATE(vegin%xalbnir)
+!      DEALLOCATE(vegin%extkn)
+!      DEALLOCATE(vegin%froot)
+!      DEALLOCATE(vegin%tminvj)
+!      DEALLOCATE(vegin%tmaxvj)
+!      DEALLOCATE(vegin%vbeta)
+!      DEALLOCATE(vegin%cplant)
+!      DEALLOCATE(vegin%csoil)
+!      DEALLOCATE(vegin%ratecp)
+!      DEALLOCATE(vegin%ratecs)
+!     
+!      DEALLOCATE(soilin%silt)
+!      DEALLOCATE(soilin%clay)
+!      DEALLOCATE(soilin%sand)
+!      DEALLOCATE(soilin%swilt)
+!      DEALLOCATE(soilin%sfc)
+!      DEALLOCATE(soilin%ssat)
+!      DEALLOCATE(soilin%bch)
+!      DEALLOCATE(soilin%hyds)
+!      DEALLOCATE(soilin%sucs)
+!      DEALLOCATE(soilin%rhosoil)
+!      DEALLOCATE(soilin%css)
 
 END SUBROUTINE dealloc_vegin_soilin
 
