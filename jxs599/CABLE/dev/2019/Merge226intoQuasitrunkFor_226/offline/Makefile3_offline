@@ -115,6 +115,8 @@ CINC = -I$(NCMOD)
 .F90.o:
 	$(FC) $(CFLAGS) $(CINC) -c $<
 
+
+
 # default target by convention is ``all''
 all : $(PROG)
 
@@ -160,7 +162,7 @@ cable_diag.o: cable_diag.F90 cable_common.o cable_fFile.o
 
 cable_air.o: cable_air.F90 cable_define_types.o cable_common.o cable_data.o
 
-cbl_albedo.o: cbl_albedo.F90 cbl_snow_albedo.o cbl_rhoch.o cable_define_types.o cable_common.o cable_data.o
+cbl_albedo.o: cbl_albedo.F90 cbl_snow_albedo.o cbl_rhoch.o cable_define_types.o cable_common.o cable_data.o	cable_PyFprint.o cable_fprint.o 
 cbl_snow_albedo.o: cbl_snow_albedo.F90 cbl_soilColour_albedo.o cbl_phys_constants_mod.o
 
 cbl_soilColour_albedo.o: cbl_soilColour_albedo.F90 
@@ -191,8 +193,9 @@ cable_output.o: cable_output.F90 cable_abort.o cable_checks.o cable_write.o cabl
 
 cable_parameters.o: cable_parameters.F90 cable_define_types.o cable_iovars.o cable_abort.o casa_variable.o cable_common.o cable_LUC_EXPT.o
 
-cbl_radiation.o: cbl_radiation.F90 cable_define_types.o cable_common.o cable_data.o cbl_init_radiation.o  
-cbl_init_radiation.o: cbl_init_radiation.F90 cable_define_types.o cable_common.o cable_data.o cbl_spitter.o cbl_rhoch.o
+cbl_radiation.o: cbl_radiation.F90 cable_define_types.o cable_common.o cable_data.o cbl_init_radiation.o
+
+cbl_init_radiation.o: cbl_init_radiation.F90 cable_define_types.o cable_common.o cable_data.o cbl_spitter.o cbl_rhoch.o cable_PyFprint.o cable_fprint.o
 
 cable_roughness.o: cable_roughness.F90 cable_define_types.o cable_common.o cable_data.o \
 cbl_hgtAbove_snow.o cbl_lai_eff.o cbl_other_constants_mod.o
