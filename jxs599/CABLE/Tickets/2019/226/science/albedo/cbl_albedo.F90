@@ -2,7 +2,7 @@ MODULE cbl_albedo_mod
 
   IMPLICIT NONE
 
-  PUBLIC Albedo, CanopyTransmitance_X
+  PUBLIC Albedo
   PRIVATE
 
 CONTAINS
@@ -29,6 +29,11 @@ EffSurfRefl_dif, EffSurfRefl_beam                 )
 USE cbl_rhoch_module, ONLY : calc_rhoch
 USE cbl_snow_albedo_module, ONLY : surface_albedosn
 
+  !diag 
+  USE cable_fprint_module, ONLY : cable_fprintf
+  USE cable_Pyfprint_module, ONLY : cable_Pyfprintf
+  USE cable_fFile_module, ONLY : fprintf_dir_root, fprintf_dir, L_cable_fprint,&
+                                 L_cable_Pyfprint, unique_subdir
 implicit none
 
 !model dimensions
@@ -103,6 +108,14 @@ REAL :: CanopyRefl_beam(mp,nrb)     !Canopy reflectance  (rad%rhocbm)
 REAL :: CanopyTransmit_dif(mp,nrb)  !Canopy Transmitance (rad%cexpkdm)   
 REAL :: CanopyTransmit_beam(mp,nrb) !Canopy Transmitance (rad%cexpkbm)
 
+real :: SumEffSurfRefl_beam(1)
+real :: SumEffSurfRefl_dif(1)
+integer :: i
+integer :: cntile
+# include "cable_fprint.txt"
+
+fprintf_dir="/home/599/jxs599/"
+
 CanopyTransmit_dif(:,:) = 0.0
 CanopyTransmit_beam(:,:) = 0.0
 CanopyRefl_dif(:,:) = 0.0
@@ -132,6 +145,9 @@ call CanopyTransmitance(CanopyTransmit_beam, CanopyTransmit_dif, mp, nrb,&
 ! Finally compute Effective 4-band albedo for diffuse/direct radiation- 
 ! In the UM this is the required variable to be passed back on the rad call
 ! Formerly rad%reffbm, rad%reffdf
+print *, "jh:mp", mp
+print *, "jh:surface_types ", surface_type
+
 EffSurfRefl_dif = AlbSnow
 EffSurfRefl_beam = AlbSnow
 call EffectiveSurfaceReflectance( EffSurfRefl_beam, EffSurfRefl_dif,           &
@@ -139,7 +155,144 @@ call EffectiveSurfaceReflectance( EffSurfRefl_beam, EffSurfRefl_dif,           &
                                   CanopyRefl_beam, CanopyRefl_dif,             &
                                   CanopyTransmit_beam,CanopyTransmit_dif,      &
                                   AlbSnow )
-                               ! ( EffSurfRefl_beam, EffSurfRefl_dif,           &
+
+cntile = 1
+SumEffSurfRefl_beam(1) = EffSurfRefl_beam(cntile,1)
+vname='AlbEffSurfRefl_beam1'; dimx=1  
+call cable_Pyfprintf( cDiag1, vname, SumEffSurfRefl_beam, dimx, .true.)
+
+SumEffSurfRefl_beam(1) = EffSurfRefl_beam(cntile,2) 
+vname='AlbEffSurfRefl_beam2'; dimx=1  
+call cable_Pyfprintf( cDiag2, vname, SumEffSurfRefl_beam, dimx, .true.)
+
+                                  !veg_mask, sunlit_veg_mask,          &
+iveg_mask =0. ; isunlit_veg_mask =0.
+do i=1,mp
+  if(veg_mask(i) ) iveg_mask = 1.
+  if(sunlit_veg_mask(i) ) isunlit_veg_mask = 1.
+end do
+          
+vname='veg_mask'; dimx=1  
+call cable_Pyfprintf( cDiag3, vname, iveg_mask, dimx, .true.)
+                                  
+vname='sunlit_veg_mask'; dimx=1  
+call cable_Pyfprintf( cDiag4, vname, isunlit_veg_mask, dimx, .true.)
+
+                                  !CanopyRefl_beam, CanopyRefl_dif,             &
+SumEffSurfRefl_beam(1) = CanopyRefl_beam(cntile,1)
+vname='CanopyRefl_beam1'; dimx=1  
+call cable_Pyfprintf( cDiag5, vname, SumEffSurfRefl_beam, dimx, .true.)
+
+SumEffSurfRefl_beam(1) = CanopyRefl_beam(cntile,2) 
+vname='CanopyRefl_beam2'; dimx=1  
+call cable_Pyfprintf( cDiag6, vname, SumEffSurfRefl_beam, dimx, .true.)
+                                  
+                                  !CanopyTransmit_beam,CanopyTransmit_dif,      &
+SumEffSurfRefl_beam(1) = CanopyTransmit_beam(cntile,1)
+vname='CanopyTransmit_beam1'; dimx=1  
+call cable_Pyfprintf( cDiag7, vname, SumEffSurfRefl_beam, dimx, .true.)
+
+SumEffSurfRefl_beam(1) = CanopyTransmit_beam(cntile,2) 
+vname='CanopyTransmit_beam2'; dimx=1  
+call cable_Pyfprintf( cDiag8, vname, SumEffSurfRefl_beam, dimx, .true.)
+                                  
+                                  !1AlbSnow )
+SumEffSurfRefl_beam(1) = AlbSnow(cntile,1)
+vname='AlbSnow_beam1'; dimx=1  
+call cable_Pyfprintf( cDiag9, vname, SumEffSurfRefl_beam, dimx, .true.)
+
+SumEffSurfRefl_beam(1) = AlbSnow(cntile,2)
+vname='AlbSnow_beam2'; dimx=1  
+call cable_Pyfprintf( cDiag10, vname, SumEffSurfRefl_beam, dimx, .true.)
+
+SumEffSurfRefl_beam(1) = ExtCoeff_beam(cntile)
+vname='ExtCoeff_beam'; dimx=1  
+call cable_Pyfprintf( cDiag11, vname, SumEffSurfRefl_beam, dimx, .true.)
+
+SumEffSurfRefl_beam(1) = ExtCoeff_dif(cntile)
+vname='ExtCoeff_dif'; dimx=1  
+call cable_Pyfprintf( cDiag12, vname, SumEffSurfRefl_beam, dimx, .true.)
+
+SumEffSurfRefl_beam(1) = rhoch(cntile,1)
+vname='rhoch1'; dimx=1  
+call cable_Pyfprintf( cDiag13, vname, SumEffSurfRefl_beam, dimx, .true.)
+
+SumEffSurfRefl_beam(1) = rhoch(cntile,2)
+vname='rhoch2'; dimx=1  
+call cable_Pyfprintf( cDiag14, vname, SumEffSurfRefl_beam, dimx, .true.)
+
+SumEffSurfRefl_beam(1) = AlbSoil(cntile,1)
+vname='AlbSoil1'; dimx=1  
+call cable_Pyfprintf( cDiag15, vname, SumEffSurfRefl_beam, dimx, .true.)
+
+SumEffSurfRefl_beam(1) = AlbSoil(cntile,2)
+vname='AlbSoil2'; dimx=1  
+call cable_Pyfprintf( cDiag16, vname, SumEffSurfRefl_beam, dimx, .true.)
+
+SumEffSurfRefl_beam(1) = SnowDepth(cntile)
+vname='SnowDepth'; dimx=1  
+call cable_Pyfprintf( cDiag17, vname, SumEffSurfRefl_beam, dimx, .true.)
+
+SumEffSurfRefl_beam(1) = SnowODepth(cntile)
+vname='SnowODepth'; dimx=1  
+call cable_Pyfprintf( cDiag18, vname, SumEffSurfRefl_beam, dimx, .true.)
+
+SumEffSurfRefl_beam(1) = real(SnowFlag_3L(cntile))
+vname='SnowFlag_3L'; dimx=1  
+call cable_Pyfprintf( cDiag19, vname, SumEffSurfRefl_beam, dimx, .true.)
+
+SumEffSurfRefl_beam(1) = SnowDensity(cntile)
+vname='SnowDensity'; dimx=1  
+call cable_Pyfprintf( cDiag20, vname, SumEffSurfRefl_beam, dimx, .true.)
+
+SumEffSurfRefl_beam(1) = SoilTemp(cntile)
+vname='SoilTemp'; dimx=1  
+call cable_Pyfprintf( cDiag21, vname, SumEffSurfRefl_beam, dimx, .true.)
+
+SumEffSurfRefl_beam(1) = SnowAge(cntile)
+vname='SnowAge'; dimx=1  
+call cable_Pyfprintf( cDiag22, vname, SumEffSurfRefl_beam, dimx, .true.)
+
+SumEffSurfRefl_beam(1) = metTk(cntile)
+vname='metTk'; dimx=1  
+call cable_Pyfprintf( cDiag23, vname, SumEffSurfRefl_beam, dimx, .true.)
+
+SumEffSurfRefl_beam(1) = EffExtCoeff_beam(cntile,1) 
+vname='EffExtCoeff_beam1'; dimx=1  
+call cable_Pyfprintf( cDiag24, vname, SumEffSurfRefl_beam, dimx, .true.)
+
+SumEffSurfRefl_beam(1) = EffExtCoeff_beam(cntile,2) 
+vname='EffExtCoeff_beam2'; dimx=1  
+call cable_Pyfprintf( cDiag25, vname, SumEffSurfRefl_beam, dimx, .true.)
+
+SumEffSurfRefl_beam(1) = EffExtCoeff_dif(cntile,1) 
+vname='EffExtCoeff_dif1'; dimx=1  
+call cable_Pyfprintf( cDiag26, vname, SumEffSurfRefl_beam, dimx, .true.)
+
+SumEffSurfRefl_beam(1) = EffExtCoeff_dif(cntile,2) 
+vname='EffExtCoeff_dif2'; dimx=1  
+call cable_Pyfprintf( cDiag27, vname, SumEffSurfRefl_beam, dimx, .true.)
+
+SumEffSurfRefl_beam(1) = CanopyRefl_dif(cntile,1)
+vname='CanopyRefl_dif1'; dimx=1  
+call cable_Pyfprintf( cDiag28, vname, SumEffSurfRefl_beam, dimx, .true.)
+
+SumEffSurfRefl_beam(1) = CanopyRefl_dif(cntile,2) 
+vname='CanopyRefl_dif2'; dimx=1  
+call cable_Pyfprintf( cDiag29, vname, SumEffSurfRefl_beam, dimx, .true.)
+                                  
+SumEffSurfRefl_beam(1) = CanopyTransmit_dif(cntile,1)
+vname='CanopyTransmit_dif1'; dimx=1  
+call cable_Pyfprintf( cDiag30, vname, SumEffSurfRefl_beam, dimx, .true.)
+
+SumEffSurfRefl_beam(1) = CanopyTransmit_dif(cntile,2) 
+vname='CanopyTransmit_dif2'; dimx=1  
+call cable_Pyfprintf( cDiag31, vname, SumEffSurfRefl_beam, dimx, .true.)
+ 
+SumEffSurfRefl_beam(1) = CanopyTransmit_dif(cntile,2) 
+vname='CanopyTransmit_dif2'; dimx=1  
+call cable_Pyfprintf( cDiag31, vname, SumEffSurfRefl_beam, dimx, .true.)
+ 
 ! Compute total albedo to SW given the Effective Surface Reflectance 
 ! (considering Canopy/Soil/Snow contributions) 
 ! we dont need to do this on rad call AND may not haveappropriate RadFbeam
@@ -279,39 +432,17 @@ integer :: i, b
  
 DO i = 1,mp
   DO b = 1, nrb 
-    if( mask(i) ) &
+    if( mask(i) ) then 
       dummy(i,b) = min( ExtinctionCoeff(i,b) * reducedLAIdue2snow(i), 20. )
       CanopyTransmit(i,b) = EXP( -1.* dummy(i,b) )
-    !CanopyTransmit(i,b) = EXP( -1.* ExtinctionCoeff(i,b) * reducedLAIdue2snow(i) )
+    endif
   enddo
 enddo
 
 End subroutine  CanopyTransmitance_X
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!
-!subroutine CanopyTransmitance_beam(CanopyTransmit, mp, nrb, ExtinctionCoeff, reducedLAIdue2snow, mask )
-!implicit none
-!integer :: mp 
-!integer :: nrb
-!real :: CanopyTransmit(mp,nrb) 
-!real :: ExtinctionCoeff(mp,nrb) 
-!real :: reducedLAIdue2snow(mp)
-!logical :: mask(mp) 
-!real :: dummy(mp,nrb) 
-!integer :: i, b
-! 
-!DO i = 1,mp
-!  DO b = 1, nrb!2 !ithis is fixed as 2  because nrb=3 due to legacy  
-!    if( mask(i)) then
-!      dummy(i,b) = min( ExtinctionCoeff(i,b) * reducedLAIdue2snow(i), 20. )
-!      CanopyTransmit(i,b) = EXP( -1.* dummy(i,b) )
-!    endif  
-!  enddo
-!enddo
-!
-!End subroutine  CanopyTransmitance_beam
-!
+
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
