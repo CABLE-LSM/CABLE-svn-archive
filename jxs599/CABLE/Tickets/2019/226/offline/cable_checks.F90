@@ -30,7 +30,7 @@ MODULE cable_checks_module
   ! particular sections of the code - largely for diagnostics/fault finding.
   ! rh_sh - converts relative to sensible humidity if met file units require it
   !
-  USE cable_radiation_module, ONLY: sinbet
+  USE cbl_sinbet_mod, ONLY: sinbet
   USE cable_def_types_mod
   USE cable_common_module, ONLY: cable_user
 
@@ -38,7 +38,7 @@ MODULE cable_checks_module
 
   PRIVATE
   PUBLIC ranges_type, ranges, mass_balance, energy_balance, rh_sh
-
+  
   TYPE units_type
      CHARACTER(LEN=1) :: Rainf ! 's' (mm/s) or 'h' (mm/h)
      CHARACTER(LEN=1) :: PSurf  ! 'h'(hPa or mbar) or 'P'(Pa)
