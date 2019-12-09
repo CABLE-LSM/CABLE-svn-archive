@@ -236,10 +236,10 @@ logical :: sunlit_veg_mask(mp)
     alpm1  = 0.
     beta2  = 0.
 
-    CALL radiation( ssnow, veg, air, met, rad, canopy, sunlit_veg_mask, &
-#include "../radiation/radArgs.inc"    
-    )
-
+call radiation( ssnow, veg, air, met, rad, canopy, sunlit_veg_mask,&
+                !constants
+                clai_thresh, Csboltz, Cemsoil, Cemleaf, Ccapp &
+              )
     canopy%zetar(:,1) = C%ZETA0 ! stability correction terms
     canopy%zetar(:,2) = C%ZETPOS + 1
     canopy%zetash(:,1) = C%ZETA0 ! stability correction terms

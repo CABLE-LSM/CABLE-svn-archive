@@ -29,11 +29,6 @@ EffSurfRefl_dif, EffSurfRefl_beam                 )
 USE cbl_rhoch_module, ONLY : calc_rhoch
 USE cbl_snow_albedo_module, ONLY : surface_albedosn
 
-  !diag 
-  USE cable_fprint_module, ONLY : cable_fprintf
-  USE cable_Pyfprint_module, ONLY : cable_Pyfprintf
-  USE cable_fFile_module, ONLY : fprintf_dir_root, fprintf_dir, L_cable_fprint,&
-                                 L_cable_Pyfprint, unique_subdir
 implicit none
 
 !model dimensions
@@ -108,13 +103,6 @@ REAL :: CanopyRefl_beam(mp,nrb)     !Canopy reflectance  (rad%rhocbm)
 REAL :: CanopyTransmit_dif(mp,nrb)  !Canopy Transmitance (rad%cexpkdm)   
 REAL :: CanopyTransmit_beam(mp,nrb) !Canopy Transmitance (rad%cexpkbm)
 
-real :: SumEffSurfRefl_beam(1)
-real :: SumEffSurfRefl_dif(1)
-integer :: i
-# include "cable_fprint.txt"
-
-fprintf_dir="/home/599/jxs599/"
-
 CanopyTransmit_dif(:,:) = 0.0
 CanopyTransmit_beam(:,:) = 0.0
 CanopyRefl_dif(:,:) = 0.0
@@ -152,78 +140,6 @@ call EffectiveSurfaceReflectance( EffSurfRefl_beam, EffSurfRefl_dif,           &
                                   CanopyTransmit_beam,CanopyTransmit_dif,      &
                                   AlbSnow )
                                ! ( EffSurfRefl_beam, EffSurfRefl_dif,           &
-SumEffSurfRefl_beam(1) = EffSurfRefl_beam(1,1)
-vname='AlbEffSurfRefl_beam1'; dimx=1  
-call cable_Pyfprintf( cDiag1, vname, SumEffSurfRefl_beam, dimx, .true.)
-
-SumEffSurfRefl_beam(1) = EffSurfRefl_beam(1,2) 
-vname='AlbEffSurfRefl_beam2'; dimx=1  
-call cable_Pyfprintf( cDiag2, vname, SumEffSurfRefl_beam, dimx, .true.)
-
-                                  !veg_mask, sunlit_veg_mask,          &
-iveg_mask =0. ; isunlit_veg_mask =0.
-do i=1,mp
-  if(veg_mask(i) ) iveg_mask = 1.
-  if(sunlit_veg_mask(i) ) isunlit_veg_mask = 1.
-end do
-          
-vname='veg_mask'; dimx=1  
-call cable_Pyfprintf( cDiag3, vname, iveg_mask, dimx, .true.)
-                                  
-vname='sunlit_veg_mask'; dimx=1  
-call cable_Pyfprintf( cDiag4, vname, isunlit_veg_mask, dimx, .true.)
-
-                                  !CanopyRefl_beam, CanopyRefl_dif,             &
-SumEffSurfRefl_beam(1) = CanopyRefl_beam(1,1)
-vname='CanopyRefl_beam1'; dimx=1  
-call cable_Pyfprintf( cDiag5, vname, SumEffSurfRefl_beam, dimx, .true.)
-
-SumEffSurfRefl_beam(1) = CanopyRefl_beam(1,2) 
-vname='CanopyRefl_beam2'; dimx=1  
-call cable_Pyfprintf( cDiag6, vname, SumEffSurfRefl_beam, dimx, .true.)
-                                  
-                                  !CanopyTransmit_beam,CanopyTransmit_dif,      &
-SumEffSurfRefl_beam(1) = CanopyTransmit_beam(1,1)
-vname='CanopyTransmit_beam1'; dimx=1  
-call cable_Pyfprintf( cDiag7, vname, SumEffSurfRefl_beam, dimx, .true.)
-
-SumEffSurfRefl_beam(1) = CanopyTransmit_beam(1,2) 
-vname='CanopyTransmit_beam2'; dimx=1  
-call cable_Pyfprintf( cDiag8, vname, SumEffSurfRefl_beam, dimx, .true.)
-                                  
-                                  !1AlbSnow )
-SumEffSurfRefl_beam(1) = AlbSnow(1,1)
-vname='AlbSnow_beam1'; dimx=1  
-call cable_Pyfprintf( cDiag9, vname, SumEffSurfRefl_beam, dimx, .true.)
-
-SumEffSurfRefl_beam(1) = AlbSnow(1,2)
-vname='AlbSnow_beam2'; dimx=1  
-call cable_Pyfprintf( cDiag10, vname, SumEffSurfRefl_beam, dimx, .true.)
-
-SumEffSurfRefl_beam(1) = ExtCoeff_beam(1)
-vname='ExtCoeff_beam'; dimx=1  
-call cable_Pyfprintf( cDiag11, vname, SumEffSurfRefl_beam, dimx, .true.)
-
-SumEffSurfRefl_beam(1) = ExtCoeff_dif(1)
-vname='ExtCoeff_dif'; dimx=1  
-call cable_Pyfprintf( cDiag12, vname, SumEffSurfRefl_beam, dimx, .true.)
-
-SumEffSurfRefl_beam(1) = rhoch(1,1)
-vname='rhoch1'; dimx=1  
-call cable_Pyfprintf( cDiag13, vname, SumEffSurfRefl_beam, dimx, .true.)
-
-SumEffSurfRefl_beam(1) = rhoch(1,2)
-vname='rhoch2'; dimx=1  
-call cable_Pyfprintf( cDiag14, vname, SumEffSurfRefl_beam, dimx, .true.)
-
-!SumEffSurfRefl_dif(1) = EffSurfRefl_dif(1,1) + EffSurfRefl_dif(1,2) 
-!SumEffSurfRefl_beam(1) = EffSurfRefl_beam(1,1) + EffSurfRefl_beam(1,2) 
-!SumEffSurfRefl_dif(1) = EffSurfRefl_dif(1,1) + EffSurfRefl_dif(1,2) 
-!vname='AlbEffSurfRefl_beam'; dimx=1  
-!call cable_Pyfprintf( cDiag1, vname, SumEffSurfRefl_beam, dimx, .true.)
-!vname='AlbEffSurfRefl_dif'; dimx=1  
-!call cable_Pyfprintf( cDiag2, vname, SumEffSurfRefl_dif, dimx, .true.)
-
 ! Compute total albedo to SW given the Effective Surface Reflectance 
 ! (considering Canopy/Soil/Snow contributions) 
 ! we dont need to do this on rad call AND may not haveappropriate RadFbeam
