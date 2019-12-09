@@ -51,10 +51,9 @@ MODULE cable_pft_params_mod
 
   END TYPE vegin_type
 
-   CHARACTER(LEN=70), DIMENSION(:), POINTER ::                                 &
-      veg_desc    ! decriptions of veg type
+   CHARACTER(LEN=70), allocatable :: veg_desc(:)    ! decriptions of veg type
 
-   TYPE(vegin_type),  SAVE  :: vegin
+TYPE(vegin_type) :: vegin
 
 CONTAINS
 
@@ -66,36 +65,54 @@ subroutine cable_pft_params()
 
    INTEGER :: a, jveg ! do loop counter
   logical, save :: first_call = .true.
+!HACK
    mvtype=17    
 
     ! Allocate memory for type-specific vegetation parameters:
-  if( first_call ) then
+if( .NOT. allocated(vegin%canst1) )  allocate( vegin%canst1   ( mvtype ) )
+if( .NOT. allocated(vegin%dleaf ) )  allocate( vegin%dleaf    ( mvtype ) )
+if( .NOT. allocated(vegin%length) )  allocate( vegin%length   ( mvtype ) )
+if( .NOT. allocated(vegin%width ) )  allocate( vegin%width    ( mvtype ) )
+if( .NOT. allocated(vegin%vcmax ) )  allocate( vegin%vcmax    ( mvtype ) )
+if( .NOT. allocated(vegin%ejmax ) )  allocate( vegin%ejmax    ( mvtype ) )
+if( .NOT. allocated(vegin%hc    ) )  allocate( vegin%hc       ( mvtype ) )
+if( .NOT. allocated(vegin%xfang ) )  allocate( vegin%xfang    ( mvtype  ))
+if( .NOT. allocated(vegin%rp20  ) )  allocate( vegin%rp20     ( mvtype ) )
+if( .NOT. allocated(vegin%rpcoef) )  allocate( vegin%rpcoef   ( mvtype ) )
+if( .NOT. allocated(vegin%rs20  ) )  allocate( vegin%rs20     ( mvtype ) )
+if( .NOT. allocated(vegin%wai   ) )  allocate( vegin%wai      ( mvtype ) )
+if( .NOT. allocated(vegin%rootbeta) ) allocate( vegin%rootbeta ( mvtype ) )
+if( .NOT. allocated(vegin%shelrb) )  allocate( vegin%shelrb   ( mvtype ) )
+if( .NOT. allocated(vegin%vegcf ) )  allocate( vegin%vegcf    ( mvtype ) )
+if( .NOT. allocated(vegin%frac4 ) )  allocate( vegin%frac4    ( mvtype ) )
+if( .NOT. allocated(vegin%xalbnir) )  allocate( vegin%xalbnir  ( mvtype ) )
+if( .NOT. allocated(vegin%extkn ) )  allocate( vegin%extkn    ( mvtype ) )
+if( .NOT. allocated(vegin%tminvj) )  allocate( vegin%tminvj   ( mvtype ) )
+if( .NOT. allocated(vegin%tmaxvj) )  allocate( vegin%tmaxvj   ( mvtype ) )
+if( .NOT. allocated(vegin%vbeta ) )  allocate( vegin%vbeta    ( mvtype ) )
+if( .NOT. allocated(vegin%froot ) )  allocate( vegin%froot    ( ms, mvtype ) )
+if( .NOT. allocated(vegin%cplant) )  allocate( vegin%cplant   ( ncp, mvtype ) )
+if( .NOT. allocated(vegin%csoil ) )  allocate( vegin%csoil    ( ncs, mvtype ) )
+if( .NOT. allocated(vegin%ratecp) )  allocate( vegin%ratecp   ( ncp, mvtype ) )
+if( .NOT. allocated(vegin%ratecs) )  allocate( vegin%ratecs   ( ncs, mvtype ) )
+if( .NOT. allocated(vegin%refl  ) )  allocate( vegin%refl     ( nrb, mvtype ) )
+if( .NOT. allocated(vegin%taul  ) )  allocate( vegin%taul     ( nrb, mvtype ) )
+if( .NOT. allocated(veg_desc    ) )  allocate( veg_desc       ( mvtype ) )
+if( .NOT. allocated(vegin%a1gs  ) )  allocate( vegin%a1gs     (mvtype) )
+if( .NOT. allocated(vegin%d0gs  ) )  allocate( vegin%d0gs     (mvtype) )
+if( .NOT. allocated(vegin%alpha ) )  allocate( vegin%alpha    (mvtype) )
+if( .NOT. allocated(vegin%convex) )  allocate( vegin%convex   (mvtype) )
+if( .NOT. allocated(vegin%cfrd  ) )  allocate( vegin%cfrd     (mvtype) )
+if( .NOT. allocated(vegin%gswmin) )  allocate( vegin%gswmin   (mvtype) )
+if( .NOT. allocated(vegin%conkc0) )  allocate( vegin%conkc0   (mvtype) )
+if( .NOT. allocated(vegin%conko0) )  allocate( vegin%conko0   (mvtype) )
+if( .NOT. allocated(vegin%ekc   ) )  allocate( vegin%ekc      (mvtype) )
+if( .NOT. allocated(vegin%eko   ) )  allocate( vegin%eko      (mvtype) )
+if( .NOT. allocated(vegin%g0    ) )  allocate( vegin%g0       ( mvtype ) )! Ticket #56
+if( .NOT. allocated(vegin%g1    ) )  allocate( vegin%g1       ( mvtype ) )! Ticket #56
+if( .NOT. allocated(vegin%zr    ) )  allocate( vegin%zr       (mvtype) )!! vh_veg_params !!
+if( .NOT. allocated(vegin%clitt ) )  allocate( vegin%clitt    (mvtype) )!! vh_veg_params !!
   
-    ALLOCATE (                                                               &
-         vegin%canst1( mvtype ), vegin%dleaf( mvtype ),                        &
-         vegin%length( mvtype ), vegin%width( mvtype ),                        &
-         vegin%vcmax( mvtype ),  vegin%ejmax( mvtype ),                        &
-         vegin%hc( mvtype ), vegin%xfang( mvtype ),                            &
-         vegin%rp20( mvtype ), vegin%rpcoef( mvtype ),                         &
-         vegin%rs20( mvtype ), vegin%wai( mvtype ),                            &
-         vegin%rootbeta( mvtype ), vegin%shelrb( mvtype ),                     &
-         vegin%vegcf( mvtype ), vegin%frac4( mvtype ),                         &
-         vegin%xalbnir( mvtype ), vegin%extkn( mvtype ),                       &
-         vegin%tminvj( mvtype ), vegin%tmaxvj( mvtype ),                       &
-         vegin%vbeta( mvtype ), vegin%froot( ms, mvtype ),                     &
-         vegin%cplant( ncp, mvtype ), vegin%csoil( ncs, mvtype ),              &
-         vegin%ratecp( ncp, mvtype ), vegin%ratecs( ncs, mvtype ),             &
-         vegin%refl( nrb, mvtype ), vegin%taul( nrb, mvtype ),                 &
-         veg_desc( mvtype ),                                                   &
-         vegin%a1gs(mvtype), vegin%d0gs(mvtype),                               &
-         vegin%alpha(mvtype),vegin%convex(mvtype),vegin%cfrd(mvtype),          &
-         vegin%gswmin(mvtype),vegin%conkc0(mvtype), vegin%conko0(mvtype),      &
-         vegin%ekc(mvtype), vegin%eko(mvtype),                                 &
-         ! Ticket #56
-         vegin%g0( mvtype ), vegin%g1( mvtype ),                               &
-         !! vh_veg_params !!
-         vegin%zr(mvtype), vegin%clitt(mvtype) )
-
  !PFT parameters: description and corresponding variable name in code. 
  !PFT parameters are assigned as TYPE vegin% but later used as veg%
  
@@ -146,7 +163,7 @@ subroutine cable_pft_params()
      vegin%a1gs(1) =        9.000000
      vegin%d0gs(1) =     1500.000000
     vegin%alpha(1) =        0.200000
-   vegin%convex(1) =        0.700000
+   vegin%convex(1) =        0.010000
      vegin%cfrd(1) =        0.015000
    vegin%gswmin(1) =        0.010000
    vegin%conkc0(1) =        0.000302
@@ -205,7 +222,7 @@ subroutine cable_pft_params()
      vegin%a1gs(2) =        9.000000
      vegin%d0gs(2) =     1500.000000
     vegin%alpha(2) =        0.200000
-   vegin%convex(2) =        0.700000
+   vegin%convex(2) =        0.010000
      vegin%cfrd(2) =        0.015000
    vegin%gswmin(2) =        0.010000
    vegin%conkc0(2) =        0.000302
@@ -264,7 +281,7 @@ subroutine cable_pft_params()
      vegin%a1gs(3) =        9.000000
      vegin%d0gs(3) =     1500.000000
     vegin%alpha(3) =        0.200000
-   vegin%convex(3) =        0.700000
+   vegin%convex(3) =        0.010000
      vegin%cfrd(3) =        0.015000
    vegin%gswmin(3) =        0.010000
    vegin%conkc0(3) =        0.000302
@@ -323,7 +340,7 @@ subroutine cable_pft_params()
      vegin%a1gs(4) =        9.000000
      vegin%d0gs(4) =     1500.000000
     vegin%alpha(4) =        0.200000
-   vegin%convex(4) =        0.700000
+   vegin%convex(4) =        0.010000
      vegin%cfrd(4) =        0.015000
    vegin%gswmin(4) =        0.010000
    vegin%conkc0(4) =        0.000302
@@ -382,7 +399,7 @@ subroutine cable_pft_params()
      vegin%a1gs(5) =        9.000000
      vegin%d0gs(5) =     1500.000000
     vegin%alpha(5) =        0.200000
-   vegin%convex(5) =        0.700000
+   vegin%convex(5) =        0.010000
      vegin%cfrd(5) =        0.015000
    vegin%gswmin(5) =        0.010000
    vegin%conkc0(5) =        0.000302
@@ -441,7 +458,7 @@ subroutine cable_pft_params()
      vegin%a1gs(6) =        9.000000
      vegin%d0gs(6) =     1500.000000
     vegin%alpha(6) =        0.200000
-   vegin%convex(6) =        0.700000
+   vegin%convex(6) =        0.010000
      vegin%cfrd(6) =        0.015000
    vegin%gswmin(6) =        0.010000
    vegin%conkc0(6) =        0.000302
@@ -450,7 +467,7 @@ subroutine cable_pft_params()
       vegin%eko(6) =    36000.000000
        vegin%g0(6) =        0.000000
        vegin%g1(6) =        5.248500
-       vegin%zr(6) =        0.500000    !1.5 in Haverd et al. (2016)
+       vegin%zr(6) =        0.500000
     vegin%clitt(6) =        2.000000
  
  !PFT: C4                                                                    
@@ -509,7 +526,7 @@ subroutine cable_pft_params()
       vegin%eko(7) =    36000.000000
        vegin%g0(7) =        0.000000
        vegin%g1(7) =        1.616178
-       vegin%zr(7) =        0.500000    !2.4 in Haverd et al. (2016)
+       vegin%zr(7) =        0.500000
     vegin%clitt(7) =        0.300000
  
  !PFT: Tundra                                                                
@@ -559,7 +576,7 @@ subroutine cable_pft_params()
      vegin%a1gs(8) =        9.000000
      vegin%d0gs(8) =     1500.000000
     vegin%alpha(8) =        0.200000
-   vegin%convex(8) =        0.700000
+   vegin%convex(8) =        0.010000
      vegin%cfrd(8) =        0.015000
    vegin%gswmin(8) =        0.010000
    vegin%conkc0(8) =        0.000302
@@ -618,7 +635,7 @@ subroutine cable_pft_params()
      vegin%a1gs(9) =        9.000000
      vegin%d0gs(9) =     1500.000000
     vegin%alpha(9) =        0.200000
-   vegin%convex(9) =        0.700000
+   vegin%convex(9) =        0.010000
      vegin%cfrd(9) =        0.015000
    vegin%gswmin(9) =        0.010000
    vegin%conkc0(9) =        0.000302
@@ -627,7 +644,7 @@ subroutine cable_pft_params()
       vegin%eko(9) =    36000.000000
        vegin%g0(9) =        0.000000
        vegin%g1(9) =        5.789377
-       vegin%zr(9) =        0.500000    !1.5 in Haverd et al. (2016)
+       vegin%zr(9) =        0.500000
     vegin%clitt(9) =        0.000000
  
  !PFT: C4                                                                    
@@ -686,7 +703,7 @@ subroutine cable_pft_params()
       vegin%eko(10) =    36000.000000
        vegin%g0(10) =        0.000000
        vegin%g1(10) =        1.616178
-       vegin%zr(10) =        0.500000    !1.5 in Haverd et al. (2016)
+       vegin%zr(10) =        0.500000
     vegin%clitt(10) =        0.000000
  
  !PFT: wetland                                                               
@@ -736,7 +753,7 @@ subroutine cable_pft_params()
      vegin%a1gs(11) =        9.000000
      vegin%d0gs(11) =     1500.000000
     vegin%alpha(11) =        0.200000
-   vegin%convex(11) =        0.700000
+   vegin%convex(11) =        0.010000
      vegin%cfrd(11) =        0.015000
    vegin%gswmin(11) =        0.010000
    vegin%conkc0(11) =        0.000302
@@ -795,7 +812,7 @@ subroutine cable_pft_params()
      vegin%a1gs(12) =        9.000000
      vegin%d0gs(12) =     1500.000000
     vegin%alpha(12) =        0.200000
-   vegin%convex(12) =        0.700000
+   vegin%convex(12) =        0.010000
      vegin%cfrd(12) =        0.015000
    vegin%gswmin(12) =        0.010000
    vegin%conkc0(12) =        0.000302
@@ -854,7 +871,7 @@ subroutine cable_pft_params()
      vegin%a1gs(13) =        9.000000
      vegin%d0gs(13) =     1500.000000
     vegin%alpha(13) =        0.200000
-   vegin%convex(13) =        0.700000
+   vegin%convex(13) =        0.010000
      vegin%cfrd(13) =        0.015000
    vegin%gswmin(13) =        0.010000
    vegin%conkc0(13) =        0.000302
@@ -913,7 +930,7 @@ subroutine cable_pft_params()
      vegin%a1gs(14) =        9.000000
      vegin%d0gs(14) =     1500.000000
     vegin%alpha(14) =        0.200000
-   vegin%convex(14) =        0.700000
+   vegin%convex(14) =        0.010000
      vegin%cfrd(14) =        0.015000
    vegin%gswmin(14) =        0.010000
    vegin%conkc0(14) =        0.000302
@@ -972,7 +989,7 @@ subroutine cable_pft_params()
      vegin%a1gs(15) =        9.000000
      vegin%d0gs(15) =     1500.000000
     vegin%alpha(15) =        0.200000
-   vegin%convex(15) =        0.700000
+   vegin%convex(15) =        0.010000
      vegin%cfrd(15) =        0.015000
    vegin%gswmin(15) =        0.010000
    vegin%conkc0(15) =        0.000302
@@ -1031,7 +1048,7 @@ subroutine cable_pft_params()
      vegin%a1gs(16) =        9.000000
      vegin%d0gs(16) =     1500.000000
     vegin%alpha(16) =        0.200000
-   vegin%convex(16) =        0.700000
+   vegin%convex(16) =        0.010000
      vegin%cfrd(16) =        0.015000
    vegin%gswmin(16) =        0.010000
    vegin%conkc0(16) =        0.000302
@@ -1090,7 +1107,7 @@ subroutine cable_pft_params()
      vegin%a1gs(17) =        9.000000
      vegin%d0gs(17) =     1500.000000
     vegin%alpha(17) =        0.200000
-   vegin%convex(17) =        0.700000
+   vegin%convex(17) =        0.010000
      vegin%cfrd(17) =        0.015000
    vegin%gswmin(17) =        0.010000
    vegin%conkc0(17) =        0.000302
@@ -1101,7 +1118,6 @@ subroutine cable_pft_params()
        vegin%g1(17) =        5.248500
        vegin%zr(17) =        1.000000
     vegin%clitt(17) =        0.000000
-  endif
 
   first_call = .false.
       
