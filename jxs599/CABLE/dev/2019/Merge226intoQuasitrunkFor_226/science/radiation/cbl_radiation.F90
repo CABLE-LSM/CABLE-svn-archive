@@ -27,17 +27,23 @@ MODULE cbl_radiation_module
 
 CONTAINS
 
-  SUBROUTINE radiation( ssnow, veg, air, met, rad, canopy, sunlit_veg_mask,&
-#include "radArgs.inc"  
-   )
+SUBROUTINE radiation( ssnow, veg, air, met, rad, canopy, sunlit_veg_mask,&
+  !constants
+  clai_thresh, Csboltz, Cemsoil, Cemleaf, Ccapp &
+)
 
     USE cable_def_types_mod, ONLY : radiation_type, met_type, canopy_type,      &
          veg_parameter_type, soil_snow_type,         &
          air_type, mp, mf, r_2
 
-implicit none
-#include "radDecs.inc"  
+IMPLICIT NONE
 logical :: sunlit_veg_mask(mp)
+!constants
+real :: CLAI_thresh
+real :: CSboltz
+real :: Cemsoil
+real :: Cemleaf
+real :: Ccapp
 
     TYPE (canopy_type),   INTENT(IN) :: canopy
     TYPE (air_type),      INTENT(IN) :: air
