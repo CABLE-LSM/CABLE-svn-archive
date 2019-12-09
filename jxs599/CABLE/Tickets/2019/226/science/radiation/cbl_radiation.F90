@@ -20,23 +20,30 @@
 
 MODULE cbl_radiation_module
 
-  USE cable_data_module, ONLY : irad_type, point2constants
-
   IMPLICIT NONE
 
   PUBLIC radiation
   PRIVATE
 
-  TYPE ( irad_type ) :: C
-
-
 CONTAINS
 
-  SUBROUTINE radiation( ssnow, veg, air, met, rad, canopy )
+SUBROUTINE radiation( ssnow, veg, air, met, rad, canopy, sunlit_veg_mask,&
+  !constants
+  clai_thresh, Csboltz, Cemsoil, Cemleaf, Ccapp &
+)
 
     USE cable_def_types_mod, ONLY : radiation_type, met_type, canopy_type,      &
          veg_parameter_type, soil_snow_type,         &
          air_type, mp, mf, r_2
+
+IMPLICIT NONE
+logical :: sunlit_veg_mask(mp)
+!constants
+real :: CLAI_thresh
+real :: CSboltz
+real :: Cemsoil
+real :: Cemleaf
+real :: Ccapp
 
     TYPE (canopy_type),   INTENT(IN) :: canopy
     TYPE (air_type),      INTENT(IN) :: air
@@ -55,26 +62,18 @@ CONTAINS
          flwv, &     ! vegetation long-wave radiation (isothermal)
          dummy, dummy2
 
-    LOGICAL, DIMENSION(mp)    :: mask   ! select points for calculation
-
     INTEGER :: b ! rad. band 1=visible, 2=near-infrared, 3=long-wave
 
     INTEGER, SAVE :: call_number =0
 
-    CALL point2constants( C )
-
     call_number = call_number + 1
-
-    ! Define vegetation mask:
-    mask = canopy%vlaiw > C%LAI_THRESH .AND.                                    &
-         ( met%fsd(:,1)+met%fsd(:,2) ) > C%RAD_THRESH
 
     ! Relative leaf nitrogen concentration within canopy:
     cf2n = EXP(-veg%extkn * canopy%vlaiw)
 
     rad%transd = 1.0
 
-    WHERE (canopy%vlaiw > C%LAI_THRESH )    ! where vegetation exists....
+    WHERE (canopy%vlaiw > cLAI_thresh )    ! where vegetation exists....
 
        ! Diffuse SW transmission fraction ("black" leaves, extinction neglects
        ! leaf SW transmittance and REFLectance);
@@ -93,10 +92,10 @@ CONTAINS
     rad%transb = REAL(dummy)
 
     ! Define longwave from vegetation:
-    flpwb = C%sboltz * (met%tvrad) ** 4
-    flwv = C%EMLEAF * flpwb
+    flpwb = CSboltz * (met%tvrad) ** 4
+    flwv = Cemleaf * flpwb
 
-    rad%flws = C%sboltz*C%EMSOIL* ssnow%tss **4
+    rad%flws = CSboltz*Cemsoil* ssnow%tss **4
 
     ! Define air emissivity:
     emair = met%fld / flpwb
@@ -104,24 +103,24 @@ CONTAINS
     rad%gradis = 0.0 ! initialise radiative conductance
     rad%qcan = 0.0   ! initialise radiation absorbed by canopy
 
-    WHERE (canopy%vlaiw > C%LAI_THRESH )
+    WHERE (canopy%vlaiw > CLAI_thresh )
 
        ! Define radiative conductance (Leuning et al, 1995), eq. D7:
-       rad%gradis(:,1) = ( 4.0 * C%EMLEAF / (C%CAPP * air%rho) ) * flpwb        &
+       rad%gradis(:,1) = ( 4.0 * Cemleaf / (Ccapp * air%rho) ) * flpwb        &
             / (met%tvrad) * rad%extkd                              &
             * ( ( 1.0 - rad%transb * rad%transd ) /                &
             ( rad%extkb + rad%extkd )                              &
             + ( rad%transd - rad%transb ) /                        &
             ( rad%extkb - rad%extkd ) )
 
-       rad%gradis(:,2) = ( 8.0 * C%EMLEAF / ( C%CAPP * air%rho ) ) *            &
+       rad%gradis(:,2) = ( 8.0 * Cemleaf / ( Ccapp * air%rho ) ) *            &
             flpwb / met%tvrad * rad%extkd *                        &
             ( 1.0 - rad%transd ) / rad%extkd - rad%gradis(:,1)
 
        ! Longwave radiation absorbed by sunlit canopy fraction:
        rad%qcan(:,1,3) = (rad%flws - flwv ) * rad%extkd *                       &
             ( rad%transd - rad%transb ) / ( rad%extkb - rad%extkd )&
-            + ( emair- C%EMLEAF ) * rad%extkd * flpwb *            &
+            + ( emair- Cemleaf ) * rad%extkd * flpwb *            &
             ( 1.0 - rad%transd * rad%transb )                      &
             / ( rad%extkb + rad%extkd )
 
@@ -141,7 +140,7 @@ CONTAINS
     ! UM recieves met%fsd(:,b) forcing. assumed for offline that USED met%fsd(:,b) = 1/2* INPUT met%fsd
     DO b = 1, 2 ! 1 = visible, 2 = nir radiaition
 
-       WHERE (mask) ! i.e. vegetation and sunlight are present
+       WHERE (sunlit_veg_mask) ! i.e. vegetation and sunlight are present
 
           cf1 = ( 1.0 - rad%transb * rad%cexpkdm(:,b) ) /                       &
                ( rad%extkb + rad%extkdm(:,b) )
@@ -177,7 +176,7 @@ CONTAINS
 
     rad%qssabs = 0.
 
-    WHERE (mask) ! i.e. vegetation and sunlight are present
+    WHERE (sunlit_veg_mask) ! i.e. vegetation and sunlight are present
 
        ! Calculate shortwave radiation absorbed by soil:
        ! (av. of transmitted NIR and PAR through canopy)*SWdown
