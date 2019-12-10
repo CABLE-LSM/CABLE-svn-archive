@@ -2,7 +2,7 @@
    filename%met = 'Loobos_1997.nc'
    filename%out = 'out_cable.nc'
    filename%log = 'log_cable.txt'
-   filename%restart_in  = ' ' 
+   filename%restart_in  = './restart_in.nc' 
    filename%restart_out = './restart_out.nc'
    filename%type    = '/projects/access/CABLE-AUX/offline/gridinfo_CSIRO_1x1.nc'
    filename%veg    = '/projects/access/CABLE-AUX/core/biogeophys/veg_params_vbeta1.txt'
