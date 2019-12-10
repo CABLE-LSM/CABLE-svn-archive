@@ -8,8 +8,8 @@ MODULE sf_impl2_cbl_mod
 USE sf_melt_mod, ONLY: sf_melt
 USE screen_tq_cbl_mod, ONLY: screen_tq_cbl
 !C!USE sf_evap_mod, ONLY: sf_evap
-USE im_sf_pt2_mod, ONLY: im_sf_pt2
-!USE im_sf_pt2_cbl_mod, ONLY: im_sf_pt2_cbl
+!USE im_sf_pt2_mod, ONLY: im_sf_pt2
+USE im_sf_pt2_cbl_mod, ONLY: im_sf_pt2_cbl
  
 IMPLICIT NONE
 
@@ -737,9 +737,9 @@ ELSE  ! nice_use=1
 END IF
 
 !$OMP END PARALLEL
-
-!CALL im_sf_pt2_cbl (                                                              &
-CALL im_sf_pt2(                                                              &
+!CABLE_LSM: jhan!!!
+CALL im_sf_pt2_cbl (                                                              &
+!CALL im_sf_pt2(                                                              &
  land_pts,land_index,nsurft,surft_index,surft_pts                             &
 ,flandg,tile_frac,snow_surft,nice_use,ice_fract,ice_fract_cat_use             &
 ,r_gamma,gamma1,gamma2,alpha1,alpha1_sea,alpha1_sice                          &
