@@ -29,7 +29,6 @@ EffSurfRefl_dif, EffSurfRefl_beam                 )
 USE cbl_rhoch_module, ONLY : calc_rhoch
 USE cbl_snow_albedo_module, ONLY : surface_albedosn
 
-                                 L_cable_Pyfprint, unique_subdir
 implicit none
 
 !model dimensions
