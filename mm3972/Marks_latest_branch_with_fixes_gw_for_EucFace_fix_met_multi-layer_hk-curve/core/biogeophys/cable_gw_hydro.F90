@@ -1762,10 +1762,10 @@ SUBROUTINE calc_soil_hydraulic_props(ssnow,soil,veg)
 ! ______________________________________________________________________________
 ! _____________________________ MMY Change bch _________________________________
           s1(i) = min(max(s1(i),0.01_r_2),1._r_2)
-          s2(i) = soil%hyds_vec(i,k)*s1(i)**(soil%bch_vec(i,k)-1._r_2) ! MMY
+          s2(i) = soil%hyds_vec(i,k)*s1(i)**(1.5*soil%bch_vec(i,k)-1._r_2) ! MMY
 
           ssnow%hk(i,k)    =  s1(i)*s2(i)*hk_ice_factor(i,k)
-          ssnow%dhkdw(i,k) = soil%bch_vec(i,k)*s2(i)*&
+          ssnow%dhkdw(i,k) = (1.5*soil%bch_vec(i,k))*s2(i)*&
                             0.5_r_2/(soil%ssat_vec(i,k)-soil%watr(i,k))*&
                             hk_ice_factor(i,k)                     !  MMY
           ! MMY Note that the dhkdw equation doesn't exactly follow the finite difference
@@ -1784,18 +1784,18 @@ SUBROUTINE calc_soil_hydraulic_props(ssnow,soil,veg)
                             soil%GWssat_vec(i)-soil%GWwatr(i)))
 ! _____________________________ MMY Change bch _________________________________
           s1(i) = min(max(s1(i),0.01_r_2),1._r_2)
-          s2(i) = soil%hyds_vec(i,k)*s1(i)**(soil%bch_vec(i,k)-1._r_2) ! MMY
+          s2(i) = soil%hyds_vec(i,k)*s1(i)**(1.5*soil%bch_vec(i,k)-1._r_2) ! MMY
 
           ssnow%hk(i,k)    = s1(i)*s2(i)*hk_ice_factor(i,k)
-          ssnow%dhkdw(i,k) = soil%bch_vec(i,k)*&
+          ssnow%dhkdw(i,k) = (1.5*soil%bch_vec(i,k))*&
                              hk_ice_factor(i,k)*&
                              s2(i)*0.5_r_2/(soil%ssat_vec(i,k)-soil%watr(i,k)) ! MMY
 
            !Aquifer
 
-          s2(i) = soil%GWhyds_vec(i)*s1(i)**(soil%GWbch_vec(i)-1._r_2) ! MMY
+          s2(i) = soil%GWhyds_vec(i)*s1(i)**(1.5*soil%GWbch_vec(i)-1._r_2) ! MMY
           ssnow%GWhk(i)     =s1(i)*s2(i) * hk_ice_factor(i,ms+1)
-          ssnow%GWdhkdw(i)  = soil%GWbch_vec(i)*&
+          ssnow%GWdhkdw(i)  = (1.5*soil%GWbch_vec(i))*&
                               s2(i)*0.5_r_2/(soil%GWssat_vec(i)-soil%GWwatr(i)) *&
                               hk_ice_factor(i,ms+1)        ! MMY
 ! ______________________________________________________________________________
