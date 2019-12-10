@@ -236,10 +236,11 @@ logical :: sunlit_veg_mask(mp)
     alpm1  = 0.
     beta2  = 0.
 
-call radiation( ssnow, veg, air, met, rad, canopy, sunlit_veg_mask,&
-                !constants
-                clai_thresh, Csboltz, Cemsoil, Cemleaf, Ccapp &
-              )
+CALL radiation( ssnow, veg, air, met, rad, canopy, sunlit_veg_mask, &
+  !constants
+  clai_thresh, Csboltz, Cemsoil, Cemleaf, Ccapp &
+)
+
     canopy%zetar(:,1) = C%ZETA0 ! stability correction terms
     canopy%zetar(:,2) = C%ZETPOS + 1
     canopy%zetash(:,1) = C%ZETA0 ! stability correction terms
@@ -487,6 +488,8 @@ write(6,*) "GW or ORevepis not an option right now"
              ! INH: I think this should be - met%qvair
              dq = ssnow%qstss - met%qv
              dq_unsat = ssnow%rh_srf*ssnow%qstss - met%qv
+dq = max(0.0, dq)
+dq_unsat = max(0.0, dq_unsat)
              ssnow%potev =  Humidity_deficit_method(dq, dq_unsat,ssnow%qstss)
 
           ENDIF
@@ -538,6 +541,8 @@ write(6,*) "SLI is not an option right now"
              ! Humidity deficit
              dq = ssnow%qstss - met%qvair
              dq_unsat = ssnow%rh_srf*ssnow%qstss - met%qvair
+dq = max(0.0, dq)
+dq_unsat = max(0.0, dq_unsat)
              ssnow%potev =  Humidity_deficit_method(dq, dq_unsat,ssnow%qstss)
 
           ENDIF
