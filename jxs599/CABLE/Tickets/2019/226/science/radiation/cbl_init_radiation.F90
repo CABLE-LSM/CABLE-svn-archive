@@ -132,6 +132,9 @@ call EffectiveExtinctCoeffs( EffExtCoeff_beam, EffExtCoeff_dif, &
 IF( cbl_standalone .OR. jls_standalone .AND. .NOT. jls_radiation )  &
   CALL BeamFraction( RadFbeam, mp, nrb, Cpi, Ccoszen_tols_huge, real(metDoy), coszen, SW_down ) 
 
+if(cbl_standalone .OR. jls_radiation) then
+endif
+
 END SUBROUTINE init_radiation
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
