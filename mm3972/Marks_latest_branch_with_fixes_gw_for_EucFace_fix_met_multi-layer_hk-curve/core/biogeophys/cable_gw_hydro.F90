@@ -1760,14 +1760,16 @@ SUBROUTINE calc_soil_hydraulic_props(ssnow,soil,veg)
 !                         (soil%GWssat_vec(i)-soil%GWwatr(i))))
 !          end if
 ! ______________________________________________________________________________
+! _____________________________ MMY Change bch _________________________________
           s1(i) = min(max(s1(i),0.01_r_2),1._r_2)
-          s2(i) = soil%hyds_vec(i,k)*s1(i)**(2._r_2*soil%bch_vec(i,k)+2._r_2)
+          s2(i) = soil%hyds_vec(i,k)*s1(i)**(soil%bch_vec(i,k)-1._r_2) ! MMY
 
           ssnow%hk(i,k)    =  s1(i)*s2(i)*hk_ice_factor(i,k)
-          ssnow%dhkdw(i,k) = (2._r_2*soil%bch_vec(i,k)+3._r_2)*s2(i)*&
+          ssnow%dhkdw(i,k) = soil%bch_vec(i,k)*s2(i)*&
                             0.5_r_2/(soil%ssat_vec(i,k)-soil%watr(i,k))*&
-                            hk_ice_factor(i,k)
+                            hk_ice_factor(i,k)                     !  MMY
           ! MMY Note that the dhkdw equation doesn't exactly follow the finite difference
+! ______________________________________________________________________________
        end do
     end do
 
@@ -1780,22 +1782,23 @@ SUBROUTINE calc_soil_hydraulic_props(ssnow,soil,veg)
                            max(wb_temp(i,kk)-soil%GWwatr(i),0.)) / &
                   (0.5_r_2*(soil%ssat_vec(i,k)-soil%watr(i,k) +&
                             soil%GWssat_vec(i)-soil%GWwatr(i)))
-
+! _____________________________ MMY Change bch _________________________________
           s1(i) = min(max(s1(i),0.01_r_2),1._r_2)
-          s2(i) = soil%hyds_vec(i,k)*s1(i)**(2._r_2*soil%bch_vec(i,k)+2._r_2)
+          s2(i) = soil%hyds_vec(i,k)*s1(i)**(soil%bch_vec(i,k)-1._r_2) ! MMY
 
           ssnow%hk(i,k)    = s1(i)*s2(i)*hk_ice_factor(i,k)
-          ssnow%dhkdw(i,k) = (2._r_2*soil%bch_vec(i,k)+3._r_2)*&
+          ssnow%dhkdw(i,k) = soil%bch_vec(i,k)*&
                              hk_ice_factor(i,k)*&
-                             s2(i)*0.5_r_2/(soil%ssat_vec(i,k)-soil%watr(i,k))
+                             s2(i)*0.5_r_2/(soil%ssat_vec(i,k)-soil%watr(i,k)) ! MMY
 
            !Aquifer
 
-          s2(i) = soil%GWhyds_vec(i)*s1(i)**(2._r_2*soil%GWbch_vec(i)+2._r_2)
+          s2(i) = soil%GWhyds_vec(i)*s1(i)**(soil%GWbch_vec(i)-1._r_2) ! MMY
           ssnow%GWhk(i)     =s1(i)*s2(i) * hk_ice_factor(i,ms+1)
-          ssnow%GWdhkdw(i)  =  (2._r_2*soil%GWbch_vec(i)+3._r_2)*&
+          ssnow%GWdhkdw(i)  = soil%GWbch_vec(i)*&
                               s2(i)*0.5_r_2/(soil%GWssat_vec(i)-soil%GWwatr(i)) *&
-                              hk_ice_factor(i,ms+1)
+                              hk_ice_factor(i,ms+1)        ! MMY
+! ______________________________________________________________________________
        end do
 
 
