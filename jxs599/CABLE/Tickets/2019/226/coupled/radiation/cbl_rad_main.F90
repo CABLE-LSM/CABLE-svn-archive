@@ -187,8 +187,9 @@ REAL :: c1(mp_cbl, nrb_cbl)
 REAL :: rhoch(mp_cbl, nrb_cbl)
 REAL :: xk(mp_cbl, nrb_cbl)
 !-------------------------------------------------------------------------------
-!already passed at rad call 
-real :: SnowDepth(mp_cbl)             !Formerly: ssnow%snowd 
+!highlight need to allocate these early on and thres to here as SAVE is not an
+!option
+real, allocatable, save :: SnowDepth(:)             !Formerly: ssnow%snowd 
 real :: SnowDensity(mp_cbl)           !Formerly: ssnow%ssdnn 
 real :: SnowODepth(mp_cbl)             !Formerly: ssnow%osnowd
 !computed from UM HT(LAI)_PFT passed in explicit call - need at rad call
@@ -230,6 +231,7 @@ real, save :: ialb_surft
 mp = mp_cbl
 nrb = nrb_cbl 
 L_tile_pts = L_tile_pts_cbl
+if( .NOT. allocated (SnowDepth) ) allocate( SnowDepth(mp_cbl) )
 soil_temp_cable = SoilTemp_CABLE
 snow_temp_cable = SnowTemp_CABLE
 snow_flag_cable = ThreeLayerSnowFlag_CABLE
