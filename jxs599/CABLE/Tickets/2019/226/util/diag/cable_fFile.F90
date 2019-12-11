@@ -51,6 +51,22 @@ SUBROUTINE open_file_per_node( iDiag,pDiag, dir, basename, node, fbasename )
 
 END SUBROUTINE open_file_per_node
 
+subroutine qprint( iDiag, infilename) 
+
+!   use cable_common_module
+   integer :: iDiag 
+   character(len=*) :: infilename
+   character(len=300) :: ffilename
+   
+   ffilename=trim( trim(infilename)// '.txt' )
+
+   open( unit=iDiag, file=ffilename, status="unknown", &
+     action="write", form="formatted", &
+     position='append' )
+
+End subroutine qprint 
+
+
 subroutine open_iDiag( iDiag, infilename, gopenstatus) 
 
 !   use cable_common_module
