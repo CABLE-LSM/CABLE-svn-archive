@@ -1819,9 +1819,11 @@ CONTAINS
              CALL fwsoil_calc_non_linear(fwsoil, soil, ssnow, veg)
           ELSEIF(cable_user%FWSOIL_SWITCH == 'Lai and Ktaul 2000') THEN
              CALL fwsoil_calc_Lai_Ktaul(fwsoil, soil, ssnow, veg)
-          ! _______________________ MMY test new fwsoil scheme  _______________________
-          ELSEIF(cable_user%FWSOIL_SWITCH == 'hie') THEN
-             CALL fwsoil_calc_hie(fwsoil, soil, ssnow, veg)
+          ! _______________________ MMY test new fwsoil schemes  _______________________
+          ELSEIF(cable_user%FWSOIL_SWITCH == 'hie_exp') THEN
+             CALL fwsoil_calc_hie_exp(fwsoil, soil, ssnow, veg)
+          ELSEIF(cable_user%FWSOIL_SWITCH == 'hie_watpot') THEN
+             CALL fwsoil_calc_hie_watpot(fwsoil, soil, ssnow, veg)
           ! ___________________________________________________________________________
           ELSE
              STOP 'fwsoil_switch failed.'
@@ -2082,6 +2084,12 @@ CONTAINS
                 END IF
 
                 g1 = veg%g1(i)
+
+                ! __________ MMY g1 = g1max (5.34) ___________
+                IF (cable_user%FWSOIL_SWITCH == 'hie_watpot') THEN
+                  g1 = 5.34
+                END IF
+                ! ________________________________________
 
                 gs_coeff(i,1) = (1.0 + (g1 * fwsoil(i)) / SQRT(vpd)) / csx(i,1)
                 gs_coeff(i,2) = (1.0 + (g1 * fwsoil(i)) / SQRT(vpd)) / csx(i,2)
@@ -2699,9 +2707,9 @@ CONTAINS
   END SUBROUTINE fwsoil_calc_std
 
   ! ------------------------------------------------------------------------------
-  ! ____________________________ MMY test new fwsoil _____________________________
+  ! _______________________ MMY test new fwsoil schemes ________________________
 
-  SUBROUTINE fwsoil_calc_hie(fwsoil, soil, ssnow, veg)
+  SUBROUTINE fwsoil_calc_hie_exp(fwsoil, soil, ssnow, veg)
     USE cable_def_types_mod
     USE cable_common_module, only : cable_user
     TYPE (soil_snow_type), INTENT(INOUT):: ssnow
@@ -2734,8 +2742,235 @@ CONTAINS
       fwsoil = MAX(1.0e-9,MIN(1.0, veg%vbeta * rwater))
    ENDIF
 
-  END SUBROUTINE fwsoil_calc_hie
+ END SUBROUTINE fwsoil_calc_hie_exp
 
+
+ SUBROUTINE fwsoil_calc_hie_watpot(fwsoil, soil, ssnow, veg)
+     USE cable_def_types_mod
+     USE cable_common_module, only : cable_user
+     TYPE (soil_snow_type), INTENT(INOUT):: ssnow
+     TYPE (soil_parameter_type), INTENT(INOUT)   :: soil
+     TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
+     REAL, INTENT(OUT), DIMENSION(:):: fwsoil ! soil water modifier of stom. cond
+     REAL, DIMENSION(mp) :: rwater ! soil water availability
+
+
+! ______________________________________________________________________________
+! ----------------------------------------------------------------------------
+SUBROUTINE calc_soil_root_resistance(ssnow, soil, veg, bgc, root_length, i)
+   ! Calculate root & soil hydraulic resistance following SPA approach
+   ! (Williams et al.)
+   !
+   ! Root hydraulic resistance declines linearly with increasing root
+   ! biomass according to root resistivity (400) [MPA s m2 mmol-1].
+   !
+   ! Soil hydraulic resistance depends on soil conductivity, root length,
+   ! depth of layer and distance between roots.
+   !
+   ! In units conversion, useful to recall that:
+   ! m s-1 = m3 m-1 m-1 s-1
+   ! m3 (amount of water) m-1 (per unit length) m-1 (per unit hydraulic head,
+   !                                                 measured in meters) s-1
+   !
+   ! References:
+   ! -----------
+   ! * Duursma, R. A. 2008. Predicting the decline in daily maximum
+   !   transpiration rate of two pine stands during drought based on
+   !   constant minimum leaf water potential and plant hydraulic conductance.
+   !   Tree Physiology, 28, 265â276.
+   ! * Gardner, W.R. 1964. Relation of root distribution to water uptake
+   !   and availability. Agron. J. 56:41â45.
+   ! * Newman, E.I. 1969. Resistance to water flow in soil and plant. I.
+   !   Soil resistance in relation to amounts of root: theoretical
+   !   estimates. J. Appl. Ecol. 6:1â12.
+   ! * Williams, M. et al. 1996. Modeling the soilâplantâatmosphere continuum
+   !   in a QuercusâAcer stand at Harvard Forest: the regulation of stomatal
+   !   conductance by light, nitrogen and soil/plant hydraulic properties.
+   !   Plant Cell Environ. 19:911â927.
+   !
+   ! Martin De Kauwe, 3rd June, 2019
+
+   USE cable_def_types_mod ???
+   USE cable_common_module
+
+   IMPLICIT NONE
+
+   TYPE (soil_snow_type), INTENT(INOUT)        :: ssnow
+   TYPE (soil_parameter_type), INTENT(INOUT)   :: soil
+   TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
+
+   ! All from Williams et al. 2001, Tree phys
+   REAL, PARAMETER :: pi = 3.1415927
+   REAL, PARAMETER :: root_radius = 0.0005                 ! m
+   REAL, PARAMETER :: root_xsec_area = pi * root_radius**2 ! m2
+   REAL, PARAMETER :: root_density = 0.5e6                ! g biomass m-3 root
+   REAL, PARAMETER :: root_resistivity = 25.             ! MPa s g mmol-1, Bonan
+
+   ! unit conv
+   REAL, PARAMETER :: head = 0.009807             ! head of pressure  (MPa/m)
+   REAL, PARAMETER :: KPA_2_MPa = 0.001
+   REAL, PARAMETER :: M_HEAD_TO_MPa = 9.8 * KPA_2_MPa
+   REAL, PARAMETER :: TINY_NUMBER = 1E-35
+   REAL, PARAMETER :: HUGE_NUMBER = 1E35
+
+   REAL, DIMENSION(ms) :: depth
+   REAL                :: root_mass, rs, Ksoil, root_biomass, root_depth
+   REAL                :: soil_resist, rsum
+   REAL, DIMENSION(ms)            :: est_evap
+   REAL, DIMENSION(:), INTENT(IN) :: root_length
+   REAL                           :: total_est_evap
+   INTEGER, INTENT(IN) :: i
+   INTEGER             :: j
+
+   ! ratio Dry matter mass to g(C)
+   REAL, PARAMETER                   :: gC2DM = 1./0.49
+
+   REAL, PARAMETER    :: Kbiometric = 50.0 ! cst in height-diameter relationship
+   ! The minimum root water potential (MPa), used in determining fractional
+   ! water uptake in soil layers
+   REAL, PARAMETER :: min_root_wp = -3.0
+
+   ! convert from gC to g biomass, i.e. twice the C content
+   root_biomass = 832.0 * gC2DM ! Eucface value ??? 832.0 can be an input value
+
+   ! Always provide a minimum root biomass
+   root_biomass = MAX(5., root_biomass)
+
+   ! Store each layers resistance, used in LWP calculatons
+   rsum = 0.0
+
+   DO j = 1, ms ! Loop over 6 soil layers
+
+      ! Soil Hydraulic conductivity (m s-1), Campbell 1974
+      IF (ssnow%wb(i,j) < 0.05) then ! avoid underflow problem ???wb 0.05 swilt?
+         Ksoil = TINY_NUMBER
+      ELSE
+         Ksoil = soil%hyds(i) * (ssnow%wb(i,j) / &
+                   soil%ssat(i))**(2.0 * soil%bch(i) + 3.0)
+      ENDIF
+
+      ! converts from m s-1 to m2 s-1 MPa-1
+      Ksoil = Ksoil / head
+
+      ! Calculate soil-root hydraulic resistance
+
+      ! prevent floating point error
+      IF (Ksoil < TINY_NUMBER) THEN
+         ssnow%soilR(i,j) = HUGE_NUMBER
+         rsum = rsum + ( 1.0 / ssnow%soilR(i,j) )
+      ELSE
+
+         ! Root biomass density (g biomass m-3 soil)
+         ! Divide root mass up by the frac roots in the layer (g m-3)
+         ! plant carbon is g C m-2
+         root_mass = root_biomass * veg%froot(i,j)
+
+         ! Root length density (m root m-3 soil)
+         root_length(j) = root_mass / (root_density * root_xsec_area)
+
+       ! Conductance of the soil-to-root pathway can be estimated
+         ! assuming that the root system consists of one long root that
+         ! has access to a surrounding cylinder of soil
+         ! (Gardner 1960, Newman 1969)
+         rs = SQRT(1.0 / (root_length(j) * pi))
+
+         ! Soil-to-root resistance (MPa s m2 mmol-1 H2O)
+         soil_resist = LOG(rs / root_radius) / &
+                       (2.0 * pi * root_length(j) * soil%zse(j) * Ksoil)
+
+         ! convert from MPa s m2 m-3 to MPa s m2 mmol-1
+         soil_resist = soil_resist * 1E-6 * 18. * 0.001
+
+         ! root_resistance is commented out : don't use root-component of
+         ! resistance (is part of plant resistance)
+         ! MPa s m2 mmol-1 H2O
+         ssnow%soilR(i,j) = soil_resist
+   END IF
+
+   ! Determine weighted SWP given the the maximum rate of water supply from
+   ! each rooted soil layer and hydraulic resistance of each layer. We are
+   ! also calculating a weighting fraction for water extraction. This is
+   ! achieved by roughly estimating the maximum rate of water supply from each
+   ! rooted soil layer, using SWP and hydraulic resistance of each layer.
+   ! Actual water from each layer is determined using the estimated value as a
+   ! weighted factor.
+
+   total_est_evap = 0.0
+   est_evap = 0.0
+   ssnow%weighted_psi_soil(i) = 0.0
+
+
+   ! Estimate max transpiration from gradient-gravity / soil resistance
+   DO j = 1, ms ! Loop over 6 soil layers
+      IF (ssnow%soilR(i,j) .GT. 0.0) THEN
+         est_evap(j) = MAX(0.0, &
+                    (ssnow%psi_soil(i,j) - min_root_wp) / ssnow%soilR(i,j))
+      ELSE
+         est_evap(j) = 0.0 ! when no roots present
+      ENDIF
+
+      ! Soil water potential weighted by layer Emax (from SPA)
+      ssnow%weighted_psi_soil(i) = ssnow%weighted_psi_soil(i) + &
+                                   ssnow%psi_soil(i,j) * est_evap(j)
+   END DO
+   total_est_evap = SUM(est_evap)
+
+   ! calculate the weighted psi_soil
+   IF (total_est_evap > 0.0) THEN
+      ! Soil water potential is weighted by total_est_evap.
+      ssnow%weighted_psi_soil(i) = ssnow%weighted_psi_soil(i) / total_est_evap
+   ELSE ???
+      ssnow%weighted_psi_soil(i) = 0.0
+      DO j = 1, ms ! Loop over 6 soil layers
+         ssnow%weighted_psi_soil(i) = ssnow%weighted_psi_soil(i) + &
+                                        ssnow%psi_soil(i,j) * soil%zse(j)
+      END DO
+      ssnow%weighted_psi_soil(i) = ssnow%weighted_psi_soil(i) / SUM(soil%zse)
+   END IF
+
+   IF (ssnow%weighted_psi_soil(i) < -50.0) THEN
+      ssnow%weighted_psi_soil(i) = -50.0
+   ENDIF
+
+!_______________________________________________________________________________
+     !note even though swilt_vec is defined in default model it is r_2
+     !and even using real(_vec) gives results different from trunk (rounding
+     !errors)
+
+     if (.not.cable_user%gw_model) THEN
+
+       rwater = MAX(1.0e-9,                                                    &
+            SUM(veg%froot * MAX(1.0e-9, (MIN( 1.0, real(ssnow%wb)              &
+            - SPREAD(soil%swilt, 2, ms) ) / (SPREAD(soil%sfc, 2, ms)           &
+            - SPREAD(soil%swilt, 2, ms))) ** 0.38) , 2))
+
+     else
+        rwater = MAX(1.0e-9,                                                    &
+             SUM(veg%froot * MAX(1.0e-9,MIN(1.0, real(((ssnow%wbliq -           &
+             soil%swilt_vec)/(soil%sfc_vec-soil%swilt_vec))** 0.38) )),2))
+     endif
+
+    ! Remove vbeta #56
+    IF(cable_user%GS_SWITCH == 'medlyn') THEN
+       fwsoil = MAX(1.0e-4,MIN(1.0, rwater))
+    ELSE
+       fwsoil = MAX(1.0e-9,MIN(1.0, veg%vbeta * rwater))
+    ENDIF
+! ________________ here is the real change __________________________
+    veg%g1_b(i) = 1.34 for EucFACE
+    IF (psi_swp(1) >= -0.3) THEN
+        fwsoil = 1.0
+    ELSE
+        fwsoil = exp(1.34 * (psi_swp))
+    END IF
+
+    ssnow%smp(i,k)
+
+    psi_swp here should be weighted average,
+    be careful about the psi_swp units
+! _________________________________________________________
+
+  END SUBROUTINE fwsoil_calc_hie_watpot
   ! __________________________________________________________________________
       ! ------------------------------------------------------------------------------
 
