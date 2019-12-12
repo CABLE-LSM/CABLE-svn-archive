@@ -2783,7 +2783,7 @@ CONTAINS
     TYPE (soil_snow_type), INTENT(INOUT):: ssnow
     TYPE (soil_parameter_type), INTENT(INOUT)   :: soil
     TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
-    REAL, INTENT(OUT), DIMENSION(:):: fwsoil ! soil water modifier of stom. cond
+    REAL, INTENT(OUT), DIMENSION(mp):: fwsoil ! soil water modifier of stom. cond
 
     ! All from Williams et al. 2001, Tree phys
     REAL, PARAMETER :: pi = 3.1415927
@@ -2928,16 +2928,15 @@ CONTAINS
       IF (weighted_psi_soil(i) < -50.0) THEN
         weighted_psi_soil(i) = -50.0
       ENDIF
-
+      
+      IF (weighted_psi_soil(i) >= -0.3) THEN
+        fwsoil(i) = 1.0
+      ELSE
+        fwsoil(i) = exp(1.34 * weighted_psi_soil(i))
+        ! veg%g1_b(i) = 1.34 for EucFACE
+      END IF
     END DO ! i
 
-
-    IF (weighted_psi_soil >= -0.3) THEN
-        fwsoil = 1.0
-    ELSE
-        fwsoil = exp(1.34 * (weighted_psi_soil))
-        ! veg%g1_b(i) = 1.34 for EucFACE
-    END IF
 
      !note even though swilt_vec is defined in default model it is r_2
      !and even using real(_vec) gives results different from trunk (rounding

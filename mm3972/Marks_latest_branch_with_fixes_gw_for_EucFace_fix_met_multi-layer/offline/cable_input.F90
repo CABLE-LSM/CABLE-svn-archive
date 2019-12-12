@@ -2855,23 +2855,23 @@ SUBROUTINE get_parameters_met(soil,ssnow,veg,bgc,rough,completeSet) ! MMY add ss
 
    PRINT *,'MMY ssnow%wb read from met is ', ssnow%wb
 
-   !!!   ssnow%GWwb(:)      = ssnow%wb(:,ms)
-   soil%GWhyds_vec(:) = soil%hyds_vec(:,ms)
-   soil%GWssat_vec(:) = soil%ssat_vec(:,ms)
-   ssnow%GWwb(:)      = soil%GWssat_vec(:) * 0.9
+   !!!!!!ssnow%GWwb(:)      = ssnow%wb(:,ms)
+   !soil%GWhyds_vec(:) = soil%hyds_vec(:,ms)
+   !soil%GWssat_vec(:) = soil%ssat_vec(:,ms)
+   !ssnow%GWwb(:)      = soil%GWssat_vec(:) * 0.9
    ! Set init GWwb as 0.9 ssat to avoid the aquifer saturates too quick
-   soil%GWsucs_vec(:) = soil%sucs_vec(:,ms)
-   soil%GWbch_vec(:)  = soil%bch_vec(:,ms)
-   soil%GWwatr(:)     = soil%watr(:,ms)
+   !soil%GWsucs_vec(:) = soil%sucs_vec(:,ms)
+   !soil%GWbch_vec(:)  = soil%bch_vec(:,ms)
+   !soil%GWwatr(:)     = soil%watr(:,ms)
 
-  	!!   PRINT *,'MMY ssnow%GWwb read from met is ', ssnow%GWwb
-    !!   PRINT *,'MMY ssnow%GWwb read from restart is ', ssnow%GWwb
-   PRINT *,'MMY ssnow%GWwb set as 0.9 GWssat_vec is ', ssnow%GWwb
-   PRINT *,'MMY soil%GWhyds_vec read from met is ', soil%GWhyds_vec
-   PRINT *,'MMY soil%GWssat_vec read from met is ', soil%GWssat_vec
-   PRINT *,'MMY soil%GWsucs_vec read from met is ', soil%GWsucs_vec
-   PRINT *,'MMY soil%GWbch_vec read from met is ', soil%GWbch_vec
-   PRINT *,'MMY soil%GWwatr read from met is ', soil%GWwatr
+   !!   PRINT *,'MMY ssnow%GWwb read from met is ', ssnow%GWwb
+   !!   PRINT *,'MMY ssnow%GWwb read from restart is ', ssnow%GWwb
+   !PRINT *,'MMY ssnow%GWwb set as 0.9 GWssat_vec is ', ssnow%GWwb
+   !PRINT *,'MMY soil%GWhyds_vec read from met is ', soil%GWhyds_vec
+   !PRINT *,'MMY soil%GWssat_vec read from met is ', soil%GWssat_vec
+   !PRINT *,'MMY soil%GWsucs_vec read from met is ', soil%GWsucs_vec
+   !PRINT *,'MMY soil%GWbch_vec read from met is ', soil%GWbch_vec
+   !PRINT *,'MMY soil%GWwatr read from met is ', soil%GWwatr
 
    ! ____ MMY add from SUBROUTINE GWspatialParameters in cable_parameters.F90 _____
     !set the default IC for hysteresis state
@@ -2881,8 +2881,8 @@ SUBROUTINE get_parameters_met(soil,ssnow,veg,bgc,rough,completeSet) ! MMY add ss
     ssnow%ssat_hys(:,:) = soil%ssat_vec(:,:)
    ! ______________________________________________________________________________
    !   CALL readpar(ncid_met,'GWMoist',completeSet,ssnow%GWwb,filename%met,            &
-	 !                nmetpatches,'def') ! ssnow%GWwb(mp)
-	 !   PRINT *,'MMY ssnow%GWwb read from met is ', ssnow%GWwb
+   !                nmetpatches,'def') ! ssnow%GWwb(mp)
+   !   PRINT *,'MMY ssnow%GWwb read from met is ', ssnow%GWwb
 ! ______________________________________________________________________________
 
    CALL readpar(ncid_met,'rs20',completeSet,veg%rs20,filename%met,             &
