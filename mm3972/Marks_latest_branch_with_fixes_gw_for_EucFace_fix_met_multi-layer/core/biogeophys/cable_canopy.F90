@@ -2707,7 +2707,7 @@ CONTAINS
   END SUBROUTINE fwsoil_calc_std
 
   ! ------------------------------------------------------------------------------
-  
+
   ! _______________________ MMY test new fwsoil schemes ________________________
 
   SUBROUTINE fwsoil_calc_hie_exp(fwsoil, soil, ssnow, veg)
@@ -2812,7 +2812,7 @@ CONTAINS
     REAL, DIMENSION(mp,ms) :: soilR ! soil resistant
     REAL, DIMENSION(mp) :: weighted_psi_soil
     REAL                :: total_est_evap
-    INTEGER             :: j
+    INTEGER             :: i,j
 
 
     ! convert from gC to g biomass, i.e. twice the C content
@@ -2836,17 +2836,18 @@ CONTAINS
       DO j = 1, ms ! Loop over ms soil layers
 
         ! Soil Hydraulic conductivity (m s-1)
-        IF (ssnow%wb(i,j) < 0.05) then ! avoid underflow problem ???wb 0.05 swilt?
+        IF (ssnow%wb(i,j) < 0.05) then ! avoid underflow problem
+          ! ??? MMY should change the threshold to wilting point?
           Ksoil = TINY_NUMBER
         ELSE
           IF (cable_user%gw_model) THEN ! Brooks and Corey, 1964, 1966
              Ksoil = 0.001 * soil%hyds_vec(i,j) * ((ssnow%wbliq(i,j) -soil%watr(i,j)) / &
                         (soil%ssat_vec(i,j)-soil%watr(i,j)))**(2.0 * soil%bch_vec(i,j) + 3.0)
-                        ! ??? hyds_vec units (mm/s) -> Ksoil units (m/s)
+                        ! hyds_vec units (mm/s) -> Ksoil units (m/s)
           ELSE ! Campbell 1974
              Ksoil = soil%hyds(i) * (ssnow%wb(i,j) / &
                        soil%ssat(i))**(2.0 * soil%bch(i) + 3.0)
-                       ! ??? hyds units (???) -> Ksoil units (m/s)
+                       ! hyds units (m/s) -> Ksoil units (m/s)
           END IF
         ENDIF
 
