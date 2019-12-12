@@ -779,8 +779,12 @@ PROGRAM cable_offline_driver
 
 !jhan:Hach to make soil albedo same as Loobos
 soil%albsoil=0.11
-veg%hc = 0.79 
-veg%vlai = 2.0
+veg%vlai  = (/ 4.00, 5.00, 2.00, 0.0/) 
+veg%hc    = (/16.38,19.01, 0.79, 0.0/)
+if(ktau==4300 .OR.ktau==4380) then
+print *, "about to crash"
+endif
+        
                  ! Call land surface scheme for this timestep, all grid points:
                  CALL cbm(ktau, dels, air, bgc, canopy, met,		      &
                       bal, rad, rough, soil, ssnow,			      &
