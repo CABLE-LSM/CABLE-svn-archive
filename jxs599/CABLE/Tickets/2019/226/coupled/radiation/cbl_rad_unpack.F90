@@ -73,19 +73,6 @@ DO N=1,nsurft
   ENDDO
 ENDDO
 
-Sumreffbm = 0.0
-Sumreffdf = 0.0
-do i=1, mp
-Sumreffbm(i) = Sumreffbm(i) + ( EffSurfRefl_beam(i,1)+EffSurfRefl_beam(i,2) )
-Sumreffdf(i) = Sumreffdf(i) + ( EffSurfRefl_dif(i,1)+EffSurfRefl_dif(i,2) )
-enddo
-
-fprintf_dir="/home/599/jxs599/"
-vname='HEffSRefl_beam'; dimx=mp 
-call cable_Pyfprintf( cDiag1, vname, Sumreffbm, dimx, .true.)
-vname='HEffSRefl_dif'; dimx=mp 
-call cable_Pyfprintf( cDiag2, vname, Sumreffdf, dimx, .true.)
-
 return
      
 End subroutine cable_rad_unpack
