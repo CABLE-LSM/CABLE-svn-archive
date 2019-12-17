@@ -2855,14 +2855,14 @@ SUBROUTINE get_parameters_met(soil,ssnow,veg,bgc,rough,completeSet) ! MMY add ss
 
    PRINT *,'MMY ssnow%wb read from met is ', ssnow%wb
 
-   !!!!!!ssnow%GWwb(:)      = ssnow%wb(:,ms)
-   !soil%GWhyds_vec(:) = soil%hyds_vec(:,ms)
-   !soil%GWssat_vec(:) = soil%ssat_vec(:,ms)
-   !ssnow%GWwb(:)      = soil%GWssat_vec(:) * 0.9
+   !!!!!ssnow%GWwb(:)      = ssnow%wb(:,ms)
+   soil%GWhyds_vec(:) = soil%hyds_vec(:,ms)
+   soil%GWssat_vec(:) = soil%ssat_vec(:,ms)
+   ssnow%GWwb(:)      = soil%GWssat_vec(:) * 0.9
    ! Set init GWwb as 0.9 ssat to avoid the aquifer saturates too quick
-   !soil%GWsucs_vec(:) = soil%sucs_vec(:,ms)
-   !soil%GWbch_vec(:)  = soil%bch_vec(:,ms)
-   !soil%GWwatr(:)     = soil%watr(:,ms)
+   soil%GWsucs_vec(:) = soil%sucs_vec(:,ms)
+   soil%GWbch_vec(:)  = soil%bch_vec(:,ms)
+   soil%GWwatr(:)     = soil%watr(:,ms)
 
    !!   PRINT *,'MMY ssnow%GWwb read from met is ', ssnow%GWwb
    !!   PRINT *,'MMY ssnow%GWwb read from restart is ', ssnow%GWwb
