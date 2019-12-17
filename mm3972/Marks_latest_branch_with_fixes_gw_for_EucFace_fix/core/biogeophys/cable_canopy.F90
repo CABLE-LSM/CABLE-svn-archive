@@ -2707,9 +2707,17 @@ CONTAINS
 
     if (.not.cable_user%gw_model) THEN
 
+      ! ________________________________ MMY______________________________________
+      !rwater = MAX(1.0e-9,                                                    &
+      !     SUM(veg%froot * MAX(1.0e-9,MIN(1.0, real(ssnow%wb) -                   &
+      !     SPREAD(soil%swilt, 2, ms))),2) /(soil%sfc-soil%swilt))
+      ! fix range problems
        rwater = MAX(1.0e-9,                                                    &
-            SUM(veg%froot * MAX(1.0e-9,MIN(1.0, real(ssnow%wb) -                   &
-            SPREAD(soil%swilt, 2, ms))),2) /(soil%sfc-soil%swilt))
+          SUM(veg%froot * MAX(1.0e-9, MIN( 1.0, real((ssnow%wb              &
+          - SPREAD(soil%swilt, 2, ms))  / (SPREAD(soil%sfc, 2, ms)           &
+          - SPREAD(soil%swilt, 2, ms)) ))) , 2))
+      ! __________________________________________________________________________
+
 
     else
        rwater = MAX(1.0e-9,                                                    &
