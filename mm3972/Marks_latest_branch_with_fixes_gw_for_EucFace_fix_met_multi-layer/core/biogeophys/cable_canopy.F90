@@ -2729,12 +2729,10 @@ CONTAINS
     !errors)
 
     if (.not.cable_user%gw_model) THEN
-
       rwater = MAX(1.0e-9,                                                    &
            SUM(veg%froot * MAX(1.0e-9, (MIN( 1.0, real(ssnow%wb)              &
            - SPREAD(soil%swilt, 2, ms) ) / (SPREAD(soil%sfc, 2, ms)           &
            - SPREAD(soil%swilt, 2, ms))) ** 0.38) , 2))
-
     else
        rwater = MAX(1.0e-9,                                                    &
             SUM(veg%froot * MAX(1.0e-9,MIN(1.0, real(((ssnow%wbliq -           &
@@ -2747,7 +2745,10 @@ CONTAINS
    ELSE
       fwsoil = MAX(1.0e-9,MIN(1.0, veg%vbeta * rwater))
    ENDIF
-
+   if (ISNAN(fwsoil)) then
+     print *, veg%froot, ssnow%wbliq, soil%swilt_vec, soil%sfc_vec
+     stop
+   end if
  END SUBROUTINE fwsoil_calc_hie_exp
 
 
@@ -2933,7 +2934,7 @@ CONTAINS
       IF (weighted_psi_soil(i) < -50.0) THEN
         weighted_psi_soil(i) = -50.0
       ENDIF
-      
+
       IF (weighted_psi_soil(i) >= -0.3) THEN
         fwsoil(i) = 1.0
       ELSE
