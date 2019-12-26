@@ -2716,6 +2716,7 @@ CONTAINS
   ! _______________________ MMY test new fwsoil schemes ________________________
 
   SUBROUTINE fwsoil_calc_hie_exp(fwsoil, soil, ssnow, veg)
+    USE, INTRINSIC :: IEEE_ARITHMETIC
     USE cable_def_types_mod
     USE cable_common_module, only : cable_user
     TYPE (soil_snow_type), INTENT(INOUT):: ssnow
@@ -2723,7 +2724,7 @@ CONTAINS
     TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
     REAL, INTENT(OUT), DIMENSION(:):: fwsoil ! soil water modifier of stom. cond
     REAL, DIMENSION(mp) :: rwater ! soil water availability
-
+    LOGICAL,DIMENSION(mp) :: test
     !note even though swilt_vec is defined in default model it is r_2
     !and even using real(_vec) gives results different from trunk (rounding
     !errors)
@@ -2734,7 +2735,7 @@ CONTAINS
            - SPREAD(soil%swilt, 2, ms) ) / (SPREAD(soil%sfc, 2, ms)           &
            - SPREAD(soil%swilt, 2, ms))) ** 0.38) , 2))
     else
-       rwater = MAX(1.0e-9,                                                    &
+      rwater = MAX(1.0e-9,                                                    &
             SUM(veg%froot * MAX(1.0e-9,MIN(1.0, real(((ssnow%wbliq -           &
             soil%swilt_vec)/(soil%sfc_vec-soil%swilt_vec))** 0.38) )),2))
     endif
@@ -2745,8 +2746,18 @@ CONTAINS
    ELSE
       fwsoil = MAX(1.0e-9,MIN(1.0, veg%vbeta * rwater))
    ENDIF
-   if (ISNAN(fwsoil)) then
-     print *, veg%froot, ssnow%wbliq, soil%swilt_vec, soil%sfc_vec
+   
+   test = ieee_is_nan(fwsoil)
+   if ( ANY(test) ) then
+     print *, "**********************************************************"
+     print *, 'ssnow%wb are ', ssnow%wb
+     print *, 'ssnow%wbice are ', ssnow%wbice
+     print *, 'ssnow%wbliq are ', ssnow%wbliq
+     print *, 'ssnow%tgg are ', ssnow%tgg
+     print *, 'soil%swilt_vec are ', soil%swilt_vec
+     print *, 'soil%sfc_vec are ', soil%sfc_vec
+     print *, 'fwsoil are ', fwsoil
+     print *, "**********************************************************"
      stop
    end if
  END SUBROUTINE fwsoil_calc_hie_exp
@@ -3109,13 +3120,6 @@ CONTAINS
     elsewhere
        alpha_root(:) = zero
     endwhere
-
-    where (Fs(:) > zero .and. layer_depth < zr )  ! where there are roots and we are aobe max rooting depth
-       delta_root(:) = one
-    elsewhere
-       delta_root(:) = zero
-    endwhere
-
     rex(:) = alpha_root(:)*Fs(:)
 
     trex = sum(rex(:))
