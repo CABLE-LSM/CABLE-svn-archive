@@ -13,6 +13,9 @@ host_cycl()
    export NCMOD='/share/apps/netcdf-f/intel/4.4.4/include'
    export FC=ifort
    export CFLAGS='-O2 -fp-model precise'
+   if [[ $1 = 'debug' ]]; then
+      export CFLAGS='-O0 -fp-model precise -fpe0 -g -traceback -nostand -check all,nobounds,noarg_temp_created -debug all'
+   fi
    export LD='-lnetcdf -lnetcdff'
    export LDFLAGS='-L/share/apps/netcdf-f/intel/4.4.4/lib -O2'
    build_build
@@ -20,13 +23,15 @@ host_cycl()
    build_status
 }
 
-
 host_hurr()
 {
    export NCDIR='/share/apps/netcdf-f/intel/4.4.4/lib'
    export NCMOD='/share/apps/netcdf-f/intel/4.4.4/include'
    export FC=ifort
    export CFLAGS='-O2 -fp-model precise'
+   if [[ $1 = 'debug' ]]; then
+      export CFLAGS='-O0 -fp-model precise -fpe0 -g -traceback -nostand -check all,nobounds,noarg_temp_created -debug all'
+   fi
    export LD='-lnetcdf -lnetcdff'
    export LDFLAGS='-L/share/apps/netcdf-f/intel/4.4.4/lib -O2'
    build_build
@@ -39,9 +44,12 @@ host_typh()
    export NCDIR='/share/apps/netcdf-f/intel/4.4.4/lib'
    export NCMOD='/share/apps/netcdf-f/intel/4.4.4/include'
    export FC=ifort
-   export CFLAGS='-O0 -fp-model precise -fpe0 -g -traceback -nostand -check all,nobounds,noarg_temp_created -debug all '
+   export CFLAGS='-O2 -fp-model precise'
+   if [[ $1 = 'debug' ]]; then
+      export CFLAGS='-O0 -fp-model precise -fpe0 -g -traceback -nostand -check all,nobounds,noarg_temp_created -debug all'
+   fi
    export LD='-lnetcdf -lnetcdff'
-   export LDFLAGS='-L/share/apps/netcdf-f/intel/4.4.4/lib -O0 -debug -g -ftrapuv -diag-enable warn'
+   export LDFLAGS='-L/share/apps/netcdf-f/intel/4.4.4/lib -O2'
    build_build
    cd ../
    build_status
@@ -54,7 +62,7 @@ host_mons()
    export NCDIR='/share/apps/netcdf/intel/4.2.1/lib//share/apps/netcdf/intel/4.2.1/lib'
    export NCMOD='/share/apps/netcdf/intel/4.2.1/lib//share/apps/netcdf/intel/4.2.1/include'
    export FC=ifort
-   export CFLAGS='-O2 -fp-model precise'
+   export CFLAGS='-O2 -fp-model precise -fpe0 -g -traceback -nostand -check all,nobounds,noarg_temp_created -debug all'
    export LD='-lnetcdf -lnetcdff'
    export LDFLAGS='-L/share/apps/netcdf/intel/4.2.1/lib//share/apps/netcdf/intel/4.2.1/lib -O2'
    build_build
