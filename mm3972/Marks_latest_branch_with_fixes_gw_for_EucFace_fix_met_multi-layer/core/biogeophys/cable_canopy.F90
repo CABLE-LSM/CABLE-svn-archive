@@ -2700,7 +2700,7 @@ CONTAINS
            SUM(veg%froot * MAX(1.0e-9, MIN( 1.0, &
            MAX(0., (real(ssnow%wb) - SPREAD(soil%swilt, 2, ms)) )&
            / (SPREAD(soil%sfc, 2, ms) - SPREAD(soil%swilt, 2, ms)) &
-            ))) , 2)
+            )) , 2))
         ! MMY I didn't check gw-off, but think using wbliq may be better than wb above eq
        ! __________________________________________________________________________
     else
@@ -2708,7 +2708,7 @@ CONTAINS
            SUM(veg%froot * MAX(1.0e-9, MIN( 1.0, &
            MAX(0., (real(ssnow%wbliq) - real(soil%swilt_vec)) )&
            / (real(soil%sfc_vec) - real(soil%swilt_vec)) &
-            ))) , 2)
+            )) , 2))
     endif
 
    ! Remove vbeta #56
@@ -2743,7 +2743,7 @@ CONTAINS
          SUM(veg%froot * MAX(1.0e-9, MIN( 1.0,                            &
          (MAX(0., (real(ssnow%wb) - SPREAD(soil%swilt, 2, ms)) )          &
          / (SPREAD(soil%sfc, 2, ms) - SPREAD(soil%swilt, 2, ms)) )** 0.38 &
-          ))) , 2)
+          )) , 2))
         ! MMY I didn't check gw-off, but think using wbliq may be better than wb above eq
        ! __________________________________________________________________________
     else
@@ -2751,7 +2751,7 @@ CONTAINS
            SUM(veg%froot * MAX(1.0e-9, MIN( 1.0, &
            (MAX(0., (real(ssnow%wbliq) - real(soil%swilt_vec)) )&
            / (real(soil%sfc_vec) - real(soil%swilt_vec)) )**0.38 &
-            ))) , 2)
+            )) , 2))
     endif
 
    ! Remove vbeta #56
@@ -2993,8 +2993,6 @@ CONTAINS
     REAL, DIMENSION(mp,3)          :: xi, ti, si
     INTEGER :: j
 
-
-    if (.not.cable_user%gw_model) THEN
       ! ______________________  MMY _________________________________
       !rwater = MAX(1.0e-9,                                                    &
       !     SUM(veg%froot * MAX(0.0,MIN(1.0, real(ssnow%wb) -                   &
@@ -3004,7 +3002,7 @@ CONTAINS
          SUM(veg%froot * MAX(1.0e-9, MIN( 1.0,                         &
          MAX(0., (real(ssnow%wb) - SPREAD(soil%swilt, 2, ms)) )        &
          / (SPREAD(soil%sfc, 2, ms) - SPREAD(soil%swilt, 2, ms))       &
-          ))) , 2)
+          )) , 2))
       ! ________________________________________________________________
 
 

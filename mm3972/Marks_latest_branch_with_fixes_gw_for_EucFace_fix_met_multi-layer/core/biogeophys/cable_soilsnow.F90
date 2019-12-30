@@ -2445,7 +2445,7 @@ SUBROUTINE GWstempv(dels, canopy, ssnow, soil)
                             soil%css_vec(:,k) * soil%rhosoil_vec(:,k)   &
                           + ssnow%wbliq(:,k)*real(C%cswat*C%density_liq,r_2)           &
                           !+ ssnow%wbice(:,k)*real(C%csice*C%density_liq*0.9,r_2) ) & ! MMY
-                          + ssnow%wbice(:,k)*real(C%csice*C%density_ice,r_2) ) ! MMY
+                          + ssnow%wbice(:,k)*real(C%csice*C%density_ice,r_2) ) & ! MMY
                             * soil%zse_vec(:,k) + gammzz_snow(:,k)
 
          dtg = dels_r2 / ssnow%gammzz(:,k)
