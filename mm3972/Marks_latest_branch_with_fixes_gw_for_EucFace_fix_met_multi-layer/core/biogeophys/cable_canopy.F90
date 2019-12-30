@@ -1143,7 +1143,12 @@ CONTAINS
          IF(ssnow%snowd(j) < 0.1 .AND. canopy%fess(j) .GT. 0. ) THEN
 
             IF (.not.cable_user%l_new_reduce_soilevp) THEN
-               flower_limit(j) = REAL(ssnow%wb(j,1))-soil%swilt(j)/2.0
+               IF (cable_user%gw_model) THEN ! MMY
+                  flower_limit(j) = REAL(ssnow%wb(j,1))-REAL(soil%watr(j,1)) ! MMY
+                  ! MMY watr is better than swilt/2., as it has a clear physical meaning
+               ELSE ! MMY
+                  flower_limit(j) = REAL(ssnow%wb(j,1))-soil%swilt(j)/2.0
+               END IF ! MMY
             ELSE
                ! E.Kowalczyk 2014 - reduces the soil evaporation
                flower_limit(j) = REAL(ssnow%wb(j,1))-soil%swilt(j)
@@ -1158,7 +1163,8 @@ CONTAINS
             !evaporation from frozen soils needs to respect the assumption that
             !ice fraction of soil moisture cannot exceed frozen_limit=0.85
             !see soilsnow: if frozen_limit changes need to be consistent
-            fupper_limit(j) = REAL(ssnow%wb(j,1)-ssnow%wbice(j,1)/0.85)*frescale(j)
+            ! fupper_limit(j) = REAL(ssnow%wb(j,1)-ssnow%wbice(j,1)/0.85)*frescale(j) ! MMY
+            fupper_limit(j) = REAL(ssnow%wb(j,1)-ssnow%wbice(j,1)*den_rat/frozen_limit)*frescale(j)  ! MMY keep consistency
             fupper_limit(j) = MAX(real(fupper_limit(j),r_2),0.)
 
             canopy%fess(j) = min(canopy%fess(j), real(fupper_limit(j),r_2))
@@ -2691,15 +2697,18 @@ CONTAINS
        !     SPREAD(soil%swilt, 2, ms))),2) /(soil%sfc-soil%swilt))
        ! fix range problems
         rwater = MAX(1.0e-9,                                                    &
-           SUM(veg%froot * MAX(1.0e-9, MIN( 1.0, real((ssnow%wb              &
-           - SPREAD(soil%swilt, 2, ms))  / (SPREAD(soil%sfc, 2, ms)           &
-           - SPREAD(soil%swilt, 2, ms)) ))) , 2))
+           SUM(veg%froot * MAX(1.0e-9, MIN( 1.0, &
+           MAX(0., (real(ssnow%wb) - SPREAD(soil%swilt, 2, ms)) )&
+           / (SPREAD(soil%sfc, 2, ms) - SPREAD(soil%swilt, 2, ms)) &
+            ))) , 2)
+        ! MMY I didn't check gw-off, but think using wbliq may be better than wb above eq
        ! __________________________________________________________________________
     else
-       rwater = MAX(1.0e-9,                                                    &
-            SUM(veg%froot * MAX(1.0e-9,MIN(1.0, real((ssnow%wbliq -                 &
-            soil%swilt_vec)/(soil%sfc_vec-soil%swilt_vec)) )),2) )
-
+        rwater = MAX(1.0e-9,                                                    &
+           SUM(veg%froot * MAX(1.0e-9, MIN( 1.0, &
+           MAX(0., (real(ssnow%wbliq) - real(soil%swilt_vec)) )&
+           / (real(soil%sfc_vec) - real(soil%swilt_vec)) &
+            ))) , 2)
     endif
 
    ! Remove vbeta #56
@@ -2731,13 +2740,18 @@ CONTAINS
 
     if (.not.cable_user%gw_model) THEN
       rwater = MAX(1.0e-9,                                                    &
-           SUM(veg%froot * MAX(1.0e-9, (MIN( 1.0, real(ssnow%wb)              &
-           - SPREAD(soil%swilt, 2, ms) ) / (SPREAD(soil%sfc, 2, ms)           &
-           - SPREAD(soil%swilt, 2, ms))) ** 0.38) , 2))
+         SUM(veg%froot * MAX(1.0e-9, MIN( 1.0,                            &
+         (MAX(0., (real(ssnow%wb) - SPREAD(soil%swilt, 2, ms)) )          &
+         / (SPREAD(soil%sfc, 2, ms) - SPREAD(soil%swilt, 2, ms)) )** 0.38 &
+          ))) , 2)
+        ! MMY I didn't check gw-off, but think using wbliq may be better than wb above eq
+       ! __________________________________________________________________________
     else
-      rwater = MAX(1.0e-9,                                                    &
-            SUM(veg%froot * MAX(1.0e-9,MIN(1.0, real(((ssnow%wbliq -           &
-            soil%swilt_vec)/(soil%sfc_vec-soil%swilt_vec))** 0.38) )),2))
+        rwater = MAX(1.0e-9,                                                    &
+           SUM(veg%froot * MAX(1.0e-9, MIN( 1.0, &
+           (MAX(0., (real(ssnow%wbliq) - real(soil%swilt_vec)) )&
+           / (real(soil%sfc_vec) - real(soil%swilt_vec)) )**0.38 &
+            ))) , 2)
     endif
 
    ! Remove vbeta #56
@@ -2746,7 +2760,7 @@ CONTAINS
    ELSE
       fwsoil = MAX(1.0e-9,MIN(1.0, veg%vbeta * rwater))
    ENDIF
-   
+
    test = ieee_is_nan(fwsoil)
    if ( ANY(test) ) then
      print *, "**********************************************************"
@@ -2979,9 +2993,20 @@ CONTAINS
     REAL, DIMENSION(mp,3)          :: xi, ti, si
     INTEGER :: j
 
-    rwater = MAX(1.0e-9,                                                    &
-         SUM(veg%froot * MAX(0.0,MIN(1.0, real(ssnow%wb) -                   &
-         SPREAD(soil%swilt, 2, ms))),2) /(soil%sfc-soil%swilt))
+
+    if (.not.cable_user%gw_model) THEN
+      ! ______________________  MMY _________________________________
+      !rwater = MAX(1.0e-9,                                                    &
+      !     SUM(veg%froot * MAX(0.0,MIN(1.0, real(ssnow%wb) -                   &
+      !     SPREAD(soil%swilt, 2, ms))),2) /(soil%sfc-soil%swilt))
+
+      rwater = MAX(1.0e-9,                                             &
+         SUM(veg%froot * MAX(1.0e-9, MIN( 1.0,                         &
+         MAX(0., (real(ssnow%wb) - SPREAD(soil%swilt, 2, ms)) )        &
+         / (SPREAD(soil%sfc, 2, ms) - SPREAD(soil%swilt, 2, ms))       &
+          ))) , 2)
+      ! ________________________________________________________________
+
 
     fwsoil = 1.
 
