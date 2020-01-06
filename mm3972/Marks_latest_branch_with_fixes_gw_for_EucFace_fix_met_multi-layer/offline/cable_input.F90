@@ -2858,7 +2858,8 @@ SUBROUTINE get_parameters_met(soil,ssnow,veg,bgc,rough,completeSet) ! MMY add ss
    !!!!!ssnow%GWwb(:)      = ssnow%wb(:,ms)
    soil%GWhyds_vec(:) = soil%hyds_vec(:,ms)
    soil%GWssat_vec(:) = soil%ssat_vec(:,ms)
-   ssnow%GWwb(:)      = soil%GWssat_vec(:) * 0.9
+   !ssnow%GWwb(:)      = soil%GWssat_vec(:) * 0.9
+   ssnow%GWwb(:)      = soil%wb(:,ms)
    ! Set init GWwb as 0.9 ssat to avoid the aquifer saturates too quick
    soil%GWsucs_vec(:) = soil%sucs_vec(:,ms)
    soil%GWbch_vec(:)  = soil%bch_vec(:,ms)
