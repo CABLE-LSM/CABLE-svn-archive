@@ -492,7 +492,11 @@ CONTAINS
           ! Calculate soil sensible heat:
           ! INH: I think this should be - met%tvair
           !canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tk) /ssnow%rtsoil
-          IF (cable_user%gw_model .or. cable_user%or_evap) THEN
+
+          ! IF (cable_user%gw_model .or. cable_user%or_evap) THEN ! MMY
+          ! MMY because rt_qh_sublayer is given value only when or-on, for gw-on &
+          ! MMY or-off, rt_qh_sublayer is empty.
+          IF (cable_user%or_evap) THEN ! MMY
              canopy%fhs =  air%rho*C%CAPP*(ssnow%tss - met%tk) / &
                   (ssnow%rtsoil + ssnow%rt_qh_sublayer)
           !note if or_evap and litter are true then litter resistance is
@@ -503,7 +507,7 @@ CONTAINS
              canopy%fhs =  air%rho*C%CAPP*(ssnow%tss - met%tk) / &
                   !(ssnow%rtsoil + real((1-ssnow%isflag))*veg%clitt*0.003/canopy%kthLitt/(air%rho*C%CAPP))
                   (ssnow%rtsoil + rhlitt)
-          ELSE
+          ELSE ! MMY thus, gw-on will come here
              canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tvair) /ssnow%rtsoil
           ENDIF
 
@@ -542,7 +546,10 @@ CONTAINS
 
           ! Soil sensible heat:
           !canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tvair) /ssnow%rtsoil
-          IF (cable_user%gw_model .or. cable_user%or_evap) THEN
+          ! IF (cable_user%gw_model .or. cable_user%or_evap) THEN ! MMY
+          IF (cable_user%or_evap) THEN ! MMY
+             print *, " ssnow%rtsoil is ", ssnow%rtsoil ! MMY
+             print *, " ssnow%rt_qh_sublayer is ", ssnow%rt_qh_sublayer ! MMY
              canopy%fhs =  air%rho*C%CAPP*(ssnow%tss - met%tvair) / &
                   (ssnow%rtsoil + real(ssnow%rt_qh_sublayer))
 
@@ -727,16 +734,28 @@ CONTAINS
           ENDIF
 
           !extensions for litter and Or evaporation model
-          if (cable_user%litter) then
-             canopy%tscrn(j) = ssnow%tss(j) + (met%tk(j) - ssnow%tss(j)) *     &
-               MIN(1., ( (r_sc(j)+rhlitt(j)*canopy%us(j))  / MAX( 1.,          &
-               rough%rt0us(j) + rough%rt1usa(j) + rough%rt1usb(j)              &
-               + rt1usc(j) + rhlitt(j)*canopy%us(j) )) ) - C%tfrz
-          elseif (cable_user%or_evap .or. cable_user%gw_model) then
+
+
+          !if (cable_user%litter) then ! MMY
+          !   canopy%tscrn(j) = ssnow%tss(j) + (met%tk(j) - ssnow%tss(j)) *     & ! MMY
+          !     MIN(1., ( (r_sc(j)+rhlitt(j)*canopy%us(j))  / MAX( 1.,          & ! MMY
+          !     rough%rt0us(j) + rough%rt1usa(j) + rough%rt1usb(j)              & ! MMY
+          !     + rt1usc(j) + rhlitt(j)*canopy%us(j) )) ) - C%tfrz    ! MMY
+          !elseif (cable_user%or_evap .or. cable_user%gw_model) then  ! MMY
+          ! MMY there are two problems above. First, or_evap considers litter
+          ! MMY problem, so we should put or_evap before litter.
+          ! MMY Second, rt_qh_sublayer is given value only when or-on. Thus
+          ! MMY gw-on & or-off should go to the last case.
+          if (cable_user%or_evap) then ! MMY
              canopy%tscrn(j) = ssnow%tss(j) + (met%tk(j) - ssnow%tss(j)) *     &
                MIN(1., ( (ssnow%rt_qh_sublayer(j)*canopy%us(j) + r_sc(j) ) /   &
                MAX( 1., rough%rt0us(j) + rough%rt1usa(j) + rough%rt1usb(j)     &
                + rt1usc(j) + ssnow%rt_qh_sublayer(j)*canopy%us(j) )) ) - C%tfrz
+          elseif (cable_user%litter) then
+             canopy%tscrn(j) = ssnow%tss(j) + (met%tk(j) - ssnow%tss(j)) *     &
+               MIN(1., ( (r_sc(j)+rhlitt(j)*canopy%us(j))  / MAX( 1.,          &
+               rough%rt0us(j) + rough%rt1usa(j) + rough%rt1usb(j)              &
+               + rt1usc(j) + rhlitt(j)*canopy%us(j) )) ) - C%tfrz
           else
             canopy%tscrn(j) = ssnow%tss(j) + (met%tk(j) - ssnow%tss(j)) *      &
                MIN(1., (r_sc(j) / MAX( 1.,                            &
@@ -767,13 +786,16 @@ CONTAINS
        IF( canopy%vlaiw(j) >C%LAI_THRESH .and. rough%hruff(j) > 0.01) THEN
 
           !extensions for litter and Or model
-          if (cable_user%litter) then
-             canopy%qscrn(j) = qsurf(j) + (met%qv(j) - qsurf(j)) *             &
-               MIN(1., ( ( r_sc(j)+relitt(j)*canopy%us(j) ) / MAX( 1.,         &
-                 rough%rt0us(j) + rough%rt1usa(j) + rough%rt1usb(j)            &
-               + rt1usc(j) + relitt(j)*canopy%us(j) )) )
+          ! ________________ MMY COMMENT OUT _______________
+          !if (cable_user%litter) then
+          !   canopy%qscrn(j) = qsurf(j) + (met%qv(j) - qsurf(j)) *             &
+          !     MIN(1., ( ( r_sc(j)+relitt(j)*canopy%us(j) ) / MAX( 1.,         &
+          !       rough%rt0us(j) + rough%rt1usa(j) + rough%rt1usb(j)            &
+          !     + rt1usc(j) + relitt(j)*canopy%us(j) )) )
 
-          elseif (cable_user%or_evap .or. cable_user%gw_model) then
+          !elseif (cable_user%or_evap .or. cable_user%gw_model) then
+          ! _______________________________________________
+          if (cable_user%or_evap) then ! MMY
              !using alpm1 as a dumy variable
              alpm1(j) = real(&
                          ssnow%satfrac(j)/(real(ssnow%rtsoil(j),r_2)+&
@@ -785,7 +807,11 @@ CONTAINS
                MIN(1., ( (r_sc(j) + canopy%us(j)/alpm1(j) ) / MAX( 1.,         &
                rough%rt0us(j) + rough%rt1usa(j) + rough%rt1usb(j)              &
                + rt1usc(j) + canopy%us(j)/alpm1(j) )) )
-
+          elseif (cable_user%litter) then ! MMY 
+             canopy%qscrn(j) = qsurf(j) + (met%qv(j) - qsurf(j)) *      & ! MMY
+               MIN(1., ( ( r_sc(j)+relitt(j)*canopy%us(j) ) / MAX( 1.,  & ! MMY
+                 rough%rt0us(j) + rough%rt1usa(j) + rough%rt1usb(j)     & ! MMY
+               + rt1usc(j) + relitt(j)*canopy%us(j) )) )                  ! MMY
           else
              canopy%qscrn(j) = qsurf(j) + (met%qv(j) - qsurf(j)) *             &
                MIN(1., (r_sc(j) / MAX( 1.,                                     &
@@ -841,19 +867,21 @@ CONTAINS
           ENDWHERE
        ENDIF
 
-       IF (cable_user%gw_model .or. cable_user%or_evap) THEN
-
-          ssnow%dfh_dtg = air%rho*C%CAPP/(ssnow%rtsoil+ real(ssnow%rt_qh_sublayer))
-
-          !! INH simplifying code for legibility
-          !ssnow%dfe_ddq = real(ssnow%satfrac)*air%rho*air%rlam*ssnow%cls/ &
-          !     (ssnow%rtsoil+ real(ssnow%rtevap_sat))  +
-          !     (1.0-real(ssnow%satfrac))*real(ssnow%rh_srf)*&
-          !      air%rho*air%rlam*ssnow%cls/ (ssnow%rtsoil+
-          !      real(ssnow%rtevap_unsat) )
-           ssnow%dfe_ddq = real(ssnow%satfrac)/(ssnow%rtsoil+ real(ssnow%rtevap_sat))  &
-                      + (1.0-real(ssnow%satfrac))*real(ssnow%rh_srf)                   &
-                           / (ssnow%rtsoil+ real(ssnow%rtevap_unsat) )
+       !IF (cable_user%gw_model .or. cable_user%or_evap) THEN
+       IF (cable_user%or_evap) THEN
+          ! _______________________ MMY redundant ___________________ 
+          !ssnow%dfh_dtg = air%rho*C%CAPP/(ssnow%rtsoil+ real(ssnow%rt_qh_sublayer))
+          
+          !!! INH simplifying code for legibility
+          !!ssnow%dfe_ddq = real(ssnow%satfrac)*air%rho*air%rlam*ssnow%cls/ &
+          !!     (ssnow%rtsoil+ real(ssnow%rtevap_sat))  +
+          !!     (1.0-real(ssnow%satfrac))*real(ssnow%rh_srf)*&
+          !!      air%rho*air%rlam*ssnow%cls/ (ssnow%rtsoil+
+          !!      real(ssnow%rtevap_unsat) )
+          ! ssnow%dfe_ddq = real(ssnow%satfrac)/(ssnow%rtsoil+ real(ssnow%rtevap_sat))  &
+          !            + (1.0-real(ssnow%satfrac))*real(ssnow%rh_srf)                   &
+          !                 / (ssnow%rtsoil+ real(ssnow%rtevap_unsat) )
+          ! __________________________________________________________
 
        !mrd561 fixes.  Do same thing as INH but has been tested.
            IF (cable_user%L_REV_CORR) THEN
@@ -877,13 +905,13 @@ CONTAINS
                     (1.0-ssnow%satfrac)* (ssnow%rh_srf - real(beta_div_alpm,r_2)) /    &
                     (real(ssnow%rtsoil,r_2)+ ssnow%rtevap_unsat ) )
 
-          ELSE
+            ELSE
              ssnow%dfh_dtg = air%rho*C%CAPP/(ssnow%rtsoil+ real(ssnow%rt_qh_sublayer))
 
              ssnow%dfe_ddq = real(ssnow%satfrac)/(ssnow%rtsoil+ real(ssnow%rtevap_sat))  &
-                         + (1.0-real(ssnow%satfrac))*real(ssnow%rh_srf)                   &
+                              + (1.0-real(ssnow%satfrac))*real(ssnow%rh_srf)                   &
                               / (ssnow%rtsoil+ real(ssnow%rtevap_unsat) )
-           ENDIF
+            ENDIF
 
            !cls applies for both REV_CORR false and true
            ssnow%dfe_ddq = ssnow%dfe_ddq*air%rho*air%rlam*ssnow%cls

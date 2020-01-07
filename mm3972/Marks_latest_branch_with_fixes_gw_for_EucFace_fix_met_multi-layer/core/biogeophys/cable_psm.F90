@@ -152,8 +152,11 @@ SUBROUTINE or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
 
        end if
 
+       print *, "canopy%sublayer_dz is ", canopy%sublayer_dz ! MMY
+       print *, "litter_dz is ", litter_dz ! MMY
+
        canopy%sublayer_dz(i) = canopy%sublayer_dz(i) + litter_dz(i)
-    
+ 
        if (canopy%sublayer_dz(i) .ge. 1.0e-7 .and. hk_zero(i) .lt. 1.0e14) then
           ssnow%rtevap_unsat(i) = min(rtevap_max, &
                                    rough%z0soil(i)/canopy%sublayer_dz(i) * (lm/ (4.0*hk_zero(i)) +&
