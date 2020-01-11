@@ -69,7 +69,7 @@ SUBROUTINE sf_exch_cbl (                                                        
  r_b_dust,cd_std_dust,u_s_std_surft,                                          &
  rhokh_1,rhokh_1_sice_ncats,rhokh_1_sea,rhokm_1,rhokm_land,                   &
  rhokm_ssi,                                                                   &
- dtstar_surft,dtstar_sea,dtstar_sice,rhokh_gb,anthrop_heat,                   &
+  dtstar_surft,dtstar_sea,dtstar_sice,rhokh_gb,anthrop_heat,                   &
 !CABLE_LSM:{pass additional existing vars
  cycleno, numcycles,                          &
  sm_levels,                                                                   &
@@ -78,7 +78,6 @@ SUBROUTINE sf_exch_cbl (                                                        
 !CABLE_LSM:}
 )
 
-USE sf_flux_mod, ONLY: sf_flux
 !CABLE_LSM:we use a bunch of modules in 10.6. Limit these here - PASS instead  
 !Make availabe explicit CALL to CABLE
 USE cable_explicit_main_mod, ONLY : cable_explicit_main
@@ -86,6 +85,8 @@ USE cable_explicit_main_mod, ONLY : cable_explicit_main
 USE pftparm, ONLY: emis_pft
 USE nvegparm, ONLY: emis_nvg
 !CABLE_LSM:}
+
+USE sf_flux_mod, ONLY: sf_flux
 USE sfl_int_mod, ONLY: sfl_int
 USE ice_formdrag_lupkes_mod, ONLY: ice_formdrag_lupkes
 USE atm_fields_bounds_mod
@@ -134,8 +135,9 @@ USE jules_sea_seaice_mod, ONLY: iseasurfalg, ip_ss_solid,                     &
                                  z0sice, z0h_z0m_sice, z0hsea,                &
                                  emis_sea, emis_sice, hcap_sea,               &
                                  l_iceformdrag_lupkes, beta_evap,             &
-                                 ip_hwdrag_limited,                           &
-                                 i_high_wind_drag, cd_limit_sea
+                                 ip_hwdrag_limited, ip_hwdrag_reduced_v1,     &
+                                 i_high_wind_drag, cdn_max_sea, cdn_hw_sea,   &
+                                 u_cdn_max, u_cdn_hw, z_10m
 
 USE jules_internal, ONLY: unload_backgrnd_pft
 
@@ -188,6 +190,7 @@ USE errormessagelength_mod, ONLY: errormessagelength
 
 USE parkind1, ONLY: jprb, jpim
 USE yomhook, ONLY: lhook, dr_hook
+
 IMPLICIT NONE
 
 
@@ -613,7 +616,6 @@ REAL ::                                                                       &
 !                                  ! qsat(TL_1,PSTAR)
 ,rhokm_ssi_nohalo(tdims%i_start:tdims%i_end,tdims%j_start:tdims%j_end)        &
 !                                  ! like RHOKM_SSI, but with no halo
-
 ,lh0                         ! Latent heat for snow free surface
 !                                  !   =LS for sea-ice, =LC otherwise
 
@@ -652,6 +654,7 @@ REAL ::                                                                       &
 !                                  ! of interpolation coefficient
 !                                  ! (dummy variable for sea)
 !                                  ! for sea points (m/s).
+
 REAL, ALLOCATABLE ::                                                          &
  rhokm_1_sice(:,:)                                                            &
 !                                  ! Surface momentum exchange coefficient
@@ -963,6 +966,7 @@ REAL ::                                                                       &
 REAL, ALLOCATABLE ::                                                          &
  tau_surft(:,:)
                              ! Local tau_1 for land tiles.
+
 ! dummy arrays required for sea and se-ice to create universal
 ! routines for all surfaces
 REAL ::                                                                       &
@@ -1039,8 +1043,13 @@ REAL ::                                                                       &
 ,t_rad                                                                        &
 ,lw_down_surftsum                                                             &
 ,lw_down_surftabs                                                             &
-,z0msea_max
-             ! Maximum roughness length to limit the drag
+,z0msea_max                                                                   &
+             ! Sea roughness at maximum neutral drag
+,u10n                                                                         &
+             ! Neutral wind speed at 10 m.
+,cdn_lim_loc
+             ! Local limiting value of the neutral drag coefficient
+
 
 LOGICAL :: l_cdr10m_snow
              ! Flag indicating if cdr10m (an interpolation coefficient) is
@@ -1056,6 +1065,7 @@ LOGICAL, PARAMETER :: l_vegdrag_ssi = .FALSE.
 REAL :: sea_point
 
 INTEGER :: n_diag
+
 INTEGER :: errcode
 CHARACTER(LEN=errormessagelength) :: cmessage
 
@@ -1145,10 +1155,6 @@ END DO
 DO j = tdims%j_start,tdims%j_end
   DO i = tdims%i_start,tdims%i_end
     rhokm_land(i,j) = 0.0
-
-    !print *, "i,j, pstar ", i,j, pstar(i,j) 
-    !print *, "i,j, tstar ", i,j, tstar(i,j)
-    !if ( tstar(i,j) < 200. ) tstar(i,j) = 273.16
     rhostar(   i,j) = pstar(i,j) / ( r * tstar(i,j) )
     !                        ... surface air density from ideal gas equation
     cd_land(i,j) = 0.0
@@ -1160,8 +1166,10 @@ DO j = tdims%j_start,tdims%j_end
     cdr10m(i,j) = 0.0
   END DO
 END DO
+
 !$OMP END DO NOWAIT
 !$OMP END PARALLEL 
+
 
 IF (sf_diag%l_tau_1) THEN
   DO j = tdims%j_start,tdims%j_end
@@ -1222,7 +1230,6 @@ DO n = 1,nsurft
     IF (sf_diag%l_et_stom .OR. sf_diag%l_et_stom_surft) THEN
       sf_diag%resfs_stom(l,n) = 0.0
     END IF
-
   END DO
 !$OMP END DO NOWAIT
 END DO
@@ -1245,10 +1252,12 @@ IF (sf_diag%l_tau_surft) THEN
         resfs(l,n) = 0.0
         resft(l,n) = 0.0
       end if
+
     END DO
 !$OMP END DO NOWAIT
   END DO
 END IF
+
 
 DO n = 1,nsurft
   IF ( (can_model == 4) .AND. cansnowtile(n) .AND. l_snowdep_surf ) THEN
@@ -1748,7 +1757,8 @@ END IF
 !C!!$OMP END DO
 !C!END IF
 !C!!$OMP END PARALLEL
-!CABLE_LSM:} 
+!CABLE_LSM:}
+
 !-----------------------------------------------------------------------
 !  3.5 Recalculate friction velocity for the dust scheme using the
 !      bare soil roughness length if using only 1 aggregated tile
@@ -2363,7 +2373,7 @@ DO n = 1,nsurft
   !==============================================================================
 
   sea_point = 0.0
-!CABLE_LSM:{
+!CABLE_LSM:{ 
 !C!  CALL sf_flux (                                                              &
 !C!   land_pts,surft_pts(n),flandg,                                              &
 !C!   land_index,surft_index(:,n),                                               &
@@ -2380,8 +2390,9 @@ DO n = 1,nsurft
 !C!   rhokm_1_surft(:,n),vshr_land,tau_surft(:,n),                               &
 !C!   dtstar_surft(:,n),sea_point, sf_diag                                       &
 !C! )
-!CABLE_LSM:}
+!CABLE_LSM:} 
 END DO
+
 
 ! Set surface stress on tiles diagnostic
 IF (sf_diag%l_tau_surft) THEN
@@ -2439,10 +2450,8 @@ DO n = 1,nsurft
      FQW_1(I,J) = FQW_1(I,J)+FLAND(L)*tile_FRAC(L,N)*FQW_surft(L,N)
   
    ENDDO
-!CABLE_LSM:End 
-
 END DO
-
+!CABLE_LSM:End 
 
 
 !-----------------------------------------------------------------------
@@ -2460,6 +2469,7 @@ DO n = 1,nsurft
    q1_sd,t1_sd                                                                &
    )
 END DO
+
 !-----------------------------------------------------------------------
 ! Call SFL_INT to calculate CDR10M and CHR1P5M - interpolation coeffs
 ! used to calculate screen temperature, humidity and 10m winds.
@@ -3186,6 +3196,8 @@ DO j = tdims%j_start,tdims%j_end
   END DO
 END DO
 !$OMP END DO
+
+
 !$OMP END PARALLEL
 
 ! Sea
@@ -3232,6 +3244,7 @@ ELSE
        dtstar_sea,sea_point, sf_diag                                          &
        )
 END IF
+
 ! rhokm_1_sea and tau_sea no longer required
 DEALLOCATE(rhokm_1_sea)
 DEALLOCATE(rhokm_1_sice)
@@ -3328,18 +3341,28 @@ END IF
 !      quantities.
 !-----------------------------------------------------------------------
 
-IF (i_high_wind_drag == ip_hwdrag_limited) THEN
-  !  Limit the neutral drag coefficient at 10m by calculating the
-  !  equivalent roughness length and capping the roughness length.
-  !  The equivalent wind speed will depend on the value of Charnock's
-  !  coefficient.
-  z0msea_max = 10.0 / ( EXP(vkman / SQRT(cd_limit_sea) ) - 1.0)
-END IF
+SELECT CASE (iseasurfalg)
+CASE (ip_ss_fixed, ip_ss_surf_div)
+  SELECT CASE (i_high_wind_drag)
+  CASE (ip_hwdrag_limited)
+    ! Limit the neutral drag coefficient at 10m by calculating the
+    ! equivalent roughness length and capping the roughness length.
+    ! The equivalent wind speed will depend on the value of Charnock's
+    ! coefficient.
+    z0msea_max = z_10m / ( EXP(vkman / SQRT(cdn_max_sea) ) - 1.0)
+  CASE (ip_hwdrag_reduced_v1)
+    ! Calculate the maximum roughness length and the high-wind limit
+    ! to limit the drag coefficient.
+    z0msea_max = z_10m / ( EXP(vkman / SQRT(cdn_max_sea)) - 1.0)
+  END SELECT
+END SELECT
 
-!$OMP PARALLEL DEFAULT(NONE) PRIVATE(i, j, tau)                               &
+!$OMP PARALLEL DEFAULT(NONE) PRIVATE(i, j, tau, u10n, cdn_lim_loc)            &
 !$OMP SHARED(tdims, flandg, rhokm_ssi, vshr_ssi, ice_fract, rhostar, cd_sea,  &
 !$OMP        sf_diag, iseasurfalg, charnock, g, z0msea, l_spec_z0, z0m_scm,   &
-!$OMP        z0h_scm, z0h_sea, z0hsea, i_high_wind_drag, z0msea_max, charnock_w)
+!$OMP        z0h_scm, z0h_sea, z0hsea,                                        &
+!$OMP        i_high_wind_drag, cdn_max_sea, cdn_hw_sea,                       &
+!$OMP        u_cdn_max, u_cdn_hw, z0msea_max, charnock_w)
 
 !$OMP DO SCHEDULE(STATIC)
 DO j = tdims%j_start,tdims%j_end
@@ -3390,8 +3413,28 @@ DO j = tdims%j_start,tdims%j_end
         !       within the iteration for the Obukhov length.
         !
       END SELECT
-      IF (i_high_wind_drag == ip_hwdrag_limited)                              &
+      SELECT CASE (i_high_wind_drag)
+      CASE (ip_hwdrag_limited)
         z0msea(i,j) = MIN(z0msea(i,j), z0msea_max)
+      CASE (ip_hwdrag_reduced_v1)
+        !         Calculate 10-m neutral wind based on current stress
+        u10n = (SQRT(tau / rhostar(i,j)) / vkman) *                           &
+               LOG (1.0 + z_10m / z0msea(i,j))
+        !         Determine a limiting value of cd
+        IF (u10n <= u_cdn_max) THEN
+          cdn_lim_loc = cdn_max_sea
+        ELSE IF ( (u10n > u_cdn_max) .AND. (u10n < u_cdn_hw) ) THEN
+          cdn_lim_loc = cdn_max_sea - (cdn_max_sea - cdn_hw_sea) *            &
+            (u10n - u_cdn_max) / (u_cdn_hw - u_cdn_max)
+        ELSE
+          cdn_lim_loc = cdn_hw_sea
+        END IF
+        !         Reset the roughness length consistently, leaving aside very
+        !         light winds.
+        IF (u10n > 1.0)                                                       &
+          z0msea(i,j) = MIN(z0msea(i,j),                                      &
+            z_10m / ( EXP(vkman / SQRT(cdn_lim_loc) ) - 1.0))
+      END SELECT
 
     END IF
 

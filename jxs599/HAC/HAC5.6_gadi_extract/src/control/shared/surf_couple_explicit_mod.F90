@@ -12,7 +12,7 @@ MODULE surf_couple_explicit_mod
 
 USE sf_expl_l_mod, ONLY: sf_expl_l
 
-
+USE um_types, ONLY: real_jlslsm
 IMPLICIT NONE
 
 PRIVATE
@@ -510,6 +510,9 @@ INTEGER :: errorstatus
 ! Temp until the model switching is implemented for coupled mode
 ! Having a parameter until then should hopefully help the compiler eliminate
 ! dead code
+
+!passed from control
+real :: surf_down_sw(tdims%i_start:tdims%i_end,tdims%j_start:tdims%j_end,4)
 
 !Dr Hook variables
 INTEGER(KIND=jpim), PARAMETER :: zhook_in  = 0
