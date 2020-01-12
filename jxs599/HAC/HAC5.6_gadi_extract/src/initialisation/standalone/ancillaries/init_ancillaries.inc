@@ -26,6 +26,8 @@ USE switches_urban, ONLY: l_moruses
 
 USE lsm_switch_mod, ONLY: lsm_id, cable
 
+USE um_types, ONLY: real_jlslsm
+
 IMPLICIT NONE
 
 !-----------------------------------------------------------------------------

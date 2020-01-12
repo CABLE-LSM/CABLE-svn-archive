@@ -39,10 +39,10 @@ USE metstats_init_mod,            ONLY: metstats_init
 USE init_parms_mod,               ONLY: init_parms
 USE init_soil_ecosse_mod,         ONLY: init_soil_ecosse
 USE init_check_compatibility_mod, ONLY: init_check_compatibility
-USE init_cable_mod,               ONLY: init_cable_grid, init_cable_veg,      &
-                                        init_cable_soil, init_cable_met,      &
-                                        init_cable_rad, init_cable_canopy,    &
-                                        init_cable_soilsnow
+USE init_cable_mod,               ONLY: init_cable_grid, init_cable_veg!C!,      &
+                                        !C!init_cable_soil, init_cable_met,      &
+                                        !C!init_cable_rad, init_cable_canopy,    &
+                                        !C!init_cable_soilsnow
 USE init_deposition_mod,          ONLY: init_deposition
 USE allocate_cable_arrays_mod,    ONLY: allocate_cable_arrays
 USE jules_science_fixes_mod,      ONLY: init_science_fixes
