@@ -105,7 +105,7 @@ SUBROUTINE GWsoilfreeze(dels, soil, ssnow)
    INTEGER :: i,j,k
    REAL(r_2) :: func,funcderv,Aconst,Dconst,t_zero,t_one,dtmp
    REAL, DIMENSION(mp,ms) :: gammzz_snow
-   REAL(r_2),DIMENSION(mp,ms) :: xx,max_ice_frac,iceF,den_css  !Decker and Zeng 2009
+   REAL(r_2),DIMENSION(mp,ms) :: xx,max_ice_frac, den_css  !Decker and Zeng 2009 ! MMY
    REAL(r_2) :: delta_wbliq,tmp_var
 
    !call point2constants( C )
@@ -130,12 +130,13 @@ SUBROUTINE GWsoilfreeze(dels, soil, ssnow)
 
             ssnow%otgg(i,k) = min(ssnow%otgg(i,k),C%TFRZ)
 
-            if (ssnow%wb(i,k) .gt. 1.0e-4) then
-               iceF(i,k) = 1._r_2 - max(0.1_r_2,min(0.9_r_2,ssnow%wbliq(i,k)/max(ssnow%wb(i,k),1.0e-8)))
-            else
-               iceF(i,k) = 0._r_2
-            end if
-
+            ! ___________________ MMY not really function ______________________
+            !if (ssnow%wb(i,k) .gt. 1.0e-4) then
+            !   iceF(i,k) = 1._r_2 - max(0.1_r_2,min(0.9_r_2,ssnow%wbliq(i,k)/max(ssnow%wb(i,k),1.0e-8)))
+            !else
+            !   iceF(i,k) = 0._r_2
+            !end if
+            ! __________________________________________________________________
             tgg_tmp(i,k) = ssnow%tgg(i,k)
 
             Aconst = -2.0*( (0.2+ssnow%wb(i,k)/soil%ssat_vec(i,k))**4.0 )
