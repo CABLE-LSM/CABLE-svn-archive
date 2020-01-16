@@ -1163,7 +1163,10 @@ CONTAINS
             !evaporation from frozen soils needs to respect the assumption that
             !ice fraction of soil moisture cannot exceed frozen_limit=0.85
             !see soilsnow: if frozen_limit changes need to be consistent
-            fupper_limit(j) = REAL(ssnow%wb(j,1)-ssnow%wbice(j,1)/0.85)*frescale(j)
+
+            ! fupper_limit(j) = REAL(ssnow%wb(j,1)-ssnow%wbice(j,1)/0.85)*frescale(j) ! MMY
+            fupper_limit(j) = REAL(ssnow%wb(j,1)-ssnow%wbice(j,1)*den_rat/frozen_limit)*frescale(j)  ! MMY keep consistency
+            ! MMY frozen_limit is in cable_common_module
             fupper_limit(j) = MAX(real(fupper_limit(j),r_2),0.)
 
             canopy%fess(j) = min(canopy%fess(j), real(fupper_limit(j),r_2))
