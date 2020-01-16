@@ -205,8 +205,9 @@ SUBROUTINE GWsoilfreeze(dels, soil, ssnow)
             ssnow%wmtot(i,k) = ssnow%wb(i,k)   *soil%zse_vec(i,k)*C%density_liq
 
           elseif ((ssnow%tgg(i,k) .gt. C%TFRZ) .and. &
-                   ssnow%wbice(i,k) .gt. 0.0 ) then
-
+                  delta_ice_vol(i,k) .gt. 0.0 ) then ! MMY
+                  ! ssnow%wbice(i,k) .gt. 0.0 ) then ! MMY this is improper,
+                  ! MMY since when previous tgg > current tgg > 0 wbice won't melt
 
             ssnow%wbice(i,k) = ssnow%wbice(i,k)  -  delta_ice_vol(i,k)
             ssnow%wbliq(i,k) = ssnow%wbliq(i,k)  +  delta_ice_vol(i,k)*den_rat
