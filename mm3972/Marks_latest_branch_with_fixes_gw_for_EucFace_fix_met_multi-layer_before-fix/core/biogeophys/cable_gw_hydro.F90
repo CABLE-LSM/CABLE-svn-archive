@@ -920,7 +920,7 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
 
    zsetot = sum(soil%zse)
    ssnow%tggav = 0.
-   print *, "-------- first_gw_hydro_call is ",first_gw_hydro_call ! MMY
+   !print *, "-------- first_gw_hydro_call is ",first_gw_hydro_call ! MMY
    !CALL point2constants( C )
 
    DO k = 1, ms

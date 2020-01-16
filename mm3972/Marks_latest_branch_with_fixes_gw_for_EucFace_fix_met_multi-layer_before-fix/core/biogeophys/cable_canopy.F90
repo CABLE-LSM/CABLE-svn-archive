@@ -1143,7 +1143,12 @@ CONTAINS
          IF(ssnow%snowd(j) < 0.1 .AND. canopy%fess(j) .GT. 0. ) THEN
 
             IF (.not.cable_user%l_new_reduce_soilevp) THEN
-               flower_limit(j) = REAL(ssnow%wb(j,1))-soil%swilt(j)/2.0
+               IF (cable_user%gw_model) THEN ! MMY
+                  flower_limit(j) = REAL(ssnow%wb(j,1))-REAL(soil%watr(j,1)) ! MMY
+                  ! MMY watr is better than swilt/2., as it has a clear physical meaning
+               ELSE ! MMY
+                  flower_limit(j) = REAL(ssnow%wb(j,1))-soil%swilt(j)/2.0
+               END IF ! MMY              
             ELSE
                ! E.Kowalczyk 2014 - reduces the soil evaporation
                flower_limit(j) = REAL(ssnow%wb(j,1))-soil%swilt(j)
