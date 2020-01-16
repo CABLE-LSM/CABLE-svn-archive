@@ -149,8 +149,12 @@ SUBROUTINE GWsoilfreeze(dels, soil, ssnow)
 
             max_ice_frac(i,k) = min(0.9_r_2,max_ice_frac(i,k))
 
-            delta_ice_vol(i,k) = max(0._r_2, ssnow%wb(i,k)*max_ice_frac(i,k) - ssnow%wbice(i,k))
+            !delta_ice_vol(i,k) = max(0._r_2, ssnow%wb(i,k)*max_ice_frac(i,k) - ssnow%wbice(i,k)) ! MMY
+            ! MMY ssnow%wb(i,k)*max_ice_frac(i,k) here should be ice volume, thus divided by den_rat
+            delta_ice_vol(i,k) = max(0._r_2, ssnow%wb(i,k)*max_ice_frac(i,k)/den_rat - ssnow%wbice(i,k)) ! MMY
 
+            ! MMY wbliq can be lower than watr due to condensation, but to avoid large negative water potential
+            !     set watr as wbliq lower boundary
             !check amount of water we have
             delta_ice_vol(i,k) = min((ssnow%wbliq(i,k)-soil%watr(i,k))/den_rat, &
                                  max(0._r_2, delta_ice_vol(i,k) ) )
