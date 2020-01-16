@@ -956,6 +956,13 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
 
    if (first_gw_hydro_call) then
       call set_den_rat()
+      ! ____________________________ MMY _____________________________
+      ! check wb wbice when first_gw_hydro_call = true
+      DO k = 1, ms
+        ssnow%wb(:,k)    = MIN(soil%ssat_vec(:,k), MAX(real(ssnow%wb(:,k)), soil%watr(:,k)))
+        ssnow%wbice(:,k) = MIN(real(ssnow%wb(:,k))/den_rat, real(ssnow%wbice(:,k)))
+      END DO
+      ! ______________________________________________________________
    end if
 
    IF( cable_runtime%offline .or. cable_runtime%mk3l ) ssnow%t_snwlr = 0.05_r_2
