@@ -2699,15 +2699,20 @@ CONTAINS
        !     SPREAD(soil%swilt, 2, ms))),2) /(soil%sfc-soil%swilt))
        ! fix range problems
         rwater = MAX(1.0e-9,                                                    &
-           SUM(veg%froot * MAX(1.0e-9, MIN( 1.0, real((ssnow%wb              &
-           - SPREAD(soil%swilt, 2, ms))  / (SPREAD(soil%sfc, 2, ms)           &
-           - SPREAD(soil%swilt, 2, ms)) ))) , 2))
+                 SUM(veg%froot * MAX(1.0e-9, MIN( 1.0, &
+                 MAX(0., (real(ssnow%wb) - SPREAD(soil%swilt, 2, ms))) &
+                 / (SPREAD(soil%sfc, 2, ms) - SPREAD(soil%swilt, 2,ms)) &
+                 ))) , 2)
+       ! MMY I didn't check gw-off, but think using wbliq may be better than wb above eq
        ! __________________________________________________________________________
     else
-       rwater = MAX(1.0e-9,                                                    &
-            SUM(veg%froot * MAX(1.0e-9,MIN(1.0, real((ssnow%wbliq -                 &
-            soil%swilt_vec)/(soil%sfc_vec-soil%swilt_vec)) )),2) )
-
+       ! ______________________________ MMY _______________________________________
+        rwater = MAX(1.0e-9,&
+                 SUM(veg%froot * MAX(1.0e-9, MIN( 1.0, &
+                 MAX(0., (real(ssnow%wbliq) - real(soil%swilt_vec)) )&
+                 / (real(soil%sfc_vec) - real(soil%swilt_vec)) &
+                 ))) , 2)
+       ! __________________________________________________________________________
     endif
 
    ! Remove vbeta #56
@@ -2738,14 +2743,18 @@ CONTAINS
     !errors)
 
     if (.not.cable_user%gw_model) THEN
-      rwater = MAX(1.0e-9,                                                    &
-           SUM(veg%froot * MAX(1.0e-9, (MIN( 1.0, real(ssnow%wb)              &
-           - SPREAD(soil%swilt, 2, ms) ) / (SPREAD(soil%sfc, 2, ms)           &
-           - SPREAD(soil%swilt, 2, ms))) ** 0.38) , 2))
+        rwater = MAX(1.0e-9,                                                  &
+               SUM(veg%froot * MAX(1.0e-9, MIN( 1.0,                          &
+               (MAX(0., (real(ssnow%wb) - SPREAD(soil%swilt, 2, ms)) )        &
+               / (SPREAD(soil%sfc, 2, ms) - SPREAD(soil%swilt, 2, ms)))** 0.38 &
+               ))) , 2)
+      ! MMY I didn't check gw-off, but think using wbliq may be better than wb above eq
     else
-      rwater = MAX(1.0e-9,                                                    &
-            SUM(veg%froot * MAX(1.0e-9,MIN(1.0, real(((ssnow%wbliq -           &
-            soil%swilt_vec)/(soil%sfc_vec-soil%swilt_vec))** 0.38) )),2))
+        rwater = MAX(1.0e-9,                                                  &
+                SUM(veg%froot * MAX(1.0e-9, MIN( 1.0,                         &
+                (MAX(0., (real(ssnow%wbliq) - real(soil%swilt_vec)))          &
+                / (real(soil%sfc_vec) - real(soil%swilt_vec)) )**0.38         &
+                ))) , 2)
     endif
 
    ! Remove vbeta #56
@@ -2987,9 +2996,17 @@ CONTAINS
     REAL, DIMENSION(mp,3)          :: xi, ti, si
     INTEGER :: j
 
-    rwater = MAX(1.0e-9,                                                    &
-         SUM(veg%froot * MAX(0.0,MIN(1.0, real(ssnow%wb) -                   &
-         SPREAD(soil%swilt, 2, ms))),2) /(soil%sfc-soil%swilt))
+    if (.not.cable_user%gw_model) THEN
+       ! ______________________  MMY _________________________________
+       !rwater = MAX(1.0e-9, &
+       !     SUM(veg%froot * MAX(0.0,MIN(1.0, real(ssnow%wb) - &
+       !     SPREAD(soil%swilt, 2, ms))),2) /(soil%sfc-soil%swilt))
+        rwater = MAX(1.0e-9, &
+                 SUM(veg%froot * MAX(1.0e-9, MIN( 1.0,         &
+                 MAX(0., (real(ssnow%wb) - SPREAD(soil%swilt, 2, ms)) ) &
+                 / (SPREAD(soil%sfc, 2, ms) - SPREAD(soil%swilt, 2, ms))&
+                 ))) , 2)
+       ! ________________________________________________________________
 
     fwsoil = 1.
 
