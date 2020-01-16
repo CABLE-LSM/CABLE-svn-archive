@@ -839,26 +839,47 @@ END SUBROUTINE remove_transGW
           ssnow%qhz(i) = ssnow%qhz(i) + xsi/dels
           xsi = 0._r_2
        end if
+       ! ________________________________ MMY __________________________________
+       !do k = 1,ms
+      !  xsi = 0._r_2             !should be a single float (array not needed)
+      !    if (ssnow%wbliq(i,k) .lt. volwatmin) then
+      !       xsi = (volwatmin - ssnow%wbliq(i,k))*(m2mm*soil%zse_vec(i,k))  !in mm
+      !       ssnow%wbliq(i,k) = volwatmin
+      !       if (k .lt. ms) then
+      !          ssnow%wbliq(i,k+1) = ssnow%wbliq(i,k+1) - xsi/(m2mm*soil%zse_vec(i,k+1))
+      !       else
+      !          ssnow%GWwb(i) = ssnow%GWwb(i) - xsi / (m2mm*soil%GWdz(i))
+      !       end if
+      !    end if
+       !end do  !ms loop
 
-       do k = 1,ms
-          xsi = 0._r_2             !should be a single float (array not needed)
-          if (ssnow%wbliq(i,k) .lt. volwatmin) then
-             xsi = (volwatmin - ssnow%wbliq(i,k))*(m2mm*soil%zse_vec(i,k))  !in mm
-             ssnow%wbliq(i,k) = volwatmin
-             if (k .lt. ms) then
-                ssnow%wbliq(i,k+1) = ssnow%wbliq(i,k+1) - xsi/(m2mm*soil%zse_vec(i,k+1))
-             else
-                ssnow%GWwb(i) = ssnow%GWwb(i) - xsi / (m2mm*soil%GWdz(i))
-             end if
+       !if ( (ssnow%GWwb(i) .lt. volwatmin) .and. (soil%isoilm(i) .ne. 9) ) then
+      !    xsi = (volwatmin - ssnow%GWwb(i)) / (m2mm*soil%GWdz(i))  !mm
+      !    ssnow%GWwb(i) = volwatmin
+      !    ssnow%qhz(i) = ssnow%qhz(i) - xsi / dels
+      ! end if
+
+      ! MMY use watr to replace volwatmin to avoid questionable smp or hk (when wbliq<watr)
+      do k = 1,ms
+        xsi = 0._r_2             !should be a single float (array not needed)
+        if (ssnow%wbliq(i,k) .lt. soil%watr(i,k)) then         ! MMY
+          xsi = (soil%watr(i,k) - ssnow%wbliq(i,k))*(m2mm*soil%zse_vec(i,k)) ! MMY
+          ssnow%wbliq(i,k) = soil%watr(i,k)   ! MMY
+          if (k .lt. ms) then
+            ssnow%wbliq(i,k+1) = ssnow%wbliq(i,k+1) - xsi/(m2mm*soil%zse_vec(i,k+1))
+          else
+            ssnow%GWwb(i) = ssnow%GWwb(i) - xsi / (m2mm*soil%GWdz(i))
           end if
-       end do  !ms loop
+        end if
+      end do  !ms loop
 
-       if ( (ssnow%GWwb(i) .lt. volwatmin) .and. (soil%isoilm(i) .ne. 9) ) then
-          xsi = (volwatmin - ssnow%GWwb(i)) / (m2mm*soil%GWdz(i))  !mm
-          ssnow%GWwb(i) = volwatmin
-          ssnow%qhz(i) = ssnow%qhz(i) - xsi / dels
-       end if
-
+      if ( (ssnow%GWwb(i) .lt. soil%GWwatr(i)) .and. (soil%isoilm(i) .ne. 9) ) then ! MMY
+        xsi = (soil%GWwatr(i) - ssnow%GWwb(i)) / (m2mm*soil%GWdz(i))  !mm ! MMY
+        ssnow%GWwb(i) = soil%GWwatr(i) ! MMY
+        ssnow%qhz(i) = ssnow%qhz(i) - xsi / dels
+        if (ssnow%qhz(i) .lt. 0.) print *, " MMY ===> Soil is too dry, found in SUBROUTINE smoistgw"
+      end if
+      ! _______________________________________________________________________
    end do
 
    do k=1,ms
