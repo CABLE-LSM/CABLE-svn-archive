@@ -1787,7 +1787,7 @@ SUBROUTINE calc_soil_hydraulic_props(ssnow,soil,veg)
     !hydraulic conductivity
     !Interfacial so uses layer i and i+1
     do k=1,ms-1
-!       kk=min(ms+1,k+1) ! MMY redundant
+       kk= k+1 ! MMY 
        do i=1,mp
 
 !          if (k .lt. ms) then ! MMY redundant
