@@ -1728,7 +1728,12 @@ SUBROUTINE calc_soil_hydraulic_props(ssnow,soil,veg)
 
     do k=1,ms
        do i=1,mp
-          ssnow%icefrac(i,k) = ssnow%wbice(i,k)/(max(ssnow%wb(i,k),0.01_r_2))
+          ! _____ MMY here is inconsist to icef in SUBROUTINE ovrlndflx ______
+          !ssnow%icefrac(i,k) = ssnow%wbice(i,k)/(max(ssnow%wb(i,k),0.01_r_2)) ! MMY
+          ! ________________ MMY to unify the calculation ____________________
+          ssnow%icefrac(i,k) = max(0._r_2, min(1._r_2, &
+                               ssnow%wmice(i,k) / max(ssnow%wmtot(i,k), 0.01_r_2)) )
+          ! __________________________________________________________________
           ssnow%fracice(i,k) = (exp(-gw_params%IceAlpha*(1._r_2-ssnow%icefrac(i,k)))&
                                -exp(-gw_params%IceAlpha))/(1._r_2-exp(-gw_params%IceAlpha))
        end do
