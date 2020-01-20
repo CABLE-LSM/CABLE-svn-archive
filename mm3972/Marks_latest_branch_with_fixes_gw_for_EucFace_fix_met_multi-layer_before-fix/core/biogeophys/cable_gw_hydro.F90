@@ -1621,9 +1621,10 @@ SUBROUTINE calc_srf_wet_fraction(ssnow,soil,met,veg)
                  (1._r_2-exp(-gw_params%IceAlpha))
          fice = min(1._r_2,max(0._r_2,fice))
 
-         satfrac_liqice(i) = fice + (1._r_2-fice)*ssnow%satfrac(i)
+         satfrac_liqice(i) = max(0.,min(0.95,fice + (1._r_2-fice)*ssnow%satfrac(i) ) ) ! MMY
+                             ! MMY fice + (1._r_2-fice)*ssnow%satfrac(i)
 
-         wb_unsat = ((ssnow%wb(i,1)-ssnow%wbice(i,1)) -&
+         wb_unsat = ((ssnow%wb(i,1)-ssnow%wbice(i,1)*den_rat) -& ! MMY add *den_rat
                      ssnow%satfrac(i)*soil%ssat_vec(i,1))/(1.-ssnow%satfrac(i))
          wb_unsat = min(soil%ssat_vec(i,1),max(0.,wb_unsat))
 
@@ -1658,7 +1659,8 @@ SUBROUTINE calc_srf_wet_fraction(ssnow,soil,met,veg)
           IF( ssnow%wbice(i,1) > 0. )&
                ssnow%wetfac(i) = ssnow%wetfac(i) * &
                                 real(MAX( 0.5_r_2, 1._r_2 - MIN( 0.2_r_2, &
-                                 ( ssnow%wbice(i,1) / ssnow%wb(i,1) )**2 ) ) )
+                                 ( ssnow%wbice(i,1) * den_rat & ! MMY not sure whether needed but add * den_rat
+                                 / ssnow%wb(i,1) )**2 ) ) )
 
           IF( ssnow%snowd(i) > 0.1) ssnow%wetfac(i) = 0.9
 
