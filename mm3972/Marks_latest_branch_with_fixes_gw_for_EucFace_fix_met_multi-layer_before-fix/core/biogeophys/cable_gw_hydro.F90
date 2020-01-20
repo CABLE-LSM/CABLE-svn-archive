@@ -1787,7 +1787,7 @@ SUBROUTINE calc_soil_hydraulic_props(ssnow,soil,veg)
     !hydraulic conductivity
     !Interfacial so uses layer i and i+1
     do k=1,ms-1
-       kk= k+1 ! MMY 
+       kk= k+1 ! MMY
        do i=1,mp
 
 !          if (k .lt. ms) then ! MMY redundant
@@ -2120,7 +2120,14 @@ END SUBROUTINE calc_soil_hydraulic_props
    do i=1,mp
 
        if (gw_params%subsurface_sat_drainage) then
-          sm_tot(i) = sum(ssnow%qhlev(i,k_drain(i):ms+1),dim=1)
+          ! MMY it doesn't make sense since sm_tot == 0.
+          ! sm_tot(i) = sum(ssnow%qhlev(i,k_drain(i):ms+1),dim=1) ! MMY
+          ! ______ MMY find this calculation from version : cable-2.2.3-pore-scale-model _______________
+          sm_tot(i) = max(ssnow%GWwb(i)-soil%GWwatr(i),0._r_2)
+          do k=k_drain(i),ms
+              sm_tot(i) = sm_tot(i) + max(ssnow%wbliq(i,k)-soil%watr(i,k),0._r_2)!*dzmm(k)
+          end do
+          ! ____________________________________________________________________________________________
           if (sm_tot(i) .lt. 1.0e-8) then
              sm_tot(i) = 1._r_2
           end if
