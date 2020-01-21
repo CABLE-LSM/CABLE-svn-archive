@@ -8,6 +8,28 @@
 #> ./build3 mpi
 #builds MPI version of CABLE
 
+## gadi.nci.org.au
+host_gadi()
+{
+   . /etc/bashrc
+   module purge
+   module add intel-compiler/2019.5.281
+   module add netcdf/4.6.3
+
+   export FC='ifort'
+   export NCDIR=$NETCDF_ROOT'/lib/Intel'
+   export NCMOD=$NETCDF_ROOT'/include/Intel'
+   export CFLAGS='-O2 -fp-model precise'
+   if [[ $1 = 'debug' ]]; then
+      export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0'
+   fi
+   export LDFLAGS='-L'$NCDIR' -O0'
+   export LD='-lnetcdf -lnetcdff'
+   build_build
+   cd ../
+   build_status
+}
+
 
 
 
@@ -139,7 +161,9 @@ fi
 
 if [[ $1 = 'mpi' ]]; then
   echo "Building cable_mpi" 
-	host_raij mpi
+	host_gadi mpi
+	#host_raij mpi
 else
-	host_raij $1
+	host_gadi 
+	#host_raij 
 fi
