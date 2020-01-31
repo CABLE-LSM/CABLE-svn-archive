@@ -1484,9 +1484,10 @@ CONTAINS
     CALL casa_cnpflux(casaflux,casapool,casabal,.FALSE.)
 
     ! when spinning up only
-    ! casapool%Nsoilmin = max(casapool%Nsoilmin,0.5)
-    ! casapool%Psoillab = max(casapool%Psoillab,0.1)
-
+    IF (cable_user%limit_labile) THEN
+       casapool%Nsoilmin = max(casapool%Nsoilmin,0.5)
+       casapool%Psoillab = max(casapool%Psoillab,0.1)
+    ENDIF
 
 
 
