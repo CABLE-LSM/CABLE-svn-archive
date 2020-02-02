@@ -1,5 +1,5 @@
 &cable_progs
-file='/g/data1/p66/jxs599/jules/loobos/cable_vars.nc',
+file='cable_vars.nc',
 nvars=10,
 use_file=T T T T T T T T T T,
 var='SoilTemp_CABLE','SoilMoisture_CABLE',
