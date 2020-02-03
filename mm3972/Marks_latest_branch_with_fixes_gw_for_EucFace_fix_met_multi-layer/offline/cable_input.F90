@@ -2850,16 +2850,17 @@ SUBROUTINE get_parameters_met(soil,ssnow,veg,bgc,rough,completeSet) ! MMY add ss
    CALL readpar(ncid_met,'watr',completeSet,soil%watr,filename%met,            &
                 nmetpatches,'ms')
    PRINT *,"MMY met soil%watr", soil%watr
-   CALL readpar(ncid_met,'SoilMoist',completeSet,ssnow%wb,filename%met,              &
-                nmetpatches,'ms') ! ssnow%wb(mp,ms)
+   ! ___ MMY ___
+   !CALL readpar(ncid_met,'SoilMoist',completeSet,ssnow%wb,filename%met,              &
+   !            nmetpatches,'ms') ! ssnow%wb(mp,ms)
 
-   PRINT *,'MMY ssnow%wb read from met is ', ssnow%wb
-
+   !PRINT *,'MMY ssnow%wb read from met is ', ssnow%wb
+   ! ___________
    !!!!!ssnow%GWwb(:)      = ssnow%wb(:,ms)
    soil%GWhyds_vec(:) = soil%hyds_vec(:,ms)
    soil%GWssat_vec(:) = soil%ssat_vec(:,ms)
    !ssnow%GWwb(:)      = soil%GWssat_vec(:) * 0.9
-   ssnow%GWwb(:)      = ssnow%wb(:,ms)
+   !ssnow%GWwb(:)      = ssnow%wb(:,ms) ! MMY
    ! Set init GWwb as 0.9 ssat to avoid the aquifer saturates too quick
    soil%GWsucs_vec(:) = soil%sucs_vec(:,ms)
    soil%GWbch_vec(:)  = soil%bch_vec(:,ms)

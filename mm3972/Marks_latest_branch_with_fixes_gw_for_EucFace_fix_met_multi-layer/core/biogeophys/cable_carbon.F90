@@ -151,11 +151,11 @@ SUBROUTINE carbon_pl(dels, soil, ssnow, veg, canopy, bgc)
    wbav = SUM( veg%froot * real(ssnow%wb), 2)
    wbav = max( 0.01, wbav )  ! EAK Jan2011
 
-   print *,"--------------" ! MMY
-   print *," soil%swilt is ", soil%swilt ! MMY
-   print *," soil%ibp2 is ",  soil%ibp2 ! MMY
-   !print *,"( MIN(soil%swilt**( 2 - soil%ibp2 ), 1000. ) - 1. ) is ", MIN(soil%swilt**( 2 - soil%ibp2 ), 1000. ) - 1.
-   print *,"--------------" ! MMY
+   !print *,"--------------" ! MMY
+   !print *," soil%swilt is ", soil%swilt ! MMY
+   !print *," soil%ibp2 is ",  soil%ibp2 ! MMY
+   !!print *,"( MIN(soil%swilt**( 2 - soil%ibp2 ), 1000. ) - 1. ) is ", MIN(soil%swilt**( 2 - soil%ibp2 ), 1000. ) - 1.
+   !print *,"--------------" ! MMY
    ! drought stress
    ! _________________________ MMY ______________________________
    !coef_drght = EXP( 5.*( MIN( 1., MAX( 1., wbav**( 2 - soil%ibp2 ) - 1.) /    &

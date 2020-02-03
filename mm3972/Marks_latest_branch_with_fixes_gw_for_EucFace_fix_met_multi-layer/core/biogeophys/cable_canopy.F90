@@ -256,9 +256,6 @@ CONTAINS
        IF (cable_user%l_new_roughness_soil)                                     &
             CALL ruff_resist(veg, rough, ssnow, canopy)
 
-
-
-
        ! Turbulent aerodynamic resistance from roughness sublayer depth
        ! to reference height, x=1 if zref+disp>zruffs,
        ! 0 otherwise: thus rt1usc = 0 if zref+disp<zruffs
@@ -548,18 +545,20 @@ CONTAINS
           !canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tvair) /ssnow%rtsoil
           ! IF (cable_user%gw_model .or. cable_user%or_evap) THEN ! MMY
           IF (cable_user%or_evap) THEN ! MMY
-             print *, " ssnow%rtsoil is ", ssnow%rtsoil ! MMY
-             print *, " ssnow%rt_qh_sublayer is ", ssnow%rt_qh_sublayer ! MMY
+             !print *, " ssnow%rtsoil is ", ssnow%rtsoil ! MMY
+             !print *, " ssnow%rt_qh_sublayer is ", ssnow%rt_qh_sublayer ! MMY
              canopy%fhs =  air%rho*C%CAPP*(ssnow%tss - met%tvair) / &
                   (ssnow%rtsoil + real(ssnow%rt_qh_sublayer))
 
           ELSEIF (cable_user%litter) THEN
              !! vh_js !! account for additional litter resistance to sensible heat transfer
              !! INH simplifying code using rhlitt
+             !print *, " ssnow%rt_qh_sublayer is ", ssnow%rt_qh_sublayer ! MMY
              canopy%fhs =  air%rho*C%CAPP*(ssnow%tss - met%tvair) / &
                   !(ssnow%rtsoil +  real((1-ssnow%isflag))*veg%clitt*0.003/canopy%kthLitt/(air%rho*C%CAPP))
                   (ssnow%rtsoil + rhlitt)
           else
+             print *, " ssnow%rt_qh_sublayer is ", ssnow%rt_qh_sublayer ! MMY
              canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tvair) /ssnow%rtsoil
           ENDIF
 
