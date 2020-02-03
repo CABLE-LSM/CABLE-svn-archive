@@ -2973,50 +2973,49 @@ END SUBROUTINE report_parameters
 
     soil%GWwatr(:) = 0.0
 
-! ________________ MMY comment out to avoid crash on storm server __________________
-    ! soil%ssat_vec(:,:) = get_gw_data(ncid_elev,file_status,'ssat_vec',inssat(:,:),nlon,nlat,ms)
-    ! inGWtmp(:,:) = 0.66*inssat(:,:)
-    !
-    ! soil%sfc_vec(:,:) = get_gw_data(ncid_elev,file_status,'sfc_vec',inGWtmp(:,:),nlon,nlat,ms)
-    ! inGWtmp(:,:) = 0.15*inssat(:,:)
-    !
-    ! soil%swilt_vec(:,:) = get_gw_data(ncid_elev,file_status,'swilt_vec',inGWtmp(:,:),nlon,nlat,ms)
-    !
-    ! inGWtmp(:,:) = 0.01*inssat(:,:)
-    ! soil%watr(:,:) = get_gw_data(ncid_elev,file_status,'watr',inGWtmp(:,:),nlon,nlat,ms)
-    !
-    ! inGWtmp(:,:) = 1000.0*inhyds(:,:)
-    ! soil%hyds_vec(:,:) = get_gw_data(ncid_elev,file_status,'hyds_vec',inGWtmp(:,:),nlon,nlat,ms)
-    !
-    ! inGWtmp(:,:) = abs(insucs(:,:))
-    ! soil%sucs_vec(:,:) = get_gw_data(ncid_elev,file_status,'sucs_vec',inGWtmp(:,:),nlon,nlat,ms)
-    ! soil%sucs_vec(:,:) =  1000._r_2* abs(soil%sucs_vec(:,:)  )
-    !
-    ! !add last laery to aquifer
-    ! !should have zero head at top of aquifer, however this can be well below
-    ! !the soil column, so reading below we can treat top part of whenm dry
-    ! !as unsat flow
-    ! soil%GWsucs_vec(:) = soil%sucs_vec(:,ms)
-    !
-    ! soil%bch_vec(:,:) = get_gw_data(ncid_elev,file_status,'bch_vec',inbch(:,:),nlon,nlat,ms)
-    ! soil%GWbch_vec(:) = soil%bch_vec(:,ms)
-    !
-    ! soil%rhosoil_vec(:,:) = get_gw_data(ncid_elev,file_status,'rhosoil_vec',inrhosoil(:,:),nlon,nlat,ms)
-    !
-    ! soil%css_vec(:,:) = get_gw_data(ncid_elev,file_status,'css_vec',incss(:,:),nlon,nlat,ms)
-    !
-    ! soil%cnsd_vec(:,:) = get_gw_data(ncid_elev,file_status,'cnsd_vec',incnsd(:,:),nlon,nlat,ms)
-! __________________________________________________________________________________
+    soil%ssat_vec(:,:) = get_gw_data(ncid_elev,file_status,'ssat_vec',inssat(:,:),nlon,nlat,ms)
+    inGWtmp(:,:) = 0.66*inssat(:,:)
+
+    soil%sfc_vec(:,:) = get_gw_data(ncid_elev,file_status,'sfc_vec',inGWtmp(:,:),nlon,nlat,ms)
+    inGWtmp(:,:) = 0.15*inssat(:,:)
+
+    soil%swilt_vec(:,:) = get_gw_data(ncid_elev,file_status,'swilt_vec',inGWtmp(:,:),nlon,nlat,ms)
+
+    inGWtmp(:,:) = 0.01*inssat(:,:)
+    soil%watr(:,:) = get_gw_data(ncid_elev,file_status,'watr',inGWtmp(:,:),nlon,nlat,ms)
+
+    inGWtmp(:,:) = 1000.0*inhyds(:,:)
+    soil%hyds_vec(:,:) = get_gw_data(ncid_elev,file_status,'hyds_vec',inGWtmp(:,:),nlon,nlat,ms)
+
+    inGWtmp(:,:) = abs(insucs(:,:))
+    soil%sucs_vec(:,:) = get_gw_data(ncid_elev,file_status,'sucs_vec',inGWtmp(:,:),nlon,nlat,ms)
+    soil%sucs_vec(:,:) =  1000._r_2* abs(soil%sucs_vec(:,:)  )
+
+    !add last laery to aquifer
+    !should have zero head at top of aquifer, however this can be well below
+    !the soil column, so reading below we can treat top part of whenm dry
+    !as unsat flow
+    soil%GWsucs_vec(:) = soil%sucs_vec(:,ms)
+
+    soil%bch_vec(:,:) = get_gw_data(ncid_elev,file_status,'bch_vec',inbch(:,:),nlon,nlat,ms)
+    soil%GWbch_vec(:) = soil%bch_vec(:,ms)
+
+    soil%rhosoil_vec(:,:) = get_gw_data(ncid_elev,file_status,'rhosoil_vec',inrhosoil(:,:),nlon,nlat,ms)
+
+    soil%css_vec(:,:) = get_gw_data(ncid_elev,file_status,'css_vec',incss(:,:),nlon,nlat,ms)
+
+    soil%cnsd_vec(:,:) = get_gw_data(ncid_elev,file_status,'cnsd_vec',incnsd(:,:),nlon,nlat,ms)
+
 
     if (file_status .eq. nf90_noerr) &
          file_status = nf90_close(ncid_elev)
-! ________________ MMY comment out to avoid crash on storm server __________________
-    ! !set the default IC for hysteresis state
-    ! ssnow%smp_hys(:,:) = -soil%sucs_vec(:,:)
-    ! ssnow%hys_fac(:,:) = 1.0
-    ! ssnow%watr_hys(:,:) = soil%watr(:,:)
-    ! ssnow%ssat_hys(:,:) = soil%ssat_vec(:,:)
-! __________________________________________________________________________________
+
+    !set the default IC for hysteresis state
+    ssnow%smp_hys(:,:) = -soil%sucs_vec(:,:)
+    ssnow%hys_fac(:,:) = 1.0
+    ssnow%watr_hys(:,:) = soil%watr(:,:)
+    ssnow%ssat_hys(:,:) = soil%ssat_vec(:,:)
+
     ELSE  !gw_model=false
 
     DO e=1,mland
