@@ -1323,6 +1323,8 @@ CONTAINS
     USE casadimension
     USE casa_cnp_module
     USE POP_TYPES,            ONLY: POP_TYPE
+    USE CASAVARIABLE, ONLY : icycle
+    
     IMPLICIT NONE
     INTEGER, INTENT(IN)    :: ktau
     REAL,    INTENT(IN)    :: dels
@@ -1484,7 +1486,7 @@ CONTAINS
     CALL casa_cnpflux(casaflux,casapool,casabal,.FALSE.)
 
     ! when spinning up only
-    IF (cable_user%limit_labile) THEN
+    IF (cable_user%limit_labile .AND. icycle > 1) THEN
        casapool%Nsoilmin = max(casapool%Nsoilmin,0.5)
        casapool%Psoillab = max(casapool%Psoillab,0.1)
     ENDIF
