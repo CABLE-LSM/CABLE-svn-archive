@@ -2687,7 +2687,7 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,climate,bgc,soil,canopy,rough,rad, 
     END IF ! if restart file exists
 
     ! Overwrite default values by those available in met file:
-    CALL get_parameters_met(soil,veg,bgc,rough,completeSet)
+    CALL get_parameters_met(soil,ssnow,veg,bgc,rough,completeSet)
 
     ! Results of looking for parameters in the met file:
     WRITE(logn,*)
@@ -2739,10 +2739,10 @@ END SUBROUTINE load_parameters
 ! Input file: [SiteName].nc
 !
 !==============================================================================
-
-SUBROUTINE get_parameters_met(soil,veg,bgc,rough,completeSet)
+SUBROUTINE get_parameters_met(soil,ssnow,veg,bgc,rough,completeSet) ! MMY add ssnow
 
    TYPE (soil_parameter_type), INTENT(INOUT) :: soil
+   TYPE (soil_snow_type), INTENT(INOUT)      :: ssnow ! MMY
    TYPE (veg_parameter_type), INTENT(INOUT)  :: veg
    TYPE (bgc_pool_type), INTENT(INOUT)       :: bgc
    TYPE (roughness_type), INTENT(INOUT)      :: rough
@@ -2859,6 +2859,13 @@ SUBROUTINE get_parameters_met(soil,veg,bgc,rough,completeSet)
       CALL readpar(ncid_met,'za_tq',completeSet,rough%za_tq,filename%met,      &
                    nmetpatches,'def')
    ENDIF
+   ! _____________ MMY init wb ___________________
+   CALL readpar(ncid_met,'SoilMoist',completeSet,ssnow%wb,filename%met,              &
+	               nmetpatches,'ms') ! ssnow%wb(mp,ms)
+   PRINT *,'MMY ssnow%wb read from met is ', ssnow%wb
+   ssnow%GWwb(:)      = ssnow%wb(:,ms) ! MMY
+   ! _____________________________________________
+
    CALL readpar(ncid_met,'zse',completeSet,soil%zse,filename%met,              &
                 nmetpatches,'ms')
    CALL readpar(ncid_met,'ratecp',completeSet,bgc%ratecp,filename%met,         &
