@@ -760,7 +760,7 @@ CONTAINS
 
              ELSE
                 CALL get_met_data( spinup, spinConv, imet, soil,                 &
-                     rad, iveg, kend, dels, C%TFRZ, iktau+koffset,                &
+                     rad, iveg, casaflux, kend, dels, C%TFRZ, iktau+koffset,     &
                      kstart+koffset )
 
              ENDIF
@@ -833,7 +833,7 @@ CONTAINS
              ELSE
 
                 CALL get_met_data( spinup, spinConv, imet, soil,                 &
-                     rad, iveg, kend, dels, C%TFRZ, iktau+koffset,                &
+                     rad, iveg, casaflux, kend, dels, C%TFRZ, iktau+koffset,     &
                      kstart+koffset )
 
              ENDIF
