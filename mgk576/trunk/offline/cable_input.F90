@@ -2078,6 +2078,7 @@ CONTAINS
           met%ndep(landpt(i)%cstart:landpt(i)%cend) = &
                   REAL(tmpDat4(land_x(i),land_y(i),1,1))
         ENDDO
+        casaflux%Nmindep = met%ndep
       END IF
 
        ! Get Pdep data for mask grid:- - - - - - - - - - - - - - - - - -
@@ -2091,6 +2092,7 @@ CONTAINS
           met%pdep(landpt(i)%cstart:landpt(i)%cend) = &
                   REAL(tmpDat4(land_x(i),land_y(i),1,1))
         ENDDO
+        casaflux%Pdep = met%pdep
       END IF
 
        ! Get LAI, if it's present, for mask grid:- - - - - - - - - - - - -
