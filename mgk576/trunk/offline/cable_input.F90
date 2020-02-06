@@ -1572,7 +1572,7 @@ CONTAINS
   !==============================================================================
 
   SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
-       veg,kend,dels, TFRZ, ktau, kstart )
+       veg, casaflux, kend,dels, TFRZ, ktau, kstart )
     ! Precision changes from REAL(4) to r_1 enable running with -r8
 
 
@@ -1584,6 +1584,7 @@ CONTAINS
     TYPE (soil_parameter_type),INTENT(IN)  :: soil
     TYPE (radiation_type),INTENT(IN)       :: rad
     TYPE(veg_parameter_type),INTENT(INOUT) :: veg ! LAI retrieved from file
+    TYPE (casa_flux),           INTENT(INOUT) :: casaflux
     INTEGER, INTENT(IN)               :: ktau, &  ! timestep in loop including spinup
          kend, & ! total number of timesteps in run
          kstart  ! starting timestep
@@ -2070,27 +2071,39 @@ CONTAINS
        IF(exists%Ndep) THEN ! If Ndep exists in met file
           ok= NF90_GET_VAR(ncid_met,id%Ndep,tmpDat4, &
                            start=(/1,1,1,ktau/),count=(/xdimsize,ydimsize,1,1/))
-       IF(ok /= NF90_NOERR) CALL nc_abort &
+          IF(ok /= NF90_NOERR) CALL nc_abort &
              (ok,'Error reading Ndep in met data file ' &
              //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
-        DO i=1,mland ! over all land points/grid cells
-          met%ndep(landpt(i)%cstart:landpt(i)%cend) = &
-                  REAL(tmpDat4(land_x(i),land_y(i),1,1))
-        ENDDO
-      END IF
+          DO i=1,mland ! over all land points/grid cells
+             met%ndep(landpt(i)%cstart:landpt(i)%cend) = &
+                        REAL(tmpDat4(land_x(i),land_y(i),1,1))
+          ENDDO
+          casaflux%Nmindep = met%Ndep
+       ELSE ! Ndep not present
+         exists%Ndep = .FALSE. ! Ndep is not present in met file
+         all_met=.FALSE. ! not all met variables are present in file
+         ! Note this in log file:
+         WRITE(logn,*) 'Ndep not present in met file'
+       END IF
 
-      ! Get Pdep data for mask grid:- - - - - - - - - - - - - - - - - -
-      IF(exists%Pdep) THEN ! If Ndep exists in met file
-        ok= NF90_GET_VAR(ncid_met,id%Pdep,tmpDat4, &
+       ! Get Pdep data for mask grid:- - - - - - - - - - - - - - - - - -
+       IF(exists%Pdep) THEN ! If Ndep exists in met file
+          ok= NF90_GET_VAR(ncid_met,id%Pdep,tmpDat4, &
              start=(/1,1,1,ktau/),count=(/xdimsize,ydimsize,1,1/))
-        IF(ok /= NF90_NOERR) CALL nc_abort &
-             (ok,'Error reading Pdep in met data file ' &
-             //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
-        DO i=1,mland ! over all land points/grid cells
-          met%pdep(landpt(i)%cstart:landpt(i)%cend) = &
-                  REAL(tmpDat4(land_x(i),land_y(i),1,1))
-        ENDDO
-      END IF
+          IF(ok /= NF90_NOERR) CALL nc_abort &
+              (ok,'Error reading Pdep in met data file ' &
+              //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
+          DO i=1,mland ! over all land points/grid cells
+            met%pdep(landpt(i)%cstart:landpt(i)%cend) = &
+                    REAL(tmpDat4(land_x(i),land_y(i),1,1))
+          ENDDO
+          casaflux%Pdep = met%Pdep
+       ELSE ! Pdep not present
+          exists%Pdep = .FALSE. ! Pdep is not present in met file
+          all_met=.FALSE. ! not all met variables are present in file
+          ! Note this in log file:
+          WRITE(logn,*) 'Pdep not present in met file'
+       END IF
 
        ! Get LAI, if it's present, for mask grid:- - - - - - - - - - - - -
        IF(exists%LAI) THEN ! If LAI exists in met file

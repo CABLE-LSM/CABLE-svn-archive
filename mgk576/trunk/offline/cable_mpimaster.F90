@@ -157,7 +157,7 @@ CONTAINS
 
     USE cable_def_types_mod
     USE cable_IO_vars_module, ONLY: logn,gswpfile,ncciy,leaps,                  &
-         verbose, fixedCO2,output,check,patchout,    &
+         verbose, fixedCO2, output,check,patchout,    &
          patch_type,soilparmnew,&
          defaultLAI, sdoy, smoy, syear, timeunits, exists, output, &
          latitude,longitude, calendar

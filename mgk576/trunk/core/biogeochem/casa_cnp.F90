@@ -1577,6 +1577,11 @@ CONTAINS
        ENDIF  ! end of /=icewater
     ENDDO  ! end of nland
 
+    print*, "*****"
+    print*, "*****"
+    print*, casaflux%Nmindep
+    print*, "*****"
+    print*, "*****"
     DO nland=1,mp
        IF(casamet%iveg2(nland)/=icewater) THEN
           casapool%dClitterdt(nland,:) =  casaflux%fluxCtolitter(nland,:) - casaflux%klitter(nland,:) * casapool%clitter(nland,:)

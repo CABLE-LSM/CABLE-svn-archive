@@ -402,7 +402,7 @@ CONTAINS
        IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding Pdust.')
        ok = NF90_GET_VAR(ncid, varID, inPdust)
        IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading Pdust.')
-
+       
        ! change units from g/m2/yr to g/m2/day
        inNdep  = inNdep  / 365.0
        inNfix  = inNfix  / 365.0

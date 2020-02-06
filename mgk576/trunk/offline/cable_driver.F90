@@ -61,7 +61,7 @@
 PROGRAM cable_offline_driver
   USE cable_def_types_mod
   USE cable_IO_vars_module, ONLY: logn,gswpfile,ncciy,leaps,		      &
-       verbose, fixedCO2,output,check,patchout,	   &
+       verbose, fixedCO2, output,check,patchout,	   &
        patch_type,soilparmnew,&
        defaultLAI, sdoy, smoy, syear, timeunits, exists, calendar
   USE cable_common_module,  ONLY: ktau_gl, kend_gl, knode_gl, cable_user,     &
@@ -723,11 +723,11 @@ PROGRAM cable_offline_driver
               ELSE
                  IF (TRIM(cable_user%MetType) .EQ. 'site') &
                       CALL get_met_data( spinup, spinConv, met, soil,		 &
-                      rad, veg, kend, dels, C%TFRZ, ktau+koffset_met,		 &
+                      rad, veg, casaflux, kend, dels, C%TFRZ, ktau+koffset_met,		 &
                       kstart+koffset_met )
                  IF (TRIM(cable_user%MetType) .EQ. '') &
                       CALL get_met_data( spinup, spinConv, met, soil,		 &
-                      rad, veg, kend, dels, C%TFRZ, ktau+koffset,		 &
+                      rad, veg, casaflux, kend, dels, C%TFRZ, ktau+koffset,		 &
                       kstart+koffset )
 
                  IF (TRIM(cable_user%MetType) .EQ. 'site' ) THEN

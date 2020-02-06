@@ -123,7 +123,7 @@ CONTAINS
 
     USE cable_def_types_mod
     USE cable_IO_vars_module, ONLY: logn,gswpfile,ncciy,leaps,                  &
-         verbose, fixedCO2,output,check,patchout,    &
+         verbose, fixedCO2, output,check,patchout,    &
          patch_type,soilparmnew,&
          defaultLAI, wlogn
     USE cable_common_module,  ONLY: ktau_gl, kend_gl, knode_gl, cable_user,     &
