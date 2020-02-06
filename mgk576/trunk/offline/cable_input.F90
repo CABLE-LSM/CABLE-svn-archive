@@ -2078,6 +2078,8 @@ CONTAINS
           met%ndep(landpt(i)%cstart:landpt(i)%cend) = &
                   REAL(tmpDat4(land_x(i),land_y(i),1,1))
         ENDDO
+
+        ! gN m-2 d-1
         casaflux%Nmindep = met%ndep
       END IF
 
@@ -2092,6 +2094,8 @@ CONTAINS
           met%pdep(landpt(i)%cstart:landpt(i)%cend) = &
                   REAL(tmpDat4(land_x(i),land_y(i),1,1))
         ENDDO
+
+        ! gP m-2 d-1
         casaflux%Pdep = met%pdep
       END IF
 
