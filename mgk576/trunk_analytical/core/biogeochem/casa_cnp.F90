@@ -743,6 +743,26 @@ CONTAINS
              casaflux%crgplant(:) = 0.0
           ENDWHERE
 
+          WHERE(casaflux%Cnpp < 0.0)
+         	! change made here by ypw on 11-7-2016 to include leaf maintenance respiration
+   	      delcrmleaf(:)  = casaflux%Cnpp(:) * casaflux%crmplant(:,leaf) &
+   	                     / max(0.01,(casaflux%crmplant(:,leaf)+casaflux%crmplant(:,wood) &
+   	                               + casaflux%crmplant(:,froot)))
+   	      delcrmwood(:)  = casaflux%Cnpp(:) * casaflux%crmplant(:,wood) &
+   	                     / max(0.01,(casaflux%crmplant(:,leaf)+casaflux%crmplant(:,wood) &
+   	                               + casaflux%crmplant(:,froot)))
+   	      delcrmfroot(:) = casaflux%Cnpp(:) * casaflux%crmplant(:,froot) &
+   	                     / max(0.01,(casaflux%crmplant(:,leaf)+casaflux%crmplant(:,wood) &
+   	                               + casaflux%crmplant(:,froot)))
+
+   	      casaflux%crmplant(:,leaf)  = casaflux%crmplant(:,leaf)  + delcrmleaf(:)
+   	      casaflux%crmplant(:,wood)  = casaflux%crmplant(:,wood)  + delcrmwood(:)
+   	      casaflux%crmplant(:,froot) = casaflux%crmplant(:,froot) + delcrmfroot(:)
+   	  !    casaflux%Cnpp(:) = casaflux%Cnpp(:) -delcrmwood(:)-delcrmfroot(:)
+   	      casaflux%crgplant(:) = 0.0
+          ENDWHERE
+
+
 
           !casaflux%Cnpp(:) = MAX(0.0,(casaflux%Cgpp(:)-SUM(casaflux%crmplant(:,:),2) &
           !                 - casaflux%crgplant(:)))
@@ -753,6 +773,12 @@ CONTAINS
        ENDWHERE
 
     ENDIF
+
+    IF ( casaflux%Cnpp(1) < 0.0 ) THEN
+      print*, "negative NPP"
+      print*, casaflux%Cnpp
+      stop
+    END IF
 
   END SUBROUTINE casa_rplant
 
