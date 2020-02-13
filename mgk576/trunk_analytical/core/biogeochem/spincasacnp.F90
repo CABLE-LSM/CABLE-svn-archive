@@ -46,6 +46,13 @@ SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
   REAL,      DIMENSION(:), ALLOCATABLE, SAVE  :: avg_ratioNCsoilmic,  avg_ratioNCsoilslow,  avg_ratioNCsoilpass
   REAL(r_2), DIMENSION(:), ALLOCATABLE, SAVE  :: avg_xnplimit,  avg_xkNlimiting,avg_xklitter, avg_xksoil
 
+  REAL,      DIMENSION(:), ALLOCATABLE, SAVE  :: avg_af
+  REAL,      DIMENSION(:), ALLOCATABLE, SAVE  :: avg_aw
+  REAL,      DIMENSION(:), ALLOCATABLE, SAVE  :: avg_ar
+  REAL,      DIMENSION(:), ALLOCATABLE, SAVE  :: avg_lf
+  REAL,      DIMENSION(:), ALLOCATABLE, SAVE  :: avg_lw
+  REAL,      DIMENSION(:), ALLOCATABLE, SAVE  :: avg_lr
+
   ! local variables
   INTEGER                  :: myearspin,nyear, nloop1
   CHARACTER(LEN=99)        :: ncfile
@@ -99,6 +106,13 @@ SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
        avg_rationcsoilmic(mp),avg_rationcsoilslow(mp),avg_rationcsoilpass(mp),                        &
        avg_nsoilmin(mp),  avg_psoillab(mp),    avg_psoilsorb(mp), avg_psoilocc(mp))
 
+  ALLOCATE(avg_af(mp))
+  ALLOCATE(avg_aw(mp))
+  ALLOCATE(avg_ar(mp))
+  ALLOCATE(avg_lf(mp))
+  ALLOCATE(avg_lw(mp))
+  ALLOCATE(avg_lr(mp))
+
   !!CLN  OPEN(91, file=fcnpspin)
   !!CLN  read(91,*) myearspin
   myearspin = CABLE_USER%CASA_SPIN_ENDYEAR - CABLE_USER%CASA_SPIN_STARTYEAR + 1
@@ -110,6 +124,13 @@ SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
   avg_xnplimit=0.0;  avg_xkNlimiting=0.0; avg_xklitter=0.0; avg_xksoil=0.0
   avg_nsoilmin=0.0;  avg_psoillab=0.0;    avg_psoilsorb=0.0; avg_psoilocc=0.0
   avg_rationcsoilmic=0.0;avg_rationcsoilslow=0.0;avg_rationcsoilpass=0.0
+
+  avg_af = 0.0
+  avg_aw = 0.0
+  avg_ar = 0.0
+  avg_lf = 0.0
+  avg_lw = 0.0
+  avg_lr = 0.0
 
   DO nyear=1,myearspin
      !     read(91,901) ncfile
@@ -192,6 +213,17 @@ SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
 !!$        END WHERE
         nptx=8173
 
+        avg_af = avg_ar + casaflux%fracCalloc(:,leaf)
+        avg_aw = avg_ar + casaflux%fracCalloc(:,wood)
+        avg_ar = avg_aw + casaflux%fracCalloc(:,froot)
+
+        avg_lf = avg_lr + casaflux%kplant(:,leaf)
+        avg_lw = avg_lr + casaflux%kplant(:,wood)
+        avg_lr = avg_lw + casaflux%kplant(:,froot)
+
+
+
+
         avg_cleaf2met = avg_cleaf2met + cleaf2met
         avg_cleaf2str = avg_cleaf2str + cleaf2str
         avg_croot2met = avg_croot2met + croot2met
@@ -231,7 +263,19 @@ SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
      ENDDO
   ENDDO
 
+
+
   !!CLN    CLOSE(91)
+
+  ! Average the plant allocation fraction
+  avg_af = avg_af / REAL(nday * myearspin)
+  avg_aw = avg_aw / REAL(nday * myearspin)
+  avg_ar = avg_ar / REAL(nday * myearspin)
+
+  ! Average the plant turnover fraction
+  avg_lf = avg_lf / REAL(nday * myearspin)
+  avg_lw = avg_lw / REAL(nday * myearspin)
+  avg_lr = avg_lr / REAL(nday * myearspin)
 
   avg_cleaf2met = avg_cleaf2met/REAL(nday*myearspin)
   avg_cleaf2str = avg_cleaf2str/REAL(nday*myearspin)
@@ -272,6 +316,7 @@ SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
 
 
 
+
   CALL analyticpool(kend,veg,soil,casabiome,casapool,                                          &
        casaflux,casamet,casabal,phen,                                         &
        avg_cleaf2met,avg_cleaf2str,avg_croot2met,avg_croot2str,avg_cwood2cwd, &
@@ -280,7 +325,8 @@ SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
        avg_cgpp, avg_cnpp, avg_nuptake, avg_puptake,                          &
        avg_xnplimit,avg_xkNlimiting,avg_xklitter,avg_xksoil,                  &
        avg_ratioNCsoilmic,avg_ratioNCsoilslow,avg_ratioNCsoilpass,            &
-       avg_nsoilmin,avg_psoillab,avg_psoilsorb,avg_psoilocc)
+       avg_nsoilmin,avg_psoillab,avg_psoilsorb,avg_psoilocc,                  &
+       avg_af, avg_aw, avg_ar, avg_lf, avg_lw, avg_lr)
 
 !!$  call totcnppools(1,veg,casamet,casapool,bmcplant,bmnplant,bmpplant,bmclitter,bmnlitter,bmplitter, &
 !!$       bmcsoil,bmnsoil,bmpsoil,bmnsoilmin,bmpsoillab,bmpsoilsorb,bmpsoilocc,bmarea)

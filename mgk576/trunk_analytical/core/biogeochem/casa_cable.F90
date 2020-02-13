@@ -422,7 +422,7 @@ SUBROUTINE read_casa_dump(  ncfile, casamet, casaflux,phen, climate, ncall, kend
 #     endif
 
       deallocate(var_name)
-      
+
    END SUBROUTINE read_casa_dump
 
 
@@ -807,8 +807,9 @@ END SUBROUTINE sumcflux
                           avgpleaf2met,avgpleaf2str,avgproot2met,avgproot2str,avgpwood2cwd, &
                           avgcgpp, avgcnpp, avgnuptake, avgpuptake,                         &
                           avgxnplimit,avgxkNlimiting,avgxklitter,avgxksoil,                 &
-                          avgratioNCsoilmic,avgratioNCsoilslow,avgratioNCsoilpass,         &
-                          avgnsoilmin,avgpsoillab,avgpsoilsorb,avgpsoilocc)
+                          avgratioNCsoilmic,avgratioNCsoilslow,avgratioNCsoilpass,          &
+                          avgnsoilmin,avgpsoillab,avgpsoilsorb,avgpsoilocc,                 &
+                          avg_af, avg_aw, avg_ar, avg_lf, avg_lw, avg_lr)
   USE cable_def_types_mod
   USE cable_carbon_module
   USE casadimension
@@ -835,6 +836,7 @@ END SUBROUTINE sumcflux
   real(r_2), dimension(mp) :: avgxnplimit,avgxkNlimiting,avgxklitter,avgxksoil
   real, dimension(mp)      :: avgratioNCsoilmic,  avgratioNCsoilslow,  avgratioNCsoilpass
   real,      dimension(mp) :: avgnsoilmin,avgpsoillab,avgpsoilsorb,avgpsoilocc
+  real,      dimension(mp) :: avg_af, avg_aw, avg_ar, avg_lf, avg_lw, avg_lr
 
   ! local variables
   REAL(r_2), DIMENSION(mso) :: Psorder,pweasoil,xpsoil50
@@ -876,6 +878,17 @@ END SUBROUTINE sumcflux
 
   do npt=1,mp
   if(casamet%iveg2(npt)/=icewater.and.avgcnpp(npt) > 0.0) THEN
+
+    ! Solve the C pools
+    casapool%cplant(npt,leaf) = (avgcnpp(npt) * avg_af(npt)) - &
+                                 (casapool%cplant(npt,leaf) * avg_lf(npt))
+
+    casapool%cplant(npt,wood) = (avgcnpp(npt) * avg_aw(npt)) - &
+                                 (casapool%cplant(npt,wood) * avg_lw(npt))
+
+    casapool%cplant(npt,froot) = (avgcnpp(npt) * avg_lr(npt)) - &
+                                 (casapool%cplant(npt,froot) * avg_lr(npt))
+
     casaflux%fromLtoS(npt,mic,metb)   = 0.45
                                           ! metb -> mic
     casaflux%fromLtoS(npt,mic,str)   = 0.45*(1.0-casabiome%fracLigninplant(veg%iveg(npt),leaf))
