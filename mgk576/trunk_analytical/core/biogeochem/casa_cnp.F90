@@ -745,7 +745,8 @@ CONTAINS
           ENDWHERE
 
           ! Calculate new NPP accounting for respiration losses.
-          casaflux%cnpp(:) = casaflux%Cgpp(:)-SUM(casaflux%crmplant(:,:),2) - casaflux%crgplant(:)
+          casaflux%cnpp(:) = casaflux%Cgpp(:)-SUM(casaflux%crmplant(:,:),2) - &
+                                 casaflux%crgplant(:)
 
           ! Ensure NPP does not become negative, reduce respiration losses if so
           WHERE(casaflux%Cnpp < 0.0)
