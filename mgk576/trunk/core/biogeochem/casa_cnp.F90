@@ -708,6 +708,7 @@ CONTAINS
 
 
        WHERE(casamet%iveg2/=icewater)
+
           WHERE(casamet%tairk >250.0)
              WHERE(casapool%cplant(:,wood)>1.0e-6)
                 casaflux%crmplant(:,wood)  =  resp_coeff * casaflux%frac_sapwood(:) * &
@@ -723,6 +724,7 @@ CONTAINS
                   * EXP(308.56*(1.0/56.02-1.0         &
                   / (casamet%tairk(:)+46.02-tkzeroc)))
           ENDWHERE
+
           WHERE(casamet%tsoilavg >250.0.AND.casapool%cplant(:,froot)>1.0e-6)
 
              casaflux%crmplant(:,froot) =  resp_coeff * casabiome%rmplant(veg%iveg(:),froot) &
@@ -743,12 +745,39 @@ CONTAINS
              casaflux%crgplant(:) = 0.0
           ENDWHERE
 
+          ! Calculate new NPP accounting for respiration losses.
+          casaflux%cnpp(:) = casaflux%Cgpp(:)-SUM(casaflux%crmplant(:,:),2) - &
+                                 casaflux%crgplant(:)
 
-          !casaflux%Cnpp(:) = MAX(0.0,(casaflux%Cgpp(:)-SUM(casaflux%crmplant(:,:),2) &
-          !                 - casaflux%crgplant(:)))
-          ! changes made by yp wang 5 april 2013
-          Casaflux%cnpp(:) = casaflux%Cgpp(:)-SUM(casaflux%crmplant(:,:),2) - casaflux%crgplant(:)
+          ! Ensure NPP does not become negative, reduce respiration losses if so
+          WHERE(casaflux%Cnpp < 0.0)
+         	! change made here by ypw on 11-7-2016 to include leaf maintenance respiration
+   	      delcrmleaf(:)  = casaflux%Cnpp(:) * casaflux%crmplant(:,leaf) &
+   	                     / max(1E-06,(casaflux%crmplant(:,leaf)+casaflux%crmplant(:,wood) &
+   	                               + casaflux%crmplant(:,froot)))
+   	      delcrmwood(:)  = casaflux%Cnpp(:) * casaflux%crmplant(:,wood) &
+   	                     / max(1E-06,(casaflux%crmplant(:,leaf)+casaflux%crmplant(:,wood) &
+   	                               + casaflux%crmplant(:,froot)))
+   	      delcrmfroot(:) = casaflux%Cnpp(:) * casaflux%crmplant(:,froot) &
+   	                     / max(1E-06,(casaflux%crmplant(:,leaf)+casaflux%crmplant(:,wood) &
+   	                               + casaflux%crmplant(:,froot)))
 
+   	      casaflux%crmplant(:,leaf)  = casaflux%crmplant(:,leaf)  + delcrmleaf(:)
+   	      casaflux%crmplant(:,wood)  = casaflux%crmplant(:,wood)  + delcrmwood(:)
+   	      casaflux%crmplant(:,froot) = casaflux%crmplant(:,froot) + delcrmfroot(:)
+   	  !    casaflux%Cnpp(:) = casaflux%Cnpp(:) -delcrmwood(:)-delcrmfroot(:)
+   	      casaflux%crgplant(:) = 0.0
+
+            casaflux%cnpp(:) = casaflux%Cgpp(:)-SUM(casaflux%crmplant(:,:),2) - casaflux%crgplant(:)
+
+            ! The logic above can still lead to a negative NPP as
+            ! SUM(casaflux%crmplant(:,:),2) can be a tiny number, if this
+            ! happens, set NPP to zero
+            WHERE(casaflux%Cnpp < 0.0)
+               casaflux%cnpp(:) = 0.0
+            ENDWHERE
+
+          ENDWHERE
 
        ENDWHERE
 
