@@ -223,11 +223,16 @@ SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
         avg_aw = avg_aw + casaflux%fracCalloc(:,wood)
         avg_ar = avg_ar + casaflux%fracCalloc(:,froot)
 
-        print*, REAL(LOY)
+
         ! Calculate average turnover fractions for the plant pools
-        avg_lf = avg_lf + (1.0 / casaflux%kplant(:,leaf) / REAL(LOY))
-        avg_lw = avg_lw + (1.0 / casaflux%kplant(:,wood) / REAL(LOY))
-        avg_lr = avg_lr + (1.0 / casaflux%kplant(:,froot) / REAL(LOY))
+        avg_lf = avg_lf + (casaflux%kplant(:,leaf) / REAL(LOY))
+        avg_lw = avg_lw + (casaflux%kplant(:,wood) / REAL(LOY))
+        avg_lr = avg_lr + (casaflux%kplant(:,froot) / REAL(LOY))
+
+        !avg_lf = avg_lf + (1.0 / casaflux%kplant(:,leaf) )
+        !avg_lw = avg_lw + (1.0 / casaflux%kplant(:,wood))
+        !avg_lr = avg_lr + (1.0 / casaflux%kplant(:,froot) )
+
 
         avg_cleaf2met = avg_cleaf2met + cleaf2met
         avg_cleaf2str = avg_cleaf2str + cleaf2str
@@ -268,19 +273,20 @@ SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
      ENDDO
   ENDDO
 
-
+  print*, "divided by"
+  print*, nday * myearspin, nday , myearspin
 
   !!CLN    CLOSE(91)
 
   ! Average the plant allocation fraction
-  avg_af = avg_af / REAL(nday * myearspin)
-  avg_aw = avg_aw / REAL(nday * myearspin)
-  avg_ar = avg_ar / REAL(nday * myearspin)
+  avg_af = avg_af / REAL(nday)
+  avg_aw = avg_aw / REAL(nday)
+  avg_ar = avg_ar / REAL(nday)
 
   ! Average the plant turnover fraction
-  avg_lf = avg_lf / REAL(nday * myearspin)
-  avg_lw = avg_lw / REAL(nday * myearspin)
-  avg_lr = avg_lr / REAL(nday * myearspin)
+  avg_lf = avg_lf / REAL(nday)
+  avg_lw = avg_lw / REAL(nday)
+  avg_lr = avg_lr / REAL(nday)
 
   avg_cleaf2met = avg_cleaf2met/REAL(nday*myearspin)
   avg_cleaf2str = avg_cleaf2str/REAL(nday*myearspin)
