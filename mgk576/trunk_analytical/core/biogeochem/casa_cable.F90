@@ -809,7 +809,8 @@ END SUBROUTINE sumcflux
                           avgxnplimit,avgxkNlimiting,avgxklitter,avgxksoil,                 &
                           avgratioNCsoilmic,avgratioNCsoilslow,avgratioNCsoilpass,          &
                           avgnsoilmin,avgpsoillab,avgpsoilsorb,avgpsoilocc,                 &
-                          avg_af, avg_aw, avg_ar, avg_lf, avg_lw, avg_lr)
+                          avg_af, avg_aw, avg_ar, avg_lf, avg_lw, avg_lr,                   &
+                          avg_annual_cnpp)
   USE cable_def_types_mod
   USE cable_carbon_module
   USE casadimension
@@ -837,6 +838,7 @@ END SUBROUTINE sumcflux
   real, dimension(mp)      :: avgratioNCsoilmic,  avgratioNCsoilslow,  avgratioNCsoilpass
   real,      dimension(mp) :: avgnsoilmin,avgpsoillab,avgpsoilsorb,avgpsoilocc
   real,      dimension(mp) :: avg_af, avg_aw, avg_ar, avg_lf, avg_lw, avg_lr
+  real,      dimension(mp) :: avg_annual_cnpp
 
   ! local variables
   REAL(r_2), DIMENSION(mso) :: Psorder,pweasoil,xpsoil50
@@ -931,15 +933,15 @@ END SUBROUTINE sumcflux
 
       ! Compute steady-state plant C pool sizes
       casapool%cplant(npt,leaf) = casapool%cplant(npt,leaf) + &
-                                    (avgcnpp(npt) * avg_af(npt)) / & ! growth
+                                    (avg_annual_cnpp(npt) * avg_af(npt)) / & ! growth
                                     (casapool%cplant(npt,leaf) * avg_lf(npt)) ! loss
 
       casapool%cplant(npt,wood) = casapool%cplant(npt,wood) + &
-                                    (avgcnpp(npt) * avg_aw(npt)) - & ! growth
+                                    (avg_annual_cnpp(npt) * avg_aw(npt)) - & ! growth
                                     (casapool%cplant(npt,wood) * avg_lw(npt))! loss
 
       casapool%cplant(npt,froot) = casapool%cplant(npt,froot) + &
-                                    (avgcnpp(npt) * avg_ar(npt)) - & ! growth
+                                    (avg_annual_cnpp(npt) * avg_ar(npt)) - & ! growth
                                     (casapool%cplant(npt,froot) * avg_lr(npt)) ! loss
 
 
