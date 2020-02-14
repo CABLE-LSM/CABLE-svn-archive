@@ -886,7 +886,7 @@ END SUBROUTINE sumcflux
     casapool%cplant(npt,wood) = (avgcnpp(npt) * avg_aw(npt)) - &
                                  (casapool%cplant(npt,wood) * avg_lw(npt))
 
-    casapool%cplant(npt,froot) = (avgcnpp(npt) * avg_lr(npt)) - &
+    casapool%cplant(npt,froot) = (avgcnpp(npt) * avg_ar(npt)) - &
                                  (casapool%cplant(npt,froot) * avg_lr(npt))
 
     casaflux%fromLtoS(npt,mic,metb)   = 0.45
