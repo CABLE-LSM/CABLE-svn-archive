@@ -217,9 +217,9 @@ SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
         avg_aw = avg_ar + casaflux%fracCalloc(:,wood)
         avg_ar = avg_aw + casaflux%fracCalloc(:,froot)
 
-        avg_lf = avg_lr + casaflux%kplant(:,leaf)
-        avg_lw = avg_lr + casaflux%kplant(:,wood)
-        avg_lr = avg_lw + casaflux%kplant(:,froot)
+        avg_lf = avg_lr + (1.0 / casaflux%kplant(:,leaf))
+        avg_lw = avg_lr + (1.0 / casaflux%kplant(:,wood))
+        avg_lr = avg_lw + (1.0 / casaflux%kplant(:,froot))
 
 
 

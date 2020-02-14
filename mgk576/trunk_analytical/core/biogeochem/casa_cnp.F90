@@ -705,9 +705,12 @@ CONTAINS
        Casaflux%cnpp(:) = casaflux%Cgpp(:)-SUM(casaflux%crmplant(:,:),2) - casaflux%crgplant(:)
 
     ELSE
-
+      print*, " ===== "
+      print*, "start", casaflux%Cnpp
+      print*, " ===== "
 
        WHERE(casamet%iveg2/=icewater)
+
           WHERE(casamet%tairk >250.0)
              WHERE(casapool%cplant(:,wood)>1.0e-6)
                 casaflux%crmplant(:,wood)  =  resp_coeff * casaflux%frac_sapwood(:) * &
@@ -723,6 +726,7 @@ CONTAINS
                   * EXP(308.56*(1.0/56.02-1.0         &
                   / (casamet%tairk(:)+46.02-tkzeroc)))
           ENDWHERE
+
           WHERE(casamet%tsoilavg >250.0.AND.casapool%cplant(:,froot)>1.0e-6)
 
              casaflux%crmplant(:,froot) =  resp_coeff * casabiome%rmplant(veg%iveg(:),froot) &
@@ -743,6 +747,8 @@ CONTAINS
              casaflux%crgplant(:) = 0.0
           ENDWHERE
 
+          casaflux%cnpp(:) = casaflux%Cgpp(:)-SUM(casaflux%crmplant(:,:),2) - casaflux%crgplant(:)
+
           WHERE(casaflux%Cnpp < 0.0)
          	! change made here by ypw on 11-7-2016 to include leaf maintenance respiration
    	      delcrmleaf(:)  = casaflux%Cnpp(:) * casaflux%crmplant(:,leaf) &
@@ -760,19 +766,20 @@ CONTAINS
    	      casaflux%crmplant(:,froot) = casaflux%crmplant(:,froot) + delcrmfroot(:)
    	  !    casaflux%Cnpp(:) = casaflux%Cnpp(:) -delcrmwood(:)-delcrmfroot(:)
    	      casaflux%crgplant(:) = 0.0
+
+            casaflux%cnpp(:) = casaflux%Cgpp(:)-max(0.0, SUM(casaflux%crmplant(:,:),2)) - casaflux%crgplant(:)
           ENDWHERE
-
-
-
-          !casaflux%Cnpp(:) = MAX(0.0,(casaflux%Cgpp(:)-SUM(casaflux%crmplant(:,:),2) &
-          !                 - casaflux%crgplant(:)))
-          ! changes made by yp wang 5 april 2013
-          Casaflux%cnpp(:) = casaflux%Cgpp(:)-SUM(casaflux%crmplant(:,:),2) - casaflux%crgplant(:)
-
 
        ENDWHERE
 
     ENDIF
+    print*, " End ===== "
+    print*, casaflux%Cnpp
+    print*, casaflux%Cgpp(:), casaflux%crmplant(:,leaf), casaflux%crmplant(:,wood), &
+            casaflux%crmplant(:,froot), SUM(casaflux%crmplant(:,:),2), casaflux%crgplant(:)
+    print*, " ===== "
+    print*, " "
+
 
     IF ( casaflux%Cnpp(1) < 0.0 ) THEN
       print*, "negative NPP"
@@ -2327,7 +2334,7 @@ CONTAINS
                casaflux%Cnpp(npt)
           WRITE(*,*) 'dcplandt',  casapool%dcplantdt(npt,:), SUM(casapool%dcplantdt(npt,:))
           WRITE(*,*) 'rmplant, rgplant',  casaflux%crmplant(npt,:) , casaflux%crgplant(npt)
-          WRITE(*,*), 'dclabile',  casapool%dClabiledt(npt)* deltpool
+          WRITE(*,*) 'dclabile',  casapool%dClabiledt(npt)* deltpool
 
           !  STOP
        ENDIF
