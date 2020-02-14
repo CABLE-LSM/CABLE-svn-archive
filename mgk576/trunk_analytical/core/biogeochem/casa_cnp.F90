@@ -1021,9 +1021,12 @@ CONTAINS
        casaflux%fromPtoL(:,str,froot)   = 1.0 - casaflux%fromPtoL(:,metb,froot)
        casaflux%fromPtoL(:,cwd,wood)    = 1.0
 
-       casaflux%kplant(:,leaf)        = casabiome%plantrate(veg%iveg(:),leaf)*xkleaf(:) &
-            + xkleafcold(:) + xkleafdry(:)
 
+
+       !casaflux%kplant(:,leaf)        = casabiome%plantrate(veg%iveg(:),leaf)*xkleaf(:) &
+      !      + xkleafcold(:) + xkleafdry(:)
+
+       casaflux%kplant(:,leaf)        = casabiome%plantrate(veg%iveg(:),leaf)
        casaflux%kplant(:,wood)        = casabiome%plantrate(veg%iveg(:),wood)
        casaflux%kplant(:,froot)       = casabiome%plantrate(veg%iveg(:),froot)
     ENDWHERE
