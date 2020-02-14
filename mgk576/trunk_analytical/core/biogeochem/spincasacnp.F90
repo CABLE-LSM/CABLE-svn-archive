@@ -213,26 +213,15 @@ SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
 !!$        END WHERE
         nptx=8173
 
-        ! Calculate average allocation fractions  for the plant pools
-        print*, "allocation fracs"
-        print*, " ------ "
-        print*, casaflux%fracCalloc(:,leaf), casaflux%fracCalloc(:,wood), &
-                casaflux%fracCalloc(:,froot)
-
+        ! Calculate average allocation fractions  (-) for the plant pools
         avg_af = avg_af + casaflux%fracCalloc(:,leaf)
         avg_aw = avg_aw + casaflux%fracCalloc(:,wood)
         avg_ar = avg_ar + casaflux%fracCalloc(:,froot)
 
-
-        ! Calculate average turnover fractions for the plant pools
-        avg_lf = avg_lf + (casaflux%kplant(:,leaf) / REAL(LOY))
-        avg_lw = avg_lw + (casaflux%kplant(:,wood) / REAL(LOY))
-        avg_lr = avg_lr + (casaflux%kplant(:,froot) / REAL(LOY))
-
-        !avg_lf = avg_lf + (1.0 / casaflux%kplant(:,leaf) )
-        !avg_lw = avg_lw + (1.0 / casaflux%kplant(:,wood))
-        !avg_lr = avg_lr + (1.0 / casaflux%kplant(:,froot) )
-
+        ! Calculate average turnover rates for the plant pools (d-1)
+        avg_lf = avg_lf + (casaflux%kplant(:,leaf) * REAL(LOY))
+        avg_lw = avg_lw + (casaflux%kplant(:,wood) * REAL(LOY))
+        avg_lr = avg_lr + (casaflux%kplant(:,froot) * REAL(LOY))
 
         avg_cleaf2met = avg_cleaf2met + cleaf2met
         avg_cleaf2str = avg_cleaf2str + cleaf2str
@@ -273,8 +262,8 @@ SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
      ENDDO
   ENDDO
 
-  print*, "divided by"
-  print*, nday * myearspin, nday , myearspin
+  !print*, "divided by"
+  !print*, nday * myearspin, nday , myearspin
 
   !!CLN    CLOSE(91)
 
@@ -307,7 +296,7 @@ SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
   avg_pwood2cwd = avg_pwood2cwd/REAL(nday)
 
   avg_cgpp      = avg_cgpp/REAL(nday)
-  avg_cnpp      = avg_cnpp/REAL(nday)
+  avg_cnpp      = avg_cnpp/REAL(nday) * REAL(LOY)
   avg_nuptake   = avg_nuptake/REAL(nday)
   avg_puptake   = avg_puptake/REAL(nday)
 
