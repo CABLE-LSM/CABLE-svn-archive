@@ -219,9 +219,9 @@ SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
         avg_ar = avg_aw + casaflux%fracCalloc(:,froot)
 
         ! Calculate average turnover fractions for the plant pools
-        avg_lf = avg_lr + (1.0 / casaflux%kplant(:,leaf))
-        avg_lw = avg_lr + (1.0 / casaflux%kplant(:,wood))
-        avg_lr = avg_lw + (1.0 / casaflux%kplant(:,froot))
+        avg_lf = avg_lf + (1.0 / casaflux%kplant(:,leaf))
+        avg_lw = avg_lw + (1.0 / casaflux%kplant(:,wood))
+        avg_lr = avg_lr + (1.0 / casaflux%kplant(:,froot))
 
         avg_cleaf2met = avg_cleaf2met + cleaf2met
         avg_cleaf2str = avg_cleaf2str + cleaf2str
