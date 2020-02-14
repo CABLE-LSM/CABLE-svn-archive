@@ -705,9 +705,6 @@ CONTAINS
        Casaflux%cnpp(:) = casaflux%Cgpp(:)-SUM(casaflux%crmplant(:,:),2) - casaflux%crgplant(:)
 
     ELSE
-      print*, " ===== "
-      print*, "start", casaflux%Cnpp
-      print*, " ===== "
 
        WHERE(casamet%iveg2/=icewater)
 
@@ -747,18 +744,20 @@ CONTAINS
              casaflux%crgplant(:) = 0.0
           ENDWHERE
 
+          ! Calculate new NPP accounting for respiration losses.
           casaflux%cnpp(:) = casaflux%Cgpp(:)-SUM(casaflux%crmplant(:,:),2) - casaflux%crgplant(:)
 
+          ! Ensure NPP does not become negative, reduce respiration losses if so
           WHERE(casaflux%Cnpp < 0.0)
          	! change made here by ypw on 11-7-2016 to include leaf maintenance respiration
    	      delcrmleaf(:)  = casaflux%Cnpp(:) * casaflux%crmplant(:,leaf) &
-   	                     / max(0.01,(casaflux%crmplant(:,leaf)+casaflux%crmplant(:,wood) &
+   	                     / max(1E-06,(casaflux%crmplant(:,leaf)+casaflux%crmplant(:,wood) &
    	                               + casaflux%crmplant(:,froot)))
    	      delcrmwood(:)  = casaflux%Cnpp(:) * casaflux%crmplant(:,wood) &
-   	                     / max(0.01,(casaflux%crmplant(:,leaf)+casaflux%crmplant(:,wood) &
+   	                     / max(1E-06,(casaflux%crmplant(:,leaf)+casaflux%crmplant(:,wood) &
    	                               + casaflux%crmplant(:,froot)))
    	      delcrmfroot(:) = casaflux%Cnpp(:) * casaflux%crmplant(:,froot) &
-   	                     / max(0.01,(casaflux%crmplant(:,leaf)+casaflux%crmplant(:,wood) &
+   	                     / max(1E-06,(casaflux%crmplant(:,leaf)+casaflux%crmplant(:,wood) &
    	                               + casaflux%crmplant(:,froot)))
 
    	      casaflux%crmplant(:,leaf)  = casaflux%crmplant(:,leaf)  + delcrmleaf(:)
@@ -767,25 +766,20 @@ CONTAINS
    	  !    casaflux%Cnpp(:) = casaflux%Cnpp(:) -delcrmwood(:)-delcrmfroot(:)
    	      casaflux%crgplant(:) = 0.0
 
-            casaflux%cnpp(:) = casaflux%Cgpp(:)-max(0.0, SUM(casaflux%crmplant(:,:),2)) - casaflux%crgplant(:)
+            casaflux%cnpp(:) = casaflux%Cgpp(:)-SUM(casaflux%crmplant(:,:),2) - casaflux%crgplant(:)
+
+            ! The logic above can still lead to a negative NPP as
+            ! SUM(casaflux%crmplant(:,:),2) can be a tiny number, if this
+            ! happens, set NPP to zero
+            WHERE(casaflux%Cnpp < 0.0)
+               casaflux%cnpp(:) = 0.0
+            ENDWHERE
+
           ENDWHERE
 
        ENDWHERE
 
     ENDIF
-    print*, " End ===== "
-    print*, casaflux%Cnpp
-    print*, casaflux%Cgpp(:), casaflux%crmplant(:,leaf), casaflux%crmplant(:,wood), &
-            casaflux%crmplant(:,froot), SUM(casaflux%crmplant(:,:),2), casaflux%crgplant(:)
-    print*, " ===== "
-    print*, " "
-
-
-    IF ( casaflux%Cnpp(1) < 0.0 ) THEN
-      print*, "negative NPP"
-      print*, casaflux%Cnpp
-      stop
-    END IF
 
   END SUBROUTINE casa_rplant
 
