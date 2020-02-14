@@ -221,7 +221,7 @@ SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
         avg_aw = avg_aw + casaflux%fracCalloc(:,wood)
         avg_ar = avg_ar + casaflux%fracCalloc(:,froot)
 
-        ! Calculate average turnover rates for the plant pools (d-1)
+        ! Calculate average turnover rates for the plant pools (yr-1)
         avg_lf = avg_lf + (casaflux%kplant(:,leaf) * REAL(LOY))
         avg_lw = avg_lw + (casaflux%kplant(:,wood) * REAL(LOY))
         avg_lr = avg_lr + (casaflux%kplant(:,froot) * REAL(LOY))
