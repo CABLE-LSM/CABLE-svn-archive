@@ -932,7 +932,7 @@ END SUBROUTINE sumcflux
       print*, avg_af(npt), avg_aw(npt), avg_ar(npt)
       print*, "Turn"
       print*, avg_lf(npt), avg_lw(npt), avg_lr(npt)
-      print*, 1.0/avg_lf(npt), 1.0/avg_lw(npt), 1.0/avg_lr(npt)
+      print*, 365. *avg_lf(npt), 365. *avg_lw(npt), 365. *avg_lr(npt)
       print*, " "
 
       ! Compute steady-state plant C pool sizes
@@ -953,7 +953,7 @@ END SUBROUTINE sumcflux
       print*, casapool%cplant(npt,leaf)
       print*, casapool%cplant(npt,wood)
       print*, casapool%cplant(npt,froot)
-      stop
+      !stop
 
     ! compute steady-state litter and soil C pool sizes
      casapool%clitter(npt,metb) = (avgcleaf2met(npt)+avgcroot2met(npt))/casaflux%klitter(npt,metb)
