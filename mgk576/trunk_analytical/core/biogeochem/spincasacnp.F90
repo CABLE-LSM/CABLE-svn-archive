@@ -358,7 +358,7 @@ SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
   !avg_rationcsoilmic  = avg_rationcsoilmic  /REAL(nday*myearspin)
   !avg_rationcsoilslow = avg_rationcsoilslow /REAL(nday*myearspin)
   !avg_rationcsoilpass = avg_rationcsoilpass /REAL(nday*myearspin)
-  
+
   CALL analyticpool(kend,veg,soil,casabiome,casapool,                                          &
        casaflux,casamet,casabal,phen,                                         &
        avg_cleaf2met,avg_cleaf2str,avg_croot2met,avg_croot2str,avg_cwood2cwd, &
