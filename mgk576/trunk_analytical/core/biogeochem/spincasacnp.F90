@@ -226,6 +226,7 @@ SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
         avg_lw = avg_lw + (casaflux%kplant(:,wood) * REAL(LOY))
         avg_lr = avg_lr + (casaflux%kplant(:,froot) * REAL(LOY))
 
+
         avg_cleaf2met = avg_cleaf2met + cleaf2met
         avg_cleaf2str = avg_cleaf2str + cleaf2str
         avg_croot2met = avg_croot2met + croot2met
@@ -280,6 +281,7 @@ SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
   avg_lw = avg_lw / REAL(nday)
   avg_lr = avg_lr / REAL(nday)
 
+  
   ! Need the annual NPP to solve plant pools g C m-2 y-1
   avg_annual_cnpp = avg_cnpp/REAL(nday) * REAL(LOY)
 

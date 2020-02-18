@@ -932,17 +932,29 @@ END SUBROUTINE sumcflux
       print*, casapool%cplant(npt,froot)
 
       ! Compute steady-state plant C pool sizes
+      !casapool%cplant(npt,leaf) = casapool%cplant(npt,leaf) + &
+      !                              (avg_annual_cnpp(npt) * avg_af(npt)) / & ! growth
+      !                              (casapool%cplant(npt,leaf) * avg_lf(npt)) ! loss
+
+      !casapool%cplant(npt,wood) = casapool%cplant(npt,wood) + &
+      !                              (avg_annual_cnpp(npt) * avg_aw(npt)) - & ! growth
+      !                              (casapool%cplant(npt,wood) * avg_lw(npt))! loss
+
+      !casapool%cplant(npt,froot) = casapool%cplant(npt,froot) + &
+      !                              (avg_annual_cnpp(npt) * avg_ar(npt)) - & ! growth
+      !                              (casapool%cplant(npt,froot) * avg_lr(npt)) ! loss
+
       casapool%cplant(npt,leaf) = casapool%cplant(npt,leaf) + &
                                     (avg_annual_cnpp(npt) * avg_af(npt)) / & ! growth
-                                    (casapool%cplant(npt,leaf) * avg_lf(npt)) ! loss
+                                    avg_lf(npt) ! loss
 
       casapool%cplant(npt,wood) = casapool%cplant(npt,wood) + &
-                                    (avg_annual_cnpp(npt) * avg_aw(npt)) - & ! growth
-                                    (casapool%cplant(npt,wood) * avg_lw(npt))! loss
+                                    (avg_annual_cnpp(npt) * avg_aw(npt)) / & ! growth
+                                    avg_lw(npt)! loss
 
       casapool%cplant(npt,froot) = casapool%cplant(npt,froot) + &
-                                    (avg_annual_cnpp(npt) * avg_ar(npt)) - & ! growth
-                                    (casapool%cplant(npt,froot) * avg_lr(npt)) ! loss
+                                    (avg_annual_cnpp(npt) * avg_ar(npt)) / & ! growth
+                                    avg_lr(npt) ! loss
 
 
       print*, "new cpools"
