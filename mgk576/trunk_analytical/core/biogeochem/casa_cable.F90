@@ -932,30 +932,19 @@ END SUBROUTINE sumcflux
       print*, casapool%cplant(npt,froot)
 
       ! Compute steady-state plant C pool sizes
-      !casapool%cplant(npt,leaf) = casapool%cplant(npt,leaf) + &
-      !                              (avg_annual_cnpp(npt) * avg_af(npt)) / & ! growth
-      !                              (casapool%cplant(npt,leaf) * avg_lf(npt)) ! loss
-
-      !casapool%cplant(npt,wood) = casapool%cplant(npt,wood) + &
-      !                              (avg_annual_cnpp(npt) * avg_aw(npt)) - & ! growth
-      !                              (casapool%cplant(npt,wood) * avg_lw(npt))! loss
-
-      !casapool%cplant(npt,froot) = casapool%cplant(npt,froot) + &
-      !                              (avg_annual_cnpp(npt) * avg_ar(npt)) - & ! growth
-      !                              (casapool%cplant(npt,froot) * avg_lr(npt)) ! loss
-
       casapool%cplant(npt,leaf) = casapool%cplant(npt,leaf) + &
                                     (avg_annual_cnpp(npt) * avg_af(npt)) / & ! growth
-                                    avg_lf(npt) ! loss
+                                    (casapool%cplant(npt,leaf) * avg_lf(npt)) ! loss
 
       casapool%cplant(npt,wood) = casapool%cplant(npt,wood) + &
-                                    (avg_annual_cnpp(npt) * avg_aw(npt)) / & ! growth
-                                    avg_lw(npt)! loss
+                                    (avg_annual_cnpp(npt) * avg_aw(npt)) - & ! growth
+                                    (casapool%cplant(npt,wood) * avg_lw(npt))! loss
 
       casapool%cplant(npt,froot) = casapool%cplant(npt,froot) + &
-                                    (avg_annual_cnpp(npt) * avg_ar(npt)) / & ! growth
-                                    avg_lr(npt) ! loss
+                                    (avg_annual_cnpp(npt) * avg_ar(npt)) - & ! growth
+                                    (casapool%cplant(npt,froot) * avg_lr(npt)) ! loss
 
+      
 
       print*, "new cpools"
       print*, casapool%cplant(npt,leaf)
@@ -963,7 +952,14 @@ END SUBROUTINE sumcflux
       print*, casapool%cplant(npt,froot)
       print*, " "
       print*, " "
-      stop
+
+      print*, " "
+      print*, " "
+      print*, "old csoil"
+      print*, casapool%csoil(npt,mic)
+      print*, casapool%csoil(npt,slow)
+      print*, casapool%csoil(npt,pass)
+
 
     ! compute steady-state litter and soil C pool sizes
      casapool%clitter(npt,metb) = (avgcleaf2met(npt)+avgcroot2met(npt))/casaflux%klitter(npt,metb)
@@ -985,6 +981,12 @@ END SUBROUTINE sumcflux
       casabal%clitterlast = casapool%clitter
       casabal%csoillast   = casapool%csoil
 
+
+      print*, "new csoil"
+      print*, casapool%csoil(npt,mic)
+      print*, casapool%csoil(npt,slow)
+      print*, casapool%csoil(npt,pass)
+      !stop
       if(icycle <=1) then
          casapool%nlitter(npt,:)= casapool%rationclitter(npt,:) * casapool%clitter(npt,:)
          casapool%nsoil(npt,:)  = casapool%ratioNCsoil(npt,:)   * casapool%Csoil(npt,:)
