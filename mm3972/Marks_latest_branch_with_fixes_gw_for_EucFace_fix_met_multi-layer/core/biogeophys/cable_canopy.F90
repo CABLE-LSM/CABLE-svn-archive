@@ -806,7 +806,7 @@ CONTAINS
                MIN(1., ( (r_sc(j) + canopy%us(j)/alpm1(j) ) / MAX( 1.,         &
                rough%rt0us(j) + rough%rt1usa(j) + rough%rt1usb(j)              &
                + rt1usc(j) + canopy%us(j)/alpm1(j) )) )
-          elseif (cable_user%litter) then ! MMY 
+          elseif (cable_user%litter) then ! MMY
              canopy%qscrn(j) = qsurf(j) + (met%qv(j) - qsurf(j)) *      & ! MMY
                MIN(1., ( ( r_sc(j)+relitt(j)*canopy%us(j) ) / MAX( 1.,  & ! MMY
                  rough%rt0us(j) + rough%rt1usa(j) + rough%rt1usb(j)     & ! MMY
@@ -868,9 +868,9 @@ CONTAINS
 
        !IF (cable_user%gw_model .or. cable_user%or_evap) THEN
        IF (cable_user%or_evap) THEN
-          ! _______________________ MMY redundant ___________________ 
+          ! _______________________ MMY redundant ___________________
           !ssnow%dfh_dtg = air%rho*C%CAPP/(ssnow%rtsoil+ real(ssnow%rt_qh_sublayer))
-          
+
           !!! INH simplifying code for legibility
           !!ssnow%dfe_ddq = real(ssnow%satfrac)*air%rho*air%rlam*ssnow%cls/ &
           !!     (ssnow%rtsoil+ real(ssnow%rtevap_sat))  +
@@ -2868,10 +2868,11 @@ CONTAINS
     REAL, DIMENSION(ms) :: est_evap
     REAL, DIMENSION(mp,ms) :: psi_soil ! Soil matric potential (MPa)
     REAL, DIMENSION(mp,ms) :: soilR ! soil resistant
+    REAL, DIMENSION(mp,ms) :: smp   ! soil matric potential [mm]
+    REAL, DIMENSION(mp,ms) :: s_mid     ! for calculate smp
     REAL, DIMENSION(mp) :: weighted_psi_soil
     REAL                :: total_est_evap
     INTEGER             :: i,j
-
 
     ! convert from gC to g biomass, i.e. twice the C content
     root_biomass = 832.0 * gC2DM ! Eucface value ??? 832.0 can be an input value
@@ -2879,10 +2880,20 @@ CONTAINS
     ! Always provide a minimum root biomass
     root_biomass = MAX(5., root_biomass)
 
+    ! To calculate soil matric potential, since hydro module after canopy module
+    ! gw_params%ssgw_ice_switch = True
+    s_mid = (ssnow%wbliq - ssnow%watr_hys) / (ssnow%ssat_hys - ssnow%watr_hys)
+    ! gw_params%ssgw_ice_switch = False
+    !s_mid = (ssnow%wb - ssnow%watr_hys) / (ssnow%ssat_hys - ssnow%watr_hys)
+    s_mid = min(max(s_mid,0.01_r_2),1._r_2)
+    smp = - soil%sucs_vec*s_mid**(-soil%bch_vec)
+    smp = max(min(smp,- soil%sucs_vec),-1.0e8)
+    ! -1.0e8: minimum soil pressure head [mm])
+    print *, "smp is ", smp
     ! Soil matric potential, from mm to MPa
-    psi_soil     = ssnow%smp / 1000. * M_HEAD_TO_MPa ! negative
-    ! ssnow%smp : Soil matric potential for soil layers [mm], negative value
-
+    psi_soil     = smp / 1000. * M_HEAD_TO_MPa ! negative
+    ! smp : Soil matric potential for soil layers [mm], negative value
+    print *, "psi_soil is ", psi_soil
     ! Store each layers resistance, used in LWP calculatons
     weighted_psi_soil = 0.0
 
@@ -2925,13 +2936,15 @@ CONTAINS
 
            ! Root length density (m root m-3 soil)
            root_length(j) = root_mass / (root_density * root_xsec_area)
-
+           root_length(j) = max(root_length(j), 1E-6)
+           !print *, "j = ", j
+           !print *, "root_length = ", root_length(j)
            ! Conductance of the soil-to-root pathway can be estimated
            ! assuming that the root system consists of one long root that
            ! has access to a surrounding cylinder of soil
            ! (Gardner 1960, Newman 1969)
            rs = SQRT(1.0 / (root_length(j) * pi))
-
+           !print *, "rs = ", rs
            ! Soil-to-root resistance (MPa s m2 mmol-1 H2O)
            soil_resist = LOG(rs / root_radius) / &
                          (2.0 * pi * root_length(j) * soil%zse(j) * Ksoil)
@@ -2961,6 +2974,7 @@ CONTAINS
         ELSE
            est_evap(j) = 0.0 ! when no roots present
         ENDIF
+        !print *, "est_evap", est_evap(j)
 
         ! Soil water potential weighted by layer Emax (from SPA)
         weighted_psi_soil(i) = weighted_psi_soil(i) + &
@@ -2994,7 +3008,6 @@ CONTAINS
         ! veg%g1_b(i) = 1.34 for EucFACE
       END IF
     END DO ! i
-
 
      !note even though swilt_vec is defined in default model it is r_2
      !and even using real(_vec) gives results different from trunk (rounding
