@@ -192,7 +192,7 @@ CONTAINS
     met%qvair = met%qv
     canopy%tv = met%tvair
     canopy%fwsoil = 1.0
-
+    print *, "first time fwsoil is ", canopy%fwsoil ! MMY
     CALL define_air (met, air)
 
     CALL qsatfjh(qstvair,met%tvair-C%tfrz,met%pmb)
@@ -1862,8 +1862,10 @@ CONTAINS
              STOP 'fwsoil_switch failed.'
           ENDIF
           canopy%fwsoil = fwsoil
+          print *, "soil_struc=='default'and FWSOIL_SWITCH /='Haverd2013' second time fwsoil is ", canopy%fwsoil ! MMY
        ELSEIF ((cable_user%soil_struc=='sli').OR.(cable_user%FWSOIL_SWITCH=='Haverd2013')) THEN
           fwsoil = canopy%fwsoil
+          print *, "soil_struc=='sli'.or. FWSOIL_SWITCH=='Haverd2013' second time fwsoil is ", canopy%fwsoil ! MMY
        ENDIF
 
     ENDIF
@@ -2198,7 +2200,19 @@ CONTAINS
                  endif
 
                 canopy%fevc(i) = ecx(i)*(1.0-canopy%fwet(i))
-
+                !print *, "-------------------------------------------------" ! MMY
+                !print *, "ssnow%wbliq(i,:) is ", ssnow%wbliq(i,:) ! MMY
+                !print *, "ssnow%rex(i,:) is ", ssnow%rex(i,:) ! MMY
+                !print *, "canopy%fwsoil(i) is ", canopy%fwsoil(i) ! MMY
+                !print *, "real(veg%froot(i,:),r_2) is ", real(veg%froot(i,:),r_2) ! MMY
+                !print *, "soil%ssat_vec(i,:) is ", soil%ssat_vec(i,:) ! MMY
+                !print *, "soil%swilt_vec(i,:) is ", soil%swilt_vec(i,:) ! MMY
+                !print *, "max(real(canopy%fevc(i)/air%rlam(i)/1000_r_2,r_2),0.0_r_2 is ", max(real(canopy%fevc(i)/air%rlam(i)/1000_r_2,r_2),0.0_r_2) ! MMY
+                !print *, "real(veg%gamma(i),r_2) is ", real(veg%gamma(i),r_2) ! MMY
+                !print *, "real(soil%zse,r_2) is ", real(soil%zse,r_2) ! MMY
+                !print *, "real(dels,r_2) is ", real(dels,r_2) ! MMY
+                !print *, "real(veg%zr(i),r_2) is ", real(veg%zr(i),r_2) ! MMY
+                !print *, "-------------------------------------------------" ! MMY
                 call getrex_1d(ssnow%wbliq(i,:),&
                       ssnow%rex(i,:), &
                      canopy%fwsoil(i), &
@@ -2208,7 +2222,7 @@ CONTAINS
                       max(real(canopy%fevc(i)/air%rlam(i)/1000_r_2,r_2),0.0_r_2), &
                      real(veg%gamma(i),r_2), &
                      real(soil%zse,r_2), real(dels,r_2), real(veg%zr(i),r_2))
-
+                print *, "third time fwsoil is ", canopy%fwsoil(i) ! MMY
                 fwsoil(i) = canopy%fwsoil(i)
                 ssnow%evapfbl(i,:) = ssnow%rex(i,:)*dels*1000_r_2 ! mm water &
                 !(root water extraction) per time step
@@ -2889,11 +2903,11 @@ CONTAINS
     smp = - soil%sucs_vec*s_mid**(-soil%bch_vec)
     smp = max(min(smp,- soil%sucs_vec),-1.0e8)
     ! -1.0e8: minimum soil pressure head [mm])
-    print *, "smp is ", smp
+    !print *, "smp is ", smp
     ! Soil matric potential, from mm to MPa
     psi_soil     = smp / 1000. * M_HEAD_TO_MPa ! negative
     ! smp : Soil matric potential for soil layers [mm], negative value
-    print *, "psi_soil is ", psi_soil
+    !print *, "psi_soil is ", psi_soil
     ! Store each layers resistance, used in LWP calculatons
     weighted_psi_soil = 0.0
 
@@ -3183,6 +3197,13 @@ CONTAINS
     elsewhere
        alpha_root(:) = zero
     endwhere
+
+    where (Fs(:) > zero .and. layer_depth < zr )  ! where there are roots and we are aobe max rooting depth
+	       delta_root(:) = one
+    elsewhere
+         delta_root(:) = zero
+    endwhere
+
     rex(:) = alpha_root(:)*Fs(:)
 
     trex = sum(rex(:))
@@ -3222,7 +3243,10 @@ CONTAINS
           rex(:) = zero
        endif
        rex(:) = Etrans*rex(:)
+       print *, "(any(((rex*dt) > max((theta(:)-thetaw(:)),zero)*dx(:)) .and. (Etrans > zero)))" ! MMY
     else
+       print *, "alpha_root(2:) is ", alpha_root(2:) ! MMY
+       print *, "delta_root(2:) is ", delta_root(2:) ! MMY
        fws    = maxval(alpha_root(2:)*delta_root(2:))
     endif
 
