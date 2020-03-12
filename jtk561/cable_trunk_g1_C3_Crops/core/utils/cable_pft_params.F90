@@ -643,7 +643,7 @@ if( .NOT. allocated(vegin%clitt ) )  allocate( vegin%clitt    (mvtype) )!! vh_ve
       vegin%ekc(9) =    59430.000000
       vegin%eko(9) =    36000.000000
        vegin%g0(9) =        0.000000
-       vegin%g1(9) =        5.789377
+       vegin%g1(9) =        2.894688
        vegin%zr(9) =        0.500000
     vegin%clitt(9) =        0.000000
  
