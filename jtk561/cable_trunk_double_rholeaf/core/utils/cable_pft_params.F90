@@ -617,9 +617,9 @@ if( .NOT. allocated(vegin%clitt ) )  allocate( vegin%clitt    (mvtype) )!! vh_ve
     vegin%froot(5,9) =        0.000000
     vegin%froot(6,9) =        0.000000
      vegin%refl(1,9) =        0.220000
-     vegin%taul(1,9) =        0.110000
+     vegin%taul(1,9) =        0.055000
      vegin%refl(2,9) =        0.680000
-     vegin%taul(2,9) =        0.340000
+     vegin%taul(2,9) =        0.170000
      vegin%refl(3,9) =        0.010000
      vegin%taul(3,9) =        0.010000
     vegin%csoil(1,9) =      149.000000
