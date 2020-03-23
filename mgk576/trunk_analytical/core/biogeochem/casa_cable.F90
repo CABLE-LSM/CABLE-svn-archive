@@ -923,40 +923,13 @@ END SUBROUTINE sumcflux
   do npt=1,mp
    if(casamet%iveg2(npt)/=icewater.and.avgcnpp(npt) > 0.0) then
 
-
-      print*, " "
-      print*, " "
-      print*, "old cpools"
-      print*, casapool%cplant(npt,leaf)
-      print*, casapool%cplant(npt,wood)
-      print*, casapool%cplant(npt,froot)
-
-
-
       ! Compute steady-state plant C pool sizes
-      casapool%cplant(npt,leaf) = ( avg_annual_cnpp(npt) * avg_af(npt) ) / &
+      casapool%cplant(npt,leaf) = (avg_annual_cnpp(npt) * avg_af(npt)) / &
                                    avg_lf(npt)
-      casapool%cplant(npt,wood) = ( avg_annual_cnpp(npt) * avg_aw(npt) ) / &
+      casapool%cplant(npt,wood) = (avg_annual_cnpp(npt) * avg_aw(npt)) / &
                                    avg_lw(npt)
-      casapool%cplant(npt,froot) = ( avg_annual_cnpp(npt) * avg_ar(npt) ) / &
+      casapool%cplant(npt,froot) = (avg_annual_cnpp(npt) * avg_ar(npt)) / &
                                     avg_lr(npt)
-
-      print*, "new cpools"
-      print*, casapool%cplant(npt,leaf)
-      print*, casapool%cplant(npt,wood)
-      print*, casapool%cplant(npt,froot)
-      print*, " "
-      print*, " "
-
-
-
-      print*, " "
-      print*, " "
-      print*, "old csoil"
-      print*, casapool%csoil(npt,mic)
-      print*, casapool%csoil(npt,slow)
-      print*, casapool%csoil(npt,pass)
-
 
     ! compute steady-state litter and soil C pool sizes
      casapool%clitter(npt,metb) = (avgcleaf2met(npt)+avgcroot2met(npt))/casaflux%klitter(npt,metb)
@@ -978,11 +951,6 @@ END SUBROUTINE sumcflux
       casabal%clitterlast = casapool%clitter
       casabal%csoillast   = casapool%csoil
 
-
-      print*, "new csoil"
-      print*, casapool%csoil(npt,mic)
-      print*, casapool%csoil(npt,slow)
-      print*, casapool%csoil(npt,pass)
       !stop
       if(icycle <=1) then
          casapool%nlitter(npt,:)= casapool%rationclitter(npt,:) * casapool%clitter(npt,:)

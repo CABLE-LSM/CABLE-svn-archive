@@ -232,7 +232,6 @@ SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
         avg_lw = avg_lw + (casaflux%kplant(:,wood) * REAL(LOY))
         avg_lr = avg_lr + (casaflux%kplant(:,froot) * REAL(LOY))
 
-
         avg_cleaf2met = avg_cleaf2met + cleaf2met
         avg_cleaf2str = avg_cleaf2str + cleaf2str
         avg_croot2met = avg_croot2met + croot2met
@@ -272,11 +271,6 @@ SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
      ENDDO
   ENDDO
 
-  !print*, "divided by"
-  !print*, nday * myearspin, nday , myearspin
-
-  !!CLN    CLOSE(91)
-
   ! Average the plant allocation fraction
   avg_af = avg_af / REAL(nday)
   avg_aw = avg_aw / REAL(nday)
@@ -286,9 +280,6 @@ SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
   avg_lf = avg_lf / REAL(nday)
   avg_lw = avg_lw / REAL(nday)
   avg_lr = avg_lr / REAL(nday)
-
-  !print*, "**", nday, myearspin, myearspin*nday, test_count, myearspin*365
-  !print*, avg_lf
 
   ! Need the annual NPP to solve plant pools g C m-2 y-1
   avg_annual_cnpp = avg_cnpp / REAL(myearspin)
@@ -311,10 +302,8 @@ SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
   avg_proot2str = avg_proot2str/REAL(nday)
   avg_pwood2cwd = avg_pwood2cwd/REAL(nday)
 
-
   avg_cgpp      = avg_cgpp/REAL(nday)
   avg_cnpp      = avg_cnpp/REAL(nday)
-
 
   avg_nuptake   = avg_nuptake/REAL(nday)
   avg_puptake   = avg_puptake/REAL(nday)
