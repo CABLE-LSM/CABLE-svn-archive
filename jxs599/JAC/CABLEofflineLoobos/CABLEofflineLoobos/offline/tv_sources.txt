@@ -1,0 +1,10 @@
+/short/p66/jxs599/CABLE/CABLE_validation/src/226_199/offline
+/short/p66/jxs599/CABLE/CABLE_validation/src/226_199/params
+/short/p66/jxs599/CABLE/CABLE_validation/src/226_199/util
+/short/p66/jxs599/CABLE/CABLE_validation/src/226_199/science/
+/short/p66/jxs599/CABLE/CABLE_validation/src/226_199/science/
+/short/p66/jxs599/CABLE/CABLE_validation/src/226_199/science/albedo/
+/short/p66/jxs599/CABLE/CABLE_validation/src/226_199/science/radiation
+/short/p66/jxs599/CABLE/CABLE_validation/src/226_199/science/soilsnow
+/short/p66/jxs599/CABLE/CABLE_validation/src/226_199/science/roughness
+/short/p66/jxs599/CABLE/CABLE_validation/src/226_199/science/canopy
