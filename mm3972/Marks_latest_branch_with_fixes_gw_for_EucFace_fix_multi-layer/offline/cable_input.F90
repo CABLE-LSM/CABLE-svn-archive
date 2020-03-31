@@ -2860,10 +2860,10 @@ SUBROUTINE get_parameters_met(soil,ssnow,veg,bgc,rough,completeSet) ! MMY add ss
                    nmetpatches,'def')
    ENDIF
    ! _____________ MMY init wb ___________________
-   CALL readpar(ncid_met,'SoilMoist',completeSet,ssnow%wb,filename%met,              &
-        nmetpatches,'ms') ! ssnow%wb(mp,ms)
-   PRINT *,'MMY ssnow%wb read from met is ', ssnow%wb
-   ssnow%GWwb(:)      = ssnow%wb(:,ms) ! MMY
+   !CALL readpar(ncid_met,'SoilMoist',completeSet,ssnow%wb,filename%met,        &
+   !     nmetpatches,'ms') ! ssnow%wb(mp,ms)
+   !PRINT *,'MMY ssnow%wb read from met is ', ssnow%wb
+   !ssnow%GWwb(:)      = ssnow%wb(:,ms) ! MMY
    ! _____________________________________________
 
    CALL readpar(ncid_met,'zse',completeSet,soil%zse,filename%met,              &

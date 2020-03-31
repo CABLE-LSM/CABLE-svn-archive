@@ -129,7 +129,7 @@ MODULE cable_checks_module
            clay = (/0.0,1.0/),                 &
            css = (/700.0,2200.0/),             &
            rhosoil = (/300.0,3000.0/),         &
-           hyds = (/5.0E-7,8.5E-3/),           & ! vh_js ! sep14 ! MMY 8.5E-3->8.5 since hyds m/s but hyds_vec mm/s
+           hyds = (/5.0E-7,8.5/),              & ! vh_js ! sep14 ! MMY 8.5E-3->8.5 since hyds m/s but hyds_vec mm/s
            rs20 = (/0.0,10.0/),                &
            sand = (/0.0,1.0/),                 &
            sfc = (/0.1,0.5/),                  &
