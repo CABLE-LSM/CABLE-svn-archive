@@ -134,9 +134,9 @@ MODULE cable_checks_module
            sand = (/0.0,1.0/),                 &
            sfc = (/0.1,0.5/),                  &
            silt = (/0.0,1.0/),                 &
-           ssat = (/0.35,0.5/),                &
+           ssat = (/0.32,0.5/),                & ! MMY (/0.35,0.5/) -> (/0.30,0.5/) for EucFACE
            sucs = (/30.,800./),                & ! MMY the range [-0.8,-0.03] is not suit for Mark Decker's version
-           swilt = (/0.05,0.4/),               &
+           swilt = (/0.01,0.4/),               & ! MMY (/0.05,0.4/) -> (/0.01,0.4/) for EucFACE
            froot = (/0.0,1.0/),                &
            zse = (/0.0,5.0/),                  &
            canst1 = (/0.05,0.15/),             &
