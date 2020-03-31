@@ -135,7 +135,7 @@ MODULE cable_checks_module
            sfc = (/0.1,0.5/),                  &
            silt = (/0.0,1.0/),                 &
            ssat = (/0.35,0.5/),                &
-           sucs = (/-0.8,-0.03/),              &
+           sucs = (/30.,800./),              & ! MMY the range [-0.8,-0.03] is not suit for Mark Decker's version
            swilt = (/0.05,0.4/),               &
            froot = (/0.0,1.0/),                &
            zse = (/0.0,5.0/),                  &
