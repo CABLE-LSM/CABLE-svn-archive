@@ -1790,7 +1790,7 @@ CONTAINS
                  soil%wbc_vec(i,klev) = 0.0
                  soil%smpc_vec(i,klev) = 0.0
 
-              elseif (gw_params%HC_SWC) THEN
+            elseif (gw_params%HC_SWC) then
                 !Hutson-Cass SWC : seperate dry/wet
                 !avoid discont in derv at smp=sucs
                 !pedo transfer from T. Mayr, N.J. JarÕisr Geoderma 91
@@ -1831,7 +1831,7 @@ CONTAINS
                 soil%watr(i,klev) = 0.0
                 if (klev .eq. 1) soil%GWwatr(i) = 0.0
 
-                else
+              else
 
                  soil%hyds_vec(i,klev) = soil%hyds_vec(i,klev) *&
                                            exp(-soil%hkrz(i)*(soil_depth(i,klev)-soil%zdepth(i)))
@@ -1890,13 +1890,11 @@ CONTAINS
                 end if
              end do
           end do
-
-       ELSE
-
-          DO klev=1,ms
-              soil%hyds_vec(:,klev) = soil%hyds_vec(:,klev)*exp(-soil%hkrz(:)*(soil_depth(:,klev)-soil%zdepth(:)))
-          END DO
-
+       ! ____________ MMY: comment out to control hyds for EucFACE _____________
+       !ELSE
+       !    DO klev=1,ms
+       !        soil%hyds_vec(:,klev) = soil%hyds_vec(:,klev)*exp(-soil%hkrz(:)*(soil_depth(:,klev)-soil%zdepth(:)))
+       !    END DO
        END IF  !use either uni or multi cosby transfer func
 
        !set the non-vectored values to srf value

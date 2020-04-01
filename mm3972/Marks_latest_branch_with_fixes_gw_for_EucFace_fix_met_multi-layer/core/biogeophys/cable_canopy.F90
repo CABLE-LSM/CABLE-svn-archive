@@ -192,7 +192,7 @@ CONTAINS
     met%qvair = met%qv
     canopy%tv = met%tvair
     canopy%fwsoil = 1.0
-    print *, "first time fwsoil is ", canopy%fwsoil ! MMY
+    !print *, "first time fwsoil is ", canopy%fwsoil ! MMY
     CALL define_air (met, air)
 
     CALL qsatfjh(qstvair,met%tvair-C%tfrz,met%pmb)
@@ -558,7 +558,7 @@ CONTAINS
                   !(ssnow%rtsoil +  real((1-ssnow%isflag))*veg%clitt*0.003/canopy%kthLitt/(air%rho*C%CAPP))
                   (ssnow%rtsoil + rhlitt)
           else
-             print *, " ssnow%rt_qh_sublayer is ", ssnow%rt_qh_sublayer ! MMY
+             !print *, " ssnow%rt_qh_sublayer is ", ssnow%rt_qh_sublayer ! MMY
              canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tvair) /ssnow%rtsoil
           ENDIF
 
@@ -1862,10 +1862,10 @@ CONTAINS
              STOP 'fwsoil_switch failed.'
           ENDIF
           canopy%fwsoil = fwsoil
-          print *, "soil_struc=='default'and FWSOIL_SWITCH /='Haverd2013' second time fwsoil is ", canopy%fwsoil ! MMY
+          !print *, "soil_struc=='default'and FWSOIL_SWITCH /='Haverd2013' second time fwsoil is ", canopy%fwsoil ! MMY
        ELSEIF ((cable_user%soil_struc=='sli').OR.(cable_user%FWSOIL_SWITCH=='Haverd2013')) THEN
           fwsoil = canopy%fwsoil
-          print *, "soil_struc=='sli'.or. FWSOIL_SWITCH=='Haverd2013' second time fwsoil is ", canopy%fwsoil ! MMY
+          !print *, "soil_struc=='sli'.or. FWSOIL_SWITCH=='Haverd2013' second time fwsoil is ", canopy%fwsoil ! MMY
        ENDIF
 
     ENDIF
@@ -2222,7 +2222,7 @@ CONTAINS
                       max(real(canopy%fevc(i)/air%rlam(i)/1000_r_2,r_2),0.0_r_2), &
                      real(veg%gamma(i),r_2), &
                      real(soil%zse,r_2), real(dels,r_2), real(veg%zr(i),r_2))
-                print *, "third time fwsoil is ", canopy%fwsoil(i) ! MMY
+                !print *, "third time fwsoil is ", canopy%fwsoil(i) ! MMY
                 fwsoil(i) = canopy%fwsoil(i)
                 ssnow%evapfbl(i,:) = ssnow%rex(i,:)*dels*1000_r_2 ! mm water &
                 !(root water extraction) per time step
@@ -3243,10 +3243,10 @@ CONTAINS
           rex(:) = zero
        endif
        rex(:) = Etrans*rex(:)
-       print *, "(any(((rex*dt) > max((theta(:)-thetaw(:)),zero)*dx(:)) .and. (Etrans > zero)))" ! MMY
+       !print *, "(any(((rex*dt) > max((theta(:)-thetaw(:)),zero)*dx(:)) .and. (Etrans > zero)))" ! MMY
     else
-       print *, "alpha_root(2:) is ", alpha_root(2:) ! MMY
-       print *, "delta_root(2:) is ", delta_root(2:) ! MMY
+       !print *, "alpha_root(2:) is ", alpha_root(2:) ! MMY
+       !print *, "delta_root(2:) is ", delta_root(2:) ! MMY
        fws    = maxval(alpha_root(2:)*delta_root(2:))
     endif
 
