@@ -1891,13 +1891,12 @@ CONTAINS
              end do
           end do
 
-       ELSE
-
-          DO klev=1,ms
-              soil%hyds_vec(:,klev) = soil%hyds_vec(:,klev)*exp(-soil%hkrz(:)*(soil_depth(:,klev)-soil%zdepth(:)))
-          END DO
-
-       END IF  !use either uni or multi cosby transfer func
+        ! ____________ MMY: comment out to control hyds for EucFACE _____________
+        !ELSE
+        !    DO klev=1,ms
+        !        soil%hyds_vec(:,klev) = soil%hyds_vec(:,klev)*exp(-soil%hkrz(:)*(soil_depth(:,klev)-soil%zdepth(:)))
+        !    END DO
+        END IF  !use either uni or multi cosby transfer func
 
        !set the non-vectored values to srf value
        soil%sfc(:) = real(soil%sfc_vec(:,3))
