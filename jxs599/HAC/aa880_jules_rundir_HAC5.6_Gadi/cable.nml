@@ -1,6 +1,4 @@
 &cable
-L_cable_Pyfprint=.true.,
-L_cable_fprint=.false.,
 cable_user%diag_soil_resp='ON',
 cable_user%fwsoil_switch='Haverd2013',
 cable_user%gs_switch='medlyn',
@@ -8,8 +6,6 @@ cable_user%l_rev_corr=.true.,
 cable_user%l_revised_coupling=.true.,
 cable_user%soil_thermal_fix=.true.,
 cable_user%ssnow_potev='HDM',
-fprintf_dir_root="/short/p66/jxs599/CMIP6/diag/",
 satuparam=0.8,
-unique_subdir="repro/838/",
 wiltparam=0.5,
 /
