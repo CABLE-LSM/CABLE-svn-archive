@@ -2866,6 +2866,26 @@ SUBROUTINE get_parameters_met(soil,ssnow,veg,bgc,rough,completeSet) ! MMY add ss
    ssnow%GWwb(:)      = ssnow%wb(:,ms) ! MMY
    ! _____________________________________________
 
+
+   ! ____________________ MMY print out param ___________________________
+   PRINT *,"MMY met soil%clay_vec", soil%clay_vec
+   PRINT *,"MMY met soil%sand_vec", soil%sand_vec
+   PRINT *,"MMY met soil%silt_vec", soil%silt_vec
+   PRINT *,"MMY met soil%org_vec", soil%org_vec
+   PRINT *,"MMY met soil%ssat_vec", soil%ssat_vec
+   PRINT *,"MMY met soil%sfc_vec", soil%sfc_vec
+   PRINT *,"MMY met soil%swilt_vec", soil%swilt_vec
+   PRINT *,"MMY met soil%bch_vec", soil%bch_vec
+   PRINT *,"MMY met soil%hyds_vec", soil%hyds_vec
+   PRINT *,"MMY met soil%sucs_vec", soil%sucs_vec
+   PRINT *,"MMY met soil%css_vec", soil%css_vec
+   PRINT *,"MMY met soil%rhosoil_vec", soil%rhosoil_vec
+   PRINT *,"MMY met soil%cnsd_vec", soil%cnsd_vec
+   PRINT *,"MMY met soil%watr", soil%watr
+   PRINT *,"MMY met ssnow%wb", ssnow%wb
+   PRINT *,"MMY met ssnow%GWwb", ssnow%GWwb
+   ! _______________________________________________________________
+
    CALL readpar(ncid_met,'zse',completeSet,soil%zse,filename%met,              &
                 nmetpatches,'ms')
    CALL readpar(ncid_met,'ratecp',completeSet,bgc%ratecp,filename%met,         &
