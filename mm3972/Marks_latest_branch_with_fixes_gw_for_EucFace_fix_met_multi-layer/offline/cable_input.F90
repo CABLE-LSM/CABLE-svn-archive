@@ -2853,36 +2853,23 @@ SUBROUTINE get_parameters_met(soil,ssnow,veg,bgc,rough,completeSet) ! MMY add ss
    ! ________________________________________________________
 
    ! ________ MMY using prescribed param in standard CABLE in 31 layers ________
-   soil%clay_vec(:,:) = soil%clay(1)
-   PRINT *,"MMY met soil%clay_vec", soil%clay_vec
-   soil%sand_vec(:,:) = soil%sand(1)
-   PRINT *,"MMY met soil%sand_vec", soil%sand_vec
-   soil%silt_vec(:,:) = soil%silt(1)
-   PRINT *,"MMY met soil%silt_vec", soil%silt_vec
+   soil%clay_vec(:,:)  = soil%clay(1)
+   soil%sand_vec(:,:)  = soil%sand(1)
+   soil%silt_vec(:,:)  = soil%silt(1)
    soil%org_vec(:,1:3) = 0.00346
    soil%org_vec(:,4:6) = 0.
-   PRINT *,"MMY met soil%org_vec", soil%org_vec
-   soil%ssat_vec(:,:) = soil%ssat(1)
-   PRINT *,"MMY met soil%ssat_vec", soil%ssat_vec
-   soil%sfc_vec(:,:) = soil%sfc(1)
-   PRINT *,"MMY met soil%sfc_vec", soil%sfc_vec
+   soil%ssat_vec(:,:)  = soil%ssat(1)
+   soil%sfc_vec(:,:)   = soil%sfc(1)
    soil%swilt_vec(:,:) = soil%swilt(1)
-   PRINT *,"MMY met soil%swilt_vec", soil%swilt_vec
-   soil%bch_vec(:,:) = soil%bch(1)
-   PRINT *,"MMY met soil%bch_vec", soil%bch_vec
-   soil%hyds_vec(:,:) = 0.011288
-   PRINT *,"MMY met soil%hyds_vec", soil%hyds_vec
-   soil%sucs_vec(:,:) = 73.613
-   PRINT *,"MMY met soil%sucs_vec", soil%sucs_vec
-   soil%css_vec(:,:) = soil%css(1)
-   PRINT *,"MMY met soil%css_vec", soil%css_vec
+   soil%bch_vec(:,:)   = soil%bch(1)
+   soil%hyds_vec(:,:)  = 0.011288
+   soil%sucs_vec(:,:)  = 73.613
+   soil%css_vec(:,:)   = soil%css(1)
    soil%rhosoil_vec(:,:) = soil%rhosoil(1)
-   PRINT *,"MMY met soil%rhosoil_vec", soil%rhosoil_vec
-   soil%cnsd_vec(:,:) = soil%cnsd(1)
-   PRINT *,"MMY met soil%cnsd_vec", soil%cnsd_vec
-   soil%watr(:,:) = 0.02355
-   PRINT *,"MMY met soil%watr", soil%watr
+   soil%cnsd_vec(:,:)    = soil%cnsd(1)
+   soil%watr(:,:)        = 0.02355
    ! ! ________________________________________________________
+
 
    ! ____ MMY add from SUBROUTINE GWspatialParameters in cable_parameters.F90 _____
     !set the default IC for hysteresis state
@@ -2891,9 +2878,7 @@ SUBROUTINE get_parameters_met(soil,ssnow,veg,bgc,rough,completeSet) ! MMY add ss
     ssnow%watr_hys(:,:) = soil%watr(:,:)
     ssnow%ssat_hys(:,:) = soil%ssat_vec(:,:)
 
-
-
-   ! __________________ MMY initial GWwb __________________
+   ! __________________ MMY initial wb and GWwb __________________
    CALL readpar(ncid_met,'SoilMoist',completeSet,ssnow%wb,filename%met,              &
             nmetpatches,'ms') ! ssnow%wb(mp,ms)
    PRINT *,'MMY ssnow%wb read from met is ', ssnow%wb
@@ -2910,10 +2895,37 @@ SUBROUTINE get_parameters_met(soil,ssnow,veg,bgc,rough,completeSet) ! MMY add ss
    ! soil%GWwatr(:)     = soil%watr(:,ms)
    ! ____________________________________________________
 
-   ! ! ______________________________________________________________________________
-   !   CALL readpar(ncid_met,'GWMoist',completeSet,ssnow%GWwb,filename%met,            &
-   !                nmetpatches,'def') ! ssnow%GWwb(mp)
-   !   PRINT *,'MMY ssnow%GWwb read from met is ', ssnow%GWwb
+   ! __ MMY GWwb param from SUBROUTINE GWspatialParameters in cable_parameters.f90 __
+   !add last laery to aquifer
+   !should have zero head at top of aquifer, however this can be well below
+   !the soil column, so reading below we can treat top part of whenm dry
+   !as unsat flow
+   soil%GWsucs_vec(:) = soil%sucs_vec(:,ms)
+   soil%GWbch_vec(:) = soil%bch_vec(:,ms)
+   ! ____________________________________________________
+
+
+    !_______________________MMY print parameters _______________________
+    PRINT *,"MMY met soil%clay_vec", soil%clay_vec
+    PRINT *,"MMY met soil%sand_vec", soil%sand_vec
+    PRINT *,"MMY met soil%silt_vec", soil%silt_vec
+    PRINT *,"MMY met soil%org_vec", soil%org_vec
+    PRINT *,"MMY met soil%ssat_vec", soil%ssat_vec
+    PRINT *,"MMY met soil%sfc_vec", soil%sfc_vec
+    PRINT *,"MMY met soil%swilt_vec", soil%swilt_vec
+    PRINT *,"MMY met soil%bch_vec", soil%bch_vec
+    PRINT *,"MMY met soil%hyds_vec", soil%hyds_vec
+    PRINT *,"MMY met soil%sucs_vec", soil%sucs_vec
+    PRINT *,"MMY met soil%css_vec", soil%css_vec
+    PRINT *,"MMY met soil%rhosoil_vec", soil%rhosoil_vec
+    PRINT *,"MMY met soil%cnsd_vec", soil%cnsd_vec
+    PRINT *,"MMY met soil%watr", soil%watr
+    PRINT *,"MMY met soil%GWhyds_vec", soil%GWhyds_vec
+    PRINT *,"MMY met soil%GWssat_vec", soil%GWssat_vec
+    PRINT *,"MMY met soil%GWsucs_vec", soil%GWsucs_vec
+    PRINT *,"MMY met soil%GWbch_vec", soil%GWbch_vec
+    PRINT *,"MMY met soil%GWwatr", soil%GWwatr
+    
 ! ______________________________________________________________________________
 
    CALL readpar(ncid_met,'rs20',completeSet,veg%rs20,filename%met,             &
