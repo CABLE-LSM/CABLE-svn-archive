@@ -1596,6 +1596,8 @@ SUBROUTINE calc_srf_wet_fraction(ssnow,soil,met,veg)
 
        call saturated_fraction(ssnow,soil,veg)
 
+       !print *,"---- MMY ----", ssnow%satfrac ! MMY check satfrac
+
        do i = 1,mp
          ! MMY here is inconsist to icef in SUBROUTINE ovrlndflx, just make it consistent
           dzmm_one  = m2mm * real(soil%zse_vec(i,1),r_2)
@@ -1637,6 +1639,8 @@ SUBROUTINE calc_srf_wet_fraction(ssnow,soil,met,veg)
 
       end do
 
+      print *,"**** MMY ****", ssnow%wetfac ! MMY check wetfac for gw_on
+      
    ELSE  !Default formulation
 
        !call saturated_fraction(ssnow,soil,veg)
