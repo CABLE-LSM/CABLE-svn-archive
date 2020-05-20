@@ -25,7 +25,6 @@
 MODULE cable_common_module
 
   USE cable_pft_params_mod, ONLY : vegin
-  use cable_pft_params_mod, ONLY : veg_desc
   USE cable_soil_params_mod, ONLY : soilin
 
   IMPLICIT NONE
@@ -104,7 +103,7 @@ MODULE cable_common_module
           CALL_POP               = .FALSE., & !
           POP_fromZero           = .FALSE., &
           CALL_Climate           = .FALSE., &
-          Climate_fromZero       = .TRUE., &
+          Climate_fromZero       = .FALSE., &
           CASA_fromZero          = .FALSE., &
           POPLUC                 = .FALSE.
 
@@ -168,6 +167,9 @@ MODULE cable_common_module
      LOGICAL :: soil_thermal_fix=.FALSE.
      !ACCESS roots
      LOGICAL :: access13roots = .FALSE.     !switch to use ACCESS1.3 %froot
+     
+     LOGICAL :: l_limit_labile = .FALSE.    ! #237: limit Labile in spinup
+     LOGICAL :: NtilesThruMetFile = .FALSE. ! #199: Specify Ntiles thru met file 
 
   END TYPE kbl_user_switches
 
@@ -198,8 +200,7 @@ MODULE cable_common_module
   TYPE(filenames_type) :: filename
 
   ! hydraulic_redistribution switch _soilsnow module
-  LOGICAL ::                                                                  &
-       redistrb = .FALSE.  ! Turn on/off the hydraulic redistribution
+  LOGICAL :: redistrb = .FALSE.  
 
   ! hydraulic_redistribution parameters _soilsnow module
   REAL :: wiltParam=0.5, satuParam=0.8
@@ -495,14 +496,11 @@ CONTAINS
     TYPE(veg_parameter_type) :: veg
 
     INTEGER :: is
-    INTEGER, save :: icall =0
     REAL :: totdepth
     INTEGER :: h
 
     ! Prescribe parameters for current gridcell based on veg/soil type (which
     ! may have loaded from default value file or met file):
-icall = icall +1
-
     DO h = ifmp, fmp          ! over each patch in current grid
        veg%frac4(h)    = vegin%frac4(veg%iveg(h))
        veg%taul(h,1)    = vegin%taul(1,veg%iveg(h))
@@ -557,52 +555,8 @@ icall = icall +1
        veg%froot(:, is) = veg%froot(:, is)-veg%froot(:,is-1)
     END DO
 
-if(icall>2) then
-if( allocated(vegin%canst1) )  deallocate( vegin%canst1 )
-if( allocated(vegin%dleaf ) )  deallocate( vegin%dleaf  )
-if( allocated(vegin%length) )  deallocate( vegin%length )
-if( allocated(vegin%width ) )  deallocate( vegin%width  )
-if( allocated(vegin%vcmax ) )  deallocate( vegin%vcmax  )
-if( allocated(vegin%ejmax ) )  deallocate( vegin%ejmax  )
-if( allocated(vegin%hc    ) )  deallocate( vegin%hc     )
-if( allocated(vegin%xfang ) )  deallocate( vegin%xfang  )
-if( allocated(vegin%rp20  ) )  deallocate( vegin%rp20   )
-if( allocated(vegin%rpcoef) )  deallocate( vegin%rpcoef )
-if( allocated(vegin%rs20  ) )  deallocate( vegin%rs20   )
-if( allocated(vegin%wai   ) )  deallocate( vegin%wai    )
-if( allocated(vegin%rootbeta) )deallocate( vegin%rootbeta )
-if( allocated(vegin%shelrb) )  deallocate( vegin%shelrb )
-if( allocated(vegin%vegcf ) )  deallocate( vegin%vegcf  )
-if( allocated(vegin%frac4 ) )  deallocate( vegin%frac4  )
-if( allocated(vegin%xalbnir) ) deallocate( vegin%xalbnir )
-if( allocated(vegin%extkn ) )  deallocate( vegin%extkn   )
-if( allocated(vegin%tminvj) )  deallocate( vegin%tminvj  )
-if( allocated(vegin%tmaxvj) )  deallocate( vegin%tmaxvj  )
-if( allocated(vegin%vbeta ) )  deallocate( vegin%vbeta   )
-if( allocated(vegin%froot ) )  deallocate( vegin%froot   )
-if( allocated(vegin%cplant) )  deallocate( vegin%cplant  )
-if( allocated(vegin%csoil ) )  deallocate( vegin%csoil   )
-if( allocated(vegin%ratecp) )  deallocate( vegin%ratecp  )
-if( allocated(vegin%ratecs) )  deallocate( vegin%ratecs  )
-if( allocated(vegin%refl  ) )  deallocate( vegin%refl    )
-if( allocated(vegin%taul  ) )  deallocate( vegin%taul    )
-if( allocated(vegin%a1gs  ) )  deallocate( vegin%a1gs   ) 
-if( allocated(vegin%d0gs  ) )  deallocate( vegin%d0gs   ) 
-if( allocated(vegin%alpha ) )  deallocate( vegin%alpha  ) 
-if( allocated(vegin%convex) )  deallocate( vegin%convex ) 
-if( allocated(vegin%cfrd  ) )  deallocate( vegin%cfrd   ) 
-if( allocated(vegin%gswmin) )  deallocate( vegin%gswmin ) 
-if( allocated(vegin%conkc0) )  deallocate( vegin%conkc0 ) 
-if( allocated(vegin%conko0) )  deallocate( vegin%conko0 ) 
-if( allocated(vegin%ekc   ) )  deallocate( vegin%ekc    ) 
-if( allocated(vegin%eko   ) )  deallocate( vegin%eko    ) 
-if( allocated(vegin%g0    ) )  deallocate( vegin%g0     )! Ticket #56
-if( allocated(vegin%g1    ) )  deallocate( vegin%g1     )! Ticket #56
-if( allocated(vegin%zr    ) )  deallocate( vegin%zr     ) !! vh_veg_params !!
-if( allocated(vegin%clitt ) )  deallocate( vegin%clitt  ) !! vh_veg_params !!
-if( allocated(veg_desc    ) )  deallocate( veg_desc )
 
-endif
+
 
 
   END SUBROUTINE init_veg_from_vegin
