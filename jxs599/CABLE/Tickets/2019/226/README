@@ -1,0 +1,3 @@
+svn export https://trac.nci.org.au/svn/cable/trunk@7028
+grab (pre:UM) coupled directory from HAC version
+updated science/ and accept all mods to CASA and offline. _cbm is replaced. arg lists to _canopy, _roughness - keep updates to match new cbl*cbm
