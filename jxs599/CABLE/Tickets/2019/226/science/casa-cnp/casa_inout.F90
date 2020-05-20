@@ -1483,9 +1483,11 @@ CONTAINS
 
     CALL casa_cnpflux(casaflux,casapool,casabal,.FALSE.)
 
-    ! for spinning up only
-    ! casapool%Nsoilmin = max(casapool%Nsoilmin,0.5)
-    ! casapool%Psoillab = max(casapool%Psoillab,0.1)
+    ! Limit labile for spinning up only
+    IF(cable_user%l_limit_labile .AND. icycle > 1) THEN
+      casapool%Nsoilmin = max(casapool%Nsoilmin,0.5)
+      casapool%Psoillab = max(casapool%Psoillab,0.1)
+    ENDIF
 
 
 
@@ -1495,6 +1497,7 @@ CONTAINS
 #ifndef UM_BUILD
   SUBROUTINE WRITE_CASA_RESTART_NC ( casamet, casapool, casaflux, phen, CASAONLY )
 
+    USE CASAVARIABLE, ONLY : casa_met, casa_pool, casa_flux, icycle, mplant, mlitter, msoil
     USE CABLE_COMMON_MODULE
     USE CABLE_DEF_TYPES_MOD, ONLY: MET_TYPE, mp
     USE phenvariable
