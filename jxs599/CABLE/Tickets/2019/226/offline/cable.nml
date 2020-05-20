@@ -1,12 +1,12 @@
 &cable
-   filename%met = 'Loobos_1997.nc'
+   filename%met = 'TumbaFluxnet.1.3_met.nc'
    filename%out = 'out_cable.nc'
    filename%log = 'log_cable.txt'
    filename%restart_in  = ' ' 
    filename%restart_out = './restart_out.nc'
-   filename%type    = '/projects/access/CABLE-AUX/offline/gridinfo_CSIRO_1x1.nc'
-   filename%veg    = '/projects/access/CABLE-AUX/core/biogeophys/veg_params_vbeta1.txt'
-   filename%soil    = '/projects/access/CABLE-AUX/core/biogeophys/def_soil_params.txt'
+   filename%type    = 'gridinfo_CSIRO_1x1.nc'
+   filename%veg    = ''
+   filename%soil    =''
    vegparmnew = .TRUE.  ! using new format when true
    soilparmnew = .TRUE.  ! using new format when true
    spinup = .FALSE.  ! do we spin up the model?
@@ -21,6 +21,7 @@
    output%carbon    = .TRUE.  ! NEE, GPP, NPP, stores
    output%veg       = .TRUE.  ! vegetation states
    output%params    = .TRUE.  ! input parameters used to produce run
+   output%patch     = .TRUE.  ! write per patch  
    output%balances  = .TRUE.  ! energy and water balances
    check%ranges     = .FALSE.  ! variable ranges, input and output
    check%energy_bal = .TRUE.  ! energy balance
@@ -29,8 +30,7 @@
    leaps = .TRUE. ! calculate timing with leap years?
    logn = 88      ! log file number - declared in input module
    fixedCO2 = 350.0   ! if not found in met file, in ppmv
-   spincasainput = .FALSE.    ! input required to spin casacnp offline
-   spincasa      = .FALSE.     ! spin casa before running the model if TRUE, and should be set to FALSE if spincasainput = .TRUE.
+   spincasa      = .FALSE.     ! spin casa before running the model if TRUE
    l_casacnp     = .FALSE.  ! using casaCNP with CABLE 
    l_laiFeedbk   = .FALSE.  ! using prognostic LAI
    l_vcmaxFeedbk = .FALSE.  ! using prognostic Vcmax
