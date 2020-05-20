@@ -37,7 +37,11 @@ MODULE cable_def_types_mod
 
   INTEGER :: mp,    & ! # total no of patches/tiles
        mvtype,& ! total # vegetation types,   from input
+#ifdef UM_BUILD 
+       mstype=9,& ! total # soil types, needs to de defined atCompile TimeForNow
+#else       
        mstype,& ! total # soil types,         from input
+#endif
        mland                           ! # land grid cells
 
   INTEGER, PARAMETER ::                                                        &
@@ -1065,8 +1069,13 @@ CONTAINS
     ALLOCATE( var%deciduous(mp) )
     ALLOCATE( var%froot(mp,ms) )
     !was nrb(=3), but never uses (:,3) in model
+#ifdef UM_BUILD 
     ALLOCATE( var%refl(mp,nrb) ) !jhan:swb?
     ALLOCATE( var%taul(mp,nrb) )
+#else
+    ALLOCATE( var%refl(mp,2) ) !jhan:swb?
+    ALLOCATE( var%taul(mp,2) )
+#endif
     ALLOCATE( var%vlaimax(mp) )
     ALLOCATE( var%a1gs(mp) )
     ALLOCATE( var%d0gs(mp) )
