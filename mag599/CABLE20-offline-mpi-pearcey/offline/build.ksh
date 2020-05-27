@@ -10,7 +10,10 @@ known_hosts()
 host_pear()
 {
    . /apps/modules/Modules/default/init/ksh
-   module add netcdf 
+   # remove whatever modules are lingering in the environment
+   module del netcdf intel-fc intel-cc
+   # load default versions - should be the safest choice
+   module add intel-cc intel-fc netcdf
 
    export NCDIR=$NETCDF_ROOT'/lib/'
    export NCMOD=$NETCDF_ROOT'/include/'

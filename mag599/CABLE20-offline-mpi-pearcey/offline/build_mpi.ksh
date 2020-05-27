@@ -10,13 +10,22 @@ known_hosts()
 host_pear()
 {
    . /apps/modules/Modules/default/init/ksh
-   module add netcdf openmpi/2.0.1
+   # get rid of old cruft for clean environment
+   module del openmpi netcdf intel-fc intel-cc
+   # new modules
+   # default versions should be the safest
+   module add intel-cc intel-fc netcdf openmpi
+   # what did the cat dragged in?
+   module list
+   echo
 
    export NCDIR=$NETCDF_ROOT'/lib/'
    export NCMOD=$NETCDF_ROOT'/include/'
    export FC='mpif90'
-   export CFLAGS='-O2 -fp-model precise '
-   export LDFLAGS='-L'$NCDIR' -O2'
+   #export OPTFLAGS='-O0 -g -debug all -traceback -check bounds,stack,pointers,uninit'
+   export OPTFLAGS="-O2"
+   export CFLAGS="${OPTFLAGS} -fp-model precise"
+   export LDFLAGS="-L${NCDIR} ${OPTFLAGS}"
    export LD='-lnetcdf -lnetcdff'
    build_build
    cd ../

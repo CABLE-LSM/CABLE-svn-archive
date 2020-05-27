@@ -1157,7 +1157,9 @@ CONTAINS
           DO j = 1, max_vegpatches
             DO k = 1, mplant
               ! not land
-              WHERE(mask /= 1) otmp5xypsct(:, :, j, k, 1) = ncmissingr
+              !WHERE(mask /= 1) otmp5xypsct(:, :, j, k, 1) = ncmissingr
+              ! Maciej: I think otmp5xypsct above was a typo
+              WHERE(mask /= 1) otmp5xypcnpt(:, :, j, k, 1) = ncmissingr
             END DO
           END DO
           ! Write data to file:

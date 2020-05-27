@@ -723,17 +723,32 @@ CONTAINS
     ELSE
        exists%parameters = .TRUE. ! Note that pars were found in file
        ! Decide which 2nd dimension of parameter /init state we're loading:
-       IF(dimswitch(1:2) == 'ms') THEN
+       ! Maciej: substring notation may raise runtime errors if substring
+       ! length is larger than the string.
+       !IF(dimswitch(1:2) == 'ms') THEN
+       !   dimctr = ms ! i.e. horizontal spatial and soil
+       !ELSE IF(dimswitch(1:4) == 'snow') THEN
+       !   dimctr = msn ! i.e. horizontal spatial and snow
+       !ELSE IF(dimswitch(1:3) == 'nrb') THEN
+       !   dimctr = nrb ! i.e. horizontal spatial and radiation bands
+       !ELSE IF(dimswitch(1:3) == 'ncp') THEN
+       !   dimctr = ncp ! i.e. horizontal spatial and plant carbon pools
+       !ELSE IF(dimswitch(1:3) == 'ncs') THEN
+       !   dimctr = ncs ! i.e. horizontal spatial and soil carbon pools
+       !ELSE IF(dimswitch == 'cnp') THEN
+       !   dimctr = 3   ! i.e. spatial (mp) and 3 pools
+       ! Maciej: index intrinsic is safer
+       IF(index(dimswitch, 'ms') == 1) THEN
           dimctr = ms ! i.e. horizontal spatial and soil
-       ELSE IF(dimswitch(1:4) == 'snow') THEN
+       ELSE IF(index(dimswitch, 'snow') == 1) THEN
           dimctr = msn ! i.e. horizontal spatial and snow
-       ELSE IF(dimswitch(1:3) == 'nrb') THEN
+       ELSE IF(index(dimswitch, 'nrb') == 1) THEN
           dimctr = nrb ! i.e. horizontal spatial and radiation bands
-       ELSE IF(dimswitch(1:3) == 'ncp') THEN
+       ELSE IF(index(dimswitch, 'ncp') == 1) THEN
           dimctr = ncp ! i.e. horizontal spatial and plant carbon pools
-       ELSE IF(dimswitch(1:3) == 'ncs') THEN
+       ELSE IF(index(dimswitch, 'ncs') == 1) THEN
           dimctr = ncs ! i.e. horizontal spatial and soil carbon pools
-       ELSE IF(dimswitch == 'cnp') THEN
+       ELSE IF(index(dimswitch, 'cnp') == 1) THEN
           dimctr = 3   ! i.e. spatial (mp) and 3 pools
        ELSE
           CALL abort('Parameter or initial state '//parname//                  &

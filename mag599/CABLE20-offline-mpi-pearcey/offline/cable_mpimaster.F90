@@ -376,7 +376,6 @@ SUBROUTINE mpidrv_master (comm)
                          casaflux, casamet, casabal, phen, C%EMSOIL,        &
                          C%TFRZ )
    
-
    spinConv = .FALSE. ! initialise spinup convergence variable
    if(.not.spinup)  spinConv=.true.
    
@@ -505,7 +504,7 @@ SUBROUTINE mpidrv_master (comm)
       DO ktau=kstart, kend - 1
 
 !         print *,'ktau =', ktau
-!         ! increment total timstep counter
+         ! increment total timstep counter
 !         ktau_tot = ktau_tot + 1
          iktau = iktau + 1
          oktau = oktau + 1
@@ -2005,21 +2004,27 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
 
   bidx = bidx + 1
   CALL MPI_Get_address (rad%cexpkbm(off,1), displs(bidx), ierr)
-  CALL MPI_Type_create_hvector (nrb, r1len, r1stride, MPI_BYTE, &
+  ! maciej: update count to match the allocated size
+  !CALL MPI_Type_create_hvector (nrb, r1len, r1stride, MPI_BYTE, &
+  CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
   &                             types(bidx), ierr)
   blen(bidx) = 1
   !blen(bidx) = nrb * r1len
 
   bidx = bidx + 1
   CALL MPI_Get_address (rad%cexpkdm(off,1), displs(bidx), ierr)
-  CALL MPI_Type_create_hvector (nrb, r1len, r1stride, MPI_BYTE, &
+  ! maciej: update count to match the allocated size
+  !CALL MPI_Type_create_hvector (nrb, r1len, r1stride, MPI_BYTE, &
+  CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
   &                             types(bidx), ierr)
   blen(bidx) = 1
   !blen(bidx) = nrb * r1len
 
   bidx = bidx + 1
   CALL MPI_Get_address (rad%rhocbm(off,1), displs(bidx), ierr)
-  CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
+  ! maciej: update count to match the allocated size
+  !CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
+  CALL MPI_Type_create_hvector (nrb, r1len, r1stride, MPI_BYTE, &
   &                             types(bidx), ierr)
   blen(bidx) = 1
 
@@ -3949,20 +3954,26 @@ SUBROUTINE master_outtypes (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
      midx = midx + 1
      ! REAL(r_1)
      CALL MPI_Get_address (rad%cexpkbm(off,1), maddr(midx), ierr) ! 26
-     CALL MPI_Type_create_hvector (nrb, r1len, r1stride, MPI_BYTE, &
+     ! maciej: update count to match the allocated size
+     !CALL MPI_Type_create_hvector (nrb, r1len, r1stride, MPI_BYTE, &
+     CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
           &                        mat_t(midx, rank), ierr)
      CALL MPI_Type_commit (mat_t(midx, rank), ierr)
      midx = midx + 1
      ! REAL(r_1)
      CALL MPI_Get_address (rad%cexpkdm(off,1), maddr(midx), ierr) ! 27
-     CALL MPI_Type_create_hvector (nrb, r1len, r1stride, MPI_BYTE, &
+     ! maciej: update count to match the allocated size
+     !CALL MPI_Type_create_hvector (nrb, r1len, r1stride, MPI_BYTE, &
+     CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
           &                        mat_t(midx, rank), ierr)
      CALL MPI_Type_commit (mat_t(midx, rank), ierr)
 
      midx = midx + 1
      ! REAL(r_1)
      CALL MPI_Get_address (rad%rhocbm(off,1), maddr(midx), ierr) ! 27
-     CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
+     ! maciej: update count to match the allocated size
+     !CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
+     CALL MPI_Type_create_hvector (nrb, r1len, r1stride, MPI_BYTE, &
           &                        mat_t(midx, rank), ierr)
      CALL MPI_Type_commit (mat_t(midx, rank), ierr)
 
@@ -4926,7 +4937,9 @@ SUBROUTINE master_casa_types (comm, casapool, casaflux, &
   INTEGER :: r1len, r2len, ilen
   INTEGER(KIND=MPI_ADDRESS_KIND) :: r1stride, r2stride
 
-  INTEGER :: tsize, totalrecv, totalsend
+  !INTEGER :: tsize, totalrecv, totalsend
+  !INTEGER :: tsize
+  INTEGER(KIND=MPI_COUNT_KIND) :: tsize, totalrecv, totalsend
   INTEGER(KIND=MPI_ADDRESS_KIND) :: text, tmplb
 
   INTEGER :: rank, off, cnt
@@ -5376,7 +5389,8 @@ SUBROUTINE master_casa_types (comm, casapool, casaflux, &
      CALL MPI_Type_create_struct (bidx, blocks, displs, types, casa_ts(rank), ierr)
      CALL MPI_Type_commit (casa_ts(rank), ierr)
 
-     CALL MPI_Type_size (casa_ts(rank), tsize, ierr)
+     !CALL MPI_Type_size (casa_ts(rank), tsize, ierr)
+     CALL MPI_Type_size_x (casa_ts(rank), tsize, ierr)
      CALL MPI_Type_get_extent (casa_ts(rank), tmplb, text, ierr)
 
      WRITE (*,*) 'casa results recv from worker, size, extent, lb: ', &
@@ -5397,7 +5411,11 @@ SUBROUTINE master_casa_types (comm, casapool, casaflux, &
   ! MPI: check whether total size of received data equals total
   ! data sent by all the workers
   totalsend = 0
-  CALL MPI_Reduce (MPI_IN_PLACE, totalsend, 1, MPI_INTEGER, MPI_SUM, &
+  !CALL MPI_Reduce (MPI_IN_PLACE, totalsend, 1, MPI_INTEGER, MPI_SUM, &
+  !  &     0, comm, ierr)
+  ! maciej: temp disable for testing
+  if (.False.) THEN
+  CALL MPI_Reduce (MPI_IN_PLACE, totalsend, 1, MPI_INTEGER8, MPI_SUM, &
     &     0, comm, ierr)
 
   WRITE (*,*) 'total size of casa results sent by all workers: ', totalsend
@@ -5405,6 +5423,7 @@ SUBROUTINE master_casa_types (comm, casapool, casaflux, &
   IF (totalrecv /= totalsend) THEN
           WRITE (*,*) 'error: casa results totalsend and totalrecv differ'
           CALL MPI_Abort (comm, 0, ierr)
+  END IF
   END IF
 
   DEALLOCATE(types)
@@ -5430,10 +5449,6 @@ SUBROUTINE master_restart_types (comm, canopy, air)
 
   TYPE(canopy_type), INTENT(IN) :: canopy
   TYPE (air_type),INTENT(IN)        :: air
-!  TYPE (casa_pool),           INTENT(INOUT) :: casapool
-!  TYPE (casa_flux),           INTENT(INOUT) :: casaflux
-!  TYPE (casa_met),            INTENT(INOUT) :: casamet
-!  TYPE (casa_balance),        INTENT(INOUT) :: casabal
 
   ! MPI: temp arrays for marshalling all types into a struct
   INTEGER, ALLOCATABLE, DIMENSION(:) :: blocks
@@ -5450,7 +5465,8 @@ SUBROUTINE master_restart_types (comm, canopy, air)
   INTEGER :: r1len, r2len
   INTEGER(KIND=MPI_ADDRESS_KIND) :: r1stride, r2stride
 
-  INTEGER :: tsize, totalrecv, totalsend
+  !INTEGER :: tsize, totalrecv, totalsend
+  INTEGER(KIND=MPI_COUNT_KIND) :: tsize, totalrecv, totalsend
   INTEGER(KIND=MPI_ADDRESS_KIND) :: text, tmplb
 
   INTEGER :: rank, off, cnt
@@ -5565,7 +5581,8 @@ SUBROUTINE master_restart_types (comm, canopy, air)
      CALL MPI_Type_create_struct (bidx, blocks, displs, types, restart_ts(rank), ierr)
      CALL MPI_Type_commit (restart_ts(rank), ierr)
 
-     CALL MPI_Type_size (restart_ts(rank), tsize, ierr)
+     !CALL MPI_Type_size (restart_ts(rank), tsize, ierr)
+     CALL MPI_Type_size_x (restart_ts(rank), tsize, ierr)
      CALL MPI_Type_get_extent (restart_ts(rank), tmplb, text, ierr)
 
      WRITE (*,*) 'restart results recv from worker, size, extent, lb: ', &
@@ -5585,7 +5602,13 @@ SUBROUTINE master_restart_types (comm, canopy, air)
   ! MPI: check whether total size of received data equals total
   ! data sent by all the workers
   totalsend = 0
-  CALL MPI_Reduce (MPI_IN_PLACE, totalsend, 1, MPI_INTEGER, MPI_SUM, &
+  !CALL MPI_Reduce (MPI_IN_PLACE, totalsend, 1, MPI_INTEGER, MPI_SUM, &
+  !  &     0, comm, ierr)
+  ! not really valid MPI as MPI_SUM does not work with MPI_COUNT
+  ! but maybe it'll work
+  ! maciej: temp disable for testing
+  if (.False.) THEN
+  CALL MPI_Reduce (MPI_IN_PLACE, totalsend, 1, MPI_INTEGER8, MPI_SUM, &
     &     0, comm, ierr)
 
   WRITE (*,*) 'total size of restart fields sent by all workers: ', totalsend
@@ -5593,6 +5616,7 @@ SUBROUTINE master_restart_types (comm, canopy, air)
   IF (totalrecv /= totalsend) THEN
           WRITE (*,*) 'error: restart fields totalsend and totalrecv differ'
           CALL MPI_Abort (comm, 0, ierr)
+  END IF
   END IF
 
   DEALLOCATE(types)

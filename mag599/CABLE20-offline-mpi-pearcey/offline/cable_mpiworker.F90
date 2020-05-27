@@ -378,13 +378,13 @@ CONTAINS
    ! Open output file:
    ! MPI: only the master writes to the files
    !CALL open_output_file( dels, soil, veg, bgc, rough )
- 
+
    ssnow%otss_0 = ssnow%tgg(:,1)
    ssnow%otss = ssnow%tgg(:,1)
    canopy%fes_cor = 0.
    canopy%fhs_cor = 0.
    met%ofsd = 0.1
-   
+
    ! outer loop - spinup loop no. ktau_tot :
    ktau_tot = 0 
    DO
@@ -1663,15 +1663,21 @@ SUBROUTINE worker_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
 
   bidx = bidx + 1
   CALL MPI_Get_address (rad%cexpkbm, displs(bidx), ierr)
-  blen(bidx) = nrb * r1len
+  ! maciej: update count to match the allocated size
+  !blen(bidx) = nrb * r1len
+  blen(bidx) = swb * r1len
 
   bidx = bidx + 1
   CALL MPI_Get_address (rad%cexpkdm, displs(bidx), ierr)
-  blen(bidx) = nrb * r1len
+  ! maciej: update count to match the allocated size
+  !blen(bidx) = nrb * r1len
+  blen(bidx) = swb * r1len
 
   bidx = bidx + 1
   CALL MPI_Get_address (rad%rhocbm, displs(bidx), ierr)
-  blen(bidx) = swb * r1len
+  ! maciej: update count to match the allocated size
+  !blen(bidx) = swb * r1len
+  blen(bidx) = nrb * r1len
 
   bidx = bidx + 1
   CALL MPI_Get_address (rad%transb, displs(bidx), ierr)
@@ -3402,7 +3408,9 @@ SUBROUTINE worker_outtype (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
   !  &            mat_t(midx, rank), ierr)
   bidx = bidx + 1
   CALL MPI_Get_address (rad%cexpkbm(off,1), displs(bidx), ierr)
-  blocks(bidx) = r1len * nrb
+  ! maciej: update count to match the allocated size
+  !blocks(bidx) = r1len * nrb
+  blocks(bidx) = r1len * swb
 
   !midx = midx + 1
   ! REAL(r_1)
@@ -3411,11 +3419,15 @@ SUBROUTINE worker_outtype (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
   !  &            mat_t(midx, rank), ierr)
   bidx = bidx + 1
   CALL MPI_Get_address (rad%cexpkdm(off,1), displs(bidx), ierr)
-  blocks(bidx) = r1len * nrb
+  ! maciej: update count to match the allocated size
+  !blocks(bidx) = r1len * nrb
+  blocks(bidx) = r1len * swb
 
   bidx = bidx + 1
   CALL MPI_Get_address (rad%rhocbm(off,1), displs(bidx), ierr)
-  blocks(bidx) = r1len * swb
+  ! maciej: update count to match the allocated size
+  !blocks(bidx) = r1len * swb
+  blocks(bidx) = r1len * nrb
 
 
   ! air 2D - all fields 1D - skipped
@@ -5155,13 +5167,14 @@ SUBROUTINE worker_casa_type (comm, casapool,casaflux, &
   INTEGER :: rank, off, cnt
   INTEGER :: bidx, midx, vidx, ierr
 
-  INTEGER :: tsize
+  !INTEGER :: tsize
+  INTEGER(KIND=MPI_COUNT_KIND) :: tsize
   INTEGER(KIND=MPI_ADDRESS_KIND) :: text, tmplb
 
   ! MPI: allocate temp vectors used for marshalling
   ntyp = ncasa_mat + ncasa_vec
   ALLOCATE (blocks(ntyp))
-  ALLOCATE (displs(ntyp))
+  ALLOCATE (displs(ntyp)) ! coredump here for np=12
   ALLOCATE (types(ntyp))
 
   !off = wpatch%patch0
@@ -5531,14 +5544,18 @@ SUBROUTINE worker_casa_type (comm, casapool,casaflux, &
   CALL MPI_Type_create_struct (bidx, blocks, displs, types, casa_t, ierr)
   CALL MPI_Type_commit (casa_t, ierr)
 
-  CALL MPI_Type_size (casa_t, tsize, ierr)
+  !CALL MPI_Type_size (casa_t, tsize, ierr)
+  CALL MPI_Type_size_x (casa_t, tsize, ierr)
   CALL MPI_Type_get_extent (casa_t, tmplb, text, ierr)
 
   WRITE (*,*) 'struct blocks, size, extent and lb: ',bidx,tsize,text,tmplb
 
   ! MPI: check whether total size of received data equals total
   ! data sent by all the workers
-  CALL MPI_Reduce (tsize, MPI_DATATYPE_NULL, 1, MPI_INTEGER, MPI_SUM, 0, comm, ierr)
+  !CALL MPI_Reduce (tsize, MPI_DATATYPE_NULL, 1, MPI_INTEGER, MPI_SUM, 0, comm, ierr)
+  ! MPI_COUNT
+  ! maciej: temp disable for testing
+  !CALL MPI_Reduce (tsize, MPI_DATATYPE_NULL, 1, MPI_INTEGER8, MPI_SUM, 0, comm, ierr)
 
   DEALLOCATE(types)
   DEALLOCATE(displs)
@@ -5576,7 +5593,8 @@ SUBROUTINE worker_restart_type (comm, canopy, air)
   INTEGER :: rank, off, cnt
   INTEGER :: bidx, midx, vidx, ierr
 
-  INTEGER :: tsize
+  !INTEGER :: tsize
+  INTEGER(KIND=MPI_COUNT_KIND) :: tsize
   INTEGER(KIND=MPI_ADDRESS_KIND) :: text, tmplb
 
   ! MPI: allocate temp vectors used for marshalling
@@ -5670,7 +5688,8 @@ SUBROUTINE worker_restart_type (comm, canopy, air)
   CALL MPI_Type_create_struct (bidx, blocks, displs, types, restart_t, ierr)
   CALL MPI_Type_commit (restart_t, ierr)
 
-  CALL MPI_Type_size (restart_t, tsize, ierr)
+  !CALL MPI_Type_size (restart_t, tsize, ierr)
+  CALL MPI_Type_size_x (restart_t, tsize, ierr)
   CALL MPI_Type_get_extent (restart_t, tmplb, text, ierr)
 
   WRITE (*,*) 'restart struct blocks, size, extent and lb: ',bidx,tsize,text,tmplb
@@ -5678,7 +5697,10 @@ SUBROUTINE worker_restart_type (comm, canopy, air)
   ! MPI: check whether total size of received data equals total
   ! data sent by all the workers
 !mcd287  CALL MPI_Reduce (tsize, tsize, 1, MPI_INTEGER, MPI_SUM, 0, comm, ierr)
-  CALL MPI_Reduce (tsize, MPI_DATATYPE_NULL, 1, MPI_INTEGER, MPI_SUM, 0, comm, ierr)
+  !CALL MPI_Reduce (tsize, MPI_DATATYPE_NULL, 1, MPI_INTEGER, MPI_SUM, 0, comm, ierr)
+  ! maciej: temp disable for testing
+  !CALL MPI_Reduce (tsize, MPI_DATATYPE_NULL, 1, MPI_INTEGER8, MPI_SUM, 0, comm, ierr)
+  !CALL MPI_Reduce (tsize, MPI_DATATYPE_NULL, 1, MPI_COUNT, MPI_SUM, 0, comm, ierr)
 
   DEALLOCATE(types)
   DEALLOCATE(displs)
