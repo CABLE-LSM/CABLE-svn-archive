@@ -339,6 +339,14 @@ MODULE cable_def_types_mod
      INTEGER,   DIMENSION(:,:), POINTER :: disturbance_interval => null()
      REAL(r_2), DIMENSION(:,:), POINTER :: disturbance_intensity => null()
 
+     ! gm LUT
+     logical,                       pointer :: is_read_gmLUT => null() ! check if gm LUT is already read in
+     real(r_2), dimension(:,:,:,:), pointer :: LUT_VcmaxJmax => null() ! Lookup table with Cc-based Vcmax and Jmax
+     real(r_2), dimension(:),       pointer :: LUT_gm => null()        ! gm values in gm LUT
+     real(r_2), dimension(:),       pointer :: LUT_Vcmax => null()     ! Vcmax_ci values in gm LUT
+     real(r_2), dimension(:),       pointer :: LUT_Rd => null()        ! Rd values in gm LUT
+     
+
   END TYPE veg_parameter_type
 
   ! .............................................................................
@@ -459,7 +467,7 @@ MODULE cable_def_types_mod
      real(r_2), dimension(:,:), pointer :: gbc => null()       ! leaf boundary layer conductance for CO2 [mol(CO2)/m^2/s]
      real(r_2), dimension(:,:), pointer :: gac => null()       ! aerodynamic conductance for CO2 [mol(CO2)/m^2/s]
      real(r_2), dimension(:,:), pointer :: ci => null()        ! stomatal CO2 concentration [mol(CO2)/mol(air)]
-
+     
   END TYPE canopy_type
 
   ! .............................................................................
@@ -1047,7 +1055,7 @@ CONTAINS
     ALLOCATE ( var % disturbance_interval(mp,2) )
     ALLOCATE ( var % disturbance_intensity(mp,2) )
 
-
+    ALLOCATE ( var % is_read_gmLUT )
 
   END SUBROUTINE alloc_veg_parameter_type
 
@@ -1685,6 +1693,13 @@ CONTAINS
     IF(ASSOCIATED(var % gamma)) DEALLOCATE ( var % gamma )
     ! END IF
 
+    DEALLOCATE( var % is_read_gmLUT )
+    IF(ASSOCIATED(var % LUT_VcmaxJmax)) DEALLOCATE ( var % LUT_VcmaxJmax )
+    IF(ASSOCIATED(var % LUT_gm))        DEALLOCATE ( var % LUT_gm )
+    IF(ASSOCIATED(var % LUT_Vcmax))     DEALLOCATE ( var % LUT_Vcmax )
+    IF(ASSOCIATED(var % LUT_Rd))        DEALLOCATE ( var % LUT_Rd )
+
+
   END SUBROUTINE dealloc_veg_parameter_type
 
   ! ------------------------------------------------------------------------------
@@ -2190,6 +2205,8 @@ CONTAINS
 
     var%disturbance_interval  = 0
     var%disturbance_intensity = 0
+
+    var%is_read_gmLUT = .false.
 
   END SUBROUTINE zero_veg_parameter_type
 

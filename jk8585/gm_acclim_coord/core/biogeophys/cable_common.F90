@@ -111,6 +111,7 @@ MODULE cable_common_module
      CHARACTER(LEN=10)  :: vcmax = 'standard' ! "standard" or "Walker2014"
      CHARACTER(LEN=10)  :: POPLUC_RunType = 'static' ! 'static', 'init', 'restart'
      CHARACTER(LEN=200) :: BLAZE_outfile       = '' !
+     CHARACTER(LEN=200) :: gm_LUT_file = '' ! LUT file used if explicit_gm = .true.
      LOGICAL ::                                                               &
           CALL_POP               = .FALSE., & !
           POP_fromZero           = .FALSE., &

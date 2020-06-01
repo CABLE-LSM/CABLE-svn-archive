@@ -103,6 +103,9 @@ PROGRAM cable_offline_driver
   USE BLAZE_MOD,     ONLY: TYPE_BLAZE, INI_BLAZE, BLAZE_ACCOUNTING,  WRITE_BLAZE_OUTPUT_NC
   USE SIMFIRE_MOD,   ONLY: TYPE_SIMFIRE, INI_SIMFIRE
 
+  ! gm
+  use cable_adjust_JV_gm_module, only: read_gm_LUT
+  
   ! 13C
   use cable_c13o2_def,         only: c13o2_delta_atm, c13o2_flux, c13o2_pool, c13o2_luc, &
        c13o2_update_sum_pools, c13o2_zero_sum_pools
@@ -212,7 +215,7 @@ PROGRAM cable_offline_driver
   ! BLAZE variables
   TYPE(TYPE_BLAZE)    :: BLAZE
   TYPE(TYPE_SIMFIRE)  :: SIMFIRE
-
+  
   ! 13C
   type(c13o2_flux) :: c13o2flux
   type(c13o2_pool) :: c13o2pools, sum_c13o2pools

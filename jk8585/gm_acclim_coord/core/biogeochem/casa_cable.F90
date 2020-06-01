@@ -747,7 +747,6 @@ contains
 #endif
 
     vcmaxx = veg%vcmax
-    cfrdx  = veg%cfrd
 
     ! first initialize
     CALL point2constants(PHOTO)
@@ -816,15 +815,24 @@ contains
           ! adjust Vcmax and Jmax accounting for gm, but only if the implicit values
           ! have changed.
           if (cable_user%explicit_gm) then
-!write(901,*) vcmaxx(1), veg%vcmax(1), cfrdx(1), veg%cfrd(1), ktau
-!write(902,*) vcmaxx(2), veg%vcmax(2), cfrdx(2), veg%cfrd(2)              
-             if ( ABS(vcmaxx(np) - veg%vcmax(np)) .GT. 1.0E-08 .OR. &
-                  ABS(cfrdx(np) - veg%cfrd(np)) .GT. 1.0E-05 .OR. &
-                  ktau .LT. ktauday ) then
-                ! The approach by Sun et al. 2014 is replaced with a subroutine
-                ! based on Knauer et al. 2019, GCB
-                CALL adjust_JV_gm(veg)
-             endif
+veg%gmmax = 0.15_r_2
+             if (len(trim(cable_user%gm_LUT_file)) .gt. 1) then
+                if (.not. veg%is_read_gmLUT) then
+                   WRITE(*,*) 'Reading gm LUT file'
+                   call read_gm_LUT(cable_user%gm_LUT_file,veg)
+                   call find_Vcmax_Jmax_LUT(veg,np)
+                else
+                   call find_Vcmax_Jmax_LUT(veg,np)
+                endif   
+             else  ! no LUT, adjustment using An-Ci curves
+                if ( ABS(vcmaxx(np) - veg%vcmax(np)) .GT. 1.0E-08 .OR. &
+                     ktau .LT. ktauday ) then
+                   ! The approach by Sun et al. 2014 is replaced with a subroutine
+                   ! based on Knauer et al. 2019, GCB
+                   call adjust_JV_gm(veg)
+                endif
+             endif   
+ 
 
              ! recalculate bjvref
              bjvref(np) = veg%ejmaxcc(np) / veg%vcmaxcc(np)
@@ -878,6 +886,9 @@ contains
           veg%vcmax_sun = veg%vcmax
           veg%ejmax_sun = veg%ejmax
        endif
+write(87,*) "veg%vcmax_shade:", veg%vcmax_shade
+write(87,*) "veg%vcmax_sun:", veg%vcmax_sun
+write(87,*) "veg%ejmaxcc:", veg%ejmaxcc
     endif
 
     ! for 2 day test

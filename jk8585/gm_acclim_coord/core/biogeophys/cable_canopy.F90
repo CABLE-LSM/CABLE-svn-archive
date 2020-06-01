@@ -1842,7 +1842,7 @@ CONTAINS
              !                             + C%gam2 * tdiff(i) * tdiff(i) )
              cx2(i) = 2.0 * gam0 * EXP( ( egam / (C%rgas*C%trefk) ) &
                   * ( 1.0 - C%trefk/tlfx(i) ) )
-
+             
              if (cable_user%perturb_biochem_by_T) then
                 cx2(i) = 2.0 * gam0 * EXP( ( egam / (C%rgas*C%trefk) ) &
                      * ( 1.0 - C%trefk/(tlfx(i)+cable_user%Ta_perturbation) ) )
@@ -1987,8 +1987,12 @@ CONTAINS
              endif !cable_user%call_climate
 
              ! apply fwsoil to gmes
-             gmes(i,1) = MAX(gmes(i,1) * real(fwsoil(i),r_2), real(0.15 * veg%gmmax(i),r_2))
-             gmes(i,2) = MAX(gmes(i,2) * real(fwsoil(i),r_2), real(0.15 * veg%gmmax(i),r_2))
+!write(77,*) "gmes(i,1):", gmes(i,1)
+!write(77,*) "fwsoil(i):", fwsoil(i)
+!write(77,*) "term:", MAX(0.15_r_2,real(fwsoil(i),r_2))
+
+             !gmes(i,1) = gmes(i,1) * MAX(0.15_r_2,real(fwsoil(i),r_2))
+             !gmes(i,2) = gmes(i,2) * MAX(0.15_r_2,real(fwsoil(i),r_2))
 
              ! Ticket #56 added switch for Belinda Medlyn's model
              IF (cable_user%GS_SWITCH == 'leuning') THEN
@@ -2907,7 +2911,6 @@ CONTAINS
              dA(i,j)   = dtmp3(ii(1))
              dtmp3     = (/ eta_c(i,j), eta_e(i,j), eta_p(i,j) /)
              eta(i,j)  = dtmp3(ii(1))
-
           else ! vlaiz(i,j) .gt. C%lai_thresh
 
              anxz(i,:)       = 0.0
@@ -3024,7 +3027,6 @@ CONTAINS
 
                    anrubiscoz(i,j) = real(Am)
                    if (Am > 0.0_r_2) eta_c(i,j) = dAmc(i,j) * cs / Am
-
                 endif  ! C3, Rubisco limited
 
                 ! C4
