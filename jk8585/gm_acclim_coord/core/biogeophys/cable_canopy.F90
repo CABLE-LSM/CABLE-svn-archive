@@ -1538,9 +1538,12 @@ CONTAINS
          sum_gbh,       & !
          ccfevw,        & ! limitation term for
                                 ! wet canopy evaporation rate
-         temp,          & !
-         temp_sun,      & !
-         temp_shade       !
+         temp_c3,       & !
+         temp_c4,       & !
+         temp_sun_c3,   & !
+         temp_shade_c3, & !
+         temp_sun_c4,   & !
+         temp_shade_c4    !
 
     real(r_2), dimension(mp)  :: &
          ecx,        & ! lat. hflux big leaf
@@ -1765,61 +1768,39 @@ CONTAINS
 
              ! Leuning 2002 (PCE) equation for temperature response
              ! used for Vcmax for C3 plants:
-             if (.not.cable_user%acclimate_photosyn) then
-                if (cable_user%perturb_biochem_by_T) then
-                   temp_sun(i)   = xvcmxt3(tlfx(i)+cable_user%Ta_perturbation) * &
-                        veg%vcmax_sun(i) * (1.0-veg%frac4(i))
-                   temp_shade(i) = xvcmxt3(tlfx(i)+cable_user%Ta_perturbation) * &
-                        veg%vcmax_shade(i) * (1.0-veg%frac4(i))
-                else
-                   temp_sun(i)   = xvcmxt3(tlfx(i)) * veg%vcmax_sun(i) * (1.0-veg%frac4(i))
-                   temp_shade(i) = xvcmxt3(tlfx(i)) * veg%vcmax_shade(i) * (1.0-veg%frac4(i))
-                endif
+             if (.not. cable_user%acclimate_photosyn) then
+                temp_sun_c3(i)   = xvcmxt3(tlfx(i)) * veg%vcmax_sun(i) * (1.0-veg%frac4(i))
+                temp_shade_c3(i) = xvcmxt3(tlfx(i)) * veg%vcmax_shade(i) * (1.0-veg%frac4(i))
+                temp_sun_c4(i)   = xvcmxt4(tlfx(i)) * veg%vcmax_sun(i) * veg%frac4(i)
+                temp_shade_c4(i) = xvcmxt4(tlfx(i)) * veg%vcmax_shade(i) * veg%frac4(i)
              else
-                if (cable_user%perturb_biochem_by_T) then
-                   call xvcmxt3_acclim(tlfx(i)+cable_user%Ta_perturbation, climate%mtemp(i) , temp(i))
-                else
-                   call xvcmxt3_acclim(tlfx(i), climate%mtemp(i) , temp(i))
-                endif
-                temp_sun(i)   = temp(i) * veg%vcmax_sun(i) * (1.0-veg%frac4(i))
-                temp_shade(i) = temp(i) * veg%vcmax_shade(i) * (1.0-veg%frac4(i))
+                call xvcmxt3_acclim(tlfx(i), climate%mtemp(i) , temp_c3(i))
+                call xvcmxt4_acclim(tlfx(i), climate%mtemp(i) , temp_c4(i))
+                temp_sun_c3(i)   = temp_c3(i) * veg%vcmax_sun(i) * (1.0-veg%frac4(i))
+                temp_shade_c3(i) = temp_c3(i) * veg%vcmax_shade(i) * (1.0-veg%frac4(i))
+                temp_sun_c4(i)   = temp_c4(i) * veg%vcmax_sun(i) * veg%frac4(i)
+                temp_shade_c4(i) = temp_c4(i) * veg%vcmax_shade(i) * veg%frac4(i)
              endif
-             vcmxt3(i,1) = rad%scalex(i,1) * temp_sun(i)
-             vcmxt3(i,2) = rad%scalex(i,2) * temp_shade(i)
-
-             ! Temperature response Vcmax, C4 plants (Collatz et al 1989):
-             temp_sun(i)   = xvcmxt4(tlfx(i)-C%tfrz) * veg%vcmax_sun(i) * veg%frac4(i)
-             temp_shade(i) = xvcmxt4(tlfx(i)-C%tfrz) * veg%vcmax_shade(i) * veg%frac4(i)
-             vcmxt4(i,1) = rad%scalex(i,1) * temp_sun(i)
-             vcmxt4(i,2) = rad%scalex(i,2) * temp_shade(i)
+             vcmxt3(i,1) = rad%scalex(i,1) * temp_sun_c3(i)
+             vcmxt3(i,2) = rad%scalex(i,2) * temp_shade_c3(i)
+             vcmxt4(i,1) = rad%scalex(i,1) * temp_sun_c4(i)
+             vcmxt4(i,2) = rad%scalex(i,2) * temp_shade_c4(i)
 
 
              ! Leuning 2002 (PCE) equation for temperature response
              ! used for Jmax for C3 plants:
              if (.not.cable_user%acclimate_photosyn) then
-                if (cable_user%perturb_biochem_by_T) then
-                   temp_sun(i)   = xejmxt3(tlfx(i)+cable_user%Ta_perturbation) * &
-                        veg%ejmax_sun(i) * (1.0-veg%frac4(i))
-                   temp_shade(i) = xejmxt3(tlfx(i)+cable_user%Ta_perturbation) * &
-                        veg%ejmax_shade(i) * (1.0-veg%frac4(i))
-                else
-                   temp_sun(i)   = xejmxt3(tlfx(i)) * &
-                        veg%ejmax_sun(i) * (1.0-veg%frac4(i))
-                   temp_shade(i) = xejmxt3(tlfx(i)) * &
-                        veg%ejmax_shade(i) * (1.0-veg%frac4(i))
-                endif
+                temp_sun_c3(i) = xejmxt3(tlfx(i)) * &
+                                 veg%ejmax_sun(i) * (1.0-veg%frac4(i))
+                temp_shade_c3(i) = xejmxt3(tlfx(i)) * &
+                                   veg%ejmax_shade(i) * (1.0-veg%frac4(i))
              else
-                if (cable_user%perturb_biochem_by_T) then
-                   call xejmxt3_acclim(tlfx(i)+cable_user%Ta_perturbation, &
-                        climate%mtemp(i), climate%mtemp_max20(i), temp(i))
-                else
-                   call xejmxt3_acclim(tlfx(i), climate%mtemp(i), climate%mtemp_max20(i), temp(i))
-                endif
-                temp_sun(i)   = temp(i) * veg%ejmax_sun(i) * (1.0-veg%frac4(i))
-                temp_shade(i) = temp(i) * veg%ejmax_shade(i) * (1.0-veg%frac4(i))
+                call xejmxt3_acclim(tlfx(i), climate%mtemp(i), climate%mtemp_max20(i), temp_c3(i))
+                temp_sun_c3(i)   = temp_c3(i) * veg%ejmax_sun(i) * (1.0-veg%frac4(i))
+                temp_shade_c3(i) = temp_c3(i) * veg%ejmax_shade(i) * (1.0-veg%frac4(i))
              endif
-             ejmxt3(i,1) = rad%scalex(i,1) * temp_sun(i)
-             ejmxt3(i,2) = rad%scalex(i,2) * temp_shade(i)
+             ejmxt3(i,1) = rad%scalex(i,1) * temp_sun_c3(i)
+             ejmxt3(i,2) = rad%scalex(i,2) * temp_shade_c3(i)
 
 
              ! Difference between leaf temperature and reference temperature:
@@ -1842,20 +1823,6 @@ CONTAINS
              !                             + C%gam2 * tdiff(i) * tdiff(i) )
              cx2(i) = 2.0 * gam0 * EXP( ( egam / (C%rgas*C%trefk) ) &
                   * ( 1.0 - C%trefk/tlfx(i) ) )
-             
-             if (cable_user%perturb_biochem_by_T) then
-                cx2(i) = 2.0 * gam0 * EXP( ( egam / (C%rgas*C%trefk) ) &
-                     * ( 1.0 - C%trefk/(tlfx(i)+cable_user%Ta_perturbation) ) )
-
-
-                conkot(i) = conko0 * EXP( ( eko / (C%rgas*C%trefk) ) &
-                     * ( 1.0 - C%trefk/(tlfx(i)+cable_user%Ta_perturbation) ) )
-
-                conkct(i) = conkc0 * EXP( ( ekc / (C%rgas*C%trefk) ) &
-                     * ( 1.0 - C%trefk/(tlfx(i)+cable_user%Ta_perturbation) ) )
-
-                cx1(i) = conkct(i) * (1.0+0.21/conkot(i))
-             endif
 
              ! All equations below in appendix E in Wang and Leuning 1998 are
              ! for calculating anx, csx and gswx for Rubisco limited,
@@ -3242,27 +3209,6 @@ CONTAINS
   ! ------------------------------------------------------------------------------
 
 
-  ! Explicit array dimensions as temporary work around for NEC inlining problem
-  ELEMENTAL PURE FUNCTION xvcmxt4(x) RESULT(z)
-
-    implicit none
-
-    real, intent(in) :: x
-
-    real, parameter :: q10c4 = 2.0
-    real :: z
-
-    ! z = q10c4 ** (0.1 * x - 2.5) / &
-    !     ((1.0 + exp(0.3 * (13.0 - x))) * (1.0 + exp(0.3 * (x - 36.0))))
-    z = q10c4**(0.1*x - 2.5) / &
-         ( (1.0 + exp(0.3 * (13.0 - x))) * (1.0 + exp(0.2 * (x - 38.0))) )
-
-  END FUNCTION xvcmxt4
-
-
-  ! ------------------------------------------------------------------------------
-
-
   FUNCTION xgmesT(x) RESULT(z)
     ! Temperature response of mesophyll conductance
     ! parameters as in Knauer et al. 2019 (from Bernacchi et al. 2002)
@@ -3321,10 +3267,44 @@ CONTAINS
     z = max( 0.0, xvcnum / xvcden )
 
   END FUNCTION xvcmxt3
-
-
+  
   ! ------------------------------------------------------------------------------
+  
+  ! Explicit array dimensions as temporary work around for NEC inlining problem
+  FUNCTION xvcmxt4(x) RESULT(z)
 
+    implicit none
+
+    real, intent(in) :: x
+    real             :: xc4, TrefK, Rgas
+
+    !real, parameter :: q10c4 = 2.0
+    ! parameter values from Massad et al. 2007, PCE 30, 1191-1204, slightly adjusted to
+    ! get optimum at ~35degC
+    real, parameter :: EHa    = 67400.0  !67.29e3_r_2   ! J/mol
+    real, parameter :: EHd    = 145000.0 !144.57e3_r_2  ! J/mol
+    real, parameter :: Entrop = 471.0    !0.472e3_r_2   ! J/mol/K
+    real :: z
+
+    ! Q10 function replaced with Arrhenius function for the sake of parameter
+    ! identifiability/interpretability
+    !z = q10c4**(0.1*x - 2.5) / &
+    !     ( (1.0 + exp(0.3 * (13.0 - x))) * (1.0 + exp(0.2 * (x - 38.0))) )
+
+    CALL point2constants(C)
+
+    TrefK = C%TrefK
+    Rgas  = C%Rgas
+    
+    xc4 = exp(EHa * (x - TrefK) / (TrefK * Rgas * x )) * &
+          (1.0 + exp((TrefK * Entrop - EHd) / (TrefK * Rgas))) / &
+          (1.0 + exp((x * Entrop - EHd) / (x * Rgas)))
+
+    z = max(0.0, xc4)
+    
+  END FUNCTION xvcmxt4
+  
+  ! ------------------------------------------------------------------------------
 
   elemental pure subroutine xvcmxt3_acclim(Tk, Tgrowth, trf)
     ! acclimated temperature response of Vcmax. Kumarathunge et al., New. Phyt., 2019,
@@ -3352,6 +3332,36 @@ CONTAINS
     trf = max( 0.0, xvcnum / xvcden )
 
   end subroutine xvcmxt3_acclim
+
+  ! ------------------------------------------------------------------------------  
+
+  
+  elemental pure subroutine xvcmxt4_acclim(Tk, Tgrowth, trf)
+    ! acclimated temperature response of Vcmax for C4 plants.
+    ! Data fitted to obtain Topt-Tgrowth response as shown in Yamori et al. 2014, Photosny Research Fig. 5
+
+    implicit none
+
+    real, intent(in)  :: Tk, Tgrowth  ! instantaneous T in K, growth T in degC
+    real, intent(out) :: trf
+
+    real :: xVccoef, EHaVc, EHdVc,  EntropVc, aKK, bKK, rgas, TREFK, xvcnum, xvcden
+
+    EHaVc = 41.0 * 1000.0 + 1.05*Tgrowth*1000.0
+    EHdVc = 145000.0
+    aKK   = 471.0
+    bKK   = -0.12653
+    rgas  = 8.314
+    TREFK = 298.15
+
+    entropvc = (aKK + bKK * Tgrowth)
+    xVccoef  = 1.0 + exp((entropvc * TREFK - EHdVc)/  ( rgas*TREFK ) )
+    xvcnum   = xVccoef * exp( ( EHaVc / ( rgas*TREFK ) )* ( 1.-TREFK/Tk ) )
+    xvcden   = 1.0 + exp( ( entropvc*Tk-EHdVc ) / ( rgas*Tk ) )
+
+    trf = max( 0.0, xvcnum / xvcden )
+
+  end subroutine xvcmxt4_acclim
 
 
   ! ------------------------------------------------------------------------------
