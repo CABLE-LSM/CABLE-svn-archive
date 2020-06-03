@@ -1830,7 +1830,7 @@ CONTAINS
              ! JK: vx4 changed to correspond to formulation in Collatz et al. 1992
              temp2(i,:) = rad%qcan(i,:,1) * jtomol * (1.0-veg%frac4(i))
              vx3(i,:)   = ej3x(temp2(i,:), veg%alpha(i), veg%convex(i), ejmxt3(i,:))
-             vx4(i,:)   = rad%qcan(i,:,1) * jtomol * veg%frac4(i)
+             vx4(i,:)   = veg%alpha(i) * rad%qcan(i,:,1) * jtomol * veg%frac4(i)
              !vx4(i,:)   = ej4x(temp2(i,:), veg%alpha(i), veg%convex(i), vcmxt4(i,:))
              rdx(i,:)   = veg%cfrd(i)*Vcmxt3(i,:) + veg%cfrd(i)*vcmxt4(i,:)
 
