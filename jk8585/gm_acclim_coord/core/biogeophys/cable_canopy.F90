@@ -1826,11 +1826,12 @@ CONTAINS
 
              ! All equations below in appendix E in Wang and Leuning 1998 are
              ! for calculating anx, csx and gswx for Rubisco limited,
-             ! RuBP limited, sink limited
+             ! RuBP limited, sink limited.
+             ! JK: vx4 changed to correspond to formulation in Collatz et al. 1992
              temp2(i,:) = rad%qcan(i,:,1) * jtomol * (1.0-veg%frac4(i))
              vx3(i,:)   = ej3x(temp2(i,:), veg%alpha(i), veg%convex(i), ejmxt3(i,:))
-             temp2(i,:) = rad%qcan(i,:,1) * jtomol * veg%frac4(i)
-             vx4(i,:)   = ej4x(temp2(i,:), veg%alpha(i), veg%convex(i), vcmxt4(i,:))
+             vx4(i,:)   = rad%qcan(i,:,1) * jtomol * veg%frac4(i)
+             !vx4(i,:)   = ej4x(temp2(i,:), veg%alpha(i), veg%convex(i), vcmxt4(i,:))
              rdx(i,:)   = veg%cfrd(i)*Vcmxt3(i,:) + veg%cfrd(i)*vcmxt4(i,:)
 
              !Vanessa - the trunk does not contain xleauning as of Ticket#56 inclusion
@@ -2710,9 +2711,11 @@ CONTAINS
     real(r_2), dimension(mp,mf), intent(out)   :: eta, dA
 
     ! local variables
+    ! C4 parameters (move to different subroutine at some point)
+    real, parameter :: effc4 = 20000.0_r_2  ! Vc=effc4*Ci*Vcmax (see Bonan et al. 2011, JGR 116)
+
     real(r_2), dimension(mp,mf) :: dAmp, dAme, dAmc, eta_p, eta_e, eta_c
     real, dimension(mp) :: fwsoilz
-    real, parameter  :: effc4 = 4000.0  ! Vc=effc4*Ci*Vcmax (see Bonan,LSM version 1.0, p106)
     real(r_2) :: gamma, beta, gammast, gm, g0, X, Rd, cs
     real(r_2) :: cc
     real(r_2) :: Am, gsm
@@ -2829,27 +2832,28 @@ CONTAINS
 
                 elseif ((vcmxt4z(i,j) .gt. 1.0e-10) .and. (gs_coeffz(i,j) .gt. 100.)) then ! C4
                    cs         = csxz(i,j)
-                   g0         = 0.0_r_2
+                   g0         = real(gswminz(i,j) * fwsoilz(i) / C%RGSWC, r_2)
                    X          = real(gs_coeffz(i,j), r_2)
-                   gamma      = real(effc4 * vcmxt4z(i,j), r_2)
+                   gamma      = real(effc4 * vcmxt4z(i,j), r_2) ! k in Collatz 1992
                    beta       = 0.0_r_2
                    gammast    = 0.0_r_2
                    Rd         = real(rdxz(i,j), r_2)
                    gm         = gmes(i,j)
 
+                   ! adjust gamma to account for gm
+                   gamma = 1.5_r_2 * gamma ! replace with function or LUT
+                   
                    if (trim(cable_user%g0_switch) == 'default') then
-                      call fAndAn2(cs, g0, X*cs, gamma, beta, gammast, Rd, &
+                      call fAmdAm2(cs, g0, X*cs, gamma, beta, gammast, Rd, gm, &
                            Am, dAmp(i,j))
                    elseif (trim(cable_user%g0_switch) == 'maximum') then
-                      call fAndAn2(cs, 0.0_r_2, X*cs, gamma, beta, gammast, Rd, &
+                      call fAmdAm2(cs, 0.0_r_2, X*cs, gamma, beta, gammast, Rd, gm, &
                            Am, dAmp(i,j))
                       if (g0 .gt. Am*X) then
-                         call fAndAn2(cs, g0, 0.0_r_2, gamma, beta, gammast, Rd, &
+                         call fAmdAm2(cs, g0, 0.0_r_2, gamma, beta, gammast, Rd, gm, &
                               Am, dAmp(i,j))
                       endif
                    endif
-                   ! CALL fAmdAm2(cs, g0, X*cs, gamma, beta, gammast, Rd, &
-                   !      gm, Am, dAmp(i,j))  ! vh ! not sure why this one is commented out: need to test
                    ansinkz(i,j) = real(Am)
 
                    dAmp(i,j)  = 0.0_r_2
@@ -3965,21 +3969,20 @@ CONTAINS
   end subroutine fabcd
 
 
-  ! not used
-  ! elemental pure subroutine fabcm(Cs, g0, x, gamma, beta, Gammastar, Rd, gm, a, b, c1)
+  elemental pure subroutine fabcm(Cs, g0, x, gamma, beta, Gammastar, Rd, gm, a, b, c1)
 
-  !   use cable_def_types_mod, only: r_2
+    use cable_def_types_mod, only: r_2
 
-  !   implicit none
+    implicit none
 
-  !   real(r_2), intent(in)  :: Cs, g0, x, gamma, beta, Gammastar, Rd, gm
-  !   real(r_2), intent(out) :: a,b,c1
+    real(r_2), intent(in)  :: Cs, g0, x, gamma, beta, Gammastar, Rd, gm
+    real(r_2), intent(out) :: a,b,c1
 
-  !   a  = x*(gm+gamma)
-  !   b  = ((gm+g0)*gamma + g0*gm - gm*gamma*x)*Cs - gm*x*(beta-Rd)
-  !   c1 = -gm*g0*gamma*Cs**2 - gm*g0*(beta-Rd)*Cs
+    a  = x*(gm+gamma)
+    b  = ((gm+g0)*gamma + g0*gm - gm*gamma*x)*Cs - gm*x*(beta-Rd)
+    c1 = -gm*g0*gamma*Cs**2 - gm*g0*(beta-Rd)*Cs
 
-  ! end subroutine fabcm
+  end subroutine fabcm
 
 
   elemental pure subroutine fpq(a, b, c, d, p, q)
@@ -4014,21 +4017,20 @@ CONTAINS
   end subroutine fdabcd
 
 
-  ! not used
-  ! elemental pure subroutine fdabcm(Cs, g0, x, gamma, beta, Gammastar, Rd, gm, da, db, dc)
+  elemental pure subroutine fdabcm(Cs, g0, x, gamma, beta, Gammastar, Rd, gm, da, db, dc)
 
-  !   use cable_def_types_mod, only: r_2
+    use cable_def_types_mod, only: r_2
 
-  !   implicit none
+    implicit none
 
-  !   real(r_2), intent(in)  :: Cs, g0, x, gamma, beta, Gammastar, Rd, gm
-  !   real(r_2), intent(out) :: da, db, dc
+    real(r_2), intent(in)  :: Cs, g0, x, gamma, beta, Gammastar, Rd, gm
+    real(r_2), intent(out) :: da, db, dc
 
-  !   da = 0.0_r_2
-  !   db = (gm+g0)*gamma + g0*gm - gm*gamma*x
-  !   dc = -2.0_r_2*gm*g0*gamma*Cs - gm*g0*(beta-Rd)
+    da = 0.0_r_2
+    db = (gm+g0)*gamma + g0*gm - gm*gamma*x
+    dc = -2.0_r_2*gm*g0*gamma*Cs - gm*g0*(beta-Rd)
 
-  ! end subroutine fdabcm
+  end subroutine fdabcm
 
   
   elemental pure subroutine fdpq(a, b, c, d, da, db, dc, dd, dp, dq)
@@ -4070,22 +4072,21 @@ CONTAINS
   end subroutine fAm
 
 
-  ! not used
-  ! elemental pure subroutine fAm2(a, b, c1, Am)
+  elemental pure subroutine fAm2(a, b, c1, Am)
 
-  !   use cable_def_types_mod, only: r_2
+    use cable_def_types_mod, only: r_2
 
-  !   implicit none
+    implicit none
 
-  !   real(r_2), intent(in) :: a, b, c1
-  !   real(r_2), intent(out) :: Am
+    real(r_2), intent(in) :: a, b, c1
+    real(r_2), intent(out) :: Am
 
-  !   real(r_2) :: s2
+    real(r_2) :: s2
 
-  !   s2 = b**2 - 4.0_r_2*a*c1
-  !   Am = (-b + sqrt(s2))/(2.0_r_2*a)
+    s2 = b**2 - 4.0_r_2*a*c1
+    Am = (-b + sqrt(s2))/(2.0_r_2*a)
 
-  ! end subroutine fAm2
+  end subroutine fAm2
 
 
   elemental pure subroutine fdAm(a, b, c1, d, p, q, da, db, dc, dd, dp, dq, dAm)
@@ -4112,23 +4113,23 @@ CONTAINS
 
   end subroutine fdAm
 
-  ! not used
-  ! elemental pure subroutine fdAm2(a, b, c1, da, db, dc, dAm)
 
-  !   use cable_def_types_mod, only: r_2
+  elemental pure subroutine fdAm2(a, b, c1, da, db, dc, dAm)
 
-  !   implicit none
+    use cable_def_types_mod, only: r_2
 
-  !   real(r_2), intent(in) :: a, b, c1, da, db, dc
-  !   real(r_2), intent(out) :: dAm
+    implicit none
 
-  !   real(r_2) :: s, p
+    real(r_2), intent(in) :: a, b, c1, da, db, dc
+    real(r_2), intent(out) :: dAm
 
-  !   s = sqrt(b**2 - 4.0_r_2*a*c1)
-  !   p = (2.0_r_2*b*db - 4.0_r_2*c1*da - 4.0_r_2*a*dc)/(2.0_r_2*s)
-  !   dAm = (-db + p)/(2.0_r_2*a) - (-b + s)/(2.0_r_2*a**2)*da
+    real(r_2) :: s, p
 
-  ! end subroutine fdAm2
+    s = sqrt(b**2 - 4.0_r_2*a*c1)
+    p = (2.0_r_2*b*db - 4.0_r_2*c1*da - 4.0_r_2*a*dc)/(2.0_r_2*s)
+    dAm = (-db + p)/(2.0_r_2*a) - (-b + s)/(2.0_r_2*a**2)*da
+
+  end subroutine fdAm2
 
 
   elemental pure subroutine fAmdAm1(Cs, g0, x, gamma, beta, Gammastar, Rd, gm, &
@@ -4153,25 +4154,24 @@ CONTAINS
   end subroutine fAmdAm1
 
 
-  ! not used
-  ! elemental pure subroutine fAmdAm2(Cs, g0, x, gamma, beta, Gammastar, Rd, gm, &
-  !      Am, dAm)
+  elemental pure subroutine fAmdAm2(Cs, g0, x, gamma, beta, Gammastar, Rd, gm, &
+       Am, dAm)
 
-  !   use cable_def_types_mod, only: r_2
+    use cable_def_types_mod, only: r_2
 
-  !   implicit none
+    implicit none
 
-  !   real(r_2), intent(in)  :: Cs, g0, x, gamma, beta, Gammastar, Rd, gm
-  !   real(r_2), intent(out) :: Am, dAm
+    real(r_2), intent(in)  :: Cs, g0, x, gamma, beta, Gammastar, Rd, gm
+    real(r_2), intent(out) :: Am, dAm
 
-  !   real(r_2) :: a, b, c1, da, db, dc
+    real(r_2) :: a, b, c1, da, db, dc
 
-  !   call fabcm(Cs, g0, x, gamma, beta, Gammastar, Rd, gm,a,b,c1)
-  !   call fAm2(a, b, c1, Am)
-  !   call fdabcm(Cs, g0, x, gamma, beta, Gammastar, Rd, gm, da, db, dc)
-  !   call fdAm2(a, b, c1, da, db, dc, dAm)
+    call fabcm(Cs, g0, x, gamma, beta, Gammastar, Rd, gm,a,b,c1)
+    call fAm2(a, b, c1, Am)
+    call fdabcm(Cs, g0, x, gamma, beta, Gammastar, Rd, gm, da, db, dc)
+    call fdAm2(a, b, c1, da, db, dc, dAm)
 
-  ! end subroutine fAmdAm2
+  end subroutine fAmdAm2
 
 
   ! not used
