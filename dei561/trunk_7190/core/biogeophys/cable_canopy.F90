@@ -209,6 +209,12 @@ CONTAINS
        ssnow%tss =  REAL((1-ssnow%isflag))*ssnow%tgg(:,1) +                    &
             REAL(ssnow%isflag)*ssnow%tggsn(:,1)
     ENDIF
+    IF (cable_user%gw_model) THEN
+       if (call_number .eq. 1) CALL set_den_rat()
+       ssnow%wbliq(:,:) = ssnow%wb(:,:) - den_rat*ssnow%wbice(:,:)
+    ELSE
+       ssnow%wbliq(:,:) = ssnow%wb(:,:) - ssnow%wbice(:,:)
+    ENDIF
     tss4 = ssnow%tss**4
     canopy%fes = 0.
     canopy%fess = 0.
@@ -485,7 +491,9 @@ CONTAINS
           ! Calculate soil sensible heat:
           ! INH: I think this should be - met%tvair
           !canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tk) /ssnow%rtsoil
-          IF (cable_user%gw_model .OR. cable_user%or_evap) THEN
+          ! MMY rt_qh_sublayer is given value only when or-on. For gw-on but or-off
+          ! MMY rt_qh_sublayer is empty, so I removed "cable_user%gw_model .or."
+          IF (cable_user%or_evap) THEN
              canopy%fhs =  air%rho*C%CAPP*(ssnow%tss - met%tk) / &
                   (ssnow%rtsoil + ssnow%rt_qh_sublayer)
              !note if or_evap and litter are true then litter resistance is
@@ -496,7 +504,7 @@ CONTAINS
              canopy%fhs =  air%rho*C%CAPP*(ssnow%tss - met%tk) / &
                                 !(ssnow%rtsoil + real((1-ssnow%isflag))*veg%clitt*0.003/canopy%kthLitt/(air%rho*C%CAPP))
                   (ssnow%rtsoil + rhlitt)
-          ELSE
+          ELSE ! MMY if gw-on but or-off, carry out below
              canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tvair) /ssnow%rtsoil
           ENDIF
 
@@ -535,7 +543,9 @@ CONTAINS
 
           ! Soil sensible heat:
           !canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tvair) /ssnow%rtsoil
-          IF (cable_user%gw_model .OR. cable_user%or_evap) THEN
+          ! MMY rt_qh_sublayer is given value only when or-on. For gw-on but or-off
+          ! MMY rt_qh_sublayer is empty, so I removed "cable_user%gw_model .or."
+          IF (cable_user%or_evap) THEN
              canopy%fhs =  air%rho*C%CAPP*(ssnow%tss - met%tvair) / &
                   (ssnow%rtsoil + REAL(ssnow%rt_qh_sublayer))
 
@@ -545,7 +555,7 @@ CONTAINS
              canopy%fhs =  air%rho*C%CAPP*(ssnow%tss - met%tvair) / &
                                 !(ssnow%rtsoil +  real((1-ssnow%isflag))*veg%clitt*0.003/canopy%kthLitt/(air%rho*C%CAPP))
                   (ssnow%rtsoil + rhlitt)
-          ELSE
+          ELSE ! MMY if gw-on but or-off, carry out below
              canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tvair) /ssnow%rtsoil
           ENDIF
 
@@ -720,16 +730,30 @@ CONTAINS
           ENDIF
 
           !extensions for litter and Or evaporation model
-          IF (cable_user%litter) THEN
+
+          ! ____________________________ MMY ________________________________
+          ! MMY Two problems are here. First, since or_evap has considered the
+          !     litter layer, litter-on should be after or_evap.
+          !     Second, rt_qh_sublayer is given value only when or-on. When
+          !     gw-on & or-off, rt_qh_sublayer is empty. Thus, gw-on & or-off
+          !     should go to the last one.
+
+          !if (cable_user%litter) then ! MMY
+          !   canopy%tscrn(j) = ssnow%tss(j) + (met%tk(j) - ssnow%tss(j)) *     & ! MMY
+          !     MIN(1., ( (r_sc(j)+rhlitt(j)*canopy%us(j))  / MAX( 1.,          & ! MMY
+          !     rough%rt0us(j) + rough%rt1usa(j) + rough%rt1usb(j)              & ! MMY
+          !     + rt1usc(j) + rhlitt(j)*canopy%us(j) )) ) - C%tfrz    ! MMY
+          !elseif (cable_user%or_evap .or. cable_user%gw_model) then  ! MMY
+          IF (cable_user%or_evap) THEN
              canopy%tscrn(j) = ssnow%tss(j) + (met%tk(j) - ssnow%tss(j)) *     &
-                  MIN(1., ( (r_sc(j)+rhlitt(j)*canopy%us(j))  / MAX( 1.,          &
-                  rough%rt0us(j) + rough%rt1usa(j) + rough%rt1usb(j)              &
-                  + rt1usc(j) + rhlitt(j)*canopy%us(j) )) ) - C%tfrz
-          ELSEIF (cable_user%or_evap .OR. cable_user%gw_model) THEN
+               MIN(1., ( (ssnow%rt_qh_sublayer(j)*canopy%us(j) + r_sc(j) ) /   &
+               MAX( 1., rough%rt0us(j) + rough%rt1usa(j) + rough%rt1usb(j)     &
+               + rt1usc(j) + ssnow%rt_qh_sublayer(j)*canopy%us(j) )) ) - C%tfrz
+          ELSEIF (cable_user%litter) THEN
              canopy%tscrn(j) = ssnow%tss(j) + (met%tk(j) - ssnow%tss(j)) *     &
-                  MIN(1., ( (ssnow%rt_qh_sublayer(j)*canopy%us(j) + r_sc(j) ) /   &
-                  MAX( 1., rough%rt0us(j) + rough%rt1usa(j) + rough%rt1usb(j)     &
-                  + rt1usc(j) + ssnow%rt_qh_sublayer(j)*canopy%us(j) )) ) - C%tfrz
+               MIN(1., ( (r_sc(j)+rhlitt(j)*canopy%us(j))  / MAX( 1.,          &
+               rough%rt0us(j) + rough%rt1usa(j) + rough%rt1usb(j)              &
+               + rt1usc(j) + rhlitt(j)*canopy%us(j) )) ) - C%tfrz
           ELSE
              canopy%tscrn(j) = ssnow%tss(j) + (met%tk(j) - ssnow%tss(j)) *      &
                   MIN(1., (r_sc(j) / MAX( 1.,                            &
@@ -760,14 +784,9 @@ CONTAINS
        IF( canopy%vlaiw(j) >C%LAI_THRESH .AND. rough%hruff(j) > 0.01) THEN
 
           !extensions for litter and Or model
-          IF (cable_user%litter) THEN
-             canopy%qscrn(j) = qsurf(j) + (met%qv(j) - qsurf(j)) *             &
-                  MIN(1., ( ( r_sc(j)+relitt(j)*canopy%us(j) ) / MAX( 1.,         &
-                  rough%rt0us(j) + rough%rt1usa(j) + rough%rt1usb(j)            &
-                  + rt1usc(j) + relitt(j)*canopy%us(j) )) )
 
-          ELSEIF (cable_user%or_evap .OR. cable_user%gw_model) THEN
-             !using alpm1 as a dumy variable
+          IF (cable_user%or_evap) THEN
+             !using alpm1 as a dummy variable
              alpm1(j) = REAL(&
                   ssnow%satfrac(j)/(REAL(ssnow%rtsoil(j),r_2)+&
                   ssnow%rtevap_sat(j)) &
@@ -834,19 +853,7 @@ CONTAINS
        ENDWHERE
     ENDIF
 
-    IF (cable_user%gw_model .OR. cable_user%or_evap) THEN
-
-       ssnow%dfh_dtg = air%rho*C%CAPP/(ssnow%rtsoil+ REAL(ssnow%rt_qh_sublayer))
-
-       !! INH simplifying code for legibility
-       !ssnow%dfe_ddq = real(ssnow%satfrac)*air%rho*air%rlam*ssnow%cls/ &
-       !     (ssnow%rtsoil+ real(ssnow%rtevap_sat))  +
-       !     (1.0-real(ssnow%satfrac))*real(ssnow%rh_srf)*&
-       !      air%rho*air%rlam*ssnow%cls/ (ssnow%rtsoil+
-       !      real(ssnow%rtevap_unsat) )
-       ssnow%dfe_ddq = REAL(ssnow%satfrac)/(ssnow%rtsoil+ REAL(ssnow%rtevap_sat))  &
-            + (1.0-REAL(ssnow%satfrac))*REAL(ssnow%rh_srf)                   &
-            / (ssnow%rtsoil+ REAL(ssnow%rtevap_unsat) )
+    IF (cable_user%or_evap) THEN
 
        !mrd561 fixes.  Do same thing as INH but has been tested.
        IF (cable_user%L_REV_CORR) THEN
@@ -1062,26 +1069,24 @@ CONTAINS
          ENDIF
       ENDDO
 
-      IF (cable_user%or_evap .OR. cable_user%gw_model) THEN
+      IF (cable_user%or_evap) THEN
 
-         IF (cable_user%or_evap) THEN
-            DO j=1,mp
+          DO j=1,mp
 
-               IF (veg%iveg(j) .LT. 16 .AND. ssnow%snowd(j) .LT. 1e-7) THEN
+             IF (veg%iveg(j) .LT. 16 .AND. ssnow%snowd(j) .LT. 1e-7) THEN
 
-                  IF (dq(j) .LE. 0.0) THEN
-                     ssnow%rtevap_sat(j) = MIN(rtevap_max,canopy%sublayer_dz(j)/rt_Dff)
-                  END IF
+                IF (dq(j) .LE. 0.0) THEN
+                   ssnow%rtevap_sat(j) = MIN(rtevap_max,canopy%sublayer_dz(j)/rt_Dff)
+                END IF
 
-                  IF (dqu(j) .LE. 0.0) THEN
-                     ssnow%rtevap_unsat(j) = MIN(rtevap_max,canopy%sublayer_dz(j)/rt_Dff)
-                  END IF
+                IF (dqu(j) .LE. 0.0) THEN
+                   ssnow%rtevap_unsat(j) = MIN(rtevap_max,canopy%sublayer_dz(j)/rt_Dff)
+                END IF
 
-               END IF
+             END IF
 
-            END DO
+          END DO
 
-         END IF
 
          ssnowpotev = air%rho * air%rlam * ( &
               REAL(ssnow%satfrac) * dq /(ssnow%rtsoil + REAL(ssnow%rtevap_sat)) + &
@@ -1135,8 +1140,13 @@ CONTAINS
 
          IF(ssnow%snowd(j) < 0.1 .AND. canopy%fess(j) .GT. 0. ) THEN
 
-            IF (.NOT.cable_user%l_new_reduce_soilevp) THEN
-               flower_limit(j) = REAL(ssnow%wb(j,1))-soil%swilt(j)/2.0
+            IF (.not.cable_user%l_new_reduce_soilevp) THEN
+              IF (cable_user%gw_model) THEN
+                 flower_limit(j) = REAL(ssnow%wb(j,1))-REAL(soil%watr(j,1))
+                 ! MMY watr is better than swilt/2., as it has a clear physical meaning
+              ELSE
+                 flower_limit(j) = REAL(ssnow%wb(j,1))-soil%swilt(j)/2.0
+              END IF
             ELSE
                ! E.Kowalczyk 2014 - reduces the soil evaporation
                flower_limit(j) = REAL(ssnow%wb(j,1))-soil%swilt(j)
@@ -1151,7 +1161,7 @@ CONTAINS
             !evaporation from frozen soils needs to respect the assumption that
             !ice fraction of soil moisture cannot exceed frozen_limit=0.85
             !see soilsnow: if frozen_limit changes need to be consistent
-            fupper_limit(j) = REAL(ssnow%wb(j,1)-ssnow%wbice(j,1)/0.85)*frescale(j)
+            fupper_limit(j) = REAL(ssnow%wb(j,1)-ssnow%wbice(j,1)*den_rat/frozen_limit)*frescale(j)  ! MMY keep fupper_limit consistent
             fupper_limit(j) = MAX(REAL(fupper_limit(j),r_2),0.)
 
             canopy%fess(j) = MIN(canopy%fess(j), REAL(fupper_limit(j),r_2))
@@ -1787,7 +1797,8 @@ CONTAINS
     REAL, DIMENSION(:,:), POINTER :: gswmin ! min stomatal conductance
 
     REAL, DIMENSION(mp,2) ::  gsw_term, lower_limit2  ! local temp var
-
+    REAL, DIMENSION(0:ms+1) :: diff
+    REAL :: xx,xxd
     INTEGER :: i, j, k, kk  ! iteration count
     REAL :: vpd, g1 ! Ticket #56
 #define VanessasCanopy
@@ -2174,14 +2185,28 @@ CONTAINS
                    evapfb(i) = ( 1.0 - canopy%fwet(i)) * REAL( ecx(i) ) *dels      &
                         / air%rlam(i)
 
-                   DO kk = 1,ms
+                  ! _______________ MMY modify from cable_gw_hydro ________________
+                  ! MMY to fix the inconsistence of root water extraction between
+                  !     cable_gw_hydro and above
+                  xx      = 0._r_2 ! demand : transpiration
+                  xxd     = 0._r_2 ! difference : demand - supply
+                  diff(:) = 0._r_2 ! supply : water available
+                  DO kk = 1,ms
+                     xx = evapfb(i) * veg%froot(i,kk) + diff(kk-1) ! demand for layer kk
+                     diff(kk) = max(0._r_2,ssnow%wbliq(i,kk)-soil%swilt_vec(i,kk)) * soil%zse(kk) * 1000.0
+                               ! supply for layer kk
+                     xxd = xx - diff(kk) ! deficit in layer kk
+                     if (xxd .gt. 0._r_2) then ! demand > supply
+                        ssnow%evapfbl(i,kk) = diff(kk) ! transpiration in layer kk is supply
+                        diff(kk) = xxd  ! deficit in layer kk
+                     else !  demand < supply
+                        ssnow%evapfbl(i,kk) = xx ! transpiration in layer kk is demand
+                        diff(kk) = 0._r_2 ! no deficit in layer kk
+                     end if
+                   END DO     !ms
 
-                      ssnow%evapfbl(i,kk) = MIN( evapfb(i) * veg%froot(i,kk),      &
-                           MAX( 0.0, REAL( ssnow%wb(i,kk) ) -     &
-                           1.1 * soil%swilt(i) ) *                &
-                           soil%zse(kk) * 1000.0 )
-
-                   ENDDO
+                   !DE This differs slightly from MMY's code, but doesn't appear
+                   !   related
                    IF (cable_user%soil_struc=='default') THEN
                       canopy%fevc(i) = SUM(ssnow%evapfbl(i,:))*air%rlam(i)/dels
                       ecx(i) = canopy%fevc(i) / (1.0-canopy%fwet(i))
@@ -2652,17 +2677,19 @@ CONTAINS
     !and even using real(_vec) gives results different from trunk (rounding
     !errors)
 
-    IF (.NOT.cable_user%gw_model) THEN
-
+    IF (.not.cable_user%gw_model) THEN
        rwater = MAX(1.0e-9,                                                    &
-            SUM(veg%froot * MAX(1.0e-9,MIN(1.0, REAL(ssnow%wb) -                   &
-            SPREAD(soil%swilt, 2, ms))),2) /(soil%sfc-soil%swilt))
-
+          SUM(veg%froot * MAX(1.0e-9, MIN( 1.0, &
+          MAX(0., (real(ssnow%wb) - SPREAD(soil%swilt, 2, ms)) )&
+          / (SPREAD(soil%sfc, 2, ms) - SPREAD(soil%swilt, 2, ms)) &
+           )) , 2))
+       ! MMY I didn't check gw-off, but think using wbliq may be better than wb above eq
     ELSE
        rwater = MAX(1.0e-9,                                                    &
-            SUM(veg%froot * MAX(1.0e-9,MIN(1.0, REAL((ssnow%wbliq -                 &
-            soil%swilt_vec)/(soil%sfc_vec-soil%swilt_vec)) )),2) )
-
+          SUM(veg%froot * MAX(1.0e-9, MIN( 1.0, &
+          MAX(0., (real(ssnow%wbliq) - real(soil%swilt_vec)) )&
+          / (real(soil%sfc_vec) - real(soil%swilt_vec)) &
+           )) , 2))
     ENDIF
 
     ! Remove vbeta #56
