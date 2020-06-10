@@ -31,7 +31,7 @@ USE cable_math_constants_mod, ONLY : CPI180 => pi180
 
    USE cable_common_module
    USE cable_carbon_module
-   USE cable_soil_snow_module,  ONLY : soil_snow
+    USE cbl_soil_snow_main_module, ONLY : soil_snow
 USE cable_def_types_mod,        ONLY : air_type, bgc_pool_type, &
                                     canopy_type, met_type, balances_type, &
                                     radiation_type, roughness_type,  &
