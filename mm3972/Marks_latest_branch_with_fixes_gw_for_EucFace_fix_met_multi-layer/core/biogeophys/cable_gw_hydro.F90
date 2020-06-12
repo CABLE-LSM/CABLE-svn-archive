@@ -1245,7 +1245,9 @@ SUBROUTINE calc_equilibrium_water_content(ssnow,soil)
                            (GWzimm(i)-zimm(i,ms))*(tempi-temp0) + soil%GWwatr(i)
 
        else
-
+             !print *, "soil%GWsucs_vec", soil%GWsucs_vec ! MMY
+             !print *, "soil%wtd", soil%wtd ! MMY
+             !print *, "zimm", zimm ! MMY
              tempi = 1._r_2
              temp0 = &
                    (((soil%GWsucs_vec(i)+ssnow%wtd(i)-zimm(i,ms))/&
@@ -1639,8 +1641,8 @@ SUBROUTINE calc_srf_wet_fraction(ssnow,soil,met,veg)
 
       end do
 
-      print *,"**** MMY ****", ssnow%wetfac ! MMY check wetfac for gw_on
-      
+      !print *,"**** MMY ****", ssnow%wetfac ! MMY check wetfac for gw_on
+
    ELSE  !Default formulation
 
        !call saturated_fraction(ssnow,soil,veg)
