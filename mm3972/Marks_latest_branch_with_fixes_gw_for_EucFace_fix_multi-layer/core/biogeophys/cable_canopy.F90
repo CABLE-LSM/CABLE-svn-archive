@@ -807,7 +807,7 @@ CONTAINS
                MIN(1., ( (r_sc(j) + canopy%us(j)/alpm1(j) ) / MAX( 1.,         &
                rough%rt0us(j) + rough%rt1usa(j) + rough%rt1usb(j)              &
                + rt1usc(j) + canopy%us(j)/alpm1(j) )) )
-          elseif (cable_user%litter) then ! MMY 
+          elseif (cable_user%litter) then ! MMY
              canopy%qscrn(j) = qsurf(j) + (met%qv(j) - qsurf(j)) *      & ! MMY
                MIN(1., ( ( r_sc(j)+relitt(j)*canopy%us(j) ) / MAX( 1.,  & ! MMY
                  rough%rt0us(j) + rough%rt1usa(j) + rough%rt1usb(j)     & ! MMY
@@ -869,9 +869,9 @@ CONTAINS
 
        !IF (cable_user%gw_model .or. cable_user%or_evap) THEN
        IF (cable_user%or_evap) THEN
-          ! _______________________ MMY redundant ___________________ 
+          ! _______________________ MMY redundant ___________________
           !ssnow%dfh_dtg = air%rho*C%CAPP/(ssnow%rtsoil+ real(ssnow%rt_qh_sublayer))
-          
+
           !!! INH simplifying code for legibility
           !!ssnow%dfe_ddq = real(ssnow%satfrac)*air%rho*air%rlam*ssnow%cls/ &
           !!     (ssnow%rtsoil+ real(ssnow%rtevap_sat))  +
@@ -2120,9 +2120,11 @@ CONTAINS
                 g1 = veg%g1(i)
 
                 ! __________ MMY g1 = g1max (5.34) ___________
-                IF (cable_user%FWSOIL_SWITCH == 'hie_watpot') THEN
-                  g1 = 5.34
-                END IF
+                ! MMY: Martin told g1max = g1, all of default, hvrd and exp 
+                !      should use Jim's g1max = 5
+                !IF (cable_user%FWSOIL_SWITCH == 'hie_watpot') THEN
+                !  g1 = 5.34
+                !END IF
                 ! ________________________________________
 
                 gs_coeff(i,1) = (1.0 + (g1 * fwsoil(i)) / SQRT(vpd)) / csx(i,1)
