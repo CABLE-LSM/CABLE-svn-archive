@@ -1931,20 +1931,20 @@ CONTAINS
 
              ! _____________________________ MMY _______________________________
              ! print plant photosynthesis parameters
-             PRINT *, "====================================="
-             PRINT *, "veg%alpha is ", veg%alpha
-             PRINT *, "veg%convex is ", veg%convex
-             PRINT *, "veg%g1 is ", veg%g1
-             PRINT *, "veg%vcmax is ", veg%vcmax
-             PRINT *, "veg%ejmax is ", veg%ejmax
-             PRINT *, "====================================="
+             ! PRINT *, "====================================="
+             ! PRINT *, "veg%alpha is ", veg%alpha
+             ! PRINT *, "veg%convex is ", veg%convex
+             ! PRINT *, "veg%g1 is ", veg%g1
+             ! PRINT *, "veg%vcmax is ", veg%vcmax
+             ! PRINT *, "veg%ejmax is ", veg%ejmax
+             ! PRINT *, "====================================="
 
              ! prescribe plant photosynthesis parameters
-             ! veg%alpha = 0.3
-             ! veg%convex = 0.48
-             ! veg%g1 = 5.
-             ! veg%vcmax = 91e-6
-             ! veg%ejmax = 159e-6
+             veg%alpha = 0.3
+             veg%convex = 0.48
+             veg%g1 = 5.
+             veg%vcmax = 91e-6
+             veg%ejmax = 159e-6
              ! _________________________________________________________________
 
 
@@ -2677,15 +2677,16 @@ CONTAINS
     REAL, INTENT(IN) :: x
     REAL :: xvcnum,xvcden,z
 
-    REAL, PARAMETER  :: EHaVc  = 73637.0  ! J/mol (Leuning 2002)
-    REAL, PARAMETER  :: EHdVc  = 149252.0 ! J/mol (Leuning 2002)
-    REAL, PARAMETER  :: EntropVc = 486.0  ! J/mol/K (Leuning 2002)
-
     ! ________________________________ MMY _____________________________________
+    ! default photosynthesis parameters
+    ! REAL, PARAMETER  :: EHaVc  = 73637.0  ! J/mol (Leuning 2002)
+    ! REAL, PARAMETER  :: EHdVc  = 149252.0 ! J/mol (Leuning 2002)
+    ! REAL, PARAMETER  :: EntropVc = 486.0  ! J/mol/K (Leuning 2002)
+
     ! prescribe photosynthesis parameters for EucFace
-    ! REAL, PARAMETER  :: EHaVc  = 66386  ! J/mol
-    ! REAL, PARAMETER  :: EHdVc  = 200000 ! J/mol
-    ! REAL, PARAMETER  :: EntropVc = 639.60  ! J/mol/K
+    REAL, PARAMETER  :: EHaVc  = 66386  ! J/mol
+    REAL, PARAMETER  :: EHdVc  = 200000 ! J/mol
+    REAL, PARAMETER  :: EntropVc = 639.60  ! J/mol/K
     ! __________________________________________________________________________
 
     REAL, PARAMETER  :: xVccoef = 1.17461 ! derived parameter
@@ -2721,15 +2722,16 @@ CONTAINS
     REAL, INTENT(IN) :: x
     REAL :: xjxnum,xjxden,z
 
-    REAL, PARAMETER  :: EHaJx  = 50300.0  ! J/mol (Leuning 2002)
-    REAL, PARAMETER  :: EHdJx  = 152044.0 ! J/mol (Leuning 2002)
-    REAL, PARAMETER  :: EntropJx = 495.0  ! J/mol/K (Leuning 2002)
-
     ! ________________________________ MMY _____________________________________
+    ! default photosynthesis parameters
+    ! REAL, PARAMETER  :: EHaJx  = 50300.0  ! J/mol (Leuning 2002)
+    ! REAL, PARAMETER  :: EHdJx  = 152044.0 ! J/mol (Leuning 2002)
+    ! REAL, PARAMETER  :: EntropJx = 495.0  ! J/mol/K (Leuning 2002)
+
     ! prescribe photosynthesis parameters for EucFace
-    ! REAL, PARAMETER  :: EHaJx  = 32292  ! J/mol
-    ! REAL, PARAMETER  :: EHdJx  = 200000 ! J/mol
-    ! REAL, PARAMETER  :: EntropJx = 638.06  ! J/mol/K
+    REAL, PARAMETER  :: EHaJx  = 32292  ! J/mol
+    REAL, PARAMETER  :: EHdJx  = 200000 ! J/mol
+    REAL, PARAMETER  :: EntropJx = 638.06  ! J/mol/K
     ! __________________________________________________________________________
 
     REAL, PARAMETER  :: xjxcoef = 1.16715 ! derived parameter
