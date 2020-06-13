@@ -2845,7 +2845,7 @@ SUBROUTINE get_parameters_met(soil,ssnow,veg,bgc,rough,completeSet) ! MMY add ss
    ! ! print *,"soil%GWhyds_vec before change ", soil%GWhyds_vec
    ! ! soil%GWhyds_vec(:) = soil%hyds_vec(:,ms)
    ! print *,"soil%GWssat_vec before change ", soil%GWssat_vec
-   ! soil%GWssat_vec(:) = 0.448 !soil%ssat_vec(:,ms)
+   soil%GWssat_vec(:) = 0.448 !soil%ssat_vec(:,ms)
    ! ! print *,"ssnow%GWwb before change ", ssnow%GWwb
    ! ! ssnow%GWwb(:)      = 0.9*soil%ssat_vec(:,ms) ! MMY
    ! ! ssnow%GWwb(:)      = soil%GWssat_vec(:) ! MMY
