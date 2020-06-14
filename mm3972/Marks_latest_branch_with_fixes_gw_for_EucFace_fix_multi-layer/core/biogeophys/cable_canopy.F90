@@ -2679,14 +2679,14 @@ CONTAINS
 
     ! ________________________________ MMY _____________________________________
     ! default photosynthesis parameters
-    ! REAL, PARAMETER  :: EHaVc  = 73637.0  ! J/mol (Leuning 2002)
-    ! REAL, PARAMETER  :: EHdVc  = 149252.0 ! J/mol (Leuning 2002)
-    ! REAL, PARAMETER  :: EntropVc = 486.0  ! J/mol/K (Leuning 2002)
+    REAL, PARAMETER  :: EHaVc  = 73637.0  ! J/mol (Leuning 2002)
+    REAL, PARAMETER  :: EHdVc  = 149252.0 ! J/mol (Leuning 2002)
+    REAL, PARAMETER  :: EntropVc = 486.0  ! J/mol/K (Leuning 2002)
 
-    ! prescribe photosynthesis parameters for EucFace
-    REAL, PARAMETER  :: EHaVc  = 66386  ! J/mol
-    REAL, PARAMETER  :: EHdVc  = 200000 ! J/mol
-    REAL, PARAMETER  :: EntropVc = 639.60  ! J/mol/K
+    ! ! prescribe photosynthesis parameters for EucFace
+    ! REAL, PARAMETER  :: EHaVc  = 66386  ! J/mol
+    ! REAL, PARAMETER  :: EHdVc  = 200000 ! J/mol
+    ! REAL, PARAMETER  :: EntropVc = 639.60  ! J/mol/K
     ! __________________________________________________________________________
 
     REAL, PARAMETER  :: xVccoef = 1.17461 ! derived parameter
@@ -2724,14 +2724,14 @@ CONTAINS
 
     ! ________________________________ MMY _____________________________________
     ! default photosynthesis parameters
-    ! REAL, PARAMETER  :: EHaJx  = 50300.0  ! J/mol (Leuning 2002)
-    ! REAL, PARAMETER  :: EHdJx  = 152044.0 ! J/mol (Leuning 2002)
-    ! REAL, PARAMETER  :: EntropJx = 495.0  ! J/mol/K (Leuning 2002)
+    REAL, PARAMETER  :: EHaJx  = 50300.0  ! J/mol (Leuning 2002)
+    REAL, PARAMETER  :: EHdJx  = 152044.0 ! J/mol (Leuning 2002)
+    REAL, PARAMETER  :: EntropJx = 495.0  ! J/mol/K (Leuning 2002)
 
-    ! prescribe photosynthesis parameters for EucFace
-    REAL, PARAMETER  :: EHaJx  = 32292  ! J/mol
-    REAL, PARAMETER  :: EHdJx  = 200000 ! J/mol
-    REAL, PARAMETER  :: EntropJx = 638.06  ! J/mol/K
+    ! ! prescribe photosynthesis parameters for EucFace
+    ! REAL, PARAMETER  :: EHaJx  = 32292  ! J/mol
+    ! REAL, PARAMETER  :: EHdJx  = 200000 ! J/mol
+    ! REAL, PARAMETER  :: EntropJx = 638.06  ! J/mol/K
     ! __________________________________________________________________________
 
     REAL, PARAMETER  :: xjxcoef = 1.16715 ! derived parameter
