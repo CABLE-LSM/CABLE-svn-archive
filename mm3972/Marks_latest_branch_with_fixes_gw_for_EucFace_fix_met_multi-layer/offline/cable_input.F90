@@ -2836,6 +2836,25 @@ SUBROUTINE get_parameters_met(soil,ssnow,veg,bgc,rough,completeSet) ! MMY add ss
    CALL readpar(ncid_met,'watr',completeSet,soil%watr,filename%met,            &
                 nmetpatches,'ms')
 
+   ! ________ MMY using prescribed param in standard CABLE in 31 layers ________
+   soil%clay_vec(:,:)  = soil%clay(1)
+   soil%sand_vec(:,:)  = soil%sand(1)
+   soil%silt_vec(:,:)  = soil%silt(1)
+   soil%org_vec(:,1:3) = 0.00346
+   soil%org_vec(:,4:6) = 0.
+   soil%ssat_vec(:,:)  = soil%ssat(1)
+   soil%sfc_vec(:,:)   = soil%sfc(1)
+   soil%swilt_vec(:,:) = soil%swilt(1)
+   soil%bch_vec(:,:)   = soil%bch(1)
+   soil%hyds_vec(:,:)  = 0.011288
+   soil%sucs_vec(:,:)  = 73.613
+   soil%css_vec(:,:)   = soil%css(1)
+   soil%rhosoil_vec(:,:) = soil%rhosoil(1)
+   soil%cnsd_vec(:,:)    = soil%cnsd(1)
+   soil%watr(:,:)        = 0.02355
+   ! ________________________________________________________
+
+
    ! _____________ MMY set GW _________________
    ! set GWssat_vec = obvrd ssat at 31st layer
    soil%GWssat_vec(:) = 0.448
