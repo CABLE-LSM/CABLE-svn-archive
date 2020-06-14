@@ -2121,9 +2121,11 @@ CONTAINS
                 g1 = veg%g1(i)
 
                 ! __________ MMY g1 = g1max (5.34) ___________
-                IF (cable_user%FWSOIL_SWITCH == 'hie_watpot') THEN
-                  g1 = 5.34
-                END IF
+                ! MMY: Martin told g1max = g1, all of default, hvrd and exp
+                !      should use Jim's g1max = 5
+                !IF (cable_user%FWSOIL_SWITCH == 'hie_watpot') THEN
+                !  g1 = 5.34
+                !END IF
                 ! ________________________________________
 
                 gs_coeff(i,1) = (1.0 + (g1 * fwsoil(i)) / SQRT(vpd)) / csx(i,1)
