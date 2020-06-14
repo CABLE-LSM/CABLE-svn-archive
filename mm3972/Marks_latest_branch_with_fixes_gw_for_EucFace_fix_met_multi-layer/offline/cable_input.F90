@@ -2687,7 +2687,7 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,climate,bgc,soil,canopy,rough,rad, 
     END IF ! if restart file exists
 
     ! Overwrite default values by those available in met file:
-    CALL get_parameters_met(soil,ssnow,veg,bgc,rough,completeSet) ! MMY add ssnow,
+    CALL get_parameters_met(soil,ssnow,veg,bgc,rough,completeSet)
 
     ! Results of looking for parameters in the met file:
     WRITE(logn,*)
@@ -2835,8 +2835,8 @@ SUBROUTINE get_parameters_met(soil,ssnow,veg,bgc,rough,completeSet) ! MMY add ss
                 nmetpatches,'ms')
    CALL readpar(ncid_met,'watr',completeSet,soil%watr,filename%met,            &
                 nmetpatches,'ms')
-   soil%GWsucs_vec(:) = soil%sucs_vec(:,mp) ! MMY to avoid suddent change of soil
-   soil%GWbch_vec(:) = soil%bch_vec(:,mp)   !     texture at aquifer upper boundary
+   soil%GWsucs_vec(:) = soil%sucs_vec(:,ms) ! MMY to avoid suddent change of soil
+   soil%GWbch_vec(:) = soil%bch_vec(:,ms)   !     texture at aquifer upper boundary
    !soil%GWsucs_vec(:) = 73.613
    !soil%GWbch_vec(:)  = 5.537
    ! ________________________________________________________
