@@ -1940,8 +1940,8 @@ CONTAINS
              ! PRINT *, "====================================="
 
              ! prescribe plant photosynthesis parameters
-             veg%alpha = 0.3
-             veg%convex = 0.48
+             ! veg%alpha = 0.3
+             ! veg%convex = 0.48
              veg%g1 = 5.
              veg%vcmax = 91e-6
              veg%ejmax = 159e-6
