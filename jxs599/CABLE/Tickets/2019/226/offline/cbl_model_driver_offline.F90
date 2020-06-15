@@ -61,7 +61,6 @@ USE cable_other_constants_mod,  ONLY : Ccoszen_tols => coszen_tols
 USE cable_other_constants_mod, ONLY : CGAUSS_W => gauss_w
 USE cable_math_constants_mod, ONLY : CPI => pi
 USE cable_math_constants_mod, ONLY : CPI180 => pi180
-USE cable_fFile_module, ONLY : fprintf_dir
 use cbl_masks_mod, ONLY :  fveg_mask,  fsunlit_mask,  fsunlit_veg_mask
 
     !ptrs to local constants
@@ -104,7 +103,6 @@ REAL :: rhoch(mp,nrb)
 REAL :: xk(mp,nrb)
 
 !iFor testing
-fprintf_dir="/home/599/jxs599"
 ICYCLE = 0
 cable_user%soil_struc="default"
 

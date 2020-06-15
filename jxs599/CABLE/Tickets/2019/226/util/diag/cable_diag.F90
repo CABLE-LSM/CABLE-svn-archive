@@ -36,7 +36,6 @@
 !#define UM_BUILD YES
 MODULE cable_diag_module
   use cable_def_types_mod, only : r_2
- USE cable_fFile_module, ONLY : fprintf_dir
    
    IMPLICIT NONE
    INTEGER, PARAMETER :: gok=0
@@ -65,11 +64,11 @@ MODULE cable_diag_module
   end interface get_var_nc
 
 #endif
-!CABLE_LSM: procedures for writing out vars in seperate text files
-   interface cable_fprintf
-      module procedure cable_fprintf1, cable_fprintf2, cable_fprintf3,  & 
-                       cable_iprintf1, cable_iprintf2, cable_Lprintf2
-   end interface cable_fprintf
+!H!!CABLE_LSM: procedures for writing out vars in seperate text files
+!H!   interface cable_fprintf
+!H!      module procedure cable_fprintf1, cable_fprintf2, cable_fprintf3,  & 
+!H!                       cable_iprintf1, cable_iprintf2, cable_Lprintf2
+!H!   end interface cable_fprintf
 
 !CABLE_LSM: farray builds array for _diags. keep for ref.
    integer, parameter ::                     & 
@@ -186,12 +185,12 @@ SUBROUTINE cable_fprintf1( iDiag, basename, var1, dimx, L_fprint )
   ! LOCAL vars
   integer, SAVE :: pDiag=1713      ! give unique SEED per module procedure 
 
-  if( .NOT. L_fprint ) return
-
-  ! Returns unique unit=iDiag and modified basename
-  call open_file_per_node( iDiag, pDiag, fprintf_dir, basename, knode_gl )
-   
-  call cable_fextremes1( idiag, dimx, var1, ktau_gl )
+!H!  if( .NOT. L_fprint ) return
+!H!
+!H!  ! Returns unique unit=iDiag and modified basename
+!H!  call open_file_per_node( iDiag, pDiag, fprintf_dir, basename, knode_gl )
+!H!   
+!H!  call cable_fextremes1( idiag, dimx, var1, ktau_gl )
                              
 END SUBROUTINE cable_fprintf1
 
