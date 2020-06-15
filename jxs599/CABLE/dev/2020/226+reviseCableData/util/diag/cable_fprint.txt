@@ -1,0 +1,47 @@
+!H!!commented use of fprint to include in any file that uses fprint-ing
+!H!!==============================================================================
+!H!!use cable_Pyfprint_module
+!H!!==============================================================================
+!H!  character(len=30) :: vname
+!H!  character(len=70) :: dir
+!H!  
+!H!  integer :: dimx, dimy
+!H!   
+!H!  INTEGER, SAVE ::  cDiag00=0, cDiag1=0, cDiag2=0, cDiag3=0, cDiag4=0,         &
+!H!   cDiag5=0, cDiag6=0, cDiag7=0, cDiag8=0, cDiag9=0, cDiag10=0,    cDiag11=0,  &
+!H!   cDiag12=0, cDiag13=0, cDiag14=0, cDiag15=0, cDiag16=0, cDiag17=0, cDiag18=0,&
+!H!   cDiag19=0,cDiag20=0, cDiag21=0, cDiag22=0, cDiag23=0, cDiag24=0, cDiag25=0, &
+!H!   cDiag26=0, cDiag27=0, cDiag28=0, cDiag29=0, cDiag30=0, cDiag31=0, cDiag32=0,&
+!H!   cDiag33=0, cDiag34=0, cDiag35=0, cDiag36=0, cDiag37=0, cDiag38=0, cDiag39=0,&
+!H!   cDiag40=0, cDiag41=0, cDiag42=0, cDiag43=0, cDiag44=0, cDiag45=0, cDiag46=0,&
+!H!   cDiag47=0, cDiag48=0, cDiag49=0, cDiag50=0, cDiag51=0, cDiag52=0, cDiag53=0,&
+!H!   cDiag54=0, cDiag55=0, cDiag56=0, cDiag57=0, cDiag58=0, cDiag59=0, cDiag60=0,&
+!H!   cDiag61=0, cDiag62=0, cDiag63=0, cDiag64=0, cDiag65=0, cDiag66=0, cDiag67=0,&
+!H!   cDiag68=0, cDiag69=0
+!H!
+!H!  logical :: L_fprint_HW = .true.
+!H!  logical :: L_fprint
+!H! 
+!H!  L_fprint = .false. ! default
+!H!
+!H!!  if( L_fprint_HW ) then
+!H!!    if ( ktau_gl==1 .OR.ktau_gl==2 .OR. ktau_gl==3 .OR. &
+!H!!         mod(ktau_gl,72)==0. ) L_fprint = .true.
+!H!!
+!H!!  endif  
+!H!!  !fprintf: End Header that has to go into every file _________________________ }
+!H!!   
+!H!!  !fprintf: Below code to be placed at every instance of use of fprint   ______ 
+!H!!  fprintf_dir=trim(fprintf_dir_root)//trim("693/cbm")//"/"
+!H!!
+!H!!  if(knode_gl==320 ) then
+!H!!  
+!H!!    if(cable_runtime%um_implicit) then
+!H!!      
+!H!!      vname='Issnow_tssA' 
+!H!!      call cable_Pyfprintf( cDiag69, vname, (ssnow%tss), mp, L_fprint )
+!H! 
+!H!!==============================================================================
+!H!!==============================================================================
+!H!
+!H!
