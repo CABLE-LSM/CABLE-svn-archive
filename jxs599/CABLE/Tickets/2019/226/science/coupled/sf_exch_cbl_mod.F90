@@ -11,8 +11,6 @@ USE stdev1_mod, ONLY: stdev1
 USE sf_rib_mod, ONLY: sf_rib
 USE sf_resist_mod, ONLY: sf_resist
  
-USE um_types, ONLY: real_jlslsm
-
 IMPLICIT NONE
 
 CHARACTER(LEN=*), PARAMETER, PRIVATE :: ModuleName='SF_EXCH_MOD'
@@ -72,29 +70,18 @@ SUBROUTINE sf_exch_cbl (                                                        
  rhokh_1,rhokh_1_sice_ncats,rhokh_1_sea,rhokm_1,rhokm_land,                   &
  rhokm_ssi,                                                                   &
  dtstar_surft,dtstar_sea,dtstar_sice,rhokh_gb,anthrop_heat,                   &
-!CABLE_LSM:{pass additional existing & CABLE state vars
- cycleno, numcycles, sm_levels, sw_surft, co2_mmr, sthu, fland,               &
- curr_day_number,                                                             &
- air_cbl, met_cbl, rad_cbl, rough_cbl, canopy_cbl, ssnow_cbl, bgc_cbl,        & 
- bal_cbl, sum_flux_cbl, veg_cbl,  soilin, soil_cbl )
+!CABLE_LSM:{pass additional existing vars
+ cycleno, numcycles,                          &
+ sm_levels,                                                                   &
+ surf_down_sw_cable,& 
+ co2_mmr, sthu, fland, curr_day_number                &
 !CABLE_LSM:}
+)
 
 USE sf_flux_mod, ONLY: sf_flux
 !CABLE_LSM:we use a bunch of modules in 10.6. Limit these here - PASS instead  
 !Make availabe explicit CALL to CABLE
 USE cable_explicit_main_mod, ONLY : cable_explicit_main
-USE cable_air_type_mod,       ONLY : air_type
-USE cable_met_type_mod,       ONLY : met_type
-USE cable_radiation_type_mod, ONLY : radiation_type
-USE cable_roughness_type_mod, ONLY : roughness_type
-USE cable_canopy_type_mod,    ONLY : canopy_type
-USE cable_soil_snow_type_mod, ONLY : soil_snow_type
-USE cable_bgc_pool_type_mod,  ONLY : bgc_pool_type
-USE cable_balances_type_mod,  ONLY : balances_type
-USE cable_sum_flux_type_mod,  ONLY : sum_flux_type
-USE cable_params_mod,         ONLY : veg_parameter_type
-USE cable_params_mod,         ONLY : soil_parameter_type
-USE cable_params_mod,         ONLY : soilin_type
 
 USE pftparm, ONLY: emis_pft
 USE nvegparm, ONLY: emis_nvg
@@ -147,9 +134,8 @@ USE jules_sea_seaice_mod, ONLY: iseasurfalg, ip_ss_solid,                     &
                                  z0sice, z0h_z0m_sice, z0hsea,                &
                                  emis_sea, emis_sice, hcap_sea,               &
                                  l_iceformdrag_lupkes, beta_evap,             &
-                                 ip_hwdrag_limited, ip_hwdrag_reduced_v1,     &
-                                 i_high_wind_drag, cdn_max_sea, cdn_hw_sea,   &
-                                 u_cdn_max, u_cdn_hw, z_10m
+                                 ip_hwdrag_limited,                           &
+                                 i_high_wind_drag, cd_limit_sea
 
 USE jules_internal, ONLY: unload_backgrnd_pft
 
@@ -202,7 +188,6 @@ USE errormessagelength_mod, ONLY: errormessagelength
 
 USE parkind1, ONLY: jprb, jpim
 USE yomhook, ONLY: lhook, dr_hook
-
 IMPLICIT NONE
 
 
@@ -235,7 +220,7 @@ INTEGER ::                                                                    &
                        ! WORK Index of tile being passed into qsat_mix
 
 
-REAL(KIND=real_jlslsm) ::                                                     &
+REAL ::                                                                       &
  bq_1(tdims%i_start:tdims%i_end,tdims%j_start:tdims%j_end)                    &
                        ! IN A buoyancy parameter for lowest atm
                        !    level ("beta-q twiddle").
@@ -382,17 +367,17 @@ REAL(KIND=real_jlslsm) ::                                                     &
                        ! IN Emissivity of underlying soil
 ,charnock              ! Charnock parameter for sea surface
 
-REAL(KIND=real_jlslsm), INTENT(IN) ::                                         &
+REAL, INTENT(IN) ::                                                           &
 charnock_w(tdims%i_start:tdims%i_end,tdims%j_start:tdims%j_end)
                       ! Charnock's coefficient from wave model
-REAL(KIND=real_jlslsm), INTENT(IN) ::                                         &
+REAL, INTENT(IN) ::                                                           &
  z1_uv_top(tdims%i_start:tdims%i_end,tdims%j_start:tdims%j_end)
                        ! Height of top of lowest uv-layer
-REAL(KIND=real_jlslsm), INTENT(IN) ::                                         &
+REAL, INTENT(IN) ::                                                           &
  z1_tq_top(tdims%i_start:tdims%i_end,tdims%j_start:tdims%j_end)
                        ! Height of top of lowest Tq-layer
 
-REAL(KIND=real_jlslsm) ::                                                     &
+REAL ::                                                                       &
  z0h_scm(tdims%i_start:tdims%i_end,tdims%j_start:tdims%j_end)                 &
                          ! IN Namelist input z0h (if >0)
                          !    (if <=0 use Z0HSEA)
@@ -424,7 +409,7 @@ LOGICAL ::                                                                    &
                        ! IN switch for tile heights (relative
                        ! to the gridbox mean or absolute)
 
-REAL(KIND=real_jlslsm), INTENT(IN) :: seasalinityfactor                       &
+REAL, INTENT(IN) :: seasalinityfactor                                         &
 !       Factor allowing for the effect of the salinity of
 !       sea water on the evaporative flux.
 ,lw_down(tdims%i_start:tdims%i_end,tdims%j_start:tdims%j_end)
@@ -433,7 +418,7 @@ REAL(KIND=real_jlslsm), INTENT(IN) :: seasalinityfactor                       &
 !Diagnostics
 TYPE (strnewsfdiag), INTENT(INOUT) :: sf_diag
 
-REAL(KIND=real_jlslsm) ::                                                     &
+REAL ::                                                                       &
  z0msea(tdims%i_start:tdims%i_end,tdims%j_start:tdims%j_end)                  &
                        ! INOUT Sea-surface roughness length for
                        !       momentum (m).  F617.
@@ -442,7 +427,7 @@ REAL(KIND=real_jlslsm) ::                                                     &
 
 !  Output variables.
 
-REAL(KIND=real_jlslsm) ::                                                     &
+REAL ::                                                                       &
  alpha1(land_pts,nsurft)                                                      &
                        ! OUT Gradients of saturated specific
                        !     humidity with respect to temperature
@@ -578,7 +563,7 @@ REAL(KIND=real_jlslsm) ::                                                     &
                        !     form drag (m/s) for mineral dust
 
 ! Surface exchange coefficients;passed to subroutine IMPL_CAL
-REAL(KIND=real_jlslsm) ::                                                     &
+REAL ::                                                                       &
  rhokh_1(land_pts,nsurft)                                                     &
 !                            ! OUT Surface exchange coefficient for land
 !                            !     tiles.
@@ -622,17 +607,18 @@ REAL(KIND=real_jlslsm) ::                                                     &
 
 !   (a) Workspace.
 
-REAL(KIND=real_jlslsm) ::                                                     &
+REAL ::                                                                       &
  qs1(tdims%i_start:tdims%i_end,tdims%j_start:tdims%j_end)                     &
                              ! Sat. specific humidity
 !                                  ! qsat(TL_1,PSTAR)
 ,rhokm_ssi_nohalo(tdims%i_start:tdims%i_end,tdims%j_start:tdims%j_end)        &
 !                                  ! like RHOKM_SSI, but with no halo
+
 ,lh0                         ! Latent heat for snow free surface
 !                                  !   =LS for sea-ice, =LC otherwise
 
 !  Workspace for sea and sea-ice leads
-REAL(KIND=real_jlslsm) ::                                                     &
+REAL ::                                                                       &
  cd_sea(tdims%i_start:tdims%i_end,tdims%j_start:tdims%j_end)                  &
                              ! Drag coefficient
 ,ch_sea(tdims%i_start:tdims%i_end,tdims%j_start:tdims%j_end)                  &
@@ -666,8 +652,7 @@ REAL(KIND=real_jlslsm) ::                                                     &
 !                                  ! of interpolation coefficient
 !                                  ! (dummy variable for sea)
 !                                  ! for sea points (m/s).
-
-REAL(KIND=real_jlslsm), ALLOCATABLE ::                                        &
+REAL, ALLOCATABLE ::                                                          &
  rhokm_1_sice(:,:)                                                            &
 !                                  ! Surface momentum exchange coefficient
 !                                  !     for sea-ice.
@@ -684,7 +669,7 @@ REAL(KIND=real_jlslsm), ALLOCATABLE ::                                        &
 
 
 !  Workspace for sea-ice and marginal ice zone
-REAL(KIND=real_jlslsm) ::                                                     &
+REAL ::                                                                       &
  cd_ice(tdims%i_start:tdims%i_end,tdims%j_start:tdims%j_end,                  &
                                                         nice_use)             &
                              ! Drag coefficient
@@ -803,7 +788,7 @@ INTEGER::                                                                     &
  sice_pts_use,                                                                &
  sice_index_use(ssi_pts)
 
-REAL(KIND=real_jlslsm) ::                                                     &
+REAL ::                                                                       &
  z1_tq_sea(tdims%i_start:tdims%i_end,tdims%j_start:tdims%j_end),              &
 !                            ! Height of lowest model level
 !                            ! relative to sea.
@@ -811,7 +796,7 @@ REAL(KIND=real_jlslsm) ::                                                     &
 !                            ! Height of lowest model level
 !                            ! relative to sea dependent on coastal
 !                            ! tiling option.
-REAL(KIND=real_jlslsm), ALLOCATABLE ::                                        &
+REAL, ALLOCATABLE ::                                                          &
  z1_tq_top_sea(:,:)                                                           &
                              ! Top of lowest Tq layer over sea
 ,z1_tq_top_ctile(:,:)                                                         &
@@ -825,7 +810,7 @@ REAL(KIND=real_jlslsm), ALLOCATABLE ::                                        &
                        !     (leads ignored).
 
 !  Workspace for land tiles
-REAL(KIND=real_jlslsm) ::                                                     &
+REAL ::                                                                       &
  e_sea(tdims%i_start:tdims%i_end,tdims%j_start:tdims%j_end)                   &
                        ! Evaporation from sea times leads
                        !     fraction (kg/m2/s). Zero over land.
@@ -890,6 +875,8 @@ REAL(KIND=real_jlslsm) ::                                                     &
                              ! GBM land roughness length for heat
 ,z0m_eff_surft(land_pts,nsurft)                                               &
 !                                  ! Effective momentum roughness length
+,z0_urban(land_pts,nsurft)                                                    &
+!                                  ! MORUSES - material r.l. for momentum
 ,db_surft(land_pts,nsurft)                                                    &
                              ! Buoyancy difference for surface
 !                                  ! tile
@@ -973,13 +960,12 @@ REAL(KIND=real_jlslsm) ::                                                     &
                              ! integrated to the model's lowest temperature
                              ! and humidity level.
 
-REAL(KIND=real_jlslsm), ALLOCATABLE ::                                        &
+REAL, ALLOCATABLE ::                                                          &
  tau_surft(:,:)
                              ! Local tau_1 for land tiles.
-
 ! dummy arrays required for sea and se-ice to create universal
 ! routines for all surfaces
-REAL(KIND=real_jlslsm) ::                                                     &
+REAL ::                                                                       &
  array_zero(t_i_length * t_j_length)                                          &
                                 ! Array of zeros
 ,array_one(t_i_length * t_j_length)                                           &
@@ -991,7 +977,7 @@ REAL(KIND=real_jlslsm) ::                                                     &
                                 ! Dummy array for zdt
 
 !Gridbox mean values calculated from soil tiled versions for FLAKE
-REAL(KIND=real_jlslsm) ::                                                     &
+REAL ::                                                                       &
   hcons_mean_soil(land_pts),                                                  &
   tsoil_mean_soil(land_pts)
 
@@ -1022,7 +1008,7 @@ INTEGER ::                                                                    &
 ,n_veg
              ! Actual or dummy pointer to array
              ! defined only on PFTs
-REAL(KIND=real_jlslsm) ::                                                     &
+REAL ::                                                                       &
  tau                                                                          &
              ! Magnitude of surface wind stress over sea.
 ,zetam                                                                        &
@@ -1053,13 +1039,8 @@ REAL(KIND=real_jlslsm) ::                                                     &
 ,t_rad                                                                        &
 ,lw_down_surftsum                                                             &
 ,lw_down_surftabs                                                             &
-,z0msea_max                                                                   &
-             ! Sea roughness at maximum neutral drag
-,u10n                                                                         &
-             ! Neutral wind speed at 10 m.
-,cdn_lim_loc
-             ! Local limiting value of the neutral drag coefficient
-
+,z0msea_max
+             ! Maximum roughness length to limit the drag
 
 LOGICAL :: l_cdr10m_snow
              ! Flag indicating if cdr10m (an interpolation coefficient) is
@@ -1072,10 +1053,9 @@ LOGICAL, PARAMETER :: l_vegdrag_ssi = .FALSE.
              ! Logical to indicate that the canopy drag scheme cannot
              ! be applied at sea or sea-ice points
 
-REAL(KIND=real_jlslsm) :: sea_point
+REAL :: sea_point
 
 INTEGER :: n_diag
-
 INTEGER :: errcode
 CHARACTER(LEN=errormessagelength) :: cmessage
 
@@ -1093,19 +1073,6 @@ integer :: curr_day_number
 
 REAL :: fland(land_pts)
 
-TYPE(air_type),       INTENT(inout)  :: air_cbl
-TYPE(met_type),       INTENT(inout)  :: met_cbl
-TYPE(radiation_type), INTENT(inout)  :: rad_cbl
-TYPE(roughness_type), INTENT(inout)  :: rough_cbl
-TYPE(canopy_type),    INTENT(inout)  :: canopy_cbl
-TYPE(soil_snow_type), INTENT(inout)  :: ssnow_cbl
-TYPE(bgc_pool_type),  INTENT(inout)  :: bgc_cbl
-TYPE(balances_type),  INTENT(inout)  :: bal_cbl
-TYPE(sum_flux_type),  INTENT(inout)  :: sum_flux_cbl
-TYPE(veg_parameter_type),  INTENT(inout) :: veg_cbl
-TYPE(soilin_type),         INTENT(inout) :: soilin  
-TYPE(soil_parameter_type), INTENT(inout) :: soil_cbl
-
 REAL,  DIMENSION( tdims%i_end,tdims%j_end ) ::                             &
   true_latitude,   &
   true_longitude
@@ -1121,7 +1088,7 @@ REAL,  DIMENSION(land_pts) :: &
   smvccl_gb,  &
   soil_alb
 
-REAL :: sw_surft(land_pts,nsurft)
+REAL :: surf_down_sw_cable( tdims%i_end, tdims%j_end, 4)
 
 REAL,  DIMENSION( tdims%i_end,tdims%j_end ) ::                             &
   ls_rain_cable,    &
@@ -1178,6 +1145,10 @@ END DO
 DO j = tdims%j_start,tdims%j_end
   DO i = tdims%i_start,tdims%i_end
     rhokm_land(i,j) = 0.0
+
+    !print *, "i,j, pstar ", i,j, pstar(i,j) 
+    !print *, "i,j, tstar ", i,j, tstar(i,j)
+    !if ( tstar(i,j) < 200. ) tstar(i,j) = 273.16
     rhostar(   i,j) = pstar(i,j) / ( r * tstar(i,j) )
     !                        ... surface air density from ideal gas equation
     cd_land(i,j) = 0.0
@@ -1189,10 +1160,8 @@ DO j = tdims%j_start,tdims%j_end
     cdr10m(i,j) = 0.0
   END DO
 END DO
-
 !$OMP END DO NOWAIT
 !$OMP END PARALLEL 
-
 
 IF (sf_diag%l_tau_1) THEN
   DO j = tdims%j_start,tdims%j_end
@@ -1230,7 +1199,7 @@ END IF
 !     to allow STASH to process these as diagnostics.
 !-----------------------------------------------------------------------
 !$OMP PARALLEL PRIVATE(i,j,l,n) DEFAULT(NONE)                   &
-!$OMP SHARED(land_pts,nsurft,ftl_surft,fqw_surft,tau_surft,                   &
+!$OMP SHARED(land_pts,nsurft,z0_urban,ftl_surft,fqw_surft,tau_surft,      &
 !$OMP rib_surft,z0m_surft,u_s_std_surft,chr1p5m,resfs,snowdep_surft,      &
 !$OMP snowdepth,sf_diag)                                                  &
 !$OMP SHARED(land_index, flandg,surf_hgt,z_land,t_i_length,can_model,     &
@@ -1240,6 +1209,7 @@ DO n = 1,nsurft
 !$OMP DO SCHEDULE(STATIC)
   DO l = 1,land_pts
     ! MORUSES Initialise urban roughness array
+    z0_urban(l,n) = 0.0
     ftl_surft(l,n) = 0.0
     fqw_surft(l,n) = 0.0
     rib_surft(l,n) = 0.0
@@ -1252,6 +1222,7 @@ DO n = 1,nsurft
     IF (sf_diag%l_et_stom .OR. sf_diag%l_et_stom_surft) THEN
       sf_diag%resfs_stom(l,n) = 0.0
     END IF
+
   END DO
 !$OMP END DO NOWAIT
 END DO
@@ -1278,7 +1249,6 @@ IF (sf_diag%l_tau_surft) THEN
 !$OMP END DO NOWAIT
   END DO
 END IF
-
 
 DO n = 1,nsurft
   IF ( (can_model == 4) .AND. cansnowtile(n) .AND. l_snowdep_surf ) THEN
@@ -1314,7 +1284,7 @@ END IF
 
 CALL elevate(                                                                 &
  land_pts,nsurft,surft_pts,land_index,surft_index,                            &
- tl_1,qw_1,pstar,surf_hgt,l_elev_absolute_height,z_land,                      &
+ tl_1,qw_1,qs1,pstar,surf_hgt,l_elev_absolute_height,z_land,                  &
  t_elev,q_elev)
 
 ! DEPENDS ON: qsat_mix
@@ -1398,7 +1368,7 @@ END IF
 !$OMP          SHARED(nsurft, surft_pts, surft_index, snow_surft,            &
 !$OMP                 l_soil_point, z0_surft, snowdep_surft, l_aggregate,    &
 !$OMP                 i_aggregate_opt, z0h_surft_bare, z0m_surft,            &
-!$OMP                 l_moruses_rough, urban_canyon, urban_roof,              &
+!$OMP                 l_moruses_rough, urban_canyon, urban_roof, z0_urban,   &
 !$OMP                 ztm_gb, z0h_z0m, db_surft, z0h_surft,                  &
 !$OMP                 wind_profile_factor, z0m_eff_surft, z0h_surft_classic, &
 !$OMP                 z0h_z0m_classic)   SCHEDULE(STATIC)
@@ -1441,6 +1411,7 @@ DO n = 1,nsurft
       ! Snow could be added here to the material roughness length for
       ! momentum before passing to urbanz0. Only the road & roof should be
       ! affected as the walls will be essentially snow-free
+      z0_urban(l,n) = z0m_mat
       z0m_surft(l,n) = ztm_gb(l)
     END IF
 
@@ -1472,7 +1443,7 @@ IF ( .NOT. l_aggregate ) THEN
     n = urban_canyon
 !$OMP PARALLEL DO SCHEDULE(STATIC) DEFAULT(NONE) PRIVATE(k,l,j,i) &
 !$OMP SHARED(surft_pts,n,surft_index,land_index,t_i_length,z1_uv,z1_tq,hgt_gb, &
-!$OMP hwr_gb,disp_gb,ztm_gb,z0h_surft,urban_roof,                             &
+!$OMP hwr_gb,disp_gb,z0_urban,ztm_gb,z0h_surft,urban_roof,     &
 !$OMP z0h_surft_classic)
     DO k = 1,surft_pts(n)
       l = surft_index(k,n)
@@ -1480,11 +1451,11 @@ IF ( .NOT. l_aggregate ) THEN
       i = land_index(l) - ( j - 1 ) * t_i_length
       CALL urbanz0(                                                           &
          n, z1_uv(i,j), z1_tq(i,j), hgt_gb(l), hwr_gb(l), disp_gb(l),         &
-         z0m_mat, ztm_gb(l),                                                  &
+         z0m_mat, z0_urban(l,n), ztm_gb(l),                                   &
          z0h_surft(l,n) )
       CALL urbanz0(                                                           &
          urban_roof, z1_uv(i,j), z1_tq(i,j), hgt_gb(l), hwr_gb(l), disp_gb(l),&
-         z0m_mat, ztm_gb(l),                                                  &
+         z0m_mat, z0_urban(l,urban_roof), ztm_gb(l),                          &
          z0h_surft(l,urban_roof) )
       ! Make CLASSIC aerosol roughness length for urban tiles consistent
       ! with those for heat and momentum
@@ -1527,34 +1498,44 @@ END IF
   CALL cable_explicit_main(                                                    &
             !mype, timestep, timestep_number, endstep, cycleno, numcycles,      &
             timestep, cycleno, numcycles,      &
+            !exist
             !tdims%i_end,tdims%j_end, land_pts, nsurft, npft,                   &
             land_pts, nsurft, npft,                   &
+            !passed
             sm_levels,                                                         &
             !true_latitude, true_longitude,                                     &
+            !exist
             land_index, tile_frac, surft_pts, surft_index,                     &
+            !passed
             !bexp_gb, hcon_gb, satcon_gb, sathh_gb,                             &
             !smvcst_gb, smvcwt_gb, smvccl_gb, soil_alb,                         & 
+            !exist
             snow_surft, lw_down,                                               &
+            !passed
             !cosz_gb, 
-            sw_surft, & 
+            surf_down_sw_cable, & 
             !ls_rain_cable, ls_snow_cable,         &
+            !exist
             tl_1, qw_1, vshr_land, pstar, z1_tq, z1_uv, canopy, Fland,         &
             !passed
             co2_mmr, sthu, canht_pft, lai_pft,                                 &
             !sin_theta_latitude, ardzsoil,                                       &
+            !exist
             ftl_surft, fqw_surft,                                              &
             tstar_surft, u_s, u_s_std_surft, cd_surft, ch_surft,               &
             radnet_surft, fraca, resfs, resft, z0h_surft, z0m_surft,           &
-            recip_l_MO_surft, epot_surft, curr_day_number,                     &
-            air_cbl, met_cbl, rad_cbl, rough_cbl, canopy_cbl,                  &
-            ssnow_cbl, bgc_cbl, bal_cbl, sum_flux_cbl, veg_cbl,                &
-            soilin, soil_cbl )
+            recip_l_MO_surft, epot_surft, curr_day_number) 
 
   CD_STD = CD_surft
   V_S_surft = U_S_STD_surft
   V_S_STD = U_S_STD_surft
 !CABLE_LSM: End
+!CABLE_LSM:
+!if(first_call) then 
+!  z0m_eff_surft = 0.0003
+!else  
   z0m_eff_surft = z0m_surft
+!endif
 
 !-----------------------------------------------------------------------
 ! Calculate RESFT with neutral CH and EPDT = 0 for use in calculation
@@ -1595,7 +1576,7 @@ DO n = 1,nsurft
 !$OMP PARALLEL DO IF(surft_pts(n)>1) DEFAULT(NONE)                           &
 !$OMP PRIVATE(i, j, k, l, zetah, zetam)                                      &
 !$OMP SHARED(surft_pts, surft_index, t_i_length, land_index, z1_uv,          &
-!$OMP       z0m_surft, z1_tq, z0h_surft, chn, wind_profile_factor, dq, qw_1, &
+!$OMP        z0m_surft, z1_tq, z0h_surft, chn, wind_profile_factor, dq, qw_1,&
 !$OMP        qstar_surft, epdt, n)    SCHEDULE(STATIC)
     DO k = 1,surft_pts(n)
       l = surft_index(k,n)
@@ -2479,7 +2460,6 @@ DO n = 1,nsurft
    q1_sd,t1_sd                                                                &
    )
 END DO
-
 !-----------------------------------------------------------------------
 ! Call SFL_INT to calculate CDR10M and CHR1P5M - interpolation coeffs
 ! used to calculate screen temperature, humidity and 10m winds.
@@ -3206,8 +3186,6 @@ DO j = tdims%j_start,tdims%j_end
   END DO
 END DO
 !$OMP END DO
-
-
 !$OMP END PARALLEL
 
 ! Sea
@@ -3254,7 +3232,6 @@ ELSE
        dtstar_sea,sea_point, sf_diag                                          &
        )
 END IF
-
 ! rhokm_1_sea and tau_sea no longer required
 DEALLOCATE(rhokm_1_sea)
 DEALLOCATE(rhokm_1_sice)
@@ -3351,28 +3328,18 @@ END IF
 !      quantities.
 !-----------------------------------------------------------------------
 
-SELECT CASE (iseasurfalg)
-CASE (ip_ss_fixed, ip_ss_surf_div)
-  SELECT CASE (i_high_wind_drag)
-  CASE (ip_hwdrag_limited)
-    ! Limit the neutral drag coefficient at 10m by calculating the
-    ! equivalent roughness length and capping the roughness length.
-    ! The equivalent wind speed will depend on the value of Charnock's
-    ! coefficient.
-    z0msea_max = z_10m / ( EXP(vkman / SQRT(cdn_max_sea) ) - 1.0)
-  CASE (ip_hwdrag_reduced_v1)
-    ! Calculate the maximum roughness length and the high-wind limit
-    ! to limit the drag coefficient.
-    z0msea_max = z_10m / ( EXP(vkman / SQRT(cdn_max_sea)) - 1.0)
-  END SELECT
-END SELECT
+IF (i_high_wind_drag == ip_hwdrag_limited) THEN
+  !  Limit the neutral drag coefficient at 10m by calculating the
+  !  equivalent roughness length and capping the roughness length.
+  !  The equivalent wind speed will depend on the value of Charnock's
+  !  coefficient.
+  z0msea_max = 10.0 / ( EXP(vkman / SQRT(cd_limit_sea) ) - 1.0)
+END IF
 
-!$OMP PARALLEL DEFAULT(NONE) PRIVATE(i, j, tau, u10n, cdn_lim_loc)            &
+!$OMP PARALLEL DEFAULT(NONE) PRIVATE(i, j, tau)                               &
 !$OMP SHARED(tdims, flandg, rhokm_ssi, vshr_ssi, ice_fract, rhostar, cd_sea,  &
 !$OMP        sf_diag, iseasurfalg, charnock, g, z0msea, l_spec_z0, z0m_scm,   &
-!$OMP        z0h_scm, z0h_sea, z0hsea,                                        &
-!$OMP        i_high_wind_drag, cdn_max_sea, cdn_hw_sea,                       &
-!$OMP        u_cdn_max, u_cdn_hw, z0msea_max, charnock_w)
+!$OMP        z0h_scm, z0h_sea, z0hsea, i_high_wind_drag, z0msea_max, charnock_w)
 
 !$OMP DO SCHEDULE(STATIC)
 DO j = tdims%j_start,tdims%j_end
@@ -3423,28 +3390,8 @@ DO j = tdims%j_start,tdims%j_end
         !       within the iteration for the Obukhov length.
         !
       END SELECT
-      SELECT CASE (i_high_wind_drag)
-      CASE (ip_hwdrag_limited)
+      IF (i_high_wind_drag == ip_hwdrag_limited)                              &
         z0msea(i,j) = MIN(z0msea(i,j), z0msea_max)
-      CASE (ip_hwdrag_reduced_v1)
-        !         Calculate 10-m neutral wind based on current stress
-        u10n = (SQRT(tau / rhostar(i,j)) / vkman) *                           &
-               LOG (1.0 + z_10m / z0msea(i,j))
-        !         Determine a limiting value of cd
-        IF (u10n <= u_cdn_max) THEN
-          cdn_lim_loc = cdn_max_sea
-        ELSE IF ( (u10n > u_cdn_max) .AND. (u10n < u_cdn_hw) ) THEN
-          cdn_lim_loc = cdn_max_sea - (cdn_max_sea - cdn_hw_sea) *            &
-            (u10n - u_cdn_max) / (u_cdn_hw - u_cdn_max)
-        ELSE
-          cdn_lim_loc = cdn_hw_sea
-        END IF
-        !         Reset the roughness length consistently, leaving aside very
-        !         light winds.
-        IF (u10n > 1.0)                                                       &
-          z0msea(i,j) = MIN(z0msea(i,j),                                      &
-            z_10m / ( EXP(vkman / SQRT(cdn_lim_loc) ) - 1.0))
-      END SELECT
 
     END IF
 
@@ -3857,7 +3804,7 @@ CALL sf_aero (                                                                &
  land_pts,nsurft,land_index,surft_index,surft_pts,                            &
  l_aero_classic,l_dust,l_dust_diag,                                           &
  flandg,tile_frac,pstar,rhostar,tstar,vshr_land,vshr_ssi,                     &
- cd_ssi,ch_ssi,cd_std_classic,ch_surft_classic,                               &
+ cd_ssi,ch_ssi,cd_std_classic,ch_surft_classic,rhokh_gb,                      &
  rho_aresist,aresist,resist_b,rho_aresist_surft,aresist_surft,                &
  resist_b_surft,r_b_dust,cd_std_dust                                          &
  )

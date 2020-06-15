@@ -106,6 +106,10 @@ REAL :: CanopyTransmit_beam(mp,nrb) !Canopy Transmitance (rad%cexpkbm)
 real :: SumEffSurfRefl_beam(1)
 real :: SumEffSurfRefl_dif(1)
 integer :: i
+integer,save ::rad_call =0 
+integer :: cntile
+
+rad_call = rad_call + 1
 
 CanopyTransmit_dif(:,:) = 0.0
 CanopyTransmit_beam(:,:) = 0.0
@@ -113,13 +117,12 @@ CanopyRefl_dif(:,:) = 0.0
 CanopyRefl_beam(:,:) = 0.0
 AlbSnow(:,:) = 0.0
 
-!Modify parametrised soil albedo based on snow coverage 
+!Modify albedo based on snow coverage 
 call surface_albedosn( AlbSnow, AlbSoil, mp, jls_radiation, surface_type, &
                        SnowDepth, SnowODepth, SnowFlag_3L, &
                        SnowDensity, &
                        SoilTemp, SnowAge, &
                        metTk, coszen )
-
 ! Define canopy Reflectance for diffuse/direct radiation
 ! Formerly rad%rhocbm, rad%rhocdf
 call CanopyReflectance( CanopyRefl_beam, CanopyRefl_dif, &
@@ -137,17 +140,20 @@ call CanopyTransmitance(CanopyTransmit_beam, CanopyTransmit_dif, mp, nrb,&
 ! Finally compute Effective 4-band albedo for diffuse/direct radiation- 
 ! In the UM this is the required variable to be passed back on the rad call
 ! Formerly rad%reffbm, rad%reffdf
+!print *, "jh:mp", mp
+!print *, "jh:surface_types ", surface_type
 
-! Even when there is no vegetation, albedo is at least snow modified soil albedo
 EffSurfRefl_dif = AlbSnow
 EffSurfRefl_beam = AlbSnow
-
 call EffectiveSurfaceReflectance( EffSurfRefl_beam, EffSurfRefl_dif,           &
                                   mp, nrb, veg_mask, sunlit_veg_mask,          &
                                   CanopyRefl_beam, CanopyRefl_dif,             &
                                   CanopyTransmit_beam,CanopyTransmit_dif,      &
                                   AlbSnow )
-
+                               ! ( EffSurfRefl_beam, EffSurfRefl_dif,           &
+cntile = 1
+if(mod(rad_call,2) > 0) then
+endif
 ! Compute total albedo to SW given the Effective Surface Reflectance 
 ! (considering Canopy/Soil/Snow contributions) 
 ! we dont need to do this on rad call AND may not haveappropriate RadFbeam
@@ -262,13 +268,11 @@ real :: reducedLAIdue2snow(mp)
 REAL :: EffExtCoeff_beam(mp,nrb)           !"raw" Extinction co-efficient for Direct Beam component of SW radiation (rad%extkb)
 REAL :: EffExtCoeff_dif(mp,nrb)            !"raw"Extinction co-efficient for Diffuse component of SW radiation (rad%extkd)
 
-!Zero initialization remains the calculated value where "mask"=FALSE
 dummyMask(:) = .true. 
-! For diffuse rad, always compute canopy trasmitance
+!Zero initialization remains the calculated value where "mask"=FALSE
 call CanopyTransmitance_X( CanopyTransmit_dif, mp, nrb, EffExtCoeff_dif, &
                              reducedLAIdue2snow, dummyMask )
 
-! For beam, compute canopy trasmitance when sunlit (and vegetated)
 call CanopyTransmitance_X( CanopyTransmit_beam, mp, nrb, EffExtCoeff_beam,  &
                               reducedLAIdue2snow, mask )
 

@@ -44,12 +44,9 @@ SUBROUTINE hydrol_cbl (                                                         
     c_fwet_soilt,                                                             &
     resp_s_soilt, npp_soilt, fch4_wetl_soilt,                                 &
     fch4_wetl_cs_soilt, fch4_wetl_npp_soilt, fch4_wetl_resps_soilt,           &
-    dim_cs1, l_soil_sat_down, asteps_since_triffid,                           &
+    dim_cs1, l_soil_sat_down, l_triffid, asteps_since_triffid,                &
     !CABLE_LSM:additional existing vars
-    snow_surft, lying_snow,                                                   &
-    air_cbl, met_cbl, rad_cbl, rough_cbl, canopy_cbl,                         &
-    ssnow_cbl, bgc_cbl, bal_cbl, sum_flux_cbl, veg_cbl,                       &
-    soil_cbl )
+    snow_surft, lying_snow )
 
 !Use in relevant subroutines
 USE calc_zw_inund_mod,        ONLY: calc_zw_inund
@@ -79,7 +76,7 @@ USE elev_htc_mod, ONLY: elev_htc
 
 USE jules_soil_biogeochem_mod, ONLY:                                          &
   ! imported scalar parameters
-  soil_model_ecosse, soil_model_rothc, soil_model_1pool,                      &
+  soil_model_rothc, soil_model_1pool,                                         &
   ! imported scalar variables
   soil_bgc_model, l_ch4_tlayered, l_layeredc
 
@@ -107,23 +104,9 @@ USE model_time_mod, ONLY: timestep_len
 
 !CABLE_LSM: Make avail CABLE hydrology interface subr to CALL
 USE cable_hyd_main_mod, ONLY : cable_hyd_main
-USE cable_air_type_mod,       ONLY : air_type
-USE cable_met_type_mod,       ONLY : met_type
-USE cable_radiation_type_mod, ONLY : radiation_type
-USE cable_roughness_type_mod, ONLY : roughness_type
-USE cable_canopy_type_mod,    ONLY : canopy_type
-USE cable_soil_snow_type_mod, ONLY : soil_snow_type
-USE cable_bgc_pool_type_mod,  ONLY : bgc_pool_type
-USE cable_balances_type_mod,  ONLY : balances_type
-USE cable_sum_flux_type_mod,  ONLY : sum_flux_type
-USE cable_params_mod,         ONLY : veg_parameter_type
-USE cable_params_mod,         ONLY : soil_parameter_type
-
 
 USE parkind1, ONLY: jprb, jpim
 USE yomhook, ONLY: lhook, dr_hook
-
-USE um_types, ONLY: real_jlslsm
 
 IMPLICIT NONE
 
@@ -144,7 +127,7 @@ INTEGER, INTENT(IN) ::                                                        &
   dim_cs1
     ! Number of soil carbon pools
 
-REAL(KIND=real_jlslsm), INTENT(IN) ::                                         &
+REAL, INTENT(IN) ::                                                           &
   timestep
     ! Model timestep (s).
 
@@ -170,7 +153,7 @@ INTEGER, INTENT(IN) ::                                                        &
   nsnow_surft(land_pts,nsurft)
     ! Number of snow layers
 
-REAL(KIND=real_jlslsm), INTENT(IN) ::                                         &
+REAL, INTENT(IN) ::                                                           &
   bexp_soilt(land_pts,nsoilt,sm_levels),                                      &
     ! Clapp-Hornberger exponent.
   catch_surft(land_pts,nsurft),                                               &
@@ -226,7 +209,7 @@ REAL(KIND=real_jlslsm), INTENT(IN) ::                                         &
 !-----------------------------------------------------------------------------
 ! Array arguments with INTENT(INOUT):
 !-----------------------------------------------------------------------------
-REAL(KIND=real_jlslsm), INTENT(INOUT) ::                                      &
+REAL, INTENT(INOUT) ::                                                        &
   cs_ch4_soilt(land_pts,nsoilt),                                              &
     ! Soil carbon used in CH4 wetlands if TRIFFID is switched off (kg C/m2).
   canopy_surft(land_pts,nsurft),                                              &
@@ -264,7 +247,7 @@ REAL(KIND=real_jlslsm), INTENT(INOUT) ::                                      &
 !-----------------------------------------------------------------------------
 ! Array arguments with INTENT(OUT):
 !-----------------------------------------------------------------------------
-REAL(KIND=real_jlslsm), INTENT(OUT) ::                                        &
+REAL, INTENT(OUT) ::                                                          &
   canopy_gb(land_pts),                                                        &
     ! Gridbox canopy water content (kg/m2).
   smc_soilt(land_pts,nsoilt),                                                 &
@@ -304,7 +287,7 @@ INTEGER, INTENT(IN) ::                                                        &
   surft_index(land_pts,nsurft)
     ! Index of tile points.
 
-REAL(KIND=real_jlslsm), INTENT(IN) ::                                         &
+REAL, INTENT(IN) ::                                                           &
   infil_surft(land_pts,nsurft),                                               &
     ! Maximum surface infiltration
   melt_surft(land_pts,nsurft),                                                &
@@ -333,7 +316,7 @@ INTEGER ::                                                                    &
 !-----------------------------------------------------------------------------
 ! Local arrays:
 !-----------------------------------------------------------------------------
-REAL(KIND=real_jlslsm) ::                                                     &
+REAL ::                                                                       &
   dsmc_dt_soilt(land_pts,nsoilt),                                             &
     ! Rate of change of soil moisture due to water falling onto the
     ! surface after surface runoff (kg/m2/s).
@@ -358,18 +341,17 @@ REAL(KIND=real_jlslsm) ::                                                     &
     ! Water table depth used
   wutot_soilt(land_pts,nsoilt),                                               &
     ! Ratio of unfrozen to total soil moisture at ZW.
-  surf_roff_inc_soilt(land_pts,nsoilt),                                       &
-    ! Increment to tiled surface runoff (kg m-2 s-1).
+  dumwutot_soilt(land_pts,nsoilt),                                            &
+    ! Dummy of wutot - always set to 1.0.
   surf_roff_soilt(land_pts,nsoilt),                                           &
-    ! Soil-tiled contributions to surface runoff (kg m-2 s-1).
+    ! Soil-tiled contributions to surface runoff.
   sub_surf_roff_soilt(land_pts,nsoilt)
-    ! Soil-tiled contributions to subsurface runoff (kg m-2 s-1).
+    ! Soil-tiled contributions to surface runoff
 
-REAL(KIND=real_jlslsm), PARAMETER :: to_kg_conversion = 1.0e-9
-    ! multiplier for converting to kgC for wetland CH4 and IMOGEN
-
+REAL, PARAMETER :: to_kg_conversion = 1.0e-9
+    ! multiplier for converting to kgC for wetland CH4 and IMOGEN  
 ! Variables required for irrigation code
-REAL(KIND=real_jlslsm) ::                                                     &
+REAL ::                                                                       &
   w_flux_irr_soilt(land_pts,nsoilt,0:sm_levels),                              &
     ! The fluxes of water between layers in irrigated fraction (kg/m2/s).
   w_flux_nir_soilt(land_pts,nsoilt,0:sm_levels),                              &
@@ -396,17 +378,6 @@ REAL(KIND=real_jlslsm) ::                                                     &
 !CABLE_LSM:
 real ::  lying_snow(land_pts)
 real ::  snow_surft(land_pts,nsurft)
-TYPE(air_type),       INTENT(inout) :: air_cbl
-TYPE(met_type),       INTENT(inout) :: met_cbl
-TYPE(radiation_type), INTENT(inout) :: rad_cbl
-TYPE(roughness_type), INTENT(inout) :: rough_cbl
-TYPE(canopy_type),    INTENT(inout) :: canopy_cbl
-TYPE(soil_snow_type), INTENT(inout) :: ssnow_cbl
-TYPE(bgc_pool_type),  INTENT(inout) :: bgc_cbl
-TYPE(balances_type),  INTENT(inout) :: bal_cbl
-TYPE(sum_flux_type),  INTENT(inout) :: sum_flux_cbl
-TYPE(veg_parameter_type),  INTENT(inout) :: veg_cbl
-TYPE(soil_parameter_type), INTENT(inout) :: soil_cbl
 
 LOGICAL :: l_triffid
 INTEGER :: asteps_since_triffid
@@ -435,10 +406,8 @@ IF ( soil_bgc_model == soil_model_1pool ) THEN
 END IF
 
 !CABLE_LSM: call CABLE hydrology
-call cable_hyd_main( land_pts, nsurft, lying_snow, snow_surft, surf_roff_gb,   &
-                     sub_surf_roff_gb, tot_tfall_gb, air_cbl, met_cbl, rad_cbl,& 
-                     rough_cbl, canopy_cbl, ssnow_cbl, bgc_cbl, bal_cbl,       &
-                     sum_flux_cbl, veg_cbl, soil_cbl )
+call cable_hyd_main( land_pts, nsurft, lying_snow, snow_surft, surf_roff_gb,                     &
+                     sub_surf_roff_gb, tot_tfall_gb )
 ! Initialise w_flux variables that are used in irrigation code
 w_flux_soilt(:,:,:)     = 0.0
 w_flux_irr_soilt(:,:,:) = 0.0 ! to prevent random values reported over areas
@@ -452,9 +421,6 @@ zdepth(:) = 0.0
 DO n = 1,sm_levels
   zdepth(n) = zdepth(n-1) + dzsoil(n)
 END DO
-
-! Initialise runoff increment.
-surf_roff_inc_soilt(:,:) = 0.0
 
 !-----------------------------------------------------------------------------
 ! Calculate throughfall and surface runoff, and update the canopy water
@@ -505,6 +471,7 @@ DO m = 1, nsoilt
     wutot_soilt(i,m)      = 0.0
     drain_soilt(i,m)      = 0.0
     qbase_unfr_soilt(i,m) = 0.0
+    dumwutot_soilt(i,m)   = 0.0
     zw_inund_soilt(i,m)   = 0.0
   END DO
 END DO
@@ -670,8 +637,43 @@ END IF
 !C!                           smclsatzw_soilt(:,m))
 !C!    END DO
 !C!
-!C!  ELSE
-!C!    ! .NOT. l_irrig_dmd
+!C!    IF (nsoilt == 1) THEN
+!C!      ! To maintain bit-comparability, we need to call with the _gb version of
+!C!      ! runoff.
+!C!      m = 1
+!C!      CALL soil_hyd_wt (                                                      &
+!C!        land_pts, sm_levels, soil_pts, soil_index,                            &
+!C!        bexp_soilt(:,m,:), dsmc_dt_soilt(:,m), sathh_soilt(:,m,:), timestep,  &
+!C!        smvcst_soilt(:,m,:), sub_surf_roff_soilt(:,m), smcl_soilt(:,m,:),     &
+!C!        surf_roff_gb,                                                         &
+!C!        w_flux_soilt(:,m,:), stf_sub_surf_roff, zw_soilt(:,m),                &
+!C!        sthzw_soilt(:,m), qbase_soilt(:,m), qbase_l_soilt(:,m,:),             &
+!C!        drain_soilt(:,m), l_top, smclzw_soilt(:,m), smclsatzw_soilt(:,m),     &
+!C!        smclsat_soilt(:,m,:))
+!C!
+!C!      ! For a single soil tile, simply copy across to the output variable
+!C!      sub_surf_roff_gb(:) = sub_surf_roff_soilt(:,m)
+!C!    ELSE
+!C!
+!C!      ! Initialise output variable
+!C!      sub_surf_roff_gb(:) = 0.0
+!C!      DO m = 1, nsoilt
+!C!        CALL soil_hyd_wt (                                                    &
+!C!          land_pts, sm_levels, soil_pts, soil_index,                          &
+!C!          bexp_soilt(:,m,:), dsmc_dt_soilt(:,m), sathh_soilt(:,m,:), timestep,&
+!C!          smvcst_soilt(:,m,:), sub_surf_roff_soilt(:,m), smcl_soilt(:,m,:),   &
+!C!          surf_roff_soilt(:,m),                                               &
+!C!          w_flux_soilt(:,m,:), stf_sub_surf_roff, zw_soilt(:,m),              &
+!C!          sthzw_soilt(:,m), qbase_soilt(:,m), qbase_l_soilt(:,m,:),           &
+!C!          drain_soilt(:,m), l_top, smclzw_soilt(:,m), smclsatzw_soilt(:,m),   &
+!C!          smclsat_soilt(:,m,:))
+!C!
+!C!        ! For multiple soil tiles, add up the contributions, allowing for frac
+!C!        sub_surf_roff_gb(:) = sub_surf_roff_gb(:)                             &
+!C!                              + ( tile_frac(:,m) * sub_surf_roff_soilt(:,m))
+!C!      END DO
+!C!    END IF ! nsoilt == 1
+!C!  ELSE ! if .NOT. l_irrig_dmd
 !C!
 !C!    DO m = 1, nsoilt
 !C!      CALL soil_hyd (                                                         &
@@ -684,49 +686,44 @@ END IF
 !C!        smclsat_soilt(:,m,:))
 !C!    END DO
 !C!
-!C!  END IF  !  l_irrig_dmd
-!C!
-!C!  IF (nsoilt == 1) THEN
-!C!    !To maintain bit-comparability, we need to call with the _gb version of
-!C!    !surface runoff.
-!C!    m = 1
-!C!    CALL soil_hyd_wt (                                                        &
-!C!      land_pts, sm_levels, soil_pts, soil_index,                              &
-!C!      bexp_soilt(:,m,:), dsmc_dt_soilt(:,m), sathh_soilt(:,m,:), timestep,    &
-!C!      smvcst_soilt(:,m,:), sub_surf_roff_soilt(:,m), smcl_soilt(:,m,:),       &
-!C!      surf_roff_gb,                                                           &
-!C!      w_flux_soilt(:,m,:), stf_sub_surf_roff, zw_soilt(:,m),                  &
-!C!      sthzw_soilt(:,m), qbase_soilt(:,m), qbase_l_soilt(:,m,:),               &
-!C!      drain_soilt(:,m), l_top, smclzw_soilt(:,m), smclsatzw_soilt(:,m),       &
-!C!      smclsat_soilt(:,m,:), surf_roff_inc_soilt(:,m) )
-!C!
-!C!    ! For a single soil tile, simply copy across to the output variable.
-!C!    sub_surf_roff_gb(:) = sub_surf_roff_soilt(:,m)
-!C!    ! Update the tiled surface runoff.
-!C!    surf_roff_soilt(:,m) = surf_roff_soilt(:,m) + surf_roff_inc_soilt(:,m)
-!C!  ELSE
-!C!
-!C!    ! Initialise output variable
-!C!    sub_surf_roff_gb(:) = 0.0
-!C!    DO m = 1, nsoilt
+!C!    IF (nsoilt == 1) THEN
+!C!      !To maintain bit-comparability, we need to call with the _gb version of
+!C!      !runoff.
+!C!      m = 1
 !C!      CALL soil_hyd_wt (                                                      &
 !C!        land_pts, sm_levels, soil_pts, soil_index,                            &
 !C!        bexp_soilt(:,m,:), dsmc_dt_soilt(:,m), sathh_soilt(:,m,:), timestep,  &
 !C!        smvcst_soilt(:,m,:), sub_surf_roff_soilt(:,m), smcl_soilt(:,m,:),     &
-!C!        surf_roff_soilt(:,m),                                                 &
+!C!        surf_roff_gb,                                                         &
 !C!        w_flux_soilt(:,m,:), stf_sub_surf_roff, zw_soilt(:,m),                &
 !C!        sthzw_soilt(:,m), qbase_soilt(:,m), qbase_l_soilt(:,m,:),             &
 !C!        drain_soilt(:,m), l_top, smclzw_soilt(:,m), smclsatzw_soilt(:,m),     &
-!C!        smclsat_soilt(:,m,:), surf_roff_inc_soilt(:,m) )
+!C!        smclsat_soilt(:,m,:))
 !C!
-!C!      ! For multiple soil tiles, add up the contributions, allowing for frac
-!C!      sub_surf_roff_gb(:) = sub_surf_roff_gb(:)                               &
-!C!                            + ( tile_frac(:,m) * sub_surf_roff_soilt(:,m))
-!C!      surf_roff_gb(:) = surf_roff_gb(:) + tile_frac(:,m)                      &
-!C!                                          * surf_roff_inc_soilt(:,m)
+!C!      ! For a single soil tile, simply copy across to the output variable.
+!C!      sub_surf_roff_gb(:) = sub_surf_roff_soilt(:,m)
+!C!    ELSE
 !C!
-!C!    END DO
-!C!  END IF !nsoilt == 1
+!C!      ! Initialise output variable
+!C!      sub_surf_roff_gb(:) = 0.0
+!C!      DO m = 1, nsoilt
+!C!        CALL soil_hyd_wt (                                                    &
+!C!          land_pts, sm_levels, soil_pts, soil_index,                          &
+!C!          bexp_soilt(:,m,:), dsmc_dt_soilt(:,m), sathh_soilt(:,m,:), timestep,&
+!C!          smvcst_soilt(:,m,:), sub_surf_roff_soilt(:,m), smcl_soilt(:,m,:),   &
+!C!          surf_roff_soilt(:,m),                                               &
+!C!          w_flux_soilt(:,m,:), stf_sub_surf_roff, zw_soilt(:,m),              &
+!C!          sthzw_soilt(:,m), qbase_soilt(:,m), qbase_l_soilt(:,m,:),           &
+!C!          drain_soilt(:,m), l_top, smclzw_soilt(:,m), smclsatzw_soilt(:,m),   &
+!C!          smclsat_soilt(:,m,:))
+!C!
+!C!        ! For multiple soil tiles, add up the contributions, allowing for frac
+!C!        sub_surf_roff_gb(:) = sub_surf_roff_gb(:)                             &
+!C!                              + ( tile_frac(:,m) * sub_surf_roff_soilt(:,m))
+!C!      END DO
+!C!    END IF !nsoilt == 1
+!C!
+!C!  END IF !l_irrig_dmd
 !C!
 !C!  !---------------------------------------------------------------------------
 !C!  ! Calculate surface saturation and wetland fractions:
@@ -909,19 +906,18 @@ DO m = 1, nsoilt
         END DO
       END IF
 #endif
-    END SELECT
+  END SELECT
   END IF
-END DO  !  tiles
+END DO  !  soilt
 
-IF ( (soil_bgc_model == soil_model_rothc .AND. l_layeredc )                   &
-     .OR. soil_bgc_model == soil_model_ecosse ) THEN
+IF (soil_bgc_model == soil_model_rothc .AND. l_layeredc) THEN
   !-----------------------------------------------------------------------
   !accumulate soil temperature for layered soil carbon and nitrogen
   !-----------------------------------------------------------------------
   DO m = 1, nsoilt
-    IF (asteps_since_triffid == 1) THEN
+    IF (asteps_since_triffid == 1) THEN 
       t_soil_soilt_acc(:,m,:) = 0.0
-    END IF
+    END IF 
     DO j = 1,soil_pts
       i = soil_index(j)
       t_soil_soilt_acc(i,m,:) = t_soil_soilt_acc(i,m,:) + t_soil_soilt(i,m,:)

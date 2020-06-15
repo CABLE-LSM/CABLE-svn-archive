@@ -92,7 +92,6 @@ REAL :: xvlai2(mp,nrb) ! 2D vlai
 REAL :: xphi1(mp)      ! leaf angle parmameter 1
 REAL :: xphi2(mp)      ! leaf angle parmameter 2
 
-!Null Initializations
 ExtCoeff_beam(:) = 0.0
 ExtCoeff_dif(:) = 0.0
 EffExtCoeff_beam(:,:) = 0.0
@@ -103,37 +102,38 @@ rhoch(:,:) = 0.0
 xk(:,:) = 0.0
 
 
-! Compute common scaling co-efficients used throughout init_radiation
-call Common_InitRad_Scalings( xphi1, xphi2, xk, xvlai2, c1, rhoch,             &
+! Comute common scaling co-efficients used throughout init_radiation
+call Common_InitRad_Scalings( xphi1, xphi2, xk, xvlai2, c1, rhoch,      &
                             mp, nrb, Cpi180,cLAI_thresh, veg_mask,             &
-                            reducedLAIdue2snow, VegXfang, VegTaul, VegRefl)
+                            reducedLAIdue2snow,                &
+                            VegXfang, VegTaul, VegRefl)
 
-!Limiting Initializations for stability
 Ccoszen_tols_huge = Ccoszen_tols * 1e2 
 Ccoszen_tols_tiny = Ccoszen_tols * 1e-2 
 
 ! Define Raw extinction co-efficients for direct beam/diffuse radiation
 ! Largely parametrized per PFT. Does depend on zenith angle and effective LAI 
 ! [Formerly rad%extkb, rad%extkd]  
-call ExtinctionCoeff( ExtCoeff_beam, ExtCoeff_dif, mp, nrb,                    &
-                      CGauss_w,Ccoszen_tols_tiny, reducedLAIdue2snow,          &
-                      sunlit_mask, veg_mask, sunlit_veg_mask,                  &
+call ExtinctionCoeff( ExtCoeff_beam, ExtCoeff_dif, mp, nrb, CGauss_w,Ccoszen_tols_tiny, reducedLAIdue2snow, &
+                      sunlit_mask, veg_mask, sunlit_veg_mask,  &
                       cLAI_thresh, coszen, xphi1, xphi2, xk, xvlai2)
 
 ! Define effective Extinction co-efficient for direct beam/diffuse radiation
 ! Extincion Co-eff defined by parametrized leaf reflect(transmit)ance - used in
 ! canopy transmitance calculations (cbl_albeo)
 ! [Formerly rad%extkbm, rad%extkdm ]
-call EffectiveExtinctCoeffs( EffExtCoeff_beam, EffExtCoeff_dif,               &
+call EffectiveExtinctCoeffs( EffExtCoeff_beam, EffExtCoeff_dif, &
                              mp, nrb, sunlit_veg_mask,                        &
                              ExtCoeff_beam, ExtCoeff_dif, c1 )
 
 ! Offline/standalone forcing gives us total downward Shortwave. We have
 ! previosuly, arbitratily split this into NIR/VIS (50/50). We use 
-! Spitter function to split these bands into direct beam and diffuse components
-IF( cbl_standalone .OR. jls_standalone .AND. .NOT. jls_radiation ) &
-  CALL BeamFraction( RadFbeam, mp, nrb, Cpi, Ccoszen_tols_huge, real(metDoy),  &
-                     coszen, SW_down ) 
+!Spitter function to split these bands into direct beam and diffuse components
+IF( cbl_standalone .OR. jls_standalone .AND. .NOT. jls_radiation )  &
+  CALL BeamFraction( RadFbeam, mp, nrb, Cpi, Ccoszen_tols_huge, real(metDoy), coszen, SW_down ) 
+
+if(cbl_standalone .OR. jls_radiation) then
+endif
 
 END SUBROUTINE init_radiation
 
