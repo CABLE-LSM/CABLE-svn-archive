@@ -25,7 +25,7 @@ CONTAINS
 !    Arguments :-
 SUBROUTINE sf_expl_l_cbl (                                                        &
 ! IN date-related values
- curr_year, curr_day_number, curr_hour, curr_minute, curr_second,             &
+ curr_day_number,                                                             &
 ! IN values defining field dimensions and subset to be processed :
  land_pts, nice, nice_use,                                                    &
 ! IN  parameters for iterative SISL scheme
@@ -79,9 +79,10 @@ SUBROUTINE sf_expl_l_cbl (                                                      
  resp_p_pft,resp_s_soilt,resp_s_tot_soilt,resp_l_pft,resp_r_pft,resp_w_pft,   &
  n_leaf,n_root,n_stem,lai_bal,gc_surft,canhc_surft,wt_ext_surft,flake,        &
  surft_index,surft_pts,tile_frac,fsmc_pft,emis_surft,emis_soil,               &
-!CABLE_LSM:{pass additional existing vars
-fland, surf_down_sw_cable                                                     &
- )
+ !CABLE_LSM:{pass additional existing & CABLE state vars
+ fland,                                                                       &
+ air_cbl, met_cbl, rad_cbl, rough_cbl, canopy_cbl,  ssnow_cbl, bgc_cbl,       & 
+ bal_cbl, sum_flux_cbl, veg_cbl, soilin, soil_cbl )
 
 USE sf_exch_cbl_mod,           ONLY: sf_exch_cbl
 USE snowtherm_mod,         ONLY: snowtherm
@@ -94,7 +95,6 @@ USE physiol_mod,           ONLY: physiol
 USE theta_field_sizes, ONLY: t_i_length
 
 USE dust_param, ONLY: ndiv
-USE planet_constants_mod, ONLY: g
 USE csigma
 USE missing_data_mod
 
@@ -149,6 +149,19 @@ USE atm_fields_bounds_mod, ONLY:                                              &
 
 USE ozone_vars, ONLY: flux_o3_pft, fo3_pft
 
+USE cable_air_type_mod,       ONLY : air_type
+USE cable_met_type_mod,       ONLY : met_type
+USE cable_radiation_type_mod, ONLY : radiation_type
+USE cable_roughness_type_mod, ONLY : roughness_type
+USE cable_canopy_type_mod,    ONLY : canopy_type
+USE cable_soil_snow_type_mod, ONLY : soil_snow_type
+USE cable_bgc_pool_type_mod,  ONLY : bgc_pool_type
+USE cable_balances_type_mod,  ONLY : balances_type
+USE cable_sum_flux_type_mod,  ONLY : sum_flux_type
+USE cable_params_mod,         ONLY : veg_parameter_type
+USE cable_params_mod,         ONLY : soilin_type
+USE cable_params_mod,         ONLY : soil_parameter_type
+
 USE parkind1, ONLY: jprb, jpim
 USE yomhook, ONLY: lhook, dr_hook
 IMPLICIT NONE
@@ -158,16 +171,8 @@ IMPLICIT NONE
 ! (a) Defining horizontal grid and subset thereof to be processed.
 !    Checked for consistency.
 INTEGER, INTENT(IN) ::                                                        &
- curr_year,                                                                   &
-            ! IN current year
  curr_day_number,                                                             &
             ! IN current day of year
- curr_hour,                                                                   &
-            ! IN current hour of day
- curr_minute,                                                                 &
-            ! IN current minute of hour
- curr_second,                                                                 &
-            ! IN current second of minute
  land_pts,                                                                    &
             ! IN No of land points being processed.
  numcycles,                                                                   &
@@ -179,7 +184,7 @@ INTEGER, INTENT(IN) ::                                                        &
  nice_use   ! No. of sea ice categories used fully in surface calculations
 
 ! Defining vertical grid of model atmosphere.
-REAL, INTENT(IN) ::                                                           &
+REAL(KIND=real_jlslsm), INTENT(IN) ::                                         &
  bq_1(tdims%i_start:tdims%i_end,tdims%j_start:tdims%j_end)                    &
                              ! IN A buoyancy parameter
 !                                  !    (beta q tilde).
@@ -199,20 +204,22 @@ REAL, INTENT(IN) ::                                                           &
 ,tl_1(tdims%i_start:tdims%i_end,tdims%j_start:tdims%j_end)
                              ! IN Ice/liquid water temperature
 
-REAL, INTENT(IN) ::                                                           &
+REAL(KIND=real_jlslsm), INTENT(IN) ::                                         &
  u_1_px(pdims_s%i_start:pdims_s%i_end,pdims_s%j_start:pdims_s%j_end),         &
  v_1_px(pdims_s%i_start:pdims_s%i_end,pdims_s%j_start:pdims_s%j_end),         &
  u_0_px(pdims_s%i_start:pdims_s%i_end,pdims_s%j_start:pdims_s%j_end),         &
  v_0_px(pdims_s%i_start:pdims_s%i_end,pdims_s%j_start:pdims_s%j_end)
 
-REAL, INTENT(IN) ::                                                           &
+REAL(KIND=real_jlslsm), INTENT(IN) ::                                         &
   charnock_w(tdims%i_start:tdims%i_end,tdims%j_start:tdims%j_end)
 ! Charnock's coefficient from wave model
 
-REAL, INTENT(IN) :: z1_uv_top(tdims%i_start:tdims%i_end,                      &
+REAL(KIND=real_jlslsm), INTENT(IN) ::                                         &
+                    z1_uv_top(tdims%i_start:tdims%i_end,                      &
                               tdims%j_start:tdims%j_end)
                              ! Height of top of lowest uv-layer
-REAL, INTENT(IN) :: z1_tq_top(tdims%i_start:tdims%i_end,                      &
+REAL(KIND=real_jlslsm), INTENT(IN) ::                                         &
+                    z1_tq_top(tdims%i_start:tdims%i_end,                      &
                               tdims%j_start:tdims%j_end)
                              ! Height of top of lowest Tq-layer
 
@@ -242,7 +249,7 @@ INTEGER, INTENT(IN) ::                                                        &
                                   !    timesteps since last call
                                   !    to TRIFFID.
 
-REAL, INTENT(IN) ::                                                           &
+REAL(KIND=real_jlslsm), INTENT(IN) ::                                         &
  canopy(land_pts,nsurft)                                                      &
                              ! IN Surface/canopy water for
 !                                  !    snow-free land tiles (kg/m2)
@@ -294,7 +301,7 @@ REAL, INTENT(IN) ::                                                           &
 !                                  !    divided by 2SQRT(2) on land
 !                                  !    points only (m)
 ! (d) Sea/sea-ice data.
-REAL, INTENT(IN) ::                                                           &
+REAL(KIND=real_jlslsm), INTENT(IN) ::                                         &
  ice_fract_cat(tdims%i_start:tdims%i_end,                                     &
                tdims%j_start:tdims%j_end,nice_use)                            &
                        ! IN Fraction of gridbox covered by
@@ -307,7 +314,7 @@ REAL, INTENT(IN) ::                                                           &
 
 ! (f) Atmospheric + any other data not covered so far, incl control.
 
-REAL, INTENT(IN) ::                                                           &
+REAL(KIND=real_jlslsm), INTENT(IN) ::                                         &
  pstar(pdims%i_start:pdims%i_end,pdims%j_start:pdims%j_end)                   &
                              ! IN Surface pressure (Pascals).
 ,lw_down(tdims%i_start:tdims%i_end,tdims%j_start:tdims%j_end)                 &
@@ -388,7 +395,7 @@ LOGICAL, INTENT(IN) ::                                                        &
 !Diagnostics
 TYPE (strnewsfdiag), INTENT(INOUT) :: sf_diag
 
-REAL, INTENT(INOUT) ::                                                        &
+REAL(KIND=real_jlslsm), INTENT(INOUT) ::                                      &
  z0msea(tdims%i_start:tdims%i_end,tdims%j_start:tdims%j_end)                  &
                              ! INOUT Sea-surface roughness
 !                                  !       length for momentum (m).
@@ -432,7 +439,7 @@ INTEGER, INTENT(OUT) ::                                                       &
 
 !  (a) Calculated anyway (use STASH space from higher level) :-
 
-REAL, INTENT(OUT) ::                                                          &
+REAL(KIND=real_jlslsm), INTENT(OUT) ::                                        &
  recip_l_mo_sea(tdims%i_start:tdims%i_end,tdims%j_start:tdims%j_end)          &
 !                                  ! OUT Reciprocal of the surface
 !                                  !     Obukhov  length at sea
@@ -493,7 +500,7 @@ REAL, INTENT(OUT) ::                                                          &
 ,emis_soil(land_pts)
                              ! OUT Emissivity of underlying soil
 
-REAL, INTENT(OUT) ::                                                          &
+REAL(KIND=real_jlslsm), INTENT(OUT) ::                                        &
  flandfac(pdims_s%i_start:pdims_s%i_end,pdims_s%j_start:pdims_s%j_end),       &
  fseafac(pdims_s%i_start:pdims_s%i_end,pdims_s%j_start:pdims_s%j_end),        &
  rhokm_land(pdims_s%i_start:pdims_s%i_end,                                    &
@@ -506,7 +513,7 @@ REAL, INTENT(OUT) ::                                                          &
 !      level) :-
 
 !-2 Genuinely output, needed by other atmospheric routines :-
-REAL, INTENT(OUT) ::                                                          &
+REAL(KIND=real_jlslsm), INTENT(OUT) ::                                        &
  fb_surf(tdims%i_start:tdims%i_end,tdims%j_start:tdims%j_end)                 &
                              ! OUT Surface flux buoyancy over
 !                                  !     density (m^2/s^3)
@@ -521,7 +528,7 @@ REAL, INTENT(OUT) ::                                                          &
 !                                  !     flucs of layer 1 humidity;
 !                                  !     used in initiating convection.
 
-REAL, INTENT(OUT) ::                                                          &
+REAL(KIND=real_jlslsm), INTENT(OUT) ::                                        &
  alpha1(land_pts,nsurft)                                                      &
                              ! OUT Mean gradient of saturated
 !                                  !     specific humidity with respect
@@ -682,9 +689,9 @@ REAL, INTENT(OUT) ::                                                          &
 ! LOCAL variables
 !-----------------------------------------------------------------------
 !  Workspace :-
-REAL :: work_clay         ! working variable
+REAL(KIND=real_jlslsm) :: work_clay         ! working variable
 
-REAL ::                                                                       &
+REAL(KIND=real_jlslsm) ::                                                     &
  vfrac_surft(land_pts,nsurft)                                                 &
                           ! Fractional canopy coverage for
                           ! land tiles.
@@ -712,7 +719,7 @@ INTEGER ::                                                                    &
             ! Loop counter for coastal point stencil
 ,COUNT      ! Counter for average wind speed
 
-REAL ::                                                                       &
+REAL(KIND=real_jlslsm) ::                                                     &
  ushear                                                                       &
               ! U-component of surface-to-lowest-level wind shear.
 ,vshear                                                                       &
@@ -720,11 +727,11 @@ REAL ::                                                                       &
 ,vshr2        ! Square of magnitude of surface-to-lowest-level
 !                   ! wind shear.
 
-REAL :: seawind  ! average wind speed adjacent to coast
-REAL :: fseamax  ! Maximum factor to apply to coast wind speed
+REAL(KIND=real_jlslsm) :: seawind  ! average wind speed adjacent to coast
+REAL(KIND=real_jlslsm) :: fseamax  ! Maximum factor to apply to coast wind speed
 
      ! Minimum factor allowed to convert coastal wind speed to land part
-REAL :: flandmin
+REAL(KIND=real_jlslsm) :: flandmin
 PARAMETER(flandmin = 0.2)
 
 INTEGER(KIND=jpim), PARAMETER :: zhook_in  = 0
@@ -734,7 +741,19 @@ REAL(KIND=jprb)               :: zhook_handle
 CHARACTER(LEN=*), PARAMETER :: RoutineName='SF_EXPL_L_cbl'
 !CABLE_LSM: Passed from surf_couple_
 REAL :: fland(land_pts)
-REAL :: surf_down_sw_cable( tdims%i_end, tdims%j_end, 4)
+
+TYPE(air_type),       INTENT(inout)  :: air_cbl
+TYPE(met_type),       INTENT(inout)  :: met_cbl
+TYPE(radiation_type), INTENT(inout)  :: rad_cbl
+TYPE(roughness_type), INTENT(inout)  :: rough_cbl
+TYPE(canopy_type),    INTENT(inout)  :: canopy_cbl
+TYPE(soil_snow_type), INTENT(inout)  :: ssnow_cbl
+TYPE(bgc_pool_type),  INTENT(inout)  :: bgc_cbl
+TYPE(balances_type),  INTENT(inout)  :: bal_cbl
+TYPE(sum_flux_type),  INTENT(inout)  :: sum_flux_cbl
+TYPE(veg_parameter_type),  INTENT(inout) :: veg_cbl
+TYPE(soilin_type),         INTENT(inout) :: soilin  
+TYPE(soil_parameter_type), INTENT(inout) :: soil_cbl
 
 !H!REAL,  DIMENSION( tdims%i_end,tdims%j_end ) ::                                 &
 !H!  true_latitude,   &
@@ -765,9 +784,8 @@ CALL tilepts(land_pts,frac,surft_pts,surft_index)
 !-----------------------------------------------------------------------
 !   Generate the anthropogenic heat for surface calculations
 !-----------------------------------------------------------------------
-CALL generate_anthropogenic_heat(                                             &
-  curr_year, curr_day_number, curr_hour, curr_minute, curr_second,            &
-  nsurft, land_pts, frac, l_anthrop_heat_src)
+CALL generate_anthropogenic_heat( curr_day_number, land_pts, frac,            &
+                                  l_anthrop_heat_src)
 
 
 !-----------------------------------------------------------------------
@@ -1174,12 +1192,12 @@ CALL sf_exch_cbl (                                                              
  r_b_dust,cd_std_dust,u_s_std_surft,                                          &
  rhokh_surft,rhokh_sice,rhokh_sea,rhokm_1,rhokm_land,rhokm_ssi,               &
  dtstar_surft,dtstar_sea,dtstar_sice,rhokh,anthrop_heat_surft,                &
- !CABLE_LSM: pass additional existing vars
- cycleno, numcycles,                           &
- sm_levels,                                                                    & 
- surf_down_sw_cable, &!ls_rain_cable, ls_snow_cable,                   &
- co2_mmr, sthu_soilt(:,1,:), fland, curr_day_number                             &
- )
+ !CABLE_LSM:{pass additional existing & CABLE state vars
+ cycleno, numcycles, sm_levels,                                                & 
+ sw_surft, co2_mmr, sthu_soilt(:,1,:), fland, curr_day_number,                 &
+ air_cbl, met_cbl, rad_cbl, rough_cbl, canopy_cbl,                             &
+ ssnow_cbl, bgc_cbl, bal_cbl, sum_flux_cbl, veg_cbl,                           &
+ soilin, soil_cbl )
 
 IF (lhook) CALL dr_hook(ModuleName//':'//RoutineName,zhook_out,zhook_handle)
 

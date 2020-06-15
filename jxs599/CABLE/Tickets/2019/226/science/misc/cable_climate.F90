@@ -16,7 +16,7 @@
 ! History: Vanessa Haverd Jan 2015
 
 ! ==============================================================================
-!#define UM_BUILD YES
+#define UM_BUILD YES
 MODULE cable_climate_mod
 
   USE cable_def_types_mod, ONLY: met_type, climate_type, canopy_type, mp, &
