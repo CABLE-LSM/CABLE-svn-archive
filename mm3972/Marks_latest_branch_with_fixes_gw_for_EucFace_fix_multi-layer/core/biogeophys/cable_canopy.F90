@@ -1939,6 +1939,8 @@ CONTAINS
              ! PRINT *, "veg%ejmax is ", veg%ejmax
              ! PRINT *, "====================================="
 
+             veg%convex = 0.7 ! MMY CABLE new default value
+
              ! prescribe plant photosynthesis parameters
              ! veg%alpha = 0.3
              ! veg%convex = 0.48
@@ -3210,6 +3212,13 @@ CONTAINS
     elsewhere
        alpha_root(:) = zero
     endwhere
+
+    where (Fs(:) > zero .and. layer_depth < zr )  ! where there are roots and we are aobe max rooting depth
+	       delta_root(:) = one
+    elsewhere
+         delta_root(:) = zero
+    endwhere
+
     rex(:) = alpha_root(:)*Fs(:)
 
     trex = sum(rex(:))
