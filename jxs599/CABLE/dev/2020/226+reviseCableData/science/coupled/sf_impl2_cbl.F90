@@ -59,9 +59,11 @@ SUBROUTINE sf_impl2_cbl (                                                     &
 ! OUT data required elsewhere in UM system :
  tstar,tstar_land,tstar_sice,le_surft,radnet_surft,e_sea,h_sea,               &
  taux_1,tauy_1,ecan_surft,ei,ei_sice,esoil_soilt,ext_soilt,                   &
- snowmelt, melt_surft,rhokh_mix,error                                         &
+ snowmelt, melt_surft,rhokh_mix,error,                                        &
 !CABLE_LSM: see ACCESS-CM2 version for extra vars here
- )
+ air_cbl, met_cbl, rad_cbl, rough_cbl, canopy_cbl,                            &
+ ssnow_cbl, bgc_cbl, bal_cbl, sum_flux_cbl, veg_cbl,                          &
+ soil_cbl )
 
 USE csigma,                   ONLY:                                           &
  sbcon
@@ -127,6 +129,18 @@ USE parkind1,                 ONLY:                                           &
   jprb, jpim
 !CABLE_LSM:Make avail call to CABLE implicit version
 USE cable_implicit_main_mod,  ONLY: cable_implicit_main
+USE cable_air_type_mod,       ONLY : air_type
+USE cable_met_type_mod,       ONLY : met_type
+USE cable_radiation_type_mod, ONLY : radiation_type
+USE cable_roughness_type_mod, ONLY : roughness_type
+USE cable_canopy_type_mod,    ONLY : canopy_type
+USE cable_soil_snow_type_mod, ONLY : soil_snow_type
+USE cable_bgc_pool_type_mod,  ONLY : bgc_pool_type
+USE cable_balances_type_mod,  ONLY : balances_type
+USE cable_sum_flux_type_mod,  ONLY : sum_flux_type
+USE cable_params_mod,         ONLY : veg_parameter_type
+USE cable_params_mod,         ONLY : soil_parameter_type
+
 
 USE yomhook,                  ONLY:                                           &
   lhook, dr_hook
@@ -697,6 +711,18 @@ REAL(KIND=jprb)               :: zhook_handle
 integer, parameter :: mm = 1
 CHARACTER(LEN=*), PARAMETER :: RoutineName='SF_IMPL2_cbl'
 
+TYPE(air_type),       INTENT(inout)  :: air_cbl
+TYPE(met_type),       INTENT(inout)  :: met_cbl
+TYPE(radiation_type),       INTENT(inout)  :: rad_cbl
+TYPE(roughness_type),     INTENT(inout)  :: rough_cbl
+TYPE(canopy_type),    INTENT(inout)  :: canopy_cbl
+TYPE(soil_snow_type),     INTENT(inout)  :: ssnow_cbl
+TYPE(bgc_pool_type),       INTENT(inout)  :: bgc_cbl
+TYPE(balances_type),       INTENT(inout)  :: bal_cbl
+TYPE(sum_flux_type),  INTENT(inout)  :: sum_flux_cbl
+TYPE(veg_parameter_type),   INTENT(inout) :: veg_cbl
+TYPE(soil_parameter_type),  INTENT(inout) ::  soil_cbl
+
 IF (lhook) CALL dr_hook(ModuleName//':'//RoutineName,zhook_in,zhook_handle)
 
 error = 0
@@ -827,8 +853,6 @@ IF ( .NOT. l_correct ) THEN
   ! Land surface calculations
   !-----------------------------------------------------------------------
 
-!CABLE_LSM: 
-!CABLE_LSM: -CM2 call cable here. moved from earlier below placement
  !CABLE_LSM:
   DO N=1,Nsurft
     DO L=1,LAND_PTS
@@ -837,28 +861,19 @@ IF ( .NOT. l_correct ) THEN
   ENDDO
 
  call cable_implicit_main( & 
-        1, &!C!cycleno,                                                               &
-        tdims%i_end,tdims%j_end, land_pts, nsurft, sm_levels,            &
-        Fland,                      &
-!forcing: temp and humidity & Jan 2018: Ticket #132 needs ctctq1
-                  tl_1, qw_1,&
-                  dtl1_1,  &
-                  dqw1_1,  &
-                  ctctq1,  &
-!returned fluxes etc
-                  ftl_1,                   &
-                  ftl_surft, &
-                  fqw_1, &
-                  fqw_surft,  &
-                  tstar_surft, &
-                  surf_ht_flux_land,         &
-                  surf_htf_surft,     &
-                  ecan_surft, esoil_surft,                 &
-                  ei_surft, radnet_surft,                  &
-            sf_diag% t1p5m_surft, &
-            sf_diag% q1p5m_surft, &
-            melt_surft, &
-        dtstar_surft  )
+        1, &!C!cycleno, (in standalone control.F() declares as param=1) &
+        !row_length, rows, dimensions & land fraction
+        tdims%i_end, tdims%j_end, land_pts, nsurft, sm_levels, Fland,          &
+        !forcing: temp and humidity & Jan 2018: Ticket #132 needs ctctq1
+        tl_1, qw_1, dtl1_1,  dqw1_1, ctctq1,                                   & 
+        !returned fluxes etc
+        ftl_1, ftl_surft, fqw_1, fqw_surft,  tstar_surft,                      &
+        surf_ht_flux_land, surf_htf_surft, ecan_surft, esoil_surft,            &
+        ei_surft, radnet_surft,  sf_diag%t1p5m_surft, sf_diag% q1p5m_surft,    &
+        melt_surft, dtstar_surft,                                              &  
+        ! CABLE state vars  
+        air_cbl, met_cbl, rad_cbl, rough_cbl, canopy_cbl, ssnow_cbl, bgc_cbl,  &
+        bal_cbl, sum_flux_cbl, veg_cbl, soil_cbl )
 !CABLE_LSM:End
 
   !-----------------------------------------------------------------------
