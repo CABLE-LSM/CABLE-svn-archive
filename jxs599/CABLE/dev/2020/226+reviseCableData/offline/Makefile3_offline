@@ -207,8 +207,6 @@ cbl_init_radiation.o: cbl_init_radiation.F90 cable_define_types.o cable_common.o
 cable_roughness.o: cable_roughness.F90 cable_define_types.o cable_common.o cable_data.o \
 cbl_hgtAbove_snow.o cbl_lai_eff.o cbl_other_constants_mod.o
 
-cable_soilsnow.o: cable_soilsnow.F90 cable_iovars.o cable_define_types.o cable_common.o cable_data.o cable_constants.o
-
 casa_variable.o: casa_variable.F90 POP.o casa_dimension.o casa_param.o
 
 spincasacnp.o: spincasacnp.F90  cable_define_types.o  cable_carbon.o cable_common.o \
