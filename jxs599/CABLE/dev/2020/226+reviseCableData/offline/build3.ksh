@@ -44,8 +44,8 @@ host_gadi()
 clean_build()
 {
       rm -fr .tmp
-      print '\ncleaning up\n'
-      print '\n\tPress Enter too continue buiding, Control-C to abort now.\n'
+      echo  '\ncleaning up\n'
+      echo  '\n\tPress Enter too continue buiding, Control-C to abort now.\n'
       read dummy
 }
 
@@ -57,7 +57,7 @@ build_build()
    fi
 
    if [[ -f cable ]]; then
-      print '\ncable executable exists. copying to dated backup file\n'
+      echo  '\ncable executable exists. copying to dated backup file\n'
       mv cable cable.`date +%d.%m.%y`
    fi
 
@@ -111,12 +111,12 @@ build_status()
    	echo '\nBUILD OK\n'
    elif [[ -f .tmp/cable-mpi ]]; then
    	mv .tmp/cable-mpi .
-   	print '\nBUILD OK\n'
+   	echo  '\nBUILD OK\n'
    else
-      print '\nOooops. Something went wrong\n'
-      print '\nKnown build issues:\n'
-      print '\nSome systems require additional library. \n'
-      print '\nEdit Makefile_offline; add -lnetcdff to LD = ...\n'
+      echo '\nOooops. Something went wrong\n'
+      echo '\nKnown build issues:\n'
+      echo '\nSome systems require additional library. \n'
+      echo '\nEdit Makefile_offline; add -lnetcdff to LD = ...\n'
    fi
    exit
 }
