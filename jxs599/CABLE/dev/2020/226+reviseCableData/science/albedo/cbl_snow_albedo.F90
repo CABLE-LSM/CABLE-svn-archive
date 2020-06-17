@@ -83,7 +83,7 @@ REAL :: SoilAlbsoilf(mp)
    alir =0.
    alv  =0.
 
-   WHERE ( SnowDepth > 1. .AND. .NOT. jls_radiation )
+   !H!WHERE ( SnowDepth > 1. .AND. .NOT. jls_radiation )
 
       ! new snow (cm H2O)
       dnsnow = MIN ( 1., .1 * MAX( 0., SnowDepth - SnowODepth ) )
@@ -143,7 +143,7 @@ REAL :: SoilAlbsoilf(mp)
       alir = .4 * fzenm * (1.0 - tmp) + tmp
       talb = .5 * (alv + alir) ! snow albedo
 
-   ENDWHERE        ! snowd > 0
+   !H!ENDWHERE        ! snowd > 0
 
    !H!! when it is called from cable_rad_driver (UM)
    !H!! no need to recalculate snage
