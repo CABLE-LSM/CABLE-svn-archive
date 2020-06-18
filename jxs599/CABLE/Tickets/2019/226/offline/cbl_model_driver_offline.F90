@@ -62,6 +62,7 @@ USE cable_other_constants_mod, ONLY : CGAUSS_W => gauss_w
 USE cable_math_constants_mod, ONLY : CPI => pi
 USE cable_math_constants_mod, ONLY : CPI180 => pi180
 use cbl_masks_mod, ONLY :  fveg_mask,  fsunlit_mask,  fsunlit_veg_mask
+use cbl_masks_mod, ONLY :  veg_mask,  sunlit_mask,  sunlit_veg_mask
 
     !ptrs to local constants
     TYPE( icbm_type ) :: C
@@ -94,9 +95,9 @@ LOGICAL :: jls_radiation= .false.
 real :: reducedLAIdue2snow(mp)
 
 !masks
-logical :: veg_mask(mp),  sunlit_mask(mp),  sunlit_veg_mask(mp) 
-logical :: asunlit_veg_mask(mp) 
-logical :: asunlit_mask(mp) 
+!logical :: veg_mask(mp),  sunlit_mask(mp),  sunlit_veg_mask(mp) 
+!logical :: sunlit_veg_mask(mp) 
+!logical :: sunlit_mask(mp) 
 !co-efficients usoughout init_radiation ` called from _albedo as well
 REAL :: c1(mp,nrb)
 REAL :: rhoch(mp,nrb)
@@ -117,9 +118,9 @@ IF ( cbl_standalone .OR. cable_runtime%um_explicit ) &
 CALL define_air (met, air)
 
 !veg_mask =  canopy%vlaiw > .001
-call fveg_mask( veg_mask, mp, Clai_thresh, canopy%vlaiw )
-call fsunlit_mask( sunlit_mask, mp, Ccoszen_tols, met%coszen )
-call fsunlit_veg_mask( sunlit_veg_mask, mp, veg_mask, sunlit_mask)
+call fveg_mask( mp, Clai_thresh, canopy%vlaiw )
+call fsunlit_mask( mp, Ccoszen_tols, met%coszen )
+call fsunlit_veg_mask( mp )
 
 CALL init_radiation( rad%extkb, rad%extkd,                                     &
                      !ExtCoeff_beam, ExtCoeff_dif,
