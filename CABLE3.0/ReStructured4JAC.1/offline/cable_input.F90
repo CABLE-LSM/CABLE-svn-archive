@@ -48,7 +48,7 @@ MODULE cable_input_module
   USE POPLUC_Types,               ONLY: POPLUC_TYPE
   USE cable_param_module
   USE cable_checks_module,     ONLY: ranges, rh_sh
-  USE cable_radiation_module,  ONLY: sinbet
+  USE cbl_sinbet_mod,  ONLY: sinbet
   USE cable_IO_vars_module
   USE cable_read_module,       ONLY: readpar
   USE cable_init_module
@@ -1003,7 +1003,6 @@ CONTAINS
     ! Look for Rainf (essential):- - - - - - - - - - - - - - - - - -
     IF (ncciy > 0) ncid_met = ncid_rain
     ok = NF90_INQ_VARID(ncid_met,'Rainf',id%Rainf)
-    IF(ok .NE. NF90_NOERR) ok = NF90_INQ_VARID(ncid_met,'Precip',id%Rainf)
     IF(ok /= NF90_NOERR) CALL nc_abort &
          (ok,'Error finding Rainf in met data file ' &
          //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
@@ -1090,7 +1089,6 @@ CONTAINS
     ! Look for PSurf (can be synthesised):- - - - - - - - - - - - - - - -
     IF (ncciy > 0) ncid_met = ncid_ps
     ok = NF90_INQ_VARID(ncid_met,'PSurf',id%PSurf)
-    IF(ok .NE. NF90_NOERR) ok = NF90_INQ_VARID(ncid_met,'Psurf',id%PSurf)
     IF(ok == NF90_NOERR) THEN ! If inquiry is okay
        exists%PSurf = .TRUE. ! PSurf is present in met file
        ! Get PSurf units and check:
