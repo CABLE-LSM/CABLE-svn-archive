@@ -17,6 +17,7 @@ host_gadi()
    module add netcdf/4.6.3
 
    if [[ $1 = 'mpi' ]]; then
+      module add intel-mpi/2019.5.281
       export FC='mpif90'
 	 else
       export FC='ifort'
@@ -25,6 +26,7 @@ host_gadi()
    export NCDIR=$NETCDF_ROOT'/lib/Intel'
    export NCMOD=$NETCDF_ROOT'/include/Intel'
    export CFLAGS='-O2 -fp-model precise'
+   export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0'
    if [[ $1 = 'debug' ]]; then
       export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0'
       #export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0 -check all,noarg_temp_created'
