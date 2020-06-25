@@ -647,7 +647,7 @@ CONTAINS
 !    ! 5
 !    ok = NF90_INQ_VARID(ncid,'field333',fieldID)
 !    IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error finding variable hyds.')
-!    ok = NF90_GET_VAR(ncid,fieldID,indummy)
+!    ok = NF0_GET_VAR(ncid,fieldID,indummy)
 !    IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error reading variable hyds.')
 !    inhyds(:,:) = indummy(:,:,1,1)
 !    CALL NSflip(nlon,nlat,inhyds)

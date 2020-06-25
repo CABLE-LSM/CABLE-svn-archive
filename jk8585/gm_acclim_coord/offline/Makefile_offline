@@ -215,7 +215,7 @@ cable_c13o2.o: cable_c13o2.F90 cable_c13o2_def.o cable_define_types.o cable_iova
 mo_isotope_luc_model.o: mo_isotope_luc_model.f90 mo_utils.o mo_kind.o
 
 minpack.o: minpack.f90 cable_define_types.o
-cable_adjustJVgm.o: cable_adjustJVgm.F90 cable_define_types.o minpack.o
+cable_adjustJVgm.o: cable_adjustJVgm.F90 cable_define_types.o cable_abort.o minpack.o
 
 
 # make clean option

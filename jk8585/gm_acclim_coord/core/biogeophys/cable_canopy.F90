@@ -65,7 +65,7 @@ CONTAINS
     use cable_sli_main, only: sli_main
     use mo_utils,       only: eq
 
-    implicit none
+    implicit none 
 
     TYPE(balances_type),       INTENT(INOUT) :: bal
     TYPE(radiation_type),      INTENT(INOUT) :: rad
@@ -1515,9 +1515,8 @@ CONTAINS
     type(climate_type),        intent(in)    :: climate
     real(r_2), dimension(:,:), intent(inout) :: gmes             ! mesophyll conductance
 
-    !local variables
-    real, parameter  :: &
-         jtomol = 4.6e-6  ! Convert from J to Mol for light
+    !local variables (JK: move parameters to different routine at some point)
+    real, parameter :: jtomol = 4.6e-6  ! Convert from J to Mol for light
 
     real, dimension(mp) :: &
          conkct,        & ! Michaelis Menton const.
@@ -1580,7 +1579,8 @@ CONTAINS
          anrubpx,    & ! net photosynthesis (rubp limited)
          ansinkx,    & ! net photosynthesis (sink limited)
          anrubiscoy, & ! net photosynthesis (rubisco limited)
-         anrubpy       ! net photosynthesis (rubp limited)
+         anrubpy,    & ! net photosynthesis (rubp limited)
+         kc4           ! An-Ci slope in Collatz 1992 model
 
     real(r_2), dimension(mp,mf)  ::  dAnrubiscox, & ! CO2 elasticity of net photosynthesis (rubisco limited)
          dAnrubpx, &   !  (rubp limited)
@@ -1759,12 +1759,14 @@ CONTAINS
                 ekc    = C%ekc
                 eko    = C%eko
              endif
+
+
+
              ! JK: veg%vcmax_sun and veg%vcmax_shade are Cc-based if cable_user%explicit_gm = TRUE
              !     and Ci-based otherwise. If cable_user%coordinate_photosyn = FALSE,
              !     veg%vcmax_sun = veg%vcmax_shade = veg%vcmaxcc if cable_user%explicit_gm = TRUE
              !     and veg%vcmax_sun = veg%vcmax_shade = veg%vcmax otherwise.
              !     See also Subroutine 'casa_feedback' in casa_cable.F90. Same applies to ejmax.
-
 
              ! Leuning 2002 (PCE) equation for temperature response
              ! used for Vcmax for C3 plants:
@@ -1786,6 +1788,15 @@ CONTAINS
              vcmxt4(i,1) = rad%scalex(i,1) * temp_sun_c4(i)
              vcmxt4(i,2) = rad%scalex(i,2) * temp_shade_c4(i)
 
+             ! apply same scaling for k as for Vcmax in C4 plants
+             if (.not. cable_user%explicit_gm) then
+                kc4(i,1) = veg%c4kci(i) * vcmxt4(i,1)/veg%vcmax_sun(i) 
+                kc4(i,2) = veg%c4kci(i) * vcmxt4(i,2)/veg%vcmax_shade(i)
+             else
+                kc4(i,1) = veg%c4kcc(i) * vcmxt4(i,1)/veg%vcmax_sun(i) 
+                kc4(i,2) = veg%c4kcc(i) * vcmxt4(i,2)/veg%vcmax_shade(i)
+             endif   
+             
 
              ! Leuning 2002 (PCE) equation for temperature response
              ! used for Jmax for C3 plants:
@@ -2007,9 +2018,10 @@ CONTAINS
 
                 ! Medlyn BE et al (2011) Global Change Biology 17: 2134-2144.
              ELSEIF(cable_user%GS_SWITCH == 'medlyn') THEN
-                gswmin(i,1) = veg%g0(i)
-                gswmin(i,2) = veg%g0(i)
-
+                gswmin(i,1) = veg%g0(i) * rad%scalex(i,1)
+                gswmin(i,2) = veg%g0(i) * rad%scalex(i,2)
+write(82,*) "gswmin(:,1):", gswmin(i,1)
+write(82,*) "veg%g0:", veg%g0                
                 IF (dsx(i) < 50.0) THEN
                    vpd  = 0.05 ! kPa
                 ELSE
@@ -2054,7 +2066,7 @@ CONTAINS
                                 ! Ticket #56, xleuning replaced with gs_coeff here
                gs_coeff(:,:), rad%fvlai(:,:), &
                spread(abs_deltlf,2,mf), &
-               anx(:,:), fwsoil(:), gmes(:,:), &
+               anx(:,:), fwsoil(:), gmes(:,:), kc4(:,:), &
                anrubiscox(:,:), anrubpx(:,:), ansinkx(:,:), eta_x(:,:), dAnx(:,:) )
        ELSE
           CALL photosynthesis( csx(:,:), &
@@ -2065,7 +2077,7 @@ CONTAINS
                                 ! Ticket #56, xleuning replaced with gs_coeff here
                gs_coeff(:,:), rad%fvlai(:,:), &
                spread(abs_deltlf,2,mf), &
-               anx(:,:), fwsoil(:), &
+               anx(:,:), fwsoil(:), kc4(:,:), &
                anrubiscox(:,:), anrubpx(:,:), ansinkx(:,:), eta_x(:,:), dAnx(:,:) )
           ! CALL photosynthesis_orig( csx(:,:), &
           !      SPREAD( cx1(:), 2, mf ), &
@@ -2687,7 +2699,7 @@ CONTAINS
   SUBROUTINE photosynthesis_gm( csxz, cx1z, cx2z, gswminz, &
        rdxz, vcmxt3z, vcmxt4z, vx3z, &
        vx4z, gs_coeffz, vlaiz, deltlfz, anxz, fwsoilz, &
-       gmes, anrubiscoz, anrubpz, ansinkz, eta, dA )
+       gmes, kc4, anrubiscoz, anrubpz, ansinkz, eta, dA )
 
     use cable_def_types_mod, only : mp, mf, r_2
     use cable_common_module, only: cable_user
@@ -2705,15 +2717,13 @@ CONTAINS
          vx3z,       & !
          gs_coeffz,  & ! Ticket #56, xleuningz repalced with gs_coeffz
          vlaiz,      & !
-         deltlfz
+         deltlfz,    & !
+         kc4           !
     real,      dimension(mp,mf), intent(inout) :: gswminz
     real,      dimension(mp,mf), intent(inout) :: anxz, anrubiscoz, anrubpz, ansinkz
     real(r_2), dimension(mp,mf), intent(out)   :: eta, dA
 
     ! local variables
-    ! C4 parameters (move to different subroutine at some point)
-    real, parameter :: effc4 = 20000.0_r_2  ! Vc=effc4*Ci*Vcmax (see Bonan et al. 2011, JGR 116)
-
     real(r_2), dimension(mp,mf) :: dAmp, dAme, dAmc, eta_p, eta_e, eta_c
     real, dimension(mp) :: fwsoilz
     real(r_2) :: gamma, beta, gammast, gm, g0, X, Rd, cs
@@ -2834,15 +2844,12 @@ CONTAINS
                    cs         = csxz(i,j)
                    g0         = real(gswminz(i,j) * fwsoilz(i) / C%RGSWC, r_2)
                    X          = real(gs_coeffz(i,j), r_2)
-                   gamma      = real(effc4 * vcmxt4z(i,j), r_2) ! k in Collatz 1992
+                   gamma      = real(kc4(i,j),r_2) ! k in Collatz 1992
                    beta       = 0.0_r_2
                    gammast    = 0.0_r_2
                    Rd         = real(rdxz(i,j), r_2)
                    gm         = gmes(i,j)
 
-                   ! adjust gamma to account for gm
-                   gamma = 1.5_r_2 * gamma ! replace with function or LUT
-                   
                    if (trim(cable_user%g0_switch) == 'default') then
                       call fAmdAm2(cs, g0, X*cs, gamma, beta, gammast, Rd, gm, &
                            Am, dAmp(i,j))
@@ -2911,7 +2918,7 @@ CONTAINS
 
   SUBROUTINE photosynthesis( csxz, cx1z, cx2z, gswminz, &
        rdxz, vcmxt3z, vcmxt4z, vx3z,                    &
-       vx4z, gs_coeffz, vlaiz, deltlfz, anxz, fwsoilz,  &
+       vx4z, gs_coeffz, vlaiz, deltlfz, anxz, fwsoilz, kc4,  &
        anrubiscoz, anrubpz, ansinkz, eta, dA )
 
     use cable_def_types_mod, only : mp, mf, r_2
@@ -2930,7 +2937,8 @@ CONTAINS
          vx3z,       & !
          gswminz,    &
          vlaiz,      & !
-         deltlfz
+         deltlfz,    & !
+         kc4
     real,      dimension(mp,mf), intent(inout) :: gs_coeffz ! Ticket #56, xleuningz replaced with gs_coeffz
     real,      dimension(mp,mf), intent(inout) :: anxz, anrubiscoz, anrubpz, ansinkz
     real(r_2), dimension(mp,mf), intent(out)   :: eta, dA
@@ -2941,8 +2949,6 @@ CONTAINS
          dAmc, dAme, dAmp, eta_c, eta_e, eta_p
 
     real, dimension(mp) :: fwsoilz
-
-    real, parameter  :: effc4 = 4000.0  ! Vc=effc4*Ci*Vcmax (see Bonan,LSM version 1.0, p106)
 
     real(r_2) :: gamma, beta, gammast, g0, X, Rd, cs
     real(r_2) :: Am
@@ -3061,7 +3067,7 @@ CONTAINS
                       g0 = 0.0_r_2
                    endif
                    X       = real(gs_coeffz(i,j), r_2)
-                   gamma   = real(effc4 * vcmxt4z(i,j), r_2)
+                   gamma   = real(kc4(i,j), r_2)
                    Rd      = real(rdxz(i,j), r_2)
 
                    coef1z(i,j) = g0 + X * Rd + gamma * (1.0_r_2 - X * cs)
@@ -4214,5 +4220,5 @@ CONTAINS
   ! end subroutine fAmdAm
 
   !**********
-
+  
 END MODULE cable_canopy_module

@@ -78,7 +78,7 @@ CONTAINS
        if (veg%frac4(k).lt.0.001) then ! not C4
 
           if (cable_user%explicit_gm) then
-             gm0  = veg%gmmax(k)
+             gm0  = veg%gm(k)
              vcmax00 = veg%vcmaxcc(k) ! vcmax at standard temperature (25degC) 
              Kc0  = C%conkc0cc
              Ko0  = C%conko0cc
@@ -87,7 +87,7 @@ CONTAINS
              gam0 = C%gam0cc
              egam = C%egamcc
           else 
-             gm0  = veg%gmmax(k)    ! used in code but not in solution
+             gm0  = veg%gm(k)    ! used in code but not in solution
              vcmax00 = veg%vcmax(k) ! vcmax at standard temperature (25degC)
              Kc0  = C%conkc0
              Ko0  = C%conko0

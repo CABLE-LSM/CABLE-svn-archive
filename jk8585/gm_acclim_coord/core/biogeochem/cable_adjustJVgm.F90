@@ -11,20 +11,21 @@
 !
 MODULE cable_adjust_JV_gm_module
 
-  USE cable_def_types_mod, ONLY: dp => r_2
-  USE cable_def_types_mod, ONLY: mp, veg_parameter_type
-  USE cable_data_module,   ONLY: icanopy_type, point2constants
-  USE cable_abort_module,  ONLY: nc_abort
+  USE cable_def_types_mod,      ONLY: dp => r_2
+  USE cable_def_types_mod,      ONLY: mp, veg_parameter_type
+  USE cable_data_module,        ONLY: icanopy_type, point2constants
+  USE cable_abort_module,       ONLY: nc_abort
   USE netcdf
   USE minpack
 
-  TYPE(icanopy_type) :: C
+  type(icanopy_type) :: C
 
-  INTEGER, PARAMETER :: nrci=3000
-  REAL(dp) :: gmmax25, Vcmax25Ci, Jmax25Ci, Vcmax25Cc, Jmax25Cc
-  REAL(dp) :: Rd
-  REAL(dp) :: Kc_ci, Ko_ci, gammastar_ci, Km_ci
-  REAL(dp) :: Kc_cc, Ko_cc, gammastar_cc, Km_cc
+  integer, parameter :: nrci=3000
+  integer, parameter :: nrcic4=1200
+  real(dp) :: gmmax25, Vcmax25Ci, Jmax25Ci, Vcmax25Cc, Jmax25Cc, k25Ci, k25Cc
+  real(dp) :: Rd
+  real(dp) :: Kc_ci, Ko_ci, gammastar_ci, Km_ci
+  real(dp) :: Kc_cc, Ko_cc, gammastar_cc, Km_cc
   
 CONTAINS 
 
@@ -62,7 +63,7 @@ CONTAINS
 
       Ci1          = (/(real(i,dp),i=1,nrci,1)/) / 2.0_dp * 1.0e-6_dp  ! 1-1500 umol mol-1
       Rd           = real(veg%cfrd(p) * veg%vcmax(p),dp)
-      gmmax25      = real(veg%gmmax(p),dp)
+      gmmax25      = real(veg%gm(p),dp)
       Vcmax25Ci    = real(veg%vcmax(p),dp)
       Jmax25Ci     = real(veg%ejmax(p),dp)
       Kc_ci        = real(C%conkc0,dp)
@@ -165,7 +166,7 @@ CONTAINS
       write(89,*) 'veg%ejmaxcc(p):', veg%ejmaxcc(p)
    endif
    
-      ELSE  ! For C4 plants same as for Ci for now...
+      ELSE  ! C4 (Vcmax and Jmax do not change with gm in C4 plants)
 
         veg%vcmaxcc(p) = real(Vcmax25Ci)
         veg%ejmaxcc(p) = real(Jmax25Ci)
@@ -289,10 +290,6 @@ CONTAINS
     veg%LUT_vcmax     = veg%LUT_vcmax     * 1.0e-06
     veg%LUT_Rd        = veg%LUT_Rd        * 1.0e-06
 
-
-    write(90,*) 'veg%LUT_VcmaxJmax(1,11,113,13):', veg%LUT_VcmaxJmax(1,11,6,13)
-    write(90,*) 'veg%LUT_VcmaxJmax(2,10,113,12):', veg%LUT_VcmaxJmax(2,10,5,12)
-
     veg%is_read_gmLUT = .true.
 
   END SUBROUTINE read_gm_LUT
@@ -319,7 +316,7 @@ CONTAINS
     if (veg%frac4(p) .lt. 0.001_dp) then ! not C4
        ! determine current Ci-based values
        Rd        = real(veg%cfrd(p) * veg%vcmax(p),dp)
-       gmmax25   = real(veg%gmmax(p),dp)
+       gmmax25   = real(veg%gm(p),dp)
        Vcmax25Ci = real(veg%vcmax(p),dp)  ! LUT assumes a given Jmax/Vcmax ratio! see details in nc LUT
 
        ! determine right indices of LUT
@@ -340,14 +337,14 @@ CONTAINS
           if (veg%vcmaxcc(p) .gt. 0.0_dp .and. veg%ejmaxcc(p) .gt. 0.0_dp) then
              val_ok = .true.  
           else
-             write(84,*) 'unrealistic Vcmax_ci:', veg%LUT_vcmax(ivc)
-             write(84,*) 'iteration:', i
+write(84,*) 'unrealistic Vcmax_ci:', veg%LUT_vcmax(ivc)
+write(84,*) 'iteration:', i
              igm = igm + 1
           endif   
        end do
          
        
-    else ! C4 (take Ci-based values for now)
+    else ! C4 (Vcmax and Jmax do not change with gm in C4 plants)
 
        veg%vcmaxcc(p) = real(veg%vcmax(p),dp)
        veg%ejmaxcc(p) = real(veg%ejmax(p),dp)
@@ -369,6 +366,81 @@ CONTAINS
     
   END SUBROUTINE find_Vcmax_Jmax_LUT
 
+
   
-  
+
+  ! conversion of k Parameter in Collatz et al. 1992 from implicit gm model
+  ! to explicit gm model.
+  Subroutine adjust_k_Collatz(veg,p)
+
+    implicit none
+
+    type (veg_parameter_type), intent(inout) :: veg   ! vegetation parameters
+    integer, intent(in) :: p   ! vegetation type
+    
+    ! local
+    integer  :: i,k
+    integer  :: kmax=1000
+    integer  :: lAn
+    real(dp) :: diff, diffx
+    real(dp), dimension(nrcic4) :: An_Ci1, Ci1, Aj_Ci, Ae_Ci
+    real(dp), dimension(:), allocatable :: An_Ci, An_Cc, Ci, Cc 
+    
+    if (veg%frac4(p) .gt. 0.001_dp) then ! C4
+       Ci1       = (/(real(i,dp),i=1,nrcic4,1)/) / 4.0_dp * 1.0e-6_dp 
+       Rd        = real(veg%cfrd(p) * veg%vcmax(p),dp)
+       gmmax25   = real(veg%gm(p),dp)
+       Vcmax25Ci = real(veg%vcmax(p),dp)
+       k25Ci     = real(veg%c4kci(p),dp)
+
+
+       ! 1) calculate An-ci curves (no light limitation)
+       Aj_Ci = Vcmax25Ci - Rd
+       Ae_Ci = k25Ci * Ci1 - Rd
+
+       An_Ci1 = Min(Aj_Ci,Ae_Ci)
+    
+    
+       ! 2) exclude negative An values and those not limited by Ci
+       lAn = count(An_Ci1 .GT. 0.0_dp .AND. An_Ci1 .EQ. Ae_Ci)
+
+       allocate(An_Ci(lAn))
+       allocate(An_Cc(lAn))
+       allocate(Ci(lAn))
+       allocate(Cc(lAn))
+
+       An_Ci = pack(An_Ci1, An_Ci1 .GT. 0.0_dp .AND. An_Ci1 .EQ. Ae_Ci)
+       Ci    = pack(Ci1, An_Ci1 .GT. 0.0_dp .AND. An_Ci1 .EQ. Ae_Ci)
+
+    
+       ! 3) calculate Cc
+       Cc = Ci - An_Ci / gmmax25
+
+    
+       ! 4) fit k to Cc-based model (a poor man's optimisation...)
+       k     = 0
+       diffx = 1.0e6_dp
+       diff  = 0.0_dp
+       k25Cc = k25Ci
+       Do while (diff < diffx .AND. k < kmax)
+          if (k > 0) then
+            diffx = diff
+          endif
+          An_Cc = k25Cc * Cc - Rd
+          diff = sqrt(sum((An_Cc - An_Ci)**2)/lAn)
+          k25Cc = k25Cc + 0.001_dp
+          k = k + 1
+       End Do
+
+       veg%c4kcc(p) = real(k25Cc - 0.002_dp) ! single precision
+       ! subtract 2x the increment to get the right value
+
+    else   ! C3 (not used)
+      veg%c4kcc(p) = 0.0
+    endif
+
+  End Subroutine adjust_k_Collatz
+
+
+
 END MODULE cable_adjust_JV_gm_module

@@ -741,7 +741,10 @@ contains
     data xnslope/0.80,1.00,2.00,1.00,1.00,1.00,0.50,1.00,0.34,1.00,1.00,1.00,1.00,1.00,1.00,1.00,1.00/
     real                :: relcostJCi
     real, dimension(mp) :: bjvref, relcostJ, Nefftmp
-    real, dimension(mp) :: vcmaxx, cfrdx  ! vcmax and cfrd of previous day
+    real, dimension(mp) :: vcmaxx         ! vcmax of previous day
+    real, dimension(mp) :: vcmax_min      ! vcmax at minimum N
+    real :: gm_vcmax_slope = 0.003e-6_r_2 ! slope between gmmax25 and Vcmax25 ((mol m-2 s-1) / (umol m-2 s-1))
+    real, parameter     :: effc4 = 20000.0  ! Vc=effc4*Ci*Vcmax (see Bonan et al. 2011, JGR 116)
 #ifdef __MPI__
     integer :: ierr
 #endif
@@ -788,6 +791,7 @@ contains
              veg%vcmax(np) = veg%vcmax(np) * xnslope(ivt)
           ENDIF
           veg%ejmax = 2.0 * veg%vcmax
+          veg%c4kci = effc4 * veg%vcmax
        elseif (TRIM(cable_user%vcmax).eq.'Walker2014') then
           ! Walker, A. P. et al.: The relationship of leaf photosynthetic traits - Vcmax and Jmax -
           !   to leaf nitrogen, leaf phosphorus, and specific leaf area: a meta-analysis and modeling study,
@@ -797,10 +801,10 @@ contains
           nleafx(np) = ncleafx(np)/casabiome%sla(ivt) ! leaf N in g N m-2 leaf
           pleafx(np) = nleafx(np)/npleafx(np) ! leaf P in g P m-2 leaf
 
-          if (ivt .EQ. 7 .OR.ivt .EQ. 9  ) then
+          if (ivt .EQ. 7 .OR. ivt .EQ. 10) then
              ! special for C4 grass: scale value from  parameter file
              veg%vcmax(np) = real(casabiome%vcmax_scalar(ivt)) * 1.0e-5
-             veg%ejmax(np) = 2.0 * veg%vcmax(np)
+             veg%ejmax(np) = 2.0 * veg%vcmax(np)  ! not used for C4
           elseif (ivt.eq.1) then
              ! account here for spring recovery
              veg%vcmax(np) = real( vcmax_np(nleafx(np), pleafx(np)) * &
@@ -811,11 +815,40 @@ contains
                   casabiome%vcmax_scalar(ivt) )
              veg%ejmax(np) = bjvref(np) * veg%vcmax(np)
           endif
+          veg%c4kci(np) = effc4 * veg%vcmax(np)
+          
+          ! calculate minimum possible Vcmax
+          if (ivt .EQ. 7 .OR. ivt .EQ. 10) then
+             vcmax_min(np) = veg%vcmax(np)
+          else
+             vcmax_min(np) = real( vcmax_np(casabiome%ratioNCplantmin(ivt,leaf)/casabiome%sla(ivt), &
+                                   pleafx(np)) * &
+                             casabiome%vcmax_scalar(ivt) ) 
+          endif
 
           ! adjust Vcmax and Jmax accounting for gm, but only if the implicit values
           ! have changed.
           if (cable_user%explicit_gm) then
-veg%gmmax = 0.15_r_2
+             ! establish a relationship between gmmax and Vcmax
+             veg%gm(np) = veg%gmmax(np) + &
+                  gm_vcmax_slope * (veg%vcmax(np) - vcmax_min(np))
+             
+write(86,*) "veg%gm:", veg%gm
+write(86,*) "veg%gmmax:", veg%gmmax
+write(86,*) "vcmax_min:", vcmax_min
+write(86,*) "veg%vcmax:", veg%vcmax
+write(86,*) "casabiome%sla:", casabiome%sla
+write(86,*) "casabiome%ratioNCplantmin(:,leaf)", casabiome%ratioNCplantmin(:,leaf)
+write(86,*) "nleafx(np):", nleafx
+
+             !if (.not. veg%is_read_gmLUT) then  ! not working
+             !if (ABS(vcmaxx(np) - veg%vcmax(np)) .GT. 1.0E-08 .OR. ktau==1) then
+             if (ktau==1) then
+                ! C4 plants: first time step only because Vcmax does not change with N            
+                call adjust_k_Collatz(veg,np)
+             endif
+                
+             ! adjust parameters
              if (len(trim(cable_user%gm_LUT_file)) .gt. 1) then
                 if (.not. veg%is_read_gmLUT) then
                    WRITE(*,*) 'Reading gm LUT file'

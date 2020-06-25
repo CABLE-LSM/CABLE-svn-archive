@@ -110,7 +110,7 @@ veg%hc = MAX(veg%hc,1.0)
       ! Reference height zref is height above the displacement height
       rough%zref_uv = MAX( 2.0, rough%za_uv )
       rough%zref_tq = MAX( 2.0, rough%za_tq )
-
+      
       rough%zruffs = 0.0
       rough%rt1usa = 0.0
       rough%rt1usb = 0.0
@@ -190,7 +190,11 @@ veg%hc = MAX(veg%hc,1.0)
          rough%rt1usb = MAX( rough%rt1usb, 0.0 ) ! in case zrufs < rough%hruff
 
       END WHERE
-
+write(81,*) "rough%zref_uv:", rough%zref_uv
+write(81,*) "rough%zref_tq:", rough%zref_tq
+write(81,*) "rough%za_uv:", rough%za_uv
+write(81,*) "veg%hc:", veg%hc
+write(81,*) "rough%hruff:", rough%hruff
 
        IF (cable_user%soil_struc.eq.'sli') THEN
          WHERE( canopy%vlaiw .GE. C%LAI_THRESH  .AND.                                          &
