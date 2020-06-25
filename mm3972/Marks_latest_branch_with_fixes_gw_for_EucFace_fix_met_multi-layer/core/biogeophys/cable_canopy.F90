@@ -2821,15 +2821,16 @@ CONTAINS
       rwater = MAX(1.0e-9,                                                    &
          SUM(veg%froot * MAX(1.0e-9, MIN( 1.0,                            &
          (MAX(0., (real(ssnow%wb) - SPREAD(soil%swilt, 2, ms)) )          &
-         / (SPREAD(soil%sfc, 2, ms) - SPREAD(soil%swilt, 2, ms)) )** 0.38 &
+         / (SPREAD(soil%sfc, 2, ms) - SPREAD(soil%swilt, 2, ms)) )**0.425 &
           )) , 2))
+        ! MMY the equation and parameter 0.425 are from Jinyan Yang et al. 2020, Biogeosciences
         ! MMY I didn't check gw-off, but think using wbliq may be better than wb above eq
        ! __________________________________________________________________________
     else
         rwater = MAX(1.0e-9,                                                    &
            SUM(veg%froot * MAX(1.0e-9, MIN( 1.0, &
            (MAX(0., (real(ssnow%wbliq) - real(soil%swilt_vec)) )&
-           / (real(soil%sfc_vec) - real(soil%swilt_vec)) )**0.38 &
+           / (real(soil%sfc_vec) - real(soil%swilt_vec)) )**0.425 &
             )) , 2))
     endif
 
