@@ -3253,70 +3253,76 @@ write(82,*) "veg%g0:", veg%g0
   ! ------------------------------------------------------------------------------
 
 
-  FUNCTION xvcmxt3(x) RESULT(z)
-    !  Leuning 2002 (PCE) equation for temperature response
-    !  used for Vcmax for c3 plants
+  FUNCTION xvcmxt3(Tk) RESULT(z)
+    !  Vcmax temperature response (Arrhenius function)
 
     implicit none
 
-    real, intent(in) :: x
-    real             :: z
+    real, intent(in) :: Tk
+    real             :: xv, z
+    !real :: xvcnum, xvcden
 
-    real :: xvcnum, xvcden
+    !real, parameter :: EHaVc  = 73637.0  ! J/mol (Leuning 2002)
+    !real, parameter :: EHdVc  = 149252.0 ! J/mol (Leuning 2002)
+    !real, parameter :: EntropVc = 486.0  ! J/mol/K (Leuning 2002)
+    !real, parameter :: xVccoef = 1.17461 ! derived parameter
 
-    real, parameter :: EHaVc  = 73637.0  ! J/mol (Leuning 2002)
-    real, parameter :: EHdVc  = 149252.0 ! J/mol (Leuning 2002)
-    real, parameter :: EntropVc = 486.0  ! J/mol/K (Leuning 2002)
-    real, parameter :: xVccoef = 1.17461 ! derived parameter
+    ! Parameters calculated from Kumarathunge et al. 2019 with Tgrowth = 15 degC
+    real, parameter :: EaV = 59700.0  ! J/mol 
+    real, parameter :: EdV = 200000.0 ! J/mol 
+    real, parameter :: dSV = 639.43   ! J/mol/K 
 
     ! xVccoef=1.0+exp((EntropJx*C%TREFK-EHdJx)/(Rconst*C%TREFK))
-    CALL point2constants(C)
+    call point2constants(C)
+    
+    !xvcnum = xvccoef * exp(( EHaVc / (C%Rgas * C%TREFK ) )* ( 1.0 - C%TREFK/Tk ) )
+    !xvcden = 1.0 + exp( ( EntropVc * Tk - EHdVc) / ( C%rgas * Tk ) )
+    !z = max(0.0, xvcnum / xvcden)
 
-    xvcnum = xvccoef*exp( ( ehavc / ( C%rgas*C%TREFK ) )* ( 1.-C%TREFK/x ) )
-    xvcden = 1.0+exp( ( entropvc*x-ehdvc ) / ( C%rgas*x ) )
-    z = max( 0.0, xvcnum / xvcden )
+    xv = exp(EaV * (Tk - C%TrefK) / (C%TrefK * C%Rgas * Tk )) * &
+          (1.0 + exp((C%TrefK * dSV - EdV) / (C%TrefK * C%Rgas))) / &
+          (1.0 + exp((Tk * dSV - EdV) / (Tk * C%Rgas)))
+    z = max(0.0, xv) 
 
   END FUNCTION xvcmxt3
+  
   
   ! ------------------------------------------------------------------------------
   
   ! Explicit array dimensions as temporary work around for NEC inlining problem
-  FUNCTION xvcmxt4(x) RESULT(z)
+  FUNCTION xvcmxt4(Tk) RESULT(z)
 
     implicit none
 
-    real, intent(in) :: x
-    real             :: xc4, TrefK, Rgas
+    real, intent(in) :: Tk  ! leaf temperature in Kelvin
+    real             :: xc4, z
 
     !real, parameter :: q10c4 = 2.0
     ! parameter values from Massad et al. 2007, PCE 30, 1191-1204, slightly adjusted to
-    ! get optimum at ~35degC
-    real, parameter :: EHa    = 67400.0  !67.29e3_r_2   ! J/mol
-    real, parameter :: EHd    = 145000.0 !144.57e3_r_2  ! J/mol
-    real, parameter :: Entrop = 471.0    !0.472e3_r_2   ! J/mol/K
-    real :: z
+    ! get optimum at ~36degC as in Yamori et al. 2014
+    real, parameter :: EHa    = 68000.0  !67.29e3_r_2   ! J/mol
+    real, parameter :: EHd    = 145500.0 !144.57e3_r_2  ! J/mol
+    real, parameter :: Entrop = 469.5    !0.472e3_r_2   ! J/mol/K
 
     ! Q10 function replaced with Arrhenius function for the sake of parameter
     ! identifiability/interpretability
     !z = q10c4**(0.1*x - 2.5) / &
     !     ( (1.0 + exp(0.3 * (13.0 - x))) * (1.0 + exp(0.2 * (x - 38.0))) )
 
-    CALL point2constants(C)
-
-    TrefK = C%TrefK
-    Rgas  = C%Rgas
+    call point2constants(C)
     
-    xc4 = exp(EHa * (x - TrefK) / (TrefK * Rgas * x )) * &
-          (1.0 + exp((TrefK * Entrop - EHd) / (TrefK * Rgas))) / &
-          (1.0 + exp((x * Entrop - EHd) / (x * Rgas)))
+    xc4 = exp(EHa * (Tk - C%TrefK) / (C%TrefK * C%Rgas * Tk )) * &
+          (1.0 + exp((C%TrefK * Entrop - EHd) / (C%TrefK * C%Rgas))) / &
+          (1.0 + exp((Tk * Entrop - EHd) / (Tk * C%Rgas)))
 
     z = max(0.0, xc4)
     
   END FUNCTION xvcmxt4
+
   
   ! ------------------------------------------------------------------------------
 
-  elemental pure subroutine xvcmxt3_acclim(Tk, Tgrowth, trf)
+  Subroutine xvcmxt3_acclim(Tk, Tgrowth, trf)
     ! acclimated temperature response of Vcmax. Kumarathunge et al., New. Phyt., 2019,
     ! Eq 7 and Table 2
 
@@ -3325,19 +3331,17 @@ write(82,*) "veg%g0:", veg%g0
     real, intent(in)  :: Tk, Tgrowth  ! instantaneous T in K, growth T in degC
     real, intent(out) :: trf
 
-    real :: xVccoef, EHaVc, EHdVc,  EntropVc, aKK, bKK, rgas, TREFK, xvcnum, xvcden
+    real :: xVccoef, EHaVc, EHdVc, EntropVc, xvcnum, xvcden
 
     EHaVc = 42.6 * 1000.0 + 1.14*Tgrowth*1000.0
+    entropvc = (645.13 -0.38 * Tgrowth)
     EHdVc = 200000.0
-    aKK   = 645.13
-    bKK   = -0.38
-    rgas  = 8.314
-    TREFK = 298.15
 
-    entropvc = (aKK + bKK * Tgrowth)
-    xVccoef  = 1.0 + exp((entropvc * TREFK - EHdVc)/  ( rgas*TREFK ) )
-    xvcnum   = xVccoef * exp( ( EHaVc / ( rgas*TREFK ) )* ( 1.-TREFK/Tk ) )
-    xvcden   = 1.0 + exp( ( entropvc*Tk-EHdVc ) / ( rgas*Tk ) )
+    call point2constants(C)
+
+    xVccoef  = 1.0 + exp((entropvc * C%TREFK - EHdVc)/  ( C%Rgas * C%TREFK ) )
+    xvcnum   = xVccoef * exp((EHaVc / (C%Rgas * C%TREFK ) )* ( 1.0 - C%TREFK/Tk ) )
+    xvcden   = 1.0 + exp((entropvc * Tk- EHdVc) / (C%Rgas * Tk ) )
 
     trf = max( 0.0, xvcnum / xvcden )
 
@@ -3346,7 +3350,7 @@ write(82,*) "veg%g0:", veg%g0
   ! ------------------------------------------------------------------------------  
 
   
-  elemental pure subroutine xvcmxt4_acclim(Tk, Tgrowth, trf)
+  Subroutine xvcmxt4_acclim(Tk, Tgrowth, trf)
     ! acclimated temperature response of Vcmax for C4 plants.
     ! Data fitted to obtain Topt-Tgrowth response as shown in Yamori et al. 2014, Photosny Research Fig. 5
 
@@ -3355,23 +3359,21 @@ write(82,*) "veg%g0:", veg%g0
     real, intent(in)  :: Tk, Tgrowth  ! instantaneous T in K, growth T in degC
     real, intent(out) :: trf
 
-    real :: xVccoef, EHaVc, EHdVc,  EntropVc, aKK, bKK, rgas, TREFK, xvcnum, xvcden
+    real :: xVccoef, EHaVc, EHdVc, EntropVc, xvcnum, xvcden
 
-    EHaVc = 41.0 * 1000.0 + 1.05*Tgrowth*1000.0
-    EHdVc = 145000.0
-    aKK   = 471.0
-    bKK   = -0.12653
-    rgas  = 8.314
-    TREFK = 298.15
+    EHaVc = 42.0 * 1000.0 + 1.0 * Tgrowth * 1000.0
+    entropvc = (473.0 -0.145491 * Tgrowth)
+    EHdVc = 145500.0
 
-    entropvc = (aKK + bKK * Tgrowth)
-    xVccoef  = 1.0 + exp((entropvc * TREFK - EHdVc)/  ( rgas*TREFK ) )
-    xvcnum   = xVccoef * exp( ( EHaVc / ( rgas*TREFK ) )* ( 1.-TREFK/Tk ) )
-    xvcden   = 1.0 + exp( ( entropvc*Tk-EHdVc ) / ( rgas*Tk ) )
+    call point2constants(C)
+    
+    xVccoef  = 1.0 + exp((entropvc * C%TREFK - EHdVc)/  (C%Rgas * C%TREFK) )
+    xvcnum   = xVccoef * exp((EHaVc / (C%Rgas * C%TREFK ) ) * (1.0 - C%TREFK/Tk) )
+    xvcden   = 1.0 + exp((entropvc * Tk - EHdVc ) / (C%Rgas * Tk ) )
 
-    trf = max( 0.0, xvcnum / xvcden )
+    trf = max(0.0, xvcnum / xvcden )
 
-  end subroutine xvcmxt4_acclim
+  end Subroutine xvcmxt4_acclim
 
 
   ! ------------------------------------------------------------------------------
@@ -3395,26 +3397,35 @@ write(82,*) "veg%g0:", veg%g0
   ! ------------------------------------------------------------------------------
 
 
-  FUNCTION xejmxt3(x) RESULT(z)
-    ! Leuning 2002 (PCE) equation for temperature response
-    ! used for jmax for C3 plants
+  FUNCTION xejmxt3(Tk) RESULT(z)
+    ! Temperature response of Jmax (Arrhenius function)
 
     implicit none
 
-    real, intent(in) :: x
-    real             :: z
+    real, intent(in) :: Tk  ! Leaf temperature in Kelvin
+    real             :: xj, z
 
-    real :: xjxnum, xjxden
-    real, parameter :: EHaJx  = 50300.0  ! J/mol (Leuning 2002)
-    real, parameter :: EHdJx  = 152044.0 ! J/mol (Leuning 2002)
-    real, parameter :: EntropJx = 495.0  ! J/mol/K (Leuning 2002)
-    real, parameter :: xjxcoef = 1.16715 ! derived parameter
+    !real :: xjxnum, xjxden
+    !real, parameter :: EHaJx  = 50300.0  ! J/mol (Leuning 2002)
+    !real, parameter :: EHdJx  = 152044.0 ! J/mol (Leuning 2002)
+    !real, parameter :: EntropJx = 495.0  ! J/mol/K (Leuning 2002)
+    !real, parameter :: xjxcoef = 1.16715 ! derived parameter
 
-    CALL point2constants(C)
+    ! Parameters calculated from Kumarathunge et al. 2019 with Thome = 25degC and Tgrowth = 15degC
+    real, parameter :: EaJ = 40710  ! J/mol (Leuning 2002)
+    real, parameter :: EdJ = 200000 ! J/mol (Leuning 2002)
+    real, parameter :: dSJ = 651.37 ! J/mol/K (Leuning 2002)
 
-    xjxnum = xjxcoef*exp( ( ehajx / ( C%rgas*C%TREFK ) ) * ( 1.-C%TREFK / x ) )
-    xjxden = 1.0+exp( ( entropjx*x-ehdjx) / ( C%rgas*x ) )
-    z = max(0.0, xjxnum/xjxden)
+    call point2constants(C)
+
+    !xjxnum = xjxcoef*exp( ( EHaJx / ( C%Rgas * C%TREFK)) * (1.0 - C%TREFK / Tk ) )
+    !xjxden = 1.0 + exp((EntropJx * Tk - EHdJx) / ( C%Rgas * Tk ) )
+    !z = max(0.0, xjxnum/xjxden)
+
+    xj = exp(EaJ * (Tk - C%TrefK) / (C%TrefK * C%Rgas * Tk )) * &
+          (1.0 + exp((C%TrefK * dSJ - EdJ) / (C%TrefK * C%Rgas))) / &
+          (1.0 + exp((Tk * dSJ - EdJ) / (Tk * C%Rgas)))
+    z = max(0.0, xj) 
 
   END FUNCTION xejmxt3
 
@@ -3422,28 +3433,25 @@ write(82,*) "veg%g0:", veg%g0
   ! ------------------------------------------------------------------------------
 
 
-  elemental pure subroutine xejmxt3_acclim(Tk, Tgrowth, Thome, trf)
+  Subroutine xejmxt3_acclim(Tk, Tgrowth, Thome, trf)
 
     ! acclimated temperature response of Jmax. Kumarathunge et al., New. Phyt., 2019,
     ! Eq 7 and Table 2
     REAL, INTENT(IN) :: Tk, Tgrowth, Thome  ! instantaneous T in K, home and growth T in degC
     REAL, INTENT(OUT) :: trf
-    REAL:: xVccoef, EHaVc, EHdVc,  EntropVc, aKK, bKK, cKK, rgas, TREFK, xvcnum, xvcden
+    REAL:: xVccoef, EHaVc, EHdVc,  EntropVc, xvcnum, xvcden
 
 
     EHaVc = 40.71 * 1000.0
     EHdVc  = 200000.0
-    aKK = 658.77
-    bKK = -0.84
-    cKK = -0.52
-    rgas = 8.314
-    TREFK = 298.15
+    entropvc = (658.77 -0.84 * Thome) -0.52 * (Tgrowth - Thome)
 
-    entropvc = (aKK + bKK * Thome) + cKK * (Tgrowth - Thome)
-    xVccoef  = 1.0 + exp((entropvc * TREFK - EHdVc)/  ( rgas*TREFK ) )
-    xvcnum = xVccoef * exp( ( EHaVc / ( rgas*TREFK ) )* ( 1.-TREFK/Tk ) )
-    xvcden=1.0 + exp( ( entropvc*Tk-EHdVc ) / ( rgas*Tk ) )
-    trf = max( real(0.0), xvcnum / xvcden )
+    call point2constants(C)
+    
+    xVccoef = 1.0 + exp((entropvc * C%TREFK - EHdVc)/  (C%Rgas * C%TREFK) )
+    xvcnum  = xVccoef * exp((EHaVc / (C%Rgas * C%TREFK ) ) * ( 1.0 - C%TREFK/Tk) )
+    xvcden  = 1.0 + exp((entropvc * Tk - EHdVc ) / (C%Rgas * Tk) )
+    trf = max(real(0.0), xvcnum / xvcden )
 
   end subroutine xejmxt3_acclim
 
