@@ -3300,9 +3300,9 @@ write(82,*) "veg%g0:", veg%g0
     !real, parameter :: q10c4 = 2.0
     ! parameter values from Massad et al. 2007, PCE 30, 1191-1204, slightly adjusted to
     ! get optimum at ~36degC as in Yamori et al. 2014
-    real, parameter :: EHa    = 68000.0  !67.29e3_r_2   ! J/mol
-    real, parameter :: EHd    = 145500.0 !144.57e3_r_2  ! J/mol
-    real, parameter :: Entrop = 469.5    !0.472e3_r_2   ! J/mol/K
+    real, parameter :: EHa    = 66000.0  ! 67.29e3_r_2   ! J/mol
+    real, parameter :: EHd    = 145000.0 ! 144.57e3_r_2  ! J/mol
+    real, parameter :: Entrop = 469.4217 ! 0.472e3_r_2   ! J/mol/K
 
     ! Q10 function replaced with Arrhenius function for the sake of parameter
     ! identifiability/interpretability
@@ -3333,7 +3333,7 @@ write(82,*) "veg%g0:", veg%g0
 
     real :: xVccoef, EHaVc, EHdVc, EntropVc, xvcnum, xvcden
 
-    EHaVc = 42.6 * 1000.0 + 1.14*Tgrowth*1000.0
+    EHaVc = (42.6 + 1.14*Tgrowth) * 1000.0
     entropvc = (645.13 -0.38 * Tgrowth)
     EHdVc = 200000.0
 
@@ -3361,9 +3361,9 @@ write(82,*) "veg%g0:", veg%g0
 
     real :: xVccoef, EHaVc, EHdVc, EntropVc, xvcnum, xvcden
 
-    EHaVc = 42.0 * 1000.0 + 1.0 * Tgrowth * 1000.0
-    entropvc = (473.0 -0.145491 * Tgrowth)
-    EHdVc = 145500.0
+    EHaVc = (45.0 + 1.05 * Tgrowth) * 1000.0
+    entropvc = (472.0 -0.128913 * Tgrowth)
+    EHdVc = 145000.0
 
     call point2constants(C)
     
@@ -3414,7 +3414,7 @@ write(82,*) "veg%g0:", veg%g0
     ! Parameters calculated from Kumarathunge et al. 2019 with Thome = 25degC and Tgrowth = 15degC
     real, parameter :: EaJ = 40710  ! J/mol (Leuning 2002)
     real, parameter :: EdJ = 200000 ! J/mol (Leuning 2002)
-    real, parameter :: dSJ = 651.37 ! J/mol/K (Leuning 2002)
+    real, parameter :: dSJ = 642.97 ! J/mol/K (Leuning 2002)
 
     call point2constants(C)
 
@@ -3439,7 +3439,7 @@ write(82,*) "veg%g0:", veg%g0
     ! Eq 7 and Table 2
     REAL, INTENT(IN) :: Tk, Tgrowth, Thome  ! instantaneous T in K, home and growth T in degC
     REAL, INTENT(OUT) :: trf
-    REAL:: xVccoef, EHaVc, EHdVc,  EntropVc, xvcnum, xvcden
+    REAL:: xVccoef, EHaVc, EHdVc, EntropVc, xvcnum, xvcden
 
 
     EHaVc = 40.71 * 1000.0
