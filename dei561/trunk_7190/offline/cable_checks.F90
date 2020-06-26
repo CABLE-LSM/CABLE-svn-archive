@@ -214,6 +214,7 @@ CONTAINS
 
     ! Local variables
     REAL(r_2), DIMENSION(:,:,:),POINTER, SAVE :: bwb         ! volumetric soil moisture
+    REAL(r_2), DIMENSION(:,:),POINTER, SAVE   :: bwb_gw ! volumetric gw soil moisture
     REAL(r_2), DIMENSION(mp)                  :: delwb       ! change in soilmoisture
     ! b/w tsteps
     REAL, DIMENSION(mp)                  :: canopy_wbal !canopy water balance

@@ -68,7 +68,8 @@ CONTAINS
     USE cable_roughness_module
     USE cable_psm, ONLY: or_soil_evap_resistance,rtevap_max,&
          rt_Dff,update_or_soil_resis
-    USE cable_gw_hydro_module, ONLY : pore_space_relative_humidity
+    USE cable_gw_hydro_module, ONLY : pore_space_relative_humidity,            &
+         den_rat, set_den_rat
     USE sli_main_mod, ONLY : sli_main
 
 

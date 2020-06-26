@@ -43,7 +43,7 @@ MODULE cable_gw_hydro_module
                                    cable_runtime,&
                                    max_glacier_snowd,ktau_gl,psi_c,psi_o
 
-   USE cable_soil_snow_module, ONLY : trimb, snow_processes_soil_thermal
+   USE cbl_soil_snow_subrs_module, ONLY : trimb, snow_processes_soil_thermal
 
    USE cable_data_module, only: C=>PHYS!issnow_type,point2constants
 
@@ -1047,7 +1047,13 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
    !improve hiding, call single soilsnow subroutine to do all the
    !snow processes and thermal soil calculations
 
-   CALL snow_processes_soil_thermal(dels,ssnow,soil,veg,canopy,met,bal)
+   !DE The current trunk version of snow_processes_soil_thermal requires a 'snowmlt'
+   !   argument, unlike in MMY's version. In MMY's version, there is a 'snowmlt' variable
+   !   initialised to 0.0 inside the subroutine. Therefore I have introduced it as a
+   !   parameter and initialised it to that value here.
+
+   snowmlt(:) = 0.0
+   CALL snow_processes_soil_thermal(dels,ssnow,soil,veg,canopy,met,bal,snowmlt)
 
    !leave here for now, could move into soilsnow as well
    CALL remove_transGW(dels, soil, ssnow, canopy, veg)        !transpiration loss per soil layer

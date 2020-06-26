@@ -1756,18 +1756,18 @@ CONTAINS
     TYPE (balances_type),       INTENT(INOUT) :: bal
     TYPE (roughness_type),      INTENT(INOUT) :: rough
 
-    INTEGER :: j,i,klev ! do loop counter
+    INTEGER :: j,i,klev,k ! do loop counter
     REAL(r_2)    :: temp(mp)
     REAL    :: tmp2(mp)
 
     REAL(r_2), DIMENSION(mp,ms) :: perc_frac
     REAL(r_2), DIMENSION(17)    :: psi_o,psi_c
-    REAL(r_2), DIMENSION(mp,ms) :: psi_tmp
-    REAL(r_2), DIMENSION(ms) :: soil_depth
+    REAL(r_2), DIMENSION(mp,ms) :: psi_tmp, rhosoil_temp, soil_depth
+    REAL(r_2), DIMENSION(:,:), ALLOCATABLE :: ssat_bounded,rho_soil_bulk
 
-    soil_depth(1) = REAL(soil%zse(1),r_2)
+    soil_depth(:,1) = soil%zse_vec(:,1)
     DO klev=2,ms
-       soil_depth(klev) = soil_depth(klev-1) + REAL(soil%zse(klev),r_2)
+       soil_depth(:,klev) = soil_depth(:,klev-1) + soil%zse_vec(:,klev)
     END DO
 
     psi_o(1:3)  = -66000._r_2

@@ -141,7 +141,8 @@ MODULE cable_IO_vars_module
           veg_class,soil_class,mvtype,mstype,patchfrac,                        &
           WatSat,GWWatSat,SoilMatPotSat,GWSoilMatPotSat,                       &
           HkSat,GWHkSat,FrcSand,FrcClay,Clappb,Watr,GWWatr,sfc_vec,forg,swilt_vec, &
-          slope,slope_std,GWdz,SatFracmax,Qhmax,QhmaxEfold,HKefold,HKdepth
+          slope,slope_std,GWdz,SatFracmax,Qhmax,QhmaxEfold,HKefold,HKdepth,    &
+          elev, elev_std
      INTEGER :: ishorizon,nhorizons,clitt, &
           zeta,fsatmax, &
           gamma,ZR,F10
@@ -363,6 +364,8 @@ MODULE cable_IO_vars_module
           isoil  = .FALSE.,    & ! soil type from global index
           meth  = .FALSE.,     & ! method for solving turbulence in canopy scheme
           za  = .FALSE.,       & ! something to do with roughness ????
+          elev = .FALSE.,      & !mean subgrid elev
+          elev_std=.FALSE.,    & !stddev of subgrid elev
           slope = .FALSE.,&      !mean subgrid slope
           slope_std=.FALSE.,&    !stddev of subgrid slope
           GWdz=.FALSE.,&         !aquifer thickness
@@ -370,7 +373,13 @@ MODULE cable_IO_vars_module
           Qhmax=.FALSE.,&
           QhmaxEfold=.FALSE.,&
           HKefold=.FALSE.,&
-          HKdepth
+          HKdepth=.false.,&
+          SMP=.false.,&
+          SMP_hys=.false.,&
+          WB_hys=.false.,&
+          SSAT_hys=.false.,&
+          WATR_hys=.false.,&
+          hys_fac=.false.
 
   END TYPE output_inclusion_type
 

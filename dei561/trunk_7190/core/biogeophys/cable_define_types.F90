@@ -160,10 +160,19 @@ MODULE cable_def_types_mod
           rhosoil_vec,& !soil density  [kg/m3]
           ssat_vec, & !volumetric water content at saturation [mm3/mm3]
           watr,   & !residual water content of the soil [mm3/mm3]
+          smpc_vec, &  ! Hutson Cass SWC potential cutoff
+          wbc_vec,  &  ! Hutson Cass SWC volumetric water cutoff
           sfc_vec, & !field capcacity (hk = 1 mm/day)
           swilt_vec     ! wilting point (hk = 0.02 mm/day)
 
      REAL(r_2), DIMENSION(:), POINTER ::                                      &
+
+          hkrz,&! rate hyds changes with depth
+          zdepth,&!  depth [m] where hkrz has zero impact
+          srf_frac_ma,&! fraction of surface with macropores 
+          edepth_ma,&!  e fold depth macropore fraction
+          qhz_max,&!  maximum base flow when fully sat
+          qhz_efold,&!  base flow efold rate dep on wtd, from drain-dens and param
           drain_dens,&!  drainage density ( mean dist to rivers/streams )
           elev, &  !elevation above sea level
           elev_std, &  !elevation above sea level
@@ -177,6 +186,8 @@ MODULE cable_def_types_mod
           GWbch_vec,  & !clapp and horn b of the aquifer   [none]
           GWssat_vec,  & !saturated water content of the aquifer [mm3/mm3]
           GWwatr,    & !residual water content of the aquifer [mm3/mm3]
+          smpc_GW, &  ! Hutson Cass SWC potential cutoff
+          wbc_GW,  &  ! Hutson Cass SWC volumetric water cutoff
           GWz,       & !node depth of the aquifer    [m]
           GWdz,      & !thickness of the aquifer   [m]
           GWrhosoil_vec    !density of the aquifer substrate [kg/m3]
@@ -231,7 +242,6 @@ MODULE cable_def_types_mod
           owetfac, & ! surface wetness fact. at previous time step
           t_snwlr, & ! top snow layer depth in 3 layer snowpack
           tggav,   & ! mean soil temperature in K
-          otgg,    & ! soil temperature in K
           otss,    & ! surface temperature (weighted soil, snow)
           otss_0,  & ! surface temperature (weighted soil, snow)
           tprecip, &
@@ -258,6 +268,7 @@ MODULE cable_def_types_mod
           sdepth,     & ! snow depth
           smass,      & ! snow mass
           ssdn,       & ! snow densities
+          otgg,       & ! soil temperature in K
           tgg,        & ! soil temperature in K
           tggsn,      & ! snow temperature in K
           dtmlt,      & ! water flux to the soil
@@ -308,7 +319,15 @@ MODULE cable_def_types_mod
           wmliq,   &    !water mass [mm] liq
           wmice,   &    !water mass [mm] ice
           wmtot,   &    !water mass [mm] liq+ice ->total
-          qhlev
+          qhlev,   &
+          smp_hys, & !soil swc props dynamic from hysteresis
+          wb_hys,  &
+          sucs_hys,&
+          ssat_hys,&
+          watr_hys,&
+          hys_fac, &
+          wbliq_old
+     
      ! Additional SLI variables:
      REAL(r_2), DIMENSION(:,:), POINTER :: S         ! moisture content relative to sat value    (edit vh 23/01/08)
      REAL(r_2), DIMENSION(:,:), POINTER :: Tsoil         !     Tsoil (deg C)
@@ -849,6 +868,10 @@ CONTAINS
     ALLOCATE( var%GWssat_vec(mp) )
     ALLOCATE( var%GWwatr(mp) )
     var%GWwatr(:) = 0.05
+    ALLOCATE( var%wbc_GW(mp) )
+    ALLOCATE( var%smpc_GW(mp) )
+    ALLOCATE( var%wbc_vec(mp,ms) )
+    ALLOCATE( var%smpc_vec(mp,ms) )
     ALLOCATE( var%GWz(mp) )
     ALLOCATE( var%GWdz(mp) )
     ALLOCATE( var%GWrhosoil_vec(mp) )
@@ -872,6 +895,12 @@ CONTAINS
     ALLOCATE( var%rhosoil_vec(mp,ms) )
 
     ALLOCATE( var%drain_dens(mp) )
+    ALLOCATE( var%hkrz(mp) )
+   ALLOCATE( var%zdepth(mp) )
+   ALLOCATE( var%srf_frac_ma(mp) )
+   ALLOCATE( var%edepth_ma(mp) )
+   ALLOCATE( var%qhz_max(mp) )
+   ALLOCATE( var%qhz_efold(mp) )
     ALLOCATE( var%elev(mp) )
     ALLOCATE( var%elev_std(mp) )
     ALLOCATE( var%slope(mp) )
@@ -954,7 +983,7 @@ CONTAINS
     ALLOCATE( var%t_snwlr(mp) )
     ALLOCATE( var%wbfice(mp,ms) )
     ALLOCATE( var%tggav(mp) )
-    ALLOCATE( var%otgg(mp) )
+    ALLOCATE( var%otgg(mp,ms) )
     ALLOCATE( var%otss(mp) )
     ALLOCATE( var%otss_0(mp) )
     ALLOCATE( var%tprecip(mp) )
@@ -1001,6 +1030,13 @@ CONTAINS
     ALLOCATE( var%wmliq(mp,ms) )
     ALLOCATE( var%wmice(mp,ms) )
     ALLOCATE( var%wmtot(mp,ms) )
+    ALLOCATE( var%smp_hys(mp,ms) )   !1
+    ALLOCATE( var%wb_hys(mp,ms) )    !2
+    ALLOCATE( var%ssat_hys(mp,ms) )   !3
+    ALLOCATE( var%watr_hys(mp,ms) )   !4
+    ALLOCATE( var%hys_fac(mp,ms) )    !5
+    ALLOCATE( var%sucs_hys(mp,ms) )    !5
+    ALLOCATE( var%wbliq_old(mp,ms) ) 
 
     ! Allocate variables for SLI soil model:
     !IF(cable_user%SOIL_STRUC=='sli') THEN
@@ -1479,6 +1515,9 @@ CONTAINS
     DEALLOCATE( var%GWbch_vec )
     DEALLOCATE( var%GWssat_vec )
     DEALLOCATE( var%GWwatr )
+    DEALLOCATE( var%wbc_vec )
+    DEALLOCATE( var%smpc_vec )
+    DEALLOCATE( var%smpc_GW )
     DEALLOCATE( var%GWz )
     DEALLOCATE( var%GWdz )
     DEALLOCATE( var%GWrhosoil_vec )
@@ -1500,11 +1539,17 @@ CONTAINS
     DEALLOCATE( var%org_vec  )
     DEALLOCATE( var%rhosoil_vec )
     DEALLOCATE( var%drain_dens )
+    DEALLOCATE( var%hkrz )
+    DEALLOCATE( var%zdepth )
+    DEALLOCATE( var%srf_frac_ma )
+    DEALLOCATE( var%edepth_ma )
+    DEALLOCATE( var%qhz_max )
+    DEALLOCATE( var%qhz_efold )
     DEALLOCATE( var%elev )
     DEALLOCATE( var%elev_std )
     DEALLOCATE( var%slope )
     DEALLOCATE( var%slope_std )
-    ! Deallocate variables for SLI soil model:
+    ! DeALLOCATE variables for SLI soil model:
     !IF(cable_user%SOIL_STRUC=='sli') THEN
     DEALLOCATE ( var % nhorizons)
     DEALLOCATE ( var % ishorizon)
@@ -1627,6 +1672,13 @@ CONTAINS
     DEALLOCATE( var%wmliq )
     DEALLOCATE( var%wmice )
     DEALLOCATE( var%wmtot )
+    DEALLOCATE( var%smp_hys )
+    DEALLOCATE( var%wb_hys )
+    DEALLOCATE( var%ssat_hys )
+    DEALLOCATE( var%watr_hys )
+    DEALLOCATE( var%hys_fac )
+    DEALLOCATE( var%sucs_hys )
+    DEALLOCATE( var%wbliq_old )
 
     !IF(cable_user%SOIL_STRUC=='sli') THEN
     DEALLOCATE ( var % S )
@@ -1707,7 +1759,7 @@ CONTAINS
     DEALLOCATE( var%g0 ) ! Ticket #56.
     DEALLOCATE( var%g1 ) ! Ticket #56.
 
-    ! Deallocate variables for SLI soil model:
+    ! DeALLOCATE variables for SLI soil model:
     !IF(cable_user%SOIL_STRUC=='sli') THEN
     DEALLOCATE ( var % rootbeta )
     DEALLOCATE ( var % gamma ) ! vh 20/07/09

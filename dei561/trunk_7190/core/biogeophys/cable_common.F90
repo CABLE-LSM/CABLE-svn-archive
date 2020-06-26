@@ -167,9 +167,9 @@ MODULE cable_common_module
      LOGICAL :: soil_thermal_fix=.FALSE.
      !ACCESS roots
      LOGICAL :: access13roots = .FALSE.     !switch to use ACCESS1.3 %froot
-     
+
      LOGICAL :: l_limit_labile = .FALSE.    ! #237: limit Labile in spinup
-     LOGICAL :: NtilesThruMetFile = .FALSE. ! #199: Specify Ntiles thru met file 
+     LOGICAL :: NtilesThruMetFile = .FALSE. ! #199: Specify Ntiles thru met file
 
   END TYPE kbl_user_switches
 
@@ -200,7 +200,7 @@ MODULE cable_common_module
   TYPE(filenames_type) :: filename
 
   ! hydraulic_redistribution switch _soilsnow module
-  LOGICAL :: redistrb = .FALSE.  
+  LOGICAL :: redistrb = .FALSE.
 
   ! hydraulic_redistribution parameters _soilsnow module
   REAL :: wiltParam=0.5, satuParam=0.8
@@ -209,41 +209,62 @@ MODULE cable_common_module
      !Below are the soil properties for fully organic soil
 
      REAL ::    &
-          hyds_vec_organic  = 1.0e-4,&
-          sucs_vec_organic = 10.3,   &
-          clappb_organic = 2.91,     &
-          ssat_vec_organic = 0.9,    &
-          watr_organic   = 0.1,     &
-          sfc_vec_hk      = 1.157407e-06, &
-          swilt_vec_hk      = 2.31481481e-8
+          hyds_vec  = 1.0e-4,&
+          sucs_vec = 10.3,   &
+          bch_vec = 2.91,     &
+          ssat_vec = 0.9,    &
+          watr = 0.1,     &
+          css_vec = 4000.0, &
+          cnsd_vec = 0.1
 
   END TYPE organic_soil_params
 
   TYPE gw_parameters_type
 
      REAL ::                   &
-          MaxHorzDrainRate=2e-4,  & !anisintropy * q_max [qsub]
-          EfoldHorzDrainRate=2.0, & !e fold rate of q_horz
-          MaxSatFraction=2500.0,     & !parameter controll max sat fraction
-          hkrz=0.5,               & !hyds_vec variation with z
-          zdepth=1.5,             & !level where hyds_vec(z) = hyds_vec(no z)
-          frozen_frac=0.05,       & !ice fraction to determine first non-frozen layer for qsub
-          SoilEvapAlpha = 1.0,    & !modify field capacity dependence of soil evap limit
-          IceAlpha=3.0,           &
-          IceBeta=1.0
+       MaxHorzDrainRate=2e-4,  & !anisintropy * q_max [qsub]
+       EfoldHorzDrainRate=2.0, & !e fold rate of q_horz
+       EfoldHorzDrainScale=1.0, & !e fold rate of q_horz
+       MaxSatFraction=2500.0,     & !parameter controll max sat fraction
+       hkrz=0.5,               & !hyds_vec variation with z
+       zdepth=1.5,             & !level where hyds_vec(z) = hyds_vec(no z)
+       frozen_frac=0.05,       & !ice fraction to determine first non-frozen layer for qsub
+       SoilEvapAlpha = 1.0,    & !modify field capacity dependence of soil evap limit
+       IceAlpha=3.0,           &
+       IceBeta=1.0,            &
+       sfc_vec_hk      = 1.157407e-06, &
+       swilt_vec_hk      = 2.31481481e-8
+
 
      REAL :: ice_impedence=5.0
+     real :: ssat_wet_factor=0.85
+                   !hysteresis reduces ssat due to air entra[pment
 
      TYPE(organic_soil_params) :: org
-
+     INTEGER :: aquifer_recharge_function=-1  !0=>no flux,1=>assume gw at hydrostat eq
      INTEGER :: level_for_satfrac = 6
-     LOGICAL :: ssgw_ice_switch = .FALSE.
+     LOGICAL :: ssgw_ice_switch = .false.
 
-     LOGICAL :: subsurface_sat_drainage = .TRUE.
-
+     LOGICAL :: subsurface_sat_drainage = .true.
+     LOGICAL :: cosby_univariate=.false.
+     LOGICAL :: cosby_multivariate=.false.
+     LOGICAL :: HC_SWC=.false. !use Hutson Cass modified brooks corey
+                               !seperates wet/dry to remove need for watr and
+                               !gives better numerical behavoir for soln
+     LOGICAL :: BC_hysteresis=.false.
   END TYPE gw_parameters_type
 
   TYPE(gw_parameters_type), SAVE :: gw_params
+
+  REAL, DIMENSION(17),SAVE :: psi_c = (/-2550000.0,-2550000.0,-2550000.0, &
+                                  -2240000.0,-4280000.0,-2750000.0,-2750000.0,&
+                                  -2750000.0,-2750000.0,-2750000.0,-2750000.0,-2750000.0,&
+                                  -2750000.0,-2750000.0,-2750000.0,-2750000.0,-2750000.0/)
+
+  REAL, DIMENSION(17),SAVE :: psi_o = (/-66000.0,-66000.0,-66000.0,&
+                                  -35000.0,-83000.0,-74000.0,-74000.0,&
+                                  -74000.0,-74000.0,-74000.0,-74000.0,-74000.0,&
+                                  -74000.0,-74000.0,-74000.0,-74000.0,-74000.0/)
 
   REAL, SAVE ::        &!should be able to change parameters!!!
        max_glacier_snowd=1100.0,&
