@@ -815,7 +815,7 @@ contains
                   casabiome%vcmax_scalar(ivt) )
              veg%ejmax(np) = bjvref(np) * veg%vcmax(np)
           endif
-          veg%c4kci(np) = effc4 * veg%vcmax(np)
+          veg%c4kci(np) = effc4 * veg%vcmax(np)  ! not used for C3 plants
           
           ! calculate minimum possible Vcmax
           if (ivt .EQ. 7 .OR. ivt .EQ. 10) then
@@ -845,9 +845,8 @@ write(86,*) "nleafx(np):", nleafx
              !if (ABS(vcmaxx(np) - veg%vcmax(np)) .GT. 1.0E-08 .OR. ktau==1) then
              if (ktau==1) then
                 ! C4 plants: first time step only because Vcmax does not change with N            
-                call adjust_k_Collatz(veg,np)
-             endif
-                
+                call adjust_k_Collatz(veg,np)                
+             endif            
              ! adjust parameters
              if (len(trim(cable_user%gm_LUT_file)) .gt. 1) then
                 if (.not. veg%is_read_gmLUT) then

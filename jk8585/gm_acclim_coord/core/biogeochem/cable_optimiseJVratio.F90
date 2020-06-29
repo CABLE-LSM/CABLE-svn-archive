@@ -212,7 +212,7 @@ CONTAINS
   ! Copied from cable_canopy.f90 (is there a better way??)
   ! ------------------------------------------------------------------------------
   
-  subroutine fAn(a, b, c, A2)
+  subroutine fAn_c3(a, b, c, A2)
     
     use cable_def_types_mod, only: r_2
 
@@ -226,7 +226,7 @@ CONTAINS
     s2 = b**2 - 4.0_r_2 * a * c
     A2 = (-b - sqrt(s2))/(2.0_r_2 * a)
     
-  end subroutine fAn
+  end subroutine fAn_c3
   
   ! ------------------------------------------------------------------------------
   
@@ -282,7 +282,7 @@ CONTAINS
   
   ! ------------------------------------------------------------------------------
   
-  subroutine fAm(a, b, c1, d, p, q, Am)
+  subroutine fAm_c3(a, b, c1, d, p, q, Am)
 
     use cable_def_types_mod, only: r_2
     use mo_constants, only: pi => pi_dp
@@ -295,11 +295,11 @@ CONTAINS
     real(r_2) :: p3, pq, k
     
     p3 = -p/3.0_r_2
-    pq = min(3.0_r_2*q/(2.0_r_2*p)*sqrt(1.0_r_2/p3), 1.0_r_2)
+    pq = min(3.0_r_2*q/(2.0_r_2*p)*sqrt(1.0_r_2/p3), 0.999999999999_r_2)
     k  = 1.0_r_2
     Am = 2.0_r_2*sqrt(p3)*cos(acos(pq)/3.0_r_2 - 2.0_r_2*pi*k/3.0_r_2) - b/(3.0_r_2*a)
     
-  end subroutine fAm
+  end subroutine fAm_c3
   
   ! ------------------------------------------------------------------------------
 
@@ -362,27 +362,27 @@ CONTAINS
              if (TRIM(cable_user%g0_switch) == 'default') then
                 CALL fabcd(cs(k), g0(k)*fwsoil(k), x, gamm, beta, gammastar, Rd, gm, a, b, c1, d)
                 CALL fpq(a, b, c1, d, p, q)
-                CALL fAm(a, b, c1, d, p, q, Anc)
+                CALL fAm_c3(a, b, c1, d, p, q, Anc)
              elseif (TRIM(cable_user%g0_switch) == 'maximum') then
                 CALL fabcd(cs(k), 0.0, x, gamm, beta, gammastar, Rd, gm, a, b, c1, d)
                 CALL fpq(a, b, c1, d, p, q)
-                CALL fAm(a, b, c1, d, p, q, Anc)
+                CALL fAm_c3(a, b, c1, d, p, q, Anc)
                 if (g0(k)*fwsoil(k) .gt. Anc*x/cs(k)) then
                    CALL fabcd(cs(k), g0(k)*fwsoil(k), 0.0, gamm, beta, gammastar, Rd, gm, a, b, c1, d)
                    CALL fpq(a, b, c1, d, p, q)
-                   CALL fAm(a, b, c1, d, p, q, Anc)
+                   CALL fAm_c3(a, b, c1, d, p, q, Anc)
                 endif
              endif
           else  ! infinite (implicit) gm
              if (TRIM(cable_user%g0_switch) == 'default') then
                 CALL fabc(cs(k), g0(k)*fwsoil(k), x, gamm, beta, gammastar, Rd, a, b, c1)
-                CALL fAn(a, b, c1, Anc) ! rubisco-limited
+                CALL fAn_c3(a, b, c1, Anc) ! rubisco-limited
              elseif (TRIM(cable_user%g0_switch) == 'maximum') then
                 CALL fabc(cs(k), 0.0, x, gamm, beta, gammastar, Rd, a, b, c1)
-                CALL fAn(a, b, c1, Anc) ! rubisco-limited
+                CALL fAn_c3(a, b, c1, Anc) ! rubisco-limited
                 if (g0(k)*fwsoil(k) .gt. Anc*x/cs(k)) then
                    CALL fabc(cs(k), g0(k)*fwsoil(k), 0.0, gamm, beta, gammastar, Rd, a, b, c1)
-                   CALL fAn(a, b, c1, Anc) ! rubisco-limited
+                   CALL fAn_c3(a, b, c1, Anc) ! rubisco-limited
                 endif
              endif
           endif
@@ -400,27 +400,27 @@ CONTAINS
              if (TRIM(cable_user%g0_switch) == 'default') then
                 CALL fabcd(cs(k), g0(k)*fwsoil(k), x, gamm, beta, gammastar, Rd, gm, a, b, c1, d)
                 CALL fpq(a, b, c1, d, p, q)
-                CALL fAm(a, b, c1, d, p, q, Ane)
+                CALL fAm_c3(a, b, c1, d, p, q, Ane)
              elseif (TRIM(cable_user%g0_switch) == 'maximum') then
                 CALL fabcd(cs(k), 0.0, x, gamm, beta, gammastar, Rd, gm, a, b, c1, d)
                 CALL fpq(a, b, c1, d, p, q)
-                CALL fAm(a, b, c1, d, p, q, Ane)
+                CALL fAm_c3(a, b, c1, d, p, q, Ane)
                 if (g0(k)*fwsoil(k) .gt. Ane*x/cs(k)) then
                    CALL fabcd(cs(k), g0(k)*fwsoil(k), 0.0, gamm, beta, gammastar, Rd, gm, a, b, c1, d)
                    CALL fpq(a, b, c1, d, p, q)
-                   CALL fAm(a, b, c1, d, p, q, Ane)
+                   CALL fAm_c3(a, b, c1, d, p, q, Ane)
                 endif
              endif
           else ! infinite (implicit) gm
              if (TRIM(cable_user%g0_switch) == 'default') then
                 CALL fabc(cs(k), g0(k)*fwsoil(k), x, gamm, beta, gammastar, Rd, a, b, c1)
-                CALL fAn(a,b,c1,Ane) ! e-transport limited
+                CALL fAn_c3(a,b,c1,Ane) ! e-transport limited
              elseif (TRIM(cable_user%g0_switch) == 'maximum') then  
                 CALL fabc(cs(k), 0.0, x, gamm, beta, gammastar, Rd, a, b, c1)
-                CALL fAn(a,b,c1,Ane) ! e-transport limited
+                CALL fAn_c3(a,b,c1,Ane) ! e-transport limited
                 if (g0(k)*fwsoil(k) .gt. Ane*x/cs(k)) then
                    CALL fabc(cs(k), g0(k)*fwsoil(k), 0.0, gamm, beta, gammastar, Rd, a, b, c1)
-                   CALL fAn(a, b, c1, Ane) ! e-transport limited
+                   CALL fAn_c3(a, b, c1, Ane) ! e-transport limited
                 endif
              endif
           endif
@@ -499,27 +499,27 @@ CONTAINS
              if (TRIM(cable_user%g0_switch) == 'default') then
                 CALL fabcd(cs(k), g0(k)*fwsoil(k), x, gamm, beta, gammastar, Rd, gm, a, b, c1, d)
                 CALL fpq(a,b,c1,d,p,q)
-                CALL fAm(a,b,c1,d,p,q,Anc)
+                CALL fAm_c3(a,b,c1,d,p,q,Anc)
              elseif (TRIM(cable_user%g0_switch) == 'maximum') then
                 CALL fabcd(cs(k),0.0, x, gamm, beta, gammastar, Rd, gm, a, b, c1, d)
                 CALL fpq(a,b,c1,d,p,q)
-                CALL fAm(a,b,c1,d,p,q,Anc)
+                CALL fAm_c3(a,b,c1,d,p,q,Anc)
                 if (g0(k)*fwsoil(k) .gt. Anc*x/cs(k)) then
                    CALL fabcd(cs(k),g0(k)*fwsoil(k), 0.0, gamm, beta, gammastar, Rd, gm, a, b, c1, d)
                    CALL fpq(a,b,c1,d,p,q)
-                   CALL fAm(a,b,c1,d,p,q,Anc)
+                   CALL fAm_c3(a,b,c1,d,p,q,Anc)
                 endif
              endif
           else ! infinite (implicit) gm
              if (TRIM(cable_user%g0_switch) == 'default') then
                 CALL fabc(cs(k), g0(k)*fwsoil(k), x, gamm, beta, gammastar, Rd, a, b, c1)
-                CALL fAn(a,b,c1,Anc) ! rubisco-limited
+                CALL fAn_c3(a,b,c1,Anc) ! rubisco-limited
              elseif (TRIM(cable_user%g0_switch) == 'maximum') then    
                 CALL fabc(cs(k),0.0, x, gamm, beta, gammastar, Rd, a, b, c1)
-                CALL fAn(a,b,c1,Anc) ! rubisco-limited     
+                CALL fAn_c3(a,b,c1,Anc) ! rubisco-limited     
                 if (g0(k)*fwsoil(k) .gt. Anc*x/cs(k)) then
                    CALL fabc(cs(k), g0(k)*fwsoil(k), 0.0, gamm, beta, gammastar, Rd, a, b, c1)
-                   CALL fAn(a,b,c1,Anc) ! rubisco-limited
+                   CALL fAn_c3(a,b,c1,Anc) ! rubisco-limited
                 endif
              endif
           endif
@@ -537,27 +537,27 @@ CONTAINS
              if (TRIM(cable_user%g0_switch) == 'default') then
                 CALL fabcd(cs(k), g0(k)*fwsoil(k), x, gamm, beta, gammastar, Rd, gm, a, b, c1, d)
                 CALL fpq(a,b,c1,d,p,q)
-                CALL fAm(a,b,c1,d,p,q,Ane)
+                CALL fAm_c3(a,b,c1,d,p,q,Ane)
              elseif (TRIM(cable_user%g0_switch) == 'maximum') then
                 CALL fabcd(cs(k),0.0, x, gamm, beta, gammastar, Rd, gm, a, b, c1, d)
                 CALL fpq(a,b,c1,d,p,q)
-                CALL fAm(a,b,c1,d,p,q,Ane)
+                CALL fAm_c3(a,b,c1,d,p,q,Ane)
                 if (g0(k)*fwsoil(k) .gt. Ane*x/cs(k)) then
                    CALL fabcd(cs(k),g0(k)*fwsoil(k), 0.0, gamm, beta, gammastar, Rd, gm, a, b, c1, d)
                    CALL fpq(a,b,c1,d,p,q)
-                   CALL fAm(a,b,c1,d,p,q,Ane)
+                   CALL fAm_c3(a,b,c1,d,p,q,Ane)
                 endif
              endif
           else ! infinite (implicit) gm
              if (TRIM(cable_user%g0_switch) == 'default') then
                 CALL fabc(cs(k), g0(k)*fwsoil(k), x, gamm, beta, gammastar, Rd, a, b, c1)
-                CALL fAn(a,b,c1,Anc) ! rubisco-limited
+                CALL fAn_c3(a,b,c1,Anc) ! rubisco-limited
              elseif (TRIM(cable_user%g0_switch) == 'maximum') then    
                 CALL fabc(cs(k), 0.0, x, gamm, beta, gammastar, Rd, a, b, c1)
-                CALL fAn(a,b,c1,Ane) ! e-transport limited
+                CALL fAn_c3(a,b,c1,Ane) ! e-transport limited
                 if (g0(k)*fwsoil(k) .gt. Ane*x/cs(k)) then
                    CALL fabc(cs(k), g0(k)*fwsoil(k), 0.0, gamm, beta, gammastar, Rd, a, b, c1)
-                   CALL fAn(a,b,c1,Ane) ! e-transport limited
+                   CALL fAn_c3(a,b,c1,Ane) ! e-transport limited
                 endif
              endif
           endif
@@ -634,27 +634,27 @@ CONTAINS
              if (TRIM(cable_user%g0_switch) == 'default') then
                 CALL fabcd(cs(k), g0(k)*fwsoil(k), x, gamm, beta, gammastar, Rd, gm, a, b, c1, d)
                 CALL fpq(a,b,c1,d,p,q)
-                CALL fAm(a,b,c1,d,p,q,Anc)
+                CALL fAm_c3(a,b,c1,d,p,q,Anc)
              elseif (TRIM(cable_user%g0_switch) == 'maximum') then
                 CALL fabcd(cs(k), 0.0, x, gamm, beta, gammastar, Rd, gm, a, b, c1, d)
                 CALL fpq(a,b,c1,d,p,q)
-                CALL fAm(a,b,c1,d,p,q,Anc)
+                CALL fAm_c3(a,b,c1,d,p,q,Anc)
                 if (g0(k)*fwsoil(k) .gt. Anc*x/cs(k)) then
                    CALL fabcd(cs(k), g0(k)*fwsoil(k), 0.0, gamm, beta, gammastar, Rd, gm, a, b, c1, d)
                    CALL fpq(a,b,c1,d,p,q)
-                   CALL fAm(a,b,c1,d,p,q,Anc)
+                   CALL fAm_c3(a,b,c1,d,p,q,Anc)
                 endif
              endif
           else ! infinite (implicit) gm
              if (TRIM(cable_user%g0_switch) == 'default') then
                 CALL fabc(cs(k), g0(k)*fwsoil(k), x, gamm, beta, gammastar, Rd, a, b, c1)
-                CALL fAn(a,b,c1,Anc) ! rubisco-limited
+                CALL fAn_c3(a,b,c1,Anc) ! rubisco-limited
              elseif (TRIM(cable_user%g0_switch) == 'maximum') then  
                 CALL fabc(cs(k), 0.0, x, gamm, beta, gammastar, Rd, a, b, c1)
-                CALL fAn(a,b,c1,Anc) ! rubisco-limited
+                CALL fAn_c3(a,b,c1,Anc) ! rubisco-limited
                 if (g0(k)*fwsoil(k) .gt. Anc*x/cs(k)) then
                    CALL fabc(cs(k), g0(k)*fwsoil(k), 0.0, gamm, beta, gammastar, Rd, a, b, c1)
-                   CALL fAn(a,b,c1,Anc) ! rubisco-limited
+                   CALL fAn_c3(a,b,c1,Anc) ! rubisco-limited
                 endif
              endif
           endif
@@ -673,27 +673,27 @@ CONTAINS
              if (TRIM(cable_user%g0_switch) == 'default') then
                 CALL fabcd(cs(k), g0(k)*fwsoil(k), x, gamm, beta, gammastar, Rd, gm, a, b, c1, d)
                 CALL fpq(a,b,c1,d,p,q)
-                CALL fAm(a,b,c1,d,p,q,Ane)
+                CALL fAm_c3(a,b,c1,d,p,q,Ane)
              elseif (TRIM(cable_user%g0_switch) == 'maximum') then
                 CALL fabcd(cs(k), 0.0, x, gamm, beta, gammastar, Rd, gm, a, b, c1, d)
                 CALL fpq(a,b,c1,d,p,q)
-                CALL fAm(a,b,c1,d,p,q,Ane)
+                CALL fAm_c3(a,b,c1,d,p,q,Ane)
                 if (g0(k)*fwsoil(k) .gt. Ane*x/cs(k)) then
                    CALL fabcd(cs(k), g0(k)*fwsoil(k), 0.0, gamm, beta, gammastar, Rd, gm, a, b, c1, d)
                    CALL fpq(a,b,c1,d,p,q)
-                   CALL fAm(a,b,c1,d,p,q,Ane)
+                   CALL fAm_c3(a,b,c1,d,p,q,Ane)
                 endif
              endif
           else ! infinite (implicit) gm
              if (TRIM(cable_user%g0_switch) == 'default') then
                 CALL fabc(cs(k), g0(k)*fwsoil(k), x, gamm, beta, gammastar, Rd, a, b, c1)
-                CALL fAn(a,b,c1,Ane) ! e-transport limited
+                CALL fAn_c3(a,b,c1,Ane) ! e-transport limited
              elseif (TRIM(cable_user%g0_switch) == 'maximum') then  
                 CALL fabc(cs(k), 0.0, x, gamm, beta, gammastar, Rd, a, b, c1)
-                CALL fAn(a,b,c1,Ane) ! e-transport limited
+                CALL fAn_c3(a,b,c1,Ane) ! e-transport limited
                 if (g0(k)*fwsoil(k) .gt. Ane*x/cs(k)) then
                    CALL fabc(cs(k), g0(k)*fwsoil(k), 0.0, gamm, beta, gammastar, Rd, a, b, c1)
-                   CALL fAn(a,b,c1,Ane) ! e-transport limited
+                   CALL fAn_c3(a,b,c1,Ane) ! e-transport limited
                 endif
              endif
           endif
@@ -850,18 +850,18 @@ CONTAINS
           if (cable_user%explicit_gm) then
              CALL fabcd(cs(k), 0.0, x, gamm, beta, gammastar, Rd, gm, a, b, c1, d)
              CALL fpq(a,b,c1,d,p,q)
-             CALL fAm(a,b,c1,d,p,q,Anc)
+             CALL fAm_c3(a,b,c1,d,p,q,Anc)
              if (g0(k)*fwsoil(k) .gt. Anc*x/cs(k)) then
                 CALL fabcd(cs(k), g0(k)*fwsoil(k), 0.0, gamm, beta, gammastar, Rd, gm, a, b, c1, d)
                 CALL fpq(a,b,c1,d,p,q)
-                CALL fAm(a,b,c1,d,p,q,Anc)
+                CALL fAm_c3(a,b,c1,d,p,q,Anc)
              endif
           else ! infinite (implicit) gm
              CALL fabc(cs(k), 0.0, x, gamm, beta, gammastar, Rd, a, b, c1)
-             CALL fAn(a,b,c1,Anc)
+             CALL fAn_c3(a,b,c1,Anc)
              if (g0(k)*fwsoil(k) .gt. Anc*x/cs(k)) then
                 CALL fabc(cs(k), g0(k)*fwsoil(k), 0.0, gamm, beta, gammastar, Rd, a, b, c1)
-                CALL fAn(a,b,c1,Anc) ! rubisco-limited
+                CALL fAn_c3(a,b,c1,Anc) ! rubisco-limited
              endif
           endif
 
@@ -878,18 +878,18 @@ CONTAINS
           if (cable_user%explicit_gm) then
              CALL fabcd(cs(k), 0.0, x, gamm, beta, gammastar, Rd, gm, a, b, c1, d)
              CALL fpq(a,b,c1,d,p,q)
-             CALL fAm(a,b,c1,d,p,q,Ane)
+             CALL fAm_c3(a,b,c1,d,p,q,Ane)
              if (g0(k)*fwsoil(k) .gt. Ane*x/cs(k)) then
                 CALL fabcd(cs(k), g0(k)*fwsoil(k), 0.0, gamm, beta, gammastar, Rd, gm, a, b, c1, d)
                 CALL fpq(a,b,c1,d,p,q)
-                CALL fAm(a,b,c1,d,p,q,Ane)
+                CALL fAm_c3(a,b,c1,d,p,q,Ane)
              endif
           else ! infinite (implicit) gm
              CALL fabc(cs(k), 0.0, x, gamm, beta, gammastar, Rd, a, b, c1)
-             CALL fAn(a,b,c1,Ane)
+             CALL fAn_c3(a,b,c1,Ane)
              if (g0(k)*fwsoil(k) .gt. Ane*x/cs(k)) then
                 CALL fabc(cs(k), g0(k)*fwsoil(k), 0.0, gamm, beta, gammastar, Rd, a, b, c1)
-                CALL fAn(a,b,c1,Ane) ! e-transport limited
+                CALL fAn_c3(a,b,c1,Ane) ! e-transport limited
              endif
           endif
 

@@ -384,7 +384,8 @@ write(84,*) 'iteration:', i
     integer  :: lAn
     real(dp) :: diff, diffx
     real(dp), dimension(nrcic4) :: An_Ci1, Ci1, Aj_Ci, Ae_Ci
-    real(dp), dimension(:), allocatable :: An_Ci, An_Cc, Ci, Cc 
+    real(dp), dimension(:), allocatable :: An_Ci, An_Cc, Ci, Cc
+    real(dp) :: kinc=0.001_dp  ! increment of k
     
     if (veg%frac4(p) .gt. 0.001_dp) then ! C4
        Ci1       = (/(real(i,dp),i=1,nrcic4,1)/) / 4.0_dp * 1.0e-6_dp 
@@ -428,11 +429,11 @@ write(84,*) 'iteration:', i
           endif
           An_Cc = k25Cc * Cc - Rd
           diff = sqrt(sum((An_Cc - An_Ci)**2)/lAn)
-          k25Cc = k25Cc + 0.001_dp
+          k25Cc = k25Cc + kinc
           k = k + 1
        End Do
 
-       veg%c4kcc(p) = real(k25Cc - 0.002_dp) ! single precision
+       veg%c4kcc(p) = real(k25Cc - 2*kinc) ! single precision
        ! subtract 2x the increment to get the right value
 
     else   ! C3 (not used)
