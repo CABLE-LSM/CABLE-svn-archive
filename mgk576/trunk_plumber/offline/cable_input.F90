@@ -675,7 +675,7 @@ CONTAINS
        exists%patch = .TRUE.
        ok = NF90_INQUIRE_DIMENSION(ncid_met,patchdimID,len=nmetpatches)
     END IF
-    nmetpatches = 1       ! initialised so that old met files without patch
+    !nmetpatches = 1       ! initialised so that old met files without patch
 
     ! Check if monthly dimension exists for LAI info
     ok = NF90_INQ_DIMID(ncid_met,'monthly', monthlydimID)
