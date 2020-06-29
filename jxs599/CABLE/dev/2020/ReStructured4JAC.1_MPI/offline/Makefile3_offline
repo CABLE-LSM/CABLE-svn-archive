@@ -70,6 +70,7 @@ LSRC = cable_pft_params.F90  \
 	cable_roughness.F90        \
 	cable_carbon.F90           \
 	cable_canopy.F90           \
+	dryLeaf.F90           \
 	cable_sli_main.F90         \
 	cable_sli_numbers.F90      \
 	cable_sli_roots.F90        \
@@ -170,7 +171,9 @@ cbl_snow_albedo.o: cbl_snow_albedo.F90 cbl_soilColour_albedo.o cable_phys_consta
 
 cbl_soilColour_albedo.o: cbl_soilColour_albedo.F90 
 
-cable_canopy.o: cable_canopy.F90 cable_define_types.o cbl_radiation.o cable_roughness.o cable_air.o cable_common.o cable_data.o cable_sli_utils.o cable_sli_main.o cable_gw_hydro.o cable_iovars.o cable_psm.o cable_gw_hydro.o cable_phys_constants_mod.o
+dryLeaf.o: dryLeaf.F90 cable_define_types.o cable_common.o
+
+cable_canopy.o: cable_canopy.F90 dryLeaf.o cable_define_types.o cbl_radiation.o cable_roughness.o cable_air.o cable_common.o cable_data.o cable_sli_utils.o cable_sli_main.o cable_gw_hydro.o cable_iovars.o cable_psm.o cable_gw_hydro.o cable_phys_constants_mod.o
 
 cbl_soilsnow_main.o: cbl_soilsnow_main.F90 cable_iovars.o cable_define_types.o cable_common.o cable_data.o cable_constants.o cbl_soilsnow_subrs.o
 cbl_soilsnow_subrs.o: cbl_soilsnow_subrs.F90 cable_iovars.o cable_define_types.o cable_common.o cable_data.o cable_constants.o
