@@ -108,18 +108,28 @@ module cable_data_module
                                      ! with photosyn. optimisation (coord = FALSE)
       real :: gam1      = 0.0509
       real :: gam2      = 0.0010
-      real :: gam0      = 42.75E-6   ! Ci-based Gammastar (mol mol-1) 
-      real :: gam0cc    = 37.43E-6   ! Cc-based Gammastar (mol mol-1)
+      ! Ci-based Rubisco kinetic constants from Bernacchi et al. 2001 
+      real :: gam0      = 42.75E-6   ! Ci-based Gammastar (mol mol-1)
       real :: conkc0    = 404.9E-6   ! Ci-based MM constant for CO2 (mol mol-1)
-      real :: conkc0cc  = 272.38E-6  ! Cc-based MM constant for CO2 (mol mol-1)
       real :: conko0    = 278.4E-3   ! Ci-based MM constant for O2 (mol mol-1)
-      real :: conko0cc  = 165.82E-3  ! Cc-based MM constant for O2 (mol mol-1)
       real :: egam      = 37830.0    ! activation energy for Gammastar_Ci (J mol-1)
-      real :: egamcc    = 24460.0    ! activation energy for Gammastar_Cc (J mol-1)
       real :: ekc       = 79430.0    ! activation energy for conkc (J mol-1)
-      real :: ekccc     = 80990.0    ! activation energy for conkccc (J mol-1)
       real :: eko       = 36380.0    ! activation energy for conko (J mol-1)
+      ! Cc-based Rubisco kinetic constants from Bernacchi et al. 2002
+      real :: gam0cc    = 37.43E-6   ! Cc-based Gammastar (mol mol-1)
+      real :: conkc0cc  = 272.38E-6  ! Cc-based MM constant for CO2 (mol mol-1)
+      real :: conko0cc  = 165.82E-3  ! Cc-based MM constant for O2 (mol mol-1)
+      real :: egamcc    = 24460.0    ! activation energy for Gammastar_Cc (J mol-1)
+      real :: ekccc     = 80990.0    ! activation energy for conkccc (J mol-1)
       real :: ekocc     = 23720.0    ! activation energy for conkocc (J mol-1)
+      ! Cc-based Rubisco kinetic constants from Walker et al. 2013 (A. thaliana)
+      real :: gam0ccw   = 36.40E-6   ! Cc-based Gammastar (mol mol-1)
+      real :: conkc0ccw = 265.00E-6  ! Cc-based MM constant for CO2 (mol mol-1)
+      real :: conko0ccw = 201.00E-3  ! Cc-based MM constant for O2 (mol mol-1)
+      real :: egamccw   = 33700.0    ! activation energy for Gammastar_Cc (J mol-1)
+      real :: ekcccw    = 49700.0    ! activation energy for conkccc (J mol-1)
+      real :: ekoccw    = 29100.0    ! activation energy for conkocc (J mol-1)
+      ! other constants
       real :: rgbwc     = 1.32
       real :: rgswc     = 1.57
       real :: tmaxj     = 45.0
@@ -183,9 +193,11 @@ module cable_data_module
          RGSWC, BJVREF, RELCOSTJ_COORD,                                        &
          RELCOSTJ_OPTIM, GAM1, GAM2,                                           &
          GAM0, CONKC0, CONKO0,                                                 &
-         GAM0CC, CONKC0CC, CONKO0CC,                                           &
          EGAM, EKC, EKO,                                                       &
+         GAM0CC, CONKC0CC, CONKO0CC,                                           &
          EGAMCC, EKCCC, EKOCC,                                                 &
+         GAM0CCW, CONKC0CCW, CONKO0CCW,                                        &
+         EGAMCCW, EKCCCW, EKOCCW,                                              &
          RGBWC,TREFK, QS, QM,                                                  &
          ! math constants
          PI_C,                                                                 &
@@ -344,24 +356,30 @@ SUBROUTINE canopy_type_ptr(C)
 
    !photosynthetic constants
    C%RGSWC     => PHOTO%RGSWC
-   C%GAM0      => PHOTO%GAM0
-   C%GAM2      => PHOTO%GAM2
    C%RGBWC     => PHOTO%RGBWC
    C%BJVREF    => PHOTO%BJVREF
    C%RELCOSTJ_COORD => PHOTO%RELCOSTJ_COORD
    C%RELCOSTJ_OPTIM => PHOTO%RELCOSTJ_OPTIM
    C%GAM1      => PHOTO%GAM1
-   C%GAM0CC    => PHOTO%GAM0CC
+   C%GAM2      => PHOTO%GAM2
+   C%GAM0      => PHOTO%GAM0
    C%CONKC0    => PHOTO%CONKC0
-   C%CONKC0CC  => PHOTO%CONKC0CC
    C%CONKO0    => PHOTO%CONKO0
-   C%CONKO0CC  => PHOTO%CONKO0CC
    C%EGAM      => PHOTO%EGAM
-   C%EGAMCC    => PHOTO%EGAMCC
    C%EKC       => PHOTO%EKC
-   C%EKCCC     => PHOTO%EKCCC
    C%EKO       => PHOTO%EKO
+   C%GAM0CC    => PHOTO%GAM0CC   
+   C%CONKC0CC  => PHOTO%CONKC0CC
+   C%CONKO0CC  => PHOTO%CONKO0CC
+   C%EGAMCC    => PHOTO%EGAMCC
+   C%EKCCC     => PHOTO%EKCCC
    C%EKOCC     => PHOTO%EKOCC
+   C%GAM0CCW   => PHOTO%GAM0CCW   
+   C%CONKC0CCW => PHOTO%CONKC0CCW
+   C%CONKO0CCW => PHOTO%CONKO0CCW
+   C%EGAMCCW   => PHOTO%EGAMCCW
+   C%EKCCCW    => PHOTO%EKCCCW
+   C%EKOCCW    => PHOTO%EKOCCW
    C%TREFK     => PHOTO%TREFK
    C%QS        => PHOTO%QS
    C%QM        => PHOTO%QM

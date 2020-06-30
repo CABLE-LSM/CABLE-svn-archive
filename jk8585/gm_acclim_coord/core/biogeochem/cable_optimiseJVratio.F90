@@ -75,32 +75,39 @@ CONTAINS
     CALL point2constants(C)
 
     DO k=1,mp
-       if (veg%frac4(k).lt.0.001) then ! not C4
-
+       if (veg%frac4(k).lt.0.001) then ! not C4       
           if (cable_user%explicit_gm) then
+             if (trim(cable_user%Rubisco_parameters) == 'Bernacchi_2002') then
+                gam0 = C%gam0cc
+                Kc0  = C%conkc0cc
+                Ko0  = C%conko0cc
+                egam = C%egamcc
+                ekc  = C%ekccc
+                eko  = C%ekocc
+             else if (trim(cable_user%Rubisco_parameters) == 'Walker_2013') then
+                gam0 = C%gam0ccw
+                Kc0  = C%conkc0ccw
+                Ko0  = C%conko0ccw
+                egam = C%egamccw
+                ekc  = C%ekcccw
+                eko  = C%ekoccw
+             endif
              gm0  = veg%gm(k)
-             vcmax00 = veg%vcmaxcc(k) ! vcmax at standard temperature (25degC) 
-             Kc0  = C%conkc0cc
-             Ko0  = C%conko0cc
-             ekc  = C%ekccc
-             eko  = C%ekocc
-             gam0 = C%gam0cc
-             egam = C%egamcc
+             vcmax00 = veg%vcmaxcc(k) ! vcmax at standard temperature (25degC)
              qs   = C%qs
              qm   = C%qm
           else 
-             gm0  = veg%gm(k)    ! used in code but not in solution if explicit_gm = false
-             vcmax00 = veg%vcmax(k) ! vcmax at standard temperature (25degC)
              Kc0  = C%conkc0
              Ko0  = C%conko0
              ekc  = C%ekc
              eko  = C%eko
              gam0 = C%gam0
              egam = C%egam
+             gm0  = veg%gm(k)    ! used in code but not in solution if explicit_gm = false
+             vcmax00 = veg%vcmax(k) ! vcmax at standard temperature (25degC)
              qs   = 1.0
              qm   = 0.0
           endif
-
           g1  = veg%g1(k)
           Rd0 = veg%cfrd(k) * veg%vcmax(k)
           ! soil-moisture modifier to stomatal conductance

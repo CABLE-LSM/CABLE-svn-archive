@@ -1728,12 +1728,21 @@ CONTAINS
 
              ! Choose Ci-based (implicit gm) or Cc-based (explicit gm) parameters
              if (cable_user%explicit_gm) then
-                gam0    = C%gam0cc
-                conkc0  = C%conkc0cc
-                conko0  = C%conko0cc
-                egam    = C%egamcc
-                ekc     = C%ekccc
-                eko     = C%ekocc
+                if (trim(cable_user%Rubisco_parameters) == 'Bernacchi_2002') then 
+                   gam0    = C%gam0cc
+                   conkc0  = C%conkc0cc
+                   conko0  = C%conko0cc
+                   egam    = C%egamcc
+                   ekc     = C%ekccc
+                   eko     = C%ekocc
+                else if (trim(cable_user%Rubisco_parameters) == 'Walker_2013') then
+                   gam0    = C%gam0ccw
+                   conkc0  = C%conkc0ccw
+                   conko0  = C%conko0ccw
+                   egam    = C%egamccw
+                   ekc     = C%ekcccw
+                   eko     = C%ekoccw
+                endif   
                 qs      = C%qs
                 qm      = C%qm
              else
@@ -1958,9 +1967,9 @@ CONTAINS
              !gmes(i,1) = gmes(i,1) * MAX(0.15_r_2,real(fwsoil(i)**qm,r_2))
              !gmes(i,2) = gmes(i,2) * MAX(0.15_r_2,real(fwsoil(i)**qm,r_2))
 
-write(77,*) "gmes(i,1):", gmes(i,1)
-write(77,*) "fwsoil(i):", fwsoil(i)
-write(77,*) "term:", MAX(0.15,fwsoil(i)**qm)
+!write(77,*) "gmes(i,1):", gmes(i,1)
+!write(77,*) "fwsoil(i):", fwsoil(i)
+!write(77,*) "term:", MAX(0.15,fwsoil(i)**qm)
              
              ! Ticket #56 added switch for Belinda Medlyn's model
              IF (cable_user%GS_SWITCH == 'leuning') THEN
@@ -3018,12 +3027,19 @@ write(77,*) "term:", MAX(0.15,fwsoil(i)**qm)
     real, intent(in) :: x
     real             :: z
 
-    real :: xgmes, TrefK, Rgas
+    real :: EHa, EHd, Entrop
+    real :: xgmes
 
-    real, parameter :: EHa    = 49.6e3  ! J/mol
-    real, parameter :: EHd    = 437.4e3 ! J/mol
-    real, parameter :: Entrop = 1.4e3   ! J/mol/K
-
+    if (trim(cable_user%Rubisco_parameters) == 'Bernacchi_2002') then
+       EHa    = 49.6e3  ! J/mol
+       EHd    = 437.4e3 ! J/mol
+       Entrop = 1.4e3   ! J/mol/K
+    else if (trim(cable_user%Rubisco_parameters) == 'Walker_2013') then
+       EHa    = 7.4e3   ! J/mol
+       EHd    = 434.0e3 ! J/mol
+       Entrop = 1.4e3   ! J/mol/K
+    endif
+       
     CALL point2constants(C)
 
     xgmes = exp(EHa * (x - C%TrefK) / (C%TrefK * C%Rgas * x )) * &
