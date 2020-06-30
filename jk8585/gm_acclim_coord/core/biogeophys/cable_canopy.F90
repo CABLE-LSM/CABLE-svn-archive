@@ -128,9 +128,6 @@ CONTAINS
          gbhu => null(),          & ! forcedConvectionBndryLayerCond
          gbhf => null(),          & ! freeConvectionBndryLayerCond
          csx => null()              ! leaf surface CO2 concentration
-    REAL(r_2), DIMENSION(:,:), POINTER ::  gmes => null()  ! mesophyll conductance
-    !mesophyll conductance extinction coeff't (Sun et al. 2014 SI Eq S7)
-    !REAL :: gmax0 ! max mesophyll conductacne at canopy top
     REAL :: rt_min
     REAL, DIMENSION(mp) :: zstar, rL, phist, csw, psihat,rt0bus
 
@@ -152,9 +149,7 @@ CONTAINS
     ALLOCATE(ecy(mp), hcy(mp), rny(mp))
     ALLOCATE(gbhf(mp,mf), csx(mp,mf))
     ALLOCATE(ghwet(mp))
-    ALLOCATE(gmes(mp,mf))
 
-    gmes = 0.0_r_2
 
     ! BATS-type canopy saturation proportional to LAI:
     cansat = veg%canst1 * canopy%vlaiw
@@ -380,21 +375,6 @@ CONTAINS
                 gbhu(j,2) = gbhu(j,2) * 2.0_r_2
              endif
 
-             if (cable_user%explicit_gm) then
-                ! JK: gmmax now comes from param file
-                !gmax0 = 2.47/10.1 ! molm-2s-1
-                !if (veg%iveg(j).eq.1) then
-                !   gmax0 = 1.21/10.1
-                !elseif (veg%iveg(j).eq.2) then
-                !   gmax0 = 1.36/10.1
-                !elseif (veg%iveg(j).eq.3) then
-                !   gmax0 = 2.14/10.1
-                !elseif (veg%iveg(j).eq.7) then
-                !   gmax0 = 0.3
-                !endif
-                gmes(j,1) = real(veg%gmmax(j) * rad%scalex(j,1), r_2) * xgmesT(tlfx(j))
-                gmes(j,2) = real(veg%gmmax(j) * rad%scalex(j,2), r_2) * xgmesT(tlfx(j))
-             endif              !
           ENDIF ! canopy%vlaiw(j) > C%LAI_THRESH
 
        ENDDO ! j=1, mp
@@ -408,7 +388,7 @@ CONTAINS
             veg, canopy, soil, ssnow, dsx, &
             fwsoil, tlfx, tlfy, ecy, hcy,  &
             rny, gbhu, gbhf, csx, cansat,  &
-            ghwet, iter, climate, gmes )
+            ghwet, iter, climate)
 
        CALL wetLeaf( dels, rad, air, met, &
             canopy, cansat, tlfy,    &
@@ -1478,7 +1458,7 @@ CONTAINS
        veg, canopy, soil, ssnow, dsx, &
        fwsoil, tlfx, tlfy, ecy, hcy, &
        rny, gbhu, gbhf, csx, &
-       cansat, ghwet, iter, climate, gmes )
+       cansat, ghwet, iter, climate)
 
     use cable_def_types_mod
     use cable_common_module
@@ -1513,7 +1493,7 @@ CONTAINS
     real(r_2), dimension(:),   intent(out)   :: ghwet  ! cond for heat for a wet canopy
     integer,                   intent(in)    :: iter
     type(climate_type),        intent(in)    :: climate
-    real(r_2), dimension(:,:), intent(inout) :: gmes             ! mesophyll conductance
+    !real(r_2), dimension(:,:), intent(inout) :: gmes    ! mesophyll conductance
 
     !local variables (JK: move parameters to different routine at some point)
     real, parameter :: jtomol = 4.6e-6  ! Convert from J to Mol for light
@@ -1580,7 +1560,8 @@ CONTAINS
          ansinkx,    & ! net photosynthesis (sink limited)
          anrubiscoy, & ! net photosynthesis (rubisco limited)
          anrubpy,    & ! net photosynthesis (rubp limited)
-         kc4           ! An-Ci slope in Collatz 1992 model
+         kc4,        & ! An-Ci slope in Collatz 1992 model
+         gmes          ! mesophyll conductance of big leaf
 
     real(r_2), dimension(mp,mf)  ::  dAnrubiscox, & ! CO2 elasticity of net photosynthesis (rubisco limited)
          dAnrubpx, &   !  (rubp limited)
@@ -1598,7 +1579,9 @@ CONTAINS
          conko0,  &
          egam,    &
          ekc,     &
-         eko
+         eko,     &
+         qs,      &
+         qm       
 
     ! real, dimension(:,:), pointer :: gswmin => null() ! min stomatal conductance
     ! real, dimension(:,:), allocatable :: gswmin ! min stomatal conductance
@@ -1751,6 +1734,8 @@ CONTAINS
                 egam    = C%egamcc
                 ekc     = C%ekccc
                 eko     = C%ekocc
+                qs      = C%qs
+                qm      = C%qm
              else
                 gam0   = C%gam0
                 conkc0 = C%conkc0
@@ -1758,6 +1743,8 @@ CONTAINS
                 egam   = C%egam
                 ekc    = C%ekc
                 eko    = C%eko
+                qs     = 1.0
+                qm     = 0.0 ! not used
              endif
 
 
@@ -1964,14 +1951,17 @@ CONTAINS
 
              endif !cable_user%call_climate
 
-             ! apply fwsoil to gmes
-!write(77,*) "gmes(i,1):", gmes(i,1)
-!write(77,*) "fwsoil(i):", fwsoil(i)
-!write(77,*) "term:", MAX(0.15_r_2,real(fwsoil(i),r_2))
+             ! calculate canopy-level mesophyll conductance  
+             gmes(i,1) = veg%gmmax(i) * rad%scalex(i,1) * xgmesT(tlfx(i)) * max(0.15,fwsoil(i)**qm)
+             gmes(i,2) = veg%gmmax(i) * rad%scalex(i,2) * xgmesT(tlfx(i)) * max(0.15,fwsoil(i)**qm)
 
-             !gmes(i,1) = gmes(i,1) * MAX(0.15_r_2,real(fwsoil(i),r_2))
-             !gmes(i,2) = gmes(i,2) * MAX(0.15_r_2,real(fwsoil(i),r_2))
+             !gmes(i,1) = gmes(i,1) * MAX(0.15_r_2,real(fwsoil(i)**qm,r_2))
+             !gmes(i,2) = gmes(i,2) * MAX(0.15_r_2,real(fwsoil(i)**qm,r_2))
 
+write(77,*) "gmes(i,1):", gmes(i,1)
+write(77,*) "fwsoil(i):", fwsoil(i)
+write(77,*) "term:", MAX(0.15,fwsoil(i)**qm)
+             
              ! Ticket #56 added switch for Belinda Medlyn's model
              IF (cable_user%GS_SWITCH == 'leuning') THEN
 
@@ -2003,24 +1993,23 @@ CONTAINS
                 vpd =  dsx(i)
 
                 ! vh re-write so that a1 and d0 are not correlated
-                gs_coeff(i,1) = ( fwsoil(i) / ( real(csx(i,1)) - co2cp(i,1) ) ) &
+                gs_coeff(i,1) = ( fwsoil(i)**qs / ( real(csx(i,1)) - co2cp(i,1) ) ) &
                      * ( 1.0 / ( 1.0/veg%a1gs(i) + (vpd/veg%d0gs(i))))
 
-                gs_coeff(i,2) = ( fwsoil(i) / ( real(csx(i,2)) - co2cp(i,2) ) ) &
+                gs_coeff(i,2) = ( fwsoil(i)**qs / ( real(csx(i,2)) - co2cp(i,2) ) ) &
                      * ( 1.0 / ( 1.0/veg%a1gs(i) + (vpd/veg%d0gs(i))))
 
-                ! gs_coeff(i,1) = ( fwsoil(i) / ( csx(i,1) - co2cp3 ) ) &
+                ! gs_coeff(i,1) = ( fwsoil(i)**qs / ( csx(i,1) - co2cp3 ) ) &
                 !      * ( veg%a1gs(i) / ( 1.0 + dsx(i)/veg%d0gs(i)))
 
-                ! gs_coeff(i,2) = ( fwsoil(i) / ( csx(i,2) - co2cp3 ) ) &
+                ! gs_coeff(i,2) = ( fwsoil(i)**qs / ( csx(i,2) - co2cp3 ) ) &
                 !      * ( veg%a1gs(i) / ( 1.0 + dsx(i)/veg%d0gs(i)))
 
                 ! Medlyn BE et al (2011) Global Change Biology 17: 2134-2144.
              ELSEIF(cable_user%GS_SWITCH == 'medlyn') THEN
                 gswmin(i,1) = veg%g0(i) * rad%scalex(i,1)
                 gswmin(i,2) = veg%g0(i) * rad%scalex(i,2)
-write(82,*) "gswmin(:,1):", gswmin(i,1)
-write(82,*) "veg%g0:", veg%g0                
+                
                 IF (dsx(i) < 50.0) THEN
                    vpd  = 0.05 ! kPa
                 ELSE
@@ -2030,15 +2019,16 @@ write(82,*) "veg%g0:", veg%g0
 
                 g1 = veg%g1(i)
 
-                !gs_coeff(i,1) = (1.0* fwsoil(i) + (g1 * fwsoil(i)) / SQRT(vpd)) / csx(i,1)
-                !gs_coeff(i,2) = (1.0* fwsoil(i) + (g1 * fwsoil(i)) / SQRT(vpd)) / csx(i,2)
+                !gs_coeff(i,1) = (1.0* fwsoil(i)**qs + (g1 * fwsoil(i)**qs) / SQRT(vpd)) / csx(i,1)
+                !gs_coeff(i,2) = (1.0* fwsoil(i)**qs + (g1 * fwsoil(i)**qs) / SQRT(vpd)) / csx(i,2)
 
+                ! gs_coeff for CO2, hence no 1.6 factor as in the original model
                 if (fwsoil(i) .LE. 0.05) then
-                   gs_coeff(i,1) = (1.0* fwsoil(i) + (g1 * fwsoil(i)) / SQRT(vpd)) / real(csx(i,1))
-                   gs_coeff(i,2) = (1.0* fwsoil(i) + (g1 * fwsoil(i)) / SQRT(vpd)) / real(csx(i,2))
+                   gs_coeff(i,1) = (1.0* fwsoil(i)**qs + (g1 * fwsoil(i)**qs) / SQRT(vpd)) / real(csx(i,1))
+                   gs_coeff(i,2) = (1.0* fwsoil(i)**qs + (g1 * fwsoil(i)**qs) / SQRT(vpd)) / real(csx(i,2))
                 else
-                   gs_coeff(i,1) = (1.0 + (g1 * fwsoil(i)) / SQRT(vpd)) / real(csx(i,1))
-                   gs_coeff(i,2) = (1.0 + (g1 * fwsoil(i)) / SQRT(vpd)) / real(csx(i,2))
+                   gs_coeff(i,1) = (1.0 + (g1 * fwsoil(i)**qs) / SQRT(vpd)) / real(csx(i,1))
+                   gs_coeff(i,2) = (1.0 + (g1 * fwsoil(i)**qs) / SQRT(vpd)) / real(csx(i,2))
                 endif
 
              ELSE
@@ -2065,7 +2055,7 @@ write(82,*) "veg%g0:", veg%g0
                               ! Ticket #56, xleuning replaced with gs_coeff here
             gs_coeff(:,:), rad%fvlai(:,:), &
             spread(abs_deltlf,2,mf), &
-            anx(:,:), fwsoil(:), gmes(:,:), kc4(:,:), &  
+            anx(:,:), fwsoil(:), qs, gmes(:,:), kc4(:,:), &  
             anrubiscox(:,:), anrubpx(:,:), ansinkx(:,:), eta_x(:,:), dAnx(:,:) )
        !ELSE
        !   CALL photosynthesis( csx(:,:), &
@@ -2095,14 +2085,14 @@ write(82,*) "veg%g0:", veg%g0
 
                    ! Ticket #56, xleuning replaced with gs_coeff here
                    if (cable_user%g0_switch == 'default') then
-                      canopy%gswx(i,kk) = MAX( 1.e-3, gswmin(i,kk)*fwsoil(i) + &
+                      canopy%gswx(i,kk) = MAX( 1.e-3, gswmin(i,kk)*fwsoil(i)**qs + &
                            MAX( 0.0, C%RGSWC * gs_coeff(i,kk) * &
                            anx(i,kk) ) )
                    elseif (cable_user%g0_switch == 'maximum') then
                       ! set gsw to maximum of g0*fwsoil and humidity-dependent term,
                       ! according to third formulation suggested by Lombardozzi et al.,
                       ! GMD 10, 321-331, 2017, and applied in CLM
-                      canopy%gswx(i,kk) = MAX( 1.e-3, max(gswmin(i,kk)*fwsoil(i), &
+                      canopy%gswx(i,kk) = MAX( 1.e-3, max(gswmin(i,kk)*fwsoil(i)**qs, &
                            MAX( 0.0, C%RGSWC * gs_coeff(i,kk) * &
                            anx(i,kk) )) )
 
@@ -2449,7 +2439,7 @@ write(82,*) "veg%g0:", veg%g0
   ! JK: subroutine photosynthesis_gm now used with and without explicit gm (cable_user%explicit_gm)
   SUBROUTINE photosynthesis_gm( csxz, cx1z, cx2z, gswminz, &
        rdxz, vcmxt3z, vcmxt4z, vx3z, &
-       vx4z, gs_coeffz, vlaiz, deltlfz, anxz, fwsoilz, &
+       vx4z, gs_coeffz, vlaiz, deltlfz, anxz, fwsoilz, qs, &
        gmes, kc4, anrubiscoz, anrubpz, ansinkz, eta, dA )
 
     use cable_def_types_mod, only : mp, mf, r_2
@@ -2457,8 +2447,9 @@ write(82,*) "veg%g0:", veg%g0
 
     implicit none
 
-    real(r_2), dimension(mp,mf), intent(in)    :: csxz, gmes
-    real,      dimension(mp,mf), intent(in)    :: &
+    real(r_2), dimension(mp,mf), intent(in) :: csxz
+    real,      dimension(mp,mf), intent(in) :: gmes
+    real,      dimension(mp,mf), intent(in) :: &
          cx1z,       & !
          cx2z,       & !
          rdxz,       & !
@@ -2470,13 +2461,15 @@ write(82,*) "veg%g0:", veg%g0
          vlaiz,      & !
          deltlfz,    & !
          kc4           !
+    real,      dimension(mp),    intent(in)    :: fwsoilz
+    real,                        intent(in)    :: qs
     real,      dimension(mp,mf), intent(inout) :: gswminz
     real,      dimension(mp,mf), intent(inout) :: anxz, anrubiscoz, anrubpz, ansinkz
     real(r_2), dimension(mp,mf), intent(out)   :: eta, dA
 
     ! local variables
     real(r_2), dimension(mp,mf) :: dAmp, dAme, dAmc, eta_p, eta_e, eta_c
-    real, dimension(mp) :: fwsoilz
+    !real, dimension(mp) :: fwsoilz  ! why was this local??
     real(r_2) :: gamma, beta, gammast, gm, g0, X, Rd, cs
     real(r_2) :: cc, gsm
     real(r_2) :: Am
@@ -2510,7 +2503,7 @@ write(82,*) "veg%g0:", veg%g0
                 ! C3, Rubisco limited, accounting for explicit mesophyll conductance
                 if ((vcmxt3z(i,j) .gt. 1.0e-8) .and. (gs_coeffz(i,j) .gt. 100.)) then
                    cs      = csxz(i,j)
-                   g0      = real(gswminz(i,j) * fwsoilz(i) / C%RGSWC, r_2)
+                   g0      = real(gswminz(i,j) * fwsoilz(i)**qs / C%RGSWC, r_2)
                    X       = real(gs_coeffz(i,j), r_2)
                    gamma   = real(vcmxt3z(i,j), r_2)
                    beta    = real(cx1z(i,j), r_2)
@@ -2565,7 +2558,7 @@ write(82,*) "veg%g0:", veg%g0
                 if ( (vcmxt3z(i,j) .gt. 0.0) .and. (gs_coeffz(i,j) .gt. 100.) .and. &
                      (vx3z(i,j) .gt. 1.0e-8) ) then
                    cs      = csxz(i,j)
-                   g0      = real(gswminz(i,j) * fwsoilz(i) / C%RGSWC, r_2)
+                   g0      = real(gswminz(i,j) * fwsoilz(i)**qs / C%RGSWC, r_2)
                    X       = real(gs_coeffz(i,j), r_2)
                    gamma   = real(vx3z(i,j), r_2)
                    beta    = real(cx2z(i,j), r_2)
@@ -2625,7 +2618,7 @@ write(82,*) "veg%g0:", veg%g0
 
                 elseif ((vcmxt4z(i,j) .gt. 1.0e-10) .and. (gs_coeffz(i,j) .gt. 100.)) then ! C4
                    cs         = csxz(i,j)
-                   g0         = real(gswminz(i,j) * fwsoilz(i) / C%RGSWC, r_2)
+                   g0         = real(gswminz(i,j) * fwsoilz(i)**qs / C%RGSWC, r_2)
                    X          = real(gs_coeffz(i,j), r_2)
                    gamma      = real(kc4(i,j),r_2) ! k in Collatz 1992
                    beta       = 0.0_r_2
@@ -3020,29 +3013,24 @@ write(82,*) "veg%g0:", veg%g0
     ! Temperature response of mesophyll conductance
     ! parameters as in Knauer et al. 2019 (from Bernacchi et al. 2002)
 
-    use cable_def_types_mod, only: r_2
-
     implicit none
 
     real, intent(in) :: x
-    real(r_2)        :: z
+    real             :: z
 
-    real(r_2) :: xgmes, TrefK, Rgas
+    real :: xgmes, TrefK, Rgas
 
-    real(r_2), parameter :: EHa    = 49.6e3_r_2  ! J/mol
-    real(r_2), parameter :: EHd    = 437.4e3_r_2 ! J/mol
-    real(r_2), parameter :: Entrop = 1.4e3_r_2   ! J/mol/K
+    real, parameter :: EHa    = 49.6e3  ! J/mol
+    real, parameter :: EHd    = 437.4e3 ! J/mol
+    real, parameter :: Entrop = 1.4e3   ! J/mol/K
 
     CALL point2constants(C)
 
-    TrefK = real(C%TrefK, r_2)
-    Rgas  = real(C%Rgas, r_2)
+    xgmes = exp(EHa * (x - C%TrefK) / (C%TrefK * C%Rgas * x )) * &
+         (1.0 + exp((C%TrefK * Entrop - EHd) / (C%TrefK * C%Rgas))) / &
+         (1.0 + exp((x * Entrop - EHd) / (x * C%Rgas)))
 
-    xgmes = exp(EHa * (x - TrefK) / (TrefK * Rgas * x )) * &
-         (1.0_r_2 + exp((TrefK * Entrop - EHd) / (TrefK * Rgas))) / &
-         (1.0_r_2 + exp((x * Entrop - EHd) / (x * Rgas)))
-
-    z = max(0.0_r_2, xgmes)
+    z = max(0.0, xgmes)
 
   END FUNCTION xgmesT
 

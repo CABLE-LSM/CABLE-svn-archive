@@ -76,7 +76,7 @@ CONTAINS
       Km_ci        = Kc_ci * (1.0_dp + 0.21_dp / Ko_ci)
       Km_cc        = Kc_cc * (1.0_dp + 0.21_dp / Ko_cc)
 
-      IF (veg%frac4(p) .lt. 0.001_dp) THEN ! not C4
+      IF (veg%frac4(p) .lt. 0.001) THEN ! not C4
 
         !! 1) Calculate An-Ci curve
         CALL PHOTOSYN25(Ci1,nrci,Vcmax25Ci,Jmax25Ci,Rd,Km_ci,gammastar_ci,An1)
@@ -301,7 +301,8 @@ CONTAINS
      
   
   SUBROUTINE find_Vcmax_Jmax_LUT(veg,p)
-
+    ! JK: note that LUT is single precision at the moment
+    
     implicit none
 
     type (veg_parameter_type), intent(inout) :: veg      ! vegetation parameters
@@ -313,11 +314,11 @@ CONTAINS
     integer :: igm, ivc, ird ! indices for LUT
 
     
-    if (veg%frac4(p) .lt. 0.001_dp) then ! not C4
+    if (veg%frac4(p) .lt. 0.001) then ! not C4
        ! determine current Ci-based values
-       Rd        = real(veg%cfrd(p) * veg%vcmax(p),dp)
-       gmmax25   = real(veg%gm(p),dp)
-       Vcmax25Ci = real(veg%vcmax(p),dp)  ! LUT assumes a given Jmax/Vcmax ratio! see details in nc LUT
+       Rd        = veg%cfrd(p) * veg%vcmax(p)
+       gmmax25   = veg%gm(p)
+       Vcmax25Ci = veg%vcmax(p)  ! LUT assumes a given Jmax/Vcmax ratio! see details in nc LUT
 
        ! determine right indices of LUT
        igm = minloc(abs(gmmax25 - veg%LUT_gm),1)
@@ -334,7 +335,7 @@ CONTAINS
           veg%ejmaxcc(p) = veg%LUT_VcmaxJmax(2,ird,ivc,igm)
 
           ! check for implausible parameter combinations that result in NAs
-          if (veg%vcmaxcc(p) .gt. 0.0_dp .and. veg%ejmaxcc(p) .gt. 0.0_dp) then
+          if (veg%vcmaxcc(p) .gt. 0.0 .and. veg%ejmaxcc(p) .gt. 0.0) then
              val_ok = .true.  
           else
 write(84,*) 'unrealistic Vcmax_ci:', veg%LUT_vcmax(ivc)
@@ -346,8 +347,8 @@ write(84,*) 'iteration:', i
        
     else ! C4 (Vcmax and Jmax do not change with gm in C4 plants)
 
-       veg%vcmaxcc(p) = real(veg%vcmax(p),dp)
-       veg%ejmaxcc(p) = real(veg%ejmax(p),dp)
+       veg%vcmaxcc(p) = veg%vcmax(p)
+       veg%ejmaxcc(p) = veg%ejmax(p)
        
     endif  
 
@@ -387,7 +388,7 @@ write(84,*) 'iteration:', i
     real(dp), dimension(:), allocatable :: An_Ci, An_Cc, Ci, Cc
     real(dp) :: kinc=0.001_dp  ! increment of k
     
-    if (veg%frac4(p) .gt. 0.001_dp) then ! C4
+    if (veg%frac4(p) .gt. 0.001) then ! C4
        Ci1       = (/(real(i,dp),i=1,nrcic4,1)/) / 4.0_dp * 1.0e-6_dp 
        Rd        = real(veg%cfrd(p) * veg%vcmax(p),dp)
        gmmax25   = real(veg%gm(p),dp)
@@ -433,7 +434,7 @@ write(84,*) 'iteration:', i
           k = k + 1
        End Do
 
-       veg%c4kcc(p) = real(k25Cc - 2*kinc) ! single precision
+       veg%c4kcc(p) = real(k25Cc - 2.0*kinc) ! single precision
        ! subtract 2x the increment to get the right value
 
     else   ! C3 (not used)
