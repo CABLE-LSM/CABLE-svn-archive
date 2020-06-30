@@ -310,7 +310,7 @@ USE cbl_soil_snow_init_special_module
   ! Open log file:
   OPEN(logn,FILE=filename%log)
 
-  CALL report_version_no( logn )
+  !226!CALL report_version_no( logn )
 
   IF( (IARGC() > 0 ) .AND. (arg_not_namelist)) THEN
      CALL GETARG(1, filename%met)
@@ -686,6 +686,7 @@ USE cbl_soil_snow_init_special_module
 
   call spec_init_soil_snow(dels, soil, ssnow, canopy, met, bal, veg)
 
+call qprint( 71169, 'sumbal')
            ! time step loop over ktau
            DO ktau=kstart, kend
 
@@ -781,6 +782,12 @@ USE cbl_soil_snow_init_special_module
                       bal, rad, rough, soil, ssnow,			      &
                       sum_flux, veg,climate )
 
+
+new_sumbal = new_sumbal + SUM( canopy%fe + canopy%fh ) /mp 
+if( ktau_gl==(24 * 3) )then
+  write(71169,*) new_sumbal
+  stop 
+endif
                  IF (cable_user%CALL_climate) &
                       CALL cable_climate(ktau_tot,kstart,kend,ktauday,idoy,LOY,met, &
                       climate, canopy, air, rad, dels, mp)
@@ -1351,3 +1358,21 @@ SUBROUTINE LUCdriver( casabiome,casapool, &
   CALL POPLUC_weights_transfer(POPLUC,POP,LUC_EXPT)
 
 END SUBROUTINE LUCdriver
+
+
+subroutine qprint( iDiag, infilename) 
+
+!   use cable_common_module
+   integer :: iDiag 
+   character(len=*) :: infilename
+   character(len=300) :: ffilename
+   
+   ffilename=trim('/scratch/p66/jxs599/CABLE/ReviseTrunk2Restructured/validate/GSWP2_template/'// trim(infilename)// '.txt' )
+
+   open( unit=iDiag, file=ffilename, status="unknown", &
+     action="write", form="formatted", &
+     position='append' )
+
+End subroutine qprint 
+
+
