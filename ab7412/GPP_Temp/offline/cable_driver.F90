@@ -614,6 +614,7 @@ PROGRAM cable_offline_driver
               ! get koffset to add to time-step of sitemet
               IF (TRIM(site%RunType)=='historical') THEN
                  MetYear = CurYear
+                 leaps = .true. ! added from rev 7121 to fis no error msg bug AB Jun20
                  LOY = 365
                  IF (IS_LEAPYEAR(MetYear)) LOY = 366
                  kend = NINT(24.0*3600.0/dels) * LOY
@@ -623,6 +624,7 @@ PROGRAM cable_offline_driver
                       MOD(CurYear- &
                       (site%spinstartyear-(site%spinendyear-site%spinstartyear +1)*100), &
                       (site%spinendyear-site%spinstartyear +1))
+                 leaps = .false. ! added from rev 7121 to fix no error msg  bug AB Jun20
                  LOY = 365
                  kend = NINT(24.0*3600.0/dels) * LOY
 
