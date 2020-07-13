@@ -32,6 +32,7 @@ svn mv core/biogeochem/CASAONLY_LUC.F90 science/casa-cnp/
 svn mv core/biogeochem/CSIRO_BSD_MIT_License_v2.0_CABLE.txt science/casa-cnp/
 svn mv core/biogeochem/cable_iovars_CMIP6.F90 science/casa-cnp/
 svn mv core/biogeochem/cable_phenology.F90 science/casa-cnp/
+svn mv core/biogeochem/casa_phenology.F90 science/casa-cnp/
 svn mv core/biogeochem/casa_cable.F90 science/casa-cnp/
 svn mv core/biogeochem/casa_cnp.F90 science/casa-cnp/
 svn mv core/biogeochem/casa_dimension.F90 science/casa-cnp/
