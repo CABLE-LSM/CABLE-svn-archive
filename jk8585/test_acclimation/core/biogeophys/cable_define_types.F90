@@ -317,7 +317,20 @@ MODULE cable_def_types_mod
           g1 => null(),      & ! Belinda's stomatal model slope, Ticket #56.
           vcmaxcc => null(), & ! max Cc-based carboxylation rate top leaf (mol/m2/s)
           ejmaxcc => null(), & ! max Cc-based RuBP regeneration rate top leaf (mol/m2/s)
-          gmmax => null()      ! max. mesophyll conductance at 25degC top leaf
+          gmmax => null(),   & ! max. mesophyll conductance at 25degC top leaf
+          ! Parameters for temp. acclimation experiment (see Kumarathunge et al. 2019, New Phytologist)
+          Eav => null(),       & ! Vcmax activation energy (kJ/mol) --> no acclimation
+          dSv => null(),       & ! Vcmax entropy term (J/mol/K) --> no acclimation
+          Eaj => null(),       & ! Jmax activation energy (kJ/mol) --> no acclimation
+          dSj => null(),       & ! Jmax entropy term (J/mol/K) --> no acclimation
+          Eav_int => null(),   & ! Vcmax activation energy intercept (kJ/mol) 
+          Eav_slope => null(), & ! Vcmax activation energy slope Tgrowth 
+          dSv_int => null(),   & ! Vcmax entropy term intercept (J/mol/K)
+          dSv_slope => null(), & ! Vcmax entropy term slope Tgrowth
+          Eaj_acclim => null(), & ! Jmax activation energy (kJ/mol) --> acclimation
+          dSj_int => null(),    & ! Jmax entropy term intercept (J/mol/K)
+          dSj_slope_Th => null(), & ! Jmax entropy term slope Thome
+          dSj_slope_TgTh => null()  ! Jmax entropy term slope (Tgrowth - Thome)
 
      LOGICAL, DIMENSION(:), POINTER :: &
           deciduous => null() ! flag used for phenology fix
@@ -1036,7 +1049,18 @@ CONTAINS
     ALLOCATE( var%vcmaxcc(mp) )
     ALLOCATE( var%ejmaxcc(mp) )
     ALLOCATE( var%gmmax(mp) )
-
+    ALLOCATE( var%Eav(mp) )
+    ALLOCATE( var%dSv(mP) )
+    ALLOCATE( var%Eaj(mp) )
+    ALLOCATE( var%dSj(mp) )
+    ALLOCATE( var%Eav_int(mp) )
+    ALLOCATE( var%Eav_slope(mp) )
+    ALLOCATE( var%dSv_int(mp) )
+    ALLOCATE( var%dSv_slope(mp) )
+    ALLOCATE( var%Eaj_acclim(mp) )
+    ALLOCATE( var%dSj_int(mp) )
+    ALLOCATE( var%dSj_slope_Th(mp) )
+    ALLOCATE( var%dSj_slope_TgTh(mp) )
 
     ALLOCATE ( var % rootbeta(mp) )
     ALLOCATE ( var % gamma(mp) )
@@ -2181,6 +2205,18 @@ CONTAINS
     var%vcmaxcc     = 0
     var%ejmaxcc     = 0
     var%gmmax       = 0
+    var%Eav         = 0
+    var%dSv         = 0
+    var%Eaj         = 0
+    var%dSj         = 0
+    var%Eav_int     = 0
+    var%Eav_slope   = 0
+    var%dSv_int     = 0
+    var%dSv_slope   = 0
+    var%Eaj_acclim  = 0
+    var%dSj_int     = 0
+    var%dSj_slope_Th = 0
+    var%dSj_slope_TgTh = 0
 
     var%rootbeta = 0
     var%gamma    = 0

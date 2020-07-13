@@ -1537,9 +1537,12 @@ CONTAINS
          sum_gbh,       & !
          ccfevw,        & ! limitation term for
                                 ! wet canopy evaporation rate
-         temp,          & !
-         temp_sun,      & !
-         temp_shade       !
+         temp_c3,       & !
+         temp_c4,       & !
+         temp_sun_c3,   & !
+         temp_shade_c3, & !
+         temp_sun_c4,   & !
+         temp_shade_c4
 
     real(r_2), dimension(mp)  :: &
          ecx,        & ! lat. hflux big leaf
@@ -1752,64 +1755,42 @@ CONTAINS
              !     and veg%vcmax_sun = veg%vcmax_shade = veg%vcmax otherwise.
              !     See also Subroutine 'casa_feedback' in casa_cable.F90. Same applies to ejmax.
 
-
-             ! Leuning 2002 (PCE) equation for temperature response
-             ! used for Vcmax for C3 plants:
+             ! temperature response functions:
              if (.not.cable_user%acclimate_photosyn) then
-                if (cable_user%perturb_biochem_by_T) then
-                   temp_sun(i)   = xvcmxt3(tlfx(i)+cable_user%Ta_perturbation) * &
-                        veg%vcmax_sun(i) * (1.0-veg%frac4(i))
-                   temp_shade(i) = xvcmxt3(tlfx(i)+cable_user%Ta_perturbation) * &
-                        veg%vcmax_shade(i) * (1.0-veg%frac4(i))
-                else
-                   temp_sun(i)   = xvcmxt3(tlfx(i)) * veg%vcmax_sun(i) * (1.0-veg%frac4(i))
-                   temp_shade(i) = xvcmxt3(tlfx(i)) * veg%vcmax_shade(i) * (1.0-veg%frac4(i))
-                endif
+                temp_sun_c3(i)   = xvcmxt3(tlfx(i), veg%Eav(i),veg%dSv(i)) * veg%vcmax_sun(i) * (1.0-veg%frac4(i))
+                temp_shade_c3(i) = xvcmxt3(tlfx(i), veg%Eav(i),veg%dSv(i)) * veg%vcmax_shade(i) * (1.0-veg%frac4(i))
+                temp_sun_c4(i)   = xvcmxt4(tlfx(i), veg%Eav(i),veg%dSv(i)) * veg%vcmax_sun(i) * veg%frac4(i)
+                temp_shade_c4(i) = xvcmxt4(tlfx(i), veg%Eav(i),veg%dSv(i)) * veg%vcmax_shade(i) * veg%frac4(i)
              else
-                if (cable_user%perturb_biochem_by_T) then
-                   call xvcmxt3_acclim(tlfx(i)+cable_user%Ta_perturbation, climate%mtemp(i) , temp(i))
-                else
-                   call xvcmxt3_acclim(tlfx(i), climate%mtemp(i) , temp(i))
-                endif
-                temp_sun(i)   = temp(i) * veg%vcmax_sun(i) * (1.0-veg%frac4(i))
-                temp_shade(i) = temp(i) * veg%vcmax_shade(i) * (1.0-veg%frac4(i))
+                call xvcmxt3_acclim(tlfx(i), climate%mtemp(i), veg%Eav_int(i), veg%Eav_slope(i), veg%dSv_int(i), &
+                                       veg%dSv_slope(i), temp_c3(i))
+                call xvcmxt4_acclim(tlfx(i), climate%mtemp(i), veg%Eav_int(i), veg%Eav_slope(i), veg%dSv_int(i), &
+                                       veg%dSv_slope(i), temp_c4(i))
+                temp_sun_c3(i)   = temp_c3(i) * veg%vcmax_sun(i) * (1.0-veg%frac4(i))
+                temp_shade_c3(i) = temp_c3(i) * veg%vcmax_shade(i) * (1.0-veg%frac4(i))
+                temp_sun_c4(i)   = temp_c4(i) * veg%vcmax_sun(i) * veg%frac4(i)
+                temp_shade_c4(i) = temp_c4(i) * veg%vcmax_shade(i) * veg%frac4(i)
              endif
-             vcmxt3(i,1) = rad%scalex(i,1) * temp_sun(i)
-             vcmxt3(i,2) = rad%scalex(i,2) * temp_shade(i)
-
-             ! Temperature response Vcmax, C4 plants (Collatz et al 1989):
-             temp_sun(i)   = xvcmxt4(tlfx(i)-C%tfrz) * veg%vcmax_sun(i) * veg%frac4(i)
-             temp_shade(i) = xvcmxt4(tlfx(i)-C%tfrz) * veg%vcmax_shade(i) * veg%frac4(i)
-             vcmxt4(i,1) = rad%scalex(i,1) * temp_sun(i)
-             vcmxt4(i,2) = rad%scalex(i,2) * temp_shade(i)
-
+             vcmxt3(i,1) = rad%scalex(i,1) * temp_sun_c3(i)
+             vcmxt3(i,2) = rad%scalex(i,2) * temp_shade_c3(i)
+             vcmxt4(i,1) = rad%scalex(i,1) * temp_sun_c4(i)
+             vcmxt4(i,2) = rad%scalex(i,2) * temp_shade_c4(i)
 
              ! Leuning 2002 (PCE) equation for temperature response
              ! used for Jmax for C3 plants:
              if (.not.cable_user%acclimate_photosyn) then
-                if (cable_user%perturb_biochem_by_T) then
-                   temp_sun(i)   = xejmxt3(tlfx(i)+cable_user%Ta_perturbation) * &
+                temp_sun_c3(i) = xejmxt3(tlfx(i),veg%Eaj(i),veg%dSj(i)) * &
                         veg%ejmax_sun(i) * (1.0-veg%frac4(i))
-                   temp_shade(i) = xejmxt3(tlfx(i)+cable_user%Ta_perturbation) * &
+                temp_shade_c3(i) = xejmxt3(tlfx(i),veg%Eaj(i),veg%dsj(i)) * &
                         veg%ejmax_shade(i) * (1.0-veg%frac4(i))
-                else
-                   temp_sun(i)   = xejmxt3(tlfx(i)) * &
-                        veg%ejmax_sun(i) * (1.0-veg%frac4(i))
-                   temp_shade(i) = xejmxt3(tlfx(i)) * &
-                        veg%ejmax_shade(i) * (1.0-veg%frac4(i))
-                endif
              else
-                if (cable_user%perturb_biochem_by_T) then
-                   call xejmxt3_acclim(tlfx(i)+cable_user%Ta_perturbation, &
-                        climate%mtemp(i), climate%mtemp_max20(i), temp(i))
-                else
-                   call xejmxt3_acclim(tlfx(i), climate%mtemp(i), climate%mtemp_max20(i), temp(i))
-                endif
-                temp_sun(i)   = temp(i) * veg%ejmax_sun(i) * (1.0-veg%frac4(i))
-                temp_shade(i) = temp(i) * veg%ejmax_shade(i) * (1.0-veg%frac4(i))
+                call xejmxt3_acclim(tlfx(i), climate%mtemp(i), climate%mtemp_max20(i), veg%Eaj_acclim(i), &
+                                    veg%dSj_int(i), veg%dSj_slope_Th(i), veg%dSj_slope_TgTh(i), temp_c3(i))
+                temp_sun_c3(i)   = temp_c3(i) * veg%ejmax_sun(i) * (1.0-veg%frac4(i))
+                temp_shade_c3(i) = temp_c3(i) * veg%ejmax_shade(i) * (1.0-veg%frac4(i))
              endif
-             ejmxt3(i,1) = rad%scalex(i,1) * temp_sun(i)
-             ejmxt3(i,2) = rad%scalex(i,2) * temp_shade(i)
+             ejmxt3(i,1) = rad%scalex(i,1) * temp_sun_c3(i)
+             ejmxt3(i,2) = rad%scalex(i,2) * temp_shade_c3(i)
 
 
              ! Difference between leaf temperature and reference temperature:
@@ -1977,7 +1958,6 @@ CONTAINS
              endif !cable_user%call_climate
 
              ! apply fwsoil to gmes
-             ! JK: move gm calculation outside of this loop
              ! if (any(gmes(i,:) < real(tiny(1.0),r_2) .and. gmes(i,:) > 0._r_2)) print*, 'CA03 ', gmes(i,:)
              ! if (fwsoil(i) < tiny(1.0)) print*, 'CA04 ', i, fwsoil(i)
              ! if (veg%gmmax(i) < tiny(1.0)) print*, 'CA05 ', veg%gmmax(i)
@@ -3232,20 +3212,32 @@ CONTAINS
 
 
   ! Explicit array dimensions as temporary work around for NEC inlining problem
-  ELEMENTAL PURE FUNCTION xvcmxt4(x) RESULT(z)
+  FUNCTION xvcmxt4(Tk, Eavx, dSvx) RESULT(z)
 
     implicit none
 
-    real, intent(in) :: x
+    real, intent(in) :: Tk   ! leaf temperature in Kelvin
+    real, intent(in) :: Eavx  ! activation energy (kJ/mol)
+    real, intent(in) :: dSvx  ! entropy term (J/mol/K)
 
-    real, parameter :: q10c4 = 2.0
-    real :: z
+    !real, parameter :: q10c4 = 2.0
+    real :: Eav, xc4, z
 
-    ! z = q10c4 ** (0.1 * x - 2.5) / &
-    !     ((1.0 + exp(0.3 * (13.0 - x))) * (1.0 + exp(0.3 * (x - 36.0))))
-    z = q10c4**(0.1*x - 2.5) / &
-         ( (1.0 + exp(0.3 * (13.0 - x))) * (1.0 + exp(0.2 * (x - 38.0))) )
+    real, parameter :: Edv = 145000.0  ! 144.57e3_r_2
+    ! Jk: Q10 function replaced with Arrhenius function for the sake of parameter
+    ! identifiability/interpretability
+    !z = q10c4**(0.1*x - 2.5) / &
+    !     ( (1.0 + exp(0.3 * (13.0 - x))) * (1.0 + exp(0.2 * (x - 38.0))) )
 
+    call point2constants(C)
+
+    Eav = Eavx * 1000.0  ! J/mol
+    xc4 = exp(Eav * (Tk - C%TrefK) / (C%TrefK * C%Rgas * Tk )) * &
+         (1.0 + exp((C%TrefK * dSvx - Edv) / (C%TrefK * C%Rgas))) / &
+         (1.0 + exp((Tk * dSvx - Edv) / (Tk * C%Rgas)))
+
+    z = max(0.0, xc4)
+    
   END FUNCTION xvcmxt4
 
 
@@ -3270,7 +3262,6 @@ CONTAINS
     real(r_2), parameter :: Entrop = 1.4e3_r_2   ! J/mol/K
 
     CALL point2constants(C)
-
     TrefK = real(C%TrefK, r_2)
     Rgas  = real(C%Rgas, r_2)
 
@@ -3285,29 +3276,36 @@ CONTAINS
 
   ! ------------------------------------------------------------------------------
 
-
-  FUNCTION xvcmxt3(x) RESULT(z)
+  FUNCTION xvcmxt3(Tk,Eavx,dSvx) RESULT(z)
     !  Leuning 2002 (PCE) equation for temperature response
     !  used for Vcmax for c3 plants
 
     implicit none
 
-    real, intent(in) :: x
-    real             :: z
+    real, intent(in) :: Tk    ! leaf temp. in Kelvin
+    real, intent(in) :: Eavx  ! activation energy (kJ/mol)
+    real, intent(in) :: dSvx  ! entropy term (J/mol/K)
 
-    real :: xvcnum, xvcden
-
-    real, parameter :: EHaVc  = 73637.0  ! J/mol (Leuning 2002)
-    real, parameter :: EHdVc  = 149252.0 ! J/mol (Leuning 2002)
-    real, parameter :: EntropVc = 486.0  ! J/mol/K (Leuning 2002)
-    real, parameter :: xVccoef = 1.17461 ! derived parameter
+    real :: Eav, xv, z
+    !real, parameter :: EHaVc  = 73637.0  ! J/mol (Leuning 2002)
+    !real, parameter :: EHdVc  = 149252.0 ! J/mol (Leuning 2002)
+    real, parameter :: EdVx  = 200000 ! J/mol
+    !real, parameter :: EntropVc = 486.0  ! J/mol/K (Leuning 2002)
+    !real, parameter :: xVccoef = 1.17461 ! derived parameter
 
     ! xVccoef=1.0+exp((EntropJx*C%TREFK-EHdJx)/(Rconst*C%TREFK))
     CALL point2constants(C)
 
-    xvcnum = xvccoef*exp( ( ehavc / ( C%rgas*C%TREFK ) )* ( 1.-C%TREFK/x ) )
-    xvcden = 1.0+exp( ( entropvc*x-ehdvc ) / ( C%rgas*x ) )
-    z = max( 0.0, xvcnum / xvcden )
+    Eav = Eavx * 1000.0  ! J/mol
+    xv = exp(Eav * (Tk - C%TrefK) / (C%TrefK * C%Rgas * Tk )) * &
+            (1.0 + exp((C%TrefK * dSvx - EdVx) / (C%TrefK * C%Rgas))) / &
+            (1.0 + exp((Tk * dSvx - EdVx) / (Tk * C%Rgas)))
+
+    z = max(0.0, xv)
+    
+    !xvcnum = xvccoef*exp( ( ehavc / ( C%rgas*C%TREFK ) )* ( 1.-C%TREFK/x ) )
+    !xvcden = 1.0+exp( ( entropvc*x-ehdvc ) / ( C%rgas*x ) )
+    !z = max( 0.0, xvcnum / xvcden )
 
   END FUNCTION xvcmxt3
 
@@ -3315,36 +3313,65 @@ CONTAINS
   ! ------------------------------------------------------------------------------
 
 
-  elemental pure subroutine xvcmxt3_acclim(Tk, Tgrowth, trf)
+  Subroutine xvcmxt3_acclim(Tk, Tgrowth, Eav_int, Eav_slope, dSv_int, dSv_slope, trf)
     ! acclimated temperature response of Vcmax. Kumarathunge et al., New. Phyt., 2019,
-    ! Eq 7 and Table 2
+    ! Eq 7 and Table 2. 
 
     implicit none
 
     real, intent(in)  :: Tk, Tgrowth  ! instantaneous T in K, growth T in degC
+    real, intent(in)  :: Eav_int    ! intercept activation energy 
+    real, intent(in)  :: Eav_slope  ! slope activation energy
+    real, intent(in)  :: dSv_int    ! intercept entropy term
+    real, intent(in)  :: dSv_slope  ! slope entropy term
     real, intent(out) :: trf
+    real :: xVccoef, EaV, EdV, EntropVc, xvcnum, xvcden
 
-    real :: xVccoef, EHaVc, EHdVc,  EntropVc, aKK, bKK, rgas, TREFK, xvcnum, xvcden
+    call point2constants(C)
+    
+    EaV = (Eav_int + Eav_slope * Tgrowth) * 1000.0
+    entropvc = dSv_int + dSv_slope * Tgrowth
+    EdV = 200000.0
 
-    EHaVc = 42.6 * 1000.0 + 1.14*Tgrowth*1000.0
-    EHdVc = 200000.0
-    aKK   = 645.13
-    bKK   = -0.38
-    rgas  = 8.314
-    TREFK = 298.15
-
-    entropvc = (aKK + bKK * Tgrowth)
-    xVccoef  = 1.0 + exp((entropvc * TREFK - EHdVc)/  ( rgas*TREFK ) )
-    xvcnum   = xVccoef * exp( ( EHaVc / ( rgas*TREFK ) )* ( 1.-TREFK/Tk ) )
-    xvcden   = 1.0 + exp( ( entropvc*Tk-EHdVc ) / ( rgas*Tk ) )
+    xVccoef  = 1.0 + exp((entropvc * C%TrefK - EdV)/  ( C%Rgas * C%TrefK ) )
+    xvcnum   = xVccoef * exp((EaV / ( C%Rgas * C%TrefK ) )* ( 1. - C%TrefK/Tk ) )
+    xvcden   = 1.0 + exp((entropvc * Tk- EdV ) / ( C%Rgas * Tk ) )
 
     trf = max( 0.0, xvcnum / xvcden )
 
   end subroutine xvcmxt3_acclim
 
-
   ! ------------------------------------------------------------------------------
 
+ Subroutine xvcmxt4_acclim(Tk, Tgrowth, Eav_int, Eav_slope, dSv_int, dSv_slope, trf)
+    ! acclimated temperature response of Vcmax. Kumarathunge et al., New. Phyt., 2019,
+    ! Eq 7 and Table 2. 
+
+    implicit none
+
+    real, intent(in)  :: Tk, Tgrowth  ! instantaneous T in K, growth T in degC
+    real, intent(in)  :: Eav_int    ! intercept activation energy 
+    real, intent(in)  :: Eav_slope  ! slope activation energy
+    real, intent(in)  :: dSv_int    ! intercept entropy term
+    real, intent(in)  :: dSv_slope  ! slope entropy term
+    real, intent(out) :: trf
+    real :: xVccoef, EaV, EdV, EntropVc, xvcnum, xvcden
+
+    call point2constants(C)
+    
+    EaV = (Eav_int + Eav_slope * Tgrowth) * 1000.0
+    entropvc = dSv_int + dSv_slope * Tgrowth
+    EdV = 145000.0
+
+    xVccoef  = 1.0 + exp((entropvc * C%TrefK - EdV)/  ( C%Rgas * C%TrefK ) )
+    xvcnum   = xVccoef * exp((EaV / ( C%Rgas * C%TrefK ) )* ( 1. - C%TrefK/Tk ) )
+    xvcden   = 1.0 + exp((entropvc * Tk- EdV ) / ( C%Rgas * Tk ) )
+
+    trf = max( 0.0, xvcnum / xvcden )
+
+  end subroutine xvcmxt4_acclim
+
+  ! ------------------------------------------------------------------------------
 
   ELEMENTAL PURE FUNCTION xrdt(x)
     !  Atkin et al. (Eq 1, New Phytologist (2015) 206: 614-636)
@@ -3363,27 +3390,35 @@ CONTAINS
 
   ! ------------------------------------------------------------------------------
 
-
-  FUNCTION xejmxt3(x) RESULT(z)
+  FUNCTION xejmxt3(Tk,EaJx,dsJx) RESULT(z)
     ! Leuning 2002 (PCE) equation for temperature response
     ! used for jmax for C3 plants
-
+    ! JK: replaced by Bernacchi et al. 2002 PCE formulation
+    
     implicit none
 
-    real, intent(in) :: x
-    real             :: z
+    real, intent(in) :: Tk    ! leaf temp. in Kelvin
+    real, intent(in) :: EaJx  ! kJ/mol 
+    real, intent(in) :: dSjx  ! J/mol/K
 
-    real :: xjxnum, xjxden
-    real, parameter :: EHaJx  = 50300.0  ! J/mol (Leuning 2002)
-    real, parameter :: EHdJx  = 152044.0 ! J/mol (Leuning 2002)
-    real, parameter :: EntropJx = 495.0  ! J/mol/K (Leuning 2002)
-    real, parameter :: xjxcoef = 1.16715 ! derived parameter
+    real :: EaJ, xj, z
+    !real, parameter :: EHaJx  = 50300.0  ! J/mol (Leuning 2002)
+    !real, parameter :: EHdJx  = 152044.0 ! J/mol (Leuning 2002)
+    real, parameter :: EdJx  = 200000.0 ! J/mol 
+    !real, parameter :: EntropJx = 495.0  ! J/mol/K (Leuning 2002)
+    !real, parameter :: xjxcoef = 1.16715 ! derived parameter
 
-    CALL point2constants(C)
+    call point2constants(C)
 
-    xjxnum = xjxcoef*exp( ( ehajx / ( C%rgas*C%TREFK ) ) * ( 1.-C%TREFK / x ) )
-    xjxden = 1.0+exp( ( entropjx*x-ehdjx) / ( C%rgas*x ) )
-    z = max(0.0, xjxnum/xjxden)
+    EaJ = EaJx * 1000.0  ! J/mol
+    xj = exp(EaJ * (Tk - C%TrefK) / (C%TrefK * C%Rgas * Tk )) * &
+            (1.0 + exp((C%TrefK * dSjx - EdJx) / (C%TrefK * C%Rgas))) / &
+            (1.0 + exp((Tk * dSjx - EdJx) / (Tk * C%Rgas)))
+
+    z = max(0.0, xj)
+    !xjxnum = xjxcoef*exp( ( ehajx / ( C%rgas*C%TREFK ) ) * ( 1.-C%TREFK / x ) )
+    !xjxden = 1.0+exp( ( entropjx*x-ehdjx) / ( C%rgas*x ) )
+    !z = max(0.0, xjxnum/xjxden)
 
   END FUNCTION xejmxt3
 
@@ -3391,28 +3426,28 @@ CONTAINS
   ! ------------------------------------------------------------------------------
 
 
-  elemental pure subroutine xejmxt3_acclim(Tk, Tgrowth, Thome, trf)
+  Subroutine xejmxt3_acclim(Tk, Tgrowth, Thome, Eaj_acclim, dSj_int, dSj_slope_Th, dSj_slope_TgTh, trf)
 
     ! acclimated temperature response of Jmax. Kumarathunge et al., New. Phyt., 2019,
     ! Eq 7 and Table 2
-    REAL, INTENT(IN) :: Tk, Tgrowth, Thome  ! instantaneous T in K, home and growth T in degC
-    REAL, INTENT(OUT) :: trf
-    REAL:: xVccoef, EHaVc, EHdVc,  EntropVc, aKK, bKK, cKK, rgas, TREFK, xvcnum, xvcden
+    real, intent(in)  :: Tk, Tgrowth, Thome  ! instantaneous T in K, home and growth T in degC
+    real, intent(in)  :: Eaj_acclim
+    real, intent(in)  :: dSj_int
+    real, intent(in)  :: dSj_slope_Th
+    real, intent(in)  :: dSj_slope_TgTh
+    real, intent(out) :: trf
+    real :: xJcoef, EaJ, EdJ,  EntropJ, xjnum, xjden
 
+    call point2constants(C)
 
-    EHaVc = 40.71 * 1000.0
-    EHdVc  = 200000.0
-    aKK = 658.77
-    bKK = -0.84
-    cKK = -0.52
-    rgas = 8.314
-    TREFK = 298.15
-
-    entropvc = (aKK + bKK * Thome) + cKK * (Tgrowth - Thome)
-    xVccoef  = 1.0 + exp((entropvc * TREFK - EHdVc)/  ( rgas*TREFK ) )
-    xvcnum = xVccoef * exp( ( EHaVc / ( rgas*TREFK ) )* ( 1.-TREFK/Tk ) )
-    xvcden=1.0 + exp( ( entropvc*Tk-EHdVc ) / ( rgas*Tk ) )
-    trf = max( real(0.0), xvcnum / xvcden )
+    EaJ = Eaj_acclim * 1000.0
+    EdJ = 200000.0
+    EntropJ = dSj_int + dSj_slope_Th * Thome + dSj_slope_TgTh * (Tgrowth - Thome)
+    
+    xJcoef = 1.0 + exp((EntropJ * C%TrefK - EdJ)/  ( C%Rgas * C%TrefK ) )
+    xjnum = xJcoef * exp( ( EaJ / ( C%Rgas * C%TrefK ) ) * ( 1. - C%TrefK/Tk ) )
+    xjden = 1.0 + exp( ( EntropJ * Tk - EdJ ) / ( C%Rgas * Tk ) )
+    trf = max( real(0.0), xjnum / xjden )
 
   end subroutine xejmxt3_acclim
 
