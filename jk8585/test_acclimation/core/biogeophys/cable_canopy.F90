@@ -1977,6 +1977,7 @@ CONTAINS
              endif !cable_user%call_climate
 
              ! apply fwsoil to gmes
+             ! JK: move gm calculation outside of this loop
              ! if (any(gmes(i,:) < real(tiny(1.0),r_2) .and. gmes(i,:) > 0._r_2)) print*, 'CA03 ', gmes(i,:)
              ! if (fwsoil(i) < tiny(1.0)) print*, 'CA04 ', i, fwsoil(i)
              ! if (veg%gmmax(i) < tiny(1.0)) print*, 'CA05 ', veg%gmmax(i)
