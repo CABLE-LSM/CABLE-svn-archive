@@ -28,8 +28,8 @@ module cable_hyd_driv_mod
   
 contains
 
-SUBROUTINE cable_hyd_driver( land_pts, ntiles, lying_snow, SNOW_TILE, SURF_ROFF,&
-                             SUB_SURF_ROFF, TOT_TFALL )
+SUBROUTINE cable_hyd_driver( land_pts, ntiles, L_tile_pts, lying_snow, SNOW_TILE, SURF_ROFF,&
+                             SUB_SURF_ROFF, TOT_TFALL, ssnow, canopy, veg )
 
   !processor number, timestep number / width, endstep
   USE cable_common_module, ONLY : knode_gl, ktau_gl, kwidth_gl, kend_gl
@@ -38,21 +38,23 @@ SUBROUTINE cable_hyd_driver( land_pts, ntiles, lying_snow, SNOW_TILE, SURF_ROFF,
   !from old version
   !USE cable_common_module!, only : cable_runtime, cable_user
   USE cable_data_module,   ONLY : PHYS, OTHER
-  USE cable_um_tech_mod, only : um1, ssnow, canopy, veg
-  USE cable_decs_mod, ONLY : L_tile_pts
+  USE cable_um_tech_mod, only : um1 
 
-  !diag 
-  USE cable_fprint_module, ONLY : cable_fprintf
-  USE cable_Pyfprint_module, ONLY : cable_Pyfprintf
-  USE cable_fFile_module, ONLY : fprintf_dir_root, fprintf_dir, L_cable_fprint,&
-                                 L_cable_Pyfprint, unique_subdir
-  USE cable_def_types_mod, ONLY : mp !only need for fprint here
+USE cable_canopy_type_mod,    ONLY : canopy_type
+USE cable_soil_snow_type_mod, ONLY : soil_snow_type
+USE cable_params_mod,         ONLY : veg_parameter_type
+
+  USE cable_common_module, ONLY : cable_runtime, cable_user, l_casacnp,       &
+                                  l_vcmaxFeedbk, knode_gl, ktau_gl, kend_gl
   
   implicit none
+   TYPE (canopy_type),    INTENT(INOUT) :: canopy
+   TYPE (soil_snow_type), INTENT(INOUT) :: ssnow
+   TYPE (veg_parameter_type),  INTENT(INOUT)    :: veg
 
   !___ re-decl input args
-
   integer :: land_pts, ntiles
+  LOGICAL :: L_tile_pts(land_pts,ntiles)     ! packing mask 
   
   REAL, INTENT(OUT), DIMENSION(LAND_PTS,NTILES) ::                    &
     SNOW_TILE   ! IN Lying snow on tiles (kg/m2)        
@@ -75,8 +77,6 @@ SUBROUTINE cable_hyd_driver( land_pts, ntiles, lying_snow, SNOW_TILE, SURF_ROFF,
   ! std template args 
   character(len=*), parameter :: subr_name = "cable_explicit_main"
 
-# include "../../../core/utils/diag/cable_fprint.txt"
-  
   !-------- Unique subroutine body -----------
  
   TFRZ => PHYS%TFRZ
@@ -98,48 +98,35 @@ SUBROUTINE cable_hyd_driver( land_pts, ntiles, lying_snow, SNOW_TILE, SURF_ROFF,
 
   !-------- End Unique subroutine body -----------
   
-  fprintf_dir=trim(fprintf_dir_root)//trim(unique_subdir)//"/"
-  if(L_cable_fprint) then 
-    !basics to std output stream
-    if (knode_gl == 0 .and. ktau_gl == 1)  call cable_fprintf(subr_name, .true.) 
-    !more detailed output
-    vname=trim(subr_name//'_')
-    call cable_fprintf( cDiag00, vname, knode_gl, ktau_gl, .true. )
-  endif
-
-  if(L_cable_Pyfprint .and. ktau_gl == 1) then 
-    !vname='latitude'; dimx=mp
-    !call cable_Pyfprintf( cDiag1, vname, cable%lat, dimx, .true.)
-  endif
-
 return
 
 END SUBROUTINE cable_hyd_driver
 
-SUBROUTINE cable_lakesrivers(TOT_WB_LAKE)
-    
-    USE cable_um_tech_mod, ONLY : um1, ssnow
-    USE cable_decs_mod, ONLY : L_tile_pts
-    
-    IMPLICIT NONE
-    
-    !routine extracts daily integrated ssnow%totwblake - water added to keep 
-    !lake tiles saturated - and grid cell averages (over land fraction)
-    !for use in river flow scaling routines
-    
-    REAL, INTENT(OUT), DIMENSION(um1%LAND_PTS) :: TOT_WB_LAKE
-    
-    !working variables
-    REAL :: miss = 0.
-    REAL, DIMENSION(um1%LAND_PTS, um1%ntiles) :: TOT_WB_LAKE_TILE
-    
-    TOT_WB_LAKE_TILE = UNPACK(ssnow%totwblake, um1%L_TILE_PTS, miss)
-    TOT_WB_LAKE = SUM(um1%TILE_FRAC * TOT_WB_LAKE_TILE,2)
-      
-    !zero the current integration
-    ssnow%totwblake = 0.
-
-END SUBROUTINE cable_lakesrivers
+!H!SUBROUTINE cable_lakesrivers(TOT_WB_LAKE)
+!H!    
+!H!    USE cable_um_tech_mod, ONLY : um1, ssnow
+!H!    !jhan : thisversion of L_tile_pts is currently inctive
+!H!    USE cbl_masks_mod, ONLY : L_tile_pts
+!H!    
+!H!    IMPLICIT NONE
+!H!    
+!H!    !routine extracts daily integrated ssnow%totwblake - water added to keep 
+!H!    !lake tiles saturated - and grid cell averages (over land fraction)
+!H!    !for use in river flow scaling routines
+!H!    
+!H!    REAL, INTENT(OUT), DIMENSION(um1%LAND_PTS) :: TOT_WB_LAKE
+!H!    
+!H!    !working variables
+!H!    REAL :: miss = 0.
+!H!    REAL, DIMENSION(um1%LAND_PTS, um1%ntiles) :: TOT_WB_LAKE_TILE
+!H!    
+!H!    TOT_WB_LAKE_TILE = UNPACK(ssnow%totwblake, um1%L_TILE_PTS, miss)
+!H!    TOT_WB_LAKE = SUM(um1%TILE_FRAC * TOT_WB_LAKE_TILE,2)
+!H!      
+!H!    !zero the current integration
+!H!    ssnow%totwblake = 0.
+!H!
+!H!END SUBROUTINE cable_lakesrivers
 
 End module cable_hyd_driv_mod
 

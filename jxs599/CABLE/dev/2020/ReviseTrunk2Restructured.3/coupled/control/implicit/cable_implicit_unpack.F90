@@ -1,42 +1,12 @@
-!==============================================================================
-! This source code is part of the 
-! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
-! This work is licensed under the CABLE Academic User Licence Agreement 
-! (the "Licence").
-! You may not use this file except in compliance with the Licence.
-! A copy of the Licence and registration form can be obtained from 
-! http://www.cawcr.gov.au/projects/access/cable
-! You need to register and read the Licence agreement before use.
-! Please contact cable_help@nf.nci.org.au for any questions on 
-! registration and the Licence.
-!
-! Unless required by applicable law or agreed to in writing, 
-! software distributed under the Licence is distributed on an "AS IS" BASIS,
-! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-! See the Licence for the specific language governing permissions and 
-! limitations under the Licence.
-! ==============================================================================
-!
-! Purpose: Updates CABLE variables (as altered by first pass through boundary 
-!          layer and convection scheme), calls cbm, passes CABLE variables back 
-!          to UM. 'Implicit' is the second call to cbm in each UM timestep.
-!
-! Called from: UM/JULES cable_implicit_main
-!
-! Contact: Jhan.Srbinovsky@csiro.au
-!
-! History: Developed for CABLE v1.8
-!
-! ==============================================================================
-
 module cable_implicit_unpack_mod
   
 contains
 
 subroutine Implicit_unpack( cycleno, & ! nucycles
-                            row_length,rows, land_pts, ntiles, npft, sm_levels,&
+                            row_length,rows, land_pts, ntiles,L_tile_pts, &  
+                            npft, sm_levels,&
                             dim_cs1, dim_cs2,                                  &
-                            TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,SMGW_TILE,      &
+                            TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,&
                             SMVCST, STHF, STHF_TILE, STHU, STHU_TILE,          &
                             snow_tile, SNOW_RHO1L ,ISNOW_FLG3L, SNOW_DEPTH3L,  &
                             SNOW_MASS3L, SNOW_RHO3L, SNOW_TMP3L, SNOW_COND,    &
@@ -45,18 +15,13 @@ subroutine Implicit_unpack( cycleno, & ! nucycles
                             ESOIL_TILE, EI_TILE, RADNET_TILE, TOT_ALB,         &
                             SNOW_AGE, CANOPY_TILE, GS, gs_tile, T1P5M_TILE,    &
                             Q1P5M_TILE, CANOPY_GB, FLAND, MELT_TILE,           &
-                            NPP, NPP_FT, GPP, GPP_FT, RESP_S,                  &
-                            RESP_S_TOT, RESP_S_TILE, RESP_P, RESP_P_FT, G_LEAF,&
-                            TRANSP_TILE, NPP_FT_ACC, RESP_W_FT_ACC,            &
-                            SURF_HTF_TILE, DTRAD, DTSTAR_TILE )
-
-  !diag 
-  USE cable_fprint_module, ONLY : cable_fprintf
-  USE cable_Pyfprint_module, ONLY : cable_Pyfprintf
-  USE cable_fFile_module, ONLY : fprintf_dir_root, fprintf_dir, L_cable_fprint,&
-                                 L_cable_Pyfprint, unique_subdir
-
-  USE cable_diag_module  
+                            !NPP, NPP_FT, GPP, GPP_FT, RESP_S,                  &
+                            !RESP_S_TOT, RESP_P, RESP_P_FT, G_LEAF,&
+                            !TRANSP_TILE, NPP_FT_ACC, RESP_W_FT_ACC,            &
+                            SURF_HTF_TILE, DTRAD, DTSTAR_TILE, &
+air, met, rad, rough, canopy,                  &
+ssnow, bgc, bal, sum_flux, veg,                &
+soil)
 
   !processor number, timestep number / width, endstep
   USE cable_common_module, ONLY : knode_gl, ktau_gl, kwidth_gl, kend_gl
@@ -64,14 +29,21 @@ subroutine Implicit_unpack( cycleno, & ! nucycles
   USE cable_common_module!, ONLY : cable_runtime, cable_user, fudge_out,       &
                          !         L_fudge, ktau_gl
   
+USE cable_air_type_mod,       ONLY : air_type
+USE cable_met_type_mod,       ONLY : met_type
+USE cable_radiation_type_mod, ONLY : radiation_type
+USE cable_roughness_type_mod, ONLY : roughness_type
+USE cable_canopy_type_mod,    ONLY : canopy_type
+USE cable_soil_snow_type_mod, ONLY : soil_snow_type
+USE cable_bgc_pool_type_mod,  ONLY : bgc_pool_type
+USE cable_balances_type_mod,  ONLY : balances_type
+USE cable_sum_flux_type_mod,  ONLY : sum_flux_type
+USE cable_params_mod,         ONLY : veg_parameter_type
+USE cable_params_mod,         ONLY : soil_parameter_type
+
   USE cable_def_types_mod, ONLY : mp
   USE cable_data_module,   ONLY : PHYS
-  USE cable_um_tech_mod,   ONLY : um1 ,canopy, rad, soil, ssnow, air,         &
-                                  basic_diag, veg
-
-  USE cable_decs_mod, ONLY : L_tile_pts!, rho_water
-  
-  !#82!USE casa_types_mod!, ONLY : L_tile_pts!, rho_water
+  USE cable_um_tech_mod,   ONLY : um1 
 
   implicit none
         
@@ -80,6 +52,9 @@ subroutine Implicit_unpack( cycleno, & ! nucycles
   integer :: row_length,rows, land_pts, ntiles, npft, sm_levels
   integer :: dim_cs1, dim_cs2 
 
+LOGICAL,DIMENSION(land_pts, ntiles) ::                       &
+  L_tile_pts  ! true IF vegetation (tile) fraction is greater than 0
+  
   REAL, DIMENSION(land_pts) ::                                            &
     GS,         &  ! OUT "Stomatal" conductance to
     SMVCST,     &  ! IN Volumetric saturation point
@@ -131,8 +106,9 @@ subroutine Implicit_unpack( cycleno, & ! nucycles
     GPP,        & !
     SNOW_GRD,   &  
     CANOPY_GB,  &
-    T1P5M,      &
-    DTRAD         ! CABLE change in rad%trad over time step
+    T1P5M
+
+real :: dtrad(mp)  ! CABLE change in rad%trad over time step
 
   REAL, DIMENSION(land_pts,ntiles,3) ::                               &
     SNOW_DEPTH3L,  &
@@ -181,17 +157,25 @@ subroutine Implicit_unpack( cycleno, & ! nucycles
     FTL_TILE_old, FQW_TILE_old, &
     lpts_ntiles
 
+TYPE(air_type),      INTENT(inout)  :: air
+TYPE(met_type),      INTENT(inout)  :: met
+TYPE(radiation_type),INTENT(inout)  :: rad
+TYPE(roughness_type),INTENT(inout)  :: rough
+TYPE(canopy_type),   INTENT(inout)  :: canopy
+TYPE(soil_snow_type),INTENT(inout)  :: ssnow
+TYPE(bgc_pool_type), INTENT(inout)  :: bgc
+TYPE(balances_type), INTENT(inout)  :: bal
+TYPE(sum_flux_type), INTENT(inout)  :: sum_flux
+TYPE(veg_parameter_type), INTENT(inout) :: veg
+TYPE(soil_parameter_type),INTENT(inout) ::  soil
   INTEGER:: i_miss = 0
   REAL :: miss = 0.0
+  !REAL(r_2) :: miss_r2 = 0.0
   
   REAL, POINTER :: TFRZ
 
   ! std template args 
   character(len=*), parameter :: subr_name = "cable_implicit_unpack"
-
-# include "../../../core/utils/diag/cable_fprint.txt"
-  
-  !-------- Unique subroutine body -----------
 
   TFRZ => PHYS%TFRZ
   
@@ -392,52 +376,6 @@ subroutine Implicit_unpack( cycleno, & ! nucycles
       t1p5m(L)=sum(t1p5m_tile(L,:))
     ENDDO
   ENDDO
-
-!#82!     ! Lestevens - Passing CO2 from CABLE to bl_trmix_dd.F90
-!#82!!     FRS_TILE       = UNPACK(canopy%frs, um1%L_TILE_PTS, miss)
-!#82!!     NEE_TILE       = UNPACK(canopy%fnee, um1%L_TILE_PTS, miss)
-!#82!!     NPP_TILE       = UNPACK(canopy%fnpp, um1%L_TILE_PTS, miss)
-!#82!!     GLEAF_TILE     = UNPACK(canopy%frday,um1%L_TILE_PTS, miss)
-!#82!
-!#82!! TZ: output casa fluxes instead of canopy fluxes
-!#82!     FRS_TILE    = UNPACK((casaflux%crsoil)/86400.0, um1%L_TILE_PTS, miss)
-!#82!     NPP_TILE    = UNPACK((casaflux%cnpp)/86400.0, um1%L_TILE_PTS, miss)
-!#82!     NEE_TILE    = UNPACK((casaflux%crsoil-casaflux%cnpp)/86400.0, um1%L_TILE_PTS, miss)
-!#82!     GLEAF_TILE  = UNPACK((casaflux%crmplant(:,1))/86400.0, um1%L_TILE_PTS, miss)
-!#82!     FRP_TILE    = UNPACK((casaflux%crmplant(:,2)+casaflux%crmplant(:,3)+casaflux%crgplant)/86400.0, um1%L_TILE_PTS, miss)
-!#82!     IF( cable_user%leaf_respiration == 'on' .OR. cable_user%leaf_respiration == 'ON') THEN
-!#82!        GPP_TILE = UNPACK((casaflux%cnpp+casaflux%crmplant(:,2)+casaflux%crmplant(:,3)+casaflux%crgplant)/86400.0, um1%L_TILE_PTS, miss)
-!#82!     ELSE  
-!#82!        GPP_TILE = UNPACK((casaflux%cnpp+casaflux%crmplant(:,1)+casaflux%crmplant(:,2)+casaflux%crmplant(:,3)+casaflux%crgplant)/86400.0, um1%L_TILE_PTS, miss)
-!#82!     ENDIF
-!#82!
-!#82!!      IF( cable_user%leaf_respiration == 'on' .OR.                             &
-!#82!!           cable_user%leaf_respiration == 'ON') THEN
-!#82!!         GPP_TILE = UNPACK(canopy%fnpp+canopy%frp, um1%L_TILE_PTS, miss)
-!#82!!      ELSE 
-!#82!!         GPP_TILE = UNPACK(canopy%fnpp+canopy%frp+canopy%frday,  &
-!#82!!                            um1%L_TILE_PTS, miss)
-!#82!!      ENDIF
-!#82!
-!#82!!     FRP_TILE       = UNPACK(canopy%frp, um1%L_TILE_PTS, miss)
-
-  !-------- End Unique subroutine body -----------
-
-  fprintf_dir=trim(fprintf_dir_root)//trim(unique_subdir)//"/"
-  if(L_cable_fprint) then 
-    !basics to std output stream
-    if (knode_gl == 0 .and. ktau_gl == 1)  call cable_fprintf(subr_name, .true.) 
-    !more detailed output
-    vname=trim(subr_name//'_')
-    call cable_fprintf( cDiag00, vname, knode_gl, ktau_gl, .true. )
-  endif
-
-  if(L_cable_Pyfprint) then 
-    !vname='canopy_tscrn'; dimx=mp
-    !call cable_Pyfprintf( cDiag2, vname, (canopy%tscrn+tfrz), dimx, .true.)
-    !vname='tscrn'; dimx=land_pts
-    !call cable_Pyfprintf( cDiag2, vname, t1p5m, dimx, .true.)
-  endif
 
 return
 

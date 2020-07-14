@@ -1,25 +1,3 @@
-!==============================================================================
-! This source code is part of the 
-! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
-! This work is licensed under the CSIRO Open Source Software License
-! Agreement (variation of the BSD / MIT License).
-! 
-! You may not use this file except in compliance with this License.
-! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located 
-! in each directory containing CABLE code.
-!
-! ==============================================================================
-! Purpose: Updates CABLE variables (as altered by first pass through boundary 
-!          layer and convection scheme), calls cbm, passes CABLE variables back 
-!          to UM. 'Implicit' is the second call to cbm in each UM timestep.
-!
-! Called from: UM codecable_implicit_main 
-!
-! Contact: Jhan.Srbinovsky@csiro.au
-!
-! History: Developed for CABLE v1.8
-!
-! ==============================================================================
 
 module cable_implicit_driv_mod
   
@@ -30,55 +8,67 @@ subroutine cable_implicit_driver( i_day_number, cycleno, &! num_cycles
                           sm_levels, dim_cs1, dim_cs2, Fland,                  &
                           LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,               &
                           DTL_1,DQW_1, ctctq1, TSOIL, TSOIL_TILE, SMCL,        &
-                          SMCL_TILE, SMGW_TILE, timestep, SMVCST, STHF,        &
+                          SMCL_TILE, &!SMGW_TILE, 
+                          timestep, SMVCST, STHF,        &
                           STHF_TILE, STHU, snow_tile, SNOW_RHO1L, ISNOW_FLG3L, &
                           SNOW_DEPTH3L, SNOW_MASS3L, SNOW_RHO3L, SNOW_TMP3L,   &
                           FTL_1, FTL_TILE, FQW_1, FQW_TILE, TSTAR_TILE,        &
                           SURF_HT_FLUX_LAND, ECAN_TILE, ESOIL_TILE, EI_TILE,   &
                           RADNET_TILE, SNOW_AGE, CANOPY_TILE, GS, GS_TILE,     &
                           T1P5M_TILE, Q1P5M_TILE, CANOPY_GB, MELT_TILE,        &
-                          NPP, NPP_FT, GPP, GPP_FT, RESP_S,                    &
-                          RESP_S_TOT, RESP_S_TILE, RESP_P, RESP_P_FT,          &
-                          G_LEAF, TL_1, QW_1, SURF_HTF_TILE,                   &
-                          CPOOL_TILE, NPOOL_TILE, PPOOL_TILE,                  &
-                          GLAI, PHENPHASE, NPP_FT_ACC, RESP_W_FT_ACC, DTRAD )
-
+                          !NPP, NPP_FT, GPP, GPP_FT, RESP_S,                    &
+                          !RESP_S_TOT,  RESP_P, RESP_P_FT,          &
+                          !G_LEAF, 
+                          TL_1, QW_1, SURF_HTF_TILE,                   &
+                          !CPOOL_TILE, NPOOL_TILE, PPOOL_TILE,                  &
+                          !GLAI, PHENPHASE, NPP_FT_ACC, RESP_W_FT_ACC, 
+                          DTRAD, &
+air_cbl, met_cbl, rad_cbl, rough_cbl, canopy_cbl,                  &
+ssnow_cbl, bgc_cbl, bal_cbl, sum_flux_cbl, veg_cbl,                &
+soil_cbl)
   !subrs called 
+USE cbl_model_driver_mod, ONLY : cbl_model_driver
   USE cable_um_init_subrs_mod, ONLY : um2cable_rr
-  USE cable_cbm_module,    ONLY : cbm
-  USE casa_cable, only : bgcdriver, sumcflux
+!H!  USE casa_cable, only : bgcdriver, sumcflux
   
-  USE cable_def_types_mod, ONLY : mp, msn, ncs,ncp
+!data
+USE cable_other_constants_mod, ONLY : z0surf_min
+  USE cable_def_types_mod, ONLY : mp, msn, ncs,ncp, nrb
   USE cable_data_module,   ONLY : PHYS
-  USE cable_um_tech_mod,   ONLY : um1, conv_rain_prevstep, conv_snow_prevstep,&
-                                 air, bgc, canopy, met, bal, rad, rough, soil,&
-                                 ssnow, sum_flux, veg, basic_diag
+  USE cable_um_tech_mod,   ONLY : um1, conv_rain_prevstep, conv_snow_prevstep
   USE cable_common_module, ONLY : cable_runtime, cable_user, l_casacnp,       &
                                   l_vcmaxFeedbk, knode_gl, ktau_gl, kend_gl
-  
-  USE casavariable
-  USE phenvariable
-  USE casa_types_mod
-  USE casa_um_inout_mod
-  USE cable_climate_mod
-  use POP_TYPES, only : pop_type
-  USE river_inputs_mod,   ONLY: river_step
-  
-  !diag 
-  USE cable_fprint_module, ONLY : cable_fprintf
-  USE cable_Pyfprint_module, ONLY : cable_Pyfprintf
-  USE cable_fFile_module, ONLY : fprintf_dir_root, fprintf_dir, L_cable_fprint,&
-                                 L_cable_Pyfprint, unique_subdir
 
-  USE cable_diag_module
-  
+USE cable_air_type_mod,       ONLY : air_type
+USE cable_met_type_mod,       ONLY : met_type
+USE cable_radiation_type_mod, ONLY : radiation_type
+USE cable_roughness_type_mod, ONLY : roughness_type
+USE cable_canopy_type_mod,    ONLY : canopy_type
+USE cable_soil_snow_type_mod, ONLY : soil_snow_type
+USE cable_bgc_pool_type_mod,  ONLY : bgc_pool_type
+USE cable_balances_type_mod,  ONLY : balances_type
+USE cable_sum_flux_type_mod,  ONLY : sum_flux_type
+USE cable_params_mod,         ONLY : veg_parameter_type
+USE cable_params_mod,         ONLY : soil_parameter_type
+
   implicit none
-
   !___ re-decl input args
-  TYPE (climate_type)  :: climate     ! climate variables
+   TYPE (air_type),       INTENT(INOUT) :: air_cbl
+   TYPE (bgc_pool_type),  INTENT(INOUT) :: bgc_cbl
+   TYPE (canopy_type),    INTENT(INOUT) :: canopy_cbl
+   TYPE (met_type),       INTENT(INOUT) :: met_cbl
+   TYPE (balances_type),  INTENT(INOUT) :: bal_cbl
+   TYPE (radiation_type), INTENT(INOUT) :: rad_cbl
+   TYPE (roughness_type), INTENT(INOUT) :: rough_cbl
+   TYPE (soil_snow_type), INTENT(INOUT) :: ssnow_cbl
+   TYPE (sum_flux_type),  INTENT(INOUT) :: sum_flux_cbl
+   !H!TYPE (climate_type) :: climate
+
+   TYPE (soil_parameter_type), INTENT(INOUT)   :: soil_cbl
+   TYPE (veg_parameter_type),  INTENT(INOUT)    :: veg_cbl
+
   !necessary as arg checking is enforce in modular structure that now present 
   ! - HOWEVER *NB*  this POP is not initialized anywhere
-  TYPE(POP_TYPE) :: POP 
   
   integer :: cycleno
   integer :: row_length,rows, land_pts, ntiles, npft, sm_levels
@@ -152,13 +142,14 @@ subroutine cable_implicit_driver( i_day_number, cycleno, &! num_cycles
     NPP_FT,     &
     GPP_FT      
 
+  REAL :: DTRAD(mp)          !change in Trad over the time step
+
   REAL, DIMENSION(land_pts) ::                                         &
     SNOW_GRD,    & !
     CANOPY_GB,   & !
     RESP_P,      & !
     NPP,         & !
-    GPP,         & !
-    DTRAD          !change in Trad over the time step
+    GPP
       
   REAL, DIMENSION( land_pts,ntiles ) ::                               &
     SNOW_TILE,     &
@@ -260,7 +251,6 @@ subroutine cable_implicit_driver( i_day_number, cycleno, &! num_cycles
   ! std template args 
   character(len=*), parameter :: subr_name = "cable_implicit_driver"
 
-# include "../../../core/utils/diag/cable_fprint.txt"
   
   !-------- Unique subroutine body -----------
         
@@ -285,20 +275,14 @@ subroutine cable_implicit_driver( i_day_number, cycleno, &! num_cycles
       !--- where mask tells um2cable_rr whether or not to use default value 
       !--- for snow tile 
       !-------------------------------------------------------------------
-  ! Leave here as example
-  !if( L_fprint_HW ) then
-  !  if ( ipb == cpb ) L_fprint = .true.
-  !endif  
-  !vname='met_precip' 
-  CALL um2cable_rr( (LS_RAIN+CON_RAIN)*TIMESTEP, met%precip)
-  !call cable_fprintf( cDiag0, vname, met%precip, mp, L_fprint )
-  !L_fprint = .false.
+  
+  CALL um2cable_rr( (LS_RAIN+CON_RAIN)*TIMESTEP, met_cbl%precip)
 
-  CALL um2cable_rr( (LS_SNOW+CONV_SNOW)*TIMESTEP, met%precip_sn)
+  CALL um2cable_rr( (LS_SNOW+CONV_SNOW)*TIMESTEP, met_cbl%precip_sn)
       
-  CALL um2cable_rr( TL_1, met%tk)
+  CALL um2cable_rr( TL_1, met_cbl%tk)
       
-  CALL um2cable_rr( QW_1, met%qv)
+  CALL um2cable_rr( QW_1, met_cbl%qv)
       
   CALL um2cable_rr( dtl_1, dtlc)
       
@@ -320,27 +304,31 @@ subroutine cable_implicit_driver( i_day_number, cycleno, &! num_cycles
   endif
   !-----------------------------------------------------------------------
 
-  met%precip   =  met%precip + met%precip_sn
-  met%tk = met%tk + dtlc
-  met%qv = met%qv + dqwc
-  met%tvair = met%tk
-  met%tvrad = met%tk
+  met_cbl%precip   =  met_cbl%precip + met_cbl%precip_sn
+  met_cbl%tk = met_cbl%tk + dtlc
+  met_cbl%qv = met_cbl%qv + dqwc
+  met_cbl%tvair = met_cbl%tk
+  met_cbl%tvrad = met_cbl%tk
 
-  canopy%cansto = canopy%oldcansto
+  canopy_cbl%cansto = canopy_cbl%oldcansto
 
-  CALL cbm( ktau_gl,timestep, air, bgc, canopy, met, bal,                             &
-            rad, rough, soil, ssnow, sum_flux, veg, climate )
+  CALL cbl_model_driver( mp, nrb, land_pts, npft, ktau_gl,timestep, air_cbl, bgc_cbl, canopy_cbl, met_cbl, bal_cbl,      &
+            rad_cbl, rough_cbl, soil_cbl, ssnow_cbl, sum_flux_cbl, veg_cbl, z0surf_min, &
+            !H!shouuld already work from here LAI_pft, HGT_pft )
+            veg_cbl%vlai, veg_cbl%hc, met_cbl%doy, canopy_cbl%vlaiw )
+  !CALL cbm( ktau_gl,timestep, air, bgc, canopy, met, bal,                             &
+  !          rad, rough, soil, ssnow, sum_flux, veg, climate )
 
       ! Integrate wb_lake over the river timestep.
       ! Used to scale river flow within ACCESS
       ! Zeroed each river step in subroutine cable_lakesriver and on restarts.
       !  ssnow_wb_lake in kg/m^2
-      if (ipb == cpb) THEN
-        ssnow%totwblake = ssnow%totwblake + ssnow%wb_lake/river_step
-      end if
+      !C!if (ipb == cpb) THEN
+      !C!  ssnow%totwblake = ssnow%totwblake + ssnow%wb_lake/river_step
+      !C!end if
  
   !Jun 2018 - change in Trad over time step
-  DTRAD = rad%trad - rad%otrad
+  DTRAD = rad_cbl%trad - rad_cbl%otrad
 
   ! Lestevens - temporary ?
   ktauday = int(24.0*3600.0/TIMESTEP)
@@ -350,53 +338,23 @@ subroutine cable_implicit_driver( i_day_number, cycleno, &! num_cycles
   !cable_implicit per atmospheric time step
   if (ipb==cpb) then
     !Call CASA-CNP
-    if (l_casacnp) & 
-      CALL bgcdriver(ktau_gl,kstart,kend_gl,timestep,met,ssnow,canopy,veg,soil, &
-                     climate,casabiome,casapool,casaflux,casamet,casabal,phen, &
-                     pop, spinConv,spinup, ktauday, idoy,loy, dump_read,   &
-                     dump_write, LALLOC)
-
-    CALL sumcflux(ktau_gl,kstart,kend_gl,TIMESTEP,bgc,canopy,soil,ssnow,      &
-                  sum_flux,veg,met,casaflux,l_vcmaxFeedbk)
+    !H!if (l_casacnp) & 
+    !H!  CALL bgcdriver(ktau_gl,kstart,kend_gl,timestep,met,ssnow,canopy,veg,soil, &
+    !H!                 climate,casabiome,casapool,casaflux,casamet,casabal,phen, &
+    !H!                 pop, spinConv,spinup, ktauday, idoy,loy, dump_read,   &
+    !H!                 dump_write, LALLOC)
+!H! have to comment out as we dont havecasaflux yet
+    !H!CALL sumcflux(ktau_gl,kstart,kend_gl,TIMESTEP,bgc,canopy,soil,ssnow,      &
+    !H!              sum_flux,veg,met,casaflux,l_vcmaxFeedbk)
   endif
 
   ! Only call carbon cycle prognostics updates on the last call to 
   ! cable_implicit per atmospheric time step
   ! Call CASA-CNP collect pools
-  if (ipb==cpb .AND. l_casacnp) & 
-    CALL casa_poolout_unpk(casapool,casaflux,casamet,casabal,phen,  &
-                          CPOOL_TILE,NPOOL_TILE,PPOOL_TILE, &
-                          GLAI,PHENPHASE)
-
-  !-------- End Unique subroutine body -----------
-
-  fprintf_dir=trim(fprintf_dir_root)//trim(unique_subdir)//"/"
-  if(L_cable_fprint) then 
-    !basics to std output stream
-    if (knode_gl == 0 .and. ktau_gl == 1)  call cable_fprintf(subr_name, .true.) 
-    !more detailed output
-    vname=trim(subr_name//'_')
-    call cable_fprintf( cDiag00, vname, knode_gl, ktau_gl, .true. )
-  endif
-
-  if(L_cable_Pyfprint) then 
-    !vname='longitude'; dimx=mp
-    !call cable_Pyfprintf( cDiag2, vname, cable%lon, dimx, .true.)
-  endif
-
-!Testing puroses:
-!#define CABLE_TESTING
-# if defined(CABLE_TESTING)
-if (ktau_gl==72) then
-  L_fprint = .true.; vname='combined' 
-  
-  call cable_Pyfprintf( cDiag1, vname,&
-               ssnow%tgg(:,1) + ssnow%wb(:,1) + canopy%fes(:) + canopy%fhs(:), &
-               mp, L_fprint )
-  L_fprint = .false.
-endif
-# endif
-!End Testing puroses:
+  !H!if (ipb==cpb .AND. l_casacnp) & 
+  !H!  CALL casa_poolout_unpk(casapool,casaflux,casamet,casabal,phen,  &
+  !H!                        CPOOL_TILE,NPOOL_TILE,PPOOL_TILE, &
+  !H!                        GLAI,PHENPHASE)
 
 return
 
@@ -454,41 +412,41 @@ subroutine cable_store_prognostics()
 
   ipb = cycleno
 
-  PB(ipb)%tsoil     = ssnow%tgg
-  PB(ipb)%smcl      = ssnow%wb
-  PB(ipb)%sthf      = ssnow%wbice
-  PB(ipb)%snow_depth= ssnow%sdepth
-  PB(ipb)%snow_mass = ssnow%smass
-  PB(ipb)%snow_tmp  = ssnow%tggsn
-  PB(ipb)%snow_rho  = ssnow%ssdn
-  PB(ipb)%snow_rho1l= ssnow%ssdnn
-  PB(ipb)%snow_age  = ssnow%snage
-  PB(ipb)%snow_flg3l= ssnow%isflag
-  PB(ipb)%snow_tile = ssnow%snowd
-  PB(ipb)%ocanopy   = canopy%oldcansto
+  PB(ipb)%tsoil     = ssnow_cbl%tgg
+  PB(ipb)%smcl      = ssnow_cbl%wb
+  PB(ipb)%sthf      = ssnow_cbl%wbice
+  PB(ipb)%snow_depth= ssnow_cbl%sdepth
+  PB(ipb)%snow_mass = ssnow_cbl%smass
+  PB(ipb)%snow_tmp  = ssnow_cbl%tggsn
+  PB(ipb)%snow_rho  = ssnow_cbl%ssdn
+  PB(ipb)%snow_rho1l= ssnow_cbl%ssdnn
+  PB(ipb)%snow_age  = ssnow_cbl%snage
+  PB(ipb)%snow_flg3l= ssnow_cbl%isflag
+  PB(ipb)%snow_tile = ssnow_cbl%snowd
+  PB(ipb)%ocanopy   = canopy_cbl%oldcansto
   !Jan 2018 new PB variables
-  PB(ipb)%fes_cor   = canopy%fes_cor
-  PB(ipb)%puddle    = ssnow%pudsto
-  PB(ipb)%rtsoil    = ssnow%rtsoil !?needed
-  PB(ipb)%owetfac   = ssnow%owetfac
-  PB(ipb)%wblake    = ssnow%wb_lake 
+  PB(ipb)%fes_cor   = canopy_cbl%fes_cor
+  PB(ipb)%puddle    = ssnow_cbl%pudsto
+  PB(ipb)%rtsoil    = ssnow_cbl%rtsoil !?needed
+  PB(ipb)%owetfac   = ssnow_cbl%owetfac
+  PB(ipb)%wblake    = ssnow_cbl%wb_lake 
   !carbon variables - may not be needed unless CASA
-  PB(ipb)%cplant = bgc%cplant
-  PB(ipb)%csoil = bgc%csoil
+  PB(ipb)%cplant = bgc_cbl%cplant
+  PB(ipb)%csoil = bgc_cbl%csoil
   !GW model variables
-  PB(ipb)%GWaq   = ssnow%GWwb
+  PB(ipb)%GWaq   = ssnow_cbl%GWwb
   !otss added July 2018
-  PB(ipb)%tss0 = ssnow%tss
+  PB(ipb)%tss0 = ssnow_cbl%tss
   
   !SLI variables
   if (cable_user%soil_struc=='sli') then
-    PB(ipb)%SLI_nsnow   = ssnow%nsnow
-    PB(ipb)%SLI_S       = ssnow%S
-    PB(ipb)%Tsoil       = ssnow%Tsoil
-    PB(ipb)%SLI_sconds  = ssnow%sconds
-    PB(ipb)%SLI_h0      = ssnow%h0
-    PB(ipb)%SLI_Tsurf   = ssnow%Tsurface
-    PB(ipb)%SLI_snowliq = ssnow%snowliq
+    PB(ipb)%SLI_nsnow   = ssnow_cbl%nsnow
+    PB(ipb)%SLI_S       = ssnow_cbl%S
+    PB(ipb)%Tsoil       = ssnow_cbl%Tsoil
+    PB(ipb)%SLI_sconds  = ssnow_cbl%sconds
+    PB(ipb)%SLI_h0      = ssnow_cbl%h0
+    PB(ipb)%SLI_Tsurf   = ssnow_cbl%Tsurface
+    PB(ipb)%SLI_snowliq = ssnow_cbl%snowliq
   endif
 
 
@@ -497,48 +455,45 @@ End SUBROUTINE cable_store_prognostics
 SUBROUTINE cable_reinstate_prognostics()
   implicit none
 
-  ssnow%tgg     = PB(1)%tsoil
-  ssnow%wb      = PB(1)%smcl
-  ssnow%wbice   = PB(1)%sthf
-  ssnow%sdepth  = PB(1)%snow_depth
-  ssnow%smass   = PB(1)%snow_mass
-  ssnow%tggsn   = PB(1)%snow_tmp
-  ssnow%ssdn    = PB(1)%snow_rho
-  ssnow%ssdnn   = PB(1)%snow_rho1l
-  ssnow%snage   = PB(1)%snow_age
-  ssnow%isflag  = PB(1)%snow_flg3l
-  ssnow%snowd   = PB(1)%snow_tile
-  canopy%oldcansto = PB(1)%ocanopy
+  ssnow_cbl%tgg     = PB(1)%tsoil
+  ssnow_cbl%wb      = PB(1)%smcl
+  ssnow_cbl%wbice   = PB(1)%sthf
+  ssnow_cbl%sdepth  = PB(1)%snow_depth
+  ssnow_cbl%smass   = PB(1)%snow_mass
+  ssnow_cbl%tggsn   = PB(1)%snow_tmp
+  ssnow_cbl%ssdn    = PB(1)%snow_rho
+  ssnow_cbl%ssdnn   = PB(1)%snow_rho1l
+  ssnow_cbl%snage   = PB(1)%snow_age
+  ssnow_cbl%isflag  = PB(1)%snow_flg3l
+  ssnow_cbl%snowd   = PB(1)%snow_tile
+  canopy_cbl%oldcansto = PB(1)%ocanopy
   !Jan 2018 new PB variables 
-  canopy%fes_cor = PB(1)%fes_cor
-  ssnow%pudsto  = PB(1)%puddle
-  ssnow%rtsoil  = PB(1)%rtsoil  !?needed
-  ssnow%owetfac = PB(1)%owetfac
-  ssnow%wb_lake = PB(1)%wblake  
+  canopy_cbl%fes_cor = PB(1)%fes_cor
+  ssnow_cbl%pudsto  = PB(1)%puddle
+  ssnow_cbl%rtsoil  = PB(1)%rtsoil  !?needed
+  ssnow_cbl%owetfac = PB(1)%owetfac
+  ssnow_cbl%wb_lake = PB(1)%wblake  
   !carbon variables - may not be needed unless CASA
-  bgc%cplant = PB(1)%cplant
-  bgc%csoil = PB(1)%csoil
+  bgc_cbl%cplant = PB(1)%cplant
+  bgc_cbl%csoil = PB(1)%csoil
   !GW model variables
-  ssnow%GWwb = PB(1)%GWaq
+  ssnow_cbl%GWwb = PB(1)%GWaq
   !%tss added July 2018
-  ssnow%tss = PB(1)%tss0
+  ssnow_cbl%tss = PB(1)%tss0
   
   !SLI variables
   if (cable_user%soil_struc=='sli') then
-    ssnow%nsnow    = PB(1)%SLI_nsnow
-    ssnow%S        = PB(1)%SLI_S
-    ssnow%Tsoil    = PB(1)%SLI_Tsoil
-    ssnow%sconds   = PB(1)%SLI_sconds
-    ssnow%h0       = PB(1)%SLI_h0
-    ssnow%Tsurface = PB(1)%SLI_Tsurf
-    ssnow%snowliq  = PB(1)%SLI_snowliq
+    ssnow_cbl%nsnow    = PB(1)%SLI_nsnow
+    ssnow_cbl%S        = PB(1)%SLI_S
+    ssnow_cbl%Tsoil    = PB(1)%SLI_Tsoil
+    ssnow_cbl%sconds   = PB(1)%SLI_sconds
+    ssnow_cbl%h0       = PB(1)%SLI_h0
+    ssnow_cbl%Tsurface = PB(1)%SLI_Tsurf
+    ssnow_cbl%snowliq  = PB(1)%SLI_snowliq
   endif
 
 End SUBROUTINE cable_reinstate_prognostics
  
 END SUBROUTINE cable_implicit_driver
-
-
-        
 
 End module cable_implicit_driv_mod

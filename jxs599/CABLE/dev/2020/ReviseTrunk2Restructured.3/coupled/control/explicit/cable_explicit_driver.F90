@@ -1,99 +1,165 @@
-!==============================================================================
-! This source code is part of the 
-! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
-! This work is licensed under the CSIRO Open Source Software License
-! Agreement (variation of the BSD / MIT License).
-! 
-! You may not use this file except in compliance with this License.
-! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located 
-! in each directory containing CABLE code.
-!
-! ==============================================================================
-! Purpose: Passes UM variables to CABLE, calls cbm, passes CABLE variables 
-!          back to UM. 'Explicit' is the first of two routines that call cbm at 
-!          different parts of the UM timestep.
-!
-! Called from: UM code sf_exch
-!
-! Contact: Jhan.Srbinovsky@csiro.au
-!
-! History: Developed for CABLE v1.8
-!
-!
-! ==============================================================================
-
 module cable_explicit_driv_mod
   
 contains
 
-SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
-                                  sm_levels, timestep, latitude, longitude,    &
-                                  land_index, tile_frac,  tile_pts, tile_index,&
-                                  bexp, hcon, satcon, sathh, smvcst,           &
-                                  smvcwt, smvccl, albsoil, slope_avg,slope_std,&
-                                  dz_gw,perm_gw,drain_gw,snow_tile,            &
-                                  snow_rho1l, snow_age, snow_flg3l, snow_rho3l,&
-                                  snow_depth3l, snow_tmp3l, snow_mass3l,       &
-                                  lw_down, cos_zenith_angle, surf_down_sw,     &
-                                  ls_rain, ls_snow, tl_1, qw_1, vshr_land,     &
-                                  pstar, z1_tq, z1_uv, visc_sublayer_depth,    &
-                                  canopy_tile, Fland, CO2_MMR,                 &
-                                  ! + Extra atmospheric co2 variables
-                                  !CO2_3D,CO2_DIM_LEN,CO2_DIM_ROW,
-                                  !L_CO2_INTERACTIVE, 
-                                  smcl_tile, smgw_tile,sthf_tile, sthu,        &
-                                  tsoil_tile, canht_ft, lai_ft,                &
-                                  sin_theta_latitude, dzsoil,                  &
-                                  FTL_TILE, FQW_TILE, TSTAR_TILE,              &
-                                  U_S, U_S_STD_TILE, CD_TILE, CH_TILE,         &
-                                  RADNET_TILE, FRACA, RESFS, RESFT,            &
-                                  Z0H_TILE, Z0M_TILE,                          &
-                                  RECIP_L_MO_TILE, EPOT_TILE,                  &
-                                  CPOOL_TILE, NPOOL_TILE, PPOOL_TILE,          &
-                                  SOIL_ORDER, NIDEP, NIFIX, PWEA, PDUST,       &
-                                  GLAI, PHENPHASE, NPP_FT_ACC, RESP_W_FT_ACC,  &
-                                  endstep, timestep_number, mype )    
-  !subrs called 
-  USE cable_um_init_mod, ONLY : interface_UM_data
-  USE cable_cbm_module, ONLY : cbm
+SUBROUTINE cable_explicit_driver( &
+!corresponding name (if differs) of varaible on other side of call/subroutine shown in "[]" 
 
-  !diag 
-  USE cable_fprint_module, ONLY : cable_fprintf
-  USE cable_Pyfprint_module, ONLY : cable_Pyfprintf
-  USE cable_fFile_module, ONLY : fprintf_dir_root, fprintf_dir, L_cable_fprint,&
-                                 L_cable_Pyfprint, unique_subdir
-  
-  USE cable_diag_module
-  
+!Variables to be calculated and returned by CABLE
+!------------------------------------------------------------------------------
+FTL_TILE,           & !surface sensible heat flux  [W/m2]? (up=+ve?) -"FTL_tile" in CABLE
+FQW_TILE,           & !surface moisture flux flux  [kg/m^2/s/m2](up=+ve?) units could be changed?
+TSTAR_TILE,         & !surface temperature [K] per tile
+U_S,                & ! land point surface friction velocity [m/s]
+U_S_STD_TILE,       & ! per tile surface friction velocity [m/s] canopy%us
+CD_TILE,            &
+CH_TILE,            &
+RADNET_TILE,        & !Net radiation at surface [W/m2]
+FRACA,              & !Fraction of surface moisture flux with only aerodynamic resistance for
+                      !snow-free land tiles.
+RESFS,              & !Combined soil, stomatal and aerodynamic resistance factor for fraction
+                      !(1-FRACA) of snow-free land tiles.
+RESFT,              & !Total resistance factor. FRACA+(1-FRACA)*RESFS for snow-free land, 1 for snow.
+Z0H_tile,           & ! Tile roughness lengths for heat and moisture (m).
+Z0M_tile,           & ! OUT Tile roughness lengths for momentum.
+RECIP_L_MO_tile,    & ! Reciprocal of the Monin-Obukhov length for tiles (m^-1).
+EPOT_tile,          & ! Potential evaporation from surface, per tile
+!------------------------------------------------------------------------------
+
+!This is an "outlier" and possibly misleading. CABLE does not actually calculate radiation:
+!Generally we speak of 4-band radiation. This is actually only 2-bands VIS/NIR in the SW.
+!We further split each of these into Direct Beam and Diffuse components. 
+!Offline CABLE splits the total SW forcing into VIS/NIR using a Spitter() fuction
+!We include this variable here to connect back to JULES toplevel routines because:
+!Online the UM radiation scheme DOES compute surf_down_sw using a more sophisticated model 
+!than that which we use Offline, however not until AFTER the surface albedos have been 
+!calculated which IS what is done AND here and technically does not require knowledge of 
+!the downward SW. JULES aggregates this SW and threads this to the LSM as it is called 
+!explicitly. 
+!------------------------------------------------------------------------------
+surf_down_sw,     & ! ShortWave radiation per rad band (row_length,rows,4) 
+!------------------------------------------------------------------------------
+
+!Mostly model dimensions and associated
+!------------------------------------------------------------------------------
+row_length,         & !grid cell x
+rows,               & !grid cell y
+land_pts,           & !grid cell land points on the x,y grid
+ntiles,             & !grid cell number of surface types [] 
+sm_levels,          & !grid cell number of soil levels 
+npft,               & !grid cell number of PFTs 
+tile_pts,           & !Number of land points per PFT [] 
+tile_index,         & !Index of land point in (land_pts) array[] 
+land_index,         & !Index of land points in (x,y) array - see  corresponding *decs.inc
+timestep_width,     & !bin width in seconds of timestep
+endstep,            & !last timestep of experiment
+timestep_number,    &
+doy,                &  
+mp,                 &
+nrb,                &
+!------------------------------------------------------------------------------
+
+!Surface descriptions generally parametrized
+!------------------------------------------------------------------------------
+Fland,              & !fraction of land per land point (could be coastal) 
+tile_frac,          & !fraction of each surface type per land point [frac_surft] 
+L_tile_pts,         & !Logical mask TRUE where tile frac > 0. used to PACK/UNPACK
+LAI_ft,             & !Leaf area index. [LAI_pft/LAI_pft_um in radiation]
+canht_ft,           & !Canopy height [canht_pft/HGT_pft_um in radiation]
+albsoil,            & !(albsoil)Snow-free, bare soil albedo [albsoil_soilt(:,1) in um ]
+z0surf_min,         &
+dzsoil,             & !soil thicknesses in each layer  
+bexp,               &
+hcon,               &
+satcon,             &
+sathh,              &
+smvcst,             &
+smvcwt,             &
+smvccl,             &
+!------------------------------------------------------------------------------
+
+!Variables passed from JULES/UM
+!------------------------------------------------------------------------------
+latitude,           & !latitude
+longitude,          & !longitude
+cosine_zenith_angle,& ! cosine_zenith_angle [cosz_ij]
+sin_theta_latitude, &
+sthu,               &
+lw_down,            &
+ls_rain,            &
+ls_snow,            &
+tl_1,               &
+qw_1,               &
+vshr_land,          &
+pstar,              &
+z1_tq,              &
+z1_uv,              &
+snow_tile,          & !snow depth equivalent (in water?) [snow_surft]
+                      !This is the total snow depth per tile. CABLE also has depth per layer
+canopy_tile,        &
+CO2_MMR,            &
+!------------------------------------------------------------------------------
+
+!CABLE prognostics
+!------------------------------------------------------------------------------
+iThreeLayerSnowFlag,& ! flag indicating whether enough snow to treat as 3 layers
+                      ! [real(ThreeLayerSnowFlag_CABLE)]
+OneLyrSnowDensity,  & ! density considering snow as 1 layer [OneLyrSnowDensity_CABLE 
+SnowAge,            & 
+SnowDensity,        & 
+SnowDepth,          &
+SnowMass,           & 
+SnowTemp,           & 
+SoilMoisture,       & 
+FrozenSoilFrac,     & 
+SoilTemp,           &
+!The simplest way to replace old CABLE types with these new ones issimply to 
+!del the "_cbl" tag from the suffix 
+air_cbl, met_cbl, rad_cbl, rough_cbl, canopy_cbl,                  &
+ssnow_cbl, bgc_cbl, bal_cbl, sum_flux_cbl, veg_cbl,                &
+soilin, soil_cbl )
+
+!subrs called 
+USE cable_um_init_mod, ONLY : interface_UM_data
+USE cbl_model_driver_mod, ONLY : cbl_model_driver
+!data
+USE cable_air_type_mod,       ONLY : air_type
+USE cable_met_type_mod,       ONLY : met_type
+USE cable_radiation_type_mod, ONLY : radiation_type
+USE cable_roughness_type_mod, ONLY : roughness_type
+USE cable_canopy_type_mod,    ONLY : canopy_type
+USE cable_soil_snow_type_mod, ONLY : soil_snow_type
+USE cable_bgc_pool_type_mod,  ONLY : bgc_pool_type
+USE cable_balances_type_mod,  ONLY : balances_type
+USE cable_sum_flux_type_mod,  ONLY : sum_flux_type
+USE cable_params_mod,         ONLY : veg_parameter_type
+USE cable_params_mod,         ONLY : soilin_type
+USE cable_params_mod,         ONLY : soil_parameter_type
+
+USE cable_runtime_opts_mod ,ONLY : cable_user
+USE cable_runtime_opts_mod ,ONLY : satuparam
+USE cable_runtime_opts_mod ,ONLY : wiltparam
+
   !processor number, timestep number / width, endstep
   USE cable_common_module, ONLY : knode_gl, ktau_gl, kwidth_gl, kend_gl
   USE cable_common_module, ONLY : cable_runtime
   !--- vars common to CABLE declared 
-  USE cable_common_module!, ONLY : cable_runtime, cable_user, ktau_gl,         &
-                         !         knode_gl, kwidth_gl, kend_gl,               &
-                         !         report_version_no,                          &
-                         !         l_vcmaxFeedbk, l_laiFeedbk
    
   USE cable_data_module, ONLY : cable
 
-  !--- reads runtime and user switches and reports
-  USE cable_um_tech_mod, ONLY : cable_um_runtime_vars, air, bgc, canopy,      &
-                                met, bal, rad, rough, soil, ssnow, sum_flux,  &
-                                veg, basic_diag 
-  
-  USE cable_def_types_mod, ONLY : mp, ms
+  USE cable_def_types_mod, ONLY : ms
 
-  USE cable_decs_mod, only : L_tile_pts!, rho_water
   USE cable_data_module, only : PHYS
 
-  USE casavariable
-  USE casa_types_mod
-  USE cable_climate_mod
+  !USE casavariable
+  !USE casa_types_mod
+  !USE cable_climate_mod
   !made this a module so can build in the UM re:dependencies etc
   !did the same dor sli_main. promote everything to modules
-  USE casa_cable
+  !USE casa_cable
    
   implicit none
+real :: z0surf_min
   
   !___ re-decl input args
    
@@ -105,15 +171,19 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
     npft,             & ! # of plant functional types
     sm_levels           ! # of soil layers 
 
+  INTEGER :: mp, nrb
   ! index of land points being processed
   INTEGER, DIMENSION(land_pts) :: land_index 
 
   ! # of land points on each tile
   INTEGER,  DIMENSION(ntiles) :: tile_pts 
   
+   LOGICAL,DIMENSION(land_pts, ntiles) ::                       &
+      L_tile_pts  ! true IF vegetation (tile) fraction is greater than 0
+  
   INTEGER,  DIMENSION(land_pts, ntiles) ::                         & 
     tile_index ,& ! index of tile points being processed
-    snow_flg3l   ! 3 layer snow flag
+    iThreeLayerSnowFlag   ! 3 layer snow flag
 
   !___UM parameters: water density, soil layer thicknesses 
   REAL,  DIMENSION(sm_levels) :: dzsoil
@@ -137,7 +207,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
 
   
   REAL,  DIMENSION(row_length,rows) :: &
-    cos_zenith_angle, & 
+    cosine_zenith_angle, & 
     latitude,   &
     longitude,  &
     sw_down,    & ! NOT SW forcing. surf_down_sw IS 
@@ -151,14 +221,15 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
     z1_tq,      &
     z1_uv
   
-  REAL, DIMENSION(row_length, rows, 4) ::                         &
+  REAL,  DIMENSION(land_pts, ntiles) ::                         &
+  !REAL, DIMENSION(row_length, rows, 4) ::                         &
     surf_down_sw 
    
   REAL,  DIMENSION(land_pts, ntiles) ::                         &
     snow_tile,    &     
     tile_frac,    &    
-    snow_rho1l,   &
-    snow_age,     &
+    OneLyrSnowDensity,   &
+    SnowAge,     &
     canopy_tile,  &
     visc_sublayer_depth 
 
@@ -167,29 +238,22 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    
   REAL,  DIMENSION(land_pts, ntiles,3) ::                       &
     snow_cond,     &
-    snow_rho3l,    &
-    snow_depth3l,  &
-    snow_mass3l,   &
-    snow_tmp3l
+    SnowDensity,    &
+    SnowDepth,  &
+    SnowMass,   &
+    SnowTemp
    
   REAL, DIMENSION(land_pts, sm_levels) ::                         &
     sthu 
    
   REAL, DIMENSION(land_pts, ntiles, sm_levels) :: & 
     sthu_tile, &
-    sthf_tile, &
-    smcl_tile, &
-    tsoil_tile
+    FrozenSoilFrac, &
+    SoilMoisture, &
+    SoilTemp
    
   REAL :: co2_mmr
    
-  ! rml 2/7/13 Extra atmospheric co2 variables
-  !LOGICAL, INTENT(IN) :: L_CO2_INTERACTIVE
-  !INTEGER, INTENT(IN) ::                              &
-  !  CO2_DIM_LEN                                      &
-  !  ,CO2_DIM_ROW
-  !REAL, INTENT(IN) :: CO2_3D(CO2_DIM_LEN,CO2_DIM_ROW)  ! co2 mass mixing ratio
-  
   REAL :: sin_theta_latitude(row_length,rows) 
     
   !___return fluxes AND miscelaneous 
@@ -218,8 +282,21 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    
   ! end step of experiment, this step, step width, processor num
   INTEGER :: endstep, timestep_number, mype
-  REAL ::  timestep     
+  REAL ::  timestep_width     
    
+TYPE(air_type),       INTENT(inout)  :: air_cbl
+TYPE(met_type),       INTENT(inout)  :: met_cbl
+TYPE(radiation_type),       INTENT(inout)  :: rad_cbl
+TYPE(roughness_type),     INTENT(inout)  :: rough_cbl
+TYPE(canopy_type),    INTENT(inout)  :: canopy_cbl
+TYPE(soil_snow_type),     INTENT(inout)  :: ssnow_cbl
+TYPE(bgc_pool_type),       INTENT(inout)  :: bgc_cbl
+TYPE(balances_type),       INTENT(inout)  :: bal_cbl
+TYPE(sum_flux_type),  INTENT(inout)  :: sum_flux_cbl
+TYPE(veg_parameter_type),   INTENT(inout) :: veg_cbl
+TYPE(soilin_type),  INTENT(inout) ::  soilin  
+TYPE(soil_parameter_type),  INTENT(inout) ::  soil_cbl
+
   !CASA vars 
   REAL, DIMENSION(land_pts,ntiles,10) :: &
     CPOOL_TILE,    & ! Carbon Pools
@@ -240,11 +317,10 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
     PHENPHASE,    &  ! Phenology Phase for Casa-CNP
     NPP_FT_ACC,   &
     RESP_W_FT_ACC
+
+integer :: doy
   
   !___ local vars
-  !jhan: this can be moved and USEd ?
-  TYPE (climate_type) :: climate     ! climate variables
-   
   CHARACTER(LEN=200), PARAMETER ::                                            &
       runtime_vars_file = 'cable.nml'! path/name namelist def runtime vars
 
@@ -255,81 +331,60 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
   
   ! std template args 
   character(len=*), parameter :: subr_name = "cable_explicit_driver"
-   
-# include "../../../core/utils/diag/cable_fprint.txt"
-  
-  !-------- Unique subroutine body -----------
-  
-  !--- user FLAGS, variables etc def. in cable.nml is read on 
-  !--- first time step of each run. these variables are read at 
-  !--- runtime and for the most part do not require a model rebuild.
-  IF(first_cable_call) THEN
-     CALL cable_um_runtime_vars(runtime_vars_file) 
-     first_cable_call = .FALSE.
-  ENDIF      
 
   rho_water = PHYS%density_liq
-
-  IF (cable_user%GW_model) then
-     rho_ice = PHYS%density_ice
-  ELSE
-     rho_ice = PHYS%density_liq
-  ENDIF      
-
+  rho_ice = PHYS%density_liq
   !---------------------------------------------------------------------!
   !--- initialize CABLE using UM forcings etc. these args are passed ---!
   !--- down from UM.                                                 ---! 
   !---------------------------------------------------------------------!
-  CALL interface_UM_data( row_length, rows, land_pts, ntiles, npft,            &
+  !H!pass cable% types
+  CALL interface_UM_data( mp, row_length, rows, land_pts, ntiles, npft,            &
                           sm_levels, ktau_gl, latitude, longitude,             &
                           land_index, tile_frac, tile_pts, tile_index,         &
                           bexp, hcon, satcon, sathh, smvcst, smvcwt,           &
                           smvccl, albsoil, slope_avg,slope_std,dz_gw,          &
-                          perm_gw,drain_gw,snow_tile, snow_rho1l,              &
-                          snow_age, snow_flg3l, snow_rho3l, snow_cond,         &
-                          snow_depth3l, snow_tmp3l, snow_mass3l, sw_down,      &
-                          lw_down, cos_zenith_angle, surf_down_sw, ls_rain,    &
+                          perm_gw,drain_gw,snow_tile, OneLyrSnowDensity ,              &
+                          SnowAge, iThreeLayerSnowFlag, SnowDensity, snow_cond,         &
+                          SnowDepth, SnowTemp, SnowMass, sw_down,      &
+                          lw_down, cosine_zenith_angle, surf_down_sw, ls_rain,    &
                           ls_snow, tl_1, qw_1, vshr_land, pstar, z1_tq,        &
                           z1_uv, rho_water, rho_ice,L_tile_pts,                &
                           visc_sublayer_depth, canopy_tile, Fland,             &
-                          CO2_MMR, & ! pass 3d co2 through to cable if required
-                          !CO2_3D,CO2_DIM_LEN,CO2_DIM_ROW,L_CO2_INTERACTIVE,   &
-                          sthu_tile, smcl_tile, smgw_tile,sthf_tile,           &
-                          sthu, tsoil_tile, canht_ft, lai_ft,                  &
+                          CO2_MMR, & 
+                          sthu_tile, SoilMoisture, smgw_tile,FrozenSoilFrac,           &
+                          sthu, SoilTemp, canht_ft, lai_ft,                  &
                           sin_theta_latitude, dzsoil,                          &
                           CPOOL_TILE, NPOOL_TILE, PPOOL_TILE, SOIL_ORDER,      &
                           NIDEP, NIFIX, PWEA, PDUST, GLAI, PHENPHASE,          &
-                          NPP_FT_ACC,RESP_W_FT_ACC )
+                          NPP_FT_ACC,RESP_W_FT_ACC,                            &
+air_cbl, met_cbl, rad_cbl, rough_cbl, canopy_cbl,                  &
+ssnow_cbl, bgc_cbl, bal_cbl, sum_flux_cbl, veg_cbl,                &
+soilin, soil_cbl )
 
-
-  !---------------------------------------------------------------------!
-  !--- Feedback prognostic vcmax and daily LAI from casaCNP to CABLE ---!
-  !---------------------------------------------------------------------!
-  IF(l_vcmaxFeedbk) call casa_feedback(ktau_gl,veg,casabiome,casapool,casamet)
-  IF(l_laiFeedbk) veg%vlai(:) = casamet%glai(:)
-
-  canopy%oldcansto=canopy%cansto
-  rad%otrad = rad%trad
+met_cbl%doy = real(doy)
+canopy_cbl%oldcansto=canopy_cbl%cansto
+rad_cbl%otrad = rad_cbl%trad
 
   !---------------------------------------------------------------------!
   !--- cbm "mainly" controls the calling of model components         ---!  
   !---------------------------------------------------------------------!
-  CALL cbm( ktau_gl,timestep, air, bgc, canopy, met, bal,                      &
-            rad, rough, soil, ssnow, sum_flux, veg, climate )
-  
-  !-------- End Unique subroutine body -----------
-
-  fprintf_dir=trim(fprintf_dir_root)//trim(unique_subdir)//"/"
-  if(L_cable_fprint) then 
-    !basics to std output stream
-    if (knode_gl == 0 .and. ktau_gl == 1)  call cable_fprintf(subr_name, .true.) 
-    !more detailed output
-    vname=trim(subr_name//'_')
-    call cable_fprintf( cDiag00, vname, knode_gl, ktau_gl, .true. )
-  endif
-
-  if(L_cable_Pyfprint) then 
-  endif
+  CALL cbl_model_driver( mp, nrb, land_pts, npft, ktau_gl, timestep_width, &
+            air_cbl , &
+            bgc_cbl, &
+            canopy_cbl , &
+            met_cbl , &
+            bal_cbl ,      &
+            rad_cbl, &
+            rough_cbl, &
+            soil_cbl , &
+            ssnow_cbl , &
+            sum_flux_cbl ,&
+            veg_cbl , &
+            z0surf_min, &
+            !H!shouuld already work from here LAI_pft, HGT_pft )
+            !H!veg_cbl %vlai, veg_cbl %hc, met_cbl %Doy, canopy_cbl %vlaiw )
+            veg_cbl %vlai, veg_cbl %hc, met_cbl %Doy, canopy_cbl %vlaiw )
 
   return
 

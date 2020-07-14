@@ -52,14 +52,7 @@ SUBROUTINE cable_expl_unpack( latitude, longitude, FTL_TILE, FQW_TILE,         &
                               rad_trad, rad_transd, rough_z0m, rough_zref_tq,  &
                               canopy_fes, canopy_fev )
 
-  !subrs called 
-  !diag 
-  USE cable_fprint_module, ONLY : cable_fprintf
-  USE cable_Pyfprint_module, ONLY : cable_Pyfprintf
-  USE cable_fFile_module, ONLY : fprintf_dir_root, fprintf_dir, L_cable_fprint,&
-                                 L_cable_Pyfprint, unique_subdir
-  
-  USE cable_diag_module
+ !subrs called 
 
   !processor number, timestep number / width, endstep
   USE cable_common_module, ONLY : knode_gl, ktau_gl, kwidth_gl, kend_gl
@@ -70,7 +63,7 @@ SUBROUTINE cable_expl_unpack( latitude, longitude, FTL_TILE, FQW_TILE,         &
    
   USE cable_def_types_mod, ONLY : mp, NITER 
   USE cable_data_module,   ONLY : PHYS
-  USE cable_um_tech_mod,   ONLY : um1, basic_diag
+  USE cable_um_tech_mod,   ONLY : um1
   
   implicit none         
 
@@ -160,9 +153,6 @@ SUBROUTINE cable_expl_unpack( latitude, longitude, FTL_TILE, FQW_TILE,         &
   ! std template args 
   character(len=*), parameter :: subr_name = "cable_explicit_unpack"
 
-# include "../../../core/utils/diag/cable_fprint.txt"
-
-  !-------- Unique subroutine body -----------
   CAPP => PHYS%CAPP
      
   !___return fluxes
@@ -219,22 +209,7 @@ SUBROUTINE cable_expl_unpack( latitude, longitude, FTL_TILE, FQW_TILE,         &
     l_tile_pts = um1%l_tile_pts
     first_cable_call = .FALSE.
   ENDIF
-  !-------- End Unique subroutine body -----------
- 
-  fprintf_dir=trim(fprintf_dir_root)//trim(unique_subdir)//"/"
-  if(L_cable_fprint) then 
-    !basics to std output stream
-    if (knode_gl == 0 .and. ktau_gl == 1)  call cable_fprintf(subr_name, .true.) 
-    !more detailed output
-    vname=trim(subr_name//'_')
-    call cable_fprintf( cDiag00, vname, knode_gl, ktau_gl, .true. )
-  endif
 
-  if(L_cable_Pyfprint) then 
-    !vname='latitude'; dimx=mp
-    !call cable_Pyfprintf( cDiag1, vname, cable%lat, dimx, .true.)
-  endif
- 
 return
 
 End subroutine cable_expl_unpack
