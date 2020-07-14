@@ -1,3 +1,4 @@
+!H! The JAC version and this one need to be reconciled
 !==============================================================================
 ! This source code is part of the
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
@@ -169,6 +170,7 @@ MODULE cable_common_module
      LOGICAL :: access13roots = .FALSE.     !switch to use ACCESS1.3 %froot
      
      LOGICAL :: l_limit_labile = .FALSE.    ! #237: limit Labile in spinup
+     LOGICAL :: NtilesThruMetFile = .FALSE. ! #199: Specify Ntiles thru met file 
 
   END TYPE kbl_user_switches
 
