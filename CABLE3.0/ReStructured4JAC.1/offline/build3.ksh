@@ -26,7 +26,7 @@ host_gadi()
    export NCDIR=$NETCDF_ROOT'/lib/Intel'
    export NCMOD=$NETCDF_ROOT'/include/Intel'
    export CFLAGS='-O2 -fp-model precise'
-   export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0'
+   #export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0'
    if [[ $1 = 'debug' ]]; then
       export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0'
       #export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0 -check all,noarg_temp_created'
@@ -46,8 +46,11 @@ host_gadi()
 clean_build()
 {
       rm -fr .tmp
-      echo  '\ncleaning up\n'
-      echo  '\n\tPress Enter too continue buiding, Control-C to abort now.\n'
+      echo  ''
+      echo  'cleaning up'
+      echo  ''
+      echo  'Press Enter too continue buiding, Control-C to abort now.'
+      echo  ''
       read dummy
 }
 
@@ -59,7 +62,9 @@ build_build()
    fi
 
    if [[ -f cable ]]; then
-      echo  '\ncable executable exists. copying to dated backup file\n'
+      echo  ''
+      echo  'cable executable exists. copying to dated backup file'
+      echo  ''
       mv cable cable.`date +%d.%m.%y`
    fi
 
@@ -98,6 +103,11 @@ build_build()
 /bin/cp -p Makefile3_mpi  ./.tmp
 
 cd .tmp/
+
+echo  ''
+echo "Build setup complete." 
+echo  'Compiling now ...'
+echo  ''
 if [[ $1 = 'mpi' ]]; then
    make -f Makefile3_mpi
 else   
@@ -110,15 +120,21 @@ build_status()
 {
    if [[ -f .tmp/cable ]]; then
    	mv .tmp/cable .
-   	echo '\nBUILD OK\n'
+    echo  ''
+   	echo 'BUILD OK'
+    echo  ''
    elif [[ -f .tmp/cable-mpi ]]; then
    	mv .tmp/cable-mpi .
-   	echo  '\nBUILD OK\n'
+    echo  ''
+   	echo  'BUILD OK'
+    echo  ''
    else
-      echo '\nOooops. Something went wrong\n'
-      echo '\nKnown build issues:\n'
-      echo '\nSome systems require additional library. \n'
-      echo '\nEdit Makefile_offline; add -lnetcdff to LD = ...\n'
+      echo  ''
+      echo 'Oooops. Something went wrong'
+      echo  ''
+      echo 'Other than compiler messages, known build issues:'
+      echo 'Some systems require additional library. '
+      echo 'e.g. Edit Makefile; add -lnetcdff to LD = ...'
    fi
    exit
 }
@@ -131,8 +147,13 @@ if [[ $1 = 'clean' ]]; then
 fi
 
 if [[ $1 = 'mpi' ]]; then
+  echo  ''
   echo "Building cable_mpi" 
+  echo  ''
 	host_gadi mpi
 else
+  echo  ''
+  echo "Building cable (serial)" 
+  echo  ''
 	host_gadi $1
 fi
