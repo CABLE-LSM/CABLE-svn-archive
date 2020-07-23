@@ -228,7 +228,7 @@ CALL cable_pack_rr( cosine_zenith_angle, coszen)
 !Store Snow Depth from previous timestep. Treat differently on 1st timestep 
 SnowODepth = PACK( SNOWOTILE, L_TILE_PTS )
 SnowDepth = PACK( SNOW_TILE, L_TILE_PTS )
-SnowOTile = UNPACK( SNOWDepth, L_TILE_PTS, 0.0 )
+SnowOTile = UNPACK( SnowDepth, L_TILE_PTS, 0.0 )
 
 SnowDensity = PACK( OneLyrSnowDensity_CABLE, L_TILE_PTS )
 
