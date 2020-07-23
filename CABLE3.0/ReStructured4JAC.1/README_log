@@ -1,0 +1,46 @@
+ bincp ~/extract_aa880/ ReStructured4JAC.1/
+
+ bincp science_cable/ science
+ rm -fr science_cable/
+ 
+ cd coupled/
+ svn mkdir control/ io/
+ svn mv explicit/ implicit/ radiation/ control/
+ svn mv hydrology/ extra
+ svn mv extra/ control/
+ svn mv initialization/ initialisation/
+ svn mv cable_surface_types_mod.F90 cable_prognostic_info_mod.F90 io/
+ svn ci -m 'shufffle files/dirs'
+
+# so this is just checking that what was coupled from ~/extract/ matches that in NCI ^/coupled/
+ bincp control/cable/ coupled/
+ cd coupled/
+ mv cable_surface_types_mod.F90 cable_prognostic_info_mod.F90 io/
+ mv implicit/* control/implicit/
+ rmdir implicit/
+ mv hydrology/* control/extra/
+ mv radiation/* control/radiation/
+ rmdir hydrology/ radiation/
+ mv explicit/* control/explicit/
+ rmdir explicit/
+ mv initialization/* initialisation/
+ rmdir initialization/
+ svn ci -m 'trivial:lowercase' (cbl_rad_main)
+ cd ../
+ rm -fr control/cable/ 
+(everything else in control that mentions "cable" is a JULES file - modified with CASE = cable)
+
+ cd control/
+ grephard cable
+ cd ..
+ rm --fr control/ junk_history
+ rm -f science/junk science/coupled/sf_exch_cbl_mod.F90.HAC
+ mv initialisation/cable/* coupled/initialisation/
+ mv initialisation/cable/vars/* coupled/initialisation/vars/
+ rmdir initialisation/cable/vars/
+ rmdir initialisation/cable/
+ cd initialisation/
+ grephard cable
+ cd ..
+ rm -fr initialisation/
+
