@@ -410,8 +410,13 @@ CONTAINS
          ! Ticket #56
          vegin%g0( mvtype ), vegin%g1( mvtype ),                               &
          !! vh_veg_params !!
-         vegin%zr(mvtype), vegin%clitt(mvtype), vegin%gamma(mvtype))
-
+         vegin%zr(mvtype), vegin%clitt(mvtype), vegin%gamma(mvtype),           &
+         !! acclimation parameters
+         vegin%Eav(mvtype), vegin%dSv(mvtype),                                 &
+         vegin%Eaj(mvtype), vegin%dSj(mvtype),                                       &
+         vegin%Eav_int(mvtype), vegin%Eav_slope(mvtype), vegin%dSv_int(mvtype),      &
+         vegin%dSv_slope(mvtype), vegin%Eaj_acclim(mvtype), vegin%dSj_int(mvtype),   &
+         vegin%dSj_slope_Th(mvtype), vegin%dSj_slope_TgTh(mvtype))
 
     IF( vegparmnew ) THEN    ! added to read new format (BP dec 2007)
 
