@@ -264,7 +264,7 @@ IF ( cbl_standalone .OR. cable_runtime%um_explicit ) &
     canopy%fev  = canopy%fevc + canopy%fevw
 
     ! Calculate total latent heat flux:
-    canopy%fe = 0.5*(canopy%fev + canopy%fes)
+    canopy%fe = canopy%fev + canopy%fes
 
     ! Calculate net radiation absorbed by soil + veg
     canopy%rnet = canopy%fns + canopy%fnv
