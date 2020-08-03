@@ -73,6 +73,7 @@ MODULE cable_checks_module
           Qg = (/-4000.0,4000.0/),            & ! W/m^2
            SWnet = (/0.0,1350.0/),             & ! W/m^2 (YP oct07)
            ! SWnet = (/0.0,1250.0/),            & ! W/m^2
+           Qcan = (/-500.0,1360.0/),            & ! W/m2
            LWnet = (/-500.0,510.0/),           & ! W/m^2
            Rnet = (/-500.0,1250.0/),           & ! W/m^2
           Evap = (/-0.0045,0.0045/),         &  ! note this is also used for snow melt !

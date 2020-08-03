@@ -740,10 +740,10 @@ contains
     real, dimension(17) ::  xnslope
     data xnslope/0.80,1.00,2.00,1.00,1.00,1.00,0.50,1.00,0.34,1.00,1.00,1.00,1.00,1.00,1.00,1.00,1.00/
     real                :: relcostJCi
-    real, dimension(mp) :: bjvref, relcostJ, Nefftmp
+    real, dimension(mp) :: relcostJ, Nefftmp
     real, dimension(mp) :: vcmaxx         ! vcmax of previous day
     real, dimension(mp) :: vcmax_min      ! vcmax at minimum N
-    real :: gm_vcmax_slope = 0.003e-6_r_2 ! slope between gmmax25 and Vcmax25 ((mol m-2 s-1) / (umol m-2 s-1))
+    real :: gm_vcmax_slope = 0.0025e-6_r_2 ! slope between gmmax25 and Vcmax25 ((mol m-2 s-1) / (umol m-2 s-1))
     real, parameter     :: effc4 = 20000.0  ! Vc=effc4*Ci*Vcmax (see Bonan et al. 2011, JGR 116)
 #ifdef __MPI__
     integer :: ierr
@@ -755,7 +755,13 @@ contains
     CALL point2constants(PHOTO)
     ncleafx(:) = casabiome%ratioNCplantmax(veg%iveg(:),leaf)
     npleafx(:) = casabiome%ratioNPplantmin(veg%iveg(:),leaf)
-    bjvref(:)  = PHOTO%bjvref     ! 1.7, Walker et al. 2014
+
+    if (cable_user%acclimate_photosyn) then  
+       veg%bjv(:) = 2.56 - 0.0375 * climate%mtemp_max20(:) - 0.0202 * (climate%mtemp(:) -  climate%mtemp_max20(:)) 
+    else
+       veg%bjv(:) = PHOTO%bjvref  ! 1.8245 at Tgrowth=15degC and Thome=25degC Kumarathunge et al. 2019, acclimises
+    endif
+    
     DO np=1,mp
        ivt=veg%iveg(np)
        IF (casamet%iveg2(np)/=icewater &
@@ -790,7 +796,7 @@ contains
              ENDIF
              veg%vcmax(np) = veg%vcmax(np) * xnslope(ivt)
           ENDIF
-          veg%ejmax = 2.0 * veg%vcmax
+          veg%ejmax = veg%bjv * veg%vcmax
           veg%c4kci = effc4 * veg%vcmax
        elseif (TRIM(cable_user%vcmax).eq.'Walker2014') then
           ! Walker, A. P. et al.: The relationship of leaf photosynthetic traits - Vcmax and Jmax -
@@ -809,15 +815,15 @@ contains
              ! account here for spring recovery
              veg%vcmax(np) = real( vcmax_np(nleafx(np), pleafx(np)) * &
                   casabiome%vcmax_scalar(ivt) * real(climate%frec(np),r_2) )
-             veg%ejmax(np) = bjvref(np) * veg%vcmax(np)
+             veg%ejmax(np) = veg%bjv(np) * veg%vcmax(np)
           else
              veg%vcmax(np) = real( vcmax_np(nleafx(np), pleafx(np)) * &
                   casabiome%vcmax_scalar(ivt) )
-             veg%ejmax(np) = bjvref(np) * veg%vcmax(np)
+             veg%ejmax(np) = veg%bjv(np) * veg%vcmax(np)
           endif
           veg%c4kci(np) = effc4 * veg%vcmax(np)  ! not used for C3 plants
           
-          ! calculate minimum possible Vcmax
+          ! calculate minimum possible Vcmax (at minimum leaf N)
           if (ivt .EQ. 7 .OR. ivt .EQ. 10) then
              vcmax_min(np) = veg%vcmax(np)
           else
@@ -867,7 +873,7 @@ write(86,*) "nleafx(np):", nleafx
  
 
              ! recalculate bjvref
-             bjvref(np) = veg%ejmaxcc(np) / veg%vcmaxcc(np)
+             veg%bjv(np) = veg%ejmaxcc(np) / veg%vcmaxcc(np)
 
              ! recalculate relcost_J in a way that Neff is the same with
              ! finite (explicit) and infinite (implicit) gm
@@ -879,7 +885,7 @@ write(86,*) "nleafx(np):", nleafx
 
              Nefftmp(np) = veg%vcmax(np) + relcostJCi * PHOTO%bjvref *  &
                   veg%vcmax(np) / 4.0
-             relcostJ(np) = 1.0 / (bjvref(np) * veg%vcmaxcc(np) / 4.0) * &
+             relcostJ(np) = 1.0 / (veg%bjv(np) * veg%vcmaxcc(np) / 4.0) * &
                   (Nefftmp(np) - veg%vcmaxcc(np))
 
           else  ! infinite gm
@@ -903,7 +909,7 @@ write(86,*) "nleafx(np):", nleafx
 
     !if (mod(ktau,ktauday) ==1) then   ! JK: whole routine is now called once per day
     if (cable_user%coordinate_photosyn) then
-       CALL optimise_JV(veg, climate, ktauday, bjvref, relcostJ)
+       CALL optimise_JV(veg, climate, ktauday, veg%bjv, relcostJ)
     else
        if (cable_user%explicit_gm) then
           veg%vcmax_shade = veg%vcmaxcc

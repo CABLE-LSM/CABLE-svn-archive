@@ -320,8 +320,9 @@ MODULE cable_def_types_mod
           gmmax => null(),   & ! max. mesophyll conductance at 25degC top leaf (mol/2/s)
           gm => null(),      & ! mesophyll conductance adjusted for N content (mol/2/s)
           c4kci => null(),   & ! C4 plants: initial slope of An-Ci response curve (Ci-based)
-          c4kcc => null()      ! C4 plants: initial slope of An-Ci response curve (Cc-based
-     
+          c4kcc => null(),   & ! C4 plants: initial slope of An-Ci response curve (Cc-based)
+          bjv => null()        ! Jmax-Vcmax ratio at 25degC
+          
 
      LOGICAL, DIMENSION(:), POINTER :: &
           deciduous => null() ! flag used for phenology fix
@@ -1051,6 +1052,7 @@ CONTAINS
     ALLOCATE( var%gm(mp) )
     ALLOCATE( var%c4kci(mp) )
     ALLOCATE( var%c4kcc(mp) )
+    ALLOCATE( var%bjv(mp) )
 
 
     ALLOCATE ( var % rootbeta(mp) )
@@ -2206,6 +2208,7 @@ CONTAINS
     var%gm          = 0
     var%c4kci       = 0
     var%c4kcc       = 0
+    var%bjv         = 0
 
     var%rootbeta = 0
     var%gamma    = 0

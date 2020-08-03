@@ -1967,9 +1967,9 @@ CONTAINS
              !gmes(i,1) = gmes(i,1) * MAX(0.15_r_2,real(fwsoil(i)**qm,r_2))
              !gmes(i,2) = gmes(i,2) * MAX(0.15_r_2,real(fwsoil(i)**qm,r_2))
 
-!write(77,*) "gmes(i,1):", gmes(i,1)
-!write(77,*) "fwsoil(i):", fwsoil(i)
-!write(77,*) "term:", MAX(0.15,fwsoil(i)**qm)
+write(77,*) "gmes(i,1):", gmes(i,1)
+write(77,*) "fwsoil(i):", fwsoil(i)
+write(77,*) "term:", MAX(0.15,fwsoil(i)**qm)
              
              ! Ticket #56 added switch for Belinda Medlyn's model
              IF (cable_user%GS_SWITCH == 'leuning') THEN

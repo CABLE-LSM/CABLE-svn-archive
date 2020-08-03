@@ -46,14 +46,14 @@ CONTAINS
 
   ! ==============================================================================
 
-  SUBROUTINE optimise_JV(veg, climate, ktauday, bjvref, relcostJ)
+  SUBROUTINE optimise_JV(veg, climate, ktauday, bjv, relcostJ)
 
     IMPLICIT NONE
 
     TYPE(veg_parameter_type), INTENT(INOUT) :: veg      ! vegetation parameters
     TYPE(climate_type),       INTENT(IN)    :: climate  ! climate variables
     INTEGER,                  INTENT(IN)    :: ktauday
-    REAL, DIMENSION(mp),      INTENT(IN)    :: bjvref
+    REAL, DIMENSION(mp),      INTENT(IN)    :: bjv
     REAL, DIMENSION(mp),      INTENT(IN)    :: relcostJ
 
     INTEGER :: k
@@ -117,16 +117,13 @@ CONTAINS
           a1 = veg%a1gs(k)
           D0 = veg%d0gs(k)
           relcost_J = relcostJ(k)
-          Neff = vcmax00 + relcost_J*bjvref(k)*vcmax00/4. ! effective nitrogen amount
+          Neff = vcmax00 + relcost_J*bjv(k)*vcmax00/4. ! effective nitrogen amount
           !for distribution between e-limited and c-limited processes
 
           ! optimisation for shade leaves
           APAR = climate%APAR_leaf_shade(k,:)*1e-6;
           Dleaf = max(climate%Dleaf_shade(k,:), 50.0)*1e-3 ! Pa -> kPa
           Tleaf = climate%Tleaf_shade(k,:)
-          if (cable_user%perturb_biochem_by_T) then
-             Tleaf =  climate%Tleaf_shade(k,:) +cable_user%Ta_perturbation
-          endif
           cs = climate%cs_shade(k,:)*1e-6
           scalex = climate%scalex_shade(k,:)
           g0 = veg%g0(k) * scalex / 1.57
@@ -140,20 +137,20 @@ CONTAINS
              if(diff_Ac_Aj(l_bound)*diff_Ac_Aj(u_bound)<0) then
                 bjv_new(k) = rtbis(diff_Ac_Aj,l_bound,u_bound,0.001)
              else
-                bjv_new(k) = bjvref(k)
+                bjv_new(k) = bjv(k)
              endif
              veg%vcmax_shade(k) = Neff/(1.+relcost_J*bjv_new(k)/4.0)
              veg%ejmax_shade(k) = veg%vcmax_shade(k)*bjv_new(k)
           else
 
-             if(total_photosynthesis_cost(bjvref(k)).lt.total_photosynthesis_cost(l_bound) .and. &
-                  total_photosynthesis_cost(bjvref(k)).lt.total_photosynthesis_cost(u_bound)) then
+             if(total_photosynthesis_cost(bjv(k)).lt.total_photosynthesis_cost(l_bound) .and. &
+                  total_photosynthesis_cost(bjv(k)).lt.total_photosynthesis_cost(u_bound)) then
 
-                Anet_cost = golden(l_bound,bjvref(k),u_bound,total_photosynthesis_cost,0.01,bjv_new(k))
+                Anet_cost = golden(l_bound,bjv(k),u_bound,total_photosynthesis_cost,0.01,bjv_new(k))
                 veg%vcmax_shade(k) = Neff/(1.+relcost_J*bjv_new(k)/4.0)
                 veg%ejmax_shade(k) = veg%vcmax_shade(k)*bjv_new(k)
              else
-                bjv_new(k) = bjvref(k)
+                bjv_new(k) = bjv(k)
                 veg%vcmax_shade(k) = veg%vcmax(k)
                 veg%ejmax_shade(k) = veg%ejmax(k)
              endif
@@ -163,10 +160,6 @@ CONTAINS
           APAR = climate%APAR_leaf_sun(k,:)*1e-6;
           Dleaf = max(climate%Dleaf_sun(k,:), 50.0)*1e-3 ! Pa -> kPa
           Tleaf = climate%Tleaf_sun(k,:)
-          if (cable_user%perturb_biochem_by_T) then
-             Tleaf =  climate%Tleaf_sun(k,:) +cable_user%Ta_perturbation
-          endif
-
           cs = climate%cs_sun(k,:)*1e-6
           scalex = climate%scalex_sun(k,:)
 
@@ -176,7 +169,7 @@ CONTAINS
                 !call total_An_Ac_Aj(bjv_new(k),An,Ac,Aj)
 
              else
-                bjv_new(k) = bjvref(k)
+                bjv_new(k) = bjv(k)
              endif
              veg%vcmax_sun(k) = Neff/(1.+relcost_J*bjv_new(k)/4.0)
              veg%ejmax_sun(k) = veg%vcmax_sun(k)*bjv_new(k)
@@ -184,14 +177,14 @@ CONTAINS
 
           else
 
-             if(total_photosynthesis_cost(bjvref(k)).lt.total_photosynthesis_cost(l_bound).and. &
-                  total_photosynthesis_cost(bjvref(k)).lt.total_photosynthesis_cost(u_bound)) then
+             if(total_photosynthesis_cost(bjv(k)).lt.total_photosynthesis_cost(l_bound).and. &
+                  total_photosynthesis_cost(bjv(k)).lt.total_photosynthesis_cost(u_bound)) then
 
-                Anet_cost = golden(l_bound,bjvref(k),u_bound,total_photosynthesis_cost,0.01,bjv_new(k))
+                Anet_cost = golden(l_bound,bjv(k),u_bound,total_photosynthesis_cost,0.01,bjv_new(k))
                 veg%vcmax_sun(k) = Neff/(1.+relcost_J*bjv_new(k)/4.0)
                 veg%ejmax_sun(k) = veg%vcmax_sun(k)*bjv_new(k)
              else
-                bjv_new(k) = bjvref(k)
+                bjv_new(k) = bjv(k)
                 veg%vcmax_sun(k) = veg%vcmax(k)
                 veg%ejmax_sun(k) = veg%ejmax(k)
              endif
@@ -200,7 +193,7 @@ CONTAINS
           endif
 
        else !C4
-          bjv_new(k) = bjvref(k)
+          bjv_new(k) = bjv(k)
           veg%vcmax_shade(k) = veg%vcmax(k)
           veg%ejmax_shade(k) = veg%ejmax(k)
 

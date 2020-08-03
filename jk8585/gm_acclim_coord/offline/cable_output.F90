@@ -80,7 +80,7 @@ MODULE cable_output_module
           vcmax,ejmax, hc, GPP_sh, GPP_sl, GPP_shC, GPP_slC, GPP_shJ, GPP_slJ, &
           eta_GPP_cs,  eta_TVeg_cs, dGPPdcs, CO2s, gsw_sl, gsw_sh, gsw_TVeg, &
           An_sl, An_sh, scalex_sl, scalex_sh, dlf,vcmax_ts, jmax_ts, &
-          ci_sl, ci_sh, &
+          ci_sl, ci_sh, qcan_sl, qcan_sh, &
           An, Rd, cplant, clitter, csoil, clabile, &
           A13n, aDisc13, c13plant, c13litter, c13soil, c13labile
   END TYPE out_varID_type
@@ -247,8 +247,10 @@ MODULE cable_output_module
      REAL(KIND=4), POINTER, DIMENSION(:) :: jmax_ts => null()
      REAL(KIND=4), POINTER, DIMENSION(:) :: gsw_sl => null()   ! stomatal conductance (sunlit leaves)
      REAL(KIND=4), POINTER, DIMENSION(:) :: gsw_sh => null()   ! stomatal conductance (shaded leaves)
-     REAL(KIND=4), POINTER, DIMENSION(:) :: RootResp => null()   !  autotrophic root respiration [umol/m2/s]
-     REAL(KIND=4), POINTER, DIMENSION(:) :: StemResp => null()   !  autotrophic stem respiration [umol/m2/s]
+     REAL(KIND=4), POINTER, DIMENSION(:) :: RootResp => null()   ! autotrophic root respiration [umol/m2/s]
+     REAL(KIND=4), POINTER, DIMENSION(:) :: StemResp => null()   ! autotrophic stem respiration [umol/m2/s]
+     REAL(KIND=4), POINTER, DIMENSION(:,:) :: qcan_sl => null()   ! absorbed radiation by canopy (sunlit leaves) [W/m2]
+     REAL(KIND=4), POINTER, DIMENSION(:,:) :: qcan_sh => null()   ! absorbed radiation by canopy (shaded leaves) [W/m2]
      REAL(KIND=r_2), POINTER, DIMENSION(:)   :: An => null()        ! total net assimilation
      REAL(KIND=r_2), POINTER, DIMENSION(:)   :: Rd => null()        ! total leaf respiration
      REAL(KIND=r_2), POINTER, DIMENSION(:,:) :: cplant => null()    ! plant carbon pools
@@ -285,7 +287,7 @@ CONTAINS
     TYPE(roughness_type),      INTENT(IN) :: rough
     ! REAL, POINTER,DIMENSION(:,:) :: surffrac ! fraction of each surf type
 
-    INTEGER :: xID, yID, zID, radID, soilID, soilcarbID,                  &
+    INTEGER :: xID, yID, zID, radID, soilID, soilcarbID,         &
          plantcarbID, tID, landID, patchID ! dimension IDs
     INTEGER :: latID, lonID, llatvID, llonvID ! time,lat,lon variable ID
     INTEGER :: xvID, yvID   ! coordinate variable IDs for GrADS readability
@@ -458,6 +460,7 @@ CONTAINS
     !       'Fraction of each surface type: vegetated; urban; lake; land ice', &
     !       .FALSE.,surftypeID,'surftype',xID,yID,zID,landID,patchID)
 
+    
     !=============DEFINE OUTPUT VARIABLES=======================================
     ! Define met forcing variables in output file and allocate temp output vars:
     IF(output%met .OR. output%SWdown) THEN
@@ -625,6 +628,20 @@ CONTAINS
             xID, yID, zID, landID, patchID, tID)
        ALLOCATE(out%ci_sh(mp))
        out%ci_sh = zero4 ! initialise
+
+       CALL define_ovar(ncid_out, ovid%qcan_sl, 'qcan_sl', 'W/m^2',               &
+            'absorbed radiation by canopy, sunlit leaves', patchout%Qcan, 'radiation',    &
+            xID, yID, zID, landID, patchID, radID, tID)
+       ALLOCATE(out%qcan_sl(mp,nrb))
+       out%qcan_sl = zero4 ! initialise
+
+       CALL define_ovar(ncid_out, ovid%qcan_sh, 'qcan_sh', 'W/m^2',               &
+            'absorbed radiation by canopy, shaded leaves', patchout%Qcan, 'radiation',    &
+            xID, yID, zID, landID, patchID, radID, tID)
+       ALLOCATE(out%qcan_sh(mp,nrb))
+       out%qcan_sh = zero4 ! initialise
+
+       
     END IF
 
     IF(output%flux .OR. output%ESoil) THEN
@@ -661,7 +678,6 @@ CONTAINS
        ALLOCATE(out%NEE(mp))
        out%NEE = zero4 ! initialise
     END IF
-
 
 
     ! Define soil state variables in output file and allocate temp output vars:
@@ -2317,6 +2333,35 @@ CONTAINS
           out%NEE = zero4
        END IF
     END IF
+    
+    ! Qcan: absorbed radiation by sunlit canopy [W/m^2]
+    IF(output%flux) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%qcan_sl = out%qcan_sl + toreal4(rad%qcan(:,1,:))
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%qcan_sl = out%qcan_sl * rinterval
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%qcan_sl, 'qcan_sl', out%qcan_sl,    &
+               ranges%Qcan, patchout%Qcan, 'radiation', met)
+          ! Reset temporary output variable:
+          out%qcan_sl = zero4
+       END IF
+
+       ! Add current timestep's value to total of temporary output variable:
+       out%qcan_sh = out%qcan_sh + toreal4(rad%qcan(:,2,:))
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%qcan_sh = out%qcan_sh * rinterval
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%qcan_sh, 'qcan_sh', out%qcan_sh,    &
+               ranges%Qcan, patchout%Qcan, 'radiation', met)
+          ! Reset temporary output variable:
+          out%qcan_sh = zero4
+       END IF
+    END IF
+
+    
 
     !-----------------------WRITE SOIL STATE DATA-------------------------------
     ! SoilMoist: av.layer soil moisture [kg/m^2]
@@ -3626,7 +3671,7 @@ CONTAINS
     integer :: ncid_restart ! netcdf restart file id
     ! real, pointer,dimension(:,:) :: surffrac ! fraction of each surf type
     integer :: dummy ! dummy argument in subroutine call
-    integer :: mlandID, mpID, radID, soilID, napID,                       &
+    integer :: mlandID, mpID, radID, soilID, napID,               &
          soilcarbID, plantcarbID, tID, snowID ! dimension IDs
     !    integer :: mlandID, surftypeID, patchID, radID, soilID, &
     !         soilcarbID, plantcarbID, tID, snowID ! dimension IDs
