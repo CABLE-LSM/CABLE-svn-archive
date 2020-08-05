@@ -23,8 +23,11 @@ MODULE cable_climate_mod
       r_2, radiation_type, veg_parameter_type
  USE TypeDef,              ONLY: i4b, dp
  USE cable_IO_vars_module, ONLY: patch
- USE CABLE_COMMON_MODULE, ONLY: CurYear, filename, cable_user, HANDLE_ERR
+ USE CABLE_COMMON_MODULE,  ONLY: CurYear, filename, cable_user, HANDLE_ERR
+ Use cable_data_module,    ONLY: icanopy_type, point2constants
 
+ TYPE( icanopy_type ) :: PHOTO
+ 
 CONTAINS
 
   ! ==============================================================================
@@ -67,7 +70,9 @@ SUBROUTINE cable_climate(ktau, kstart, ktauday, idoy, LOY, &
   real, PARAMETER:: gdd0_rec0 = 250.0
   real, dimension(mp) :: f1, f2, frec0, dkbdi
 
-  nsd = ktauday*5 ! number of subdirunal time-steps
+  CALL point2constants(PHOTO)
+  
+  nsd = ktauday*PHOTO%ndays_optim ! number of subdirunal time-steps
                   ! to be accumulated for storing variables needed to implement
                   ! coordination of photosynthesis
 
@@ -361,11 +366,14 @@ SUBROUTINE cable_climate(ktau, kstart, ktauday, idoy, LOY, &
      ! Update daily temperatures, and mean overall temperature, for last 31 days
 
      climate%mtemp=climate%dtemp
+     !climate%mtempmax=climate%dtemp_max
      climate%qtemp=climate%dtemp
      climate%mmoist = climate%dmoist
      DO d=1,30
         climate%dtemp_31(:,d)=climate%dtemp_31(:,d+1)
+        !climate%dtemp_max_31(:,d)=climate%dtemp_max_31(:,d+1)
         climate%mtemp= climate%mtemp + climate%dtemp_31(:,d)
+        !climate%mtempmax= climate%mtempmax + climate%dtemp_max_31(:,d)
         climate%dmoist_31(:,d)=climate%dmoist_31(:,d+1)
         climate%mmoist = climate%mmoist + climate%dmoist_31(:,d)
      ENDDO
@@ -374,10 +382,12 @@ SUBROUTINE cable_climate(ktau, kstart, ktauday, idoy, LOY, &
         climate%qtemp= climate%qtemp + climate%dtemp_91(:,d)
      ENDDO
      climate%dtemp_31(:,31)=climate%dtemp
+     !climate%dtemp_max_31(:,31)=climate%dtemp_max
      climate%dtemp_91(:,91)=climate%dtemp
      climate%dmoist_31(:,31)=climate%dmoist
      climate%qtemp = climate%qtemp/91.0  ! average temperature over the last quarter
      climate%mtemp = climate%mtemp/31.0 ! average temperature over the last month
+     !climate%mtempmax = climate%mtempmax/31.0 ! average maximum temperature over the last month
      climate%mmoist = climate%mmoist/31.0 ! average moisture index over the last month
 
      ! Reset GDD and chill day counter if mean monthly temperature falls below base
@@ -402,6 +412,7 @@ SUBROUTINE cable_climate(ktau, kstart, ktauday, idoy, LOY, &
         if (nmonth==1) THEN
            climate%mtemp_min=climate%mtemp;
            climate%mtemp_max=climate%mtemp;
+           !climate%mtempmax
            climate%qtemp_max_last_year =  climate%qtemp_max;
            climate%qtemp_max=climate%qtemp;
         else
@@ -914,7 +925,7 @@ SUBROUTINE WRITE_CLIMATE_RESTART_NC ( climate, ktauday )
 
   IMPLICIT NONE
 
-  TYPE (climate_type), INTENT(IN)       :: climate  ! climate variables
+  TYPE (climate_type), INTENT(IN)  :: climate  ! climate variables
   INTEGER, INTENT(IN) :: ktauday
   INTEGER(KIND=4) :: mp4, nsd
   INTEGER(KIND=4), parameter   :: pmp4 =0
@@ -922,7 +933,7 @@ SUBROUTINE WRITE_CLIMATE_RESTART_NC ( climate, ktauday )
   INTEGER(KIND=4) :: STATUS
   INTEGER(KIND=4) :: FILE_ID, land_ID, nyear_ID, nday_ID, ndayq_ID, nsd_ID, i
   CHARACTER :: CYEAR*4, FNAME*99
-
+  
   ! 0 dim arrays
   CHARACTER(len=20),DIMENSION(2) :: A0
   ! 1 dim arrays (npt )
@@ -942,7 +953,8 @@ SUBROUTINE WRITE_CLIMATE_RESTART_NC ( climate, ktauday )
   INTEGER(KIND=4) ::  VID0(SIZE(A0)),VID1(SIZE(A1)),VIDI1(SIZE(AI1)), &
        VID2(SIZE(A2)), VID3(SIZE(A3)), VID4(SIZE(A4)), VID5(SIZE(A5))
 
-  nsd = int(ktauday*5,fmp4) ! number of sub-diurnal time-steps (for photosynthesis drivers)
+  CALL point2constants(PHOTO)
+  nsd = int(ktauday*PHOTO%ndays_optim,fmp4) ! number of sub-diurnal time-steps (for photosynthesis drivers)
   mp4=int(mp,fmp4)
   A0(1) = 'nyears'
   A0(2) = 'year'
@@ -1319,9 +1331,9 @@ SUBROUTINE READ_CLIMATE_RESTART_NC ( climate, ktauday )
   CHARACTER(len=20),DIMENSION(2) :: A3
   ! 2 dim arrays (npt,91)
   CHARACTER(len=20),DIMENSION(1) :: A4
-  ! 2 dim arrays (npt,ktauday*5)
+  ! 2 dim arrays (npt,ktauday*C%ndays_optim)
   CHARACTER(len=20),DIMENSION(11) :: A5
-
+  
   ! MC - climate variables are in single precision
   ! REAL(r_2), DIMENSION(mp)          :: LAT, LON, TMP
   ! REAL(r_2)                         :: TMP2(mp,20),TMP3(mp,31),TMP4(mp,91)
@@ -1332,7 +1344,8 @@ SUBROUTINE READ_CLIMATE_RESTART_NC ( climate, ktauday )
   INTEGER(KIND=4) :: TMPI(mp), TMPI0
   LOGICAL            ::  EXISTFILE
 
-  nsd = int(ktauday*5,fmp4) ! number of sub-diurnal time-steps (for photosynthesis drivers)
+  CALL point2constants(PHOTO)
+  nsd = int(ktauday*PHOTO%ndays_optim,fmp4) ! number of sub-diurnal time-steps (for photosynthesis drivers)
   ALLOCATE(TMP5(mp, nsd)) 
   mp4=int(mp,fmp4)
   A0(1) = 'nyears'

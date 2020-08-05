@@ -99,7 +99,8 @@ module cable_data_module
 
    type photosynthetic_constants
       ! All parameters from Bernacchi et al., 2001, 2002, PCE
-      integer:: maxiter=20 ! max # interations for leaf temperature
+      integer :: maxiter=20     ! max # interations for leaf temperature
+      integer :: ndays_optim=5  ! number of days taken into account for Jmax/Vcmax optimisation
       !real :: gam0     = 34.6E-6  ! (Bernacci 2001 )36.9 @ 25C (von Cammerer)
       real :: bjvref    = 1.8245     ! Ci-based Jmax/Vcmax ratio at 25 degC
                                      ! Tgrowth=15degC and Thome=25degC (Kumarathunge et al. 2019)
@@ -107,6 +108,7 @@ module cable_data_module
                                      ! with forced coordination (Chen et al. 1993)
       real :: relcostJ_optim = 2.3   ! Ci-based relative cost of Jmax to Vcmax
                                      ! with photosyn. optimisation (coord = FALSE)
+      real :: tAPAR_optim = 60.0E-6  ! APAR threshold for photosyn. optimisation (mol m-2 s-1)
       real :: gam1      = 0.0509
       real :: gam2      = 0.0010
       ! Ci-based Rubisco kinetic constants from Bernacchi et al. 2001 
@@ -192,7 +194,7 @@ module cable_data_module
          RMH2O, APOL, A33, VONK, ZETA0,                                        &
          ! photosynthetic constants
          RGSWC, BJVREF, RELCOSTJ_COORD,                                        &
-         RELCOSTJ_OPTIM, GAM1, GAM2,                                           &
+         RELCOSTJ_OPTIM, TAPAR_OPTIM, GAM1, GAM2,                              &
          GAM0, CONKC0, CONKO0,                                                 &
          EGAM, EKC, EKO,                                                       &
          GAM0CC, CONKC0CC, CONKO0CC,                                           &
@@ -205,7 +207,7 @@ module cable_data_module
          ! other constants
          LAI_THRESH
 
-      INTEGER, POINTER :: MAXITER
+      INTEGER, POINTER :: MAXITER, NDAYS_OPTIM
 
    END TYPE icanopy_type
 
@@ -353,7 +355,8 @@ SUBROUTINE canopy_type_ptr(C)
    C%VONK  => PHYS%VONK
    C%ZETA0 => PHYS%ZETA0
 
-   C%MAXITER  => PHOTO%MAXITER ! only integer here
+   C%MAXITER     => PHOTO%MAXITER
+   C%NDAYS_OPTIM => PHOTO%NDAYS_OPTIM
 
    !photosynthetic constants
    C%RGSWC     => PHOTO%RGSWC
@@ -361,6 +364,7 @@ SUBROUTINE canopy_type_ptr(C)
    C%BJVREF    => PHOTO%BJVREF
    C%RELCOSTJ_COORD => PHOTO%RELCOSTJ_COORD
    C%RELCOSTJ_OPTIM => PHOTO%RELCOSTJ_OPTIM
+   C%TAPAR_OPTIM    => PHOTO%TAPAR_OPTIM
    C%GAM1      => PHOTO%GAM1
    C%GAM2      => PHOTO%GAM2
    C%GAM0      => PHOTO%GAM0

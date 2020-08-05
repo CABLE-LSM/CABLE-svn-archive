@@ -186,7 +186,7 @@ cable_site.o: cable_site.F90 cable_iovars.o cable_common.o
 
 cable_weathergenerator.o: cable_weathergenerator.F90 cable_common.o
 
-cable_climate.o: cable_climate.F90 cable_define_types.o cable_iovars.o cable_common.o POP.o
+cable_climate.o: cable_climate.F90 cable_define_types.o cable_iovars.o cable_common.o POP.o cable_data.o
 
 cable_phenology.o: cable_phenology.F90 cable_define_types.o cable_iovars.o cable_common.o casa_variable.o
 

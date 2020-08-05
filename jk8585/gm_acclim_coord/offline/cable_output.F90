@@ -77,7 +77,8 @@ MODULE cable_output_module
           PlantTurnover, PlantTurnoverLeaf, PlantTurnoverFineRoot, &
           PlantTurnoverWood, PlantTurnoverWoodDist, PlantTurnoverWoodCrowding, &
           PlantTurnoverWoodResourceLim, dCdt, Area, LandUseFlux, patchfrac, &
-          vcmax,ejmax, hc, GPP_sh, GPP_sl, GPP_shC, GPP_slC, GPP_shJ, GPP_slJ, &
+          vcmax, vcmax_sun, vcmax_shade, ejmax, ejmax_sun, ejmax_shade, hc, &
+          GPP_sh, GPP_sl, GPP_shC, GPP_slC, GPP_shJ, GPP_slJ, &
           eta_GPP_cs,  eta_TVeg_cs, dGPPdcs, CO2s, gsw_sl, gsw_sh, gsw_TVeg, &
           An_sl, An_sh, scalex_sl, scalex_sh, dlf,vcmax_ts, jmax_ts, &
           ci_sl, ci_sh, qcan_sl, qcan_sh, &
@@ -222,7 +223,11 @@ MODULE cable_output_module
      REAL(KIND=4), POINTER, DIMENSION(:) :: Area => null()
      REAL(KIND=4), POINTER, DIMENSION(:) :: LandUseFlux => null()
      REAL(KIND=4), POINTER, DIMENSION(:) :: vcmax => null()
+     REAL(KIND=4), POINTER, DIMENSION(:) :: vcmax_sun => null()
+     REAL(KIND=4), POINTER, DIMENSION(:) :: vcmax_shade => null()
      REAL(KIND=4), POINTER, DIMENSION(:) :: ejmax => null()
+     REAL(KIND=4), POINTER, DIMENSION(:) :: ejmax_sun => null()
+     REAL(KIND=4), POINTER, DIMENSION(:) :: ejmax_shade => null()
      REAL(KIND=4), POINTER, DIMENSION(:) :: patchfrac => null()
      REAL(KIND=4), POINTER, DIMENSION(:) :: hc => null()
      REAL(KIND=4), POINTER, DIMENSION(:) :: GPP_sh => null()
@@ -838,11 +843,36 @@ CONTAINS
        ALLOCATE(out%vcmax(mp))
        out%vcmax = zero4 ! initialise
 
+       CALL define_ovar(ncid_out, ovid%vcmax_sun, 'vcmax_sun', '-',                        &
+            'Vcmax sunlit leaves at 25 degC [molC/m^2/s]', patchout%LAI, 'dummy', xID,         &
+            yID, zID, landID, patchID, tID)
+       ALLOCATE(out%vcmax_sun(mp))
+       out%vcmax_sun = zero4 ! initialise
+
+       CALL define_ovar(ncid_out, ovid%vcmax_shade, 'vcmax_shade', '-',                        &
+            'Vcmax shaded leaves at 25 degC [molC/m^2/s]', patchout%LAI, 'dummy', xID,         &
+            yID, zID, landID, patchID, tID)
+       ALLOCATE(out%vcmax_shade(mp))
+       out%vcmax_shade = zero4 ! initialise
+
+       
        CALL define_ovar(ncid_out, ovid%ejmax, 'jmax', '-',                        &
-            'jmax at 25 degC [mol(e)/m^2/s]', patchout%LAI, 'dummy', xID,         &
+            'Jmax at 25 degC [mol(e)/m^2/s]', patchout%LAI, 'dummy', xID,         &
             yID, zID, landID, patchID, tID)
        ALLOCATE(out%ejmax(mp))
        out%ejmax = zero4 ! initialise
+
+       CALL define_ovar(ncid_out, ovid%ejmax_sun, 'jmax_sun', '-',                        &
+            'Jmax sunlit leaves at 25 degC [mol(e)/m^2/s]', patchout%LAI, 'dummy', xID,         &
+            yID, zID, landID, patchID, tID)
+       ALLOCATE(out%ejmax_sun(mp))
+       out%ejmax_sun = zero4 ! initialise
+
+       CALL define_ovar(ncid_out, ovid%ejmax_shade, 'jmax_shade', '-',                        &
+            'Jmax shaded leaves at 25 degC [mol(e)/m^2/s]', patchout%LAI, 'dummy', xID,         &
+            yID, zID, landID, patchID, tID)
+       ALLOCATE(out%ejmax_shade(mp))
+       out%ejmax_shade = zero4 ! initialise
     END IF
     ! Alexis
 
@@ -995,15 +1025,15 @@ CONTAINS
        ALLOCATE(out%CO2s(mp))
        out%CO2s = zero4 ! initialise
 
-       CALL define_ovar(ncid_out, ovid%vcmax_ts, 'vcmax_time_series', 'mol/m^2/s',               &
-            'vcmax', &
+       CALL define_ovar(ncid_out, ovid%vcmax_ts, 'vcmax_weighted', 'mol/m^2/s',               &
+            'vcmax weighted by sunlit/shaded LAI', &
             patchout%GPP,              &
             'dummy', xID, yID, zID, landID, patchID, tID)
        ALLOCATE(out%vcmax_ts(mp))
        out%vcmax_ts = zero4 ! initialise
 
-       CALL define_ovar(ncid_out, ovid%jmax_ts, 'jmax_time_series', 'mol/m^2/s',               &
-            'jmax', &
+       CALL define_ovar(ncid_out, ovid%jmax_ts, 'jmax_weighted', 'mol/m^2/s',               &
+            'jmax weighted by sunlit/shaded LAI', &
             patchout%GPP,              &
             'dummy', xID, yID, zID, landID, patchID, tID)
        ALLOCATE(out%jmax_ts(mp))
@@ -2669,15 +2699,60 @@ CONTAINS
           out%vcmax = zero4
        END IF
 
+       out%vcmax_sun = out%vcmax_sun + toreal4(veg%vcmax_sun)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%vcmax_sun = out%vcmax_sun * rinterval
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%vcmax_sun, 'vcmax_sun', out%vcmax_sun,    &
+               ranges%vcmax, patchout%LAI, 'default', met)
+          ! Reset temporary output variable:
+          out%vcmax_sun = zero4
+       END IF
+
+       out%vcmax_shade = out%vcmax_shade + toreal4(veg%vcmax_shade)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%vcmax_shade = out%vcmax_shade * rinterval
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%vcmax_shade, 'vcmax_shade', out%vcmax_shade,    &
+               ranges%vcmax, patchout%LAI, 'default', met)
+          ! Reset temporary output variable:
+          out%vcmax_shade = zero4
+       END IF
+
+       
        out%ejmax = out%ejmax + toreal4(veg%ejmax)
        IF (writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
           out%ejmax = out%ejmax * rinterval
           ! Write value to file:
           CALL write_ovar(out_timestep, ncid_out, ovid%ejmax, 'jmax', out%ejmax,    &
-               ranges%vcmax, patchout%LAI, 'default', met)
+               ranges%ejmax, patchout%LAI, 'default', met)
           ! Reset temporary output variable:
           out%ejmax = zero4
+       END IF
+
+       out%ejmax_sun = out%ejmax_sun + toreal4(veg%ejmax_sun)
+       IF (writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%ejmax_sun = out%ejmax_sun * rinterval
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%ejmax_sun, 'jmax_sun', out%ejmax_sun,    &
+               ranges%ejmax, patchout%LAI, 'default', met)
+          ! Reset temporary output variable:
+          out%ejmax_sun = zero4
+       END IF
+
+       out%ejmax_shade = out%ejmax_shade + toreal4(veg%ejmax_shade)
+       IF (writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%ejmax_shade = out%ejmax_shade * rinterval
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%ejmax_shade, 'jmax_shade', out%ejmax_shade,    &
+               ranges%ejmax, patchout%LAI, 'default', met)
+          ! Reset temporary output variable:
+          out%ejmax_shade = zero4
        END IF
 
     END IF
@@ -2848,13 +2923,13 @@ CONTAINS
                out%CO2s,    &
                ranges%GPP, patchout%GPP, 'default', met)
 
-          CALL write_ovar(out_timestep, ncid_out, ovid%vcmax_ts, 'time-varying vcmax', &
+          CALL write_ovar(out_timestep, ncid_out, ovid%vcmax_ts, 'LAI-weighted vcmax', &
                out%vcmax_ts,    &
                ranges%vcmax, patchout%GPP, 'default', met)
 
-          CALL write_ovar(out_timestep, ncid_out, ovid%jmax_ts, 'time-varying jmax', &
+          CALL write_ovar(out_timestep, ncid_out, ovid%jmax_ts, 'LAI-weighted jmax', &
                out%jmax_ts,    &
-               ranges%vcmax, patchout%GPP, 'default', met)
+               ranges%ejmax, patchout%GPP, 'default', met)
 
           ! Reset temporary output variable:
           out%GPP_sh      = zero4

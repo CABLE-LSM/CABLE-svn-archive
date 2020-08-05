@@ -139,7 +139,7 @@ MODULE cable_checks_module
            zse = (/0.0,5.0/),                  &
            canst1 = (/0.05,0.15/),             &
            dleaf = (/0.005,0.4/),              &
-           ejmax = (/1.0E-5,3.0E-4/),          &
+           ejmax = (/0.0,1.0E-3/),          &
            frac4 = (/0.0,1.0/),                &
            hc = (/0.0,100.0/),                 &
            lai = (/0.0,8.0/),                  &
@@ -152,7 +152,7 @@ MODULE cable_checks_module
            za =(/0.0,150.0/),                  &
            rpcoef = (/0.05,1.5/),              &
            shelrb = (/1.0,3.0/),               &
-           vcmax = (/5.0E-6,1.5E-4/),          &
+           vcmax = (/0.0,5.0E-4/),          &
            xfang = (/-1.0,0.5/),               &
            ratecp = (/0.01,3.0/),              &
            ratecs = (/0.01,3.0/),              &

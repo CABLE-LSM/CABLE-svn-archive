@@ -772,6 +772,9 @@ contains
              ncleafx(np) = MIN(casabiome%ratioNCplantmax(ivt,leaf), &
                   MAX(casabiome%ratioNCplantmin(ivt,leaf), &
                   casapool%nplant(np,leaf)/casapool%cplant(np,leaf)))
+write(83,*) "casapool%nplant(1,:):", casapool%nplant(1,:)
+write(83,*) "casapool%nplant(1,leaf)/casapool%cplant(1,leaf):", casapool%nplant(1,leaf)/casapool%cplant(1,leaf)
+write(83,*) "casabiome%ratioNCplantmin(2,leaf):",casabiome%ratioNCplantmin(2,leaf)
           ENDIF
           IF (icycle>2 .AND. casapool%pplant(np,leaf)>0.0) THEN
              npleafx(np) = MIN( 30.0_r_2, MAX( 8.0_r_2, &
@@ -806,7 +809,7 @@ contains
           !      0.282*log(pleafx(np))*log(nleafx(np))) * 1.0e-6
           nleafx(np) = ncleafx(np)/casabiome%sla(ivt) ! leaf N in g N m-2 leaf
           pleafx(np) = nleafx(np)/npleafx(np) ! leaf P in g P m-2 leaf
-
+write(83,*) "nleafx(1):", nleafx(1) 
           if (ivt .EQ. 7 .OR. ivt .EQ. 10) then
              ! special for C4 grass: scale value from  parameter file
              veg%vcmax(np) = real(casabiome%vcmax_scalar(ivt)) * 1.0e-5
@@ -845,7 +848,7 @@ write(86,*) "vcmax_min:", vcmax_min
 write(86,*) "veg%vcmax:", veg%vcmax
 write(86,*) "casabiome%sla:", casabiome%sla
 write(86,*) "casabiome%ratioNCplantmin(:,leaf)", casabiome%ratioNCplantmin(:,leaf)
-write(86,*) "nleafx(np):", nleafx
+write(86,*) "nleafx(np):", nleafx(np)
 
              !if (.not. veg%is_read_gmLUT) then  ! not working
              !if (ABS(vcmaxx(np) - veg%vcmax(np)) .GT. 1.0E-08 .OR. ktau==1) then

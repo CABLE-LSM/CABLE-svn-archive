@@ -62,7 +62,7 @@ CONTAINS
     REAL, PARAMETER :: l_bound = 0.5
     REAL, PARAMETER :: u_bound = 5.0
 
-    nt = ktauday * 5
+    nt = ktauday * C%ndays_optim
     ALLOCATE(APAR(nt))
     ALLOCATE(Dleaf(nt))
     ALLOCATE(Tleaf(nt))
@@ -126,7 +126,7 @@ CONTAINS
           Tleaf = climate%Tleaf_shade(k,:)
           cs = climate%cs_shade(k,:)*1e-6
           scalex = climate%scalex_shade(k,:)
-          g0 = veg%g0(k) * scalex / 1.57
+          g0 = veg%g0(k) * scalex / C%RGSWC
 
           if (cable_user%acclimate_photosyn) then
              Tgrowth = climate%mtemp(k)
@@ -315,7 +315,6 @@ CONTAINS
     
     implicit none
 
-    !TYPE( icanopy_type ) :: C
     real, intent(in) :: bjv
 
     INTEGER   :: k, j
@@ -335,7 +334,7 @@ CONTAINS
     vcmax0 = Neff/(1.+ relcost_J*bjv/4.0)
 
     DO k=1, nt
-       if (APAR(k) .gt. 60e-6) then
+       if (APAR(k) .gt. C%tAPAR_optim) then
           if (cable_user%GS_SWITCH == 'medlyn') THEN
              x = 1.0 + (g1 * fwsoil(k)**qs) / SQRT(Dleaf(k))
           elseif (cable_user%GS_SWITCH == 'leuning') THEN
@@ -472,7 +471,7 @@ CONTAINS
     vcmax0 = Neff/(1.+ relcost_J*bjv/4.0)
 
     DO k=1,nt
-       if (APAR(k) .gt. 60e-6) then
+       if (APAR(k) .gt. C%tAPAR_optim) then
           if (cable_user%GS_SWITCH == 'medlyn') THEN
              x = 1.0 + (g1 * fwsoil(k)**qs) / SQRT(Dleaf(k))
           elseif (cable_user%GS_SWITCH == 'leuning') THEN
@@ -606,7 +605,7 @@ CONTAINS
     !bjv = (vcmax0/Neff -1.)*4.0/relcost_J
 
     DO k=1,nt
-       if (APAR(k) .gt. 60e-6) then
+       if (APAR(k) .gt. C%tAPAR_optim) then
           Ac(j) = 0.0
           Aj(j) = 0.0
           if (cable_user%GS_SWITCH == 'medlyn') THEN
@@ -821,7 +820,7 @@ CONTAINS
     vcmax0 = Neff/(1. + relcost_J*bjv/4.0)
 
     DO k=1,nt
-       if (APAR(k) .gt. 60e-6) then
+       if (APAR(k) .gt. C%tAPAR_optim) then
           Ac(j) = 0.0
           Aj(j) = 0.0
           if (cable_user%GS_SWITCH == 'medlyn') THEN

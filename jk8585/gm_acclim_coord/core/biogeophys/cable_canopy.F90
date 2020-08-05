@@ -1493,7 +1493,6 @@ CONTAINS
     real(r_2), dimension(:),   intent(out)   :: ghwet  ! cond for heat for a wet canopy
     integer,                   intent(in)    :: iter
     type(climate_type),        intent(in)    :: climate
-    !real(r_2), dimension(:,:), intent(inout) :: gmes    ! mesophyll conductance
 
     !local variables (JK: move parameters to different routine at some point)
     real, parameter :: jtomol = 4.6e-6  ! Convert from J to Mol for light
@@ -1960,16 +1959,19 @@ CONTAINS
 
              endif !cable_user%call_climate
 
-             ! calculate canopy-level mesophyll conductance  
-             gmes(i,1) = veg%gmmax(i) * rad%scalex(i,1) * xgmesT(tlfx(i)) * max(0.15,fwsoil(i)**qm)
-             gmes(i,2) = veg%gmmax(i) * rad%scalex(i,2) * xgmesT(tlfx(i)) * max(0.15,fwsoil(i)**qm)
+             ! calculate canopy-level mesophyll conductance
+             if (cable_user%explicit_gm) then
+                gmes(i,1) = veg%gm(i) * rad%scalex(i,1) * xgmesT(tlfx(i)) * max(0.15,fwsoil(i)**qm)
+                gmes(i,2) = veg%gm(i) * rad%scalex(i,2) * xgmesT(tlfx(i)) * max(0.15,fwsoil(i)**qm)
 
-             !gmes(i,1) = gmes(i,1) * MAX(0.15_r_2,real(fwsoil(i)**qm,r_2))
-             !gmes(i,2) = gmes(i,2) * MAX(0.15_r_2,real(fwsoil(i)**qm,r_2))
-
-write(77,*) "gmes(i,1):", gmes(i,1)
-write(77,*) "fwsoil(i):", fwsoil(i)
-write(77,*) "term:", MAX(0.15,fwsoil(i)**qm)
+                !gmes(i,1) = gmes(i,1) * MAX(0.15_r_2,real(fwsoil(i)**qm,r_2))
+                !gmes(i,2) = gmes(i,2) * MAX(0.15_r_2,real(fwsoil(i)**qm,r_2))
+ 
+             else ! gmes = 0.0 easier to debug
+                gmes(i,1) = 0.0 
+                gmes(i,2) = 0.0
+                
+             endif   
              
              ! Ticket #56 added switch for Belinda Medlyn's model
              IF (cable_user%GS_SWITCH == 'leuning') THEN
