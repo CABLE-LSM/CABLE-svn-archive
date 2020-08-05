@@ -447,44 +447,44 @@ CONTAINS
 
     INTEGER :: icable_rev, ioerror
 
-!    CALL getenv("HOME", myhome)
-!    fcablerev = TRIM(myhome)//TRIM("/.cable_rev")
-!
-!    OPEN(440,FILE=TRIM(fcablerev),STATUS='old',ACTION='READ',IOSTAT=ioerror)
-!
-!    IF(ioerror==0) THEN
-!       ! get svn revision number (see WRITE comments)
-!       READ(440,*) icable_rev
-!    ELSE
-!       icable_rev=0 !default initialization
-!       PRINT *, "We'll keep running but the generated revision number "
-!       PRINT *, " in the log & file will be meaningless."
-!    ENDIF
-!
-!
-!    WRITE(logn,*) ''
-!    WRITE(logn,*) 'Revision nuber: ', icable_rev
-!    WRITE(logn,*) ''
-!    WRITE(logn,*)'This is the latest revision of you workin copy as sourced '
-!    WRITE(logn,*)'by the SVN INFO command at build time. Please note that the'
-!    WRITE(logn,*)'accuracy of this number is dependent on how recently you '
-!    WRITE(logn,*)'used SVN UPDATE.'
-!
-!    ! get svn status (see WRITE comments)
-!    ! (jhan: make this output prettier & not limitted to 200 chars)
-!    WRITE(logn,*)'SVN STATUS indicates that you have (at least) the following'
-!    WRITE(logn,*)'local changes: '
-!    IF(ioerror==0) THEN
-!       READ(440,'(A)',IOSTAT=ioerror) icable_status
-!       WRITE(logn,*) TRIM(icable_status)
-!       WRITE(logn,*) ''
-!    ELSE
-!       WRITE(logn,*) '.cable_rev file does not exist,'
-!       WRITE(logn,*) 'suggesting you did not build libcable here'
-!       WRITE(logn,*) ''
-!    ENDIF
-!
-!    CLOSE(440)
+    CALL getenv("HOME", myhome)
+    fcablerev = TRIM(myhome)//TRIM("/.cable_rev")
+
+    OPEN(440,FILE=TRIM(fcablerev),STATUS='old',ACTION='READ',IOSTAT=ioerror)
+
+    IF(ioerror==0) THEN
+       ! get svn revision number (see WRITE comments)
+       READ(440,*) icable_rev
+    ELSE
+       icable_rev=0 !default initialization
+       PRINT *, "We'll keep running but the generated revision number "
+       PRINT *, " in the log & file will be meaningless."
+    ENDIF
+
+
+    WRITE(logn,*) ''
+    WRITE(logn,*) 'Revision nuber: ', icable_rev
+    WRITE(logn,*) ''
+    WRITE(logn,*)'This is the latest revision of you workin copy as sourced '
+    WRITE(logn,*)'by the SVN INFO command at build time. Please note that the'
+    WRITE(logn,*)'accuracy of this number is dependent on how recently you '
+    WRITE(logn,*)'used SVN UPDATE.'
+
+    ! get svn status (see WRITE comments)
+    ! (jhan: make this output prettier & not limitted to 200 chars)
+    WRITE(logn,*)'SVN STATUS indicates that you have (at least) the following'
+    WRITE(logn,*)'local changes: '
+    IF(ioerror==0) THEN
+       READ(440,'(A)',IOSTAT=ioerror) icable_status
+       WRITE(logn,*) TRIM(icable_status)
+       WRITE(logn,*) ''
+    ELSE
+       WRITE(logn,*) '.cable_rev file does not exist,'
+       WRITE(logn,*) 'suggesting you did not build libcable here'
+       WRITE(logn,*) ''
+    ENDIF
+
+    CLOSE(440)
 
   END SUBROUTINE report_version_no
 
