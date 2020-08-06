@@ -155,6 +155,7 @@ host_gadi()
    export NCDIR=$NETCDF_ROOT'/lib/Intel'
    export NCMOD=$NETCDF_ROOT'/include/Intel'
    export CFLAGS='-O2 -fp-model precise'
+      export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0'
    if [[ $1 = 'debug' ]]; then
       export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0'
    fi
@@ -408,21 +409,35 @@ build_build()
    fi
 
    # directories contain source code
-   PHYS="../core/biogeophys"
-   UTIL="../core/utils"
-   DIAG=$UTIL"/diag"
-   DRV="."
-   CASA="../core/biogeochem"
+   ALB="../science/albedo"
+   RAD="../science/radiation"
+   CAN="../science/canopy"
+   CNP="../science/casa-cnp"
+   GWH="../science/gw_hydro"
+   MIS="../science/misc"
+   ROU="../science/roughness"
+   SOI="../science/soilsnow"
+   OFF="../offline"
+   UTI="../util"
+   DIA="../util/diag"
+   PAR="../params"
+   SLI="../science/sli"
+   POP="../science/pop"
+   /bin/cp -p $ALB/*90 ./.tmp
+   /bin/cp -p $CAN/*90 ./.tmp
+   /bin/cp -p $CNP/*90 ./.tmp
+   /bin/cp -p $GWH/*90 ./.tmp
+   /bin/cp -p $MIS/*90 ./.tmp
+   /bin/cp -p $RAD/*90 ./.tmp
+   /bin/cp -p $ROU/*90 ./.tmp
+   /bin/cp -p $SOI/*90 ./.tmp
+   /bin/cp -p $SLI/*90 ./.tmp
+   /bin/cp -p $POP/*90 ./.tmp
+   /bin/cp -p $OFF/*90 ./.tmp
+   /bin/cp -p $UTI/*90 ./.tmp
+   /bin/cp -p $DIA/*90 ./.tmp
+   /bin/cp -p $PAR/*90 ./.tmp
 
-   /bin/cp -p $PHYS/*90 ./.tmp
-   /bin/cp -p $UTIL/*90 ./.tmp
-   /bin/cp -p $DIAG/*90 ./.tmp
-   /bin/cp -p $DRV/*90 ./.tmp
-   /bin/cp -p $CASA/*90 ./.tmp
-
-   print "\n\n\tPlease note: CASA-CNP files are included in build only for "
-   print "\ttechnical reasons. Implementation is not officially available with"
-   print "\tthe release of CABLE 2.0\n"
 
    /bin/cp -p Makefile_offline  ./.tmp
 
