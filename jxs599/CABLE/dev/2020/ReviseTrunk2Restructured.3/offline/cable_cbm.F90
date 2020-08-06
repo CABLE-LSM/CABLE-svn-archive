@@ -47,7 +47,7 @@ CONTAINS
     USE cbl_soil_snow_main_module, ONLY : soil_snow
     USE cable_def_types_mod
     USE cable_roughness_module, ONLY : ruff_resist
-    USE cable_radiation_module, ONLY : init_radiation
+    USE cbl_init_radiation_module, ONLY : init_radiation
     USE cable_air_module, ONLY : define_air
 #ifndef NO_CASA_YET
     USE casadimension,     ONLY : icycle ! used in casa_cnp

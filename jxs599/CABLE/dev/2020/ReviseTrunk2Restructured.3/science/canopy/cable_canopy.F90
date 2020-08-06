@@ -62,7 +62,7 @@ CONTAINS
 
   SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,climate)
     USE cable_def_types_mod
-    USE cable_radiation_module
+    USE cbl_radiation_module, ONLY : radiation
     USE cable_air_module
     USE cable_common_module
     USE cable_roughness_module
