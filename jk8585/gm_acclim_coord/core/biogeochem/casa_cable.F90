@@ -85,11 +85,11 @@ contains
 
     IF ( .NOT. dump_read ) THEN  ! construct casa met and flux inputs from current CABLE run
        IF ( TRIM(cable_user%MetType) .EQ. 'cru' .OR. &
-            TRIM(cable_user%MetType) .EQ. 'plum' ) THEN
+            TRIM(cable_user%MetType) .EQ. 'plum' .OR. &
+            TRIM(cable_user%MetType) .EQ. 'site' ) THEN
           casaflux%Pdep    = real(met%Pdep, r_2)
           casaflux%Nmindep = real(met%Ndep, r_2)
        ENDIF
-
        IF (ktau == kstart) THEN
           casamet%tairk = 0.0_r_2
           casamet%tsoil = 0.0_r_2
@@ -741,15 +741,14 @@ contains
     data xnslope/0.80,1.00,2.00,1.00,1.00,1.00,0.50,1.00,0.34,1.00,1.00,1.00,1.00,1.00,1.00,1.00,1.00/
     real                :: relcostJCi
     real, dimension(mp) :: relcostJ, Nefftmp
-    real, dimension(mp) :: vcmaxx         ! vcmax of previous day
     real, dimension(mp) :: vcmax_min      ! vcmax at minimum N
+    real, dimension(mp) :: bjvci          ! Ci-based Jmax/Vcmax ratio
     real :: gm_vcmax_slope = 0.0025e-6_r_2 ! slope between gmmax25 and Vcmax25 ((mol m-2 s-1) / (umol m-2 s-1))
     real, parameter     :: effc4 = 20000.0  ! Vc=effc4*Ci*Vcmax (see Bonan et al. 2011, JGR 116)
 #ifdef __MPI__
     integer :: ierr
 #endif
 
-    vcmaxx = veg%vcmax
 
     ! first initialize
     CALL point2constants(PHOTO)
@@ -772,9 +771,6 @@ contains
              ncleafx(np) = MIN(casabiome%ratioNCplantmax(ivt,leaf), &
                   MAX(casabiome%ratioNCplantmin(ivt,leaf), &
                   casapool%nplant(np,leaf)/casapool%cplant(np,leaf)))
-write(83,*) "casapool%nplant(1,:):", casapool%nplant(1,:)
-write(83,*) "casapool%nplant(1,leaf)/casapool%cplant(1,leaf):", casapool%nplant(1,leaf)/casapool%cplant(1,leaf)
-write(83,*) "casabiome%ratioNCplantmin(2,leaf):",casabiome%ratioNCplantmin(2,leaf)
           ENDIF
           IF (icycle>2 .AND. casapool%pplant(np,leaf)>0.0) THEN
              npleafx(np) = MIN( 30.0_r_2, MAX( 8.0_r_2, &
@@ -809,7 +805,7 @@ write(83,*) "casabiome%ratioNCplantmin(2,leaf):",casabiome%ratioNCplantmin(2,lea
           !      0.282*log(pleafx(np))*log(nleafx(np))) * 1.0e-6
           nleafx(np) = ncleafx(np)/casabiome%sla(ivt) ! leaf N in g N m-2 leaf
           pleafx(np) = nleafx(np)/npleafx(np) ! leaf P in g P m-2 leaf
-write(83,*) "nleafx(1):", nleafx(1) 
+write(83,*) "nleafx(np):", nleafx(np) 
           if (ivt .EQ. 7 .OR. ivt .EQ. 10) then
              ! special for C4 grass: scale value from  parameter file
              veg%vcmax(np) = real(casabiome%vcmax_scalar(ivt)) * 1.0e-5
@@ -866,16 +862,17 @@ write(86,*) "nleafx(np):", nleafx(np)
                    call find_Vcmax_Jmax_LUT(veg,np)
                 endif   
              else  ! no LUT, adjustment using An-Ci curves
-                if ( ABS(vcmaxx(np) - veg%vcmax(np)) .GT. 1.0E-08 .OR. &
-                     ktau .LT. ktauday ) then
+                if ( ABS(veg%vcmaxx(np) - veg%vcmax(np)) .GT. 5.0E-08 .OR. ktau .LT. ktauday ) then
+                     veg%vcmaxx(np) = veg%vcmax(np)
                    ! The approach by Sun et al. 2014 is replaced with a subroutine
                    ! based on Knauer et al. 2019, GCB
-                   call adjust_JV_gm(veg)
+                   call adjust_JV_gm(veg,np)
                 endif
              endif   
  
 
              ! recalculate bjvref
+             bjvci(np) = veg%bjv(np)   ! temporarily save Ci-based bjv
              veg%bjv(np) = veg%ejmaxcc(np) / veg%vcmaxcc(np)
 
              ! recalculate relcost_J in a way that Neff is the same with
@@ -886,7 +883,7 @@ write(86,*) "nleafx(np):", nleafx(np)
                 relcostJCi = PHOTO%relcostJ_optim
              endif
 
-             Nefftmp(np) = veg%vcmax(np) + relcostJCi * PHOTO%bjvref *  &
+             Nefftmp(np) = veg%vcmax(np) + relcostJCi * bjvci(np) *  &
                   veg%vcmax(np) / 4.0
              relcostJ(np) = 1.0 / (veg%bjv(np) * veg%vcmaxcc(np) / 4.0) * &
                   (Nefftmp(np) - veg%vcmaxcc(np))

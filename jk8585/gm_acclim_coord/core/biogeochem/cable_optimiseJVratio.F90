@@ -39,7 +39,7 @@ MODULE cable_optimise_JV_module
   ! now moved to icanopy_type and (if Cc-based) recalculated in the
   ! adjust_JV_gm Subroutine
   !REAL, PARAMETER :: relcost_J = 2.3  ! use this value for optimisation algorithm
-  LOGICAL, PARAMETER :: coord = .TRUE.  ! adjust ratioJV to force co-oridnation.
+  LOGICAL, PARAMETER :: coord = .FALSE.  ! adjust ratioJV to force co-oridnation.
   ! otherwise maximise photosynthesis
 
 CONTAINS
@@ -62,7 +62,11 @@ CONTAINS
     REAL, PARAMETER :: l_bound = 0.5
     REAL, PARAMETER :: u_bound = 5.0
 
+    ! assign local ptrs to constants defined in cable_data_module
+    CALL point2constants(C)
+
     nt = ktauday * C%ndays_optim
+    
     ALLOCATE(APAR(nt))
     ALLOCATE(Dleaf(nt))
     ALLOCATE(Tleaf(nt))
@@ -70,10 +74,7 @@ CONTAINS
     ALLOCATE(scalex(nt))
     ALLOCATE(g0(nt))
     ALLOCATE(fwsoil(nt))
-
-    ! assign local ptrs to constants defined in cable_data_module
-    CALL point2constants(C)
-
+    
     DO k=1,mp
        if (veg%frac4(k).lt.0.001) then ! not C4       
           if (cable_user%explicit_gm) then

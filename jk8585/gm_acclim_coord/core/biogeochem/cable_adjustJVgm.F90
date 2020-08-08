@@ -15,6 +15,7 @@ MODULE cable_adjust_JV_gm_module
   USE cable_def_types_mod,      ONLY: mp, veg_parameter_type
   USE cable_data_module,        ONLY: icanopy_type, point2constants
   USE cable_abort_module,       ONLY: nc_abort
+  USE cable_canopy_module,      ONLY: light_inhibition
   USE netcdf
   USE minpack
 
@@ -29,15 +30,16 @@ MODULE cable_adjust_JV_gm_module
   
 CONTAINS 
 
-  SUBROUTINE adjust_JV_gm(veg)  
+  SUBROUTINE adjust_JV_gm(veg,p)  
 
     IMPLICIT NONE
 
     TYPE (veg_parameter_type), INTENT(INOUT)  :: veg  ! vegetation parameters
+    integer, intent(in) :: p   ! vegetation type
 
     ! local variables
     LOGICAL  :: Cc_based_OK, sw ! sw = stability switch
-    INTEGER  :: p,i,k,z
+    INTEGER  :: i,k,z
     INTEGER  :: kmax=20  ! maximum nr of iterations (inner loop)
     INTEGER  :: zmax=8   ! maximum nr of iterations (outer loop)
     INTEGER  :: lAn, cntr
@@ -59,104 +61,103 @@ CONTAINS
     ! assign local ptrs to constants defined in cable_data_module
     CALL point2constants(C)
     
-    DO p=1,mp
 
-      Ci1          = (/(real(i,dp),i=1,nrci,1)/) / 2.0_dp * 1.0e-6_dp  ! 1-1500 umol mol-1
-      Rd           = real(veg%cfrd(p) * veg%vcmax(p),dp)
-      gmmax25      = real(veg%gm(p),dp)
-      Vcmax25Ci    = real(veg%vcmax(p),dp)
-      Jmax25Ci     = real(veg%ejmax(p),dp)
-      Kc_ci        = real(C%conkc0,dp)
-      Ko_ci        = real(C%conko0,dp)
-      gammastar_ci = real(C%gam0,dp)
-      Kc_cc        = real(C%conkc0cc,dp)
-      Ko_cc        = real(C%conko0cc,dp)
-      gammastar_cc = real(C%gam0cc,dp)
+    Ci1          = (/(real(i,dp),i=1,nrci,1)/) / 2.0_dp * 1.0e-6_dp  ! 1-1500 umol mol-1
+    Rd           = real(veg%cfrd(p) * veg%vcmax(p) * light_inhibition(1200.0),dp) 
+    gmmax25      = real(veg%gm(p),dp)
+    Vcmax25Ci    = real(veg%vcmax(p),dp)
+    Jmax25Ci     = real(veg%ejmax(p),dp)
+    Kc_ci        = real(C%conkc0,dp)
+    Ko_ci        = real(C%conko0,dp)
+    gammastar_ci = real(C%gam0,dp)
+    Kc_cc        = real(C%conkc0cc,dp)
+    Ko_cc        = real(C%conko0cc,dp)
+    gammastar_cc = real(C%gam0cc,dp)
 
-      Km_ci        = Kc_ci * (1.0_dp + 0.21_dp / Ko_ci)
-      Km_cc        = Kc_cc * (1.0_dp + 0.21_dp / Ko_cc)
+    Km_ci        = Kc_ci * (1.0_dp + 0.21_dp / Ko_ci)
+    Km_cc        = Kc_cc * (1.0_dp + 0.21_dp / Ko_cc)
 
-      IF (veg%frac4(p) .lt. 0.001) THEN ! not C4
+    IF (veg%frac4(p) .lt. 0.001) THEN ! not C4
 
-        !! 1) Calculate An-Ci curve
-        CALL PHOTOSYN25(Ci1,nrci,Vcmax25Ci,Jmax25Ci,Rd,Km_ci,gammastar_ci,An1)
+      !! 1) Calculate An-Ci curve
+      CALL PHOTOSYN25(Ci1,nrci,Vcmax25Ci,Jmax25Ci,Rd,Km_ci,gammastar_ci,An1)
 
-        !! 2) Exclude negative parts of the An-Ci curve
-        lAn = count(An1 .GT. 0.0_dp)
+      !! 2) Exclude negative parts of the An-Ci curve
+      lAn = count(An1 .GT. 0.0_dp)
 
-        ALLOCATE(An(lAn))
-        ALLOCATE(An_Cc(lAn))
-        ALLOCATE(Ci(lAn))
-        ALLOCATE(Cc(lAn))
-        ALLOCATE(FVEC(lAn))
+      ALLOCATE(An(lAn))
+      ALLOCATE(An_Cc(lAn))
+      ALLOCATE(Ci(lAn))
+      ALLOCATE(Cc(lAn))
+      ALLOCATE(FVEC(lAn))
 
-        An = pack(An1, An1 > 0.0_dp)
-        Ci = pack(Ci1, An1 > 0.0_dp)
-        !cntr = 0
-        !DO i = 1, 3000
-        !  IF (An1(i) .GT. 0.0_dp) THEN
-        !    cntr = cntr + 1
-        !    An(cntr) = An1(i)
-        !    Ci(cntr) = Ci1(i)
-        !  END IF
-        !END DO
+      An = pack(An1, An1 > 0.0_dp)
+      Ci = pack(Ci1, An1 > 0.0_dp)
+      !cntr = 0
+      !DO i = 1, 3000
+      !  IF (An1(i) .GT. 0.0_dp) THEN
+      !    cntr = cntr + 1
+      !    An(cntr) = An1(i)
+      !    Ci(cntr) = Ci1(i)
+      !  END IF
+      !END DO
 
-        Cc_based_OK = .FALSE.
-        z = 0
-        !! 3) calculate Cc based on gm and An
-        DO WHILE(.NOT. Cc_based_OK .AND. z < zmax) ! if it iterates more than once, check gm and Vcmax, Jmax
+      Cc_based_OK = .FALSE.
+      z = 0
+      !! 3) calculate Cc based on gm and An
+      DO WHILE(.NOT. Cc_based_OK .AND. z < zmax) ! if it iterates more than once, check gm and Vcmax, Jmax
 
-           z = z + 1
-           k = 0
-           X(:) = [Vcmax25Ci,Jmax25Ci]
-           sw = .FALSE.
-           vstart = 1.0_dp
-           Vcmax25Cct1 = Vcmax25Ci
-           Vcmax_diff = 1.0e-6_dp
-           An_Cc = An
+         z = z + 1
+         k = 0
+         X(:) = [Vcmax25Ci,Jmax25Ci]
+         sw = .FALSE.
+         vstart = 1.0_dp
+         Vcmax25Cct1 = Vcmax25Ci
+         Vcmax_diff = 1.0e-6_dp
+         An_Cc = An
 
-           DO WHILE (Vcmax_diff > maxdiff .AND. k < kmax)
+         DO WHILE (Vcmax_diff > maxdiff .AND. k < kmax)
 
-              k = k + 1
-              Cc = Ci - An_Cc / gmmax25
+            k = k + 1
+            Cc = Ci - An_Cc / gmmax25
 
-              CALL LMDIF1(PHOTOSYN25_f,lAn,N,X,FVEC,tol,info,An_Cc,Cc,Rd,Km_cc,gammastar_cc)
-              Vcmax25Cc = X(1)
-              Jmax25Cc  = X(2)
+            CALL LMDIF1(PHOTOSYN25_f,lAn,N,X,FVEC,tol,info,An_Cc,Cc,Rd,Km_cc,gammastar_cc)
+            Vcmax25Cc = X(1)
+            Jmax25Cc  = X(2)
 
-              Vcmax_diff = ABS(Vcmax25Cc - Vcmax25Cct1)
-              Vcmax25Cct1 = Vcmax25Cc
+            Vcmax_diff = ABS(Vcmax25Cc - Vcmax25Cct1)
+            Vcmax25Cct1 = Vcmax25Cc
 
-              CALL PHOTOSYN25(Cc,lAn,Vcmax25Cc,Jmax25Cc,Rd,Km_cc,gammastar_cc,An_Cc)
+            CALL PHOTOSYN25(Cc,lAn,Vcmax25Cc,Jmax25Cc,Rd,Km_cc,gammastar_cc,An_Cc)
 
-              ! safety switch ensuring stability
-              IF (MINVAL(An_Cc) < 0.0_dp .AND. (.NOT. sw)) THEN
-                 sw = .TRUE.
-                 v  = vstart
-              ENDIF
+            ! safety switch ensuring stability
+            IF (MINVAL(An_Cc) < 0.0_dp .AND. (.NOT. sw)) THEN
+               sw = .TRUE.
+               v  = vstart
+            ENDIF
 
-              IF (sw) THEN
-                 v = MAX(v - (vstart/(0.8_dp*kmax)),0.0_dp)
-                 An_Cc = v * An + (1.0_dp-v) * An_Cc
-              ENDIF
-           END DO   
-           !! Avoid unrealistic Vcmax and Jmax values
-           IF (Vcmax25Cc < 0.9_dp*Vcmax25Ci .OR. Vcmax25Cc > 2.5_dp*Vcmax25Ci &
-               .OR. Jmax25Cc < 0.9_dp*Jmax25Ci .OR. Jmax25Cc > 1.5_dp*Jmax25Ci) THEN
-              gmmax25 = 1.2_dp * gmmax25  ! If no solution, try again with higher gmmax25          
-           ELSE       
-              Cc_based_OK = .TRUE.
-              veg%vcmaxcc(p) = real(Vcmax25Cc)
-              veg%ejmaxcc(p) = real(Jmax25Cc)
-           ENDIF
+            IF (sw) THEN
+               v = MAX(v - (vstart/(0.8_dp*kmax)),0.0_dp)
+               An_Cc = v * An + (1.0_dp-v) * An_Cc
+            ENDIF
+         END DO   
+         !! Avoid unrealistic Vcmax and Jmax values
+         IF (Vcmax25Cc < 0.9_dp*Vcmax25Ci .OR. Vcmax25Cc > 2.5_dp*Vcmax25Ci &
+             .OR. Jmax25Cc < 0.9_dp*Jmax25Ci .OR. Jmax25Cc > 1.5_dp*Jmax25Ci) THEN
+            gmmax25 = 1.2_dp * gmmax25  ! If no solution, try again with higher gmmax25          
+         ELSE       
+            Cc_based_OK = .TRUE.
+            veg%vcmaxcc(p) = real(Vcmax25Cc)
+            veg%ejmaxcc(p) = real(Jmax25Cc)
+         ENDIF
 
-        END DO
+      END DO
      
-        DEALLOCATE(An)
-        DEALLOCATE(An_Cc)
-        DEALLOCATE(Ci)
-        DEALLOCATE(Cc)
-        DEALLOCATE(FVEC)
+      DEALLOCATE(An)
+      DEALLOCATE(An_Cc)
+      DEALLOCATE(Ci)
+      DEALLOCATE(Cc)
+      DEALLOCATE(FVEC)
         
    if (p == 1) then
       write(89,*) 'gmmax25:', gmmax25
@@ -166,13 +167,12 @@ CONTAINS
       write(89,*) 'veg%ejmaxcc(p):', veg%ejmaxcc(p)
    endif
    
-      ELSE  ! C4 (Vcmax and Jmax do not change with gm in C4 plants)
+    ELSE  ! C4 (Vcmax and Jmax do not change with gm in C4 plants)
 
-        veg%vcmaxcc(p) = real(Vcmax25Ci)
-        veg%ejmaxcc(p) = real(Jmax25Ci)
+      veg%vcmaxcc(p) = real(Vcmax25Ci)
+      veg%ejmaxcc(p) = real(Jmax25Ci)
          
-      ENDIF ! C4 flag
-    END DO ! tile loop
+    ENDIF ! C4 flag
           
   END SUBROUTINE adjust_JV_gm
 
@@ -316,7 +316,7 @@ CONTAINS
     
     if (veg%frac4(p) .lt. 0.001) then ! not C4
        ! determine current Ci-based values
-       Rd        = veg%cfrd(p) * veg%vcmax(p)
+       Rd        = veg%cfrd(p) * veg%vcmax(p) * light_inhibition(1200.0)
        gmmax25   = veg%gm(p)
        Vcmax25Ci = veg%vcmax(p)  ! LUT assumes a given Jmax/Vcmax ratio! see details in nc LUT
 
@@ -338,8 +338,6 @@ CONTAINS
           if (veg%vcmaxcc(p) .gt. 0.0 .and. veg%ejmaxcc(p) .gt. 0.0) then
              val_ok = .true.  
           else
-write(84,*) 'unrealistic Vcmax_ci:', veg%LUT_vcmax(ivc)
-write(84,*) 'iteration:', i
              igm = igm + 1
           endif   
        end do
@@ -390,7 +388,7 @@ write(84,*) 'iteration:', i
     
     if (veg%frac4(p) .gt. 0.001) then ! C4
        Ci1       = (/(real(i,dp),i=1,nrcic4,1)/) / 4.0_dp * 1.0e-6_dp 
-       Rd        = real(veg%cfrd(p) * veg%vcmax(p),dp)
+       Rd        = real(veg%cfrd(p) * veg%vcmax(p) * light_inhibition(1200.0),dp)
        gmmax25   = real(veg%gm(p),dp)
        Vcmax25Ci = real(veg%vcmax(p),dp)
        k25Ci     = real(veg%c4kci(p),dp)

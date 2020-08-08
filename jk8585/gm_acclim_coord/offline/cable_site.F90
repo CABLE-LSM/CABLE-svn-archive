@@ -182,7 +182,7 @@ CONTAINS
     site%CO2  = site%CO2VALS( CurYear ) 
     site%Ndep = site%NdepVALS( CurYear ) 
     site%Pdep = site%PdepVALS( CurYear ) 
-
+    
   END IF
 
 END SUBROUTINE site_GET_CO2_Ndep

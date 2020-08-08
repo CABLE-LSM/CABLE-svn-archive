@@ -47,7 +47,7 @@ MODULE cable_canopy_module
   implicit none
 
   public :: define_canopy, xvcmxt3, xejmxt3, ej3x, xrdt, xgmesT, &
-       xvcmxt3_acclim, xejmxt3_acclim
+       xvcmxt3_acclim, xejmxt3_acclim, light_inhibition 
 
   private
 
@@ -1924,24 +1924,9 @@ CONTAINS
 
                 ! reduction of daytime leaf dark-respiration to account for
                 !photo-inhibition
-                !Mercado, L. M., Huntingford, C., Gash, J. H. C., Cox, P. M.,
-                ! and Jogireddy, V.:
-                ! Improving the representation of radiation
-                !interception and photosynthesis for climate model applications,
-                !Tellus B, 59, 553-565, 2007.
-                ! Equation 3
-                ! (Brooks and Farquhar, 1985, as implemented by Lloyd et al., 1995).
-                ! Rc = Rd 0 < Io < 10 umol quanta m-2 s-1
-                ! Rc = [0.5 * 0.05 ln(Io)] Rd Io > 10 umol quanta m-2 s-1
-
-                if (jtomol*1.0e6*rad%qcan(i,1,1).gt.10.0) &
-                     rdx(i,1) = rdx(i,1) * &
-                     (0.5 - 0.05*log(jtomol*1.0e6*rad%qcan(i,1,1)))
-
-                if (jtomol*1.0e6*rad%qcan(i,1,2).gt.10.0) &
-                     rdx(i,2) = rdx(i,2) * &
-                     (0.5 - 0.05*log(jtomol*1.0e6*rad%qcan(i,1,2)))
-
+                rdx(i,1) = rdx(i,1) * light_inhibition(rad%qcan(i,1,1)*jtomol*1.0e6)
+                rdx(i,2) = rdx(i,2) * light_inhibition(rad%qcan(i,1,2)*jtomol*1.0e6)
+                 
                 ! special for YP photosynthesis
                 rdx3(i,1) = rdx(i,1);
                 rdx3(i,2) = rdx(i,2);
@@ -1967,7 +1952,7 @@ CONTAINS
                 !gmes(i,1) = gmes(i,1) * MAX(0.15_r_2,real(fwsoil(i)**qm,r_2))
                 !gmes(i,2) = gmes(i,2) * MAX(0.15_r_2,real(fwsoil(i)**qm,r_2))
  
-             else ! gmes = 0.0 easier to debug
+             else ! gmes = 0.0 easier to debug than inf
                 gmes(i,1) = 0.0 
                 gmes(i,2) = 0.0
                 
@@ -2979,6 +2964,32 @@ CONTAINS
 
   !---------------------------------------------------------------------------------------
 
+  FUNCTION light_inhibition(APAR) RESULT(xrd)
+    !Mercado, L. M., Huntingford, C., Gash, J. H. C., Cox, P. M.,
+    ! and Jogireddy, V.:
+    ! Improving the representation of radiation
+    !interception and photosynthesis for climate model applications,
+    !Tellus B, 59, 553-565, 2007.
+    ! Equation 3
+    ! (Brooks and Farquhar, 1985, as implemented by Lloyd et al., 1995).
+    ! Rc = Rd 0 < Io < 10 umol quanta m-2 s-1
+    ! Rc = [0.5 * 0.05 ln(Io)] Rd Io > 10 umol quanta m-2 s-1
+    ! JK: note that APAR is incoming radation in the original formulations
+    !     However, APAR considered a good proxy here
+    implicit none
+    
+    real, intent(in) :: APAR  ! absorbed PAR in umol m-2 s-1
+    real             :: xrd   ! light inhibition of Rd (0-1)
+
+    if (APAR > 10.0) then
+        xrd = 0.5 - 0.05 * log(APAR)
+    else
+        xrd = 1.0
+    endif
+                  
+  END FUNCTION light_inhibition
+
+  
 
   ELEMENTAL PURE FUNCTION ej3x(parx, alpha, convex, x) RESULT(z)
 
