@@ -675,6 +675,11 @@ PROGRAM cable_offline_driver
                  if (cable_user%popluc) allocate(lucsave(c13o2luc%nland,c13o2luc%npools))
               endif
 
+              if (cable_user%explicit_gm .and. len(trim(cable_user%gm_LUT_file)) .gt. 1) then
+                 WRITE(*,*) 'Reading gm LUT file'
+                 call read_gm_LUT(cable_user%gm_LUT_file,veg)
+              endif
+
               if (cable_user%POPLUC .and. trim(cable_user%POPLUC_RunType) .eq. 'static') cable_user%POPLUC= .FALSE.
 
               ! Having read the default parameters, if this is a bios run we will now

@@ -2026,7 +2026,7 @@ CONTAINS
                    gs_coeff(i,1) = (1.0 + (g1 * fwsoil(i)**qs) / SQRT(vpd)) / real(csx(i,1))
                    gs_coeff(i,2) = (1.0 + (g1 * fwsoil(i)**qs) / SQRT(vpd)) / real(csx(i,2))
                 endif
-
+                
              ELSE
                 write(*,*) 'gs_model_switch failed.'
 #ifdef __MPI__

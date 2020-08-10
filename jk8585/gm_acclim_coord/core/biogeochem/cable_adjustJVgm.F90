@@ -290,8 +290,6 @@ CONTAINS
     veg%LUT_vcmax     = veg%LUT_vcmax     * 1.0e-06
     veg%LUT_Rd        = veg%LUT_Rd        * 1.0e-06
 
-    veg%is_read_gmLUT = .true.
-
   END SUBROUTINE read_gm_LUT
 
 
@@ -338,6 +336,8 @@ CONTAINS
           if (veg%vcmaxcc(p) .gt. 0.0 .and. veg%ejmaxcc(p) .gt. 0.0) then
              val_ok = .true.  
           else
+write(64,*) "gm-Vcmax relationship does not work! Vcmax_ci:", Vcmax25Ci             
+write(64,*) "iteration:", i            
              igm = igm + 1
           endif   
        end do
