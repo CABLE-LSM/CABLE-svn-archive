@@ -203,7 +203,7 @@ cable_cru_TRENDY.o: cable_cru_TRENDY.F90 cable_iovars.o cable_define_types.o cab
 
 cable_weathergenerator.o: cable_weathergenerator.F90 cable_common.o
 
-cable_climate.o: cable_climate.F90 cable_define_types.o cable_iovars.o cable_common.o POP.o
+cable_climate.o: cable_climate.F90 cable_define_types.o cable_iovars.o cable_common.o POP.o cable_data.o
 
 cable_phenology.o: cable_phenology.F90 cable_define_types.o cable_iovars.o cable_common.o casa_variable.o
 
@@ -217,7 +217,7 @@ blaze.o: blaze.F90 simfire.o cable_iovars.o cable_common.o cable_define_types.o
 
 simfire.o: simfire.F90 cable_common.o
 
-blaze_driver.o: blaze_driver.F90 blaze.o simfire.o casa_variable.o
+blaze_driver.o: blaze_driver.F90 blaze.o simfire.o casa_variable.o POP.o cable_define_types.o
 
 blaze_mpi.o: blaze_mpi.F90 blaze.o simfire.o cable_mpicommon.o cable_define_types.o
 
@@ -234,7 +234,7 @@ cable_c13o2.o: cable_c13o2.F90 cable_c13o2_def.o cable_define_types.o cable_iova
 mo_isotope_luc_model.o: mo_isotope_luc_model.f90 mo_utils.o mo_kind.o
 
 minpack.o: minpack.f90 cable_define_types.o
-cable_adjustJVgm.o: cable_adjustJVgm.F90 cable_define_types.o minpack.o
+cable_adjustJVgm.o: cable_adjustJVgm.F90 cable_define_types.o cable_abort.o cable_canopy.o minpack.o
 
 
 # make clean option

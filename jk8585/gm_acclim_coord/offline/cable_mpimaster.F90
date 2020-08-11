@@ -211,6 +211,9 @@ CONTAINS
     USE BLAZE_MPI,            ONLY: MASTER_BLAZE_TYPES ! , MASTER_SIMFIRE_TYPES
     USE SIMFIRE_MOD,          ONLY: TYPE_SIMFIRE, INI_SIMFIRE
 
+    ! gm
+    use cable_adjust_JV_gm_module, only: read_gm_LUT, LUT_VcmaxJmax, LUT_gm, LUT_Vcmax, LUT_Rd
+    
     ! 13C
     use cable_c13o2_def,      only: c13o2_delta_atm, c13o2_flux, c13o2_pool, c13o2_luc, &
          c13o2_update_sum_pools, c13o2_zero_sum_pools
@@ -538,6 +541,12 @@ CONTAINS
        ENDIF
     ENDIF
 
+    ! Read gm lookup table
+    if (cable_user%explicit_gm .and. len(trim(cable_user%gm_LUT_file)) .gt. 1) then
+        WRITE(*,*) 'Reading gm LUT file'
+        call read_gm_LUT(cable_user%gm_LUT_file,LUT_VcmaxJmax,LUT_gm,LUT_Vcmax,LUT_Rd)
+    endif
+             
     ! 13C
     ! Read atmospheric delta-13C values
     if (cable_user%c13o2) then
@@ -2368,6 +2377,14 @@ SUBROUTINE master_cable_params(comm, met, air, ssnow, veg, bgc, soil, canopy, ro
      blen(bidx) = r1len
 
      bidx = bidx + 1
+     CALL MPI_Get_address (veg%ejmax_shade(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (veg%ejmax_sun(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
      CALL MPI_Get_address (veg%frac4(off), displs(bidx), ierr)
      blen(bidx) = r1len
 
@@ -2438,6 +2455,18 @@ SUBROUTINE master_cable_params(comm, met, air, ssnow, veg, bgc, soil, canopy, ro
 
      bidx = bidx + 1
      CALL MPI_Get_address (veg%vcmax(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (veg%vcmaxx(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (veg%vcmax_sun(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (veg%vcmax_shade(off), displs(bidx), ierr)
      blen(bidx) = r1len
 
     ! bidx = bidx + 1
@@ -2549,10 +2578,34 @@ SUBROUTINE master_cable_params(comm, met, air, ssnow, veg, bgc, soil, canopy, ro
      ! Ticket #56, finish adding new veg parms
 
      bidx = bidx + 1
+     CALL MPI_Get_address (veg%vcmaxcc(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (veg%ejmaxcc(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
      CALL MPI_Get_address (veg%gmmax(off), displs(bidx), ierr)
      blen(bidx) = r1len
 
+     bidx = bidx + 1
+     CALL MPI_Get_address (veg%gm(off), displs(bidx), ierr)
+     blen(bidx) = r1len
 
+     bidx = bidx + 1
+     CALL MPI_Get_address (veg%c4kci(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (veg%c4kcc(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (veg%bjv(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+
+     
   ! ----------- bgc --------------
 
      bidx = bidx + 1
