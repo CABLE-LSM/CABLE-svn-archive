@@ -27,6 +27,14 @@ MODULE cable_adjust_JV_gm_module
   real(dp) :: Rd
   real(dp) :: Kc_ci, Ko_ci, gammastar_ci, Km_ci
   real(dp) :: Kc_cc, Ko_cc, gammastar_cc, Km_cc
+
+  
+  ! gm LUT
+  real(dp), dimension(:,:,:,:), allocatable :: LUT_VcmaxJmax ! Lookup table with Cc-based Vcmax and Jmax
+  real(dp), dimension(:),       allocatable :: LUT_gm        ! gm values in gm LUT
+  real(dp), dimension(:),       allocatable :: LUT_Vcmax     ! Vcmax_ci values in gm LUT
+  real(dp), dimension(:),       allocatable :: LUT_Rd        ! Rd values in gm LUT
+
   
 CONTAINS 
 
@@ -227,13 +235,16 @@ CONTAINS
 
   
   
-  SUBROUTINE read_gm_LUT(gm_LUT_file,veg)
+  SUBROUTINE read_gm_LUT(gm_LUT_file,LUT_VcmaxJmax,LUT_gm,LUT_vcmax,LUT_Rd)
     ! Read lookup table needed for parameter conversion of photosynthetic parameters
     ! from Ci- to Cc-based values (the latter considering gm explicitly)
     implicit none
     
-    character(len=200), intent(in) :: gm_LUT_file
-    TYPE(veg_parameter_type), intent(inout) :: veg  ! vegetation parameters
+    character(len=200), intent(in)            :: gm_LUT_file
+    real(dp), dimension(:,:,:,:), allocatable, intent(out)  :: LUT_VcmaxJmax
+    real(dp), dimension(:), allocatable,  intent(out)       :: LUT_gm
+    real(dp), dimension(:), allocatable,  intent(out)       :: LUT_vcmax
+    real(dp), dimension(:), allocatable,  intent(out)       :: LUT_Rd
     
     ! local
     integer  :: ncid_gmlut                      ! netcdf ID
@@ -264,31 +275,31 @@ CONTAINS
     write(*,*) 'Rd_len:', Rd_len
 
     ! allocate variables in veg structure
-    allocate(veg%LUT_VcmaxJmax(2,Rd_len,vcmax_len,gm_len))
-    allocate(veg%LUT_gm(gm_len))
-    allocate(veg%LUT_vcmax(vcmax_len))
-    allocate(veg%LUT_Rd(Rd_len))
+    allocate(LUT_VcmaxJmax(2,Rd_len,vcmax_len,gm_len))
+    allocate(LUT_gm(gm_len))
+    allocate(LUT_vcmax(vcmax_len))
+    allocate(LUT_Rd(Rd_len))
     
     ok = nf90_inq_varid(ncid_gmlut,'Vcmax',vcmax_id)
     if (ok /= NF90_NOERR) call nc_abort(ok,'Error inquiring variable Vcmax from LUT.')
     ok = nf90_inq_varid(ncid_gmlut,'Jmax',jmax_id)
     if (ok /= NF90_NOERR) call nc_abort(ok,'Error inquiring variable Jmax from LUT.')
 
-    ok = nf90_get_var(ncid_gmlut,vcmax_id,veg%LUT_VcmaxJmax(1,:,:,:))
+    ok = nf90_get_var(ncid_gmlut,vcmax_id,LUT_VcmaxJmax(1,:,:,:))
     if (ok /= NF90_NOERR) call nc_abort(ok,'Error getting variable Vcmax from LUT.')
-    ok = nf90_get_var(ncid_gmlut,jmax_id,veg%LUT_VcmaxJmax(2,:,:,:))
+    ok = nf90_get_var(ncid_gmlut,jmax_id,LUT_VcmaxJmax(2,:,:,:))
     if (ok /= NF90_NOERR) call nc_abort(ok,'Error getting variable Jmax from LUT.')
-    ok = nf90_get_var(ncid_gmlut,gm_dimid,veg%LUT_gm)
+    ok = nf90_get_var(ncid_gmlut,gm_dimid,LUT_gm)
     if (ok /= NF90_NOERR) call nc_abort(ok,'Error getting dimension gm from LUT.')
-    ok = nf90_get_var(ncid_gmlut,vcmax_dimid,veg%LUT_vcmax)
+    ok = nf90_get_var(ncid_gmlut,vcmax_dimid,LUT_vcmax)
     if (ok /= NF90_NOERR) call nc_abort(ok,'Error getting dimension Vcmax_Ci from LUT.')
-    ok = nf90_get_var(ncid_gmlut,Rd_dimid,veg%LUT_Rd)
+    ok = nf90_get_var(ncid_gmlut,Rd_dimid,LUT_Rd)
     if (ok /= NF90_NOERR) call nc_abort(ok,'Error getting dimension Rd from LUT.')
 
     ! convert values to those used in CABLE
-    veg%LUT_VcmaxJmax = veg%LUT_VcmaxJmax * 1.0e-06
-    veg%LUT_vcmax     = veg%LUT_vcmax     * 1.0e-06
-    veg%LUT_Rd        = veg%LUT_Rd        * 1.0e-06
+    LUT_VcmaxJmax = LUT_VcmaxJmax * 1.0e-06
+    LUT_vcmax     = LUT_vcmax     * 1.0e-06
+    LUT_Rd        = LUT_Rd        * 1.0e-06
 
   END SUBROUTINE read_gm_LUT
 
@@ -298,14 +309,18 @@ CONTAINS
 
      
   
-  SUBROUTINE find_Vcmax_Jmax_LUT(veg,p)
+  SUBROUTINE find_Vcmax_Jmax_LUT(veg,p,LUT_VcmaxJmax,LUT_gm,LUT_vcmax,LUT_Rd)
     ! JK: note that LUT is single precision at the moment
     
     implicit none
 
     type (veg_parameter_type), intent(inout) :: veg      ! vegetation parameters
-    integer :: p             ! veg type (tile)
-
+    integer                                  :: p        ! veg type (tile)
+    real(dp), dimension(:,:,:,:), intent(in) :: LUT_VcmaxJmax ! Lookup table with Cc-based Vcmax and Jmax
+    real(dp), dimension(:), intent(in)       :: LUT_gm        ! gm values in gm LUT
+    real(dp), dimension(:), intent(in)       :: LUT_vcmax     ! Vcmax_ci values in gm LUT
+    real(dp), dimension(:), intent(in)       :: LUT_Rd        ! Rd values in gm LUT
+    
     ! local
     logical :: val_ok        ! check for NAs
     integer :: maxit, i      ! maximum nr of iterations in while loop, loop counter
@@ -319,9 +334,9 @@ CONTAINS
        Vcmax25Ci = veg%vcmax(p)  ! LUT assumes a given Jmax/Vcmax ratio! see details in nc LUT
 
        ! determine right indices of LUT
-       igm = minloc(abs(gmmax25 - veg%LUT_gm),1)
-       ivc = minloc(abs(Vcmax25Ci - veg%LUT_vcmax),1)
-       ird = minloc(abs(Rd - veg%LUT_Rd),1)
+       igm = minloc(abs(gmmax25 - LUT_gm),1)
+       ivc = minloc(abs(Vcmax25Ci - LUT_vcmax),1)
+       ird = minloc(abs(Rd - LUT_Rd),1)
 
        i = 0
        maxit = 50
@@ -329,8 +344,8 @@ CONTAINS
 
        do while (.not. val_ok .and. i .le. maxit)
           i = i + 1
-          veg%vcmaxcc(p) = veg%LUT_VcmaxJmax(1,ird,ivc,igm)
-          veg%ejmaxcc(p) = veg%LUT_VcmaxJmax(2,ird,ivc,igm)
+          veg%vcmaxcc(p) = LUT_VcmaxJmax(1,ird,ivc,igm)
+          veg%ejmaxcc(p) = LUT_VcmaxJmax(2,ird,ivc,igm)
 
           ! check for implausible parameter combinations that result in NAs
           if (veg%vcmaxcc(p) .gt. 0.0 .and. veg%ejmaxcc(p) .gt. 0.0) then

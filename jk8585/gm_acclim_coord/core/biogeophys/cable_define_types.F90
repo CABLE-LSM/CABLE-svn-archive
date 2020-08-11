@@ -344,12 +344,6 @@ MODULE cable_def_types_mod
      ! Additional POP veg param
      INTEGER,   DIMENSION(:,:), POINTER :: disturbance_interval => null()
      REAL(r_2), DIMENSION(:,:), POINTER :: disturbance_intensity => null()
-
-     ! gm LUT
-     real(r_2), dimension(:,:,:,:), pointer :: LUT_VcmaxJmax => null() ! Lookup table with Cc-based Vcmax and Jmax
-     real(r_2), dimension(:),       pointer :: LUT_gm => null()        ! gm values in gm LUT
-     real(r_2), dimension(:),       pointer :: LUT_Vcmax => null()     ! Vcmax_ci values in gm LUT
-     real(r_2), dimension(:),       pointer :: LUT_Rd => null()        ! Rd values in gm LUT
      
 
   END TYPE veg_parameter_type
@@ -1701,12 +1695,6 @@ CONTAINS
     DEALLOCATE ( var % disturbance_intensity )
     IF(ASSOCIATED(var % gamma)) DEALLOCATE ( var % gamma )
     ! END IF
-
-    IF(ASSOCIATED(var % LUT_VcmaxJmax)) DEALLOCATE ( var % LUT_VcmaxJmax )
-    IF(ASSOCIATED(var % LUT_gm))        DEALLOCATE ( var % LUT_gm )
-    IF(ASSOCIATED(var % LUT_Vcmax))     DEALLOCATE ( var % LUT_Vcmax )
-    IF(ASSOCIATED(var % LUT_Rd))        DEALLOCATE ( var % LUT_Rd )
-
 
   END SUBROUTINE dealloc_veg_parameter_type
 

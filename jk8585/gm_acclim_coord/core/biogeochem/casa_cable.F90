@@ -853,7 +853,7 @@ write(86,*) "nleafx(np):", nleafx(np)
              endif            
              ! adjust parameters
              if (len(trim(cable_user%gm_LUT_file)) .gt. 1) then
-                call find_Vcmax_Jmax_LUT(veg,np)  
+                call find_Vcmax_Jmax_LUT(veg,np,LUT_VcmaxJmax,LUT_gm,LUT_vcmax,LUT_Rd)  
              else  ! no LUT, adjustment using An-Ci curves
                 if ( ABS(veg%vcmaxx(np) - veg%vcmax(np)) .GT. 5.0E-08 .OR. ktau .LT. ktauday ) then
                      veg%vcmaxx(np) = veg%vcmax(np)
