@@ -56,7 +56,7 @@ MODULE cable_output_module
   TYPE out_varID_type ! output variable IDs in netcdf file
      INTEGER :: SWdown, LWdown, Wind, Wind_E, PSurf,                 &
           Tair, Qair, Rainf, Snowf, CO2air,                          &
-          Qle, Qh, Qg, NEE, SWnet,                                   &
+          Qle, Qh, Qg, NEE, fbeam, SWnet,                            &
           LWnet, SoilMoist, SoilTemp, Albedo,                        &
           visAlbedo, nirAlbedo, SoilMoistIce,                        &
           Qs, Qsb, Evap, BaresoilT, SWE, SnowT,                      &
@@ -106,6 +106,7 @@ MODULE cable_output_module
      REAL(KIND=4), POINTER, DIMENSION(:) :: Qh => null()     ! 17 sensible heat flux [W/m2]
      REAL(KIND=4), POINTER, DIMENSION(:) :: Qle => null()    ! 18 latent heat flux [W/m2]
      REAL(KIND=4), POINTER, DIMENSION(:) :: Qg => null()     ! 19 ground heat flux [W/m2]
+     REAL(KIND=4), POINTER, DIMENSION(:) :: fbeam => null()  ! 20 fracion of direct radiation
      REAL(KIND=4), POINTER, DIMENSION(:) :: SWnet => null()  ! 20 net shortwave [W/m2]
      REAL(KIND=4), POINTER, DIMENSION(:) :: LWnet => null()  ! 21 net longwave [W/m2]
      REAL(KIND=4), POINTER, DIMENSION(:) :: Evap => null()   ! 22 total evapotranspiration [kg/m2/s]
@@ -741,6 +742,14 @@ CONTAINS
        out%SnowDepth = zero4 ! initialise
     END IF
     ! Define radiative variables in output file and allocate temp output vars:
+    IF(output%radiation) THEN
+       CALL define_ovar(ncid_out, ovid%fbeam, 'fbeam', '-',                &
+            'fraction of direct radiation (visible)',         &
+            patchout%fbeam, 'dummy', xID, yID, zID, landID,       &
+            patchID, tID)
+       ALLOCATE(out%fbeam(mp))
+       out%fbeam = zero4 ! initialise
+    END IF
     IF(output%radiation .OR. output%SWnet) THEN
        CALL define_ovar(ncid_out, ovid%SWnet, 'SWnet', 'W/m^2',                &
             'Net shortwave radiation absorbed by surface',         &
@@ -2500,6 +2509,21 @@ CONTAINS
        END IF
     END IF
     !-------------------------WRITE RADIATION DATA------------------------------
+    ! fraction of direct radiation [0-1]
+    IF (output%radiation) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%fbeam = out%fbeam + toreal4(rad%fbeam(:,1))
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%fbeam = out%fbeam * rinterval
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%fbeam, 'fbeam',         &
+               out%fbeam, ranges%Albedo, patchout%fbeam, 'default', met)
+          ! Reset temporary output variable:
+          out%fbeam = zero4
+       END IF
+    END IF
+    
     ! SWnet: net shortwave [W/m^2]
     IF (output%radiation .OR. output%SWnet) THEN
        ! Add current timestep's value to total of temporary output variable:

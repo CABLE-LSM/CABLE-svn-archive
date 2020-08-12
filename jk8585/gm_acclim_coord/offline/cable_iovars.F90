@@ -198,6 +198,7 @@ MODULE cable_IO_vars_module
 
       ! variables specified individually:
       LOGICAL ::                                                               &
+         fbeam = .FALSE.,     & ! fraction of direct visible radiation
          SWdown = .FALSE.,    & ! 6 downward short-wave radiation [W/m2]
          LWdown = .FALSE.,    & ! 7 downward long-wave radiation [W/m2]
          Rainf = .FALSE.,     & ! 8 rainfall [kg/m2/s]
