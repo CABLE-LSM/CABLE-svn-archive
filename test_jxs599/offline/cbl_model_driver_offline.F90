@@ -47,7 +47,12 @@ CONTAINS
     USE cbl_init_radiation_module, ONLY : init_radiation
     USE cable_air_module, ONLY : define_air
     USE casadimension,     ONLY : icycle ! used in casa_cnp
-    USE cable_data_module, ONLY : icbm_type, point2constants
+! physical constants
+USE cable_phys_constants_mod, ONLY : CGRAV  => GRAV
+USE cable_phys_constants_mod, ONLY : CCAPP   => CAPP
+USE cable_phys_constants_mod, ONLY : CEMLEAF => EMLEAF
+USE cable_phys_constants_mod, ONLY : CEMSOIL => EMSOIL
+USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
     !mrd561
     USE cable_gw_hydro_module, ONLY : sli_hydrology,&
          soil_snow_gw
@@ -64,8 +69,6 @@ USE cable_math_constants_mod, ONLY : CPI180 => pi180
 use cbl_masks_mod, ONLY :  fveg_mask,  fsunlit_mask,  fsunlit_veg_mask
 use cbl_masks_mod, ONLY :  veg_mask,  sunlit_mask,  sunlit_veg_mask
 
-    !ptrs to local constants
-    TYPE( icbm_type ) :: C
     ! CABLE model variables
     TYPE (air_type),       INTENT(INOUT) :: air
     TYPE (bgc_pool_type),  INTENT(INOUT) :: bgc
@@ -106,10 +109,6 @@ REAL :: xk(mp,nrb)
 !iFor testing
 ICYCLE = 0
 cable_user%soil_struc="default"
-
-  
-! assign local ptrs to constants defined in cable_data_module
-CALL point2constants(C)
 
 IF ( cbl_standalone .OR. cable_runtime%um_explicit ) & 
   CALL ruff_resist(veg, rough, ssnow, canopy, veg%vlai, veg%hc, canopy%vlaiw)
@@ -276,8 +275,8 @@ IF ( cbl_standalone .OR. cable_runtime%um_explicit ) &
        ! any leaf/soil emissivity /=1 must be incorporated into rad%trad.
        ! check that emissivities (pft and nvg) set = 1 within the UM i/o configuration
        ! CM2 - further adapted to pass the correction term onto %trad correctly
-       rad%trad = ( ( 1.-rad%transd ) * C%emleaf * canopy%tv**4 +                      &
-            rad%transd * C%emsoil * ssnow%otss**4 + canopy%fns_cor/C%sboltz )**0.25
+       rad%trad = ( ( 1.-rad%transd ) * Cemleaf * canopy%tv**4 +                      &
+            rad%transd * Cemsoil * ssnow%otss**4 + canopy%fns_cor/Csboltz )**0.25
     ELSE
        rad%trad = ( ( 1.-rad%transd ) * canopy%tv**4 +                             &
             rad%transd * ssnow%tss**4 )**0.25

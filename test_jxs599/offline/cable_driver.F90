@@ -72,9 +72,12 @@ PROGRAM cable_offline_driver
 
   USE cable_namelist_util, ONLY : get_namelist_file_name,&
        CABLE_NAMELIST,arg_not_namelist
+! physical constants
+USE cable_phys_constants_mod, ONLY : CTFRZ   => TFRZ
+USE cable_phys_constants_mod, ONLY : CEMLEAF => EMLEAF
+USE cable_phys_constants_mod, ONLY : CEMSOIL => EMSOIL
+USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
 
-
-  USE cable_data_module,    ONLY: driver_type, point2constants
   USE cable_input_module,   ONLY: open_met_file,load_parameters,	      &
        get_met_data,close_met_file,		   &
        ncid_rain,	&
@@ -90,7 +93,6 @@ PROGRAM cable_offline_driver
   USE cable_write_module,   ONLY: nullify_write
   USE cable_IO_vars_module, ONLY: timeunits,calendar
   USE cable_cbm_module
-  USE cable_diag_module
   !mpidiff
   USE cable_climate_mod
     
@@ -177,7 +179,6 @@ USE cbl_soil_snow_init_special_module
   ! CABLE parameters
   TYPE (soil_parameter_type) :: soil ! soil parameters
   TYPE (veg_parameter_type)  :: veg  ! vegetation parameters
-  TYPE (driver_type)	:: C	     ! constants used locally
 
   TYPE (sum_flux_type)	:: sum_flux ! cumulative flux variables
   TYPE (bgc_pool_type)	:: bgc	! carbon pool variables
@@ -231,10 +232,6 @@ USE cbl_soil_snow_init_special_module
 
   ! timing
   REAL:: etime ! Declare the type of etime(), For receiving user and system time, total time
-
-  !___ unique unit/file identifiers for cable_diag: arbitrarily 5 here
-  INTEGER, SAVE :: iDiagZero=0, iDiag1=0, iDiag2=0, iDiag3=0, iDiag4=0
-
 
   ! switches etc defined thru namelist (by default cable.nml)
   NAMELIST/CABLE/		   &
@@ -383,9 +380,6 @@ USE cbl_soil_snow_init_special_module
 
   cable_runtime%offline = .TRUE.
 
-  ! associate pointers used locally with global definitions
-  CALL point2constants( C )
-
   IF( l_casacnp	 .AND. ( icycle == 0 .OR. icycle > 3 ) )		   &
        STOP 'icycle must be 1 to 3 when using casaCNP'
   !IF( ( l_laiFeedbk .OR. l_vcmaxFeedbk ) )	  &
@@ -408,7 +402,7 @@ USE cbl_soil_snow_init_special_module
 
      IF (l_casacnp) THEN
 
-        CALL open_met_file( dels, koffset, kend, spinup, C%TFRZ )
+        CALL open_met_file( dels, koffset, kend, spinup, CTFRZ )
         IF ( koffset .NE. 0 .AND. CABLE_USER%CALL_POP ) THEN
            WRITE(*,*)"When using POP, episode must start at Jan 1st!"
            STOP 991
@@ -423,7 +417,7 @@ USE cbl_soil_snow_init_special_module
 
   ELSEIF (TRIM(cable_user%MetType) .EQ. '') THEN
 
-     CALL open_met_file( dels, koffset, kend, spinup, C%TFRZ )
+     CALL open_met_file( dels, koffset, kend, spinup, CTFRZ )
      IF ( koffset .NE. 0 .AND. CABLE_USER%CALL_POP ) THEN
         WRITE(*,*)"When using POP, episode must start at Jan 1st!"
         STOP 991
@@ -461,7 +455,7 @@ USE cbl_soil_snow_init_special_module
 
               CALL prepareFiles(ncciy)
               IF ( RRRR .EQ. 1 ) THEN
-                 CALL open_met_file( dels, koffset, kend, spinup, C%TFRZ )
+                 CALL open_met_file( dels, koffset, kend, spinup, CTFRZ )
                  IF (leaps.AND.is_leapyear(YYYY).AND.kend.EQ.2920) THEN
                     STOP 'LEAP YEAR INCOMPATIBILITY WITH INPUT MET !!!'
                  ENDIF
@@ -612,7 +606,7 @@ USE cbl_soil_snow_init_special_module
                    bal, logn, vegparmnew, casabiome, casapool,		 &
                    casaflux, sum_casapool, sum_casaflux, &
                    casamet, casabal, phen, POP, spinup,	       &
-                   C%EMSOIL, C%TFRZ, LUC_EXPT, POPLUC )
+                   CEMSOIL, CTFRZ, LUC_EXPT, POPLUC )
 
               IF ( CABLE_USER%POPLUC .AND. TRIM(CABLE_USER%POPLUC_RunType) .EQ. 'static') &
                    CABLE_USER%POPLUC= .FALSE.
@@ -722,11 +716,11 @@ USE cbl_soil_snow_init_special_module
               ELSE
                  IF (TRIM(cable_user%MetType) .EQ. 'site') &
                       CALL get_met_data( spinup, spinConv, met, soil,		 &
-                      rad, veg, kend, dels, C%TFRZ, ktau+koffset_met,		 &
+                      rad, veg, kend, dels, CTFRZ, ktau+koffset_met,		 &
                       kstart+koffset_met )
                  IF (TRIM(cable_user%MetType) .EQ. '') &
                       CALL get_met_data( spinup, spinConv, met, soil,		 &
-                      rad, veg, kend, dels, C%TFRZ, ktau+koffset,		 &
+                      rad, veg, kend, dels, CTFRZ, ktau+koffset,		 &
                       kstart+koffset )
 
                  IF (TRIM(cable_user%MetType) .EQ. 'site' ) THEN
@@ -919,26 +913,14 @@ USE cbl_soil_snow_init_special_module
 
 
                     CALL write_output( dels, ktau_tot, met, canopy, casaflux, casapool, casamet, &
-                         ssnow,   rad, bal, air, soil, veg, C%SBOLTZ, C%EMLEAF, C%EMSOIL )
+                         ssnow,   rad, bal, air, soil, veg, CSBOLTZ, CEMLEAF, CEMSOIL )
                  ELSE
                     CALL write_output( dels, ktau, met, canopy, casaflux, casapool, casamet, &
-                         ssnow,rad, bal, air, soil, veg, C%SBOLTZ, C%EMLEAF, C%EMSOIL )
+                         ssnow,rad, bal, air, soil, veg, CSBOLTZ, CEMLEAF, CEMSOIL )
                  ENDIF
               ENDIF
 
 
-              ! dump bitwise reproducible testing data
-              IF( cable_user%RUN_DIAG_LEVEL == 'zero') THEN
-                 IF (.NOT.CASAONLY) THEN
-                    WRITE(*,*) 'before diags'
-                    IF((.NOT.spinup).OR.(spinup.AND.spinConv))			 &
-                         CALL cable_diag( iDiagZero, "FLUXES", mp, kend, ktau,			 &
-                         knode_gl, "FLUXES",				&
-                         canopy%fe + canopy%fh )
-                 ENDIF
-              ENDIF
-
-              ! Check this run against standard for quasi-bitwise reproducability
               ! Check triggered by cable_user%consistency_check = .TRUE. in cable.nml
               IF(cable_user%consistency_check) THEN
 

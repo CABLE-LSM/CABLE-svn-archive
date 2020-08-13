@@ -79,7 +79,7 @@ build_build()
    SOI="../science/soilsnow"
    OFF="../offline"
    UTI="../util"
-   DIA="../util/diag"
+#DIA="../util/diag"
    PAR="../params"
    SLI="../science/sli"
    POP="../science/pop"
@@ -96,7 +96,7 @@ build_build()
    /bin/cp -p $OFF/*90 ./.tmp
 
 /bin/cp -p $UTI/*90 ./.tmp
-/bin/cp -p $DIA/*90 ./.tmp
+#/bin/cp -p $DIA/*90 ./.tmp
 /bin/cp -p $PAR/*90 ./.tmp
 
 /bin/cp -p Makefile3_offline  ./.tmp

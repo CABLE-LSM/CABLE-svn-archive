@@ -47,15 +47,52 @@
 
 MODULE cable_canopy_module
 
-  USE cable_data_module, ONLY : icanopy_type, point2constants
+! physical constants
+USE cable_phys_constants_mod, ONLY : CTFRZ   => TFRZ
+USE cable_phys_constants_mod, ONLY : CRMAIR  => RMAIR
+USE cable_phys_constants_mod, ONLY : CRGAS   => RGAS
+USE cable_phys_constants_mod, ONLY : CDHEAT  => DHEAT
+USE cable_phys_constants_mod, ONLY : CZETNEG => ZETNEG
+USE cable_phys_constants_mod, ONLY : CZETMUL => ZETMUL
+USE cable_phys_constants_mod, ONLY : CZETPOS => ZETPOS
+USE cable_phys_constants_mod, ONLY : CGRAV   => GRAV
+USE cable_phys_constants_mod, ONLY : CUMIN   => UMIN
+USE cable_phys_constants_mod, ONLY : CRHOW   => RHOW
+USE cable_phys_constants_mod, ONLY : CCTL    => CTL
+USE cable_phys_constants_mod, ONLY : CCSW    => CSW
+USE cable_phys_constants_mod, ONLY : CEMLEAF => EMLEAF
+USE cable_phys_constants_mod, ONLY : CEMSOIL => EMSOIL
+USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
+USE cable_phys_constants_mod, ONLY : CPRANDT => PRANDT
+USE cable_phys_constants_mod, ONLY : CCAPP   => CAPP
+USE cable_phys_constants_mod, ONLY : CRMH2O  => RMH2O
+USE cable_phys_constants_mod, ONLY : CAPOL   => APOL
+USE cable_phys_constants_mod, ONLY : CA33    => A33
+USE cable_phys_constants_mod, ONLY : CVONK   => VONK
+USE cable_phys_constants_mod, ONLY : CZETA0  => ZETA0
+USE cable_phys_constants_mod, ONLY : CTETENA     => TETENA
+USE cable_phys_constants_mod, ONLY : CTETENB     => TETENB
+USE cable_phys_constants_mod, ONLY : CTETENC     => TETENC
+USE cable_phys_constants_mod, ONLY : CTETENA_ICE => TETENA_ICE
+USE cable_phys_constants_mod, ONLY : CTETENB_ICE => TETENB_ICE
+USE cable_phys_constants_mod, ONLY : CTETENC_ICE => TETENC_ICE
+! photosynthetic constants
+USE cable_photo_constants_mod, ONLY : CRGSWC => RGSWC
+USE cable_photo_constants_mod, ONLY : CGAM0  => GAM0
+USE cable_photo_constants_mod, ONLY : CGAM2  => GAM2
+USE cable_photo_constants_mod, ONLY : CRGBWC => RGBWC
+USE cable_photo_constants_mod, ONLY : CGAM1  => GAM1
+USE cable_photo_constants_mod, ONLY : CTREFK => TREFK
+USE cable_photo_constants_mod, ONLY : CMAXITER  => MAXITER ! only integer here
+! maths & other constants
+USE cable_math_constants_mod,  ONLY : CPI_C  => PI
+USE cable_other_constants_mod, ONLY : CLAI_THRESH  => LAI_THRESH
+
 
   IMPLICIT NONE
 
   PUBLIC define_canopy
   PRIVATE
-
-  TYPE( icanopy_type ) :: C
-
 
 CONTAINS
 
@@ -66,11 +103,11 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,clima
     USE cable_air_module
     USE cable_common_module
     USE cable_roughness_module
-USE cable_other_constants_mod, ONLY : CLAI_thresh => lai_thresh
-USE cable_phys_constants_mod, ONLY : CCapp => Capp, &
-                                     Csboltz => Sboltz,         &
-                                     Cemsoil => emsoil,         &
-                                     Cemleaf => emleaf
+!H!USE cable_other_constants_mod, ONLY : CLAI_thresh => lai_thresh
+!H!USE cable_phys_constants_mod, ONLY : CCapp => Capp, &
+!H!                                     Csboltz => Sboltz,         &
+!H!                                     Cemsoil => emsoil,         &
+!H!                                     Cemleaf => emleaf
 !H!    USE cable_psm, ONLY: or_soil_evap_resistance,rtevap_max,&
 !H!                         rt_Dff,update_or_soil_resis
     !USE cable_gw_hydro_module, ONLY : pore_space_relative_humidity
@@ -167,8 +204,6 @@ logical :: sunlit_veg_mask(mp)
 
     call_number = call_number + 1
 
-    ! assign local ptrs to constants defined in cable_data_module
-    CALL point2constants(C)
     !H! vNot sure that this is appropriate for JULES standalone - HaC
     !H!IF( .NOT. cable_runtime%um)                                                 &
          canopy%cansto =  canopy%oldcansto
@@ -200,9 +235,9 @@ logical :: sunlit_veg_mask(mp)
 
     CALL define_air (met, air)
 
-    CALL qsatfjh(qstvair,met%tvair-C%tfrz,met%pmb)
+    CALL qsatfjh(qstvair,met%tvair-Ctfrz,met%pmb)
 
-    met%dva = (qstvair - met%qvair) *  C%rmair/C%rmh2o * met%pmb * 100.0
+    met%dva = (qstvair - met%qvair) *  Crmair/Crmh2o * met%pmb * 100.0
     dsx = met%dva     ! init. leaf surface vpd
     dsx= MAX(dsx,0.0)
     tlfx = met%tk  ! initialise leaf temp iteration memory variable (K)
@@ -210,7 +245,7 @@ logical :: sunlit_veg_mask(mp)
 
     ortsoil = ssnow%rtsoil
     IF (cable_user%soil_struc=='sli') THEN
-       ssnow%tss = REAL(ssnow%Tsurface) + C%tfrz
+       ssnow%tss = REAL(ssnow%Tsurface) + Ctfrz
     ELSE
        ssnow%tss =  REAL((1-ssnow%isflag))*ssnow%tgg(:,1) +                    &
             REAL(ssnow%isflag)*ssnow%tggsn(:,1)
@@ -241,10 +276,10 @@ CALL radiation( ssnow, veg, air, met, rad, canopy, sunlit_veg_mask, &
   clai_thresh, Csboltz, Cemsoil, Cemleaf, Ccapp &
 )
 
-    canopy%zetar(:,1) = C%ZETA0 ! stability correction terms
-    canopy%zetar(:,2) = C%ZETPOS + 1
-    canopy%zetash(:,1) = C%ZETA0 ! stability correction terms
-    canopy%zetash(:,2) = C%ZETPOS + 1
+    canopy%zetar(:,1) = CZETA0 ! stability correction terms
+    canopy%zetar(:,2) = CZETPOS + 1
+    canopy%zetash(:,1) = CZETA0 ! stability correction terms
+    canopy%zetash(:,2) = CZETPOS + 1
 
 
     DO iter = 1, NITER
@@ -275,44 +310,44 @@ CALL ruff_resist(veg, rough, ssnow, canopy, veg%vlai, veg%hc, canopy%vlaiw)
             - psis( canopy%zetar(:,iter) )                                  &
             + psis( canopy%zetar(:,iter) * ( MAX( rough%zruffs-rough%disp,  &
             rough%z0soilsn ) )            &
-            / rough%zref_tq ) ) / C%VONK
+            / rough%zref_tq ) ) / CVONK
        rt_min = 5.
 
        !! vh_js !!
        IF (cable_user%soil_struc=='sli') THEN
-          ! for stable conditions, update rough%rt0us & rough%rt1usa by replacing C%CSW by
+          ! for stable conditions, update rough%rt0us & rough%rt1usa by replacing CCSW by
           ! csw = cd/2* (U(hc)/ust)**2 according to Eqs 15 & 19 from notes by Ian Harman (9-9-2011)
-          WHERE (canopy%vlaiw > C%LAI_thresh .AND. rough%hruff > rough%z0soilsn)
+          WHERE (canopy%vlaiw > CLAI_thresh .AND. rough%hruff > rough%z0soilsn)
              rt0bus = (LOG(0.1*rough%hruff/rough%z0soilsn) - psis(canopy%zetash(:,iter)) + &
                   psis(canopy%zetash(:,iter)*rough%z0soilsn/(0.1*rough%hruff))) / &
-                  C%vonk/rough%term6a
+                  Cvonk/rough%term6a
 
              zstar = rough%disp + 1.5*(veg%hc - rough%disp)
 
              psihat = LOG((zstar - rough%disp)/ (veg%hc - rough%disp)) + &
                   (veg%hc - zstar)/(zstar - rough%disp)
-             rL = -(C%vonk*C%grav*(zstar - rough%disp)*(canopy%fh))/ &  ! 1/Monin-Obokov Length
-                  MAX( (air%rho*C%capp*met%tk*canopy%us**3), 1.e-12)
+             rL = -(Cvonk*Cgrav*(zstar - rough%disp)*(canopy%fh))/ &  ! 1/Monin-Obokov Length
+                  MAX( (air%rho*Ccapp*met%tk*canopy%us**3), 1.e-12)
              phist = 1 + 5.0*(zstar - rough%disp)*rL
 
              WHERE (canopy%zetar(:,iter) .GT. 1.e-6)! stable conditions
 
                 csw = MIN(0.3*((LOG((veg%hc-rough%disp)/rough%z0m) + phist*psihat - &
                      psim(canopy%zetar(:,iter)*(veg%hc-rough%disp)/(rough%zref_tq-rough%disp))+ &
-                     psim(canopy%zetar(:,iter)*rough%z0m/(rough%zref_tq-rough%disp)))/0.4)**2/2., 3.0)* c%csw
+                     psim(canopy%zetar(:,iter)*rough%z0m/(rough%zref_tq-rough%disp)))/0.4)**2/2., 3.0)* Ccsw
              ELSEWHERE
-                csw = c%csw
+                csw = Ccsw
              endwhere
 
              rough%term2  = EXP( 2. * CSW * canopy%rghlai * &
                   ( 1 - rough%disp / rough%hruff ) )
-             rough%term3  = C%A33**2 * C%CTL * 2. * CSW * canopy%rghlai
+             rough%term3  = CA33**2 * CCTL * 2. * CSW * canopy%rghlai
              rough%term5  = MAX( ( 2. / 3. ) * rough%hruff / rough%disp, 1.0 )
              rough%term6 =  EXP( 3. * rough%coexp * ( rough%disp / rough%hruff -1. ) )
 
              rough%rt0us  = LOG(rough%disp/(0.1 * rough%hruff)) * &
-                  EXP(2. * C%CSW * canopy%rghlai) * rough%disp &
-                  / rough%hruff / (c%a33 ** 2 * c%ctl)
+                  EXP(2. * CCSW * canopy%rghlai) * rough%disp &
+                  / rough%hruff / (Ca33 ** 2 * Cctl)
 
              rough%rt1usa = rough%term5 * ( rough%term2 - 1.0 ) / rough%term3
              rt0 = MAX(rt_min, rough%rt0us+rt0bus) / canopy%us
@@ -340,7 +375,7 @@ CALL ruff_resist(veg, rough, ssnow, canopy, veg%vlai, veg%hc, canopy%vlaiw)
 
        DO j=1,mp
 
-          IF(canopy%vlaiw(j) > C%LAI_THRESH) THEN
+          IF(canopy%vlaiw(j) > CLAI_THRESH) THEN
              ssnow%rtsoil(j) = rt0(j)
           ELSE
              ssnow%rtsoil(j) = rt0(j) + rough%rt1(j)
@@ -368,15 +403,15 @@ write(6,*) "GW or ORevepis not an option right now"
        END IF
 
        ! Vegetation boundary-layer conductance (mol/m2/s)
-       ! C%prandt = kinematic viscosity/molecular diffusivity
+       ! Cprandt = kinematic viscosity/molecular diffusivity
        ! See CSIRO SCAM, Raupach et al 1997, eq. 3.12. Top leaf:
        DO j=1,mp
 
-          IF(canopy%vlaiw(j) > C%LAI_THRESH) THEN
-             gbvtop(j) = air%cmolar(j)*C%APOL * air%visc(j) / C%prandt /        &
+          IF(canopy%vlaiw(j) > CLAI_THRESH) THEN
+             gbvtop(j) = air%cmolar(j)*CAPOL * air%visc(j) / Cprandt /        &
                   veg%dleaf(j) * (canopy%us(j) / MAX(rough%usuh(j),1.e-6)&
                   * veg%dleaf(j) / air%visc(j) )**0.5                    &
-                  * C%prandt**(1.0/3.0) / veg%shelrb(j)
+                  * Cprandt**(1.0/3.0) / veg%shelrb(j)
              gbvtop(j) = MAX (0.05_r_2,gbvtop(j) )      ! for testing (BP aug2010)
 
              ! Forced convection boundary layer conductance
@@ -427,18 +462,18 @@ write(6,*) "GW or ORevepis not an option right now"
 
        DO j=1,mp
 
-          IF ( canopy%vlaiw(j) > C%LAI_THRESH .AND.                             &
+          IF ( canopy%vlaiw(j) > CLAI_THRESH .AND.                             &
                rough%hruff(j) > rough%z0soilsn(j) ) THEN
 
-             rad%lwabv(j) = C%CAPP * C%rmair * ( tlfy(j) - met%tk(j) ) *        &
+             rad%lwabv(j) = CCAPP * Crmair * ( tlfy(j) - met%tk(j) ) *        &
                   sum_rad_gradis(j)
              !! vh_js !!
 
              IF (  (rad%lwabv(j) / (2.0*(1.0-rad%transd(j))            &
-                  * C%SBOLTZ*C%EMLEAF)+met%tvrad(j)**4) .GT. 0.0) THEN
+                  * CSBOLTZ*CEMLEAF)+met%tvrad(j)**4) .GT. 0.0) THEN
 
                 canopy%tv(j) = (rad%lwabv(j) / (2.0*(1.0-rad%transd(j))            &
-                     * C%SBOLTZ*C%EMLEAF)+met%tvrad(j)**4)**0.25
+                     * CSBOLTZ*CEMLEAF)+met%tvrad(j)**4)**0.25
 
              ELSE
                 canopy%tv(j) = met%tvrad(j)
@@ -455,12 +490,12 @@ write(6,*) "GW or ORevepis not an option right now"
 
 
        ! Calculate net rad to soil:
-       canopy%fns = rad%qssabs + rad%transd*met%fld + (1.0-rad%transd)*C%EMLEAF* &
-            C%SBOLTZ*canopy%tv**4 - C%EMSOIL*C%SBOLTZ* tss4
+       canopy%fns = rad%qssabs + rad%transd*met%fld + (1.0-rad%transd)*CEMLEAF* &
+            CSBOLTZ*canopy%tv**4 - CEMSOIL*CSBOLTZ* tss4
 
 
        ! Saturation specific humidity at soil/snow surface temperature:
-       CALL qsatfjh(ssnow%qstss,ssnow%tss-C%tfrz,met%pmb)
+       CALL qsatfjh(ssnow%qstss,ssnow%tss-Ctfrz,met%pmb)
 
       if (cable_user%gw_model .OR.  cable_user%or_evap) & 
 write(6,*) "GW or ORevepis not an option right now"
@@ -472,7 +507,7 @@ write(6,*) "GW or ORevepis not an option right now"
           !can go earlier in the code if needed
           IF (cable_user%litter) THEN
              rhlitt = REAL((1-ssnow%isflag))*veg%clitt*0.003/ &
-                  canopy%kthLitt/(air%rho*C%CAPP)
+                  canopy%kthLitt/(air%rho*CCAPP)
              relitt = REAL((1-ssnow%isflag))*veg%clitt*0.003/ &
                   canopy%DvLitt
           ENDIF
@@ -499,20 +534,20 @@ dq_unsat = max(0.0, dq_unsat)
 
           ! Calculate soil sensible heat:
           ! INH: I think this should be - met%tvair
-          !canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tk) /ssnow%rtsoil
+          !canopy%fhs = air%rho*CCAPP*(ssnow%tss - met%tk) /ssnow%rtsoil
           IF (cable_user%gw_model .OR. cable_user%or_evap) THEN
-             canopy%fhs =  air%rho*C%CAPP*(ssnow%tss - met%tk) / &
+             canopy%fhs =  air%rho*CCAPP*(ssnow%tss - met%tk) / &
                   (ssnow%rtsoil + ssnow%rt_qh_sublayer)
              !note if or_evap and litter are true then litter resistance is
              !incluyded above in ssnow%rt_qh_sublayer
           ELSEIF (cable_user%litter) THEN
              !! vh_js !! account for additional litter resistance to sensible heat transfer
              !! INH simplifying code using rhlitt
-             canopy%fhs =  air%rho*C%CAPP*(ssnow%tss - met%tk) / &
-                                !(ssnow%rtsoil + real((1-ssnow%isflag))*veg%clitt*0.003/canopy%kthLitt/(air%rho*C%CAPP))
+             canopy%fhs =  air%rho*CCAPP*(ssnow%tss - met%tk) / &
+                                !(ssnow%rtsoil + real((1-ssnow%isflag))*veg%clitt*0.003/canopy%kthLitt/(air%rho*CCAPP))
                   (ssnow%rtsoil + rhlitt)
           ELSE
-             canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tvair) /ssnow%rtsoil
+             canopy%fhs = air%rho*CCAPP*(ssnow%tss - met%tvair) /ssnow%rtsoil
           ENDIF
 
        ELSE
@@ -527,7 +562,7 @@ write(6,*) "SLI is not an option right now"
        CALL within_canopy( gbhu, gbhf, rt0, rhlitt, relitt )
 
        ! Saturation specific humidity at soil/snow surface temperature:
-       CALL qsatfjh(ssnow%qstss,ssnow%tss-C%tfrz,met%pmb)
+       CALL qsatfjh(ssnow%qstss,ssnow%tss-Ctfrz,met%pmb)
 
        IF (cable_user%soil_struc=='default') THEN
 
@@ -551,19 +586,19 @@ dq_unsat = max(0.0, dq_unsat)
           CALL latent_heat_flux()
 
           ! Soil sensible heat:
-          !canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tvair) /ssnow%rtsoil
+          !canopy%fhs = air%rho*CCAPP*(ssnow%tss - met%tvair) /ssnow%rtsoil
           IF (cable_user%gw_model .OR. cable_user%or_evap) THEN
-             canopy%fhs =  air%rho*C%CAPP*(ssnow%tss - met%tvair) / &
+             canopy%fhs =  air%rho*CCAPP*(ssnow%tss - met%tvair) / &
                   (ssnow%rtsoil + REAL(ssnow%rt_qh_sublayer))
 
           ELSEIF (cable_user%litter) THEN
              !! vh_js !! account for additional litter resistance to sensible heat transfer
              !! INH simplifying code using rhlitt
-             canopy%fhs =  air%rho*C%CAPP*(ssnow%tss - met%tvair) / &
-                                !(ssnow%rtsoil +  real((1-ssnow%isflag))*veg%clitt*0.003/canopy%kthLitt/(air%rho*C%CAPP))
+             canopy%fhs =  air%rho*CCAPP*(ssnow%tss - met%tvair) / &
+                                !(ssnow%rtsoil +  real((1-ssnow%isflag))*veg%clitt*0.003/canopy%kthLitt/(air%rho*CCAPP))
                   (ssnow%rtsoil + rhlitt)
           ELSE
-             canopy%fhs = air%rho*C%CAPP*(ssnow%tss - met%tvair) /ssnow%rtsoil
+             canopy%fhs = air%rho*CCAPP*(ssnow%tss - met%tvair) /ssnow%rtsoil
           ENDIF
 
           !! Ticket #90 ssnow%cls factor should be retained: required for energy balance
@@ -612,8 +647,8 @@ write(6,*) "SLI is not an option right now"
 
 
        canopy%rniso = SUM(rad%rniso,2) + rad%qssabs + rad%transd*met%fld + &
-            (1.0-rad%transd)*C%EMLEAF* &
-            C%SBOLTZ*met%tvrad**4 - C%EMSOIL*C%SBOLTZ*met%tvrad**4
+            (1.0-rad%transd)*CEMLEAF* &
+            CSBOLTZ*met%tvrad**4 - CEMSOIL*CSBOLTZ*met%tvrad**4
 
        rlower_limit = canopy%epot * air%rlam / dels
        WHERE (rlower_limit == 0 ) rlower_limit = 1.e-7 !prevent from 0. by adding 1.e-7 (W/m2)
@@ -637,11 +672,11 @@ write(6,*) "SLI is not an option right now"
 
 
 
-    canopy%cduv = canopy%us * canopy%us / (MAX(met%ua,C%UMIN))**2
+    canopy%cduv = canopy%us * canopy%us / (MAX(met%ua,CUMIN))**2
 
     !---diagnostic purposes
-    canopy%gswx_T = rad%fvlai(:,1)/MAX( C%LAI_THRESH, canopy%vlaiw(:) )         &
-         * canopy%gswx(:,1) + rad%fvlai(:,2) / MAX(C%LAI_THRESH,     &
+    canopy%gswx_T = rad%fvlai(:,1)/MAX( CLAI_THRESH, canopy%vlaiw(:) )         &
+         * canopy%gswx(:,1) + rad%fvlai(:,2) / MAX(CLAI_THRESH,     &
          canopy%vlaiw(:))*canopy%gswx(:,2)
 
     ! The surface conductance below is required by dust scheme; it is composed from canopy and soil conductances
@@ -662,14 +697,14 @@ write(6,*) "SLI is not an option right now"
     ! screen temp., windspeed and relative humidity at 1.5m
     ! screen temp., windspeed and relative humidity at 2.0m
     ! cls factor included in qstar
-    tstar = - canopy%fh / ( air%rho*C%CAPP*canopy%us)
+    tstar = - canopy%fh / ( air%rho*CCAPP*canopy%us)
     qstar = - canopy%fe / ( air%rho*air%rlam *canopy%us * ssnow%cls)
     zscrn = MAX(rough%z0m,2.0-rough%disp)
     ftemp = ( LOG(rough%zref_tq/zscrn)- psis(canopy%zetar(:,iterplus)) +       &
-         psis(canopy%zetar(:,iterplus) * zscrn / rough%zref_tq) ) /C%VONK
+         psis(canopy%zetar(:,iterplus) * zscrn / rough%zref_tq) ) /CVONK
 
     ! Calculate screen temperature:
-    canopy%tscrn = met%tk - C%tfrz - tstar * ftemp
+    canopy%tscrn = met%tk - Ctfrz - tstar * ftemp
 
     ! Calculate radiative/skin temperature;
     ! at this stage old soil temperature is used
@@ -685,28 +720,28 @@ write(6,*) "SLI is not an option right now"
     ! assume screen temp of bareground if all these conditions are not met
     DO j=1,mp
 
-       IF ( canopy%vlaiw(j) > C%LAI_THRESH .AND. rough%hruff(j) > 0.01) THEN
+       IF ( canopy%vlaiw(j) > CLAI_THRESH .AND. rough%hruff(j) > 0.01) THEN
 
           IF ( rough%disp(j)  > 0.0 ) THEN
 
-             term1(j) = EXP(2*C%CSW*canopy%rghlai(j)*(1-zscl(j)/rough%hruff(j)))
-             term2(j) = EXP(2*C%CSW*canopy%rghlai(j) *                          &
+             term1(j) = EXP(2*CCSW*canopy%rghlai(j)*(1-zscl(j)/rough%hruff(j)))
+             term2(j) = EXP(2*CCSW*canopy%rghlai(j) *                          &
                   (1-rough%disp(j)/rough%hruff(j)))
              term5(j) = MAX(2./3.*rough%hruff(j)/rough%disp(j), 1.)
 
           ENDIF
 
-          term3(j) = C%A33**2*C%CTL*2*C%CSW*canopy%rghlai(j)
+          term3(j) = CA33**2*CCTL*2*CCSW*canopy%rghlai(j)
 
           IF( zscl(j) < rough%disp(j) ) THEN
 
              !Ticket #154
              !r_sc(j) = term5(j) * LOG(zscl(j)/rough%z0soilsn(j)) *              &
-             !     ( EXP(2*C%CSW*canopy%rghlai(j)) - term1(j) ) / term3(j)
+             !     ( EXP(2*CCSW*canopy%rghlai(j)) - term1(j) ) / term3(j)
              r_sc(j) = term5(j) * LOG(zscl(j)/rough%z0soilsn(j)) *              &
-                  ( EXP(2*C%CSW*canopy%rghlai(j)) - term2(j) ) / term3(j)
+                  ( EXP(2*CCSW*canopy%rghlai(j)) - term2(j) ) / term3(j)
              r_sc(j) = r_sc(j) + term5(j) * LOG(rough%disp(j)/rough%z0soilsn(j)) *  &
-                  ( EXP(2*C%CSW*canopy%rghlai(j)) - term1(j) ) / term3(j)
+                  ( EXP(2*CCSW*canopy%rghlai(j)) - term1(j) ) / term3(j)
 
           ELSEIF( rough%disp(j) <= zscl(j) .AND.                                &
                zscl(j) < rough%hruff(j) ) THEN
@@ -719,7 +754,7 @@ write(6,*) "SLI is not an option right now"
 
              r_sc(j) = rough%rt0us(j) + rough%rt1usa(j) + term5(j) *            &
                   ( zscl(j) - rough%hruff(j) ) /                           &
-                  ( C%A33**2 * C%CTL * rough%hruff(j) )
+                  ( CA33**2 * CCTL * rough%hruff(j) )
 
 
           ELSEIF( zscl(j) >= rough%zruffs(j) ) THEN
@@ -734,7 +769,7 @@ write(6,*) "SLI is not an option right now"
                   + psis( (rough%zruffs(j) - rough%disp(j) )               &
                                 !        / (rough%zref_tq(j)/canopy%zetar(j,iterplus ) ) ) )     &
                   * canopy%zetar(j,iterplus)/rough%zref_tq(j) ) )          &
-                  / C%VONK
+                  / CVONK
 
           ENDIF
 
@@ -743,17 +778,17 @@ write(6,*) "SLI is not an option right now"
              canopy%tscrn(j) = ssnow%tss(j) + (met%tk(j) - ssnow%tss(j)) *     &
                   MIN(1., ( (r_sc(j)+rhlitt(j)*canopy%us(j))  / MAX( 1.,          &
                   rough%rt0us(j) + rough%rt1usa(j) + rough%rt1usb(j)              &
-                  + rt1usc(j) + rhlitt(j)*canopy%us(j) )) ) - C%tfrz
+                  + rt1usc(j) + rhlitt(j)*canopy%us(j) )) ) - Ctfrz
           ELSEIF (cable_user%or_evap .OR. cable_user%gw_model) THEN
              canopy%tscrn(j) = ssnow%tss(j) + (met%tk(j) - ssnow%tss(j)) *     &
                   MIN(1., ( (ssnow%rt_qh_sublayer(j)*canopy%us(j) + r_sc(j) ) /   &
                   MAX( 1., rough%rt0us(j) + rough%rt1usa(j) + rough%rt1usb(j)     &
-                  + rt1usc(j) + ssnow%rt_qh_sublayer(j)*canopy%us(j) )) ) - C%tfrz
+                  + rt1usc(j) + ssnow%rt_qh_sublayer(j)*canopy%us(j) )) ) - Ctfrz
           ELSE
              canopy%tscrn(j) = ssnow%tss(j) + (met%tk(j) - ssnow%tss(j)) *      &
                   MIN(1., (r_sc(j) / MAX( 1.,                            &
                   rough%rt0us(j) + rough%rt1usa(j) + rough%rt1usb(j)   &
-                  + rt1usc(j))) )  - C%tfrz
+                  + rt1usc(j))) )  - Ctfrz
           ENDIF
 
        ENDIF
@@ -776,7 +811,7 @@ write(6,*) "SLI is not an option right now"
 
        canopy%qscrn(j) = met%qv(j) - qstar(j) * ftemp(j)
 
-       IF( canopy%vlaiw(j) >C%LAI_THRESH .AND. rough%hruff(j) > 0.01) THEN
+       IF( canopy%vlaiw(j) >CLAI_THRESH .AND. rough%hruff(j) > 0.01) THEN
           IF (cable_user%litter) THEN
 
           !extensions for litter and Or model
@@ -811,14 +846,14 @@ write(6,*) "SLI is not an option right now"
 
     ! Calculate dewfall: from negative lh wet canopy + neg. lh dry canopy:
     canopy%dewmm = - (MIN(0.0,canopy%fevw) + MIN(0.0_r_2,canopy%fevc)) * &
-         dels * 1.0e3 / (C%RHOW*air%rlam)
+         dels * 1.0e3 / (CRHOW*air%rlam)
 
     ! Add dewfall to canopy water storage:
     canopy%cansto = canopy%cansto + canopy%dewmm
 
     ! Modify canopy water storage for evaporation:
     canopy%cansto = MAX(canopy%cansto-MAX(0.0,REAL(canopy%fevw))*dels &
-         *1.0e3/(C%RHOW*air%rlam), 0.0)
+         *1.0e3/(CRHOW*air%rlam), 0.0)
 
     ! Calculate canopy water storage excess:
     canopy%spill=MAX(0.0, canopy%cansto-cansat)
@@ -842,12 +877,12 @@ write(6,*) "SLI is not an option right now"
     ! d(canopy%fhs)/d(ssnow%tgg)
     ! d(canopy%fes)/d(dq)
     !IF (cable_user%soil_struc=='default') THEN
-       ssnow%dfn_dtg = (-1.)*4.*C%EMSOIL*C%SBOLTZ*tss4/ssnow%tss
+       ssnow%dfn_dtg = (-1.)*4.*CEMSOIL*CSBOLTZ*tss4/ssnow%tss
 
        !INH: REV_CORR revised sensitivity terms working variable
        rttsoil = ssnow%rtsoil
        IF (cable_user%L_REV_CORR) THEN
-          WHERE (canopy%vlaiw > C%LAI_THRESH)
+          WHERE (canopy%vlaiw > CLAI_THRESH)
             !if %vlaiw<=%LAI_THRESH then %rt1 already added to %rtsoil
             rttsoil = rttsoil + rough%rt1
           ENDWHERE
@@ -855,7 +890,7 @@ write(6,*) "SLI is not an option right now"
 
        IF (cable_user%gw_model .or. cable_user%or_evap) THEN
           
-          ssnow%dfh_dtg = air%rho*C%CAPP/(ssnow%rtsoil+ real(ssnow%rt_qh_sublayer))
+          ssnow%dfh_dtg = air%rho*CCAPP/(ssnow%rtsoil+ real(ssnow%rt_qh_sublayer))
           
           !! INH simplifying code for legibility
           !ssnow%dfe_ddq = real(ssnow%satfrac)*air%rho*air%rlam*ssnow%cls/ &
@@ -874,7 +909,7 @@ write(6,*) "SLI is not an option right now"
               beta2 = real(ssnow%satfrac/(real(ssnow%rtsoil,r_2)+ ssnow%rtevap_sat) +     &
                        (1.0-ssnow%satfrac) * ssnow%rh_srf                  &
                         / (real(ssnow%rtsoil,r_2)+ ssnow%rtevap_unsat ) )
-              WHERE (canopy%vlaiw > C%LAI_THRESH)
+              WHERE (canopy%vlaiw > CLAI_THRESH)
                  alpm1 = alpm1 + 1._r_2/real(rough%rt1,r_2)
                  beta_div_alpm  = beta2 / alpm1  !might need limit here
                  rttsoil = ssnow%rtsoil + rough%rt1
@@ -882,7 +917,7 @@ write(6,*) "SLI is not an option right now"
                  beta_div_alpm=0.0  !do not divide by aplm1 prevent issues
                  rttsoil = ssnow%rtsoil 
               ENDWHERE
-              ssnow%dfh_dtg = air%rho*C%CAPP/(rttsoil +               & 
+              ssnow%dfh_dtg = air%rho*CCAPP/(rttsoil +               & 
                                         real(ssnow%rt_qh_sublayer))
               ssnow%dfe_ddq = real(ssnow%satfrac*(1.0-real(beta_div_alpm,r_2)) /        & 
                     (real(ssnow%rtsoil,r_2)+ ssnow%rtevap_sat) +           &
@@ -890,7 +925,7 @@ write(6,*) "SLI is not an option right now"
                     (real(ssnow%rtsoil,r_2)+ ssnow%rtevap_unsat ) )
 
           ELSE
-             ssnow%dfh_dtg = air%rho*C%CAPP/(ssnow%rtsoil+ real(ssnow%rt_qh_sublayer))
+             ssnow%dfh_dtg = air%rho*CCAPP/(ssnow%rtsoil+ real(ssnow%rt_qh_sublayer))
 
              ssnow%dfe_ddq = real(ssnow%satfrac)/(ssnow%rtsoil+ real(ssnow%rtevap_sat))  &
                          + (1.0-real(ssnow%satfrac))*real(ssnow%rh_srf)                   &
@@ -911,17 +946,17 @@ write(6,*) "SLI is not an option right now"
 
        ELSEIF (cable_user%litter) THEN
           !!vh_js!! INH simplifying code for legibility and REV_CORR
-          !ssnow%dfh_dtg = air%rho*C%CAPP/(ssnow%rtsoil+ &
-          !     real((1-ssnow%isflag))*veg%clitt*0.003/canopy%kthLitt/(air%rho*C%CAPP))
+          !ssnow%dfh_dtg = air%rho*CCAPP/(ssnow%rtsoil+ &
+          !     real((1-ssnow%isflag))*veg%clitt*0.003/canopy%kthLitt/(air%rho*CCAPP))
           !ssnow%dfe_ddq = ssnow%wetfac*air%rho*air%rlam*ssnow%cls/ &
           !     (ssnow%rtsoil+ real((1-ssnow%isflag))*veg%clitt*0.003/canopy%DvLitt)
           
           !recalculated - probably not needed 
-          rhlitt = real((1-ssnow%isflag))*veg%clitt*0.003/canopy%kthLitt/(air%rho*C%CAPP)
+          rhlitt = real((1-ssnow%isflag))*veg%clitt*0.003/canopy%kthLitt/(air%rho*CCAPP)
           relitt = real((1-ssnow%isflag))*veg%clitt*0.003/canopy%DvLitt
           
           !incorporates REV_CORR changes
-          ssnow%dfh_dtg = air%rho*C%CAPP/(rttsoil+rhlitt)
+          ssnow%dfh_dtg = air%rho*CCAPP/(rttsoil+rhlitt)
           ssnow%dfe_ddq = ssnow%wetfac*air%rho*air%rlam*ssnow%cls/(rttsoil+relitt)
 
           !REV_CORR: factor ssnow%wetfac is not applied if dew/frost i.e. potev<0
@@ -932,11 +967,11 @@ write(6,*) "SLI is not an option right now"
           ENDIF
 
        ELSE
-          !ssnow%dfh_dtg = air%rho*C%CAPP/ssnow%rtsoil
+          !ssnow%dfh_dtg = air%rho*CCAPP/ssnow%rtsoil
           !ssnow%dfe_ddq = ssnow%wetfac*air%rho*air%rlam*ssnow%cls/ssnow%rtsoil
 
           !incorporates REV_CORR changes
-          ssnow%dfh_dtg = air%rho*C%CAPP/rttsoil
+          ssnow%dfh_dtg = air%rho*CCAPP/rttsoil
           ssnow%dfe_ddq = ssnow%wetfac*air%rho*air%rlam*ssnow%cls/rttsoil
           
           !REV_CORR: factor ssnow%wetfac is not applied if dew/frost i.e. potev<0
@@ -948,9 +983,9 @@ write(6,*) "SLI is not an option right now"
 
        ENDIF
 
-       ssnow%ddq_dtg = (C%rmh2o/C%rmair) /met%pmb * C%TETENA*C%TETENB * C%TETENC   &
-            / ( ( C%TETENC + ssnow%tss-C%tfrz )**2 )*EXP( C%TETENB *       &
-            ( ssnow%tss-C%tfrz ) / ( C%TETENC + ssnow%tss-C%tfrz ) )
+       ssnow%ddq_dtg = (Crmh2o/Crmair) /met%pmb * CTETENA*CTETENB * CTETENC   &
+            / ( ( CTETENC + ssnow%tss-Ctfrz )**2 )*EXP( CTETENB *       &
+            ( ssnow%tss-Ctfrz ) / ( CTETENC + ssnow%tss-Ctfrz ) )
        
        !canopy%dgdtg = ssnow%dfn_dtg - ssnow%dfh_dtg - ssnow%dfe_ddq *    &
        !     ssnow%ddq_dtg
@@ -962,10 +997,10 @@ write(6,*) "SLI is not an option right now"
     !ENDIF
 
     bal%drybal = REAL(ecy+hcy) - SUM(rad%rniso,2)                               &
-         + C%CAPP*C%rmair*(tlfy-met%tk)*SUM(rad%gradis,2)  ! YP nov2009
+         + CCAPP*Crmair*(tlfy-met%tk)*SUM(rad%gradis,2)  ! YP nov2009
 
     bal%wetbal = canopy%fevw + canopy%fhvw - SUM(rad%rniso,2) * canopy%fwet      &
-         + C%CAPP*C%rmair * (tlfy-met%tk) * SUM(rad%gradis,2) *          &
+         + CCAPP*Crmair * (tlfy-met%tk) * SUM(rad%gradis,2) *          &
          canopy%fwet  ! YP nov2009
 
     DEALLOCATE(cansat,gbhu)
@@ -991,7 +1026,7 @@ write(6,*) "SLI is not an option right now"
       !psim_1 = psim(canopy%zetar(:,iter))
       psim_1 = psim(canopy%zetar(:,iter)*rough%zref_uv/rough%zref_tq)
 
-      rescale = C%VONK * MAX(met%ua,C%UMIN)
+      rescale = CVONK * MAX(met%ua,CUMIN)
       z_eff = rough%zref_uv / rough%z0m
 
       !psim_arg = canopy%zetar(:,iter) / z_eff
@@ -1027,7 +1062,7 @@ write(6,*) "SLI is not an option right now"
       cc1=sss/(sss+air%psyc )
       cc2=air%psyc /(sss+air%psyc )
 
-      CALL qsatfjh(qsatfvar,met%tvair-C%tfrz,met%pmb)
+      CALL qsatfjh(qsatfvar,met%tvair-Ctfrz,met%pmb)
 
       !INH 10-1-2017 - this P-M implementation is incorrect over snow.
       !variable ssnowpotev is actually the latent heat flux associated with
@@ -1067,7 +1102,7 @@ write(6,*) "SLI is not an option right now"
 
       DO j=1,mp
          !if(ssnow%snowd(j) > 1.0) dq(j) = max( -0.1e-3, dq(j))
-         IF( ssnow%snowd(j)>1.0 .OR. ssnow%tgg(j,1).EQ.C%tfrz)   THEN
+         IF( ssnow%snowd(j)>1.0 .OR. ssnow%tgg(j,1).EQ.Ctfrz)   THEN
             dq(j) = MAX( -0.1e-3, dq(j))
             dqu(j) = MAX( -0.1e-3, dqu(j))
          END IF
@@ -1189,7 +1224,7 @@ write(6,*) "GW or ORevepis not an option right now"
 
          !Ticket 137 - case iv) deposition of frost onto frozen soil, no snow
          IF (ssnow%snowd(j) < 0.1 .AND. ssnow%potev(j) < 0. .AND. &
-              ssnow%tss(j)<C%TFRZ) THEN
+              ssnow%tss(j)<CTFRZ) THEN
             ssnow%cls(j)=1.1335
             canopy%fess(j) = ssnow%cls(j)*ssnow%potev(j)
          ENDIF
@@ -1272,7 +1307,7 @@ write(6,*) "GW or ORevepis not an option right now"
 
       DO j=1,mp
 
-         IF(veg%meth(j) > 0 .AND. canopy%vlaiw(j) > C%LAI_THRESH .AND.              &
+         IF(veg%meth(j) > 0 .AND. canopy%vlaiw(j) > CLAI_THRESH .AND.              &
               rough%hruff(j) > rough%z0soilsn(j) ) THEN
 
             !   use the dispersion matrix (DM) to find the air temperature
@@ -1284,14 +1319,14 @@ write(6,*) "GW or ORevepis not an option right now"
                  + air%epsi(j) * (rt0(j)*rough%rt1(j))*(rrbw(j)*rrsw(j))
 
             ! B_{H} in eq. 3.41, SCAM manual, CSIRO tech doc 132
-            dmbh(j) = (-air%rlam(j)/C%CAPP)*(rt0(j)*rough%rt1(j))*(rrbw(j)*rrsw(j))
+            dmbh(j) = (-air%rlam(j)/CCAPP)*(rt0(j)*rough%rt1(j))*(rrbw(j)*rrsw(j))
 
             ! C_{H} in eq. 3.41, SCAM manual, CSIRO tech doc 132
             dmch(j) = ((1.+air%epsi(j))*rrsw(j) + rrbw(j))*rt0(j)*rough%rt1(j)*   &
-                 (canopy%fhv(j) + canopy%fhs(j))/(air%rho(j)*C%CAPP)
+                 (canopy%fhv(j) + canopy%fhs(j))/(air%rho(j)*CCAPP)
 
             ! A_{E} in eq. 3.41, SCAM manual, CSIRO tech doc 132
-            dmae(j) = (-air%epsi(j)*C%CAPP/air%rlam(j))*(rt0(j)*rough%rt1(j)) *   &
+            dmae(j) = (-air%epsi(j)*CCAPP/air%rlam(j))*(rt0(j)*rough%rt1(j)) *   &
                  (rrbw(j)*rrsw(j))
 
             ! B_{E} in eq. 3.41, SCAM manual, CSIRO tech doc 132
@@ -1332,10 +1367,10 @@ write(6,*) "GW or ORevepis not an option right now"
             met%qvair(j) =  MIN(met%qvair(j), upper_limit)
 
             ! Saturated specific humidity in canopy:
-            CALL qsatfjh2(qstvair(j),met%tvair(j)-C%tfrz,met%pmb(j))
+            CALL qsatfjh2(qstvair(j),met%tvair(j)-Ctfrz,met%pmb(j))
 
             ! Saturated vapour pressure deficit in canopy:
-            met%dva(j) = ( qstvair(j) - met%qvair(j) ) *  C%rmair/C%RMH2o         &
+            met%dva(j) = ( qstvair(j) - met%qvair(j) ) *  Crmair/CRMH2o         &
                  * met%pmb(j) * 100.
          ENDIF
 
@@ -1354,28 +1389,28 @@ write(6,*) "GW or ORevepis not an option right now"
       IF (iter < NITER) THEN ! dont compute zetar on the last iter
 
          iterplus = MAX(iter+1,2)
-         canopy%zetar(:,iterplus) = -( C%VONK * C%GRAV * rough%zref_tq *              &
+         canopy%zetar(:,iterplus) = -( CVONK * CGRAV * rough%zref_tq *              &
               ( canopy%fh + 0.07 * canopy%fe ) ) /          &
-              ( air%rho * C%CAPP * met%tk * canopy%us**3 )
+              ( air%rho * CCAPP * met%tk * canopy%us**3 )
 
          ! stability parameter at shear height: needed for Harman in-canopy stability correction
          IF (cable_user%soil_struc=='sli') THEN
-            WHERE (canopy%vlaiw > C%LAI_THRESH .AND. rough%hruff > rough%z0soilsn)
-               canopy%zetash(:,iterplus) = -(C%vonk*C%grav*(0.1*rough%hruff)*(canopy%fhs+0.07*REAL(canopy%fes)))/ &
-                    MAX( (air%rho*C%capp*met%tk*(canopy%us*rough%term6a)**3), 1.e-12)
+            WHERE (canopy%vlaiw > CLAI_THRESH .AND. rough%hruff > rough%z0soilsn)
+               canopy%zetash(:,iterplus) = -(Cvonk*Cgrav*(0.1*rough%hruff)*(canopy%fhs+0.07*REAL(canopy%fes)))/ &
+                    MAX( (air%rho*Ccapp*met%tk*(canopy%us*rough%term6a)**3), 1.e-12)
             ELSEWHERE
                canopy%zetash(:,iterplus) = canopy%zetash(:,iter)
             ENDWHERE
          ENDIF
 
-         ! case NITER=2: final zetar=C%ZETmul*zetar(2) (compute only when iter=1)
+         ! case NITER=2: final zetar=CZETmul*zetar(2) (compute only when iter=1)
          IF (NITER == 2) THEN
 
-            canopy%zetar(:,2) = C%ZETmul * canopy%zetar(:,2)
+            canopy%zetar(:,2) = CZETmul * canopy%zetar(:,2)
 
             ! stability parameter at shear height: needed for Harman in-canopy stability correction
             IF (cable_user%soil_struc=='sli') THEN
-               canopy%zetash(:,2) = C%ZETmul * canopy%zetash(:,2)
+               canopy%zetash(:,2) = CZETmul * canopy%zetash(:,2)
             ENDIF
 
 
@@ -1386,20 +1421,20 @@ write(6,*) "GW or ORevepis not an option right now"
 
          END IF
 
-         ! constrain zeta to C%ZETPOS and C%ZETNEG (set in param0)
+         ! constrain zeta to CZETPOS and CZETNEG (set in param0)
 
          ! zetar too +
-         canopy%zetar(:,iterplus) = MIN(C%ZETPOS,canopy%zetar(:,iterplus))
+         canopy%zetar(:,iterplus) = MIN(CZETPOS,canopy%zetar(:,iterplus))
          !jhan: to get past rigorous build - however (:,i) cant be compared
-         !if ( canopy%zetash(:,iterplus) .NE. C%ZETPOS ) &
+         !if ( canopy%zetash(:,iterplus) .NE. CZETPOS ) &
          IF (cable_user%soil_struc=='sli') &
-              canopy%zetash(:,iterplus) = MIN(C%ZETPOS,canopy%zetash(:,iterplus))
+              canopy%zetash(:,iterplus) = MIN(CZETPOS,canopy%zetash(:,iterplus))
 
          ! zetar too -
-         canopy%zetar(:,iterplus) = MAX(C%ZETNEG,canopy%zetar(:,iterplus))
-         !if ( canopy%zetash(:,iterplus) .NE. C%ZETNEG ) &
+         canopy%zetar(:,iterplus) = MAX(CZETNEG,canopy%zetar(:,iterplus))
+         !if ( canopy%zetash(:,iterplus) .NE. CZETNEG ) &
          IF (cable_user%soil_struc=='sli') &
-              canopy%zetash(:,iterplus) = MAX(C%ZETNEG,canopy%zetash(:,iterplus))
+              canopy%zetash(:,iterplus) = MAX(CZETNEG,canopy%zetash(:,iterplus))
 
       END IF ! (iter < NITER)
 
@@ -1419,7 +1454,7 @@ write(6,*) "GW or ORevepis not an option right now"
 
       REAL           :: r    ! result; sat sp humidity
 
-      r = (C%RMH2o/C%rmair) * (C%TETENA*EXP(C%TETENB*tair/(C%TETENC+tair))) / pmb
+      r = (CRMH2o/Crmair) * (CTETENA*EXP(CTETENB*tair/(CTETENC+tair))) / pmb
 
     END FUNCTION qsatf
 
@@ -1438,7 +1473,7 @@ write(6,*) "GW or ORevepis not an option right now"
 
       DO j=1,mp
 
-         var(j) = (C%RMH2o/C%rmair) * (C%TETENA*EXP(C%TETENB*tair(j)/(C%TETENC+tair(j))))    &
+         var(j) = (CRMH2o/Crmair) * (CTETENA*EXP(CTETENB*tair(j)/(CTETENC+tair(j))))    &
               / pmb(j)
       ENDDO
 
@@ -1455,7 +1490,7 @@ write(6,*) "GW or ORevepis not an option right now"
       REAL, INTENT(OUT) ::                                                        &
            var             ! result; sat sp humidity
 
-      var = (C%RMH2o/C%rmair) * (C%TETENA*EXP(C%TETENB*tair/(C%TETENC+tair))) / pmb
+      var = (CRMH2o/Crmair) * (CTETENA*EXP(CTETENB*tair/(CTETENC+tair))) / pmb
 
     END SUBROUTINE qsatfjh2
 
@@ -1495,7 +1530,7 @@ write(6,*) "GW or ORevepis not an option right now"
       ! Beljaars and Holtslag (1991) for stable
       stable = -a*zeta - b*(zeta - xc/d)*EXP( -d*zeta) - b*xc/d
       x      = (1.0 + gu*ABS(zeta))**0.25
-      unstable = ALOG((1.0+x*x)*(1.0+x)**2/8) - 2.0*ATAN(x) + C%PI_C*0.5
+      unstable = ALOG((1.0+x*x)*(1.0+x)**2/8) - 2.0*ATAN(x) + CPI_C*0.5
       r = z*stable + (1.0-z)*unstable
     END FUNCTION psim
 
@@ -1565,7 +1600,7 @@ write(6,*) "GW or ORevepis not an option right now"
       TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
 
       REAL,INTENT(IN), DIMENSION(:) ::                                            &
-           tlfy,          & ! leaf temp (K) - assC%UMINg the temperature of
+           tlfy,          & ! leaf temp (K) - assCUMINg the temperature of
                                 ! wet leaf is equal that of dry leaf ="tlfy"
            cansat           ! max canopy intercept. (mm)
 
@@ -1603,7 +1638,7 @@ write(6,*) "GW or ORevepis not an option right now"
 
       DO j=1,mp
 
-         IF(canopy%vlaiw(j) > C%LAI_THRESH) THEN
+         IF(canopy%vlaiw(j) > CLAI_THRESH) THEN
 
             ! VEG SENSIBLE & LATENT HEAT FLUXES fevw, fhvw (W/m2) for a wet canopy
             ! calculate total thermal resistance, rthv in s/m
@@ -1621,20 +1656,20 @@ write(6,*) "GW or ORevepis not an option right now"
                  2.0 / (1440.0 / (dels/60.0)) * air%rlam(j) )
 
             canopy%fevw(j) = MIN( canopy%fwet(j) * ( air%dsatdk(j) *              &
-                 ( sum_rad_rniso(j)- C%CAPP*C%rmair*( met%tvair(j)     &
+                 ( sum_rad_rniso(j)- CCAPP*Crmair*( met%tvair(j)     &
                  - met%tk(j) ) * sum_rad_gradis(j) )                   &
-                 + C%CAPP * C%rmair * met%dva(j) * ghrwet(j) )         &
+                 + CCAPP * Crmair * met%dva(j) * ghrwet(j) )         &
                  / ( air%dsatdk(j)+air%psyc(j)*ghrwet(j) / gwwet(j) )  &
                  , ccfevw(j) )
 
             canopy%fevw_pot(j) = ( air%dsatdk(j)* (sum_rad_rniso(j) -             &
-                 C%CAPP * C%rmair * ( met%tvair(j) - met%tk(j) )  &
+                 CCAPP * Crmair * ( met%tvair(j) - met%tk(j) )  &
                  *sum_rad_gradis(j) )                             &
-                 + C%CAPP * C%rmair * met%dva(j) * ghrwet(j))     &
+                 + CCAPP * Crmair * met%dva(j) * ghrwet(j))     &
                  / (air%dsatdk(j)+air%psyc(j)*ghrwet(j)/gwwet(j) )
 
             ! calculate sens heat from wet canopy:
-            canopy%fhvw(j) = canopy%fwet(j) * ( sum_rad_rniso(j) -C%CAPP * C%rmair&
+            canopy%fhvw(j) = canopy%fwet(j) * ( sum_rad_rniso(j) -CCAPP * Crmair&
                  * ( tlfy(j) - met%tk(j) ) * sum_rad_gradis(j) )      &
                  - canopy%fevw(j)
 
@@ -1680,7 +1715,7 @@ write(6,*) "GW or ORevepis not an option right now"
     lower_limit = cansat - canopy%cansto
     upper_limit = MAX(lower_limit, 0.0)
     canopy%wcint = MERGE( MIN( upper_limit, ftemp ), 0.0,                       &
-         ftemp > 0.0  .AND. met%tk > C%tfrz)  !EAK, 09/10
+         ftemp > 0.0  .AND. met%tk > Ctfrz)  !EAK, 09/10
 
     ! Define canopy throughfall (100% of precip if temp < 0C, see above):
     canopy%through = met%precip_sn + MIN( met%precip - met%precip_sn ,          &
@@ -1716,10 +1751,10 @@ write(6,*) "GW or ORevepis not an option right now"
    
           IF( ssnow%snowd(i) > 0.1) ssnow%wetfac(i) = 0.9
    
-          IF ( veg%iveg(i) == 16 .and. met%tk(i) >= C%tfrz + 5. )   &
+          IF ( veg%iveg(i) == 16 .and. met%tk(i) >= Ctfrz + 5. )   &
                ssnow%wetfac(i) = 1.0 ! lakes: hard-wired number to be removed
    
-          IF( veg%iveg(i) == 16 .and. met%tk(i) < C%tfrz + 5. )   &
+          IF( veg%iveg(i) == 16 .and. met%tk(i) < Ctfrz + 5. )   &
                ssnow%wetfac(i) = 0.7 ! lakes: hard-wired number to be removed
    
        ENDDO
@@ -1911,7 +1946,7 @@ write(6,*) "GW or ORevepis not an option right now"
 
     DO kk=1,mp
 
-       IF(canopy%vlaiw(kk) <= C%LAI_THRESH) THEN
+       IF(canopy%vlaiw(kk) <= CLAI_THRESH) THEN
           rnx(kk) = 0.0 ! intialise
           ecx(kk) = 0.0 ! intialise
           ecy(kk) = ecx(kk) ! store initial values
@@ -1927,11 +1962,11 @@ write(6,*) "GW or ORevepis not an option right now"
 
 
     !kdcorbin, 08/10 - doing all points all the time
-    DO WHILE (k < C%MAXITER)
+    DO WHILE (k < CMAXITER)
        k = k + 1
        DO i=1,mp
 
-          IF (canopy%vlaiw(i) > C%LAI_THRESH .AND. abs_deltlf(i) > 0.1) THEN
+          IF (canopy%vlaiw(i) > CLAI_THRESH .AND. abs_deltlf(i) > 0.1) THEN
 
              ghwet(i) = 2.0   * sum_gbh(i)
              gwwet(i) = 1.075 * sum_gbh(i)
@@ -1951,9 +1986,9 @@ write(6,*) "GW or ORevepis not an option right now"
                   1.595E8* ABS( tlfx(i)-met%tvair(i))* (veg%dleaf(i)**3.0) )
 
              ! See Appendix E in (Leuning et al, 1995):
-             gbhf(i,1) = rad%fvlai(i,1) * air%cmolar(i) * 0.5*C%dheat           &
+             gbhf(i,1) = rad%fvlai(i,1) * air%cmolar(i) * 0.5*Cdheat           &
                   * ( gras(i)**0.25 ) / veg%dleaf(i)
-             gbhf(i,2) = rad%fvlai(i,2) * air%cmolar(i) * 0.5 * C%dheat         &
+             gbhf(i,2) = rad%fvlai(i,2) * air%cmolar(i) * 0.5 * Cdheat         &
                   * ( gras(i)**0.25 ) / veg%dleaf(i)
              gbhf(i,:) = MAX( 1.e-6_r_2, gbhf(i,:) )
 
@@ -1971,7 +2006,7 @@ write(6,*) "GW or ORevepis not an option right now"
              vcmxt3(i,2) = rad%scalex(i,2) * temp(i)
 
              ! Temperature response Vcmax, C4 plants (Collatz et al 1989):
-             temp(i) = xvcmxt4(tlfx(i)-C%tfrz) * veg%vcmax(i) * veg%frac4(i)
+             temp(i) = xvcmxt4(tlfx(i)-Ctfrz) * veg%vcmax(i) * veg%frac4(i)
              vcmxt4(i,1) = rad%scalex(i,1) * temp(i)
              vcmxt4(i,2) = rad%scalex(i,2) * temp(i)
 
@@ -1982,23 +2017,23 @@ write(6,*) "GW or ORevepis not an option right now"
              ejmxt3(i,2) = rad%scalex(i,2) * temp(i)
 
              ! Difference between leaf temperature and reference temperature:
-             tdiff(i) = tlfx(i) - C%TREFK
+             tdiff(i) = tlfx(i) - CTREFK
 
              ! Michaelis menten constant of Rubisco for CO2:
-             conkct(i) = veg%conkc0(i) * EXP( ( veg%ekc(i) / (C%rgas*C%trefk) ) &
-                  * ( 1.0 - C%trefk/tlfx(i) ) )
+             conkct(i) = veg%conkc0(i) * EXP( ( veg%ekc(i) / (Crgas*Ctrefk) ) &
+                  * ( 1.0 - Ctrefk/tlfx(i) ) )
 
              ! Michaelis menten constant of Rubisco for oxygen:
-             conkot(i) = veg%conko0(i) * EXP( ( veg%eko(i) / (C%rgas*C%trefk) ) &
-                  * ( 1.0 - C%trefk/tlfx(i) ) )
+             conkot(i) = veg%conko0(i) * EXP( ( veg%eko(i) / (Crgas*Ctrefk) ) &
+                  * ( 1.0 - Ctrefk/tlfx(i) ) )
 
              ! Store leaf temperature
              tlfxx(i) = tlfx(i)
 
              ! "d_{3}" in Wang and Leuning, 1998, appendix E:
              cx1(i) = conkct(i) * (1.0+0.21/conkot(i))
-             cx2(i) = 2.0 * C%gam0 * ( 1.0 + C%gam1 * tdiff(i)                  &
-                  + C%gam2 * tdiff(i) * tdiff(i) )
+             cx2(i) = 2.0 * Cgam0 * ( 1.0 + Cgam1 * tdiff(i)                  &
+                  + Cgam2 * tdiff(i) * tdiff(i) )
 
              ! All equations below in appendix E in Wang and Leuning 1998 are
              ! for calculating anx, csx and gswx for Rubisco limited,
@@ -2139,7 +2174,7 @@ write(6,*) "GW or ORevepis not an option right now"
              ENDIF ! IF (cable_user%GS_SWITCH == 'leuning') THEN
              !#endif
 
-          ENDIF !IF (canopy%vlaiw(i) > C%LAI_THRESH .AND. abs_deltlf(i) > 0.1)
+          ENDIF !IF (canopy%vlaiw(i) > CLAI_THRESH .AND. abs_deltlf(i) > 0.1)
 
        ENDDO !i=1,mp
 
@@ -2155,20 +2190,20 @@ write(6,*) "GW or ORevepis not an option right now"
 
        DO i=1,mp
 
-          IF (canopy%vlaiw(i) > C%LAI_THRESH .AND. abs_deltlf(i) > 0.1 ) THEN
+          IF (canopy%vlaiw(i) > CLAI_THRESH .AND. abs_deltlf(i) > 0.1 ) THEN
 
              DO kk=1,mf
 
-                IF(rad%fvlai(i,kk)>C%LAI_THRESH) THEN
+                IF(rad%fvlai(i,kk)>CLAI_THRESH) THEN
 
-                   csx(i,kk) = met%ca(i) - C%RGBWC*anx(i,kk) / (                &
+                   csx(i,kk) = met%ca(i) - CRGBWC*anx(i,kk) / (                &
                         gbhu(i,kk) + gbhf(i,kk) )
                    csx(i,kk) = MAX( 1.0e-4_r_2, csx(i,kk) )
 
 
                    ! Ticket #56, xleuning replaced with gs_coeff here
                    canopy%gswx(i,kk) = MAX( 1.e-3, gswmin(i,kk)*fwsoil(i) +     &
-                        MAX( 0.0, C%RGSWC * gs_coeff(i,kk) *     &
+                        MAX( 0.0, CRGSWC * gs_coeff(i,kk) *     &
                         anx(i,kk) ) )
 
 
@@ -2188,12 +2223,12 @@ write(6,*) "GW or ORevepis not an option right now"
 
              ENDDO
 
-             ecx(i) = ( air%dsatdk(i) * ( rad%rniso(i,1) - C%capp * C%rmair     &
+             ecx(i) = ( air%dsatdk(i) * ( rad%rniso(i,1) - Ccapp * Crmair     &
                   * ( met%tvair(i) - met%tk(i) ) * rad%gradis(i,1) )        &
-                  + C%capp * C%rmair * met%dva(i) * ghr(i,1) )              &
+                  + Ccapp * Crmair * met%dva(i) * ghr(i,1) )              &
                   / ( air%dsatdk(i) + psycst(i,1) ) + ( air%dsatdk(i)       &
-                  * ( rad%rniso(i,2) - C%capp * C%rmair * ( met%tvair(i) -  &
-                  met%tk(i) ) * rad%gradis(i,2) ) + C%capp * C%rmair *      &
+                  * ( rad%rniso(i,2) - Ccapp * Crmair * ( met%tvair(i) -  &
+                  met%tk(i) ) * rad%gradis(i,2) ) + Ccapp * Crmair *      &
                   met%dva(i) * ghr(i,2) ) /                                 &
                   ( air%dsatdk(i) + psycst(i,2) )
 
@@ -2246,16 +2281,16 @@ write(6,*) "GW or ORevepis not an option right now"
              ENDIF
              ! Update canopy sensible heat flux:
              hcx(i) = (SUM(rad%rniso(i,:))-ecx(i)                               &
-                  - C%capp*C%rmair*(met%tvair(i)-met%tk(i))                       &
+                  - Ccapp*Crmair*(met%tvair(i)-met%tk(i))                       &
                   * SUM(rad%gradis(i,:)))                                         &
                   * SUM(gh(i,:))/ SUM(ghr(i,:))
 
              ! Update leaf temperature:
-             tlfx(i)=met%tvair(i)+REAL(hcx(i))/(C%capp*C%rmair*SUM(gh(i,:)))
+             tlfx(i)=met%tvair(i)+REAL(hcx(i))/(Ccapp*Crmair*SUM(gh(i,:)))
 
              ! Update net radiation for canopy:
              rnx(i) = SUM( rad%rniso(i,:)) -                                    &
-                  C%CAPP * C%rmair *( tlfx(i)-met%tk(i) ) *                 &
+                  CCAPP * Crmair *( tlfx(i)-met%tk(i) ) *                 &
                   SUM( rad%gradis(i,:) )
 
              ! Update leaf surface vapour pressure deficit:
@@ -2315,7 +2350,7 @@ write(6,*) "GW or ORevepis not an option right now"
 
        END DO !over mp
 
-    END DO  ! DO WHILE (ANY(abs_deltlf > 0.1) .AND.  k < C%MAXITER)
+    END DO  ! DO WHILE (ANY(abs_deltlf > 0.1) .AND.  k < CMAXITER)
 
 
     ! dry canopy flux
@@ -2414,19 +2449,19 @@ write(6,*) "GW or ORevepis not an option right now"
 
     DO i=1,mp
 
-       IF (SUM(vlaiz(i,:)) .GT. C%LAI_THRESH) THEN
+       IF (SUM(vlaiz(i,:)) .GT. CLAI_THRESH) THEN
 
           DO j=1,mf
 
-             IF( vlaiz(i,j) .GT. C%LAI_THRESH .AND. deltlfz(i,j) .GT. 0.1) THEN
+             IF( vlaiz(i,j) .GT. CLAI_THRESH .AND. deltlfz(i,j) .GT. 0.1) THEN
 
                 ! Rubisco limited:
-                coef2z(i,j) = gswminz(i,j)*fwsoilz(i) / C%RGSWC + gs_coeffz(i,j) * &
+                coef2z(i,j) = gswminz(i,j)*fwsoilz(i) / CRGSWC + gs_coeffz(i,j) * &
                      ( vcmxt3z(i,j) - ( rdxz(i,j)-vcmxt4z(i,j) ) )
 
                 coef1z(i,j) = (1.0-csxz(i,j)*gs_coeffz(i,j)) *                  &
                      (vcmxt3z(i,j)+vcmxt4z(i,j)-rdxz(i,j))             &
-                     + (gswminz(i,j)*fwsoilz(i)/C%RGSWC)*(cx1z(i,j)-csxz(i,j)) &
+                     + (gswminz(i,j)*fwsoilz(i)/CRGSWC)*(cx1z(i,j)-csxz(i,j)) &
                      - gs_coeffz(i,j)*(vcmxt3z(i,j)*cx2z(i,j)/2.0      &
                      + cx1z(i,j)*(rdxz(i,j)-vcmxt4z(i,j) ) )
 
@@ -2434,7 +2469,7 @@ write(6,*) "GW or ORevepis not an option right now"
                 coef0z(i,j) = -(1.0-csxz(i,j)*gs_coeffz(i,j)) *                 &
                      (vcmxt3z(i,j)*cx2z(i,j)/2.0                       &
                      + cx1z(i,j)*( rdxz(i,j)-vcmxt4z(i,j ) ) )         &
-                     -( gswminz(i,j)*fwsoilz(i)/C%RGSWC ) * cx1z(i,j)*csxz(i,j)
+                     -( gswminz(i,j)*fwsoilz(i)/CRGSWC ) * cx1z(i,j)*csxz(i,j)
 
 
                 ! kdcorbin,09/10 - new calculations
@@ -2482,12 +2517,12 @@ write(6,*) "GW or ORevepis not an option right now"
                 ENDIF
 
                 ! RuBP limited:
-                coef2z(i,j) = gswminz(i,j)*fwsoilz(i) / C%RGSWC + gs_coeffz(i,j) &
+                coef2z(i,j) = gswminz(i,j)*fwsoilz(i) / CRGSWC + gs_coeffz(i,j) &
                      * ( vx3z(i,j) - ( rdxz(i,j) - vx4z(i,j) ) )
 
                 coef1z(i,j) = ( 1.0 - csxz(i,j) * gs_coeffz(i,j) ) *            &
                      ( vx3z(i,j) + vx4z(i,j) - rdxz(i,j) )             &
-                     + ( gswminz(i,j)*fwsoilz(i) / C%RGSWC ) *          &
+                     + ( gswminz(i,j)*fwsoilz(i) / CRGSWC ) *          &
                      ( cx2z(i,j) - csxz(i,j) ) - gs_coeffz(i,j)        &
                      * ( vx3z(i,j) * cx2z(i,j) / 2.0 + cx2z(i,j) *     &
                      ( rdxz(i,j) - vx4z(i,j) ) )
@@ -2495,7 +2530,7 @@ write(6,*) "GW or ORevepis not an option right now"
                 coef0z(i,j) = -(1.0-csxz(i,j)*gs_coeffz(i,j)) *   &
                      (vx3z(i,j)*cx2z(i,j)/2.0                          &
                      + cx2z(i,j)*(rdxz(i,j)-vx4z(i,j)))                &
-                     - (gswminz(i,j)*fwsoilz(i)/C%RGSWC)*cx2z(i,j)*csxz(i,j)
+                     - (gswminz(i,j)*fwsoilz(i)/CRGSWC)*cx2z(i,j)*csxz(i,j)
 
 
                 !Ticket #117 - initialize at all times
@@ -2533,14 +2568,14 @@ write(6,*) "GW or ORevepis not an option right now"
                 ! Sink limited:
                 coef2z(i,j) = gs_coeffz(i,j)
 
-                coef1z(i,j) = gswminz(i,j)*fwsoilz(i)/C%RGSWC + gs_coeffz(i,j)   &
+                coef1z(i,j) = gswminz(i,j)*fwsoilz(i)/CRGSWC + gs_coeffz(i,j)   &
                      * (rdxz(i,j) - 0.5*vcmxt3z(i,j))                  &
                      + effc4 * vcmxt4z(i,j) - gs_coeffz(i,j)           &
                      * csxz(i,j) * effc4 * vcmxt4z(i,j)
 
-                coef0z(i,j) = -( gswminz(i,j)*fwsoilz(i)/C%RGSWC )*csxz(i,j)*effc4 &
+                coef0z(i,j) = -( gswminz(i,j)*fwsoilz(i)/CRGSWC )*csxz(i,j)*effc4 &
                      * vcmxt4z(i,j) + ( rdxz(i,j)                      &
-                     - 0.5 * vcmxt3z(i,j)) * gswminz(i,j)*fwsoilz(i)/C%RGSWC
+                     - 0.5 * vcmxt3z(i,j)) * gswminz(i,j)*fwsoilz(i)/CRGSWC
 
                 ! no solution, give it a huge number
                 IF( ABS( coef2z(i,j) ) < 1.0e-9 .AND.                           &
@@ -2646,10 +2681,10 @@ write(6,*) "GW or ORevepis not an option right now"
     REAL, PARAMETER  :: EHdVc  = 149252.0 ! J/mol (Leuning 2002)
     REAL, PARAMETER  :: EntropVc = 486.0  ! J/mol/K (Leuning 2002)
     REAL, PARAMETER  :: xVccoef = 1.17461 ! derived parameter
-    ! xVccoef=1.0+exp((EntropJx*C%TREFK-EHdJx)/(Rconst*C%TREFK))
+    ! xVccoef=1.0+exp((EntropJx*CTREFK-EHdJx)/(Rconst*CTREFK))
 
-    xvcnum=xvccoef*EXP( ( ehavc / ( C%rgas*C%TREFK ) )* ( 1.-C%TREFK/x ) )
-    xvcden=1.0+EXP( ( entropvc*x-ehdvc ) / ( C%rgas*x ) )
+    xvcnum=xvccoef*EXP( ( ehavc / ( Crgas*CTREFK ) )* ( 1.-CTREFK/x ) )
+    xvcden=1.0+EXP( ( entropvc*x-ehdvc ) / ( Crgas*x ) )
     z = MAX( 0.0,xvcnum / xvcden )
 
   END FUNCTION xvcmxt3
@@ -2683,8 +2718,8 @@ write(6,*) "GW or ORevepis not an option right now"
     REAL, PARAMETER  :: EntropJx = 495.0  ! J/mol/K (Leuning 2002)
     REAL, PARAMETER  :: xjxcoef = 1.16715 ! derived parameter
 
-    xjxnum = xjxcoef*EXP( ( ehajx / ( C%rgas*C%TREFK ) ) * ( 1.-C%TREFK / x ) )
-    xjxden=1.0+EXP( ( entropjx*x-ehdjx) / ( C%rgas*x ) )
+    xjxnum = xjxcoef*EXP( ( ehajx / ( Crgas*CTREFK ) ) * ( 1.-CTREFK / x ) )
+    xjxden=1.0+EXP( ( entropjx*x-ehdjx) / ( Crgas*x ) )
     z = MAX(0.0, xjxnum/xjxden)
 
   END FUNCTION xejmxt3
