@@ -1791,6 +1791,8 @@ CONTAINS
 
     !fname = TRIM(filename%path)//'/'//TRIM( cable_user%RunIden )//&
     !       '_casa_rst.nc'
+    WRITE(*,*) 'Martin debug:', 'in:', TRIM(casafile%cnpipool), 'out:', TRIM(casafile%cnpepool)
+    WRITE(*,*) 'more debug:', 'in:', casafile%cnpipool, 'out:', casafile%cnpepool
     fname =  TRIM(casafile%cnpipool)
     INQUIRE( FILE=TRIM(fname), EXIST=EXISTFILE )
     IF (EXISTFILE) THEN

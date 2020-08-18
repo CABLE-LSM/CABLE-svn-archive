@@ -292,10 +292,15 @@ USE cbl_soil_snow_init_special_module
   CALL get_namelist_file_name()
 
   WRITE(*,*) "THE NAME LIST IS ",CABLE_NAMELIST
+
+  write(*,*) "martin namelist check before", 'in:', TRIM(casafile%cnpipool), 'out:', TRIM(casafile%cnpepool)
+
   ! Open, read and close the namelist file.
   OPEN( 10, FILE = CABLE_NAMELIST )
   READ( 10, NML=CABLE )	  !where NML=CABLE defined above
   CLOSE(10)
+  
+  write(*,*) "martin namelist check after", 'in:', TRIM(casafile%cnpipool), 'out:', TRIM(casafile%cnpepool)
 
   ! Open, read and close the consistency check file.
   ! Check triggered by cable_user%consistency_check = .TRUE. in cable.nml
