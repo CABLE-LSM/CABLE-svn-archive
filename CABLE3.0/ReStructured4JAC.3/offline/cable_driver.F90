@@ -19,8 +19,8 @@
 !
 !
 ! ========================================untitled======================================
-! Uses:		  cable_def_types_mod
-!		  cable_IO_vars_module
+!''' Uses:		  cable_def_types_mod'''
+!		'''  cable_IO_vars_module'''
 !		  cable_common_module
 !		  cable_input_module
 !		  cable_output_module
