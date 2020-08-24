@@ -3624,5 +3624,26 @@ CONTAINS
 
    END FUNCTION get_xylem_vulnerability
 
+   FUNCTION integrate_vulnerability(N, a, b, b_plant, c_plant) RESULT(value2)
+      ! Approximate the integration with the mid-point rule
+
+      IMPLICIT NONE
+
+      REAL :: value, value2
+      REAL, INTENT(IN) :: a, b, b_plant, c_plant
+      INTEGER, INTENT(IN) :: N
+      INTEGER :: h
+
+      value = 0.0
+      value2 = 0.0
+
+      DO h=1, N+1
+         value = value + &
+                  get_xylem_vulnerability(a + ((n - 0.5) * ((b - a) /&
+                                          float(N))), b_plant, c_plant)
+      END DO
+      value2 = ((b - a) / float(N)) * value
+
+   END FUNCTION integrate_vulnerability
 
 END MODULE cable_canopy_module
