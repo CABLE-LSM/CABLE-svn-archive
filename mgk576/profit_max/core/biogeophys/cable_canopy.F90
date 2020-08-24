@@ -1799,10 +1799,11 @@ CONTAINS
     REAL :: vpd, g1, ktot, fw, refill ! Ticket #56
 
 
-    REAL :: Kmax, Kcrit, b_plant, c_plant
+    REAL :: Kmax, Kcrit, b_plant, c_plant, press
 
     INTEGER, PARAMETER :: resolution = 10
     REAL, DIMENSION(resolution,2) :: ci_canopy, a_canopy, e_canopy, e_leaf
+    REAL, DIMENSION(resolution,2) :: gsc, gsw
     REAL, DIMENSION(resolution) :: p
 
 
@@ -2116,10 +2117,13 @@ CONTAINS
                 c_plant = 2.0
                 Kmax = 1.5
                 Kcrit = 0.05 * Kmax
+                vpd = dsx(i) * 1E-03 ! Pa -> kPa
+                press = 101.325 ! get from cable
 
                 CALL optimisation(canopy, ssnow, rad, met, Kmax, Kcrit, &
                                   b_plant, c_plant, resolution, ci_canopy,&
-                                  a_canopy, e_canopy, e_leaf, p, i)
+                                  a_canopy, e_canopy, e_leaf, gsw, gsc, &
+                                  vpd, press, p, i)
 
 
 
@@ -3606,7 +3610,7 @@ CONTAINS
   ! ----------------------------------------------------------------------------
   SUBROUTINE optimisation(canopy, ssnow, rad, met, Kmax, Kcrit, b_plant, &
                           c_plant, N, ci_canopy, a_canopy, e_canopy, &
-                          e_leaf, p, i)
+                          e_leaf, gsw, gsc, vpd, press, p, i)
 
 
       USE cable_def_types_mod
@@ -3622,16 +3626,19 @@ CONTAINS
       INTEGER, INTENT(IN) :: i, N
       !REAL, DIMENSION(mp,mf), INTENT(IN)      :: anx, gs_coeff, gswmin
       REAL, DIMENSION(N,mf), INTENT(INOUT) :: ci_canopy, a_canopy, e_canopy
-      REAL, DIMENSION(N,mf), INTENT(INOUT) :: e_leaf
+      REAL, DIMENSION(N,mf), INTENT(INOUT) :: e_leaf, gsw, gsc
       REAL, DIMENSION(N), INTENT(INOUT) :: p
 
-      REAL, INTENT(IN) :: Kmax, Kcrit, b_plant, c_plant
+      REAL, INTENT(IN) :: Kmax, Kcrit, b_plant, c_plant, vpd, press
       INTEGER          :: j, k
 
       REAL :: p_crit, step, increment, lower, upper
       REAL :: fsun, fsha
 
+      REAL :: GSW_2_GSC, GSC_2_GSW
 
+      GSC_2_GSW = 1.57        ! Ratio of Gsw:Gsc
+      GSW_2_GSC = 1.0 / GSC_2_GSW
 
       fsun = rad%fvlai(i,1) / canopy%vlaiw(i)
       fsha = rad%fvlai(i,2) / canopy%vlaiw(i)
@@ -3653,7 +3660,7 @@ CONTAINS
                     float(N-1)
       END DO
 
-      DO j= 1, 2 ! sunlit, shaded leaves...
+      DO j=1, 2 ! sunlit, shaded leaves...
 
          !Calculate transpiration for every water potential, integrating
          ! vulnerability to cavitation, mol H20 m-2 s-1 (leaf)
@@ -3663,6 +3670,10 @@ CONTAINS
          ! Scale to the sunlit or shaded fraction of the canopy,
          ! mol H20 m-2 s-1
          e_canopy(:,j) = e_leaf(:,j) * rad%fvlai(i,j)
+
+         ! assuming perfect coupling ... will fix
+         gsw(:,j) = e_canopy(:,j) / vpd * press ! mol H20 m-2 s-1
+         gsc(:,j) = gsw(:,j) * GSW_2_GSC ! mol CO2 m-2 s-1
 
       END DO
 
