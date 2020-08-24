@@ -1802,10 +1802,7 @@ CONTAINS
     REAL :: p_crit, Kmax, Kcrit, b_plant, c_plant, step, increment, lower, upper
     INTEGER, PARAMETER :: resolution = 10
     REAL, DIMENSION(resolution) :: p
-    REAL, DIMENSION(resolution) :: ci_canopy
-    REAL, DIMENSION(resolution) :: a_canopy
-
-
+    REAL, DIMENSION(resolution) :: ci_canopy, a_canopy, e_canopy, e_leaf
 
 
 
@@ -2135,7 +2132,14 @@ CONTAINS
                               float(resolution-1)
                 END DO
 
+                ! Calculate transpiration for every water potential, integrating
+                ! vulnerability to cavitation, mol H20 m-2 s-1 (leaf)
+                e_leaf = calc_transpiration(p, resolution, Kmax, b_plant, &
+                                            c_plant)
 
+                ! Scale to the sunlit or shaded fraction of the canopy,
+                ! mol H20 m-2 s-1
+                e_canopy = e_leaf * canopy%vlaiw(i)
                 print*, p
                 !print*, p_crit, Kcrit, Kmax
                 print*, " "
@@ -3612,6 +3616,7 @@ CONTAINS
 
    END FUNCTION calc_plc
    ! ----------------------------------------------------------------------------
+
 
    FUNCTION calc_transpiration(p, N, Kmax, b_plant, c_plant) RESULT(e_leaf)
 
