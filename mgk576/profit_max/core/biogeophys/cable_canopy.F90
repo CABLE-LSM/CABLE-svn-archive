@@ -1795,8 +1795,22 @@ CONTAINS
     REAL, PARAMETER :: MMOL_2_MOL = 1.0 / MOL_2_MMOL
     REAL, PARAMETER :: MB_TO_PA = 100.
 
-    INTEGER :: i, j, k, kk  ! iteration count
+    INTEGER :: i, j, k, kk, h  ! iteration count
     REAL :: vpd, g1, ktot, fw, refill ! Ticket #56
+
+
+    REAL :: p_crit, Kmax, Kcrit, b_plant, c_plant, step, increment, lower, upper
+    INTEGER, PARAMETER :: resolution = 10
+    REAL, DIMENSION(resolution) :: p
+    REAL, DIMENSION(resolution) :: ci_canopy
+    REAL, DIMENSION(resolution) :: a_canopy
+
+
+
+
+
+
+
 #define VanessasCanopy
 #ifdef VanessasCanopy
     REAL, DIMENSION(mp,mf)  ::                                                  &
@@ -2100,8 +2114,31 @@ CONTAINS
              ELSE IF (cable_user%GS_SWITCH == 'medlyn' .AND. &
                      cable_user%FWSOIL_SWITCH == 'profitmax') THEN
 
+                b_plant = 2.0
+                c_plant = 2.0
+                Kmax = 1.5
+                Kcrit = 0.05 * Kmax
 
-                print*, "edit away"
+                ! Canopy xylem pressure (P_crit) MPa, beyond which tree
+                ! desiccates (Ecrit), MPa
+                p_crit = -b_plant * log(Kmax / Kcrit)**(1.0 / c_plant)
+
+
+                ! Generate water potential sequence
+                lower = ssnow%weighted_psi_soil(i)
+                upper = p_crit
+                step = (upper - lower) / float(resolution)
+
+                increment = lower
+                DO h=1, resolution
+                   p(h)  = lower + float(h) * (upper - lower) / &
+                              float(resolution-1)
+                END DO
+
+
+                print*, p
+                !print*, p_crit, Kcrit, Kmax
+                print*, " "
                 stop
 
 
@@ -3575,5 +3612,17 @@ CONTAINS
 
    END FUNCTION calc_plc
    ! ----------------------------------------------------------------------------
+
+   FUNCTION get_xylem_vulnerability(p, b_plant, c_plant) RESULT(weibull)
+
+      IMPLICIT NONE
+
+      REAL, INTENT(IN) :: p, b_plant, c_plant
+      REAL :: weibull
+
+      weibull = max(1.0E-17, exp(-(-p / b_plant)**c_plant))
+
+   END FUNCTION get_xylem_vulnerability
+
 
 END MODULE cable_canopy_module
