@@ -3613,6 +3613,32 @@ CONTAINS
    END FUNCTION calc_plc
    ! ----------------------------------------------------------------------------
 
+   FUNCTION calc_transpiration(p, N, Kmax, b_plant, c_plant) RESULT(e_leaf)
+
+      IMPLICIT NONE
+
+
+      REAL, DIMENSION(N), INTENT(IN) :: p
+      REAL, INTENT(IN) :: b_plant, c_plant, Kmax
+      INTEGER, INTENT(IN) :: N
+      INTEGER :: h
+      REAL, DIMENSION(N) :: e_leaf
+      REAL :: MMOL_2_MOL
+
+      MMOL_2_MOL = 1E-03
+
+      ! integrate over the full range of water potentials from psi_soil to
+      ! e_crit
+      DO h=1, N
+         e_leaf(h) = integrate_vulnerability(N, p(h), p(1), b_plant, c_plant)
+         IF (e_leaf(h) > 1.0E-17) then
+            e_leaf(h) = e_leaf(h) * Kmax * MMOL_2_MOL ! mol m-2 s-1
+         END IF
+      END DO
+
+   END FUNCTION calc_transpiration
+
+
    FUNCTION get_xylem_vulnerability(p, b_plant, c_plant) RESULT(weibull)
 
       IMPLICIT NONE
