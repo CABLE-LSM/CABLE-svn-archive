@@ -1602,7 +1602,7 @@ CONTAINS
     REAL(r_2), DIMENSION(mp)      :: demand, supply, difference
     INTEGER k, i
 
-    IF (cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
+    IF (cable_user%FWSOIL_SWITCH == 'profitmax') THEN
        ! This follows the default extraction logic, but instead of weighting
        ! by froot, we are weighting by the frac uptake we calculated when we
        ! were weighting the soil water potential.

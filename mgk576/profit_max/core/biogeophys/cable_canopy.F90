@@ -1819,7 +1819,7 @@ CONTAINS
           ELSEIF(cable_user%FWSOIL_SWITCH == 'Lai and Ktaul 2000') THEN
              CALL fwsoil_calc_Lai_Ktaul(fwsoil, soil, ssnow, veg)
           ! Water stress is inferred from the hydraulics approach instead.
-          ELSE IF(cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
+       ELSE IF(cable_user%FWSOIL_SWITCH == 'profitmax') THEN
              fwsoil = 1.0
           ELSE
              STOP 'fwsoil_switch failed.'
@@ -2074,7 +2074,7 @@ CONTAINS
 
              ! Medlyn BE et al (2011) Global Change Biology 17: 2134-2144.
              ELSEIF(cable_user%GS_SWITCH == 'medlyn' .AND. &
-                    cable_user%FWSOIL_SWITCH /= 'hydraulics') THEN
+                    cable_user%FWSOIL_SWITCH /= 'profitmax') THEN
 
                 gswmin = veg%g0(i)
 
@@ -2098,7 +2098,13 @@ CONTAINS
                 END IF
 
              ELSE IF (cable_user%GS_SWITCH == 'medlyn' .AND. &
-                     cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
+                     cable_user%FWSOIL_SWITCH == 'profitmax') THEN
+
+
+                print*, "edit away"
+                stop
+
+
 
                 ! We will use min of gmin below, this needs to be 0
                 gswmin = 0.0

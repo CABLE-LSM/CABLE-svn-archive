@@ -466,7 +466,7 @@ CONTAINS
 
 
 
-    IF (cable_user%fwsoil_switch == 'hydraulics') THEN
+    IF (cable_user%fwsoil_switch == 'profitmax') THEN
 
       CALL readpar(ncid_rin,'psi_leaf_prev',dummy,canopy%psi_leaf_prev,&
                    filename%restart_in,max_vegpatches,'def',from_restart,mp)

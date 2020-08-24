@@ -3610,7 +3610,7 @@ CONTAINS
             .TRUE.,'real',0,0,0,mpID,dummy,.TRUE.)
     END IF ! SLI soil model
 
-    IF (cable_user%fwsoil_switch == 'hydraulics') THEN
+    IF (cable_user%fwsoil_switch == 'profitmax') THEN
 
 
       CALL define_ovar(ncid_restart, psilID, 'psi_leaf_prev', 'MPa',           &
@@ -3890,7 +3890,7 @@ CONTAINS
 
     END IF
 
-    IF (cable_user%fwsoil_switch == 'hydraulics') THEN
+    IF (cable_user%fwsoil_switch == 'profitmax') THEN
 
       CALL write_ovar (ncid_restart, psilID, 'psi_leaf_prev', &
                        REAL(canopy%psi_leaf_prev, 4),         &
