@@ -1799,10 +1799,11 @@ CONTAINS
     REAL :: vpd, g1, ktot, fw, refill ! Ticket #56
 
 
-    REAL :: p_crit, Kmax, Kcrit, b_plant, c_plant, step, increment, lower, upper
+    REAL :: Kmax, Kcrit, b_plant, c_plant
+
     INTEGER, PARAMETER :: resolution = 10
+    REAL, DIMENSION(resolution,2) :: ci_canopy, a_canopy, e_canopy, e_leaf
     REAL, DIMENSION(resolution) :: p
-    REAL, DIMENSION(resolution) :: ci_canopy, a_canopy, e_canopy, e_leaf
 
 
 
@@ -2116,31 +2117,15 @@ CONTAINS
                 Kmax = 1.5
                 Kcrit = 0.05 * Kmax
 
-                ! Canopy xylem pressure (P_crit) MPa, beyond which tree
-                ! desiccates (Ecrit), MPa
-                p_crit = -b_plant * log(Kmax / Kcrit)**(1.0 / c_plant)
+                CALL optimisation(canopy, ssnow, rad, met, Kmax, Kcrit, &
+                                  b_plant, c_plant, resolution, ci_canopy,&
+                                  a_canopy, e_canopy, e_leaf, p, i)
 
 
-                ! Generate water potential sequence
-                lower = ssnow%weighted_psi_soil(i)
-                upper = p_crit
-                step = (upper - lower) / float(resolution)
 
-                increment = lower
-                DO h=1, resolution
-                   p(h)  = lower + float(h) * (upper - lower) / &
-                              float(resolution-1)
-                END DO
+                print*, e_leaf
+                print*, " "
 
-                ! Calculate transpiration for every water potential, integrating
-                ! vulnerability to cavitation, mol H20 m-2 s-1 (leaf)
-                e_leaf = calc_transpiration(p, resolution, Kmax, b_plant, &
-                                            c_plant)
-
-                ! Scale to the sunlit or shaded fraction of the canopy,
-                ! mol H20 m-2 s-1
-                e_canopy = e_leaf * canopy%vlaiw(i)
-                print*, p
                 !print*, p_crit, Kcrit, Kmax
                 print*, " "
                 stop
@@ -3615,9 +3600,76 @@ CONTAINS
      plc = max(1.0e-9, min(100.0, plc))
 
    END FUNCTION calc_plc
-   ! ----------------------------------------------------------------------------
+   ! ---------------------------------------------------------------------------
 
 
+  ! ----------------------------------------------------------------------------
+  SUBROUTINE optimisation(canopy, ssnow, rad, met, Kmax, Kcrit, b_plant, &
+                          c_plant, N, ci_canopy, a_canopy, e_canopy, &
+                          e_leaf, p, i)
+
+
+      USE cable_def_types_mod
+      USE cable_common_module
+
+      IMPLICIT NONE
+
+      TYPE (canopy_type), INTENT(INOUT) :: canopy
+      TYPE (soil_snow_type), INTENT(INOUT) :: ssnow
+      TYPE (radiation_type), INTENT(IN) :: rad
+      TYPE (met_type), INTENT(INOUT) :: met
+
+      INTEGER, INTENT(IN) :: i, N
+      !REAL, DIMENSION(mp,mf), INTENT(IN)      :: anx, gs_coeff, gswmin
+      REAL, DIMENSION(N,mf), INTENT(INOUT) :: ci_canopy, a_canopy, e_canopy
+      REAL, DIMENSION(N,mf), INTENT(INOUT) :: e_leaf
+      REAL, DIMENSION(N), INTENT(INOUT) :: p
+
+      REAL, INTENT(IN) :: Kmax, Kcrit, b_plant, c_plant
+      INTEGER          :: j, k
+
+      REAL :: p_crit, step, increment, lower, upper
+      REAL :: fsun, fsha
+
+
+
+      fsun = rad%fvlai(i,1) / canopy%vlaiw(i)
+      fsha = rad%fvlai(i,2) / canopy%vlaiw(i)
+
+
+      ! Canopy xylem pressure (P_crit) MPa, beyond which tree
+      ! desiccates (Ecrit), MPa
+      p_crit = -b_plant * log(Kmax / Kcrit)**(1.0 / c_plant)
+
+
+      ! Generate water potential sequence
+      lower = ssnow%weighted_psi_soil(i)
+      upper = p_crit
+      step = (upper - lower) / float(N)
+
+      increment = lower
+      DO k=1, N
+         p(k)  = lower + float(k) * (upper - lower) / &
+                    float(N-1)
+      END DO
+
+      DO j= 1, 2 ! sunlit, shaded leaves...
+
+         !Calculate transpiration for every water potential, integrating
+         ! vulnerability to cavitation, mol H20 m-2 s-1 (leaf)
+         e_leaf(:,j) = calc_transpiration(p, N, Kmax, b_plant, &
+                                         c_plant)
+
+         ! Scale to the sunlit or shaded fraction of the canopy,
+         ! mol H20 m-2 s-1
+         e_canopy(:,j) = e_leaf(:,j) * rad%fvlai(i,j)
+
+      END DO
+
+   END SUBROUTINE optimisation
+   ! ---------------------------------------------------------------------------
+
+   ! ---------------------------------------------------------------------------
    FUNCTION calc_transpiration(p, N, Kmax, b_plant, c_plant) RESULT(e_leaf)
 
       IMPLICIT NONE
