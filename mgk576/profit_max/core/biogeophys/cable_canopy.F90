@@ -3624,6 +3624,7 @@ CONTAINS
 
       REAL :: psil_soil, max_profit, gsw, gsc, an, Vcmax25, Jmax25
 
+      REAL, DIMENSION(mf) :: e_leaves
 
       ! max rate of rubisco activity at 25 deg or 298 K
       Vcmax25 = veg%vcmax(1)*1e6
@@ -3721,18 +3722,18 @@ CONTAINS
             profit = gain - cost
             idx = MAXLOC(profit)
             print*, idx, an_leaf(idx(1)), gain(idx(1)), cost(idx(1))
-            stop
-            
+
+
             ! load into stores
             an_canopy(i,j) = an_leaf(idx(1)) ! umol m-2 s-1
-
+            e_leaves(j) = e_leaf(idx(1)) ! mol H2O m-2 s-1
 
          END IF
 
       END DO
 
-      IF (apar > 0.5) THEN
-         e_canopy = sum(e_leaf) ! mol H2O m-2 s-1
+      IF (apar > 50) THEN
+         e_canopy = sum(e_leaves) ! mol H2O m-2 s-1
       END IF
 
    END SUBROUTINE optimisation
