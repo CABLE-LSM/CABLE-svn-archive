@@ -2123,7 +2123,7 @@ CONTAINS
                 CALL optimisation(canopy, ssnow, rad, met, Kmax, Kcrit, &
                                   b_plant, c_plant, resolution, ci_canopy,&
                                   a_canopy, e_canopy, e_leaf, gsw, gsc, &
-                                  vpd, press, csx, p, i)
+                                  vpd, press, tlfx(i), csx, p, i)
 
 
 
@@ -3096,6 +3096,69 @@ CONTAINS
   END SUBROUTINE getrex_1d
   !*********************************************************************************************************************
 
+  !**********************************************************************
+  REAL FUNCTION QUADM(A, B, C) RESULT(root)
+  ! Solves the quadratic equation - finds smaller root.
+  !**********************************************************************
+
+      IMPLICIT NONE
+      REAL :: A, B, C
+      !INTEGER IQERROR
+
+      !IQERROR = 0
+
+      IF ((B*B - 4.*A*C).LT.0.0) THEN
+          !CALL SUBERROR('WARNING:IMAGINARY ROOTS IN QUADRATIC',IWARN,0)
+          !IQERROR = 1
+          root = 0.0
+      ELSE
+          IF (A.EQ.0.0) THEN
+              IF (B.EQ.0.0) THEN
+                  root = 0.0
+                  !IF (C.NE.0.0) CALL SUBERROR('ERROR: CANT SOLVE QUADRATIC',IWARN,0)
+              ELSE
+                  root = -C/B
+              END IF
+          ELSE
+              root = (- B - SQRT(B*B - 4*A*C)) / (2.*A)
+          END IF
+      END IF
+
+
+  END FUNCTION QUADM
+
+
+  !**********************************************************************
+  REAL FUNCTION QUADP(A,B,C) RESULT(root)
+  ! Solves the quadratic equation - finds larger root.
+  !**********************************************************************
+
+      IMPLICIT NONE
+      REAL :: A,B,C
+      INTEGER IQERROR
+
+      !IQERROR = 0
+
+      IF ((B*B - 4.*A*C).LT.0.0) THEN
+          !CALL SUBERROR('WARNING:IMAGINARY ROOTS IN QUADRATIC',IWARN,0)
+          !IQERROR = 1
+          root = 0.0
+      ELSE
+          IF (A.EQ.0.0) THEN
+              IF (B.EQ.0.0) THEN
+                  root = 0.0
+                  !IF (C.NE.0.0) CALL SUBERROR('ERROR: CANT SOLVE QUADRATIC',IWARN,0)
+              ELSE
+                  root = -C/B
+              END IF
+          ELSE
+              root = (- B + SQRT(B*B - 4*A*C)) / (2.*A)
+          END IF
+      END IF
+
+
+  END FUNCTION QUADP
+
   ! ----------------------------------------------------------------------------
   FUNCTION f_tuzet(psi_leaf, sf, psi_f) RESULT(fw)
      ! Empirical logistic function to describe the sensitivity of stomata
@@ -3610,7 +3673,7 @@ CONTAINS
   ! ----------------------------------------------------------------------------
   SUBROUTINE optimisation(canopy, ssnow, rad, met, Kmax, Kcrit, b_plant, &
                           c_plant, N, ci_canopy, a_canopy, e_canopy, &
-                          e_leaf, gsw, gsc, vpd, press, ca, p, i)
+                          e_leaf, gsw, gsc, vpd, press, tleaf, ca, p, i)
 
 
       USE cable_def_types_mod
@@ -3630,7 +3693,7 @@ CONTAINS
       REAL(r_2), DIMENSION(mp,mf), INTENT(IN) :: ca
       REAL, DIMENSION(N), INTENT(INOUT) :: p
 
-      REAL, INTENT(IN) :: Kmax, Kcrit, b_plant, c_plant, vpd, press
+      REAL, INTENT(IN) :: Kmax, Kcrit, b_plant, c_plant, vpd, press, tleaf
       INTEGER          :: j, k
 
       REAL :: p_crit, step, increment, lower, upper
@@ -3681,8 +3744,8 @@ CONTAINS
          ! For every gsc/psi_leaf get a match An and Ci
          DO k=1, N
 
-            call get_a_and_ci(canopy, ssnow, rad, met, ca(i,j), a_leaf(:), &
-                              gsc(:,j), j, N)
+            call get_a_and_ci(canopy, ssnow, rad, met, ca(i,j), tleaf, &
+                              a_leaf(:), gsc(:,j), rad%scalex(i,j), j, N)
 
             p(k)  = lower + float(k) * (upper - lower) / &
                        float(N-1)
@@ -3694,7 +3757,8 @@ CONTAINS
    ! ---------------------------------------------------------------------------
 
    ! --------------------------------------------------------------------------
-   SUBROUTINE get_a_and_ci(canopy, ssnow, rad, met, ca, a_leaf, gsc, j, N)
+   SUBROUTINE get_a_and_ci(canopy, ssnow, rad, met, ca, tleaf, a_leaf, &
+                           gsc, scalex, j, N)
 
 
        USE cable_def_types_mod
@@ -3707,10 +3771,11 @@ CONTAINS
        TYPE (radiation_type), INTENT(IN) :: rad
        TYPE (met_type), INTENT(INOUT) :: met
 
-       REAL, DIMENSION(mf), INTENT(INOUT)      :: a_leaf
-       REAL, DIMENSION(N,mf), INTENT(INOUT)     :: gsc
+       REAL, DIMENSION(mf), INTENT(INOUT) :: an_leaf
+       REAL, DIMENSION(N,mf), INTENT(INOUT) :: gsc
        REAL :: min_ci, max_ci, an_new, ci_new, gsc_new, an
        REAL(r_2), INTENT(IN) :: ca
+       REAL, INTENT(IN) :: tleaf, scalex
 
        REAL, PARAMETER :: tol = 1E-12
 
@@ -3723,7 +3788,8 @@ CONTAINS
        DO
           ci_new = 0.5 * (max_ci + min_ci) ! umol mol-1
 
-          call photosynthesis_given_ci(canopy, ssnow, rad, met, a_leaf)
+          call photosynthesis_given_ci(canopy, ssnow, rad, met, tleaf, scalex, &
+                                       an_leaf)
 
           gsc_new = a_leaf(j) / (ca - ci_new) ! mol m-2 s-1
 
@@ -3756,7 +3822,8 @@ CONTAINS
 
 
    ! --------------------------------------------------------------------------
-   SUBROUTINE photosynthesis_given_ci(canopy, ssnow, rad, met, a_leaf)
+   SUBROUTINE photosynthesis_given_ci(canopy, ssnow, rad, met, tleaf, scalex, &
+                                      an_leaf)
 
 
        USE cable_def_types_mod
@@ -3769,15 +3836,183 @@ CONTAINS
        TYPE (radiation_type), INTENT(IN) :: rad
        TYPE (met_type), INTENT(INOUT) :: met
 
-       REAL, DIMENSION(mf), INTENT(INOUT)      :: a_leaf
+       REAL, DIMENSION(mf), INTENT(INOUT) :: an_leaf
+       REAL, INTENT(IN) :: tleaf, scalex
+       REAL :: Km, gamma_star, Vcmax, Jmax, Rd
+
+       REAL :: Vcmax25, Jmax25, Eav, Eaj, deltaSv, deltaSj, Hdv, Hdj, J, Vj
+       REAL :: Ac, Aj, A, An
+
+
+       ! max rate of rubisco activity at 25 deg or 298 K
+       Vcmax25 = 103.6
+
+       ! potential rate of electron transport at 25 deg or 298 K
+       Jmax25 = Vcmax25 * 1.72
+
+       ! activation energy for the parameter [J mol-1]
+       Eav = 59700.
+
+       ! activation energy for the parameter [J mol-1]
+       Eaj = 23800.
+
+       ! entropy factor [J mol-1 K-1)
+       deltaSv = 634
+
+       ! entropy factor [J mol-1 K-1)
+       deltaSj = 627
+
+       ! Deactivation energy for Vcmax [J mol-1]
+       Hdv = 200000.0
+
+       ! Deactivation energy for Jmax [J mol-1]
+       Hdj = 200000.0
+
+
+
+
+
+
+
+
 
        a_leaf = 0.0
+
+       ! calculate temp dependancies of MichaelisMenten constants for CO2, O2
+       Km = calc_michaelis_menten_constants(Tleaf)
+
+       gamma_star = 0.0 ! cable says it is 0
+
+       ! Calculate temperature dependancies on Vcmax and Jmax
+       Vcmax = peaked_arrh(Vcmax25, Eav, Tleaf, deltaSv, Hdv)
+       Jmax = peaked_arrh(Jmax25, Eaj, Tleaf, deltaSj, Hdj)
+       Rd = 0.015 * Vcmax
+
+       ! Scaling from single leaf to canopy, see Wang & Leuning 1998 appendix C
+       Vcmax = Vcmax * scalex
+       Jmax = Jmax * scalex
+       Rd = Rd * scalex
+
+       ! Rate of electron transport, which is a function of absorbed PAR
+       J = calc_electron_transport_rate(p, Par, Jmax)
+       Vj = J / 4.0
+
+       Ac = assim(Ci, gamma_star, Vcmax, Km)
+       Aj = assim(Ci, gamma_star, Vj, 2.0*gamma_star)
+
+       A = -QUADP(1.0-1E-04, Ac+Aj, Ac*Aj)
+
+       ! Net photosynthesis
+       an_leaf = A - Rd
+
+       !
+       IF (Ci < 0.00001) THEN
+          an_leaf = 0.0
+       END IF
+
+       print*, Km, Vcmax, Jmax, Rd
+       print*, Ac, Aj, an_leaf
+
+       print*, " "
        print*, "fine"
+       stop
 
    END SUBROUTINE photosynthesis_given_ci
    ! ---------------------------------------------------------------------------
 
+   ! ---------------------------------------------------------------------------
+   FUNCTION assim(Ci, gamma_star, a1, a2) RESULT(as)
 
+      REAL :: as
+      REAL, INTENT(IN) :: Ci, gamma_star, a1, a2
+
+      as = a1 * (Ci - gamma_star) / (a2 + Ci)
+
+   END FUNCTION assim
+   ! ---------------------------------------------------------------------------
+
+   ! ---------------------------------------------------------------------------
+   FUNCTION calc_electron_transport_rate(par, Jmax) RESULT(J)
+
+      REAL :: J, A, B, C, theta_J, alpha
+      REAL, INTENT(IN) :: par, Jmax
+
+      ! Curvature of the light response (-)
+      theta_J = 0.7
+
+      ! alpha = quantum_yield * absorptance # (Medlyn et al 2002)
+      alpha = 0.26
+
+      A = theta_J
+      B = -(alpha * par + Jmax)
+      C = alpha * par * Jmax
+
+      J = QUADM(A, B, C)
+
+   END FUNCTION calc_electron_transport_rate
+   ! ---------------------------------------------------------------------------
+
+
+   ! ---------------------------------------------------------------------------
+   FUNCTION calc_michaelis_menten_constants(Tleaf) RESULT(Km)
+
+      REAL :: Kc, Ko, Km, Kc25, Ko25, Ec, Eo, Oi
+      REAL, INTENT(IN) :: tleaf
+
+      ! Michaelis-Menten coefficents for carboxylation by Rubisco at
+      ! 25degC [umol mol-1] or 298 K
+      Kc25 = 404.9
+
+      ! Michaelis-Menten coefficents for oxygenation by Rubisco at
+      ! 25degC [mmol mol-1]. Note value in Bernacchie 2001 is in mmol!!
+      ! or 298 K
+      Ko25 = 278.4
+
+      ! Activation energy for carboxylation [J mol-1]
+      Ec = 79430.0
+
+      ! Activation energy for oxygenation [J mol-1]
+      Eo = 36380.0
+
+      ! intercellular concentration of O2 [mmol mol-1]
+      Oi = 210.0
+
+      Kc = arrh(Kc25, Ec, Tleaf)
+      Ko = arrh(Ko25, Eo, Tleaf)
+
+      Km = Kc * (1.0 + Oi / Ko)
+
+   END FUNCTION calc_michaelis_menten_constants
+   ! ---------------------------------------------------------------------------
+
+   ! ---------------------------------------------------------------------------
+   FUNCTION arrh(k25, Ea, Tk) RESULT(a)
+
+      REAL :: k25, Ea, Tk, a
+      REAL, PARAMETER :: RGAS = 8.314
+
+      a = k25 * exp((Ea * (Tk - 298.15)) / (298.15 * RGAS * Tk))
+
+   END FUNCTION arrh
+   ! ---------------------------------------------------------------------------
+
+   ! ---------------------------------------------------------------------------
+   FUNCTION peaked_arrh(k25, Ea, Tk, deltaS, Hd) RESULT(pa)
+
+      REAL :: k25, Ea, Tk, deltaS, Hd, pa, arg1, arg2, arg3
+      REAL, PARAMETER :: RGAS = 8.314
+
+      arg1 = arrh(k25, Ea, Tk)
+      arg2 = 1.0 + exp((298.15 * deltaS - Hd) / (298.15 * RGAS))
+      arg3 = 1.0 + exp((Tk * deltaS - Hd) / (Tk * RGAS))
+
+      pa = arg1 * arg2 / arg3
+
+   END FUNCTION peaked_arrh
+   ! ---------------------------------------------------------------------------
+
+
+   ! ---------------------------------------------------------------------------
    FUNCTION calc_transpiration(p, N, Kmax, b_plant, c_plant) RESULT(e_leaf)
 
       IMPLICIT NONE
