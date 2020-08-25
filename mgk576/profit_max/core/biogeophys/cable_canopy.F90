@@ -2145,7 +2145,7 @@ CONTAINS
                 ELSE
                    ecx(i) = 0.0
                 END IF
-                print*, an_canopy, e_canopy
+                !print*, an_canopy, e_canopy
 
 
 
@@ -3604,7 +3604,7 @@ CONTAINS
       REAL, INTENT(IN) :: Kmax, Kcrit, b_plant, c_plant, vpd, press, tleaf
       INTEGER          :: j, k, idx
 
-      REAL :: p_crit, step, increment, lower, upper
+      REAL :: p_crit, lower, upper
       REAL :: fsun, fsha, kcmax
 
       REAL :: GSW_2_GSC, GSC_2_GSW, apar, jtomol, MOL_TO_UMOL
@@ -3632,8 +3632,7 @@ CONTAINS
       ! Generate water potential sequence
       lower = psil_soil
       upper = p_crit
-      step = (upper - lower) / float(N)
-      increment = lower
+
       DO k=1, N
 
          p(k)  = lower + float(k) * (upper - lower) / &
@@ -3652,11 +3651,18 @@ CONTAINS
             gsw_canopy(i,j) = 0.0 ! mol H2O m-2 s-1
 
          ELSE
+            print*, "good apar", apar
             ! Calculate transpiration for every water potential, integrating
             ! vulnerability to cavitation, mol H20 m-2 s-1 (leaf)
             e_leaf = calc_transpiration(p, N, Kmax, b_plant, &
                                             c_plant)
 
+
+            print*, p
+            print*, psil_soil, p_crit
+            print*, Kmax, b_plant, c_plant, N
+            print*, e_leaf
+            stop
             ! Scale to the sunlit or shaded fraction of the canopy,
             ! mol H20 m-2 s-1
             e_leaf = e_leaf * rad%fvlai(i,j)
