@@ -1801,7 +1801,7 @@ CONTAINS
 
     REAL :: Kmax, Kcrit, b_plant, c_plant, press
 
-    INTEGER, PARAMETER :: resolution = 20
+    INTEGER, PARAMETER :: resolution = 10
     REAL, DIMENSION(2) :: an_canopy
     REAL :: e_canopy
     REAL, DIMENSION(resolution) :: p
@@ -2118,38 +2118,42 @@ CONTAINS
              ELSE IF (cable_user%GS_SWITCH == 'medlyn' .AND. &
                      cable_user%FWSOIL_SWITCH == 'profitmax') THEN
 
-                b_plant = 2.0
+                b_plant = 3.0
                 c_plant = 2.0
                 Kmax = 1.5
                 Kcrit = 0.05 * Kmax
-                IF (dsx(i) < 50.0) THEN
-                   vpd  = 0.05 ! kPa
-                ELSE
-                   vpd = dsx(i) * 1E-03 ! Pa -> kPa
-                END IF
+
+                vpd = dsx(i) * 1E-03 ! Pa -> kPa
+
                 press = 101.325 ! get from cable
 
                 an_canopy = 0.0
                 e_canopy = 0.0
 
 
-
-                CALL optimisation(canopy, ssnow, rad, met, veg, Kmax, Kcrit, &
-                                  b_plant, c_plant, resolution,&
-                                  an_canopy, e_canopy, &
-                                  vpd, press, tlfx(i), csx, p, i)
-
-                anx(i,1) = an_canopy(1) / 1e6
-                anx(i,2) = an_canopy(2) / 1e6
-
-
-                conv = MOL_WATER_2_G_WATER * G_TO_KG
-
-                IF (e_canopy > 0.0) THEN
-                   ecx(i) = e_canopy * air%rlam(i) * conv
-                ELSE
+                if (vpd < 0.05) THEN
                    ecx(i) = 0.0
-                END IF
+                   anx(i,1) = 0.0
+                   anx(i,2) = 0.0
+                else
+                   CALL optimisation(canopy, ssnow, rad, met, veg, Kmax, Kcrit, &
+                                     b_plant, c_plant, resolution,&
+                                     an_canopy, e_canopy, &
+                                     vpd, press, tlfx(i), csx, p, i)
+
+                   anx(i,1) = an_canopy(1) / 1e6
+                   anx(i,2) = an_canopy(2) / 1e6
+
+
+                   conv = MOL_WATER_2_G_WATER * G_TO_KG
+
+                   IF (e_canopy > 0.0) THEN
+                      ecx(i) = e_canopy * air%rlam(i) * conv
+                   ELSE
+                      ecx(i) = 0.0
+                   END IF
+                end if
+
                 !print*, an_canopy, e_canopy
 
 
@@ -3681,11 +3685,12 @@ CONTAINS
             ! For every gsc/psi_leaf get a match An and Ci
             DO k=1, N
 
-               IF (e_leaf(k) > 0.00000001) THEN
+               IF (e_leaf(k) > 0.00001) THEN
 
                   gsw = e_leaf(k) / vpd * press ! mol H20 m-2 s-1
                   gsc = gsw * GSW_2_GSC ! mol CO2 m-2 s-1
 
+                  print*, "*", gsw, vpd, press, apar, ca, tleaf-273.15
                   call get_a_and_ci(canopy, rad, met, ca, tleaf, &
                                     apar, an, gsc, rad%scalex(i,j), Vcmax25, &
                                     Jmax25)
@@ -3761,7 +3766,7 @@ CONTAINS
 
        REAL, INTENT(IN) :: tleaf, scalex, par, Vcmax25, Jmax25
 
-       REAL, PARAMETER :: tol = 1E-03 !1E-12
+       REAL, PARAMETER :: tol = 1E-05 !1E-12
 
        INTEGER :: iter
 
@@ -3814,6 +3819,8 @@ CONTAINS
           END IF
 
        END DO
+
+       stop
 
    END SUBROUTINE get_a_and_ci
    ! ---------------------------------------------------------------------------
@@ -4008,7 +4015,7 @@ CONTAINS
       DO h=1, N
 
          e_leaf(h) = integrate_vulnerability(N, p(h), p(1), b_plant, c_plant)
-         IF (e_leaf(h) > 1.0E-17) then
+         IF (e_leaf(h) > 1.0E-09) then
             e_leaf(h) = e_leaf(h) * Kmax * MMOL_2_MOL ! mol m-2 s-1
          END IF
 
@@ -4024,7 +4031,7 @@ CONTAINS
       REAL, INTENT(IN) :: p, b_plant, c_plant
       REAL :: weibull
 
-      weibull = max(1.0E-17, exp(-(-p / b_plant)**c_plant))
+      weibull = max(1.0E-09, exp(-(-p / b_plant)**c_plant))
 
    END FUNCTION get_xylem_vulnerability
 
