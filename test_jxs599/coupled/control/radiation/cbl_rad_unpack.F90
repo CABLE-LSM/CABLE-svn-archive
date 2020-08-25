@@ -1,72 +1,72 @@
-module cable_rad_unpack_mod
+MODULE cable_rad_unpack_mod
   
-contains
+CONTAINS
  
-subroutine cable_rad_unpack( &
-land_albedo,            & 
-alb_surft,              &
-mp,                     &
-nrb,                    &
-row_length,             &
-rows,                   &
-land_pts,               &
-nsurft,                 &
-sm_levels,              &
-tile_pts,               &
-tile_index,             &
-land_index,             &
-tile_frac,              &
-L_tile_pts,             &
-EffSurfRefl_dif,        &
-EffSurfRefl_beam,       &
-snow_flag_cable,        &
-SnowFlag_3L             & 
+SUBROUTINE cable_rad_unpack(                                                  &
+land_albedo,                                                                  &
+alb_surft,                                                                    &
+mp,                                                                           &
+nrb,                                                                          &
+row_length,                                                                   &
+rows,                                                                         &
+land_pts,                                                                     &
+nsurft,                                                                       &
+sm_levels,                                                                    &
+tile_pts,                                                                     &
+tile_index,                                                                   &
+land_index,                                                                   &
+tile_frac,                                                                    &
+L_tile_pts,                                                                   &
+EffSurfRefl_dif,                                                              &
+EffSurfRefl_beam,                                                             &
+snow_flag_cable,                                                              &
+SnowFlag_3L                                                                   &
 
 
                            )
 
-implicit none
+IMPLICIT NONE
 
 !___ re-decl input args
 
 !model dimensions
 !-------------------------------------------------------------------------------
 !JaC:todo:ultimatelty get this from JaC~
-integer :: mp                       !total number of "tiles"  
-integer :: nrb                      !number of radiation bands [per legacy=3, but really=2 VIS,NIR. 3rd dim was for LW]
-integer :: row_length                       !grid cell x
-integer :: rows                             !grid cell y
-integer :: land_pts                         !grid cell land points on the x,y grid
-integer :: nsurft                           !grid cell number of surface types 
-integer :: sm_levels                        !grid cell number of soil levels 
-integer :: tile_pts(nsurft)                 !Number of land points per PFT 
-integer :: tile_index(land_pts,nsurft)      !Index of land point in (land_pts) array
-integer :: land_index(land_pts)             !Index of land points in (x,y) array - see below
+INTEGER :: mp                       !total number of "tiles"  
+INTEGER :: nrb                      !number of radiation bands [per legacy=3, but really=2 VIS,NIR. 3rd dim was for LW]
+INTEGER :: row_length                       !grid cell x
+INTEGER :: rows                             !grid cell y
+INTEGER :: land_pts                         !grid cell land points on the x,y grid
+INTEGER :: nsurft                           !grid cell number of surface types 
+INTEGER :: sm_levels                        !grid cell number of soil levels 
+INTEGER :: tile_pts(nsurft)                 !Number of land points per PFT 
+INTEGER :: tile_index(land_pts,nsurft)      !Index of land point in (land_pts) array
+INTEGER :: land_index(land_pts)             !Index of land points in (x,y) array - see below
 !-------------------------------------------------------------------------------
 
 !Return from CABLE to vulvill contract with JULES
 !-------------------------------------------------------------------------------
-real :: land_albedo(row_length,rows,4)      
-real :: alb_surft(Land_pts,nsurft,4)        
+REAL :: land_albedo(row_length,rows,4)      
+REAL :: alb_surft(Land_pts,nsurft,4)        
 !-------------------------------------------------------------------------------
 
 !recieved as spatial maps from the UM. 
 !-------------------------------------------------------------------------------
-real :: tile_frac(land_pts,nsurft)          !fraction of each surface type per land point 
-logical :: L_tile_pts( land_pts, nsurft )   !mask:=TRUE where tile_frac>0, else FALSE. pack mp according to this mask
+REAL :: tile_frac(land_pts,nsurft)          !fraction of each surface type per land point 
+LOGICAL :: L_tile_pts( land_pts, nsurft )   !mask:=TRUE where tile_frac>0, else FALSE. pack mp according to this mask
 !-------------------------------------------------------------------------------
 
 !recieved as spatial maps from the UM. remapped to "mp"
 !-------------------------------------------------------------------------------
-integer:: surface_type(mp)          ! Integer index of Surface type (veg%iveg)
-real :: LAI_pft_cbl(mp)             !LAI -  "limited" and remapped
-real :: HGT_pft_cbl(mp)             !canopy height -  "limited" and remapped
+INTEGER:: surface_type(mp)          ! Integer index of Surface type (veg%iveg)
+REAL :: LAI_pft_cbl(mp)             !LAI -  "limited" and remapped
+REAL :: HGT_pft_cbl(mp)             !canopy height -  "limited" and remapped
 !-------------------------------------------------------------------------------
 
 !Prognostics
 !-------------------------------------------------------------------------------
-integer:: SnowFlag_3L(mp)           !Flag to treat snow as 3 layer  - if enough present. Updated depending on total depth (ssnow%isflag)
-real :: snow_flag_cable(land_pts,nsurft) !Flag to treat snow as 3 layer  - REALized and in JULES dimensioonal format
+INTEGER:: SnowFlag_3L(mp)           !Flag to treat snow as 3 layer  - if enough present. Updated depending on total depth (ssnow%isflag)
+REAL :: snow_flag_cable(land_pts,nsurft) !Flag to treat snow as 3 layer  - REALized and in JULES dimensioonal format
 !-------------------------------------------------------------------------------
                                                                                            
 ! Albedos
@@ -77,13 +77,13 @@ REAL :: EffSurfRefl_beam(mp,nrb)    !Effective Surface Relectance as seen by atm
 
 
 !___ local vars
-INTEGER :: i,J,K,L,N
+INTEGER :: i,j,k,l,n
 REAL :: miss = 0.0
  
 ! std template args 
-character(len=*), parameter :: subr_name = "cable_rad_unpack"
-real :: Sumreffbm(mp) 
-real :: Sumreffdf(mp) 
+CHARACTER(LEN=*), PARAMETER :: subr_name = "cable_rad_unpack"
+REAL :: Sumreffbm(mp) 
+REAL :: Sumreffdf(mp) 
   
 ! only for land points, at present do not have a method for treating 
 ! mixed land/sea or land/seaice points as yet.
@@ -93,49 +93,49 @@ real :: Sumreffdf(mp)
 !     (:,:,3) direct beam near-IR
 !     (:,:,4) diffuse near-IR
 alb_surft(:,:,:) = 0.0
-alb_surft(:,:,1) = UNPACK(EffSurfRefl_beam(:,1),L_TILE_PTS, miss)
-alb_surft(:,:,3) = UNPACK(EffSurfRefl_beam(:,2),L_TILE_PTS, miss)
-alb_surft(:,:,2) = UNPACK(EffSurfRefl_dif(:,1),L_TILE_PTS, miss)
-alb_surft(:,:,4) = UNPACK(EffSurfRefl_dif(:,2),L_TILE_PTS, miss)
+alb_surft(:,:,1) = UNPACK(EffSurfRefl_beam(:,1),l_tile_pts, miss)
+alb_surft(:,:,3) = UNPACK(EffSurfRefl_beam(:,2),l_tile_pts, miss)
+alb_surft(:,:,2) = UNPACK(EffSurfRefl_dif(:,1),l_tile_pts, miss)
+alb_surft(:,:,4) = UNPACK(EffSurfRefl_dif(:,2),l_tile_pts, miss)
 
-do i=1,land_pts
-  do j=1,nsurft
+DO i = 1,land_pts
+  DO j = 1,nsurft
               
-  if( alb_surft(i,j,1)> 1.) then
-    print *, 'alb > 1',alb_surft(i,j,1)
-    STOP
-  ENDIF
+    IF ( alb_surft(i,j,1)> 1.0) THEN
+      PRINT  * , 'alb > 1',alb_surft(i,j,1)
+      STOP
+    END IF
  
-  ENDDO
-ENDDO
+  END DO
+END DO
 
-LAND_ALBEDO=0
+land_albedo = 0
 
-DO N=1,nsurft
-  DO K=1,TILE_PTS(N)
-    L = TILE_INDEX(K,N)
-    J=(LAND_INDEX(L)-1)/ROW_LENGTH + 1
-    I = LAND_INDEX(L) - (J-1)*ROW_LENGTH
+DO n = 1,nsurft
+  DO k = 1,tile_pts(n)
+    l = tile_index(k,n)
+    j=(land_index(l) - 1) / row_length + 1
+    i = land_index(l) - (j-1) * row_length
     
     ! direct beam visible
-    LAND_ALBEDO(I,J,1) = LAND_ALBEDO(I,J,1) +              &
-                               TILE_FRAC(L,N)*ALB_surft(L,N,1)
+    land_albedo(i,j,1) = land_albedo(i,j,1) +                                 &
+                               tile_frac(l,n) * ALB_surft(l,n,1)
 
     ! diffuse beam visible
-    LAND_ALBEDO(I,J,2) = LAND_ALBEDO(I,J,2) +               &
-                               TILE_FRAC(L,N)*ALB_surft(L,N,2)
+    land_albedo(i,j,2) = land_albedo(i,j,2) +                                 &
+                               tile_frac(l,n) * ALB_surft(l,n,2)
 
     ! direct beam nearinfrared 
-    LAND_ALBEDO(I,J,3) = LAND_ALBEDO(I,J,3) +               &
-                               TILE_FRAC(L,N)*ALB_surft(L,N,3)
+    land_albedo(i,j,3) = land_albedo(i,j,3) +                                 &
+                               tile_frac(l,n) * ALB_surft(l,n,3)
 
     ! diffuse beam nearinfrared
-    LAND_ALBEDO(I,J,4) = LAND_ALBEDO(I,J,4) +               &
-                               TILE_FRAC(L,N)*ALB_surft(L,N,4)
-  ENDDO
-ENDDO
+    land_albedo(i,j,4) = land_albedo(i,j,4) +                                 &
+                               tile_frac(l,n) * ALB_surft(l,n,4)
+  END DO
+END DO
 
-return
+RETURN
      
-End subroutine cable_rad_unpack
-End module cable_rad_unpack_mod
+END SUBROUTINE cable_rad_unpack
+END MODULE cable_rad_unpack_mod

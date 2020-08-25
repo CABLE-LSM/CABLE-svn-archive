@@ -28,14 +28,14 @@ SUBROUTINE allocate_cable_progs()
 USE ancil_info,               ONLY: land_pts, nsurft
 USE jules_soil_mod,           ONLY: sm_levels
 USE cable_prognostic_info_mod
-USE prognostics,              ONLY : snow_surft
+USE prognostics,              ONLY: snow_surft
 
 !Common Non-science modules
 USE parkind1,                 ONLY: jprb, jpim
 USE yomhook,                  ONLY: lhook, dr_hook
 USE jules_print_mgr,          ONLY: jules_message, jules_print, PrNorm
 USE ereport_mod,              ONLY: ereport
-USE cable_surface_types_mod,           ONLY : msn_cable
+USE cable_surface_types_mod,           ONLY: msn_cable
 
 IMPLICIT NONE
 
@@ -104,38 +104,38 @@ IF (lhook) CALL dr_hook(ModuleName//':'//RoutineName,zhook_in,zhook_handle)
 errcode = 101
 
 ! CABLE vars to be initialized via JULES i/o
-ALLOCATE( SoilTemp_CABLE(land_pts, nsurft, sm_levels), STAT=error )
-  error_sum = error_sum + error
+ALLOCATE( SoilTemp_CABLE(land_pts, nsurft, sm_levels), stat = error )
+error_sum = error_sum + error
 
-ALLOCATE( SoilMoisture_CABLE(land_pts, nsurft, sm_levels), STAT=error )
-  error_sum = error_sum + error
+ALLOCATE( SoilMoisture_CABLE(land_pts, nsurft, sm_levels), stat = error )
+error_sum = error_sum + error
 
-ALLOCATE( FrozenSoilFrac_CABLE(land_pts, nsurft, sm_levels), STAT=error )
-  error_sum = error_sum + error
+ALLOCATE( FrozenSoilFrac_CABLE(land_pts, nsurft, sm_levels), stat = error )
+error_sum = error_sum + error
 
-ALLOCATE( SnowDepth_CABLE(land_pts, nsurft, msn_cable), STAT=error )
-  error_sum = error_sum + error
+ALLOCATE( SnowDepth_CABLE(land_pts, nsurft, msn_cable), stat = error )
+error_sum = error_sum + error
 
-ALLOCATE( SnowMass_CABLE(land_pts,nsurft, msn_cable),STAT=error )
-  error_sum = error_sum + error
+ALLOCATE( SnowMass_CABLE(land_pts,nsurft, msn_cable),stat = error )
+error_sum = error_sum + error
 
-ALLOCATE( SnowTemp_CABLE(land_pts, nsurft, msn_cable), STAT=error )
-  error_sum = error_sum + error
+ALLOCATE( SnowTemp_CABLE(land_pts, nsurft, msn_cable), stat = error )
+error_sum = error_sum + error
 
-ALLOCATE( SnowDensity_CABLE(land_pts,nsurft,msn_cable),STAT=error)
-  error_sum=error_sum+error
+ALLOCATE( SnowDensity_CABLE(land_pts,nsurft,msn_cable),stat = error)
+error_sum = error_sum + error
 
-ALLOCATE( ThreeLayerSnowFlag_CABLE(land_pts,nsurft),STAT=error)
-  error_sum = error_sum + error
+ALLOCATE( ThreeLayerSnowFlag_CABLE(land_pts,nsurft),stat = error)
+error_sum = error_sum + error
 
-ALLOCATE( OneLyrSnowDensity_CABLE(land_pts,nsurft),STAT=error)
-  error_sum = error_sum + error
+ALLOCATE( OneLyrSnowDensity_CABLE(land_pts,nsurft),stat = error)
+error_sum = error_sum + error
 
-ALLOCATE( SnowAge_CABLE(land_pts, nsurft), STAT=error )
-  error_sum = error_sum + error
+ALLOCATE( SnowAge_CABLE(land_pts, nsurft), stat = error )
+error_sum = error_sum + error
 
-ALLOCATE( snowOsurft(land_pts, nsurft), STAT=error )
-  error_sum = error_sum + error
+ALLOCATE( snowOsurft(land_pts, nsurft), stat = error )
+error_sum = error_sum + error
 
 snowOsurft = snow_surft
 

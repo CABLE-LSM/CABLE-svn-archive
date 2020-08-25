@@ -32,7 +32,7 @@ TYPE um_dimensions
   REAL, ALLOCATABLE :: tile_frac(:,:)
   REAL, ALLOCATABLE :: latitude(:,:), longitude(:,:)
   LOGICAL, ALLOCATABLE :: l_tile_pts(:,:) 
-ENDTYPE um_dimensions 
+END TYPE um_dimensions 
 
 TYPE(um_dimensions)    :: um1
 
@@ -40,19 +40,19 @@ REAL,ALLOCATABLE, DIMENSION(:) :: conv_rain_prevstep, conv_snow_prevstep
 
 CONTAINS
 
-SUBROUTINE alloc_um_interface_types( row_length, rows, land_pts, ntiles,       &
+SUBROUTINE alloc_um_interface_types( row_length, rows, land_pts, ntiles,      &
                                      sm_levels )
-USE cable_common_module, ONLY : cable_runtime, cable_user
+USE cable_common_module, ONLY: cable_runtime, cable_user
       
 INTEGER,INTENT(IN) :: row_length, rows, land_pts, ntiles, sm_levels   
 
-if(.NOT. allocated ( um1%land_index ) )  ALLOCATE( um1%land_index(land_pts) )
-if(.NOT. allocated ( um1%tile_pts ) )    ALLOCATE( um1%tile_pts(ntiles) )
-if(.NOT. allocated ( um1%tile_frac ) )   ALLOCATE( um1%tile_frac(land_pts, ntiles) )
-if(.NOT. allocated ( um1%tile_index ) )  ALLOCATE( um1%tile_index(land_pts, ntiles) )
-if(.NOT. allocated ( um1%latitude ) )    ALLOCATE( um1%latitude(row_length, rows) )
-if(.NOT. allocated ( um1%longitude ) )   ALLOCATE( um1%longitude(row_length, rows) )
-if(.NOT. allocated ( um1%l_tile_pts ) )  ALLOCATE( um1%l_tile_pts(land_pts, ntiles) ) 
+IF ( .NOT. ALLOCATED ( um1%land_index ) )  ALLOCATE( um1%land_index(land_pts) )
+IF ( .NOT. ALLOCATED ( um1%tile_pts ) )    ALLOCATE( um1%tile_pts(ntiles) )
+IF ( .NOT. ALLOCATED ( um1%tile_frac ) )   ALLOCATE( um1%tile_frac(land_pts, ntiles) )
+IF ( .NOT. ALLOCATED ( um1%tile_index ) )  ALLOCATE( um1%tile_index(land_pts, ntiles) )
+IF ( .NOT. ALLOCATED ( um1%latitude ) )    ALLOCATE( um1%latitude(row_length, rows) )
+IF ( .NOT. ALLOCATED ( um1%longitude ) )   ALLOCATE( um1%longitude(row_length, rows) )
+IF ( .NOT. ALLOCATED ( um1%l_tile_pts ) )  ALLOCATE( um1%l_tile_pts(land_pts, ntiles) ) 
          
 END SUBROUTINE alloc_um_interface_types 
 

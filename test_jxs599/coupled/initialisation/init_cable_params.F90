@@ -18,9 +18,9 @@ USE cable_params_mod,         ONLY: veg => veg_cbl
 USE init_cable_pftparms_mod,  ONLY: init_cable_veg
 USE init_cable_soilparms_mod, ONLY: init_cable_soil
 
-implicit none
+IMPLICIT NONE
 
-integer :: mp
+INTEGER :: mp
 !-----------------------------------------------------------------------------
 ! Description:
 ! Set CABLE params as are used in CABLE (per active tile) - 

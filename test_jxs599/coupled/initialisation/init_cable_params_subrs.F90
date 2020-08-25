@@ -4,7 +4,7 @@ MODULE init_cable_pftparms_mod
 
 IMPLICIT NONE
 
-contains
+CONTAINS
  
 SUBROUTINE init_cable_veg()
 
@@ -22,15 +22,15 @@ IMPLICIT NONE
 ! This file belongs in CABLE SCIENCE
 !-----------------------------------------------------------------------------
 
-integer :: JSurfaceTypeID(land_pts,nsurft)  
-integer :: i
+INTEGER :: JSurfaceTypeID(land_pts,nsurft)  
+INTEGER :: i
 INTEGER :: h
 
 !local var to pack surface type:
 JSurfaceTypeID = 0
-do i=1,nsurft
-  if( frac_surft(1,i) > 0 ) JSurfaceTypeID(:,i) = i
-end do
+DO i = 1,nsurft
+  IF ( frac_surft(1,i) > 0 ) JSurfaceTypeID(:,i) = i
+END DO
 
 veg%iveg = PACK( JSurfaceTypeID, L_tile_pts)
 
@@ -99,7 +99,7 @@ MODULE init_cable_soilparms_mod
 
 IMPLICIT NONE
 
-contains
+CONTAINS
 
 SUBROUTINE init_cable_soil()
 
@@ -111,9 +111,9 @@ IMPLICIT NONE
 
 soil%isoilm  =  2
    
-WHERE( veg%iveg == 17 ) soil%isoilm = 9
+WHERE ( veg%iveg == 17 ) soil%isoilm = 9
            
-End SUBROUTINE init_cable_soil
+END SUBROUTINE init_cable_soil
 
 END MODULE init_cable_soilparms_mod
 

@@ -15,9 +15,9 @@ SUBROUTINE def_cable_grid(mp)
 USE cbl_masks_mod,        ONLY: init_active_tile_mask_cbl
 USE ancil_info,           ONLY: surft_pts
 
-implicit none
+IMPLICIT NONE
 
-integer :: mp
+INTEGER :: mp
 !-----------------------------------------------------------------------------
 ! Description:
 !   Allocates the CABLE model arrays using sizes determined during

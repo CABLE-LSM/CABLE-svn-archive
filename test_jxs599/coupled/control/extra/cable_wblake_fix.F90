@@ -1,19 +1,19 @@
-module cable_wblake_mod
-  implicit none
+MODULE cable_wblake_mod
+IMPLICIT NONE
 
-  real  :: wblake_ratio               ! ratio of wblake/subroff
+REAL  :: wblake_ratio               ! ratio of wblake/subroff
 
-  real, allocatable, save ::                                                   &
-    WBLAKE_cable(:,:), TOT_WBLAKE_cable(:), TOT_SUBRUN_cable(:)
+REAL, ALLOCATABLE, SAVE ::                                                    &
+  WBLAKE_cable(:,:), TOT_WBLAKE_cable(:), TOT_SUBRUN_cable(:)
 
-contains
+CONTAINS
 
-subroutine cable_wblake_fix_alloc( land_points, ntiles )
-  integer :: land_points, ntiles
+SUBROUTINE cable_wblake_fix_alloc( land_points, ntiles )
+INTEGER :: land_points, ntiles
 
-  if(.NOT. allocated( wblake_cable ) ) & 
-    allocate ( WBLAKE_cable(land_points,ntiles) )
+IF ( .NOT. ALLOCATED( wblake_cable ) )                                        &
+  ALLOCATE ( WBLAKE_cable(land_points,ntiles) )
 
-End subroutine cable_wblake_fix_alloc
+END SUBROUTINE cable_wblake_fix_alloc
 
-End module cable_wblake_mod
+END MODULE cable_wblake_mod

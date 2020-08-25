@@ -12,11 +12,11 @@ CONTAINS
 
 SUBROUTINE init_cable_runtime_options()
 
-USE cable_runtime_opts_mod ,ONLY : cable_user
-USE cable_runtime_opts_mod ,ONLY : satuparam
-USE cable_runtime_opts_mod ,ONLY : wiltparam
+USE cable_runtime_opts_mod ,ONLY: cable_user
+USE cable_runtime_opts_mod ,ONLY: satuparam
+USE cable_runtime_opts_mod ,ONLY: wiltparam
 
-implicit none
+IMPLICIT NONE
 
 !call def_cable_runtime_opts()
 !USE declared in here cable_runtime_opts_mod ,ONLY : cable_user
@@ -30,9 +30,9 @@ implicit none
 !H-test!cable_user%gs_switch='leuning'
 cable_user%fwsoil_switch='Haverd2013'
 cable_user%gs_switch='medlyn'
-cable_user%l_rev_corr=.true.
-cable_user%l_revised_coupling=.true.
-cable_user%soil_thermal_fix=.true.
+cable_user%l_rev_corr = .TRUE.
+cable_user%l_revised_coupling = .TRUE.
+cable_user%soil_thermal_fix = .TRUE.
 cable_user%ssnow_potev='HDM'
 !jh:these only matter if calling hydraulic_resistribution
 !satuparam=0.8

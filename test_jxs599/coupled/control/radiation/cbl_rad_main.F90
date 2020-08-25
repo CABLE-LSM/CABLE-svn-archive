@@ -1,14 +1,14 @@
-module cable_rad_main_mod
+MODULE cable_rad_main_mod
   
-contains
+CONTAINS
 
-SUBROUTINE cable_rad_main( &
+SUBROUTINE cable_rad_main(                                                    &
 !corresponding name (if differs) of varaible on other side of call/subroutine shown in "[]" 
 
 !Variables to be calculated and returned by CABLE
 !------------------------------------------------------------------------------
-land_albedo,   & ! GridBoxMean albedo per rad band (row_length,rows,4) [land_albedo_ij]
-alb_surft,     & ! albedo per rad band per tile (land_pts, nsurft, 4) [alb_tile] 
+land_albedo, & ! GridBoxMean albedo per rad band (row_length,rows,4) [land_albedo_ij]
+alb_surft,    & ! albedo per rad band per tile (land_pts, nsurft, 4) [alb_tile]
 !------------------------------------------------------------------------------
 
 !Mostly model dimensions and associated
@@ -20,16 +20,16 @@ nsurft,              & !grid cell number of surface types [nsurft]
 npft,                & !grid cell number of PFTs 
 tile_pts,            & !Number of land points per PFT [surft_pts] 
 tile_index,          & !Index of land point in (land_pts) array[surft_index] 
-land_index,          & !Index of land points in (x,y) array - see  corresponding *decs.inc
+land_index, & !Index of land points in (x,y) array - see  corresponding *decs.inc
 !------------------------------------------------------------------------------
 
 !Surface descriptions generally parametrized
 !------------------------------------------------------------------------------
 !dzsoil,              & !soil thicknesses in each layer  
-tile_frac,           & !fraction of each surface type per land point [frac_surft] 
+tile_frac,         & !fraction of each surface type per land point [frac_surft]
 LAI_pft_um,          & !Leaf area index. [LAI_pft]
 HGT_pft_um,          & !Canopy height [canht_pft]
-soil_alb,            & !(albsoil)Snow-free, bare soil albedo [albsoil_soilt(:,1)]
+soil_alb,          & !(albsoil)Snow-free, bare soil albedo [albsoil_soilt(:,1)]
 !------------------------------------------------------------------------------
 
 !Variables passed from JULES/UM
@@ -53,90 +53,90 @@ msn,          &!# of snow layers. at present=3
 nrb,            &!# of rad. bands(confused b/n VIS/NIR, dir/dif. wrongly=3
 jls_standalone, &! Am I in standalone mode 
 L_tile_pts,     &!Logical mask. TRUE where tile frac > 0. else = FALSE
-veg_mask, sunlit_mask, sunlit_veg_mask, & !Logical masks. TRUE where veg/sunlit/Both 
+veg_mask, sunlit_mask, sunlit_veg_mask, & !Logical masks. TRUE where veg/sunlit/Both
 !introduced prognostics. tiled soil on 6 layers. tiled snow on 3 layers etc!---
 SoilTemp_CABLE,           &!soil temperature (IN for rad.)
 SnowTemp_CABLE,           &!snow temperature (IN for rad.) REDUNDANT
 ThreeLayerSnowFlag_CABLE, &!flag signalling 3 layer treatment (binary) IN only
-OneLyrSnowDensity_CABLE,  &
+OneLyrSnowDensity_CABLE,                                                      &
 
 !constants!--------------------------------------------------------------------
-Cz0surf_min,           &
-Clai_thresh,           &
-Ccoszen_tols,          &
-Cgauss_w,              &
-Cpi,                   &
-Cpi180,                &
+Cz0surf_min,                                                                  &
+Clai_thresh,                                                                  &
+Ccoszen_tols,                                                                 &
+Cgauss_w,                                                                     &
+Cpi,                                                                          &
+Cpi180,                                                                       &
 
 !Vegetation parameters!--------------------------------------------------------
-SurfaceType,        & 
-VegXfang,                 &
-VegTaul,                  &
-VegRefl,                  &
+SurfaceType,                                                                  &
+VegXfang,                                                                     &
+VegTaul,                                                                      &
+VegRefl,                                                                      &
 !Soil parameters!--------------------------------------------------------
-SoiliSoilm                &
+SoiliSoilm                                                                    &
 ) 
  
 !subrs
-USE cable_rad_driv_mod,         ONLY : cable_rad_driver
-USE cable_rad_unpack_mod,       ONLY : cable_rad_unpack
-USE cable_pack_mod,             ONLY : cable_pack_lp !packing
-USE cable_pack_mod,             ONLY : cable_pack_rr !packing
-use cbl_LAI_canopy_height_mod,  ONLY : limit_HGT_LAI
+USE cable_rad_driv_mod,         ONLY: cable_rad_driver
+USE cable_rad_unpack_mod,       ONLY: cable_rad_unpack
+USE cable_pack_mod,             ONLY: cable_pack_lp !packing
+USE cable_pack_mod,             ONLY: cable_pack_rr !packing
+USE cbl_LAI_canopy_height_mod,  ONLY: limit_HGT_LAI
 
 !eliminate using data we need only 4 of these - can at least veg(soil)in%get through JaC 
-USE cable_common_module,    ONLY : cable_runtime
+USE cable_common_module,    ONLY: cable_runtime
 
-implicit none
+IMPLICIT NONE
 
 !--- IN ARGS FROM surf_couple_radiation() ------------------------------------
-integer :: row_length                       !grid cell x
-integer :: rows                             !grid cell y
-integer :: land_pts                         !grid cell land points on the x,y grid
-integer :: nsurft                           !grid cell number of surface types 
-integer :: npft                             !grid cell number of PFTs 
+INTEGER :: row_length                       !grid cell x
+INTEGER :: rows                             !grid cell y
+INTEGER :: land_pts                         !grid cell land points on the x,y grid
+INTEGER :: nsurft                           !grid cell number of surface types 
+INTEGER :: npft                             !grid cell number of PFTs 
 
 !Variables to be calculated and returned by CABLE
-real :: land_albedo(row_length,rows,4)      
-real :: alb_surft(Land_pts,nsurft,4)        
+REAL :: land_albedo(row_length,rows,4)      
+REAL :: alb_surft(Land_pts,nsurft,4)        
 
-real :: tile_frac(land_pts,nsurft)          !fraction of each surface type per land point 
-integer :: tile_pts(nsurft)                 !Number of land points per PFT 
-integer :: tile_index(land_pts,nsurft)      !Index of land point in (land_pts) array
-integer :: land_index(land_pts)             !Index of land points in (x,y) array - see below
-real :: LAI_pft_um(land_pts, npft)          !Leaf area index.
-real :: HGT_pft_um(land_pts, npft)          !Canopy height
+REAL :: tile_frac(land_pts,nsurft)          !fraction of each surface type per land point 
+INTEGER :: tile_pts(nsurft)                 !Number of land points per PFT 
+INTEGER :: tile_index(land_pts,nsurft)      !Index of land point in (land_pts) array
+INTEGER :: land_index(land_pts)             !Index of land points in (x,y) array - see below
+REAL :: LAI_pft_um(land_pts, npft)          !Leaf area index.
+REAL :: HGT_pft_um(land_pts, npft)          !Canopy height
 
-real :: snow_tile(land_pts,nsurft)          ! snow depth equivalent (in water?)
-real :: SnowOTile(land_pts,nsurft)         ! snow depth equivalent from previous timestep
-real :: soil_alb(land_pts)                  !(albsoil)Snow-free, bare soil albedo
-real :: cosine_zenith_angle(row_length,rows)             !cosine_zenith_angle          
+REAL :: snow_tile(land_pts,nsurft)          ! snow depth equivalent (in water?)
+REAL :: SnowOTile(land_pts,nsurft)         ! snow depth equivalent from previous timestep
+REAL :: soil_alb(land_pts)                  !(albsoil)Snow-free, bare soil albedo
+REAL :: cosine_zenith_angle(row_length,rows)             !cosine_zenith_angle          
 
 !--- IN ARGS FROM control() ------------------------------------
-integer :: sm_levels
-real :: dzsoil(sm_levels)
-integer :: mp
-integer :: msn
-integer :: nrb
+INTEGER :: sm_levels
+REAL :: dzsoil(sm_levels)
+INTEGER :: mp
+INTEGER :: msn
+INTEGER :: nrb
 LOGICAL :: L_tile_pts(land_pts,nsurft)
-real :: SoilTemp_CABLE(land_pts, nsurft, sm_levels )
-real :: SnowTemp_CABLE(land_pts, nsurft, msn)
-real :: ThreeLayerSnowFlag_CABLE(land_pts, nsurft )
-real :: OneLyrSnowDensity_CABLE(land_pts, nsurft )
+REAL :: SoilTemp_CABLE(land_pts, nsurft, sm_levels )
+REAL :: SnowTemp_CABLE(land_pts, nsurft, msn)
+REAL :: ThreeLayerSnowFlag_CABLE(land_pts, nsurft )
+REAL :: OneLyrSnowDensity_CABLE(land_pts, nsurft )
 !constants
-real :: Cz0surf_min                      !the minimum roughness of bare soil
-real :: Clai_thresh                     !The minimum LAI below which a "cell" is considred NOT vegetated
-real :: Ccoszen_tols                    !threshold cosine of sun's zenith angle, below which considered SUNLIT
-real :: Cgauss_w(nrb)               !Gaussian integration weights
-real :: Cpi                             !PI - describing the ratio of circumference to diameter
-real :: Cpi180                          !PI in radians
-integer:: SurfaceType(mp) 
-real :: VegXfang(mp)
-real :: VegTaul(mp, nrb)
-real :: VegRefl(mp, nrb)
-integer :: SoiliSoilm(mp)
+REAL :: Cz0surf_min                      !the minimum roughness of bare soil
+REAL :: Clai_thresh                     !The minimum LAI below which a "cell" is considred NOT vegetated
+REAL :: Ccoszen_tols                    !threshold cosine of sun's zenith angle, below which considered SUNLIT
+REAL :: Cgauss_w(nrb)               !Gaussian integration weights
+REAL :: Cpi                             !PI - describing the ratio of circumference to diameter
+REAL :: Cpi180                          !PI in radians
+INTEGER:: SurfaceType(mp) 
+REAL :: VegXfang(mp)
+REAL :: VegTaul(mp, nrb)
+REAL :: VegRefl(mp, nrb)
+INTEGER :: SoiliSoilm(mp)
 
-integer :: metDoY(mp)          !local dummy Day of the Year [formerly met%doy]
+INTEGER :: metDoY(mp)          !local dummy Day of the Year [formerly met%doy]
 
 !Convoluted mapping using land_index(array) to get back to the row_length,rows co-ordinate
 ! J = ( LAND_INDEX(L)-1 ) / ROW_LENGTH + 1
@@ -170,19 +170,19 @@ REAL :: xk(mp, nrb)
 !-------------------------------------------------------------------------------
 !highlight need to allocate these early on and thres to here as SAVE is not an
 !option
-real :: SnowDepth(mp)             !Formerly: ssnow%snowd 
-real :: SnowODepth(mp)            !Formerly: ssnow%osnowd
-real :: SnowDensity(mp)           !Formerly: ssnow%ssdnn 
+REAL :: SnowDepth(mp)             !Formerly: ssnow%snowd 
+REAL :: SnowODepth(mp)            !Formerly: ssnow%osnowd
+REAL :: SnowDensity(mp)           !Formerly: ssnow%ssdnn 
 !computed from UM HT(LAI)_PFT passed in explicit call - need at rad call
-real :: LAI_pft_cbl(mp)           !Formerly: ~veg%vlai
-real :: HGT_pft_cbl(mp)           !Formerly:  ~veg%hc 
+REAL :: LAI_pft_cbl(mp)           !Formerly: ~veg%vlai
+REAL :: HGT_pft_cbl(mp)           !Formerly:  ~veg%hc 
 !can compute from  z0surf_min, HGT_pft_cbl, SnowDepth, SnowDensity )
-real :: HeightAboveSnow(mp)       !Formerly: rough%hruff
+REAL :: HeightAboveSnow(mp)       !Formerly: rough%hruff
 
 REAL :: MetTk(mp) 
 REAL :: SoilTemp(mp)
 REAL :: SnowAge(mp)
-integer:: SnowFlag_3L(mp)
+INTEGER:: SnowFlag_3L(mp)
 
 !--- declare vars local to CABLE -------------------------------------------- 
 !packed in pack
@@ -192,33 +192,33 @@ LOGICAL :: jls_radiation = .TRUE. !um_radiation = jls_radiation
   
 !make local to rad_driver and also again in cbl_model_driver
 !CABLE variables to keep for all CABLE pathways across the timestep 
-real :: reducedLAIdue2snow(mp)
+REAL :: reducedLAIdue2snow(mp)
 !masks
-logical, allocatable :: veg_mask(:),  sunlit_mask(:),  sunlit_veg_mask(:) 
+LOGICAL, ALLOCATABLE :: veg_mask(:),  sunlit_mask(:),  sunlit_veg_mask(:) 
 
 !--- declare local vars to subr -------------------------------------------- 
-character(len=*), parameter :: subr_name = "cable_rad_main"
-logical, save :: first_call = .true.
-integer :: i, j, n
+CHARACTER(LEN=*), PARAMETER :: subr_name = "cable_rad_main"
+LOGICAL, SAVE :: first_call = .TRUE.
+INTEGER :: i, j, n
 LOGICAL :: skip =.TRUE. 
-real :: SW_down(mp,2)
-logical, save :: albflip=.FALSE.
-real, save :: ialb_surft
+REAL :: SW_down(mp,2)
+LOGICAL, SAVE :: albflip = .FALSE.
+REAL, SAVE :: ialb_surft
 
 jls_radiation= .TRUE.
 
 !--- initialize/zero each timestep 
-call zero_albedo( mp, nrb, ExtCoeff_beam, ExtCoeff_dif, EffExtCoeff_beam,      & 
-                  EffExtCoeff_dif, CanopyTransmit_dif, CanopyTransmit_beam,    &
-                  CanopyRefl_dif,CanopyRefl_beam, EffSurfRefl_dif,             &
-                  EffSurfRefl_beam, coszen, RadFbeam, RadAlbedo, AlbSnow,      &
+CALL zero_albedo( mp, nrb, ExtCoeff_beam, ExtCoeff_dif, EffExtCoeff_beam,     &
+                  EffExtCoeff_dif, CanopyTransmit_dif, CanopyTransmit_beam,   &
+                  CanopyRefl_dif,CanopyRefl_beam, EffSurfRefl_dif,            &
+                  EffSurfRefl_beam, coszen, RadFbeam, RadAlbedo, AlbSnow,     &
                   AlbSoil, c1, rhoch, xk )
 
 metDoY = 0    !can pass DoY from current_time%
 !jhan:ubiquitous confusion between nrb, dir/dif radiation
 
 !JULES does not have seperate albedos per nrb so assume same value here
-albsoil(:,3) =0.
+albsoil(:,3)  = 0.0
 CALL cable_pack_lp( soil_alb, soil_alb, albsoil(:,1), SoiliSoilm, skip )
 CALL cable_pack_lp( soil_alb, soil_alb, albsoil(:,2), SoiliSoilm, skip )
 
@@ -226,65 +226,65 @@ CALL cable_pack_lp( soil_alb, soil_alb, albsoil(:,2), SoiliSoilm, skip )
 CALL cable_pack_rr( cosine_zenith_angle, coszen)
 
 !Store Snow Depth from previous timestep. Treat differently on 1st timestep 
-SnowODepth = PACK( SNOWOTILE, L_TILE_PTS )
-SnowDepth = PACK( SNOW_TILE, L_TILE_PTS )
-SnowOTile = UNPACK( SnowDepth, L_TILE_PTS, 0.0 )
+SnowODepth = PACK( snowotile, l_tile_pts )
+SnowDepth = PACK( snow_tile, l_tile_pts )
+SnowOTile = UNPACK( SnowDepth, l_tile_pts, 0.0 )
 
-SnowDensity = PACK( OneLyrSnowDensity_CABLE, L_TILE_PTS )
+SnowDensity = PACK( OneLyrSnowDensity_CABLE, l_tile_pts )
 
 !Treat snow depth across 3Layers? Typecasts from Real to integer
-SnowFlag_3L = PACK( ThreeLayerSnowFlag_CABLE, L_TILE_PTS )
+SnowFlag_3L = PACK( ThreeLayerSnowFlag_CABLE, l_tile_pts )
 
 !Surface skin/ top layer Snow  temperature
-SoilTemp =   PACK( SoilTemp_cable(:,:,1), L_TILE_PTS )
+SoilTemp =   PACK( SoilTemp_cable(:,:,1), l_tile_pts )
 
 ! limit IN height, LAI  and initialize existing cable % types
-call limit_HGT_LAI( LAI_pft_cbl, HGT_pft_cbl, mp, land_pts, nsurft, &
-                    tile_pts, tile_index, tile_frac, L_tile_pts, &
+CALL limit_HGT_LAI( LAI_pft_cbl, HGT_pft_cbl, mp, land_pts, nsurft,           &
+                    tile_pts, tile_index, tile_frac, L_tile_pts,              &
                     LAI_pft_um, HGT_pft_um, CLAI_thresh )
 
 !------------------------------------------------------------------------------
 ! Call CABLE_rad_driver to run specific and necessary components of CABLE 
 !------------------------------------------------------------------------------
-call cable_rad_driver( mp, nrb, Clai_thresh, Ccoszen_tols,  CGauss_w, Cpi,     &
-                       veg_mask, sunlit_mask, sunlit_veg_mask, Cpi180,         &
-                       jls_standalone, jls_radiation, Cz0surf_min, SurfaceType,&
-                       LAI_pft_cbl, HGT_pft_cbl, SnowDepth, SnowODepth,        &
-                       SnowFlag_3L, SnowDensity, SoilTemp, SnowAge,            &
-                       HeightAboveSnow, ExtCoeff_beam, ExtCoeff_dif,           &
-                       EffExtCoeff_beam, EffExtCoeff_dif,                      &
-                       CanopyRefl_dif, CanopyRefl_beam,                        &
-                       CanopyTransmit_dif, CanopyTransmit_beam, &
-                       EffSurfRefl_dif, EffSurfRefl_beam, &
-                       RadAlbedo, reducedLAIdue2snow,          &
-                       coszen, VegXfang, VegTaul, VegRefl,          &
-                       c1, rhoch, metDoY, SW_down,          &
+CALL cable_rad_driver( mp, nrb, Clai_thresh, Ccoszen_tols,  CGauss_w, Cpi,    &
+                       veg_mask, sunlit_mask, sunlit_veg_mask, Cpi180,        &
+                       jls_standalone, jls_radiation, Cz0surf_min, SurfaceType, &
+                       LAI_pft_cbl, HGT_pft_cbl, SnowDepth, SnowODepth,       &
+                       SnowFlag_3L, SnowDensity, SoilTemp, SnowAge,           &
+                       HeightAboveSnow, ExtCoeff_beam, ExtCoeff_dif,          &
+                       EffExtCoeff_beam, EffExtCoeff_dif,                     &
+                       CanopyRefl_dif, CanopyRefl_beam,                       &
+                       CanopyTransmit_dif, CanopyTransmit_beam,               &
+                       EffSurfRefl_dif, EffSurfRefl_beam,                     &
+                       RadAlbedo, reducedLAIdue2snow,                         &
+                       coszen, VegXfang, VegTaul, VegRefl,                    &
+                       c1, rhoch, metDoY, SW_down,                            &
                        RadFbeam, xk, AlbSnow, AlbSoil, metTk )
 
 ! Unpack variables (CABLE computed albedos) to JULES 
 !------------------------------------------------------------------------------
-call cable_rad_unpack( land_albedo, alb_surft, mp, nrb, row_length, rows,      & 
-                       land_pts, nsurft, sm_levels, tile_pts, tile_index,      &
-                       land_index, tile_frac, L_tile_pts,                      &
-                       EffSurfRefl_dif, EffSurfRefl_beam,       &
+CALL cable_rad_unpack( land_albedo, alb_surft, mp, nrb, row_length, rows,     &
+                       land_pts, nsurft, sm_levels, tile_pts, tile_index,     &
+                       land_index, tile_frac, L_tile_pts,                     &
+                       EffSurfRefl_dif, EffSurfRefl_beam,                     &
                        ThreeLayerSnowFlag_CABLE, SnowFlag_3L )
 
 !flick switches before leaving  
 jls_radiation= .FALSE.
-first_call = .false.
+first_call = .FALSE.
 
-return
+RETURN
 
-End subroutine cable_rad_main
+END SUBROUTINE cable_rad_main
 
-subroutine zero_albedo( mp, nrb, ExtCoeff_beam, ExtCoeff_dif, EffExtCoeff_beam,& 
-                        EffExtCoeff_dif, CanopyTransmit_dif,                   & 
-                        CanopyTransmit_beam, CanopyRefl_dif, CanopyRefl_beam,  &
-                        EffSurfRefl_dif, EffSurfRefl_beam,                     & 
-                        coszen, RadFbeam, RadAlbedo, AlbSnow, AlbSoil, c1,     & 
+SUBROUTINE zero_albedo( mp, nrb, ExtCoeff_beam, ExtCoeff_dif, EffExtCoeff_beam, &
+                        EffExtCoeff_dif, CanopyTransmit_dif,                  &
+                        CanopyTransmit_beam, CanopyRefl_dif, CanopyRefl_beam, &
+                        EffSurfRefl_dif, EffSurfRefl_beam,                    &
+                        coszen, RadFbeam, RadAlbedo, AlbSnow, AlbSoil, c1,    &
                         rhoch, xk )
 
-integer :: mp, nrb
+INTEGER :: mp, nrb
 !these local to CABLE and can be flushed every timestep
 REAL :: ExtCoeff_beam(mp)
 REAL :: ExtCoeff_dif(mp)
@@ -328,8 +328,8 @@ c1(:,:) = 0.0
 rhoch(:,:) = 0.0
 xk(:,:) = 0.0
 
-End subroutine zero_albedo
+END SUBROUTINE zero_albedo
 
 
-End module cable_rad_main_mod
+END MODULE cable_rad_main_mod
 
