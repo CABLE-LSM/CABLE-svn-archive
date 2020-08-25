@@ -59,7 +59,7 @@ host_gadi()
        # OPTFLAG="${CFLAGS} -xSKYLAKE"     # or -xSKYLAKE-AVX512 depends on performance; queues: normalsl
    fi
    export CFLAGS="${CFLAGS} ${OPTFLAG}"
-   export CFLAGS="${CFLAGS} -D__CRU2017__"
+   #export CFLAGS="${CFLAGS} -D__CRU2017__"
    export CFLAGS="${CFLAGS} -D__NETCDF3__"
    export LDFLAGS="-L"${NCDIR}" "${LDFLAGS}
    export LD="-lnetcdf -lnetcdff"

@@ -1468,6 +1468,14 @@ CONTAINS
     blen(bidx) = r1len
 
     bidx = bidx + 1
+    CALL MPI_Get_address (veg%ejmax_shade, displs(bidx), ierr)
+    blen(bidx) = r1len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (veg%ejmax_sun, displs(bidx), ierr)
+    blen(bidx) = r1len
+    
+    bidx = bidx + 1
     CALL MPI_Get_address (veg%frac4, displs(bidx), ierr)
     blen(bidx) = r1len
 
@@ -1535,6 +1543,18 @@ CONTAINS
 
     bidx = bidx + 1
     CALL MPI_Get_address (veg%vcmax, displs(bidx), ierr)
+    blen(bidx) = r1len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (veg%vcmaxx, displs(bidx), ierr)
+    blen(bidx) = r1len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (veg%vcmax_sun, displs(bidx), ierr)
+    blen(bidx) = r1len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (veg%vcmax_shade, displs(bidx), ierr)
     blen(bidx) = r1len
 
     !  bidx = bidx + 1
@@ -1636,8 +1656,33 @@ CONTAINS
     ! Ticket #56, finish adding new veg parms
 
     bidx = bidx + 1
+    CALL MPI_Get_address (veg%vcmaxcc, displs(bidx), ierr)
+    blen(bidx) = r1len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (veg%ejmaxcc, displs(bidx), ierr)
+    blen(bidx) = r1len
+
+    bidx = bidx + 1
     CALL MPI_Get_address (veg%gmmax, displs(bidx), ierr)
     blen(bidx) = r1len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (veg%gm, displs(bidx), ierr)
+    blen(bidx) = r1len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (veg%c4kci, displs(bidx), ierr)
+    blen(bidx) = r1len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (veg%c4kcc, displs(bidx), ierr)
+    blen(bidx) = r1len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (veg%bjv, displs(bidx), ierr)
+    blen(bidx) = r1len
+
 
     ! ----------- bgc --------------
 
