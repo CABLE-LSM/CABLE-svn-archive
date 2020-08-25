@@ -3626,7 +3626,6 @@ CONTAINS
       ! potential rate of electron transport at 25 deg or 298 K
       Jmax25 = Vcmax25 * 2.0
 
-
       psil_soil = ssnow%weighted_psi_soil(i)
 
       GSC_2_GSW = 1.57        ! Ratio of Gsw:Gsc
@@ -3762,13 +3761,15 @@ CONTAINS
 
        REAL, INTENT(IN) :: tleaf, scalex, par, Vcmax25, Jmax25
 
-       REAL, PARAMETER :: tol = 1E-04 !1E-12
+       REAL, PARAMETER :: tol = 1E-05 !1E-12
 
+       INTEGER :: iter
 
        min_ci = 0.0 ! CABLE assumes gamma_star = 0
        max_ci = ca  ! umol m-2 s-1
        an_new  = 0.0
 
+       iter = 0
        DO
           ci_new = 0.5 * (max_ci + min_ci) ! umol mol-1
 
@@ -3802,6 +3803,12 @@ CONTAINS
           IF (abs(max_ci - min_ci) < tol) THEN
              an_new = an ! umol m-2 s-1
              EXIT
+          END IF
+
+          iter = iter + 1
+
+          IF (iter > 1000) THEN
+             print*, "stuck"
           END IF
 
        END DO
