@@ -1801,12 +1801,12 @@ CONTAINS
 
     REAL :: Kmax, Kcrit, b_plant, c_plant, press
 
-    INTEGER, PARAMETER :: resolution = 20
+    INTEGER, PARAMETER :: resolution = 10
     REAL, DIMENSION(2) :: an_canopy
     REAL :: e_canopy
     REAL, DIMENSION(resolution) :: p
 
-    REAL :: MOL_WATER_2_G_WATER, G_TO_KG
+    REAL :: MOL_WATER_2_G_WATER, G_TO_KG, UMOL_TO_MOL
 
 
 
@@ -1849,7 +1849,7 @@ CONTAINS
 
      MOL_WATER_2_G_WATER = 18.02
      G_TO_KG = 1E-03
-
+     UMOL_TO_MOL = 0.000001
 
     ! weight min stomatal conductance by C3 an C4 plant fractions
     frac42 = SPREAD(veg%frac4, 2, mf) ! frac C4 plants
@@ -2129,20 +2129,29 @@ CONTAINS
 
                 an_canopy = 0.0
                 e_canopy = 0.0
-
+                !print*, "1", rdx(i,1), rdx(i,2)
+                rdx(i,1) = 0.015 * &
+                                 peaked_arrh(veg%vcmax(1)*1e6, 59700., &
+                                             tlfx(i), 634., 200000.0) * &
+                                 rad%scalex(i,j) * UMOL_TO_MOL
+                rdx(i,2) = 0.015 * &
+                                 peaked_arrh(veg%vcmax(1)*1e6, 59700., &
+                                             tlfx(i), 634., 200000.0) * &
+                                 rad%scalex(i,j) * UMOL_TO_MOL
+                !print*, "2", rdx(i,1), rdx(i,2)
 
                 if (vpd < 0.05) THEN
                    ecx(i) = 0.0
-                   anx(i,1) = 0.0
-                   anx(i,2) = 0.0
+                   anx(i,1) = anx(i,1) - rdx(i,1)
+                   anx(i,2) = anx(i,2) - rdx(i,2)
                 else
                    CALL optimisation(canopy, ssnow, rad, met, veg, Kmax, Kcrit, &
                                      b_plant, c_plant, resolution,&
                                      an_canopy, e_canopy, &
                                      vpd, press, tlfx(i), csx, p, i)
 
-                   anx(i,1) = an_canopy(1) / 1e6
-                   anx(i,2) = an_canopy(2) / 1e6
+                   anx(i,1) = an_canopy(1) * UMOL_TO_MOL
+                   anx(i,2) = an_canopy(2) * UMOL_TO_MOL
 
 
                    conv = MOL_WATER_2_G_WATER * G_TO_KG
@@ -3603,7 +3612,7 @@ CONTAINS
 
       INTEGER, INTENT(IN) :: i, N
       !REAL, DIMENSION(mp,mf), INTENT(IN)      :: anx, gs_coeff, gswmin
-      REAL, DIMENSION(N,mf), INTENT(INOUT) :: an_canopy
+      REAL, DIMENSION(mf), INTENT(INOUT) :: an_canopy
       REAL, INTENT(INOUT) :: e_canopy
 
       REAL(r_2), DIMENSION(mp,mf), INTENT(IN) :: ca_mol
@@ -3668,7 +3677,7 @@ CONTAINS
          IF (apar < 50) THEN
 
             ! load into stores
-            an_canopy(i,j) = 0.0 ! umol m-2 s-1
+            an_canopy(j) = 0.0 ! umol m-2 s-1
             e_canopy = 0.0 ! mol H2O m-2 s-1
             canopy%psi_leaf(i) = canopy%psi_leaf_prev(i)
          ELSE
@@ -3724,7 +3733,7 @@ CONTAINS
             !print*, idx, an_leaf(idx(1)), gain(idx(1)), cost(idx(1))
 
             ! load into stores
-            an_canopy(i,j) = an_leaf(idx) ! umol m-2 s-1
+            an_canopy(j) = an_leaf(idx) ! umol m-2 s-1
             e_leaves(j) = e_leaf(idx) ! mol H2O m-2 s-1
             canopy%psi_leaf(i) = p(idx)
             canopy%psi_leaf_prev(i) = canopy%psi_leaf(i)
