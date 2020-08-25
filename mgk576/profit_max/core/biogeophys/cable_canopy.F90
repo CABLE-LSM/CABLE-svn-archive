@@ -1802,8 +1802,8 @@ CONTAINS
     REAL :: Kmax, Kcrit, b_plant, c_plant, press
 
     INTEGER, PARAMETER :: resolution = 10
-    REAL, DIMENSION(2) :: gsw_canopy, an_canopy, e_canopy
-
+    REAL, DIMENSION(2) :: gsw_canopy, an_canopy
+    REAL :: e_canopy
     REAL, DIMENSION(resolution) :: p
 
 
@@ -2120,13 +2120,19 @@ CONTAINS
                 vpd = dsx(i) * 1E-03 ! Pa -> kPa
                 press = 101.325 ! get from cable
 
+                an_canopy = 0.0
+                e_canopy = 0.0
+                gsw_canopy = 0.0
+
                 CALL optimisation(canopy, ssnow, rad, met, Kmax, Kcrit, &
                                   b_plant, c_plant, resolution, gsw_canopy,&
                                   an_canopy, e_canopy, &
                                   vpd, press, tlfx(i), csx, p, i)
 
-
-
+                anx(i,1) = an_canopy(1)
+                anx(i,2) = an_canopy(2)
+                ecx(i) = e_canopy
+                print*, "out"
                 print*, an_canopy
                 print*, e_canopy
                 print*, gsw_canopy
@@ -2135,20 +2141,6 @@ CONTAINS
                 !print*, p_crit, Kcrit, Kmax
                 print*, " "
                 stop
-
-
-
-                ! We will use min of gmin below, this needs to be 0
-                gswmin = 0.0
-
-                CALL calc_hydr_conduc(canopy, ssnow, rad, veg, veg%kp_sat(i), i)
-
-                ! Sensitivity of stomata to leaf water potential [0-1]
-                fw = f_tuzet(canopy%psi_leaf_prev(i), veg%sf(i), veg%psi_f(i))
-
-                ! convert to conductance to CO2, NB g1 here is unitless
-                gs_coeff(i,1) = (veg%g1(i) / csx(i,1) * fw) / C%RGSWC
-                gs_coeff(i,2) = (veg%g1(i) / csx(i,2) * fw) / C%RGSWC
 
              ELSE
                print*, cable_user%GS_SWITCH, cable_user%FWSOIL_SWITCH, veg%iveg(i)
@@ -2160,15 +2152,17 @@ CONTAINS
 
        ENDDO !i=1,mp
 
-       CALL photosynthesis( csx(:,:),                                           &
-            SPREAD( cx1(:), 2, mf ),                            &
-            SPREAD( cx2(:), 2, mf ),                            &
-            gswmin(:,:), rdx(:,:), vcmxt3(:,:),                 &
-            vcmxt4(:,:), vx3(:,:), vx4(:,:),                    &
-                                ! Ticket #56, xleuning replaced with gs_coeff here
-            gs_coeff(:,:), rad%fvlai(:,:),&
-            SPREAD( abs_deltlf, 2, mf ),                        &
-            anx(:,:), fwsoil(:) )
+       IF (cable_user%FWSOIL_SWITCH /= 'profitmax') THEN
+          CALL photosynthesis( csx(:,:),                                           &
+               SPREAD( cx1(:), 2, mf ),                            &
+               SPREAD( cx2(:), 2, mf ),                            &
+               gswmin(:,:), rdx(:,:), vcmxt3(:,:),                 &
+               vcmxt4(:,:), vx3(:,:), vx4(:,:),                    &
+                                   ! Ticket #56, xleuning replaced with gs_coeff here
+               gs_coeff(:,:), rad%fvlai(:,:),&
+               SPREAD( abs_deltlf, 2, mf ),                        &
+               anx(:,:), fwsoil(:) )
+       END IF
 
        DO i=1,mp
 
@@ -2188,26 +2182,6 @@ CONTAINS
                         MAX( 0.0, C%RGSWC * gs_coeff(i,kk) *     &
                         anx(i,kk) ) )
 
-                   ! Don't add gmin, instead use it as the lower boundary
-                   IF (cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
-
-                      gmin = (veg%gmin(i) * MMOL_2_MOL) * rad%scalex(i,kk)
-
-                      ! We're going to recalc this below after we've finished
-                      ! iterating, but we need to check if we've reached the
-                      ! point of hydraulic failure and if so, we don't want
-                      ! model to crash, so, reset things as we won't interpret
-                      ! things meanginfully
-                      canopy%plc(i) = calc_plc(canopy%kplant(i), veg%kp_sat(i))
-                      IF (canopy%plc(i) >= 88.) THEN
-                         gmin = 1E-09
-                      ENDIF
-
-                      canopy%gswx(i,kk) = MAX(gmin,     &
-                                              MAX(0.0, C%RGSWC * &
-                                                       gs_coeff(i,kk) * &
-                                                       anx(i,kk)))
-                   ENDIF
 
                    !Recalculate conductance for water:
                    gw(i,kk) = 1.0 / ( 1.0 / canopy%gswx(i,kk) +                 &
@@ -2225,14 +2199,19 @@ CONTAINS
 
              ENDDO
 
-             ecx(i) = ( air%dsatdk(i) * ( rad%rniso(i,1) - C%capp * C%rmair     &
-                  * ( met%tvair(i) - met%tk(i) ) * rad%gradis(i,1) )        &
-                  + C%capp * C%rmair * met%dva(i) * ghr(i,1) )              &
-                  / ( air%dsatdk(i) + psycst(i,1) ) + ( air%dsatdk(i)       &
-                  * ( rad%rniso(i,2) - C%capp * C%rmair * ( met%tvair(i) -  &
-                  met%tk(i) ) * rad%gradis(i,2) ) + C%capp * C%rmair *      &
-                  met%dva(i) * ghr(i,2) ) /                                 &
-                  ( air%dsatdk(i) + psycst(i,2) )
+             IF (cable_user%FWSOIL_SWITCH /= 'profitmax') THEN
+
+                ecx(i) = ( air%dsatdk(i) * ( rad%rniso(i,1) - C%capp * C%rmair     &
+                     * ( met%tvair(i) - met%tk(i) ) * rad%gradis(i,1) )        &
+                     + C%capp * C%rmair * met%dva(i) * ghr(i,1) )              &
+                     / ( air%dsatdk(i) + psycst(i,1) ) + ( air%dsatdk(i)       &
+                     * ( rad%rniso(i,2) - C%capp * C%rmair * ( met%tvair(i) -  &
+                     met%tk(i) ) * rad%gradis(i,2) ) + C%capp * C%rmair *      &
+                     met%dva(i) * ghr(i,2) ) /                                 &
+                     ( air%dsatdk(i) + psycst(i,2) )
+
+            END IF
+
 
              IF (cable_user%fwsoil_switch=='Haverd2013') THEN
                 ! avoid root-water extraction when fwsoil is zero
@@ -3690,7 +3669,8 @@ CONTAINS
 
       INTEGER, INTENT(IN) :: i, N
       !REAL, DIMENSION(mp,mf), INTENT(IN)      :: anx, gs_coeff, gswmin
-      REAL, DIMENSION(N,mf), INTENT(INOUT) :: gsw_canopy, an_canopy, e_canopy
+      REAL, DIMENSION(N,mf), INTENT(INOUT) :: gsw_canopy, an_canopy
+      REAL, INTENT(INOUT) :: e_canopy
 
       REAL(r_2), DIMENSION(mp,mf), INTENT(IN) :: ca
       REAL, DIMENSION(N), INTENT(INOUT) :: p
@@ -3756,7 +3736,7 @@ CONTAINS
          IF (apar < 0.5) THEN
             ! load into stores
             an_canopy(i,j) = 0.0 ! umol m-2 s-1
-            e_canopy(i,j) = 0.0 ! mol H2O m-2 s-1
+            e_canopy = 0.0 ! mol H2O m-2 s-1
             gsw_canopy(i,j) = 0.0 ! mol H2O m-2 s-1
          ELSE
             ! For every gsc/psi_leaf get a match An and Ci
@@ -3799,12 +3779,16 @@ CONTAINS
 
             ! load into stores
             an_canopy(i,j) = an_leaf(idx) ! umol m-2 s-1
-            e_canopy(i,j) = e_leaf(idx) ! mol H2O m-2 s-1
+
             gsw_canopy(i,j) = gsw_leaf(idx) ! mol H2O m-2 s-1
 
          END IF
 
       END DO
+
+      IF (apar > 0.5) THEN
+         e_canopy= sum(e_leaf) ! mol H2O m-2 s-1
+      END IF
 
    END SUBROUTINE optimisation
    ! ---------------------------------------------------------------------------
