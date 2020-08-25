@@ -1802,7 +1802,7 @@ CONTAINS
     REAL :: Kmax, Kcrit, b_plant, c_plant, press
 
     INTEGER, PARAMETER :: resolution = 10
-    REAL, DIMENSION(2) :: gsw_canopy, an_canopy
+    REAL, DIMENSION(2) :: an_canopy
     REAL :: e_canopy
     REAL, DIMENSION(resolution) :: p
 
@@ -2131,11 +2131,11 @@ CONTAINS
 
                 an_canopy = 0.0
                 e_canopy = 0.0
-                gsw_canopy = 0.0
+
 
 
                 CALL optimisation(canopy, ssnow, rad, met, Kmax, Kcrit, &
-                                  b_plant, c_plant, resolution, gsw_canopy,&
+                                  b_plant, c_plant, resolution,&
                                   an_canopy, e_canopy, &
                                   vpd, press, tlfx(i), csx, p, i)
 
@@ -3582,7 +3582,7 @@ CONTAINS
 
   ! ----------------------------------------------------------------------------
   SUBROUTINE optimisation(canopy, ssnow, rad, met, Kmax, Kcrit, b_plant, &
-                          c_plant, N, gsw_canopy, an_canopy, e_canopy, &
+                          c_plant, N, an_canopy, e_canopy, &
                           vpd, press, tleaf, ca_mol, p, i)
 
 
@@ -3598,7 +3598,7 @@ CONTAINS
 
       INTEGER, INTENT(IN) :: i, N
       !REAL, DIMENSION(mp,mf), INTENT(IN)      :: anx, gs_coeff, gswmin
-      REAL, DIMENSION(N,mf), INTENT(INOUT) :: gsw_canopy, an_canopy
+      REAL, DIMENSION(N,mf), INTENT(INOUT) :: an_canopy
       REAL, INTENT(INOUT) :: e_canopy
 
       REAL(r_2), DIMENSION(mp,mf), INTENT(IN) :: ca_mol
@@ -3613,11 +3613,10 @@ CONTAINS
       REAL :: fsun, fsha, kcmax
 
       REAL :: GSW_2_GSC, GSC_2_GSW, apar, jtomol, MOL_TO_UMOL
-      REAL, DIMENSION(mf) :: an_leaf
 
-      REAL, DIMENSION(N) :: e_leaf, gsc_leaf, gsw_leaf, cost, gain, profit
+      REAL, DIMENSION(N) :: e_leaf, cost, gain, profit, an_leaf
 
-      REAL :: psil_soil, max_profit
+      REAL :: psil_soil, max_profit, gsw, gsc, an
       psil_soil = ssnow%weighted_psi_soil(i)
 
       GSC_2_GSW = 1.57        ! Ratio of Gsw:Gsc
@@ -3656,7 +3655,6 @@ CONTAINS
             ! load into stores
             an_canopy(i,j) = 0.0 ! umol m-2 s-1
             e_canopy = 0.0 ! mol H2O m-2 s-1
-            gsw_canopy(i,j) = 0.0 ! mol H2O m-2 s-1
 
          ELSE
             print*, "good apar", apar
@@ -3671,19 +3669,21 @@ CONTAINS
             e_leaf = e_leaf * rad%fvlai(i,j)
 
 
-
-            ! assuming perfect coupling ... will fix
-
-            gsw_leaf = e_leaf / vpd * press ! mol H20 m-2 s-1
-            gsc_leaf = gsw_leaf * GSW_2_GSC ! mol CO2 m-2 s-1
-
             ! For every gsc/psi_leaf get a match An and Ci
             DO k=1, N
-               print*, k, apar, ca, tleaf-273.15
 
-               call get_a_and_ci(canopy, rad, met, ca, tleaf, &
-                                 apar, an_leaf(:), gsc_leaf(:), &
-                                 rad%scalex(i,j), j)
+               IF (e_leaf(k) > 0.00000001) THEN
+
+                  gsw = e_leaf(k) / vpd * press ! mol H20 m-2 s-1
+                  gsc = gsw * GSW_2_GSC ! mol CO2 m-2 s-1
+
+                  call get_a_and_ci(canopy, rad, met, ca, tleaf, &
+                                    apar, an, gsc, rad%scalex(i,j))
+                  an_leaf(k) = an
+               ELSE
+                  an_leaf(k) = 0.0
+
+               END IF
                print*, k, an_leaf(k)
                print*, " "
             END DO
@@ -3720,7 +3720,6 @@ CONTAINS
             ! load into stores
             an_canopy(i,j) = an_leaf(idx) ! umol m-2 s-1
 
-            gsw_canopy(i,j) = gsw_leaf(idx) ! mol H2O m-2 s-1
 
          END IF
 
@@ -3734,8 +3733,8 @@ CONTAINS
    ! ---------------------------------------------------------------------------
 
    ! --------------------------------------------------------------------------
-   SUBROUTINE get_a_and_ci(canopy, rad, met, ca, tleaf, par, an_leaf, &
-                           gsc, scalex, j)
+   SUBROUTINE get_a_and_ci(canopy, rad, met, ca, tleaf, par, an, &
+                           gsc, scalex)
 
 
        USE cable_def_types_mod
@@ -3747,14 +3746,13 @@ CONTAINS
        TYPE (radiation_type), INTENT(IN) :: rad
        TYPE (met_type), INTENT(INOUT) :: met
 
-       REAL, DIMENSION(mf), INTENT(INOUT) :: an_leaf, gsc
-       REAL :: min_ci, max_ci, an_new, ci_new, gsc_new, an, ca
+       REAL, INTENT(INOUT) :: an, gsc
+       REAL :: min_ci, max_ci, an_new, ci_new, gsc_new, ca
 
        REAL, INTENT(IN) :: tleaf, scalex, par
 
        REAL, PARAMETER :: tol = 1E-12
 
-       INTEGER, INTENT(IN) :: j
 
        min_ci = 0.0 ! CABLE assumes gamma_star = 0
        max_ci = ca  ! umol m-2 s-1
@@ -3765,24 +3763,27 @@ CONTAINS
           ci_new = 0.5 * (max_ci + min_ci) ! umol mol-1
           print*, ci_new
           call photosynthesis_given_ci(canopy, rad, met, tleaf, scalex, &
-                                       an_leaf, ci_new, par)
+                                       an, ci_new, par)
 
 
 
 
-          gsc_new = an_leaf(j) / (ca - ci_new) ! mol m-2 s-1
+          gsc_new = an / (ca - ci_new) ! mol m-2 s-1
 
-          print*, an_leaf(j), gsc_new, ca - ci_new
+          print*, an, gsc_new, gsc, ca - ci_new
           stop
-          IF (abs(gsc_new - gsc(j)) / gsc(j) < tol) THEN
+          IF (abs(gsc_new - gsc) / gsc < tol) THEN
 
-             an_new = an_leaf(j) ! umol m-2 s-1
+             an_new = an ! umol m-2 s-1
              EXIT
 
           ! narrow search space, shift min up
-          ELSE IF (gsc_new < gsc(j)) THEN
+          ELSE IF (gsc_new < gsc) THEN
 
              min_ci = ci_new ! umol mol-1
+             if (ci_new < 0.0) THEN
+                min_ci = 0.0
+             end if
 
           ! narrow search space, shift max down
           ELSE
@@ -3792,7 +3793,7 @@ CONTAINS
           END IF
 
           IF (abs(max_ci - min_ci) < tol) THEN
-             an_new = an_leaf(j) ! umol m-2 s-1
+             an_new = an ! umol m-2 s-1
              EXIT
           END IF
 
@@ -3804,7 +3805,7 @@ CONTAINS
 
    ! --------------------------------------------------------------------------
    SUBROUTINE photosynthesis_given_ci(canopy, rad, met, tleaf, scalex, &
-                                      an_leaf, Ci, par)
+                                      an, Ci, par)
 
 
        USE cable_def_types_mod
@@ -3817,12 +3818,12 @@ CONTAINS
        TYPE (radiation_type), INTENT(IN) :: rad
        TYPE (met_type), INTENT(INOUT) :: met
 
-       REAL, DIMENSION(mf), INTENT(INOUT) :: an_leaf
+       REAL, INTENT(INOUT) :: an
        REAL, INTENT(IN) :: tleaf, scalex, Ci, par
        REAL :: Km, gamma_star, Vcmax, Jmax, Rd
 
        REAL :: Vcmax25, Jmax25, Eav, Eaj, deltaSv, deltaSj, Hdv, Hdj, J, Vj
-       REAL :: Ac, Aj, A, An
+       REAL :: Ac, Aj, A
 
        ! max rate of rubisco activity at 25 deg or 298 K
        Vcmax25 = 103.6
@@ -3874,11 +3875,11 @@ CONTAINS
        A = -QUADP(1.0-1E-04, Ac+Aj, Ac*Aj)
 
        ! Net photosynthesis
-       an_leaf = A - Rd
+       an = A - Rd
 
        !
        IF (Ci < 0.00001) THEN
-          an_leaf = 0.0
+          an = 0.0
        END IF
 
    END SUBROUTINE photosynthesis_given_ci
