@@ -2123,7 +2123,7 @@ CONTAINS
                 CALL optimisation(canopy, ssnow, rad, met, Kmax, Kcrit, &
                                   b_plant, c_plant, resolution, ci_canopy,&
                                   a_canopy, e_canopy, e_leaf, gsw, gsc, &
-                                  vpd, press, p, i)
+                                  vpd, press, csx, p, i)
 
 
 
@@ -3610,7 +3610,7 @@ CONTAINS
   ! ----------------------------------------------------------------------------
   SUBROUTINE optimisation(canopy, ssnow, rad, met, Kmax, Kcrit, b_plant, &
                           c_plant, N, ci_canopy, a_canopy, e_canopy, &
-                          e_leaf, gsw, gsc, vpd, press, p, i)
+                          e_leaf, gsw, gsc, vpd, press, ca, p, i)
 
 
       USE cable_def_types_mod
@@ -3627,6 +3627,7 @@ CONTAINS
       !REAL, DIMENSION(mp,mf), INTENT(IN)      :: anx, gs_coeff, gswmin
       REAL, DIMENSION(N,mf), INTENT(INOUT) :: ci_canopy, a_canopy, e_canopy
       REAL, DIMENSION(N,mf), INTENT(INOUT) :: e_leaf, gsw, gsc
+      REAL(r_2), DIMENSION(mp,mf), INTENT(IN) :: ca
       REAL, DIMENSION(N), INTENT(INOUT) :: p
 
       REAL, INTENT(IN) :: Kmax, Kcrit, b_plant, c_plant, vpd, press
@@ -3636,6 +3637,8 @@ CONTAINS
       REAL :: fsun, fsha
 
       REAL :: GSW_2_GSC, GSC_2_GSW
+      REAL, DIMENSION(mf) :: a_leaf
+
 
       GSC_2_GSW = 1.57        ! Ratio of Gsw:Gsc
       GSW_2_GSC = 1.0 / GSC_2_GSW
@@ -3653,9 +3656,9 @@ CONTAINS
       lower = ssnow%weighted_psi_soil(i)
       upper = p_crit
       step = (upper - lower) / float(N)
-
       increment = lower
       DO k=1, N
+
          p(k)  = lower + float(k) * (upper - lower) / &
                     float(N-1)
       END DO
@@ -3675,12 +3678,106 @@ CONTAINS
          gsw(:,j) = e_canopy(:,j) / vpd * press ! mol H20 m-2 s-1
          gsc(:,j) = gsw(:,j) * GSW_2_GSC ! mol CO2 m-2 s-1
 
+         ! For every gsc/psi_leaf get a match An and Ci
+         DO k=1, N
+
+            call get_a_and_ci(canopy, ssnow, rad, met, ca(i,j), a_leaf(:), &
+                              gsc(:,j), j, N)
+
+            p(k)  = lower + float(k) * (upper - lower) / &
+                       float(N-1)
+         END DO
+
       END DO
 
    END SUBROUTINE optimisation
    ! ---------------------------------------------------------------------------
 
+   ! --------------------------------------------------------------------------
+   SUBROUTINE get_a_and_ci(canopy, ssnow, rad, met, ca, a_leaf, gsc, j, N)
+
+
+       USE cable_def_types_mod
+       USE cable_common_module
+
+       IMPLICIT NONE
+
+       TYPE (canopy_type), INTENT(INOUT) :: canopy
+       TYPE (soil_snow_type), INTENT(INOUT) :: ssnow
+       TYPE (radiation_type), INTENT(IN) :: rad
+       TYPE (met_type), INTENT(INOUT) :: met
+
+       REAL, DIMENSION(mf), INTENT(INOUT)      :: a_leaf
+       REAL, DIMENSION(N,mf), INTENT(INOUT)     :: gsc
+       REAL :: min_ci, max_ci, an_new, ci_new, gsc_new, an
+       REAL(r_2), INTENT(IN) :: ca
+
+       REAL, PARAMETER :: tol = 1E-12
+
+       INTEGER, INTENT(IN) :: j, N
+
+       min_ci = 0.0 ! CABLE assumes gamma_star = 0
+       max_ci = ca * 1e6  ! umol m-2 s-1
+       an_new  = 0.0
+
+       DO
+          ci_new = 0.5 * (max_ci + min_ci) ! umol mol-1
+
+          call photosynthesis_given_ci(canopy, ssnow, rad, met, a_leaf)
+
+          gsc_new = a_leaf(j) / (ca - ci_new) ! mol m-2 s-1
+
+         IF (abs(gsc_new - gsc(N,j)) / gsc(N,j) < tol) THEN
+
+            an_new = a_leaf(j) ! umol m-2 s-1
+            EXIT
+
+         ! narrow search space, shift min up
+         ELSE IF (gsc_new < gsc(N,j)) THEN
+
+             min_ci = ci_new ! umol mol-1
+
+         ! narrow search space, shift max down
+         ELSE
+
+             max_ci = ci_new ! umol mol-1
+
+         END IF
+
+         IF (abs(max_ci - min_ci) < tol) THEN
+             an_new = a_leaf(j) ! umol m-2 s-1
+             EXIT
+         END IF
+
+      END DO
+
+   END SUBROUTINE get_a_and_ci
    ! ---------------------------------------------------------------------------
+
+
+   ! --------------------------------------------------------------------------
+   SUBROUTINE photosynthesis_given_ci(canopy, ssnow, rad, met, a_leaf)
+
+
+       USE cable_def_types_mod
+       USE cable_common_module
+
+       IMPLICIT NONE
+
+       TYPE (canopy_type), INTENT(INOUT) :: canopy
+       TYPE (soil_snow_type), INTENT(INOUT) :: ssnow
+       TYPE (radiation_type), INTENT(IN) :: rad
+       TYPE (met_type), INTENT(INOUT) :: met
+
+       REAL, DIMENSION(mf), INTENT(INOUT)      :: a_leaf
+
+       a_leaf = 0.0
+       print*, "fine"
+
+   END SUBROUTINE photosynthesis_given_ci
+   ! ---------------------------------------------------------------------------
+
+
    FUNCTION calc_transpiration(p, N, Kmax, b_plant, c_plant) RESULT(e_leaf)
 
       IMPLICIT NONE
