@@ -3690,7 +3690,7 @@ CONTAINS
                   gsw = e_leaf(k) / vpd * press ! mol H20 m-2 s-1
                   gsc = gsw * GSW_2_GSC ! mol CO2 m-2 s-1
 
-                  print*, "*", gsw, vpd, press, apar, ca, tleaf-273.15
+                  !print*, "*", gsw, vpd, press, apar, ca, tleaf-273.15
                   call get_a_and_ci(canopy, rad, met, ca, tleaf, &
                                     apar, an, gsc, rad%scalex(i,j), Vcmax25, &
                                     Jmax25)
