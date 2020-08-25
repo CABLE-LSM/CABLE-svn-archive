@@ -3612,7 +3612,8 @@ CONTAINS
       REAL, DIMENSION(N) :: Kc
 
       REAL, INTENT(IN) :: Kmax, Kcrit, b_plant, c_plant, vpd, press, tleaf
-      INTEGER          :: j, k, idx
+      INTEGER          :: j, k
+      INTEGER :: idx(1)
 
       REAL :: p_crit, lower, upper, ca
       REAL :: fsun, fsha, kcmax
@@ -3700,6 +3701,9 @@ CONTAINS
 
                END IF
 
+               ! Soil–plant hydraulic conductance at canopy xylem pressure,
+               ! mmol m-2 s-1 MPa-1
+               Kc(k) = Kmax * get_xylem_vulnerability(p(k), b_plant, c_plant)
 
             END DO
 
@@ -3707,33 +3711,20 @@ CONTAINS
             kcmax = Kmax * get_xylem_vulnerability(psil_soil, &
                                                    b_plant, c_plant)
 
-            idx = 1
-            max_profit = -9999.9
-            DO k=1, N
+            ! normalised cost (-)
+            cost = (kcmax - Kc) / (kcmax - Kcrit)
 
-               ! Soil–plant hydraulic conductance at canopy xylem pressure,
-               ! mmol m-2 s-1 MPa-1
-               Kc(k) = Kmax * get_xylem_vulnerability(p(k), b_plant, c_plant)
-
-               ! normalised cost (-)
-               cost(k) = (kcmax - Kc(k)) / (kcmax - Kcrit)
-
-               ! normalised gain (-)
-               gain(k) = an_leaf(k) / MAXVAL(an_leaf)
-
-               ! Locate maximum profit
-               profit(k) = gain(k) - cost(k)
-               IF (profit(k) > max_profit) THEN
-                  max_profit = profit(k)
-                  idx = k
-               END IF
-            END DO
+            ! normalised gain (-)
+            gain = an_leaf / MAXVAL(an_leaf)
 
             ! Locate maximum profit
-            !idx = MAXLOC(profit)
-
+            profit = gain - cost
+            idx = MAXLOC(profit)
+            print*, idx, an_leaf(idx(1)), gain(idx(1)), cost(idx(1))
+            stop
+            
             ! load into stores
-            an_canopy(i,j) = an_leaf(idx) ! umol m-2 s-1
+            an_canopy(i,j) = an_leaf(idx(1)) ! umol m-2 s-1
 
 
          END IF
