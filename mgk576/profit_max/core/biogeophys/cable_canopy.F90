@@ -2136,11 +2136,12 @@ CONTAINS
                    anx(i,1) = 0.0 - rdx(i,1)
                    anx(i,2) = 0.0 - rdx(i,2)
                 else
+
                    CALL optimisation(canopy, ssnow, rad, met, veg, Kmax, Kcrit, &
                                      b_plant, c_plant, resolution,&
                                      an_canopy, e_canopy, &
                                      vpd, press, tlfx(i), csx, &
-                                     vcmxt3, ejmxt3, rdx, p, i)
+                                     vcmxt3, ejmxt3, rdx, vx3, p, i)
 
                    anx(i,1) = an_canopy(1) * UMOL_TO_MOL
                    anx(i,2) = an_canopy(2) * UMOL_TO_MOL
@@ -3588,7 +3589,8 @@ CONTAINS
   ! ----------------------------------------------------------------------------
   SUBROUTINE optimisation(canopy, ssnow, rad, met, veg, Kmax, Kcrit, b_plant, &
                           c_plant, N, an_canopy, e_canopy, &
-                          vpd, press, tleaf, ca_mol, vcmxt3, ejmxt3, rdx, p, i)
+                          vpd, press, tleaf, ca_mol, vcmxt3, ejmxt3, rdx, vx3, &
+                          p, i)
 
 
       USE cable_def_types_mod
@@ -3609,7 +3611,7 @@ CONTAINS
 
       REAL(r_2), DIMENSION(mp,mf), INTENT(IN) :: ca_mol
       REAL, DIMENSION(N), INTENT(INOUT) :: p
-      REAL, DIMENSION(mp,mf), INTENT(IN) :: vcmxt3, ejmxt3, rdx
+      REAL, DIMENSION(mp,mf), INTENT(IN) :: vcmxt3, ejmxt3, rdx, vx3
       REAL, DIMENSION(N) :: Kc
 
       REAL, INTENT(IN) :: Kmax, Kcrit, b_plant, c_plant, vpd, press, tleaf
@@ -3623,7 +3625,7 @@ CONTAINS
 
       REAL, DIMENSION(N) :: e_leaf, cost, gain, profit, an_leaf
 
-      REAL :: psil_soil, max_profit, gsw, gsc, an, Vcmax, Jmax, Rd
+      REAL :: psil_soil, max_profit, gsw, gsc, an, Vcmax, Jmax, Rd, Vj
 
       REAL, DIMENSION(mf) :: e_leaves
 
@@ -3663,13 +3665,16 @@ CONTAINS
          apar = rad%qcan(i,j,1) * jtomol * MOL_TO_UMOL
 
          ! max rate of rubisco activity, scaled up
-         Vcmax = vcmxt3(i,j) * 1e6
+         Vcmax = vcmxt3(i,j) * MOL_TO_UMOL
 
          ! potential rate of electron transport, scaled up
-         Jmax = ejmxt3(i,j) * 1e6
+         Jmax = ejmxt3(i,j) * MOL_TO_UMOL
 
          ! day respiration, scaled up
-         Rd = rdx(i,j) * 1e6
+         Rd = rdx(i,j) * MOL_TO_UMOL
+
+         ! Rate of electron transport (= J/4)
+         Vj = vx3(i,j) * MOL_TO_UMOL
 
          IF (apar < 50) THEN
 
@@ -3701,7 +3706,7 @@ CONTAINS
                   !print*, "*", gsw, vpd, press, apar, ca, tleaf-273.15
                   call get_a_and_ci(canopy, rad, met, ca, tleaf, &
                                     apar, an, gsc, &
-                                    Vcmax, Jmax, Rd)
+                                    Vcmax, Jmax, Rd, Vj)
                   an_leaf(k) = an
                ELSE
                   an_leaf(k) = 0.0
@@ -3747,7 +3752,7 @@ CONTAINS
 
    ! --------------------------------------------------------------------------
    SUBROUTINE get_a_and_ci(canopy, rad, met, ca, tleaf, par, an_new, &
-                           gsc, Vcmax, Jmax, Rd)
+                           gsc, Vcmax, Jmax, Rd, Vj)
 
 
        USE cable_def_types_mod
@@ -3762,7 +3767,7 @@ CONTAINS
        REAL, INTENT(INOUT) :: an_new, gsc
        REAL :: min_ci, max_ci, an, ci_new, gsc_new, ca
 
-       REAL, INTENT(IN) :: tleaf, par, Vcmax, Jmax, Rd
+       REAL, INTENT(IN) :: tleaf, par, Vcmax, Jmax, Rd, Vj
 
        REAL, PARAMETER :: tol = 1E-04 !1E-12
 
@@ -3777,7 +3782,7 @@ CONTAINS
           ci_new = 0.5 * (max_ci + min_ci) ! umol mol-1
 
           call photosynthesis_given_ci(canopy, rad, met, tleaf, &
-                                       an, ci_new, par, Vcmax, Jmax, Rd)
+                                       an, ci_new, par, Vcmax, Jmax, Rd, Vj)
 
           gsc_new = an / (ca - ci_new) ! mol m-2 s-1
 
@@ -3822,7 +3827,7 @@ CONTAINS
 
    ! --------------------------------------------------------------------------
    SUBROUTINE photosynthesis_given_ci(canopy, rad, met, tleaf, &
-                                      an, Ci, par, Vcmax, Jmax, Rd)
+                                      an, Ci, par, Vcmax, Jmax, Rd, Vj)
 
 
        USE cable_def_types_mod
@@ -3836,8 +3841,8 @@ CONTAINS
        TYPE (met_type), INTENT(INOUT) :: met
 
        REAL, INTENT(INOUT) :: an
-       REAL, INTENT(IN) :: tleaf, Ci, par, Vcmax, Jmax, Rd
-       REAL :: Km, gamma_star, Vj, J
+       REAL, INTENT(IN) :: tleaf, Ci, par, Vcmax, Jmax, Rd, Vj
+       REAL :: Km, gamma_star
 
        REAL :: Ac, Aj, A
 
@@ -3846,9 +3851,6 @@ CONTAINS
 
        gamma_star = 0.0 ! cable says it is 0
 
-       ! Rate of electron transport, which is a function of absorbed PAR
-       J = calc_electron_transport_rate(par, Jmax)
-       Vj = J / 4.0
 
        Ac = assim(Ci, gamma_star, Vcmax, Km)
        Aj = assim(Ci, gamma_star, Vj, 2.0*gamma_star)
@@ -3887,8 +3889,8 @@ CONTAINS
       theta_J = 0.7
 
       ! alpha = quantum_yield * absorptance # (Medlyn et al 2002)
-      alpha = 0.26
-
+      alpha = 0.2 !0.26
+      print*, par
       A = theta_J
       B = -(alpha * par + Jmax)
       C = alpha * par * Jmax
