@@ -3786,7 +3786,7 @@ CONTAINS
 
           gsc_new = an / (ca - ci_new) ! mol m-2 s-1
 
-          print*, an, gsc_new, gsc, ca, ci_new, min_ci, max_ci, abs(max_ci - min_ci)
+          !print*, an, gsc_new, gsc, ca, ci_new, min_ci, max_ci, abs(max_ci - min_ci)
 
           IF (abs(gsc_new - gsc) / gsc < tol) THEN
              an_new = an ! umol m-2 s-1
