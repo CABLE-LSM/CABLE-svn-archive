@@ -2134,7 +2134,7 @@ CONTAINS
 
 
 
-                CALL optimisation(canopy, ssnow, rad, met, Kmax, Kcrit, &
+                CALL optimisation(canopy, ssnow, rad, met, veg, Kmax, Kcrit, &
                                   b_plant, c_plant, resolution,&
                                   an_canopy, e_canopy, &
                                   vpd, press, tlfx(i), csx, p, i)
@@ -3581,7 +3581,7 @@ CONTAINS
 
 
   ! ----------------------------------------------------------------------------
-  SUBROUTINE optimisation(canopy, ssnow, rad, met, Kmax, Kcrit, b_plant, &
+  SUBROUTINE optimisation(canopy, ssnow, rad, met, veg, Kmax, Kcrit, b_plant, &
                           c_plant, N, an_canopy, e_canopy, &
                           vpd, press, tleaf, ca_mol, p, i)
 
@@ -3595,6 +3595,7 @@ CONTAINS
       TYPE (soil_snow_type), INTENT(INOUT) :: ssnow
       TYPE (radiation_type), INTENT(IN) :: rad
       TYPE (met_type), INTENT(INOUT) :: met
+      TYPE (veg_parameter_type), INTENT(INOUT) :: veg
 
       INTEGER, INTENT(IN) :: i, N
       !REAL, DIMENSION(mp,mf), INTENT(IN)      :: anx, gs_coeff, gswmin
@@ -3616,7 +3617,16 @@ CONTAINS
 
       REAL, DIMENSION(N) :: e_leaf, cost, gain, profit, an_leaf
 
-      REAL :: psil_soil, max_profit, gsw, gsc, an
+      REAL :: psil_soil, max_profit, gsw, gsc, an, Vcmax25, Jmax25
+
+
+      ! max rate of rubisco activity at 25 deg or 298 K
+      Vcmax25 = veg%vcmax(1)*1e6
+
+      ! potential rate of electron transport at 25 deg or 298 K
+      Jmax25 = Vcmax25 * 2.0
+
+
       psil_soil = ssnow%weighted_psi_soil(i)
 
       GSC_2_GSW = 1.57        ! Ratio of Gsw:Gsc
@@ -3678,7 +3688,8 @@ CONTAINS
                   gsc = gsw * GSW_2_GSC ! mol CO2 m-2 s-1
 
                   call get_a_and_ci(canopy, rad, met, ca, tleaf, &
-                                    apar, an, gsc, rad%scalex(i,j))
+                                    apar, an, gsc, rad%scalex(i,j), Vcmax25, &
+                                    Jmax25)
                   an_leaf(k) = an
                ELSE
                   an_leaf(k) = 0.0
@@ -3734,7 +3745,7 @@ CONTAINS
 
    ! --------------------------------------------------------------------------
    SUBROUTINE get_a_and_ci(canopy, rad, met, ca, tleaf, par, an_new, &
-                           gsc, scalex)
+                           gsc, scalex, Vcmax25, Jmax25)
 
 
        USE cable_def_types_mod
@@ -3749,9 +3760,9 @@ CONTAINS
        REAL, INTENT(INOUT) :: an_new, gsc
        REAL :: min_ci, max_ci, an, ci_new, gsc_new, ca
 
-       REAL, INTENT(IN) :: tleaf, scalex, par
+       REAL, INTENT(IN) :: tleaf, scalex, par, Vcmax25, Jmax25
 
-       REAL, PARAMETER :: tol = 1E-05 !1E-12
+       REAL, PARAMETER :: tol = 1E-04 !1E-12
 
 
        min_ci = 0.0 ! CABLE assumes gamma_star = 0
@@ -3762,7 +3773,7 @@ CONTAINS
           ci_new = 0.5 * (max_ci + min_ci) ! umol mol-1
 
           call photosynthesis_given_ci(canopy, rad, met, tleaf, scalex, &
-                                       an, ci_new, par)
+                                       an, ci_new, par, Vcmax25, Jmax25)
 
 
 
@@ -3801,7 +3812,7 @@ CONTAINS
 
    ! --------------------------------------------------------------------------
    SUBROUTINE photosynthesis_given_ci(canopy, rad, met, tleaf, scalex, &
-                                      an, Ci, par)
+                                      an, Ci, par, Vcmax25, Jmax25)
 
 
        USE cable_def_types_mod
@@ -3815,17 +3826,12 @@ CONTAINS
        TYPE (met_type), INTENT(INOUT) :: met
 
        REAL, INTENT(INOUT) :: an
-       REAL, INTENT(IN) :: tleaf, scalex, Ci, par
+       REAL, INTENT(IN) :: tleaf, scalex, Ci, par, Vcmax25, Jmax25
        REAL :: Km, gamma_star, Vcmax, Jmax, Rd
 
-       REAL :: Vcmax25, Jmax25, Eav, Eaj, deltaSv, deltaSj, Hdv, Hdj, J, Vj
+       REAL :: Eav, Eaj, deltaSv, deltaSj, Hdv, Hdj, J, Vj
        REAL :: Ac, Aj, A
 
-       ! max rate of rubisco activity at 25 deg or 298 K
-       Vcmax25 = 103.6
-
-       ! potential rate of electron transport at 25 deg or 298 K
-       Jmax25 = Vcmax25 * 1.72
 
        ! activation energy for the parameter [J mol-1]
        Eav = 59700.
