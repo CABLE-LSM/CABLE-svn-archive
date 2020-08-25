@@ -2122,12 +2122,17 @@ CONTAINS
                 c_plant = 2.0
                 Kmax = 1.5
                 Kcrit = 0.05 * Kmax
-                vpd = dsx(i) * 1E-03 ! Pa -> kPa
+                IF (dsx(i) < 50.0) THEN
+                   vpd  = 0.05 ! kPa
+                ELSE
+                   vpd = dsx(i) * 1E-03 ! Pa -> kPa
+                END IF
                 press = 101.325 ! get from cable
 
                 an_canopy = 0.0
                 e_canopy = 0.0
                 gsw_canopy = 0.0
+
 
                 CALL optimisation(canopy, ssnow, rad, met, Kmax, Kcrit, &
                                   b_plant, c_plant, resolution, gsw_canopy,&
@@ -3578,7 +3583,7 @@ CONTAINS
   ! ----------------------------------------------------------------------------
   SUBROUTINE optimisation(canopy, ssnow, rad, met, Kmax, Kcrit, b_plant, &
                           c_plant, N, gsw_canopy, an_canopy, e_canopy, &
-                          vpd, press, tleaf, ca, p, i)
+                          vpd, press, tleaf, ca_mol, p, i)
 
 
       USE cable_def_types_mod
@@ -3596,7 +3601,7 @@ CONTAINS
       REAL, DIMENSION(N,mf), INTENT(INOUT) :: gsw_canopy, an_canopy
       REAL, INTENT(INOUT) :: e_canopy
 
-      REAL(r_2), DIMENSION(mp,mf), INTENT(IN) :: ca
+      REAL(r_2), DIMENSION(mp,mf), INTENT(IN) :: ca_mol
       REAL, DIMENSION(N), INTENT(INOUT) :: p
 
       REAL, DIMENSION(N) :: Kc
@@ -3604,7 +3609,7 @@ CONTAINS
       REAL, INTENT(IN) :: Kmax, Kcrit, b_plant, c_plant, vpd, press, tleaf
       INTEGER          :: j, k, idx
 
-      REAL :: p_crit, lower, upper
+      REAL :: p_crit, lower, upper, ca
       REAL :: fsun, fsha, kcmax
 
       REAL :: GSW_2_GSC, GSC_2_GSW, apar, jtomol, MOL_TO_UMOL
@@ -3622,6 +3627,9 @@ CONTAINS
 
       fsun = rad%fvlai(i,1) / canopy%vlaiw(i)
       fsha = rad%fvlai(i,2) / canopy%vlaiw(i)
+
+      ! ca same for both leaves, so this is fine
+      ca = ca_mol(1,1) * 1e6
 
 
       ! Canopy xylem pressure (P_crit) MPa, beyond which tree
@@ -3658,26 +3666,26 @@ CONTAINS
                                             c_plant)
 
 
-            print*, p
-            print*, psil_soil, p_crit
-            print*, Kmax, b_plant, c_plant, N
-            print*, e_leaf
-            stop
             ! Scale to the sunlit or shaded fraction of the canopy,
             ! mol H20 m-2 s-1
             e_leaf = e_leaf * rad%fvlai(i,j)
 
+
+
             ! assuming perfect coupling ... will fix
+
             gsw_leaf = e_leaf / vpd * press ! mol H20 m-2 s-1
             gsc_leaf = gsw_leaf * GSW_2_GSC ! mol CO2 m-2 s-1
 
             ! For every gsc/psi_leaf get a match An and Ci
             DO k=1, N
+               print*, k, apar, ca, tleaf-273.15
 
-               call get_a_and_ci(canopy, ssnow, rad, met, ca(i,j), tleaf, &
+               call get_a_and_ci(canopy, rad, met, ca, tleaf, &
                                  apar, an_leaf(:), gsc_leaf(:), &
                                  rad%scalex(i,j), j)
-
+               print*, k, an_leaf(k)
+               print*, " "
             END DO
 
             ! mmol s-1 m-2 MPa-1
@@ -3726,7 +3734,7 @@ CONTAINS
    ! ---------------------------------------------------------------------------
 
    ! --------------------------------------------------------------------------
-   SUBROUTINE get_a_and_ci(canopy, ssnow, rad, met, ca, tleaf, par, an_leaf, &
+   SUBROUTINE get_a_and_ci(canopy, rad, met, ca, tleaf, par, an_leaf, &
                            gsc, scalex, j)
 
 
@@ -3736,13 +3744,12 @@ CONTAINS
        IMPLICIT NONE
 
        TYPE (canopy_type), INTENT(INOUT) :: canopy
-       TYPE (soil_snow_type), INTENT(INOUT) :: ssnow
        TYPE (radiation_type), INTENT(IN) :: rad
        TYPE (met_type), INTENT(INOUT) :: met
 
        REAL, DIMENSION(mf), INTENT(INOUT) :: an_leaf, gsc
-       REAL :: min_ci, max_ci, an_new, ci_new, gsc_new, an
-       REAL(r_2), INTENT(IN) :: ca
+       REAL :: min_ci, max_ci, an_new, ci_new, gsc_new, an, ca
+
        REAL, INTENT(IN) :: tleaf, scalex, par
 
        REAL, PARAMETER :: tol = 1E-12
@@ -3750,17 +3757,23 @@ CONTAINS
        INTEGER, INTENT(IN) :: j
 
        min_ci = 0.0 ! CABLE assumes gamma_star = 0
-       max_ci = ca * 1e6  ! umol m-2 s-1
+       max_ci = ca  ! umol m-2 s-1
        an_new  = 0.0
+       print*, min_ci, max_ci
 
        DO
           ci_new = 0.5 * (max_ci + min_ci) ! umol mol-1
-
-          call photosynthesis_given_ci(canopy, ssnow, rad, met, tleaf, scalex, &
+          print*, ci_new
+          call photosynthesis_given_ci(canopy, rad, met, tleaf, scalex, &
                                        an_leaf, ci_new, par)
+
+
+
 
           gsc_new = an_leaf(j) / (ca - ci_new) ! mol m-2 s-1
 
+          print*, an_leaf(j), gsc_new, ca - ci_new
+          stop
           IF (abs(gsc_new - gsc(j)) / gsc(j) < tol) THEN
 
              an_new = an_leaf(j) ! umol m-2 s-1
@@ -3790,7 +3803,7 @@ CONTAINS
 
 
    ! --------------------------------------------------------------------------
-   SUBROUTINE photosynthesis_given_ci(canopy, ssnow, rad, met, tleaf, scalex, &
+   SUBROUTINE photosynthesis_given_ci(canopy, rad, met, tleaf, scalex, &
                                       an_leaf, Ci, par)
 
 
@@ -3800,7 +3813,7 @@ CONTAINS
        IMPLICIT NONE
 
        TYPE (canopy_type), INTENT(INOUT) :: canopy
-       TYPE (soil_snow_type), INTENT(INOUT) :: ssnow
+
        TYPE (radiation_type), INTENT(IN) :: rad
        TYPE (met_type), INTENT(INOUT) :: met
 
@@ -3981,10 +3994,12 @@ CONTAINS
       ! integrate over the full range of water potentials from psi_soil to
       ! e_crit
       DO h=1, N
+
          e_leaf(h) = integrate_vulnerability(N, p(h), p(1), b_plant, c_plant)
          IF (e_leaf(h) > 1.0E-17) then
             e_leaf(h) = e_leaf(h) * Kmax * MMOL_2_MOL ! mol m-2 s-1
          END IF
+
       END DO
 
    END FUNCTION calc_transpiration
