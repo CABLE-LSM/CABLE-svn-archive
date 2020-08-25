@@ -3699,12 +3699,14 @@ CONTAINS
       REAL :: p_crit, step, increment, lower, upper
       REAL :: fsun, fsha
 
-      REAL :: GSW_2_GSC, GSC_2_GSW
-      REAL, DIMENSION(mf) :: a_leaf
+      REAL :: GSW_2_GSC, GSC_2_GSW, apar, jtomol, MOL_TO_UMOL
+      REAL, DIMENSION(mf) :: an_leaf
 
 
       GSC_2_GSW = 1.57        ! Ratio of Gsw:Gsc
       GSW_2_GSC = 1.0 / GSC_2_GSW
+      MOL_TO_UMOL = 1.0/0.000001
+      jtomol = 4.6e-6  ! Convert from J to Mol for light
 
       fsun = rad%fvlai(i,1) / canopy%vlaiw(i)
       fsha = rad%fvlai(i,2) / canopy%vlaiw(i)
@@ -3741,11 +3743,13 @@ CONTAINS
          gsw(:,j) = e_canopy(:,j) / vpd * press ! mol H20 m-2 s-1
          gsc(:,j) = gsw(:,j) * GSW_2_GSC ! mol CO2 m-2 s-1
 
+         apar = rad%qcan(i,j,1) * jtomol * MOL_TO_UMOL
+
          ! For every gsc/psi_leaf get a match An and Ci
          DO k=1, N
 
             call get_a_and_ci(canopy, ssnow, rad, met, ca(i,j), tleaf, &
-                              a_leaf(:), gsc(:,j), rad%scalex(i,j), j, N)
+                              apar, an_leaf(:), gsc(:,j), rad%scalex(i,j), j, N)
 
             p(k)  = lower + float(k) * (upper - lower) / &
                        float(N-1)
@@ -3757,7 +3761,7 @@ CONTAINS
    ! ---------------------------------------------------------------------------
 
    ! --------------------------------------------------------------------------
-   SUBROUTINE get_a_and_ci(canopy, ssnow, rad, met, ca, tleaf, a_leaf, &
+   SUBROUTINE get_a_and_ci(canopy, ssnow, rad, met, ca, tleaf, par, an_leaf, &
                            gsc, scalex, j, N)
 
 
@@ -3775,7 +3779,7 @@ CONTAINS
        REAL, DIMENSION(N,mf), INTENT(INOUT) :: gsc
        REAL :: min_ci, max_ci, an_new, ci_new, gsc_new, an
        REAL(r_2), INTENT(IN) :: ca
-       REAL, INTENT(IN) :: tleaf, scalex
+       REAL, INTENT(IN) :: tleaf, scalex, par
 
        REAL, PARAMETER :: tol = 1E-12
 
@@ -3789,13 +3793,13 @@ CONTAINS
           ci_new = 0.5 * (max_ci + min_ci) ! umol mol-1
 
           call photosynthesis_given_ci(canopy, ssnow, rad, met, tleaf, scalex, &
-                                       an_leaf)
+                                       an_leaf, ci_new, par)
 
-          gsc_new = a_leaf(j) / (ca - ci_new) ! mol m-2 s-1
+          gsc_new = an_leaf(j) / (ca - ci_new) ! mol m-2 s-1
 
          IF (abs(gsc_new - gsc(N,j)) / gsc(N,j) < tol) THEN
 
-            an_new = a_leaf(j) ! umol m-2 s-1
+            an_new = an_leaf(j) ! umol m-2 s-1
             EXIT
 
          ! narrow search space, shift min up
@@ -3811,7 +3815,7 @@ CONTAINS
          END IF
 
          IF (abs(max_ci - min_ci) < tol) THEN
-             an_new = a_leaf(j) ! umol m-2 s-1
+             an_new = an_leaf(j) ! umol m-2 s-1
              EXIT
          END IF
 
@@ -3823,7 +3827,7 @@ CONTAINS
 
    ! --------------------------------------------------------------------------
    SUBROUTINE photosynthesis_given_ci(canopy, ssnow, rad, met, tleaf, scalex, &
-                                      an_leaf)
+                                      an_leaf, Ci, par)
 
 
        USE cable_def_types_mod
@@ -3837,7 +3841,7 @@ CONTAINS
        TYPE (met_type), INTENT(INOUT) :: met
 
        REAL, DIMENSION(mf), INTENT(INOUT) :: an_leaf
-       REAL, INTENT(IN) :: tleaf, scalex
+       REAL, INTENT(IN) :: tleaf, scalex, Ci, par
        REAL :: Km, gamma_star, Vcmax, Jmax, Rd
 
        REAL :: Vcmax25, Jmax25, Eav, Eaj, deltaSv, deltaSj, Hdv, Hdj, J, Vj
@@ -3872,12 +3876,6 @@ CONTAINS
 
 
 
-
-
-
-
-       a_leaf = 0.0
-
        ! calculate temp dependancies of MichaelisMenten constants for CO2, O2
        Km = calc_michaelis_menten_constants(Tleaf)
 
@@ -3894,7 +3892,7 @@ CONTAINS
        Rd = Rd * scalex
 
        ! Rate of electron transport, which is a function of absorbed PAR
-       J = calc_electron_transport_rate(p, Par, Jmax)
+       J = calc_electron_transport_rate(par, Jmax)
        Vj = J / 4.0
 
        Ac = assim(Ci, gamma_star, Vcmax, Km)
