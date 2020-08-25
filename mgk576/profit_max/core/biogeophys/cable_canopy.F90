@@ -3761,7 +3761,7 @@ CONTAINS
 
        REAL, INTENT(IN) :: tleaf, scalex, par, Vcmax25, Jmax25
 
-       REAL, PARAMETER :: tol = 1E-05 !1E-12
+       REAL, PARAMETER :: tol = 1E-03 !1E-12
 
        INTEGER :: iter
 
@@ -3781,7 +3781,7 @@ CONTAINS
 
           gsc_new = an / (ca - ci_new) ! mol m-2 s-1
 
-          !print*, an, gsc_new, gsc, ca, ci_new
+          !print*, an, gsc_new, gsc, ca, ci_new, min_ci, max_ci, abs(max_ci - min_ci)
 
           IF (abs(gsc_new - gsc) / gsc < tol) THEN
              an_new = an ! umol m-2 s-1
@@ -3801,14 +3801,16 @@ CONTAINS
           END IF
 
           IF (abs(max_ci - min_ci) < tol) THEN
+
              an_new = an ! umol m-2 s-1
              EXIT
           END IF
 
           iter = iter + 1
 
-          IF (iter > 1000) THEN
+          IF (iter > 10000) THEN
              print*, "stuck"
+             stop
           END IF
 
        END DO
