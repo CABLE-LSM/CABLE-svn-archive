@@ -1801,7 +1801,7 @@ CONTAINS
 
     REAL :: Kmax, Kcrit, b_plant, c_plant, press
 
-    INTEGER, PARAMETER :: resolution = 50
+    INTEGER, PARAMETER :: resolution = 20
     REAL, DIMENSION(2) :: an_canopy
     REAL :: e_canopy
     REAL, DIMENSION(resolution) :: p
@@ -3751,7 +3751,7 @@ CONTAINS
 
        REAL, INTENT(IN) :: tleaf, scalex, par
 
-       REAL, PARAMETER :: tol = 1E-06 !1E-12
+       REAL, PARAMETER :: tol = 1E-05 !1E-12
 
 
        min_ci = 0.0 ! CABLE assumes gamma_star = 0
