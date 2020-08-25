@@ -2134,8 +2134,8 @@ CONTAINS
                                   an_canopy, e_canopy, &
                                   vpd, press, tlfx(i), csx, p, i)
 
-                anx(i,1) = an_canopy(1)
-                anx(i,2) = an_canopy(2)
+                anx(i,1) = an_canopy(1) / 1e6
+                anx(i,2) = an_canopy(2) / 1e6
 
 
                 conv = MOL_WATER_2_G_WATER * G_TO_KG
@@ -2146,7 +2146,7 @@ CONTAINS
                    ecx(i) = 0.0
                 END IF
                 print*, an_canopy, e_canopy
-                print*, " "
+
 
 
              ELSE
