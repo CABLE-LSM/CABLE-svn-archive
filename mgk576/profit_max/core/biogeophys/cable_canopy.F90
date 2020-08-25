@@ -3642,27 +3642,29 @@ CONTAINS
 
       DO j=1, 2 ! sunlit, shaded leaves...
 
-         ! Calculate transpiration for every water potential, integrating
-         ! vulnerability to cavitation, mol H20 m-2 s-1 (leaf)
-         e_leaf = calc_transpiration(p, N, Kmax, b_plant, &
-                                         c_plant)
-
-         ! Scale to the sunlit or shaded fraction of the canopy,
-         ! mol H20 m-2 s-1
-         e_leaf = e_leaf * rad%fvlai(i,j)
-
-         ! assuming perfect coupling ... will fix
-         gsw_leaf = e_leaf / vpd * press ! mol H20 m-2 s-1
-         gsc_leaf = gsw_leaf * GSW_2_GSC ! mol CO2 m-2 s-1
-
          apar = rad%qcan(i,j,1) * jtomol * MOL_TO_UMOL
 
          IF (apar < 0.5) THEN
+
             ! load into stores
             an_canopy(i,j) = 0.0 ! umol m-2 s-1
             e_canopy = 0.0 ! mol H2O m-2 s-1
             gsw_canopy(i,j) = 0.0 ! mol H2O m-2 s-1
+
          ELSE
+            ! Calculate transpiration for every water potential, integrating
+            ! vulnerability to cavitation, mol H20 m-2 s-1 (leaf)
+            e_leaf = calc_transpiration(p, N, Kmax, b_plant, &
+                                            c_plant)
+
+            ! Scale to the sunlit or shaded fraction of the canopy,
+            ! mol H20 m-2 s-1
+            e_leaf = e_leaf * rad%fvlai(i,j)
+
+            ! assuming perfect coupling ... will fix
+            gsw_leaf = e_leaf / vpd * press ! mol H20 m-2 s-1
+            gsc_leaf = gsw_leaf * GSW_2_GSC ! mol CO2 m-2 s-1
+
             ! For every gsc/psi_leaf get a match An and Ci
             DO k=1, N
 
