@@ -1801,7 +1801,7 @@ CONTAINS
 
     REAL :: Kmax, Kcrit, b_plant, c_plant, press
 
-    INTEGER, PARAMETER :: resolution = 10
+    INTEGER, PARAMETER :: resolution = 100
     REAL, DIMENSION(2) :: an_canopy
     REAL :: e_canopy
     REAL, DIMENSION(resolution) :: p
@@ -2118,7 +2118,7 @@ CONTAINS
              ELSE IF (cable_user%GS_SWITCH == 'medlyn' .AND. &
                      cable_user%FWSOIL_SWITCH == 'profitmax') THEN
 
-                b_plant = 3.0
+                b_plant = 2.0
                 c_plant = 2.0
                 Kmax = 1.5
                 Kcrit = 0.05 * Kmax
@@ -2255,7 +2255,7 @@ CONTAINS
              ! PH: mgk576, 13/10/17
              ! This is over the combined direct & diffuse leaves due to the
              ! way the loops fall above
-             ELSEIF (cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
+          ELSEIF (cable_user%FWSOIL_SWITCH == 'profitmax') THEN
 
 
                 IF (ecx(i) > 0.0 .AND. canopy%fwet(i) < 1.0) THEN
@@ -3612,8 +3612,8 @@ CONTAINS
       REAL, DIMENSION(N) :: Kc
 
       REAL, INTENT(IN) :: Kmax, Kcrit, b_plant, c_plant, vpd, press, tleaf
-      INTEGER          :: j, k
-      INTEGER :: idx(1)
+      INTEGER          :: j, k, idx
+      
 
       REAL :: p_crit, lower, upper, ca
       REAL :: fsun, fsha, kcmax
@@ -3670,7 +3670,7 @@ CONTAINS
             ! load into stores
             an_canopy(i,j) = 0.0 ! umol m-2 s-1
             e_canopy = 0.0 ! mol H2O m-2 s-1
-
+            canopy%psi_leaf(i) = canopy%psi_leaf_prev(i)
          ELSE
 
             ! Calculate transpiration for every water potential, integrating
@@ -3720,14 +3720,14 @@ CONTAINS
 
             ! Locate maximum profit
             profit = gain - cost
-            idx = MAXLOC(profit)
+            idx = MAXLOC(profit, 1)
             !print*, idx, an_leaf(idx(1)), gain(idx(1)), cost(idx(1))
 
-
             ! load into stores
-            an_canopy(i,j) = an_leaf(idx(1)) ! umol m-2 s-1
-            e_leaves(j) = e_leaf(idx(1)) ! mol H2O m-2 s-1
-
+            an_canopy(i,j) = an_leaf(idx) ! umol m-2 s-1
+            e_leaves(j) = e_leaf(idx) ! mol H2O m-2 s-1
+            canopy%psi_leaf(i) = p(idx)
+            canopy%psi_leaf_prev(i) = canopy%psi_leaf(i)
          END IF
 
       END DO
