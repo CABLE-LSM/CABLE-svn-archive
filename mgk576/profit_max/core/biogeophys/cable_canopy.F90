@@ -2118,7 +2118,7 @@ CONTAINS
              ELSE IF (cable_user%GS_SWITCH == 'medlyn' .AND. &
                      cable_user%FWSOIL_SWITCH == 'profitmax') THEN
 
-                b_plant = 2.0
+                b_plant = 4.0
                 c_plant = 2.0
                 Kmax = 1.5
                 Kcrit = 0.05 * Kmax
