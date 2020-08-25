@@ -3721,7 +3721,7 @@ CONTAINS
             ! Locate maximum profit
             profit = gain - cost
             idx = MAXLOC(profit)
-            print*, idx, an_leaf(idx(1)), gain(idx(1)), cost(idx(1))
+            !print*, idx, an_leaf(idx(1)), gain(idx(1)), cost(idx(1))
 
 
             ! load into stores
