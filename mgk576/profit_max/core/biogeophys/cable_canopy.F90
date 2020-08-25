@@ -3754,7 +3754,7 @@ CONTAINS
    ! ---------------------------------------------------------------------------
 
    ! --------------------------------------------------------------------------
-   SUBROUTINE get_a_and_ci(canopy, rad, met, ca, tleaf, par, an_new, &
+   SUBROUTINE get_a_and_ci(canopy, rad, met, ca, tleaf, par, An_new, &
                            gsc, Vcmax, Jmax, Rd, Vj, Km)
 
 
@@ -3767,8 +3767,8 @@ CONTAINS
        TYPE (radiation_type), INTENT(IN) :: rad
        TYPE (met_type), INTENT(INOUT) :: met
 
-       REAL, INTENT(INOUT) :: an_new, gsc
-       REAL :: min_ci, max_ci, an, ci_new, gsc_new, ca
+       REAL, INTENT(INOUT) :: An_new, gsc
+       REAL :: min_ci, max_ci, An, ci_new, gsc_new, ca, Ac, Aj, A, gamma_star
 
        REAL, INTENT(IN) :: tleaf, par, Vcmax, Jmax, Rd, Vj, Km
 
@@ -3778,21 +3778,29 @@ CONTAINS
 
        min_ci = 0.0 ! CABLE assumes gamma_star = 0
        max_ci = ca  ! umol m-2 s-1
-       an_new  = 0.0
+       An_new  = 0.0
+       gamma_star = 0.0 ! cable says it is 0
 
        iter = 0
        DO
           ci_new = 0.5 * (max_ci + min_ci) ! umol mol-1
 
-          call photosynthesis_given_ci(canopy, rad, met, tleaf, &
-                                       an, ci_new, par, Vcmax, Jmax, Rd, Vj, Km)
+          ! Find the matching A given the Ci
+          IF (ci_new < 0.00001) THEN
+             An = 0.0
+          ELSE
+             Ac = assim(ci_new, gamma_star, Vcmax, Km)
+             Aj = assim(ci_new, gamma_star, Vj, 2.0*gamma_star)
+             A = -QUADP(1.0-1E-04, Ac+Aj, Ac*Aj)
+             An = A - Rd ! Net photosynthesis, umol m-2 s-1
+          END IF
 
-          gsc_new = an / (ca - ci_new) ! mol m-2 s-1
+          gsc_new = An / (ca - ci_new) ! mol m-2 s-1
 
-          !print*, an, gsc_new, gsc, ca, ci_new, min_ci, max_ci, abs(max_ci - min_ci)
+          !print*, An, gsc_new, gsc, ca, ci_new, min_ci, max_ci, abs(max_ci - min_ci)
 
           IF (abs(gsc_new - gsc) / gsc < tol) THEN
-             an_new = an ! umol m-2 s-1
+             An_new = An ! umol m-2 s-1
              EXIT
 
           ! narrow search space, shift min up
@@ -3810,7 +3818,7 @@ CONTAINS
 
           IF (abs(max_ci - min_ci) < tol) THEN
 
-             an_new = an ! umol m-2 s-1
+             An_new = An ! umol m-2 s-1
              EXIT
           END IF
 
@@ -3828,44 +3836,6 @@ CONTAINS
    ! ---------------------------------------------------------------------------
 
 
-   ! --------------------------------------------------------------------------
-   SUBROUTINE photosynthesis_given_ci(canopy, rad, met, tleaf, &
-                                      an, Ci, par, Vcmax, Jmax, Rd, Vj, Km)
-
-
-       USE cable_def_types_mod
-       USE cable_common_module
-
-       IMPLICIT NONE
-
-       TYPE (canopy_type), INTENT(INOUT) :: canopy
-
-       TYPE (radiation_type), INTENT(IN) :: rad
-       TYPE (met_type), INTENT(INOUT) :: met
-
-       REAL, INTENT(INOUT) :: an
-       REAL, INTENT(IN) :: tleaf, Ci, par, Vcmax, Jmax, Rd, Vj, Km
-       REAL :: gamma_star
-
-       REAL :: Ac, Aj, A
-
-       gamma_star = 0.0 ! cable says it is 0
-
-       Ac = assim(Ci, gamma_star, Vcmax, Km)
-       Aj = assim(Ci, gamma_star, Vj, 2.0*gamma_star)
-
-       A = -QUADP(1.0-1E-04, Ac+Aj, Ac*Aj)
-
-       ! Net photosynthesis
-       an = A - Rd
-
-       !
-       IF (Ci < 0.00001) THEN
-          an = 0.0
-       END IF
-
-   END SUBROUTINE photosynthesis_given_ci
-   ! ---------------------------------------------------------------------------
 
    ! ---------------------------------------------------------------------------
    FUNCTION assim(Ci, gamma_star, a1, a2) RESULT(as)
