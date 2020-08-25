@@ -2118,7 +2118,7 @@ CONTAINS
              ELSE IF (cable_user%GS_SWITCH == 'medlyn' .AND. &
                      cable_user%FWSOIL_SWITCH == 'profitmax') THEN
 
-                b_plant = 4.0
+                b_plant = 3.5
                 c_plant = 2.0
                 Kmax = 1.5
                 Kcrit = 0.05 * Kmax
@@ -2129,26 +2129,18 @@ CONTAINS
 
                 an_canopy = 0.0
                 e_canopy = 0.0
-                !print*, "1", rdx(i,1), rdx(i,2)
-                rdx(i,1) = 0.015 * &
-                                 peaked_arrh(veg%vcmax(1)*1e6, 59700., &
-                                             tlfx(i), 634., 200000.0) * &
-                                 rad%scalex(i,j) * UMOL_TO_MOL
-                rdx(i,2) = 0.015 * &
-                                 peaked_arrh(veg%vcmax(1)*1e6, 59700., &
-                                             tlfx(i), 634., 200000.0) * &
-                                 rad%scalex(i,j) * UMOL_TO_MOL
-                !print*, "2", rdx(i,1), rdx(i,2)
+
 
                 if (vpd < 0.05) THEN
                    ecx(i) = 0.0
-                   anx(i,1) = anx(i,1) - rdx(i,1)
-                   anx(i,2) = anx(i,2) - rdx(i,2)
+                   anx(i,1) = 0.0 - rdx(i,1)
+                   anx(i,2) = 0.0 - rdx(i,2)
                 else
                    CALL optimisation(canopy, ssnow, rad, met, veg, Kmax, Kcrit, &
                                      b_plant, c_plant, resolution,&
                                      an_canopy, e_canopy, &
-                                     vpd, press, tlfx(i), csx, p, i)
+                                     vpd, press, tlfx(i), csx, &
+                                     vcmxt3, ejmxt3, rdx, p, i)
 
                    anx(i,1) = an_canopy(1) * UMOL_TO_MOL
                    anx(i,2) = an_canopy(2) * UMOL_TO_MOL
@@ -3596,7 +3588,7 @@ CONTAINS
   ! ----------------------------------------------------------------------------
   SUBROUTINE optimisation(canopy, ssnow, rad, met, veg, Kmax, Kcrit, b_plant, &
                           c_plant, N, an_canopy, e_canopy, &
-                          vpd, press, tleaf, ca_mol, p, i)
+                          vpd, press, tleaf, ca_mol, vcmxt3, ejmxt3, rdx, p, i)
 
 
       USE cable_def_types_mod
@@ -3617,7 +3609,7 @@ CONTAINS
 
       REAL(r_2), DIMENSION(mp,mf), INTENT(IN) :: ca_mol
       REAL, DIMENSION(N), INTENT(INOUT) :: p
-
+      REAL, DIMENSION(mp,mf), INTENT(IN) :: vcmxt3, ejmxt3, rdx
       REAL, DIMENSION(N) :: Kc
 
       REAL, INTENT(IN) :: Kmax, Kcrit, b_plant, c_plant, vpd, press, tleaf
@@ -3631,15 +3623,11 @@ CONTAINS
 
       REAL, DIMENSION(N) :: e_leaf, cost, gain, profit, an_leaf
 
-      REAL :: psil_soil, max_profit, gsw, gsc, an, Vcmax25, Jmax25
+      REAL :: psil_soil, max_profit, gsw, gsc, an, Vcmax, Jmax, Rd
 
       REAL, DIMENSION(mf) :: e_leaves
 
-      ! max rate of rubisco activity at 25 deg or 298 K
-      Vcmax25 = veg%vcmax(1)*1e6
 
-      ! potential rate of electron transport at 25 deg or 298 K
-      Jmax25 = Vcmax25 * 2.0
 
       psil_soil = ssnow%weighted_psi_soil(i)
 
@@ -3674,6 +3662,15 @@ CONTAINS
 
          apar = rad%qcan(i,j,1) * jtomol * MOL_TO_UMOL
 
+         ! max rate of rubisco activity, scaled up
+         Vcmax = vcmxt3(i,j) * 1e6
+
+         ! potential rate of electron transport, scaled up
+         Jmax = ejmxt3(i,j) * 1e6
+
+         ! day respiration, scaled up
+         Rd = rdx(i,j) * 1e6
+
          IF (apar < 50) THEN
 
             ! load into stores
@@ -3703,8 +3700,8 @@ CONTAINS
 
                   !print*, "*", gsw, vpd, press, apar, ca, tleaf-273.15
                   call get_a_and_ci(canopy, rad, met, ca, tleaf, &
-                                    apar, an, gsc, rad%scalex(i,j), Vcmax25, &
-                                    Jmax25)
+                                    apar, an, gsc, &
+                                    Vcmax, Jmax, Rd)
                   an_leaf(k) = an
                ELSE
                   an_leaf(k) = 0.0
@@ -3750,7 +3747,7 @@ CONTAINS
 
    ! --------------------------------------------------------------------------
    SUBROUTINE get_a_and_ci(canopy, rad, met, ca, tleaf, par, an_new, &
-                           gsc, scalex, Vcmax25, Jmax25)
+                           gsc, Vcmax, Jmax, Rd)
 
 
        USE cable_def_types_mod
@@ -3765,7 +3762,7 @@ CONTAINS
        REAL, INTENT(INOUT) :: an_new, gsc
        REAL :: min_ci, max_ci, an, ci_new, gsc_new, ca
 
-       REAL, INTENT(IN) :: tleaf, scalex, par, Vcmax25, Jmax25
+       REAL, INTENT(IN) :: tleaf, par, Vcmax, Jmax, Rd
 
        REAL, PARAMETER :: tol = 1E-04 !1E-12
 
@@ -3779,11 +3776,8 @@ CONTAINS
        DO
           ci_new = 0.5 * (max_ci + min_ci) ! umol mol-1
 
-          call photosynthesis_given_ci(canopy, rad, met, tleaf, scalex, &
-                                       an, ci_new, par, Vcmax25, Jmax25)
-
-
-
+          call photosynthesis_given_ci(canopy, rad, met, tleaf, &
+                                       an, ci_new, par, Vcmax, Jmax, Rd)
 
           gsc_new = an / (ca - ci_new) ! mol m-2 s-1
 
@@ -3827,8 +3821,8 @@ CONTAINS
 
 
    ! --------------------------------------------------------------------------
-   SUBROUTINE photosynthesis_given_ci(canopy, rad, met, tleaf, scalex, &
-                                      an, Ci, par, Vcmax25, Jmax25)
+   SUBROUTINE photosynthesis_given_ci(canopy, rad, met, tleaf, &
+                                      an, Ci, par, Vcmax, Jmax, Rd)
 
 
        USE cable_def_types_mod
@@ -3842,46 +3836,15 @@ CONTAINS
        TYPE (met_type), INTENT(INOUT) :: met
 
        REAL, INTENT(INOUT) :: an
-       REAL, INTENT(IN) :: tleaf, scalex, Ci, par, Vcmax25, Jmax25
-       REAL :: Km, gamma_star, Vcmax, Jmax, Rd
+       REAL, INTENT(IN) :: tleaf, Ci, par, Vcmax, Jmax, Rd
+       REAL :: Km, gamma_star, Vj, J
 
-       REAL :: Eav, Eaj, deltaSv, deltaSj, Hdv, Hdj, J, Vj
        REAL :: Ac, Aj, A
-
-
-       ! activation energy for the parameter [J mol-1]
-       Eav = 59700.
-
-       ! activation energy for the parameter [J mol-1]
-       Eaj = 23800.
-
-       ! entropy factor [J mol-1 K-1)
-       deltaSv = 634
-
-       ! entropy factor [J mol-1 K-1)
-       deltaSj = 627
-
-       ! Deactivation energy for Vcmax [J mol-1]
-       Hdv = 200000.0
-
-       ! Deactivation energy for Jmax [J mol-1]
-       Hdj = 200000.0
-
 
        ! calculate temp dependancies of MichaelisMenten constants for CO2, O2
        Km = calc_michaelis_menten_constants(Tleaf)
 
        gamma_star = 0.0 ! cable says it is 0
-
-       ! Calculate temperature dependancies on Vcmax and Jmax
-       Vcmax = peaked_arrh(Vcmax25, Eav, Tleaf, deltaSv, Hdv)
-       Jmax = peaked_arrh(Jmax25, Eaj, Tleaf, deltaSj, Hdj)
-       Rd = 0.015 * Vcmax
-
-       ! Scaling from single leaf to canopy, see Wang & Leuning 1998 appendix C
-       Vcmax = Vcmax * scalex
-       Jmax = Jmax * scalex
-       Rd = Rd * scalex
 
        ! Rate of electron transport, which is a function of absorbed PAR
        J = calc_electron_transport_rate(par, Jmax)
