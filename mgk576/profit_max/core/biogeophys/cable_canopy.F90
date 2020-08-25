@@ -1977,6 +1977,7 @@ CONTAINS
 
              ! "d_{3}" in Wang and Leuning, 1998, appendix E:
              cx1(i) = conkct(i) * (1.0+0.21/conkot(i))
+
              cx2(i) = 2.0 * C%gam0 * ( 1.0 + C%gam1 * tdiff(i)                  &
                   + C%gam2 * tdiff(i) * tdiff(i) )
 
@@ -2141,7 +2142,7 @@ CONTAINS
                                      b_plant, c_plant, resolution,&
                                      an_canopy, e_canopy, &
                                      vpd, press, tlfx(i), csx, &
-                                     vcmxt3, ejmxt3, rdx, vx3, p, i)
+                                     vcmxt3, ejmxt3, rdx, vx3, cx1(i), p, i)
 
                    anx(i,1) = an_canopy(1) * UMOL_TO_MOL
                    anx(i,2) = an_canopy(2) * UMOL_TO_MOL
@@ -3590,7 +3591,7 @@ CONTAINS
   SUBROUTINE optimisation(canopy, ssnow, rad, met, veg, Kmax, Kcrit, b_plant, &
                           c_plant, N, an_canopy, e_canopy, &
                           vpd, press, tleaf, ca_mol, vcmxt3, ejmxt3, rdx, vx3, &
-                          p, i)
+                          cx1, p, i)
 
 
       USE cable_def_types_mod
@@ -3612,6 +3613,7 @@ CONTAINS
       REAL(r_2), DIMENSION(mp,mf), INTENT(IN) :: ca_mol
       REAL, DIMENSION(N), INTENT(INOUT) :: p
       REAL, DIMENSION(mp,mf), INTENT(IN) :: vcmxt3, ejmxt3, rdx, vx3
+      REAL, INTENT(IN) :: cx1
       REAL, DIMENSION(N) :: Kc
 
       REAL, INTENT(IN) :: Kmax, Kcrit, b_plant, c_plant, vpd, press, tleaf
@@ -3625,7 +3627,7 @@ CONTAINS
 
       REAL, DIMENSION(N) :: e_leaf, cost, gain, profit, an_leaf
 
-      REAL :: psil_soil, max_profit, gsw, gsc, an, Vcmax, Jmax, Rd, Vj
+      REAL :: psil_soil, max_profit, gsw, gsc, an, Vcmax, Jmax, Rd, Vj, Km
 
       REAL, DIMENSION(mf) :: e_leaves
 
@@ -3642,8 +3644,9 @@ CONTAINS
       fsha = rad%fvlai(i,2) / canopy%vlaiw(i)
 
       ! ca same for both leaves, so this is fine
-      ca = ca_mol(1,1) * 1e6
+      ca = ca_mol(1,1) * MOL_TO_UMOL
 
+      Km = cx1 * MOL_TO_UMOL
 
       ! Canopy xylem pressure (P_crit) MPa, beyond which tree
       ! desiccates (Ecrit), MPa
@@ -3706,7 +3709,7 @@ CONTAINS
                   !print*, "*", gsw, vpd, press, apar, ca, tleaf-273.15
                   call get_a_and_ci(canopy, rad, met, ca, tleaf, &
                                     apar, an, gsc, &
-                                    Vcmax, Jmax, Rd, Vj)
+                                    Vcmax, Jmax, Rd, Vj, Km)
                   an_leaf(k) = an
                ELSE
                   an_leaf(k) = 0.0
@@ -3752,7 +3755,7 @@ CONTAINS
 
    ! --------------------------------------------------------------------------
    SUBROUTINE get_a_and_ci(canopy, rad, met, ca, tleaf, par, an_new, &
-                           gsc, Vcmax, Jmax, Rd, Vj)
+                           gsc, Vcmax, Jmax, Rd, Vj, Km)
 
 
        USE cable_def_types_mod
@@ -3767,7 +3770,7 @@ CONTAINS
        REAL, INTENT(INOUT) :: an_new, gsc
        REAL :: min_ci, max_ci, an, ci_new, gsc_new, ca
 
-       REAL, INTENT(IN) :: tleaf, par, Vcmax, Jmax, Rd, Vj
+       REAL, INTENT(IN) :: tleaf, par, Vcmax, Jmax, Rd, Vj, Km
 
        REAL, PARAMETER :: tol = 1E-04 !1E-12
 
@@ -3782,7 +3785,7 @@ CONTAINS
           ci_new = 0.5 * (max_ci + min_ci) ! umol mol-1
 
           call photosynthesis_given_ci(canopy, rad, met, tleaf, &
-                                       an, ci_new, par, Vcmax, Jmax, Rd, Vj)
+                                       an, ci_new, par, Vcmax, Jmax, Rd, Vj, Km)
 
           gsc_new = an / (ca - ci_new) ! mol m-2 s-1
 
@@ -3827,7 +3830,7 @@ CONTAINS
 
    ! --------------------------------------------------------------------------
    SUBROUTINE photosynthesis_given_ci(canopy, rad, met, tleaf, &
-                                      an, Ci, par, Vcmax, Jmax, Rd, Vj)
+                                      an, Ci, par, Vcmax, Jmax, Rd, Vj, Km)
 
 
        USE cable_def_types_mod
@@ -3841,16 +3844,12 @@ CONTAINS
        TYPE (met_type), INTENT(INOUT) :: met
 
        REAL, INTENT(INOUT) :: an
-       REAL, INTENT(IN) :: tleaf, Ci, par, Vcmax, Jmax, Rd, Vj
-       REAL :: Km, gamma_star
+       REAL, INTENT(IN) :: tleaf, Ci, par, Vcmax, Jmax, Rd, Vj, Km
+       REAL :: gamma_star
 
        REAL :: Ac, Aj, A
 
-       ! calculate temp dependancies of MichaelisMenten constants for CO2, O2
-       Km = calc_michaelis_menten_constants(Tleaf)
-
        gamma_star = 0.0 ! cable says it is 0
-
 
        Ac = assim(Ci, gamma_star, Vcmax, Km)
        Aj = assim(Ci, gamma_star, Vj, 2.0*gamma_star)
