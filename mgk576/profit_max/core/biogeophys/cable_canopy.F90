@@ -1801,7 +1801,7 @@ CONTAINS
 
     REAL :: Kmax, Kcrit, b_plant, c_plant, press
 
-    INTEGER, PARAMETER :: resolution = 10
+    INTEGER, PARAMETER :: resolution = 50
     REAL, DIMENSION(2) :: an_canopy
     REAL :: e_canopy
     REAL, DIMENSION(resolution) :: p
@@ -3657,7 +3657,7 @@ CONTAINS
             e_canopy = 0.0 ! mol H2O m-2 s-1
 
          ELSE
-            
+
             ! Calculate transpiration for every water potential, integrating
             ! vulnerability to cavitation, mol H20 m-2 s-1 (leaf)
             e_leaf = calc_transpiration(p, N, Kmax, b_plant, &
@@ -3751,7 +3751,7 @@ CONTAINS
 
        REAL, INTENT(IN) :: tleaf, scalex, par
 
-       REAL, PARAMETER :: tol = 1E-04 !1E-12
+       REAL, PARAMETER :: tol = 1E-06 !1E-12
 
 
        min_ci = 0.0 ! CABLE assumes gamma_star = 0
