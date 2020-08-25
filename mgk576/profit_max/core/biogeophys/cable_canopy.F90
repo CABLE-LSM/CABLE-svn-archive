@@ -3650,14 +3650,14 @@ CONTAINS
 
          apar = rad%qcan(i,j,1) * jtomol * MOL_TO_UMOL
 
-         IF (apar < 0.5) THEN
+         IF (apar < 50) THEN
 
             ! load into stores
             an_canopy(i,j) = 0.0 ! umol m-2 s-1
             e_canopy = 0.0 ! mol H2O m-2 s-1
 
          ELSE
-            print*, "good apar", apar
+            
             ! Calculate transpiration for every water potential, integrating
             ! vulnerability to cavitation, mol H20 m-2 s-1 (leaf)
             e_leaf = calc_transpiration(p, N, Kmax, b_plant, &
@@ -3684,8 +3684,8 @@ CONTAINS
                   an_leaf(k) = 0.0
 
                END IF
-               print*, k, an_leaf(k)
-               print*, " "
+
+
             END DO
 
             ! mmol s-1 m-2 MPa-1
@@ -3733,7 +3733,7 @@ CONTAINS
    ! ---------------------------------------------------------------------------
 
    ! --------------------------------------------------------------------------
-   SUBROUTINE get_a_and_ci(canopy, rad, met, ca, tleaf, par, an, &
+   SUBROUTINE get_a_and_ci(canopy, rad, met, ca, tleaf, par, an_new, &
                            gsc, scalex)
 
 
@@ -3746,22 +3746,21 @@ CONTAINS
        TYPE (radiation_type), INTENT(IN) :: rad
        TYPE (met_type), INTENT(INOUT) :: met
 
-       REAL, INTENT(INOUT) :: an, gsc
-       REAL :: min_ci, max_ci, an_new, ci_new, gsc_new, ca
+       REAL, INTENT(INOUT) :: an_new, gsc
+       REAL :: min_ci, max_ci, an, ci_new, gsc_new, ca
 
        REAL, INTENT(IN) :: tleaf, scalex, par
 
-       REAL, PARAMETER :: tol = 1E-12
+       REAL, PARAMETER :: tol = 1E-04 !1E-12
 
 
        min_ci = 0.0 ! CABLE assumes gamma_star = 0
        max_ci = ca  ! umol m-2 s-1
        an_new  = 0.0
-       print*, min_ci, max_ci
 
        DO
           ci_new = 0.5 * (max_ci + min_ci) ! umol mol-1
-          print*, ci_new
+
           call photosynthesis_given_ci(canopy, rad, met, tleaf, scalex, &
                                        an, ci_new, par)
 
@@ -3770,16 +3769,14 @@ CONTAINS
 
           gsc_new = an / (ca - ci_new) ! mol m-2 s-1
 
-          print*, an, gsc_new, gsc, ca - ci_new
-          stop
-          IF (abs(gsc_new - gsc) / gsc < tol) THEN
+          !print*, an, gsc_new, gsc, ca, ci_new
 
+          IF (abs(gsc_new - gsc) / gsc < tol) THEN
              an_new = an ! umol m-2 s-1
              EXIT
 
           ! narrow search space, shift min up
           ELSE IF (gsc_new < gsc) THEN
-
              min_ci = ci_new ! umol mol-1
              if (ci_new < 0.0) THEN
                 min_ci = 0.0
@@ -3787,7 +3784,6 @@ CONTAINS
 
           ! narrow search space, shift max down
           ELSE
-
              max_ci = ci_new ! umol mol-1
 
           END IF
