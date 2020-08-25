@@ -1801,7 +1801,7 @@ CONTAINS
 
     REAL :: Kmax, Kcrit, b_plant, c_plant, press
 
-    INTEGER, PARAMETER :: resolution = 100
+    INTEGER, PARAMETER :: resolution = 20
     REAL, DIMENSION(2) :: an_canopy
     REAL :: e_canopy
     REAL, DIMENSION(resolution) :: p
@@ -3613,7 +3613,7 @@ CONTAINS
 
       REAL, INTENT(IN) :: Kmax, Kcrit, b_plant, c_plant, vpd, press, tleaf
       INTEGER          :: j, k, idx
-      
+
 
       REAL :: p_crit, lower, upper, ca
       REAL :: fsun, fsha, kcmax
