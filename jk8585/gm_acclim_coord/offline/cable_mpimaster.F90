@@ -531,7 +531,7 @@ CONTAINS
     ! latitudes, longitudes, number of sites.
     IF (TRIM(cable_user%MetType) .NE. "gswp" .AND. &
         TRIM(cable_user%MetType) .NE. "gpgs" .AND. &
-        TRIM(cable_user%MetType) .NE. "plum" .AND. &
+        TRIM(cable_user%MetType) .NE. "plume" .AND. &
         TRIM(cable_user%MetType) .NE. "bios" .AND. &
         TRIM(cable_user%MetType) .NE. "cru") THEN
        CALL open_met_file( dels, koffset, kend, spinup, C%TFRZ )
@@ -1639,7 +1639,7 @@ CONTAINS
     ! Close met data input file:
     IF ( TRIM(cable_user%MetType) .NE. "gswp" .AND. &
          TRIM(cable_user%MetType) .NE. "bios" .AND. &
-         TRIM(cable_user%MetType) .NE. "plum" .AND. &
+         TRIM(cable_user%MetType) .NE. "plume" .AND. &
          TRIM(cable_user%MetType) .NE. "cru") CALL close_met_file()
     IF (.NOT. CASAONLY) THEN
        ! Close output file and deallocate main variables:

@@ -85,7 +85,7 @@ contains
 
     IF ( .NOT. dump_read ) THEN  ! construct casa met and flux inputs from current CABLE run
        IF ( TRIM(cable_user%MetType) .EQ. 'cru' .OR. &
-            TRIM(cable_user%MetType) .EQ. 'plum' .OR. &
+            TRIM(cable_user%MetType) .EQ. 'plume' .OR. &
             TRIM(cable_user%MetType) .EQ. 'site' ) THEN
           casaflux%Pdep    = real(met%Pdep, r_2)
           casaflux%Nmindep = real(met%Ndep, r_2)

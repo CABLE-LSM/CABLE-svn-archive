@@ -95,7 +95,7 @@ MODULE cable_common_module
 
      CHARACTER(LEN=20) :: g0_switch = 'default'  ! 'maximum',takes max of g0 and A*X, 'standard' is additive
      CHARACTER(LEN=10) :: RunIden       = 'STANDARD'  !
-     CHARACTER(LEN=4)  :: MetType       = ' ' !
+     CHARACTER(LEN=5)  :: MetType       = ' ' !
      CHARACTER(LEN=20) :: SOIL_STRUC    = "default" ! 'default' or 'sli'
      CHARACTER(LEN=3)  :: POP_out       = 'rst' ! POP output type ('epi' or 'rst' or 'ini')
      CHARACTER(LEN=50) :: POP_rst       = '' !
