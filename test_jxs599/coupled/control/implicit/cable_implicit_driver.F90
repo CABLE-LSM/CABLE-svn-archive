@@ -33,8 +33,8 @@ USE cable_um_init_subrs_mod, ONLY: um2cable_rr
   
 !data
 USE cable_other_constants_mod, ONLY: z0surf_min
+USE cable_phys_constants_mod, ONLY : ccapp => capp
 USE cable_def_types_mod, ONLY: mp, msn, ncs,ncp, nrb
-USE cable_data_module,   ONLY: phys
 USE cable_um_tech_mod,   ONLY: um1, conv_rain_prevstep, conv_snow_prevstep
 USE cable_common_module, ONLY: cable_runtime, cable_user, l_casacnp,          &
                                 l_vcmaxFeedbk, knode_gl, ktau_gl, kend_gl
@@ -204,9 +204,6 @@ REAL, DIMENSION(land_pts) ::                                                  &
 
 !___ local vars
   
-!inconsistent method of pointing to constants (C%, USE, et c)
-REAL, POINTER :: tfrz
-
 !This is a quick fix. These can be organised through namelists
 LOGICAL :: spinup = .FALSE., spinconv = .FALSE.,                              &
            dump_read = .FALSE., dump_write = .FALSE.
@@ -259,8 +256,6 @@ CALL cable_store_prognostics()
 
 IF (ipb == cpb) CALL cable_reinstate_prognostics()
 
-tfrz => phys%tfrz
-   
 dtlc = 0.0 ; dqwc = 0.0
 
 !--- All these subrs do is pack a CABLE var with a UM var.
@@ -299,7 +294,7 @@ IF (cable_user%l_revised_coupling) THEN
   CALL um2cable_rr( ctctq1, ctctq1c)
   CALL um2cable_rr( ftl_1, ftl1c)
   CALL um2cable_rr( fqw_1, fqw1c) 
-  dtlc = dtlc - ctctq1c * ftl1c / phys%capp  !NB FTL_1 is in W/m2 hence / CAPP
+  dtlc = dtlc - ctctq1c * ftl1c / ccapp  !NB FTL_1 is in W/m2 hence / CAPP
   dqwc = dqwc - ctctq1c * fqw1c
 END IF
 !-----------------------------------------------------------------------

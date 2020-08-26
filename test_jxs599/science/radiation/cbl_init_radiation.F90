@@ -197,6 +197,9 @@ REAL :: cos3(nrb)      ! cos(15 45 75 degrees)
 
 cos3 = COS(CPI180 * (/ 15.0, 45.0, 75.0 /))
 
+  xphi1 = 0.0
+  xphi2 = 0.0
+  xvlai2 = 0.0
 ! See Sellers 1985, eq.13 (leaf angle parameters):
 WHERE ( veg_mask )
   xphi1 = 0.5 - VegXfang * (0.633 + 0.33 * VegXfang)

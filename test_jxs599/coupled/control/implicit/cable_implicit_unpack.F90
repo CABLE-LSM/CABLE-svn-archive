@@ -26,8 +26,7 @@ soil)
   !processor number, timestep number / width, endstep
 USE cable_common_module, ONLY: knode_gl, ktau_gl, kwidth_gl, kend_gl
 USE cable_common_module, ONLY: cable_runtime
-USE cable_common_module!, ONLY : cable_runtime, cable_user, fudge_out,       &
-                       !         L_fudge, ktau_gl
+USE cable_phys_constants_mod, ONLY : ctfrz => tfrz
   
 USE cable_air_type_mod,       ONLY: air_type
 USE cable_met_type_mod,       ONLY: met_type
@@ -42,7 +41,6 @@ USE cable_params_mod,         ONLY: veg_parameter_type
 USE cable_params_mod,         ONLY: soil_parameter_type
 
 USE cable_def_types_mod, ONLY: mp
-USE cable_data_module,   ONLY: phys
 USE cable_um_tech_mod,   ONLY: um1 
 
 IMPLICIT NONE
@@ -170,15 +168,10 @@ TYPE(veg_parameter_type), INTENT(INOUT) :: veg
 TYPE(soil_parameter_type),INTENT(INOUT) ::  soil
 INTEGER:: i_miss = 0
 REAL :: miss = 0.0
-!REAL(r_2) :: miss_r2 = 0.0
-  
-REAL, POINTER :: tfrz
 
 ! std template args 
 CHARACTER(LEN=*), PARAMETER :: subr_name = "cable_implicit_unpack"
 
-tfrz => phys%tfrz
-  
 !--- set UM vars to zero
 smcl_tile = 0.0; sthf_tile = 0.0; sthu_tile = 0.0
 tsoil_tile = 0.0; smgw_tile = 0.0
@@ -283,7 +276,7 @@ snow_age = UNPACK(ssnow%snage, l_tile_pts, miss)
 transp_tile = UNPACK(canopy%fevc, l_tile_pts, miss) 
 
 !unpack screen level (1.5m) variables - Convert back to K 
-t1p5m_tile     = UNPACK(canopy%tscrn + tfrz, l_tile_pts, miss)
+t1p5m_tile     = UNPACK(canopy%tscrn + ctfrz, l_tile_pts, miss)
 q1p5m_tile     = UNPACK(canopy%qscrn, l_tile_pts, miss)
 
 canopy_tile    = UNPACK(canopy%cansto, l_tile_pts, miss)

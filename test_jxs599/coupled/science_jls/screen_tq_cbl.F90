@@ -492,12 +492,12 @@ IF (sf_diag%st1p5 .OR. (IScrnTDiag == IP_ScrnDecpl2)                          &
 !$OMP END DO NOWAIT
 
   DO n = 1, nsurft
-!$OMP DO SCHEDULE(STATIC)
 !CABLE_LSM:
+!C!!$OMP DO SCHEDULE(STATIC)
 !C!    DO l = 1,land_pts
 !C!      sf_diag%t1p5m_surft(l,n) = 0.0
 !C!    END DO
-!$OMP END DO
+!C!!$OMP END DO
 
 !$OMP DO SCHEDULE(STATIC)
     DO k = 1, surft_pts(n)

@@ -51,7 +51,9 @@ USE cbl_init_radiation_module, ONLY: init_radiation
 
 USE cable_air_module, ONLY: define_air
    
-USE cable_data_module, ONLY: icbm_type, point2constants
+USE cable_phys_constants_mod, ONLY : csboltz => sboltz
+USE cable_phys_constants_mod, ONLY : cemleaf => emleaf
+USE cable_phys_constants_mod, ONLY : cemsoil => emsoil
    
 USE cable_canopy_module, ONLY: define_canopy
                                    
@@ -74,8 +76,6 @@ REAL  :: lai_pft(mp)
 REAL :: RmetDoY(mp)          !Day of the Year [formerly met%doy]
 INTEGER :: metDoY(mp)          !Day of the Year [formerly met%doy]
   
-!ptrs to local constants
-TYPE( icbm_type ) :: c
 ! CABLE model variables
 TYPE (air_type),       INTENT(INOUT) :: air
 TYPE (bgc_pool_type),  INTENT(INOUT) :: bgc
@@ -110,8 +110,6 @@ REAL :: rhoch(mp,nrb)
 REAL :: xk(mp,nrb)
 REAL :: CanopyRefl_dif(mp,nrb)
 REAL :: CanopyRefl_beam(mp,nrb)
-  ! assign local ptrs to constants defined in cable_data_module
-CALL point2constants(c)
 
 IF ( cable_runtime%um_explicit ) CALL ruff_resist( veg, rough, ssnow, canopy, &
                                                     LAI_pft, HGT_pft,         & 
@@ -219,8 +217,8 @@ canopy%fe = canopy%fev + canopy%fes
 canopy%rnet = canopy%fns + canopy%fnv
 
 ! CM2 - further adapted to pass the correction term onto %trad correctly
-rad%trad = ( ( 1.0 - rad%transd ) * c%emleaf * canopy%tv**4 +                  &
-      rad%transd * c%emsoil * ssnow%otss**4 + canopy%fns_cor / c%sboltz )      &
+rad%trad = ( ( 1.0 - rad%transd ) * cemleaf * canopy%tv**4 +                  &
+      rad%transd * cemsoil * ssnow%otss**4 + canopy%fns_cor / csboltz )      &
       **0.25
 
 CALL plantcarb(veg,bgc,met,canopy)

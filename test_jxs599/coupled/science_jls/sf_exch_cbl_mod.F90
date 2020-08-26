@@ -1229,13 +1229,15 @@ END IF
 !  1. Initialise FTL_SURFT and RIB_SURFT on all tiles at all points,
 !     to allow STASH to process these as diagnostics.
 !-----------------------------------------------------------------------
-!$OMP PARALLEL PRIVATE(i,j,l,n) DEFAULT(NONE)                   &
+!$OMP PARALLEL PRIVATE(i,j,l,n) DEFAULT(NONE)                                 &
 !$OMP SHARED(land_pts,nsurft,ftl_surft,fqw_surft,tau_surft,                   &
-!$OMP rib_surft,z0m_surft,u_s_std_surft,chr1p5m,resfs,snowdep_surft,      &
-!$OMP snowdepth,sf_diag)                                                  &
-!$OMP SHARED(land_index, flandg,surf_hgt,z_land,t_i_length,can_model,     &
-!$OMP cansnowtile,l_snowdep_surf,snow_surft,rho_snow_const,               &
-!$OMP   l_fix_ctile_orog,l_ctile)    
+!$OMP rib_surft,z0m_surft,u_s_std_surft,chr1p5m,resfs,snowdep_surft,          &
+!$OMP snowdepth,sf_diag)                                                      &
+!$OMP SHARED(land_index, flandg,surf_hgt,z_land,t_i_length,can_model,         &
+!$OMP cansnowtile,l_snowdep_surf,snow_surft,rho_snow_const,                   &
+!$OMP   l_fix_ctile_orog, l_ctile, canhc_surft, vfrac_surft, tile_frac,       &
+!$OMP   cd_surft, ch_surft, z0h_surft, z0m_eff_surft, rhokpm,                 &
+!$OMP   radnet_surft, fraca, resft)    
 DO n = 1,nsurft
 !$OMP DO SCHEDULE(STATIC)
   DO l = 1,land_pts
@@ -1541,7 +1543,7 @@ END IF
             tl_1, qw_1, vshr_land, pstar, z1_tq, z1_uv, canopy, Fland,         &
             !passed
             co2_mmr, sthu, canht_pft, lai_pft,                                 &
-            !sin_theta_latitude, ardzsoil,                                       &
+            sin_theta_latitude, &!ardzsoil,                                       &
             ftl_surft, fqw_surft,                                              &
             tstar_surft, u_s, u_s_std_surft, cd_surft, ch_surft,               &
             radnet_surft, fraca, resfs, resft, z0h_surft, z0m_surft,           &
@@ -1592,11 +1594,11 @@ DO n = 1,nsurft
 
   ELSE ! l_vegdrag_surft = F
 
-!$OMP PARALLEL DO IF(surft_pts(n)>1) DEFAULT(NONE)                           &
-!$OMP PRIVATE(i, j, k, l, zetah, zetam)                                      &
-!$OMP SHARED(surft_pts, surft_index, t_i_length, land_index, z1_uv,          &
-!$OMP       z0m_surft, z1_tq, z0h_surft, chn, wind_profile_factor, dq, qw_1, &
-!$OMP        qstar_surft, epdt, n)    SCHEDULE(STATIC)
+!$OMP PARALLEL DO IF(surft_pts(n)>1) DEFAULT(NONE)                            &
+!$OMP PRIVATE(i, j, k, l, zetah, zetam)                                       &
+!$OMP SHARED(surft_pts, surft_index, t_i_length, land_index, z1_uv,           &
+!$OMP       z0m_surft, z1_tq, z0h_surft, chn, wind_profile_factor, dq, qw_1,  &
+!$OMP        qstar_surft, epdt, n, resft, flake, fraca, resfs) SCHEDULE(STATIC)
     DO k = 1,surft_pts(n)
       l = surft_index(k,n)
       j=(land_index(l) - 1) / t_i_length + 1

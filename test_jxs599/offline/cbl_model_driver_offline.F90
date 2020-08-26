@@ -117,9 +117,9 @@ IF ( cbl_standalone .OR. cable_runtime%um_explicit ) &
 CALL define_air (met, air)
 
 !veg_mask =  canopy%vlaiw > .001
-call fveg_mask( mp, Clai_thresh, canopy%vlaiw )
-call fsunlit_mask( mp, Ccoszen_tols, met%coszen )
-call fsunlit_veg_mask( mp )
+call fveg_mask( veg_mask, mp, Clai_thresh, canopy%vlaiw )
+call fsunlit_mask( sunlit_mask, mp, Ccoszen_tols, met%coszen )
+call fsunlit_veg_mask( sunlit_veg_mask, mp )
 
 CALL init_radiation( rad%extkb, rad%extkd,                                     &
                      !ExtCoeff_beam, ExtCoeff_dif,

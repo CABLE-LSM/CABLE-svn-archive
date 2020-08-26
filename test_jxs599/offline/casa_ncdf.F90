@@ -281,6 +281,47 @@ CONTAINS
     var = real( temp, r_2 )
   end subroutine get_var_ncr3
 
+  SUBROUTINE HANDLE_ERR( status, msg )
+    ! LN 06/2013
+    USE netcdf
+    INTEGER :: status
+    CHARACTER(LEN=*), INTENT(IN),OPTIONAL :: msg
+    IF(status /= NF90_noerr) THEN
+       WRITE(*,*)"netCDF error:"
+       IF ( PRESENT( msg ) ) WRITE(*,*)msg
+       !#define Vanessas_common
+       !#ifdef Vanessas_common
+       WRITE(*,*) TRIM(NF90_strerror(INT(status,4)))
+       !#else
+       !       WRITE(*,*) "UM builds with -i8. Therefore call to nf90_strerror is ", &
+       !       " invalid. Quick fix to eliminate for now. Build NF90 with -i8, force -i4?"
+       !#endif
+       STOP -1
+    END IF
+  END SUBROUTINE HANDLE_ERR
+
+  SUBROUTINE GET_UNIT (IUNIT)
+
+    ! Find an unused unit for intermediate use
+    ! PLEASE, use it ONLY when you OPEN AND CLOSE WITHIN THE SAME CALL
+    ! or there could be interferences with other files!!!
+    ! LN 05/2014
+
+    IMPLICIT NONE
+
+    INTEGER,INTENT(OUT) :: IUNIT
+    INTEGER :: i
+    LOGICAL :: is_open = .FALSE.
+
+    DO i = 200, 10000
+       INQUIRE ( UNIT=i, OPENED=is_open )
+       IF ( .NOT. is_open ) EXIT
+    END DO
+    IUNIT = i
+
+  END SUBROUTINE GET_UNIT
+
+
 
 
   subroutine stderr_nc(status,message, var)
@@ -294,6 +335,144 @@ CONTAINS
     stop
   end subroutine stderr_nc
 #endif
+  SUBROUTINE YMDHMS2DOYSOD( YYYY,MM,DD,HOUR,MINUTE,SECOND,DOY,SOD )
+USE cable_common_module, ONLY: IS_LEAPYEAR
+
+    ! Compute Day-of-year and second-of-day from given date and time or
+
+    IMPLICIT NONE
+
+    INTEGER,INTENT(IN)  :: YYYY,MM,DD,HOUR,MINUTE,SECOND
+    INTEGER,INTENT(OUT) :: DOY,SOD
+
+    !  LOGICAL :: IS_LEAPYEAR
+    INTEGER, DIMENSION(12) :: MONTH = (/ 31,28,31,30,31,30,31,31,30,31,30,31 /)
+
+    IF ( IS_LEAPYEAR( YYYY ) ) MONTH(2) = 29
+
+    IF ( DD .GT. MONTH(MM) .OR. DD .LT. 1 .OR. &
+         MM .GT. 12 .OR. MM .LT. 1 ) THEN
+       WRITE(*,*)"Wrong date entered in YMDHMS2DOYSOD "
+       WRITE(*,*)"DATE : ",YYYY,MM,DD
+       STOP
+    ENDIF
+    DOY = DD
+    IF ( MM .GT. 1 ) DOY = DOY + SUM( MONTH( 1:MM-1 ) )
+    SOD = HOUR * 3600 + MINUTE * 60 + SECOND
+
+  END SUBROUTINE YMDHMS2DOYSOD
+
+  SUBROUTINE DOYSOD2YMDHMS( YYYY,DOY,SOD,MM,DD,HOUR,MINUTE,SECOND )
+USE cable_common_module, ONLY: IS_LEAPYEAR
+
+    ! Compute Day-of-year and second-of-day from given date and time or
+
+    IMPLICIT NONE
+
+    INTEGER,INTENT(IN)           :: YYYY,DOY,SOD
+    INTEGER,INTENT(OUT)          :: MM,DD
+    INTEGER,INTENT(OUT),OPTIONAL :: HOUR,MINUTE,SECOND
+
+    !  LOGICAL :: IS_LEAPYEAR
+    INTEGER :: MON, i
+    INTEGER, DIMENSION(12) :: MONTH = (/ 31,28,31,30,31,30,31,31,30,31,30,31 /)
+
+    IF ( IS_LEAPYEAR( YYYY ) ) MONTH(2) = 29
+
+    IF ( SOD .GE. 86400 .OR. SOD .LT. 0 .OR. &
+         DOY .GT. SUM(MONTH) .OR. DOY .LT. 1 ) THEN
+       WRITE(*,*)"Wrong date entered in DOYSOD2YMDHMS "
+       WRITE(*,*)"YYYY DOY SOD : ",YYYY,DOY,SOD
+       STOP
+    ENDIF
+
+    MON = 0
+    DO i = 1, 12
+       IF ( MON + MONTH(i) .LT. DOY ) THEN
+          MON = MON + MONTH(i)
+       ELSE
+          MM  = i
+          DD  = DOY - MON
+          EXIT
+       ENDIF
+    END DO
+    IF ( PRESENT ( HOUR ) ) HOUR   = INT( REAL(SOD)/3600. )
+    IF ( PRESENT (MINUTE) ) MINUTE = INT( ( REAL(SOD) - REAL(HOUR)*3600.) / 60. )
+    IF ( PRESENT (SECOND) ) SECOND = SOD - HOUR*3600 - MINUTE*60
+
+  END SUBROUTINE DOYSOD2YMDHMS
+
+  FUNCTION IS_CASA_TIME(iotype, yyyy, ktau, kstart, koffset, kend, ktauday, logn)
+
+  USE cable_common_module, ONLY: CABLE_USER 
+    ! Correctly determine if it is time to dump-read or standard-write
+    ! casa output from cable_driver.
+    ! Writing casa-dump data is handled in casa_cable and therefore not \
+    ! captured here
+    !cable_common module was intended to be unequivocally common to all
+    !applications. iovars is an offline module and so not appropriate to include
+    !here. Suggested FIX is to move decs of vars needed (e.g. leaps) to here, and
+    !then use common in iovars
+#ifdef Vanessas_common
+    USE cable_IO_vars_module, ONLY: leaps
+#endif
+    IMPLICIT NONE
+
+    LOGICAL   :: IS_CASA_TIME
+    INTEGER  ,INTENT(IN) :: yyyy, ktau, kstart, koffset, kend, ktauday, logn
+    CHARACTER,INTENT(IN) :: iotype*5
+    LOGICAL   :: is_eod, is_eom, is_eoy
+    INTEGER   :: doy, m
+    INTEGER, DIMENSION(12) :: MONTH
+
+    is_eom       = .FALSE.
+    is_eoy       = .FALSE.
+    IS_CASA_TIME = .FALSE.
+
+    MONTH = (/ 31,28,31,30,31,30,31,31,30,31,30,31 /)
+    is_eod = ( MOD((ktau-kstart+1+koffset),ktauday).EQ.0 )
+    IF ( .NOT. is_eod ) RETURN    ! NO if it is not end of day
+
+#ifdef Vanessas_common
+    IF ( IS_LEAPYEAR( YYYY ) .AND. leaps ) THEN
+       MONTH(2) = 29
+    ELSE
+       MONTH(2) = 28
+    ENDIF
+#endif
+
+    ! Check for reading from dump-file (hard-wired to daily casa-timestep)
+    IF ( iotype .EQ. "dread" ) THEN
+       IF ( CABLE_USER%CASA_DUMP_READ )  IS_CASA_TIME = .TRUE.
+       ! Check for writing of casa dump output
+    ELSE IF ( iotype .EQ. "dwrit" ) THEN
+       IF ( CABLE_USER%CASA_DUMP_WRITE ) IS_CASA_TIME = .TRUE.
+       ! Check for writing of casa standard output
+    ELSE IF ( iotype .EQ. "write" ) THEN
+
+       doy = NINT(REAL(ktau-kstart+1+koffset)/REAL(ktauday))
+       DO m = 1, 12
+          IF ( doy .EQ. SUM(MONTH(1:m)) ) THEN
+             is_eom = .TRUE.
+             IF ( m .EQ. 12 ) is_eoy = .TRUE.
+             EXIT
+          ENDIF
+       END DO
+
+       SELECT CASE ( TRIM(CABLE_USER%CASA_OUT_FREQ) )
+       CASE ("daily"   ) ; IS_CASA_TIME = .TRUE.
+       CASE ("monthly" ) ; IF ( is_eom ) IS_CASA_TIME = .TRUE.
+       CASE ("annually") ; IF ( is_eoy ) IS_CASA_TIME = .TRUE.
+       END SELECT
+    ELSE
+       WRITE(logn,*)"Wrong statement 'iotype'", iotype, "in call to IS_CASA_TIME"
+       WRITE(*   ,*)"Wrong statement 'iotype'", iotype, "in call to IS_CASA_TIME"
+       STOP -1
+    ENDIF
+
+  END FUNCTION IS_CASA_TIME
+
+
 
 END MODULE casa_ncdf_module
 

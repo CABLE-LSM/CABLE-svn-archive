@@ -64,11 +64,12 @@ PROGRAM cable_offline_driver
        verbose, fixedCO2,output,check,patchout,	   &
        patch_type,soilparmnew,&
        defaultLAI, sdoy, smoy, syear, timeunits, exists, calendar
+  USE casa_ncdf_module, ONLY: is_casa_time
   USE cable_common_module,  ONLY: ktau_gl, kend_gl, knode_gl, cable_user,     &
        cable_runtime, filename, myhome,		   &
        redistrb, wiltParam, satuParam, CurYear,	   &
-       IS_LEAPYEAR, IS_CASA_TIME, calcsoilalbedo,		 &
-       report_version_no, kwidth_gl, gw_params
+       IS_LEAPYEAR, calcsoilalbedo,		 &
+       kwidth_gl, gw_params
 
   USE cable_namelist_util, ONLY : get_namelist_file_name,&
        CABLE_NAMELIST,arg_not_namelist
@@ -306,8 +307,6 @@ USE cbl_soil_snow_init_special_module
 
   ! Open log file:
   OPEN(logn,FILE=filename%log)
-
-  CALL report_version_no( logn )
 
   IF( (IARGC() > 0 ) .AND. (arg_not_namelist)) THEN
      CALL GETARG(1, filename%met)
@@ -1248,7 +1247,8 @@ SUBROUTINE LUCdriver( casabiome,casapool, &
 
   USE cable_def_types_mod , ONLY: veg_parameter_type, mland
   USE cable_carbon_module
-  USE cable_common_module, ONLY: CABLE_USER, is_casa_time, CurYear
+  USE cable_common_module, ONLY: CABLE_USER, CurYear
+  USE casa_ncdf_module, ONLY: is_casa_time
   USE cable_IO_vars_module, ONLY: logn, landpt, patch
   USE casadimension
   USE casaparm

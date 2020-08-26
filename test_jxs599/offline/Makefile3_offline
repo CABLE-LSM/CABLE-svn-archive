@@ -37,6 +37,7 @@ LSRC = cable_pft_params.F90  \
 	cable_phys_constants_mod.F90 \
 	cable_other_constants_mod.F90 \
 	cable_photo_constants_mod.F90 \
+	cable_runtime_opts_mod.F90 \
 	cbl_masks.F90              \
 	cable_driver.F90           \
 	cable_iovars.F90           \
@@ -130,6 +131,7 @@ cable_math_constants_mod.o: cable_math_constants_mod.F90
 cable_phys_constants_mod.o: cable_phys_constants_mod.F90
 cable_other_constants_mod.o: cable_other_constants_mod.F90
 cable_photo_constants_mod.o: cable_photo_constants_mod.F90
+cable_runtime_opts_mod.o: cable_runtime_opts_mod.F90
 cbl_masks.o: cbl_masks.F90
 
 cable_driver.o: cable_driver.F90 pop_io.o cable_output.o \
@@ -213,7 +215,7 @@ casa_cnp.o: casa_cnp.F90 cable_define_types.o  casa_variable.o
 
 casa_inout.o: casa_inout.F90 POP.o cable_define_types.o  cable_iovars.o casa_variable.o casa_cnp.o
 
-cable_common.o: cable_common.F90  cable_iovars.o cable_pft_params.o cable_soil_params.o
+cable_common.o: cable_common.F90  cable_iovars.o cable_pft_params.o cable_soil_params.o cable_runtime_opts_mod.o
 
 POP.o: POP.F90 cable_define_types.o
 

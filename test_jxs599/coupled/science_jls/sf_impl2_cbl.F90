@@ -791,13 +791,20 @@ CALL im_sf_pt2_cbl (                                                            
 ! timestep and there is no need to repeat the calculation.
 !-----------------------------------------------------------------------
 
+tstar_surft_old  = 0.0
+canhc_surf = 0.0
 IF ( .NOT. l_correct ) THEN
 
 !$OMP PARALLEL                                                                &
 !$OMP DEFAULT(NONE)                                                           &
 !$OMP PRIVATE(l,n,j,i,k)                                                      &
 !$OMP SHARED(tdims,ftl_1,h_sea,nice_use,ftl_ice,nsurft,surft_pts,surft_index, &
-!$OMP        ftl_surft,nsoilt,land_pts,t_soil_soilt,                          &
+!$OMP        ftl_surft, radnet_surft, le_surft, nsoilt, land_pts,             &
+!$OMP        t_soil_soilt, MELT_surft, soil_cbl, veg_cbl, sum_flux_cbl,       &
+!$OMP        bal_cbl, bgc_cbl, ssnow_cbl, rough_cbl, rad_cbl, met_cbl,        &
+!$OMP        air_cbl, sf_diag, ei_surft, esoil_surft, ecan_surft,             &
+!$OMP        surf_htf_surft, surf_ht_flux_land, fqw_surft, fqw_1, ctctq1,     &
+!$OMP        dqw1_1, dtl1_1, qw_1, tl_1, fland, sm_levels, canopy_cbl,        &
 !$OMP        tstar_surft_old,tstar_surft,dtstar_surft,cp,error)
 
   !-----------------------------------------------------------------------

@@ -198,8 +198,8 @@ SUBROUTINE initialize_radiation( sw_down, lw_down, cos_zenith_angle,          &
 USE cable_radiation_type_mod, ONLY: radiation_type
 USE cable_met_type_mod, ONLY: met_type
 USE cable_params_mod, ONLY: soil_parameter_type
+USE cable_other_constants_mod, ONLY : crad_thresh  => rad_thresh
 USE cable_def_types_mod, ONLY: mp, mstype
-USE cable_data_module,   ONLY: phys, other
 USE cable_um_tech_mod,   ONLY: um1, conv_rain_prevstep, conv_snow_prevstep
 USE cable_common_module, ONLY: cable_runtime, cable_user, ktau_gl
 
@@ -236,8 +236,6 @@ REAL, INTENT(IN) :: co2_3d(:,:)  ! co2 mass mixing ratio
 !___defs 1st call to CABLE in this run. OK in UM & coupled
 LOGICAL, SAVE :: first_call= .TRUE.
      
-REAL, POINTER :: tfrz, rad_thresh
-   
 LOGICAL :: skip =.TRUE. 
 REAL, DIMENSION(mstype) :: dummy 
 INTEGER :: i,j
@@ -245,9 +243,6 @@ INTEGER, SAVE :: k = 0
       
 dummy = 0.0 
       
-tfrz => phys%tfrz
-rad_thresh => other%rad_thresh
-     
 IF ( first_call ) THEN
   rad_cbl%albedo_T = soil_cbl%albsoil(:,1)
   !first_call = .FALSE.            !second use of first_call later
@@ -273,8 +268,8 @@ CALL um2cable_lp( 0.5 * surf_down_sw, dummy , met_cbl%fsd(:,1), soil_cbl%isoilm,
 CALL um2cable_lp( 0.5 * surf_down_sw, dummy , met_cbl%fsd(:,2), soil_cbl%isoilm, skip )
 
 DO i = 1, mp
-  IF ( met_cbl%fsd(i,1) < ( .1 * rad_thresh) ) met_cbl%fsd(i,1) = 0.0
-  IF ( met_cbl%fsd(i,2) < ( .1 * rad_thresh) ) met_cbl%fsd(i,2) = 0.0
+  IF ( met_cbl%fsd(i,1) < ( .1 * crad_thresh) ) met_cbl%fsd(i,1) = 0.0
+  IF ( met_cbl%fsd(i,2) < ( .1 * crad_thresh) ) met_cbl%fsd(i,2) = 0.0
 END DO
 !H!if (k==0) k = k+1
 !H!do i=1, um1%land_pts 
@@ -335,7 +330,7 @@ met_cbl%ca = co2_mmr
 !ENDIF
 met_cbl%ca = met_cbl%ca * 28.966 / 44.0
 
-WHERE (met_cbl%coszen < rad_thresh ) 
+WHERE (met_cbl%coszen < crad_thresh ) 
   rad_cbl%fbeam(:,1) = REAL(0) 
   rad_cbl%fbeam(:,2) = REAL(0) 
   rad_cbl%fbeam(:,3) = REAL(0) 
@@ -404,7 +399,6 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile,smcl_tile,smgw_til
                                 sin_theta_latitude, soil_cbl, ssnow_cbl, met_cbl, bal_cbl, veg_cbl )
 
 USE cable_def_types_mod,  ONLY: mp, msn, ms, r_2,mstype
-USE cable_data_module,   ONLY: phys
 USE cable_um_tech_mod,   ONLY: um1
 USE cable_common_module, ONLY: cable_runtime, cable_user, ktau_gl
    
@@ -455,7 +449,6 @@ INTEGER :: i,j,k,l,n
 REAL  :: zsetot, max_snow_depth = 50000.0
 REAL, ALLOCATABLE:: fwork(:,:,:), sfact(:), fvar(:), rtemp(:),                &
                     tot_mass_tmp(:,:,:), ice_vol_tmp(:,:,:)
-REAL, POINTER :: tfrz
 LOGICAL :: skip =.TRUE. 
 LOGICAL, SAVE :: first_call = .TRUE.
 REAL, DIMENSION(mstype) :: dummy 
@@ -471,8 +464,6 @@ ssnow_cbl%wbtot1 = 0
 ssnow_cbl%wbtot2 = 0
 ssnow_cbl%wb_lake = 0.0
 
-!local pntrs to derived type data
-tfrz => phys%tfrz
  !why is snow updated from um values every timestep
  !but soil moisture not?
       

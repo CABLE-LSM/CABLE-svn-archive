@@ -26,7 +26,8 @@ MODULE cable_climate_mod
 # ifndef UM_BUILD
   USE cable_IO_vars_module, ONLY: patch
 # endif
-  USE CABLE_COMMON_MODULE, ONLY: CurYear, filename, cable_user, HANDLE_ERR
+  USE CABLE_COMMON_MODULE, ONLY: CurYear, filename, cable_user
+  USE casa_ncdf_module, ONLY: HANDLE_ERR
 
 CONTAINS
   ! ==============================================================================

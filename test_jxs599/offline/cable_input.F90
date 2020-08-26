@@ -53,8 +53,8 @@ MODULE cable_input_module
   USE cable_read_module,       ONLY: readpar
   USE cable_init_module
   USE netcdf ! link must be made in cd to netcdf-x.x.x/src/f90/netcdf.mod
-  USE cable_common_module, ONLY : filename, cable_user, CurYear, HANDLE_ERR, &
-                                  is_leapyear
+  USE cable_common_module, ONLY : filename, cable_user, CurYear, is_leapyear
+  USE casa_ncdf_module, ONLY: HANDLE_ERR
   USE casa_inout_module, ONLY: casa_readbiome, casa_readphen, casa_init
 
   IMPLICIT NONE
@@ -293,8 +293,8 @@ CONTAINS
 
   SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
 
-    USE CABLE_COMMON_MODULE, ONLY : IS_LEAPYEAR, YMDHMS2DOYSOD, DOYSOD2YMDHMS,&
-         HANDLE_ERR
+    USE CABLE_COMMON_MODULE, ONLY : IS_LEAPYEAR
+  USE casa_ncdf_module, ONLY: HANDLE_ERR, YMDHMS2DOYSOD, DOYSOD2YMDHMS
     IMPLICIT NONE
     ! Input arguments
     REAL, INTENT(OUT) :: dels   ! time step size

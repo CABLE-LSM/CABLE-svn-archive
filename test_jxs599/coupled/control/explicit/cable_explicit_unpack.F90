@@ -57,12 +57,12 @@ SUBROUTINE cable_expl_unpack( latitude, longitude, ftl_tile, fqw_tile,        &
   !processor number, timestep number / width, endstep
 USE cable_common_module, ONLY: knode_gl, ktau_gl, kwidth_gl, kend_gl
 USE cable_common_module, ONLY: cable_runtime
+USE cable_phys_constants_mod, ONLY : ccapp   => capp
                                 
-USE cable_common_module!, ONLY : cable_runtime, cable_user, &
+!USE cable_common_module!, ONLY : cable_runtime, cable_user, &
                         !         ktau_gl, knode_gl, kend_gl, &
    
 USE cable_def_types_mod, ONLY: mp, niter 
-USE cable_data_module,   ONLY: phys
 USE cable_um_tech_mod,   ONLY: um1
   
 IMPLICIT NONE         
@@ -145,7 +145,6 @@ REAL, DIMENSION(mp)  ::                                                       &
 INTEGER :: i,j,k,n,l
 REAL :: miss = 0.0
 LOGICAL, SAVE :: first_cable_call = .TRUE.
-REAL, POINTER :: capp 
 LOGICAL :: Lunpack = .FALSE.
 LOGICAL :: checks = .FALSE.
 REAL :: tols = 0.25
@@ -153,11 +152,9 @@ REAL :: tols = 0.25
 ! std template args 
 CHARACTER(LEN=*), PARAMETER :: subr_name = "cable_explicit_unpack"
 
-capp => phys%capp
-     
 !___return fluxes
 ftl_tile = UNPACK(canopy_fh,  um1%l_tile_pts, miss)
-ftl_tile = ftl_tile / capp
+ftl_tile = ftl_tile / ccapp
 
 fe_dlh = ( canopy_fes / (air_rlam * ssnow_cls) )                              &
        + ( canopy_fev / air_rlam )
@@ -200,7 +197,7 @@ resfs = UNPACK( rfsfs_cab , um1%l_tile_pts, miss )
 
 radnet_tile = UNPACK( canopy_rnet , um1%l_tile_pts, miss )
 
-thetast = ABS( canopy_fh ) / ( air_rho * capp * canopy_us )
+thetast = ABS( canopy_fh ) / ( air_rho * ccapp * canopy_us )
 reciplmotile =  canopy_zetar(:,niter) / rough_zref_tq
 recip_l_mo_tile = UNPACK( reciplmotile, um1%l_tile_pts, miss )
 epot_tile = UNPACK( canopy_epot, um1%l_tile_pts, miss )

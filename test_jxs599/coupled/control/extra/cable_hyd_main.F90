@@ -25,7 +25,6 @@ USE cable_params_mod,         ONLY: soil_parameter_type
   !processor number, timestep number / width, endstep
 USE cable_common_module, ONLY: knode_gl, ktau_gl, kwidth_gl, kend_gl
 USE cable_common_module, ONLY: cable_runtime
-USE cable_data_module, ONLY: cable
 
 !data
 USE cable_types_mod, ONLY: L_tile_pts

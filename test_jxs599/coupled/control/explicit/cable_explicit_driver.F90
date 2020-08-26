@@ -135,6 +135,7 @@ USE cable_sum_flux_type_mod,  ONLY: sum_flux_type
 USE cable_params_mod,         ONLY: veg_parameter_type
 USE cable_params_mod,         ONLY: soilin_type
 USE cable_params_mod,         ONLY: soil_parameter_type
+USE cable_phys_constants_mod, ONLY : cdensity_liq => density_liq
 
 USE cable_runtime_opts_mod ,ONLY: cable_user
 USE cable_runtime_opts_mod ,ONLY: satuparam
@@ -145,11 +146,7 @@ USE cable_common_module, ONLY: knode_gl, ktau_gl, kwidth_gl, kend_gl
 USE cable_common_module, ONLY: cable_runtime
 !--- vars common to CABLE declared 
    
-USE cable_data_module, ONLY: cable
-
 USE cable_def_types_mod, ONLY: ms
-
-USE cable_data_module, ONLY: phys
 
 !USE casavariable
 !USE casa_types_mod
@@ -332,8 +329,8 @@ REAL  :: rho_water, rho_ice
 ! std template args 
 CHARACTER(LEN=*), PARAMETER :: subr_name = "cable_explicit_driver"
 
-rho_water = phys%density_liq
-rho_ice = phys%density_liq
+rho_water = cdensity_liq
+rho_ice   = cdensity_liq
 !---------------------------------------------------------------------!
 !--- initialize CABLE using UM forcings etc. these args are passed ---!
 !--- down from UM.                                                 ---! 

@@ -34,10 +34,6 @@ SUBROUTINE cable_hyd_driver( land_pts, ntiles, L_tile_pts, lying_snow, snow_tile
   !processor number, timestep number / width, endstep
 USE cable_common_module, ONLY: knode_gl, ktau_gl, kwidth_gl, kend_gl
 USE cable_common_module, ONLY: cable_runtime
-USE cable_data_module, ONLY: cable
-!from old version
-!USE cable_common_module!, only : cable_runtime, cable_user
-USE cable_data_module,   ONLY: phys, other
 USE cable_um_tech_mod, ONLY: um1 
 
 USE cable_canopy_type_mod,    ONLY: canopy_type
@@ -72,15 +68,12 @@ REAL, DIMENSION(land_pts,ntiles) ::                                           &
   tot_tfall_tile                
 
 REAL :: miss  = 0.0 
-REAL, POINTER :: tfrz
  
 ! std template args 
 CHARACTER(LEN=*), PARAMETER :: subr_name = "cable_explicit_main"
 
 !-------- Unique subroutine body -----------
  
-tfrz => phys%tfrz
-   
 snow_tile= UNPACK(ssnow%snowd, l_tile_pts, miss) 
 
 lying_snow = SUM(um1%tile_frac * snow_tile,2) !gridbox snow mass
