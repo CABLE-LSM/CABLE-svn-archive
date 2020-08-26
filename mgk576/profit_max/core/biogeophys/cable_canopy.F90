@@ -1801,7 +1801,7 @@ CONTAINS
 
     REAL :: Kmax, Kcrit, b_plant, c_plant, press
 
-    INTEGER, PARAMETER :: resolution = 10
+    INTEGER, PARAMETER :: resolution = 20
     REAL, DIMENSION(2) :: an_canopy
     REAL :: e_canopy
     REAL, DIMENSION(resolution) :: p
@@ -3627,13 +3627,16 @@ CONTAINS
 
       REAL, DIMENSION(N) :: e_leaf, cost, gain, profit, an_leaf
 
-      REAL :: psil_soil, max_profit, gsw, gsc, an, Vcmax, Jmax, Rd, Vj, Km
+      REAL :: psi_soil, max_profit, gsw, gsc, an, Vcmax, Jmax, Rd, Vj, Km
 
       REAL, DIMENSION(mf) :: e_leaves
 
+      logical :: bounded_psi
+
+      bounded_psi = .false.
 
 
-      psil_soil = ssnow%weighted_psi_soil(i)
+      psi_soil = ssnow%weighted_psi_soil(i)
 
       GSC_2_GSW = 1.57        ! Ratio of Gsw:Gsc
       GSW_2_GSC = 1.0 / GSC_2_GSW
@@ -3654,8 +3657,14 @@ CONTAINS
 
 
       ! Generate water potential sequence
-      lower = psil_soil
-      upper = p_crit
+
+      IF (bounded_psi .eqv. .true.) THEN
+         lower = min(psi_soil, canopy%psi_leaf_prev(i) * 0.7)
+         upper = max(p_crit, canopy%psi_leaf_prev(i) * 1.3)
+      ELSE
+         lower = psi_soil
+         upper = p_crit
+      END IF
 
       DO k=1, N
 
@@ -3707,8 +3716,7 @@ CONTAINS
                   gsc = gsw * GSW_2_GSC ! mol CO2 m-2 s-1
 
                   !print*, "*", gsw, vpd, press, apar, ca, tleaf-273.15
-                  call get_a_and_ci(canopy, rad, met, ca, tleaf, &
-                                    apar, an, gsc, &
+                  call get_a_and_ci(ca, tleaf, apar, an, gsc, &
                                     Vcmax, Jmax, Rd, Vj, Km)
                   an_leaf(k) = an
                ELSE
@@ -3723,7 +3731,7 @@ CONTAINS
             END DO
 
             ! mmol s-1 m-2 MPa-1
-            kcmax = Kmax * get_xylem_vulnerability(psil_soil, &
+            kcmax = Kmax * get_xylem_vulnerability(psi_soil, &
                                                    b_plant, c_plant)
 
             ! normalised cost (-)
@@ -3742,6 +3750,7 @@ CONTAINS
             e_leaves(j) = e_leaf(idx) ! mol H2O m-2 s-1
             canopy%psi_leaf(i) = p(idx)
             canopy%psi_leaf_prev(i) = canopy%psi_leaf(i)
+
          END IF
 
       END DO
@@ -3754,7 +3763,7 @@ CONTAINS
    ! ---------------------------------------------------------------------------
 
    ! --------------------------------------------------------------------------
-   SUBROUTINE get_a_and_ci(canopy, rad, met, ca, tleaf, par, An_new, &
+   SUBROUTINE get_a_and_ci(ca, tleaf, par, An_new, &
                            gsc, Vcmax, Jmax, Rd, Vj, Km)
 
 
@@ -3762,10 +3771,6 @@ CONTAINS
        USE cable_common_module
 
        IMPLICIT NONE
-
-       TYPE (canopy_type), INTENT(INOUT) :: canopy
-       TYPE (radiation_type), INTENT(IN) :: rad
-       TYPE (met_type), INTENT(INOUT) :: met
 
        REAL, INTENT(INOUT) :: An_new, gsc
        REAL :: min_ci, max_ci, An, ci_new, gsc_new, ca, Ac, Aj, A, gamma_star
