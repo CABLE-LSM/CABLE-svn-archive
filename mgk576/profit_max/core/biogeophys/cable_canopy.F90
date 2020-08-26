@@ -1801,7 +1801,7 @@ CONTAINS
 
     REAL :: Kmax, Kcrit, b_plant, c_plant, press
 
-    INTEGER, PARAMETER :: resolution = 100
+    INTEGER, PARAMETER :: resolution = 20
     REAL, DIMENSION(2) :: an_canopy
     REAL :: e_canopy
     REAL, DIMENSION(resolution) :: p
