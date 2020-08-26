@@ -1801,7 +1801,7 @@ CONTAINS
 
     REAL :: Kmax, Kcrit, b_plant, c_plant, press
 
-    INTEGER, PARAMETER :: resolution = 20
+    INTEGER, PARAMETER :: resolution = 100
     REAL, DIMENSION(2) :: an_canopy
     REAL :: e_canopy
     REAL, DIMENSION(resolution) :: p
@@ -3633,7 +3633,7 @@ CONTAINS
 
       logical :: bounded_psi
 
-      bounded_psi = .false.
+      bounded_psi = .true.!.false.
 
 
       psi_soil = ssnow%weighted_psi_soil(i)
@@ -3659,8 +3659,15 @@ CONTAINS
       ! Generate water potential sequence
 
       IF (bounded_psi .eqv. .true.) THEN
-         lower = min(psi_soil, canopy%psi_leaf_prev(i) * 0.7)
-         upper = max(p_crit, canopy%psi_leaf_prev(i) * 1.3)
+
+         ! i.e. it rained a "lot"
+         IF (psi_soil < canopy%psi_soil_prev(i) * 0.7) THEN
+            lower = psi_soil ! start from the full range
+         ELSE
+            lower = min(psi_soil, canopy%psi_leaf_prev(i) * 0.5)
+         END IF
+         upper = max(p_crit, canopy%psi_leaf_prev(i) * 1.5)
+         !print*, lower, upper, psi_soil, p_crit, canopy%psi_leaf_prev(i)
       ELSE
          lower = psi_soil
          upper = p_crit
@@ -3750,7 +3757,7 @@ CONTAINS
             e_leaves(j) = e_leaf(idx) ! mol H2O m-2 s-1
             canopy%psi_leaf(i) = p(idx)
             canopy%psi_leaf_prev(i) = canopy%psi_leaf(i)
-
+            canopy%psi_soil_prev(i) = psi_soil
          END IF
 
       END DO
