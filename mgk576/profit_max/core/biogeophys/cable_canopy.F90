@@ -3660,8 +3660,8 @@ CONTAINS
 
       IF (bounded_psi .eqv. .true.) THEN
 
-         ! i.e. it rained a "lot"
-         IF (psi_soil < canopy%psi_soil_prev(i) * 0.7) THEN
+         ! i.e. it rained 
+         IF (psi_soil < canopy%psi_soil_prev(i)) THEN
             lower = psi_soil ! start from the full range
          ELSE
             lower = min(psi_soil, canopy%psi_leaf_prev(i) * 0.5)
