@@ -1801,7 +1801,7 @@ CONTAINS
 
     REAL :: press
 
-    INTEGER, PARAMETER :: resolution = 20
+    INTEGER, PARAMETER :: resolution = 100
     REAL, DIMENSION(2) :: an_canopy
     REAL :: e_canopy
     REAL(r_2), DIMENSION(resolution) :: p
@@ -3628,7 +3628,7 @@ CONTAINS
       REAL, DIMENSION(mf) :: e_leaves
 
       logical :: bounded_psi
-      bounded_psi = .true.!.false.
+      bounded_psi = .false.!.false.
 
       MOL_TO_UMOL = 1E6
       J_TO_MOL = 4.6E-6  ! Convert from J to Mol for light
