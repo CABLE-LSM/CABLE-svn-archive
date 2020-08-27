@@ -3596,7 +3596,7 @@ CONTAINS
       !   Wang Y, Love DM. 2017. Predicting stomatal responses to the
       !   environment from the optimization of photosynthetic gain and
       !   hydraulic cost. Plant, Cell & Environment 40: 816–830.
-      ! 
+      !
       ! * Sabot, M.E.B., De Kauwe, M.G., Pitman, A.J., Medlyn, B.E.,
       !   Verhoef, A., Ukkola, A.M. and Abramowitz, G. (2020), Plant profit
       !   maximization improves predictions of European forest responses to
@@ -3795,7 +3795,7 @@ CONTAINS
 
          gsc_new = An / (cs - ci_new) ! mol m-2 s-1
 
-         ! Have we find a matching gsc?
+         ! Have we found a matching gsc?
          IF (abs(gsc_new - gsc) / gsc < tol) THEN
             An_new = An ! umol m-2 s-1
             EXIT
