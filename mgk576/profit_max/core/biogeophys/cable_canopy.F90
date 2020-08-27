@@ -3778,60 +3778,70 @@ CONTAINS
    ! ---------------------------------------------------------------------------
 
    ! --------------------------------------------------------------------------
-   SUBROUTINE get_a_and_ci(cs, tleaf, par, An_new, &
-                           gsc, Vcmax, Jmax, Rd, Vj, Km)
+   SUBROUTINE get_a_and_ci(cs, tleaf, par, An_new, gsc, Vcmax, Jmax, Rd, Vj, Km)
 
+      ! Find the matching An and Ci for a given gsc.
+      !
+      ! Martin De Kauwe, 27th August, 2020
 
-       USE cable_def_types_mod
-       USE cable_common_module
+      USE cable_def_types_mod
+      USE cable_common_module
 
-       IMPLICIT NONE
+      IMPLICIT NONE
 
-       REAL, INTENT(INOUT) :: An_new, gsc
-       REAL :: min_ci, max_ci, An, ci_new, gsc_new, cs, Ac, Aj, A, gamma_star
+      REAL, INTENT(IN) :: tleaf, par, Vcmax, Jmax, Rd, Vj, Km
+      REAL, INTENT(INOUT) :: An_new, gsc
+      REAL :: min_ci, max_ci, An, ci_new, gsc_new, cs, Ac, Aj, A, gamma_star
+      REAL, PARAMETER :: tol = 1E-04 !1E-12
 
-       REAL, INTENT(IN) :: tleaf, par, Vcmax, Jmax, Rd, Vj, Km
+      INTEGER :: iter
 
-       REAL, PARAMETER :: tol = 1E-04 !1E-12
+      min_ci = 0.0 ! CABLE assumes gamma_star = 0
+      max_ci = cs  ! umol m-2 s-1
+      An_new  = 0.0 ! umol m-2 s-1
+      gamma_star = 0.0 ! cable says it is 0
+      iter = 0
 
-       INTEGER :: iter
+      DO
 
-       min_ci = 0.0 ! CABLE assumes gamma_star = 0
-       max_ci = cs  ! umol m-2 s-1
-       An_new  = 0.0
-       gamma_star = 0.0 ! cable says it is 0
+         ci_new = 0.5 * (max_ci + min_ci) ! umol mol-1
 
-       iter = 0
-       DO
-          ci_new = 0.5 * (max_ci + min_ci) ! umol mol-1
+         ! Find the matching A given the Ci
+         IF (ci_new < 1E-05) THEN
 
-          ! Find the matching A given the Ci
-          IF (ci_new < 1E-05) THEN
-             An = 0.0
-          ELSE
-             Ac = assim(ci_new, gamma_star, Vcmax, Km)
-             Aj = assim(ci_new, gamma_star, Vj, 2.0*gamma_star)
-             A = -QUADP(1.0-1E-04, Ac+Aj, Ac*Aj)
-             An = A - Rd ! Net photosynthesis, umol m-2 s-1
-          END IF
+            An = 0.0 ! umol m-2 s-1
 
-          gsc_new = An / (cs - ci_new) ! mol m-2 s-1
+         ELSE
 
-          !print*, An, gsc_new, gsc, cs, ci_new, min_ci, max_ci, abs(max_ci - min_ci)
+            Ac = assim(ci_new, gamma_star, Vcmax, Km) ! umol m-2 s-1
+            Aj = assim(ci_new, gamma_star, Vj, 2.0*gamma_star) ! umol m-2 s-1
+            A = -QUADP(1.0-1E-04, Ac+Aj, Ac*Aj) ! umol m-2 s-1
+            An = A - Rd ! Net photosynthesis, umol m-2 s-1
 
-          IF (abs(gsc_new - gsc) / gsc < tol) THEN
-             An_new = An ! umol m-2 s-1
-             EXIT
+         END IF
 
-          ! narrow search space, shift min up
-          ELSE IF (gsc_new < gsc) THEN
-             min_ci = ci_new ! umol mol-1
-             if (ci_new < 0.0) THEN
-                min_ci = 0.0
-             end if
+         gsc_new = An / (cs - ci_new) ! mol m-2 s-1
+
+        !print*, An, gsc_new, gsc, cs, ci_new, min_ci, max_ci, abs(max_ci - min_ci)
+
+        IF (abs(gsc_new - gsc) / gsc < tol) THEN
+
+           An_new = An ! umol m-2 s-1
+           EXIT
+
+        ! narrow search space, shift min up
+        ELSE IF (gsc_new < gsc) THEN
+
+           min_ci = ci_new ! umol mol-1
+           IF (ci_new < 0.0) THEN
+
+              min_ci = 0.0 ! umol m-2 s-1
+
+           END IF
 
           ! narrow search space, shift max down
           ELSE
+
              max_ci = ci_new ! umol mol-1
 
           END IF
@@ -3840,34 +3850,118 @@ CONTAINS
 
              An_new = An ! umol m-2 s-1
              EXIT
+
           END IF
 
           iter = iter + 1
 
           IF (iter > 10000) THEN
+
              print*, "stuck"
+
              stop
+
           END IF
 
-       END DO
-
+      END DO
 
    END SUBROUTINE get_a_and_ci
    ! ---------------------------------------------------------------------------
 
-
-
    ! ---------------------------------------------------------------------------
-   FUNCTION assim(Ci, gamma_star, a1, a2) RESULT(as)
+   FUNCTION assim(Ci, gamma_star, a1, a2) RESULT(assimilation)
 
-      REAL :: as
+      ! Calculation of photosynthesis with the limitation defined by the
+      ! variables passed as a1 and a2, i.e. if we are calculating vcmax or
+      ! jmax limited assimilation rates.
+      !
+      ! Martin De Kauwe, 27th August, 2020
+
       REAL, INTENT(IN) :: Ci, gamma_star, a1, a2
+      REAL :: assimilation
 
-      as = a1 * (Ci - gamma_star) / (a2 + Ci)
+      assimilation = a1 * (Ci - gamma_star) / (a2 + Ci)
 
    END FUNCTION assim
    ! ---------------------------------------------------------------------------
 
+   ! ---------------------------------------------------------------------------
+   FUNCTION calc_transpiration(p, N, Kmax, b_plant, c_plant) RESULT(e_leaf)
+
+      USE cable_def_types_mod
+      USE cable_common_module
+
+      IMPLICIT NONE
+
+
+      REAL(r_2), DIMENSION(N), INTENT(IN) :: p
+      REAL, INTENT(IN) :: b_plant, c_plant, Kmax
+      INTEGER, INTENT(IN) :: N
+      INTEGER :: h
+      REAL, DIMENSION(N) :: e_leaf
+      REAL :: MMOL_2_MOL
+
+      MMOL_2_MOL = 1E-03
+
+      ! integrate over the full range of water potentials from psi_soil to
+      ! e_crit
+      DO h=1, N
+
+         e_leaf(h) = integrate_vulnerability(N, p(h), p(1), b_plant, c_plant)
+         IF (e_leaf(h) > 1.0E-09) then
+            e_leaf(h) = e_leaf(h) * Kmax * MMOL_2_MOL ! mol m-2 s-1
+         END IF
+
+      END DO
+
+   END FUNCTION calc_transpiration
+   ! ---------------------------------------------------------------------------
+
+   ! ---------------------------------------------------------------------------
+   FUNCTION get_xylem_vulnerability(p, b_plant, c_plant) RESULT(weibull)
+
+      USE cable_def_types_mod
+      USE cable_common_module
+
+      IMPLICIT NONE
+
+      REAL(r_2), INTENT(IN) :: p
+      REAL, INTENT(IN) :: b_plant, c_plant
+      REAL :: weibull
+
+      weibull = max(1.0E-09, exp(-(-p / b_plant)**c_plant))
+
+   END FUNCTION get_xylem_vulnerability
+   ! ---------------------------------------------------------------------------
+
+   ! ---------------------------------------------------------------------------
+   FUNCTION integrate_vulnerability(N, a, b, b_plant, c_plant) RESULT(value2)
+      ! Approximate the integration with the mid-point rule
+
+      USE cable_def_types_mod
+      USE cable_common_module
+
+      IMPLICIT NONE
+
+      REAL :: value, value2
+      REAL(r_2), INTENT(IN) :: a, b
+      REAL, INTENT(IN) :: b_plant, c_plant
+      INTEGER, INTENT(IN) :: N
+      INTEGER :: h
+
+      value = 0.0
+      value2 = 0.0
+
+      DO h=1, N+1
+         value = value + &
+                  get_xylem_vulnerability(a + ((n - 0.5) * ((b - a) /&
+                                          float(N))), b_plant, c_plant)
+      END DO
+      value2 = ((b - a) / float(N)) * value
+
+   END FUNCTION integrate_vulnerability
+   ! ---------------------------------------------------------------------------
+   
    ! ---------------------------------------------------------------------------
    FUNCTION calc_electron_transport_rate(par, Jmax) RESULT(J)
 
@@ -3949,77 +4043,6 @@ CONTAINS
    ! ---------------------------------------------------------------------------
 
 
-   ! ---------------------------------------------------------------------------
-   FUNCTION calc_transpiration(p, N, Kmax, b_plant, c_plant) RESULT(e_leaf)
 
-      USE cable_def_types_mod
-      USE cable_common_module
-
-      IMPLICIT NONE
-
-
-      REAL(r_2), DIMENSION(N), INTENT(IN) :: p
-      REAL, INTENT(IN) :: b_plant, c_plant, Kmax
-      INTEGER, INTENT(IN) :: N
-      INTEGER :: h
-      REAL, DIMENSION(N) :: e_leaf
-      REAL :: MMOL_2_MOL
-
-      MMOL_2_MOL = 1E-03
-
-      ! integrate over the full range of water potentials from psi_soil to
-      ! e_crit
-      DO h=1, N
-
-         e_leaf(h) = integrate_vulnerability(N, p(h), p(1), b_plant, c_plant)
-         IF (e_leaf(h) > 1.0E-09) then
-            e_leaf(h) = e_leaf(h) * Kmax * MMOL_2_MOL ! mol m-2 s-1
-         END IF
-
-      END DO
-
-   END FUNCTION calc_transpiration
-
-
-   FUNCTION get_xylem_vulnerability(p, b_plant, c_plant) RESULT(weibull)
-
-      USE cable_def_types_mod
-      USE cable_common_module
-
-      IMPLICIT NONE
-
-      REAL(r_2), INTENT(IN) :: p
-      REAL, INTENT(IN) :: b_plant, c_plant
-      REAL :: weibull
-
-      weibull = max(1.0E-09, exp(-(-p / b_plant)**c_plant))
-
-   END FUNCTION get_xylem_vulnerability
-
-   FUNCTION integrate_vulnerability(N, a, b, b_plant, c_plant) RESULT(value2)
-      ! Approximate the integration with the mid-point rule
-
-      USE cable_def_types_mod
-      USE cable_common_module
-
-      IMPLICIT NONE
-
-      REAL :: value, value2
-      REAL(r_2), INTENT(IN) :: a, b
-      REAL, INTENT(IN) :: b_plant, c_plant
-      INTEGER, INTENT(IN) :: N
-      INTEGER :: h
-
-      value = 0.0
-      value2 = 0.0
-
-      DO h=1, N+1
-         value = value + &
-                  get_xylem_vulnerability(a + ((n - 0.5) * ((b - a) /&
-                                          float(N))), b_plant, c_plant)
-      END DO
-      value2 = ((b - a) / float(N)) * value
-
-   END FUNCTION integrate_vulnerability
 
 END MODULE cable_canopy_module
