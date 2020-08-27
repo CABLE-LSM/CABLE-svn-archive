@@ -1804,7 +1804,7 @@ CONTAINS
     INTEGER, PARAMETER :: resolution = 20
     REAL, DIMENSION(2) :: an_canopy
     REAL :: e_canopy
-    REAL, DIMENSION(resolution) :: p
+    REAL(r_2), DIMENSION(resolution) :: p
 
     REAL :: MOL_WATER_2_G_WATER, G_TO_KG, UMOL_TO_MOL, MB_TO_KPA, PA_TO_KPA
 
@@ -2132,12 +2132,13 @@ CONTAINS
 
                 ELSE
 
-                   CALL optimisation(canopy, ssnow, rad, met, veg, &
+                   CALL optimisation(canopy, ssnow%weighted_psi_soil(i), rad, veg, &
                                      veg%Kmax(i), veg%Kcrit(i), &
                                      veg%b_plant(i), veg%c_plant(i), &
                                      resolution, an_canopy, e_canopy, &
                                      vpd, press, tlfx(i), csx, &
-                                     vcmxt3, ejmxt3, rdx, vx3, cx1(i), p, i)
+                                     vcmxt3, ejmxt3, rdx, vx3, cx1(i), &
+                                     rad%fvlai, p, i)
 
                    ! fix units for CABLE and pack into arrays
                    anx(i,1) = an_canopy(1) * UMOL_TO_MOL
@@ -3580,10 +3581,11 @@ CONTAINS
    ! ---------------------------------------------------------------------------
 
    ! ----------------------------------------------------------------------------
-   SUBROUTINE optimisation(canopy, ssnow, rad, met, veg, Kmax, Kcrit, b_plant, &
-                           c_plant, N, an_canopy, e_canopy, &
-                           vpd, press, tleaf, ca_mol, vcmxt3, ejmxt3, rdx, vx3, &
-                           cx1, p, i)
+   SUBROUTINE optimisation(canopy, psi_soil, rad, veg, Kmax, Kcrit, &
+                           b_plant, c_plant, N, an_canopy, e_canopy, &
+                           vpd, press, tleaf, ca_mol, vcmxt3, ejmxt3, &
+                           rdx, vx3, cx1, lai_leaf, p, i)
+
       ! Optimisation wrapper for the Sperry ProfitMax model.
       !
       ! The Sperry model assumes that plant maximises the normalised (0-1)
@@ -3610,35 +3612,22 @@ CONTAINS
       IMPLICIT NONE
 
       TYPE (canopy_type), INTENT(INOUT) :: canopy
-      TYPE (soil_snow_type), INTENT(INOUT) :: ssnow
       TYPE (radiation_type), INTENT(IN) :: rad
-      TYPE (met_type), INTENT(INOUT) :: met
       TYPE (veg_parameter_type), INTENT(INOUT) :: veg
 
       INTEGER, INTENT(IN) :: i, N
-      !REAL, DIMENSION(mp,mf), INTENT(IN)      :: anx, gs_coeff, gswmin
-      REAL, DIMENSION(mf), INTENT(INOUT) :: an_canopy
+      INTEGER :: j, k, idx
+
+      REAL, INTENT(IN) :: cx1, Kmax, Kcrit, b_plant, c_plant, vpd, press, tleaf
+      REAL(r_2), INTENT(IN) :: psi_soil
       REAL, INTENT(INOUT) :: e_canopy
-
+      REAL, DIMENSION(mf), INTENT(INOUT) :: an_canopy
       REAL(r_2), DIMENSION(mp,mf), INTENT(IN) :: ca_mol
-      REAL, DIMENSION(N), INTENT(INOUT) :: p
-      REAL, DIMENSION(mp,mf), INTENT(IN) :: vcmxt3, ejmxt3, rdx, vx3
-      REAL, INTENT(IN) :: cx1
-      REAL, DIMENSION(N) :: Kc
-
-      REAL, INTENT(IN) :: Kmax, Kcrit, b_plant, c_plant, vpd, press, tleaf
-      INTEGER          :: j, k, idx
-
-
-      REAL :: p_crit, lower, upper, ca
-      REAL :: fsun, fsha, kcmax
-
-      REAL :: GSW_2_GSC, GSC_2_GSW, apar, jtomol, MOL_TO_UMOL
-
-      REAL, DIMENSION(N) :: e_leaf, cost, gain, profit, an_leaf
-
-      REAL :: psi_soil, max_profit, gsw, gsc, an, Vcmax, Jmax, Rd, Vj, Km
-
+      REAL(r_2), DIMENSION(N), INTENT(INOUT) :: p
+      REAL, DIMENSION(mp,mf), INTENT(IN) :: vcmxt3, ejmxt3, rdx, vx3, lai_leaf
+      REAL, DIMENSION(N) :: Kc, e_leaf, cost, gain, profit, an_leaf
+      REAL :: p_crit, lower, upper, ca, kcmax, GSW_2_GSC, GSC_2_GSW, apar
+      REAL :: jtomol, MOL_TO_UMOL, gsw, gsc, an, Vcmax, Jmax, Rd, Vj, Km
       REAL, DIMENSION(mf) :: e_leaves
 
       logical :: bounded_psi
@@ -3646,15 +3635,10 @@ CONTAINS
       bounded_psi = .true.!.false.
 
 
-      psi_soil = ssnow%weighted_psi_soil(i)
-
       GSC_2_GSW = 1.57        ! Ratio of Gsw:Gsc
       GSW_2_GSC = 1.0 / GSC_2_GSW
       MOL_TO_UMOL = 1.0/0.000001
       jtomol = 4.6e-6  ! Convert from J to Mol for light
-
-      fsun = rad%fvlai(i,1) / canopy%vlaiw(i)
-      fsha = rad%fvlai(i,2) / canopy%vlaiw(i)
 
       ! ca same for both leaves, so this is fine
       ca = ca_mol(1,1) * MOL_TO_UMOL
@@ -3691,6 +3675,7 @@ CONTAINS
 
       DO j=1, 2 ! sunlit, shaded leaves...
 
+
          apar = rad%qcan(i,j,1) * jtomol * MOL_TO_UMOL
 
          ! max rate of rubisco activity, scaled up
@@ -3721,7 +3706,7 @@ CONTAINS
 
             ! Scale to the sunlit or shaded fraction of the canopy,
             ! mol H20 m-2 s-1
-            e_leaf = e_leaf * rad%fvlai(i,j)
+            e_leaf = e_leaf * lai_leaf(i,j)
 
 
             ! For every gsc/psi_leaf get a match An and Ci
@@ -3954,10 +3939,13 @@ CONTAINS
    ! ---------------------------------------------------------------------------
    FUNCTION calc_transpiration(p, N, Kmax, b_plant, c_plant) RESULT(e_leaf)
 
+      USE cable_def_types_mod
+      USE cable_common_module
+
       IMPLICIT NONE
 
 
-      REAL, DIMENSION(N), INTENT(IN) :: p
+      REAL(r_2), DIMENSION(N), INTENT(IN) :: p
       REAL, INTENT(IN) :: b_plant, c_plant, Kmax
       INTEGER, INTENT(IN) :: N
       INTEGER :: h
@@ -3982,9 +3970,13 @@ CONTAINS
 
    FUNCTION get_xylem_vulnerability(p, b_plant, c_plant) RESULT(weibull)
 
+      USE cable_def_types_mod
+      USE cable_common_module
+
       IMPLICIT NONE
 
-      REAL, INTENT(IN) :: p, b_plant, c_plant
+      REAL(r_2), INTENT(IN) :: p
+      REAL, INTENT(IN) :: b_plant, c_plant
       REAL :: weibull
 
       weibull = max(1.0E-09, exp(-(-p / b_plant)**c_plant))
@@ -3994,10 +3986,14 @@ CONTAINS
    FUNCTION integrate_vulnerability(N, a, b, b_plant, c_plant) RESULT(value2)
       ! Approximate the integration with the mid-point rule
 
+      USE cable_def_types_mod
+      USE cable_common_module
+
       IMPLICIT NONE
 
       REAL :: value, value2
-      REAL, INTENT(IN) :: a, b, b_plant, c_plant
+      REAL(r_2), INTENT(IN) :: a, b
+      REAL, INTENT(IN) :: b_plant, c_plant
       INTEGER, INTENT(IN) :: N
       INTEGER :: h
 
