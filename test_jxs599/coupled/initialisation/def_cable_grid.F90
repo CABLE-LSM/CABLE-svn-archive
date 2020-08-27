@@ -12,7 +12,7 @@ CONTAINS
 
 SUBROUTINE def_cable_grid(mp)
 
-USE cbl_masks_mod,        ONLY: init_active_tile_mask_cbl
+USE init_active_tile_mask_mod,        ONLY: init_active_tile_mask_cbl
 USE ancil_info,           ONLY: surft_pts
 
 IMPLICIT NONE

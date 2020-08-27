@@ -223,7 +223,7 @@ POPLUC.o: POPLUC.F90 cable_define_types.o cable_iovars.o casa_variable.o cable_c
 
 cable_LUC_EXPT.o: cable_LUC_EXPT.F90 cable_define_types.o cable_iovars.o casa_variable.o cable_common.o
 
-pop_io.o: pop_io.F90 POP.o casa_variable.o cable_common.o
+pop_io.o: pop_io.F90 POP.o casa_variable.o cable_common.o casa_ncdf.o
 
 cable_sli_main.o: cable_sli_main.F90  cable_define_types.o cable_sli_numbers.o cable_sli_roots.o cable_sli_solve.o
 
