@@ -545,6 +545,9 @@ CONTAINS
        veg%psi_f(h)    = vegin%psi_f(veg%iveg(h))    ! mgk576
        veg%X_hyd(h)    = vegin%X_hyd(veg%iveg(h))    ! mgk576
        veg%p50(h)      = vegin%p50(veg%iveg(h))      ! mgk576
+       veg%Kmax(h)     = vegin%Kmax(veg%iveg(h))      ! mgk576
+       veg%b_plant(h)  = vegin%b_plant(veg%iveg(h))      ! mgk576
+       veg%c_plant(h)  = vegin%c_plant(veg%iveg(h))      ! mgk576
        veg%s50(h)      = vegin%s50(veg%iveg(h))      ! mgk576
        veg%kp_sat(h)   = vegin%kp_sat(veg%iveg(h))      ! mgk576
        veg%Cl(h)       = vegin%Cl(veg%iveg(h))      ! mgk576

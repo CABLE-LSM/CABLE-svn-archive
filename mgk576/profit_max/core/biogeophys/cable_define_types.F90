@@ -395,6 +395,9 @@ MODULE cable_def_types_mod
           psi_f,   & ! reference potential for Tuzet model, MPa
           X_hyd,   & ! pressure loss (%)
           p50,     & ! xylem pressure inducing 50% loss of hydraulic conductivity due to embolism, MPa
+          Kmax,    & ! maximum hydraulic conductance in the soil–plant continuum, mmol m-2 s-1 MPa-1
+          b_plant, & ! sensitivity of VC, MPa (higher = less sensitive to SW)
+          c_plant, & ! shape of VC, [-]
           s50,     & ! is slope of the curve at P50 used in weibull model, % MPa-1
           kp_sat,  & ! plant saturated hydraulic conductance (mmol m-2 s-1 MPa-1)
           Cl,      & ! Leaf capacitance (mmol m-2 leaf MPa-1)
@@ -1125,6 +1128,9 @@ CONTAINS
     ALLOCATE( var% psi_f(mp) )   ! mgk576
     ALLOCATE( var% X_hyd(mp) )   ! mgk576
     ALLOCATE( var% p50(mp) )   ! mgk576
+    ALLOCATE( var% Kmax(mp) )   ! mgk576
+    ALLOCATE( var% b_plant(mp) )   ! mgk576
+    ALLOCATE( var% c_plant(mp) )   ! mgk576
     ALLOCATE( var% s50(mp) )   ! mgk576
     ALLOCATE( var% kp_sat(mp) )   ! mgk576
     ALLOCATE( var% Cl(mp) )   ! mgk576
@@ -1762,6 +1768,9 @@ CONTAINS
     DEALLOCATE( var% psi_f )   ! mgk576
     DEALLOCATE( var% X_hyd )   ! mgk576
     DEALLOCATE( var% p50 )   ! mgk576
+    DEALLOCATE( var% Kmax )   ! mgk576
+    DEALLOCATE( var% b_plant )   ! mgk576
+    DEALLOCATE( var% c_plant )   ! mgk576
     DEALLOCATE( var% s50 )   ! mgk576
     DEALLOCATE( var% kp_sat )   ! mgk576
     DEALLOCATE( var% Cl )   ! mgk576
