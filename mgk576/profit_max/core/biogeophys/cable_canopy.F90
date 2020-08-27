@@ -1806,7 +1806,7 @@ CONTAINS
     REAL :: e_canopy
     REAL, DIMENSION(resolution) :: p
 
-    REAL :: MOL_WATER_2_G_WATER, G_TO_KG, UMOL_TO_MOL
+    REAL :: MOL_WATER_2_G_WATER, G_TO_KG, UMOL_TO_MOL, MB_TO_KPA, PA_TO_KPA
 
 
 
@@ -1849,7 +1849,9 @@ CONTAINS
 
      MOL_WATER_2_G_WATER = 18.02
      G_TO_KG = 1E-03
-     UMOL_TO_MOL = 0.000001
+     UMOL_TO_MOL = 1E-06
+     MB_TO_KPA = 0.1
+     PA_TO_KPA = 1E-03
 
     ! weight min stomatal conductance by C3 an C4 plant fractions
     frac42 = SPREAD(veg%frac4, 2, mf) ! frac C4 plants
@@ -2124,19 +2126,16 @@ CONTAINS
                 Kmax = 1.5
                 Kcrit = 0.05 * Kmax
 
-                vpd = dsx(i) * 1E-03 ! Pa -> kPa
+                vpd = dsx(i) * PA_TO_KPA
+                press = met%pmb(i) * MB_TO_KPA
 
-                press = 101.325 ! get from cable
+                IF (vpd < 0.05) THEN
 
-                an_canopy = 0.0
-                e_canopy = 0.0
-
-
-                if (vpd < 0.05) THEN
                    ecx(i) = 0.0
                    anx(i,1) = 0.0 - rdx(i,1)
                    anx(i,2) = 0.0 - rdx(i,2)
-                else
+
+                ELSE
 
                    CALL optimisation(canopy, ssnow, rad, met, veg, Kmax, Kcrit, &
                                      b_plant, c_plant, resolution,&
@@ -2144,18 +2143,19 @@ CONTAINS
                                      vpd, press, tlfx(i), csx, &
                                      vcmxt3, ejmxt3, rdx, vx3, cx1(i), p, i)
 
+                   ! fix units for CABLE and pack into arrays
                    anx(i,1) = an_canopy(1) * UMOL_TO_MOL
                    anx(i,2) = an_canopy(2) * UMOL_TO_MOL
 
-
-                   conv = MOL_WATER_2_G_WATER * G_TO_KG
-
+                   ! fix units for CABLE and pack into arrays
                    IF (e_canopy > 0.0) THEN
+                      conv = MOL_WATER_2_G_WATER * G_TO_KG
                       ecx(i) = e_canopy * air%rlam(i) * conv
                    ELSE
                       ecx(i) = 0.0
                    END IF
-                end if
+
+                END IF
 
                 !print*, an_canopy, e_canopy
 
@@ -3660,7 +3660,7 @@ CONTAINS
 
       IF (bounded_psi .eqv. .true.) THEN
 
-         ! i.e. it rained 
+         ! i.e. it rained
          IF (psi_soil < canopy%psi_soil_prev(i)) THEN
             lower = psi_soil ! start from the full range
          ELSE
