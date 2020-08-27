@@ -1799,7 +1799,7 @@ CONTAINS
     REAL :: vpd, g1, ktot, fw, refill ! Ticket #56
 
 
-    REAL :: Kmax, Kcrit, b_plant, c_plant, press
+    REAL :: press
 
     INTEGER, PARAMETER :: resolution = 20
     REAL, DIMENSION(2) :: an_canopy
@@ -2121,11 +2121,6 @@ CONTAINS
              ELSE IF (cable_user%GS_SWITCH == 'medlyn' .AND. &
                      cable_user%FWSOIL_SWITCH == 'profitmax') THEN
 
-                b_plant = 3.5
-                c_plant = 2.0
-                Kmax = 1.5
-                Kcrit = 0.05 * Kmax
-
                 vpd = dsx(i) * PA_TO_KPA
                 press = met%pmb(i) * MB_TO_KPA
 
@@ -2137,9 +2132,10 @@ CONTAINS
 
                 ELSE
 
-                   CALL optimisation(canopy, ssnow, rad, met, veg, Kmax, Kcrit, &
-                                     b_plant, c_plant, resolution,&
-                                     an_canopy, e_canopy, &
+                   CALL optimisation(canopy, ssnow, rad, met, veg, &
+                                     veg%Kmax(i), veg%Kcrit(i), &
+                                     veg%b_plant(i), veg%c_plant(i), &
+                                     resolution, an_canopy, e_canopy, &
                                      vpd, press, tlfx(i), csx, &
                                      vcmxt3, ejmxt3, rdx, vx3, cx1(i), p, i)
 
@@ -2156,9 +2152,6 @@ CONTAINS
                    END IF
 
                 END IF
-
-                !print*, an_canopy, e_canopy
-
 
 
              ELSE
