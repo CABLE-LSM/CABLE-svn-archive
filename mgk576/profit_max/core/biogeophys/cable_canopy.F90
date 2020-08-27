@@ -2126,13 +2126,10 @@ CONTAINS
                 press = met%pmb(i) * MB_TO_KPA
 
                 IF (vpd < 0.05) THEN
-
                    ecx(i) = 0.0
                    anx(i,1) = 0.0 - rdx(i,1)
                    anx(i,2) = 0.0 - rdx(i,2)
-
                 ELSE
-
                    CALL optimisation(canopy, rad%qcan, vpd, press, tlfx(i), &
                                      csx, rad%fvlai, &
                                      ssnow%weighted_psi_soil(i), &
@@ -2152,9 +2149,7 @@ CONTAINS
                    ELSE
                       ecx(i) = 0.0
                    END IF
-
                 END IF
-
 
              ELSE
                print*, cable_user%GS_SWITCH, cable_user%FWSOIL_SWITCH, veg%iveg(i)
@@ -3589,9 +3584,9 @@ CONTAINS
                            vcmxt3, ejmxt3, rdx, vx3, cx1, an_canopy, &
                            e_canopy, p, i)
 
-      ! Optimisation wrapper for the Sperry ProfitMax model. The Sperry model
+      ! Optimisation wrapper for the ProfitMax model. The Sperry model
       ! assumes that plant maximises the normalised (0-1) difference
-      ! between the relative gain and relative hydraulic risk
+      ! between the relative gain and relative hydraulic risk at every timestep
       !
       ! Implementation broadly follows Manon's code.
       !
@@ -3601,6 +3596,7 @@ CONTAINS
       !   Wang Y, Love DM. 2017. Predicting stomatal responses to the
       !   environment from the optimization of photosynthetic gain and
       !   hydraulic cost. Plant, Cell & Environment 40: 816–830.
+      ! 
       ! * Sabot, M.E.B., De Kauwe, M.G., Pitman, A.J., Medlyn, B.E.,
       !   Verhoef, A., Ukkola, A.M. and Abramowitz, G. (2020), Plant profit
       !   maximization improves predictions of European forest responses to
@@ -3644,7 +3640,6 @@ CONTAINS
       ! desiccates (Ecrit), MPa
       p_crit = -b_plant * log(Kmax / Kcrit)**(1.0 / c_plant)
 
-
       ! Generate water potential sequence
       !
       ! This includes an option here to generate a shorter, more focussed
@@ -3653,18 +3648,12 @@ CONTAINS
       ! that you shouldn't need to search too far and thus can reduce the
       ! resolution of the psi_leaf array, saving time
       IF (bounded_psi .eqv. .true.) THEN
-
          ! i.e. it rained, so search from psi_soil again
          IF (psi_soil < canopy%psi_soil_prev(i)) THEN
-
             lower = psi_soil ! start from the full range
-
          ELSE
-
             lower = min(psi_soil, canopy%psi_leaf_prev(i) * 0.5)
-
          END IF
-
          upper = max(p_crit, canopy%psi_leaf_prev(i) * 1.5)
       ELSE
          lower = psi_soil
@@ -3673,15 +3662,12 @@ CONTAINS
 
       ! Leaf water potential (MPA), in reality more of a whole-plant
       DO k=1, N
-
          p(k)  = lower + float(k) * (upper - lower) / float(N-1)
-
       END DO
 
       ! Loop over sunlit,shaded parts of the canopy and solve the carbon uptake
       ! and transpiration
       DO j=1, 2
-
          ! CO2 concentration at the leaf surface, umol m-2 -s-1
          cs = csx(i,j) * MOL_TO_UMOL
 
@@ -3703,14 +3689,11 @@ CONTAINS
 
          ! If there is bugger all light, assume there are no fluxes
          IF (apar < 50) THEN
-
             ! load into stores
             an_canopy(j) = 0.0 ! umol m-2 s-1
             e_canopy = 0.0 ! mol H2O m-2 s-1
             canopy%psi_leaf(i) = canopy%psi_leaf_prev(i) ! MPa
-
          ELSE
-
             ! Calculate transpiration for every water potential, integrating
             ! vulnerability to cavitation, mol H20 m-2 s-1 (leaf)
             e_leaf = calc_transpiration(p, N, Kmax, b_plant, &
@@ -3722,9 +3705,7 @@ CONTAINS
 
             ! For every gsc & psi_leaf find the matching An and Ci
             DO k=1, N
-
                IF (e_leaf(k) > 0.00001) THEN ! i.e. there is a flux
-
                   gsw = e_leaf(k) / vpd * press ! mol H20 m-2 s-1
                   gsc = gsw / C%RGSWC ! mol CO2 m-2 s-1
 
@@ -3733,17 +3714,13 @@ CONTAINS
                                     Vcmax, Jmax, Rd, Vj, Km)
 
                   an_leaf(k) = an ! save the An, umol m-2 s-1
-
                ELSE
-
                   an_leaf(k) = 0.0
-
                END IF
 
                ! Soil–plant hydraulic conductance at canopy xylem pressure,
                ! mmol m-2 s-1 MPa-1
                Kc(k) = Kmax * get_xylem_vulnerability(p(k), b_plant, c_plant)
-
             END DO
 
             ! ***Discuss this bit with Manon***, mmol s-1 m-2 MPa-1
@@ -3766,9 +3743,7 @@ CONTAINS
             canopy%psi_leaf(i) = p(idx) ! MPa
             canopy%psi_leaf_prev(i) = canopy%psi_leaf(i) ! MPa
             canopy%psi_soil_prev(i) = psi_soil ! MPa
-
          END IF
-
       END DO
 
       ! If there was light, save transpiration, NB. cable doesn't save
@@ -3806,66 +3781,45 @@ CONTAINS
       iter = 0
 
       DO
-
          ci_new = 0.5 * (max_ci + min_ci) ! umol mol-1
 
          ! Find the matching A given the Ci
          IF (ci_new < 1E-05) THEN
-
             An = 0.0 ! umol m-2 s-1
-
          ELSE
-
             Ac = assim(ci_new, gamma_star, Vcmax, Km) ! umol m-2 s-1
             Aj = assim(ci_new, gamma_star, Vj, 2.0*gamma_star) ! umol m-2 s-1
             A = -QUADP(1.0-1E-04, Ac+Aj, Ac*Aj) ! umol m-2 s-1
             An = A - Rd ! Net photosynthesis, umol m-2 s-1
-
          END IF
 
          gsc_new = An / (cs - ci_new) ! mol m-2 s-1
 
-        !print*, An, gsc_new, gsc, cs, ci_new, min_ci, max_ci, abs(max_ci - min_ci)
+         ! Have we find a matching gsc?
+         IF (abs(gsc_new - gsc) / gsc < tol) THEN
+            An_new = An ! umol m-2 s-1
+            EXIT
+         ! narrow search space, shift min up
+         ELSE IF (gsc_new < gsc) THEN
+            min_ci = ci_new ! umol mol-1
+            IF (ci_new < 0.0) THEN
+               min_ci = 0.0 ! umol m-2 s-1
+            END IF
+         ! narrow search space, shift max down
+         ELSE
+            max_ci = ci_new ! umol mol-1
+         END IF
 
-        IF (abs(gsc_new - gsc) / gsc < tol) THEN
+         IF (abs(max_ci - min_ci) < tol) THEN
+            An_new = An ! umol m-2 s-1
+            EXIT
+         END IF
 
-           An_new = An ! umol m-2 s-1
-           EXIT
-
-        ! narrow search space, shift min up
-        ELSE IF (gsc_new < gsc) THEN
-
-           min_ci = ci_new ! umol mol-1
-           IF (ci_new < 0.0) THEN
-
-              min_ci = 0.0 ! umol m-2 s-1
-
-           END IF
-
-          ! narrow search space, shift max down
-          ELSE
-
-             max_ci = ci_new ! umol mol-1
-
-          END IF
-
-          IF (abs(max_ci - min_ci) < tol) THEN
-
-             An_new = An ! umol m-2 s-1
-             EXIT
-
-          END IF
-
-          iter = iter + 1
-
-          IF (iter > 10000) THEN
-
-             print*, "stuck"
-
-             stop
-
-          END IF
-
+         iter = iter + 1
+         IF (iter > 10000) THEN
+            print*, "stuck"
+            STOP
+         END IF
       END DO
 
    END SUBROUTINE get_a_and_ci
@@ -3915,15 +3869,10 @@ CONTAINS
       ! integrate over the full range of water potentials from psi_soil to
       ! e_crit
       DO h=1, N
-
          e_leaf(h) = integrate_vulnerability(N, p(h), p(1), b_plant, c_plant)
-
          IF (e_leaf(h) > 1.0E-09) then
-
             e_leaf(h) = e_leaf(h) * Kmax * MMOL_2_MOL ! mol m-2 s-1
-
          END IF
-
       END DO
 
    END FUNCTION calc_transpiration
@@ -3972,13 +3921,10 @@ CONTAINS
       value2 = 0.0
 
       DO h=1, N+1
-
          value1 = value1 + &
                   get_xylem_vulnerability(a + ((n - 0.5) * ((b - a) /&
                                           float(N))), b_plant, c_plant)
-
       END DO
-
       value2 = ((b - a) / float(N)) * value1
 
    END FUNCTION integrate_vulnerability
