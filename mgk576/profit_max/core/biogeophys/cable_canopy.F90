@@ -2119,8 +2119,9 @@ CONTAINS
                 END IF
 
              ELSE IF (cable_user%GS_SWITCH == 'medlyn' .AND. &
-                     cable_user%FWSOIL_SWITCH == 'profitmax') THEN
+                      cable_user%FWSOIL_SWITCH == 'profitmax') THEN
 
+                ! Profix-Max hydraulics model
                 vpd = dsx(i) * PA_TO_KPA
                 press = met%pmb(i) * MB_TO_KPA
 
@@ -2132,13 +2133,13 @@ CONTAINS
 
                 ELSE
 
-                   CALL optimisation(canopy, ssnow%weighted_psi_soil(i), rad, veg, &
+                   CALL optimisation(canopy, rad%qcan, vpd, press, tlfx(i), &
+                                     csx, rad%fvlai, &
+                                     ssnow%weighted_psi_soil(i), &
                                      veg%Kmax(i), veg%Kcrit(i), &
                                      veg%b_plant(i), veg%c_plant(i), &
-                                     resolution, an_canopy, e_canopy, &
-                                     vpd, press, tlfx(i), csx, &
-                                     vcmxt3, ejmxt3, rdx, vx3, cx1(i), &
-                                     rad%fvlai, p, i)
+                                     resolution, vcmxt3, ejmxt3, rdx, vx3, &
+                                     cx1(i), an_canopy, e_canopy, p, i)
 
                    ! fix units for CABLE and pack into arrays
                    anx(i,1) = an_canopy(1) * UMOL_TO_MOL
@@ -2166,7 +2167,8 @@ CONTAINS
        ENDDO !i=1,mp
 
        IF (cable_user%FWSOIL_SWITCH /= 'profitmax') THEN
-          CALL photosynthesis( csx(:,:),                                           &
+
+          CALL photosynthesis( csx(:,:),                           &
                SPREAD( cx1(:), 2, mf ),                            &
                SPREAD( cx2(:), 2, mf ),                            &
                gswmin(:,:), rdx(:,:), vcmxt3(:,:),                 &
@@ -2175,6 +2177,7 @@ CONTAINS
                gs_coeff(:,:), rad%fvlai(:,:),&
                SPREAD( abs_deltlf, 2, mf ),                        &
                anx(:,:), fwsoil(:) )
+
        END IF
 
        DO i=1,mp
@@ -3580,11 +3583,11 @@ CONTAINS
    END FUNCTION calc_plc
    ! ---------------------------------------------------------------------------
 
-   ! ----------------------------------------------------------------------------
-   SUBROUTINE optimisation(canopy, psi_soil, rad, veg, Kmax, Kcrit, &
-                           b_plant, c_plant, N, an_canopy, e_canopy, &
-                           vpd, press, tleaf, csx, vcmxt3, ejmxt3, &
-                           rdx, vx3, cx1, lai_leaf, p, i)
+   ! ---------------------------------------------------------------------------
+   SUBROUTINE optimisation(canopy, qcan, vpd, press, tleaf, csx, lai_leaf, &
+                           psi_soil, Kmax, Kcrit, b_plant, c_plant, N, &
+                           vcmxt3, ejmxt3, rdx, vx3, cx1, an_canopy, &
+                           e_canopy, p, i)
 
       ! Optimisation wrapper for the Sperry ProfitMax model. The Sperry model
       ! assumes that plant maximises the normalised (0-1) difference
@@ -3611,8 +3614,6 @@ CONTAINS
       IMPLICIT NONE
 
       TYPE (canopy_type), INTENT(INOUT) :: canopy
-      TYPE (radiation_type), INTENT(IN) :: rad
-      TYPE (veg_parameter_type), INTENT(INOUT) :: veg
 
       INTEGER, INTENT(IN) :: i, N
       INTEGER :: j, k, idx
@@ -3622,6 +3623,7 @@ CONTAINS
       REAL, INTENT(INOUT) :: e_canopy
       REAL, DIMENSION(mf), INTENT(INOUT) :: an_canopy
       REAL(r_2), DIMENSION(mp,mf), INTENT(IN) :: csx
+      REAL, DIMENSION(mp,mf,nrb), INTENT(IN) :: qcan
       REAL(r_2), DIMENSION(N), INTENT(INOUT) :: p
       REAL, DIMENSION(mp,mf), INTENT(IN) :: vcmxt3, ejmxt3, rdx, vx3, lai_leaf
       REAL, DIMENSION(N) :: Kc, e_leaf, cost, gain, profit, an_leaf
@@ -3684,7 +3686,8 @@ CONTAINS
          cs = csx(i,j) * MOL_TO_UMOL
 
          ! absorbed par for the sunlit or shaded leaf, umol m-2 -s-1
-         apar = rad%qcan(i,j,1) * J_TO_MOL * MOL_TO_UMOL
+         !apar = rad%qcan(i,j,1) * J_TO_MOL * MOL_TO_UMOL
+         apar = qcan(i,j,1) * J_TO_MOL * MOL_TO_UMOL
 
          ! max rate of rubisco activity, scaled up to sunlit/shaded canopy
          Vcmax = vcmxt3(i,j) * MOL_TO_UMOL
@@ -3888,28 +3891,37 @@ CONTAINS
    ! ---------------------------------------------------------------------------
    FUNCTION calc_transpiration(p, N, Kmax, b_plant, c_plant) RESULT(e_leaf)
 
+      ! At steady-state, transpiration is the integral of the plant's
+      ! vulnerability curve from zero (no cuticular conductance) to its
+      ! maximum (e_crit) (Sperry & Love 2015). By integrating across the
+      ! soil–plant vulnerability curve, the relation between transpiration and
+      ! a given total pressure drop can be found.
+      !
+      ! Martin De Kauwe, 27th August, 2020
+
       USE cable_def_types_mod
       USE cable_common_module
 
       IMPLICIT NONE
 
-
       REAL(r_2), DIMENSION(N), INTENT(IN) :: p
       REAL, INTENT(IN) :: b_plant, c_plant, Kmax
+      REAL, DIMENSION(N) :: e_leaf
+      REAL, PARAMETER :: MMOL_2_MOL = 1E-03
+
       INTEGER, INTENT(IN) :: N
       INTEGER :: h
-      REAL, DIMENSION(N) :: e_leaf
-      REAL :: MMOL_2_MOL
-
-      MMOL_2_MOL = 1E-03
 
       ! integrate over the full range of water potentials from psi_soil to
       ! e_crit
       DO h=1, N
 
          e_leaf(h) = integrate_vulnerability(N, p(h), p(1), b_plant, c_plant)
+
          IF (e_leaf(h) > 1.0E-09) then
+
             e_leaf(h) = e_leaf(h) * Kmax * MMOL_2_MOL ! mol m-2 s-1
+
          END IF
 
       END DO
@@ -3919,6 +3931,10 @@ CONTAINS
 
    ! ---------------------------------------------------------------------------
    FUNCTION get_xylem_vulnerability(p, b_plant, c_plant) RESULT(weibull)
+
+      ! Calculate the vulnerability to cavitation using a Weibull function
+      !
+      ! Martin De Kauwe, 27th August, 2020
 
       USE cable_def_types_mod
       USE cable_common_module
@@ -3936,32 +3952,38 @@ CONTAINS
 
    ! ---------------------------------------------------------------------------
    FUNCTION integrate_vulnerability(N, a, b, b_plant, c_plant) RESULT(value2)
+
       ! Approximate the integration with the mid-point rule
+      !
+      ! Martin De Kauwe, 27th August, 2020
 
       USE cable_def_types_mod
       USE cable_common_module
 
       IMPLICIT NONE
 
-      REAL :: value, value2
+      REAL :: value1, value2
       REAL(r_2), INTENT(IN) :: a, b
       REAL, INTENT(IN) :: b_plant, c_plant
       INTEGER, INTENT(IN) :: N
       INTEGER :: h
 
-      value = 0.0
+      value1 = 0.0
       value2 = 0.0
 
       DO h=1, N+1
-         value = value + &
+
+         value1 = value1 + &
                   get_xylem_vulnerability(a + ((n - 0.5) * ((b - a) /&
                                           float(N))), b_plant, c_plant)
+
       END DO
-      value2 = ((b - a) / float(N)) * value
+
+      value2 = ((b - a) / float(N)) * value1
 
    END FUNCTION integrate_vulnerability
    ! ---------------------------------------------------------------------------
-   
+
    ! ---------------------------------------------------------------------------
    FUNCTION calc_electron_transport_rate(par, Jmax) RESULT(J)
 
@@ -3982,7 +4004,6 @@ CONTAINS
 
    END FUNCTION calc_electron_transport_rate
    ! ---------------------------------------------------------------------------
-
 
    ! ---------------------------------------------------------------------------
    FUNCTION calc_michaelis_menten_constants(Tleaf) RESULT(Km)
