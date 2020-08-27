@@ -3579,13 +3579,30 @@ CONTAINS
    END FUNCTION calc_plc
    ! ---------------------------------------------------------------------------
 
-
-  ! ----------------------------------------------------------------------------
-  SUBROUTINE optimisation(canopy, ssnow, rad, met, veg, Kmax, Kcrit, b_plant, &
-                          c_plant, N, an_canopy, e_canopy, &
-                          vpd, press, tleaf, ca_mol, vcmxt3, ejmxt3, rdx, vx3, &
-                          cx1, p, i)
-
+   ! ----------------------------------------------------------------------------
+   SUBROUTINE optimisation(canopy, ssnow, rad, met, veg, Kmax, Kcrit, b_plant, &
+                           c_plant, N, an_canopy, e_canopy, &
+                           vpd, press, tleaf, ca_mol, vcmxt3, ejmxt3, rdx, vx3, &
+                           cx1, p, i)
+      ! Optimisation wrapper for the Sperry ProfitMax model.
+      !
+      ! The Sperry model assumes that plant maximises the normalised (0-1)
+      ! difference between the relative gain and relative hydraulic risk
+      !
+      ! Implementation broadly follows Manon's code.
+      !
+      ! References:
+      ! -----------
+      ! * Sperry JS, Venturas MD, Anderegg WRL, Mencuccini M, Mackay DS,
+      !   Wang Y, Love DM. 2017. Predicting stomatal responses to the
+      !   environment from the optimization of photosynthetic gain and
+      !   hydraulic cost. Plant, Cell & Environment 40: 816–830.
+      ! * Sabot, M.E.B., De Kauwe, M.G., Pitman, A.J., Medlyn, B.E.,
+      !   Verhoef, A., Ukkola, A.M. and Abramowitz, G. (2020), Plant profit
+      !   maximization improves predictions of European forest responses to
+      !   drought. New Phytol, 226: 1638-1655. doi:10.1111/nph.16376
+      !
+      ! Martin De Kauwe, 27th August, 2020
 
       USE cable_def_types_mod
       USE cable_common_module
