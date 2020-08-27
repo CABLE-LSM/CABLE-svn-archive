@@ -1,7 +1,6 @@
 !jhan:Althoughthis isonly calling subrs and not using data - still needs revision to only call once and use L_tile_pts from here
 module cbl_masks_mod
   public L_tile_pts
-  public init_active_tile_mask_cbl
   public fveg_mask
   public fsunlit_mask
   public fsunlit_veg_mask
