@@ -3583,13 +3583,12 @@ CONTAINS
    ! ----------------------------------------------------------------------------
    SUBROUTINE optimisation(canopy, psi_soil, rad, veg, Kmax, Kcrit, &
                            b_plant, c_plant, N, an_canopy, e_canopy, &
-                           vpd, press, tleaf, ca_mol, vcmxt3, ejmxt3, &
+                           vpd, press, tleaf, csx, vcmxt3, ejmxt3, &
                            rdx, vx3, cx1, lai_leaf, p, i)
 
-      ! Optimisation wrapper for the Sperry ProfitMax model.
-      !
-      ! The Sperry model assumes that plant maximises the normalised (0-1)
-      ! difference between the relative gain and relative hydraulic risk
+      ! Optimisation wrapper for the Sperry ProfitMax model. The Sperry model
+      ! assumes that plant maximises the normalised (0-1) difference
+      ! between the relative gain and relative hydraulic risk
       !
       ! Implementation broadly follows Manon's code.
       !
@@ -3622,27 +3621,21 @@ CONTAINS
       REAL(r_2), INTENT(IN) :: psi_soil
       REAL, INTENT(INOUT) :: e_canopy
       REAL, DIMENSION(mf), INTENT(INOUT) :: an_canopy
-      REAL(r_2), DIMENSION(mp,mf), INTENT(IN) :: ca_mol
+      REAL(r_2), DIMENSION(mp,mf), INTENT(IN) :: csx
       REAL(r_2), DIMENSION(N), INTENT(INOUT) :: p
       REAL, DIMENSION(mp,mf), INTENT(IN) :: vcmxt3, ejmxt3, rdx, vx3, lai_leaf
       REAL, DIMENSION(N) :: Kc, e_leaf, cost, gain, profit, an_leaf
-      REAL :: p_crit, lower, upper, ca, kcmax, GSW_2_GSC, GSC_2_GSW, apar
-      REAL :: jtomol, MOL_TO_UMOL, gsw, gsc, an, Vcmax, Jmax, Rd, Vj, Km
+      REAL :: p_crit, lower, upper, cs, kcmax, apar
+      REAL :: J_TO_MOL, MOL_TO_UMOL, gsw, gsc, an, Vcmax, Jmax, Rd, Vj, Km
       REAL, DIMENSION(mf) :: e_leaves
 
       logical :: bounded_psi
-
       bounded_psi = .true.!.false.
 
+      MOL_TO_UMOL = 1E6
+      J_TO_MOL = 4.6E-6  ! Convert from J to Mol for light
 
-      GSC_2_GSW = 1.57        ! Ratio of Gsw:Gsc
-      GSW_2_GSC = 1.0 / GSC_2_GSW
-      MOL_TO_UMOL = 1.0/0.000001
-      jtomol = 4.6e-6  ! Convert from J to Mol for light
-
-      ! ca same for both leaves, so this is fine
-      ca = ca_mol(1,1) * MOL_TO_UMOL
-
+      !  Michaelis Menten coefficient, umol m-2 s-1
       Km = cx1 * MOL_TO_UMOL
 
       ! Canopy xylem pressure (P_crit) MPa, beyond which tree
@@ -3651,51 +3644,68 @@ CONTAINS
 
 
       ! Generate water potential sequence
-
+      !
+      ! This includes an option here to generate a shorter, more focussed
+      ! range, under the assumption that psi_leaf can't change by that much
+      ! between timesteps if it doesn't rain. The advantage of doing that is
+      ! that you shouldn't need to search too far and thus can reduce the
+      ! resolution of the psi_leaf array, saving time
       IF (bounded_psi .eqv. .true.) THEN
 
-         ! i.e. it rained
+         ! i.e. it rained, so search from psi_soil again
          IF (psi_soil < canopy%psi_soil_prev(i)) THEN
+
             lower = psi_soil ! start from the full range
+
          ELSE
+
             lower = min(psi_soil, canopy%psi_leaf_prev(i) * 0.5)
+
          END IF
+
          upper = max(p_crit, canopy%psi_leaf_prev(i) * 1.5)
-         !print*, lower, upper, psi_soil, p_crit, canopy%psi_leaf_prev(i)
       ELSE
          lower = psi_soil
          upper = p_crit
       END IF
 
+      ! Leaf water potential (MPA), in reality more of a whole-plant
       DO k=1, N
 
-         p(k)  = lower + float(k) * (upper - lower) / &
-                    float(N-1)
+         p(k)  = lower + float(k) * (upper - lower) / float(N-1)
+
       END DO
 
-      DO j=1, 2 ! sunlit, shaded leaves...
+      ! Loop over sunlit,shaded parts of the canopy and solve the carbon uptake
+      ! and transpiration
+      DO j=1, 2
 
+         ! CO2 concentration at the leaf surface, umol m-2 -s-1
+         cs = csx(i,j) * MOL_TO_UMOL
 
-         apar = rad%qcan(i,j,1) * jtomol * MOL_TO_UMOL
+         ! absorbed par for the sunlit or shaded leaf, umol m-2 -s-1
+         apar = rad%qcan(i,j,1) * J_TO_MOL * MOL_TO_UMOL
 
-         ! max rate of rubisco activity, scaled up
+         ! max rate of rubisco activity, scaled up to sunlit/shaded canopy
          Vcmax = vcmxt3(i,j) * MOL_TO_UMOL
 
-         ! potential rate of electron transport, scaled up
+         ! potential rate of electron transport, scaled up to sun/shade canopy
          Jmax = ejmxt3(i,j) * MOL_TO_UMOL
 
-         ! day respiration, scaled up
+         ! day respiration, scaled up to sunlit/shaded canopy
          Rd = rdx(i,j) * MOL_TO_UMOL
 
-         ! Rate of electron transport (= J/4)
+         ! Rate of electron transport (NB this is = J/4)
          Vj = vx3(i,j) * MOL_TO_UMOL
 
+         ! If there is bugger all light, assume there are no fluxes
          IF (apar < 50) THEN
 
             ! load into stores
             an_canopy(j) = 0.0 ! umol m-2 s-1
             e_canopy = 0.0 ! mol H2O m-2 s-1
-            canopy%psi_leaf(i) = canopy%psi_leaf_prev(i)
+            canopy%psi_leaf(i) = canopy%psi_leaf_prev(i) ! MPa
+
          ELSE
 
             ! Calculate transpiration for every water potential, integrating
@@ -3703,25 +3713,26 @@ CONTAINS
             e_leaf = calc_transpiration(p, N, Kmax, b_plant, &
                                             c_plant)
 
-
-            ! Scale to the sunlit or shaded fraction of the canopy,
-            ! mol H20 m-2 s-1
+            ! Scale leaf transpiration to the sunlit or shaded fraction of the
+            ! canopy, mol H20 m-2 s-1
             e_leaf = e_leaf * lai_leaf(i,j)
 
-
-            ! For every gsc/psi_leaf get a match An and Ci
+            ! For every gsc & psi_leaf find the matching An and Ci
             DO k=1, N
 
-               IF (e_leaf(k) > 0.00001) THEN
+               IF (e_leaf(k) > 0.00001) THEN ! i.e. there is a flux
 
                   gsw = e_leaf(k) / vpd * press ! mol H20 m-2 s-1
-                  gsc = gsw * GSW_2_GSC ! mol CO2 m-2 s-1
+                  gsc = gsw / C%RGSWC ! mol CO2 m-2 s-1
 
                   !print*, "*", gsw, vpd, press, apar, ca, tleaf-273.15
-                  call get_a_and_ci(ca, tleaf, apar, an, gsc, &
+                  call get_a_and_ci(cs, tleaf, apar, an, gsc, &
                                     Vcmax, Jmax, Rd, Vj, Km)
-                  an_leaf(k) = an
+
+                  an_leaf(k) = an ! save the An, umol m-2 s-1
+
                ELSE
+
                   an_leaf(k) = 0.0
 
                END IF
@@ -3732,31 +3743,33 @@ CONTAINS
 
             END DO
 
-            ! mmol s-1 m-2 MPa-1
+            ! ***Discuss this bit with Manon***, mmol s-1 m-2 MPa-1
             kcmax = Kmax * get_xylem_vulnerability(psi_soil, &
                                                    b_plant, c_plant)
-
-            ! normalised cost (-)
-            cost = (kcmax - Kc) / (kcmax - Kcrit)
 
             ! normalised gain (-)
             gain = an_leaf / MAXVAL(an_leaf)
 
+            ! normalised cost (-)
+            cost = (kcmax - Kc) / (kcmax - Kcrit)
+
             ! Locate maximum profit
             profit = gain - cost
             idx = MAXLOC(profit, 1)
-            !print*, idx, an_leaf(idx(1)), gain(idx(1)), cost(idx(1))
 
             ! load into stores
             an_canopy(j) = an_leaf(idx) ! umol m-2 s-1
             e_leaves(j) = e_leaf(idx) ! mol H2O m-2 s-1
-            canopy%psi_leaf(i) = p(idx)
-            canopy%psi_leaf_prev(i) = canopy%psi_leaf(i)
-            canopy%psi_soil_prev(i) = psi_soil
+            canopy%psi_leaf(i) = p(idx) ! MPa
+            canopy%psi_leaf_prev(i) = canopy%psi_leaf(i) ! MPa
+            canopy%psi_soil_prev(i) = psi_soil ! MPa
+
          END IF
 
       END DO
 
+      ! If there was light, save transpiration, NB. cable doesn't save
+      ! individual sunlit/shaded transpiration
       IF (apar > 50) THEN
          e_canopy = sum(e_leaves) ! mol H2O m-2 s-1
       END IF
@@ -3765,7 +3778,7 @@ CONTAINS
    ! ---------------------------------------------------------------------------
 
    ! --------------------------------------------------------------------------
-   SUBROUTINE get_a_and_ci(ca, tleaf, par, An_new, &
+   SUBROUTINE get_a_and_ci(cs, tleaf, par, An_new, &
                            gsc, Vcmax, Jmax, Rd, Vj, Km)
 
 
@@ -3775,7 +3788,7 @@ CONTAINS
        IMPLICIT NONE
 
        REAL, INTENT(INOUT) :: An_new, gsc
-       REAL :: min_ci, max_ci, An, ci_new, gsc_new, ca, Ac, Aj, A, gamma_star
+       REAL :: min_ci, max_ci, An, ci_new, gsc_new, cs, Ac, Aj, A, gamma_star
 
        REAL, INTENT(IN) :: tleaf, par, Vcmax, Jmax, Rd, Vj, Km
 
@@ -3784,7 +3797,7 @@ CONTAINS
        INTEGER :: iter
 
        min_ci = 0.0 ! CABLE assumes gamma_star = 0
-       max_ci = ca  ! umol m-2 s-1
+       max_ci = cs  ! umol m-2 s-1
        An_new  = 0.0
        gamma_star = 0.0 ! cable says it is 0
 
@@ -3793,7 +3806,7 @@ CONTAINS
           ci_new = 0.5 * (max_ci + min_ci) ! umol mol-1
 
           ! Find the matching A given the Ci
-          IF (ci_new < 0.00001) THEN
+          IF (ci_new < 1E-05) THEN
              An = 0.0
           ELSE
              Ac = assim(ci_new, gamma_star, Vcmax, Km)
@@ -3802,9 +3815,9 @@ CONTAINS
              An = A - Rd ! Net photosynthesis, umol m-2 s-1
           END IF
 
-          gsc_new = An / (ca - ci_new) ! mol m-2 s-1
+          gsc_new = An / (cs - ci_new) ! mol m-2 s-1
 
-          !print*, An, gsc_new, gsc, ca, ci_new, min_ci, max_ci, abs(max_ci - min_ci)
+          !print*, An, gsc_new, gsc, cs, ci_new, min_ci, max_ci, abs(max_ci - min_ci)
 
           IF (abs(gsc_new - gsc) / gsc < tol) THEN
              An_new = An ! umol m-2 s-1
