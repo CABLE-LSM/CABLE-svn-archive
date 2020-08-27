@@ -43,6 +43,9 @@ MODULE cable_pft_params_mod
           psi_f ,     & ! mgk576
           X_hyd,      & ! mgk576
           p50,        & ! mgk576MPa
+          Kmax,       & ! mgk576MPa
+          b_plant,    & ! mgk576MPa
+          c_plant,    & ! mgk576MPa
           s50,        & ! mgk576MPa
           kp_sat,     & ! mgk576MPa
           Cl,         & ! mgk576MPa
@@ -107,7 +110,8 @@ CONTAINS
             vegin%zr(mvtype), vegin%clitt(mvtype) ,                               &
             !mgk576
             vegin%sf(mvtype), vegin%psi_f(mvtype) ,                               &
-            vegin%X_hyd(mvtype), vegin%p50(mvtype), vegin%s50(mvtype),           &
+            vegin%X_hyd(mvtype), vegin%p50(mvtype), vegin%Kmax(mvtype),           &
+            vegin%b_plant(mvtype), vegin%c_plant(mvtype), vegin%s50(mvtype),       &
             vegin%kp_sat(mvtype), vegin%Cl(mvtype), vegin%Cs(mvtype),           &
             vegin%gmin(mvtype))
 
@@ -173,6 +177,9 @@ CONTAINS
        vegin%zr(1) =        1.800000
        vegin%clitt(1) =       20.000000
 
+       vegin%Kmax(1) = 1.5
+       vegin%b_plant(1) = 3.5
+       vegin%c_plant(1) = 2.0
        !PFT: evergreen_broadleaf
        !=========================================================
        vegin%canst1(2) =        0.100000
@@ -257,6 +264,11 @@ CONTAINS
        vegin%Cl(2) = 342.904821
        vegin%Cs(2) = 53266.089926
 
+       vegin%Kmax(2) = 1.5
+       vegin%b_plant(2) = 3.5
+       vegin%c_plant(2) = 2.0
+
+
        !PFT: deciduous_needleleaf
        !=========================================================
        vegin%canst1(3) =        0.100000
@@ -315,6 +327,10 @@ CONTAINS
        vegin%g1(3) =        2.346064
        vegin%zr(3) =        2.000000
        vegin%clitt(3) =       10.000000
+
+       vegin%Kmax(3) = 1.5
+       vegin%b_plant(3) = 3.5
+       vegin%c_plant(3) = 2.0
 
        !PFT: deciduous_broadleaf
        !=========================================================
@@ -375,6 +391,9 @@ CONTAINS
        vegin%zr(4) =        2.000000
        vegin%clitt(4) =       13.000000
 
+       vegin%Kmax(4) = 1.5
+       vegin%b_plant(4) = 3.5
+       vegin%c_plant(4) = 2.0
        !PFT: shrub
        !=========================================================
        vegin%canst1(5) =        0.100000
@@ -434,6 +453,9 @@ CONTAINS
        vegin%zr(5) =        2.500000
        vegin%clitt(5) =        2.000000
 
+       vegin%Kmax(5) = 1.5
+       vegin%b_plant(5) = 3.5
+       vegin%c_plant(5) = 2.0
        !PFT: C3
        !=========================================================
        vegin%canst1(6) =        0.100000
@@ -493,6 +515,9 @@ CONTAINS
        vegin%zr(6) =        0.500000    !1.5 in Haverd et al. (2016)
        vegin%clitt(6) =        2.000000
 
+       vegin%Kmax(6) = 1.5
+       vegin%b_plant(6) = 3.5
+       vegin%c_plant(6) = 2.0
        !PFT: C4
        !=========================================================
        vegin%canst1(7) =        0.100000
@@ -552,6 +577,9 @@ CONTAINS
        vegin%zr(7) =        0.500000    !2.4 in Haverd et al. (2016)
        vegin%clitt(7) =        0.300000
 
+       vegin%Kmax(7) = 1.5
+       vegin%b_plant(7) = 3.5
+       vegin%c_plant(7) = 2.0
        !PFT: Tundra
        !=========================================================
        vegin%canst1(8) =        0.100000
@@ -610,6 +638,10 @@ CONTAINS
        vegin%g1(8) =        2.222156
        vegin%zr(8) =        0.500000
        vegin%clitt(8) =        0.300000
+
+       vegin%Kmax(8) = 1.5
+       vegin%b_plant(8) = 3.5
+       vegin%c_plant(8) = 2.0
 
        !PFT: C3
        !=========================================================
@@ -670,6 +702,10 @@ CONTAINS
        vegin%zr(9) =        0.500000    !1.5 in Haverd et al. (2016)
        vegin%clitt(9) =        0.000000
 
+       vegin%Kmax(9) = 1.5
+       vegin%b_plant(9) = 3.5
+       vegin%c_plant(9) = 2.0
+
        !PFT: C4
        !=========================================================
        vegin%canst1(10) =        0.100000
@@ -728,6 +764,10 @@ CONTAINS
        vegin%g1(10) =        1.616178
        vegin%zr(10) =        0.500000    !1.5 in Haverd et al. (2016)
        vegin%clitt(10) =        0.000000
+
+       vegin%Kmax(10) = 1.5
+       vegin%b_plant(10) = 3.5
+       vegin%c_plant(10) = 2.0
 
        !PFT: wetland
        !=========================================================
