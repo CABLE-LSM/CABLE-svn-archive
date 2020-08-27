@@ -44,6 +44,7 @@ MODULE cable_pft_params_mod
           X_hyd,      & ! mgk576
           p50,        & ! mgk576MPa
           Kmax,       & ! mgk576MPa
+          Kcrit,       & ! mgk576MPa
           b_plant,    & ! mgk576MPa
           c_plant,    & ! mgk576MPa
           s50,        & ! mgk576MPa
@@ -111,7 +112,8 @@ CONTAINS
             !mgk576
             vegin%sf(mvtype), vegin%psi_f(mvtype) ,                               &
             vegin%X_hyd(mvtype), vegin%p50(mvtype), vegin%Kmax(mvtype),           &
-            vegin%b_plant(mvtype), vegin%c_plant(mvtype), vegin%s50(mvtype),       &
+            vegin%Kcrit(mvtype), vegin%b_plant(mvtype),                           &
+            vegin%c_plant(mvtype), vegin%s50(mvtype),                             &
             vegin%kp_sat(mvtype), vegin%Cl(mvtype), vegin%Cs(mvtype),           &
             vegin%gmin(mvtype))
 
@@ -178,6 +180,7 @@ CONTAINS
        vegin%clitt(1) =       20.000000
 
        vegin%Kmax(1) = 1.5
+       vegin%Kcrit(1) = vegin%Kmax(1) * 0.05
        vegin%b_plant(1) = 3.5
        vegin%c_plant(1) = 2.0
        !PFT: evergreen_broadleaf
@@ -265,6 +268,7 @@ CONTAINS
        vegin%Cs(2) = 53266.089926
 
        vegin%Kmax(2) = 1.5
+       vegin%Kcrit(2) = vegin%Kmax(2) * 0.05
        vegin%b_plant(2) = 3.5
        vegin%c_plant(2) = 2.0
 
@@ -329,6 +333,7 @@ CONTAINS
        vegin%clitt(3) =       10.000000
 
        vegin%Kmax(3) = 1.5
+       vegin%Kcrit(3) = vegin%Kmax(3) * 0.05
        vegin%b_plant(3) = 3.5
        vegin%c_plant(3) = 2.0
 
@@ -392,6 +397,7 @@ CONTAINS
        vegin%clitt(4) =       13.000000
 
        vegin%Kmax(4) = 1.5
+       vegin%Kcrit(4) = vegin%Kmax(4) * 0.05
        vegin%b_plant(4) = 3.5
        vegin%c_plant(4) = 2.0
        !PFT: shrub
@@ -454,6 +460,7 @@ CONTAINS
        vegin%clitt(5) =        2.000000
 
        vegin%Kmax(5) = 1.5
+       vegin%Kcrit(5) = vegin%Kmax(5) * 0.05
        vegin%b_plant(5) = 3.5
        vegin%c_plant(5) = 2.0
        !PFT: C3
@@ -516,6 +523,7 @@ CONTAINS
        vegin%clitt(6) =        2.000000
 
        vegin%Kmax(6) = 1.5
+       vegin%Kcrit(6) = vegin%Kmax(6) * 0.05
        vegin%b_plant(6) = 3.5
        vegin%c_plant(6) = 2.0
        !PFT: C4
@@ -578,6 +586,7 @@ CONTAINS
        vegin%clitt(7) =        0.300000
 
        vegin%Kmax(7) = 1.5
+       vegin%Kcrit(7) = vegin%Kmax(7) * 0.05
        vegin%b_plant(7) = 3.5
        vegin%c_plant(7) = 2.0
        !PFT: Tundra
@@ -640,6 +649,7 @@ CONTAINS
        vegin%clitt(8) =        0.300000
 
        vegin%Kmax(8) = 1.5
+       vegin%Kcrit(8) = vegin%Kmax(8) * 0.05
        vegin%b_plant(8) = 3.5
        vegin%c_plant(8) = 2.0
 
@@ -703,6 +713,7 @@ CONTAINS
        vegin%clitt(9) =        0.000000
 
        vegin%Kmax(9) = 1.5
+       vegin%Kcrit(9) = vegin%Kmax(9) * 0.05
        vegin%b_plant(9) = 3.5
        vegin%c_plant(9) = 2.0
 
@@ -766,6 +777,7 @@ CONTAINS
        vegin%clitt(10) =        0.000000
 
        vegin%Kmax(10) = 1.5
+       vegin%Kcrit(10) = vegin%Kmax(10) * 0.05
        vegin%b_plant(10) = 3.5
        vegin%c_plant(10) = 2.0
 
