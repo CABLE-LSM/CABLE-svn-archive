@@ -3741,15 +3741,14 @@ CONTAINS
             ! Conductance from root surface to the stem water pool, assumed to
             ! be halfway to the leaves
             ! (mmol m-2 ground area s-1 MPa-1)
-            kroot2stem = 2.0 * kcmax(j)
+            kroot2stem = 2.0 * kcmax(j) * lai_leaf(i,j)
 
             ! Conductance from soil to stem water store
             ! (mmol m-2 ground area s-1 MPa-1)
             !canopy%ksoil2stem(i) = (1.0 / (1.0 / ksoil + 1.0 / kroot2stem)) * &
             !                        lai_leaf(i,j)
 
-            canopy%ksoil2stem(i) = (1.0 / (1.0 / ksoil + 1.0 / kcmax(j))) * &
-                                    lai_leaf(i,j)
+            canopy%ksoil2stem(i) = (1.0 / (1.0 / ksoil + 1.0 / kroot2stem))
 
             ! normalised gain (-)
             gain = an_leaf / MAXVAL(an_leaf)
