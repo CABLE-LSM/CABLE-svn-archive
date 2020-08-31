@@ -3632,7 +3632,7 @@ CONTAINS
       REAL :: p_crit, lower, upper, cs,apar
       REAL :: J_TO_MOL, MOL_TO_UMOL, gsw, gsc, an, Vcmax, Jmax, Rd, Vj, Km
       REAL, DIMENSION(mf) :: e_leaves
-      REAL :: kroot2stem,
+      REAL :: kroot2stem
 
       logical :: bounded_psi
       bounded_psi = .false.!.false.
