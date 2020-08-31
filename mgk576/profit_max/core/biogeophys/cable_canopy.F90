@@ -1807,8 +1807,8 @@ CONTAINS
     REAL(r_2), DIMENSION(resolution) :: p
 
     REAL :: MOL_WATER_2_G_WATER, G_TO_KG, UMOL_TO_MOL, MB_TO_KPA, PA_TO_KPA
-    REAL :: Ksoil
-
+    REAL :: Ksoil, avg_kplant
+    REAL, DIMENSION(mf) :: Kcmax
 
 
 #define VanessasCanopy
@@ -2136,7 +2136,7 @@ CONTAINS
                    CALL optimisation(canopy, rad%qcan, vpd, press, tlfx(i), &
                                      csx, rad%fvlai, &
                                      ssnow%weighted_psi_soil(i), &
-                                     Ksoil, veg%Kmax(i), veg%Kcrit(i), &
+                                     Ksoil, Kcmax, veg%Kmax(i), veg%Kcrit(i), &
                                      veg%b_plant(i), veg%c_plant(i), &
                                      resolution, vcmxt3, ejmxt3, rdx, vx3, &
                                      cx1(i), an_canopy, e_canopy, p, i)
@@ -2431,11 +2431,13 @@ CONTAINS
     canopy%fpn = MIN(-12.0 * SUM(an_y, 2), canopy%frday)
     canopy%evapfbl = ssnow%evapfbl
 
-    IF (cable_user%FWSOIL_SWITCH == 'hydraulics') THEN
+    IF (cable_user%FWSOIL_SWITCH == 'profitmax') THEN
+
+       avg_kplant = (Kcmax(1) + Kcmax(2)) / 2.0
 
        ! Calculate this here after we've finsihed iterating...
        DO i = 1, mp
-          canopy%plc(i) = calc_plc(canopy%kplant(i), veg%kp_sat(i))
+          canopy%plc(i) = calc_plc(avg_kplant, veg%Kmax(i))
 
           ! We've reached the point of hydraulic failure, so hold the plc
           ! here for outputting purposes..
@@ -3583,9 +3585,9 @@ CONTAINS
 
    ! ---------------------------------------------------------------------------
    SUBROUTINE optimisation(canopy, qcan, vpd, press, tleaf, csx, lai_leaf, &
-                           psi_soil, Ksoil, Kmax, Kcrit, b_plant, c_plant, N, &
-                           vcmxt3, ejmxt3, rdx, vx3, cx1, an_canopy, &
-                           e_canopy, p, i)
+                           psi_soil, Ksoil, Kcmax, Kmax, Kcrit, b_plant, &
+                           c_plant, N, vcmxt3, ejmxt3, rdx, vx3, cx1, &
+                           an_canopy, e_canopy, p, i)
 
       ! Optimisation wrapper for the ProfitMax model. The Sperry model
       ! assumes that plant maximises the normalised (0-1) difference
@@ -3621,16 +3623,16 @@ CONTAINS
       REAL, INTENT(IN) :: Ksoil
       REAL(r_2), INTENT(IN) :: psi_soil
       REAL, INTENT(INOUT) :: e_canopy
-      REAL, DIMENSION(mf), INTENT(INOUT) :: an_canopy
+      REAL, DIMENSION(mf), INTENT(INOUT) :: an_canopy, Kcmax
       REAL(r_2), DIMENSION(mp,mf), INTENT(IN) :: csx
       REAL, DIMENSION(mp,mf,nrb), INTENT(IN) :: qcan
       REAL(r_2), DIMENSION(N), INTENT(INOUT) :: p
       REAL, DIMENSION(mp,mf), INTENT(IN) :: vcmxt3, ejmxt3, rdx, vx3, lai_leaf
       REAL, DIMENSION(N) :: Kc, e_leaf, cost, gain, profit, an_leaf
-      REAL :: p_crit, lower, upper, cs, kcmax, apar
+      REAL :: p_crit, lower, upper, cs,apar
       REAL :: J_TO_MOL, MOL_TO_UMOL, gsw, gsc, an, Vcmax, Jmax, Rd, Vj, Km
       REAL, DIMENSION(mf) :: e_leaves
-      REAL :: kroot2stem
+      REAL :: kroot2stem,
 
       logical :: bounded_psi
       bounded_psi = .false.!.false.
@@ -3670,9 +3672,13 @@ CONTAINS
          p(k)  = lower + float(k) * (upper - lower) / float(N-1)
       END DO
 
+      Kcmax = 0.0
+
       ! Loop over sunlit,shaded parts of the canopy and solve the carbon uptake
       ! and transpiration
       DO j=1, 2
+
+
          ! CO2 concentration at the leaf surface, umol m-2 -s-1
          cs = csx(i,j) * MOL_TO_UMOL
 
@@ -3729,12 +3735,13 @@ CONTAINS
             END DO
 
             ! Plant hydraulic conductance (mmol m-2 leaf s-1 MPa-1)
-            kcmax = Kmax * get_xylem_vulnerability(psi_soil, b_plant, c_plant)
+            kcmax(j) = Kmax * get_xylem_vulnerability(psi_soil, b_plant, &
+                                                      c_plant)
 
             ! Conductance from root surface to the stem water pool, assumed to
             ! be halfway to the leaves
             ! (mmol m-2 ground area s-1 MPa-1)
-            kroot2stem = 2.0 * kcmax
+            kroot2stem = 2.0 * kcmax(j)
 
             ! Conductance from soil to stem water store
             ! (mmol m-2 ground area s-1 MPa-1)
@@ -3745,7 +3752,7 @@ CONTAINS
             gain = an_leaf / MAXVAL(an_leaf)
 
             ! normalised cost (-)
-            !cost = (kcmax - Kc) / (kcmax - Kcrit)
+            !cost = (kcmax(j) - Kc) / (kcmax(j) - Kcrit)
             cost = (canopy%ksoil2stem(i) - Kc) / (canopy%ksoil2stem(i) - Kcrit)
 
             ! Locate maximum profit
