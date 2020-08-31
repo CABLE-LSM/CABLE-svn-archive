@@ -3741,7 +3741,8 @@ CONTAINS
             ! Conductance from root surface to the stem water pool, assumed to
             ! be halfway to the leaves
             ! (mmol m-2 ground area s-1 MPa-1)
-            kroot2stem = 2.0 * kcmax(j) * lai_leaf(i,j)
+            !kroot2stem = 2.0 * kcmax(j) * lai_leaf(i,j)
+            kroot2stem = 2.0 * kcmax(j) 
 
             ! Conductance from soil to stem water store
             ! (mmol m-2 ground area s-1 MPa-1)
