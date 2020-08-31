@@ -3745,7 +3745,10 @@ CONTAINS
 
             ! Conductance from soil to stem water store
             ! (mmol m-2 ground area s-1 MPa-1)
-            canopy%ksoil2stem(i) = (1.0 / (1.0 / ksoil + 1.0 / kroot2stem)) * &
+            !canopy%ksoil2stem(i) = (1.0 / (1.0 / ksoil + 1.0 / kroot2stem)) * &
+            !                        lai_leaf(i,j)
+
+            canopy%ksoil2stem(i) = (1.0 / (1.0 / ksoil + 1.0 / kcmax(j))) * &
                                     lai_leaf(i,j)
 
             ! normalised gain (-)
