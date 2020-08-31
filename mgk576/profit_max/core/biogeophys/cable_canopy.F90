@@ -1801,13 +1801,13 @@ CONTAINS
 
     REAL :: press
 
-    INTEGER, PARAMETER :: resolution = 100
+    INTEGER, PARAMETER :: resolution = 200
     REAL, DIMENSION(2) :: an_canopy
     REAL :: e_canopy
     REAL(r_2), DIMENSION(resolution) :: p
 
     REAL :: MOL_WATER_2_G_WATER, G_TO_KG, UMOL_TO_MOL, MB_TO_KPA, PA_TO_KPA
-
+    REAL :: Ksoil
 
 
 
@@ -2125,6 +2125,9 @@ CONTAINS
                 vpd = dsx(i) * PA_TO_KPA
                 press = met%pmb(i) * MB_TO_KPA
 
+                ! Soil-stem conductance (mmol m-2 leaf s-1 MPa-1)
+                Ksoil = 1.0 / ssnow%tot_bg_resist(i)
+
                 IF (vpd < 0.05) THEN
                    ecx(i) = 0.0
                    anx(i,1) = 0.0 - rdx(i,1)
@@ -2133,7 +2136,7 @@ CONTAINS
                    CALL optimisation(canopy, rad%qcan, vpd, press, tlfx(i), &
                                      csx, rad%fvlai, &
                                      ssnow%weighted_psi_soil(i), &
-                                     veg%Kmax(i), veg%Kcrit(i), &
+                                     Ksoil, veg%Kmax(i), veg%Kcrit(i), &
                                      veg%b_plant(i), veg%c_plant(i), &
                                      resolution, vcmxt3, ejmxt3, rdx, vx3, &
                                      cx1(i), an_canopy, e_canopy, p, i)
@@ -3580,7 +3583,7 @@ CONTAINS
 
    ! ---------------------------------------------------------------------------
    SUBROUTINE optimisation(canopy, qcan, vpd, press, tleaf, csx, lai_leaf, &
-                           psi_soil, Kmax, Kcrit, b_plant, c_plant, N, &
+                           psi_soil, Ksoil, Kmax, Kcrit, b_plant, c_plant, N, &
                            vcmxt3, ejmxt3, rdx, vx3, cx1, an_canopy, &
                            e_canopy, p, i)
 
@@ -3615,6 +3618,7 @@ CONTAINS
       INTEGER :: j, k, idx
 
       REAL, INTENT(IN) :: cx1, Kmax, Kcrit, b_plant, c_plant, vpd, press, tleaf
+      REAL, INTENT(IN) :: Ksoil
       REAL(r_2), INTENT(IN) :: psi_soil
       REAL, INTENT(INOUT) :: e_canopy
       REAL, DIMENSION(mf), INTENT(INOUT) :: an_canopy
@@ -3626,6 +3630,7 @@ CONTAINS
       REAL :: p_crit, lower, upper, cs, kcmax, apar
       REAL :: J_TO_MOL, MOL_TO_UMOL, gsw, gsc, an, Vcmax, Jmax, Rd, Vj, Km
       REAL, DIMENSION(mf) :: e_leaves
+      REAL :: kroot2stem
 
       logical :: bounded_psi
       bounded_psi = .false.!.false.
@@ -3723,15 +3728,25 @@ CONTAINS
                Kc(k) = Kmax * get_xylem_vulnerability(p(k), b_plant, c_plant)
             END DO
 
-            ! ***Discuss this bit with Manon***, mmol s-1 m-2 MPa-1
-            kcmax = Kmax * get_xylem_vulnerability(psi_soil, &
-                                                   b_plant, c_plant)
+            ! Plant hydraulic conductance (mmol m-2 leaf s-1 MPa-1)
+            kcmax = Kmax * get_xylem_vulnerability(psi_soil, b_plant, c_plant)
+
+            ! Conductance from root surface to the stem water pool, assumed to
+            ! be halfway to the leaves
+            ! (mmol m-2 ground area s-1 MPa-1)
+            kroot2stem = 2.0 * kcmax
+
+            ! Conductance from soil to stem water store
+            ! (mmol m-2 ground area s-1 MPa-1)
+            canopy%ksoil2stem(i) = (1.0 / (1.0 / ksoil + 1.0 / kroot2stem)) * &
+                                    lai_leaf(i,j)
 
             ! normalised gain (-)
             gain = an_leaf / MAXVAL(an_leaf)
 
             ! normalised cost (-)
-            cost = (kcmax - Kc) / (kcmax - Kcrit)
+            !cost = (kcmax - Kc) / (kcmax - Kcrit)
+            cost = (canopy%ksoil2stem(i) - Kc) / (canopy%ksoil2stem(i) - Kcrit)
 
             ! Locate maximum profit
             profit = gain - cost
