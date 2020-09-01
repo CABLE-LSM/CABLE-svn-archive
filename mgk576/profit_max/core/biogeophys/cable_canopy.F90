@@ -2130,6 +2130,8 @@ CONTAINS
                    ecx(i) = 0.0
                    anx(i,1) = 0.0 - rdx(i,1)
                    anx(i,2) = 0.0 - rdx(i,2)
+                   Kcmax(1) = veg%Kmax(i)
+                   Kcmax(2) = veg%Kmax(i)
                 ELSE
                    CALL optimisation(canopy, rad%qcan, vpd, press, tlfx(i), &
                                      csx, rad%fvlai, &
@@ -2439,7 +2441,7 @@ CONTAINS
        DO i = 1, mp
           canopy%kplant(i) = avg_kplant
           canopy%plc(i) = calc_plc(avg_kplant, veg%Kmax(i))
-
+          
           ! We've reached the point of hydraulic failure, so hold the plc
           ! here for outputting purposes..
           IF (canopy%plc(i) >= 88.) THEN
