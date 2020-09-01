@@ -3190,8 +3190,8 @@ CONTAINS
 
          ! Total soil–plant hydraulic conductance
          ! mmol m-2 MPa-1 leaf s-1
-         !Kplant = 1.0 / (1.0 / Ksr + Rsrl)
-         Kplant = Kmax
+         Kplant = 1.0 / (1.0 / Kmax + Rsrl)
+         !Kplant = Kmax
 
          ! CO2 concentration at the leaf surface, umol m-2 -s-1
          cs = csx(i,j) * MOL_TO_UMOL
@@ -3221,10 +3221,7 @@ CONTAINS
          ELSE
             ! Calculate transpiration for every water potential, integrating
             ! vulnerability to cavitation, mol H20 m-2 s-1 (leaf)
-            !e_leaf = calc_transpiration(p, N, Kmax, b_plant, &
-            !                                c_plant)
-            e_leaf = calc_transpiration(p, N, Kplant, b_plant, &
-                                            c_plant)
+            e_leaf = calc_transpiration(p, N, Kplant, b_plant, c_plant)
 
             ! Scale leaf transpiration to the sunlit or shaded fraction of the
             ! canopy, mol H20 m-2 s-1
@@ -3247,13 +3244,10 @@ CONTAINS
 
                ! Soil–plant hydraulic conductance at canopy xylem pressure,
                ! mmol m-2 s-1 MPa-1
-               !Kc(k) = Kmax * get_xylem_vulnerability(p(k), b_plant, c_plant)
                Kc(k) = Kplant * get_xylem_vulnerability(p(k), b_plant, c_plant)
             END DO
 
             ! Plant hydraulic conductance (mmol m-2 leaf s-1 MPa-1)
-            !kcmax(j) = Kmax * get_xylem_vulnerability(psi_soil, b_plant, &
-            !                                          c_plant)
             kcmax(j) = Kplant * get_xylem_vulnerability(psi_soil, b_plant, &
                                                         c_plant)
 
