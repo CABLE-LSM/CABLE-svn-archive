@@ -71,7 +71,7 @@ MODULE cable_output_module
           PlantTurnoverWoodResourceLim, dCdt, Area, LandUseFlux, patchfrac, &
           vcmax,hc,WatTable,GWMoist,SatFrac,Qrecharge, &
           weighted_psi_soil, psi_soil, psi_leaf, psi_stem, gsw_sun, gsw_sha, &
-          plc
+          plc, kplant
 
   END TYPE out_varID_type
   TYPE(out_varID_type) :: ovid ! netcdf variable IDs for output variables
@@ -240,6 +240,7 @@ MODULE cable_output_module
      REAL(KIND=4), POINTER, DIMENSION(:)   :: gsw_sun                ! mgk576
      REAL(KIND=4), POINTER, DIMENSION(:)   :: gsw_sha                ! mgk576
      REAL(KIND=4), POINTER, DIMENSION(:)   :: plc                    ! mgk576
+     REAL(KIND=4), POINTER, DIMENSION(:)   :: kplant                 ! mgk576
 
   END TYPE output_temporary_type
   TYPE(output_temporary_type), SAVE :: out
@@ -668,6 +669,15 @@ CONTAINS
                         landID, patchID, tID)
        ALLOCATE(out%psi_leaf(mp))
        out%psi_leaf = 0.0 ! initialise
+    END IF
+
+    IF(output%veg) THEN
+       CALL define_ovar(ncid_out, ovid%kplant, &
+                        'kplant', 'mmol m-2 leaf s-1 MPa-1', 'kplant', &
+                        patchout%kplant, 'dummy', xID, yID, zID, &
+                        landID, patchID, tID)
+       ALLOCATE(out%kplant(mp))
+       out%kplant = 0.0 ! initialise
     END IF
 
     IF(output%veg) THEN
@@ -2101,6 +2111,23 @@ CONTAINS
                           'default', met)
            ! Reset temporary output variable:
            out%psi_leaf = 0.0
+        END IF
+     END IF
+
+     IF(output%veg) THEN
+        ! Add current timestep's value to total of temporary output variable:
+        out%kplant = out%kplant + REAL(canopy%kplant, 4)
+        IF(writenow) THEN
+           ! Divide accumulated variable by number of accumulated time steps:
+           out%kplant = out%kplant / REAL(output%interval, 4)
+           ! Write value to file:
+           CALL write_ovar(out_timestep, ncid_out, ovid%kplant, &
+                          'kplant', &
+                           out%kplant, ranges%kplant, &
+                           patchout%kplant, &
+                          'default', met)
+           ! Reset temporary output variable:
+           out%kplant = 0.0
         END IF
      END IF
 
@@ -3612,7 +3639,9 @@ CONTAINS
 
     IF (cable_user%fwsoil_switch == 'profitmax') THEN
 
-
+      CALL define_ovar(ncid_restart, psilID, 'kplant', 'mmol m-2 leaf s-1 MPa-1', &
+           'kplant', &
+           .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
       CALL define_ovar(ncid_restart, psilID, 'psi_leaf_prev', 'MPa',           &
            'leaf water potential', &
            .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
@@ -3891,7 +3920,9 @@ CONTAINS
     END IF
 
     IF (cable_user%fwsoil_switch == 'profitmax') THEN
-
+      CALL write_ovar (ncid_restart, psilID, 'kplant', &
+                       REAL(canopy%kplant, 4),         &
+                       (/-99999.0, 9999999.0/), .TRUE., 'real', .TRUE.)
       CALL write_ovar (ncid_restart, psilID, 'psi_leaf_prev', &
                        REAL(canopy%psi_leaf_prev, 4),         &
                        (/-99999.0, 9999999.0/), .TRUE., 'real', .TRUE.)

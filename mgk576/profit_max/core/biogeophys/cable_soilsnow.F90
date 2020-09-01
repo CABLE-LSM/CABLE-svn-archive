@@ -2705,19 +2705,12 @@ CONTAINS
         ! soil term as the root component is part of the plant resistance
         rsum = rsum + ( 1.0 / ssnow%soilR(i,j) )
 
-        !IF (ssnow%soilR(i,j) .GT. 0.0) THEN
-           ! Need to combine resistances in parallel, but we only want the
-           ! soil term as the root component is part of the plant resistance
-         !  rsum = rsum + ( 1.0 / ssnow%soilR(i,j) )
-           !print*, rsum, ( 1.0 / ssnow%soilR(i,j) )
-        !ENDIF
-
      END DO
 
      ! rsum calc above is 1/rsum (i.e. conductance(, as we're combining in
      ! parallel, turn back into resistance (MPa s m2 mmol-1 H2O)
      ssnow%Rsr(i) = 1.0 / rsum
-     
+
 
   END SUBROUTINE calc_soil_root_resistance
   ! ----------------------------------------------------------------------------

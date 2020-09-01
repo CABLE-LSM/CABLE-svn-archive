@@ -2431,10 +2431,13 @@ CONTAINS
 
     IF (cable_user%FWSOIL_SWITCH == 'profitmax') THEN
 
+       ! Plant hydraulic conductance (mmol m-2 leaf s-1 MPa-1)
        avg_kplant = (Kcmax(1) + Kcmax(2)) / 2.0
+
 
        ! Calculate this here after we've finsihed iterating...
        DO i = 1, mp
+          canopy%kplant(i) = avg_kplant
           canopy%plc(i) = calc_plc(avg_kplant, veg%Kmax(i))
 
           ! We've reached the point of hydraulic failure, so hold the plc

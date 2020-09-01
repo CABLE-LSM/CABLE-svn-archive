@@ -316,6 +316,7 @@ MODULE cable_IO_vars_module
           gsw_sun = .TRUE., &
           gsw_sha = .TRUE., &
           plc = .TRUE., &
+          kplant = .TRUE., &
 
                                 !parameters
           bch = .FALSE.,       & ! parameter b in Campbell equation 1985
