@@ -3135,7 +3135,7 @@ CONTAINS
       REAL(r_2), DIMENSION(N), INTENT(INOUT) :: p
       REAL, DIMENSION(mp,mf), INTENT(IN) :: vcmxt3, ejmxt3, rdx, vx3, lai_leaf
       REAL, DIMENSION(N) :: Kc, e_leaf, cost, gain, profit, an_leaf
-      REAL :: p_crit, lower, upper, cs,apar
+      REAL :: p_crit, lower, upper, Cs, apar
       REAL :: J_TO_MOL, MOL_TO_UMOL, gsw, gsc, an, Vcmax, Jmax, Rd, Vj, Km
       REAL, DIMENSION(mf) :: e_leaves
       REAL :: Kplant, Rsrl
@@ -3188,16 +3188,15 @@ CONTAINS
          ! MPa s m2 (ground) mmol-1 H2O -> MPa s m2 (leaf) mmol-1 H2O
          Rsrl = Rsr * lai_leaf(i,j)
 
-         ! Total soil–plant hydraulic conductance
+         ! Total soil–plant hydraulic conductance (combined assuming
+         ! resistances are coupled in parallel)
          ! mmol m-2 MPa-1 leaf s-1
          Kplant = 1.0 / (1.0 / Kmax + Rsrl)
-         !Kplant = Kmax
 
          ! CO2 concentration at the leaf surface, umol m-2 -s-1
-         cs = csx(i,j) * MOL_TO_UMOL
+         Cs = csx(i,j) * MOL_TO_UMOL
 
          ! absorbed par for the sunlit or shaded leaf, umol m-2 -s-1
-         !apar = rad%qcan(i,j,1) * J_TO_MOL * MOL_TO_UMOL
          apar = qcan(i,j,1) * J_TO_MOL * MOL_TO_UMOL
 
          ! max rate of rubisco activity, scaled up to sunlit/shaded canopy
@@ -3233,8 +3232,7 @@ CONTAINS
                   gsw = e_leaf(k) / vpd * press ! mol H20 m-2 s-1
                   gsc = gsw / C%RGSWC ! mol CO2 m-2 s-1
 
-                  !print*, "*", gsw, vpd, press, apar, ca, tleaf-273.15
-                  call get_a_and_ci(cs, tleaf, apar, an, gsc, &
+                  call get_a_and_ci(Cs, tleaf, apar, an, gsc, &
                                     Vcmax, Jmax, Rd, Vj, Km)
 
                   an_leaf(k) = an ! save the An, umol m-2 s-1
@@ -3280,7 +3278,7 @@ CONTAINS
    ! ---------------------------------------------------------------------------
 
    ! --------------------------------------------------------------------------
-   SUBROUTINE get_a_and_ci(cs, tleaf, par, An_new, gsc, Vcmax, Jmax, Rd, Vj, Km)
+   SUBROUTINE get_a_and_ci(Cs, tleaf, par, An_new, gsc, Vcmax, Jmax, Rd, Vj, Km)
 
       ! Find the matching An and Ci for a given gsc.
       !
@@ -3293,13 +3291,13 @@ CONTAINS
 
       REAL, INTENT(IN) :: tleaf, par, Vcmax, Jmax, Rd, Vj, Km
       REAL, INTENT(INOUT) :: An_new, gsc
-      REAL :: min_ci, max_ci, An, ci_new, gsc_new, cs, Ac, Aj, A, gamma_star
+      REAL :: min_ci, max_ci, An, ci_new, gsc_new, Cs, Ac, Aj, A, gamma_star
       REAL, PARAMETER :: tol = 1E-04 !1E-12
 
       INTEGER :: iter
 
       min_ci = 0.0 ! CABLE assumes gamma_star = 0
-      max_ci = cs  ! umol m-2 s-1
+      max_ci = Cs  ! umol m-2 s-1
       An_new  = 0.0 ! umol m-2 s-1
       gamma_star = 0.0 ! cable says it is 0
       iter = 0
@@ -3317,7 +3315,7 @@ CONTAINS
             An = A - Rd ! Net photosynthesis, umol m-2 s-1
          END IF
 
-         gsc_new = An / (cs - ci_new) ! mol m-2 s-1
+         gsc_new = An / (Cs - ci_new) ! mol m-2 s-1
 
          ! Have we found a matching gsc?
          IF (abs(gsc_new - gsc) / gsc < tol) THEN

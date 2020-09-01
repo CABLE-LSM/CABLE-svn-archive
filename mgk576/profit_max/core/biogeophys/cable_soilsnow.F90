@@ -2655,15 +2655,8 @@ CONTAINS
      DO j = 1, ms ! Loop over 6 soil layers
 
         ! Soil Hydraulic conductivity (m s-1), Campbell 1974
-        IF (ssnow%wb(i,j) < 0.05) then ! avoid underflow problem
-           Ksoil = TINY_NUMBER
-        ELSE
-           Ksoil = soil%hyds(i) * (ssnow%wb(i,j) / &
-                     soil%ssat(i))**(2.0 * soil%bch(i) + 3.0)
-           ! Not sure why, but Remko has the exponent written differently...
-           !Ksoil = soil%hyds(i) * (ssnow%wb(i,j) / &
-           !         soil%ssat(i))**(2.0 + soil%bch(i) / 3.0)
-        ENDIF
+        Ksoil = soil%hyds(i) * &
+                     (ssnow%wb(i,j) / soil%ssat(i))**(2.0 * soil%bch(i) + 3.0)
 
         ! converts from m s-1 to m2 s-1 MPa-1
         Ksoil = Ksoil / head
@@ -2673,7 +2666,7 @@ CONTAINS
         ! prevent floating point error
         IF (Ksoil < TINY_NUMBER) THEN
            ssnow%soilR(i,j) = HUGE_NUMBER
-           rsum = rsum + ( 1.0 / ssnow%soilR(i,j) )
+           !rsum = rsum + ( 1.0 / ssnow%soilR(i,j) )
         ELSE
 
            ! Root biomass density (g biomass m-3 soil)
@@ -2701,21 +2694,30 @@ CONTAINS
            ! resistance (is part of plant resistance)
            ! MPa s m2 mmol-1 H2O
            ssnow%soilR(i,j) = soil_resist !+ root_resist
+
+
         END IF
 
-        !print*, "DEBUG soilR:", j,  ssnow%soilR(i,j), Ksoil, root_mass, root_length(j), soil_resist
+        !print*, "DEBUG soilR:", j,  ssnow%soilR(i,j), Ksoil, root_mass, root_biomass , rsum
 
-        IF (ssnow%soilR(i,j) .GT. 0.0) THEN
+
+        ! Need to combine resistances in parallel, but we only want the
+        ! soil term as the root component is part of the plant resistance
+        rsum = rsum + ( 1.0 / ssnow%soilR(i,j) )
+
+        !IF (ssnow%soilR(i,j) .GT. 0.0) THEN
            ! Need to combine resistances in parallel, but we only want the
            ! soil term as the root component is part of the plant resistance
-           rsum = rsum + ( 1.0 / ssnow%soilR(i,j) )
-        ENDIF
+         !  rsum = rsum + ( 1.0 / ssnow%soilR(i,j) )
+           !print*, rsum, ( 1.0 / ssnow%soilR(i,j) )
+        !ENDIF
 
      END DO
 
-     ! rsum calc above is 1/rsum, as we're combining in parallel, turn back into
-     ! resistance (MPa s m2 mmol-1 H2O)
+     ! rsum calc above is 1/rsum (i.e. conductance(, as we're combining in
+     ! parallel, turn back into resistance (MPa s m2 mmol-1 H2O)
      ssnow%Rsr(i) = 1.0 / rsum
+     
 
   END SUBROUTINE calc_soil_root_resistance
   ! ----------------------------------------------------------------------------
