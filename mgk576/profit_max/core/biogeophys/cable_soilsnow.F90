@@ -2690,7 +2690,7 @@ CONTAINS
            ! (Gardner 1960, Newman 1969)
            rs = SQRT(1.0 / (root_length(j) * pi))
 
-           ! Soil-to-root resistance (MPa s m2 mmol-1 H2O)
+           ! Soil-to-root resistance (MPa s m2 (ground) mmol-1 H2O)
            soil_resist = LOG(rs / root_radius) / &
                          (2.0 * pi * root_length(j) * soil%zse(j) * Ksoil)
 
@@ -2715,7 +2715,7 @@ CONTAINS
 
      ! rsum calc above is 1/rsum, as we're combining in parallel, turn back into
      ! resistance (MPa s m2 mmol-1 H2O)
-     ssnow%tot_bg_resist(i) = 1.0 / rsum
+     ssnow%Rsr(i) = 1.0 / rsum
 
   END SUBROUTINE calc_soil_root_resistance
   ! ----------------------------------------------------------------------------

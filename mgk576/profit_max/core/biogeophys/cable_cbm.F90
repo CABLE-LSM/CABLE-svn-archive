@@ -147,8 +147,8 @@ CONTAINS
     !print*, "lat:", patch%latitude
     !print*, "lon:", patch%longitude
     !print*, met%year, met%doy
-    !print*, "tot_bg_resist"
-    !print*, ssnow%tot_bg_resist
+    !print*, "Rsr"
+    !print*, ssnow%Rsr
     !print*, "weighted_psi_soil"
     !print*, ssnow%weighted_psi_soil
     !print*, "soilR"
@@ -221,8 +221,8 @@ CONTAINS
     !print*, "lat:", patch%latitude
     !print*, "lon:", patch%longitude
     !print*, " "
-    !print*, "tot_bg_resist"
-    !print*, ssnow%tot_bg_resist
+    !print*, "Rsr"
+    !print*, ssnow%Rsr
     !print*, "weighted_psi_soil"
     !print*, ssnow%weighted_psi_soil
     !print*, "soilR"
