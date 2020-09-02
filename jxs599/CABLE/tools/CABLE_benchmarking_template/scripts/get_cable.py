@@ -29,18 +29,19 @@ class GetCable(object):
         self.aux_dir = "CABLE-AUX"
         self.home_dir = os.environ['HOME']
 
-    def main(self, repo_name=None, trunk=False):
+    def main(self, repo_name=None, trunk=False, user_branch=False,
+             share_branch=False):
 
         self.initialise_stuff()
 
-        self.get_repo(repo_name, trunk)
+        self.get_repo(repo_name, trunk, user_branch, share_branch)
 
     def initialise_stuff(self):
 
         if not os.path.exists(self.src_dir):
             os.makedirs(self.src_dir)
 
-    def get_repo(self, repo_name, trunk=False):
+    def get_repo(self, repo_name, trunk, user_branch, share_branch):
 
         need_pass = False
         cwd = os.getcwd()
@@ -186,9 +187,9 @@ if __name__ == "__main__":
     src_dir = "src"
     user = "mgk576"
     repo1 = "Trunk_%s" % (date)
-    repo2 = "CMIP6-MOSRS"
+    repo2 = "test_jxs599"
     # ------------------------------------------- #
 
     G = GetCable(src_dir=src_dir, user=user)
     G.main(repo_name=repo1, trunk=True)
-    G.main(repo_name=repo2, trunk=False)
+    G.main(repo_name=repo2, trunk=False, user_branch=False, share_branch=True)

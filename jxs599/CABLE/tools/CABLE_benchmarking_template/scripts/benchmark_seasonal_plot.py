@@ -9,7 +9,7 @@ __author__ = "Martin De Kauwe"
 __version__ = "1.0 (18.10.2017)"
 __email__ = "mdekauwe@gmail.com"
 
-import netCDF4 as nc
+import xarray as xr
 import matplotlib.pyplot as plt
 import sys
 import datetime as dt
@@ -70,19 +70,23 @@ def main(old_fname, new_fname, plot_fname):
     fig.savefig(plot_fname, bbox_inches='tight', pad_inches=0.1)
 
 def read_cable_file(fname):
+    # works with new cftime update
+    ds = xr.open_dataset(fname, decode_times=True)
+    vars_to_keep = ['GPP','Qle','Qh','TVeg','ESoil','NEE','time']
+    df = ds[vars_to_keep].squeeze(dim=["x","y"], drop=True).to_dataframe()
 
-    f = nc.Dataset(fname)
-    time = nc.num2date(f.variables['time'][:],
-                        f.variables['time'].units)
-    df = pd.DataFrame(f.variables['GPP'][:,0,0], columns=['GPP'])
-    df['Qle'] = f.variables['Qle'][:,0,0]
-    df['Qh'] = f.variables['Qh'][:,0,0]
-    df['TVeg'] = f.variables['TVeg'][:,0,0]
-    df['ESoil'] = f.variables['ESoil'][:,0,0]
-    df['NEE'] = f.variables['NEE'][:,0,0]
-
-    df['dates'] = time
-    df = df.set_index('dates')
+    #f = nc.Dataset(fname)
+    #time = nc.num2date(f.variables['time'][:],
+    #                    f.variables['time'].units)
+    #df = pd.DataFrame(f.variables['GPP'][:,0,0], columns=['GPP'])
+    #df['Qle'] = f.variables['Qle'][:,0,0]
+    #df['Qh'] = f.variables['Qh'][:,0,0]
+    #df['TVeg'] = f.variables['TVeg'][:,0,0]
+    #df['ESoil'] = f.variables['ESoil'][:,0,0]
+    #df['NEE'] = f.variables['NEE'][:,0,0]
+    #
+    #df['dates'] = time
+    #df = df.set_index('dates')
 
     return df
 

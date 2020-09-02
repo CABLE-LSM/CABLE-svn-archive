@@ -72,8 +72,8 @@ met_subset = ['AU-Tum_2002-2017_OzFlux_Met.nc','AU-How_2003-2017_OzFlux_Met.nc']
 
 met_subset = [ 'IT-Amp_2003-2006_LaThuile_Met.nc' ] 
 # ~Plumber sites from Anna's 2016 paper
-#met_subset = [ 'IT-Amp_2003-2006_LaThuile_Met.nc', 'US-Blo_2000-2006_FLUXNET2015_Met.nc', \
-# 'HU-Bug_2003-2006_LaThuile_Met.nc', 'PT-Esp_2002-2004_LaThuile_Met.nc',    \
+met_subset = [ 'US-Blo_2000-2006_FLUXNET2015_Met.nc', \
+ 'HU-Bug_2003-2006_LaThuile_Met.nc', 'PT-Esp_2002-2004_LaThuile_Met.nc' ]
 # 'US-FPe_2000-2006_LaThuile_Met.nc', 'US-Ha1_1992-2012_FLUXNET2015_Met.nc', \
 # 'FR-Hes_1997-2006_LaThuile_Met.nc', 'AU-How_2003-2017_OzFlux_Met.nc',      \
 # 'US-Ho1_1996-2004_LaThuile_Met.nc', 'FI-Hyy_1996-2014_FLUXNET2015_Met.nc', \
