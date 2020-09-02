@@ -610,7 +610,7 @@ CONTAINS
              write(*,*) 'Looking for global offline run info.'
              call preparefiles(ncciy)
              call open_met_file( dels, koffset, kend, spinup, c%tfrz )
-          else if (trim(cable_user%MetType) .eq. 'plum') then
+          else if (trim(cable_user%MetType) .eq. 'plume') then
              if ( CALL1 ) THEN
                 call cpu_time(etime)
                 call plume_mip_init( plume )
@@ -931,7 +931,7 @@ CONTAINS
           
           ! Read ahead: send input before workes start ktau loop
           IF (.NOT. CASAONLY) THEN
-             IF ( TRIM(cable_user%MetType) .EQ. 'plum' ) THEN
+             IF ( TRIM(cable_user%MetType) .EQ. 'plume' ) THEN
                 CALL PLUME_MIP_GET_MET(PLUME, iMET, YYYY, iktau, kend, &
                      (YYYY.EQ.cable_user%YearEnd .AND. iktau.EQ.kend))
              ELSE IF ( TRIM(cable_user%MetType) .EQ. 'bios' ) THEN
@@ -1015,7 +1015,7 @@ CONTAINS
              ! Get met data and LAI, set time variables.
              ! Rainfall input may be augmented for spinup purposes:
              !          met%ofsd = met%fsd(:,1) + met%fsd(:,2)
-             if (trim(cable_user%MetType) .eq. 'plum') then
+             if (trim(cable_user%MetType) .eq. 'plume') then
                 call plume_mip_get_met(plume, imet, yyyy, iktau, kend, &
                      yyyy.eq.cable_user%YearEnd .AND. iktau.EQ.kend)
              else if (trim(cable_user%MetType) .eq. 'bios') then
@@ -1199,7 +1199,7 @@ CONTAINS
                 endif
 
                 if ((.not. CASAONLY) .and. spinConv) then
-                   if (trim(cable_user%mettype) .eq. 'plum' &
+                   if (trim(cable_user%mettype) .eq. 'plume' &
                        .or. trim(cable_user%mettype) .eq. 'cru' &
                        .or. trim(cable_user%mettype) .eq. 'bios' &
                        .or. trim(cable_user%mettype) .eq. 'gswp') then
@@ -1434,7 +1434,7 @@ CONTAINS
              ENDIF
 
              IF ( (.NOT. CASAONLY) .AND. spinConv ) THEN
-                IF ( TRIM(cable_user%MetType) .EQ. 'plum' &
+                IF ( TRIM(cable_user%MetType) .EQ. 'plume' &
                      .OR. TRIM(cable_user%MetType) .EQ. 'cru'   &
                      .OR. TRIM(cable_user%MetType) .EQ. 'bios'   &
                      .OR. TRIM(cable_user%MetType) .EQ. 'gswp') then

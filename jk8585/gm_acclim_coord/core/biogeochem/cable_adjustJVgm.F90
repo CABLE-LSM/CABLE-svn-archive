@@ -366,16 +366,16 @@ write(64,*) "iteration:", i
     endif  
 
 
-    if (p == 1) then
+    !if (p == 1) then
   
-      write(90,*) 'Rd:', Rd
-      write(90,*) 'gmmax25:', gmmax25
-      write(90,*) 'Vcmax25Ci:', Vcmax25Ci
+    !  write(90,*) 'Rd:', Rd
+    !  write(90,*) 'gmmax25:', gmmax25
+    !  write(90,*) 'Vcmax25Ci:', Vcmax25Ci
 
-      write(90,*) 'veg%vcmaxcc(p):', veg%vcmaxcc(p)
-      write(90,*) 'veg%ejmaxcc(p):', veg%ejmaxcc(p)
+    !  write(90,*) 'veg%vcmaxcc(p):', veg%vcmaxcc(p)
+    !  write(90,*) 'veg%ejmaxcc(p):', veg%ejmaxcc(p)
       
-    endif 
+    !endif 
 
     
   END SUBROUTINE find_Vcmax_Jmax_LUT

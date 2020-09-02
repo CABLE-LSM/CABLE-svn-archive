@@ -2571,9 +2571,13 @@ CONTAINS
        ELSEIF (CABLE_USER%YEARSTART.lt.1000) THEN
           WRITE( dum, FMT="(I3,'_',I4)")CABLE_USER%YEARSTART,CABLE_USER%YEAREND
        ENDIF
-       fname = TRIM(filename%path)//'/'//TRIM(cable_user%RunIden)//'_'//&
-            TRIM(dum)//'_LUC_out.nc'
-
+       
+       if (len_trim(cable_user%LUC_outfile) .gt. 0) then
+          fname = trim(cable_user%LUC_outfile)
+       else
+          fname = TRIM(filename%path)//'/'//TRIM(cable_user%RunIden)//'_'//TRIM(dum)//'_LUC_out.nc'
+       endif
+          
        ! Create NetCDF file:
 #ifdef __NETCDF3__
        STATUS = NF90_create(trim(fname), ior(nf90_clobber,nf90_64bit_offset), FILE_ID)
@@ -3015,7 +3019,7 @@ CONTAINS
        STATUS  = NF90_close(FILE_ID)
        file_id = -1
        IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-       WRITE(*,*) " POPLUC Output written to ",fname
+       WRITE(*,*) " POPLUC Output written to ", trim(fname)
     ENDIF
 
   END SUBROUTINE WRITE_LUC_OUTPUT_GRID_NC

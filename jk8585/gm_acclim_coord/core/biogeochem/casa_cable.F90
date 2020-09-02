@@ -741,14 +741,14 @@ contains
     data xnslope/0.80,1.00,2.00,1.00,1.00,1.00,0.50,1.00,0.34,1.00,1.00,1.00,1.00,1.00,1.00,1.00,1.00/
     real                :: relcostJCi
     real, dimension(mp) :: relcostJ, Nefftmp
-    real, dimension(mp) :: vcmax_min      ! vcmax at minimum N
+    real, save, dimension(17) :: vcmax_ref      ! vcmax25 at gmmax25
+    data vcmax_ref/35.9e-6,47.6e-6,35.9e-6,71.1e-6,39.4e-6,64.3e-6,50.0e-6,32.8e-6,17.2e-6,50.0e-6,50.0e-6,50.0e-6,50.0e-6,50.0e-6,50.0e-6,50.0e-6,50.0e-6/
     real, dimension(mp) :: bjvci          ! Ci-based Jmax/Vcmax ratio
-    real :: gm_vcmax_slope = 0.0025e-6_r_2 ! slope between gmmax25 and Vcmax25 ((mol m-2 s-1) / (umol m-2 s-1))
+    real                :: gm_vcmax_slope ! slope between gmmax25 and Vcmax25 ((mol m-2 s-1) / (umol m-2 s-1))
     real, parameter     :: effc4 = 20000.0  ! Vc=effc4*Ci*Vcmax (see Bonan et al. 2011, JGR 116)
 #ifdef __MPI__
     integer :: ierr
 #endif
-
 
     ! first initialize
     CALL point2constants(PHOTO)
@@ -805,7 +805,6 @@ contains
           !      0.282*log(pleafx(np))*log(nleafx(np))) * 1.0e-6
           nleafx(np) = ncleafx(np)/casabiome%sla(ivt) ! leaf N in g N m-2 leaf
           pleafx(np) = nleafx(np)/npleafx(np) ! leaf P in g P m-2 leaf
-write(83,*) "nleafx(np):", nleafx(np) 
           if (ivt .EQ. 7 .OR. ivt .EQ. 10) then
              ! special for C4 grass: scale value from  parameter file
              veg%vcmax(np) = real(casabiome%vcmax_scalar(ivt)) * 1.0e-5
@@ -822,24 +821,24 @@ write(83,*) "nleafx(np):", nleafx(np)
           endif
           veg%c4kci(np) = effc4 * veg%vcmax(np)  ! not used for C3 plants
           
-          ! calculate minimum possible Vcmax (at minimum leaf N)
-          if (ivt .EQ. 7 .OR. ivt .EQ. 10) then
-             vcmax_min(np) = veg%vcmax(np)
-          else
-             vcmax_min(np) = real( vcmax_np(casabiome%ratioNCplantmin(ivt,leaf)/casabiome%sla(ivt), &
-                                   pleafx(np)) )
-          endif
-
-          ! adjust Vcmax and Jmax accounting for gm, but only if the implicit values
-          ! have changed.
+          ! adjust Vcmax and Jmax accounting for gm
           if (cable_user%explicit_gm) then
+             if (ivt .EQ. 1 .OR. ivt .EQ. 3) then  ! slopes from database as presented in Knauer et al. 2019, GCB
+                gm_vcmax_slope = 0.0035e6_r_2
+             else
+                gm_vcmax_slope = 0.0020e6_r_2
+             endif 
              ! establish a relationship between gmmax and Vcmax
+             if (ivt .EQ. 7 .OR. ivt .EQ. 10) then ! no changes for C4 plants
+                vcmax_ref(ivt) = veg%vcmax(np)
+             endif
+             
              veg%gm(np) = veg%gmmax(np) + &
-                  gm_vcmax_slope * (veg%vcmax(np) - vcmax_min(np))
+                  gm_vcmax_slope * (veg%vcmax(np) - vcmax_ref(ivt))
              
 write(86,*) "veg%gm:", veg%gm
 write(86,*) "veg%gmmax:", veg%gmmax
-write(86,*) "vcmax_min:", vcmax_min
+write(86,*) "vcmax_ref(ivt):", vcmax_ref(ivt)
 write(86,*) "veg%vcmax:", veg%vcmax
 write(86,*) "casabiome%sla:", casabiome%sla
 write(86,*) "casabiome%ratioNCplantmin(:,leaf)", casabiome%ratioNCplantmin(:,leaf)
@@ -917,9 +916,6 @@ write(86,*) "nleafx(np):", nleafx(np)
           veg%vcmax_sun = veg%vcmax
           veg%ejmax_sun = veg%ejmax
        endif
-write(87,*) "veg%vcmax_shade:", veg%vcmax_shade
-write(87,*) "veg%vcmax_sun:", veg%vcmax_sun
-write(87,*) "veg%ejmaxcc:", veg%ejmaxcc
     endif
 
     ! for 2 day test
