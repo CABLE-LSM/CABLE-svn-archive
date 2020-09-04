@@ -70,19 +70,34 @@ if not os.path.exists(src_dir):
 met_subset = ['AU-Tum_2002-2017_OzFlux_Met.nc','AU-How_2003-2017_OzFlux_Met.nc']
 #met_subset = [] # if empty...run all the files in the met_dir
 
-met_subset = [ 'IT-Amp_2003-2006_LaThuile_Met.nc' ] 
 # ~Plumber sites from Anna's 2016 paper
-met_subset = [ 'US-Blo_2000-2006_FLUXNET2015_Met.nc', \
- 'HU-Bug_2003-2006_LaThuile_Met.nc', 'PT-Esp_2002-2004_LaThuile_Met.nc' ]
-# 'US-FPe_2000-2006_LaThuile_Met.nc', 'US-Ha1_1992-2012_FLUXNET2015_Met.nc', \
-# 'FR-Hes_1997-2006_LaThuile_Met.nc', 'AU-How_2003-2017_OzFlux_Met.nc',      \
-# 'US-Ho1_1996-2004_LaThuile_Met.nc', 'FI-Hyy_1996-2014_FLUXNET2015_Met.nc', \
-# 'BW-Ma1_2000-2000_LaThuile_Met.nc',    'ID-Pag_2002-2003_LaThuile_Met.nc', \
-# 'US-Syv_2002-2008_FLUXNET2015_Met.nc', 'AU-Tum_2002-2017_OzFlux_Met.nc',   \
-# 'ZA-Kru_2000-2002_FLUXNET2015_Met.nc', 'NL-Loo_1997-2013_FLUXNET2015_Met.nc', \
+#met_subset = [ 'US-Blo_2000-2006_FLUXNET2015_Met.nc',                           \
+# 'HU-Bug_2003-2006_LaThuile_Met.nc', 'PT-Esp_2002-2004_LaThuile_Met.nc',        \
+# 'US-FPe_2000-2006_LaThuile_Met.nc', 'US-Ha1_1992-2012_FLUXNET2015_Met.nc',     \
+# 'FR-Hes_1997-2006_LaThuile_Met.nc', 'AU-How_2003-2017_OzFlux_Met.nc',          \
+# 'US-Ho1_1996-2004_LaThuile_Met.nc', 'FI-Hyy_1996-2014_FLUXNET2015_Met.nc',     \
+# 'BW-Ma1_2000-2000_LaThuile_Met.nc',    'ID-Pag_2002-2003_LaThuile_Met.nc',     \
+# 'US-Syv_2002-2008_FLUXNET2015_Met.nc', 'AU-Tum_2002-2017_OzFlux_Met.nc',       \
+# 'ZA-Kru_2000-2002_FLUXNET2015_Met.nc', 'NL-Loo_1997-2013_FLUXNET2015_Met.nc',  \
 # 'US-UMB_2000-2014_FLUXNET2015_Met.nc' ]
 
-#
+met_subset = [ 'US-Blo_2000-2006_FLUXNET2015_Met.nc' ]
+met_subset = [ 'HU-Bug_2003-2006_LaThuile_Met.nc' ]
+met_subset = [ 'PT-Esp_2002-2004_LaThuile_Met.nc' ]
+met_subset = [ 'US-FPe_2000-2006_LaThuile_Met.nc' ]
+met_subset = [ 'US-Ha1_1992-2012_FLUXNET2015_Met.nc' ]
+met_subset = [ 'FR-Hes_1997-2006_LaThuile_Met.nc' ]
+met_subset = [ 'AU-How_2003-2017_OzFlux_Met.nc' ]
+#met_subset = [ 'US-Ho1_1996-2004_LaThuile_Met.nc' ]
+#met_subset = [ 'FI-Hyy_1996-2014_FLUXNET2015_Met.nc' ]
+#met_subset = [ 'BW-Ma1_2000-2000_LaThuile_Met.nc' ]
+#met_subset = [ 'ID-Pag_2002-2003_LaThuile_Met.nc' ]
+#met_subset = [ 'US-Syv_2002-2008_FLUXNET2015_Met.nc' ]
+#met_subset = [ 'AU-Tum_2002-2017_OzFlux_Met.nc' ]
+#met_subset = [ 'ZA-Kru_2000-2002_FLUXNET2015_Met.nc' ]
+#met_subset = [ 'NL-Loo_1997-2013_FLUXNET2015_Met.nc' ]
+#met_subset = [ 'US-UMB_2000-2014_FLUXNET2015_Met.nc' ]
+
 ## science configs
 #
 sci1 = {
