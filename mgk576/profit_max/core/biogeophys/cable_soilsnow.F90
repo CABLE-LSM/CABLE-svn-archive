@@ -2608,6 +2608,7 @@ CONTAINS
      REAL, PARAMETER :: TINY_NUMBER = 1E-35
      REAL, PARAMETER :: HUGE_NUMBER = 1E35
      REAL, PARAMETER :: BIG_NUMBER = 1E9
+     REAL, PARAMETER :: SMALL_NUMBER = 1E-9
 
      REAL, DIMENSION(ms) :: depth
      REAL                :: root_mass, rs, Ksoil, root_biomass, root_depth
@@ -2664,9 +2665,11 @@ CONTAINS
         ! Calculate soil-root hydraulic resistance
 
         ! prevent floating point error
-        IF (Ksoil < TINY_NUMBER) THEN
-           ssnow%soilR(i,j) = HUGE_NUMBER
-           !rsum = rsum + ( 1.0 / ssnow%soilR(i,j) )
+        !IF (Ksoil < TINY_NUMBER) THEN
+        IF (Ksoil < SMALL_NUMBER) THEN
+           !ssnow%soilR(i,j) = HUGE_NUMBER
+           ssnow%soilR(i,j) = BIG_NUMBER
+           rsum = rsum + ( 1.0 / ssnow%soilR(i,j) )
         ELSE
 
            ! Root biomass density (g biomass m-3 soil)
