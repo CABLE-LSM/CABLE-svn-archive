@@ -2434,11 +2434,11 @@ CONTAINS
     IF (cable_user%FWSOIL_SWITCH == 'profitmax') THEN
 
       ! Plant hydraulic conductance (mmol m-2 leaf s-1 MPa-1)
-       IF (rad%fvlai(i,1) < 0.001 .AND. rad%fvlai(i,2) < 0.001) THEN
+       IF (rad%fvlai(i,1) > 0.001 .AND. rad%fvlai(i,2) > 0.001) THEN
           avg_kplant = (Kcmax(1) + Kcmax(2)) / 2.0
-       ELSE IF (rad%fvlai(i,2) < 0.001) THEN
+       ELSE IF (rad%fvlai(i,1) > 0.001) THEN
           avg_kplant = Kcmax(1)
-       ELSE IF (rad%fvlai(i,1) < 0.001) THEN
+       ELSE IF (rad%fvlai(i,2) > 0.001) THEN
           avg_kplant = Kcmax(2)
        END IF
 
