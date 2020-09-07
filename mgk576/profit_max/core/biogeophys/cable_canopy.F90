@@ -3296,14 +3296,15 @@ CONTAINS
       ! individual sunlit/shaded transpiration
       IF (apar > 50) THEN
          e_canopy = sum(e_leaves) ! mol H2O m-2 s-1
+
+         e_cuticular = (gmin * MMOL_2_MOL * lai_leaf(i,1)) + &
+                       (gmin * MMOL_2_MOL * lai_leaf(i,2))
+
+         IF (e_canopy < e_cuticular) THEN
+            e_canopy = e_cuticular ! mol H2O m-2 s-1
+         END IF
       END IF
 
-      e_cuticular = (gmin * MMOL_2_MOL * lai_leaf(i,1)) + &
-                    (gmin * MMOL_2_MOL * lai_leaf(i,2))
-
-      !IF (e_canopy < e_cuticular) THEN
-      !   e_canopy = e_cuticular ! mol H2O m-2 s-1
-      !END IF
 
 
    END SUBROUTINE optimisation
