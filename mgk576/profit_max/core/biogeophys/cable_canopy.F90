@@ -2438,12 +2438,16 @@ CONTAINS
 
           ! Plant hydraulic conductance (mmol m-2 leaf s-1 MPa-1)
           IF (rad%fvlai(i,1) > 0.001 .AND. rad%fvlai(i,2) > 0.001) THEN
+             print*, "here"
              avg_kplant = (Kcmax(1) + Kcmax(2)) / 2.0
           ELSE IF (rad%fvlai(i,1) > 0.001 .AND. rad%fvlai(i,2) < 0.001) THEN
+             print*, "no here"
              avg_kplant = Kcmax(1)
           ELSE IF (rad%fvlai(i,2) > 0.001 .AND. rad%fvlai(i,1) < 0.001) THEN
+             print*, "no no here"
              avg_kplant = Kcmax(2)
           END IF
+          print*, rad%fvlai(i,1), rad%fvlai(i,2), avg_kplant, Kcmax(1), Kcmax(2)
 
           canopy%kplant(i) = avg_kplant
           !print*, avg_kplant, Kcmax(1) + Kcmax(2), veg%Kmax(i), rad%fvlai(i,1), rad%fvlai(i,2)
@@ -3189,8 +3193,6 @@ CONTAINS
       DO k=1, N
          p(k)  = lower + float(k) * (upper - lower) / float(N-1)
       END DO
-
-      Kcmax = 0.0
 
       ! Loop over sunlit,shaded parts of the canopy and solve the carbon uptake
       ! and transpiration
