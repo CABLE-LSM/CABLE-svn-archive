@@ -2132,13 +2132,15 @@ CONTAINS
                    anx(i,1) = 0.0 - rdx(i,1)
                    anx(i,2) = 0.0 - rdx(i,2)
                 ELSE
+                   
                    CALL optimisation(canopy, rad%qcan, vpd, press, tlfx(i), &
                                      csx, rad%fvlai, &
                                      ssnow%weighted_psi_soil(i), &
                                      ssnow%Rsr(i), Kcmax, veg%Kmax(i), veg%Kcrit(i), &
                                      veg%b_plant(i), veg%c_plant(i), &
                                      resolution, vcmxt3, ejmxt3, rdx, vx3, &
-                                     cx1(i), an_canopy, e_canopy, p, i)
+                                     cx1(i), an_canopy, e_canopy, veg%gmin(i), &
+                                     p, i)
 
                    ! fix units for CABLE and pack into arrays
                    anx(i,1) = an_canopy(1) * UMOL_TO_MOL
@@ -3113,7 +3115,7 @@ CONTAINS
    SUBROUTINE optimisation(canopy, qcan, vpd, press, tleaf, csx, lai_leaf, &
                            psi_soil, Rsr, Kcmax, Kmax, Kcrit, b_plant, &
                            c_plant, N, vcmxt3, ejmxt3, rdx, vx3, cx1, &
-                           an_canopy, e_canopy, p, i)
+                           an_canopy, e_canopy, gmin, p, i)
 
       ! Optimisation wrapper for the ProfitMax model. The Sperry model
       ! assumes that plant maximises the normalised (0-1) difference
@@ -3146,6 +3148,7 @@ CONTAINS
       INTEGER :: j, k, idx
 
       REAL, INTENT(IN) :: cx1, Kmax, Kcrit, b_plant, c_plant, vpd, press, tleaf
+      REAL, INTENT(IN) :: gmin
       REAL(r_2), INTENT(IN) :: psi_soil, Rsr
       REAL, INTENT(INOUT) :: e_canopy
       REAL, DIMENSION(mf), INTENT(INOUT) :: an_canopy, Kcmax
@@ -3157,7 +3160,8 @@ CONTAINS
       REAL :: p_crit, lower, upper, Cs, apar
       REAL :: J_TO_MOL, MOL_TO_UMOL, gsw, gsc, an, Vcmax, Jmax, Rd, Vj, Km
       REAL, DIMENSION(mf) :: e_leaves
-      REAL :: Kplant, Rsrl
+      REAL :: Kplant, Rsrl, e_cuticular
+      REAL, PARAMETER :: MMOL_2_MOL = 0.001
 
       logical :: bounded_psi
       bounded_psi = .false.!.false.
@@ -3282,14 +3286,25 @@ CONTAINS
             canopy%psi_leaf(i) = p(idx) ! MPa
             canopy%psi_leaf_prev(i) = canopy%psi_leaf(i) ! MPa
             canopy%psi_soil_prev(i) = psi_soil ! MPa
+
+
          END IF
       END DO
+
 
       ! If there was light, save transpiration, NB. cable doesn't save
       ! individual sunlit/shaded transpiration
       IF (apar > 50) THEN
          e_canopy = sum(e_leaves) ! mol H2O m-2 s-1
       END IF
+
+      e_cuticular = gmin * MMOL_2_MOL * lai_leaf(i,1) + &
+                    gmin * MMOL_2_MOL * lai_leaf(i,2)
+
+      IF (e_canopy < e_cuticular) THEN
+         e_canopy = e_cuticular ! mol H2O m-2 s-1
+      END IF
+
 
    END SUBROUTINE optimisation
    ! ---------------------------------------------------------------------------
