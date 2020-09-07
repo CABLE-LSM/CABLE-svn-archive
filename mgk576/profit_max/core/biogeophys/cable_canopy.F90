@@ -1911,7 +1911,8 @@ CONTAINS
        k = k + 1
        DO i=1,mp
 
-
+          Kcmax(1) = veg%Kmax(i)
+          Kcmax(2) = veg%Kmax(i)
 
           IF (canopy%vlaiw(i) > C%LAI_THRESH .AND. abs_deltlf(i) > 0.1) THEN
 
@@ -2130,8 +2131,6 @@ CONTAINS
                    ecx(i) = 0.0
                    anx(i,1) = 0.0 - rdx(i,1)
                    anx(i,2) = 0.0 - rdx(i,2)
-                   Kcmax(1) = veg%Kmax(i)
-                   Kcmax(2) = veg%Kmax(i)
                 ELSE
                    CALL optimisation(canopy, rad%qcan, vpd, press, tlfx(i), &
                                      csx, rad%fvlai, &
@@ -2438,16 +2437,20 @@ CONTAINS
 
           ! Plant hydraulic conductance (mmol m-2 leaf s-1 MPa-1)
           IF (rad%fvlai(i,1) > 0.001 .AND. rad%fvlai(i,2) > 0.001) THEN
-             print*, "here"
+             !print*, "here"
              avg_kplant = (Kcmax(1) + Kcmax(2)) / 2.0
           ELSE IF (rad%fvlai(i,1) > 0.001 .AND. rad%fvlai(i,2) < 0.001) THEN
-             print*, "no here"
+             !print*, "no here"
              avg_kplant = Kcmax(1)
           ELSE IF (rad%fvlai(i,2) > 0.001 .AND. rad%fvlai(i,1) < 0.001) THEN
-             print*, "no no here"
+             !print*, "no no here"
              avg_kplant = Kcmax(2)
           END IF
-          print*, rad%fvlai(i,1), rad%fvlai(i,2), avg_kplant, Kcmax(1), Kcmax(2)
+          !if (avg_kplant < 0.05) THEN
+         !    print*, rad%fvlai(i,1), rad%fvlai(i,2), avg_kplant, Kcmax(1), Kcmax(2)
+         !    stop
+         ! end if
+
 
           canopy%kplant(i) = avg_kplant
           !print*, avg_kplant, Kcmax(1) + Kcmax(2), veg%Kmax(i), rad%fvlai(i,1), rad%fvlai(i,2)
