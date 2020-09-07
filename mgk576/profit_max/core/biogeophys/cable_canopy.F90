@@ -2132,7 +2132,7 @@ CONTAINS
                    anx(i,1) = 0.0 - rdx(i,1)
                    anx(i,2) = 0.0 - rdx(i,2)
                 ELSE
-                   
+
                    CALL optimisation(canopy, rad%qcan, vpd, press, tlfx(i), &
                                      csx, rad%fvlai, &
                                      ssnow%weighted_psi_soil(i), &
@@ -3298,12 +3298,12 @@ CONTAINS
          e_canopy = sum(e_leaves) ! mol H2O m-2 s-1
       END IF
 
-      e_cuticular = gmin * MMOL_2_MOL * lai_leaf(i,1) + &
-                    gmin * MMOL_2_MOL * lai_leaf(i,2)
+      e_cuticular = (gmin * MMOL_2_MOL * lai_leaf(i,1)) + &
+                    (gmin * MMOL_2_MOL * lai_leaf(i,2))
 
-      IF (e_canopy < e_cuticular) THEN
-         e_canopy = e_cuticular ! mol H2O m-2 s-1
-      END IF
+      !IF (e_canopy < e_cuticular) THEN
+      !   e_canopy = e_cuticular ! mol H2O m-2 s-1
+      !END IF
 
 
    END SUBROUTINE optimisation
