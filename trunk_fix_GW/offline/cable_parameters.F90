@@ -3131,7 +3131,7 @@ CONTAINS
           nhorz=ms
        ENDIF
 
-       IF ((nlon*nlat*npatch*nhorz .ne. xdimsize*ydimsize*ms*mpatch) .and. &
+       IF ((nlon*nlat*npatch*nhorz .ne. xdimsize*ydimsize*ms*mp) .and. &
            xdimsize*ydimsize .ne. 1) THEN
           WRITE(logn,*) 'Errors reading the dimensions from '//filename%gw_elev
 
@@ -3142,17 +3142,17 @@ CONTAINS
           IF (nhorz .lt. 0 .or. nhorz .ne. ms) &
              WRITE(logn,*) 'nhorz: found ',nhorz,' need to have ',ms,' to match forcing.'
           IF (npatch .lt. 0) &
-             WRITE(logn,*) 'npatch: found ',npatch,' need to have ',mpatch,' to match forcing.'
+             WRITE(logn,*) 'npatch: found ',npatch,' need to have ',mp,' to match forcing.'
 
              WRITE(logn,*) 'Setting dims to forcing file values, CHECK THE OUTPUT!'
              !amu561: code should probably stop here instead of re-writing
              !dimensions?
-             nlon=xdimsize; nlat=ydimsize; npatch=mpatch; nhorz=ms
+             nlon=xdimsize; nlat=ydimsize; npatch=mp; nhorz=ms
        ENDIF
 
        allocate(inGWtmp(nlon,nlat))
        allocate(inGW3dtmp(nlon,nlat,ms))
-       allocate(inGW4dtmp(nlon,nlat,ms,mpatch))
+       allocate(inGW4dtmp(nlon,nlat,ms,mp))
 
     !1
     soil%elev(:) = get_gw_data(ncid_elev,file_status,'elevation',50.0,nlon,nlat)
@@ -3520,12 +3520,12 @@ CONTAINS
          integer, intent(in) :: try_it,nlon,nlat,ms,npatch
          character(len=*),  intent(in) :: varname
          integer, intent(in)               :: ncfile_id
-         real(r_2), dimension(mp,ms,mpatch) :: data_vec
+         real(r_2), dimension(mp,ms,mp) :: data_vec
 
          integer :: i,j,k,n
          integer :: varid
          integer :: varinq_status,varget_status
-         real, dimension(nlon,nlat,ms,mpatch) :: GW4d_data
+         real, dimension(nlon,nlat,ms,mp) :: GW4d_data
          real, dimension(nlon,nlat,ms)        :: GW3d_data
          real, dimension(nlon,nlat) :: default_data
 
@@ -3547,7 +3547,7 @@ CONTAINS
             varget_status = varinq_status
 
             if (varinq_status .eq. nf90_noerr) then
-               if (mpatch .gt. 1) then
+               if (mp .gt. 1) then
                   varget_status = nf90_get_var(ncfile_id,varid,GW4d_data)
                else
                   varget_status = nf90_get_var(ncfile_id,varid,GW3d_data)
@@ -3559,7 +3559,7 @@ CONTAINS
 
          if (try_it.ne. nf90_noerr .or. varget_status .ne. nf90_noerr) then
             do k=1,ms
-               do n=1,mpatch
+               do n=1,mp
                   GW4d_data(:,:,k,n) = default_data(:,:)
                end do
             end do
@@ -3570,7 +3570,7 @@ CONTAINS
 
          do i=1,mland
             do k=1,ms
-               do j=1,mpatch
+               do j=1,mp
                   data_vec(landpt(i)%cstart:landpt(i)%cend,k,j) = &
                          real(GW4d_data(landpt(i)%ilon,landpt(i)%ilat,k,j),r_2)
                end do
@@ -3591,12 +3591,12 @@ CONTAINS
          integer, intent(in) :: try_it,nlon,nlat,ms,npatch
          character(len=*),  intent(in) :: varname
          integer, intent(in)               :: ncfile_id
-         real(r_2), dimension(mp,ms,mpatch) :: data_vec
+         real(r_2), dimension(mp,ms,mp) :: data_vec
 
          integer :: i,j,k,n
          integer :: varid
          integer :: varinq_status,varget_status
-         real, dimension(nlon,nlat,ms,mpatch) :: GW4d_data
+         real, dimension(nlon,nlat,ms,mp) :: GW4d_data
          real, dimension(nlon,nlat,ms)        :: GW3d_data
 
 
@@ -3616,7 +3616,7 @@ CONTAINS
             varget_status = varinq_status
 
             if (varinq_status .eq. nf90_noerr) then
-               if (mpatch .gt. 1) then
+               if (mp .gt. 1) then
                   varget_status = nf90_get_var(ncfile_id,varid,GW4d_data)
                else
                   varget_status = nf90_get_var(ncfile_id,varid,GW3d_data)
@@ -3629,7 +3629,7 @@ CONTAINS
 
          if (try_it.ne. nf90_noerr .or. varget_status .ne. nf90_noerr) then
             do k=1,ms
-               do n=1,mpatch
+               do n=1,mp
                   GW4d_data(:,:,k,n) = default_data(:,:)
                end do
             end do
@@ -3640,7 +3640,7 @@ CONTAINS
 
          do i=1,mland
             do k=1,ms
-               do j=1,mpatch
+               do j=1,mp
                   data_vec(landpt(i)%cstart:landpt(i)%cend,k,j) = &
                          real(GW4d_data(landpt(i)%ilon,landpt(i)%ilat,k,j),r_2)
                end do
