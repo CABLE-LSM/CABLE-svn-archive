@@ -25,14 +25,12 @@
 
 MODULE cable_carbon_module
 
-  USE cable_data_module, ONLY : icarbon_type, point2constants
+USE cable_phys_constants_mod, ONLY : CTFRZ => TFRZ
 
   IMPLICIT NONE
 
   PUBLIC carbon_pl, soilcarb, plantcarb
   PRIVATE
-
-  TYPE( icarbon_type ) :: C
 
 CONTAINS
 
@@ -248,7 +246,7 @@ CONTAINS
        ! key parameter for this scheme is veg%rs20
 
        avgwrs = SUM( veg%froot * REAL(ssnow%wb), 2 )
-       avgtrs = MAX( 0.0, SUM( veg%froot * ssnow%tgg, 2 )- C%TFRZ )
+       avgtrs = MAX( 0.0, SUM( veg%froot * ssnow%tgg, 2 )- CTFRZ )
 
        canopy%frs = veg%rs20 * MIN( 1.0, MAX( 0.0, MIN(                         &
             -0.0178 + 0.2883 * avgwrs + 5.0176 * avgwrs * avgwrs        &
@@ -274,9 +272,9 @@ CONTAINS
 
        rswc = MAX(0.0001, veg%froot(:,1)*(REAL(ssnow%wb(:,2)) - soil%swilt))&
             & / den
-       tsoil = veg%froot(:,1) * ssnow%tgg(:,2) - C%TFRZ
+       tsoil = veg%froot(:,1) * ssnow%tgg(:,2) - CTFRZ
 
-       tref = MAX( 0., ssnow%tgg(:,ms) - (C%TFRZ-.05 ) )
+       tref = MAX( 0., ssnow%tgg(:,ms) - (CTFRZ-.05 ) )
 
        DO k = 2,ms
 
@@ -326,8 +324,6 @@ CONTAINS
 
     INTEGER :: i
 
-    CALL point2constants(C)
-
     poolcoef1=(SUM(SPREAD(bgc%ratecp,1,mp)*bgc%cplant,2) -                      &
          bgc%ratecp(1)*bgc%cplant(:,1))
 
@@ -339,8 +335,8 @@ CONTAINS
 
     !bug if temperature is too low so need max()
     DO i=1,mp
-       tmp1(i) = MAX(3.22 - 0.046 * (met%tk(i)-C%TFRZ),1e-6)
-       tmp2(i) = 0.1 * (met%tk(i)-C%TFRZ-20.0)
+       tmp1(i) = MAX(3.22 - 0.046 * (met%tk(i)-CTFRZ),1e-6)
+       tmp2(i) = 0.1 * (met%tk(i)-CTFRZ-20.0)
        tmp3(i) = tmp1(i) ** tmp2(i)
     END DO
 
