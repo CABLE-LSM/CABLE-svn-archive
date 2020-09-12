@@ -83,12 +83,12 @@ real :: HGT_pft(mp)
     REAL, DIMENSION(mp) ::                                                      &
          xx,      & ! =CCCD*LAI; working variable
          dh         ! d/h where d is zero-plane displacement
-    REAL, PARAMETER :: z0soilsn_min = 1.e-7
-    REAL, PARAMETER :: z0soilsn_min_PF = 1.e-4
 
-    ! Set canopy height above snow level:
-    rough%hruff = MAX( 10. * z0soilsn_min, veg%hc - 1.2 * ssnow%snowd /                       &
-         MAX( ssnow%ssdnn, 100. ) )
+! Set canopy height above snow level:
+call HgtAboveSnow( HeightAboveSnow, mp, z0soilsn_min, veg%hc, ssnow%snowd, &
+                   ssnow%ssdnn )
+rough%hruff =  HeightAboveSnow
+
 
     ! LAI decreases due to snow:
     canopy%vlaiw = veg%vlai * rough%hruff / MAX( 0.01, veg%hc )
