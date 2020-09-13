@@ -83,15 +83,33 @@ real :: HGT_pft(mp)
     REAL, DIMENSION(mp) ::                                                      &
          xx,      & ! =CCCD*LAI; working variable
          dh         ! d/h where d is zero-plane displacement
+!From subr lai_eff, inc. here to highlight origin of diff
+real :: FracOfCanopyAboveSnow(mp)
 
 ! Set canopy height above snow level:
 call HgtAboveSnow( HeightAboveSnow, mp, z0soilsn_min, veg%hc, ssnow%snowd, &
                    ssnow%ssdnn )
 rough%hruff =  HeightAboveSnow
 
+!From subr lai_eff, inc. here to highlight origin of diff
+LAI_PFT = veg%vlai 
+Hgt_PFT = veg%hc
+!Fraction Of Canopy Above Snow
+FracOfCanopyAboveSnow = HeightAboveSnow/ MAX( 0.01, Hgt_PFT)
+  
+! origin of diff tracked to here:LAI decreases due to snow: formerly canopy%vlaiw
+!call LAI_eff( mp, veg%vlai, veg%hc, HeightAboveSnow, &
+!                reducedLAIdue2snow)
 
-    ! LAI decreases due to snow:
-    canopy%vlaiw = veg%vlai * rough%hruff / MAX( 0.01, veg%hc )
+! Original calc 
+! canopy%vlaiw = veg%vlai * rough%hruff / MAX( 0.01, veg%hc )
+!
+! Original calc - recast w meaningful names as used in subr lai_eff:A vs B: 
+! Highlights Failing due to FracOfCanopyAboveSnow being pre-calculated
+reducedLAIdue2snow = LAI_PFT * HeightAboveSnow/ MAX( 0.01, Hgt_PFT)
+!reducedLAIdue2snow = LAI_PFT * FracOfCanopyAboveSnow
+
+    canopy%vlaiw = reducedLAIdue2snow
     canopy%rghlai = canopy%vlaiw
 
     IF (cable_user%soil_struc=='default') THEN
@@ -235,7 +253,7 @@ rough%hruff =  HeightAboveSnow
 
 
 
-  END SUBROUTINE ruff_resist
+END SUBROUTINE ruff_resist
 
 
 END MODULE cable_roughness_module
