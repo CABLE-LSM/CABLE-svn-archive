@@ -4,7 +4,11 @@ MODULE cbl_soil_snow_main_module
        veg_parameter_type, canopy_type, met_type,        &
        balances_type, r_2, ms, mp
 
-  USE cable_data_module, ONLY : issnow_type, point2constants
+USE cable_phys_constants_mod, ONLY : CHL => HL
+USE cable_phys_constants_mod, ONLY : CHLF => HLF
+USE cable_phys_constants_mod, ONLY : CHLS => HLS
+USE cable_phys_constants_mod, ONLY : Cdensity_liq => density_liq
+
 
   USE cable_common_module, ONLY: cable_user,snow_ccnsw,snmin,&
        max_ssdn,max_sconds,frozen_limit,&
@@ -13,8 +17,6 @@ MODULE cbl_soil_snow_main_module
   IMPLICIT NONE
 
   PRIVATE
-
-  TYPE ( issnow_type ), SAVE :: C
 
   PUBLIC soil_snow 
 
@@ -54,8 +56,6 @@ USE cbl_soil_snow_subrs_module
     REAL(r_2), DIMENSION(mp) :: xxx,deltat,sinfil1,sinfil2,sinfil3
     REAL                :: zsetot
     INTEGER, SAVE :: ktau =0
-
-    CALL point2constants( C )
 
     ktau = ktau +1
 
@@ -136,14 +136,14 @@ USE cbl_soil_snow_subrs_module
     totwet = canopy%precis + ssnow%smelt
 
     ! total available liquid including puddle
-    weting = totwet + MAX(0._r_2,ssnow%pudsto - canopy%fesp/C%HL*dels)
+    weting = totwet + MAX(0._r_2,ssnow%pudsto - canopy%fesp/CHL*dels)
     xxx=soil%ssat - ssnow%wb(:,1)
 
-    sinfil1 = MIN( 0.95*xxx*soil%zse(1)*C%density_liq, weting) !soil capacity
+    sinfil1 = MIN( 0.95*xxx*soil%zse(1)*Cdensity_liq, weting) !soil capacity
     xxx=soil%ssat - ssnow%wb(:,2)
-    sinfil2 = MIN( 0.95*xxx*soil%zse(2)*C%density_liq, weting - REAL(sinfil1)) !soil capacity
+    sinfil2 = MIN( 0.95*xxx*soil%zse(2)*Cdensity_liq, weting - REAL(sinfil1)) !soil capacity
     xxx=soil%ssat - ssnow%wb(:,3)
-    sinfil3 = MIN( 0.95*xxx*soil%zse(3)*C%density_liq,weting-REAL(sinfil1)-REAL(sinfil2))
+    sinfil3 = MIN( 0.95*xxx*soil%zse(3)*Cdensity_liq,weting-REAL(sinfil1)-REAL(sinfil2))
 
     ! net water flux to the soil
     ssnow%fwtop1 = sinfil1 / dels - canopy%segg
