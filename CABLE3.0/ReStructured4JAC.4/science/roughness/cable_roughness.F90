@@ -106,8 +106,8 @@ FracOfCanopyAboveSnow = HeightAboveSnow/ MAX( 0.01, Hgt_PFT)
 !
 ! Original calc - recast w meaningful names as used in subr lai_eff:A vs B: 
 ! Highlights Failing due to FracOfCanopyAboveSnow being pre-calculated
-reducedLAIdue2snow = LAI_PFT * HeightAboveSnow/ MAX( 0.01, Hgt_PFT)
-!reducedLAIdue2snow = LAI_PFT * FracOfCanopyAboveSnow
+!reducedLAIdue2snow = LAI_PFT * HeightAboveSnow/ MAX( 0.01, Hgt_PFT)
+reducedLAIdue2snow = LAI_PFT * FracOfCanopyAboveSnow
 
     canopy%vlaiw = reducedLAIdue2snow
     canopy%rghlai = canopy%vlaiw
