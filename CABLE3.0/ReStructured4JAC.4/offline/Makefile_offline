@@ -32,7 +32,7 @@
 
 # these are all the files we are compiling
 LSRC = cable_pft_params.F90 cable_soil_params.F90 casa_dimension.F90 \
-	cable_math_constants_mod.F90 \
+	cable_runtime_opts_mod.F90 cable_math_constants_mod.F90 \
 	cable_phys_constants_mod.F90 \
 	cable_other_constants_mod.F90 \
 	cable_photo_constants_mod.F90 \
@@ -89,6 +89,9 @@ cable_phys_constants_mod.o: cable_phys_constants_mod.F90
 cable_other_constants_mod.o: cable_other_constants_mod.F90
 cable_photo_constants_mod.o: cable_photo_constants_mod.F90
 casa_ncdf.o: casa_ncdf.F90 cable_define_types.o 
+cable_runtime_opts_mod.o: cable_runtime_opts_mod.F90
+
+
 casa_cable.o: casa_cable.F90 casa_ncdf.o POP.o cable_define_types.o  cable_carbon.o casa_variable.o \
 	      cable_phenology.o casa_cnp.o casa_inout.o
 pop_io.o: pop_io.F90 POP.o casa_variable.o cable_common.o casa_ncdf.o
@@ -158,17 +161,17 @@ spincasacnp.o: spincasacnp.F90  cable_define_types.o  cable_carbon.o cable_commo
 #cable_LUC.o: cable_LUC.F90 cable_carbon.o cable_common.o casa_variable.o POP.o POPLUC.o cable_LUC_EXPT.o
 
 CASAONLY_LUC.o: CASAONLY_LUC.F90 cable_define_types.o  cable_carbon.o cable_common.o casa_variable.o POP.o POPLUC.o cable_LUC_EXPT.o \
-cable_diag.o cable_phenology.o casa_cnp.o casa_inout.o
+cable_diag.o cable_phenology.o casa_cnp.o casa_inout.o casa_ncdf.o
 
 casa_cnp.o: casa_cnp.F90 cable_define_types.o  casa_variable.o
 
 casa_inout.o: casa_inout.F90 POP.o cable_define_types.o  cable_iovars.o casa_variable.o casa_cnp.o
 
-cable_common.o: cable_common.F90  cable_iovars.o cable_pft_params.o cable_soil_params.o
+cable_common.o: cable_common.F90  cable_iovars.o cable_pft_params.o cable_soil_params.o cable_runtime_opts_mod.o
 
 POP.o: POP.F90 cable_define_types.o
 
-POPLUC.o: POPLUC.F90 cable_define_types.o cable_iovars.o casa_variable.o cable_common.o
+POPLUC.o: POPLUC.F90 cable_define_types.o cable_iovars.o casa_variable.o cable_common.o casa_ncdf.o cable_runtime_opts_mod.o
 
 cable_LUC_EXPT.o: cable_LUC_EXPT.F90 cable_define_types.o cable_iovars.o casa_variable.o cable_common.o
 
