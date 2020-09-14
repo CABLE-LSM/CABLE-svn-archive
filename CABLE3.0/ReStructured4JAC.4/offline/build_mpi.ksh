@@ -338,22 +338,37 @@ build_build()
       print '\ncable-mpi executable exists. copying to a dated backup file\n' 
       mv cable-mpi cable-mpi.`date +%d.%m.%y`
    fi
-   
-   CORE="../core/biogeophys"
-   UTIL="../core/utils"
-   DIAG=$UTIL"/diag"
-   DRV="."
-   CASA="../core/biogeochem"
-   
-   /bin/cp -p $CORE/*90 ./.mpitmp
-   /bin/cp -p $UTIL/*90 ./.mpitmp
-   /bin/cp -p $DIAG/*90 ./.mpitmp
-   /bin/cp -p $DRV/*90 ./.mpitmp
-   /bin/cp -p $CASA/*90 ./.mpitmp
-   
-   print "\n\n\tPlease note: CASA-CNP files are included in build only for " 
-   print "\ttechnical reasons. Implementation is not officially available with" 
-   print "\tthe release of CABLE 2.0\n"
+ 
+   # directories contain source code
+   ALB="../science/albedo"
+   RAD="../science/radiation"
+   CAN="../science/canopy"
+   CNP="../science/casa-cnp"
+   GWH="../science/gw_hydro"
+   MIS="../science/misc"
+   ROU="../science/roughness"
+   SOI="../science/soilsnow"
+   OFF="../offline"
+   UTI="../util"
+   DIA="../util/diag"
+   PAR="../params"
+   SLI="../science/sli"
+   POP="../science/pop"
+   /bin/cp -p $ALB/*90 ./.mpitmp
+   /bin/cp -p $CAN/*90 ./.mpitmp
+   /bin/cp -p $CNP/*90 ./.mpitmp
+   /bin/cp -p $GWH/*90 ./.mpitmp
+   /bin/cp -p $MIS/*90 ./.mpitmp
+   /bin/cp -p $RAD/*90 ./.mpitmp
+   /bin/cp -p $ROU/*90 ./.mpitmp
+   /bin/cp -p $SOI/*90 ./.mpitmp
+   /bin/cp -p $SLI/*90 ./.mpitmp
+   /bin/cp -p $POP/*90 ./.mpitmp
+   /bin/cp -p $OFF/*90 ./.mpitmp
+   /bin/cp -p $UTI/*90 ./.mpitmp
+   /bin/cp -p $DIA/*90 ./.mpitmp
+   /bin/cp -p $PAR/*90 ./.mpitmp
+  
     
    /bin/cp -p Makefile_mpi  ./.mpitmp
    

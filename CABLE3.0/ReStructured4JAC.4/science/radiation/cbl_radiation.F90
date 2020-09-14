@@ -18,150 +18,45 @@
 !
 ! ==============================================================================
 
-MODULE cable_radiation_module
-
-  USE cable_data_module, ONLY : irad_type, point2constants
+MODULE cbl_radiation_module
 
   IMPLICIT NONE
 
-  PUBLIC init_radiation, radiation, sinbet
+  PUBLIC radiation
   PRIVATE
-
-  TYPE ( irad_type ) :: C
-
 
 CONTAINS
 
-  SUBROUTINE init_radiation( met, rad, veg, canopy )
-
-    ! Alternate version of init_radiation that uses only the
-    ! zenith angle instead of the fluxes. This means it can be called
-    ! before the cable albedo calculation.
-    USE cable_def_types_mod, ONLY : radiation_type, met_type, canopy_type,      &
-         veg_parameter_type, nrb, mp
-    USE cable_common_module
-
-    TYPE (radiation_type), INTENT(INOUT) :: rad
-    TYPE (met_type),       INTENT(INOUT) :: met
-
-    TYPE (canopy_type),    INTENT(IN)    :: canopy
-
-    TYPE (veg_parameter_type), INTENT(INOUT) :: veg
-
-    REAL, DIMENSION(nrb) ::                                                     &
-         cos3       ! cos(15 45 75 degrees)
-    REAL, DIMENSION(mp,nrb) ::                                                  &
-         xvlai2,  & ! 2D vlai
-         xk         ! extinct. coef.for beam rad. and black leaves
-
-    REAL, DIMENSION(mp) ::                                                      &
-         xphi1,   & ! leaf angle parmameter 1
-         xphi2      ! leaf angle parmameter 2
-
-    REAL, DIMENSION(:,:), ALLOCATABLE, SAVE ::                                  &
-                                ! subr to calc these curr. appears twice. fix this
-         c1,      & !
-         rhoch
-
-
-
-    INTEGER :: ictr
-
-
-    CALL point2constants( C )
-
-    IF(.NOT. ALLOCATED(c1) ) ALLOCATE( c1(mp,nrb), rhoch(mp,nrb) )
-
-    cos3 = COS(C%PI180 * (/ 15.0, 45.0, 75.0 /))
-
-    ! See Sellers 1985, eq.13 (leaf angle parameters):
-    WHERE (canopy%vlaiw > C%LAI_THRESH)
-       xphi1 = 0.5 - veg%xfang * (0.633 + 0.33 * veg%xfang)
-       xphi2 = 0.877 * (1.0 - 2.0 * xphi1)
-    END WHERE
-
-    ! 2 dimensional LAI
-    xvlai2 = SPREAD(canopy%vlaiw, 2, 3)
-
-    ! Extinction coefficient for beam radiation and black leaves;
-    ! eq. B6, Wang and Leuning, 1998
-    WHERE (xvlai2 > C%LAI_THRESH) ! vegetated
-       xk = SPREAD(xphi1, 2, 3) / SPREAD(cos3, 1, mp) + SPREAD(xphi2, 2, 3)
-    ELSEWHERE ! i.e. bare soil
-       xk = 0.0
-    END WHERE
-
-    WHERE (canopy%vlaiw > C%LAI_THRESH ) ! vegetated
-
-       ! Extinction coefficient for diffuse radiation for black leaves:
-       rad%extkd = -LOG( SUM(                                                   &
-            SPREAD( C%GAUSS_W, 1, mp ) * EXP( -xk * xvlai2 ), 2) )       &
-            / canopy%vlaiw
-
-    ELSEWHERE ! i.e. bare soil
-       rad%extkd = 0.7
-    END WHERE
-
-
-    CALL calc_rhoch( veg, c1, rhoch )
-
-    ! Canopy REFLection of diffuse radiation for black leaves:
-    DO ictr=1,nrb
-
-       rad%rhocdf(:,ictr) = rhoch(:,ictr) *  2. *                                &
-            ( C%GAUSS_W(1) * xk(:,1) / ( xk(:,1) + rad%extkd(:) )&
-            + C%GAUSS_W(2) * xk(:,2) / ( xk(:,2) + rad%extkd(:) )&
-            + C%GAUSS_W(3) * xk(:,3) / ( xk(:,3) + rad%extkd(:) ) )
-
-    ENDDO
-
-    IF( .NOT. cable_runtime%um) THEN
-
-       ! Define beam fraction, fbeam:
-       rad%fbeam(:,1) = spitter(met%doy, met%coszen, met%fsd(:,1))
-       rad%fbeam(:,2) = spitter(met%doy, met%coszen, met%fsd(:,2))
-
-       ! coszen is set during met data read in.
-
-       WHERE (met%coszen <1.0e-2)
-          rad%fbeam(:,1) = 0.0
-          rad%fbeam(:,2) = 0.0
-       END WHERE
-
-    ENDIF
-
-    ! In gridcells where vegetation exists....
-
-    !!vh !! include RAD_THRESH in condition
-    WHERE (canopy%vlaiw > C%LAI_THRESH .AND. met%coszen > 1.e-6 )
-
-       ! SW beam extinction coefficient ("black" leaves, extinction neglects
-       ! leaf SW transmittance and REFLectance):
-       rad%extkb = xphi1 / met%coszen + xphi2
-
-    ELSEWHERE ! i.e. bare soil
-       rad%extkb = 0.5
-    END WHERE
-
-    WHERE ( ABS(rad%extkb - rad%extkd)  < 0.001 )
-       rad%extkb = rad%extkd + 0.001
-    END WHERE
-
-    WHERE( met%coszen < 1.e-6 )
-       ! higher value precludes sunlit leaves at night. affects
-       ! nighttime evaporation - Ticket #90
-       rad%extkb=1.0e5
-    END WHERE
-
-  END SUBROUTINE init_radiation
-
-  ! ------------------------------------------------------------------------------
-
-  SUBROUTINE radiation( ssnow, veg, air, met, rad, canopy )
+    SUBROUTINE radiation( ssnow, veg, air, met, rad, canopy )
+!SUBROUTINE radiation( ssnow, veg, air, met, rad, canopy, sunlit_veg_mask,&
+!  !constants
+!  clai_thresh, Csboltz, Cemsoil, Cemleaf, Ccapp &
+!)
 
     USE cable_def_types_mod, ONLY : radiation_type, met_type, canopy_type,      &
          veg_parameter_type, soil_snow_type,         &
          air_type, mp, mf, r_2
+
+USE cable_other_constants_mod,  ONLY : CLAI_thresh => lai_thresh
+USE cable_other_constants_mod,  ONLY : Crad_thresh => rad_thresh
+!USE cable_other_constants_mod,  ONLY : z0surf_min_cbl => z0surf_min
+!USE cable_other_constants_mod,  ONLY : coszen_tols_cbl => coszen_tols
+!USE cable_other_constants_mod,  ONLY : gauss_w_cbl => gauss_w
+!USE cable_other_constants_mod,  ONLY : nrb_cbl => nrb
+!USE cable_math_constants_mod,   ONLY : pi_cbl => pi
+!USE cable_math_constants_mod,   ONLY : pi180_cbl => pi180
+USE cable_phys_constants_mod,   ONLY : CSboltz => Sboltz
+USE cable_phys_constants_mod,   ONLY : CEMsoil => EMsoil
+USE cable_phys_constants_mod,   ONLY : CEMleaf => EMleaf
+USE cable_phys_constants_mod,   ONLY : Ccapp => capp 
+IMPLICIT NONE
+logical :: sunlit_veg_mask(mp)
+!constants
+!real :: CLAI_thresh
+!real :: CSboltz
+!real :: Cemsoil
+!real :: Cemleaf
+!real :: Ccapp
 
     TYPE (canopy_type),   INTENT(IN) :: canopy
     TYPE (air_type),      INTENT(IN) :: air
@@ -189,15 +84,15 @@ CONTAINS
     call_number = call_number + 1
 
     ! Define vegetation mask:
-    mask = canopy%vlaiw > C%LAI_THRESH .AND.                                    &
-         ( met%fsd(:,1)+met%fsd(:,2) ) > C%RAD_THRESH
+    mask = canopy%vlaiw > CLAI_THRESH .AND.                                    &
+         ( met%fsd(:,1)+met%fsd(:,2) ) > CRAD_THRESH
 
     ! Relative leaf nitrogen concentration within canopy:
     cf2n = EXP(-veg%extkn * canopy%vlaiw)
 
     rad%transd = 1.0
 
-    WHERE (canopy%vlaiw > C%LAI_THRESH )    ! where vegetation exists....
+    WHERE (canopy%vlaiw > cLAI_thresh )    ! where vegetation exists....
 
        ! Diffuse SW transmission fraction ("black" leaves, extinction neglects
        ! leaf SW transmittance and REFLectance);
@@ -216,10 +111,10 @@ CONTAINS
     rad%transb = REAL(dummy)
 
     ! Define longwave from vegetation:
-    flpwb = C%sboltz * (met%tvrad) ** 4
-    flwv = C%EMLEAF * flpwb
+    flpwb = CSboltz * (met%tvrad) ** 4
+    flwv = Cemleaf * flpwb
 
-    rad%flws = C%sboltz*C%EMSOIL* ssnow%tss **4
+    rad%flws = CSboltz*Cemsoil* ssnow%tss **4
 
     ! Define air emissivity:
     emair = met%fld / flpwb
@@ -227,24 +122,24 @@ CONTAINS
     rad%gradis = 0.0 ! initialise radiative conductance
     rad%qcan = 0.0   ! initialise radiation absorbed by canopy
 
-    WHERE (canopy%vlaiw > C%LAI_THRESH )
+    WHERE (canopy%vlaiw > CLAI_thresh )
 
        ! Define radiative conductance (Leuning et al, 1995), eq. D7:
-       rad%gradis(:,1) = ( 4.0 * C%EMLEAF / (C%CAPP * air%rho) ) * flpwb        &
+       rad%gradis(:,1) = ( 4.0 * Cemleaf / (Ccapp * air%rho) ) * flpwb        &
             / (met%tvrad) * rad%extkd                              &
             * ( ( 1.0 - rad%transb * rad%transd ) /                &
             ( rad%extkb + rad%extkd )                              &
             + ( rad%transd - rad%transb ) /                        &
             ( rad%extkb - rad%extkd ) )
 
-       rad%gradis(:,2) = ( 8.0 * C%EMLEAF / ( C%CAPP * air%rho ) ) *            &
+       rad%gradis(:,2) = ( 8.0 * Cemleaf / ( Ccapp * air%rho ) ) *            &
             flpwb / met%tvrad * rad%extkd *                        &
             ( 1.0 - rad%transd ) / rad%extkd - rad%gradis(:,1)
 
        ! Longwave radiation absorbed by sunlit canopy fraction:
        rad%qcan(:,1,3) = (rad%flws - flwv ) * rad%extkd *                       &
             ( rad%transd - rad%transb ) / ( rad%extkb - rad%extkd )&
-            + ( emair- C%EMLEAF ) * rad%extkd * flpwb *            &
+            + ( emair- Cemleaf ) * rad%extkd * flpwb *            &
             ( 1.0 - rad%transd * rad%transb )                      &
             / ( rad%extkb + rad%extkd )
 
@@ -339,90 +234,4 @@ CONTAINS
 
   END SUBROUTINE radiation
 
-  ! ------------------------------------------------------------------------------
-
-  ! this subroutine currently also in cable_albedo.F90
-  ! future release should reduce to one version
-  SUBROUTINE calc_rhoch(veg,c1,rhoch)
-
-    USE cable_def_types_mod, ONLY : veg_parameter_type
-
-    TYPE (veg_parameter_type), INTENT(INOUT) :: veg
-    REAL, INTENT(INOUT), DIMENSION(:,:) :: c1, rhoch
-
-    c1(:,1) = SQRT(1. - veg%taul(:,1) - veg%refl(:,1))
-    c1(:,2) = SQRT(1. - veg%taul(:,2) - veg%refl(:,2))
-    c1(:,3) = 1.
-
-    ! Canopy C%REFLection black horiz leaves
-    ! (eq. 6.19 in Goudriaan and van Laar, 1994):
-    rhoch = (1.0 - c1) / (1.0 + c1)
-
-  END SUBROUTINE calc_rhoch
-
-  ! -----------------------------------------------------------------------------
-
-  ELEMENTAL FUNCTION sinbet(doy,xslat,hod) RESULT(z)
-
-    USE cable_data_module, ONLY : MATH
-    ! calculate sin(bet), bet = elevation angle of sun
-    ! calculations according to goudriaan & van laar 1994 p30
-    REAL, INTENT(IN) ::                                                         &
-         doy,     & ! day of year
-         xslat,   & ! latitude (degrees north)
-         hod        ! hour of day
-
-    REAL ::                                                                     &
-         sindec,  & ! sine of maximum declination
-         z          ! result
-
-    sindec = -SIN( 23.45 * MATH%PI180 ) * COS( 2. * MATH%PI_C * ( doy + 10.0 ) / 365.0 )
-
-    z = MAX( SIN( MATH%PI180 * xslat ) * sindec                                 &
-         + COS( MATH%PI180 * xslat ) * SQRT( 1. - sindec * sindec )              &
-         * COS( MATH%PI_C * ( hod - 12.0 ) / 12.0 ), 1e-8 )
-
-  END FUNCTION sinbet
-
-  ! -----------------------------------------------------------------------------
-
-  FUNCTION spitter(doy, coszen, fsd) RESULT(fbeam)
-
-    USE cable_def_types_mod, ONLY : mp
-
-    ! Calculate beam fraction
-    ! See spitters et al. 1986, agric. for meteorol., 38:217-229
-    REAL, DIMENSION(mp), INTENT(IN) ::                                          &
-         doy,        & ! day of year
-         coszen,     & ! cos(zenith angle of sun)
-         fsd           ! short wave down (positive) w/m^2
-
-    REAL, DIMENSION(mp) ::                                                      &
-         fbeam,      & ! beam fraction (result)
-         tmpr,       & !
-         tmpk,       & !
-         tmprat        !
-
-    REAL, PARAMETER :: solcon = 1370.0
-
-    fbeam = 0.0
-    tmpr = 0.847 + coszen * (1.04 * coszen - 1.61)
-    tmpk = (1.47 - tmpr) / 1.66
-
-    WHERE (coszen > 1.0e-10 .AND. fsd > 10.0)
-       tmprat = fsd / ( solcon * ( 1.0 + 0.033 * COS( 2. * C%PI_C * ( doy-10.0 )&
-            / 365.0 ) ) * coszen )
-    ELSEWHERE
-       tmprat = 0.0
-    END WHERE
-
-    WHERE ( tmprat > 0.22 ) fbeam = 6.4 * ( tmprat - 0.22 )**2
-
-    WHERE ( tmprat > 0.35 ) fbeam = MIN( 1.66 * tmprat - 0.4728, 1.0 )
-
-    WHERE ( tmprat > tmpk ) fbeam = MAX( 1.0 - tmpr, 0.0 )
-
-  END FUNCTION spitter
-
-
-END MODULE cable_radiation_module
+END MODULE cbl_radiation_module
