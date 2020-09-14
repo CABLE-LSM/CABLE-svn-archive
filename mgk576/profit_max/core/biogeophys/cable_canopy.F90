@@ -1801,7 +1801,7 @@ CONTAINS
 
     REAL :: press
 
-    INTEGER, PARAMETER :: resolution = 50
+    INTEGER, PARAMETER :: resolution = 200
     REAL, DIMENSION(2) :: an_canopy
     REAL :: e_canopy
     REAL(r_2), DIMENSION(resolution) :: p
@@ -2132,7 +2132,8 @@ CONTAINS
                    anx(i,1) = 0.0 - rdx(i,1)
                    anx(i,2) = 0.0 - rdx(i,2)
                 ELSE
-
+                   print*, veg%b_plant(i), veg%c_plant(i), veg%vcmax(i)*1e6
+                   stop
                    CALL optimisation(canopy, rad%qcan, vpd, press, tlfx(i), &
                                      csx, rad%fvlai, &
                                      ssnow%weighted_psi_soil(i), &
