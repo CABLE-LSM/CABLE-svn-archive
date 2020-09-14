@@ -75,7 +75,7 @@ logical :: sunlit_veg_mask(mp)
          flwv, &     ! vegetation long-wave radiation (isothermal)
          dummy, dummy2
 
-    LOGICAL, DIMENSION(mp)    :: mask   ! select points for calculation
+    !LOGICAL, DIMENSION(mp)    :: sunlit_veg_mask   ! select points for calculation
 
     INTEGER :: b ! rad. band 1=visible, 2=near-infrared, 3=long-wave
 
@@ -84,7 +84,7 @@ logical :: sunlit_veg_mask(mp)
     call_number = call_number + 1
 
     ! Define vegetation mask:
-    mask = canopy%vlaiw > CLAI_THRESH .AND.                                    &
+    sunlit_veg_mask = canopy%vlaiw > CLAI_THRESH .AND.                                    &
          ( met%fsd(:,1)+met%fsd(:,2) ) > CRAD_THRESH
 
     ! Relative leaf nitrogen concentration within canopy:
@@ -159,7 +159,7 @@ logical :: sunlit_veg_mask(mp)
     ! UM recieves met%fsd(:,b) forcing. assumed for offline that USED met%fsd(:,b) = 1/2* INPUT met%fsd
     DO b = 1, 2 ! 1 = visible, 2 = nir radiaition
 
-       WHERE (mask) ! i.e. vegetation and sunlight are present
+       WHERE (sunlit_veg_mask) ! i.e. vegetation and sunlight are present
 
           cf1 = ( 1.0 - rad%transb * rad%cexpkdm(:,b) ) /                       &
                ( rad%extkb + rad%extkdm(:,b) )
@@ -195,7 +195,7 @@ logical :: sunlit_veg_mask(mp)
 
     rad%qssabs = 0.
 
-    WHERE (mask) ! i.e. vegetation and sunlight are present
+    WHERE (sunlit_veg_mask) ! i.e. vegetation and sunlight are present
 
        ! Calculate shortwave radiation absorbed by soil:
        ! (av. of transmitted NIR and PAR through canopy)*SWdown

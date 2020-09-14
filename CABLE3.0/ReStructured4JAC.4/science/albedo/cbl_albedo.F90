@@ -70,7 +70,20 @@ USE cbl_rhoch_module, ONLY : calc_rhoch
          ALLOCATE( c1(mp,nrb), rhoch(mp,nrb) )
 
 
-    CALL surface_albedosn(ssnow, veg, met, soil)
+!    CALL surface_albedosn(ssnow, veg, met, soil)
+!Modify parametrised soil albedo based on snow coverage 
+!call surface_albedosn( AlbSnow, AlbSoil, mp, jls_radiation, surface_type, &
+!                       SnowDepth, SnowODepth, SnowFlag_3L, &
+!                       SnowDensity, &
+!                       SoilTemp, SnowAge, &
+!                       metTk, coszen )
+!
+!Modify parametrised soil albedo based on snow coverage 
+call surface_albedosn( ssnow%AlbSoilsn, soil%AlbSoil, mp, .FALSE., veg%iveg, &
+                       ssnow%snowd, ssnow%osnowd, ssnow%isflag,                      & 
+                       ssnow%ssdnn, ssnow%tgg(:,1), ssnow%snage,                     & 
+                       met%Tk, met%coszen )
+
 
     rad%cexpkbm = 0.0
     rad%extkbm  = 0.0
