@@ -139,10 +139,11 @@ call fsunlit_veg_mask( sunlit_veg_mask, mp )
     IF( cable_runtime%um ) THEN
 
        IF( cable_runtime%um_explicit ) THEN
-  call Albedo( met, ssnow%AlbSoilsn, soil%AlbSoil,                                &
-               !AlbSnow, AlbSoil,              
+  call Albedo( ssnow, veg, met, rad, soil, canopy,                           &
+               ssnow%AlbSoilsn, soil%AlbSoil,                                &
+               !AlbSnow, AlbSoil,                                             &     
                mp, nrb,                                                      &
-               .FALSE.,                                               &
+               .FALSE.,                                                      &
                veg_mask, sunlit_mask, sunlit_veg_mask,                       &  
                Ccoszen_tols, CGAUSS_W,                                       & 
                veg%iveg, veg%refl, veg%taul,                                 & 
@@ -151,7 +152,7 @@ call fsunlit_veg_mask( sunlit_veg_mask, mp )
                !metTk, coszen, reducedLAIdue2snow,
                ssnow%snowd, ssnow%osnowd, ssnow%isflag,                      & 
                !SnowDepth, SnowODepth, SnowFlag_3L, 
-               ssnow%ssdnn, ssnow%tgg(:,1), ssnow%snage,                     & 
+               ssnow%ssdnn,  ssnow%tgg(:,1),ssnow%tggsn(:,1), ssnow%snage,   & 
                !SnowDensity, SoilTemp, SnowAge, 
                xk, c1, rhoch,                                                & 
                rad%fbeam, rad%albedo,                                        &
@@ -171,10 +172,11 @@ call fsunlit_veg_mask( sunlit_veg_mask, mp )
        ENDIF
 
     ELSE
-call Albedo( met, ssnow%AlbSoilsn, soil%AlbSoil,                                &
-               !AlbSnow, AlbSoil,              
+  call Albedo( ssnow, veg, met, rad, soil, canopy,                           &
+               ssnow%AlbSoilsn, soil%AlbSoil,                                &
+               !AlbSnow, AlbSoil,                                             &     
                mp, nrb,                                                      &
-               .FALSE.,                                               &
+               .FALSE.,                                                      &
                veg_mask, sunlit_mask, sunlit_veg_mask,                       &  
                Ccoszen_tols, CGAUSS_W,                                       & 
                veg%iveg, veg%refl, veg%taul,                                 & 
@@ -183,7 +185,7 @@ call Albedo( met, ssnow%AlbSoilsn, soil%AlbSoil,                                
                !metTk, coszen, reducedLAIdue2snow,
                ssnow%snowd, ssnow%osnowd, ssnow%isflag,                      & 
                !SnowDepth, SnowODepth, SnowFlag_3L, 
-               ssnow%ssdnn, ssnow%tgg(:,1), ssnow%snage,                     & 
+               ssnow%ssdnn,  ssnow%tgg(:,1),ssnow%tggsn(:,1), ssnow%snage,                     & 
                !SnowDensity, SoilTemp, SnowAge, 
                xk, c1, rhoch,                                                & 
                rad%fbeam, rad%albedo,                                        &

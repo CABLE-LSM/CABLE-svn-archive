@@ -1,13 +1,19 @@
 MODULE cable_albedo_module
 
+  USE cable_data_module, ONLY : ialbedo_type, point2constants
+
   IMPLICIT NONE
 
   PUBLIC albedo
   PRIVATE
 
+  TYPE(ialbedo_type) :: C
+
+
 CONTAINS
 
-subroutine Albedo( met, AlbSnow, AlbSoil,              & 
+SUBROUTINE Albedo(ssnow, veg, met, rad, soil, canopy, &
+AlbSnow, AlbSoil,              & 
 mp, nrb,                                          &
 jls_radiation ,                                   &
 veg_mask, sunlit_mask, sunlit_veg_mask,           &  
@@ -16,7 +22,7 @@ surface_type, VegRefl, VegTaul,                   &
 metTk, coszen,                                    & 
 reducedLAIdue2snow,                               &
 SnowDepth, SnowODepth, SnowFlag_3L,               & 
-SnowDensity, SoilTemp, SnowAge,                   &
+SnowDensity, SoilTemp,SnowTemp, SnowAge,                   &
 xk, c1, rhoch,                                    & 
 RadFbeam, RadAlbedo,                              &
 ExtCoeff_dif, ExtCoeff_beam,                      &
@@ -28,16 +34,24 @@ EffSurfRefl_dif, EffSurfRefl_beam                 )
 !subrs called
 USE cbl_rhoch_module, ONLY : calc_rhoch
     USE cable_common_module
-     USE cable_def_types_mod, ONLY : met_type, r_2
+    USE cable_def_types_mod, ONLY : veg_parameter_type, soil_parameter_type,    &
+         canopy_type, met_type, radiation_type,      &
+         soil_snow_type, r_2
 USE cbl_snow_albedo_module, ONLY : surface_albedosn
 USE cbl_rhoch_module, ONLY : calc_rhoch
 
 implicit none
+    TYPE (canopy_type)    :: canopy
+    TYPE (met_type)       :: met
+    TYPE (radiation_type) :: rad
+    TYPE (soil_snow_type) :: ssnow
+
+    TYPE (veg_parameter_type) :: veg
+    TYPE(soil_parameter_type) :: soil
 
 !model dimensions
 integer :: mp                       !total number of "tiles"  
 integer :: nrb                      !number of radiation bands [per legacy=3, but really=2 VIS,NIR. 3rd dim was for LW]
-TYPE (met_type),       INTENT(INOUT) :: met
 
 !This is what we are returning here
 REAL :: EffSurfRefl_dif(mp,nrb)     !Effective Surface Relectance as seen by atmosphere [Diffuse SW]  (EffSurfRefl_dif)
@@ -79,6 +93,7 @@ REAL :: SnowDepth(mp)               !Total Snow depth - water eqivalent - packed
 REAL :: SnowODepth(mp)              !Total Snow depth before any update this timestep (SnowODepth)
 REAL :: SnowDensity(mp)             !Total Snow density (assumes 1 layer describes snow cover) (SnowDensity)
 REAL :: SoilTemp(mp)                !Soil Temperature of top layer (soil%tgg)
+REAL :: SnowTemp(mp)                !Soil Temperature of top layer (soil%tgg)
 REAL :: SnowAge(mp)                 !Snow age (assumes 1 layer describes snow cover) (SnowAge)
 integer:: SnowFlag_3L(mp)           !Flag to treat snow as 3 layer - if enough present 
                                     !Updated depending on total depth (SnowFlag_3L)
@@ -121,83 +136,78 @@ integer :: i
 
     ! END header
 
-CanopyTransmit_dif(:,:) = 0.0
-CanopyTransmit_beam(:,:) = 0.0
-CanopyRefl_dif(:,:) = 0.0
-CanopyRefl_beam(:,:) = 0.0
-AlbSnow(:,:) = 0.0
+    CALL point2constants(C)
+
 
 !    CALL surface_albedosn(ssnow, veg, met, soil)
 !Modify parametrised soil albedo based on snow coverage 
-call surface_albedosn( AlbSnow, AlbSoil, mp, jls_radiation, surface_type, &
-                       SnowDepth, SnowODepth, SnowFlag_3L, &
-                       SnowDensity, &
-                       SoilTemp, SnowAge, &
-                       metTk, coszen )
-!call surface_albedosn( ssnow%AlbSoilsn, soil%AlbSoil, mp, .FALSE., veg%iveg, &
-!                       ssnow%snowd, ssnow%osnowd, ssnow%isflag,                      & 
-!                       ssnow%ssdnn, ssnow%tgg(:,1), ssnow%snage,                     & 
-!                       met%Tk, met%coszen )
+!call surface_albedosn( AlbSnow, AlbSoil, mp, jls_radiation, surface_type, &
+!                       SnowDensity, &
+!                       SnowDepth, SnowODepth, SnowFlag_3L, &
+!                       SoilTemp, SnowAge, &
+!                       metTk, coszen )
 !
+!Modify parametrised soil albedo based on snow coverage 
+call surface_albedosn( ssnow%AlbSoilsn, soil%AlbSoil, mp, .FALSE., veg%iveg, &
+                       ssnow%snowd, ssnow%osnowd, ssnow%isflag,                      & 
+                       ssnow%ssdnn, ssnow%tgg(:,1), ssnow%tggsn(:,1), ssnow%snage,                     & 
+                       met%Tk, met%coszen )
 
-    CanopyTransmit_beam = 0.0
-    ExtCoeff_beam  = 0.0
-    CanopyRefl_beam  = 0.0
+
+    rad%cexpkbm = 0.0
+    rad%extkbm  = 0.0
+    rad%rhocbm  = 0.0
 
     ! Initialise effective conopy beam reflectance:
-    EffSurfRefl_beam = AlbSnow 
-    EffSurfRefl_dif = AlbSnow 
-    RadAlbedo = AlbSnow 
+    rad%reffbm = ssnow%albsoilsn
+    rad%reffdf = ssnow%albsoilsn
+    rad%albedo = ssnow%albsoilsn
 
     ! Define vegetation mask:
-    !mask = reducedLAIdue2snow> CLAI_THRESH .AND.                                    &
-         !( met%fsd(:,1) + met%fsd(:,2) ) > CRAD_THRESH
-    mask = reducedLAIdue2snow> .001 .AND.                                    &
-         ( met%fsd(:,1) + met%fsd(:,2) ) > .001
+    mask = canopy%vlaiw > C%LAI_THRESH .AND.                                    &
+         ( met%fsd(:,1) + met%fsd(:,2) ) > C%RAD_THRESH
 
-CALL calc_rhoch( c1,rhoch, mp, nrb, VegTaul, VegRefl )
+CALL calc_rhoch( c1,rhoch, mp, nrb, veg%taul, veg%refl )
 
     ! Update extinction coefficients and fractional transmittance for
     ! leaf transmittance and reflection (ie. NOT black leaves):
     !---1 = visible, 2 = nir radiaition
     DO b = 1, 2
 
-       ExtCoeff_dif(:) = ExtCoeff_dif * c1(:,b)
-       ExtCoeff_beam(:) = ExtCoeff_beam(:) * c1(:,b)
+       rad%extkdm(:,b) = rad%extkd * c1(:,b)
 
        !--Define canopy diffuse transmittance (fraction):
-       CanopyTransmit_dif(:,b) = EXP(-ExtCoeff_dif(:) * reducedLAIdue2snow)
+       rad%cexpkdm(:,b) = EXP(-rad%extkdm(:,b) * canopy%vlaiw)
 
        !---Calculate effective diffuse reflectance (fraction):
-       WHERE( reducedLAIdue2snow> 1e-2 )                                             &
-            EffSurfRefl_dif(:,b) = CanopyRefl_dif(:,b) + (albsnow(:,b)             &
-            - CanopyRefl_dif(:,b)) * CanopyTransmit_dif(:,b)**2
+       WHERE( canopy%vlaiw > 1e-2 )                                             &
+            rad%reffdf(:,b) = rad%rhocdf(:,b) + (ssnow%albsoilsn(:,b)             &
+            - rad%rhocdf(:,b)) * rad%cexpkdm(:,b)**2
 
        !---where vegetated and sunlit
        WHERE (mask)
 
-          ExtCoeff_beam(:) = ExtCoeff_beam * c1(:,b)
+          rad%extkbm(:,b) = rad%extkb * c1(:,b)
 
           ! Canopy reflection (6.21) beam:
-          CanopyRefl_beam(:,b) = 2. * ExtCoeff_beam / ( ExtCoeff_beam + ExtCoeff_dif )          &
+          rad%rhocbm(:,b) = 2. * rad%extkb / ( rad%extkb + rad%extkd )          &
                * rhoch(:,b)
 
           ! Canopy beam transmittance (fraction):
-          dummy2 = MIN(ExtCoeff_beam(:)*reducedLAIdue2snow, 20.)
+          dummy2 = MIN(rad%extkbm(:,b)*canopy%vlaiw, 20.)
           dummy  = EXP(-dummy2)
-          CanopyTransmit_beam(:,b) = REAL(dummy)
+          rad%cexpkbm(:,b) = REAL(dummy)
 
           ! Calculate effective beam reflectance (fraction):
-          EffSurfRefl_beam(:,b) = CanopyRefl_beam(:,b) + (albsnow(:,b)             &
-               - CanopyRefl_beam(:,b))*CanopyTransmit_beam(:,b)**2
+          rad%reffbm(:,b) = rad%rhocbm(:,b) + (ssnow%albsoilsn(:,b)             &
+               - rad%rhocbm(:,b))*rad%cexpkbm(:,b)**2
 
        END WHERE
 
        ! Define albedo:
-       !WHERE( reducedLAIdue2snow> CLAI_THRESH )                                      &
-       WHERE( reducedLAIdue2snow> .001 )                                      &
-            RadAlbedo(:,b) = ( 1. - RadFbeam(:,b) )*EffSurfRefl_dif(:,b) +           &
-            RadFbeam(:,b) * EffSurfRefl_beam(:,b)
+       WHERE( canopy%vlaiw> C%LAI_THRESH )                                      &
+            rad%albedo(:,b) = ( 1. - rad%fbeam(:,b) )*rad%reffdf(:,b) +           &
+            rad%fbeam(:,b) * rad%reffbm(:,b)
 
     END DO
 
