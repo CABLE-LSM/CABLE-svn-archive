@@ -172,7 +172,7 @@ call fsunlit_veg_mask( sunlit_veg_mask, mp )
        ENDIF
 
     ELSE
-  call Albedo( ssnow, veg, met, rad, soil, canopy,                           &
+      call Albedo( ssnow, veg, met, rad, soil, canopy,                           &
                ssnow%AlbSoilsn, soil%AlbSoil,                                &
                !AlbSnow, AlbSoil,                                             &     
                mp, nrb,                                                      &
