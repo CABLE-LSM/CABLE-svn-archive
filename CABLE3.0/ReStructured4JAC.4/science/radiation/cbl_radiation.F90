@@ -36,18 +36,7 @@ SUBROUTINE radiation( ssnow, veg, air, met, rad, canopy, sunlit_veg_mask,&
          veg_parameter_type, soil_snow_type,         &
          air_type, mp, mf, r_2
 
-!USE cable_other_constants_mod,  ONLY : CLAI_thresh => lai_thresh
 USE cable_other_constants_mod,  ONLY : Crad_thresh => rad_thresh
-!USE cable_other_constants_mod,  ONLY : z0surf_min_cbl => z0surf_min
-!USE cable_other_constants_mod,  ONLY : coszen_tols_cbl => coszen_tols
-!USE cable_other_constants_mod,  ONLY : gauss_w_cbl => gauss_w
-!USE cable_other_constants_mod,  ONLY : nrb_cbl => nrb
-!USE cable_math_constants_mod,   ONLY : pi_cbl => pi
-!USE cable_math_constants_mod,   ONLY : pi180_cbl => pi180
-!USE cable_phys_constants_mod,   ONLY : CSboltz => Sboltz
-!USE cable_phys_constants_mod,   ONLY : CEMsoil => EMsoil
-!USE cable_phys_constants_mod,   ONLY : CEMleaf => EMleaf
-!USE cable_phys_constants_mod,   ONLY : Ccapp => capp 
 IMPLICIT NONE
 logical :: sunlit_veg_mask(mp)
 !constants
@@ -73,8 +62,6 @@ real :: Ccapp
          flpwb, &    ! black-body long-wave radiation
          flwv, &     ! vegetation long-wave radiation (isothermal)
          dummy, dummy2
-
-    !LOGICAL, DIMENSION(mp)    :: sunlit_veg_mask   ! select points for calculation
 
     INTEGER :: b ! rad. band 1=visible, 2=near-infrared, 3=long-wave
 
