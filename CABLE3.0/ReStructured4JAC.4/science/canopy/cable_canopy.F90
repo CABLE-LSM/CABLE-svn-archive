@@ -97,7 +97,7 @@ USE cable_other_constants_mod, ONLY : CLAI_THRESH  => LAI_THRESH
 CONTAINS
 
 
-  SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,climate)
+SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,climate, sunlit_veg_mask, reducedLAIdue2snow )
     USE cable_def_types_mod
     USE cbl_radiation_module, ONLY : radiation
     USE cable_air_module
@@ -205,7 +205,7 @@ logical :: sunlit_veg_mask(mp)
     call_number = call_number + 1
 
     !H! vNot sure that this is appropriate for JULES standalone - HaC
-    IF( .NOT. cable_runtime%um)                                                 &
+    !H!IF( .NOT. cable_runtime%um)                                                 &
          canopy%cansto =  canopy%oldcansto
 
     ALLOCATE( cansat(mp), gbhu(mp,mf))
@@ -271,7 +271,10 @@ logical :: sunlit_veg_mask(mp)
     alpm1  = 0.
     beta2  = 0.
 
-    CALL radiation( ssnow, veg, air, met, rad, canopy )
+CALL radiation( ssnow, veg, air, met, rad, canopy, sunlit_veg_mask, &
+  !constants
+  clai_thresh, Csboltz, Cemsoil, Cemleaf, Ccapp &
+)
 
     canopy%zetar(:,1) = CZETA0 ! stability correction terms
     canopy%zetar(:,2) = CZETPOS + 1
@@ -288,8 +291,10 @@ logical :: sunlit_veg_mask(mp)
 
        ! E.Kowalczyk 2014
        IF (cable_user%l_new_roughness_soil)                                     &
-            CALL ruff_resist(veg, rough, ssnow, canopy)
-
+CALL ruff_resist(veg, rough, ssnow, canopy, veg%vlai, veg%hc, canopy%vlaiw)
+            !880!CALL ruff_resist( veg, rough, ssnow, canopy, &
+            !880!                  !H!hgt_pft, lai_pft )
+            !880!                  veg%hc, canopy%vlaiw, reducedLAIdue2snow )
 
 
 
@@ -392,9 +397,10 @@ logical :: sunlit_veg_mask(mp)
 
        ENDDO
 
-       !H!IF (cable_user%or_evap) THEN
-       !H!   CALL or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
-       !H!END IF
+       IF (cable_user%or_evap) THEN
+write(6,*) "GW or ORevepis not an option right now"
+!H!          call or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
+       END IF
 
        ! Vegetation boundary-layer conductance (mol/m2/s)
        ! Cprandt = kinematic viscosity/molecular diffusivity
@@ -491,8 +497,9 @@ logical :: sunlit_veg_mask(mp)
        ! Saturation specific humidity at soil/snow surface temperature:
        CALL qsatfjh(ssnow%qstss,ssnow%tss-Ctfrz,met%pmb)
 
-       !H!IF (cable_user%gw_model .OR.  cable_user%or_evap) &
-       !H!     CALL pore_space_relative_humidity(ssnow,soil,veg)
+      if (cable_user%gw_model .OR.  cable_user%or_evap) & 
+write(6,*) "GW or ORevepis not an option right now"
+!H!        call pore_space_relative_humidity(ssnow,soil,veg)
 
        IF (cable_user%soil_struc=='default') THEN
 
@@ -543,7 +550,7 @@ logical :: sunlit_veg_mask(mp)
 
        ELSE
 
-
+write(6,*) "SLI is not an option right now"
           ! SLI SEB to get canopy%fhs, canopy%fess, canopy%ga
           ! (Based on old Tsoil, new canopy%tv, new canopy%fns)
           !H!CALL sli_main(1,dels,veg,soil,ssnow,met,canopy,air,rad,1)
@@ -596,6 +603,7 @@ logical :: sunlit_veg_mask(mp)
 
        ELSE
 
+write(6,*) "SLI is not an option right now"
           ! SLI SEB to get canopy%fhs, canopy%fess, canopy%ga
           ! (Based on old Tsoil, new canopy%tv, new canopy%fns)
           !H!CALL sli_main(1,dels,veg,soil,ssnow,met,canopy,air,rad,1)
@@ -654,6 +662,7 @@ logical :: sunlit_veg_mask(mp)
        ENDDO
 
        CALL update_zetar()
+       !!880!CALL update_zetar(mp, sunlit_veg_mask)
 
     END DO           ! do iter = 1, NITER
 
@@ -799,9 +808,9 @@ logical :: sunlit_veg_mask(mp)
        canopy%qscrn(j) = met%qv(j) - qstar(j) * ftemp(j)
 
        IF( canopy%vlaiw(j) >CLAI_THRESH .AND. rough%hruff(j) > 0.01) THEN
+          IF (cable_user%litter) THEN
 
           !extensions for litter and Or model
-          IF (cable_user%litter) THEN
              canopy%qscrn(j) = qsurf(j) + (met%qv(j) - qsurf(j)) *             &
                   MIN(1., ( ( r_sc(j)+relitt(j)*canopy%us(j) ) / MAX( 1.,         &
                   rough%rt0us(j) + rough%rt1usa(j) + rough%rt1usb(j)            &
@@ -1105,24 +1114,25 @@ logical :: sunlit_veg_mask(mp)
 
       IF (cable_user%or_evap .OR. cable_user%gw_model) THEN
 
-      !H!   IF (cable_user%or_evap) THEN
-      !H!      DO j=1,mp
-
-      !H!         IF (veg%iveg(j) .LT. 16 .AND. ssnow%snowd(j) .LT. 1e-7) THEN
-
-      !H!            IF (dq(j) .LE. 0.0) THEN
-      !H!               ssnow%rtevap_sat(j) = MIN(rtevap_max,canopy%sublayer_dz(j)/rt_Dff)
-      !H!            END IF
-
-      !H!            IF (dqu(j) .LE. 0.0) THEN
-      !H!               ssnow%rtevap_unsat(j) = MIN(rtevap_max,canopy%sublayer_dz(j)/rt_Dff)
-      !H!            END IF
-
-      !H!         END IF
-
-      !H!      END DO
-
-      !H!   END IF
+write(6,*) "GW or ORevepis not an option right now"
+!H!        IF (cable_user%or_evap) THEN
+!H!          do j=1,mp
+!H!       
+!H!             if (veg%iveg(j) .lt. 16 .and. ssnow%snowd(j) .lt. 1e-7) THEN
+!H!       
+!H!                if (dq(j) .le. 0.0) THEN
+!H!                   ssnow%rtevap_sat(j) = min(rtevap_max,canopy%sublayer_dz(j)/rt_Dff)
+!H!                end if
+!H!       
+!H!                if (dqu(j) .le. 0.0) THEN
+!H!                   ssnow%rtevap_unsat(j) = min(rtevap_max,canopy%sublayer_dz(j)/rt_Dff)
+!H!                end if
+!H!       
+!H!             end if
+!H!
+!H!          end do
+!H!
+!H!        END IF
 
          ssnowpotev = air%rho * air%rlam * ( &
               REAL(ssnow%satfrac) * dq /(ssnow%rtsoil + REAL(ssnow%rtevap_sat)) + &
@@ -1675,7 +1685,7 @@ logical :: sunlit_veg_mask(mp)
 
     USE cable_common_module
     USE cable_def_types_mod
-    USE cable_gw_hydro_module, ONLY : calc_srf_wet_fraction
+    !H!USE cable_gw_hydro_module, ONLY : calc_srf_wet_fraction
 
     TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
     TYPE (soil_snow_type), INTENT(inout):: ssnow
@@ -1690,7 +1700,7 @@ logical :: sunlit_veg_mask(mp)
     !local variables
     REAL, DIMENSION(mp)  :: lower_limit, upper_limit,ftemp
 
-    INTEGER :: j
+    INTEGER :: j, i
 
     ! Rainfall variable is limited so canopy interception is limited,
     ! used to stabilise latent fluxes.
@@ -1716,7 +1726,39 @@ logical :: sunlit_veg_mask(mp)
 
     !calc the surface wetness for soil evap in this routine
     !include the default wetfac when or_evap and gw_model are not used
-    CALL calc_srf_wet_fraction(ssnow,soil,met,veg)
+!H!gw n/a here and so copied default below
+!H!    CALL calc_srf_wet_fraction(ssnow,soil,met,veg)
+!H!   ELSE  !Default formulation
+
+       !call saturated_fraction(ssnow,soil,veg)
+       ssnow%satfrac(:) = 1.0e-8
+       ssnow%rh_srf(:)  = 1.0
+
+       ssnow%wetfac = MAX( 1.e-6, MIN( 1.0,&
+            ( REAL (ssnow%wb(:,1) ) - soil%swilt/ 2.0 )                  &
+            / ( soil%sfc - soil%swilt/2.0 ) ) )
+   
+       DO i=1,mp
+   
+          IF( ssnow%wbice(i,1) > 0. )&
+               ssnow%wetfac(i) = ssnow%wetfac(i) * &
+                                real(MAX( 0.5_r_2, 1._r_2 - MIN( 0.2_r_2, &
+                                 ( ssnow%wbice(i,1) / ssnow%wb(i,1) )**2 ) ) )
+   
+          IF( ssnow%snowd(i) > 0.1) ssnow%wetfac(i) = 0.9
+   
+          IF ( veg%iveg(i) == 16 .and. met%tk(i) >= Ctfrz + 5. )   &
+               ssnow%wetfac(i) = 1.0 ! lakes: hard-wired number to be removed
+   
+          IF( veg%iveg(i) == 16 .and. met%tk(i) < Ctfrz + 5. )   &
+               ssnow%wetfac(i) = 0.7 ! lakes: hard-wired number to be removed
+   
+       ENDDO
+       ! owetfac introduced to reduce sharp changes in dry regions,
+       ! especially in offline runs in which there may be discrepancies b/n
+       ! timing of precip and temperature change (EAK apr2009)
+       ssnow%wetfac = 0.5*(ssnow%wetfac + ssnow%owetfac)
+
 
   END SUBROUTINE Surf_wetness_fact
 

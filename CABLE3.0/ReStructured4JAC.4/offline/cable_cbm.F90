@@ -123,7 +123,7 @@ call fsunlit_veg_mask( sunlit_veg_mask, mp )
        cable_runtime%um_radiation = .FALSE.
 
        IF( cable_runtime%um_explicit ) THEN
-          CALL ruff_resist(veg, rough, ssnow, canopy)
+          CALL ruff_resist(veg, rough, ssnow, canopy,veg%vlai, veg%hc, canopy%vlaiw )
        ENDIF
        ! Height adjustment not used in ACCESS CM2. See CABLE ticket 197
        ! met%tk = met%tk + Cgrav/Ccapp*(rough%zref_tq + 0.9*rough%z0m)
@@ -131,7 +131,7 @@ call fsunlit_veg_mask( sunlit_veg_mask, mp )
        CALL define_air (met, air)
 
     ELSE
-       CALL ruff_resist(veg, rough, ssnow, canopy)
+       CALL ruff_resist(veg, rough, ssnow, canopy,veg%vlai, veg%hc, canopy%vlaiw )
     ENDIF
 
     CALL init_radiation(met,rad,veg, canopy) ! need to be called at every dt
@@ -216,7 +216,7 @@ call fsunlit_veg_mask( sunlit_veg_mask, mp )
     ssnow%otss_0 = ssnow%otss  ! vh should be before call to canopy?
     ssnow%otss = ssnow%tss
 
-    CALL define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,climate)
+    CALL define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,climate, sunlit_veg_mask,  canopy%vlaiw)
     ! RML moved out of following IF after discussion with Eva
     ssnow%owetfac = ssnow%wetfac
 
