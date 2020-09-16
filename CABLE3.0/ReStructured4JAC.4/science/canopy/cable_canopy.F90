@@ -99,7 +99,7 @@ CONTAINS
 
 SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,climate, sunlit_veg_mask, reducedLAIdue2snow )
     USE cable_def_types_mod
-    USE cbl_radiation_module, ONLY : radiation
+    USE cbl_radiation_module
     USE cable_air_module
     USE cable_common_module
     USE cable_roughness_module
@@ -523,6 +523,8 @@ write(6,*) "GW or ORevepis not an option right now"
              ! INH: I think this should be - met%qvair
              dq = ssnow%qstss - met%qv
              dq_unsat = ssnow%rh_srf*ssnow%qstss - met%qv
+dq = max(0.0, dq)
+dq_unsat = max(0.0, dq_unsat)
              ssnow%potev =  Humidity_deficit_method(dq, dq_unsat,ssnow%qstss)
 
           ENDIF
@@ -574,6 +576,8 @@ write(6,*) "SLI is not an option right now"
              ! Humidity deficit
              dq = ssnow%qstss - met%qvair
              dq_unsat = ssnow%rh_srf*ssnow%qstss - met%qvair
+dq = max(0.0, dq)
+dq_unsat = max(0.0, dq_unsat)
              ssnow%potev =  Humidity_deficit_method(dq, dq_unsat,ssnow%qstss)
 
           ENDIF
@@ -873,122 +877,122 @@ write(6,*) "SLI is not an option right now"
     ! d(canopy%fhs)/d(ssnow%tgg)
     ! d(canopy%fes)/d(dq)
     !IF (cable_user%soil_struc=='default') THEN
-    ssnow%dfn_dtg = (-1.)*4.*CEMSOIL*CSBOLTZ*tss4/ssnow%tss
+       ssnow%dfn_dtg = (-1.)*4.*CEMSOIL*CSBOLTZ*tss4/ssnow%tss
 
-    !INH: REV_CORR revised sensitivity terms working variable
-    rttsoil = ssnow%rtsoil
-    IF (cable_user%L_REV_CORR) THEN
-       WHERE (canopy%vlaiw > CLAI_THRESH)
-          !if %vlaiw<=%LAI_THRESH then %rt1 already added to %rtsoil
-          rttsoil = rttsoil + rough%rt1
-       ENDWHERE
-    ENDIF
+       !INH: REV_CORR revised sensitivity terms working variable
+       rttsoil = ssnow%rtsoil
+       IF (cable_user%L_REV_CORR) THEN
+          WHERE (canopy%vlaiw > CLAI_THRESH)
+            !if %vlaiw<=%LAI_THRESH then %rt1 already added to %rtsoil
+            rttsoil = rttsoil + rough%rt1
+          ENDWHERE
+       ENDIF
 
-    IF (cable_user%gw_model .OR. cable_user%or_evap) THEN
-
-       ssnow%dfh_dtg = air%rho*CCAPP/(ssnow%rtsoil+ REAL(ssnow%rt_qh_sublayer))
-
-       !! INH simplifying code for legibility
-       !ssnow%dfe_ddq = real(ssnow%satfrac)*air%rho*air%rlam*ssnow%cls/ &
-       !     (ssnow%rtsoil+ real(ssnow%rtevap_sat))  +
-       !     (1.0-real(ssnow%satfrac))*real(ssnow%rh_srf)*&
-       !      air%rho*air%rlam*ssnow%cls/ (ssnow%rtsoil+
-       !      real(ssnow%rtevap_unsat) )
-       ssnow%dfe_ddq = REAL(ssnow%satfrac)/(ssnow%rtsoil+ REAL(ssnow%rtevap_sat))  &
-            + (1.0-REAL(ssnow%satfrac))*REAL(ssnow%rh_srf)                   &
-            / (ssnow%rtsoil+ REAL(ssnow%rtevap_unsat) )
+       IF (cable_user%gw_model .or. cable_user%or_evap) THEN
+          
+          ssnow%dfh_dtg = air%rho*CCAPP/(ssnow%rtsoil+ real(ssnow%rt_qh_sublayer))
+          
+          !! INH simplifying code for legibility
+          !ssnow%dfe_ddq = real(ssnow%satfrac)*air%rho*air%rlam*ssnow%cls/ &
+          !     (ssnow%rtsoil+ real(ssnow%rtevap_sat))  +
+          !     (1.0-real(ssnow%satfrac))*real(ssnow%rh_srf)*&
+          !      air%rho*air%rlam*ssnow%cls/ (ssnow%rtsoil+
+          !      real(ssnow%rtevap_unsat) )
+           ssnow%dfe_ddq = real(ssnow%satfrac)/(ssnow%rtsoil+ real(ssnow%rtevap_sat))  &
+                      + (1.0-real(ssnow%satfrac))*real(ssnow%rh_srf)                   &
+                           / (ssnow%rtsoil+ real(ssnow%rtevap_unsat) )
 
        !mrd561 fixes.  Do same thing as INH but has been tested.
-       IF (cable_user%L_REV_CORR) THEN
-          alpm1  = REAL(ssnow%satfrac/(REAL(ssnow%rtsoil,r_2)+ ssnow%rtevap_sat) +     &
-               (1.0-ssnow%satfrac) / (REAL(ssnow%rtsoil,r_2)+ ssnow%rtevap_unsat ) )
-          beta2 = REAL(ssnow%satfrac/(REAL(ssnow%rtsoil,r_2)+ ssnow%rtevap_sat) +     &
-               (1.0-ssnow%satfrac) * ssnow%rh_srf                  &
-               / (REAL(ssnow%rtsoil,r_2)+ ssnow%rtevap_unsat ) )
-          WHERE (canopy%vlaiw > CLAI_THRESH)
-             alpm1 = alpm1 + 1._r_2/REAL(rough%rt1,r_2)
-             beta_div_alpm  = beta2 / alpm1  !might need limit here
-             rttsoil = ssnow%rtsoil + rough%rt1
-          ELSEWHERE!if there is no canopy then qa should not change
-             beta_div_alpm=0.0  !do not divide by aplm1 prevent issues
-             rttsoil = ssnow%rtsoil
-          ENDWHERE
-          ssnow%dfh_dtg = air%rho*CCAPP/(rttsoil +               &
-               REAL(ssnow%rt_qh_sublayer))
-          ssnow%dfe_ddq = REAL(ssnow%satfrac*(1.0-REAL(beta_div_alpm,r_2)) /        &
-               (REAL(ssnow%rtsoil,r_2)+ ssnow%rtevap_sat) +           &
-               (1.0-ssnow%satfrac)* (ssnow%rh_srf - REAL(beta_div_alpm,r_2)) /    &
-               (REAL(ssnow%rtsoil,r_2)+ ssnow%rtevap_unsat ) )
+           IF (cable_user%L_REV_CORR) THEN
+              alpm1  = real(ssnow%satfrac/(real(ssnow%rtsoil,r_2)+ ssnow%rtevap_sat) +     &
+                       (1.0-ssnow%satfrac) / (real(ssnow%rtsoil,r_2)+ ssnow%rtevap_unsat ) )
+              beta2 = real(ssnow%satfrac/(real(ssnow%rtsoil,r_2)+ ssnow%rtevap_sat) +     &
+                       (1.0-ssnow%satfrac) * ssnow%rh_srf                  &
+                        / (real(ssnow%rtsoil,r_2)+ ssnow%rtevap_unsat ) )
+              WHERE (canopy%vlaiw > CLAI_THRESH)
+                 alpm1 = alpm1 + 1._r_2/real(rough%rt1,r_2)
+                 beta_div_alpm  = beta2 / alpm1  !might need limit here
+                 rttsoil = ssnow%rtsoil + rough%rt1
+              ELSEWHERE!if there is no canopy then qa should not change
+                 beta_div_alpm=0.0  !do not divide by aplm1 prevent issues
+                 rttsoil = ssnow%rtsoil 
+              ENDWHERE
+              ssnow%dfh_dtg = air%rho*CCAPP/(rttsoil +               & 
+                                        real(ssnow%rt_qh_sublayer))
+              ssnow%dfe_ddq = real(ssnow%satfrac*(1.0-real(beta_div_alpm,r_2)) /        & 
+                    (real(ssnow%rtsoil,r_2)+ ssnow%rtevap_sat) +           &
+                    (1.0-ssnow%satfrac)* (ssnow%rh_srf - real(beta_div_alpm,r_2)) /    &
+                    (real(ssnow%rtsoil,r_2)+ ssnow%rtevap_unsat ) )
+
+          ELSE
+             ssnow%dfh_dtg = air%rho*CCAPP/(ssnow%rtsoil+ real(ssnow%rt_qh_sublayer))
+
+             ssnow%dfe_ddq = real(ssnow%satfrac)/(ssnow%rtsoil+ real(ssnow%rtevap_sat))  &
+                         + (1.0-real(ssnow%satfrac))*real(ssnow%rh_srf)                   &
+                              / (ssnow%rtsoil+ real(ssnow%rtevap_unsat) )
+           ENDIF
+                
+           !cls applies for both REV_CORR false and true          
+           ssnow%dfe_ddq = ssnow%dfe_ddq*air%rho*air%rlam*ssnow%cls
+           
+           !REV_CORR: factor %wetfac needed for potev>0. and gw_model &/or snow cover
+           !NB %wetfac=1. if or_evap
+           IF (cable_user%L_REV_CORR) THEN
+             WHERE (ssnow%potev >= 0.)
+                 ssnow%dfe_ddq = ssnow%dfe_ddq*ssnow%wetfac
+             ENDWHERE       
+          ENDIF
+
+
+       ELSEIF (cable_user%litter) THEN
+          !!vh_js!! INH simplifying code for legibility and REV_CORR
+          !ssnow%dfh_dtg = air%rho*CCAPP/(ssnow%rtsoil+ &
+          !     real((1-ssnow%isflag))*veg%clitt*0.003/canopy%kthLitt/(air%rho*CCAPP))
+          !ssnow%dfe_ddq = ssnow%wetfac*air%rho*air%rlam*ssnow%cls/ &
+          !     (ssnow%rtsoil+ real((1-ssnow%isflag))*veg%clitt*0.003/canopy%DvLitt)
+          
+          !recalculated - probably not needed 
+          rhlitt = real((1-ssnow%isflag))*veg%clitt*0.003/canopy%kthLitt/(air%rho*CCAPP)
+          relitt = real((1-ssnow%isflag))*veg%clitt*0.003/canopy%DvLitt
+          
+          !incorporates REV_CORR changes
+          ssnow%dfh_dtg = air%rho*CCAPP/(rttsoil+rhlitt)
+          ssnow%dfe_ddq = ssnow%wetfac*air%rho*air%rlam*ssnow%cls/(rttsoil+relitt)
+
+          !REV_CORR: factor ssnow%wetfac is not applied if dew/frost i.e. potev<0
+          IF (cable_user%L_REV_CORR) THEN
+             WHERE (ssnow%potev < 0.)
+                 ssnow%dfe_ddq = air%rho*air%rlam*ssnow%cls/(rttsoil+relitt)
+             ENDWHERE       
+          ENDIF
 
        ELSE
-          ssnow%dfh_dtg = air%rho*CCAPP/(ssnow%rtsoil+ REAL(ssnow%rt_qh_sublayer))
+          !ssnow%dfh_dtg = air%rho*CCAPP/ssnow%rtsoil
+          !ssnow%dfe_ddq = ssnow%wetfac*air%rho*air%rlam*ssnow%cls/ssnow%rtsoil
 
-          ssnow%dfe_ddq = REAL(ssnow%satfrac)/(ssnow%rtsoil+ REAL(ssnow%rtevap_sat))  &
-               + (1.0-REAL(ssnow%satfrac))*REAL(ssnow%rh_srf)                   &
-               / (ssnow%rtsoil+ REAL(ssnow%rtevap_unsat) )
+          !incorporates REV_CORR changes
+          ssnow%dfh_dtg = air%rho*CCAPP/rttsoil
+          ssnow%dfe_ddq = ssnow%wetfac*air%rho*air%rlam*ssnow%cls/rttsoil
+          
+          !REV_CORR: factor ssnow%wetfac is not applied if dew/frost i.e. potev<0
+          IF (cable_user%L_REV_CORR) THEN
+             WHERE (ssnow%potev < 0.)
+                 ssnow%dfe_ddq = air%rho*air%rlam*ssnow%cls/(rttsoil+relitt)
+             ENDWHERE       
+          ENDIF      
+
        ENDIF
 
-       !cls applies for both REV_CORR false and true
-       ssnow%dfe_ddq = ssnow%dfe_ddq*air%rho*air%rlam*ssnow%cls
+       ssnow%ddq_dtg = (Crmh2o/Crmair) /met%pmb * CTETENA*CTETENB * CTETENC   &
+            / ( ( CTETENC + ssnow%tss-Ctfrz )**2 )*EXP( CTETENB *       &
+            ( ssnow%tss-Ctfrz ) / ( CTETENC + ssnow%tss-Ctfrz ) )
+       
+       !canopy%dgdtg = ssnow%dfn_dtg - ssnow%dfh_dtg - ssnow%dfe_ddq *    &
+       !     ssnow%ddq_dtg
 
-       !REV_CORR: factor %wetfac needed for potev>0. and gw_model &/or snow cover
-       !NB %wetfac=1. if or_evap
-       IF (cable_user%L_REV_CORR) THEN
-          WHERE (ssnow%potev >= 0.)
-             ssnow%dfe_ddq = ssnow%dfe_ddq*ssnow%wetfac
-          ENDWHERE
-       ENDIF
-
-
-    ELSEIF (cable_user%litter) THEN
-       !!vh_js!! INH simplifying code for legibility and REV_CORR
-       !ssnow%dfh_dtg = air%rho*CCAPP/(ssnow%rtsoil+ &
-       !     real((1-ssnow%isflag))*veg%clitt*0.003/canopy%kthLitt/(air%rho*CCAPP))
-       !ssnow%dfe_ddq = ssnow%wetfac*air%rho*air%rlam*ssnow%cls/ &
-       !     (ssnow%rtsoil+ real((1-ssnow%isflag))*veg%clitt*0.003/canopy%DvLitt)
-
-       !recalculated - probably not needed
-       rhlitt = REAL((1-ssnow%isflag))*veg%clitt*0.003/canopy%kthLitt/(air%rho*CCAPP)
-       relitt = REAL((1-ssnow%isflag))*veg%clitt*0.003/canopy%DvLitt
-
-       !incorporates REV_CORR changes
-       ssnow%dfh_dtg = air%rho*CCAPP/(rttsoil+rhlitt)
-       ssnow%dfe_ddq = ssnow%wetfac*air%rho*air%rlam*ssnow%cls/(rttsoil+relitt)
-
-       !REV_CORR: factor ssnow%wetfac is not applied if dew/frost i.e. potev<0
-       IF (cable_user%L_REV_CORR) THEN
-          WHERE (ssnow%potev < 0.)
-             ssnow%dfe_ddq = air%rho*air%rlam*ssnow%cls/(rttsoil+relitt)
-          ENDWHERE
-       ENDIF
-
-    ELSE
-       !ssnow%dfh_dtg = air%rho*CCAPP/ssnow%rtsoil
-       !ssnow%dfe_ddq = ssnow%wetfac*air%rho*air%rlam*ssnow%cls/ssnow%rtsoil
-
-       !incorporates REV_CORR changes
-       ssnow%dfh_dtg = air%rho*CCAPP/rttsoil
-       ssnow%dfe_ddq = ssnow%wetfac*air%rho*air%rlam*ssnow%cls/rttsoil
-
-       !REV_CORR: factor ssnow%wetfac is not applied if dew/frost i.e. potev<0
-       IF (cable_user%L_REV_CORR) THEN
-          WHERE (ssnow%potev < 0.)
-             ssnow%dfe_ddq = air%rho*air%rlam*ssnow%cls/(rttsoil+relitt)
-          ENDWHERE
-       ENDIF
-
-    ENDIF
-
-    ssnow%ddq_dtg = (Crmh2o/Crmair) /met%pmb * CTETENA*CTETENB * CTETENC   &
-         / ( ( CTETENC + ssnow%tss-Ctfrz )**2 )*EXP( CTETENB *       &
-         ( ssnow%tss-Ctfrz ) / ( CTETENC + ssnow%tss-Ctfrz ) )
-
-    !canopy%dgdtg = ssnow%dfn_dtg - ssnow%dfh_dtg - ssnow%dfe_ddq *    &
-    !     ssnow%ddq_dtg
-
-    !INH: REV_CORR Rewritten for flexibility
-    ssnow%dfe_dtg = ssnow%dfe_ddq * ssnow%ddq_dtg
-    canopy%dgdtg = ssnow%dfn_dtg - ssnow%dfh_dtg - ssnow%dfe_dtg
+       !INH: REV_CORR Rewritten for flexibility
+       ssnow%dfe_dtg = ssnow%dfe_ddq * ssnow%ddq_dtg
+       canopy%dgdtg = ssnow%dfn_dtg - ssnow%dfh_dtg - ssnow%dfe_dtg
 
     !ENDIF
 
@@ -1112,7 +1116,7 @@ write(6,*) "SLI is not an option right now"
          ENDIF
       ENDDO
 
-      IF (cable_user%or_evap .OR. cable_user%gw_model) THEN
+      IF (cable_user%or_evap .or. cable_user%gw_model) then
 
 write(6,*) "GW or ORevepis not an option right now"
 !H!        IF (cable_user%or_evap) THEN
