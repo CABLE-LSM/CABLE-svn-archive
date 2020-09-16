@@ -1801,7 +1801,7 @@ CONTAINS
 
     REAL :: press
 
-    INTEGER, PARAMETER :: resolution = 200
+    INTEGER, PARAMETER :: resolution = 50
     REAL, DIMENSION(2) :: an_canopy
     REAL :: e_canopy
     REAL(r_2), DIMENSION(resolution) :: p
@@ -2455,8 +2455,23 @@ CONTAINS
 
 
           canopy%kplant(i) = avg_kplant
+
+
+          !if (canopy%psi_soil_prev(i) < -0.5) then
+            !  print*, avg_kplant , veg%Kmax(i), canopy%psi_soil_prev(i), Kcmax(1) , Kcmax(2)
+
+          !end if
           !print*, avg_kplant, Kcmax(1) + Kcmax(2), veg%Kmax(i), rad%fvlai(i,1), rad%fvlai(i,2)
+
+
           canopy%plc(i) = calc_plc(avg_kplant, veg%Kmax(i))
+
+          !IF (canopy%plc(i) >= 20.) THEN
+            !  print*, canopy%plc(i), avg_kplant, Kcmax(1) + Kcmax(2), Kcmax(1) , Kcmax(2), veg%Kmax(i)
+             ! print*,rad%fvlai(i,1), rad%fvlai(i,2), canopy%psi_soil_prev(i)
+              !print*, " "
+             !stop
+          !ENDIF
 
           ! We've reached the point of hydraulic failure, so hold the plc
           ! here for outputting purposes..
@@ -3159,7 +3174,7 @@ CONTAINS
       REAL, DIMENSION(N) :: Kc, e_leaf, cost, gain, profit, an_leaf
       REAL :: p_crit, lower, upper, Cs, apar
       REAL :: J_TO_MOL, MOL_TO_UMOL, gsw, gsc, an, Vcmax, Jmax, Rd, Vj, Km
-      REAL, DIMENSION(mf) :: e_leaves
+      REAL, DIMENSION(mf) :: e_leaves, p_leaves
       REAL :: Kplant, Rsrl, e_cuticular
       REAL, PARAMETER :: MMOL_2_MOL = 0.001
 
@@ -3207,12 +3222,18 @@ CONTAINS
 
          ! Convert total soil-to-root resistance from ...
          ! MPa s m2 (ground) mmol-1 H2O -> MPa s m2 (leaf) mmol-1 H2O
-         Rsrl = Rsr * lai_leaf(i,j)
+         IF (lai_leaf(i,j) > 0.0) THEN
+            Rsrl = Rsr * lai_leaf(i,j)
+         ELSE
+            Rsrl = Rsr
+         END IF
 
          ! Total soil–plant hydraulic conductance (combined assuming
          ! resistances are coupled in parallel)
          ! mmol m-2 MPa-1 leaf s-1
          Kplant = 1.0 / (1.0 / Kmax + Rsrl)
+         !Kplant = Kmax
+         !print*, j, 1.0/Rsrl, 1.0/Rsr, Rsrl, Rsr, lai_leaf(i,j), Kplant, psi_soil, 100.0 * (1.0 - Kplant / 1.5)
 
          ! CO2 concentration at the leaf surface, umol m-2 -s-1
          Cs = csx(i,j) * MOL_TO_UMOL
@@ -3283,10 +3304,12 @@ CONTAINS
             ! load into stores
             an_canopy(j) = an_leaf(idx) ! umol m-2 s-1
             e_leaves(j) = e_leaf(idx) ! mol H2O m-2 s-1
-            canopy%psi_leaf(i) = p(idx) ! MPa
-            canopy%psi_leaf_prev(i) = canopy%psi_leaf(i) ! MPa
-            canopy%psi_soil_prev(i) = psi_soil ! MPa
+            p_leaves(j) = p(idx)
 
+            if (canopy%psi_soil_prev(i) < -0.5) then
+                print*, "in", p(idx), apar
+
+            end if
 
          END IF
       END DO
@@ -3295,16 +3318,27 @@ CONTAINS
       ! If there was light, save transpiration, NB. cable doesn't save
       ! individual sunlit/shaded transpiration
       IF (apar > 50) THEN
+
+         canopy%psi_leaf(i) = sum(p_leaves) / 2.0 ! MPa
+         canopy%psi_leaf_prev(i) = canopy%psi_leaf(i) ! MPa
+         canopy%psi_soil_prev(i) = psi_soil ! MPa
+
+         if (canopy%psi_soil_prev(i) < -0.5) then
+             print*, "out", an_canopy(1), e_leaves(1), an_canopy(2), e_leaves(2), canopy%psi_leaf(i), p_leaves(1), p_leaves(2)
+             stop
+         end if
+
+
          e_canopy = sum(e_leaves) ! mol H2O m-2 s-1
 
-         !e_cuticular = (gmin * MMOL_2_MOL * lai_leaf(i,1)) + &
-         !              (gmin * MMOL_2_MOL * lai_leaf(i,2))
+         e_cuticular = ((gmin * MMOL_2_MOL * lai_leaf(i,1)) + &
+                        (gmin * MMOL_2_MOL * lai_leaf(i,2))) / press * vpd
 
-         !IF (e_canopy < e_cuticular) THEN
-         !   e_canopy = e_cuticular ! mol H2O m-2 s-1
-         !END IF
+         IF (e_canopy < e_cuticular) THEN
+            e_canopy = e_cuticular ! mol H2O m-2 s-1
+         END IF
       END IF
-
+      !print*, "a-psi_soil:", sum(an_canopy), sum(e_leaves), canopy%psi_leaf(i), canopy%psi_soil_prev(i)
 
 
    END SUBROUTINE optimisation
