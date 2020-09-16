@@ -1,14 +1,9 @@
 MODULE cable_albedo_module
 
-  USE cable_data_module, ONLY : ialbedo_type, point2constants
-
   IMPLICIT NONE
 
   PUBLIC albedo
   PRIVATE
-
-  TYPE(ialbedo_type) :: C
-
 
 CONTAINS
 
@@ -39,6 +34,8 @@ USE cbl_rhoch_module, ONLY : calc_rhoch
          soil_snow_type, r_2
 USE cbl_snow_albedo_module, ONLY : surface_albedosn
 USE cbl_rhoch_module, ONLY : calc_rhoch
+USE cable_other_constants_mod, ONLY : CLAI_THRESH => lai_thresh
+USE cable_other_constants_mod, ONLY : CRAD_THRESH => rad_thresh
 
 implicit none
     TYPE (canopy_type)    :: canopy
@@ -136,16 +133,6 @@ integer :: i
 
     ! END header
 
-    CALL point2constants(C)
-
-
-!    CALL surface_albedosn(ssnow, veg, met, soil)
-!Modify parametrised soil albedo based on snow coverage 
-!call surface_albedosn( AlbSnow, AlbSoil, mp, jls_radiation, surface_type, &
-!                       SnowDensity, &
-!                       SnowDepth, SnowODepth, SnowFlag_3L, &
-!                       SoilTemp, SnowAge, &
-!                       metTk, coszen )
 !
 !Modify parametrised soil albedo based on snow coverage 
 call surface_albedosn( ssnow%AlbSoilsn, soil%AlbSoil, mp, .FALSE., veg%iveg, &
@@ -164,8 +151,8 @@ call surface_albedosn( ssnow%AlbSoilsn, soil%AlbSoil, mp, .FALSE., veg%iveg, &
     rad%albedo = ssnow%albsoilsn
 
     ! Define vegetation mask:
-    mask = canopy%vlaiw > C%LAI_THRESH .AND.                                    &
-         ( met%fsd(:,1) + met%fsd(:,2) ) > C%RAD_THRESH
+    mask = canopy%vlaiw > CLAI_THRESH .AND.                                    &
+         ( met%fsd(:,1) + met%fsd(:,2) ) > CRAD_THRESH
 
 CALL calc_rhoch( c1,rhoch, mp, nrb, veg%taul, veg%refl )
 
@@ -205,7 +192,7 @@ CALL calc_rhoch( c1,rhoch, mp, nrb, veg%taul, veg%refl )
        END WHERE
 
        ! Define albedo:
-       WHERE( canopy%vlaiw> C%LAI_THRESH )                                      &
+       WHERE( canopy%vlaiw> CLAI_THRESH )                                      &
             rad%albedo(:,b) = ( 1. - rad%fbeam(:,b) )*rad%reffdf(:,b) +           &
             rad%fbeam(:,b) * rad%reffbm(:,b)
 
