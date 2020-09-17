@@ -56,8 +56,6 @@ integer:: surface_type(mp)
 ! local vars    
 REAL :: SoilAlbsoilf(mp) 
 
-!where (surface_type== 17)  soil%isoilm = 9
-
    SoilAlbsoilF = Albsoil(:,1)
 
    ! lakes: hard-wired number to be removed in future
@@ -93,8 +91,7 @@ REAL :: SoilAlbsoilf(mp)
 
       ! Snow age depends on snow crystal growth, freezing of melt water,
       ! accumulation of dirt and amount of new snow.
-       tmp = SnowFlag_3L * SnowTemp + ( 1 - SnowFlag_3L )            &
-            * SoilTemp
+      tmp = SnowFlag_3L * SnowTemp + ( 1 - SnowFlag_3L ) * SoilTemp
       tmp = MIN( tmp, CTFRZ )
       ar1 = 5000. * (1. / (CTFRZ-0.01) - 1. / tmp) ! crystal growth  (-ve)
       ar2 = 10. * ar1 ! freezing of melt water
