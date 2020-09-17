@@ -1801,7 +1801,7 @@ CONTAINS
 
     REAL :: press
 
-    INTEGER, PARAMETER :: resolution = 50
+    INTEGER, PARAMETER :: resolution = 300
     REAL, DIMENSION(2) :: an_canopy
     REAL :: e_canopy
     REAL(r_2), DIMENSION(resolution) :: p
@@ -3233,6 +3233,14 @@ CONTAINS
          ! mmol m-2 MPa-1 leaf s-1
          Kplant = 1.0 / (1.0 / Kmax + Rsrl)
          !Kplant = Kmax
+
+
+
+         !if (100.0 * (1.0 - Kplant / 1.5) > 20.) then
+         !   print*, Kplant, psi_soil, Rsr, Rsrl, 1.0 /Rsrl
+         !   stop
+         !end if
+
          !print*, j, 1.0/Rsrl, 1.0/Rsr, Rsrl, Rsr, lai_leaf(i,j), Kplant, psi_soil, 100.0 * (1.0 - Kplant / 1.5)
 
          ! CO2 concentration at the leaf surface, umol m-2 -s-1
@@ -3335,6 +3343,7 @@ CONTAINS
                         (gmin * MMOL_2_MOL * lai_leaf(i,2))) / press * vpd
 
          IF (e_canopy < e_cuticular) THEN
+            !print*, "here", e_canopy, e_cuticular
             e_canopy = e_cuticular ! mol H2O m-2 s-1
          END IF
       END IF
