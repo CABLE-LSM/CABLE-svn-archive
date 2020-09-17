@@ -139,7 +139,7 @@ call fsunlit_veg_mask( sunlit_veg_mask, mp )
     IF( cable_runtime%um ) THEN
 
        IF( cable_runtime%um_explicit ) THEN
-  call Albedo( ssnow, veg, met, rad, soil, canopy,                           &
+  call Albedo(   &
                ssnow%AlbSoilsn, soil%AlbSoil,                                &
                !AlbSnow, AlbSoil,                                             &     
                mp, nrb,                                                      &
@@ -172,7 +172,7 @@ call fsunlit_veg_mask( sunlit_veg_mask, mp )
        ENDIF
 
     ELSE
-      call Albedo( ssnow, veg, met, rad, soil, canopy,                           &
+      call Albedo(                   &
                ssnow%AlbSoilsn, soil%AlbSoil,                                &
                !AlbSnow, AlbSoil,                                             &     
                mp, nrb,                                                      &

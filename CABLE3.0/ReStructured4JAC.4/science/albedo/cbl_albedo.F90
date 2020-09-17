@@ -7,7 +7,7 @@ MODULE cable_albedo_module
 
 CONTAINS
 
-SUBROUTINE Albedo(ssnow, veg, met, rad, soil, canopy, &
+SUBROUTINE Albedo( &
 AlbSnow, AlbSoil,              & 
 mp, nrb,                                          &
 jls_radiation ,                                   &
@@ -29,22 +29,13 @@ EffSurfRefl_dif, EffSurfRefl_beam                 )
 !subrs called
 USE cbl_rhoch_module, ONLY : calc_rhoch
     USE cable_common_module
-    USE cable_def_types_mod, ONLY : veg_parameter_type, soil_parameter_type,    &
-         canopy_type, met_type, radiation_type,      &
-         soil_snow_type, r_2
+    USE cable_def_types_mod, ONLY : r_2
 USE cbl_snow_albedo_module, ONLY : surface_albedosn
 USE cbl_rhoch_module, ONLY : calc_rhoch
 USE cable_other_constants_mod, ONLY : CLAI_THRESH => lai_thresh
 USE cable_other_constants_mod, ONLY : CRAD_THRESH => rad_thresh
 
 implicit none
-    TYPE (canopy_type)    :: canopy
-    TYPE (met_type)       :: met
-    TYPE (radiation_type) :: rad
-    TYPE (soil_snow_type) :: ssnow
-
-    TYPE (veg_parameter_type) :: veg
-    TYPE(soil_parameter_type) :: soil
 
 !model dimensions
 integer :: mp                       !total number of "tiles"  
