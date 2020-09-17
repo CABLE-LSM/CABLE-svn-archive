@@ -36,7 +36,6 @@ SUBROUTINE radiation( ssnow, veg, air, met, rad, canopy, sunlit_veg_mask,&
          veg_parameter_type, soil_snow_type,         &
          air_type, mp, mf, r_2
 
-USE cable_other_constants_mod,  ONLY : Crad_thresh => rad_thresh
 IMPLICIT NONE
 logical :: sunlit_veg_mask(mp)
 !constants
@@ -68,10 +67,6 @@ real :: Ccapp
     INTEGER, SAVE :: call_number =0
 
     call_number = call_number + 1
-
-    ! Define vegetation mask:
-    sunlit_veg_mask = canopy%vlaiw > CLAI_THRESH .AND.                                    &
-         ( met%fsd(:,1)+met%fsd(:,2) ) > CRAD_THRESH
 
     ! Relative leaf nitrogen concentration within canopy:
     cf2n = EXP(-veg%extkn * canopy%vlaiw)
