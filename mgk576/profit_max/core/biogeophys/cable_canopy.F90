@@ -3231,8 +3231,8 @@ CONTAINS
          ! Total soil–plant hydraulic conductance (combined assuming
          ! resistances are coupled in parallel)
          ! mmol m-2 MPa-1 leaf s-1
-         Kplant = 1.0 / (1.0 / Kmax + Rsrl)
-         !Kplant = Kmax
+         !Kplant = 1.0 / (1.0 / Kmax + Rsrl)
+         Kplant = Kmax
 
 
 
