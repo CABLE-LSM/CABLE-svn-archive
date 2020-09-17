@@ -11,8 +11,8 @@ SUBROUTINE surface_albedosn( AlbSnow, AlbSoil, mp, jls_radiation, surface_type, 
                             SnowDepth, SnowODepth, SnowFlag_3L, SnowDensity, &
                             SoilTemp, SnowTemp, SnowAge, & 
                             metTk, coszen )
-  
-USE cable_common_module, ONLY : kwidth_gl, cable_user
+!H!jhan:Eliminate these USE data statements  
+USE cable_common_module, ONLY : kwidth_gl
 use cable_phys_constants_mod, ONLY : CTFRZ => TFRZ
 
 implicit none
@@ -182,13 +182,13 @@ REAL :: SoilAlbsoilf(mp)
    talb = .5 * (alv + alir) ! snow albedo
 
 ENDWHERE        ! snowd > 0
-
-    IF(cable_user%SOIL_STRUC=='sli') THEN
-       WHERE (SnowDepth.GT.1.0)
-          snrat = 1.0   ! using default parameterisation, albedo is too low,
-          ! inhibiting snowpack initiation
-       ENDWHERE
-    ENDIF
+!H!jhan:SLI currently not available
+    !H!IF(cable_user%SOIL_STRUC=='sli') THEN
+    !H!   WHERE (SnowDepth.GT.1.0)
+    !H!      snrat = 1.0   ! using default parameterisation, albedo is too low,
+    !H!      ! inhibiting snowpack initiation
+    !H!   ENDWHERE
+    !H!ENDIF
     AlbSnow(:,2) = MIN( aliro,                                          &
          ( 1. - snrat ) * AlbSnow(:,2) + snrat * alir)
 
