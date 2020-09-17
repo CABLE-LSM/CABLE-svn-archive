@@ -32,8 +32,6 @@ USE cbl_rhoch_module, ONLY : calc_rhoch
     USE cable_def_types_mod, ONLY : r_2
 USE cbl_snow_albedo_module, ONLY : surface_albedosn
 USE cbl_rhoch_module, ONLY : calc_rhoch
-USE cable_other_constants_mod, ONLY : CLAI_THRESH => lai_thresh
-USE cable_other_constants_mod, ONLY : CRAD_THRESH => rad_thresh
 
 implicit none
 
@@ -151,7 +149,7 @@ CALL calc_rhoch( c1,rhoch, mp, nrb, VegTaul, VegRefl )
        CanopyTransmit_dif(:,b) = EXP(-EffExtCoeff_dif(:,b) * reducedLAIdue2snow)
 
        !---Calculate effective diffuse reflectance (fraction):
-       WHERE( reducedLAIdue2snow > 1e-2 )                                             &
+       WHERE( veg_mask )                                             &
             EffSurfRefl_dif(:,b) = CanopyRefl_dif(:,b) + (AlbSnow(:,b)             &
             - CanopyRefl_dif(:,b)) * CanopyTransmit_dif(:,b)**2
 
@@ -176,7 +174,7 @@ CALL calc_rhoch( c1,rhoch, mp, nrb, VegTaul, VegRefl )
        END WHERE
 
        ! Define albedo:
-       WHERE( reducedLAIdue2snow> CLAI_THRESH )                                      &
+       WHERE( veg_mask )                                      &
             RadAlbedo(:,b) = ( 1. - RadFbeam(:,b) )*EffSurfRefl_dif(:,b) +           &
             RadFbeam(:,b) * EffSurfRefl_beam(:,b)
 
