@@ -140,9 +140,7 @@ CALL calc_rhoch( c1,rhoch, mp, nrb, veg%taul, veg%refl )
     ENDIF
 
     ! In gridcells where vegetation exists....
-
-    !!vh !! include RAD_THRESH in condition
-    WHERE (canopy%vlaiw > CLAI_THRESH .AND. met%coszen > 1.e-6 )
+    WHERE ( sunlit_veg_mask )
 
        ! SW beam extinction coefficient ("black" leaves, extinction neglects
        ! leaf SW transmittance and REFLectance):
