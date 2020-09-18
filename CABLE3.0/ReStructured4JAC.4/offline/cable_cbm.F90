@@ -112,12 +112,6 @@ REAL :: xk(mp,nrb)
 
     cable_user%soil_struc="default"
 
-!veg_mask =  canopy%vlaiw > .001
-call fveg_mask( veg_mask, mp, Clai_thresh, canopy%vlaiw )
-!call fsunlit_mask( sunlit_mask, mp, Ccoszen_tols, met%coszen )
-call fsunlit_mask( sunlit_mask, mp, Ccoszen_tols,( met%fsd(:,1)+met%fsd(:,2) ) )
-call fsunlit_veg_mask( sunlit_veg_mask, mp )
-
     IF( cable_runtime%um ) THEN
 
        cable_runtime%um_radiation = .FALSE.
@@ -134,7 +128,13 @@ call fsunlit_veg_mask( sunlit_veg_mask, mp )
        CALL ruff_resist(veg, rough, ssnow, canopy,veg%vlai, veg%hc, canopy%vlaiw )
     ENDIF
 
-    CALL init_radiation(met,rad,veg, canopy) ! need to be called at every dt
+!veg_mask =  canopy%vlaiw > .001
+call fveg_mask( veg_mask, mp, Clai_thresh, canopy%vlaiw )
+!call fsunlit_mask( sunlit_mask, mp, Ccoszen_tols, met%coszen )
+call fsunlit_mask( sunlit_mask, mp, Ccoszen_tols,( met%fsd(:,1)+met%fsd(:,2) ) )
+call fsunlit_veg_mask( sunlit_veg_mask, mp )
+
+    CALL init_radiation(met,rad,veg, canopy, veg_mask, sunlit_veg_mask) ! need to be called at every dt
 
     IF( cable_runtime%um ) THEN
 
