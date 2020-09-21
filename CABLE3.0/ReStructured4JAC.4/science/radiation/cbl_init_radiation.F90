@@ -114,6 +114,16 @@ logical :: sunlit_veg_mask(mp)
 
 CALL calc_rhoch( c1,rhoch, mp, nrb, veg%taul, veg%refl )
 
+    ! Canopy REFLection of diffuse radiation for black leaves:
+    DO ictr=1,nrb
+
+       rad%rhocdf(:,ictr) = rhoch(:,ictr) *  2. *                                &
+            ( CGAUSS_W(1) * xk(:,1) / ( xk(:,1) + rad%extkd(:) )&
+            + CGAUSS_W(2) * xk(:,2) / ( xk(:,2) + rad%extkd(:) )&
+            + CGAUSS_W(3) * xk(:,3) / ( xk(:,3) + rad%extkd(:) ) )
+
+    ENDDO
+
     IF( .NOT. cable_runtime%um) THEN
 
        ! Define beam fraction, fbeam:
