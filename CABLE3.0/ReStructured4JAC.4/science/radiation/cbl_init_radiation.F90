@@ -133,7 +133,7 @@ call Common_InitRad_Scalings( xphi1, xphi2, xk, xvlai2, c1, rhoch,             &
 Ccoszen_tols_huge = Ccoszen_tols * 1e2 
 Ccoszen_tols_tiny = Ccoszen_tols * 1e-2 
 
-CALL calc_rhoch( c1,rhoch, mp, nrb, VegTaul, VegRefl )
+!CALL calc_rhoch( c1,rhoch, mp, nrb, VegTaul, VegRefl )
 
 ! Define Raw extinction co-efficients for direct beam/diffuse radiation
 ! Largely parametrized per PFT. Does depend on zenith angle and effective LAI 
@@ -142,14 +142,6 @@ call ExtinctionCoeff( ExtCoeff_beam, ExtCoeff_dif, mp, nrb,                    &
                       CGauss_w,Ccoszen_tols_tiny, reducedLAIdue2snow,          &
                       sunlit_mask, veg_mask, sunlit_veg_mask,                  &
                       cLAI_thresh, coszen, xphi1, xphi2, xk, xvlai2)
-
-
-    ! In gridcells where vegetation exists....
-    WHERE( coszen < 1.e-6 )
-       ! higher value precludes sunlit leaves at night. affects
-       ! nighttime evaporation - Ticket #90
-       ExtCoeff_beam=1.0e5
-    END WHERE
 
     IF( .NOT. cable_runtime%um) THEN
 
