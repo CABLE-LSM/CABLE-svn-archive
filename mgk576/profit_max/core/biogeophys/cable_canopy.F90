@@ -1801,7 +1801,7 @@ CONTAINS
 
     REAL :: press
 
-    INTEGER, PARAMETER :: resolution = 300
+    INTEGER, PARAMETER :: resolution = 200
     REAL, DIMENSION(2) :: an_canopy
     REAL :: e_canopy
     REAL(r_2), DIMENSION(resolution) :: p
@@ -3369,7 +3369,7 @@ CONTAINS
       REAL, INTENT(IN) :: tleaf, par, Vcmax, Jmax, Rd, Vj, Km
       REAL, INTENT(INOUT) :: An_new, gsc
       REAL :: min_ci, max_ci, An, ci_new, gsc_new, Cs, Ac, Aj, A, gamma_star
-      REAL, PARAMETER :: tol = 1E-04 !1E-12
+      REAL, PARAMETER :: tol = 1E-07 !1E-12
 
       INTEGER :: iter
 
@@ -3395,29 +3395,35 @@ CONTAINS
          gsc_new = An / (Cs - ci_new) ! mol m-2 s-1
 
          ! Have we found a matching gsc?
+         !print*, "if", ci_new, max_ci, min_ci, abs(gsc_new - gsc) / gsc, tol
          IF (abs(gsc_new - gsc) / gsc < tol) THEN
             An_new = An ! umol m-2 s-1
             EXIT
          ! narrow search space, shift min up
+         !print*, "else if", gsc_new, gsc
          ELSE IF (gsc_new < gsc) THEN
             min_ci = ci_new ! umol mol-1
             IF (ci_new < 0.0) THEN
                min_ci = 0.0 ! umol m-2 s-1
             END IF
          ! narrow search space, shift max down
+         !print*, "else", ci_new
          ELSE
             max_ci = ci_new ! umol mol-1
          END IF
 
-         IF (abs(max_ci - min_ci) < tol) THEN
+         
+         IF (abs(max_ci - min_ci) < 1E-04) THEN
             An_new = An ! umol m-2 s-1
             EXIT
          END IF
 
          iter = iter + 1
          IF (iter > 10000) THEN
-            print*, "stuck"
-            STOP
+            An_new = An
+            EXIT
+            !print*, "stuck"
+            !STOP
          END IF
       END DO
 
