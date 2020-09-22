@@ -143,21 +143,14 @@ call ExtinctionCoeff( ExtCoeff_beam, ExtCoeff_dif, mp, nrb,                    &
                       sunlit_mask, veg_mask, sunlit_veg_mask,                  &
                       cLAI_thresh, coszen, xphi1, xphi2, xk, xvlai2)
 
-    IF( .NOT. cable_runtime%um) THEN
-
-       ! Define beam fraction, fbeam:
-       RadFbeam(:,1) = spitter(mp, cpi, MetDoy, coszen, SW_down(:,1))
-       RadFbeam(:,2) = spitter(mp, cpi, MetDoy, coszen, SW_down(:,2))
-
-       ! coszen is set during met data read in.
-
-       WHERE (coszen <1.0e-2)
-          RadFbeam(:,1) = 0.0
-          RadFbeam(:,2) = 0.0
-       END WHERE
-
+! Offline/standalone forcing gives us total downward Shortwave. We have
+! previosuly, arbitratily split this into NIR/VIS (50/50). We use 
+! Spitter function to split these bands into direct beam and diffuse components
+!IF( cbl_standalone .OR. jls_standalone .AND. .NOT. jls_radiation ) &
+IF( .NOT. cable_runtime%um) THEN
+  CALL BeamFraction( RadFbeam, mp, nrb, Cpi, Ccoszen_tols_huge, metDoy,  &
+                     coszen, SW_down ) 
     ENDIF
-
 
   END SUBROUTINE init_radiation
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -352,6 +345,64 @@ End subroutine ExtinctionCoeff_dif
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+! modified k diffuse(6.20)(for leaf scattering)
+subroutine EffectiveExtinctCoeff(Eff_ExtCoeff, mp, ExtCoeff, c1, mask )
+implicit none
+integer :: mp 
+real :: Eff_ExtCoeff(mp,2) 
+real :: ExtCoeff(mp) 
+real :: c1(mp,2) 
+logical, optional :: mask(mp) 
+integer :: i, b
+
+DO i = 1,mp
+  DO b = 1, 2
+    !IF mask is present we are doing the beam component then: 
+    if( present(mask)) then 
+      !then ONLY IF it is sunlit and vegetated -else default 
+      if( mask(i) ) Eff_ExtCoeff(i,b) = ExtCoeff(i) * c1(i,b)
+    else         
+      Eff_ExtCoeff(i,b) = ExtCoeff(i) * c1(i,b)          
+    endif
+
+  enddo
+enddo
+
+End subroutine EffectiveExtinctCoeff
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+subroutine BeamFraction( RadFbeam, mp, nrb, Cpi,Ccoszen_tols_huge, metDoy, &
+coszen, SW_down ) 
+USE cbl_spitter_module, ONLY : Spitter
+
+integer :: mp                   !total number of "tiles"  
+integer :: nrb                  !number of radiation bands [per legacy=3, but really=2 VIS,NIR. 3rd dim was for LW]
+REAL :: RadFbeam(mp,nrb)        !Beam Fraction of Downward SW radiation [formerly rad%fbeam]
+
+real :: Cpi !PI - from cable_math_constants originally
+real :: Ccoszen_tols_huge !PI - from cable_math_constants originally
+
+integer:: metDoY(mp)          !Day of the Year [formerly met%doy]
+real :: coszen(mp)          !Day of the Year [formerly met%doy]
+REAL :: SW_down(mp,nrb)     !Downward SW radiation [formerly met%fsd]
+
+
+! Define beam fraction, fbeam:
+RadFbeam(:,1) = spitter(mp, cpi, metDoy, coszen, SW_down(:,1))
+RadfBeam(:,2) = spitter(mp, cpi, metDoy, coszen, SW_down(:,2))
+
+! coszen is set during met data read in.
+WHERE (coszen < Ccoszen_tols_huge )
+  RadFbeam(:,1) = 0.0
+  RadFbeam(:,2) = 0.0
+END WHERE
+
+End subroutine BeamFraction
+
+
+
 
 
 
