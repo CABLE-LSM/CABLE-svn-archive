@@ -120,7 +120,7 @@ integer :: i
 
 CanopyTransmit_dif(:,:) = 0.0
 CanopyTransmit_beam(:,:) = 0.0
-!CanopyRefl_dif(:,:) = 0.0
+CanopyRefl_dif(:,:) = 0.0
 CanopyRefl_beam(:,:) = 0.0
 AlbSnow(:,:) = 0.0
 
@@ -130,13 +130,10 @@ call surface_albedosn( AlbSnow, AlbSoil, mp, jls_radiation, surface_type, &
                        SnowDensity, SoilTemp, SnowTemp, SnowAge,                     & 
                        MetTk, Coszen )
 
-
-    ! Initialise effective conopy beam reflectance:
-    EffSurfRefl_beam = AlbSnow
-    EffSurfRefl_dif = AlbSnow
-    RadAlbedo = AlbSnow
-
-CALL calc_rhoch( c1,rhoch, mp, nrb, VegTaul, VegRefl )
+! Initialise effective conopy beam reflectance:
+EffSurfRefl_beam = AlbSnow
+EffSurfRefl_dif = AlbSnow
+RadAlbedo = AlbSnow
 
     ! Update extinction coefficients and fractional transmittance for
     ! leaf transmittance and reflection (ie. NOT black leaves):
@@ -145,35 +142,43 @@ CALL calc_rhoch( c1,rhoch, mp, nrb, VegTaul, VegRefl )
        EffExtCoeff_dif(:,b) = ExtCoeff_dif * c1(:,b)
     END DO
 
-    DO b = 1, 2
-       !--Define canopy diffuse transmittance (fraction):
-       CanopyTransmit_dif(:,b) = EXP(-EffExtCoeff_dif(:,b) * reducedLAIdue2snow)
-    END DO
 
-    ! Canopy REFLection of diffuse radiation for black leaves:
-    DO b=1,2
-
-       CanopyRefl_dif(:,b) = rhoch(:,b) *  2. *                                &
-            ( CGAUSS_W(1) * xk(:,1) / ( xk(:,1) + ExtCoeff_dif(:) )&
-            + CGAUSS_W(2) * xk(:,2) / ( xk(:,2) + ExtCoeff_dif(:) )&
-            + CGAUSS_W(3) * xk(:,3) / ( xk(:,3) + ExtCoeff_dif(:) ) )
-
-    ENDDO
-
-
-    DO b = 1, 2
-       !---Calculate effective diffuse reflectance (fraction):
-       WHERE( veg_mask )                                             &
-            EffSurfRefl_dif(:,b) = CanopyRefl_dif(:,b) + (AlbSnow(:,b)             &
-            - CanopyRefl_dif(:,b)) * CanopyTransmit_dif(:,b)**2
-
-    END DO
+!    ! Canopy REFLection of diffuse radiation for black leaves:
+!    DO b=1,2
+!
+!       CanopyRefl_dif(:,b) = rhoch(:,b) *  2. *                                &
+!            ( CGAUSS_W(1) * xk(:,1) / ( xk(:,1) + ExtCoeff_dif(:) )&
+!            + CGAUSS_W(2) * xk(:,2) / ( xk(:,2) + ExtCoeff_dif(:) )&
+!            + CGAUSS_W(3) * xk(:,3) / ( xk(:,3) + ExtCoeff_dif(:) ) )
+!
+!    ENDDO
 
     DO b = 1, 2
          !---where vegetated and sunlit
        WHERE (sunlit_veg_mask)
           EffExtCoeff_beam(:,b) = ExtCoeff_beam * c1(:,b)
        END WHERE
+    END DO
+
+
+! Define canopy Reflectance for diffuse/direct radiation
+! Formerly rad%rhocbm, rad%rhocdf
+call CanopyReflectance( CanopyRefl_beam, CanopyRefl_dif, &
+                        mp, nrb, CGauss_w, sunlit_veg_mask, &
+                        AlbSnow, xk, rhoch,                  &
+                        ExtCoeff_beam, ExtCoeff_dif)
+
+
+    DO b = 1, 2
+       !--Define canopy diffuse transmittance (fraction):
+       CanopyTransmit_dif(:,b) = EXP(-EffExtCoeff_dif(:,b) * reducedLAIdue2snow)
+    END DO
+    DO b = 1, 2
+       !---Calculate effective diffuse reflectance (fraction):
+       WHERE( veg_mask )                                             &
+            EffSurfRefl_dif(:,b) = CanopyRefl_dif(:,b) + (AlbSnow(:,b)             &
+            - CanopyRefl_dif(:,b)) * CanopyTransmit_dif(:,b)**2
+
     END DO
 
     DO b = 1, 2
