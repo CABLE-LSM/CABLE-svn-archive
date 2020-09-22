@@ -1801,7 +1801,7 @@ CONTAINS
 
     REAL :: press
 
-    INTEGER, PARAMETER :: resolution = 200
+    INTEGER, PARAMETER :: resolution = 500
     REAL, DIMENSION(2) :: an_canopy
     REAL :: e_canopy
     REAL(r_2), DIMENSION(resolution) :: p
@@ -3252,6 +3252,7 @@ CONTAINS
          ! max rate of rubisco activity, scaled up to sunlit/shaded canopy
          Vcmax = vcmxt3(i,j) * MOL_TO_UMOL
 
+
          ! potential rate of electron transport, scaled up to sun/shade canopy
          Jmax = ejmxt3(i,j) * MOL_TO_UMOL
 
@@ -3331,10 +3332,10 @@ CONTAINS
          canopy%psi_leaf_prev(i) = canopy%psi_leaf(i) ! MPa
          canopy%psi_soil_prev(i) = psi_soil ! MPa
 
-         if (canopy%psi_soil_prev(i) < -0.5) then
-             print*, "out", an_canopy(1), e_leaves(1), an_canopy(2), e_leaves(2), canopy%psi_leaf(i), p_leaves(1), p_leaves(2)
-             stop
-         end if
+         !if (canopy%psi_soil_prev(i) < -0.5) then
+         !    print*, "out", an_canopy(1), e_leaves(1), an_canopy(2), e_leaves(2), canopy%psi_leaf(i), p_leaves(1), p_leaves(2)
+         !    stop
+         !end if
 
 
          e_canopy = sum(e_leaves) ! mol H2O m-2 s-1
