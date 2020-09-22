@@ -142,17 +142,6 @@ RadAlbedo = AlbSnow
        EffExtCoeff_dif(:,b) = ExtCoeff_dif * c1(:,b)
     END DO
 
-
-!    ! Canopy REFLection of diffuse radiation for black leaves:
-!    DO b=1,2
-!
-!       CanopyRefl_dif(:,b) = rhoch(:,b) *  2. *                                &
-!            ( CGAUSS_W(1) * xk(:,1) / ( xk(:,1) + ExtCoeff_dif(:) )&
-!            + CGAUSS_W(2) * xk(:,2) / ( xk(:,2) + ExtCoeff_dif(:) )&
-!            + CGAUSS_W(3) * xk(:,3) / ( xk(:,3) + ExtCoeff_dif(:) ) )
-!
-!    ENDDO
-
     DO b = 1, 2
          !---where vegetated and sunlit
        WHERE (sunlit_veg_mask)
@@ -160,14 +149,12 @@ RadAlbedo = AlbSnow
        END WHERE
     END DO
 
-
 ! Define canopy Reflectance for diffuse/direct radiation
 ! Formerly rad%rhocbm, rad%rhocdf
 call CanopyReflectance( CanopyRefl_beam, CanopyRefl_dif, &
                         mp, nrb, CGauss_w, sunlit_veg_mask, &
                         AlbSnow, xk, rhoch,                  &
                         ExtCoeff_beam, ExtCoeff_dif)
-
 
     DO b = 1, 2
        !--Define canopy diffuse transmittance (fraction):
@@ -178,16 +165,6 @@ call CanopyReflectance( CanopyRefl_beam, CanopyRefl_dif, &
        WHERE( veg_mask )                                             &
             EffSurfRefl_dif(:,b) = CanopyRefl_dif(:,b) + (AlbSnow(:,b)             &
             - CanopyRefl_dif(:,b)) * CanopyTransmit_dif(:,b)**2
-
-    END DO
-
-    DO b = 1, 2
-       !---where vegetated and sunlit
-       WHERE (sunlit_veg_mask)
-          ! Canopy reflection (6.21) beam:
-          CanopyRefl_beam(:,b) = 2. * ExtCoeff_beam / ( ExtCoeff_beam + ExtCoeff_dif )          &
-               * rhoch(:,b)
-       END WHERE
     END DO
 
     ! Canopy beam transmittance (fraction):
@@ -202,11 +179,9 @@ call CanopyReflectance( CanopyRefl_beam, CanopyRefl_dif, &
     DO b = 1, 2
        !---where vegetated and sunlit
        WHERE (sunlit_veg_mask)
-
           ! Calculate effective beam reflectance (fraction):
           EffSurfRefl_beam(:,b) = CanopyRefl_beam(:,b) + (AlbSnow(:,b)             &
                - CanopyRefl_beam(:,b))*CanopyTransmit_beam(:,b)**2
-
        END WHERE
     END DO
  

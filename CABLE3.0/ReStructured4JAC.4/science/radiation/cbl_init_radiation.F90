@@ -144,23 +144,7 @@ Ccoszen_tols_tiny = Ccoszen_tols * 1e-2
        ExtCoeff_dif = 0.7
     END WHERE
 
-
 CALL calc_rhoch( c1,rhoch, mp, nrb, VegTaul, VegRefl )
-
-    IF( .NOT. cable_runtime%um) THEN
-
-       ! Define beam fraction, fbeam:
-       RadFbeam(:,1) = spitter(mp, cpi, MetDoy, coszen, SW_down(:,1))
-       RadFbeam(:,2) = spitter(mp, cpi, MetDoy, coszen, SW_down(:,2))
-
-       ! coszen is set during met data read in.
-
-       WHERE (coszen <1.0e-2)
-          RadFbeam(:,1) = 0.0
-          RadFbeam(:,2) = 0.0
-       END WHERE
-
-    ENDIF
 
     ! In gridcells where vegetation exists....
     WHERE ( sunlit_veg_mask )
@@ -182,6 +166,22 @@ CALL calc_rhoch( c1,rhoch, mp, nrb, VegTaul, VegRefl )
        ! nighttime evaporation - Ticket #90
        ExtCoeff_beam=1.0e5
     END WHERE
+
+    IF( .NOT. cable_runtime%um) THEN
+
+       ! Define beam fraction, fbeam:
+       RadFbeam(:,1) = spitter(mp, cpi, MetDoy, coszen, SW_down(:,1))
+       RadFbeam(:,2) = spitter(mp, cpi, MetDoy, coszen, SW_down(:,2))
+
+       ! coszen is set during met data read in.
+
+       WHERE (coszen <1.0e-2)
+          RadFbeam(:,1) = 0.0
+          RadFbeam(:,2) = 0.0
+       END WHERE
+
+    ENDIF
+
 
   END SUBROUTINE init_radiation
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
