@@ -2458,10 +2458,6 @@ SUBROUTINE master_cable_params(comm, met, air, ssnow, veg, bgc, soil, canopy, ro
      blen(bidx) = r1len
 
      bidx = bidx + 1
-     CALL MPI_Get_address (veg%vcmaxx(off), displs(bidx), ierr)
-     blen(bidx) = r1len
-
-     bidx = bidx + 1
      CALL MPI_Get_address (veg%vcmax_sun(off), displs(bidx), ierr)
      blen(bidx) = r1len
 

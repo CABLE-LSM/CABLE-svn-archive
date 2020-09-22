@@ -42,7 +42,7 @@ MODULE cable_mpicommon
   ! Matthias Cuntz: add 9 canopy params for 13C -> 320
   ! Paul Ryan: add 1 soil params for SLI -> 321
   ! JK: added 11 veg params -> 332
-  INTEGER, PARAMETER :: nparam = 332
+  INTEGER, PARAMETER :: nparam = 331
   ! MPI: extra params sent only if nsoilparmnew is true
   INTEGER, PARAMETER :: nsoilnew = 1
 

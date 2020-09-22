@@ -2042,7 +2042,7 @@ CONTAINS
        ENDDO !i=1,mp
 
        !if (cable_user%explicit_gm) then
-       ! gmes is 0.0 if explicit_gm = FALSE (easier to debug)
+       ! gmes is 0.0 if explicit_gm = FALSE (easier to debug)       
        CALL photosynthesis_gm( csx(:,:), &
             spread(cx1(:),2,mf), &
             spread(cx2(:),2,mf), &
@@ -2522,14 +2522,14 @@ CONTAINS
                          call fAmdAm_c3(cs, 0.0_r_2, X*cs, gamma, beta, gammast, Rd, &
                               gm, Am, dAmc(i,j))
                          if (g0 .gt. Am*X) then ! repeat calculation if g0 > A*X
-                            call fAmdAm_c3(cs, g0, 0.0_r_2, gamma, beta, gammast, Rd, &
+                            call fAmdAm_c3(cs, g0, 0.1e-4_r_2, gamma, beta, gammast, Rd, &
                                  gm, Am, dAmc(i,j))
                          endif   
                       else
                          call fAndAn_c3(cs, 0.0_r_2, X*cs, gamma, beta, gammast, Rd, &
                               Am, dAmc(i,j))
                          if (g0 .gt. Am*X) then ! repeat calculation if g0 > A*X
-                            call fAndAn_c3(cs, g0, 0.0_r_2, gamma, beta, gammast, Rd, &
+                            call fAndAn_c3(cs, g0, 0.1e-4_r_2, gamma, beta, gammast, Rd, &
                               Am, dAmc(i,j))
                          endif 
                       endif
@@ -2576,7 +2576,7 @@ CONTAINS
                               gm, Am, dAme(i,j))
                          ! repeat calculation if g0 > A*X
                          if (g0 .gt. Am*X) then
-                            call fAmdAm_c3(cs, g0, 0.0_r_2, gamma, beta, gammast, Rd, &
+                            call fAmdAm_c3(cs, g0, 0.1e-4_r_2, gamma, beta, gammast, Rd, &
                                  gm, Am, dAme(i,j))
                          endif
                       else
@@ -2584,7 +2584,7 @@ CONTAINS
                               Am, dAme(i,j))
                          ! repeat calculation if g0 > A*X
                          if (g0 .gt. Am*X) then
-                            call fAndAn_c3(cs, g0, 0.0_r_2, gamma, beta, gammast, Rd, &
+                            call fAndAn_c3(cs, g0, 0.1e-4_r_2, gamma, beta, gammast, Rd, &
                                  Am, dAme(i,j))
                          endif
                       endif   
@@ -2635,14 +2635,14 @@ CONTAINS
                          call fAmdAm_c4(cs, 0.0_r_2, X*cs, gamma, beta, gammast, Rd, gm, &
                               Am, dAmp(i,j))
                          if (g0 .gt. Am*X) then
-                            call fAmdAm_c4(cs, g0, 0.0_r_2, gamma, beta, gammast, Rd, gm, &
+                            call fAmdAm_c4(cs, g0, 0.1e-4_r_2, gamma, beta, gammast, Rd, gm, &
                                  Am, dAmp(i,j))
                          endif
                       else
                          call fAndAn_c4(cs, 0.0_r_2, X*cs, gamma, beta, gammast, Rd, &
                               Am, dAmp(i,j))
                          if (g0 .gt. Am*X) then
-                            call fAndAn_c4(cs, g0, 0.0_r_2, gamma, beta, gammast, Rd, &
+                            call fAndAn_c4(cs, g0, 0.1e-4_r_2, gamma, beta, gammast, Rd, &
                                  Am, dAmp(i,j))
                          endif  
                       endif
@@ -2675,6 +2675,7 @@ CONTAINS
              dA(i,j)   = dtmp3(ii(1))
              dtmp3     = (/ eta_c(i,j), eta_e(i,j), eta_p(i,j) /)
              eta(i,j)  = dtmp3(ii(1))
+
           else ! vlaiz(i,j) .gt. C%lai_thresh
 
              anxz(i,:)       = 0.0

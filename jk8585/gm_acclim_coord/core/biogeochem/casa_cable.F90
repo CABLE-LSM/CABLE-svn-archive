@@ -741,6 +741,7 @@ contains
     data xnslope/0.80,1.00,2.00,1.00,1.00,1.00,0.50,1.00,0.34,1.00,1.00,1.00,1.00,1.00,1.00,1.00,1.00/
     real                :: relcostJCi
     real, dimension(mp) :: relcostJ, Nefftmp
+    real, save, dimension(17) :: vcmaxx         ! last updated vcmaxx 
     real, save, dimension(17) :: vcmax_ref      ! vcmax25 at gmmax25
     data vcmax_ref/35.9e-6,47.6e-6,35.9e-6,71.1e-6,39.4e-6,64.3e-6,50.0e-6,32.8e-6,17.2e-6,50.0e-6,50.0e-6,50.0e-6,50.0e-6,50.0e-6,50.0e-6,50.0e-6,50.0e-6/
     real, dimension(mp) :: bjvci          ! Ci-based Jmax/Vcmax ratio
@@ -836,13 +837,13 @@ contains
              veg%gm(np) = veg%gmmax(np) + &
                   gm_vcmax_slope * (veg%vcmax(np) - vcmax_ref(ivt))
              
-write(86,*) "veg%gm:", veg%gm
-write(86,*) "veg%gmmax:", veg%gmmax
-write(86,*) "vcmax_ref(ivt):", vcmax_ref(ivt)
-write(86,*) "veg%vcmax:", veg%vcmax
-write(86,*) "casabiome%sla:", casabiome%sla
-write(86,*) "casabiome%ratioNCplantmin(:,leaf)", casabiome%ratioNCplantmin(:,leaf)
-write(86,*) "nleafx(np):", nleafx(np)
+!write(86,*) "veg%gm:", veg%gm
+!write(86,*) "veg%gmmax:", veg%gmmax
+!write(86,*) "vcmax_ref(ivt):", vcmax_ref(ivt)
+!write(86,*) "veg%vcmax:", veg%vcmax
+!write(86,*) "casabiome%sla:", casabiome%sla
+!write(86,*) "casabiome%ratioNCplantmin(:,leaf)", casabiome%ratioNCplantmin(:,leaf)
+!write(86,*) "nleafx(np):", nleafx(np)
 
              !if (.not. veg%is_read_gmLUT) then  ! not working
              !if (ABS(vcmaxx(np) - veg%vcmax(np)) .GT. 1.0E-08 .OR. ktau==1) then
@@ -854,8 +855,8 @@ write(86,*) "nleafx(np):", nleafx(np)
              if (len(trim(cable_user%gm_LUT_file)) .gt. 1) then
                 call find_Vcmax_Jmax_LUT(veg,np,LUT_VcmaxJmax,LUT_gm,LUT_vcmax,LUT_Rd)  
              else  ! no LUT, adjustment using An-Ci curves
-                if ( ABS(veg%vcmaxx(np) - veg%vcmax(np)) .GT. 5.0E-08 .OR. ktau .LT. ktauday ) then
-                     veg%vcmaxx(np) = veg%vcmax(np)
+                if ( ABS(vcmaxx(ivt) - veg%vcmax(np)) .GT. 5.0E-08 .OR. ktau .LT. ktauday ) then
+                     vcmaxx(ivt) = veg%vcmax(np)
                    ! The approach by Sun et al. 2014 is replaced with a subroutine
                    ! based on Knauer et al. 2019, GCB
                    call adjust_JV_gm(veg,np)

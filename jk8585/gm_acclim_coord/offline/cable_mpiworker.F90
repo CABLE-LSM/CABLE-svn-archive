@@ -155,6 +155,9 @@ CONTAINS
     USE BLAZE_MOD,            ONLY: TYPE_BLAZE, BLAZE_ACCOUNTING, INI_BLAZE
     USE BLAZE_MPI,            ONLY: WORKER_BLAZE_TYPES ! , WORKER_SIMFIRE_TYPES
     USE SIMFIRE_MOD,          ONLY: TYPE_SIMFIRE, INI_SIMFIRE
+
+    ! gm
+    USE cable_adjust_JV_gm_module, ONLY: read_gm_LUT, LUT_VcmaxJmax, LUT_gm, LUT_Vcmax, LUT_Rd
     
     ! 13C
     use cable_c13o2_def,         only: c13o2_flux, c13o2_pool, c13o2_luc ! , &
@@ -395,6 +398,11 @@ CONTAINS
        call MPI_Abort(comm, 53, ierr)
     endif
 
+    ! gm lookup table
+    if (cable_user%explicit_gm .and. len(trim(cable_user%gm_LUT_file)) .gt. 1) then
+      write(*,*) 'Reading gm LUT file'
+      call read_gm_LUT(cable_user%gm_LUT_file,LUT_VcmaxJmax,LUT_gm,LUT_Vcmax,LUT_Rd)
+    endif
     ! Open log file:
     ! MPI: worker logs go to the black hole
     ! by opening the file we don't need to touch any of the code that writes
@@ -1543,10 +1551,6 @@ CONTAINS
 
     bidx = bidx + 1
     CALL MPI_Get_address (veg%vcmax, displs(bidx), ierr)
-    blen(bidx) = r1len
-
-    bidx = bidx + 1
-    CALL MPI_Get_address (veg%vcmaxx, displs(bidx), ierr)
     blen(bidx) = r1len
 
     bidx = bidx + 1

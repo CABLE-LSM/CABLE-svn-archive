@@ -372,7 +372,7 @@ CONTAINS
                 CALL fpq(a, b, c1, d, p, q)
                 CALL fAm_c3(a, b, c1, d, p, q, Anc)
                 if (g0(k)*fwsoil(k)**qs .gt. Anc*x/cs(k)) then
-                   CALL fabcd(cs(k), g0(k)*fwsoil(k)**qs, 0.0, gamm, beta, gammastar, Rd, gm, a, b, c1, d)
+                   CALL fabcd(cs(k), g0(k)*fwsoil(k)**qs, 0.1e-4, gamm, beta, gammastar, Rd, gm, a, b, c1, d)
                    CALL fpq(a, b, c1, d, p, q)
                    CALL fAm_c3(a, b, c1, d, p, q, Anc)
                 endif
@@ -385,7 +385,7 @@ CONTAINS
                 CALL fabc(cs(k), 0.0, x, gamm, beta, gammastar, Rd, a, b, c1)
                 CALL fAn_c3(a, b, c1, Anc) ! rubisco-limited
                 if (g0(k)*fwsoil(k)**qs .gt. Anc*x/cs(k)) then
-                   CALL fabc(cs(k), g0(k)*fwsoil(k)**qs, 0.0, gamm, beta, gammastar, Rd, a, b, c1)
+                   CALL fabc(cs(k), g0(k)*fwsoil(k)**qs, 0.1e-4, gamm, beta, gammastar, Rd, a, b, c1)
                    CALL fAn_c3(a, b, c1, Anc) ! rubisco-limited
                 endif
              endif
@@ -410,7 +410,7 @@ CONTAINS
                 CALL fpq(a, b, c1, d, p, q)
                 CALL fAm_c3(a, b, c1, d, p, q, Ane)
                 if (g0(k)*fwsoil(k)**qs .gt. Ane*x/cs(k)) then
-                   CALL fabcd(cs(k), g0(k)*fwsoil(k)**qs, 0.0, gamm, beta, gammastar, Rd, gm, a, b, c1, d)
+                   CALL fabcd(cs(k), g0(k)*fwsoil(k)**qs, 0.1e-4, gamm, beta, gammastar, Rd, gm, a, b, c1, d)
                    CALL fpq(a, b, c1, d, p, q)
                    CALL fAm_c3(a, b, c1, d, p, q, Ane)
                 endif
@@ -423,7 +423,7 @@ CONTAINS
                 CALL fabc(cs(k), 0.0, x, gamm, beta, gammastar, Rd, a, b, c1)
                 CALL fAn_c3(a,b,c1,Ane) ! e-transport limited
                 if (g0(k)*fwsoil(k)**qs .gt. Ane*x/cs(k)) then
-                   CALL fabc(cs(k), g0(k)*fwsoil(k)**qs, 0.0, gamm, beta, gammastar, Rd, a, b, c1)
+                   CALL fabc(cs(k), g0(k)*fwsoil(k)**qs, 0.1e-4, gamm, beta, gammastar, Rd, a, b, c1)
                    CALL fAn_c3(a, b, c1, Ane) ! e-transport limited
                 endif
              endif
@@ -509,7 +509,7 @@ CONTAINS
                 CALL fpq(a,b,c1,d,p,q)
                 CALL fAm_c3(a,b,c1,d,p,q,Anc)
                 if (g0(k)*fwsoil(k)**qs .gt. Anc*x/cs(k)) then
-                   CALL fabcd(cs(k),g0(k)*fwsoil(k)**qs, 0.0, gamm, beta, gammastar, Rd, gm, a, b, c1, d)
+                   CALL fabcd(cs(k),g0(k)*fwsoil(k)**qs, 0.1e-4, gamm, beta, gammastar, Rd, gm, a, b, c1, d)
                    CALL fpq(a,b,c1,d,p,q)
                    CALL fAm_c3(a,b,c1,d,p,q,Anc)
                 endif
@@ -522,7 +522,7 @@ CONTAINS
                 CALL fabc(cs(k),0.0, x, gamm, beta, gammastar, Rd, a, b, c1)
                 CALL fAn_c3(a,b,c1,Anc) ! rubisco-limited     
                 if (g0(k)*fwsoil(k)**qs .gt. Anc*x/cs(k)) then
-                   CALL fabc(cs(k), g0(k)*fwsoil(k)**qs, 0.0, gamm, beta, gammastar, Rd, a, b, c1)
+                   CALL fabc(cs(k), g0(k)*fwsoil(k)**qs, 0.1e-4, gamm, beta, gammastar, Rd, a, b, c1)
                    CALL fAn_c3(a,b,c1,Anc) ! rubisco-limited
                 endif
              endif
@@ -547,7 +547,7 @@ CONTAINS
                 CALL fpq(a,b,c1,d,p,q)
                 CALL fAm_c3(a,b,c1,d,p,q,Ane)
                 if (g0(k)*fwsoil(k)**qs .gt. Ane*x/cs(k)) then
-                   CALL fabcd(cs(k),g0(k)*fwsoil(k)**qs, 0.0, gamm, beta, gammastar, Rd, gm, a, b, c1, d)
+                   CALL fabcd(cs(k),g0(k)*fwsoil(k)**qs, 0.1e-4, gamm, beta, gammastar, Rd, gm, a, b, c1, d)
                    CALL fpq(a,b,c1,d,p,q)
                    CALL fAm_c3(a,b,c1,d,p,q,Ane)
                 endif
@@ -560,7 +560,7 @@ CONTAINS
                 CALL fabc(cs(k), 0.0, x, gamm, beta, gammastar, Rd, a, b, c1)
                 CALL fAn_c3(a,b,c1,Ane) ! e-transport limited
                 if (g0(k)*fwsoil(k)**qs .gt. Ane*x/cs(k)) then
-                   CALL fabc(cs(k), g0(k)*fwsoil(k)**qs, 0.0, gamm, beta, gammastar, Rd, a, b, c1)
+                   CALL fabc(cs(k), g0(k)*fwsoil(k)**qs, 0.1e-4, gamm, beta, gammastar, Rd, a, b, c1)
                    CALL fAn_c3(a,b,c1,Ane) ! e-transport limited
                 endif
              endif
@@ -644,7 +644,7 @@ CONTAINS
                 CALL fpq(a,b,c1,d,p,q)
                 CALL fAm_c3(a,b,c1,d,p,q,Anc)
                 if (g0(k)*fwsoil(k)**qs .gt. Anc*x/cs(k)) then
-                   CALL fabcd(cs(k), g0(k)*fwsoil(k)**qs, 0.0, gamm, beta, gammastar, Rd, gm, a, b, c1, d)
+                   CALL fabcd(cs(k), g0(k)*fwsoil(k)**qs, 0.1e-4, gamm, beta, gammastar, Rd, gm, a, b, c1, d)
                    CALL fpq(a,b,c1,d,p,q)
                    CALL fAm_c3(a,b,c1,d,p,q,Anc)
                 endif
@@ -657,7 +657,7 @@ CONTAINS
                 CALL fabc(cs(k), 0.0, x, gamm, beta, gammastar, Rd, a, b, c1)
                 CALL fAn_c3(a,b,c1,Anc) ! rubisco-limited
                 if (g0(k)*fwsoil(k)**qs .gt. Anc*x/cs(k)) then
-                   CALL fabc(cs(k), g0(k)*fwsoil(k)**qs, 0.0, gamm, beta, gammastar, Rd, a, b, c1)
+                   CALL fabc(cs(k), g0(k)*fwsoil(k)**qs, 0.1e-4, gamm, beta, gammastar, Rd, a, b, c1)
                    CALL fAn_c3(a,b,c1,Anc) ! rubisco-limited
                 endif
              endif
@@ -683,7 +683,7 @@ CONTAINS
                 CALL fpq(a,b,c1,d,p,q)
                 CALL fAm_c3(a,b,c1,d,p,q,Ane)
                 if (g0(k)*fwsoil(k)**qs .gt. Ane*x/cs(k)) then
-                   CALL fabcd(cs(k), g0(k)*fwsoil(k)**qs, 0.0, gamm, beta, gammastar, Rd, gm, a, b, c1, d)
+                   CALL fabcd(cs(k), g0(k)*fwsoil(k)**qs, 0.1e-4, gamm, beta, gammastar, Rd, gm, a, b, c1, d)
                    CALL fpq(a,b,c1,d,p,q)
                    CALL fAm_c3(a,b,c1,d,p,q,Ane)
                 endif
@@ -696,7 +696,7 @@ CONTAINS
                 CALL fabc(cs(k), 0.0, x, gamm, beta, gammastar, Rd, a, b, c1)
                 CALL fAn_c3(a,b,c1,Ane) ! e-transport limited
                 if (g0(k)*fwsoil(k)**qs .gt. Ane*x/cs(k)) then
-                   CALL fabc(cs(k), g0(k)*fwsoil(k)**qs, 0.0, gamm, beta, gammastar, Rd, a, b, c1)
+                   CALL fabc(cs(k), g0(k)*fwsoil(k)**qs, 0.1e-4, gamm, beta, gammastar, Rd, a, b, c1)
                    CALL fAn_c3(a,b,c1,Ane) ! e-transport limited
                 endif
              endif
@@ -856,7 +856,7 @@ CONTAINS
              CALL fpq(a,b,c1,d,p,q)
              CALL fAm_c3(a,b,c1,d,p,q,Anc)
              if (g0(k)*fwsoil(k)**qs .gt. Anc*x/cs(k)) then
-                CALL fabcd(cs(k), g0(k)*fwsoil(k)**qs, 0.0, gamm, beta, gammastar, Rd, gm, a, b, c1, d)
+                CALL fabcd(cs(k), g0(k)*fwsoil(k)**qs, 0.1e-4, gamm, beta, gammastar, Rd, gm, a, b, c1, d)
                 CALL fpq(a,b,c1,d,p,q)
                 CALL fAm_c3(a,b,c1,d,p,q,Anc)
              endif
@@ -864,7 +864,7 @@ CONTAINS
              CALL fabc(cs(k), 0.0, x, gamm, beta, gammastar, Rd, a, b, c1)
              CALL fAn_c3(a,b,c1,Anc)
              if (g0(k)*fwsoil(k)**qs .gt. Anc*x/cs(k)) then
-                CALL fabc(cs(k), g0(k)*fwsoil(k)**qs, 0.0, gamm, beta, gammastar, Rd, a, b, c1)
+                CALL fabc(cs(k), g0(k)*fwsoil(k)**qs, 0.1e-4, gamm, beta, gammastar, Rd, a, b, c1)
                 CALL fAn_c3(a,b,c1,Anc) ! rubisco-limited
              endif
           endif
@@ -884,7 +884,7 @@ CONTAINS
              CALL fpq(a,b,c1,d,p,q)
              CALL fAm_c3(a,b,c1,d,p,q,Ane)
              if (g0(k)*fwsoil(k)**qs .gt. Ane*x/cs(k)) then
-                CALL fabcd(cs(k), g0(k)*fwsoil(k)**qs, 0.0, gamm, beta, gammastar, Rd, gm, a, b, c1, d)
+                CALL fabcd(cs(k), g0(k)*fwsoil(k)**qs, 0.1e-4, gamm, beta, gammastar, Rd, gm, a, b, c1, d)
                 CALL fpq(a,b,c1,d,p,q)
                 CALL fAm_c3(a,b,c1,d,p,q,Ane)
              endif
@@ -892,7 +892,7 @@ CONTAINS
              CALL fabc(cs(k), 0.0, x, gamm, beta, gammastar, Rd, a, b, c1)
              CALL fAn_c3(a,b,c1,Ane)
              if (g0(k)*fwsoil(k)**qs .gt. Ane*x/cs(k)) then
-                CALL fabc(cs(k), g0(k)*fwsoil(k)**qs, 0.0, gamm, beta, gammastar, Rd, a, b, c1)
+                CALL fabc(cs(k), g0(k)*fwsoil(k)**qs, 0.1e-4, gamm, beta, gammastar, Rd, a, b, c1)
                 CALL fAn_c3(a,b,c1,Ane) ! e-transport limited
              endif
           endif

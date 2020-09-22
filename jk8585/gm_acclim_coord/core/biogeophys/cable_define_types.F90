@@ -297,7 +297,6 @@ MODULE cable_def_types_mod
           tmaxvj => null(),  & ! max temperature of the start of photosynthesis
           vbeta => null(),   & !
           vcmax => null(),   & ! max RuBP carboxylation rate top leaf (mol/m2/s)
-          vcmaxx => null(),  & ! last saved Vcmax value (mol/m2/s)
           vcmax_shade => null(), & ! max RuBP carboxylation rate top leaf (mol/m2/s)
           vcmax_sun => null(),   & ! max RuBP carboxylation rate top leaf (mol/m2/s)
           xfang => null(),   & ! leaf angle PARAMETER
@@ -1017,7 +1016,6 @@ CONTAINS
     ALLOCATE( var% tmaxvj(mp) )
     ALLOCATE( var% vbeta(mp) )
     ALLOCATE( var% vcmax(mp) )
-    ALLOCATE( var% vcmaxx(mp) )
     ALLOCATE( var% vcmax_shade(mp) )
     ALLOCATE( var% vcmax_sun(mp) )
     ALLOCATE( var% xfang(mp) )
@@ -1661,7 +1659,6 @@ CONTAINS
     DEALLOCATE( var% tmaxvj )
     DEALLOCATE( var% vbeta)
     DEALLOCATE( var% vcmax )
-    DEALLOCATE( var% vcmaxx )
     DEALLOCATE( var% vcmax_shade )
     DEALLOCATE( var% vcmax_sun )
     DEALLOCATE( var% xfang )
@@ -2167,7 +2164,6 @@ CONTAINS
     var%tmaxvj      = 0
     var%vbeta       = 0
     var%vcmax       = 0
-    var%vcmaxx      = 0
     var%vcmax_shade = 0
     var%vcmax_sun   = 0
     var%xfang       = 0

@@ -168,11 +168,11 @@ CONTAINS
       DEALLOCATE(FVEC)
         
    if (p == 1) then
-      write(89,*) 'gmmax25:', gmmax25
-      write(89,*) 'Vcmax25Ci:', Vcmax25Ci
-      write(89,*) 'Rd:', Rd
-      write(89,*) 'veg%vcmaxcc(p):', veg%vcmaxcc(p)
-      write(89,*) 'veg%ejmaxcc(p):', veg%ejmaxcc(p)
+      !write(89,*) 'gmmax25:', gmmax25
+      !write(89,*) 'Vcmax25Ci:', Vcmax25Ci
+      !write(89,*) 'Rd:', Rd
+      !write(89,*) 'veg%vcmaxcc(p):', veg%vcmaxcc(p)
+      !write(89,*) 'veg%ejmaxcc(p):', veg%ejmaxcc(p)
    endif
    
     ELSE  ! C4 (Vcmax and Jmax do not change with gm in C4 plants)
