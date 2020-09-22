@@ -3315,10 +3315,10 @@ CONTAINS
             e_leaves(j) = e_leaf(idx) ! mol H2O m-2 s-1
             p_leaves(j) = p(idx)
 
-            if (canopy%psi_soil_prev(i) < -0.5) then
-                print*, "in", p(idx), apar
-
-            end if
+            !if (canopy%psi_soil_prev(i) < -0.5) then
+            !    print*, "in", p(idx), apar
+            !
+            !end if
 
          END IF
       END DO
