@@ -3412,14 +3412,14 @@ CONTAINS
             max_ci = ci_new ! umol mol-1
          END IF
 
-         
+
          IF (abs(max_ci - min_ci) < 1E-04) THEN
             An_new = An ! umol m-2 s-1
             EXIT
          END IF
 
          iter = iter + 1
-         IF (iter > 10000) THEN
+         IF (iter > 500) THEN
             An_new = An
             EXIT
             !print*, "stuck"
