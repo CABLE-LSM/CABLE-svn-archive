@@ -114,22 +114,24 @@ REAL :: xphi2(mp)      ! leaf angle parmameter 2
 
     cos3 = COS(CPI180 * (/ 15.0, 45.0, 75.0 /))
 
-    ! See Sellers 1985, eq.13 (leaf angle parameters):
-    WHERE ( veg_mask )
-       xphi1 = 0.5 - VegXfang * (0.633 + 0.33 * VegXfang)
-       xphi2 = 0.877 * (1.0 - 2.0 * xphi1)
-    END WHERE
+!Null Initializations
+ExtCoeff_beam(:) = 0.0
+ExtCoeff_dif(:) = 0.0
+EffExtCoeff_beam(:,:) = 0.0
+EffExtCoeff_dif(:,:) = 0.0
+RadFbeam(:,:) = 0.0
+c1(:,:) = 0.0
+rhoch(:,:) = 0.0
+xk(:,:) = 0.0
 
-    ! 2 dimensional LAI
-    xvlai2 = SPREAD(reducedLAIdue2snow, 2, 3)
+! Compute common scaling co-efficients used throughout init_radiation
+call Common_InitRad_Scalings( xphi1, xphi2, xk, xvlai2, c1, rhoch,             &
+                            mp, nrb, Cpi180,cLAI_thresh, veg_mask,             &
+                            reducedLAIdue2snow, VegXfang, VegTaul, VegRefl)
 
-    ! Extinction coefficient for beam radiation and black leaves;
-    ! eq. B6, Wang and Leuning, 1998
-    WHERE (xvlai2 > CLAI_THRESH) ! vegetated
-       xk = SPREAD(xphi1, 2, 3) / SPREAD(cos3, 1, mp) + SPREAD(xphi2, 2, 3)
-    ELSEWHERE ! i.e. bare soil
-       xk = 0.0
-    END WHERE
+!Limiting Initializations for stability
+Ccoszen_tols_huge = Ccoszen_tols * 1e2 
+Ccoszen_tols_tiny = Ccoszen_tols * 1e-2 
 
     WHERE ( veg_mask )
 
@@ -182,5 +184,90 @@ CALL calc_rhoch( c1,rhoch, mp, nrb, VegTaul, VegRefl )
     END WHERE
 
   END SUBROUTINE init_radiation
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+subroutine Common_InitRad_Scalings( xphi1, xphi2, xk, xvlai2, c1, rhoch,      &
+                            mp, nrb, Cpi180,cLAI_thresh, veg_mask,             &
+                            reducedLAIdue2snow,                &
+                            VegXfang, VegTaul, VegRefl)
+!subrs
+USE cbl_rhoch_module,   ONLY : calc_rhoch
+implicit none
+!re-decl in args
+integer :: mp
+integer :: nrb
+real :: Cpi180
+real :: cLAI_thresh
+real :: xphi1(mp)    ! leaf angle parmameter 1
+real :: xphi2(mp)    ! leaf angle parmameter 2
+REAL :: xvlai2(mp,nrb)  ! 2D vlai
+REAL :: xk(mp,nrb)      ! extinct. coef.for beam rad. and black leaves
+REAL :: c1(mp,nrb)
+REAL :: rhoch(mp,nrb)
+real :: reducedLAIdue2snow(mp)
+real :: VegXfang(mp)
+REAL :: VegTaul(mp,nrb)
+REAL :: VegRefl(mp,nrb)
+logical :: veg_mask(mp)
+
+call common_InitRad_coeffs( xphi1, xphi2, xk, xvlai2, mp, nrb, Cpi180,&
+                            cLAI_thresh, veg_mask, VegXfang, reducedLAIdue2snow  )
+
+CALL calc_rhoch( c1,rhoch, mp, nrb, VegTaul, VegRefl )
+
+End subroutine Common_InitRad_Scalings
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+subroutine  common_InitRad_coeffs( xphi1, xphi2, xk, xvlai2, mp, nrb, Cpi180,&
+                            cLAI_thresh, veg_mask, VegXfang, reducedLAIdue2snow  )
+
+
+implicit none
+!re-decl in args
+integer :: mp
+integer :: nrb
+real :: Cpi180
+real :: xphi1(mp)    ! leaf angle parmameter 1
+real :: xphi2(mp)    ! leaf angle parmameter 2
+REAL :: xvlai2(mp,nrb)  ! 2D vlai
+REAL :: xk(mp,nrb)      ! extinct. coef.for beam rad. and black leaves
+real :: VegXfang(mp)
+real :: reducedLAIdue2snow(mp)
+logical :: veg_mask(mp)
+real:: cLAI_thresh
+
+!local vars
+REAL :: cos3(nrb)      ! cos(15 45 75 degrees)
+
+cos3 = COS(CPI180 * (/ 15.0, 45.0, 75.0 /))
+
+  xphi1 = 0.0
+  xphi2 = 0.0
+  xvlai2 = 0.0
+! See Sellers 1985, eq.13 (leaf angle parameters):
+WHERE ( veg_mask )
+  xphi1 = 0.5 - VegXfang * (0.633 + 0.33 * VegXfang)
+  xphi2 = 0.877 * (1.0 - 2.0 * xphi1)
+END WHERE
+
+! 2 dimensional LAI
+xvlai2 = SPREAD(reducedLAIdue2snow, 2, 3)
+
+! Extinction coefficient for beam radiation and black leaves;
+! eq. B6, Wang and Leuning, 1998
+WHERE (xvlai2 > cLAI_THRESH) ! vegetated
+   xk = SPREAD(xphi1, 2, 3) / SPREAD(cos3, 1, mp) + SPREAD(xphi2, 2, 3)
+ELSEWHERE ! i.e. bare soil
+   xk = 0.0
+END WHERE
+
+End subroutine common_InitRad_coeffs
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 
 END MODULE cbl_init_radiation_module
