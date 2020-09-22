@@ -150,6 +150,17 @@ CALL calc_rhoch( c1,rhoch, mp, nrb, VegTaul, VegRefl )
        CanopyTransmit_dif(:,b) = EXP(-EffExtCoeff_dif(:,b) * reducedLAIdue2snow)
     END DO
 
+    ! Canopy REFLection of diffuse radiation for black leaves:
+    DO b=1,2
+
+       CanopyRefl_dif(:,b) = rhoch(:,b) *  2. *                                &
+            ( CGAUSS_W(1) * xk(:,1) / ( xk(:,1) + ExtCoeff_dif(:) )&
+            + CGAUSS_W(2) * xk(:,2) / ( xk(:,2) + ExtCoeff_dif(:) )&
+            + CGAUSS_W(3) * xk(:,3) / ( xk(:,3) + ExtCoeff_dif(:) ) )
+
+    ENDDO
+
+
     DO b = 1, 2
        !---Calculate effective diffuse reflectance (fraction):
        WHERE( veg_mask )                                             &
@@ -202,6 +213,96 @@ CALL calc_rhoch( c1,rhoch, mp, nrb, VegTaul, VegRefl )
     END DO
   
   END SUBROUTINE albedo
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+subroutine CanopyReflectance( CanopyRefl_beam, CanopyRefl_dif, &
+                         mp, nrb, CGauss_w, sunlit_veg_mask, &
+                         AlbSnow, xk, rhoch,                  &
+                         ExtCoeff_beam, ExtCoeff_dif)
+implicit none 
+!re-decl in args
+integer :: mp                       !total number of "tiles"  
+integer :: nrb                      !number of radiation bands [per legacy=3, but really=2 VIS,NIR. 3rd dim was for LW]
+REAL :: CanopyRefl_dif(mp,nrb)      !Canopy reflectance (rad%cexpkdm) 
+REAL :: CanopyRefl_beam(mp,nrb)     !Canopy reflectance (rad%cexpkbm)   
+real :: Cgauss_w(nrb)
+LOGICAL :: sunlit_veg_mask(mp)      ! this "mp" is BOTH sunlit AND  vegetated  
+REAL :: AlbSnow(mp,nrb)             !Ground Albedo given a snow coverage (ssnow%albsoilsn)
+REAL :: xk(mp,nrb)
+REAL :: rhoch(mp,nrb)
+REAL :: ExtCoeff_beam(mp)           !"raw" Extinction co-efficient for Direct Beam component of SW radiation (rad%extkb)
+REAL :: ExtCoeff_dif(mp)            !"raw"Extinction co-efficient for Diffuse component of SW radiation (rad%extkd)
+
+! Initialise canopy beam reflectance:
+!HACHvstrunk!CanopyRefl_beam  = AlbSnow !Formerly rad%reffbm
+!HACHvstrunk!CanopyRefl_dif   = AlbSnow ! Formerly rad%refdfm
+
+call CanopyReflectance_beam( CanopyRefl_beam, mp, nrb, sunlit_veg_mask, &
+                             ExtCoeff_beam, ExtCoeff_dif, rhoch )
+
+call CanopyReflectance_dif( CanopyRefl_dif, mp, nrb, CGauss_w, &
+                             ExtCoeff_dif, xk, rhoch )
+End subroutine CanopyReflectance
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+subroutine CanopyReflectance_beam( CanopyRefl_beam, mp, nrb, sunlit_veg_mask, &
+              ExtCoeff_beam,ExtCoeff_dif, rhoch )
+implicit none
+integer :: mp
+integer ::nrb 
+real :: CanopyRefl_beam(mp,nrb)
+real :: ExtCoeff_dif(mp) 
+real :: ExtCoeff_beam(mp) 
+LOGICAL :: sunlit_veg_mask(mp) 
+REAL :: rhoch(mp, nrb)
+integer :: i, b
+
+! Canopy reflection (6.21) beam:
+DO i = 1,mp
+  DO b = 1, 2
+    IF( sunlit_veg_mask(i) ) &
+      CanopyRefl_beam(i,b) = 2. * ExtCoeff_beam(i) / &
+                            ( ExtCoeff_beam(i) + ExtCoeff_dif(i) )          & 
+                            * rhoch(i,b)
+  END DO
+END DO
+
+End subroutine CanopyReflectance_beam
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+subroutine CanopyReflectance_dif( CanopyRefl_dif, mp, nrb, CGauss_w,  &
+                                  ExtCoeff_dif, xk, rhoch )
+
+implicit none
+INTEGER :: mp
+integer :: nrb
+real :: Cgauss_w(nrb)
+REAL :: CanopyRefl_dif(mp,nrb)  
+real :: ExtCoeff_dif(mp)    
+REAL :: xk(mp,nrb)      ! extinct. coef.for beam rad. and black leaves
+REAL :: rhoch(mp,nrb)      
+!local vars
+INTEGER :: ictr
+
+! Canopy REFLection of diffuse radiation for black leaves:
+DO ictr=1,nrb
+
+  CanopyRefl_dif(:,ictr) = rhoch(:,ictr) *  2. *                                &
+                       ( CGAUSS_W(1) * xk(:,1) / ( xk(:,1) + ExtCoeff_dif(:) )&
+                       + CGAUSS_W(2) * xk(:,2) / ( xk(:,2) + ExtCoeff_dif(:) )&
+                       + CGAUSS_W(3) * xk(:,3) / ( xk(:,3) + ExtCoeff_dif(:) ) )
+
+ENDDO
+
+End subroutine CanopyReflectance_dif
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 
 End MODULE cable_albedo_module
 

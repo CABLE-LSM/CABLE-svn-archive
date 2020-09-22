@@ -103,6 +103,11 @@ use cbl_masks_mod, ONLY :  veg_mask,  sunlit_mask,  sunlit_veg_mask
 REAL :: c1(mp,nrb)
 REAL :: rhoch(mp,nrb)
 REAL :: xk(mp,nrb)
+character(len=*), parameter :: subr_name = "cbm"
+
+LOGICAL :: cbl_standalone= .true.
+LOGICAL :: jls_standalone= .false.
+LOGICAL :: jls_radiation= .false.
 
 
 #ifdef NO_CASA_YET
@@ -134,8 +139,25 @@ call fveg_mask( veg_mask, mp, Clai_thresh, canopy%vlaiw )
 call fsunlit_mask( sunlit_mask, mp, Ccoszen_tols,( met%fsd(:,1)+met%fsd(:,2) ) )
 call fsunlit_veg_mask( sunlit_veg_mask, mp )
 
-    CALL init_radiation(met,rad,veg, canopy, veg_mask, sunlit_veg_mask) ! need to be called at every dt
+!!H!!    CALL init_radiation(met,rad,veg, canopy, veg_mask, sunlit_veg_mask) ! need to be called at every dt
 
+CALL init_radiation( rad%extkb, rad%extkd,                                     &
+                     !ExtCoeff_beam, ExtCoeff_dif,
+                     rad%extkbm, rad%extkdm, Rad%Fbeam,                        &
+                     !EffExtCoeff_beam, EffExtCoeff_dif, RadFbeam,
+                     c1, rhoch, xk,                                            &
+                     mp,nrb,                                                   &
+                     Clai_thresh, Ccoszen_tols, CGauss_w, Cpi, Cpi180,         &
+                     cbl_standalone, jls_standalone, jls_radiation,            &
+                     subr_name,                                                &
+                     veg_mask, sunlit_mask, sunlit_veg_mask,                   &
+                     veg%Xfang, veg%taul, veg%refl,                            &
+                     !VegXfang, VegTaul, VegRefl
+                     met%coszen, int(met%DoY), met%fsd,                        &
+                     !coszen, metDoY, SW_down,
+                     canopy%vlaiw                                              &
+                   ) !reducedLAIdue2snow 
+ 
     IF( cable_runtime%um ) THEN
 
        IF( cable_runtime%um_explicit ) THEN
