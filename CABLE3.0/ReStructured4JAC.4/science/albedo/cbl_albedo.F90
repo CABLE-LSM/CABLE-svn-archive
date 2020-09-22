@@ -142,51 +142,65 @@ CALL calc_rhoch( c1,rhoch, mp, nrb, VegTaul, VegRefl )
     ! leaf transmittance and reflection (ie. NOT black leaves):
     !---1 = visible, 2 = nir radiaition
     DO b = 1, 2
-
        EffExtCoeff_dif(:,b) = ExtCoeff_dif * c1(:,b)
+    END DO
 
+    DO b = 1, 2
        !--Define canopy diffuse transmittance (fraction):
        CanopyTransmit_dif(:,b) = EXP(-EffExtCoeff_dif(:,b) * reducedLAIdue2snow)
-
     END DO
-    
+
     DO b = 1, 2
        !---Calculate effective diffuse reflectance (fraction):
        WHERE( veg_mask )                                             &
             EffSurfRefl_dif(:,b) = CanopyRefl_dif(:,b) + (AlbSnow(:,b)             &
             - CanopyRefl_dif(:,b)) * CanopyTransmit_dif(:,b)**2
-    !H!END DO
-    !H!DO b = 1, 2
+
+    END DO
+
+    DO b = 1, 2
+         !---where vegetated and sunlit
+       WHERE (sunlit_veg_mask)
+          EffExtCoeff_beam(:,b) = ExtCoeff_beam * c1(:,b)
+       END WHERE
+    END DO
+
+    DO b = 1, 2
        !---where vegetated and sunlit
        WHERE (sunlit_veg_mask)
-
-          EffExtCoeff_beam(:,b) = ExtCoeff_beam * c1(:,b)
-
           ! Canopy reflection (6.21) beam:
           CanopyRefl_beam(:,b) = 2. * ExtCoeff_beam / ( ExtCoeff_beam + ExtCoeff_dif )          &
                * rhoch(:,b)
+       END WHERE
+    END DO
 
-          ! Canopy beam transmittance (fraction):
+    ! Canopy beam transmittance (fraction):
+    DO b = 1, 2
+       WHERE (sunlit_veg_mask)
           dummy2 = MIN(EffExtCoeff_beam(:,b)*reducedLAIdue2snow, 20.)
           dummy  = EXP(-dummy2)
           CanopyTransmit_beam(:,b) = REAL(dummy)
+       END WHERE
+    END DO
+
+    DO b = 1, 2
+       !---where vegetated and sunlit
+       WHERE (sunlit_veg_mask)
 
           ! Calculate effective beam reflectance (fraction):
           EffSurfRefl_beam(:,b) = CanopyRefl_beam(:,b) + (AlbSnow(:,b)             &
                - CanopyRefl_beam(:,b))*CanopyTransmit_beam(:,b)**2
 
        END WHERE
-
     END DO
-    
+ 
     DO b = 1, 2
        ! Define albedo:
        WHERE( veg_mask )                                      &
             RadAlbedo(:,b) = ( 1. - RadFbeam(:,b) )*EffSurfRefl_dif(:,b) +           &
             RadFbeam(:,b) * EffSurfRefl_beam(:,b)
-
     END DO
-
+  
   END SUBROUTINE albedo
 
 End MODULE cable_albedo_module
