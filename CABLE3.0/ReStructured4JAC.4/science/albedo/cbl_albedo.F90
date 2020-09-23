@@ -1,4 +1,4 @@
-MODULE cable_albedo_module
+MODULE cbl_albedo_mod
 
   IMPLICIT NONE
 
@@ -7,8 +7,7 @@ MODULE cable_albedo_module
 
 CONTAINS
 
-SUBROUTINE Albedo( &
-AlbSnow, AlbSoil,              & 
+subroutine Albedo( AlbSnow, AlbSoil,              & 
 mp, nrb,                                          &
 jls_radiation ,                                   &
 veg_mask, sunlit_mask, sunlit_veg_mask,           &  
@@ -393,4 +392,4 @@ End subroutine FbeamRadAlbedo
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-End MODULE cable_albedo_module
+END MODULE cbl_albedo_mod
