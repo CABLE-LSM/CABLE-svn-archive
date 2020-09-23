@@ -119,6 +119,14 @@ call ExtinctionCoeff( ExtCoeff_beam, ExtCoeff_dif, mp, nrb,                    &
                       sunlit_mask, veg_mask, sunlit_veg_mask,                  &
                       cLAI_thresh, coszen, xphi1, xphi2, xk, xvlai2)
 
+! Define effective Extinction co-efficient for direct beam/diffuse radiation
+! Extincion Co-eff defined by parametrized leaf reflect(transmit)ance - used in
+! canopy transmitance calculations (cbl_albeo)
+! [Formerly rad%extkbm, rad%extkdm ]
+call EffectiveExtinctCoeffs( EffExtCoeff_beam, EffExtCoeff_dif,               &
+                             mp, nrb, sunlit_veg_mask,                        &
+                             ExtCoeff_beam, ExtCoeff_dif, c1 )
+
 ! Offline/standalone forcing gives us total downward Shortwave. We have
 ! previosuly, arbitratily split this into NIR/VIS (50/50). We use 
 ! Spitter function to split these bands into direct beam and diffuse components
