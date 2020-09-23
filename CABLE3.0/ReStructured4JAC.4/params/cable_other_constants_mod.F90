@@ -39,7 +39,7 @@ REAL, PARAMETER :: rad_thresh = 0.001
 REAL, PARAMETER :: lai_thresh = 0.001
                         ! threshold for minimum significant LAI
 
-real :: coszen_tols = 1.0e-4
+real :: coszen_tols = 1.0e-3
                         !minimum (cosine)zenith angle of sun signalling sunrise 
 !minimum roughness of bare soil surface
 real, parameter :: z0surf_min = 1.e-7

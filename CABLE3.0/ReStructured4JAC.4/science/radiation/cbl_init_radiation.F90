@@ -278,12 +278,12 @@ ExtCoeff_beam = 0.5
 
 ! SW beam extinction coefficient ("black" leaves, extinction neglects
 ! leaf SW transmittance and REFLectance):
-WHERE ( veg_mask .AND. coszen < Ccoszen_tols_tiny ) &
+WHERE ( veg_mask .AND. coszen > 1.e-6 ) &
   ExtCoeff_beam = xphi1 / Coszen + xphi2
 
 ! higher value precludes sunlit leaves at night. affects
 ! nighttime evaporation - Ticket #90 
-WHERE( coszen < Ccoszen_tols_tiny ) ExtCoeff_beam = 1.0e5 
+WHERE( coszen <  1.e-6 ) ExtCoeff_beam = 1.0e5 
 
 
 ! Seems to be for stability only
@@ -401,7 +401,7 @@ RadFbeam(:,1) = spitter(mp, cpi, metDoy, coszen, SW_down(:,1))
 RadfBeam(:,2) = spitter(mp, cpi, metDoy, coszen, SW_down(:,2))
 
 ! coszen is set during met data read in.
-WHERE (coszen < Ccoszen_tols_huge )
+WHERE (coszen < 1.e-2 )
   RadFbeam(:,1) = 0.0
   RadFbeam(:,2) = 0.0
 END WHERE
