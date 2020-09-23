@@ -146,9 +146,9 @@ REAL :: SoilAlbsoilf(mp)
 
    ENDWHERE        ! snowd > 0
 
-    ! when it is called from cable_rad_driver (UM)
-    ! no need to recalculate snage
-    WHERE (SnowDepth > 1 .AND. jls_radiation )
+   !H!! when it is called from cable_rad_driver (UM)
+   !H!! no need to recalculate snage
+WHERE (SnowDepth > 1 .and. jls_radiation )
 
        snr = SnowDepth / MAX (SnowDensity, 200.)
 
