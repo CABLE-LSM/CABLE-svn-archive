@@ -316,7 +316,7 @@ i_do_now()
 
 build_build()
 {
-
+module list
    # write file for consumption by Fortran code
    # get SVN revision number 
    CABLE_REV=`svn info | grep Revis |cut -c 11-18`

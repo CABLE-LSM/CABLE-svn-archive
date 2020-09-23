@@ -596,7 +596,14 @@ CONTAINS
        ALLOCATE(out%SoilTemp(mp,ms))
        out%SoilTemp = 0.0 ! initialise
     END IF
-    IF (cable_user%gw_model .and. gw_params%BC_hysteresis) THEN
+    IF(output%soil .OR. output%SMP) THEN
+      CALL define_ovar(ncid_out, ovid%SMP, 'SMP', 'm',      &
+                       'Average layer soil pressure', patchout%SMP,     &
+                       'soil', xID, yID, zID, landID, patchID, soilID, tID)
+      ALLOCATE(out%SMP(mp,ms))
+      out%SMP = 0.0 ! initialise
+   ENDIF
+   IF (cable_user%gw_model .and. gw_params%BC_hysteresis) THEN
        CALL define_ovar(ncid_out, ovid%SMP_hys, 'SMP_hys', 'm',      &
                         'Average layer soil pressure at hys trans', patchout%SMP_hys,     &
                         'soil', xID, yID, zID, landID, patchID, soilID, tID)
