@@ -278,7 +278,7 @@ ExtCoeff_beam = 0.5
 
 ! SW beam extinction coefficient ("black" leaves, extinction neglects
 ! leaf SW transmittance and REFLectance):
-WHERE ( sunlit_veg_mask ) &
+WHERE ( veg_mask .AND. coszen < Ccoszen_tols_tiny ) &
   ExtCoeff_beam = xphi1 / Coszen + xphi2
 
 ! higher value precludes sunlit leaves at night. affects
