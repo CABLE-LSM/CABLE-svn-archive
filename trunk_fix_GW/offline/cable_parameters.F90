@@ -1973,11 +1973,11 @@ CONTAINS
        END IF  !use either uni or multi cosby transfer func
 
        !set the non-vectored values to srf value
-       soil%sfc(:) = real(soil%sfc_vec(:,3))
-       soil%swilt(:) = real(soil%swilt_vec(:,3))
-       soil%css(:)   = soil%css_vec(:,3)
-       soil%cnsd(:)   = soil%cnsd_vec(:,3)
-       soil%rhosoil(:) = soil%rhosoil_vec(:,3)
+       soil%sfc(:)     = real(soil%sfc_vec(:,3))
+       soil%swilt(:)   = real(soil%swilt_vec(:,3))
+       soil%css(:)     = real(soil%css_vec(:,3))
+       soil%cnsd(:)    = real(soil%cnsd_vec(:,3))
+       soil%rhosoil(:) = real(soil%rhosoil_vec(:,3))
 
        !convert the units back to what default uses and GW only uses the
        !vectored versions
