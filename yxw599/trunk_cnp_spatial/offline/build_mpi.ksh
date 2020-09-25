@@ -12,7 +12,7 @@ host_gadi()
    module purge
    module add intel-compiler/2019.5.281
    module add intel-mpi/2019.5.281
-   module add netcdf/4.6.3
+   module add netcdf/4.7.1
 
    export FC='mpif90'
    export NCDIR=$NETCDF_ROOT'/lib/Intel'

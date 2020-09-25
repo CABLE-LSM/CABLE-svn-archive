@@ -452,6 +452,10 @@ CONTAINS
     IF( icycle > 0 .AND. ( .NOT. soilparmnew ) )                             &
          STOP 'casaCNP must use new soil parameters'
 
+     ! ypw
+    cable_user%POPLUC=.FALSE.
+    cable_user%CALL_POP=.FALSE.
+
     ! casa time count
     ctime = 0
 
