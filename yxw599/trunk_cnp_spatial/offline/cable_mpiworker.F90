@@ -352,6 +352,10 @@ USE cbl_soil_snow_init_special_module
     ENDIF
 
     cable_runtime%offline = .TRUE.
+    ! ypw
+    cable_user%popluc =.false.
+    cable_user%CALL_POP=.false.
+
 
     ! associate pointers used locally with global definitions
     CALL point2constants( C )

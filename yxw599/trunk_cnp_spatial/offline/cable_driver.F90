@@ -400,6 +400,10 @@ USE cbl_soil_snow_init_special_module
   ! casa time count
   ctime = 0
 
+  ! ypw: turn off POP
+  cable_user%POPLUC=.FALSE.
+  cable_user%CALL_POP=.FALSE.
+
 !!!! INISTUFF
 
   ! Open met data and get site information from netcdf file. (NON-GSWP ONLY!)

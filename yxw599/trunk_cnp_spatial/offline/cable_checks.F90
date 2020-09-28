@@ -121,7 +121,7 @@ MODULE cable_checks_module
           CanT = (/213.0,333.0/),      &
           Fwsoil = (/0.0,1.0/),      &
                                 ! parameters:
-          albsoil = (/0.0,0.9/),              &
+          albsoil = (/0.0,0.99/),             &   ! change the upper limit from 0.9 to 0.99
           isoil = (/1.0,30.0/),               &
           iveg = (/1.0,30.0/),                &
           bch = (/2.0,15.0/),                 &
@@ -137,7 +137,7 @@ MODULE cable_checks_module
           silt = (/0.0,1.0/),                 &
           ssat = (/0.35,0.5/),                &
           sucs = (/-0.8,-0.03/),              &
-          swilt = (/0.05,0.4/),               &
+          swilt = (/0.01,0.4/),               &   ! ypw change minimum from 0.05 to 0.01
           froot = (/0.0,1.0/),                &
           zse = (/0.0,5.0/),                  &
           canst1 = (/0.05,0.15/),             &
