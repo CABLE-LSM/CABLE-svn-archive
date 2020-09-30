@@ -1801,7 +1801,7 @@ CONTAINS
 
     REAL :: press
 
-    INTEGER, PARAMETER :: resolution = 200
+    INTEGER, PARAMETER :: resolution = 400
     REAL, DIMENSION(2) :: an_canopy
     REAL :: e_canopy
     REAL(r_2), DIMENSION(resolution) :: p
@@ -1905,14 +1905,15 @@ CONTAINS
     deltlfy = abs_deltlf
     k = 0
 
+    DO i=1,mp
+      Kcmax(1) = veg%Kmax(i)
+      Kcmax(2) = veg%Kmax(i)
+    END DO
 
     !kdcorbin, 08/10 - doing all points all the time
     DO WHILE (k < C%MAXITER)
        k = k + 1
        DO i=1,mp
-
-          Kcmax(1) = veg%Kmax(i)
-          Kcmax(2) = veg%Kmax(i)
 
           IF (canopy%vlaiw(i) > C%LAI_THRESH .AND. abs_deltlf(i) > 0.1) THEN
 
@@ -2132,8 +2133,9 @@ CONTAINS
                    anx(i,1) = 0.0 - rdx(i,1)
                    anx(i,2) = 0.0 - rdx(i,2)
                 ELSE
-
-                   CALL optimisation(canopy, rad%qcan, vpd, press, tlfx(i), &
+                   print*, veg%gmin(i)
+                   stop
+                   CALL optimisation(canopy, rad, rad%qcan, vpd, press, tlfx(i), &
                                      csx, rad%fvlai, &
                                      ssnow%weighted_psi_soil(i), &
                                      ssnow%Rsr(i), Kcmax, veg%Kmax(i), veg%Kcrit(i), &
@@ -2378,7 +2380,6 @@ CONTAINS
 
     END DO  ! DO WHILE (ANY(abs_deltlf > 0.1) .AND.  k < C%MAXITER)
 
-
     ! dry canopy flux
     canopy%fevc = (1.0-canopy%fwet) * ecy
 
@@ -2448,30 +2449,11 @@ CONTAINS
              !print*, "no no here"
              avg_kplant = Kcmax(2)
           END IF
-          !if (avg_kplant < 0.05) THEN
-         !    print*, rad%fvlai(i,1), rad%fvlai(i,2), avg_kplant, Kcmax(1), Kcmax(2)
-         !    stop
-         ! end if
 
 
           canopy%kplant(i) = avg_kplant
 
-
-          !if (canopy%psi_soil_prev(i) < -0.5) then
-            !  print*, avg_kplant , veg%Kmax(i), canopy%psi_soil_prev(i), Kcmax(1) , Kcmax(2)
-
-          !end if
-          !print*, avg_kplant, Kcmax(1) + Kcmax(2), veg%Kmax(i), rad%fvlai(i,1), rad%fvlai(i,2)
-
-
           canopy%plc(i) = calc_plc(avg_kplant, veg%Kmax(i))
-
-          !IF (canopy%plc(i) >= 20.) THEN
-            !  print*, canopy%plc(i), avg_kplant, Kcmax(1) + Kcmax(2), Kcmax(1) , Kcmax(2), veg%Kmax(i)
-             ! print*,rad%fvlai(i,1), rad%fvlai(i,2), canopy%psi_soil_prev(i)
-              !print*, " "
-             !stop
-          !ENDIF
 
           ! We've reached the point of hydraulic failure, so hold the plc
           ! here for outputting purposes..
@@ -3127,7 +3109,7 @@ CONTAINS
    ! ---------------------------------------------------------------------------
 
    ! ---------------------------------------------------------------------------
-   SUBROUTINE optimisation(canopy, qcan, vpd, press, tleaf, csx, lai_leaf, &
+   SUBROUTINE optimisation(canopy, rad, qcan, vpd, press, tleaf, csx, lai_leaf, &
                            psi_soil, Rsr, Kcmax, Kmax, Kcrit, b_plant, &
                            c_plant, N, vcmxt3, ejmxt3, rdx, vx3, cx1, &
                            an_canopy, e_canopy, gmin, p, i)
@@ -3158,6 +3140,7 @@ CONTAINS
       IMPLICIT NONE
 
       TYPE (canopy_type), INTENT(INOUT) :: canopy
+      TYPE (radiation_type), INTENT(INOUT) :: rad
 
       INTEGER, INTENT(IN) :: i, N
       INTEGER :: j, k, idx
@@ -3315,7 +3298,6 @@ CONTAINS
             e_leaves(j) = e_leaf(idx) ! mol H2O m-2 s-1
             p_leaves(j) = p(idx)
 
-            !if (canopy%psi_soil_prev(i) < -0.5) then
             !    print*, "in", p(idx), apar
             !
             !end if
@@ -3342,11 +3324,14 @@ CONTAINS
 
          !e_cuticular = ((gmin * MMOL_2_MOL * lai_leaf(i,1)) + &
          !               (gmin * MMOL_2_MOL * lai_leaf(i,2))) / press * vpd
+         e_cuticular = ((gmin * MMOL_2_MOL * rad%scalex(i,1)) + &
+                        (gmin * MMOL_2_MOL * rad%scalex(i,2))) / press * vpd
 
-         !IF (e_canopy < e_cuticular) THEN
-         !   !print*, "here", e_canopy, e_cuticular
-         !   e_canopy = e_cuticular ! mol H2O m-2 s-1
-         !END IF
+
+         IF (e_canopy < e_cuticular) THEN
+            print*, "here", e_canopy, e_cuticular
+            e_canopy = e_cuticular ! mol H2O m-2 s-1
+         END IF
       END IF
       !print*, "a-psi_soil:", sum(an_canopy), sum(e_leaves), canopy%psi_leaf(i), canopy%psi_soil_prev(i)
 
