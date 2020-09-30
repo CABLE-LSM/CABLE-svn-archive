@@ -3340,13 +3340,13 @@ CONTAINS
 
          e_canopy = sum(e_leaves) ! mol H2O m-2 s-1
 
-         e_cuticular = ((gmin * MMOL_2_MOL * lai_leaf(i,1)) + &
-                        (gmin * MMOL_2_MOL * lai_leaf(i,2))) / press * vpd
+         !e_cuticular = ((gmin * MMOL_2_MOL * lai_leaf(i,1)) + &
+         !               (gmin * MMOL_2_MOL * lai_leaf(i,2))) / press * vpd
 
-         IF (e_canopy < e_cuticular) THEN
-            !print*, "here", e_canopy, e_cuticular
-            e_canopy = e_cuticular ! mol H2O m-2 s-1
-         END IF
+         !IF (e_canopy < e_cuticular) THEN
+         !   !print*, "here", e_canopy, e_cuticular
+         !   e_canopy = e_cuticular ! mol H2O m-2 s-1
+         !END IF
       END IF
       !print*, "a-psi_soil:", sum(an_canopy), sum(e_leaves), canopy%psi_leaf(i), canopy%psi_soil_prev(i)
 

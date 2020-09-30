@@ -2753,14 +2753,14 @@ CONTAINS
        ! what is used anyway
        t_over_t_sat = MAX(1.0e-9, MIN(1.0, ssnow%wb(i,j) / soil%ssat(i)))
        !ssnow%psi_soil(i,j) = psi_sat * t_over_t_sat**(-soil%bch(i))
-       ssnow%psi_soil(i,j) = MAX(-10.0, psi_sat * t_over_t_sat**(-soil%bch(i)))
+       ssnow%psi_soil(i,j) = MAX(-50.0, psi_sat * t_over_t_sat**(-soil%bch(i)))
     END DO
 
   END SUBROUTINE calc_swp
   ! ----------------------------------------------------------------------------
 
   ! ----------------------------------------------------------------------------
-  SUBROUTINE calc_weighted_swp_and_frac_uptake(ssnow, soil, canopy, &
+  SUBROUTINE calc_weighted_swp_and_frac_uptake(ssnow, soil, canopy, veg, &
                                                root_length, i)
      !
      ! Determine weighted SWP given the the maximum rate of water supply from
@@ -2781,6 +2781,7 @@ CONTAINS
      TYPE (soil_snow_type), INTENT(INOUT)      :: ssnow
      TYPE (soil_parameter_type), INTENT(INOUT) :: soil
      TYPE(canopy_type), INTENT(INOUT)          :: canopy ! vegetation variables
+     TYPE(veg_parameter_type), INTENT(IN)      :: veg
 
      REAL, PARAMETER :: MM_TO_M = 0.001
      REAL, PARAMETER :: KPA_2_MPa = 0.001
@@ -2809,7 +2810,7 @@ CONTAINS
      ! Estimate max transpiration from gradient-gravity / soil resistance
      DO j = 1, ms ! Loop over 6 soil layers
 
-        IF (ssnow%soilR(i,j) .GT. 0.0) THEN
+        IF (ssnow%soilR(i,j) .GT. 0.0 .AND. veg%froot(i,j) .GT. 0.0) THEN
            est_evap(j) = MAX(0.0, &
                         (ssnow%psi_soil(i,j) - min_root_wp) / ssnow%soilR(i,j))
         ELSE
@@ -2821,9 +2822,11 @@ CONTAINS
         !  est_evap(i) = 0.0
         !ENDIF
 
-        ! Soil water potential weighted by layer Emax (from SPA)
-        ssnow%weighted_psi_soil(i) = ssnow%weighted_psi_soil(i) + &
-                                     ssnow%psi_soil(i,j) * est_evap(j)
+        IF (veg%froot(i,j) .GT. 0.0) THEN
+           ! Soil water potential weighted by layer Emax (from SPA)
+           ssnow%weighted_psi_soil(i) = ssnow%weighted_psi_soil(i) + &
+                                        ssnow%psi_soil(i,j) * est_evap(j)
+        ENDIF
      END DO
      total_est_evap = SUM(est_evap)
 
