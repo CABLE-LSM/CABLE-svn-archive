@@ -2133,8 +2133,6 @@ CONTAINS
                    anx(i,1) = 0.0 - rdx(i,1)
                    anx(i,2) = 0.0 - rdx(i,2)
                 ELSE
-                   print*, veg%gmin(i)
-                   stop
                    CALL optimisation(canopy, rad, rad%qcan, vpd, press, tlfx(i), &
                                      csx, rad%fvlai, &
                                      ssnow%weighted_psi_soil(i), &
@@ -3329,7 +3327,7 @@ CONTAINS
 
 
          IF (e_canopy < e_cuticular) THEN
-            print*, "here", e_canopy, e_cuticular
+            !print*, "here", e_canopy, e_cuticular
             e_canopy = e_cuticular ! mol H2O m-2 s-1
          END IF
       END IF
