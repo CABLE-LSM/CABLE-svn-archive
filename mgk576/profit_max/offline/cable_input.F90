@@ -2834,6 +2834,8 @@ CONTAINS
          nmetpatches,'def')
     CALL readpar(ncid_met,'c_plant',completeSet,veg%c_plant,filename%met,           & ! mgk576, hydraulics
          nmetpatches,'def')
+    CALL readpar(ncid_met,'Kmax',completeSet,veg%Kmax,filename%met,           & ! mgk576, hydraulics
+         nmetpatches,'def')
     CALL readpar(ncid_met,'rp20',completeSet,veg%rp20,filename%met,             &
          nmetpatches,'def')
     CALL readpar(ncid_met,'rpcoef',completeSet,veg%rpcoef,filename%met,         &

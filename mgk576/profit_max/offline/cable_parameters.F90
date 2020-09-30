@@ -1207,6 +1207,10 @@ CONTAINS
 
     CASE(6)
        soil%zse = (/.022, .058, .154, .409, 1.085, 2.872/) ! layer thickness nov03
+
+       !soil%zse = (/.05, .4, 0.85, 0.7, 0.8, 1.8/) ! Experiment with one layer = 40 cm
+       !soil%zse = (/.022, .058, .134, .189, 1.325, 2.872/)  ! Experiment with top 4 layer = 40 cm
+
        !soil%zse = (/0.0286, 0.0754, 0.2002, 0.5317, 1.4105, 3.7336/) ! zse * 1.3 = 5.98 m, testing mgk576
     CASE(12)
        soil%zse = (/.022,  0.0500,    0.1300 ,   0.3250 ,   0.3250 ,   0.3000,  &
