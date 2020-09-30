@@ -202,7 +202,7 @@ CONTAINS
 
           CALL calc_soil_root_resistance(ssnow, soil, veg, bgc, root_length, i)
           CALL calc_swp(ssnow, soil, i)
-          CALL calc_weighted_swp_and_frac_uptake(ssnow, soil, canopy, &
+          CALL calc_weighted_swp_and_frac_uptake(ssnow, soil, canopy, veg, &
                                                  root_length, i)
 
        END DO
