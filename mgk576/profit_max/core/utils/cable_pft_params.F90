@@ -183,6 +183,8 @@ CONTAINS
        vegin%Kcrit(1) = vegin%Kmax(1) * 0.05
        vegin%b_plant(1) = 3.5
        vegin%c_plant(1) = 2.0
+       vegin%gmin(1) = 0.6376395  ! WSF single sided, above was double-sided, mmol m-2 s-1
+
        !PFT: evergreen_broadleaf
        !=========================================================
        vegin%canst1(2) =        0.100000
@@ -254,7 +256,6 @@ CONTAINS
        !vegin%Cs(2) = 120000.
 
        ! mgk576, hydraulics stuff
-       vegin%gmin(2) = 1.275279  ! mmol m-2 s-1
        !vegin%vcmax(2) = 0.000085
        !vegin%ejmax(2) = 0.000142
        vegin%g1(2) = 3.154297 ! 4.12
@@ -271,7 +272,7 @@ CONTAINS
        vegin%Kcrit(2) = vegin%Kmax(2) * 0.05
        vegin%b_plant(2) = 3.383559009924911!3.5
        vegin%c_plant(2) = 3.066498325156521 !2.0
-
+       vegin%gmin(2) = 0.6376395  ! WSF single sided, above was double-sided, mmol m-2 s-1
 
        !PFT: deciduous_needleleaf
        !=========================================================
