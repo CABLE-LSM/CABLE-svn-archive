@@ -1801,7 +1801,7 @@ CONTAINS
 
     REAL :: press
 
-    INTEGER, PARAMETER :: resolution = 400
+    INTEGER, PARAMETER :: resolution = 300
     REAL, DIMENSION(2) :: an_canopy
     REAL :: e_canopy
     REAL(r_2), DIMENSION(resolution) :: p
@@ -3263,7 +3263,6 @@ CONTAINS
                IF (e_leaf(k) > 0.00001) THEN ! i.e. there is a flux
                   gsw = e_leaf(k) / vpd * press ! mol H20 m-2 s-1
                   gsc = gsw / C%RGSWC ! mol CO2 m-2 s-1
-
                   call get_a_and_ci(Cs, tleaf, apar, an, gsc, &
                                     Vcmax, Jmax, Rd, Vj, Km)
 
@@ -3296,9 +3295,15 @@ CONTAINS
             e_leaves(j) = e_leaf(idx) ! mol H2O m-2 s-1
             p_leaves(j) = p(idx)
 
-            !    print*, "in", p(idx), apar
-            !
-            !end if
+            ! scale up cuticular conductance, mol H2O m-2 s-1
+            !e_cuticular = gmin * MMOL_2_MOL * rad%scalex(i,j) / press * vpd
+            e_cuticular = gmin * MMOL_2_MOL * rad%scalex(i,j) * vpd
+
+            ! Don't add gmin, instead use it as the lower boundary
+            IF (e_leaves(j) < e_cuticular) THEN
+               e_leaves(j) = e_cuticular ! mol H2O m-2 s-1
+            END IF
+
 
          END IF
       END DO
@@ -3317,21 +3322,12 @@ CONTAINS
          !    stop
          !end if
 
-
          e_canopy = sum(e_leaves) ! mol H2O m-2 s-1
 
-         !e_cuticular = ((gmin * MMOL_2_MOL * lai_leaf(i,1)) + &
-         !               (gmin * MMOL_2_MOL * lai_leaf(i,2))) / press * vpd
-         e_cuticular = ((gmin * MMOL_2_MOL * rad%scalex(i,1)) + &
-                        (gmin * MMOL_2_MOL * rad%scalex(i,2))) / press * vpd
 
 
-         IF (e_canopy < e_cuticular) THEN
-            !print*, "here", e_canopy, e_cuticular
-            e_canopy = e_cuticular ! mol H2O m-2 s-1
-         END IF
       END IF
-      !print*, "a-psi_soil:", sum(an_canopy), sum(e_leaves), canopy%psi_leaf(i), canopy%psi_soil_prev(i)
+
 
 
    END SUBROUTINE optimisation
