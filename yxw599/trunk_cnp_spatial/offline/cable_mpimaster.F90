@@ -479,6 +479,8 @@ CONTAINS
     ! Tell the workers if we're leaping
     CALL MPI_Bcast (leaps, 1, MPI_LOGICAL, 0, comm, ierr)
 
+    print *, 'ypw:mpimaster 1 start and end year',CABLE_USER%YearStart,  CABLE_USER%YearEnd
+
     ! outer loop - spinup loop no. ktau_tot :
     ktau_tot = 0
     ktau     = 0
@@ -800,6 +802,10 @@ CONTAINS
           ENDIF
           !IF (.NOT.spincasa) THEN
           ! time step loop over ktau
+
+
+          print *, 'ypw:mpimaster kstart kend dels', ktau,YYYY,kstart, kend, dels
+
           KTAULOOP:DO ktau=kstart, kend - 1
              !         ! increment total timstep counter
              !         ktau_tot = ktau_tot + 1
@@ -930,6 +936,11 @@ CONTAINS
              ! and refactor into worker code
 
              ktau_gl = oktau
+
+   !          print *, 'ypw: mpimaster: write_output',  &
+   !                    spinup,spinConv,CASAONLY, TRIM(cable_user%MetType), cable_user%consistency_check,output%averaging, &
+   !                    IS_CASA_TIME("write", yyyy, oktau, kstart,koffset, kend, ktauday, logn), ctime,   &
+   !                    ktau,kend,YYYY,cable_user%YearEnd
 
              IF((.NOT.spinup).OR.(spinup.AND.spinConv)) THEN
                 IF(icycle >0) THEN

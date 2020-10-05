@@ -373,8 +373,8 @@ CONTAINS
 
        casapool%ratioNCplant(npt,:)  = 1.0/ratioCNplant(iv1,:)
        casapool%ratioNPplant(npt,:)  = casabiome%ratioNPplantmin(iv1,:)
-       casapool%ratioNClitter(npt,:) = casapool%nlitter(npt,:)/(casapool%clitter(npt,:)+1.0e-10)
-       casapool%ratioNPlitter(npt,:) = casapool%nlitter(npt,:)/(casapool%plitter(npt,:)+1.0e-10)
+       casapool%ratioNClitter(npt,:) = max(0.10,casapool%nlitter(npt,:)/(casapool%clitter(npt,:)+1.0e-10))
+       casapool%ratioNPlitter(npt,:) = max(5.0,casapool%nlitter(npt,:)/(casapool%plitter(npt,:)+1.0e-10))
        casapool%ratioNCsoil(npt,:)   = 1.0/ratioCNsoil(iv1,:)
        casapool%ratioNPsoil(npt,:)   = ratioNPsoil(iso,:)
        casapool%ratioNCsoilmin(npt,:)   = 1.0/ratioCNsoilmax(iv1,:)
@@ -763,6 +763,9 @@ CONTAINS
     IF (initcasa==1) THEN
        IF (.NOT.cable_user%casa_fromzero) THEN
 #ifndef UM_BUILD
+          ! ypw
+          print *, 'read CASA initial CASA POOLs from netcdf file'
+
           CALL READ_CASA_RESTART_NC (  casamet, casapool, casaflux, phen )
 #endif
        ELSE
@@ -1474,9 +1477,10 @@ CONTAINS
     CALL casa_cnpcycle(veg,casabiome,casapool,casaflux,casamet, LALLOC)
     !! vh_js !!
     !CLN ndummy must be before pdummy!!!!
+    ! ndummy and p dummy modified by ypw
     IF (icycle<3) THEN
-       IF (icycle<2) CALL casa_ndummy(casapool)
-       CALL casa_pdummy(casapool)
+       IF (icycle<2) CALL casa_ndummy(casamet,casabal,casapool)
+       CALL casa_pdummy(casamet,casabal,casaflux,casapool)
     ENDIF
 
     CALL casa_cnpbal(casapool,casaflux,casabal)
@@ -1688,7 +1692,16 @@ CONTAINS
     STATUS = NF90_PUT_VAR(FILE_ID, VID4(2), casapool%nsoil )
     IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
 
-    IF (icycle ==3) THEN
+
+!    print *, 'ypw: writing casa restart'
+!    print *, 'icycle', icycle
+!    print *, 'restart filename', fname
+!    print *, 'ppools =', casapool%psoillab(1:10),casapool%psoilsorb(1:10),casapool%psoilocc(1:10)
+!    print *, 'pplant =',  casapool%pplant(1:10,:)
+!    print *, 'plitter =', casapool%plitter(1:10,:)
+!    print *, 'psoil =',   casapool%psoil(1:10,:)
+    ! ypw: comment out IF... ENDIF so that PPOOLs are written out for all icycle >0
+!    IF (icycle ==3) THEN
        STATUS = NF90_PUT_VAR(FILE_ID, VID1(5), casapool%psoillab )
        IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
 
@@ -1708,7 +1721,7 @@ CONTAINS
        STATUS = NF90_PUT_VAR(FILE_ID, VID3(3), casapool%plitter )
        IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
 
-    ENDIF
+!    ENDIF
     ! Close NetCDF file:
     STATUS = NF90_close(FILE_ID)
     IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
