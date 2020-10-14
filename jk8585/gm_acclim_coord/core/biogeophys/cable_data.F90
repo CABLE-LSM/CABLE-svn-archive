@@ -142,8 +142,9 @@ module cable_data_module
       real :: toptj     = 20.0
       real :: toptv     = 20.0
       real :: trefk     = 298.15  ! reference temperature K
-      real :: qs        = 0.5     ! exponent of water stress scalar for gs
-      real :: qm        = 0.5     ! exponent of water stress scalar for gm
+      real :: qs        = 0.50    ! exponent of water stress scalar for gs
+      real :: qm        = 0.75    ! exponent of water stress scalar for gm
+      real :: qb        = 0.25    ! exponent of water stress scalar for Vcmax and Jmax
    end type photosynthetic_constants
 
    ! instantiate major types of constants
@@ -201,7 +202,7 @@ module cable_data_module
          EGAMCC, EKCCC, EKOCC,                                                 &
          GAM0CCW, CONKC0CCW, CONKO0CCW,                                        &
          EGAMCCW, EKCCCW, EKOCCW,                                              &
-         RGBWC,TREFK, QS, QM,                                                  &
+         RGBWC,TREFK, QS, QM, QB,                                              &
          ! math constants
          PI_C,                                                                 &
          ! other constants
@@ -388,6 +389,7 @@ SUBROUTINE canopy_type_ptr(C)
    C%TREFK     => PHOTO%TREFK
    C%QS        => PHOTO%QS
    C%QM        => PHOTO%QM
+   C%QB        => PHOTO%QB
 
    ! math constants
    C%PI_C  => MATH%PI_C

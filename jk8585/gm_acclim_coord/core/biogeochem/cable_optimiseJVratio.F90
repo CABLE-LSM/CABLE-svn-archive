@@ -31,7 +31,7 @@ MODULE cable_optimise_JV_module
 
   ! variables local to module
   REAL, ALLOCATABLE :: APAR(:), Dleaf(:), Tleaf(:), cs(:), scalex(:), fwsoil(:), g0(:)
-  REAL :: Anet, vcmax00, bjv, g1, kc0, ko0, ekc, eko, gam0, egam, alpha, gm0, a1, D0, qs, qm
+  REAL :: Anet, vcmax00, bjv, g1, kc0, ko0, ekc, eko, gam0, egam, alpha, gm0, a1, D0, qs, qm, qb
   REAL :: convex, Neff, relcost_J, Rd0, Tgrowth, Thome
   INTEGER :: nt,kk
   !REAL, PARAMETER :: relcost_J = 1.6 ! Chen et al. Oecologia, 1993, 93: 63-69
@@ -97,6 +97,7 @@ CONTAINS
              vcmax00 = veg%vcmaxcc(k) ! vcmax at standard temperature (25degC)
              qs   = C%qs
              qm   = C%qm
+             qb   = C%qb
           else 
              Kc0  = C%conkc0
              Ko0  = C%conko0
@@ -106,8 +107,9 @@ CONTAINS
              egam = C%egam
              gm0  = veg%gm(k)    ! used in code but not in solution if explicit_gm = false
              vcmax00 = veg%vcmax(k) ! vcmax at standard temperature (25degC)
-             qs   = 1.0
+             qs   = 0.5
              qm   = 0.0
+             qb   = 1.0
           endif
           g1  = veg%g1(k)
           Rd0 = veg%cfrd(k) * veg%vcmax(k)
@@ -216,6 +218,31 @@ CONTAINS
 
   ! Copied from cable_canopy.f90 (is there a better way??)
   ! ------------------------------------------------------------------------------
+
+  FUNCTION light_inhibition(APAR) RESULT(xrd)
+    !Mercado, L. M., Huntingford, C., Gash, J. H. C., Cox, P. M.,
+    ! and Jogireddy, V.:
+    ! Improving the representation of radiation
+    !interception and photosynthesis for climate model applications,
+    !Tellus B, 59, 553-565, 2007.
+    ! Equation 3
+    ! (Brooks and Farquhar, 1985, as implemented by Lloyd et al., 1995).
+    ! Rc = Rd 0 < Io < 10 umol quanta m-2 s-1
+    ! Rc = [0.5 * 0.05 ln(Io)] Rd Io > 10 umol quanta m-2 s-1
+    ! JK: note that APAR is incoming radation in the original formulations
+    !     However, APAR considered a good proxy here
+    implicit none
+    
+    real, intent(in) :: APAR  ! absorbed PAR in umol m-2 s-1
+    real             :: xrd   ! light inhibition of Rd (0-1)
+
+    if (APAR > 10.0) then
+        xrd = 0.5 - 0.05 * log(APAR)
+    else
+        xrd = 1.0
+    endif
+                  
+  END FUNCTION light_inhibition
   
   subroutine fAn_c3(a, b, c, A2)
     
@@ -343,9 +370,9 @@ CONTAINS
           endif
           if (cable_user%acclimate_photosyn) then
              CALL xvcmxt3_acclim(Tleaf(k), Tgrowth, trf)
-             gamm = Vcmax0*scalex(k)*trf
+             gamm = Vcmax0*scalex(k)*trf*fwsoil(k)**qb
           else
-             gamm = Vcmax0*scalex(k)*xvcmxt3(Tleaf(k))
+             gamm = Vcmax0*scalex(k)*xvcmxt3(Tleaf(k))*fwsoil(k)**qb
           endif
           gm = gm0 * scalex(k) * max(0.15,fwsoil(k)**qm) * xgmesT(Tleaf(k))
           ! tdiff = Tleaf(k) - C%Trefk
@@ -354,7 +381,7 @@ CONTAINS
           gammastar = gam0 * EXP( ( egam / (C%rgas*C%trefk) ) &
                * (1.0 - C%trefk/Tleaf(k) ) )
 
-          Rd  = Rd0*scalex(k)*xrdt(Tleaf(k))
+          Rd  = Rd0*scalex(k)*xrdt(Tleaf(k))*fwsoil(k)**qb * light_inhibition(APAR(k)*1.0e6)
           kct = kc0 * EXP( ( ekc / (C%rgas*C%trefk) ) &
                * ( 1.0 - C%trefk/Tleaf(k) ) )
           kot = ko0 * EXP( ( eko / (C%rgas*C%trefk) ) &
@@ -393,9 +420,9 @@ CONTAINS
 
           if (cable_user%acclimate_photosyn) then
              call xejmxt3_acclim(Tleaf(k), Tgrowth, Thome, trf)
-             jmaxt = bjv*Vcmax0*scalex(k)*trf
+             jmaxt = bjv*Vcmax0*scalex(k)*trf*fwsoil(k)**qb
           else
-             jmaxt = bjv*Vcmax0*scalex(k)*xejmxt3(Tleaf(k))
+             jmaxt = bjv*Vcmax0*scalex(k)*xejmxt3(Tleaf(k))*fwsoil(k)**qb
           endif
           gamm = ej3x(APAR(k), alpha, convex, jmaxt) 
           beta = 2.0 * gammastar
@@ -481,9 +508,9 @@ CONTAINS
 
           if (cable_user%acclimate_photosyn) then
              cALL xvcmxt3_acclim(Tleaf(k), Tgrowth, trf)
-             gamm = Vcmax0*scalex(k)*trf
+             gamm = Vcmax0*scalex(k)*trf*fwsoil(k)**qb
           else
-             gamm = Vcmax0*scalex(k)*xvcmxt3(Tleaf(k))
+             gamm = Vcmax0*scalex(k)*xvcmxt3(Tleaf(k))*fwsoil(k)**qb
           endif
           gm = gm0 * scalex(k) * max(0.15,fwsoil(k)**qm) * xgmesT(Tleaf(k))
           tdiff = Tleaf(k) - C%Trefk
@@ -491,7 +518,7 @@ CONTAINS
           !     + C%gam2 * tdiff * tdiff )
           gammastar = gam0 * EXP( ( egam / (C%rgas*C%trefk) ) &
                * (1.0 - C%trefk/Tleaf(k) ) )
-          Rd  = Rd0*scalex(k)*xrdt(Tleaf(k))
+          Rd  = Rd0*scalex(k)*xrdt(Tleaf(k))*fwsoil(k)**qb * light_inhibition(APAR(k)*1.0e6)
           kct = kc0 * EXP( ( ekc / (C%rgas*C%trefk) ) &
                * ( 1.0 - C%trefk/Tleaf(k) ) )
           kot = ko0 * EXP( ( eko / (C%rgas*C%trefk) ) &
@@ -530,9 +557,9 @@ CONTAINS
 
           if (cable_user%acclimate_photosyn) then
              call xejmxt3_acclim(Tleaf(k), Tgrowth, Thome, trf)
-             jmaxt = bjv*Vcmax0*scalex(k)*trf
+             jmaxt = bjv*Vcmax0*scalex(k)*trf*fwsoil(k)**qb
           else
-             jmaxt = bjv*Vcmax0*scalex(k)*xejmxt3(Tleaf(k))
+             jmaxt = bjv*Vcmax0*scalex(k)*xejmxt3(Tleaf(k))*fwsoil(k)**qb
           endif
           gamm = ej3x(APAR(k), alpha,convex, jmaxt) 
           beta = 2.0 * gammastar
@@ -616,9 +643,9 @@ CONTAINS
           endif
           if (cable_user%acclimate_photosyn) then
              CALL xvcmxt3_acclim(Tleaf(k), Tgrowth, trf)
-             gamm = Vcmax0*scalex(k)*trf
+             gamm = Vcmax0*scalex(k)*trf*fwsoil(k)**qb
           else
-             gamm = Vcmax0*scalex(k)*xvcmxt3(Tleaf(k))
+             gamm = Vcmax0*scalex(k)*xvcmxt3(Tleaf(k))*fwsoil(k)**qb
           endif
           gm = gm0 * scalex(k) * max(0.15,fwsoil(k)**qm) * xgmesT(Tleaf(k))
           tdiff = Tleaf(k) - C%Trefk
@@ -626,7 +653,7 @@ CONTAINS
           !     + C%gam2 * tdiff * tdiff )
           gammastar = gam0 * EXP( ( egam / (C%rgas*C%trefk) ) &
                * (1.0 - C%trefk/Tleaf(k) ) )
-          Rd  = Rd0 * scalex(k) * xrdt(Tleaf(k))
+          Rd  = Rd0 * scalex(k) * xrdt(Tleaf(k))*fwsoil(k)**qb * light_inhibition(APAR(k)*1.0e6)
           kct = kc0 * EXP( ( ekc / (C%rgas*C%trefk) ) &
                * ( 1.0 - C%trefk/Tleaf(k) ) )
           kot = ko0 * EXP( ( eko / (C%rgas*C%trefk) ) &
@@ -665,9 +692,9 @@ CONTAINS
 
           if (cable_user%acclimate_photosyn) then
              call xejmxt3_acclim(Tleaf(k), Tgrowth, Thome, trf)
-             jmaxt = bjv*Vcmax0*scalex(k)*trf
+             jmaxt = bjv*Vcmax0*scalex(k)*trf*fwsoil(k)**qb
           else
-             jmaxt = bjv*Vcmax0*scalex(k)*xejmxt3(Tleaf(k))
+             jmaxt = bjv*Vcmax0*scalex(k)*xejmxt3(Tleaf(k))*fwsoil(k)**qb
           endif
           gamm = ej3x(APAR(k), alpha,convex, jmaxt) 
           beta  = 2.0 * gammastar
@@ -832,9 +859,9 @@ CONTAINS
 
           if (cable_user%acclimate_photosyn) then
              CALL xvcmxt3_acclim(Tleaf(k), Tgrowth, trf)
-             gamm = Vcmax0*scalex(k)*trf
+             gamm = Vcmax0*scalex(k)*trf*fwsoil(k)**qb
           else
-             gamm = Vcmax0*scalex(k)*xvcmxt3(Tleaf(k))
+             gamm = Vcmax0*scalex(k)*xvcmxt3(Tleaf(k))*fwsoil(k)**qb
           endif
           gm = gm0 * scalex(k) * max(0.15,fwsoil(k)**qm) * xgmesT(Tleaf(k))
           tdiff = Tleaf(k) - C%Trefk
@@ -842,7 +869,7 @@ CONTAINS
           !                                 + C%gam2 * tdiff * tdiff )
           gammastar = gam0 * EXP( ( egam / (C%rgas*C%trefk) ) &
                * (1.0 - C%trefk/Tleaf(k) ) )
-          Rd = Rd0*scalex(k)*xrdt(Tleaf(k))
+          Rd = Rd0*scalex(k)*xrdt(Tleaf(k))*fwsoil(k)**qb * light_inhibition(APAR(k)*1.0e6)
           kct = kc0 * EXP( ( ekc / (C%rgas*C%trefk) ) &
                * ( 1.0 - C%trefk/Tleaf(k) ) )
           kot = ko0 *EXP ( ( eko / (C%rgas*C%trefk) ) &
@@ -871,9 +898,9 @@ CONTAINS
 
           if (cable_user%acclimate_photosyn) then
              call xejmxt3_acclim(Tleaf(k), Tgrowth, Thome, trf)
-             jmaxt = bjv*Vcmax0*scalex(k)*trf
+             jmaxt = bjv*Vcmax0*scalex(k)*trf*fwsoil(k)**qb
           else
-             jmaxt = bjv*Vcmax0*scalex(k)*xejmxt3(Tleaf(k))
+             jmaxt = bjv*Vcmax0*scalex(k)*xejmxt3(Tleaf(k))*fwsoil(k)**qb
           endif
 
           gamm = ej3x(APAR(k), alpha,convex, jmaxt) 
