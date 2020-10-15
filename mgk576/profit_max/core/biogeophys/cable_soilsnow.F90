@@ -2855,7 +2855,7 @@ CONTAINS
      ! Fraction uptake in each layer by Emax in each layer
      IF (SPA_relative_uptake) THEN
 
-        IF (total_est_evap > 0.0) THEN
+        IF (total_est_evap > 0.0 .AND. veg%froot(i,j) .GT. 0.0) THEN
            DO j = 1, ms ! Loop over 6 soil layers
 
               ! fraction of water taken from layer, I've lower bounded frac
