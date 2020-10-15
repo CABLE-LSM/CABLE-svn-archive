@@ -2793,7 +2793,7 @@ CONTAINS
 
      REAL, DIMENSION(ms)            :: swp, est_evap
      REAL, DIMENSION(:), INTENT(IN) :: root_length
-     REAL                           :: total_est_evap, swp_diff
+     REAL                           :: total_est_evap, swp_diff, depth_sum
 
      INTEGER, INTENT(IN) :: i
      INTEGER             :: j
@@ -2836,11 +2836,15 @@ CONTAINS
         ssnow%weighted_psi_soil(i) = ssnow%weighted_psi_soil(i) / total_est_evap
      ELSE
         ssnow%weighted_psi_soil(i) = 0.0
+        depth_sum = 0.0
         DO j = 1, ms ! Loop over 6 soil layers
-           ssnow%weighted_psi_soil(i) = ssnow%weighted_psi_soil(i) + &
-                                          ssnow%psi_soil(i,j) * soil%zse(j)
+           IF (veg%froot(i,j) .GT. 0.0) THEN
+              ssnow%weighted_psi_soil(i) = ssnow%weighted_psi_soil(i) + &
+                                           ssnow%psi_soil(i,j) * soil%zse(j)
+              depth_sum = depth_sum + soil%zse(j)
+           ENDIF
         END DO
-        ssnow%weighted_psi_soil(i) = ssnow%weighted_psi_soil(i) / SUM(soil%zse)
+        ssnow%weighted_psi_soil(i) = ssnow%weighted_psi_soil(i) / depth_sum
      END IF
 
      IF (ssnow%weighted_psi_soil(i) < -50.0) THEN
