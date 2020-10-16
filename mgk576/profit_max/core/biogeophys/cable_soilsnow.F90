@@ -2753,7 +2753,7 @@ CONTAINS
        ! what is used anyway
        t_over_t_sat = MAX(1.0e-9, MIN(1.0, ssnow%wb(i,j) / soil%ssat(i)))
        !ssnow%psi_soil(i,j) = psi_sat * t_over_t_sat**(-soil%bch(i))
-       ssnow%psi_soil(i,j) = MAX(-10.0, psi_sat * t_over_t_sat**(-soil%bch(i)))
+       ssnow%psi_soil(i,j) = MAX(-50.0, psi_sat * t_over_t_sat**(-soil%bch(i)))
     END DO
 
   END SUBROUTINE calc_swp
@@ -2818,9 +2818,9 @@ CONTAINS
         ENDIF
 
         ! No uptake from frozen soils
-        IF ( ssnow%wbice(i,j) .gt. 0.0 ) THEN
-           est_evap(j) = 0.0
-        ENDIF
+        !IF ( ssnow%wbice(i,j) .gt. 0.01 ) THEN
+        !  est_evap(i) = 0.0
+        !ENDIF
 
         IF (veg%froot(i,j) .GT. 0.0) THEN
            ! Soil water potential weighted by layer Emax (from SPA)
@@ -2836,7 +2836,6 @@ CONTAINS
         ssnow%weighted_psi_soil(i) = ssnow%weighted_psi_soil(i) / total_est_evap
      ELSE
         ssnow%weighted_psi_soil(i) = 0.0
-
         depth_sum = 0.0
         DO j = 1, ms ! Loop over 6 soil layers
            IF (veg%froot(i,j) .GT. 0.0) THEN
@@ -2848,15 +2847,15 @@ CONTAINS
         ssnow%weighted_psi_soil(i) = ssnow%weighted_psi_soil(i) / depth_sum
      END IF
 
-     IF (ssnow%weighted_psi_soil(i) < -10.0) THEN
-        ssnow%weighted_psi_soil(i) = -10.0
+     IF (ssnow%weighted_psi_soil(i) < -50.0) THEN
+        ssnow%weighted_psi_soil(i) = -50.0
      ENDIF
 
      ! SPA method to figure out relative water uptake.
      ! Fraction uptake in each layer by Emax in each layer
      IF (SPA_relative_uptake) THEN
 
-        IF (total_est_evap > 0.0 .AND. veg%froot(i,j) .GT. 0.0) THEN
+        IF (total_est_evap > 0.0) THEN
            DO j = 1, ms ! Loop over 6 soil layers
 
               ! fraction of water taken from layer, I've lower bounded frac
@@ -2875,8 +2874,7 @@ CONTAINS
            END DO
         ELSE
            ! No water was evaporated
-           !ssnow%fraction_uptake(i,:) = 1.0 / FLOAT(ms)
-            ssnow%fraction_uptake(i,:) = 0.0
+           ssnow%fraction_uptake(i,:) = 1.0 / FLOAT(ms)
         END IF
 
      ! Use Taylor-Keppler root water uptake distribution.

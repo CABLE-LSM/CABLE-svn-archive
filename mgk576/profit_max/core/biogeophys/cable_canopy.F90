@@ -3349,7 +3349,7 @@ CONTAINS
       REAL, INTENT(INOUT) :: An_new, gsc
       REAL :: min_ci, max_ci, An, ci_new, gsc_new, Cs, Ac, Aj, A, gamma_star
       REAL, PARAMETER :: tol = 1E-07 !1E-12
-
+      REAL :: prev
       INTEGER :: iter
 
       min_ci = 0.0 ! CABLE assumes gamma_star = 0
@@ -3358,11 +3358,12 @@ CONTAINS
       gamma_star = 0.0 ! cable says it is 0
       iter = 0
 
+      prev = tol
       DO
          ci_new = 0.5 * (max_ci + min_ci) ! umol mol-1
 
          ! Find the matching A given the Ci
-         IF (ci_new < 1E-05) THEN
+         IF (ci_new < tol) THEN
             An = 0.0 ! umol m-2 s-1
          ELSE
             Ac = assim(ci_new, gamma_star, Vcmax, Km) ! umol m-2 s-1
@@ -3374,9 +3375,10 @@ CONTAINS
          gsc_new = An / (Cs - ci_new) ! mol m-2 s-1
 
          ! Have we found a matching gsc?
-         !print*, "if", ci_new, max_ci, min_ci, abs(gsc_new - gsc) / gsc, tol
+         !print*, "if", ci_new, max_ci, gsc_new, abs(gsc_new - gsc) / gsc, tol, prev
          IF (abs(gsc_new - gsc) / gsc < tol) THEN
             An_new = An ! umol m-2 s-1
+            !print*, ci_new, ci_new/Cs
             EXIT
          ! narrow search space, shift min up
          !print*, "else if", gsc_new, gsc
@@ -3391,8 +3393,15 @@ CONTAINS
             max_ci = ci_new ! umol mol-1
          END IF
 
+         IF (abs(max_ci - min_ci) < tol) THEN
+            An_new = An ! umol m-2 s-1
+            !print*, "here", ci_new, ci_new/cs
+            EXIT
+         END IF
 
-         IF (abs(max_ci - min_ci) < 1E-04) THEN
+         prev = abs(gsc_new - gsc) / gsc
+         IF (abs(gsc_new - gsc) / gsc .eq. prev .and. &
+             abs(gsc_new - gsc) / gsc < 1e-4) THEN
             An_new = An ! umol m-2 s-1
             EXIT
          END IF
@@ -3400,6 +3409,8 @@ CONTAINS
          iter = iter + 1
          IF (iter > 500) THEN
             An_new = An
+            print*, "stuck"
+            STOP
             EXIT
             !print*, "stuck"
             !STOP
@@ -3407,6 +3418,58 @@ CONTAINS
       END DO
 
    END SUBROUTINE get_a_and_ci
+   ! ---------------------------------------------------------------------------
+
+   ! ---------------------------------------------------------------------------
+   SUBROUTINE get_a_and_cixxxx(Cs, tleaf, par, An_new, gsc, Vcmax, Jmax, Rd, Vj, Km)
+
+      ! Find the matching An and Ci for a given gsc.
+      !
+      ! Martin De Kauwe, 27th August, 2020
+
+      USE cable_def_types_mod
+      USE cable_common_module
+
+      IMPLICIT NONE
+
+      REAL, INTENT(IN) :: tleaf, par, Vcmax, Jmax, Rd, Vj, Km
+      REAL, INTENT(INOUT) :: An_new, gsc
+      REAL :: min_ci, max_ci, An, ci_new, gsc_new, Cs, Ac, Aj, A, gamma_star
+      REAL, PARAMETER :: tol = 1E-07 !1E-12
+      REAL :: marker
+      INTEGER :: iter
+
+      min_ci = 0.0 ! CABLE assumes gamma_star = 0
+      max_ci = Cs  ! umol m-2 s-1
+      An_new  = 0.0 ! umol m-2 s-1
+      gamma_star = 0.0 ! cable says it is 0
+      iter = 0
+
+      ci_new = min_ci ! start at compensation point
+
+      DO WHILE (ci_new <= Cs)
+
+         ! var >= marker .OR. ci >= ca)
+         ci_new = ci_new + 0.1
+
+         Ac = assim(ci_new, gamma_star, Vcmax, Km) ! umol m-2 s-1
+         Aj = assim(ci_new, gamma_star, Vj, 2.0*gamma_star) ! umol m-2 s-1
+         A = -QUADP(1.0-1E-04, Ac+Aj, Ac*Aj) ! umol m-2 s-1
+         An = A - Rd ! Net photosynthesis, umol m-2 s-1
+         gsc_new = An / (Cs - ci_new) ! mol m-2 s-1
+
+         marker = gsc * (Cs - ci_new)
+         IF (marker <= An) THEN
+            EXIT
+         END IF
+
+         !print*, ci_new, Cs, An, gsc_new, gsc
+      END DO
+      !
+      !print*, "end", An, ci_new, gsc_new, gsc
+      !stop
+
+   END SUBROUTINE get_a_and_cixxxx
    ! ---------------------------------------------------------------------------
 
    ! ---------------------------------------------------------------------------
