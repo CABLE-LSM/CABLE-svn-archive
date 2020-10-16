@@ -3409,8 +3409,6 @@ CONTAINS
          iter = iter + 1
          IF (iter > 500) THEN
             An_new = An
-            print*, "stuck"
-            STOP
             EXIT
             !print*, "stuck"
             !STOP

@@ -2818,9 +2818,9 @@ CONTAINS
         ENDIF
 
         ! No uptake from frozen soils
-        !IF ( ssnow%wbice(i,j) .gt. 0.01 ) THEN
-        !  est_evap(i) = 0.0
-        !ENDIF
+        IF ( ssnow%wbice(i,j) .gt. 0.0 ) THEN
+           est_evap(j) = 0.0
+        ENDIF
 
         IF (veg%froot(i,j) .GT. 0.0) THEN
            ! Soil water potential weighted by layer Emax (from SPA)
