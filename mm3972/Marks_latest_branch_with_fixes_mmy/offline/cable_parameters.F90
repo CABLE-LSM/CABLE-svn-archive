@@ -1414,10 +1414,10 @@ CONTAINS
     ENDWHERE
     ! Soil ice:
 
-   ! _____ MMY _____
-   ssnow%wb(:, :) = 0.3
-   ssnow%GWwb     = 0.45
-   ! _______________
+   ! ! _____ MMY to match LIS _____
+   ! ssnow%wb(:, :) = 0.3
+   ! ssnow%GWwb     = 0.45
+   ! ! _______________
 
    WHERE(ssnow%tgg(:, :) < 273.16)
      ssnow%wbice(:,:) = ssnow%wb(:, :) * 0.8
@@ -1430,7 +1430,7 @@ CONTAINS
    ssnow%rtevap_unsat = 0.0
    ssnow%satfrac = 0.5
    ssnow%wbliq = ssnow%wb - ssnow%wbice
-   !ssnow%GWwb = soil%GWssat_vec ! MMY
+   ssnow%GWwb = soil%GWssat_vec ! MMY
 
    ssnow%wb_hys = -1.0e+36
    ssnow%hys_fac = 1.0
@@ -1763,10 +1763,10 @@ CONTAINS
 
 
         ! ___________________ MMY for comparing with LIS _____________________
-        !ELSE
-        !  DO klev=1,ms
-        !      soil%hyds_vec(:,klev) = soil%hyds_vec(:,klev)*exp(-soil%hkrz(:)*(soil_depth(:,klev)-soil%zdepth(:)))
-        !  END DO
+        ELSE
+         DO klev=1,ms
+             soil%hyds_vec(:,klev) = soil%hyds_vec(:,klev)*exp(-soil%hkrz(:)*(soil_depth(:,klev)-soil%zdepth(:)))
+         END DO
         ! ____________________________________________________________________
 
        END IF  !use either uni or multi cosby transfer func

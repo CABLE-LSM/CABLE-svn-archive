@@ -163,20 +163,20 @@ subroutine cable_pft_params()
     vegin%canst1(2) =        0.100000
    vegin%length(2) =        0.100000
     vegin%width(2) =        0.050000
-    vegin%vcmax(2) =        0.000065 ! 0.000055 ! MMY
+    vegin%vcmax(2) =        0.000055   ! 0.000065 LIS ! MMY
     vegin%ejmax(2) =        0.000000
        vegin%hc(2) =       35.000000
     vegin%xfang(2) =        0.100000
-     vegin%rp20(2) =        1.1342   ! 0.600000 ! MMY
+     vegin%rp20(2) =        0.600000   ! 1.1342 LIS   ! MMY
    vegin%rpcoef(2) =        0.083200
      vegin%rs20(2) =        1.000000
       vegin%wai(2) =        1.000000
  vegin%rootbeta(2) =        0.962000
    vegin%shelrb(2) =        2.000000
-    vegin%vegcf(2) =        1.95     ! 14.000000 ! MMY
+    vegin%vegcf(2) =        14.000000  ! 1.95 LIS ! MMY
     vegin%frac4(2) =        0.000000
-  vegin%xalbnir(2) =        0.96     ! 1.000000 ! MMY
-    vegin%extkn(2) =        0.7      ! 0.001000 ! MMY
+  vegin%xalbnir(2) =        1.000000   ! 0.96 LIS ! MMY
+    vegin%extkn(2) =        0.001000   ! 0.7 LIS  ! MMY
    vegin%tminvj(2) =      -15.000000
    vegin%tmaxvj(2) =      -10.000000
     vegin%vbeta(2) =        2.000000
@@ -186,10 +186,10 @@ subroutine cable_pft_params()
     vegin%froot(4,2) =        0.200000
     vegin%froot(5,2) =        0.200000
     vegin%froot(6,2) =        0.200000
-     vegin%refl(1,2) =        0.2  !0.090000 ! MMY
-     vegin%taul(1,2) =        0.05 !0.090000 ! MMY
-     vegin%refl(2,2) =        0.45 !0.290000 ! MMY
-     vegin%taul(2,2) =        0.25 !0.290000 ! MMY
+     vegin%refl(1,2) =        0.090000  ! 0.2 LIS  ! MMY
+     vegin%taul(1,2) =        0.090000  ! 0.05 LIS ! MMY
+     vegin%refl(2,2) =        0.290000  ! 0.45 LIS ! MMY
+     vegin%taul(2,2) =        0.290000  ! 0.25 LIS ! MMY
      vegin%refl(3,2) =        0.010000
      vegin%taul(3,2) =        0.010000
     vegin%csoil(1,2) =      303.000000
@@ -213,7 +213,7 @@ subroutine cable_pft_params()
       vegin%ekc(2) =    59430.000000
       vegin%eko(2) =    36000.000000
        vegin%g0(2) =        0.000000
-       vegin%g1(2) =        4.1148    ! 4.114762 ! MMY
+       vegin%g1(2) =        4.114762    ! 4.1148 LIS ! MMY
        vegin%zr(2) =        3.000000
     vegin%clitt(2) =        6.000000
 
@@ -341,7 +341,7 @@ subroutine cable_pft_params()
    vegin%length(5) =        0.100000
     vegin%width(5) =        0.005000
     vegin%vcmax(5) =        0.000040
-    vegin%ejmax(5) =        0.000080 ! 0.000000 ! MMY
+    vegin%ejmax(5) =        0.000000 ! 0.000080 LIS ! MMY
        vegin%hc(5) =        0.600000
     vegin%xfang(5) =        0.010000
      vegin%rp20(5) =        1.000000
@@ -399,7 +399,7 @@ subroutine cable_pft_params()
     vegin%canst1(6) =        0.100000
    vegin%length(6) =        0.300000
     vegin%width(6) =        0.010000
-    vegin%vcmax(6) =        0.000010 !0.000060 ! MMY uses LIS value
+    vegin%vcmax(6) =        0.000060 ! 0.000010 LIS ! MMY uses LIS value
     vegin%ejmax(6) =        0.000000
        vegin%hc(6) =        0.567000
     vegin%xfang(6) =       -0.300000
@@ -407,7 +407,7 @@ subroutine cable_pft_params()
    vegin%rpcoef(6) =        0.083200
      vegin%rs20(6) =        1.000000
       vegin%wai(6) =        0.000000
- vegin%rootbeta(6) =        0.972    ! 0.943000 ! MMY uses LIS value
+ vegin%rootbeta(6) =        0.943000 ! 0.972 LIS ! MMY uses LIS value
    vegin%shelrb(6) =        2.000000
     vegin%vegcf(6) =        7.000000
     vegin%frac4(6) =        0.000000
@@ -449,7 +449,7 @@ subroutine cable_pft_params()
       vegin%ekc(6) =    59430.000000
       vegin%eko(6) =    36000.000000
        vegin%g0(6) =        0.000000
-       vegin%g1(6) =        4.6948 ! 5.248500 ! MMY using LIS value
+       vegin%g1(6) =        5.248500 ! 4.6948 LIS ! MMY using LIS value
        vegin%zr(6) =        0.500000
     vegin%clitt(6) =        2.000000
 
@@ -1106,7 +1106,7 @@ subroutine cable_pft_params()
   first_call = .false.
 
    ! new calculation dleaf since April 2012 (cable v1.8 did not use width)
-   vegin%dleaf = 0.1000000 ! SQRT(vegin%width * vegin%length) ! MMY match veg type 7 in LIS
+   vegin%dleaf = SQRT(vegin%width * vegin%length) ! 0.1000000 LIS ! MMY match veg type 7 in LIS
 
 End subroutine cable_pft_params
 

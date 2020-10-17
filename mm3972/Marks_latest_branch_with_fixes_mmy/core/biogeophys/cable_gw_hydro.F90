@@ -787,19 +787,19 @@ END SUBROUTINE remove_transGW
 
     CALL aquifer_recharge(dels,ssnow,soil,veg)
 
-    ! _____________________ MMY _______________________
-    print *, 'ssnow%Qrecharge : ', ssnow%Qrecharge
-    print *, 'ssnow%hk : ', ssnow%hk
-    print *, 'ssnow%GWhk : ', ssnow%GWhk
-    print *, 'ssnow%GWsmp : ', ssnow%GWsmp
-    print *, 'ssnow%smp : ', ssnow%smp
-    print *, 'ssnow%GWzq : ', ssnow%GWzq
-    print *, 'ssnow%zq : ', ssnow%zq
-    ! ___________________________________________________
+    ! ! _____________________ MMY _______________________
+    ! print *, 'ssnow%Qrecharge : ', ssnow%Qrecharge
+    ! print *, 'ssnow%hk : ', ssnow%hk
+    ! print *, 'ssnow%GWhk : ', ssnow%GWhk
+    ! print *, 'ssnow%GWsmp : ', ssnow%GWsmp
+    ! print *, 'ssnow%smp : ', ssnow%smp
+    ! print *, 'ssnow%GWzq : ', ssnow%GWzq
+    ! print *, 'ssnow%zq : ', ssnow%zq
+    ! ! ___________________________________________________
 
     CALL trimb(at,bt,ct,rt,ms)                       !use the defulat cable tridiag solution
 
-    print *, 'before update, wbliq: ', ssnow%wbliq(:,ms) ! MMY
+    ! print *, 'before update, wbliq: ', ssnow%wbliq(:,ms) ! MMY
 
     do k=1,ms
        do i=1,mp
@@ -810,12 +810,12 @@ END SUBROUTINE remove_transGW
     do i=1,mp
        ssnow%wbliq(i,ms) = ssnow%wbliq(i,ms) - ssnow%Qrecharge(i)*dels/(m2mm*soil%zse_vec(i,ms))
     end do
-    print *, 'after update, wbliq: ', ssnow%wbliq(:,ms) ! MMY
-    print *, 'before update, GWwb: ', ssnow%GWwb ! MMY
+    ! print *, 'after update, wbliq: ', ssnow%wbliq(:,ms) ! MMY
+    ! print *, 'before update, GWwb: ', ssnow%GWwb ! MMY
     do i=1,mp
        ssnow%GWwb(i) = ssnow%GWwb(i)  +  (ssnow%Qrecharge(i)-ssnow%qhlev(i,ms+1))*dels/(m2mm*soil%GWdz(i))
     end do
-    print *, 'after update, GWwb: ', ssnow%GWwb ! MMY
+    ! print *, 'after update, GWwb: ', ssnow%GWwb ! MMY
     !determine the available pore space
     !volumetric
     do k=1,ms
@@ -894,7 +894,7 @@ END SUBROUTINE remove_transGW
           xsi = (soil%GWwatr(i) - ssnow%GWwb(i)) / (m2mm*soil%GWdz(i))  !mm ! MMY
           ssnow%GWwb(i) = soil%GWwatr(i) ! MMY
           ssnow%qhz(i) = ssnow%qhz(i) - xsi / dels
-          if (ssnow%qhz(i) .lt. 0.) print *, " MMY ===> Soil is too dry, found in SUBROUTINE smoistgw"
+          ! if (ssnow%qhz(i) .lt. 0.) print *, " MMY ===> Soil is too dry, found in SUBROUTINE smoistgw"
        end if
        ! _______________________________________________________________________
    end do
@@ -2377,8 +2377,8 @@ END SUBROUTINE calc_soil_hydraulic_props
      ! _____________________ MMY BUG it forgot to calculate the aquifer __________________
           !Aquifer potential
           do i=1,mp
-             print *, "GWssat_vec:", soil%GWssat_vec(i) ! MMY
-             print *, "soil%GWwatr:", soil%GWwatr(i) ! MMY
+             ! print *, "GWssat_vec:", soil%GWssat_vec(i) ! MMY
+             ! print *, "soil%GWwatr:", soil%GWwatr(i) ! MMY
              s_mid(i) = (wb_temp(i,ms+1)-soil%GWwatr(i))/(soil%GWssat_vec(i)-soil%GWwatr(i))
              s_mid(i) = min(max(s_mid(i),0.001_r_2),1._r_2)
 

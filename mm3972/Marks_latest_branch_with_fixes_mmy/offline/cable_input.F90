@@ -3108,11 +3108,11 @@ SUBROUTINE get_parameters_met(soil,veg,bgc,rough,completeSet)
    CALL readpar(ncid_met,'watr',completeSet,soil%watr,filename%met,            &
                 nmetpatches,'ms')
 
-    soil%GWhyds_vec(:) = soil%hyds_vec(:,ms) ! MMY to unify with LIS
-    soil%GWssat_vec(:) = soil%ssat_vec(:,ms) ! MMY to unify with LIS
-    soil%GWsucs_vec(:) = soil%sucs_vec(:,ms) ! MMY to unify with LIS
-    soil%GWbch_vec(:)  = soil%bch_vec(:,ms)  ! MMY to unify with LIS
-    soil%GWwatr(:)     = soil%watr(:,ms)     ! MMY to unify with LIS
+    ! soil%GWhyds_vec(:) = soil%hyds_vec(:,ms) ! MMY to unify with LIS
+    ! soil%GWssat_vec(:) = soil%ssat_vec(:,ms) ! MMY to unify with LIS
+    ! soil%GWsucs_vec(:) = soil%sucs_vec(:,ms) ! MMY to unify with LIS
+    ! soil%GWbch_vec(:)  = soil%bch_vec(:,ms)  ! MMY to unify with LIS
+    ! soil%GWwatr(:)     = soil%watr(:,ms)     ! MMY to unify with LIS
     ! ______________________________________________________________
 END SUBROUTINE get_parameters_met
 
