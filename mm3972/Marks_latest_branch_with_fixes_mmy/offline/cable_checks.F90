@@ -285,15 +285,48 @@ SUBROUTINE mass_balance(dels,ktau, ssnow,soil,canopy,met,                       
    IF ( cable_user%GW_MODEL) THEN ! MMY
    ! ________________ MMY, Water Balance Equation for GW_ON _______________
      bal%wbal = REAL(met%precip - canopy%delwc - ssnow%snowd+ssnow%osnowd       &
-         - ssnow%runoff-(canopy%fevw+canopy%fevc                                &
+         - ssnow%runoff-(canopy%fevw+canopy%fevc                           & ! MMY add dels
          + canopy%fes/ssnow%cls)*dels/air%rlam - delwb) ! remove qrecharge
    ! ______________________________________________________________________
    ELSE ! MMY
-     bal%wbal = REAL(met%precip - canopy%delwc - ssnow%snowd+ssnow%osnowd        &
-         - ssnow%runoff-(canopy%fevw+canopy%fevc                                &
+     bal%wbal = REAL(met%precip - canopy%delwc - ssnow%snowd+ssnow%osnowd      &
+         - ssnow%runoff-(canopy%fevw+canopy%fevc                          & ! MMY add dels
          + canopy%fes/ssnow%cls)*dels/air%rlam - delwb - ssnow%qrecharge)
    END IF ! MMY
+   ! _________________ MMY _________________
 
+   print *, "met ===>"
+   print *, 'Year:        ',met%year
+   print *, 'Month:       ',met%moy
+   print *, 'Day of year: ',met%doy
+   print *, 'Hour:        ',met%hod
+   print *, 'CO2:         ',met%ca
+   print *, 'SWdown:      ',met%fsd
+   print *, 'LWdown:      ',met%fld
+   print *, 'TotalPrecip: ',met%precip
+   print *, 'Snowf:       ',met%precip_sn
+   print *, 'Tk:          ',met%tk
+   print *, 'Pmb:         ',met%pmb
+   print *, 'Ua:          ',met%ua
+   print *, 'Qv:          ',met%qv
+   print *, 'Coszen:      ',met%coszen
+   
+   print *, "water bal ===>"
+   print *, "ktau : ", ktau
+   print *, "bal%wbal : ", bal%wbal
+   print *, "met%precip : ", met%precip
+   print *, "-canopy%delwc : ", - canopy%delwc
+   print *, "-ssnow%snowd+ssnow%osnowd : ", -ssnow%snowd+ssnow%osnowd
+   print *, "-ssnow%runoff : ", -ssnow%runoff
+   print *, "canopy%fevw : ", canopy%fevw
+   print *, "canopy%fevc : ", canopy%fevc
+   print *, "canopy%fes : ", canopy%fes
+   print *, "ssnow%cls : ", ssnow%cls
+   print *, "air%rlam : ", air%rlam
+   print *, "-delwb : ", -delwb
+   print *, "wb : ", ssnow%wb
+   print *, "GWwb : ", ssnow%GWwb
+   ! _______________________________________
    ! Canopy water balance: precip-change.can.storage-throughfall-evap+dew
    canopy_wbal = REAL(met%precip-canopy%delwc-canopy%through                   &
         - (canopy%fevw+MIN(canopy%fevc,0.0_r_2))*dels/air%rlam)
@@ -319,6 +352,7 @@ SUBROUTINE mass_balance(dels,ktau, ssnow,soil,canopy,met,                       
       bal%evap_tot = bal%evap_tot                                              &
            + (canopy%fev+canopy%fes/ssnow%cls) * dels/air%rlam
    END IF
+   print *, "bal%wbal_tot : ", bal%wbal_tot ! MMY
 
 END SUBROUTINE mass_balance
 
@@ -377,6 +411,22 @@ SUBROUTINE energy_balance( dels,ktau,met,rad,canopy,bal,ssnow,                  
          & -canopy%fev-canopy%fes & !*ssnow%cls &
          & -canopy%fh -canopy%ga
 
+     ! _________________ MMY _________________
+     print *, "energy bal ===>"
+     print *, "ktau : ", ktau
+     print *, "bal%Ebal : ", bal%Ebal
+     print *, "SUM(rad%qcan(:,:,1),2) : ", SUM(rad%qcan(:,:,1),2)
+     print *, "SUM(rad%qcan(:,:,2),2) : ", SUM(rad%qcan(:,:,2),2)
+     print *, "rad%qssabs : ", rad%qssabs
+     print *, "met%fld : ", met%fld
+     print *, "-sboltz*emleaf*canopy%tv**4*(1-rad%transd) : ", - sboltz*emleaf*canopy%tv**4*(1-rad%transd)
+     print *, "-rad%flws*rad%transd : ", -rad%flws*rad%transd
+     print *, "canopy%fev : ", canopy%fev
+     print *, "canopy%fes : ", canopy%fes
+     print *, "canopy%fh : ", canopy%fh
+     print *, "canopy%ga : ", canopy%ga
+     ! _______________________________________
+
     !REV_CORR - likely testing and offline-as-online cases only
     !need to add on the correction to the soil net radiation
     !as %fes, %fhs and %ga include the correction terms but %Ebal doesn't
@@ -388,7 +438,7 @@ SUBROUTINE energy_balance( dels,ktau,met,rad,canopy,bal,ssnow,                  
     ! Add to cumulative balance:
     bal%ebal_tot = bal%ebal_tot + bal%ebal
     bal%RadbalSum = bal%RadbalSum + bal%Radbal
-
+    print *, "bal%ebal_tot : ", bal%ebal_tot ! MMY
 END SUBROUTINE energy_balance
 
 !==============================================================================

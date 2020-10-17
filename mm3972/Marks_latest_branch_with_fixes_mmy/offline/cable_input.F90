@@ -1069,7 +1069,7 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
               //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
          exists%Wind = .FALSE. ! Use vector wind when reading met
       ELSE                                                       ! MMY
-         exists%Wind = .TRUE. ! 'Wind' variable exists           ! MMY        
+         exists%Wind = .TRUE. ! 'Wind' variable exists           ! MMY
       END IF
     ELSE
        exists%Wind = .TRUE. ! 'Wind' variable exists
@@ -3075,6 +3075,45 @@ SUBROUTINE get_parameters_met(soil,veg,bgc,rough,completeSet)
    CALL readpar(ncid_met,'ratecs',completeSet,bgc%ratecs,filename%met,         &
                 nmetpatches,'ncs')
 
+	! ______________ MMY read_vec parameters from met file for EucFace _____________
+   CALL readpar(ncid_met,'cnsd',completeSet,soil%cnsd,filename%met,            &
+                nmetpatches,'def')
+   CALL readpar(ncid_met,'clay_vec',completeSet,soil%clay_vec,filename%met,    &
+                nmetpatches,'ms')
+   CALL readpar(ncid_met,'sand_vec',completeSet,soil%sand_vec,filename%met,    &
+                nmetpatches,'ms')
+   CALL readpar(ncid_met,'silt_vec',completeSet,soil%silt_vec,filename%met,    &
+                nmetpatches,'ms')
+   CALL readpar(ncid_met,'org_vec',completeSet,soil%org_vec,filename%met,      &
+                nmetpatches,'ms')
+   CALL readpar(ncid_met,'ssat_vec',completeSet,soil%ssat_vec,filename%met,    &
+                nmetpatches,'ms')
+   CALL readpar(ncid_met,'sfc_vec',completeSet,soil%sfc_vec,filename%met,      &
+                nmetpatches,'ms')
+   CALL readpar(ncid_met,'swilt_vec',completeSet,soil%swilt_vec,filename%met,  &
+                nmetpatches,'ms')
+   CALL readpar(ncid_met,'bch_vec',completeSet,soil%bch_vec,filename%met,      &
+                nmetpatches,'ms')
+   CALL readpar(ncid_met,'hyds_vec',completeSet,soil%hyds_vec,filename%met,    &
+                nmetpatches,'ms')
+   CALL readpar(ncid_met,'sucs_vec',completeSet,soil%sucs_vec,filename%met,    &
+                nmetpatches,'ms')
+   soil%sucs_vec = 1000._r_2 * ( abs(soil%sucs_vec))   ! Copied from SUBROUTINE GWspatialParameters
+   CALL readpar(ncid_met,'css_vec',completeSet,soil%css_vec,filename%met,      &
+                nmetpatches,'ms')
+   CALL readpar(ncid_met,'rhosoil_vec',completeSet,soil%rhosoil_vec,filename%met,&
+                nmetpatches,'ms')
+   CALL readpar(ncid_met,'cnsd_vec',completeSet,soil%cnsd_vec,filename%met,    &
+                nmetpatches,'ms')
+   CALL readpar(ncid_met,'watr',completeSet,soil%watr,filename%met,            &
+                nmetpatches,'ms')
+
+    soil%GWhyds_vec(:) = soil%hyds_vec(:,ms) ! MMY to unify with LIS
+    soil%GWssat_vec(:) = soil%ssat_vec(:,ms) ! MMY to unify with LIS
+    soil%GWsucs_vec(:) = soil%sucs_vec(:,ms) ! MMY to unify with LIS
+    soil%GWbch_vec(:)  = soil%bch_vec(:,ms)  ! MMY to unify with LIS
+    soil%GWwatr(:)     = soil%watr(:,ms)     ! MMY to unify with LIS
+    ! ______________________________________________________________
 END SUBROUTINE get_parameters_met
 
 !==============================================================================

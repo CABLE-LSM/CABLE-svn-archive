@@ -1414,6 +1414,11 @@ CONTAINS
     ENDWHERE
     ! Soil ice:
 
+   ! _____ MMY _____
+   ssnow%wb(:, :) = 0.3
+   ssnow%GWwb     = 0.45
+   ! _______________
+
    WHERE(ssnow%tgg(:, :) < 273.16)
      ssnow%wbice(:,:) = ssnow%wb(:, :) * 0.8
    ELSEWHERE
@@ -1425,7 +1430,7 @@ CONTAINS
    ssnow%rtevap_unsat = 0.0
    ssnow%satfrac = 0.5
    ssnow%wbliq = ssnow%wb - ssnow%wbice
-   ssnow%GWwb = soil%GWssat_vec
+   !ssnow%GWwb = soil%GWssat_vec ! MMY
 
    ssnow%wb_hys = -1.0e+36
    ssnow%hys_fac = 1.0
@@ -1756,11 +1761,13 @@ CONTAINS
              end do
           end do
 
-       ELSE
 
-          DO klev=1,ms
-              soil%hyds_vec(:,klev) = soil%hyds_vec(:,klev)*exp(-soil%hkrz(:)*(soil_depth(:,klev)-soil%zdepth(:)))
-          END DO
+        ! ___________________ MMY for comparing with LIS _____________________
+        !ELSE
+        !  DO klev=1,ms
+        !      soil%hyds_vec(:,klev) = soil%hyds_vec(:,klev)*exp(-soil%hkrz(:)*(soil_depth(:,klev)-soil%zdepth(:)))
+        !  END DO
+        ! ____________________________________________________________________
 
        END IF  !use either uni or multi cosby transfer func
 
@@ -2835,11 +2842,6 @@ END SUBROUTINE report_parameters
     !8
     soil%GWssat_vec(:) = get_gw_data(ncid_elev,file_status,'Sy',inssat(:,:),nlon,nlat)
     soil%GWssat_vec(:) = max(0.23_r_2,soil%GWssat_vec(:))
-    !_______________________ MMY change to LIS GWssat __________________________
-    !PRINT *, soil%GWssat_vec(:)
-    !soil%GWssat_vec(:) = 0.44
-    !PRINT *, soil%GWssat_vec(:)
-    !___________________________________________________________________________
     soil%GWwatr(:) = 0.0
 
     soil%ssat_vec(:,:) = get_gw_data(ncid_elev,file_status,'ssat_vec',inssat(:,:),nlon,nlat,ms)
