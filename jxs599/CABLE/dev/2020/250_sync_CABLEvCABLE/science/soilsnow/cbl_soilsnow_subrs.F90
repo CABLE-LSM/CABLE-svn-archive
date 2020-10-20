@@ -1152,7 +1152,11 @@ CONTAINS
        ssnow%tgg(:,1) = ssnow%tgg(:,1) + ( canopy%ga - ssnow%tgg(:,1)           &
             * REAL( canopy%dgdtg ) ) * dels / REAL( ssnow%gammzz(:,1) )
     END WHERE
-
+print *,""
+print *,"x canopy%ga ", canopy%ga(1)
+print *,"canopy%dgdtg ", canopy%dgdtg(1)
+print *,"ssnow%gammzz(1,1) ",ssnow%gammzz(1,1) 
+stop
     coeff(:,1-3) = 0.0  ! coeff(:,-2)
 
     ! 3-layer snow points done here

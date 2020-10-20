@@ -86,12 +86,15 @@ IF( .NOT.cable_user%cable_runtime_coupled ) THEN
          ssnow%wbice(:,6) = 0.90 * ssnow%wb(:,6)
       ENDWHERE
       xx=REAL(soil%heat_cap_lower_limit(:,1))
+!print *, "1ssnow%gammzz(1,1) ", ssnow%gammzz(:,1) 
       ssnow%gammzz(:,1) = MAX( (1.0 - soil%ssat) * soil%css * soil%rhosoil &
            & + (ssnow%wb(:,1) - ssnow%wbice(:,1) ) * Ccswat * Cdensity_liq &
            & + ssnow%wbice(:,1) * Ccsice * Cdensity_liq * .9, xx ) * soil%zse(1)
+!print *, "2ssnow%gammzz(1,1) ", ssnow%gammzz(:,1) 
    END IF
 ENDIF  ! if(.NOT.cable_runtime_coupled)
 
+!print *, "3ssnow%gammzz(1,1) ", ssnow%gammzz(:,1) 
 IF (ktau <= 1)       THEN
   xx=soil%heat_cap_lower_limit(:,1)
   ssnow%gammzz(:,1) = MAX( (1.0 - soil%ssat) * soil%css * soil%rhosoil      &
@@ -99,7 +102,8 @@ IF (ktau <= 1)       THEN
         & + ssnow%wbice(:,1) * Ccsice * Cdensity_liq * .9, xx ) * soil%zse(1) +   &
         & (1. - ssnow%isflag) * Ccgsnow * ssnow%snowd
 END IF
-
+!print *, "4ssnow%gammzz(1,1) ", ssnow%gammzz(:,1) 
+!stop
 END SUBROUTINE spec_init_soil_snow
 
   SUBROUTINE spec_init_snowcheck(dels, ssnow, soil, met )
