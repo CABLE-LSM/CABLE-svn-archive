@@ -1461,7 +1461,7 @@ CONTAINS
 
         IF(exists%patch) &
           patch(landpt(e)%cstart:landpt(e)%cstart)%frac =      &
-                                                           vegpatch_metfile(e, :)
+                                                          vegpatch_metfile(e,landpt(e)%cstart:landpt(e)%cstart )
 
           ! In case gridinfo file provides more patches than met file(BP may08)
           DO f = nmetpatches+1, landpt(e)%nap

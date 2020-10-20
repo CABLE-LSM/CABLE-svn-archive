@@ -21,12 +21,16 @@ host_gadi()
       export FC='mpif90'
 	 else
       export FC='ifort'
+      module add intel-mpi/2019.5.281
+      export FC='mpif90'
    fi
    
    export NCDIR=$NETCDF_ROOT'/lib/Intel'
    export NCMOD=$NETCDF_ROOT'/include/Intel'
    export CFLAGS='-O2 -fp-model precise'
    export CFLAGS='-O0'
+   export CFLAGS='-O0 -heap-arrays -fp-model precise -g -C -check noarg_temp_created -traceback -fpe0 -ftz' #coped from fcm_make.log
+   export CFLAGS='-O0 -heap-arrays -fp-model precise -g -C -check noarg_temp_created -traceback -ftz' #coped from fcm_make.log
    if [[ $1 = 'MGK' ]]; then
       export CFLAGS='-O2'
       #export NCMOD=$NETCDF_ROOT'/include'
