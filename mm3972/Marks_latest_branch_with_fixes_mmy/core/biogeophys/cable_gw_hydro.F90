@@ -2157,8 +2157,8 @@ END SUBROUTINE calc_soil_hydraulic_props
                                    ice_factor(i,k)*ssnow%qhz(i)/sm_tot(i)
        end do
        ! _____________ MMY: Groundwater extraction _____________
-       qhlev(i,ms+1) = qhlev(i,ms+1) + 0.00000132
-       ! 0.00000132=                                                 &
+       ssnow%qhlev(i,ms+1) = ssnow%qhlev(i,ms+1) + 0.00000264
+       ! 0.00000264=                                                 &
        !         0.05(m3/m3)*1000(m2mm)*25(aquifer thickness)        &
        !         /30(years)/365(days)/24(hours)/3600(seconds)
        ! _______________________________________________________
