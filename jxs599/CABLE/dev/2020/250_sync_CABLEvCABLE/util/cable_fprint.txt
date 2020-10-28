@@ -22,10 +22,10 @@
   logical :: L_fprint_HW = .true.
   logical :: L_fprint
  
-  L_fprint = .false. ! default
-
   integer :: cntile
   real :: diagar(1)
+
+  L_fprint = .false. ! default
 
 !  if( L_fprint_HW ) then
 !    if ( ktau_gl==1 .OR.ktau_gl==2 .OR. ktau_gl==3 .OR. &

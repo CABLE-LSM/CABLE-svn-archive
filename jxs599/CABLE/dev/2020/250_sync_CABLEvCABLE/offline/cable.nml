@@ -53,7 +53,7 @@
    wiltParam = 0.5
    satuParam = 0.8
 cable_user%gs_switch='medlyn',
-cable_user%fwsoil_switch='Haverd2013',
+cable_user%fwsoil_switch='standard',
 cable_user%soil_thermal_fix=.true.,
    cable_user%DIAG_SOIL_RESP = 'ON ' 
    cable_user%LEAF_RESPIRATION = 'ON ' 
@@ -67,3 +67,7 @@ cable_user%soil_thermal_fix=.true.,
 &end
 !!cable_user%l_rev_corr=.true.,
 !!cable_user%l_revised_coupling=.true.,
+
+!!match Loobos
+!!cable_user%l_rev_corr = .TRUE.
+!!cable_user%l_revised_coupling = .TRUE.
