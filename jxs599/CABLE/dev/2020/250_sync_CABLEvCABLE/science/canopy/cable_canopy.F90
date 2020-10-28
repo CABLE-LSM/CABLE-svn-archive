@@ -313,6 +313,21 @@ CALL ruff_resist(veg, rough, ssnow, canopy, veg%vlai, veg%hc, canopy%vlaiw)
             / rough%zref_tq ) ) / CVONK
        rt_min = 5.
 
+!!print *," "
+!!print *," _canopy "
+!!print *, "xx ", xx
+!!print *, "rough%yzref_tq ",rough%zref_tq
+!!print *, "rough%zruffs ", rough%zruffs
+!!print *, "rough%disp ", rough%disp
+!!print *, "rough%z0soilsn ", rough%z0soilsn
+!!print *, "psis( canopy%zetar(:,iter) ) ", psis( canopy%zetar(:,iter) )
+!!print *," rt1usc  ", rt1usc
+!!print *," rough%rt1  ", rough%rt1 
+!!print *," rough%rt1usa  ", rough%rt1usa
+!!print *," rough%rt1usb  ", rough%rt1usb
+!!print *," canopy%us  ", canopy%us
+!!stop 
+
        !! vh_js !!
        IF (cable_user%soil_struc=='sli') THEN
           ! for stable conditions, update rough%rt0us & rough%rt1usa by replacing CCSW by
@@ -355,7 +370,7 @@ CALL ruff_resist(veg, rough, ssnow, canopy, veg%vlai, veg%hc, canopy%vlaiw)
              rt0 = MAX(rt_min,rough%rt0us) / canopy%us
           ENDWHERE
 
-       ELSE
+       ELSE ! NOT sli
           rt0 = MAX(rt_min,rough%rt0us / canopy%us)
 
           IF (cable_user%litter) THEN
@@ -368,11 +383,33 @@ CALL ruff_resist(veg, rough, ssnow, canopy, veg%vlai, veg%hc, canopy%vlaiw)
 
        ENDIF
 
-
+!!print *," "
+!!print *," _canopy "
+!!print *,"rt0(j) ", rt0
+!!
+!!print *,"canopy%vlaiw ", canopy%vlaiw
+!!print *,"rough%hruff ", rough%hruff
+!!print *,"rough%z0soilsn ", rough%z0soilsn
+!!print *,"rough%rt0us ", rough%rt0us
+!!print *,"rough%disp ", rough%disp
+!!print *,"canopy%rghlai ", canopy%rghlai
+!!print *,"rough%rt1usa ", rough%rt1usa
+!!print *,"rough%term5 ", rough%term5
+!!print *,"rough%term2 ", rough%term2
+!!print *,"rough%term3 ", rough%term3
+!!stop
        ! Aerodynamic resistance (sum 3 height integrals)/us
        ! See CSIRO SCAM, Raupach et al 1997, eq. 3.50:
        rough%rt1 = MAX(5.,(rough%rt1usa + rough%rt1usb + rt1usc) / canopy%us)
 
+!!print *," "
+!!print *," _canopy "
+!!print *," rough%rt1  ", rough%rt1 
+!!print *," rough%rt1usa  ", rough%rt1usa
+!!print *," rough%rt1usb  ", rough%rt1usb
+!!print *," rt1usc  ", rt1usc
+!!print *," canopy%us  ", canopy%us
+!!stop 
        DO j=1,mp
 
           IF(canopy%vlaiw(j) > CLAI_THRESH) THEN
@@ -383,6 +420,10 @@ CALL ruff_resist(veg, rough, ssnow, canopy, veg%vlai, veg%hc, canopy%vlaiw)
 
        ENDDO
 
+!!print *," "
+!!print *," _canopy: ssnow%rtsoil ",  ssnow%rtsoil
+!!print *,"rt0(j) ",rt0
+!!print *,"rough%rt1(j) ",rough%rt1
 
        ssnow%rtsoil = MAX(rt_min,ssnow%rtsoil)
 
@@ -396,6 +437,10 @@ CALL ruff_resist(veg, rough, ssnow, canopy, veg%vlai, veg%hc, canopy%vlaiw)
           ENDIF
 
        ENDDO
+
+!!print *," "
+!!print *," _canopy: ssnow%rtsoil updated as f^n of ",  ssnow%rtsoil
+!!print *," ortsoil(j) ",ortsoil
 
        IF (cable_user%or_evap) THEN
 write(6,*) "GW or ORevepis not an option right now"
@@ -430,6 +475,26 @@ write(6,*) "GW or ORevepis not an option right now"
 
        ENDDO
 
+!!print *, "  "
+!!print *, "_canopy  "
+!!print *, "gbvtop(j), ", gbvtop(1)
+!!print *, "air%cmolar(j), ",air%cmolar(1)
+!!print *, "veg%dleaf(j) , ",veg%dleaf(1) 
+!!print *, "canopy%us(j), ", canopy%us(1) 
+!!print *, "rough%usuh(j), ",rough%usuh(1)
+!!print *, "veg%dleaf(j) , ",veg%dleaf(1) 
+!!print *, "air%visc(j), ", air%visc(1)
+!!print *, "veg%shelrb(j), ",veg%shelrb(1)
+!!
+!!print *, "  "
+!!print *, "_canopy  "
+!!print *, "gbhu(1,1) ", gbhu(1,1)  
+!!print *, "gbvtop(1) ", gbvtop(1)
+!!print *, "canopy%vlaiw(1) ", canopy%vlaiw(1)
+!!print *, "rough%coexp(1) ", rough%coexp(1)
+!!print *, "rad%extkb(1) ", rad%extkb(1)
+!!print *, "rough%coexp(1) ",rough%coexp(1)
+
        rny = SUM(rad%rniso,2) ! init current estimate net rad
        hcy = 0.0              ! init current estimate lat heat
        ecy = rny - hcy        ! init current estimate lat heat
@@ -442,6 +507,9 @@ write(6,*) "GW or ORevepis not an option right now"
             rny, gbhu, gbhf, csx, cansat,                              &
             ghwet,  iter,climate )
 
+!!print *," "
+!!print *," _canopy 1"
+!!print *, "tlfy(1) ",   tlfy(1)  
 
        CALL wetLeaf( dels, rad, rough, air, met,                                &
             veg, canopy, cansat, tlfy,                                 &
@@ -474,7 +542,6 @@ write(6,*) "GW or ORevepis not an option right now"
 
                 canopy%tv(j) = (rad%lwabv(j) / (2.0*(1.0-rad%transd(j))            &
                      * CSBOLTZ*CEMLEAF)+met%tvrad(j)**4)**0.25
-
              ELSE
                 canopy%tv(j) = met%tvrad(j)
              ENDIF
@@ -487,11 +554,34 @@ write(6,*) "GW or ORevepis not an option right now"
           ENDIF
 
        ENDDO
+!!print *," "
+!!print *," _canopy 1"
+!!print *,"rad%lwabv(1) ", rad%lwabv(1) 
+!!print *, "tlfy(1) ",   tlfy(1)  
+!!print *, "met%tk(1) ",  met%tk(1) 
+!!print *, "sum_rad_gradis(1) ", sum_rad_gradis(1)
+!!
+!!print *," "
+!!print *," _canopy 1"
+!! print *,"canopy%tv(1) ",   canopy%tv(1) 
+!! print *,"rad%lwabv(1) ",  rad%lwabv(1)
+!! print *,"rad%transd(1) ",  rad%transd(1)
+!! print *,"met%tvrad(1) ", met%tvrad(1)
+
 
 
        ! Calculate net rad to soil:
        canopy%fns = rad%qssabs + rad%transd*met%fld + (1.0-rad%transd)*CEMLEAF* &
             CSBOLTZ*canopy%tv**4 - CEMSOIL*CSBOLTZ* tss4
+
+!!print *," "
+!!print *," _canopy "
+!! print *, 'canopy%fns ', canopy%fns(1) 
+!! print *, 'rad%qssabs ', rad%qssabs(1) 
+!! print *, 'rad%transd ', rad%transd(1) 
+!! print *, 'met%fld ', met%fld(1) 
+!! print *, 'canopy%tv ', canopy%tv(1) 
+!! print *, 'tss4 ', tss4(1) 
 
 
        ! Saturation specific humidity at soil/snow surface temperature:
@@ -599,12 +689,26 @@ dq_unsat = max(0.0, dq_unsat)
                   (ssnow%rtsoil + rhlitt)
           ELSE
              canopy%fhs = air%rho*CCAPP*(ssnow%tss - met%tvair) /ssnow%rtsoil
+             
+!!!canopy%fhs 
+!!print *,"ktau_gl ", ktau_gl
+!!print *,"canopy %fhs  "
+!!print *," air%rho ", air%rho
+!!print *," ssnow%tss ", ssnow%tss
+!!print *," ssnow%rtsoil ",  ssnow%rtsoil
+
           ENDIF
 
           !! Ticket #90 ssnow%cls factor should be retained: required for energy balance
           !! INH: %cls factor included in %fes already - do not include here
           canopy%ga = canopy%fns-canopy%fhs-canopy%fes !*ssnow%cls
-
+!!print *," "
+!!print *," _canopy %ga "
+!!print *," canopy%ga ",  canopy%ga 
+!!print *," canopy%fns ", canopy%fns
+!!print *," canopy%fhs ", canopy%fhs
+!!print *," canopy%fes ", canopy%fes
+!!if (ktau_gl==2) stop
        ELSE
 
 write(6,*) "SLI is not an option right now"
@@ -1040,6 +1144,15 @@ write(6,*) "SLI is not an option right now"
 
       lower_limit = rescale / ( LOG(z_eff) - psim_1 + psim_2 )
 
+!!print *, "  "
+!!print *, "_canopy  "
+!!print *, "psim_1 ", psim_1  
+!!print *, "canopy%zetar(:,iter) ", canopy%zetar(:,iter)
+!!print *, "rough%zref_uv ", rough%zref_uv
+!!print *, "rough%zref_tq ", rough%zref_tq
+!!print *, "met%ua ", met%ua
+!!print *, "rough%z0m ", rough%z0m
+!!stop
       canopy%us = MIN(MAX(1.e-6, lower_limit ), 10.0 )
 
     END SUBROUTINE comp_friction_vel
@@ -1742,6 +1855,12 @@ write(6,*) "GW or ORevepis not an option right now"
             ( REAL (ssnow%wb(:,1) ) - soil%swilt/ 2.0 )                  &
             / ( soil%sfc - soil%swilt/2.0 ) ) )
    
+!       print *, " "
+!       print *, "_canopy "
+!       print *, "ssnow%wb(:,1) ", ssnow%wb(:,1)  
+!       print *, "soil%swilt ", soil%swilt
+!       print *, "soil%sfc ", soil%sfc 
+!  stop 
        DO i=1,mp
    
           IF( ssnow%wbice(i,1) > 0. )&
@@ -1932,6 +2051,10 @@ write(6,*) "GW or ORevepis not an option right now"
     ecx = SUM(rad%rniso,2) ! init lat heat iteration memory variable
     tlfxx = tlfx
     psycst(:,:) = SPREAD(air%psyc,2,mf)
+!!print *," "
+!!print *," _canopy init "
+!!print *,"psycst(1,:) ", psycst(1,:)
+!!print *,"air%psyc ", air%psyc
     canopy%fevc = 0.0
     ssnow%evapfbl = 0.0
 
@@ -1960,6 +2083,14 @@ write(6,*) "GW or ORevepis not an option right now"
     deltlfy = abs_deltlf
     k = 0
 
+
+!!print *," "
+!!print *," _canopy dryL 1"
+!! print *, "tlfx(i) ",  tlfx(1)
+!! print *, "met%tvair(1) ",  met%tvair(1)
+!! print *, "REAL(hcx(1)) ",  REAL(hcx(1))
+!! print *, "gh(1,:) ",   gh(1,:)
+!!print *, "tlfy(1) ",   tlfy(1)  
 
     !kdcorbin, 08/10 - doing all points all the time
     DO WHILE (k < CMAXITER)
@@ -1992,8 +2123,14 @@ write(6,*) "GW or ORevepis not an option right now"
                   * ( gras(i)**0.25 ) / veg%dleaf(i)
              gbhf(i,:) = MAX( 1.e-6_r_2, gbhf(i,:) )
 
+!! print *, "update "
+!! print *, "gbhu(1,:) ", gbhu(i,:) 
+!! print *, "gbhf(1,:) ", gbhf(i,:)
              ! Conductance for heat:
              gh(i,:) = 2.0 * (gbhu(i,:) + gbhf(i,:))
+!! print *, "update "
+!! print *, "gbhu(1,:) ", gbhu(i,:) 
+!! print *, "gbhf(1,:) ", gbhf(i,:)
 
              ! Conductance for heat and longwave radiation:
              ghr(i,:) = rad%gradis(i,:)+gh(i,:)
@@ -2177,6 +2314,14 @@ write(6,*) "GW or ORevepis not an option right now"
           ENDIF !IF (canopy%vlaiw(i) > CLAI_THRESH .AND. abs_deltlf(i) > 0.1)
 
        ENDDO !i=1,mp
+!!print *," "
+!!print *," _dryLeaf gs_coeff", iter
+!!print *,"gs_coeff(1,:) ", gs_coeff(1,:)
+!!print *," veg%g1(1) ", veg%g1(1) 
+!!print *," fwsoil(1)  ", fwsoil(1) 
+!!print *," vpd ", vpd 
+!!print *," csx(1,1) ", csx(1,1)
+!!print *," dsx(1) ",  dsx(1)
 
        CALL photosynthesis( csx(:,:),                                           &
             SPREAD( cx1(:), 2, mf ),                            &
@@ -2188,7 +2333,12 @@ write(6,*) "GW or ORevepis not an option right now"
             SPREAD( abs_deltlf, 2, mf ),                        &
             anx(:,:), fwsoil(:) )
 
+!!print *,"dryL: going into DO loop "
+!!print *," _dryLeaf gs_coeff 2", iter
+!!print *,"gs_coeff(1,:) ", gs_coeff(1,:)
        DO i=1,mp
+
+!!print *,"dryL: in DO loop , i, mp", i, mp
 
           IF (canopy%vlaiw(i) > CLAI_THRESH .AND. abs_deltlf(i) > 0.1 ) THEN
 
@@ -2222,6 +2372,18 @@ write(6,*) "GW or ORevepis not an option right now"
                 ENDIF
 
              ENDDO
+!!print *," "
+!!print *," _dryLeaf gs_coeff i, iter ",i, iter
+!!print *,"psycst(i,:) ", psycst(i,:)
+!!print *, "gw(1,:) ",   gW(i,:)
+!!print *, "gbhu(1,:) ",   gbhu(i,:)
+!!print *, "gbhf(1,:) ",   gbhf(i,:)
+!!print *,"air%psyc ", air%psyc(i)
+!!print *,"canopy%gswx ", canopy%gswx(i,:)
+!!print *,"gswmin(1,:) ", gswmin(i,:)
+!!print *,"fwsoil(1) ", fwsoil(i)
+!!print *,"gs_coeff(1,:) ", gs_coeff(i,:)
+!!print *,"anx(1,:) ", anx(i,:)
 
              ecx(i) = ( air%dsatdk(i) * ( rad%rniso(i,1) - Ccapp * Crmair     &
                   * ( met%tvair(i) - met%tk(i) ) * rad%gradis(i,1) )        &
@@ -2232,6 +2394,13 @@ write(6,*) "GW or ORevepis not an option right now"
                   met%dva(i) * ghr(i,2) ) /                                 &
                   ( air%dsatdk(i) + psycst(i,2) )
 
+!!print *," "
+!!print *," _canopy ecx i,  iter ",i,  iter
+!!print *," ecx  1", ecx(i)
+!!print *,"air%dsatdk(i) ", air%dsatdk(i)
+!!print *,"met%dva(i) ", met%dva(i)
+!!print *,"psycst(i,:) ", psycst(i,:)
+if(i==4) stop
              IF (cable_user%fwsoil_switch=='Haverd2013') THEN
                 ! avoid root-water extraction when fwsoil is zero
                 IF (fwsoil(i).LT.1e-6) THEN
@@ -2284,10 +2453,30 @@ write(6,*) "GW or ORevepis not an option right now"
                   - Ccapp*Crmair*(met%tvair(i)-met%tk(i))                       &
                   * SUM(rad%gradis(i,:)))                                         &
                   * SUM(gh(i,:))/ SUM(ghr(i,:))
-
+!!if(i==1) then
+!! print *, "update tlfx(i) 0 ",  tlfx(1)
+!! print *, "tlfx(i) ",  tlfx(1)
+!! print *, "met%tvair(1) ",  met%tvair(1)
+!! print *, ""
+!! print *, "REAL(hcx(1)) ",  REAL(hcx(1))
+!!print *, "rad%rniso(i,:) ", rad%rniso(i,:)
+!!print *, "ecx(i) ",ecx(i) 
+!!print *, "met%tvair(i) ",met%tvair(i)
+!!print *, "met%tk(i) ",met%tk(i)
+!!print *, "rad%gradis(i,:) ", rad%gradis(i,:)
+!! print *, "gh(1,:) ",   gh(1,:)
+!! print *, "ghr(1,:) ",   ghr(1,:)
+!!endif
              ! Update leaf temperature:
              tlfx(i)=met%tvair(i)+REAL(hcx(i))/(Ccapp*Crmair*SUM(gh(i,:)))
 
+!!if(i==1) then
+!! print *, "update tlfx(i) 1 ",  tlfx(1)
+!! print *, "tlfx(i) ",  tlfx(1)
+!! print *, "met%tvair(1) ",  met%tvair(1)
+!! print *, "REAL(hcx(1)) ",  REAL(hcx(1))
+!! print *, "gh(1,:) ",   gh(1,:)
+!!endif
              ! Update net radiation for canopy:
              rnx(i) = SUM( rad%rniso(i,:)) -                                    &
                   CCAPP * Crmair *( tlfx(i)-met%tk(i) ) *                 &
@@ -2304,9 +2493,17 @@ write(6,*) "GW or ORevepis not an option right now"
 
           ENDIF !lai/abs_deltlf
 
+!!print *," "
+!!print *," End of DO loop: i ", i
        ENDDO !i=1,mp
        ! Where leaf temp change b/w iterations is significant, and
        ! difference is smaller than the previous iteration, store results:
+!!stop
+!!print *," "
+!!print *," _canopy dryL 1"
+!!print *, "tlfy(1) ",   tlfy(1)  
+!!print *, "tlfx(1) ",   tlfx(1)  
+
        DO i=1,mp
 
           IF ( abs_deltlf(i) < ABS( deltlfy(i) ) ) THEN
@@ -2321,6 +2518,8 @@ write(6,*) "GW or ORevepis not an option right now"
              an_y(i,1) = anx(i,1)
              an_y(i,2) = anx(i,2)
 
+!!print *," "
+!!print *," Loop dryL 1"
              ! save last values calculated for ssnow%evapfbl
              oldevapfbl(i,:) = ssnow%evapfbl(i,:)
 
@@ -2345,10 +2544,18 @@ write(6,*) "GW or ORevepis not an option right now"
              an_y(i,:) = anx(i,:)
              ! save last values calculated for ssnow%evapfbl
              oldevapfbl(i,:) = ssnow%evapfbl(i,:)
+!!print *," "
+!!print *," Loop dryL 2"
 
           END IF
 
        END DO !over mp
+!!print *," "
+!!print *," _canopy dryL 2"
+!!print *, "tlfy(1) ",   tlfy(1)  
+!!print *, "tlfx(1) ",   tlfx(1)  
+!!print *, "tlfxx(1) ",   tlfxx(1)  
+
 
     END DO  ! DO WHILE (ANY(abs_deltlf > 0.1) .AND.  k < CMAXITER)
 
@@ -2758,6 +2965,10 @@ write(6,*) "GW or ORevepis not an option right now"
     ELSE
        fwsoil = MAX(1.0e-9,MIN(1.0, veg%vbeta * rwater))
     ENDIF
+
+!!print *,""
+!!print *,"fwsoil_calc_Std ", fwsoil(1)
+!!print *,"fwsoil(1) ", fwsoil(1)
 
   END SUBROUTINE fwsoil_calc_std
 
