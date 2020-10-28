@@ -110,20 +110,38 @@ real :: reducedLAIdue2snow(mp)
 REAL :: c1(mp,nrb)
 REAL :: rhoch(mp,nrb)
 REAL :: xk(mp,nrb)
-integer :: cntile
-real :: diagar(1)
 # include "cable_fprint.txt"
 
 fprintf_dir="/home/599/jxs599/TestHAC5.7/"
 cntile =1
 
+!jhan - for equiv with JULES version which gets vaue from ancillaries.nml CABLE gets through ?
+!possibly add to Loobos met file for CABLE
+!***************
+met%ca = 3.9110679E-04 ! to match Loobos 
+soil%AlbSoil = .11
+ssnow%snowd =0.0 !seems to be picking up a stupi initializtion from gridinfo file
+!***************
 
+!!print *," "
+!!print *,"met%ca ",met%ca
+!!stop
+!!print *,"ssnow%wb(cntile,1) ",  ssnow%wb(cntile,1)
+!!print *,"ssnow%wb(cntile,2) ",  ssnow%wb(cntile,2)
+!!print *,"ssnow%wb(cntile,3) ",  ssnow%wb(cntile,3)
+!!print *,"ssnow%wb(cntile,4) ",  ssnow%wb(cntile,4)
+!!print *,"ssnow%wb(cntile,5) ",  ssnow%wb(cntile,5)
+!!print *,"ssnow%wb(cntile,6) ",  ssnow%wb(cntile,6)
+!!
+!!print *," "
+!!print *,"ssnow%wbliq(cntile,1) ",  ssnow%wbliq(cntile,1)
+!print *,""
+!print *,"cbl_model_driver_off"
+!print *,"soil%wilt(cntile) ",  soil%swilt
+!stop
 !iFor testing
 ICYCLE = 0
 cable_user%soil_struc="default"
-!jhan - for equiv with JULES version which gets vaue from ancillaries.nml CABLE gets through ?
-!possibly add to Loobos met file for CABLE
-soil%AlbSoil = .11
 
 CALL ruff_resist(veg, rough, ssnow, canopy, veg%vlai, veg%hc, canopy%vlaiw)
 
@@ -207,11 +225,12 @@ CALL init_radiation( rad%extkb, rad%extkd,                                     &
 !call cable_Pyfprintf( cDiag2, vname, diagar, dimx, .true.)
 !
 !vname='canopy%fes'; dimx=1 
-!diagar(1) = canopy%fes(cntile) + canopy%fev(cntile) 
+!!diagar(1) = canopy%fes(cntile) + canopy%fev(cntile) 
+!diagar(1) = canopy%fes(cntile)
 !call cable_Pyfprintf( cDiag3, vname, diagar, dimx, .true.)
 !
 !vname='canopy%fev'; dimx=1 
-!diagar(1) = canopy%fev(cntile) + canopy%fev(cntile) 
+!diagar(1) = canopy%fev(cntile)
 !call cable_Pyfprintf( cDiag4, vname, diagar, dimx, .true.)
 !
 !!vname='rad%trad'; dimx=1 
@@ -241,47 +260,73 @@ CALL init_radiation( rad%extkb, rad%extkd,                                     &
 !vname='met%tk'; dimx=1 
 !diagar(1) = met%tk(cntile)
 !call cable_Pyfprintf( cDiag11, vname, diagar, dimx, .true.)
+!!
+!!! ssnow%tss=(1 - ssnow%isflag) * ssnow%tgg(:,1) + ssnow%isflag * ssnow%tggsn(:,1)
+!vname='ssnow%tss'; dimx=1 
+!diagar(1) = ssnow%tss(cntile)
+!call cable_Pyfprintf( cDiag6, vname, diagar, dimx, .true.)
 !
-!! ssnow%tss=(1 - ssnow%isflag) * ssnow%tgg(:,1) + ssnow%isflag * ssnow%tggsn(:,1)
-vname='ssnow%tss'; dimx=1 
-diagar(1) = ssnow%tss(cntile)
-call cable_Pyfprintf( cDiag6, vname, diagar, dimx, .true.)
-
-!SAME:!vname='ssnow%isflag '; dimx=1 
-!SAME:!diagar(1) = real(ssnow%isflag(cntile))
-!SAME:!call cable_Pyfprintf( cDiag12, vname, diagar, dimx, .true.)
-
-vname='ssnow%tgg'; dimx=1 
-diagar(1) = ssnow%tgg(cntile,1)
-call cable_Pyfprintf( cDiag13, vname, diagar, dimx, .true.)
-
-!vname='ssnow%tggsn'; dimx=1 
-!diagar(1) = ssnow%tggsn(cntile,1)
-!call cable_Pyfprintf( cDiag14, vname, diagar, dimx, .true.)
-
-!vname='ssnow%tggsn'; dimx=1 
-!diagar(1) = ssnow%tggsn(cntile,1)
-!call cable_Pyfprintf( cDiag14, vname, diagar, dimx, .true.)
-
-vname='canopy%ga'; dimx=1 
-diagar(1) = canopy%ga(cntile)
-call cable_Pyfprintf( cDiag15, vname, diagar, dimx, .true.)
-
-vname='canopy%dgdtg'; dimx=1 
-diagar(1) = canopy%dgdtg (cntile)
-call cable_Pyfprintf( cDiag16, vname, diagar, dimx, .true.)
-
-vname='ssnow%gammzz'; dimx=1 
-diagar(1) = ssnow%gammzz(cntile,1)
-call cable_Pyfprintf( cDiag17, vname, diagar, dimx, .true.)
-
-!vname=''; dimx=1 
-!diagar(1) = (cntile)
-!call cable_Pyfprintf( cDiag1, vname, diagar, dimx, .true.)
-
-!vname=''; dimx=1 
-!diagar(1) = (cntile)
-!call cable_Pyfprintf( cDiag1, vname, diagar, dimx, .true.)
+!!SAME:!vname='ssnow%isflag '; dimx=1 
+!!SAME:!diagar(1) = real(ssnow%isflag(cntile))
+!!SAME:!call cable_Pyfprintf( cDiag12, vname, diagar, dimx, .true.)
+!
+!vname='ssnow%tgg'; dimx=1 
+!diagar(1) = ssnow%tgg(cntile,1)
+!call cable_Pyfprintf( cDiag13, vname, diagar, dimx, .true.)
+!
+!!vname='ssnow%tggsn'; dimx=1 
+!!diagar(1) = ssnow%tggsn(cntile,1)
+!!call cable_Pyfprintf( cDiag14, vname, diagar, dimx, .true.)
+!
+!!vname='ssnow%tggsn'; dimx=1 
+!!diagar(1) = ssnow%tggsn(cntile,1)
+!!call cable_Pyfprintf( cDiag14, vname, diagar, dimx, .true.)
+!
+!!print *,"ssnow%tgg(cntile,1) ",  ssnow%tgg(cntile,1)
+!!print *,"ssnow%tgg(cntile,2) ",  ssnow%tgg(cntile,2)
+!!print *,"ssnow%tgg(cntile,3) ",  ssnow%tgg(cntile,3)
+!!print *,"ssnow%tgg(cntile,4) ",  ssnow%tgg(cntile,4)
+!!print *,"ssnow%tgg(cntile,5) ",  ssnow%tgg(cntile,5)
+!!print *,"ssnow%tgg(cntile,6) ",  ssnow%tgg(cntile,6)
+!!
+!!print *,"ssnow%wb(cntile,1) ",  ssnow%wb(cntile,1)
+!!print *,"ssnow%wb(cntile,2) ",  ssnow%wb(cntile,2)
+!!print *,"ssnow%wb(cntile,3) ",  ssnow%wb(cntile,3)
+!!print *,"ssnow%wb(cntile,4) ",  ssnow%wb(cntile,4)
+!!print *,"ssnow%wb(cntile,5) ",  ssnow%wb(cntile,5)
+!!print *,"ssnow%wb(cntile,6) ",  ssnow%wb(cntile,6)
+!
+!!print *,"ssnow%tggsn(cntile,1) ",  ssnow%tggsn(cntile,1)
+!!print *,"ssnow%tggsn(cntile,2) ",  ssnow%tggsn(cntile,2)
+!!print *,"ssnow%tggsn(cntile,3) ",  ssnow%tggsn(cntile,3)
+!!print *,"ssnow%tggsn(cntile,4) ",  ssnow%tggsn(cntile,4)
+!!print *,"ssnow%tggsn(cntile,5) ",  ssnow%tggsn(cntile,5)
+!!print *,"ssnow%tggsn(cntile,6) ",  ssnow%tggsn(cntile,6)
+!!stop
+!
+!!stempv
+!!ssnow%tgg(:,1) = ssnow%tgg(:,1) + ( canopy%ga - ssnow%tgg(:,1)           &
+!!            * REAL( canopy%dgdtg ) ) * dels / REAL( ssnow%gammzz(:,1) )
+!
+!vname='canopy%ga'; dimx=1 
+!diagar(1) = canopy%ga(cntile)
+!call cable_Pyfprintf( cDiag15, vname, diagar, dimx, .true.)
+!
+!vname='canopy%dgdtg'; dimx=1 
+!diagar(1) = canopy%dgdtg (cntile)
+!call cable_Pyfprintf( cDiag16, vname, diagar, dimx, .true.)
+!
+!vname='ssnow%gammzz'; dimx=1 
+!diagar(1) = ssnow%gammzz(cntile,1)
+!call cable_Pyfprintf( cDiag17, vname, diagar, dimx, .true.)
+!
+!!vname=''; dimx=1 
+!!diagar(1) = (cntile)
+!!call cable_Pyfprintf( cDiag1, vname, diagar, dimx, .true.)
+!
+!!vname=''; dimx=1 
+!!diagar(1) = (cntile)
+!!call cable_Pyfprintf( cDiag1, vname, diagar, dimx, .true.)
 
 
     IF( cable_runtime%um ) THEN

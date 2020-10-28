@@ -147,11 +147,6 @@ CONTAINS
     INTEGER :: nlon
     INTEGER :: nlat
 
-    ! Get parameter values for all default veg and soil types:
-    !CALL get_type_parameters(logn, vegparmnew, classification)
-    CALL cable_pft_params()
-    CALL cable_soil_params()
-
     WRITE(logn,*) ' Reading grid info from ', TRIM(filename%type)
     WRITE(logn,*) ' And assigning C4 fraction according to veg classification.'
     WRITE(logn,*)
@@ -173,6 +168,11 @@ CONTAINS
        WRITE(logn,*) 'Use spatially-specific soil properties; ', nlon, nlat
        CALL spatialSoil(nlon, nlat, logn)
     ENDIF
+
+    ! Get parameter values for all default veg and soil types:
+    !CALL get_type_parameters(logn, vegparmnew, classification)
+    CALL cable_pft_params()
+    CALL cable_soil_params()
 
     ! include prescribed soil colour in determining albedo - Ticket #27
     IF (calcsoilalbedo) THEN
@@ -1346,9 +1346,10 @@ CONTAINS
                      = inALB(landpt(e)%ilon, landpt(e)%ilat, is, ir) ! various rad band
              ENDIF
           END DO
-          ! total depth, change from m to mm !see Ticket #57
-          ssnow%snowd(landpt(e)%cstart + is - 1)                                 &
-               = inSND(landpt(e)%ilon, landpt(e)%ilat, is, month) * 140.0
+!Jhan: revise
+! total depth, change from m to mm !see Ticket #57
+ssnow%snowd(landpt(e)%cstart + is - 1)                                 &
+= inSND(landpt(e)%ilon, landpt(e)%ilat, is, month) * 140.0
        END DO
 
        ! Set default LAI values
