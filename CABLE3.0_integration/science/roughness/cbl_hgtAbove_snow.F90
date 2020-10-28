@@ -43,6 +43,13 @@ subroutine HgtAboveSnow( HeightAboveSnow, mp, z0surf_min, HGT_pft, &
   ! Finally Set Effective canopy height above snow level 
   HeightAboveSnow = max( HgtAboveSnow_min,  HgtAboveSnow_comp )      
 
+  !!print *, "HgtAboveSnow_comp  ",   HgtAboveSnow_comp
+  !!print *, "HGT_pft  ",    HGT_pft 
+  !!print *, "SnowDepth  ",    SnowDepth 
+  !!print *, "SnowDensity_eff  ",   SnowDensity_eff
+  !!print *, "HeightAboveSnow  ",   HeightAboveSnow
+  !!print *, "HgtAboveSnow_min  ",   HgtAboveSnow_min
+  !!stop
   return
 
 END subroutine HgtAboveSnow

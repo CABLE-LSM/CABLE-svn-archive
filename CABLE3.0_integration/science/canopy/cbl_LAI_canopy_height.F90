@@ -2,7 +2,7 @@ module cbl_LAI_canopy_height_mod
 
 contains
 
-subroutine limit_HGT_LAI( LAI_pft_cbl, HGT_pft_cbl, mp, land_pts, ntiles, &
+subroutine limit_HGT_LAI( HGT_pft_temp, LAI_pft_cbl, HGT_pft_cbl, mp, land_pts, ntiles, &
                           tile_pts, tile_index, tile_frac,L_tile_pts, &
                           LAI_pft, HGT_pft, CLAI_thresh )
 
@@ -18,18 +18,18 @@ real :: LAI_pft(land_pts, ntiles)
 real :: HGT_pft(land_pts, ntiles)
 
 !return vars
+real :: HGT_pft_temp(land_pts,ntiles)
 real :: LAI_pft_cbl(mp)
 real :: HGT_pft_cbl(mp)
 
-
 !local vars
 real :: LAI_pft_temp(land_pts,ntiles)
-real :: HGT_pft_temp(land_pts,ntiles)
 integer :: i,j, N 
 
 !Retain init where tile_frac=0
 LAI_pft_temp = 0. 
 HGT_pft_temp = 0.
+HGT_pft(1,14) = 20.0 !To match gridinfo file doing offline Loobos 
 
 DO N=1,NTILES
   DO J=1,TILE_PTS(N)
@@ -39,7 +39,7 @@ DO N=1,NTILES
     IF( TILE_FRAC(i,N) .gt. 0.0 ) THEN
       
       LAI_pft_temp(i,N) = max(CLAI_thresh*.99,LAI_pft(i,N)) 
-       
+      if(N==14)  LAI_pft_temp(i,N) = 0.0 !to match offline Loobos
        ! hard-wired vegetation type numbers need to be removed
        IF(N < 5 ) THEN ! trees 
           HGT_pft_temp(i,N) = max(1.,HGT_pft(i,N)) 

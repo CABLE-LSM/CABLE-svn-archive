@@ -165,6 +165,7 @@ USE cbl_soil_snow_subrs_module
        canopy%fhs_cor = ssnow%dtmlt(:,1)*ssnow%dfh_dtg
        !canopy%fes_cor = ssnow%dtmlt(:,1)*(ssnow%dfe_ddq * ssnow%ddq_dtg)
        canopy%fes_cor = ssnow%dtmlt(:,1)*ssnow%dfe_dtg
+canopy%fes_cor = 0.
 
        canopy%fhs = canopy%fhs+canopy%fhs_cor
        canopy%fes = canopy%fes+canopy%fes_cor

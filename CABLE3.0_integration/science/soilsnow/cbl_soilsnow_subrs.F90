@@ -18,6 +18,8 @@ USE cable_phys_constants_mod, ONLY : Ccs_rho_ice => cs_rho_ice
        max_ssdn,max_sconds,frozen_limit,&
        max_glacier_snowd
 
+USE cable_common_module, ONLY: ktau_gl 
+  
   IMPLICIT NONE
 
   PRIVATE
@@ -1152,7 +1154,14 @@ CONTAINS
        ssnow%tgg(:,1) = ssnow%tgg(:,1) + ( canopy%ga - ssnow%tgg(:,1)           &
             * REAL( canopy%dgdtg ) ) * dels / REAL( ssnow%gammzz(:,1) )
     END WHERE
-
+!!if(ktau_gl == 2) then
+!!print *,""
+!!print *,"ssnow"
+!!print *,"canopy%ga ", canopy%ga
+!!print *,"canopy%dgdtg ", canopy%dgdtg
+!!print *,"ssnow%gammzz(1,1) ",ssnow%gammzz
+!!stop
+!!endif
     coeff(:,1-3) = 0.0  ! coeff(:,-2)
 
     ! 3-layer snow points done here

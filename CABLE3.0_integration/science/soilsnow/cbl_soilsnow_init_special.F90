@@ -45,8 +45,12 @@ REAL                :: zsetot
 INTEGER, SAVE :: ktau =0
 
 ktau = ktau +1
-
+print *, ""
+print *, ""
+print *, ""
+print *, "PRE:ss_init ssnoow%gammzz(:,1) ", ssnow%gammzz(:,1) 
 IF( .NOT.cable_user%cable_runtime_coupled ) THEN
+!print *, "1%gammzz(1,1) ", ssnow%gammzz(:,1) 
 
    IF( ktau_gl <= 1 ) THEN
       IF (cable_runtime%um) canopy%dgdtg = 0.0 ! RML added um condition
@@ -86,20 +90,37 @@ IF( .NOT.cable_user%cable_runtime_coupled ) THEN
          ssnow%wbice(:,6) = 0.90 * ssnow%wb(:,6)
       ENDWHERE
       xx=REAL(soil%heat_cap_lower_limit(:,1))
+
+!print *, "2%gammzz(1,1) ", ssnow%gammzz(:,1) 
       ssnow%gammzz(:,1) = MAX( (1.0 - soil%ssat) * soil%css * soil%rhosoil &
            & + (ssnow%wb(:,1) - ssnow%wbice(:,1) ) * Ccswat * Cdensity_liq &
            & + ssnow%wbice(:,1) * Ccsice * Cdensity_liq * .9, xx ) * soil%zse(1)
+
    END IF
 ENDIF  ! if(.NOT.cable_runtime_coupled)
 
+         ssnow%snowd = 0. !match Loobos
+
 IF (ktau <= 1)       THEN
+!print *, "3%gammzz(1,1) ", ssnow%gammzz(:,1) 
   xx=soil%heat_cap_lower_limit(:,1)
   ssnow%gammzz(:,1) = MAX( (1.0 - soil%ssat) * soil%css * soil%rhosoil      &
         & + (ssnow%wb(:,1) - ssnow%wbice(:,1) ) * Ccswat * Cdensity_liq           &
         & + ssnow%wbice(:,1) * Ccsice * Cdensity_liq * .9, xx ) * soil%zse(1) +   &
         & (1. - ssnow%isflag) * Ccgsnow * ssnow%snowd
 END IF
-
+!print *, ""
+!print *, "4%gammzz(1,1) "
+!print *, "Post:ss_init ssnoow%gammzz(:,1) ", ssnow%gammzz(:,1) 
+!print *, "soil%ssat ",soil%ssat 
+!print *, "soil%css ", soil%css
+!print *, "soil%rhosoil ", soil%rhosoil
+!print *, "ssnow%wb(:,1) ", ssnow%wb(:,1)
+!print *, "ssnow%wbice(:,1) ", ssnow%wbice(:,1)
+!print *, "soil%zse(1) ", soil%zse(1)
+!print *, "ssnow%isflag ",ssnow%isflag
+!print *, "ssnow%snowd ", ssnow%snowd
+!print *, "ktau_gl ", ktau_gl
 END SUBROUTINE spec_init_soil_snow
 
   SUBROUTINE spec_init_snowcheck(dels, ssnow, soil, met )
