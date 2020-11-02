@@ -183,7 +183,7 @@ CONTAINS
        vegin%Kcrit(1) = vegin%Kmax(1) * 0.05
        vegin%b_plant(1) = 3.5
        vegin%c_plant(1) = 2.0
-       vegin%gmin(1) = 0.6376395  ! WSF single sided, above was double-sided, mmol m-2 s-1
+       vegin%gmin(1) = 1.0  ! Spruce single sided, above was double-sided, mmol m-2 s-1
 
        !PFT: evergreen_broadleaf
        !=========================================================

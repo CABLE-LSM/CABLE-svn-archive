@@ -2210,6 +2210,7 @@ CONTAINS
              Sr(j,k) = MIN( 0.9999 , &
                   MAX(0., ssnow%wb(j,k)-soil%watr(j,k))/(soil%ssat_vec(j,k)-soil%watr(j,k)) )
 
+
              !frozen or not?
              IF (Sr(j,k) .GE. 0.05) THEN
                 Ke(j,k) = 0.7*LOG10(Sr(j,k)) + 1.0
@@ -2636,6 +2637,8 @@ CONTAINS
      !root_biomass = bgc%cplant(i,ROOT_INDEX) * gC2DM
      !root_biomass = 1443.0 * gC2DM ! EBF value
      root_biomass = 832.0 * gC2DM ! Eucface value
+
+     !root_biomass = 318.9 * gC2DM ! Spruce experiment
 
      ! sensitivity experiment values
      !root_biomass = 200. * gC2DM ! Range from Williams 2001, 200-1000
