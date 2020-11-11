@@ -237,7 +237,9 @@ MODULE cable_IO_vars_module
          VegT = .FALSE.,      & ! 31 vegetation temperature [K]
          SoilTemp = .FALSE.,  & ! 32 av.layer soil temperature [K]
          SoilMoist = .FALSE., & ! 33 av.layer soil moisture [kg/m2]
-          SoilMoistIce = .FALSE., & ! 33 av.layer soil frozen moisture [kg/m2]
+         SoilMoistIce = .FALSE., & ! 33 av.layer soil frozen moisture [kg/m2]
+         watmove = .FALSE.,   & ! MMY watmove: water movement from upper layer to the ith soil layer [kg/m^2/s]
+         EVAPFBL = .FALSE.,   & ! MMY EVAPFBL: Transpiration taken from ith layer [kg/m^2/s]
          Qs = .FALSE.,        & ! 34 surface runoff [kg/m2/s]
          Qsb = .FALSE.,       &! 35 subsurface runoff [kg/m2/s]
          DelSoilMoist = .FALSE., & ! 36 change in soilmoisture
@@ -329,9 +331,9 @@ MODULE cable_IO_vars_module
          hc = .FALSE.,        & ! height of canopy [m]
          rp20  = .FALSE.,     & ! plant respiration coefficient at
                                 ! 20 C [-] 0.1 - 10 (frp 0 - 15e-6 mol/m2/s)
-         g0   = .FALSE.,      & ! Ticket #56      
+         g0   = .FALSE.,      & ! Ticket #56
          g1   = .FALSE.,      & ! Ticket #56
-         rpcoef  = .FALSE.,   & ! temperature coef nonleaf plant 
+         rpcoef  = .FALSE.,   & ! temperature coef nonleaf plant
                                 ! respiration [1/C] (0.8 - 1.5)
          shelrb  = .FALSE.,   & ! sheltering factor [-] {avoid - insensitive?}
          vcmax  = .FALSE.,    & ! maximum RuBP carboxylation rate
