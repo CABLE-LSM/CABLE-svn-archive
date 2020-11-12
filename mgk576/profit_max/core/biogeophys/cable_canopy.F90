@@ -900,6 +900,8 @@ CONTAINS
        rhlitt = REAL((1-ssnow%isflag))*veg%clitt*0.003/canopy%kthLitt/(air%rho*C%CAPP)
        relitt = REAL((1-ssnow%isflag))*veg%clitt*0.003/canopy%DvLitt
 
+       print*, veg%clitt
+       stop
        !incorporates REV_CORR changes
        ssnow%dfh_dtg = air%rho*C%CAPP/(rttsoil+rhlitt)
        ssnow%dfe_ddq = ssnow%wetfac*air%rho*air%rlam*ssnow%cls/(rttsoil+relitt)
@@ -3296,9 +3298,8 @@ CONTAINS
             p_leaves(j) = p(idx)
 
             ! scale up cuticular conductance, mol H2O m-2 s-1
-            !e_cuticular = gmin * MMOL_2_MOL * rad%scalex(i,j) / press * vpd
-            e_cuticular = gmin * MMOL_2_MOL * rad%scalex(i,j) * vpd
-
+            e_cuticular = gmin * MMOL_2_MOL * rad%scalex(i,j) / press * vpd
+            !e_cuticular = gmin * MMOL_2_MOL * rad%scalex(i,j) * vpd
             ! Don't add gmin, instead use it as the lower boundary
             IF (e_leaves(j) < e_cuticular) THEN
                e_leaves(j) = e_cuticular ! mol H2O m-2 s-1
