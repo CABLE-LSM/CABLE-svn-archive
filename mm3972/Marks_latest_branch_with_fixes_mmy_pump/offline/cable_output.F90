@@ -2068,21 +2068,6 @@ CONTAINS
     END IF
     ! __________________________________________________________________________
 
-    IF(cable_user%gw_model .and. output%soil) THEN
-      CALL define_ovar(ncid_out, ovid%watmove, 'watmove', 'kg/m^2/s',      &
-                       'water movement from upper layer to the ith soil layer', &
-                       patchout%watmove,'soil', xID, yID, zID, landID, patchID, soilID, tID)
-      ALLOCATE(out%watmove(mp,ms))
-      out%watmove = 0.0 ! initialise
-      CALL define_ovar(ncid_out, ovid%EVAPFBL, 'EVAPFBL', 'kg/m^2/s',      &
-                       'Transpiration taken from ith layer', patchout%EVAPFBL,     &
-                       'soil', xID, yID, zID, landID, patchID, soilID, tID)
-      ALLOCATE(out%EVAPFBL(mp,ms))
-      out%EVAPFBL = 0.0 ! initialise
-    END IF
-
-    ! __________________________________________________________________________
-
     !-----------------------WRITE SOIL STATE DATA-------------------------------
     ! SoilMoist: av.layer soil moisture [kg/m^2]
     IF(output%soil .OR. output%SoilMoist) THEN
