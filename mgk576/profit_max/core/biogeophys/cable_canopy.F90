@@ -900,8 +900,6 @@ CONTAINS
        rhlitt = REAL((1-ssnow%isflag))*veg%clitt*0.003/canopy%kthLitt/(air%rho*C%CAPP)
        relitt = REAL((1-ssnow%isflag))*veg%clitt*0.003/canopy%DvLitt
 
-       print*, veg%clitt
-       stop
        !incorporates REV_CORR changes
        ssnow%dfh_dtg = air%rho*C%CAPP/(rttsoil+rhlitt)
        ssnow%dfe_ddq = ssnow%wetfac*air%rho*air%rlam*ssnow%cls/(rttsoil+relitt)
