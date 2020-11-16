@@ -57,7 +57,7 @@ MODULE cable_output_module
                     Qmom, Qle, Qh, Qg, NEE, SWnet,                             &
                     LWnet, SoilMoist, SoilTemp, Albedo,                        &
                     visAlbedo, nirAlbedo, SoilMoistIce,                        &
-                    Qs, Qsb, Evap, BaresoilT, SWE, SnowT,                      &
+                    Qs, Qsb, Evap, EVAPFBL, watmove, BaresoilT, SWE, SnowT,    & ! MMY, add EVAPFBL & watmove
                     RadT, VegT, Ebal, Wbal, AutoResp,                          &
                     LeafResp, HeteroResp, GPP, NPP, LAI,                       &
                     ECanop, TVeg, ESoil, CanopInt, SnowDepth,                  &
@@ -117,6 +117,10 @@ MODULE cable_output_module
     REAL(KIND=4), POINTER, DIMENSION(:) :: LWnet  ! 21 net longwave [W/m2]
     REAL(KIND=4), POINTER, DIMENSION(:) :: Evap   ! 22 total evapotranspiration
                                                   ! [kg/m2/s]
+    REAL(KIND=4), POINTER, DIMENSION(:,:) :: EVAPFBL ! MMY transpiration taken from ith layer
+                                                     ! MMY [kg/m2/s]
+    REAL(KIND=4), POINTER, DIMENSION(:,:) :: watmove ! MMY water movement from upper layer to the ith soil layer
+                                                     ! MMY [kg/m2/s]
     REAL(KIND=4), POINTER, DIMENSION(:) :: Ewater ! 23 evap. from surface water
                                                   ! storage [kg/m2/s]
     REAL(KIND=4), POINTER, DIMENSION(:) :: ESoil  ! 24 bare soil evaporation
@@ -598,6 +602,22 @@ CONTAINS
        ALLOCATE(out%SMP(mp,ms))
        out%SMP = 0.0 ! initialise
     ENDIF
+
+    ! _________________________________ MMY ____________________________________
+    IF(cable_user%gw_model .and. output%soil) THEN
+       CALL define_ovar(ncid_out, ovid%watmove, 'watmove', 'kg/m^2/s',      &
+                       'water movement from upper layer to the ith soil layer', &
+                       patchout%watmove,'soil', xID, yID, zID, landID, patchID, soilID, tID)
+       ALLOCATE(out%watmove(mp,ms))
+       out%watmove = 0.0 ! initialise
+       CALL define_ovar(ncid_out, ovid%EVAPFBL, 'EVAPFBL', 'kg/m^2/s',      &
+                       'Transpiration taken from ith layer', patchout%EVAPFBL,     &
+                       'soil', xID, yID, zID, landID, patchID, soilID, tID)
+       ALLOCATE(out%EVAPFBL(mp,ms))
+       out%EVAPFBL = 0.0 ! initialise
+    END IF
+    ! __________________________________________________________________________
+
     if (cable_user%gw_model .and. gw_params%BC_hysteresis) then
        CALL define_ovar(ncid_out, ovid%SMP_hys, 'SMP_hys', 'm',      &
                         'Average layer soil pressure at hys trans', patchout%SMP_hys,     &
@@ -2025,7 +2045,28 @@ CONTAINS
        END IF
     END IF
 
-
+    ! __________________ MMY WRITE SOIL WATER MOVEMENT DATA ____________________
+    ! watmove: water movement from upper layer to the ith soil layer [kg/m^2/s]
+    ! EVAPFBL: Transpiration taken from ith layer [kg/m^2/s]
+    IF(cable_user%gw_model .and. output%soil) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%watmove = out%watmove + REAL(ssnow%watmove, 4)
+       out%EVAPFBL = out%EVAPFBL + REAL(ssnow%evapfbl/dels, 4)
+      IF(writenow) THEN
+         ! Divide accumulated variable by number of accumulated time steps:
+         out%watmove = out%watmove / REAL(output%interval, 4)
+         out%EVAPFBL = out%EVAPFBL / REAL(output%interval, 4)
+         ! Write value to file:
+         CALL write_ovar(out_timestep, ncid_out, ovid%watmove, 'watmove', &
+              out%watmove, ranges%watmove, patchout%watmove, 'soil', met)
+         CALL write_ovar(out_timestep, ncid_out, ovid%EVAPFBL, 'EVAPFBL', &
+             out%EVAPFBL, ranges%EVAPFBL, patchout%EVAPFBL, 'soil', met)
+         ! Reset temporary output variable:
+         out%watmove = 0.0
+         out%EVAPFBL = 0.0
+      END IF
+ 	  END IF
+    ! __________________________________________________________________________
 
 
     !-----------------------WRITE SOIL STATE DATA-------------------------------

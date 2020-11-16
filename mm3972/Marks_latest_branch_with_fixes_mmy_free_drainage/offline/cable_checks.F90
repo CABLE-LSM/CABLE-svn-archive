@@ -82,6 +82,8 @@ MODULE cable_checks_module
           Ewater = (/-0.0005,0.0005/),        &
           ESoil = (/-0.0015,0.0015/),         &
            TVeg = (/-0.0003,0.0003/),          &
+           EVAPFBL = (/-0.0003,0.0003/),       & ! MMY: transpiration taken from ith layer
+           watmove = (/-9999.,9999./),         & ! MMY: water movement from upper layer to the ith soil layer
            ECanop = (/-0.0003,0.0003/),        &
            PotEvap = (/-0.0006,0.0006/),       &
            ACond = (/0.0,1.0/),                &
