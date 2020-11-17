@@ -2636,9 +2636,9 @@ CONTAINS
      ! convert from gC to g biomass, i.e. twice the C content
      !root_biomass = bgc%cplant(i,ROOT_INDEX) * gC2DM
      !root_biomass = 1443.0 * gC2DM ! EBF value
-     root_biomass = 832.0 * gC2DM ! Eucface value
+     !root_biomass = 832.0 * gC2DM ! Eucface value
 
-     !root_biomass = 318.9 * gC2DM ! Spruce experiment
+     root_biomass = 318.9 * gC2DM ! Spruce experiment
 
      ! sensitivity experiment values
      !root_biomass = 200. * gC2DM ! Range from Williams 2001, 200-1000
