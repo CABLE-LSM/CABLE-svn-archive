@@ -65,25 +65,6 @@ MODULE cable_def_types_mod
   INTEGER, PARAMETER :: n_ktherm = 3
   !   PRIVATE :: r_2, ms, msn, mf, nrb, ncp, ncs
 
-TYPE fprint_type
-
-  REAL, DIMENSION(:), POINTER ::                                              &
-       fprint1,  & 
-       fprint2,  & 
-       fprint3,  & 
-       fprint4,  & 
-       fprint5,  & 
-       fprint6,  & 
-       fprint7,  & 
-       fprint8,  & 
-       fprint9
-
-END TYPE fprint_type
-
-!Instantiation:
-TYPE ( fprint_type ) :: fprintx 
-
-
   ! .............................................................................
 
   ! Energy and water balance variables:
