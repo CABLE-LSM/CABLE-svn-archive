@@ -377,8 +377,6 @@ USE cbl_soil_snow_init_special_module
      cable_user%MetType = 'gswp'
   ENDIF
 
-  cable_runtime%offline = .TRUE.
-
   IF( l_casacnp	 .AND. ( icycle == 0 .OR. icycle > 3 ) )		   &
        STOP 'icycle must be 1 to 3 when using casaCNP'
   !IF( ( l_laiFeedbk .OR. l_vcmaxFeedbk ) )	  &
@@ -678,8 +676,33 @@ USE cbl_soil_snow_init_special_module
            IF (casaonly) THEN
               EXIT
            ENDIF
+ !SoilTemp_CABLE =
+ssnow%tgg(:,1) = 276.7757
+ssnow%tgg(:,2) = 276.913
+ssnow%tgg(:,3) = 277.2838
+ssnow%tgg(:,4) = 278.2784
+ssnow%tgg(:,5) = 280.8017
+ssnow%tgg(:,6) = 284.6788
 
-  call spec_init_soil_snow(dels, soil, ssnow, canopy, met, bal, veg)
+! SoilMoisture_CABLE =
+ssnow%wb(:,1) = 0.341704785823822
+ssnow%wb(:,2) = 0.342795729637146
+ssnow%wb(:,3) = 0.344019591808319
+ssnow%wb(:,4) = 0.347340703010559
+ssnow%wb(:,5) = 0.356897175312042
+ssnow%wb(:,6) = 0.386693537235260
+
+ssnow%wbice = 0.
+  
+ssnow%sdepth= 0.
+ssnow%smass = 0.
+ssnow%ssdn = 120.
+ssnow%tggsn = 273.1
+ssnow%snage = 0.
+ssnow%ssdnn = 120.
+ssnow%isflag= 0
+  
+call spec_init_soil_snow(dels, soil, ssnow, canopy, met, bal, veg)
 
            ! time step loop over ktau
            DO ktau=kstart, kend

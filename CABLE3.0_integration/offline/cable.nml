@@ -1,5 +1,5 @@
 &cable
-   filename%met = 'TumbaFluxnet.1.3_met.nc'
+   filename%met = 'Loobos_1997.nc'
    filename%out = 'out_cable.nc'
    filename%log = 'log_cable.txt'
    filename%restart_in  = ' ' 
@@ -67,4 +67,6 @@
    cable_user%CASA_DUMP_READ = .FALSE.      ! TRUE reads CASA forcing from netcdf format
    cable_user%CASA_DUMP_WRITE = .FALSE.      ! TRUE outputs CASA forcing in netcdf format
    cable_user%SSNOW_POTEV= 'HDM'      ! Humidity Deficit Method
+  cable_user%gs_switch='medlyn',
+  cable_user%soil_thermal_fix=.true.,
 &end
