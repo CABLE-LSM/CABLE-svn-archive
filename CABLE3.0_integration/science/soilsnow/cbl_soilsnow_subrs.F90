@@ -930,11 +930,11 @@ CONTAINS
     REAL :: wb_lake_T, rnof2_T, ratio
     INTEGER :: k,j
 
-    IF( cable_runtime%UM ) THEN
-       nglacier = 0
-    ELSE
+    !H!IF( cable_runtime%UM ) THEN
+    !H!   nglacier = 0
+    !H!ELSE
        nglacier = 2
-    ENDIF
+    !H!ENDIF
 
     CALL smoisturev( dels, ssnow, soil, veg )
 
@@ -1154,14 +1154,6 @@ CONTAINS
        ssnow%tgg(:,1) = ssnow%tgg(:,1) + ( canopy%ga - ssnow%tgg(:,1)           &
             * REAL( canopy%dgdtg ) ) * dels / REAL( ssnow%gammzz(:,1) )
     END WHERE
-!!if(ktau_gl == 2) then
-!!print *,""
-!!print *,"ssnow"
-!!print *,"canopy%ga ", canopy%ga
-!!print *,"canopy%dgdtg ", canopy%dgdtg
-!!print *,"ssnow%gammzz(1,1) ",ssnow%gammzz
-!!stop
-!!endif
     coeff(:,1-3) = 0.0  ! coeff(:,-2)
 
     ! 3-layer snow points done here
@@ -1308,11 +1300,11 @@ CONTAINS
 
           ssnow%ssdn(j,:) = ssnow%ssdnn(j)
 
-          IF( .NOT.cable_user%CABLE_RUNTIME_COUPLED ) THEN
-             IF( soil%isoilm(j) == 9 .AND. ktau_gl <= 2 )                       &
-                                ! permanent ice: fixed hard-wired number in next version
-                  ssnow%ssdnn(j) = 700.0
-          ENDIF
+          !H!IF( .NOT.cable_user%CABLE_RUNTIME_COUPLED ) THEN
+          !H!   IF( soil%isoilm(j) == 9 .AND. ktau_gl <= 2 )                       &
+          !H!                      ! permanent ice: fixed hard-wired number in next version
+          !H!        ssnow%ssdnn(j) = 700.0
+          !H!ENDIF
 
 
        ELSE ! in loop: IF( ssnow%snowd(j) <= 0.0 ) THEN
@@ -1325,14 +1317,14 @@ CONTAINS
              ssnow%ssdn(j,2) = ssnow%ssdn(j,1)
              ssnow%ssdn(j,3) = ssnow%ssdn(j,1)
 
-             IF( .NOT. cable_user%cable_runtime_coupled) THEN
-                IF( soil%isoilm(j) == 9 .AND. ktau_gl <= 2 ) THEN
-                   ! permanent ice: fix hard-wired number in next version
-                   ssnow%ssdn(j,1)  = 450.0
-                   ssnow%ssdn(j,2)  = 580.0
-                   ssnow%ssdn(j,3)  = 600.0
-                ENDIF
-             ENDIF
+             !H!IF( .NOT. cable_user%cable_runtime_coupled) THEN
+             !H!   IF( soil%isoilm(j) == 9 .AND. ktau_gl <= 2 ) THEN
+             !H!      ! permanent ice: fix hard-wired number in next version
+             !H!      ssnow%ssdn(j,1)  = 450.0
+             !H!      ssnow%ssdn(j,2)  = 580.0
+             !H!      ssnow%ssdn(j,3)  = 600.0
+             !H!   ENDIF
+             !H!ENDIF
 
              ssnow%sdepth(j,1) = ssnow%t_snwlr(j)
 
