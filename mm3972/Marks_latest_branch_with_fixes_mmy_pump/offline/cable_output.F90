@@ -60,7 +60,7 @@ MODULE cable_output_module
                     Qs, Qsb, Evap, EVAPFBL, watmove, BaresoilT, SWE, SnowT,    & ! MMY, add EVAPFBL & watmove
                     RadT, VegT, Ebal, Wbal, AutoResp,                          &
                     LeafResp, HeteroResp, GPP, NPP, LAI,                       &
-                    ECanop, TVeg, ESoil, CanopInt, SnowDepth,                  &
+                    ECanop, PotEvap, TVeg, ESoil, CanopInt, SnowDepth,         & ! MMY, add PotEvap
                     HVeg, HSoil, Rnet, tvar, CanT,Fwsoil, RnetSoil, SnowMelt, &
                     NBP, TotSoilCarb, TotLivBiomass, &
                     TotLittCarb, SoilCarbFast, SoilCarbSlow, SoilCarbPassive, &
@@ -524,6 +524,17 @@ CONTAINS
        ALLOCATE(out%Evap(mp))
        out%Evap = 0.0 ! initialise
     END IF
+
+    ! _________________________________ MMY ____________________________________
+    IF(output%flux .OR. output%PotEvap) THEN
+       CALL define_ovar(ncid_out, ovid%PotEvap, 'PotEvap', 'kg/m^2/s',               &
+                        'Potential evapotranspiration', patchout%PotEvap, 'dummy',    &
+                        xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%PotEvap(mp))
+       PotEvap%PotEvap = 0.0 ! initialise
+    END IF
+    ! __________________________________________________________________________
+
     IF(output%flux .OR. output%ECanop) THEN
        CALL define_ovar(ncid_out, ovid%Ecanop, 'ECanop', 'kg/m^2/s',           &
                         'Wet canopy evaporation', patchout%ECanop, 'dummy',    &
@@ -1945,6 +1956,24 @@ CONTAINS
           out%Evap = 0.0
        END IF
     END IF
+
+    ! _________________________________ MMY ____________________________________
+    ! PotEvap: potential evapotranspiration [kg/m^2/s]
+    IF(output%flux .OR. output%PotEvap) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%PotEvap = out%PotEvap + REAL(ssnow%potev / air%rlam, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%PotEvap = out%PotEvap / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%PotEvap, 'PotEvap', out%PotEvap, &
+                          ranges%PotEvap, patchout%PotEvap, 'default', met)
+          ! Reset temporary output variable:
+          out%PotEvap = 0.0
+       END IF
+    END IF
+    ! __________________________________________________________________________
+
     ! ECanop: interception evaporation [kg/m^2/s]
     IF(output%flux .OR. output%ECanop) THEN
        ! Add current timestep's value to total of temporary output variable:

@@ -2113,6 +2113,12 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
      CALL MPI_Get_address (ssnow%sinfil(off), displs(bidx), ierr)
      blen(bidx) = r1len
 
+     bidx = bidx + 1                                                 ! MMY
+     CALL MPI_Get_address (ssnow%watmove(off,1), displs(bidx), ierr) ! MMY
+     CALL MPI_Type_create_hvector (ms, r1len, r1stride, MPI_BYTE, &  ! MMY
+          &                             types(bidx), ierr)           ! MMY
+     blen(bidx) = 1                                                  ! MMY
+
      bidx = bidx + 1
      CALL MPI_Get_address (ssnow%evapfbl(off,1), displs(bidx), ierr)
      CALL MPI_Type_create_hvector (ms, r1len, r1stride, MPI_BYTE, &
@@ -2692,6 +2698,12 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
      !  &                             types(bidx), ierr)
      !  blen(bidx) = 1
      !  !blen(bidx) = ms * r1len
+
+     bidx = bidx + 1                                                  ! MMY
+     CALL MPI_Get_address (canopy%watmove(off,1), displs(bidx), ierr) ! MMY
+     CALL MPI_Type_create_hvector (ms, r1len, r1stride, MPI_BYTE, &   ! MMY
+          &                             types(bidx), ierr)            ! MMY
+     blen(bidx) = 1                                                   ! MMY
 
      bidx = bidx + 1
      CALL MPI_Get_address (canopy%evapfbl(off,1), displs(bidx), ierr)
@@ -5018,6 +5030,13 @@ SUBROUTINE master_outtypes (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
      ! REAL(r_2)
      ! MPI: gol124: backport to r1134 changes r_2 to r_1
      ! MPI: gol124: in newest CABLE-cnp it's r_2 again
+
+     midx = midx + 1                                                    ! MMY
+     CALL MPI_Get_address (canopy%watmove(off,1), maddr(midx), ierr)    ! MMY
+     CALL MPI_Type_create_hvector (ms, r1len, r1stride, MPI_BYTE, &     ! MMY
+          &                        mat_t(midx, rank), ierr)             ! MMY
+     CALL MPI_Type_commit (mat_t(midx, rank), ierr)                     ! MMY
+
      midx = midx + 1
      CALL MPI_Get_address (canopy%evapfbl(off,1), maddr(midx), ierr) ! 2
      ! MPI: gol124: changed to r1 when Bernard ported to CABLE_r491
@@ -5150,6 +5169,13 @@ SUBROUTINE master_outtypes (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
           &                        mat_t(midx, rank), ierr)
      CALL MPI_Type_commit (mat_t(midx, rank), ierr)
      midx = midx + 1
+
+     ! REAL(r_1)                                                    ! MMY
+     CALL MPI_Get_address (ssnow%watmove(off,1), maddr(midx), ierr) ! MMY
+     CALL MPI_Type_create_hvector (ms, r1len, r1stride, MPI_BYTE, & ! MMY
+          &                        mat_t(midx, rank), ierr)         ! MMY
+     CALL MPI_Type_commit (mat_t(midx, rank), ierr)                 ! MMY
+     midx = midx + 1                                                ! MMY
 
      ! REAL(r_1)
      CALL MPI_Get_address (ssnow%evapfbl(off,1), maddr(midx), ierr) ! 12
@@ -7495,6 +7521,16 @@ SUBROUTINE master_restart_types (comm, canopy, air)
      blocks(bidx) = 1
 
      last2d = bidx
+
+     ! ! ________________________________ MMY ____________________________________
+     ! bidx = bidx + 1
+     ! CALL MPI_Get_address (canopy%watmove(off,1), displs(bidx), ierr)
+     ! CALL MPI_Type_create_hvector (ms, r1len, r1stride, MPI_BYTE, &
+     ! &                             types(bidx), ierr)
+     ! blocks(bidx) = 1
+     !
+     ! last2d = bidx
+     ! ! _________________________________________________________________________
 
      ! ------------- 1D vectors -------------
 
