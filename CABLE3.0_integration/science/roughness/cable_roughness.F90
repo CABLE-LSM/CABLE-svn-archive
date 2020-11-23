@@ -87,8 +87,6 @@ integer :: i
 call HgtAboveSnow( HeightAboveSnow, mp, z0soilsn_min, veg%hc, ssnow%snowd, &
                    ssnow%ssdnn )
 rough%hruff =  HeightAboveSnow
-!!print *, "  "
-!!print *, " rough%hruff ", rough%hruff
 
 ! LAI decreases due to snow: formerly canopy%vlaiw
 call LAI_eff( mp, veg%vlai, veg%hc, HeightAboveSnow, &
@@ -97,21 +95,15 @@ call LAI_eff( mp, veg%vlai, veg%hc, HeightAboveSnow, &
     canopy%vlaiw  = reducedLAIdue2snow
     canopy%rghlai = canopy%vlaiw
 
-!!print  *,"veg%vlai ",veg%vlai
-!!print  *,"veg%hc ", veg%hc
-!!print  *,"HeightAboveSnow ", HeightAboveSnow
-!!print *, "canopy%vlaiw ",canopy%vlaiw
     IF (cable_user%soil_struc=='default') THEN
 
        ! Roughness length of bare soil (m): new formulation- E.Kowalczyk 2014
        IF (.NOT.cable_user%l_new_roughness_soil .AND. (.NOT.cable_user%or_evap)) THEN
           rough%z0soil = 0.0009*MIN(1.0,canopy%vlaiw) + 1.e-4
           rough%z0soilsn = rough%z0soil
-!!print *, "rough%z0soilsn 1 ",rough%z0soilsn
        ELSE
           rough%z0soil = 0.01*MIN(1.0,canopy%vlaiw) + 0.02*MIN(canopy%us**2/CGRAV,1.0)
           rough%z0soilsn = MAX(1.e-7,rough%z0soil)
-!!print *, "rough%z0soilsn 2 ",rough%z0soilsn
        ENDIF
 
        WHERE( ssnow%snowd .GT. 0.01   )  &
@@ -131,8 +123,6 @@ call LAI_eff( mp, veg%vlai, veg%hc, HeightAboveSnow, &
 
     ENDIF
 
-!!print *, "rough%z0soilsn ",rough%z0soilsn
-!!stop
     !! vh_js !! use LAI_THRESH here
 do i=1,mp
     if( canopy%vlaiw(i) .LT. CLAI_THRESH  .OR.                                          &
@@ -151,14 +141,6 @@ do i=1,mp
        rough%zref_uv(i) = MAX( rough%zref_uv(i), rough%hruff(i)-rough%disp(i) )
        rough%zref_tq(i) = MAX( rough%zref_tq(i), rough%hruff(i)-rough%disp(i) )
 
-!!print *, "  "
-!!print *, "_ruff soil veg"
-!!print *, " rough%zref_uv ", rough%zref_uv(i)
-!!print *, " rough%zref_tq ", rough%zref_tq(i)
-!!print *, " rough%za_uv ", rough%za_uv(i)
-!!print *, " rough%za_tq ", rough%za_tq(i)
-!!print *, " rough%hruff ", rough%hruff(i)
-!!print *, " rough%disp ", rough%disp(i)
        rough%zruffs(i) = 0.0
        rough%rt1usa(i) = 0.0
        rough%rt1usb(i) = 0.0
@@ -207,18 +189,6 @@ do i=1,mp
        rough%zref_uv(i) = MAX( rough%zref_uv(i), rough%hruff(i)-rough%disp(i) )
        rough%zref_tq(i) = MAX( rough%zref_tq(i), rough%hruff(i)-rough%disp(i) )
 
-!!print *, "  "
-!!print *, "_ruff soil"
-!!print *, "rough%z0m(i)", rough%z0m(i) 
-!!print *, "dh(i)", dh(i)
-!!print *, "rough%usuh(i) ", rough%usuh(i) 
-!!print *, "  "
-!!print *, " rough%zref_uv ", rough%zref_uv(i)
-!!print *, " rough%zref_tq ", rough%zref_tq(i)
-!!print *, " rough%za_uv ", rough%za_uv(i)
-!!print *, " rough%za_tq ", rough%za_tq(i)
-!!print *, " rough%hruff ", rough%hruff(i)
-!!print *, " rough%disp ", rough%disp(i)
        ! find coexp: see notes "simplified wind model ..." eq 34a
        ! Extinction coefficient for wind profile in canopy:
        ! eq. 3.14, SCAM manual (CSIRO tech report 132)
