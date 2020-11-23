@@ -531,7 +531,7 @@ CONTAINS
                         'Potential evapotranspiration', patchout%PotEvap, 'dummy',    &
                         xID, yID, zID, landID, patchID, tID)
        ALLOCATE(out%PotEvap(mp))
-       PotEvap%PotEvap = 0.0 ! initialise
+       out%PotEvap = 0.0 ! initialise
     END IF
     ! __________________________________________________________________________
 
