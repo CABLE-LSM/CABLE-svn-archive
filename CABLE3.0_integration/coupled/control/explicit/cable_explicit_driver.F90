@@ -64,8 +64,8 @@ nrb,                                                                          &
 Fland,              & !fraction of land per land point (could be coastal) 
 tile_frac,         & !fraction of each surface type per land point [frac_surft]
 L_tile_pts,       & !Logical mask TRUE where tile frac > 0. used to PACK/UNPACK
-LAI_ft,             & !Leaf area index. [LAI_pft/LAI_pft_um in radiation]
-canht_ft,           & !Canopy height [canht_pft/HGT_pft_um in radiation]
+LAI_pft_um,             & !Leaf area index. [LAI_pft/LAI_pft_um in radiation]
+canht_pft_um,           & !Canopy height [canht_pft/HGT_pft_um in radiation]
 albsoil,    & !(albsoil)Snow-free, bare soil albedo [albsoil_soilt(:,1) in um ]
 z0surf_min,                                                                   &
 dzsoil,             & !soil thicknesses in each layer  
@@ -231,7 +231,7 @@ REAL,  DIMENSION(land_pts, ntiles) ::                                         &
   visc_sublayer_depth 
 
 REAL, DIMENSION(land_pts, npft) ::                                            &
-  canht_ft, lai_ft 
+  canht_pft_um, lai_pft_um 
    
 REAL,  DIMENSION(land_pts, ntiles,3) ::                                       &
   snow_cond,                                                                  &
@@ -328,6 +328,7 @@ REAL  :: rho_water, rho_ice
   
 ! std template args 
 CHARACTER(LEN=*), PARAMETER :: subr_name = "cable_explicit_driver"
+LOGICAL, PARAMETER :: explicit_path = .TRUE.
 
 rho_water = cdensity_liq
 rho_ice   = cdensity_liq
@@ -359,7 +360,7 @@ CALL interface_UM_data( mp, row_length, rows, land_pts, ntiles, npft,         &
                         visc_sublayer_depth, canopy_tile, Fland,              &
                         co2_mmr,                                              &
                         sthu_tile, SoilMoisture, smgw_tile,FrozenSoilFrac,    &
-                        sthu, SoilTemp, canht_ft, lai_ft,                     &
+                        sthu, SoilTemp, canht_pft_um, lai_pft_um,                     &
                         sin_theta_latitude, dzsoil,                           &
                         cpool_tile, npool_tile, ppool_tile, soil_order,       &
                         nidep, nifix, pwea, pdust, glai, phenphase,           &
@@ -371,11 +372,11 @@ soilin, soil_cbl )
 met_cbl%doy = REAL(doy)
 canopy_cbl%oldcansto = canopy_cbl%cansto
 rad_cbl%otrad = rad_cbl%trad
-
   !---------------------------------------------------------------------!
   !--- cbm "mainly" controls the calling of model components         ---!  
   !---------------------------------------------------------------------!
-CALL cbl_model_driver( mp, nrb, land_pts, npft, ktau_gl, timestep_width,      &
+CALL cbl_model_driver( explicit_path, mp, nrb, land_pts, npft, ktau_gl,       &
+          timestep_width,      &
           air_cbl ,                                                           &
           bgc_cbl,                                                            &
           canopy_cbl ,                                                        &

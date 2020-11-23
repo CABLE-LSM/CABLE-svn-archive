@@ -263,8 +263,8 @@ IF ( first_call ) THEN
      soil_cbl%pwb_min =  (soil_cbl%swilt / soil_cbl%ssat )**soil_cbl%ibp2
            
   !--- these are temporary 
-  soil_cbl%rhosoil =  soilin%rhosoil(soil_cbl%isoilm)
-  soil_cbl%css     =  soilin%css(soil_cbl%isoilm)
+  soil_cbl%rhosoil =   1598.667 ! match to offline gridinfo for Loobos soilin%rhosoil(soil_cbl%isoilm)
+  soil_cbl%css     =  803.5883 ! match to offline gridinfo for Loobos soilin%css(soil_cbl%isoilm)
 
   DO k = 1,ms
     soil_cbl%ssat_vec(:,k)      = REAL(soil_cbl%ssat(:)   ,r_2)    
@@ -366,6 +366,7 @@ IF ( first_call ) THEN
         IF (soil_cbl%isoilm(i)  /=  9) THEN
 
           soil_cbl%rhosoil_vec(i,k) = 2700.0
+          soil_cbl%rhosoil_vec(i,k) =  1598.667 ! match to offline gridinfo for Loobos soilin%rhosoil(soil_cbl%isoilm)
 
           soil_cbl%cnsd_vec(i,k) = ( (0.135 * (1.0 - ssat_bounded(i,k))) +    &
                               (64.7 / rho_soil_bulk(i,k)) ) /                 &

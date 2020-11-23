@@ -24,6 +24,7 @@ SnowODepth,                                                                   &
 SnowFlag_3L,                                                                  &
 SnowDensity,                                                                  &
 SoilTemp,                                                                     &
+SnowTemp,                                                                     &
 SnowAge,                                                                      &
 HeightAboveSnow,                                                              &
 ExtCoeff_beam,                                                                &
@@ -116,6 +117,7 @@ REAL :: SnowDepth(mp)               !Total Snow depth - water eqivalent - packed
 REAL :: SnowODepth(mp)              !Total Snow depth before any update this timestep (ssnow%Osnowd)
 REAL :: SnowDensity(mp)             !Total Snow density (assumes 1 layer describes snow cover) (ssnow%ssdnn)
 REAL :: SoilTemp(mp)                !Soil Temperature of top layer (soil%tgg)
+REAL :: SnowTemp(mp)                !Snow Temperature of top layer (soil%tgg)
 REAL :: SnowAge(mp)                 !Snow age (assumes 1 layer describes snow cover) (ssnow%snage)
 INTEGER:: SnowFlag_3L(mp)           !Flag to treat snow as 3 layer  - if enough present. Updated depending on total depth (ssnow%isflag)
 !-------------------------------------------------------------------------------
@@ -213,7 +215,7 @@ CALL Albedo( &!ssnow%AlbSoilsn, soil%AlbSoil,                                &
              !ssnow%snowd, ssnow%osnowd, ssnow%isflag,                      & 
              SnowDepth, SnowODepth, SnowFlag_3L,                              &
              !ssnow%ssdnn, ssnow%tgg(:,1), ssnow%snage,                     & 
-             SnowDensity, SoilTemp, SnowAge,                                  &
+             SnowDensity, SoilTemp, SnowTemp, SnowAge,                        &
              xk, c1, rhoch,                                                   &
              !rad%fbeam, rad%albedo,                                        &
              RadFbeam, RadAlbedo,                                             &

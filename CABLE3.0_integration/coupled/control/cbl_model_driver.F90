@@ -7,7 +7,7 @@ PUBLIC cbl_model_driver
 
 CONTAINS
 
-SUBROUTINE cbl_model_driver( mp,nrb, land_pts, npft, ktau,dels, air,          &
+SUBROUTINE cbl_model_driver( explicit_path, mp,nrb, land_pts, npft, ktau,dels, air,          &
                     bgc, canopy, met,                                         &
                     bal, rad, rough, soil,                                    &
                     ssnow, sum_flux, veg, z0surf_min,                         &
@@ -19,6 +19,9 @@ USE cbl_hruff_mod,          ONLY: HgtAboveSnow
 USE cbl_LAI_eff_mod,        ONLY: LAI_eff
 USE cbl_masks_mod, ONLY: fveg_mask,  fsunlit_mask,  fsunlit_veg_mask
 USE cbl_masks_mod, ONLY: veg_mask,  sunlit_mask,  sunlit_veg_mask
+
+USE cbl_init_Loobos_mod, ONLY : initialize_Lveg
+USE cbl_init_Loobos_mod, ONLY : initialize_Lsoil
 
 !data
 USE cable_other_constants_mod,  ONLY: Ccoszen_tols => coszen_tols
@@ -56,7 +59,9 @@ USE cable_phys_constants_mod, ONLY : cemleaf => emleaf
 USE cable_phys_constants_mod, ONLY : cemsoil => emsoil
    
 USE cable_canopy_module, ONLY: define_canopy
+USE cable_canopy_module_explicit, ONLY: define_canopy_explicit
                                    
+LOGICAL :: explicit_path
 INTEGER :: mp
 INTEGER :: nrb
 INTEGER :: land_pts, npft
@@ -93,8 +98,7 @@ TYPE (veg_parameter_type),  INTENT(INOUT)    :: veg
 
 REAL, INTENT(IN)               :: dels ! time setp size (s)
 INTEGER, INTENT(IN) :: ktau
-LOGICAL, SAVE :: first_call = .TRUE.
-
+logical, save :: first_call = .true.
 CHARACTER(LEN=*), PARAMETER :: subr_name = "cbl_model_driver"
 LOGICAL :: jls_standalone= .TRUE.
 LOGICAL :: jls_radiation= .FALSE.
@@ -111,19 +115,33 @@ REAL :: xk(mp,nrb)
 REAL :: CanopyRefl_dif(mp,nrb)
 REAL :: CanopyRefl_beam(mp,nrb)
 
-IF ( cable_runtime%um_explicit ) CALL ruff_resist( veg, rough, ssnow, canopy, &
-                                                    LAI_pft, HGT_pft,         & 
-                                                    reducedLAIdue2snow )
-      
+soil%swilt = 0.1027524 !Hack for Loobos equivalence. offline is getting this from gridiinfo file
+
+  
+IF ( first_call ) THEN 
+  call initialize_Lveg( veg )
+  call initialize_Lsoil( soil )
+  met%ca = 3.999999e-4 
+Endif
+  
+metDoy = INT(RmetDoy)
+
+!H!do we need to call this both expl/impl
+!H!CALL ruff_resist( veg, rough, ssnow, canopy, LAI_pft, HGT_pft, reducedLAIdue2snow )
+CALL ruff_resist( veg, rough, ssnow, canopy, veg%vlai, veg%hc, canopy%vlaiw )
+reducedLAIdue2snow = canopy%vlaiw
+
+!jhan: this call to define air may be redundant as is done in canopy() - also both expl/impl?
 CALL define_air (met, air)
 
-canopy%Vlaiw = reducedLAIdue2snow
+call fveg_mask( veg_mask, mp, Clai_thresh, canopy%vlaiw )
+call fsunlit_mask( sunlit_mask, mp, Ccoszen_tols, met%coszen )
+call fsunlit_veg_mask( sunlit_veg_mask, mp )
 
-metDoy = INT(RmetDoy)
 CALL init_radiation( rad%extkb, rad%extkd,                                    &
-       !ExtCoeff_beam, ExtCoeff_dif,                              &
+                     !ExtCoeff_beam, ExtCoeff_dif,
                      rad%extkbm, rad%extkdm, Rad%Fbeam,                       &
-       !EffExtCoeff_beam, EffExtCoeff_dif, RadFbeam,              &
+                     !EffExtCoeff_beam, EffExtCoeff_dif, RadFbeam,
                      c1, rhoch, xk,                                           &
                      mp,nrb,                                                  &
                      Clai_thresh, Ccoszen_tols, CGauss_w, Cpi, Cpi180,        &
@@ -131,82 +149,66 @@ CALL init_radiation( rad%extkb, rad%extkd,                                    &
                      subr_name,                                               &
                      veg_mask, sunlit_mask, sunlit_veg_mask,                  &
                      veg%Xfang, veg%taul, veg%refl,                           &
-       !VegXfang, VegTaul, VegRefl,                               & 
+                     !VegXfang, VegTaul, VegRefl
                      met%coszen, INT(met%DoY), met%fsd,                       &
-       !coszen, metDoY, SW_down,                                  &
-                     canopy%vlaiw ) !                                         &
-       !reducedLAIdue2snow )
+                     !coszen, metDoY, SW_down,
+                     canopy%vlaiw                                              &
+                   ) !reducedLAIdue2snow 
  
-
-IF ( cable_runtime%um_explicit )                                              &
+!H!IF ( cable_runtime%um_explicit )  - also both expl/impl? 
   CALL Albedo( ssnow%AlbSoilsn, soil%AlbSoil,                                 &
-       !AlbSnow, AlbSoil,                                             &
+               !AlbSnow, AlbSoil,              
                mp, nrb,                                                       &
                jls_radiation,                                                 &
                veg_mask, sunlit_mask, sunlit_veg_mask,                        &  
                Ccoszen_tols, cgauss_w,                                        & 
                veg%iveg, veg%refl, veg%taul,                                  & 
-       !surface_type, VegRefl, VegTaul,                               &
+               !surface_type, VegRefl, VegTaul,
                met%tk, met%coszen, canopy%vlaiw,                              &
-       !metTk, coszen, reducedLAIdue2snow,                            &
+               !metTk, coszen, reducedLAIdue2snow,
                ssnow%snowd, ssnow%osnowd, ssnow%isflag,                       & 
-       !SnowDepth, SnowODepth, SnowFlag_3L,                           &
-               ssnow%ssdnn, ssnow%tgg(:,1), ssnow%snage,                      & 
-       !SnowDensity, SoilTemp, SnowAge,                               &
+               !SnowDepth, SnowODepth, SnowFlag_3L, 
+               ssnow%ssdnn, ssnow%tgg(:,1), ssnow%tggsn(:,1), ssnow%snage,                      & 
+               !SnowDensity, SoilTemp, SnowAge, 
                xk, c1, rhoch,                                                 & 
                rad%fbeam, rad%albedo,                                         &
-       !RadFbeam, RadAlbedo,                                          & 
+               !RadFbeam, RadAlbedo,
                rad%extkd, rad%extkb,                                          & 
-       !ExtCoeff_dif, ExtCoeff_beam,                                  &   
+               !ExtCoeff_dif, ExtCoeff_beam,
                rad%extkdm, rad%extkbm,                                        & 
-       !EffExtCoeff_dif, EffExtCoeff_beam,                
+               !EffExtCoeff_dif, EffExtCoeff_beam,                
                rad%rhocdf, rad%rhocbm,                                        &
-       !CanopyRefl_dif,CanopyRefl_beam,                               &
+               !CanopyRefl_dif,CanopyRefl_beam,
                rad%cexpkdm, rad%cexpkbm,                                      & 
-       !CanopyTransmit_dif, CanopyTransmit_beam,                      & 
-               rad%reffdf, rad%reffbm ) !                                     &
-       !EffSurfRefl_dif, EffSurfRefl_beam )
+               !CanopyTransmit_dif, CanopyTransmit_beam, 
+               rad%reffdf, rad%reffbm                                        &
+             ) !EffSurfRefl_dif, EffSurfRefl_beam 
 
-!CABLE_LSM:check
-IF ( first_call ) THEN
+!This is done in CABLE-IO for offline
+!H!IF ( explicit_path ) THEN - also both expl/impl?
+IF ( ktau_gl == 1) THEN
   ssnow%tss=(1 - ssnow%isflag) * ssnow%tgg(:,1) + ssnow%isflag * ssnow%tggsn(:,1) 
   ssnow%otss = ssnow%tss
-  first_call = .FALSE.
-END IF
+ENDIF
 ssnow%otss_0 = ssnow%otss  ! vh should be before call to canopy?
 ssnow%otss = ssnow%tss
 
-CALL define_canopy( bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,climate, &
+IF ( explicit_path ) THEN
+  CALL define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,climate, sunlit_veg_mask,  canopy%vlaiw)
+ELSE
+  CALL define_canopy         ( bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,climate, &
   sunlit_veg_mask, reducedLAIdue2snow )
+END IF
 
 ssnow%owetfac = ssnow%wetfac
 
-IF ( cable_runtime%um_implicit ) CALL soil_snow(dels, soil, ssnow, canopy,     &
-  met, bal,veg)
+IF ( cable_runtime%um_implicit ) &
+  CALL soil_snow(dels, soil, ssnow, canopy, met, bal,veg)
 
 ssnow%deltss = ssnow%tss - ssnow%otss
 
-canopy%fhs = canopy%fhs + ( ssnow%tss - ssnow%otss ) * ssnow%dfh_dtg
-canopy%fhs_cor = canopy%fhs_cor + ( ssnow%tss - ssnow%otss ) * ssnow%dfh_dtg
+!H!Jhan:correctiion stuff removed here!!
 canopy%fh = canopy%fhv + canopy%fhs
-
-!INH rewritten in terms of %dfe_dtg - NB factor %cls above was a bug
-canopy%fes = canopy%fes + ( ssnow%tss - ssnow%otss ) * ssnow%dfe_dtg
-
-!INH NB factor %cls in %fes_cor above was a bug - see Ticket #135 #137
-canopy%fes_cor = canopy%fes_cor + (ssnow%tss - ssnow%otss) * ssnow%dfe_dtg
-
-!INH need to add on corrections to all terms in the soil energy balance
-canopy%fns_cor = canopy%fns_cor + (ssnow%tss - ssnow%otss) * ssnow%dfn_dtg
-
-canopy%fns = canopy%fns + ( ssnow%tss - ssnow%otss ) * ssnow%dfn_dtg
-
-canopy%ga_cor = canopy%ga_cor + ( ssnow%tss - ssnow%otss ) * canopy%dgdtg
-canopy%ga = canopy%ga + ( ssnow%tss - ssnow%otss ) * canopy%dgdtg
-
-!assign all the correction to %fes to %fess - none to %fesp
-canopy%fess = canopy%fess + ( ssnow%tss - ssnow%otss ) * ssnow%dfe_dtg
-
 ! need to adjust fe after soilsnow
 canopy%fev  = canopy%fevc + canopy%fevw
 
@@ -216,10 +218,10 @@ canopy%fe = canopy%fev + canopy%fes
 ! Calculate net radiation absorbed by soil + veg
 canopy%rnet = canopy%fns + canopy%fnv
 
-! CM2 - further adapted to pass the correction term onto %trad correctly
-rad%trad = ( ( 1.0 - rad%transd ) * cemleaf * canopy%tv**4 +                  &
-      rad%transd * cemsoil * ssnow%otss**4 + canopy%fns_cor / csboltz )      &
-      **0.25
+! Calculate radiative/skin temperature:
+rad%trad = ( ( 1.-rad%transd ) * canopy%tv**4 + rad%transd * ssnow%tss**4 )**0.25
+
+
 
 CALL plantcarb(veg,bgc,met,canopy)
 

@@ -20,6 +20,20 @@ soil_cbl )
 USE cable_implicit_driv_mod, ONLY: cable_implicit_driver
 USE cable_implicit_unpack_mod, ONLY: implicit_unpack
 
+!cable progs are set here
+USE cable_prognostic_info_mod, ONLY:                                          &
+  SoilTemp        =>  SoilTemp_CABLE,                                         &
+  SoilMoisture    =>  SoilMoisture_CABLE,                                     &
+  FrozenSoilFrac  => FrozenSoilFrac_CABLE,                                    &
+  SnowDepth   => SnowDepth_CABLE,                                             &
+  SnowMass    => SnowMass_CABLE,                                              &
+  SnowTemp    => SnowTemp_CABLE,                                              &
+  SnowDensity => SnowDensity_CABLE,                                           &
+  SnowAge     => SnowAge_CABLE,                                               &
+  ThreeLayerSnowFlag  => ThreeLayerSnowFlag_CABLE,                            &
+  OneLyrSnowDensity   => OneLyrSnowDensity_CABLE
+
+
 !data
 USE cable_types_mod, ONLY: mp
 USE cable_types_mod, ONLY: L_tile_pts
@@ -53,13 +67,14 @@ USE cable_balances_type_mod,  ONLY: balances_type
 USE cable_sum_flux_type_mod,  ONLY: sum_flux_type
 USE cable_params_mod,         ONLY: veg_parameter_type
 USE cable_params_mod,         ONLY: soil_parameter_type
+USE cable_params_mod,         ONLY: soilin
 USE ancil_info, ONLY: dim_cs1, dim_cs2
 
 USE p_s_parms, ONLY: sthu_soilt, sthf_soilt
 USE prognostics, ONLY: t_soil_soilt, smcl_soilt, snowdepth_surft 
 USE prognostics, ONLY: snow_depth => snowdepth_surft 
 USE prognostics, ONLY: canopy_gb 
-USE prognostics, ONLY: canopy => canopy_surft 
+USE prognostics, ONLY: canopy_tile => canopy_surft 
 !Imports for driving and flux variables
 USE forcing, ONLY: ls_rain_cable => ls_rain_ij,                               &
                     ls_snow_cable => ls_snow_ij,                              &
@@ -160,8 +175,8 @@ smcl(:,:) = smcl_soilt(:,1,:)
 sthu(:,:) = sthu_soilt(:,1,:)  
 sthf(:,:) = sthf_soilt(:,1,:) 
   
-  ! FLAGS def. specific call to CABLE from UM
-cable_runtime%um          = .TRUE.
+! FLAGS def. specific call to CABLE from UM
+cable_runtime%um          = .FALSE.
 cable_runtime%um_implicit = .TRUE.
 cable_runtime%um_explicit = .FALSE.
   
@@ -180,7 +195,7 @@ CALL cable_implicit_driver( i_day_number, cycleno, &! num_cycles
       snow_mass_cable, snow_rho_cable, snow_temp_cable,                       &
       ftl_1, FTL_surft, fqw_1, FQW_surft,                                     &
       TSTAR_surft, surf_ht_flux_land, ECAN_surft, ESOIL_surft,                &
-      EI_surft, RADNET_surft, SNOW_AGE_cable, canopy, gs, gs_surft,           &
+      EI_surft, RADNET_surft, SNOW_AGE_cable, canopy_tile, gs, gs_surft,           &
       T1P5M_surft, Q1P5M_surft, canopy_gb, MELT_surft,                        &
       !NPP, NPP_FT, GPP, GPP_FT, RESP_S, RESP_S_TOT,              &
       !RESP_P, RESP_P_FT, G_LEAF, 
@@ -203,7 +218,7 @@ CALL implicit_unpack( cycleno, row_length,rows, land_pts, ntiles,             &
                      snow_cond, ftl_1, FTL_surft, fqw_1, FQW_surft,           &
                      TSTAR_surft, surf_ht_flux_land, ECAN_surft,              &
                      ESOIL_surft, EI_surft, RADNET_surft, tot_alb,            &
-                     SNOW_AGE_cable, canopy, gs,GS_surft,                     &
+                     SNOW_AGE_cable, canopy_tile, gs,GS_surft,                     &
                      T1P5M_surft, Q1P5M_surft,                                &
                      canopy_gb, fland, MELT_surft,                            &
                      !NPP, NPP_FT, GPP, GPP_FT, RESP_S, RESP_S_TOT,          &
@@ -220,7 +235,6 @@ t_soil_soilt(:,1,:) = t_soil(:,:)
 smcl_soilt(:,1,:)   = smcl(:,:)   
 sthu_soilt(:,1,:)   = sthu(:,:)   
 sthf_soilt(:,1,:)   = sthf(:,:)   
-  
     
 first_call = .FALSE.        
 
