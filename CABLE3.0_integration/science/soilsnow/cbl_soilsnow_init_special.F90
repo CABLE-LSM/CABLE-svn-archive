@@ -95,7 +95,7 @@ ktau = ktau +1
 !H!   END IF
 !H!ENDIF  ! if(.NOT.cable_runtime_coupled)
 
-         ssnow%snowd = 0. !matches Loobos anyway
+         ssnow%snowd = 0. !match Loobos
 
 IF (ktau <= 1)       THEN
   xx=soil%heat_cap_lower_limit(:,1)
