@@ -9,7 +9,7 @@ SUBROUTINE cable_implicit_driver( i_day_number, cycleno, &! num_cycles
                           ls_rain, con_rain, ls_snow, conv_snow,              &
                           dtl_1,dqw_1, ctctq1, tsoil, tsoil_tile, smcl,       &
                           smcl_tile, &!SMGW_TILE, 
-                          timestep, smvcst, sthf,                             &
+                          timestep_width, smvcst, sthf,                       &
                           sthf_tile, sthu, snow_tile, snow_rho1l, isnow_flg3l,&
                           snow_depth3l, snow_mass3l, snow_rho3l, snow_tmp3l,  &
                           ftl_1, ftl_tile, fqw_1, fqw_tile, tstar_tile,       &
@@ -92,7 +92,7 @@ REAL, DIMENSION(row_length,rows) ::                                           &
   ftl_1      !  FTL(,K) =net turbulent sensible heat flux into layer K
              !--- from below; so FTL(,1) = surface sensible heat, H.(W/m2)
 
-REAL :: timestep
+REAL :: timestep_width
 
 REAL, DIMENSION(land_pts) ::                                                  &
   gs,      &  ! OUT "Stomatal" conductance to
@@ -247,7 +247,7 @@ INTEGER :: ipb
 
 ! std template args 
 CHARACTER(LEN=*), PARAMETER :: subr_name = "cable_implicit_driver"
-
+LOGICAL, PARAMETER :: explicit_path = .FALSE.
   
 !-------- Unique subroutine body -----------
         
@@ -271,9 +271,9 @@ dtlc = 0.0 ; dqwc = 0.0
 !--- for snow tile 
 !-------------------------------------------------------------------
   
-CALL um2cable_rr( (ls_rain + con_rain) * timestep, met_cbl%precip)
+CALL um2cable_rr( (ls_rain + con_rain) * timestep_width, met_cbl%precip)
 
-CALL um2cable_rr( (ls_snow + conv_snow) * timestep, met_cbl%precip_sn)
+CALL um2cable_rr( (ls_snow + conv_snow) * timestep_width, met_cbl%precip_sn)
       
 CALL um2cable_rr( tl_1, met_cbl%tk)
       
@@ -284,10 +284,11 @@ CALL um2cable_rr( dtl_1, dtlc)
 CALL um2cable_rr( dqw_1, dqwc)
       
 !--- conv_rain(snow)_prevstep are added to precip. in explicit call
-CALL um2cable_rr( (con_rain) * timestep, conv_rain_prevstep)
+CALL um2cable_rr( (con_rain) * timestep_width, conv_rain_prevstep)
   
-CALL um2cable_rr( (CONV_snow) * timestep, conv_snow_prevstep)
+CALL um2cable_rr( (CONV_snow) * timestep_width, conv_snow_prevstep)
 
+!#define UM_JULES - coupling to UM *NOT* JULES standalone
 !Ticket #132 implementation --------------------------------------------
 !dtlc, dqwc found on tiles above - these are the corrected dtlc and dqwc 
 IF (cable_user%l_revised_coupling) THEN
@@ -300,19 +301,23 @@ END IF
 !-----------------------------------------------------------------------
 
 met_cbl%precip   =  met_cbl%precip + met_cbl%precip_sn
-met_cbl%tk = met_cbl%tk + dtlc
-met_cbl%qv = met_cbl%qv + dqwc
+met_cbl%tk = met_cbl%tk
+!hacks to match offline !@ Loobos
+!met_cbl%tk = met_cbl%tk + dtlc
+met_cbl%qv = met_cbl%qv
+!hacks to match offline !@ Loobos
+!met_cbl%qv = met_cbl%qv + dqwc
 met_cbl%tvair = met_cbl%tk
 met_cbl%tvrad = met_cbl%tk
 
 canopy_cbl%cansto = canopy_cbl%oldcansto
 
-CALL cbl_model_driver( mp, nrb, land_pts, npft, ktau_gl,timestep, air_cbl, bgc_cbl, canopy_cbl, met_cbl, bal_cbl, &
+CALL cbl_model_driver( explicit_path, mp, nrb, land_pts, npft, ktau_gl,       &
+          timestep_width,      &
+          air_cbl, bgc_cbl, canopy_cbl, met_cbl, bal_cbl, &
           rad_cbl, rough_cbl, soil_cbl, ssnow_cbl, sum_flux_cbl, veg_cbl, z0surf_min, &
           !H!shouuld already work from here LAI_pft, HGT_pft )
           veg_cbl%vlai, veg_cbl%hc, met_cbl%doy, canopy_cbl%vlaiw )
-!CALL cbm( ktau_gl,timestep, air, bgc, canopy, met, bal,                             &
-!          rad, rough, soil, ssnow, sum_flux, veg, climate )
 
     ! Integrate wb_lake over the river timestep.
     ! Used to scale river flow within ACCESS
@@ -326,7 +331,7 @@ CALL cbl_model_driver( mp, nrb, land_pts, npft, ktau_gl,timestep, air_cbl, bgc_c
 dtrad = rad_cbl%trad - rad_cbl%otrad
 
 ! Lestevens - temporary ?
-ktauday = INT(24.0 * 3600.0 / timestep)
+ktauday = INT(24.0 * 3600.0 / timestep_width)
 idoy = i_day_number
   
 !Jan 2018: Only call carbon cycle prognostics updates on the last call to 
