@@ -47,6 +47,7 @@
 
 MODULE cable_canopy_module
 
+
 ! physical constants
 USE cable_phys_constants_mod, ONLY : CTFRZ   => TFRZ
 USE cable_phys_constants_mod, ONLY : CRMAIR  => RMAIR
@@ -368,8 +369,7 @@ CALL ruff_resist(veg, rough, ssnow, canopy, veg%vlai, veg%hc, canopy%vlaiw)
 
        ENDIF
 
-
-       ! Aerodynamic resistance (sum 3 height integrals)/us
+!       ! Aerodynamic resistance (sum 3 height integrals)/us
        ! See CSIRO SCAM, Raupach et al 1997, eq. 3.50:
        rough%rt1 = MAX(5.,(rough%rt1usa + rough%rt1usb + rt1usc) / canopy%us)
 
@@ -396,6 +396,7 @@ CALL ruff_resist(veg, rough, ssnow, canopy, veg%vlai, veg%hc, canopy%vlaiw)
           ENDIF
 
        ENDDO
+
 
        IF (cable_user%or_evap) THEN
         write(6,*) "GW or ORevepis not an option right now"
@@ -610,7 +611,7 @@ write(6,*) "SLI is not an option right now"
           canopy%ga = canopy%fns-canopy%fhs-canopy%fes !*ssnow%cls
        ELSE
 
-          write(6,*) "SLI is not an option right now"
+write(6,*) "SLI is not an option right now"
           ! SLI SEB to get canopy%fhs, canopy%fess, canopy%ga
           ! (Based on old Tsoil, new canopy%tv, new canopy%fns)
           !H!CALL sli_main(1,dels,veg,soil,ssnow,met,canopy,air,rad,1)
@@ -1043,7 +1044,7 @@ write(6,*) "SLI is not an option right now"
 
       lower_limit = rescale / ( LOG(z_eff) - psim_1 + psim_2 )
 
-      canopy%us = MIN(MAX(1.e-6, lower_limit ), 10.0 )
+!      canopy%us = MIN(MAX(1.e-6, lower_limit ), 10.0 )
 
     END SUBROUTINE comp_friction_vel
 

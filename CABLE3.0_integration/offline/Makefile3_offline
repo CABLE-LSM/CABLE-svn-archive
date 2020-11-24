@@ -96,6 +96,9 @@ LSRC = cable_pft_params.F90  \
 	casa_ncdf.F90               \
 	casa_cable.F90             \
 	spincasacnp.F90            \
+	cable_fFile.F90            \
+	cable_fprint.F90           \
+	cable_PyFprint.F90         \
 	casa_inout.F90 
 
 # this is the executable we are building
@@ -141,7 +144,7 @@ cable_driver.o: cable_driver.F90 pop_io.o cable_output.o \
 		CASAONLY_LUC.o spincasacnp.o cable_namelist_input.o \
 		cbl_soilsnow_init_special.o cable_roughness.o                         \
 		cbl_hgtAbove_snow.o cbl_lai_eff.o                         \
-		cable_site.o
+		cable_PyFprint.o cable_fprint.o cable_site.o
 
 cable_abort.o: cable_abort.F90 cable_iovars.o cable_define_types.o
 casa_dimension.o: casa_dimension.F90
@@ -154,11 +157,14 @@ cbl_sinbet.o: cbl_sinbet.F90 cable_math_constants_mod.o
 cbl_hgtAbove_snow.o: cbl_hgtAbove_snow.F90
 cbl_lai_eff.o: cbl_lai_eff.F90
 
+cable_fFile.o: cable_fFile.F90
+cable_fprint.o: cable_fprint.F90 cable_common.o
+cable_PyFprint.o: cable_PyFprint.F90 cable_fFile.o
 cable_abort.o: cable_abort.F90 cable_iovars.o cable_define_types.o
 
 cable_air.o: cable_air.F90 cable_phys_constants_mod.o cable_define_types.o cable_common.o
 
-cbl_albedo.o: cbl_albedo.F90 cbl_snow_albedo.o cbl_rhoch.o cable_define_types.o cable_common.o
+cbl_albedo.o: cbl_albedo.F90 cbl_snow_albedo.o cbl_rhoch.o cable_define_types.o cable_common.o cable_PyFprint.o cable_fprint.o 
 cbl_snow_albedo.o: cbl_snow_albedo.F90 cbl_soilColour_albedo.o cable_phys_constants_mod.o
 
 cbl_soilColour_albedo.o: cbl_soilColour_albedo.F90 
@@ -171,7 +177,7 @@ cbl_soilsnow_init_special.o: cbl_soilsnow_init_special.F90 cable_phys_constants_
 
 cable_carbon.o: cable_carbon.F90 cable_phys_constants_mod.o cable_define_types.o cable_common.o
 
-cbl_model_driver_offline.o: cbl_model_driver_offline.F90 cable_phys_constants_mod.o cable_carbon.o cbl_soilsnow_main.o cable_canopy.o cable_define_types.o cable_roughness.o cbl_radiation.o cbl_albedo.o casa_variable.o cable_common.o cable_gw_hydro.o cable_psm.o cbl_masks.o
+cbl_model_driver_offline.o: cbl_model_driver_offline.F90 cable_phys_constants_mod.o cable_carbon.o cbl_soilsnow_main.o cable_canopy.o cable_define_types.o cable_roughness.o cbl_radiation.o cbl_albedo.o casa_variable.o cable_common.o cable_gw_hydro.o cable_psm.o cbl_masks.o cable_PyFprint.o cable_fprint.o 
 
 cable_checks.o: cable_checks.F90 cbl_radiation.o cable_common.o cbl_sinbet.o cable_define_types.o
 
@@ -193,7 +199,7 @@ cable_output.o: cable_output.F90 cable_abort.o cable_checks.o cable_write.o cabl
 
 cable_parameters.o: cable_parameters.F90 cable_define_types.o cable_iovars.o cable_abort.o casa_variable.o cable_common.o cable_LUC_EXPT.o
 
-cbl_radiation.o: cbl_radiation.F90 cable_define_types.o cable_common.o cbl_init_radiation.o
+cbl_radiation.o: cbl_radiation.F90 cable_define_types.o cable_common.o cbl_init_radiation.o cable_PyFprint.o cable_fprint.o 
 
 cbl_init_radiation.o: cbl_init_radiation.F90 cable_define_types.o cable_common.o cbl_spitter.o cbl_rhoch.o
 

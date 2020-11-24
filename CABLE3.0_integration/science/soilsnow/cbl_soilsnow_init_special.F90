@@ -45,8 +45,6 @@ REAL                :: zsetot
 INTEGER, SAVE :: ktau =0
 
 ktau = ktau +1
-!H!Applicable to be executed when there is NOT a propper restart OR alternatively these progs are NOT set
-!H! For Standalone (@Loobos at least, they are - therefore code irrelevant)
 !H!IF( .NOT.cable_user%cable_runtime_coupled ) THEN
 
 !H!   IF( ktau_gl <= 1 ) THEN
