@@ -678,7 +678,7 @@ USE cbl_soil_snow_init_special_module
            IF (casaonly) THEN
               EXIT
            ENDIF
-
+  
   call spec_init_soil_snow(dels, soil, ssnow, canopy, met, bal, veg)
 
            ! time step loop over ktau
