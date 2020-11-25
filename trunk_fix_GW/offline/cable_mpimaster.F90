@@ -3254,22 +3254,17 @@ CONTAINS
        &                             types(bidx), ierr)
        blen(bidx) = 1
 
-
        bidx = bidx + 1
        CALL MPI_Get_address (soil%clay_vec(off,1), displs(bidx), ierr)
        CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
        &                             types(bidx), ierr)
        blen(bidx) = 1
 
-
-
        bidx = bidx + 1
        CALL MPI_Get_address (soil%silt_vec(off,1), displs(bidx), ierr)
        CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
        &                             types(bidx), ierr)
        blen(bidx) = 1
-
-
 
        bidx = bidx + 1
        CALL MPI_Get_address (soil%org_vec(off,1), displs(bidx), ierr)
@@ -3283,20 +3278,17 @@ CONTAINS
        &                             types(bidx), ierr)
        blen(bidx) = 1
 
-
        bidx = bidx + 1
        CALL MPI_Get_address (ssnow%watr_hys(off,1), displs(bidx), ierr)
        CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
        &                             types(bidx), ierr)
        blen(bidx) = 1
 
-
        bidx = bidx + 1
        CALL MPI_Get_address (ssnow%smp_hys(off,1), displs(bidx), ierr)
        CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
        &                             types(bidx), ierr)
        blen(bidx) = 1
-
 
        bidx = bidx + 1
        CALL MPI_Get_address (ssnow%wb_hys(off,1), displs(bidx), ierr)
@@ -3311,7 +3303,7 @@ CONTAINS
        blen(bidx) = 1
 
 
-       !1D
+       !1D GW hydro params
        bidx = bidx + 1
        CALL MPI_Get_address (soil%GWssat_vec(off), displs(bidx), ierr)
        blen(bidx) = r2len
@@ -3341,6 +3333,10 @@ CONTAINS
        blen(bidx) = r2len
 
        bidx = bidx + 1
+       CALL MPI_Get_address (soil%elev(off), displs(bidx), ierr)
+       blen(bidx) = r2len
+
+       bidx = bidx + 1
        CALL MPI_Get_address (soil%slope(off), displs(bidx), ierr)
        blen(bidx) = r2len
 
@@ -3350,29 +3346,25 @@ CONTAINS
 
        bidx = bidx + 1
        CALL MPI_Get_address (soil%drain_dens(off), displs(bidx), ierr)
-       blen(bidx) = r2len
-     
+       blen(bidx) = r2len     
      
        bidx = bidx + 1
        CALL MPI_Get_address (soil%hkrz(off), displs(bidx), ierr)
        blen(bidx) = r2len
-     
-     
+        
        bidx = bidx + 1
        CALL MPI_Get_address (soil%zdepth(off), displs(bidx), ierr)
-       blen(bidx) = r2len
-     
+       blen(bidx) = r2len    
      
        bidx = bidx + 1
        CALL MPI_Get_address (soil%qhz_max(off), displs(bidx), ierr)
        blen(bidx) = r2len
-     
-     
+   
        bidx = bidx + 1
        CALL MPI_Get_address (soil%qhz_efold(off), displs(bidx), ierr)
        blen(bidx) = r2len
      
-            bidx = bidx + 1
+       bidx = bidx + 1
        CALL MPI_Get_address (ssnow%GWwb(off), displs(bidx), ierr)
        blen(bidx) = r2len
 

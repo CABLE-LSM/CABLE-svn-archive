@@ -2385,6 +2385,69 @@ USE cbl_soil_snow_init_special_module
     CALL MPI_Get_address (soil%sfc_vec, displs(bidx), ierr)
     blen(bidx) = ms * r2len
 
+    bidx = bidx + 1
+    CALL MPI_Get_address (soil%css_vec, displs(bidx), ierr)
+    blen(bidx) = ms * r2len
+
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (soil%rhosoil_vec, displs(bidx), ierr)
+    blen(bidx) = ms * r2len
+
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (soil%cnsd_vec, displs(bidx), ierr)
+    blen(bidx) = ms * r2len
+
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (soil%zse_vec, displs(bidx), ierr)
+    blen(bidx) = ms * r2len
+
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (soil%sand_vec, displs(bidx), ierr)
+    blen(bidx) = ms * r2len
+
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (soil%clay_vec, displs(bidx), ierr)
+    blen(bidx) = ms * r2len
+
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (soil%silt_vec, displs(bidx), ierr)
+    blen(bidx) = ms * r2len
+
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (soil%org_vec, displs(bidx), ierr)
+    blen(bidx) = ms * r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (ssnow%ssat_hys, displs(bidx), ierr)
+    blen(bidx) = ms * r2len
+
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (ssnow%watr_hys, displs(bidx), ierr)
+    blen(bidx) = ms * r2len
+
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (ssnow%smp_hys, displs(bidx), ierr)
+    blen(bidx) = ms * r2len
+
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (ssnow%wb_hys, displs(bidx), ierr)
+    blen(bidx) = ms * r2len
+
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (ssnow%hys_fac, displs(bidx), ierr)
+    blen(bidx) = ms * r2len
+    
 
     !1d
     bidx = bidx + 1
@@ -2423,9 +2486,35 @@ USE cbl_soil_snow_init_special_module
     CALL MPI_Get_address (soil%slope_std, displs(bidx), ierr)
     blen(bidx) = r2len
 
+    !amu561 adding missing vars
+    bidx = bidx + 1
+    CALL MPI_Get_address (soil%elev, displs(bidx), ierr)
+    blen(bidx) = r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (soil%drain_dens, displs(bidx), ierr)
+    blen(bidx) = r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (soil%hkrz, displs(bidx), ierr)
+    blen(bidx) = r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (soil%zdepth, displs(bidx), ierr)
+    blen(bidx) = r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (soil%qhz_max, displs(bidx), ierr)
+    blen(bidx) = r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (soil%qhz_efold, displs(bidx), ierr)
+    blen(bidx) = r2len
+
     bidx = bidx + 1
     CALL MPI_Get_address (ssnow%GWwb, displs(bidx), ierr)
     blen(bidx) = r2len
+
 
     ! MPI: sanity check
     IF (bidx /= ntyp) THEN
