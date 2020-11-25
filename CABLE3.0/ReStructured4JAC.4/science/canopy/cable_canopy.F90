@@ -88,7 +88,6 @@ USE cable_photo_constants_mod, ONLY : CMAXITER  => MAXITER ! only integer here
 USE cable_math_constants_mod,  ONLY : CPI_C  => PI
 USE cable_other_constants_mod, ONLY : CLAI_THRESH  => LAI_THRESH
 
-
   IMPLICIT NONE
 
   PUBLIC define_canopy
