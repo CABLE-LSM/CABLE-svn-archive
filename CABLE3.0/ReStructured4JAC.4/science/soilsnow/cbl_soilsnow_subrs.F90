@@ -18,6 +18,8 @@ USE cable_phys_constants_mod, ONLY : Ccs_rho_ice => cs_rho_ice
        max_ssdn,max_sconds,frozen_limit,&
        max_glacier_snowd
 
+USE cable_common_module, ONLY: ktau_gl 
+  
   IMPLICIT NONE
 
   PRIVATE

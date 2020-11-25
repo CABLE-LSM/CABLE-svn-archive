@@ -85,8 +85,6 @@ REAL                :: zsetot
 !H!      xx=REAL(soil%heat_cap_lower_limit(:,1))
 !H!      ssnow%gammzz(:,1) = MAX( (1.0 - soil%ssat) * soil%css * soil%rhosoil &
 !H!           & + (ssnow%wb(:,1) - ssnow%wbice(:,1) ) * Ccswat * Cdensity_liq &
-!H!           & + ssnow%wbice(:,1) * Ccsice * Cdensity_liq * .9, xx ) * soil%zse(1)
-!H!   END IF
 !H!ENDIF  ! if(.NOT.cable_runtime_coupled)
 
 IF (ktau_gl <= 1)       THEN
@@ -142,11 +140,11 @@ END SUBROUTINE spec_init_soil_snow
           !H!ssnow%smass(j,3) = 0.0
           !H!ssnow%ssdn(j,:) = ssnow%ssdnn(j)
 
-          IF( .NOT.cable_user%CABLE_RUNTIME_COUPLED ) THEN
-             IF( soil%isoilm(j) == 9 .AND. ktau_gl <= 2 )                       &
-                                ! permanent ice: fixed hard-wired number in next version
-                  ssnow%ssdnn(j) = 700.0
-          ENDIF
+          !H!IF( .NOT.cable_user%CABLE_RUNTIME_COUPLED ) THEN
+          !H!   IF( soil%isoilm(j) == 9 .AND. ktau_gl <= 2 )                       &
+          !H!                      ! permanent ice: fixed hard-wired number in next version
+          !H!        ssnow%ssdnn(j) = 700.0
+          !H!ENDIF
 
        ELSE ! in loop: IF( ssnow%snowd(j) <= 0.0 ) THEN
           ! sufficient snow now for 3 layer snowpack
@@ -155,14 +153,14 @@ END SUBROUTINE spec_init_soil_snow
              !H!ssnow%tggsn(j,:) = MIN( CTFRZ, ssnow%tgg(j,1) )
              !H!ssnow%ssdn(j,2) = ssnow%ssdn(j,1)
              !H!ssnow%ssdn(j,3) = ssnow%ssdn(j,1)
-             IF( .NOT. cable_user%cable_runtime_coupled) THEN
-                IF( soil%isoilm(j) == 9 .AND. ktau_gl <= 2 ) THEN
-                   ! permanent ice: fix hard-wired number in next version
-                   ssnow%ssdn(j,1)  = 450.0
-                   ssnow%ssdn(j,2)  = 580.0
-                   ssnow%ssdn(j,3)  = 600.0
-                ENDIF
-             ENDIF
+             !H!IF( .NOT. cable_user%cable_runtime_coupled) THEN
+             !H!   IF( soil%isoilm(j) == 9 .AND. ktau_gl <= 2 ) THEN
+             !H!      ! permanent ice: fix hard-wired number in next version
+             !H!      ssnow%ssdn(j,1)  = 450.0
+             !H!      ssnow%ssdn(j,2)  = 580.0
+             !H!      ssnow%ssdn(j,3)  = 600.0
+             !H!   ENDIF
+             !H!ENDIF
              !H!ssnow%sdepth(j,1) = ssnow%t_snwlr(j)
              !H!ssnow%smass(j,1)  =  ssnow%t_snwlr(j) * ssnow%ssdn(j,1)
              !H!ssnow%smass(j,2)  = ( ssnow%snowd(j) - ssnow%smass(j,1) ) * 0.4
