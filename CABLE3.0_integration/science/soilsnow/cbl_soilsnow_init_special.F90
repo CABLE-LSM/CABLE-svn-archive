@@ -42,11 +42,9 @@ REAL, DIMENSION(mp) :: weting
 REAL, DIMENSION(mp) :: xx, tgg_old, tggsn_old
 REAL(r_2), DIMENSION(mp) :: xxx,deltat,sinfil1,sinfil2,sinfil3
 REAL                :: zsetot
-INTEGER, SAVE :: ktau =0
 
-ktau = ktau +1
 !H!IF( .NOT.cable_user%cable_runtime_coupled ) THEN
-
+!H!
 !H!   IF( ktau_gl <= 1 ) THEN
 !H!      IF (cable_runtime%um) canopy%dgdtg = 0.0 ! RML added um condition
 !H!      ! after discussion with BP
@@ -85,23 +83,18 @@ ktau = ktau +1
 !H!         ssnow%wbice(:,6) = 0.90 * ssnow%wb(:,6)
 !H!      ENDWHERE
 !H!      xx=REAL(soil%heat_cap_lower_limit(:,1))
-!H!
 !H!      ssnow%gammzz(:,1) = MAX( (1.0 - soil%ssat) * soil%css * soil%rhosoil &
 !H!           & + (ssnow%wb(:,1) - ssnow%wbice(:,1) ) * Ccswat * Cdensity_liq &
-!H!           & + ssnow%wbice(:,1) * Ccsice * Cdensity_liq * .9, xx ) * soil%zse(1)
-!H!
-!H!   END IF
 !H!ENDIF  ! if(.NOT.cable_runtime_coupled)
 
-         ssnow%snowd = 0. !match Loobos
-
-IF (ktau <= 1)       THEN
+IF (ktau_gl <= 1)       THEN
   xx=soil%heat_cap_lower_limit(:,1)
   ssnow%gammzz(:,1) = MAX( (1.0 - soil%ssat) * soil%css * soil%rhosoil      &
         & + (ssnow%wb(:,1) - ssnow%wbice(:,1) ) * Ccswat * Cdensity_liq           &
         & + ssnow%wbice(:,1) * Ccsice * Cdensity_liq * .9, xx ) * soil%zse(1) +   &
         & (1. - ssnow%isflag) * Ccgsnow * ssnow%snowd
 END IF
+
 END SUBROUTINE spec_init_soil_snow
 
   SUBROUTINE spec_init_snowcheck(dels, ssnow, soil, met )
