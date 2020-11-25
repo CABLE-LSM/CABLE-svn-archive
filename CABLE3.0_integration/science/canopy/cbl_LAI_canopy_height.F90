@@ -29,7 +29,6 @@ integer :: i,j, N
 !Retain init where tile_frac=0
 LAI_pft_temp = 0. 
 HGT_pft_temp = 0.
-!HGT_pft(1,14) = 20.0 !To match Loobos, gridinfo file doing offline Loobos 
 
 DO N=1,NTILES
   DO J=1,TILE_PTS(N)
@@ -39,7 +38,7 @@ DO N=1,NTILES
     IF( TILE_FRAC(i,N) .gt. 0.0 ) THEN
       
       LAI_pft_temp(i,N) = max(CLAI_thresh*.99,LAI_pft(i,N)) 
-      if(N==14)  LAI_pft_temp(i,N) = 0.0 !to match offline Loobos
+      if(N>13)  LAI_pft_temp(i,N) = 0.0 !to match offline Loobos
        ! hard-wired vegetation type numbers need to be removed
        IF(N < 5 ) THEN ! trees 
           HGT_pft_temp(i,N) = max(1.,HGT_pft(i,N)) 
