@@ -89,7 +89,6 @@ USE cable_photo_constants_mod, ONLY : CMAXITER  => MAXITER ! only integer here
 USE cable_math_constants_mod,  ONLY : CPI_C  => PI
 USE cable_other_constants_mod, ONLY : CLAI_THRESH  => LAI_THRESH
 
-
   IMPLICIT NONE
 
   PUBLIC define_canopy
@@ -1044,7 +1043,7 @@ write(6,*) "SLI is not an option right now"
 
       lower_limit = rescale / ( LOG(z_eff) - psim_1 + psim_2 )
 
-!      canopy%us = MIN(MAX(1.e-6, lower_limit ), 10.0 )
+      canopy%us = MIN(MAX(1.e-6, lower_limit ), 10.0 )
 
     END SUBROUTINE comp_friction_vel
 
