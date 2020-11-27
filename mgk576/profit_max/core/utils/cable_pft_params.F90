@@ -268,7 +268,7 @@ CONTAINS
        vegin%Cl(2) = 342.904821
        vegin%Cs(2) = 53266.089926
 
-       vegin%Kmax(2) = 1.0
+       vegin%Kmax(2) = 0.8
        vegin%Kcrit(2) = vegin%Kmax(2) * 0.05
        vegin%b_plant(2) = 3.383559009924911!3.5
        vegin%c_plant(2) = 3.066498325156521 !2.0
