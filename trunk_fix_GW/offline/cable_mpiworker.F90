@@ -2424,6 +2424,12 @@ USE cbl_soil_snow_init_special_module
     CALL MPI_Get_address (soil%org_vec, displs(bidx), ierr)
     blen(bidx) = ms * r2len
 
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (ssnow%smp, displs(bidx), ierr)
+    blen(bidx) = ms * r2len
+
+
     bidx = bidx + 1
     CALL MPI_Get_address (ssnow%ssat_hys, displs(bidx), ierr)
     blen(bidx) = ms * r2len

@@ -1,16 +1,16 @@
 &cable
    filename%met = "./AU-Tum_2002-2017_OzFlux_Met.nc"
-   filename%out = "output_mpi_GW.nc"
+   filename%out = "output_serial_GW.nc"
    filename%log = "cable_log_2008.txt"
    filename%restart_in  = ""
    filename%restart_out = "restart_2008.nc"
-   filename%type = "../../CABLE-AUX/offline/gridinfo_CSIRO_1x1.nc" !/g/data/w35/mm3972/model/cable/src//CABLE-AUX/offline/gridinfo_mmy_MD_elev_orig_std_avg-sand_mask.nc"
+   filename%type = "/g/data/w35/mm3972/model/cable/src//CABLE-AUX/offline/gridinfo_mmy_MD_elev_orig_std_avg-sand_mask.nc"
    filename%veg  = "/g/data/w35/mm3972/model/cable/src/CABLE-AUX/offline/def_veg_params_zr_clitt_albedo_fix.txt"
    filename%gw_elev = "/g/data/w35/mm3972/model/cable/src//CABLE-AUX/offline/gridinfo_mmy_MD_elev_orig_std_avg-sand_mask.nc"
    filename%soil = "/g/data/w35/mm3972/model/cable/src/CABLE-AUX/offline/surface_data/def_soil_params.txt"
    vegparmnew = .TRUE.  ! using new format when true
    soilparmnew = .TRUE.  ! using new format when true
-   spinup = .true.  ! do we spin up the model?
+   spinup = .false.  ! do we spin up the model?
    delsoilM = 0.001   ! allowed variation in soil moisture for spin up
    delsoilT = 0.01    ! allowed variation in soil temperature for spin up
    output%restart = .TRUE.  ! should a restart file be created?

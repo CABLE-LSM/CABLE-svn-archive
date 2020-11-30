@@ -3273,6 +3273,12 @@ CONTAINS
        blen(bidx) = 1
 
        bidx = bidx + 1
+       CALL MPI_Get_address (ssnow%smp(off,1), displs(bidx), ierr)
+       CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
+       &                             types(bidx), ierr)
+       blen(bidx) = 1
+
+       bidx = bidx + 1
        CALL MPI_Get_address (ssnow%ssat_hys(off,1), displs(bidx), ierr)
        CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
        &                             types(bidx), ierr)
@@ -4773,6 +4779,7 @@ CONTAINS
 
        ! MPI: sanity check
        IF (bidx /= ntyp) THEN
+               print*, "PRINTING", bidx, ntyp
           WRITE (*,*) 'master: invalid intype nmat, nvec or n3d constant, fix it!'
           CALL MPI_Abort (comm, 1, ierr)
        END IF
@@ -5221,6 +5228,7 @@ CONTAINS
 
        ! MPI: sanity check
        IF (midx /= nmat) THEN
+               print *, "PRINTING", midx, nmat
           WRITE (*,*) 'master: outtype invalid nmat ',midx,' constant, fix it!'
           CALL MPI_Abort (comm, 1, ierr)
        END IF
