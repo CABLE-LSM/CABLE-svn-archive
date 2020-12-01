@@ -112,7 +112,7 @@ subroutine cable_pft_params()
    vegin%rpcoef(1) =        0.083200
      vegin%rs20(1) =        1.000000
       vegin%wai(1) =        1.000000
- vegin%rootbeta(1) =        0.943000
+ vegin%rootbeta(1) =        0.99 !0.943000 ! MMY
    vegin%shelrb(1) =        2.000000
     vegin%vegcf(1) =        9.000000
     vegin%frac4(1) =        0.000000
@@ -171,7 +171,7 @@ subroutine cable_pft_params()
    vegin%rpcoef(2) =        0.083200
      vegin%rs20(2) =        1.000000
       vegin%wai(2) =        1.000000
- vegin%rootbeta(2) =        0.962000
+ vegin%rootbeta(2) =        0.99 ! 0.962000 ! MMY
    vegin%shelrb(2) =        2.000000
     vegin%vegcf(2) =       14.000000
     vegin%frac4(2) =        0.000000
@@ -230,7 +230,7 @@ subroutine cable_pft_params()
    vegin%rpcoef(3) =        0.083200
      vegin%rs20(3) =        1.000000
       vegin%wai(3) =        1.000000
- vegin%rootbeta(3) =        0.966000
+ vegin%rootbeta(3) =        0.99 ! 0.966000 ! MMY
    vegin%shelrb(3) =        2.000000
     vegin%vegcf(3) =        9.000000
     vegin%frac4(3) =        0.000000
@@ -289,7 +289,7 @@ subroutine cable_pft_params()
    vegin%rpcoef(4) =        0.083200
      vegin%rs20(4) =        1.000000
       vegin%wai(4) =        1.000000
- vegin%rootbeta(4) =        0.961000
+ vegin%rootbeta(4) =        0.99 ! 0.961000 ! MMY
    vegin%shelrb(4) =        2.000000
     vegin%vegcf(4) =        8.000000
     vegin%frac4(4) =        0.000000
