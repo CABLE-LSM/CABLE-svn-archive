@@ -5094,8 +5094,13 @@ CONTAINS
        CALL MPI_Type_commit (mat_t(midx, rank), ierr)
 
        ! end additional for sli
-
-
+       
+       !GW:
+       midx = midx + 1
+       CALL MPI_Get_address (ssnow%smp(off,1), maddr(midx), ierr) ! 15
+       CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
+            &                        mat_t(midx, rank), ierr)
+       CALL MPI_Type_commit (mat_t(midx, rank), ierr)
 
 
        ! rad 2D
