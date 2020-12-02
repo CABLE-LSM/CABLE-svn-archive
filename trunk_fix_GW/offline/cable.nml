@@ -1,6 +1,6 @@
 &cable
    filename%met = "./AU-Tum_2002-2017_OzFlux_Met.nc"
-   filename%out = "output_serial_GW.nc"
+   filename%out = "output_mpi_GW.nc"
    filename%log = "cable_log_2008.txt"
    filename%restart_in  = ""
    filename%restart_out = "restart_2008.nc"
@@ -23,7 +23,7 @@
    output%veg       = .TRUE.  ! vegetation states
    output%params    = .TRUE.  ! input parameters used to produce run
    output%balances  = .TRUE.  ! energy and water balances
-   output%averaging = "monthly"
+   output%averaging = "all"
    check%ranges     = .FALSE.  ! variable ranges, input and output
    check%energy_bal = .TRUE.  ! energy balance
    check%mass_bal   = .TRUE.  ! water/mass balance

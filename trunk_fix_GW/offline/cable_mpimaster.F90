@@ -774,7 +774,7 @@ CONTAINS
           canopy%oldcansto=canopy%cansto
 
           ! Zero out lai where there is no vegetation acc. to veg. index
-          WHERE ( iveg%iveg(:) .GE. 14 ) iveg%vlai = 0.
+          WHERE ( veg%iveg(:) .GE. 14 ) iveg%vlai = 0.
 
 
 
@@ -916,7 +916,7 @@ CONTAINS
              canopy%oldcansto=canopy%cansto
 
              ! Zero out lai where there is no vegetation acc. to veg. index
-             WHERE ( iveg%iveg(:) .GE. 14 ) iveg%vlai = 0.
+             WHERE ( veg%iveg(:) .GE. 14 ) iveg%vlai = 0.
 
              ! Write time step's output to file if either: we're not spinning up
              ! or we're spinning up and the spinup has converged:
