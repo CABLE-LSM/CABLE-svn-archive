@@ -2483,18 +2483,18 @@ USE cbl_soil_snow_init_special_module
     bidx = bidx + 1
     CALL MPI_Get_address (soil%GWdz, displs(bidx), ierr)
     blen(bidx) = r2len
-
+    
+    !amu561 adding missing vars
     bidx = bidx + 1
+    CALL MPI_Get_address (soil%elev, displs(bidx), ierr)
+    blen(bidx) = r2len
+    bidx = bidx + 1
+    
     CALL MPI_Get_address (soil%slope, displs(bidx), ierr)
     blen(bidx) = r2len
 
     bidx = bidx + 1
     CALL MPI_Get_address (soil%slope_std, displs(bidx), ierr)
-    blen(bidx) = r2len
-
-    !amu561 adding missing vars
-    bidx = bidx + 1
-    CALL MPI_Get_address (soil%elev, displs(bidx), ierr)
     blen(bidx) = r2len
 
     bidx = bidx + 1
