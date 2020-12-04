@@ -47,7 +47,6 @@ INTEGER, SAVE :: ktau =0
 ktau = ktau +1
 
 IF( .NOT.cable_user%cable_runtime_coupled ) THEN
-!print *, "1%gammzz(1,1) ", ssnow%gammzz(:,1) 
 
    IF( ktau_gl <= 1 ) THEN
       IF (cable_runtime%um) canopy%dgdtg = 0.0 ! RML added um condition
@@ -88,7 +87,6 @@ IF( .NOT.cable_user%cable_runtime_coupled ) THEN
       ENDWHERE
       xx=REAL(soil%heat_cap_lower_limit(:,1))
 
-!print *, "2%gammzz(1,1) ", ssnow%gammzz(:,1) 
       ssnow%gammzz(:,1) = MAX( (1.0 - soil%ssat) * soil%css * soil%rhosoil &
            & + (ssnow%wb(:,1) - ssnow%wbice(:,1) ) * Ccswat * Cdensity_liq &
            & + ssnow%wbice(:,1) * Ccsice * Cdensity_liq * .9, xx ) * soil%zse(1)
