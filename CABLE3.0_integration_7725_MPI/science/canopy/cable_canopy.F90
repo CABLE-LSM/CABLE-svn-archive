@@ -262,7 +262,7 @@ logical :: sunlit_veg_mask(mp)
     canopy%fhs_cor = 0.0
     canopy%fns_cor = 0.0
     canopy%ga_cor = 0.0
-    !canopy%fes_cor = 0.0
+    canopy%fes_cor = 0.0
 
     !L_REV_CORR - new working variables
     rttsoil = 0.
@@ -398,8 +398,8 @@ CALL ruff_resist(veg, rough, ssnow, canopy, veg%vlai, veg%hc, canopy%vlaiw)
        ENDDO
 
        IF (cable_user%or_evap) THEN
-write(6,*) "GW or ORevepis not an option right now"
-!H!          call or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
+        write(6,*) "GW or ORevepis not an option right now"
+        !H!          call or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
        END IF
 
        ! Vegetation boundary-layer conductance (mol/m2/s)
@@ -498,8 +498,8 @@ write(6,*) "GW or ORevepis not an option right now"
        CALL qsatfjh(ssnow%qstss,ssnow%tss-Ctfrz,met%pmb)
 
       if (cable_user%gw_model .OR.  cable_user%or_evap) & 
-write(6,*) "GW or ORevepis not an option right now"
-!H!        call pore_space_relative_humidity(ssnow,soil,veg)
+      write(6,*) "GW or ORevepis not an option right now"
+      !H!        call pore_space_relative_humidity(ssnow,soil,veg)
 
        IF (cable_user%soil_struc=='default') THEN
 
@@ -523,8 +523,8 @@ write(6,*) "GW or ORevepis not an option right now"
              ! INH: I think this should be - met%qvair
              dq = ssnow%qstss - met%qv
              dq_unsat = ssnow%rh_srf*ssnow%qstss - met%qv
-dq = max(0.0, dq)
-dq_unsat = max(0.0, dq_unsat)
+             dq = max(0.0, dq)
+             dq_unsat = max(0.0, dq_unsat)
              ssnow%potev =  Humidity_deficit_method(dq, dq_unsat,ssnow%qstss)
 
           ENDIF
@@ -576,8 +576,8 @@ write(6,*) "SLI is not an option right now"
              ! Humidity deficit
              dq = ssnow%qstss - met%qvair
              dq_unsat = ssnow%rh_srf*ssnow%qstss - met%qvair
-dq = max(0.0, dq)
-dq_unsat = max(0.0, dq_unsat)
+             dq = max(0.0, dq)
+             dq_unsat = max(0.0, dq_unsat)
              ssnow%potev =  Humidity_deficit_method(dq, dq_unsat,ssnow%qstss)
 
           ENDIF
@@ -607,7 +607,7 @@ dq_unsat = max(0.0, dq_unsat)
 
        ELSE
 
-write(6,*) "SLI is not an option right now"
+          write(6,*) "SLI is not an option right now"
           ! SLI SEB to get canopy%fhs, canopy%fess, canopy%ga
           ! (Based on old Tsoil, new canopy%tv, new canopy%fns)
           !H!CALL sli_main(1,dels,veg,soil,ssnow,met,canopy,air,rad,1)
