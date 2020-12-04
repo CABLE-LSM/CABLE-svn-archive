@@ -45,10 +45,7 @@ REAL                :: zsetot
 INTEGER, SAVE :: ktau =0
 
 ktau = ktau +1
-print *, ""
-print *, ""
-print *, ""
-print *, "PRE:ss_init ssnoow%gammzz(:,1) ", ssnow%gammzz(:,1) 
+
 IF( .NOT.cable_user%cable_runtime_coupled ) THEN
 !print *, "1%gammzz(1,1) ", ssnow%gammzz(:,1) 
 
