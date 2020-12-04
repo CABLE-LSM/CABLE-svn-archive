@@ -30,6 +30,7 @@ TYPE soil_snow_type
        rnof1,   & ! surface runoff (mm/dels)
        rnof2,   & ! deep drainage (mm/dels)
        rtsoil,  & ! turbulent resistance for soil
+       rtsoil_expl,  & ! turbulent resistance for soil (explicit path)
        wbtot1,  & ! total soil water (mm)
        wbtot2,  & ! total soil water (mm)
        wb_lake,                                                               &

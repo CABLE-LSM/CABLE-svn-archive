@@ -28,10 +28,11 @@ IMPLICIT NONE
 !H!cable_user%diag_soil_resp='ON'
 !H-test!cable_user%fwsoil_switch='standard'
 !H-test!cable_user%gs_switch='leuning'
-cable_user%fwsoil_switch='Haverd2013'
+cable_user%fwsoil_switch='standard'
 cable_user%gs_switch='medlyn'
-cable_user%l_rev_corr = .TRUE.
-cable_user%l_revised_coupling = .TRUE.
+!H!match Loobos 
+!H!cable_user%l_rev_corr = .TRUE.
+!H!cable_user%l_revised_coupling = .TRUE.
 cable_user%soil_thermal_fix = .TRUE.
 cable_user%ssnow_potev='HDM'
 !jh:these only matter if calling hydraulic_resistribution

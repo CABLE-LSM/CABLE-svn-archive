@@ -106,6 +106,7 @@ INTEGER :: tile_index(land_pts,nsurft)      !Index of land point in (land_pts) a
 INTEGER :: land_index(land_pts)             !Index of land points in (x,y) array - see below
 REAL :: LAI_pft_um(land_pts, npft)          !Leaf area index.
 REAL :: HGT_pft_um(land_pts, npft)          !Canopy height
+REAL :: fHGT_pft_um(land_pts, npft)          !Canopy height
 
 REAL :: snow_tile(land_pts,nsurft)          ! snow depth equivalent (in water?)
 REAL :: SnowOTile(land_pts,nsurft)         ! snow depth equivalent from previous timestep
@@ -181,6 +182,7 @@ REAL :: HeightAboveSnow(mp)       !Formerly: rough%hruff
 
 REAL :: MetTk(mp) 
 REAL :: SoilTemp(mp)
+REAL :: SnowTemp(mp)
 REAL :: SnowAge(mp)
 INTEGER:: SnowFlag_3L(mp)
 
@@ -204,7 +206,10 @@ LOGICAL :: skip =.TRUE.
 REAL :: SW_down(mp,2)
 LOGICAL, SAVE :: albflip = .FALSE.
 REAL, SAVE :: ialb_surft
-
+!from rose-app.conf!!canht_ft_io= !!lai_io=
+!LAI_pft_um(1, :) = (/4.0,5.0,0.0,0.0,0.0,2.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0/) 
+!HGT_pft_um(1,:) = (/16.38,19.01,0.0,0.0,0.0,0.79,0.0,0.0,0.0,0.0,0.0,0.0,0.0/)
+!HGT_pft_um(1,14) = 20.0
 jls_radiation= .TRUE.
 
 !--- initialize/zero each timestep 
@@ -235,11 +240,12 @@ SnowDensity = PACK( OneLyrSnowDensity_CABLE, l_tile_pts )
 !Treat snow depth across 3Layers? Typecasts from Real to integer
 SnowFlag_3L = PACK( ThreeLayerSnowFlag_CABLE, l_tile_pts )
 
-!Surface skin/ top layer Snow  temperature
+!Surface skin/top layer Soil/Snow temperature
 SoilTemp =   PACK( SoilTemp_cable(:,:,1), l_tile_pts )
+SnowTemp =   PACK( SnowTemp_cable(:,:,1), l_tile_pts )
 
 ! limit IN height, LAI  and initialize existing cable % types
-CALL limit_HGT_LAI( LAI_pft_cbl, HGT_pft_cbl, mp, land_pts, nsurft,           &
+CALL limit_HGT_LAI( fHGT_pft_um, LAI_pft_cbl, HGT_pft_cbl, mp, land_pts, nsurft,           &
                     tile_pts, tile_index, tile_frac, L_tile_pts,              &
                     LAI_pft_um, HGT_pft_um, CLAI_thresh )
 
@@ -250,7 +256,7 @@ CALL cable_rad_driver( mp, nrb, Clai_thresh, Ccoszen_tols,  CGauss_w, Cpi,    &
                        veg_mask, sunlit_mask, sunlit_veg_mask, Cpi180,        &
                        jls_standalone, jls_radiation, Cz0surf_min, SurfaceType, &
                        LAI_pft_cbl, HGT_pft_cbl, SnowDepth, SnowODepth,       &
-                       SnowFlag_3L, SnowDensity, SoilTemp, SnowAge,           &
+                       SnowFlag_3L, SnowDensity, SoilTemp, SnowTemp, SnowAge, &
                        HeightAboveSnow, ExtCoeff_beam, ExtCoeff_dif,          &
                        EffExtCoeff_beam, EffExtCoeff_dif,                     &
                        CanopyRefl_dif, CanopyRefl_beam,                       &
