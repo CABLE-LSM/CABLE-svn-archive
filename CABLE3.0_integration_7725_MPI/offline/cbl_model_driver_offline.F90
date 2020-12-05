@@ -1,3 +1,31 @@
+!==============================================================================
+! This source code is part of the
+! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
+! This work is licensed under the CSIRO Open Source Software License
+! Agreement (variation of the BSD / MIT License).
+!
+! You may not use this file except in compliance with this License.
+! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located
+! in each directory containing CABLE code.
+!
+! ==============================================================================
+! Purpose: Calls CABLE routines including define_air, surface_albedo,
+!          define_canopy, soilsnow, carbon
+!          Note that cbm is called once per timestep in the offline case but
+!          twice per timestep in the ACCESS case. Not all parts of cbm
+!          are executed in each of the ACCESS calls.
+!
+! Called from: cable_driver for offline version
+!              cable_explicit_driver, cable_implicit_driver for ACCESS
+!
+! Contact: Yingping.Wang@csiro.au
+!
+! History: Calling sequence changes for ACCESS compared to v1.4b
+!
+!          REV_CORR package of fixes for the sensitivity/correction terms
+!
+! ==============================================================================
+
 MODULE cable_cbm_module
 
 IMPLICIT NONE
@@ -8,8 +36,8 @@ PUBLIC cbm
 CONTAINS
 
 SUBROUTINE cbm( ktau,dels, air, bgc, canopy, met,                                &
-                    bal, rad, rough, soil,                                      &
-                    ssnow, sum_flux, veg, climate )
+       bal, rad, rough, soil,                                      &
+       ssnow, sum_flux, veg, climate )
 
     USE cable_common_module
     USE cable_carbon_module
@@ -77,10 +105,7 @@ REAL :: c1(mp,nrb)
 REAL :: rhoch(mp,nrb)
 REAL :: xk(mp,nrb)
 
-!iFor testing
-ICYCLE = 0
-cable_user%soil_struc="default"
-soil%cnsd_vec = 0.
+
 CALL ruff_resist( veg, rough, ssnow, canopy, veg%vlai, veg%hc, canopy%vlaiw )
 
 !jhan: this call to define air may be redundant
@@ -108,76 +133,82 @@ CALL init_radiation( rad%extkb, rad%extkd,                                     &
                      canopy%vlaiw                                              &
                    ) !reducedLAIdue2snow 
  
-  call Albedo( ssnow%AlbSoilsn, soil%AlbSoil,                                &
-               !AlbSnow, AlbSoil,              
-               mp, nrb,                                                      &
-               jls_radiation,                                                 &
-               veg_mask, sunlit_mask, sunlit_veg_mask,                       &  
-               Ccoszen_tols, CGAUSS_W,                                       & 
-               veg%iveg, veg%refl, veg%taul,                                 & 
-               !surface_type, VegRefl, VegTaul,
-               met%tk, met%coszen, canopy%vlaiw,                             &
-               !metTk, coszen, reducedLAIdue2snow,
-               ssnow%snowd, ssnow%osnowd, ssnow%isflag,                      & 
-               !SnowDepth, SnowODepth, SnowFlag_3L, 
-               ssnow%ssdnn, ssnow%tgg(:,1), ssnow%tggsn(:,1), ssnow%snage,                     & 
-               !SnowDensity, SoilTemp, SnowAge, 
-               xk, c1, rhoch,                                                & 
-               rad%fbeam, rad%albedo,                                        &
-               !RadFbeam, RadAlbedo,
-               rad%extkd, rad%extkb,                                         & 
-               !ExtCoeff_dif, ExtCoeff_beam,
-               rad%extkdm, rad%extkbm,                                       & 
-               !EffExtCoeff_dif, EffExtCoeff_beam,                
-               rad%rhocdf, rad%rhocbm,                                       &
-               !CanopyRefl_dif,CanopyRefl_beam,
-               rad%cexpkdm, rad%cexpkbm,                                     & 
-               !CanopyTransmit_dif, CanopyTransmit_beam, 
-               rad%reffdf, rad%reffbm                                        &
-             ) !EffSurfRefl_dif, EffSurfRefl_beam 
+call Albedo( ssnow%AlbSoilsn, soil%AlbSoil,                                &
+             !AlbSnow, AlbSoil,              
+             mp, nrb,                                                      &
+             jls_radiation,                                                 &
+             veg_mask, sunlit_mask, sunlit_veg_mask,                       &  
+             Ccoszen_tols, CGAUSS_W,                                       & 
+             veg%iveg, veg%refl, veg%taul,                                 & 
+             !surface_type, VegRefl, VegTaul,
+             met%tk, met%coszen, canopy%vlaiw,                             &
+             !metTk, coszen, reducedLAIdue2snow,
+             ssnow%snowd, ssnow%osnowd, ssnow%isflag,                      & 
+             !SnowDepth, SnowODepth, SnowFlag_3L, 
+             ssnow%ssdnn, ssnow%tgg(:,1), ssnow%tggsn(:,1), ssnow%snage,                     & 
+             !SnowDensity, SoilTemp, SnowAge, 
+             xk, c1, rhoch,                                                & 
+             rad%fbeam, rad%albedo,                                        &
+             !RadFbeam, RadAlbedo,
+             rad%extkd, rad%extkb,                                         & 
+             !ExtCoeff_dif, ExtCoeff_beam,
+             rad%extkdm, rad%extkbm,                                       & 
+             !EffExtCoeff_dif, EffExtCoeff_beam,                
+             rad%rhocdf, rad%rhocbm,                                       &
+             !CanopyRefl_dif,CanopyRefl_beam,
+             rad%cexpkdm, rad%cexpkbm,                                     & 
+             !CanopyTransmit_dif, CanopyTransmit_beam, 
+             rad%reffdf, rad%reffbm                                        &
+           ) !EffSurfRefl_dif, EffSurfRefl_beam 
 
-!Otherwise this is only initialized for CABLE-offline IO
-IF ( ktau_gl == 1) THEN
-  ssnow%tss=(1 - ssnow%isflag) * ssnow%tgg(:,1) + ssnow%isflag * ssnow%tggsn(:,1)
-       ssnow%otss = ssnow%tss
-ENDIF
 ssnow%otss_0 = ssnow%otss  ! vh should be before call to canopy?
 ssnow%otss = ssnow%tss
 
-  CALL define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,climate, sunlit_veg_mask,  canopy%vlaiw)
-    
+CALL define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,climate, sunlit_veg_mask,  canopy%vlaiw)
+
 ssnow%owetfac = ssnow%wetfac
 
-     CALL soil_snow(dels, soil, ssnow, canopy, met, bal,veg)
-      
-ssnow%deltss = ssnow%tss - ssnow%otss
+IF(cable_user%SOIL_STRUC=='default') THEN
+  IF (cable_user%gw_model) THEN
+    CALL soil_snow_gw(dels, soil, ssnow, canopy, met, bal,veg)
+  ELSE
+    CALL soil_snow(dels, soil, ssnow, canopy, met, bal,veg)
+  ENDIF
+ELSEIF (cable_user%SOIL_STRUC=='sli') THEN
 
-! need to adjust fe after soilsnow
-canopy%fev  = canopy%fevc + canopy%fevw
+  IF (cable_user%test_new_gw) CALL sli_hydrology(dels,ssnow,soil,veg,canopy)
+  CALL sli_main(ktau,dels,veg,soil,ssnow,met,canopy,air,rad,0)
+ENDIF
 
-! Calculate total latent heat flux:
-canopy%fe = canopy%fev + canopy%fes
 
-! Calculate net radiation absorbed by soil + veg
-canopy%rnet = canopy%fns + canopy%fnv
+ssnow%deltss = ssnow%tss-ssnow%otss
+
+    ! need to adjust fe after soilsnow
+    canopy%fev  = canopy%fevc + canopy%fevw
+
+    ! Calculate total latent heat flux:
+    canopy%fe = canopy%fev + canopy%fes
+
+    ! Calculate net radiation absorbed by soil + veg
+    canopy%rnet = canopy%fns + canopy%fnv
 
     ! Calculate radiative/skin temperature:
        rad%trad = ( ( 1.-rad%transd ) * canopy%tv**4 +                             &
             rad%transd * ssnow%tss**4 )**0.25
+    IF (icycle == 0) THEN
 
-    !calculate canopy%frp
-    CALL plantcarb(veg,bgc,met,canopy)
+       !calculate canopy%frp
+       CALL plantcarb(veg,bgc,met,canopy)
 
-    !calculate canopy%frs
-    CALL soilcarb(soil, ssnow, veg, bgc, met, canopy)
+       !calculate canopy%frs
+       CALL soilcarb(soil, ssnow, veg, bgc, met, canopy)
 
-    CALL carbon_pl(dels, soil, ssnow, veg, canopy, bgc)
+       CALL carbon_pl(dels, soil, ssnow, veg, canopy, bgc)
 
-    canopy%fnpp = -1.0* canopy%fpn - canopy%frp
-    canopy%fnee = canopy%fpn + canopy%frs + canopy%frp
+       canopy%fnpp = -1.0* canopy%fpn - canopy%frp
+       canopy%fnee = canopy%fpn + canopy%frs + canopy%frp
 
-
-
+    ENDIF
 
 
   END SUBROUTINE cbm
