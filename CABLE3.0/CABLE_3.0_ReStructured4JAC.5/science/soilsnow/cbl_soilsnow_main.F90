@@ -72,9 +72,10 @@ USE cbl_soil_snow_subrs_module
     END DO
 
 
-    !H!IF( cable_runtime%offline .OR. cable_runtime%mk3l ) THEN
-    !H!   ssnow%t_snwlr = 0.05
-    !H!ENDIF
+   !H!Whydoo we need this here?    
+    IF( cable_runtime%offline .OR. cable_runtime%mk3l ) THEN
+       ssnow%t_snwlr = 0.05
+    ENDIF
 
     ssnow%fwtop1 = 0.0
     ssnow%fwtop2 = 0.0
@@ -165,6 +166,7 @@ USE cbl_soil_snow_subrs_module
     !H!   canopy%fhs_cor = ssnow%dtmlt(:,1)*ssnow%dfh_dtg
     !H!   !canopy%fes_cor = ssnow%dtmlt(:,1)*(ssnow%dfe_ddq * ssnow%ddq_dtg)
     !H!   canopy%fes_cor = ssnow%dtmlt(:,1)*ssnow%dfe_dtg
+    !H! canopy%fes_cor = 0. !match Loobos to offline
 
     !H!   canopy%fhs = canopy%fhs+canopy%fhs_cor
     !H!   canopy%fes = canopy%fes+canopy%fes_cor

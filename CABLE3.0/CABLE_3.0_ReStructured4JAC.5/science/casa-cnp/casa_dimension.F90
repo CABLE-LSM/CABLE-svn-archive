@@ -47,8 +47,7 @@ MODULE casadimension
   INTEGER, PARAMETER :: mhwp  = 1         ! harvested wood pools
   INTEGER, PARAMETER :: mclear  = 1         ! forest clearing pools
   ! BP put icycle into namelist file
-  INTEGER            :: icycle
-  !  INTEGER, PARAMETER :: icycle=3           ! =1 for C, =2 for C+N; =3 for C+N+P
+  INTEGER            :: icycle=0 ! =1 for C, =2 for C+N; =3 for C+N+P
   INTEGER, PARAMETER :: mstart=1           ! starting time step
   INTEGER, PARAMETER :: mphase=4           ! phen. phases
   REAL(r_2),    PARAMETER :: deltcasa=1.0/365.0 ! year

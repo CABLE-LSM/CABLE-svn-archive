@@ -34,6 +34,7 @@
 LSRC = cable_pft_params.F90  \
 	cable_soil_params.F90      \
 	cable_math_constants_mod.F90 \
+	cable_runtime_opts_mod.F90 cable_math_constants_mod.F90 \
 	cable_phys_constants_mod.F90 \
 	cable_other_constants_mod.F90 \
 	cable_photo_constants_mod.F90 \
