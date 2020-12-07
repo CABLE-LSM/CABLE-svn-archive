@@ -42,59 +42,67 @@ REAL, DIMENSION(mp) :: weting
 REAL, DIMENSION(mp) :: xx, tgg_old, tggsn_old
 REAL(r_2), DIMENSION(mp) :: xxx,deltat,sinfil1,sinfil2,sinfil3
 REAL                :: zsetot
+INTEGER, SAVE :: ktau =0
 
-!H!IF( .NOT.cable_user%cable_runtime_coupled ) THEN
-!H!
-!H!   IF( ktau_gl <= 1 ) THEN
-!H!      IF (cable_runtime%um) canopy%dgdtg = 0.0 ! RML added um condition
-!H!      ! after discussion with BP
-!H!      ! N.B. snmin should exceed sum of layer depths, i.e. .11 m
-!H!      ssnow%wbtot = 0.0
-!H!      DO k = 1, ms
-!H!         ssnow%wb(:,k)  = MIN( soil%ssat, MAX( REAL(ssnow%wb(:,k)), soil%swilt ) )
-!H!      END DO
-!H!      ssnow%wb(:,ms-2)  = MIN( soil%ssat, MAX( REAL(ssnow%wb(:,ms-2)),           &
-!H!           0.5 * ( soil%sfc + soil%swilt ) ) )
-!H!      ssnow%wb(:,ms-1)  = MIN( soil%ssat, MAX( REAL(ssnow%wb(:,ms-1)),           &
-!H!           0.8 * soil%sfc ) )
-!H!      ssnow%wb(:,ms)    = MIN( soil%ssat, MAX( REAL(ssnow%wb(:,ms)), soil%sfc ) )
-!H!      DO k = 1, ms
-!H!         WHERE( ssnow%tgg(:,k) <= CTFRZ .AND. ssnow%wbice(:,k) <= 0.01 )   &
-!H!              ssnow%wbice(:,k) = 0.5 * ssnow%wb(:,k)
-!H!         WHERE( ssnow%tgg(:,k) < CTFRZ)                                    &
-!H!              ssnow%wbice(:,k) = frozen_limit * ssnow%wb(:,k)
-!H!      END DO
-!H!      WHERE (soil%isoilm == 9)
-!H!         ! permanent ice: fix hard-wired number in next version
-!H!         ssnow%snowd = max_glacier_snowd
-!H!         ssnow%osnowd = max_glacier_snowd
-!H!         ssnow%tgg(:,1) = ssnow%tgg(:,1) - 1.0
-!H!         ssnow%wb(:,1) = 0.95 * soil%ssat
-!H!         ssnow%wb(:,2) = 0.95 * soil%ssat
-!H!         ssnow%wb(:,3) = 0.95 * soil%ssat
-!H!         ssnow%wb(:,4) = 0.95 * soil%ssat
-!H!         ssnow%wb(:,5) = 0.95 * soil%ssat
-!H!         ssnow%wb(:,6) = 0.95 * soil%ssat
-!H!         ssnow%wbice(:,1) = 0.90 * ssnow%wb(:,1)
-!H!         ssnow%wbice(:,2) = 0.90 * ssnow%wb(:,2)
-!H!         ssnow%wbice(:,3) = 0.90 * ssnow%wb(:,3)
-!H!         ssnow%wbice(:,4) = 0.90 * ssnow%wb(:,4)
-!H!         ssnow%wbice(:,5) = 0.90 * ssnow%wb(:,5)
-!H!         ssnow%wbice(:,6) = 0.90 * ssnow%wb(:,6)
-!H!      ENDWHERE
-!H!      xx=REAL(soil%heat_cap_lower_limit(:,1))
-!H!      ssnow%gammzz(:,1) = MAX( (1.0 - soil%ssat) * soil%css * soil%rhosoil &
-!H!           & + (ssnow%wb(:,1) - ssnow%wbice(:,1) ) * Ccswat * Cdensity_liq &
-!H!ENDIF  ! if(.NOT.cable_runtime_coupled)
+ktau = ktau +1
 
-IF (ktau_gl <= 1)       THEN
+IF( .NOT.cable_user%cable_runtime_coupled ) THEN
+
+   IF( ktau_gl <= 1 ) THEN
+      IF (cable_runtime%um) canopy%dgdtg = 0.0 ! RML added um condition
+      ! after discussion with BP
+      ! N.B. snmin should exceed sum of layer depths, i.e. .11 m
+      ssnow%wbtot = 0.0
+      DO k = 1, ms
+         ssnow%wb(:,k)  = MIN( soil%ssat, MAX( REAL(ssnow%wb(:,k)), soil%swilt ) )
+      END DO
+      ssnow%wb(:,ms-2)  = MIN( soil%ssat, MAX( REAL(ssnow%wb(:,ms-2)),           &
+           0.5 * ( soil%sfc + soil%swilt ) ) )
+      ssnow%wb(:,ms-1)  = MIN( soil%ssat, MAX( REAL(ssnow%wb(:,ms-1)),           &
+           0.8 * soil%sfc ) )
+      ssnow%wb(:,ms)    = MIN( soil%ssat, MAX( REAL(ssnow%wb(:,ms)), soil%sfc ) )
+      DO k = 1, ms
+         WHERE( ssnow%tgg(:,k) <= CTFRZ .AND. ssnow%wbice(:,k) <= 0.01 )   &
+              ssnow%wbice(:,k) = 0.5 * ssnow%wb(:,k)
+         WHERE( ssnow%tgg(:,k) < CTFRZ)                                    &
+              ssnow%wbice(:,k) = frozen_limit * ssnow%wb(:,k)
+      END DO
+      WHERE (soil%isoilm == 9)
+         ! permanent ice: fix hard-wired number in next version
+         ssnow%snowd = max_glacier_snowd
+         ssnow%osnowd = max_glacier_snowd
+         ssnow%tgg(:,1) = ssnow%tgg(:,1) - 1.0
+         ssnow%wb(:,1) = 0.95 * soil%ssat
+         ssnow%wb(:,2) = 0.95 * soil%ssat
+         ssnow%wb(:,3) = 0.95 * soil%ssat
+         ssnow%wb(:,4) = 0.95 * soil%ssat
+         ssnow%wb(:,5) = 0.95 * soil%ssat
+         ssnow%wb(:,6) = 0.95 * soil%ssat
+         ssnow%wbice(:,1) = 0.90 * ssnow%wb(:,1)
+         ssnow%wbice(:,2) = 0.90 * ssnow%wb(:,2)
+         ssnow%wbice(:,3) = 0.90 * ssnow%wb(:,3)
+         ssnow%wbice(:,4) = 0.90 * ssnow%wb(:,4)
+         ssnow%wbice(:,5) = 0.90 * ssnow%wb(:,5)
+         ssnow%wbice(:,6) = 0.90 * ssnow%wb(:,6)
+      ENDWHERE
+      xx=REAL(soil%heat_cap_lower_limit(:,1))
+
+      ssnow%gammzz(:,1) = MAX( (1.0 - soil%ssat) * soil%css * soil%rhosoil &
+           & + (ssnow%wb(:,1) - ssnow%wbice(:,1) ) * Ccswat * Cdensity_liq &
+           & + ssnow%wbice(:,1) * Ccsice * Cdensity_liq * .9, xx ) * soil%zse(1)
+
+   END IF
+ENDIF  ! if(.NOT.cable_runtime_coupled)
+
+         ssnow%snowd = 0. !match Loobos
+
+IF (ktau <= 1)       THEN
   xx=soil%heat_cap_lower_limit(:,1)
   ssnow%gammzz(:,1) = MAX( (1.0 - soil%ssat) * soil%css * soil%rhosoil      &
         & + (ssnow%wb(:,1) - ssnow%wbice(:,1) ) * Ccswat * Cdensity_liq           &
         & + ssnow%wbice(:,1) * Ccsice * Cdensity_liq * .9, xx ) * soil%zse(1) +   &
         & (1. - ssnow%isflag) * Ccgsnow * ssnow%snowd
 END IF
-
 END SUBROUTINE spec_init_soil_snow
 
   SUBROUTINE spec_init_snowcheck(dels, ssnow, soil, met )
@@ -140,11 +148,11 @@ END SUBROUTINE spec_init_soil_snow
           !H!ssnow%smass(j,3) = 0.0
           !H!ssnow%ssdn(j,:) = ssnow%ssdnn(j)
 
-          !H!IF( .NOT.cable_user%CABLE_RUNTIME_COUPLED ) THEN
-          !H!   IF( soil%isoilm(j) == 9 .AND. ktau_gl <= 2 )                       &
-          !H!                      ! permanent ice: fixed hard-wired number in next version
-          !H!        ssnow%ssdnn(j) = 700.0
-          !H!ENDIF
+          IF( .NOT.cable_user%CABLE_RUNTIME_COUPLED ) THEN
+             IF( soil%isoilm(j) == 9 .AND. ktau_gl <= 2 )                       &
+                                ! permanent ice: fixed hard-wired number in next version
+                  ssnow%ssdnn(j) = 700.0
+          ENDIF
 
        ELSE ! in loop: IF( ssnow%snowd(j) <= 0.0 ) THEN
           ! sufficient snow now for 3 layer snowpack
@@ -153,14 +161,14 @@ END SUBROUTINE spec_init_soil_snow
              !H!ssnow%tggsn(j,:) = MIN( CTFRZ, ssnow%tgg(j,1) )
              !H!ssnow%ssdn(j,2) = ssnow%ssdn(j,1)
              !H!ssnow%ssdn(j,3) = ssnow%ssdn(j,1)
-             !H!IF( .NOT. cable_user%cable_runtime_coupled) THEN
-             !H!   IF( soil%isoilm(j) == 9 .AND. ktau_gl <= 2 ) THEN
-             !H!      ! permanent ice: fix hard-wired number in next version
-             !H!      ssnow%ssdn(j,1)  = 450.0
-             !H!      ssnow%ssdn(j,2)  = 580.0
-             !H!      ssnow%ssdn(j,3)  = 600.0
-             !H!   ENDIF
-             !H!ENDIF
+             IF( .NOT. cable_user%cable_runtime_coupled) THEN
+                IF( soil%isoilm(j) == 9 .AND. ktau_gl <= 2 ) THEN
+                   ! permanent ice: fix hard-wired number in next version
+                   ssnow%ssdn(j,1)  = 450.0
+                   ssnow%ssdn(j,2)  = 580.0
+                   ssnow%ssdn(j,3)  = 600.0
+                ENDIF
+             ENDIF
              !H!ssnow%sdepth(j,1) = ssnow%t_snwlr(j)
              !H!ssnow%smass(j,1)  =  ssnow%t_snwlr(j) * ssnow%ssdn(j,1)
              !H!ssnow%smass(j,2)  = ( ssnow%snowd(j) - ssnow%smass(j,1) ) * 0.4
