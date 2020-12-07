@@ -793,7 +793,7 @@ CONTAINS
 
     !DE Not sure if this is meant to remain
     IF (cable_user%GW_MODEL) THEN
-       ok = NF90_OPEN(TRIM(filename%gw_elev),NF90_NOWRITE,ncid_elev)
+       ok = NF90_OPEN(TRIM(filename%type),NF90_NOWRITE,ncid_elev) ! MMY
        IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error opening GW elev param file.')
 
        ok = NF90_INQ_VARID(ncid_elev, 'slope', fieldID)
@@ -1647,8 +1647,15 @@ CONTAINS
     ssnow%rtevap_unsat = 0.0
     ssnow%satfrac = 0.5
     ssnow%wbliq = ssnow%wb - ssnow%wbice
-    ssnow%GWwb = 0.9*soil%ssat
+    ssnow%GWwb = 0.9*soil%ssat ! MMY: see different init GWwb assumption
 
+    ! ____________________ MMY _____________________
+    ssnow%wb_hys = -1.0e+36
+    ssnow%hys_fac = 1.0
+    ssnow%watr_hys = soil%watr
+    ssnow%ssat_hys = soil%ssat_vec
+    ssnow%smp_hys  = -1.0e+36
+    ! ______________________________________________
     !IF(hide%Ticket49Bug5) THEN
 
     !! vh_js !! neeed to remove this if to enable the code below
