@@ -3300,6 +3300,9 @@ CONTAINS
     ENDDO
 
     !removed gw_soils for now
+    deallocate(inGWtmp)
+    deallocate(inGW3dtmp)
+    deallocate(inGW4dtmp)
 
 
   END SUBROUTINE GWspatialParameters
