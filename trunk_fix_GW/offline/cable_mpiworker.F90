@@ -4031,7 +4031,23 @@ USE cbl_soil_snow_init_special_module
 
     !GW:
     bidx = bidx + 1
+    CALL MPI_Get_address (ssnow%hys_fac(off,1), displs(bidx), ierr)
+    blocks(bidx) = r2len * ms
+
+    bidx = bidx + 1
     CALL MPI_Get_address (ssnow%smp(off,1), displs(bidx), ierr)
+    blocks(bidx) = r2len * ms
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (ssnow%smp_hys(off,1), displs(bidx), ierr)
+    blocks(bidx) = r2len * ms
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (ssnow%ssat_hys(off,1), displs(bidx), ierr)
+    blocks(bidx) = r2len * ms
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (ssnow%watr_hys(off,1), displs(bidx), ierr)
     blocks(bidx) = r2len * ms
 
     bidx = bidx + 1

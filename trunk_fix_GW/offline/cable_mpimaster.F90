@@ -5110,11 +5110,34 @@ CONTAINS
        
        !GW:
        midx = midx + 1
-       CALL MPI_Get_address (ssnow%smp(off,1), maddr(midx), ierr) ! 15
+       CALL MPI_Get_address (ssnow%hys_fac(off,1), maddr(midx), ierr) ! 15
        CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
             &                        mat_t(midx, rank), ierr)
        CALL MPI_Type_commit (mat_t(midx, rank), ierr)
 
+       midx = midx + 1
+       CALL MPI_Get_address (ssnow%smp(off,1), maddr(midx), ierr) ! 15
+       CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
+            &                        mat_t(midx, rank), ierr)
+       CALL MPI_Type_commit (mat_t(midx, rank), ierr)
+       
+       midx = midx + 1
+       CALL MPI_Get_address (ssnow%smp_hys(off,1), maddr(midx), ierr) ! 15
+       CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
+            &                        mat_t(midx, rank), ierr)
+       CALL MPI_Type_commit (mat_t(midx, rank), ierr)
+
+       midx = midx + 1
+       CALL MPI_Get_address (ssnow%ssat_hys(off,1), maddr(midx), ierr) ! 15
+       CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
+            &                        mat_t(midx, rank), ierr)
+       CALL MPI_Type_commit (mat_t(midx, rank), ierr)
+
+       midx = midx + 1
+       CALL MPI_Get_address (ssnow%watr_hys(off,1), maddr(midx), ierr) ! 15
+       CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
+            &                        mat_t(midx, rank), ierr)
+       CALL MPI_Type_commit (mat_t(midx, rank), ierr)
 
        midx = midx + 1
        CALL MPI_Get_address (ssnow%wb_hys(off,1), maddr(midx), ierr) ! 15

@@ -83,7 +83,7 @@ MODULE cable_mpicommon
   ! vh sli nmat + 4 36 -> 40
   !INTEGER, PARAMETER :: nmat = 40
   !AMU for updating GW code
-  INTEGER, PARAMETER :: nmat = 42
+  INTEGER, PARAMETER :: nmat = 46
   ! MPI: number of contig vector parts / worker (results)
   !INTEGER, PARAMETER :: nvec = 149
   ! MPI: 2011-06-28 - removed ebal, ebal_tot, seb, seb_tot from data exchange
