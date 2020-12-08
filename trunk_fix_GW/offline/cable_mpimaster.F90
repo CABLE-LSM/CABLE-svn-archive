@@ -2684,7 +2684,7 @@ CONTAINS
        blen(bidx) = r2len
        
        bidx = bidx + 1
-       CALL MPI_Get_address (ccanopy%sublayer_dz(off), displs(bidx), ierr)
+       CALL MPI_Get_address (canopy%sublayer_dz(off), displs(bidx), ierr)
        blen(bidx) = r2len
               
        bidx = bidx + 1
