@@ -1908,6 +1908,10 @@ USE cbl_soil_snow_init_special_module
     blen(bidx) = r2len
 
     bidx = bidx + 1
+    CALL MPI_Get_address (canopy%sublayer_dz, displs(bidx), ierr)
+    blen(bidx) = r2len
+
+    bidx = bidx + 1
     CALL MPI_Get_address (canopy%gswx, displs(bidx), ierr)
     blen(bidx) = mf * r1len
 
@@ -4746,6 +4750,12 @@ USE cbl_soil_snow_init_special_module
     bidx = bidx + 1
     CALL MPI_Get_address (canopy%fwsoil(off), displs(bidx), ierr)
     blocks(bidx) = r2len
+    
+    
+    bidx = bidx + 1
+    CALL MPI_Get_address (canopy%sublayer_dz(off), displs(bidx), ierr)
+    blocks(bidx) = r2len
+  
 
     ! MPI: 2D vars moved above
     ! rwater

@@ -2682,7 +2682,11 @@ CONTAINS
        bidx = bidx + 1
        CALL MPI_Get_address (canopy%fwsoil(off), displs(bidx), ierr)
        blen(bidx) = r2len
-
+       
+       bidx = bidx + 1
+       CALL MPI_Get_address (ccanopy%sublayer_dz(off), displs(bidx), ierr)
+       blen(bidx) = r2len
+              
        bidx = bidx + 1
        CALL MPI_Get_address (canopy%gswx(off,1), displs(bidx), ierr)
        CALL MPI_Type_create_hvector (mf, r1len, r1stride, MPI_BYTE, &
@@ -2694,6 +2698,10 @@ CONTAINS
        CALL MPI_Type_create_hvector (niter, r1len, r1stride, MPI_BYTE, &
             &                             types(bidx), ierr)
        blen(bidx) = 1
+
+
+
+
 
 
        ! ------- rough -------
@@ -3373,6 +3381,11 @@ CONTAINS
        bidx = bidx + 1
        CALL MPI_Get_address (ssnow%GWwb(off), displs(bidx), ierr)
        blen(bidx) = r2len
+       
+       bidx = bidx + 1
+       CALL MPI_Get_address (ssnow%GWwb(off), displs(bidx), ierr)
+       blen(bidx) = r2len
+     
 
        ! MPI: sanity check
        IF (bidx /= ntyp) THEN
@@ -5102,6 +5115,7 @@ CONTAINS
             &                        mat_t(midx, rank), ierr)
        CALL MPI_Type_commit (mat_t(midx, rank), ierr)
 
+
        midx = midx + 1
        CALL MPI_Get_address (ssnow%wb_hys(off,1), maddr(midx), ierr) ! 15
        CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
@@ -5239,7 +5253,6 @@ CONTAINS
 
        ! MPI: sanity check
        IF (midx /= nmat) THEN
-               print *, "PRINTING", midx, nmat
           WRITE (*,*) 'master: outtype invalid nmat ',midx,' constant, fix it!'
           CALL MPI_Abort (comm, 1, ierr)
        END IF
@@ -5564,6 +5577,10 @@ CONTAINS
        vidx = vidx + 1
        ! REAL(r_2)
        CALL MPI_Get_address (canopy%fwsoil(off), vaddr(vidx), ierr) ! 59
+       blen(vidx) = cnt * extr2
+       vidx = vidx + 1
+       ! REAL(r_2)
+       CALL MPI_Get_address (canopy%sublayer_dz(off), vaddr(vidx), ierr) ! 59
        blen(vidx) = cnt * extr2
 
        ! MPI: 2D vars moved above
