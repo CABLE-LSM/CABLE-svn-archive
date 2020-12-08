@@ -4767,7 +4767,6 @@ USE cbl_soil_snow_init_special_module
     CALL MPI_Get_address (canopy%fwsoil(off), displs(bidx), ierr)
     blocks(bidx) = r2len
     
-    
     bidx = bidx + 1
     CALL MPI_Get_address (canopy%sublayer_dz(off), displs(bidx), ierr)
     blocks(bidx) = r2len

@@ -3381,10 +3381,6 @@ CONTAINS
        bidx = bidx + 1
        CALL MPI_Get_address (ssnow%GWwb(off), displs(bidx), ierr)
        blen(bidx) = r2len
-       
-       bidx = bidx + 1
-       CALL MPI_Get_address (ssnow%GWwb(off), displs(bidx), ierr)
-       blen(bidx) = r2len
      
 
        ! MPI: sanity check
