@@ -94,8 +94,6 @@ IF( .NOT.cable_user%cable_runtime_coupled ) THEN
    END IF
 ENDIF  ! if(.NOT.cable_runtime_coupled)
 
-         ssnow%snowd = 0. !match Loobos
-
 IF (ktau <= 1)       THEN
   xx=soil%heat_cap_lower_limit(:,1)
   ssnow%gammzz(:,1) = MAX( (1.0 - soil%ssat) * soil%css * soil%rhosoil      &
