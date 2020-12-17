@@ -33,8 +33,6 @@
 !#define UM_BUILD YES
 MODULE casa_inout_module
 
-USE casavariable, ONLY : casafile
-
 CONTAINS
 
   SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
@@ -1499,12 +1497,11 @@ CONTAINS
 #ifndef UM_BUILD
   SUBROUTINE WRITE_CASA_RESTART_NC ( casamet, casapool, casaflux, phen, CASAONLY )
 
-    USE casavariable, ONLY : casa_met, casa_pool, casa_flux, icycle, mplant, mlitter, msoil
-    USE cable_common_module
-  USE casa_ncdf_module, ONLY: HANDLE_ERR
-   
-    USE cable_def_types_mod, ONLY: met_type, mp
+    USE CASAVARIABLE, ONLY : casa_met, casa_pool, casa_flux, icycle, mplant, mlitter, msoil
+    USE CABLE_COMMON_MODULE
+    USE CABLE_DEF_TYPES_MOD, ONLY: MET_TYPE, mp
     USE phenvariable
+    USE casavariable
     USE netcdf
 
     IMPLICIT NONE
@@ -1724,7 +1721,6 @@ CONTAINS
     USE CASAVARIABLE
     USE phenvariable
     USE CABLE_COMMON_MODULE
-  USE casa_ncdf_module, ONLY: HANDLE_ERR
     USE CABLE_DEF_TYPES_MOD, ONLY: MET_TYPE, r_2, mp
     USE netcdf
 
@@ -2010,7 +2006,6 @@ CONTAINS
 
     USE CASAVARIABLE
     USE CABLE_COMMON_MODULE
-  USE casa_ncdf_module, ONLY: HANDLE_ERR
 
 
     USE cable_def_types_mod, ONLY: veg_parameter_type

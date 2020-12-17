@@ -16,7 +16,6 @@ SUBROUTINE POP_IO ( POP, casamet, YEAR, ACTION, CF )
   USE POP_types
   USE CASAVARIABLE, ONLY: casa_met, icycle
   USE CABLE_COMMON_MODULE
-  USE casa_ncdf_module, ONLY: HANDLE_ERR
 
   IMPLICIT NONE
 

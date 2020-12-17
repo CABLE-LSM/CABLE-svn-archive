@@ -48,13 +48,13 @@ MODULE cable_input_module
   USE POPLUC_Types,               ONLY: POPLUC_TYPE
   USE cable_param_module
   USE cable_checks_module,     ONLY: ranges, rh_sh
-  USE cbl_sinbet_mod,  ONLY: sinbet
+  USE cable_radiation_module,  ONLY: sinbet
   USE cable_IO_vars_module
   USE cable_read_module,       ONLY: readpar
   USE cable_init_module
   USE netcdf ! link must be made in cd to netcdf-x.x.x/src/f90/netcdf.mod
-  USE cable_common_module, ONLY : filename, cable_user, CurYear, is_leapyear
-  USE casa_ncdf_module, ONLY: HANDLE_ERR
+  USE cable_common_module, ONLY : filename, cable_user, CurYear, HANDLE_ERR, &
+                                  is_leapyear
   USE casa_inout_module, ONLY: casa_readbiome, casa_readphen, casa_init
 
   IMPLICIT NONE
@@ -293,8 +293,8 @@ CONTAINS
 
   SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
 
-    USE CABLE_COMMON_MODULE, ONLY : IS_LEAPYEAR
-  USE casa_ncdf_module, ONLY: HANDLE_ERR, YMDHMS2DOYSOD, DOYSOD2YMDHMS
+    USE CABLE_COMMON_MODULE, ONLY : IS_LEAPYEAR, YMDHMS2DOYSOD, DOYSOD2YMDHMS,&
+         HANDLE_ERR
     IMPLICIT NONE
     ! Input arguments
     REAL, INTENT(OUT) :: dels   ! time step size

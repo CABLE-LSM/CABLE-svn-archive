@@ -4,12 +4,7 @@ MODULE cbl_soil_snow_init_special_module
        veg_parameter_type, canopy_type, met_type,        &
        balances_type, r_2, ms, mp
 
-USE cable_phys_constants_mod, ONLY : CTFRZ => TFRZ
-USE cable_phys_constants_mod, ONLY : CHL => HL
-USE cable_phys_constants_mod, ONLY : Cdensity_liq => density_liq
-USE cable_phys_constants_mod, ONLY : Ccgsnow => cgsnow
-USE cable_phys_constants_mod, ONLY : Ccswat => cswat
-USE cable_phys_constants_mod, ONLY : Ccsice => csice
+  USE cable_data_module, ONLY : issnow_type, point2constants
 
   USE cable_common_module, ONLY: cable_user,snow_ccnsw,snmin,&
        max_ssdn,max_sconds,frozen_limit,&
@@ -18,6 +13,8 @@ USE cable_phys_constants_mod, ONLY : Ccsice => csice
   IMPLICIT NONE
 
   PRIVATE
+
+  TYPE ( issnow_type ), SAVE :: C
 
   PUBLIC spec_init_soil_snow
   PUBLIC spec_init_snowcheck
@@ -44,6 +41,8 @@ REAL(r_2), DIMENSION(mp) :: xxx,deltat,sinfil1,sinfil2,sinfil3
 REAL                :: zsetot
 INTEGER, SAVE :: ktau =0
 
+CALL point2constants( C )
+
 ktau = ktau +1
 
 IF( .NOT.cable_user%cable_runtime_coupled ) THEN
@@ -62,9 +61,9 @@ IF( .NOT.cable_user%cable_runtime_coupled ) THEN
            0.8 * soil%sfc ) )
       ssnow%wb(:,ms)    = MIN( soil%ssat, MAX( REAL(ssnow%wb(:,ms)), soil%sfc ) )
       DO k = 1, ms
-         WHERE( ssnow%tgg(:,k) <= CTFRZ .AND. ssnow%wbice(:,k) <= 0.01 )   &
+         WHERE( ssnow%tgg(:,k) <= C%TFRZ .AND. ssnow%wbice(:,k) <= 0.01 )   &
               ssnow%wbice(:,k) = 0.5 * ssnow%wb(:,k)
-         WHERE( ssnow%tgg(:,k) < CTFRZ)                                    &
+         WHERE( ssnow%tgg(:,k) < C%TFRZ)                                    &
               ssnow%wbice(:,k) = frozen_limit * ssnow%wb(:,k)
       END DO
       WHERE (soil%isoilm == 9)
@@ -87,17 +86,17 @@ IF( .NOT.cable_user%cable_runtime_coupled ) THEN
       ENDWHERE
       xx=REAL(soil%heat_cap_lower_limit(:,1))
       ssnow%gammzz(:,1) = MAX( (1.0 - soil%ssat) * soil%css * soil%rhosoil &
-           & + (ssnow%wb(:,1) - ssnow%wbice(:,1) ) * Ccswat * Cdensity_liq &
-           & + ssnow%wbice(:,1) * Ccsice * Cdensity_liq * .9, xx ) * soil%zse(1)
+           & + (ssnow%wb(:,1) - ssnow%wbice(:,1) ) * C%cswat * C%density_liq &
+           & + ssnow%wbice(:,1) * C%csice * C%density_liq * .9, xx ) * soil%zse(1)
    END IF
 ENDIF  ! if(.NOT.cable_runtime_coupled)
 
 IF (ktau <= 1)       THEN
   xx=soil%heat_cap_lower_limit(:,1)
   ssnow%gammzz(:,1) = MAX( (1.0 - soil%ssat) * soil%css * soil%rhosoil      &
-        & + (ssnow%wb(:,1) - ssnow%wbice(:,1) ) * Ccswat * Cdensity_liq           &
-        & + ssnow%wbice(:,1) * Ccsice * Cdensity_liq * .9, xx ) * soil%zse(1) +   &
-        & (1. - ssnow%isflag) * Ccgsnow * ssnow%snowd
+        & + (ssnow%wb(:,1) - ssnow%wbice(:,1) ) * C%cswat * C%density_liq           &
+        & + ssnow%wbice(:,1) * C%csice * C%density_liq * .9, xx ) * soil%zse(1) +   &
+        & (1. - ssnow%isflag) * C%cgsnow * ssnow%snowd
 END IF
 
 END SUBROUTINE spec_init_soil_snow
@@ -122,7 +121,7 @@ END SUBROUTINE spec_init_soil_snow
           !H!ssnow%isflag(j) = 0
           !H!ssnow%ssdn(j,:) = 120.0
           !H!ssnow%ssdnn(j) = 120.0
-          !H!ssnow%tggsn(j,:) = CTFRZ
+          !H!ssnow%tggsn(j,:) = C%TFRZ
           !H!ssnow%sdepth(j,1) = ssnow%snowd(j) / ssnow%ssdn(j,1)
           !H!ssnow%sdepth(j,2) = 0.
           !H!ssnow%sdepth(j,3) = 0.
@@ -136,7 +135,7 @@ END SUBROUTINE spec_init_soil_snow
           !H!ENDIF
           !H!ssnow%isflag(j) = 0
           !H!ssnow%ssdnn(j) = MIN( 400.0, MAX( 120.0, ssnow%ssdn(j,1) ) )
-          !H!ssnow%tggsn(j,:) = MIN( CTFRZ,ssnow%tgg(j,1) )
+          !H!ssnow%tggsn(j,:) = MIN( C%TFRZ,ssnow%tgg(j,1) )
           !H!ssnow%sdepth(j,1) = ssnow%snowd(j) / ssnow%ssdn(j,1)
           !H!ssnow%sdepth(j,2) = 0.0
           !H!ssnow%sdepth(j,3) = 0.0
@@ -155,7 +154,7 @@ END SUBROUTINE spec_init_soil_snow
           ! sufficient snow now for 3 layer snowpack
 
           IF( ssnow%isflag(j) == 0 ) THEN
-             !H!ssnow%tggsn(j,:) = MIN( CTFRZ, ssnow%tgg(j,1) )
+             !H!ssnow%tggsn(j,:) = MIN( C%TFRZ, ssnow%tgg(j,1) )
              !H!ssnow%ssdn(j,2) = ssnow%ssdn(j,1)
              !H!ssnow%ssdn(j,3) = ssnow%ssdn(j,1)
              IF( .NOT. cable_user%cable_runtime_coupled) THEN

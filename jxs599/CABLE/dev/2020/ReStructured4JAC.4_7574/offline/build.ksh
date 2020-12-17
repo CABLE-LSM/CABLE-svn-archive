@@ -154,7 +154,7 @@ host_gadi()
    export FC='ifort'
    export NCDIR=$NETCDF_ROOT'/lib/Intel'
    export NCMOD=$NETCDF_ROOT'/include/Intel'
-   export CFLAGS='-O0'
+   export CFLAGS='-O2 -fp-model precise'
    if [[ $1 = 'debug' ]]; then
       export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0'
    fi

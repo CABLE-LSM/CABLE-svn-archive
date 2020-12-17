@@ -23,8 +23,7 @@ MODULE cable_phenology_module
        mp, r_2
   USE TypeDef,              ONLY: i4b, dp
   USE cable_IO_vars_module, ONLY: patch
-  USE casa_ncdf_module, ONLY: HANDLE_ERR
-  USE CABLE_COMMON_MODULE, ONLY: CurYear, filename, cable_user
+  USE CABLE_COMMON_MODULE, ONLY: CurYear, filename, cable_user, HANDLE_ERR
 
 CONTAINS
   ! ==============================================================================

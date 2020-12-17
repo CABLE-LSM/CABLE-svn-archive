@@ -3,16 +3,8 @@ MODULE cbl_soil_snow_subrs_module
   USE cable_def_types_mod, ONLY : soil_snow_type, soil_parameter_type,        &
        veg_parameter_type, canopy_type, met_type,        &
        balances_type, r_2, ms, mp
-!distribute these per sbr
-USE cable_phys_constants_mod, ONLY : CTFRZ => TFRZ
-USE cable_phys_constants_mod, ONLY : CHL => HL
-USE cable_phys_constants_mod, ONLY : CHLF => HLF
-USE cable_phys_constants_mod, ONLY : Cdensity_liq => density_liq
-USE cable_phys_constants_mod, ONLY : Ccgsnow => cgsnow
-USE cable_phys_constants_mod, ONLY : Ccswat => cswat
-USE cable_phys_constants_mod, ONLY : Ccsice => csice
-USE cable_phys_constants_mod, ONLY : Ccs_rho_wat => cs_rho_wat
-USE cable_phys_constants_mod, ONLY : Ccs_rho_ice => cs_rho_ice
+
+  USE cable_data_module, ONLY : issnow_type, point2constants
 
   USE cable_common_module, ONLY: cable_user,snow_ccnsw,snmin,&
        max_ssdn,max_sconds,frozen_limit,&
@@ -21,6 +13,8 @@ USE cable_phys_constants_mod, ONLY : Ccs_rho_ice => cs_rho_ice
   IMPLICIT NONE
 
   PRIVATE
+
+  TYPE ( issnow_type ), SAVE :: C
 
 PUBLIC  trimb
 PUBLIC  smoisturev
@@ -162,6 +156,9 @@ CONTAINS
          u,    & ! I/O unit
          k
 
+
+    CALL point2constants( C )
+    
     at = 0.0
     bt = 1.0
     ct = 0.0
@@ -328,9 +325,9 @@ CONTAINS
        END DO
 
        bt = 1. - at - ct
-       ssnow%wblf(:,1) = ssnow%wblf(:,1) + dtt(:,1) * ssnow%fwtop1 / Cdensity_liq
-       ssnow%wblf(:,2) = ssnow%wblf(:,2) + dtt(:,2) * ssnow%fwtop2 / Cdensity_liq
-       ssnow%wblf(:,3) = ssnow%wblf(:,3) + dtt(:,3) * ssnow%fwtop3 / Cdensity_liq
+       ssnow%wblf(:,1) = ssnow%wblf(:,1) + dtt(:,1) * ssnow%fwtop1 / C%density_liq
+       ssnow%wblf(:,2) = ssnow%wblf(:,2) + dtt(:,2) * ssnow%fwtop2 / C%density_liq
+       ssnow%wblf(:,3) = ssnow%wblf(:,3) + dtt(:,3) * ssnow%fwtop3 / C%density_liq
 
     END IF
     ! END: IF (nmeth <= 0) THEN
@@ -490,9 +487,9 @@ CONTAINS
           END DO
        END IF
 
-       ssnow%wblf(:,1) = ssnow%wblf(:,1) + dtt(:,1) * ssnow%fwtop1 / Cdensity_liq
-       ssnow%wblf(:,2) = ssnow%wblf(:,2) + dtt(:,2) * ssnow%fwtop2 / Cdensity_liq
-       ssnow%wblf(:,3) = ssnow%wblf(:,3) + dtt(:,3) * ssnow%fwtop3 / Cdensity_liq
+       ssnow%wblf(:,1) = ssnow%wblf(:,1) + dtt(:,1) * ssnow%fwtop1 / C%density_liq
+       ssnow%wblf(:,2) = ssnow%wblf(:,2) + dtt(:,2) * ssnow%fwtop2 / C%density_liq
+       ssnow%wblf(:,3) = ssnow%wblf(:,3) + dtt(:,3) * ssnow%fwtop3 / C%density_liq
 
     END IF  ! IF (nmeth > 0)
 
@@ -519,7 +516,9 @@ CONTAINS
     REAL, DIMENSION(mp) :: ssnow_tgg_min1
    REAL, DIMENSION(mp,3) :: ssnow_tgg_min
 
-    ssnow_tgg_min1 = MIN( CTFRZ, ssnow%tgg(:,1) )
+    CALL point2constants( C )
+    
+    ssnow_tgg_min1 = MIN( C%TFRZ, ssnow%tgg(:,1) )
 
     WHERE( ssnow%snowd > 0.1 .AND. ssnow%isflag == 0 )
 
@@ -532,7 +531,7 @@ CONTAINS
        ssnow%ssdn(:,1) = MIN(max_ssdn,ssnow%ssdn(:,1) + dels * 9.806      &
             & * ssnow%ssdn(:,1) * 0.75 * ssnow%snowd                             &
             & / (3.0e7 * EXP(0.021 * ssnow%ssdn(:,1) + 0.081                     &
-            & * (273.15 - MIN(CTFRZ, ssnow%tgg(:,1) ) ) ) ) )
+            & * (273.15 - MIN(C%TFRZ, ssnow%tgg(:,1) ) ) ) ) )
 
        ! permanent ice: fix hard-wired number in next version
        WHERE( soil%isoilm /= 9 ) ssnow%ssdn(:,1) = MIN( 450.0, ssnow%ssdn(:,1) )
@@ -554,35 +553,35 @@ CONTAINS
     WHERE (ssnow%isflag == 1)
 
        ssnow%ssdn(:,1) = ssnow%ssdn(:,1) + dels * ssnow%ssdn(:,1) * 3.1e-6      &
-            * EXP( -0.03 * (273.15 - MIN(CTFRZ, ssnow%tggsn(:,1)))            &
+            * EXP( -0.03 * (273.15 - MIN(C%TFRZ, ssnow%tggsn(:,1)))            &
             - MERGE(0.046, 0.0, ssnow%ssdn(:,1) >= 150.0)                      &
             * (ssnow%ssdn(:,1) - 150.0) )
 
        ssnow%ssdn(:,2) = ssnow%ssdn(:,2) + dels * ssnow%ssdn(:,2) * 3.1e-6      &
-            * EXP( -0.03 * (273.15 - MIN(CTFRZ, ssnow%tggsn(:,2)))            &
+            * EXP( -0.03 * (273.15 - MIN(C%TFRZ, ssnow%tggsn(:,2)))            &
             - MERGE(0.046, 0.0, ssnow%ssdn(:,2) >= 150.0)                      &
             * (ssnow%ssdn(:,2) - 150.0) )
 
        ssnow%ssdn(:,3) = ssnow%ssdn(:,3) + dels * ssnow%ssdn(:,3) * 3.1e-6      &
-            * EXP( -0.03 * (273.15 - MIN(CTFRZ, ssnow%tggsn(:,3)))            &
+            * EXP( -0.03 * (273.15 - MIN(C%TFRZ, ssnow%tggsn(:,3)))            &
             - MERGE(0.046, 0.0, ssnow%ssdn(:,3) >= 150.0)                      &
             * (ssnow%ssdn(:,3) - 150.0) )
 
        ssnow%ssdn(:,1) = ssnow%ssdn(:,1) + dels * 9.806 * ssnow%ssdn(:,1)       &
             * ssnow%t_snwlr*ssnow%ssdn(:,1)                                    &
             / (3.0e7 * EXP(.021 * ssnow%ssdn(:,1) + 0.081                      &
-            * (273.15 - MIN(CTFRZ, ssnow%tggsn(:,1)))))
+            * (273.15 - MIN(C%TFRZ, ssnow%tggsn(:,1)))))
 
        ssnow%ssdn(:,2) = ssnow%ssdn(:,2) + dels * 9.806 * ssnow%ssdn(:,2)       &
             * (ssnow%t_snwlr * ssnow%ssdn(:,1) + 0.5 * ssnow%smass(:,2) )      &
             / (3.0e7 * EXP(.021 * ssnow%ssdn(:,2) + 0.081                      &
-            * (273.15 - MIN(CTFRZ, ssnow%tggsn(:,2)))))
+            * (273.15 - MIN(C%TFRZ, ssnow%tggsn(:,2)))))
 
        ssnow%ssdn(:,3) = ssnow%ssdn(:,3) + dels * 9.806 * ssnow%ssdn(:,3)       &
             * (ssnow%t_snwlr*ssnow%ssdn(:,1) + ssnow%smass(:,2)                &
             + 0.5*ssnow%smass(:,3))                                            &
             / (3.0e7 * EXP(.021 * ssnow%ssdn(:,3) + 0.081                      &
-            * (273.15 - MIN(CTFRZ, ssnow%tggsn(:,3)))))
+            * (273.15 - MIN(C%TFRZ, ssnow%tggsn(:,3)))))
 
        ssnow%sdepth(:,1) =  ssnow%smass(:,1) / ssnow%ssdn(:,1)
        ssnow%sdepth(:,2) =  ssnow%smass(:,2) / ssnow%ssdn(:,2)
@@ -624,28 +623,30 @@ CONTAINS
 
     REAL, DIMENSION(mp,0:3) :: smelt1
 
+    CALL point2constants( C )
+
     snowmlt= 0.0
     smelt1 = 0.0
 
     DO j=1,mp
 
        IF( ssnow%snowd(j) > 0.0 .AND. ssnow%isflag(j) == 0                      &
-            .AND. ssnow%tgg(j,1) >= CTFRZ ) THEN
+            .AND. ssnow%tgg(j,1) >= C%TFRZ ) THEN
 
           ! snow covered land
           ! following done in sflux  via  ga= ... +cls*egg + ...
           ! ** land,snow,melting
-          snowflx(j) = REAL((ssnow%tgg(j,1) - CTFRZ) * ssnow%gammzz(j,1))
+          snowflx(j) = REAL((ssnow%tgg(j,1) - C%TFRZ) * ssnow%gammzz(j,1))
 
           ! prevent snow depth going negative
-          snowmlt(j) = MIN(snowflx(j) / CHLF, ssnow%snowd(j) )
+          snowmlt(j) = MIN(snowflx(j) / C%HLF, ssnow%snowd(j) )
 
-          ssnow%dtmlt(j,1) = ssnow%dtmlt(j,1) + snowmlt(j) * CHLF              &
+          ssnow%dtmlt(j,1) = ssnow%dtmlt(j,1) + snowmlt(j) * C%HLF              &
                / ssnow%gammzz(j,1)
 
           ssnow%snowd(j) = ssnow%snowd(j) - snowmlt(j)
           ssnow%tgg(j,1) = REAL( ssnow%tgg(j,1) - snowmlt(j) *                  &
-               CHLF / ssnow%gammzz(j,1) )
+               C%HLF / ssnow%gammzz(j,1) )
        ENDIF
 
     END DO
@@ -657,20 +658,20 @@ CONTAINS
        !where there is snow
        WHERE( ssnow%snowd > 0.0 .AND. ssnow%isflag > 0 )
 
-          sgamm = ssnow%ssdn(:,k) * Ccgsnow * ssnow%sdepth(:,k)
+          sgamm = ssnow%ssdn(:,k) * C%cgsnow * ssnow%sdepth(:,k)
 
           ! snow melt refreezing
-          snowflx = smelt1(:,k-1) * CHLF / dels
+          snowflx = smelt1(:,k-1) * C%HLF / dels
 
           ssnow%tggsn(:,k) = ssnow%tggsn(:,k) + ( snowflx * dels +              &
-               smelt1(:,k-1)*Ccswat *( CTFRZ-ssnow%tggsn(:,k) ) ) &
-               / ( sgamm + Ccswat*smelt1(:,k-1) )
+               smelt1(:,k-1)*C%cswat *( C%TFRZ-ssnow%tggsn(:,k) ) ) &
+               / ( sgamm + C%cswat*smelt1(:,k-1) )
 
           ! increase density due to snowmelt
           osm = ssnow%smass(:,k)
           ssnow%smass(:,k) = ssnow%smass(:,k) + smelt1(:,k-1)
           ssnow%ssdn(:,k) = MAX( 120.0, MIN( ssnow%ssdn(:,k) * osm /            &
-               ssnow%smass(:,k) + Cdensity_liq * ( 1.0 - osm /           &
+               ssnow%smass(:,k) + C%density_liq * ( 1.0 - osm /           &
                ssnow%smass(:,k)), max_ssdn ) )
 
           ! permanent ice: fix hard-wired number in next version
@@ -679,25 +680,25 @@ CONTAINS
 
           ssnow%sdepth(:,k) = ssnow%smass(:,k) / ssnow%ssdn(:,k)
 
-          sgamm = ssnow%smass(:,k) * Ccgsnow
+          sgamm = ssnow%smass(:,k) * C%cgsnow
 
           smelt1(:,k-1) = 0.0
           smelt1(:,k) = 0.0
 
           ! snow melting
-          WHERE (ssnow%tggsn(:,k) > CTFRZ)
+          WHERE (ssnow%tggsn(:,k) > C%TFRZ)
 
-             snowflx = ( ssnow%tggsn(:,k) - CTFRZ ) * sgamm
+             snowflx = ( ssnow%tggsn(:,k) - C%TFRZ ) * sgamm
 
-             smelt1(:,k) = MIN( snowflx / CHLF, 0.6 * ssnow%smass(:,k) )
+             smelt1(:,k) = MIN( snowflx / C%HLF, 0.6 * ssnow%smass(:,k) )
 
-             ssnow%dtmlt(:,k) = ssnow%dtmlt(:,k) + smelt1(:,k) * CHLF / sgamm
+             ssnow%dtmlt(:,k) = ssnow%dtmlt(:,k) + smelt1(:,k) * C%HLF / sgamm
 
              osm = ssnow%smass(:,k)
 
              ssnow%smass(:,k) = ssnow%smass(:,k) - smelt1(:,k)
 
-             ssnow%tggsn(:,k) = ssnow%tggsn(:,k) - smelt1(:,k) * CHLF / sgamm
+             ssnow%tggsn(:,k) = ssnow%tggsn(:,k) - smelt1(:,k) * C%HLF / sgamm
 
              ssnow%sdepth(:,k) = ssnow%smass(:,k) / ssnow%ssdn(:,k)
 
@@ -737,6 +738,8 @@ CONTAINS
 
     INTEGER             :: i,j,k
 
+    CALL point2constants( C )
+    
     DO i=1,mp
 
        IF(canopy%precis(i) > 0.0 .AND. ssnow%isflag(i) == 0) THEN
@@ -752,15 +755,15 @@ CONTAINS
 
           ssnow%ssdnn(i) = ssnow%ssdn(i,1)
 
-          IF( canopy%precis(i) > 0.0 .AND. ssnow%tgg(i,1) < CTFRZ ) THEN
+          IF( canopy%precis(i) > 0.0 .AND. ssnow%tgg(i,1) < C%TFRZ ) THEN
 
              ssnow%snowd(i) = MAX(ssnow%snowd(i) + canopy%precis(i), 0.0)
 
-             ssnow%tgg(i,1) = ssnow%tgg(i,1) + canopy%precis(i) * CHLF               &
-                  / ( REAL( ssnow%gammzz(i,1) ) + Ccswat *canopy%precis(i) )
+             ssnow%tgg(i,1) = ssnow%tgg(i,1) + canopy%precis(i) * C%HLF               &
+                  / ( REAL( ssnow%gammzz(i,1) ) + C%cswat *canopy%precis(i) )
              ! change density due to water being added
              ssnow%ssdn(i,1) = MIN( max_ssdn, MAX( 120.0, ssnow%ssdn(i,1)          &
-                  * ssnow%osnowd(i) / MAX( 0.01, ssnow%snowd(i) ) + Cdensity_liq  &
+                  * ssnow%osnowd(i) / MAX( 0.01, ssnow%snowd(i) ) + C%density_liq  &
                   * canopy%precis(i) / MAX( 0.01, ssnow%snowd(i) )  ) )
 
              ! permanent ice: fix hard-wired number in next version
@@ -793,16 +796,16 @@ CONTAINS
           IF( canopy%precis(i) > 0.0 ) THEN
 
              ssnow%snowd(i) = MAX( ssnow%snowd(i) + canopy%precis(i), 0.0 )
-             sgamm(i) = ssnow%ssdn(i,1) * Ccgsnow * ssnow%sdepth(i,1)
+             sgamm(i) = ssnow%ssdn(i,1) * C%cgsnow * ssnow%sdepth(i,1)
              osm(i) = ssnow%smass(i,1)
 
-             ssnow%tggsn(i,1) = ssnow%tggsn(i,1) + canopy%precis(i) * CHLF           &
+             ssnow%tggsn(i,1) = ssnow%tggsn(i,1) + canopy%precis(i) * C%HLF           &
                   * osm(i) / (sgamm(i) * ssnow%osnowd(i) )
              ssnow%smass(i,1) = ssnow%smass(i,1) + canopy%precis(i)                   &
                   * osm(i)/ssnow%osnowd(i)
 
              ssnow%ssdn(i,1) = MAX( 120.0, MIN( ssnow%ssdn(i,1) * osm(i) /            &
-                  ssnow%smass(i,1) +  Cdensity_liq *                        &
+                  ssnow%smass(i,1) +  C%density_liq *                        &
                   ( 1.0 - osm(i) / ssnow%smass(i,1) ), max_ssdn ) )
 
              ! permanent ice: fix hard-wired number in next version
@@ -812,14 +815,14 @@ CONTAINS
              ssnow%sdepth(i,1) = ssnow%smass(i,1)/ssnow%ssdn(i,1)
 
              !layer 2
-             sgamm(i) = ssnow%ssdn(i,2) * Ccgsnow * ssnow%sdepth(i,2)
+             sgamm(i) = ssnow%ssdn(i,2) * C%cgsnow * ssnow%sdepth(i,2)
              osm(i) = ssnow%smass(i,2)
-             ssnow%tggsn(i,2) = ssnow%tggsn(i,2) + canopy%precis(i) * CHLF           &
+             ssnow%tggsn(i,2) = ssnow%tggsn(i,2) + canopy%precis(i) * C%HLF           &
                   * osm(i) / ( sgamm(i) * ssnow%osnowd(i) )
              ssnow%smass(i,2) = ssnow%smass(i,2) + canopy%precis(i)                   &
                   * osm(i) / ssnow%osnowd(i)
              ssnow%ssdn(i,2) = MAX( 120.0, MIN( ssnow%ssdn(i,2) * osm(i) /            &
-                  ssnow%smass(i,2) + Cdensity_liq *                         &
+                  ssnow%smass(i,2) + C%density_liq *                         &
                   ( 1.0 - osm(i) / ssnow%smass(i,2) ), max_ssdn ) )
 
              ! permanent ice: fix hard-wired number in next version
@@ -829,14 +832,14 @@ CONTAINS
              ssnow%sdepth(i,2) = ssnow%smass(i,2) / ssnow%ssdn(i,2)
 
              !layer 3
-             sgamm(i) = ssnow%ssdn(i,3) * Ccgsnow * ssnow%sdepth(i,3)
+             sgamm(i) = ssnow%ssdn(i,3) * C%cgsnow * ssnow%sdepth(i,3)
              osm(i) = ssnow%smass(i,3)
-             ssnow%tggsn(i,3) = ssnow%tggsn(i,3) + canopy%precis(i) * CHLF           &
+             ssnow%tggsn(i,3) = ssnow%tggsn(i,3) + canopy%precis(i) * C%HLF           &
                   * osm(i) / ( sgamm(i) * ssnow%osnowd(i) )
              ssnow%smass(i,3) = ssnow%smass(i,3) + canopy%precis(i)                   &
                   * osm(i) / ssnow%osnowd(i)
              ssnow%ssdn(i,3) = MAX( 120.0, MIN( ssnow%ssdn(i,3) * osm(i) /             &
-                  ssnow%smass(i,3) + Cdensity_liq *                          &
+                  ssnow%smass(i,3) + C%density_liq *                          &
                   ( 1.0 - osm(i) / ssnow%smass(i,3) ), max_ssdn ) )
 
              ! permanent ice: fix hard-wired number in next version
@@ -854,8 +857,8 @@ CONTAINS
     ENDDO
 
     ! 'fess' is for soil evap and 'fes' is for soil evap plus soil puddle evap
-    canopy%segg = canopy%fess / CHL
-    canopy%segg = ( canopy%fess + canopy%fes_cor ) / CHL
+    canopy%segg = canopy%fess / C%HL
+    canopy%segg = ( canopy%fess + canopy%fes_cor ) / C%HL
 
     ! Initialise snow evaporation:
     ssnow%evapsn = 0
@@ -868,7 +871,7 @@ CONTAINS
        IF( ssnow%cls(i) == 1.1335 ) THEN
           !WHERE( ssnow%snowd > 0.1 )
 
-          ssnow%evapsn(i) = dels * ( canopy%fess(i) + canopy%fes_cor(i) ) / ( CHL + CHLF )
+          ssnow%evapsn(i) = dels * ( canopy%fess(i) + canopy%fes_cor(i) ) / ( C%HL + C%HLF )
           xxx(i) = ssnow%evapsn(i)
 
           IF( ssnow%isflag(i) == 0 .AND. canopy%fess(i) + canopy%fes_cor(i).GT. 0.0 )    &
@@ -928,6 +931,8 @@ CONTAINS
     REAL :: wb_lake_T, rnof2_T, ratio
     INTEGER :: k,j
 
+    CALL point2constants( C )
+    
     IF( cable_runtime%UM ) THEN
        nglacier = 0
     ELSE
@@ -965,7 +970,7 @@ CONTAINS
           !---- change local tg to account for energy - clearly not best method
           WHERE( ssnow%isflag == 0 )
              smasstot = 0.0
-             ssnow%tgg(:,1) = ssnow%tgg(:,1) - rnof5 * CHLF                    &
+             ssnow%tgg(:,1) = ssnow%tgg(:,1) - rnof5 * C%HLF                    &
                   / REAL( ssnow%gammzz(:,1) )
              ssnow%snowd = ssnow%snowd - rnof5
           ELSEWHERE
@@ -977,7 +982,7 @@ CONTAINS
        DO k = 1, 3
 
           WHERE( ssnow%snowd > max_glacier_snowd  .AND.  ssnow%isflag > 0 )
-             sgamm = ssnow%ssdn(:,k) * Ccgsnow * ssnow%sdepth(:,k)
+             sgamm = ssnow%ssdn(:,k) * C%cgsnow * ssnow%sdepth(:,k)
              smelt1(:,k) = MIN( rnof5 * ssnow%smass(:,k) / smasstot,            &
                   0.2 * ssnow%smass(:,k) )
              ssnow%smass(:,k) = ssnow%smass(:,k) - smelt1(:,k)
@@ -1071,6 +1076,8 @@ CONTAINS
     REAL :: exp_arg
     LOGICAL :: direct2min = .FALSE.
 
+    CALL point2constants( C )
+    
     at = 0.0
     bt = 1.0
     ct = 0.0
@@ -1111,11 +1118,11 @@ CONTAINS
 
        ssnow%gammzz(:,k) = MAX( (soil%heat_cap_lower_limit(:,1)), &
             ( 1.0 - soil%ssat ) * soil%css * soil%rhosoil   &
-            + soil%ssat * ( wblfsp * Ccswat * Cdensity_liq +            &
-            ssnow%wbfice(:,k) * Ccsice * Cdensity_liq * 0.9 ) )     &
+            + soil%ssat * ( wblfsp * C%cswat * C%density_liq +            &
+            ssnow%wbfice(:,k) * C%csice * C%density_liq * 0.9 ) )     &
             * soil%zse(k)
 
-       ssnow%gammzz(:,k) = ssnow%gammzz(:,k) + Ccgsnow * ssnow%snowd
+       ssnow%gammzz(:,k) = ssnow%gammzz(:,k) + C%cgsnow * ssnow%snowd
 
        dtg = dels / ssnow%gammzz(:,k)
 
@@ -1134,8 +1141,8 @@ CONTAINS
 
           ssnow%gammzz(:,k) = MAX( REAL(soil%heat_cap_lower_limit(:,1)), &
                ( 1.0 - soil%ssat ) * soil%css * soil%rhosoil   &
-               + soil%ssat * ( wblfsp * Ccswat * Cdensity_liq +            &
-               ssnow%wbfice(:,k) * Ccsice * Cdensity_liq * 0.9 ) )     &
+               + soil%ssat * ( wblfsp * C%cswat * C%density_liq +            &
+               ssnow%wbfice(:,k) * C%csice * C%density_liq * 0.9 ) )     &
                * soil%zse(k)
 
           dtg = dels / ssnow%gammzz(:,k)
@@ -1188,7 +1195,7 @@ CONTAINS
     DO k = 1, 3
 
        WHERE( ssnow%isflag /= 0 )
-          sgamm = ssnow%ssdn(:,k) * Ccgsnow * ssnow%sdepth(:,k)
+          sgamm = ssnow%ssdn(:,k) * C%cgsnow * ssnow%sdepth(:,k)
           dtg = dels / sgamm
           at(:,k-3) = - dtg * coeff(:,k-3)
           ct(:,k-3) = - dtg * coeff(:,k-2)
@@ -1204,8 +1211,8 @@ CONTAINS
           xx = soil%css * soil%rhosoil
 
           ssnow%gammzz(:,k) = MAX( ( 1.0 - soil%ssat ) * soil%css *             &
-               soil%rhosoil + soil%ssat * ( wblfsp * Ccswat *     &
-               Cdensity_liq + ssnow%wbfice(:,k) * Ccsice * Cdensity_liq *     &
+               soil%rhosoil + soil%ssat * ( wblfsp * C%cswat *     &
+               C%density_liq + ssnow%wbfice(:,k) * C%csice * C%density_liq *     &
                0.9) , &
                (soil%heat_cap_lower_limit(:,k)) ) * soil%zse(k)
 
@@ -1219,7 +1226,7 @@ CONTAINS
     END DO
 
     WHERE( ssnow%isflag /= 0 )
-       sgamm = ssnow%ssdn(:,1) * Ccgsnow * ssnow%sdepth(:,1)
+       sgamm = ssnow%ssdn(:,1) * C%cgsnow * ssnow%sdepth(:,1)
 
        bt(:,-2) = bt(:,-2) - canopy%dgdtg * dels / sgamm
 
@@ -1259,6 +1266,8 @@ CONTAINS
     INTEGER :: k,j
 
 
+    CALL point2constants( C )
+    
     DO j=1,mp
 
        IF( ssnow%snowd(j) <= 0.0 ) THEN
@@ -1266,7 +1275,7 @@ CONTAINS
           ssnow%isflag(j) = 0
           ssnow%ssdn(j,:) = 120.0
           ssnow%ssdnn(j) = 120.0
-          ssnow%tggsn(j,:) = CTFRZ
+          ssnow%tggsn(j,:) = C%TFRZ
           ssnow%sdepth(j,1) = ssnow%snowd(j) / ssnow%ssdn(j,1)
 
           ssnow%sdepth(j,2) = 0.
@@ -1287,7 +1296,7 @@ CONTAINS
           ssnow%isflag(j) = 0
           ssnow%ssdnn(j) = MIN( 400.0, MAX( 120.0, ssnow%ssdn(j,1) ) )
 
-          ssnow%tggsn(j,:) = MIN( CTFRZ,ssnow%tgg(j,1) )
+          ssnow%tggsn(j,:) = MIN( C%TFRZ,ssnow%tgg(j,1) )
 
           ssnow%sdepth(j,1) = ssnow%snowd(j) / ssnow%ssdn(j,1)
           ssnow%sdepth(j,2) = 0.0
@@ -1311,7 +1320,7 @@ CONTAINS
 
           IF( ssnow%isflag(j) == 0 ) THEN
 
-             ssnow%tggsn(j,:) = MIN( CTFRZ, ssnow%tgg(j,1) )
+             ssnow%tggsn(j,:) = MIN( C%TFRZ, ssnow%tgg(j,1) )
 
              ssnow%ssdn(j,2) = ssnow%ssdn(j,1)
              ssnow%ssdn(j,3) = ssnow%ssdn(j,1)
@@ -1373,6 +1382,8 @@ CONTAINS
     INTEGER :: api ! active patch counter
 
 
+    CALL point2constants( C )
+    
     ! adjust levels in the snowpack due to snow accumulation/melting,
     ! snow aging etc...
     WHERE( ssnow%isflag > 0 )
@@ -1513,48 +1524,50 @@ CONTAINS
     REAL, DIMENSION(mp)           :: xx
     INTEGER k
 
+    CALL point2constants( C )
+    
     xx = 0.
     DO k = 1, ms
 
-       WHERE (ssnow%tgg(:,k) < CTFRZ &
+       WHERE (ssnow%tgg(:,k) < C%TFRZ &
             & .AND. frozen_limit * ssnow%wb(:,k) - ssnow%wbice(:,k) > .001)
 
           sicefreeze = MIN( MAX( 0.0_r_2, ( frozen_limit * ssnow%wb(:,k) -      &
                ssnow%wbice(:,k) ) ) * soil%zse(k) * 1000.0,             &
-               ( CTFRZ - ssnow%tgg(:,k) ) * ssnow%gammzz(:,k) / CHLF )
+               ( C%TFRZ - ssnow%tgg(:,k) ) * ssnow%gammzz(:,k) / C%HLF )
           ssnow%wbice(:,k) = MIN( ssnow%wbice(:,k) + sicefreeze / (soil%zse(k)  &
                * 1000.0), frozen_limit * ssnow%wb(:,k) )
           xx = soil%css * soil%rhosoil
           ssnow%gammzz(:,k) = MAX((soil%heat_cap_lower_limit(:,k)),           &
                REAL((1.0 - soil%ssat) * soil%css * soil%rhosoil ,r_2)            &
-               + (ssnow%wb(:,k) - ssnow%wbice(:,k)) * REAL(Ccswat * Cdensity_liq,r_2)   &
-               + ssnow%wbice(:,k) * REAL(Ccsice * Cdensity_liq * 0.9,r_2))* &
+               + (ssnow%wb(:,k) - ssnow%wbice(:,k)) * REAL(C%cswat * C%density_liq,r_2)   &
+               + ssnow%wbice(:,k) * REAL(C%csice * C%density_liq * 0.9,r_2))* &
                REAL( soil%zse(k),r_2 )
 
           WHERE (k == 1 .AND. ssnow%isflag == 0)
-             ssnow%gammzz(:,k) = ssnow%gammzz(:,k) + Ccgsnow * ssnow%snowd
+             ssnow%gammzz(:,k) = ssnow%gammzz(:,k) + C%cgsnow * ssnow%snowd
           END WHERE
           ssnow%tgg(:,k) = ssnow%tgg(:,k) + REAL(sicefreeze)                    &
-               * CHLF / REAL(ssnow%gammzz(:,k) )
+               * C%HLF / REAL(ssnow%gammzz(:,k) )
 
-       ELSEWHERE( ssnow%tgg(:,k) > CTFRZ .AND. ssnow%wbice(:,k) > 0. )
+       ELSEWHERE( ssnow%tgg(:,k) > C%TFRZ .AND. ssnow%wbice(:,k) > 0. )
 
           sicemelt = MIN( ssnow%wbice(:,k) * soil%zse(k) * 1000.0,              &
-               ( ssnow%tgg(:,k) - CTFRZ ) * ssnow%gammzz(:,k) / CHLF )
+               ( ssnow%tgg(:,k) - C%TFRZ ) * ssnow%gammzz(:,k) / C%HLF )
 
           ssnow%wbice(:,k) = MAX( 0.0_r_2, ssnow%wbice(:,k) - sicemelt          &
                / (soil%zse(k) * 1000.0) )
           xx = soil%css * soil%rhosoil
           ssnow%gammzz(:,k) = MAX((soil%heat_cap_lower_limit(:,k)),       &
                REAL((1.0-soil%ssat) * soil%css * soil%rhosoil,r_2)             &
-               + (ssnow%wb(:,k) - ssnow%wbice(:,k)) * REAL(Ccswat*Cdensity_liq,r_2)   &
-               + ssnow%wbice(:,k) * REAL(Ccsice * Cdensity_liq * 0.9,r_2))            &
+               + (ssnow%wb(:,k) - ssnow%wbice(:,k)) * REAL(C%cswat*C%density_liq,r_2)   &
+               + ssnow%wbice(:,k) * REAL(C%csice * C%density_liq * 0.9,r_2))            &
                * REAL(soil%zse(k),r_2)
           WHERE (k == 1 .AND. ssnow%isflag == 0)
-             ssnow%gammzz(:,k) = ssnow%gammzz(:,k) + Ccgsnow * ssnow%snowd
+             ssnow%gammzz(:,k) = ssnow%gammzz(:,k) + C%cgsnow * ssnow%snowd
           END WHERE
           ssnow%tgg(:,k) = ssnow%tgg(:,k) - REAL(sicemelt)                     &
-               * CHLF / REAL(ssnow%gammzz(:,k))
+               * C%HLF / REAL(ssnow%gammzz(:,k))
 
        END WHERE
 
@@ -1578,6 +1591,8 @@ CONTAINS
     REAL(r_2), DIMENSION(mp)      :: xx,xxd,evap_cur
     INTEGER k
 
+    CALL point2constants( C )
+    
     IF (cable_user%FWSOIL_switch.NE.'Haverd2013') THEN
        xx = 0.; xxd = 0.; diff(:,:) = 0.
        DO k = 1,ms
@@ -1587,7 +1602,7 @@ CONTAINS
 
              ! Calculate the amount (perhaps moisture/ice limited)
              ! which can be removed:
-             xx = canopy%fevc * dels / CHL * veg%froot(:,k) + diff(:,k-1)   ! kg/m2
+             xx = canopy%fevc * dels / C%HL * veg%froot(:,k) + diff(:,k-1)   ! kg/m2
              diff(:,k) = MAX( 0.0_r_2, ssnow%wb(:,k) - soil%swilt) &      ! m3/m3
                   * soil%zse(k)*1000.0
              xxd = xx - diff(:,k)
@@ -1672,6 +1687,8 @@ CONTAINS
 
     INTEGER :: j, k
 
+    CALL point2constants( C )
+    
     zsetot = SUM(soil%zse)
     totalmoist(:) = 0.0
     totalice(:) = 0.0
@@ -1761,7 +1778,7 @@ CONTAINS
 
     ENDDO
 
-    WHERE( met%tk < CTFRZ + 5.  ) Dtran=0.0
+    WHERE( met%tk < C%TFRZ + 5.  ) Dtran=0.0
 
     DO k=1, ms
        S_VG(:,k) = MIN( 1.0, MAX( 1.0E-4, REAL(ssnow%wb(:,k)) - soil%swilt )          &
@@ -1887,7 +1904,7 @@ CONTAINS
              END IF
 
              IF ((ssnow%wbice(j,k) .GT. 0.0) .OR. &
-                  (ssnow%tgg(j,k) .LT. CTFRZ) .OR. &
+                  (ssnow%tgg(j,k) .LT. C%TFRZ) .OR. &
                   (ssnow%isflag(j) .NE. 0) .OR.     &
                   (ssnow%snowd(j) .GE. 0.1) )   THEN
 
@@ -1977,6 +1994,8 @@ CONTAINS
 
     INTEGER             :: k,i
 
+    CALL point2constants( C )
+
     CALL snowcheck (dels, ssnow, soil, met )
 
     CALL snowdensity (dels, ssnow, soil)
@@ -2039,6 +2058,8 @@ CONTAINS
 
     LOGICAL :: direct2min = .FALSE.
 
+    CALL point2constants( C )
+    
     at = 0.0
     bt = 1.0
     ct = 0.0
@@ -2081,11 +2102,11 @@ CONTAINS
        ssnow%gammzz(:,k) = MAX((soil%heat_cap_lower_limit(:,k)), &
             ( 1.0 - soil%ssat_vec(:,k) ) * &
             soil%css_vec(:,k) * soil%rhosoil_vec(:,k)   &
-            + soil%ssat_vec(:,k) * ( wblfsp * Ccs_rho_wat +            &
-            ssnow%wbfice(:,k) * Ccs_rho_ice ) )     &
+            + soil%ssat_vec(:,k) * ( wblfsp * C%cs_rho_wat +            &
+            ssnow%wbfice(:,k) * C%cs_rho_ice ) )     &
             * soil%zse_vec(:,k)
 
-       ssnow%gammzz(:,k) = ssnow%gammzz(:,k) + Ccgsnow * ssnow%snowd
+       ssnow%gammzz(:,k) = ssnow%gammzz(:,k) + C%cgsnow * ssnow%snowd
 
        dtg = dels / ssnow%gammzz(:,k)
 
@@ -2104,8 +2125,8 @@ CONTAINS
           ssnow%gammzz(:,k) = MAX((soil%heat_cap_lower_limit(:,k)), &
                ( 1.0 - soil%ssat_vec(:,k) ) * &
                soil%css_vec(:,k) * soil%rhosoil_vec(:,k)   &
-               + soil%ssat_vec(:,k) * ( wblfsp * Ccs_rho_wat +            &
-               ssnow%wbfice(:,k) * Ccs_rho_ice ) )     &
+               + soil%ssat_vec(:,k) * ( wblfsp * C%cs_rho_wat +            &
+               ssnow%wbfice(:,k) * C%cs_rho_ice ) )     &
                * soil%zse_vec(:,k)
 
           dtg = dels / ssnow%gammzz(:,k)
@@ -2158,7 +2179,7 @@ CONTAINS
     DO k = 1, 3
 
        WHERE( ssnow%isflag /= 0 )
-          sgamm = ssnow%ssdn(:,k) * Ccgsnow * ssnow%sdepth(:,k)
+          sgamm = ssnow%ssdn(:,k) * C%cgsnow * ssnow%sdepth(:,k)
           dtg = dels / sgamm
           at(:,k-3) = - dtg * coeff(:,k-3)
           ct(:,k-3) = - dtg * coeff(:,k-2)
@@ -2174,8 +2195,8 @@ CONTAINS
 
           ssnow%gammzz(:,k) = MAX((soil%heat_cap_lower_limit(:,k)),&
                ( 1.0 - soil%ssat_vec(:,k) ) * soil%css_vec(:,k) *             &
-               soil%rhosoil_vec(:,k) + soil%ssat_vec(:,k) * ( wblfsp * Ccs_rho_wat +&
-               ssnow%wbfice(:,k) * Ccs_rho_ice)) * &
+               soil%rhosoil_vec(:,k) + soil%ssat_vec(:,k) * ( wblfsp * C%cs_rho_wat +&
+               ssnow%wbfice(:,k) * C%cs_rho_ice)) * &
                soil%zse_vec(:,k)
 
           dtg = dels / ssnow%gammzz(:,k)
@@ -2188,7 +2209,7 @@ CONTAINS
     END DO
 
     WHERE( ssnow%isflag /= 0 )
-       sgamm = ssnow%ssdn(:,1) * Ccgsnow * ssnow%sdepth(:,1)
+       sgamm = ssnow%ssdn(:,1) * C%cgsnow * ssnow%sdepth(:,1)
 
        bt(:,-2) = bt(:,-2) - canopy%dgdtg * dels / sgamm
 
