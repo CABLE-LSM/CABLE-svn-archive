@@ -7,7 +7,7 @@ MODULE cbl_snow_albedo_module
 
 CONTAINS
 
-SUBROUTINE surface_albedosn( AlbSnow, AlbSoil, mp, jls_radiation, surface_type, &
+SUBROUTINE surface_albedosn( AlbSnow, AlbSoil, mp, jls_radiation, surface_type, soil_type, &
                             SnowDepth, SnowODepth, SnowFlag_3L, SnowDensity, &
                             SoilTemp, SnowTemp, SnowAge, & 
                             metTk, coszen )
@@ -32,6 +32,7 @@ REAL :: SnowTemp(mp)
 REAL :: SnowAge(mp)
 integer:: SnowFlag_3L(mp)
 integer:: surface_type(mp) 
+integer:: soil_type(mp)          !Integer index of Soil    type (soil%isoilm)
 
    REAL, DIMENSION(mp) ::                                                      &
       alv,     &  ! Snow albedo for visible
@@ -55,8 +56,6 @@ integer:: surface_type(mp)
 
 ! local vars    
 REAL :: SoilAlbsoilf(mp) 
-
-!where (surface_type== 17)  soil%isoilm = 9
 
    SoilAlbsoilF = Albsoil(:,1)
 
@@ -93,14 +92,13 @@ REAL :: SoilAlbsoilf(mp)
 
       ! Snow age depends on snow crystal growth, freezing of melt water,
       ! accumulation of dirt and amount of new snow.
-       tmp = SnowFlag_3L * SnowTemp + ( 1 - SnowFlag_3L )            &
-            * SoilTemp
+      tmp = SnowFlag_3L * SnowTemp + ( 1 - SnowFlag_3L ) * SoilTemp
       tmp = MIN( tmp, CTFRZ )
       ar1 = 5000. * (1. / (CTFRZ-0.01) - 1. / tmp) ! crystal growth  (-ve)
       ar2 = 10. * ar1 ! freezing of melt water
        snr = SnowDepth / MAX (SnowDensity, 200.)
 
-       WHERE ( surface_type == 17 )
+       WHERE ( soil_type == 9 )
          ! permanent ice: hard-wired number to be removed in future version
          ar3 = .0000001
          !  NB. dsnow =1,assumes pristine snow; ignores soot etc. ALTERNATIVELY,
@@ -136,7 +134,7 @@ REAL :: SoilAlbsoilf(mp)
       tmp = aliro * (1. - .5 * fage)
 
       ! use dry snow albedo for pernament land ice: hard-wired no to be removed
-      WHERE (surface_type == 17)
+      WHERE (soil_type == 9)
 
          tmp = 0.95 * (1.0 - 0.2 * fage)
          alv = .4 * fzenm * (1. - tmp) + tmp
@@ -155,7 +153,7 @@ REAL :: SoilAlbsoilf(mp)
 
        snr = SnowDepth / MAX (SnowDensity, 200.)
 
-    WHERE (surface_type == 17 )
+    WHERE (soil_type== 9 )
        ! permanent ice: hard-wired number to be removed
        snrat = 1.
     ELSEWHERE
@@ -172,7 +170,7 @@ REAL :: SoilAlbsoilf(mp)
     tmp = aliro * (1. - .5 * fage)
 
     ! use dry snow albedo
-    WHERE (surface_type == 17)
+    WHERE (soil_type == 9)
        ! permanent ice: hard-wired number to be removed
 
        tmp = 0.95 * (1.0 - 0.2 * fage)
@@ -198,7 +196,7 @@ ENDWHERE        ! snowd > 0
     AlbSnow(:,1) = MIN( alvo,                                           &
          ( 1. - snrat ) * AlbSnow(:,1) + snrat * alv )
 
-   WHERE (surface_type == 17) ! use dry snow albedo: 1=vis, 2=nir
+   WHERE (soil_type == 9) ! use dry snow albedo: 1=vis, 2=nir
        AlbSnow(:,1) = alvo - 0.05 ! al*o = albedo appropriate for new snow
        AlbSnow(:,2) = aliro - 0.05 ! => here al*o LESS arbitrary aging 0.05
    END WHERE

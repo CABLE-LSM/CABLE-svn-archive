@@ -146,7 +146,7 @@ call fsunlit_veg_mask( sunlit_veg_mask, mp )
                .FALSE.,                                                      &
                veg_mask, sunlit_mask, sunlit_veg_mask,                       &  
                Ccoszen_tols, CGAUSS_W,                                       & 
-               veg%iveg, veg%refl, veg%taul,                                 & 
+             veg%iveg, soil%isoilm, veg%refl, veg%taul,                                 & 
                !surface_type, VegRefl, VegTaul,
                met%tk, met%coszen, canopy%vlaiw,                             &
                !metTk, coszen, reducedLAIdue2snow,
@@ -179,7 +179,7 @@ call fsunlit_veg_mask( sunlit_veg_mask, mp )
                .FALSE.,                                                      &
                veg_mask, sunlit_mask, sunlit_veg_mask,                       &  
                Ccoszen_tols, CGAUSS_W,                                       & 
-               veg%iveg, veg%refl, veg%taul,                                 & 
+             veg%iveg, soil%isoilm, veg%refl, veg%taul,                                 & 
                !surface_type, VegRefl, VegTaul,
                met%tk, met%coszen, canopy%vlaiw,                             &
                !metTk, coszen, reducedLAIdue2snow,

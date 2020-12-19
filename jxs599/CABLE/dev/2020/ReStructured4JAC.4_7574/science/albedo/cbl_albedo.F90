@@ -13,7 +13,7 @@ mp, nrb,                                          &
 jls_radiation ,                                   &
 veg_mask, sunlit_mask, sunlit_veg_mask,           &  
 Ccoszen_tols, CGAUSS_W,                           & 
-surface_type, VegRefl, VegTaul,                   &
+surface_type, soil_type, VegRefl, VegTaul,                   &
 metTk, coszen,                                    & 
 reducedLAIdue2snow,                               &
 SnowDepth, SnowODepth, SnowFlag_3L,               & 
@@ -71,6 +71,7 @@ real :: isunlit_veg_mask(mp)      ! this "mp" is BOTH sunlit AND  vegetated
 REAL :: VegTaul(mp,nrb)             !PARAMETER leaf transmisivity (veg%taul)
 REAL :: VegRefl(mp,nrb)             !PARAMETER leaf reflectivity (veg%refl)
 integer:: surface_type(mp)          !Integer index of Surface type (veg%iveg)
+integer:: soil_type(mp)          !Integer index of Soil    type (soil%isoilm)
 
 real :: reducedLAIdue2snow(mp)      !Reduced LAI given snow coverage
 
@@ -143,7 +144,7 @@ rad%rhocbm  = 0.0
 AlbSnow(:,:) = 0.0
 
 !Modify parametrised soil albedo based on snow coverage 
-call surface_albedosn( ssnow%AlbSoilsn, soil%AlbSoil, mp, .FALSE., veg%iveg, &
+call surface_albedosn( ssnow%AlbSoilsn, soil%AlbSoil, mp, .FALSE., veg%iveg, soil_type, &
                        ssnow%snowd, ssnow%osnowd, ssnow%isflag,                      & 
                        ssnow%ssdnn, ssnow%tgg(:,1), ssnow%tggsn(:,1), ssnow%snage,                     & 
                        met%Tk, met%coszen )
