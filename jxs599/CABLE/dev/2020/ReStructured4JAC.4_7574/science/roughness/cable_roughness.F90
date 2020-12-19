@@ -46,10 +46,8 @@ USE cable_other_constants_mod, ONLY : CLAI_THRESH => LAI_THRESH
 CONTAINS
 
 
-!SUBROUTINE ruff_resist(veg, rough, ssnow, canopy, LAI_pft, HGT_pft, reducedLAIdue2snow )
-SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
+SUBROUTINE ruff_resist(veg, rough, ssnow, canopy, LAI_pft, HGT_pft, reducedLAIdue2snow )
 
-    ! m.r. raupach, 24-oct-92
     ! see: Raupach, 1992, BLM 60 375-395
     !      MRR notes "Simplified wind model for canopy", 23-oct-92
     !      MRR draft paper "Simplified expressions...", dec-92
@@ -84,14 +82,16 @@ real :: HGT_pft(mp)
          xx,      & ! =CCCD*LAI; working variable
          dh         ! d/h where d is zero-plane displacement
 
+ 
 ! Set canopy height above snow level:
 call HgtAboveSnow( HeightAboveSnow, mp, z0soilsn_min, veg%hc, ssnow%snowd, &
                    ssnow%ssdnn )
 rough%hruff =  HeightAboveSnow
 
+! LAI decreases due to snow: formerly canopy%vlaiw
+call LAI_eff( mp, veg%vlai, veg%hc, HeightAboveSnow, &
+                reducedLAIdue2snow)
 
-    ! LAI decreases due to snow:
-    canopy%vlaiw = veg%vlai * rough%hruff / MAX( 0.01, veg%hc )
     canopy%rghlai = canopy%vlaiw
 
     IF (cable_user%soil_struc=='default') THEN
@@ -235,7 +235,7 @@ rough%hruff =  HeightAboveSnow
 
 
 
-  END SUBROUTINE ruff_resist
+END SUBROUTINE ruff_resist
 
 
 END MODULE cable_roughness_module

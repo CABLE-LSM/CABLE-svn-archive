@@ -1325,7 +1325,8 @@ CONTAINS
   !*******************************************************************************
   SUBROUTINE WRITE_LUC_OUTPUT_NC ( POPLUC, ctime, FINAL )
 
-    USE CABLE_COMMON_MODULE, ONLY:  filename, cable_user, HANDLE_ERR
+    USE CABLE_COMMON_MODULE, ONLY:  filename, cable_user
+     USE casa_ncdf_module, ONLY: HANDLE_ERR
     USE netcdf
 
     IMPLICIT NONE
@@ -1649,7 +1650,8 @@ CONTAINS
   !************************************************************************************************************************************
   SUBROUTINE WRITE_LUC_RESTART_NC ( POPLUC, ctime )
 
-    USE CABLE_COMMON_MODULE, ONLY:  filename, cable_user, HANDLE_ERR
+    USE CABLE_COMMON_MODULE, ONLY:  filename, cable_user
+     USE casa_ncdf_module, ONLY: HANDLE_ERR
     USE netcdf
 
     IMPLICIT NONE
@@ -1788,7 +1790,8 @@ CONTAINS
   END SUBROUTINE WRITE_LUC_RESTART_NC
   !*******************************************************************************
   SUBROUTINE READ_LUC_RESTART_NC (POPLUC)
-    USE CABLE_COMMON_MODULE, ONLY:  filename, cable_user, HANDLE_ERR
+    USE CABLE_COMMON_MODULE, ONLY:  filename, cable_user
+     USE casa_ncdf_module, ONLY: HANDLE_ERR
     USE netcdf
     IMPLICIT NONE
     TYPE(POPLUC_TYPE), INTENT(INOUT) :: POPLUC
@@ -1905,7 +1908,8 @@ CONTAINS
   SUBROUTINE WRITE_LUC_OUTPUT_GRID_NC ( POPLUC, ctime, FINAL )
 
     USE cable_IO_vars_module, ONLY: mask, xdimsize, ydimsize , lat_all, lon_all
-    USE CABLE_COMMON_MODULE, ONLY:  filename, cable_user, HANDLE_ERR
+    USE CABLE_COMMON_MODULE, ONLY:  filename, cable_user
+     USE casa_ncdf_module, ONLY: HANDLE_ERR
     USE netcdf
 
     IMPLICIT NONE
