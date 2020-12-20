@@ -83,8 +83,8 @@ real :: Ccapp
     call_number = call_number + 1
 
     ! Define vegetation mask:
-    sunlit_veg_mask = canopy%vlaiw > CLAI_THRESH .AND.                                    &
-         ( met%fsd(:,1)+met%fsd(:,2) ) > CRAD_THRESH
+    !sunlit_veg_mask = canopy%vlaiw > CLAI_THRESH .AND.                                    &
+    !     ( met%fsd(:,1)+met%fsd(:,2) ) > CRAD_THRESH
 
     ! Relative leaf nitrogen concentration within canopy:
     cf2n = EXP(-veg%extkn * canopy%vlaiw)

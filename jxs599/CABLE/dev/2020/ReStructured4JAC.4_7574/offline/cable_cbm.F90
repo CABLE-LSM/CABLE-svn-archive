@@ -104,7 +104,6 @@ REAL :: c1(mp,nrb)
 REAL :: rhoch(mp,nrb)
 REAL :: xk(mp,nrb)
 
-
 #ifdef NO_CASA_YET
     INTEGER :: ICYCLE
     ICYCLE = 0
@@ -112,12 +111,8 @@ REAL :: xk(mp,nrb)
 
     cable_user%soil_struc="default"
 
-!veg_mask =  canopy%vlaiw > .001
-call fveg_mask( veg_mask, mp, Clai_thresh, canopy%vlaiw )
-!call fsunlit_mask( sunlit_mask, mp, Ccoszen_tols, met%coszen )
-call fsunlit_mask( sunlit_mask, mp, Ccoszen_tols,( met%fsd(:,1)+met%fsd(:,2) ) )
-call fsunlit_veg_mask( sunlit_veg_mask, mp )
-
+    !calculates roughness for cable - calcs of effective LAI are called in subr
+    !however JAC calls independently. caan be done here as well
     IF( cable_runtime%um ) THEN
 
        cable_runtime%um_radiation = .FALSE.
@@ -133,6 +128,13 @@ call fsunlit_veg_mask( sunlit_veg_mask, mp )
     ELSE
        CALL ruff_resist(veg, rough, ssnow, canopy,veg%vlai, veg%hc, canopy%vlaiw )
     ENDIF
+
+CALL define_air (met, air)
+
+call fveg_mask( veg_mask, mp, Clai_thresh, canopy%vlaiw )
+!call fsunlit_mask( sunlit_mask, mp, Ccoszen_tols, met%coszen )
+call fsunlit_mask( sunlit_mask, mp, Ccoszen_tols,( met%fsd(:,1)+met%fsd(:,2) ) )
+call fsunlit_veg_mask( sunlit_veg_mask, mp )
 
     CALL init_radiation(met,rad,veg, canopy) ! need to be called at every dt
 
