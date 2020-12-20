@@ -92,6 +92,7 @@ rough%hruff =  HeightAboveSnow
 call LAI_eff( mp, veg%vlai, veg%hc, HeightAboveSnow, &
                 reducedLAIdue2snow)
 
+    canopy%vlaiw  = reducedLAIdue2snow
     canopy%rghlai = canopy%vlaiw
 
     IF (cable_user%soil_struc=='default') THEN
