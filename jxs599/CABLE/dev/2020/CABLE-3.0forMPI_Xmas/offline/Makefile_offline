@@ -32,6 +32,10 @@
 
 # these are all the files we are compiling
 LSRC = cable_pft_params.F90 cable_soil_params.F90 casa_dimension.F90 \
+	cable_math_constants_mod.F90 \
+	cable_phys_constants_mod.F90 \
+	cable_other_constants_mod.F90 \
+	cable_photo_constants_mod.F90 \
 	casa_phenology.F90 casa_param.F90 \
 	cable_data.F90 cable_common.F90 cable_define_types.F90 cable_iovars.F90 \
 	cable_abort.F90 casa_variable.F90 cable_parameters.F90                    \
@@ -77,6 +81,11 @@ $(PROG) : cable_driver.o
 # dependencies
 cable_pft_params.o: cable_pft_params.F90
 cable_soil_params.o: cable_soil_params.F90
+cable_math_constants_mod.o: cable_math_constants_mod.F90
+cable_phys_constants_mod.o: cable_phys_constants_mod.F90
+cable_other_constants_mod.o: cable_other_constants_mod.F90
+cable_photo_constants_mod.o: cable_photo_constants_mod.F90
+
 cable_abort.o: cable_abort.F90 cable_iovars.o cable_define_types.o
 casa_dimension.o: casa_dimension.F90
 casa_phenology.o: casa_phenology.F90
@@ -94,7 +103,8 @@ cable_air.o: cable_air.F90 cable_define_types.o cable_common.o cable_data.o
 
 cable_albedo.o: cable_albedo.F90 cable_define_types.o cable_common.o cable_data.o
 
-cable_canopy.o: cable_canopy.F90 cable_define_types.o cable_radiation.o cable_roughness.o cable_air.o cable_common.o cable_data.o cable_sli_utils.o cable_sli_main.o cable_gw_hydro.o cable_iovars.o cable_psm.o cable_gw_hydro.o
+#cable_canopy.o: cable_canopy.F90 cable_math_constants_mod.o cable_phys_constants_mod.o cable_other_constants_mod.o cable_photo_constants_mod.o cable_define_types.o cbl_radiation.o cable_roughness.o cable_air.o cable_common.o cable_sli_utils.o cable_sli_main.o cable_gw_hydro.o cable_iovars.o cable_psm.o cable_gw_hydro.o cable_phys_constants_mod.o
+cable_canopy.o: cable_canopy.F90 cable_math_constants_mod.o cable_phys_constants_mod.o cable_other_constants_mod.o cable_photo_constants_mod.o cable_define_types.o cable_radiation.o cable_roughness.o cable_air.o cable_common.o cable_data.o cable_sli_utils.o cable_sli_main.o cable_gw_hydro.o cable_iovars.o cable_psm.o cable_gw_hydro.o
 
 cable_carbon.o: cable_carbon.F90 cable_define_types.o cable_common.o cable_data.o
 
