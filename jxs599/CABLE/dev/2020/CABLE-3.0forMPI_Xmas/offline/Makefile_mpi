@@ -75,35 +75,6 @@ all : $(PROG)
 $(PROG) : cable_mpidrv.o 
 	$(FC) $(LDFLAGS) -o $@ $(OBJS) $(LD) 
 
-
-# dependencies
-cable_pft_params.o: cable_pft_params.F90
-cable_soil_params.o: cable_soil_params.F90
-cable_abort.o: cable_abort.F90 cable_iovars.o cable_define_types.o
-casa_dimension.o: casa_dimension.F90
-casa_phenology.o: casa_phenology.F90 
-casa_param.o: casa_param.F90
-cable_data.o: cable_data.F90 
-cable_fFile.o: cable_fFile.F90
-cable_fprint.o: cable_fprint.F90 cable_common.o
-cable_PyFprint.o: cable_PyFprint.F90
- 
-cable_abort.o: cable_abort.F90 cable_iovars.o cable_define_types.o
-
-cable_diag.o: cable_diag.F90 cable_common.o cable_fFile.o
- 
-cable_air.o: cable_air.F90 cable_define_types.o cable_common.o cable_data.o
-
-cable_albedo.o: cable_albedo.F90 cable_define_types.o cable_common.o cable_data.o
-
-cable_canopy.o: cable_canopy.F90 cable_define_types.o cable_radiation.o cable_roughness.o cable_air.o cable_common.o cable_data.o cable_sli_utils.o cable_sli_main.o cable_gw_hydro.o cable_iovars.o cable_psm.o cable_gw_hydro.o
-
-cable_carbon.o: cable_carbon.F90 cable_define_types.o cable_common.o cable_data.o
-
-cable_cbm.o: cable_cbm.F90 cable_carbon.o cbl_soilsnow_main.o cable_canopy.o cable_define_types.o cable_roughness.o cable_radiation.o cable_albedo.o casa_variable.o cable_common.o cable_data.o cable_gw_hydro.o cable_psm.o
-
-cable_checks.o: cable_checks.F90 cable_radiation.o cable_common.o cable_data.o
-
 cable_mpicommon.o: cable_mpicommon.F90  cable_iovars.o cable_define_types.o
 
 cable_mpimaster.o: cable_mpimaster.F90 cable_mpicommon.o cable_output.o \
