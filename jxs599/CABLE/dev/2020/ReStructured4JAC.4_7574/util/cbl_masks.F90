@@ -49,11 +49,13 @@ End subroutine fsunlit_mask
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-subroutine fsunlit_veg_mask( sunlit_veg_mask, mp )
+subroutine fsunlit_veg_mask( sunlit_veg_mask, mp, veg_mask, sunlit_mask)
 
 implicit none
 LOGICAL, allocatable :: sunlit_veg_mask(:)
 integer ::  mp
+LOGICAL :: veg_mask(mp)
+LOGICAL :: sunlit_mask(mp)
 
   IF ( .NOT. ALLOCATED(sunlit_veg_mask)) ALLOCATE( sunlit_veg_mask(mp) )
 

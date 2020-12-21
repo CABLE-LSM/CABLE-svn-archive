@@ -74,17 +74,11 @@ real :: Ccapp
          flwv, &     ! vegetation long-wave radiation (isothermal)
          dummy, dummy2
 
-    !LOGICAL, DIMENSION(mp)    :: sunlit_veg_mask   ! select points for calculation
-
     INTEGER :: b ! rad. band 1=visible, 2=near-infrared, 3=long-wave
 
     INTEGER, SAVE :: call_number =0
 
     call_number = call_number + 1
-
-    ! Define vegetation mask:
-    sunlit_veg_mask = canopy%vlaiw > CLAI_THRESH .AND.                                    &
-         ( met%fsd(:,1)+met%fsd(:,2) ) > CRAD_THRESH
 
     ! Relative leaf nitrogen concentration within canopy:
     cf2n = EXP(-veg%extkn * canopy%vlaiw)
