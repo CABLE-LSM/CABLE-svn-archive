@@ -111,27 +111,13 @@ REAL :: xk(mp,nrb)
 
     cable_user%soil_struc="default"
 
-!veg_mask =  canopy%vlaiw > .001
+CALL ruff_resist(veg, rough, ssnow, canopy,veg%vlai, veg%hc, canopy%vlaiw )
+
 call fveg_mask( veg_mask, mp, Clai_thresh, canopy%vlaiw )
 !call fsunlit_mask( sunlit_mask, mp, Ccoszen_tols, met%coszen )
 call fsunlit_mask( sunlit_mask, mp, .001, ( met%fsd(:,1)+met%fsd(:,2) ) )
 call fsunlit_veg_mask( sunlit_veg_mask, mp )
 
-    !IF( cable_runtime%um ) THEN
-
-    !   cable_runtime%um_radiation = .FALSE.
-
-    !   IF( cable_runtime%um_explicit ) THEN
-    !      CALL ruff_resist(veg, rough, ssnow, canopy,veg%vlai, veg%hc, canopy%vlaiw )
-    !   ENDIF
-    !   ! Height adjustment not used in ACCESS CM2. See CABLE ticket 197
-    !   ! met%tk = met%tk + Cgrav/Ccapp*(rough%zref_tq + 0.9*rough%z0m)
-
-    !   CALL define_air (met, air)
-
-    !ELSE
-       CALL ruff_resist(veg, rough, ssnow, canopy,veg%vlai, veg%hc, canopy%vlaiw )
-    !ENDIF
 
     CALL init_radiation(met,rad,veg, canopy) ! need to be called at every dt
 
