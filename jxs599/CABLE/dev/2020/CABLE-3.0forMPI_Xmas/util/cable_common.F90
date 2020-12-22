@@ -272,24 +272,24 @@ MODULE cable_common_module
 CONTAINS
 
   !--- LN ------------------------------------------[
-  SUBROUTINE HANDLE_ERR( status, msg )
-    ! LN 06/2013
-    USE netcdf
-    INTEGER :: status
-    CHARACTER(LEN=*), INTENT(IN),OPTIONAL :: msg
-    IF(status /= NF90_noerr) THEN
-       WRITE(*,*)"netCDF error:"
-       IF ( PRESENT( msg ) ) WRITE(*,*)msg
-       !#define Vanessas_common
-       !#ifdef Vanessas_common
-       WRITE(*,*) TRIM(NF90_strerror(INT(status,4)))
-       !#else
-       !       WRITE(*,*) "UM builds with -i8. Therefore call to nf90_strerror is ", &
-       !       " invalid. Quick fix to eliminate for now. Build NF90 with -i8, force -i4?"
-       !#endif
-       STOP -1
-    END IF
-  END SUBROUTINE HANDLE_ERR
+!  SUBROUTINE HANDLE_ERR( status, msg )
+!    ! LN 06/2013
+!    USE netcdf
+!    INTEGER :: status
+!    CHARACTER(LEN=*), INTENT(IN),OPTIONAL :: msg
+!    IF(status /= NF90_noerr) THEN
+!       WRITE(*,*)"netCDF error:"
+!       IF ( PRESENT( msg ) ) WRITE(*,*)msg
+!       !#define Vanessas_common
+!       !#ifdef Vanessas_common
+!       WRITE(*,*) TRIM(NF90_strerror(INT(status,4)))
+!       !#else
+!       !       WRITE(*,*) "UM builds with -i8. Therefore call to nf90_strerror is ", &
+!       !       " invalid. Quick fix to eliminate for now. Build NF90 with -i8, force -i4?"
+!       !#endif
+!       STOP -1
+!    END IF
+!  END SUBROUTINE HANDLE_ERR
 
   SUBROUTINE GET_UNIT (IUNIT)
 

@@ -5,7 +5,8 @@ SUBROUTINE CASAONLY_LUC( dels,kstart,kend,veg,soil,casabiome,casapool, &
 
   USE cable_def_types_mod
   USE cable_carbon_module
-  USE cable_common_module, ONLY: CABLE_USER, is_casa_time
+  USE casa_ncdf_module, ONLY: is_casa_time
+  USE cable_common_module, ONLY: CABLE_USER 
   USE cable_IO_vars_module, ONLY: logn, landpt, patch
   USE casadimension
   USE casaparm
