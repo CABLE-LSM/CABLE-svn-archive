@@ -97,7 +97,7 @@ CONTAINS
        cable_runtime%um_radiation = .FALSE.
 
        IF( cable_runtime%um_explicit ) THEN
-          CALL ruff_resist(veg, rough, ssnow, canopy)
+          CALL ruff_resist(veg, rough, ssnow, canopy,veg%vlai, veg%hc, canopy%vlaiw )
        ENDIF
        ! Height adjustment not used in ACCESS CM2. See CABLE ticket 197
        ! met%tk = met%tk + C%grav/C%capp*(rough%zref_tq + 0.9*rough%z0m)
@@ -105,7 +105,7 @@ CONTAINS
        CALL define_air (met, air)
 
     ELSE
-       CALL ruff_resist(veg, rough, ssnow, canopy)
+       CALL ruff_resist(veg, rough, ssnow, canopy,veg%vlai, veg%hc, canopy%vlaiw )
     ENDIF
 
     CALL init_radiation(met,rad,veg, canopy) ! need to be called at every dt

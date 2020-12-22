@@ -33,6 +33,7 @@
 # these are all the files we are compiling
 LSRC = cable_pft_params.F90 cable_soil_params.F90 casa_dimension.F90 \
 	cable_runtime_opts_mod.F90 cable_math_constants_mod.F90 \
+	cbl_masks.F90              \
 	cable_phys_constants_mod.F90 \
 	cable_other_constants_mod.F90 \
 	cable_photo_constants_mod.F90 \
@@ -98,6 +99,7 @@ cable_other_constants_mod.o: cable_other_constants_mod.F90
 cable_photo_constants_mod.o: cable_photo_constants_mod.F90
 casa_ncdf.o: casa_ncdf.F90 cable_define_types.o 
 cable_runtime_opts_mod.o: cable_runtime_opts_mod.F90
+cbl_masks.o: cbl_masks.F90
 
 
 casa_cable.o: casa_cable.F90 casa_ncdf.o POP.o cable_define_types.o  cable_carbon.o casa_variable.o \
@@ -133,7 +135,7 @@ cable_canopy.o: cable_canopy.F90 cable_math_constants_mod.o cable_phys_constants
 
 cable_carbon.o: cable_carbon.F90 cable_phys_constants_mod.o cable_define_types.o cable_common.o
 
-cable_cbm.o: cable_cbm.F90 cable_carbon.o cbl_soilsnow_main.o cable_canopy.o cable_define_types.o cable_roughness.o cbl_init_radiation.o cbl_albedo.o casa_variable.o cable_common.o cable_data.o cable_gw_hydro.o cable_psm.o
+cable_cbm.o: cable_cbm.F90 cable_carbon.o cbl_soilsnow_main.o cable_canopy.o cable_define_types.o cable_roughness.o cbl_init_radiation.o cbl_albedo.o casa_variable.o cable_common.o cable_data.o cable_gw_hydro.o cable_psm.o cbl_masks.o
 
 cable_checks.o: cable_checks.F90 cbl_radiation.o cable_common.o cable_data.o cbl_sinbet.o
 

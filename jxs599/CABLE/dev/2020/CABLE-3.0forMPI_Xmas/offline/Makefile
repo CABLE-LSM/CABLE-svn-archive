@@ -103,7 +103,7 @@ cable_data.o: cable_data.F90
 casa_dimension.o: casa_dimension.F90
 
 #tech files including IO manipulation
-casa_ncdf.o: casa_ncdf.F90 cable_define_types.o 
+casa_ncdf.o: casa_ncdf.F90 cable_define_types.o cable_common.o
 cable_abort.o: cable_abort.F90 cable_iovars.o cable_define_types.o
 
 #tech file diag - exclude from official relllease but part of CABLE for now
