@@ -82,6 +82,7 @@ real :: HGT_pft(mp)
          xx,      & ! =CCCD*LAI; working variable
          dh         ! d/h where d is zero-plane displacement
 
+ 
 ! Set canopy height above snow level:
 call HgtAboveSnow( HeightAboveSnow, mp, z0soilsn_min, veg%hc, ssnow%snowd, &
                    ssnow%ssdnn )
@@ -91,7 +92,6 @@ rough%hruff =  HeightAboveSnow
 call LAI_eff( mp, veg%vlai, veg%hc, HeightAboveSnow, &
                 reducedLAIdue2snow)
 
-    canopy%vlaiw = reducedLAIdue2snow
     canopy%rghlai = canopy%vlaiw
 
     IF (cable_user%soil_struc=='default') THEN
