@@ -31,7 +31,40 @@
 ##########################################################################
 
 # these are all the files we are compiling
-LSRC =  cable_mpiworker.F90 cable_mpimaster.F90 cable_mpicommon.F90 cable_mpidrv.F90 pop_mpi.F90 cable_math_constants_mod.o cable_phys_constants_mod.o cable_other_constants_mod.o cable_photo_constants_mod.F90 cable_runtime_opts_mod.o cable_pft_params.o cable_soil_params.o casa_ncdf.o cbl_hgtAbove_snow.o cbl_lai_eff.o cable_iovars.o cable_abort.o cable_parameters.o cable_cbm.o cable_read.o cable_initialise.o cable_input.o cable_write.o cable_output.o cable_checks.o cable_define_types.o cable_common.o cbl_soilsnow_main.o cbl_soilsnow_subrs.o cbl_soilsnow_init_special.o cable_albedo.o cable_radiation.o cable_air.o cable_roughness.o cable_carbon.o cable_canopy.o cable_sli_main.o cable_sli_numbers.o cable_sli_roots.o cable_sli_solve.o cable_sli_utils.o POP.o pop_io.o cable_plume_mip.o cable_weathergenerator.o cable_climate.o cable_phenology.o cable_cru_TRENDY.o POPLUC.o cable_LUC_EXPT.o cable_gw_hydro.o cable_psm.o cable_namelist_input.o cable_site.o casa_variable.o CASAONLY_LUC.o casa_param.o casa_dimension.o casa_phenology.o casa_cnp.o casa_cable.o casa_inout.o cable_data.o cable_diag.o 
+LSRC =  cable_mpiworker.F90 cable_mpimaster.F90 cable_mpicommon.F90 cable_mpidrv.F90 pop_mpi.F90 \
+cable_math_constants_mod.o cable_phys_constants_mod.o cable_other_constants_mod.o cable_photo_constants_mod.F90 \
+cable_runtime_opts_mod.o \
+cable_pft_params.o cable_soil_params.o \
+casa_ncdf.o \
+cbl_hgtAbove_snow.o cbl_lai_eff.o \
+cable_iovars.o cable_abort.o cable_parameters.o \
+cable_cbm.o \
+cable_read.o cable_initialise.o cable_input.o cable_write.o cable_output.o cable_checks.o cable_define_types.o cable_common.o \
+cbl_soilsnow_main.o cbl_soilsnow_subrs.o cbl_soilsnow_init_special.o \
+cbl_albedo.o cbl_snow_albedo.o cbl_soilColour_albedo.o \
+cbl_rhoch.o cbl_spitter.o cbl_sinbet.o cbl_radiation.o cbl_init_radiation.o \
+cable_air.o \
+cable_roughness.o \
+cable_carbon.o \
+cable_canopy.o \
+cable_sli_main.o cable_sli_numbers.o cable_sli_roots.o cable_sli_solve.o cable_sli_utils.o \
+POP.o pop_io.o \
+cable_plume_mip.o cable_weathergenerator.o cable_climate.o \
+cable_phenology.o \
+cable_cru_TRENDY.o \
+POPLUC.o cable_LUC_EXPT.o \
+cable_gw_hydro.o cable_psm.o \
+cable_namelist_input.o \
+cable_site.o \
+casa_variable.o \
+CASAONLY_LUC.o \
+casa_param.o \
+casa_dimension.o \
+casa_phenology.o \
+casa_cnp.o \
+casa_cable.o casa_inout.o \
+cable_data.o \
+cable_diag.o 
 
 # this is the executable we are building
 PROG = cable-mpi
