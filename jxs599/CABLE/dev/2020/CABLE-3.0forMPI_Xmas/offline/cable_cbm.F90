@@ -65,15 +65,15 @@ USE cable_phys_constants_mod, ONLY : CEMSOIL => EMSOIL
 USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
 
 USE cable_other_constants_mod, ONLY : CLAI_THRESH => lai_thresh
+USE cable_other_constants_mod,  ONLY : Crad_thresh => rad_thresh
 USE cable_other_constants_mod,  ONLY : Ccoszen_tols => coszen_tols
 USE cable_other_constants_mod, ONLY : CGAUSS_W => gauss_w
 USE cable_math_constants_mod, ONLY : CPI => pi
 USE cable_math_constants_mod, ONLY : CPI180 => pi180
-use cbl_masks_mod, ONLY :  fveg_mask,  fsunlit_mask,  fsunlit_veg_mask
-use cbl_masks_mod, ONLY :  veg_mask,  sunlit_mask,  sunlit_veg_mask
+!use cbl_masks_mod, ONLY :  fveg_mask,  fsunlit_mask,  fsunlit_veg_mask
+!use cbl_masks_mod, ONLY :  veg_mask,  sunlit_mask,  sunlit_veg_mask
 
     USE sli_main_mod, ONLY : sli_main
-
 
     ! CABLE model variables
     TYPE (air_type),       INTENT(INOUT) :: air
@@ -96,50 +96,37 @@ use cbl_masks_mod, ONLY :  veg_mask,  sunlit_mask,  sunlit_veg_mask
     LOGICAL, SAVE :: first_call = .TRUE.
 
 !masks
-!logical :: veg_mask(mp),  sunlit_mask(mp),  sunlit_veg_mask(mp) 
-!logical :: sunlit_veg_mask(mp) 
-!logical :: sunlit_mask(mp) 
+logical :: cveg_mask(mp)
+logical :: csunlit_mask(mp) 
+logical :: csunlit_veg_mask(mp) 
 !co-efficients usoughout init_radiation ` called from _albedo as well
 REAL :: c1(mp,nrb)
 REAL :: rhoch(mp,nrb)
 REAL :: xk(mp,nrb)
-
+integer :: b
 
 #ifdef NO_CASA_YET
     INTEGER :: ICYCLE
     ICYCLE = 0
 #endif
 
-    cable_user%soil_struc="default"
+cable_user%soil_struc="default"
+CALL ruff_resist(veg, rough, ssnow, canopy,veg%vlai, veg%hc, canopy%vlaiw )
 
+!masks were USEd and set in top level module however there was some unknown discrepancy
+cveg_mask = .false.
+csunlit_mask = .false.
+csunlit_veg_mask = .false.
 
-    IF( cable_runtime%um ) THEN
+do b=1,mp
+  if( canopy%vlaiw(b) > CLAI_THRESH ) cveg_mask(b) = .true.
+  if( ( met%fsd(b,1)+met%fsd(b,2) ) > CRAD_THRESH ) csunlit_mask(b) = .true.
+  if( cveg_mask(b) .AND. csunlit_mask(b) )  csunlit_veg_mask(b) = .true.
+enddo                
 
-       cable_runtime%um_radiation = .FALSE.
+CALL init_radiation(met,rad,veg, canopy) ! need to be called at every dt
 
-       IF( cable_runtime%um_explicit ) THEN
-          CALL ruff_resist(veg, rough, ssnow, canopy,veg%vlai, veg%hc, canopy%vlaiw )
-       ENDIF
-       ! Height adjustment not used in ACCESS CM2. See CABLE ticket 197
-       ! met%tk = met%tk + Cgrav/Ccapp*(rough%zref_tq + 0.9*rough%z0m)
-
-       CALL define_air (met, air)
-
-    ELSE
-       CALL ruff_resist(veg, rough, ssnow, canopy,veg%vlai, veg%hc, canopy%vlaiw )
-    ENDIF
-
-    CALL init_radiation(met,rad,veg, canopy) ! need to be called at every dt
-
-    IF( cable_runtime%um ) THEN
-
-       IF( cable_runtime%um_explicit ) THEN
-          CALL surface_albedo(ssnow, veg, met, rad, soil, canopy)
-       ENDIF
-
-    ELSE
-       CALL surface_albedo(ssnow, veg, met, rad, soil, canopy)
-    ENDIF
+CALL surface_albedo(ssnow, veg, met, rad, soil, canopy)
 
     ! Calculate canopy variables:
 
@@ -153,7 +140,7 @@ REAL :: xk(mp,nrb)
     ssnow%otss_0 = ssnow%otss  ! vh should be before call to canopy?
     ssnow%otss = ssnow%tss
 
-    CALL define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,climate, sunlit_veg_mask,  canopy%vlaiw)
+    CALL define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,climate, csunlit_veg_mask,  canopy%vlaiw)
     ! RML moved out of following IF after discussion with Eva
     ssnow%owetfac = ssnow%wetfac
 
