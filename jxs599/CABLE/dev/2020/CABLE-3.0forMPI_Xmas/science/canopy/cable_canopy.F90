@@ -97,7 +97,7 @@ USE cable_other_constants_mod, ONLY : CLAI_THRESH  => LAI_THRESH
 CONTAINS
 
 
-  SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,climate)
+SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,climate, sunlit_veg_mask, reducedLAIdue2snow )
     USE cable_def_types_mod
     USE cbl_radiation_module, ONLY : radiation
     USE cable_air_module

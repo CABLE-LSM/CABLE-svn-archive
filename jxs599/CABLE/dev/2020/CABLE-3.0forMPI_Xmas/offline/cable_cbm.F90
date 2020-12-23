@@ -69,9 +69,8 @@ USE cable_other_constants_mod,  ONLY : Ccoszen_tols => coszen_tols
 USE cable_other_constants_mod, ONLY : CGAUSS_W => gauss_w
 USE cable_math_constants_mod, ONLY : CPI => pi
 USE cable_math_constants_mod, ONLY : CPI180 => pi180
-!use cbl_masks_mod, ONLY :  fveg_mask,  fsunlit_mask,  fsunlit_veg_mask
-!use cbl_masks_mod, ONLY :  veg_mask,  sunlit_mask,  sunlit_veg_mask
-
+use cbl_masks_mod, ONLY :  fveg_mask,  fsunlit_mask,  fsunlit_veg_mask
+use cbl_masks_mod, ONLY :  veg_mask,  sunlit_mask,  sunlit_veg_mask
 
     USE sli_main_mod, ONLY : sli_main
 
@@ -154,7 +153,7 @@ REAL :: xk(mp,nrb)
     ssnow%otss_0 = ssnow%otss  ! vh should be before call to canopy?
     ssnow%otss = ssnow%tss
 
-    CALL define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,climate)
+    CALL define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,climate, sunlit_veg_mask,  canopy%vlaiw)
     ! RML moved out of following IF after discussion with Eva
     ssnow%owetfac = ssnow%wetfac
 
