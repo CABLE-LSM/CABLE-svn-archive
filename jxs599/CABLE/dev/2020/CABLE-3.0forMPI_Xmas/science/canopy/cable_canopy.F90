@@ -271,7 +271,10 @@ logical :: sunlit_veg_mask(mp)
     alpm1  = 0.
     beta2  = 0.
 
-    CALL radiation( ssnow, veg, air, met, rad, canopy )
+CALL radiation( ssnow, veg, air, met, rad, canopy, sunlit_veg_mask, &
+  !constants
+  clai_thresh, Csboltz, Cemsoil, Cemleaf, Ccapp &
+)
 
     canopy%zetar(:,1) = CZETA0 ! stability correction terms
     canopy%zetar(:,2) = CZETPOS + 1
@@ -1111,24 +1114,25 @@ write(6,*) "SLI is not an option right now"
 
       IF (cable_user%or_evap .OR. cable_user%gw_model) THEN
 
-      !H!   IF (cable_user%or_evap) THEN
-      !H!      DO j=1,mp
-
-      !H!         IF (veg%iveg(j) .LT. 16 .AND. ssnow%snowd(j) .LT. 1e-7) THEN
-
-      !H!            IF (dq(j) .LE. 0.0) THEN
-      !H!               ssnow%rtevap_sat(j) = MIN(rtevap_max,canopy%sublayer_dz(j)/rt_Dff)
-      !H!            END IF
-
-      !H!            IF (dqu(j) .LE. 0.0) THEN
-      !H!               ssnow%rtevap_unsat(j) = MIN(rtevap_max,canopy%sublayer_dz(j)/rt_Dff)
-      !H!            END IF
-
-      !H!         END IF
-
-      !H!      END DO
-
-      !H!   END IF
+write(6,*) "GW or ORevepis not an option right now"
+!H!        IF (cable_user%or_evap) THEN
+!H!          do j=1,mp
+!H!       
+!H!             if (veg%iveg(j) .lt. 16 .and. ssnow%snowd(j) .lt. 1e-7) THEN
+!H!       
+!H!                if (dq(j) .le. 0.0) THEN
+!H!                   ssnow%rtevap_sat(j) = min(rtevap_max,canopy%sublayer_dz(j)/rt_Dff)
+!H!                end if
+!H!       
+!H!                if (dqu(j) .le. 0.0) THEN
+!H!                   ssnow%rtevap_unsat(j) = min(rtevap_max,canopy%sublayer_dz(j)/rt_Dff)
+!H!                end if
+!H!       
+!H!             end if
+!H!
+!H!          end do
+!H!
+!H!        END IF
 
          ssnowpotev = air%rho * air%rlam * ( &
               REAL(ssnow%satfrac) * dq /(ssnow%rtsoil + REAL(ssnow%rtevap_sat)) + &
