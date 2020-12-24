@@ -124,8 +124,8 @@ REAL :: RadFbeam(mp,nrb)            !Computed Beam Fraction given total SW (rad%
 REAL :: xk(mp,nrb)
 REAL :: fc1(mp,nrb)
 REAL :: frhoch(mp,nrb)
-REAL, allocatable :: c1(:,:)
-REAL, allocatable :: rhoch(:,:)
+REAL :: c1(mp,nrb)
+REAL :: rhoch(mp,nrb)
 
 !Variables shared primarily between radiation and albedo and possibly elsewhere
 !Extinction co-efficients computed in init_radiation()
@@ -158,8 +158,6 @@ integer :: i
 
     ! END header
 
-    IF (.NOT. ALLOCATED(c1)) &
-         ALLOCATE( c1(mp,nrb), rhoch(mp,nrb) )
 
 !!Modify parametrised soil albedo based on snow coverage 
 call surface_albedosn( ssnow%AlbSoilsn, soil%AlbSoil, mp, .FALSE., veg%iveg, &
