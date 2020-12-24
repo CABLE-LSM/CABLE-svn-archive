@@ -56,7 +56,7 @@ CONTAINS
     USE cable_gw_hydro_module, ONLY : sli_hydrology,&
          soil_snow_gw
     USE cable_canopy_module, ONLY : define_canopy
-    USE cable_albedo_module, ONLY : surface_albedo
+    USE cable_albedo_module, ONLY : albedo
  !data !jhan:pass these
 USE cable_phys_constants_mod, ONLY : CGRAV  => GRAV
 USE cable_phys_constants_mod, ONLY : CCAPP   => CAPP
@@ -113,6 +113,8 @@ integer :: b
 cable_user%soil_struc="default"
 CALL ruff_resist(veg, rough, ssnow, canopy,veg%vlai, veg%hc, canopy%vlaiw )
 
+CALL define_air (met, air)
+
 !masks were USEd and set in top level module however there was some unknown discrepancy
 cveg_mask = .false.
 csunlit_mask = .false.
@@ -126,9 +128,36 @@ enddo
 
 CALL init_radiation(met,rad,veg, canopy) ! need to be called at every dt
 
-CALL surface_albedo(ssnow, veg, met, rad, soil, canopy)
+call Albedo( ssnow, veg, met, rad, soil, canopy,                       &
+         ssnow%AlbSoilsn, soil%AlbSoil,                                &
+         !AlbSnow, AlbSoil,                                            
+         mp, nrb,                                                      &
+         .FALSE.,                                                      &
+         cveg_mask, csunlit_mask, csunlit_veg_mask,                    &  
+         Ccoszen_tols, CGAUSS_W,                                       & 
+         veg%iveg, soil%isoilm, veg%refl, veg%taul,                    & 
+         !surface_type, VegRefl, VegTaul,
+         met%tk, met%coszen, canopy%vlaiw,                             &
+         !metTk, coszen, reducedLAIdue2snow,
+         ssnow%snowd, ssnow%osnowd, ssnow%isflag,                      & 
+         !SnowDepth, SnowODepth, SnowFlag_3L, 
+         ssnow%ssdnn,  ssnow%tgg(:,1),ssnow%tggsn(:,1), ssnow%snage,   & 
+         !SnowDensity, SoilTemp, SnowAge, 
+         xk, c1, rhoch,                                                & 
+         rad%fbeam, rad%albedo,                                        &
+         !RadFbeam, RadAlbedo,
+         rad%extkd, rad%extkb,                                         & 
+         !ExtCoeff_dif, ExtCoeff_beam,
+         rad%extkdm, rad%extkbm,                                       & 
+         !EffExtCoeff_dif, EffExtCoeff_beam,                
+         rad%rhocdf, rad%rhocbm,                                       &
+         !CanopyRefl_dif,CanopyRefl_beam,
+         rad%cexpkdm, rad%cexpkbm,                                     & 
+         !CanopyTransmit_dif, CanopyTransmit_beam, 
+         rad%reffdf, rad%reffbm                                        &
+       ) !EffSurfRefl_dif, EffSurfRefl_beam 
 
-    ! Calculate canopy variables:
+
 
     !! vh_js !!
     !CABLE_LSM:check
