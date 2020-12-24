@@ -40,7 +40,7 @@ metTk, coszen,                                    &
 reducedLAIdue2snow,                               &
 SnowDepth, SnowODepth, SnowFlag_3L,               & 
 SnowDensity, SoilTemp,SnowTemp, SnowAge,          &
-xk, c1, rhoch,                                    & 
+xk, fc1, frhoch,                                    & 
 RadFbeam, RadAlbedo,                              &
 ExtCoeff_dif, ExtCoeff_beam,                      &
 EffExtCoeff_dif, EffExtCoeff_beam,                &
@@ -122,8 +122,10 @@ REAL :: RadFbeam(mp,nrb)            !Computed Beam Fraction given total SW (rad%
 
 !common radiation scalings - computed  in init_radiation()
 REAL :: xk(mp,nrb)
-REAL :: c1(mp,nrb)
-REAL :: rhoch(mp,nrb)
+REAL :: fc1(mp,nrb)
+REAL :: frhoch(mp,nrb)
+REAL, allocatable :: c1(:,:)
+REAL, allocatable :: rhoch(:,:)
 
 !Variables shared primarily between radiation and albedo and possibly elsewhere
 !Extinction co-efficients computed in init_radiation()
@@ -156,10 +158,15 @@ integer :: i
 
     ! END header
 
-    !IF (.NOT. ALLOCATED(c1)) &
-    !     ALLOCATE( c1(mp,nrb), rhoch(mp,nrb) )
+    IF (.NOT. ALLOCATED(c1)) &
+         ALLOCATE( c1(mp,nrb), rhoch(mp,nrb) )
 
-    CALL surface_albedosn(ssnow, veg, met, soil)
+!!Modify parametrised soil albedo based on snow coverage 
+call surface_albedosn( ssnow%AlbSoilsn, soil%AlbSoil, mp, .FALSE., veg%iveg, &
+                       ssnow%snowd, ssnow%osnowd, ssnow%isflag,                      & 
+                       ssnow%ssdnn, ssnow%tgg(:,1), ssnow%tggsn(:,1), ssnow%snage,                     & 
+                       met%Tk, met%coszen, &
+                       ssnow, veg, met, soil)
 
     rad%cexpkbm = 0.0
     rad%extkbm  = 0.0
@@ -217,7 +224,6 @@ CALL calc_rhoch( c1,rhoch, mp, nrb, veg%taul, veg%refl )
             rad%fbeam(:,b) * rad%reffbm(:,b)
 
     END DO
-
 
   END SUBROUTINE albedo
 

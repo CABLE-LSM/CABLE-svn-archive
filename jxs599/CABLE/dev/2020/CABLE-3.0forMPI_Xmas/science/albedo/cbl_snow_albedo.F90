@@ -7,21 +7,41 @@ MODULE cbl_snow_albedo_module
 
 CONTAINS
 
-  SUBROUTINE surface_albedosn(ssnow, veg, met, soil)
-
+SUBROUTINE surface_albedosn( AlbSnow, AlbSoil, mp, jls_radiation, surface_type, &
+                            SnowDepth, SnowODepth, SnowFlag_3L, SnowDensity, &
+                            SoilTemp, SnowTemp, SnowAge, & 
+                            metTk, coszen, &
+                            ssnow, veg, met, soil)
     USE cable_def_types_mod, ONLY : veg_parameter_type, soil_parameter_type,    &
-         met_type, soil_snow_type, mp
+         met_type, soil_snow_type
 USE cable_common_module, ONLY : kwidth_gl
 USE cable_common_module, ONLY : cable_user
 USE cable_common_module, ONLY : cable_runtime
 use cable_phys_constants_mod, ONLY : CTFRZ => TFRZ
 
+implicit none
 
-    TYPE (soil_snow_type),INTENT(INOUT) :: ssnow
-    TYPE (met_type),INTENT(INOUT)       :: met
+TYPE (soil_snow_type),INTENT(INOUT) :: ssnow
+TYPE (met_type),INTENT(INOUT)       :: met
+TYPE (veg_parameter_type),INTENT(INout)  :: veg
+TYPE(soil_parameter_type), INTENT(INOUT) :: soil
 
-    TYPE (veg_parameter_type),INTENT(INout)  :: veg
-    TYPE(soil_parameter_type), INTENT(INOUT) :: soil
+!re-decl input args
+integer :: mp
+LOGICAL :: jls_radiation            !runtime switch def. in cable_*main routines 
+REAL :: AlbSnow(mp,2) 
+REAL :: AlbSoil(mp,2) 
+REAL :: MetTk(mp) 
+REAL :: coszen(mp) 
+REAL :: SnowDepth(mp)
+REAL :: SnowODepth(mp)
+REAL :: SnowDensity(mp)
+REAL :: SoilTemp(mp)
+REAL :: SnowTemp(mp)
+REAL :: SnowAge(mp)
+integer:: SnowFlag_3L(mp)
+integer:: surface_type(mp) 
+
 
     REAL, DIMENSION(mp) ::                                                      &
          alv,     &  ! Snow albedo for visible
@@ -63,9 +83,9 @@ use cable_phys_constants_mod, ONLY : CTFRZ => TFRZ
     ssnow%albsoilsn(:,1) = sfact * ssnow%albsoilsn(:,2)
 
     ! calc soil albedo based on colour - Ticket #27
-    !IF (calcsoilalbedo) THEN
-    !   CALL soilcol_albedo(ssnow, soil)
-    !END IF
+   !H!IF (calcsoilalbedo) THEN
+   !H!   CALL soilcol_albedo(ssnow, soil)
+   !H!END IF
 
     snrat=0.
     alir =0.
