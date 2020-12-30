@@ -68,10 +68,10 @@ integer:: soil_type(mp)
     soil%albsoilf = soil%albsoil(:,1)
 
     ! lakes: hard-wired number to be removed in future
-    WHERE( veg%iveg == 16 )                                                     &
+    WHERE( surface_type == 16 )                                                     &
          soil%albsoilf = -0.022*( MIN( 275., MAX( 260., met%tk ) ) - 260. ) + 0.45
 
-    WHERE(ssnow%snowd > 1. .AND. veg%iveg == 16 ) soil%albsoilf = 0.85
+    WHERE(ssnow%snowd > 1. .AND. surface_type == 16 ) soil%albsoilf = 0.85
 
     sfact = 0.68
 
@@ -107,7 +107,7 @@ integer:: soil_type(mp)
        ar2 = 10. * ar1 ! freezing of melt water
        snr = ssnow%snowd / MAX (ssnow%ssdnn, 200.)
 
-       WHERE (soil%isoilm == 9)
+       WHERE (soil_type == 9)
           ! permanent ice: hard-wired number to be removed in future version
           ar3 = .0000001
           !  NB. dsnow =1,assumes pristine snow; ignores soot etc. ALTERNATIVELY,
@@ -143,7 +143,7 @@ integer:: soil_type(mp)
        tmp = aliro * (1. - .5 * fage)
 
        ! use dry snow albedo for pernament land ice: hard-wired no to be removed
-       WHERE (soil%isoilm == 9)
+       WHERE (soil_type == 9)
 
           tmp = 0.95 * (1.0 - 0.2 * fage)
           alv = .4 * fzenm * (1. - tmp) + tmp
@@ -162,7 +162,7 @@ integer:: soil_type(mp)
 
        snr = ssnow%snowd / MAX (ssnow%ssdnn, 200.)
 
-       WHERE (soil%isoilm == 9)
+       WHERE (soil_type == 9)
           ! permanent ice: hard-wired number to be removed
           snrat = 1.
        ELSEWHERE
@@ -179,7 +179,7 @@ integer:: soil_type(mp)
        tmp = aliro * (1. - .5 * fage)
 
        ! use dry snow albedo
-       WHERE (soil%isoilm == 9)
+       WHERE (soil_type == 9)
           ! permanent ice: hard-wired number to be removed
 
           tmp = 0.95 * (1.0 - 0.2 * fage)
@@ -205,7 +205,7 @@ integer:: soil_type(mp)
     ssnow%albsoilsn(:,1) = MIN( alvo,                                           &
          ( 1. - snrat ) * ssnow%albsoilsn(:,1) + snrat * alv )
 
-    WHERE (soil%isoilm == 9) ! use dry snow albedo: 1=vis, 2=nir
+    WHERE (soil_type == 9) ! use dry snow albedo: 1=vis, 2=nir
        ssnow%albsoilsn(:,1) = alvo - 0.05 ! al*o = albedo appropriate for new snow
        ssnow%albsoilsn(:,2) = aliro - 0.05 ! => here al*o LESS arbitrary aging 0.05
     END WHERE

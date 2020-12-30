@@ -159,12 +159,12 @@ integer :: i
     ! END header
 
 !CanopyTransmit_dif(:,:) = 0.0
-!!rad%cexpkbm = 0.0
+rad%cexpkbm = 0.0
 !CanopyTransmit_beam(:,:) = 0.0
-!!rad%extkbm  = 0.0
+rad%extkbm  = 0.0
 !!CanopyRefl_dif(:,:) = 0.0
 !CanopyRefl_beam(:,:) = 0.0
-!!rad%rhocbm  = 0.0
+rad%rhocbm  = 0.0
 !AlbSnow(:,:) = 0.0
 
 !Modify parametrised soil albedo based on snow coverage 
@@ -174,9 +174,6 @@ call surface_albedosn( ssnow%AlbSoilsn, soil%AlbSoil, mp, nrb, .FALSE., veg%iveg
                        met%Tk, met%coszen, &
                        ssnow, veg, met, soil)
 
-    rad%cexpkbm = 0.0
-    rad%extkbm  = 0.0
-    rad%rhocbm  = 0.0
 
     ! Initialise effective conopy beam reflectance:
     rad%reffbm = ssnow%albsoilsn
