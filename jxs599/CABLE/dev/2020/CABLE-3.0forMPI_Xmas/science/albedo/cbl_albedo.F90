@@ -158,9 +158,17 @@ integer :: i
 
     ! END header
 
+!CanopyTransmit_dif(:,:) = 0.0
+!!rad%cexpkbm = 0.0
+!CanopyTransmit_beam(:,:) = 0.0
+!!rad%extkbm  = 0.0
+!!CanopyRefl_dif(:,:) = 0.0
+!CanopyRefl_beam(:,:) = 0.0
+!!rad%rhocbm  = 0.0
+!AlbSnow(:,:) = 0.0
 
-!!Modify parametrised soil albedo based on snow coverage 
-call surface_albedosn( ssnow%AlbSoilsn, soil%AlbSoil, mp, .FALSE., veg%iveg, &
+!Modify parametrised soil albedo based on snow coverage 
+call surface_albedosn( ssnow%AlbSoilsn, soil%AlbSoil, mp, nrb, .FALSE., veg%iveg, soil%isoilm, &
                        ssnow%snowd, ssnow%osnowd, ssnow%isflag,                      & 
                        ssnow%ssdnn, ssnow%tgg(:,1), ssnow%tggsn(:,1), ssnow%snage,                     & 
                        met%Tk, met%coszen, &

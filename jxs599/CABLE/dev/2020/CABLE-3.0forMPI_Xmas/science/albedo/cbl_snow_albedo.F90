@@ -7,7 +7,7 @@ MODULE cbl_snow_albedo_module
 
 CONTAINS
 
-SUBROUTINE surface_albedosn( AlbSnow, AlbSoil, mp, jls_radiation, surface_type, &
+SUBROUTINE surface_albedosn( AlbSnow, AlbSoil, mp, nrb, jls_radiation, surface_type, soil_type, &
                             SnowDepth, SnowODepth, SnowFlag_3L, SnowDensity, &
                             SoilTemp, SnowTemp, SnowAge, & 
                             metTk, coszen, &
@@ -28,9 +28,10 @@ TYPE(soil_parameter_type), INTENT(INOUT) :: soil
 
 !re-decl input args
 integer :: mp
+integer :: nrb
 LOGICAL :: jls_radiation            !runtime switch def. in cable_*main routines 
-REAL :: AlbSnow(mp,2) 
-REAL :: AlbSoil(mp,2) 
+REAL :: AlbSnow(mp,nrb) 
+REAL :: AlbSoil(mp,nrb) 
 REAL :: MetTk(mp) 
 REAL :: coszen(mp) 
 REAL :: SnowDepth(mp)
@@ -41,6 +42,7 @@ REAL :: SnowTemp(mp)
 REAL :: SnowAge(mp)
 integer:: SnowFlag_3L(mp)
 integer:: surface_type(mp) 
+integer:: soil_type(mp) 
 
 
     REAL, DIMENSION(mp) ::                                                      &
