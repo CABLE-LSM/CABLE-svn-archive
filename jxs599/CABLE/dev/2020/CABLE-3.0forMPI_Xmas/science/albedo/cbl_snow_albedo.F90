@@ -97,8 +97,7 @@ REAL :: SoilAlbsoilf(mp)
 
        ! Snow age depends on snow crystal growth, freezing of melt water,
        ! accumulation of dirt and amount of new snow.
-       tmp = SnowFlag_3L * SnowTemp + ( 1 - SnowFlag_3L )            &
-            * SoilTemp
+      tmp = SnowFlag_3L * SnowTemp + ( 1 - SnowFlag_3L ) * SoilTemp
        tmp = MIN( tmp, CTFRZ )
        ar1 = 5000. * (1. / (CTFRZ-0.01) - 1. / tmp) ! crystal growth  (-ve)
        ar2 = 10. * ar1 ! freezing of melt water
@@ -189,13 +188,13 @@ REAL :: SoilAlbsoilf(mp)
        talb = .5 * (alv + alir) ! snow albedo
 
 ENDWHERE        ! snowd > 0
-
-    IF(cable_user%SOIL_STRUC=='sli') THEN
-       WHERE (SnowDepth.GT.1.0)
-          snrat = 1.0   ! using default parameterisation, albedo is too low,
-          ! inhibiting snowpack initiation
-       ENDWHERE
-    ENDIF
+!H!jhan:SLI currently not available
+    !H!IF(cable_user%SOIL_STRUC=='sli') THEN
+    !H!   WHERE (SnowDepth.GT.1.0)
+    !H!      snrat = 1.0   ! using default parameterisation, albedo is too low,
+    !H!      ! inhibiting snowpack initiation
+    !H!   ENDWHERE
+    !H!ENDIF
     AlbSnow(:,2) = MIN( aliro,                                          &
          ( 1. - snrat ) * AlbSnow(:,2) + snrat * alir)
 

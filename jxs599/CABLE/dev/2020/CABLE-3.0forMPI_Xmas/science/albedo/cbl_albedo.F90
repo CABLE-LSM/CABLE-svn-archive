@@ -137,12 +137,9 @@ integer :: i
     ! END header
 
 !CanopyTransmit_dif(:,:) = 0.0
-rad%cexpkbm = 0.0
 !CanopyTransmit_beam(:,:) = 0.0
-rad%extkbm  = 0.0
 !!CanopyRefl_dif(:,:) = 0.0
 !CanopyRefl_beam(:,:) = 0.0
-rad%rhocbm  = 0.0
 !AlbSnow(:,:) = 0.0
 
 !Modify parametrised soil albedo based on snow coverage 
@@ -152,11 +149,10 @@ call surface_albedosn( ssnow%AlbSoilsn, soil%AlbSoil, mp, nrb, .FALSE., veg%iveg
                        met%Tk, met%coszen )
 
 
-
     ! Initialise effective conopy beam reflectance:
-    rad%reffbm = ssnow%albsoilsn
-    rad%reffdf = ssnow%albsoilsn
-    rad%albedo = ssnow%albsoilsn
+    EffSurfRefl_beam = AlbSnow
+    EffSurfRefl_dif = AlbSnow
+    RadAlbedo = AlbSnow
 
     ! Define vegetation mask:
     mask = canopy%vlaiw > CLAI_THRESH .AND.                                    &
@@ -169,40 +165,40 @@ CALL calc_rhoch( c1,rhoch, mp, nrb, veg%taul, veg%refl )
     !---1 = visible, 2 = nir radiaition
     DO b = 1, 2
 
-       rad%extkdm(:,b) = rad%extkd * c1(:,b)
+       EffExtCoeff_dif(:,b) = ExtCoeff_dif * c1(:,b)
 
        !--Define canopy diffuse transmittance (fraction):
-       rad%cexpkdm(:,b) = EXP(-rad%extkdm(:,b) * canopy%vlaiw)
+       CanopyTransmit_dif(:,b) = EXP(-EffExtCoeff_dif(:,b) * reducedLAIdue2snow)
 
        !---Calculate effective diffuse reflectance (fraction):
        WHERE( canopy%vlaiw > 1e-2 )                                             &
-            rad%reffdf(:,b) = rad%rhocdf(:,b) + (ssnow%albsoilsn(:,b)             &
-            - rad%rhocdf(:,b)) * rad%cexpkdm(:,b)**2
+            EffSurfRefl_dif(:,b) = CanopyRefl_dif(:,b) + (AlbSnow(:,b)             &
+            - CanopyRefl_dif(:,b)) * CanopyTransmit_dif(:,b)**2
 
        !---where vegetated and sunlit
        WHERE (mask)
 
-          rad%extkbm(:,b) = rad%extkb * c1(:,b)
+          EffExtCoeff_beam(:,b) = ExtCoeff_beam * c1(:,b)
 
           ! Canopy reflection (6.21) beam:
-          rad%rhocbm(:,b) = 2. * rad%extkb / ( rad%extkb + rad%extkd )          &
+          CanopyRefl_beam(:,b) = 2. * ExtCoeff_beam / ( ExtCoeff_beam + ExtCoeff_dif )          &
                * rhoch(:,b)
 
           ! Canopy beam transmittance (fraction):
-          dummy2 = MIN(rad%extkbm(:,b)*canopy%vlaiw, 20.)
+          dummy2 = MIN(EffExtCoeff_beam(:,b)*reducedLAIdue2snow, 20.)
           dummy  = EXP(-dummy2)
-          rad%cexpkbm(:,b) = REAL(dummy)
+          CanopyTransmit_beam(:,b) = REAL(dummy)
 
           ! Calculate effective beam reflectance (fraction):
-          rad%reffbm(:,b) = rad%rhocbm(:,b) + (ssnow%albsoilsn(:,b)             &
-               - rad%rhocbm(:,b))*rad%cexpkbm(:,b)**2
+          EffSurfRefl_beam(:,b) = CanopyRefl_beam(:,b) + (AlbSnow(:,b)             &
+               - CanopyRefl_beam(:,b))*CanopyTransmit_beam(:,b)**2
 
        END WHERE
 
        ! Define albedo:
        WHERE( canopy%vlaiw> CLAI_THRESH )                                      &
-            rad%albedo(:,b) = ( 1. - rad%fbeam(:,b) )*rad%reffdf(:,b) +           &
-            rad%fbeam(:,b) * rad%reffbm(:,b)
+            RadAlbedo(:,b) = ( 1. - RadFbeam(:,b) )*EffSurfRefl_dif(:,b) +           &
+            RadFbeam(:,b) * EffSurfRefl_beam(:,b)
 
     END DO
 
