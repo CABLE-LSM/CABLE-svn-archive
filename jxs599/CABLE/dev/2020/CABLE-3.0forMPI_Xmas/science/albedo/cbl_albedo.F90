@@ -1,25 +1,3 @@
-!==============================================================================
-! This source code is part of the
-! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
-! This work is licensed under the CSIRO Open Source Software License
-! Agreement (variation of the BSD / MIT License).
-!
-! You may not use this file except in compliance with this License.
-! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located
-! in each directory containing CABLE code.
-!
-! ==============================================================================
-! Purpose: Calculates surface albedo, including from snow covered surface
-!
-! Called from: cbm
-!
-! Contact: Yingping.Wang@csiro.au
-!
-! History: No significant change from v1.4b (but was previously in cable_radiation)
-!
-!
-! ==============================================================================
-
 MODULE cable_albedo_module
 
   IMPLICIT NONE
@@ -171,8 +149,8 @@ rad%rhocbm  = 0.0
 call surface_albedosn( ssnow%AlbSoilsn, soil%AlbSoil, mp, nrb, .FALSE., veg%iveg, soil%isoilm, &
                        ssnow%snowd, ssnow%osnowd, ssnow%isflag,                      & 
                        ssnow%ssdnn, ssnow%tgg(:,1), ssnow%tggsn(:,1), ssnow%snage,                     & 
-                       met%Tk, met%coszen, &
-                       ssnow, veg, met, soil)
+                       met%Tk, met%coszen )
+
 
 
     ! Initialise effective conopy beam reflectance:

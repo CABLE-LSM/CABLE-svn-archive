@@ -10,8 +10,7 @@ CONTAINS
 SUBROUTINE surface_albedosn( AlbSnow, AlbSoil, mp, nrb, jls_radiation, surface_type, soil_type, &
                             SnowDepth, SnowODepth, SnowFlag_3L, SnowDensity, &
                             SoilTemp, SnowTemp, SnowAge, & 
-                            metTk, coszen, &
-                            ssnow, veg, met, soil)
+                            metTk, coszen )
     USE cable_def_types_mod, ONLY : veg_parameter_type, soil_parameter_type,    &
          met_type, soil_snow_type
 USE cable_common_module, ONLY : kwidth_gl
@@ -20,11 +19,6 @@ USE cable_common_module, ONLY : cable_runtime
 use cable_phys_constants_mod, ONLY : CTFRZ => TFRZ
 
 implicit none
-
-TYPE (soil_snow_type),INTENT(INOUT) :: ssnow
-TYPE (met_type),INTENT(INOUT)       :: met
-TYPE (veg_parameter_type),INTENT(INout)  :: veg
-TYPE(soil_parameter_type), INTENT(INOUT) :: soil
 
 !re-decl input args
 integer :: mp
@@ -65,24 +59,27 @@ integer:: soil_type(mp)
          alvo  = 0.95,  &  ! albedo for vis. on a new snow
          aliro = 0.70      ! albedo for near-infr. on a new snow
 
-    soil%albsoilf = soil%albsoil(:,1)
+! local vars    
+REAL :: SoilAlbsoilf(mp) 
+
+   SoilAlbsoilF = Albsoil(:,1)
 
     ! lakes: hard-wired number to be removed in future
     WHERE( surface_type == 16 )                                                     &
-         soil%albsoilf = -0.022*( MIN( 275., MAX( 260., met%tk ) ) - 260. ) + 0.45
+      soilalbsoilf = -0.022*( MIN( 275., MAX( 260., MetTk ) ) - 260. ) + 0.45
 
-    WHERE(ssnow%snowd > 1. .AND. surface_type == 16 ) soil%albsoilf = 0.85
+   WHERE(SnowDepth > 1. .and. surface_type == 16 ) SoilAlbsoilF = 0.85
 
     sfact = 0.68
 
-    WHERE (soil%albsoilf <= 0.14)
+   WHERE (SoilAlbsoilF <= 0.14)
        sfact = 0.5
-    ELSEWHERE (soil%albsoilf > 0.14 .AND. soil%albsoilf <= 0.20)
+   ELSEWHERE (SoilAlbsoilF > 0.14 .and. SoilAlbsoilF <= 0.20)
        sfact = 0.62
     END WHERE
 
-    ssnow%albsoilsn(:,2) = 2. * soil%albsoilf / (1. + sfact)
-    ssnow%albsoilsn(:,1) = sfact * ssnow%albsoilsn(:,2)
+   AlbSnow(:,2) = 2. * SoilAlbsoilF / (1. + sfact)
+    AlbSnow(:,1) = sfact * AlbSnow(:,2)
 
     ! calc soil albedo based on colour - Ticket #27
    !H!IF (calcsoilalbedo) THEN
@@ -93,19 +90,19 @@ integer:: soil_type(mp)
     alir =0.
     alv  =0.
 
-    WHERE ( ssnow%snowd > 1. .AND. .NOT. cable_runtime%um_radiation )
+   WHERE ( SnowDepth > 1. .AND. .NOT. jls_radiation )
 
        ! new snow (cm H2O)
-       dnsnow = MIN ( 1., .1 * MAX( 0., ssnow%snowd - ssnow%osnowd ) )
+       dnsnow = MIN ( 1., .1 * MAX( 0., SnowDepth - SnowODepth ) )
 
        ! Snow age depends on snow crystal growth, freezing of melt water,
        ! accumulation of dirt and amount of new snow.
-       tmp = ssnow%isflag * ssnow%tggsn(:,1) + ( 1 - ssnow%isflag )            &
-            * ssnow%tgg(:,1)
+       tmp = SnowFlag_3L * SnowTemp + ( 1 - SnowFlag_3L )            &
+            * SoilTemp
        tmp = MIN( tmp, CTFRZ )
        ar1 = 5000. * (1. / (CTFRZ-0.01) - 1. / tmp) ! crystal growth  (-ve)
        ar2 = 10. * ar1 ! freezing of melt water
-       snr = ssnow%snowd / MAX (ssnow%ssdnn, 200.)
+       snr = SnowDepth / MAX (SnowDensity, 200.)
 
        WHERE (soil_type == 9)
           ! permanent ice: hard-wired number to be removed in future version
@@ -126,15 +123,15 @@ integer:: soil_type(mp)
 
        dtau = 1.e-6 * (EXP( ar1 ) + EXP( ar2 ) + ar3 ) * kwidth_gl
 
-       WHERE (ssnow%snowd <= 1.0)
-          ssnow%snage = 0.
+       WHERE (SnowDepth <= 1.0)
+          SnowAge = 0.
        ELSEWHERE
-          ssnow%snage = MAX (0.,(ssnow%snage+dtau)*(1.-dnsnow))
+          SnowAge = MAX (0.,(SnowAge+dtau)*(1.-dnsnow))
        END WHERE
 
-       fage = 1. - 1. / (1. + ssnow%snage ) !age factor
+       fage = 1. - 1. / (1. + SnowAge ) !age factor
 
-       tmp = MAX( .17365, met%coszen )
+      tmp = MAX( .17365, coszen )
        fzenm = MAX( 0.0, MERGE( 0.0,                                           &
             ( 1. + 1./2. ) / ( 1. + 2.*2. * tmp ) - 1./2., tmp > 0.5 ) )
 
@@ -158,9 +155,9 @@ integer:: soil_type(mp)
 
     ! when it is called from cable_rad_driver (UM)
     ! no need to recalculate snage
-    WHERE (ssnow%snowd > 1 .AND. cable_runtime%um_radiation )
+    WHERE (SnowDepth > 1 .AND. jls_radiation )
 
-       snr = ssnow%snowd / MAX (ssnow%ssdnn, 200.)
+       snr = SnowDepth / MAX (SnowDensity, 200.)
 
        WHERE (soil_type == 9)
           ! permanent ice: hard-wired number to be removed
@@ -169,8 +166,8 @@ integer:: soil_type(mp)
           snrat = MIN (1., snr / (snr + .1) )
        END WHERE
 
-       fage = 1. - 1. / (1. + ssnow%snage ) !age factor
-       tmp = MAX (.17365, met%coszen )
+       fage = 1. - 1. / (1. + SnowAge ) !age factor
+   tmp = MAX (.17365, coszen )
        fzenm = MAX( 0., MERGE( 0.0,                                             &
             ( 1. + 1./2. ) / ( 1. + 2. * 2. * tmp ) - 1./2., tmp > 0.5 ) )
 
@@ -191,27 +188,27 @@ integer:: soil_type(mp)
        alir = .4 * fzenm * (1.0 - tmp) + tmp
        talb = .5 * (alv + alir) ! snow albedo
 
-    ENDWHERE        ! snowd > 0
+ENDWHERE        ! snowd > 0
 
     IF(cable_user%SOIL_STRUC=='sli') THEN
-       WHERE (ssnow%snowd.GT.1.0)
+       WHERE (SnowDepth.GT.1.0)
           snrat = 1.0   ! using default parameterisation, albedo is too low,
           ! inhibiting snowpack initiation
        ENDWHERE
     ENDIF
-    ssnow%albsoilsn(:,2) = MIN( aliro,                                          &
-         ( 1. - snrat ) * ssnow%albsoilsn(:,2) + snrat * alir)
+    AlbSnow(:,2) = MIN( aliro,                                          &
+         ( 1. - snrat ) * AlbSnow(:,2) + snrat * alir)
 
-    ssnow%albsoilsn(:,1) = MIN( alvo,                                           &
-         ( 1. - snrat ) * ssnow%albsoilsn(:,1) + snrat * alv )
+    AlbSnow(:,1) = MIN( alvo,                                           &
+         ( 1. - snrat ) * AlbSnow(:,1) + snrat * alv )
 
     WHERE (soil_type == 9) ! use dry snow albedo: 1=vis, 2=nir
-       ssnow%albsoilsn(:,1) = alvo - 0.05 ! al*o = albedo appropriate for new snow
-       ssnow%albsoilsn(:,2) = aliro - 0.05 ! => here al*o LESS arbitrary aging 0.05
+       AlbSnow(:,1) = alvo - 0.05 ! al*o = albedo appropriate for new snow
+       AlbSnow(:,2) = aliro - 0.05 ! => here al*o LESS arbitrary aging 0.05
     END WHERE
 
-    RETURN
+return
 
-  END SUBROUTINE surface_albedosn
+END SUBROUTINE surface_albedosn
 
 END MODULE cbl_snow_albedo_module
