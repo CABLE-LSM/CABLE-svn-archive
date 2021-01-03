@@ -164,8 +164,9 @@ CONTAINS
     USE cable_common_module,  ONLY: ktau_gl, kend_gl, knode_gl, cable_user,     &
          cable_runtime, fileName, myhome,            &
          redistrb, wiltParam, satuParam, CurYear,    &
-         IS_LEAPYEAR, IS_CASA_TIME, calcsoilalbedo,                &
-         report_version_no, kwidth_gl, gw_params
+         IS_LEAPYEAR, calcsoilalbedo,                &
+         kwidth_gl, gw_params
+  USE casa_ncdf_module, ONLY: is_casa_time
     USE cable_data_module,    ONLY: driver_type, point2constants
     USE cable_input_module,   ONLY: open_met_file,load_parameters,              &
          get_met_data,close_met_file
@@ -377,8 +378,6 @@ CONTAINS
 
     ! Open log file:
     OPEN(logn,FILE=filename%log)
-
-    CALL report_version_no( logn )
 
     IF( IARGC() > 0 ) THEN
        CALL GETARG(1, filename%met)
@@ -8221,7 +8220,8 @@ CONTAINS
 
     USE cable_def_types_mod
     USE cable_carbon_module
-    USE cable_common_module, ONLY: CABLE_USER, is_casa_time
+    USE cable_common_module, ONLY: CABLE_USER
+  USE casa_ncdf_module, ONLY: is_casa_time
     USE cable_IO_vars_module, ONLY: logn, landpt, patch, output
     USE casadimension
     USE casaparm
@@ -8524,7 +8524,8 @@ CONTAINS
 
     USE cable_def_types_mod , ONLY: veg_parameter_type, mland
     USE cable_carbon_module
-    USE cable_common_module, ONLY: CABLE_USER, is_casa_time, CurYear
+    USE cable_common_module, ONLY: CABLE_USER, CurYear
+  USE casa_ncdf_module, ONLY: is_casa_time
     USE cable_IO_vars_module, ONLY: logn, landpt, patch
     USE casadimension
     USE casaparm
