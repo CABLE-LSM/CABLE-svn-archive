@@ -26,7 +26,6 @@
 !                 cable_def_types_mod
 !                 cable_IO_vars_module
 !                 cable_common_module
-!                 cable_data_module
 !                 cable_input_module
 !                 cable_output_module
 !                 cable_cbm_module
@@ -167,7 +166,11 @@ CONTAINS
          IS_LEAPYEAR, calcsoilalbedo,                &
          kwidth_gl, gw_params
   USE casa_ncdf_module, ONLY: is_casa_time
-    USE cable_data_module,    ONLY: driver_type, point2constants
+! physical constants
+USE cable_phys_constants_mod, ONLY : CTFRZ   => TFRZ
+USE cable_phys_constants_mod, ONLY : CEMLEAF => EMLEAF
+USE cable_phys_constants_mod, ONLY : CEMSOIL => EMSOIL
+USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
     USE cable_input_module,   ONLY: open_met_file,load_parameters,              &
          get_met_data,close_met_file
     USE cable_output_module,  ONLY: create_restart,open_output_file,            &
@@ -248,7 +251,6 @@ CONTAINS
     ! CABLE parameters
     TYPE (soil_parameter_type) :: soil ! soil parameters
     TYPE (veg_parameter_type)  :: veg  ! vegetation parameters: see below for iveg in MPI variables
-    TYPE (driver_type)    :: C         ! constants used locally
 
     TYPE (sum_flux_type)  :: sum_flux ! cumulative flux variables
     TYPE (bgc_pool_type)  :: bgc  ! carbon pool variables
@@ -437,9 +439,6 @@ CONTAINS
 
     cable_runtime%offline = .TRUE.
 
-    ! associate pointers used locally with global definitions
-    CALL point2constants( C )
-
     IF( l_casacnp  .AND. ( icycle == 0 .OR. icycle > 3 ) )                   &
          STOP 'icycle must be 1 to 3 when using casaCNP'
     IF( ( l_laiFeedbk .OR. l_vcmaxFeedbk ) .AND. ( .NOT. l_casacnp ) )       &
@@ -462,7 +461,7 @@ CONTAINS
          TRIM(cable_user%MetType) .NE. "gpgs" .AND. &
          TRIM(cable_user%MetType) .NE. "plum"  .AND. &
          TRIM(cable_user%MetType) .NE. "cru") THEN
-       CALL open_met_file( dels, koffset, kend, spinup, C%TFRZ )
+       CALL open_met_file( dels, koffset, kend, spinup, CTFRZ )
        IF ( koffset .NE. 0 .AND. CABLE_USER%CALL_POP ) THEN
           WRITE(*,*)"When using POP, episode must start at Jan 1st!"
           STOP 991
@@ -535,12 +534,12 @@ CONTAINS
              ncciy = CurYear
              WRITE(*,*) 'Looking for global offline run info.'
              CALL prepareFiles(ncciy)
-             CALL open_met_file( dels, koffset, kend, spinup, C%TFRZ )
+             CALL open_met_file( dels, koffset, kend, spinup, CTFRZ )
 
           ELSE IF (TRIM(cable_user%MetType) .EQ. 'gswp3') THEN
              ncciy = CurYear
              WRITE(*,*) 'Looking for global offline run info.'
-             CALL open_met_file( dels, koffset, kend, spinup, C%TFRZ )
+             CALL open_met_file( dels, koffset, kend, spinup, CTFRZ )
 
              IF ( leaps .AND. IS_LEAPYEAR( YYYY ) ) THEN
                 calendar = "standard"
@@ -573,7 +572,7 @@ CONTAINS
                   bal, logn, vegparmnew, casabiome, casapool,		 &
                   casaflux, sum_casapool, sum_casaflux, &
                   casamet, casabal, phen, POP, spinup,	       &
-                  C%EMSOIL, C%TFRZ, LUC_EXPT, POPLUC )
+                  CEMSOIL, CTFRZ, LUC_EXPT, POPLUC )
 
              IF (CABLE_USER%POPLUC .AND. TRIM(CABLE_USER%POPLUC_RunType) .EQ. 'static') &
                   CABLE_USER%POPLUC= .FALSE.
@@ -755,7 +754,7 @@ CONTAINS
 
              ELSE
                 CALL get_met_data( spinup, spinConv, imet, soil,                 &
-                     rad, iveg, kend, dels, C%TFRZ, iktau+koffset,                &
+                     rad, iveg, kend, dels, CTFRZ, iktau+koffset,                &
                      kstart+koffset )
 
              ENDIF
@@ -828,7 +827,7 @@ CONTAINS
              ELSE
 
                 CALL get_met_data( spinup, spinConv, imet, soil,                 &
-                     rad, iveg, kend, dels, C%TFRZ, iktau+koffset,                &
+                     rad, iveg, kend, dels, CTFRZ, iktau+koffset,                &
                      kstart+koffset )
 
              ENDIF
@@ -946,12 +945,12 @@ CONTAINS
                         .OR. TRIM(cable_user%MetType) .EQ. 'gswp3') THEN
                       CALL write_output( dels, ktau_tot, met, canopy, casaflux, casapool, &
                            casamet,ssnow,         &
-                           rad, bal, air, soil, veg, C%SBOLTZ,     &
-                           C%EMLEAF, C%EMSOIL )
+                           rad, bal, air, soil, veg, CSBOLTZ,     &
+                           CEMLEAF, CEMSOIL )
                    ELSE
                       CALL write_output( dels, ktau, met, canopy, casaflux, casapool, &
                            casamet, ssnow,   &
-                           rad, bal, air, soil, veg, C%SBOLTZ, C%EMLEAF, C%EMSOIL )
+                           rad, bal, air, soil, veg, CSBOLTZ, CEMLEAF, CEMSOIL )
 
                    ENDIF
                 END IF
@@ -1166,12 +1165,12 @@ CONTAINS
 
                    CALL write_output( dels, ktau_tot, met, canopy, casaflux, casapool, &
                         casamet, ssnow,         &
-                        rad, bal, air, soil, veg, C%SBOLTZ,     &
-                        C%EMLEAF, C%EMSOIL )
+                        rad, bal, air, soil, veg, CSBOLTZ,     &
+                        CEMLEAF, CEMSOIL )
                 ELSE
                    CALL write_output( dels, ktau, met, canopy, casaflux, casapool, casamet, &
                         ssnow,   &
-                        rad, bal, air, soil, veg, C%SBOLTZ, C%EMLEAF, C%EMSOIL )
+                        rad, bal, air, soil, veg, CSBOLTZ, CEMLEAF, CEMSOIL )
 
                 ENDIF
              END IF

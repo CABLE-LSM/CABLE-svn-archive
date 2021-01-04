@@ -64,8 +64,6 @@ LOGICAL :: jls_radiation            !runtime switch def. in cable_*main routines
 LOGICAL :: veg_mask(mp)             ! this "mp" is vegetated (uses minimum LAI) 
 LOGICAL :: sunlit_mask(mp)          ! this "mp" is sunlit (uses zenith angle)
 LOGICAL :: sunlit_veg_mask(mp)      ! this "mp" is BOTH sunlit AND  vegetated  
-real :: iveg_mask(mp)             ! this "mp" is vegetated (uses minimum LAI) 
-real :: isunlit_veg_mask(mp)      ! this "mp" is BOTH sunlit AND  vegetated  
 
 !Vegetation parameters
 REAL :: VegTaul(mp,nrb)             !PARAMETER leaf transmisivity (veg%taul)

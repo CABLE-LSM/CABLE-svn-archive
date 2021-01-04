@@ -11,11 +11,8 @@ SUBROUTINE surface_albedosn( AlbSnow, AlbSoil, mp, nrb, jls_radiation, surface_t
                             SnowDepth, SnowODepth, SnowFlag_3L, SnowDensity, &
                             SoilTemp, SnowTemp, SnowAge, & 
                             metTk, coszen )
-    USE cable_def_types_mod, ONLY : veg_parameter_type, soil_parameter_type,    &
-         met_type, soil_snow_type
+!H!jhan:Eliminate these USE data statements  
 USE cable_common_module, ONLY : kwidth_gl
-USE cable_common_module, ONLY : cable_user
-USE cable_common_module, ONLY : cable_runtime
 use cable_phys_constants_mod, ONLY : CTFRZ => TFRZ
 
 implicit none
