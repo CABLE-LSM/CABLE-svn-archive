@@ -141,10 +141,10 @@ integer :: i
 !AlbSnow(:,:) = 0.0
 
 !Modify parametrised soil albedo based on snow coverage 
-call surface_albedosn( ssnow%AlbSoilsn, soil%AlbSoil, mp, nrb, .FALSE., veg%iveg, soil%isoilm, &
-                       ssnow%snowd, ssnow%osnowd, ssnow%isflag,                      & 
-                       ssnow%ssdnn, ssnow%tgg(:,1), ssnow%tggsn(:,1), ssnow%snage,                     & 
-                       met%Tk, met%coszen )
+call surface_albedosn( AlbSnow, AlbSoil, mp, nrb, jls_radiation, surface_type, soil_type, &
+                       SnowDepth, SnowODepth, SnowFlag_3L,                      & 
+                       SnowDensity, SoilTemp, SnowTemp, SnowAge,                     & 
+                       MetTk, Coszen )
 
 
     ! Initialise effective conopy beam reflectance:
@@ -156,7 +156,7 @@ call surface_albedosn( ssnow%AlbSoilsn, soil%AlbSoil, mp, nrb, .FALSE., veg%iveg
     mask = canopy%vlaiw > CLAI_THRESH .AND.                                    &
          ( met%fsd(:,1) + met%fsd(:,2) ) > CRAD_THRESH
 
-CALL calc_rhoch( c1,rhoch, mp, nrb, veg%taul, veg%refl )
+CALL calc_rhoch( c1,rhoch, mp, nrb, VegTaul, VegRefl )
 
     ! Update extinction coefficients and fractional transmittance for
     ! leaf transmittance and reflection (ie. NOT black leaves):
