@@ -11,7 +11,7 @@ SUBROUTINE Albedo(ssnow, veg, met, rad, soil, canopy, &
 AlbSnow, AlbSoil,                                 & 
 mp, nrb,                                          &
 jls_radiation ,                                   &
-veg_mask, sunlit_mask, sunlit_veg_mask,           &  
+veg_mask, aveg_mask, sunlit_mask, sunlit_veg_mask,           &  
 Ccoszen_tols, CGAUSS_W,                           & 
 surface_type, soil_type, VegRefl, VegTaul,        &
 metTk, coszen,                                    & 
@@ -62,6 +62,7 @@ LOGICAL :: jls_radiation            !runtime switch def. in cable_*main routines
 
 !masks
 LOGICAL :: veg_mask(mp)             ! this "mp" is vegetated (uses minimum LAI) 
+LOGICAL :: aveg_mask(mp)             ! this "mp" is vegetated (uses minimum LAI) 
 LOGICAL :: sunlit_mask(mp)          ! this "mp" is sunlit (uses zenith angle)
 LOGICAL :: sunlit_veg_mask(mp)      ! this "mp" is BOTH sunlit AND  vegetated  
 
@@ -169,12 +170,12 @@ CALL calc_rhoch( c1,rhoch, mp, nrb, VegTaul, VegRefl )
        CanopyTransmit_dif(:,b) = EXP(-EffExtCoeff_dif(:,b) * reducedLAIdue2snow)
 
        !---Calculate effective diffuse reflectance (fraction):
-       WHERE( canopy%vlaiw > 1e-2 )                                             &
+       WHERE( aveg_mask )                                      &
             EffSurfRefl_dif(:,b) = CanopyRefl_dif(:,b) + (AlbSnow(:,b)             &
             - CanopyRefl_dif(:,b)) * CanopyTransmit_dif(:,b)**2
 
        !---where vegetated and sunlit
-       WHERE (mask)
+       WHERE (sunlit_veg_mask)
 
           EffExtCoeff_beam(:,b) = ExtCoeff_beam * c1(:,b)
 
@@ -194,7 +195,7 @@ CALL calc_rhoch( c1,rhoch, mp, nrb, VegTaul, VegRefl )
        END WHERE
 
        ! Define albedo:
-       WHERE( canopy%vlaiw> CLAI_THRESH )                                      &
+       WHERE( veg_mask )                                      &
             RadAlbedo(:,b) = ( 1. - RadFbeam(:,b) )*EffSurfRefl_dif(:,b) +           &
             RadFbeam(:,b) * EffSurfRefl_beam(:,b)
 

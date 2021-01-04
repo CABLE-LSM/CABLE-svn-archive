@@ -97,6 +97,7 @@ USE cable_math_constants_mod, ONLY : CPI180 => pi180
 
 !masks
 logical :: cveg_mask(mp)
+logical :: aveg_mask(mp)
 logical :: csunlit_mask(mp) 
 logical :: csunlit_veg_mask(mp) 
 !co-efficients usoughout init_radiation ` called from _albedo as well
@@ -117,11 +118,13 @@ CALL define_air (met, air)
 
 !masks were USEd and set in top level module however there was some unknown discrepancy
 cveg_mask = .false.
+aveg_mask = .false.
 csunlit_mask = .false.
 csunlit_veg_mask = .false.
 
 do b=1,mp
   if( canopy%vlaiw(b) > CLAI_THRESH ) cveg_mask(b) = .true.
+  if( canopy%vlaiw(b) > (10*CLAI_THRESH) ) aveg_mask(b) = .true.
   if( ( met%fsd(b,1)+met%fsd(b,2) ) > CRAD_THRESH ) csunlit_mask(b) = .true.
   if( cveg_mask(b) .AND. csunlit_mask(b) )  csunlit_veg_mask(b) = .true.
 enddo                
@@ -133,7 +136,7 @@ call Albedo( ssnow, veg, met, rad, soil, canopy,                       &
          !AlbSnow, AlbSoil,                                            
          mp, nrb,                                                      &
          .FALSE.,                                                      &
-         cveg_mask, csunlit_mask, csunlit_veg_mask,                    &  
+         cveg_mask, aveg_mask, csunlit_mask, csunlit_veg_mask,                    &  
          Ccoszen_tols, CGAUSS_W,                                       & 
          veg%iveg, soil%isoilm, veg%refl, veg%taul,                    & 
          !surface_type, VegRefl, VegTaul,
