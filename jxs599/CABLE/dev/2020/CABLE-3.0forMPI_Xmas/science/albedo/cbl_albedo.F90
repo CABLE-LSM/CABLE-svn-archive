@@ -7,11 +7,11 @@ MODULE cable_albedo_module
 
 CONTAINS
 
-SUBROUTINE Albedo(ssnow, veg, met, rad, soil, canopy, &
+SUBROUTINE Albedo( &
 AlbSnow, AlbSoil,                                 & 
 mp, nrb,                                          &
 jls_radiation ,                                   &
-veg_mask, aveg_mask, sunlit_mask, sunlit_veg_mask,           &  
+veg_mask, sunlit_mask, sunlit_veg_mask,           &  
 Ccoszen_tols, CGAUSS_W,                           & 
 surface_type, soil_type, VegRefl, VegTaul,        &
 metTk, coszen,                                    & 
@@ -29,22 +29,11 @@ EffSurfRefl_dif, EffSurfRefl_beam                 )
 !subrs called
 USE cbl_rhoch_module, ONLY : calc_rhoch
     USE cable_common_module
-    USE cable_def_types_mod, ONLY : veg_parameter_type, soil_parameter_type,    &
-         canopy_type, met_type, radiation_type,      &
-         soil_snow_type, r_2
+    USE cable_def_types_mod, ONLY : r_2
 USE cbl_snow_albedo_module, ONLY : surface_albedosn
 USE cbl_rhoch_module, ONLY : calc_rhoch
-USE cable_other_constants_mod, ONLY : CLAI_THRESH => lai_thresh
-USE cable_other_constants_mod, ONLY : CRAD_THRESH => rad_thresh
 
 implicit none
-    TYPE (canopy_type)    :: canopy
-    TYPE (met_type)       :: met
-    TYPE (radiation_type) :: rad
-    TYPE (soil_snow_type) :: ssnow
-
-    TYPE (veg_parameter_type) :: veg
-    TYPE(soil_parameter_type) :: soil
 
 !model dimensions
 integer :: mp                       !total number of "tiles"  
@@ -62,7 +51,6 @@ LOGICAL :: jls_radiation            !runtime switch def. in cable_*main routines
 
 !masks
 LOGICAL :: veg_mask(mp)             ! this "mp" is vegetated (uses minimum LAI) 
-LOGICAL :: aveg_mask(mp)             ! this "mp" is vegetated (uses minimum LAI) 
 LOGICAL :: sunlit_mask(mp)          ! this "mp" is sunlit (uses zenith angle)
 LOGICAL :: sunlit_veg_mask(mp)      ! this "mp" is BOTH sunlit AND  vegetated  
 
@@ -129,8 +117,6 @@ integer :: i
          dummy2, & !
          dummy
 
-    LOGICAL, DIMENSION(mp)  :: mask ! select points for calculation
-
     INTEGER :: b    !rad. band 1=visible, 2=near-infrared, 3=long-wave
 
     ! END header
@@ -153,10 +139,6 @@ call surface_albedosn( AlbSnow, AlbSoil, mp, nrb, jls_radiation, surface_type, s
     EffSurfRefl_dif = AlbSnow
     RadAlbedo = AlbSnow
 
-    ! Define vegetation mask:
-    mask = canopy%vlaiw > CLAI_THRESH .AND.                                    &
-         ( met%fsd(:,1) + met%fsd(:,2) ) > CRAD_THRESH
-
 CALL calc_rhoch( c1,rhoch, mp, nrb, VegTaul, VegRefl )
 
     ! Update extinction coefficients and fractional transmittance for
@@ -170,7 +152,7 @@ CALL calc_rhoch( c1,rhoch, mp, nrb, VegTaul, VegRefl )
        CanopyTransmit_dif(:,b) = EXP(-EffExtCoeff_dif(:,b) * reducedLAIdue2snow)
 
        !---Calculate effective diffuse reflectance (fraction):
-       WHERE( aveg_mask )                                      &
+       WHERE( veg_mask )                                      &
             EffSurfRefl_dif(:,b) = CanopyRefl_dif(:,b) + (AlbSnow(:,b)             &
             - CanopyRefl_dif(:,b)) * CanopyTransmit_dif(:,b)**2
 
