@@ -136,7 +136,7 @@ call Albedo( ssnow, veg, met, rad, soil, canopy,                       &
          !AlbSnow, AlbSoil,                                            
          mp, nrb,                                                      &
          .FALSE.,                                                      &
-         cveg_mask, aveg_mask, csunlit_mask, csunlit_veg_mask,                    &  
+         cveg_mask, cveg_mask, csunlit_mask, csunlit_veg_mask,                    &  
          Ccoszen_tols, CGAUSS_W,                                       & 
          veg%iveg, soil%isoilm, veg%refl, veg%taul,                    & 
          !surface_type, VegRefl, VegTaul,
