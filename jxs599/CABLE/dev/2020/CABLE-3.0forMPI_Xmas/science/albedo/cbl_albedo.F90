@@ -17,8 +17,8 @@ surface_type, soil_type, VegRefl, VegTaul,        &
 metTk, coszen,                                    & 
 reducedLAIdue2snow,                               &
 SnowDepth, SnowODepth, SnowFlag_3L,               & 
-SnowDensity, SoilTemp,SnowTemp, SnowAge,          &
-xk, fc1, frhoch,                                    & 
+SnowDensity, SoilTemp, SnowTemp, SnowAge,                   &
+xk, c1, rhoch,                                    & 
 RadFbeam, RadAlbedo,                              &
 ExtCoeff_dif, ExtCoeff_beam,                      &
 EffExtCoeff_dif, EffExtCoeff_beam,                &
@@ -87,8 +87,6 @@ REAL :: RadFbeam(mp,nrb)            !Computed Beam Fraction given total SW (rad%
 
 !common radiation scalings - computed  in init_radiation()
 REAL :: xk(mp,nrb)
-REAL :: fc1(mp,nrb)
-REAL :: frhoch(mp,nrb)
 REAL :: c1(mp,nrb)
 REAL :: rhoch(mp,nrb)
 
@@ -121,11 +119,11 @@ integer :: i
 
     ! END header
 
-!CanopyTransmit_dif(:,:) = 0.0
-!CanopyTransmit_beam(:,:) = 0.0
+!CanopyTransmit_dif(:,:) = 0.0 !open in 7589
+!CanopyTransmit_beam(:,:) = 0.0 !open in 7589
 !!CanopyRefl_dif(:,:) = 0.0
-!CanopyRefl_beam(:,:) = 0.0
-!AlbSnow(:,:) = 0.0
+!CanopyRefl_beam(:,:) = 0.0 !open in 7589
+!AlbSnow(:,:) = 0.0 !open in 7589
 
 !Modify parametrised soil albedo based on snow coverage 
 call surface_albedosn( AlbSnow, AlbSoil, mp, nrb, jls_radiation, surface_type, soil_type, &
@@ -134,10 +132,10 @@ call surface_albedosn( AlbSnow, AlbSoil, mp, nrb, jls_radiation, surface_type, s
                        MetTk, Coszen )
 
 
-    ! Initialise effective conopy beam reflectance:
-    EffSurfRefl_beam = AlbSnow
-    EffSurfRefl_dif = AlbSnow
-    RadAlbedo = AlbSnow
+! Initialise effective conopy beam reflectance:
+EffSurfRefl_beam = AlbSnow
+EffSurfRefl_dif = AlbSnow
+RadAlbedo = AlbSnow
 
 CALL calc_rhoch( c1,rhoch, mp, nrb, VegTaul, VegRefl )
 
