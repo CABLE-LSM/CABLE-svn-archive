@@ -99,6 +99,9 @@ USE cable_math_constants_mod, ONLY : CPI180 => pi180
 logical :: cveg_mask(mp)
 logical :: csunlit_mask(mp) 
 logical :: csunlit_veg_mask(mp) 
+logical, allocatable :: veg_mask(:)
+logical, allocatable :: sunlit_mask(:) 
+logical, allocatable :: sunlit_veg_mask(:) 
 !co-efficients usoughout init_radiation ` called from _albedo as well
 REAL :: c1(mp,nrb)
 REAL :: rhoch(mp,nrb)
@@ -115,16 +118,21 @@ CALL ruff_resist(veg, rough, ssnow, canopy,veg%vlai, veg%hc, canopy%vlaiw )
 
 CALL define_air (met, air)
 
-!masks were USEd and set in top level module however there was some unknown discrepancy
-cveg_mask = .false.
-csunlit_mask = .false.
-csunlit_veg_mask = .false.
+call fveg_mask( veg_mask, mp, Clai_thresh, canopy%vlaiw )
+!call fsunlit_mask( sunlit_mask, mp, Ccoszen_tols, met%coszen )
+call fsunlit_mask( sunlit_mask, mp, CRAD_THRESH,( met%fsd(:,1)+met%fsd(:,2) ) )
+call fsunlit_veg_mask( sunlit_veg_mask, mp, veg_mask, sunlit_mask )
 
-do b=1,mp
-  if( canopy%vlaiw(b) > CLAI_THRESH ) cveg_mask(b) = .true.
-  if( ( met%fsd(b,1)+met%fsd(b,2) ) > CRAD_THRESH ) csunlit_mask(b) = .true.
-  if( cveg_mask(b) .AND. csunlit_mask(b) )  csunlit_veg_mask(b) = .true.
-enddo                
+!!masks were USEd and set in top level module however there was some unknown discrepancy
+!cveg_mask = .false.
+!csunlit_mask = .false.
+!csunlit_veg_mask = .false.
+!
+!do b=1,mp
+!  if( canopy%vlaiw(b) > CLAI_THRESH ) cveg_mask(b) = .true.
+!  if( ( met%fsd(b,1)+met%fsd(b,2) ) > CRAD_THRESH ) csunlit_mask(b) = .true.
+!  if( cveg_mask(b) .AND. csunlit_mask(b) )  csunlit_veg_mask(b) = .true.
+!enddo                
 
 CALL init_radiation(met,rad,veg, canopy) ! need to be called at every dt
 
@@ -133,7 +141,7 @@ call Albedo(                        &
          !AlbSnow, AlbSoil,                                            
          mp, nrb,                                                      &
          .FALSE.,                                                      &
-         cveg_mask, csunlit_mask, csunlit_veg_mask,                    &  
+         veg_mask, sunlit_mask, sunlit_veg_mask,                    &  
          Ccoszen_tols, CGAUSS_W,                                       & 
          veg%iveg, soil%isoilm, veg%refl, veg%taul,                    & 
          !surface_type, VegRefl, VegTaul,
@@ -169,7 +177,7 @@ call Albedo(                        &
     ssnow%otss_0 = ssnow%otss  ! vh should be before call to canopy?
     ssnow%otss = ssnow%tss
 
-    CALL define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,climate, csunlit_veg_mask,  canopy%vlaiw)
+    CALL define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,climate, sunlit_veg_mask,  canopy%vlaiw)
     ! RML moved out of following IF after discussion with Eva
     ssnow%owetfac = ssnow%wetfac
 
@@ -289,8 +297,71 @@ call Albedo(                        &
        canopy%fnee = canopy%fpn + canopy%frs + canopy%frp
 
     ENDIF
-
-
   END SUBROUTINE cbm
+
+
+subroutine fveg_mask( veg_mask, mp, lai_thresh, reducedLAIdue2snow )
+
+implicit none
+LOGICAL, allocatable :: veg_mask(:)
+integer ::  mp
+real :: lai_thresh
+real :: reducedLAIdue2snow(mp)
+integer :: i
+ 
+IF ( .NOT. ALLOCATED(veg_mask)) ALLOCATE( veg_mask(mp) )
+
+veg_mask = .FALSE.
+! Define vegetation mask:
+do i=1, mp  
+  if( reducedLAIdue2snow(i) > lai_thresh ) veg_mask(i) = .true.
+end do
+
+End subroutine fveg_mask
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+subroutine fsunlit_mask( sunlit_mask, mp, coszen_tols, coszen )
+
+implicit none
+LOGICAL, allocatable :: sunlit_mask(:)
+integer ::  mp
+real :: coszen_tols
+real :: coszen(mp)   
+integer :: i
+
+IF ( .NOT. ALLOCATED(sunlit_mask)) ALLOCATE( sunlit_mask(mp) )
+
+sunlit_mask = .FALSE.
+! Define sunlit mask:
+do i=1, mp  
+  if( coszen(i) > coszen_tols ) sunlit_mask(i) = .true.  
+end do
+
+End subroutine fsunlit_mask
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+subroutine fsunlit_veg_mask( sunlit_veg_mask, mp, veg_mask, sunlit_mask )
+
+implicit none
+LOGICAL, allocatable :: sunlit_veg_mask(:)
+integer ::  mp
+LOGICAL :: veg_mask(mp)
+LOGICAL :: sunlit_mask(mp)
+integer :: i
+
+IF ( .NOT. ALLOCATED(sunlit_veg_mask) ) ALLOCATE( sunlit_veg_mask(mp) )
+
+sunlit_veg_mask = .FALSE.
+! Define sunlit AND vegetation mask:
+do i=1, mp  
+  if( veg_mask(i) .AND.  sunlit_mask(i) ) sunlit_veg_mask(i) = .true.
+end do
+
+End subroutine fsunlit_veg_mask
+
+
+
 
 END MODULE cable_cbm_module
