@@ -1807,7 +1807,7 @@ CONTAINS
     REAL(r_2), DIMENSION(resolution) :: p
 
     REAL :: MOL_WATER_2_G_WATER, G_TO_KG, UMOL_TO_MOL, MB_TO_KPA, PA_TO_KPA
-    REAL :: avg_kplant
+    REAL :: avg_kplant, new_plc
     REAL, DIMENSION(mf) :: Kcmax
 
 
@@ -2451,7 +2451,14 @@ CONTAINS
 
           canopy%kplant(i) = avg_kplant
 
-          canopy%plc(i) = calc_plc(avg_kplant, veg%Kmax(i))
+          new_plc = calc_plc(avg_kplant, veg%Kmax(i))
+
+          IF (new_plc > canopy%plc_prev(i)) THEN
+             canopy%plc(i) = new_plc
+             canopy%plc_prev(i) = new_plc
+          ENDIF ! otherwise don't update
+
+          !canopy%plc(i) = calc_plc(avg_kplant, veg%Kmax(i))
 
           ! We've reached the point of hydraulic failure, so hold the plc
           ! here for outputting purposes..

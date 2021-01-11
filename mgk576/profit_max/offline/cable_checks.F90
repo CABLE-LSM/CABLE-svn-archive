@@ -183,6 +183,7 @@ MODULE cable_checks_module
           psi_leaf = (/-100.,100./),                   &
           kplant = (/-100.,100./),                   &
           plc = (/0.,100./),                   &
+          plc_prev = (/0.,100./),                   &
           psi_stem = (/-100.,100./),                   &
           gswx = (/-1,10/),                            &
           !MD

@@ -1652,6 +1652,7 @@ CONTAINS
     canopy%kstem2leaf(:) = 0.0
     canopy%kplant(:) = 0.0
     canopy%plc(:) = 0.0
+    canopy%plc_prev(:) = 0.0
 
     ssnow%Rsr(:) = 0.0
     ssnow%weighted_psi_soil(:) = 0.0
@@ -1920,7 +1921,7 @@ CONTAINS
     END IF
     ! END IF
 
-    
+
   END SUBROUTINE derived_parameters
   !============================================================================
   SUBROUTINE check_parameter_values(soil, veg, ssnow)

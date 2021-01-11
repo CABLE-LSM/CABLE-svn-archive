@@ -2756,7 +2756,7 @@ CONTAINS
        ! what is used anyway
        t_over_t_sat = MAX(1.0e-9, MIN(1.0, ssnow%wb(i,j) / soil%ssat(i)))
        !ssnow%psi_soil(i,j) = psi_sat * t_over_t_sat**(-soil%bch(i))
-       ssnow%psi_soil(i,j) = MAX(-50.0, psi_sat * t_over_t_sat**(-soil%bch(i)))
+       ssnow%psi_soil(i,j) = MAX(-5.0, psi_sat * t_over_t_sat**(-soil%bch(i)))
     END DO
 
   END SUBROUTINE calc_swp
@@ -2814,6 +2814,7 @@ CONTAINS
      DO j = 1, ms ! Loop over 6 soil layers
 
         IF (ssnow%soilR(i,j) .GT. 0.0 .AND. veg%froot(i,j) .GT. 0.0) THEN
+
            est_evap(j) = MAX(0.0, &
                         (ssnow%psi_soil(i,j) - min_root_wp) / ssnow%soilR(i,j))
         ELSE
@@ -2850,8 +2851,8 @@ CONTAINS
         ssnow%weighted_psi_soil(i) = ssnow%weighted_psi_soil(i) / depth_sum
      END IF
 
-     IF (ssnow%weighted_psi_soil(i) < -50.0) THEN
-        ssnow%weighted_psi_soil(i) = -50.0
+     IF (ssnow%weighted_psi_soil(i) < -20.0) THEN
+        ssnow%weighted_psi_soil(i) = -20.0
      ENDIF
 
      ! SPA method to figure out relative water uptake.
