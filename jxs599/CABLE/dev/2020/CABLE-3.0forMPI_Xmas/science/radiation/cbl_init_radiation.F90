@@ -31,7 +31,7 @@ real :: Ccoszen_tols_tiny  ! 1e-4 * threshold cosine of sun's zenith angle, belo
 
 CONTAINS
 
-  SUBROUTINE init_radiation( met, rad, veg, canopy )
+  SUBROUTINE init_radiation( met, rad, veg, canopy, veg_mask, sunlit_veg_mask)
 
     ! Alternate version of init_radiation that uses only the
     ! zenith angle instead of the fluxes. This means it can be called
@@ -53,6 +53,9 @@ USE cable_other_constants_mod, ONLY : CGauss_W => Gauss_W
     TYPE (canopy_type),    INTENT(IN)    :: canopy
 
     TYPE (veg_parameter_type), INTENT(INOUT) :: veg
+
+logical :: veg_mask(mp) 
+logical :: sunlit_veg_mask(mp) 
 
     REAL, DIMENSION(nrb) ::                                                     &
          cos3       ! cos(15 45 75 degrees)
@@ -81,7 +84,7 @@ USE cable_other_constants_mod, ONLY : CGauss_W => Gauss_W
     cos3 = COS(CPI180 * (/ 15.0, 45.0, 75.0 /))
 
     ! See Sellers 1985, eq.13 (leaf angle parameters):
-    WHERE (canopy%vlaiw > CLAI_THRESH)
+    WHERE ( veg_mask )
        xphi1 = 0.5 - veg%xfang * (0.633 + 0.33 * veg%xfang)
        xphi2 = 0.877 * (1.0 - 2.0 * xphi1)
     END WHERE
@@ -97,7 +100,7 @@ USE cable_other_constants_mod, ONLY : CGauss_W => Gauss_W
        xk = 0.0
     END WHERE
 
-    WHERE (canopy%vlaiw > CLAI_THRESH ) ! vegetated
+    WHERE ( veg_mask )
 
        ! Extinction coefficient for diffuse radiation for black leaves:
        rad%extkd = -LOG( SUM(                                                   &
@@ -138,8 +141,9 @@ CALL calc_rhoch( c1,rhoch, mp, nrb, veg%taul, veg%refl )
 
     ! In gridcells where vegetation exists....
 
+    !WHERE ( sunlit_veg_mask )
     !!vh !! include RAD_THRESH in condition
-    WHERE (canopy%vlaiw > CLAI_THRESH .AND. met%coszen > 1.e-6 )
+    WHERE ( veg_mask .AND. met%coszen > 1.e-6 )
 
        ! SW beam extinction coefficient ("black" leaves, extinction neglects
        ! leaf SW transmittance and REFLectance):
