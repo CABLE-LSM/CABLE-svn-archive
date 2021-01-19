@@ -116,8 +116,8 @@ CALL ruff_resist(veg, rough, ssnow, canopy,veg%vlai, veg%hc, canopy%vlaiw )
 CALL define_air (met, air)
 
 call fveg_mask( veg_mask, mp, Clai_thresh, canopy%vlaiw )
-call fsunlit_mask( sunlit_mask, mp, Ccoszen_tols, met%coszen )
-!call fsunlit_mask( sunlit_mask, mp, CRAD_THRESH,( met%fsd(:,1)+met%fsd(:,2) ) )
+!call fsunlit_mask( sunlit_mask, mp, Ccoszen_tols, met%coszen )
+call fsunlit_mask( sunlit_mask, mp, CRAD_THRESH,( met%fsd(:,1)+met%fsd(:,2) ) )
 call fsunlit_veg_mask( sunlit_veg_mask, mp )
 
 CALL init_radiation(met,rad,veg, canopy) ! need to be called at every dt
