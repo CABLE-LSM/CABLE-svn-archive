@@ -127,8 +127,8 @@ CALL calc_rhoch( c1,rhoch, mp, nrb, veg%taul, veg%refl )
     IF( .NOT. cable_runtime%um) THEN
 
        ! Define beam fraction, fbeam:
-       rad%fbeam(:,1) = spitter(mp, cpi, met%doy, met%coszen, met%fsd(:,1))
-       rad%fbeam(:,2) = spitter(mp, cpi, met%doy, met%coszen, met%fsd(:,2))
+       rad%fbeam(:,1) = spitter(mp, cpi, int(met%doy), met%coszen, met%fsd(:,1))
+       rad%fbeam(:,2) = spitter(mp, cpi, int(met%doy), met%coszen, met%fsd(:,2))
 
        ! coszen is set during met data read in.
 

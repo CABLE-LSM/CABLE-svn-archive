@@ -14,7 +14,7 @@ implicit none
 !re-decl input args
 integer :: mp
 real :: cpi
-real :: doy(mp)       ! day of year !typecast from integer
+integer :: doy(mp)       ! day of year !typecast from integer
 real :: coszen(mp)    ! cos(zenith angle of sun)
 real :: fsd(mp)       ! short wave down (positive) w/m^2
 
