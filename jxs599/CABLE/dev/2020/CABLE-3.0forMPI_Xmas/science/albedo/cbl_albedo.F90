@@ -142,17 +142,16 @@ CALL calc_rhoch( c1,rhoch, mp, nrb, VegTaul, VegRefl )
     ! leaf transmittance and reflection (ie. NOT black leaves):
     !---1 = visible, 2 = nir radiaition
     DO b = 1, 2
-       EffExtCoeff_dif(:,b) = ExtCoeff_dif * c1(:,b)
+       EffExtCoeff_dif(:,b) = ExtCoeff_dif(:) * c1(:,b)
     END DO
 
     DO b = 1, 2
          !---where vegetated and sunlit
        WHERE (sunlit_veg_mask)
-          EffExtCoeff_beam(:,b) = ExtCoeff_beam * c1(:,b)
+          EffExtCoeff_beam(:,b) = ExtCoeff_beam(:) * c1(:,b)
        END WHERE
     END DO
 
-       !7858!EffExtCoeff_dif(:,b) = ExtCoeff_dif * c1(:,b)
 
     DO b = 1, 2
        !--Define canopy diffuse transmittance (fraction):
@@ -168,8 +167,6 @@ CALL calc_rhoch( c1,rhoch, mp, nrb, VegTaul, VegRefl )
     ! Canopy beam transmittance (fraction):
     DO b = 1, 2
        WHERE (sunlit_veg_mask)
-
-          !7858!EffExtCoeff_beam(:,b) = ExtCoeff_beam * c1(:,b)
 
           ! Canopy reflection (6.21) beam:
           CanopyRefl_beam(:,b) = 2. * ExtCoeff_beam / ( ExtCoeff_beam + ExtCoeff_dif )          &
