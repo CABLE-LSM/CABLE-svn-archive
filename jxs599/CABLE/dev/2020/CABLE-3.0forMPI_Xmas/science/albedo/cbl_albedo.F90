@@ -152,6 +152,32 @@ CALL calc_rhoch( c1,rhoch, mp, nrb, VegTaul, VegRefl )
        END WHERE
     END DO
 
+! Define canopy Reflectance for diffuse/direct radiation
+! Formerly rad%rhocbm, rad%rhocdf
+! Canopy reflection (6.21) beam:
+DO i = 1,mp
+  DO b = 1, 2
+    IF( sunlit_veg_mask(i) ) &
+      CanopyRefl_beam(i,b) = 2. * ExtCoeff_beam(i) / &
+                            ( ExtCoeff_beam(i) + ExtCoeff_dif(i) )          & 
+                            * rhoch(i,b)
+    END DO
+END DO
+
+! Canopy REFLection of diffuse radiation for black leaves:
+!DO i=1,nrb
+!
+!  CanopyRefl_dif(:,i) = rhoch(:,i) *  2. *                                &
+!                       ( CGAUSS_W(1) * xk(:,1) / ( xk(:,1) + ExtCoeff_dif(:) )&
+!                       + CGAUSS_W(2) * xk(:,2) / ( xk(:,2) + ExtCoeff_dif(:) )&
+!                       + CGAUSS_W(3) * xk(:,3) / ( xk(:,3) + ExtCoeff_dif(:) ) )
+!
+!ENDDO
+
+!!call CanopyReflectance( CanopyRefl_beam, CanopyRefl_dif, &
+!!                        mp, nrb, CGauss_w, sunlit_veg_mask, &
+!!                        AlbSnow, xk, rhoch,                  &
+!!                        ExtCoeff_beam, ExtCoeff_dif)
 
     DO b = 1, 2
        !--Define canopy diffuse transmittance (fraction):
