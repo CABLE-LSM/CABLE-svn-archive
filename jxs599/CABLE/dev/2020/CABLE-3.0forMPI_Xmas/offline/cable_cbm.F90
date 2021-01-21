@@ -116,7 +116,7 @@ call fveg_mask( veg_mask, mp, Clai_thresh, canopy%vlaiw )
 call fsunlit_mask( sunlit_mask, mp, CRAD_THRESH,( met%fsd(:,1)+met%fsd(:,2) ) )
 call fsunlit_veg_mask( sunlit_veg_mask, mp )
 
-CALL init_radiation(met,rad,veg, canopy, veg_mask, sunlit_veg_mask) ! need to be called at every dt
+CALL init_radiation(met,rad,veg, canopy, veg_mask, sunlit_veg_mask,xk) ! need to be called at every dt
 
 call Albedo(                        &
          ssnow%AlbSoilsn, soil%AlbSoil,                                &

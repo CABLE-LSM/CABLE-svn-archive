@@ -31,7 +31,7 @@ real :: Ccoszen_tols_tiny  ! 1e-4 * threshold cosine of sun's zenith angle, belo
 
 CONTAINS
 
-  SUBROUTINE init_radiation( met, rad, veg, canopy, veg_mask, sunlit_veg_mask)
+  SUBROUTINE init_radiation( met, rad, veg, canopy, veg_mask, sunlit_veg_mask,xk)
 
     ! Alternate version of init_radiation that uses only the
     ! zenith angle instead of the fluxes. This means it can be called
