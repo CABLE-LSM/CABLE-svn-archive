@@ -121,22 +121,10 @@ REAL :: xphi2(mp)      ! leaf angle parmameter 2
 
     cos3 = COS(CPI180 * (/ 15.0, 45.0, 75.0 /))
 
-    ! See Sellers 1985, eq.13 (leaf angle parameters):
-    WHERE ( veg_mask )
-       xphi1 = 0.5 - veg%xfang * (0.633 + 0.33 * veg%xfang)
-       xphi2 = 0.877 * (1.0 - 2.0 * xphi1)
-    END WHERE
-
-    ! 2 dimensional LAI
-    xvlai2 = SPREAD(canopy%vlaiw, 2, 3)
-
-    ! Extinction coefficient for beam radiation and black leaves;
-    ! eq. B6, Wang and Leuning, 1998
-    WHERE (xvlai2 > CLAI_THRESH) ! vegetated
-       xk = SPREAD(xphi1, 2, 3) / SPREAD(cos3, 1, mp) + SPREAD(xphi2, 2, 3)
-    ELSEWHERE ! i.e. bare soil
-       xk = 0.0
-    END WHERE
+! Compute common scaling co-efficients used throughout init_radiation
+call Common_InitRad_Scalings( xphi1, xphi2, xk, xvlai2, c1, rhoch,             &
+                            mp, nrb, Cpi180,cLAI_thresh, veg_mask,             &
+                            reducedLAIdue2snow, VegXfang, VegTaul, VegRefl)
 
     WHERE ( veg_mask )
 
@@ -149,8 +137,6 @@ REAL :: xphi2(mp)      ! leaf angle parmameter 2
        rad%extkd = 0.7
     END WHERE
 
-
-CALL calc_rhoch( c1,rhoch, mp, nrb, veg%taul, veg%refl )
 
     ! Canopy REFLection of diffuse radiation for black leaves:
     DO ictr=1,nrb
