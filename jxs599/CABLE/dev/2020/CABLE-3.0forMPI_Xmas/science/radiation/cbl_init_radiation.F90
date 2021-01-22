@@ -30,22 +30,32 @@ real :: Ccoszen_tols_huge  ! 1e-4 * threshold cosine of sun's zenith angle, belo
 real :: Ccoszen_tols_tiny  ! 1e-4 * threshold cosine of sun's zenith angle, below which considered SUNLIT
 
 CONTAINS
-
-  SUBROUTINE init_radiation( met, rad, veg, canopy, veg_mask, sunlit_veg_mask,xk)
+SUBROUTINE init_radiation( ExtCoeff_beam, ExtCoeff_dif,                        &
+                        EffExtCoeff_beam, EffExtCoeff_dif, RadFbeam,           &
+                        c1, rhoch, xk,                                         &
+                        mp,nrb,                                                &
+                        Clai_thresh, Ccoszen_tols, CGauss_w, Cpi, Cpi180,      &
+                        cbl_standalone, jls_standalone, jls_radiation,         &
+                        subr_name,                                             &
+                        veg_mask, sunlit_mask, sunlit_veg_mask,                &
+                        VegXfang, VegTaul, VegRefl,                            &
+                        coszen, metDoY, SW_down,                               & 
+                        reducedLAIdue2snow, & ! )
+met, rad, veg, canopy )
 
     ! Alternate version of init_radiation that uses only the
     ! zenith angle instead of the fluxes. This means it can be called
     ! before the cable albedo calculation.
     USE cable_def_types_mod, ONLY : radiation_type, met_type, canopy_type,      &
-         veg_parameter_type, nrb, mp
+         veg_parameter_type!, nrb, mp
     USE cable_common_module
 
 USE cbl_spitter_module, ONLY : Spitter
 USE cbl_rhoch_module, ONLY : calc_rhoch
-USE cable_math_constants_mod, ONLY : CPI => PI
-USE cable_math_constants_mod, ONLY : CPI180 => PI180
-USE cable_other_constants_mod, ONLY : CLAI_thresh => LAI_thresh
-USE cable_other_constants_mod, ONLY : CGauss_W => Gauss_W
+!USE cable_math_constants_mod, ONLY : CPI => PI
+!USE cable_math_constants_mod, ONLY : CPI180 => PI180
+!USE cable_other_constants_mod, ONLY : CLAI_thresh => LAI_thresh
+!USE cable_other_constants_mod, ONLY : CGauss_W => Gauss_W
 
     TYPE (radiation_type), INTENT(INOUT) :: rad
     TYPE (met_type),       INTENT(INOUT) :: met
@@ -54,32 +64,60 @@ USE cable_other_constants_mod, ONLY : CGauss_W => Gauss_W
 
     TYPE (veg_parameter_type), INTENT(INOUT) :: veg
 
-logical :: veg_mask(mp) 
-logical :: sunlit_veg_mask(mp) 
+
+!re-decl input args
+!model dimensions
+integer :: mp                   !total number of "tiles"  
+integer :: nrb                  !number of radiation bands [per legacy=3, but really=2 VIS,NIR. 3rd dim was for LW]
+
+!returned variables
+REAL :: ExtCoeff_beam(mp)       !"raw" Extinction co-efficient for Direct Beam component of SW radiation
+REAL :: ExtCoeff_dif(mp)        !"raw"Extinction co-efficient for Diffuse component of SW radiation
+REAL :: EffExtCoeff_beam(mp,nrb)!Effective Extinction co-efficient for Direct Beam component of SW radiation
+REAL :: EffExtCoeff_dif(mp,nrb) !Effective Extinction co-efficient for Diffuse component of SW radiation
+REAL :: RadFbeam(mp,nrb)        !Beam Fraction of Downward SW radiation [formerly rad%fbeam]
+
+
+!constants
+real :: Clai_thresh             !threshold LAI below which considered UN-vegetated
+real :: Ccoszen_tols            !threshold cosine of sun's zenith angle, below which considered SUNLIT
+real :: Cgauss_w(nrb)
+real :: Cpi                     !PI - from cable_math_constants originally
+real :: Cpi180                  !PI in radians - from cable_math_constants originally
+!what model am i in
+LOGICAL :: cbl_standalone       !runtime switch defined in cable_*main routines signifying this is cable_standalone
+LOGICAL :: jls_standalone       !runtime switch defined in cable_*main routines signifying this is jules_standalone
+LOGICAL :: jls_radiation        !runtime switch defined in cable_*main routines signifying this is the radiation pathway 
+character(len=*) :: subr_name !where am i called from
+!masks
+logical :: veg_mask(mp)         !vegetated mask [formed by comparrisson of LAI CLAI_thresh ]
+logical :: sunlit_mask(mp)      !sunlit mask [formed by comparrisson of coszen to coszen_tols i.e. is the sun up]
+logical :: sunlit_veg_mask(mp)  !combined mask - BOTH sunlit and vegetated
+
+!vegetation parameters input via namelist
+REAL :: VegXfang(mp)
+REAL :: VegTaul(mp,nrb)
+REAL :: VegRefl(mp,nrb)
+
+REAL :: reducedLAIdue2snow(mp)  !Effective LAI given (potential sno coverage)
+REAL :: coszen(mp)              ! cosine zenith angle of sun
+REAL :: SW_down(mp,nrb)         !Downward SW radiation [formerly met%fsd]
+integer :: metDoY(mp)           !Day of the Year [formerly met%doy]
+
+!co-efficients used throughout init_radiation used in albedo as well
+REAL :: c1(mp,nrb)
+REAL :: rhoch(mp,nrb)
+REAL :: xk(mp,nrb)              ! extinct. coef.for beam rad. and black leaves
+
+!local_vars - common scaling co-efficients used throughout init_radiation
+REAL :: xvlai2(mp,nrb) ! 2D vlai
+REAL :: xphi1(mp)      ! leaf angle parmameter 1
+REAL :: xphi2(mp)      ! leaf angle parmameter 2
 
     REAL, DIMENSION(nrb) ::                                                     &
          cos3       ! cos(15 45 75 degrees)
-    REAL, DIMENSION(mp,nrb) ::                                                  &
-         xvlai2,  & ! 2D vlai
-         xk         ! extinct. coef.for beam rad. and black leaves
-
-    REAL, DIMENSION(mp) ::                                                      &
-         xphi1,   & ! leaf angle parmameter 1
-         xphi2      ! leaf angle parmameter 2
-
-    REAL, DIMENSION(:,:), ALLOCATABLE, SAVE ::                                  &
-                                ! subr to calc these curr. appears twice. fix this
-         c1,      & !
-         rhoch
-
-
 
     INTEGER :: ictr
-
-
-    !CALL point2constants( C )
-
-    IF(.NOT. ALLOCATED(c1) ) ALLOCATE( c1(mp,nrb), rhoch(mp,nrb) )
 
     cos3 = COS(CPI180 * (/ 15.0, 45.0, 75.0 /))
 
@@ -164,5 +202,92 @@ CALL calc_rhoch( c1,rhoch, mp, nrb, veg%taul, veg%refl )
     END WHERE
 
   END SUBROUTINE init_radiation
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+subroutine Common_InitRad_Scalings( xphi1, xphi2, xk, xvlai2, c1, rhoch,      &
+                            mp, nrb, Cpi180,cLAI_thresh, veg_mask,             &
+                            reducedLAIdue2snow,                &
+                            VegXfang, VegTaul, VegRefl)
+!subrs
+USE cbl_rhoch_module,   ONLY : calc_rhoch
+implicit none
+!re-decl in args
+integer :: mp
+integer :: nrb
+real :: Cpi180
+real :: cLAI_thresh
+real :: xphi1(mp)    ! leaf angle parmameter 1
+real :: xphi2(mp)    ! leaf angle parmameter 2
+REAL :: xvlai2(mp,nrb)  ! 2D vlai
+REAL :: xk(mp,nrb)      ! extinct. coef.for beam rad. and black leaves
+REAL :: c1(mp,nrb)
+REAL :: rhoch(mp,nrb)
+real :: reducedLAIdue2snow(mp)
+real :: VegXfang(mp)
+REAL :: VegTaul(mp,nrb)
+REAL :: VegRefl(mp,nrb)
+logical :: veg_mask(mp)
+
+call common_InitRad_coeffs( xphi1, xphi2, xk, xvlai2, mp, nrb, Cpi180,&
+                            cLAI_thresh, veg_mask, VegXfang, reducedLAIdue2snow  )
+
+CALL calc_rhoch( c1,rhoch, mp, nrb, VegTaul, VegRefl )
+
+End subroutine Common_InitRad_Scalings
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+subroutine  common_InitRad_coeffs( xphi1, xphi2, xk, xvlai2, mp, nrb, Cpi180,&
+                            cLAI_thresh, veg_mask, VegXfang, reducedLAIdue2snow  )
+
+
+implicit none
+!re-decl in args
+integer :: mp
+integer :: nrb
+real :: Cpi180
+real :: xphi1(mp)    ! leaf angle parmameter 1
+real :: xphi2(mp)    ! leaf angle parmameter 2
+REAL :: xvlai2(mp,nrb)  ! 2D vlai
+REAL :: xk(mp,nrb)      ! extinct. coef.for beam rad. and black leaves
+real :: VegXfang(mp)
+real :: reducedLAIdue2snow(mp)
+logical :: veg_mask(mp)
+real:: cLAI_thresh
+
+!local vars
+REAL :: cos3(nrb)      ! cos(15 45 75 degrees)
+
+cos3 = COS(CPI180 * (/ 15.0, 45.0, 75.0 /))
+
+  xphi1 = 0.0
+  xphi2 = 0.0
+  xvlai2 = 0.0
+! See Sellers 1985, eq.13 (leaf angle parameters):
+WHERE ( veg_mask )
+  xphi1 = 0.5 - VegXfang * (0.633 + 0.33 * VegXfang)
+  xphi2 = 0.877 * (1.0 - 2.0 * xphi1)
+END WHERE
+
+! 2 dimensional LAI
+xvlai2 = SPREAD(reducedLAIdue2snow, 2, 3)
+
+! Extinction coefficient for beam radiation and black leaves;
+! eq. B6, Wang and Leuning, 1998
+WHERE (xvlai2 > cLAI_THRESH) ! vegetated
+   xk = SPREAD(xphi1, 2, 3) / SPREAD(cos3, 1, mp) + SPREAD(xphi2, 2, 3)
+ELSEWHERE ! i.e. bare soil
+   xk = 0.0
+END WHERE
+
+End subroutine common_InitRad_coeffs
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
 
 END MODULE cbl_init_radiation_module
