@@ -52,10 +52,6 @@ met, rad, veg, canopy )
 
 USE cbl_spitter_module, ONLY : Spitter
 USE cbl_rhoch_module, ONLY : calc_rhoch
-!USE cable_math_constants_mod, ONLY : CPI => PI
-!USE cable_math_constants_mod, ONLY : CPI180 => PI180
-!USE cable_other_constants_mod, ONLY : CLAI_thresh => LAI_thresh
-!USE cable_other_constants_mod, ONLY : CGauss_W => Gauss_W
 
     TYPE (radiation_type), INTENT(INOUT) :: rad
     TYPE (met_type),       INTENT(INOUT) :: met
@@ -141,35 +137,9 @@ Ccoszen_tols_tiny = Ccoszen_tols * 1e-2
        ExtCoeff_dif = 0.7
     END WHERE
 
-
-    ! Canopy REFLection of diffuse radiation for black leaves:
-    DO ictr=1,nrb
-
-       rad%rhocdf(:,ictr) = rhoch(:,ictr) *  2. *                                &
-            ( CGAUSS_W(1) * xk(:,1) / ( xk(:,1) + rad%extkd(:) )&
-            + CGAUSS_W(2) * xk(:,2) / ( xk(:,2) + rad%extkd(:) )&
-            + CGAUSS_W(3) * xk(:,3) / ( xk(:,3) + rad%extkd(:) ) )
-
-    ENDDO
-
-    IF( .NOT. cable_runtime%um) THEN
-
-       ! Define beam fraction, fbeam:
-       RadFbeam(:,1) = spitter(mp, cpi, MetDoy, coszen, SW_down(:,1))
-       RadFbeam(:,2) = spitter(mp, cpi, MetDoy, coszen, SW_down(:,2))
-
-       ! coszen is set during met data read in.
-
-       WHERE (coszen <1.0e-2)
-          RadFbeam(:,1) = 0.0
-          RadFbeam(:,2) = 0.0
-       END WHERE
-
-    ENDIF
-
     ! In gridcells where vegetation exists....
     !7864!!WHERE ( sunlit_veg_mask )
-    WHERE ( veg_mask .AND. met%coszen > 1.e-6 )
+    WHERE ( veg_mask .AND. coszen > 1.e-6 )
 
        ! SW beam extinction coefficient ("black" leaves, extinction neglects
        ! leaf SW transmittance and REFLectance):
@@ -189,30 +159,21 @@ Ccoszen_tols_tiny = Ccoszen_tols * 1e-2
        ExtCoeff_beam=1.0e5
     END WHERE
 
+    IF( .NOT. cable_runtime%um) THEN
 
-    !7864!! In gridcells where vegetation exists....
+       ! Define beam fraction, fbeam:
+       RadFbeam(:,1) = spitter(mp, cpi, MetDoy, coszen, SW_down(:,1))
+       RadFbeam(:,2) = spitter(mp, cpi, MetDoy, coszen, SW_down(:,2))
 
-    !7864!!WHERE ( sunlit_veg_mask )
-    !7864!!!vh !! include RAD_THRESH in condition
-    !7864!WHERE ( veg_mask .AND. met%coszen > 1.e-6 )
+       ! coszen is set during met data read in.
 
-    !7864!   ! SW beam extinction coefficient ("black" leaves, extinction neglects
-    !7864!   ! leaf SW transmittance and REFLectance):
-    !7864!   rad%extkb = xphi1 / met%coszen + xphi2
+       WHERE (coszen <1.0e-2)
+          RadFbeam(:,1) = 0.0
+          RadFbeam(:,2) = 0.0
+       END WHERE
 
-    !7864!ELSEWHERE ! i.e. bare soil
-    !7864!   rad%extkb = 0.5
-    !7864!END WHERE
+    ENDIF
 
-    !7864!WHERE ( ABS(rad%extkb - rad%extkd)  < 0.001 )
-    !7864!   rad%extkb = rad%extkd + 0.001
-    !7864!END WHERE
-
-    !7864!WHERE( met%coszen < 1.e-6 )
-    !7864!   ! higher value precludes sunlit leaves at night. affects
-    !7864!   ! nighttime evaporation - Ticket #90
-    !7864!   rad%extkb=1.0e5
-    !7864!END WHERE
 
   END SUBROUTINE init_radiation
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
