@@ -135,9 +135,8 @@ CALL init_radiation( rad%extkb, rad%extkd,                                     &
                      !VegXfang, VegTaul, VegRefl
                      met%coszen, int(met%DoY), met%fsd,                        &
                      !coszen, metDoY, SW_down,
-                     canopy%vlaiw,                                             &
-met,rad,veg, canopy )
-                  ! ) !reducedLAIdue2snow 
+                     canopy%vlaiw                                              &
+                   ) !reducedLAIdue2snow 
  
 
 call Albedo(                        &

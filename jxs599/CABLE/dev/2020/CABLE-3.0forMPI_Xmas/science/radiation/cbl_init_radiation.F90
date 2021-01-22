@@ -40,8 +40,7 @@ SUBROUTINE init_radiation( ExtCoeff_beam, ExtCoeff_dif,                        &
                         veg_mask, sunlit_mask, sunlit_veg_mask,                &
                         VegXfang, VegTaul, VegRefl,                            &
                         coszen, metDoY, SW_down,                               & 
-                        reducedLAIdue2snow, & ! )
-met, rad, veg, canopy )
+                        reducedLAIdue2snow )
 
     ! Alternate version of init_radiation that uses only the
     ! zenith angle instead of the fluxes. This means it can be called
@@ -52,14 +51,6 @@ met, rad, veg, canopy )
 
 USE cbl_spitter_module, ONLY : Spitter
 USE cbl_rhoch_module, ONLY : calc_rhoch
-
-    TYPE (radiation_type), INTENT(INOUT) :: rad
-    TYPE (met_type),       INTENT(INOUT) :: met
-
-    TYPE (canopy_type),    INTENT(IN)    :: canopy
-
-    TYPE (veg_parameter_type), INTENT(INOUT) :: veg
-
 
 !re-decl input args
 !model dimensions
@@ -117,6 +108,16 @@ REAL :: xphi2(mp)      ! leaf angle parmameter 2
 
     cos3 = COS(CPI180 * (/ 15.0, 45.0, 75.0 /))
 
+!Null Initializations
+ExtCoeff_beam(:) = 0.0
+ExtCoeff_dif(:) = 0.0
+EffExtCoeff_beam(:,:) = 0.0
+EffExtCoeff_dif(:,:) = 0.0
+RadFbeam(:,:) = 0.0
+c1(:,:) = 0.0
+rhoch(:,:) = 0.0
+xk(:,:) = 0.0
+
 ! Compute common scaling co-efficients used throughout init_radiation
 call Common_InitRad_Scalings( xphi1, xphi2, xk, xvlai2, c1, rhoch,             &
                             mp, nrb, Cpi180,cLAI_thresh, veg_mask,             &
@@ -138,7 +139,7 @@ Ccoszen_tols_tiny = Ccoszen_tols * 1e-2
     END WHERE
 
     ! In gridcells where vegetation exists....
-    !7864!!WHERE ( sunlit_veg_mask )
+    !7613!!WHERE ( sunlit_veg_mask )
     WHERE ( veg_mask .AND. coszen > 1.e-6 )
 
        ! SW beam extinction coefficient ("black" leaves, extinction neglects
