@@ -126,15 +126,19 @@ call Common_InitRad_Scalings( xphi1, xphi2, xk, xvlai2, c1, rhoch,             &
                             mp, nrb, Cpi180,cLAI_thresh, veg_mask,             &
                             reducedLAIdue2snow, VegXfang, VegTaul, VegRefl)
 
+!Limiting Initializations for stability
+Ccoszen_tols_huge = Ccoszen_tols * 1e2 
+Ccoszen_tols_tiny = Ccoszen_tols * 1e-2 
+
     WHERE ( veg_mask )
 
        ! Extinction coefficient for diffuse radiation for black leaves:
-       rad%extkd = -LOG( SUM(                                                   &
+       ExtCoeff_dif = -LOG( SUM(                                                   &
             SPREAD( CGAUSS_W, 1, mp ) * EXP( -xk * xvlai2 ), 2) )       &
-            / canopy%vlaiw
+            / reducedLAIdue2snow
 
     ELSEWHERE ! i.e. bare soil
-       rad%extkd = 0.7
+       ExtCoeff_dif = 0.7
     END WHERE
 
 
@@ -151,44 +155,66 @@ call Common_InitRad_Scalings( xphi1, xphi2, xk, xvlai2, c1, rhoch,             &
     IF( .NOT. cable_runtime%um) THEN
 
        ! Define beam fraction, fbeam:
-       rad%fbeam(:,1) = spitter(mp, cpi, int(met%doy), met%coszen, met%fsd(:,1))
-       rad%fbeam(:,2) = spitter(mp, cpi, int(met%doy), met%coszen, met%fsd(:,2))
+       RadFbeam(:,1) = spitter(mp, cpi, MetDoy, coszen, SW_down(:,1))
+       RadFbeam(:,2) = spitter(mp, cpi, MetDoy, coszen, SW_down(:,2))
 
        ! coszen is set during met data read in.
 
-       WHERE (met%coszen <1.0e-2)
-          rad%fbeam(:,1) = 0.0
-          rad%fbeam(:,2) = 0.0
+       WHERE (coszen <1.0e-2)
+          RadFbeam(:,1) = 0.0
+          RadFbeam(:,2) = 0.0
        END WHERE
 
     ENDIF
 
     ! In gridcells where vegetation exists....
-
-    !WHERE ( sunlit_veg_mask )
-    !!vh !! include RAD_THRESH in condition
+    !7864!!WHERE ( sunlit_veg_mask )
     WHERE ( veg_mask .AND. met%coszen > 1.e-6 )
 
        ! SW beam extinction coefficient ("black" leaves, extinction neglects
        ! leaf SW transmittance and REFLectance):
-       rad%extkb = xphi1 / met%coszen + xphi2
+       ExtCoeff_beam = xphi1 / coszen + xphi2
 
     ELSEWHERE ! i.e. bare soil
-       rad%extkb = 0.5
+       ExtCoeff_beam = 0.5
     END WHERE
 
-    WHERE ( ABS(rad%extkb - rad%extkd)  < 0.001 )
-       rad%extkb = rad%extkd + 0.001
+    WHERE ( ABS(ExtCoeff_beam - ExtCoeff_dif)  < 0.001 )
+       ExtCoeff_beam = ExtCoeff_dif + 0.001
     END WHERE
 
-    WHERE( met%coszen < 1.e-6 )
+    WHERE( coszen < 1.e-6 )
        ! higher value precludes sunlit leaves at night. affects
        ! nighttime evaporation - Ticket #90
-       rad%extkb=1.0e5
+       ExtCoeff_beam=1.0e5
     END WHERE
 
-  END SUBROUTINE init_radiation
 
+    !7864!! In gridcells where vegetation exists....
+
+    !7864!!WHERE ( sunlit_veg_mask )
+    !7864!!!vh !! include RAD_THRESH in condition
+    !7864!WHERE ( veg_mask .AND. met%coszen > 1.e-6 )
+
+    !7864!   ! SW beam extinction coefficient ("black" leaves, extinction neglects
+    !7864!   ! leaf SW transmittance and REFLectance):
+    !7864!   rad%extkb = xphi1 / met%coszen + xphi2
+
+    !7864!ELSEWHERE ! i.e. bare soil
+    !7864!   rad%extkb = 0.5
+    !7864!END WHERE
+
+    !7864!WHERE ( ABS(rad%extkb - rad%extkd)  < 0.001 )
+    !7864!   rad%extkb = rad%extkd + 0.001
+    !7864!END WHERE
+
+    !7864!WHERE( met%coszen < 1.e-6 )
+    !7864!   ! higher value precludes sunlit leaves at night. affects
+    !7864!   ! nighttime evaporation - Ticket #90
+    !7864!   rad%extkb=1.0e5
+    !7864!END WHERE
+
+  END SUBROUTINE init_radiation
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
@@ -273,7 +299,6 @@ End subroutine common_InitRad_coeffs
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
 
 
 END MODULE cbl_init_radiation_module
