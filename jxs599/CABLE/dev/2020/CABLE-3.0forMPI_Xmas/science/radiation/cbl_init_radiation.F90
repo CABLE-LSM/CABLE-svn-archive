@@ -139,7 +139,6 @@ Ccoszen_tols_tiny = Ccoszen_tols * 1e-2
     END WHERE
 
     ! In gridcells where vegetation exists....
-    !7613!!WHERE ( sunlit_veg_mask )
     WHERE ( veg_mask .AND. coszen > 1.e-6 )
 
        ! SW beam extinction coefficient ("black" leaves, extinction neglects
@@ -174,7 +173,6 @@ Ccoszen_tols_tiny = Ccoszen_tols * 1e-2
        END WHERE
 
     ENDIF
-
 
   END SUBROUTINE init_radiation
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

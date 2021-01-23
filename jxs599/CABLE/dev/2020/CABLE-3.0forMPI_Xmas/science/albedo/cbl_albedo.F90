@@ -102,10 +102,10 @@ REAL :: EffExtCoeff_dif(mp,nrb)     !Effective Extinction co-eff
                                     !Diffuse component of SW radiation (ExtCoeff_difm)
 
 !Canopy reflectance/transmitance compued in albedo() 
-REAL :: CanopyRefl_dif(mp,nrb)      !Canopy reflectance  (CanopyRefl_dif   
-REAL :: CanopyRefl_beam(mp,nrb)     !Canopy reflectance  (CanopyRefl_beam)   
-REAL :: CanopyTransmit_dif(mp,nrb)  !Canopy Transmitance (CanopyTransmit_dif)   
-REAL :: CanopyTransmit_beam(mp,nrb) !Canopy Transmitance (CanopyTransmit_beam)
+REAL :: CanopyRefl_dif(mp,nrb)      !rad% rhocdf
+REAL :: CanopyRefl_beam(mp,nrb)     !rad% rhocbm
+REAL :: CanopyTransmit_dif(mp,nrb)  !rad% cexpkdf 
+REAL :: CanopyTransmit_beam(mp,nrb) !rad% cexpkbm 
 
 real :: SumEffSurfRefl_beam(1)
 real :: SumEffSurfRefl_dif(1)
@@ -119,11 +119,11 @@ integer :: i
 
     ! END header
 
-!CanopyTransmit_dif(:,:) = 0.0 !open in 7589
-!CanopyTransmit_beam(:,:) = 0.0 !open in 7589
-!!CanopyRefl_dif(:,:) = 0.0
-!CanopyRefl_beam(:,:) = 0.0 !open in 7589
-!AlbSnow(:,:) = 0.0 !open in 7589
+!7868!CanopyTransmit_dif(:,:) = 0.0
+!7868!CanopyTransmit_beam(:,:) = 0.0
+!7868!!CanopyRefl_dif(:,:) = 0.0
+!7868!CanopyRefl_beam(:,:) = 0.0
+AlbSnow(:,:) = 0.0
 
 !Modify parametrised soil albedo based on snow coverage 
 call surface_albedosn( AlbSnow, AlbSoil, mp, nrb, jls_radiation, surface_type, soil_type, &
@@ -136,21 +136,19 @@ EffSurfRefl_beam = AlbSnow
 EffSurfRefl_dif = AlbSnow
 RadAlbedo = AlbSnow
 
-!7613!CALL calc_rhoch( c1,rhoch, mp, nrb, VegTaul, VegRefl )
+! Update extinction coefficients and fractional transmittance for
+! leaf transmittance and reflection (ie. NOT black leaves):
+!---1 = visible, 2 = nir radiaition
+DO b = 1, 2
+   EffExtCoeff_dif(:,b) = ExtCoeff_dif(:) * c1(:,b)
+END DO
 
-    ! Update extinction coefficients and fractional transmittance for
-    ! leaf transmittance and reflection (ie. NOT black leaves):
-    !---1 = visible, 2 = nir radiaition
-    DO b = 1, 2
-       EffExtCoeff_dif(:,b) = ExtCoeff_dif(:) * c1(:,b)
-    END DO
-
-    DO b = 1, 2
-         !---where vegetated and sunlit
-       WHERE (sunlit_veg_mask)
-          EffExtCoeff_beam(:,b) = ExtCoeff_beam(:) * c1(:,b)
-       END WHERE
-    END DO
+DO b = 1, 2
+     !---where vegetated and sunlit
+   WHERE (sunlit_veg_mask)
+      EffExtCoeff_beam(:,b) = ExtCoeff_beam(:) * c1(:,b)
+   END WHERE
+END DO
 
 ! Define canopy Reflectance for diffuse/direct radiation
 ! Formerly rad%rhocbm, rad%rhocdf
