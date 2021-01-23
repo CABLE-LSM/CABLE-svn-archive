@@ -122,7 +122,7 @@ integer :: i
 !7868!CanopyTransmit_dif(:,:) = 0.0
 !7868!CanopyTransmit_beam(:,:) = 0.0
 !7868!!CanopyRefl_dif(:,:) = 0.0
-!7868!CanopyRefl_beam(:,:) = 0.0
+CanopyRefl_beam(:,:) = 0.0
 AlbSnow(:,:) = 0.0
 
 !Modify parametrised soil albedo based on snow coverage 
