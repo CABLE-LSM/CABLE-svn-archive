@@ -102,9 +102,9 @@ REAL :: EffExtCoeff_dif(mp,nrb)     !Effective Extinction co-eff
                                     !Diffuse component of SW radiation (ExtCoeff_difm)
 
 !Canopy reflectance/transmitance compued in albedo() 
-REAL :: CanopyRefl_dif(mp,nrb)      !rad% rhocdf
+REAL :: CanopyRefl_dif(mp,2)      !rad% rhocdf
 REAL :: CanopyRefl_beam(mp,nrb)     !rad% rhocbm
-REAL :: CanopyTransmit_dif(mp,nrb)  !rad% cexpkdf 
+REAL :: CanopyTransmit_dif(mp,2)  !rad% cexpkdf 
 REAL :: CanopyTransmit_beam(mp,nrb) !rad% cexpkbm 
 
 real :: SumEffSurfRefl_beam(1)
@@ -116,14 +116,14 @@ integer :: i
          dummy
 
     INTEGER :: b    !rad. band 1=visible, 2=near-infrared, 3=long-wave
-
+logical,save :: first_call =.true.
     ! END header
 
-!7868!CanopyTransmit_dif(:,:) = 0.0
-CanopyTransmit_beam(:,:) = 0.0
-!7868!!CanopyRefl_dif(:,:) = 0.0
-CanopyRefl_beam(:,:) = 0.0
 AlbSnow(:,:) = 0.0
+CanopyTransmit_beam(:,:) = 0.0
+CanopyRefl_beam(:,:) = 0.0
+!CanopyTransmit_dif(:,:) = 0.0  ! MPI (at least inits this = 1.0 at dt=0) 
+!CanoRefl_dif(:,:) = 0.0        ! MPI (at least inits this = 1.0 at dt=0)
 
 !Modify parametrised soil albedo based on snow coverage 
 call surface_albedosn( AlbSnow, AlbSoil, mp, nrb, jls_radiation, surface_type, soil_type, &
@@ -270,7 +270,7 @@ REAL :: rhoch(mp,nrb)
 INTEGER :: ictr
 
 ! Canopy REFLection of diffuse radiation for black leaves:
-DO ictr=1,nrb
+DO ictr=1,2
 
   CanopyRefl_dif(:,ictr) = rhoch(:,ictr) *  2. *                                &
                        ( CGAUSS_W(1) * xk(:,1) / ( xk(:,1) + ExtCoeff_dif(:) )&
