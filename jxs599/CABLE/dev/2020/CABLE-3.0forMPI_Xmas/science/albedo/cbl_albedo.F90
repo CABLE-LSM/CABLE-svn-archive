@@ -116,14 +116,13 @@ integer :: i
          dummy
 
     INTEGER :: b    !rad. band 1=visible, 2=near-infrared, 3=long-wave
-logical,save :: first_call =.true.
     ! END header
 
 AlbSnow(:,:) = 0.0
 CanopyTransmit_beam(:,:) = 0.0
 CanopyRefl_beam(:,:) = 0.0
+CanopyRefl_dif(:,:) = 0.0        
 !CanopyTransmit_dif(:,:) = 0.0  ! MPI (at least inits this = 1.0 at dt=0) 
-!CanoRefl_dif(:,:) = 0.0        ! MPI (at least inits this = 1.0 at dt=0)
 
 !Modify parametrised soil albedo based on snow coverage 
 call surface_albedosn( AlbSnow, AlbSoil, mp, nrb, jls_radiation, surface_type, soil_type, &
