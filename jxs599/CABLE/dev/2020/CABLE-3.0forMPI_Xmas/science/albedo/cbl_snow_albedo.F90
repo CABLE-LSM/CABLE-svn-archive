@@ -76,7 +76,7 @@ REAL :: SoilAlbsoilf(mp)
     END WHERE
 
    AlbSnow(:,2) = 2. * SoilAlbsoilF / (1. + sfact)
-    AlbSnow(:,1) = sfact * AlbSnow(:,2)
+   AlbSnow(:,1) = sfact * AlbSnow(:,2)
 
     ! calc soil albedo based on colour - Ticket #27
    !H!IF (calcsoilalbedo) THEN
@@ -90,7 +90,7 @@ REAL :: SoilAlbsoilf(mp)
    WHERE ( SnowDepth > 1. .AND. .NOT. jls_radiation )
 
        ! new snow (cm H2O)
-       dnsnow = MIN ( 1., .1 * MAX( 0., SnowDepth - SnowODepth ) )
+      dnsnow = MIN ( 1., .1 * MAX( 0., SnowDepth - SnowODepth ) )
 
        ! Snow age depends on snow crystal growth, freezing of melt water,
        ! accumulation of dirt and amount of new snow.
@@ -98,7 +98,7 @@ REAL :: SoilAlbsoilf(mp)
        tmp = MIN( tmp, CTFRZ )
        ar1 = 5000. * (1. / (CTFRZ-0.01) - 1. / tmp) ! crystal growth  (-ve)
        ar2 = 10. * ar1 ! freezing of melt water
-       snr = SnowDepth / MAX (SnowDensity, 200.)
+      snr = SnowDepth / max (SnowDensity, 200.)
 
        WHERE (soil_type == 9)
           ! permanent ice: hard-wired number to be removed in future version
@@ -119,13 +119,13 @@ REAL :: SoilAlbsoilf(mp)
 
        dtau = 1.e-6 * (EXP( ar1 ) + EXP( ar2 ) + ar3 ) * kwidth_gl
 
-       WHERE (SnowDepth <= 1.0)
-          SnowAge = 0.
+      WHERE (SnowDepth <= 1.0)
+         SnowAge = 0.
        ELSEWHERE
-          SnowAge = MAX (0.,(SnowAge+dtau)*(1.-dnsnow))
+         SnowAge = max (0.,(SnowAge+dtau)*(1.-dnsnow))
        END WHERE
 
-       fage = 1. - 1. / (1. + SnowAge ) !age factor
+      fage = 1. - 1. / (1. + SnowAge ) !age factor
 
       tmp = MAX( .17365, coszen )
        fzenm = MAX( 0.0, MERGE( 0.0,                                           &
@@ -149,11 +149,11 @@ REAL :: SoilAlbsoilf(mp)
 
     ENDWHERE        ! snowd > 0
 
-    ! when it is called from cable_rad_driver (UM)
-    ! no need to recalculate snage
-    WHERE (SnowDepth > 1 .AND. jls_radiation )
+   !H!! when it is called from cable_rad_driver (UM)
+   !H!! no need to recalculate snage
+WHERE (SnowDepth > 1 .and. jls_radiation )
 
-       snr = SnowDepth / MAX (SnowDensity, 200.)
+   snr = SnowDepth / MAX (SnowDensity, 200.)
 
        WHERE (soil_type == 9)
           ! permanent ice: hard-wired number to be removed
@@ -162,7 +162,7 @@ REAL :: SoilAlbsoilf(mp)
           snrat = MIN (1., snr / (snr + .1) )
        END WHERE
 
-       fage = 1. - 1. / (1. + SnowAge ) !age factor
+   fage = 1. - 1. / (1. + SnowAge ) !age factor
    tmp = MAX (.17365, coszen )
        fzenm = MAX( 0., MERGE( 0.0,                                             &
             ( 1. + 1./2. ) / ( 1. + 2. * 2. * tmp ) - 1./2., tmp > 0.5 ) )
@@ -192,15 +192,15 @@ ENDWHERE        ! snowd > 0
     !H!      ! inhibiting snowpack initiation
     !H!   ENDWHERE
     !H!ENDIF
-    AlbSnow(:,2) = MIN( aliro,                                          &
-         ( 1. - snrat ) * AlbSnow(:,2) + snrat * alir)
+   AlbSnow(:,2) = MIN( aliro,                                          &
+                          ( 1. - snrat ) * AlbSnow(:,2) + snrat * alir)
 
-    AlbSnow(:,1) = MIN( alvo,                                           &
-         ( 1. - snrat ) * AlbSnow(:,1) + snrat * alv )
+   AlbSnow(:,1) = MIN( alvo,                                           &
+                          ( 1. - snrat ) * AlbSnow(:,1) + snrat * alv )
 
     WHERE (soil_type == 9) ! use dry snow albedo: 1=vis, 2=nir
-       AlbSnow(:,1) = alvo - 0.05 ! al*o = albedo appropriate for new snow
-       AlbSnow(:,2) = aliro - 0.05 ! => here al*o LESS arbitrary aging 0.05
+     AlbSnow(:,1) = alvo - 0.05 ! al*o = albedo appropriate for new snow 
+     AlbSnow(:,2) = aliro - 0.05 ! => here al*o LESS arbitrary aging 0.05
     END WHERE
 
 return

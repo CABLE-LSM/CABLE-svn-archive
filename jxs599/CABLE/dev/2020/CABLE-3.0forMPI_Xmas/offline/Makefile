@@ -43,6 +43,7 @@ LSRC =                          \
 	cbl_masks.F90              \
 	cbl_hgtAbove_snow.F90     		\
 	cbl_lai_eff.F90    		 				\
+	cbl_model_driver_offline.F90 \
   cbl_albedo.F90    					  \
 	cbl_snow_albedo.F90					  \
   cbl_soilColour_albedo.F90     \
@@ -52,7 +53,7 @@ LSRC =                          \
 	cbl_radiation.F90     	      \
 	cbl_init_radiation.F90	      \
 	casa_dimension.F90 casa_phenology.F90 casa_param.F90 											 \
-	cable_data.F90 cable_common.F90 cable_define_types.F90 cable_iovars.F90	   \
+	cable_common.F90 cable_define_types.F90 cable_iovars.F90	   \
 	cable_abort.F90 casa_variable.F90 cable_parameters.F90                     \
 	cbl_soilsnow_main.F90 cbl_soilsnow_subrs.F90 cbl_soilsnow_init_special.F90 \
 	cable_air.F90 cable_roughness.F90 																				 \
@@ -65,7 +66,6 @@ LSRC =                          \
 	cable_weathergenerator.F90 cable_climate.F90 cable_phenology.F90 					 \
 	cable_cru_TRENDY.F90 POPLUC.F90 cable_LUC_EXPT.F90												 \
 	cable_gw_hydro.F90 cable_psm.F90 cable_namelist_input.F90									 \
-	cable_constants.F90																												 \
 	cable_site.F90
 
 # this is the executable we are building
@@ -98,7 +98,6 @@ cable_runtime_opts_mod.o: cable_runtime_opts_mod.F90
 cable_pft_params.o: cable_pft_params.F90 cable_define_types.o
 cable_soil_params.o: cable_soil_params.F90 cable_define_types.o
 casa_param.o: casa_param.F90
-cable_data.o: cable_data.F90
 
 #var decs/allocs
 casa_dimension.o: casa_dimension.F90
@@ -120,32 +119,32 @@ cbl_lai_eff.o: cbl_lai_eff.F90
 
 #science partially seperated subrs
 #albedo
-cbl_albedo.o: cbl_albedo.F90 cbl_snow_albedo.o cbl_rhoch.o cable_define_types.o cable_common.o cable_data.o 
+cbl_albedo.o: cbl_albedo.F90 cbl_snow_albedo.o cbl_rhoch.o cable_define_types.o cable_common.o
 cbl_snow_albedo.o: cbl_snow_albedo.F90 cbl_soilColour_albedo.o cable_phys_constants_mod.o
 cbl_soilColour_albedo.o: cbl_soilColour_albedo.F90 
 #radiation
 cbl_rhoch.o: cbl_rhoch.F90
 cbl_spitter.o: cbl_spitter.F90
 cbl_sinbet.o: cbl_sinbet.F90 cable_math_constants_mod.o
-cbl_radiation.o: cbl_radiation.F90 cable_define_types.o cable_common.o cable_data.o cbl_init_radiation.o cable_phys_constants_mod.o
-cbl_init_radiation.o: cbl_init_radiation.F90 cable_other_constants_mod.o cable_math_constants_mod.o cable_define_types.o cable_common.o cable_data.o cbl_spitter.o cbl_rhoch.o
+cbl_radiation.o: cbl_radiation.F90 cable_define_types.o cable_common.o cbl_init_radiation.o cable_phys_constants_mod.o
+cbl_init_radiation.o: cbl_init_radiation.F90 cable_other_constants_mod.o cable_math_constants_mod.o cable_define_types.o cable_common.o cbl_spitter.o cbl_rhoch.o
 #soilsnow
-cbl_soilsnow_main.o: cbl_soilsnow_main.F90 cable_iovars.o cable_define_types.o cable_common.o cable_data.o cable_constants.o cbl_soilsnow_subrs.o
-cbl_soilsnow_subrs.o: cbl_soilsnow_subrs.F90 cable_iovars.o cable_define_types.o cable_common.o cable_data.o cable_constants.o
-cbl_soilsnow_init_special.o: cbl_soilsnow_init_special.F90 cable_iovars.o cable_define_types.o cable_common.o cable_data.o cable_constants.o
+cbl_soilsnow_main.o: cbl_soilsnow_main.F90 cable_iovars.o cable_define_types.o cable_common.o cbl_soilsnow_subrs.o
+cbl_soilsnow_subrs.o: cbl_soilsnow_subrs.F90 cable_iovars.o cable_define_types.o cable_common.o
+cbl_soilsnow_init_special.o: cbl_soilsnow_init_special.F90 cable_iovars.o cable_define_types.o cable_common.o
 
 #science subrs
 casa_phenology.o: casa_phenology.F90
 
-cable_air.o: cable_air.F90 cable_define_types.o cable_common.o cable_data.o
+cable_air.o: cable_air.F90 cable_define_types.o cable_common.o
 
-cable_canopy.o: cable_canopy.F90 cable_math_constants_mod.o cable_phys_constants_mod.o cable_other_constants_mod.o cable_photo_constants_mod.o cable_define_types.o cbl_radiation.o cable_roughness.o cable_air.o cable_common.o cable_data.o cable_sli_utils.o cable_sli_main.o cable_gw_hydro.o cable_iovars.o cable_psm.o cable_gw_hydro.o
+cable_canopy.o: cable_canopy.F90 cable_math_constants_mod.o cable_phys_constants_mod.o cable_other_constants_mod.o cable_photo_constants_mod.o cable_define_types.o cbl_radiation.o cable_roughness.o cable_air.o cable_common.o cable_sli_utils.o cable_sli_main.o cable_gw_hydro.o cable_iovars.o cable_psm.o cable_gw_hydro.o
 
-cable_carbon.o: cable_carbon.F90 cable_define_types.o cable_common.o cable_data.o
+cable_carbon.o: cable_carbon.F90 cable_define_types.o cable_common.o
 
-cable_cbm.o: cable_cbm.F90 cable_carbon.o cbl_soilsnow_main.o cable_canopy.o cable_define_types.o cable_roughness.o cbl_init_radiation.o cbl_albedo.o casa_variable.o cable_common.o cable_data.o cable_gw_hydro.o cable_psm.o cbl_masks.o
+cbl_model_driver_offline.o: cbl_model_driver_offline.F90 cable_phys_constants_mod.o cable_carbon.o cbl_soilsnow_main.o cable_canopy.o cable_define_types.o cable_roughness.o cbl_radiation.o cbl_albedo.o casa_variable.o cable_common.o cable_gw_hydro.o cable_psm.o cbl_masks.o
 
-cable_checks.o: cable_checks.F90 cbl_radiation.o cable_common.o cable_data.o
+cable_checks.o: cable_checks.F90 cbl_radiation.o cable_common.o
 
 cable_define_types.o: cable_define_types.F90
 
@@ -214,13 +213,12 @@ cable_climate.o: cable_climate.F90 cable_define_types.o cable_iovars.o  cable_co
 
 cable_phenology.o: cable_phenology.F90 cable_define_types.o cable_iovars.o  cable_common.o  casa_variable.o casa_phenology.o
 
-cable_gw_hydro.o: cable_gw_hydro.F90 cable_iovars.o cable_define_types.o cable_common.o cable_data.o cbl_soilsnow_subrs.o cable_constants.o
+cable_gw_hydro.o: cable_gw_hydro.F90 cable_iovars.o cable_define_types.o cable_common.o cbl_soilsnow_subrs.o 
 
-cable_psm.o: cable_psm.F90 cable_define_types.o cable_common.o cable_air.o cable_constants.o
+cable_psm.o: cable_psm.F90 cable_define_types.o cable_common.o cable_air.o 
 
 cable_namelist_input.o: cable_namelist_input.F90
 
-cable_constants.o: cable_constants.F90 cable_define_types.o
 cable_site.o: cable_site.F90 cable_iovars.o cable_common.o
 
 
@@ -247,7 +245,6 @@ all  : cable_math_constants_mod.o   \
 	cbl_init_radiation.o	       \
 	cable_abort.o   						 \
 	cable_parameters.o        	 \
-	cable_cbm.o  								 \
 	cable_read.o              	 \
 	cable_initialise.o        	 \
 	cable_input.o            	   \
@@ -287,7 +284,7 @@ all  : cable_math_constants_mod.o   \
 	casa_phenology.o         	   \
 	casa_cnp.o               	   \
 	casa_cable.o             	   \
-	casa_inout.o cable_data.o 
+	casa_inout.o
 
 # make clean option
 clean:
