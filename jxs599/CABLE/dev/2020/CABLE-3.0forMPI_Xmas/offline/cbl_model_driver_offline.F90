@@ -61,6 +61,7 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
     USE sli_main_mod, ONLY : sli_main
 !data !jhan:pass these
 USE cable_other_constants_mod, ONLY : CLAI_THRESH => lai_thresh
+USE cable_other_constants_mod,  ONLY : Crad_thresh => rad_thresh
 USE cable_other_constants_mod,  ONLY : Ccoszen_tols => coszen_tols
 USE cable_other_constants_mod, ONLY : CGAUSS_W => gauss_w
 USE cable_math_constants_mod, ONLY : CPI => pi
@@ -107,8 +108,8 @@ CALL ruff_resist(veg, rough, ssnow, canopy, veg%vlai, veg%hc, canopy%vlaiw)
 CALL define_air (met, air)
 
 call fveg_mask( veg_mask, mp, Clai_thresh, canopy%vlaiw )
-call fsunlit_mask( sunlit_mask, mp, Ccoszen_tols, met%coszen )
-!call fsunlit_mask( sunlit_mask, mp, Ccoszen_tols,( met%fsd(:,1)+met%fsd(:,2) ) )
+!call fsunlit_mask( sunlit_mask, mp, Ccoszen_tols, met%coszen )
+call fsunlit_mask( sunlit_mask, mp, CRAD_THRESH,( met%fsd(:,1)+met%fsd(:,2) ) )
 call fsunlit_veg_mask( sunlit_veg_mask, mp )
 
 CALL init_radiation( rad%extkb, rad%extkd,                                     &
