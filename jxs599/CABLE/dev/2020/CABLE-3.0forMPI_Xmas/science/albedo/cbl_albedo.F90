@@ -322,16 +322,15 @@ real :: reducedLAIdue2snow(mp)
 real :: dummy(mp,nrb) 
 integer :: i, b
  
-!DO i = 1,mp
+DO i = 1,mp
   DO b = 1, 2 
     !if( mask(i) ) then 
       !dummy(i,b) = ExtinctionCoeff(i,b) * reducedLAIdue2snow(i)
       !CanopyTransmit(i,b) = EXP( -1.* dummy(i,b) )
-      !CanopyTransmit_dif(:,b) = EXP(-EffExtCoeff_dif(:,b) * reducedLAIdue2snow)
-      CanopyTransmit(:,b) = EXP( -ExtinctionCoeff(:,b) * reducedLAIdue2snow)
+      CanopyTransmit(i,b) = EXP( -ExtinctionCoeff(i,b) * reducedLAIdue2snow(i) )
     !endif
   enddo
-!enddo
+enddo
 
 End subroutine  CanopyTransmitance_dif
 
