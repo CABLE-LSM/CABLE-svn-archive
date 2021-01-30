@@ -324,11 +324,8 @@ integer :: i, b
  
 DO i = 1,mp
   DO b = 1, 2 
-    !if( mask(i) ) then 
-      !dummy(i,b) = ExtinctionCoeff(i,b) * reducedLAIdue2snow(i)
-      !CanopyTransmit(i,b) = EXP( -1.* dummy(i,b) )
-      CanopyTransmit(i,b) = EXP( -ExtinctionCoeff(i,b) * reducedLAIdue2snow(i) )
-    !endif
+    dummy(i,b) = ExtinctionCoeff(i,b) * reducedLAIdue2snow(i)
+    CanopyTransmit(i,b) = EXP( -1.* dummy(i,b) )
   enddo
 enddo
 
