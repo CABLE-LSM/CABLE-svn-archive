@@ -65,7 +65,7 @@ CHARACTER(LEN=*), PARAMETER :: subr_name = "cable_hyd_main"
   !-------- Unique subroutine body -----------
   
   !--- initialize cable_runtime% switches 
-cable_runtime%um =          .TRUE.
+cable_runtime%um =          .false.
 cable_runtime%um_hydrology =.TRUE.
   
 CALL cable_hyd_driver( land_pts, ntiles, L_tile_pts, lying_snow, SNOW_surft,  &

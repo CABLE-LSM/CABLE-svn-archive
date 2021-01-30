@@ -25,10 +25,25 @@ CONTAINS
 
 !========================================================================
           
-SUBROUTINE initialize_veg( clobbered_htveg, land_pts, npft, ntiles, ms,       &
-                           canht_ft, lai_ft, soil_zse, veg_cbl ) 
+SUBROUTINE initialize_veg( clobbered_htveg, land_pts, npft, ntiles, ms, mp,      &
+                           canht_ft, lai_ft, soil_zse, veg_cbl,                  &
+                    tile_pts, tile_index, tile_frac, L_tile_pts,                 &
+                    CLAI_thresh )
 
 USE cable_params_mod,  ONLY: veg_parameter_type
+USE cbl_LAI_canopy_height_mod,  ONLY: limit_HGT_LAI
+
+INTEGER ::   mp                ! active pts CABLE
+REAL :: CLAI_thresh  
+INTEGER, DIMENSION(ntiles) ::                                                 &
+   tile_pts    ! number of land_pts per tile type
+
+REAL, DIMENSION(ntiles) ::                                                 &
+   tile_frac
+INTEGER, DIMENSION(land_pts, ntiles) ::                                       &
+   tile_index     ! index of tile 
+LOGICAL,DIMENSION(land_pts, ntiles) ::                                        &
+   L_tile_pts  ! true IF vegetation (tile) fraction is greater than 0
 
 INTEGER :: land_pts
 INTEGER :: ntiles
@@ -40,155 +55,14 @@ REAL, INTENT(IN) :: canht_ft(land_pts, npft)
 REAL, INTENT(IN) :: lai_ft(land_pts, npft) 
 REAL, DIMENSION(ms) :: soil_zse 
 
-  !---clobbers veg height, lai and resets ivegt for CABLE tiles
-CALL clobber_height_lai( canht_ft, lai_ft, veg_cbl, clobbered_htveg )
-  
-IF (veg_cbl%meth(1) == 0) THEN  
-  !--- veg params were read from initialize_soil() 
-  CALL reset_some_veg_pars( ms, soil_zse, veg_cbl ) 
-  veg_cbl%meth = 1 ! Fix in-canopy turbulence scheme globally:
-END IF
+! limit IN height, LAI  and initialize existing cable % types
+CALL limit_HGT_LAI( clobbered_htveg, veg_cbl%vlai, veg_cbl%hc, mp, land_pts, ntiles,           &
+                    tile_pts, tile_index, tile_frac, L_tile_pts,              &
+                    LAI_ft, canht_ft, CLAI_thresh )
      
 END SUBROUTINE initialize_veg
 
-SUBROUTINE reset_some_veg_pars( ms, soil_zse, veg_cbl ) 
-USE cable_common_module, ONLY: cable_user
-USE cable_params_mod, ONLY: veg_parameter_type
-
-INTEGER :: ms ! soil levels
-TYPE(veg_parameter_type), INTENT(INOUT) :: veg_cbl
-REAL, DIMENSION(ms) :: soil_zse 
-INTEGER :: IS
-REAL :: totdepth
-
-veg_cbl%ejmax    = 2.0 * veg_cbl%vcmax
-veg_cbl%GAMMA = 3.0e-2 !for Haverd2013 switch 
-veg_cbl%f10 = 0.85 
-
-totdepth = 0.0
-DO IS = 1, ms - 1
-  totdepth = totdepth + soil_zse(IS) * 100.0  ! unit in centimetres
-  veg_cbl%froot(:, IS) = MIN( 1.0, 1.0 - veg_cbl%rootbeta(:)**totdepth )
-END DO
-veg_cbl%froot(:, ms) = 1.0 - veg_cbl%froot(:, ms-1)
-DO IS = ms - 1, 2, -1
-  veg_cbl%froot(:, IS) = veg_cbl%froot(:, IS) - veg_cbl%froot(:,IS-1)
-END DO
-
-!For Legacy sake - ACCESS1.3 froot distribution WAS fixed for all veg types
-IF (cable_user%access13roots) THEN
-  veg_cbl%froot(:,1) = 0.05
-  veg_cbl%froot(:,2) = 0.20
-  veg_cbl%froot(:,3) = 0.20
-  veg_cbl%froot(:,4) = 0.20
-  veg_cbl%froot(:,5) = 0.20
-  veg_cbl%froot(:,6) = 0.15
-END IF
-
-END SUBROUTINE reset_some_veg_pars
-
-SUBROUTINE clobber_height_lai( um_htveg, um_lai, veg_cbl, clobbered_htveg)
-USE cable_um_tech_mod,  ONLY: um1
-USE cable_params_mod,   ONLY: veg_parameter_type
-
-TYPE(veg_parameter_type), INTENT(INOUT) :: veg_cbl
-REAL, INTENT(IN) :: um_htveg(um1%land_pts, um1%npft)
-REAL, INTENT(IN) :: um_lai(um1%land_pts, um1%npft)
-REAL :: clobbered_htveg(um1%land_pts, um1%ntiles)
-!local
-REAL :: fiveg(um1%land_pts, um1%ntiles)
-REAL :: flai(um1%land_pts, um1%ntiles)
-INTEGER :: i,j,n
-    
-fLAI = 0.0 
-clobbered_htveg = 0.0
-DO n = 1,um1%ntiles
-  DO j = 1,um1%tile_pts(n)
-         
-    i = um1%tile_index(j,n)  ! It must be landpt index
-    fIVEG(i,n) = n
-
-    IF ( um1%tile_frac(i,n)  >   0.0 ) THEN
-     
-      ! hard-wired vegetation type numbers need to be removed
-      IF (n < 5 ) THEN ! trees
-        fLAI(i,n) = MAX(0.01,um_lai(i,n)) 
-        clobbered_htveg(i,n) = MAX(1.0,um_htveg(i,n)) 
-      ELSE IF (n > 4 .AND. n < 14 ) THEN ! shrubs/grass
-        fLAI(i,n) = MAX(0.01, um_lai(i,n)) 
-        clobbered_htveg(i,n) = MAX(0.1, um_htveg(i,n)) 
-      END IF
-
-    END IF
-
-  END DO
-END DO
-  
-veg_cbl%iveg   = PACK(fiveg, um1%l_tile_pts)
-veg_cbl%vlai   = PACK(flai, um1%l_tile_pts)
-veg_cbl%hc     = PACK(clobbered_htveg, um1%l_tile_pts)
-
-END SUBROUTINE clobber_height_lai
-
-!========================================================================
-
-SUBROUTINE init_respiration(npp_ft_acc,resp_w_ft_acc, canopy_cbl)
-   ! Lestevens 23apr13 - for reading in prog soil & plant resp
-USE cable_um_tech_mod,   ONLY: um1
-USE cable_canopy_type_mod, ONLY: canopy_type
-TYPE(canopy_type),     INTENT(INOUT)  :: canopy_cbl
-   
-REAL, INTENT(INOUT),DIMENSION(um1%land_pts, um1%ntiles) :: npp_ft_acc
-REAL, INTENT(INOUT),DIMENSION(um1%land_pts, um1%ntiles) :: resp_w_ft_acc
-
-!   REAL, ALLOCATABLE :: tempvar(:,:), tempvar2(:,:)
-INTEGER :: l,j,n
-
-!   ALLOCATE( tempvar(um1%land_pts,um1%ntiles) )
-!   ALLOCATE( tempvar2(um1%land_pts,um1%ntiles) )
-!
-!      DO N=1,um1%NTILES
-!         DO J=1,um1%TILE_PTS(N)
-!
-!            L = um1%TILE_INDEX(j,N)  ! It must be landpt index
-!
-!            !IF( um1%TILE_FRAC(L,N) .gt. 0.0 ) THEN
-!
-!               !IF(N <= 13 ) THEN
-!                  tempvar(L,N)  = NPP_FT_ACC(L,N)
-!                  tempvar2(L,N) = RESP_W_FT_ACC(L,N)
-!               !ELSE IF(N > 13 ) THEN
-!               !   tempvar(L,N)  = 0.
-!               !   tempvar2(L,N) = 0.
-!               !ENDIF
-!
-!            !ENDIF
-!
-!         ENDDO
-!      ENDDO
-
-      !---set soil & plant respiration (now in dim(land_pts,ntiles))
-canopy_cbl%frs = PACK(npp_ft_acc   , um1%l_tile_pts)
-canopy_cbl%frp = PACK(resp_w_ft_acc, um1%l_tile_pts)
-!      canopy_cbl%frs = PACK(tempvar, um1%L_TILE_PTS)
-!      canopy%_cblfrp = PACK(tempvar2, um1%L_TILE_PTS)
-
-      !---convert units to g C m-2 s-1
-canopy_cbl%frs = canopy_cbl%frs * 1000.0
-canopy_cbl%frp = canopy_cbl%frp * 1000.0
-
-!   DEALLOCATE( tempvar, tempvar2 )
-
-END SUBROUTINE init_respiration
-
-!========================================================================
-!========================================================================
-!========================================================================
-
-!========================================================================
-!========================================================================
-!========================================================================
-        
+       
 SUBROUTINE initialize_radiation( sw_down, lw_down, cos_zenith_angle,          &
                                  surf_down_sw, sin_theta_latitude, ls_rain,   &
                                  ls_snow, tl_1, qw_1, vshr_land, pstar,       &
@@ -245,57 +119,22 @@ dummy = 0.0
       
 IF ( first_call ) THEN
   rad_cbl%albedo_T = soil_cbl%albsoil(:,1)
-  !first_call = .FALSE.            !second use of first_call later
   ALLOCATE( conv_rain_prevstep(mp), conv_snow_prevstep(mp) )
   conv_rain_prevstep = 0.0 
   conv_snow_prevstep = 0.0
 END IF   
       
-! re-set UM rad. forcings to suit CABLE. also called in explicit call to 
-! CABLE from subr cable_um_expl_update() 
-!CALL update_kblum_radiation( surf_down_sw )
-      
-! set met. and rad. forcings to CABLE. also called in radiation call to 
-! CABLE from subr cable_rad_() !jhan?
-! subr.  um2cable_met_rad_alb() USES CABLE types met%, rad%, soil%
-! and kblum% rad. calculated in  update_kblum_radiation() above 
-!CALL um2cable_met_rad( cos_zenith_angle)
 CALL um2cable_rr( cos_zenith_angle, met_cbl%coszen)
-!CALL um2cable_rr( 0.5 * surf_down_sw(:,:,3), met%fsd(:,1))
-!CALL um2cable_rr( 0.5 * surf_down_sw(:,:,3), met%fsd(:,2))
-!jhan: surf_down_sw is passed from control.F90 down, where it is total SW onto land pt
 CALL um2cable_lp( 0.5 * surf_down_sw, dummy , met_cbl%fsd(:,1), soil_cbl%isoilm, skip )
 CALL um2cable_lp( 0.5 * surf_down_sw, dummy , met_cbl%fsd(:,2), soil_cbl%isoilm, skip )
-
-DO i = 1, mp
-  IF ( met_cbl%fsd(i,1) < ( .1 * crad_thresh) ) met_cbl%fsd(i,1) = 0.0
-  IF ( met_cbl%fsd(i,2) < ( .1 * crad_thresh) ) met_cbl%fsd(i,2) = 0.0
-END DO
-!H!if (k==0) k = k+1
-!H!do i=1, um1%land_pts 
-!H!  do j=1,um1%ntiles
-!H!    IF(surf_down_sw(i,j) > 0. ) then 
-!H!      write(6,*) "lp, tile, surf_down_sw ", i,j, surf_down_sw(i,j)
-!H!      k = k+1
-!H!    endif    
-!H!    !if (k>99) stop
-!H!  enddo
-!H!enddo
-
-      ! UM met forcing vars needed by CABLE which have UM dimensions
-      !(row_length,rows)[_rr], which is no good to cable. These have to be 
-      ! re-packed in a single vector of active tiles. Hence we use 
-      ! conditional "mask" l_tile_pts(land_pts,ntiles) which is .true.
-      ! if the land point is/has an active tile
-      ! generic format:
-      ! um2cable_rr( UM var, CABLE var)
-      
-      ! CABLE met type forcings, not set by um2cable_met_rad()
+!H!DO i = 1, mp
+!H!  IF ( met_cbl%fsd(i,1) < ( .1 * crad_thresh) ) met_cbl%fsd(i,1) = 0.0
+!H!  IF ( met_cbl%fsd(i,2) < ( .1 * crad_thresh) ) met_cbl%fsd(i,2) = 0.0
+!H!END DO
 CALL um2cable_rr( lw_down, met_cbl%fld)
 CALL um2cable_rr( (ls_rain * um1%timestep), met_cbl%precip)
 CALL um2cable_rr( (ls_snow * um1%timestep), met_cbl%precip_sn)
 CALL um2cable_rr( tl_1, met_cbl%tk)
-
 CALL um2cable_rr( qw_1, met_cbl%qv)
 CALL um2cable_rr( vshr_land, met_cbl%ua)
 CALL um2cable_rr( pstar * 0.01, met_cbl%pmb)
@@ -307,7 +146,7 @@ met_cbl%precip   =  met_cbl%precip + met_cbl%precip_sn
 !               + (met%precip_sn +  conv_rain_prevstep)
 met_cbl%tvair =     met_cbl%tk
 met_cbl%tvrad =     met_cbl%tk
-met_cbl%coszen =    MAX(met_cbl%coszen,1e-8)
+!H!met_cbl%coszen =    MAX(met_cbl%coszen,1e-8)
 
 !initialise rad%trad on first call only
 IF (first_call) THEN
@@ -316,25 +155,25 @@ IF (first_call) THEN
 END IF 
 
 !---this is necessary clobrring at present 
-WHERE (met_cbl%ua < 0.001 ) met_cbl%ua = 0.001
+!H!WHERE (met_cbl%ua < 0.001 ) met_cbl%ua = 0.001
       
-! rml 24/2/11 Set atmospheric CO2 seen by cable to CO2_MMR (value seen 
-! by radiation scheme).  Option in future to have cable see interactive 
-! (3d) CO2 field Convert CO2 from kg/kg to mol/mol ( m_air, 
-! 28.966 taken from include/constant/ccarbon.h file )
-! r935 rml 2/7/13 Add in co2_interactive option
-!IF (L_CO2_INTERACTIVE) THEN
-!  CALL um2cable_rr(CO2_3D, met%ca)
-!ELSE
-met_cbl%ca = co2_mmr
-!ENDIF
-met_cbl%ca = met_cbl%ca * 28.966 / 44.0
+!H!! rml 24/2/11 Set atmospheric CO2 seen by cable to CO2_MMR (value seen 
+!H!! by radiation scheme).  Option in future to have cable see interactive 
+!H!! (3d) CO2 field Convert CO2 from kg/kg to mol/mol ( m_air, 
+!H!! 28.966 taken from include/constant/ccarbon.h file )
+!H!! r935 rml 2/7/13 Add in co2_interactive option
+!H!!IF (L_CO2_INTERACTIVE) THEN
+!H!!  CALL um2cable_rr(CO2_3D, met%ca)
+!H!!ELSE
+!H!met_cbl%ca = co2_mmr
+!H!!ENDIF
+!H!met_cbl%ca = met_cbl%ca * 28.966 / 44.0
 
-WHERE (met_cbl%coszen < crad_thresh ) 
-  rad_cbl%fbeam(:,1) = REAL(0) 
-  rad_cbl%fbeam(:,2) = REAL(0) 
-  rad_cbl%fbeam(:,3) = REAL(0) 
-END WHERE
+!H!WHERE (met_cbl%coszen < crad_thresh ) 
+!H!  rad_cbl%fbeam(:,1) = REAL(0) 
+!H!  rad_cbl%fbeam(:,2) = REAL(0) 
+!H!  rad_cbl%fbeam(:,3) = REAL(0) 
+!H!END WHERE
 
 !--- CABLE radiation type forcings, not set by um2cable_met_rad(
 !--- kblum_rad% vars are computed in subroutine update_kblum_radiation 
@@ -362,7 +201,7 @@ LOGICAL, SAVE :: first_call= .TRUE.
    !--- then used in soilsnow() in implicit call, then unpacked
 IF ( first_call ) THEN
   canopy_cbl%ga = 0.0
-  canopy_cbl%us = 0.01
+  canopy_cbl%us = 0.1 !to match Loobos
   canopy_cbl%fes_cor = 0.0
   canopy_cbl%fhs_cor = 0.0
   canopy_cbl%fwsoil = 1.0
@@ -456,13 +295,13 @@ REAL, DIMENSION(mstype) :: dummy
 dummy = 0.0 
 
 !     not sure if this is in restart file hence repeated again
-IF ( first_call) THEN 
-  ssnow_cbl%pudsto = 0.0 
-END IF
-ssnow_cbl%pudsmx = 0.0
-ssnow_cbl%wbtot1 = 0
-ssnow_cbl%wbtot2 = 0
-ssnow_cbl%wb_lake = 0.0
+!H!IF ( first_call) THEN 
+!H!  ssnow_cbl%pudsto = 0.0 
+!H!END IF
+!H!ssnow_cbl%pudsmx = 0.0
+!H!ssnow_cbl%wbtot1 = 0
+!H!ssnow_cbl%wbtot2 = 0
+!H!ssnow_cbl%wb_lake = 0.0
 
  !why is snow updated from um values every timestep
  !but soil moisture not?
@@ -474,8 +313,6 @@ ssnow_cbl%wb_lake = 0.0
 ssnow_cbl%snowd  = PACK(snow_tile,um1%l_tile_pts)
 ssnow_cbl%ssdnn  = PACK(snow_rho1l,um1%l_tile_pts)  
 ssnow_cbl%isflag = PACK(INT(isnow_flg3l),um1%l_tile_pts)  
-!jhan: clobber
-!ssnow%isflag = 0. 
       
 DO j = 1, msn
          
@@ -504,6 +341,7 @@ IF ( first_call) THEN
   ssnow_cbl%totwblake = 0.0  ! wb_lake integrated over river timestep
   ssnow_cbl%tggav = 0.0
   ssnow_cbl%rtsoil = 50.0
+  ssnow_cbl%rtsoil = 100.0 !to match offline for Loobos
   ssnow_cbl%t_snwlr = 0.05
 
   ! snow depth from prev timestep 
@@ -555,24 +393,29 @@ IF ( first_call) THEN
       i = um1%tile_index(k,n)                                      
       DO j = 1,um1%sm_levels
         tot_mass_tmp(i,n,j) = smcl_tile(i,n,j)
-        ice_vol_tmp(i,n,j) = sthf_tile(i,n,j) * smvcst(i)
+        ice_vol_tmp(i,n,j) = sthf_tile(i,n,j) !matching Loobos * smvcst(i)
       END DO ! J
     END DO
   END DO
    
   DO j = 1,um1%sm_levels
      !ice volume
+    ssnow_cbl%wb(:,j) =     pack(tot_mass_tmp(:,:,J),um1%l_tile_pts) !match offline 
     ssnow_cbl%wbice(:,j) = PACK(ice_vol_tmp(:,:,j),um1%l_tile_pts)
-    ssnow_cbl%wbice(:,j) = MAX(0.0,ssnow_cbl%wbice(:,j))  !should not be needed -- mrd561
+    !ssnow_cbl%wbice(:,j) = MAX(0.0,ssnow_cbl%wbice(:,j))  !should not be needed -- mrd561
     !liq volume  from (tot_mass - ice_mass) / (dz*rho_liq)
-    ssnow_cbl%wbliq(:,j)= (PACK(tot_mass_tmp(:,:,j),um1%l_tile_pts) - & !total mass
-                       ssnow_cbl%wbice(:,j) * soil_cbl%zse(j) * um1%rho_ice & !subtract ice mass
-                       ) / (soil_cbl%zse(j) * um1%rho_water)            !convert units
-    ssnow_cbl%wb(:,j)    = ssnow_cbl%wbice(:,j) + ssnow_cbl%wbliq(:,j) 
-    ! lakes: removed hard-wired number in future version
+    ssnow_cbl%wbliq(:,j)= ( ssnow_cbl%wb(:,j) -  ssnow_cbl%wbice(:,j) )  / (soil_cbl%zse(j) * um1%rho_water)   
+!jhan: both already per layer WHY is per layer needed??    
+    ssnow_cbl%wbliq(:,j)= ( ssnow_cbl%wb(:,j) -  ssnow_cbl%wbice(:,j) )  * um1%rho_water   
+    !ssnow_cbl%wbliq(:,j)= (PACK(tot_mass_tmp(:,:,j),um1%l_tile_pts) - & !total mass
+    !                   ssnow_cbl%wbice(:,j) * soil_cbl%zse(j) * um1%rho_ice & !subtract ice mass
+    !                   ) / (soil_cbl%zse(j) * um1%rho_water)            !convert units
+    !ssnow_cbl%wb(:,j)    = ssnow_cbl%wbice(:,j) + ssnow_cbl%wbliq(:,j) 
+!!match offline ssnow_cbl%wb(:,j)= pack(tot_mass_tmp(:,:,J),um1%l_tile_pts) !match offline 
     !WHERE( veg_cbliveg == 16 ) ssnow%wb(:,J) = 0.95*soil%ssat
     !WHERE( veg_cbliveg == 16 ) ssnow%wb(:,J) = soil%sfc
   END DO
+!match offline ssnow_cbl%wbliq = ssnow_cbl%wb - ssnow_cbl%wbice !match offline 
          
   DEALLOCATE( tot_mass_tmp )
   DEALLOCATE( ice_vol_tmp )
@@ -610,20 +453,20 @@ IF ( first_call) THEN
      
   bal_cbl%wbtot0 = ssnow_cbl%wbtot
 
-  !---set antartic flag using  sin_theta_latitude(row_length,rows)
-  ALLOCATE( fwork(1,um1%land_pts,um1%ntiles) )
-  fwork = 0.0
-  DO n = 1,um1%ntiles                     
-    DO k = 1,um1%tile_pts(n)
-      l = um1%tile_index(k,n)
-      j=(um1%land_index(l) - 1) / um1%row_length + 1
-      i = um1%land_index(l) - (j-1) * um1%row_length
-      IF ( sin_theta_latitude(i,j)  <   -0.91 ) fwork(1,l,n) = 1.0
-    END DO
-  END DO
-  ssnow_cbl%iantrct = PACK(fwork(1,:,:),um1%l_tile_pts)
-        
-  DEALLOCATE( fwork )
+! !H!   !---set antartic flag using  sin_theta_latitude(row_length,rows)
+! !H!   ALLOCATE( fwork(1,um1%land_pts,um1%ntiles) )
+! !H!   fwork = 0.0
+! !H!   DO n = 1,um1%ntiles                     
+! !H!     DO k = 1,um1%tile_pts(n)
+! !H!       l = um1%tile_index(k,n)
+! !H!       j=(um1%land_index(l) - 1) / um1%row_length + 1
+! !H!       i = um1%land_index(l) - (j-1) * um1%row_length
+! !H!       IF ( sin_theta_latitude(i,j)  <   -0.91 ) fwork(1,l,n) = 1.0
+! !H!     END DO
+! !H!   END DO
+! !H!   ssnow_cbl%iantrct = PACK(fwork(1,:,:),um1%l_tile_pts)
+! !H!         
+! !H!   DEALLOCATE( fwork )
 
   !! SLI specific initialisations:
   !IF(cable_user%SOIL_STRUC=='sli') THEN
@@ -655,59 +498,59 @@ ssnow_cbl%qhz          = 0.0
 ssnow_cbl%qhlev        = 0.0
 ssnow_cbl%wbliq = ssnow_cbl%wb - ssnow_cbl%wbice
 
-! SLI specific initialisations:
-IF (cable_user%soil_struc == 'sli') THEN
-  ssnow_cbl%h0(:)        = 0.0
-  ssnow_cbl%s(:,:)       = ssnow_cbl%wb(:,:) /soil_cbl%ssat_vec !SPREAD(soil%ssat,2,ms)
-  ssnow_cbl%snowliq(:,:) = 0.0
-  ssnow_cbl%Tsurface     = 25.0  !why not ssnow%tgg(:,1) - 273.16
-  ssnow_cbl%nsnow        = 0
-  ssnow_cbl%Tsoil        = ssnow_cbl%tgg - 273.16
-  ssnow_cbl%kth          = 0.3
-  ssnow_cbl%lE           = 0.0
-  ! vh ! should be calculated from soil moisture or be in restart file
-  ssnow_cbl%sconds(:,:)  = 0.06_r_2    ! vh snow thermal cond (W m-2 K-1),
-  ! should be in restart file
-END IF
-
-
-IF (cable_user%gw_model) THEN
-  ssnow_cbl%wb_lake(:) = 0.0  !already prevent drainage unless fully
-                          !saturated and can take from GWwb
-  ssnow_cbl%wbtot1 = 0.0
-  ssnow_cbl%wbtot2 = 0.0
-  ssnow_cbl%wbtot1 = MAX(0.0,                                                 &
-                     (soil_cbl%sfc_vec(:,1) - ssnow_cbl%wb(:,1)) * soil_cbl%zse(1) / soil_cbl%GWdz(:) )
-
-  WHERE ( veg_cbl%iveg == 16 .AND.                                            &
-         ssnow_cbl%wb(:,1) < soil_cbl%sfc_vec(:,1) .AND.                      &
-         ssnow_cbl%GWwb(:)  >   ssnow_cbl%wbtot1)
-
-    ssnow_cbl%wb(:,1) = soil_cbl%sfc_vec(:,1)
-    ssnow_cbl%GWwb(:) = ssnow_cbl%GWwb(:) -  ssnow_cbl%wbtot1(:)
-
-  END WHERE
-
-  ssnow_cbl%wbtot1 = 0.0
-          
-ELSE
-  !     DO J=1, msn
-  ssnow_cbl%wbtot1 = 0.0
-  ssnow_cbl%wbtot2 = 0.0
-  DO j = 1, 1
-
-    WHERE ( veg_cbl%iveg == 16 .AND. ssnow_cbl%wb(:,j) < soil_cbl%sfc ) 
-        ! lakes: remove hard-wired number in future version
-      ssnow_cbl%wbtot1 = ssnow_cbl%wbtot1 + REAL( ssnow_cbl%wb(:,j) ) * 1000.0 * &
-                     soil_cbl%zse(j)
-      ssnow_cbl%wb(:,j) = soil_cbl%sfc
-      ssnow_cbl%wbtot2 = ssnow_cbl%wbtot2 + REAL( ssnow_cbl%wb(:,j) ) * 1000.0 * &
-                     soil_cbl%zse(j)
-    END WHERE
-
-  END DO
-  ssnow_cbl%wb_lake = MAX( ssnow_cbl%wbtot2 - ssnow_cbl%wbtot1, 0.0)
-END IF 
+!H!! SLI specific initialisations:
+!H!IF (cable_user%soil_struc == 'sli') THEN
+!H!  ssnow_cbl%h0(:)        = 0.0
+!H!  ssnow_cbl%s(:,:)       = ssnow_cbl%wb(:,:) /soil_cbl%ssat_vec !SPREAD(soil%ssat,2,ms)
+!H!  ssnow_cbl%snowliq(:,:) = 0.0
+!H!  ssnow_cbl%Tsurface     = 25.0  !why not ssnow%tgg(:,1) - 273.16
+!H!  ssnow_cbl%nsnow        = 0
+!H!  ssnow_cbl%Tsoil        = ssnow_cbl%tgg - 273.16
+!H!  ssnow_cbl%kth          = 0.3
+!H!  ssnow_cbl%lE           = 0.0
+!H!  ! vh ! should be calculated from soil moisture or be in restart file
+!H!  ssnow_cbl%sconds(:,:)  = 0.06_r_2    ! vh snow thermal cond (W m-2 K-1),
+!H!  ! should be in restart file
+!H!END IF
+!H!
+!H!
+!H!IF (cable_user%gw_model) THEN
+!H!  ssnow_cbl%wb_lake(:) = 0.0  !already prevent drainage unless fully
+!H!                          !saturated and can take from GWwb
+!H!  ssnow_cbl%wbtot1 = 0.0
+!H!  ssnow_cbl%wbtot2 = 0.0
+!H!  ssnow_cbl%wbtot1 = MAX(0.0,                                                 &
+!H!                     (soil_cbl%sfc_vec(:,1) - ssnow_cbl%wb(:,1)) * soil_cbl%zse(1) / soil_cbl%GWdz(:) )
+!H!
+!H!  WHERE ( veg_cbl%iveg == 16 .AND.                                            &
+!H!         ssnow_cbl%wb(:,1) < soil_cbl%sfc_vec(:,1) .AND.                      &
+!H!         ssnow_cbl%GWwb(:)  >   ssnow_cbl%wbtot1)
+!H!
+!H!    ssnow_cbl%wb(:,1) = soil_cbl%sfc_vec(:,1)
+!H!    ssnow_cbl%GWwb(:) = ssnow_cbl%GWwb(:) -  ssnow_cbl%wbtot1(:)
+!H!
+!H!  END WHERE
+!H!
+!H!  ssnow_cbl%wbtot1 = 0.0
+!H!          
+!H!ELSE
+!H!  !     DO J=1, msn
+!H!  ssnow_cbl%wbtot1 = 0.0
+!H!  ssnow_cbl%wbtot2 = 0.0
+!H!  DO j = 1, 1
+!H!
+!H!    WHERE ( veg_cbl%iveg == 16 .AND. ssnow_cbl%wb(:,j) < soil_cbl%sfc ) 
+!H!        ! lakes: remove hard-wired number in future version
+!H!      ssnow_cbl%wbtot1 = ssnow_cbl%wbtot1 + REAL( ssnow_cbl%wb(:,j) ) * 1000.0 * &
+!H!                     soil_cbl%zse(j)
+!H!      ssnow_cbl%wb(:,j) = soil_cbl%sfc
+!H!      ssnow_cbl%wbtot2 = ssnow_cbl%wbtot2 + REAL( ssnow_cbl%wb(:,j) ) * 1000.0 * &
+!H!                     soil_cbl%zse(j)
+!H!    END WHERE
+!H!
+!H!  END DO
+!H!  ssnow_cbl%wb_lake = MAX( ssnow_cbl%wbtot2 - ssnow_cbl%wbtot1, 0.0)
+!H!END IF 
 
 END SUBROUTINE initialize_soilsnow
  
@@ -736,30 +579,6 @@ REAL, ALLOCATABLE, DIMENSION(:,:) :: jhruff, jhwork
    !--- CABLE roughness type forcings
 CALL um2cable_rr( z1_tq, rough_cbl%za_tq)
 CALL um2cable_rr( z1_uv, rough_cbl%za_uv)
-
-ALLOCATE(jhwork (um1%land_pts,um1%ntiles) ) 
-ALLOCATE(jhruff (um1%land_pts,um1%ntiles) ) 
-
-!Veg height changes seasonally in MOSES hence no updates here due to snow
-jhwork = 0.0
-DO n = 1,um1%ntiles
-  DO k = 1,um1%tile_pts(n)
-    i = um1%tile_index(k,n)
-    jhWORK(i,n) = MAX( .01,htveg(i,n))
-  END DO
-END DO
-
-jHRUFF= 0.01 
-DO l = 1,um1%land_pts
-  DO n = 1,um1%ntiles     
-    IF ( jHRUFF(l,n)  <   jhwork(l,n)) jHRUFF(l,:) =  jhwork(l,n)
-  END DO
-END DO
-      
-rough_cbl%hruff= MAX(0.01,veg_cbl%hc)
-rough_cbl%hruff_grmx = PACK(jHRUFF, um1%l_tile_pts) 
-
-DEALLOCATE( jhruff, jhwork ) 
 
 END SUBROUTINE initialize_roughness
 

@@ -48,7 +48,7 @@ USE cable_common_module, ONLY: cable_runtime
 
 !JULES5.3
 !C!USE parallel_mod,   ONLY : mype => task_id 
-USE timestep_mod,   ONLY: rtimestep => timestep
+USE model_time_mod, ONLY: rtimestep => timestep
 
 USE atm_fields_bounds_mod, ONLY: tdims
 
@@ -187,13 +187,13 @@ row_length = tdims%i_end
 rows = tdims%j_end
   
 !--- initialize cable_runtime% switches 
-cable_runtime%um =          .TRUE.
+cable_runtime%um =          .false.
 cable_runtime%um_explicit = .TRUE.
    
 ! initialize processor number, timestep width & number, endstep 
 ! UM overwrites these defaults. Not yet done in StandAlone 
 IF ( first_call ) THEN
-  knode_gl  = 0; kwidth_gl = 1200.0; kend_gl=-1
+  knode_gl  = 0; kend_gl=-1
 # if defined(UM_JULES)
       !knode_gl  = mype 
   kwidth_gl = INT(timestep_width)
@@ -210,7 +210,7 @@ END IF
 
 timestep_number = INT(rtimestep)
 ktau_gl   = timestep_number
-  
+kwidth_gl = timestep_width
 !----------------------------------------------------------------------------
 !--- CALL _driver to run specific and necessary components of CABLE with IN -
 !--- args PACKED to force CABLE

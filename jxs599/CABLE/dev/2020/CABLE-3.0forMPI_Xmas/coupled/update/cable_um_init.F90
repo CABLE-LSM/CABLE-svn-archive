@@ -55,9 +55,10 @@ USE cable_um_init_subrs_mod, ONLY: initialize_canopy
 USE cable_um_init_subrs_mod, ONLY: initialize_radiation
 USE cable_um_init_subrs_mod, ONLY: init_bgc_vars
 USE cable_um_init_subrs_mod, ONLY: init_sumflux_zero
-USE cable_um_init_subrs_mod, ONLY: init_respiration
+!H!USE cable_um_init_subrs_mod, ONLY: init_respiration
 USE cable_um_init_soil_mod,  ONLY: initialize_soil
 USE cable_um_tech_mod,       ONLY: alloc_um_interface_types ! mem. allocation subr (um1%) 
+USE cbl_soil_snow_init_special_module, ONLY: spec_init_soil_snow
 !H!  USE casa_um_inout_mod
 !data:   
 USE cable_air_type_mod,       ONLY: air_type
@@ -76,6 +77,8 @@ USE cable_um_tech_mod,        ONLY: um1                      ! um1% type UM basi
 USE cable_common_module,      ONLY: cable_user               ! namelist user  configs
 USE cable_common_module,      ONLY: l_casacnp
 USE cable_common_module,      ONLY: knode_gl
+USE cable_common_module,      ONLY: kwidth_gl
+USE cable_other_constants_mod, ONLY : CLAI_THRESH => LAI_THRESH
 
 !-------------------------------------------------------------------------- 
 !--- INPUT ARGS FROM cable_explicit_driver() ------------------------------
@@ -265,8 +268,10 @@ CALL assign_um_basics_to_um1( row_length, rows, land_pts, ntiles,             &
 !--- CABLE vars are initialized/updated from passed UM vars       ----!
 !---------------------------------------------------------------------!
 
-CALL initialize_veg( clobbered_htveg, land_pts, npft, ntiles, sm_levels,      &
-                     canht_ft, lai_ft, dzsoil, veg_cbl ) 
+CALL initialize_veg( clobbered_htveg, land_pts, npft, ntiles, sm_levels, mp,     &
+                     canht_ft, lai_ft, dzsoil, veg_cbl,         &
+                    tile_pts, tile_index, tile_frac, L_tile_pts,                 &
+                    CLAI_thresh )
 
 CALL initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,              &
                       smvccl, albsoil, tsoil_tile, sthu, sthu_tile,           &
@@ -293,12 +298,13 @@ CALL initialize_radiation( sw_down, lw_down, cos_zenith_angle,                &
                            l_co2_interactive, rad_cbl, met_cbl, soil_cbl )   
 
 IF ( first_call ) THEN
+call spec_init_soil_snow( real(kwidth_gl), soil_cbl, ssnow_cbl, canopy_cbl, met_cbl, bal_cbl, veg_cbl)
   CALL init_bgc_vars( bgc_cbl, veg_cbl ) 
   CALL init_sumflux_zero(sum_flux_cbl) 
 
   !--- initialize respiration for CASA-CNP
   !IF (l_casacnp) THEN ?
-  CALL init_respiration(npp_ft_acc,resp_w_ft_acc, canopy_cbl)
+  !H!CALL init_respiration(npp_ft_acc,resp_w_ft_acc, canopy_cbl)
 
   !H!  ! Lestevens 28 Sept 2012 - Initialize CASA-CNP here
   !H!     if (l_casacnp) then
