@@ -63,7 +63,7 @@ REAL :: SoilAlbsoilf(mp)
 
     ! lakes: hard-wired number to be removed in future
     WHERE( surface_type == 16 )                                                     &
-      soilalbsoilf = -0.022*( MIN( 275., MAX( 260., MetTk ) ) - 260. ) + 0.45
+      soilalbsoilf = -0.022*( MIN( 275., MAX( 260., SoilTemp) ) - 260. ) + 0.45
 
    WHERE(SnowDepth > 1. .and. surface_type == 16 ) SoilAlbsoilF = 0.85
 

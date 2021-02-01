@@ -18,6 +18,8 @@ USE cable_phys_constants_mod, ONLY : Ccs_rho_ice => cs_rho_ice
        max_ssdn,max_sconds,frozen_limit,&
        max_glacier_snowd
 
+USE cable_common_module, ONLY: ktau_gl 
+  
   IMPLICIT NONE
 
   PRIVATE
@@ -928,11 +930,11 @@ CONTAINS
     REAL :: wb_lake_T, rnof2_T, ratio
     INTEGER :: k,j
 
-    IF( cable_runtime%UM ) THEN
-       nglacier = 0
-    ELSE
+    !H!IF( cable_runtime%UM ) THEN
+    !H!   nglacier = 0
+    !H!ELSE
        nglacier = 2
-    ENDIF
+    !H!ENDIF
 
     CALL smoisturev( dels, ssnow, soil, veg )
 
@@ -1299,11 +1301,11 @@ CONTAINS
 
           ssnow%ssdn(j,:) = ssnow%ssdnn(j)
 
-          IF( .NOT.cable_user%CABLE_RUNTIME_COUPLED ) THEN
+          !H!IF( .NOT.cable_user%CABLE_RUNTIME_COUPLED ) THEN
              IF( soil%isoilm(j) == 9 .AND. ktau_gl <= 2 )                       &
                                 ! permanent ice: fixed hard-wired number in next version
                   ssnow%ssdnn(j) = 700.0
-          ENDIF
+          !H!ENDIF
 
 
        ELSE ! in loop: IF( ssnow%snowd(j) <= 0.0 ) THEN
@@ -1316,14 +1318,14 @@ CONTAINS
              ssnow%ssdn(j,2) = ssnow%ssdn(j,1)
              ssnow%ssdn(j,3) = ssnow%ssdn(j,1)
 
-             IF( .NOT. cable_user%cable_runtime_coupled) THEN
+             !H!IF( .NOT. cable_user%cable_runtime_coupled) THEN
                 IF( soil%isoilm(j) == 9 .AND. ktau_gl <= 2 ) THEN
                    ! permanent ice: fix hard-wired number in next version
                    ssnow%ssdn(j,1)  = 450.0
                    ssnow%ssdn(j,2)  = 580.0
                    ssnow%ssdn(j,3)  = 600.0
                 ENDIF
-             ENDIF
+             !H!ENDIF
 
              ssnow%sdepth(j,1) = ssnow%t_snwlr(j)
 
