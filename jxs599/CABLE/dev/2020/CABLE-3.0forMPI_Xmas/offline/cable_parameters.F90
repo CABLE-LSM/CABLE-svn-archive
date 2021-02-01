@@ -147,11 +147,6 @@ CONTAINS
     INTEGER :: nlon
     INTEGER :: nlat
 
-    ! Get parameter values for all default veg and soil types:
-    !CALL get_type_parameters(logn, vegparmnew, classification)
-    CALL cable_pft_params()
-    CALL cable_soil_params()
-
     WRITE(logn,*) ' Reading grid info from ', TRIM(filename%type)
     WRITE(logn,*) ' And assigning C4 fraction according to veg classification.'
     WRITE(logn,*)
@@ -173,6 +168,11 @@ CONTAINS
        WRITE(logn,*) 'Use spatially-specific soil properties; ', nlon, nlat
        CALL spatialSoil(nlon, nlat, logn)
     ENDIF
+
+    ! Get parameter values for all default veg and soil types:
+    !CALL get_type_parameters(logn, vegparmnew, classification)
+    CALL cable_pft_params()
+    CALL cable_soil_params()
 
     ! include prescribed soil colour in determining albedo - Ticket #27
     IF (calcsoilalbedo) THEN
@@ -1461,7 +1461,7 @@ CONTAINS
 
         IF(exists%patch) &
           patch(landpt(e)%cstart:landpt(e)%cstart)%frac =      &
-                                                           vegpatch_metfile(e, :)
+                                                          vegpatch_metfile(e,landpt(e)%cstart:landpt(e)%cstart )
 
           ! In case gridinfo file provides more patches than met file(BP may08)
           DO f = nmetpatches+1, landpt(e)%nap
