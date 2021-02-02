@@ -72,9 +72,9 @@ USE cbl_soil_snow_subrs_module
     END DO
 
 
-    !H!IF( cable_runtime%offline .OR. cable_runtime%mk3l ) THEN
+    IF( cable_runtime%offline .OR. cable_runtime%mk3l ) THEN
        ssnow%t_snwlr = 0.05
-    !H!ENDIF
+    ENDIF
 
     ssnow%fwtop1 = 0.0
     ssnow%fwtop2 = 0.0
@@ -158,30 +158,30 @@ USE cbl_soil_snow_subrs_module
     CALL surfbv(dels, met, ssnow, soil, veg, canopy )
 
 
-    !H!! correction required for energy balance in online simulations
-    !H!IF( cable_runtime%um ) THEN
+    ! correction required for energy balance in online simulations
+    IF( cable_runtime%um ) THEN
 
-    !H!   !cls package - rewritten for flexibility
-    !H!   canopy%fhs_cor = ssnow%dtmlt(:,1)*ssnow%dfh_dtg
-    !H!   !canopy%fes_cor = ssnow%dtmlt(:,1)*(ssnow%dfe_ddq * ssnow%ddq_dtg)
-    !H!   canopy%fes_cor = ssnow%dtmlt(:,1)*ssnow%dfe_dtg
+       !cls package - rewritten for flexibility
+       canopy%fhs_cor = ssnow%dtmlt(:,1)*ssnow%dfh_dtg
+       !canopy%fes_cor = ssnow%dtmlt(:,1)*(ssnow%dfe_ddq * ssnow%ddq_dtg)
+       canopy%fes_cor = ssnow%dtmlt(:,1)*ssnow%dfe_dtg
 
-    !H!   canopy%fhs = canopy%fhs+canopy%fhs_cor
-    !H!   canopy%fes = canopy%fes+canopy%fes_cor
+       canopy%fhs = canopy%fhs+canopy%fhs_cor
+       canopy%fes = canopy%fes+canopy%fes_cor
 
-    !H!   !REV_CORR associated changes to other energy balance terms
-    !H!   !NB canopy%fns changed not rad%flws as the correction term needs to
-    !H!   !pass through the canopy in entirety, not be partially absorbed
-    !H!   IF (cable_user%L_REV_CORR) THEN
-    !H!      canopy%fns_cor = ssnow%dtmlt(:,1)*ssnow%dfn_dtg
-    !H!      canopy%ga_cor = ssnow%dtmlt(:,1)*canopy%dgdtg
+       !REV_CORR associated changes to other energy balance terms
+       !NB canopy%fns changed not rad%flws as the correction term needs to
+       !pass through the canopy in entirety, not be partially absorbed
+       IF (cable_user%L_REV_CORR) THEN
+          canopy%fns_cor = ssnow%dtmlt(:,1)*ssnow%dfn_dtg
+          canopy%ga_cor = ssnow%dtmlt(:,1)*canopy%dgdtg
 
-    !H!      canopy%fns = canopy%fns + canopy%fns_cor
-    !H!      canopy%ga = canopy%ga + canopy%ga_cor
+          canopy%fns = canopy%fns + canopy%fns_cor
+          canopy%ga = canopy%ga + canopy%ga_cor
 
-    !H!      canopy%fess = canopy%fess + canopy%fes_cor
-    !H!   ENDIF
-    !H!ENDIF
+          canopy%fess = canopy%fess + canopy%fes_cor
+       ENDIF
+    ENDIF
 
     ! redistrb (set in cable.nml) by default==.FALSE.
     IF( redistrb )                                                              &
