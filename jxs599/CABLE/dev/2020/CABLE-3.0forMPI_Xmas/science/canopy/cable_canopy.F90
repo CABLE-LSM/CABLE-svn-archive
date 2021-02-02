@@ -47,6 +47,7 @@
 
 MODULE cable_canopy_module
 
+
 ! physical constants
 USE cable_phys_constants_mod, ONLY : CTFRZ   => TFRZ
 USE cable_phys_constants_mod, ONLY : CRMAIR  => RMAIR
@@ -87,7 +88,6 @@ USE cable_photo_constants_mod, ONLY : CMAXITER  => MAXITER ! only integer here
 ! maths & other constants
 USE cable_math_constants_mod,  ONLY : CPI_C  => PI
 USE cable_other_constants_mod, ONLY : CLAI_THRESH  => LAI_THRESH
-
 
   IMPLICIT NONE
 
@@ -262,7 +262,7 @@ logical :: sunlit_veg_mask(mp)
     canopy%fhs_cor = 0.0
     canopy%fns_cor = 0.0
     canopy%ga_cor = 0.0
-    !canopy%fes_cor = 0.0
+    canopy%fes_cor = 0.0
 
     !L_REV_CORR - new working variables
     rttsoil = 0.
@@ -355,7 +355,7 @@ CALL ruff_resist(veg, rough, ssnow, canopy, veg%vlai, veg%hc, canopy%vlaiw)
              rt0 = MAX(rt_min,rough%rt0us) / canopy%us
           ENDWHERE
 
-       ELSE
+       ELSE ! NOT sli
           rt0 = MAX(rt_min,rough%rt0us / canopy%us)
 
           IF (cable_user%litter) THEN
@@ -368,8 +368,7 @@ CALL ruff_resist(veg, rough, ssnow, canopy, veg%vlai, veg%hc, canopy%vlaiw)
 
        ENDIF
 
-
-       ! Aerodynamic resistance (sum 3 height integrals)/us
+!       ! Aerodynamic resistance (sum 3 height integrals)/us
        ! See CSIRO SCAM, Raupach et al 1997, eq. 3.50:
        rough%rt1 = MAX(5.,(rough%rt1usa + rough%rt1usb + rt1usc) / canopy%us)
 
@@ -397,9 +396,10 @@ CALL ruff_resist(veg, rough, ssnow, canopy, veg%vlai, veg%hc, canopy%vlaiw)
 
        ENDDO
 
+
        IF (cable_user%or_evap) THEN
-write(6,*) "GW or ORevepis not an option right now"
-!H!          call or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
+        write(6,*) "GW or ORevepis not an option right now"
+        !H!          call or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
        END IF
 
        ! Vegetation boundary-layer conductance (mol/m2/s)
@@ -429,6 +429,7 @@ write(6,*) "GW or ORevepis not an option right now"
           ENDIF
 
        ENDDO
+
 
        rny = SUM(rad%rniso,2) ! init current estimate net rad
        hcy = 0.0              ! init current estimate lat heat
@@ -474,7 +475,6 @@ write(6,*) "GW or ORevepis not an option right now"
 
                 canopy%tv(j) = (rad%lwabv(j) / (2.0*(1.0-rad%transd(j))            &
                      * CSBOLTZ*CEMLEAF)+met%tvrad(j)**4)**0.25
-
              ELSE
                 canopy%tv(j) = met%tvrad(j)
              ENDIF
@@ -489,17 +489,19 @@ write(6,*) "GW or ORevepis not an option right now"
        ENDDO
 
 
+
        ! Calculate net rad to soil:
        canopy%fns = rad%qssabs + rad%transd*met%fld + (1.0-rad%transd)*CEMLEAF* &
             CSBOLTZ*canopy%tv**4 - CEMSOIL*CSBOLTZ* tss4
+
 
 
        ! Saturation specific humidity at soil/snow surface temperature:
        CALL qsatfjh(ssnow%qstss,ssnow%tss-Ctfrz,met%pmb)
 
       if (cable_user%gw_model .OR.  cable_user%or_evap) & 
-write(6,*) "GW or ORevepis not an option right now"
-!H!        call pore_space_relative_humidity(ssnow,soil,veg)
+      write(6,*) "GW or ORevepis not an option right now"
+      !H!        call pore_space_relative_humidity(ssnow,soil,veg)
 
        IF (cable_user%soil_struc=='default') THEN
 
@@ -523,8 +525,8 @@ write(6,*) "GW or ORevepis not an option right now"
              ! INH: I think this should be - met%qvair
              dq = ssnow%qstss - met%qv
              dq_unsat = ssnow%rh_srf*ssnow%qstss - met%qv
-dq = max(0.0, dq)
-dq_unsat = max(0.0, dq_unsat)
+             dq = max(0.0, dq)
+             dq_unsat = max(0.0, dq_unsat)
              ssnow%potev =  Humidity_deficit_method(dq, dq_unsat,ssnow%qstss)
 
           ENDIF
@@ -576,8 +578,8 @@ write(6,*) "SLI is not an option right now"
              ! Humidity deficit
              dq = ssnow%qstss - met%qvair
              dq_unsat = ssnow%rh_srf*ssnow%qstss - met%qvair
-dq = max(0.0, dq)
-dq_unsat = max(0.0, dq_unsat)
+             dq = max(0.0, dq)
+             dq_unsat = max(0.0, dq_unsat)
              ssnow%potev =  Humidity_deficit_method(dq, dq_unsat,ssnow%qstss)
 
           ENDIF
@@ -599,12 +601,13 @@ dq_unsat = max(0.0, dq_unsat)
                   (ssnow%rtsoil + rhlitt)
           ELSE
              canopy%fhs = air%rho*CCAPP*(ssnow%tss - met%tvair) /ssnow%rtsoil
+             
+
           ENDIF
 
           !! Ticket #90 ssnow%cls factor should be retained: required for energy balance
           !! INH: %cls factor included in %fes already - do not include here
           canopy%ga = canopy%fns-canopy%fhs-canopy%fes !*ssnow%cls
-
        ELSE
 
 write(6,*) "SLI is not an option right now"
@@ -2190,6 +2193,7 @@ write(6,*) "GW or ORevepis not an option right now"
 
        DO i=1,mp
 
+
           IF (canopy%vlaiw(i) > CLAI_THRESH .AND. abs_deltlf(i) > 0.1 ) THEN
 
              DO kk=1,mf
@@ -2284,7 +2288,6 @@ write(6,*) "GW or ORevepis not an option right now"
                   - Ccapp*Crmair*(met%tvair(i)-met%tk(i))                       &
                   * SUM(rad%gradis(i,:)))                                         &
                   * SUM(gh(i,:))/ SUM(ghr(i,:))
-
              ! Update leaf temperature:
              tlfx(i)=met%tvair(i)+REAL(hcx(i))/(Ccapp*Crmair*SUM(gh(i,:)))
 
@@ -2307,6 +2310,7 @@ write(6,*) "GW or ORevepis not an option right now"
        ENDDO !i=1,mp
        ! Where leaf temp change b/w iterations is significant, and
        ! difference is smaller than the previous iteration, store results:
+
        DO i=1,mp
 
           IF ( abs_deltlf(i) < ABS( deltlfy(i) ) ) THEN
@@ -2349,6 +2353,7 @@ write(6,*) "GW or ORevepis not an option right now"
           END IF
 
        END DO !over mp
+
 
     END DO  ! DO WHILE (ANY(abs_deltlf > 0.1) .AND.  k < CMAXITER)
 
@@ -2758,6 +2763,7 @@ write(6,*) "GW or ORevepis not an option right now"
     ELSE
        fwsoil = MAX(1.0e-9,MIN(1.0, veg%vbeta * rwater))
     ENDIF
+
 
   END SUBROUTINE fwsoil_calc_std
 
