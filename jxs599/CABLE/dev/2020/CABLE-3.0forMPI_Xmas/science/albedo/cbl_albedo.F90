@@ -106,10 +106,6 @@ real :: SumEffSurfRefl_beam(1)
 real :: SumEffSurfRefl_dif(1)
 integer :: i
 
-    REAL, DIMENSION(mp)  ::                                                &
-         dummy2, & !
-         dummy
-
     INTEGER :: b    !rad. band 1=visible, 2=near-infrared, 3=long-wave
     ! END header
 
@@ -125,19 +121,8 @@ call surface_albedosn( AlbSnow, AlbSoil, mp, nrb, jls_radiation, surface_type, s
                        SnowDensity, SoilTemp, SnowTemp, SnowAge,                     & 
                        MetTk, Coszen )
 
-! Update extinction coefficients and fractional transmittance for
-! leaf transmittance and reflection (ie. NOT black leaves):
+! Update fractional leaf transmittance and reflection
 !---1 = visible, 2 = nir radiaition
-DO b = 1, 2
-   EffExtCoeff_dif(:,b) = ExtCoeff_dif(:) * c1(:,b)
-END DO
-
-DO b = 1, 2
-     !---where vegetated and sunlit
-   WHERE (sunlit_veg_mask)
-      EffExtCoeff_beam(:,b) = ExtCoeff_beam(:) * c1(:,b)
-   END WHERE
-END DO
 
 ! Define canopy Reflectance for diffuse/direct radiation
 ! Formerly rad%rhocbm, rad%rhocdf
@@ -151,21 +136,6 @@ call CanopyReflectance( CanopyRefl_beam, CanopyRefl_dif, &
 call CanopyTransmitance(CanopyTransmit_beam, CanopyTransmit_dif, mp, nrb,&
                               sunlit_veg_mask, reducedLAIdue2snow, &
                               EffExtCoeff_dif, EffExtCoeff_beam)
-
-!test    ! Canopy beam transmittance (fraction):
-!test    DO b = 1, 2
-!test       WHERE (sunlit_veg_mask)
-!test          dummy2 = MIN(EffExtCoeff_beam(:,b)*reducedLAIdue2snow, 20.)
-!test          dummy  = EXP(-dummy2)
-!test          CanopyTransmit_beam(:,b) = REAL(dummy)
-!test       END WHERE
-!test    END DO
-
-
-!    DO b = 1, 2
-!       !--Define canopy diffuse transmittance (fraction):
-!       CanopyTransmit_dif(:,b) = EXP(-EffExtCoeff_dif(:,b) * reducedLAIdue2snow)
-!    END DO
 
 !---1 = visible, 2 = nir radiaition
 ! Finally compute Effective 4-band albedo for diffuse/direct radiation- 
