@@ -1299,11 +1299,6 @@ CONTAINS
 
           ssnow%ssdn(j,:) = ssnow%ssdnn(j)
 
-          IF( .NOT.cable_user%CABLE_RUNTIME_COUPLED ) THEN
-             IF( soil%isoilm(j) == 9 .AND. ktau_gl <= 2 )                       &
-                                ! permanent ice: fixed hard-wired number in next version
-                  ssnow%ssdnn(j) = 700.0
-          ENDIF
 
 
        ELSE ! in loop: IF( ssnow%snowd(j) <= 0.0 ) THEN
@@ -1316,14 +1311,6 @@ CONTAINS
              ssnow%ssdn(j,2) = ssnow%ssdn(j,1)
              ssnow%ssdn(j,3) = ssnow%ssdn(j,1)
 
-             IF( .NOT. cable_user%cable_runtime_coupled) THEN
-                IF( soil%isoilm(j) == 9 .AND. ktau_gl <= 2 ) THEN
-                   ! permanent ice: fix hard-wired number in next version
-                   ssnow%ssdn(j,1)  = 450.0
-                   ssnow%ssdn(j,2)  = 580.0
-                   ssnow%ssdn(j,3)  = 600.0
-                ENDIF
-             ENDIF
 
              ssnow%sdepth(j,1) = ssnow%t_snwlr(j)
 
