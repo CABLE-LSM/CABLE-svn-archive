@@ -107,8 +107,12 @@ real :: SumEffSurfRefl_dif(1)
 integer :: i
 
     INTEGER :: b    !rad. band 1=visible, 2=near-infrared, 3=long-wave
+LOGICAL :: aveg_mask(mp)             ! this "mp" is vegetated (uses minimum LAI) 
     ! END header
-
+aveg_mask = .false.
+do i=1,mp
+if( reducedLAIdue2snow(i) > .01 ) aveg_mask(i) = .true.
+end do
 AlbSnow(:,:) = 0.0
 CanopyTransmit_beam(:,:) = 0.0
 CanopyRefl_beam(:,:) = 0.0
@@ -150,7 +154,7 @@ call EffectiveSurfaceReflectance( EffSurfRefl_beam, EffSurfRefl_dif,           &
                                   mp, nrb, veg_mask, sunlit_veg_mask,          &
                                   CanopyRefl_beam, CanopyRefl_dif,             &
                                   CanopyTransmit_beam,CanopyTransmit_dif,      &
-                                  AlbSnow )
+                                  AlbSnow,aveg_mask )
 
 ! Compute total albedo to SW given the Effective Surface Reflectance 
 ! (considering Canopy/Soil/Snow contributions) 
@@ -335,12 +339,13 @@ subroutine EffectiveSurfaceReflectance(EffSurfRefl_beam, EffSurfRefl_dif,      &
                                        mp, nrb, veg_mask, sunlit_veg_mask,     &
                                        CanopyRefl_beam, CanopyRefl_dif,        &
                                        CanopyTransmit_beam,CanopyTransmit_dif, & 
-                                       AlbSnow )
+                                       AlbSnow,aveg_mask )
 implicit none
 !re-decl input args 
 integer :: mp                       !total number of "tiles"  
 integer :: nrb                      !number of radiation bands [per legacy=3, but really=2 VIS,NIR. 3rd dim was for LW]
 LOGICAL :: veg_mask(mp)             ! this "mp" is vegetated (uses minimum LAI) 
+LOGICAL :: aveg_mask(mp)             ! this "mp" is vegetated (uses minimum LAI) 
 LOGICAL :: sunlit_veg_mask(mp)      ! this "mp" is vegetated (uses minimum LAI) 
 REAL :: EffSurfRefl_dif(mp,nrb)     !Effective Surface Relectance as seen by atmosphere [Diffuse SW]  (rad%reffdf)
 REAL :: EffSurfRefl_beam(mp,nrb)    !Effective Surface Relectance as seen by atmosphere [Direct Beam SW] (rad%reffbm)
@@ -353,7 +358,8 @@ real :: AlbSnow(mp,nrb)
 
 
 call EffectiveReflectance( EffSurfRefl_dif, mp, nrb, CanopyRefl_dif, AlbSnow, &
-                           CanopyTransmit_dif, veg_mask )
+                           !test!CanopyTransmit_dif, veg_mask )
+                           CanopyTransmit_dif, aveg_mask )
 
 call EffectiveReflectance( EffSurfRefl_beam, mp, nrb, CanopyRefl_beam, AlbSnow,&
                            CanopyTransmit_beam, sunlit_veg_mask )
