@@ -525,8 +525,6 @@ CALL ruff_resist(veg, rough, ssnow, canopy, veg%vlai, veg%hc, canopy%vlaiw)
              ! INH: I think this should be - met%qvair
              dq = ssnow%qstss - met%qv
              dq_unsat = ssnow%rh_srf*ssnow%qstss - met%qv
-             dq = max(0.0, dq)
-             dq_unsat = max(0.0, dq_unsat)
              ssnow%potev =  Humidity_deficit_method(dq, dq_unsat,ssnow%qstss)
 
           ENDIF
@@ -578,8 +576,6 @@ write(6,*) "SLI is not an option right now"
              ! Humidity deficit
              dq = ssnow%qstss - met%qvair
              dq_unsat = ssnow%rh_srf*ssnow%qstss - met%qvair
-             dq = max(0.0, dq)
-             dq_unsat = max(0.0, dq_unsat)
              ssnow%potev =  Humidity_deficit_method(dq, dq_unsat,ssnow%qstss)
 
           ENDIF

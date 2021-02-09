@@ -23,10 +23,12 @@ SUBROUTINE LAI_eff( mp, LAI_PFT, Hgt_PFT, HgtAboveSnow,  &
   real :: FracOfCanopyAboveSnow(mp)
 
   !Fraction Of Canopy Above Snow
-  FracOfCanopyAboveSnow = HgtAboveSnow/ MAX( 0.01, Hgt_PFT)
+  !test!FracOfCanopyAboveSnow = HgtAboveSnow/ MAX( 0.01, Hgt_PFT)
   
   ! LAI decreases due to snow:
-  reducedLAIdue2snow = LAI_PFT * FracOfCanopyAboveSnow 
+  !test!reducedLAIdue2snow = LAI_PFT * FracOfCanopyAboveSnow 
+  
+  reducedLAIdue2snow = LAI_PFT * HgtAboveSnow/ MAX( 0.01, Hgt_PFT)
 
 END SUBROUTINE LAI_eff
 
