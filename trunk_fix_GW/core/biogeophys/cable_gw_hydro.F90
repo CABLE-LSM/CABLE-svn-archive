@@ -1706,14 +1706,25 @@ SUBROUTINE calc_soil_hydraulic_props(ssnow,soil,veg)
    REAL(r_2), dimension(mp,ms+1) ::wb_temp
    REAL(r_2), DIMENSION(mp,ms+1) :: hk_ice_factor
 
+   ! Commented out as gfortran doesn't like the pointer use in swc_smp_dsmpdw
+   ! MDK 10 feb 2020
+   !if (gw_params%BC_hysteresis) then
+   !   swc_smp_dsmpdw => brook_corey_hysteresis_swc_smp
+   !   ssnow%sucs_hys(:,:) = ssnow%hys_fac(:,:)*soil%sucs_vec(:,:)
+   !elseif (gw_params%HC_SWC) then
+   !   swc_smp_dsmpdw => hutson_cass_swc_smp
+   !   ssnow%sucs_hys(:,:) = soil%sucs_vec(:,:)
+   !else
+   !   swc_smp_dsmpdw => brook_corey_swc_smp
+   !   ssnow%sucs_hys(:,:) = soil%sucs_vec(:,:)
+   !end if
+
+   ! MDK 10 feb 2020, replacing pointer issue
    if (gw_params%BC_hysteresis) then
-      swc_smp_dsmpdw => brook_corey_hysteresis_swc_smp
       ssnow%sucs_hys(:,:) = ssnow%hys_fac(:,:)*soil%sucs_vec(:,:)
    elseif (gw_params%HC_SWC) then
-      swc_smp_dsmpdw => hutson_cass_swc_smp
       ssnow%sucs_hys(:,:) = soil%sucs_vec(:,:)
    else
-      swc_smp_dsmpdw => brook_corey_swc_smp
       ssnow%sucs_hys(:,:) = soil%sucs_vec(:,:)
    end if
 
@@ -1794,7 +1805,16 @@ SUBROUTINE calc_soil_hydraulic_props(ssnow,soil,veg)
     !soil potential (head) calculations can use brooks-corey
     !or hutson-cass SWC
 
-    call swc_smp_dsmpdw(soil,ssnow)
+    ! MDK 10 feb 2020, replacing pointer issue
+    !call swc_smp_dsmpdw(soil,ssnow)
+    if (gw_params%BC_hysteresis) then
+      call brook_corey_hysteresis_swc_smp(soil,ssnow)
+    elseif (gw_params%HC_SWC) then
+      call hutson_cass_swc_smp(soil,ssnow)
+    else
+      call brook_corey_swc_smp(soil,ssnow)
+    end if
+
 
     !hydraulic conductivity
     !Interfacial so uses layer i and i+1
@@ -2557,7 +2577,19 @@ subroutine swc_hyst_direction(soil,ssnow,veg)
 
    delta_wbliq = ssnow%wbliq - ssnow%wbliq_old
    !soil hydraulic state/props  so smp out matches the wb out
-   call swc_smp_dsmpdw(soil,ssnow)
+
+   ! MDK 10 feb 2020, replacing pointer issue
+   !call swc_smp_dsmpdw(soil,ssnow)
+   if (gw_params%BC_hysteresis) then
+     call brook_corey_hysteresis_swc_smp(soil,ssnow)
+   elseif (gw_params%HC_SWC) then
+     call hutson_cass_swc_smp(soil,ssnow)
+   else
+     call brook_corey_swc_smp(soil,ssnow)
+   end if
+
+
+
      !switch drying/wetting curve
     do k=1,ms
        do i=1,mp
