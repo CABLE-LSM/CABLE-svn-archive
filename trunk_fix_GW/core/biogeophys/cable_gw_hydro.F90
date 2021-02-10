@@ -2229,6 +2229,11 @@ END SUBROUTINE calc_soil_hydraulic_props
     REAL(r_2), DIMENSION(mp) :: unsat_wb,unsat_smp
     INTEGER :: i
 
+    ! Need a matching array of ones to use in Mark's call to the intrinsic
+    ! sign func below
+    ! MDK Feb 2020
+    REAL(r_2), DIMENSION(mp,ms) :: ones
+
     !CALL point2constants( C )
 
     !if gw_model = true
@@ -2249,9 +2254,15 @@ END SUBROUTINE calc_soil_hydraulic_props
           !     ??? so I didn't modify.
           unsat_wb(i) = max(ssnow%watr_hys(i,1)+1e-2, min(ssnow%ssat_hys(i,1), unsat_wb(i) ) )
 
-          unsat_smp(i) = sign(ssnow%sucs_hys(i,1),-1.0) * min(1.0, &
+          !unsat_smp(i) = sign(ssnow%sucs_hys(i,1),-1.0) * min(1.0, &
+            !             (max(0.01, (unsat_wb(i)-ssnow%watr_hys(i,1))/(ssnow%ssat_hys(i,1)-&
+            !             ssnow%watr_hys(i,1)) ) )** (-soil%bch_vec(i,1)) )
+
+          ! Fix for the "sign" issue above, MDk Feb 2020
+          unsat_smp(i) = sign(soil%sucs_vec(i,1),ones(i,1)) * min(1.0, &
                          (max(0.01, (unsat_wb(i)-ssnow%watr_hys(i,1))/(ssnow%ssat_hys(i,1)-&
                          ssnow%watr_hys(i,1)) ) )** (-soil%bch_vec(i,1)) )
+
 
           unsat_smp(i) = max(-1.0e4,unsat_smp(i) )/m2mm !m
 
