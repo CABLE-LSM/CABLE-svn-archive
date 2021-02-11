@@ -93,7 +93,7 @@ PROGRAM cable_offline_driver
   USE cable_diag_module
   !mpidiff
   USE cable_climate_mod
-    
+
   ! modules related to CASA-CNP
   USE casadimension,	    ONLY: icycle
   USE casavariable,	    ONLY: casafile, casa_biome, casa_pool, casa_flux,  &
@@ -452,8 +452,10 @@ USE cbl_soil_snow_init_special_module
            CurYear = YYYY
            IF ( leaps .AND. IS_LEAPYEAR( YYYY ) ) THEN
               LOY = 366
+              calendar = "standard"
            ELSE
               LOY = 365
+              calendar = "noleap"
            ENDIF
            ! Check for gswp run
            IF ( TRIM(cable_user%MetType) .EQ. 'gswp' ) THEN
