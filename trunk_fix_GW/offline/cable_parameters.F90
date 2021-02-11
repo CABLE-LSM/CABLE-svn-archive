@@ -3299,11 +3299,12 @@ CONTAINS
       END DO
     ENDDO
 
-    !removed gw_soils for now
-    deallocate(inGWtmp)
-    deallocate(inGW3dtmp)
-    deallocate(inGW4dtmp)
-
+    IF (cable_user%gw_model) then
+      !removed gw_soils for now
+      deallocate(inGWtmp)
+      deallocate(inGW3dtmp)
+      deallocate(inGW4dtmp)
+    ENDIF
 
   END SUBROUTINE GWspatialParameters
 
