@@ -76,7 +76,8 @@ MODULE cable_gw_hydro_module
       end subroutine
    end interface
 
-  procedure(swc_smp_func), pointer, save :: swc_smp_dsmpdw=>null()
+  ! MDK 10 feb 2020, replacing pointer issue
+  !procedure(swc_smp_func), pointer, save :: swc_smp_dsmpdw=>null()
 
 
 
@@ -1073,7 +1074,18 @@ SUBROUTINE soil_snow_gw(dels, soil, ssnow, canopy, met, bal, veg)
    IF (gw_params%BC_hysteresis)  &
              CALL swc_hyst_direction(soil,ssnow,veg)
 
-   call swc_smp_dsmpdw(soil,ssnow)
+
+
+   !MDK 10 feb 2020, replacing pointer issue
+   !call swc_smp_dsmpdw(soil,ssnow)
+   if (gw_params%BC_hysteresis) then
+      ssnow%sucs_hys(:,:) = ssnow%hys_fac(:,:)*soil%sucs_vec(:,:)
+   elseif (gw_params%HC_SWC) then
+      ssnow%sucs_hys(:,:) = soil%sucs_vec(:,:)
+   else
+      ssnow%sucs_hys(:,:) = soil%sucs_vec(:,:)
+   end if
+
 
    ! correction required for energy balance in online simulations
    IF( cable_runtime%um ) THEN
