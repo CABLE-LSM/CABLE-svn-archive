@@ -130,7 +130,7 @@ call EffectiveExtinctCoeffs( EffExtCoeff_beam, EffExtCoeff_dif,               &
 ! Offline/standalone forcing gives us total downward Shortwave. We have
 ! previosuly, arbitratily split this into NIR/VIS (50/50). We use 
 ! Spitter function to split these bands into direct beam and diffuse components
-IF( cbl_standalone .OR. jls_standalone .AND. .NOT. jls_radiation ) &
+!jhan!IF( ( cbl_standalone .OR. jls_standalone ) .AND. .NOT. jls_radiation ) &
   CALL BeamFraction( RadFbeam, mp, nrb, Cpi, Ccoszen_tols_huge, metDoy,  &
                      coszen, SW_down ) 
 
