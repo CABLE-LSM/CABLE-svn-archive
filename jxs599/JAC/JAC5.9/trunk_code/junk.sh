@@ -1,0 +1,8 @@
+ACCESS1.4-LUC/
+CABLE/
+CABLE_AUX/
+CMIP6/
+HAC/
+JAC/
+Misc/
+projects/
