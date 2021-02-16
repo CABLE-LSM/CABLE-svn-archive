@@ -1,0 +1,11 @@
+&jules_initial
+const_val=0.0,276.78,12.1,0.759,3.0,0.0,0.0,0.0,
+dump_file=.false.,
+file='cable_init_conditions.dat',
+nvars=8,
+total_snow=.true.,
+use_file=5*.false.,.true.,.true.,.true.,
+var='canopy','tstar_tile','cs','sthzw','zw','sthuf','t_soil',
+'snow_tile',
+var_name=8*'',
+/

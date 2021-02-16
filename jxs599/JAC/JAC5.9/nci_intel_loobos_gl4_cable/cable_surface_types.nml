@@ -1,0 +1,8 @@
+&cable_surface_types
+barren_cable=14,
+ice_cable=17,
+lakes_cable=16,
+nnvg_cable=4,
+npft_cable=13,
+urban_cable=15,
+/
