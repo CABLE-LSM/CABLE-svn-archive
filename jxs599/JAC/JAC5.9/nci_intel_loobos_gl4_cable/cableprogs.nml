@@ -1,0 +1,13 @@
+&cable_progs
+file='cable_vars.nc',
+nvars=10,
+use_file=T T T T T T T T T T,
+var='SoilTemp_CABLE','SoilMoisture_CABLE',
+'FrozenSoilFrac_CABLE','SnowDepth_CABLE','SnowMass_CABLE',
+'SnowDensity_CABLE','SnowTemp_CABLE','SnowAge_CABLE',
+'OneLyrSnowDensity_CABLE','ThreeLayerSnowFlag_CABLE',
+var_name='SoilTemp_CABLE','SoilMoisture_CABLE',
+'FrozenSoilFrac_CABLE','SnowDepth_CABLE','SnowMass_CABLE',
+'SnowDensity_CABLE','SnowTemp_CABLE','SnowAge_CABLE',
+'OneLyrSnowDensity_CABLE','ThreeLayerSnowFlag_CABLE',
+/
