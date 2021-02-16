@@ -101,6 +101,9 @@ USE trifctl,                      ONLY: trifctl_data_type,                    &
 USE coastal,                      ONLY: coastal_data_type,                    &
                                         coastal_type,                         &
                                         coastal_assoc
+USE init_surface_types_mod,       ONLY: init_cable_surface_types
+USE init_cable_mod,              ONLY: init_cable
+
 IMPLICIT NONE
 
 !-----------------------------------------------------------------------------
@@ -299,11 +302,9 @@ CALL veg3_field_init(land_pts,nsurft,nnpft,npft,nmasst,ainfo,progs)
 ! Seek the input files to the start of the run
 CALL seek_all_to_current_datetime()
 
-! If the LSM is CABLE, initialise CABLE variables
+! Declare/allocate/initialize - params,progs,state vars for CABLE
 IF ( lsm_id == cable ) THEN
-  CALL allocate_cable_arrays()
-  CALL init_cable_grid()
-  CALL init_cable_veg()
+  CALL init_cable()   ! init. #active tiles,define mask for active tiles
 END IF
 
 ! Save initial state if spinning up. Arrays are allocated here.

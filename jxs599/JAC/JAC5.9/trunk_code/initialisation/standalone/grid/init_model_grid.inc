@@ -11,7 +11,7 @@ SUBROUTINE init_model_grid(crop_vars_data,psparms_data,top_pdm_data,          &
                            soil_ecosse_vars_data, aero_data, urban_param_data,&
                            progs_data,trifctl_data, coastal_data)
 
-USE allocate_jules_arrays_mod, ONLY: allocate_jules_arrays
+USE allocate_jules_arrays_mod,  ONLY: allocate_jules_arrays
 
 USE io_constants, ONLY: max_file_name_len, namelist_unit, points_file_unit
 
@@ -541,13 +541,6 @@ END IF
 IF ( l_point_data .AND. t_i_length * t_j_length > 1 )                         &
   CALL log_warn("init_model_grid",                                            &
                 "l_point_data is selected but there is more than one point")
-
-!-----------------------------------------------------------------------------
-! Allocate model arrays
-!
-! Note: CABLE model arrays are only allocated later on in init.F90 due to a
-!       dependency on surft_pts, which has not yet been initialised
-!-----------------------------------------------------------------------------
 
 ALLOCATE(latitude_of_land_pts(land_pts))
 ALLOCATE(longitude_of_land_pts(land_pts))

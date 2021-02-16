@@ -35,7 +35,6 @@ CONTAINS
 #include "init_rivers_props.inc"
 #include "init_urban_props.inc"
 #include "init_overbank_props.inc"
-#include "init_cable_progs.inc"
 #include "init_water_resources_props.inc"
 
 END MODULE init_ancillaries_mod
