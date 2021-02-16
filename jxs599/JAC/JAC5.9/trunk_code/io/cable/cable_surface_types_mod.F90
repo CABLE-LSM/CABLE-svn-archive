@@ -13,6 +13,10 @@ USE missing_data_mod, ONLY: imdi
 
 IMPLICIT NONE
 
+!CABLE_LSM:HAC:Elevate these to namelist
+INTEGER, parameter :: mstype=9      ! # total no of soil types
+INTEGER, parameter :: msn_cable =3  ! # total no of snow layers
+INTEGER, parameter :: ICE_soiltype_cbl=9 !indice of ice-soil_typw
 !-----------------------------------------------------------------------------
 ! Module variables.
 !-----------------------------------------------------------------------------
@@ -234,9 +238,6 @@ CALL jules_print('cable_surface_types', lineBuffer)
 
 WRITE(lineBuffer, *) '  ice_cable = ', ice_cable
 CALL jules_print('cable_surface_types', lineBuffer)
-
-CALL jules_print('cable_surface_types',                                       &
-    '- - - - - - end of namelist - - - - - -')
 
 END SUBROUTINE print_nlist_cable_surface_types
 
