@@ -339,7 +339,7 @@ subroutine EffectiveSurfaceReflectance(EffSurfRefl_beam, EffSurfRefl_dif,      &
                                        mp, nrb, veg_mask, sunlit_veg_mask,     &
                                        CanopyRefl_beam, CanopyRefl_dif,        &
                                        CanopyTransmit_beam,CanopyTransmit_dif, & 
-                                       AlbSnow,aveg_mask )
+                                       AlbSnow )
 implicit none
 !re-decl input args 
 integer :: mp                       !total number of "tiles"  
