@@ -2,7 +2,7 @@
 file='loobos_frac.dat',
 /
 &jules_soil_props
-const_val=6.63,0.04946,0.004715,0.45815,0.242433,0.136328,1185676.0,
+const_val=6.63,0.04946,0.004715,0.4079013,0.242433,0.136328,1185676.0,
 0.226873,0.11,
 const_z=.false.,
 nvars=9,
@@ -21,7 +21,7 @@ var='fexp','ti_mean','ti_sig',
 &cable_progs
 file='cable_vars.nc',
 nvars=10,
-use_file=10*.true.,
+use_file=T T T T T T T T T T,
 var='SoilTemp_CABLE','SoilMoisture_CABLE',
 'FrozenSoilFrac_CABLE','SnowDepth_CABLE','SnowMass_CABLE',
 'SnowDensity_CABLE','SnowTemp_CABLE','SnowAge_CABLE',
