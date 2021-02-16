@@ -1,11 +1,10 @@
 &jules_soil
 confrac=0.3,
-dzsoil_io=0.1000,0.2500,0.6500,1.8000,0.1000,0.1000,
+dzsoil_io=0.022,0.058,0.154,0.409,1.085,2.872,
 l_bedrock=.false.,
 l_dpsids_dsdz=.false.,
 l_holdwater=.false.,
 l_soil_sat_down=.true.,
-l_tile_soil=.false.,
 l_vg_soil=.true.,
 sm_levels=6,
 soilhc_method=2,
