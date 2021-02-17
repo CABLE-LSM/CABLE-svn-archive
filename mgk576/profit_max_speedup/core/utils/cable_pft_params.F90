@@ -1,4 +1,4 @@
-vegin%Kmax(2)MODULE cable_pft_params_mod
+MODULE cable_pft_params_mod
   IMPLICIT NONE
 
   TYPE vegin_type
