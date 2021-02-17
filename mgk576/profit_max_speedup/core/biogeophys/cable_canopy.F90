@@ -1801,7 +1801,7 @@ CONTAINS
 
     REAL :: press
 
-    INTEGER, PARAMETER :: resolution = 500
+    INTEGER, PARAMETER :: resolution = 200
     REAL, DIMENSION(2) :: an_canopy
     REAL :: e_canopy
     REAL(r_2), DIMENSION(resolution) :: p
@@ -2133,7 +2133,7 @@ CONTAINS
                    anx(i,1) = 0.0 - rdx(i,1)
                    anx(i,2) = 0.0 - rdx(i,2)
                 ELSE
-                   CALL optimisation(canopy, rad, rad%qcan, vpd, press, tlfx(i), &
+                   CALL optimisation(canopy, rad, ssnow, rad%qcan, vpd, press, tlfx(i), &
                                      csx, rad%fvlai, &
                                      ssnow%weighted_psi_soil(i), &
                                      ssnow%Rsr(i), Kcmax, veg%Kmax(i), veg%Kcrit(i), &
@@ -3114,7 +3114,7 @@ CONTAINS
    ! ---------------------------------------------------------------------------
 
    ! ---------------------------------------------------------------------------
-   SUBROUTINE optimisation(canopy, rad, qcan, vpd, press, tleaf, csx, lai_leaf, &
+   SUBROUTINE optimisation(canopy, rad, ssnow, qcan, vpd, press, tleaf, csx, lai_leaf, &
                            psi_soil, Rsr, Kcmax, Kmax, Kcrit, b_plant, &
                            c_plant, N, vcmxt3, ejmxt3, rdx, vx3, cx1, &
                            an_canopy, e_canopy, gmin, p, i)
@@ -3146,7 +3146,7 @@ CONTAINS
 
       TYPE (canopy_type), INTENT(INOUT) :: canopy
       TYPE (radiation_type), INTENT(INOUT) :: rad
-
+       TYPE (soil_snow_type), INTENT(INOUT)      :: ssnow
       INTEGER, INTENT(IN) :: i, N
       INTEGER :: j, k, idx
 
@@ -3158,12 +3158,14 @@ CONTAINS
       REAL(r_2), DIMENSION(mp,mf), INTENT(IN) :: csx
       REAL, DIMENSION(mp,mf,nrb), INTENT(IN) :: qcan
       REAL(r_2), DIMENSION(N), INTENT(INOUT) :: p
+      REAL, DIMENSION(N) :: ci, Ac, Aj, A, An
+      LOGICAL, DIMENSION(N) ::  mask
       REAL, DIMENSION(mp,mf), INTENT(IN) :: vcmxt3, ejmxt3, rdx, vx3, lai_leaf
       REAL, DIMENSION(N) :: Kc, e_leaf, cost, gain, profit, an_leaf
       REAL :: p_crit, lower, upper, Cs, apar
-      REAL :: J_TO_MOL, MOL_TO_UMOL, gsw, gsc, an, Vcmax, Jmax, Rd, Vj, Km
+      REAL :: J_TO_MOL, MOL_TO_UMOL, gsw, gsc, Vcmax, Jmax, Rd, Vj, Km
       REAL, DIMENSION(mf) :: e_leaves, p_leaves
-      REAL :: Kplant, Rsrl, e_cuticular
+      REAL :: Kplant, Rsrl, e_cuticular, gamma_star
       REAL, PARAMETER :: MMOL_2_MOL = 0.001
 
       logical :: bounded_psi
@@ -3259,24 +3261,60 @@ CONTAINS
          ELSE
             ! Calculate transpiration for every water potential, integrating
             ! vulnerability to cavitation, mol H20 m-2 s-1 (leaf)
-            e_leaf = calc_transpiration(p, N, Kplant, b_plant, c_plant)
+            !e_leaf = calc_transpiration(p, N, Kplant, b_plant, c_plant)
+            !e_leaf = Kplant * (ssnow%weighted_psi_soil(i)  - p)
+
 
             ! Scale leaf transpiration to the sunlit or shaded fraction of the
             ! canopy, mol H20 m-2 s-1
-            e_leaf = e_leaf * lai_leaf(i,j)
+            !e_leaf = e_leaf * lai_leaf(i,j)
+
+            ! Leaf water potential (MPA), in reality more of a whole-plant
+            gamma_star = 0.0 ! cable says it is 0 =
+            lower = gamma_star
+            upper = Cs
+            DO k=1, N
+               ci(k)  = lower + float(k) * (upper - lower) / float(N-1)
+            END DO
+
+            !print*, ci
+            Ac = Vcmax * (ci - gamma_star) / (Km + ci)
+            !print*, Ac
+            Aj = Vj * (ci - gamma_star) / (2.0*gamma_star + ci)
+
+            !Ac = assim(ci, gamma_star, Vcmax, Km) ! umol m-2 s-1
+            !Aj = assim(ci, gamma_star, Vj, 2.0*gamma_star) ! umol m-2 s-1
+            DO k=1, N
+               A(k) = -QUADP(1.0-1E-04, Ac(k)+Aj(k), Ac(k)*Aj(k)) ! umol m-2 s-1
+            END DO
+            An = A - (Vcmax*0.015) ! Net photosynthesis, umol m-2 s-1
+
+            !print*, An
+            e_leaf = An * C%RGSWC * vpd / ((Cs - ci) * press / 1E3) / lai_leaf(i,j)
+
+
+            !print*,e_leaf
+
+            p = ssnow%weighted_psi_soil(i) - e_leaf / Kplant
+
+            where (p>=ssnow%weighted_psi_soil(i) .OR. p <= p_crit)
+                mask = 1
+            elsewhere
+                mask = 0
+            end where
 
             ! For every gsc & psi_leaf find the matching An and Ci
             DO k=1, N
-               IF (e_leaf(k) > 0.00001) THEN ! i.e. there is a flux
-                  gsw = e_leaf(k) / vpd * press ! mol H20 m-2 s-1
-                  gsc = gsw / C%RGSWC ! mol CO2 m-2 s-1
-                  call get_a_and_ci(Cs, tleaf, apar, an, gsc, &
-                                    Vcmax, Jmax, Rd, Vj, Km)
-
-                  an_leaf(k) = an ! save the An, umol m-2 s-1
-               ELSE
-                  an_leaf(k) = 0.0
-               END IF
+               !IF (e_leaf(k) > 0.00001) THEN ! i.e. there is a flux
+               !   gsw = e_leaf(k) / vpd * press ! mol H20 m-2 s-1
+               !   gsc = gsw / C%RGSWC ! mol CO2 m-2 s-1
+               !   call get_a_and_ci(Cs, tleaf, apar, an, gsc, &
+               !                     Vcmax, Jmax, Rd, Vj, Km)
+               !
+               !   an_leaf(k) = an ! save the An, umol m-2 s-1
+               !ELSE
+               !   an_leaf(k) = 0.0
+               !END IF
 
                ! Soil–plant hydraulic conductance at canopy xylem pressure,
                ! mmol m-2 s-1 MPa-1
@@ -3288,27 +3326,27 @@ CONTAINS
                                                         c_plant)
 
             ! normalised gain (-)
-            gain = an_leaf / MAXVAL(an_leaf)
+            gain = An / MAXVAL(An, mask=mask)
 
             ! normalised cost (-)
             cost = (kcmax(j) - Kc) / (kcmax(j) - Kcrit)
 
             ! Locate maximum profit
             profit = gain - cost
-            idx = MAXLOC(profit, 1)
+            idx = MAXLOC(profit, 1, mask=mask)
 
             ! load into stores
-            an_canopy(j) = an_leaf(idx) ! umol m-2 s-1
-            e_leaves(j) = e_leaf(idx) ! mol H2O m-2 s-1
+            an_canopy(j) = An(idx) ! umol m-2 s-1
+            e_leaves(j) = e_leaf(idx) * lai_leaf(i,j)! mol H2O m-2 s-1
             p_leaves(j) = p(idx)
 
             ! scale up cuticular conductance, mol H2O m-2 s-1
-            e_cuticular = gmin * MMOL_2_MOL * rad%scalex(i,j) / press * vpd
-            !e_cuticular = gmin * MMOL_2_MOL * rad%scalex(i,j) * vpd
+            !e_cuticular = gmin * MMOL_2_MOL * rad%scalex(i,j) / press * vpd
+            !!!!!!e_cuticular = gmin * MMOL_2_MOL * rad%scalex(i,j) * vpd
             ! Don't add gmin, instead use it as the lower boundary
-            IF (e_leaves(j) < e_cuticular) THEN
-               e_leaves(j) = e_cuticular ! mol H2O m-2 s-1
-            END IF
+            !IF (e_leaves(j) < e_cuticular) THEN
+            !   e_leaves(j) = e_cuticular ! mol H2O m-2 s-1
+            !END IF
 
 
          END IF
