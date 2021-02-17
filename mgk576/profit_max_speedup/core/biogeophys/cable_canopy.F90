@@ -1801,7 +1801,7 @@ CONTAINS
 
     REAL :: press
 
-    INTEGER, PARAMETER :: resolution = 200
+    INTEGER, PARAMETER :: resolution = 5000
     REAL, DIMENSION(2) :: an_canopy
     REAL :: e_canopy
     REAL(r_2), DIMENSION(resolution) :: p
@@ -3189,23 +3189,23 @@ CONTAINS
       ! between timesteps if it doesn't rain. The advantage of doing that is
       ! that you shouldn't need to search too far and thus can reduce the
       ! resolution of the psi_leaf array, saving time
-      IF (bounded_psi .eqv. .true.) THEN
-         ! i.e. it rained, so search from psi_soil again
-         IF (psi_soil < canopy%psi_soil_prev(i)) THEN
-            lower = psi_soil ! start from the full range
-         ELSE
-            lower = min(psi_soil, canopy%psi_leaf_prev(i) * 0.5)
-         END IF
-         upper = max(p_crit, canopy%psi_leaf_prev(i) * 1.5)
-      ELSE
-         lower = psi_soil
-         upper = p_crit
-      END IF
+      !IF (bounded_psi .eqv. .true.) THEN
+      !   ! i.e. it rained, so search from psi_soil again
+      !   IF (psi_soil < canopy%psi_soil_prev(i)) THEN
+      !      lower = psi_soil ! start from the full range
+      !   ELSE
+      !      lower = min(psi_soil, canopy%psi_leaf_prev(i) * 0.5)
+      !   END IF
+      !   upper = max(p_crit, canopy%psi_leaf_prev(i) * 1.5)
+      !ELSE
+      !   lower = psi_soil
+      !   upper = p_crit
+      !END IF
 
       ! Leaf water potential (MPA), in reality more of a whole-plant
-      DO k=1, N
-         p(k)  = lower + float(k) * (upper - lower) / float(N-1)
-      END DO
+      !DO k=1, N
+      !   p(k)  = lower + float(k) * (upper - lower) / float(N-1)
+      !END DO
 
       ! Loop over sunlit,shaded parts of the canopy and solve the carbon uptake
       ! and transpiration
@@ -3283,9 +3283,9 @@ CONTAINS
             A = -QUADPx(1.0-1E-04, Ac+Aj, Ac*Aj) ! umol m-2 s-1
             An = A - Rd ! Net photosynthesis, umol m-2 s-1
             gsc = An / (Cs - Ci) ! mol CO2 m-2 s-1
-            e_leaf = gsc * C%RGSWC * MOL_TO_MMOL  / press * vpd
+            e_leaf = gsc * C%RGSWC / press * vpd   ! mol H2O m-2 s-1
 
-            p = ssnow%weighted_psi_soil(i) - (e_leaf / rad%scalex(i,j) ) / Kplant
+            p = ssnow%weighted_psi_soil(i) - ((e_leaf * MOL_TO_MMOL) / rad%scalex(i,j) ) / Kplant
 
 
             where (p >= ssnow%weighted_psi_soil(i) .OR. p <= p_crit)
@@ -3313,7 +3313,7 @@ CONTAINS
 
             ! load into stores
             an_canopy(j) = An(idx) ! umol m-2 s-1
-            e_leaves(j) = e_leaf(idx) * MMOL_2_MOL! mol H2O m-2 s-1
+            e_leaves(j) = e_leaf(idx) ! mol H2O m-2 s-1
             p_leaves(j) = p(idx)
 
             ! scale up cuticular conductance, mol H2O m-2 s-1
