@@ -3277,13 +3277,8 @@ CONTAINS
                ci(k)  = lower + float(k) * (upper - lower) / float(N-1)
             END DO
 
-            !print*, ci
-            Ac = Vcmax * (ci - gamma_star) / (Km + ci)
-            !print*, Ac
-            Aj = Vj * (ci - gamma_star) / (2.0*gamma_star + ci)
-
-            !Ac = assim(ci, gamma_star, Vcmax, Km) ! umol m-2 s-1
-            !Aj = assim(ci, gamma_star, Vj, 2.0*gamma_star) ! umol m-2 s-1
+            Ac = assimx(ci, gamma_star, Vcmax, Km) ! umol m-2 s-1
+            Aj = assimx(ci, gamma_star, Vj, 2.0*gamma_star) ! umol m-2 s-1
             DO k=1, N
                A(k) = -QUADP(1.0-1E-04, Ac(k)+Aj(k), Ac(k)*Aj(k)) ! umol m-2 s-1
             END DO
@@ -3512,6 +3507,24 @@ CONTAINS
       !stop
 
    END SUBROUTINE get_a_and_cixxxx
+   ! ---------------------------------------------------------------------------
+
+   ! ---------------------------------------------------------------------------
+   FUNCTION assimx(Ci, gamma_star, a1, a2) RESULT(assimilation)
+
+      ! Calculation of photosynthesis with the limitation defined by the
+      ! variables passed as a1 and a2, i.e. if we are calculating vcmax or
+      ! jmax limited assimilation rates.
+      !
+      ! Martin De Kauwe, 27th August, 2020
+
+      REAL, DIMENSION(:), INTENT(IN) :: Ci
+      REAL, INTENT(IN) :: gamma_star, a1, a2
+      REAL, DIMENSION( SIZE(Ci) ) :: assimilation
+
+      assimilation = a1 * (Ci - gamma_star) / (a2 + Ci)
+
+   END FUNCTION assimx
    ! ---------------------------------------------------------------------------
 
    ! ---------------------------------------------------------------------------
