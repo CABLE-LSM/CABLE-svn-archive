@@ -48,7 +48,7 @@ INTEGER :: errorstatus
 
 ! Process the PFT and non-veg parameters
 
-CALL init_pftparm_jules(nml_dir)
+CALL init_pftparm_jules(nml_dir,progs)
 
 SELECT CASE(lsm_id)
 
