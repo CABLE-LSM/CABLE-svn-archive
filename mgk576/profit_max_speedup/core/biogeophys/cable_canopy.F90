@@ -3290,12 +3290,12 @@ CONTAINS
             An = A - (Vcmax*0.015) ! Net photosynthesis, umol m-2 s-1
 
             !print*, An
-            e_leaf = An * C%RGSWC * vpd / ((Cs - ci) * press / 1E3) / lai_leaf(i,j)
+            e_leaf = An * C%RGSWC * vpd / ((Cs - ci) * press / 1E3)
 
 
             !print*,e_leaf
 
-            p = ssnow%weighted_psi_soil(i) - e_leaf / Kplant
+            p = ssnow%weighted_psi_soil(i) - (e_leaf / rad%scalex(i,1) ) / Kplant
 
             where (p>=ssnow%weighted_psi_soil(i) .OR. p <= p_crit)
                 mask = 1
@@ -3337,7 +3337,7 @@ CONTAINS
 
             ! load into stores
             an_canopy(j) = An(idx) ! umol m-2 s-1
-            e_leaves(j) = e_leaf(idx) * lai_leaf(i,j)! mol H2O m-2 s-1
+            e_leaves(j) = e_leaf(idx) ! mol H2O m-2 s-1
             p_leaves(j) = p(idx)
 
             ! scale up cuticular conductance, mol H2O m-2 s-1
