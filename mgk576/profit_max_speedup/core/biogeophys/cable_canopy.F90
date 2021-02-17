@@ -3167,6 +3167,7 @@ CONTAINS
       REAL, DIMENSION(mf) :: e_leaves, p_leaves
       REAL :: Kplant, Rsrl, e_cuticular, gamma_star
       REAL, PARAMETER :: MMOL_2_MOL = 0.001
+      REAL, PARAMETER :: MOL_TO_MMOL = 1E3
 
       logical :: bounded_psi
       bounded_psi = .false.!.false.
@@ -3282,11 +3283,11 @@ CONTAINS
             DO k=1, N
                A(k) = -QUADP(1.0-1E-04, Ac(k)+Aj(k), Ac(k)*Aj(k)) ! umol m-2 s-1
             END DO
-            An = A - (Vcmax*0.015) ! Net photosynthesis, umol m-2 s-1
+            An = A - Rd ! Net photosynthesis, umol m-2 s-1
 
             !print*, An
-            e_leaf = An * C%RGSWC * vpd / ((Cs - ci) * press / 1E3)
 
+            e_leaf = (An * C%RGSWC * vpd / ((Cs - ci) * press)) * MOL_TO_MMOL
 
             !print*,e_leaf
 
@@ -3332,7 +3333,7 @@ CONTAINS
 
             ! load into stores
             an_canopy(j) = An(idx) ! umol m-2 s-1
-            e_leaves(j) = e_leaf(idx) ! mol H2O m-2 s-1
+            e_leaves(j) = e_leaf(idx) * MMOL_2_MOL! mol H2O m-2 s-1
             p_leaves(j) = p(idx)
 
             ! scale up cuticular conductance, mol H2O m-2 s-1
@@ -3508,6 +3509,8 @@ CONTAINS
 
    END SUBROUTINE get_a_and_cixxxx
    ! ---------------------------------------------------------------------------
+
+
 
    ! ---------------------------------------------------------------------------
    FUNCTION assimx(Ci, gamma_star, a1, a2) RESULT(assimilation)
