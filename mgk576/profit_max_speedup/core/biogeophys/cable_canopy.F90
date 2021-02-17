@@ -3158,7 +3158,7 @@ CONTAINS
       REAL(r_2), DIMENSION(mp,mf), INTENT(IN) :: csx
       REAL, DIMENSION(mp,mf,nrb), INTENT(IN) :: qcan
       REAL(r_2), DIMENSION(N), INTENT(INOUT) :: p
-      REAL, DIMENSION(N) :: ci, Ac, Aj, A, An
+      REAL, DIMENSION(N) :: Ci, Ac, Aj, A, An
       LOGICAL, DIMENSION(N) ::  mask
       REAL, DIMENSION(mp,mf), INTENT(IN) :: vcmxt3, ejmxt3, rdx, vx3, lai_leaf
       REAL, DIMENSION(N) :: Kc, e_leaf, cost, gain, profit, an_leaf
@@ -3275,19 +3275,17 @@ CONTAINS
             lower = gamma_star
             upper = Cs
             DO k=1, N
-               ci(k)  = lower + float(k) * (upper - lower) / float(N-1)
+               Ci(k)  = lower + float(k) * (upper - lower) / float(N-1)
             END DO
 
-            Ac = assimx(ci, gamma_star, Vcmax, Km) ! umol m-2 s-1
-            Aj = assimx(ci, gamma_star, Vj, 2.0*gamma_star) ! umol m-2 s-1
-            DO k=1, N
-               A(k) = -QUADP(1.0-1E-04, Ac(k)+Aj(k), Ac(k)*Aj(k)) ! umol m-2 s-1
-            END DO
+            Ac = assimx(Ci, gamma_star, Vcmax, Km) ! umol m-2 s-1
+            Aj = assimx(Ci, gamma_star, Vj, 2.0*gamma_star) ! umol m-2 s-1
+            A = -QUADPx(1.0-1E-04, Ac+Aj, Ac*Aj) ! umol m-2 s-1
             An = A - Rd ! Net photosynthesis, umol m-2 s-1
 
             !print*, An
 
-            e_leaf = (An * C%RGSWC * vpd / ((Cs - ci) * press)) * MOL_TO_MMOL
+            e_leaf = (An * C%RGSWC * vpd / ((Cs - Ci) * press)) * MOL_TO_MMOL
 
             !print*,e_leaf
 
@@ -3546,6 +3544,36 @@ CONTAINS
 
    END FUNCTION assim
    ! ---------------------------------------------------------------------------
+
+   !**********************************************************************
+   FUNCTION QUADPx(A,B,C) RESULT(root)
+   ! Solves the quadratic equation - finds larger root.
+   !**********************************************************************
+
+       IMPLICIT NONE
+       REAL :: A
+       REAL, DIMENSION(:), INTENT(IN) :: B,C
+       REAL, DIMENSION( SIZE(B) ) :: root, d
+       INTEGER IQERROR
+
+       !IQERROR = 0
+
+       d = B*B - 4.0 * A * C ! discriminant
+       where (d < 0.0)
+          root = 0.0
+       end where
+
+
+       root = (- B + SQRT(B*B - 4*A*C)) / (2.*A)
+       where (A == 0.0 .AND. B  == 0.0)
+          root = 0.0
+       elsewhere (A == 0.0 .AND. B > 0.0)
+          root = -C/B
+       end where
+
+
+
+   END FUNCTION QUADPx
 
    ! ---------------------------------------------------------------------------
    FUNCTION calc_transpiration(p, N, Kmax, b_plant, c_plant) RESULT(e_leaf)
