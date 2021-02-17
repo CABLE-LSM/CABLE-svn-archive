@@ -3295,7 +3295,7 @@ CONTAINS
 
             !print*,e_leaf
 
-            p = ssnow%weighted_psi_soil(i) - (e_leaf / rad%scalex(i,1) ) / Kplant
+            p = ssnow%weighted_psi_soil(i) - (e_leaf / rad%scalex(i,j) ) / Kplant
 
             where (p>=ssnow%weighted_psi_soil(i) .OR. p <= p_crit)
                 mask = 1
