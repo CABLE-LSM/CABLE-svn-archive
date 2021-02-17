@@ -3158,12 +3158,12 @@ CONTAINS
       REAL(r_2), DIMENSION(mp,mf), INTENT(IN) :: csx
       REAL, DIMENSION(mp,mf,nrb), INTENT(IN) :: qcan
       REAL(r_2), DIMENSION(N), INTENT(INOUT) :: p
-      REAL, DIMENSION(N) :: Ci, Ac, Aj, A, An
+      REAL, DIMENSION(N) :: Ci, Ac, Aj, A, An, gsc
       LOGICAL, DIMENSION(N) ::  mask
       REAL, DIMENSION(mp,mf), INTENT(IN) :: vcmxt3, ejmxt3, rdx, vx3, lai_leaf
       REAL, DIMENSION(N) :: Kc, e_leaf, cost, gain, profit, an_leaf
       REAL :: p_crit, lower, upper, Cs, apar
-      REAL :: J_TO_MOL, MOL_TO_UMOL, gsw, gsc, Vcmax, Jmax, Rd, Vj, Km
+      REAL :: J_TO_MOL, MOL_TO_UMOL, gsw, Vcmax, Jmax, Rd, Vj, Km
       REAL, DIMENSION(mf) :: e_leaves, p_leaves
       REAL :: Kplant, Rsrl, e_cuticular, gamma_star
       REAL, PARAMETER :: MMOL_2_MOL = 0.001
@@ -3256,7 +3256,7 @@ CONTAINS
          ! If there is bugger all light, assume there are no fluxes
          IF (apar < 50) THEN
             ! load into stores
-            an_canopy(j) = 0.0 ! umol m-2 s-1
+            an_canopy = 0.0 ! umol m-2 s-1
             e_canopy = 0.0 ! mol H2O m-2 s-1
             canopy%psi_leaf(i) = canopy%psi_leaf_prev(i) ! MPa
          ELSE
@@ -3282,14 +3282,11 @@ CONTAINS
             Aj = assimx(Ci, gamma_star, Vj, 2.0*gamma_star) ! umol m-2 s-1
             A = -QUADPx(1.0-1E-04, Ac+Aj, Ac*Aj) ! umol m-2 s-1
             An = A - Rd ! Net photosynthesis, umol m-2 s-1
-
-            !print*, An
-
-            e_leaf = (An * C%RGSWC * vpd / ((Cs - Ci) * press)) * MOL_TO_MMOL
-
-            !print*,e_leaf
+            gsc = An / (Cs - Ci) ! mol CO2 m-2 s-1
+            e_leaf = gsc * C%RGSWC * MOL_TO_MMOL  / press * vpd
 
             p = ssnow%weighted_psi_soil(i) - (e_leaf / rad%scalex(i,j) ) / Kplant
+
 
             where (p >= ssnow%weighted_psi_soil(i) .OR. p <= p_crit)
                 mask = .FALSE.
@@ -3297,23 +3294,8 @@ CONTAINS
                 mask = .TRUE.
             end where
 
-            ! For every gsc & psi_leaf find the matching An and Ci
-            DO k=1, N
-               !IF (e_leaf(k) > 0.00001) THEN ! i.e. there is a flux
-               !   gsw = e_leaf(k) / vpd * press ! mol H20 m-2 s-1
-               !   gsc = gsw / C%RGSWC ! mol CO2 m-2 s-1
-               !   call get_a_and_ci(Cs, tleaf, apar, an, gsc, &
-               !                     Vcmax, Jmax, Rd, Vj, Km)
-               !
-               !   an_leaf(k) = an ! save the An, umol m-2 s-1
-               !ELSE
-               !   an_leaf(k) = 0.0
-               !END IF
 
-               ! Soil–plant hydraulic conductance at canopy xylem pressure,
-               ! mmol m-2 s-1 MPa-1
-               Kc(k) = Kplant * get_xylem_vulnerability(p(k), b_plant, c_plant)
-            END DO
+            Kc = Kplant * get_xylem_vulnerabilityx(p, b_plant, c_plant)
 
             ! Plant hydraulic conductance (mmol m-2 leaf s-1 MPa-1)
             kcmax(j) = Kplant * get_xylem_vulnerability(psi_soil, b_plant, &
@@ -3609,6 +3591,28 @@ CONTAINS
       END DO
 
    END FUNCTION calc_transpiration
+   ! ---------------------------------------------------------------------------
+
+   ! ---------------------------------------------------------------------------
+   FUNCTION get_xylem_vulnerabilityx(p, b_plant, c_plant) RESULT(weibull)
+
+      ! Calculate the vulnerability to cavitation using a Weibull function
+      !
+      ! Martin De Kauwe, 27th August, 2020
+
+      USE cable_def_types_mod
+      USE cable_common_module
+
+      IMPLICIT NONE
+      REAL(r_2), DIMENSION(:), INTENT(IN) :: p
+
+      REAL, INTENT(IN) :: b_plant, c_plant
+      REAL, DIMENSION( SIZE(p) ) :: weibull
+
+
+      weibull = max(1.0E-09, exp(-(-p / b_plant)**c_plant))
+
+   END FUNCTION get_xylem_vulnerabilityx
    ! ---------------------------------------------------------------------------
 
    ! ---------------------------------------------------------------------------
