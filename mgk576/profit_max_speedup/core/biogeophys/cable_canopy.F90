@@ -3292,11 +3292,11 @@ CONTAINS
             !print*,e_leaf
 
             p = ssnow%weighted_psi_soil(i) - (e_leaf / rad%scalex(i,j) ) / Kplant
-            
-            where (p>=ssnow%weighted_psi_soil(i) .OR. p <= p_crit)
-                mask = 0
+
+            where (p >= ssnow%weighted_psi_soil(i) .OR. p <= p_crit)
+                mask = .FALSE.
             elsewhere
-                mask = 1
+                mask = .TRUE.
             end where
 
             ! For every gsc & psi_leaf find the matching An and Ci
