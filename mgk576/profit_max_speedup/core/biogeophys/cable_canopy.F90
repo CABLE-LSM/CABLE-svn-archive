@@ -3105,6 +3105,7 @@ CONTAINS
       REAL :: Kplant, Rsrl, e_cuticular, gamma_star
       REAL, PARAMETER :: MMOL_2_MOL = 0.001
       REAL, PARAMETER :: MOL_TO_MMOL = 1E3
+      REAL, DIMENSION(2)  :: fsun
 
       logical :: bounded_psi
       bounded_psi = .false.!.false.
@@ -3151,6 +3152,8 @@ CONTAINS
       ! Loop over sunlit,shaded parts of the canopy and solve the carbon uptake
       ! and transpiration
       DO j=1, 2
+
+         fsun(j) = rad%fvlai(i,j) / canopy%vlaiw(i)
 
          ! Convert total soil-to-root resistance from ...
          ! MPa s m2 (ground) mmol-1 H2O -> MPa s m2 (leaf) mmol-1 H2O
@@ -3222,26 +3225,26 @@ CONTAINS
             ! balance
             e_leaf = gsc * C%RGSWC / press * vpd ! mol H2O m-2 s-1
 
-            WHERE (e_leaf > HUGE(e_leaf))
-                e_leaf = 0.0
-            END WHERE
+            !WHERE (e_leaf > HUGE(e_leaf))
+            !    e_leaf = 0.0
+            !END WHERE
 
 
-            WHERE (e_leaf < 1e-09)
-                e_leaf = 0.0
-            ELSE WHERE
-               e_leaf = e_leaf / rad%scalex(i,j)
-            END WHERE
+            !WHERE (e_leaf < 1e-09)
+            !    e_leaf = 0.0
+            !ELSE WHERE
+            !   e_leaf = e_leaf / rad%scalex(i,j)
+            !END WHERE
 
 
 
             ! Infer the matching leaf water potential (MPa). NB. we need to
             ! rescale the E_sun/sha from it's big-leaf to unit leaf
-            !p = ssnow%weighted_psi_soil(i) - ((e_leaf * MOL_TO_MMOL) / &
-            !      rad%scalex(i,j) ) / Kplant
+            p = ssnow%weighted_psi_soil(i) - ((e_leaf * MOL_TO_MMOL) / &
+                  rad%scalex(i,j) ) / Kplant
 
-            p = calc_matching_lwp(e_leaf, &
-                                  p_potentials, N, Kmax, b_plant, c_plant)
+            !p = calc_matching_lwp(e_leaf, &
+            !                      p_potentials, N, Kmax, b_plant, c_plant)
 
 
             ! Ensure we don't check for profit in bad psi_leaf search space
@@ -3291,7 +3294,8 @@ CONTAINS
       ! individual sunlit/shaded transpiration
       IF (apar > 50) THEN
 
-         canopy%psi_leaf(i) = sum(p_leaves) / 2.0 ! MPa
+         !canopy%psi_leaf(i) = sum(p_leaves) / 2.0 ! MPa
+         canopy%psi_leaf(i) = (p_leaves(1) * fsun(1)) + (p_leaves(2) * fsun(2))
          canopy%psi_leaf_prev(i) = canopy%psi_leaf(i) ! MPa
          canopy%psi_soil_prev(i) = psi_soil ! MPa
 
@@ -3341,7 +3345,7 @@ CONTAINS
             p_leaf(h) = p_potentials(i)
             i = i + 1
 
-            !print*, h, i, E(h), e_leaf
+            print*, h, i, E(h), e_leaf
             IF (E(h) > e_leaf .AND. i < N) THEN
                EXIT
             END IF
@@ -3354,7 +3358,7 @@ CONTAINS
          END DO
 
       END DO
-
+      stop
    END FUNCTION calc_matching_lwp
    ! ---------------------------------------------------------------------------
 
