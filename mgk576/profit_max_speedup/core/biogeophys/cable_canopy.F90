@@ -3222,12 +3222,25 @@ CONTAINS
             ! balance
             e_leaf = gsc * C%RGSWC / press * vpd ! mol H2O m-2 s-1
 
+            WHERE (e_leaf > HUGE(e_leaf))
+                e_leaf = 0.0
+            END WHERE
+
+
+            WHERE (e_leaf < 1e-09)
+                e_leaf = 0.0
+            ELSE WHERE
+               e_leaf = e_leaf / rad%scalex(i,j)
+            END WHERE
+
+
+
             ! Infer the matching leaf water potential (MPa). NB. we need to
             ! rescale the E_sun/sha from it's big-leaf to unit leaf
             !p = ssnow%weighted_psi_soil(i) - ((e_leaf * MOL_TO_MMOL) / &
             !      rad%scalex(i,j) ) / Kplant
 
-            p = calc_matching_lwp((e_leaf * MOL_TO_MMOL) /rad%scalex(i,j), &
+            p = calc_matching_lwp(e_leaf, &
                                   p_potentials, N, Kmax, b_plant, c_plant)
 
 
@@ -3310,7 +3323,6 @@ CONTAINS
       REAL, INTENT(IN) :: b_plant, c_plant, Kmax
       REAL, DIMENSION(N) :: p_leaf
       REAL :: e_leaf
-      REAL, PARAMETER :: MMOL_2_MOL = 1E-03
       INTEGER, INTENT(IN) :: N
       INTEGER :: h, i
 
@@ -3324,11 +3336,12 @@ CONTAINS
             ! mol m-2 s-1
             e_leaf = integrate_vulnerability(N, p_potentials(i), &
                                              p_potentials(1), b_plant, &
-                                             c_plant) * Kmax * MMOL_2_MOL
+                                             c_plant) * Kmax
 
             p_leaf(h) = p_potentials(i)
             i = i + 1
 
+            !print*, h, i, E(h), e_leaf
             IF (E(h) > e_leaf .AND. i < N) THEN
                EXIT
             END IF
