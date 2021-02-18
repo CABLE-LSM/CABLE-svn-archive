@@ -1801,7 +1801,7 @@ CONTAINS
 
     REAL :: press
 
-    INTEGER, PARAMETER :: resolution = 5000
+    INTEGER, PARAMETER :: resolution = 1000 ! allows jumps in Ci ~ 0.35 umol mol-1
     REAL, DIMENSION(2) :: an_canopy
     REAL :: e_canopy
     REAL(r_2), DIMENSION(resolution) :: p
@@ -3031,70 +3031,6 @@ CONTAINS
   END SUBROUTINE getrex_1d
   !*********************************************************************************************************************
 
-  !**********************************************************************
-  REAL FUNCTION QUADM(A, B, C) RESULT(root)
-  ! Solves the quadratic equation - finds smaller root.
-  !**********************************************************************
-
-      IMPLICIT NONE
-      REAL :: A, B, C
-      !INTEGER IQERROR
-
-      !IQERROR = 0
-
-      IF ((B*B - 4.*A*C).LT.0.0) THEN
-          !CALL SUBERROR('WARNING:IMAGINARY ROOTS IN QUADRATIC',IWARN,0)
-          !IQERROR = 1
-          root = 0.0
-      ELSE
-          IF (A.EQ.0.0) THEN
-              IF (B.EQ.0.0) THEN
-                  root = 0.0
-                  !IF (C.NE.0.0) CALL SUBERROR('ERROR: CANT SOLVE QUADRATIC',IWARN,0)
-              ELSE
-                  root = -C/B
-              END IF
-          ELSE
-              root = (- B - SQRT(B*B - 4*A*C)) / (2.*A)
-          END IF
-      END IF
-
-
-  END FUNCTION QUADM
-
-
-  !**********************************************************************
-  REAL FUNCTION QUADP(A,B,C) RESULT(root)
-  ! Solves the quadratic equation - finds larger root.
-  !**********************************************************************
-
-      IMPLICIT NONE
-      REAL :: A,B,C
-      INTEGER IQERROR
-
-      !IQERROR = 0
-
-      IF ((B*B - 4.*A*C).LT.0.0) THEN
-          !CALL SUBERROR('WARNING:IMAGINARY ROOTS IN QUADRATIC',IWARN,0)
-          !IQERROR = 1
-          root = 0.0
-      ELSE
-          IF (A.EQ.0.0) THEN
-              IF (B.EQ.0.0) THEN
-                  root = 0.0
-                  !IF (C.NE.0.0) CALL SUBERROR('ERROR: CANT SOLVE QUADRATIC',IWARN,0)
-              ELSE
-                  root = -C/B
-              END IF
-          ELSE
-              root = (- B + SQRT(B*B - 4*A*C)) / (2.*A)
-          END IF
-      END IF
-
-
-  END FUNCTION QUADP
-
-
 
   FUNCTION calc_plc(kplant, kp_sat) RESULT(plc)
      ! Calculates the percent loss of conductivity, PLC (-)
@@ -3182,6 +3118,17 @@ CONTAINS
       ! desiccates (Ecrit), MPa
       p_crit = -b_plant * log(Kmax / Kcrit)**(1.0 / c_plant)
 
+
+      gamma_star = 0.0 ! cable says it is 0
+
+      ! Generate a sequence of Ci's that we will solve the optimisation
+      ! model for, range btw gamma_star and Cs. umol mol-1
+      lower = gamma_star
+      upper = Cs
+      DO k=1, N
+         Ci(k)  = lower + float(k) * (upper - lower) / float(N-1)
+      END DO
+
       ! Generate water potential sequence
       !
       ! This includes an option here to generate a shorter, more focussed
@@ -3225,14 +3172,10 @@ CONTAINS
          !Kplant = 1.0 / (1.0 / Kmax + Rsrl)
          Kplant = Kmax
 
-
-
          !if (100.0 * (1.0 - Kplant / 1.5) > 20.) then
          !   print*, Kplant, psi_soil, Rsr, Rsrl, 1.0 /Rsrl
          !   stop
          !end if
-
-         !print*, j, 1.0/Rsrl, 1.0/Rsr, Rsrl, Rsr, lai_leaf(i,j), Kplant, psi_soil, 100.0 * (1.0 - Kplant / 1.5)
 
          ! CO2 concentration at the leaf surface, umol m-2 -s-1
          Cs = csx(i,j) * MOL_TO_UMOL
@@ -3242,7 +3185,6 @@ CONTAINS
 
          ! max rate of rubisco activity, scaled up to sunlit/shaded canopy
          Vcmax = vcmxt3(i,j) * MOL_TO_UMOL
-
 
          ! potential rate of electron transport, scaled up to sun/shade canopy
          Jmax = ejmxt3(i,j) * MOL_TO_UMOL
@@ -3271,20 +3213,16 @@ CONTAINS
             !e_leaf = e_leaf * lai_leaf(i,j)
 
             ! Leaf water potential (MPA), in reality more of a whole-plant
-            gamma_star = 0.0 ! cable says it is 0 =
-            lower = gamma_star
-            upper = Cs
-            DO k=1, N
-               Ci(k)  = lower + float(k) * (upper - lower) / float(N-1)
-            END DO
 
-            Ac = assimx(Ci, gamma_star, Vcmax, Km) ! umol m-2 s-1
-            Aj = assimx(Ci, gamma_star, Vj, 2.0*gamma_star) ! umol m-2 s-1
-            A = -QUADPx(1.0-1E-04, Ac+Aj, Ac*Aj) ! umol m-2 s-1
+            Ac = assim(Ci, gamma_star, Vcmax, Km) ! umol m-2 s-1
+            Aj = assim(Ci, gamma_star, Vj, 2.0*gamma_star) ! umol m-2 s-1
+            A = -QUADP(1.0-1E-04, Ac+Aj, Ac*Aj) ! umol m-2 s-1
             An = A - Rd ! Net photosynthesis, umol m-2 s-1
             gsc = An / (Cs - Ci) ! mol CO2 m-2 s-1
-            e_leaf = gsc * C%RGSWC / press * vpd   ! mol H2O m-2 s-1
+            e_leaf = gsc * C%RGSWC / press * vpd ! mol H2O m-2 s-1
 
+            ! Infer the matching leaf water potential (MPa). NB. we need to
+            ! rescale the Esun/shade to leaf
             p = ssnow%weighted_psi_soil(i) - ((e_leaf * MOL_TO_MMOL) / rad%scalex(i,j) ) / Kplant
 
 
@@ -3353,147 +3291,8 @@ CONTAINS
    END SUBROUTINE optimisation
    ! ---------------------------------------------------------------------------
 
-   ! --------------------------------------------------------------------------
-   SUBROUTINE get_a_and_ci(Cs, tleaf, par, An_new, gsc, Vcmax, Jmax, Rd, Vj, Km)
-
-      ! Find the matching An and Ci for a given gsc.
-      !
-      ! Martin De Kauwe, 27th August, 2020
-
-      USE cable_def_types_mod
-      USE cable_common_module
-
-      IMPLICIT NONE
-
-      REAL, INTENT(IN) :: tleaf, par, Vcmax, Jmax, Rd, Vj, Km
-      REAL, INTENT(INOUT) :: An_new, gsc
-      REAL :: min_ci, max_ci, An, ci_new, gsc_new, Cs, Ac, Aj, A, gamma_star
-      REAL, PARAMETER :: tol = 1E-07 !1E-12
-      REAL :: prev
-      INTEGER :: iter
-
-      min_ci = 0.0 ! CABLE assumes gamma_star = 0
-      max_ci = Cs  ! umol m-2 s-1
-      An_new  = 0.0 ! umol m-2 s-1
-      gamma_star = 0.0 ! cable says it is 0
-      iter = 0
-
-      prev = tol
-      DO
-         ci_new = 0.5 * (max_ci + min_ci) ! umol mol-1
-
-         ! Find the matching A given the Ci
-         IF (ci_new < tol) THEN
-            An = 0.0 ! umol m-2 s-1
-         ELSE
-            Ac = assim(ci_new, gamma_star, Vcmax, Km) ! umol m-2 s-1
-            Aj = assim(ci_new, gamma_star, Vj, 2.0*gamma_star) ! umol m-2 s-1
-            A = -QUADP(1.0-1E-04, Ac+Aj, Ac*Aj) ! umol m-2 s-1
-            An = A - Rd ! Net photosynthesis, umol m-2 s-1
-         END IF
-
-         gsc_new = An / (Cs - ci_new) ! mol m-2 s-1
-
-         ! Have we found a matching gsc?
-         !print*, "if", ci_new, max_ci, gsc_new, abs(gsc_new - gsc) / gsc, tol, prev
-         IF (abs(gsc_new - gsc) / gsc < tol) THEN
-            An_new = An ! umol m-2 s-1
-            !print*, ci_new, ci_new/Cs
-            EXIT
-         ! narrow search space, shift min up
-         !print*, "else if", gsc_new, gsc
-         ELSE IF (gsc_new < gsc) THEN
-            min_ci = ci_new ! umol mol-1
-            IF (ci_new < 0.0) THEN
-               min_ci = 0.0 ! umol m-2 s-1
-            END IF
-         ! narrow search space, shift max down
-         !print*, "else", ci_new
-         ELSE
-            max_ci = ci_new ! umol mol-1
-         END IF
-
-         IF (abs(max_ci - min_ci) < tol) THEN
-            An_new = An ! umol m-2 s-1
-            !print*, "here", ci_new, ci_new/cs
-            EXIT
-         END IF
-
-         prev = abs(gsc_new - gsc) / gsc
-         IF (abs(gsc_new - gsc) / gsc .eq. prev .and. &
-             abs(gsc_new - gsc) / gsc < 1e-4) THEN
-            An_new = An ! umol m-2 s-1
-            EXIT
-         END IF
-
-         iter = iter + 1
-         IF (iter > 500) THEN
-            An_new = An
-            EXIT
-            !print*, "stuck"
-            !STOP
-         END IF
-      END DO
-
-   END SUBROUTINE get_a_and_ci
    ! ---------------------------------------------------------------------------
-
-   ! ---------------------------------------------------------------------------
-   SUBROUTINE get_a_and_cixxxx(Cs, tleaf, par, An_new, gsc, Vcmax, Jmax, Rd, Vj, Km)
-
-      ! Find the matching An and Ci for a given gsc.
-      !
-      ! Martin De Kauwe, 27th August, 2020
-
-      USE cable_def_types_mod
-      USE cable_common_module
-
-      IMPLICIT NONE
-
-      REAL, INTENT(IN) :: tleaf, par, Vcmax, Jmax, Rd, Vj, Km
-      REAL, INTENT(INOUT) :: An_new, gsc
-      REAL :: min_ci, max_ci, An, ci_new, gsc_new, Cs, Ac, Aj, A, gamma_star
-      REAL, PARAMETER :: tol = 1E-07 !1E-12
-      REAL :: marker
-      INTEGER :: iter
-
-      min_ci = 0.0 ! CABLE assumes gamma_star = 0
-      max_ci = Cs  ! umol m-2 s-1
-      An_new  = 0.0 ! umol m-2 s-1
-      gamma_star = 0.0 ! cable says it is 0
-      iter = 0
-
-      ci_new = min_ci ! start at compensation point
-
-      DO WHILE (ci_new <= Cs)
-
-         ! var >= marker .OR. ci >= ca)
-         ci_new = ci_new + 0.1
-
-         Ac = assim(ci_new, gamma_star, Vcmax, Km) ! umol m-2 s-1
-         Aj = assim(ci_new, gamma_star, Vj, 2.0*gamma_star) ! umol m-2 s-1
-         A = -QUADP(1.0-1E-04, Ac+Aj, Ac*Aj) ! umol m-2 s-1
-         An = A - Rd ! Net photosynthesis, umol m-2 s-1
-         gsc_new = An / (Cs - ci_new) ! mol m-2 s-1
-
-         marker = gsc * (Cs - ci_new)
-         IF (marker <= An) THEN
-            EXIT
-         END IF
-
-         !print*, ci_new, Cs, An, gsc_new, gsc
-      END DO
-      !
-      !print*, "end", An, ci_new, gsc_new, gsc
-      !stop
-
-   END SUBROUTINE get_a_and_cixxxx
-   ! ---------------------------------------------------------------------------
-
-
-
-   ! ---------------------------------------------------------------------------
-   FUNCTION assimx(Ci, gamma_star, a1, a2) RESULT(assimilation)
+   FUNCTION assim(Ci, gamma_star, a1, a2) RESULT(assimilation)
 
       ! Calculation of photosynthesis with the limitation defined by the
       ! variables passed as a1 and a2, i.e. if we are calculating vcmax or
@@ -3507,28 +3306,11 @@ CONTAINS
 
       assimilation = a1 * (Ci - gamma_star) / (a2 + Ci)
 
-   END FUNCTION assimx
-   ! ---------------------------------------------------------------------------
-
-   ! ---------------------------------------------------------------------------
-   FUNCTION assim(Ci, gamma_star, a1, a2) RESULT(assimilation)
-
-      ! Calculation of photosynthesis with the limitation defined by the
-      ! variables passed as a1 and a2, i.e. if we are calculating vcmax or
-      ! jmax limited assimilation rates.
-      !
-      ! Martin De Kauwe, 27th August, 2020
-
-      REAL, INTENT(IN) :: Ci, gamma_star, a1, a2
-      REAL :: assimilation
-
-      assimilation = a1 * (Ci - gamma_star) / (a2 + Ci)
-
    END FUNCTION assim
    ! ---------------------------------------------------------------------------
 
    !**********************************************************************
-   FUNCTION QUADPx(A,B,C) RESULT(root)
+   FUNCTION QUADP(A,B,C) RESULT(root)
    ! Solves the quadratic equation - finds larger root.
    !**********************************************************************
 
@@ -3553,9 +3335,8 @@ CONTAINS
           root = -C/B
        end where
 
-
-
-   END FUNCTION QUADPx
+   END FUNCTION QUADP
+   ! ---------------------------------------------------------------------------
 
    ! ---------------------------------------------------------------------------
    FUNCTION calc_transpiration(p, N, Kmax, b_plant, c_plant) RESULT(e_leaf)
@@ -3665,27 +3446,6 @@ CONTAINS
       value2 = ((b - a) / float(N)) * value1
 
    END FUNCTION integrate_vulnerability
-   ! ---------------------------------------------------------------------------
-
-   ! ---------------------------------------------------------------------------
-   FUNCTION calc_electron_transport_rate(par, Jmax) RESULT(J)
-
-      REAL :: J, A, B, C, theta_J, alpha
-      REAL, INTENT(IN) :: par, Jmax
-
-      ! Curvature of the light response (-)
-      theta_J = 0.7
-
-      ! alpha = quantum_yield * absorptance # (Medlyn et al 2002)
-      alpha = 0.2 !0.26
-      print*, par
-      A = theta_J
-      B = -(alpha * par + Jmax)
-      C = alpha * par * Jmax
-
-      J = QUADM(A, B, C)
-
-   END FUNCTION calc_electron_transport_rate
    ! ---------------------------------------------------------------------------
 
    ! ---------------------------------------------------------------------------
