@@ -3119,15 +3119,6 @@ CONTAINS
       p_crit = -b_plant * log(Kmax / Kcrit)**(1.0 / c_plant)
 
 
-      gamma_star = 0.0 ! cable says it is 0
-
-      ! Generate a sequence of Ci's that we will solve the optimisation
-      ! model for, range btw gamma_star and Cs. umol mol-1
-      lower = gamma_star
-      upper = Cs
-      DO k=1, N
-         Ci(k)  = lower + float(k) * (upper - lower) / float(N-1)
-      END DO
 
       ! Generate water potential sequence
       !
@@ -3180,6 +3171,16 @@ CONTAINS
          ! CO2 concentration at the leaf surface, umol m-2 -s-1
          Cs = csx(i,j) * MOL_TO_UMOL
 
+         gamma_star = 0.0 ! cable says it is 0
+
+         ! Generate a sequence of Ci's that we will solve the optimisation
+         ! model for, range btw gamma_star and Cs. umol mol-1
+         lower = gamma_star
+         upper = Cs
+         DO k=1, N
+            Ci(k)  = lower + float(k) * (upper - lower) / float(N-1)
+         END DO
+
          ! absorbed par for the sunlit or shaded leaf, umol m-2 -s-1
          apar = qcan(i,j,1) * J_TO_MOL * MOL_TO_UMOL
 
@@ -3202,37 +3203,35 @@ CONTAINS
             e_canopy = 0.0 ! mol H2O m-2 s-1
             canopy%psi_leaf(i) = canopy%psi_leaf_prev(i) ! MPa
          ELSE
-            ! Calculate transpiration for every water potential, integrating
-            ! vulnerability to cavitation, mol H20 m-2 s-1 (leaf)
-            !e_leaf = calc_transpiration(p, N, Kplant, b_plant, c_plant)
-            !e_leaf = Kplant * (ssnow%weighted_psi_soil(i)  - p)
-
-
-            ! Scale leaf transpiration to the sunlit or shaded fraction of the
-            ! canopy, mol H20 m-2 s-1
-            !e_leaf = e_leaf * lai_leaf(i,j)
-
-            ! Leaf water potential (MPA), in reality more of a whole-plant
-
+            
+            ! Calculate the sunlit/shaded A_leaf (i.e. scaled up), umol m-2 s-1
             Ac = assim(Ci, gamma_star, Vcmax, Km) ! umol m-2 s-1
             Aj = assim(Ci, gamma_star, Vj, 2.0*gamma_star) ! umol m-2 s-1
             A = -QUADP(1.0-1E-04, Ac+Aj, Ac*Aj) ! umol m-2 s-1
             An = A - Rd ! Net photosynthesis, umol m-2 s-1
+
+            ! Use An_sun/sha to infer gsc_sun/sha
             gsc = An / (Cs - Ci) ! mol CO2 m-2 s-1
+
+            ! Assuming perfect coupling, infer E_sun/sha from gsc. NB. as we're
+            ! iterating, Tleaf will change and so VPD, maintaining energy
+            ! balance
             e_leaf = gsc * C%RGSWC / press * vpd ! mol H2O m-2 s-1
 
             ! Infer the matching leaf water potential (MPa). NB. we need to
-            ! rescale the Esun/shade to leaf
-            p = ssnow%weighted_psi_soil(i) - ((e_leaf * MOL_TO_MMOL) / rad%scalex(i,j) ) / Kplant
+            ! rescale the E_sun/sha from it's big-leaf to unit leaf
+            p = ssnow%weighted_psi_soil(i) - ((e_leaf * MOL_TO_MMOL) / &
+                  rad%scalex(i,j) ) / Kplant
 
-
+            ! Ensure we don't check for profit in bad psi_leaf search space
             where (p >= ssnow%weighted_psi_soil(i) .OR. p <= p_crit)
                 mask = .FALSE.
             elsewhere
                 mask = .TRUE.
             end where
 
-
+            ! Soil–plant hydraulic conductance at canopy xylem pressure,
+            ! mmol m-2 s-1 MPa-1
             Kc = Kplant * get_xylem_vulnerabilityx(p, b_plant, c_plant)
 
             ! Plant hydraulic conductance (mmol m-2 leaf s-1 MPa-1)
