@@ -3094,10 +3094,11 @@ CONTAINS
       REAL(r_2), DIMENSION(mp,mf), INTENT(IN) :: csx
       REAL, DIMENSION(mp,mf,nrb), INTENT(IN) :: qcan
       REAL(r_2), DIMENSION(N), INTENT(INOUT) :: p
-      REAL, DIMENSION(N) :: Ci, Ac, Aj, A, An, gsc
+      REAL(r_2), DIMENSION(N) :: p_potentials
+      REAL, DIMENSION(N) :: Ci, Ac, Aj, A, an_leaf, gsc
       LOGICAL, DIMENSION(N) ::  mask
       REAL, DIMENSION(mp,mf), INTENT(IN) :: vcmxt3, ejmxt3, rdx, vx3, lai_leaf
-      REAL, DIMENSION(N) :: Kc, e_leaf, cost, gain, profit, an_leaf
+      REAL, DIMENSION(N) :: Kc, e_leaf, cost, gain, profit
       REAL :: p_crit, lower, upper, Cs, apar
       REAL :: J_TO_MOL, MOL_TO_UMOL, gsw, Vcmax, Jmax, Rd, Vj, Km
       REAL, DIMENSION(mf) :: e_leaves, p_leaves
@@ -3141,9 +3142,11 @@ CONTAINS
       !END IF
 
       ! Leaf water potential (MPA), in reality more of a whole-plant
-      !DO k=1, N
-      !   p(k)  = lower + float(k) * (upper - lower) / float(N-1)
-      !END DO
+      lower = psi_soil
+      upper = p_crit
+      DO k=1, N
+         p_potentials(k)  = lower + float(k) * (upper - lower) / float(N-1)
+      END DO
 
       ! Loop over sunlit,shaded parts of the canopy and solve the carbon uptake
       ! and transpiration
@@ -3203,15 +3206,16 @@ CONTAINS
             e_canopy = 0.0 ! mol H2O m-2 s-1
             canopy%psi_leaf(i) = canopy%psi_leaf_prev(i) ! MPa
          ELSE
-            
+
             ! Calculate the sunlit/shaded A_leaf (i.e. scaled up), umol m-2 s-1
             Ac = assim(Ci, gamma_star, Vcmax, Km) ! umol m-2 s-1
             Aj = assim(Ci, gamma_star, Vj, 2.0*gamma_star) ! umol m-2 s-1
             A = -QUADP(1.0-1E-04, Ac+Aj, Ac*Aj) ! umol m-2 s-1
-            An = A - Rd ! Net photosynthesis, umol m-2 s-1
+            an_leaf = A - Rd ! Net photosynthesis, umol m-2 s-1
 
-            ! Use An_sun/sha to infer gsc_sun/sha
-            gsc = An / (Cs - Ci) ! mol CO2 m-2 s-1
+            ! Use an_leaf to infer gsc_sun/sha. NB. An is the scaled up values
+            ! via scalex
+            gsc = an_leaf / (Cs - Ci) ! mol CO2 m-2 s-1
 
             ! Assuming perfect coupling, infer E_sun/sha from gsc. NB. as we're
             ! iterating, Tleaf will change and so VPD, maintaining energy
@@ -3220,8 +3224,12 @@ CONTAINS
 
             ! Infer the matching leaf water potential (MPa). NB. we need to
             ! rescale the E_sun/sha from it's big-leaf to unit leaf
-            p = ssnow%weighted_psi_soil(i) - ((e_leaf * MOL_TO_MMOL) / &
-                  rad%scalex(i,j) ) / Kplant
+            !p = ssnow%weighted_psi_soil(i) - ((e_leaf * MOL_TO_MMOL) / &
+            !      rad%scalex(i,j) ) / Kplant
+
+            p = calc_matching_lwp((e_leaf * MOL_TO_MMOL) /rad%scalex(i,j), &
+                                  p_potentials, N, Kmax, b_plant, c_plant)
+
 
             ! Ensure we don't check for profit in bad psi_leaf search space
             where (p >= ssnow%weighted_psi_soil(i) .OR. p <= p_crit)
@@ -3239,7 +3247,7 @@ CONTAINS
                                                         c_plant)
 
             ! normalised gain (-)
-            gain = An / MAXVAL(An, mask=mask)
+            gain = an_leaf / MAXVAL(an_leaf, mask=mask)
 
             ! normalised cost (-)
             cost = (kcmax(j) - Kc) / (kcmax(j) - Kcrit)
@@ -3249,7 +3257,7 @@ CONTAINS
             idx = MAXLOC(profit, 1, mask=mask)
 
             ! load into stores
-            an_canopy(j) = An(idx) ! umol m-2 s-1
+            an_canopy(j) = an_leaf(idx) ! umol m-2 s-1
             e_leaves(j) = e_leaf(idx) ! mol H2O m-2 s-1
             p_leaves(j) = p(idx)
 
@@ -3288,6 +3296,53 @@ CONTAINS
 
 
    END SUBROUTINE optimisation
+   ! ---------------------------------------------------------------------------
+
+   ! ---------------------------------------------------------------------------
+   FUNCTION calc_matching_lwp(E, p_potentials, N, Kmax, b_plant, &
+                              c_plant) RESULT(p_leaf)
+      ! E is e_leaf / scalex; p is what you had for p in the code so far
+      USE cable_def_types_mod
+      USE cable_common_module
+      IMPLICIT NONE
+      REAL, DIMENSION(:), INTENT(IN) :: E
+      REAL(r_2), DIMENSION(:), INTENT(IN) :: p_potentials
+      REAL, INTENT(IN) :: b_plant, c_plant, Kmax
+      REAL, DIMENSION(N) :: p_leaf
+      REAL :: e_leaf
+      REAL, PARAMETER :: MMOL_2_MOL = 1E-03
+      INTEGER, INTENT(IN) :: N
+      INTEGER :: h, i
+
+
+      ! integrate over the full range of water potentials from psi_soil to
+      ! lwp_crit
+      DO h=1, N
+         i = 1
+         DO
+
+            ! mol m-2 s-1
+            e_leaf = integrate_vulnerability(N, p_potentials(i), &
+                                             p_potentials(1), b_plant, &
+                                             c_plant) * Kmax * MMOL_2_MOL
+
+            p_leaf(h) = p_potentials(i)
+            i = i + 1
+
+            IF (E(h) > e_leaf .AND. i < N) THEN
+               EXIT
+            END IF
+
+            IF (i == N) THEN
+               p_leaf(h) = p_potentials(N) ! This is p_crit
+               EXIT
+            END IF
+
+         END DO
+
+      END DO
+
+   END FUNCTION calc_matching_lwp
    ! ---------------------------------------------------------------------------
 
    ! ---------------------------------------------------------------------------
