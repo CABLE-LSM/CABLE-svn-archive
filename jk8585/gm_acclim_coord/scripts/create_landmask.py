@@ -134,18 +134,29 @@ else:
     # note: the following steps have been taken care of in generate_latlonlist.py if randomPixels==True
     # read gridinfo file
     gridinfo    = nc.Dataset(gridinfo_file, mode='r')
-    iveg        = gridinfo.variables['iveg']
+    try:
+        iveg = gridinfo.variables['iveg']
+        landname='iveg'
+    except KeyError:
+        iveg = gridinfo.variables['land']
+        landname='land'
     latgridinfo = gridinfo.variables['latitude'][:]
     longridinfo = gridinfo.variables['longitude'][:]
 
     # convert gridinfo to dataframe (long format)
     gridinfo_landmask = pd.DataFrame(iveg[:,:], index=latgridinfo, columns=longridinfo)
-    alllonlat = pd.melt(gridinfo_landmask.reset_index(), id_vars='index', value_name='iveg')
-    alllonlat.columns = ["latitude", "longitude", "iveg"]
+    alllonlat = pd.melt(gridinfo_landmask.reset_index(), id_vars='index', value_name=landname)
+    alllonlat.columns = ["latitude", "longitude", landname]
 
     # select points (lats and lons) where land exists according to gridinfo file
-    landlonlat = alllonlat.loc[alllonlat['latitude'].isin(latlist) & alllonlat['longitude'].isin(lonlist) & \
-                               alllonlat['iveg'].notna()]
+    if landname == 'iveg':
+        landlonlat = alllonlat.loc[alllonlat['latitude'].isin(latlist) & alllonlat['longitude'].isin(lonlist) & \
+                                   alllonlat['iveg'].notna()]
+    elif landname == 'land':
+        landlonlat = alllonlat.loc[alllonlat['latitude'].isin(latlist) & alllonlat['longitude'].isin(lonlist) & \
+                                   alllonlat['land'] > 0]
+    else:
+        print("invalid 'land' variable in land mask file!")
     ilatlist = landlonlat['latitude'].to_numpy(dtype=np.float, copy=True)
     ilonlist = landlonlat['longitude'].to_numpy(dtype=np.float, copy=True)
     
