@@ -3245,10 +3245,12 @@ CONTAINS
             !      rad%scalex(i,j) ) / Kplant
             !print*, e_leaf* MOL_TO_MMOL
             !stop
-            p = calc_matching_lwp(e_leaf, &
-                                  p_potentials, N, Kmax, b_plant, c_plant)
-
-
+            p = calc_matching_lwp(e_leaf, p_potentials, N, Kmax, &
+                                  b_plant, c_plant)
+            !print*, p_potentials
+            !print*, " "
+            !print*, p
+            !stop
             ! Ensure we don't check for profit in bad psi_leaf search space
             where (p >= ssnow%weighted_psi_soil(i) .OR. p <= p_crit)
                 mask = .FALSE.
@@ -3359,7 +3361,7 @@ CONTAINS
             p_leaf(h) = p_potentials(i)
 
 
-            print*, h, i, Emol(h), e_leaf, p_potentials(i), p_potentials(1)
+            !print*, h, i, Emol(h), e_leaf, p_potentials(i), p_potentials(1)
 
 
 
@@ -3367,20 +3369,20 @@ CONTAINS
 
 
             IF (Emol(h) > e_leaf .AND. i < N) THEN
-               print*, "break 1"
+               !print*, "break 1"
                EXIT
             END IF
 
             IF (i == N) THEN
                p_leaf(h) = p_potentials(N) ! This is p_crit
-               print*, "break 2"
+               !print*, "break 2"
                EXIT
             END IF
 
          END DO
 
       END DO
-      stop
+      !stop
 
    END FUNCTION calc_matching_lwp
    ! ---------------------------------------------------------------------------
