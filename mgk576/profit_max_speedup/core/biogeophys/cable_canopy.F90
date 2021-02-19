@@ -3145,10 +3145,12 @@ CONTAINS
       ! Leaf water potential (MPA), in reality more of a whole-plant
       lower = psi_soil
       upper = p_crit
-      DO k=1, N
+      p_potentials(1) = lower
+      DO k=2, N
          p_potentials(k)  = lower + float(k) * (upper - lower) / float(N-1)
       END DO
-
+      print*, p_potentials
+      stop
       ! Loop over sunlit,shaded parts of the canopy and solve the carbon uptake
       ! and transpiration
       DO j=1, 2
@@ -3334,6 +3336,15 @@ CONTAINS
 
 
       Emol = E * MOL_2_MMOL
+
+      print*, p_potentials
+      !DO h=1, N
+      !   e_leaf = integrate_vulnerability(N, p_potentials(h), &
+      !                                    p_potentials(1), b_plant, &
+      !                                    c_plant) * Kmax * MOL_2_MMOL
+      !   print*, e_leaf
+      !END DO
+      stop
       !print*, p_potentials
       !stop
       ! integrate over the full range of water potentials from psi_soil to
