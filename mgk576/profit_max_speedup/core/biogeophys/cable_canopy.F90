@@ -3149,8 +3149,7 @@ CONTAINS
       DO k=2, N
          p_potentials(k)  = lower + float(k) * (upper - lower) / float(N-1)
       END DO
-      print*, p_potentials
-      stop
+
       ! Loop over sunlit,shaded parts of the canopy and solve the carbon uptake
       ! and transpiration
       DO j=1, 2
@@ -3337,14 +3336,13 @@ CONTAINS
 
       Emol = E * MOL_2_MMOL
 
-      print*, p_potentials
       !DO h=1, N
       !   e_leaf = integrate_vulnerability(N, p_potentials(h), &
       !                                    p_potentials(1), b_plant, &
-      !                                    c_plant) * Kmax * MOL_2_MMOL
+      !                                    c_plant) * Kmax
       !   print*, e_leaf
       !END DO
-      stop
+      !stop
       !print*, p_potentials
       !stop
       ! integrate over the full range of water potentials from psi_soil to
@@ -3356,7 +3354,7 @@ CONTAINS
             ! mmol m-2 s-1
             e_leaf = integrate_vulnerability(N, p_potentials(i), &
                                              p_potentials(1), b_plant, &
-                                             c_plant) * Kmax * MOL_2_MMOL
+                                             c_plant) * Kmax
 
             p_leaf(h) = p_potentials(i)
 
