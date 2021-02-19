@@ -1801,7 +1801,7 @@ CONTAINS
 
     REAL :: press
 
-    INTEGER, PARAMETER :: resolution = 1000 ! allows jumps in Ci ~ 0.35 umol mol-1
+    INTEGER, PARAMETER :: resolution = 40 ! allows jumps in Ci ~ 0.35 umol mol-1
     REAL, DIMENSION(2) :: an_canopy
     REAL :: e_canopy
     REAL(r_2), DIMENSION(resolution) :: p
@@ -3225,26 +3225,27 @@ CONTAINS
             ! balance
             e_leaf = gsc * C%RGSWC / press * vpd ! mol H2O m-2 s-1
 
-            !WHERE (e_leaf > HUGE(e_leaf))
-            !    e_leaf = 0.0
-            !END WHERE
+            WHERE (e_leaf > HUGE(e_leaf))
+                e_leaf = 0.0
+            END WHERE
 
 
-            !WHERE (e_leaf < 1e-09)
-            !    e_leaf = 0.0
-            !ELSE WHERE
-            !   e_leaf = e_leaf / rad%scalex(i,j)
-            !END WHERE
+            WHERE (e_leaf < 1e-09)
+                e_leaf = 0.0
+            ELSE WHERE
+               e_leaf = e_leaf / rad%scalex(i,j)
+            END WHERE
 
 
 
             ! Infer the matching leaf water potential (MPa). NB. we need to
             ! rescale the E_sun/sha from it's big-leaf to unit leaf
-            p = ssnow%weighted_psi_soil(i) - ((e_leaf * MOL_TO_MMOL) / &
-                  rad%scalex(i,j) ) / Kplant
-
-            !p = calc_matching_lwp(e_leaf, &
-            !                      p_potentials, N, Kmax, b_plant, c_plant)
+            !p = ssnow%weighted_psi_soil(i) - ((e_leaf * MOL_TO_MMOL) / &
+            !      rad%scalex(i,j) ) / Kplant
+            !print*, e_leaf* MOL_TO_MMOL
+            !stop
+            p = calc_matching_lwp(e_leaf, &
+                                  p_potentials, N, Kmax, b_plant, c_plant)
 
 
             ! Ensure we don't check for profit in bad psi_leaf search space
@@ -3325,33 +3326,45 @@ CONTAINS
       REAL, DIMENSION(:), INTENT(IN) :: E
       REAL(r_2), DIMENSION(:), INTENT(IN) :: p_potentials
       REAL, INTENT(IN) :: b_plant, c_plant, Kmax
-      REAL, DIMENSION(N) :: p_leaf
+      REAL, DIMENSION(N) :: p_leaf, Emol
       REAL :: e_leaf
       INTEGER, INTENT(IN) :: N
       INTEGER :: h, i
+      REAL, PARAMETER :: MOL_2_MMOL = 1000.0
 
 
+      Emol = E * MOL_2_MMOL
+      !print*, p_potentials
+      !stop
       ! integrate over the full range of water potentials from psi_soil to
       ! lwp_crit
       DO h=1, N
          i = 1
          DO
 
-            ! mol m-2 s-1
+            ! mmol m-2 s-1
             e_leaf = integrate_vulnerability(N, p_potentials(i), &
                                              p_potentials(1), b_plant, &
-                                             c_plant) * Kmax
+                                             c_plant) * Kmax * MOL_2_MMOL
 
             p_leaf(h) = p_potentials(i)
+
+
+            print*, h, i, Emol(h), e_leaf, p_potentials(i), p_potentials(1)
+
+
+
             i = i + 1
 
-            print*, h, i, E(h), e_leaf
-            IF (E(h) > e_leaf .AND. i < N) THEN
+
+            IF (Emol(h) > e_leaf .AND. i < N) THEN
+               print*, "break 1"
                EXIT
             END IF
 
             IF (i == N) THEN
                p_leaf(h) = p_potentials(N) ! This is p_crit
+               print*, "break 2"
                EXIT
             END IF
 
@@ -3359,6 +3372,7 @@ CONTAINS
 
       END DO
       stop
+
    END FUNCTION calc_matching_lwp
    ! ---------------------------------------------------------------------------
 
