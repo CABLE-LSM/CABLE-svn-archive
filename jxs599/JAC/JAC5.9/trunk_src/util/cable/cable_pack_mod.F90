@@ -5,9 +5,7 @@ CONTAINS
 SUBROUTINE  cable_pack_met()
 
 USE cable_types_mod,         ONLY: rad_bands, met
-
-!Long term might be more appropriate to pass by argument
-USE jules_fields_mod,        ONLY: psparms
+USE p_s_parms,               ONLY: cosz_ij
 
 IMPLICIT NONE
 
@@ -21,7 +19,7 @@ IMPLICIT NONE
 !-----------------------------------------------------------------------------
 
 !--- CABLE met type forcings
-CALL cable_pack_rr( psparms%cosz_ij(:,:), met%coszen(:))
+CALL cable_pack_rr(cosz_ij(:,:), met%coszen(:))
 CALL cable_pack_rr( rad_bands%sw_down_vis(:,:), met%fsd(:,1))
 CALL cable_pack_rr( rad_bands%sw_down_nir(:,:), met%fsd(:,2))
 
