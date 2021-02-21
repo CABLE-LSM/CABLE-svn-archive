@@ -22,11 +22,12 @@ CONTAINS
 ! directives. At present, such directives are used to exclude files from
 ! the UM build, so are required. This may change in the future.
 #include "init_params.inc"
+#include "init_vegin_cable.inc"
 #include "init_pftparm.inc"
 #include "init_nvegparm.inc"
 #include "init_cropparm.inc"
 #include "init_triffid.inc"
-#include "init_soilparm_cable.inc"
+#include "init_soilin_cable.inc"
 #include "init_deposition_species.inc"
 
 END MODULE init_params_mod
