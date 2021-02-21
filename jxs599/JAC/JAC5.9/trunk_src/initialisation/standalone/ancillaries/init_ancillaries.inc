@@ -29,8 +29,8 @@ USE um_types, ONLY: real_jlslsm
 
 USE jules_model_environment_mod, ONLY: lsm_id, cable
 
-USE allocate_cable_arrays_mod, ONLY: allocate_cable_progs
-
+USE init_cable_progs_mod,       ONLY: init_cable_progs
+USE allocate_cable_progs_mod,   ONLY: allocate_cable_progs
 !TYPE definitions
 USE crop_vars_mod, ONLY: crop_vars_type
 USE ancil_info,    ONLY: ainfo_type
