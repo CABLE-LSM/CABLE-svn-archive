@@ -55,8 +55,9 @@ CASE (jules)
   CALL init_nvegparm_jules(nml_dir)
 
 CASE (cable)
-  CALL init_pftparm_cable(nml_dir)
-  CALL init_soilparm_cable(nml_dir)
+  CALL init_pftparm_jules(nml_dir,progs)
+  CALL init_vegin_cable(nml_dir)  ! read PFT params namelist
+  CALL init_soilin_cable(nml_dir) ! read soil params namelist
 
 CASE DEFAULT
   errorstatus = 101
