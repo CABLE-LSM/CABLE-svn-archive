@@ -3104,8 +3104,6 @@ CONTAINS
     INTEGER :: lon_id,lat_id,tile_id,layer_id
     INTEGER :: klev,ii, jj, kk,e,i,j,k, n
     INTEGER :: nlon,nlat,npatch,nhorz
-    REAL, ALLOCATABLE, DIMENSION(:,:,:,:) :: inGW4dtmp
-    REAL, ALLOCATABLE, DIMENSION(:,:,:)   :: inGW3dtmp
     REAL, ALLOCATABLE, DIMENSION(:,:)     :: inGWtmp
     !MD Aquifer properties
 
@@ -3139,6 +3137,7 @@ CONTAINS
           nhorz=ms
        ENDIF
 
+
        IF ((nlon*nlat*npatch*nhorz .ne. xdimsize*ydimsize*ms*mp) .and. &
            xdimsize*ydimsize .ne. 1) THEN
           WRITE(logn,*) 'Errors reading the dimensions from '//filename%gw_elev
@@ -3158,9 +3157,8 @@ CONTAINS
              nlon=xdimsize; nlat=ydimsize; npatch=mp; nhorz=ms
        ENDIF
 
+
        allocate(inGWtmp(nlon,nlat))
-       allocate(inGW3dtmp(nlon,nlat,ms))
-       allocate(inGW4dtmp(nlon,nlat,ms,mp))
 
     !1
     soil%elev(:) = get_gw_data(ncid_elev,file_status,'elevation',50.0,nlon,nlat)
@@ -3302,8 +3300,6 @@ CONTAINS
     IF (cable_user%gw_model) then
       !removed gw_soils for now
       deallocate(inGWtmp)
-      deallocate(inGW3dtmp)
-      deallocate(inGW4dtmp)
     ENDIF
 
   END SUBROUTINE GWspatialParameters

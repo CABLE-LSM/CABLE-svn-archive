@@ -1,12 +1,12 @@
 &cable
-   filename%met = "./AU-Tum_2002-2017_OzFlux_Met.nc"
-   filename%out = "output_mpi_GW.nc"
-   filename%log = "cable_log_2008.txt"
-   filename%restart_in  = ""
-   filename%restart_out = "restart_2008.nc"
-   filename%type = "/g/data/w35/mm3972/model/cable/src//CABLE-AUX/offline/gridinfo_mmy_MD_elev_orig_std_avg-sand_mask.nc"
+   filename%met = "AU-Tum_2002-2017_OzFlux_Met.nc"
+   filename%out = "AU-Tum_out.nc"
+   filename%log = "AU-Tum_log.txt"
+   filename%restart_in  = "restart_in.nc"
+   filename%restart_out = "restart_out.nc"
+   filename%type = "/g/data/w35/mm3972/model/cable/src/CABLE-AUX/offline/gridinfo_mmy_MD_elev_orig_std_avg-sand_mask.nc"
    filename%veg  = "/g/data/w35/mm3972/model/cable/src/CABLE-AUX/offline/def_veg_params_zr_clitt_albedo_fix.txt"
-   filename%gw_elev = "/g/data/w35/mm3972/model/cable/src//CABLE-AUX/offline/gridinfo_mmy_MD_elev_orig_std_avg-sand_mask.nc"
+   filename%gw_elev ="/g/data/w35/mm3972/model/cable/src//CABLE-AUX/offline/gridinfo_mmy_MD_elev_orig_std_avg-sand_mask.nc"! "/g/data/w35/mm3972/model/cable/src/CABLE-AUX/offline/GSWP3_gwmodel_parameters.nc" !"/g/data/w35/mm3972/model/cable/src/CABLE-AUX/offline/gridinfo_mmy_MD_elev_orig_std_avg-sand_mask.nc"
    filename%soil = "/g/data/w35/mm3972/model/cable/src/CABLE-AUX/offline/surface_data/def_soil_params.txt"
    vegparmnew = .TRUE.  ! using new format when true
    soilparmnew = .TRUE.  ! using new format when true
@@ -23,14 +23,14 @@
    output%veg       = .TRUE.  ! vegetation states
    output%params    = .TRUE.  ! input parameters used to produce run
    output%balances  = .TRUE.  ! energy and water balances
-   output%averaging = "all"
+   output%averaging = "monthly"
    check%ranges     = .FALSE.  ! variable ranges, input and output
    check%energy_bal = .TRUE.  ! energy balance
    check%mass_bal   = .TRUE.  ! water/mass balance
    verbose = .TRUE. ! write details of every grid cell init and params to log?
    leaps = .TRUE. ! calculate timing with leap years?
    logn = 88      ! log file number - declared in input module
-   fixedCO2 = 350.0   ! MMY fixed co2 to compare with LIS-CABLE if not found in met file, in ppmv ! spincasainput = .FALSE.    ! input required to spin casacnp offline
+   fixedCO2 = 350.0   ! MMY fixed co2 to compare with LIS-CABLE if not found in met file, in ppmv
    spincasa      = .FALSE.     ! spin casa before running the model if TRUE, and should be set to FALSE if spincasainput = .TRUE.
    l_casacnp     = .FALSE.  ! using casaCNP with CABLE
    l_laiFeedbk   = .FALSE.  ! using prognostic LAI
@@ -44,14 +44,14 @@
    casafile%phen=' *** SET PATH IN cable.nml *** '
    casafile%cnpflux='cnpfluxOut.csv'
    ncciy = 0 ! 0 for not using gswp; 4-digit year input for year of gswp met
-   gswpfile%rainf = "/g/data/w35/mm3972/model/cable/src/CABLE-AUX/offline/gswp/Rainf/GSWP3.BC.Rainf.3hrMap.2008.nc"
-   gswpfile%snowf = "/g/data/w35/mm3972/model/cable/src/CABLE-AUX/offline/gswp/Snowf/GSWP3.BC.Snowf.3hrMap.2008.nc"
-   gswpfile%LWdown= "/g/data/w35/mm3972/model/cable/src/CABLE-AUX/offline/gswp/LWdown/GSWP3.BC.LWdown.3hrMap.2008.nc"
-   gswpfile%SWdown= "/g/data/w35/mm3972/model/cable/src/CABLE-AUX/offline/gswp/SWdown/GSWP3.BC.SWdown.3hrMap.2008.nc"
-   gswpfile%PSurf = "/g/data/w35/mm3972/model/cable/src/CABLE-AUX/offline/gswp/PSurf/GSWP3.BC.PSurf.3hrMap.2008.nc"
-   gswpfile%Qair  = "/g/data/w35/mm3972/model/cable/src/CABLE-AUX/offline/gswp/Qair/GSWP3.BC.Qair.3hrMap.2008.nc"
-   gswpfile%Tair  = "/g/data/w35/mm3972/model/cable/src/CABLE-AUX/offline/gswp/Tair/GSWP3.BC.Tair.3hrMap.2008.nc"
-   gswpfile%wind  = "/g/data/w35/mm3972/model/cable/src/CABLE-AUX/offline/gswp/Wind/GSWP3.BC.Wind.3hrMap.2008.nc"
+   gswpfile%rainf = "/g/data/w35/mm3972/model/cable/src/CABLE-AUX/offline/gswp/Rainf/GSWP3.BC.Rainf.3hrMap.1981.nc"
+   gswpfile%snowf = "/g/data/w35/mm3972/model/cable/src/CABLE-AUX/offline/gswp/Snowf/GSWP3.BC.Snowf.3hrMap.1981.nc"
+   gswpfile%LWdown= "/g/data/w35/mm3972/model/cable/src/CABLE-AUX/offline/gswp/LWdown/GSWP3.BC.LWdown.3hrMap.1981.nc"
+   gswpfile%SWdown= "/g/data/w35/mm3972/model/cable/src/CABLE-AUX/offline/gswp/SWdown/GSWP3.BC.SWdown.3hrMap.1981.nc"
+   gswpfile%PSurf = "/g/data/w35/mm3972/model/cable/src/CABLE-AUX/offline/gswp/PSurf/GSWP3.BC.PSurf.3hrMap.1981.nc"
+   gswpfile%Qair  = "/g/data/w35/mm3972/model/cable/src/CABLE-AUX/offline/gswp/Qair/GSWP3.BC.Qair.3hrMap.1981.nc"
+   gswpfile%Tair  = "/g/data/w35/mm3972/model/cable/src/CABLE-AUX/offline/gswp/Tair/GSWP3.BC.Tair.3hrMap.1981.nc"
+   gswpfile%wind  = "/g/data/w35/mm3972/model/cable/src/CABLE-AUX/offline/gswp/Wind/GSWP3.BC.Wind.3hrMap.1981.nc"
    gswpfile%mask  = "/g/data/w35/mm3972/model/cable/src/CABLE-AUX/offline/gridinfo_mmy_MD_elev_orig_std_avg-sand_landmask.nc"
    redistrb = .FALSE.  ! Turn on/off the hydraulic redistribution
    wiltParam = 0.5
