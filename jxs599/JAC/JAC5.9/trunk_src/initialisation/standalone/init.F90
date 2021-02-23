@@ -51,16 +51,14 @@ USE metstats_init_mod,            ONLY: metstats_init
 USE init_parms_mod,               ONLY: init_parms
 USE init_soil_ecosse_mod,         ONLY: init_soil_ecosse
 USE init_check_compatibility_mod, ONLY: init_check_compatibility
-USE init_cable_mod,               ONLY: init_cable_grid, init_cable_veg
 USE init_deposition_mod,          ONLY: init_deposition
-USE allocate_cable_arrays_mod,    ONLY: allocate_cable_arrays
 USE jules_science_fixes_mod,      ONLY: init_science_fixes
 USE land_tile_ids,                ONLY: set_tile_id_arrays
 USE jules_surface_mod,            ONLY: l_surface_type_ids
 
 ! Get fields for veg3_init
 USE jules_surface_types_mod,      ONLY: npft, nnpft, ntype
-USE ancil_info,                   ONLY: land_pts, nsurft, nmasst
+USE ancil_info,                   ONLY: land_pts, nsurft, nmasst, surft_pts
 USE veg3_parm_mod,                ONLY: veg3_parm_init
 USE veg3_field_mod,               ONLY: veg3_field_init
 
@@ -101,6 +99,8 @@ USE trifctl,                      ONLY: trifctl_data_type,                    &
 USE coastal,                      ONLY: coastal_data_type,                    &
                                         coastal_type,                         &
                                         coastal_assoc
+USE init_cable_mod,              ONLY: init_cable
+
 IMPLICIT NONE
 
 !-----------------------------------------------------------------------------
@@ -237,7 +237,7 @@ CALL coastal_assoc(coast,coastal_data)
 
 ! Initialise the model ancils
 CALL init_ancillaries(nml_dir, crop_vars, ainfo, trif_vars, urban_param,      &
-                      trifctltype)
+                      trifctltype, progs%snow_surft)
 
 ! Initialise model parameters
 CALL init_params(nml_dir,progs)
@@ -299,11 +299,9 @@ CALL veg3_field_init(land_pts,nsurft,nnpft,npft,nmasst,ainfo,progs)
 ! Seek the input files to the start of the run
 CALL seek_all_to_current_datetime()
 
-! If the LSM is CABLE, initialise CABLE variables
+! Declare/allocate/initialize - params,progs,state vars for CABLE
 IF ( lsm_id == cable ) THEN
-  CALL allocate_cable_arrays()
-  CALL init_cable_grid()
-  CALL init_cable_veg()
+  CALL init_cable(surft_pts, ainfo%frac_surft )   ! init. #active tiles,define mask for active tiles
 END IF
 
 ! Save initial state if spinning up. Arrays are allocated here.

@@ -22,13 +22,13 @@ CONTAINS
 !   Code Owner: Please refer to ModuleLeaders.txt and UM file CodeOwners.txt
 !   This file belongs in section: Land
 
-SUBROUTINE allocate_cable_progs()
+SUBROUTINE allocate_cable_progs(snow_surft)
 
 !Replacements for the argument list
 USE ancil_info,               ONLY: land_pts, nsurft
 USE jules_soil_mod,           ONLY: sm_levels
 USE cable_prognostic_info_mod
-USE prognostics,              ONLY: snow_surft
+USE prognostics,              ONLY: 
 
 !Common Non-science modules
 USE parkind1,                 ONLY: jprb, jpim
@@ -57,6 +57,8 @@ IMPLICIT NONE
 ! according to whether they are needed for just JULES, the UM or both.
 !
 !-----------------------------------------------------------------------------
+
+REAL:: snow_surft(land_pts,nsurft)  
 
 #if defined(UM_JULES)
 ! Input variables for dimensioning

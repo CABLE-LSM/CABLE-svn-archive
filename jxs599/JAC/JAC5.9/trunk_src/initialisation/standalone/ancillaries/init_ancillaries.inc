@@ -7,7 +7,7 @@
 
 
 SUBROUTINE init_ancillaries(nml_dir, crop_vars, ainfo, trif_vars, urban_param,&
-                            trifctltype)
+                            trifctltype, snow_surft)
 
 USE io_constants, ONLY: namelist_unit
 
@@ -33,7 +33,7 @@ USE init_cable_progs_mod,       ONLY: init_cable_progs
 USE allocate_cable_progs_mod,   ONLY: allocate_cable_progs
 !TYPE definitions
 USE crop_vars_mod, ONLY: crop_vars_type
-USE ancil_info,    ONLY: ainfo_type
+USE ancil_info,    ONLY: ainfo_type, land_pts, nsurft
 USE trif_vars_mod, ONLY: trif_vars_type
 USE urban_param_mod, ONLY: urban_param_type
 USE trifctl,   ONLY: trifctl_type
@@ -63,6 +63,8 @@ TYPE(urban_param_type), INTENT(IN OUT) :: urban_param
 TYPE(trifctl_type), INTENT(IN OUT) :: trifctltype
 
 CHARACTER(LEN=errormessagelength) :: iomessage
+
+REAL:: snow_surft(land_pts,nsurft)  
 
 ! Work variables
 INTEGER :: error  ! Error indicator
@@ -100,7 +102,7 @@ CALL init_water_resources_props()
 CALL init_flake_ancils()
 IF ( l_urban2t .OR. l_moruses ) CALL init_urban_props(ainfo,urban_param)
 IF (lsm_id == cable) THEN
-  CALL allocate_cable_progs()
+  CALL allocate_cable_progs(snow_surft)
   CALL init_cable_progs()
 END IF
 

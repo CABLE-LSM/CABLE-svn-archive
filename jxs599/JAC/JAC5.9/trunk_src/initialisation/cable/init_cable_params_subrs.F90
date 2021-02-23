@@ -6,11 +6,11 @@ IMPLICIT NONE
 
 CONTAINS
  
-SUBROUTINE init_cable_veg()
+SUBROUTINE init_cable_veg( frac_surft )
 
 USE cable_types_mod,   ONLY: mp, l_tile_pts
 USE cable_params_mod,  ONLY: veg => veg_cbl, vegin
-USE ancil_info,        ONLY: nsurft, land_pts, frac_surft
+USE ancil_info,        ONLY: nsurft, land_pts
 
 IMPLICIT NONE
 
@@ -23,6 +23,7 @@ IMPLICIT NONE
 !-----------------------------------------------------------------------------
 
 INTEGER :: JSurfaceTypeID(land_pts,nsurft)  
+REAL:: frac_surft(land_pts,nsurft)  
 INTEGER :: i
 INTEGER :: h
 
