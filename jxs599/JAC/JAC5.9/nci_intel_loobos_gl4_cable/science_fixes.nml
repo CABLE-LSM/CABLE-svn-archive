@@ -1,4 +1,5 @@
 &jules_temp_fixes
+l_accurate_rho=.false.,
 l_dtcanfix=.true.,
 l_fix_alb_ice_thick=.true.,
 l_fix_albsnow_ts=.true.,
