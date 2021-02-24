@@ -1801,7 +1801,7 @@ CONTAINS
 
     REAL :: press
 
-    INTEGER, PARAMETER :: resolution = 40 ! allows jumps in Ci ~ 0.35 umol mol-1
+    INTEGER, PARAMETER :: resolution = 200 ! allows jumps in Ci ~ 0.35 umol mol-1
     REAL, DIMENSION(2) :: an_canopy
     REAL :: e_canopy
     REAL(r_2), DIMENSION(resolution) :: p
@@ -3332,7 +3332,7 @@ CONTAINS
       REAL, DIMENSION(N) :: p_leaf, Emol
       REAL :: e_leaf
       INTEGER, INTENT(IN) :: N
-      INTEGER :: h, i
+      INTEGER :: h, k
       REAL, PARAMETER :: MOL_2_MMOL = 1000.0
 
 
@@ -3347,42 +3347,42 @@ CONTAINS
       !stop
       !print*, p_potentials
       !stop
+
+      p_leaf(1) = p_potentials(1)
+
       ! integrate over the full range of water potentials from psi_soil to
       ! lwp_crit
-      DO h=1, N
-         i = 1
-         DO
+      DO h=2, N
+         DO k=2, N
+
+
 
             ! mmol m-2 s-1
-            e_leaf = integrate_vulnerability(N, p_potentials(i), &
+            e_leaf = integrate_vulnerability(N, p_potentials(k), &
                                              p_potentials(1), b_plant, &
                                              c_plant) * Kmax
 
-            p_leaf(h) = p_potentials(i)
+            p_leaf(h) = p_potentials(k)
 
 
-            !print*, h, i, Emol(h), e_leaf, p_potentials(i), p_potentials(1)
+            !print*, h, k, e_leaf, Emol(h), p_leaf(h)
+            !print*, h, k, Emol(h), e_leaf, p_potentials(k), p_potentials(1)
 
 
 
-            i = i + 1
-
-
-            IF (Emol(h) > e_leaf .AND. i < N) THEN
+            IF (Emol(h) > e_leaf .AND. k < N) THEN
                !print*, "break 1"
                EXIT
             END IF
 
-            IF (i == N) THEN
+            IF (k == N) THEN
                p_leaf(h) = p_potentials(N) ! This is p_crit
-               !print*, "break 2"
-               EXIT
             END IF
 
          END DO
 
       END DO
-      !stop
+
 
    END FUNCTION calc_matching_lwp
    ! ---------------------------------------------------------------------------
