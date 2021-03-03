@@ -1801,7 +1801,7 @@ CONTAINS
 
     REAL :: press
 
-    INTEGER, PARAMETER :: resolution = 200 ! allows jumps in Ci ~ 0.35 umol mol-1
+    INTEGER, PARAMETER :: resolution = 1000 ! allows jumps in Ci ~ 0.35 umol mol-1
     REAL, DIMENSION(2) :: an_canopy
     REAL :: e_canopy
     REAL(r_2), DIMENSION(resolution) :: p
@@ -3154,7 +3154,7 @@ CONTAINS
          DO k=1, N
             Ci(k)  = lower + float(k) * (upper - lower) / float(N-1)
          END DO
-
+         
          ! absorbed par for the sunlit or shaded leaf, umol m-2 -s-1
          apar = qcan(i,j,1) * J_TO_MOL * MOL_TO_UMOL
 
