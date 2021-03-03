@@ -3122,34 +3122,6 @@ CONTAINS
 
 
 
-      ! Generate water potential sequence
-      !
-      ! This includes an option here to generate a shorter, more focussed
-      ! range, under the assumption that psi_leaf can't change by that much
-      ! between timesteps if it doesn't rain. The advantage of doing that is
-      ! that you shouldn't need to search too far and thus can reduce the
-      ! resolution of the psi_leaf array, saving time
-      !IF (bounded_psi .eqv. .true.) THEN
-      !   ! i.e. it rained, so search from psi_soil again
-      !   IF (psi_soil < canopy%psi_soil_prev(i)) THEN
-      !      lower = psi_soil ! start from the full range
-      !   ELSE
-      !      lower = min(psi_soil, canopy%psi_leaf_prev(i) * 0.5)
-      !   END IF
-      !   upper = max(p_crit, canopy%psi_leaf_prev(i) * 1.5)
-      !ELSE
-      !   lower = psi_soil
-      !   upper = p_crit
-      !END IF
-
-      ! Leaf water potential (MPA), in reality more of a whole-plant
-      !lower = psi_soil
-      !upper = p_crit
-      !p_potentials(1) = lower
-      !DO k=2, N
-      !   p_potentials(k)  = lower + float(k) * (upper - lower) / float(N-1)
-      !END DO
-
       ! Loop over sunlit,shaded parts of the canopy and solve the carbon uptake
       ! and transpiration
       DO j=1, 2
@@ -3169,11 +3141,6 @@ CONTAINS
          ! mmol m-2 MPa-1 leaf s-1
          !Kplant = 1.0 / (1.0 / Kmax + Rsrl)
          Kplant = Kmax
-
-         !if (100.0 * (1.0 - Kplant / 1.5) > 20.) then
-         !   print*, Kplant, psi_soil, Rsr, Rsrl, 1.0 /Rsrl
-         !   stop
-         !end if
 
          ! CO2 concentration at the leaf surface, umol m-2 -s-1
          Cs = csx(i,j) * MOL_TO_UMOL
@@ -3225,11 +3192,6 @@ CONTAINS
             ! iterating, Tleaf will change and so VPD, maintaining energy
             ! balance
             e_leaf = gsc * C%RGSWC / press * vpd ! mol H2O m-2 s-1
-
-            WHERE (e_leaf > HUGE(e_leaf))
-                e_leaf = 0.0
-            END WHERE
-
 
             ! MPa
             p = calc_psi_leaf(ssnow%weighted_psi_soil(i), e_leaf, &
@@ -3326,14 +3288,14 @@ CONTAINS
 
       ! Rescale from canopy to leaf..as e_leaf is E_sun/sha i.e. big-leaf to
       ! unit leaf, mmol m-2 s-1
-      WHERE (e_leaf < 1e-09)
-         eleaf_mmol = 0.0
-      ELSE WHERE
-         eleaf_mmol = (e_leaf * MOL_TO_MMOL) / scalex
-      END WHERE
+      eleaf_mmol = e_leaf * MOL_TO_MMOL / scalex
 
       ! Infer the matching leaf water potential (MPa).
-      psi_leaf = psi_soil - (eleaf_mmol  / Kplant)
+      psi_leaf = psi_soil - eleaf_mmol / Kplant
+
+      !psi_leaf = psi_soil - ((e_leaf * MOL_TO_MMOL) / &
+      !         scalex ) / Kplant
+
 
    END FUNCTION calc_psi_leaf
    ! ---------------------------------------------------------------------------
