@@ -1188,7 +1188,6 @@ CONTAINS
                ' in '//TRIM(filename%met)//' (SUBROUTINE open_met_data)')
        END IF
     ELSE ! CO2 not present
-       print*, 'no here'
        exists%CO2air = .FALSE. ! CO2air is not present in met file
        all_met=.FALSE. ! not all met variables are present in file
        ! Note this in log file:

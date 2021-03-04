@@ -1909,7 +1909,8 @@ CONTAINS
       Kcmax(1) = veg%Kmax(i)
       Kcmax(2) = veg%Kmax(i)
     END DO
-
+    print*, veg%Kmax(i)
+    stop
     !kdcorbin, 08/10 - doing all points all the time
     DO WHILE (k < C%MAXITER)
        k = k + 1
@@ -3154,7 +3155,7 @@ CONTAINS
          DO k=1, N
             Ci(k)  = lower + float(k) * (upper - lower) / float(N-1)
          END DO
-         
+
          ! absorbed par for the sunlit or shaded leaf, umol m-2 -s-1
          apar = qcan(i,j,1) * J_TO_MOL * MOL_TO_UMOL
 
