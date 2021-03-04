@@ -1173,7 +1173,9 @@ CONTAINS
     END IF
     ! Look for CO2air (can be assumed to be static):- - - - - - - - - - -
     ok = NF90_INQ_VARID(ncid_met,'CO2air',id%CO2air)
-    IF(ok == NF90_NOERR) THEN ! If inquiry is okay
+    !IF(ok == NF90_NOERR) THEN ! If inquiry is okay
+    ! MDK, 4th march 2020, added method to bypass co2 in met file for Narclim work
+    IF(ok == NF90_NOERR .AND. fixedCO2 < 0.0) THEN ! If inquiry is okay
        exists%CO2air = .TRUE. ! CO2air is present in met file
        ! Get CO2air units:
        ok = NF90_GET_ATT(ncid_met,id%CO2air,'units',metunits%CO2air)
@@ -1186,6 +1188,7 @@ CONTAINS
                ' in '//TRIM(filename%met)//' (SUBROUTINE open_met_data)')
        END IF
     ELSE ! CO2 not present
+       print*, 'no here'
        exists%CO2air = .FALSE. ! CO2air is not present in met file
        all_met=.FALSE. ! not all met variables are present in file
        ! Note this in log file:
