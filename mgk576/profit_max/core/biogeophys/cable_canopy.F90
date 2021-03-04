@@ -1909,8 +1909,7 @@ CONTAINS
       Kcmax(1) = veg%Kmax(i)
       Kcmax(2) = veg%Kmax(i)
     END DO
-    print*, veg%Kmax(i)
-    stop
+    
     !kdcorbin, 08/10 - doing all points all the time
     DO WHILE (k < C%MAXITER)
        k = k + 1
