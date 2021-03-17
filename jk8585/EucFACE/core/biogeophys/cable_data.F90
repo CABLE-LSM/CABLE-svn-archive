@@ -102,8 +102,9 @@ module cable_data_module
       integer :: maxiter=20     ! max # interations for leaf temperature
       integer :: ndays_optim=5  ! number of days taken into account for Jmax/Vcmax optimisation
       !real :: gam0     = 34.6E-6  ! (Bernacci 2001 )36.9 @ 25C (von Cammerer)
-      real :: bjvref    = 1.8245     ! Ci-based Jmax/Vcmax ratio at 25 degC
+      !real :: bjvref    = 1.8245     ! Ci-based Jmax/Vcmax ratio at 25 degC
                                      ! Tgrowth=15degC and Thome=25degC (Kumarathunge et al. 2019)
+      real :: bjvref = 1.628         ! Value for EucFACE
       real :: relcostJ_coord = 1.6   ! Ci-based relative cost of Jmax to Vcmax
                                      ! with forced coordination (Chen et al. 1993)
       real :: relcostJ_optim = 2.3   ! Ci-based relative cost of Jmax to Vcmax

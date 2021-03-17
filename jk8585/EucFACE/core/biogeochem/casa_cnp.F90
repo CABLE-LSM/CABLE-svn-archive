@@ -535,8 +535,9 @@ SUBROUTINE casa_rplant(veg, casabiome, casapool, casaflux, casamet, climate)
     ratioPNplant = casapool%Pplant / (casapool%Nplant+ 1.0e-10_r_2)
   ENDWHERE
 
-  Ygrow(:) = 0.65_r_2 + 0.2_r_2*ratioPNplant(:,leaf)/(ratioPNplant(:,leaf)+1.0_r_2/15.0_r_2)
-
+  !Ygrow(:) = 0.65_r_2 + 0.2_r_2*ratioPNplant(:,leaf)/(ratioPNplant(:,leaf)+1.0_r_2/15.0_r_2)
+  Ygrow(:) = 0.60_r_2 + 0.2_r_2*ratioPNplant(:,leaf)/(ratioPNplant(:,leaf)+1.0_r_2/15.0_r_2)
+  
   casaflux%crmplant(:,wood)  = 0.0_r_2
   casaflux%crmplant(:,froot) = 0.0_r_2
   delcrmwood  = 0.0_r_2
