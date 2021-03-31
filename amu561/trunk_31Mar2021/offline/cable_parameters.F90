@@ -1535,7 +1535,7 @@ CONTAINS
     WRITE(logn, *)
 
     IF (cable_user%GSWP3) THEN
-       rough%za_uv = 2.0 + veg%hc ! lowest atm. model layer/reference height
+       rough%za_uv = 10.0 + veg%hc ! lowest atm. model layer/reference height
        rough%za_tq = 2.0 + veg%hc
     END IF
     ! Deallocate temporary variables:
