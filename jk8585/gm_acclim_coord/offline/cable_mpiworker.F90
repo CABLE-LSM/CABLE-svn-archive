@@ -158,10 +158,11 @@ CONTAINS
 
     ! gm
     USE cable_adjust_JV_gm_module, ONLY: read_gm_LUT, LUT_VcmaxJmax, LUT_gm, LUT_Vcmax, LUT_Rd
-    
+
     ! 13C
     use cable_c13o2_def,         only: c13o2_flux, c13o2_pool, c13o2_luc ! , &
-         ! c13o2_update_sum_pools, c13o2_zero_sum_pools
+    ! c13o2_update_sum_pools, c13o2_zero_sum_pools
+    use cable_c13o2,             only: c13o2_sanity_pools
     use mo_isotope,              only: isoratio ! vpdbc13
     use mo_c13o2_photosynthesis, only: c13o2_discrimination_simple, c13o2_discrimination
 
@@ -294,7 +295,7 @@ CONTAINS
          cable_user           ! additional USER switches
 
     INTEGER :: LALLOC
-    
+
     ! command line arguments
     integer :: narg, len1, len2
     character(len=500) :: arg1
@@ -401,7 +402,7 @@ CONTAINS
     ! gm lookup table
     if (cable_user%explicit_gm .and. len(trim(cable_user%gm_LUT_file)) .gt. 1) then
       write(*,*) 'Reading gm LUT file'
-      call read_gm_LUT(cable_user%gm_LUT_file,LUT_VcmaxJmax,LUT_gm,LUT_Vcmax,LUT_Rd)
+      call read_gm_LUT(cable_user%gm_LUT_file, LUT_VcmaxJmax, LUT_gm, LUT_Vcmax, LUT_Rd)
     endif
     ! Open log file:
     ! MPI: worker logs go to the black hole
@@ -489,8 +490,8 @@ CONTAINS
              endif
 
              ktauday = int(24.0*3600.0/dels)
-             !TRUNK IF (cable_user%call_climate) &
-             CALL worker_climate_types(comm, climate, ktauday)
+             if (cable_user%call_climate) &
+                  CALL worker_climate_types(comm, climate, ktauday)
 
              ! MPI: mvtype and mstype send out here instead of inside worker_casa_params
              !      so that old CABLE carbon module can use them. (BP May 2013)
@@ -517,7 +518,6 @@ CONTAINS
                 if (cable_user%call_blaze) then
                    ! ! allocate biomass turnover pools when both pop and blaze are active
                    ! if (cable_user%call_pop) allocate(pop_to(mp), pop_cwd(mp), pop_str(mp))
-
                    call ini_blaze( mland, rad%latitude(landpt(:)%cstart), &
                                    rad%longitude(landpt(:)%cstart), blaze )
 
@@ -532,9 +532,8 @@ CONTAINS
                    ! cln:  burnt_area
                    if ( blaze%burnt_area_src == "SIMFIRE" ) then
                       call MPI_recv(MPI_BOTTOM, 1, blaze_in_t, 0, ktau_gl, comm, stat, ierr)
-                      call INI_SIMFIRE(mland ,SIMFIRE, &
-
-                         climate%modis_igbp(landpt(:)%cstart) ) !CLN here we need to check for the SIMFIRE biome setting
+                      !CLN here we need to check for the SIMFIRE biome setting
+                      call INI_SIMFIRE(mland, SIMFIRE, climate%modis_igbp(landpt(:)%cstart))
                       !par blaze restart not required uses climate data
                       !call worker_simfire_types(comm, mland, simfire, simfire_restart_t, simfire_inp_t, simfire_out_t)
                       !if (.not. spinup) then
@@ -609,6 +608,7 @@ CONTAINS
                 CALL worker_spincasacnp(dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
                      casaflux,casamet,casabal,phen,POP,climate,LALLOC, &
                      c13o2flux, c13o2pools, icomm, ocomm)
+                if (cable_user%c13o2) call c13o2_sanity_pools(casapool, casaflux, c13o2pools)
                 SPINconv = .FALSE.
                 CASAONLY = .TRUE.
                 ktau_gl  = 0
@@ -617,6 +617,7 @@ CONTAINS
                 CALL worker_CASAONLY_LUC(dels,kstart,kend,veg,soil,casabiome,casapool, &
                      casaflux,casamet,casabal,phen,POP,climate,LALLOC, &
                      c13o2flux, c13o2pools, icomm, ocomm)
+                if (cable_user%c13o2) call c13o2_sanity_pools(casapool, casaflux, c13o2pools)
                 SPINconv = .FALSE.
                 ktau_gl  = 0
                 ktau     = 0
@@ -711,13 +712,9 @@ CONTAINS
                 veg%vcmax_sun = veg%vcmax
                 veg%ejmax_sun = veg%ejmax
              ENDIF
-             
+
              !MC - if (l_laiFeedbk) veg%vlai(:) = real(casamet%glai(:))
              if (l_laiFeedbk .and. (icycle>0)) veg%vlai(:) = real(casamet%glai(:))
-
-             !TRUNK IF (cable_user%CALL_climate) &
-             !TRUNK      CALL cable_climate(ktau_tot,kstart,kend,ktauday,idoy,LOY,met, &
-             !TRUNK      climate, canopy, air, rad, dels, mp)
 
              ! CALL land surface scheme for this timestep, all grid points:
              CALL cbm(ktau, dels, air, bgc, canopy, met, &
@@ -728,64 +725,64 @@ CONTAINS
                 gpp  = canopy%An + canopy%Rd
                 Ra   = isoratio(c13o2flux%ca, real(met%ca,r_2), 1.0_r_2)
                 !MCTest
-                ! c13o2flux%An       = canopy%An
+                c13o2flux%An       = canopy%An
                 ! c13o2flux%An       = 1.005_r_2 * canopy%An !  * vpdbc13 / vpdbc13 ! Test 5 permil
-                ! c13o2flux%Disc     = 0.0_r_2
-                ! c13o2flux%Vstarch  = c13o2flux%Vstarch + 1.0e-6_r_2
-                ! c13o2flux%Rstarch  = c13o2flux%Rstarch
-                ! c13o2flux%Rsucrose = c13o2flux%Rsucrose
-                ! c13o2flux%Rphoto   = c13o2flux%Rphoto
-                do ileaf=1, mf
-                   if (cable_user%c13o2_simple_disc) then
-                      call c13o2_discrimination_simple( &
-                           ! -- Input
-                           ! isc3
-                           real(dels,r_2), canopy%isc3, &
-                           ! GPP and Leaf respiration
-                           gpp(:,ileaf), canopy%Rd(:,ileaf), &
-                           ! Ambient and stomatal CO2 concentration
-                           real(met%ca,r_2), canopy%ci(:,ileaf), &
-                           ! leaf temperature
-                           real(canopy%tlf,r_2), &
-                           ! Ambient isotope ratio
-                           Ra, &
-                           ! -- Inout
-                           ! Starch pool and its isotope ratio
-                           c13o2flux%Vstarch, c13o2flux%Rstarch, &
-                           ! -- Output
-                           ! discrimination
-                           c13o2flux%Disc(:,ileaf), &
-                           ! 13CO2 flux
-                           c13o2flux%An(:,ileaf) )
-                   else
-                      call c13o2_discrimination( &
-                           ! -- Input
-                           real(dels,r_2), canopy%isc3, &
-                           ! Photosynthesis variables
-                           ! Vcmax<< because of temperature dependence of Vcmax
-                           canopy%vcmax(:,ileaf), gpp(:,ileaf), canopy%Rd(:,ileaf), canopy%gammastar(:,ileaf), &
-                           ! CO2 concentrations
-                           real(met%ca,r_2), canopy%ci(:,ileaf), &
-                           ! Conductances
-                           canopy%gac(:,ileaf), canopy%gbc(:,ileaf), canopy%gsc(:,ileaf), &
-                           ! leaf temperature
-                           real(canopy%tlf,r_2), &
-                           ! Ambient isotope ratio
-                           Ra, &
-                           ! -- Inout
-                           ! Starch pool and isotope ratios of pools for respiration
-                           c13o2flux%Vstarch, c13o2flux%Rstarch, &
-                           c13o2flux%Rsucrose(:,ileaf), c13o2flux%Rphoto(:,ileaf), &
-                           ! -- Output
-                           ! discrimination
-                           c13o2flux%Disc(:,ileaf), &
-                           ! 13CO2 flux
-                           c13o2flux%An(:,ileaf) )
-                   endif ! cable_user%c13o2_simple_disc
-                end do ! ileaf=1:mf
+                c13o2flux%Disc     = 0.0_r_2
+                c13o2flux%Vstarch  = c13o2flux%Vstarch + 1.0e-6_r_2
+                c13o2flux%Rstarch  = c13o2flux%Rstarch
+                c13o2flux%Rsucrose = c13o2flux%Rsucrose
+                c13o2flux%Rphoto   = c13o2flux%Rphoto
+                ! do ileaf=1, mf
+                !    if (cable_user%c13o2_simple_disc) then
+                !       call c13o2_discrimination_simple( &
+                !            ! -- Input
+                !            ! isc3
+                !            real(dels,r_2), canopy%isc3, &
+                !            ! GPP and Leaf respiration
+                !            gpp(:,ileaf), canopy%Rd(:,ileaf), &
+                !            ! Ambient and stomatal CO2 concentration
+                !            real(met%ca,r_2), canopy%ci(:,ileaf), &
+                !            ! leaf temperature
+                !            real(canopy%tlf,r_2), &
+                !            ! Ambient isotope ratio
+                !            Ra, &
+                !            ! -- Inout
+                !            ! Starch pool and its isotope ratio
+                !            c13o2flux%Vstarch, c13o2flux%Rstarch, &
+                !            ! -- Output
+                !            ! discrimination
+                !            c13o2flux%Disc(:,ileaf), &
+                !            ! 13CO2 flux
+                !            c13o2flux%An(:,ileaf) )
+                !    else
+                !       call c13o2_discrimination( &
+                !            ! -- Input
+                !            real(dels,r_2), canopy%isc3, &
+                !            ! Photosynthesis variables
+                !            ! Vcmax<< because of temperature dependence of Vcmax
+                !            canopy%vcmax(:,ileaf), gpp(:,ileaf), canopy%Rd(:,ileaf), canopy%gammastar(:,ileaf), &
+                !            ! CO2 concentrations
+                !            real(met%ca,r_2), canopy%ci(:,ileaf), &
+                !            ! Conductances
+                !            canopy%gac(:,ileaf), canopy%gbc(:,ileaf), canopy%gsc(:,ileaf), &
+                !            ! leaf temperature
+                !            real(canopy%tlf,r_2), &
+                !            ! Ambient isotope ratio
+                !            Ra, &
+                !            ! -- Inout
+                !            ! Starch pool and isotope ratios of pools for respiration
+                !            c13o2flux%Vstarch, c13o2flux%Rstarch, &
+                !            c13o2flux%Rsucrose(:,ileaf), c13o2flux%Rphoto(:,ileaf), &
+                !            ! -- Output
+                !            ! discrimination
+                !            c13o2flux%Disc(:,ileaf), &
+                !            ! 13CO2 flux
+                !            c13o2flux%An(:,ileaf) )
+                !    endif ! cable_user%c13o2_simple_disc
+                ! end do ! ileaf=1:mf
                 !MCTest
              endif ! cable_user%c13o2
-             
+
              !TRUNK - call of cable_climet before cbm
              if (cable_user%CALL_climate) &
                   CALL cable_climate(ktau, kstart, ktauday, idoy, LOY, met, &
@@ -809,6 +806,7 @@ CONTAINS
                      casapool, casaflux, casamet, casabal,              &
                      phen, pop, ktauday, idoy, loy,   &
                      .FALSE., LALLOC, c13o2flux, c13o2pools )
+                if (cable_user%c13o2) call c13o2_sanity_pools(casapool, casaflux, c13o2pools)
                 write(wlogn,*) 'after bgcdriver ', MPI_BOTTOM, 1, casa_t, 0, ktau_gl, ocomm, ierr
                 !TRUNK no if (liseod) then
                 IF (liseod) THEN
@@ -919,7 +917,7 @@ CONTAINS
           !    CONTINUE
           !    !CALL worker_send_pop(POP, ocomm)
           ! ENDIF
-          
+
           IF ((icycle.gt.0) .AND. (.NOT.casaonly)) THEN
              ! re-initalise annual flux sums
              casabal%FCgppyear = 0.0_r_2
@@ -1386,7 +1384,7 @@ CONTAINS
     CALL MPI_Get_address (ssnow%wblf, displs(bidx), ierr)
     blen(bidx) = ms * r2len
 
-    ! additional  for sli
+    ! additional for sli
     bidx = bidx + 1
     CALL MPI_Get_address (ssnow%S, displs(bidx), ierr)
     blen(bidx) = ms * r2len
@@ -1401,8 +1399,7 @@ CONTAINS
 
     bidx = bidx + 1
     CALL MPI_Get_address (ssnow%snowliq, displs(bidx), ierr)
-    blen(bidx) = 3 * r2len
-
+    blen(bidx) = msn * r2len
 
     bidx = bidx + 1
     CALL MPI_Get_address (ssnow%Tsurface, displs(bidx), ierr)
@@ -1415,6 +1412,18 @@ CONTAINS
     bidx = bidx + 1
     CALL MPI_Get_address (ssnow%nsnow, displs(bidx), ierr)
     blen(bidx) = I1len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (ssnow%lE, displs(bidx), ierr)
+    blen(bidx) = r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (ssnow%zdelta, displs(bidx), ierr)
+    blen(bidx) = r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address(ssnow%rex, displs(bidx), ierr)
+    blen(bidx) = ms * r2len
     ! end additional for sli
 
     bidx = bidx + 1
@@ -1482,7 +1491,7 @@ CONTAINS
     bidx = bidx + 1
     CALL MPI_Get_address (veg%ejmax_sun, displs(bidx), ierr)
     blen(bidx) = r1len
-    
+
     bidx = bidx + 1
     CALL MPI_Get_address (veg%frac4, displs(bidx), ierr)
     blen(bidx) = r1len
@@ -1952,6 +1961,10 @@ CONTAINS
     blen(bidx) = r2len
 
     bidx = bidx + 1
+    CALL MPI_Get_address (canopy%ofes, displs(bidx), ierr)
+    blen(bidx) = r2len
+
+    bidx = bidx + 1
     CALL MPI_Get_address (canopy%fhs, displs(bidx), ierr)
     blen(bidx) = r1len
 
@@ -2074,7 +2087,7 @@ CONTAINS
     bidx = bidx + 1
     call MPI_Get_address(canopy%An, displs(bidx), ierr)
     blen(bidx) = mf * r2len
-    
+
     bidx = bidx + 1
     call MPI_Get_address(canopy%Rd, displs(bidx), ierr)
     blen(bidx) = mf * r2len
@@ -2650,9 +2663,17 @@ CONTAINS
 
     if (.not. associated(casabiome%ivt2)) then
        write (*,*) 'worker alloc casa and phen var with m patches: ', rank, mp
-       call alloc_casavariable(casabiome, casapool, casaflux, casamet, casabal, mp)
+       CALL alloc_casavariable(casabiome, mp)
+       CALL alloc_casavariable(casapool, mp)
+       CALL alloc_casavariable(casaflux, mp)
+       CALL alloc_casavariable(casamet, mp)
+       CALL alloc_casavariable(casabal, mp)
        call alloc_phenvariable(phen, mp)
-       call zero_casavariable(casabiome, casapool, casaflux, casamet, casabal)
+       call zero_casavariable(casabiome)
+       call zero_casavariable(casapool)
+       call zero_casavariable(casaflux)
+       call zero_casavariable(casamet)
+       call zero_casavariable(casabal)
        call zero_phenvariable(phen)
     end if
 
@@ -3926,7 +3947,7 @@ CONTAINS
     r1len = cnt * extr1
     r2len = cnt * extr2
     I1LEN = cnt * extid
-    llen = cnt * extl
+    llen  = cnt * extl
 
     ! ------------- 3D arrays -------------
 
@@ -4159,7 +4180,11 @@ CONTAINS
 
     bidx = bidx + 1
     CALL MPI_Get_address (ssnow%snowliq(off,1), displs(bidx), ierr)
-    blocks(bidx) = r2len * 3
+    blocks(bidx) = r2len * msn
+
+    bidx = bidx + 1
+    CALL MPI_Get_address(ssnow%sconds(off,1), displs(bidx), ierr)
+    blocks(bidx) = r1len * msn
     ! end additional for sli
 
     ! rad 2D
@@ -7482,7 +7507,7 @@ CONTAINS
        CALL MPI_Get_address(climate%last_precip, displs(bidx), ierr)
        blen(bidx) = r1len
     endif
-    
+
     ! ------- casaflux - N and P deposition ---
 
     if (icycle>1) then
@@ -7593,9 +7618,9 @@ CONTAINS
     r1len = mp * extr1
     r2len = mp * extr2
     i1len = mp * extid
-    
+
     off  = 1
-    
+
     bidx = 0
 
     bidx = bidx + 1
@@ -8117,6 +8142,7 @@ CONTAINS
     !      MPI_Type_get_extent, MPI_Reduce, MPI_DATATYPE_NULL, MPI_INTEGER, MPI_Sum, &
     !      MPI_Barrier, MPI_Recv, MPI_Get_count, MPI_SUCCESS, MPI_Unpack, MPI_BOTTOM, MPI_Type_Free
     use cable_def_types_mod, only: mland
+    ! use cable_def_types_mod, only: mp
     use cable_c13o2_def,     only: c13o2_luc, c13o2_alloc_luc, c13o2_zero_luc
 
     implicit none
@@ -8153,6 +8179,8 @@ CONTAINS
     if (.not. associated(c13o2luc%charvest)) then
        write(*,*) 'worker alloc c13o2_luc with m land points: ', rank, mland
        call c13o2_alloc_luc(c13o2luc, mland)
+       ! write(*,*) 'worker alloc c13o2_luc with m land points: ', rank, mp
+       ! call c13o2_alloc_luc(c13o2luc, mp)
        call c13o2_zero_luc(c13o2luc)
     end if
 
@@ -8169,6 +8197,10 @@ CONTAINS
     r2len = mland * extr2
     i1len = mland * extid
     llen  = mland * extl
+    ! r1len = mp * extr1
+    ! r2len = mp * extr2
+    ! i1len = mp * extid
+    ! llen  = mp * extl
 
     bidx = 0
 
@@ -8480,6 +8512,7 @@ CONTAINS
     !      MPI_Type_commit, MPI_Type_size, MPI_Type_get_extent, MPI_Reduce, &
     !      MPI_DATATYPE_NULL, MPI_INTEGER, MPI_Sum
     use cable_def_types_mod, only: mland
+    ! use cable_def_types_mod, only: mp
     use cable_c13o2_def,     only: c13o2_luc
     use cable_mpicommon,     only: nc13o2_luc
 
@@ -8516,6 +8549,7 @@ CONTAINS
     !cnt = wpatch%npatch
     off = 1
     cnt = mland
+    ! cnt = mp
 
     r1len = cnt * extr1
     r2len = cnt * extr2
@@ -8647,7 +8681,7 @@ SUBROUTINE worker_spincasacnp(dels, kstart, kend, mloop, &
   use TypeDef,              only: dp
   ! 13C
   use cable_c13o2_def,      only: c13o2_pool, c13o2_flux
-  use cable_c13o2,          only: c13o2_save_casapool, c13o2_update_pools
+  use cable_c13o2,          only: c13o2_save_casapool, c13o2_update_pools, c13o2_sanity_pools
   use mo_isotope,           only: isoratio
 
   use mpi
@@ -8657,7 +8691,7 @@ SUBROUTINE worker_spincasacnp(dels, kstart, kend, mloop, &
   use POP_constants,        only: rshootfrac
 
   implicit none
-  
+
   !!CLN  character(len=99), intent(in)  :: fcnpspin
   real,                      intent(in)    :: dels
   integer,                   intent(in)    :: kstart
@@ -8710,7 +8744,7 @@ SUBROUTINE worker_spincasacnp(dels, kstart, kend, mloop, &
   type(type_simfire) :: simfire
 
   ! 13C
-  real(dp), dimension(c13o2pools%ntile,c13o2pools%npools) :: casasave
+  real(r_2), dimension(:,:), allocatable :: casasave
   real(r_2), dimension(:), allocatable :: avg_c13leaf2met, avg_c13leaf2str, avg_c13root2met, &
        avg_c13root2str, avg_c13wood2cwd
 
@@ -8722,7 +8756,10 @@ SUBROUTINE worker_spincasacnp(dels, kstart, kend, mloop, &
   ktauday = int(24.0*3600.0/dels)
   nday    = (kend-kstart+1)/ktauday
   loy     = 365
-   
+
+  ! 13C
+  if (cable_user%c13o2) allocate(casasave(c13o2pools%ntile,c13o2pools%npools))
+
   ! chris 12/oct/2012 for spin up casa
   if (.not.(allocated(avg_cleaf2met)))  allocate(avg_cleaf2met(mp), avg_cleaf2str(mp), avg_croot2met(mp), avg_croot2str(mp), &
        avg_cwood2cwd(mp), &
@@ -8809,6 +8846,7 @@ SUBROUTINE worker_spincasacnp(dels, kstart, kend, mloop, &
            avg_c13wood2cwd(:) = avg_c13wood2cwd(:) + &
                 cwood2cwd(:) * isoratio(c13o2pools%cplant(:,wood), casasave(:,wood), 0.0_dp, tiny(1.0_dp))
            call c13o2_update_pools(casasave, casaflux, c13o2flux, c13o2pools)
+           if (cable_user%c13o2) call c13o2_sanity_pools(casapool, casaflux, c13o2pools)
         endif
 
         if (cable_user%call_POP .and. POP%np.gt.0) then ! CALL_POP
@@ -8881,7 +8919,7 @@ SUBROUTINE worker_spincasacnp(dels, kstart, kend, mloop, &
   !!CLN    CLOSE(91)
   ! average
   rday = 1.0_dp / real(nday*myearspin, dp)
-  
+
   avg_cleaf2met       = avg_cleaf2met       * rday
   avg_cleaf2str       = avg_cleaf2str       * rday
   avg_croot2met       = avg_croot2met       * rday
@@ -8939,9 +8977,10 @@ SUBROUTINE worker_spincasacnp(dels, kstart, kend, mloop, &
        avg_nsoilmin,avg_psoillab,avg_psoilsorb,avg_psoilocc, &
        avg_c13leaf2met, avg_c13leaf2str, avg_c13root2met, &
        avg_c13root2str, avg_c13wood2cwd, c13o2pools)
+  if (cable_user%c13o2) call c13o2_sanity_pools(casapool, casaflux, c13o2pools)
 
   nloop1= max(1,mloop-3)
-  
+
   do nloop=1, mloop
      !!CLN  OPEN(91,file=fcnpspin)
      !!CLN  read(91,*)
@@ -8963,7 +9002,10 @@ SUBROUTINE worker_spincasacnp(dels, kstart, kend, mloop, &
                 nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,         &
                 pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
            ! 13C
-           if (cable_user%c13o2) call c13o2_update_pools(casasave, casaflux, c13o2flux, c13o2pools)
+           if (cable_user%c13o2) then
+              call c13o2_update_pools(casasave, casaflux, c13o2flux, c13o2pools)
+              call c13o2_sanity_pools(casapool, casaflux, c13o2pools)
+           endif
 
            !! CLN BLAZE here
            !!CLNblaze_spin_year = 1900 - myearspin + nyear
@@ -8997,7 +9039,7 @@ SUBROUTINE worker_spincasacnp(dels, kstart, kend, mloop, &
               casaflux%stemnpp = 0.0_dp
            endif ! CALL_POP
            write(wlogn,*) 'idoy ', idoy
-           
+
         enddo   ! end of idoy
 
      enddo   ! end of nyear
@@ -9035,10 +9077,11 @@ SUBROUTINE worker_CASAONLY_LUC(dels, kstart, kend, veg, soil, casabiome, casapoo
   use mpi
   ! 13C
   use cable_c13o2_def,     only: c13o2_flux, c13o2_pool
-  use cable_c13o2,         only: c13o2_save_casapool, c13o2_update_pools
+  use cable_c13o2,         only: c13o2_save_casapool, c13o2_update_pools, &
+       c13o2_sanity_pools
 
   IMPLICIT NONE
-  
+
   !!CLN  CHARACTER(LEN=99), INTENT(IN)  :: fcnpspin
   real,                      intent(in)    :: dels
   integer,                   intent(in)    :: kstart
@@ -9075,9 +9118,11 @@ SUBROUTINE worker_CASAONLY_LUC(dels, kstart, kend, veg, soil, casabiome, casapoo
   integer :: ierr, rank
   integer :: yyyy
   ! 13C
-  real(dp), dimension(c13o2pools%ntile,c13o2pools%npools) :: casasave
+  real(dp), dimension(:,:), allocatable :: casasave
 
-  
+  ! 13C
+  if (cable_user%c13o2) allocate(casasave(c13o2pools%ntile,c13o2pools%npools))
+
   ktauday = int(24.0*3600.0/dels)
   nday    = (kend-kstart+1)/ktauday
 
@@ -9099,7 +9144,10 @@ SUBROUTINE worker_CASAONLY_LUC(dels, kstart, kend, veg, soil, casabiome, casapoo
              nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,         &
              pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
         ! 13C
-        if (cable_user%c13o2) call c13o2_update_pools(casasave, casaflux, c13o2flux, c13o2pools)
+        if (cable_user%c13o2) then
+           call c13o2_update_pools(casasave, casaflux, c13o2flux, c13o2pools)
+           call c13o2_sanity_pools(casapool, casaflux, c13o2pools)
+        endif
 
         !! CLN BLAZE here
 
