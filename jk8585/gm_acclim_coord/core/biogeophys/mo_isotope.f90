@@ -45,6 +45,7 @@ MODULE mo_isotope
   public :: delta     ! isotopic delta value
   public :: delta1000 ! isotopic delta value in permil
   public :: isoratio  ! ratio of rare to abundant isotope
+  public :: isosanity ! set rare and abundant to 0 if any < precision
 
   ! Public parameters
   ! ratio diffusion of air vs. water vapour ~ 1.6
@@ -211,15 +212,18 @@ contains
     if (present(abundant)) then
        if (abs(abundant) > iprecision) then
           delta1000 = (rare / abundant / istandard - 1.0_dp) * 1000.0_dp
+          ! !MCTest
+          ! if (abs(delta1000) < 1000.0_dp*epsilon(1.0_dp)*1000.0_dp*(10._dp**abs(log10(abundant)))) delta1000 = 0.0_dp
+          ! !MCTest
        else
           delta1000 = idefault
        end if
     else
        delta1000 = (rare / istandard - 1.0_dp) * 1000.0_dp
+       ! !MCTest
+       ! if (abs(delta1000) < 1000.0_dp*epsilon(1.0_dp)*1000.0_dp*(10._dp**abs(log10(rare)))) delta1000 = 0.0_dp
+       ! !MCTest
     end if
-    !MCTest
-    ! if (abs(delta1000) < 100.0_dp*epsilon(1.0_dp)*1000.0_dp) delta1000 = 0.0_dp
-    !MCTest
 
   end function delta1000
 
@@ -285,5 +289,75 @@ contains
     end if
 
   end function isoratio
+
+
+  ! ------------------------------------------------------------------
+
+  !     NAME
+  !         isosanity
+
+  !     PURPOSE
+  !>        \brief Set rare and abundant isotope composition to zero
+  !>        if any of the two is less than epsilon.
+
+  !>        \details If either the rare or the abundant concentration is less than
+  !>        a given precision, both concentrations are set to zero.
+
+  !>        The default precision is epsilon of the kind.
+
+  !>        The test can be done on the absolute of the concentrations if negative
+  !>        compositions are possible.
+
+  !     CALLING SEQUENCE
+  !         call isosanity(rare, abundant, precision, absolute)
+
+  !     PARAMETER
+  !>        \param[inout] "real(dp) :: rare"                   Rare isotope concentration
+  !>        \param[inout] "real(dp) :: abundant"               Abundant isotope concentration
+  !>        \param[in] "real(dp), optional :: precision"    Set rare and abundant to 0 if any of the two is < precision.
+  !>                                                        Default: epsilon(1.0_dp)
+  !>        \param[in] "logical, optional :: absolute"      If .true.: check abs(rare) and abs(abundant) < precision
+  !>                                                        Default: .false.
+
+  !     HISTORY
+  !>        \author Written Matthias Cuntz
+  !>        \date May 2020
+  elemental pure subroutine isosanity(rare, abundant, precision, absolute)
+
+    implicit none
+
+    real(dp), intent(inout)        :: rare
+    real(dp), intent(inout)        :: abundant
+    real(dp), intent(in), optional :: precision
+    logical,  intent(in), optional :: absolute
+
+    real(dp) :: iprecision
+    logical  :: iabsolute
+
+    ! default optionals
+    if (present(precision)) then
+       iprecision = precision
+    else
+       iprecision = epsilon(1.0_dp)
+    endif
+    if (present(absolute)) then
+       iabsolute = absolute
+    else
+       iabsolute = .false.
+    endif
+
+    if (iabsolute) then
+       if ((abs(rare) < iprecision) .or. (abs(abundant) < iprecision)) then
+          rare     = 0.0_dp
+          abundant = 0.0_dp
+       endif
+    else
+       if ((rare < iprecision) .or. (abundant < iprecision)) then
+          rare     = 0.0_dp
+          abundant = 0.0_dp
+       endif
+    endif
+
+  end subroutine isosanity
 
 END MODULE mo_isotope

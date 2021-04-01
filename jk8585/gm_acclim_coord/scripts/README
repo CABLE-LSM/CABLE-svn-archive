@@ -49,7 +49,13 @@ run_cable_site_CNP.py
 # Written by Matthias Cuntz
 compare_two_cable_runs.sh
     Compare restart and output files of two runs performed with run_cable-pop.sh.
+global_150x360.griddes
+    Grid description file for cdo to use on 2D files produced with Python scripts of this directory.
+nopatch2d.py
+    Transform Cable or Casa output with summed patches to 2D arrays with latitude/longitude.
 sum_patchcasa.py
     Copy Casa output summing the patches on the same grid point.
+sum_patchcasa2d.py
+    Copy Casa output summing the patches on the same grid point and make lat/lon grid.
 sum_patchfrac.py
     Copy Cable output summing variables weighted with patchfrac.

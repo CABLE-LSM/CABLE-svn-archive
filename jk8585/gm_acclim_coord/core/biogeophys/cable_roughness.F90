@@ -62,7 +62,6 @@ SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
      take_off_disp = 1.0
    endif
 
-
    ! Set canopy height above snow level:
    rough%hruff = MAX( 1.e-6, veg%hc - 1.2 * ssnow%snowd /                       &
         MAX( ssnow%ssdnn, 100. ) )
@@ -148,7 +147,7 @@ SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
       rough%zref_tq = MAX(2.0, rough%za_tq - take_off_disp * rough%disp)
       rough%zref_uv = MAX(rough%zref_uv, rough%hruff - rough%disp)
       rough%zref_tq = MAX(rough%zref_tq, rough%hruff - rough%disp)
-      
+
 
       ! Calculate roughness length:
       rough%z0m = ( (1.0 - dh) * EXP( LOG( C%CCW_C ) - 1. + 1. / C%CCW_C       &
