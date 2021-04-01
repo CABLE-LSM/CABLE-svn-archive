@@ -105,17 +105,19 @@ PROGRAM cable_offline_driver
 
   ! gm
   use cable_adjust_JV_gm_module, only: read_gm_LUT, LUT_VcmaxJmax, LUT_gm, LUT_Vcmax, LUT_Rd
-  
+
   ! 13C
   use cable_c13o2_def,         only: c13o2_delta_atm, c13o2_flux, c13o2_pool, c13o2_luc, &
        c13o2_update_sum_pools, c13o2_zero_sum_pools
   use cable_c13o2,             only: c13o2_save_luc, c13o2_update_luc, &
        c13o2_write_restart_flux, c13o2_write_restart_pools, c13o2_write_restart_luc, &
-       c13o2_create_output, c13o2_write_output, c13o2_close_output, c13o2_nvars_output
+       c13o2_create_output, c13o2_write_output, c13o2_close_output, c13o2_nvars_output, &
+       c13o2_sanity_pools, c13o2_sanity_luc
   use cable_c13o2,             only: c13o2_print_delta_flux, c13o2_print_delta_pools, c13o2_print_delta_luc
   use mo_isotope,              only: isoratio ! vpdbc13
   use mo_c13o2_photosynthesis, only: c13o2_discrimination_simple, c13o2_discrimination
-  use mo_utils,                only: eq, ne
+  use mo_utils,                  only: eq, ne
+  ! use mo_isotope,              only: delta1000
 
   ! PLUME-MIP only
   USE CABLE_PLUME_MIP,      ONLY: PLUME_MIP_TYPE, PLUME_MIP_GET_MET,&
@@ -215,7 +217,7 @@ PROGRAM cable_offline_driver
   ! BLAZE variables
   TYPE(TYPE_BLAZE)    :: BLAZE
   TYPE(TYPE_SIMFIRE)  :: SIMFIRE
-  
+
   ! 13C
   type(c13o2_flux) :: c13o2flux
   type(c13o2_pool) :: c13o2pools, sum_c13o2pools
@@ -229,7 +231,7 @@ PROGRAM cable_offline_driver
   ! discrimination
   integer :: ileaf
   real(r_2), dimension(:,:), allocatable :: gpp ! , diff
-  real(r_2), dimension(:),   allocatable :: Ra 
+  real(r_2), dimension(:),   allocatable :: Ra
   ! delta-13C of atmospheric CO2
   integer            :: iunit, ios
   real               :: iyear
@@ -301,7 +303,7 @@ PROGRAM cable_offline_driver
        wiltParam,        &
        satuParam,        &
        cable_user           ! additional USER switches
-  
+
   !mpidiff
   INTEGER :: kk
 
@@ -447,7 +449,7 @@ PROGRAM cable_offline_driver
      IF (.NOT. ALLOCATED(GSWP_MID)) ALLOCATE(GSWP_MID(8, CABLE_USER%YearStart:CABLE_USER%YearEnd))
   ENDIF
 
-  
+
   ! gm lookup table
   if (cable_user%explicit_gm .and. len(trim(cable_user%gm_LUT_file)) .gt. 1) then
      write(*,*) 'Reading gm LUT file'
@@ -516,7 +518,7 @@ PROGRAM cable_offline_driver
            ELSE
               LOY = 365
            ENDIF
-           
+
            IF ( TRIM(cable_user%MetType) .EQ. 'gswp' ) THEN
               ! GSWP run
               ncciy = CurYear
@@ -627,7 +629,7 @@ PROGRAM cable_offline_driver
                     koffset_met = koffset_met + INT( REAL(LOYtmp) * 86400./REAL(dels) )
                  ENDDO
               endif
-              
+
               ! LOY = 365
               ! IF (IS_LEAPYEAR(MetYear)) LOY = 366
               ! kend = NINT(24.0*3600.0/dels) * LOY
@@ -736,7 +738,7 @@ PROGRAM cable_offline_driver
 
               ! additional params needed for BLAZE
               if ( trim(cable_user%MetType) .eq. 'bios' ) call cable_bios_load_climate_params(climate)
-              
+
               IF (cable_user%CALL_BLAZE) THEN
                  CALL INI_BLAZE( mland, rad%latitude(landpt(:)%cstart), &
                       rad%longitude(landpt(:)%cstart), BLAZE )
@@ -747,12 +749,14 @@ PROGRAM cable_offline_driver
                          climate%modis_igbp(landpt(:)%cstart) ) !CLN here we need to check for the SIMFIRE biome setting
                  ENDIF
               ENDIF
-              
+
               IF ((icycle>0) .AND. spincasa) THEN
                  write(*,*) 'EXT spincasacnp enabled with mloop=', mloop
                  CALL spincasacnp(dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
                       casaflux,casamet,casabal,phen,POP,climate,LALLOC, c13o2flux, c13o2pools, &
                       BLAZE, SIMFIRE)
+                 if (cable_user%c13o2) call c13o2_sanity_pools(casapool, casaflux, c13o2pools)
+                 ! Set 13C and 12C LUC pools to 0 if any < epsilon(1.0_dp)
                  SPINon   = .FALSE.
                  SPINconv = .FALSE.
                  !MC - MPI sets CASAONLY = .true. here
@@ -762,6 +766,10 @@ PROGRAM cable_offline_driver
                  CALL CASAONLY_LUC(dels,kstart,kend,veg,soil,casabiome,casapool, &
                       casaflux,casamet,casabal,phen,POP,climate,LALLOC, LUC_EXPT, POPLUC, &
                       sum_casapool, sum_casaflux, c13o2flux, c13o2pools, sum_c13o2pools, c13o2luc)
+                 if (cable_user%c13o2) then
+                    call c13o2_sanity_pools(casapool, casaflux, c13o2pools)
+                    call c13o2_sanity_luc(popluc, c13o2luc)
+                 endif
                  SPINon   = .FALSE.
                  SPINconv = .FALSE.
               ENDIF
@@ -902,63 +910,63 @@ PROGRAM cable_offline_driver
                     ! diff = canopy%An - (spread(real(met%ca,r_2),2,mf)-canopy%ci) * &
                     !      (1.0_r_2/(1.0_r_2/canopy%gac+1.0_r_2/canopy%gbc+1.0_r_2/canopy%gsc))
                     !MCTest
-                    ! c13o2flux%An       = canopy%An
+                    c13o2flux%An       = canopy%An
                     ! c13o2flux%An       = 1.005_r_2 * canopy%An !  * vpdbc13 / vpdbc13 ! Test 5 permil
-                    ! c13o2flux%Disc     = 0.0_r_2
-                    ! c13o2flux%Vstarch  = c13o2flux%Vstarch + 1.0e-6_r_2
-                    ! c13o2flux%Rstarch  = c13o2flux%Rstarch
-                    ! c13o2flux%Rsucrose = c13o2flux%Rsucrose
-                    ! c13o2flux%Rphoto   = c13o2flux%Rphoto
-                    do ileaf=1, mf
-                       if (cable_user%c13o2_simple_disc) then
-                          call c13o2_discrimination_simple( &
-                               ! -- Input
-                               ! isc3
-                               real(dels,r_2), canopy%isc3, &
-                               ! GPP and Leaf respiration
-                               gpp(:,ileaf), canopy%Rd(:,ileaf), &
-                               ! Ambient and stomatal CO2 concentration
-                               real(met%ca,r_2), canopy%ci(:,ileaf), &
-                               ! leaf temperature
-                               real(canopy%tlf,r_2), &
-                               ! Ambient isotope ratio
-                               Ra, &
-                               ! -- Inout
-                               ! Starch pool and its isotope ratio
-                               c13o2flux%Vstarch, c13o2flux%Rstarch, &
-                               ! -- Output
-                               ! discrimination
-                               c13o2flux%Disc(:,ileaf), &
-                               ! 13CO2 flux
-                               c13o2flux%An(:,ileaf) )
-                       else
-                          call c13o2_discrimination( &
-                               ! -- Input
-                               real(dels,r_2), canopy%isc3, &
-                               ! Photosynthesis variables
-                               ! Vcmax<< because of temperature dependence of Vcmax
-                               canopy%vcmax(:,ileaf), gpp(:,ileaf), canopy%Rd(:,ileaf), canopy%gammastar(:,ileaf), &
-                               ! Could use Vcmax25?
-                               ! real(veg%vcmax,r_2), gpp(:,ileaf), canopy%Rd(:,ileaf), canopy%gammastar(:,ileaf), &
-                               ! CO2 concentrations
-                               real(met%ca,r_2), canopy%ci(:,ileaf), &
-                               ! Conductances
-                               canopy%gac(:,ileaf), canopy%gbc(:,ileaf), canopy%gsc(:,ileaf), &
-                               ! leaf temperature
-                               real(canopy%tlf,r_2), &
-                               ! Ambient isotope ratio
-                               Ra, &
-                               ! -- Inout
-                               ! Starch pool and isotope ratios of pools for respiration
-                               c13o2flux%Vstarch, c13o2flux%Rstarch, &
-                               c13o2flux%Rsucrose(:,ileaf), c13o2flux%Rphoto(:,ileaf), &
-                               ! -- Output
-                               ! discrimination
-                               c13o2flux%Disc(:,ileaf), &
-                               ! 13CO2 flux
-                               c13o2flux%An(:,ileaf) )
-                       endif ! cable_user%c13o2_simple_disc
-                    end do ! ileaf=1:mf
+                    c13o2flux%Disc     = 0.0_r_2
+                    c13o2flux%Vstarch  = c13o2flux%Vstarch + 1.0e-6_r_2
+                    c13o2flux%Rstarch  = c13o2flux%Rstarch
+                    c13o2flux%Rsucrose = c13o2flux%Rsucrose
+                    c13o2flux%Rphoto   = c13o2flux%Rphoto
+                    ! do ileaf=1, mf
+                    !    if (cable_user%c13o2_simple_disc) then
+                    !       call c13o2_discrimination_simple( &
+                    !            ! -- Input
+                    !            ! isc3
+                    !            real(dels,r_2), canopy%isc3, &
+                    !            ! GPP and Leaf respiration
+                    !            gpp(:,ileaf), canopy%Rd(:,ileaf), &
+                    !            ! Ambient and stomatal CO2 concentration
+                    !            real(met%ca,r_2), canopy%ci(:,ileaf), &
+                    !            ! leaf temperature
+                    !            real(canopy%tlf,r_2), &
+                    !            ! Ambient isotope ratio
+                    !            Ra, &
+                    !            ! -- Inout
+                    !            ! Starch pool and its isotope ratio
+                    !            c13o2flux%Vstarch, c13o2flux%Rstarch, &
+                    !            ! -- Output
+                    !            ! discrimination
+                    !            c13o2flux%Disc(:,ileaf), &
+                    !            ! 13CO2 flux
+                    !            c13o2flux%An(:,ileaf) )
+                    !    else
+                    !       call c13o2_discrimination( &
+                    !            ! -- Input
+                    !            real(dels,r_2), canopy%isc3, &
+                    !            ! Photosynthesis variables
+                    !            ! Vcmax<< because of temperature dependence of Vcmax
+                    !            canopy%vcmax(:,ileaf), gpp(:,ileaf), canopy%Rd(:,ileaf), canopy%gammastar(:,ileaf), &
+                    !            ! Could use Vcmax25?
+                    !            ! real(veg%vcmax,r_2), gpp(:,ileaf), canopy%Rd(:,ileaf), canopy%gammastar(:,ileaf), &
+                    !            ! CO2 concentrations
+                    !            real(met%ca,r_2), canopy%ci(:,ileaf), &
+                    !            ! Conductances
+                    !            canopy%gac(:,ileaf), canopy%gbc(:,ileaf), canopy%gsc(:,ileaf), &
+                    !            ! leaf temperature
+                    !            real(canopy%tlf,r_2), &
+                    !            ! Ambient isotope ratio
+                    !            Ra, &
+                    !            ! -- Inout
+                    !            ! Starch pool and isotope ratios of pools for respiration
+                    !            c13o2flux%Vstarch, c13o2flux%Rstarch, &
+                    !            c13o2flux%Rsucrose(:,ileaf), c13o2flux%Rphoto(:,ileaf), &
+                    !            ! -- Output
+                    !            ! discrimination
+                    !            c13o2flux%Disc(:,ileaf), &
+                    !            ! 13CO2 flux
+                    !            c13o2flux%An(:,ileaf) )
+                    !    endif ! cable_user%c13o2_simple_disc
+                    ! end do ! ileaf=1:mf
                     !MCTest
                  endif ! cable_user%c13o2
 
@@ -990,6 +998,12 @@ PROGRAM cable_offline_driver
                       phen, pop, ktauday, idoy, loy, &
                       CABLE_USER%CASA_DUMP_READ, &
                       LALLOC, c13o2flux, c13o2pools )
+                 if (cable_user%c13o2) call c13o2_sanity_pools(casapool, casaflux, c13o2pools)
+                 ! if (any(delta1000(c13o2pools%cplant, casapool%cplant, 1.0_r_2, 0.0_r_2, tiny(1.0_r_2)) > 0.0_r_2)) then
+                 !    print*, 'CC04.01 ', casapool%cplant
+                 !    print*, 'CC04.02 ', c13o2pools%cplant
+                 !    print*, 'CC04.03 ', delta1000(c13o2pools%cplant, casapool%cplant, 1.0_r_2, 0.0_r_2, tiny(1.0_r_2))
+                 ! end if
 
                  IF (liseod) THEN ! end of day
                     IF ( cable_user%CALL_BLAZE ) THEN
@@ -1007,6 +1021,7 @@ PROGRAM cable_offline_driver
                     IF (CABLE_USER%POPLUC) THEN
                        ! Dynamic LUC
                        CALL LUCdriver(casabiome, casapool, casaflux, POP, LUC_EXPT, POPLUC, veg, c13o2pools)
+                       if (cable_user%c13o2) call c13o2_sanity_pools(casapool, casaflux, c13o2pools)
                     ENDIF
 
                     ! one annual time-step of POP
@@ -1024,6 +1039,10 @@ PROGRAM cable_offline_driver
 #else
                           call c13o2_update_luc(casasave, lucsave, popluc, luc_expt%prim_only, c13o2pools, c13o2luc)
 #endif
+                          if (cable_user%c13o2) then
+                             call c13o2_sanity_pools(casapool, casaflux, c13o2pools)
+                             call c13o2_sanity_luc(popluc, c13o2luc)
+                          endif
                        endif
                        ! Dynamic LUC: write output
                        CALL WRITE_LUC_OUTPUT_NC( POPLUC, YYYY, ( YYYY.EQ.cable_user%YearEnd ))
@@ -1048,11 +1067,11 @@ PROGRAM cable_offline_driver
 
               ! WRITE CASA OUTPUT
               IF (icycle > 0) THEN
-                 
+
                  IF (CASA_TIME) THEN
                     CALL WRITE_CASA_OUTPUT_NC( veg, casamet, sum_casapool, casabal, sum_casaflux, &
                          CASAONLY, ctime, ( ktau.EQ.kend .AND. YYYY .EQ. cable_user%YearEnd.AND. RRRR .EQ.NRRRR ) )
-                   
+
                     ! 13C
                     if (cable_user%c13o2) then
                        if (first_casa_write) then
@@ -1339,7 +1358,7 @@ PROGRAM cable_offline_driver
      ! 13C
      if (cable_user%c13o2) then
         call c13o2_write_restart_pools(casamet, c13o2pools)
-        if (cable_user%POPLUC) call c13o2_write_restart_luc(casamet, c13o2luc)
+        if (cable_user%POPLUC) call c13o2_write_restart_luc(popluc, c13o2luc)
         ! While testing
         call c13o2_print_delta_flux(c13o2flux)
         call c13o2_print_delta_pools(casapool, casaflux, c13o2pools)
@@ -1369,9 +1388,9 @@ PROGRAM cable_offline_driver
        TRIM(cable_user%MetType) .NE. "cru" ) CALL close_met_file
 
   if (trim(cable_user%MetType) == 'cru') call cru_close(CRU)
-  
+
   if (cable_user%POPLUC) call close_luh2(LUC_EXPT)
-  
+
   call cpu_time(etime)
   write(logn,*) 'Finished. ', etime, ' seconds needed for ', kend,' hours'
   close(logn) ! Close log file
