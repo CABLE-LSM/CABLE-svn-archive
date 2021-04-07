@@ -1851,76 +1851,80 @@ CONTAINS
 
 
              if (cable_user%CALL_climate) then
-                ! if (veg%iveg(i).eq.1) then
+                if (cable_user%acclimate_photosyn) then
+                   ! if (veg%iveg(i).eq.1) then
 
 
-                !    temp2(i,1) = rad%qcan(i,1,1) * jtomol * (1.0-veg%frac4(i))
-                !    temp2(i,2) = rad%qcan(i,2,1) * jtomol * (1.0-veg%frac4(i))
+                   !    temp2(i,1) = rad%qcan(i,1,1) * jtomol * (1.0-veg%frac4(i))
+                   !    temp2(i,2) = rad%qcan(i,2,1) * jtomol * (1.0-veg%frac4(i))
+                   
+                   
+                   !    vx3(i,1)  = ej3x(temp2(i,1),climate%frec(i)*veg%alpha(i), &
+                   !         veg%convex(i),ejmxt3(i,1))
+                   !    vx3(i,2)  = ej3x(temp2(i,2),climate%frec(i)*veg%alpha(i), &
+                   !         veg%convex(i),ejmxt3(i,2))
+                   
+                   
+                   !    temp(i) =  xvcmxt3(tlfx(i)) * veg%vcmax(i) * (1.0-veg%frac4(i))
+                   
+                   !    vcmxt3(i,1) = rad%scalex(i,1) * temp(i) * climate%frec(i)
+                   !    vcmxt3(i,2) = rad%scalex(i,2) * temp(i) * climate%frec(i)
+                   ! endif
+                   
+                   ! Atkin et al. 2015, Table S4,
+                   ! modified by scaling factor to reduce leaf respiration to
+                   ! expected proportion of GPP
+                   !Broad-leaved trees: Rdark a25 =
+                   !1.2818 + (0.0116 * Vcmax,a25) + (0.0334 * TWQ)
+                   !C3 herbs/grasses: Rdark,a25 =
+                   !1.6737 + (0.0116 * Vcmax,a25) + (0.0334 * TWQ)
+                   !Needle-leaved trees: Rdark,a25 =
+                   !1.2877 + (0.0116 * Vcmax,a25) + (0.0334 * TWQ)
+                   !Shrubs: Rdark,a25 = 1.5758 + (0.0116 * Vcmax,a25) + (0.0334 * TWQ)
+                   
+                   if (veg%iveg(i).eq.2  ) then ! evergreen broadleaf forest
+
+                      rdx(i,1) = 1.0*(1.2818e-6+0.0116*veg%vcmax(i)- &
+                           0.0334*climate%qtemp_max_last_year(i)*1e-6)
+
+                      rdx(i,2) = rdx(i,1)
+
+                   elseif ( veg%iveg(i).eq. 4  ) then ! decid broadleaf forest
+
+                      rdx(i,1) = 1.0*(1.2818e-6+0.0116*veg%vcmax(i)- &
+                           0.0334*climate%qtemp_max_last_year(i)*1e-6)
+
+                      rdx(i,2) = rdx(i,1)
+
+                   elseif (veg%iveg(i).eq.1   ) then ! evergreen needleleaf forest
+                      rdx(i,1) = 1.0*(1.2877e-6+0.0116*veg%vcmax(i)- &
+                           0.0334*climate%qtemp_max_last_year(i)*1e-6)
+
+                      rdx(i,2) = rdx(i,1)
 
 
-                !    vx3(i,1)  = ej3x(temp2(i,1),climate%frec(i)*veg%alpha(i), &
-                !         veg%convex(i),ejmxt3(i,1))
-                !    vx3(i,2)  = ej3x(temp2(i,2),climate%frec(i)*veg%alpha(i), &
-                !         veg%convex(i),ejmxt3(i,2))
+                   elseif ( veg%iveg(i).eq. 3  ) then ! decid needleleaf forest
+                      rdx(i,1) = 1.0*(1.2877e-6+0.0116*veg%vcmax(i)- &
+                           0.0334*climate%qtemp_max_last_year(i)*1e-6)
 
+                      rdx(i,2) = rdx(i,1)
 
-                !    temp(i) =  xvcmxt3(tlfx(i)) * veg%vcmax(i) * (1.0-veg%frac4(i))
+                   elseif (veg%iveg(i).eq.6 .or. veg%iveg(i).eq.8 .or. &
+                        veg%iveg(i).eq. 9  ) then ! C3 grass, tundra, crop
+                      rdx(i,1) = 0.8*(1.6737e-6+0.0116*veg%vcmax(i)- &
+                           0.0334*climate%qtemp_max_last_year(i)*1e-6)
 
-                !    vcmxt3(i,1) = rad%scalex(i,1) * temp(i) * climate%frec(i)
-                !    vcmxt3(i,2) = rad%scalex(i,2) * temp(i) * climate%frec(i)
-                ! endif
+                      rdx(i,2) = rdx(i,1)
 
-                ! Atkin et al. 2015, Table S4,
-                ! modified by scaling factor to reduce leaf respiration to
-                ! expected proportion of GPP
-                !Broad-leaved trees: Rdark a25 =
-                !1.2818 + (0.0116 * Vcmax,a25) + (0.0334 * TWQ)
-                !C3 herbs/grasses: Rdark,a25 =
-                !1.6737 + (0.0116 * Vcmax,a25) + (0.0334 * TWQ)
-                !Needle-leaved trees: Rdark,a25 =
-                !1.2877 + (0.0116 * Vcmax,a25) + (0.0334 * TWQ)
-                !Shrubs: Rdark,a25 = 1.5758 + (0.0116 * Vcmax,a25) + (0.0334 * TWQ)
+                   else  ! shrubs and other (C4 grass and crop)
+                      rdx(i,1) = 0.7*(1.5758e-6+0.0116*veg%vcmax(i)- &
+                           0.0334*climate%qtemp_max_last_year(i)*1e-6)
+                      rdx(i,2) = rdx(i,1)
+                   endif
+                   veg%cfrd(i) = rdx(i,1) / veg%vcmax(i)
 
-                if (veg%iveg(i).eq.2  ) then ! evergreen broadleaf forest
-
-                   rdx(i,1) = 1.0*(1.2818e-6+0.0116*veg%vcmax(i)- &
-                        0.0334*climate%qtemp_max_last_year(i)*1e-6)
-
-                   rdx(i,2) = rdx(i,1)
-
-                elseif ( veg%iveg(i).eq. 4  ) then ! decid broadleaf forest
-
-                   rdx(i,1) = 1.0*(1.2818e-6+0.0116*veg%vcmax(i)- &
-                        0.0334*climate%qtemp_max_last_year(i)*1e-6)
-
-                   rdx(i,2) = rdx(i,1)
-
-                elseif (veg%iveg(i).eq.1   ) then ! evergreen needleleaf forest
-                   rdx(i,1) = 1.0*(1.2877e-6+0.0116*veg%vcmax(i)- &
-                        0.0334*climate%qtemp_max_last_year(i)*1e-6)
-
-                   rdx(i,2) = rdx(i,1)
-
-
-                elseif ( veg%iveg(i).eq. 3  ) then ! decid needleleaf forest
-                   rdx(i,1) = 1.0*(1.2877e-6+0.0116*veg%vcmax(i)- &
-                        0.0334*climate%qtemp_max_last_year(i)*1e-6)
-
-                   rdx(i,2) = rdx(i,1)
-
-                elseif (veg%iveg(i).eq.6 .or. veg%iveg(i).eq.8 .or. &
-                     veg%iveg(i).eq. 9  ) then ! C3 grass, tundra, crop
-                   rdx(i,1) = 0.8*(1.6737e-6+0.0116*veg%vcmax(i)- &
-                        0.0334*climate%qtemp_max_last_year(i)*1e-6)
-
-                   rdx(i,2) = rdx(i,1)
-
-                else  ! shrubs and other (C4 grass and crop)
-                   rdx(i,1) = 0.7*(1.5758e-6+0.0116*veg%vcmax(i)- &
-                        0.0334*climate%qtemp_max_last_year(i)*1e-6)
-                   rdx(i,2) = rdx(i,1)
                 endif
-                veg%cfrd(i) = rdx(i,1) / veg%vcmax(i)
+                
                 ! modify for leaf area and instanteous temperature response (Rd25 -> Rd)
                 rdx(i,1) = rdx(i,1) * xrdt(tlfx(i)) * rad%scalex(i,1) * fwsoil(i)**qb
                 rdx(i,2) = rdx(i,2) * xrdt(tlfx(i)) * rad%scalex(i,2) * fwsoil(i)**qb
