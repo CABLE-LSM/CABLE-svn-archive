@@ -737,13 +737,10 @@ contains
     ! local variables
     integer np,ivt
     real(r_2), dimension(mp) :: ncleafx, npleafx, pleafx, nleafx ! local variables
-    real, dimension(17) ::  xnslope
-    data xnslope/0.80,1.00,2.00,1.00,1.00,1.00,0.50,1.00,0.34,1.00,1.00,1.00,1.00,1.00,1.00,1.00,1.00/
     real                :: relcostJCi
     real, dimension(mp) :: relcostJ, Nefftmp
     real, save, dimension(17) :: vcmaxx         ! last updated vcmaxx 
-    real, save, dimension(17) :: vcmax_ref      ! vcmax25 at gmmax25
-    data vcmax_ref/35.9e-6,47.6e-6,35.9e-6,71.1e-6,39.4e-6,64.3e-6,50.0e-6,32.8e-6,17.2e-6,50.0e-6,50.0e-6,50.0e-6,50.0e-6,50.0e-6,50.0e-6,50.0e-6,50.0e-6/
+    real, dimension(mp) :: vcmax_ref      ! vcmax25 at gmmax25
     real, dimension(mp) :: bjvci          ! Ci-based Jmax/Vcmax ratio
     real                :: gm_vcmax_slope ! slope between gmmax25 and Vcmax25 ((mol m-2 s-1) / (umol m-2 s-1))
     real, parameter     :: effc4 = 20000.0  ! Vc=effc4*Ci*Vcmax (see Bonan et al. 2011, JGR 116)
@@ -774,7 +771,7 @@ contains
                   casapool%nplant(np,leaf)/casapool%cplant(np,leaf)))
           ENDIF
           IF (icycle>2 .AND. casapool%pplant(np,leaf)>0.0) THEN
-             npleafx(np) = MIN( 30.0_r_2, MAX( 8.0_r_2, &
+             npleafx(np) = MIN( casabiome%ratioNPplantmax(ivt,leaf), MAX( casabiome%ratioNPplantmin(ivt,leaf), &
                   casapool%nplant(np,leaf)/casapool%pplant(np,leaf) ) )
           ENDIF
        ENDIF
@@ -794,7 +791,6 @@ contains
                         + casabiome%nslope(ivt)*ncleafx(np)/casabiome%sla(ivt)) * 1.0e-6
                 ENDIF
              ENDIF
-             veg%vcmax(np) = veg%vcmax(np) * xnslope(ivt)
           ENDIF
           veg%ejmax = veg%bjv * veg%vcmax
           veg%c4kci = effc4 * veg%vcmax
@@ -824,26 +820,41 @@ contains
           
           ! adjust Vcmax and Jmax accounting for gm
           if (cable_user%explicit_gm) then
+             ! establish a relationship between gmmax and Vcmax
+             if (ivt .EQ. 7 .OR. ivt .EQ. 10) then ! no changes for C4 plants
+                vcmax_ref(np) = veg%vcmax(np)
+             else ! Vcmax_ref as Vcmax with mean nutrient concentrations
+                ! nleafx = ncleafx/sla
+                ! ncleafx = (casabiome%ratioNCplantmin(ivt,leaf) + casabiome%ratioNCplantmax(ivt,leaf)) / 2.0_r_2
+                if (icycle>1) then
+                  vcmax_ref(np) = real( vcmax_np(((casabiome%ratioNCplantmin(ivt,leaf) + casabiome%ratioNCplantmax(ivt,leaf)) / 2.0_r_2) / &
+                       casabiome%sla(ivt), pleafx(np)) * casabiome%vcmax_scalar(ivt) )
+                endif
+                if (icycle>2) then
+                   ! pleaf = nleafx / npleafx 
+                   ! npleafx = casabiome%ratioNPplantmin(ivt,leaf) + casabiome%ratioNPplantmax(ivt,leaf)) / 2.0_r_2
+                  vcmax_ref(np) = real( vcmax_np(((casabiome%ratioNCplantmin(ivt,leaf) + casabiome%ratioNCplantmax(ivt,leaf)) / 2.0_r_2) / &
+                       casabiome%sla(ivt), ((casabiome%ratioNCplantmin(ivt,leaf) + casabiome%ratioNCplantmax(ivt,leaf)) / 2.0_r_2) / &
+                       casabiome%sla(ivt)/(casabiome%ratioNPplantmin(ivt,leaf) + casabiome%ratioNPplantmax(ivt,leaf)) / 2.0_r_2) * casabiome%vcmax_scalar(ivt) )
+                endif
+             endif
+
              if (ivt .EQ. 1 .OR. ivt .EQ. 3) then  ! slopes from database as presented in Knauer et al. 2019, GCB
                 gm_vcmax_slope = 0.0035e6_r_2
              else
                 gm_vcmax_slope = 0.0020e6_r_2
              endif 
-             ! establish a relationship between gmmax and Vcmax
-             if (ivt .EQ. 7 .OR. ivt .EQ. 10) then ! no changes for C4 plants
-                vcmax_ref(ivt) = veg%vcmax(np)
-             endif
              
              veg%gm(np) = veg%gmmax(np) + &
-                  gm_vcmax_slope * (veg%vcmax(np) - vcmax_ref(ivt))
+                  gm_vcmax_slope * (veg%vcmax(np) - vcmax_ref(np))
              
-!write(86,*) "veg%gm:", veg%gm
-!write(86,*) "veg%gmmax:", veg%gmmax
-!write(86,*) "vcmax_ref(ivt):", vcmax_ref(ivt)
-!write(86,*) "veg%vcmax:", veg%vcmax
-!write(86,*) "casabiome%sla:", casabiome%sla
-!write(86,*) "casabiome%ratioNCplantmin(:,leaf)", casabiome%ratioNCplantmin(:,leaf)
-!write(86,*) "nleafx(np):", nleafx(np)
+write(86,*) "veg%gm:", veg%gm
+write(86,*) "veg%gmmax:", veg%gmmax
+write(86,*) "vcmax_ref(np):", vcmax_ref(np)
+write(86,*) "veg%vcmax:", veg%vcmax
+write(86,*) "casabiome%sla:", casabiome%sla
+write(86,*) "casabiome%ratioNCplantmin(:,leaf)", casabiome%ratioNCplantmin(:,leaf)
+write(86,*) "nleafx(np):", nleafx(np)
 
              !if (.not. veg%is_read_gmLUT) then  ! not working
              !if (ABS(vcmaxx(np) - veg%vcmax(np)) .GT. 1.0E-08 .OR. ktau==1) then
