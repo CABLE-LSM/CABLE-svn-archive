@@ -848,13 +848,13 @@ contains
              veg%gm(np) = veg%gmmax(np) + &
                   gm_vcmax_slope * (veg%vcmax(np) - vcmax_ref(np))
              
-write(86,*) "veg%gm:", veg%gm
-write(86,*) "veg%gmmax:", veg%gmmax
-write(86,*) "vcmax_ref(np):", vcmax_ref(np)
-write(86,*) "veg%vcmax:", veg%vcmax
-write(86,*) "casabiome%sla:", casabiome%sla
-write(86,*) "casabiome%ratioNCplantmin(:,leaf)", casabiome%ratioNCplantmin(:,leaf)
-write(86,*) "nleafx(np):", nleafx(np)
+!write(86,*) "veg%gm:", veg%gm
+!write(86,*) "veg%gmmax:", veg%gmmax
+!write(86,*) "vcmax_ref(np):", vcmax_ref(np)
+!write(86,*) "veg%vcmax:", veg%vcmax
+!write(86,*) "casabiome%sla:", casabiome%sla
+!write(86,*) "casabiome%ratioNCplantmin(:,leaf)", casabiome%ratioNCplantmin(:,leaf)
+!write(86,*) "nleafx(np):", nleafx(np)
 
              !if (.not. veg%is_read_gmLUT) then  ! not working
              !if (ABS(vcmaxx(np) - veg%vcmax(np)) .GT. 1.0E-08 .OR. ktau==1) then
