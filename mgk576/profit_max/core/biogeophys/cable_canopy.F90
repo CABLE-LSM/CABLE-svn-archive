@@ -1909,7 +1909,7 @@ CONTAINS
       Kcmax(1) = veg%Kmax(i)
       Kcmax(2) = veg%Kmax(i)
     END DO
-    
+
     !kdcorbin, 08/10 - doing all points all the time
     DO WHILE (k < C%MAXITER)
        k = k + 1
@@ -2453,12 +2453,16 @@ CONTAINS
 
           new_plc = calc_plc(avg_kplant, veg%Kmax(i))
 
-          IF (new_plc > canopy%plc_prev(i)) THEN
-             canopy%plc(i) = new_plc
-             canopy%plc_prev(i) = new_plc
-          ENDIF ! otherwise don't update
+          ! This will get a cumulative plc, but cannot reset....
+          ! Used in swiss experiment for one summer
+          !IF (new_plc > canopy%plc_prev(i)) THEN
+         !    canopy%plc(i) = new_plc
+         !    canopy%plc_prev(i) = new_plc
+          !ENDIF ! otherwise don't update
 
-          !canopy%plc(i) = calc_plc(avg_kplant, veg%Kmax(i))
+          ! allows for resetting...used in furture runs as we're collecting
+          ! continuous dry spells, but dont have growth so need to allow a reset
+          canopy%plc(i) = new_plc
 
           ! We've reached the point of hydraulic failure, so hold the plc
           ! here for outputting purposes..
