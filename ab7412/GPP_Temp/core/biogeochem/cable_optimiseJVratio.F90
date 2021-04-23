@@ -31,6 +31,8 @@ MODULE cable_optimise_JV_module
 
   ! variables local to module
   REAL, ALLOCATABLE :: APAR(:), Dleaf(:), Tleaf(:), cs(:), scalex(:), fwsoil(:), g0(:)
+  REAL :: Eav, dSv, Eaj, dSj, Eav_int, Eav_slope, dSv_int, dSv_slope, Eaj_acclim, &
+          dSj_int, dSj_slope_Th, dSj_slope_TgTh
   REAL :: Anet, vcmax00, bjv, g1, kc0, ko0, ekc, eko, gam0, egam, alpha, gm0, a1, D0
   REAL :: convex, Neff, relcost_J, Rd0, Tgrowth, Thome
   INTEGER :: nt,kk
@@ -97,6 +99,20 @@ CONTAINS
              egam = C%egam
           endif
 
+          ! Parameters for temperature acclimation
+          Eav = veg%Eav(k)
+          dSv = veg%dSv(k)
+          Eaj = veg%Eaj(k)
+          dSj = veg%dSj(k)
+          Eav_int = veg%Eav_int(k)
+          Eav_slope = veg%Eav_slope(k)
+          dSv_int = veg%dSv_int(k)
+          dSv_slope = veg%dSv_slope(k)
+          Eaj_acclim = veg%Eaj_acclim(k)
+          dSj_int = veg%dSj_int(k)
+          dSj_slope_Th = veg%dSj_slope_Th(k)
+          dSj_slope_TgTh = veg%dSj_slope_TgTh(k)
+
           g1  = veg%g1(k)
           Rd0 = veg%cfrd(k) * veg%vcmax(k)
           ! soil-moisture modifier to stomatal conductance
@@ -154,7 +170,7 @@ CONTAINS
           Dleaf = max(climate%Dleaf_sun(k,:), 50.0)*1e-3 ! Pa -> kPa
           Tleaf = climate%Tleaf_sun(k,:)
           if (cable_user%perturb_biochem_by_T) then
-             Tleaf =  climate%Tleaf_sun(k,:) +cable_user%Ta_perturbation
+             Tleaf = climate%Tleaf_sun(k,:) +cable_user%Ta_perturbation
           endif
 
           cs = climate%cs_sun(k,:)*1e-6
@@ -339,10 +355,10 @@ CONTAINS
              x = 1.0 / ( 1.0/a1 + (Dleaf(k)*1.0e-3/D0))
           endif
           if (cable_user%acclimate_photosyn) then
-             CALL xvcmxt3_acclim(Tleaf(k), Tgrowth, trf)
+             CALL xvcmxt3_acclim(Tleaf(k), Tgrowth, Eav_int, Eav_slope, dSv_int, dSv_slope, trf)
              gamm = Vcmax0*scalex(k)*trf
           else
-             gamm = Vcmax0*scalex(k)*xvcmxt3(Tleaf(k))
+             gamm = Vcmax0*scalex(k)*xvcmxt3(Tleaf(k), Eav, dSv)
           endif
           gm = gm0 * scalex(k) * real(xgmesT(Tleaf(k)))
           ! tdiff = Tleaf(k) - C%Trefk
@@ -389,10 +405,10 @@ CONTAINS
           endif
 
           if (cable_user%acclimate_photosyn) then
-             call xejmxt3_acclim(Tleaf(k), Tgrowth, Thome, trf)
+             call xejmxt3_acclim(Tleaf(k), Tgrowth, Thome, Eaj_acclim, dSj_int, dSj_slope_Th, dSj_slope_TgTh, trf)
              jmaxt = bjv*Vcmax0*scalex(k)*trf
           else
-             jmaxt = bjv*Vcmax0*scalex(k)*xejmxt3(Tleaf(k))
+             jmaxt = bjv*Vcmax0*scalex(k)*xejmxt3(Tleaf(k), Eaj, dSj)
           endif
           gamm = ej3x(APAR(k), alpha, convex, jmaxt) 
           beta = 2.0 * gammastar
@@ -477,10 +493,10 @@ CONTAINS
           endif
 
           if (cable_user%acclimate_photosyn) then
-             cALL xvcmxt3_acclim(Tleaf(k), Tgrowth, trf)
+             cALL xvcmxt3_acclim(Tleaf(k), Tgrowth, Eav_int, Eav_slope, dSv_int, dSv_slope, trf)
              gamm = Vcmax0*scalex(k)*trf
           else
-             gamm = Vcmax0*scalex(k)*xvcmxt3(Tleaf(k))
+             gamm = Vcmax0*scalex(k)*xvcmxt3(Tleaf(k), Eav, dSv)
           endif
           gm = gm0 * scalex(k) * real(xgmesT(Tleaf(k)))
           tdiff = Tleaf(k) - C%Trefk
@@ -526,10 +542,10 @@ CONTAINS
           endif
 
           if (cable_user%acclimate_photosyn) then
-             call xejmxt3_acclim(Tleaf(k), Tgrowth, Thome, trf)
+             call xejmxt3_acclim(Tleaf(k), Tgrowth, Thome, Eaj_acclim, dSj_int, dSj_slope_Th, dSj_slope_TgTh, trf)
              jmaxt = bjv*Vcmax0*scalex(k)*trf
           else
-             jmaxt = bjv*Vcmax0*scalex(k)*xejmxt3(Tleaf(k))
+             jmaxt = bjv*Vcmax0*scalex(k)*xejmxt3(Tleaf(k), Eaj, dSj)
           endif
           gamm = ej3x(APAR(k), alpha,convex, jmaxt) 
           beta = 2.0 * gammastar
@@ -612,10 +628,10 @@ CONTAINS
              x = 1.0 / ( 1.0/a1 + (Dleaf(k)*1.0e-3/D0))
           endif
           if (cable_user%acclimate_photosyn) then
-             CALL xvcmxt3_acclim(Tleaf(k), Tgrowth, trf)
+             CALL xvcmxt3_acclim(Tleaf(k), Tgrowth, Eav_int, Eav_slope, dSv_int, dSv_slope, trf)
              gamm = Vcmax0*scalex(k)*trf
           else
-             gamm = Vcmax0*scalex(k)*xvcmxt3(Tleaf(k))
+             gamm = Vcmax0*scalex(k)*xvcmxt3(Tleaf(k), Eav, dSv)
           endif
           gm = gm0 * scalex(k) * real(xgmesT(Tleaf(k)))
           tdiff = Tleaf(k) - C%Trefk
@@ -661,10 +677,10 @@ CONTAINS
           endif
 
           if (cable_user%acclimate_photosyn) then
-             call xejmxt3_acclim(Tleaf(k), Tgrowth, Thome, trf)
+             call xejmxt3_acclim(Tleaf(k), Tgrowth, Thome, Eaj_acclim, dSj_int, dSj_slope_Th, dSj_slope_TgTh, trf)
              jmaxt = bjv*Vcmax0*scalex(k)*trf
           else
-             jmaxt = bjv*Vcmax0*scalex(k)*xejmxt3(Tleaf(k))
+             jmaxt = bjv*Vcmax0*scalex(k)*xejmxt3(Tleaf(k), Eaj, dSj)
           endif
           gamm = ej3x(APAR(k), alpha,convex, jmaxt) 
           beta  = 2.0 * gammastar
@@ -828,10 +844,10 @@ CONTAINS
           endif
 
           if (cable_user%acclimate_photosyn) then
-             CALL xvcmxt3_acclim(Tleaf(k), Tgrowth, trf)
+             CALL xvcmxt3_acclim(Tleaf(k), Tgrowth, Eav_int, Eav_slope, dSv_int, dSv_slope, trf)
              gamm = Vcmax0*scalex(k)*trf
           else
-             gamm = Vcmax0*scalex(k)*xvcmxt3(Tleaf(k))
+             gamm = Vcmax0*scalex(k)*xvcmxt3(Tleaf(k), Eav, dSv)
           endif
           gm = gm0 * scalex(k) * real(xgmesT(Tleaf(k)))
           tdiff = Tleaf(k) - C%Trefk
@@ -867,10 +883,10 @@ CONTAINS
           endif
 
           if (cable_user%acclimate_photosyn) then
-             call xejmxt3_acclim(Tleaf(k), Tgrowth, Thome, trf)
+             call xejmxt3_acclim(Tleaf(k), Tgrowth, Thome, Eaj_acclim, dSj_int, dSj_slope_Th, dSj_slope_TgTh, trf)
              jmaxt = bjv*Vcmax0*scalex(k)*trf
           else
-             jmaxt = bjv*Vcmax0*scalex(k)*xejmxt3(Tleaf(k))
+             jmaxt = bjv*Vcmax0*scalex(k)*xejmxt3(Tleaf(k), Eaj, dSj)
           endif
 
           gamm = ej3x(APAR(k), alpha,convex, jmaxt) 
