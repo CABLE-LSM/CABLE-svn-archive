@@ -226,7 +226,7 @@ cat > $(pwd)/cable_on.nml << EOF
    redistrb = .FALSE.  ! Turn on/off the hydraulic redistribution
    wiltParam = 0.5
    satuParam = 0.8
-   cable_user%FWSOIL_SWITCH = 'standard'        ! choices are:
+   cable_user%FWSOIL_SWITCH = 'Haverd2013'        ! choices are:
                                                  ! 1. standard
                                                  ! 2. non-linear extrapolation
                                                  ! 3. Lai and Katul 2000
