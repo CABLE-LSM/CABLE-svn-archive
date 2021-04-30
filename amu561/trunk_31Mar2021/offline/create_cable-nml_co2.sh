@@ -200,7 +200,7 @@ cat > $(pwd)/cable_on.nml << EOF
    verbose = .TRUE. ! write details of every grid cell init and params to log?
    leaps = .TRUE. ! calculate timing with leap years?
    logn = 88      ! log file number - declared in input module
-   fixedCO2 = 350.0   ! MMY fixed co2 to compare with LIS-CABLE if not found in met file, in ppmv
+   fixedCO2 = $CO2_con   ! MMY fixed co2 to compare with LIS-CABLE if not found in met file, in ppmv
    spincasa      = .FALSE.     ! spin casa before running the model if TRUE, and should be set to FALSE if spincasainput = .TRUE.
    l_casacnp     = .FALSE.  ! using casaCNP with CABLE
    l_laiFeedbk   = .FALSE.  ! using prognostic LAI
