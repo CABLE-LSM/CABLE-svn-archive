@@ -1121,7 +1121,7 @@ CONTAINS
        all_met=.FALSE. ! not all met variables are present in file
        ! Look for "elevation" variable to approximate pressure based
        ! on elevation and temperature:
-       ok = NF90_INQ_VARID(ncid_met,'Elevation',id%Elev)
+       ok = NF90_INQ_VARID(ncid_met,'elevation',id%Elev)
        IF(ok == NF90_NOERR) THEN ! elevation present
           ! Get elevation units:
           ok = NF90_GET_ATT(ncid_met,id%Elev,'units',metunits%Elev)
@@ -1136,7 +1136,7 @@ CONTAINS
              ! Convert from feet to metres:
              convert%Elev = 0.3048
           ELSE
-             CALL abort('Unknown units for Elevation'// &
+             CALL abort('Unknown units for elevation'// &
                   ' in '//TRIM(filename%met)//' (SUBROUTINE open_met_data)')
           END IF
           ! Allocate space for elevation variable:
