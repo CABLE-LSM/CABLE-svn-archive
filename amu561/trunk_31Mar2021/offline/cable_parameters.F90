@@ -1527,8 +1527,8 @@ CONTAINS
     ! check tgg and alb
  !   IF(ANY(ssnow%tgg > 350.0) .OR. ANY(ssnow%tgg < 180.0))                     &
  !        CALL abort('Soil temps nuts')
-    IF(ANY(ssnow%albsoilsn > 1.0) .OR. ANY(ssnow%albsoilsn < 0.0))             &
-         CALL abort('Albedo nuts')
+ !   IF(ANY(ssnow%albsoilsn > 1.0) .OR. ANY(ssnow%albsoilsn < 0.0))             &
+ !        CALL abort('Albedo nuts')
 
     WRITE(logn, *)
 
