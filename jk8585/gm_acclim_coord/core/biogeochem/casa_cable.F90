@@ -756,7 +756,7 @@ contains
     if (cable_user%acclimate_photosyn) then  
        veg%bjv(:) = 2.56 - 0.0375 * climate%mtemp_max20(:) - 0.0202 * (climate%mtemp(:) -  climate%mtemp_max20(:)) 
     else
-       veg%bjv(:) = PHOTO%bjvref  ! 1.8245 at Tgrowth=15degC and Thome=25degC Kumarathunge et al. 2019, acclimises
+       veg%bjv(:) = PHOTO%bjvref  ! 1.8245 at Tgrowth=15degC and Thome=25degC Kumarathunge et al. 2019, acclimates
     endif
     
     DO np=1,mp
@@ -847,6 +847,11 @@ contains
              
              veg%gm(np) = veg%gmmax(np) + &
                   gm_vcmax_slope * (veg%vcmax(np) - vcmax_ref(np))
+
+             ! JK: avoid low gm values for woody evergreens
+             if (ivt .EQ. 1 .OR. ivt .EQ. 3) then
+                veg%gm(np) = max(veg%gm(np) , 0.75_r_2 * veg%gmmax(np))
+             endif
              
 !write(86,*) "veg%gm:", veg%gm
 !write(86,*) "veg%gmmax:", veg%gmmax
@@ -864,7 +869,7 @@ contains
              endif            
              ! adjust parameters
              if (len(trim(cable_user%gm_LUT_file)) .gt. 1) then
-                call find_Vcmax_Jmax_LUT(veg,np,LUT_VcmaxJmax,LUT_gm,LUT_vcmax,LUT_Rd)  
+                call find_Vcmax_Jmax_LUT(veg,np,LUT_VcmaxJmax,LUT_gm,LUT_vcmax,LUT_Rd,LUT_Jvr)  
              else  ! no LUT, adjustment using An-Ci curves
                 if ( ABS(vcmaxx(ivt) - veg%vcmax(np)) .GT. 5.0E-08 .OR. ktau .LT. ktauday ) then
                      vcmaxx(ivt) = veg%vcmax(np)
@@ -878,7 +883,8 @@ contains
              ! recalculate bjvref
              bjvci(np) = veg%bjv(np)   ! temporarily save Ci-based bjv
              veg%bjv(np) = veg%ejmaxcc(np) / veg%vcmaxcc(np)
-
+             
+             
              ! recalculate relcost_J in a way that Neff is the same with
              ! finite (explicit) and infinite (implicit) gm
              if (coord) then

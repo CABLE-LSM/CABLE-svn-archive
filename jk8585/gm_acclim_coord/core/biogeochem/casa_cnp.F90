@@ -562,32 +562,32 @@ SUBROUTINE casa_rplant(veg, casabiome, casapool, casaflux, casamet, climate)
 
         if (veg%iveg(npt).eq.2 .or. veg%iveg(npt).eq.4) then
            ! broadleaf forestNESP2pt9_BLAZE
-           c1 = 1.2818_r_2 * 1.0e-6_r_2
-           ! c1 = 1.3805e-6_r_2 ! null model
+           !c1 = 1.2818_r_2 * 1.0e-6_r_2
+            c1 = 1.3805e-6_r_2 ! null model
         elseif(veg%iveg(npt).eq.1 .or. veg%iveg(npt).eq.3) then
            ! needleleaf forest
-           c1 = 1.2877_r_2 * 1.0e-6_r_2
-           ! c1 = 1.3247e-6_r_2 ! null model
+           !c1 = 1.2877_r_2 * 1.0e-6_r_2
+            c1 = 1.3247e-6_r_2 ! null model
         elseif (veg%iveg(npt).eq.6 .or. veg%iveg(npt).eq.8 .or. veg%iveg(npt).eq.9) then
            ! C3 grass, tundra, crop
-           c1 = 1.6737_r_2 * 1.0e-6_r_2
-           ! c1 = 1.8904e-6_r_2 ! null model
+           !c1 = 1.6737_r_2 * 1.0e-6_r_2
+            c1 = 1.8904e-6_r_2 ! null model
         else
            ! shrubs and other (C4 grass and crop)
-           c1 = 1.5758_r_2 * 1.0e-6_r_2
-           !c1 = 1.7265e-6_r_2 ! null model
+           !c1 = 1.5758_r_2 * 1.0e-6_r_2
+           c1 = 1.7265e-6_r_2 ! null model
         endif
         c2 = 0.0116_r_2
         c3 = -0.0334_r_2 * 1.0e-6_r_2
         c5 = 1.0_r_2 / vcmaxmax(npt) / 0.0116_r_2 * 0.60_r_2
-        resp_coeff_root(npt) = casapool%nplant(npt,froot) * c5 * &
-             (c1 + c2 *vcmaxmax(npt)*climate%frec(npt)  + c3 * climate%qtemp_max_last_year(npt) )
+        !resp_coeff_root(npt) = casapool%nplant(npt,froot) * c5 * &
+        !     (c1 + c2 *vcmaxmax(npt)*climate%frec(npt)  + c3 * climate%qtemp_max_last_year(npt) )
 
-        resp_coeff_sapwood(npt) = casapool%nplant(npt,wood) *casaflux%frac_sapwood(npt)* c5 * &
-             (c1 + c2 *vcmaxmax(npt)*climate%frec(npt)  + c3 * climate%qtemp_max_last_year(npt) )
+        !resp_coeff_sapwood(npt) = casapool%nplant(npt,wood) *casaflux%frac_sapwood(npt)* c5 * &
+        !     (c1 + c2 *vcmaxmax(npt)*climate%frec(npt)  + c3 * climate%qtemp_max_last_year(npt) )
         ! null model (use this with null-model c1 coefft to turn off T-acclimation)
-        ! resp_coeff_root(npt) = casapool%nplant(npt,froot) *c1
-        ! resp_coeff_sapwood(npt) = casapool%nplant(npt,wood) *casaflux%frac_sapwood(npt)*c1
+         resp_coeff_root(npt) = casapool%nplant(npt,froot) *c1
+         resp_coeff_sapwood(npt) = casapool%nplant(npt,wood) *casaflux%frac_sapwood(npt)*c1
      enddo ! npt=1,mp
   endif  ! cable_user%CALL_climate - end coefficients for acclimation of autotrophic respiration ticket #110
 

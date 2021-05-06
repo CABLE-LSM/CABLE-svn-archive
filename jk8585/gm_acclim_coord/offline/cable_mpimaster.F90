@@ -213,7 +213,7 @@ CONTAINS
 
     !MCJK - check if need in mpimaster and mpiworker
     ! gm
-    use cable_adjust_JV_gm_module, only: read_gm_LUT, LUT_VcmaxJmax, LUT_gm, LUT_Vcmax, LUT_Rd
+    use cable_adjust_JV_gm_module, only: read_gm_LUT, LUT_VcmaxJmax, LUT_gm, LUT_Vcmax, LUT_Rd, LUT_Jvr
     !MCJK - check if need in mpimaster and mpiworker
 
     ! 13C
@@ -548,7 +548,7 @@ CONTAINS
     ! Read gm lookup table
     if (cable_user%explicit_gm .and. len(trim(cable_user%gm_LUT_file)) .gt. 1) then
         WRITE(*,*) 'Reading gm LUT file'
-        call read_gm_LUT(cable_user%gm_LUT_file, LUT_VcmaxJmax, LUT_gm, LUT_Vcmax, LUT_Rd)
+        call read_gm_LUT(cable_user%gm_LUT_file, LUT_VcmaxJmax, LUT_gm, LUT_Vcmax, LUT_Rd, LUT_Jvr)
     endif
     !MCJK - check if need in mpimaster and mpiworker
 

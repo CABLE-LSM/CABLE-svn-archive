@@ -106,7 +106,7 @@ module cable_data_module
                                      ! Tgrowth=15degC and Thome=25degC (Kumarathunge et al. 2019)
       real :: relcostJ_coord = 1.6   ! Ci-based relative cost of Jmax to Vcmax
                                      ! with forced coordination (Chen et al. 1993)
-      real :: relcostJ_optim = 2.3   ! Ci-based relative cost of Jmax to Vcmax
+      real :: relcostJ_optim = 2.0   ! Ci-based relative cost of Jmax to Vcmax (Haverd et al. 2018, GMD)
                                      ! with photosyn. optimisation (coord = FALSE)
       real :: tAPAR_optim = 60.0E-6  ! APAR threshold for photosyn. optimisation (mol m-2 s-1)
       real :: gam1      = 0.0509
@@ -143,8 +143,8 @@ module cable_data_module
       real :: toptv     = 20.0
       real :: trefk     = 298.15  ! reference temperature K
       real :: qs        = 0.50    ! exponent of water stress scalar for gs
-      real :: qm        = 0.75    ! exponent of water stress scalar for gm
-      real :: qb        = 0.25    ! exponent of water stress scalar for Vcmax and Jmax
+      real :: qm        = 1.00    ! exponent of water stress scalar for gm
+      real :: qb        = 0.75    ! exponent of water stress scalar for Vcmax and Jmax
    end type photosynthetic_constants
 
    ! instantiate major types of constants

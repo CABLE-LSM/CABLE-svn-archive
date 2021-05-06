@@ -1581,7 +1581,9 @@ CONTAINS
          eko,     &
          qs,      &
          qm,      &
-         qb
+         qb,      &
+         qs_C4,   &
+         qb_C4
 
     ! real, dimension(:,:), pointer :: gswmin => null() ! min stomatal conductance
     ! real, dimension(:,:), allocatable :: gswmin ! min stomatal conductance
@@ -1746,6 +1748,7 @@ CONTAINS
                 qs      = C%qs
                 qm      = C%qm
                 qb      = C%qb
+                qb_C4   = 1.0  ! keep qb high for C4 plants in all cases
              else
                 gam0   = C%gam0
                 conkc0 = C%conkc0
@@ -1757,6 +1760,7 @@ CONTAINS
                 qm     = 0.0     ! not used
                 qb     = 1.0
              endif
+             
 
 
 
@@ -1774,17 +1778,17 @@ CONTAINS
                 temp_sun_c4(i)   = xvcmxt4(tlfx(i)) * veg%vcmax_sun(i) * veg%frac4(i)
                 temp_shade_c4(i) = xvcmxt4(tlfx(i)) * veg%vcmax_shade(i) * veg%frac4(i)
              else
-                call xvcmxt3_acclim(tlfx(i), climate%mtemp(i) , temp_c3(i))
-                call xvcmxt4_acclim(tlfx(i), climate%mtemp(i) , temp_c4(i))
+                call xvcmxt3_acclim(tlfx(i), climate%mtemp(i), temp_c3(i))
+                call xvcmxt4_acclim(tlfx(i), climate%mtemp(i), temp_c4(i))
                 temp_sun_c3(i)   = temp_c3(i) * veg%vcmax_sun(i) * (1.0-veg%frac4(i))
                 temp_shade_c3(i) = temp_c3(i) * veg%vcmax_shade(i) * (1.0-veg%frac4(i))
                 temp_sun_c4(i)   = temp_c4(i) * veg%vcmax_sun(i) * veg%frac4(i)
-                temp_shade_c4(i) = temp_c4(i) * veg%vcmax_shade(i) * veg%frac4(i)
+                temp_shade_c4(i) = temp_c4(i) * veg%vcmax_shade(i) * veg%frac4(i) 
              endif
              vcmxt3(i,1) = rad%scalex(i,1) * temp_sun_c3(i) * fwsoil(i)**qb
              vcmxt3(i,2) = rad%scalex(i,2) * temp_shade_c3(i) * fwsoil(i)**qb
-             vcmxt4(i,1) = rad%scalex(i,1) * temp_sun_c4(i) * fwsoil(i)**qb
-             vcmxt4(i,2) = rad%scalex(i,2) * temp_shade_c4(i) * fwsoil(i)**qb
+             vcmxt4(i,1) = rad%scalex(i,1) * temp_sun_c4(i) * fwsoil(i)**qb_C4
+             vcmxt4(i,2) = rad%scalex(i,2) * temp_shade_c4(i) * fwsoil(i)**qb_C4
 
              ! apply same scaling for k as for Vcmax in C4 plants
              if (.not. cable_user%explicit_gm) then
@@ -1794,7 +1798,8 @@ CONTAINS
                 kc4(i,1) = veg%c4kcc(i) * vcmxt4(i,1)/veg%vcmax_sun(i) 
                 kc4(i,2) = veg%c4kcc(i) * vcmxt4(i,2)/veg%vcmax_shade(i)
              endif   
-             
+
+
              ! Leuning 2002 (PCE) equation for temperature response
              ! used for Jmax for C3 plants:
              if (.not.cable_user%acclimate_photosyn) then
@@ -1810,7 +1815,7 @@ CONTAINS
              ejmxt3(i,1) = rad%scalex(i,1) * temp_sun_c3(i) * fwsoil(i)**qb
              ejmxt3(i,2) = rad%scalex(i,2) * temp_shade_c3(i) * fwsoil(i)**qb
 
-
+             
              ! Difference between leaf temperature and reference temperature:
              tdiff(i) = tlfx(i) - C%TREFK
 
@@ -1838,7 +1843,7 @@ CONTAINS
              ! JK: vx4 changed to correspond to formulation in Collatz et al. 1992
              temp2(i,:) = rad%qcan(i,:,1) * jtomol * (1.0-veg%frac4(i))
              vx3(i,:)   = ej3x(temp2(i,:), veg%alpha(i), veg%convex(i), ejmxt3(i,:))
-             vx4(i,:)   = veg%alpha(i) * rad%qcan(i,:,1) * jtomol * veg%frac4(i) * fwsoil(i)**qb
+             vx4(i,:)   = veg%alpha(i) * rad%qcan(i,:,1) * jtomol * veg%frac4(i) * fwsoil(i)**qb_C4
              !vx4(i,:)   = ej4x(temp2(i,:), veg%alpha(i), veg%convex(i), vcmxt4(i,:))
              rdx(i,:)   = veg%cfrd(i)*Vcmxt3(i,:) + veg%cfrd(i)*vcmxt4(i,:)
 
@@ -1925,9 +1930,10 @@ CONTAINS
 
                 endif
                 
-                ! modify for leaf area and instanteous temperature response (Rd25 -> Rd)
-                rdx(i,1) = rdx(i,1) * xrdt(tlfx(i)) * rad%scalex(i,1) * fwsoil(i)**qb
-                rdx(i,2) = rdx(i,2) * xrdt(tlfx(i)) * rad%scalex(i,2) * fwsoil(i)**qb
+                ! modify for leaf area and instantaneous temperature response (Rd25 -> Rd)
+                ! qb is hard-coded here as it should be the same for imp and exp
+                rdx(i,1) = rdx(i,1) * xrdt(tlfx(i)) * rad%scalex(i,1) * fwsoil(i)**0.75
+                rdx(i,2) = rdx(i,2) * xrdt(tlfx(i)) * rad%scalex(i,2) * fwsoil(i)**0.75
 
                 ! reduction of daytime leaf dark-respiration to account for
                 !photo-inhibition
@@ -1953,6 +1959,8 @@ CONTAINS
 
              ! calculate canopy-level mesophyll conductance
              if (cable_user%explicit_gm) then
+
+                ! JK: do not allow very low gm values at extreme soil moisture conditions
                 gmes(i,1) = veg%gm(i) * rad%scalex(i,1) * xgmesT(tlfx(i)) * max(0.15,fwsoil(i)**qm)
                 gmes(i,2) = veg%gm(i) * rad%scalex(i,2) * xgmesT(tlfx(i)) * max(0.15,fwsoil(i)**qm)
 
@@ -2655,7 +2663,7 @@ CONTAINS
                    endif
                    ansinkz(i,j) = real(Am)
 
-                   dAmp(i,j)  = 0.0_r_2
+                   !dAmp(i,j)  = 0.0_r_2
                    eta_p(i,j) = 0.0_r_2
                    if (Am > 0.0_r_2) eta_p(i,j) = dAmp(i,j) * cs / Am
                 endif ! C3/C4
@@ -2681,6 +2689,12 @@ CONTAINS
              dA(i,j)   = dtmp3(ii(1))
              dtmp3     = (/ eta_c(i,j), eta_e(i,j), eta_p(i,j) /)
              eta(i,j)  = dtmp3(ii(1))
+
+             !IF ((ansinkz(i,2) .lt. anrubpz(i,2)) .AND. (ansinkz(i,2) .lt. anrubiscoz(i,2))) then
+!write(80,*) "ansinkz(i,2):", ansinkz(i,2)
+!write(80,*) "anrubpz(i,2):", anrubpz(i,2)              
+!write(80,*) "anrubiscoz(i,2):", anrubiscoz(i,2)
+             !ENDIF
 
           else ! vlaiz(i,j) .gt. C%lai_thresh
 
