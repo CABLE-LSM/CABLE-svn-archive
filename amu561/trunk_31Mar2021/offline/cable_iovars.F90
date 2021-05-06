@@ -220,31 +220,31 @@ MODULE cable_IO_vars_module
           Wind = .FALSE.,      & ! 14 windspeed [m/s]
           Wind_N = .FALSE.,    & ! 15 surface wind speed, N component [m/s]
           Wind_E = .FALSE.,    & ! 16 surface wind speed, E component [m/s]
-          LAI = .FALSE.,       & !
+          LAI = .TRUE.,       & !
           Qmom = .FALSE.,      & !    momentum flux [kg/m/s2]
-          Qh = .FALSE.,        & ! 17 sensible heat flux [W/m2]
-          Qle = .FALSE.,       & ! 18 latent heat flux [W/m2]
-          Qg = .FALSE.,        & ! 19 ground heat flux [W/m2]
+          Qh = .TRUE.,        & ! 17 sensible heat flux [W/m2]
+          Qle = .TRUE.,       & ! 18 latent heat flux [W/m2]
+          Qg = .TRUE.,        & ! 19 ground heat flux [W/m2]
           SWnet = .FALSE.,     & ! 20 net shortwave [W/m2]
           LWnet = .FALSE.,     & ! 21 net longwave [W/m2]
-          Evap = .FALSE.,      & ! 22 total evapotranspiration [kg/m2/s]
-          Ewater = .FALSE.,    & ! 23 evap. from surface water storage [kg/m2/s]
-          ESoil = .FALSE.,     & ! 24 bare soil evaporation [kg/m2/s]
-          TVeg = .FALSE.,      & ! 25 vegetation transpiration [kg/m2/s]
-          ECanop = .FALSE.,    & ! 26 interception evaporation [kg/m2/s]
-          PotEvap = .FALSE.,   & ! 27 potential evapotranspiration [kg/m2/s]
+          Evap = .TRUE.,      & ! 22 total evapotranspiration [kg/m2/s]
+          Ewater = .TRUE.,    & ! 23 evap. from surface water storage [kg/m2/s]
+          ESoil = .TRUE.,     & ! 24 bare soil evaporation [kg/m2/s]
+          TVeg = .TRUE.,      & ! 25 vegetation transpiration [kg/m2/s]
+          ECanop = .TRUE.,    & ! 26 interception evaporation [kg/m2/s]
+          PotEvap = .TRUE.,   & ! 27 potential evapotranspiration [kg/m2/s]
           ACond = .FALSE.,     & ! 28 aerodynamic conductance [m/s]
           SoilWet = .FALSE.,   & ! 29 total soil wetness [-]
           Albedo = .FALSE.,    & ! 30 albedo [-]
           visAlbedo = .FALSE., & ! vars intro for Ticket #27
           nirAlbedo = .FALSE., & ! vars intro for Ticket #27
-          VegT = .FALSE.,      & ! 31 vegetation temperature [K]
+          VegT = .TRUE.,      & ! 31 vegetation temperature [K]
           SoilTemp = .FALSE.,  & ! 32 av.layer soil temperature [K]
-          SoilMoist = .FALSE., & ! 33 av.layer soil moisture [kg/m2]
+          SoilMoist = .TRUE., & ! 33 av.layer soil moisture [kg/m2]
           SoilMoistIce = .FALSE., & ! 33 av.layer soil frozen moisture [kg/m2]
-          Qs = .FALSE.,        & ! 34 surface runoff [kg/m2/s]
-          Qsb = .FALSE.,       &! 35 subsurface runoff [kg/m2/s]
-          DelSoilMoist = .FALSE., & ! 36 change in soilmoisture
+          Qs = .TRUE.,        & ! 34 surface runoff [kg/m2/s]
+          Qsb = .TRUE.,       &! 35 subsurface runoff [kg/m2/s]
+          DelSoilMoist = .TRUE., & ! 36 change in soilmoisture
                                 ! (sum layers) [kg/m2]
           DelSWE = .FALSE.,    & ! 37 change in snow water equivalent [kg/m2]
           DelIntercept = .FALSE.,& ! 38 change in interception storage [kg/m2]
@@ -257,16 +257,16 @@ MODULE cable_IO_vars_module
           RootMoist = .FALSE., & ! 44 root zone soil moisture [kg/m2]
           CanopInt = .FALSE.,  & ! 45 total canopy water storage [kg/m2]
           NEE  = .FALSE.,      & ! 46 net ecosystem exchange [umol/m2/s]
-          NPP  = .FALSE.,      & ! 47 net primary production of C
+          NPP  = .TRUE.,      & ! 47 net primary production of C
                                 ! by veg [umol/m2/s]
-          GPP = .FALSE.,       & ! 48 gross primary production C
+          GPP = .TRUE.,       & ! 48 gross primary production C
                                 ! by veg [umol/m2/s]
           AutoResp = .FALSE.,  & ! 49 autotrophic respiration [umol/m2/s]
           LeafResp = .FALSE.,  & ! 51 autotrophic respiration [umol/m2/s]
           HeteroResp = .FALSE.,& ! 50 heterotrophic respiration [umol/m2/s]
           SnowDepth = .FALSE., & ! actual depth of snow in [m]
                                 !variables
-          Rnet = .FALSE.,      & ! net absorbed radiation [W/m2]
+          Rnet = .TRUE.,      & ! net absorbed radiation [W/m2]
           HVeg = .FALSE.,      & ! sensible heat from vegetation [W/m2]
           HSoil = .FALSE.,     & ! sensible heat from soil [W/m2]
           RnetSoil = .FALSE.,     & ! sensible heat from soil [W/m2] !vh!
@@ -274,7 +274,7 @@ MODULE cable_IO_vars_module
           Wbal = .FALSE.,      & ! cumulative water balance [W/m2]
                                 !! vh_js ! added CanT and fwsoil to the list
           CanT = .FALSE.,      & ! within-canopy temperature [K]
-          Fwsoil = .FALSE.,      & ! soil moisture modifier to stomatal conductance
+          Fwsoil = .TRUE.,      & ! soil moisture modifier to stomatal conductance
           Area = .FALSE., & ! patch area in km2
                                 !mrd561
                                 !MD GW
@@ -308,7 +308,7 @@ MODULE cable_IO_vars_module
           LandUseFlux = .FALSE., &
                                 !parameters
           bch = .FALSE.,       & ! parameter b in Campbell equation 1985
-          latitude = .FALSE.,  & ! site latitude
+          latitude = .TRUE.,  & ! site latitude
           clay = .FALSE.,      & ! fraction of clay in soil
           css = .FALSE.,       & ! heat capacity of soil minerals [J/kg/C]
           rhosoil = .FALSE.,   & ! soil density [kg/m3]
@@ -321,7 +321,7 @@ MODULE cable_IO_vars_module
           ssat = .FALSE.,      & ! vol H2O @ saturation
           sucs = .FALSE.,      & ! suction at saturation [m]
           swilt = .FALSE.,     & ! vol H2O @ wilting
-          froot = .FALSE.,     & ! fraction of roots in each soil layer
+          froot = .TRUE.,     & ! fraction of roots in each soil layer
           zse = .FALSE.,       & ! thickness of each soil layer (1=top) (m)
           canst1 = .FALSE.,    & ! max intercepted water by canopy [mm/LAI]
                                 ! (0.08 - 0.12) {avoid}
@@ -358,8 +358,8 @@ MODULE cable_IO_vars_module
                                 ! photosynthesis(leaf phenology)[-] (-5 - 15)
           vbeta = .FALSE.,     & ! stomatal sensitivity to soil water
           xalbnir = .FALSE.,   & ! modifier for albedo in near ir band
-          iveg  = .FALSE.,     & ! vegetation type from global index
-          patchfrac  = .FALSE.,& ! fractional cover of each veg/soil patch
+          iveg  = .TRUE.,     & ! vegetation type from global index
+          patchfrac  = .TRUE.,& ! fractional cover of each veg/soil patch
           isoil  = .FALSE.,    & ! soil type from global index
           meth  = .FALSE.,     & ! method for solving turbulence in canopy scheme
           za  = .FALSE.,       & ! something to do with roughness ????

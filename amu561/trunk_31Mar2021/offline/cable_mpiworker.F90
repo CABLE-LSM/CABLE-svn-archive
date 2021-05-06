@@ -2439,7 +2439,7 @@ USE cbl_soil_snow_init_special_module
     CALL MPI_Type_size (param_t, tsize, ierr)
     CALL MPI_Type_get_extent (param_t, tmplb, text, ierr)
 
-    WRITE (*,*) 'worker param_t blocks, size, extent and lb: ',rank,bidx,tsize,text,tmplb
+    !WRITE (*,*) 'worker param_t blocks, size, extent and lb: ',rank,bidx,tsize,text,tmplb
 
     ! MPI: check whether total size of received data equals total
     ! data sent by all the workers
@@ -3437,7 +3437,7 @@ USE cbl_soil_snow_init_special_module
     CALL MPI_Type_size (casa_t, tsize, ierr)
     CALL MPI_Type_get_extent (casa_t, tmplb, text, ierr)
 
-    WRITE (*,*) 'worker casa_t param blocks, size, extent and lb: ',rank,bidx,tsize,text,tmplb
+    !WRITE (*,*) 'worker casa_t param blocks, size, extent and lb: ',rank,bidx,tsize,text,tmplb
 
     ! MPI: check whether total size of received data equals total
     ! data sent by all the workers
@@ -5609,7 +5609,7 @@ USE cbl_soil_snow_init_special_module
     CALL MPI_Type_size (send_t, tsize, ierr)
     CALL MPI_Type_get_extent (send_t, tmplb, text, ierr)
 
-    WRITE (*,*) 'worker ',rank,': struct blocks, size, extent and lb: ',bidx,tsize,text,tmplb
+    !WRITE (*,*) 'worker ',rank,': struct blocks, size, extent and lb: ',bidx,tsize,text,tmplb
 
     ! MPI: check whether total size of received data equals total
     ! data sent by all the workers
@@ -6334,7 +6334,7 @@ USE cbl_soil_snow_init_special_module
     CALL MPI_Type_size (casa_t, tsize, ierr)
     CALL MPI_Type_get_extent (casa_t, tmplb, text, ierr)
 
-    WRITE (*,*) 'casa type struct blocks, size, extent and lb: ',bidx,tsize,text,tmplb
+    !WRITE (*,*) 'casa type struct blocks, size, extent and lb: ',bidx,tsize,text,tmplb
 
     ! MPI: check whether total size of received data equals total
     ! data sent by all the workers
@@ -6749,12 +6749,12 @@ USE cbl_soil_snow_init_special_module
     CALL MPI_Type_size (restart_t, tsize, ierr)
     CALL MPI_Type_get_extent (restart_t, tmplb, text, ierr)
 
-    WRITE (*,*) 'restart struct blocks, size, extent and lb: ',rank,bidx,tsize,text,tmplb
+    !WRITE (*,*) 'restart struct blocks, size, extent and lb: ',rank,bidx,tsize,text,tmplb
 
     ! MPI: check whether total size of received data equals total
     ! data sent by all the workers
     !mcd287  CALL MPI_Reduce (tsize, tsize, 1, MPI_INTEGER, MPI_SUM, 0, comm, ierr)
-    WRITE(*,*) 'b4 reduce wk', tsize, MPI_DATATYPE_NULL, 1, MPI_INTEGER, MPI_SUM, 0, comm, ierr
+    !WRITE(*,*) 'b4 reduce wk', tsize, MPI_DATATYPE_NULL, 1, MPI_INTEGER, MPI_SUM, 0, comm, ierr
     CALL flush(6)
     !call flush(wlogn)
     CALL MPI_Reduce (tsize, MPI_DATATYPE_NULL, 1, MPI_INTEGER, MPI_SUM, 0, comm, ierr)
@@ -6886,8 +6886,8 @@ USE cbl_soil_snow_init_special_module
     CALL MPI_Type_size (casa_dump_t, tsize, ierr)
     CALL MPI_Type_get_extent (casa_dump_t, tmplb, text, ierr)
 
-    WRITE (*,*) 'worker casa_dump_t param blocks, size, extent and lb: ',rank, &
-         bidx,tsize,text,tmplb
+    !WRITE (*,*) 'worker casa_dump_t param blocks, size, extent and lb: ',rank, &
+         !bidx,tsize,text,tmplb
 
     ! MPI: check whether total size of received data equals total
     ! data sent by all the workers
@@ -7021,8 +7021,8 @@ USE cbl_soil_snow_init_special_module
     CALL MPI_Type_size (casa_LUC_t, tsize, ierr)
     CALL MPI_Type_get_extent (casa_LUC_t, tmplb, text, ierr)
 
-    WRITE (*,*) 'worker casa_LUC_t param blocks, size, extent and lb: ',rank, &
-         bidx,tsize,text,tmplb
+    !WRITE (*,*) 'worker casa_LUC_t param blocks, size, extent and lb: ',rank, &
+     !    bidx,tsize,text,tmplb
 
     ! MPI: check whether total size of received data equals total
     ! data sent by all the workers
