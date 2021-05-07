@@ -1,3 +1,0 @@
-This SSTD_OUT/ directory shows the configuration of the build etc for CABLE. The purpose of this revision is too add functionality so as to easily test whether modifications that should be science neutral are in fact bitwise identical.
-
-output.nc shows thatthis run differs from the trunk @ 287 by date stamp only

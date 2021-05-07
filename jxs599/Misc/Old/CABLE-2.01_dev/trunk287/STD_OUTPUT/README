@@ -1,6 +1,0 @@
-this is std output from the trunk@287 on jiggle with gfortran and compiler options in build.ksh
-restart.in was produced from run of similar revision number where we expect no differences anyway,
-with gfortran -O2 and spinup on.
-
-testing 2.0.01 with same restart and compiler options should give us same output. from then on we can use 2.0.01 implemented diag and std.bin/FLUXES..bin
-

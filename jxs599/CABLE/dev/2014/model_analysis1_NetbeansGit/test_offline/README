@@ -1,9 +1,0 @@
-also get hold of improved version of Eva's qsub on vayu work
-
-
-build cable executable in offline/ dir copy to here and then ...
-RUN_CABLE run
-RUN_CABLE plot 
-
-
-old_cable.nc in this directory is copied into out/.... for comparisson with new mode version. this is deliderately srtifficial (Bondville with .6* met%fsd ) to show ALL three curveson plot

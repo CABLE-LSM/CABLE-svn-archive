@@ -1,8 +1,0 @@
-Branch: vn7.3-oasis3-rhill
-
-This branch is based on vn7.3-oasis3-xe and merge changes
-in the UM7.3 version we have received from R.Hill
-- parallel coupling
-- performance improvements
-
-This branch is to match the code we use for our simulations.

@@ -1,8 +1,0 @@
-#!/bin/bash
-
-export CABLE_AUX=/home/561/dei561
-
-module load intel/15.0.3.187
-module load netcdf/4.2.1-intel
-
-./build.ksh debug

@@ -1,1 +1,0 @@
-/data/projects/access/CABLE-AUX/UM/cable_end.ksh

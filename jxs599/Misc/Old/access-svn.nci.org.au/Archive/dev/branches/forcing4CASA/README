@@ -1,1 +1,0 @@
-forcing 4 CASA to be implemented in this branch. started with branched SHare, exported NETCDF_dumps over the top (from svnserve.csiro) and mad changes to get it working. writes air_out dump, apparently succesful. but these are not ci'ed just yet. copied to files with corresponding suffix. get it to dump from CASA first and re-jig.

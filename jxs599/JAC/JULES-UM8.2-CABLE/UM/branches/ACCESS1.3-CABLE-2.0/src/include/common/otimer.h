@@ -1,6 +1,0 @@
-      LOGICAL L_OTIMER
-
-#if !defined(SLAB)
-      COMMON /OTIMER/ L_OTIMER
-#endif
-! END OF COMDECK OTIMER

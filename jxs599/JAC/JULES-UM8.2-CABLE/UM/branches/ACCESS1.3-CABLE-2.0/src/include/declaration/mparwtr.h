@@ -1,5 +1,0 @@
-#if defined(A05_4A) || defined(A05_5A)
-      REAL MPARWTR  !  MINIMUM PARCEL WATER IN GRAMS PER KILOGRAM
-                    !  BEFORE PRECIPITATION IS ALLOWED (KG/KG)
-!
-#endif

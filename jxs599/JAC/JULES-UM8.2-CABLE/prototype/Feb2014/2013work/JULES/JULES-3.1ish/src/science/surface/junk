@@ -1,8 +1,0 @@
-sf_exch_jls.F90:                    ,l_cable
-sf_exch_jls.F90:IF( L_cable ) then
-sf_expl_jls.F90:                    buddy_sea, L_cable
-sf_expl_jls.F90:!IF ( .NOT. L_cable) & 
-sf_expl_jls.F90:IF (l_cable) THEN
-sf_expl_jls.F90:      IF (L_CABLE) Then
-sf_expl_jls.F90:      ! should be IF( .NOT. l_cable ) RADNET ...
-sf_impl2_jls.F90:                      ,L_cable

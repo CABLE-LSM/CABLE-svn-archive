@@ -1,3 +1,0 @@
-reducedLAIdue2snow  <=> canopy%vlaiw
-sw_down             <=> met%fsd
-msn_cable           <=> msn

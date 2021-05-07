@@ -1,9 +1,0 @@
-#
-bld::excl_dep                                        OBJ::cable_explicit_driver.o
-bld::excl_dep                                        OBJ::cable_implicit_driver.o
-bld::excl_dep                                        OBJ::cable_hyd_driver.o
-bld::excl_dep                                        OBJ::cable_rad_driver.o
-bld::excl_dep                                        OBJ::cable_setup.o
-
-bld::tool::ld                              mpif90
-bld::tool::ldflags                             -L/projects/access/drhook/openmpi-1.6/lib -ldrhook -openmp -L/projects/access/umdir/gcom/gcom4.2/nci_vayu_mpi/lib -lgcom  -Bstatic -lnetcdff -lnetcdf -Bdynamic -openmp -L$CABLE_AUX/CABLE-AUX/UM -lcable

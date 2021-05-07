@@ -1,1 +1,0 @@
-../../scripts/build_mpi_nix.ksh

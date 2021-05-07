@@ -1,5 +1,0 @@
-Bondville97
-data/sample_met/Bondville1997_csiro.nc
-Hyytiala
-data/sample_met/Hyytiala1997-2005_csiro.nc
-

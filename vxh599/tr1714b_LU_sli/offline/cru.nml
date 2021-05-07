@@ -1,8 +1,0 @@
-&CRUNML
-	BasePath     = "/OSM/CBR/OA_GLOBALCABLE/work/CRU-NCEP/V7_1901_2015/daily"
-	MetPath      = "/OSM/CBR/OA_GLOBALCABLE/work/CRU-NCEP/V7_1901_2015/daily"
-        LandMaskFile = "/data/hav014/LUH2/MASKS/cru_landmask_0.5x0.5.nc"
-        Run          = "S1_TRENDY"        ! Run types are S0_TRENDY, S1_TRENDY, S2_TRENDY
-	DThrs        = 3.0                ! **CABLE** timestep hours (not the met timestep)
-	DirectRead   = .FALSE.
-&end

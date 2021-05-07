@@ -1,3 +1,0 @@
-     &  ITT,TTSEC,SWLDEG,FKMP_GLOBAL,ZU,ZV,ZUENG,ZVENG,ZCONU,ZCONV,     &
-     &  SWZVRT,P,PB,PTD,PTDB,UBT,VBT,UBTBBC,VBTBBC,MLD,ZTD,             &
-     &  ETA, ETAB, PMEPASS, PMEPASSB, DUSP                              &
