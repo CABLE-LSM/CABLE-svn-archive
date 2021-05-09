@@ -144,7 +144,7 @@ module cable_data_module
       real :: trefk     = 298.15  ! reference temperature K
       real :: qs        = 0.50    ! exponent of water stress scalar for gs
       real :: qm        = 1.00    ! exponent of water stress scalar for gm
-      real :: qb        = 0.75    ! exponent of water stress scalar for Vcmax and Jmax
+      real :: qb        = 0.50    ! exponent of water stress scalar for Vcmax and Jmax
    end type photosynthetic_constants
 
    ! instantiate major types of constants

@@ -366,7 +366,8 @@ CONTAINS
           else
 write(64,*) "gm-Vcmax relationship does not work! Vcmax_ci:", Vcmax25Ci
 write(64,*) "gmmax25:", gmmax25
-write(64,*) "iteration:", i            
+write(64,*) "iteration:", i
+write(64,*) "veg%iveg(p):", veg%iveg(p)
              igm = igm + 10
           endif   
        end do
