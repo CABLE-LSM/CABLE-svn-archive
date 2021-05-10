@@ -98,7 +98,6 @@ REAL :: rhoch(mp,nrb)
 REAL :: xk(mp,nrb)
 
 !iFor testing
-ICYCLE = 0
 cable_user%soil_struc="default"
 
 CALL ruff_resist( veg, rough, ssnow, canopy, veg%vlai, veg%hc, canopy%vlaiw )
