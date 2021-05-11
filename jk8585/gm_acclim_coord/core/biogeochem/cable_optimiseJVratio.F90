@@ -144,19 +144,45 @@ CONTAINS
              endif
              veg%vcmax_shade(k) = Neff/(1.+relcost_J*bjv_new(k)/4.0)
              veg%ejmax_shade(k) = veg%vcmax_shade(k)*bjv_new(k)
+
           else
 
-             if(total_photosynthesis_cost(bjv(k)).lt.total_photosynthesis_cost(l_bound) .and. &
-                  total_photosynthesis_cost(bjv(k)).lt.total_photosynthesis_cost(u_bound)) then
+!write(67,*) "total_photosynthesis_cost(l_bound):", total_photosynthesis_cost(l_bound)
+!write(67,*) "total_photosynthesis_cost(u_bound):", total_photosynthesis_cost(u_bound)
+!write(67,*) "total_photosynthesis_cost(bjv(k)):", total_photosynthesis_cost(bjv(k))
+!write(67,*) "total_photosynthesis_cost(0.3):", total_photosynthesis_cost(0.3)
+!write(67,*) "total_photosynthesis_cost(1.8):", total_photosynthesis_cost(1.8)
+!write(67,*) "total_photosynthesis_cost(2.8):", total_photosynthesis_cost(2.8)
+!write(67,*) "bjv(k):", bjv(k)
+!write(67,*) "relcost_J:", relcost_J
+!write(67,*) "vcmax00:", vcmax00
+!write(67,*) "Neff:", Neff
 
-                Anet_cost = golden(l_bound,bjv(k),u_bound,total_photosynthesis_cost,0.01,bjv_new(k))
-                veg%vcmax_shade(k) = Neff/(1.+relcost_J*bjv_new(k)/4.0)
-                veg%ejmax_shade(k) = veg%vcmax_shade(k)*bjv_new(k)
-             else
-                bjv_new(k) = bjv(k)
-                veg%vcmax_shade(k) = veg%vcmax(k)
-                veg%ejmax_shade(k) = veg%ejmax(k)
-             endif
+
+             if (cable_user%explicit_gm) then  ! always calculate if gm is explicit
+                 Anet_cost = golden(l_bound,bjv(k),u_bound,total_photosynthesis_cost,0.01,bjv_new(k))
+                 if (bjv_new(k) .gt. (u_bound - 0.01) .or. bjv_new(k) .lt. (l_bound + 0.01)) then
+                    !write(63,*) "coordination: hitting boundary shaded leaf"
+                    bjv_new(k) = bjv(k)
+                    veg%vcmax_shade(k) = veg%vcmaxcc(k)
+                    veg%ejmax_shade(k) = veg%ejmaxcc(k)
+                 else   
+                    veg%vcmax_shade(k) = Neff/(1.+relcost_J*bjv_new(k)/4.0)
+                    veg%ejmax_shade(k) = veg%vcmax_shade(k)*bjv_new(k)
+                 endif
+             else ! implicit gm
+                 if(total_photosynthesis_cost(bjv(k)).lt.total_photosynthesis_cost(l_bound) .and. &
+                    total_photosynthesis_cost(bjv(k)).lt.total_photosynthesis_cost(u_bound)) then
+
+                    Anet_cost = golden(l_bound,bjv(k),u_bound,total_photosynthesis_cost,0.01,bjv_new(k))
+                    veg%vcmax_shade(k) = Neff/(1.+relcost_J*bjv_new(k)/4.0)
+                    veg%ejmax_shade(k) = veg%vcmax_shade(k)*bjv_new(k)
+                 else
+                    bjv_new(k) = bjv(k)
+                    veg%vcmax_shade(k) = veg%vcmax(k)
+                    veg%ejmax_shade(k) = veg%ejmax(k)
+                 endif
+              endif
           endif
 
           ! optimisation for sun leaves
@@ -180,19 +206,30 @@ CONTAINS
 
           else
 
-             if(total_photosynthesis_cost(bjv(k)).lt.total_photosynthesis_cost(l_bound).and. &
-                  total_photosynthesis_cost(bjv(k)).lt.total_photosynthesis_cost(u_bound)) then
-
+             if (cable_user%explicit_gm) then  ! always calculate if gm is explicit
                 Anet_cost = golden(l_bound,bjv(k),u_bound,total_photosynthesis_cost,0.01,bjv_new(k))
-                veg%vcmax_sun(k) = Neff/(1.+relcost_J*bjv_new(k)/4.0)
-                veg%ejmax_sun(k) = veg%vcmax_sun(k)*bjv_new(k)
-             else
-                bjv_new(k) = bjv(k)
-                veg%vcmax_sun(k) = veg%vcmax(k)
-                veg%ejmax_sun(k) = veg%ejmax(k)
-             endif
-             !call total_An_Ac_Aj(bjv_new(k),An,Ac,Aj)
+                if (bjv_new(k) .gt. (u_bound - 0.01) .or. bjv_new(k) .lt. (l_bound + 0.01)) then
+                   !write(63,*) "coordination: hitting boundary sunlit leaf"
+                   bjv_new(k) = bjv(k)
+                   veg%vcmax_sun(k) = veg%vcmaxcc(k)
+                   veg%ejmax_sun(k) = veg%ejmaxcc(k)
+                else
+                   veg%vcmax_sun(k) = Neff/(1.+relcost_J*bjv_new(k)/4.0)
+                   veg%ejmax_sun(k) = veg%vcmax_sun(k)*bjv_new(k)
+                endif
+             else ! implicit gm 
+                if(total_photosynthesis_cost(bjv(k)).lt.total_photosynthesis_cost(l_bound).and. &
+                   total_photosynthesis_cost(bjv(k)).lt.total_photosynthesis_cost(u_bound)) then
 
+                   Anet_cost = golden(l_bound,bjv(k),u_bound,total_photosynthesis_cost,0.01,bjv_new(k))
+                   veg%vcmax_sun(k) = Neff/(1.+relcost_J*bjv_new(k)/4.0)
+                   veg%ejmax_sun(k) = veg%vcmax_sun(k)*bjv_new(k)
+                else
+                   bjv_new(k) = bjv(k)
+                   veg%vcmax_sun(k) = veg%vcmax(k)
+                   veg%ejmax_sun(k) = veg%ejmax(k)
+                endif
+             endif
           endif
 
        else !C4

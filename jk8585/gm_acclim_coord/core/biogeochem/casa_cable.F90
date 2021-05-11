@@ -893,10 +893,12 @@ contains
                 relcostJCi = PHOTO%relcostJ_optim
              endif
 
-             Nefftmp(np) = veg%vcmax(np) + relcostJCi * bjvci(np) *  &
-                  veg%vcmax(np) / 4.0
-             relcostJ(np) = 1.0 / (veg%bjv(np) * veg%vcmaxcc(np) / 4.0) * &
-                  (Nefftmp(np) - veg%vcmaxcc(np))
+             ! recalculate relcost J: allow a higher Neff for explicit gm
+             relcostJ(np) = relcostJCi * veg%bjv(np)/bjvci(np)
+             !Nefftmp(np) = veg%vcmax(np) + relcostJCi * bjvci(np) *  &
+             !     veg%vcmax(np) / 4.0
+             !relcostJ(np) = 1.0 / (veg%bjv(np) * veg%vcmaxcc(np) / 4.0) * &
+             !     (Nefftmp(np) - veg%vcmaxcc(np))
 
           else  ! infinite gm
              if (coord) then
