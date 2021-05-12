@@ -849,8 +849,8 @@ contains
                   gm_vcmax_slope * (veg%vcmax(np) - vcmax_ref(np))
 
              ! JK: avoid very low gm values for woody evergreens and tundra
-             if (ivt .EQ. 1 .OR. ivt .EQ. 3 .OR. ivt .EQ. 8) then
-                veg%gm(np) = max(veg%gm(np) , 0.8_r_2 * veg%gmmax(np))
+             if (ivt .EQ. 1 .OR. ivt .EQ. 3 .OR. ivt .EQ. 8 .OR. ivt .EQ. 5) then
+                veg%gm(np) = max(veg%gm(np) , 0.80_r_2 * veg%gmmax(np))
              endif
              
 !write(86,*) "veg%gm:", veg%gm
