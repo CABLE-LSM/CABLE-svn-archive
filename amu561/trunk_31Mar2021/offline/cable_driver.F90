@@ -297,6 +297,7 @@ USE cbl_soil_snow_init_special_module
   READ( 10, NML=CABLE )	  !where NML=CABLE defined above
   CLOSE(10)
 
+
   ! Open, read and close the consistency check file.
   ! Check triggered by cable_user%consistency_check = .TRUE. in cable.nml
   IF(cable_user%consistency_check) THEN

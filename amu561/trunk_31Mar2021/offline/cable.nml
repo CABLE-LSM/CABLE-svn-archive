@@ -1,70 +1,101 @@
 &cable
-   filename%met = 'TumbaFluxnet.1.3_met.nc'
-   filename%out = 'out_cable.nc'
-   filename%log = 'log_cable.txt'
-   filename%restart_in  = ' ' 
-   filename%restart_out = './restart_out.nc'
-   filename%type    = 'gridinfo_CSIRO_1x1.nc'
-   filename%veg    = ''
-   filename%soil    =''
+   filename%met = "met_file.nc"
+   filename%out = "test.nc"
+   filename%log = "log.txt"
+   filename%restart_in  = "" ! /g/data/w35/amu561/Steven_CABLE_runs/CABLE_outputs/CO2_temp/CNRM-CERFACS-CNRM-CM5/historical/CSIRO-CCAM-r3355-r240x120-ISIMIP2b-AWAP/restarts//restart_.nc"
+   filename%restart_out = "" !"/g/data/w35/amu561/Steven_CABLE_runs/CABLE_outputs/CO2_temp/CNRM-CERFACS-CNRM-CM5/historical/CSIRO-CCAM-r3355-r240x120-ISIMIP2b-AWAP/restarts//restart_1962.nc"
+   filename%type = "../../CABLE-AUX/offline/gridinfo_CSIRO_1x1.nc " !/g/data/w35/amu561/Steven_CABLE_runs/CABLE_inputs/gridinfo_AWRA_matched_veg_inputs.nc"
+   filename%veg  = "/g/data/w35/amu561/Steven_CABLE_runs/CABLE_source/CABLE-AUX/core/biogeophys/def_veg_params_zr_clitt_albedo_fix.txt"
+   filename%gw_elev ="../../CABLE-AUX/offline/gridinfo_CSIRO_1x1.nc" ! /g/data/w35/amu561/Steven_CABLE_runs/CABLE_inputs/gridinfo_AWRA_matched_veg_inputs.nc"
+   filename%soil = "/g/data/w35/amu561/Steven_CABLE_runs/CABLE_source/CABLE-AUX/core/biogeophys/def_soil_params.txt"
    vegparmnew = .TRUE.  ! using new format when true
    soilparmnew = .TRUE.  ! using new format when true
    spinup = .FALSE.  ! do we spin up the model?
    delsoilM = 0.001   ! allowed variation in soil moisture for spin up
    delsoilT = 0.01    ! allowed variation in soil temperature for spin up
-   output%restart = .TRUE.  ! should a restart file be created?
-   output%met = .TRUE.  ! input met data
+   output%restart = .FALSE.  ! should a restart file be created?
+   output%met = .FALSE.  ! input met data
    output%flux = .TRUE.  ! convective, runoff, NEE
-   output%soil = .TRUE.  ! soil states
-   output%snow = .TRUE.  ! snow states
-   output%radiation = .TRUE.  ! net rad, albedo
-   output%carbon    = .TRUE.  ! NEE, GPP, NPP, stores
-   output%veg       = .TRUE.  ! vegetation states
-   output%params    = .TRUE.  ! input parameters used to produce run
-   output%patch     = .TRUE.  ! write per patch  
-   output%balances  = .TRUE.  ! energy and water balances
+   output%soil = .FALSE.  ! soil states
+   output%snow = .FALSE.  ! snow states
+   output%radiation = .FALSE.  ! net rad, albedo
+   output%carbon    = .FALSE.  ! NEE, GPP, NPP, stores
+   output%veg       = .FALSE.  ! vegetation states
+   output%params    = .FALSE.  ! input parameters used to produce run
+   output%balances  = .FALSE.  ! energy and water balances
+   output%averaging = "all"
    check%ranges     = .FALSE.  ! variable ranges, input and output
    check%energy_bal = .TRUE.  ! energy balance
    check%mass_bal   = .TRUE.  ! water/mass balance
+   output%patch = .FALSE.
+   patchout = .FALSE.
    verbose = .TRUE. ! write details of every grid cell init and params to log?
    leaps = .TRUE. ! calculate timing with leap years?
    logn = 88      ! log file number - declared in input module
-   fixedCO2 = 350.0   ! if not found in met file, in ppmv
-   spincasa      = .FALSE.     ! spin casa before running the model if TRUE
-   l_casacnp     = .FALSE.  ! using casaCNP with CABLE 
+   fixedCO2 = 318.3975 ! MMY fixed co2 to compare with LIS-CABLE if not found in met file, in ppmv
+   spincasa      = .FALSE.     ! spin casa before running the model if TRUE, and should be set to FALSE if spincasainput = .TRUE.
+   l_casacnp     = .FALSE.  ! using casaCNP with CABLE
    l_laiFeedbk   = .FALSE.  ! using prognostic LAI
    l_vcmaxFeedbk = .FALSE.  ! using prognostic Vcmax
    icycle = 0   ! BP pull it out from casadimension and put here; 0 for not using casaCNP, 1 for C, 2 for C+N, 3 for C+N+P
-   casafile%cnpipool='/projects/access/CABLE-AUX/core/biogeochem/poolcnpInTumbarumba.csv'  ! 
-   casafile%cnpbiome='/projects/access/CABLE-AUX/core/biogeochem/pftlookup_csiro_v16_17tiles.csv'  ! biome specific BGC parameters
+   casafile%cnpipool=' *** SET PATH IN cable.nml *** '
+   casafile%cnpbiome=' *** SET PATH IN cable.nml *** '
    casafile%cnpepool='poolcnpOut.csv'    ! end of run pool size
    casafile%cnpmetout='casamet.nc'                ! output daily met forcing for spinning casacnp
    casafile%cnpmetin=''          ! list of daily met files for spinning casacnp
-   casafile%phen='/projects/access/CABLE-AUX/core/biogeochem/modis_phenology_csiro.txt'        ! modis phenology
+   casafile%phen=' *** SET PATH IN cable.nml *** '
    casafile%cnpflux='cnpfluxOut.csv'
    ncciy = 0 ! 0 for not using gswp; 4-digit year input for year of gswp met
-   gswpfile%rainf = 'gswp/Rainf_gswp1987.nc'
-   gswpfile%snowf = 'gswp/Snowf_gswp1987.nc'
-   gswpfile%LWdown= 'gswp/LWdown_srb1987.nc'
-   gswpfile%SWdown= 'gswp/SWdown_srb1987.nc'
-   gswpfile%PSurf = 'gswp/PSurf_ecor1987.nc'
-   gswpfile%Qair  = 'gswp/Qair_cru1987.nc'
-   gswpfile%Tair  = 'gswp/Tair_cru1987.nc'
-   gswpfile%wind  = 'gswp/Wind_ncep1987.nc'
+   gswpfile%rainf = "/scratch/w35/amu561/Steven_CABLE_runs/CABLE_inputs/Weather_generator_outputs//CNRM-CERF
+ACS-CNRM-CM5/historical/CSIRO-CCAM-r3355-r240x120-ISIMIP2b-AWAP//Rainf/AWAP.Rainf.3hr.1962.nc"
+   gswpfile%snowf = "/scratch/w35/amu561/Steven_CABLE_runs/CABLE_inputs/Weather_generator_outputs//CNRM-CERF
+ACS-CNRM-CM5/historical/CSIRO-CCAM-r3355-r240x120-ISIMIP2b-AWAP//Snowf/AWAP.Snowf.3hr.1962.nc"
+   gswpfile%LWdown= "/scratch/w35/amu561/Steven_CABLE_runs/CABLE_inputs/Weather_generator_outputs//CNRM-CERF
+ACS-CNRM-CM5/historical/CSIRO-CCAM-r3355-r240x120-ISIMIP2b-AWAP//LWdown/AWAP.LWdown.3hr.1962.nc"
+   gswpfile%SWdown= "/scratch/w35/amu561/Steven_CABLE_runs/CABLE_inputs/Weather_generator_outputs//CNRM-CERF
+ACS-CNRM-CM5/historical/CSIRO-CCAM-r3355-r240x120-ISIMIP2b-AWAP//SWdown/AWAP.SWdown.3hr.1962.nc"
+   gswpfile%PSurf =  "/g/data/w35/amu561/Steven_CABLE_runs/CABLE_inputs/gridinfo_AWRA_matched_veg_inputs.nc"
+ 
+   gswpfile%Qair  = "/scratch/w35/amu561/Steven_CABLE_runs/CABLE_inputs/Weather_generator_outputs//CNRM-CERF
+ACS-CNRM-CM5/historical/CSIRO-CCAM-r3355-r240x120-ISIMIP2b-AWAP//Qair/AWAP.Qair.3hr.1962.nc"
+   gswpfile%Tair  = "/scratch/w35/amu561/Steven_CABLE_runs/CABLE_inputs/Weather_generator_outputs//CNRM-CERF
+ACS-CNRM-CM5/historical/CSIRO-CCAM-r3355-r240x120-ISIMIP2b-AWAP//Tair/AWAP.Tair.3hr.1962.nc"
+   gswpfile%wind  = "/scratch/w35/amu561/Steven_CABLE_runs/CABLE_inputs/Weather_generator_outputs//CNRM-CERF"   
+gswpfile%mask  = "/g/data/w35/amu561/Steven_CABLE_runs/CABLE_inputs/gridinfo_AWRA_matched_veg_inputs.nc"
    redistrb = .FALSE.  ! Turn on/off the hydraulic redistribution
    wiltParam = 0.5
    satuParam = 0.8
-   cable_user%FWSOIL_SWITCH = 'standard'        ! choices are: 
-                                                 ! 1. standard 
-                                                 ! 2. non-linear extrapolation 
-                                                 ! 3. Lai and Ktaul 2000 
-   cable_user%DIAG_SOIL_RESP = 'ON ' 
-   cable_user%LEAF_RESPIRATION = 'ON ' 
-   cable_user%RUN_DIAG_LEVEL= 'BASIC'        ! choices are: 
+   cable_user%FWSOIL_SWITCH = 'Haverd2013'        ! choices are:
+                                                 ! 1. standard
+                                                 ! 2. non-linear extrapolation
+                                                 ! 3. Lai and Katul 2000
+                                                 ! 4. Haverd2013
+   cable_user%DIAG_SOIL_RESP = 'ON '
+   cable_user%LEAF_RESPIRATION = 'ON '
+   cable_user%RUN_DIAG_LEVEL= 'BASIC'        ! choices are:
                                                  ! 1. BASIC
                                                  ! 1. NONE
-   cable_user%CONSISTENCY_CHECK= .TRUE.      ! TRUE outputs combined fluxes at each timestep for comparisson to A control run 
-   cable_user%CASA_DUMP_READ = .FALSE.      ! TRUE reads CASA forcing from netcdf format
-   cable_user%CASA_DUMP_WRITE = .FALSE.      ! TRUE outputs CASA forcing in netcdf format
-   cable_user%SSNOW_POTEV= 'HDM'      ! Humidity Deficit Method
+   cable_user%CONSISTENCY_CHECK = .FALSE.      ! TRUE outputs combined fluxes at each timestep for comparisson to A control run
+   cable_user%CASA_DUMP_READ = .FALSE.        ! TRUE reads CASA forcing from netcdf format
+   cable_user%CABLE_RUNTIME_COUPLED = .FALSE.
+   cable_user%CASA_DUMP_WRITE = .FALSE.       ! TRUE outputs CASA forcing in netcdf format
+   cable_user%SSNOW_POTEV = 'HDM'              ! Humidity Deficit Method
+   cable_user%GW_MODEL = .FALSE.          ! True means use the groundwater module, false means use default soil snow scheme
+   cable_user%GSWP3 = .FALSE.
+   cable_user%MetType = ''
+   cable_user%GS_SWITCH = 'medlyn'
+   cable_user%or_evap = .FALSE.
+   cable_user%soil_struc = 'default'
+   cable_user%litter = .FALSE.
+   cable_user%call_climate = .false.
+   cable_user%POPLUC = .false.
+   cable_user%soil_thermal_fix = .true.
+   gw_params%MaxSatFraction = 3000.0
+   gw_params%MaxHorzDrainRate = 2e-5
+   gw_params%EfoldHorzDrainRate = 1.0
+   gw_params%hkrz = 0.1
+   gw_params%zdepth = 2.0
+   gw_params%ssgw_ice_switch = .true.
+
 &end
+

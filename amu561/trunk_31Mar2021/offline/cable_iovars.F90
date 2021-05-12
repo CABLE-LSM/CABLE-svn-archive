@@ -220,11 +220,11 @@ MODULE cable_IO_vars_module
           Wind = .FALSE.,      & ! 14 windspeed [m/s]
           Wind_N = .FALSE.,    & ! 15 surface wind speed, N component [m/s]
           Wind_E = .FALSE.,    & ! 16 surface wind speed, E component [m/s]
-          LAI = .TRUE.,       & !
+          LAI = .FALSE.,       & !
           Qmom = .FALSE.,      & !    momentum flux [kg/m/s2]
           Qh = .TRUE.,        & ! 17 sensible heat flux [W/m2]
           Qle = .TRUE.,       & ! 18 latent heat flux [W/m2]
-          Qg = .TRUE.,        & ! 19 ground heat flux [W/m2]
+          Qg = .FALSE.,        & ! 19 ground heat flux [W/m2]
           SWnet = .FALSE.,     & ! 20 net shortwave [W/m2]
           LWnet = .FALSE.,     & ! 21 net longwave [W/m2]
           Evap = .TRUE.,      & ! 22 total evapotranspiration [kg/m2/s]
@@ -238,7 +238,7 @@ MODULE cable_IO_vars_module
           Albedo = .FALSE.,    & ! 30 albedo [-]
           visAlbedo = .FALSE., & ! vars intro for Ticket #27
           nirAlbedo = .FALSE., & ! vars intro for Ticket #27
-          VegT = .TRUE.,      & ! 31 vegetation temperature [K]
+          VegT = .FALSE.,      & ! 31 vegetation temperature [K]
           SoilTemp = .FALSE.,  & ! 32 av.layer soil temperature [K]
           SoilMoist = .TRUE., & ! 33 av.layer soil moisture [kg/m2]
           SoilMoistIce = .FALSE., & ! 33 av.layer soil frozen moisture [kg/m2]
@@ -358,8 +358,8 @@ MODULE cable_IO_vars_module
                                 ! photosynthesis(leaf phenology)[-] (-5 - 15)
           vbeta = .FALSE.,     & ! stomatal sensitivity to soil water
           xalbnir = .FALSE.,   & ! modifier for albedo in near ir band
-          iveg  = .TRUE.,     & ! vegetation type from global index
-          patchfrac  = .TRUE.,& ! fractional cover of each veg/soil patch
+          iveg  = .FALSE.,     & ! vegetation type from global index
+          patchfrac  = .FALSE.,& ! fractional cover of each veg/soil patch
           isoil  = .FALSE.,    & ! soil type from global index
           meth  = .FALSE.,     & ! method for solving turbulence in canopy scheme
           za  = .FALSE.,       & ! something to do with roughness ????
@@ -392,5 +392,6 @@ MODULE cable_IO_vars_module
 
   ! For threading:
   !$OMP THREADPRIVATE(landpt,patch)
+
 
 END MODULE cable_IO_vars_module

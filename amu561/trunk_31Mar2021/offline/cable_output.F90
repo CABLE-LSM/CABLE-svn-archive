@@ -57,7 +57,7 @@ MODULE cable_output_module
           Qmom, Qle, Qh, Qg, NEE, SWnet,                             &
           LWnet, SoilMoist, SoilTemp, Albedo,                        &
           visAlbedo, nirAlbedo, SoilMoistIce,                        &
-          Qs, Qsb, Evap, BaresoilT, SWE, SnowT,                      &
+          Qs, Qsb, Evap, PotEvap, BaresoilT, SWE, SnowT,                      &
           RadT, VegT, Ebal, Wbal, AutoResp, RootResp,                &
           StemResp, LeafResp, HeteroResp, GPP, NPP, LAI,             &
           ECanop, TVeg, ESoil, CanopInt, SnowDepth,                  &
@@ -468,6 +468,8 @@ CONTAINS
     END IF
     ! Define surface flux variables in output file and allocate temp output
     ! vars:
+    output%Qmom=.FALSE.
+    output%flux=.FALSE.
     IF(output%flux .OR. output%Qmom) THEN
        CALL define_ovar(ncid_out, ovid%Qmom, 'Qmom', 'kg/m/s2',                &
             'Surface momentum flux',patchout%Qmom,'dummy',       &
@@ -475,6 +477,7 @@ CONTAINS
        ALLOCATE(out%Qmom(mp))
        out%Qmom = 0.0 ! initialise
     END IF
+    patchout%Qle=.FALSE.
     IF(output%flux .OR. output%Qle) THEN
        CALL define_ovar(ncid_out, ovid%Qle, 'Qle', 'W/m^2',                    &
             'Surface latent heat flux',patchout%Qle,'dummy',       &
@@ -482,6 +485,7 @@ CONTAINS
        ALLOCATE(out%Qle(mp))
        out%Qle = 0.0 ! initialise
     END IF
+    patchout%Qh=.FALSE.
     IF(output%flux .OR. output%Qh) THEN
        CALL define_ovar(ncid_out,ovid%Qh,'Qh', 'W/m^2',                        &
             'Surface sensible heat flux',patchout%Qh,'dummy',      &
@@ -497,6 +501,7 @@ CONTAINS
        ALLOCATE(out%Qg(mp))
        out%Qg = 0.0 ! initialise
     END IF
+    patchout%Qs=.FALSE.
     IF(output%flux .OR. output%Qs) THEN
        CALL define_ovar(ncid_out, ovid%Qs, 'Qs',                               &
             'kg/m^2/s', 'Surface runoff', patchout%Qs, 'dummy',    &
@@ -504,6 +509,7 @@ CONTAINS
        ALLOCATE(out%Qs(mp))
        out%Qs = 0.0 ! initialise
     END IF
+    patchout%Qsb=.FALSE.
     IF(output%flux .OR. output%Qsb) THEN
        CALL define_ovar(ncid_out, ovid%Qsb, 'Qsb', 'kg/m^2/s',                 &
             'Subsurface runoff', patchout%Qsb, 'dummy',            &
@@ -511,6 +517,7 @@ CONTAINS
        ALLOCATE(out%Qsb(mp))
        out%Qsb = 0.0 ! initialise
     END IF
+    patchout%Evap=.FALSE.
     IF(output%flux .OR. output%Evap) THEN
        CALL define_ovar(ncid_out, ovid%Evap,'Evap', 'kg/m^2/s',                &
             'Total evapotranspiration', patchout%Evap, 'dummy',    &
@@ -518,6 +525,15 @@ CONTAINS
        ALLOCATE(out%Evap(mp))
        out%Evap = 0.0 ! initialise
     END IF
+    patchout%PotEvap=.FALSE.
+    IF(output%flux .OR. output%PotEvap) THEN
+       CALL define_ovar(ncid_out, ovid%PotEvap,'PotEvap', 'kg/m^2/s',                &
+            'Total potential evapotranspiration', patchout%PotEvap, 'dummy',    &
+            xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%PotEvap(mp))
+       out%PotEvap = 0.0 ! initialise
+    END IF
+    patchout%ECanop=.FALSE.
     IF(output%flux .OR. output%ECanop) THEN
        CALL define_ovar(ncid_out, ovid%Ecanop, 'ECanop', 'kg/m^2/s',           &
             'Wet canopy evaporation', patchout%ECanop, 'dummy',    &
@@ -525,6 +541,7 @@ CONTAINS
        ALLOCATE(out%ECanop(mp))
        out%ECanop = 0.0 ! initialise
     END IF
+    patchout%TVeg=.FALSE.
     IF(output%flux .OR. output%TVeg) THEN
        CALL define_ovar(ncid_out, ovid%TVeg, 'TVeg', 'kg/m^2/s',               &
             'Vegetation transpiration', patchout%TVeg, 'dummy',    &
@@ -532,6 +549,7 @@ CONTAINS
        ALLOCATE(out%TVeg(mp))
        out%TVeg = 0.0 ! initialise
     END IF
+    patchout%ESoil=.FALSE.
     IF(output%flux .OR. output%ESoil) THEN
        CALL define_ovar(ncid_out, ovid%ESoil, 'ESoil', 'kg/m^2/s',             &
             'Evaporation from soil', patchout%ESoil, 'dummy',      &
@@ -539,6 +557,7 @@ CONTAINS
        ALLOCATE(out%ESoil(mp))
        out%ESoil = 0.0 ! initialise
     END IF
+
     IF(output%flux .OR. output%HVeg) THEN
        CALL define_ovar(ncid_out, ovid%HVeg, 'HVeg', 'W/m^2',                  &
             'Sensible heat from vegetation', patchout%HVeg,        &
@@ -570,6 +589,7 @@ CONTAINS
 
 
     ! Define soil state variables in output file and allocate temp output vars:
+    patchout%SoilMoist=.FALSE.
     IF(output%soil .OR. output%SoilMoist) THEN
        CALL define_ovar(ncid_out, ovid%SoilMoist, 'SoilMoist', 'm^3/m^3',      &
             'Average layer soil moisture', patchout%SoilMoist,     &
@@ -641,6 +661,7 @@ CONTAINS
        ALLOCATE(out%LWnet(mp))
        out%LWnet = 0.0 ! initialise
     END IF
+    patchout%Rnet=.FALSE.
     IF(output%radiation .OR. output%Rnet) THEN
        CALL define_ovar(ncid_out, ovid%Rnet, 'Rnet', 'W/m^2',                  &
             'Net radiation absorbed by surface', patchout%Rnet,    &
@@ -747,6 +768,7 @@ CONTAINS
        ALLOCATE(out%CanT(mp))
        out%CanT = 0.0 ! initialise
     END IF
+    patchout%Fwsoil=.FALSE.
     IF(output%veg .OR. output%Fwsoil) THEN
        CALL define_ovar(ncid_out, ovid%Fwsoil, 'Fwsoil', '[-]', &
             'soil moisture modifier to stomatal conductance', patchout%Fwsoil, &
@@ -821,6 +843,7 @@ CONTAINS
        ALLOCATE(out%HeteroResp(mp))
        out%HeteroResp = 0.0 ! initialise
     END IF
+    patchout%GPP=.FALSE.
     IF(output%carbon.OR.output%GPP) THEN
        CALL define_ovar(ncid_out, ovid%GPP, 'GPP', 'umol/m^2/s',               &
             'Gross primary production', patchout%GPP,              &
@@ -830,11 +853,7 @@ CONTAINS
 
 
     END IF
-
-
-
-
-
+    patchout%NPP=.FALSE.
     IF(output%carbon .OR. output%NPP) THEN
        CALL define_ovar(ncid_out, ovid%NPP, 'NPP', 'umol/m^2/s',               &
             'Net primary production', patchout%NPP,                &

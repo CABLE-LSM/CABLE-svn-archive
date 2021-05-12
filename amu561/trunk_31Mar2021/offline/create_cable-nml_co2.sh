@@ -184,7 +184,7 @@ cat > $(pwd)/cable_on.nml << EOF
    delsoilM = 0.001   ! allowed variation in soil moisture for spin up
    delsoilT = 0.01    ! allowed variation in soil temperature for spin up
    output%restart = .TRUE.  ! should a restart file be created?
-   output%met = .TRUE.  ! input met data
+   output%met = .FALSE.  ! input met data
    output%flux = .FALSE.  ! convective, runoff, NEE
    output%soil = .FALSE.  ! soil states
    output%snow = .FALSE.  ! snow states
@@ -198,6 +198,7 @@ cat > $(pwd)/cable_on.nml << EOF
    check%energy_bal = .TRUE.  ! energy balance
    check%mass_bal   = .TRUE.  ! water/mass balance
    output%patch = .FALSE.
+   patchout = .FALSE.
    verbose = .TRUE. ! write details of every grid cell init and params to log?
    leaps = .TRUE. ! calculate timing with leap years?
    logn = 88      ! log file number - declared in input module
