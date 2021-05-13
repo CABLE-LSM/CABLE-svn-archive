@@ -26,7 +26,6 @@ host_gadi()
    export NCDIR=$NETCDF_ROOT'/lib/Intel'
    export NCMOD=$NETCDF_ROOT'/include/Intel'
    export CFLAGS='-O2 -fp-model precise'
-   export CFLAGS='-O0 -fpe0'
    if [[ $1 = 'MGK' ]]; then
       export CFLAGS='-O2'
       #export NCMOD=$NETCDF_ROOT'/include'
