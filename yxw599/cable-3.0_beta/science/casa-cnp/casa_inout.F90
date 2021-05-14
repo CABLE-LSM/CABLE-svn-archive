@@ -1476,9 +1476,11 @@ CONTAINS
     CALL casa_cnpcycle(veg,casabiome,casapool,casaflux,casamet, LALLOC)
     !! vh_js !!
     !CLN ndummy must be before pdummy!!!!
+    ! changed by ypw 14-5-2021
+
     IF (icycle<3) THEN
-       IF (icycle<2) CALL casa_ndummy(casapool)
-       CALL casa_pdummy(casapool)
+        IF (icycle<2) CALL casa_ndummy(casamet,casabal,casapool)
+            CALL casa_pdummy(casamet,casabal,casaflux,casapool)
     ENDIF
 
     CALL casa_cnpbal(casapool,casaflux,casabal)
@@ -1490,9 +1492,6 @@ CONTAINS
       casapool%Nsoilmin = max(casapool%Nsoilmin,0.5)
       casapool%Psoillab = max(casapool%Psoillab,0.1)
     ENDIF
-
-
-
 
   END SUBROUTINE biogeochem
 
