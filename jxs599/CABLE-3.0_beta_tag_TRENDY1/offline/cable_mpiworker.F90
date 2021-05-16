@@ -122,7 +122,7 @@ CONTAINS
     USE mpi
 
     USE cable_def_types_mod
-    USE cable_IO_vars_module, ONLY: logn,gswpfile,ncciy,leaps,                  &
+    USE cable_IO_vars_module, ONLY: logn,gswpfile,ncciy,leaps, globalMetfile,  &
          verbose, fixedCO2,output,check,patchout,    &
          patch_type,soilparmnew,&
          defaultLAI, wlogn
@@ -272,6 +272,7 @@ USE cbl_soil_snow_init_special_module
          casafile,         &
          ncciy,            &
          gswpfile,         &
+         globalMetfile,    &   
          redistrb,         &
          wiltParam,        &
          satuParam,        &

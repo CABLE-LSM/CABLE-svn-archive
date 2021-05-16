@@ -155,7 +155,7 @@ CONTAINS
     USE mpi
 
     USE cable_def_types_mod
-    USE cable_IO_vars_module, ONLY: logn,gswpfile,ncciy,leaps,                  &
+    USE cable_IO_vars_module, ONLY: logn,gswpfile,ncciy,leaps,globalMetfile, &
          verbose, fixedCO2,output,check,patchout,    &
          patch_type,soilparmnew,&
          defaultLAI, sdoy, smoy, syear, timeunits, exists, output, &
@@ -350,6 +350,7 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
          casafile,         &
          ncciy,            &
          gswpfile,         &
+         globalMetfile,    &
          redistrb,         &
          wiltParam,        &
          satuParam,        &
@@ -460,7 +461,8 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
          TRIM(cable_user%MetType) .NE. "gswp3" .AND. &
          TRIM(cable_user%MetType) .NE. "gpgs" .AND. &
          TRIM(cable_user%MetType) .NE. "plum"  .AND. &
-         TRIM(cable_user%MetType) .NE. "cru") THEN
+         TRIM(cable_user%MetType) .NE. "cru"  .AND. &
+         TRIM(cable_user%MetType) .NE. "gpcc") THEN
        CALL open_met_file( dels, koffset, kend, spinup, CTFRZ )
        IF ( koffset .NE. 0 .AND. CABLE_USER%CALL_POP ) THEN
           WRITE(*,*)"When using POP, episode must start at Jan 1st!"
@@ -547,7 +549,12 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
                 calendar = "noleap"
              ENDIF
 
+          ENDIF
 
+           IF ( globalMetfile%l_gpcc ) THEN
+             ncciy = CurYear
+             WRITE(*,*) 'Looking for global offline run info.'
+             CALL open_met_file( dels, koffset, kend, spinup, CTFRZ )
           ENDIF
 
           ! somethings (e.g. CASA-CNP) only need to be done once per day
