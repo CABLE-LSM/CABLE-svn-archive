@@ -155,7 +155,7 @@ CONTAINS
     USE mpi
 
     USE cable_def_types_mod
-    USE cable_IO_vars_module, ONLY: logn,gswpfile,ncciy,leaps,                  &
+    USE cable_IO_vars_module, ONLY: logn,gswpfile,ncciy,leaps,globalMetfile, &
          verbose, fixedCO2,output,check,patchout,    &
          patch_type,soilparmnew,&
          defaultLAI, sdoy, smoy, syear, timeunits, exists, output, &
@@ -350,6 +350,7 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
          casafile,         &
          ncciy,            &
          gswpfile,         &
+         globalMetfile,    &
          redistrb,         &
          wiltParam,        &
          satuParam,        &
@@ -460,7 +461,8 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
          TRIM(cable_user%MetType) .NE. "gswp3" .AND. &
          TRIM(cable_user%MetType) .NE. "gpgs" .AND. &
          TRIM(cable_user%MetType) .NE. "plum"  .AND. &
-         TRIM(cable_user%MetType) .NE. "cru") THEN
+         TRIM(cable_user%MetType) .NE. "cru"  .AND. &
+         TRIM(cable_user%MetType) .NE. "gpcc") THEN
        CALL open_met_file( dels, koffset, kend, spinup, CTFRZ )
        IF ( koffset .NE. 0 .AND. CABLE_USER%CALL_POP ) THEN
           WRITE(*,*)"When using POP, episode must start at Jan 1st!"
@@ -547,6 +549,10 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
                 calendar = "noleap"
              ENDIF
 
+           ELSE IF ( globalMetfile%l_gpcc ) THEN
+             ncciy = CurYear
+             WRITE(*,*) 'Looking for global offline run info.'
+             CALL open_met_file( dels, koffset, kend, spinup, CTFRZ )
 
           ENDIF
 
@@ -1595,15 +1601,15 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
 
     TYPE (met_type), INTENT(INOUT) :: met
     TYPE (air_type), INTENT(INOUT) :: air
-    TYPE (soil_snow_type), INTENT(OUT) :: ssnow
-    TYPE (veg_parameter_type), INTENT(OUT)  :: veg
-    TYPE (bgc_pool_type), INTENT(OUT)  :: bgc
-    TYPE (soil_parameter_type), INTENT(OUT) :: soil
-    TYPE (canopy_type), INTENT(OUT)    :: canopy
-    TYPE (roughness_type), INTENT(OUT) :: rough
-    TYPE (radiation_type),INTENT(OUT)  :: rad
-    TYPE (sum_flux_type), INTENT(OUT)  :: sum_flux
-    TYPE (balances_type), INTENT(OUT)  :: bal
+    TYPE (soil_snow_type),      INTENT(INOUT) :: ssnow
+    TYPE (veg_parameter_type),  INTENT(INOUT) :: veg
+    TYPE (bgc_pool_type),       INTENT(INOUT) :: bgc
+    TYPE (soil_parameter_type), INTENT(INOUT) :: soil
+    TYPE (canopy_type),         INTENT(INOUT) :: canopy
+    TYPE (roughness_type),      INTENT(INOUT) :: rough
+    TYPE (radiation_type),      INTENT(INOUT) :: rad
+    TYPE (sum_flux_type),       INTENT(INOUT) :: sum_flux
+    TYPE (balances_type),       INTENT(INOUT) :: bal
 
 
     ! local vars

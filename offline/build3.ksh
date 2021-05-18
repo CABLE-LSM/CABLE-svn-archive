@@ -14,10 +14,11 @@ host_gadi()
    . /etc/bashrc
    module purge
    module add intel-compiler/2019.5.281
-   module add netcdf/4.6.3
+   #module add netcdf/4.6.3
+   module add netcdf openmpi #eq. CABLE-YP
 
    if [[ $1 = 'mpi' ]]; then
-      module add intel-mpi/2019.5.281
+      #module add intel-mpi/2019.5.281
       export FC='mpif90'
 	 else
       export FC='ifort'
