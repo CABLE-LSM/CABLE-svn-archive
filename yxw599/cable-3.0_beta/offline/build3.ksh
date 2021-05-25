@@ -13,11 +13,12 @@ host_gadi()
 {
    . /etc/bashrc
    module purge
-   module add intel-compiler/2019.5.281
-   module add netcdf/4.6.3
+   module add intel-compiler/2021.1.1
+   module add intel-mpi/2021.1.1
+   module add netcdf 
 
    if [[ $1 = 'mpi' ]]; then
-      module add intel-mpi/2019.5.281
+      module add intel-mpi/2021.1.1
       export FC='mpif90'
 	 else
       export FC='ifort'
@@ -26,7 +27,6 @@ host_gadi()
    export NCDIR=$NETCDF_ROOT'/lib/Intel'
    export NCMOD=$NETCDF_ROOT'/include/Intel'
    export CFLAGS='-O2 -fp-model precise'
-   export CFLAGS='-O0 -fpe0'
    if [[ $1 = 'MGK' ]]; then
       export CFLAGS='-O2'
       #export NCMOD=$NETCDF_ROOT'/include'

@@ -2134,19 +2134,19 @@ CONTAINS
           !                                  * casapool%cplant(np,leaf))
           casamet%glai(np)   = MAX(casabiome%glaimin(veg%iveg(np)), &
                casabiome%sla(veg%iveg(np)) * casapool%cplant(np,leaf))
-          ! added changed by ypw 9-8-2016
-          if(casamet%glai(np) < casabiome%glaimin(veg%iveg(np)).or.casamet%glai(np) > casabiome%glaimax(veg%iveg(np))) then
-             casamet%glai(np)         = MIN(casabiome%glaimax(veg%iveg(np)),MAX(casabiome%glaimin(veg%iveg(np)), &
-                                            casabiome%sla(veg%iveg(np)) * casapool%cplant(np,leaf)))
-             casapool%cplant(np,leaf) = casamet%glai(np)/ casabiome%sla(veg%iveg(np))
-             casapool%nplant(np,leaf) = casapool%cplant(np,leaf) * casabiome%ratioNCplantmin(veg%iveg(np),leaf)
-             casapool%pplant(np,leaf) = casapool%nplant(np,leaf) / casabiome%ratioNPplantmax(veg%iveg(np),leaf)
-          endif
-
           ! vh !
           IF (LALLOC.NE.3) THEN
              casamet%glai(np)   = MIN(casabiome%glaimax(veg%iveg(np)), casamet%glai(np))
           ENDIF
+          ! added changed by ypw 9-8-2016
+       !   if(casamet%glai(np) < casabiome%glaimin(veg%iveg(np)).or.casamet%glai(np) > casabiome%glaimax(veg%iveg(np))) then
+       !      casamet%glai(np)         = MIN(casabiome%glaimax(veg%iveg(np)),MAX(casabiome%glaimin(veg%iveg(np)), &
+       !                                     casabiome%sla(veg%iveg(np)) * casapool%cplant(np,leaf)))
+       !      casapool%cplant(np,leaf) = casamet%glai(np)/ casabiome%sla(veg%iveg(np))
+       !      casapool%nplant(np,leaf) = casapool%cplant(np,leaf) * casabiome%ratioNCplantmin(veg%iveg(np),leaf)
+       !      casapool%pplant(np,leaf) = casapool%nplant(np,leaf) / casabiome%ratioNPplantmax(veg%iveg(np),leaf)
+       !   endif
+
           casapool%clitter(np,:) = casapool%clitter(np,:) &
                + casapool%dClitterdt(np,:) * deltpool
           casapool%csoil(np,:)   = casapool%csoil(np,:)   &
@@ -2269,9 +2269,10 @@ CONTAINS
 
   END SUBROUTINE casa_poolzero
 
-  SUBROUTINE casa_cnpbal(casapool,casaflux,casabal)
+  SUBROUTINE casa_cnpbal(casamet,casapool,casaflux,casabal)
 
     IMPLICIT NONE
+    TYPE (casa_met),              INTENT(IN)    :: casamet
     TYPE (casa_pool),             INTENT(INOUT) :: casapool
     TYPE (casa_flux),             INTENT(INOUT) :: casaflux
     TYPE (casa_balance),          INTENT(INOUT) :: casabal
@@ -2309,15 +2310,28 @@ CONTAINS
     DO npt=1,mp
    !    IF(ABS(casabal%cbalance(npt))>1e-10) THEN
        IF(ABS(casabal%cbalance(npt))>1e-10.and.casapool%cplant(npt,1) >1.0e-3) THEN
-          WRITE(*,*) 'cbalance',  npt, Cbalplant(npt), Cbalsoil(npt)
-          WRITE(*,*) 'cplant', casapool%cplant(npt,:)
-          WRITE(*,*) 'gpp, npp',casaflux%Cgpp(npt) , &
-               casaflux%Cnpp(npt)
-          WRITE(*,*) 'dcplandt',  casapool%dcplantdt(npt,:), SUM(casapool%dcplantdt(npt,:))
+   !    IF(casamet%lat(npt)==7.5.and.casamet%lon(npt)==0.9375.and.casamet%iveg2(npt)==1) THEN
+       
+          WRITE(*,*) 'cbalance',   npt, casamet%lat(npt),casamet%lon(npt), &
+                                   casamet%iveg2(npt),Cbalplant(npt), Cbalsoil(npt)
+          WRITE(*,*) 'gpp, npp',   casaflux%Cgpp(npt), casaflux%Cnpp(npt)
           WRITE(*,*) 'rmplant, rgplant',  casaflux%crmplant(npt,:) , casaflux%crgplant(npt)
-          WRITE(*,*), 'dclabile',  casapool%dClabiledt(npt)* deltpool
+          WRITE(*,*) 'DIFF cplant',  SUM(casapool%cplant(npt,:)) -SUM(casabal%cplantlast(npt,:))
+          WRITE(*,*) 'dcplandt',   casapool%dcplantdt(npt,:), SUM(casapool%dcplantdt(npt,:))
+          WRITE(*,*) 'litterfall', casaflux%kplant(npt,:) * casabal%cplantlast(npt,:)*deltpool, &
+                                   SUM((casaflux%kplant(npt,:)*casabal%cplantlast(npt,:)))*deltpool
+          write(*,*) 'deplantdt-1', casapool%dcplantdt(npt,1), casapool%cplant(npt,1)-casabal%cplantlast(npt,1), &
+                      casaflux%Cnpp(npt) * casaflux%fracCalloc(npt,1) - casaflux%kplant(npt,1)  * casabal%cplantlast(npt,1)
+          write(*,*) 'deplantdt-2', casapool%dcplantdt(npt,2), casapool%cplant(npt,2)-casabal%cplantlast(npt,2),  &
+                      casaflux%Cnpp(npt) * casaflux%fracCalloc(npt,2) - casaflux%kplant(npt,2)  * casabal%cplantlast(npt,2)
+          write(*,*) 'deplantdt-3', casapool%dcplantdt(npt,3),   casapool%cplant(npt,3)-casabal%cplantlast(npt,3),&
+                      casaflux%Cnpp(npt) * casaflux%fracCalloc(npt,3) - casaflux%kplant(npt,3)  * casabal%cplantlast(npt,3)
 
+          WRITE(*,*) 'delclabile', casabal%Clabilelast(npt)-casapool%clabile(npt)
+          WRITE(*,*), 'dclabile',  casapool%dClabiledt(npt)* deltpool
           !  STOP
+
+
        ENDIF
     ENDDO
 

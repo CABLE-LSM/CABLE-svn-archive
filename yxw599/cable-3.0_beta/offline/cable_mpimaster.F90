@@ -1327,6 +1327,11 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
 !!$       CALL casa_poolout( ktau, veg, soil, casabiome,                           &
 !!$            casapool, casaflux, casamet, casabal, phen )
        CALL casa_fluxout( nyear, veg, soil, casabal, casamet)
+
+
+       ! ypw 18-5-21
+!       print *, 'ypw:psoil 1 to 10', nyear,icycle,CASAONLY,casapool%psoil(1:10,2)
+
        CALL write_casa_restart_nc ( casamet, casapool,casaflux,phen,CASAONLY )
 
        !CALL write_casa_restart_nc ( casamet, casapool, met, CASAONLY )
