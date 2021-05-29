@@ -60,11 +60,12 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
 
    USE cable_um_init_subrs_mod          ! where most subrs called from here reside
    
-   USE cable_um_tech_mod,   ONLY :                                             &
-      alloc_um_interface_types,  & ! mem. allocation subr (um1, kblum%) 
-      dealloc_vegin_soilin,      & ! mem. allocation subr (vegin%,soilin%)
-      um1,soil,                  & ! um1% type UM basics 4 convenience
-      kblum_veg                    ! kblum_veg% reset UM veg vars 4 CABLE use
+USE cable_um_tech_mod, ONLY : alloc_um_interface_types ! mem. allocation subr (um1, kblum%) 
+USE cable_um_tech_mod, ONLY : dealloc_vegin_soilin     ! mem. allocation subr (vegin%,soilin%)
+USE cable_um_tech_mod, ONLY : um1                      ! um1% type UM basics 4 convenience
+USE cable_um_tech_mod, ONLY : kblum_veg                ! kblum_veg% reset UM veg vars 4 CABLE use
+
+USE cable_params_mod,         ONLY: soil     => soil_cbl
 
    USE cable_common_module, ONLY :                                             &
       cable_user,          & ! cable_user% type inherits user definition

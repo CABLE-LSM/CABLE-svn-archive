@@ -129,9 +129,13 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
                             dzsoil ) 
 
    USE cable_def_types_mod, ONLY : ms, mstype, mp, r_2
-   USE cable_um_tech_mod,   ONLY : um1, soil, veg, ssnow 
-   USE cable_common_module, ONLY : cable_runtime, cable_user,                  &
-                                   soilin, get_type_parameters
+   USE cable_um_tech_mod,   ONLY : um1
+   USE cable_common_module, ONLY : cable_runtime, cable_user
+   USE cable_common_module, ONLY : get_type_parameters
+  USE cable_params_mod,     ONLY: soilin
+  USE cable_params_mod,     ONLY: veg => veg_cbl
+  USE cable_params_mod,     ONLY: soil => soil_cbl
+  USE cable_soil_snow_type_mod,  ONLY: ssnow => ssnow_cbl
    
    REAL, INTENT(IN), DIMENSION(um1%land_pts) :: &
       bexp, &
@@ -268,7 +272,8 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
           
 SUBROUTINE initialize_veg( canht_ft, lai_ft) 
    USE cable_um_tech_mod
-   USE cable_common_module, ONLY : cable_runtime, cable_user, vegin
+   USE cable_common_module, ONLY : cable_runtime, cable_user
+  USE cable_params_mod,    ONLY: veg => veg_cbl
    
    REAL, INTENT(IN), DIMENSION(um1%land_pts, um1%npft) :: canht_ft, lai_ft 
    
@@ -292,7 +297,8 @@ END SUBROUTINE initialize_veg
 !========================================================================
 
 SUBROUTINE clobber_height_lai( um_htveg, um_lai )
-   USE cable_um_tech_mod, ONLY : um1, kblum_veg, veg
+   USE cable_um_tech_mod, ONLY : um1, kblum_veg
+  USE cable_params_mod,     ONLY: veg => veg_cbl
 
    REAL, INTENT(IN), DIMENSION(um1%land_pts, um1%npft) ::                      &
                                                           um_htveg, um_lai
@@ -340,8 +346,9 @@ END SUBROUTINE clobber_height_lai
 
 SUBROUTINE init_respiration(NPP_FT_ACC,RESP_W_FT_ACC,RESP_S_ACC)
    ! Lestevens 23apr13 - for reading in prog soil & plant resp
-   USE cable_um_tech_mod,   ONLY : um1, canopy
+   USE cable_um_tech_mod,   ONLY : um1
    !USE cable_common_module, ONLY : cable_runtime, cable_user
+  USE cable_canopy_type_mod,  ONLY: canopy => canopy_cbl
 
    REAL, INTENT(INOUT),DIMENSION(um1%land_pts, um1%ntiles) :: NPP_FT_ACC
    REAL, INTENT(INOUT),DIMENSION(um1%land_pts, um1%ntiles) :: RESP_W_FT_ACC
@@ -394,8 +401,9 @@ END SUBROUTINE init_respiration
 !========================================================================
 
 SUBROUTINE init_veg_pars_fr_vegin() 
-   USE cable_common_module, ONLY : vegin
-   USE cable_um_tech_mod,   ONLY : veg, soil 
+  USE cable_params_mod,     ONLY: vegin
+  USE cable_params_mod,     ONLY: veg => veg_cbl
+  USE cable_params_mod,     ONLY: soil => soil_cbl
    USE cable_def_types_mod, ONLY : mp
 
    INTEGER :: k
@@ -445,10 +453,16 @@ SUBROUTINE initialize_radiation( sw_down, lw_down, cos_zenith_angle,           &
                    CO2_MMR,CO2_3D,CO2_DIM_LEN,CO2_DIM_ROW,L_CO2_INTERACTIVE )   
 
    USE cable_def_types_mod, ONLY : mp
-   USE cable_data_module,   ONLY : PHYS, OTHER
-   USE cable_um_tech_mod,   ONLY : um1, rad, soil, met,                        & 
-                                   conv_rain_prevstep, conv_snow_prevstep
+USE cable_phys_constants_mod, ONLY : TFRZ
+USE cable_other_constants_mod, ONLY : RAD_THRESH
+   USE cable_um_tech_mod,   ONLY : um1
+   USE cable_um_tech_mod,   ONLY : conv_rain_prevstep, conv_snow_prevstep
    USE cable_common_module, ONLY : cable_runtime, cable_user
+  
+  USE cable_params_mod,     ONLY: soil => soil_cbl
+  USE cable_radiation_type_mod,  ONLY: rad => rad_cbl
+  USE cable_met_type_mod,  ONLY: met => met_cbl
+  
 
    REAL, INTENT(INOUT), DIMENSION(um1%row_length, um1%rows) :: sw_down
    
@@ -479,10 +493,7 @@ SUBROUTINE initialize_radiation( sw_down, lw_down, cos_zenith_angle,           &
    !___defs 1st call to CABLE in this run. OK in UM & coupled
    LOGICAL, SAVE :: first_call= .TRUE.
      
-   REAL, POINTER :: TFRZ, RAD_THRESH
       
-      TFRZ => PHYS%TFRZ
-      RAD_THRESH => OTHER%RAD_THRESH
      
       IF( first_call ) THEN
          rad%albedo_T = soil%albsoil(:,1)
@@ -561,8 +572,10 @@ END SUBROUTINE initialize_radiation
 !========================================================================
           
 SUBROUTINE initialize_canopy(canopy_tile)
-   USE cable_um_tech_mod,   ONLY : um1, canopy 
+   USE cable_um_tech_mod,   ONLY : um1
    USE cable_common_module, ONLY : cable_runtime, cable_user
+  USE cable_canopy_type_mod,  ONLY: canopy => canopy_cbl
+
    
    REAL, INTENT(IN),DIMENSION(um1%land_pts, um1%ntiles) :: canopy_tile
    
@@ -596,10 +609,14 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
                                 sin_theta_latitude ) 
 
    USE cable_def_types_mod,  ONLY : mp, msn
-   USE cable_data_module,   ONLY : PHYS
-   USE cable_um_tech_mod,   ONLY : um1, soil, ssnow, met, bal, veg
+   USE cable_um_tech_mod,   ONLY : um1
    USE cable_common_module, ONLY : cable_runtime, cable_user
-   
+  USE cable_params_mod,     ONLY: veg => veg_cbl
+  USE cable_params_mod,     ONLY: soil => soil_cbl
+  USE cable_met_type_mod,  ONLY: met => met_cbl
+  USE cable_soil_snow_type_mod,  ONLY: ssnow => ssnow_cbl
+  USE cable_balances_type_mod,  ONLY: bal => bal_cbl
+
    REAL, INTENT(IN), DIMENSION(um1%land_pts) :: smvcst
    
    REAL, INTENT(IN), DIMENSION(um1%land_pts, um1%ntiles, um1%sm_levels) ::    &
@@ -630,7 +647,6 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
    INTEGER :: i,j,k,L,n
    REAL  :: zsetot, max_snow_depth=50000.
    REAL, ALLOCATABLE:: fwork(:,:,:), sfact(:), fvar(:), rtemp(:)
-   REAL, POINTER :: TFRZ
    LOGICAL :: skip =.TRUE. 
    LOGICAL :: first_call = .TRUE.
 
@@ -640,7 +656,6 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile, smcl_tile,      &
       ssnow%wbtot2 = 0
       ssnow%wb_lake = 0.
 
-      TFRZ => PHYS%TFRZ
 
       snow_tile = MIN(max_snow_depth, snow_tile)
 
@@ -797,7 +812,9 @@ END SUBROUTINE initialize_soilsnow
 !========================================================================
           
 SUBROUTINE initialize_roughness( z1_tq, z1_uv, htveg )  
-   USE cable_um_tech_mod,   ONLY : um1, rough, veg
+   USE cable_um_tech_mod,   ONLY : um1
+  USE cable_params_mod,     ONLY: veg => veg_cbl
+  USE cable_roughness_type_mod,  ONLY: rough => rough_cbl
    USE cable_common_module, ONLY : ktau_gl
    USE cable_def_types_mod, ONLY : mp
    USE cable_common_module, ONLY : cable_runtime, cable_user
@@ -889,7 +906,9 @@ END SUBROUTINE Update_kblum_radiation
 !========================================================================
 
 SUBROUTINE  um2cable_met_rad( cos_zenith_angle)
-   USE cable_um_tech_mod, ONLY :um1, kblum_rad, rad, met
+   USE cable_um_tech_mod, ONLY :um1, kblum_rad
+  USE cable_radiation_type_mod,  ONLY: rad => rad_cbl
+  USE cable_met_type_mod,  ONLY: met => met_cbl
 
    !___ from UM, cosine zenith angle and soil albedo
    REAL, INTENT(INOUT) :: cos_zenith_angle(um1%row_length, um1%rows)
@@ -1003,8 +1022,9 @@ END SUBROUTINE um2cable_lp
 
 SUBROUTINE init_bgc_vars() 
    USE cable_def_types_mod, ONLY : ncs, ncp 
-   USE cable_um_tech_mod,   ONLY : bgc, veg   
-   USE cable_common_module, ONLY : vegin
+  USE cable_bgc_pool_type_mod,   ONLY: bgc => bgc_cbl
+  USE cable_params_mod,     ONLY: veg => veg_cbl
+  USE cable_params_mod,     ONLY: vegin
    
    INTEGER :: k
 
@@ -1025,7 +1045,7 @@ END SUBROUTINE init_bgc_vars
 !========================================================================
 
 subroutine init_sumflux_zero() 
-   USE cable_um_tech_mod, ONLY : sum_flux
+  USE cable_sum_flux_type_mod,   ONLY: sum_flux => sum_flux_cbl
       sum_flux%sumpn = 0.; sum_flux%sumrp = 0.; sum_flux%sumrpw = 0.
       sum_flux%sumrpr = 0.; sum_flux%sumrs = 0.; sum_flux%sumrd = 0.
       sum_flux%dsumpn = 0.; sum_flux%dsumrp = 0.; sum_flux%dsumrs = 0.
@@ -1037,21 +1057,25 @@ END SUBROUTINE init_sumflux_zero
 !========================================================================
 
 SUBROUTINE alloc_cable_types()
-   USE cable_def_types_mod, ONLY : mp, alloc_cbm_var
-   USE cable_um_tech_mod,   ONLY : air, canopy, met, bal, rad, rough,          &
-                                   soil, ssnow, sum_flux, veg, bgc
+  !This is a redundant superfluou step, HOWEVER JAC implementation to 
+  !allocate state vars is about to change AND this need to change code 
+  !on both sides, multiple times 
+  USE cable_def_types_mod, ONLY : mp
+  USE allocate_cable_state_mod, ONLY : alloc_cable_state 
+  USE cable_params_mod,    ONLY: veg => veg_cbl
+  USE cable_params_mod,    ONLY: soil => soil_cbl
+  USE cable_air_type_mod,  ONLY: air => air_cbl
+  USE cable_met_type_mod,  ONLY: met => met_cbl
+  USE cable_radiation_type_mod,  ONLY: rad => rad_cbl
+  USE cable_roughness_type_mod,  ONLY: rough => rough_cbl
+  USE cable_canopy_type_mod,     ONLY: canopy => canopy_cbl
+  USE cable_balances_type_mod,   ONLY: bal => bal_cbl
+  USE cable_sum_flux_type_mod,   ONLY: sum_flux => sum_flux_cbl
+  USE cable_bgc_pool_type_mod,   ONLY: bgc => bgc_cbl
+  USE cable_soil_snow_type_mod,  ONLY: ssnow => ssnow_cbl
 
-      CALL alloc_cbm_var(air, mp)
-      CALL alloc_cbm_var(canopy, mp)
-      CALL alloc_cbm_var(met, mp)
-      CALL alloc_cbm_var(bal, mp)
-      CALL alloc_cbm_var(rad, mp)
-      CALL alloc_cbm_var(rough, mp)
-      CALL alloc_cbm_var(soil, mp)
-      CALL alloc_cbm_var(ssnow, mp)
-      CALL alloc_cbm_var(sum_flux, mp)
-      CALL alloc_cbm_var(veg, mp)
-      CALL alloc_cbm_var(bgc, mp)
+  call alloc_cable_state ( mp, air, met, rad, rough,      &
+                           canopy, ssnow, bgc, bal, sum_flux)
 
 END SUBROUTINE alloc_cable_types
 

@@ -66,7 +66,11 @@ SUBROUTINE init_casacnp(sin_theta_latitude,cpool_tile,npool_tile,ppool_tile, &
     USE cable_def_types_mod
     !USE define_dimensions
     !USE define_types
-    USE cable_um_tech_mod, ONLY : um1, veg, soil, canopy
+    USE cable_um_tech_mod, ONLY : um1!, veg, soil, canopy
+USE cable_params_mod,         ONLY: veg      => veg_cbl
+USE cable_params_mod,         ONLY: soil     => soil_cbl
+USE cable_canopy_type_mod,    ONLY: canopy   => canopy_cbl
+
     USE casavariable
     USE phenvariable
     USE casa_types_mod
@@ -237,6 +241,9 @@ SUBROUTINE casa_init_pk(casabiome,casaflux,casamet,casapool,casabal,veg,canopy,p
   USE casadimension        ! icycle,mplant,mlitter,msoil
 !  USE define_types
   USE cable_um_tech_mod, ONLY : um1!, veg
+!USE cable_params_mod,         ONLY: veg      => veg_cbl
+USE cable_params_mod,         ONLY: veg_parameter_type
+USE cable_canopy_type_mod,    ONLY: canopy_type
   USE cable_common_module, ONLY : ktau_gl, l_luc
   USE casaparm             !, ONLY : initcasa
   USE casavariable
@@ -1337,7 +1344,8 @@ END SUBROUTINE unpack_glai
 
 SUBROUTINE casa_ndep_pk(nidep)
 
-    USE cable_um_tech_mod, ONLY : um1,soil
+    USE cable_um_tech_mod, ONLY : um1!,soil
+USE cable_params_mod, ONLY: soil => soil_cbl
     USE cable_def_types_mod
     USE casavariable
     USE casa_types_mod

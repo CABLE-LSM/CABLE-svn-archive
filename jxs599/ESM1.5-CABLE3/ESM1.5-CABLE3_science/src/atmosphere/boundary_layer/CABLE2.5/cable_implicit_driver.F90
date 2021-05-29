@@ -59,13 +59,24 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
 
    USE cable_def_types_mod, ONLY : mp
    USE cable_data_module,   ONLY : PHYS
-   USE cable_um_tech_mod,   ONLY : um1, conv_rain_prevstep, conv_snow_prevstep,&
-                                  air, bgc, canopy, met, bal, rad, rough, soil,&
-                                  ssnow, sum_flux, veg
+   USE cable_um_tech_mod,   ONLY : um1, conv_rain_prevstep, conv_snow_prevstep
    USE cable_common_module, ONLY : cable_runtime, cable_user, l_casacnp,       &
                                    l_vcmaxFeedbk, knode_gl, ktau_gl, kend_gl
    USE cable_um_init_subrs_mod, ONLY : um2cable_rr
-   USE cable_cbm_module,    ONLY : cbm
+USE cbl_model_driver_mod, ONLY: cbl_model_driver
+
+USE cable_air_type_mod,       ONLY: air      => air_cbl
+USE cable_balances_type_mod,  ONLY: bal      => bal_cbl
+USE cable_bgc_pool_type_mod,  ONLY: bgc      => bgc_cbl
+USE cable_canopy_type_mod,    ONLY: canopy   => canopy_cbl
+USE cable_met_type_mod,       ONLY: met      => met_cbl
+USE cable_radiation_type_mod, ONLY: rad      => rad_cbl
+USE cable_roughness_type_mod, ONLY: rough    => rough_cbl
+USE cable_soil_snow_type_mod, ONLY: ssnow    => ssnow_cbl
+USE cable_sum_flux_type_mod,  ONLY: sum_flux => sum_flux_cbl
+!USE cable_climate_type_mod,   ONLY: climate  => climate_cbl
+USE cable_params_mod,         ONLY: veg      => veg_cbl
+USE cable_params_mod,         ONLY: soil     => soil_cbl
 
    USE casavariable
    USE phenvariable
@@ -73,6 +84,8 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
    USE bgcdriver_mod, ONLY : bgcdriver
    USE sumcflux_mod, ONLY : sumcflux
    USE casa_um_inout_mod
+!data !H!
+USE cable_other_constants_mod, ONLY: z0surf_min
 
    IMPLICIT NONE
         
@@ -243,6 +256,10 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
 
    REAL, POINTER :: TFRZ
    
+logical :: explicit_path = .FALSE. 
+integer :: nrb = 3
+integer :: timestep_number
+ 
       TFRZ => PHYS%TFRZ
    
       ! FLAGS def. specific call to CABLE from UM
@@ -279,9 +296,13 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
       met%tvrad = met%tk
  
       canopy%cansto = canopy%oldcansto
-
-      CALL cbm(TIMESTEP, air, bgc, canopy, met, bal,  &
-           rad, rough, soil, ssnow, sum_flux, veg)
+timestep_number = ktau_gl
+  CALL cbl_model_driver( explicit_path, mp, nrb, um1%land_pts, um1%npft,       &
+                         timestep_number, timestep,                           &
+                         air, bgc, canopy, met, bal, rad, rough, soil,         &
+                         ssnow, sum_flux, veg,                                 & 
+                         z0surf_min,                                           &
+                         veg%vLAI, veg%hc, real(met%DoY), canopy%vlaiw )
 
       ! Lestevens - temporary ?
       ktauday = int(24.0*3600.0/TIMESTEP)
@@ -358,7 +379,14 @@ SUBROUTINE implicit_unpack( TSOIL, TSOIL_TILE, SMCL, SMCL_TILE,                &
  
    USE cable_def_types_mod, ONLY : mp
    USE cable_data_module,   ONLY : PHYS
-   USE cable_um_tech_mod,   ONLY : um1 ,canopy, rad, soil, ssnow, air
+   USE cable_um_tech_mod,   ONLY : um1
+USE cable_air_type_mod,       ONLY: air      => air_cbl
+USE cable_canopy_type_mod,    ONLY: canopy   => canopy_cbl
+USE cable_radiation_type_mod, ONLY: rad      => rad_cbl
+USE cable_soil_snow_type_mod, ONLY: ssnow    => ssnow_cbl
+USE cable_params_mod,         ONLY: soil     => soil_cbl
+
+!==============================================================================
    USE cable_common_module, ONLY : cable_runtime, cable_user
    USE casa_types_mod
    IMPLICIT NONE

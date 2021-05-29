@@ -37,13 +37,49 @@ SUBROUTINE cable_rad_driver(                                                   &
                              ! OUT
                              LAND_ALBEDO_CABLE, ALB_TILE, LAND_ALB_CABLE ) 
 
-   USE cable_def_types_mod, ONLY : mp
-   USE cable_albedo_module, ONLY : surface_albedo
-   USE cable_um_tech_mod,   ONLY : kblum_rad, um1, soil, ssnow, rad, veg,      &
-                                   met, canopy
+   USE cable_def_types_mod!, ONLY : mp
+USE cbl_albedo_mod, ONLY : albedo
+   USE cable_um_tech_mod,   ONLY : kblum_rad, um1
    USE cable_um_init_subrs_mod, ONLY : update_kblum_radiation,  um2cable_met_rad,  &
                                    um2cable_lp 
    USE cable_common_module, ONLY : cable_runtime, cable_user
+   
+USE cable_params_mod,         ONLY: veg      => veg_cbl
+USE cable_params_mod,         ONLY: soil     => soil_cbl
+USE cable_radiation_type_mod, ONLY: rad      => rad_cbl
+USE cable_soil_snow_type_mod, ONLY: ssnow    => ssnow_cbl
+USE cable_canopy_type_mod,    ONLY: canopy   => canopy_cbl
+USE cable_met_type_mod,       ONLY: met      => met_cbl
+
+!    USE cable_common_module
+!    USE cable_carbon_module
+!    USE cbl_soil_snow_main_module, ONLY : soil_snow
+!    USE cable_def_types_mod
+!    USE cable_roughness_module, ONLY : ruff_resist
+!    USE cbl_init_radiation_module, ONLY : init_radiation
+!    USE cable_air_module, ONLY : define_air
+!    USE casadimension,     ONLY : icycle ! used in casa_cnp
+!! physical constants
+!USE cable_phys_constants_mod, ONLY : CGRAV  => GRAV
+!USE cable_phys_constants_mod, ONLY : CCAPP   => CAPP
+!USE cable_phys_constants_mod, ONLY : CEMLEAF => EMLEAF
+!USE cable_phys_constants_mod, ONLY : CEMSOIL => EMSOIL
+!USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
+!    !mrd561
+!    USE cable_gw_hydro_module, ONLY : sli_hydrology,&
+!         soil_snow_gw
+!    USE cable_canopy_module, ONLY : define_canopy
+!    USE cbl_albedo_mod, ONLY : albedo
+!    USE sli_main_mod, ONLY : sli_main
+!!data !jhan:pass these
+USE cable_other_constants_mod, ONLY : CLAI_THRESH => lai_thresh
+!USE cable_other_constants_mod,  ONLY : Crad_thresh => rad_thresh
+USE cable_other_constants_mod,  ONLY : Ccoszen_tols => coszen_tols
+USE cable_other_constants_mod, ONLY : CGAUSS_W => gauss_w
+!USE cable_math_constants_mod, ONLY : CPI => pi
+!USE cable_math_constants_mod, ONLY : CPI180 => pi180
+USE cbl_masks_mod, ONLY :  fveg_mask,  fsunlit_mask,  fsunlit_veg_mask
+USE cbl_masks_mod, ONLY :  veg_mask,  sunlit_mask,  sunlit_veg_mask
    
    IMPLICIT NONE                     
 
@@ -77,12 +113,23 @@ SUBROUTINE cable_rad_driver(                                                   &
    INTEGER :: i,J,N,K,L
    REAL :: miss = 0.0
    LOGICAL :: skip =.TRUE. 
+   LOGICAL :: jls_radiation = .TRUE. 
    
    REAL :: rad_vis(mp), rad_nir(mp), met_fsd_tot_rel(mp), rad_albedo_tot(mp) 
 
-      !jhan:check that these are reset after call done
+!co-efficients used throughout init_radiation ` called from _albedo as well
+
+REAL :: c1(mp, nrb)
+REAL :: rhoch(mp, nrb)
+REAL :: xk(mp, nrb)
+      !jhan:check that 
+      !these are reset after call done
       cable_runtime%um_radiation= .TRUE.
       
+call fveg_mask( veg_mask, mp, Clai_thresh, canopy%vlaiw )
+call fsunlit_mask( sunlit_mask, mp, Ccoszen_tols, met%coszen )
+call fsunlit_veg_mask( sunlit_veg_mask, mp )
+
       !     **** surf_down_sw is from the previous time step  ****
       !--- re-set UM rad. forcings to suit CABLE. also called in explicit call to 
       !--- CABLE from subr cable_um_expl_update() 
@@ -111,8 +158,39 @@ SUBROUTINE cable_rad_driver(                                                   &
       ssnow%tggsn(:,1) = PACK( SNOW_TMP3L(:,:,1), um1%L_TILE_PTS )
       ssnow%tgg(:,1) =   PACK( TSOIL_TILE(:,:,1), um1%L_TILE_PTS )
 
+!define logical masks that are used throughout
+!CALL fveg_mask( veg_mask, mp, Clai_thresh, reducedLAIdue2snow )
+!CALL fsunlit_mask( sunlit_mask, mp, Ccoszen_tols, coszen )
+!CALL fsunlit_veg_mask( sunlit_veg_mask, mp )
+call Albedo( ssnow%AlbSoilsn, soil%AlbSoil,                                &
+             !AlbSnow, AlbSoil,              
+             mp, nrb,                                                      &
+             jls_radiation,                                                &
+             veg_mask, sunlit_mask, sunlit_veg_mask,                       &  
+             Ccoszen_tols, CGAUSS_W,                                       & 
+             veg%iveg, soil%isoilm, veg%refl, veg%taul,                    & 
+             !surface_type, VegRefl, VegTaul,
+             met%tk, met%coszen, canopy%vlaiw,                             &
+             !metTk, coszen, reducedLAIdue2snow,
+             ssnow%snowd, ssnow%osnowd, ssnow%isflag,                      & 
+             !SnowDepth, SnowODepth, SnowFlag_3L, 
+             ssnow%ssdnn, ssnow%tgg(:,1), ssnow%tggsn(:,1), ssnow%snage,   & 
+             !SnowDensity, SoilTemp, SnowAge, 
+             xk, c1, rhoch,                                                & 
+             rad%fbeam, rad%albedo,                                        &
+             !RadFbeam, RadAlbedo,
+             rad%extkd, rad%extkb,                                         & 
+             !ExtCoeff_dif, ExtCoeff_beam,
+             rad%extkdm, rad%extkbm,                                       & 
+             !EffExtCoeff_dif, EffExtCoeff_beam,                
+             rad%rhocdf, rad%rhocbm,                                       &
+             !CanopyRefl_dif,CanopyRefl_beam,
+             rad%cexpkdm, rad%cexpkbm,                                     & 
+             !CanopyTransmit_dif, CanopyTransmit_beam, 
+             rad%reffdf, rad%reffbm                                        &
+           ) !EffSurfRefl_dif, EffSurfRefl_beam 
 
-      CALL surface_albedo(ssnow, veg, met, rad, soil, canopy)
+!      CALL surface_albedo(ssnow, veg, met, rad, soil, canopy)
 
       ! only for land points, at present do not have a method for treating 
       ! mixed land/sea or land/seaice points as yet.
@@ -161,6 +239,7 @@ SUBROUTINE cable_rad_driver(                                                   &
       ENDDO
 
       cable_runtime%um_radiation= .FALSE.
+   jls_radiation = .FALSE. 
 
 END SUBROUTINE cable_rad_driver
 

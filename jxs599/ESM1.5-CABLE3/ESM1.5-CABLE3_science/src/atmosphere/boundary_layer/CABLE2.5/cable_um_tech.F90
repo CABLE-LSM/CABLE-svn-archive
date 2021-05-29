@@ -1,3 +1,17 @@
+
+!USE cable_air_type_mod,       ONLY: air      => air_cbl
+!USE cable_balances_type_mod,  ONLY: bal      => bal_cbl
+!USE cable_bgc_pool_type_mod,  ONLY: bgc      => bgc_cbl
+!USE cable_canopy_type_mod,    ONLY: canopy   => canopy_cbl
+!USE cable_climate_type_mod,   ONLY: climate  => climate_cbl
+!USE cable_met_type_mod,       ONLY: met      => met_cbl
+!USE cable_radiation_type_mod, ONLY: rad      => rad_cbl
+!USE cable_roughness_type_mod, ONLY: rough    => rough_cbl
+!USE cable_soil_snow_type_mod, ONLY: ssnow    => ssnow_cbl
+!USE cable_sum_flux_type_mod,  ONLY: sum_flux => sum_flux_cbl
+!USE cable_params_mod,         ONLY: veg      => veg_cbl
+!USE cable_params_mod,         ONLY: soil     => soil_cbl
+
 !==============================================================================
 ! This source code is part of the 
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
@@ -31,19 +45,8 @@
 MODULE cable_um_tech_mod
    
    USE cable_def_types_mod
+   
    IMPLICIT NONE
-
-   TYPE(air_type), SAVE             :: air
-   TYPE(bgc_pool_type), SAVE        :: bgc
-   TYPE(met_type), SAVE             :: met
-   TYPE(balances_type), SAVE        :: bal
-   TYPE(radiation_type), SAVE       :: rad
-   TYPE(roughness_type), SAVE       :: rough
-   TYPE(soil_parameter_type), SAVE  :: soil       ! soil parameters
-   TYPE(soil_snow_type), SAVE       :: ssnow
-   TYPE(sum_flux_type), SAVE        :: sum_flux
-   TYPE(veg_parameter_type), SAVE   :: veg        ! vegetation parameters
-   TYPE(canopy_type), SAVE          :: canopy
 
    TYPE derived_rad_bands    
       REAL, ALLOCATABLE ::                                                     &
@@ -239,44 +242,46 @@ END SUBROUTINE alloc_um_interface_types
 !========================================================================
 
 SUBROUTINE dealloc_vegin_soilin()
-   USE cable_common_module, ONLY : cable_runtime, cable_user, vegin, soilin
-      
-      DEALLOCATE(vegin%canst1)
-      DEALLOCATE(vegin%dleaf)
-      DEALLOCATE(vegin%vcmax)
-      DEALLOCATE(vegin%ejmax)
-      DEALLOCATE(vegin%hc)
-      DEALLOCATE(vegin%xfang)
-      DEALLOCATE(vegin%rp20)
-      DEALLOCATE(vegin%rpcoef)
-      DEALLOCATE(vegin% rs20)
-      DEALLOCATE(vegin%shelrb)
-      DEALLOCATE(vegin%vegcf)
-      DEALLOCATE(vegin%frac4)
-      DEALLOCATE(vegin%refl)
-      DEALLOCATE(vegin%taul)
-      DEALLOCATE(vegin%xalbnir)
-      DEALLOCATE(vegin%extkn)
-      DEALLOCATE(vegin%froot)
-      DEALLOCATE(vegin%tminvj)
-      DEALLOCATE(vegin%tmaxvj)
-      DEALLOCATE(vegin%vbeta)
-      DEALLOCATE(vegin%cplant)
-      DEALLOCATE(vegin%csoil)
-      DEALLOCATE(vegin%ratecp)
-      DEALLOCATE(vegin%ratecs)
+USE cable_common_module, ONLY : cable_runtime, cable_user
+USE cable_params_mod,    ONLY: vegin
+USE cable_params_mod,    ONLY: soilin
+     !CBL3:these dont have right decs?
+      !jh!DEALLOCATE(vegin%canst1)
+      !jh!DEALLOCATE(vegin%dleaf)
+      !jh!DEALLOCATE(vegin%vcmax)
+      !jh!DEALLOCATE(vegin%ejmax)
+      !jh!DEALLOCATE(vegin%hc)
+      !jh!DEALLOCATE(vegin%xfang)
+      !jh!DEALLOCATE(vegin%rp20)
+      !jh!DEALLOCATE(vegin%rpcoef)
+      !jh!DEALLOCATE(vegin% rs20)
+      !jh!DEALLOCATE(vegin%shelrb)
+      !jh!DEALLOCATE(vegin%vegcf)
+      !jh!DEALLOCATE(vegin%frac4)
+      !jh!DEALLOCATE(vegin%refl)
+      !jh!DEALLOCATE(vegin%taul)
+      !jh!DEALLOCATE(vegin%xalbnir)
+      !jh!DEALLOCATE(vegin%extkn)
+      !jh!DEALLOCATE(vegin%froot)
+      !jh!DEALLOCATE(vegin%tminvj)
+      !jh!DEALLOCATE(vegin%tmaxvj)
+      !jh!DEALLOCATE(vegin%vbeta)
+      !jh!DEALLOCATE(vegin%cplant)
+      !jh!DEALLOCATE(vegin%csoil)
+      !jh!DEALLOCATE(vegin%ratecp)
+      !jh!DEALLOCATE(vegin%ratecs)
      
-      DEALLOCATE(soilin%silt)
-      DEALLOCATE(soilin%clay)
-      DEALLOCATE(soilin%sand)
-      DEALLOCATE(soilin%swilt)
-      DEALLOCATE(soilin%sfc)
-      DEALLOCATE(soilin%ssat)
-      DEALLOCATE(soilin%bch)
-      DEALLOCATE(soilin%hyds)
-      DEALLOCATE(soilin%sucs)
-      DEALLOCATE(soilin%rhosoil)
-      DEALLOCATE(soilin%css)
+      !jh!DEALLOCATE(soilin%silt)
+      !jh!DEALLOCATE(soilin%clay)
+      !jh!DEALLOCATE(soilin%sand)
+      !jh!DEALLOCATE(soilin%swilt)
+      !jh!DEALLOCATE(soilin%sfc)
+      !jh!DEALLOCATE(soilin%ssat)
+      !jh!DEALLOCATE(soilin%bch)
+      !jh!DEALLOCATE(soilin%hyds)
+      !jh!DEALLOCATE(soilin%sucs)
+      !jh!DEALLOCATE(soilin%rhosoil)
+      !jh!DEALLOCATE(soilin%css)
 
 END SUBROUTINE dealloc_vegin_soilin
 

@@ -1,3 +1,18 @@
+
+!USE cable_air_type_mod,       ONLY: air      => air_cbl
+!USE cable_balances_type_mod,  ONLY: bal      => bal_cbl
+!USE cable_bgc_pool_type_mod,  ONLY: bgc      => bgc_cbl
+!USE cable_canopy_type_mod,    ONLY: canopy   => canopy_cbl
+!USE cable_climate_type_mod,   ONLY: climate  => climate_cbl
+!USE cable_met_type_mod,       ONLY: met      => met_cbl
+!USE cable_radiation_type_mod, ONLY: rad      => rad_cbl
+!USE cable_roughness_type_mod, ONLY: rough    => rough_cbl
+!USE cable_soil_snow_type_mod, ONLY: ssnow    => ssnow_cbl
+!USE cable_sum_flux_type_mod,  ONLY: sum_flux => sum_flux_cbl
+!USE cable_params_mod,         ONLY: veg      => veg_cbl
+!USE cable_params_mod,         ONLY: soil     => soil_cbl
+
+!==============================================================================
 !==============================================================================
 ! This source code is part of the 
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
@@ -64,20 +79,32 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
                                   iday, endstep, timestep_number, mype )    
    
    !--- reads runtime and user switches and reports
-   USE cable_um_tech_mod, ONLY : cable_um_runtime_vars, air, bgc, canopy,      &
-                                 met, bal, rad, rough, soil, ssnow, sum_flux, veg 
-   
+   USE cable_um_tech_mod, ONLY : cable_um_runtime_vars
+
+USE cable_air_type_mod,       ONLY: air      => air_cbl
+USE cable_balances_type_mod,  ONLY: bal      => bal_cbl
+USE cable_bgc_pool_type_mod,  ONLY: bgc      => bgc_cbl
+USE cable_canopy_type_mod,    ONLY: canopy   => canopy_cbl
+USE cable_met_type_mod,       ONLY: met      => met_cbl
+USE cable_radiation_type_mod, ONLY: rad      => rad_cbl
+USE cable_roughness_type_mod, ONLY: rough    => rough_cbl
+USE cable_soil_snow_type_mod, ONLY: ssnow    => ssnow_cbl
+USE cable_sum_flux_type_mod,  ONLY: sum_flux => sum_flux_cbl
+USE cable_params_mod,         ONLY: veg      => veg_cbl
+USE cable_params_mod,         ONLY: soil     => soil_cbl
+!USE cable_climate_type_mod,   ONLY: climate  => climate_cbl
+
+!==============================================================================
    !--- vars common to CABLE declared 
    USE cable_common_module, ONLY : cable_runtime, cable_user, ktau_gl,         &
                                    knode_gl, kwidth_gl, kend_gl,               &
-                                   report_version_no,                          & 
                                    l_vcmaxFeedbk, l_laiFeedbk,l_luc
    
    !--- subr to (manage)interface UM data to CABLE
    USE cable_um_init_mod, ONLY : interface_UM_data
    
    !--- subr to call CABLE model
-   USE cable_cbm_module, ONLY : cbm
+USE cbl_model_driver_mod, ONLY: cbl_model_driver
 
    USE cable_def_types_mod, ONLY : mp
 
@@ -88,6 +115,8 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    USE casa_types_mod
 
   USE feedback_mod
+!data !H!
+USE cable_other_constants_mod, ONLY: z0surf_min
 
    IMPLICIT NONE
  
@@ -306,15 +335,12 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    !___ 1st call in RUN (!=ktau_gl -see below) 
    LOGICAL, SAVE :: first_cable_call = .TRUE.
  
-
+logical :: explicit_path = .TRUE. 
+integer :: nrb = 3
    
-
    !--- initialize cable_runtime% switches 
    IF(first_cable_call) THEN
       cable_runtime%um = .TRUE.
-      write(6,*) ""
-      write(6,*) "CABLE_log"
-      CALL report_version_no(6) ! wriite revision number to stdout(6)
    ENDIF
    
 write(6,*) "jhan:ESM1.5 test SB,BW 2"
@@ -403,8 +429,12 @@ write(6,*) "jhan:ESM1.5 test SB,BW 2"
    !--- real(timestep) width, CABLE types passed to CABLE "engine" as ---!  
    !--- req'd by Mk3L  --------------------------------------------------!
    !---------------------------------------------------------------------!
-   CALL cbm( timestep, air, bgc, canopy, met, bal,                             &
-             rad, rough, soil, ssnow, sum_flux, veg )
+  CALL cbl_model_driver( explicit_path, mp, nrb, land_pts, npft,              &
+                         timestep_number, timestep,                           &
+                         air, bgc, canopy, met, bal, rad, rough, soil,        &
+                         ssnow, sum_flux, veg,                                & 
+                         z0surf_min,                                          &
+                         veg%vLAI, veg%hc, real(met%DoY), canopy%vlaiw )
 
 ! output CO2_MMR value used in CABLE (passed from UM)
   if ( (knode_gl.eq.1) .and. (ktau_gl.eq.1) ) then
