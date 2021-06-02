@@ -1359,6 +1359,16 @@ CONTAINS
     ! zero annual sums
     IF (idoy==1) CALL casa_cnpflux(casaflux,casapool,casabal,.TRUE.)
 
+    do npt=1,mp
+       if(casamet%lat(npt)==7.5.and.casamet%lon(npt)==0.9375.and.casamet%iveg2(npt)==1) then
+     !     write(*,*) 'ypw-casa 1', casamet%lat(npt),casamet%lon(npt),casamet%iveg2(npt)
+     !     write(*,*) 'cplantlast', casabal%cplantlast(npt,:)
+     !     write(*,*) 'cplant',     casapool%cplant(npt,:)
+     !     write(*,*) 'diff',       casapool%cplant(npt,:)-casabal%cplantlast(npt,:)
+     !     write(*,*) 'grow',       casapool%dcplantdt(npt,:)
+       endif
+    enddo  
+
     IF (cable_user%PHENOLOGY_SWITCH.EQ.'MODIS') THEN
        CALL phenology(idoy,veg,phen)
     ENDIF
@@ -1432,6 +1442,7 @@ CONTAINS
     !991  format('point 147',20(f10.4,2x))
 991 FORMAT(20(e12.4,2x))
 
+
     CALL casa_xratesoil(xklitter,xksoil,veg,soil,casamet,casabiome)
     CALL casa_coeffsoil(xklitter,xksoil,veg,soil,casabiome,casaflux,casamet)
 
@@ -1444,6 +1455,18 @@ CONTAINS
        IF (icycle >2) CALL casa_puptake(veg,xkNlimiting,casabiome, &
             casapool,casaflux,casamet)
     ENDIF
+
+
+
+    do npt=1,mp
+       if(casamet%lat(npt)==7.5.and.casamet%lon(npt)==0.9375.and.casamet%iveg2(npt)==1) then
+    !      write(*,*) 'ypw-casa 4', casamet%lat(npt),casamet%lon(npt),casamet%iveg2(npt)
+    !      write(*,*) 'cplantlast', casabal%cplantlast(npt,:)
+    !      write(*,*) 'cplant',     casapool%cplant(npt,:)
+    !      write(*,*) 'diff',       casapool%cplant(npt,:)-casabal%cplantlast(npt,:)
+    !      write(*,*) 'grow',       casapool%dcplantdt(npt,:)
+       endif
+    enddo  
 
     ! changed by ypwang following Chris Lu on 5/nov/2012
     CALL casa_delplant(veg,casabiome,casapool,casaflux,casamet,                &
@@ -1476,12 +1499,25 @@ CONTAINS
     CALL casa_cnpcycle(veg,casabiome,casapool,casaflux,casamet, LALLOC)
     !! vh_js !!
     !CLN ndummy must be before pdummy!!!!
+    ! changed by ypw 14-5-2021
+
     IF (icycle<3) THEN
-       IF (icycle<2) CALL casa_ndummy(casapool)
-       CALL casa_pdummy(casapool)
+        IF (icycle<2) CALL casa_ndummy(casamet,casabal,casapool)
+        CALL casa_pdummy(casamet,casabal,casaflux,casapool)
     ENDIF
 
-    CALL casa_cnpbal(casapool,casaflux,casabal)
+
+    do npt=1,mp
+       if(casamet%lat(npt)==7.5.and.casamet%lon(npt)==0.9375.and.casamet%iveg2(npt)==1) then
+   !       write(*,*) 'ypw-casa 6', casamet%lat(npt),casamet%lon(npt),casamet%iveg2(npt)
+   !       write(*,*) 'cplantlast', casabal%cplantlast(npt,:)
+   !       write(*,*) 'cplant',     casapool%cplant(npt,:)
+   !       write(*,*) 'diff',       casapool%cplant(npt,:)-casabal%cplantlast(npt,:)
+   !       write(*,*) 'grow',       casapool%dcplantdt(npt,:)
+       endif
+    enddo  
+
+    CALL casa_cnpbal(casamet,casapool,casaflux,casabal)
 
     CALL casa_cnpflux(casaflux,casapool,casabal,.FALSE.)
 
@@ -1492,7 +1528,16 @@ CONTAINS
     ENDIF
 
 
-
+    do npt=1,mp
+       if(casamet%lat(npt)==7.5.and.casamet%lon(npt)==0.9375.and.casamet%iveg2(npt)==1) then
+  !        write(*,*) 'ypw-casa 7', casamet%lat(npt),casamet%lon(npt),casamet%iveg2(npt)
+  !        write(*,*) 'cplantlast', casabal%cplantlast(npt,:)
+  !        write(*,*) 'cplant',     casapool%cplant(npt,:)
+  !        write(*,*) 'diff',       casapool%cplant(npt,:)-casabal%cplantlast(npt,:)
+  !        write(*,*) 'grow',       casapool%dcplantdt(npt,:)
+  !        write(*,*) '======'
+       endif
+    enddo  
 
   END SUBROUTINE biogeochem
 
@@ -1691,7 +1736,7 @@ CONTAINS
     STATUS = NF90_PUT_VAR(FILE_ID, VID4(2), casapool%nsoil )
     IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
 
-    IF (icycle ==3) THEN
+!    IF (icycle ==3) THEN
        STATUS = NF90_PUT_VAR(FILE_ID, VID1(5), casapool%psoillab )
        IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
 
@@ -1711,7 +1756,7 @@ CONTAINS
        STATUS = NF90_PUT_VAR(FILE_ID, VID3(3), casapool%plitter )
        IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
 
-    ENDIF
+!    ENDIF
     ! Close NetCDF file:
     STATUS = NF90_close(FILE_ID)
     IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)

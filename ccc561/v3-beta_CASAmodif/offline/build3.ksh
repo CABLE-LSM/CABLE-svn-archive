@@ -18,7 +18,6 @@ host_gadi()
    module add netcdf openmpi #eq. CABLE-YP
 
    if [[ $1 = 'mpi' ]]; then
-      #module add intel-mpi/2019.5.281
       export FC='mpif90'
 	 else
       export FC='ifort'
