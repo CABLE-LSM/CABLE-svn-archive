@@ -74,10 +74,16 @@ CONTAINS
     rad%extkbm  = 0.0
     rad%rhocbm  = 0.0
 
+    ! MDK hack to focrce albedo to 0.15 for Mat Lipson's urban exp
+    ! 2nd Feb 2020
+    !ssnow%albsoilsn = 0.15
+
     ! Initialise effective conopy beam reflectance:
     rad%reffbm = ssnow%albsoilsn
     rad%reffdf = ssnow%albsoilsn
     rad%albedo = ssnow%albsoilsn
+
+
 
     ! Define vegetation mask:
     mask = canopy%vlaiw > C%LAI_THRESH .AND.                                    &
@@ -124,6 +130,10 @@ CONTAINS
        WHERE( canopy%vlaiw> C%LAI_THRESH )                                      &
             rad%albedo(:,b) = ( 1. - rad%fbeam(:,b) )*rad%reffdf(:,b) +           &
             rad%fbeam(:,b) * rad%reffbm(:,b)
+
+            ! MDK hack to focrce albedo to 0.15 for Mat Lipson's urban exp
+            ! 2nd Feb 2020
+            !rad%albedo(:,b) = 0.15
 
     END DO
 

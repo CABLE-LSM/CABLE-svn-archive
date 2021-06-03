@@ -991,7 +991,8 @@ CONTAINS
        convert%Qair = -999.0
        WRITE(logn,*) 'Humidity will be converted from relative to specific'
     ELSE IF(metunits%Qair(1:3)=='g/g'.OR.metunits%Qair(1:5)=='kg/kg' &
-         .OR.metunits%Qair(1:3)=='G/G'.OR.metunits%Qair(1:5)=='KG/KG'.OR.metunits%Qair(1:7)=='kg kg-1') THEN
+         .OR.metunits%Qair(1:3)=='G/G'.OR.metunits%Qair(1:5)=='KG/KG'.OR.metunits%Qair(1:7)=='kg kg-1' &
+         .OR.metunits%Qair(1:1)=='1') THEN
        ! Units are correct
        convert%Qair=1.0
     ELSE
@@ -1399,7 +1400,7 @@ CONTAINS
                      //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
 
               IF(exists%patch) then
-       
+
                 !Anna: also read patch fractions
                 ok= NF90_GET_VAR(ncid_met,id%patchfrac,vegpatch_metfile(i,:), &
                      start=(/land_x(i),land_y(i),1/),count=(/1,1,nmetpatches/))
@@ -1454,7 +1455,7 @@ CONTAINS
     ELSE
        NULLIFY(vegtype_metfile)
        IF(exists%patch) NULLIFY(vegpatch_metfile)
-       
+
     END IF
 
     ! Look for soil type:

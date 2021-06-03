@@ -158,10 +158,10 @@ CONTAINS
     WRITE(logn,*)
     IF(exists%patch) THEN
       CALL read_gridinfo(nlon,nlat,nmetpatches)!, &
-    ELSE 
+    ELSE
       CALL read_gridinfo(nlon,nlat,npatch)
     END IF
-    
+
     ! Overwrite veg type and inital patch frac with land-use info
     IF (CABLE_USER%POPLUC) THEN
        CALL get_land_index(nlon, nlat)
@@ -322,10 +322,13 @@ CONTAINS
       !loop through lat and lon to fill patch and veg vars
       DO lon = 1,nlon
         DO lat = 1, nlat
-          inPFrac(lon,lat,1) = vegpatch_metfile(1,1) !Anna: passing met patchfrac here
-          inPFrac(lon,lat,2) = vegpatch_metfile(1,2) !Anna: passing met patchfrac here
-          inPFrac(lon,lat,3) = vegpatch_metfile(1,3) !Anna: passing met patchfrac here
-          inPFrac(lon,lat,4) = vegpatch_metfile(1,4) !Anna: passing met patchfrac here
+          !inPFrac(lon,lat,1) = vegpatch_metfile(1,1) !Anna: passing met patchfrac here
+          !inPFrac(lon,lat,2) = vegpatch_metfile(1,2) !Anna: passing met patchfrac here
+          !inPFrac(lon,lat,3) = vegpatch_metfile(1,3) !Anna: passing met patchfrac here
+          !inPFrac(lon,lat,4) = vegpatch_metfile(1,4) !Anna: passing met patchfrac here
+
+          !Above code shouldn't be there... Anna 2nd Feb 2020
+          inPFrac(lon,lat,:) = vegpatch_metfile(1,:) !Anna: passing met patchfrac here
           inVeg(lon,lat,:) = vegtype_metfile(1,:)
         ENDDO
       ENDDO
