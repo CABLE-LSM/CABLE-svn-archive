@@ -564,6 +564,7 @@ fi #cold_start
   #gadi:CBL#-test
   #[ ! -e ~/CABLE-AUX-1.4/core/biogeophys/def_veg_params.txt ] && cp -rf ~access/data/ACCESS_CMIP5/CABLE-AUX-1.4 ~/
   cd $atmrundir
+  cp /home/599/jxs599/cable.nml cable.nml
   #ln -sf /projects/access/CABLE-AUX/UM/cable.nml .
   #co2 controllable cable namelist file
 if [ $co2_flag = 0 ]; then 
