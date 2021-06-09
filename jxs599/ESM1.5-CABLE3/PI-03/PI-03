@@ -22,7 +22,7 @@
 #
 #PBS -P p66
 #PBS -l mem=288gb
-#PBS -l walltime=02:30:00    
+#PBS -l walltime=00:03:00    
 
 ###cascade lake
 #PBS -q normal
@@ -45,7 +45,9 @@ export SPEED_TEST=false
 
 #for debug run from terminal
 PBS_O_HOST=${PBS_O_HOST:=`hostname`}
-PBS_O_WORKDIR=${PBS_O_WORKDIR:=`pwd`}
+PBS_O_WORKDIR=${PBS_O_WORKDIR:=`pwd -P`}
+#gadi:CBL3test
+#PBS_O_WORKDIR=`pwd -P`
 
 echo "Job was submitted from PBS_O_HOST $PBS_O_HOST"
 

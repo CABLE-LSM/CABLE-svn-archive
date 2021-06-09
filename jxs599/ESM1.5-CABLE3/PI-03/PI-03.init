@@ -508,7 +508,9 @@ fi
 
   # copy executables
   #cp -f /g/data/p66/txz599/ACCESS-ESM1p5/bin/um_hg3.exe-20200311_r343 $atm_exe
-  cp -f /scratch/p66/jxs599/Tilo/um_hg3.exe $atm_exe
+  #gadi:CBL#-test
+  #cp -f /scratch/p66/jxs599/Tilo/um_hg3.exe $atm_exe
+  cp -f /scratch/p66/jxs599/ACCESS/ESM1.5/src/trunk_ESM1.5/bin/um_hg3.exe $atm_exe 
   cp -f /g/data/p66/pbd562/test/t47-hxw/jan20/4.0.2/trunk_ESM1.5/bin/cice4.1_access-mct-12p-20200110 $ice_exe
   cp -f /g/data/p66/pbd562/test/t47-hxw/jan20/4.0.2/trunk_ESM1.5/submodels/ACCESS-ESM1.5-MOM5/exec/access-cm2/ACCESS-CM/fms_ACCESS-CM.x $ocn_exe
 
@@ -558,31 +560,34 @@ fi #cold_start
   cd $icerundir/RESTART/
   ln -sf $cplrundir/o2i.nc .
   # ... the above link must not be broken during the course of the experiment! ...
-  
   #cable.nml file required by CABLE 2.0 
-  [ ! -e ~/CABLE-AUX-1.4/core/biogeophys/def_veg_params.txt ] && cp -rf ~access/data/ACCESS_CMIP5/CABLE-AUX-1.4 ~/
+  #gadi:CBL#-test
+  #[ ! -e ~/CABLE-AUX-1.4/core/biogeophys/def_veg_params.txt ] && cp -rf ~access/data/ACCESS_CMIP5/CABLE-AUX-1.4 ~/
   cd $atmrundir
   #ln -sf /projects/access/CABLE-AUX/UM/cable.nml .
   #co2 controllable cable namelist file
 if [ $co2_flag = 0 ]; then 
-  cp $inputdir/um_control/access1.3/cable2C.nml cable.nml
+  #gadi:CBL#-test
+  #cp $inputdir/um_control/access1.3/cable2C.nml cable.nml
 echo "this run is not for carbon cycle" 
 
 else
   echo "this run is for carbon cycle" 
 #  cp /home/599/txz599/CABLE-AUX/UMC/cable_switches.nml cable.nml 
 #  cp $inputdir/um_control/access1.3/cable_cnp_only_switches2.nml cable.nml
-   cp /g/data/p66/txz599/data/ctrl_files/cable_noluc.nml cable.nml
+  #gadi:CBL#-test
+  #cp /g/data/p66/txz599/data/ctrl_files/cable_noluc.nml cable.nml
 fi 
 
 if [ $cold_start == 1 ]; then 
 #set CABLE_RUNTIME_COUPLED to FALSE for new cold_start run
   cd $atmrundir
-  ed cable.nml <<eof
-g/cable_user%CABLE_RUNTIME_COUPLED = .TRUE./s/cable_user%CABLE_RUNTIME_COUPLED = .TRUE./cable_user%CABLE_RUNTIME_COUPLED = .FALSE./
-w
-q
-eof
+  #gadi:CBL#-test
+##  ed cable.nml <<eof
+#g/cable_user%CABLE_RUNTIME_COUPLED = .TRUE./s/cable_user%CABLE_RUNTIME_COUPLED = .TRUE./cable_user%CABLE_RUNTIME_COUPLED = .FALSE./
+#w
+#q
+#eof
 fi 
 
   # Get input files for mom4
@@ -752,7 +757,7 @@ else						#restart runs
   
   echo "Restart run: jobnum = $jobnum"
 
-if [ $CMIP5RUN == "historical" ]; then
+  if [ $CMIP5RUN == "historical" ]; then
   if [ $jobnum -gt  2 ]; then
     rm -f $atmrundir/{BC_hi_*,Bio_*,OCFF_*,SPARCO3_*,scycle_*,sulp_*}
   else #use the aerosol files which initial day is 1 modudied above
@@ -775,7 +780,7 @@ if [ $CMIP5RUN == "historical" ]; then
     # and then use the ancillary files only for the first run
     CMIP5ANCIL_AEROSOL=$atmrundir 
   fi
-fi
+  fi
 
 #  cp -p $atmrundir/cable.nml $atmrundir/cable.nml-${prevdate}
 
@@ -816,13 +821,15 @@ fi
   fi
 
 #change CABLE_RUNTIME_COUPLED to TRUE after new run
-  [ ! -e ~/CABLE-AUX-1.4/core/biogeophys/def_veg_params.txt ] && cp -rf ~access/data/ACCESS_CMIP5/CABLE-AUX-1.4 ~/
-  cd $atmrundir
-  ed cable.nml <<eof
-g/cable_user%CABLE_RUNTIME_COUPLED = .FALSE./s/cable_user%CABLE_RUNTIME_COUPLED = .FALSE./cable_user%CABLE_RUNTIME_COUPLED = .TRUE./
-w
-q
-eof
+  #gadi:CBL#-test
+#  [ ! -e ~/CABLE-AUX-1.4/core/biogeophys/def_veg_params.txt ] && cp -rf ~access/data/ACCESS_CMIP5/CABLE-AUX-1.4 ~/
+#  cd $atmrundir
+#  echo "jhan 5.2:atm_dir = $atmrundir"
+#  ed cable.nml <<eof
+#g/cable_user%CABLE_RUNTIME_COUPLED = .FALSE./s/cable_user%CABLE_RUNTIME_COUPLED = .FALSE./cable_user%CABLE_RUNTIME_COUPLED = .TRUE./
+#w
+#q
+#eof
 
   # MOM4
 
@@ -843,14 +850,15 @@ eof
 fi  # if [jobnum = 1]
 
 #change CABLE_RUNTIME_COUPLED to TRUE after new run (jobnum=1)
-if [ $jobnum -ge 2 ]; then
-  cd $atmrundir
-  ed cable.nml <<eof
-g/cable_user%CABLE_RUNTIME_COUPLED = .FALSE./s/cable_user%CABLE_RUNTIME_COUPLED = .FALSE./cable_user%CABLE_RUNTIME_COUPLED = .TRUE./
-w
-q
-eof
-fi 
+  #gadi:CBL#-test
+#if [ $jobnum -ge 2 ]; then
+#  cd $atmrundir
+#  ed cable.nml <<eof
+#g/cable_user%CABLE_RUNTIME_COUPLED = .FALSE./s/cable_user%CABLE_RUNTIME_COUPLED = .FALSE./cable_user%CABLE_RUNTIME_COUPLED = .TRUE./
+#w
+#q
+#eof
+#fi 
 
 ###test 
 #python ~/scripts/perturbIC.py -a 0.05 ${outputdir}/${RUNID}.astart
