@@ -1109,7 +1109,8 @@ contains
 
   ! changed by yp wang following Chris Lu 5/nov/2012
   SUBROUTINE biogeochem(idoY,LALLOC,veg,soil,casabiome,casapool,casaflux, &
-       casamet,casabal,phen,POP,climate,xnplimit,xkNlimiting,xklitter,xksoil,xkleaf,xkleafcold,xkleafdry, &
+       casamet,casabal,phen,POP,climate,xnplimit,xkNlimiting, &
+       xklitter,xksoil,xkleaf,xkleafcold,xkleafdry, &
        cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd, &
        nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd, &
        pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
@@ -1144,7 +1145,7 @@ contains
          pleaf2met, pleaf2str, proot2met, proot2str, pwood2cwd
 
     ! local variables
-    REAL(r_2), DIMENSION(mp) :: xNPuptake
+    REAL(r_2), DIMENSION(mp) :: xNuptake, xPuptake, xNPuptake
     INTEGER :: j
     REAL(r_2), ALLOCATABLE :: tmp(:)
 
@@ -1152,11 +1153,12 @@ contains
 
     ! zero annual sums
     if (idoy==1) CALL casa_cnpflux(casaflux,casapool,casabal,.true.)
-
+    
     IF (cable_user%PHENOLOGY_SWITCH.eq.'MODIS') THEN
        call phenology(idoy,veg,phen)
     ENDIF
     call avgsoil(veg,soil,casamet)
+
     call casa_rplant(veg,casabiome,casapool,casaflux,casamet,climate)
 
     IF (.NOT.cable_user%CALL_POP) THEN
@@ -1168,7 +1170,7 @@ contains
     call casa_coeffplant(xkleafcold, xkleafdry, xkleaf, veg, casabiome, casapool, &
          casaflux, casamet)
 
-    call casa_xnp(xnplimit,xNPuptake,veg,casabiome,casapool,casaflux,casamet)
+    call casa_xnp(xnplimit,xNuptake,xPuptake,xNPuptake,veg,casabiome,casapool,casaflux,casamet)
 
     IF (cable_user%CALL_POP) THEN
 
@@ -1224,8 +1226,8 @@ contains
           casaflux%klitter_tot(:,j) = casaflux%klitter(:,j) + &
                (1.0_r_2 -casaflux%klitter(:,j)) * casaflux%klitter_fire(:,j)
        ENDDO
-       call casa_nuptake(veg,xkNlimiting,casabiome,casapool,casaflux,casamet)
-       IF (icycle >2) call casa_puptake(veg,xkNlimiting,casabiome, &
+       call casa_nuptake(veg,xNuptake,casabiome,casapool,casaflux,casamet)
+       IF (icycle >2) call casa_puptake(veg,xPuptake,casabiome, &
             casapool,casaflux,casamet)
     ENDIF
 

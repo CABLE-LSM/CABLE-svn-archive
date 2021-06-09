@@ -78,7 +78,7 @@ contains
     real(r_2), dimension(mp)  :: cleaf2met, cleaf2str, croot2met, croot2str, cwood2cwd
     real(r_2), dimension(mp)  :: nleaf2met, nleaf2str, nroot2met, nroot2str, nwood2cwd
     real(r_2), dimension(mp)  :: pleaf2met, pleaf2str, proot2met, proot2str, pwood2cwd
-    real(r_2), dimension(mp)  :: xnplimit,  xkNlimiting, xklitter, xksoil ,xkleaf,xkleafcold,xkleafdry
+    real(r_2), dimension(mp)  :: xnplimit,  xkNlimiting, xklitter, xksoil ,xkleaf, xkleafcold, xkleafdry
 
     ! 13C
     real(dp), dimension(:,:), allocatable :: casasave
@@ -182,7 +182,7 @@ contains
           if (cable_user%c13o2) call c13o2_save_casapool(casapool, casasave)
           CALL biogeochem(idoy,LALLOC,veg,soil,casabiome,casapool,casaflux, &
                casamet,casabal,phen,POP,climate,xnplimit,xkNlimiting,xklitter,xksoil,xkleaf, &
-               xkleafcold,xkleafdry,&
+               xkleafcold,xkleafdry, &
                cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,         &
                nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,         &
                pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)

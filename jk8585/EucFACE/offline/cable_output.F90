@@ -2274,11 +2274,11 @@ CONTAINS
     ! ESoil: bare soil evaporation [kg/m^2/s]
     IF(output%flux .OR. output%ESoil) THEN
        ! Add current timestep's value to total of temporary output variable:
-       IF(cable_user%SOIL_STRUC=='sli') THEN
-          out%ESoil = out%ESoil + toreal4(ssnow%evap/dels) !vh!
-       ELSE
+       !IF(cable_user%SOIL_STRUC=='sli') THEN
+       !   out%ESoil = out%ESoil + toreal4(ssnow%evap/dels) !vh!
+       !ELSE  ! if we do that, mass balance is not conserved...
           out%ESoil = out%ESoil + toreal4(canopy%fes / air%rlam)
-       ENDIF
+       !ENDIF
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
           out%ESoil = out%ESoil * rinterval
