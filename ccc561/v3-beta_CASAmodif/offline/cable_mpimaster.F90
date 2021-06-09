@@ -479,6 +479,7 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
     SPINLOOP:DO
        YEARLOOP: DO YYYY= CABLE_USER%YearStart,  CABLE_USER%YearEnd
 
+          print*, "ccc Year in loop: ", YYYY
           CurYear = YYYY
 
           IF ( leaps .AND. IS_LEAPYEAR( YYYY ) ) THEN
@@ -1297,7 +1298,7 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
              END IF
           END IF
 
-          IF ( YYYY.EQ. CABLE_USER%YearEnd ) THEN
+          IF ( YYYY.GT. CABLE_USER%YearEnd ) THEN
              ! store soil moisture and temperature
              soilTtemp = ssnow%tgg
              soilMtemp = REAL(ssnow%wb)
