@@ -77,7 +77,11 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
    USE cable_def_types_mod, ONLY : mp, mland ! number of points CABLE works on
 
    USE casa_um_inout_mod
-
+!CBL3
+USE cbl_soil_snow_init_special_module, ONLY: spec_init_soil_snow
+USE cable_common_module, ONLY : kwidth_gl 
+USE cable_def_types_mod, ONLY : ms
+USE cable_um_tech_mod,   ONLY : soil, ssnow, canopy, met, bal, veg
 
    !-------------------------------------------------------------------------- 
    !--- INPUT ARGS FROM cable_explicit_driver() ------------------------------
@@ -239,6 +243,9 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
    INTEGER :: logn=6       ! 6=write to std out
    LOGICAL :: vegparmnew=.true.   ! true=read std veg params false=CASA file 
          
+!CBL3
+REAL :: heat_cap_lower_limit(mp,ms)
+heat_cap_lower_limit = 0.01
 
       !---------------------------------------------------------------------!
       !--- code to create type um1% conaining UM basic vars describing    --! 
@@ -330,6 +337,9 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
 
  
       IF( first_call ) THEN
+!CBL3call spec_init_soil_snow( real(kwidth_gl), soil_cbl, ssnow_cbl, canopy_cbl, met_cbl, bal_cbl, veg_cbl,heat_cap_loower_limit)
+call spec_init_soil_snow( real(kwidth_gl), soil, ssnow, canopy, met, bal, veg, &
+        heat_cap_lower_limit )
          CALL init_bgc_vars() 
          CALL init_sumflux_zero() 
 

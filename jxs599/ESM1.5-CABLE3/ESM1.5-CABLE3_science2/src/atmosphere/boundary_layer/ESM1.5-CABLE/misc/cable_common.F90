@@ -57,37 +57,112 @@ MODULE cable_common_module
    TYPE(kbl_internal_switches), SAVE :: cable_runtime
 
    !---CABLE runtime switches def in this type
-   TYPE kbl_user_switches
-      !jhan: this is redundant now we all use filename%veg?
-      CHARACTER(LEN=200) ::                                                    &
-         VEG_PARS_FILE  ! 
-      
-      CHARACTER(LEN=20) ::                                                     &
-         FWSOIL_SWITCH     !
-      
-      CHARACTER(LEN=5) ::                                                      &
-         RUN_DIAG_LEVEL  !
-      
-      CHARACTER(LEN=3) ::                                                      &
-         SSNOW_POTEV,      & !
-         DIAG_SOIL_RESP,   & ! either ON or OFF (jhan:Make Logical) 
-         LEAF_RESPIRATION    ! either ON or OFF (jhan:Make Logical) 
+TYPE kbl_user_switches
+  !jhan:make this logical
+  CHARACTER(LEN=3) :: diag_soil_resp=''
 
-      LOGICAL ::                                                               &
-         INITIALIZE_MAPPING = .FALSE., & ! 
-         CONSISTENCY_CHECK = .FALSE.,  & !
-         CASA_DUMP_READ = .FALSE.,     & !
-         CASA_DUMP_WRITE = .FALSE.,    & !
-         CABLE_RUNTIME_COUPLED = .FALSE., & !
-         ! L.Stevens - Test Switches
-         L_NEW_ROUGHNESS_SOIL  = .FALSE., & !
-         L_NEW_RUNOFF_SPEED    = .FALSE., & !
-         L_NEW_REDUCE_SOILEVP  = .FALSE.!
+  CHARACTER(LEN=20) :: fwsoil_switch=''
 
+  ! Ticket #56
+  !jhan:options?
+  CHARACTER(LEN=20) :: gs_switch=''
 
-   END TYPE kbl_user_switches
+  !INH - new switch for revised coupling on implicit step of ACCESS-CM2 Ticket #132
+  LOGICAL :: l_revised_coupling = .FALSE.
 
-   TYPE(kbl_user_switches), SAVE :: cable_user
+  !INH -apply revised sensitvity/correction terms to soilsnow energy balance
+  LOGICAL :: l_rev_corr = .FALSE.     !switch to revert to unchanged code
+
+  !ticket#179
+  LOGICAL :: soil_thermal_fix = .FALSE.
+
+  !jhan:options?
+  CHARACTER(LEN=3) :: ssnow_potev=''
+ 
+   !jhan: this is redundant now we all use filename%veg?
+  CHARACTER(LEN=200) ::                                                       &
+       veg_pars_file  !
+
+  CHARACTER(LEN=20) ::                                                        &
+       phenology_switch = 'MODIS'   ! alternative is 'climate'
+  !--- LN ------------------------------------------[
+
+  CHARACTER(LEN=10) :: RunIden       = 'STANDARD'  !
+  CHARACTER(LEN=6)  :: MetType       = ' ' !
+  CHARACTER(LEN=20) :: soil_struc    = "default" ! 'default' or 'sli'
+  CHARACTER(LEN=3)  :: POP_out       = 'rst' ! POP output type ('epi' or 'rst')
+  CHARACTER(LEN=50) :: POP_rst       = ' ' !
+  CHARACTER(LEN=8)  :: casa_out_freq = 'annually' ! 'daily', 'monthly', 'annually'
+  CHARACTER(LEN=10)  :: vcmax = 'standard' ! "standard" or "Walker2014"
+  CHARACTER(LEN=10)  :: POPLUC_RunType = 'static' ! 'static', 'init', 'restart'
+
+  LOGICAL ::                                                                  &
+       call_pop               = .FALSE., & !
+       POP_fromZero           = .FALSE.,                                      &
+       CALL_Climate           = .FALSE.,                                      &
+       Climate_fromZero       = .FALSE.,                                      &
+       CASA_fromZero          = .FALSE.,                                      &
+       popluc                 = .FALSE.
+
+  INTEGER  ::                                                                 &
+       casa_spin_startyear = 1950,                                            &
+       casa_spin_endyear   = 1960,                                            &
+       yearstart           = 0,                                               &
+       yearend             = 0,                                               &
+       casa_nrep           = 1
+  !--- LN ------------------------------------------]
+
+  CHARACTER(LEN=5) ::                                                         &
+       run_diag_level  !
+
+      CHARACTER(LEN=3) ::                                                         &
+       !H!DIAG_SOIL_RESP,   & ! either ON or OFF (jhan:Make Logical)
+       leaf_respiration    ! either ON or OFF (jhan:Make Logical)
+
+  ! Custom soil respiration - see Ticket #42
+  CHARACTER(LEN=10) ::                                                        &
+       smrf_name,   & ! Soil Moist Respiration Function
+       strf_name      ! Soil Temp Respiration Function
+
+  LOGICAL ::                                                                  &
+       initialize_mapping    = .FALSE., & !
+       consistency_check     = .FALSE., & !
+       casa_dump_read        = .FALSE., & !
+       casa_dump_write       = .FALSE., & !
+       !CBL3cable_runtime_coupled = .TRUE. , & !
+       CABLE_RUNTIME_COUPLED = .FALSE., & !
+       LogWorker             = .TRUE. , & ! Write Output of each worker
+                             ! L.Stevens - Test Switches
+       l_new_roughness_soil  = .FALSE., & !
+       l_new_runoff_speed    = .FALSE., & !
+       l_new_reduce_soilevp  = .FALSE., & !
+
+                             ! Switch for customized soil respiration - see Ticket #42
+       srf = .FALSE.,                                                         &
+
+                             !! vh_js !!
+       litter = .FALSE.
+
+  !MD
+  LOGICAL :: gw_model = .FALSE.
+  LOGICAL :: alt_forcing = .FALSE.
+
+  !using GSWP3 forcing?
+  LOGICAL :: gswp3 = .FALSE.
+  LOGICAL :: or_evap = .FALSE.
+  LOGICAL :: test_new_gw = .FALSE.
+  LOGICAL :: sync_nc_file = .FALSE.
+  INTEGER :: max_spins = -1
+  LOGICAL :: fix_access_roots = .FALSE.  !use pft dependent roots in ACCESS
+  !ACCESS roots
+  LOGICAL :: access13roots = .FALSE.     !switch to use ACCESS1.3 %froot
+
+  LOGICAL :: l_limit_labile = .FALSE.    ! #237: limit Labile in spinup
+  LOGICAL :: NtilesThruMetFile = .FALSE. ! #199: Specify Ntiles thru met file 
+
+END TYPE kbl_user_switches
+
+TYPE(kbl_user_switches), SAVE :: cable_user
 
    ! external files read/written by CABLE
    TYPE filenames_type
@@ -187,6 +262,16 @@ MODULE cable_common_module
 !jhan:temporary measure. improve hiding
 !   real, dimension(:,:), pointer,save :: c1, rhoch
       
+  REAL, SAVE ::        &!should be able to change parameters!!!
+       max_glacier_snowd=1100.0,&
+       snow_ccnsw = 2.0, &
+                                !jh!an:clobber - effectively force single layer snow
+                                !snmin = 100.0,      & ! for 1-layer;
+       snmin = 1.,          & ! for 3-layer;
+       max_ssdn = 750.0,    & !
+       max_sconds = 2.51,   & !
+       frozen_limit = 0.85    ! EAK Feb2011 (could be 0.95)
+
 CONTAINS
 
 
