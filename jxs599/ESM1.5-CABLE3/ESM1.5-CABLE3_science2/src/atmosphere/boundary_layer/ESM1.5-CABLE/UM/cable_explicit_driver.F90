@@ -82,7 +82,6 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    USE cable_def_types_mod, ONLY : mp
 
    !--- include subr called to write data for testing purposes 
-   USE cable_diag_module
    USE casa_um_inout_mod
    USE casavariable
    USE casa_types_mod
@@ -429,12 +428,6 @@ write(6,*) "jhan:ESM1.5 test SB,BW 2"
                            canopy%zetar, canopy%epot, met%ua, rad%trad,        &
                            rad%transd, rough%z0m, rough%zref_tq )
 
-
-   ! dump bitwise reproducible testing data
-   IF( cable_user%RUN_DIAG_LEVEL == 'zero')                                    &
-      call cable_diag( 1, "FLUXES", mp, kend_gl, ktau_gl, knode_gl,            &
-                          "FLUXES", canopy%fe + canopy%fh )
-                
 
    cable_runtime%um_explicit = .FALSE.
 
