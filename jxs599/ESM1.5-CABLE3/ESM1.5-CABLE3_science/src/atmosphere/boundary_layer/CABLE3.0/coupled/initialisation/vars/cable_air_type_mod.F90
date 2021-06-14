@@ -19,6 +19,6 @@ TYPE air_type
 END TYPE air_type
 
 !Instantiation:
-TYPE(air_type) :: air_cbl
+TYPE(air_type), SAVE :: air_cbl
 
 END MODULE cable_air_type_mod

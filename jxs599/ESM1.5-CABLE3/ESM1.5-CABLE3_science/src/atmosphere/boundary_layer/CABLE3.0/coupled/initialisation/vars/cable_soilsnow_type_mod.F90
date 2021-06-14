@@ -153,6 +153,6 @@ TYPE soil_snow_type
 END TYPE soil_snow_type
 
 !Instantiation:
-TYPE(soil_snow_type) :: ssnow_cbl
+TYPE(soil_snow_type), SAVE :: ssnow_cbl
 
 END MODULE cable_soil_snow_type_mod

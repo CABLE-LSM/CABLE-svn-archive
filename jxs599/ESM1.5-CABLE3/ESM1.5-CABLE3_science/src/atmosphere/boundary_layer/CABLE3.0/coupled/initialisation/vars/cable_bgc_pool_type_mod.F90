@@ -18,6 +18,6 @@ TYPE bgc_pool_type
 END TYPE bgc_pool_type
 
 !Instantiation:
-TYPE(bgc_pool_type) :: bgc_cbl
+TYPE(bgc_pool_type), SAVE :: bgc_cbl
 
 END MODULE cable_bgc_pool_type_mod

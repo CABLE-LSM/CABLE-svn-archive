@@ -46,6 +46,6 @@ TYPE radiation_type
 END TYPE radiation_type
 
 !Instantiation:
-TYPE(radiation_type) :: rad_cbl
+TYPE(radiation_type), SAVE :: rad_cbl
 
 END MODULE cable_radiation_type_mod

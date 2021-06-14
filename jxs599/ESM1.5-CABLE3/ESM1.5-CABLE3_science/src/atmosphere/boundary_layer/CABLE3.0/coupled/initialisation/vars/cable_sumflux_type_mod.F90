@@ -21,7 +21,7 @@ TYPE sum_flux_type
 END TYPE sum_flux_type
 
 !Instantiation:
-TYPE(sum_flux_type) :: sum_flux_cbl
+TYPE(sum_flux_type), SAVE :: sum_flux_cbl
 
 END MODULE cable_sum_flux_type_mod
 

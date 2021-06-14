@@ -36,6 +36,6 @@ TYPE met_type
 END TYPE met_type
 
 !Instantiation:
-TYPE(met_type) :: met_cbl
+TYPE(met_type), SAVE :: met_cbl
 
 END MODULE cable_met_type_mod

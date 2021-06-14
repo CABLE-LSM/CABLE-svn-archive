@@ -41,6 +41,6 @@ TYPE balances_type
 END TYPE balances_type
 
 !Instantiation:
-TYPE(balances_type) :: bal_cbl
+TYPE(balances_type), SAVE :: bal_cbl
 
 END MODULE cable_balances_type_mod

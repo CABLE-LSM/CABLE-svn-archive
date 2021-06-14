@@ -40,6 +40,6 @@ TYPE roughness_type
 END TYPE roughness_type
 
 !Instantiation:
-TYPE(roughness_type) :: rough_cbl
+TYPE(roughness_type), SAVE :: rough_cbl
 
 END MODULE cable_roughness_type_mod
