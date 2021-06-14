@@ -129,8 +129,16 @@ metDoy = INT(RmetDoy)
 !iFor testing
 !ICYCLE = 0
 cable_user%soil_struc="default"
+cable_runtime%um_radiation = .FALSE.
+      
+      CALL define_air (met, air)
+   
 
-CALL ruff_resist( veg, rough, ssnow, canopy, veg%vlai, veg%hc, canopy%vlaiw )
+IF( cable_runtime%um_explicit ) THEN
+  CALL ruff_resist( veg, rough, ssnow, canopy, veg%vlai, veg%hc, canopy%vlaiw )
+  !ESM1..5met%tk = met%tk + C%grav/C%capp*(rough%zref_tq + 0.9*rough%z0m)
+ENDIF
+      
 !H!CALL ruff_resist( veg, rough, ssnow, canopy, LAI_pft, HGT_pft, reducedLAIdue2snow )
 reducedLAIdue2snow = canopy%vlaiw
 !jhan: this call to define air may be redundant
@@ -157,7 +165,7 @@ CALL init_radiation( rad%extkb, rad%extkd,                                    &
                      canopy%vlaiw                                              &
                    ) !reducedLAIdue2snow 
  
-!!IF ( cable_runtime%um_explicit )                                              &
+IF ( cable_runtime%um_explicit )                                              &
 CALL Albedo( ssnow%AlbSoilsn, soil%AlbSoil,                                 &
              !AlbSnow, AlbSoil,              
              mp, nrb,                                                       &
@@ -209,6 +217,20 @@ IF ( cable_runtime%um_implicit ) &
   CALL soil_snow(dels, soil, ssnow, canopy, met, bal,veg)
 
 ssnow%deltss = ssnow%tss - ssnow%otss
+
+!From ESM1.5
+      canopy%fhs = canopy%fhs + ( ssnow%tss-ssnow%otss ) * ssnow%dfh_dtg
+      
+      canopy%fhs_cor = canopy%fhs_cor + ( ssnow%tss-ssnow%otss ) * ssnow%dfh_dtg
+      
+      canopy%fh = canopy%fhv + canopy%fhs
+
+   canopy%fes = canopy%fes + ( ssnow%tss-ssnow%otss ) *                        &
+                ( ssnow%dfe_ddq * ssnow%ddq_dtg )
+                !( ssnow%cls * ssnow%dfe_ddq * ssnow%ddq_dtg )
+   
+   canopy%fes_cor = canopy%fes_cor + ( ssnow%tss-ssnow%otss ) *                &
+                    ( ssnow%cls * ssnow%dfe_ddq * ssnow%ddq_dtg )
 
 ! need to adjust fe after soilsnow
 canopy%fev  = canopy%fevc + canopy%fevw
