@@ -1073,10 +1073,15 @@ SUBROUTINE alloc_cable_types()
   USE cable_sum_flux_type_mod,   ONLY: sum_flux => sum_flux_cbl
   USE cable_bgc_pool_type_mod,   ONLY: bgc => bgc_cbl
   USE cable_soil_snow_type_mod,  ONLY: ssnow => ssnow_cbl
+  USE allocate_veg_params_mod, ONLY : allocate_veg_parameter_type
+  USE allocate_soil_params_mod, ONLY : allocate_soil_parameter_type
 
   call alloc_cable_state ( mp, air, met, rad, rough,      &
                            canopy, ssnow, bgc, bal, sum_flux)
 
+  CALL allocate_veg_parameter_type(veg, mp)
+  CALL allocate_soil_parameter_type(soil, mp)
+  
 END SUBROUTINE alloc_cable_types
 
 !========================================================================
