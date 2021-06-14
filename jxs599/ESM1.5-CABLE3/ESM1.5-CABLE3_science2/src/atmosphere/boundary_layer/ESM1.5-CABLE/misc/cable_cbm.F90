@@ -96,14 +96,16 @@ CONTAINS
       cable_runtime%um_radiation = .FALSE.
       
       IF( cable_runtime%um_explicit ) THEN
-         CALL ruff_resist(veg, rough, ssnow, canopy)
+         CALL ruff_resist( veg, rough, ssnow, canopy, veg%vlai, veg%hc, canopy%vlaiw )
+         !ESM1.5CALL ruff_resist(veg, rough, ssnow, canopy)
          met%tk = met%tk + C%grav/C%capp*(rough%zref_tq + 0.9*rough%z0m)
       ENDIF
       
       CALL define_air (met, air)
    
    ELSE
-      call ruff_resist(veg, rough, ssnow, canopy)
+      CALL ruff_resist( veg, rough, ssnow, canopy, veg%vlai, veg%hc, canopy%vlaiw )
+      !ESM1.5call ruff_resist(veg, rough, ssnow, canopy)
    ENDIF
 
 
