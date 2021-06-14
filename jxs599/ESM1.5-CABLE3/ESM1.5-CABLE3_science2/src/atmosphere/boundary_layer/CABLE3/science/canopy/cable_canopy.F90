@@ -192,7 +192,8 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
 
       ! E.Kowalczyk 2014
       IF (cable_user%l_new_roughness_soil)                                     &
-         CALL ruff_resist(veg, rough, ssnow, canopy)
+        CALL ruff_resist( veg, rough, ssnow, canopy, veg%vlai, veg%hc, canopy%vlaiw )
+        !ESM1.5 CALL ruff_resist(veg, rough, ssnow, canopy)
 
       
       ! Turbulent aerodynamic resistance from roughness sublayer depth 
