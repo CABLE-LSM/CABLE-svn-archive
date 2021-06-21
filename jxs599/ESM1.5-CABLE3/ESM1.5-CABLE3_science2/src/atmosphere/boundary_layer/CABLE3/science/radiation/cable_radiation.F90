@@ -40,7 +40,7 @@ MODULE cable_radiation_module
 
 CONTAINS
 
-SUBROUTINE init_radiation( met, rad, veg, canopy )
+SUBROUTINE init_radiation(met,rad,veg, canopy, c1, rhoch, xk) 
 
    USE cable_def_types_mod, ONLY : radiation_type, met_type, canopy_type,      &
                                    veg_parameter_type, nrb, mp    
@@ -63,11 +63,7 @@ SUBROUTINE init_radiation( met, rad, veg, canopy )
       xphi1,   & ! leaf angle parmameter 1
       xphi2      ! leaf angle parmameter 2
    
-   REAL, DIMENSION(:,:), ALLOCATABLE, SAVE ::                                  &
-      ! subr to calc these curr. appears twice. fix this  
-      c1,      & !
-      rhoch
-
+    REAL :: c1(mp,nrb), rhoch(mp,nrb)
 
    LOGICAL, DIMENSION(mp)    :: mask   ! select points for calculation
 
@@ -76,8 +72,6 @@ SUBROUTINE init_radiation( met, rad, veg, canopy )
    
    CALL point2constants( C ) 
    
-   IF(.NOT. ALLOCATED(c1) ) ALLOCATE( c1(mp,nrb), rhoch(mp,nrb) )
-
    cos3 = COS(C%PI180 * (/ 15.0, 45.0, 75.0 /))
 
    ! See Sellers 1985, eq.13 (leaf angle parameters):
@@ -155,6 +149,14 @@ SUBROUTINE init_radiation( met, rad, veg, canopy )
    WHERE(rad%fbeam(:,1) < C%RAD_THRESH )
       rad%extkb=30.0         ! keep cexpkbm within real*4 range (BP jul2010)
    END WHERE
+!borrowed from cbl_iniit_radiation IN CABLE3 - bc there it is moved out oof Albedo and into iniit_radiation
+!so here we are missing this definition   
+rad%extkbm(:,:) = 0.0
+rad%extkdm(:,:) = 0.0
+
+call EffectiveExtinctCoeffs( rad%extkbm, rad%extkdm,               &
+                             mp, nrb, mask,                        &
+                             rad%extkb, rad%extkd, c1 )
    
 END SUBROUTINE init_radiation
 
@@ -430,6 +432,56 @@ FUNCTION spitter(doy, coszen, fsd) RESULT(fbeam)
    WHERE ( tmprat > tmpk ) fbeam = MAX( 1.0 - tmpr, 0.0 )
 
 END FUNCTION spitter
+
+Subroutine EffectiveExtinctCoeffs( EffExtCoeff_beam, EffExtCoeff_dif, mp, nrb, &
+                                   sunlit_veg_mask,                        &
+                                   ExtCoeff_beam, ExtCoeff_dif, c1 )
+implicit none
+integer :: mp                   !total number of "tiles"  
+integer :: nrb                  !number of radiation bands [per legacy=3, but really=2 VIS,NIR. 3rd dim was for LW]
+
+REAL :: EffExtCoeff_beam(mp,nrb)!Effective Extinction co-efficient for Direct Beam component of SW radiation
+REAL :: EffExtCoeff_dif(mp,nrb) !Effective Extinction co-efficient for Diffuse component of SW radiation
+
+REAL :: c1(mp,nrb)
+logical :: sunlit_veg_mask(mp)  !combined mask - BOTH sunlit and vegetated
+REAL :: ExtCoeff_beam(mp)       !"raw" Extinction co-efficient for Direct Beam component of SW radiation
+REAL :: ExtCoeff_dif(mp)        !"raw"Extinction co-efficient for Diffuse component of SW radiation
+
+EffExtCoeff_dif = 0.
+call EffectiveExtinctCoeff( EffExtCoeff_dif, mp, ExtCoeff_dif, c1 )
+
+EffExtCoeff_beam = 0.
+call EffectiveExtinctCoeff( EffExtCoeff_beam, mp, ExtCoeff_beam, c1, &
+                            sunlit_veg_mask )
+End Subroutine EffectiveExtinctCoeffs
+
+! modified k diffuse(6.20)(for leaf scattering)
+subroutine EffectiveExtinctCoeff(Eff_ExtCoeff, mp, ExtCoeff, c1, mask )
+implicit none
+integer :: mp 
+real :: Eff_ExtCoeff(mp,2) 
+real :: ExtCoeff(mp) 
+real :: c1(mp,2) 
+logical, optional :: mask(mp) 
+integer :: i, b
+
+DO i = 1,mp
+  DO b = 1, 2
+    !IF mask is present we are doing the beam component then: 
+    if( present(mask)) then 
+      !then ONLY IF it is sunlit and vegetated -else default 
+      if( mask(i) ) Eff_ExtCoeff(i,b) = ExtCoeff(i) * c1(i,b)
+    else         
+      Eff_ExtCoeff(i,b) = ExtCoeff(i) * c1(i,b)          
+    endif
+
+  enddo
+enddo
+
+End subroutine EffectiveExtinctCoeff
+
+
 
 
 END MODULE cable_radiation_module

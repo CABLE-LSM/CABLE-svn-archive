@@ -58,9 +58,18 @@ USE cbl_soil_snow_main_module,  ONLY: soil_snow
    USE cable_roughness_module
    USE cable_radiation_module
    USE cable_air_module
-#ifndef NO_CASA_YET
-   USE casadimension,     only : icycle ! used in casa_cnp
-#endif
+!CBL3 
+ USE cbl_albedo_mod, ONLY: albedo
+USE cbl_masks_mod, ONLY: fveg_mask,  fsunlit_mask,  fsunlit_veg_mask
+USE cbl_masks_mod, ONLY: veg_mask,  sunlit_mask,  sunlit_veg_mask
+!jhan:pass these !data
+USE cable_other_constants_mod, ONLY: Ccoszen_tols => coszen_tols
+USE cable_other_constants_mod,  ONLY : Crad_thresh => rad_thresh
+USE cable_other_constants_mod, ONLY: clai_thresh => lai_thresh
+USE cable_other_constants_mod, ONLY: cgauss_w => gauss_w
+USE cable_math_constants_mod,  ONLY: cpi => pi
+USE cable_math_constants_mod,  ONLY: cpi180 => pi180
+
    USE cable_data_module, ONLY : icbm_type, point2constants 
    
    !ptrs to local constants 
@@ -83,10 +92,15 @@ USE cbl_soil_snow_main_module,  ONLY: soil_snow
     
    INTEGER :: k,kk,j  
 
-#ifdef NO_CASA_YET
-   INTEGER :: ICYCLE
-   ICYCLE = 0
-#endif
+CHARACTER(LEN=*), PARAMETER :: subr_name = "cbl_model_driver"
+LOGICAL :: jls_standalone= .TRUE.
+LOGICAL :: jls_radiation= .FALSE.
+LOGICAL :: cbl_standalone = .FALSE.    
+
+!co-efficients usoughout init_radiation ` called from _albedo as well
+REAL :: c1(mp,nrb)
+REAL :: rhoch(mp,nrb)
+REAL :: xk(mp,nrb)
 
    ! assign local ptrs to constants defined in cable_data_module
    CALL point2constants(C)    
@@ -108,18 +122,16 @@ USE cbl_soil_snow_main_module,  ONLY: soil_snow
       !ESM1.5call ruff_resist(veg, rough, ssnow, canopy)
    ENDIF
 
+call fveg_mask( veg_mask, mp, Clai_thresh, canopy%vlaiw )
+call fsunlit_mask( sunlit_mask, mp, CRAD_THRESH,( met%fsd(:,1)+met%fsd(:,2) ) )
+call fsunlit_veg_mask( sunlit_veg_mask, mp )
 
-   CALL init_radiation(met,rad,veg, canopy) ! need to be called at every dt
-
-   IF( cable_runtime%um ) THEN
+   CALL init_radiation(met,rad,veg, canopy, c1, rhoch, xk) ! need to be called at every dt
       
       IF( cable_runtime%um_explicit ) THEN
          CALL surface_albedo(ssnow, veg, met, rad, soil, canopy)
       ENDIF
    
-   ELSE
-      CALL surface_albedo(ssnow, veg, met, rad, soil, canopy)
-   ENDIf
     
    ! Calculate canopy variables:
    CALL define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
@@ -171,26 +183,6 @@ USE cbl_soil_snow_main_module,  ONLY: soil_snow
    rad%trad = ( ( 1.-rad%transd ) * canopy%tv**4 +                             &
               rad%transd * ssnow%tss**4 )**0.25
 
-   ! rml 17/1/11 move all plant resp and soil resp calculations here            
-   ! from canopy. in UM only call on implicit step.
-   ! put old and new soil resp calculations into soilcarb subroutine
-   ! make new plantcarb subroutine
-   IF (.not.cable_runtime%um_explicit .AND. icycle == 0) THEN
-
-      !calculate canopy%frp
-      CALL plantcarb(veg,bgc,met,canopy)
-     
-      !calculate canopy%frs
-      CALL soilcarb(soil, ssnow, veg, bgc, met, canopy)
-
-      CALL carbon_pl(dels, soil, ssnow, veg, canopy, bgc)
-
-      canopy%fnpp = -1.0* canopy%fpn - canopy%frp
-      canopy%fnee = canopy%fpn + canopy%frs + canopy%frp
-
-   ENDIF
-
-  
 END SUBROUTINE cbm
 
 END MODULE cable_cbm_module
