@@ -1,3 +1,23 @@
+!==============================================================================
+! This source code is part of the
+! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
+! This work is licensed under the CSIRO Open Source Software License
+! Agreement (variation of the BSD / MIT License).
+!
+! You may not use this file except in compliance with this License.
+! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located
+! in each directory containing CABLE code.
+!
+! ==============================================================================
+! Purpose: Computes radiation absorbed by canopy and soil surface
+!
+! Contact: Yingping.Wang@csiro.au
+!
+! History: No significant change from v1.4b
+!
+!
+! ==============================================================================
+
 MODULE cbl_init_radiation_module
 
    USE cable_data_module, ONLY : irad_type, point2constants
@@ -8,26 +28,13 @@ MODULE cbl_init_radiation_module
    PRIVATE
 
   TYPE ( irad_type ) :: C 
+!FUDGED local pars -masks tuned at other times - review conssitency!!
+real :: Ccoszen_tols_huge  ! 1e-4 * threshold cosine of sun's zenith angle, below which considered SUNLIT
+real :: Ccoszen_tols_tiny  ! 1e-4 * threshold cosine of sun's zenith angle, below which considered SUNLIT
 
 
 CONTAINS
 
-!SUBROUTINE init_radiation(met,rad,veg, canopy, c1, rhoch, xk) 
-!
-!USE cbl_rhoch_module,   ONLY : calc_rhoch
-!USE cbl_spitter_module, ONLY : Spitter
-!USE cable_math_constants_mod,  ONLY: cpi => pi
-!   USE cable_def_types_mod, ONLY : radiation_type, met_type, canopy_type,      &
-!                                   veg_parameter_type, nrb, mp    
-!   USE cable_common_module
-!
-!   TYPE (radiation_type), INTENT(INOUT) :: rad
-!   TYPE (met_type),       INTENT(INOUT) :: met
-!   
-!   TYPE (canopy_type),    INTENT(IN)    :: canopy
-!
-!   TYPE (veg_parameter_type), INTENT(INOUT) :: veg
-   
 SUBROUTINE init_radiation( ExtCoeff_beam, ExtCoeff_dif,                        &
                         EffExtCoeff_beam, EffExtCoeff_dif, RadFbeam,           &
                         c1, rhoch, xk,                                         &
@@ -96,7 +103,7 @@ REAL :: xvlai2(mp,nrb) ! 2D vlai
 REAL :: xphi1(mp)      ! leaf angle parmameter 1
 REAL :: xphi2(mp)      ! leaf angle parmameter 2
    
-logical ::mask(mp)         !vegetated mask [formed by comparrisson of LAI CLAI_thresh ]
+!logical ::mask(mp)         !vegetated mask [formed by comparrisson of LAI CLAI_thresh ]
 !local vars
 integer :: ictr
 REAL :: cos3(nrb)      ! cos(15 45 75 degrees)
@@ -145,8 +152,8 @@ xk(:,:) = 0.0
       rad%extkd = 0.7
    END WHERE
 
-   mask = canopy%vlaiw > C%LAI_THRESH  .AND.                                   &
-          ( met%fsd(:,1) + met%fsd(:,2) ) > C%RAD_THRESH
+!   mask = canopy%vlaiw > C%LAI_THRESH  .AND.                                   &
+!          ( met%fsd(:,1) + met%fsd(:,2) ) > C%RAD_THRESH
 
 CALL calc_rhoch( c1,rhoch, mp, nrb, veg%taul, veg%refl )
 
@@ -198,10 +205,97 @@ rad%extkbm(:,:) = 0.0
 rad%extkdm(:,:) = 0.0
 
 call EffectiveExtinctCoeffs( rad%extkbm, rad%extkdm,               &
-                             mp, nrb, mask,                        &
+                             mp, nrb, sunlit_veg_mask,                        &
                              rad%extkb, rad%extkd, c1 )
    
 END SUBROUTINE init_radiation
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+subroutine Common_InitRad_Scalings( xphi1, xphi2, xk, xvlai2, c1, rhoch,      &
+                            mp, nrb, Cpi180,cLAI_thresh, veg_mask,             &
+                            reducedLAIdue2snow,                &
+                            VegXfang, VegTaul, VegRefl)
+!subrs
+USE cbl_rhoch_module,   ONLY : calc_rhoch
+implicit none
+!re-decl in args
+integer :: mp
+integer :: nrb
+real :: Cpi180
+real :: cLAI_thresh
+real :: xphi1(mp)    ! leaf angle parmameter 1
+real :: xphi2(mp)    ! leaf angle parmameter 2
+REAL :: xvlai2(mp,nrb)  ! 2D vlai
+REAL :: xk(mp,nrb)      ! extinct. coef.for beam rad. and black leaves
+REAL :: c1(mp,nrb)
+REAL :: rhoch(mp,nrb)
+real :: reducedLAIdue2snow(mp)
+real :: VegXfang(mp)
+REAL :: VegTaul(mp,nrb)
+REAL :: VegRefl(mp,nrb)
+logical :: veg_mask(mp)
+
+call common_InitRad_coeffs( xphi1, xphi2, xk, xvlai2, mp, nrb, Cpi180,&
+                            cLAI_thresh, veg_mask, VegXfang, reducedLAIdue2snow  )
+
+CALL calc_rhoch( c1,rhoch, mp, nrb, VegTaul, VegRefl )
+
+End subroutine Common_InitRad_Scalings
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+subroutine  common_InitRad_coeffs( xphi1, xphi2, xk, xvlai2, mp, nrb, Cpi180,&
+                            cLAI_thresh, veg_mask, VegXfang, reducedLAIdue2snow  )
+
+
+implicit none
+!re-decl in args
+integer :: mp
+integer :: nrb
+real :: Cpi180
+real :: xphi1(mp)    ! leaf angle parmameter 1
+real :: xphi2(mp)    ! leaf angle parmameter 2
+REAL :: xvlai2(mp,nrb)  ! 2D vlai
+REAL :: xk(mp,nrb)      ! extinct. coef.for beam rad. and black leaves
+real :: VegXfang(mp)
+real :: reducedLAIdue2snow(mp)
+logical :: veg_mask(mp)
+real:: cLAI_thresh
+
+!local vars
+REAL :: cos3(nrb)      ! cos(15 45 75 degrees)
+
+cos3 = COS(CPI180 * (/ 15.0, 45.0, 75.0 /))
+
+  xphi1 = 0.0
+  xphi2 = 0.0
+  xvlai2 = 0.0
+! See Sellers 1985, eq.13 (leaf angle parameters):
+WHERE ( veg_mask )
+  xphi1 = 0.5 - VegXfang * (0.633 + 0.33 * VegXfang)
+  xphi2 = 0.877 * (1.0 - 2.0 * xphi1)
+END WHERE
+
+! 2 dimensional LAI
+xvlai2 = SPREAD(reducedLAIdue2snow, 2, 3)
+
+! Extinction coefficient for beam radiation and black leaves;
+! eq. B6, Wang and Leuning, 1998
+WHERE (xvlai2 > cLAI_THRESH) ! vegetated
+   xk = SPREAD(xphi1, 2, 3) / SPREAD(cos3, 1, mp) + SPREAD(xphi2, 2, 3)
+ELSEWHERE ! i.e. bare soil
+   xk = 0.0
+END WHERE
+
+End subroutine common_InitRad_coeffs
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 
 Subroutine EffectiveExtinctCoeffs( EffExtCoeff_beam, EffExtCoeff_dif, mp, nrb, &
                                    sunlit_veg_mask,                        &
