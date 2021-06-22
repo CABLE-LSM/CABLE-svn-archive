@@ -180,11 +180,11 @@ logical :: sunlit_veg_mask(mp)
    ssnow%potev = 0.
    canopy%fevw_pot = 0.
 
-!CALL radiation( ssnow, veg, air, met, rad, canopy, sunlit_veg_mask, &
-!  !constants
-!  c%lai_thresh, C%sboltz, C%emsoil, C%emleaf, C%capp &
-!)
-   CALL radiation( ssnow, veg, air, met, rad, canopy )
+CALL radiation( ssnow, veg, air, met, rad, canopy, sunlit_veg_mask, &
+  !constants
+  c%lai_thresh, C%sboltz, C%emsoil, C%emleaf, C%capp &
+)
+!   CALL radiation( ssnow, veg, air, met, rad, canopy )
 
    canopy%zetar(:,1) = C%ZETA0 ! stability correction terms
    canopy%zetar(:,2) = C%ZETPOS + 1 
