@@ -56,7 +56,7 @@ CONTAINS
 USE cbl_soil_snow_main_module,  ONLY: soil_snow
    USE cable_def_types_mod
    USE cable_roughness_module
-   USE cable_init_radiation_module, ONLY: init_radiation
+   USE cbl_init_radiation_module, ONLY: init_radiation
    USE cable_air_module
 !CBL3 
 ! USE cbl_albedo_mod, ONLY: albedo
@@ -151,6 +151,7 @@ CALL init_radiation( rad%extkb, rad%extkd,                                     &
    
     
    ! Calculate canopy variables:
+!call define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,sunlit_veg_mask, canopy%vlaiw )
    CALL define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
 
    ssnow%otss_0 = ssnow%otss

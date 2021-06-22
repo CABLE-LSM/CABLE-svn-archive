@@ -1,4 +1,4 @@
-MODULE cable_init_radiation_module
+MODULE cbl_init_radiation_module
 
    USE cable_data_module, ONLY : irad_type, point2constants
  
@@ -70,15 +70,12 @@ real :: Cpi180                  !PI in radians - from cable_math_constants origi
 LOGICAL :: cbl_standalone       !runtime switch defined in cable_*main routines signifying this is cable_standalone
 LOGICAL :: jls_standalone       !runtime switch defined in cable_*main routines signifying this is jules_standalone
 LOGICAL :: jls_radiation        !runtime switch defined in cable_*main routines signifying this is the radiation pathway 
-
 character(len=*) :: subr_name !where am i called from
-
 !masks
 logical :: veg_mask(mp)         !vegetated mask [formed by comparrisson of LAI CLAI_thresh ]
 logical :: sunlit_mask(mp)      !sunlit mask [formed by comparrisson of coszen to coszen_tols i.e. is the sun up]
 logical :: sunlit_veg_mask(mp)  !combined mask - BOTH sunlit and vegetated
 
-   
 !vegetation parameters input via namelist
 REAL :: VegXfang(mp)
 REAL :: VegTaul(mp,nrb)
@@ -100,10 +97,20 @@ REAL :: xphi1(mp)      ! leaf angle parmameter 1
 REAL :: xphi2(mp)      ! leaf angle parmameter 2
    
 logical ::mask(mp)         !vegetated mask [formed by comparrisson of LAI CLAI_thresh ]
-
 !local vars
 integer :: ictr
 REAL :: cos3(nrb)      ! cos(15 45 75 degrees)
+
+  
+!Null Initializations
+ExtCoeff_beam(:) = 0.0
+ExtCoeff_dif(:) = 0.0
+EffExtCoeff_beam(:,:) = 0.0
+EffExtCoeff_dif(:,:) = 0.0
+RadFbeam(:,:) = 0.0
+c1(:,:) = 0.0
+rhoch(:,:) = 0.0
+xk(:,:) = 0.0
 
   
    CALL point2constants( C ) 
@@ -219,6 +226,8 @@ call EffectiveExtinctCoeff( EffExtCoeff_beam, mp, ExtCoeff_beam, c1, &
                             sunlit_veg_mask )
 End Subroutine EffectiveExtinctCoeffs
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 ! modified k diffuse(6.20)(for leaf scattering)
 subroutine EffectiveExtinctCoeff(Eff_ExtCoeff, mp, ExtCoeff, c1, mask )
 implicit none
@@ -244,4 +253,36 @@ enddo
 
 End subroutine EffectiveExtinctCoeff
 
-END MODULE cable_init_radiation_module
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+subroutine BeamFraction( RadFbeam, mp, nrb, Cpi,Ccoszen_tols_huge, metDoy, &
+coszen, SW_down ) 
+USE cbl_spitter_module, ONLY : Spitter
+
+integer :: mp                   !total number of "tiles"  
+integer :: nrb                  !number of radiation bands [per legacy=3, but really=2 VIS,NIR. 3rd dim was for LW]
+REAL :: RadFbeam(mp,nrb)        !Beam Fraction of Downward SW radiation [formerly rad%fbeam]
+
+real :: Cpi !PI - from cable_math_constants originally
+real :: Ccoszen_tols_huge !PI - from cable_math_constants originally
+
+integer:: metDoY(mp)          !Day of the Year [formerly met%doy]
+real :: coszen(mp)          !Day of the Year [formerly met%doy]
+REAL :: SW_down(mp,nrb)     !Downward SW radiation [formerly met%fsd]
+
+
+! Define beam fraction, fbeam:
+RadFbeam(:,1) = spitter(mp, cpi, metDoy, coszen, SW_down(:,1))
+RadfBeam(:,2) = spitter(mp, cpi, metDoy, coszen, SW_down(:,2))
+
+! coszen is set during met data read in.
+WHERE (coszen < 1.e-2 )
+  RadFbeam(:,1) = 0.0
+  RadFbeam(:,2) = 0.0
+END WHERE
+
+End subroutine BeamFraction
+
+
+
+END MODULE cbl_init_radiation_module
