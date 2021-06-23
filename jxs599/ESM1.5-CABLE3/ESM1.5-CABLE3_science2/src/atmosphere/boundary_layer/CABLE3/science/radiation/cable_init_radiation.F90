@@ -119,7 +119,10 @@ c1(:,:) = 0.0
 rhoch(:,:) = 0.0
 xk(:,:) = 0.0
 
-  
+!Limiting Initializations for stability
+Ccoszen_tols_huge = Ccoszen_tols * 1e2 
+Ccoszen_tols_tiny = Ccoszen_tols * 1e-2 
+
    CALL point2constants( C ) 
    
    cos3 = COS(C%PI180 * (/ 15.0, 45.0, 75.0 /))
@@ -167,21 +170,6 @@ CALL calc_rhoch( c1,rhoch, mp, nrb, veg%taul, veg%refl )
 
    ENDDO
    
-   IF( .NOT. cable_runtime%um) THEN
-   
-      ! Define beam fraction, fbeam:
-      rad%fbeam(:,1) = spitter(mp, cpi, INT(met%doy), met%coszen, met%fsd(:,1))
-      rad%fbeam(:,2) = spitter(mp, cpi, INT(met%doy), met%coszen, met%fsd(:,2))
-      ! coszen is set during met data read in.
-   
-      WHERE (met%coszen <1.0e-2)
-         rad%fbeam(:,1) = 0.0
-         rad%fbeam(:,2) = 0.0
-      END WHERE
-   
-   ENDIF
-   
-   ! In gridcells where vegetation exists....
    WHERE (canopy%vlaiw > C%LAI_THRESH)    
       
       ! SW beam extinction coefficient ("black" leaves, extinction neglects
@@ -207,6 +195,13 @@ rad%extkdm(:,:) = 0.0
 call EffectiveExtinctCoeffs( rad%extkbm, rad%extkdm,               &
                              mp, nrb, sunlit_veg_mask,                        &
                              rad%extkb, rad%extkd, c1 )
+
+! Offline/standalone forcing gives us total downward Shortwave. We have
+! previosuly, arbitratily split this into NIR/VIS (50/50). We use 
+! Spitter function to split these bands into direct beam and diffuse components
+IF( cbl_standalone .OR. jls_standalone .AND. .NOT. jls_radiation ) &
+  CALL BeamFraction( RadFbeam, mp, nrb, Cpi, Ccoszen_tols_huge, metDoy,  &
+                     coszen, SW_down ) 
    
 END SUBROUTINE init_radiation
 
