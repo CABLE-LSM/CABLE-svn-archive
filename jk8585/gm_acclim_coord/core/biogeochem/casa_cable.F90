@@ -753,7 +753,7 @@ contains
     ncleafx(:) = casabiome%ratioNCplantmax(veg%iveg(:),leaf)
     npleafx(:) = casabiome%ratioNPplantmin(veg%iveg(:),leaf)
 
-    if (cable_user%acclimate_photosyn) then  
+    if (cable_user%acclimate_photosyn .AND. (.NOT. cable_user%coordinate_photosyn)) then  
        veg%bjv(:) = 2.56 - 0.0375 * climate%mtemp_max20(:) - 0.0202 * (climate%mtemp(:) -  climate%mtemp_max20(:)) 
     else
        veg%bjv(:) = PHOTO%bjvref  ! 1.8245 at Tgrowth=15degC and Thome=25degC Kumarathunge et al. 2019, acclimates

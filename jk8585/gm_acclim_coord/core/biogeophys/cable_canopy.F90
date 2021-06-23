@@ -1856,7 +1856,7 @@ CONTAINS
 
 
              if (cable_user%CALL_climate) then
-                if (cable_user%acclimate_photosyn) then
+                !if (cable_user%acclimate_photosyn) then
                    ! if (veg%iveg(i).eq.1) then
 
 
@@ -1928,7 +1928,7 @@ CONTAINS
                    endif
                    veg%cfrd(i) = rdx(i,1) / veg%vcmax(i)
 
-                endif
+                !endif ! acclimation switch
                 
                 ! modify for leaf area and instantaneous temperature response (Rd25 -> Rd)
                 ! qb is hard-coded here as it should be the same for imp and exp
