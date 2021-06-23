@@ -1,14 +1,22 @@
 !==============================================================================
 ! This source code is part of the 
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
-! This work is licensed under the CSIRO Open Source Software License
-! Agreement (variation of the BSD / MIT License).
+! This work is licensed under the CABLE Academic User Licence Agreement 
+! (the "Licence").
+! You may not use this file except in compliance with the Licence.
+! A copy of the Licence and registration form can be obtained from 
+! http://www.cawcr.gov.au/projects/access/cable
+! You need to register and read the Licence agreement before use.
+! Please contact cable_help@nf.nci.org.au for any questions on 
+! registration and the Licence.
 !
-! You may not use this file except in compliance with this License.
-! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located
-! in each directory containing CABLE code.
-!
+! Unless required by applicable law or agreed to in writing, 
+! software distributed under the Licence is distributed on an "AS IS" BASIS,
+! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+! See the Licence for the specific language governing permissions and 
+! limitations under the Licence.
 ! ==============================================================================
+!
 ! Purpose: Computes radiation absorbed by canopy and soil surface
 !
 ! Contact: Yingping.Wang@csiro.au
@@ -18,7 +26,7 @@
 !
 ! ==============================================================================
 
-MODULE cbl_radiation_module
+MODULE cable_radiation_module
 
    USE cable_data_module, ONLY : irad_type, point2constants
  
@@ -32,25 +40,13 @@ MODULE cbl_radiation_module
 
 CONTAINS
 
-SUBROUTINE radiation( ssnow, veg, air, met, rad, canopy, sunlit_veg_mask,&
-  !constants
-  clai_thresh, Csboltz, Cemsoil, Cemleaf, Ccapp &
-)
+SUBROUTINE radiation( ssnow, veg, air, met, rad, canopy )
    
    USE cable_def_types_mod, ONLY : radiation_type, met_type, canopy_type,      &
                                    veg_parameter_type, soil_snow_type,         &
                                    air_type, mp, mf, r_2
                                        
    USE cable_common_module, only : cable_runtime, cable_user
-IMPLICIT NONE
-logical :: sunlit_veg_mask(mp)
-!constants
-real :: CLAI_thresh
-real :: CSboltz
-real :: Cemsoil
-real :: Cemleaf
-real :: Ccapp
-
 
    TYPE (canopy_type),   INTENT(IN) :: canopy
    TYPE (air_type),      INTENT(IN) :: air
@@ -229,6 +225,6 @@ real :: Ccapp
    ! Total energy absorbed by canopy:
    rad%rniso = SUM(rad%qcan, 3)
     
-  END SUBROUTINE radiation
+END SUBROUTINE radiation
 
-END MODULE cbl_radiation_module
+END MODULE cable_radiation_module
