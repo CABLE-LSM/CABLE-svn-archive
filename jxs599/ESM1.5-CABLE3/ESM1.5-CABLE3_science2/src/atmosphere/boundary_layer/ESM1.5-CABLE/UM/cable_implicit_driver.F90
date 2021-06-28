@@ -277,6 +277,7 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
       met%qv = met%qv + dqwc
       met%tvair = met%tk
       met%tvrad = met%tk
+      met%doy = idoy + 1
  
       canopy%cansto = canopy%oldcansto
 

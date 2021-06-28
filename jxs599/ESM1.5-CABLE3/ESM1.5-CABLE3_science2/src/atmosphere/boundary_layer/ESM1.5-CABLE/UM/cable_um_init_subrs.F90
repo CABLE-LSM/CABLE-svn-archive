@@ -490,6 +490,7 @@ SUBROUTINE initialize_radiation( sw_down, lw_down, cos_zenith_angle,           &
          ALLOCATE( conv_rain_prevstep(mp), conv_snow_prevstep(mp) )
          conv_rain_prevstep = 0. 
          conv_snow_prevstep = 0.
+         met%doy = 0.0
       ENDIF   
       
       ! re-set UM rad. forcings to suit CABLE. also called in explicit call to 
