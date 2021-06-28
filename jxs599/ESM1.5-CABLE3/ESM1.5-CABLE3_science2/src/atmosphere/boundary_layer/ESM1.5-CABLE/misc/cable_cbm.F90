@@ -126,24 +126,26 @@ call fveg_mask( veg_mask, mp, Clai_thresh, canopy%vlaiw )
 call fsunlit_mask( sunlit_mask, mp, CRAD_THRESH,( met%fsd(:,1)+met%fsd(:,2) ) )
 call fsunlit_veg_mask( sunlit_veg_mask, mp )
 
-!CALL init_radiation( rad%extkb, rad%extkd,                                     &
-!                     !ExtCoeff_beam, ExtCoeff_dif,
-!                     rad%extkbm, rad%extkdm, Rad%Fbeam,                        &
-!                     !EffExtCoeff_beam, EffExtCoeff_dif, RadFbeam,
-!                     c1, rhoch, xk,                                            &
+!CALL init_radiation( &
+!!                      rad%extkb, rad%extkd,                                     &
+!!                     !ExtCoeff_beam, ExtCoeff_dif,
+!!                     rad%extkbm, rad%extkdm, Rad%Fbeam,                        &
+!!                     !EffExtCoeff_beam, EffExtCoeff_dif, RadFbeam,
+!!                     c1, rhoch, xk,                                            &
 !                     mp,nrb,                                                   &
 !                     Clai_thresh, Ccoszen_tols, CGauss_w, Cpi, Cpi180,         &
 !                     cbl_standalone, jls_standalone, jls_radiation,            &
-!                     subr_name,                                                &
-!                     veg_mask, sunlit_mask, sunlit_veg_mask,                   &
-!                     veg%Xfang, veg%taul, veg%refl,                            &
-!                     !VegXfang, VegTaul, VegRefl
-!                     met%coszen, int(met%DoY), met%fsd,                        &
-!                     !coszen, metDoY, SW_down,
-!                     canopy%vlaiw                                              &
+!                     subr_name  &!,                                                &
+!!                     veg_mask, sunlit_mask, sunlit_veg_mask,                   &
+!!                     veg%Xfang, veg%taul, veg%refl,                            &
+!!                     !VegXfang, VegTaul, VegRefl
+!!                     met%coszen, int(met%DoY), met%fsd,                        &
+!!                     !coszen, metDoY, SW_down,
+!!                     canopy%vlaiw                                              &
 !                   ) !reducedLAIdue2snow 
  
-   CALL init_radiation(met,rad,veg, canopy, c1, rhoch, xk) ! need to be called at every dt
+!   CALL init_radiation(met,rad,veg, canopy, c1, rhoch, xk) ! need to be called at every dt
+   CALL init_radiation( c1, rhoch, xk) ! need to be called at every dt
       
       IF( cable_runtime%um_explicit ) THEN
          CALL surface_albedo(ssnow, veg, met, rad, soil, canopy)

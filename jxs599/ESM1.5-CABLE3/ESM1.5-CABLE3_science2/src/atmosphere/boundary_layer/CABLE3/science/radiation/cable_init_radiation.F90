@@ -40,22 +40,15 @@ MODULE cable_init_radiation_module
 
 CONTAINS
 
-SUBROUTINE init_radiation(met,rad,veg, canopy, c1, rhoch, xk) 
+SUBROUTINE init_radiation(c1, rhoch, xk) 
 
 USE cbl_rhoch_module,   ONLY : calc_rhoch
 USE cbl_spitter_module, ONLY : Spitter
 USE cable_math_constants_mod,  ONLY: cpi => pi
-   USE cable_def_types_mod, ONLY : radiation_type, met_type, canopy_type,      &
-                                   veg_parameter_type, nrb, mp    
+USE cable_um_tech_mod, ONLY : canopy, met, rad, veg 
+   USE cable_def_types_mod, ONLY : nrb, mp    
    USE cable_common_module
 
-   TYPE (radiation_type), INTENT(INOUT) :: rad
-   TYPE (met_type),       INTENT(INOUT) :: met
-   
-   TYPE (canopy_type),    INTENT(IN)    :: canopy
-
-   TYPE (veg_parameter_type), INTENT(INOUT) :: veg
-   
    REAL, DIMENSION(nrb) ::                                                     &
       cos3       ! cos(15 45 75 degrees)
    REAL, DIMENSION(mp,nrb) ::                                                  &
