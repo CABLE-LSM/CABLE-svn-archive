@@ -41,6 +41,7 @@ PROGRAM mpi_driver
   !check to see if first argument passed to cable is
   !the name of the namelist file
   !if not use cable.nml
+  ! comment out by ypwang 21-6-2021
   CALL get_namelist_file_name()
 
   IF (np < 2) THEN

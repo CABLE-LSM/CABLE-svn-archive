@@ -654,6 +654,10 @@ USE cbl_soil_snow_init_special_module
 
              IF(icycle >0) THEN
 
+
+               print *, 'ypwA1: before bgcdriver', ktau
+
+
                 CALL bgcdriver( ktau, kstart, kend, dels, met,          &
                      ssnow, canopy, veg, soil,climate, casabiome,       &
                      casapool, casaflux, casamet, casabal,              &
@@ -662,6 +666,8 @@ USE cbl_soil_snow_init_special_module
 
                 ! IF(MOD((ktau-kstart+1),ktauday)==0) THEN
                 CALL MPI_Send (MPI_BOTTOM,1, casa_t,0,ktau_gl,ocomm,ierr)
+
+               print *, 'ypwA2: after bgcdriver',ktau, IS_CASA_TIME("write", yyyy, ktau, kstart, koffset, kend, ktauday, wlogn)
 
                 !  ENDIF
 
@@ -672,19 +678,33 @@ USE cbl_soil_snow_init_special_module
                 ENDIF
 
 
+               print *, 'ypwA21: after bgcdriver',ktau, &
+                       IS_CASA_TIME("write", yyyy, ktau, kstart, koffset, kend, ktauday, wlogn),spinup,spinConv
+
                 ! MPI: send the results back to the master
                 IF( ((.NOT.spinup).OR.(spinup.AND.spinConv)) .AND. &
                      IS_CASA_TIME("dwrit", yyyy, ktau, kstart, &
                      koffset, kend, ktauday, logn))  &
                      CALL MPI_Send (MPI_BOTTOM, 1, casa_dump_t, 0, ktau_gl, ocomm, ierr)
 
+             print *, 'ypwA22: after if block',ktau, &
+                       IS_CASA_TIME("write", yyyy, ktau, kstart, koffset, kend, ktauday, wlogn),spinup,spinConv
+
              ENDIF
+
+             print *, 'ypwA3: exit icycle if block',ktau
+
+
 
              ! sumcflux is pulled out of subroutine cbm
              ! so that casaCNP can be called before adding the fluxes (Feb 2008, YP)
              CALL sumcflux( ktau, kstart, kend, dels, bgc,              &
                   canopy, soil, ssnow, sum_flux, veg,                   &
                   met, casaflux, l_vcmaxFeedbk )
+
+             print *, 'ypwA4: after sumcflux',ktau
+
+
 
              ! MPI: send the results back to the master
              CALL MPI_Send (MPI_BOTTOM, 1, send_t, 0, ktau_gl, ocomm, ierr)
@@ -697,11 +717,16 @@ USE cbl_soil_snow_init_special_module
              !                      rad, bal, air, soil, veg, C%SBOLTZ, &
              !                      C%EMLEAF, C%EMSOIL )
 
+             print *, 'ypwA5: after MPI_Send',ktau
 
              CALL1 = .FALSE.
 
           END DO KTAULOOP ! END Do loop over timestep ktau
           ! ELSE
+
+          print *, 'ypwA6: exit ktauloop in mpiworker',ktau
+
+
 
           CALL1 = .FALSE.
           ! ENDIF

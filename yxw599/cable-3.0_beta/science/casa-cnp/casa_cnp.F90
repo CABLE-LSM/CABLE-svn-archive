@@ -2535,40 +2535,40 @@ END SUBROUTINE casa_rplant1
 
        casabal%pbalance(:) = pbalplant(:) + pbalsoil(:)
 
-   !    casabal%pplantlast   = casapool%pplant
-   !    casabal%plitterlast  = casapool%plitter
-   !    casabal%psoillast    = casapool%psoil
-   !    casabal%psoillablast = casapool%psoillab
-   !    casabal%psoilsorblast= casapool%psoilsorb
-   !    casabal%psoilocclast = casapool%psoilocc
+       casabal%pplantlast   = casapool%pplant
+       casabal%plitterlast  = casapool%plitter
+       casabal%psoillast    = casapool%psoil
+       casabal%psoillablast = casapool%psoillab
+       casabal%psoilsorblast= casapool%psoilsorb
+       casabal%psoilocclast = casapool%psoilocc
        casabal%sumpbal  = casabal%sumpbal + casabal%pbalance
     ENDIF
 
     ! check P balance for a selected land point
-    latx=30.00;lonx=-89.0625;ivegx=2;isox=6
-    if(icycle >2 ) then
-    do npt=1,mp
-       if(abs(casamet%lat(npt)-latx)<0.001.and.abs(casamet%lon(npt)-lonx)<0.001.and.&
-          veg%iveg(npt)==ivegx.and.casamet%isorder(npt)==isox) then
-          
-          write(*,611) npt,veg%iveg(npt),casamet%isorder(npt),casamet%lat(npt),casamet%lon(npt),               &
-                         casabal%cbalance(npt),casabal%nbalance(npt),                                          &
-                         casabal%pbalance(npt),pbalplant(npt), pbalsoil(npt),                                  &
-                         casaflux%Pdep(npt)+casaflux%Pwea(npt)-casaflux%Pleach(npt),                           &
-                        sum(casapool%Pplant(npt,:) + casapool%Plitter(npt,:) + casapool%Psoil(npt,:))          &
-                        +casapool%psoillab(npt)+casapool%psoilsorb(npt)+casapool%psoilocc(npt)                 &
-                        -sum(casabal%Pplantlast(npt,:)+casabal%Plitterlast(npt,:)+casabal%Psoillast(npt,:))    &
-                        -casabal%psoillablast(npt)-casabal%psoilsorblast(npt)-casabal%Psoilocclast(npt),       &
-                        casabal%Pplantlast(npt,:),casapool%Pplant(npt,:),  &
-                        casabal%Plitterlast(npt,:),casapool%Plitter(npt,:),  &
-                        casabal%Psoillast(npt,:),casapool%Psoil(npt,:),     &
-                        casabal%psoillablast(npt),casapool%Psoillab(npt), &
-                        casabal%psoilsorblast(npt),casapool%Psoilsorb(npt), &
-                        casabal%Psoilocclast(npt), casapool%Psoilocc(npt)
-
-       endif
-    enddo  
-    endif
+!    latx=30.00;lonx=-89.0625;ivegx=2;isox=6
+!    if(icycle >2 ) then
+!    do npt=1,mp
+!       if(abs(casamet%lat(npt)-latx)<0.001.and.abs(casamet%lon(npt)-lonx)<0.001.and.&
+!          veg%iveg(npt)==ivegx.and.casamet%isorder(npt)==isox) then
+!          
+!          write(*,611) npt,veg%iveg(npt),casamet%isorder(npt),casamet%lat(npt),casamet%lon(npt),               &
+!                         casabal%cbalance(npt),casabal%nbalance(npt),                                          &
+!                         casabal%pbalance(npt),pbalplant(npt), pbalsoil(npt),                                  &
+!                         casaflux%Pdep(npt)+casaflux%Pwea(npt)-casaflux%Pleach(npt),                           &
+!                        sum(casapool%Pplant(npt,:) + casapool%Plitter(npt,:) + casapool%Psoil(npt,:))          &
+!                        +casapool%psoillab(npt)+casapool%psoilsorb(npt)+casapool%psoilocc(npt)                 &
+!                        -sum(casabal%Pplantlast(npt,:)+casabal%Plitterlast(npt,:)+casabal%Psoillast(npt,:))    &
+!                        -casabal%psoillablast(npt)-casabal%psoilsorblast(npt)-casabal%Psoilocclast(npt),       &
+!                        casabal%Pplantlast(npt,:),casapool%Pplant(npt,:),  &
+!                        casabal%Plitterlast(npt,:),casapool%Plitter(npt,:),  &
+!                        casabal%Psoillast(npt,:),casapool%Psoil(npt,:),     &
+!                        casabal%psoillablast(npt),casapool%Psoillab(npt), &
+!                        casabal%psoilsorblast(npt),casapool%Psoilsorb(npt), &
+!                        casabal%Psoilocclast(npt), casapool%Psoilocc(npt)
+!
+!       endif
+!    enddo  
+!    endif
 611 format(' POINT 8331:',i5,1x,2(i2,1x),2(f8.3,1x),100(e12.4,1x))
 
      ! already done in "casa_cnpcycle"
