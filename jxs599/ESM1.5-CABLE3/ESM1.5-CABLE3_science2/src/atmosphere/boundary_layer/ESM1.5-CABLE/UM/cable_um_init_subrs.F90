@@ -276,7 +276,6 @@ SUBROUTINE initialize_veg( clobbered_htveg, land_pts, npft, ntiles, ms, mp,     
 USE cable_def_types_mod,  ONLY: veg_parameter_type
 USE cbl_LAI_canopy_height_mod,  ONLY: limit_HGT_LAI
    
-   REAL, INTENT(IN), DIMENSION(um1%land_pts, um1%npft) :: canht_ft, lai_ft 
 INTEGER ::  land_pts
 INTEGER ::  ntiles
 INTEGER ::  npft
@@ -290,9 +289,8 @@ LOGICAL ::  L_tile_pts(land_pts, ntiles)  ! true IF vegetation (tile) fraction i
 REAL    ::  clobbered_htveg(land_pts, ntiles)
 REAL    :: soil_zse(ms)       !soil layer thickness [dzsoil]
 TYPE(veg_parameter_type), INTENT(INOUT) :: veg_cbl
-!REAL, INTENT(IN) :: canht_ft(land_pts, npft)
-!REAL, INTENT(IN) :: lai_ft(land_pts, npft) 
-   
+REAL, INTENT(IN) :: canht_ft(land_pts, npft)
+REAL, INTENT(IN) :: lai_ft(land_pts, npft) 
 LOGICAL, SAVE :: first_call= .TRUE. ! defs 1st call to CABLE in this run
 
       !---clobbers veg height, lai and resets ivegt for CABLE tiles
@@ -300,7 +298,7 @@ LOGICAL, SAVE :: first_call= .TRUE. ! defs 1st call to CABLE in this run
       
       !--- veg params were read from initialize_soil() 
       IF(first_call)  THEN
-         CALL init_veg_pars_fr_vegin() 
+        CALL init_veg_pars_fr_vegin( veg_cbl ) 
          ! Fix in-canopy turbulence scheme globally:
          veg%meth = 1
       ENDIF
@@ -414,11 +412,15 @@ END SUBROUTINE init_respiration
 !========================================================================
 !========================================================================
 
-SUBROUTINE init_veg_pars_fr_vegin() 
-   USE cable_common_module, ONLY : vegin
-   USE cable_um_tech_mod,   ONLY : veg, soil 
-   USE cable_def_types_mod, ONLY : mp
+SUBROUTINE init_veg_pars_fr_vegin( veg ) 
 
+   USE cable_common_module, ONLY : vegin
+   USE cable_um_tech_mod,   ONLY : soil 
+USE cable_def_types_mod,  ONLY: veg_parameter_type
+   USE cable_def_types_mod, ONLY : mp
+implicit none
+TYPE(veg_parameter_type), INTENT(INOUT) :: veg
+!local
    INTEGER :: k
 
       !jhan:UM reads from ancil. & resets thru kblum_veg   
