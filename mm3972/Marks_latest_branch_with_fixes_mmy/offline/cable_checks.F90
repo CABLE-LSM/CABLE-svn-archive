@@ -370,7 +370,7 @@ END SUBROUTINE mass_balance
 !
 !==============================================================================
 
-SUBROUTINE energy_balance( dels,ktau,met,rad,canopy,bal,ssnow,                    &
+SUBROUTINE energy_balance( dels,ktau,met,rad,canopy,bal,ssnow,veg,              & ! MMY
                              SBOLTZ,EMLEAF, EMSOIL )
 
    ! Input arguments
@@ -378,6 +378,7 @@ SUBROUTINE energy_balance( dels,ktau,met,rad,canopy,bal,ssnow,                  
     Integer, INTENT(IN)              :: ktau   ! time step size
    TYPE (canopy_type),INTENT(IN)     :: canopy ! canopy variable data
    TYPE(met_type),INTENT(IN)         :: met    ! met data
+   TYPE(veg_parameter_type),INTENT(IN) :: veg    ! MMY
    TYPE(radiation_type),INTENT(IN)   :: rad    ! met data
    TYPE (balances_type),INTENT(INOUT):: bal
    TYPE (soil_snow_type),INTENT(IN)  :: ssnow  ! soil data
@@ -402,6 +403,54 @@ SUBROUTINE energy_balance( dels,ktau,met,rad,canopy,bal,ssnow,                  
 
     ! canopy energy balance
     bal%Ebalveg = canopy%fnv - canopy%fev -canopy%fhv
+
+    ! ________________________ MMY __________________________
+     print *,  'rad energy bal ===>'
+     print *,  'rad_enrg_bal ebal: ', bal%Radbal
+     print *,  'rad_enrg_bal (1.0-rad%albedo(:,1))*met%fsd(:,1): ',(1.0-rad%albedo(:,1))*met%fsd(:,1)
+     print *,  'rad_enrg_bal (1.0-rad%albedo(:,2))*met%fsd(:,2): ',(1.0-rad%albedo(:,2))*met%fsd(:,2)
+     print *,  'rad_enrg_bal met%fld: ', met%fld
+     print *,  'rad_enrg_bal -sboltz*emleaf*canopy%tv**4*(1-rad%transd) : ',-sboltz*emleaf*canopy%tv**4*(1-rad%transd)
+     print *,  'rad_enrg_bal -sboltz*emsoil*ssnow%tss**4*rad%transd: ',-sboltz*emsoil*ssnow%tss**4*rad%transd
+     print *,  'rad_enrg_bal -canopy%fev: ', -canopy%fev
+     print *,  'rad_enrg_bal -canopy%fes: ', -canopy%fes
+     print *,  'rad_enrg_bal -canopy%fh ', -canopy%fh
+     print *,  'rad_enrg_bal -canopy%ga: ', -canopy%ga
+
+     print *,  'rad_enrg_bal_var met%fsd', met%fsd
+     print *,  'rad_enrg_bal_var rad%fbeam', rad%fbeam
+     print *,  'rad_enrg_bal_var rad%reffdf', rad%reffdf
+     print *,  'rad_enrg_bal_var rad%extkdm', rad%extkdm
+     print *,  'rad_enrg_bal_var rad%reffbm', rad%reffbm
+     print *,  'rad_enrg_bal_var rad%extkbm', rad%extkbm
+     print *,  'rad_enrg_bal_var veg%taul', veg%taul
+     print *,  'rad_enrg_bal_var veg%refl', veg%refl
+     print *,  'rad_enrg_bal_var rad%extkb', rad%extkb
+     print *,  'rad_enrg_bal_var rad%transb', rad%transb
+     print *,  'rad_enrg_bal_var rad%cexpkdm', rad%cexpkdm
+     print *,  'rad_enrg_bal_var rad%cexpkbm', rad%cexpkbm
+     print *,  'rad_enrg_bal_var canopy%vlaiw', canopy%vlaiw
+     print *,  'rad_enrg_bal_var ssnow%albsoilsn', ssnow%albsoilsn
+     print *,  'rad_enrg_bal_var rad%transd', rad%transd
+     print *,  'rad_enrg_bal_var ssnow%tss', ssnow%tss
+     print *,  'rad_enrg_bal_var canopy%tv', canopy%tv
+     print *,  'rad_enrg_bal_var ssnow%otss', ssnow%otss
+
+     ! soil energy
+     print *,  'soil energy bal ===> '
+     print *,  'soil_enrg_bal EbalSoil: ', canopy%fns - canopy%fes -canopy%fhs -canopy%ga
+     print *,  'soil_enrg_bal fns: ', canopy%fns
+     print *,  'soil_enrg_bal -fes: ', -canopy%fes
+     print *,  'soil_enrg_bal -fhs: ', -canopy%fhs
+     print *,  'soil_enrg_bal -ga: ',  -canopy%ga
+
+     ! canopy energy balance
+     print *,  'canopy energy bal ===> '
+     print *,  'canopy_enrg_bal Ebalveg: ', canopy%fnv - canopy%fev -canopy%fhv
+     print *,  'canopy_enrg_bal fnv: ', canopy%fnv
+     print *,  'canopy_enrg_bal -fev: ', -canopy%fev
+     print *,  'canopy_enrg_bal -fhv: ', -canopy%fhv
+    ! _______________________________________________________
 
     ! soil + canopy energy balance
     ! SW absorbed + LW absorbed - (LH+SH+ghflux) should = 0

@@ -2156,12 +2156,12 @@ END SUBROUTINE calc_soil_hydraulic_props
           ssnow%qhlev(i,k) = max(ssnow%wbliq(i,k)-ssnow%watr_hys(i,k),0._r_2)*&
                                    ice_factor(i,k)*ssnow%qhz(i)/sm_tot(i)
        end do
-       ! _____________ MMY: Groundwater extraction _____________
-       ssnow%qhlev(i,ms+1) = ssnow%qhlev(i,ms+1) + 0.00000264
-       ! 0.00000264=                                                 &
-       !         0.05(m3/m3)*1000(m2mm)*25(aquifer thickness)        &
-       !         /30(years)/365(days)/24(hours)/3600(seconds)
-       ! _______________________________________________________
+      !  ! _____________ MMY: Groundwater extraction _____________
+      !  ssnow%qhlev(i,ms+1) = ssnow%qhlev(i,ms+1) + 0.00000264
+      !  ! 0.00000264=                                                 &
+      !  !         0.05(m3/m3)*1000(m2mm)*25(aquifer thickness)        &
+      !  !         /30(years)/365(days)/24(hours)/3600(seconds)
+      !  ! _______________________________________________________
 
        !incase every layer is frozen very dry
        ssnow%qhz(i) = sum(ssnow%qhlev(i,:),dim=1)

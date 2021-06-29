@@ -1569,7 +1569,7 @@ CONTAINS
 
     ! IF asked to check energy balance:
     IF(check%energy_bal) CALL energy_balance(dels,ktau,met,rad,                     &
-                                             canopy,bal,ssnow,                 &
+                                             canopy,bal,ssnow,veg,                & ! MMY
                                              SBOLTZ, EMLEAF, EMSOIL )
 
     ! Initialise output time step counter and month counter:
