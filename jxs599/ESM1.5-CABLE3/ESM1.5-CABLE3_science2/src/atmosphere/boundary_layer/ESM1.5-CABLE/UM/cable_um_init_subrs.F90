@@ -266,13 +266,34 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
 !========================================================================
 !========================================================================
           
-SUBROUTINE initialize_veg( canht_ft, lai_ft) 
-   USE cable_um_tech_mod
+SUBROUTINE initialize_veg( clobbered_htveg, land_pts, npft, ntiles, ms, mp,      &
+                           canht_ft, lai_ft, soil_zse, veg_cbl,                  &
+                    tile_pts, tile_index, tile_frac, L_tile_pts,                 &
+                    CLAI_thresh )
+
+   USE cable_um_tech_mod, ONLY : veg, um1
    USE cable_common_module, ONLY : cable_runtime, cable_user, vegin
+USE cable_def_types_mod,  ONLY: veg_parameter_type
+USE cbl_LAI_canopy_height_mod,  ONLY: limit_HGT_LAI
    
    REAL, INTENT(IN), DIMENSION(um1%land_pts, um1%npft) :: canht_ft, lai_ft 
+INTEGER ::  land_pts
+INTEGER ::  ntiles
+INTEGER ::  npft
+INTEGER ::  ms                ! soil levels
+INTEGER ::  mp                ! active pts CABLE
+REAL    ::  CLAI_thresh  
+INTEGER ::  tile_pts(ntiles)  ! number of land_pts per tile type
+REAL    ::  tile_frac(ntiles)
+INTEGER ::  tile_index(land_pts, ntiles)  ! index of tile 
+LOGICAL ::  L_tile_pts(land_pts, ntiles)  ! true IF vegetation (tile) fraction is greater than 0
+REAL    ::  clobbered_htveg(land_pts, ntiles)
+REAL    :: soil_zse(ms)       !soil layer thickness [dzsoil]
+TYPE(veg_parameter_type), INTENT(INOUT) :: veg_cbl
+!REAL, INTENT(IN) :: canht_ft(land_pts, npft)
+!REAL, INTENT(IN) :: lai_ft(land_pts, npft) 
    
-   LOGICAL, SAVE :: first_call= .TRUE. ! defs 1st call to CABLE in this run
+LOGICAL, SAVE :: first_call= .TRUE. ! defs 1st call to CABLE in this run
 
       !---clobbers veg height, lai and resets ivegt for CABLE tiles
       CALL clobber_height_lai( canht_ft, lai_ft )

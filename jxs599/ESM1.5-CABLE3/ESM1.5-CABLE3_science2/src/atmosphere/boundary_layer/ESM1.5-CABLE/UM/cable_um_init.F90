@@ -82,6 +82,7 @@ USE cbl_soil_snow_init_special_module, ONLY: spec_init_soil_snow
 USE cable_common_module, ONLY : kwidth_gl 
 USE cable_def_types_mod, ONLY : ms
 USE cable_um_tech_mod,   ONLY : soil, ssnow, canopy, met, bal, veg
+USE cable_other_constants_mod, ONLY : CLAI_THRESH => LAI_THRESH
 
    !-------------------------------------------------------------------------- 
    !--- INPUT ARGS FROM cable_explicit_driver() ------------------------------
@@ -244,6 +245,7 @@ USE cable_um_tech_mod,   ONLY : soil, ssnow, canopy, met, bal, veg
    LOGICAL :: vegparmnew=.true.   ! true=read std veg params false=CASA file 
          
 !CBL3
+REAL, DIMENSION(land_pts, ntiles) ::  clobbered_htveg
 REAL :: heat_cap_lower_limit(mp,ms)
 heat_cap_lower_limit = 0.01
 
@@ -308,7 +310,12 @@ heat_cap_lower_limit = 0.01
          CALL  get_type_parameters(logn,vegparmnew)
 
       !--- initialize veg   
-      CALL initialize_veg( canht_ft, lai_ft ) 
+!CALL initialize_veg(clobbered_htveg , land_pts, npft, ntiles, sm_levels, mp,     &
+CALL initialize_veg( kblum_veg%htveg , land_pts, npft, ntiles, sm_levels, mp,     &
+                     canht_ft, lai_ft, dzsoil, veg,         &
+                    tile_pts, tile_index, tile_frac, L_tile_pts,                 &
+                    CLAI_thresh )
+!kblum_veg%htveg = clobbered_htveg
  
       !--- initialize soil
       CALL initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,      &
