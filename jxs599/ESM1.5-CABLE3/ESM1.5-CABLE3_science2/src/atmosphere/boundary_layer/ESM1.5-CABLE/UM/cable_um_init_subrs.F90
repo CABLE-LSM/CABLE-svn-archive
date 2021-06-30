@@ -1,3 +1,5 @@
+!if(knode_gl == 117 ) OPEN(unit=781,FILE="/home/599/jxs599/iveg1.txt")
+!if(knode_gl == 117 ) write(781,*), 'iveg1 ',veg_cbl%iveg 
 !==============================================================================
 ! This source code is part of the 
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
@@ -273,6 +275,7 @@ SUBROUTINE initialize_veg( clobbered_htveg, land_pts, npft, ntiles, ms, mp,     
 
 !   USE cable_um_tech_mod, ONLY : veg, um1
 !   USE cable_common_module, ONLY : cable_runtime, cable_user, vegin
+USE cable_common_module, ONLY : knode_gl 
 USE cable_def_types_mod,  ONLY: veg_parameter_type
 USE cbl_LAI_canopy_height_mod,  ONLY: limit_HGT_LAI
    
@@ -283,7 +286,7 @@ INTEGER ::  ms                ! soil levels
 INTEGER ::  mp                ! active pts CABLE
 REAL    ::  CLAI_thresh  
 INTEGER ::  tile_pts(ntiles)  ! number of land_pts per tile type
-REAL    ::  tile_frac(ntiles)
+REAL    ::  tile_frac(land_pts, ntiles)
 INTEGER ::  tile_index(land_pts, ntiles)  ! index of tile 
 LOGICAL ::  L_tile_pts(land_pts, ntiles)  ! true IF vegetation (tile) fraction is greater than 0
 REAL    ::  clobbered_htveg(land_pts, ntiles)
@@ -292,17 +295,32 @@ TYPE(veg_parameter_type), INTENT(INOUT) :: veg_cbl
 REAL, INTENT(IN) :: canht_ft(land_pts, npft)
 REAL, INTENT(IN) :: lai_ft(land_pts, npft) 
 LOGICAL, SAVE :: first_call= .TRUE. ! defs 1st call to CABLE in this run
+INTEGER :: JSurfaceTypeID(land_pts,ntiles)
+INTEGER :: i,j
+
+!--- veg params were read from initialize_soil() 
+IF(first_call)  THEN
+  !local var to pack surface type:
+  JSurfaceTypeID = 0
+  DO j = 1, land_pts
+    DO i = 1,ntiles
+      IF ( tile_frac(j,i) > 0.0 ) JSurfaceTypeID(j,i) = i
+    END DO
+  END DO
+  veg_cbl%iveg = PACK( JSurfaceTypeID, L_tile_pts)
+
+  CALL init_veg_pars_fr_vegin( veg_cbl ) 
+   ! Fix in-canopy turbulence scheme globally:
+   veg_cbl%meth = 1
+ENDIF
+first_call= .FALSE.
 
 !---clobbers veg height, lai and resets ivegt for CABLE tiles
-CALL clobber_height_lai( canht_ft, lai_ft )
-      
-      !--- veg params were read from initialize_soil() 
-      IF(first_call)  THEN
-        CALL init_veg_pars_fr_vegin( veg_cbl ) 
-         ! Fix in-canopy turbulence scheme globally:
-         veg_cbl%meth = 1
-      ENDIF
-      first_call= .FALSE.
+!CALL clobber_height_lai( canht_ft, lai_ft, veg_cbl )
+! limit IN height, LAI  and initialize existing cable % types
+CALL limit_HGT_LAI( clobbered_htveg, veg_cbl%vlai, veg_cbl%hc, mp, land_pts, ntiles,           &
+                    tile_pts, tile_index, tile_frac, L_tile_pts,              &
+                    LAI_ft, canht_ft, CLAI_thresh )
       
      
 END SUBROUTINE initialize_veg
@@ -311,9 +329,11 @@ END SUBROUTINE initialize_veg
 !========================================================================
 !========================================================================
 
-SUBROUTINE clobber_height_lai( um_htveg, um_lai )
-   USE cable_um_tech_mod, ONLY : um1, kblum_veg, veg
+SUBROUTINE clobber_height_lai( um_htveg, um_lai, veg)
+USE cable_um_tech_mod, ONLY : um1, kblum_veg
 
+USE cable_def_types_mod,  ONLY: veg_parameter_type
+TYPE(veg_parameter_type), INTENT(INOUT) :: veg
    REAL, INTENT(IN), DIMENSION(um1%land_pts, um1%npft) ::                      &
                                                           um_htveg, um_lai
    INTEGER :: i,j,n
@@ -422,30 +442,86 @@ USE cable_def_types_mod,  ONLY: veg_parameter_type
 implicit none
 TYPE(veg_parameter_type), INTENT(INOUT) :: veg
 !local
-   INTEGER :: k
+   INTEGER :: k, h
+
+
+
+
+
+DO h = 1, mp          ! over each patch in current grid
+  veg%taul(h,1)   = vegin%taul(1,veg%iveg(h))
+  veg%taul(h,2)   = vegin%taul(2,veg%iveg(h))
+  veg%refl(h,1)   = vegin%refl(1,veg%iveg(h))
+  veg%refl(h,2)   = vegin%refl(2,veg%iveg(h))
+  !veg%cplant(h,1)   = vegin%cplant(1,veg%iveg(h))
+  !veg%cplant(h,2)   = vegin%cplant(2,veg%iveg(h))
+  !veg%cplant(h,3)   = vegin%cplant(3,veg%iveg(h))
+  !veg%csoil(h,1)   = vegin%csoil(1,veg%iveg(h))
+  !veg%csoil(h,2)   = vegin%csoil(2,veg%iveg(h))
+  !veg%ratecp(h,1)   = vegin%ratecp(1,veg%iveg(h))
+  !veg%ratecp(h,2)   = vegin%ratecp(2,veg%iveg(h))
+  !veg%ratecp(h,3)   = vegin%ratecp(3,veg%iveg(h))
+  !veg%ratecs(h,1)   = vegin%ratecs(1,veg%iveg(h))
+  !veg%ratecs(h,2)   = vegin%ratecs(2,veg%iveg(h))
+  !veg%hc(h)       = vegin%hc(veg%iveg(h))
+  veg%xfang(h)    = vegin%xfang(veg%iveg(h))
+  veg%frac4(h)    = vegin%frac4(veg%iveg(h))
+  veg%canst1(h)   = vegin%canst1(veg%iveg(h))
+  veg%dleaf(h)    = vegin%dleaf(veg%iveg(h))
+  veg%vcmax(h)    = vegin%vcmax(veg%iveg(h))
+  veg%ejmax(h)    = vegin%ejmax(veg%iveg(h))
+  veg%vbeta(h)    = vegin%vbeta(veg%iveg(h))
+  veg%xalbnir(h)  = vegin%xalbnir(veg%iveg(h))
+  veg%rp20(h)     = vegin%rp20(veg%iveg(h))
+  veg%rpcoef(h)   = vegin%rpcoef(veg%iveg(h))
+  veg%rs20(h)     = vegin%rs20(veg%iveg(h))
+  veg%shelrb(h)   = vegin%shelrb(veg%iveg(h))
+  !veg%wai(h)      = vegin%wai(veg%iveg(h))
+  !veg%a1gs(h)     = vegin%a1gs(veg%iveg(h))
+  !veg%d0gs(h)     = vegin%d0gs(veg%iveg(h))
+  veg%vegcf(h)    = vegin%vegcf(veg%iveg(h))
+  veg%extkn(h)    = vegin%extkn(veg%iveg(h))
+  veg%tminvj(h)   = vegin%tminvj(veg%iveg(h))
+  veg%tmaxvj(h)   = vegin%tmaxvj(veg%iveg(h))
+  !veg%g0(h)       = vegin%g0(veg%iveg(h)) ! Ticket #56
+  !veg%g1(h)       = vegin%g1(veg%iveg(h)) ! Ticket #56
+  !veg%a1gs(h)   = vegin%a1gs(veg%iveg(h))
+  !veg%d0gs(h)   = vegin%d0gs(veg%iveg(h))
+  !veg%alpha(h)  = vegin%alpha(veg%iveg(h))
+  !veg%convex(h) = vegin%convex(veg%iveg(h))
+  !veg%cfrd(h)   = vegin%cfrd(veg%iveg(h))
+  !veg%gswmin(h) = vegin%gswmin(veg%iveg(h))
+  !veg%conkc0(h) = vegin%conkc0(veg%iveg(h))
+  !veg%conko0(h) = vegin%conko0(veg%iveg(h))
+  !veg%ekc(h)    = vegin%ekc(veg%iveg(h))
+  !veg%eko(h)    = vegin%eko(veg%iveg(h))
+  !veg%rootbeta(h)  = vegin%rootbeta(veg%iveg(h))
+  !veg%zr(h)       = vegin%zr(veg%iveg(h))
+  !veg%clitt(h)    = vegin%clitt(veg%iveg(h))
+END DO ! over each veg patch in land point
 
       !jhan:UM reads from ancil. & resets thru kblum_veg   
-      veg%canst1  = vegin%canst1(veg%iveg)
-      veg%ejmax   = 2.*vegin%vcmax(veg%iveg)
-      veg%frac4   = vegin%frac4(veg%iveg)
-      veg%tminvj  = vegin%tminvj(veg%iveg)
-      veg%tmaxvj  = vegin%tmaxvj(veg%iveg)
-      veg%vbeta   = vegin%vbeta(veg%iveg)
-      veg%rp20    = vegin%rp20(veg%iveg)
-      veg%rpcoef  = vegin%rpcoef(veg%iveg)
-      veg%shelrb  = vegin%shelrb(veg%iveg)
-      veg%vegcf   = vegin%vegcf(veg%iveg)
-      veg%extkn   = vegin%extkn(veg%iveg)
-      veg%vcmax   = vegin%vcmax(veg%iveg)
-      veg%xfang   = vegin%xfang(veg%iveg)
-      veg%dleaf   = vegin%dleaf(veg%iveg)
-      veg%xalbnir = vegin%xalbnir(veg%iveg)
-      veg%rs20 = vegin%rs20(veg%iveg)
+      !veg%canst1  = vegin%canst1(veg%iveg)
+      !veg%ejmax   = 2.*vegin%vcmax(veg%iveg)
+      !veg%frac4   = vegin%frac4(veg%iveg)
+      !veg%tminvj  = vegin%tminvj(veg%iveg)
+      !veg%tmaxvj  = vegin%tmaxvj(veg%iveg)
+      !veg%vbeta   = vegin%vbeta(veg%iveg)
+      !veg%rp20    = vegin%rp20(veg%iveg)
+      !veg%rpcoef  = vegin%rpcoef(veg%iveg)
+      !veg%shelrb  = vegin%shelrb(veg%iveg)
+      !veg%vegcf   = vegin%vegcf(veg%iveg)
+      !veg%extkn   = vegin%extkn(veg%iveg)
+      !veg%vcmax   = vegin%vcmax(veg%iveg)
+      !veg%xfang   = vegin%xfang(veg%iveg)
+      !veg%dleaf   = vegin%dleaf(veg%iveg)
+      !veg%xalbnir = vegin%xalbnir(veg%iveg)
+      !veg%rs20 = vegin%rs20(veg%iveg)
 
-      do k=1,2
-        veg%refl(:,k)   = vegin%refl(k,veg%iveg)
-        veg%taul(:,k)   = vegin%taul(k,veg%iveg)
-      enddo
+!      do k=1,2
+!        veg%refl(:,k)   = vegin%refl(k,veg%iveg)
+!        veg%taul(:,k)   = vegin%taul(k,veg%iveg)
+!      enddo
 
       !froot fixed here for all vegetation types for ACCESS
       !need more flexibility in next version to read in or parameterise
