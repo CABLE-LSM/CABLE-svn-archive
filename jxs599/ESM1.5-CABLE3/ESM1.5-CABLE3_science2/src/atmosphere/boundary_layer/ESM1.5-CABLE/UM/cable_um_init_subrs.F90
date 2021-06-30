@@ -271,8 +271,8 @@ SUBROUTINE initialize_veg( clobbered_htveg, land_pts, npft, ntiles, ms, mp,     
                     tile_pts, tile_index, tile_frac, L_tile_pts,                 &
                     CLAI_thresh )
 
-   USE cable_um_tech_mod, ONLY : veg, um1
-   USE cable_common_module, ONLY : cable_runtime, cable_user, vegin
+!   USE cable_um_tech_mod, ONLY : veg, um1
+!   USE cable_common_module, ONLY : cable_runtime, cable_user, vegin
 USE cable_def_types_mod,  ONLY: veg_parameter_type
 USE cbl_LAI_canopy_height_mod,  ONLY: limit_HGT_LAI
    
@@ -293,8 +293,8 @@ REAL, INTENT(IN) :: canht_ft(land_pts, npft)
 REAL, INTENT(IN) :: lai_ft(land_pts, npft) 
 LOGICAL, SAVE :: first_call= .TRUE. ! defs 1st call to CABLE in this run
 
-      !---clobbers veg height, lai and resets ivegt for CABLE tiles
-      CALL clobber_height_lai( canht_ft, lai_ft )
+!---clobbers veg height, lai and resets ivegt for CABLE tiles
+CALL clobber_height_lai( canht_ft, lai_ft )
       
       !--- veg params were read from initialize_soil() 
       IF(first_call)  THEN
@@ -303,6 +303,7 @@ LOGICAL, SAVE :: first_call= .TRUE. ! defs 1st call to CABLE in this run
          veg_cbl%meth = 1
       ENDIF
       first_call= .FALSE.
+      
      
 END SUBROUTINE initialize_veg
 
