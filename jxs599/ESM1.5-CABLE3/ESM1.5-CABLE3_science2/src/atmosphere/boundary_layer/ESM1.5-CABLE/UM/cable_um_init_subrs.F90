@@ -300,7 +300,7 @@ LOGICAL, SAVE :: first_call= .TRUE. ! defs 1st call to CABLE in this run
       IF(first_call)  THEN
         CALL init_veg_pars_fr_vegin( veg_cbl ) 
          ! Fix in-canopy turbulence scheme globally:
-         veg%meth = 1
+         veg_cbl%meth = 1
       ENDIF
       first_call= .FALSE.
      
