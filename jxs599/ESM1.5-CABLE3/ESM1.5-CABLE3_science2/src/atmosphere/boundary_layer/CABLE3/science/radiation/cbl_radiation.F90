@@ -1,3 +1,5 @@
+!if(knode_gl == 117 ) OPEN(unit=781,FILE="/home/599/jxs599/iveg1.txt")
+!if(knode_gl == 117 ) write(781,*), 'iveg1 ',veg_cbl%iveg 
 !==============================================================================
 ! This source code is part of the 
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
@@ -20,15 +22,10 @@
 
 MODULE cbl_radiation_module
 
-   USE cable_data_module, ONLY : irad_type, point2constants
- 
    IMPLICIT NONE
 
    PUBLIC radiation
    PRIVATE
-
-  TYPE ( irad_type ) :: C 
-
 
 CONTAINS
 
@@ -42,6 +39,7 @@ SUBROUTINE radiation( ssnow, veg, air, met, rad, canopy, sunlit_veg_mask,&
                                    air_type, mp, mf, r_2
                                        
 USE cable_other_constants_mod,  ONLY : Crad_thresh => rad_thresh
+USE cable_common_module,  ONLY : knode_gl 
 IMPLICIT NONE
 logical :: sunlit_veg_mask(mp)
 !constants
@@ -74,13 +72,11 @@ real :: Ccapp
    
    INTEGER, SAVE :: call_number =0
    
-   CALL point2constants( C ) 
-   
    call_number = call_number + 1
 
    ! Define vegetation mask:
-   mask = canopy%vlaiw > C%LAI_THRESH .AND.                                    &
-          ( met%fsd(:,1)+met%fsd(:,2) ) > C%RAD_THRESH 
+   mask = canopy%vlaiw > CLAI_THRESH .AND.                                    &
+          ( met%fsd(:,1)+met%fsd(:,2) ) > CRAD_THRESH 
 
    ! Relative leaf nitrogen concentration within canopy:
    cf2n = EXP(-veg%extkn * canopy%vlaiw)
