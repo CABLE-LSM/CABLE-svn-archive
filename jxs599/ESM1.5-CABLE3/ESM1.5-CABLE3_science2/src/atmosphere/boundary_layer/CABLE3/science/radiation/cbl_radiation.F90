@@ -66,9 +66,6 @@ real :: Ccapp
       emair, &    ! air emissivity
       flpwb, &    ! black-body long-wave radiation
       flwv, &     ! vegetation long-wave radiation (isothermal)
-      xx1,tssp    ! 
-      
-   REAL(r_2), DIMENSION(mp) ::                                                 &
       dummy, dummy2
    
    LOGICAL, DIMENSION(mp)    :: mask   ! select points for calculation
@@ -92,7 +89,7 @@ real :: Ccapp
    
    rad%transd = 1.0
    
-   WHERE (canopy%vlaiw > C%LAI_THRESH )    ! where vegetation exists....
+    WHERE (canopy%vlaiw > cLAI_thresh )    ! where vegetation exists....
             
       ! Diffuse SW transmission fraction ("black" leaves, extinction neglects
       ! leaf SW transmittance and REFLectance);
@@ -102,15 +99,17 @@ real :: Ccapp
    END WHERE
 
    ! Define fraction of SW beam tranmitted through canopy:
-   dummy2 = -rad%extkb * canopy%vlaiw
-   dummy = EXP(dummy2)
+    dummy2 = MIN(rad%extkb * canopy%vlaiw,30.) ! vh version to avoid floating underflow !
+    dummy = EXP(-dummy2)
+    ! dummy2 = -rad%extkb * canopy%vlaiw
+    ! dummy = EXP(dummy2)
    rad%transb = REAL(dummy)
 
    ! Define longwave from vegetation:
-   flpwb = C%sboltz * (met%tk) ** 4
-   flwv = C%EMLEAF * flpwb
+    flpwb = CSboltz * (met%tvrad) ** 4
+    flwv = Cemleaf * flpwb
 
-   rad%flws = C%sboltz*C%EMSOIL* ssnow%tss **4
+    rad%flws = CSboltz*Cemsoil* ssnow%tss **4
    
    ! Define air emissivity:
    emair = met%fld / flpwb
@@ -118,24 +117,24 @@ real :: Ccapp
    rad%gradis = 0.0 ! initialise radiative conductance
    rad%qcan = 0.0   ! initialise radiation absorbed by canopy
    
-   WHERE (canopy%vlaiw > C%LAI_THRESH )
+    WHERE (canopy%vlaiw > CLAI_thresh )
 
       ! Define radiative conductance (Leuning et al, 1995), eq. D7:
-      rad%gradis(:,1) = ( 4.0 * C%EMLEAF / (C%CAPP * air%rho) ) * flpwb        &
-                        / (met%tk) * rad%extkd                                 &
+       rad%gradis(:,1) = ( 4.0 * Cemleaf / (Ccapp * air%rho) ) * flpwb        &
+            / (met%tvrad) * rad%extkd                              &
                         * ( ( 1.0 - rad%transb * rad%transd ) /                &
                         ( rad%extkb + rad%extkd )                              &
                         + ( rad%transd - rad%transb ) /                        &
                         ( rad%extkb - rad%extkd ) )
       
-      rad%gradis(:,2) = ( 8.0 * C%EMLEAF / ( C%CAPP * air%rho ) ) *            &
-                        flpwb / met%tk * rad%extkd *                           &
+       rad%gradis(:,2) = ( 8.0 * Cemleaf / ( Ccapp * air%rho ) ) *            &
+            flpwb / met%tvrad * rad%extkd *                        &
                         ( 1.0 - rad%transd ) / rad%extkd - rad%gradis(:,1)
       
       ! Longwave radiation absorbed by sunlit canopy fraction:
       rad%qcan(:,1,3) = (rad%flws - flwv ) * rad%extkd *                       &
                         ( rad%transd - rad%transb ) / ( rad%extkb - rad%extkd )&
-                        + ( emair- C%EMLEAF ) * rad%extkd * flpwb *            &
+            + ( emair- Cemleaf ) * rad%extkd * flpwb *            &
                         ( 1.0 - rad%transd * rad%transb )                      &
                         / ( rad%extkb + rad%extkd )
                          
@@ -197,9 +196,9 @@ real :: Ccapp
       ! (av. of transmitted NIR and PAR through canopy)*SWdown
       rad%qssabs = met%fsd(:,1) * (                                            &
                    rad%fbeam(:,1) * ( 1. - rad%reffbm(:,1) ) *                 &
-                   EXP( -rad%extkbm(:,1) * canopy%vlaiw ) +                    &
+            EXP( -MIN(rad%extkbm(:,1) * canopy%vlaiw,20.) ) +           &
                    ( 1. - rad%fbeam(:,1) ) * ( 1. - rad%reffdf(:,1) ) *        &
-                   EXP( -rad%extkdm(:,1) * canopy%vlaiw ) )                    &
+            EXP( -MIN(rad%extkdm(:,1) * canopy%vlaiw,20.) ) )           &
                    + met%fsd(:,2) * ( rad%fbeam(:,2) * ( 1. - rad%reffbm(:,2) )&
                    * rad%cexpkbm(:,2) + ( 1. - rad%fbeam(:,2) ) *              &
                    ( 1. - rad%reffdf(:,2) ) * rad%cexpkdm(:,2) )
