@@ -74,8 +74,6 @@ real :: Ccapp
    
    INTEGER, SAVE :: call_number =0
    
-   REAL s1,s2,s3,step
-
    CALL point2constants( C ) 
    
    call_number = call_number + 1
