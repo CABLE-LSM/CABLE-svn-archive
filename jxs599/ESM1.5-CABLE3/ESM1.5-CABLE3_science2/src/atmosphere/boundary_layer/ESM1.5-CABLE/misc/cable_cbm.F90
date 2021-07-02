@@ -151,7 +151,7 @@ CALL init_radiation( &
    
     
    ! Calculate canopy variables:
-   CALL define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
+   CALL define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy, sunlit_veg_mask)
 
    ssnow%otss_0 = ssnow%otss
    ssnow%otss = ssnow%tss

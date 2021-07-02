@@ -47,7 +47,7 @@ MODULE cable_canopy_module
 CONTAINS
  
 
-SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
+SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy, sunlit_veg_mask)
    USE cable_def_types_mod
    USE cbl_radiation_module, ONLY : radiation
    USE cable_air_module
@@ -67,6 +67,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    
    REAL, INTENT(IN)               :: dels ! integration time setp (s)
    
+LOGICAL :: sunlit_veg_mask(mp)
    INTEGER  ::                                                                 &
       iter,  & ! iteration #
       iterplus !
@@ -177,7 +178,9 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    ssnow%potev = 0.
    canopy%fevw_pot = 0.
 
-   CALL radiation( ssnow, veg, air, met, rad, canopy )
+   CALL radiation( ssnow, veg, air, met, rad, canopy, sunlit_veg_mask,&
+  !constants
+  c%lai_thresh, C%sboltz, C%emsoil, C%emleaf, C%capp )
 
    canopy%zetar(:,1) = C%ZETA0 ! stability correction terms
    canopy%zetar(:,2) = C%ZETPOS + 1 
