@@ -39,7 +39,7 @@ SUBROUTINE radiation( ssnow, veg, air, met, rad, canopy, sunlit_veg_mask,&
                                    air_type, mp, mf, r_2
                                        
 USE cable_other_constants_mod,  ONLY : Crad_thresh => rad_thresh
-USE cable_common_module,  ONLY : knode_gl 
+
 IMPLICIT NONE
 logical :: sunlit_veg_mask(mp)
 !constants
@@ -66,17 +66,11 @@ real :: Ccapp
       flwv, &     ! vegetation long-wave radiation (isothermal)
       dummy, dummy2
    
-   LOGICAL, DIMENSION(mp)    :: mask   ! select points for calculation
-   
    INTEGER :: b ! rad. band 1=visible, 2=near-infrared, 3=long-wave
    
    INTEGER, SAVE :: call_number =0
    
    call_number = call_number + 1
-
-   ! Define vegetation mask:
-   mask = canopy%vlaiw > CLAI_THRESH .AND.                                    &
-          ( met%fsd(:,1)+met%fsd(:,2) ) > CRAD_THRESH 
 
    ! Relative leaf nitrogen concentration within canopy:
    cf2n = EXP(-veg%extkn * canopy%vlaiw)
@@ -148,7 +142,7 @@ real :: Ccapp
    ! UM recieves met%fsd(:,b) forcing. assumed for offline that USED met%fsd(:,b) = 1/2* INPUT met%fsd
    DO b = 1, 2 ! 1 = visible, 2 = nir radiaition
       
-      WHERE (mask) ! i.e. vegetation and sunlight are present
+      WHERE (sunlit_veg_mask) ! i.e. vegetation and sunlight are present
          
          cf1 = ( 1.0 - rad%transb * rad%cexpkdm(:,b) ) /                       &
                ( rad%extkb + rad%extkdm(:,b) )  
@@ -184,7 +178,7 @@ real :: Ccapp
     
    rad%qssabs = 0.
     
-   WHERE (mask) ! i.e. vegetation and sunlight are present
+   WHERE (sunlit_veg_mask) ! i.e. vegetation and sunlight are present
 
       ! Calculate shortwave radiation absorbed by soil:
       ! (av. of transmitted NIR and PAR through canopy)*SWdown

@@ -101,7 +101,7 @@ module cable_data_module
       real, DIMENSION(3) :: gauss_w=(/0.308,0.514,0.178/) ! Gaussian integ. weights
       !--- jhan: can make these trigger of #defines/namelist
       real:: RAD_THRESH = 0.001 
-      real:: LAI_THRESH = 0.01 
+      real:: LAI_THRESH = 0.001 
    end type other_constants
 
    type photosynthetic_constants
