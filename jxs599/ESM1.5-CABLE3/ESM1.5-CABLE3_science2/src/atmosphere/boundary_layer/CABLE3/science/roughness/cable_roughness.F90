@@ -76,6 +76,7 @@ real :: reducedLAIdue2snow(mp)
 
 real :: LAI_pft(mp)
 real :: HGT_pft(mp)
+real :: term6a(mp) !CBL3(mp)
 
 
     REAL, DIMENSION(mp) ::                                                      &
@@ -200,7 +201,8 @@ do i=1,mp
        rough%term3(i)  = CA33**2 * CCTL * 2 * CCSW * canopy%rghlai(i)
        rough%term5(i)  = MAX( ( 2. / 3. ) * rough%hruff(i) / rough%disp(i), 1.0 )
        rough%term6(i) =  EXP( 3. * rough%coexp(i) * ( rough%disp(i) / rough%hruff(i) -1. ) )
-       rough%term6a(i) = EXP(rough%coexp(i) * ( 0.1 * rough%hruff(i) / rough%hruff(i) -1. ))
+       term6a(i) = EXP(rough%coexp(i) * ( 0.1 * rough%hruff(i) / rough%hruff(i) -1. ))
+       !CBL#rough%term6a(i) = EXP(rough%coexp(i) * ( 0.1 * rough%hruff(i) / rough%hruff(i) -1. ))
 
 
        ! eq. 3.54, SCAM manual (CSIRO tech report 132)
