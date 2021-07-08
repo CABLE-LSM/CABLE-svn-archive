@@ -51,6 +51,7 @@ USE cbl_rhoch_module,   ONLY : calc_rhoch
 USE cbl_spitter_module, ONLY : Spitter
 USE cable_um_tech_mod, ONLY : canopy, met, rad, veg 
    USE cable_common_module
+USE cable_other_constants_mod, ONLY : Crad_thresh => rad_thresh
 
 implicit none
 
@@ -125,10 +126,10 @@ Ccoszen_tols_tiny = Ccoszen_tols * 1e-2
 
    CALL point2constants( C ) 
    
-   cos3 = COS(C%PI180 * (/ 15.0, 45.0, 75.0 /))
+   cos3 = COS(CPI180 * (/ 15.0, 45.0, 75.0 /))
 
    ! See Sellers 1985, eq.13 (leaf angle parameters):
-   WHERE (canopy%vlaiw > C%LAI_THRESH)
+   WHERE (canopy%vlaiw > CLAI_THRESH)
       xphi1 = 0.5 - veg%xfang * (0.633 + 0.33 * veg%xfang)
       xphi2 = 0.877 * (1.0 - 2.0 * xphi1)
    END WHERE
@@ -138,17 +139,17 @@ Ccoszen_tols_tiny = Ccoszen_tols * 1e-2
 
    ! Extinction coefficient for beam radiation and black leaves;
    ! eq. B6, Wang and Leuning, 1998
-   WHERE (xvlai2 > C%LAI_THRESH) ! vegetated
+   WHERE (xvlai2 > CLAI_THRESH) ! vegetated
       xk = SPREAD(xphi1, 2, 3) / SPREAD(cos3, 1, mp) + SPREAD(xphi2, 2, 3)
    ELSEWHERE ! i.e. bare soil
       xk = 0.0          
    END WHERE
 
-   WHERE (canopy%vlaiw > C%LAI_THRESH ) ! vegetated
+   WHERE (canopy%vlaiw > CLAI_THRESH ) ! vegetated
    
       ! Extinction coefficient for diffuse radiation for black leaves:
       rad%extkd = -LOG( SUM(                                                   &
-                  SPREAD( C%GAUSS_W, 1, mp ) * EXP( -xk * xvlai2 ), 2) )       &
+                  SPREAD( CGAUSS_W, 1, mp ) * EXP( -xk * xvlai2 ), 2) )       &
                   / canopy%vlaiw
    
    ELSEWHERE ! i.e. bare soil
@@ -161,13 +162,13 @@ CALL calc_rhoch( c1,rhoch, mp, nrb, veg%taul, veg%refl )
    DO ictr=1,nrb
      
      rad%rhocdf(:,ictr) = rhoch(:,ictr) *                                      &
-                          ( C%GAUSS_W(1) * xk(:,1) / ( xk(:,1) + rad%extkd(:) )&
-                          + C%GAUSS_W(2) * xk(:,2) / ( xk(:,2) + rad%extkd(:) )&
-                          + C%GAUSS_W(3) * xk(:,3) / ( xk(:,3) + rad%extkd(:) ) )
+                          ( CGAUSS_W(1) * xk(:,1) / ( xk(:,1) + rad%extkd(:) )&
+                          + CGAUSS_W(2) * xk(:,2) / ( xk(:,2) + rad%extkd(:) )&
+                          + CGAUSS_W(3) * xk(:,3) / ( xk(:,3) + rad%extkd(:) ) )
 
    ENDDO
    
-   WHERE (canopy%vlaiw > C%LAI_THRESH)    
+   WHERE (canopy%vlaiw > CLAI_THRESH)    
       
       ! SW beam extinction coefficient ("black" leaves, extinction neglects
       ! leaf SW transmittance and REFLectance):
@@ -181,7 +182,7 @@ CALL calc_rhoch( c1,rhoch, mp, nrb, veg%taul, veg%refl )
       rad%extkb = rad%extkd + 0.001
    END WHERE
    
-   WHERE(rad%fbeam(:,1) < C%RAD_THRESH )
+   WHERE(rad%fbeam(:,1) < CRAD_THRESH )
       rad%extkb=30.0         ! keep cexpkbm within real*4 range (BP jul2010)
    END WHERE
 !borrowed from cbl_iniit_radiation IN CABLE3 - bc there it is moved out oof Albedo and into iniit_radiation
@@ -201,7 +202,6 @@ IF( cbl_standalone .OR. jls_standalone .AND. .NOT. jls_radiation ) &
                      coszen, SW_down ) 
    
 END SUBROUTINE init_radiation
-
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -288,6 +288,112 @@ End subroutine common_InitRad_coeffs
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+subroutine ExtinctionCoeff( ExtCoeff_beam, ExtCoeff_dif, mp, nrb, CGauss_w, Ccoszen_tols_tiny, reducedLAIdue2snow, &
+                            sunlit_mask, veg_mask, sunlit_veg_mask,  &
+                            cLAI_thresh, coszen, xphi1, xphi2, xk, xvlai2)
+
+implicit none
+!re-decl in args
+integer :: mp
+integer :: nrb
+real :: ExtCoeff_beam(mp)        !extinction co-eff RETURNED
+real :: ExtCoeff_dif(mp)         !extinction co-eff RETURNED
+logical:: veg_mask(mp)           !vegetated mask based on a minimum LAI 
+logical :: sunlit_mask(mp)       !sunlit mask based on zenith angle
+logical :: sunlit_veg_mask(mp)   !BOTH sunlit and vegetated mask 
+real :: Cgauss_w(nrb)
+real :: Ccoszen_tols_tiny  ! 1e-4 * threshold cosine of sun's zenith angle, below which considered SUNLIT
+real :: cLAI_thresh
+real :: coszen(mp)
+real :: reducedLAIdue2snow(mp)
+real :: xphi1(mp)
+real :: xphi2(mp)
+REAL :: xvlai2(mp,nrb)  ! 2D vlai
+REAL :: xk(mp,nrb)      ! extinct. coef.for beam rad. and black leaves
+
+call ExtinctionCoeff_dif( ExtCoeff_dif, mp, nrb, CGauss_w, reducedLAIdue2snow, &
+                          veg_mask, cLAI_thresh, xk, xvlai2)
+
+call ExtinctionCoeff_beam( ExtCoeff_beam, mp, nrb, Ccoszen_tols_tiny,&
+                           sunlit_mask, veg_mask, sunlit_veg_mask,  &
+                           coszen, xphi1, xphi2, ExtCoeff_dif )
+
+End subroutine ExtinctionCoeff
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+subroutine ExtinctionCoeff_beam( ExtCoeff_beam, mp, nrb,Ccoszen_tols_tiny, &
+                                 sunlit_mask, veg_mask, sunlit_veg_mask,  &
+                                 coszen, xphi1, xphi2, ExtCoeff_dif )
+
+implicit none
+integer :: mp
+integer :: nrb
+
+real :: Ccoszen_tols_tiny  ! 1e-4 * threshold cosine of sun's zenith angle, below which considered SUNLIT
+logical :: sunlit_mask(mp)       !sunlit mask based on zenith angle
+logical :: sunlit_veg_mask(mp)   !BOTH sunlit and vegetated mask 
+real :: coszen(mp)
+real :: ExtCoeff_beam(mp)
+real :: xphi1(mp)
+real :: xphi2(mp)
+real :: ExtCoeff_dif(mp)
+logical:: veg_mask(mp)
+
+! retain this initialization for bare soil
+ExtCoeff_beam = 0.5
+
+! SW beam extinction coefficient ("black" leaves, extinction neglects
+! leaf SW transmittance and REFLectance):
+WHERE ( veg_mask .AND. coszen > 1.e-6 ) &
+  ExtCoeff_beam = xphi1 / Coszen + xphi2
+
+! higher value precludes sunlit leaves at night. affects
+! nighttime evaporation - Ticket #90 
+WHERE( coszen <  1.e-6 ) ExtCoeff_beam = 1.0e5 
+
+
+! Seems to be for stability only
+WHERE ( abs(ExtCoeff_beam - ExtCoeff_dif )  < 0.001 ) &
+  ExtCoeff_beam = ExtCoeff_dif + 0.001
+
+End subroutine ExtinctionCoeff_beam
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+subroutine ExtinctionCoeff_dif( ExtCoeff_dif, mp, nrb, Cgauss_w, reducedLAIdue2snow, veg_mask, &
+                                 cLAI_thresh, xk, xvlai2)
+implicit none
+integer :: mp
+integer :: nrb
+real :: Cgauss_w(nrb)
+
+real :: ExtCoeff_dif(mp)    !return Extinctino Coefficient 
+logical :: veg_mask(mp)
+real :: reducedLAIdue2snow(mp)
+real:: cLAI_thresh
+REAL :: xvlai2(mp,nrb)  ! 2D vlai
+REAL :: xk(mp,nrb)      ! extinct. coef.for beam rad. and black leaves
+
+
+!local vars
+REAL :: cos3(nrb)      ! cos(15 45 75 degrees)
+
+ExtCoeff_dif = 0.7
+
+WHERE ( veg_mask ) ! vegetated
+  ! Extinction coefficient for diffuse radiation for black leaves:
+  ExtCoeff_dif = -LOG( SUM(                                                   &
+                            SPREAD( CGAUSS_W, 1, mp ) &
+                            * EXP( -xk * xvlai2 ), 2) &
+                     )                                                         &
+                     / reducedLAIdue2snow
+
+   END WHERE
+End subroutine ExtinctionCoeff_dif
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 Subroutine EffectiveExtinctCoeffs( EffExtCoeff_beam, EffExtCoeff_dif, mp, nrb, &
                                    sunlit_veg_mask,                        &
@@ -318,9 +424,9 @@ End Subroutine EffectiveExtinctCoeffs
 subroutine EffectiveExtinctCoeff(Eff_ExtCoeff, mp, ExtCoeff, c1, mask )
 implicit none
 integer :: mp 
-real :: Eff_ExtCoeff(mp,3) 
+real :: Eff_ExtCoeff(mp,2) 
 real :: ExtCoeff(mp) 
-real :: c1(mp,3) 
+real :: c1(mp,2) 
 logical, optional :: mask(mp) 
 integer :: i, b
 
