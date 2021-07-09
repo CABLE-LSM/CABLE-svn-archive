@@ -120,30 +120,14 @@ c1(:,:) = 0.0
 rhoch(:,:) = 0.0
 xk(:,:) = 0.0
 
+! Compute common scaling co-efficients used throughout init_radiation
+call Common_InitRad_Scalings( xphi1, xphi2, xk, xvlai2, c1, rhoch,             &
+                            mp, nrb, Cpi180,cLAI_thresh, veg_mask,             &
+                            reducedLAIdue2snow, VegXfang, VegTaul, VegRefl)
+
 !Limiting Initializations for stability
 Ccoszen_tols_huge = Ccoszen_tols * 1e2 
 Ccoszen_tols_tiny = Ccoszen_tols * 1e-2 
-
-   CALL point2constants( C ) 
-   
-   cos3 = COS(CPI180 * (/ 15.0, 45.0, 75.0 /))
-
-   ! See Sellers 1985, eq.13 (leaf angle parameters):
-   WHERE (canopy%vlaiw > CLAI_THRESH)
-      xphi1 = 0.5 - veg%xfang * (0.633 + 0.33 * veg%xfang)
-      xphi2 = 0.877 * (1.0 - 2.0 * xphi1)
-   END WHERE
-
-   ! 2 dimensional LAI
-   xvlai2 = SPREAD(canopy%vlaiw, 2, 3)
-
-   ! Extinction coefficient for beam radiation and black leaves;
-   ! eq. B6, Wang and Leuning, 1998
-   WHERE (xvlai2 > CLAI_THRESH) ! vegetated
-      xk = SPREAD(xphi1, 2, 3) / SPREAD(cos3, 1, mp) + SPREAD(xphi2, 2, 3)
-   ELSEWHERE ! i.e. bare soil
-      xk = 0.0          
-   END WHERE
 
    WHERE (canopy%vlaiw > CLAI_THRESH ) ! vegetated
    
