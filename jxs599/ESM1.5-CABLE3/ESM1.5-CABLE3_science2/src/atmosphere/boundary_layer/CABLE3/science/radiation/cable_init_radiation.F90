@@ -20,18 +20,14 @@
 
 MODULE cbl_init_radiation_module
 
-   USE cable_data_module, ONLY : irad_type, point2constants
- 
    IMPLICIT NONE
 
    PUBLIC init_radiation
    PRIVATE
 
-  TYPE ( irad_type ) :: C 
 !FUDGED local pars -masks tuned at other times - review conssitency!!
 real :: Ccoszen_tols_huge  ! 1e-4 * threshold cosine of sun's zenith angle, below which considered SUNLIT
 real :: Ccoszen_tols_tiny  ! 1e-4 * threshold cosine of sun's zenith angle, below which considered SUNLIT
-
 
 CONTAINS
 
@@ -104,11 +100,7 @@ REAL :: xvlai2(mp,nrb) ! 2D vlai
 REAL :: xphi1(mp)      ! leaf angle parmameter 1
 REAL :: xphi2(mp)      ! leaf angle parmameter 2
    
-!logical ::mask(mp)         !vegetated mask [formed by comparrisson of LAI CLAI_thresh ]
-!local vars
 integer :: ictr
-REAL :: cos3(nrb)      ! cos(15 45 75 degrees)
-
   
 !Null Initializations
 ExtCoeff_beam(:) = 0.0
@@ -129,16 +121,23 @@ call Common_InitRad_Scalings( xphi1, xphi2, xk, xvlai2, c1, rhoch,             &
 Ccoszen_tols_huge = Ccoszen_tols * 1e2 
 Ccoszen_tols_tiny = Ccoszen_tols * 1e-2 
 
-   WHERE (canopy%vlaiw > CLAI_THRESH ) ! vegetated
-   
-      ! Extinction coefficient for diffuse radiation for black leaves:
-      rad%extkd = -LOG( SUM(                                                   &
-                  SPREAD( CGAUSS_W, 1, mp ) * EXP( -xk * xvlai2 ), 2) )       &
-                  / canopy%vlaiw
-   
-   ELSEWHERE ! i.e. bare soil
-      rad%extkd = 0.7
-   END WHERE
+! Define Raw extinction co-efficients for direct beam/diffuse radiation
+! Largely parametrized per PFT. Does depend on zenith angle and effective LAI 
+! [Formerly rad%extkb, rad%extkd]  
+call ExtinctionCoeff( ExtCoeff_beam, ExtCoeff_dif, mp, nrb,                    &
+                      CGauss_w,Ccoszen_tols_tiny, reducedLAIdue2snow,          &
+                      sunlit_mask, veg_mask, sunlit_veg_mask,                  &
+                      cLAI_thresh, coszen, xphi1, xphi2, xk, xvlai2)
+!   WHERE (canopy%vlaiw > CLAI_THRESH ) ! vegetated
+!   
+!      ! Extinction coefficient for diffuse radiation for black leaves:
+!      rad%extkd = -LOG( SUM(                                                   &
+!                  SPREAD( CGAUSS_W, 1, mp ) * EXP( -xk * xvlai2 ), 2) )       &
+!                  / canopy%vlaiw
+!   
+!   ELSEWHERE ! i.e. bare soil
+!      rad%extkd = 0.7
+!   END WHERE
 
 CALL calc_rhoch( c1,rhoch, mp, nrb, veg%taul, veg%refl )
 
@@ -152,28 +151,32 @@ CALL calc_rhoch( c1,rhoch, mp, nrb, veg%taul, veg%refl )
 
    ENDDO
    
-   WHERE (canopy%vlaiw > CLAI_THRESH)    
-      
-      ! SW beam extinction coefficient ("black" leaves, extinction neglects
-      ! leaf SW transmittance and REFLectance):
-      rad%extkb = xphi1 / met%coszen + xphi2
-   
-   ELSEWHERE ! i.e. bare soil
-      rad%extkb = 0.5
-   END WHERE
-   
-   WHERE ( abs(rad%extkb - rad%extkd)  < 0.001 )
-      rad%extkb = rad%extkd + 0.001
-   END WHERE
-   
-   WHERE(rad%fbeam(:,1) < CRAD_THRESH )
-      rad%extkb=30.0         ! keep cexpkbm within real*4 range (BP jul2010)
-   END WHERE
+   !WHERE (canopy%vlaiw > CLAI_THRESH)    
+   !   
+   !   ! SW beam extinction coefficient ("black" leaves, extinction neglects
+   !   ! leaf SW transmittance and REFLectance):
+   !   rad%extkb = xphi1 / met%coszen + xphi2
+   !
+   !ELSEWHERE ! i.e. bare soil
+   !   rad%extkb = 0.5
+   !END WHERE
+   !
+   !WHERE ( abs(rad%extkb - rad%extkd)  < 0.001 )
+   !   rad%extkb = rad%extkd + 0.001
+   !END WHERE
+   !
+   !WHERE(rad%fbeam(:,1) < CRAD_THRESH )
+   !   rad%extkb=30.0         ! keep cexpkbm within real*4 range (BP jul2010)
+   !END WHERE
 !borrowed from cbl_iniit_radiation IN CABLE3 - bc there it is moved out oof Albedo and into iniit_radiation
 !so here we are missing this definition   
 rad%extkbm(:,:) = 0.0
 rad%extkdm(:,:) = 0.0
 
+! Define effective Extinction co-efficient for direct beam/diffuse radiation
+! Extincion Co-eff defined by parametrized leaf reflect(transmit)ance - used in
+! canopy transmitance calculations (cbl_albeo)
+! [Formerly rad%extkbm, rad%extkdm ]
 call EffectiveExtinctCoeffs( rad%extkbm, rad%extkdm,               &
                              mp, nrb, sunlit_veg_mask,                        &
                              rad%extkb, rad%extkd, c1 )
