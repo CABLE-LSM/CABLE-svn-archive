@@ -128,19 +128,7 @@ call ExtinctionCoeff( ExtCoeff_beam, ExtCoeff_dif, mp, nrb,                    &
                       CGauss_w,Ccoszen_tols_tiny, reducedLAIdue2snow,          &
                       sunlit_mask, veg_mask, sunlit_veg_mask,                  &
                       cLAI_thresh, coszen, xphi1, xphi2, xk, xvlai2)
-!   WHERE (canopy%vlaiw > CLAI_THRESH ) ! vegetated
-!   
-!      ! Extinction coefficient for diffuse radiation for black leaves:
-!      rad%extkd = -LOG( SUM(                                                   &
-!                  SPREAD( CGAUSS_W, 1, mp ) * EXP( -xk * xvlai2 ), 2) )       &
-!                  / canopy%vlaiw
-!   
-!   ELSEWHERE ! i.e. bare soil
-!      rad%extkd = 0.7
-!   END WHERE
-
-CALL calc_rhoch( c1,rhoch, mp, nrb, veg%taul, veg%refl )
-
+!this is done in cbl_albedo NoT YET merged
    ! Canopy REFLection of diffuse radiation for black leaves:
    DO ictr=1,nrb
      
@@ -150,28 +138,6 @@ CALL calc_rhoch( c1,rhoch, mp, nrb, veg%taul, veg%refl )
                           + CGAUSS_W(3) * xk(:,3) / ( xk(:,3) + rad%extkd(:) ) )
 
    ENDDO
-   
-   !WHERE (canopy%vlaiw > CLAI_THRESH)    
-   !   
-   !   ! SW beam extinction coefficient ("black" leaves, extinction neglects
-   !   ! leaf SW transmittance and REFLectance):
-   !   rad%extkb = xphi1 / met%coszen + xphi2
-   !
-   !ELSEWHERE ! i.e. bare soil
-   !   rad%extkb = 0.5
-   !END WHERE
-   !
-   !WHERE ( abs(rad%extkb - rad%extkd)  < 0.001 )
-   !   rad%extkb = rad%extkd + 0.001
-   !END WHERE
-   !
-   !WHERE(rad%fbeam(:,1) < CRAD_THRESH )
-   !   rad%extkb=30.0         ! keep cexpkbm within real*4 range (BP jul2010)
-   !END WHERE
-!borrowed from cbl_iniit_radiation IN CABLE3 - bc there it is moved out oof Albedo and into iniit_radiation
-!so here we are missing this definition   
-rad%extkbm(:,:) = 0.0
-rad%extkdm(:,:) = 0.0
 
 ! Define effective Extinction co-efficient for direct beam/diffuse radiation
 ! Extincion Co-eff defined by parametrized leaf reflect(transmit)ance - used in
