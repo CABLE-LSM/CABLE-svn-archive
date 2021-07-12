@@ -38,7 +38,6 @@
 MODULE cable_cbm_module
    
    USE cable_canopy_module
-   USE cable_albedo_module
   
    IMPLICIT NONE
   
@@ -59,7 +58,7 @@ USE cbl_soil_snow_main_module,  ONLY: soil_snow
    USE cbl_init_radiation_module, ONLY: init_radiation
    USE cable_air_module
 !CBL3 
-! USE cbl_albedo_mod, ONLY: albedo
+USE cbl_albedo_mod, ONLY: surface_albedo
 USE cbl_masks_mod, ONLY: fveg_mask,  fsunlit_mask,  fsunlit_veg_mask
 USE cbl_masks_mod, ONLY: veg_mask,  sunlit_mask,  sunlit_veg_mask
 !jhan:pass these !data
