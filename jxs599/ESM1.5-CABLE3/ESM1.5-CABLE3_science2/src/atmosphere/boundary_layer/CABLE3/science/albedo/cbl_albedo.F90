@@ -125,12 +125,10 @@ integer :: i
 !!!CanopyTransmit_dif(:,:) = 0.0  ! MPI (at least inits this = 1.0 at dt=0) 
 
 !Modify parametrised soil albedo based on snow coverage 
-!call surface_albedosn( AlbSnow, AlbSoil, mp, nrb, jls_radiation, surface_type, soil_type, &
-!                       SnowDepth, SnowODepth, SnowFlag_3L,                      & 
-!                       SnowDensity, SoilTemp, SnowTemp, SnowAge,                     & 
-!                       MetTk, Coszen )
-
-   CALL surface_albedosn(ssnow, veg, met, soil)
+call surface_albedosn( AlbSnow, AlbSoil, mp, nrb, jls_radiation, surface_type, soil_type, &
+                       SnowDepth, SnowODepth, SnowFlag_3L,                      & 
+                       SnowDensity, SoilTemp, SnowTemp, SnowAge,                     & 
+                       MetTk, Coszen )
 
  AlbSnow = ssnow%albsoilsn
  AlbSoil = soil%albsoil
@@ -197,39 +195,58 @@ END SUBROUTINE albedo
 
 ! ------------------------------------------------------------------------------
 
-SUBROUTINE surface_albedosn(ssnow, veg, met, soil)
-   
-   USE cable_def_types_mod, ONLY : veg_parameter_type, soil_parameter_type,    &     
-                                   met_type, soil_snow_type, mp 
-   USE cable_common_module
+SUBROUTINE surface_albedosn( AlbSnow, AlbSoil, mp, nrb, jls_radiation, surface_type, soil_type, &
+                            SnowDepth, SnowODepth, SnowFlag_3L, SnowDensity, &
+                            SoilTemp, SnowTemp, SnowAge, & 
+                            metTk, coszen )
+USE cable_um_tech_mod, ONLY : ssnow, veg, met, soil
 use cable_phys_constants_mod, ONLY : CTFRZ => TFRZ
+   USE cable_common_module
    
-   TYPE (soil_snow_type),INTENT(INOUT) :: ssnow
-   TYPE (met_type),INTENT(INOUT)       :: met
-   
-   TYPE (veg_parameter_type),INTENT(INout)  :: veg
-   TYPE(soil_parameter_type), INTENT(INOUT) :: soil   
+implicit none
 
-   REAL, DIMENSION(mp) ::                                                      &
-      alv,     &  ! Snow albedo for visible
-      alir,    &  ! Snow albedo for near infra-red
-      ar1,     &  ! crystal growth  (-ve)
-      ar2,     &  ! freezing of melt water
-      ar3,     &  !
-      dnsnow,  &  ! new snow albedo
-      dtau,    &  !
-      fage,    &  ! age factor
-      fzenm,   &  !    
-      sfact,   &  !
-      snr,     &  ! 
-      snrat,   &  !  
-      talb,    &  ! snow albedo
-      tmp         ! temporary value
-   
-   REAL, PARAMETER ::                                                          &
-      alvo  = 0.95,  &  ! albedo for vis. on a new snow
-      aliro = 0.70      ! albedo for near-infr. on a new snow
-   
+!re-decl input args
+integer :: mp
+integer :: nrb
+LOGICAL :: jls_radiation            !runtime switch def. in cable_*main routines 
+REAL :: AlbSnow(mp,nrb) 
+REAL :: AlbSoil(mp,nrb) 
+REAL :: MetTk(mp) 
+REAL :: coszen(mp) 
+REAL :: SnowDepth(mp)
+REAL :: SnowODepth(mp)
+REAL :: SnowDensity(mp)
+REAL :: SoilTemp(mp)
+REAL :: SnowTemp(mp)
+REAL :: SnowAge(mp)
+integer:: SnowFlag_3L(mp)
+integer:: surface_type(mp) 
+integer:: soil_type(mp) 
+
+
+    REAL, DIMENSION(mp) ::                                                      &
+         alv,     &  ! Snow albedo for visible
+         alir,    &  ! Snow albedo for near infra-red
+         ar1,     &  ! crystal growth  (-ve)
+         ar2,     &  ! freezing of melt water
+         ar3,     &  !
+         dnsnow,  &  ! new snow albedo
+         dtau,    &  !
+         fage,    &  ! age factor
+         fzenm,   &  !
+         sfact,   &  !
+         snr,     &  !
+         snrat,   &  !
+         talb,    &  ! snow albedo
+         tmp         ! temporary value
+
+    REAL, PARAMETER ::                                                          &
+         alvo  = 0.95,  &  ! albedo for vis. on a new snow
+         aliro = 0.70      ! albedo for near-infr. on a new snow
+
+! local vars    
+REAL :: SoilAlbsoilf(mp) 
+  
    INTEGER :: k,i,j,l,l1,l2
 
    soil%albsoilf = soil%albsoil(:,1)
