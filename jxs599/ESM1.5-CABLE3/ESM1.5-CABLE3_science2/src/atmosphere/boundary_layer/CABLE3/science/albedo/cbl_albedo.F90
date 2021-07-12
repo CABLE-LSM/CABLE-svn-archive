@@ -1,14 +1,9 @@
 MODULE cbl_albedo_mod
 
-   USE cable_data_module, ONLY : ialbedo_type, point2constants 
-   
    IMPLICIT NONE
    
    PUBLIC albedo
    PRIVATE
-
-   TYPE(ialbedo_type) :: C
-
 
 CONTAINS
 
@@ -35,6 +30,8 @@ EffSurfRefl_dif, EffSurfRefl_beam )
    USE cable_def_types_mod, ONLY : r_2
   
 USE cable_um_tech_mod, ONLY : ssnow, veg, met, rad, soil, canopy
+USE cable_other_constants_mod,  ONLY : Clai_thresh => lai_thresh
+USE cable_other_constants_mod,  ONLY : Crad_thresh => rad_thresh
    
    REAL(r_2), DIMENSION(mp)  ::                                                &
       dummy2, & !
@@ -119,17 +116,24 @@ REAL :: CanopyTransmit_beam(mp,nrb) !Canopy Transmitance (rad%cexpkbm)
 real :: SumEffSurfRefl_beam(1)
 real :: SumEffSurfRefl_dif(1)
 integer :: i
+! END header
 
+!AlbSnow(:,:) = 0.0
+!CanopyTransmit_beam(:,:) = 0.0
+!CanopyRefl_beam(:,:) = 0.0
+!CanopyRefl_dif(:,:) = 0.0        
+!!!CanopyTransmit_dif(:,:) = 0.0  ! MPI (at least inits this = 1.0 at dt=0) 
 
-
-   ! END header
-
-   CALL point2constants(C) 
-   
-   !IF (.NOT. allocated(c1)) &
-   !   ALLOCATE( c1(mp,nrb), rhoch(mp,nrb) )
+!Modify parametrised soil albedo based on snow coverage 
+!call surface_albedosn( AlbSnow, AlbSoil, mp, nrb, jls_radiation, surface_type, soil_type, &
+!                       SnowDepth, SnowODepth, SnowFlag_3L,                      & 
+!                       SnowDensity, SoilTemp, SnowTemp, SnowAge,                     & 
+!                       MetTk, Coszen )
 
    CALL surface_albedosn(ssnow, veg, met, soil)
+
+ AlbSnow = ssnow%albsoilsn
+ AlbSoil = soil%albsoil
 
    rad%cexpkbm = 0.0
    rad%extkbm  = 0.0
@@ -141,8 +145,8 @@ integer :: i
    rad%albedo = ssnow%albsoilsn
 
    ! Define vegetation mask:
-   mask = canopy%vlaiw > C%LAI_THRESH .AND.                                    &
-          ( met%fsd(:,1) + met%fsd(:,2) ) > C%RAD_THRESH     
+   mask = canopy%vlaiw > CLAI_THRESH .AND.                                    &
+          ( met%fsd(:,1) + met%fsd(:,2) ) > CRAD_THRESH     
 
    CALL calc_rhoch( veg, c1, rhoch )
 
@@ -183,7 +187,7 @@ integer :: i
       END WHERE
 
       ! Define albedo:
-      WHERE( canopy%vlaiw> C%LAI_THRESH )                                      &
+      WHERE( canopy%vlaiw> CLAI_THRESH )                                      &
          rad%albedo(:,b) = ( 1. - rad%fbeam(:,b) )*rad%reffdf(:,b) +           &
                            rad%fbeam(:,b) * rad%reffbm(:,b)
        
@@ -198,6 +202,7 @@ SUBROUTINE surface_albedosn(ssnow, veg, met, soil)
    USE cable_def_types_mod, ONLY : veg_parameter_type, soil_parameter_type,    &     
                                    met_type, soil_snow_type, mp 
    USE cable_common_module
+use cable_phys_constants_mod, ONLY : CTFRZ => TFRZ
    
    TYPE (soil_snow_type),INTENT(INOUT) :: ssnow
    TYPE (met_type),INTENT(INOUT)       :: met
@@ -259,8 +264,8 @@ SUBROUTINE surface_albedosn(ssnow, veg, met, soil)
       ! accumulation of dirt and amount of new snow.
       tmp = ssnow%isflag * ssnow%tggsn(:,1) + ( 1 - ssnow%isflag )            &
             * ssnow%tgg(:,1)
-      tmp = MIN( tmp, C%TFRZ )
-      ar1 = 5000. * (1. / (C%TFRZ-0.01) - 1. / tmp) ! crystal growth  (-ve)
+      tmp = MIN( tmp, CTFRZ )
+      ar1 = 5000. * (1. / (CTFRZ-0.01) - 1. / tmp) ! crystal growth  (-ve)
       ar2 = 10. * ar1 ! freezing of melt water
       snr = ssnow%snowd / max (ssnow%ssdnn, 200.)
       

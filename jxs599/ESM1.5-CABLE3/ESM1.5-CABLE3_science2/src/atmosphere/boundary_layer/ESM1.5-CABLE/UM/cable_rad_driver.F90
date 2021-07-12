@@ -129,7 +129,6 @@ LOGICAL :: cbl_standalone = .FALSE.
       ssnow%tggsn(:,1) = PACK( SNOW_TMP3L(:,:,1), um1%L_TILE_PTS )
       ssnow%tgg(:,1) =   PACK( TSOIL_TILE(:,:,1), um1%L_TILE_PTS )
 
-!         CALL albedo(ssnow, veg, met, rad, soil, canopy)
  CALL Albedo( ssnow%AlbSoilsn, soil%AlbSoil,                                 &
              !AlbSnow, AlbSoil,              
              mp, nrb,                                                       &
@@ -155,7 +154,8 @@ LOGICAL :: cbl_standalone = .FALSE.
              !CanopyRefl_dif,CanopyRefl_beam,
              rad%cexpkdm, rad%cexpkbm,                                      & 
              !CanopyTransmit_dif, CanopyTransmit_beam, 
-             rad%reffdf, rad%reffbm )
+             rad%reffdf, rad%reffbm                                        &
+           ) !EffSurfRefl_dif, EffSurfRefl_beam 
 
       ! only for land points, at present do not have a method for treating 
       ! mixed land/sea or land/seaice points as yet.

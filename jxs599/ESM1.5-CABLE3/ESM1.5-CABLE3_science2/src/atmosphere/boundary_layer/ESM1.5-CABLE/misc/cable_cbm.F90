@@ -142,10 +142,8 @@ CALL init_radiation( &
                      !coszen, metDoY, SW_down,                                 &
                      canopy%vlaiw  ) !reducedLAIdue2snow 
                     
- 
-      
       IF( cable_runtime%um_explicit ) THEN
-!         CALL albedo(ssnow, veg, met, rad, soil, canopy)
+
  CALL Albedo( ssnow%AlbSoilsn, soil%AlbSoil,                                 &
              !AlbSnow, AlbSoil,              
              mp, nrb,                                                       &
@@ -171,11 +169,10 @@ CALL init_radiation( &
              !CanopyRefl_dif,CanopyRefl_beam,
              rad%cexpkdm, rad%cexpkbm,                                      & 
              !CanopyTransmit_dif, CanopyTransmit_beam, 
-             rad%reffdf, rad%reffbm )
-
+             rad%reffdf, rad%reffbm                                        &
+           ) !EffSurfRefl_dif, EffSurfRefl_beam 
 
       ENDIF
-   
     
    ! Calculate canopy variables:
    CALL define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy, sunlit_veg_mask)
