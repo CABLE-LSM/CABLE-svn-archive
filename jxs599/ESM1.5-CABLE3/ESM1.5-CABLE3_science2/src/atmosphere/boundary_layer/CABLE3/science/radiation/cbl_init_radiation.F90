@@ -43,10 +43,8 @@ SUBROUTINE init_radiation( ExtCoeff_beam, ExtCoeff_dif,                        &
                         coszen, metDoY, SW_down,                               & 
                         reducedLAIdue2snow )
 
-USE cbl_rhoch_module,   ONLY : calc_rhoch
-USE cbl_spitter_module, ONLY : Spitter
-USE cable_um_tech_mod, ONLY : canopy, met, rad, veg 
-   USE cable_common_module
+  USE cable_um_tech_mod, ONLY : rad
+  ! USE cable_common_module
 USE cable_other_constants_mod, ONLY : Crad_thresh => rad_thresh
 
 implicit none
