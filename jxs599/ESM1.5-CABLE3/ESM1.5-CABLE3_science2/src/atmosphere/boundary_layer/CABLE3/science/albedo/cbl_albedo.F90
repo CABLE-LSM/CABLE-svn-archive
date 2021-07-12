@@ -28,6 +28,7 @@ EffSurfRefl_dif, EffSurfRefl_beam )
   
 !subrs called
 USE cbl_snow_albedo_module, ONLY : surface_albedosn
+USE cbl_rhoch_module, ONLY : calc_rhoch
 
    USE cable_common_module   
    USE cable_def_types_mod, ONLY : r_2
@@ -143,7 +144,7 @@ call surface_albedosn( AlbSnow, AlbSoil, mp, nrb, jls_radiation, surface_type, s
    rad%reffdf = ssnow%albsoilsn
    rad%albedo = ssnow%albsoilsn
 
-   CALL calc_rhoch( veg, c1, rhoch )
+CALL calc_rhoch( c1,rhoch, mp, nrb, veg%taul, veg%refl )
 
    ! Update extinction coefficients and fractional transmittance for 
    ! leaf transmittance and reflection (ie. NOT black leaves):
@@ -189,26 +190,6 @@ call surface_albedosn( AlbSnow, AlbSoil, mp, nrb, jls_radiation, surface_type, s
    END DO
 
 END SUBROUTINE albedo 
-
-! ------------------------------------------------------------------------------
-
-!jhan:subr was reintroduced here to temporarily resolve issue when 
-!creating libcable.a  (repeated in cable_radiation.F90)
-SUBROUTINE calc_rhoch(veg,c1,rhoch) 
-
-   USE cable_def_types_mod, ONLY : veg_parameter_type
-   TYPE (veg_parameter_type), INTENT(INOUT) :: veg
-   REAL, INTENT(INOUT), DIMENSION(:,:) :: c1, rhoch
-
-   c1(:,1) = SQRT(1. - veg%taul(:,1) - veg%refl(:,1))
-   c1(:,2) = SQRT(1. - veg%taul(:,2) - veg%refl(:,2))
-   c1(:,3) = 1.
-    
-   ! Canopy reflection black horiz leaves 
-   ! (eq. 6.19 in Goudriaan and van Laar, 1994):
-   rhoch = (1.0 - c1) / (1.0 + c1)
-
-END SUBROUTINE calc_rhoch 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
