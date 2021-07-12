@@ -38,7 +38,7 @@ SUBROUTINE cable_rad_driver(                                                   &
                              LAND_ALBEDO_CABLE, ALB_TILE, LAND_ALB_CABLE ) 
 
    USE cable_def_types_mod, ONLY : mp,nrb
-USE cbl_albedo_mod, ONLY: surface_albedo!!albedo
+USE cbl_albedo_mod, ONLY: albedo
 USE cbl_masks_mod, ONLY: veg_mask,  sunlit_mask,  sunlit_veg_mask
 USE cable_other_constants_mod, ONLY: Ccoszen_tols => coszen_tols
 USE cable_other_constants_mod,  ONLY : Crad_thresh => rad_thresh
@@ -130,7 +130,7 @@ LOGICAL :: cbl_standalone = .FALSE.
       ssnow%tgg(:,1) =   PACK( TSOIL_TILE(:,:,1), um1%L_TILE_PTS )
 
 
-      CALL surface_albedo(ssnow, veg, met, rad, soil, canopy)
+      CALL albedo(ssnow, veg, met, rad, soil, canopy)
 
       ! only for land points, at present do not have a method for treating 
       ! mixed land/sea or land/seaice points as yet.

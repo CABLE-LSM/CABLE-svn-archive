@@ -4,7 +4,7 @@ MODULE cbl_albedo_mod
    
    IMPLICIT NONE
    
-   PUBLIC surface_albedo
+   PUBLIC albedo
    PRIVATE
 
    TYPE(ialbedo_type) :: C
@@ -13,7 +13,7 @@ MODULE cbl_albedo_mod
 CONTAINS
 
   
-SUBROUTINE surface_albedo(ssnow, veg, met, rad, soil, canopy)
+SUBROUTINE albedo(ssnow, veg, met, rad, soil, canopy)
    
    USE cable_common_module   
    USE cable_def_types_mod, ONLY : veg_parameter_type, soil_parameter_type,    &     
@@ -105,7 +105,7 @@ SUBROUTINE surface_albedo(ssnow, veg, met, rad, soil, canopy)
        
    END DO
 
-END SUBROUTINE surface_albedo 
+END SUBROUTINE albedo 
 
 ! ------------------------------------------------------------------------------
 

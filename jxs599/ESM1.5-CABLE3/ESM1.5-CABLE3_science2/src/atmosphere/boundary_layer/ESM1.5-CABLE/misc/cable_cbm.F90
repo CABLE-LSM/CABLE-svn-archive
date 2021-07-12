@@ -58,7 +58,7 @@ USE cbl_soil_snow_main_module,  ONLY: soil_snow
    USE cbl_init_radiation_module, ONLY: init_radiation
    USE cable_air_module
 !CBL3 
-USE cbl_albedo_mod, ONLY: surface_albedo
+USE cbl_albedo_mod, ONLY: albedo
 USE cbl_masks_mod, ONLY: fveg_mask,  fsunlit_mask,  fsunlit_veg_mask
 USE cbl_masks_mod, ONLY: veg_mask,  sunlit_mask,  sunlit_veg_mask
 !jhan:pass these !data
@@ -145,7 +145,7 @@ CALL init_radiation( &
  
       
       IF( cable_runtime%um_explicit ) THEN
-         CALL surface_albedo(ssnow, veg, met, rad, soil, canopy)
+         CALL albedo(ssnow, veg, met, rad, soil, canopy)
       ENDIF
    
     
