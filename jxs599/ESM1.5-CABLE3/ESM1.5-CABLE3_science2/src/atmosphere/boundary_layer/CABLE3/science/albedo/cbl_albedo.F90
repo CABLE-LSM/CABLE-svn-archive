@@ -37,8 +37,6 @@ USE cable_other_constants_mod,  ONLY : Crad_thresh => rad_thresh
       dummy2, & !
       dummy
 
-   LOGICAL, DIMENSION(mp)  :: mask ! select points for calculation
-
    INTEGER :: b    !rad. band 1=visible, 2=near-infrared, 3=long-wave
       
 !model dimensions
@@ -142,10 +140,6 @@ call surface_albedosn( AlbSnow, AlbSoil, mp, nrb, jls_radiation, surface_type, s
    rad%reffdf = ssnow%albsoilsn
    rad%albedo = ssnow%albsoilsn
 
-   ! Define vegetation mask:
-   mask = canopy%vlaiw > CLAI_THRESH .AND.                                    &
-          ( met%fsd(:,1) + met%fsd(:,2) ) > CRAD_THRESH     
-
    CALL calc_rhoch( veg, c1, rhoch )
 
    ! Update extinction coefficients and fractional transmittance for 
@@ -164,7 +158,7 @@ call surface_albedosn( AlbSnow, AlbSoil, mp, nrb, jls_radiation, surface_type, s
                            - rad%rhocdf(:,b)) * rad%cexpkdm(:,b)**2
       
       !---where vegetated and sunlit 
-      WHERE (mask)                
+      WHERE (sunlit_veg_mask)                
       
          rad%extkbm(:,b) = rad%extkb * c1(:,b)
       
