@@ -29,23 +29,13 @@ ExtCoeff_dif, ExtCoeff_beam,                      &
 EffExtCoeff_dif, EffExtCoeff_beam,                &
 CanopyRefl_dif,CanopyRefl_beam,                   &
 CanopyTransmit_dif, CanopyTransmit_beam,          &
-EffSurfRefl_dif, EffSurfRefl_beam,                & 
-         ssnow, veg, met, rad, soil, canopy)
-
+EffSurfRefl_dif, EffSurfRefl_beam )
   
    USE cable_common_module   
-   USE cable_def_types_mod, ONLY : veg_parameter_type, soil_parameter_type,    &     
-                                   canopy_type, met_type, radiation_type,      &
-                                   soil_snow_type, r_2
+   USE cable_def_types_mod, ONLY : r_2
+  
+USE cable_um_tech_mod, ONLY : ssnow, veg, met, rad, soil, canopy
    
-   TYPE (canopy_type),INTENT(IN)       :: canopy
-   TYPE (met_type),INTENT(INOUT)       :: met
-   TYPE (radiation_type),INTENT(INOUT) :: rad
-   TYPE (soil_snow_type),INTENT(INOUT) :: ssnow
-
-   TYPE (veg_parameter_type),INTENT(INOUT)  :: veg
-   TYPE(soil_parameter_type), INTENT(INOUT) :: soil   
-
    REAL(r_2), DIMENSION(mp)  ::                                                &
       dummy2, & !
       dummy

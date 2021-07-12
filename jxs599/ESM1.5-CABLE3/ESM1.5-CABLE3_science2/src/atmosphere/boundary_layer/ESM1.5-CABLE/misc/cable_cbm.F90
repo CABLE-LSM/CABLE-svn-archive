@@ -171,8 +171,7 @@ CALL init_radiation( &
              !CanopyRefl_dif,CanopyRefl_beam,
              rad%cexpkdm, rad%cexpkbm,                                      & 
              !CanopyTransmit_dif, CanopyTransmit_beam, 
-             rad%reffdf, rad%reffbm,                                        &
-         ssnow, veg, met, rad, soil, canopy)
+             rad%reffdf, rad%reffbm )
 
 
       ENDIF

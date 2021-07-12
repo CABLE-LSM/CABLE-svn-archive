@@ -155,8 +155,7 @@ LOGICAL :: cbl_standalone = .FALSE.
              !CanopyRefl_dif,CanopyRefl_beam,
              rad%cexpkdm, rad%cexpkbm,                                      & 
              !CanopyTransmit_dif, CanopyTransmit_beam, 
-             rad%reffdf, rad%reffbm,                                        &
-         ssnow, veg, met, rad, soil, canopy)
+             rad%reffdf, rad%reffbm )
 
       ! only for land points, at present do not have a method for treating 
       ! mixed land/sea or land/seaice points as yet.
