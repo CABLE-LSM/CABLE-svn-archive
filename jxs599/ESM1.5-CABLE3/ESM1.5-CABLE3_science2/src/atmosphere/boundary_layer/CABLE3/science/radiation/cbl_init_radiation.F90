@@ -44,8 +44,6 @@ SUBROUTINE init_radiation( ExtCoeff_beam, ExtCoeff_dif,                        &
                         reducedLAIdue2snow )
 
   USE cable_um_tech_mod, ONLY : rad
-  ! USE cable_common_module
-USE cable_other_constants_mod, ONLY : Crad_thresh => rad_thresh
 
 implicit none
 
