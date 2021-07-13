@@ -43,8 +43,6 @@ SUBROUTINE init_radiation( ExtCoeff_beam, ExtCoeff_dif,                        &
                         coszen, metDoY, SW_down,                               & 
                         reducedLAIdue2snow )
 
-  USE cable_um_tech_mod, ONLY : rad
-
 implicit none
 
 !re-decl input args
@@ -96,8 +94,6 @@ REAL :: xvlai2(mp,nrb) ! 2D vlai
 REAL :: xphi1(mp)      ! leaf angle parmameter 1
 REAL :: xphi2(mp)      ! leaf angle parmameter 2
    
-integer :: ictr
-  
 !Null Initializations
 ExtCoeff_beam(:) = 0.0
 ExtCoeff_dif(:) = 0.0
@@ -124,24 +120,14 @@ call ExtinctionCoeff( ExtCoeff_beam, ExtCoeff_dif, mp, nrb,                    &
                       CGauss_w,Ccoszen_tols_tiny, reducedLAIdue2snow,          &
                       sunlit_mask, veg_mask, sunlit_veg_mask,                  &
                       cLAI_thresh, coszen, xphi1, xphi2, xk, xvlai2)
-!this is done in cbl_albedo NoT YET merged
-   ! Canopy REFLection of diffuse radiation for black leaves:
-   DO ictr=1,nrb
-     
-     rad%rhocdf(:,ictr) = rhoch(:,ictr) *                                      &
-                          ( CGAUSS_W(1) * xk(:,1) / ( xk(:,1) + rad%extkd(:) )&
-                          + CGAUSS_W(2) * xk(:,2) / ( xk(:,2) + rad%extkd(:) )&
-                          + CGAUSS_W(3) * xk(:,3) / ( xk(:,3) + rad%extkd(:) ) )
-
-   ENDDO
 
 ! Define effective Extinction co-efficient for direct beam/diffuse radiation
 ! Extincion Co-eff defined by parametrized leaf reflect(transmit)ance - used in
 ! canopy transmitance calculations (cbl_albeo)
 ! [Formerly rad%extkbm, rad%extkdm ]
-call EffectiveExtinctCoeffs( rad%extkbm, rad%extkdm,               &
+call EffectiveExtinctCoeffs( EffExtCoeff_beam, EffExtCoeff_dif,               &
                              mp, nrb, sunlit_veg_mask,                        &
-                             rad%extkb, rad%extkd, c1 )
+                             ExtCoeff_beam, ExtCoeff_dif, c1 )
 
 ! Offline/standalone forcing gives us total downward Shortwave. We have
 ! previosuly, arbitratily split this into NIR/VIS (50/50). We use 
