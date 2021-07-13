@@ -37,6 +37,8 @@ USE cable_um_tech_mod, ONLY : ssnow, veg, met, rad, soil, canopy
 USE cable_other_constants_mod,  ONLY : Clai_thresh => lai_thresh
 USE cable_other_constants_mod,  ONLY : Crad_thresh => rad_thresh
    
+implicit none
+
    REAL(r_2), DIMENSION(mp)  ::                                                &
       dummy2, & !
       dummy
@@ -182,12 +184,14 @@ CALL calc_rhoch( c1,rhoch, mp, nrb, veg%taul, veg%refl )
 
       END WHERE
 
-      ! Define albedo:
-      WHERE( canopy%vlaiw> CLAI_THRESH )                                      &
-         rad%albedo(:,b) = ( 1. - rad%fbeam(:,b) )*rad%reffdf(:,b) +           &
-                           rad%fbeam(:,b) * rad%reffbm(:,b)
-       
    END DO
+! Compute total albedo to SW given the Effective Surface Reflectance 
+! (considering Canopy/Soil/Snow contributions) 
+! we dont need to do this on rad call AND may not haveappropriate RadFbeam
+RadAlbedo = AlbSnow
+if(.NOT. jls_radiation) &
+  call FbeamRadAlbedo( RadAlbedo, mp, nrb, veg_mask, radfbeam, &
+                       EffSurfRefl_dif, EffSurfRefl_beam, AlbSnow )
 
 END SUBROUTINE albedo 
 
