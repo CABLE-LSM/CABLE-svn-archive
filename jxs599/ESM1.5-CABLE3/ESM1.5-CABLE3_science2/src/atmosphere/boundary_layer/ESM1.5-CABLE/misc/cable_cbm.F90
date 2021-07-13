@@ -33,8 +33,6 @@
 !
 ! ==============================================================================
 
-!#define NO_CASA_YET 1
-
 MODULE cable_cbm_module
    
    USE cable_canopy_module
@@ -105,22 +103,16 @@ REAL :: xk(mp,nrb)
    ! assign local ptrs to constants defined in cable_data_module
    CALL point2constants(C)    
 
-   IF( cable_runtime%um ) THEN
-      cable_runtime%um_radiation = .FALSE.
-      
-      IF( cable_runtime%um_explicit ) THEN
-         met%DoY = met%DoY + 1.
-         CALL ruff_resist( veg, rough, ssnow, canopy, veg%vlai, veg%hc, canopy%vlaiw )
-         !ESM1.5CALL ruff_resist(veg, rough, ssnow, canopy)
-         met%tk = met%tk + C%grav/C%capp*(rough%zref_tq + 0.9*rough%z0m)
-      ENDIF
-      
-      CALL define_air (met, air)
+   cable_runtime%um_radiation = .FALSE.
    
-   ELSE
+   IF( cable_runtime%um_explicit ) THEN
+      met%DoY = met%DoY + 1.
       CALL ruff_resist( veg, rough, ssnow, canopy, veg%vlai, veg%hc, canopy%vlaiw )
-      !ESM1.5call ruff_resist(veg, rough, ssnow, canopy)
+      !ESM1.5CALL ruff_resist(veg, rough, ssnow, canopy)
+      met%tk = met%tk + C%grav/C%capp*(rough%zref_tq + 0.9*rough%z0m)
    ENDIF
+   
+   CALL define_air (met, air)
 
 call fveg_mask( veg_mask, mp, Clai_thresh, canopy%vlaiw )
 call fsunlit_mask( sunlit_mask, mp, CRAD_THRESH,( met%fsd(:,1)+met%fsd(:,2) ) )

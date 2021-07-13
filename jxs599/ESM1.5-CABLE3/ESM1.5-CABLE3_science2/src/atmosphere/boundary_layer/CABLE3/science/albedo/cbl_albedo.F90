@@ -7,7 +7,6 @@ MODULE cbl_albedo_mod
 
 CONTAINS
 
-  
 SUBROUTINE Albedo( AlbSnow, AlbSoil,              & 
 mp, nrb,                                          &
 jls_radiation ,                                   &
@@ -28,7 +27,6 @@ EffSurfRefl_dif, EffSurfRefl_beam )
   
 !subrs called
 USE cbl_snow_albedo_module, ONLY : surface_albedosn
-USE cbl_rhoch_module, ONLY : calc_rhoch
 
    USE cable_common_module   
    USE cable_def_types_mod, ONLY : r_2
@@ -134,8 +132,8 @@ call surface_albedosn( AlbSnow, AlbSoil, mp, nrb, jls_radiation, surface_type, s
                        SnowDensity, SoilTemp, SnowTemp, SnowAge,                     & 
                        MetTk, Coszen )
 
- AlbSnow = ssnow%albsoilsn
- AlbSoil = soil%albsoil
+! Update fractional leaf transmittance and reflection
+!---1 = visible, 2 = nir radiaition
 
    rad%cexpkbm = 0.0
    rad%extkbm  = 0.0
@@ -145,8 +143,6 @@ call surface_albedosn( AlbSnow, AlbSoil, mp, nrb, jls_radiation, surface_type, s
    rad%reffbm = ssnow%albsoilsn
    rad%reffdf = ssnow%albsoilsn
    rad%albedo = ssnow%albsoilsn
-
-CALL calc_rhoch( c1,rhoch, mp, nrb, veg%taul, veg%refl )
 
    ! Update extinction coefficients and fractional transmittance for 
    ! leaf transmittance and reflection (ie. NOT black leaves):

@@ -52,6 +52,9 @@ USE cable_math_constants_mod,  ONLY: cpi180 => pi180
    USE cable_um_init_subrs_mod, ONLY : update_kblum_radiation,  um2cable_met_rad,  &
                                    um2cable_lp 
    USE cable_common_module, ONLY : cable_runtime, cable_user
+  USE cbl_rhoch_ESM1pt5_module, ONLY : rhoch =>rhoch_gl,  &
+                                     c1 => c1_gl, &
+                                     xk => xk_gl
    
    IMPLICIT NONE                     
 
@@ -89,9 +92,9 @@ USE cable_math_constants_mod,  ONLY: cpi180 => pi180
    REAL :: rad_vis(mp), rad_nir(mp), met_fsd_tot_rel(mp), rad_albedo_tot(mp) 
 
 !co-efficients usoughout init_radiation ` called from _albedo as well
-REAL :: c1(mp,nrb)
-REAL :: rhoch(mp,nrb)
-REAL :: xk(mp,nrb)
+!REAL :: c1(mp,nrb)
+!REAL :: rhoch(mp,nrb)
+!REAL :: xk(mp,nrb)
 CHARACTER(LEN=*), PARAMETER :: subr_name = "cbl_model_driver"
 LOGICAL :: jls_standalone= .TRUE.
 LOGICAL :: jls_radiation= .TRUE.
