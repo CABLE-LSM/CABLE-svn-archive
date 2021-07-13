@@ -79,7 +79,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    !--- subr to call CABLE model
    USE cable_cbm_module, ONLY : cbm
 
-   USE cable_def_types_mod, ONLY : mp
+   USE cable_def_types_mod, ONLY : mp, nrb
 
    !--- include subr called to write data for testing purposes 
    USE casa_um_inout_mod
@@ -87,6 +87,10 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    USE casa_types_mod
 
   USE feedback_mod
+
+USE cbl_rhoch_ESM1pt5_module, ONLY : rhoch =>rhoch_gl, & 
+                                     c1 => c1_gl, &
+                                     xk => xk_gl
 
    IMPLICIT NONE
  
@@ -340,7 +344,6 @@ write(6,*) "jhan:ESM1.5 test SB,BW 2"
       first_cable_call = .FALSE.
    ENDIF      
    
-
   mtau = mod(ktau_gl,int(24.*3600./timestep))
   if (l_luc .and. iday==1 .and. mtau==1) then
    ! resdistr(frac,in,out) - Lestevens 10oct17
@@ -396,14 +399,15 @@ write(6,*) "jhan:ESM1.5 test SB,BW 2"
    IF(l_laiFeedbk) veg%vlai(:) = casamet%glai(:)
 
    canopy%oldcansto=canopy%cansto
-
+   
+   IF (.NOT. allocated(c1)) ALLOCATE( c1(mp,nrb), rhoch(mp,nrb), xk(mp,nrb) )
 
    !---------------------------------------------------------------------!
    !--- real(timestep) width, CABLE types passed to CABLE "engine" as ---!  
    !--- req'd by Mk3L  --------------------------------------------------!
    !---------------------------------------------------------------------!
    CALL cbm( timestep, air, bgc, canopy, met, bal,                             &
-             rad, rough, soil, ssnow, sum_flux, veg )
+             rad, rough, soil, ssnow, sum_flux, veg, xk, c1, rhoch )
 
 ! output CO2_MMR value used in CABLE (passed from UM)
   if ( (knode_gl.eq.1) .and. (ktau_gl.eq.1) ) then

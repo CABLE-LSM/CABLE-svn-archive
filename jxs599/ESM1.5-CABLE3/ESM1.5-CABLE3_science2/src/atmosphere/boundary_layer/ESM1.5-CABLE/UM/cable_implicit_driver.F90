@@ -73,6 +73,9 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
    USE bgcdriver_mod, ONLY : bgcdriver
    USE sumcflux_mod, ONLY : sumcflux
    USE casa_um_inout_mod
+USE cbl_rhoch_ESM1pt5_module, ONLY : rhoch =>rhoch_gl,  &
+                                     c1 => c1_gl, &
+                                     xk => xk_gl
 
    IMPLICIT NONE
         
@@ -281,8 +284,8 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
  
       canopy%cansto = canopy%oldcansto
 
-      CALL cbm(TIMESTEP, air, bgc, canopy, met, bal,  &
-           rad, rough, soil, ssnow, sum_flux, veg)
+   CALL cbm( timestep, air, bgc, canopy, met, bal,                             &
+             rad, rough, soil, ssnow, sum_flux, veg, xk, c1, rhoch )
 
       ! Lestevens - temporary ?
       ktauday = int(24.0*3600.0/TIMESTEP)

@@ -48,7 +48,8 @@ CONTAINS
 
    SUBROUTINE cbm( dels, air, bgc, canopy, met,                                &
                    bal, rad, rough, soil,                                      &
-                   ssnow, sum_flux, veg )
+                   ssnow, sum_flux, veg,                                       &
+                   xk, c1, rhoch )
     
    USE cable_common_module
    USE cable_carbon_module
