@@ -149,14 +149,20 @@ call CanopyReflectance( CanopyRefl_beam, CanopyRefl_dif, &
                         AlbSnow, xk, rhoch,                  &
                         ExtCoeff_beam, ExtCoeff_dif)
 
+! Define canopy diffuse transmittance 
+! Formerly rad%cexpkbm, rad%cexpkdm
+call CanopyTransmitance(CanopyTransmit_beam, CanopyTransmit_dif, mp, nrb,&
+                              sunlit_veg_mask, canopy%vlaiw, &
+                              EffExtCoeff_dif, EffExtCoeff_beam)
+
+!rad%cexpkbm = CanopyTransmit_beam
+rad%cexpkdm = CanopyTransmit_dif 
+
    ! Update extinction coefficients and fractional transmittance for 
    ! leaf transmittance and reflection (ie. NOT black leaves):
    !---1 = visible, 2 = nir radiaition
    DO b = 1, 2        
       
-      !--Define canopy diffuse transmittance (fraction):
-      rad%cexpkdm(:,b) = EXP(-rad%extkdm(:,b) * canopy%vlaiw)
-
       !---Calculate effective diffuse reflectance (fraction):
       WHERE( canopy%vlaiw > 1e-2 )                                             &
          rad%reffdf(:,b) = rad%rhocdf(:,b) + (ssnow%albsoilsn(:,b)             &
@@ -297,8 +303,8 @@ REAL :: EffExtCoeff_beam(mp,nrb)           !"raw" Extinction co-efficient for Di
 REAL :: EffExtCoeff_dif(mp,nrb)            !"raw"Extinction co-efficient for Diffuse component of SW radiation (rad%extkd)
 
 ! For beam, compute canopy trasmitance when sunlit (and vegetated)
-call CanopyTransmitance_beam( CanopyTransmit_beam, mp, nrb, EffExtCoeff_beam,  &
-                              reducedLAIdue2snow, mask )
+!call CanopyTransmitance_beam( CanopyTransmit_beam, mp, nrb, EffExtCoeff_beam,  &
+!                              reducedLAIdue2snow, mask )
 
 !'=1.0' initialization remains the calculated value where "mask"=FALSE
 dummyMask(:) = .true. 
