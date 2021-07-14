@@ -135,6 +135,13 @@ call surface_albedosn( AlbSnow, AlbSoil, mp, nrb, jls_radiation, surface_type, s
 ! Update fractional leaf transmittance and reflection
 !---1 = visible, 2 = nir radiaition
 
+   ! Initialise effective conopy beam reflectance:
+   rad%reffbm = ssnow%albsoilsn
+   rad%reffdf = ssnow%albsoilsn
+   rad%albedo = ssnow%albsoilsn
+! Update fractional leaf transmittance and reflection
+!---1 = visible, 2 = nir radiaition
+
 ! Define canopy Reflectance for diffuse/direct radiation
 ! Formerly rad%rhocbm, rad%rhocdf
 call CanopyReflectance( CanopyRefl_beam, CanopyRefl_dif, &
