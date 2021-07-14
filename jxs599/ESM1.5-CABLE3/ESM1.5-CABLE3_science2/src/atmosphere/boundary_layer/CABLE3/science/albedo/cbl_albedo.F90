@@ -155,7 +155,7 @@ call CanopyTransmitance(CanopyTransmit_beam, CanopyTransmit_dif, mp, nrb,&
                               sunlit_veg_mask, canopy%vlaiw, &
                               EffExtCoeff_dif, EffExtCoeff_beam)
 
-!rad%cexpkbm = CanopyTransmit_beam
+rad%cexpkbm = CanopyTransmit_beam
 rad%cexpkdm = CanopyTransmit_dif 
 
    ! Update extinction coefficients and fractional transmittance for 
@@ -303,8 +303,8 @@ REAL :: EffExtCoeff_beam(mp,nrb)           !"raw" Extinction co-efficient for Di
 REAL :: EffExtCoeff_dif(mp,nrb)            !"raw"Extinction co-efficient for Diffuse component of SW radiation (rad%extkd)
 
 ! For beam, compute canopy trasmitance when sunlit (and vegetated)
-!call CanopyTransmitance_beam( CanopyTransmit_beam, mp, nrb, EffExtCoeff_beam,  &
-!                              reducedLAIdue2snow, mask )
+call CanopyTransmitance_beam( CanopyTransmit_beam, mp, nrb, EffExtCoeff_beam,  &
+                              reducedLAIdue2snow, mask )
 
 !'=1.0' initialization remains the calculated value where "mask"=FALSE
 dummyMask(:) = .true. 
@@ -352,7 +352,7 @@ real :: dummy(mp,nrb)
 integer :: i, b
  
 DO i = 1,mp
-  DO b = 1, nrb 
+  DO b = 1,2
     if( mask(i) ) then 
       dummy(i,b) = min( ExtinctionCoeff(i,b) * reducedLAIdue2snow(i), 20. )
       CanopyTransmit(i,b) = EXP( -1.* dummy(i,b) )
