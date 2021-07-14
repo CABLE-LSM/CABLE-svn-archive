@@ -28,21 +28,13 @@ EffSurfRefl_dif, EffSurfRefl_beam )
 !subrs called
 USE cbl_snow_albedo_module, ONLY : surface_albedosn
 
-   USE cable_common_module   
-   USE cable_def_types_mod, ONLY : r_2
-  
 USE cable_um_tech_mod, ONLY : ssnow, veg, met, rad, soil, canopy
 USE cable_other_constants_mod,  ONLY : Clai_thresh => lai_thresh
 USE cable_other_constants_mod,  ONLY : Crad_thresh => rad_thresh
    
 implicit none
 
-   REAL(r_2), DIMENSION(mp)  ::                                                &
-      dummy2, & !
-      dummy
-
    INTEGER :: b    !rad. band 1=visible, 2=near-infrared, 3=long-wave
-      
 !model dimensions
 integer :: mp                       !total number of "tiles"  
 integer :: nrb                      !number of radiation bands [per legacy=3, but really=2 VIS,NIR. 3rd dim was for LW]
@@ -152,7 +144,7 @@ call CanopyReflectance( CanopyRefl_beam, CanopyRefl_dif, &
 ! Define canopy diffuse transmittance 
 ! Formerly rad%cexpkbm, rad%cexpkdm
 call CanopyTransmitance(CanopyTransmit_beam, CanopyTransmit_dif, mp, nrb,&
-                              sunlit_veg_mask, canopy%vlaiw, &
+                              sunlit_veg_mask, reducedLAIdue2snow, &
                               EffExtCoeff_dif, EffExtCoeff_beam)
 
 rad%rhocbm = CanopyRefl_beam 
@@ -160,8 +152,15 @@ rad%rhocdf = CanopyRefl_dif
 rad%cexpkbm = CanopyTransmit_beam
 rad%cexpkdm = CanopyTransmit_dif 
 
-   ! Update extinction coefficients and fractional transmittance for 
-   ! leaf transmittance and reflection (ie. NOT black leaves):
+!---1 = visible, 2 = nir radiaition
+! Finally compute Effective 4-band albedo for diffuse/direct radiation- 
+! In the UM this is the required variable to be passed back on the rad call
+! Formerly rad%reffbm, rad%reffdf
+
+! Even when there is no vegetation, albedo is at least snow modified soil albedo
+EffSurfRefl_dif = AlbSnow
+EffSurfRefl_beam = AlbSnow
+ 
    !---1 = visible, 2 = nir radiaition
    DO b = 1, 2        
       
