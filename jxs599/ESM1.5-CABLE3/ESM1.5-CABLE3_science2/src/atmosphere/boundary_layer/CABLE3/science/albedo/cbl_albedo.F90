@@ -155,6 +155,8 @@ call CanopyTransmitance(CanopyTransmit_beam, CanopyTransmit_dif, mp, nrb,&
                               sunlit_veg_mask, canopy%vlaiw, &
                               EffExtCoeff_dif, EffExtCoeff_beam)
 
+rad%rhocbm = CanopyRefl_beam 
+rad%rhocdf = CanopyRefl_dif
 rad%cexpkbm = CanopyTransmit_beam
 rad%cexpkdm = CanopyTransmit_dif 
 
@@ -171,16 +173,6 @@ rad%cexpkdm = CanopyTransmit_dif
       !---where vegetated and sunlit 
       WHERE (sunlit_veg_mask)                
       
-      ! Canopy reflection (6.21) beam:
-         rad%rhocbm(:,b) = 2. * rad%extkb / ( rad%extkb + rad%extkd )          &
-                        * rhoch(:,b)
-
-         ! Canopy beam transmittance (fraction):
-         dummy2 = -rad%extkbm(:,b)*canopy%vlaiw
-         dummy  = EXP(dummy2)
-
-         rad%cexpkbm(:,b) = REAL(dummy)
-
          ! Calculate effective beam reflectance (fraction):
          rad%reffbm(:,b) = rad%rhocbm(:,b) + (ssnow%albsoilsn(:,b)             &
                - rad%rhocbm(:,b))*rad%cexpkbm(:,b)**2
