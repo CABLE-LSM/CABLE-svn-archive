@@ -29,8 +29,6 @@ EffSurfRefl_dif, EffSurfRefl_beam )
 USE cbl_snow_albedo_module, ONLY : surface_albedosn
 
 USE cable_um_tech_mod, ONLY : ssnow, veg, met, rad, soil, canopy
-USE cable_other_constants_mod,  ONLY : Clai_thresh => lai_thresh
-USE cable_other_constants_mod,  ONLY : Crad_thresh => rad_thresh
    
 implicit none
 
@@ -127,13 +125,6 @@ call surface_albedosn( AlbSnow, AlbSoil, mp, nrb, jls_radiation, surface_type, s
 ! Update fractional leaf transmittance and reflection
 !---1 = visible, 2 = nir radiaition
 
-   ! Initialise effective conopy beam reflectance:
-   rad%reffbm = ssnow%albsoilsn
-   rad%reffdf = ssnow%albsoilsn
-   rad%albedo = ssnow%albsoilsn
-! Update fractional leaf transmittance and reflection
-!---1 = visible, 2 = nir radiaition
-
 ! Define canopy Reflectance for diffuse/direct radiation
 ! Formerly rad%rhocbm, rad%rhocdf
 call CanopyReflectance( CanopyRefl_beam, CanopyRefl_dif, &
@@ -161,6 +152,12 @@ rad%cexpkdm = CanopyTransmit_dif
 EffSurfRefl_dif = AlbSnow
 EffSurfRefl_beam = AlbSnow
  
+call EffectiveSurfaceReflectance( EffSurfRefl_beam, EffSurfRefl_dif,           &
+                                  mp, nrb, veg_mask, sunlit_veg_mask,          &
+                                  CanopyRefl_beam, CanopyRefl_dif,             &
+                                  CanopyTransmit_beam,CanopyTransmit_dif,      &
+                                  AlbSnow )
+
    !---1 = visible, 2 = nir radiaition
    DO b = 1, 2        
       
@@ -179,6 +176,8 @@ EffSurfRefl_beam = AlbSnow
       END WHERE
 
    END DO
+EffSurfRefl_dif = rad%reffdf
+EffSurfRefl_beam = rad%reffbm 
 ! Compute total albedo to SW given the Effective Surface Reflectance 
 ! (considering Canopy/Soil/Snow contributions) 
 ! we dont need to do this on rad call AND may not haveappropriate RadFbeam
