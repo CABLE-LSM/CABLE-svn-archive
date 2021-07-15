@@ -138,11 +138,6 @@ call CanopyTransmitance(CanopyTransmit_beam, CanopyTransmit_dif, mp, nrb,&
                               sunlit_veg_mask, reducedLAIdue2snow, &
                               EffExtCoeff_dif, EffExtCoeff_beam)
 
-rad%rhocbm = CanopyRefl_beam 
-rad%rhocdf = CanopyRefl_dif
-rad%cexpkbm = CanopyTransmit_beam
-rad%cexpkdm = CanopyTransmit_dif 
-
 !---1 = visible, 2 = nir radiaition
 ! Finally compute Effective 4-band albedo for diffuse/direct radiation- 
 ! In the UM this is the required variable to be passed back on the rad call
@@ -158,20 +153,6 @@ call EffectiveSurfaceReflectance( EffSurfRefl_beam, EffSurfRefl_dif,           &
                                   CanopyTransmit_beam,CanopyTransmit_dif,      &
                                   AlbSnow )
 
-   DO b = 1, 2        
-      
-      !---where vegetated and sunlit 
-      WHERE (sunlit_veg_mask)                
-      
-         ! Calculate effective beam reflectance (fraction):
-         rad%reffbm(:,b) = rad%rhocbm(:,b) + (ssnow%albsoilsn(:,b)             &
-               - rad%rhocbm(:,b))*rad%cexpkbm(:,b)**2
-
-      END WHERE
-
-   END DO
-
-EffSurfRefl_beam = rad%reffbm 
 ! Compute total albedo to SW given the Effective Surface Reflectance 
 ! (considering Canopy/Soil/Snow contributions) 
 ! we dont need to do this on rad call AND may not haveappropriate RadFbeam
