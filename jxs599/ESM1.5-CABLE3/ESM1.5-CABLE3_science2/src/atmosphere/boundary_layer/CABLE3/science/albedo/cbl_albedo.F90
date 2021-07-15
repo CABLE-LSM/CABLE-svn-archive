@@ -28,11 +28,8 @@ EffSurfRefl_dif, EffSurfRefl_beam )
 !subrs called
 USE cbl_snow_albedo_module, ONLY : surface_albedosn
 
-USE cable_um_tech_mod, ONLY : ssnow, veg, met, rad, soil, canopy
-   
 implicit none
 
-   INTEGER :: b    !rad. band 1=visible, 2=near-infrared, 3=long-wave
 !model dimensions
 integer :: mp                       !total number of "tiles"  
 integer :: nrb                      !number of radiation bands [per legacy=3, but really=2 VIS,NIR. 3rd dim was for LW]
@@ -423,7 +420,5 @@ END DO
 End subroutine FbeamRadAlbedo
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-
 
 END MODULE cbl_albedo_mod
