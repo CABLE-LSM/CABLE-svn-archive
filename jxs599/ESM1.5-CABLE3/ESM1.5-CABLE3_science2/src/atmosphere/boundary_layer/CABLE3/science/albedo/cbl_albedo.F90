@@ -162,10 +162,10 @@ call EffectiveSurfaceReflectance( EffSurfRefl_beam, EffSurfRefl_dif,           &
    DO b = 1, 2        
       
       !---Calculate effective diffuse reflectance (fraction):
-      WHERE( canopy%vlaiw > 1e-2 )                                             &
-         rad%reffdf(:,b) = rad%rhocdf(:,b) + (ssnow%albsoilsn(:,b)             &
-                           - rad%rhocdf(:,b)) * rad%cexpkdm(:,b)**2
-      
+!      WHERE( canopy%vlaiw > 1e-2 )                                             &
+!         rad%reffdf(:,b) = rad%rhocdf(:,b) + (ssnow%albsoilsn(:,b)             &
+!                           - rad%rhocdf(:,b)) * rad%cexpkdm(:,b)**2
+!      
       !---where vegetated and sunlit 
       WHERE (sunlit_veg_mask)                
       
@@ -176,7 +176,7 @@ call EffectiveSurfaceReflectance( EffSurfRefl_beam, EffSurfRefl_dif,           &
       END WHERE
 
    END DO
-EffSurfRefl_dif = rad%reffdf
+!EffSurfRefl_dif = rad%reffdf
 EffSurfRefl_beam = rad%reffbm 
 ! Compute total albedo to SW given the Effective Surface Reflectance 
 ! (considering Canopy/Soil/Snow contributions) 
