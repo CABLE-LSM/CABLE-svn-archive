@@ -1,9 +1,9 @@
 MODULE cbl_albedo_mod
 
-   IMPLICIT NONE
-   
-   PUBLIC albedo
-   PRIVATE
+  IMPLICIT NONE
+
+  PUBLIC albedo
+  PRIVATE
 
 CONTAINS
 
@@ -23,8 +23,8 @@ ExtCoeff_dif, ExtCoeff_beam,                      &
 EffExtCoeff_dif, EffExtCoeff_beam,                &
 CanopyRefl_dif,CanopyRefl_beam,                   &
 CanopyTransmit_dif, CanopyTransmit_beam,          &
-EffSurfRefl_dif, EffSurfRefl_beam )
-  
+EffSurfRefl_dif, EffSurfRefl_beam                 )
+
 !subrs called
 USE cbl_snow_albedo_module, ONLY : surface_albedosn
 
@@ -105,13 +105,15 @@ REAL :: CanopyTransmit_beam(mp,nrb) !Canopy Transmitance (rad%cexpkbm)
 real :: SumEffSurfRefl_beam(1)
 real :: SumEffSurfRefl_dif(1)
 integer :: i
-! END header
+
+    INTEGER :: b    !rad. band 1=visible, 2=near-infrared, 3=long-wave
+    ! END header
 
 AlbSnow(:,:) = 0.0
 !CanopyTransmit_beam(:,:) = 0.0
 CanopyRefl_beam(:,:) = 0.0
 CanopyRefl_dif(:,:) = 0.0        
-!!!CanopyTransmit_dif(:,:) = 0.0  ! MPI (at least inits this = 1.0 at dt=0) 
+!CanopyTransmit_dif(:,:) = 0.0  ! MPI (at least inits this = 1.0 at dt=0) 
 
 !Modify parametrised soil albedo based on snow coverage 
 call surface_albedosn( AlbSnow, AlbSoil, mp, nrb, jls_radiation, surface_type, soil_type, &
@@ -143,7 +145,7 @@ call CanopyTransmitance(CanopyTransmit_beam, CanopyTransmit_dif, mp, nrb,&
 ! Even when there is no vegetation, albedo is at least snow modified soil albedo
 EffSurfRefl_dif = AlbSnow
 EffSurfRefl_beam = AlbSnow
- 
+
 call EffectiveSurfaceReflectance( EffSurfRefl_beam, EffSurfRefl_dif,           &
                                   mp, nrb, veg_mask, sunlit_veg_mask,          &
                                   CanopyRefl_beam, CanopyRefl_dif,             &
@@ -157,8 +159,8 @@ RadAlbedo = AlbSnow
 if(.NOT. jls_radiation) &
   call FbeamRadAlbedo( RadAlbedo, mp, nrb, veg_mask, radfbeam, &
                        EffSurfRefl_dif, EffSurfRefl_beam, AlbSnow )
-
-END SUBROUTINE albedo 
+ 
+END SUBROUTINE albedo
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -314,7 +316,7 @@ real :: dummy(mp,nrb)
 integer :: i, b
  
 DO i = 1,mp
-  DO b = 1,2
+  DO b = 1, nrb 
     if( mask(i) ) then 
       dummy(i,b) = min( ExtinctionCoeff(i,b) * reducedLAIdue2snow(i), 20. )
       CanopyTransmit(i,b) = EXP( -1.* dummy(i,b) )
