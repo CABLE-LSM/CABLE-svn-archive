@@ -30,7 +30,21 @@
 
 MODULE cable_def_types_mod
 
-   ! Contains all variables which are not subroutine-internal
+!cbl3!USE cable_types_mod!!,          ONLY: mp, l_tile_pts
+!cbl3!USE cable_air_type_mod,       ONLY: air_type
+!cbl3!USE cable_balances_type_mod,  ONLY: balances_type
+!cbl3!USE cable_bgc_pool_type_mod,  ONLY: bgc_pool_type
+!cbl3!USE cable_canopy_type_mod,    ONLY: canopy_type
+USE cable_climate_type_mod,   ONLY: climate_type
+!cbl3!USE cable_met_type_mod,       ONLY: met_type
+!cbl3!USE cable_radiation_type_mod, ONLY: radiation_type
+!cbl3!USE cable_roughness_type_mod, ONLY: roughness_type
+!cbl3!USE cable_soil_snow_type_mod, ONLY: soil_snow_type
+!cbl3!USE cable_sum_flux_type_mod,  ONLY: sum_flux_type
+USE cable_params_mod,         ONLY: veg_parameter_type
+USE cable_params_mod,         ONLY: soil_parameter_type
+
+  ! Contains all variables which are not subroutine-internal
 
    IMPLICIT NONE
 
@@ -93,43 +107,6 @@ MODULE cable_def_types_mod
          qssrf_tot           ! energy of snowpack phase changes 
 
    END TYPE balances_type
-
-! .............................................................................
-
-   ! Soil parameters:
-   TYPE soil_parameter_type 
-   
-      INTEGER, DIMENSION(:), POINTER ::                                        &
-         isoilm     ! integer soil type
-
-      REAL, DIMENSION(:), POINTER ::                                           &
-         bch,     & ! parameter b in Campbell equation
-         c3,      & ! c3 drainage coeff (fraction)
-         clay,    & ! fraction of soil which is clay
-         css,     & ! soil specific heat capacity [kJ/kg/K]
-         hsbh,    & ! difsat * etasat (=hyds*abs(sucs)*bch)
-         hyds,    & ! hydraulic conductivity @ saturation [m/s], Ksat
-         i2bp3,   & ! par. one in K vis suction (=nint(bch)+2)
-         ibp2,    & ! par. two in K vis suction (fn of pbch)
-         rhosoil, & ! soil density [kg/m3]
-         sand,    & ! fraction of soil which is sand
-         sfc,     & ! vol H2O @ field capacity
-         silt,    & ! fraction of soil which is silt
-         ssat,    & ! vol H2O @ saturation
-         sucs,    & ! suction at saturation (m)
-         swilt,   & ! vol H2O @ wilting
-         zse,     & ! thickness of each soil layer (1=top) in m
-         zshh,    & ! distance between consecutive layer midpoints (m)
-         albsoilf   ! soil reflectance
-     
-      REAL(r_2), DIMENSION(:), POINTER ::                                      &
-         cnsd,    & ! thermal conductivity of dry soil [W/m/K]
-         pwb_min    ! working variable (swilt/ssat)**ibp2
-     
-      REAL, DIMENSION(:,:), POINTER ::                                         &
-         albsoil    ! soil reflectance (2nd dim. BP 21Oct2009)
-
-  END TYPE soil_parameter_type
 
 ! .............................................................................
 
@@ -213,47 +190,6 @@ MODULE cable_def_types_mod
          wbfice     !
 
    END TYPE soil_snow_type
-
-! .............................................................................
-
-   ! Vegetation parameters:
-   TYPE veg_parameter_type
-     
-      INTEGER, DIMENSION(:), POINTER ::                                        &
-         iveg       ! vegetation type
-
-      REAL, DIMENSION(:), POINTER ::                                           &
-         canst1,  & ! max intercepted water by canopy (mm/LAI)
-         dleaf,   & ! chararacteristc legnth of leaf (m)
-         ejmax,   & ! max pot. electron transp rate top leaf(mol/m2/s)
-         meth,    & ! method for calculation of canopy fluxes and temp.
-         frac4,   & ! fraction of c4 plants
-         hc,      & ! roughness height of canopy (veg - snow)
-         vlai,    & ! leaf area index
-         xalbnir, & 
-         rp20,    & ! plant respiration coefficient at 20 C
-         rpcoef,  & ! temperature coef nonleaf plant respiration (1/C)
-         rs20,    & ! soil respiration at 20 C [mol m-2 s-1]
-         shelrb,  & ! sheltering factor (dimensionless)
-         vegcf,   & ! kdcorbin, 08/10
-         tminvj,  & ! min temperature of the start of photosynthesis
-         tmaxvj,  & ! max temperature of the start of photosynthesis
-         vbeta,   & ! 
-         vcmax,   & ! max RuBP carboxylation rate top leaf (mol/m2/s)
-         xfang,   & ! leaf angle PARAMETER
-         extkn,   & ! extinction coef for vertical
-         vlaimax, & ! extinction coef for vertical
-         wai        ! wood area index (stem+branches+twigs)
-
-      LOGICAL, DIMENSION(:), POINTER ::                                        &
-         deciduous ! flag used for phenology fix
-
-      REAL, DIMENSION(:,:), POINTER ::                                         &
-         refl,    &
-         taul,    & 
-         froot      ! fraction of root in each soil layer
-
-   END TYPE veg_parameter_type
 
 ! .............................................................................
 
@@ -501,9 +437,7 @@ MODULE cable_def_types_mod
    
    INTERFACE alloc_cbm_var
       MODULE PROCEDURE alloc_balances_type,                                    &
-         alloc_soil_parameter_type,                                            &
          alloc_soil_snow_type,                                                 &
-         alloc_veg_parameter_type,                                             &
          alloc_canopy_type,                                                    &
          alloc_radiation_type,                                                 &
          alloc_roughness_type,                                                 &
@@ -565,38 +499,6 @@ SUBROUTINE alloc_balances_type(var, mp)
 
 END SUBROUTINE alloc_balances_type
 
-! ------------------------------------------------------------------------------
-
-SUBROUTINE alloc_soil_parameter_type(var, mp)
-   
-   TYPE(soil_parameter_type), INTENT(inout) :: var
-   INTEGER, INTENT(in) :: mp
-   
-   allocate( var% bch(mp) )   
-   allocate( var% c3(mp) )    
-   allocate( var% clay(mp) )  
-   allocate( var% css(mp) )   
-   allocate( var% hsbh(mp) )  
-   allocate( var% hyds(mp) )  
-   allocate( var% i2bp3(mp) ) 
-   allocate( var% ibp2(mp) )  
-   allocate( var% isoilm(mp) )  
-   allocate( var% rhosoil(mp) )  
-   allocate( var% sand(mp) )   
-   allocate( var% sfc(mp) )   
-   allocate( var% silt(mp) )   
-   allocate( var% ssat(mp) )   
-   allocate( var% sucs(mp) )   
-   allocate( var% swilt(mp) )  
-   allocate( var% zse(ms) )    
-   allocate( var% zshh(ms+1) )  
-   allocate( var% cnsd(mp) )  
-   allocate( var% albsoil(mp, nrb) )  
-   allocate( var% pwb_min(mp) )  
-   allocate( var% albsoilf(mp) )  
-
-END SUBROUTINE alloc_soil_parameter_type
- 
 ! ------------------------------------------------------------------------------
 
 SUBROUTINE alloc_soil_snow_type(var, mp)
@@ -675,43 +577,7 @@ END SUBROUTINE alloc_soil_snow_type
 
 ! ------------------------------------------------------------------------------
    
-SUBROUTINE alloc_veg_parameter_type(var, mp)
-
-   TYPE(veg_parameter_type), INTENT(inout) :: var
-   INTEGER, INTENT(in) :: mp
-   
-   ALLOCATE( var% canst1(mp) ) 
-   ALLOCATE( var% dleaf(mp) )  
-   ALLOCATE( var% ejmax(mp) ) 
-   ALLOCATE( var% iveg(mp) ) 
-   ALLOCATE( var% meth(mp) ) 
-   ALLOCATE( var% frac4(mp) )  
-   ALLOCATE( var% hc(mp) )     
-   ALLOCATE( var% vlai(mp) )   
-   ALLOCATE( var% xalbnir(mp) ) 
-   ALLOCATE( var% rp20(mp) )   
-   ALLOCATE( var% rpcoef(mp) ) 
-   ALLOCATE( var% rs20(mp) )   
-   ALLOCATE( var% shelrb(mp) ) 
-   ALLOCATE( var% vegcf(mp) )  
-   ALLOCATE( var% tminvj(mp) ) 
-   ALLOCATE( var% tmaxvj(mp) ) 
-   ALLOCATE( var% vbeta(mp) )  
-   ALLOCATE( var% vcmax(mp) )  
-   ALLOCATE( var% xfang(mp) )  
-   ALLOCATE( var%extkn(mp) ) 
-   ALLOCATE( var%wai(mp) )   
-   ALLOCATE( var%deciduous(mp) ) 
-   ALLOCATE( var%froot(mp,ms) ) 
-   !was nrb(=3), but never uses (:,3) in model   
-   ALLOCATE( var%refl(mp,2) ) !jhan:swb?
-   ALLOCATE( var%taul(mp,2) ) 
-   ALLOCATE( var%vlaimax(mp) ) 
-
-END SUBROUTINE alloc_veg_parameter_type
-
-! ------------------------------------------------------------------------------
-   
+  
 SUBROUTINE alloc_canopy_type(var, mp)
 
    TYPE(canopy_type), INTENT(inout) :: var

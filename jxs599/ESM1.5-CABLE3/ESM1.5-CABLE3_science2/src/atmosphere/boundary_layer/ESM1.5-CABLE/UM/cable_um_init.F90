@@ -59,18 +59,17 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
                               RESP_S_ACC, iday )
 
    USE cable_um_init_subrs_mod          ! where most subrs called from here reside
+USE cable_soil_params_mod, ONLY : cable_soil_params
+USE cable_pft_params_mod, ONLY : cable_pft_params
    
    USE cable_um_tech_mod,   ONLY :                                             &
       alloc_um_interface_types,  & ! mem. allocation subr (um1, kblum%) 
-      dealloc_vegin_soilin,      & ! mem. allocation subr (vegin%,soilin%)
-      um1,soil,                  & ! um1% type UM basics 4 convenience
+      um1,                       & ! um1% type UM basics 4 convenience
       kblum_veg                    ! kblum_veg% reset UM veg vars 4 CABLE use
 
    USE cable_common_module, ONLY :                                             &
       cable_user,          & ! cable_user% type inherits user definition
                              ! via namelist (cable.nml) 
-      get_type_parameters, & ! veg and soil parameters READ subroutine  
-                             !
       l_casacnp,           & !
       knode_gl               !
 
@@ -81,7 +80,9 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
 USE cbl_soil_snow_init_special_module, ONLY: spec_init_soil_snow
 USE cable_common_module, ONLY : kwidth_gl 
 USE cable_def_types_mod, ONLY : ms
-USE cable_um_tech_mod,   ONLY : soil, ssnow, canopy, met, bal, veg
+USE cable_um_tech_mod,   ONLY : ssnow, canopy, met, bal
+    USE cable_params_mod, ONLY : veg => veg_cbl 
+    USE cable_params_mod, ONLY : soil => soil_cbl 
 USE cable_other_constants_mod, ONLY : CLAI_THRESH => LAI_THRESH
 
    !-------------------------------------------------------------------------- 
@@ -307,8 +308,10 @@ heat_cap_lower_limit = 0.01
 
 
       !--- read in soil (and veg) parameters 
-      IF(first_call)                                                        & 
-         CALL  get_type_parameters(logn,vegparmnew)
+      IF(first_call ) then
+        call cable_pft_params()
+        call cable_soil_params()
+      endif
 
       !--- initialize veg   
 !CALL initialize_veg(clobbered_htveg , land_pts, npft, ntiles, sm_levels, mp,     &
@@ -378,10 +381,7 @@ call spec_init_soil_snow( real(kwidth_gl), soil, ssnow, canopy, met, bal, veg, &
 
          endif
 
-      IF( first_call ) THEN
-         CALL dealloc_vegin_soilin()
-         first_call = .FALSE. 
-      ENDIF      
+      first_call = .FALSE. 
       
 END SUBROUTINE interface_UM_data
                                    

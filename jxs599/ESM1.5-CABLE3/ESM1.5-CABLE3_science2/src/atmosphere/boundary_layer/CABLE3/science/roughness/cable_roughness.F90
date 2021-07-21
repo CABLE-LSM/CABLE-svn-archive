@@ -76,7 +76,7 @@ real :: reducedLAIdue2snow(mp)
 
 real :: LAI_pft(mp)
 real :: HGT_pft(mp)
-real :: term6a(mp) !CBL3(mp)
+real :: term6a(mp) !CBL3
 
 
     REAL, DIMENSION(mp) ::                                                      &

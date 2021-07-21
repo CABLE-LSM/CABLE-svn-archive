@@ -47,8 +47,9 @@ USE cable_other_constants_mod, ONLY: cgauss_w => gauss_w
 USE cable_math_constants_mod,  ONLY: cpi => pi
 USE cable_math_constants_mod,  ONLY: cpi180 => pi180
 
-   USE cable_um_tech_mod,   ONLY : kblum_rad, um1, soil, ssnow, rad, veg,      &
-                                   met, canopy
+   USE cable_um_tech_mod,   ONLY : kblum_rad, um1, ssnow, rad, met, canopy
+USE cable_params_mod, ONLY : veg => veg_cbl 
+USE cable_params_mod, ONLY : soil => soil_cbl 
    USE cable_um_init_subrs_mod, ONLY : update_kblum_radiation,  um2cable_met_rad,  &
                                    um2cable_lp 
    USE cable_common_module, ONLY : cable_runtime, cable_user

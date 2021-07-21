@@ -52,6 +52,7 @@ CONTAINS
    USE cable_common_module
    USE cable_carbon_module
 USE cbl_soil_snow_main_module,  ONLY: soil_snow
+!restrict with ONLY syntax
    USE cable_def_types_mod
    USE cable_roughness_module
    USE cbl_init_radiation_module, ONLY: init_radiation
@@ -67,6 +68,7 @@ USE cable_other_constants_mod, ONLY: clai_thresh => lai_thresh
 USE cable_other_constants_mod, ONLY: cgauss_w => gauss_w
 USE cable_math_constants_mod,  ONLY: cpi => pi
 USE cable_math_constants_mod,  ONLY: cpi180 => pi180
+USE cable_climate_type_mod, ONLY : climate_cbl
 
    USE cable_data_module, ONLY : icbm_type, point2constants 
    
@@ -168,7 +170,7 @@ CALL init_radiation( &
       ENDIF
     
    ! Calculate canopy variables:
-   CALL define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy, sunlit_veg_mask)
+   CALL define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy, climate_cbl, sunlit_veg_mask)
 
    ssnow%otss_0 = ssnow%otss
    ssnow%otss = ssnow%tss

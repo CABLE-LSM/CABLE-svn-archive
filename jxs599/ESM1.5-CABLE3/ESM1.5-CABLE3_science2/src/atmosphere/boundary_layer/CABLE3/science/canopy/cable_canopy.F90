@@ -46,13 +46,13 @@ MODULE cable_canopy_module
      
 CONTAINS
  
-
-SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy, sunlit_veg_mask)
+SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,climate, sunlit_veg_mask )
    USE cable_def_types_mod
    USE cbl_radiation_module, ONLY : radiation
    USE cable_air_module
    USE cable_common_module   
    USE cable_roughness_module
+USE cable_climate_type_mod, ONLY : climate_type
 
    TYPE (balances_type), INTENT(INOUT)  :: bal
    TYPE (radiation_type), INTENT(INOUT) :: rad
@@ -61,6 +61,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy, sunl
    TYPE (met_type), INTENT(INOUT)       :: met
    TYPE (soil_snow_type), INTENT(INOUT) :: ssnow
    TYPE (canopy_type), INTENT(INOUT)    :: canopy
+    TYPE (climate_type), INTENT(IN)    :: climate
 
    TYPE (soil_parameter_type), INTENT(INOUT)   :: soil
    TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
