@@ -71,7 +71,6 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    !--- vars common to CABLE declared 
    USE cable_common_module, ONLY : cable_runtime, cable_user, ktau_gl,         &
                                    knode_gl, kwidth_gl, kend_gl,               &
-                                   report_version_no,                          & 
                                    l_vcmaxFeedbk, l_laiFeedbk,l_luc
    
    !--- subr to (manage)interface UM data to CABLE
@@ -310,19 +309,9 @@ USE cbl_rhoch_ESM1pt5_module, ONLY : rhoch =>rhoch_gl, &
    !___ 1st call in RUN (!=ktau_gl -see below) 
    LOGICAL, SAVE :: first_cable_call = .TRUE.
  
-
-   
-
    !--- initialize cable_runtime% switches 
-   IF(first_cable_call) THEN
-      cable_runtime%um = .TRUE.
-      write(6,*) ""
-      write(6,*) "CABLE_log"
-      CALL report_version_no(6) ! wriite revision number to stdout(6)
-   ENDIF
+   cable_runtime%um = .TRUE.
    
-write(6,*) "jhan:ESM1.5 test SB,BW 2"
-      
    !--- basic info from global model passed to cable_common_module 
    !--- vars so don't need to be passed around, just USE _module
    ktau_gl = timestep_number     !timestep of EXPERIMENT not necesarily 

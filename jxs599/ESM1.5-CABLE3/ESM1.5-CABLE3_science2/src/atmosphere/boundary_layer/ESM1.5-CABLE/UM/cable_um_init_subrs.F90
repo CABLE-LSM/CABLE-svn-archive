@@ -1147,23 +1147,25 @@ END SUBROUTINE init_sumflux_zero
 
 SUBROUTINE alloc_cable_types()
   USE cable_def_types_mod,    ONLY : mp, alloc_cbm_var
-  USE cable_um_tech_mod,      ONLY : air, canopy, met, bal, rad, rough,          &
-                                   ssnow, sum_flux, bgc
+  USE cable_um_tech_mod,      ONLY : air, met, bal, rad, rough, sum_flux, bgc
   USE cable_params_mod,         ONLY : veg_cbl, soil_cbl 
   USE allocate_veg_params_mod,  ONLY : allocate_veg_parameter_type
   USE allocate_soil_params_mod, ONLY : allocate_soil_parameter_type
+  USE cable_um_tech_mod,        ONLY : canopy, ssnow
+USE cable_canopy_type_mod, ONLY : alloc_canopy_type
+USE cable_soil_snow_type_mod, ONLY : alloc_soil_snow_type
 
     CALL alloc_cbm_var(air, mp)
-    CALL alloc_cbm_var(canopy, mp)
     CALL alloc_cbm_var(met, mp)
     CALL alloc_cbm_var(bal, mp)
     CALL alloc_cbm_var(rad, mp)
     CALL alloc_cbm_var(rough, mp)
-    CALL alloc_cbm_var(ssnow, mp)
     CALL alloc_cbm_var(sum_flux, mp)
     CALL alloc_cbm_var(bgc, mp)
     CALL allocate_veg_parameter_type(veg_cbl, mp)
     CALL allocate_soil_parameter_type(soil_cbl, mp)
+    CALL alloc_canopy_type(canopy, mp)
+    CALL alloc_soil_snow_type(ssnow, mp)
 
 END SUBROUTINE alloc_cable_types
 
