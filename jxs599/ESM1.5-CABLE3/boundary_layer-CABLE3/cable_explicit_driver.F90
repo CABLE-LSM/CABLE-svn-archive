@@ -65,12 +65,12 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    
    !--- reads runtime and user switches and reports
    USE cable_um_tech_mod, ONLY : cable_um_runtime_vars, air, bgc, canopy,      &
-                                 met, bal, rad, rough, soil, ssnow, sum_flux, veg 
-   
+                                 met, bal, rad, rough, ssnow, sum_flux
+    USE cable_params_mod, ONLY : veg => veg_cbl 
+    USE cable_params_mod, ONLY : soil => soil_cbl 
    !--- vars common to CABLE declared 
    USE cable_common_module, ONLY : cable_runtime, cable_user, ktau_gl,         &
                                    knode_gl, kwidth_gl, kend_gl,               &
-                                   report_version_no,                          & 
                                    l_vcmaxFeedbk, l_laiFeedbk,l_luc
    
    !--- subr to (manage)interface UM data to CABLE
@@ -79,15 +79,18 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    !--- subr to call CABLE model
    USE cable_cbm_module, ONLY : cbm
 
-   USE cable_def_types_mod, ONLY : mp
+   USE cable_def_types_mod, ONLY : mp, nrb
 
    !--- include subr called to write data for testing purposes 
-   USE cable_diag_module
    USE casa_um_inout_mod
    USE casavariable
    USE casa_types_mod
 
   USE feedback_mod
+
+USE cbl_rhoch_ESM1pt5_module, ONLY : rhoch =>rhoch_gl, & 
+                                     c1 => c1_gl, &
+                                     xk => xk_gl
 
    IMPLICIT NONE
  
@@ -306,19 +309,9 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    !___ 1st call in RUN (!=ktau_gl -see below) 
    LOGICAL, SAVE :: first_cable_call = .TRUE.
  
-
-   
-
    !--- initialize cable_runtime% switches 
-   IF(first_cable_call) THEN
-      cable_runtime%um = .TRUE.
-      write(6,*) ""
-      write(6,*) "CABLE_log"
-      CALL report_version_no(6) ! wriite revision number to stdout(6)
-   ENDIF
+   cable_runtime%um = .TRUE.
    
-write(6,*) "jhan:ESM1.5 test SB,BW 2"
-      
    !--- basic info from global model passed to cable_common_module 
    !--- vars so don't need to be passed around, just USE _module
    ktau_gl = timestep_number     !timestep of EXPERIMENT not necesarily 
@@ -341,7 +334,6 @@ write(6,*) "jhan:ESM1.5 test SB,BW 2"
       first_cable_call = .FALSE.
    ENDIF      
    
-
   mtau = mod(ktau_gl,int(24.*3600./timestep))
   if (l_luc .and. iday==1 .and. mtau==1) then
    ! resdistr(frac,in,out) - Lestevens 10oct17
@@ -397,14 +389,15 @@ write(6,*) "jhan:ESM1.5 test SB,BW 2"
    IF(l_laiFeedbk) veg%vlai(:) = casamet%glai(:)
 
    canopy%oldcansto=canopy%cansto
-
+   
+   IF (.NOT. allocated(c1)) ALLOCATE( c1(mp,nrb), rhoch(mp,nrb), xk(mp,nrb) )
 
    !---------------------------------------------------------------------!
    !--- real(timestep) width, CABLE types passed to CABLE "engine" as ---!  
    !--- req'd by Mk3L  --------------------------------------------------!
    !---------------------------------------------------------------------!
    CALL cbm( timestep, air, bgc, canopy, met, bal,                             &
-             rad, rough, soil, ssnow, sum_flux, veg )
+             rad, rough, soil, ssnow, sum_flux, veg, xk, c1, rhoch )
 
 ! output CO2_MMR value used in CABLE (passed from UM)
   if ( (knode_gl.eq.1) .and. (ktau_gl.eq.1) ) then
@@ -429,12 +422,6 @@ write(6,*) "jhan:ESM1.5 test SB,BW 2"
                            canopy%zetar, canopy%epot, met%ua, rad%trad,        &
                            rad%transd, rough%z0m, rough%zref_tq )
 
-
-   ! dump bitwise reproducible testing data
-   IF( cable_user%RUN_DIAG_LEVEL == 'zero')                                    &
-      call cable_diag( 1, "FLUXES", mp, kend_gl, ktau_gl, knode_gl,            &
-                          "FLUXES", canopy%fe + canopy%fh )
-                
 
    cable_runtime%um_explicit = .FALSE.
 

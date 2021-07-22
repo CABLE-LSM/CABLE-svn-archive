@@ -59,25 +59,31 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
                               RESP_S_ACC, iday )
 
    USE cable_um_init_subrs_mod          ! where most subrs called from here reside
+USE cable_soil_params_mod, ONLY : cable_soil_params
+USE cable_pft_params_mod, ONLY : cable_pft_params
    
    USE cable_um_tech_mod,   ONLY :                                             &
       alloc_um_interface_types,  & ! mem. allocation subr (um1, kblum%) 
-      dealloc_vegin_soilin,      & ! mem. allocation subr (vegin%,soilin%)
-      um1,soil,                  & ! um1% type UM basics 4 convenience
+      um1,                       & ! um1% type UM basics 4 convenience
       kblum_veg                    ! kblum_veg% reset UM veg vars 4 CABLE use
 
    USE cable_common_module, ONLY :                                             &
       cable_user,          & ! cable_user% type inherits user definition
                              ! via namelist (cable.nml) 
-      get_type_parameters, & ! veg and soil parameters READ subroutine  
-                             !
       l_casacnp,           & !
       knode_gl               !
 
    USE cable_def_types_mod, ONLY : mp, mland ! number of points CABLE works on
 
    USE casa_um_inout_mod
-
+!CBL3
+USE cbl_soil_snow_init_special_module, ONLY: spec_init_soil_snow
+USE cable_common_module, ONLY : kwidth_gl 
+USE cable_def_types_mod, ONLY : ms
+USE cable_um_tech_mod,   ONLY : ssnow, canopy, met, bal
+    USE cable_params_mod, ONLY : veg => veg_cbl 
+    USE cable_params_mod, ONLY : soil => soil_cbl 
+USE cable_other_constants_mod, ONLY : CLAI_THRESH => LAI_THRESH
 
    !-------------------------------------------------------------------------- 
    !--- INPUT ARGS FROM cable_explicit_driver() ------------------------------
@@ -239,6 +245,10 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
    INTEGER :: logn=6       ! 6=write to std out
    LOGICAL :: vegparmnew=.true.   ! true=read std veg params false=CASA file 
          
+!CBL3
+REAL, DIMENSION(land_pts, ntiles) ::  clobbered_htveg
+REAL :: heat_cap_lower_limit(mp,ms)
+heat_cap_lower_limit = 0.01
 
       !---------------------------------------------------------------------!
       !--- code to create type um1% conaining UM basic vars describing    --! 
@@ -280,6 +290,7 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
                
                IF( um1%TILE_FRAC(i,j) .GT. 0.0 ) THEN 
                      um1%L_TILE_PTS(i,j) = .TRUE.
+                     L_TILE_PTS(i,j) = .TRUE.
                   !jhan:can set veg%iveg from  here ?
                   tile_index_mp(i,j) = j 
                ENDIF
@@ -297,11 +308,18 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
 
 
       !--- read in soil (and veg) parameters 
-      IF(first_call)                                                        & 
-         CALL  get_type_parameters(logn,vegparmnew)
+      IF(first_call ) then
+        call cable_pft_params()
+        call cable_soil_params()
+      endif
 
       !--- initialize veg   
-      CALL initialize_veg( canht_ft, lai_ft ) 
+!CALL initialize_veg(clobbered_htveg , land_pts, npft, ntiles, sm_levels, mp,     &
+CALL initialize_veg( kblum_veg%htveg , land_pts, npft, ntiles, sm_levels, mp,     &
+                     canht_ft, lai_ft, dzsoil, veg,         &
+                    tile_pts, tile_index, tile_frac, L_tile_pts,                 &
+                    CLAI_thresh )
+!kblum_veg%htveg = clobbered_htveg
  
       !--- initialize soil
       CALL initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,      &
@@ -330,6 +348,9 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
 
  
       IF( first_call ) THEN
+!CBL3call spec_init_soil_snow( real(kwidth_gl), soil_cbl, ssnow_cbl, canopy_cbl, met_cbl, bal_cbl, veg_cbl,heat_cap_loower_limit)
+call spec_init_soil_snow( real(kwidth_gl), soil, ssnow, canopy, met, bal, veg, &
+        heat_cap_lower_limit )
          CALL init_bgc_vars() 
          CALL init_sumflux_zero() 
 
@@ -360,10 +381,7 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
 
          endif
 
-      IF( first_call ) THEN
-         CALL dealloc_vegin_soilin()
-         first_call = .FALSE. 
-      ENDIF      
+      first_call = .FALSE. 
       
 END SUBROUTINE interface_UM_data
                                    

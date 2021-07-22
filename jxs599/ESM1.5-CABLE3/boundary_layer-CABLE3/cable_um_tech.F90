@@ -30,7 +30,10 @@
 
 MODULE cable_um_tech_mod
    
-   USE cable_def_types_mod
+   USE cable_def_types_mod, ONLY : air_type, bgc_pool_type, met_type,          &
+                   balances_type, radiation_type, roughness_type, sum_flux_type
+   USE cable_def_types_mod, ONLY : ssnow =>   ssnow_cbl
+   USE cable_def_types_mod, ONLY : canopy =>  canopy_cbl
    IMPLICIT NONE
 
    TYPE(air_type), SAVE             :: air
@@ -39,11 +42,7 @@ MODULE cable_um_tech_mod
    TYPE(balances_type), SAVE        :: bal
    TYPE(radiation_type), SAVE       :: rad
    TYPE(roughness_type), SAVE       :: rough
-   TYPE(soil_parameter_type), SAVE  :: soil       ! soil parameters
-   TYPE(soil_snow_type), SAVE       :: ssnow
    TYPE(sum_flux_type), SAVE        :: sum_flux
-   TYPE(veg_parameter_type), SAVE   :: veg        ! vegetation parameters
-   TYPE(canopy_type), SAVE          :: canopy
 
    TYPE derived_rad_bands    
       REAL, ALLOCATABLE ::                                                     &
@@ -237,54 +236,6 @@ END SUBROUTINE alloc_um_interface_types
 !========================================================================
 !========================================================================
 !========================================================================
-
-SUBROUTINE dealloc_vegin_soilin()
-   USE cable_common_module, ONLY : cable_runtime, cable_user, vegin, soilin
-      
-      DEALLOCATE(vegin%canst1)
-      DEALLOCATE(vegin%dleaf)
-      DEALLOCATE(vegin%vcmax)
-      DEALLOCATE(vegin%ejmax)
-      DEALLOCATE(vegin%hc)
-      DEALLOCATE(vegin%xfang)
-      DEALLOCATE(vegin%rp20)
-      DEALLOCATE(vegin%rpcoef)
-      DEALLOCATE(vegin% rs20)
-      DEALLOCATE(vegin%shelrb)
-      DEALLOCATE(vegin%vegcf)
-      DEALLOCATE(vegin%frac4)
-      DEALLOCATE(vegin%refl)
-      DEALLOCATE(vegin%taul)
-      DEALLOCATE(vegin%xalbnir)
-      DEALLOCATE(vegin%extkn)
-      DEALLOCATE(vegin%froot)
-      DEALLOCATE(vegin%tminvj)
-      DEALLOCATE(vegin%tmaxvj)
-      DEALLOCATE(vegin%vbeta)
-      DEALLOCATE(vegin%cplant)
-      DEALLOCATE(vegin%csoil)
-      DEALLOCATE(vegin%ratecp)
-      DEALLOCATE(vegin%ratecs)
-     
-      DEALLOCATE(soilin%silt)
-      DEALLOCATE(soilin%clay)
-      DEALLOCATE(soilin%sand)
-      DEALLOCATE(soilin%swilt)
-      DEALLOCATE(soilin%sfc)
-      DEALLOCATE(soilin%ssat)
-      DEALLOCATE(soilin%bch)
-      DEALLOCATE(soilin%hyds)
-      DEALLOCATE(soilin%sucs)
-      DEALLOCATE(soilin%rhosoil)
-      DEALLOCATE(soilin%css)
-
-END SUBROUTINE dealloc_vegin_soilin
-
-
-   !========================================================================
-   !========================================================================
-   !========================================================================
-
 
 END MODULE cable_um_tech_mod
 
