@@ -1,14 +1,13 @@
 MODULE cable_params_mod
 
-USE max_dimensions,             ONLY: ntype_max ! defined PARAMETER @ compile time
-
 !H! Elevate these to namelist definable
 USE cable_other_constants_mod,  ONLY: nsl
 USE cable_other_constants_mod,  ONLY: nrb       !# radiation "bANDS" 
                                                 !dir/dif components in bands VIS/NIR
 USE cable_other_constants_mod,  ONLY: nscs      ! number of soil carbon stores
 USE cable_other_constants_mod,  ONLY: nvcs      ! number of vegetation carbon stores
-USE grid_constants_cbl_mod, ONLY : mstype => nsoiltypes  ! # of soil types [9]
+USE grid_constants_cbl_mod, ONLY : mstype => nsoil_max   ! # of soil types [9]
+USE grid_constants_cbl_mod, ONLY : ntype_max             ! # of veg types [9]
 
 IMPLICIT NONE
 
