@@ -11,6 +11,9 @@ PUBLIC
 ! Code Owner: Please refer to ModuleLeaders.txt
 ! This file belongs in 
 !-----------------------------------------------------------------------------
+!compile time define size of vegin/soilin parameters
+  INTEGER, PARAMETER :: ntype_max = 17
+  INTEGER, PARAMETER :: nsoil_max = 9 
 
 ! number of radiation "bands" normally in use
 INTEGER, PARAMETER ::                                                          &

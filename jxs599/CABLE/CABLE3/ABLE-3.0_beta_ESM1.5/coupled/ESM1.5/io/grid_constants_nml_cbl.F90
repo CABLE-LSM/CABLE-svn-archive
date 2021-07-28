@@ -11,7 +11,9 @@ PUBLIC
 ! Code Owner: Please refer to ModuleLeaders.txt
 ! This file belongs in 
 !-----------------------------------------------------------------------------
-
+!compile time define size of vegin/soilin parameters
+  INTEGER, PARAMETER :: ntype_max = 17
+  INTEGER, PARAMETER :: nsoil_max = 9 
 ! number of radiation "bands" normally in use
 INTEGER, PARAMETER ::                                                          &
   n_rad_components = 2,  &  ! number of components  DIRect(beam)/DIFfuse         
@@ -20,8 +22,6 @@ INTEGER, PARAMETER ::                                                          &
   trb = 3                   ! total number of "bands" 
 
 INTEGER, PARAMETER :: tsl = 3     ! # snow layers
-
-INTEGER, parameter :: nsoiltypes=9    ! # total no of soil types
 
 INTEGER, PARAMETER :: mf = 2          ! # leaves (sunlit, shaded)
 INTEGER, PARAMETER :: niter = 4       ! number of iterations for za/L
