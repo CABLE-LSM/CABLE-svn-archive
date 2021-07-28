@@ -15,8 +15,6 @@ SUBROUTINE cbl_model_driver( explicit_path, mp,nrb, land_pts, npft, ktau,dels, a
 
 !subrs
 USE cbl_albedo_mod, ONLY: albedo
-USE cbl_hruff_mod,          ONLY: HgtAboveSnow
-USE cbl_LAI_eff_mod,        ONLY: LAI_eff
 USE cbl_masks_mod, ONLY: fveg_mask,  fsunlit_mask,  fsunlit_veg_mask
 USE cbl_masks_mod, ONLY: veg_mask,  sunlit_mask,  sunlit_veg_mask
 
@@ -111,7 +109,7 @@ LOGICAL :: cbl_standalone = .FALSE.
 !CABLE variables to keep for all CABLE pathways across the timestep 
 REAL :: reducedLAIdue2snow(mp)
 
-!co-efficients usoughout init_radiation ` called from _albedo as well
+!co-efficients usoughout init_radiation ` called from _albedo as well - need to come from toplevel
 REAL :: c1(mp,nrb)
 REAL :: rhoch(mp,nrb)
 REAL :: xk(mp,nrb)
