@@ -103,4 +103,99 @@ END TYPE canopy_type
 !Instantiation:
 TYPE(canopy_type) :: canopy_cbl
 
+CONTAINS
+
+SUBROUTINE alloc_canopy_type(var, mp)
+
+USE grid_constants_cbl_mod,   ONLY: mf               ! # leaves (sunlit/shaded)
+USE grid_constants_cbl_mod,   ONLY: niter            ! number of iterations for za/L
+
+IMPLICIT NONE
+
+TYPE(canopy_type), INTENT(INOUT) :: var
+INTEGER, INTENT(IN) :: mp
+!INTEGER, INTENT(IN) :: ms
+INTEGER, PARAMETER  :: ms = 6
+
+ALLOCATE ( var % fess(mp) )
+ALLOCATE ( var % fesp(mp) )
+ALLOCATE( var% cansto(mp) )
+ALLOCATE( var% cduv(mp) )
+ALLOCATE( var% delwc(mp) )
+ALLOCATE( var% dewmm(mp) )
+ALLOCATE( var% dgdtg(mp) )
+ALLOCATE( var% fe(mp) )
+ALLOCATE( var% fh(mp) )
+ALLOCATE( var% fpn(mp) )
+ALLOCATE( var% frp(mp) )
+ALLOCATE( var% frpw(mp) )
+ALLOCATE( var% frpr(mp) )
+ALLOCATE( var% frs(mp) )
+ALLOCATE( var% fnee(mp) )
+ALLOCATE( var% frday(mp) )
+ALLOCATE( var% fnv(mp) )
+ALLOCATE( var% fev(mp) )
+ALLOCATE( var% fevc(mp) )
+ALLOCATE( var% fhv(mp) )
+ALLOCATE( var% fns(mp) )
+ALLOCATE( var% fhs(mp) )
+ALLOCATE( var% fhs_cor(mp) )
+ALLOCATE( var% ga(mp) )
+ALLOCATE( var% ghflux(mp) )
+ALLOCATE( var% precis(mp) )
+ALLOCATE( var% qscrn(mp) )
+ALLOCATE( var% rnet(mp) )
+ALLOCATE( var% rniso(mp) )
+ALLOCATE( var% segg(mp) )
+ALLOCATE( var% sghflux(mp) )
+ALLOCATE( var% through(mp) )
+ALLOCATE( var% through_sn(mp) )
+ALLOCATE( var% spill(mp) )
+ALLOCATE( var% tscrn(mp) )
+ALLOCATE( var% wcint(mp) )
+ALLOCATE( var% tv(mp) )
+ALLOCATE( var% us(mp) )
+ALLOCATE( var% uscrn(mp) )
+ALLOCATE( var% rghlai(mp) )
+ALLOCATE( var% vlaiw(mp) )
+ALLOCATE( var% fwet(mp) )
+ALLOCATE( var% fns_cor(mp) )    !REV_CORR variable
+ALLOCATE( var% ga_cor(mp) )     !REV_CORR variable
+ALLOCATE ( var % evapfbl(mp,ms) )
+ALLOCATE( var% epot(mp) )
+ALLOCATE( var% fnpp(mp) )
+ALLOCATE( var% fevw_pot(mp) )
+ALLOCATE( var% gswx_T(mp) )
+ALLOCATE( var% cdtq(mp) )
+ALLOCATE( var% wetfac_cs(mp) )
+ALLOCATE( var% fevw(mp) )
+ALLOCATE( var% fhvw(mp) )
+ALLOCATE( var% fes(mp) )
+ALLOCATE( var% fes_cor(mp) )
+!ALLOCATE( var% fescor_upp(mp) )  !SSEB variable
+!ALLOCATE( var% fescor_low(mp) )  !SSEB variable
+ALLOCATE( var% gswx(mp,mf) )
+ALLOCATE( var% oldcansto(mp) )
+ALLOCATE( var% zetar(mp,niter) )
+ALLOCATE( var% zetash(mp,niter) )
+ALLOCATE ( var % fwsoil(mp) )
+ALLOCATE ( var % ofes(mp) )
+
+ALLOCATE( var%sublayer_dz(mp) )
+
+ALLOCATE ( var % gw(mp,mf) )     ! dry canopy conductance (ms-1) edit vh 6/7/09
+ALLOCATE ( var % ancj(mp,mf,3) ) ! limiting photosynthetic rates (Rubisco,RuBP,sink) vh 6/7/09
+ALLOCATE ( var % tlfy(mp,mf) )   ! sunlit and shaded leaf temperatures
+ALLOCATE ( var % ecy(mp,mf) )    ! sunlit and shaded leaf transpiration (dry canopy)
+ALLOCATE ( var % ecx(mp,mf) )    ! sunlit and shaded leaf latent heat flux
+ALLOCATE ( var % ci(mp,mf,3) )   ! intra-cellular CO2 vh 6/7/09
+ALLOCATE ( var % fwsoil (mp) )
+
+!! vh_js !! liiter resistances to heat and vapour transfer
+ALLOCATE (var % kthLitt(mp))
+ALLOCATE (var % DvLitt(mp))
+
+END SUBROUTINE alloc_canopy_type
+
+
 END MODULE cable_canopy_type_mod
