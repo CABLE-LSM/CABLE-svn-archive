@@ -24,7 +24,7 @@ USE cable_phys_constants_mod, ONLY : Ccsice => csice
 
 CONTAINS
 
-SUBROUTINE spec_init_soil_snow(dels, soil, ssnow, canopy, met, bal, veg)
+SUBROUTINE spec_init_soil_snow(dels, soil, ssnow, canopy, met, bal, veg,heat_cap_lower_limit)
 USE cable_common_module
 !all subrs-implement ONLY:
 USE cbl_soil_snow_subrs_module
@@ -43,6 +43,7 @@ REAL, DIMENSION(mp) :: xx, tgg_old, tggsn_old
 REAL(r_2), DIMENSION(mp) :: xxx,deltat,sinfil1,sinfil2,sinfil3
 REAL                :: zsetot
 INTEGER, SAVE :: ktau =0
+REAL :: heat_cap_lower_limit(mp,ms)
 
 ktau = ktau +1
 
@@ -85,7 +86,7 @@ IF( .NOT.cable_user%cable_runtime_coupled ) THEN
          ssnow%wbice(:,5) = 0.90 * ssnow%wb(:,5)
          ssnow%wbice(:,6) = 0.90 * ssnow%wb(:,6)
       ENDWHERE
-      xx=REAL(soil%heat_cap_lower_limit(:,1))
+      xx=REAL(heat_cap_lower_limit(:,1))
       ssnow%gammzz(:,1) = MAX( (1.0 - soil%ssat) * soil%css * soil%rhosoil &
            & + (ssnow%wb(:,1) - ssnow%wbice(:,1) ) * Ccswat * Cdensity_liq &
            & + ssnow%wbice(:,1) * Ccsice * Cdensity_liq * .9, xx ) * soil%zse(1)
@@ -93,7 +94,7 @@ IF( .NOT.cable_user%cable_runtime_coupled ) THEN
 ENDIF  ! if(.NOT.cable_runtime_coupled)
 
 IF (ktau <= 1)       THEN
-  xx=soil%heat_cap_lower_limit(:,1)
+  xx=heat_cap_lower_limit(:,1)
   ssnow%gammzz(:,1) = MAX( (1.0 - soil%ssat) * soil%css * soil%rhosoil      &
         & + (ssnow%wb(:,1) - ssnow%wbice(:,1) ) * Ccswat * Cdensity_liq           &
         & + ssnow%wbice(:,1) * Ccsice * Cdensity_liq * .9, xx ) * soil%zse(1) +   &

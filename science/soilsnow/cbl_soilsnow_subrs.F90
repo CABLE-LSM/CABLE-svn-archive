@@ -1038,7 +1038,7 @@ CONTAINS
   ! tgg - new soil/snow temperature
   ! ga - heat flux from the atmosphere (ground heat flux)
   ! ccnsw - soil thermal conductivity, including water/ice
-  SUBROUTINE stempv(dels, canopy, ssnow, soil)
+  SUBROUTINE stempv(dels, canopy, ssnow, soil,heat_cap_lower_limit)
     USE cable_common_module, ONLY: cable_user
     REAL, INTENT(IN) :: dels ! integration time step (s)
 
@@ -1070,6 +1070,7 @@ CONTAINS
     INTEGER :: j,k
     REAL :: exp_arg
     LOGICAL :: direct2min = .FALSE.
+REAL :: heat_cap_lower_limit(mp,ms)
 
     at = 0.0
     bt = 1.0
@@ -1107,9 +1108,9 @@ CONTAINS
 
        wblfsp = ssnow%wblf(:,k)
 
-       xx = soil%heat_cap_lower_limit(:,1)
+       xx = heat_cap_lower_limit(:,1)
 
-       ssnow%gammzz(:,k) = MAX( (soil%heat_cap_lower_limit(:,1)), &
+       ssnow%gammzz(:,k) = MAX( (heat_cap_lower_limit(:,1)), &
             ( 1.0 - soil%ssat ) * soil%css * soil%rhosoil   &
             + soil%ssat * ( wblfsp * Ccswat * Cdensity_liq +            &
             ssnow%wbfice(:,k) * Ccsice * Cdensity_liq * 0.9 ) )     &
@@ -1132,7 +1133,7 @@ CONTAINS
           wblfsp = ssnow%wblf(:,k)
           xx = soil%css * soil%rhosoil
 
-          ssnow%gammzz(:,k) = MAX( REAL(soil%heat_cap_lower_limit(:,1)), &
+          ssnow%gammzz(:,k) = MAX( REAL(heat_cap_lower_limit(:,1)), &
                ( 1.0 - soil%ssat ) * soil%css * soil%rhosoil   &
                + soil%ssat * ( wblfsp * Ccswat * Cdensity_liq +            &
                ssnow%wbfice(:,k) * Ccsice * Cdensity_liq * 0.9 ) )     &
@@ -1207,7 +1208,7 @@ CONTAINS
                soil%rhosoil + soil%ssat * ( wblfsp * Ccswat *     &
                Cdensity_liq + ssnow%wbfice(:,k) * Ccsice * Cdensity_liq *     &
                0.9) , &
-               (soil%heat_cap_lower_limit(:,k)) ) * soil%zse(k)
+               (heat_cap_lower_limit(:,k)) ) * soil%zse(k)
 
           dtg = dels / ssnow%gammzz(:,k)
           at(:,k) = - dtg * coeff(:,k)
@@ -1490,7 +1491,7 @@ CONTAINS
 
   ! -----------------------------------------------------------------------------
 
-  SUBROUTINE soilfreeze(dels, soil, ssnow)
+  SUBROUTINE soilfreeze(dels, soil, ssnow,heat_cap_lower_limit)
     USE cable_common_module
     REAL, INTENT(IN)                    :: dels ! integration time step (s)
     TYPE(soil_snow_type), INTENT(INOUT)      :: ssnow
@@ -1499,6 +1500,7 @@ CONTAINS
     REAL(r_2), DIMENSION(mp)           :: sicemelt
     REAL, DIMENSION(mp)           :: xx
     INTEGER k
+REAL :: heat_cap_lower_limit(mp,ms)
 
     xx = 0.
     DO k = 1, ms
@@ -1512,7 +1514,7 @@ CONTAINS
           ssnow%wbice(:,k) = MIN( ssnow%wbice(:,k) + sicefreeze / (soil%zse(k)  &
                * 1000.0), frozen_limit * ssnow%wb(:,k) )
           xx = soil%css * soil%rhosoil
-          ssnow%gammzz(:,k) = MAX((soil%heat_cap_lower_limit(:,k)),           &
+          ssnow%gammzz(:,k) = MAX((heat_cap_lower_limit(:,k)),           &
                REAL((1.0 - soil%ssat) * soil%css * soil%rhosoil ,r_2)            &
                + (ssnow%wb(:,k) - ssnow%wbice(:,k)) * REAL(Ccswat * Cdensity_liq,r_2)   &
                + ssnow%wbice(:,k) * REAL(Ccsice * Cdensity_liq * 0.9,r_2))* &
@@ -1532,7 +1534,7 @@ CONTAINS
           ssnow%wbice(:,k) = MAX( 0.0_r_2, ssnow%wbice(:,k) - sicemelt          &
                / (soil%zse(k) * 1000.0) )
           xx = soil%css * soil%rhosoil
-          ssnow%gammzz(:,k) = MAX((soil%heat_cap_lower_limit(:,k)),       &
+          ssnow%gammzz(:,k) = MAX((heat_cap_lower_limit(:,k)),       &
                REAL((1.0-soil%ssat) * soil%css * soil%rhosoil,r_2)             &
                + (ssnow%wb(:,k) - ssnow%wbice(:,k)) * REAL(Ccswat*Cdensity_liq,r_2)   &
                + ssnow%wbice(:,k) * REAL(Ccsice * Cdensity_liq * 0.9,r_2))            &
@@ -1978,7 +1980,7 @@ CONTAINS
     ! snow aging etc...
     CALL snowl_adjust(dels, ssnow, canopy )
 
-    CALL GWstempv(dels, canopy, ssnow, soil)
+    IF (cable_user%gw_model) CALL GWstempv(dels, canopy, ssnow, soil)
 
     !do the soil and snow melting, freezing prior to water movement
     DO i=1,mp
