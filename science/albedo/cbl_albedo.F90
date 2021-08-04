@@ -106,11 +106,10 @@ real :: SumEffSurfRefl_beam(1)
 real :: SumEffSurfRefl_dif(1)
 integer :: i
 
-    INTEGER :: b    !rad. band 1=visible, 2=near-infrared, 3=long-wave
     ! END header
 
 AlbSnow(:,:) = 0.0
-CanopyTransmit_beam(:,:) = 0.0
+!CanopyTransmit_beam(:,:) = 0.0
 CanopyRefl_beam(:,:) = 0.0
 CanopyRefl_dif(:,:) = 0.0        
 !CanopyTransmit_dif(:,:) = 0.0  ! MPI (at least inits this = 1.0 at dt=0) 
@@ -316,7 +315,7 @@ real :: dummy(mp,nrb)
 integer :: i, b
  
 DO i = 1,mp
-  DO b = 1, nrb 
+  DO b = 1, 2 
     if( mask(i) ) then 
       dummy(i,b) = min( ExtinctionCoeff(i,b) * reducedLAIdue2snow(i), 20. )
       CanopyTransmit(i,b) = EXP( -1.* dummy(i,b) )
