@@ -1,6 +1,7 @@
 MODULE cable_params_mod
-
-USE max_dimensions,             ONLY: ntype_max ! defined PARAMETER @ compile time
+!jhan: This is currently hard-wired as USEd module was NA in ESM1.5 and NOT ideal to be 
+! USEing any data, especially JULES da
+!USE max_dimensions,             ONLY: ntype_max ! defined PARAMETER @ compile time
 
 !H! Elevate these to namelist definable
 USE cable_other_constants_mod,  ONLY: nsl
@@ -23,6 +24,7 @@ PUBLIC :: vegin
 PUBLIC :: soil_cbl
 PUBLIC :: soilin
 
+INTEGER, PARAMETER :: ntype_max = 17 
 !-----------------------------------------------------------------------------
 ! Description:
 !   Defines variable types and variables for CABLE standalone runs.
