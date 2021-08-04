@@ -99,19 +99,11 @@ CONTAINS
 
 SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,climate, sunlit_veg_mask, reducedLAIdue2snow )
     USE cable_def_types_mod
-    USE cbl_radiation_module
+   USE cbl_radiation_module, ONLY : radiation
     USE cable_air_module
     USE cable_common_module
     USE cable_roughness_module
-!H!USE cable_other_constants_mod, ONLY : CLAI_thresh => lai_thresh
-!H!USE cable_phys_constants_mod, ONLY : CCapp => Capp, &
-!H!                                     Csboltz => Sboltz,         &
-!H!                                     Cemsoil => emsoil,         &
-!H!                                     Cemleaf => emleaf
-!H!    USE cable_psm, ONLY: or_soil_evap_resistance,rtevap_max,&
-!H!                         rt_Dff,update_or_soil_resis
-    !USE cable_gw_hydro_module, ONLY : pore_space_relative_humidity
-    !USE sli_main_mod, ONLY : sli_main
+USE cable_climate_type_mod, ONLY : climate_type
 
     TYPE (balances_type), INTENT(INOUT)  :: bal
     TYPE (radiation_type), INTENT(INOUT) :: rad
@@ -124,7 +116,6 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,clima
 
     TYPE (soil_parameter_type), INTENT(INOUT)   :: soil
     TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
-    !INTEGER, INTENT(IN) :: wlogn
 
 REAL :: reducedLAIdue2snow(mp)
 logical :: sunlit_veg_mask(mp) 
@@ -167,8 +158,8 @@ logical :: sunlit_veg_mask(mp)
          term1, term2, term3, term5
     ! arguments for potential_evap (sli)
     REAL(r_2), DIMENSION(mp) ::  Rn, rbh, rbw, Ta, rha,Ts, &
-         kth, dz,lambdav, &
          Tsoil, Epot, Hpot, Gpot, &
+         kth, dz,lambdav, &
          dEdrha, dEdTa, dEdTsoil, dGdTa, dGdTsoil
     REAL, DIMENSION(mp) :: qsat
 
@@ -291,11 +282,7 @@ CALL radiation( ssnow, veg, air, met, rad, canopy, sunlit_veg_mask, &
 
        ! E.Kowalczyk 2014
        IF (cable_user%l_new_roughness_soil)                                     &
-CALL ruff_resist(veg, rough, ssnow, canopy, veg%vlai, veg%hc, canopy%vlaiw)
-            !880!CALL ruff_resist( veg, rough, ssnow, canopy, &
-            !880!                  !H!hgt_pft, lai_pft )
-            !880!                  veg%hc, canopy%vlaiw, reducedLAIdue2snow )
-
+        CALL ruff_resist( veg, rough, ssnow, canopy, veg%vlai, veg%hc, canopy%vlaiw )
 
 
        ! Turbulent aerodynamic resistance from roughness sublayer depth
