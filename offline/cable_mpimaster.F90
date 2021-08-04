@@ -1297,7 +1297,7 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
              END IF
           END IF
 
-          IF ( YYYY.EQ. CABLE_USER%YearEnd ) THEN
+          IF ( YYYY.GT. CABLE_USER%YearEnd ) THEN
              ! store soil moisture and temperature
              soilTtemp = ssnow%tgg
              soilMtemp = REAL(ssnow%wb)
