@@ -43,7 +43,6 @@ REAL, DIMENSION(mp) :: xx, tgg_old, tggsn_old
 REAL(r_2), DIMENSION(mp) :: xxx,deltat,sinfil1,sinfil2,sinfil3
 REAL                :: zsetot
 INTEGER, SAVE :: ktau =0
-!CBL3
 REAL :: heat_cap_lower_limit(mp,ms)
 
 ktau = ktau +1

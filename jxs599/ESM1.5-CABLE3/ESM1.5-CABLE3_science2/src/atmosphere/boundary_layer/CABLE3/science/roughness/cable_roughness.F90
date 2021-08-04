@@ -95,11 +95,10 @@ call LAI_eff( mp, veg%vlai, veg%hc, HeightAboveSnow, &
     canopy%vlaiw  = reducedLAIdue2snow
     canopy%rghlai = canopy%vlaiw
 
-   !CBL3-ESM1.5 IF (cable_user%soil_struc=='default') THEN
+    IF (cable_user%soil_struc=='default') THEN
 
        ! Roughness length of bare soil (m): new formulation- E.Kowalczyk 2014
-       IF (.NOT.cable_user%l_new_roughness_soil ) THEN
-       !CBL3-ESM1.5IF (.NOT.cable_user%l_new_roughness_soil .AND. (.NOT.cable_user%or_evap)) THEN
+       IF (.NOT.cable_user%l_new_roughness_soil .AND. (.NOT.cable_user%or_evap)) THEN
           rough%z0soil = 0.0009*MIN(1.0,canopy%vlaiw) + 1.e-4
           rough%z0soilsn = rough%z0soil
        ELSE
@@ -113,16 +112,16 @@ call LAI_eff( mp, veg%vlai, veg%hc, HeightAboveSnow, &
        WHERE( ssnow%snowd .GT. 0.01 .AND. veg%iveg == 17  )  &
             rough%z0soilsn =  MAX(rough%z0soilsn, z0soilsn_min_PF )
 
-   !CBL3-ESM1.5 ELSEIF (cable_user%soil_struc=='sli') THEN
+    ELSEIF (cable_user%soil_struc=='sli') THEN
 
-   !CBL3-ESM1.5    rough%z0soil = 0.01*MIN(1.0,canopy%vlaiw) + 0.02*MIN(canopy%us**2/CGRAV,1.0)
-   !CBL3-ESM1.5    rough%z0soilsn = MAX(1.e-2,rough%z0soil) ! (1e-2: Mori et al., J Ag Met, 2010)
+       rough%z0soil = 0.01*MIN(1.0,canopy%vlaiw) + 0.02*MIN(canopy%us**2/CGRAV,1.0)
+       rough%z0soilsn = MAX(1.e-2,rough%z0soil) ! (1e-2: Mori et al., J Ag Met, 2010)
 
 
-   !CBL3-ESM1.5    WHERE( ssnow%snowd .GT. 0.01   )  &
-   !CBL3-ESM1.5         rough%z0soilsn =  MAX( 1.e-2, rough%z0soil - rough%z0soil*MIN(ssnow%snowd,10.)/10.)
+       WHERE( ssnow%snowd .GT. 0.01   )  &
+            rough%z0soilsn =  MAX( 1.e-2, rough%z0soil - rough%z0soil*MIN(ssnow%snowd,10.)/10.)
 
-   !CBL3-ESM1.5 ENDIF
+    ENDIF
 
     !! vh_js !! use LAI_THRESH here
 do i=1,mp
@@ -225,16 +224,16 @@ do i=1,mp
     END if
 end do
 
-    !CBL3_ESM1.5IF (cable_user%soil_struc.EQ.'sli') THEN
-    !CBL3_ESM1.5   WHERE( canopy%vlaiw .GE. CLAI_THRESH  .AND.                                          &
-    !CBL3_ESM1.5        rough%hruff .GE. rough%z0soilsn ) ! VEGETATED SURFACE
+    IF (cable_user%soil_struc.EQ.'sli') THEN
+       WHERE( canopy%vlaiw .GE. CLAI_THRESH  .AND.                                          &
+            rough%hruff .GE. rough%z0soilsn ) ! VEGETATED SURFACE
 
-    !CBL3_ESM1.5      rough%rt0us  = LOG(rough%disp/(0.1 * rough%hruff)) * &
-    !CBL3_ESM1.5           EXP(2. * CCSW * canopy%rghlai) * rough%disp &
-    !CBL3_ESM1.5           / rough%hruff / (Ca33 ** 2 * Cctl) ! vh ! Haverd et al., Biogeosciences 10, 2011-2040, 2013
+          rough%rt0us  = LOG(rough%disp/(0.1 * rough%hruff)) * &
+               EXP(2. * CCSW * canopy%rghlai) * rough%disp &
+               / rough%hruff / (Ca33 ** 2 * Cctl) ! vh ! Haverd et al., Biogeosciences 10, 2011-2040, 2013
 
-    !CBL3_ESM1.5   ENDWHERE
-    !CBL3_ESM1.5ENDIF
+       ENDWHERE
+    ENDIF
 
 END SUBROUTINE ruff_resist
 

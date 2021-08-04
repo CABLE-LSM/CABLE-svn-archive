@@ -56,9 +56,8 @@ USE cbl_soil_snow_subrs_module
     REAL(r_2), DIMENSION(mp) :: xxx,deltat,sinfil1,sinfil2,sinfil3
     REAL                :: zsetot
     INTEGER, SAVE :: ktau =0
-!CBL3
-REAL :: heat_cap_lower_limit(mp,ms)
-REAL :: wbliq(mp,ms)
+  REAL :: heat_cap_lower_limit(mp,ms)
+  REAL :: wbliq(mp,ms)
 
     ktau = ktau +1
 

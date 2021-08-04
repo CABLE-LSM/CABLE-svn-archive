@@ -35,7 +35,7 @@ PUBLIC  soilfreeze
 PUBLIC  remove_trans
 PUBLIC  hydraulic_redistribution
 PUBLIC  snow_processes_soil_thermal
-!CBL3PUBLIC  GWstempv
+PUBLIC  GWstempv
 
 CONTAINS
 
@@ -927,6 +927,7 @@ CONTAINS
 
     REAL :: wb_lake_T, rnof2_T, ratio
     INTEGER :: k,j
+
     IF( cable_runtime%UM ) THEN
        nglacier = 0
     ELSE
@@ -1069,7 +1070,6 @@ CONTAINS
     INTEGER :: j,k
     REAL :: exp_arg
     LOGICAL :: direct2min = .FALSE.
-!CBL3
 REAL :: heat_cap_lower_limit(mp,ms)
 
     at = 0.0
@@ -1078,7 +1078,7 @@ REAL :: heat_cap_lower_limit(mp,ms)
     coeff = 0.0
 
     IF (cable_user%soil_thermal_fix) THEN
-       !CBL3ccnsw = total_soil_conductivity(ssnow,soil)
+       ccnsw = total_soil_conductivity(ssnow,soil)
     ELSE
        ccnsw = old_soil_conductivity(ssnow,soil)
     ENDIF
@@ -1500,7 +1500,6 @@ REAL :: heat_cap_lower_limit(mp,ms)
     REAL(r_2), DIMENSION(mp)           :: sicemelt
     REAL, DIMENSION(mp)           :: xx
     INTEGER k
-!CBL3
 REAL :: heat_cap_lower_limit(mp,ms)
 
     xx = 0.
@@ -1824,81 +1823,81 @@ REAL :: heat_cap_lower_limit(mp,ms)
 
   END SUBROUTINE hydraulic_redistribution
 
-!CBL3  ! soil thermal conductivity (incl water/ice)
-!CBL3  FUNCTION total_soil_conductivity(ssnow,soil)
-!CBL3
-!CBL3    REAL(r_2), DIMENSION(mp,ms) ::  total_soil_conductivity
-!CBL3
-!CBL3    TYPE(soil_snow_type), INTENT(INOUT) :: ssnow
-!CBL3    TYPE(soil_parameter_type), INTENT(INOUT) :: soil
-!CBL3
-!CBL3    REAL(r_2) :: exp_arg
-!CBL3    REAL(r_2) :: dels_r2
-!CBL3    REAL(r_2) :: Ko,Ktmp
-!CBL3    REAL(r_2), DIMENSION(mp,ms) :: Ke,quartz,Sr,Ksat,liq_frac
-!CBL3    REAL      :: tfreeze
-!CBL3    INTEGER :: k,j,i
-!CBL3
-!CBL3    total_soil_conductivity(:,:) = soil%cnsd_vec(:,:)
-!CBL3
-!CBL3    DO k = 1, ms
-!CBL3       DO j = 1, mp
-!CBL3          IF (soil%isoilm(j) .EQ. 9) THEN
-!CBL3             total_soil_conductivity(j,k) = snow_ccnsw
-!CBL3          ELSE
-!CBL3             quartz(j,k) = MAX(0.0,MIN(0.8,soil%sand_vec(j,k)*0.92))
-!CBL3             IF (quartz(j,k) .GT. 0.2) THEN
-!CBL3                Ko = 2.0
-!CBL3             ELSE
-!CBL3                Ko = 3.0
-!CBL3             END IF
-!CBL3
-!CBL3             Ktmp      = ( (7.7**(quartz(j,k))) * &
-!CBL3                  (Ko**(1.0-quartz(j,k))) ) **(1.0-soil%ssat_vec(j,k))
-!CBL3
-!CBL3             IF (ssnow%wb(j,k) .GE. 1.0e-15) THEN
-!CBL3                liq_frac(j,k) = MIN(1._r_2, MAX(0._r_2, ssnow%wbliq(j,k) / ssnow%wb(j,k)))
-!CBL3             ELSE
-!CBL3                liq_frac(j,k) = 0.0
-!CBL3             END IF
-!CBL3
-!CBL3             Ksat(j,k) =  Ktmp * &
-!CBL3                  (2.2 ** (soil%ssat_vec(j,k)*(1.0-liq_frac(j,k) ) ) )*&
-!CBL3                  (0.57**(liq_frac(j,k)))
-!CBL3
-!CBL3             Sr(j,k) = MIN( 0.9999 , &
-!CBL3                  MAX(0., ssnow%wb(j,k)-soil%watr(j,k))/(soil%ssat_vec(j,k)-soil%watr(j,k)) )
-!CBL3
-!CBL3             !frozen or not?
-!CBL3             IF (Sr(j,k) .GE. 0.05) THEN
-!CBL3                Ke(j,k) = 0.7*LOG10(Sr(j,k)) + 1.0
-!CBL3             ELSE
-!CBL3                Ke(j,k) = 0.0
-!CBL3             END IF
-!CBL3
-!CBL3             IF ((ssnow%wbice(j,k) .GT. 0.0) .OR. &
-!CBL3                  (ssnow%tgg(j,k) .LT. CTFRZ) .OR. &
-!CBL3                  (ssnow%isflag(j) .NE. 0) .OR.     &
-!CBL3                  (ssnow%snowd(j) .GE. 0.1) )   THEN
-!CBL3
-!CBL3                Ke(j,k) = Sr(j,k)
-!CBL3
-!CBL3             END IF
-!CBL3
-!CBL3             total_soil_conductivity(j,k) = Ke(j,k)*Ksat(j,k) + &
-!CBL3                  (1.0-Ke(j,k))*soil%cnsd_vec(j,k)
-!CBL3
-!CBL3             total_soil_conductivity(j,k) = MIN(Ksat(j,k), MAX(soil%cnsd_vec(j,k),&
-!CBL3                  total_soil_conductivity(j,k) ) )
-!CBL3
-!CBL3
-!CBL3          ENDIF
-!CBL3
-!CBL3       END DO
-!CBL3
-!CBL3    END DO
-!CBL3
-!CBL3  END FUNCTION total_soil_conductivity
+  ! soil thermal conductivity (incl water/ice)
+  FUNCTION total_soil_conductivity(ssnow,soil)
+
+    REAL(r_2), DIMENSION(mp,ms) ::  total_soil_conductivity
+
+    TYPE(soil_snow_type), INTENT(INOUT) :: ssnow
+    TYPE(soil_parameter_type), INTENT(INOUT) :: soil
+
+    REAL(r_2) :: exp_arg
+    REAL(r_2) :: dels_r2
+    REAL(r_2) :: Ko,Ktmp
+    REAL(r_2), DIMENSION(mp,ms) :: Ke,quartz,Sr,Ksat,liq_frac
+    REAL      :: tfreeze
+    INTEGER :: k,j,i
+
+    total_soil_conductivity(:,:) = soil%cnsd_vec(:,:)
+
+    DO k = 1, ms
+       DO j = 1, mp
+          IF (soil%isoilm(j) .EQ. 9) THEN
+             total_soil_conductivity(j,k) = snow_ccnsw
+          ELSE
+             quartz(j,k) = MAX(0.0,MIN(0.8,soil%sand_vec(j,k)*0.92))
+             IF (quartz(j,k) .GT. 0.2) THEN
+                Ko = 2.0
+             ELSE
+                Ko = 3.0
+             END IF
+
+             Ktmp      = ( (7.7**(quartz(j,k))) * &
+                  (Ko**(1.0-quartz(j,k))) ) **(1.0-soil%ssat_vec(j,k))
+
+             IF (ssnow%wb(j,k) .GE. 1.0e-15) THEN
+                liq_frac(j,k) = MIN(1._r_2, MAX(0._r_2, ssnow%wbliq(j,k) / ssnow%wb(j,k)))
+             ELSE
+                liq_frac(j,k) = 0.0
+             END IF
+
+             Ksat(j,k) =  Ktmp * &
+                  (2.2 ** (soil%ssat_vec(j,k)*(1.0-liq_frac(j,k) ) ) )*&
+                  (0.57**(liq_frac(j,k)))
+
+             Sr(j,k) = MIN( 0.9999 , &
+                  MAX(0., ssnow%wb(j,k)-soil%watr(j,k))/(soil%ssat_vec(j,k)-soil%watr(j,k)) )
+
+             !frozen or not?
+             IF (Sr(j,k) .GE. 0.05) THEN
+                Ke(j,k) = 0.7*LOG10(Sr(j,k)) + 1.0
+             ELSE
+                Ke(j,k) = 0.0
+             END IF
+
+             IF ((ssnow%wbice(j,k) .GT. 0.0) .OR. &
+                  (ssnow%tgg(j,k) .LT. CTFRZ) .OR. &
+                  (ssnow%isflag(j) .NE. 0) .OR.     &
+                  (ssnow%snowd(j) .GE. 0.1) )   THEN
+
+                Ke(j,k) = Sr(j,k)
+
+             END IF
+
+             total_soil_conductivity(j,k) = Ke(j,k)*Ksat(j,k) + &
+                  (1.0-Ke(j,k))*soil%cnsd_vec(j,k)
+
+             total_soil_conductivity(j,k) = MIN(Ksat(j,k), MAX(soil%cnsd_vec(j,k),&
+                  total_soil_conductivity(j,k) ) )
+
+
+          ENDIF
+
+       END DO
+
+    END DO
+
+  END FUNCTION total_soil_conductivity
 
 
   FUNCTION old_soil_conductivity(ssnow, soil)
@@ -1981,7 +1980,7 @@ REAL :: heat_cap_lower_limit(mp,ms)
     ! snow aging etc...
     CALL snowl_adjust(dels, ssnow, canopy )
 
-    !CBL3CALL GWstempv(dels, canopy, ssnow, soil)
+    IF (cable_user%gw_model) CALL GWstempv(dels, canopy, ssnow, soil)
 
     !do the soil and snow melting, freezing prior to water movement
     DO i=1,mp
@@ -1995,211 +1994,211 @@ REAL :: heat_cap_lower_limit(mp,ms)
 
   END SUBROUTINE snow_processes_soil_thermal
 
-!CBL3  SUBROUTINE GWstempv(dels, canopy, ssnow, soil)
-!CBL3    USE cable_common_module, ONLY: cable_user
-!CBL3    REAL, INTENT(IN) :: dels ! integration time step (s)
-!CBL3
-!CBL3    TYPE(canopy_type),    INTENT(INOUT) :: canopy
-!CBL3    TYPE(soil_snow_type), INTENT(INOUT) :: ssnow
-!CBL3
-!CBL3    TYPE(soil_parameter_type), INTENT(INOUT) :: soil
-!CBL3
-!CBL3    REAL, DIMENSION(mp) ::                                                      &
-!CBL3         coefa, coefb,  & !
-!CBL3         sgamm            !
-!CBL3
-!CBL3    REAL, DIMENSION(mp) ::                                                 &
-!CBL3         dtg,     & !
-!CBL3         ew,      & !
-!CBL3         xx,     & !
-!CBL3         wblfsp     !
-!CBL3
-!CBL3    REAL(r_2), DIMENSION(mp,ms) ::                                              &
-!CBL3         ccnsw  ! soil thermal conductivity (incl water/ice)
-!CBL3
-!CBL3    REAL(r_2), DIMENSION(mp, -2:ms) ::                                          &
-!CBL3         at, bt, ct, rhs !
-!CBL3
-!CBL3    REAL(r_2), DIMENSION(mp,-2:ms+1) :: coeff
-!CBL3
-!CBL3    REAL(r_2), DIMENSION(mp,ms+3)    :: tmp_mat ! temp. matrix for tggsn & tgg
-!CBL3
-!CBL3    INTEGER :: j,k
-!CBL3    REAL :: exp_arg
-!CBL3
-!CBL3    LOGICAL :: direct2min = .FALSE.
-!CBL3
-!CBL3    at = 0.0
-!CBL3    bt = 1.0
-!CBL3    ct = 0.0
-!CBL3    coeff = 0.0
-!CBL3
-!CBL3    IF (cable_user%soil_thermal_fix) THEN
-!CBL3
-!CBL3       ccnsw = total_soil_conductivity(ssnow,soil)
-!CBL3
-!CBL3    ELSE
-!CBL3
-!CBL3       ccnsw = old_soil_conductivity(ssnow,soil)
-!CBL3    END IF
-!CBL3
-!CBL3    xx(:) = 0.
-!CBL3
-!CBL3    WHERE(ssnow%isflag == 0)
-!CBL3       xx(:) = MAX( 0., ssnow%snowd / ssnow%ssdnn )
-!CBL3       ccnsw(:,1) = ( ccnsw(:,1) - 0.2 ) * ( soil%zse(1) / ( soil%zse(1) + xx(:) ) &
-!CBL3            ) + 0.2
-!CBL3    END WHERE
-!CBL3
-!CBL3    DO k = 3, ms
-!CBL3
-!CBL3       WHERE (ssnow%isflag == 0)
-!CBL3          coeff(:,k) = 2.0 / ( soil%zse(k-1) / ccnsw(:,k-1) + soil%zse(k) /     &
-!CBL3               ccnsw(:,k) )
-!CBL3       END WHERE
-!CBL3    END DO
-!CBL3
-!CBL3    k = 1
-!CBL3    WHERE( ssnow%isflag == 0 )
-!CBL3       coeff(:,2) = 2.0 / ( ( soil%zse(1) + xx(:) ) / ccnsw(:,1) + soil%zse(2) /   &
-!CBL3            ccnsw(:,2) )
-!CBL3       coefa = 0.0
-!CBL3       coefb = REAL( coeff(:,2) )
-!CBL3
-!CBL3       wblfsp = ssnow%wblf(:,k)
-!CBL3
-!CBL3       ssnow%gammzz(:,k) = MAX((heat_cap_lower_limit(:,k)), &
-!CBL3            ( 1.0 - soil%ssat_vec(:,k) ) * &
-!CBL3            soil%css_vec(:,k) * soil%rhosoil_vec(:,k)   &
-!CBL3            + soil%ssat_vec(:,k) * ( wblfsp * Ccs_rho_wat +            &
-!CBL3            ssnow%wbfice(:,k) * Ccs_rho_ice ) )     &
-!CBL3            * soil%zse_vec(:,k)
-!CBL3
-!CBL3       ssnow%gammzz(:,k) = ssnow%gammzz(:,k) + Ccgsnow * ssnow%snowd
-!CBL3
-!CBL3       dtg = dels / ssnow%gammzz(:,k)
-!CBL3
-!CBL3       at(:,k) = - dtg * coeff(:,k)
-!CBL3       ct(:,k) = - dtg * coeff(:,k+1) ! c3(ms)=0 & not really used
-!CBL3       bt(:,k) = 1.0 - at(:,k) - ct(:,k)
-!CBL3
-!CBL3    END WHERE
-!CBL3
-!CBL3    DO k = 2, ms
-!CBL3
-!CBL3       WHERE( ssnow%isflag == 0 )
-!CBL3
-!CBL3          wblfsp = ssnow%wblf(:,k)
-!CBL3
-!CBL3          ssnow%gammzz(:,k) = MAX((heat_cap_lower_limit(:,k)), &
-!CBL3               ( 1.0 - soil%ssat_vec(:,k) ) * &
-!CBL3               soil%css_vec(:,k) * soil%rhosoil_vec(:,k)   &
-!CBL3               + soil%ssat_vec(:,k) * ( wblfsp * Ccs_rho_wat +            &
-!CBL3               ssnow%wbfice(:,k) * Ccs_rho_ice ) )     &
-!CBL3               * soil%zse_vec(:,k)
-!CBL3
-!CBL3          dtg = dels / ssnow%gammzz(:,k)
-!CBL3          at(:,k) = - dtg * coeff(:,k)
-!CBL3          ct(:,k) = - dtg * coeff(:,k+1) ! c3(ms)=0 & not really used
-!CBL3          bt(:,k) = 1.0 - at(:,k) - ct(:,k)
-!CBL3
-!CBL3       END WHERE
-!CBL3
-!CBL3    END DO
-!CBL3
-!CBL3    WHERE( ssnow%isflag == 0 )
-!CBL3       bt(:,1) = bt(:,1) - canopy%dgdtg * dels / ssnow%gammzz(:,1)
-!CBL3       ssnow%tgg(:,1) = ssnow%tgg(:,1) + ( canopy%ga - ssnow%tgg(:,1)           &
-!CBL3            * REAL( canopy%dgdtg ) ) * dels / REAL( ssnow%gammzz(:,1) )
-!CBL3    END WHERE
-!CBL3
-!CBL3    coeff(:,1-3) = 0.0  ! coeff(:,-2)
-!CBL3
-!CBL3    ! 3-layer snow points done here
-!CBL3    WHERE( ssnow%isflag /= 0 )
-!CBL3
-!CBL3       ssnow%sconds(:,1) = MAX( 0.2, MIN( 2.876e-6 * ssnow%ssdn(:,1)**2         &
-!CBL3            + 0.074, max_sconds ) )
-!CBL3       ssnow%sconds(:,2) = MAX(0.2, MIN(2.876e-6 * ssnow%ssdn(:,2)**2 &
-!CBL3            & + 0.074, max_sconds) )
-!CBL3       ssnow%sconds(:,3) = MAX(0.2, MIN(2.876e-6 * ssnow%ssdn(:,3)**2 &
-!CBL3            & + 0.074, max_sconds) )
-!CBL3       coeff(:,-1) = 2.0 / (ssnow%sdepth(:,1) / ssnow%sconds(:,1) &
-!CBL3            & + ssnow%sdepth(:,2) / ssnow%sconds(:,2) )
-!CBL3       coeff(:,0) = 2.0 / (ssnow%sdepth(:,2) / ssnow%sconds(:,2) &
-!CBL3            & + ssnow%sdepth(:,3) / ssnow%sconds(:,3) )
-!CBL3       coeff(:,1) = 2.0 / (ssnow%sdepth(:,3) / ssnow%sconds(:,3) &
-!CBL3            & + soil%zse(1) / ccnsw (:,1) )
-!CBL3    END WHERE
-!CBL3
-!CBL3    DO k = 2, ms
-!CBL3
-!CBL3       WHERE( ssnow%isflag /= 0 )                                               &
-!CBL3            coeff(:,k) = 2.0 / ( soil%zse(k-1) / ccnsw(:,k-1) + soil%zse(k) /     &
-!CBL3            ccnsw(:,k) )
-!CBL3
-!CBL3    END DO
-!CBL3
-!CBL3    WHERE( ssnow%isflag /= 0 )
-!CBL3       coefa = REAL( coeff (:,-1) )
-!CBL3       coefb = REAL( coeff (:,1) )
-!CBL3    END WHERE
-!CBL3
-!CBL3    DO k = 1, 3
-!CBL3
-!CBL3       WHERE( ssnow%isflag /= 0 )
-!CBL3          sgamm = ssnow%ssdn(:,k) * Ccgsnow * ssnow%sdepth(:,k)
-!CBL3          dtg = dels / sgamm
-!CBL3          at(:,k-3) = - dtg * coeff(:,k-3)
-!CBL3          ct(:,k-3) = - dtg * coeff(:,k-2)
-!CBL3          bt(:,k-3) = 1.0 - at(:,k-3) - ct(:,k-3)
-!CBL3       END WHERE
-!CBL3
-!CBL3    END DO
-!CBL3
-!CBL3    DO k = 1, ms
-!CBL3
-!CBL3       WHERE( ssnow%isflag /= 0 )
-!CBL3          wblfsp = ssnow%wblf(:,k)
-!CBL3
-!CBL3          ssnow%gammzz(:,k) = MAX((heat_cap_lower_limit(:,k)),&
-!CBL3               ( 1.0 - soil%ssat_vec(:,k) ) * soil%css_vec(:,k) *             &
-!CBL3               soil%rhosoil_vec(:,k) + soil%ssat_vec(:,k) * ( wblfsp * Ccs_rho_wat +&
-!CBL3               ssnow%wbfice(:,k) * Ccs_rho_ice)) * &
-!CBL3               soil%zse_vec(:,k)
-!CBL3
-!CBL3          dtg = dels / ssnow%gammzz(:,k)
-!CBL3          at(:,k) = - dtg * coeff(:,k)
-!CBL3          ct(:,k) = - dtg * coeff(:,k + 1) ! c3(ms)=0 & not really used
-!CBL3          bt(:,k) = 1.0 - at(:,k) - ct(:,k)
-!CBL3
-!CBL3       END WHERE
-!CBL3
-!CBL3    END DO
-!CBL3
-!CBL3    WHERE( ssnow%isflag /= 0 )
-!CBL3       sgamm = ssnow%ssdn(:,1) * Ccgsnow * ssnow%sdepth(:,1)
-!CBL3
-!CBL3       bt(:,-2) = bt(:,-2) - canopy%dgdtg * dels / sgamm
-!CBL3
-!CBL3       ssnow%tggsn(:,1) = ssnow%tggsn(:,1) + ( canopy%ga - ssnow%tggsn(:,1 )    &
-!CBL3            * REAL( canopy%dgdtg ) ) * dels / sgamm
-!CBL3
-!CBL3       rhs(:,1-3) = ssnow%tggsn(:,1)
-!CBL3    END WHERE
-!CBL3
-!CBL3
-!CBL3    !     note in the following that tgg and tggsn are processed together
-!CBL3    tmp_mat(:,1:3) = REAL(ssnow%tggsn,r_2)
-!CBL3    tmp_mat(:,4:(ms+3)) = REAL(ssnow%tgg,r_2)
-!CBL3
-!CBL3    CALL trimb( at, bt, ct, tmp_mat, ms + 3 )
-!CBL3
-!CBL3    ssnow%tggsn = REAL( tmp_mat(:,1:3) )
-!CBL3    ssnow%tgg   = REAL( tmp_mat(:,4:(ms+3)) )
-!CBL3    canopy%sghflux = coefa * ( ssnow%tggsn(:,1) - ssnow%tggsn(:,2) )
-!CBL3    canopy%ghflux = coefb * ( ssnow%tgg(:,1) - ssnow%tgg(:,2) ) ! +ve downwards
-!CBL3
-!CBL3  END SUBROUTINE GWstempv
+  SUBROUTINE GWstempv(dels, canopy, ssnow, soil)
+    USE cable_common_module, ONLY: cable_user
+    REAL, INTENT(IN) :: dels ! integration time step (s)
+
+    TYPE(canopy_type),    INTENT(INOUT) :: canopy
+    TYPE(soil_snow_type), INTENT(INOUT) :: ssnow
+
+    TYPE(soil_parameter_type), INTENT(INOUT) :: soil
+
+    REAL, DIMENSION(mp) ::                                                      &
+         coefa, coefb,  & !
+         sgamm            !
+
+    REAL, DIMENSION(mp) ::                                                 &
+         dtg,     & !
+         ew,      & !
+         xx,     & !
+         wblfsp     !
+
+    REAL(r_2), DIMENSION(mp,ms) ::                                              &
+         ccnsw  ! soil thermal conductivity (incl water/ice)
+
+    REAL(r_2), DIMENSION(mp, -2:ms) ::                                          &
+         at, bt, ct, rhs !
+
+    REAL(r_2), DIMENSION(mp,-2:ms+1) :: coeff
+
+    REAL(r_2), DIMENSION(mp,ms+3)    :: tmp_mat ! temp. matrix for tggsn & tgg
+
+    INTEGER :: j,k
+    REAL :: exp_arg
+
+    LOGICAL :: direct2min = .FALSE.
+
+    at = 0.0
+    bt = 1.0
+    ct = 0.0
+    coeff = 0.0
+
+    IF (cable_user%soil_thermal_fix) THEN
+
+       ccnsw = total_soil_conductivity(ssnow,soil)
+
+    ELSE
+
+       ccnsw = old_soil_conductivity(ssnow,soil)
+    END IF
+
+    xx(:) = 0.
+
+    WHERE(ssnow%isflag == 0)
+       xx(:) = MAX( 0., ssnow%snowd / ssnow%ssdnn )
+       ccnsw(:,1) = ( ccnsw(:,1) - 0.2 ) * ( soil%zse(1) / ( soil%zse(1) + xx(:) ) &
+            ) + 0.2
+    END WHERE
+
+    DO k = 3, ms
+
+       WHERE (ssnow%isflag == 0)
+          coeff(:,k) = 2.0 / ( soil%zse(k-1) / ccnsw(:,k-1) + soil%zse(k) /     &
+               ccnsw(:,k) )
+       END WHERE
+    END DO
+
+    k = 1
+    WHERE( ssnow%isflag == 0 )
+       coeff(:,2) = 2.0 / ( ( soil%zse(1) + xx(:) ) / ccnsw(:,1) + soil%zse(2) /   &
+            ccnsw(:,2) )
+       coefa = 0.0
+       coefb = REAL( coeff(:,2) )
+
+       wblfsp = ssnow%wblf(:,k)
+
+       ssnow%gammzz(:,k) = MAX((soil%heat_cap_lower_limit(:,k)), &
+            ( 1.0 - soil%ssat_vec(:,k) ) * &
+            soil%css_vec(:,k) * soil%rhosoil_vec(:,k)   &
+            + soil%ssat_vec(:,k) * ( wblfsp * Ccs_rho_wat +            &
+            ssnow%wbfice(:,k) * Ccs_rho_ice ) )     &
+            * soil%zse_vec(:,k)
+
+       ssnow%gammzz(:,k) = ssnow%gammzz(:,k) + Ccgsnow * ssnow%snowd
+
+       dtg = dels / ssnow%gammzz(:,k)
+
+       at(:,k) = - dtg * coeff(:,k)
+       ct(:,k) = - dtg * coeff(:,k+1) ! c3(ms)=0 & not really used
+       bt(:,k) = 1.0 - at(:,k) - ct(:,k)
+
+    END WHERE
+
+    DO k = 2, ms
+
+       WHERE( ssnow%isflag == 0 )
+
+          wblfsp = ssnow%wblf(:,k)
+
+          ssnow%gammzz(:,k) = MAX((soil%heat_cap_lower_limit(:,k)), &
+               ( 1.0 - soil%ssat_vec(:,k) ) * &
+               soil%css_vec(:,k) * soil%rhosoil_vec(:,k)   &
+               + soil%ssat_vec(:,k) * ( wblfsp * Ccs_rho_wat +            &
+               ssnow%wbfice(:,k) * Ccs_rho_ice ) )     &
+               * soil%zse_vec(:,k)
+
+          dtg = dels / ssnow%gammzz(:,k)
+          at(:,k) = - dtg * coeff(:,k)
+          ct(:,k) = - dtg * coeff(:,k+1) ! c3(ms)=0 & not really used
+          bt(:,k) = 1.0 - at(:,k) - ct(:,k)
+
+       END WHERE
+
+    END DO
+
+    WHERE( ssnow%isflag == 0 )
+       bt(:,1) = bt(:,1) - canopy%dgdtg * dels / ssnow%gammzz(:,1)
+       ssnow%tgg(:,1) = ssnow%tgg(:,1) + ( canopy%ga - ssnow%tgg(:,1)           &
+            * REAL( canopy%dgdtg ) ) * dels / REAL( ssnow%gammzz(:,1) )
+    END WHERE
+
+    coeff(:,1-3) = 0.0  ! coeff(:,-2)
+
+    ! 3-layer snow points done here
+    WHERE( ssnow%isflag /= 0 )
+
+       ssnow%sconds(:,1) = MAX( 0.2, MIN( 2.876e-6 * ssnow%ssdn(:,1)**2         &
+            + 0.074, max_sconds ) )
+       ssnow%sconds(:,2) = MAX(0.2, MIN(2.876e-6 * ssnow%ssdn(:,2)**2 &
+            & + 0.074, max_sconds) )
+       ssnow%sconds(:,3) = MAX(0.2, MIN(2.876e-6 * ssnow%ssdn(:,3)**2 &
+            & + 0.074, max_sconds) )
+       coeff(:,-1) = 2.0 / (ssnow%sdepth(:,1) / ssnow%sconds(:,1) &
+            & + ssnow%sdepth(:,2) / ssnow%sconds(:,2) )
+       coeff(:,0) = 2.0 / (ssnow%sdepth(:,2) / ssnow%sconds(:,2) &
+            & + ssnow%sdepth(:,3) / ssnow%sconds(:,3) )
+       coeff(:,1) = 2.0 / (ssnow%sdepth(:,3) / ssnow%sconds(:,3) &
+            & + soil%zse(1) / ccnsw (:,1) )
+    END WHERE
+
+    DO k = 2, ms
+
+       WHERE( ssnow%isflag /= 0 )                                               &
+            coeff(:,k) = 2.0 / ( soil%zse(k-1) / ccnsw(:,k-1) + soil%zse(k) /     &
+            ccnsw(:,k) )
+
+    END DO
+
+    WHERE( ssnow%isflag /= 0 )
+       coefa = REAL( coeff (:,-1) )
+       coefb = REAL( coeff (:,1) )
+    END WHERE
+
+    DO k = 1, 3
+
+       WHERE( ssnow%isflag /= 0 )
+          sgamm = ssnow%ssdn(:,k) * Ccgsnow * ssnow%sdepth(:,k)
+          dtg = dels / sgamm
+          at(:,k-3) = - dtg * coeff(:,k-3)
+          ct(:,k-3) = - dtg * coeff(:,k-2)
+          bt(:,k-3) = 1.0 - at(:,k-3) - ct(:,k-3)
+       END WHERE
+
+    END DO
+
+    DO k = 1, ms
+
+       WHERE( ssnow%isflag /= 0 )
+          wblfsp = ssnow%wblf(:,k)
+
+          ssnow%gammzz(:,k) = MAX((soil%heat_cap_lower_limit(:,k)),&
+               ( 1.0 - soil%ssat_vec(:,k) ) * soil%css_vec(:,k) *             &
+               soil%rhosoil_vec(:,k) + soil%ssat_vec(:,k) * ( wblfsp * Ccs_rho_wat +&
+               ssnow%wbfice(:,k) * Ccs_rho_ice)) * &
+               soil%zse_vec(:,k)
+
+          dtg = dels / ssnow%gammzz(:,k)
+          at(:,k) = - dtg * coeff(:,k)
+          ct(:,k) = - dtg * coeff(:,k + 1) ! c3(ms)=0 & not really used
+          bt(:,k) = 1.0 - at(:,k) - ct(:,k)
+
+       END WHERE
+
+    END DO
+
+    WHERE( ssnow%isflag /= 0 )
+       sgamm = ssnow%ssdn(:,1) * Ccgsnow * ssnow%sdepth(:,1)
+
+       bt(:,-2) = bt(:,-2) - canopy%dgdtg * dels / sgamm
+
+       ssnow%tggsn(:,1) = ssnow%tggsn(:,1) + ( canopy%ga - ssnow%tggsn(:,1 )    &
+            * REAL( canopy%dgdtg ) ) * dels / sgamm
+
+       rhs(:,1-3) = ssnow%tggsn(:,1)
+    END WHERE
+
+
+    !     note in the following that tgg and tggsn are processed together
+    tmp_mat(:,1:3) = REAL(ssnow%tggsn,r_2)
+    tmp_mat(:,4:(ms+3)) = REAL(ssnow%tgg,r_2)
+
+    CALL trimb( at, bt, ct, tmp_mat, ms + 3 )
+
+    ssnow%tggsn = REAL( tmp_mat(:,1:3) )
+    ssnow%tgg   = REAL( tmp_mat(:,4:(ms+3)) )
+    canopy%sghflux = coefa * ( ssnow%tggsn(:,1) - ssnow%tggsn(:,2) )
+    canopy%ghflux = coefb * ( ssnow%tgg(:,1) - ssnow%tgg(:,2) ) ! +ve downwards
+
+  END SUBROUTINE GWstempv
 
 END MODULE cbl_soil_snow_subrs_module
