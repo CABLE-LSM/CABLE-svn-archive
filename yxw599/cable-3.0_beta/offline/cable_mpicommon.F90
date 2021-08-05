@@ -55,7 +55,8 @@ MODULE cable_mpicommon
 
   ! MPI: number of casa_dump parameters sent/rec'd to/from the workers every
   ! timestep
-  INTEGER, PARAMETER :: ncdumprw = 9
+  ! Paul Ryan 5-8-2021
+  INTEGER, PARAMETER :: ncdumprw = 8  !9
   ! MPI: number of casa_LUC parameters sent/rec'd to/from the workers every
   ! year
   INTEGER, PARAMETER :: nLUCrw = 12

@@ -6871,9 +6871,10 @@ USE cbl_soil_snow_init_special_module
     CALL MPI_Get_address (phen%doyphase, displs(bidx), ierr)
     blen(bidx) = mphase * i1len
 
-    bidx = bidx + 1
-    CALL MPI_Get_address (climate%mtemp_max, displs(bidx), ierr)
-    blen(bidx) = r1len
+    ! Paul Ryan 5-8-2021
+   ! bidx = bidx + 1
+   ! CALL MPI_Get_address (climate%mtemp_max, displs(bidx), ierr)
+   ! blen(bidx) = r1len
 
     !****************************************************************
     ! Ndep

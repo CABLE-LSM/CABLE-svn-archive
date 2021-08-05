@@ -7417,6 +7417,8 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
 
     USE casavariable, ONLY: casa_met, casa_flux
     USE cable_def_types_mod, ONLY: climate_type
+    ! paul ryan 5-8-2021
+    USE cable_common_module,ONLY: cable_user
     USE phenvariable
     IMPLICIT NONE
 
@@ -7523,9 +7525,10 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
             &                             types(bidx), ierr)
        blocks(bidx) = 1
 
-       bidx = bidx + 1
-       CALL MPI_Get_address (climate%mtemp_max(off), displs(bidx), ierr)
-       blocks(bidx) = r1len
+       ! Paul Ryan 5-8-2021
+      ! bidx = bidx + 1
+      ! CALL MPI_Get_address (climate%mtemp_max(off), displs(bidx), ierr)
+      ! blocks(bidx) = r1len
 
        !****************************************************************
        ! Ndep
