@@ -792,8 +792,6 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
           ENDIF
           
 
-          print *, 'ypw5: outside ktauloopcasa_dump_write spinup spinConv',casaonly,cable_user%casa_dump_write,spinup, spinConv
-
           !IF (.NOT.spincasa) THEN
           ! time step loop over ktau
           KTAULOOP:DO ktau=kstart, kend - 1
@@ -804,7 +802,6 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
 
              WRITE(logn,*) 'Progress -',REAL(ktau)/REAL(kend)*100.0
 
-             print *, 'ypw6: ',ktau,kend,REAL(ktau)/REAL(kend)*100.0
 
              met%year = imet%year
              met%doy = imet%doy
@@ -820,7 +817,6 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
              ! needed for CASA-CNP
              nyear =INT((kend-kstart+1)/(LOY*ktauday))
 
-              print *, 'ypw7: ',TRIM(cable_user%MetType),CTFRZ, iktau,koffset,nyear,iktau+koffset,kstart+koffset
 
              ! Get met data and LAI, set time variables.
              ! Rainfall input may be augmented for spinup purposes:
@@ -834,19 +830,16 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
                      (YYYY.EQ.CABLE_USER%YearEnd) )
              ELSE
 
-              print *, 'ypw71: ',spinup, spinConv,ktau,kend, dels, CTFRZ, iktau+koffset, kstart+koffset
 
                 CALL get_met_data( spinup, spinConv, imet, soil,                 &
                      rad, iveg, kend, dels, CTFRZ, iktau+koffset,                &
                      kstart+koffset )
 
-              print *, 'ypw72: ',ktau,iktau+koffset, kstart+koffset
 
 
              ENDIF
 
 
-              print *, 'ypw8: ',TRIM(cable_user%MetType)
 
 
              IF ( (TRIM(cable_user%MetType) .NE. 'gswp') .AND. &
@@ -867,17 +860,14 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
 !!$               CALL POPLUC_set_patchfrac(POPLUC,LUC_EXPT)
 !!$            ENDIF
 
-              print *, 'ypw9: casa_dump_write spinup spinConv',ktau,CASAONLY,icycle
 
              IF ( .NOT. CASAONLY ) THEN
 
                 IF ( icycle > 0 ) THEN
 
-              print *, 'ypw9a: casa_dump_write spinup spinConv',ktau,CASAONLY,icycle
                    ! receive casa update from worker
                    CALL master_receive (ocomm, oktau, casa_ts)
 
-              print *, 'ypw9b: casa_dump_write spinup spinConv',ktau,CASAONLY,icycle
                    CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
                    ! receive casa dump requirements from worker
                    IF ( ((.NOT.spinup).OR.(spinup.AND.spinConv)) .AND.   &
@@ -885,21 +875,17 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
                         koffset, kend, ktauday, logn) ) ) THEN
 
 
-              print *, 'ypw9c: casa_dump_write spinup spinConv',ktau,CASAONLY,icycle
 
                       CALL master_receive ( ocomm, oktau, casa_dump_ts )
 
-              print *, 'ypw9d: casa_dump_write spinup spinConv',ktau,CASAONLY,icycle
                       ! CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
                    ENDIF
                 ENDIF
 
-              print *, 'ypw9e: casa_dump_write spinup spinConv',ktau,CASAONLY,icycle
                 ! MPI: receive this time step's results from the workers
                 CALL master_receive (ocomm, oktau, recv_ts)
                 ! CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
 
-              print *, 'ypw9f: casa_dump_write spinup spinConv',ktau,CASAONLY,icycle
 
                 ! MPI: scatter input data to the workers
                 CALL master_send_input (icomm, inp_ts, iktau)
@@ -916,16 +902,11 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
 !!$                ENDIF
 
 
-        ! ypw 21-6-2021
-              print *, 'ypw10: casa_dump_write spinup spinConv',cable_user%casa_dump_write,spinup, spinConv,kend/ktauday,ktau
-              print *, 'ypw11: casa_dump_write spinup spinConv',CurYear,LOY,ktauday
-              print *, 'ypw12: ', len(CYEAR),CurYear + INT((ktau-kstart)/(LOY*ktauday)),MOD((ktau-kstart+1),ktauday)
                 IF (((.NOT.spinup).OR.(spinup.AND.spinConv)).AND. &
                      MOD((ktau-kstart+1),ktauday)==0) THEN
                    IF ( CABLE_USER%CASA_DUMP_WRITE )  THEN
 
 
-                      print *, 'ypw13: casa_dump_write spinup spinConv',len(CYEAR),CurYear,LOY,CurYear + INT((ktau-kstart)/(LOY*ktauday))
                       !CLN CHECK FOR LEAP YEAR
                       WRITE(CYEAR,FMT="(I4)") CurYear + INT((ktau-kstart)/(LOY*ktauday))
                       ncfile = TRIM(casafile%c2cdumppath)//'c2c_'//CYEAR//'_dump.nc'
@@ -937,21 +918,18 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
 
              ELSE IF ( MOD((ktau-kstart+1+koffset),ktauday)==0 ) THEN
 
-                      print *, 'ypw14: casa_dump_write spinup spinConv', MOD((ktau-kstart+1+koffset),ktauday),koffset
 
                 CALL master_send_input (icomm, casa_dump_ts, iktau )
                 !    CALL MPI_Waitall (wnp, inp_req, inp_stats, ierr)
 
              ENDIF
 
-             print *, 'ypw15: casa_dump_write spinup spinConv', MOD((ktau-kstart+1+koffset),ktauday),koffset
              !             CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
              !             CALL MPI_Waitall (wnp, inp_req, inp_stats, ierr)
 
              met%ofsd = met%fsd(:,1) + met%fsd(:,2)
              canopy%oldcansto=canopy%cansto
 
-             print *, 'ypw16: ',oktau
              ! Zero out lai where there is no vegetation acc. to veg. index
              WHERE ( iveg%iveg(:) .GE. 14 ) iveg%vlai = 0.
 
@@ -962,8 +940,6 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
 
              ktau_gl = oktau
 
-             print *, 'ypw17: ',icycle,spinup,spinConv, ctime,&
-                     IS_CASA_TIME("write", yyyy, oktau, kstart, koffset, kend, ktauday, logn)
 
              IF((.NOT.spinup).OR.(spinup.AND.spinConv)) THEN
                 IF(icycle >0) THEN
@@ -979,7 +955,6 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
                 ENDIF
 
 
-             print *, 'ypw18: ',CASAONLY,spinConv,TRIM(cable_user%MetType),CEMLEAF, CEMSOIL
 
 
 
@@ -1072,7 +1047,6 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
 
              CALL1 = .FALSE.
 
-             print *, 'ypw100 ktauloop end' , ktau, CurYear
              !WRITE(*,*) " ktauloop end ", ktau, CurYear
 
 
@@ -1081,7 +1055,6 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
           CALL1 = .FALSE.
 
 
-          print *, 'ypw200 exit ktauloop' , ktau, CurYear
 
           ! MPI: read ahead tail to receive (last step and write)
           met%year = imet%year
@@ -1380,8 +1353,6 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
        CALL casa_fluxout( nyear, veg, soil, casabal, casamet)
 
 
-       ! ypw 18-5-21
-!       print *, 'ypw:psoil 1 to 10', nyear,icycle,CASAONLY,casapool%psoil(1:10,2)
 
        CALL write_casa_restart_nc ( casamet, casapool,casaflux,phen,CASAONLY )
 
