@@ -7502,9 +7502,10 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
             &                             types(bidx), ierr)
        blocks(bidx) = 1
 
-       bidx = bidx + 1
-       CALL MPI_Get_address (climate%mtemp_max(off), displs(bidx), ierr)
-       blocks(bidx) = r1len
+       ! #294 - Avoid malformed var write for now 
+       ! bidx = bidx + 1
+       ! CALL MPI_Get_address (climate%mtemp_max(off), displs(bidx), ierr)
+       ! blocks(bidx) = r1len
 
        !****************************************************************
        ! Ndep
