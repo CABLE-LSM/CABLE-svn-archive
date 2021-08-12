@@ -18,9 +18,6 @@ USE cbl_albedo_mod, ONLY: albedo
 USE cbl_masks_mod, ONLY: fveg_mask,  fsunlit_mask,  fsunlit_veg_mask
 USE cbl_masks_mod, ONLY: veg_mask,  sunlit_mask,  sunlit_veg_mask
 
-USE cbl_init_Loobos_mod, ONLY : initialize_Lveg
-USE cbl_init_Loobos_mod, ONLY : initialize_Lsoil
-
 !data
 USE cable_other_constants_mod,  ONLY: Ccoszen_tols => coszen_tols
 
@@ -45,7 +42,10 @@ USE cable_sum_flux_type_mod,  ONLY: sum_flux_type
 USE cable_params_mod,         ONLY: veg_parameter_type
 USE cable_params_mod,         ONLY: soil_parameter_type
 USE cable_def_types_mod,      ONLY: climate_type
+!icycle switch. [0]=None,1=C,2=CN,3=CNP
+USE casadimension,            ONLY : icycle
 
+!subrs
 USE cbl_soil_snow_main_module,  ONLY: soil_snow
 USE cable_roughness_module, ONLY: ruff_resist
 USE cbl_init_radiation_module, ONLY: init_radiation
@@ -59,8 +59,6 @@ USE cable_phys_constants_mod, ONLY : cemsoil => emsoil
 USE cable_canopy_module, ONLY: define_canopy
 USE cable_canopy_module_explicit, ONLY: define_canopy_explicit
                                    
-  USE cable_fprint_type_mod, ONLY : fprintx 
-
 LOGICAL :: explicit_path
 INTEGER :: mp
 INTEGER :: nrb
@@ -116,20 +114,8 @@ REAL :: xk(mp,nrb)
 REAL :: CanopyRefl_dif(mp,nrb)
 REAL :: CanopyRefl_beam(mp,nrb)
 
-IF ( first_call ) THEN 
-  call initialize_Lveg( veg )
-  call initialize_Lsoil( soil )
-  met%ca = 3.999999e-4 
-  ALLOCATE( fprintx% fprint1(mp) )
-  ALLOCATE( fprintx% fprint2(mp) )
-  ALLOCATE( fprintx% fprint3(mp) )
-  ALLOCATE( fprintx% fprint4(mp) )
-  ALLOCATE( fprintx% fprint5(mp) )
-  ALLOCATE( fprintx% fprint6(mp) )
-  ALLOCATE( fprintx% fprint7(mp) )
-  ALLOCATE( fprintx% fprint8(mp) )
-  ALLOCATE( fprintx% fprint9(mp) )
-EndIf
+!is this even nencessary anymore?
+IF ( first_call )  met%ca = 3.999999e-4 
       
 metDoy = INT(RmetDoy)
 !iFor testing
@@ -170,7 +156,7 @@ CALL Albedo( ssnow%AlbSoilsn, soil%AlbSoil,                                 &
              jls_radiation,                                                 &
              veg_mask, sunlit_mask, sunlit_veg_mask,                        &  
              Ccoszen_tols, cgauss_w,                                        & 
-             veg%iveg, veg%refl, veg%taul,                                  & 
+             veg%iveg, soil%isoilm,veg%refl, veg%taul,                      & 
              !surface_type, VegRefl, VegTaul,
              met%tk, met%coszen, canopy%vlaiw,                              &
              !metTk, coszen, reducedLAIdue2snow,
