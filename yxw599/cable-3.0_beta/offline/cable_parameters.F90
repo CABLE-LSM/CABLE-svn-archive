@@ -1292,7 +1292,7 @@ CONTAINS
                 PRINT *, 'Investigate the discrepancy in patch fractions:'
                 PRINT *, 'patch%frac = ',                                          &
                      patch(landpt(e)%cstart:landpt(e)%cend)%frac
-                PRINT *, 'landpoint # ', e
+                PRINT *, 'landpoint # ', e,landpt(e)%ilon, landpt(e)%ilat, landpt(e)%nap,latitude(e),longitude(e)
                 PRINT *, 'veg types = ', veg%iveg(landpt(e)%cstart:landpt(e)%cend)
                 STOP
              END IF
