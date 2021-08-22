@@ -1438,6 +1438,20 @@ CONTAINS
           !jhan:is this done online? YES
           veg%ejmax(h) = 2.0 * veg%vcmax(h)
 
+          ! Temp. acclimation experiment
+          veg%Eav(h)            = vegin%Eav(veg%iveg(h)) !* 1.0e03
+          veg%dSv(h)            = vegin%dSv(veg%iveg(h)) 
+          veg%Eaj(h)            = vegin%Eaj(veg%iveg(h)) !* 1.0e03
+          veg%dSj(h)            = vegin%dSj(veg%iveg(h))
+          veg%Eav_int(h)        = vegin%Eav_int(veg%iveg(h)) !* 1.0e03
+          veg%Eav_slope(h)      = vegin%Eav_slope(veg%iveg(h))
+          veg%dSv_int(h)        = vegin%dSv_int(veg%iveg(h))
+          veg%dSv_slope(h)      = vegin%dSv_slope(veg%iveg(h))
+          veg%Eaj_acclim(h)     = vegin%Eaj_acclim(veg%iveg(h)) !* 1.0e03
+          veg%dSj_int(h)        = vegin%dSj_int(veg%iveg(h))
+          veg%dSj_slope_Th(h)   = vegin%dSj_slope_Th(veg%iveg(h))
+          veg%dSj_slope_TgTh(h) = vegin%dSj_slope_TgTh(veg%iveg(h))
+
        END DO ! over each veg patch in land point
        
     END DO ! over all land points
@@ -1476,7 +1490,10 @@ CONTAINS
                                 ! gamma added by Alexis below
          vegin%g0, vegin%g1, vegin%gamma, &
          vegin%a1gs, vegin%d0gs, vegin%alpha, vegin%convex, vegin%cfrd, &
-         vegin%gswmin, vegin%conkc0,vegin%conko0,vegin%ekc,vegin%eko   )
+         vegin%gswmin, vegin%conkc0,vegin%conko0,vegin%ekc,vegin%eko, &
+         vegin%Eav, vegin%dSv, vegin%Eaj, vegin%dSj, vegin%Eav_int, &
+         vegin%Eav_slope, vegin%dSv_int, vegin%dSv_slope, vegin%Eaj_acclim, &
+         vegin%dSj_int, vegin%dSj_slope_Th, vegin%dSj_slope_TgTh)
     !         vegf_temp,urbanf_temp,lakef_temp,icef_temp, &
 
     ! if using old format veg_parm input file, need to define veg%deciduous

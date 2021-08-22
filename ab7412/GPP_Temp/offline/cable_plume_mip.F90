@@ -252,10 +252,10 @@ CONTAINS
        PLUME%MetPath = TRIM(PLUME%MetPath)//TRIM(PLUME%RCPdir)//"/"
     ENDIF
 
-    IF ((TRIM(PLUME%Run) .EQ. "spinup" .OR. TRIM(PLUME%Run) .EQ. "1850_1900" ) &
-         .and. TRIM(PLUME%Forcing) .NE. 'watch') THEN
-       !PLUME%MetPath = TRIM(PLUME%MetPath)//"hist/1901_1930/"
-    ENDIF
+    !IF ((TRIM(PLUME%Run) .EQ. "spinup" .OR. TRIM(PLUME%Run) .EQ. "1850_1900" ) &
+    !     .and. TRIM(PLUME%Forcing) .NE. 'watch') THEN
+    !   PLUME%MetPath = TRIM(PLUME%MetPath)//"hist/1901_1930/"
+    !ENDIF
 
     ! Set Leap-years according to dataset
     IF ( TRIM(PLUME%Forcing) .EQ. "watch" ) THEN
@@ -415,10 +415,11 @@ CONTAINS
     INTEGER   :: i, idx
     CHARACTER :: cy*4, sfy*12, mp*400, fc*15, rcp*15, ccy*4
 
-    INTEGER, DIMENSION(21), PARAMETER :: &
-         syear = (/ 1901, 1911, 1921, 1931, 1941, 1951, 1961, 1971, 1981, 1991, 2001, &
+    ! only used for forcing other than hadgem2 or ipsl
+    INTEGER, DIMENSION(25), PARAMETER :: &
+         syear = (/ 1861, 1871, 1881, 1891, 1901, 1911, 1921, 1931, 1941, 1951, 1961, 1971, 1981, 1991, 2001, &
          2006, 2011, 2021, 2031, 2041, 2051, 2061, 2071, 2081, 2091 /) , &
-         eyear = (/ 1910, 1920, 1930, 1940, 1950, 1960, 1970, 1980, 1990, 2000, 2005, &
+         eyear = (/ 1870, 1880, 1890, 1900, 1910, 1920, 1930, 1940, 1950, 1960, 1970, 1980, 1990, 2000, 2005, &
          2010, 2020, 2030, 2040, 2050, 2060, 2070, 2080, 2090, 2099 /)
 
     FN = "                                                                    "
@@ -428,6 +429,7 @@ CONTAINS
     fc = trim(PLUME%Forcing)
     rcp= trim(PLUME%RCP)
 
+    ! Determine file names
     IF ( TRIM(fc) .EQ. "watch" ) THEN
        ! WATCH data comes in annual files
        IF ( TRIM(PLUME%Run) .EQ. "spinup" ) THEN
@@ -489,44 +491,10 @@ CONTAINS
           FN = TRIM(FN)//cy//".nc"
        ENDIF
     ELSE ! non-watch
-       ! find proper file for current time
-       ! hist spinup only
-   
-       IF ( TRIM(PLUME%Run) .EQ. "spinup" ) THEN
-!!$          FN = TRIM(mp)//"/"//TRIM(PREF(par))
-!!$          IF ( par .NE. rhum ) FN = TRIM(FN)//"Adjust"
-!!$          FN = TRIM(FN)//"_"//TRIM(fc)//"_"//TRIM(rcp)//"_"
-!!$          IF ( par .NE. wind ) FN = TRIM(FN)//"detrended_"
-!!$          FN = TRIM(FN)//"1901-1930/"
-!!$
-!!$          FN = TRIM(FN)//"/"//TRIM(PREF(par))
-!!$          IF ( par .NE. rhum ) FN = TRIM(FN)//"Adjust"
-!!$          FN = TRIM(FN)//"_"//TRIM(fc)//"_"//TRIM(rcp)//"_"
-!!$          IF ( par .NE. wind ) FN = TRIM(FN)//"detrended_"
-!!$          FN = TRIM(FN)//cy//".nc"
 
-
-    
-          FN = TRIM(mp)//"/"//TRIM(PREF(par))//"_"
-          IF ( par .NE. rhum )  FN = TRIM(FN)//"bced_1960_1999_"
-          FN = TRIM(FN)//TRIM(fc)//"_"//Trim(rcp)//"_"//cy//".nc"
-          
-!!$hurs_ipsl-cm5a-lr_hist_1950.nc
-!!$pr_bced_1960_1999_ipsl-cm5a-lr_hist_1950.nc
-!!$prsn_bced_1960_1999_ipsl-cm5a-lr_hist_1950.nc
-!!$ps_bced_1960_1999_ipsl-cm5a-lr_hist_1950.nc
-!!$rlds_bced_1960_1999_ipsl-cm5a-lr_hist_1950.nc
-!!$rsds_bced_1960_1999_ipsl-cm5a-lr_hist_1950.nc
-!!$tasmax_bced_1960_1999_ipsl-cm5a-lr_hist_1950.nc
-!!$tasmin_bced_1960_1999_ipsl-cm5a-lr_hist_1950.nc
-!!$wind_bced_1960_1999_ipsl-cm5a-lr_hist_1950.nc
-          
-
-
-!!$       ELSE IF ( TRIM(PLUME%Run) .EQ. "1850_1900" .OR. &
-!!$            TRIM(PLUME%Run) .EQ. "1901_2005" ) THEN
-
-       ELSE IF (  TRIM(PLUME%Forcing) .EQ. "ipsl-cm5a-lr") THEN
+       FN = TRIM(mp)//"/"//TRIM(PREF(par))//"_"
+       ! JK: note that for spinup, PLUME%RCP must be 'hist'
+       IF (  TRIM(PLUME%Forcing) .EQ. "ipsl-cm5a-lr") THEN
 
 !!$          FN = TRIM(mp)//"/"//TRIM(PREF(par))
 !!$          IF ( par .NE. rhum ) FN = TRIM(FN)//"Adjust"
@@ -540,7 +508,6 @@ CONTAINS
 !!$          IF ( par .NE. wind ) FN = TRIM(FN)//"detrended_"
 !!$          FN = TRIM(FN)//cy//".nc"
 
-          FN = TRIM(mp)//"/"//TRIM(PREF(par))//"_"
           IF ( par .NE. rhum )  FN = TRIM(FN)//"bced_1960_1999_"
           SELECT CASE(TRIM(PLUME%RCP))
           CASE ( "hist"  ); FN = TRIM(FN)//TRIM(fc)//"_"//Trim(rcp)//"_"//cy//".nc"
@@ -549,14 +516,23 @@ CONTAINS
           CASE ( "6.0"   ); FN = TRIM(FN)//TRIM(fc)//"_"//"rcp6p0"//"_"//cy//".nc"
           CASE ( "8.5"   ); FN = TRIM(FN)//TRIM(fc)//"_"//"rcp8p5"//"_"//cy//".nc"
           END SELECT
+
+      ELSE IF (  TRIM(PLUME%Forcing) .EQ. "hadgem2-es") THEN
+
+          FN = TRIM(FN)//"r1i1p1_EWEMBI_"
+          SELECT CASE(TRIM(PLUME%RCP))
+          CASE ( "hist"  ); FN = TRIM(FN)//TRIM(fc)//"_"//Trim(rcp)//"_"//cy//".nc"
+          CASE ( "2.6"   ); FN = TRIM(FN)//TRIM(fc)//"_"//"rcp2p6"//"_"//cy//".nc"
+          CASE ( "4.5"   ); FN = TRIM(FN)//TRIM(fc)//"_"//"rcp4p5"//"_"//cy//".nc"
+          CASE ( "6.0"   ); FN = TRIM(FN)//TRIM(fc)//"_"//"rcp6p0"//"_"//cy//".nc"
+          CASE ( "8.5"   ); FN = TRIM(FN)//TRIM(fc)//"_"//"rcp8p5"//"_"//cy//".nc"
+          END SELECT
           
-          
-          !STOP "Not yet implemented! PLUME: GET_FILE_NAMES"
-       ELSE
+      ELSE
           ! real runs
           IF ( cyear .LT. syear(1) .OR. cyear .GT. 2099) THEN
-             WRITE(*   ,*)"Wrong year (Must be 1901 <= y <= 2099) ",CYEAR
-             WRITE(logn,*)"Wrong year (Must be 1901 <= y <= 2099) ",CYEAR
+             WRITE(*   ,*)"Wrong year (Must be 1861 <= y <= 2099) ",CYEAR
+             WRITE(logn,*)"Wrong year (Must be 1861 <= y <= 2099) ",CYEAR
              STOP "Error in PLUME_GET_FILENAME"
           ENDIF
           idx = SIZE(syear)
@@ -597,7 +573,7 @@ CONTAINS
 !!$    IF ( TRIM(PLUME%Forcing) .EQ. "ipsl-cm5a-lr" .AND. &
 !!$         (TRIM(PLUME%Run) .EQ. "spinup" .OR. TRIM(PLUME%Run) .EQ. "1850_1900") &
 !!$         .OR. TRIM(PLUME%Run) .EQ. "1901_2005" ) THEN
-    IF ( TRIM(PLUME%Forcing) .EQ. "ipsl-cm5a-lr") THEN
+    IF ( TRIM(PLUME%Forcing) .EQ. "ipsl-cm5a-lr" .OR. TRIM(PLUME%Forcing) .EQ. "hadgem2-es") THEN
        FILE_SWITCH = .TRUE.
        RETURN
     ENDIF
@@ -656,7 +632,7 @@ CONTAINS
        ! fixed 1850 value
        !Co2air = 284.72501
        ! fixed 1860 value
-       Co2air = 286.42 
+       Co2air = 286.22501 
     ELSE IF ( TRIM(PLUME%CO2) .EQ. "static1990" ) THEN
        ! fixed 1990 value
        CO2air = 353.85501
@@ -675,7 +651,7 @@ CONTAINS
 
        IF ( .NOT. ALLOCATED( PLUME%CO2VALS) ) THEN
           IF ( PLUME%CYEAR .LE. 2005 ) THEN
-             ALLOCATE( PLUME%CO2VALS( 1750:2016 ) )
+             ALLOCATE( PLUME%CO2VALS( 1850:2005 ) )
              !CO2FILE = TRIM(PLUME%BasePath)//"/CO2/co2_1850_2005_hist.dat"
              CO2FILE=PLUME%CO2file
           ELSE
@@ -806,10 +782,24 @@ END SUBROUTINE GET_PLUME_Ndep
 
 
     DO i = 1, PLUME%NMET
-       IF ( TRIM(PLUME%Run) .EQ. 'spinup' .OR. TRIM(PLUME%Run) .EQ. '1850_1900' ) THEN
-          CYEAR = MODULO(PLUME%CYEAR-1901,30) + 1901
+       IF ( TRIM(PLUME%Forcing) .EQ. "hadgem2-es" ) THEN
+          IF ( TRIM(PLUME%Run) .EQ. 'spinup' ) THEN  
+             CYEAR = MODULO(PLUME%CYEAR-1861,30) + 1861 
+          ELSE IF (TRIM(PLUME%Run) .EQ. '1850_1900' ) THEN
+             IF (PLUME%CYEAR .LT. 1861 ) THEN
+                CYEAR = MODULO(PLUME%CYEAR-1861,30) + 1861
+             ELSE
+                CYEAR = PLUME%CYEAR
+             ENDIF
+          ELSE
+             CYEAR = PLUME%CYEAR
+          ENDIF
        ELSE
-          CYEAR = PLUME%CYEAR
+          IF ( TRIM(PLUME%Run) .EQ. 'spinup' .OR. TRIM(PLUME%Run) .EQ. '1850_1900' ) THEN
+             CYEAR = MODULO(PLUME%CYEAR-1901,30) + 1901
+          ELSE
+             CYEAR = PLUME%CYEAR
+          ENDIF
        ENDIF
 
        CALL PLUME_GET_FILENAME( PLUME, CYEAR, i, PLUME%MetFile(i) )
@@ -834,7 +824,8 @@ END SUBROUTINE GET_PLUME_Ndep
          .AND. TRIM(PLUME%Run) .NE. '1850_1900' &
          .AND. TRIM(PLUME%Run) .NE. '1901_2005' &
          .AND. PLUME%CYEAR .GT. PLUME%MetStart &
-         .AND. TRIM(PLUME%FORCING) .NE. 'ipsl-cm5a-lr') THEN
+         .AND. TRIM(PLUME%FORCING) .NE. 'ipsl-cm5a-lr' &
+         .AND. TRIM(PLUME%FORCING) .NE. 'hadgem2-es') THEN
        DO yy = PLUME%MetStart, PLUME%CYEAR - 1
           PLUME%CTSTEP = PLUME%CTSTEP + 365 + LEAP_DAY( yy )
        END DO
@@ -878,11 +869,31 @@ END SUBROUTINE GET_PLUME_Ndep
 
     !IF ( TRIM(PLUME%Run) .EQ. 'spinup' .AND. &
     !     TRIM(PLUME%FORCING) .EQ. 'watch' ) THEN
-    IF ( TRIM(PLUME%Run) .EQ. 'spinup' .OR. TRIM(PLUME%Run) .EQ. '1850_1900'  ) THEN
-       CYEAR = MODULO(PLUME%CYEAR-1901,30) + 1901
+    IF ( TRIM(PLUME%Forcing) .EQ. "hadgem2-es" ) THEN
+       IF ( TRIM(PLUME%Run) .EQ. 'spinup' ) THEN  
+          CYEAR = MODULO(PLUME%CYEAR-1861,30) + 1861 
+       ELSE IF (TRIM(PLUME%Run) .EQ. '1850_1900' ) THEN
+          IF (PLUME%CYEAR .LT. 1861 ) THEN
+             CYEAR = MODULO(PLUME%CYEAR-1861,30) + 1861
+          ELSE
+             CYEAR = PLUME%CYEAR
+          ENDIF
+       ELSE
+          CYEAR = PLUME%CYEAR
+       ENDIF
     ELSE
-       CYEAR = PLUME%CYEAR
+       IF ( TRIM(PLUME%Run) .EQ. 'spinup' .OR. TRIM(PLUME%Run) .EQ. '1850_1900' ) THEN
+          CYEAR = MODULO(PLUME%CYEAR-1901,30) + 1901
+       ELSE
+          CYEAR = PLUME%CYEAR
+       ENDIF
     ENDIF
+       
+    !IF ( TRIM(PLUME%Run) .EQ. 'spinup' .OR. TRIM(PLUME%Run) .EQ. '1850_1900'  ) THEN
+    !   CYEAR = MODULO(PLUME%CYEAR-1901,30) + 1901
+    !ELSE
+    !   CYEAR = PLUME%CYEAR
+    !ENDIF
 
     xds = PLUME%xdimsize
     yds = PLUME%ydimsize
@@ -932,11 +943,30 @@ END SUBROUTINE GET_PLUME_Ndep
           IF ( .NOT. islast ) THEN
              ! Open next file for Quick access or use same if very last t-step.
              t  = 1
-             IF ( TRIM(PLUME%Run) .EQ. 'spinup' .OR. TRIM(PLUME%Run) .EQ. '1850_1900' ) THEN
-                NYEAR = MODULO(PLUME%CYEAR+1-1901,30) + 1901
+             IF ( TRIM(PLUME%Forcing) .EQ. "hadgem2-es" ) THEN
+                IF ( TRIM(PLUME%Run) .EQ. 'spinup' ) THEN  
+                   NYEAR = MODULO(PLUME%CYEAR+1-1861,30) + 1861 
+                ELSE IF (TRIM(PLUME%Run) .EQ. '1850_1900' ) THEN
+                   IF (PLUME%CYEAR .LT. 1861 ) THEN
+                      NYEAR = MODULO(PLUME%CYEAR+1-1861,30) + 1861
+                   ELSE
+                      NYEAR = PLUME%CYEAR
+                   ENDIF
+                ELSE
+                   NYEAR = PLUME%CYEAR
+                ENDIF
              ELSE
-                NYEAR = PLUME%CYEAR
+                IF ( TRIM(PLUME%Run) .EQ. 'spinup' .OR. TRIM(PLUME%Run) .EQ. '1850_1900' ) THEN
+                   NYEAR = MODULO(PLUME%CYEAR+1-1901,30) + 1901
+                ELSE
+                   NYEAR = PLUME%CYEAR
+                ENDIF
              ENDIF
+             !IF ( TRIM(PLUME%Run) .EQ. 'spinup' .OR. TRIM(PLUME%Run) .EQ. '1850_1900' ) THEN
+             !   NYEAR = MODULO(PLUME%CYEAR+1-1901,30) + 1901
+             !ELSE
+             !   NYEAR = PLUME%CYEAR
+             !ENDIF
 
              CALL PLUME_GET_FILENAME( PLUME, NYEAR, Tmin, filename )
              STATUS = NF90_OPEN(TRIM(filename), NF90_NOWRITE, fid)
