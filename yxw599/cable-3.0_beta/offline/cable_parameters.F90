@@ -1698,19 +1698,21 @@ CONTAINS
           casamet%lat(hh) = patch(hh)%latitude
           casamet%areacell(hh) = patch(hh)%frac                                  &
                * inArea(landpt(ee)%ilon, landpt(ee)%ilat)
-          casaflux%Nmindep(hh) = patch(hh)%frac                                  &
-               * inNdep(landpt(ee)%ilon, landpt(ee)%ilat)
-          casaflux%Nminfix(hh) = patch(hh)%frac                                  &
-               * inNfix(landpt(ee)%ilon, landpt(ee)%ilat)
-          casaflux%Pdep(hh)    = patch(hh)%frac                                  &
-               * inPdust(landpt(ee)%ilon, landpt(ee)%ilat)
-          casaflux%Pwea(hh)    = patch(hh)%frac                                  &
-               * inPwea(landpt(ee)%ilon, landpt(ee)%ilat)
+      ! YPW: the following lines are commented out. 
+      !    casaflux%Nmindep(hh) = patch(hh)%frac                                  &
+      !        * inNdep(landpt(ee)%ilon, landpt(ee)%ilat)
+      !    casaflux%Nminfix(hh) = patch(hh)%frac                                  &
+      !         * inNfix(landpt(ee)%ilon, landpt(ee)%ilat)
+      !    casaflux%Pdep(hh)    = patch(hh)%frac                                  &
+      !         * inPdust(landpt(ee)%ilon, landpt(ee)%ilat)
+      !    casaflux%Pwea(hh)    = patch(hh)%frac                                  &
+      !         * inPwea(landpt(ee)%ilon, landpt(ee)%ilat)
           !! vh !! fluxes shouldn't be weighted by patch frac.
           !   IF (CABLE_USER%POPLUC) then
           casaflux%Nmindep(hh) =  inNdep(landpt(ee)%ilon, landpt(ee)%ilat)
           casaflux%Nminfix(hh) = MAX( inNfix(landpt(ee)%ilon, landpt(ee)%ilat), &
                8.0e-4)
+          ! YPW this comment below is incorrect. As BNF rate is based on Peng et al. (2019), GBC, 10.1029/2019GB006296
           !vh ! minimum fixation rate of 3 kg N ha-1y-1 (8e-4 g N m-2 d-1)
           ! Cleveland, Cory C., et al. "Global patterns of terrestrial biological nitrogen (N2) &
           !fixation in natural ecosystems." Global biogeochemical cycles 13.2 (1999): 623-645.
@@ -1720,11 +1722,14 @@ CONTAINS
 
           ! fertilizer addition is included here
           IF (veg%iveg(hh) == cropland .OR. veg%iveg(hh) == croplnd2) THEN
+             ! The following shoudl not multiplied by patch(hh)%frac     
              ! P fertilizer =13 Mt P globally in 1994
              casaflux%Pdep(hh)    = casaflux%Pdep(hh)                             &
-                  + patch(hh)%frac * 0.7 / 365.0
+                  +  0.7 / 365.0
+       !           + patch(hh)%frac * 0.7 / 365.0
              casaflux%Nmindep(hh) = casaflux%Nmindep(hh)                          &
-                  + patch(hh)%frac * 4.0 / 365.0
+                  +  4.0 / 365.0
+       !           + patch(hh)%frac * 4.0 / 365.0
           ENDIF
        ENDDO
     ENDDO
