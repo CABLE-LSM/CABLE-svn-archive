@@ -81,6 +81,7 @@ build_build()
    MIS="../science/misc"
    ROU="../science/roughness"
    SOI="../science/soilsnow"
+   LUC="../science/landuse"
    OFF="../offline"
    UTI="../util"
 #DIA="../util/diag"
@@ -97,6 +98,7 @@ build_build()
    /bin/cp -p $SOI/*90 ./.tmp
    /bin/cp -p $SLI/*90 ./.tmp
    /bin/cp -p $POP/*90 ./.tmp
+   /bin/cp -p $LUC/*90 ./.tmp
    /bin/cp -p $OFF/*90 ./.tmp
 
 /bin/cp -p $UTI/*90 ./.tmp

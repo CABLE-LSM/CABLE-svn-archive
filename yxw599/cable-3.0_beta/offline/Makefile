@@ -66,7 +66,7 @@ LSRC =                          \
 	cable_weathergenerator.F90 cable_climate.F90 cable_phenology.F90 					 \
 	cable_cru_TRENDY.F90 POPLUC.F90 cable_LUC_EXPT.F90												 \
 	cable_gw_hydro.F90 cable_psm.F90 cable_namelist_input.F90									 \
-	cable_site.F90
+	cable_site.F90 landuse3.F90 landuse_constants.F90
 
 # this is the executable we are building
 PROG = cable
@@ -221,6 +221,9 @@ cable_namelist_input.o: cable_namelist_input.F90
 
 cable_site.o: cable_site.F90 cable_iovars.o cable_common.o
 
+landuse3.o: landuse3.F90 cable_define_types.o casa_dimension.o landuse_constants.o
+
+landuse_constants.o: landuse_constants.F90 cable_define_types.o casa_dimension.o
 
 # these are all the files we are compiling
 all  : cable_math_constants_mod.o   \
@@ -284,7 +287,9 @@ all  : cable_math_constants_mod.o   \
 	casa_phenology.o         	   \
 	casa_cnp.o               	   \
 	casa_cable.o             	   \
-	casa_inout.o
+	casa_inout.o                       \
+	landuse3.o                         \
+	landuse_constants.o
 
 # make clean option
 clean:

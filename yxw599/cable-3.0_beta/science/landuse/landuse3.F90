@@ -1,22 +1,3 @@
-MODULE landuse_constant
-  USE cable_def_types,    ONLY: mvtype,mstype,mland,ms,msn,ncp,ncs
-  USE casadimensions,     ONLY: icycle,mplant,mlitter,msoil,mwood,mso
-  IMPLICIT NONE
-!  integer, parameter                     :: sp =selected_real_kind(8)
-!  integer, parameter                     :: dp =selected_real_kind(16)
-  !  
-  INTEGER,   PARAMETER                   :: mstate   = 12  ! number of land use states
-  INTEGER,   PARAMETER                   :: mvmax    = mvtype 
-  INTEGER,   PARAMETER                   :: mharvw   = 5           
-
-  real*8,    PARAMETER                   :: thresh_frac  = 1.0e-6
-  REAL*8,    PARAMETER, DIMENSION(mwood) :: fwoodprod    =(/0.3,0.4,0.4/)
-  REAL*8,    PARAMETER, DIMENSION(mwood) :: ratewoodprod =(/1.0,0.1,0.01/)
-  REAL*8,    PARAMETER, DIMENSION(mwood) :: fracwoodseed =(/0.4,0.3,0.3/)
-  REAL*8,    PARAMETER, DIMENSION(mwood) :: fracgrassseed=(/0.6,0.0,0.4/)
-  REAL*8,    PARAMETER                   :: fseedling = 0.001
-END MODULE landuse_constant
-
 MODULE landuse_variable
   use landuse_constant
   IMPLICIT NONE
@@ -660,10 +641,10 @@ END MODULE landuse_patch
 ! Call by casa_init
 ! Q.Zhang @ 04/05/2011
   USE cable_IO_vars_module, ONLY: mask,patch_type,land_type
-  USE cable_def_types,      ONLY: mp,mvtype,mstype,mland,r2,ms,msn,nrb,ncp,ncs,            &
+  USE cable_def_types_mod,      ONLY: mp,mvtype,mstype,mland,r2,ms,msn,nrb,ncp,ncs,            &
                                   soil_parameter_type, soil_snow_type, veg_parameter_type, &
                                   balances_type, canopy_type,bgc_pool_type
-  USE casadimensions,       ONLY: icycle,mplant,mlitter,msoil,mwood,mso
+  USE casadimension,       ONLY: icycle,mplant,mlitter,msoil,mwood,mso
   USE casavariable,         ONLY: casa_pool,casa_balance
   USE phenvariable,         ONLY: phen_variable
   USE landuse_variable
