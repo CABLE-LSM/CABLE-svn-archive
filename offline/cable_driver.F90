@@ -93,7 +93,7 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
        write_output,close_output_file
   USE cable_write_module,   ONLY: nullify_write
   USE cable_IO_vars_module, ONLY: timeunits,calendar
-  USE cable_cbm_module
+   USE cable_cbm_module, ONLY : cbm
   !mpidiff
   USE cable_climate_mod
     
@@ -233,7 +233,7 @@ USE cbl_soil_snow_init_special_module
 
   ! timing
   REAL:: etime ! Declare the type of etime(), For receiving user and system time, total time
-
+  REAL, allocatable  :: heat_cap_lower_limit(:,:)
   ! switches etc defined thru namelist (by default cable.nml)
   NAMELIST/CABLE/		   &
        filename,	 & ! TYPE, containing input filenames
@@ -278,6 +278,10 @@ USE cbl_soil_snow_init_special_module
        new_sumbal = 0.0, &
        new_sumfpn = 0.0, &
        new_sumfe = 0.0
+!For consistency w JAC
+  REAL,ALLOCATABLE, SAVE :: c1(:,:)
+  REAL,ALLOCATABLE, SAVE :: rhoch(:,:)
+  REAL,ALLOCATABLE, SAVE :: xk(:,:)
 
   INTEGER :: nkend=0
   INTEGER :: ioerror
@@ -676,8 +680,13 @@ USE cbl_soil_snow_init_special_module
            IF (casaonly) THEN
               EXIT
            ENDIF
-  
-  call spec_init_soil_snow(dels, soil, ssnow, canopy, met, bal, veg)
+
+  if( .NOT. allocated(heat_cap_lower_limit) ) then
+    allocate( heat_cap_lower_limit(mp,ms) ) 
+    heat_cap_lower_limit = 0.01
+  end if
+
+  call spec_init_soil_snow(dels, soil, ssnow, canopy, met, bal, veg, heat_cap_lower_limit)
 
            ! time step loop over ktau
            DO ktau=kstart, kend
@@ -769,10 +778,10 @@ USE cbl_soil_snow_init_special_module
 
                  IF (l_laiFeedbk.AND.icycle>0) veg%vlai(:) = casamet%glai(:)
 
+   IF (.NOT. allocated(c1)) ALLOCATE( c1(mp,nrb), rhoch(mp,nrb), xk(mp,nrb) )
                  ! Call land surface scheme for this timestep, all grid points:
-                 CALL cbm(ktau, dels, air, bgc, canopy, met,		      &
-                      bal, rad, rough, soil, ssnow,			      &
-                      sum_flux, veg,climate )
+   CALL cbm( ktau, dels, air, bgc, canopy, met, bal,                             &
+             rad, rough, soil, ssnow, sum_flux, veg, climate, xk, c1, rhoch )
 
                  IF (cable_user%CALL_climate) &
                       CALL cable_climate(ktau_tot,kstart,kend,ktauday,idoy,LOY,met, &
