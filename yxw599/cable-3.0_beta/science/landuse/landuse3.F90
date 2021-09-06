@@ -642,7 +642,7 @@ END MODULE landuse_patch
   use netcdf
 
   use cable_common_module,  ONLY: filename
-  USE cable_IO_vars_module, ONLY: mask,patch_type,land_type
+  USE cable_IO_vars_module, ONLY: mask,patch,landpt
   USE cable_def_types_mod,  ONLY: mp,mvtype,mstype,mland,r_2,ms,msn,nrb,ncp,ncs,           &
                                   soil_parameter_type, soil_snow_type, veg_parameter_type, &
                                   balances_type, canopy_type, bgc_pool_type, radiation_type
@@ -652,8 +652,6 @@ END MODULE landuse_patch
   USE landuse_variable
   USE landuse_patch
   IMPLICIT NONE
-  TYPE (land_type)               :: landpt
-  TYPE (patch_type)              :: patch
   TYPE (soil_snow_type)          :: ssnow   ! soil and snow variables
   TYPE (soil_parameter_type)     :: soil    ! soil parameters
   TYPE (veg_parameter_type)      :: veg     ! vegetation parameters
@@ -679,7 +677,7 @@ END MODULE landuse_patch
   real(r_2),     dimension(:,:),      allocatable   :: areax    
   real(r_2),     dimension(:),        allocatable   :: arealand
   character*120   fxpft,fxluh2cable
-  integer ivt,ee,hh
+  integer ivt,ee,hh,np
   integer ncid,ok,xID,yID,varID,i,j,m
 
     ! the following variables are available from "CABLE"
@@ -753,7 +751,7 @@ END MODULE landuse_patch
      lucmp%soilorder(:) = casamet%isorder(:)          
      lucmp%phase(:)     = phen%phase(:)          
      lucmp%isflag(:)    = ssoil%isflag(:)    
-     lucmp%patchfrac(:) = frac(:)%patch             ! maybe we should create another variable for "primary%patch"
+     lucmp%patchfrac(:) = patch(:)%frac             ! maybe we should create another variable for "primary%patch"
      lucmp%lai(:)       = veg%vlai(:)
      lucmp%sla(:)       = casabiome%sla(veg%iveg(:)) 
 
