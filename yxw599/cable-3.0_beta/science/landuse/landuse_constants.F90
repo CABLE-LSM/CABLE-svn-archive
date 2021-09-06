@@ -1,6 +1,6 @@
 MODULE landuse_constant
-  USE cable_def_types,    ONLY: mvtype,mstype,mland,ms,msn,ncp,ncs,r_2
-  USE casadimensions,     ONLY: icycle,mplant,mlitter,msoil,mwood,mso
+  USE cable_def_types_mod,    ONLY: mvtype,mstype,mland,ms,msn,nrb,ncp,ncs,r_2
+  USE casadimension,          ONLY: icycle,mplant,mlitter,msoil,mwood,mso
   IMPLICIT NONE
 !  integer, parameter                     :: sp =selected_real_kind(8)
 !  integer, parameter                     :: dp =selected_real_kind(16)

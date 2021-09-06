@@ -80,7 +80,7 @@ MODULE landuse_variable
     real(r_2), dimension(:,:,:), allocatable :: albedo_y
     real(r_2), dimension(:,:,:), allocatable :: albsoil_y
     real(r_2),dimension(:,:),   allocatable :: dgdtg_y
-    real(r_2),dimension(:,:,:), allocatable :: gammzz_x
+    real(r_2),dimension(:,:,:), allocatable :: gammzz_y
     real(r_2), dimension(:,:,:), allocatable :: tgg_y
     real(r_2), dimension(:,:,:), allocatable :: wb_y
     real(r_2), dimension(:,:,:), allocatable :: wbice_y
@@ -112,7 +112,6 @@ MODULE landuse_variable
     real(r_2), dimension(:,:,:), allocatable :: cplantx_y
     real(r_2), dimension(:,:,:), allocatable :: csoilx_y
 
-    REAL(r_2), DIMENSION(:,:),   ALLOCATABLE :: patchfrac_y
     REAL(r_2), DIMENSION(:,:),   ALLOCATABLE :: clabile_y
     REAL(r_2), DIMENSION(:,:,:), ALLOCATABLE :: cplant_y
     REAL(r_2), DIMENSION(:,:,:), ALLOCATABLE :: clitter_y
@@ -132,7 +131,7 @@ MODULE landuse_variable
     REAL(r_2), DIMENSION(:,:,:), ALLOCATABLE :: pwoodprod_y
 
   ! landuse data
-    REAL(r_2), DIMENSION(:,:),   ALLOCATABLE :: patchfrac
+    REAL(r_2), DIMENSION(:,:),   ALLOCATABLE :: pftfrac
     REAL(r_2), DIMENSION(:,:),   ALLOCATABLE :: fharvw 
     REAL(r_2), DIMENSION(:,:,:), ALLOCATABLE :: xluh2cable 
     REAL(r_2), DIMENSION(:,:,:), ALLOCATABLE :: atransit
@@ -548,9 +547,9 @@ MODULE landuse_patch
    ! biophysical variables
      allocate(lucmp%albsoilsn(mpx,nrb),lucmp%albedo(mpx,nrb),lucmp%albsoil(mpx,nrb))                !float(mp,rad)
      allocate(lucmp%dgdtg(mpx))                                                                     !double(mp)
-     allocate(lucmp%gammzz(mpx))                                                                    !double(mp,soil)
+     allocate(lucmp%gammzz(mpx,ms))                                                                    !double(mp,soil)
      allocate(lucmp%tgg(mpx,ms),lucmp%wb(mpx,ms),lucmp%wbice(mpx,ms))                               !float(mp,soil)
-     allocatte(lucmp%tggsn(mpx,msn),lucmp%ssdn(mpx,msn),lucmp%smass(mpx,msn),lucmp%sdepth(mpx,msn)) !float(mp,snow)
+     allocate(lucmp%tggsn(mpx,msn),lucmp%ssdn(mpx,msn),lucmp%smass(mpx,msn),lucmp%sdepth(mpx,msn)) !float(mp,snow)
  
      allocate(lucmp%tss(mpx),lucmp%rtsoil(mpx),lucmp%runoff(mpx),lucmp%rnof1(mpx),lucmp%rnof2(mpx), &
               lucmp%ssdnn(mpx),lucmp%snowd(mpx),lucmp%snage(mpx),lucmp%osnowd(mpx),                 &
@@ -576,11 +575,11 @@ MODULE landuse_patch
      ! biophysical variables
      lucmp%albsoilsn(:,:)=0.0; lucmp%albedo(:,:)=0.0; lucmp%albsoil(:,:)=0.0                 !float(mp,rad)
      lucmp%dgdtg(:)=0.0                                                                      !double(mp)
-     lucmp%gammzz(:)=0.0                                                                     !double(mp,soil)
+     lucmp%gammzz(:,:)=0.0                                                                   !double(mp,soil)
      lucmp%tgg(:,:)=0.0;lucmp%wb(:,:)=0.0; lucmp%wbice(:,:)=0.0                              !float(mp,soil)
      lucmp%tggsn(:,:)=0.0; lucmp%ssdn(:,:)=0.0; lucmp%smass(:,:)=0.0; lucmp%sdepth(:,:)=0.0  !float(mp,snow)
  
-     lucmp%tss(:)=0.0;, lucmp%rtsoil(:)=0.0; lucmp%runoff(:)=0.0; lucmp%rnof1(:)=0.0; lucmp%rnof2(:)=0.0
+     lucmp%tss(:)=0.0; lucmp%rtsoil(:)=0.0; lucmp%runoff(:)=0.0; lucmp%rnof1(:)=0.0; lucmp%rnof2(:)=0.0
      lucmp%ssdnn(:)=0.0; lucmp%snowd(:)=0.0; lucmp%snage(:)=0.0; lucmp%osnowd(:)=0.0
      lucmp%cansto(:)=0.0; lucmp%ghflux(:)=0.0; lucmp%sghflux(:)=0.0; lucmp%ga(:)=0.0
      lucmp%fev(:)=0.0; lucmp%fes(:)=0.0; lucmp%fhs(:)=0.0; lucmp%wbtot0(:)=0.0; lucmp%osnowd0(:)=0.0
@@ -611,7 +610,7 @@ MODULE landuse_patch
      deallocate(lucmp%dgdtg)                                                  !double(mp)
      deallocate(lucmp%gammzz)                                                 !double(mp,soil)
      deallocate(lucmp%tgg,lucmp%wb,lucmp%wbice)                               !float(mp,soil)
-     deallocatte(lucmp%tggsn,lucmp%ssdn,lucmp%smass,lucmp%sdepth)             !float(mp,snow)
+     deallocate(lucmp%tggsn,lucmp%ssdn,lucmp%smass,lucmp%sdepth)             !float(mp,snow)
  
      deallocate(lucmp%tss,lucmp%rtsoil,lucmp%runoff,lucmp%rnof1,lucmp%rnof2,    &
               lucmp%ssdnn,lucmp%snowd,lucmp%snage,lucmp%osnowd,                 &
@@ -640,17 +639,20 @@ END MODULE landuse_patch
 ! Used for LAND USE CHANGE SIMULATION
 ! Call by casa_init
 ! Q.Zhang @ 04/05/2011
+  use netcdf
+
+  use cable_common_module,  ONLY: filename
   USE cable_IO_vars_module, ONLY: mask,patch_type,land_type
-  USE cable_def_types,      ONLY: mp,mvtype,mstype,mland,r2,ms,msn,nrb,ncp,ncs,            &
+  USE cable_def_types_mod,  ONLY: mp,mvtype,mstype,mland,r_2,ms,msn,nrb,ncp,ncs,           &
                                   soil_parameter_type, soil_snow_type, veg_parameter_type, &
-                                  balances_type, canopy_type,bgc_pool_type
-  USE casadimensions,       ONLY: icycle,mplant,mlitter,msoil,mwood,mso
-  USE casavariable,         ONLY: casa_pool,casa_balance
+                                  balances_type, canopy_type, bgc_pool_type, radiation_type
+  USE casadimension,        ONLY: icycle,mplant,mlitter,msoil,mwood,mso
+  USE casavariable,         ONLY: casa_pool,casa_balance,casa_met
   USE phenvariable,         ONLY: phen_variable
   USE landuse_variable
   USE landuse_patch
   IMPLICIT NONE
-  TYPE (land_type),              :: landpt
+  TYPE (land_type)               :: landpt
   TYPE (patch_type)              :: patch
   TYPE (soil_snow_type)          :: ssnow   ! soil and snow variables
   TYPE (soil_parameter_type)     :: soil    ! soil parameters
@@ -660,31 +662,79 @@ END MODULE landuse_patch
   TYPE (phen_variable)           :: phen
   TYPE (casa_pool)               :: casapool
   TYPE (casa_balance)            :: casbal
+  TYPE (casa_met)                :: casmet
   TYPE (bgc_pool_type)           :: bgc
+  TYPE (radiation_type)          :: rad    ! met data
+
 
 
   TYPE (landuse_type),save       :: luc
   TYPE (landuse_mp),  save       :: lucmp
 
   integer     mlon,mlat
-  integer,    dimension(:,:),      allocatable   :: landmask
+  integer,       dimension(:,:),      allocatable   :: landmask
   ! "mland" variables
-  integer,    dimension(:),        allocatable   :: cstart,cend,nap
+  integer,       dimension(:),        allocatable   :: cstart,cend,nap
   real(r_2),     dimension(:,:),      allocatable   :: fracpry
+  real(r_2),     dimension(:,:),      allocatable   :: areax    
   real(r_2),     dimension(:),        allocatable   :: arealand
   character*120   fxpft,fxluh2cable
   integer ivt,ee,hh
+  integer ncid,ok,xID,yID,varID,i,j,m
 
     ! the following variables are available from "CABLE"
-    ! mlon,mlat,landmask  
-     mlon     = ilon%landpt
-     mlat     = ilat%landpt
-     allocate(landmask(mlon,mlat))
-     allocate(fracpry(mland,mvtype))
-     allocate(cstart(mland),cend(mland),nap(mland))
-     allocate(arealand(mland))
+    ! get " mlon,mlat,landmask  " from gridinfo files
+    ! with UM, may be assigned from UM variables
 
-     landmask = mask
+
+    ok = NF90_OPEN(filename%type, 0, ncid)
+    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error opening grid info file.')
+
+    ok = NF90_INQ_DIMID(ncid, 'longitude', xID)
+    IF (ok /= NF90_NOERR) ok = NF90_INQ_DIMID(ncid, 'x', xID)
+    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error inquiring x dimension.')
+    ok = NF90_INQUIRE_DIMENSION(ncid, xID, LEN=mlon)
+    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error getting x dimension.')
+    ok = NF90_INQ_DIMID(ncid, 'latitude', yID)
+    IF (ok /= NF90_NOERR) ok = NF90_INQ_DIMID(ncid, 'y', yID)
+    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error inquiring y dimension.')
+    ok = NF90_INQUIRE_DIMENSION(ncid, yID, LEN=mlat)
+    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error getting y dimension.')
+
+    allocate(landmask(mlon,mlat))
+    allocate(areax(mlon,mlat))
+    allocate(arealand(mland))
+    allocate(fracpry(mland,mvtype))
+    allocate(cstart(mland),cend(mland),nap(mland))
+     
+    ok = NF90_INQ_VARID(ncid, 'area', varID)
+    IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                    &
+                  'Error finding variable area')
+    ok = NF90_GET_VAR(ncid, varID, areax)
+    IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                    &
+                  'Error reading variable longitude.')
+
+    ok = NF90_CLOSE(ncid)
+    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error closing grid info file.')
+
+     m=0
+     do i=1,mlon
+     do j=1,mlat
+        if(areax(i,j) >0.01) then
+           landmask(i,j) = 1
+           m=m+1
+           arealand(m) = areax(i,j)
+        else
+           landmask(i,j) =0
+        endif
+     enddo
+     enddo
+     if(m/=mland) then
+        print *, 'mland not consistent: check gridinof area'
+        stop
+     endif   
+
+!     landmask = mask
      cstart   = landpt%cstart
      cend     = landpt%cend
      nap      = landpt%nap
@@ -736,7 +786,7 @@ END MODULE landuse_patch
      lucmp%fes(:)         = canopy%fes(:)
      lucmp%fhs(:)         = canopy%fhs(:) 
      lucmp%wbtot0(:)      = bal%wbtot0(:)
-     lucmp%osnowd0(:)     = bal%%osnowd0(:)
+     lucmp%osnowd0(:)     = bal%osnowd0(:)
      lucmp%trad(:)        = rad%trad(:)
      lucmp%GWwb(:)        = ssnow%GWwb(:)
      lucmp%cplantx(:,:)   = bgc%cplant(:,:)
@@ -781,7 +831,7 @@ END MODULE landuse_patch
      endif
       
      ! assign variables var(mp,:) to luc%var_x(mland,mvmax,:)
-     call landuse_mp2land(luc,icycle,mland,mp,cstart,cend,lucmp)
+     call landuse_mp2land(luc,mp,cstart,cend,lucmp)
      ! we need to deallocate "lucmp" because "mp" will be updated after land use change
      call landuse_deallocate_mp(mp,ms,msn,nrb,mplant,mlitter,msoil,mwood,lucmp)
      call landuse_transitx(mland,icycle,luc)
@@ -820,14 +870,14 @@ END MODULE landuse_patch
 211  format(i4,a120)
 end subroutine landuse_driver
 
- SUBROUTINE landuse_mp2land(luc,icycle,mland,mp,cstart,cend,lucmp)
+ SUBROUTINE landuse_mp2land(luc,mp,cstart,cend,lucmp)
  use landuse_variable
  USE landuse_patch
  IMPLICIT NONE
  type(landuse_type)    :: luc
  type(landuse_mp)      :: lucmp
- integer icycle,mland,mp
- integer g,np,ivt
+ integer mp
+ integer g,np,ivt,i
  integer,        dimension(mland)        :: cstart,cend
 
   do g=1,mland
@@ -1000,12 +1050,6 @@ end subroutine landuse_driver
 
 END SUBROUTINE landuse_mp2land
   
-
-    REAL(r_2), DIMENSION(:,:),   ALLOCATABLE :: patchfrac
-    REAL(r_2), DIMENSION(:,:),   ALLOCATABLE :: fharvw 
-    REAL(r_2), DIMENSION(:,:,:), ALLOCATABLE :: xluh2cable 
-    REAL(r_2), DIMENSION(:,:,:), ALLOCATABLE :: atransit
-
 SUBROUTINE landuse_dims(fpft0,mlon,mlat,mland,mp,landmask,lon,lat)
 !  calculate "mland", "landmask",
 !  and initial patchfrac
