@@ -114,6 +114,7 @@ MODULE cable_mpiworker
   !debug moved to iovars -- easy to pass around
 
   PUBLIC :: mpidrv_worker
+  REAL, allocatable  :: heat_cap_lower_limit(:,:)
 
 CONTAINS
 
@@ -281,6 +282,10 @@ USE cbl_soil_snow_init_special_module
 
     INTEGER :: i,x,kk
     INTEGER :: LALLOC, iu
+!For consistency w JAC
+  REAL,ALLOCATABLE, SAVE :: c1(:,:)
+  REAL,ALLOCATABLE, SAVE :: rhoch(:,:)
+  REAL,ALLOCATABLE, SAVE :: xk(:,:)
     ! END header
 
     ! Maciej: make sure the variable does not go out of scope
@@ -568,7 +573,13 @@ USE cbl_soil_snow_init_special_module
              EXIT
           ENDIF
 
-  call spec_init_soil_snow(dels, soil, ssnow, canopy, met, bal, veg)
+  if( .NOT. allocated(heat_cap_lower_limit) ) then
+    allocate( heat_cap_lower_limit(mp,ms) ) 
+    heat_cap_lower_limit = 0.01
+  end if
+
+  call spec_init_soil_snow(dels, soil, ssnow, canopy, met, bal, veg, heat_cap_lower_limit)
+
   
           ! IF (.NOT.spincasa) THEN
           ! time step loop over ktau
@@ -639,10 +650,10 @@ USE cbl_soil_snow_init_special_module
                   climate, canopy, air, rad, dels, mp)
 
 
+   IF (.NOT. allocated(c1)) ALLOCATE( c1(mp,nrb), rhoch(mp,nrb), xk(mp,nrb) )
              ! CALL land surface scheme for this timestep, all grid points:
-             CALL cbm( ktau, dels, air, bgc, canopy, met,                  &
-                  bal, rad, rough, soil, ssnow,                            &
-                  sum_flux, veg, climate)
+   CALL cbm( ktau, dels, air, bgc, canopy, met, bal,                             &
+             rad, rough, soil, ssnow, sum_flux, veg, climate, xk, c1, rhoch )
 
              ssnow%smelt  = ssnow%smelt*dels
              ssnow%rnof1  = ssnow%rnof1*dels

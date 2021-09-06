@@ -31,6 +31,7 @@ host_gadi()
       export CFLAGS='-O2'
       #export NCMOD=$NETCDF_ROOT'/include'
    fi
+export CFLAGS='-O0'
    if [[ $1 = 'debug' ]]; then
       export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0'
       #export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0 -check all,noarg_temp_created'
@@ -82,7 +83,6 @@ build_build()
    ROU="../science/roughness"
    SOI="../science/soilsnow"
    OFF="../offline"
-   SHA="../shared"
    UTI="../util"
 #DIA="../util/diag"
    PAR="../params"
@@ -99,7 +99,6 @@ build_build()
    /bin/cp -p $SLI/*90 ./.tmp
    /bin/cp -p $POP/*90 ./.tmp
    /bin/cp -p $OFF/*90 ./.tmp
-   /bin/cp -p $SHA/*90 ./.tmp
 
 /bin/cp -p $UTI/*90 ./.tmp
 #/bin/cp -p $DIA/*90 ./.tmp
@@ -126,10 +125,10 @@ echo  ''
 
 make -f Makefile #this makes elements of CABLE that are common to all apps
 if [[ $1 = 'mpi' ]]; then
+   echo '$AOBJ'
    make -f Makefile3_mpi #this makes elements of CABLE that are specific to MPI CABLE
 else
    ./serial_cable  $FC $CFLAGS $LDFLAGS $LD $NCMOD
-   #./serial_cable  $FC $LDFLAGS $CFLAGS $NCDIR $NCMOD $LD    
    #make -f Makefile3_offline #this makes elements of CABLE that are specific to serial CABLE
 fi
 
