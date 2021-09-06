@@ -66,7 +66,7 @@ LSRC =                          \
 	cable_weathergenerator.F90 cable_climate.F90 cable_phenology.F90 					 \
 	cable_cru_TRENDY.F90 POPLUC.F90 cable_LUC_EXPT.F90												 \
 	cable_gw_hydro.F90 cable_psm.F90 cable_namelist_input.F90									 \
-	cable_site.F90 cable_climate_type_mod.F90
+	cable_site.F90 cable_climate_type_mod.F90 landuse.F90
 
 # this is the executable we are building
 PROG = cable
@@ -285,8 +285,8 @@ all  : cable_math_constants_mod.o   \
 	casa_phenology.o         	   \
 	casa_cnp.o               	   \
 	casa_cable.o             	   \
-	casa_inout.o
-
+	casa_inout.o                       \
+	landuse.F90
 # make clean option
 clean:
 	rm -f *.o *.mod 
