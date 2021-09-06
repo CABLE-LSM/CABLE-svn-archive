@@ -128,11 +128,6 @@ if [[ $1 = 'mpi' ]]; then
    echo '$AOBJ'
    make -f Makefile3_mpi #this makes elements of CABLE that are specific to MPI CABLE
 else
-   echo $FC
-   echo $CFLAGS
-   echo $LDFLAGS
-   echo $LD
-   echo $NCMOD
    ./serial_cable  "$FC" "$CFLAGS" "$LDFLAGS" "$LD" "$NCMOD"
    #make -f Makefile3_offline #this makes elements of CABLE that are specific to serial CABLE
 fi
