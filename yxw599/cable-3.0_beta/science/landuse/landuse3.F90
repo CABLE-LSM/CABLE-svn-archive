@@ -8,134 +8,134 @@ MODULE landuse_variable
     INTEGER,   DIMENSION(:,:),       ALLOCATABLE :: soilorder_x
     INTEGER,   DIMENSION(:,:),       ALLOCATABLE :: phase_x
     INTEGER,   DIMENSION(:,:),       ALLOCATABLE :: isflag_x
-    REAL*8, DIMENSION(:,:),   ALLOCATABLE :: patchfrac_x
-    REAL*8, DIMENSION(:,:),   ALLOCATABLE :: lai_x
-    REAL*8, DIMENSION(:,:),   ALLOCATABLE :: sla_x
+    REAL(r_2), DIMENSION(:,:),   ALLOCATABLE :: patchfrac_x
+    REAL(r_2), DIMENSION(:,:),   ALLOCATABLE :: lai_x
+    REAL(r_2), DIMENSION(:,:),   ALLOCATABLE :: sla_x
     ! biophysical
-    real*8, dimension(:,:,:), allocatable :: albsoilsn_x
-    real*8, dimension(:,:,:), allocatable :: albedo_x
-    real*8, dimension(:,:,:), allocatable :: albsoil_x
-    real*16,dimension(:,:),   allocatable :: dgdtg_x
-    real*16,dimension(:,:,:), allocatable :: gammzz_x
-    real*8, dimension(:,:,:), allocatable :: tgg_x
-    real*8, dimension(:,:,:), allocatable :: wb_x
-    real*8, dimension(:,:,:), allocatable :: wbice_x
-    real*8, dimension(:,:,:), allocatable :: tggsn_x
-    real*8, dimension(:,:,:), allocatable :: ssdn_x
-    real*8, dimension(:,:,:), allocatable :: smass_x
-    real*8, dimension(:,:,:), allocatable :: sdepth_x
-    real*8, dimension(:,:),   allocatable :: tss_x
-    real*8, dimension(:,:),   allocatable :: rtsoil_x
-    real*8, dimension(:,:),   allocatable :: runoff_x
-    real*8, dimension(:,:),   allocatable :: rnof1_x
-    real*8, dimension(:,:),   allocatable :: rnof2_x
-    real*8, dimension(:,:),   allocatable :: ssdnn_x
-    real*8, dimension(:,:),   allocatable :: snowd_x
-    real*8, dimension(:,:),   allocatable :: snage_x
-    real*8, dimension(:,:),   allocatable :: osnowd_x
+    real(r_2), dimension(:,:,:), allocatable :: albsoilsn_x
+    real(r_2), dimension(:,:,:), allocatable :: albedo_x
+    real(r_2), dimension(:,:,:), allocatable :: albsoil_x
+    real(r_2),dimension(:,:),   allocatable :: dgdtg_x
+    real(r_2),dimension(:,:,:), allocatable :: gammzz_x
+    real(r_2), dimension(:,:,:), allocatable :: tgg_x
+    real(r_2), dimension(:,:,:), allocatable :: wb_x
+    real(r_2), dimension(:,:,:), allocatable :: wbice_x
+    real(r_2), dimension(:,:,:), allocatable :: tggsn_x
+    real(r_2), dimension(:,:,:), allocatable :: ssdn_x
+    real(r_2), dimension(:,:,:), allocatable :: smass_x
+    real(r_2), dimension(:,:,:), allocatable :: sdepth_x
+    real(r_2), dimension(:,:),   allocatable :: tss_x
+    real(r_2), dimension(:,:),   allocatable :: rtsoil_x
+    real(r_2), dimension(:,:),   allocatable :: runoff_x
+    real(r_2), dimension(:,:),   allocatable :: rnof1_x
+    real(r_2), dimension(:,:),   allocatable :: rnof2_x
+    real(r_2), dimension(:,:),   allocatable :: ssdnn_x
+    real(r_2), dimension(:,:),   allocatable :: snowd_x
+    real(r_2), dimension(:,:),   allocatable :: snage_x
+    real(r_2), dimension(:,:),   allocatable :: osnowd_x
 
-    real*8, dimension(:,:),   allocatable :: cansto_x
-    real*8, dimension(:,:),   allocatable :: ghflux_x
-    real*8, dimension(:,:),   allocatable :: sghflux_x
-    real*8, dimension(:,:),   allocatable :: ga_x
-    real*8, dimension(:,:),   allocatable :: fev_x
-    real*8, dimension(:,:),   allocatable :: fes_x
-    real*8, dimension(:,:),   allocatable :: fhs_x
-    real*8, dimension(:,:),   allocatable :: wbtot0_x
-    real*8, dimension(:,:),   allocatable :: osnowd0_x
-    real*8, dimension(:,:),   allocatable :: trad_x
-    real*8, dimension(:,:),   allocatable :: GWwb_x
-    real*8, dimension(:,:,:), allocatable :: cplantx_x
-    real*8, dimension(:,:,:), allocatable :: csoilx_x
+    real(r_2), dimension(:,:),   allocatable :: cansto_x
+    real(r_2), dimension(:,:),   allocatable :: ghflux_x
+    real(r_2), dimension(:,:),   allocatable :: sghflux_x
+    real(r_2), dimension(:,:),   allocatable :: ga_x
+    real(r_2), dimension(:,:),   allocatable :: fev_x
+    real(r_2), dimension(:,:),   allocatable :: fes_x
+    real(r_2), dimension(:,:),   allocatable :: fhs_x
+    real(r_2), dimension(:,:),   allocatable :: wbtot0_x
+    real(r_2), dimension(:,:),   allocatable :: osnowd0_x
+    real(r_2), dimension(:,:),   allocatable :: trad_x
+    real(r_2), dimension(:,:),   allocatable :: GWwb_x
+    real(r_2), dimension(:,:,:), allocatable :: cplantx_x
+    real(r_2), dimension(:,:,:), allocatable :: csoilx_x
 
 
-    REAL*8, DIMENSION(:,:),   ALLOCATABLE :: clabile_x
-    REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: cplant_x
-    REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: clitter_x
-    REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: csoil_x
-    REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: cwoodprod_x
-    REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: nplant_x
-    REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: nlitter_x
-    REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: nsoil_x
-    REAL*8, DIMENSION(:,:),   ALLOCATABLE :: nsoilmin_x
-    REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: nwoodprod_x
-    REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: pplant_x
-    REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: plitter_x
-    REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: psoil_x
-    REAL*8, DIMENSION(:,:),   ALLOCATABLE :: psoillab_x
-    REAL*8, DIMENSION(:,:),   ALLOCATABLE :: psoilsorb_x
-    REAL*8, DIMENSION(:,:),   ALLOCATABLE :: psoilocc_x
-    REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: pwoodprod_x
+    REAL(r_2), DIMENSION(:,:),   ALLOCATABLE :: clabile_x
+    REAL(r_2), DIMENSION(:,:,:), ALLOCATABLE :: cplant_x
+    REAL(r_2), DIMENSION(:,:,:), ALLOCATABLE :: clitter_x
+    REAL(r_2), DIMENSION(:,:,:), ALLOCATABLE :: csoil_x
+    REAL(r_2), DIMENSION(:,:,:), ALLOCATABLE :: cwoodprod_x
+    REAL(r_2), DIMENSION(:,:,:), ALLOCATABLE :: nplant_x
+    REAL(r_2), DIMENSION(:,:,:), ALLOCATABLE :: nlitter_x
+    REAL(r_2), DIMENSION(:,:,:), ALLOCATABLE :: nsoil_x
+    REAL(r_2), DIMENSION(:,:),   ALLOCATABLE :: nsoilmin_x
+    REAL(r_2), DIMENSION(:,:,:), ALLOCATABLE :: nwoodprod_x
+    REAL(r_2), DIMENSION(:,:,:), ALLOCATABLE :: pplant_x
+    REAL(r_2), DIMENSION(:,:,:), ALLOCATABLE :: plitter_x
+    REAL(r_2), DIMENSION(:,:,:), ALLOCATABLE :: psoil_x
+    REAL(r_2), DIMENSION(:,:),   ALLOCATABLE :: psoillab_x
+    REAL(r_2), DIMENSION(:,:),   ALLOCATABLE :: psoilsorb_x
+    REAL(r_2), DIMENSION(:,:),   ALLOCATABLE :: psoilocc_x
+    REAL(r_2), DIMENSION(:,:,:), ALLOCATABLE :: pwoodprod_x
 
     INTEGER,   DIMENSION(:,:),       ALLOCATABLE :: iveg_y
     INTEGER,   DIMENSION(:,:),       ALLOCATABLE :: isoil_y
     INTEGER,   DIMENSION(:,:),       ALLOCATABLE :: soilorder_y
     INTEGER,   DIMENSION(:,:),       ALLOCATABLE :: phase_y
     INTEGER,   DIMENSION(:,:),       ALLOCATABLE :: isflag_y
-    REAL*8, DIMENSION(:,:),   ALLOCATABLE :: patchfrac_y
-    REAL*8, DIMENSION(:,:),   ALLOCATABLE :: lai_y
-    REAL*8, DIMENSION(:,:),   ALLOCATABLE :: sla_y
+    REAL(r_2), DIMENSION(:,:),   ALLOCATABLE :: patchfrac_y
+    REAL(r_2), DIMENSION(:,:),   ALLOCATABLE :: lai_y
+    REAL(r_2), DIMENSION(:,:),   ALLOCATABLE :: sla_y
     ! biophysical
-    real*8, dimension(:,:,:), allocatable :: albsoilsn_y
-    real*8, dimension(:,:,:), allocatable :: albedo_y
-    real*8, dimension(:,:,:), allocatable :: albsoil_y
-    real*16,dimension(:,:),   allocatable :: dgdtg_y
-    real*16,dimension(:,:,:), allocatable :: gammzz_x
-    real*8, dimension(:,:,:), allocatable :: tgg_y
-    real*8, dimension(:,:,:), allocatable :: wb_y
-    real*8, dimension(:,:,:), allocatable :: wbice_y
-    real*8, dimension(:,:,:), allocatable :: tggsn_y
-    real*8, dimension(:,:,:), allocatable :: ssdn_y
-    real*8, dimension(:,:,:), allocatable :: smass_y
-    real*8, dimension(:,:,:), allocatable :: sdepth_y
-    real*8, dimension(:,:),   allocatable :: tss_y
-    real*8, dimension(:,:),   allocatable :: rtsoil_y
-    real*8, dimension(:,:),   allocatable :: runoff_y
-    real*8, dimension(:,:),   allocatable :: rnof1_y
-    real*8, dimension(:,:),   allocatable :: rnof2_y
-    real*8, dimension(:,:),   allocatable :: ssdnn_y
-    real*8, dimension(:,:),   allocatable :: snowd_y
-    real*8, dimension(:,:),   allocatable :: snage_y
-    real*8, dimension(:,:),   allocatable :: osnowd_y
+    real(r_2), dimension(:,:,:), allocatable :: albsoilsn_y
+    real(r_2), dimension(:,:,:), allocatable :: albedo_y
+    real(r_2), dimension(:,:,:), allocatable :: albsoil_y
+    real(r_2),dimension(:,:),   allocatable :: dgdtg_y
+    real(r_2),dimension(:,:,:), allocatable :: gammzz_x
+    real(r_2), dimension(:,:,:), allocatable :: tgg_y
+    real(r_2), dimension(:,:,:), allocatable :: wb_y
+    real(r_2), dimension(:,:,:), allocatable :: wbice_y
+    real(r_2), dimension(:,:,:), allocatable :: tggsn_y
+    real(r_2), dimension(:,:,:), allocatable :: ssdn_y
+    real(r_2), dimension(:,:,:), allocatable :: smass_y
+    real(r_2), dimension(:,:,:), allocatable :: sdepth_y
+    real(r_2), dimension(:,:),   allocatable :: tss_y
+    real(r_2), dimension(:,:),   allocatable :: rtsoil_y
+    real(r_2), dimension(:,:),   allocatable :: runoff_y
+    real(r_2), dimension(:,:),   allocatable :: rnof1_y
+    real(r_2), dimension(:,:),   allocatable :: rnof2_y
+    real(r_2), dimension(:,:),   allocatable :: ssdnn_y
+    real(r_2), dimension(:,:),   allocatable :: snowd_y
+    real(r_2), dimension(:,:),   allocatable :: snage_y
+    real(r_2), dimension(:,:),   allocatable :: osnowd_y
 
-    real*8, dimension(:,:),   allocatable :: cansto_y
-    real*8, dimension(:,:),   allocatable :: ghflux_y
-    real*8, dimension(:,:),   allocatable :: sghflux_y
-    real*8, dimension(:,:),   allocatable :: ga_y
-    real*8, dimension(:,:),   allocatable :: fev_y
-    real*8, dimension(:,:),   allocatable :: fes_y
-    real*8, dimension(:,:),   allocatable :: fhs_y
-    real*8, dimension(:,:),   allocatable :: wbtot0_y
-    real*8, dimension(:,:),   allocatable :: osnowd0_y
-    real*8, dimension(:,:),   allocatable :: trad_y
-    real*8, dimension(:,:),   allocatable :: GWwb_y
-    real*8, dimension(:,:,:), allocatable :: cplantx_y
-    real*8, dimension(:,:,:), allocatable :: csoilx_y
+    real(r_2), dimension(:,:),   allocatable :: cansto_y
+    real(r_2), dimension(:,:),   allocatable :: ghflux_y
+    real(r_2), dimension(:,:),   allocatable :: sghflux_y
+    real(r_2), dimension(:,:),   allocatable :: ga_y
+    real(r_2), dimension(:,:),   allocatable :: fev_y
+    real(r_2), dimension(:,:),   allocatable :: fes_y
+    real(r_2), dimension(:,:),   allocatable :: fhs_y
+    real(r_2), dimension(:,:),   allocatable :: wbtot0_y
+    real(r_2), dimension(:,:),   allocatable :: osnowd0_y
+    real(r_2), dimension(:,:),   allocatable :: trad_y
+    real(r_2), dimension(:,:),   allocatable :: GWwb_y
+    real(r_2), dimension(:,:,:), allocatable :: cplantx_y
+    real(r_2), dimension(:,:,:), allocatable :: csoilx_y
 
-    REAL*8, DIMENSION(:,:),   ALLOCATABLE :: patchfrac_y
-    REAL*8, DIMENSION(:,:),   ALLOCATABLE :: clabile_y
-    REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: cplant_y
-    REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: clitter_y
-    REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: csoil_y
-    REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: cwoodprod_y
-    REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: nplant_y
-    REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: nlitter_y
-    REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: nsoil_y 
-    REAL*8, DIMENSION(:,:),   ALLOCATABLE :: nsoilmin_y
-    REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: nwoodprod_y
-    REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: pplant_y
-    REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: plitter_y
-    REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: psoil_y
-    REAL*8, DIMENSION(:,:),   ALLOCATABLE :: psoillab_y
-    REAL*8, DIMENSION(:,:),   ALLOCATABLE :: psoilsorb_y
-    REAL*8, DIMENSION(:,:),   ALLOCATABLE :: psoilocc_y
-    REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: pwoodprod_y
+    REAL(r_2), DIMENSION(:,:),   ALLOCATABLE :: patchfrac_y
+    REAL(r_2), DIMENSION(:,:),   ALLOCATABLE :: clabile_y
+    REAL(r_2), DIMENSION(:,:,:), ALLOCATABLE :: cplant_y
+    REAL(r_2), DIMENSION(:,:,:), ALLOCATABLE :: clitter_y
+    REAL(r_2), DIMENSION(:,:,:), ALLOCATABLE :: csoil_y
+    REAL(r_2), DIMENSION(:,:,:), ALLOCATABLE :: cwoodprod_y
+    REAL(r_2), DIMENSION(:,:,:), ALLOCATABLE :: nplant_y
+    REAL(r_2), DIMENSION(:,:,:), ALLOCATABLE :: nlitter_y
+    REAL(r_2), DIMENSION(:,:,:), ALLOCATABLE :: nsoil_y 
+    REAL(r_2), DIMENSION(:,:),   ALLOCATABLE :: nsoilmin_y
+    REAL(r_2), DIMENSION(:,:,:), ALLOCATABLE :: nwoodprod_y
+    REAL(r_2), DIMENSION(:,:,:), ALLOCATABLE :: pplant_y
+    REAL(r_2), DIMENSION(:,:,:), ALLOCATABLE :: plitter_y
+    REAL(r_2), DIMENSION(:,:,:), ALLOCATABLE :: psoil_y
+    REAL(r_2), DIMENSION(:,:),   ALLOCATABLE :: psoillab_y
+    REAL(r_2), DIMENSION(:,:),   ALLOCATABLE :: psoilsorb_y
+    REAL(r_2), DIMENSION(:,:),   ALLOCATABLE :: psoilocc_y
+    REAL(r_2), DIMENSION(:,:,:), ALLOCATABLE :: pwoodprod_y
 
   ! landuse data
-    REAL*8, DIMENSION(:,:),   ALLOCATABLE :: patchfrac
-    REAL*8, DIMENSION(:,:),   ALLOCATABLE :: fharvw 
-    REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: xluh2cable 
-    REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: atransit
+    REAL(r_2), DIMENSION(:,:),   ALLOCATABLE :: patchfrac
+    REAL(r_2), DIMENSION(:,:),   ALLOCATABLE :: fharvw 
+    REAL(r_2), DIMENSION(:,:,:), ALLOCATABLE :: xluh2cable 
+    REAL(r_2), DIMENSION(:,:,:), ALLOCATABLE :: atransit
   END TYPE landuse_type
 
   CONTAINS
@@ -510,28 +510,28 @@ MODULE landuse_patch
 
    ! generic patch properties
    integer, dimension(:),        allocatable   :: iveg,isoil,soilorder,phase,isflag           !(mp)
-   real*8,  dimension(:),        allocatable   :: patchfrac,areacell,lai,sla                  !float(mp)
+   real(r_2),  dimension(:),        allocatable   :: patchfrac,areacell,lai,sla                  !float(mp)
 
    ! biophysical variables
-   real*8,  dimension(:,:),      allocatable   :: albsoilsn,albedo,albsoil      !float(mp,rad)
-   real*16, dimension(:),        allocatable   :: dgdtg                         !double(mp)
-   real*16, dimension(:,:),      allocatable   :: gammzz                        !double(mp,soil)
-   real*8,  dimension(:,:),      allocatable   :: tgg,wb,wbice                  !float(mp,soil)
-   real*8,  dimension(:,:),      allocatable   :: tggsn,ssdn,smass,sdepth       !float(mp,snow)
-   real*8,  dimension(:),        allocatable   :: tss,rtsoil,runoff,rnof1,rnof2, &
+   real(r_2),  dimension(:,:),      allocatable   :: albsoilsn,albedo,albsoil      !float(mp,rad)
+   real(r_2), dimension(:),        allocatable   :: dgdtg                         !double(mp)
+   real(r_2), dimension(:,:),      allocatable   :: gammzz                        !double(mp,soil)
+   real(r_2),  dimension(:,:),      allocatable   :: tgg,wb,wbice                  !float(mp,soil)
+   real(r_2),  dimension(:,:),      allocatable   :: tggsn,ssdn,smass,sdepth       !float(mp,snow)
+   real(r_2),  dimension(:),        allocatable   :: tss,rtsoil,runoff,rnof1,rnof2, &
                                                          ssdnn,snowd,snage,osnowd,      &
                                                          cansto,ghflux,sghflux,ga,      &
                                                          fev,fes,fhs,wbtot0,osnowd0,    &
                                                          trad,GWwb                     !float(mp)
-   real*8,  dimension(:,:),      allocatable   :: cplantx, csoilx               !float(mp,plant_carbon_pools/soil_carbon_pools)
+   real(r_2),  dimension(:,:),      allocatable   :: cplantx, csoilx               !float(mp,plant_carbon_pools/soil_carbon_pools)
 
    ! biogeochemical variables
-   real*8,  dimension(:),        allocatable   :: sumcbal,sumnbal,sumpbal                              !float(mp)                   
-   real*8,  dimension(:),        allocatable   :: clabile,nsoilmin,psoillab,psoilsorb,psoilocc         !float(mp)
-   real*8,  dimension(:,:),      allocatable   :: cplant,nplant,pplant                                 !float(mp,mplant)
-   real*8,  dimension(:,:),      allocatable   :: clitter,nlitter,plitter                              !float(mp,mlitter)
-   real*8,  dimension(:,:),      allocatable   :: csoil,nsoil,psoil                                    !float(mp,msoil)
-   real*8,  dimension(:,:),      allocatable   :: cwoodprod,nwoodprod,pwoodprod                        !float(mp,mwood)
+   real(r_2),  dimension(:),        allocatable   :: sumcbal,sumnbal,sumpbal                              !float(mp)                   
+   real(r_2),  dimension(:),        allocatable   :: clabile,nsoilmin,psoillab,psoilsorb,psoilocc         !float(mp)
+   real(r_2),  dimension(:,:),      allocatable   :: cplant,nplant,pplant                                 !float(mp,mplant)
+   real(r_2),  dimension(:,:),      allocatable   :: clitter,nlitter,plitter                              !float(mp,mlitter)
+   real(r_2),  dimension(:,:),      allocatable   :: csoil,nsoil,psoil                                    !float(mp,msoil)
+   real(r_2),  dimension(:,:),      allocatable   :: cwoodprod,nwoodprod,pwoodprod                        !float(mp,mwood)
 
  END TYPE landuse_mp
  
@@ -641,10 +641,10 @@ END MODULE landuse_patch
 ! Call by casa_init
 ! Q.Zhang @ 04/05/2011
   USE cable_IO_vars_module, ONLY: mask,patch_type,land_type
-  USE cable_def_types_mod,      ONLY: mp,mvtype,mstype,mland,r2,ms,msn,nrb,ncp,ncs,            &
+  USE cable_def_types,      ONLY: mp,mvtype,mstype,mland,r2,ms,msn,nrb,ncp,ncs,            &
                                   soil_parameter_type, soil_snow_type, veg_parameter_type, &
                                   balances_type, canopy_type,bgc_pool_type
-  USE casadimension,       ONLY: icycle,mplant,mlitter,msoil,mwood,mso
+  USE casadimensions,       ONLY: icycle,mplant,mlitter,msoil,mwood,mso
   USE casavariable,         ONLY: casa_pool,casa_balance
   USE phenvariable,         ONLY: phen_variable
   USE landuse_variable
@@ -670,8 +670,8 @@ END MODULE landuse_patch
   integer,    dimension(:,:),      allocatable   :: landmask
   ! "mland" variables
   integer,    dimension(:),        allocatable   :: cstart,cend,nap
-  real*8,     dimension(:,:),      allocatable   :: fracpry
-  real*8,     dimension(:),        allocatable   :: arealand
+  real(r_2),     dimension(:,:),      allocatable   :: fracpry
+  real(r_2),     dimension(:),        allocatable   :: arealand
   character*120   fxpft,fxluh2cable
   integer ivt,ee,hh
 
@@ -1001,10 +1001,10 @@ end subroutine landuse_driver
 END SUBROUTINE landuse_mp2land
   
 
-    REAL*8, DIMENSION(:,:),   ALLOCATABLE :: patchfrac
-    REAL*8, DIMENSION(:,:),   ALLOCATABLE :: fharvw 
-    REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: xluh2cable 
-    REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: atransit
+    REAL(r_2), DIMENSION(:,:),   ALLOCATABLE :: patchfrac
+    REAL(r_2), DIMENSION(:,:),   ALLOCATABLE :: fharvw 
+    REAL(r_2), DIMENSION(:,:,:), ALLOCATABLE :: xluh2cable 
+    REAL(r_2), DIMENSION(:,:,:), ALLOCATABLE :: atransit
 
 SUBROUTINE landuse_dims(fpft0,mlon,mlat,mland,mp,landmask,lon,lat)
 !  calculate "mland", "landmask",
@@ -1015,11 +1015,11 @@ implicit none
 character*120 fpft0
 integer    mlon,mlat,mland,mp
 integer,   dimension(mlon,mlat)              :: landmask
-real*8,  dimension(mlon)              :: lon
-real*8,  dimension(mlat)              :: lat
+real(r_2),  dimension(mlon)              :: lon
+real(r_2),  dimension(mlat)              :: lat
 ! local variables
-real*8,   dimension(:,:,:),   allocatable   :: fracx
-real*8,   dimension(:,:,:),   allocatable   :: transx
+real(r_2),   dimension(:,:,:),   allocatable   :: fracx
+real(r_2),   dimension(:,:,:),   allocatable   :: transx
 integer ok,ncid1,varxid,i,j,k,np,nland
 
     allocate(primary(mlon,mlat,mvtype))
@@ -1125,9 +1125,9 @@ SUBROUTINE landuse_getdata(mland,mlat,mlon,landmask,fxpft01,luc)
   integer,   dimension(mlon,mlat)                  :: landmask 
   ! local variables
 !  integer, dimension(:,:,:),  allocatable    :: cablepft
-!  real*8,  dimension(:,:,:),  allocatable    :: patchx
-  real*8,  dimension(:,:,:),   allocatable   :: fracharvw
-  real*8,  dimension(:,:,:,:), allocatable   :: transitx
+!  real(r_2),  dimension(:,:,:),  allocatable    :: patchx
+  real(r_2),  dimension(:,:,:),   allocatable   :: fracharvw
+  real(r_2),  dimension(:,:,:,:), allocatable   :: transitx
   integer  ok,ncid1,varxid
   integer  i,j,m,k,ivt
 
@@ -1213,20 +1213,20 @@ SUBROUTINE landuse_transitx(mland,icycle,luc)
 
 !!   integer,       dimension(mvtype)               :: ivt2=(/3,3,3,3,2,1,1,2,1,1,0,0,0,1,0,0,0/)
    integer,       dimension(mvtype)               :: ivt2=(/3,3,3,3,2,1,1,2,1,1,3,3,3,1,0,0,0/)
-   real*8, dimension(mland,mvmax)          :: dclabile
-   real*8, dimension(mland,mvmax,mplant)   :: dcplant,dnplant,dpplant
-   real*8, dimension(mland,mvmax,mlitter)  :: dclitter,dnlitter,dplitter
-   real*8, dimension(mland,mvmax,msoil)    :: dcsoil,dnsoil,dpsoil
-   real*8, dimension(mland,mvmax)          :: dnsoilmin,dpsoillab,dpsoilsorb,dpsoilocc
-   real*8, dimension(mland,mvmax,mwood)    :: dcwoodprod,dnwoodprod,dpwoodprod
-   real*8, DIMENSION(3)                    :: ratioLignintoN
-   real*8, DIMENSION(mvmax,3,3)            :: fromPtoL
-   real*8, DIMENSION(mland,mvmax)          :: delarea
-   real*8, DIMENSION(mvmax,mvmax)          :: afwhpri, afwhsec, transitx
-   real*8, DIMENSION(mvmax)                :: delfwhpri,delfwhsec
-   real*8, DIMENSION(3)                    :: totcwoodprod, totclitter, totcsoil
-   real*8, DIMENSION(3)                    :: totnwoodprod, totnlitter, totnsoil
-   real*8, DIMENSION(3)                    :: totpwoodprod, totplitter, totpsoil
+   real(r_2), dimension(mland,mvmax)          :: dclabile
+   real(r_2), dimension(mland,mvmax,mplant)   :: dcplant,dnplant,dpplant
+   real(r_2), dimension(mland,mvmax,mlitter)  :: dclitter,dnlitter,dplitter
+   real(r_2), dimension(mland,mvmax,msoil)    :: dcsoil,dnsoil,dpsoil
+   real(r_2), dimension(mland,mvmax)          :: dnsoilmin,dpsoillab,dpsoilsorb,dpsoilocc
+   real(r_2), dimension(mland,mvmax,mwood)    :: dcwoodprod,dnwoodprod,dpwoodprod
+   real(r_2), DIMENSION(3)                    :: ratioLignintoN
+   real(r_2), DIMENSION(mvmax,3,3)            :: fromPtoL
+   real(r_2), DIMENSION(mland,mvmax)          :: delarea
+   real(r_2), DIMENSION(mvmax,mvmax)          :: afwhpri, afwhsec, transitx
+   real(r_2), DIMENSION(mvmax)                :: delfwhpri,delfwhsec
+   real(r_2), DIMENSION(3)                    :: totcwoodprod, totclitter, totcsoil
+   real(r_2), DIMENSION(3)                    :: totnwoodprod, totnlitter, totnsoil
+   real(r_2), DIMENSION(3)                    :: totpwoodprod, totplitter, totpsoil
    real*8                                     totclabile, totnsoilmin, totpsoillab, totpsoilsorb, totpsoilocc
    real*8                                     tempx
    integer p,d,r,q,r1,r2,r3,r4,ierror,ivt,k
@@ -1573,8 +1573,8 @@ SUBROUTINE landuse_transitx(mland,icycle,luc)
       integer q, k1, k2
       real*8                         :: areax
       real*8                         :: xloss,xgain,delareax
-      real*8, dimension(mvmax,mvmax) :: x2y
-      real*8, dimension(mvmax)       :: x
+      real(r_2), dimension(mvmax,mvmax) :: x2y
+      real(r_2), dimension(mvmax)       :: x
 
         avgpatch=x(q)
         do k1=1,mvmax   ! loss
@@ -1600,7 +1600,7 @@ SUBROUTINE landuse_transitx(mland,icycle,luc)
       ! take the value for the patch with maximum area fraction
       ! check note: workbook, 2017, p121
       integer xmin,xmax,k
-      real*8, dimension(mvmax)       :: x,fracx
+      real(r_2), dimension(mvmax)       :: x,fracx
       real*8  fracmax
 
         dominantx = min(xmax,max(xmin,x(1)))
@@ -1623,13 +1623,13 @@ END SUBROUTINE landuse_transitx
       integer, parameter                          :: dp =selected_real_kind(8)
       real,    parameter                          :: thresh_frac=1.0e-6
       integer p,mvmax
-      real*8,    dimension(mvmax)                 :: delx                             
-      real*8,    dimension(mvmax,mvmax)           :: transx,transy
+      real(r_2),    dimension(mvmax)                 :: delx                             
+      real(r_2),    dimension(mvmax,mvmax)           :: transx,transy
       ! local variables
       integer itemp,i,j,k,ndonor,nreceive,vi,vj,np
       real*8     temp
-      real*8,    dimension(mvmax,mvmax)  :: atransx
-      real*8,    dimension(mvmax)        :: delx,delfracx,donor,receive
+      real(r_2),    dimension(mvmax,mvmax)  :: atransx
+      real(r_2),    dimension(mvmax)        :: delx,delfracx,donor,receive
       integer,          dimension(mvmax)        :: ivt,ivtdonor,ivtreceive
 
        atransx(:,:)   = 0.0;     delx=delfracx
@@ -1891,19 +1891,19 @@ END SUBROUTINE landuse_transitx
  TYPE(landuse_type)   :: luc
  character*120  fpftx
  integer,       dimension(mlon,mlat) :: landmask
- real*8, dimension(mvmax)     :: areapft                    
- real*8, dimension(mvmax)     :: cpland,npland,ppland
- real*8, dimension(mvmax)     :: clland,nlland,plland
- real*8, dimension(mvmax)     :: csland,nsland,psland
- real*8, dimension(mvmax)     :: clabland,nsminland,pslabland,pssorbland,psoccland
- real*8, dimension(mvmax)     :: cwoodland,nwoodland,pwoodland
+ real(r_2), dimension(mvmax)     :: areapft                    
+ real(r_2), dimension(mvmax)     :: cpland,npland,ppland
+ real(r_2), dimension(mvmax)     :: clland,nlland,plland
+ real(r_2), dimension(mvmax)     :: csland,nsland,psland
+ real(r_2), dimension(mvmax)     :: clabland,nsminland,pslabland,pssorbland,psoccland
+ real(r_2), dimension(mvmax)     :: cwoodland,nwoodland,pwoodland
  integer n,v
  real*8  totalc,totaln,totalp,totarea
 
  ! local variables
- real*8,   dimension(:,:),     allocatable   :: fracpft
- real*8,   dimension(:,:,:),   allocatable   :: primary
- real*8,   dimension(:,:,:),   allocatable   :: secondary
+ real(r_2),   dimension(:,:),     allocatable   :: fracpft
+ real(r_2),   dimension(:,:,:),   allocatable   :: primary
+ real(r_2),   dimension(:,:,:),   allocatable   :: secondary
  integer ok,ncid1,varxid,i,j,k,np,nland
 
     allocate(primary(mlon,mlat,mvtype))
