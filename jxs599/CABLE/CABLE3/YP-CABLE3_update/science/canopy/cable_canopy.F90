@@ -103,7 +103,6 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,clima
     USE cable_air_module
     USE cable_common_module
     USE cable_roughness_module
-USE cable_climate_type_mod, ONLY : climate_type
 
     TYPE (balances_type), INTENT(INOUT)  :: bal
     TYPE (radiation_type), INTENT(INOUT) :: rad
