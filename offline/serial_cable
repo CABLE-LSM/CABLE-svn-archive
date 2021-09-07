@@ -1,6 +1,13 @@
 #!/bin/bash
 
-export CINC='-I $9'
+# Name the arguments to increase readability
+FC=$1
+CFLAGS=$2
+LDFLAGS=$3
+LD=$4
+NCMOD=$5
+
+export CINC="-I$NCMOD"
 export supr=' -warn nostderrors -diag-disable 10145 '
 mkdir -p tmpo
 rm -f cable_driver.o
@@ -17,6 +24,6 @@ $1 $supr $2 $3 $4 -c CASAONLY_LUC.F90 cable_define_types.o  cable_carbon.o cable
 
 export LOBJS="spincasacnp.o cbl_model_driver_offline.o CASAONLY_LUC.o"
 
-$1 $supr $2 $3 $4 -o cable cable_driver.F90 $FOBJS $LOBJS $CINC $5 $6 $7 $8
+$FC $supr $CFLAGS $LDFLAGS $LD -o cable cable_driver.F90 $FOBJS $LOBJS $CINC 
 
 rm -fr tmpo/

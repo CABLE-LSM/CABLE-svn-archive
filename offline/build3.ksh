@@ -31,7 +31,7 @@ host_gadi()
       export CFLAGS='-O2'
       #export NCMOD=$NETCDF_ROOT'/include'
    fi
-export CFLAGS='-O0'
+
    if [[ $1 = 'debug' ]]; then
       export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0'
       #export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0 -check all,noarg_temp_created'
@@ -128,7 +128,7 @@ if [[ $1 = 'mpi' ]]; then
    echo '$AOBJ'
    make -f Makefile3_mpi #this makes elements of CABLE that are specific to MPI CABLE
 else
-   ./serial_cable  $FC $CFLAGS $LDFLAGS $LD $NCMOD
+   ./serial_cable  "$FC" "$CFLAGS" "$LDFLAGS" "$LD" "$NCMOD"
    #make -f Makefile3_offline #this makes elements of CABLE that are specific to serial CABLE
 fi
 
