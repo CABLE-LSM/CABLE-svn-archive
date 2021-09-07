@@ -598,8 +598,8 @@ MODULE landuse_patch
    END SUBROUTINE landuse_allocate_mp
 
 
-   SUBROUTINE landuse_deallocate_mp(mpx,lucmp)
-   integer     mpx
+   SUBROUTINE landuse_deallocate_mp(mpx,ms,msn,nrb,mplant,mlitter,msoil,mwood,lucmp)
+   integer     mpx,ms,msn,nrb,mplant,mlitter,msoil,mwood
    TYPE(landuse_mp), INTENT(INOUT)  :: lucmp
      ! patch-generic variables
      deallocate(lucmp%iveg,lucmp%isoil,lucmp%soilorder,lucmp%phase,lucmp%isflag)
@@ -634,7 +634,7 @@ MODULE landuse_patch
 
 END MODULE landuse_patch
 
-  subroutine landuse_driver(fxpft,fxluh2cable)
+  subroutine landuse_driver(ssnow,soil,veg,bal,canopy,phen,casapool,casabal,casamet,bgc,rad)
 ! Re-allocate casacnp restart pools for new land patch array.
 ! Used for LAND USE CHANGE SIMULATION
 ! Call by casa_init
@@ -647,7 +647,7 @@ END MODULE landuse_patch
                                   soil_parameter_type, soil_snow_type, veg_parameter_type, &
                                   balances_type, canopy_type, bgc_pool_type, radiation_type
   USE casadimension,        ONLY: icycle,mplant,mlitter,msoil,mwood,mso
-  USE casavariable,         ONLY: casa_pool,casa_balance,casa_met
+  USE casavariable,         ONLY: casa_pool,casa_balance,casa_met,casa_biome
   USE phenvariable,         ONLY: phen_variable
   USE landuse_variable
   USE landuse_patch
@@ -659,8 +659,9 @@ END MODULE landuse_patch
   TYPE (canopy_type)             :: canopy
   TYPE (phen_variable)           :: phen
   TYPE (casa_pool)               :: casapool
-  TYPE (casa_balance)            :: casbal
-  TYPE (casa_met)                :: casmet
+  TYPE (casa_biome)               :: casabiome
+  TYPE (casa_balance)            :: casabal
+  TYPE (casa_met)                :: casamet
   TYPE (bgc_pool_type)           :: bgc
   TYPE (radiation_type)          :: rad    ! met data
 
@@ -676,9 +677,9 @@ END MODULE landuse_patch
   real(r_2),     dimension(:,:),      allocatable   :: fracpry
   real(r_2),     dimension(:,:),      allocatable   :: areax    
   real(r_2),     dimension(:),        allocatable   :: arealand
-  character*120   fxpft,fxluh2cable
-  integer ivt,ee,hh,np
-  integer ncid,ok,xID,yID,varID,i,j,m
+  character*500   fxpft,fxluh2cable
+  integer ivt,ee,hh,np,p,q,np1
+  integer ncid,ok,xID,yID,varID,i,j,m,mpx
 
     ! the following variables are available from "CABLE"
     ! get " mlon,mlat,landmask  " from gridinfo files
@@ -741,8 +742,8 @@ END MODULE landuse_patch
      call landuse_allocate_mland(mland,luc)                                                     !setup "varx(mland,:)"        
 
      ! get the mapping matrix from state to PFT
-     call landuse_getxluh2(mlat,mlon,landmask,luc,fxluh2cable)    !"xluh2cable"
-     call landuse_getdata(mland,mlat,mlon,landmask,fxpft,luc)     !"luc(t-1)" and "xpft(t-1)"
+     call landuse_getxluh2(mlat,mlon,landmask,luc,filename%fxluh2cable)    !"xluh2cable"
+     call landuse_getdata(mlat,mlon,landmask,filename%fxpft,luc)     !"luc(t-1)" and "xpft(t-1)"
 
      ! get pool sizes and other states in the "restart", "gridinfo" and "poolout" file
      ! patch-generic variables
@@ -750,31 +751,31 @@ END MODULE landuse_patch
      lucmp%isoil(:)     = soil%isoilm(:)          
      lucmp%soilorder(:) = casamet%isorder(:)          
      lucmp%phase(:)     = phen%phase(:)          
-     lucmp%isflag(:)    = ssoil%isflag(:)    
+     lucmp%isflag(:)    = ssnow%isflag(:)    
      lucmp%patchfrac(:) = patch(:)%frac             ! maybe we should create another variable for "primary%patch"
      lucmp%lai(:)       = veg%vlai(:)
      lucmp%sla(:)       = casabiome%sla(veg%iveg(:)) 
 
      ! biophysical variables 
-     lucmp%albsoilsn(:,:) = ssoil%albsoilsn(:,:)
+     lucmp%albsoilsn(:,:) = ssnow%albsoilsn(:,:)
      lucmp%albedo(:,:)    = rad%albedo(:,:)
      lucmp%albsoil(:,:)   = soil%albsoil(:,:)
-     lucmp%gammzz(:,:)    = ssoil%gammzz(:,:)
-     lucmp%tgg(:,:)       = ssoil%tgg(:,:)
-     lucmp%wb(:,:)        = ssoil%wb(:,:)
-     lucmp%wbice(:,:)     = ssoil%wbice(:,:)
-     lucmp%tggsn(:,:)     = ssoil%tggsn(:,:)
-     lucmp%ssdn(:,:)      = ssoil%ssdn(:,:)
-     lucmp%smass(:,:)     = ssoil%smass(:,:)
-     lucmp%sdepth(:,:)    = ssoil%sdepth(:,:)
-     lucmp%tss(:)         = ssoil%tss(:)
-     lucmp%runoff(:)      = ssoil%runoff(:)
-     lucmp%rnof1(:)       = ssoil%rnof1(:)
-     lucmp%rnof2(:)       = ssoil%rnof2(:)
-     lucmp%ssdnn(:)       = ssoil%ssdnn(:)
-     lucmp%snowd(:)       = ssoil%snowd(:)
-     lucmp%snage(:)       = ssoil%sage(:)
-     lucmp%osnowd(:)      = ssoil%osnow(:)
+     lucmp%gammzz(:,:)    = ssnow%gammzz(:,:)
+     lucmp%tgg(:,:)       = ssnow%tgg(:,:)
+     lucmp%wb(:,:)        = ssnow%wb(:,:)
+     lucmp%wbice(:,:)     = ssnow%wbice(:,:)
+     lucmp%tggsn(:,:)     = ssnow%tggsn(:,:)
+     lucmp%ssdn(:,:)      = ssnow%ssdn(:,:)
+     lucmp%smass(:,:)     = ssnow%smass(:,:)
+     lucmp%sdepth(:,:)    = ssnow%sdepth(:,:)
+     lucmp%tss(:)         = ssnow%tss(:)
+     lucmp%runoff(:)      = ssnow%runoff(:)
+     lucmp%rnof1(:)       = ssnow%rnof1(:)
+     lucmp%rnof2(:)       = ssnow%rnof2(:)
+     lucmp%ssdnn(:)       = ssnow%ssdnn(:)
+     lucmp%snowd(:)       = ssnow%snowd(:)
+     lucmp%snage(:)       = ssnow%snage(:)
+     lucmp%osnowd(:)      = ssnow%osnowd(:)
      lucmp%cansto(:)      = canopy%cansto(:)
      lucmp%ghflux(:)      = canopy%ghflux(:)
      lucmp%sghflux(:)     = canopy%sghflux(:)
@@ -822,7 +823,7 @@ END MODULE landuse_patch
         lucmp%plitter(:,:)   = casapool%plitter(:,:)
         lucmp%psoil(:,:)     = casapool%psoil(:,:)
         lucmp%pwoodprod(:,:) = casapool%pwoodprod(:,:)
-        lucmp%psoillabi(:)   = casapool%psoillab(:)
+        lucmp%psoillab(:)    = casapool%psoillab(:)
         lucmp%psoilsorb(:)   = casapool%psoilsorb(:)
         lucmp%psoilocc(:)    = casapool%psoilocc(:)
         lucmp%sumpbal(:)     = casabal%sumpbal(:)
@@ -832,9 +833,9 @@ END MODULE landuse_patch
      call landuse_mp2land(luc,mp,cstart,cend,lucmp)
      ! we need to deallocate "lucmp" because "mp" will be updated after land use change
      call landuse_deallocate_mp(mp,ms,msn,nrb,mplant,mlitter,msoil,mwood,lucmp)
-     call landuse_transitx(mland,icycle,luc)
-     call landuse_checks(mlon,mlat,mland,landmask,luc,arealand,fpft(ny+1))
-     call landuse_update_mland(luc,mland)                    ! assign "var_y" to "var_x"
+     call landuse_transitx(luc,casabiome)
+     call landuse_checks(mlon,mlat,landmask,luc)
+     call landuse_update_mland(luc)                    ! assign "var_y" to "var_x"
      ! update "cstart", "cend","nap" and "mp=>mpx"
       cstart=0;cend=0;nap=0
       np =0; cstart(:) = 0; cend(:) =0; nap(:) = 0
@@ -857,7 +858,7 @@ END MODULE landuse_patch
       mpx = np
      ! allocate "lucmp" with "mpx"
      call landuse_allocate_mp(mpx,ms,msn,nrb,mplant,mlitter,msoil,mwood,ncp,ncs,lucmp)
-     call landuse_land2mpx(luc,lucmp,mland,mpx,ms,msn,nrb,mplant,mlitter,msoil,mwood,icycle,cstart,cend,nap)
+     call landuse_land2mpx(luc,lucmp,mpx,cstart,cend,nap)
      call landuse_deallocate_mland(luc)
 
      deallocate(fracpry)
@@ -897,7 +898,7 @@ end subroutine landuse_driver
      luc%isflag_x(g,ivt)      = lucmp%isflag(np)
      luc%patchfrac_x(g,ivt)   = lucmp%patchfrac(np)   
      luc%lai_x(g,ivt)         = lucmp%lai(np)
-     luc%sla_x(g,ivt)         = lucmpsla(np)  
+     luc%sla_x(g,ivt)         = lucmp%sla(np)  
     
      ! biophysical variables
      do i=1,nrb
@@ -943,10 +944,10 @@ end subroutine landuse_driver
      luc%trad_x(g,ivt)         = lucmp%trad(np)
      luc%GWwb_x(g,ivt)         = lucmp%GWwb(np)
 
-     do i =1,plant_carbon_pools
+     do i =1,ncp
         luc%cplantx_x(g,ivt,i) = lucmp%cplantx(np,i)
      enddo
-     do i=1, soil_carbon_pools
+     do i=1,ncs
         luc%csoilx_x(g,ivt,i)  = lucmp%csoilx(np,i)
      enddo
 
@@ -1048,84 +1049,17 @@ end subroutine landuse_driver
 
 END SUBROUTINE landuse_mp2land
   
-SUBROUTINE landuse_dims(fpft0,mlon,mlat,mland,mp,landmask,lon,lat)
-!  calculate "mland", "landmask",
-!  and initial patchfrac
-use netcdf
-use landuse_constant
-implicit none
-character*120 fpft0
-integer    mlon,mlat,mland,mp
-integer,   dimension(mlon,mlat)              :: landmask
-real(r_2),  dimension(mlon)              :: lon
-real(r_2),  dimension(mlat)              :: lat
-! local variables
-real(r_2),   dimension(:,:,:),   allocatable   :: fracx
-real(r_2),   dimension(:,:,:),   allocatable   :: transx
-integer ok,ncid1,varxid,i,j,k,np,nland
-
-    allocate(primary(mlon,mlat,mvtype))
-    allocate(secondary(mlon,mlat,mvtype))
-
-    ok = nf90_open(fpft0,nf90_nowrite,ncid1)
-    ok = nf90_inq_varid(ncid1,"longitude",varxid)
-    ok = nf90_get_var(ncid1,varxid,lon)
-    ok = nf90_inq_varid(ncid1,"latitude",varxid)
-    ok = nf90_get_var(ncid1,varxid,lat)
-    ok = nf90_inq_varid(ncid1,"primary",varxid)
-    ok = nf90_get_var(ncid1,varxid,primary)
-    ok = nf90_inq_varid(ncid1,"secondary",varxid)
-    ok = nf90_get_var(ncid1,varxid,secondary)
-    ok = nf90_close(ncid1)
-
-    landmask(:,:) = 0
-    nland = 0
-    np    = 0
-    do i=1,mlon
-    do j=1,mlat
-       
-       if(sum(primary(i,j,1:mvtype)+secondary(i,j,1:mvtype))>thresh_frac) then
-          landmask(i,j)=1
-          nland = nland +1
-          do k=1,4
-             if(primary(i,j,k)>thresh_frac) then
-                np = np +1
-             endif
-          enddo
-          do k=5,mvtype
-             if((primary(i,j,k)+secondary(i,j,k))>thresh_frac) then
-                np = np +1
-             endif
-          enddo
-          do k=1,4
-             if(secondary(i,j,k)>thresh_frac) then
-                np = np +1
-             endif
-          enddo
-       endif
-    enddo
-    enddo
-
-    mland = nland
-    mp = np
-
-    print *, 'total land cells and pathes are ', mland,mp
-    deallocate(primary)
-    deallocate(secondary)
-
-END SUBROUTINE landuse_dims
-
 SUBROUTINE landuse_getxluh2(mlat,mlon,landmask,luc,fxluh2cable)
 ! get data: luc%fprimary; luc%fsecondary
   USE netcdf
   use landuse_variable
   IMPLICIT NONE
   TYPE(landuse_type)   :: luc
-  character*120 fxluh2cable
-  integer mland,mp,mlat,mlon
-  integer,   dimension(mlon,mlat)                  :: landmask
+  character*500 fxluh2cable
+  integer mp,mlat,mlon
+  integer,     dimension(mlon,mlat)              :: landmask
   ! local variables
-  real(kind=dp), dimension(:,:,:,:), allocatable   :: xluh2cable
+  real(r_2),   dimension(:,:,:,:), allocatable   :: xluh2cable
   integer ok,ncid2,varxid
   integer i,j,m,v,s
 
@@ -1155,15 +1089,14 @@ SUBROUTINE landuse_getxluh2(mlat,mlon,landmask,luc,fxluh2cable)
 
  END SUBROUTINE landuse_getxluh2
 
-SUBROUTINE landuse_getdata(mland,mlat,mlon,landmask,fxpft01,luc)
+SUBROUTINE landuse_getdata(mlat,mlon,landmask,fxpft,luc)
 ! get LUC data
   USE netcdf
   use landuse_variable
   IMPLICIT NONE
-  integer, parameter                     :: dp =selected_real_kind(16)
   TYPE(landuse_type)   :: luc
-  character*120 fxpft01
-  integer mland,mlat,mlon
+  character*500 fxpft
+  integer mlat,mlon
   integer,   dimension(mlon,mlat)                  :: landmask 
   ! local variables
 !  integer, dimension(:,:,:),  allocatable    :: cablepft
@@ -1178,7 +1111,7 @@ SUBROUTINE landuse_getdata(mland,mlat,mlon,landmask,fxpft01,luc)
     allocate(fracharvw(mlon,mlat,mharvw))
     allocate(transitx(mlon,mlat,mvmax,mvmax))
 
-    ok = nf90_open(fxpft01,nf90_nowrite,ncid1)
+    ok = nf90_open(fxpft,nf90_nowrite,ncid1)
     ok = nf90_inq_varid(ncid1,"harvest",varxid)
     ok = nf90_get_var(ncid1,varxid,fracharvw)
     ok = nf90_inq_varid(ncid1,"transition",varxid)
@@ -1191,7 +1124,7 @@ SUBROUTINE landuse_getdata(mland,mlat,mlon,landmask,fxpft01,luc)
 
     ! assig the values of luc%variables
     luc%fharvw(:,:) =0.0; luc%atransit(:,:,:)=0.0
-    m = 0;luc%patchfrac(:,:) = 0.0
+    m = 0
     do i=1,mlon
     do j=1,mlat
        if(landmask(i,j) ==1) then
@@ -1217,44 +1150,14 @@ SUBROUTINE landuse_getdata(mland,mlat,mlon,landmask,fxpft01,luc)
 
 END SUBROUTINE landuse_getdata
 
-SUBROUTINE landuse_transitx(mland,icycle,luc)
+SUBROUTINE landuse_transitx(luc,casabiome)
    USE casaparm
    USE casavariable,  ONLY: casa_biome
    USE landuse_variable
    IMPLICIT NONE
    TYPE(casa_biome)    :: casabiome
    TYPE(landuse_type)  :: luc
-   integer mland,icycle
-   integer, parameter        :: mvtype1 = mvtype+1
-!!  integer, parameter        :: leaf =1
-!!  integer, parameter        :: wood =2
-!!  integer, parameter        :: froot =3
-!!  integer, parameter        :: metb =1
-!!  integer, parameter        :: str =2
-!!  integer, parameter        :: cwd =3
-!!  integer, parameter        :: mic =1
-!!  integer, parameter        :: slow=2
-!!   ! local variables
-!!   real, dimension(mvtype,3)  :: ratioNCplantmax=(/0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02,0.02, &
-!!                                                   0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005, &
-!!                                                   0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01,0.01/)
-!!
-!!   real, dimension(mvtype,3)  :: ratioNPplantmin=(/15.0,15.0,15.0,15.0,15.0,15.0,15.0,15.0,15.0,15.0,15.0,15.0,15.0,15.0,15.0,15.0,15.0, &
-!!                                                  15.0,15.0,15.0,15.0,15.0,15.0,15.0,15.0,15.0,15.0,15.0,15.0,15.0,15.0,15.0,15.0,15.0, &
-!!                                                  15.0,15.0,15.0,15.0,15.0,15.0,15.0,15.0,15.0,15.0,15.0,15.0,15.0,15.0,15.0,15.0,15.0/)
-!!
-!!
-!!   real, dimension(mvtype,3)  :: ftransNPtoL =(/0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,0.5,                  &
-!!                                                0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95,0.95, &
-!!                                                0.9,0.9,0.9,0.9,0.9,0.9,0.9,0.9,0.9,0.9,0.9,0.9,0.9,0.9,0.9,0.9,0.9/)
-!!
-!!   real, dimension(mvtype,3)  :: fracLigninplant =(/0.25,0.2,0.2,0.2,0.2,0.1,0.1,0.1,0.1,0.1,0.15,0.15,0.15,0.15,0.15,0.25,0.1, &
-!!                                                    0.4,0.4,0.4,0.4,0.4,0.4,0.4,0.4,0.4,0.4,0.4,0.4,0.4,0.4,0.4,0.4,0.4,        &
-!!                                                    0.25,0.2,0.2,0.2,0.2,0.1,0.1,0.1,0.1,0.1,0.15,0.15,0.15,0.15,0.15,0.25,0.1/)
-!!
-
-!!   integer,       dimension(mvtype)               :: ivt2=(/3,3,3,3,2,1,1,2,1,1,0,0,0,1,0,0,0/)
-   integer,       dimension(mvtype)               :: ivt2=(/3,3,3,3,2,1,1,2,1,1,3,3,3,1,0,0,0/)
+   integer,   dimension(mvtype)               :: ivt2
    real(r_2), dimension(mland,mvmax)          :: dclabile
    real(r_2), dimension(mland,mvmax,mplant)   :: dcplant,dnplant,dpplant
    real(r_2), dimension(mland,mvmax,mlitter)  :: dclitter,dnlitter,dplitter
@@ -1269,11 +1172,12 @@ SUBROUTINE landuse_transitx(mland,icycle,luc)
    real(r_2), DIMENSION(3)                    :: totcwoodprod, totclitter, totcsoil
    real(r_2), DIMENSION(3)                    :: totnwoodprod, totnlitter, totnsoil
    real(r_2), DIMENSION(3)                    :: totpwoodprod, totplitter, totpsoil
-   real*8                                     totclabile, totnsoilmin, totpsoillab, totpsoilsorb, totpsoilocc
-   real*8                                     tempx
+   real(r_2)                                     totclabile, totnsoilmin, totpsoillab, totpsoilsorb, totpsoilocc
+   real(r_2)                                     tempx
    integer p,d,r,q,r1,r2,r3,r4,ierror,ivt,k
    integer irb,is,icp,ics
 
+   ivt2=(/3,3,3,3,2,1,1,2,1,1,3,3,3,1,0,0,0/)
    delarea(:,:)     = 0.0
    dcplant(:,:,:)   = 0.0; dnplant(:,:,:)   = 0.0; dpplant(:,:,:)    = 0.0; dclabile(:,:) = 0.0
    dclitter(:,:,:)  = 0.0; dnlitter(:,:,:)  = 0.0; dplitter(:,:,:)   = 0.0
@@ -1341,10 +1245,10 @@ SUBROUTINE landuse_transitx(mland,icycle,luc)
 
             ! calculate the fraction of litter or root litter into metabolic litter pool
 
-            dclitter(p,r,1) = dclitter(p,r,1) + transitx(r,d)(r,d)  &
+            dclitter(p,r,1) = dclitter(p,r,1) + transitx(r,d)  &
                             * (luc%clitter_x(p,d,1) + luc%cplant_x(p,d,leaf) * fromPtoL(d,metb,leaf) &
                                                     + luc%cplant_x(p,d,froot)* fromPtoL(d,metb,froot))
-            dclitter(p,r,2) = dclitter(p,r,2) + transitx(r,d)(r,d)  &
+            dclitter(p,r,2) = dclitter(p,r,2) + transitx(r,d)  &
                             * (luc%clitter_x(p,d,2) + luc%cplant_x(p,d,leaf) * fromPtoL(d,str,leaf)  &
                                                     + luc%cplant_x(p,d,froot) *fromPtoL(d,str,froot))
             dcsoil(p,r,:)   = dcsoil(p,r,:)   + transitx(r,d) * luc%csoil_x(p,d,:)
@@ -1387,16 +1291,16 @@ SUBROUTINE landuse_transitx(mland,icycle,luc)
                 dpsoilsorb(p,d) = dpsoilsorb(p,d) - transitx(r,d) * luc%psoilsorb_x(p,d)
                 dpsoilocc(p,d)  = dpsoilocc(p,d)  - transitx(r,d) * luc%psoilocc_x(p,d)
 
-                dplitter(p,r,1) = dplitter(p,r,1) + transitx(r,d)(r,d)  &
+                dplitter(p,r,1) = dplitter(p,r,1) + transitx(r,d)  &
                                 * (luc%plitter_x(p,d,1) + luc%pplant_x(p,d,leaf) * fromPtoL(d,metb,leaf) &
                                                         + luc%pplant_x(p,d,froot)* fromPtoL(d,metb,froot))
-                dplitter(p,r,2) = dplitter(p,r,2) + transitx(r,d)(r,d)  &
+                dplitter(p,r,2) = dplitter(p,r,2) + transitx(r,d)  &
                                 * (luc%plitter_x(p,d,2) + luc%pplant_x(p,d,leaf) * fromPtoL(d,str,leaf) &
                                                         + luc%pplant_x(p,d,froot) *fromPtoL(d,str,froot))
-                dpsoil(p,r,:)   = dpsoil(p,r,:)   + transitx(r,d)(r,d) * luc%psoil_x(p,d,:)
-                dpsoillab(p,r)  = dpsoillab(p,r)  + transitx(r,d)(r,d) * luc%psoillab_x(p,d)
-                dpsoilsorb(p,r) = dpsoilsorb(p,r) + transitx(r,d)(r,d) * luc%psoilsorb_x(p,d)
-                dpsoilocc(p,r)  = dpsoilocc(p,r)  + transitx(r,d)(r,d) * luc%psoilocc_x(p,d)
+                dpsoil(p,r,:)   = dpsoil(p,r,:)   + transitx(r,d) * luc%psoil_x(p,d,:)
+                dpsoillab(p,r)  = dpsoillab(p,r)  + transitx(r,d) * luc%psoillab_x(p,d)
+                dpsoilsorb(p,r) = dpsoilsorb(p,r) + transitx(r,d) * luc%psoilsorb_x(p,d)
+                dpsoilocc(p,r)  = dpsoilocc(p,r)  + transitx(r,d) * luc%psoilocc_x(p,d)
                 dpwoodprod(p,r,:) = dpwoodprod(p,r,:) + transitx(r,d)   &
                                                       * (fwoodprod(:) * luc%pplant_x(p,d,wood) +luc%pwoodprod_x(p,d,:))
              endif
@@ -1507,10 +1411,15 @@ SUBROUTINE landuse_transitx(mland,icycle,luc)
 
       !update the biophysical variables here
       ! "isoil" and "soilorder" are contant within a landcell (see gridinfo)
-      luc%isoil_y(p,:)     = dominantx(1,12,luc%patchfrac_x(p,1:mvmax),luc%isoil_x(p,1:mvmax))
-      luc%soilorder_y(p,:) = dominantx(1,12,luc%patchfrac_x(p,1:mvmax),luc%soilorder_x(p,1:mvmax))
+      luc%isoil_y(p,1)     = dominantx(1,12,luc%patchfrac_x(p,1:mvmax),luc%isoil_x(p,1:mvmax))
+      luc%soilorder_y(p,1) = dominantx(1,12,luc%patchfrac_x(p,1:mvmax),luc%soilorder_x(p,1:mvmax))
       ! may need to differentiate tree, grass and crop
-      luc%phase_y(p,:)     = dominantx(0,3,luc%patchfrac_x(p,1:mvmax),luc%phase_x(p,1:mvmax))
+      luc%phase_y(p,1)     = dominantx(0,3,luc%patchfrac_x(p,1:mvmax),luc%phase_x(p,1:mvmax))
+      do d=2,mvmax
+         luc%isoil_y(p,d)     = luc%isoil_y(p,1)
+         luc%soilorder_y(p,d) = luc%soilorder_y(p,1)
+         luc%phase_y(p,d)     = luc%phase_y(p,1)
+      enddo   
 
       do d=1,mvmax
 
@@ -1610,15 +1519,16 @@ SUBROUTINE landuse_transitx(mland,icycle,luc)
     enddo    ! of "p"
 
     CONTAINS
-      real*8  function avgpatchr2(q,areax,x2y,x)
+      function avgpatchr2(q,areax,x2y,x) result(avgr2)
       ! check note: workbook, 2017, p121
       integer q, k1, k2
-      real*8                         :: areax
-      real*8                         :: xloss,xgain,delareax
+      real(r_2)                         :: avgr2
+      real(r_2)                         :: areax
+      real(r_2)                         :: xloss,xgain,delareax
       real(r_2), dimension(mvmax,mvmax) :: x2y
       real(r_2), dimension(mvmax)       :: x
 
-        avgpatch=x(q)
+        avgr2=x(q)
         do k1=1,mvmax   ! loss
            if(k1/=q) then
               xloss = xloss + x2y(k1,q) * x(q)
@@ -1632,25 +1542,27 @@ SUBROUTINE landuse_transitx(mland,icycle,luc)
               delareax = delareax + x2y(q,k2)
            endif
         enddo
-        if(areax+delareax) > thresh_frac) then
-           avgpatch= (x(q)*areax +xgain-xloss)/(areax+delareax)
+        if((areax+delareax) > thresh_frac) then
+           avgr2= (x(q)*areax +xgain-xloss)/(areax+delareax)
         endif
       end function avgpatchr2
 
 
-      integer dominantx(xmin,xmax,fracx,x)
+      function dominantx(xmin,xmax,fracx,xk) result(dominantint)
       ! take the value for the patch with maximum area fraction
       ! check note: workbook, 2017, p121
+      integer dominantint
       integer xmin,xmax,k
-      real(r_2), dimension(mvmax)       :: x,fracx
-      real*8  fracmax
+      integer,   dimension(mvmax)       :: xk
+      real(r_2), dimension(mvmax)       :: fracx
+      real(r_2)  fracxmax
 
-        dominantx = min(xmax,max(xmin,x(1)))
+        dominantint = min(xmax,max(xmin,xk(1)))
         fracxmax  = fracx(1)
         do k=2,mvmax   
            if(fracx(k)>fracxmax) then
-              fracmax = fracx(k)
-              dominantx = x(k)
+              fracxmax = fracx(k)
+              dominantint = xk(k)
            endif
         enddo
       end function dominantx
@@ -1661,18 +1573,17 @@ END SUBROUTINE landuse_transitx
    SUBROUTINE landuse_redistribution(p,mvmax,delfracx,atransx)
       ! redistribution the PFT atrsnition to ensure that the change in PFT fractions from the state
       ! data is consistent with the estimates from previous states and transition
+      USE cable_def_types_mod,    ONLY: r_2
       implicit none
-      integer, parameter                          :: dp =selected_real_kind(8)
       real,    parameter                          :: thresh_frac=1.0e-6
       integer p,mvmax
-      real(r_2),    dimension(mvmax)                 :: delx                             
-      real(r_2),    dimension(mvmax,mvmax)           :: transx,transy
+      real(r_2),    dimension(mvmax,mvmax)  :: atransx
       ! local variables
       integer itemp,i,j,k,ndonor,nreceive,vi,vj,np
-      real*8     temp
-      real(r_2),    dimension(mvmax,mvmax)  :: atransx
+      real(r_2)     temp
+      real(r_2),    dimension(mvmax,mvmax)  :: transx,transy
       real(r_2),    dimension(mvmax)        :: delx,delfracx,donor,receive
-      integer,          dimension(mvmax)        :: ivt,ivtdonor,ivtreceive
+      integer,          dimension(mvmax)    :: ivt,ivtdonor,ivtreceive
 
        atransx(:,:)   = 0.0;     delx=delfracx
 
@@ -1742,8 +1653,8 @@ END SUBROUTINE landuse_transitx
        delx = delfracx
        do j=1,mvmax    ! primary land
        do i=11,13,1    ! secondary forest
-          delx(j) = delx(j) - transit(i,j)
-          delx(i) = delx(i) + transit(i,j)
+          delx(j) = delx(j) - atransx(i,j)
+          delx(i) = delx(i) + atransx(i,j)
        enddo
        enddo
 
@@ -1755,11 +1666,10 @@ END SUBROUTINE landuse_transitx
 
  END SUBROUTINE landuse_redistribution
 
- SUBROUTINE landuse_update_mland(luc,mland)                     ! assign "var_y" to "var_x"
+ SUBROUTINE landuse_update_mland(luc)                     ! assign "var_y" to "var_x"
  USE landuse_variable
  IMPLICIT NONE
  TYPE(landuse_type) :: luc
- integer mland
 
     ! general patch variables
     luc%iveg_x      = luc%iveg_y
@@ -1828,7 +1738,7 @@ END SUBROUTINE landuse_transitx
 
  END SUBROUTINE landuse_update_mland
 
- SUBROUTINE landuse_land2mpx(luc,lucmp,mland,mpx,ms,msn,nrb,mplant,mlitter,msoil,mwood,icycle,cstart,cend,nap)
+ SUBROUTINE landuse_land2mpx(luc,lucmp,mpx,cstart,cend,nap)
  USE landuse_constant
  USE landuse_variable
  USE landuse_patch
@@ -1836,7 +1746,7 @@ END SUBROUTINE landuse_transitx
  TYPE(landuse_type)          :: luc
  TYPE(landuse_mp)            :: lucmp
  integer, dimension(mland)   :: cstart,cend,nap
- integer mland,mpx,ms,msn,nrb,mplant,mlitter,msoil,mwood,icycle
+ integer mpx
  integer np,np1,p,q,n,npnew,npold
 
     npnew=0; npold=0
@@ -1850,47 +1760,47 @@ END SUBROUTINE landuse_transitx
              lucmp%iveg(npnew)      = q
              lucmp%isoil(npnew)     = luc%isoil_y(p,q)
              lucmp%soilorder(npnew) = luc%soilorder_y(p,q)
-             lucmp%phase(npew)      = luc%phase_y(p,q)
-             lucmp%isflag(npew)     = luc%isflag_y(p,q)
-             lucmp%patchfrac(npew)  = luc%patchfrac_y(p,q)
-             lucmp%lai(npew)        = luc%lai_y(p,q)
-             lucmp%sla(npew)        = luc%sla_y(p,q)
+             lucmp%phase(npnew)      = luc%phase_y(p,q)
+             lucmp%isflag(npnew)     = luc%isflag_y(p,q)
+             lucmp%patchfrac(npnew)  = luc%patchfrac_y(p,q)
+             lucmp%lai(npnew)        = luc%lai_y(p,q)
+             lucmp%sla(npnew)        = luc%sla_y(p,q)
 
              ! biophysical
-             lucmp%albsoilsn(npew,:)= luc%albsoilsn_y(p,q,:)
-             lucmp%albedo(npew,:)   = luc%albedo_y(p,q,:)
-             lucmp%albsoil(npew,:)  = luc%albsoil_y(p,q,:)
-             lucmp%dgdtg(npew)      = luc%dgdtg_y(p,q)
-             lucmp%gammzz(npew,:)   = luc%gammzz_y(p,q,:)
-             lucmp%tgg(npew,:)      = luc%tgg_y(p,q,:)
-             lucmp%wb(npew,:)       = luc%wb_y(p,q,:)
-             lucmp%wbice(npew,:)    = luc%wbice_y(p,q,:)
-             lucmp%tggsn(npew,:)    = luc%tggsn_y(p,q,:)
-             lucmp%ssdn(npew,:)     = luc%ssdn_y(p,q,:)
-             lucmp%smass(npew,:)    = luc%smass_y(p,q,:)
-             lucmp%sdepth(npew,:)   = luc%sdepth_y(p,q,:)
-             lucmp%tss(npew)        = luc%tss_y(p,q)
-             lucmp%rtsoil(npew)     = luc%rtsoil_y(p,q)
-             lucmp%runoff(npew)     = luc%runoff_y(p,q)
-             lucmp%rnof1(npew)      = luc%rnof1_y(p,q)
-             lucmp%rnof2(npew)      = luc%rnof2_y(p,q)
-             lucmp%ssdnn(npew)      = luc%ssdnn_y(p,q)
-             lucmp%snowd(npew)      = luc%snowd_y(p,q)
-             lucmp%snage(npew)      = luc%snage_y(p,q)
-             lucmp%osnowd(npew)     = luc%osnowd_y(p,q)
-             lucmp%cansto(npew)     = luc%cansto_y(p,q)
-             lucmp%ghflux(npew)     = luc%ghflux_y(p,q)
-             lucmp%sghflux(npew)    = luc%sghflux_y(p,q)
-             lucmp%ga(npew)         = luc%ga_y(p,q)
-             lucmp%fev(npew)        = luc%fev_y(p,q)
-             lucmp%fes(npew)        = luc%fes_y(p,q)
-             lucmp%fhs(npew)        = luc%fhs_y(p,q)
-             lucmp%wbtot0(npew)     = luc%wbtot0_y(p,q)
-             lucmp%osnowd0(npew)    = luc%osnowd0_y(p,q)
-             lucmp%trad(npew)       = luc%trad_y(p,q)
-             lucmp%GWwb(npew)       = luc%GWwb_y(p,q)
-             lucmp%cplantx(npew,:)  = luc%cplantx_y(p,q,:)
-             lucmp%csoilx(npew,:)   = luc%csoilx_y(p,q,:)
+             lucmp%albsoilsn(npnew,:)= luc%albsoilsn_y(p,q,:)
+             lucmp%albedo(npnew,:)   = luc%albedo_y(p,q,:)
+             lucmp%albsoil(npnew,:)  = luc%albsoil_y(p,q,:)
+             lucmp%dgdtg(npnew)      = luc%dgdtg_y(p,q)
+             lucmp%gammzz(npnew,:)   = luc%gammzz_y(p,q,:)
+             lucmp%tgg(npnew,:)      = luc%tgg_y(p,q,:)
+             lucmp%wb(npnew,:)       = luc%wb_y(p,q,:)
+             lucmp%wbice(npnew,:)    = luc%wbice_y(p,q,:)
+             lucmp%tggsn(npnew,:)    = luc%tggsn_y(p,q,:)
+             lucmp%ssdn(npnew,:)     = luc%ssdn_y(p,q,:)
+             lucmp%smass(npnew,:)    = luc%smass_y(p,q,:)
+             lucmp%sdepth(npnew,:)   = luc%sdepth_y(p,q,:)
+             lucmp%tss(npnew)        = luc%tss_y(p,q)
+             lucmp%rtsoil(npnew)     = luc%rtsoil_y(p,q)
+             lucmp%runoff(npnew)     = luc%runoff_y(p,q)
+             lucmp%rnof1(npnew)      = luc%rnof1_y(p,q)
+             lucmp%rnof2(npnew)      = luc%rnof2_y(p,q)
+             lucmp%ssdnn(npnew)      = luc%ssdnn_y(p,q)
+             lucmp%snowd(npnew)      = luc%snowd_y(p,q)
+             lucmp%snage(npnew)      = luc%snage_y(p,q)
+             lucmp%osnowd(npnew)     = luc%osnowd_y(p,q)
+             lucmp%cansto(npnew)     = luc%cansto_y(p,q)
+             lucmp%ghflux(npnew)     = luc%ghflux_y(p,q)
+             lucmp%sghflux(npnew)    = luc%sghflux_y(p,q)
+             lucmp%ga(npnew)         = luc%ga_y(p,q)
+             lucmp%fev(npnew)        = luc%fev_y(p,q)
+             lucmp%fes(npnew)        = luc%fes_y(p,q)
+             lucmp%fhs(npnew)        = luc%fhs_y(p,q)
+             lucmp%wbtot0(npnew)     = luc%wbtot0_y(p,q)
+             lucmp%osnowd0(npnew)    = luc%osnowd0_y(p,q)
+             lucmp%trad(npnew)       = luc%trad_y(p,q)
+             lucmp%GWwb(npnew)       = luc%GWwb_y(p,q)
+             lucmp%cplantx(npnew,:)  = luc%cplantx_y(p,q,:)
+             lucmp%csoilx(npnew,:)   = luc%csoilx_y(p,q,:)
 
              ! assign the new biogeochemocal state variables
              lucmp%cplant(npnew,:)    = luc%cplant_y(p,q,:)
@@ -1921,17 +1831,16 @@ END SUBROUTINE landuse_transitx
 
     print *, 'npnew npold', npnew,npold
      
- END SUBROUTINE landuse_land2mp
+ END SUBROUTINE landuse_land2mpx
 
- SUBROUTINE landuse_checks(mlon,mlat,mland,landmask,luc,arealand,fpftx)
+ SUBROUTINE landuse_checks(mlon,mlat,landmask,luc)
  ! check mass balance and write output CNP pool sizes for each PFT
  use netcdf
  use landuse_variable
  IMPLICIT NONE
- integer mlon,mlat,mland
+ integer mlon,mlat
  real, parameter      :: xunit = 1.0e-15
  TYPE(landuse_type)   :: luc
- character*120  fpftx
  integer,       dimension(mlon,mlat) :: landmask
  real(r_2), dimension(mvmax)     :: areapft                    
  real(r_2), dimension(mvmax)     :: cpland,npland,ppland
@@ -1940,42 +1849,7 @@ END SUBROUTINE landuse_transitx
  real(r_2), dimension(mvmax)     :: clabland,nsminland,pslabland,pssorbland,psoccland
  real(r_2), dimension(mvmax)     :: cwoodland,nwoodland,pwoodland
  integer n,v
- real*8  totalc,totaln,totalp,totarea
-
- ! local variables
- real(r_2),   dimension(:,:),     allocatable   :: fracpft
- real(r_2),   dimension(:,:,:),   allocatable   :: primary
- real(r_2),   dimension(:,:,:),   allocatable   :: secondary
- integer ok,ncid1,varxid,i,j,k,np,nland
-
-    allocate(primary(mlon,mlat,mvtype))
-    allocate(secondary(mlon,mlat,mvtype))
-    allocate(fracpft(mland,mvmax))
-
-    ok = nf90_open(fpftx,nf90_nowrite,ncid1)
-    ok = nf90_inq_varid(ncid1,"primary",varxid)
-    ok = nf90_get_var(ncid1,varxid,primary)
-    ok = nf90_inq_varid(ncid1,"secondary",varxid)
-    ok = nf90_get_var(ncid1,varxid,secondary)
-    ok = nf90_close(ncid1)
-
-    nland = 0
-    np    = 0
-    do i=1,mlon
-    do j=1,mlat
-       if(landmask(i,j) ==1) then
-          nland = nland +1
-          do k=1,4
-             fracpft(nland,k)        = primary(i,j,k)
-             fracpft(nland,mvtype+k) = secondary(i,j,k)
-          enddo
-          do k=5,mvtype
-             fracpft(nland,k) = primary(i,j,k) + secondary(i,j,k)
-          enddo
-       endif
-    enddo
-    enddo
-91  format(3(i5,2x),21(f7.5,1x))
+ real(r_2)  totalc,totaln,totalp,totarea
 
     areapft=0.0
     totalc=0.0;      totaln=0.0;      totalp=0.0;     totarea=0.0
@@ -2026,7 +1900,4 @@ END SUBROUTINE landuse_transitx
 201 format(i3,2x,20(f10.5,2x))
 202 format(20(f10.5,2x))
    
-    deallocate(fracpft)
-    deallocate(primary)
-    deallocate(secondary)
  END SUBROUTINE landuse_checks

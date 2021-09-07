@@ -210,6 +210,7 @@ USE cbl_soil_snow_init_special_module
        spinConv = .FALSE.,	   & ! has spinup converged?
        spincasa = .FALSE.,	   & ! TRUE: CASA-CNP Will spin mloop times,
                                 ! FALSE: no spin up
+       l_landuse = .FALSE.,	   & ! using CASA-CNP with CABLE
        l_casacnp = .FALSE.,	   & ! using CASA-CNP with CABLE
        l_laiFeedbk = .FALSE.,	   & ! using prognostic LAI
        l_vcmaxFeedbk = .FALSE.,	   & ! using prognostic Vcmax
@@ -262,7 +263,8 @@ USE cbl_soil_snow_init_special_module
        wiltParam,	 &
        satuParam,	 &
        cable_user,       &   ! additional USER switches
-       gw_params
+       gw_params,        &
+       l_landuse
 
   !mpidiff
   INTEGER :: i,x,kk
