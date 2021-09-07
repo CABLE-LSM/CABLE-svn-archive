@@ -2261,6 +2261,15 @@ END SUBROUTINE casa_rplant1
           IF (LALLOC.NE.3) THEN
              casamet%glai(np)   = MIN(casabiome%glaimax(veg%iveg(np)), casamet%glai(np))
           ENDIF
+          ! added changed by ypw 9-8-2016
+       !   if(casamet%glai(np) < casabiome%glaimin(veg%iveg(np)).or.casamet%glai(np) > casabiome%glaimax(veg%iveg(np))) then
+       !      casamet%glai(np)         = MIN(casabiome%glaimax(veg%iveg(np)),MAX(casabiome%glaimin(veg%iveg(np)), &
+       !                                     casabiome%sla(veg%iveg(np)) * casapool%cplant(np,leaf)))
+       !      casapool%cplant(np,leaf) = casamet%glai(np)/ casabiome%sla(veg%iveg(np))
+       !      casapool%nplant(np,leaf) = casapool%cplant(np,leaf) * casabiome%ratioNCplantmin(veg%iveg(np),leaf)
+       !      casapool%pplant(np,leaf) = casapool%nplant(np,leaf) / casabiome%ratioNPplantmax(veg%iveg(np),leaf)
+       !   endif
+
           casapool%clitter(np,:) = casapool%clitter(np,:) &
                + casapool%dClitterdt(np,:) * deltpool
           casapool%csoil(np,:)   = casapool%csoil(np,:)   &
@@ -2383,7 +2392,7 @@ END SUBROUTINE casa_rplant1
 
   END SUBROUTINE casa_poolzero
 
-  SUBROUTINE casa_cnpbal(veg,casamet,casapool,casaflux,casabal)
+  SUBROUTINE casa_cnpbal(casamet,casapool,casaflux,casabal)
 
     IMPLICIT NONE
     TYPE (casa_met),              INTENT(IN)    :: casamet
@@ -2426,7 +2435,9 @@ END SUBROUTINE casa_rplant1
 
 
     DO npt=1,mp
+   !    IF(ABS(casabal%cbalance(npt))>1e-10) THEN
        IF(ABS(casabal%cbalance(npt))>1e-10.and.casapool%cplant(npt,1) >1.0e-3) THEN
+   !    IF(casamet%lat(npt)==7.5.and.casamet%lon(npt)==0.9375.and.casamet%iveg2(npt)==1) THEN
        
           WRITE(*,*) 'cbalance',   npt, casamet%lat(npt),casamet%lon(npt), &
                                    casamet%iveg2(npt),Cbalplant(npt), Cbalsoil(npt)
@@ -2445,6 +2456,7 @@ END SUBROUTINE casa_rplant1
 
           WRITE(*,*) 'delclabile', casabal%Clabilelast(npt)-casapool%clabile(npt)
           WRITE(*,*), 'dclabile',  casapool%dClabiledt(npt)* deltpool
+          !  STOP
 
        ENDIF
     ENDDO
@@ -2560,9 +2572,16 @@ END SUBROUTINE casa_rplant1
 
     totpsoil(:) = psorder(casamet%isorder(:)) * xpsoil50(casamet%isorder(:))
     casabal%sumpbal(:)    = 0.0
-    casapool%pplant(:,:)  = casapool%Cplant(:,:)  * casapool%ratioPcplant(:,:)
-    casapool%plitter(:,:) = casapool%Clitter(:,:) * casapool%ratioPclitter(:,:)
-    casapool%psoil(:,:)   = casapool%Csoil(:,:)   * casapool%ratioPcsoil(:,:)
+    casapool%pplant(:,:)  = casapool%Nplant(:,:)/casapool%ratioNPplant(:,:)
+    casapool%plitter(:,:) = casapool%Nlitter(:,:)/(casapool%ratioNPlitter(:,:)+1.0e-10)
+    casapool%psoil(:,:)   = casapool%Nsoil(:,:)/casapool%ratioNPsoil(:,:)
+
+    casapool%psoillab(:)  = totpsoil(:) *fracpLab(casamet%isorder(:))
+
+    casapool%psoilsorb(:) = casaflux%psorbmax(:) * casapool%psoillab(:) &
+                                    /(casaflux%kmlabp(:)+casapool%psoillab(:))
+
+    casapool%psoilocc(:) = totpsoil(:) *fracPocc(casamet%isorder(:))
 
     WHERE(casamet%iveg2==grass)
           casapool%pplant(:,wood) = 0.0
