@@ -1,5 +1,5 @@
 !==============================================================================
-! This source code is part of the
+! This source code is part of the 
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
 ! This work is licensed under the CSIRO Open Source Software License
 ! Agreement (variation of the BSD / MIT License).
@@ -27,62 +27,62 @@ USE cable_runtime_opts_mod ,ONLY : cable_user
 USE cable_runtime_opts_mod ,ONLY : satuparam
 USE cable_runtime_opts_mod ,ONLY : wiltparam
 
-  IMPLICIT NONE
+   IMPLICIT NONE 
 
-  !---allows reference to "gl"obal timestep in run (from atm_step)
-  !---total number of timesteps, and processing node
-  INTEGER, SAVE :: ktau_gl, kend_gl, knode_gl, kwidth_gl
-
+   !---allows reference to "gl"obal timestep in run (from atm_step)
+   !---total number of timesteps, and processing node 
+   INTEGER, SAVE :: ktau_gl, kend_gl, knode_gl, kwidth_gl
+   
   LOGICAL :: L_fudge = .FALSE.
 
   INTEGER, SAVE :: CurYear  ! current year of multiannual run
 
-  ! set from environment variable $HOME
-  CHARACTER(LEN=200) ::                                                       &
-       myhome
+   ! set from environment variable $HOME
+   CHARACTER(LEN=200) ::                                                       & 
+      myhome
 
   ! switch to calc sil albedo using soil colour - Ticket #27
   LOGICAL :: calcsoilalbedo = .FALSE.
-  !---Lestevens Sept2012
-  !---CASACNP switches and cycle index
-  LOGICAL, SAVE :: l_casacnp,l_laiFeedbk,l_vcmaxFeedbk
+   !---Lestevens Sept2012
+   !---CASACNP switches and cycle index
+   LOGICAL, SAVE :: l_casacnp,l_laiFeedbk,l_vcmaxFeedbk
    LOGICAL :: l_luc = .FALSE.
    LOGICAL :: l_thinforest = .FALSE.
-
-  !---CABLE runtime switches def in this type
-  TYPE kbl_internal_switches
-     LOGICAL :: um = .FALSE., um_explicit = .FALSE., um_implicit = .FALSE.,   &
+   
+   !---CABLE runtime switches def in this type
+   TYPE kbl_internal_switches
+      LOGICAL :: um = .FALSE., um_explicit = .FALSE., um_implicit = .FALSE.,   &
           um_radiation = .FALSE., um_hydrology = .FALSE.
-     LOGICAL :: offline = .FALSE., mk3l = .FALSE.
-  END TYPE kbl_internal_switches
+      LOGICAL :: offline = .FALSE., mk3l = .FALSE.
+   END TYPE kbl_internal_switches 
 
   ! instantiate internal switches
-  TYPE(kbl_internal_switches), SAVE :: cable_runtime
+   TYPE(kbl_internal_switches), SAVE :: cable_runtime
 
-  ! external files read/written by CABLE
-  TYPE filenames_type
+   ! external files read/written by CABLE
+   TYPE filenames_type
 
      CHARACTER(LEN=500) ::                                                        &
-          met,        & ! name of file for CABLE input
+      met,        & ! name of file for CABLE input
           path='./',       & ! path for output and restart files for CABLE and CASA
-          out,        & ! name of file for CABLE output
-          log,        & ! name of file for execution log
+      out,        & ! name of file for CABLE output
+      log,        & ! name of file for execution log
           restart_in = ' ', & ! name of restart file to read
-          restart_out,& ! name of restart file to read
-          LAI,        & ! name of file for default LAI
-          TYPE,       & ! file for default veg/soil type
-          veg,        & ! file for vegetation parameters
-          soil,       & ! name of file for soil parameters
+      restart_out,& ! name of restart file to read
+      LAI,        & ! name of file for default LAI
+      type,       & ! file for default veg/soil type
+      veg,        & ! file for vegetation parameters
+      soil,       & ! name of file for soil parameters
           soilcolor,  & ! file for soil color(soilcolor_global_1x1.nc)
-          inits,      & ! name of file for initialisations
+      inits,      & ! name of file for initialisations
           soilIGBP,   & ! name of file for IGBP soil map
           gw_elev       !name of file for gw/elevation data
 
-  END TYPE filenames_type
+   END TYPE filenames_type
 
   TYPE(filenames_type), SAVE :: filename
 
-  ! hydraulic_redistribution switch _soilsnow module
+   ! hydraulic_redistribution switch _soilsnow module
   LOGICAL :: redistrb = .FALSE.  
 
   TYPE organic_soil_params
@@ -100,7 +100,7 @@ USE cable_runtime_opts_mod ,ONLY : wiltparam
   END TYPE organic_soil_params
 
   TYPE gw_parameters_type
-
+   
      REAL ::                   &
           MaxHorzDrainRate=2e-4,  & !anisintropy * q_max [qsub]
           EfoldHorzDrainRate=2.0, & !e fold rate of q_horz
@@ -124,7 +124,7 @@ USE cable_runtime_opts_mod ,ONLY : wiltparam
   END TYPE gw_parameters_type
 
   TYPE(gw_parameters_type), SAVE :: gw_params
-
+      
   REAL, SAVE ::        &!should be able to change parameters!!!
        max_glacier_snowd=1100.0,&
        snow_ccnsw = 2.0, &
@@ -135,7 +135,7 @@ USE cable_runtime_opts_mod ,ONLY : wiltparam
        max_sconds = 2.51,   & !
        frozen_limit = 0.85    ! EAK Feb2011 (could be 0.95)
 
-contains 
+CONTAINS
 
   ELEMENTAL FUNCTION IS_LEAPYEAR( YYYY )
     IMPLICIT NONE

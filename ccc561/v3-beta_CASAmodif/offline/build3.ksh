@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #build script for CABLE
-#Simplified from previous build script. Only set up for raijin 
+#Simplified from previous build script. Only set up for Gadi 
 #Usage: 
 #> ./build3
 #   OR
@@ -19,7 +19,7 @@ host_gadi()
 
    if [[ $1 = 'mpi' ]]; then
       export FC='mpif90'
-	 else
+   else
       export FC='ifort'
    fi
    
@@ -30,6 +30,7 @@ host_gadi()
       export CFLAGS='-O2'
       #export NCMOD=$NETCDF_ROOT'/include'
    fi
+export CFLAGS='-O0'
    if [[ $1 = 'debug' ]]; then
       export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0'
       #export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0 -check all,noarg_temp_created'
@@ -102,6 +103,7 @@ build_build()
 #/bin/cp -p $DIA/*90 ./.tmp
 /bin/cp -p $PAR/*90 ./.tmp
 
+/bin/cp -p serial_cable ./.tmp
 /bin/cp -p Makefile  ./.tmp
 /bin/cp -p Makefile3_offline  ./.tmp
 /bin/cp -p Makefile3_mpi  ./.tmp
@@ -113,11 +115,20 @@ echo "Build setup complete."
 echo  'Compiling now ...'
 echo  ''
 
+echo  ''
+echo  'Building from source common across serial and MPI applications'
+echo  ''
+echo  ''
+echo  'Building drivers for either serial or MPI application'
+echo  ''
+
 make -f Makefile #this makes elements of CABLE that are common to all apps
 if [[ $1 = 'mpi' ]]; then
+   echo '$AOBJ'
    make -f Makefile3_mpi #this makes elements of CABLE that are specific to MPI CABLE
-else   
-	 make -f Makefile3_offline #this makes elements of CABLE that are specific to serial CABLE
+else
+   ./serial_cable  "$FC" "$CFLAGS" "$LDFLAGS" "$LD" "$NCMOD"
+   #make -f Makefile3_offline #this makes elements of CABLE that are specific to serial CABLE
 fi
 
 }

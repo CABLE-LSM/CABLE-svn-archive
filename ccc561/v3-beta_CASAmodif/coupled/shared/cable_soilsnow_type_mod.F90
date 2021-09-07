@@ -155,4 +155,157 @@ END TYPE soil_snow_type
 !Instantiation:
 TYPE(soil_snow_type) :: ssnow_cbl
 
+CONTAINS
+
+SUBROUTINE alloc_soil_snow_type(var, mp)
+
+USE grid_constants_cbl_mod,   ONLY: trb !total # rad "bands"
+USE grid_constants_cbl_mod,   ONLY: tsl !total # snow layers
+
+IMPLICIT NONE
+
+TYPE(soil_snow_type), INTENT(INOUT) :: var
+INTEGER, INTENT(IN) :: mp
+!INTEGER, INTENT(IN) :: ms
+INTEGER, PARAMETER  :: ms = 6
+INTEGER, PARAMETER  :: n_tiles = 17
+
+ALLOCATE ( var % iantrct(mp) )
+ALLOCATE ( var % pudsto(mp) )
+ALLOCATE ( var % pudsmx(mp) )
+ALLOCATE ( var % dtmlt(mp,3) )
+ALLOCATE( var% albsoilsn(mp,trb) )
+ALLOCATE( var% cls(mp) )
+ALLOCATE( var% dfn_dtg(mp) )
+ALLOCATE( var% dfh_dtg(mp) )
+ALLOCATE( var% dfe_ddq(mp) )
+ALLOCATE( var% ddq_dtg(mp) )
+ALLOCATE( var% dfe_dtg(mp) )    !REV_CORR variable
+ALLOCATE( var% evapsn(mp) )
+ALLOCATE( var% fwtop(mp) )
+ALLOCATE( var% fwtop1(mp) )
+ALLOCATE( var% fwtop2(mp) )
+ALLOCATE( var% fwtop3(mp) )
+ALLOCATE( var% gammzz(mp,ms) )
+ALLOCATE( var% isflag(mp) )
+ALLOCATE( var% osnowd(mp) )
+ALLOCATE( var% potev(mp) )
+ALLOCATE( var% runoff(mp) )
+ALLOCATE( var% rnof1(mp) )
+ALLOCATE( var% rnof2(mp) )
+ALLOCATE( var% rtsoil(mp) )
+ALLOCATE( var% rtsoil_expl(mp) )
+ALLOCATE( var% sconds(mp,tsl) )
+ALLOCATE( var% sdepth(mp,tsl) )
+ALLOCATE( var% smass(mp,tsl) )
+ALLOCATE( var% snage(mp) )
+ALLOCATE( var% snowd(mp) )
+ALLOCATE( var% smelt(mp) )
+ALLOCATE( var% ssdn(mp,tsl) )
+ALLOCATE( var% ssdnn(mp) )
+ALLOCATE( var% tgg(mp,ms) )
+ALLOCATE( var% tggsn(mp,tsl) )
+ALLOCATE( var% tss(mp) )
+ALLOCATE( var% tss_p(mp) )
+ALLOCATE( var% deltss(mp) )
+ALLOCATE( var% owb1(mp) )
+ALLOCATE( var% wb(mp,ms) )
+ALLOCATE( var% wbice(mp,ms) )
+ALLOCATE( var% wblf(mp,ms) )
+ALLOCATE( var%wbtot(mp) )
+ALLOCATE( var%wbtot1(mp) )
+ALLOCATE( var%wbtot2(mp) )
+ALLOCATE( var%wb_lake(mp) )
+ALLOCATE( var%totwblake(mp) )
+ALLOCATE( var%sinfil(mp) )
+ALLOCATE( var%evapfbl(mp,ms) )
+ALLOCATE( var%qstss(mp) )
+ALLOCATE( var%wetfac(mp) )
+ALLOCATE( var%owetfac(mp) )
+ALLOCATE( var%t_snwlr(mp) )
+ALLOCATE( var%wbfice(mp,ms) )
+ALLOCATE( var%tggav(mp) )
+ALLOCATE( var%otgg(mp) )
+ALLOCATE( var%otss(mp) )
+ALLOCATE( var%otss_0(mp) )
+ALLOCATE( var%tprecip(mp) )
+ALLOCATE( var%tevap(mp) )
+ALLOCATE( var%trnoff(mp) )
+ALLOCATE( var%totenbal(mp) )
+ALLOCATE( var%totenbal2(mp) )
+ALLOCATE( var%fland(mp) )
+ALLOCATE( var%ifland(mp) )
+ALLOCATE( var%tilefrac(mp,n_tiles) )
+ALLOCATE( var%qasrf(mp) )
+ALLOCATE( var%qfsrf(mp) )
+ALLOCATE( var%qssrf(mp) )
+
+!mrd561
+!MD
+!Aquifer variables
+ALLOCATE( var%GWwb(mp) )
+ALLOCATE( var%GWhk(mp) )
+ALLOCATE( var%GWdhkdw(mp) )
+ALLOCATE( var%GWdsmpdw(mp) )
+ALLOCATE( var%wtd(mp) )
+ALLOCATE( var%GWsmp(mp) )
+ALLOCATE( var%GWwbeq(mp) )
+ALLOCATE( var%GWzq(mp) )
+ALLOCATE( var%qhz(mp) )
+ALLOCATE( var%qhlev(mp,ms+1) )
+ALLOCATE( var%satfrac(mp) )
+ALLOCATE( var%Qrecharge(mp) )
+ALLOCATE( var%rh_srf(mp) )
+ALLOCATE( var%rtevap_unsat(mp) )
+ALLOCATE( var%rtevap_sat(mp) )
+ALLOCATE( var%rt_qh_sublayer(mp) )
+!soil moisture variables
+ALLOCATE( var%wbeq(mp,ms) )
+ALLOCATE( var%zq(mp,ms) )
+ALLOCATE( var%icefrac(mp,ms) )
+ALLOCATE( var%fracice(mp,ms) )
+ALLOCATE( var%hk(mp,ms) )
+ALLOCATE( var%smp(mp,ms) )
+ALLOCATE( var%dhkdw(mp,ms) )
+ALLOCATE( var%dsmpdw(mp,ms) )
+ALLOCATE( var%wbliq(mp,ms) )
+ALLOCATE( var%wmliq(mp,ms) )
+ALLOCATE( var%wmice(mp,ms) )
+ALLOCATE( var%wmtot(mp,ms) )
+
+! Allocate variables for SLI soil model:
+!IF(cable_user%SOIL_STRUC=='sli') THEN
+ALLOCATE ( var % s(mp,ms) )
+ALLOCATE ( var % Tsoil(mp,ms) )
+ALLOCATE ( var % sl(mp) )
+ALLOCATE ( var % tl(mp) )
+ALLOCATE ( var % h0(mp) )
+ALLOCATE ( var % rex(mp,ms) )
+ALLOCATE ( var % wflux(mp,0:ms) )
+ALLOCATE ( var % delwcol(mp) )
+ALLOCATE ( var % zdelta(mp) )
+ALLOCATE ( var % kth(mp,ms) )
+ALLOCATE ( var % Tsurface(mp) )
+ALLOCATE ( var % lE(mp) )
+ALLOCATE ( var % evap(mp) )
+ALLOCATE ( var % ciso(mp,ms+1) )
+ALLOCATE ( var % cisoL(mp) )
+ALLOCATE ( var % rlitt(mp) )
+ALLOCATE ( var % thetai(mp,ms) )
+ALLOCATE ( var % snowliq(mp,3) )
+ALLOCATE ( var % nsteps(mp) )
+ALLOCATE ( var % nsnow(mp) )
+ALLOCATE ( var % TsurfaceFR(mp) )
+ALLOCATE ( var % Ta_daily(mp,100))
+ALLOCATE ( var % Qadv_daily(mp) )
+ALLOCATE ( var % G0_daily(mp) )
+ALLOCATE ( var % Qevap_daily(mp) )
+ALLOCATE ( var % Qprec_daily(mp) )
+ALLOCATE ( var % Qprec_snow_daily(mp) )
+
+!END IF
+
+END SUBROUTINE alloc_soil_snow_type
+
+
 END MODULE cable_soil_snow_type_mod
