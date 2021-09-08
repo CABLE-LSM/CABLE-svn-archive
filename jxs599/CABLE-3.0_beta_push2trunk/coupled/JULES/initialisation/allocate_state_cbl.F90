@@ -1,10 +1,5 @@
 MODULE allocate_cable_state_mod
 
-!Common Non-science modules
-USE yomhook,                  ONLY: lhook, dr_hook
-USE ereport_mod,              ONLY: ereport
-USE parkind1,                 ONLY: jprb, jpim
-
 IMPLICIT NONE
 
 PRIVATE
@@ -122,10 +117,14 @@ END SUBROUTINE alloc_balances_type
 
 SUBROUTINE alloc_soil_snow_type(var, mp)
 
-USE jules_surface_types_mod,  ONLY: n_tiles => ntype
+!USE jules_surface_types_mod,  ONLY: n_tiles => ntype !this was not available
+!module in ESM1.5 *AND* convolutes where we are getting dims from
 USE grid_constants_cbl_mod,   ONLY: trb !total # rad "bands"
 USE grid_constants_cbl_mod,   ONLY: tsl !total # snow layers
-USE jules_soil_mod,           ONLY: ms => sm_levels   ! number of soil levels
+!USE jules_soil_mod,           ONLY: ms => sm_levels   ! number of soil levels
+!!Achtung! - how many places are these defined!
+USE cable_types_mod,  ONLY: n_tiles
+USE cable_types_mod,  ONLY : ms
 USE cable_soil_snow_type_mod, ONLY: soil_snow_type
 
 IMPLICIT NONE
@@ -272,7 +271,9 @@ END SUBROUTINE alloc_soil_snow_type
 
 SUBROUTINE alloc_canopy_type(var, mp)
 
-USE jules_soil_mod,           ONLY: ms => sm_levels  ! number of soil levels
+!USE jules_soil_mod,           ONLY: ms => sm_levels  ! number of soil levels
+!!Achtung! - how many places are these defined!
+USE cable_types_mod,  ONLY : ms
 USE grid_constants_cbl_mod,   ONLY: mf               ! # leaves (sunlit/shaded)
 USE grid_constants_cbl_mod,   ONLY: niter            ! number of iterations for za/L
 USE cable_canopy_type_mod,    ONLY: canopy_type

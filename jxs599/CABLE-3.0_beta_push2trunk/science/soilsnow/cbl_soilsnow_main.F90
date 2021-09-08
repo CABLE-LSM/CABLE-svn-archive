@@ -56,6 +56,8 @@ USE cbl_soil_snow_subrs_module
     REAL(r_2), DIMENSION(mp) :: xxx,deltat,sinfil1,sinfil2,sinfil3
     REAL                :: zsetot
     INTEGER, SAVE :: ktau =0
+  REAL :: heat_cap_lower_limit(mp,ms)
+  REAL :: wbliq(mp,ms)
 
     ktau = ktau +1
 
@@ -87,13 +89,13 @@ USE cbl_soil_snow_subrs_module
     ssnow%osnowd = ssnow%snowd
 
     IF (cable_user%soil_thermal_fix) THEN
-       soil%heat_cap_lower_limit(:,:) = 0.01  !never allow /0
+       heat_cap_lower_limit(:,:) = 0.01  !never allow /0
     ELSE
        DO k=1,ms
-          soil%heat_cap_lower_limit(:,k) = soil%css(:) * soil%rhosoil(:)
+          heat_cap_lower_limit(:,k) = soil%css(:) * soil%rhosoil(:)
        END DO
     END IF
-    ssnow%wbliq = ssnow%wb - ssnow%wbice
+    wbliq = ssnow%wb - ssnow%wbice
 
     DO k = 1, ms ! for stempv
 
@@ -120,7 +122,7 @@ USE cbl_soil_snow_subrs_module
     ! snow aging etc...
     CALL snowl_adjust(dels, ssnow, canopy )
 
-    CALL stempv(dels, canopy, ssnow, soil)
+    CALL stempv(dels, canopy, ssnow, soil, heat_cap_lower_limit)
 
     ssnow%tss =  (1-ssnow%isflag)*ssnow%tgg(:,1) + ssnow%isflag*ssnow%tggsn(:,1)
 
@@ -131,7 +133,8 @@ USE cbl_soil_snow_subrs_module
 
     CALL remove_trans(dels, soil, ssnow, canopy, veg)
 
-    CALL  soilfreeze(dels, soil, ssnow)
+    CALL  soilfreeze(dels, soil, ssnow,heat_cap_lower_limit )
+
 
     totwet = canopy%precis + ssnow%smelt
 
@@ -192,7 +195,7 @@ USE cbl_soil_snow_subrs_module
     ! Set weighted soil/snow surface temperature
     ssnow%tss=(1-ssnow%isflag)*ssnow%tgg(:,1) + ssnow%isflag*ssnow%tggsn(:,1)
 
-    ssnow%wbliq = ssnow%wb - ssnow%wbice
+    wbliq = ssnow%wb - ssnow%wbice
 
     ssnow%wbtot = 0.0
     DO k = 1, ms

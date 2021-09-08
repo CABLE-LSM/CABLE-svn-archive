@@ -20,10 +20,10 @@
 
 MODULE cbl_init_radiation_module
 
-  IMPLICIT NONE
+   IMPLICIT NONE
 
-  PUBLIC init_radiation
-  PRIVATE
+   PUBLIC init_radiation
+   PRIVATE
 
 !FUDGED local pars -masks tuned at other times - review conssitency!!
 real :: Ccoszen_tols_huge  ! 1e-4 * threshold cosine of sun's zenith angle, below which considered SUNLIT
@@ -42,6 +42,8 @@ SUBROUTINE init_radiation( ExtCoeff_beam, ExtCoeff_dif,                        &
                         VegXfang, VegTaul, VegRefl,                            &
                         coszen, metDoY, SW_down,                               & 
                         reducedLAIdue2snow )
+
+implicit none
 
 !re-decl input args
 !model dimensions
@@ -91,7 +93,7 @@ REAL :: xk(mp,nrb)              ! extinct. coef.for beam rad. and black leaves
 REAL :: xvlai2(mp,nrb) ! 2D vlai
 REAL :: xphi1(mp)      ! leaf angle parmameter 1
 REAL :: xphi2(mp)      ! leaf angle parmameter 2
-
+   
 !Null Initializations
 ExtCoeff_beam(:) = 0.0
 ExtCoeff_dif(:) = 0.0
@@ -133,7 +135,7 @@ call EffectiveExtinctCoeffs( EffExtCoeff_beam, EffExtCoeff_dif,               &
 IF( cbl_standalone .OR. jls_standalone .AND. .NOT. jls_radiation ) &
   CALL BeamFraction( RadFbeam, mp, nrb, Cpi, Ccoszen_tols_huge, metDoy,  &
                      coszen, SW_down ) 
-
+   
 END SUBROUTINE init_radiation
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

@@ -66,7 +66,7 @@ LSRC =                          \
 	cable_weathergenerator.F90 cable_climate.F90 cable_phenology.F90 					 \
 	cable_cru_TRENDY.F90 POPLUC.F90 cable_LUC_EXPT.F90												 \
 	cable_gw_hydro.F90 cable_psm.F90 cable_namelist_input.F90									 \
-	cable_site.F90
+	cable_site.F90 cable_climate_type_mod.F90
 
 # this is the executable we are building
 PROG = cable
@@ -109,8 +109,6 @@ cable_abort.o: cable_abort.F90 cable_iovars.o cable_define_types.o
 
 #tech file diag - exclude from official relllease but part of CABLE for now
 cable_fFile.o: cable_fFile.F90
-cable_fprint.o: cable_fprint.F90 cable_common.o
-cable_PyFprint.o: cable_PyFprint.F90
 cable_diag.o: cable_diag.F90 cable_common.o cable_fFile.o
 
 #science seperated subrs
@@ -211,6 +209,8 @@ cable_weathergenerator.o: cable_weathergenerator.F90
 
 cable_climate.o: cable_climate.F90 cable_define_types.o cable_iovars.o  cable_common.o casa_ncdf.o
 
+cable_climate_type_mod.o:  cable_climate_type_mod.F90
+
 cable_phenology.o: cable_phenology.F90 cable_define_types.o cable_iovars.o  cable_common.o  casa_variable.o casa_phenology.o
 
 cable_gw_hydro.o: cable_gw_hydro.F90 cable_iovars.o cable_define_types.o cable_common.o cbl_soilsnow_subrs.o 
@@ -270,6 +270,7 @@ all  : cable_math_constants_mod.o   \
 	cable_plume_mip.o        	   \
 	cable_weathergenerator.o 	   \
 	cable_climate.o          	   \
+	cable_climate_type_mod.o           \
 	cable_phenology.o        	   \
 	cable_cru_TRENDY.o       	   \
 	POPLUC.o                 	   \
