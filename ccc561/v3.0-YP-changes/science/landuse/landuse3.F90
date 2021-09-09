@@ -640,6 +640,7 @@ END MODULE landuse_patch
 ! Call by casa_init
 ! Q.Zhang @ 04/05/2011
   use netcdf
+  use cable_abort_module,   ONLY: nc_abort
 
   use cable_common_module,  ONLY: filename
   USE cable_IO_vars_module, ONLY: mask,patch,landpt
