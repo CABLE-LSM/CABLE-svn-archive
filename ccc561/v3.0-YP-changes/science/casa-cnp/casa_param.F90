@@ -30,7 +30,7 @@ MODULE casaparm
   USE casadimension
 
   IMPLICIT NONE
-  INTEGER, PARAMETER :: initcasa= 1   ! =0 spin; 1 restart file
+  INTEGER, PARAMETER :: initcasa= 0   ! =0 spin; 1 restart file
   INTEGER, PARAMETER :: iceland  = 17 !=13 for casa vegtype =15 for IGBP vegtype
   INTEGER, PARAMETER :: cropland = 9  ! 12 and 14 for IGBP vegtype
   INTEGER, PARAMETER :: croplnd2 =10  ! ditto

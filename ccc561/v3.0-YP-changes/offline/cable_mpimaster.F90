@@ -278,6 +278,7 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
          spinup        = .FALSE., & ! model spinup to soil state equilibrium?
          spinConv      = .FALSE., & ! has spinup converged?
          spincasa      = .FALSE., & ! TRUE: CASA-CNP Will spin mloop times,
+         l_landuse     = .FALSE., & ! using CASA-CNP with CABLE
          l_casacnp     = .FALSE., & ! using CASA-CNP with CABLE
          l_laiFeedbk   = .FALSE., & ! using prognostic LAI
          l_vcmaxFeedbk = .FALSE., & ! using prognostic Vcmax
@@ -355,7 +356,9 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
          wiltParam,        &
          satuParam,        &
          cable_user,       &  ! additional USER switches
-         gw_params
+         gw_params,        &
+         l_landuse          
+
     INTEGER :: i,x,kk
     INTEGER :: LALLOC
     INTEGER, PARAMETER ::	 mloop	= 30   ! CASA-CNP PreSpinup loops
