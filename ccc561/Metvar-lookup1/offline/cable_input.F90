@@ -294,7 +294,9 @@ CONTAINS
   SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
 
     USE CABLE_COMMON_MODULE, ONLY : IS_LEAPYEAR
-  USE casa_ncdf_module, ONLY: HANDLE_ERR, YMDHMS2DOYSOD, DOYSOD2YMDHMS
+    USE casa_ncdf_module, ONLY: HANDLE_ERR, YMDHMS2DOYSOD, DOYSOD2YMDHMS
+    USE Cable_MetUtils, ONLY: MetRain_names, find_metvarid
+
     IMPLICIT NONE
     ! Input arguments
     REAL, INTENT(OUT) :: dels   ! time step size
@@ -1076,15 +1078,17 @@ CONTAINS
     ! Look for Rainf (essential):- - - - - - - - - - - - - - - - - -
     IF (ncciy > 0) ncid_met = ncid_rain
 
-    IF(globalMetfile%l_gpcc)THEN                !Chris 6/Sep/2012
-       ok = NF90_INQ_VARID(ncid_met,'prcp',id%Rainf)
-    ELSE IF(globalMetfile%l_access)THEN
-       ok = NF90_INQ_VARID(ncid_met,'pr',id%Rainf)
-    ELSE IF(globalMetfile%l_ncar)THEN
-       ok = NF90_INQ_VARID(ncid_met,'RAIN',id%Rainf)
-    ELSE    ! for gswp and single site
-    ok = NF90_INQ_VARID(ncid_met,'Rainf',id%Rainf)
-    END IF
+   !  IF(globalMetfile%l_gpcc)THEN                !Chris 6/Sep/2012
+   !     ok = NF90_INQ_VARID(ncid_met,'prcp',id%Rainf)
+   !  ELSE IF(globalMetfile%l_access)THEN
+   !     ok = NF90_INQ_VARID(ncid_met,'pr',id%Rainf)
+   !  ELSE IF(globalMetfile%l_ncar)THEN
+   !     ok = NF90_INQ_VARID(ncid_met,'RAIN',id%Rainf)
+   !  ELSE    ! for gswp and single site
+   !  ok = NF90_INQ_VARID(ncid_met,'Rainf',id%Rainf)
+   !  END IF
+
+    CALL find_metvarid(ncid_met, MetRain_names, id%Rainf, ok)
 
     IF(ok /= NF90_NOERR) CALL nc_abort &
          (ok,'Error finding Rainf in met data file ' &
