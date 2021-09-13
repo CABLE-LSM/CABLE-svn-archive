@@ -79,10 +79,9 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    !--- subr to call CABLE model
    USE cable_cbm_module, ONLY : cbm
 
-   USE cable_def_types_mod, ONLY : mp
+   USE cable_def_types_mod, ONLY : mp, nrb
 
    !--- include subr called to write data for testing purposes 
-   USE cable_diag_module
    USE casa_um_inout_mod
    USE casavariable
    USE casa_types_mod
@@ -306,19 +305,23 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    !___ 1st call in RUN (!=ktau_gl -see below) 
    LOGICAL, SAVE :: first_cable_call = .TRUE.
  
+!co-efficients usoughout init_radiation ` called from _albedo as well
+REAL :: c1(mp,nrb)
+REAL :: rhoch(mp,nrb)
+REAL :: xk(mp,nrb)
+integer :: j
 
    
 
    !--- initialize cable_runtime% switches 
    IF(first_cable_call) THEN
       cable_runtime%um = .TRUE.
+      L_tile_pts = .FALSE.
       write(6,*) ""
       write(6,*) "CABLE_log"
       CALL report_version_no(6) ! wriite revision number to stdout(6)
    ENDIF
    
-write(6,*) "jhan:ESM1.5 test SB,BW 2"
-      
    !--- basic info from global model passed to cable_common_module 
    !--- vars so don't need to be passed around, just USE _module
    ktau_gl = timestep_number     !timestep of EXPERIMENT not necesarily 
@@ -405,6 +408,8 @@ write(6,*) "jhan:ESM1.5 test SB,BW 2"
    !---------------------------------------------------------------------!
    CALL cbm( timestep, air, bgc, canopy, met, bal,                             &
              rad, rough, soil, ssnow, sum_flux, veg )
+   !draft3!CALL cbm( timestep, air, bgc, canopy, met, bal,                             &
+   !draft3!          rad, rough, soil, ssnow, sum_flux, veg, xk, c1, rhoch )
 
 ! output CO2_MMR value used in CABLE (passed from UM)
   if ( (knode_gl.eq.1) .and. (ktau_gl.eq.1) ) then
@@ -428,13 +433,6 @@ write(6,*) "jhan:ESM1.5 test SB,BW 2"
                            canopy%fwet, canopy%wetfac_cs, canopy%rnet,         &
                            canopy%zetar, canopy%epot, met%ua, rad%trad,        &
                            rad%transd, rough%z0m, rough%zref_tq )
-
-
-   ! dump bitwise reproducible testing data
-   IF( cable_user%RUN_DIAG_LEVEL == 'zero')                                    &
-      call cable_diag( 1, "FLUXES", mp, kend_gl, ktau_gl, knode_gl,            &
-                          "FLUXES", canopy%fe + canopy%fh )
-                
 
    cable_runtime%um_explicit = .FALSE.
 
@@ -653,6 +651,29 @@ SUBROUTINE cable_expl_unpack( FTL_TILE_CAB, FTL_CAB, FTL_TILE, FQW_TILE,       &
          first_cable_call = .FALSE.
       ENDIF
 
+IF(knode_gl==2) THEN 
+IF(ktau_gl<11) THEN 
+  OPEN(unit=781,FILE="/home/599/jxs599/expl_unpack.txt")
+  write(781,*) 'ktau ', ktau_gl
+  write(781,*) 'FTL_TILE_CAB, ', SUM( FTL_TILE_CAB)  
+  write(781,*) 'FQW_TILE_CAB , ', SUM(FQW_TILE_CAB)  
+  write(781,*) 'LE_TILE_CAB, ', SUM(  LE_TILE_CAB)   
+  write(781,*) 'FTL_TILE, ', SUM(FTL_TILE)          
+  write(781,*) 'FQW_TILE, ', SUM( FQW_TILE)          
+  write(781,*) 'TSTAR_TILE, ', SUM(TSTAR_TILE)         
+  write(781,*) 'Z0M_TILE, ', SUM(Z0M_TILE)                
+  write(781,*) 'U_S_TILE, ', SUM(U_S_TILE)                  
+  write(781,*) 'CD_CAB_TILE, ', SUM(CD_CAB_TILE)     
+  write(781,*) 'CH_CAB_TILE, ,', SUM(CH_CAB_TILE)     
+  write(781,*) 'FRACA, ', SUM(FRACA)                        
+  write(781,*) 'RESFT, ', SUM(RESFT)                      
+  write(781,*) 'RESFS, ,', SUM(RESFS)                        
+  write(781,*) 'RADNET_TILE,, ', SUM(RADNET_TILE )           
+  write(781,*) 'RECIP_L_MO_TILE, ', SUM(RECIP_L_MO_TILE)    
+  write(781,*) 'EPOT_TILE, ', SUM(EPOT_TILE)                
+  write(781,*) ''
+ENDIF
+ENDIF
    
 END SUBROUTINE cable_expl_unpack
     
