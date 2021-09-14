@@ -425,9 +425,7 @@ MODULE cable_def_types_mod
    
    INTERFACE alloc_cbm_var
       MODULE PROCEDURE alloc_balances_type,                                    &
-         alloc_soil_parameter_type,                                            &
          alloc_soil_snow_type,                                                 &
-         alloc_veg_parameter_type,                                             &
          alloc_canopy_type,                                                    &
          alloc_radiation_type,                                                 &
          alloc_roughness_type,                                                 &
@@ -439,9 +437,7 @@ MODULE cable_def_types_mod
 
    INTERFACE dealloc_cbm_var
       MODULE PROCEDURE dealloc_balances_type,                                  &
-         dealloc_soil_parameter_type,                                          &
          dealloc_soil_snow_type,                                               &
-         dealloc_veg_parameter_type,                                           &
          dealloc_canopy_type,                                                  &
          dealloc_radiation_type,                                               &
          dealloc_roughness_type,                                               &
@@ -598,42 +594,6 @@ SUBROUTINE alloc_soil_snow_type(var, mp)
 END SUBROUTINE alloc_soil_snow_type
 
 ! ------------------------------------------------------------------------------
-   
-SUBROUTINE alloc_veg_parameter_type(var, mp)
-
-   TYPE(veg_parameter_type), INTENT(inout) :: var
-   INTEGER, INTENT(in) :: mp
-   
-   ALLOCATE( var% canst1(mp) ) 
-   ALLOCATE( var% dleaf(mp) )  
-   ALLOCATE( var% ejmax(mp) ) 
-   ALLOCATE( var% iveg(mp) ) 
-   ALLOCATE( var% meth(mp) ) 
-   ALLOCATE( var% frac4(mp) )  
-   ALLOCATE( var% hc(mp) )     
-   ALLOCATE( var% vlai(mp) )   
-   ALLOCATE( var% xalbnir(mp) ) 
-   ALLOCATE( var% rp20(mp) )   
-   ALLOCATE( var% rpcoef(mp) ) 
-   ALLOCATE( var% rs20(mp) )   
-   ALLOCATE( var% shelrb(mp) ) 
-   ALLOCATE( var% vegcf(mp) )  
-   ALLOCATE( var% tminvj(mp) ) 
-   ALLOCATE( var% tmaxvj(mp) ) 
-   ALLOCATE( var% vbeta(mp) )  
-   ALLOCATE( var% vcmax(mp) )  
-   ALLOCATE( var% xfang(mp) )  
-   ALLOCATE( var%extkn(mp) ) 
-   ALLOCATE( var%wai(mp) )   
-   ALLOCATE( var%deciduous(mp) ) 
-   ALLOCATE( var%froot(mp,ms) ) 
-   !was nrb(=3), but never uses (:,3) in model   
-   ALLOCATE( var%refl(mp,2) ) !jhan:swb?
-   ALLOCATE( var%taul(mp,2) ) 
-   ALLOCATE( var%vlaimax(mp) ) 
-
-END SUBROUTINE alloc_veg_parameter_type
-
 ! ------------------------------------------------------------------------------
    
 SUBROUTINE alloc_canopy_type(var, mp)
@@ -891,36 +851,7 @@ END SUBROUTINE dealloc_balances_type
 
 ! ------------------------------------------------------------------------------
 
-SUBROUTINE dealloc_soil_parameter_type(var)
-  
-   TYPE(soil_parameter_type), INTENT(inout) :: var
-   
-   DEALLOCATE( var% bch )   
-   DEALLOCATE( var% c3 )    
-   DEALLOCATE( var% clay )  
-   DEALLOCATE( var% css )   
-   DEALLOCATE( var% hsbh )  
-   DEALLOCATE( var% hyds )  
-   DEALLOCATE( var% i2bp3 ) 
-   DEALLOCATE( var% ibp2 )  
-   DEALLOCATE( var% isoilm )  
-   DEALLOCATE( var% rhosoil )  
-   DEALLOCATE( var% sand )   
-   DEALLOCATE( var% sfc )   
-   DEALLOCATE( var% silt )   
-   DEALLOCATE( var% ssat )   
-   DEALLOCATE( var% sucs )   
-   DEALLOCATE( var% swilt )  
-   DEALLOCATE( var% zse )    
-   DEALLOCATE( var% zshh )  
-   DEALLOCATE( var% cnsd )  
-   DEALLOCATE( var% albsoil )  
-   DEALLOCATE( var% cnsd )  
-   DEALLOCATE( var% pwb_min)  
-   DEALLOCATE( var% albsoilf )  
-   
-END SUBROUTINE dealloc_soil_parameter_type
- 
+
 ! ------------------------------------------------------------------------------
 
 SUBROUTINE dealloc_soil_snow_type(var)
@@ -996,41 +927,6 @@ SUBROUTINE dealloc_soil_snow_type(var)
    
 END SUBROUTINE dealloc_soil_snow_type
    
-! ------------------------------------------------------------------------------
-
-SUBROUTINE dealloc_veg_parameter_type(var)
-
-   TYPE(veg_parameter_type), INTENT(inout) :: var
-
-   DEALLOCATE( var% canst1 ) 
-   DEALLOCATE( var% dleaf )  
-   DEALLOCATE( var% ejmax ) 
-   DEALLOCATE( var% iveg ) 
-   DEALLOCATE( var% meth ) 
-   DEALLOCATE( var% frac4 )  
-   DEALLOCATE( var% hc )     
-   DEALLOCATE( var% vlai )   
-   DEALLOCATE( var% xalbnir ) 
-   DEALLOCATE( var% rp20 )   
-   DEALLOCATE( var% rpcoef ) 
-   DEALLOCATE( var% rs20 )   
-   DEALLOCATE( var% shelrb ) 
-   DEALLOCATE( var% vegcf )  
-   DEALLOCATE( var% tminvj ) 
-   DEALLOCATE( var% tmaxvj ) 
-   DEALLOCATE( var% vbeta)  
-   DEALLOCATE( var% vcmax )  
-   DEALLOCATE( var% xfang )  
-   DEALLOCATE( var%extkn ) 
-   DEALLOCATE( var%wai )   
-   DEALLOCATE( var%deciduous ) 
-   DEALLOCATE( var%froot) 
-   DEALLOCATE( var%refl )
-   DEALLOCATE( var%taul ) 
-   
-END SUBROUTINE dealloc_veg_parameter_type
-   
-! ------------------------------------------------------------------------------
 
 SUBROUTINE dealloc_canopy_type(var)
 

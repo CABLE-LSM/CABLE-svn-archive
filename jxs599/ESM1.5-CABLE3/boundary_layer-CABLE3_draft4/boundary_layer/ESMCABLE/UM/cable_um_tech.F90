@@ -30,7 +30,11 @@
 
 MODULE cable_um_tech_mod
    
-   USE cable_def_types_mod
+   USE cable_def_types_mod, ONLY : air_type, bgc_pool_type, met_type,         &
+                   balances_type, radiation_type, roughness_type,             &
+                   sum_flux_type, soil_snow_type, canopy_type
+   USE cable_def_types_mod, ONLY : soil_snow_type !=>   ssnow_cbl
+   USE cable_def_types_mod, ONLY : canopy_type  !=>  canopy_cbl
    USE cable_params_mod, ONLY : veg  => veg_cbl 
    USE cable_params_mod, ONLY : soil => soil_cbl 
 

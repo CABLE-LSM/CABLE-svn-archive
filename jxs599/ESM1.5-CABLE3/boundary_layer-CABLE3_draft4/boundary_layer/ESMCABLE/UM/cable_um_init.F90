@@ -314,7 +314,10 @@ heat_cap_lower_limit = 0.01
       endif
 
       !--- initialize veg   
-      CALL initialize_veg( canht_ft, lai_ft ) 
+CALL initialize_veg( kblum_veg%htveg , land_pts, npft, ntiles, sm_levels, mp,     &
+                     canht_ft, lai_ft, dzsoil, veg,         &
+                    tile_pts, tile_index, tile_frac, L_tile_pts,                 &
+                    CLAI_thresh )
  
       !--- initialize soil
       CALL initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,      &
@@ -343,6 +346,9 @@ heat_cap_lower_limit = 0.01
 
  
       IF( first_call ) THEN
+!CBL3call spec_init_soil_snow( real(kwidth_gl), soil_cbl, ssnow_cbl, canopy_cbl, met_cbl, bal_cbl, veg_cbl,heat_cap_loower_limit)
+!draft1!call spec_init_soil_snow( real(kwidth_gl), soil, ssnow, canopy, met, bal, veg, &
+!draft1!        heat_cap_lower_limit )
          CALL init_bgc_vars() 
          CALL init_sumflux_zero() 
 
