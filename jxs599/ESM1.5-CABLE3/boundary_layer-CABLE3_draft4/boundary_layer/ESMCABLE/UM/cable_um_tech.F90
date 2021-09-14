@@ -239,54 +239,6 @@ END SUBROUTINE alloc_um_interface_types
 !========================================================================
 !========================================================================
 
-SUBROUTINE dealloc_vegin_soilin()
-   USE cable_common_module, ONLY : cable_runtime, cable_user, vegin, soilin
-      
-      DEALLOCATE(vegin%canst1)
-      DEALLOCATE(vegin%dleaf)
-      DEALLOCATE(vegin%vcmax)
-      DEALLOCATE(vegin%ejmax)
-      DEALLOCATE(vegin%hc)
-      DEALLOCATE(vegin%xfang)
-      DEALLOCATE(vegin%rp20)
-      DEALLOCATE(vegin%rpcoef)
-      DEALLOCATE(vegin% rs20)
-      DEALLOCATE(vegin%shelrb)
-      DEALLOCATE(vegin%vegcf)
-      DEALLOCATE(vegin%frac4)
-      DEALLOCATE(vegin%refl)
-      DEALLOCATE(vegin%taul)
-      DEALLOCATE(vegin%xalbnir)
-      DEALLOCATE(vegin%extkn)
-      DEALLOCATE(vegin%froot)
-      DEALLOCATE(vegin%tminvj)
-      DEALLOCATE(vegin%tmaxvj)
-      DEALLOCATE(vegin%vbeta)
-      DEALLOCATE(vegin%cplant)
-      DEALLOCATE(vegin%csoil)
-      DEALLOCATE(vegin%ratecp)
-      DEALLOCATE(vegin%ratecs)
-     
-      DEALLOCATE(soilin%silt)
-      DEALLOCATE(soilin%clay)
-      DEALLOCATE(soilin%sand)
-      DEALLOCATE(soilin%swilt)
-      DEALLOCATE(soilin%sfc)
-      DEALLOCATE(soilin%ssat)
-      DEALLOCATE(soilin%bch)
-      DEALLOCATE(soilin%hyds)
-      DEALLOCATE(soilin%sucs)
-      DEALLOCATE(soilin%rhosoil)
-      DEALLOCATE(soilin%css)
-
-END SUBROUTINE dealloc_vegin_soilin
-
-
-   !========================================================================
-   !========================================================================
-   !========================================================================
-
-
 END MODULE cable_um_tech_mod
 
 

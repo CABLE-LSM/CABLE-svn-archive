@@ -130,8 +130,8 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
 
    USE cable_def_types_mod, ONLY : ms, mstype, mp, r_2
    USE cable_um_tech_mod,   ONLY : um1, soil, veg, ssnow 
-   USE cable_common_module, ONLY : cable_runtime, cable_user,                  &
-                                   soilin, get_type_parameters
+   USE cable_common_module, ONLY : cable_runtime, cable_user
+    USE cable_params_mod, ONLY : soilin
    
    REAL, INTENT(IN), DIMENSION(um1%land_pts) :: &
       bexp, &
@@ -268,7 +268,7 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
           
 SUBROUTINE initialize_veg( canht_ft, lai_ft) 
    USE cable_um_tech_mod
-   USE cable_common_module, ONLY : cable_runtime, cable_user, vegin
+   USE cable_common_module, ONLY : cable_runtime, cable_user
    
    REAL, INTENT(IN), DIMENSION(um1%land_pts, um1%npft) :: canht_ft, lai_ft 
    
@@ -394,9 +394,9 @@ END SUBROUTINE init_respiration
 !========================================================================
 
 SUBROUTINE init_veg_pars_fr_vegin() 
-   USE cable_common_module, ONLY : vegin
    USE cable_um_tech_mod,   ONLY : veg, soil 
    USE cable_def_types_mod, ONLY : mp
+    USE cable_params_mod, ONLY : vegin
 
    INTEGER :: k
 
@@ -1004,7 +1004,7 @@ END SUBROUTINE um2cable_lp
 SUBROUTINE init_bgc_vars() 
    USE cable_def_types_mod, ONLY : ncs, ncp 
    USE cable_um_tech_mod,   ONLY : bgc, veg   
-   USE cable_common_module, ONLY : vegin
+    USE cable_params_mod, ONLY : vegin
    
    INTEGER :: k
 
