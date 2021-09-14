@@ -279,6 +279,8 @@ USE cbl_soil_snow_init_special_module
          satuParam,        &
          cable_user,       &  ! additional USER switches
          gw_params
+   !      gw_params,        &
+   !      l_landuse
 
     INTEGER :: i,x,kk
     INTEGER :: LALLOC, iu

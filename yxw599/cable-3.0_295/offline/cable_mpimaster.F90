@@ -355,7 +355,9 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
          wiltParam,        &
          satuParam,        &
          cable_user,       &  ! additional USER switches
-         gw_params
+         gw_params        
+ !        gw_params,        &
+ !        l_landuse
     INTEGER :: i,x,kk
     INTEGER :: LALLOC
     INTEGER, PARAMETER ::	 mloop	= 30   ! CASA-CNP PreSpinup loops
