@@ -48,6 +48,7 @@ USE cable_runtime_opts_mod ,ONLY : wiltparam
   LOGICAL, SAVE :: l_casacnp,l_laiFeedbk,l_vcmaxFeedbk
    LOGICAL :: l_luc = .FALSE.
    LOGICAL :: l_thinforest = .FALSE.
+   LOGICAL :: l_landuse = .FALSE.
 
   !---CABLE runtime switches def in this type
   TYPE kbl_internal_switches
@@ -76,7 +77,10 @@ USE cable_runtime_opts_mod ,ONLY : wiltparam
           soilcolor,  & ! file for soil color(soilcolor_global_1x1.nc)
           inits,      & ! name of file for initialisations
           soilIGBP,   & ! name of file for IGBP soil map
-          gw_elev       !name of file for gw/elevation data
+          gw_elev,    & !name of file for gw/elevation data
+          fxpft,      & !filename for PFT fraction and transition,wood harvest, secondary harvest
+          fxluh2cable   !filename for mapping 12 luc states into 17 CABLE PFT
+
 
   END TYPE filenames_type
 
