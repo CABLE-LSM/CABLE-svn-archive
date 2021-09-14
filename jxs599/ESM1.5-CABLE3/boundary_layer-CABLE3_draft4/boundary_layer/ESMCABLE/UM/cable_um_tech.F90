@@ -31,6 +31,9 @@
 MODULE cable_um_tech_mod
    
    USE cable_def_types_mod
+   USE cable_params_mod, ONLY : veg  => veg_cbl 
+   USE cable_params_mod, ONLY : soil => soil_cbl 
+
    IMPLICIT NONE
 
    TYPE(air_type), SAVE             :: air
@@ -39,10 +42,8 @@ MODULE cable_um_tech_mod
    TYPE(balances_type), SAVE        :: bal
    TYPE(radiation_type), SAVE       :: rad
    TYPE(roughness_type), SAVE       :: rough
-   TYPE(soil_parameter_type), SAVE  :: soil       ! soil parameters
    TYPE(soil_snow_type), SAVE       :: ssnow
    TYPE(sum_flux_type), SAVE        :: sum_flux
-   TYPE(veg_parameter_type), SAVE   :: veg        ! vegetation parameters
    TYPE(canopy_type), SAVE          :: canopy
 
    TYPE derived_rad_bands    

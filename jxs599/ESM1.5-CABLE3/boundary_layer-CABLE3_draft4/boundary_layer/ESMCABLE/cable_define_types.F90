@@ -30,6 +30,8 @@
 
 MODULE cable_def_types_mod
 
+    USE cable_params_mod, ONLY : veg_parameter_type
+    USE cable_params_mod, ONLY : soil_parameter_type
    ! Contains all variables which are not subroutine-internal
 
    IMPLICIT NONE
@@ -93,43 +95,6 @@ MODULE cable_def_types_mod
          qssrf_tot           ! energy of snowpack phase changes 
 
    END TYPE balances_type
-
-! .............................................................................
-
-   ! Soil parameters:
-   TYPE soil_parameter_type 
-   
-      INTEGER, DIMENSION(:), POINTER ::                                        &
-         isoilm     ! integer soil type
-
-      REAL, DIMENSION(:), POINTER ::                                           &
-         bch,     & ! parameter b in Campbell equation
-         c3,      & ! c3 drainage coeff (fraction)
-         clay,    & ! fraction of soil which is clay
-         css,     & ! soil specific heat capacity [kJ/kg/K]
-         hsbh,    & ! difsat * etasat (=hyds*abs(sucs)*bch)
-         hyds,    & ! hydraulic conductivity @ saturation [m/s], Ksat
-         i2bp3,   & ! par. one in K vis suction (=nint(bch)+2)
-         ibp2,    & ! par. two in K vis suction (fn of pbch)
-         rhosoil, & ! soil density [kg/m3]
-         sand,    & ! fraction of soil which is sand
-         sfc,     & ! vol H2O @ field capacity
-         silt,    & ! fraction of soil which is silt
-         ssat,    & ! vol H2O @ saturation
-         sucs,    & ! suction at saturation (m)
-         swilt,   & ! vol H2O @ wilting
-         zse,     & ! thickness of each soil layer (1=top) in m
-         zshh,    & ! distance between consecutive layer midpoints (m)
-         albsoilf   ! soil reflectance
-     
-      REAL(r_2), DIMENSION(:), POINTER ::                                      &
-         cnsd,    & ! thermal conductivity of dry soil [W/m/K]
-         pwb_min    ! working variable (swilt/ssat)**ibp2
-     
-      REAL, DIMENSION(:,:), POINTER ::                                         &
-         albsoil    ! soil reflectance (2nd dim. BP 21Oct2009)
-
-  END TYPE soil_parameter_type
 
 ! .............................................................................
 
@@ -213,47 +178,6 @@ MODULE cable_def_types_mod
          wbfice     !
 
    END TYPE soil_snow_type
-
-! .............................................................................
-
-   ! Vegetation parameters:
-   TYPE veg_parameter_type
-     
-      INTEGER, DIMENSION(:), POINTER ::                                        &
-         iveg       ! vegetation type
-
-      REAL, DIMENSION(:), POINTER ::                                           &
-         canst1,  & ! max intercepted water by canopy (mm/LAI)
-         dleaf,   & ! chararacteristc legnth of leaf (m)
-         ejmax,   & ! max pot. electron transp rate top leaf(mol/m2/s)
-         meth,    & ! method for calculation of canopy fluxes and temp.
-         frac4,   & ! fraction of c4 plants
-         hc,      & ! roughness height of canopy (veg - snow)
-         vlai,    & ! leaf area index
-         xalbnir, & 
-         rp20,    & ! plant respiration coefficient at 20 C
-         rpcoef,  & ! temperature coef nonleaf plant respiration (1/C)
-         rs20,    & ! soil respiration at 20 C [mol m-2 s-1]
-         shelrb,  & ! sheltering factor (dimensionless)
-         vegcf,   & ! kdcorbin, 08/10
-         tminvj,  & ! min temperature of the start of photosynthesis
-         tmaxvj,  & ! max temperature of the start of photosynthesis
-         vbeta,   & ! 
-         vcmax,   & ! max RuBP carboxylation rate top leaf (mol/m2/s)
-         xfang,   & ! leaf angle PARAMETER
-         extkn,   & ! extinction coef for vertical
-         vlaimax, & ! extinction coef for vertical
-         wai        ! wood area index (stem+branches+twigs)
-
-      LOGICAL, DIMENSION(:), POINTER ::                                        &
-         deciduous ! flag used for phenology fix
-
-      REAL, DIMENSION(:,:), POINTER ::                                         &
-         refl,    &
-         taul,    & 
-         froot      ! fraction of root in each soil layer
-
-   END TYPE veg_parameter_type
 
 ! .............................................................................
 

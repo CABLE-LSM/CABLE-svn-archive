@@ -65,12 +65,12 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    
    !--- reads runtime and user switches and reports
    USE cable_um_tech_mod, ONLY : cable_um_runtime_vars, air, bgc, canopy,      &
-                                 met, bal, rad, rough, soil, ssnow, sum_flux, veg 
-   
+                                 met, bal, rad, rough, ssnow, sum_flux
+    USE cable_params_mod, ONLY : veg => veg_cbl 
+    USE cable_params_mod, ONLY : soil => soil_cbl 
    !--- vars common to CABLE declared 
    USE cable_common_module, ONLY : cable_runtime, cable_user, ktau_gl,         &
                                    knode_gl, kwidth_gl, kend_gl,               &
-                                   report_version_no,                          & 
                                    l_vcmaxFeedbk, l_laiFeedbk,l_luc
    
    !--- subr to (manage)interface UM data to CABLE
@@ -314,13 +314,7 @@ integer :: j
    
 
    !--- initialize cable_runtime% switches 
-   IF(first_cable_call) THEN
       cable_runtime%um = .TRUE.
-      L_tile_pts = .FALSE.
-      write(6,*) ""
-      write(6,*) "CABLE_log"
-      CALL report_version_no(6) ! wriite revision number to stdout(6)
-   ENDIF
    
    !--- basic info from global model passed to cable_common_module 
    !--- vars so don't need to be passed around, just USE _module
@@ -344,7 +338,6 @@ integer :: j
       first_cable_call = .FALSE.
    ENDIF      
    
-
   mtau = mod(ktau_gl,int(24.*3600./timestep))
   if (l_luc .and. iday==1 .and. mtau==1) then
    ! resdistr(frac,in,out) - Lestevens 10oct17
@@ -433,6 +426,7 @@ integer :: j
                            canopy%fwet, canopy%wetfac_cs, canopy%rnet,         &
                            canopy%zetar, canopy%epot, met%ua, rad%trad,        &
                            rad%transd, rough%z0m, rough%zref_tq )
+
 
    cable_runtime%um_explicit = .FALSE.
 
