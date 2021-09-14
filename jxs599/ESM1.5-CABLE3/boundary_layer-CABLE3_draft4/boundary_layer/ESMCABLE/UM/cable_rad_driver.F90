@@ -37,10 +37,11 @@ SUBROUTINE cable_rad_driver(                                                   &
                              ! OUT
                              LAND_ALBEDO_CABLE, ALB_TILE, LAND_ALB_CABLE ) 
 
-   USE cable_def_types_mod, ONLY : mp
+   USE cable_def_types_mod, ONLY : mp,nrb
    USE cable_albedo_module, ONLY : surface_albedo
-   USE cable_um_tech_mod,   ONLY : kblum_rad, um1, soil, ssnow, rad, veg,      &
-                                   met, canopy
+   USE cable_um_tech_mod,   ONLY : kblum_rad, um1, ssnow, rad, met, canopy
+USE cable_params_mod, ONLY : veg => veg_cbl 
+USE cable_params_mod, ONLY : soil => soil_cbl 
    USE cable_um_init_subrs_mod, ONLY : update_kblum_radiation,  um2cable_met_rad,  &
                                    um2cable_lp 
    USE cable_common_module, ONLY : cable_runtime, cable_user
@@ -80,6 +81,10 @@ SUBROUTINE cable_rad_driver(                                                   &
    
    REAL :: rad_vis(mp), rad_nir(mp), met_fsd_tot_rel(mp), rad_albedo_tot(mp) 
 
+!co-efficients usoughout init_radiation ` called from _albedo as well
+!REAL :: c1(mp,nrb)
+!REAL :: rhoch(mp,nrb)
+!REAL :: xk(mp,nrb)
       !jhan:check that these are reset after call done
       cable_runtime%um_radiation= .TRUE.
       
