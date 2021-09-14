@@ -400,9 +400,7 @@ integer :: j
    !--- req'd by Mk3L  --------------------------------------------------!
    !---------------------------------------------------------------------!
    CALL cbm( timestep, air, bgc, canopy, met, bal,                             &
-             rad, rough, soil, ssnow, sum_flux, veg )
-   !draft3!CALL cbm( timestep, air, bgc, canopy, met, bal,                             &
-   !draft3!          rad, rough, soil, ssnow, sum_flux, veg, xk, c1, rhoch )
+             rad, rough, soil, ssnow, sum_flux, veg, xk, c1, rhoch )
 
 ! output CO2_MMR value used in CABLE (passed from UM)
   if ( (knode_gl.eq.1) .and. (ktau_gl.eq.1) ) then

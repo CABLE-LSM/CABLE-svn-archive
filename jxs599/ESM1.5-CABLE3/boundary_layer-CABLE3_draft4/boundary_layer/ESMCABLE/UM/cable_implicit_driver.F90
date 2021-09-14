@@ -57,7 +57,7 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
                                   NPP_FT_ACC,RESP_W_FT_ACC,RESP_S_ACC,          &
                                   FNSNET,FNLEACH,FNUP,FNLOSS,FNDEP,FNFIX,idoy )
 
-   USE cable_def_types_mod, ONLY : mp
+   USE cable_def_types_mod, ONLY : mp, nrb
    USE cable_data_module,   ONLY : PHYS
    USE cable_um_tech_mod,   ONLY : um1, conv_rain_prevstep, conv_snow_prevstep,&
                                   air, bgc, canopy, met, bal, rad, rough,      &
@@ -245,6 +245,10 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
 
    REAL, POINTER :: TFRZ
    
+!co-efficients usoughout init_radiation ` called from _albedo as well
+REAL :: c1(mp,nrb)
+REAL :: rhoch(mp,nrb)
+REAL :: xk(mp,nrb)
       TFRZ => PHYS%TFRZ
    
       ! FLAGS def. specific call to CABLE from UM
@@ -282,10 +286,8 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
  
       canopy%cansto = canopy%oldcansto
 
-      CALL cbm(TIMESTEP, air, bgc, canopy, met, bal,  &
-           rad, rough, soil, ssnow, sum_flux, veg)
-   !draft1!CALL cbm( timestep, air, bgc, canopy, met, bal,                             &
-   !draft1!          rad, rough, soil, ssnow, sum_flux, veg, xk, c1, rhoch )
+   CALL cbm( timestep, air, bgc, canopy, met, bal,                             &
+             rad, rough, soil, ssnow, sum_flux, veg, xk, c1, rhoch )
 
       ! Lestevens - temporary ?
       ktauday = int(24.0*3600.0/TIMESTEP)
