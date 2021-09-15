@@ -45,7 +45,7 @@ MODULE casadimension
   INTEGER, PARAMETER :: msoil  = 3         ! soil pools
   INTEGER, PARAMETER :: mso    = 12        ! soil order number
   INTEGER, PARAMETER :: mhwp  = 1          ! harvested wood pools
-!  INTEGER, PARAMETER :: mwood  = 3         ! wood product pools
+  INTEGER, PARAMETER :: mwood  = 3         ! wood product pools
   INTEGER, PARAMETER :: mclear  = 1        ! forest clearing pools
   ! BP put icycle into namelist file
   INTEGER            :: icycle

@@ -124,9 +124,9 @@ MODULE casavariable
           ratioPcsoil,   &
           ratioPcplant,  &
           ratioPclitter
-!     REAL(r_2), DIMENSION(:,:),POINTER :: cwoodprod,   &
-!          nwoodprod,     &
-!          pwoodprod       
+     REAL(r_2), DIMENSION(:,:),POINTER :: cwoodprod,   &
+          nwoodprod,     &
+          pwoodprod       
   END TYPE casa_pool
 
   TYPE casa_flux
@@ -398,11 +398,10 @@ CONTAINS
          casapool%ratioPcplant(arraysize,mplant),   &
          casapool%ratioPclitter(arraysize,mlitter), &
          casapool%Ctot_0(arraysize),                &
-         casapool%Ctot(arraysize))
-    !     casapool%Ctot(arraysize),                  &
-    !     casapool%cwoodprod(arraysize,mwood),       &
-    !     casapool%nwoodprod(arraysize,mwood),       &
-    !     casapool%pwoodprod(arraysize,mwood))        
+         casapool%Ctot(arraysize),                  &
+         casapool%cwoodprod(arraysize,mwood),       &
+         casapool%nwoodprod(arraysize,mwood),       &
+         casapool%pwoodprod(arraysize,mwood))        
 
     ALLOCATE(casaflux%Cgpp(arraysize),                 &
          casaflux%Cnpp(arraysize),                     &

@@ -279,6 +279,7 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
          spinConv      = .FALSE., & ! has spinup converged?
          spincasa      = .FALSE., & ! TRUE: CASA-CNP Will spin mloop times,
          l_casacnp     = .FALSE., & ! using CASA-CNP with CABLE
+         l_landuse     = .FALSE., & ! using LANDUSE             
          l_laiFeedbk   = .FALSE., & ! using prognostic LAI
          l_vcmaxFeedbk = .FALSE., & ! using prognostic Vcmax
          CASAONLY      = .FALSE., & ! ONLY Run CASA-CNP
@@ -344,6 +345,7 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
          fixedCO2,         &
          spincasa,         &
          l_casacnp,        &
+         l_landuse,        &
          l_laiFeedbk,      &
          l_vcmaxFeedbk,    &
          icycle,           &

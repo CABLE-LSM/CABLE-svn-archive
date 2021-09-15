@@ -212,6 +212,7 @@ USE cbl_soil_snow_init_special_module
                                 ! FALSE: no spin up
        l_landuse = .FALSE.,	   & ! using landuse               
        l_casacnp = .FALSE.,	   & ! using CASA-CNP with CABLE
+       l_landuse = .FALSE.,	   & ! using CASA-CNP with CABLE
        l_laiFeedbk = .FALSE.,	   & ! using prognostic LAI
        l_vcmaxFeedbk = .FALSE.,	   & ! using prognostic Vcmax
        CASAONLY	     = .FALSE.,	   & ! ONLY Run CASA-CNP
@@ -253,6 +254,7 @@ USE cbl_soil_snow_init_special_module
        fixedCO2,	 &
        spincasa,	 &
        l_casacnp,	 &
+       l_landuse,        &
        l_laiFeedbk,	 &
        l_vcmaxFeedbk,	 &
        icycle,		 &
@@ -263,7 +265,7 @@ USE cbl_soil_snow_init_special_module
        wiltParam,	 &
        satuParam,	 &
        cable_user,       &   ! additional USER switches
-       gw_params
+       gw_param
 
   !mpidiff
   INTEGER :: i,x,kk
