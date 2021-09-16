@@ -513,8 +513,8 @@ MODULE landuse_patch
 
    ! biophysical variables
    real(r_2),  dimension(:,:),      allocatable   :: albsoilsn,albedo,albsoil      !float(mp,rad)
-   real(r_2), dimension(:),        allocatable   :: dgdtg                         !double(mp)
-   real(r_2), dimension(:,:),      allocatable   :: gammzz                        !double(mp,soil)
+   real(r_2),  dimension(:),        allocatable   :: dgdtg                         !double(mp)
+   real(r_2),  dimension(:,:),      allocatable   :: gammzz                        !double(mp,soil)
    real(r_2),  dimension(:,:),      allocatable   :: tgg,wb,wbice                  !float(mp,soil)
    real(r_2),  dimension(:,:),      allocatable   :: tggsn,ssdn,smass,sdepth       !float(mp,snow)
    real(r_2),  dimension(:),        allocatable   :: tss,rtsoil,runoff,rnof1,rnof2, &
@@ -634,14 +634,8 @@ MODULE landuse_patch
 
 END MODULE landuse_patch
 
-  subroutine landuse_driver(ssnow,soil,veg,bal,canopy,phen,casapool,casabal,casamet,bgc,rad)
-! Re-allocate casacnp restart pools for new land patch array.
-! Used for LAND USE CHANGE SIMULATION
-! Call by casa_init
-! Q.Zhang @ 04/05/2011
+  subroutine landuse_driver(mlon,mlat,landmask,arealand,ssnow,soil,veg,bal,canopy,phen,casapool,casabal,casamet,bgc,rad)
   use netcdf
-
-  use cable_common_module,  ONLY: filename
   USE cable_IO_vars_module, ONLY: mask,patch,landpt
   USE cable_def_types_mod,  ONLY: mp,mvtype,mstype,mland,r_2,ms,msn,nrb,ncp,ncs,           &
                                   soil_parameter_type, soil_snow_type, veg_parameter_type, &
@@ -659,91 +653,37 @@ END MODULE landuse_patch
   TYPE (canopy_type)             :: canopy
   TYPE (phen_variable)           :: phen
   TYPE (casa_pool)               :: casapool
-  TYPE (casa_biome)               :: casabiome
+  TYPE (casa_biome)              :: casabiome
   TYPE (casa_balance)            :: casabal
   TYPE (casa_met)                :: casamet
   TYPE (bgc_pool_type)           :: bgc
   TYPE (radiation_type)          :: rad    ! met data
 
-
-
   TYPE (landuse_type),save       :: luc
   TYPE (landuse_mp),  save       :: lucmp
+  ! input
+  integer mlon,mlat
+  integer,       dimension(mlon,mlat)         :: landmask
+  real(r_2),     dimension(mland)             :: arealand
 
-  integer     mlon,mlat
-  integer,       dimension(:,:),      allocatable   :: landmask
   ! "mland" variables
-  integer,       dimension(:),        allocatable   :: cstart,cend,nap
-  real(r_2),     dimension(:,:),      allocatable   :: fracpry
-  real(r_2),     dimension(:,:),      allocatable   :: areax    
-  real(r_2),     dimension(:),        allocatable   :: arealand
+  integer,       dimension(:),            allocatable   :: cstart,cend,nap
+
   character*500   fxpft,fxluh2cable
   integer ivt,ee,hh,np,p,q,np1
   integer ncid,ok,xID,yID,varID,i,j,m,mpx
 
-    ! the following variables are available from "CABLE"
-    ! get " mlon,mlat,landmask  " from gridinfo files
-    ! with UM, may be assigned from UM variables
-
-
-    ok = NF90_OPEN(filename%type, 0, ncid)
-    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error opening grid info file.')
-
-    ok = NF90_INQ_DIMID(ncid, 'longitude', xID)
-    IF (ok /= NF90_NOERR) ok = NF90_INQ_DIMID(ncid, 'x', xID)
-    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error inquiring x dimension.')
-    ok = NF90_INQUIRE_DIMENSION(ncid, xID, LEN=mlon)
-    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error getting x dimension.')
-    ok = NF90_INQ_DIMID(ncid, 'latitude', yID)
-    IF (ok /= NF90_NOERR) ok = NF90_INQ_DIMID(ncid, 'y', yID)
-    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error inquiring y dimension.')
-    ok = NF90_INQUIRE_DIMENSION(ncid, yID, LEN=mlat)
-    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error getting y dimension.')
-
-    allocate(landmask(mlon,mlat))
-    allocate(areax(mlon,mlat))
-    allocate(arealand(mland))
-    allocate(fracpry(mland,mvtype))
-    allocate(cstart(mland),cend(mland),nap(mland))
-     
-    ok = NF90_INQ_VARID(ncid, 'area', varID)
-    IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                    &
-                  'Error finding variable area')
-    ok = NF90_GET_VAR(ncid, varID, areax)
-    IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                    &
-                  'Error reading variable longitude.')
-
-    ok = NF90_CLOSE(ncid)
-    IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error closing grid info file.')
-
-     m=0
-     do i=1,mlon
-     do j=1,mlat
-        if(areax(i,j) >0.01) then
-           landmask(i,j) = 1
-           m=m+1
-           arealand(m) = areax(i,j)
-        else
-           landmask(i,j) =0
-        endif
-     enddo
-     enddo
-     if(m/=mland) then
-        print *, 'mland not consistent: check gridinof area'
-        stop
-     endif   
-
-!     landmask = mask
-     cstart   = landpt%cstart
-     cend     = landpt%cend
-     nap      = landpt%nap
+     allocate(cstart(mland),cend(mland),nap(mland))
+     cstart(:)   = landpt(:)%cstart
+     cend(:)     = landpt(:)%cend
+     nap(:)      = landpt(:)%nap
 
      call landuse_allocate_mp(mp,ms,msn,nrb,mplant,mlitter,msoil,mwood,ncp,ncs,lucmp)  
      call landuse_allocate_mland(mland,luc)                                                     !setup "varx(mland,:)"        
 
      ! get the mapping matrix from state to PFT
-     call landuse_getxluh2(mlat,mlon,landmask,luc,filename%fxluh2cable)    !"xluh2cable"
-     call landuse_getdata(mlat,mlon,landmask,filename%fxpft,luc)     !"luc(t-1)" and "xpft(t-1)"
+     ! call landuse_getxluh2(mlat,mlon,landmask,luc,filename%fxluh2cable)    !"xluh2cable"
+     ! call landuse_getdata(mlat,mlon,landmask,filename%fxpft,luc)     !"luc(t-1)" and "xpft(t-1)"
 
      ! get pool sizes and other states in the "restart", "gridinfo" and "poolout" file
      ! patch-generic variables
@@ -861,9 +801,7 @@ END MODULE landuse_patch
      call landuse_land2mpx(luc,lucmp,mpx,cstart,cend,nap)
      call landuse_deallocate_mland(luc)
 
-     deallocate(fracpry)
      deallocate(cstart,cend,nap)
-     deallocate(arealand)
 
      close(21)
 211  format(i4,a120)
@@ -1049,107 +987,6 @@ end subroutine landuse_driver
 
 END SUBROUTINE landuse_mp2land
   
-SUBROUTINE landuse_getxluh2(mlat,mlon,landmask,luc,fxluh2cable)
-! get data: luc%fprimary; luc%fsecondary
-  USE netcdf
-  use landuse_variable
-  IMPLICIT NONE
-  TYPE(landuse_type)   :: luc
-  character*500 fxluh2cable
-  integer mp,mlat,mlon
-  integer,     dimension(mlon,mlat)              :: landmask
-  ! local variables
-  real(r_2),   dimension(:,:,:,:), allocatable   :: xluh2cable
-  integer ok,ncid2,varxid
-  integer i,j,m,v,s
-
-    allocate(xluh2cable(mlon,mlat,mvmax,mstate))
-    ok = nf90_open(fxluh2cable,nf90_nowrite,ncid2)
-    ok = nf90_inq_varid(ncid2,"xluh2cable",varxid)
-    ok = nf90_get_var(ncid2,varxid,xluh2cable)
-    ok = nf90_close(ncid2)
-    ! assig the values of luc%variables
-    luc%xluh2cable(:,:,:) = 0.0
-    m = 0
-    do i=1,mlon
-    do j=1,mlat
-       if(landmask(i,j) ==1) then
-          m= m +1
-          luc%xluh2cable(m,:,:) = xluh2cable(i,j,:,:)
-          do s=1,mstate
-             do v=1,mvmax
-                luc%xluh2cable(m,v,s) = luc%xluh2cable(m,v,s)/sum(luc%xluh2cable(m,1:mvmax,s))
-             enddo
-          enddo
-       endif
-    enddo
-    enddo
-
-    deallocate(xluh2cable)
-
- END SUBROUTINE landuse_getxluh2
-
-SUBROUTINE landuse_getdata(mlat,mlon,landmask,fxpft,luc)
-! get LUC data
-  USE netcdf
-  use landuse_variable
-  IMPLICIT NONE
-  TYPE(landuse_type)   :: luc
-  character*500 fxpft
-  integer mlat,mlon
-  integer,   dimension(mlon,mlat)                  :: landmask 
-  ! local variables
-!  integer, dimension(:,:,:),  allocatable    :: cablepft
-!  real(r_2),  dimension(:,:,:),  allocatable    :: patchx
-  real(r_2),  dimension(:,:,:),   allocatable   :: fracharvw
-  real(r_2),  dimension(:,:,:,:), allocatable   :: transitx
-  integer  ok,ncid1,varxid
-  integer  i,j,m,k,ivt
-
-!    allocate(cablepft(mlon,mlat,mvmax))  
-!    allocate(patchx(mlon,mlat,mvmax))    
-    allocate(fracharvw(mlon,mlat,mharvw))
-    allocate(transitx(mlon,mlat,mvmax,mvmax))
-
-    ok = nf90_open(fxpft,nf90_nowrite,ncid1)
-    ok = nf90_inq_varid(ncid1,"harvest",varxid)
-    ok = nf90_get_var(ncid1,varxid,fracharvw)
-    ok = nf90_inq_varid(ncid1,"transition",varxid)
-    ok = nf90_get_var(ncid1,varxid,transitx)
-!    ok = nf90_inq_varid(ncid1,"CABLEpft",varxid)
-!    ok = nf90_get_var(ncid1,varxid,cablepft)
-!    ok = nf90_inq_varid(ncid1," patchfrac",varxid)
-!    ok = nf90_get_var(ncid1,varxid,patchx)
-    ok = nf90_close(ncid1)
-
-    ! assig the values of luc%variables
-    luc%fharvw(:,:) =0.0; luc%atransit(:,:,:)=0.0
-    m = 0
-    do i=1,mlon
-    do j=1,mlat
-       if(landmask(i,j) ==1) then
-          m= m +1
-          luc%atransit(m,:,:)   = transitx(i,j,:,:)
-          luc%fharvw(m,:)       = fracharvw(i,j,:)
-!          do k=1,mvmax
-!             ivt=cablepft(i,j,k)
-!             if(ivt<1.or.ivt>mvmax) then
-!                print *, 'error in luc data i j k', i,j,k,ivt
-!                stop
-!             endif
-!             luc%patchfrac(m,ivt)=patchx(i,j,k)
-!          enddo
-       endif
-    enddo
-    enddo
-    
-    deallocate(fracharvw)
-    deallocate(transitx)
-!    deallocate(cablepft)  
-!    deallocate(patchx)    
-
-END SUBROUTINE landuse_getdata
-
 SUBROUTINE landuse_transitx(luc,casabiome)
    USE casaparm
    USE casavariable,  ONLY: casa_biome
