@@ -39,6 +39,14 @@ SUBROUTINE cable_rad_driver(                                                   &
 
    USE cable_def_types_mod, ONLY : mp,nrb
    USE cable_albedo_module, ONLY : surface_albedo
+USE cbl_masks_mod, ONLY: veg_mask,  sunlit_mask,  sunlit_veg_mask
+USE cable_other_constants_mod, ONLY: Ccoszen_tols => coszen_tols
+USE cable_other_constants_mod,  ONLY : Crad_thresh => rad_thresh
+USE cable_other_constants_mod, ONLY: clai_thresh => lai_thresh
+USE cable_other_constants_mod, ONLY: cgauss_w => gauss_w
+USE cable_math_constants_mod,  ONLY: cpi => pi
+USE cable_math_constants_mod,  ONLY: cpi180 => pi180
+
    USE cable_um_tech_mod,   ONLY : kblum_rad, um1, ssnow, rad, met, canopy
 USE cable_params_mod, ONLY : veg => veg_cbl 
 USE cable_params_mod, ONLY : soil => soil_cbl 
@@ -82,9 +90,13 @@ USE cable_params_mod, ONLY : soil => soil_cbl
    REAL :: rad_vis(mp), rad_nir(mp), met_fsd_tot_rel(mp), rad_albedo_tot(mp) 
 
 !co-efficients usoughout init_radiation ` called from _albedo as well
-!REAL :: c1(mp,nrb)
-!REAL :: rhoch(mp,nrb)
-!REAL :: xk(mp,nrb)
+REAL :: c1(mp,nrb)
+REAL :: rhoch(mp,nrb)
+REAL :: xk(mp,nrb)
+CHARACTER(LEN=*), PARAMETER :: subr_name = "cbl_model_driver"
+LOGICAL :: jls_standalone= .TRUE.
+LOGICAL :: jls_radiation= .TRUE.
+LOGICAL :: cbl_standalone = .FALSE.    
       !jhan:check that these are reset after call done
       cable_runtime%um_radiation= .TRUE.
       
@@ -116,8 +128,34 @@ USE cable_params_mod, ONLY : soil => soil_cbl
       ssnow%tggsn(:,1) = PACK( SNOW_TMP3L(:,:,1), um1%L_TILE_PTS )
       ssnow%tgg(:,1) =   PACK( TSOIL_TILE(:,:,1), um1%L_TILE_PTS )
 
-
-      CALL surface_albedo(ssnow, veg, met, rad, soil, canopy)
+CALL surface_albedo(ssnow, veg, met, rad, soil, canopy, &
+ ssnow%AlbSoilsn, soil%AlbSoil,                                 &
+             !AlbSnow, AlbSoil,              
+             mp, nrb,                                                       &
+             jls_radiation,                                                 &
+             veg_mask, sunlit_mask, sunlit_veg_mask,                        &  
+             Ccoszen_tols, cgauss_w,                                        & 
+             veg%iveg, soil%isoilm, veg%refl, veg%taul,                    & 
+             !surface_type, VegRefl, VegTaul,
+             met%tk, met%coszen, canopy%vlaiw,                              &
+             !metTk, coszen, reducedLAIdue2snow,
+             ssnow%snowd, ssnow%osnowd, ssnow%isflag,                       & 
+             !SnowDepth, SnowODepth, SnowFlag_3L, 
+             ssnow%ssdnn, ssnow%tgg(:,1), ssnow%tggsn(:,1), ssnow%snage,                      & 
+             !SnowDensity, SoilTemp, SnowAge, 
+             xk, c1, rhoch,                                                 & 
+             rad%fbeam, rad%albedo,                                         &
+             !RadFbeam, RadAlbedo,
+             rad%extkd, rad%extkb,                                          & 
+             !ExtCoeff_dif, ExtCoeff_beam,
+             rad%extkdm, rad%extkbm,                                        & 
+             !EffExtCoeff_dif, EffExtCoeff_beam,                
+             rad%rhocdf, rad%rhocbm,                                        &
+             !CanopyRefl_dif,CanopyRefl_beam,
+             rad%cexpkdm, rad%cexpkbm,                                      & 
+             !CanopyTransmit_dif, CanopyTransmit_beam, 
+             rad%reffdf, rad%reffbm                                        &
+           ) !EffSurfRefl_dif, EffSurfRefl_beam 
 
       ! only for land points, at present do not have a method for treating 
       ! mixed land/sea or land/seaice points as yet.

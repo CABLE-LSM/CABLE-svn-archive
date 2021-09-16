@@ -1,22 +1,14 @@
 !==============================================================================
 ! This source code is part of the 
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
-! This work is licensed under the CABLE Academic User Licence Agreement 
-! (the "Licence").
-! You may not use this file except in compliance with the Licence.
-! A copy of the Licence and registration form can be obtained from 
-! http://www.cawcr.gov.au/projects/access/cable
-! You need to register and read the Licence agreement before use.
-! Please contact cable_help@nf.nci.org.au for any questions on 
-! registration and the Licence.
+! This work is licensed under the CSIRO Open Source Software License
+! Agreement (variation of the BSD / MIT License).
 !
-! Unless required by applicable law or agreed to in writing, 
-! software distributed under the Licence is distributed on an "AS IS" BASIS,
-! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-! See the Licence for the specific language governing permissions and 
-! limitations under the Licence.
+! You may not use this file except in compliance with this License.
+! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located
+! in each directory containing CABLE code.
+!
 ! ==============================================================================
-!
 ! Purpose: Calculate roughness lengths as a function of soil and canopy 
 !          parameters
 !
@@ -29,6 +21,19 @@
 ! ==============================================================================
 
 MODULE cable_roughness_module
+
+USE cable_phys_constants_mod, ONLY : CCSD   => CSD 
+USE cable_phys_constants_mod, ONLY : CCRD   => CRD 
+USE cable_phys_constants_mod, ONLY : CCCD   => CCD 
+USE cable_phys_constants_mod, ONLY : CCCW_C => CCW_C 
+USE cable_phys_constants_mod, ONLY : CUSUHM  => USUHM 
+USE cable_phys_constants_mod, ONLY : CVONK   => VONK
+USE cable_phys_constants_mod, ONLY : CA33    => A33 
+USE cable_phys_constants_mod, ONLY : CCTL    =>  CTL  
+USE cable_phys_constants_mod, ONLY : CZDLIN  => ZDLIN
+USE cable_phys_constants_mod, ONLY : CCSW    => CSW
+USE cable_phys_constants_mod, ONLY : CGRAV   => GRAV
+USE cable_other_constants_mod, ONLY : CLAI_THRESH => LAI_THRESH 
    
    USE cable_data_module, ONLY : irough_type, point2constants
    
@@ -41,23 +46,30 @@ MODULE cable_roughness_module
 CONTAINS
 
 
+SUBROUTINE ruff_resist(veg, rough, ssnow, canopy, LAI_pft, HGT_pft, reducedLAIdue2snow )
 
-SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
-
-   ! m.r. raupach, 24-oct-92
    ! see: Raupach, 1992, BLM 60 375-395
    !      MRR notes "Simplified wind model for canopy", 23-oct-92
    !      MRR draft paper "Simplified expressions...", dec-92
    ! modified to include resistance calculations by Ray leuning 19 Jun 1998  
 
-   USE cable_common_module, ONLY : cable_runtime, cable_user
+    USE cable_common_module, ONLY : cable_user
    USE cable_def_types_mod, ONLY : veg_parameter_type, roughness_type,         &
                                    soil_snow_type, canopy_type, mp  
+
+!result returned from called subr. Avail. in cross_*paths_module - but unsure
+!yet
+real :: HeightAboveSnow(mp) 
+real :: reducedLAIdue2snow(mp) 
 
    TYPE(roughness_type), INTENT(INOUT) :: rough
    TYPE (canopy_type),   INTENT(INOUT) :: canopy
    TYPE(soil_snow_type), INTENT(IN)    :: ssnow
    TYPE (veg_parameter_type),  INTENT(INOUT) :: veg
+
+real :: LAI_pft(mp)
+real :: HGT_pft(mp)
+
 
    REAL, DIMENSION(mp) ::                                                      &
       xx,      & ! =C%CCD*LAI; working variable 

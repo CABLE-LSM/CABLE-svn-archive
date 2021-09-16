@@ -1,22 +1,14 @@
 !==============================================================================
 ! This source code is part of the 
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
-! This work is licensed under the CABLE Academic User Licence Agreement 
-! (the "Licence").
-! You may not use this file except in compliance with the Licence.
-! A copy of the Licence and registration form can be obtained from 
-! http://www.cawcr.gov.au/projects/access/cable
-! You need to register and read the Licence agreement before use.
-! Please contact cable_help@nf.nci.org.au for any questions on 
-! registration and the Licence.
+! This work is licensed under the CSIRO Open Source Software License
+! Agreement (variation of the BSD / MIT License).
 !
-! Unless required by applicable law or agreed to in writing, 
-! software distributed under the Licence is distributed on an "AS IS" BASIS,
-! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-! See the Licence for the specific language governing permissions and 
-! limitations under the Licence.
+! You may not use this file except in compliance with this License.
+! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located
+! in each directory containing CABLE code.
+!
 ! ==============================================================================
-!
 ! Purpose: Computes radiation absorbed by canopy and soil surface
 !
 ! Contact: Yingping.Wang@csiro.au
@@ -40,11 +32,75 @@ MODULE cable_radiation_module
 
 CONTAINS
 
-SUBROUTINE init_radiation( met, rad, veg, canopy )
+SUBROUTINE init_radiation( met, rad, veg, canopy,                             &
+                        ExtCoeff_beam, ExtCoeff_dif,                        &
+                        EffExtCoeff_beam, EffExtCoeff_dif, RadFbeam,           &
+                        c1, rhoch, xk,                                         &
+                        mp,nrb,                                                &
+                        Clai_thresh, Ccoszen_tols, CGauss_w, Cpi, Cpi180,      &
+                        cbl_standalone, jls_standalone, jls_radiation,         &
+                        subr_name,                                             &
+                        veg_mask, sunlit_mask, sunlit_veg_mask,                &
+                        VegXfang, VegTaul, VegRefl,                            &
+                        coszen, metDoY, SW_down,                               & 
+                        reducedLAIdue2snow )
 
+!SUBROUTINE init_radiation( met, rad, veg, canopy )
    USE cable_def_types_mod, ONLY : radiation_type, met_type, canopy_type,      &
-                                   veg_parameter_type, nrb, mp    
+                                   veg_parameter_type
    USE cable_common_module
+implicit none
+
+!re-decl input args
+!model dimensions
+integer :: mp                   !total number of "tiles"  
+integer :: nrb                  !number of radiation bands [per legacy=3, but really=2 VIS,NIR. 3rd dim was for LW]
+
+!returned variables
+REAL :: ExtCoeff_beam(mp)       !"raw" Extinction co-efficient for Direct Beam component of SW radiation
+REAL :: ExtCoeff_dif(mp)        !"raw"Extinction co-efficient for Diffuse component of SW radiation
+REAL :: EffExtCoeff_beam(mp,nrb)!Effective Extinction co-efficient for Direct Beam component of SW radiation
+REAL :: EffExtCoeff_dif(mp,nrb) !Effective Extinction co-efficient for Diffuse component of SW radiation
+REAL :: RadFbeam(mp,nrb)        !Beam Fraction of Downward SW radiation [formerly rad%fbeam]
+
+
+!constants
+real :: Clai_thresh             !threshold LAI below which considered UN-vegetated
+real :: Ccoszen_tols            !threshold cosine of sun's zenith angle, below which considered SUNLIT
+real :: Cgauss_w(nrb)
+real :: Cpi                     !PI - from cable_math_constants originally
+real :: Cpi180                  !PI in radians - from cable_math_constants originally
+!what model am i in
+LOGICAL :: cbl_standalone       !runtime switch defined in cable_*main routines signifying this is cable_standalone
+LOGICAL :: jls_standalone       !runtime switch defined in cable_*main routines signifying this is jules_standalone
+LOGICAL :: jls_radiation        !runtime switch defined in cable_*main routines signifying this is the radiation pathway 
+character(len=*) :: subr_name !where am i called from
+!masks
+logical :: veg_mask(mp)         !vegetated mask [formed by comparrisson of LAI CLAI_thresh ]
+logical :: sunlit_mask(mp)      !sunlit mask [formed by comparrisson of coszen to coszen_tols i.e. is the sun up]
+logical :: sunlit_veg_mask(mp)  !combined mask - BOTH sunlit and vegetated
+
+!vegetation parameters input via namelist
+REAL :: VegXfang(mp)
+REAL :: VegTaul(mp,nrb)
+REAL :: VegRefl(mp,nrb)
+
+REAL :: reducedLAIdue2snow(mp)  !Effective LAI given (potential sno coverage)
+REAL :: coszen(mp)              ! cosine zenith angle of sun
+REAL :: SW_down(mp,nrb)         !Downward SW radiation [formerly met%fsd]
+integer :: metDoY(mp)           !Day of the Year [formerly met%doy]
+
+!co-efficients used throughout init_radiation used in albedo as well
+REAL :: c1(mp,nrb)
+REAL :: rhoch(mp,nrb)
+REAL :: xk(mp,nrb)              ! extinct. coef.for beam rad. and black leaves
+
+!local_vars - common scaling co-efficients used throughout init_radiation
+REAL :: xvlai2(mp,nrb) ! 2D vlai
+REAL :: xphi1(mp)      ! leaf angle parmameter 1
+REAL :: xphi2(mp)      ! leaf angle parmameter 2
+
+!SUBROUTINE init_radiation( met, rad, veg, canopy )
 
    TYPE (radiation_type), INTENT(INOUT) :: rad
    TYPE (met_type),       INTENT(INOUT) :: met
@@ -55,19 +111,6 @@ SUBROUTINE init_radiation( met, rad, veg, canopy )
    
    REAL, DIMENSION(nrb) ::                                                     &
       cos3       ! cos(15 45 75 degrees)
-   REAL, DIMENSION(mp,nrb) ::                                                  &
-      xvlai2,  & ! 2D vlai
-      xk         ! extinct. coef.for beam rad. and black leaves
-
-   REAL, DIMENSION(mp) ::                                                      &
-      xphi1,   & ! leaf angle parmameter 1
-      xphi2      ! leaf angle parmameter 2
-   
-   REAL, DIMENSION(:,:), ALLOCATABLE, SAVE ::                                  &
-      ! subr to calc these curr. appears twice. fix this  
-      c1,      & !
-      rhoch
-
 
    LOGICAL, DIMENSION(mp)    :: mask   ! select points for calculation
 
@@ -76,8 +119,6 @@ SUBROUTINE init_radiation( met, rad, veg, canopy )
    
    CALL point2constants( C ) 
    
-   IF(.NOT. ALLOCATED(c1) ) ALLOCATE( c1(mp,nrb), rhoch(mp,nrb) )
-
    cos3 = COS(C%PI180 * (/ 15.0, 45.0, 75.0 /))
 
    ! See Sellers 1985, eq.13 (leaf angle parameters):
