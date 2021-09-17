@@ -1163,6 +1163,8 @@ USE landuse_constant, ONLY: mstate,mvmax,mharvw
 
   END DO SPINLOOP
 
+  l_landuse=.false.
+
   IF ( SpinConv .AND. .NOT. CASAONLY ) THEN
      ! Close output file and deallocate main variables:
      CALL close_output_file( bal, air, bgc, canopy, met,		      &
@@ -1200,8 +1202,8 @@ USE landuse_constant, ONLY: mstate,mvmax,mharvw
      allocate(landmask(mlon,mlat))
      allocate(arealand(mland))
           
-     call landuse_data(mlon,mlat,landmask,arealand,luc_atransit,luc_fharvw,luc_xluh2cable)      
-     call landuse_driver(mlon,mlat,landmask,arealand,ssnow,soil,veg,bal,canopy,phen,casapool,casabal,casamet,bgc,rad)
+!     call landuse_data(mlon,mlat,landmask,arealand,luc_atransit,luc_fharvw,luc_xluh2cable)      
+!     call landuse_driver(mlon,mlat,landmask,arealand,ssnow,soil,veg,bal,canopy,phen,casapool,casabal,casamet,bgc,rad)
 
   ENDIF
 

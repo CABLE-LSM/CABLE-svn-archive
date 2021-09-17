@@ -1,6 +1,6 @@
   subroutine landuse_data(mlon,mlat,landmask,arealand,luc_atransit,luc_fharvw,luc_xluh2cable)
   use netcdf
-  use cable_abort_module,   ONLY: nc_abort
+  use cable_abort_module,  ONLY: nc_abort 
   use cable_common_module,  ONLY: filename
   USE cable_def_types_mod,  ONLY: mland,r_2
   use landuse_constant,     ONLY: mstate,mvmax,mharvw
@@ -71,7 +71,6 @@
 SUBROUTINE landuse_getxluh2(mlat,mlon,landmask,fxluh2cable,luc_xluh2cable)
 ! get data: luc%fprimary; luc%fsecondary
   USE netcdf
-  use cable_abort_module,   ONLY: nc_abort
   USE cable_def_types_mod,  ONLY: mland,r_2
   use landuse_constant,     ONLY: mstate,mvmax,mharvw
   IMPLICIT NONE
@@ -115,7 +114,6 @@ SUBROUTINE landuse_getxluh2(mlat,mlon,landmask,fxluh2cable,luc_xluh2cable)
 SUBROUTINE landuse_getdata(mlat,mlon,landmask,fxpft,luc_atransit,luc_fharvw)
 ! get LUC data
   USE netcdf
-  use cable_abort_module,   ONLY: nc_abort
   USE cable_def_types_mod,  ONLY: mland,r_2
   use landuse_constant,     ONLY: mstate,mvmax,mharvw
   IMPLICIT NONE
