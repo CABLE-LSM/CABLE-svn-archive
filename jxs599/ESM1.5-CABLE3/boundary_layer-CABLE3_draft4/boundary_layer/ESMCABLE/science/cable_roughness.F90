@@ -46,8 +46,11 @@ USE cable_other_constants_mod, ONLY : CLAI_THRESH => LAI_THRESH
 CONTAINS
 
 
-SUBROUTINE ruff_resist(veg, rough, ssnow, canopy, LAI_pft, HGT_pft, reducedLAIdue2snow )
+!d1!SUBROUTINE ruff_resist(veg, rough, ssnow, canopy, LAI_pft, HGT_pft, reducedLAIdue2snow )
 
+SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
+
+   ! m.r. raupach, 24-oct-92
    ! see: Raupach, 1992, BLM 60 375-395
    !      MRR notes "Simplified wind model for canopy", 23-oct-92
    !      MRR draft paper "Simplified expressions...", dec-92

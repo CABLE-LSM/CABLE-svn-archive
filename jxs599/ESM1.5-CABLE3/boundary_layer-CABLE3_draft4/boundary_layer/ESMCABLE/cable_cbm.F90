@@ -73,64 +73,68 @@ REAL :: xk(mp,nrb)
       cable_runtime%um_radiation = .FALSE.
       
       IF( cable_runtime%um_explicit ) THEN
-      CALL ruff_resist( veg, rough, ssnow, canopy, veg%vlai, veg%hc, canopy%vlaiw )
+         CALL ruff_resist(veg, rough, ssnow, canopy)
+      !d1!CALL ruff_resist( veg, rough, ssnow, canopy, veg%vlai, veg%hc, canopy%vlaiw )
          met%tk = met%tk + C%grav/C%capp*(rough%zref_tq + 0.9*rough%z0m)
       ENDIF
       
       CALL define_air (met, air)
    
-CALL init_radiation( met, rad, veg, canopy,                                     &
-                     rad%extkb, rad%extkd,                                     &
-                     !ExtCoeff_beam, ExtCoeff_dif,                             &
-                     rad%extkbm, rad%extkdm, Rad%Fbeam,                        &
-                     !EffExtCoeff_beam, EffExtCoeff_dif, RadFbeam,             &
-                     c1, rhoch, xk,                                            &
-                     mp,nrb,                                                   &
-                     Clai_thresh, Ccoszen_tols, CGauss_w, Cpi, Cpi180,         &
-                     cbl_standalone, jls_standalone, jls_radiation,            &
-                     subr_name,                                                &
-                     veg_mask, sunlit_mask, sunlit_veg_mask,                   &
-                     veg%Xfang, veg%taul, veg%refl,                            &
-                     !VegXfang, VegTaul, VegRefl                               &
-                     met%coszen, int(met%DoY), met%fsd,                        &
-                     !coszen, metDoY, SW_down,                                 &
-                     canopy%vlaiw  ) !reducedLAIdue2snow 
+   CALL init_radiation(met,rad,veg, canopy) ! need to be called at every dt
+!d1!CALL init_radiation( met, rad, veg, canopy,                                     &
+!d1!                     rad%extkb, rad%extkd,                                     &
+!d1!                     !ExtCoeff_beam, ExtCoeff_dif,                             &
+!d1!                     rad%extkbm, rad%extkdm, Rad%Fbeam,                        &
+!d1!                     !EffExtCoeff_beam, EffExtCoeff_dif, RadFbeam,             &
+!d1!                     c1, rhoch, xk,                                            &
+!d1!                     mp,nrb,                                                   &
+!d1!                     Clai_thresh, Ccoszen_tols, CGauss_w, Cpi, Cpi180,         &
+!d1!                     cbl_standalone, jls_standalone, jls_radiation,            &
+!d1!                     subr_name,                                                &
+!d1!                     veg_mask, sunlit_mask, sunlit_veg_mask,                   &
+!d1!                     veg%Xfang, veg%taul, veg%refl,                            &
+!d1!                     !VegXfang, VegTaul, VegRefl                               &
+!d1!                     met%coszen, int(met%DoY), met%fsd,                        &
+!d1!                     !coszen, metDoY, SW_down,                                 &
+!d1!                     canopy%vlaiw  ) !reducedLAIdue2snow 
  
       IF( cable_runtime%um_explicit ) THEN
 
-CALL surface_albedo(ssnow, veg, met, rad, soil, canopy, &
- ssnow%AlbSoilsn, soil%AlbSoil,                                 &
-             !AlbSnow, AlbSoil,              
-             mp, nrb,                                                       &
-             jls_radiation,                                                 &
-             veg_mask, sunlit_mask, sunlit_veg_mask,                        &  
-             Ccoszen_tols, cgauss_w,                                        & 
-             veg%iveg, soil%isoilm, veg%refl, veg%taul,                    & 
-             !surface_type, VegRefl, VegTaul,
-             met%tk, met%coszen, canopy%vlaiw,                              &
-             !metTk, coszen, reducedLAIdue2snow,
-             ssnow%snowd, ssnow%osnowd, ssnow%isflag,                       & 
-             !SnowDepth, SnowODepth, SnowFlag_3L, 
-             ssnow%ssdnn, ssnow%tgg(:,1), ssnow%tggsn(:,1), ssnow%snage,                      & 
-             !SnowDensity, SoilTemp, SnowAge, 
-             xk, c1, rhoch,                                                 & 
-             rad%fbeam, rad%albedo,                                         &
-             !RadFbeam, RadAlbedo,
-             rad%extkd, rad%extkb,                                          & 
-             !ExtCoeff_dif, ExtCoeff_beam,
-             rad%extkdm, rad%extkbm,                                        & 
-             !EffExtCoeff_dif, EffExtCoeff_beam,                
-             rad%rhocdf, rad%rhocbm,                                        &
-             !CanopyRefl_dif,CanopyRefl_beam,
-             rad%cexpkdm, rad%cexpkbm,                                      & 
-             !CanopyTransmit_dif, CanopyTransmit_beam, 
-             rad%reffdf, rad%reffbm                                        &
-           ) !EffSurfRefl_dif, EffSurfRefl_beam 
+         CALL surface_albedo(ssnow, veg, met, rad, soil, canopy)
+!d1!CALL surface_albedo(ssnow, veg, met, rad, soil, canopy, &
+!d1! ssnow%AlbSoilsn, soil%AlbSoil,                                 &
+!d1!             !AlbSnow, AlbSoil,              
+!d1!             mp, nrb,                                                       &
+!d1!             jls_radiation,                                                 &
+!d1!             veg_mask, sunlit_mask, sunlit_veg_mask,                        &  
+!d1!             Ccoszen_tols, cgauss_w,                                        & 
+!d1!             veg%iveg, soil%isoilm, veg%refl, veg%taul,                    & 
+!d1!             !surface_type, VegRefl, VegTaul,
+!d1!             met%tk, met%coszen, canopy%vlaiw,                              &
+!d1!             !metTk, coszen, reducedLAIdue2snow,
+!d1!             ssnow%snowd, ssnow%osnowd, ssnow%isflag,                       & 
+!d1!             !SnowDepth, SnowODepth, SnowFlag_3L, 
+!d1!             ssnow%ssdnn, ssnow%tgg(:,1), ssnow%tggsn(:,1), ssnow%snage,                      & 
+!d1!             !SnowDensity, SoilTemp, SnowAge, 
+!d1!             xk, c1, rhoch,                                                 & 
+!d1!             rad%fbeam, rad%albedo,                                         &
+!d1!             !RadFbeam, RadAlbedo,
+!d1!             rad%extkd, rad%extkb,                                          & 
+!d1!             !ExtCoeff_dif, ExtCoeff_beam,
+!d1!             rad%extkdm, rad%extkbm,                                        & 
+!d1!             !EffExtCoeff_dif, EffExtCoeff_beam,                
+!d1!             rad%rhocdf, rad%rhocbm,                                        &
+!d1!             !CanopyRefl_dif,CanopyRefl_beam,
+!d1!             rad%cexpkdm, rad%cexpkbm,                                      & 
+!d1!             !CanopyTransmit_dif, CanopyTransmit_beam, 
+!d1!             rad%reffdf, rad%reffbm                                        &
+!d1!           ) !EffSurfRefl_dif, EffSurfRefl_beam 
 
       ENDIF
    
    ! Calculate canopy variables:
-   CALL define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy, climate_cbl, sunlit_veg_mask, canopy%vlaiw )
+   CALL define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
+   !d1!CALL define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy, climate_cbl, sunlit_veg_mask, canopy%vlaiw )
 
    ssnow%otss_0 = ssnow%otss
    ssnow%otss = ssnow%tss

@@ -32,29 +32,29 @@ MODULE cable_radiation_module
 
 CONTAINS
 
-SUBROUTINE init_radiation( met, rad, veg, canopy,                             &
-                        ExtCoeff_beam, ExtCoeff_dif,                        &
-                        EffExtCoeff_beam, EffExtCoeff_dif, RadFbeam,           &
-                        c1, rhoch, xk,                                         &
-                        mp,nrb,                                                &
-                        Clai_thresh, Ccoszen_tols, CGauss_w, Cpi, Cpi180,      &
-                        cbl_standalone, jls_standalone, jls_radiation,         &
-                        subr_name,                                             &
-                        veg_mask, sunlit_mask, sunlit_veg_mask,                &
-                        VegXfang, VegTaul, VegRefl,                            &
-                        coszen, metDoY, SW_down,                               & 
-                        reducedLAIdue2snow )
+!d1!SUBROUTINE init_radiation( met, rad, veg, canopy,                             &
+!d1!                        ExtCoeff_beam, ExtCoeff_dif,                        &
+!d1!                        EffExtCoeff_beam, EffExtCoeff_dif, RadFbeam,           &
+!d1!                        c1, rhoch, xk,                                         &
+!d1!                        mp,nrb,                                                &
+!d1!                        Clai_thresh, Ccoszen_tols, CGauss_w, Cpi, Cpi180,      &
+!d1!                        cbl_standalone, jls_standalone, jls_radiation,         &
+!d1!                        subr_name,                                             &
+!d1!                        veg_mask, sunlit_mask, sunlit_veg_mask,                &
+!d1!                        VegXfang, VegTaul, VegRefl,                            &
+!d1!                        coszen, metDoY, SW_down,                               & 
+!d1!                        reducedLAIdue2snow )
 
-!SUBROUTINE init_radiation( met, rad, veg, canopy )
+SUBROUTINE init_radiation( met, rad, veg, canopy )
    USE cable_def_types_mod, ONLY : radiation_type, met_type, canopy_type,      &
-                                   veg_parameter_type
+                                   veg_parameter_type, nrb, mp    
    USE cable_common_module
 implicit none
 
 !re-decl input args
 !model dimensions
-integer :: mp                   !total number of "tiles"  
-integer :: nrb                  !number of radiation bands [per legacy=3, but really=2 VIS,NIR. 3rd dim was for LW]
+!d1!integer :: mp                   !total number of "tiles"  
+!d1!integer :: nrb                  !number of radiation bands [per legacy=3, but really=2 VIS,NIR. 3rd dim was for LW]
 
 !returned variables
 REAL :: ExtCoeff_beam(mp)       !"raw" Extinction co-efficient for Direct Beam component of SW radiation
@@ -74,7 +74,7 @@ real :: Cpi180                  !PI in radians - from cable_math_constants origi
 LOGICAL :: cbl_standalone       !runtime switch defined in cable_*main routines signifying this is cable_standalone
 LOGICAL :: jls_standalone       !runtime switch defined in cable_*main routines signifying this is jules_standalone
 LOGICAL :: jls_radiation        !runtime switch defined in cable_*main routines signifying this is the radiation pathway 
-character(len=*) :: subr_name !where am i called from
+!d1!character(len=*) :: subr_name !where am i called from
 !masks
 logical :: veg_mask(mp)         !vegetated mask [formed by comparrisson of LAI CLAI_thresh ]
 logical :: sunlit_mask(mp)      !sunlit mask [formed by comparrisson of coszen to coszen_tols i.e. is the sun up]
