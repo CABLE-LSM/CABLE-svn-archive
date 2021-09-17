@@ -248,8 +248,7 @@ logical :: sunlit_veg_mask(mp)
 
       ! E.Kowalczyk 2014
       IF (cable_user%l_new_roughness_soil)                                     &
-         CALL ruff_resist(veg, rough, ssnow, canopy)
-      !d1!CALL ruff_resist( veg, rough, ssnow, canopy, veg%vlai, veg%hc, canopy%vlaiw )
+        CALL ruff_resist( veg, rough, ssnow, canopy, veg%vlai, veg%hc, canopy%vlaiw )
 
       
       ! Turbulent aerodynamic resistance from roughness sublayer depth 

@@ -46,9 +46,7 @@ USE cable_other_constants_mod, ONLY : CLAI_THRESH => LAI_THRESH
 CONTAINS
 
 
-!d1!SUBROUTINE ruff_resist(veg, rough, ssnow, canopy, LAI_pft, HGT_pft, reducedLAIdue2snow )
-
-SUBROUTINE ruff_resist(veg, rough, ssnow, canopy)
+SUBROUTINE ruff_resist(veg, rough, ssnow, canopy, LAI_pft, HGT_pft, reducedLAIdue2snow )
 
    ! m.r. raupach, 24-oct-92
    ! see: Raupach, 1992, BLM 60 375-395
