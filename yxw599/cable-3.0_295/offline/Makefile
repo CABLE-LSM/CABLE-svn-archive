@@ -296,6 +296,7 @@ all  : cable_math_constants_mod.o   \
 	casa_cable.o             	   \
 	casa_inout.o                       \
         landuse_constant.o                 \
+        landuse_inout.o                    \
 	landuse3.o
 
 
