@@ -39,7 +39,8 @@ MODULE cable_mpicommon
   !INTEGER, PARAMETER :: ncasaparam = 68
   !INTEGER, PARAMETER :: ncasaparam = 176
   ! MPI: added casapool fields ratioNCsoilnew, ratioNCsoilmin and ratioNCsoilmax
-  INTEGER, PARAMETER :: ncasaparam = 210  ! changed lpn added 9 variables
+  ! INTEGER, PARAMETER :: ncasaparam = 210  ! changed lpn added 9 variables
+  INTEGER, PARAMETER :: ncasaparam = 213  ! YPW to account for 3 aditional woodproduct pools
   !  (casaflux%frac_sapwood/sapwood_area,casabiome,casabiome%ratioNPplantmin,%ratioNPplantmax)
   ! casapool%ratioNPplant,%ratioNPlitter,ratioNPsoil
   ! MPI: base number of casa_init parameters sent to the workers

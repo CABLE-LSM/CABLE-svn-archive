@@ -3884,6 +3884,29 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
             &                             types(bidx), ierr)
        blen(bidx) = 1
 
+       ! added by ypw
+       bidx = bidx + 1
+       CALL MPI_Get_address (casapool%cwoodprod(off,1), displs(bidx), ierr)
+       CALL MPI_Type_create_hvector (mwood, r2len, r2stride, MPI_BYTE, &
+            &                             types(bidx), ierr)
+       blen(bidx) = 1
+       !blen(bidx) = mwood * r2len
+
+       bidx = bidx + 1
+       CALL MPI_Get_address (casapool%nwoodprod(off,1), displs(bidx), ierr)
+       CALL MPI_Type_create_hvector (mwood, r2len, r2stride, MPI_BYTE, &
+             &                             types(bidx), ierr)
+       blen(bidx) = 1
+      !blen(bidx) = mwood * r2len
+
+       bidx = bidx + 1
+       CALL MPI_Get_address (casapool%pwoodprod(off,1), displs(bidx), ierr)
+       CALL MPI_Type_create_hvector (mwood, r2len, r2stride, MPI_BYTE, &
+             &                             types(bidx), ierr)
+       blen(bidx) = 1
+      !blen(bidx) = mwoodt * r2len
+
+
        ! ------- casaflux ----
 
        bidx = bidx + 1
@@ -6293,6 +6316,28 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
        CALL MPI_Type_create_hvector (msoil, r2len, r2stride, MPI_BYTE, &
             &                             types(bidx), ierr)
        blocks(bidx) = 1
+
+
+      ! added by YPW
+
+       bidx = bidx + 1
+       CALL MPI_Get_address (casapool%cwoodprod(off,1), displs(bidx), ierr)
+       CALL MPI_Type_create_hvector (mwood, r2len, r2stride, MPI_BYTE,types(bidx), ierr)
+       blocks(bidx) = 1
+
+
+       bidx = bidx + 1
+       CALL MPI_Get_address (casapool%nwoodprod(off,1), displs(bidx), ierr)
+       CALL MPI_Type_create_hvector (mwood, r2len, r2stride, MPI_BYTE,types(bidx), ierr)
+       blocks(bidx) = 1
+
+
+       bidx = bidx + 1
+       CALL MPI_Get_address (casapool%pwoodprod(off,1), displs(bidx), ierr)
+       CALL MPI_Type_create_hvector (mwood, r2len, r2stride, MPI_BYTE,types(bidx), ierr)
+       blocks(bidx) = 1
+       !============ypw
+
 
        bidx = bidx + 1
        CALL MPI_Get_address (phen%doyphase(off,1), displs(bidx), ierr)

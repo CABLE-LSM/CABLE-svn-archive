@@ -2920,6 +2920,19 @@ USE cbl_soil_snow_init_special_module
     ! Maciej
     blen(bidx) = msoil * r2len
 
+    ! added by YPW
+    bidx = bidx + 1
+    CALL MPI_Get_address (casapool%cwoodprod, displs(bidx), ierr)
+    blen(bidx) = mwood * r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (casapool%nwoodprod, displs(bidx), ierr)
+    blen(bidx) = mwood * r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (casapool%pwoodprod, displs(bidx), ierr)
+    blen(bidx) = mwood * r2len
+
     ! ------- casaflux ----
 
     bidx = bidx + 1
@@ -5957,6 +5970,20 @@ USE cbl_soil_snow_init_special_module
     CALL MPI_Get_address (casapool%ratioPCsoil(off,1), displs(bidx), ierr)
     blocks(bidx) = r2len * msoil
 
+   ! added YPW 
+    bidx = bidx + 1
+    CALL MPI_Get_address (casapool%cwoodprod(off,1), displs(bidx), ierr)
+    blocks(bidx) = r2len * mwood
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (casapool%nwoodprod(off,1), displs(bidx), ierr)
+    blocks(bidx) = r2len * mwood
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (casapool%pwoodprod(off,1), displs(bidx), ierr)
+    blocks(bidx) = r2len * mwood
+
+   ! 
 
     bidx = bidx + 1
     CALL MPI_Get_address (phen%doyphase(off,1), displs(bidx), ierr)
