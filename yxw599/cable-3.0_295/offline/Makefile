@@ -224,7 +224,7 @@ cable_site.o: cable_site.F90 cable_iovars.o cable_common.o
 
 landuse_constant.o: landuse_constant.F90 cable_define_types.o casa_dimension.o
 
-landuse_inout.o: landuse_inout.F90 cable_define_types.o landuse_constant.o cable_common.o
+landuse_inout.o: landuse_inout.F90 cable_define_types.o landuse_constant.o cable_common.o cable_abort.o
 
 landuse3.o: landuse3.F90 cable_define_types.o casa_dimension.o landuse_constant.o cable_common.o \
             cable_iovars.o casa_variable.o casa_phenology.o landuse_inout.o
