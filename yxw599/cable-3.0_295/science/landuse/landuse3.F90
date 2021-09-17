@@ -635,7 +635,6 @@ MODULE landuse_patch
 END MODULE landuse_patch
 
   subroutine landuse_driver(mlon,mlat,landmask,arealand,ssnow,soil,veg,bal,canopy,phen,casapool,casabal,casamet,bgc,rad)
-  use netcdf
   USE cable_IO_vars_module, ONLY: mask,patch,landpt
   USE cable_def_types_mod,  ONLY: mp,mvtype,mstype,mland,r_2,ms,msn,nrb,ncp,ncs,           &
                                   soil_parameter_type, soil_snow_type, veg_parameter_type, &
@@ -1672,7 +1671,6 @@ END SUBROUTINE landuse_transitx
 
  SUBROUTINE landuse_checks(mlon,mlat,landmask,luc)
  ! check mass balance and write output CNP pool sizes for each PFT
- use netcdf
  use landuse_variable
  IMPLICIT NONE
  integer mlon,mlat
