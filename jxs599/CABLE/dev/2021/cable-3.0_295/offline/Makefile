@@ -227,7 +227,7 @@ landuse_constant.o: landuse_constant.F90 cable_define_types.o casa_dimension.o
 landuse_inout.o: landuse_inout.F90 cable_define_types.o landuse_constant.o cable_common.o cable_abort.o
 
 landuse3.o: landuse3.F90 cable_define_types.o casa_dimension.o landuse_constant.o cable_common.o \
-            cable_iovars.o casa_variable.o casa_phenology.o landuse_inout.o
+            cable_iovars.o casa_variable.o casa_phenology.o
 
 
 
@@ -244,9 +244,9 @@ all  : cable_math_constants_mod.o   \
 	cbl_lai_eff.o								 \
 	cable_iovars.o            	 \
 	casa_ncdf.o               	 \
-  cbl_albedo.o         		 	   \
+	cbl_albedo.o         		 	   \
 	cbl_snow_albedo.o					   \
-  cbl_soilColour_albedo.o      \
+	cbl_soilColour_albedo.o      \
 	cbl_rhoch.o         	       \
 	cbl_spitter.o       	       \
 	cbl_sinbet.o        	       \
@@ -295,12 +295,12 @@ all  : cable_math_constants_mod.o   \
 	casa_cnp.o               	   \
 	casa_cable.o             	   \
 	casa_inout.o                       \
-        landuse_constant.o                 \
-        landuse_inout.o                    \
+	landuse_constant.o                 \
+	landuse_inout.o                    \
 	landuse3.o
 
 
 # make clean option
 clean:
-	rm -f *.o *.mod 
+	rm -fr .tmp
 
