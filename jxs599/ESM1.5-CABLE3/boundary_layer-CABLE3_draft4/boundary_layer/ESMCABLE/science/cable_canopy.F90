@@ -99,8 +99,7 @@ USE cable_other_constants_mod, ONLY : CLAI_THRESH  => LAI_THRESH
 CONTAINS
  
 
-!d1!SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,climate, sunlit_veg_mask, reducedLAIdue2snow )
-SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
+SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,climate, sunlit_veg_mask, reducedLAIdue2snow )
    USE cable_def_types_mod
    USE cable_radiation_module
    USE cable_air_module
@@ -115,7 +114,7 @@ USE cable_climate_type_mod, ONLY : climate_type
    TYPE (met_type), INTENT(INOUT)       :: met
    TYPE (soil_snow_type), INTENT(INOUT) :: ssnow
    TYPE (canopy_type), INTENT(INOUT)    :: canopy
- !d1!   TYPE (climate_type), INTENT(IN)    :: climate
+    TYPE (climate_type), INTENT(IN)    :: climate
 
    TYPE (soil_parameter_type), INTENT(INOUT)   :: soil
    TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
