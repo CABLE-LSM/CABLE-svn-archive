@@ -79,23 +79,26 @@ REAL :: xk(mp,nrb)
       
       CALL define_air (met, air)
    
-   CALL init_radiation(met,rad,veg, canopy) ! need to be called at every dt
-!d1!CALL init_radiation( met, rad, veg, canopy,                                     &
-!d1!                     rad%extkb, rad%extkd,                                     &
-!d1!                     !ExtCoeff_beam, ExtCoeff_dif,                             &
-!d1!                     rad%extkbm, rad%extkdm, Rad%Fbeam,                        &
-!d1!                     !EffExtCoeff_beam, EffExtCoeff_dif, RadFbeam,             &
-!d1!                     c1, rhoch, xk,                                            &
-!d1!                     mp,nrb,                                                   &
-!d1!                     Clai_thresh, Ccoszen_tols, CGauss_w, Cpi, Cpi180,         &
-!d1!                     cbl_standalone, jls_standalone, jls_radiation,            &
-!d1!                     subr_name,                                                &
-!d1!                     veg_mask, sunlit_mask, sunlit_veg_mask,                   &
-!d1!                     veg%Xfang, veg%taul, veg%refl,                            &
-!d1!                     !VegXfang, VegTaul, VegRefl                               &
-!d1!                     met%coszen, int(met%DoY), met%fsd,                        &
-!d1!                     !coszen, metDoY, SW_down,                                 &
-!d1!                     canopy%vlaiw  ) !reducedLAIdue2snow 
+call fveg_mask( veg_mask, mp, Clai_thresh, canopy%vlaiw )
+call fsunlit_mask( sunlit_mask, mp, CRAD_THRESH,( met%fsd(:,1)+met%fsd(:,2) ) )
+call fsunlit_veg_mask( sunlit_veg_mask, mp )
+
+CALL init_radiation( met, rad, veg, canopy,                                     &
+!                     rad%extkb, rad%extkd,                                     &
+!                     !ExtCoeff_beam, ExtCoeff_dif,                             &
+!                     rad%extkbm, rad%extkdm, Rad%Fbeam,                        &
+!                     !EffExtCoeff_beam, EffExtCoeff_dif, RadFbeam,             &
+!                     c1, rhoch, xk,                                            &
+                     mp,nrb,                                                   &
+                     Clai_thresh, Ccoszen_tols, CGauss_w, Cpi, Cpi180,         &
+                     cbl_standalone, jls_standalone, jls_radiation)!,            &
+!                     subr_name,                                                &
+!                     veg_mask, sunlit_mask, sunlit_veg_mask,                   &
+!                     veg%Xfang, veg%taul, veg%refl,                            &
+!                     !VegXfang, VegTaul, VegRefl                               &
+!                     met%coszen, int(met%DoY), met%fsd,                        &
+!                     !coszen, metDoY, SW_down,                                 &
+!                     canopy%vlaiw  ) !reducedLAIdue2snow 
  
       IF( cable_runtime%um_explicit ) THEN
 
