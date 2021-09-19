@@ -84,10 +84,10 @@ call fsunlit_mask( sunlit_mask, mp, CRAD_THRESH,( met%fsd(:,1)+met%fsd(:,2) ) )
 call fsunlit_veg_mask( sunlit_veg_mask, mp )
 
 CALL init_radiation( met, rad, veg, canopy,                                     &
-!                     rad%extkb, rad%extkd,                                     &
-!                     !ExtCoeff_beam, ExtCoeff_dif,                             &
-!                     rad%extkbm, rad%extkdm, Rad%Fbeam,                        &
-!                     !EffExtCoeff_beam, EffExtCoeff_dif, RadFbeam,             &
+                     rad%extkb, rad%extkd,                                     &
+                     !ExtCoeff_beam, ExtCoeff_dif,                             &
+                     rad%extkbm, rad%extkdm, Rad%Fbeam,                        &
+                     !EffExtCoeff_beam, EffExtCoeff_dif, RadFbeam,             &
 !                     c1, rhoch, xk,                                            &
                      mp,nrb,                                                   &
                      Clai_thresh, Ccoszen_tols, CGauss_w, Cpi, Cpi180,         &

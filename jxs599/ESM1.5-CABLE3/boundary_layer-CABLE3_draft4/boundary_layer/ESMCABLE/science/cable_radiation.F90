@@ -33,8 +33,8 @@ MODULE cable_radiation_module
 CONTAINS
 
 SUBROUTINE init_radiation( met, rad, veg, canopy,                             &
-!                        ExtCoeff_beam, ExtCoeff_dif,                        &
-!                        EffExtCoeff_beam, EffExtCoeff_dif, RadFbeam,           &
+                        ExtCoeff_beam, ExtCoeff_dif,                        &
+                        EffExtCoeff_beam, EffExtCoeff_dif, RadFbeam,           &
 !                        c1, rhoch, xk,                                         &
                         mp,nrb,                                                &
                         Clai_thresh, Ccoszen_tols, CGauss_w, Cpi, Cpi180,        &
