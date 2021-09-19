@@ -91,10 +91,10 @@ CALL init_radiation( met, rad, veg, canopy,                                     
 !                     c1, rhoch, xk,                                            &
                      mp,nrb,                                                   &
                      Clai_thresh, Ccoszen_tols, CGauss_w, Cpi, Cpi180,         &
-                     cbl_standalone, jls_standalone, jls_radiation)!,            &
-!                     subr_name,                                                &
-!                     veg_mask, sunlit_mask, sunlit_veg_mask,                   &
-!                     veg%Xfang, veg%taul, veg%refl,                            &
+                     cbl_standalone, jls_standalone, jls_radiation,            &
+                     subr_name,                                                &
+                     veg_mask, sunlit_mask, sunlit_veg_mask,                   &
+                     veg%Xfang, veg%taul, veg%refl)!,                            &
 !                     !VegXfang, VegTaul, VegRefl                               &
 !                     met%coszen, int(met%DoY), met%fsd,                        &
 !                     !coszen, metDoY, SW_down,                                 &

@@ -38,10 +38,10 @@ SUBROUTINE init_radiation( met, rad, veg, canopy,                             &
 !                        c1, rhoch, xk,                                         &
                         mp,nrb,                                                &
                         Clai_thresh, Ccoszen_tols, CGauss_w, Cpi, Cpi180,        &
-                        cbl_standalone, jls_standalone, jls_radiation )!,         &
-!                        subr_name,                                             &
-!                        veg_mask, sunlit_mask, sunlit_veg_mask,                &
-!                        VegXfang, VegTaul, VegRefl,                            &
+                        cbl_standalone, jls_standalone, jls_radiation,         &
+                        subr_name,                                             &
+                        veg_mask, sunlit_mask, sunlit_veg_mask,                &
+                        VegXfang, VegTaul, VegRefl)!,                            &
 !                        coszen, metDoY, SW_down,                               & 
 !                        reducedLAIdue2snow )
 
@@ -73,7 +73,7 @@ real :: Cpi180                  !PI in radians - from cable_math_constants origi
 LOGICAL :: cbl_standalone       !runtime switch defined in cable_*main routines signifying this is cable_standalone
 LOGICAL :: jls_standalone       !runtime switch defined in cable_*main routines signifying this is jules_standalone
 LOGICAL :: jls_radiation        !runtime switch defined in cable_*main routines signifying this is the radiation pathway 
-!d1!character(len=*) :: subr_name !where am i called from
+character(len=*) :: subr_name !where am i called from
 !masks
 logical :: veg_mask(mp)         !vegetated mask [formed by comparrisson of LAI CLAI_thresh ]
 logical :: sunlit_mask(mp)      !sunlit mask [formed by comparrisson of coszen to coszen_tols i.e. is the sun up]
