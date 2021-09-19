@@ -13,30 +13,30 @@ MODULE cable_albedo_module
 CONTAINS
 
   
-!d1!SUBROUTINE surface_albedo(ssnow, veg, met, rad, soil, canopy, &
-!d1!AlbSnow, AlbSoil,              & 
-!d1!mp, nrb,                                          &
-!d1!jls_radiation ,                                   &
-!d1!veg_mask, sunlit_mask, sunlit_veg_mask,           &  
-!d1!Ccoszen_tols, CGAUSS_W,                           & 
-!d1!surface_type, soil_type, VegRefl, VegTaul,        &
-!d1!metTk, coszen,                                    & 
-!d1!reducedLAIdue2snow,                               &
-!d1!SnowDepth, SnowODepth, SnowFlag_3L,               & 
-!d1!SnowDensity, SoilTemp, SnowTemp, SnowAge,                   &
-!d1!xk, c1, rhoch,                                    & 
-!d1!RadFbeam, RadAlbedo,                              &
-!d1!ExtCoeff_dif, ExtCoeff_beam,                      &
-!d1!EffExtCoeff_dif, EffExtCoeff_beam,                &
-!d1!CanopyRefl_dif,CanopyRefl_beam,                   &
-!d1!CanopyTransmit_dif, CanopyTransmit_beam,          &
-!d1!EffSurfRefl_dif, EffSurfRefl_beam                 )
+SUBROUTINE surface_albedo(ssnow, veg, met, rad, soil, canopy, &
+AlbSnow, AlbSoil,              & 
+mp, nrb,                                          &
+jls_radiation ,                                   &
+veg_mask, sunlit_mask, sunlit_veg_mask,           &  
+Ccoszen_tols, CGAUSS_W,                           & 
+surface_type, soil_type, VegRefl, VegTaul,        &
+metTk, coszen,                                    & 
+reducedLAIdue2snow,                               &
+SnowDepth, SnowODepth, SnowFlag_3L,               & 
+SnowDensity, SoilTemp, SnowTemp, SnowAge,                   &
+xk, c1, rhoch,                                    & 
+RadFbeam, RadAlbedo,                              &
+ExtCoeff_dif, ExtCoeff_beam,                      &
+EffExtCoeff_dif, EffExtCoeff_beam,                &
+CanopyRefl_dif,CanopyRefl_beam,                   &
+CanopyTransmit_dif, CanopyTransmit_beam,          &
+EffSurfRefl_dif, EffSurfRefl_beam                 )
    
-SUBROUTINE surface_albedo(ssnow, veg, met, rad, soil, canopy)
+!SUBROUTINE surface_albedo(ssnow, veg, met, rad, soil, canopy)
    USE cable_common_module   
    USE cable_def_types_mod, ONLY : veg_parameter_type, soil_parameter_type,    &     
                                    canopy_type, met_type, radiation_type,      &
-                                   soil_snow_type, r_2, mp, nrb
+                                   soil_snow_type, r_2
    
 !subrs called
 !CBL3!USE cbl_snow_albedo_module, ONLY : surface_albedosn
@@ -44,8 +44,8 @@ SUBROUTINE surface_albedo(ssnow, veg, met, rad, soil, canopy)
 implicit none
 
 !model dimensions
-!d1!integer :: mp                       !total number of "tiles"  
-!d1!integer :: nrb                      !number of radiation bands [per legacy=3, but really=2 VIS,NIR. 3rd dim was for LW]
+integer :: mp                       !total number of "tiles"  
+integer :: nrb                      !number of radiation bands [per legacy=3, but really=2 VIS,NIR. 3rd dim was for LW]
 
 !This is what we are returning here
 REAL :: EffSurfRefl_dif(mp,nrb)     !Effective Surface Relectance as seen by atmosphere [Diffuse SW]  (rad%reffdf)

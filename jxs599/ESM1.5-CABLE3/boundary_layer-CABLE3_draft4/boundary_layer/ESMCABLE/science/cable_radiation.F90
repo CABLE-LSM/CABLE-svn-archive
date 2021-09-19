@@ -32,18 +32,18 @@ MODULE cable_radiation_module
 
 CONTAINS
 
-SUBROUTINE init_radiation( met, rad, veg, canopy,                             &
-                        ExtCoeff_beam, ExtCoeff_dif,                        &
+SUBROUTINE init_radiation( met, rad, veg, canopy,                              &
+                        ExtCoeff_beam, ExtCoeff_dif,                           &
                         EffExtCoeff_beam, EffExtCoeff_dif, RadFbeam,           &
                         c1, rhoch, xk,                                         &
                         mp,nrb,                                                &
-                        Clai_thresh, Ccoszen_tols, CGauss_w, Cpi, Cpi180,        &
+                        Clai_thresh, Ccoszen_tols, CGauss_w, Cpi, Cpi180,      &
                         cbl_standalone, jls_standalone, jls_radiation,         &
                         subr_name,                                             &
                         veg_mask, sunlit_mask, sunlit_veg_mask,                &
-                        VegXfang, VegTaul, VegRefl)!,                            &
-!                        coszen, metDoY, SW_down,                               & 
-!                        reducedLAIdue2snow )
+                        VegXfang, VegTaul, VegRefl,                            &
+                        coszen, metDoY, SW_down,                               & 
+                        reducedLAIdue2snow )
 
    USE cable_def_types_mod, ONLY : radiation_type, met_type, canopy_type,      &
                                    veg_parameter_type

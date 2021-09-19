@@ -128,35 +128,35 @@ LOGICAL :: cbl_standalone = .FALSE.
       ssnow%tggsn(:,1) = PACK( SNOW_TMP3L(:,:,1), um1%L_TILE_PTS )
       ssnow%tgg(:,1) =   PACK( TSOIL_TILE(:,:,1), um1%L_TILE_PTS )
 
-      CALL surface_albedo(ssnow, veg, met, rad, soil, canopy)
-!draft1!CALL surface_albedo(ssnow, veg, met, rad, soil, canopy, &
-!draft1! ssnow%AlbSoilsn, soil%AlbSoil,                                 &
-!draft1!             !AlbSnow, AlbSoil,              
-!draft1!             mp, nrb,                                                       &
-!draft1!             jls_radiation,                                                 &
-!draft1!             veg_mask, sunlit_mask, sunlit_veg_mask,                        &  
-!draft1!             Ccoszen_tols, cgauss_w,                                        & 
-!draft1!             veg%iveg, soil%isoilm, veg%refl, veg%taul,                    & 
-!draft1!             !surface_type, VegRefl, VegTaul,
-!draft1!             met%tk, met%coszen, canopy%vlaiw,                              &
-!draft1!             !metTk, coszen, reducedLAIdue2snow,
-!draft1!             ssnow%snowd, ssnow%osnowd, ssnow%isflag,                       & 
-!draft1!             !SnowDepth, SnowODepth, SnowFlag_3L, 
-!draft1!             ssnow%ssdnn, ssnow%tgg(:,1), ssnow%tggsn(:,1), ssnow%snage,                      & 
-!draft1!             !SnowDensity, SoilTemp, SnowAge, 
-!draft1!             xk, c1, rhoch,                                                 & 
-!draft1!             rad%fbeam, rad%albedo,                                         &
-!draft1!             !RadFbeam, RadAlbedo,
-!draft1!             rad%extkd, rad%extkb,                                          & 
-!draft1!             !ExtCoeff_dif, ExtCoeff_beam,
-!draft1!             rad%extkdm, rad%extkbm,                                        & 
-!draft1!             !EffExtCoeff_dif, EffExtCoeff_beam,                
-!draft1!             rad%rhocdf, rad%rhocbm,                                        &
-!draft1!             !CanopyRefl_dif,CanopyRefl_beam,
-!draft1!             rad%cexpkdm, rad%cexpkbm,                                      & 
-!draft1!             !CanopyTransmit_dif, CanopyTransmit_beam, 
-!draft1!             rad%reffdf, rad%reffbm                                        &
-!draft1!           ) !EffSurfRefl_dif, EffSurfRefl_beam 
+!      CALL surface_albedo(ssnow, veg, met, rad, soil, canopy)
+CALL surface_albedo(ssnow, veg, met, rad, soil, canopy, &
+ ssnow%AlbSoilsn, soil%AlbSoil,                                 &
+             !AlbSnow, AlbSoil,              
+             mp, nrb,                                                       &
+             jls_radiation,                                                 &
+             veg_mask, sunlit_mask, sunlit_veg_mask,                        &  
+             Ccoszen_tols, cgauss_w,                                        & 
+             veg%iveg, soil%isoilm, veg%refl, veg%taul,                    & 
+             !surface_type, VegRefl, VegTaul,
+             met%tk, met%coszen, canopy%vlaiw,                              &
+             !metTk, coszen, reducedLAIdue2snow,
+             ssnow%snowd, ssnow%osnowd, ssnow%isflag,                       & 
+             !SnowDepth, SnowODepth, SnowFlag_3L, 
+             ssnow%ssdnn, ssnow%tgg(:,1), ssnow%tggsn(:,1), ssnow%snage,                      & 
+             !SnowDensity, SoilTemp, SnowAge, 
+             xk, c1, rhoch,                                                 & 
+             rad%fbeam, rad%albedo,                                         &
+             !RadFbeam, RadAlbedo,
+             rad%extkd, rad%extkb,                                          & 
+             !ExtCoeff_dif, ExtCoeff_beam,
+             rad%extkdm, rad%extkbm,                                        & 
+             !EffExtCoeff_dif, EffExtCoeff_beam,                
+             rad%rhocdf, rad%rhocbm,                                        &
+             !CanopyRefl_dif,CanopyRefl_beam,
+             rad%cexpkdm, rad%cexpkbm,                                      & 
+             !CanopyTransmit_dif, CanopyTransmit_beam, 
+             rad%reffdf, rad%reffbm                                        &
+           ) !EffSurfRefl_dif, EffSurfRefl_beam 
 
       ! only for land points, at present do not have a method for treating 
       ! mixed land/sea or land/seaice points as yet.
