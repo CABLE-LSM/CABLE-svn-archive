@@ -63,9 +63,9 @@ LOGICAL :: jls_radiation= .FALSE.
 LOGICAL :: cbl_standalone = .FALSE.    
 
 !co-efficients usoughout init_radiation ` called from _albedo as well
-REAL :: c1(mp,nrb)
-REAL :: rhoch(mp,nrb)
-REAL :: xk(mp,nrb)
+REAL,allocatable :: c1(:,:)
+REAL,allocatable :: rhoch(:,:)
+REAL,allocatable :: xk(:,:)
 
    ! assign local ptrs to constants defined in cable_data_module
    CALL point2constants(C)    
@@ -73,6 +73,7 @@ REAL :: xk(mp,nrb)
       cable_runtime%um_radiation = .FALSE.
       
       IF( cable_runtime%um_explicit ) THEN
+!d1!      met%DoY = met%DoY + 1.
         CALL ruff_resist( veg, rough, ssnow, canopy, veg%vlai, veg%hc, canopy%vlaiw )
          met%tk = met%tk + C%grav/C%capp*(rough%zref_tq + 0.9*rough%z0m)
       ENDIF
@@ -88,7 +89,7 @@ CALL init_radiation( met, rad, veg, canopy,                                     
                      !ExtCoeff_beam, ExtCoeff_dif,                             &
                      rad%extkbm, rad%extkdm, Rad%Fbeam,                        &
                      !EffExtCoeff_beam, EffExtCoeff_dif, RadFbeam,             &
-!                     c1, rhoch, xk,                                            &
+                     c1, rhoch, xk,                                            &
                      mp,nrb,                                                   &
                      Clai_thresh, Ccoszen_tols, CGauss_w, Cpi, Cpi180,         &
                      cbl_standalone, jls_standalone, jls_radiation,            &

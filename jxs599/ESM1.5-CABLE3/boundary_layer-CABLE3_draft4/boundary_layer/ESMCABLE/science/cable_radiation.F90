@@ -35,7 +35,7 @@ CONTAINS
 SUBROUTINE init_radiation( met, rad, veg, canopy,                             &
                         ExtCoeff_beam, ExtCoeff_dif,                        &
                         EffExtCoeff_beam, EffExtCoeff_dif, RadFbeam,           &
-!                        c1, rhoch, xk,                                         &
+                        c1, rhoch, xk,                                         &
                         mp,nrb,                                                &
                         Clai_thresh, Ccoszen_tols, CGauss_w, Cpi, Cpi180,        &
                         cbl_standalone, jls_standalone, jls_radiation,         &
@@ -90,9 +90,9 @@ REAL :: SW_down(mp,nrb)         !Downward SW radiation [formerly met%fsd]
 integer :: metDoY(mp)           !Day of the Year [formerly met%doy]
 
 !co-efficients used throughout init_radiation used in albedo as well
-REAL :: c1(mp,nrb)
-REAL :: rhoch(mp,nrb)
-REAL :: xk(mp,nrb)              ! extinct. coef.for beam rad. and black leaves
+REAL,allocatable :: c1(:,:)
+REAL,allocatable :: rhoch(:,:)
+REAL,allocatable :: xk(:,:)
 
 !local_vars - common scaling co-efficients used throughout init_radiation
 REAL :: xvlai2(mp,nrb) ! 2D vlai
@@ -117,6 +117,7 @@ REAL :: xphi2(mp)      ! leaf angle parmameter 2
   
    
    CALL point2constants( C ) 
+   IF(.NOT. ALLOCATED(c1) ) ALLOCATE( c1(mp,nrb), rhoch(mp,nrb), xk(mp,nrb) )
    
    cos3 = COS(C%PI180 * (/ 15.0, 45.0, 75.0 /))
 

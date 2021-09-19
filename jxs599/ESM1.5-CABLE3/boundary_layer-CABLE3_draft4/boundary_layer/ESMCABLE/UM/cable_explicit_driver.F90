@@ -306,9 +306,9 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    LOGICAL, SAVE :: first_cable_call = .TRUE.
  
 !co-efficients usoughout init_radiation ` called from _albedo as well
-REAL :: c1(mp,nrb)
-REAL :: rhoch(mp,nrb)
-REAL :: xk(mp,nrb)
+REAL,allocatable :: c1(:,:)
+REAL,allocatable :: rhoch(:,:)
+REAL,allocatable :: xk(:,:)
 integer :: j
 
    
@@ -427,6 +427,7 @@ integer :: j
 
 
    cable_runtime%um_explicit = .FALSE.
+   IF(ALLOCATED(c1) ) DEALLOCATE( c1, rhoch,xk )
 
 
 END SUBROUTINE cable_explicit_driver

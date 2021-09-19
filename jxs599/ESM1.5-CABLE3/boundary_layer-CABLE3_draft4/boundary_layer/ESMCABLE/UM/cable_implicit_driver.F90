@@ -246,9 +246,9 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
    REAL, POINTER :: TFRZ
    
 !co-efficients usoughout init_radiation ` called from _albedo as well
-REAL :: c1(mp,nrb)
-REAL :: rhoch(mp,nrb)
-REAL :: xk(mp,nrb)
+REAL,allocatable :: c1(:,:)
+REAL,allocatable :: rhoch(:,:)
+REAL,allocatable :: xk(:,:)
       TFRZ => PHYS%TFRZ
    
       ! FLAGS def. specific call to CABLE from UM
@@ -338,6 +338,7 @@ REAL :: xk(mp,nrb)
       endif
        
       cable_runtime%um_implicit = .FALSE.
+   IF(ALLOCATED(c1) ) DEALLOCATE( c1, rhoch,xk )
   
 END SUBROUTINE cable_implicit_driver
 
