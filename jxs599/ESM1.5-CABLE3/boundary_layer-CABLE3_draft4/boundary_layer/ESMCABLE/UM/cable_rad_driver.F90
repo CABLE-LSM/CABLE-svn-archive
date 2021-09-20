@@ -38,7 +38,7 @@ SUBROUTINE cable_rad_driver(                                                   &
                              LAND_ALBEDO_CABLE, ALB_TILE, LAND_ALB_CABLE ) 
 
    USE cable_def_types_mod, ONLY : mp,nrb
-   USE cable_albedo_module, ONLY : surface_albedo
+USE cbl_albedo_mod, ONLY: albedo
 USE cbl_masks_mod, ONLY: veg_mask,  sunlit_mask,  sunlit_veg_mask
 USE cable_other_constants_mod, ONLY: Ccoszen_tols => coszen_tols
 USE cable_other_constants_mod,  ONLY : Crad_thresh => rad_thresh
@@ -128,9 +128,7 @@ LOGICAL :: cbl_standalone = .FALSE.
       ssnow%tggsn(:,1) = PACK( SNOW_TMP3L(:,:,1), um1%L_TILE_PTS )
       ssnow%tgg(:,1) =   PACK( TSOIL_TILE(:,:,1), um1%L_TILE_PTS )
 
-!      CALL surface_albedo(ssnow, veg, met, rad, soil, canopy)
-CALL surface_albedo(ssnow, veg, met, rad, soil, canopy, &
- ssnow%AlbSoilsn, soil%AlbSoil,                                 &
+ CALL Albedo( ssnow%AlbSoilsn, soil%AlbSoil,                                 &
              !AlbSnow, AlbSoil,              
              mp, nrb,                                                       &
              jls_radiation,                                                 &

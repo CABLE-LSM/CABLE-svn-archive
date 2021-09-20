@@ -1,7 +1,6 @@
 MODULE cable_cbm_module
    
    USE cable_canopy_module
-   USE cable_albedo_module
   
    IMPLICIT NONE
   
@@ -23,7 +22,7 @@ CONTAINS
    USE cable_radiation_module
    USE cable_air_module
 !CBL3 
-!CBL3 USE cbl_albedo_mod, ONLY: albedo
+USE cbl_albedo_mod, ONLY: albedo
 USE cbl_masks_mod, ONLY: fveg_mask,  fsunlit_mask,  fsunlit_veg_mask
 USE cbl_masks_mod, ONLY: veg_mask,  sunlit_mask,  sunlit_veg_mask
 !jhan:pass these !data
@@ -103,9 +102,7 @@ CALL init_radiation( met, rad, veg, canopy,                                     
  
       IF( cable_runtime%um_explicit ) THEN
 
-!         CALL surface_albedo(ssnow, veg, met, rad, soil, canopy)
-CALL surface_albedo(ssnow, veg, met, rad, soil, canopy, &
- ssnow%AlbSoilsn, soil%AlbSoil,                                 &
+ CALL Albedo( ssnow%AlbSoilsn, soil%AlbSoil,                                 &
              !AlbSnow, AlbSoil,              
              mp, nrb,                                                       &
              jls_radiation,                                                 &

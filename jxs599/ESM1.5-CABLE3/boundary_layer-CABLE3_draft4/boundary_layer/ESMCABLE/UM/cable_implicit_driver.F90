@@ -57,7 +57,7 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
                                   NPP_FT_ACC,RESP_W_FT_ACC,RESP_S_ACC,          &
                                   FNSNET,FNLEACH,FNUP,FNLOSS,FNDEP,FNFIX,idoy )
 
-   USE cable_def_types_mod, ONLY : mp, nrb
+   USE cable_def_types_mod, ONLY : mp
    USE cable_data_module,   ONLY : PHYS
    USE cable_um_tech_mod,   ONLY : um1, conv_rain_prevstep, conv_snow_prevstep,&
                                   air, bgc, canopy, met, bal, rad, rough,      &

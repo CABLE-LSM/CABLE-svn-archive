@@ -1,10 +1,10 @@
-MODULE cable_albedo_module
+MODULE cbl_albedo_mod
 
    USE cable_data_module, ONLY : ialbedo_type, point2constants 
    
    IMPLICIT NONE
    
-   PUBLIC surface_albedo
+  PUBLIC albedo
    PRIVATE
 
    TYPE(ialbedo_type) :: C
@@ -12,9 +12,7 @@ MODULE cable_albedo_module
 
 CONTAINS
 
-  
-SUBROUTINE surface_albedo(ssnow, veg, met, rad, soil, canopy, &
-AlbSnow, AlbSoil,              & 
+SUBROUTINE Albedo( AlbSnow, AlbSoil,              & 
 mp, nrb,                                          &
 jls_radiation ,                                   &
 veg_mask, sunlit_mask, sunlit_veg_mask,           &  
@@ -38,6 +36,7 @@ EffSurfRefl_dif, EffSurfRefl_beam                 )
                                    canopy_type, met_type, radiation_type,      &
                                    soil_snow_type, r_2
    
+USE cable_um_tech_mod, ONLY : ssnow, veg, met, rad, soil, canopy
 !subrs called
 !CBL3!USE cbl_snow_albedo_module, ONLY : surface_albedosn
    
@@ -121,15 +120,6 @@ integer :: i
 
     ! END header
 
-!SUBROUTINE surface_albedo(ssnow, veg, met, rad, soil, canopy)
-   TYPE (canopy_type),INTENT(IN)       :: canopy
-   TYPE (met_type),INTENT(INOUT)       :: met
-   TYPE (radiation_type),INTENT(INOUT) :: rad
-   TYPE (soil_snow_type),INTENT(INOUT) :: ssnow
-
-   TYPE (veg_parameter_type),INTENT(INOUT)  :: veg
-   TYPE(soil_parameter_type), INTENT(INOUT) :: soil   
-
    REAL(r_2), DIMENSION(mp)  ::                                                &
       dummy2, & !
       dummy
@@ -200,7 +190,7 @@ integer :: i
        
    END DO
 
-END SUBROUTINE surface_albedo 
+END SUBROUTINE Albedo 
 
 ! ------------------------------------------------------------------------------
 
@@ -396,4 +386,4 @@ SUBROUTINE calc_rhoch(veg,c1,rhoch)
 END SUBROUTINE calc_rhoch 
 
 
-END MODULE cable_albedo_module
+END MODULE cbl_albedo_mod
