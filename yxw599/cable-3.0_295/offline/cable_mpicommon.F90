@@ -103,7 +103,8 @@ MODULE cable_mpicommon
 
   ! MPI: number of final casa result matrices and vectors to receive
   ! by the master for casa_poolout and casa_fluxout
-  INTEGER, PARAMETER :: ncasa_mat = 34
+  INTEGER, PARAMETER :: ncasa_mat = 37    ! add three more wood product variables
+  !INTEGER, PARAMETER :: ncasa_mat = 34
   !  INTEGER, PARAMETER :: ncasa_vec = 27
   !  INTEGER, PARAMETER :: ncasa_vec = 32    ! changed on 30-jan-2013 for adding four new respiration variable to the output
   INTEGER, PARAMETER :: ncasa_vec = 58   ! vh changed on 5-feb-2016 for adding sapwood area and frac_sapwood
