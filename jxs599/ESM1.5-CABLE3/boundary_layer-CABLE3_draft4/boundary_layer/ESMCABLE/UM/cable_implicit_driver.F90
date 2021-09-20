@@ -283,6 +283,7 @@ REAL,allocatable :: xk(:,:)
       met%qv = met%qv + dqwc
       met%tvair = met%tk
       met%tvrad = met%tk
+      !d1!met%doy = idoy + 1
  
       canopy%cansto = canopy%oldcansto
 

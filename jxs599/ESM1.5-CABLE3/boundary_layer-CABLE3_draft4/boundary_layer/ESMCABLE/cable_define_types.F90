@@ -36,7 +36,7 @@ MODULE cable_def_types_mod
 !cbl3!USE cable_bgc_pool_type_mod,  ONLY: bgc_pool_type
 USE cable_canopy_type_mod,    ONLY: canopy_type
 USE cable_canopy_type_mod,    ONLY: canopy_cbl 
-!cbl3!USE cable_climate_type_mod,   ONLY: climate_type
+USE cable_climate_type_mod,   ONLY: climate_type
 !cbl3!USE cable_met_type_mod,       ONLY: met_type
 !cbl3!USE cable_radiation_type_mod, ONLY: radiation_type
 !cbl3!USE cable_roughness_type_mod, ONLY: roughness_type
@@ -189,7 +189,7 @@ USE cable_types_mod, ONLY: r_2
          usuh ! Friction velocity/windspeed at canopy height
    
       REAL, DIMENSION(:), POINTER ::                                           &
-         term2, term3, term5, term6 ! for aerodyn resist. calc.
+         term2, term3, term5, term6, term6a ! for aerodyn resist. calc.
    
    END TYPE roughness_type
 
@@ -407,6 +407,7 @@ SUBROUTINE alloc_roughness_type(var, mp)
    ALLOCATE ( var % term3(mp) )
    ALLOCATE ( var % term5(mp) )
    ALLOCATE ( var % term6(mp) )
+   ALLOCATE ( var % term6a(mp) )
    ALLOCATE ( var % usuh(mp) )
    ALLOCATE ( var % za_uv(mp) )
    ALLOCATE ( var % za_tq(mp) )
@@ -765,6 +766,7 @@ SUBROUTINE dealloc_roughness_type(var)
    DEALLOCATE ( var % term3 )
    DEALLOCATE ( var % term5 )
    DEALLOCATE ( var % term6 )
+   DEALLOCATE ( var % term6a )
    DEALLOCATE ( var % usuh )
    DEALLOCATE ( var % za_uv )
    DEALLOCATE ( var % za_tq )

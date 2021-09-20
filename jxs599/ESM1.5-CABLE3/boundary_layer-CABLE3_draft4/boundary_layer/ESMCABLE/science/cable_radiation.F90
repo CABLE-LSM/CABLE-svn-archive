@@ -32,8 +32,7 @@ MODULE cable_radiation_module
 
 CONTAINS
 
-SUBROUTINE init_radiation( met, rad, veg, canopy,                              &
-                        ExtCoeff_beam, ExtCoeff_dif,                           &
+SUBROUTINE init_radiation( ExtCoeff_beam, ExtCoeff_dif,                           &
                         EffExtCoeff_beam, EffExtCoeff_dif, RadFbeam,           &
                         c1, rhoch, xk,                                         &
                         mp,nrb,                                                &
@@ -45,8 +44,7 @@ SUBROUTINE init_radiation( met, rad, veg, canopy,                              &
                         coszen, metDoY, SW_down,                               & 
                         reducedLAIdue2snow )
 
-   USE cable_def_types_mod, ONLY : radiation_type, met_type, canopy_type,      &
-                                   veg_parameter_type
+   USE cable_um_tech_mod, ONLY : rad, met, canopy, veg
    USE cable_common_module
 implicit none
 
@@ -99,15 +97,6 @@ REAL :: xvlai2(mp,nrb) ! 2D vlai
 REAL :: xphi1(mp)      ! leaf angle parmameter 1
 REAL :: xphi2(mp)      ! leaf angle parmameter 2
 
-!SUBROUTINE init_radiation( met, rad, veg, canopy )
-
-   TYPE (radiation_type), INTENT(INOUT) :: rad
-   TYPE (met_type),       INTENT(INOUT) :: met
-   
-   TYPE (canopy_type),    INTENT(IN)    :: canopy
-
-   TYPE (veg_parameter_type), INTENT(INOUT) :: veg
-   
    REAL, DIMENSION(nrb) ::                                                     &
       cos3       ! cos(15 45 75 degrees)
 

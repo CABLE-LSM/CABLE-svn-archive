@@ -83,7 +83,7 @@ call fveg_mask( veg_mask, mp, Clai_thresh, canopy%vlaiw )
 call fsunlit_mask( sunlit_mask, mp, CRAD_THRESH,( met%fsd(:,1)+met%fsd(:,2) ) )
 call fsunlit_veg_mask( sunlit_veg_mask, mp )
 
-CALL init_radiation( met, rad, veg, canopy,                                     &
+CALL init_radiation( &
                      rad%extkb, rad%extkd,                                     &
                      !ExtCoeff_beam, ExtCoeff_dif,                             &
                      rad%extkbm, rad%extkdm, Rad%Fbeam,                        &
