@@ -30,7 +30,8 @@
 !
 ! ==============================================================================
 
-MODULE cable_soil_snow_module
+MODULE cbl_soil_snow_main_module
+   
    
    USE cable_def_types_mod, ONLY : soil_snow_type, soil_parameter_type,        &
                              veg_parameter_type, canopy_type, met_type,        &
@@ -2086,4 +2087,4 @@ SUBROUTINE hydraulic_redistribution(dels, soil, ssnow, canopy, veg, met)
                           
 END SUBROUTINE hydraulic_redistribution
 
-END MODULE cable_soil_snow_module
+END MODULE cbl_soil_snow_main_module

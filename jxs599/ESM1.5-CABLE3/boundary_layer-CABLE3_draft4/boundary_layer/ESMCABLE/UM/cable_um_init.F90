@@ -279,6 +279,7 @@ heat_cap_lower_limit = 0.01
       !--- IF the tile is "active"
       IF ( first_call ) THEN
       
+         L_TILE_PTS     = .FALSE.
          um1%L_TILE_PTS = .FALSE.
          mp = SUM(um1%TILE_PTS)
          mland = LAND_PTS
@@ -289,8 +290,8 @@ heat_cap_lower_limit = 0.01
             DO j=1,ntiles
                
                IF( um1%TILE_FRAC(i,j) .GT. 0.0 ) THEN 
-                     um1%L_TILE_PTS(i,j) = .TRUE.
-                     L_TILE_PTS(i,j) = .TRUE.
+                  L_TILE_PTS(i,j)     = .TRUE.
+                  um1%L_TILE_PTS(i,j) = .TRUE.
                   !jhan:can set veg%iveg from  here ?
                   tile_index_mp(i,j) = j 
                ENDIF

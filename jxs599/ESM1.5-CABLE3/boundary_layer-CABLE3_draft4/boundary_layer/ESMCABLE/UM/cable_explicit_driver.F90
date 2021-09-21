@@ -402,13 +402,6 @@ integer :: j
    CALL cbm( timestep, air, bgc, canopy, met, bal,                             &
              rad, rough, soil, ssnow, sum_flux, veg, xk, c1, rhoch )
 
-! output CO2_MMR value used in CABLE (passed from UM)
-  if ( (knode_gl.eq.1) .and. (ktau_gl.eq.1) ) then
-        write(6,*) 'CO2_MMR in CABLE: ',  met%ca(1)*44./28.966
-  end if
-
-
-
    !---------------------------------------------------------------------!
    !--- pass land-surface quantities calc'd by CABLE in explicit call ---!
    !--- back to UM.                                                   ---!
