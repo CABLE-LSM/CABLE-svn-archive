@@ -20,7 +20,7 @@ USE cbl_soil_snow_main_module,  ONLY: soil_snow
 !restrict with ONLY syntax
    USE cable_def_types_mod
    USE cable_roughness_module
-   USE cbl_init_radiation_module, ONLY: init_radiation
+   USE cable_radiation_module
    USE cable_air_module
 !CBL3 
 USE cbl_albedo_mod, ONLY: albedo
