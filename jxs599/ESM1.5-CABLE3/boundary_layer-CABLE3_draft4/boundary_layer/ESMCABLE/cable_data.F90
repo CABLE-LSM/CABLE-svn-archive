@@ -100,8 +100,8 @@ module cable_data_module
       !where 3 = no. radiation bands (nrb in define types)
       real, DIMENSION(3) :: gauss_w=(/0.308,0.514,0.178/) ! Gaussian integ. weights
       !--- jhan: can make these trigger of #defines/namelist
-      real:: RAD_THRESH = 0.01 
-      real:: LAI_THRESH = 0.01 
+      real:: RAD_THRESH = 0.001 
+      real:: LAI_THRESH = 0.001 
    end type other_constants
 
    type photosynthetic_constants

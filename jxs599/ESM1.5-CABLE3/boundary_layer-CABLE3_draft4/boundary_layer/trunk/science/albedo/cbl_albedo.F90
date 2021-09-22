@@ -158,7 +158,7 @@ integer :: i
       rad%cexpkdm(:,b) = EXP(-rad%extkdm(:,b) * canopy%vlaiw)
 
       !---Calculate effective diffuse reflectance (fraction):
-      WHERE( canopy%vlaiw > 1e-2 )                                             &
+      WHERE( canopy%vlaiw > C%lai_thresh )                                             &
          rad%reffdf(:,b) = rad%rhocdf(:,b) + (ssnow%albsoilsn(:,b)             &
                            - rad%rhocdf(:,b)) * rad%cexpkdm(:,b)**2
       
