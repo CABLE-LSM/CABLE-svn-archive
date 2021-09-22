@@ -21,10 +21,12 @@
 MODULE cable_radiation_module
 
    USE cable_data_module, ONLY : irad_type, point2constants
+USE cbl_rhoch_module, ONLY : calc_rhoch
+USE cbl_spitter_module, ONLY : spitter 
  
    IMPLICIT NONE
 
-   PUBLIC init_radiation, radiation, sinbet 
+   PUBLIC init_radiation, radiation
    PRIVATE
 
   TYPE ( irad_type ) :: C 
@@ -141,7 +143,7 @@ REAL :: xphi2(mp)      ! leaf angle parmameter 2
    mask = canopy%vlaiw > C%LAI_THRESH  .AND.                                   &
           ( met%fsd(:,1) + met%fsd(:,2) ) > C%RAD_THRESH
 
-   CALL calc_rhoch( veg, c1, rhoch )
+   CALL calc_rhoch( c1,rhoch, mp, nrb, veg%taul, veg%refl )
 
    ! Canopy REFLection of diffuse radiation for black leaves:
    DO ictr=1,nrb
@@ -156,8 +158,8 @@ REAL :: xphi2(mp)      ! leaf angle parmameter 2
    IF( .NOT. cable_runtime%um) THEN
    
       ! Define beam fraction, fbeam:
-      rad%fbeam(:,1) = spitter(met%doy, met%coszen, met%fsd(:,1))
-      rad%fbeam(:,2) = spitter(met%doy, met%coszen, met%fsd(:,2))
+      rad%fbeam(:,1) = spitter(mp, c%pi_c, int(met%doy), met%coszen, met%fsd(:,1))
+      rad%fbeam(:,2) = spitter(mp, c%pi_c, int(met%doy), met%coszen, met%fsd(:,2))
       ! coszen is set during met data read in.
    
       WHERE (met%coszen <1.0e-2)
@@ -374,92 +376,5 @@ SUBROUTINE radiation( ssnow, veg, air, met, rad, canopy )
    rad%rniso = SUM(rad%qcan, 3)
     
 END SUBROUTINE radiation
-
-! ------------------------------------------------------------------------------
-
-! this subroutine currently also in cable_albedo.F90
-! future release should reduce to one version
-SUBROUTINE calc_rhoch(veg,c1,rhoch) 
-
-   USE cable_def_types_mod, ONLY : veg_parameter_type
-   USE cable_common_module, only : cable_runtime   
-
-   TYPE (veg_parameter_type), INTENT(INOUT) :: veg
-   REAL, INTENT(INOUT), DIMENSION(:,:) :: c1, rhoch
-      
-   c1(:,1) = SQRT(1. - veg%taul(:,1) - veg%refl(:,1))
-   c1(:,2) = SQRT(1. - veg%taul(:,2) - veg%refl(:,2))
-   c1(:,3) = 1.
-    
-   ! Canopy C%REFLection black horiz leaves 
-   ! (eq. 6.19 in Goudriaan and van Laar, 1994):
-   rhoch = (1.0 - c1) / (1.0 + c1)
-
-END SUBROUTINE calc_rhoch 
-
-! -----------------------------------------------------------------------------
-
-ELEMENTAL FUNCTION sinbet(doy,xslat,hod) RESULT(z)
-
-   USE cable_data_module, ONLY : MATH 
-   ! calculate sin(bet), bet = elevation angle of sun
-   ! calculations according to goudriaan & van laar 1994 p30
-   REAL, INTENT(IN) ::                                                         &
-      doy,     & ! day of year
-      xslat,   & ! latitude (degrees north)
-      hod        ! hour of day
-   
-   REAL ::                                                                     &
-      sindec,  & ! sine of maximum declination
-      z          ! result
-
-   sindec = -SIN( 23.45 * MATH%PI180 ) * COS( 2. * MATH%PI_C * ( doy + 10.0 ) / 365.0 )
-
-   z = MAX( SIN( MATH%PI180 * xslat ) * sindec                                 &
-       + COS( MATH%PI180 * xslat ) * SQRT( 1. - sindec * sindec )              &
-       * COS( MATH%PI_C * ( hod - 12.0 ) / 12.0 ), 1e-8 )
-
-END FUNCTION sinbet
- 
-! -----------------------------------------------------------------------------
-
-FUNCTION spitter(doy, coszen, fsd) RESULT(fbeam)
-
-   USE cable_def_types_mod, ONLY : mp  
-   
-   ! Calculate beam fraction
-   ! See spitters et al. 1986, agric. for meteorol., 38:217-229
-   REAL, DIMENSION(mp), INTENT(IN) ::                                          &
-      doy,        & ! day of year
-      coszen,     & ! cos(zenith angle of sun)
-      fsd           ! short wave down (positive) w/m^2
-
-   REAL, DIMENSION(mp) ::                                                      &
-      fbeam,      & ! beam fraction (result)
-      tmpr,       & !                                      
-      tmpk,       & !                                
-      tmprat        !                               
-
-   REAL, PARAMETER :: solcon = 1370.0
-   
-   fbeam = 0.0
-   tmpr = 0.847 + coszen * (1.04 * coszen - 1.61)
-   tmpk = (1.47 - tmpr) / 1.66
-
-   WHERE (coszen > 1.0e-10 .AND. fsd > 10.0)
-      tmprat = fsd / ( solcon * ( 1.0 + 0.033 * COS( 2. * C%PI_C * ( doy-10.0 )&
-               / 365.0 ) ) * coszen )
-   ELSEWHERE
-     tmprat = 0.0
-   END WHERE
-   
-   WHERE ( tmprat > 0.22 ) fbeam = 6.4 * ( tmprat - 0.22 )**2
-   
-   WHERE ( tmprat > 0.35 ) fbeam = MIN( 1.66 * tmprat - 0.4728, 1.0 )
-   
-   WHERE ( tmprat > tmpk ) fbeam = MAX( 1.0 - tmpr, 0.0 )
-
-END FUNCTION spitter
-
 
 END MODULE cable_radiation_module
