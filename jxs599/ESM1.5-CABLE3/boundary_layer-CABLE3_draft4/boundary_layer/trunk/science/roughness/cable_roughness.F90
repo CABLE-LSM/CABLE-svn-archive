@@ -56,6 +56,9 @@ SUBROUTINE ruff_resist(veg, rough, ssnow, canopy, LAI_pft, HGT_pft, reducedLAIdu
     USE cable_common_module, ONLY : cable_user
    USE cable_def_types_mod, ONLY : veg_parameter_type, roughness_type,         &
                                    soil_snow_type, canopy_type, mp  
+!subrs
+USE cbl_hruff_mod, ONLY : HgtAboveSnow
+USE cbl_LAI_eff_mod, ONLY : LAI_eff
 !data
 USE cable_other_constants_mod, ONLY : z0surf_min
 
@@ -77,18 +80,22 @@ real :: HGT_pft(mp)
 
    REAL, DIMENSION(mp) ::                                                      &
       xx,      & ! =CCCD*LAI; working variable 
-      dh,      & ! d/h where d is zero-plane displacement
-      hmax       ! maximum height of canopy from
-                                    ! tiles belonging to the same grid
+      dh         ! d/h where d is zero-plane displacement
+integer :: i
    
+! Set canopy height above snow level:
+call HgtAboveSnow( HeightAboveSnow, mp, z0soilsn_min, veg%hc, ssnow%snowd, &
+                   ssnow%ssdnn )
+rough%hruff =  HeightAboveSnow
+
+! LAI decreases due to snow: formerly canopy%vlaiw
+call LAI_eff( mp, veg%vlai, veg%hc, HeightAboveSnow, &
+                reducedLAIdue2snow)
    
-   ! Set canopy height above snow level:
-   rough%hruff = MAX( 1.e-6, veg%hc - 1.2 * ssnow%snowd /                       &
-                 MAX( ssnow%ssdnn, 100. ) ) 
-   
-   ! LAI decreases due to snow:
-   canopy%vlaiw = veg%vlai * rough%hruff / MAX( 0.01, veg%hc )
+    canopy%vlaiw  = reducedLAIdue2snow
    canopy%rghlai = canopy%vlaiw
+
+IF (cable_user%soil_struc=='default') THEN
 
    ! Roughness length of bare soil (m): new formulation- E.Kowalczyk 2014
    IF (.not.cable_user%l_new_roughness_soil) THEN
@@ -187,7 +194,7 @@ real :: HGT_pft(mp)
       rough%rt1usb = MAX( rough%rt1usb, 0.0 ) ! in case zrufs < rough%hruff
     
     END WHERE
-
+end if
 END SUBROUTINE ruff_resist
 
 
