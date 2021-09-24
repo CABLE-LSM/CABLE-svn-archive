@@ -81,8 +81,8 @@ module CABLE_METUTILS_MODULE
                           /)
       
     ! Surface pressure variable
-    CHARACTER(LEN=5),DIMENSION(4) :: PSurfNames=(/                           &
-                          'pres ', 'ps   ', 'PBOT ', 'PSurf'                    &
+    CHARACTER(LEN=5),DIMENSION(5) :: PSurfNames=(/                           &
+                          'pres ', 'ps   ', 'PBOT ', 'PSurf', 'Psurf'        &
                           /)
       
     ! Elevation variable
