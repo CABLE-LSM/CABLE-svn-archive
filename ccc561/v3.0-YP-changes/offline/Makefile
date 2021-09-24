@@ -67,7 +67,7 @@ LSRC =                          \
 	cable_cru_TRENDY.F90 POPLUC.F90 cable_LUC_EXPT.F90												 \
 	cable_gw_hydro.F90 cable_psm.F90 cable_namelist_input.F90									 \
 	cable_site.F90 cable_climate_type_mod.F90                                  \
-	landuse3.F90 landuse_constants.F90
+	landuse3.F90 landuse_constants.F90 cable_metutils.F90
 
 # this is the executable we are building
 PROG = cable
@@ -155,8 +155,10 @@ cable_initialise.o: cable_initialise.F90 cable_read.o cable_iovars.o cable_abort
 
 cable_write.o: cable_write.F90 cable_iovars.o cable_abort.o cable_define_types.o casa_variable.o
 
+cable_metutils.o: cable_metutils.F90
+
 cable_input.o: cable_input.F90 POP.o cable_checks.o cable_abort.o cable_read.o cable_initialise.o cbl_sinbet.o \
-	       cable_parameters.o cable_common.o cable_LUC_EXPT.o POPLUC.o casa_inout.o
+	       cable_parameters.o cable_common.o cable_LUC_EXPT.o POPLUC.o casa_inout.o cable_metutils.o
 
 cable_output.o: cable_output.F90 cable_abort.o cable_checks.o cable_write.o cable_common.o
 
