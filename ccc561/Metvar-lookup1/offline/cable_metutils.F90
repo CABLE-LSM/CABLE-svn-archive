@@ -23,127 +23,112 @@ module CABLE_METUTILS_MODULE
   
   implicit none
     
-  PUBLIC ::         &
-    ! Required variables
-    MetLatNames,    &
-    MetLonNames,    &
-    MetMaskNames,   &
-    MetTimeNames,   &
-    MetSWdownNames, &
-    MetTairNames,   &
-    MetQairNames,   &
-    MetRainNames,   &
-    MetWindNames,   &
-    ! Optional variables
-    MetLWdownNames, &
-    MetPSurfNames,  &
-    MetElevNames,   &
-    MetCO2Names,    &
-    MetSnowNames,   &
-    MetLAINames,    &
-    MetAPrecipNames,&
-    MetIVegNames,   &
-    MetPFracNames,  &
-    MetISoilNames,  &
+  PUBLIC ::            &
+    possible_varnames, &  
     ! Subroutines
     find_metvarid 
 
-  ! Latitude variable
-  CHARACTER(LEN=8),DIMENSION(3) :: MetLatNames=(/                             &
-                        'latitude', 'nav_lat ', 'lat     '                    &
-                        /)
+  TYPE input_netcdf_names
+    ! Latitude variable
+    CHARACTER(LEN=8),DIMENSION(3) :: LatNames=(/                                &
+                          'latitude', 'nav_lat ', 'lat     '                    &
+                          /)
 
-  ! Longitude variable
-  CHARACTER(LEN=9),DIMENSION(3) :: MetLonNames=(/                             &
-                        'longitude', 'nav_lon  ', 'lon      '                 &
-                        /)
+    ! Longitude variable
+    CHARACTER(LEN=9),DIMENSION(3) :: LonNames=(/                                &
+                          'longitude', 'nav_lon  ', 'lon      '                 &
+                          /)
 
-  ! Mask variable
-  CHARACTER(LEN=7),DIMENSION(2) :: MetMaskNames=(/                            &
-                        'mask   ', 'landsea'                                  &
-                        /)
+    ! Mask variable
+    CHARACTER(LEN=7),DIMENSION(2) :: MaskNames=(/                               &
+                          'mask   ', 'landsea'                                  &
+                          /)
 
-  ! Time variable
-  CHARACTER(LEN=4),DIMENSION(1) :: MetTimeNames=(/                            &
-                        'time'                                                &
-                        /)
+    ! Time variable
+    CHARACTER(LEN=4),DIMENSION(1) :: TimeNames=(/                               &
+                          'time'                                                &
+                          /)
 
-  ! Downward Shortwave radiation variable
-  CHARACTER(LEN=6),DIMENSION(4) :: MetSWdownNames=(/                          &
-                        'dswrf ', 'rsds  ', 'FSDS  ', 'SWdown'                &
-                        /)
+    ! Downward Shortwave radiation variable
+    CHARACTER(LEN=6),DIMENSION(4) :: SWdownNames=(/                             &
+                          'dswrf ', 'rsds  ', 'FSDS  ', 'SWdown'                &
+                          /)
 
-  ! Air temperature variable
-  CHARACTER(LEN=4),DIMENSION(3) :: MetTairNames=(/                            &
-                        'tas ', 'TBOT', 'Tair'                                &
-                        /)
+    ! Air temperature variable
+    CHARACTER(LEN=4),DIMENSION(3) :: TairNames=(/                               &
+                          'tas ', 'TBOT', 'Tair'                                &
+                          /)
 
-  ! Air humidity variable
-  CHARACTER(LEN=4),DIMENSION(4) :: MetQairNames=(/                            &
-                        'shum', 'huss', 'QBOT', 'Qair'                        &
-                        /)
+    ! Air humidity variable
+    CHARACTER(LEN=4),DIMENSION(4) :: QairNames=(/                               &
+                          'shum', 'huss', 'QBOT', 'Qair'                        &
+                          /)
 
-  ! Wind variable
-  CHARACTER(LEN=4),DIMENSION(3) :: MetWindNames=(/                            &
-                        'wind', 'Wind', 'WIND'                                &
-                        /)
+    ! Wind variable
+    CHARACTER(LEN=4),DIMENSION(3) :: WindNames=(/                            &
+                          'wind', 'Wind', 'WIND'                                &
+                          /)
 
-  ! Rain variable
-  CHARACTER(LEN=8),DIMENSION(5) :: MetRainNames=(/                            &
-                        'prcp    ', 'pr      ', 'RAIN    ', 'Rainf   ',       &
-                        'Precip  '                                            &
-                        /)
+    ! Rain variable
+    CHARACTER(LEN=8),DIMENSION(5) :: RainNames=(/                            &
+                          'prcp    ', 'pr      ', 'RAIN    ', 'Rainf   ',       &
+                          'Precip  '                                            &
+                          /)
 
-  ! Downward longwave radiation variable
-  CHARACTER(LEN=6),DIMENSION(4) :: MetLWdownNames=(/                          &
-                        'dlwrf ', 'rlds  ', 'FLDS  ', 'LWdown'                &
-                        /)
-    
-  ! Surface pressure variable
-  CHARACTER(LEN=5),DIMENSION(4) :: MetPSurfNames=(/                           &
-                        'pres ', 'ps   ', 'PBOT ', 'PSurf'                    &
-                        /)
-    
-  ! Elevation variable
-  CHARACTER(LEN=9),DIMENSION(1) :: MetElevNames=(/                            &
-                        'Elevation'                                           &
-                        /)
-    
-  ! CO2 concentration variable
-  CHARACTER(LEN=6),DIMENSION(1) :: MetCO2Names=(/                             &
-                        'CO2air'                                              &
-                        /)
-    
-  ! Snow variable
-  CHARACTER(LEN=5),DIMENSION(1) :: MetSnowNames=(/                            &
-                        'Snowf'                                               &
-                        /)
-    
-  ! LAI variable
-  CHARACTER(LEN=3),DIMENSION(1) :: MetLAINames=(/                             &
-                        'LAI'                                                 &
-                        /)
-    
-  ! avPrecip variable
-  CHARACTER(LEN=8),DIMENSION(1) :: MetAPrecipNames=(/                         &
-                        'avPrecip'                                            &
-                        /)
-    
-  ! Vegetation types variable
-  CHARACTER(LEN=4),DIMENSION(1) :: MetIVegNames=(/                            &
-                        'iveg'                                                &
-                        /)
-    
-  ! Patch fraction variable
-  CHARACTER(LEN=9),DIMENSION(1) :: MetPFracNames=(/                           &
-                        'patchfrac'                                           &
-                        /)
-    
-  ! Soil type variable
-  CHARACTER(LEN=5),DIMENSION(1) :: MetISoilNames=(/                           &
-                        'isoil'                                               &
-                        /)
-    
+    ! Downward longwave radiation variable
+    CHARACTER(LEN=6),DIMENSION(4) :: LWdownNames=(/                          &
+                          'dlwrf ', 'rlds  ', 'FLDS  ', 'LWdown'                &
+                          /)
+      
+    ! Surface pressure variable
+    CHARACTER(LEN=5),DIMENSION(4) :: PSurfNames=(/                           &
+                          'pres ', 'ps   ', 'PBOT ', 'PSurf'                    &
+                          /)
+      
+    ! Elevation variable
+    CHARACTER(LEN=9),DIMENSION(1) :: ElevNames=(/                            &
+                          'Elevation'                                           &
+                          /)
+      
+    ! CO2 concentration variable
+    CHARACTER(LEN=6),DIMENSION(1) :: CO2Names=(/                             &
+                          'CO2air'                                              &
+                          /)
+      
+    ! Snow variable
+    CHARACTER(LEN=5),DIMENSION(1) :: SnowNames=(/                            &
+                          'Snowf'                                               &
+                          /)
+      
+    ! LAI variable
+    CHARACTER(LEN=3),DIMENSION(1) :: LAINames=(/                             &
+                          'LAI'                                                 &
+                          /)
+      
+    ! avPrecip variable
+    CHARACTER(LEN=8),DIMENSION(1) :: APrecipNames=(/                         &
+                          'avPrecip'                                            &
+                          /)
+      
+    ! Vegetation types variable
+    CHARACTER(LEN=4),DIMENSION(1) :: IVegNames=(/                            &
+                          'iveg'                                                &
+                          /)
+      
+    ! Patch fraction variable
+    CHARACTER(LEN=9),DIMENSION(1) :: PFracNames=(/                           &
+                          'patchfrac'                                           &
+                          /)
+      
+    ! Soil type variable
+    CHARACTER(LEN=5),DIMENSION(1) :: ISoilNames=(/                           &
+                          'isoil'                                               &
+                          /)
+
+  END TYPE input_netcdf_names
+
+  type(input_netcdf_names) :: possible_varnames
+
 CONTAINS
   !==============================================================================
   !
