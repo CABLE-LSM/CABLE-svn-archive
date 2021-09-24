@@ -1,16 +1,24 @@
 MODULE landuse_variable
   use landuse_constant
   IMPLICIT NONE
-  TYPE landuse_type
+
+  SAVE
+
+  TYPE landuse_mland
     ! patch generic
     INTEGER,   DIMENSION(:,:),       ALLOCATABLE :: iveg_x
     INTEGER,   DIMENSION(:,:),       ALLOCATABLE :: isoil_x
     INTEGER,   DIMENSION(:,:),       ALLOCATABLE :: soilorder_x
     INTEGER,   DIMENSION(:,:),       ALLOCATABLE :: phase_x
+    real(r_2), DIMENSION(:,:),       ALLOCATABLE :: phen_x
+    real(r_2), DIMENSION(:,:),       ALLOCATABLE :: aphen_x
+    integer,   DIMENSION(:,:),       ALLOCATABLE :: doyphase3_x
+    real(r_2), DIMENSION(:,:),       ALLOCATABLE :: frac_sapwood_x
+    real(r_2), DIMENSION(:,:),       ALLOCATABLE :: sapwood_area_x
     INTEGER,   DIMENSION(:,:),       ALLOCATABLE :: isflag_x
-    REAL(r_2), DIMENSION(:,:),   ALLOCATABLE :: patchfrac_x
-    REAL(r_2), DIMENSION(:,:),   ALLOCATABLE :: lai_x
-    REAL(r_2), DIMENSION(:,:),   ALLOCATABLE :: sla_x
+    REAL(r_2), DIMENSION(:,:),       ALLOCATABLE :: patchfrac_x
+    REAL(r_2), DIMENSION(:,:),       ALLOCATABLE :: lai_x
+    REAL(r_2), DIMENSION(:,:),       ALLOCATABLE :: sla_x
     ! biophysical
     real(r_2), dimension(:,:,:), allocatable :: albsoilsn_x
     real(r_2), dimension(:,:,:), allocatable :: albedo_x
@@ -48,7 +56,6 @@ MODULE landuse_variable
     real(r_2), dimension(:,:,:), allocatable :: cplantx_x
     real(r_2), dimension(:,:,:), allocatable :: csoilx_x
 
-
     REAL(r_2), DIMENSION(:,:),   ALLOCATABLE :: clabile_x
     REAL(r_2), DIMENSION(:,:,:), ALLOCATABLE :: cplant_x
     REAL(r_2), DIMENSION(:,:,:), ALLOCATABLE :: clitter_x
@@ -71,6 +78,11 @@ MODULE landuse_variable
     INTEGER,   DIMENSION(:,:),       ALLOCATABLE :: isoil_y
     INTEGER,   DIMENSION(:,:),       ALLOCATABLE :: soilorder_y
     INTEGER,   DIMENSION(:,:),       ALLOCATABLE :: phase_y
+    real(r_2), DIMENSION(:,:),       ALLOCATABLE :: phen_y
+    real(r_2), DIMENSION(:,:),       ALLOCATABLE :: aphen_y
+    integer,   DIMENSION(:,:),       ALLOCATABLE :: doyphase3_y
+    real(r_2), DIMENSION(:,:),       ALLOCATABLE :: frac_sapwood_y
+    real(r_2), DIMENSION(:,:),       ALLOCATABLE :: sapwood_area_y
     INTEGER,   DIMENSION(:,:),       ALLOCATABLE :: isflag_y
     REAL(r_2), DIMENSION(:,:),   ALLOCATABLE :: patchfrac_y
     REAL(r_2), DIMENSION(:,:),   ALLOCATABLE :: lai_y
@@ -135,28 +147,71 @@ MODULE landuse_variable
     REAL(r_2), DIMENSION(:,:),   ALLOCATABLE :: fharvw 
     REAL(r_2), DIMENSION(:,:,:), ALLOCATABLE :: xluh2cable 
     REAL(r_2), DIMENSION(:,:,:), ALLOCATABLE :: atransit
-  END TYPE landuse_type
+  END TYPE landuse_mland
 
-  CONTAINS
+  TYPE landuse_mp
+
+   ! generic patch properties
+   integer,    dimension(:),        allocatable   :: iveg,isoil,soilorder,phase,isflag           !(mp)
+   integer,    dimension(:),        allocatable   :: doyphase3                                   !(mp)
+   real(r_2),  dimension(:),        allocatable   :: lat,lon                                     !(mp)
+   real(r_2),  dimension(:),        allocatable   :: phen,aphen,frac_sapwood, sapwood_area       !(mp)
+   real(r_2),  dimension(:),        allocatable   :: patchfrac,areacell,lai,sla               !float(mp)
+
+   ! biophysical variables
+   real(r_2),  dimension(:,:),      allocatable   :: albsoilsn,albedo,albsoil      !float(mp,rad)
+   real(r_2),  dimension(:),        allocatable   :: dgdtg                         !double(mp)
+   real(r_2),  dimension(:,:),      allocatable   :: gammzz                        !double(mp,soil)
+   real(r_2),  dimension(:,:),      allocatable   :: tgg,wb,wbice                  !float(mp,soil)
+   real(r_2),  dimension(:,:),      allocatable   :: tggsn,ssdn,smass,sdepth       !float(mp,snow)
+   real(r_2),  dimension(:),        allocatable   :: tss,rtsoil,runoff,rnof1,rnof2, &
+                                                         ssdnn,snowd,snage,osnowd,      &
+                                                         cansto,ghflux,sghflux,ga,      &
+                                                         fev,fes,fhs,wbtot0,osnowd0,    &
+                                                         trad,GWwb                     !float(mp)
+   real(r_2),  dimension(:,:),      allocatable   :: cplantx, csoilx               !float(mp,plant_carbon_pools/soil_carbon_pools)
+
+   ! biogeochemical variables
+   real(r_2),  dimension(:),        allocatable   :: sumcbal,sumnbal,sumpbal                              !float(mp)                   
+   real(r_2),  dimension(:),        allocatable   :: clabile,nsoilmin,psoillab,psoilsorb,psoilocc         !float(mp)
+   real(r_2),  dimension(:,:),      allocatable   :: cplant,nplant,pplant                                 !float(mp,mplant)
+   real(r_2),  dimension(:,:),      allocatable   :: clitter,nlitter,plitter                              !float(mp,mlitter)
+   real(r_2),  dimension(:,:),      allocatable   :: csoil,nsoil,psoil                                    !float(mp,msoil)
+   real(r_2),  dimension(:,:),      allocatable   :: cwoodprod,nwoodprod,pwoodprod                        !float(mp,mwood)
+
+ END TYPE landuse_mp
+ 
+ CONTAINS
 
   SUBROUTINE landuse_allocate_mland(mland,luc)
    use landuse_constant
    IMPLICIT NONE
-   TYPE(landuse_type), INTENT(INOUT)  :: luc
+   TYPE(landuse_mland), INTENT(INOUT)  :: luc
    integer  mland
    ! patch-genric variables
    ALLOCATE(luc%iveg_x(mland,mvmax),             &
             luc%isoil_x(mland,mvmax),            &
             luc%soilorder_x(mland,mvmax),        &
             luc%phase_x(mland,mvmax),            &
+            luc%phen_x(mland,mvmax),             &
+            luc%aphen_x(mland,mvmax),            &
+            luc%doyphase3_x(mland,mvmax),        &
+            luc%frac_sapwood_x(mland,mvmax),     &
+            luc%sapwood_area_x(mland,mvmax),     &
             luc%isflag_x(mland,mvmax),           &
             luc%patchfrac_x(mland,mvmax),        &
             luc%lai_x(mland,mvmax),              &
             luc%sla_x(mland,mvmax))
+
    ALLOCATE(luc%iveg_y(mland,mvmax),             &
             luc%isoil_y(mland,mvmax),            &
             luc%soilorder_y(mland,mvmax),        &
             luc%phase_y(mland,mvmax),            &
+            luc%phen_y(mland,mvmax),             &
+            luc%aphen_y(mland,mvmax),            &
+            luc%doyphase3_y(mland,mvmax),        &
+            luc%frac_sapwood_y(mland,mvmax),     &
+            luc%sapwood_area_y(mland,mvmax),     &
             luc%isflag_y(mland,mvmax),           &
             luc%patchfrac_y(mland,mvmax),        &
             luc%lai_y(mland,mvmax),              &
@@ -273,13 +328,19 @@ MODULE landuse_variable
    ALLOCATE(luc%pftfrac(mland,mvtype),           &
             luc%fharvw(mland,mharvw),            &
             luc%xluh2cable(mland,mvmax,mstate),  &
-            luc%atransit(mland,mvmax,mvmax))
-
+            luc%atransit(mland,mvmax,mvmax),     &
+            luc%phen_y(mland,mvmax),             &
+            luc%aphen_y(mland,mvmax),            &
+            luc%doyphase3_y(mland,mvmax),        &
+            luc%frac_sapwood_y(mland,mvmax),     &
+            luc%sapwood_area_y(mland,mvmax))        
    ! Initialize temporary variables
            ! patch-genric variables
            luc%iveg_x   = -1;     luc%isoil_x=-1;          luc%soilorder_x=-1;     luc%phase_x=0;    luc%isflag_x=0
+           luc%phen_x   = 0.0;    luc%aphen_x=0.0;         luc%doyphase3_x=-1;     luc%frac_sapwood_x=1.0;  luc%sapwood_area_x=0.0
            luc%patchfrac_x=0.0;   luc%lai_x=0.0;           luc%sla_x=0.0
            luc%iveg_y   = -1;     luc%isoil_y=-1;          luc%soilorder_y=-1;     luc%phase_y=0;    luc%isflag_y=0
+           luc%phen_y   = 0.0;    luc%aphen_y=0.0;         luc%doyphase3_y=-1;     luc%frac_sapwood_y=1.0;  luc%sapwood_area_y=0.0
            luc%patchfrac_y=0.0;   luc%lai_y=0.0;           luc%sla_y=0.0
 
            ! biophysical
@@ -374,12 +435,15 @@ MODULE landuse_variable
 
    SUBROUTINE landuse_deallocate_mland(luc)
    IMPLICIT NONE
-   TYPE(landuse_type), INTENT(INOUT)  :: luc
+   TYPE(landuse_mland), INTENT(INOUT)  :: luc
 
    !patch-generic variables
    DEALLOCATE(luc%iveg_x,      luc%isoil_x, luc%soilorder_x, luc%phase_x, luc%isflag_x)
+   DEALLOCATE(luc%phen_x,      luc%aphen_x, luc%doyphase3_x, luc%frac_sapwood_x,  luc%sapwood_area_x)
    DEALLOCATE(luc%patchfrac_x, luc%lai_x,   luc%sla_x)
+
    DEALLOCATE(luc%iveg_y,      luc%isoil_y, luc%soilorder_y, luc%phase_y, luc%isflag_y)
+   DEALLOCATE(luc%phen_y,      luc%aphen_y, luc%doyphase3_y, luc%frac_sapwood_y,  luc%sapwood_area_y)
    DEALLOCATE(luc%patchfrac_y, luc%lai_y,   luc%sla_y)
 
 
@@ -499,49 +563,17 @@ MODULE landuse_variable
 
    END SUBROUTINE landuse_deallocate_mland
 
-END MODULE landuse_variable
-
-MODULE landuse_patch
- use landuse_constant
- implicit none
-
- TYPE landuse_mp
-
-   ! generic patch properties
-   integer, dimension(:),        allocatable   :: iveg,isoil,soilorder,phase,isflag           !(mp)
-   real(r_2),  dimension(:),        allocatable   :: patchfrac,areacell,lai,sla                  !float(mp)
-
-   ! biophysical variables
-   real(r_2),  dimension(:,:),      allocatable   :: albsoilsn,albedo,albsoil      !float(mp,rad)
-   real(r_2),  dimension(:),        allocatable   :: dgdtg                         !double(mp)
-   real(r_2),  dimension(:,:),      allocatable   :: gammzz                        !double(mp,soil)
-   real(r_2),  dimension(:,:),      allocatable   :: tgg,wb,wbice                  !float(mp,soil)
-   real(r_2),  dimension(:,:),      allocatable   :: tggsn,ssdn,smass,sdepth       !float(mp,snow)
-   real(r_2),  dimension(:),        allocatable   :: tss,rtsoil,runoff,rnof1,rnof2, &
-                                                         ssdnn,snowd,snage,osnowd,      &
-                                                         cansto,ghflux,sghflux,ga,      &
-                                                         fev,fes,fhs,wbtot0,osnowd0,    &
-                                                         trad,GWwb                     !float(mp)
-   real(r_2),  dimension(:,:),      allocatable   :: cplantx, csoilx               !float(mp,plant_carbon_pools/soil_carbon_pools)
-
-   ! biogeochemical variables
-   real(r_2),  dimension(:),        allocatable   :: sumcbal,sumnbal,sumpbal                              !float(mp)                   
-   real(r_2),  dimension(:),        allocatable   :: clabile,nsoilmin,psoillab,psoilsorb,psoilocc         !float(mp)
-   real(r_2),  dimension(:,:),      allocatable   :: cplant,nplant,pplant                                 !float(mp,mplant)
-   real(r_2),  dimension(:,:),      allocatable   :: clitter,nlitter,plitter                              !float(mp,mlitter)
-   real(r_2),  dimension(:,:),      allocatable   :: csoil,nsoil,psoil                                    !float(mp,msoil)
-   real(r_2),  dimension(:,:),      allocatable   :: cwoodprod,nwoodprod,pwoodprod                        !float(mp,mwood)
-
- END TYPE landuse_mp
- 
- CONTAINS
-
    SUBROUTINE landuse_allocate_mp(mpx,ms,msn,nrb,mplant,mlitter,msoil,mwood,ncp,ncs,lucmp)
    integer    mpx,ms,msn,nrb,mplant,mlitter,msoil,mwood,ncp,ncs
    TYPE(landuse_mp), INTENT(INOUT)  :: lucmp
 
    ! generic patch properties
      allocate(lucmp%iveg(mpx),lucmp%isoil(mpx),lucmp%soilorder(mpx),lucmp%phase(mpx),lucmp%isflag(mpx))
+
+     allocate(lucmp%lat(mpx),lucmp%lon(mpx))
+     allocate(lucmp%doyphase3(mpx))
+     allocate(lucmp%phen(mpx),lucmp%aphen(mpx),lucmp%frac_sapwood(mpx), lucmp%sapwood_area(mpx))       !(mp)
+
      allocate(lucmp%patchfrac(mpx),lucmp%areacell(mpx),lucmp%lai(mpx),lucmp%sla(mpx))
 
    ! biophysical variables
@@ -570,6 +602,8 @@ MODULE landuse_patch
 
      ! initialization
      lucmp%iveg=-1;lucmp%isoil=-1;lucmp%soilorder=-1;lucmp%phase=0;lucmp%isflag=0
+     lucmp%doyphase3=-1;lucmp%phen=0.0;lucmp%aphen=0.0;lucmp%frac_sapwood=1.0;lucmp%sapwood_area=0.0       !(mp)
+
      lucmp%patchfrac=0.0;lucmp%areacell=0.0;lucmp%lai=0.0;lucmp%sla=0.0
 
      ! biophysical variables
@@ -597,12 +631,15 @@ MODULE landuse_patch
      lucmp%cwoodprod=0.0;lucmp%nwoodprod=0.0;lucmp%pwoodprod=0.0
    END SUBROUTINE landuse_allocate_mp
 
-
    SUBROUTINE landuse_deallocate_mp(mpx,ms,msn,nrb,mplant,mlitter,msoil,mwood,lucmp)
    integer     mpx,ms,msn,nrb,mplant,mlitter,msoil,mwood
    TYPE(landuse_mp), INTENT(INOUT)  :: lucmp
      ! patch-generic variables
      deallocate(lucmp%iveg,lucmp%isoil,lucmp%soilorder,lucmp%phase,lucmp%isflag)
+     deallocate(lucmp%lat,lucmp%lon)
+     deallocate(lucmp%doyphase3)
+     deallocate(lucmp%phen,lucmp%aphen,lucmp%frac_sapwood, lucmp%sapwood_area)       !(mp)
+
      deallocate(lucmp%patchfrac,lucmp%areacell,lucmp%lai,lucmp%sla)
 
      ! biophysical variables
@@ -632,18 +669,18 @@ MODULE landuse_patch
 
    END SUBROUTINE landuse_deallocate_mp
 
-END MODULE landuse_patch
+END MODULE landuse_variable
 
-  subroutine landuse_driver(mlon,mlat,landmask,arealand,ssnow,soil,veg,bal,canopy,phen,casapool,casabal,casamet,bgc,rad)
-  USE cable_IO_vars_module, ONLY: mask,patch,landpt
+  subroutine landuse_driver(mlon,mlat,landmask,arealand,ssnow,soil,veg,bal,canopy,  &
+                            phen,casapool,casabal,casamet,bgc,rad,patchfrac_new,cstart,cend,nap)
+  USE cable_IO_vars_module, ONLY: mask,patch,landpt, latitude, longitude
   USE cable_def_types_mod,  ONLY: mp,mvtype,mstype,mland,r_2,ms,msn,nrb,ncp,ncs,           &
                                   soil_parameter_type, soil_snow_type, veg_parameter_type, &
                                   balances_type, canopy_type, bgc_pool_type, radiation_type
   USE casadimension,        ONLY: icycle,mplant,mlitter,msoil,mwood,mso
-  USE casavariable,         ONLY: casa_pool,casa_balance,casa_met,casa_biome
+  USE casavariable,         ONLY: casa_pool,casa_balance,casa_met,casa_biome,casa_flux
   USE phenvariable,         ONLY: phen_variable
   USE landuse_variable
-  USE landuse_patch
   IMPLICIT NONE
   TYPE (soil_snow_type)          :: ssnow   ! soil and snow variables
   TYPE (soil_parameter_type)     :: soil    ! soil parameters
@@ -655,24 +692,26 @@ END MODULE landuse_patch
   TYPE (casa_biome)              :: casabiome
   TYPE (casa_balance)            :: casabal
   TYPE (casa_met)                :: casamet
+  TYPE (casa_flux)               :: casaflux
   TYPE (bgc_pool_type)           :: bgc
   TYPE (radiation_type)          :: rad    ! met data
 
-  TYPE (landuse_type),save       :: luc
-  TYPE (landuse_mp),  save       :: lucmp
+  TYPE (landuse_mland)           :: luc
+  TYPE (landuse_mp)              :: lucmp
   ! input
   integer mlon,mlat
   integer,       dimension(mlon,mlat)         :: landmask
   real(r_2),     dimension(mland)             :: arealand
+  ! output
+  real(r_2),     dimension(mlon,mlat,mvmax)   :: patchfrac_new
 
   ! "mland" variables
-  integer,       dimension(:),            allocatable   :: cstart,cend,nap
+  integer,       dimension(mland)             :: cstart,cend,nap
 
   character*500   fxpft,fxluh2cable
   integer ivt,ee,hh,np,p,q,np1
   integer ncid,ok,xID,yID,varID,i,j,m,mpx
 
-     allocate(cstart(mland),cend(mland),nap(mland))
      cstart(:)   = landpt(:)%cstart
      cend(:)     = landpt(:)%cend
      nap(:)      = landpt(:)%nap
@@ -689,8 +728,8 @@ END MODULE landuse_patch
      lucmp%iveg(:)      = veg%iveg(:)
      lucmp%isoil(:)     = soil%isoilm(:)          
      lucmp%soilorder(:) = casamet%isorder(:)          
-     lucmp%phase(:)     = phen%phase(:)          
-     lucmp%isflag(:)    = ssnow%isflag(:)    
+     lucmp%isflag(:)    = ssnow%isflag(:)
+     !
      lucmp%patchfrac(:) = patch(:)%frac             ! maybe we should create another variable for "primary%patch"
      lucmp%lai(:)       = veg%vlai(:)
      lucmp%sla(:)       = casabiome%sla(veg%iveg(:)) 
@@ -742,6 +781,11 @@ END MODULE landuse_patch
 
      if(icycle>0) then 
         lucmp%phase(:)       = phen%phase(:)
+        lucmp%doyphase3(:)   = phen%doyphase(:,3)
+        lucmp%phen(:)        = phen%phen(:)
+        lucmp%aphen(:)       = phen%aphen(:)
+        lucmp%frac_sapwood(:)= casaflux%frac_sapwood(:)
+        lucmp%sapwood_area(:)= casaflux%sapwood_area(:)
         lucmp%clabile(:)     = casapool%clabile(:)
         lucmp%cplant(:,:)    = casapool%cplant(:,:)
         lucmp%clitter(:,:)   = casapool%clitter(:,:)
@@ -769,7 +813,7 @@ END MODULE landuse_patch
      endif
       
      ! assign variables var(mp,:) to luc%var_x(mland,mvmax,:)
-     call landuse_mp2land(luc,mp,cstart,cend,lucmp)
+     call landuse_mp2land(luc,lucmp,mp,cstart,cend)
      ! we need to deallocate "lucmp" because "mp" will be updated after land use change
      call landuse_deallocate_mp(mp,ms,msn,nrb,mplant,mlitter,msoil,mwood,lucmp)
      call landuse_transitx(luc,casabiome)
@@ -797,22 +841,29 @@ END MODULE landuse_patch
       mpx = np
      ! allocate "lucmp" with "mpx"
      call landuse_allocate_mp(mpx,ms,msn,nrb,mplant,mlitter,msoil,mwood,ncp,ncs,lucmp)
+ 
+     ! assign lucmp%lat lucmp%lon
+     do p=1,mland
+        do q=cstart(p),cend(p)
+           lucmp%lat(q) = latitude(p)
+           lucmp%lon(q) = longitude(p)
+        enddo
+     enddo      
+
      call landuse_land2mpx(luc,lucmp,mpx,cstart,cend,nap)
      call landuse_deallocate_mland(luc)
-
-     deallocate(cstart,cend,nap)
 
      close(21)
 211  format(i4,a120)
 end subroutine landuse_driver
 
- SUBROUTINE landuse_mp2land(luc,mp,cstart,cend,lucmp)
+ SUBROUTINE landuse_mp2land(luc,lucmp,cstart,cend)
  use landuse_variable
- USE landuse_patch
+ USE cable_def_types_mod,  ONLY: mvtype,mstype,mland,r_2,ms,msn,nrb,ncp,ncs
+ USE casadimension,        ONLY: icycle,mplant,mlitter,msoil,mwood,mso
  IMPLICIT NONE
- type(landuse_type)    :: luc
+ type(landuse_mland)   :: luc
  type(landuse_mp)      :: lucmp
- integer mp
  integer g,np,ivt,i
  integer,        dimension(mland)        :: cstart,cend
 
@@ -831,7 +882,14 @@ end subroutine landuse_driver
      ! patch-genric variables 
      luc%isoil_x(g,ivt)       = lucmp%isoil(np)
      luc%soilorder_x(g,ivt)   = lucmp%soilorder(np) 
-     luc%phase_x(g,ivt)       = lucmp%phase(np) 
+     luc%phase_x(g,ivt)       = lucmp%phase(np)
+  
+     luc%doyphase3_x(g,ivt)   = lucmp%doyphase3(np)
+     luc%phen_x(g,ivt)        = lucmp%phen(np)
+     luc%aphen_x(g,ivt)       = lucmp%aphen(np)
+     luc%frac_sapwood_x(g,ivt)= lucmp%frac_sapwood(np)
+     luc%sapwood_area_x(g,ivt)= lucmp%sapwood_area(np)
+
      luc%isflag_x(g,ivt)      = lucmp%isflag(np)
      luc%patchfrac_x(g,ivt)   = lucmp%patchfrac(np)   
      luc%lai_x(g,ivt)         = lucmp%lai(np)
@@ -922,7 +980,13 @@ end subroutine landuse_driver
   luc%isflag_y      = luc%isflag_x 
   luc%patchfrac_y   = luc%patchfrac_x  
   luc%lai_y         = luc%lai_x 
-  luc%sla_y         = luc%sla_x 
+  luc%sla_y         = luc%sla_x
+  
+  luc%doyphase3_y   = luc%doyphase3_x
+  luc%phen_y        = luc%phen_x
+  luc%aphen_y       = luc%aphen_x
+  luc%frac_sapwood_y= luc%frac_sapwood_x
+  luc%sapwood_area_y= luc%sapwood_area_x
 
   ! biophysical variables
   luc%albsoilsn_y   = luc%albsoilsn_x
@@ -988,11 +1052,16 @@ END SUBROUTINE landuse_mp2land
   
 SUBROUTINE landuse_transitx(luc,casabiome)
    USE casaparm
-   USE casavariable,  ONLY: casa_biome
-   USE landuse_variable
+   USE landuse_constant
+   USE casavariable,        ONLY: casa_biome
+   USE landuse_variable,    ONLY: landuse_mland
+
+   USE cable_def_types_mod,  ONLY: mland,mvtype,r_2,nrb,ncp,ncs
+   USE casadimension,        ONLY: icycle,mplant,mlitter,msoil,mwood
+
    IMPLICIT NONE
    TYPE(casa_biome)    :: casabiome
-   TYPE(landuse_type)  :: luc
+   TYPE(landuse_mland) :: luc
    integer,   dimension(mvtype)               :: ivt2
    real(r_2), dimension(mland,mvmax)          :: dclabile
    real(r_2), dimension(mland,mvmax,mplant)   :: dcplant,dnplant,dpplant
@@ -1251,18 +1320,25 @@ SUBROUTINE landuse_transitx(luc,casabiome)
       luc%soilorder_y(p,1) = dominantx(1,12,luc%patchfrac_x(p,1:mvmax),luc%soilorder_x(p,1:mvmax))
       ! may need to differentiate tree, grass and crop
       luc%phase_y(p,1)     = dominantx(0,3,luc%patchfrac_x(p,1:mvmax),luc%phase_x(p,1:mvmax))
+      luc%doyphase3_y(p,1) = dominantx(0,365,luc%patchfrac_x(p,1:mvmax),luc%doyphase3_x(p,1:mvmax))
       do d=2,mvmax
          luc%isoil_y(p,d)     = luc%isoil_y(p,1)
          luc%soilorder_y(p,d) = luc%soilorder_y(p,1)
          luc%phase_y(p,d)     = luc%phase_y(p,1)
-      enddo   
+         luc%doyphase3_y(p,d) = luc%doyphase3_y(p,1)
+      enddo
 
       do d=1,mvmax
 
          luc%iveg_y(p,d) = d
 
+         luc%phen_y(p,d)  = avgpatchr2(d,luc%patchfrac_x(p,d),transitx(1:mvmax,1:mvmax),luc%phen_x(p,1:mvmax))
+         luc%aphen_y(p,d) = avgpatchr2(d,luc%patchfrac_x(p,d),transitx(1:mvmax,1:mvmax),luc%aphen_x(p,1:mvmax))
+         luc%frac_sapwood_y(p,d) =avgpatchr2(d,luc%patchfrac_x(p,d),transitx(1:mvmax,1:mvmax),luc%frac_sapwood_x(p,1:mvmax))
+         luc%sapwood_area_y(p,d) =avgpatchr2(d,luc%patchfrac_x(p,d),transitx(1:mvmax,1:mvmax),luc%sapwood_area_x(p,1:mvmax))
+
          luc%sla_y(p,d) = luc%sla_x(p,d)
-         luc%lai_y(p,d) = luc%sla_y(p,d) * luc%cplant_y(p,d,leaf)
+         luc%lai_y(p,d) = luc%sla_y(p,d) * max(0.0,luc%cplant_y(p,d,leaf))
 
          do irb=1,nrb
             luc%albsoilsn_y(p,d,irb)= avgpatchr2(d,luc%patchfrac_x(p,d),transitx(1:mvmax,1:mvmax),luc%albsoilsn_x(p,1:mvmax,irb))
@@ -1503,15 +1579,22 @@ END SUBROUTINE landuse_transitx
  END SUBROUTINE landuse_redistribution
 
  SUBROUTINE landuse_update_mland(luc)                     ! assign "var_y" to "var_x"
- USE landuse_variable
+ USE landuse_variable,   ONLY: landuse_mland
  IMPLICIT NONE
- TYPE(landuse_type) :: luc
+ TYPE(landuse_mland) :: luc
 
     ! general patch variables
     luc%iveg_x      = luc%iveg_y
     luc%isoil_x     = luc%isoil_y
     luc%soilorder_x = luc%soilorder_y
     luc%phase_x     = luc%phase_y
+
+    luc%doyphase3_x = luc%doyphase3_y
+    luc%phen_x      = luc%phen_y
+    luc%aphen_x     = luc%aphen_y
+    luc%frac_sapwood_x=luc%frac_sapwood_y
+    luc%sapwood_area_x=luc%sapwood_area_y
+
     luc%isflag_x    = luc%isflag_y
     luc%patchfrac_x = luc%patchfrac_y
     luc%lai_x       = luc%lai_y
@@ -1575,11 +1658,11 @@ END SUBROUTINE landuse_transitx
  END SUBROUTINE landuse_update_mland
 
  SUBROUTINE landuse_land2mpx(luc,lucmp,mpx,cstart,cend,nap)
- USE landuse_constant
+ USE landuse_constant,     ONLY: mvmax
  USE landuse_variable
- USE landuse_patch
+ USE cable_def_types_mod,  ONLY: mland
  IMPLICIT NONE
- TYPE(landuse_type)          :: luc
+ TYPE(landuse_mland)         :: luc
  TYPE(landuse_mp)            :: lucmp
  integer, dimension(mland)   :: cstart,cend,nap
  integer mpx
@@ -1601,6 +1684,12 @@ END SUBROUTINE landuse_transitx
              lucmp%patchfrac(npnew)  = luc%patchfrac_y(p,q)
              lucmp%lai(npnew)        = luc%lai_y(p,q)
              lucmp%sla(npnew)        = luc%sla_y(p,q)
+
+             lucmp%doyphase3(npnew) = luc%doyphase3_y(p,q)
+             lucmp%phen(npnew)      = luc%phen_y(p,q)
+             lucmp%aphen(npnew)     = luc%aphen_y(p,q)
+             lucmp%frac_sapwood(npnew) =luc%frac_sapwood_y(p,q)
+             lucmp%sapwood_area(npnew) =luc%sapwood_area_y(p,q)
 
              ! biophysical
              lucmp%albsoilsn(npnew,:)= luc%albsoilsn_y(p,q,:)
@@ -1671,11 +1760,14 @@ END SUBROUTINE landuse_transitx
 
  SUBROUTINE landuse_checks(mlon,mlat,landmask,luc)
  ! check mass balance and write output CNP pool sizes for each PFT
- use landuse_variable
+ use landuse_constant,     ONLY: mvmax
+ use landuse_variable,     ONLY: landuse_mland
+ USE cable_def_types_mod,  ONLY: mland,r_2
+
  IMPLICIT NONE
  integer mlon,mlat
  real, parameter      :: xunit = 1.0e-15
- TYPE(landuse_type)   :: luc
+ TYPE(landuse_mland)  :: luc
  integer,       dimension(mlon,mlat) :: landmask
  real(r_2), dimension(mvmax)     :: areapft                    
  real(r_2), dimension(mvmax)     :: cpland,npland,ppland

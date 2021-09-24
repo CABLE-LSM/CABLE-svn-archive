@@ -181,7 +181,7 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
 
 
     ! modules related to CASA-CNP
-    USE casadimension,        ONLY: icycle
+    USE casadimension,        ONLY: icycle,mplant,mlitter,msoil,mwood
     USE casavariable,         ONLY: casafile, casa_biome, casa_pool, casa_flux,  &
          casa_met, casa_balance, zero_sum_casa, update_sum_casa
     USE phenvariable,         ONLY: phen_variable
@@ -204,10 +204,11 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
          PLUME_MIP_INIT
     USE CABLE_CRU,            ONLY: CRU_TYPE, CRU_GET_SUBDIURNAL_MET, CRU_INIT
 
-    USE cable_namelist_util, ONLY : get_namelist_file_name,&
-         CABLE_NAMELIST,arg_not_namelist
+    USE cable_namelist_util,  ONLY : get_namelist_file_name,&
+                                     CABLE_NAMELIST,arg_not_namelist
 
-    USE landuse_constant, ONLY: mstate,mvmax,mharvw
+    USE landuse_constant,     ONLY: mstate,mvmax,mharvw
+    USE landuse_variable
     IMPLICIT NONE
 
     ! MPI:
@@ -270,6 +271,8 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
     TYPE (LUC_EXPT_TYPE) :: LUC_EXPT
     TYPE (PLUME_MIP_TYPE) :: PLUME
     TYPE (CRU_TYPE)       :: CRU
+    !
+    TYPE (landuse_mp)     :: lucmp
     CHARACTER             :: cyear*4
     CHARACTER             :: ncfile*99
 
@@ -367,12 +370,14 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
     REAL    :: etime
 
 ! for landuse
-    integer     mlon,mlat
+    integer     mlon,mlat,mpx
     real(r_2), dimension(:,:,:),   allocatable,  save  :: luc_atransit
     real(r_2), dimension(:,:),     allocatable,  save  :: luc_fharvw
     real(r_2), dimension(:,:,:),   allocatable,  save  :: luc_xluh2cable
     real(r_2), dimension(:),       allocatable,  save  :: arealand
     integer,   dimension(:,:),     allocatable,  save  :: landmask
+    integer,   dimension(:),       allocatable,  save  :: cstart,cend,nap  
+    real(r_2), dimension(:,:,:),   allocatable,  save  :: patchfrac_new    
 
 
 
@@ -1411,10 +1416,17 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
        allocate(luc_xluh2cable(mland,mvmax,mstate))
        allocate(landmask(mlon,mlat))
        allocate(arealand(mland))
+       allocate(patchfrac_new(mlon,mlat,mvmax))
+       allocate(cstart(mland),cend(mland),nap(mland))
 
        call landuse_data(mlon,mlat,landmask,arealand,luc_atransit,luc_fharvw,luc_xluh2cable)
-       call landuse_driver(mlon,mlat,landmask,arealand,ssnow,soil,veg,bal,canopy,phen,casapool,casabal,casamet,bgc,rad)
+       call landuse_driver(mlon,mlat,landmask,arealand,ssnow,soil,veg,bal,canopy, &
+                           phen,casapool,casabal,casamet,bgc,rad,patchfrac_new,cstart,cend,nap)
 
+       call create_new_gridinfo(filename%type,filename%gridnew,mlon,mlat,landmask,patchfrac_new)                   
+       call WRITE_LANDUSE_CASA_RESTART_NC(mpx, lucmp, CASAONLY )
+       call create_landuse_cable_restart(logn, dels, ktau, soil, mpx,lucmp,cstart,cend,nap)
+       call landuse_deallocate_mp(mpx,ms,msn,nrb,mplant,mlitter,msoil,mwood,lucmp)
      ENDIF
 
 
