@@ -295,14 +295,7 @@ CONTAINS
 
     USE CABLE_COMMON_MODULE, ONLY : IS_LEAPYEAR
     USE casa_ncdf_module, ONLY: HANDLE_ERR, YMDHMS2DOYSOD, DOYSOD2YMDHMS
-    USE CABLE_METUTILS_MODULE, ONLY: MetLatNames, MetLonNames, MetMaskNames,  &
-                                     MetTimeNames, MetSWdownNames,            &
-                                     MetTairNames, MetQairNames, MetWindNames,&
-                                     MetRainNames, MetLWdownNames,            &
-                                     MetPSurfNames, MetElevNames, MetCO2Names,&
-                                     MetSnowNames, MetLAINames,               &
-                                     MetAPrecipNames, MetIVegNames,           &
-                                     MetPFracNames, MetISoilNames, find_metvarid
+    USE CABLE_METUTILS_MODULE, ONLY: possible_varnames, find_metvarid
 
     IMPLICIT NONE
     ! Input arguments
@@ -525,7 +518,7 @@ CONTAINS
 
     ! Get all latitude and longitude values.
     ! Find latitude variable (try 'latitude' and 'nav_lat'(ALMA)):
-    CALL find_metvarid(ncid_met, MetLatNames, latitudeID, ok)
+    CALL find_metvarid(ncid_met, possible_varnames%LatNames, latitudeID, ok)
 
     IF (ok /= NF90_NOERR) CALL nc_abort &
       (ok,'Error finding latitude variable in ' &
@@ -552,7 +545,7 @@ CONTAINS
     lat_all = REAL(temparray2)
 
     ! Find longitude variable (try 'longitude' and 'nav_lon'(ALMA)):
-    CALL find_metvarid(ncid_met, MetLonNames, longitudeID, ok)
+    CALL find_metvarid(ncid_met, possible_varnames%LonNames, longitudeID, ok)
 
     IF(ok /= NF90_NOERR) CALL nc_abort &
       (ok,'Error finding longitude variable in ' &
@@ -580,7 +573,7 @@ CONTAINS
     ! Check for "mask" variable or "land" variable to tell grid type
     ! (and allow neither if only one gridpoint). "mask" is a 2D variable
     ! with dims x,y and "land" is a 1D variable.
-    CALL find_metvarid(ncid_mask, MetMaskNames, maskID, ok)
+    CALL find_metvarid(ncid_mask, possible_varnames%MaskNames, maskID, ok)
     IF(ok /= NF90_NOERR) THEN ! if error, i.e. no "mask" variable:
        ! Check for "land" variable:
        ok = NF90_INQ_VARID(ncid_met, 'land', landID)
@@ -737,7 +730,7 @@ CONTAINS
 
     !!=========VV Determine simulation timing details VV================
     ! Inquire 'time' variable's ID:
-    CALL find_metvarid(ncid_met, MetTimeNames, timevarID, ok)
+    CALL find_metvarid(ncid_met, possible_varnames%TimeNames, timevarID, ok)
     IF(ok /= NF90_NOERR) CALL nc_abort &
          (ok,'Error finding time variable in met data file ' &
          //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
@@ -976,7 +969,7 @@ CONTAINS
 
    ! option was added by Chris Lu to allow for different variable names between GPCC and GSWP forcings
    ! added by ypwang 30/oct/2012 
-    CALL find_metvarid(ncid_met, MetSWdownNames, id%SWdown, ok)
+    CALL find_metvarid(ncid_met, possible_varnames%SWdownNames, id%SWdown, ok)
 
     IF(ok /= NF90_NOERR) CALL nc_abort &
          (ok,'Error finding SWdown in met data file ' &
@@ -996,7 +989,7 @@ CONTAINS
     END IF
     ! Look for Tair (essential):- - - - - - - - - - - - - - - - - - -
     IF (ncciy > 0) ncid_met = ncid_ta
-    CALL find_metvarid(ncid_met, MetTairNames, id%Tair, ok)
+    CALL find_metvarid(ncid_met, possible_varnames%TairNames, id%Tair, ok)
 
     IF(ok /= NF90_NOERR) CALL nc_abort &
          (ok,'Error finding Tair in met data file ' &
@@ -1020,7 +1013,7 @@ CONTAINS
     END IF
     ! Look for Qair (essential):- - - - - - - - - - - - - - - - - - -
     IF (ncciy > 0) ncid_met = ncid_qa
-    Call find_metvarid(ncid_met, MetQairNames, id%Qair, ok)
+    Call find_metvarid(ncid_met, possible_varnames%QairNames, id%Qair, ok)
 
     IF(ok /= NF90_NOERR) CALL nc_abort &
          (ok,'Error finding Qair in met data file ' &
@@ -1046,7 +1039,7 @@ CONTAINS
 
     ! Look for Rainf (essential):- - - - - - - - - - - - - - - - - -
     IF (ncciy > 0) ncid_met = ncid_rain
-    CALL find_metvarid(ncid_met, MetRainNames, id%Rainf, ok)
+    CALL find_metvarid(ncid_met, possible_varnames%RainNames, id%Rainf, ok)
 
     IF(ok /= NF90_NOERR) CALL nc_abort &
          (ok,'Error finding Rainf in met data file ' &
@@ -1076,7 +1069,7 @@ CONTAINS
     ranges%Rainf = ranges%Rainf*dels ! range therefore depends on dels
     ! Look for Wind (essential):- - - - - - - - - - - - - - - - - - -
     IF (ncciy > 0) ncid_met = ncid_wd
-    CALL find_metvarid(ncid_met, MetWindNames, id%Wind, ok)
+    CALL find_metvarid(ncid_met, possible_varnames%WindNames, id%Wind, ok)
 
     IF(ok /= NF90_NOERR) THEN
        ! Look for vector wind:
@@ -1108,7 +1101,7 @@ CONTAINS
     ! Now "optional" variables:
     ! Look for LWdown (can be synthesised):- - - - - - - - - - - - - - -
     IF (ncciy > 0) ncid_met = ncid_lw
-    CALL find_metvarid(ncid_met, MetLWdownNames, id%LWdown, ok)
+    CALL find_metvarid(ncid_met, possible_varnames%LWdownNames, id%LWdown, ok)
 
     IF(ok == NF90_NOERR) THEN ! If inquiry is okay
        exists%LWdown = .TRUE. ! LWdown is present in met file
@@ -1138,7 +1131,7 @@ CONTAINS
     END IF
     ! Look for PSurf (can be synthesised):- - - - - - - - - - - - - - - -
     IF (ncciy > 0) ncid_met = ncid_ps
-    CALL find_metvarid(ncid_met, MetPSurfNames, id%PSurf, ok)
+    CALL find_metvarid(ncid_met, possible_varnames%PSurfNames, id%PSurf, ok)
 
     IF(ok == NF90_NOERR) THEN ! If inquiry is okay
        exists%PSurf = .TRUE. ! PSurf is present in met file
@@ -1171,7 +1164,7 @@ CONTAINS
        all_met=.FALSE. ! not all met variables are present in file
        ! Look for "elevation" variable to approximate pressure based
        ! on elevation and temperature:
-       CALL find_metvarid(ncid_met, MetElevNames, id%Elev, ok)
+       CALL find_metvarid(ncid_met, possible_varnames%ElevNames, id%Elev, ok)
        IF(ok == NF90_NOERR) THEN ! elevation present
           ! Get elevation units:
           ok = NF90_GET_ATT(ncid_met,id%Elev,'units',metunits%Elev)
@@ -1219,7 +1212,7 @@ CONTAINS
             'synthesised based on elevation and temperature.'
     END IF
     ! Look for CO2air (can be assumed to be static):- - - - - - - - - - -
-    CALL find_metvarid(ncid_met, MetCO2Names, id%CO2air, ok)
+    CALL find_metvarid(ncid_met, possible_varnames%CO2Names, id%CO2air, ok)
     IF(ok == NF90_NOERR) THEN ! If inquiry is okay
        exists%CO2air = .TRUE. ! CO2air is present in met file
        ! Get CO2air units:
@@ -1245,7 +1238,7 @@ CONTAINS
        ncid_met = ncid_snow
     END IF
 
-    CALL find_metvarid(ncid_met, MetSnowNames, id%Snowf, ok)
+    CALL find_metvarid(ncid_met, possible_varnames%SnowNames, id%Snowf, ok)
     IF(ok == NF90_NOERR) THEN ! If inquiry is okay
        exists%Snowf = .TRUE. ! Snowf is present in met file
        ! Get Snowf units:
@@ -1265,7 +1258,7 @@ CONTAINS
             'Assumed to be contained in Rainf variable'
     END IF
     ! Look for LAI - - - - - - - - - - - - - - - - - - - - - - - - -
-    CALL find_metvarid(ncid_met, MetLAINames, id%LAI, ok)
+    CALL find_metvarid(ncid_met, possible_varnames%LAINames, id%LAI, ok)
     IF(ok == NF90_NOERR) THEN ! If inquiry is okay
        exists%LAI = .TRUE. ! LAI is present in met file
        ! LAI will be read in which ever land grid is used
@@ -1300,7 +1293,7 @@ CONTAINS
     ! If a spinup is to be performed:
     IF(spinup) THEN
        ! Look for avPrecip variable (time invariant - used for spinup):
-       CALL find_metvarid(ncid_met, MetAPrecipNames, id%avPrecip, ok)
+       CALL find_metvarid(ncid_met, possible_varnames%APrecipNames, id%avPrecip, ok)
        IF(ok == NF90_NOERR) THEN ! If inquiry is okay and avPrecip exists
           ! Report to log file than modified spinup will be used:
           WRITE(logn,*) 'Spinup will use modified precip - avPrecip variable found'
@@ -1414,7 +1407,7 @@ CONTAINS
     END IF  ! if a spinup is to be performed
 
     ! Look for veg type - - - - - - - - - - - - - - - - -:
-    CALL find_metvarid(ncid_met, MetIVegNames, id%iveg, ok)
+    CALL find_metvarid(ncid_met, possible_varnames%IVegNames, id%iveg, ok)
     IF(ok == NF90_NOERR) THEN ! If 'iveg' exists in the met file
        ! Note existence of at least one model parameter in the met file:
        exists%parameters = .TRUE.
@@ -1439,7 +1432,7 @@ CONTAINS
              ! Patch-specific iveg variable MUST be accompanied by
              ! patchfrac variable with the same dimensions. So,
              ! Make sure that the patchfrac variable exists:
-             CALL find_metvarid(ncid_met, MetPFracNames, id%patchfrac, ok)
+             CALL find_metvarid(ncid_met, possible_varnames%PFracNames, id%patchfrac, ok)
              IF(ok /= NF90_NOERR) CALL nc_abort & ! check read ok
                   (ok,'Patch-specific vegetation type (iveg) must be accompanied '// &
                   'by a patchfrac variable - this was not found in met data file '&
@@ -1479,7 +1472,7 @@ CONTAINS
              ! Patch-specific iveg variable MUST be accompanied by
              ! patchfrac variable with same dimensions. So,
              ! Make sure that the patchfrac variable exists:
-            CALL find_metvarid(ncid_met, MetPFracNames, id%patchfrac, ok)
+            CALL find_metvarid(ncid_met, possible_varnames%PFracNames, id%patchfrac, ok)
             IF(ok /= NF90_NOERR) CALL nc_abort & ! check read ok
                   (ok,'Patch-specific vegetation type (iveg) must be accompanied'// &
                   'by a patchfrac variable - this was not found in met data file '&
@@ -1512,7 +1505,7 @@ CONTAINS
     END IF
 
     ! Look for soil type:
-    CALL find_metvarid(ncid_met, MetISoilNames, id%isoil, ok)
+    CALL find_metvarid(ncid_met, possible_varnames%ISoilNames, id%isoil, ok)
     IF(ok == NF90_NOERR) THEN ! If inquiry is okay
        ! Note existence of at least one model parameter in the met file:
        exists%parameters = .TRUE.
