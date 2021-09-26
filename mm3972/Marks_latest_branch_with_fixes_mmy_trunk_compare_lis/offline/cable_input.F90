@@ -3080,53 +3080,53 @@ SUBROUTINE get_parameters_met(soil,ssnow,veg,bgc,rough,completeSet) ! MMY add ss
                 nmetpatches,'ncs')
 
 ! ______________ MMY read_vec parameters from met file for EucFace _____________
-   CALL readpar(ncid_met,'cnsd',completeSet,soil%cnsd,filename%met,            &
-                nmetpatches,'def')
-   CALL readpar(ncid_met,'clay_vec',completeSet,soil%clay_vec,filename%met,    &
-                nmetpatches,'ms')
-   CALL readpar(ncid_met,'sand_vec',completeSet,soil%sand_vec,filename%met,    &
-                nmetpatches,'ms')
-   CALL readpar(ncid_met,'silt_vec',completeSet,soil%silt_vec,filename%met,    &
-                nmetpatches,'ms')
-   CALL readpar(ncid_met,'org_vec',completeSet,soil%org_vec,filename%met,      &
-                nmetpatches,'ms')
-   CALL readpar(ncid_met,'ssat_vec',completeSet,soil%ssat_vec,filename%met,    &
-                nmetpatches,'ms')
-   CALL readpar(ncid_met,'sfc_vec',completeSet,soil%sfc_vec,filename%met,      &
-                nmetpatches,'ms')
-   CALL readpar(ncid_met,'swilt_vec',completeSet,soil%swilt_vec,filename%met,  &
-                nmetpatches,'ms')
-   CALL readpar(ncid_met,'bch_vec',completeSet,soil%bch_vec,filename%met,      &
-                nmetpatches,'ms')
-   CALL readpar(ncid_met,'hyds_vec',completeSet,soil%hyds_vec,filename%met,    &
-                nmetpatches,'ms')
-   CALL readpar(ncid_met,'sucs_vec',completeSet,soil%sucs_vec,filename%met,    &
-                nmetpatches,'ms')
-   soil%sucs_vec = 1000._r_2 * ( abs(soil%sucs_vec))   ! Copied from SUBROUTINE GWspatialParameters
-   CALL readpar(ncid_met,'css_vec',completeSet,soil%css_vec,filename%met,      &
-                nmetpatches,'ms')
-   CALL readpar(ncid_met,'rhosoil_vec',completeSet,soil%rhosoil_vec,filename%met,&
-                nmetpatches,'ms')
-   CALL readpar(ncid_met,'cnsd_vec',completeSet,soil%cnsd_vec,filename%met,    &
-                nmetpatches,'ms')
-   CALL readpar(ncid_met,'watr',completeSet,soil%watr,filename%met,            &
-                nmetpatches,'ms')
+!    CALL readpar(ncid_met,'cnsd',completeSet,soil%cnsd,filename%met,            &
+!                 nmetpatches,'def')
+!    CALL readpar(ncid_met,'clay_vec',completeSet,soil%clay_vec,filename%met,    &
+!                 nmetpatches,'ms')
+!    CALL readpar(ncid_met,'sand_vec',completeSet,soil%sand_vec,filename%met,    &
+!                 nmetpatches,'ms')
+!    CALL readpar(ncid_met,'silt_vec',completeSet,soil%silt_vec,filename%met,    &
+!                 nmetpatches,'ms')
+!    CALL readpar(ncid_met,'org_vec',completeSet,soil%org_vec,filename%met,      &
+!                 nmetpatches,'ms')
+!    CALL readpar(ncid_met,'ssat_vec',completeSet,soil%ssat_vec,filename%met,    &
+!                 nmetpatches,'ms')
+!    CALL readpar(ncid_met,'sfc_vec',completeSet,soil%sfc_vec,filename%met,      &
+!                 nmetpatches,'ms')
+!    CALL readpar(ncid_met,'swilt_vec',completeSet,soil%swilt_vec,filename%met,  &
+!                 nmetpatches,'ms')
+!    CALL readpar(ncid_met,'bch_vec',completeSet,soil%bch_vec,filename%met,      &
+!                 nmetpatches,'ms')
+!    CALL readpar(ncid_met,'hyds_vec',completeSet,soil%hyds_vec,filename%met,    &
+!                 nmetpatches,'ms')
+!    CALL readpar(ncid_met,'sucs_vec',completeSet,soil%sucs_vec,filename%met,    &
+!                 nmetpatches,'ms')
+!    soil%sucs_vec = 1000._r_2 * ( abs(soil%sucs_vec))   ! Copied from SUBROUTINE GWspatialParameters
+!    CALL readpar(ncid_met,'css_vec',completeSet,soil%css_vec,filename%met,      &
+!                 nmetpatches,'ms')
+!    CALL readpar(ncid_met,'rhosoil_vec',completeSet,soil%rhosoil_vec,filename%met,&
+!                 nmetpatches,'ms')
+!    CALL readpar(ncid_met,'cnsd_vec',completeSet,soil%cnsd_vec,filename%met,    &
+!                 nmetpatches,'ms')
+!    CALL readpar(ncid_met,'watr',completeSet,soil%watr,filename%met,            &
+!                 nmetpatches,'ms')
 
-!  from SUBROUTINE GWspatialParameters in cable_parameters.F90
-   ! ssnow%wb_hys(:,:)   = -1.0e+36 !  as LIS
-   ! ssnow%smp_hys(:,:) = -1.0e+36 !  as LIS
-   ! ssnow%hys_fac(:,:) = 1.0
-   ssnow%watr_hys(:,:) = soil%watr(:,:)
-   ssnow%ssat_hys(:,:) = soil%ssat_vec(:,:)
+! !  from SUBROUTINE GWspatialParameters in cable_parameters.F90
+!    ! ssnow%wb_hys(:,:)   = -1.0e+36 !  as LIS
+!    ! ssnow%smp_hys(:,:) = -1.0e+36 !  as LIS
+!    ! ssnow%hys_fac(:,:) = 1.0
+!    ssnow%watr_hys(:,:) = soil%watr(:,:)
+!    ssnow%ssat_hys(:,:) = soil%ssat_vec(:,:)
 
-   soil%GWhyds_vec(:) = soil%hyds_vec(:,ms)
-   soil%GWssat_vec(:) = soil%ssat_vec(:,ms)
-   soil%GWsucs_vec(:) = soil%sucs_vec(:,ms)
-   soil%GWbch_vec(:)  = soil%bch_vec(:,ms)
-   soil%GWwatr(:)     = soil%watr(:,ms)
-   ssnow%wb           = 0.3 ! as LIS
-   ssnow%GWwb(:)      = soil%GWssat_vec(:)
-   ssnow%wtd          = 5000.0   !mm as LIS
+!    soil%GWhyds_vec(:) = soil%hyds_vec(:,ms)
+!    soil%GWssat_vec(:) = soil%ssat_vec(:,ms)
+!    soil%GWsucs_vec(:) = soil%sucs_vec(:,ms)
+!    soil%GWbch_vec(:)  = soil%bch_vec(:,ms)
+!    soil%GWwatr(:)     = soil%watr(:,ms)
+!    ssnow%wb           = 0.3 ! as LIS
+!    ssnow%GWwb(:)      = soil%GWssat_vec(:)
+!    ssnow%wtd          = 5000.0   !mm as LIS
 ! ______________________________________________________________
 
 END SUBROUTINE get_parameters_met

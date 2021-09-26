@@ -1082,7 +1082,8 @@ CONTAINS
     canopy%fe    = 0.0  ! sensible heat flux
     !mrd
     ssnow%qrecharge = 0.0
-    ssnow%wtd = 1.0
+    !ssnow%wtd = 1.0 ! MMY
+    ssnow%wtd          = 5000.0   ! MMY as LIS units = mm
     canopy%sublayer_dz = 0.01  !could go into restart to ensure starting/stopping runs gives identical results
                                 !however the impact is negligible
 
@@ -1186,8 +1187,9 @@ CONTAINS
        ! Work around set everything above last input layer to the last input layer
        ssnow%tgg(landpt(e)%cstart:landpt(e)%cend, is) =                       &
               inTGG(landpt(e)%ilon,landpt(e)%ilat, min(is,size(inTGG,3)), month)
-       ssnow%wb(landpt(e)%cstart:landpt(e)%cend, is) =                        &
-              inWB(landpt(e)%ilon, landpt(e)%ilat, min(is,size(inTGG,3)), month)
+      !  ssnow%wb(landpt(e)%cstart:landpt(e)%cend, is) =                        &  ! MMY
+      !         inWB(landpt(e)%ilon, landpt(e)%ilat, min(is,size(inTGG,3)), month) ! MMY
+       ssnow%wb(landpt(e)%cstart:landpt(e)%cend, is) = 0.3 ! MMY as LIS
     END DO
 
       ! Set initial snow depth and snow-free soil albedo
@@ -2840,49 +2842,59 @@ END SUBROUTINE report_parameters
     soil%GWwatr(:) = 0.0
 
    ! __________________________________________ MMY _________________________________________
-   !  soil%ssat_vec(:,:) = get_gw_data(ncid_elev,file_status,'ssat_vec',inssat(:,:),nlon,nlat,ms)
-   !  inGWtmp(:,:) = 0.66*inssat(:,:)
+    soil%ssat_vec(:,:) = get_gw_data(ncid_elev,file_status,'ssat_vec',inssat(:,:),nlon,nlat,ms)
+    inGWtmp(:,:) = 0.66*inssat(:,:)
 
-   !  soil%sfc_vec(:,:) = get_gw_data(ncid_elev,file_status,'sfc_vec',inGWtmp(:,:),nlon,nlat,ms)
-   !  inGWtmp(:,:) = 0.15*inssat(:,:)
+    soil%sfc_vec(:,:) = get_gw_data(ncid_elev,file_status,'sfc_vec',inGWtmp(:,:),nlon,nlat,ms)
+    inGWtmp(:,:) = 0.15*inssat(:,:)
 
-   !  soil%swilt_vec(:,:) = get_gw_data(ncid_elev,file_status,'swilt_vec',inGWtmp(:,:),nlon,nlat,ms)
+    soil%swilt_vec(:,:) = get_gw_data(ncid_elev,file_status,'swilt_vec',inGWtmp(:,:),nlon,nlat,ms)
 
-   !  inGWtmp(:,:) = 0.01*inssat(:,:)
-   !  soil%watr(:,:) = get_gw_data(ncid_elev,file_status,'watr',inGWtmp(:,:),nlon,nlat,ms)
+    inGWtmp(:,:) = 0.01*inssat(:,:)
+    soil%watr(:,:) = get_gw_data(ncid_elev,file_status,'watr',inGWtmp(:,:),nlon,nlat,ms)
 
-   !  inGWtmp(:,:) = 1000.0*inhyds(:,:)
-   !  soil%hyds_vec(:,:) = get_gw_data(ncid_elev,file_status,'hyds_vec',inGWtmp(:,:),nlon,nlat,ms)
+    inGWtmp(:,:) = 1000.0*inhyds(:,:)
+    soil%hyds_vec(:,:) = get_gw_data(ncid_elev,file_status,'hyds_vec',inGWtmp(:,:),nlon,nlat,ms)
 
-   !  inGWtmp(:,:) = abs(insucs(:,:))
-   !  soil%sucs_vec(:,:) = get_gw_data(ncid_elev,file_status,'sucs_vec',inGWtmp(:,:),nlon,nlat,ms)
-   !  soil%sucs_vec(:,:) =  1000._r_2*abs(soil%sucs_vec(:,:)  )
+    inGWtmp(:,:) = abs(insucs(:,:))
+    soil%sucs_vec(:,:) = get_gw_data(ncid_elev,file_status,'sucs_vec',inGWtmp(:,:),nlon,nlat,ms)
+    soil%sucs_vec(:,:) =  1000._r_2*abs(soil%sucs_vec(:,:)  )
 
-   !  !add last laery to aquifer
-   !  !should have zero head at top of aquifer, however this can be well below
-   !  !the soil column, so reading below we can treat top part of whenm dry
-   !  !as unsat flow
-   !  soil%GWsucs_vec(:) = soil%sucs_vec(:,ms)
+    !add last laery to aquifer
+    !should have zero head at top of aquifer, however this can be well below
+    !the soil column, so reading below we can treat top part of whenm dry
+    !as unsat flow
+    soil%GWsucs_vec(:) = soil%sucs_vec(:,ms)
 
-   !  soil%bch_vec(:,:) = get_gw_data(ncid_elev,file_status,'bch_vec',inbch(:,:),nlon,nlat,ms)
-   !  soil%GWbch_vec(:) = soil%bch_vec(:,ms)
+    soil%bch_vec(:,:) = get_gw_data(ncid_elev,file_status,'bch_vec',inbch(:,:),nlon,nlat,ms)
+    soil%GWbch_vec(:) = soil%bch_vec(:,ms)
 
-   !  soil%rhosoil_vec(:,:) = get_gw_data(ncid_elev,file_status,'rhosoil_vec',inrhosoil(:,:),nlon,nlat,ms)
+    soil%rhosoil_vec(:,:) = get_gw_data(ncid_elev,file_status,'rhosoil_vec',inrhosoil(:,:),nlon,nlat,ms)
 
-   !  soil%css_vec(:,:) = get_gw_data(ncid_elev,file_status,'css_vec',incss(:,:),nlon,nlat,ms)
+    soil%css_vec(:,:) = get_gw_data(ncid_elev,file_status,'css_vec',incss(:,:),nlon,nlat,ms)
 
-   !  soil%cnsd_vec(:,:) = get_gw_data(ncid_elev,file_status,'cnsd_vec',incnsd(:,:),nlon,nlat,ms)
+    soil%cnsd_vec(:,:) = get_gw_data(ncid_elev,file_status,'cnsd_vec',incnsd(:,:),nlon,nlat,ms)
    ! _________________________________________________________________________________
 
     if (file_status .eq. nf90_noerr) &
          file_status = nf90_close(ncid_elev)
     ! ____________________ MMY __________________________
-    ! !set the default IC for hysteresis state
-    ! ssnow%smp_hys(:,:) = -soil%sucs_vec(:,:)
-    ! ssnow%hys_fac(:,:) = 1.0
-    ! ssnow%watr_hys(:,:) = soil%watr(:,:)
-    ! ssnow%ssat_hys(:,:) = soil%ssat_vec(:,:)
+    !set the default IC for hysteresis state
+    ssnow%smp_hys(:,:) = -soil%sucs_vec(:,:)
+    ssnow%hys_fac(:,:) = 1.0
+    ssnow%watr_hys(:,:) = soil%watr(:,:)
+    ssnow%ssat_hys(:,:) = soil%ssat_vec(:,:)
     ! ___________________________________________________
+
+
+    ! ________ MMY ________
+    soil%GWhyds_vec(:) = soil%hyds_vec(:,ms)
+    soil%GWssat_vec(:) = soil%ssat_vec(:,ms)
+    soil%GWsucs_vec(:) = soil%sucs_vec(:,ms)
+    soil%GWbch_vec(:)  = soil%bch_vec(:,ms)
+    soil%GWwatr(:)     = soil%watr(:,ms)
+    ! ____________________
+    
     ELSE  !gw_model=false
 
     DO e=1,mland
