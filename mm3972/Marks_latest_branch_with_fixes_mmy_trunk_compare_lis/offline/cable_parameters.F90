@@ -1755,7 +1755,7 @@ CONTAINS
                 end if
              end do
           end do
-      
+
       ! ____________________ MMY, comment out to make lis comparision simple ________________
       !  ELSE
 
@@ -2876,13 +2876,13 @@ END SUBROUTINE report_parameters
 
     if (file_status .eq. nf90_noerr) &
          file_status = nf90_close(ncid_elev)
-
-    !set the default IC for hysteresis state
-    ssnow%smp_hys(:,:) = -soil%sucs_vec(:,:)
-    ssnow%hys_fac(:,:) = 1.0
-    ssnow%watr_hys(:,:) = soil%watr(:,:)
-    ssnow%ssat_hys(:,:) = soil%ssat_vec(:,:)
-
+    ! ____________________ MMY __________________________
+    ! !set the default IC for hysteresis state
+    ! ssnow%smp_hys(:,:) = -soil%sucs_vec(:,:)
+    ! ssnow%hys_fac(:,:) = 1.0
+    ! ssnow%watr_hys(:,:) = soil%watr(:,:)
+    ! ssnow%ssat_hys(:,:) = soil%ssat_vec(:,:)
+    ! ___________________________________________________
     ELSE  !gw_model=false
 
     DO e=1,mland
@@ -2950,7 +2950,7 @@ END SUBROUTINE report_parameters
     ENDDO
 
     !removed gw_soils for now
-  
+
   END SUBROUTINE GWspatialParameters
 
    function get_gw_2d_var_constdef(ncfile_id,try_it,varname,default_const,nlon,nlat) result(data_vec)

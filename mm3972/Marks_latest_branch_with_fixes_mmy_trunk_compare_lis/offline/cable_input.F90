@@ -1069,7 +1069,7 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
               //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
          exists%Wind = .FALSE. ! Use vector wind when reading met
       ELSE                                                       ! MMY
-         exists%Wind = .TRUE. ! 'Wind' variable exists           ! MMY        
+         exists%Wind = .TRUE. ! 'Wind' variable exists           ! MMY
       END IF
     ELSE
        exists%Wind = .TRUE. ! 'Wind' variable exists
@@ -1136,6 +1136,7 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
     IF (ncciy > 0) ncid_met = ncid_ps
     ok = NF90_INQ_VARID(ncid_met,'PSurf',id%PSurf)
     IF(ok == NF90_NOERR) THEN ! If inquiry is okay
+       print *,"MMY === start to read PSurf" ! MMY
        exists%PSurf = .TRUE. ! PSurf is present in met file
        ! Get PSurf units and check:
        ok = NF90_GET_ATT(ncid_met,id%PSurf,'units',metunits%PSurf)
@@ -1190,6 +1191,7 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
                  ' in '//TRIM(filename%met)//' (SUBROUTINE open_met_data)')
          END IF
       ELSE         ! If PSurf not present                             ! MMY
+         print *,"MMY === PSurf not present" ! MMY
          exists%PSurf = .FALSE. ! PSurf is not present in met file
          all_met=.FALSE. ! not all met variables are present in file
          ! Look for "elevation" variable to approximate pressure based
@@ -1242,6 +1244,7 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
               'synthesised based on elevation and temperature.'
       END IF                                                      ! MMY
     END IF
+
     ! Look for CO2air (can be assumed to be static):- - - - - - - - - - -
     ok = NF90_INQ_VARID(ncid_met,'CO2air',id%CO2air)
     IF(ok == NF90_NOERR) THEN ! If inquiry is okay
@@ -3109,18 +3112,19 @@ SUBROUTINE get_parameters_met(soil,ssnow,veg,bgc,rough,completeSet) ! MMY add ss
    CALL readpar(ncid_met,'watr',completeSet,soil%watr,filename%met,            &
                 nmetpatches,'ms')
 
-!  from SUBROUTINE GWspatialParameters in cable_parameters.F90 
-   ssnow%wb_hys(:,:)   = -1.0e+36 !  as LIS
-   ssnow%smp_hys(:,:) = -1.0e+36 !  as LIS
-   ssnow%hys_fac(:,:) = 1.0
+!  from SUBROUTINE GWspatialParameters in cable_parameters.F90
+   ! ssnow%wb_hys(:,:)   = -1.0e+36 !  as LIS
+   ! ssnow%smp_hys(:,:) = -1.0e+36 !  as LIS
+   ! ssnow%hys_fac(:,:) = 1.0
    ssnow%watr_hys(:,:) = soil%watr(:,:)
    ssnow%ssat_hys(:,:) = soil%ssat_vec(:,:)
 
-   soil%GWhyds_vec(:) = soil%hyds_vec(:,ms) 
-   soil%GWssat_vec(:) = soil%ssat_vec(:,ms) 
-   soil%GWsucs_vec(:) = soil%sucs_vec(:,ms) 
-   soil%GWbch_vec(:)  = soil%bch_vec(:,ms)  
-   soil%GWwatr(:)     = soil%watr(:,ms)     
+   soil%GWhyds_vec(:) = soil%hyds_vec(:,ms)
+   soil%GWssat_vec(:) = soil%ssat_vec(:,ms)
+   soil%GWsucs_vec(:) = soil%sucs_vec(:,ms)
+   soil%GWbch_vec(:)  = soil%bch_vec(:,ms)
+   soil%GWwatr(:)     = soil%watr(:,ms)
+   ssnow%wb           = 0.3 ! as LIS
    ssnow%GWwb(:)      = soil%GWssat_vec(:)
    ssnow%wtd          = 5000.0   !mm as LIS
 ! ______________________________________________________________
