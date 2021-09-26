@@ -1755,13 +1755,14 @@ CONTAINS
                 end if
              end do
           end do
-       
-       ELSE
+      
+      ! ____________________ MMY, comment out to make lis comparision simple ________________
+      !  ELSE
 
-          DO klev=1,ms
-              soil%hyds_vec(:,klev) = soil%hyds_vec(:,klev)*exp(-soil%hkrz(:)*(soil_depth(:,klev)-soil%zdepth(:)))
-          END DO
-       
+      !     DO klev=1,ms
+      !         soil%hyds_vec(:,klev) = soil%hyds_vec(:,klev)*exp(-soil%hkrz(:)*(soil_depth(:,klev)-soil%zdepth(:)))
+      !     END DO
+      ! _____________________________________________________________________________________
        END IF  !use either uni or multi cosby transfer func
 
        !set the non-vectored values to srf value
@@ -2838,38 +2839,40 @@ END SUBROUTINE report_parameters
 
     soil%GWwatr(:) = 0.0
 
-    soil%ssat_vec(:,:) = get_gw_data(ncid_elev,file_status,'ssat_vec',inssat(:,:),nlon,nlat,ms)
-    inGWtmp(:,:) = 0.66*inssat(:,:)
+   ! __________________________________________ MMY _________________________________________
+   !  soil%ssat_vec(:,:) = get_gw_data(ncid_elev,file_status,'ssat_vec',inssat(:,:),nlon,nlat,ms)
+   !  inGWtmp(:,:) = 0.66*inssat(:,:)
 
-    soil%sfc_vec(:,:) = get_gw_data(ncid_elev,file_status,'sfc_vec',inGWtmp(:,:),nlon,nlat,ms)
-    inGWtmp(:,:) = 0.15*inssat(:,:)
+   !  soil%sfc_vec(:,:) = get_gw_data(ncid_elev,file_status,'sfc_vec',inGWtmp(:,:),nlon,nlat,ms)
+   !  inGWtmp(:,:) = 0.15*inssat(:,:)
 
-    soil%swilt_vec(:,:) = get_gw_data(ncid_elev,file_status,'swilt_vec',inGWtmp(:,:),nlon,nlat,ms)
+   !  soil%swilt_vec(:,:) = get_gw_data(ncid_elev,file_status,'swilt_vec',inGWtmp(:,:),nlon,nlat,ms)
 
-    inGWtmp(:,:) = 0.01*inssat(:,:)
-    soil%watr(:,:) = get_gw_data(ncid_elev,file_status,'watr',inGWtmp(:,:),nlon,nlat,ms)
+   !  inGWtmp(:,:) = 0.01*inssat(:,:)
+   !  soil%watr(:,:) = get_gw_data(ncid_elev,file_status,'watr',inGWtmp(:,:),nlon,nlat,ms)
 
-    inGWtmp(:,:) = 1000.0*inhyds(:,:)
-    soil%hyds_vec(:,:) = get_gw_data(ncid_elev,file_status,'hyds_vec',inGWtmp(:,:),nlon,nlat,ms)
+   !  inGWtmp(:,:) = 1000.0*inhyds(:,:)
+   !  soil%hyds_vec(:,:) = get_gw_data(ncid_elev,file_status,'hyds_vec',inGWtmp(:,:),nlon,nlat,ms)
 
-    inGWtmp(:,:) = abs(insucs(:,:))
-    soil%sucs_vec(:,:) = get_gw_data(ncid_elev,file_status,'sucs_vec',inGWtmp(:,:),nlon,nlat,ms)
-    soil%sucs_vec(:,:) =  1000._r_2*abs(soil%sucs_vec(:,:)  )
+   !  inGWtmp(:,:) = abs(insucs(:,:))
+   !  soil%sucs_vec(:,:) = get_gw_data(ncid_elev,file_status,'sucs_vec',inGWtmp(:,:),nlon,nlat,ms)
+   !  soil%sucs_vec(:,:) =  1000._r_2*abs(soil%sucs_vec(:,:)  )
 
-    !add last laery to aquifer
-    !should have zero head at top of aquifer, however this can be well below
-    !the soil column, so reading below we can treat top part of whenm dry
-    !as unsat flow
-    soil%GWsucs_vec(:) = soil%sucs_vec(:,ms)
+   !  !add last laery to aquifer
+   !  !should have zero head at top of aquifer, however this can be well below
+   !  !the soil column, so reading below we can treat top part of whenm dry
+   !  !as unsat flow
+   !  soil%GWsucs_vec(:) = soil%sucs_vec(:,ms)
 
-    soil%bch_vec(:,:) = get_gw_data(ncid_elev,file_status,'bch_vec',inbch(:,:),nlon,nlat,ms)
-    soil%GWbch_vec(:) = soil%bch_vec(:,ms)
+   !  soil%bch_vec(:,:) = get_gw_data(ncid_elev,file_status,'bch_vec',inbch(:,:),nlon,nlat,ms)
+   !  soil%GWbch_vec(:) = soil%bch_vec(:,ms)
 
-    soil%rhosoil_vec(:,:) = get_gw_data(ncid_elev,file_status,'rhosoil_vec',inrhosoil(:,:),nlon,nlat,ms)
+   !  soil%rhosoil_vec(:,:) = get_gw_data(ncid_elev,file_status,'rhosoil_vec',inrhosoil(:,:),nlon,nlat,ms)
 
-    soil%css_vec(:,:) = get_gw_data(ncid_elev,file_status,'css_vec',incss(:,:),nlon,nlat,ms)
+   !  soil%css_vec(:,:) = get_gw_data(ncid_elev,file_status,'css_vec',incss(:,:),nlon,nlat,ms)
 
-    soil%cnsd_vec(:,:) = get_gw_data(ncid_elev,file_status,'cnsd_vec',incnsd(:,:),nlon,nlat,ms)
+   !  soil%cnsd_vec(:,:) = get_gw_data(ncid_elev,file_status,'cnsd_vec',incnsd(:,:),nlon,nlat,ms)
+   ! _________________________________________________________________________________
 
     if (file_status .eq. nf90_noerr) &
          file_status = nf90_close(ncid_elev)
