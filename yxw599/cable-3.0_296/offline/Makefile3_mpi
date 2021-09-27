@@ -66,9 +66,10 @@ CASAONLY_LUC.o \
 casa_param.o \
 casa_dimension.o \
 casa_phenology.o \
+landuse_constant.o \
 casa_cnp.o \
 casa_cable.o casa_inout.o \
-landuse_constant.o landuse3.o landuse_inout.o \
+landuse3.o landuse_inout.o \
 
 # this is the executable we are building
 PROG = cable-mpi

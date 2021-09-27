@@ -176,7 +176,9 @@ CASAONLY_LUC.o: CASAONLY_LUC.o cable_define_types.o  cable_carbon.o cable_common
 casa_cable.o: casa_cable.F90 POP.o cable_define_types.o  cable_carbon.o casa_variable.o \
 	      cable_diag.o cable_phenology.o casa_cnp.o casa_inout.o casa_ncdf.o
 
-casa_cnp.o: casa_cnp.F90 cable_define_types.o  casa_variable.o
+landuse_constant.o: landuse_constant.F90 cable_define_types.o casa_dimension.o
+
+casa_cnp.o: casa_cnp.F90 cable_define_types.o  casa_variable.o landuse_constant.o
 
 casa_inout.o: casa_inout.F90 POP.o cable_define_types.o  cable_iovars.o casa_variable.o casa_cnp.o casa_ncdf.o
 
@@ -221,8 +223,6 @@ cable_namelist_input.o: cable_namelist_input.F90
 
 cable_site.o: cable_site.F90 cable_iovars.o cable_common.o
 
-
-landuse_constant.o: landuse_constant.F90 cable_define_types.o casa_dimension.o
 
 landuse3.o: landuse3.F90 cable_define_types.o casa_dimension.o landuse_constant.o cable_common.o \
             cable_iovars.o casa_variable.o casa_phenology.o
@@ -293,10 +293,10 @@ all  : cable_math_constants_mod.o   \
 	casa_param.o             	   \
 	casa_dimension.o         	   \
 	casa_phenology.o         	   \
+	landuse_constant.o                 \
 	casa_cnp.o               	   \
 	casa_cable.o             	   \
 	casa_inout.o                       \
-	landuse_constant.o                 \
 	landuse3.o                         \
 	landuse_inout.o                        
 
