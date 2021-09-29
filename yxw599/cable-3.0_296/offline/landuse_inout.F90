@@ -72,20 +72,18 @@ SUBROUTINE landuse_getxluh2(mlat,mlon,landmask,fxluh2cable,luc_xluh2cable)
 ! get data: luc%fprimary; luc%fsecondary
   USE netcdf
   USE cable_def_types_mod,  ONLY: mland,r_2
-  use landuse_constant,     ONLY: mstate,mvmax,mharvw
+  use landuse_constant,     ONLY: mstate,mvmax
   IMPLICIT NONE
   character*500 fxluh2cable
   integer   mlat,mlon
   integer,  dimension(mlon,mlat)                 :: landmask
-  real(r_2), dimension(mland,mvmax,mvmax)       :: luc_atransit
-  real(r_2), dimension(mland,mharvw)            :: luc_fharvw
   real(r_2),dimension(mland,mvmax,mstate)        :: luc_xluh2cable
   ! local variables
   real(r_2),   dimension(:,:,:,:), allocatable   :: xluh2cable
   integer ok,ncid2,varxid
-  integer i,j,m,v,s
+  integer i,j,k,m,v,s
 
-    allocate(xluh2cable(mlon,mlat,mvmax,mstate))
+    allocate(xluh2cable(mlon,mlat,21,mstate))
     ok = nf90_open(fxluh2cable,nf90_nowrite,ncid2)
     ok = nf90_inq_varid(ncid2,"xluh2cable",varxid)
     ok = nf90_get_var(ncid2,varxid,xluh2cable)
@@ -97,7 +95,18 @@ SUBROUTINE landuse_getxluh2(mlat,mlon,landmask,fxluh2cable,luc_xluh2cable)
     do j=1,mlat
        if(landmask(i,j) ==1) then
           m= m +1
-          luc_xluh2cable(m,:,:) = xluh2cable(i,j,:,:)
+          do k=1,10
+             luc_xluh2cable(m,k,:) = xluh2cable(i,j,k,:)
+          enddo
+          luc_xluh2cable(m,16,:) = xluh2cable(i,j,11,:)+xluh2cable(i,j,16,:)
+          luc_xluh2cable(m,14,:) = xluh2cable(i,j,14,:)
+          luc_xluh2cable(m,15,:) = xluh2cable(i,j,15,:)
+          luc_xluh2cable(m,17,:) = xluh2cable(i,j,17,:)
+
+          luc_xluh2cable(m,11,:) = xluh2cable(i,j,18,:)
+          luc_xluh2cable(m,12,:) = xluh2cable(i,j,19,:)
+          luc_xluh2cable(m,13,:) = xluh2cable(i,j,21,:)
+
           do s=1,mstate
              do v=1,mvmax
                 luc_xluh2cable(m,v,s) = luc_xluh2cable(m,v,s)/sum(luc_xluh2cable(m,1:mvmax,s))
