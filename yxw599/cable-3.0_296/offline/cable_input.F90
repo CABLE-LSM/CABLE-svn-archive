@@ -2809,6 +2809,8 @@ CONTAINS
             //TRIM(frst_in)//' (SUBROUTINE load_parameters) ' &
             //'Recommend running without restart file.')
        ! Check that mp_restart = mp from default/met values
+       print *, 'load_parameter mp mp_restart', mp,mp_restart
+
        IF(mp_restart /= mp) CALL abort('Number of patches in '// &
             'restart file '//TRIM(frst_in)//' does not equal '// &
             'to number in default/met file settings. (SUB load_parameters) ' &

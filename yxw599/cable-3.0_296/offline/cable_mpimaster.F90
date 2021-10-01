@@ -1342,8 +1342,6 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
 
     END DO SPINLOOP
 
-    l_landuse=.false.
-
     IF (icycle > 0 .AND. (.NOT.spincasa).AND. (.NOT.casaonly)) THEN
        ! MPI: gather casa results from all the workers
 
@@ -1390,7 +1388,7 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
 
        !       CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
 
-       if(.not. l_landuse) then
+       if(.not.l_landuse) then
        CALL create_restart( logn, dels, ktau, soil, veg, ssnow,                 &
             canopy, rough, rad, bgc, bal, met  )
        endif 
@@ -1410,7 +1408,10 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
     IF(l_landuse.and. .not. CASAONLY) then
        mlon = maxval(landpt(1:mp)%ilon)
        mlat = maxval(landpt(1:mp)%ilat)
-       print *, 'before landuse: mlon mlat ', mlon,mlat
+       print *, 'ilon= ',landpt(1:mp)%ilon
+       print *, 'ilat= ',landpt(1:mp)%ilat
+       print *, 'before landuse: mp mlon mlat ', mp,mlon,mlat
+       stop
        allocate(luc_atransit(mland,mvmax,mvmax))
        allocate(luc_fharvw(mland,mharvw))
        allocate(luc_xluh2cable(mland,mvmax,mstate))

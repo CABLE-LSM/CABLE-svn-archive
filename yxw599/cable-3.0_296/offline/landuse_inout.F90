@@ -169,6 +169,7 @@ END SUBROUTINE landuse_getdata
   use cable_abort_module,   ONLY: nc_abort 
   use cable_common_module,  ONLY: filename
   USE cable_def_types_mod,  ONLY: r_2,nrb,ms
+  USE cable_IO_vars_module, ONLY: logn
   use landuse_constant,     ONLY: mvmax, thresh_frac
 
   implicit none
@@ -235,6 +236,7 @@ END SUBROUTINE landuse_getdata
      enddo
      enddo
 
+     write(logn,*) 'landuse on: create new gridinfo'
 
      ok = NF90_OPEN(fgridold,0,ncid0)
      if(ok/=nf90_noerr) call nc_abort(ok, 'file opening error')
@@ -347,7 +349,6 @@ END SUBROUTINE landuse_getdata
      ok = NF90_GET_VAR(ncid0,varxid,pwea_y)
      if(ok/=nf90_noerr) call nc_abort(ok, 'error in reading Pwea') 
 
-     ok = nf90_close(ncid0)
      ok = nf90_close(ncid0)
 
      !
@@ -807,6 +808,7 @@ END SUBROUTINE landuse_getdata
      ok = nf90_close(ncid11)
      if(ok/=nf90_noerr) call nc_abort(ok, 'error in put albedo')
 
+     write(logn,*) 'landuse on: new gridinfo created', fgridnew
   end subroutine create_new_gridinfo
 
   subroutine rangechk2(mlon,mlat,landmask,varx2,xmin,xmax)
@@ -881,6 +883,7 @@ END SUBROUTINE landuse_getdata
 
     USE netcdf
     USE casavariable,         ONLY : icycle, mplant, mlitter, msoil, mwood, casafile
+    USE cable_IO_vars_module, ONLY : logn
     USE cable_common_module
     USE casa_ncdf_module,     ONLY: HANDLE_ERR
     USE landuse_variable,     ONLY: landuse_mp
@@ -921,6 +924,8 @@ END SUBROUTINE landuse_getdata
 
     INTEGER*4 :: VID1(SIZE(A1)), VIDI1(SIZE(AI1)), VID2(SIZE(A2)), &
                  VID3(SIZE(A3)), VID4(SIZE(A4)),VID5(SIZE(A5))
+
+    write(logn,*)  ' landuse on: writing casa pool'     
 
     mp4=INT(mpx,fmp4)
     A1(1) = 'latitude'
@@ -1114,16 +1119,18 @@ END SUBROUTINE landuse_getdata
     STATUS = NF90_close(FILE_ID)
     IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
 
+    write(logn, *) 'landuse on: casapool writeen to ', fname
   END SUBROUTINE WRITE_LANDUSE_CASA_RESTART_NC
 
 
   SUBROUTINE create_landuse_cable_restart(logn,dels,ktau,soil,mpx,lucmp,cstart,cend,nap)
+    ! Creates a restart file for CABLE using a land only grid cell area occupied by a '//  &
     ! Creates a restart file for CABLE using a land only grid with mland
     ! land points and max_vegpatches veg/soil patches (some of which may
     ! not be active). It uses CABLE's internal variable names.
     use netcdf
     USE cable_def_types_mod,        ONLY : r_2, mland, mvtype, mstype,nrb,ncs,ncp,ms,msn,soil_parameter_type
-    use cable_abort_module,         ONLY : nc_abort 
+    use cable_abort_module,         ONLY : nc_abort
     USE cable_IO_vars_module,       ONLY : latitude,longitude,timeunits,calendar,time_coord, timevar
     USE cable_checks_module,        ONLY : ranges
     USE cable_write_module
@@ -1611,6 +1618,7 @@ END SUBROUTINE landuse_getdata
     ! Close restart file
     ok = NF90_CLOSE(ncid_restart)
 
+    write(logn,*) ' landuse on'
     WRITE(logn, '(A36)') '   Restart file complete and closed.'
 
   END SUBROUTINE create_landuse_cable_restart
