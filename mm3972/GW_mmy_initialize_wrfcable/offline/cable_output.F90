@@ -3038,7 +3038,7 @@ CONTAINS
   END SUBROUTINE close_output_file
   !=============================================================================
   SUBROUTINE create_restart(logn, dels, ktau, soil, veg, ssnow,                      &
-                            canopy, rough, rad, bgc, bal, met)
+                            canopy, rough, rad, bgc, bal, met, isyearend) ! MMY
     ! Creates a restart file for CABLE using a land only grid with mland
     ! land points and max_vegpatches veg/soil patches (some of which may
     ! not be active). It uses CABLE's internal variable names.
@@ -3077,19 +3077,32 @@ CONTAINS
     CHARACTER(LEN=10) :: todaydate, nowtime ! used to timestamp netcdf file
     ! CHARACTER         :: FRST_OUT*100, CYEAR*4
     CHARACTER         :: FRST_OUT*200, CYEAR*4
-
+    LOGICAL ::  isyearend  ! MMY
 
     dummy = 0 ! initialise
 
     WRITE(logn, '(A24)') ' Writing restart file...'
     IF ( TRIM(filename%path) .EQ. '' ) filename%path = './'
-    frst_out = TRIM(filename%path)//'/'//TRIM(filename%restart_out)
-    ! Look for explicit restart file (netCDF). If not, asssume input is path
-    IF ( INDEX(TRIM(frst_out),'.nc',BACK=.TRUE.) .NE. LEN_TRIM(frst_out)-2 ) THEN
-       WRITE( CYEAR,FMT="(I4)" ) CurYear + 1
-       frst_out = TRIM(filename%path)//'/'//TRIM(cable_user%RunIden)//&
-            '_'//CYEAR//'_cable_rst.nc'
-    ENDIF
+
+    ! ___________________ MMY ___________________
+    ! frst_out = TRIM(filename%path)//'/'//TRIM(filename%restart_out)
+    ! ! Look for explicit restart file (netCDF). If not, asssume input is path
+    ! IF ( INDEX(TRIM(frst_out),'.nc',BACK=.TRUE.) .NE. LEN_TRIM(frst_out)-2 ) THEN
+    !    WRITE( CYEAR,FMT="(I4)" ) CurYear + 1
+    !    frst_out = TRIM(filename%path)//'/'//TRIM(cable_user%RunIden)//&
+    !         '_'//CYEAR//'_cable_rst.nc'
+    ! ENDIF
+    WRITE(logn, *) "MMY === isyearend ",isyearend
+    if (isyearend) then
+      frst_out = TRIM(filename%path)//TRIM(filename%restart_out)
+    else
+      WRITE(logn, *) "MMY === met%doy(1) ",met%doy(1)
+      WRITE( CYEAR,FMT="(I4)" ) int(met%doy(1))
+      WRITE(logn, *) "MMY === CYEAR ",CYEAR
+      frst_out = TRIM(filename%path)//TRIM(filename%restart_out)//"_Day"//TRIM(ADJUSTL(CYEAR))
+    endif
+    WRITE(logn, *) "MMY === frst_out ",frst_out
+    ! ___________________________________________
 
     ! Create output file:
     ok = NF90_CREATE(frst_out, NF90_CLOBBER, ncid_restart)
