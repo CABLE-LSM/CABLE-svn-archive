@@ -364,7 +364,7 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
          gw_params        
  !        gw_params,        &
  !        l_landuse
-    INTEGER :: i,x,kk
+    INTEGER :: i,x,kk,m,np,ivt
     INTEGER :: LALLOC
     INTEGER, PARAMETER ::	 mloop	= 30   ! CASA-CNP PreSpinup loops
     REAL    :: etime
@@ -1406,12 +1406,13 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
 
 
     IF(l_landuse.and. .not. CASAONLY) then
-       mlon = maxval(landpt(1:mp)%ilon)
-       mlat = maxval(landpt(1:mp)%ilat)
-       print *, 'ilon= ',landpt(1:mp)%ilon
-       print *, 'ilat= ',landpt(1:mp)%ilat
-       print *, 'before landuse: mp mlon mlat ', mp,mlon,mlat
-       stop
+       mlon = maxval(landpt(1:mland)%ilon)
+       mlat = maxval(landpt(1:mland)%ilat)
+       print *, 'ilon= ',size(landpt%ilon)
+       print *, 'ilat= ',size(landpt%ilat)
+       print *, 'before landuse: mp mlon mlat ', mp,mland,mlon,mlat
+
+       print *, 'allocating !'
        allocate(luc_atransit(mland,mvmax,mvmax))
        allocate(luc_fharvw(mland,mharvw))
        allocate(luc_xluh2cable(mland,mvmax,mstate))
@@ -1420,14 +1421,52 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
        allocate(patchfrac_new(mlon,mlat,mvmax))
        allocate(cstart(mland),cend(mland),nap(mland))
 
+       do m=1,mland
+          cstart(m) = landpt(m)%cstart
+          cend(m)   = landpt(m)%cend
+          nap(m)    = landpt(m)%nap
+       enddo
+       print *, 'allocated !'
+
+       print *, 'calling landuse data'
        call landuse_data(mlon,mlat,landmask,arealand,luc_atransit,luc_fharvw,luc_xluh2cable)
-       call landuse_driver(mlon,mlat,landmask,arealand,ssnow,soil,veg,bal,canopy, &
-                           phen,casapool,casabal,casamet,bgc,rad,patchfrac_new,cstart,cend,nap)
+
+       print *, 'calling landuse driver'
+       call  landuse_driver(mlon,mlat,landmask,arealand,ssnow,soil,veg,bal,canopy,  &
+                           phen,casapool,casabal,casamet,casabiome,casaflux,bgc,rad, &
+                           cstart,cend,nap,lucmp)
+
+       print *, 'writing new gridinfo: landuse'
+       print *, 'new patch information',mland
+
+       do m=1,mland
+         ! write(*,901) m,cstart(m),cend(m),nap(m),landmask(landpt(m)%ilon,landpt(m)%ilat)
+         ! write(*,902) lucmp%iveg(cstart(m):cend(m))
+         ! write(*,903) lucmp%patchfrac(cstart(m):cend(m))
+          do np=cstart(m),cend(m)
+             ivt=lucmp%iveg(np)
+             if(ivt<1.or.ivt>mvmax) then
+                print *, 'landuse: error in vegtype',m,np,ivt
+                stop
+             endif      
+             patchfrac_new(landpt(m)%ilon,landpt(m)%ilat,ivt) = lucmp%patchfrac(np)
+          enddo
+       enddo    
+
+ 901   format(4(i6,1x),i2,1x,17(f4.2,1x))      
+ 902   format(17(i2,1x))
+ 903   format(12(f6.4,1x))
 
        call create_new_gridinfo(filename%type,filename%gridnew,mlon,mlat,landmask,patchfrac_new)                   
-       call WRITE_LANDUSE_CASA_RESTART_NC(mpx, lucmp, CASAONLY )
-       call create_landuse_cable_restart(logn, dels, ktau, soil, mpx,lucmp,cstart,cend,nap)
-       call landuse_deallocate_mp(mpx,ms,msn,nrb,mplant,mlitter,msoil,mwood,lucmp)
+
+       print *, 'writing casapools: land use'
+       call WRITE_LANDUSE_CASA_RESTART_NC(cend(mland), lucmp, CASAONLY )
+
+       print *, 'writing cable restart: land use'
+       call create_landuse_cable_restart(logn, dels, ktau, soil, cend(mland),lucmp,cstart,cend,nap)
+
+       print *, 'deallocating'
+       call landuse_deallocate_mp(cend(mland),ms,msn,nrb,mplant,mlitter,msoil,mwood,lucmp)
      ENDIF
 
 

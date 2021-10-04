@@ -925,9 +925,9 @@ END SUBROUTINE landuse_getdata
     INTEGER*4 :: VID1(SIZE(A1)), VIDI1(SIZE(AI1)), VID2(SIZE(A2)), &
                  VID3(SIZE(A3)), VID4(SIZE(A4)),VID5(SIZE(A5))
 
-    write(logn,*)  ' landuse on: writing casa pool'     
-
     mp4=INT(mpx,fmp4)
+    write(logn,*)  ' landuse on: writing casa pool: patch number=', mpx,fmp4,mp4
+
     A1(1) = 'latitude'
     A1(2) = 'longitude'
     A1(3) = 'glai'
