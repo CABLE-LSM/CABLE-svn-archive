@@ -179,6 +179,12 @@ logical :: sunlit_veg_mask(mp)
    
    INTEGER, SAVE :: call_number =0
    
+real :: tv_denom(mp)
+real :: tv_denom_transd(mp)
+real :: tv_frac(mp)
+real :: tv_tk(mp)
+real :: tv(mp)
+
    ! END header
    
    call_number = call_number + 1
@@ -355,9 +361,20 @@ logical :: sunlit_veg_mask(mp)
 
             rad%lwabv(j) = C%CAPP * C%rmair * ( tlfy(j) - met%tk(j) ) *        &
                            sum_rad_gradis(j) 
+      
+!esm1.5 using LAI_thresh=0.001 formulation for canopy%tv fails 
+!esm1.5            canopy%tv(j) = (rad%lwabv(j) / (2.0*(1.0-rad%transd(j))            &
+!esm1.5                     * C%SBOLTZ*C%EMLEAF)+met%tk(j)**4)**0.25
 
-            canopy%tv(j) = (rad%lwabv(j) / (2.0*(1.0-rad%transd(j))            &
-                           * C%SBOLTZ*C%EMLEAF)+met%tk(j)**4)**0.25
+tv_denom_transd(j) = ( 1.0-rad%transd(j) )
+tv_denom(j) = 2.0*(tv_denom_transd(j)) * C%SBOLTZ*C%EMLEAF
+tv_frac(j) = rad%lwabv(j) / tv_denom(j)
+tv_frac(j) = MAX( 0.0, tv_frac(j) )
+tv_tk(j) = met%tk(j) **4
+tv(j) = ( tv_frac(j) + tv_tk(j) )
+tv(j) = tv(j) ** .25
+canopy%tv(j) = tv(j)
+
          
          ELSE! sparse canopy
          

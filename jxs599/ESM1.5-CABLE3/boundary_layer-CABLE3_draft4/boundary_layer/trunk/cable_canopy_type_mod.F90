@@ -101,7 +101,7 @@ TYPE canopy_type
 END TYPE canopy_type
 
 !Instantiation:
-TYPE(canopy_type) :: canopy_cbl
+TYPE(canopy_type), save :: canopy_cbl
 
 CONTAINS
 

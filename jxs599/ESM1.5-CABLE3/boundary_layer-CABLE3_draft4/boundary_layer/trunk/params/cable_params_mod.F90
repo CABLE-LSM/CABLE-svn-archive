@@ -258,7 +258,7 @@ END TYPE soilin_type
 TYPE(vegin_type),  SAVE  :: vegin !read from namelist
 TYPE(soilin_type), SAVE :: soilin !read from namelist
 
-TYPE(soil_parameter_type) :: soil_cbl !used in CABLE
-TYPE(veg_parameter_type)  :: veg_cbl  !used in CABLE
+TYPE(soil_parameter_type), save :: soil_cbl !used in CABLE
+TYPE(veg_parameter_type), save  :: veg_cbl  !used in CABLE
 
 END MODULE cable_params_mod

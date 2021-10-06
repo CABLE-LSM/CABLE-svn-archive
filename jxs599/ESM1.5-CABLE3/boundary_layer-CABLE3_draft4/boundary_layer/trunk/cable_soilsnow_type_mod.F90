@@ -153,7 +153,7 @@ TYPE soil_snow_type
 END TYPE soil_snow_type
 
 !Instantiation:
-TYPE(soil_snow_type) :: ssnow_cbl
+TYPE(soil_snow_type), save :: ssnow_cbl
 
 CONTAINS
 
