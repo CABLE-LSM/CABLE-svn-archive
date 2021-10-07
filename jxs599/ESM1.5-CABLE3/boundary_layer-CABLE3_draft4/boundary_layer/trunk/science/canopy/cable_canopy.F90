@@ -369,9 +369,10 @@ real :: tv(mp)
 tv_denom_transd(j) = ( 1.0-rad%transd(j) )
 tv_denom(j) = 2.0*(tv_denom_transd(j)) * C%SBOLTZ*C%EMLEAF
 tv_frac(j) = rad%lwabv(j) / tv_denom(j)
-tv_frac(j) = MAX( 0.0, tv_frac(j) )
 tv_tk(j) = met%tk(j) **4
 tv(j) = ( tv_frac(j) + tv_tk(j) )
+!effectivel MAX here does IF( |tv_frac| >  tv_tk ) tv_frac = -1.0 * tv_tk
+tv(j) = MAX( 0.0, tv(j) )
 tv(j) = tv(j) ** .25
 canopy%tv(j) = tv(j)
 
