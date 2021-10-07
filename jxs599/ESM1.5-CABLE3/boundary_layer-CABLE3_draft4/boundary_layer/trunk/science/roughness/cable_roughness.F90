@@ -98,7 +98,7 @@ call LAI_eff( mp, veg%vlai, veg%hc, HeightAboveSnow, &
 IF (cable_user%soil_struc=='default') THEN
 
    ! Roughness length of bare soil (m): new formulation- E.Kowalczyk 2014
-   IF (.not.cable_user%l_new_roughness_soil) THEN
+       IF (.NOT.cable_user%l_new_roughness_soil .AND. (.NOT.cable_user%or_evap)) THEN
       rough%z0soil = 0.0009*min(1.0,canopy%vlaiw) + 1.e-4
       rough%z0soilsn = rough%z0soil 
    ELSE
@@ -107,7 +107,10 @@ IF (cable_user%soil_struc=='default') THEN
    ENDIF
 
     WHERE( ssnow%snowd .GT. 0.01   )  &
-     rough%z0soilsn =  max( 1.e-7, rough%z0soil - rough%z0soil*min(ssnow%snowd,10.)/10.)
+          rough%z0soilsn =  MAX(z0soilsn_min, &
+            rough%z0soil - rough%z0soil*MIN(ssnow%snowd,10.)/10.)
+    WHERE( ssnow%snowd .GT. 0.01 .AND. veg%iveg == 17  )  &
+          rough%z0soilsn =  MAX(rough%z0soilsn, z0soilsn_min_PF )
      
    WHERE( canopy%vlaiw .LE. Clai_thresh .OR.                                          &
            rough%hruff .LT. rough%z0soilsn ) ! BARE SOIL SURFACE
