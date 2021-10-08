@@ -144,6 +144,18 @@ do i=1,mp
        rough%zruffs(i) = 0.0
        rough%rt1usa(i) = 0.0
        rough%rt1usb(i) = 0.0
+
+      ! Friction velocity/windspeed at canopy height
+      ! eq. 7 Raupach 1994, BLM, vol 71, p211-216
+      ! (CUSUHM set in physical_constants module):
+       rough%usuh(i) = MIN( SQRT( CCSD + CCRD * ( canopy%vlaiw(i) * 0.5 ) ), CUSUHM )
+     
+       xx(i) = SQRT( CCCD * MAX( ( canopy%vlaiw(i) * 0.5 ), 0.0005 ) )
+    
+      ! Displacement height/canopy height:
+      ! eq.8 Raupach 1994, BLM, vol 71, p211-216
+       dh(i) = 1.0 - ( 1.0 - EXP( -xx(i) ) ) / xx(i)
+    
 endif
    
  END DO    
@@ -151,17 +163,6 @@ endif
    WHERE( canopy%vlaiw .LE. Clai_thresh .OR.                                          &
            rough%hruff .LT. rough%z0soilsn ) ! BARE SOIL SURFACE
    
-      ! Friction velocity/windspeed at canopy height
-      ! eq. 7 Raupach 1994, BLM, vol 71, p211-216
-      ! (CUSUHM set in physical_constants module):
-      rough%usuh = MIN( SQRT( CCSD + CCRD * ( canopy%vlaiw * 0.5 ) ), CUSUHM )
-     
-      xx = SQRT( CCCD * MAX( ( canopy%vlaiw * 0.5 ), 0.0005 ) )
-    
-      ! Displacement height/canopy height:
-      ! eq.8 Raupach 1994, BLM, vol 71, p211-216
-      dh = 1.0 - ( 1.0 - EXP( -xx ) ) / xx
-    
       ! Extinction coefficient for wind profile in canopy:
       ! eq. 3.14, SCAM manual (CSIRO tech report 132)
       rough%coexp = rough%usuh / ( CVONK * CCCW_C * ( 1.0 - dh ) )
@@ -221,6 +222,18 @@ endif
       rough%rt1usb = MAX( rough%rt1usb, 0.0 ) ! in case zrufs < rough%hruff
     
     END WHERE
+
+    IF (cable_user%soil_struc.EQ.'sli') THEN
+       WHERE( canopy%vlaiw .GE. CLAI_THRESH  .AND.                                          &
+            rough%hruff .GE. rough%z0soilsn ) ! VEGETATED SURFACE
+
+          rough%rt0us  = LOG(rough%disp/(0.1 * rough%hruff)) * &
+               EXP(2. * CCSW * canopy%rghlai) * rough%disp &
+               / rough%hruff / (Ca33 ** 2 * Cctl) ! vh ! Haverd et al., Biogeosciences 10, 2011-2040, 2013
+
+       ENDWHERE
+    ENDIF
+
 END SUBROUTINE ruff_resist
 
 
