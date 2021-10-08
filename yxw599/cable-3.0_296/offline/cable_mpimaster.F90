@@ -1360,7 +1360,7 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
        !CALL write_casa_restart_nc ( casamet, casapool, met, CASAONLY )
 
 
-       IF ( CABLE_USER%CALL_POP .AND.POP%np.GT.0 ) THEN
+       IF (.not.l_landuse.and.CABLE_USER%CALL_POP .AND.POP%np.GT.0 ) THEN
           IF ( CASAONLY .OR. cable_user%POP_fromZero &
                .OR.TRIM(cable_user%POP_out).EQ.'ini' ) THEN
              CALL POP_IO( pop, casamet, CurYear+1, 'WRITE_INI', .TRUE.)
@@ -1369,7 +1369,7 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
              CALL POP_IO( pop, casamet, CurYear+1, 'WRITE_RST', .TRUE.)
           ENDIF
        END IF
-       IF (cable_user%POPLUC .AND. .NOT. CASAONLY ) THEN
+       IF (.not.l_landuse.and.cable_user%POPLUC .AND. .NOT. CASAONLY ) THEN
           CALL WRITE_LUC_RESTART_NC ( POPLUC, YYYY )
        ENDIF
 
