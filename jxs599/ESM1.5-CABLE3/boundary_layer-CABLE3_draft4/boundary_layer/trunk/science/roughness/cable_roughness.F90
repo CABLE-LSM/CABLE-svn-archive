@@ -92,13 +92,13 @@ rough%hruff =  HeightAboveSnow
 call LAI_eff( mp, veg%vlai, veg%hc, HeightAboveSnow, &
                 reducedLAIdue2snow)
    
-canopy%vlaiw  = reducedLAIdue2snow
-canopy%rghlai = canopy%vlaiw
+    canopy%vlaiw  = reducedLAIdue2snow
+   canopy%rghlai = canopy%vlaiw
 
 IF (cable_user%soil_struc=='default') THEN
 
    ! Roughness length of bare soil (m): new formulation- E.Kowalczyk 2014
-       IF (.NOT.cable_user%l_new_roughness_soil .AND. (.NOT.cable_user%or_evap)) THEN
+   IF (.not.cable_user%l_new_roughness_soil) THEN
       rough%z0soil = 0.0009*min(1.0,canopy%vlaiw) + 1.e-4
       rough%z0soilsn = rough%z0soil 
    ELSE
@@ -107,62 +107,34 @@ IF (cable_user%soil_struc=='default') THEN
    ENDIF
 
     WHERE( ssnow%snowd .GT. 0.01   )  &
-          rough%z0soilsn =  MAX(z0soilsn_min, &
-            rough%z0soil - rough%z0soil*MIN(ssnow%snowd,10.)/10.)
-    WHERE( ssnow%snowd .GT. 0.01 .AND. veg%iveg == 17  )  &
-          rough%z0soilsn =  MAX(rough%z0soilsn, z0soilsn_min_PF )
-
-ELSEIF (cable_user%soil_struc=='sli') THEN
-
-  rough%z0soil = 0.01*MIN(1.0,canopy%vlaiw) + 0.02*MIN(canopy%us**2/CGRAV,1.0)
-  rough%z0soilsn = MAX(1.e-2,rough%z0soil) ! (1e-2: Mori et al., J Ag Met, 2010)
-
-
-  WHERE( ssnow%snowd .GT. 0.01   )                                            &
-     rough%z0soilsn =  MAX( 1.e-2,                                            &      
-                         rough%z0soil - rough%z0soil*MIN(ssnow%snowd,10.)/10.)
-
-ENDIF
-
-do i=1,mp
-    if( canopy%vlaiw(i) .LE. CLAI_THRESH  .OR.                                          &
-         rough%hruff(i) .LT. rough%z0soilsn(i) ) then ! BARE SOIL SURFACE
-
-       rough%z0m(i) = rough%z0soilsn(i)
-       rough%rt0us(i) = 0.0
-       rough%disp(i) = 0.0
-
-       ! Reference height zref is height above the displacement height
-       ! Ticket #148: Reference height is height above the displacement height
-       ! noting that this must be above the roughness length and rough%hruff-rough%disp
-       ! (though second case is unlikely to be attained)
-       rough%zref_uv(i) = MAX( 3.5 + rough%z0m(i), rough%za_uv(i) )
-       rough%zref_tq(i) = MAX( 3.5 + rough%z0m(i), rough%za_tq(i) )
-       rough%zref_uv(i) = MAX( rough%zref_uv(i), rough%hruff(i)-rough%disp(i) )
-       rough%zref_tq(i) = MAX( rough%zref_tq(i), rough%hruff(i)-rough%disp(i) )
-
-       rough%zruffs(i) = 0.0
-       rough%rt1usa(i) = 0.0
-       rough%rt1usb(i) = 0.0
-
-      ! Friction velocity/windspeed at canopy height
-      ! eq. 7 Raupach 1994, BLM, vol 71, p211-216
-      ! (CUSUHM set in physical_constants module):
-       rough%usuh(i) = MIN( SQRT( CCSD + CCRD * ( canopy%vlaiw(i) * 0.5 ) ), CUSUHM )
-     
-       xx(i) = SQRT( CCCD * MAX( ( canopy%vlaiw(i) * 0.5 ), 0.0005 ) )
-    
-      ! Displacement height/canopy height:
-      ! eq.8 Raupach 1994, BLM, vol 71, p211-216
-       dh(i) = 1.0 - ( 1.0 - EXP( -xx(i) ) ) / xx(i)
-    
-endif
-   
- END DO    
+     rough%z0soilsn =  max( 1.e-7, rough%z0soil - rough%z0soil*min(ssnow%snowd,10.)/10.)
      
    WHERE( canopy%vlaiw .LE. Clai_thresh .OR.                                          &
            rough%hruff .LT. rough%z0soilsn ) ! BARE SOIL SURFACE
-   
+     
+      rough%z0m = rough%z0soilsn
+      rough%rt0us = 0.0  
+      rough%disp = 0.0
+    
+      ! Reference height zref is height above the displacement height
+      rough%zref_uv = MAX( 3.5, rough%za_uv )
+      rough%zref_tq = MAX( 3.5, rough%za_tq )
+
+      rough%zruffs = 0.0
+      rough%rt1usa = 0.0 
+      rough%rt1usb = 0.0
+      
+      ! Friction velocity/windspeed at canopy height
+      ! eq. 7 Raupach 1994, BLM, vol 71, p211-216
+      ! (CUSUHM set in physical_constants module):
+      rough%usuh = MIN( SQRT( CCSD + CCRD * ( canopy%vlaiw * 0.5 ) ), CUSUHM )
+     
+      xx = SQRT( CCCD * MAX( ( canopy%vlaiw * 0.5 ), 0.0005 ) )
+    
+      ! Displacement height/canopy height:
+      ! eq.8 Raupach 1994, BLM, vol 71, p211-216
+      dh = 1.0 - ( 1.0 - EXP( -xx ) ) / xx
+    
       ! Extinction coefficient for wind profile in canopy:
       ! eq. 3.14, SCAM manual (CSIRO tech report 132)
       rough%coexp = rough%usuh / ( CVONK * CCCW_C * ( 1.0 - dh ) )
@@ -222,18 +194,7 @@ endif
       rough%rt1usb = MAX( rough%rt1usb, 0.0 ) ! in case zrufs < rough%hruff
     
     END WHERE
-
-    IF (cable_user%soil_struc.EQ.'sli') THEN
-       WHERE( canopy%vlaiw .GE. CLAI_THRESH  .AND.                                          &
-            rough%hruff .GE. rough%z0soilsn ) ! VEGETATED SURFACE
-
-          rough%rt0us  = LOG(rough%disp/(0.1 * rough%hruff)) * &
-               EXP(2. * CCSW * canopy%rghlai) * rough%disp &
-               / rough%hruff / (Ca33 ** 2 * Cctl) ! vh ! Haverd et al., Biogeosciences 10, 2011-2040, 2013
-
-       ENDWHERE
-    ENDIF
-
+end if
 END SUBROUTINE ruff_resist
 
 
