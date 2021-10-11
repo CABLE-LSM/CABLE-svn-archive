@@ -2666,7 +2666,7 @@ CONTAINS
  	 REAL, PARAMETER  :: EHaVc  = 66386  ! J/mol
  	 REAL, PARAMETER  :: EHdVc  = 200000 ! J/mol
  	 REAL, PARAMETER  :: EntropVc = 639.60  ! J/mol/K   
- 	  ___________________________________________________________________
+ 	 ! ___________________________________________________________________
     REAL, PARAMETER  :: xVccoef = 1.17461 ! derived parameter
     ! xVccoef=1.0+exp((EntropJx*C%TREFK-EHdJx)/(Rconst*C%TREFK))
 
