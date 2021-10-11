@@ -1072,12 +1072,12 @@ CONTAINS
 
 !WRITE(*,*) " ktauloop end ", ktau, CurYear
 
-          ! ___________________________ MMY ___________________________
-          IF(MOD(ktau, 8) == 0) THEN ! i.e.ktau divisible by
-            CALL create_restart( logn, dels, ktau, soil, veg, ssnow,   &
-               canopy, rough, rad, bgc, bal, met, .FALSE.  )
-          end if
-          ! ___________________________________________________________
+          ! ! ___________________________ MMY ___________________________
+          ! IF(MOD(ktau, 8) == 0) THEN ! i.e.ktau divisible by
+          !   CALL create_restart( logn, dels, ktau, soil, veg, ssnow,   &
+          !      canopy, rough, rad, bgc, bal, met, .FALSE.  )
+          ! end if
+          ! ! ___________________________________________________________
 
 
           END DO KTAULOOP ! END Do loop over timestep ktau
@@ -1415,7 +1415,8 @@ CONTAINS
 !       CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
 
        CALL create_restart( logn, dels, ktau, soil, veg, ssnow,                 &
-            canopy, rough, rad, bgc, bal, met, .TRUE.  ) ! MMY
+            canopy, rough, rad, bgc, bal, met  )
+            !   canopy, rough, rad, bgc, bal, met, .TRUE.  ) ! MMY
 
        if (cable_user%CALL_climate) then
           CALL master_receive (comm, ktau_gl, climate_ts)
