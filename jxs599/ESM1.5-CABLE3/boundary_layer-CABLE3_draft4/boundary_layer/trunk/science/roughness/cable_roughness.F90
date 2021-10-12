@@ -125,13 +125,13 @@ ELSEIF (cable_user%soil_struc=='sli') THEN
 ENDIF
 
 do i=1,mp
-!!    if( canopy%vlaiw(i) .LE. CLAI_THRESH  .OR.                                          &
-!!         rough%hruff(i) .LT. rough%z0soilsn(i) ) then ! BARE SOIL SURFACE
-!!
-!!       rough%z0m(i) = rough%z0soilsn(i)
-!!       rough%rt0us(i) = 0.0
-!!       rough%disp(i) = 0.0
-!!
+    if( canopy%vlaiw(i) .LE. CLAI_THRESH  .OR.                                          &
+         rough%hruff(i) .LT. rough%z0soilsn(i) ) then ! BARE SOIL SURFACE
+
+       rough%z0m(i) = rough%z0soilsn(i)
+       rough%rt0us(i) = 0.0
+       rough%disp(i) = 0.0
+
 !!       ! Reference height zref is height above the displacement height
 !!       ! Ticket #148: Reference height is height above the displacement height
 !!       ! noting that this must be above the roughness length and rough%hruff-rough%disp
@@ -140,27 +140,27 @@ do i=1,mp
 !!       rough%zref_tq(i) = MAX( 3.5 + rough%z0m(i), rough%za_tq(i) )
 !!       rough%zref_uv(i) = MAX( rough%zref_uv(i), rough%hruff(i)-rough%disp(i) )
 !!       rough%zref_tq(i) = MAX( rough%zref_tq(i), rough%hruff(i)-rough%disp(i) )
-!!
+
 !!       rough%zruffs(i) = 0.0
 !!       rough%rt1usa(i) = 0.0
 !!       rough%rt1usb(i) = 0.0
-!!
+
 !!       ! Friction velocity/windspeed at canopy height
 !!       ! eq. 7 Raupach 1994, BLM, vol 71, p211-216
 !!       ! (CUSUHM set in physical_constants module):
 !!       rough%usuh(i) = MIN( SQRT( CCSD + CCRD * ( canopy%vlaiw(i) * 0.5 ) ), CUSUHM )
-!!
+
 !!       xx(i) = SQRT( CCCD * MAX( ( canopy%vlaiw(i) * 0.5 ), 0.0005 ) )
-!!
+
 !!       ! Displacement height/canopy height:
 !!       ! eq.8 Raupach 1994, BLM, vol 71, p211-216
 !!       dh(i) = 1.0 - ( 1.0 - EXP( -xx(i) ) ) / xx(i)
-!!
+
 !!       ! Extinction coefficient for wind profile in canopy:
 !!       ! eq. 3.14, SCAM manual (CSIRO tech report 132)
 !!       rough%coexp(i) = rough%usuh(i) / ( CVONK * CCCW_C * ( 1.0 - dh(i) ) )
-!!
-!!    ELSE ! VEGETATED SURFACE
+
+    ELSE ! VEGETATED SURFACE
 !!
 !!       ! Friction velocity/windspeed at canopy height
 !!       ! eq. 7 Raupach 1994, BLM, vol 71, p211-216
@@ -177,10 +177,10 @@ do i=1,mp
 !!       rough%disp(i) = dh(i)* rough%hruff(i)
 !!
 !!
-!!       ! Calculate roughness length:
-!!       rough%z0m(i) = ( (1.0 - dh(i)) * EXP( LOG( CCCW_C ) - 1. + 1. / CCCW_C       &
-!!            - CVONK / rough%usuh(i) ) ) * rough%hruff(i)
-!!
+      ! Calculate roughness length:
+!!      rough%z0m(i) = ( (1.0 - dh(i)) * EXP( LOG( CCCW_C ) - 1. + 1. / CCCW_C       &
+!!                        - CVONK / rough%usuh(i) ) ) * rough%hruff(i)
+
 !!       ! Reference height zref is height above the displacement height
 !!       ! Ticket #148: Reference height is height above the displacement height
 !!       ! noting that this must be above the roughness length and rough%hruff-rough%disp
@@ -188,20 +188,19 @@ do i=1,mp
 !!       rough%zref_tq(i) = MAX( 3.5 + rough%z0m(i), rough%za_tq(i) )
 !!       rough%zref_uv(i) = MAX( rough%zref_uv(i), rough%hruff(i)-rough%disp(i) )
 !!       rough%zref_tq(i) = MAX( rough%zref_tq(i), rough%hruff(i)-rough%disp(i) )
-!!
+
 !!       ! find coexp: see notes "simplified wind model ..." eq 34a
 !!       ! Extinction coefficient for wind profile in canopy:
 !!       ! eq. 3.14, SCAM manual (CSIRO tech report 132)
 !!       rough%coexp(i) = rough%usuh(i) / ( CVONK * CCCW_C * ( 1.0 - dh(i) ) )
-!!
+
 !!       rough%term2(i)  = EXP( 2 * CCSW * canopy%rghlai(i) *                          &
 !!            ( 1 - rough%disp(i) / rough%hruff(i) ) )
 !!       rough%term3(i)  = CA33**2 * CCTL * 2 * CCSW * canopy%rghlai(i)
 !!       rough%term5(i)  = MAX( ( 2. / 3. ) * rough%hruff(i) / rough%disp(i), 1.0 )
 !!       rough%term6(i) =  EXP( 3. * rough%coexp(i) * ( rough%disp(i) / rough%hruff(i) -1. ) )
 !!       rough%term6a(i) = EXP(rough%coexp(i) * ( 0.1 * rough%hruff(i) / rough%hruff(i) -1. ))
-!!
-!!
+
 !!       ! eq. 3.54, SCAM manual (CSIRO tech report 132)
 !!       rough%rt0us(i)  = rough%term5(i) * ( CZDLIN * LOG(                            &
 !!            CZDLIN * rough%disp(i) / rough%z0soilsn(i) ) +                 &
@@ -221,17 +220,17 @@ do i=1,mp
 !!
 !!       rough%rt1usb(i) = MAX( rough%rt1usb(i), 0.0 ) ! in case zrufs < rough%hruff
 !!
-!!  END IF
+  END IF
 END DO    
 
 !------------------------------------------------------------------------------------- 
     
    WHERE( canopy%vlaiw .LE. Clai_thresh .OR.                                          &
            rough%hruff .LT. rough%z0soilsn ) ! BARE SOIL SURFACE
-     
-      rough%z0m = rough%z0soilsn
-      rough%rt0us = 0.0  
-      rough%disp = 0.0
+!!where     
+!!where      rough%z0m = rough%z0soilsn
+!!where      rough%rt0us = 0.0  
+!!where      rough%disp = 0.0
     
       ! Reference height zref is height above the displacement height
       rough%zref_uv = MAX( 3.5, rough%za_uv )
