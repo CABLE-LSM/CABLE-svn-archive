@@ -132,18 +132,21 @@ do i=1,mp
        rough%rt0us(i) = 0.0
        rough%disp(i) = 0.0
 
-!!       ! Reference height zref is height above the displacement height
-!!       ! Ticket #148: Reference height is height above the displacement height
-!!       ! noting that this must be above the roughness length and rough%hruff-rough%disp
-!!       ! (though second case is unlikely to be attained)
+       ! Reference height zref is height above the displacement height
+       ! Ticket #148: Reference height is height above the displacement height
+       ! noting that this must be above the roughness length and rough%hruff-rough%disp
+       ! (though second case is unlikely to be attained)
+       !OLD formulation from WHERE/ESM1.5
+      rough%zref_uv = MAX( 3.5, rough%za_uv )
+      rough%zref_tq = MAX( 3.5, rough%za_tq )
 !!       rough%zref_uv(i) = MAX( 3.5 + rough%z0m(i), rough%za_uv(i) )
 !!       rough%zref_tq(i) = MAX( 3.5 + rough%z0m(i), rough%za_tq(i) )
 !!       rough%zref_uv(i) = MAX( rough%zref_uv(i), rough%hruff(i)-rough%disp(i) )
 !!       rough%zref_tq(i) = MAX( rough%zref_tq(i), rough%hruff(i)-rough%disp(i) )
 
-!!       rough%zruffs(i) = 0.0
-!!       rough%rt1usa(i) = 0.0
-!!       rough%rt1usb(i) = 0.0
+       rough%zruffs(i) = 0.0
+       rough%rt1usa(i) = 0.0
+       rough%rt1usb(i) = 0.0
 
 !!       ! Friction velocity/windspeed at canopy height
 !!       ! eq. 7 Raupach 1994, BLM, vol 71, p211-216
@@ -233,12 +236,12 @@ END DO
 !!where      rough%disp = 0.0
     
       ! Reference height zref is height above the displacement height
-      rough%zref_uv = MAX( 3.5, rough%za_uv )
-      rough%zref_tq = MAX( 3.5, rough%za_tq )
+!!where      rough%zref_uv = MAX( 3.5, rough%za_uv )
+!!where      rough%zref_tq = MAX( 3.5, rough%za_tq )
 
-      rough%zruffs = 0.0
-      rough%rt1usa = 0.0 
-      rough%rt1usb = 0.0
+!!where      rough%zruffs = 0.0
+!!where      rough%rt1usa = 0.0 
+!!where      rough%rt1usb = 0.0
       
       ! Friction velocity/windspeed at canopy height
       ! eq. 7 Raupach 1994, BLM, vol 71, p211-216
