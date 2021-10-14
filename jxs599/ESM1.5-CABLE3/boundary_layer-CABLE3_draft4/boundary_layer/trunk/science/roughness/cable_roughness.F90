@@ -147,21 +147,26 @@ do i=1,mp
        rough%zruffs(i) = 0.0
        rough%rt1usa(i) = 0.0
        rough%rt1usb(i) = 0.0
+     
+      ! Extinction coefficient for wind profile in canopy:
+      ! eq. 3.14, SCAM manual (CSIRO tech report 132)
+      rough%coexp = rough%usuh / ( CVONK * CCCW_C * ( 1.0 - dh ) )
+ 
+      ! Friction velocity/windspeed at canopy height
+      ! eq. 7 Raupach 1994, BLM, vol 71, p211-216
+      ! (CUSUHM set in physical_constants module):
+      rough%usuh(i) = MIN( SQRT( CCSD + CCRD * ( canopy%vlaiw(i) * 0.5 ) ), CUSUHM )
 
-!!       ! Friction velocity/windspeed at canopy height
-!!       ! eq. 7 Raupach 1994, BLM, vol 71, p211-216
-!!       ! (CUSUHM set in physical_constants module):
-!!       rough%usuh(i) = MIN( SQRT( CCSD + CCRD * ( canopy%vlaiw(i) * 0.5 ) ), CUSUHM )
+      xx(i) = SQRT( CCCD * MAX( ( canopy%vlaiw(i) * 0.5 ), 0.0005 ) )
+    
 
-!!       xx(i) = SQRT( CCCD * MAX( ( canopy%vlaiw(i) * 0.5 ), 0.0005 ) )
+      ! Displacement height/canopy height:
+      ! eq.8 Raupach 1994, BLM, vol 71, p211-216
+      dh(i) = 1.0 - ( 1.0 - EXP( -xx(i) ) ) / xx(i)
 
-!!       ! Displacement height/canopy height:
-!!       ! eq.8 Raupach 1994, BLM, vol 71, p211-216
-!!       dh(i) = 1.0 - ( 1.0 - EXP( -xx(i) ) ) / xx(i)
-
-!!       ! Extinction coefficient for wind profile in canopy:
-!!       ! eq. 3.14, SCAM manual (CSIRO tech report 132)
-!!       rough%coexp(i) = rough%usuh(i) / ( CVONK * CCCW_C * ( 1.0 - dh(i) ) )
+      ! Extinction coefficient for wind profile in canopy:
+      ! eq. 3.14, SCAM manual (CSIRO tech report 132)
+      rough%coexp(i) = rough%usuh(i) / ( CVONK * CCCW_C * ( 1.0 - dh(i) ) )
 
     ELSE ! VEGETATED SURFACE
 !!
@@ -243,20 +248,20 @@ END DO
 !!where      rough%rt1usa = 0.0 
 !!where      rough%rt1usb = 0.0
       
-      ! Friction velocity/windspeed at canopy height
-      ! eq. 7 Raupach 1994, BLM, vol 71, p211-216
-      ! (CUSUHM set in physical_constants module):
-      rough%usuh = MIN( SQRT( CCSD + CCRD * ( canopy%vlaiw * 0.5 ) ), CUSUHM )
-     
-      xx = SQRT( CCCD * MAX( ( canopy%vlaiw * 0.5 ), 0.0005 ) )
-    
-      ! Displacement height/canopy height:
-      ! eq.8 Raupach 1994, BLM, vol 71, p211-216
-      dh = 1.0 - ( 1.0 - EXP( -xx ) ) / xx
-    
-      ! Extinction coefficient for wind profile in canopy:
-      ! eq. 3.14, SCAM manual (CSIRO tech report 132)
-      rough%coexp = rough%usuh / ( CVONK * CCCW_C * ( 1.0 - dh ) )
+!!where      ! Friction velocity/windspeed at canopy height
+!!where      ! eq. 7 Raupach 1994, BLM, vol 71, p211-216
+!!where      ! (CUSUHM set in physical_constants module):
+!!where      rough%usuh = MIN( SQRT( CCSD + CCRD * ( canopy%vlaiw * 0.5 ) ), CUSUHM )
+!!where     
+!!where      xx = SQRT( CCCD * MAX( ( canopy%vlaiw * 0.5 ), 0.0005 ) )
+!!where    
+!!where      ! Displacement height/canopy height:
+!!where      ! eq.8 Raupach 1994, BLM, vol 71, p211-216
+!!where      dh = 1.0 - ( 1.0 - EXP( -xx ) ) / xx
+!!where    
+!!where      ! Extinction coefficient for wind profile in canopy:
+!!where      ! eq. 3.14, SCAM manual (CSIRO tech report 132)
+!!where      rough%coexp = rough%usuh / ( CVONK * CCCW_C * ( 1.0 - dh ) )
    
    ELSEWHERE ! VEGETATED SURFACE
 
