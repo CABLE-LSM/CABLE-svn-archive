@@ -130,12 +130,7 @@ integer :: i
       
    CALL point2constants(C) 
    
-!Modify parametrised soil albedo based on snow coverage 
-call surface_albedosn( AlbSnow, AlbSoil, mp, nrb, jls_radiation, surface_type, soil_type, &
-                       SnowDepth, SnowODepth, SnowFlag_3L,                      & 
-                       SnowDensity, SoilTemp, SnowTemp, SnowAge,                     & 
-                       MetTk, Coszen )
-
+   CALL surface_albedosn(ssnow, veg, met, soil)
 
    rad%cexpkbm = 0.0
    rad%extkbm  = 0.0

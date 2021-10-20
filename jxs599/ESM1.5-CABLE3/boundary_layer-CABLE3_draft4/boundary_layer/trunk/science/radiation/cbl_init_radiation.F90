@@ -88,9 +88,9 @@ REAL :: SW_down(mp,nrb)         !Downward SW radiation [formerly met%fsd]
 integer :: metDoY(mp)           !Day of the Year [formerly met%doy]
 
 !co-efficients used throughout init_radiation used in albedo as well
-REAL :: c1(mp,nrb)
-REAL :: rhoch(mp,nrb)
-REAL :: xk(mp,nrb)
+REAL,allocatable :: c1(:,:)
+REAL,allocatable :: rhoch(:,:)
+REAL,allocatable :: xk(:,:)
 
 !local_vars - common scaling co-efficients used throughout init_radiation
 REAL :: xvlai2(mp,nrb) ! 2D vlai
@@ -104,6 +104,8 @@ REAL :: xphi2(mp)      ! leaf angle parmameter 2
 
    INTEGER :: ictr
   
+   IF(.NOT. ALLOCATED(c1) ) ALLOCATE( c1(mp,nrb), rhoch(mp,nrb), xk(mp,nrb) )
+   
    cos3 = COS(CPI180 * (/ 15.0, 45.0, 75.0 /))
 
    ! See Sellers 1985, eq.13 (leaf angle parameters):
