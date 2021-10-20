@@ -101,7 +101,7 @@ CONTAINS
 
 SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,climate, sunlit_veg_mask, reducedLAIdue2snow )
    USE cable_def_types_mod
-   USE cable_radiation_module
+   USE cbl_radiation_module, ONLY : radiation
    USE cable_air_module
    USE cable_common_module   
    USE cable_roughness_module
@@ -238,7 +238,10 @@ real :: tv(mp)
    ssnow%potev = 0.
    canopy%fevw_pot = 0.
 
-   CALL radiation( ssnow, veg, air, met, rad, canopy )
+CALL radiation( ssnow, veg, air, met, rad, canopy, sunlit_veg_mask, &
+  !constants
+  clai_thresh, Csboltz, Cemsoil, Cemleaf, Ccapp &
+)
 
    canopy%zetar(:,1) = C%ZETA0 ! stability correction terms
    canopy%zetar(:,2) = C%ZETPOS + 1 

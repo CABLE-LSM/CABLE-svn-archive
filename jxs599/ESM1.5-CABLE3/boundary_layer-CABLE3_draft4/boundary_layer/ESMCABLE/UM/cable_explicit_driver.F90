@@ -395,7 +395,7 @@ integer :: j
 
    canopy%oldcansto=canopy%cansto
 
-
+   IF(.NOT. ALLOCATED(c1) ) ALLOCATE( c1(mp,nrb), rhoch(mp,nrb), xk(mp,nrb) )
    !---------------------------------------------------------------------!
    !--- real(timestep) width, CABLE types passed to CABLE "engine" as ---!  
    !--- req'd by Mk3L  --------------------------------------------------!
@@ -421,8 +421,9 @@ integer :: j
 
 
    cable_runtime%um_explicit = .FALSE.
-   IF(ALLOCATED(c1) ) DEALLOCATE( c1, rhoch,xk )
-
+   IF(ALLOCATED(c1) )     DEALLOCATE( c1 )
+   IF( ALLOCATED(rhoch) ) DEALLOCATE( rhoch )
+   IF( ALLOCATED(xk) )    DEALLOCATE( xk)
 
 END SUBROUTINE cable_explicit_driver
 

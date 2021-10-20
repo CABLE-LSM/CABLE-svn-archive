@@ -57,7 +57,7 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
                                   NPP_FT_ACC,RESP_W_FT_ACC,RESP_S_ACC,          &
                                   FNSNET,FNLEACH,FNUP,FNLOSS,FNDEP,FNFIX,idoy )
 
-   USE cable_def_types_mod, ONLY : mp
+   USE cable_def_types_mod, ONLY : mp, nrb
    USE cable_data_module,   ONLY : PHYS
    USE cable_um_tech_mod,   ONLY : um1, conv_rain_prevstep, conv_snow_prevstep,&
                                   air, bgc, canopy, met, bal, rad, rough,      &
@@ -287,6 +287,7 @@ REAL,allocatable :: xk(:,:)
  
       canopy%cansto = canopy%oldcansto
 
+   IF(.NOT. ALLOCATED(c1) ) ALLOCATE( c1(mp,nrb), rhoch(mp,nrb), xk(mp,nrb) )
    CALL cbm( timestep, air, bgc, canopy, met, bal,                             &
              rad, rough, soil, ssnow, sum_flux, veg, xk, c1, rhoch )
 
@@ -339,7 +340,10 @@ REAL,allocatable :: xk(:,:)
       endif
        
       cable_runtime%um_implicit = .FALSE.
-   IF(ALLOCATED(c1) ) DEALLOCATE( c1, rhoch,xk )
+
+   IF( ALLOCATED(c1) )    DEALLOCATE( c1 )
+   IF( ALLOCATED(rhoch) ) DEALLOCATE( rhoch )
+   IF( ALLOCATED(xk) )    DEALLOCATE( xk)
   
 END SUBROUTINE cable_implicit_driver
 
