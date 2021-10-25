@@ -138,9 +138,9 @@ call surface_albedosn( AlbSnow, AlbSoil, mp, nrb, jls_radiation, surface_type, s
 ssnow%albsoilsn = AlbSnow
 
 
-   rad%cexpkbm = 0.0
-   rad%extkbm  = 0.0
-   rad%rhocbm  = 0.0
+!!   rad%cexpkbm = 0.0
+!!   rad%extkbm  = 0.0
+!!   rad%rhocbm  = 0.0
    ! Initialise effective conopy beam reflectance:
    rad%reffbm = ssnow%albsoilsn
    rad%reffdf = ssnow%albsoilsn
