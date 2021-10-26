@@ -57,7 +57,7 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
                                   NPP_FT_ACC,RESP_W_FT_ACC,RESP_S_ACC,          &
                                   FNSNET,FNLEACH,FNUP,FNLOSS,FNDEP,FNFIX,idoy )
 
-   USE cable_def_types_mod, ONLY : mp, nrb
+   USE cable_def_types_mod, ONLY : mp, nrb, c1, rhoch, xk
    USE cable_data_module,   ONLY : PHYS
    USE cable_um_tech_mod,   ONLY : um1, conv_rain_prevstep, conv_snow_prevstep,&
                                   air, bgc, canopy, met, bal, rad, rough,      &
@@ -245,10 +245,6 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
 
    REAL, POINTER :: TFRZ
    
-!co-efficients usoughout init_radiation ` called from _albedo as well
-REAL,allocatable :: c1(:,:)
-REAL,allocatable :: rhoch(:,:)
-REAL,allocatable :: xk(:,:)
       TFRZ => PHYS%TFRZ
    
       ! FLAGS def. specific call to CABLE from UM
@@ -287,9 +283,8 @@ REAL,allocatable :: xk(:,:)
  
       canopy%cansto = canopy%oldcansto
 
-   IF(.NOT. ALLOCATED(c1) ) ALLOCATE( c1(mp,nrb), rhoch(mp,nrb), xk(mp,nrb) )
    CALL cbm( timestep, air, bgc, canopy, met, bal,                             &
-             rad, rough, soil, ssnow, sum_flux, veg, xk, c1, rhoch )
+             rad, rough, soil, ssnow, sum_flux, veg )
 
       ! Lestevens - temporary ?
       ktauday = int(24.0*3600.0/TIMESTEP)
@@ -341,10 +336,6 @@ REAL,allocatable :: xk(:,:)
        
       cable_runtime%um_implicit = .FALSE.
 
-   IF( ALLOCATED(c1) )    DEALLOCATE( c1 )
-   IF( ALLOCATED(rhoch) ) DEALLOCATE( rhoch )
-   IF( ALLOCATED(xk) )    DEALLOCATE( xk)
-  
 END SUBROUTINE cable_implicit_driver
 
 

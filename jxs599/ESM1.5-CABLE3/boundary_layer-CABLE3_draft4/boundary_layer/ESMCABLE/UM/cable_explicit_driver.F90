@@ -79,7 +79,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    !--- subr to call CABLE model
    USE cable_cbm_module, ONLY : cbm
 
-   USE cable_def_types_mod, ONLY : mp, nrb
+   USE cable_def_types_mod, ONLY : mp, nrb, c1, rhoch, xk
 
    !--- include subr called to write data for testing purposes 
    USE casa_um_inout_mod
@@ -305,10 +305,6 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    !___ 1st call in RUN (!=ktau_gl -see below) 
    LOGICAL, SAVE :: first_cable_call = .TRUE.
  
-!co-efficients usoughout init_radiation ` called from _albedo as well
-REAL,allocatable :: c1(:,:)
-REAL,allocatable :: rhoch(:,:)
-REAL,allocatable :: xk(:,:)
 integer :: j
 
    
@@ -401,7 +397,7 @@ integer :: j
    !--- req'd by Mk3L  --------------------------------------------------!
    !---------------------------------------------------------------------!
    CALL cbm( timestep, air, bgc, canopy, met, bal,                             &
-             rad, rough, soil, ssnow, sum_flux, veg, xk, c1, rhoch )
+             rad, rough, soil, ssnow, sum_flux, veg )
 
    !---------------------------------------------------------------------!
    !--- pass land-surface quantities calc'd by CABLE in explicit call ---!
@@ -421,9 +417,6 @@ integer :: j
 
 
    cable_runtime%um_explicit = .FALSE.
-   IF(ALLOCATED(c1) )     DEALLOCATE( c1 )
-   IF( ALLOCATED(rhoch) ) DEALLOCATE( rhoch )
-   IF( ALLOCATED(xk) )    DEALLOCATE( xk)
 
 END SUBROUTINE cable_explicit_driver
 

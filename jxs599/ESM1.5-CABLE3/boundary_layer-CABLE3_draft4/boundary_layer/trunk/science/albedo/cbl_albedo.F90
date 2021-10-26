@@ -123,9 +123,7 @@ integer :: i
    REAL(r_2), DIMENSION(mp)  ::                                                &
       dummy2, & !
       dummy
-
-   LOGICAL, DIMENSION(mp)  :: mask ! select points for calculation
-
+   
    INTEGER :: b    !rad. band 1=visible, 2=near-infrared, 3=long-wave
       
    CALL point2constants(C) 
@@ -140,16 +138,10 @@ ssnow%albsoilsn = AlbSnow
 ! Update fractional leaf transmittance and reflection
 !---1 = visible, 2 = nir radiaition
 
-!!   rad%cexpkbm = 0.0
-!!   rad%extkbm  = 0.0
-!!   rad%rhocbm  = 0.0
    ! Initialise effective conopy beam reflectance:
    rad%reffbm = ssnow%albsoilsn
    rad%reffdf = ssnow%albsoilsn
    rad%albedo = ssnow%albsoilsn
-
-   ! Define vegetation mask:
-   mask = sunlit_veg_mask
 
    CALL calc_rhoch( veg, c1, rhoch )
 
@@ -159,7 +151,6 @@ call CanopyReflectance( CanopyRefl_beam, CanopyRefl_dif, &
                         mp, nrb, CGauss_w, sunlit_veg_mask, &
                         AlbSnow, xk, rhoch,                  &
                         ExtCoeff_beam, ExtCoeff_dif)
-
 rad%rhocbm  = CanopyRefl_beam
 rad%rhocdf  = CanopyRefl_dif 
    ! Update extinction coefficients and fractional transmittance for 
@@ -178,7 +169,7 @@ rad%rhocdf  = CanopyRefl_dif
                            - rad%rhocdf(:,b)) * rad%cexpkdm(:,b)**2
       
       !---where vegetated and sunlit 
-      WHERE (mask)                
+      WHERE (sunlit_veg_mask)                
         
          ! Canopy beam transmittance (fraction):
          dummy2 = -rad%extkbm(:,b)*canopy%vlaiw
@@ -191,7 +182,6 @@ rad%rhocdf  = CanopyRefl_dif
                - rad%rhocbm(:,b))*rad%cexpkbm(:,b)**2
 
       END WHERE
-
        
    END DO
 

@@ -75,6 +75,11 @@ USE cable_types_mod, ONLY: r_2
       niter = 4,     & ! number of iterations for za/L
       ms = 6           ! # soil layers
 
+!ID-ed in CABLE3
+!co-efficients usoughout init_radiation ` called from _albedo as well
+REAL,allocatable, SAVE :: c1(:,:)
+REAL,allocatable, SAVE :: rhoch(:,:)
+REAL,allocatable, SAVE :: xk(:,:)
   
 ! .............................................................................
 

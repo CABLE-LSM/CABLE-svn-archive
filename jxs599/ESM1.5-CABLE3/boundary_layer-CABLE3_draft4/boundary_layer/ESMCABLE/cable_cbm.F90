@@ -11,8 +11,7 @@ CONTAINS
 
    SUBROUTINE cbm( dels, air, bgc, canopy, met,                                &
                    bal, rad, rough, soil,                                      &
-                   ssnow, sum_flux, veg,                                       &
-                   xk, c1, rhoch )
+                   ssnow, sum_flux, veg )
     
    USE cable_common_module
    USE cable_carbon_module
@@ -61,11 +60,6 @@ CHARACTER(LEN=*), PARAMETER :: subr_name = "cbl_model_driver"
 LOGICAL :: jls_standalone = .FALSE.
 LOGICAL :: jls_radiation  = .FALSE.
 LOGICAL :: cbl_standalone = .FALSE.    
-
-!co-efficients usoughout init_radiation ` called from _albedo as well
-REAL,allocatable :: c1(:,:)
-REAL,allocatable :: rhoch(:,:)
-REAL,allocatable :: xk(:,:)
 
    ! assign local ptrs to constants defined in cable_data_module
    CALL point2constants(C)    
