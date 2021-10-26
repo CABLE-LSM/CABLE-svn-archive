@@ -37,7 +37,7 @@ SUBROUTINE cable_rad_driver(                                                   &
                              ! OUT
                              LAND_ALBEDO_CABLE, ALB_TILE, LAND_ALB_CABLE ) 
 
-   USE cable_def_types_mod, ONLY : mp,nrb
+   USE cable_def_types_mod, ONLY : mp, nrb, c1, rhoch, xk
 USE cbl_albedo_mod, ONLY: albedo
 USE cbl_masks_mod, ONLY: veg_mask,  sunlit_mask,  sunlit_veg_mask
 USE cable_other_constants_mod, ONLY: Ccoszen_tols => coszen_tols
@@ -89,10 +89,6 @@ USE cable_params_mod, ONLY : soil => soil_cbl
    
    REAL :: rad_vis(mp), rad_nir(mp), met_fsd_tot_rel(mp), rad_albedo_tot(mp) 
 
-!co-efficients usoughout init_radiation ` called from _albedo as well
-REAL :: c1(mp,nrb)
-REAL :: rhoch(mp,nrb)
-REAL :: xk(mp,nrb)
 CHARACTER(LEN=*), PARAMETER :: subr_name = "cbl_model_driver"
 LOGICAL :: jls_standalone= .TRUE.
 LOGICAL :: jls_radiation= .TRUE.

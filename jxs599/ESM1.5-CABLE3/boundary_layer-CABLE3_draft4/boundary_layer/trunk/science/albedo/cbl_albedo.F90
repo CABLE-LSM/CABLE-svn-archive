@@ -117,16 +117,12 @@ REAL :: CanopyTransmit_beam(mp,nrb) !Canopy Transmitance (rad%cexpkbm)
 real :: SumEffSurfRefl_beam(1)
 real :: SumEffSurfRefl_dif(1)
 integer :: i
-
-    ! END header
-
-   REAL(r_2), DIMENSION(mp)  ::                                                &
-      dummy2, & !
-      dummy
-   
    INTEGER :: b    !rad. band 1=visible, 2=near-infrared, 3=long-wave
       
    CALL point2constants(C) 
+
+    ! END header
+
    
 !Modify parametrised soil albedo based on snow coverage 
 call surface_albedosn( AlbSnow, AlbSoil, mp, nrb, jls_radiation, surface_type, soil_type, &
@@ -143,8 +139,6 @@ ssnow%albsoilsn = AlbSnow
    rad%reffdf = ssnow%albsoilsn
    rad%albedo = ssnow%albsoilsn
 
-   CALL calc_rhoch( veg, c1, rhoch )
-
 ! Define canopy Reflectance for diffuse/direct radiation
 ! Formerly rad%rhocbm, rad%rhocdf
 call CanopyReflectance( CanopyRefl_beam, CanopyRefl_dif, &
@@ -153,16 +147,20 @@ call CanopyReflectance( CanopyRefl_beam, CanopyRefl_dif, &
                         ExtCoeff_beam, ExtCoeff_dif)
 rad%rhocbm  = CanopyRefl_beam
 rad%rhocdf  = CanopyRefl_dif 
+
+! Define canopy diffuse transmittance 
+! Formerly rad%cexpkbm, rad%cexpkdm
+call CanopyTransmitance(CanopyTransmit_beam, CanopyTransmit_dif, mp, nrb,&
+                              sunlit_veg_mask, reducedLAIdue2snow, &
+                              EffExtCoeff_dif, EffExtCoeff_beam)
+rad%cexpkbm = CanopyTransmit_beam
+rad%cexpkdm = CanopyTransmit_dif 
+
    ! Update extinction coefficients and fractional transmittance for 
    ! leaf transmittance and reflection (ie. NOT black leaves):
    !---1 = visible, 2 = nir radiaition
    DO b = 1, 2        
       
-     
-   
-      !--Define canopy diffuse transmittance (fraction):
-      rad%cexpkdm(:,b) = EXP(-rad%extkdm(:,b) * canopy%vlaiw)
-
       !---Calculate effective diffuse reflectance (fraction):
       WHERE( canopy%vlaiw > C%lai_thresh )                                             &
          rad%reffdf(:,b) = rad%rhocdf(:,b) + (ssnow%albsoilsn(:,b)             &
@@ -171,12 +169,6 @@ rad%rhocdf  = CanopyRefl_dif
       !---where vegetated and sunlit 
       WHERE (sunlit_veg_mask)                
         
-         ! Canopy beam transmittance (fraction):
-         dummy2 = -rad%extkbm(:,b)*canopy%vlaiw
-         dummy  = EXP(dummy2)
-
-         rad%cexpkbm(:,b) = REAL(dummy)
-
          ! Calculate effective beam reflectance (fraction):
          rad%reffbm(:,b) = rad%rhocbm(:,b) + (ssnow%albsoilsn(:,b)             &
                - rad%rhocbm(:,b))*rad%cexpkbm(:,b)**2
