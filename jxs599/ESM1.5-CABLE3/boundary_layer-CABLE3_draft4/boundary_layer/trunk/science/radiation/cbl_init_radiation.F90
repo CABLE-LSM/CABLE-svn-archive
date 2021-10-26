@@ -43,9 +43,8 @@ SUBROUTINE init_radiation( ExtCoeff_beam, ExtCoeff_dif,                         
                         coszen, metDoY, SW_down,                               & 
                         reducedLAIdue2snow )
 
-USE cable_other_constants_mod,  ONLY : Crad_thresh => rad_thresh
    USE cable_um_tech_mod, ONLY : rad, met, canopy, veg
-   USE cable_common_module
+   !!USE cable_common_module
 implicit none
 
 !re-decl input args
@@ -96,8 +95,6 @@ REAL :: xk(mp,nrb)              ! extinct. coef.for beam rad. and black leaves
 REAL :: xvlai2(mp,nrb) ! 2D vlai
 REAL :: xphi1(mp)      ! leaf angle parmameter 1
 REAL :: xphi2(mp)      ! leaf angle parmameter 2
-
-   LOGICAL, DIMENSION(mp)    :: mask   ! select points for calculation
 
    INTEGER :: ictr
    
