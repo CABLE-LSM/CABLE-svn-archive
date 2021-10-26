@@ -20,14 +20,14 @@
 
 MODULE cbl_init_radiation_module
 
-USE cbl_rhoch_module, ONLY : calc_rhoch
-USE cbl_spitter_module, ONLY : spitter 
- 
    IMPLICIT NONE
 
    PUBLIC init_radiation
    PRIVATE
 
+!FUDGED local pars -masks tuned at other times - review conssitency!!
+real :: Ccoszen_tols_huge  ! 1e-4 * threshold cosine of sun's zenith angle, below which considered SUNLIT
+real :: Ccoszen_tols_tiny  ! 1e-4 * threshold cosine of sun's zenith angle, below which considered SUNLIT
 
 CONTAINS
 
@@ -97,16 +97,10 @@ REAL :: xvlai2(mp,nrb) ! 2D vlai
 REAL :: xphi1(mp)      ! leaf angle parmameter 1
 REAL :: xphi2(mp)      ! leaf angle parmameter 2
 
-   REAL, DIMENSION(nrb) ::                                                     &
-      cos3       ! cos(15 45 75 degrees)
-
    LOGICAL, DIMENSION(mp)    :: mask   ! select points for calculation
 
    INTEGER :: ictr
-  
    
-   cos3 = COS(CPI180 * (/ 15.0, 45.0, 75.0 /))
-
 !Null Initializations
 !ExtCoeff_beam(:) = 0.0
 !ExtCoeff_dif(:) = 0.0
@@ -121,24 +115,6 @@ REAL :: xphi2(mp)      ! leaf angle parmameter 2
 call Common_InitRad_Scalings( xphi1, xphi2, xk, xvlai2, c1, rhoch,             &
                             mp, nrb, Cpi180,cLAI_thresh, veg_mask,             &
                             reducedLAIdue2snow, VegXfang, VegTaul, VegRefl)
-
-
-!!   ! See Sellers 1985, eq.13 (leaf angle parameters):
-!!   WHERE (canopy%vlaiw > CLAI_THRESH)
-!!      xphi1 = 0.5 - veg%xfang * (0.633 + 0.33 * veg%xfang)
-!!      xphi2 = 0.877 * (1.0 - 2.0 * xphi1)
-!!   END WHERE
-!!
-!!   ! 2 dimensional LAI
-!!   xvlai2 = SPREAD(canopy%vlaiw, 2, 3)
-!!
-!!   ! Extinction coefficient for beam radiation and black leaves;
-!!   ! eq. B6, Wang and Leuning, 1998
-!!   WHERE (xvlai2 > CLAI_THRESH) ! vegetated
-!!      xk = SPREAD(xphi1, 2, 3) / SPREAD(cos3, 1, mp) + SPREAD(xphi2, 2, 3)
-!!   ELSEWHERE ! i.e. bare soil
-!!      xk = 0.0          
-!!   END WHERE
 
    WHERE (canopy%vlaiw > CLAI_THRESH ) ! vegetated
    
@@ -207,19 +183,19 @@ call Common_InitRad_Scalings( xphi1, xphi2, xk, xvlai2, c1, rhoch,             &
 
    ENDDO
    
-   IF( .NOT. cable_runtime%um) THEN
-   
-      ! Define beam fraction, fbeam:
-      rad%fbeam(:,1) = spitter(mp, cpi, int(met%doy), met%coszen, met%fsd(:,1))
-      rad%fbeam(:,2) = spitter(mp, cpi, int(met%doy), met%coszen, met%fsd(:,2))
-      ! coszen is set during met data read in.
-   
-      WHERE (met%coszen <1.0e-2)
-         rad%fbeam(:,1) = 0.0
-         rad%fbeam(:,2) = 0.0
-      END WHERE
-   
-   ENDIF
+!!!   IF( .NOT. cable_runtime%um) THEN
+!!!   
+!!!      ! Define beam fraction, fbeam:
+!!!      rad%fbeam(:,1) = spitter(mp, cpi, int(met%doy), met%coszen, met%fsd(:,1))
+!!!      rad%fbeam(:,2) = spitter(mp, cpi, int(met%doy), met%coszen, met%fsd(:,2))
+!!!      ! coszen is set during met data read in.
+!!!   
+!!!      WHERE (met%coszen <1.0e-2)
+!!!         rad%fbeam(:,1) = 0.0
+!!!         rad%fbeam(:,2) = 0.0
+!!!      END WHERE
+!!!   
+!!!   ENDIF
    
    ! In gridcells where vegetation exists....
    WHERE (canopy%vlaiw > CLAI_THRESH)    
@@ -236,9 +212,16 @@ call Common_InitRad_Scalings( xphi1, xphi2, xk, xvlai2, c1, rhoch,             &
       rad%extkb = rad%extkd + 0.001
    END WHERE
    
-   WHERE(rad%fbeam(:,1) < CRAD_THRESH )
-      rad%extkb=30.0         ! keep cexpkbm within real*4 range (BP jul2010)
-   END WHERE
+!!!   WHERE(rad%fbeam(:,1) < CRAD_THRESH )
+!!!      rad%extkb=30.0         ! keep cexpkbm within real*4 range (BP jul2010)
+!!!   END WHERE
+   
+! Offline/standalone forcing gives us total downward Shortwave. We have
+! previosuly, arbitratily split this into NIR/VIS (50/50). We use 
+! Spitter function to split these bands into direct beam and diffuse components
+IF( cbl_standalone .OR. jls_standalone .AND. .NOT. jls_radiation ) &
+  CALL BeamFraction( RadFbeam, mp, nrb, Cpi, Ccoszen_tols_huge, metDoy,  &
+                     coszen, SW_down ) 
    
 END SUBROUTINE init_radiation
 

@@ -58,8 +58,8 @@ USE cable_climate_type_mod, ONLY : climate_cbl
    INTEGER :: k,kk,j  
 
 CHARACTER(LEN=*), PARAMETER :: subr_name = "cbl_model_driver"
-LOGICAL :: jls_standalone= .TRUE.
-LOGICAL :: jls_radiation= .FALSE.
+LOGICAL :: jls_standalone = .FALSE.
+LOGICAL :: jls_radiation  = .FALSE.
 LOGICAL :: cbl_standalone = .FALSE.    
 
 !co-efficients usoughout init_radiation ` called from _albedo as well
