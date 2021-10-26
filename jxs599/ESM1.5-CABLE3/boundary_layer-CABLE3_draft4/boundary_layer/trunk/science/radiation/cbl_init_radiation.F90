@@ -116,62 +116,33 @@ call Common_InitRad_Scalings( xphi1, xphi2, xk, xvlai2, c1, rhoch,             &
                             mp, nrb, Cpi180,cLAI_thresh, veg_mask,             &
                             reducedLAIdue2snow, VegXfang, VegTaul, VegRefl)
 
-   WHERE (canopy%vlaiw > CLAI_THRESH ) ! vegetated
-   
-      ! Extinction coefficient for diffuse radiation for black leaves:
-      rad%extkd = -LOG( SUM(                                                   &
-                  SPREAD( CGAUSS_W, 1, mp ) * EXP( -xk * xvlai2 ), 2) )       &
-                  / canopy%vlaiw
-   
-   ELSEWHERE ! i.e. bare soil
-      rad%extkd = 0.7
-   END WHERE
-!next!!!   CALL calc_rhoch( veg, c1, rhoch )
-!next!
-!next!!!   ! Update extinction coefficients and fractional transmittance for 
-!next!!!   ! leaf transmittance and reflection (ie. NOT black leaves):
-!next!!!   !---1 = visible, 2 = nir radiaition
-!next!   DO b = 1, 2        
-!next!!!      
-!next!!!      rad%extkdm(:,b) = rad%extkd * c1(:,b)
-!next!!!   
-!next!!!      !--Define canopy diffuse transmittance (fraction):
-!next!!!      rad%cexpkdm(:,b) = EXP(-rad%extkdm(:,b) * canopy%vlaiw)
-!next!!!
-!next!!!      !---Calculate effective diffuse reflectance (fraction):
-!next!      WHERE( canopy%vlaiw > C%lai_thresh )                                             &
-!next!         rad%reffdf(:,b) = rad%rhocdf(:,b) + (ssnow%albsoilsn(:,b)             &
-!next!                           - rad%rhocdf(:,b)) * rad%cexpkdm(:,b)**2
-!next!!!      
-!next!!!      !---where vegetated and sunlit 
-!next!      WHERE (mask)                
-!next!!!      
-!next!!!         rad%extkbm(:,b) = rad%extkb * c1(:,b)
-!next!!!      
-!next!!!      ! Canopy reflection (6.21) beam:
-!next!!!         rad%rhocbm(:,b) = 2. * rad%extkb / ( rad%extkb + rad%extkd )          &
-!next!!!                        * rhoch(:,b)
-!next!!!
-!next!!!         ! Canopy beam transmittance (fraction):
-!next!!!         dummy2 = -rad%extkbm(:,b)*canopy%vlaiw
-!next!!!         dummy  = EXP(dummy2)
-!next!!!
-!next!!!         rad%cexpkbm(:,b) = REAL(dummy)
-!next!!!
-!next!!!         ! Calculate effective beam reflectance (fraction):
-!next!         rad%reffbm(:,b) = rad%rhocbm(:,b) + (ssnow%albsoilsn(:,b)             &
-!next!               - rad%rhocbm(:,b))*rad%cexpkbm(:,b)**2
-!next!
-!next!      END WHERE
-!next!!!
-!next!!!       
-!next!   END DO
+!Limiting Initializations for stability
+Ccoszen_tols_huge = Ccoszen_tols * 1e2 
+Ccoszen_tols_tiny = Ccoszen_tols * 1e-2 
 
+! Define Raw extinction co-efficients for direct beam/diffuse radiation
+! Largely parametrized per PFT. Does depend on zenith angle and effective LAI 
+! [Formerly rad%extkb, rad%extkd]  
+call ExtinctionCoeff( ExtCoeff_beam, ExtCoeff_dif, mp, nrb,                    &
+                      CGauss_w,Ccoszen_tols_tiny, reducedLAIdue2snow,          &
+                      sunlit_mask, veg_mask, sunlit_veg_mask,                  &
+                      cLAI_thresh, coszen, xphi1, xphi2, xk, xvlai2)
+
+! Define effective Extinction co-efficient for direct beam/diffuse radiation
+! Extincion Co-eff defined by parametrized leaf reflect(transmit)ance - used in
+! canopy transmitance calculations (cbl_albeo)
+! [Formerly rad%extkbm, rad%extkdm ]
+call EffectiveExtinctCoeffs( EffExtCoeff_beam, EffExtCoeff_dif,               &
+                             mp, nrb, sunlit_veg_mask,                        &
+                             ExtCoeff_beam, ExtCoeff_dif, c1 )
+
+rad%extkb  = ExtCoeff_beam
+rad%extkd  = ExtCoeff_dif 
+rad%extkbm = EffExtCoeff_beam 
+rad%extkdm = EffExtCoeff_dif
 
    mask = canopy%vlaiw > CLAI_THRESH  .AND.                                   &
           ( met%fsd(:,1) + met%fsd(:,2) ) > CRAD_THRESH
-
-!!   CALL calc_rhoch( c1,rhoch, mp, nrb, veg%taul, veg%refl )
 
    ! Canopy REFLection of diffuse radiation for black leaves:
    DO ictr=1,nrb
@@ -182,39 +153,7 @@ call Common_InitRad_Scalings( xphi1, xphi2, xk, xvlai2, c1, rhoch,             &
                           + CGAUSS_W(3) * xk(:,3) / ( xk(:,3) + rad%extkd(:) ) )
 
    ENDDO
-   
-!!!   IF( .NOT. cable_runtime%um) THEN
-!!!   
-!!!      ! Define beam fraction, fbeam:
-!!!      rad%fbeam(:,1) = spitter(mp, cpi, int(met%doy), met%coszen, met%fsd(:,1))
-!!!      rad%fbeam(:,2) = spitter(mp, cpi, int(met%doy), met%coszen, met%fsd(:,2))
-!!!      ! coszen is set during met data read in.
-!!!   
-!!!      WHERE (met%coszen <1.0e-2)
-!!!         rad%fbeam(:,1) = 0.0
-!!!         rad%fbeam(:,2) = 0.0
-!!!      END WHERE
-!!!   
-!!!   ENDIF
-   
-   ! In gridcells where vegetation exists....
-   WHERE (canopy%vlaiw > CLAI_THRESH)    
-      
-      ! SW beam extinction coefficient ("black" leaves, extinction neglects
-      ! leaf SW transmittance and REFLectance):
-      rad%extkb = xphi1 / met%coszen + xphi2
-   
-   ELSEWHERE ! i.e. bare soil
-      rad%extkb = 0.5
-   END WHERE
-   
-   WHERE ( abs(rad%extkb - rad%extkd)  < 0.001 )
-      rad%extkb = rad%extkd + 0.001
-   END WHERE
-   
-!!!   WHERE(rad%fbeam(:,1) < CRAD_THRESH )
-!!!      rad%extkb=30.0         ! keep cexpkbm within real*4 range (BP jul2010)
-!!!   END WHERE
+  
    
 ! Offline/standalone forcing gives us total downward Shortwave. We have
 ! previosuly, arbitratily split this into NIR/VIS (50/50). We use 
