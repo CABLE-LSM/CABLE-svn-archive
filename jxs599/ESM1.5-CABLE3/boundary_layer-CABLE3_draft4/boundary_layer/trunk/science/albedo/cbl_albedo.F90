@@ -137,6 +137,8 @@ call surface_albedosn( AlbSnow, AlbSoil, mp, nrb, jls_radiation, surface_type, s
                        MetTk, Coszen )
 ssnow%albsoilsn = AlbSnow
 
+! Update fractional leaf transmittance and reflection
+!---1 = visible, 2 = nir radiaition
 
 !!   rad%cexpkbm = 0.0
 !!   rad%extkbm  = 0.0
@@ -151,6 +153,15 @@ ssnow%albsoilsn = AlbSnow
 
    CALL calc_rhoch( veg, c1, rhoch )
 
+! Define canopy Reflectance for diffuse/direct radiation
+! Formerly rad%rhocbm, rad%rhocdf
+call CanopyReflectance( CanopyRefl_beam, CanopyRefl_dif, &
+                        mp, nrb, CGauss_w, sunlit_veg_mask, &
+                        AlbSnow, xk, rhoch,                  &
+                        ExtCoeff_beam, ExtCoeff_dif)
+
+rad%rhocbm  = CanopyRefl_beam
+rad%rhocdf  = CanopyRefl_dif 
    ! Update extinction coefficients and fractional transmittance for 
    ! leaf transmittance and reflection (ie. NOT black leaves):
    !---1 = visible, 2 = nir radiaition
@@ -168,13 +179,7 @@ ssnow%albsoilsn = AlbSnow
       
       !---where vegetated and sunlit 
       WHERE (mask)                
-      
-    
-      
-      ! Canopy reflection (6.21) beam:
-         rad%rhocbm(:,b) = 2. * rad%extkb / ( rad%extkb + rad%extkd )          &
-                        * rhoch(:,b)
-
+        
          ! Canopy beam transmittance (fraction):
          dummy2 = -rad%extkbm(:,b)*canopy%vlaiw
          dummy  = EXP(dummy2)

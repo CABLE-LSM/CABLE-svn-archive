@@ -141,9 +141,6 @@ rad%extkd  = ExtCoeff_dif
 rad%extkbm = EffExtCoeff_beam 
 rad%extkdm = EffExtCoeff_dif
 
-   mask = canopy%vlaiw > CLAI_THRESH  .AND.                                   &
-          ( met%fsd(:,1) + met%fsd(:,2) ) > CRAD_THRESH
-
    ! Canopy REFLection of diffuse radiation for black leaves:
    DO ictr=1,nrb
      
@@ -153,7 +150,6 @@ rad%extkdm = EffExtCoeff_dif
                           + CGAUSS_W(3) * xk(:,3) / ( xk(:,3) + rad%extkd(:) ) )
 
    ENDDO
-  
    
 ! Offline/standalone forcing gives us total downward Shortwave. We have
 ! previosuly, arbitratily split this into NIR/VIS (50/50). We use 
