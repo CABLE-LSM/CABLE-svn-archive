@@ -43,8 +43,9 @@ SUBROUTINE init_radiation( ExtCoeff_beam, ExtCoeff_dif,                         
                         coszen, metDoY, SW_down,                               & 
                         reducedLAIdue2snow )
 
+USE cable_other_constants_mod,  ONLY : Crad_thresh => rad_thresh
    USE cable_um_tech_mod, ONLY : rad, met, canopy, veg
-   !!USE cable_common_module
+   USE cable_common_module
 implicit none
 
 !re-decl input args
@@ -96,6 +97,10 @@ REAL :: xvlai2(mp,nrb) ! 2D vlai
 REAL :: xphi1(mp)      ! leaf angle parmameter 1
 REAL :: xphi2(mp)      ! leaf angle parmameter 2
 
+   LOGICAL, DIMENSION(mp)    :: mask   ! select points for calculation
+
+   INTEGER :: ictr
+   
 !Null Initializations
 !ExtCoeff_beam(:) = 0.0
 !ExtCoeff_dif(:) = 0.0
@@ -135,6 +140,17 @@ rad%extkb  = ExtCoeff_beam
 rad%extkd  = ExtCoeff_dif 
 rad%extkbm = EffExtCoeff_beam 
 rad%extkdm = EffExtCoeff_dif
+
+   ! Canopy REFLection of diffuse radiation for black leaves:
+   DO ictr=1,nrb
+     
+     rad%rhocdf(:,ictr) = rhoch(:,ictr) *                                      &
+                          ( CGAUSS_W(1) * xk(:,1) / ( xk(:,1) + rad%extkd(:) )&
+                          + CGAUSS_W(2) * xk(:,2) / ( xk(:,2) + rad%extkd(:) )&
+                          + CGAUSS_W(3) * xk(:,3) / ( xk(:,3) + rad%extkd(:) ) )
+
+   ENDDO
+   
 ! Offline/standalone forcing gives us total downward Shortwave. We have
 ! previosuly, arbitratily split this into NIR/VIS (50/50). We use 
 ! Spitter function to split these bands into direct beam and diffuse components

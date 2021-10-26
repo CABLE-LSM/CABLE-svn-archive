@@ -147,6 +147,12 @@ ssnow%albsoilsn = AlbSnow
    rad%reffbm = ssnow%albsoilsn
    rad%reffdf = ssnow%albsoilsn
    rad%albedo = ssnow%albsoilsn
+
+   ! Define vegetation mask:
+   mask = sunlit_veg_mask
+
+   CALL calc_rhoch( veg, c1, rhoch )
+
 ! Define canopy Reflectance for diffuse/direct radiation
 ! Formerly rad%rhocbm, rad%rhocdf
 call CanopyReflectance( CanopyRefl_beam, CanopyRefl_dif, &
@@ -172,7 +178,7 @@ rad%rhocdf  = CanopyRefl_dif
                            - rad%rhocdf(:,b)) * rad%cexpkdm(:,b)**2
       
       !---where vegetated and sunlit 
-      WHERE (sunlit_veg_mask)                
+      WHERE (mask)                
         
          ! Canopy beam transmittance (fraction):
          dummy2 = -rad%extkbm(:,b)*canopy%vlaiw
