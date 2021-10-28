@@ -1,5 +1,5 @@
 !==============================================================================
-! This source code is part of the 
+! This source code is part of the
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
 ! This work is licensed under the CSIRO Open Source Software License
 ! Agreement (variation of the BSD / MIT License).
@@ -31,7 +31,7 @@ real :: Ccoszen_tols_tiny  ! 1e-4 * threshold cosine of sun's zenith angle, belo
 
 CONTAINS
 
-SUBROUTINE init_radiation( ExtCoeff_beam, ExtCoeff_dif,                           &
+SUBROUTINE init_radiation( ExtCoeff_beam, ExtCoeff_dif,                        &
                         EffExtCoeff_beam, EffExtCoeff_dif, RadFbeam,           &
                         c1, rhoch, xk,                                         &
                         mp,nrb,                                                &
@@ -93,7 +93,7 @@ REAL :: xk(mp,nrb)              ! extinct. coef.for beam rad. and black leaves
 REAL :: xvlai2(mp,nrb) ! 2D vlai
 REAL :: xphi1(mp)      ! leaf angle parmameter 1
 REAL :: xphi2(mp)      ! leaf angle parmameter 2
-
+   
 !Null Initializations
 ExtCoeff_beam(:) = 0.0
 ExtCoeff_dif(:) = 0.0
@@ -409,6 +409,7 @@ WHERE (coszen < 1.e-2 )
 END WHERE
 
 End subroutine BeamFraction
+
 
 
 END MODULE cbl_init_radiation_module
