@@ -1,14 +1,9 @@
 MODULE cbl_albedo_mod
 
-   USE cable_data_module, ONLY : ialbedo_type, point2constants 
-   
-   IMPLICIT NONE
-   
+  IMPLICIT NONE
+
   PUBLIC albedo
-   PRIVATE
-
-   TYPE(ialbedo_type) :: C
-
+  PRIVATE
 
 CONTAINS
 
@@ -29,17 +24,10 @@ EffExtCoeff_dif, EffExtCoeff_beam,                &
 CanopyRefl_dif,CanopyRefl_beam,                   &
 CanopyTransmit_dif, CanopyTransmit_beam,          &
 EffSurfRefl_dif, EffSurfRefl_beam                 )
-   
-!SUBROUTINE surface_albedo(ssnow, veg, met, rad, soil, canopy)
-   USE cable_common_module   
-   USE cable_def_types_mod, ONLY : veg_parameter_type, soil_parameter_type,    &     
-                                   canopy_type, met_type, radiation_type,      &
-                                   soil_snow_type, r_2
-   
-USE cable_um_tech_mod, ONLY : ssnow, veg, met, rad, soil, canopy
+
 !subrs called
 USE cbl_snow_albedo_module, ONLY : surface_albedosn
-   
+
 implicit none
 
 !model dimensions
@@ -117,27 +105,23 @@ REAL :: CanopyTransmit_beam(mp,nrb) !Canopy Transmitance (rad%cexpkbm)
 real :: SumEffSurfRefl_beam(1)
 real :: SumEffSurfRefl_dif(1)
 integer :: i
-   INTEGER :: b    !rad. band 1=visible, 2=near-infrared, 3=long-wave
-      
-   CALL point2constants(C) 
 
     ! END header
 
-   
+AlbSnow(:,:) = 0.0
+!CanopyTransmit_beam(:,:) = 0.0
+CanopyRefl_beam(:,:) = 0.0
+CanopyRefl_dif(:,:) = 0.0        
+!CanopyTransmit_dif(:,:) = 0.0  ! MPI (at least inits this = 1.0 at dt=0) 
+
 !Modify parametrised soil albedo based on snow coverage 
 call surface_albedosn( AlbSnow, AlbSoil, mp, nrb, jls_radiation, surface_type, soil_type, &
                        SnowDepth, SnowODepth, SnowFlag_3L,                      & 
                        SnowDensity, SoilTemp, SnowTemp, SnowAge,                     & 
                        MetTk, Coszen )
-ssnow%albsoilsn = AlbSnow
 
 ! Update fractional leaf transmittance and reflection
 !---1 = visible, 2 = nir radiaition
-
-   ! Initialise effective conopy beam reflectance:
-   rad%reffbm = ssnow%albsoilsn
-   rad%reffdf = ssnow%albsoilsn
-   rad%albedo = ssnow%albsoilsn
 
 ! Define canopy Reflectance for diffuse/direct radiation
 ! Formerly rad%rhocbm, rad%rhocdf
@@ -145,37 +129,27 @@ call CanopyReflectance( CanopyRefl_beam, CanopyRefl_dif, &
                         mp, nrb, CGauss_w, sunlit_veg_mask, &
                         AlbSnow, xk, rhoch,                  &
                         ExtCoeff_beam, ExtCoeff_dif)
-rad%rhocbm  = CanopyRefl_beam
-rad%rhocdf  = CanopyRefl_dif 
 
 ! Define canopy diffuse transmittance 
 ! Formerly rad%cexpkbm, rad%cexpkdm
 call CanopyTransmitance(CanopyTransmit_beam, CanopyTransmit_dif, mp, nrb,&
                               sunlit_veg_mask, reducedLAIdue2snow, &
                               EffExtCoeff_dif, EffExtCoeff_beam)
-rad%cexpkbm = CanopyTransmit_beam
-rad%cexpkdm = CanopyTransmit_dif 
 
-   ! Update extinction coefficients and fractional transmittance for 
-   ! leaf transmittance and reflection (ie. NOT black leaves):
-   !---1 = visible, 2 = nir radiaition
-   DO b = 1, 2        
-      
-      !---Calculate effective diffuse reflectance (fraction):
-      WHERE( canopy%vlaiw > C%lai_thresh )                                             &
-         rad%reffdf(:,b) = rad%rhocdf(:,b) + (ssnow%albsoilsn(:,b)             &
-                           - rad%rhocdf(:,b)) * rad%cexpkdm(:,b)**2
-      
-      !---where vegetated and sunlit 
-      WHERE (sunlit_veg_mask)                
-        
-         ! Calculate effective beam reflectance (fraction):
-         rad%reffbm(:,b) = rad%rhocbm(:,b) + (ssnow%albsoilsn(:,b)             &
-               - rad%rhocbm(:,b))*rad%cexpkbm(:,b)**2
+!---1 = visible, 2 = nir radiaition
+! Finally compute Effective 4-band albedo for diffuse/direct radiation- 
+! In the UM this is the required variable to be passed back on the rad call
+! Formerly rad%reffbm, rad%reffdf
 
-      END WHERE
-       
-   END DO
+! Even when there is no vegetation, albedo is at least snow modified soil albedo
+EffSurfRefl_dif = AlbSnow
+EffSurfRefl_beam = AlbSnow
+
+call EffectiveSurfaceReflectance( EffSurfRefl_beam, EffSurfRefl_dif,           &
+                                  mp, nrb, veg_mask, sunlit_veg_mask,          &
+                                  CanopyRefl_beam, CanopyRefl_dif,             &
+                                  CanopyTransmit_beam,CanopyTransmit_dif,      &
+                                  AlbSnow )
 
 ! Compute total albedo to SW given the Effective Surface Reflectance 
 ! (considering Canopy/Soil/Snow contributions) 
@@ -184,8 +158,8 @@ RadAlbedo = AlbSnow
 if(.NOT. jls_radiation) &
   call FbeamRadAlbedo( RadAlbedo, mp, nrb, veg_mask, radfbeam, &
                        EffSurfRefl_dif, EffSurfRefl_beam, AlbSnow )
-
-END SUBROUTINE Albedo 
+ 
+END SUBROUTINE albedo
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -447,25 +421,5 @@ END DO
 End subroutine FbeamRadAlbedo
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-
-!jhan:subr was reintroduced here to temporarily resolve issue when 
-!creating libcable.a  (repeated in cable_radiation.F90)
-SUBROUTINE calc_rhoch(veg,c1,rhoch) 
-
-   USE cable_def_types_mod, ONLY : veg_parameter_type
-   TYPE (veg_parameter_type), INTENT(INOUT) :: veg
-   REAL, INTENT(INOUT), DIMENSION(:,:) :: c1, rhoch
-
-   c1(:,1) = SQRT(1. - veg%taul(:,1) - veg%refl(:,1))
-   c1(:,2) = SQRT(1. - veg%taul(:,2) - veg%refl(:,2))
-   c1(:,3) = 1.
-    
-   ! Canopy reflection black horiz leaves 
-   ! (eq. 6.19 in Goudriaan and van Laar, 1994):
-   rhoch = (1.0 - c1) / (1.0 + c1)
-
-END SUBROUTINE calc_rhoch 
-
 
 END MODULE cbl_albedo_mod
