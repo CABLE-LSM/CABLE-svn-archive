@@ -1,6 +1,8 @@
 MODULE hydraulic_redistribution_mod
 
-USE cable_soil_snow_data_mod
+USE cbl_ssnow_data_mod
+
+PUBLIC  hydraulic_redistribution
 
 CONTAINS
 
@@ -66,7 +68,7 @@ IMPLICIT NONE
    WHERE( canopy%fevc < 10.0 .and.  totalice  < 1.e-2 )  Dtran=1.0
    
    DO k=1, ms
-      S_VG(:,k) = MIN( 1.0, MAX( 1.0E-4, ssnow%wb(:,k) - soil%swilt )          &
+       S_VG(:,k) = MIN( 1.0, MAX( 1.0E-4, REAL(ssnow%wb(:,k)) - soil%swilt )          &
                             / ( soil%ssat - soil%swilt ) )
       ! VG model, convert from cm to Pa by (*100), to MPa (*1.0E-6)
       wpsy(:,k) = -1.0 / alpha_VG * ( S_VG(:,k)**(-1.0/m_VG) - 1.0 )**(1/n_VG) &
@@ -105,10 +107,10 @@ IMPLICIT NONE
          
          WHERE( hr_perTime(:,k,j) < 0.0 )
 
-            available(:)   = MAX( 0.0, ssnow%wb(:,k) -                         &
+             available(:)   = MAX( 0.0_r_2, ssnow%wb(:,k) -                         &
                             ( soil%swilt(:) + ( soil%sfc(:) - soil%swilt(:) )  &
                              / 3. ) )
-            accommodate(:) = MAX( 0.0, soil%ssat(:) - ssnow%wb(:,j) )
+             accommodate(:) = MAX( 0.0_r_2, soil%ssat(:) - ssnow%wb(:,j) )
             
             temp(:) = MAX( hr_perTime(:,k,j),                                  &
                           -1.0 * wiltParam * available(:),                     &
@@ -120,11 +122,11 @@ IMPLICIT NONE
          
          ELSEWHERE (hr_perTime(:,j,k) < 0.0)
 
-           available(:)   = MAX( 0.0, ssnow%wb(:,j) -                          &
+             available(:)   = MAX( 0.0_r_2, ssnow%wb(:,j) -                          &
                             ( soil%swilt(:) + ( soil%sfc(:) - soil%swilt(:) )  &
                             / 3. ) ) 
            
-           accommodate(:) = MAX( 0.0, soil%ssat(:) - ssnow%wb(:,k) )
+             accommodate(:) = MAX( 0.0_r_2, soil%ssat(:) - ssnow%wb(:,k) )
            
            temp(:) = MAX( hr_perTime(:,j,k),                                   &
                          - 1.0 * wiltParam * available(:),                     &
@@ -146,7 +148,7 @@ IMPLICIT NONE
    WHERE( met%tk < CTFRZ + 5.  ) Dtran=0.0
      
    DO k=1, ms
-      S_VG(:,k) = MIN( 1.0, MAX( 1.0E-4, ssnow%wb(:,k) - soil%swilt )          &
+       S_VG(:,k) = MIN( 1.0, MAX( 1.0E-4, REAL(ssnow%wb(:,k)) - soil%swilt )          &
                   / ( soil%ssat - soil%swilt ) )
       
       ! VG model, convert from cm to Pa by (*100), to MPa (*1.0E-6)
@@ -183,8 +185,8 @@ IMPLICIT NONE
          
          WHERE( hr_perTime(:,k,j) < 0.0 )
             
-            available(:)   = MAX( 0.0, ssnow%wb(:,k) - soil%sfc(:) )
-            accommodate(:) = MAX( 0.0, soil%ssat(:) - ssnow%wb(:,j) )
+             available(:)   = MAX( 0.0_r_2, ssnow%wb(:,k) - soil%sfc(:) )
+             accommodate(:) = MAX( 0.0_r_2, soil%ssat(:) - ssnow%wb(:,j) )
             
             temp(:) = MAX(hr_perTime(:,k,j),                                   &
                           -1.0 * wiltParam*available(:),                       &
@@ -196,8 +198,8 @@ IMPLICIT NONE
          
          ELSEWHERE (hr_perTime(:,j,k) < 0.0)
             
-            available(:)   = MAX( 0.0, ssnow%wb(:,j)- soil%sfc(:) )
-            accommodate(:) = MAX( 0.0, soil%ssat(:)-ssnow%wb(:,k) )
+             available(:)   = MAX( 0.0_r_2, ssnow%wb(:,j)- soil%sfc(:) )
+             accommodate(:) = MAX( 0.0_r_2, soil%ssat(:)-ssnow%wb(:,k) )
             
             temp(:) = MAX(hr_perTime(:,j,k),                                   &
                      -1.0 * wiltParam*available(:),                            &

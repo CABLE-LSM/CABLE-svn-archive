@@ -5,6 +5,7 @@ MODULE cbl_soil_snow_main_module
                              veg_parameter_type, canopy_type, met_type,        &
                              balances_type, r_2, ms, mp           
    USE cable_data_module, ONLY : issnow_type, point2constants
+USE cbl_ssnow_data_mod, ONLY: heat_cap_lower_limit
 
 
    IMPLICIT NONE
@@ -185,7 +186,7 @@ USE snowdensity_mod,              ONLY: snowDensity
    ! snow aging etc...
    CALL snowl_adjust(dels, ssnow, canopy )
 
-   CALL stempv(dels, canopy, ssnow, soil)
+   CALL stempv(dels, canopy, ssnow, soil,heat_cap_lower_limit)
    
    ssnow%tss =  (1-ssnow%isflag)*ssnow%tgg(:,1) + ssnow%isflag*ssnow%tggsn(:,1)
 

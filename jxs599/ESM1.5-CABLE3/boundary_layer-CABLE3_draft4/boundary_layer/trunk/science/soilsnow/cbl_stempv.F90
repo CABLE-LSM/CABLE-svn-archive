@@ -1,9 +1,8 @@
 MODULE stempv_mod
 
-USE cable_soil_snow_data_mod
+USE cbl_ssnow_data_mod
 
 PUBLIC  stempv
-
 
 CONTAINS 
 
@@ -11,8 +10,12 @@ CONTAINS
 ! tgg - new soil/snow temperature
 ! ga - heat flux from the atmosphere (ground heat flux)
 ! ccnsw - soil thermal conductivity, including water/ice
-SUBROUTINE stempv(dels, canopy, ssnow, soil)
+SUBROUTINE stempv(dels, canopy, ssnow, soil,heat_cap_lower_limit)
+
+USE cable_common_module, ONLY: cable_user
 USE trimb_mod, ONLY: trimb
+USE total_soil_conductivity_mod, ONLY: total_soil_conductivity 
+USE old_soil_conductivity_mod,   ONLY: old_soil_conductivity 
 IMPLICIT NONE
    REAL, INTENT(IN) :: dels ! integration time step (s)
    
@@ -42,53 +45,21 @@ IMPLICIT NONE
    REAL(r_2), DIMENSION(mp,ms+3)    :: tmp_mat ! temp. matrix for tggsn & tgg
    
    INTEGER :: j,k
-   REAL :: snow_ccnsw, exp_arg
+    REAL :: exp_arg
    LOGICAL :: direct2min = .FALSE.
-
+REAL :: heat_cap_lower_limit(mp,ms)
 
    at = 0.0
    bt = 1.0
    ct = 0.0
    coeff = 0.0
-   snow_ccnsw = 2.0
-
-   DO k = 1, ms
       
-      DO j = 1, mp
-      
-         IF( soil%isoilm(j) == 9 ) THEN
-            ! permanent ice: fix hard-wired number in next version
-            ccnsw(j,k) = snow_ccnsw
+    IF (cable_user%soil_thermal_fix) THEN
+       ccnsw = total_soil_conductivity(ssnow,soil)
          ELSE
-            ew(j) = ssnow%wblf(j,k) * soil%ssat(j)
-            exp_arg = ( ew(j) * LOG( 60.0 ) ) + ( ssnow%wbfice(j,k)            &
-                      * soil%ssat(j) * LOG( 250.0 ) )
-
-            IF( exp_arg > 30 ) direct2min = .TRUE.
-            
-            IF( direct2min) THEN
-               
-               ccnsw(j,k) = 1.5 * MAX( 1.0_r_2, SQRT( MIN( 2.0_r_2, 0.5 *      &
-                            soil%ssat(j) /                                     &
-                            MIN( ew(j), 0.5_r_2 * soil%ssat(j) ) ) ) )
-
-            ELSE         
-               
-               ccnsw(j,k) = MIN( soil%cnsd(j) * EXP( exp_arg ), 1.5_r_2 )      &
-                            * MAX( 1.0_r_2, SQRT( MIN( 2.0_r_2, 0.5 *          &
-                            soil%ssat(j) /                                     &
-                            MIN( ew(j), 0.5_r_2 * soil%ssat(j) ) ) ) )
-            
-            ENDIF          
-           
-            direct2min = .FALSE.
-        
+       ccnsw = old_soil_conductivity(ssnow,soil)
          ENDIF 
       
-      END DO
-    
-   END DO
-    
    xx = 0. 
     
    WHERE(ssnow%isflag == 0)
@@ -114,14 +85,16 @@ IMPLICIT NONE
 
       wblfsp = ssnow%wblf(:,k)
       
-      xx = soil%css * soil%rhosoil
+      !esm15 xx = soil%css * soil%rhosoil
+       xx = heat_cap_lower_limit(:,1)
       
-      ssnow%gammzz(:,k) = MAX( ( 1.0 - soil%ssat ) * soil%css * soil%rhosoil   &
-                          + soil%ssat * ( wblfsp * cswat * rhowat +            &
-                          ssnow%wbfice(:,k) * csice * rhowat * 0.9 ), xx )     &
+       ssnow%gammzz(:,k) = MAX( (heat_cap_lower_limit(:,1)), &
+            ( 1.0 - soil%ssat ) * soil%css * soil%rhosoil   &
+            + soil%ssat * ( wblfsp * Ccswat * Cdensity_liq +            &
+            ssnow%wbfice(:,k) * Ccsice * Cdensity_liq * 0.9 ) )     &
                           * soil%zse(k)
 
-      ssnow%gammzz(:,k) = ssnow%gammzz(:,k) + cgsnow * ssnow%snowd
+       ssnow%gammzz(:,k) = ssnow%gammzz(:,k) + Ccgsnow * ssnow%snowd
 
       dtg = dels / ssnow%gammzz(:,k)
       
@@ -138,9 +111,10 @@ IMPLICIT NONE
          wblfsp = ssnow%wblf(:,k)
          xx = soil%css * soil%rhosoil
 
-         ssnow%gammzz(:,k) = MAX( ( 1.0 - soil%ssat ) * soil%css * soil%rhosoil&
-                             + soil%ssat * ( wblfsp * cswat * rhowat +         &
-                             ssnow%wbfice(:,k) * csice * rhowat * 0.9 ), xx )  &
+          ssnow%gammzz(:,k) = MAX( REAL(heat_cap_lower_limit(:,1)), &
+               ( 1.0 - soil%ssat ) * soil%css * soil%rhosoil   &
+               + soil%ssat * ( wblfsp * Ccswat * Cdensity_liq +            &
+               ssnow%wbfice(:,k) * Ccsice * Cdensity_liq * 0.9 ) )     &
                              * soil%zse(k)
 
          dtg = dels / ssnow%gammzz(:,k)
@@ -193,7 +167,7 @@ IMPLICIT NONE
    DO k = 1, 3
       
       WHERE( ssnow%isflag /= 0 ) 
-         sgamm = ssnow%ssdn(:,k) * cgsnow * ssnow%sdepth(:,k)
+          sgamm = ssnow%ssdn(:,k) * Ccgsnow * ssnow%sdepth(:,k)
          dtg = dels / sgamm
          at(:,k-3) = - dtg * coeff(:,k-3)
          ct(:,k-3) = - dtg * coeff(:,k-2)
@@ -209,9 +183,10 @@ IMPLICIT NONE
          xx = soil%css * soil%rhosoil
          
          ssnow%gammzz(:,k) = MAX( ( 1.0 - soil%ssat ) * soil%css *             &
-                             soil%rhosoil + soil%ssat * ( wblfsp * cswat *     &
-                             rhowat + ssnow%wbfice(:,k) * csice * rhowat *     &
-                             0.9) , xx ) * soil%zse(k)
+               soil%rhosoil + soil%ssat * ( wblfsp * Ccswat *     &
+               Cdensity_liq + ssnow%wbfice(:,k) * Ccsice * Cdensity_liq *     &
+               0.9) , &
+               (heat_cap_lower_limit(:,k)) ) * soil%zse(k)
 
          dtg = dels / ssnow%gammzz(:,k)
          at(:,k) = - dtg * coeff(:,k)
@@ -223,7 +198,7 @@ IMPLICIT NONE
    END DO
 
    WHERE( ssnow%isflag /= 0 )
-      sgamm = ssnow%ssdn(:,1) * cgsnow * ssnow%sdepth(:,1)
+       sgamm = ssnow%ssdn(:,1) * Ccgsnow * ssnow%sdepth(:,1)
       
       bt(:,-2) = bt(:,-2) - canopy%dgdtg * dels / sgamm
       
@@ -233,6 +208,7 @@ IMPLICIT NONE
       rhs(:,1-3) = ssnow%tggsn(:,1)
    END WHERE
  
+
    !     note in the following that tgg and tggsn are processed together
    tmp_mat(:,1:3) = REAL(ssnow%tggsn,r_2) 
    tmp_mat(:,4:(ms+3)) = REAL(ssnow%tgg,r_2)
@@ -247,4 +223,3 @@ IMPLICIT NONE
 END SUBROUTINE stempv
 
 END MODULE stempv_mod
-
