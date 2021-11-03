@@ -20,6 +20,6 @@ USE cable_common_module, ONLY: cable_user,snow_ccnsw,snmin,&
 
 IMPLICIT NONE
 
-REAL, PARAMETER:  heat_cap_lower_limit = 0.01  !never allow /0
+REAL, PARAMETER ::  heat_cap_lower_limit = 0.01  !never allow /0
 
 END MODULE cbl_ssnow_data_mod

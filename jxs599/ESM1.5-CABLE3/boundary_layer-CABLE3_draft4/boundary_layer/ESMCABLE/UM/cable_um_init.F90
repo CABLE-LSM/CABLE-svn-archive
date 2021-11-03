@@ -84,6 +84,7 @@ USE cable_um_tech_mod,   ONLY : ssnow, canopy, met, bal
     USE cable_params_mod, ONLY : veg => veg_cbl 
     USE cable_params_mod, ONLY : soil => soil_cbl 
 USE cable_other_constants_mod, ONLY : CLAI_THRESH => LAI_THRESH
+USE cbl_ssnow_data_mod, ONLY: heat_cap_lower_limit
 
    !-------------------------------------------------------------------------- 
    !--- INPUT ARGS FROM cable_explicit_driver() ------------------------------
@@ -247,8 +248,6 @@ USE cable_other_constants_mod, ONLY : CLAI_THRESH => LAI_THRESH
          
 !CBL3
 REAL, DIMENSION(land_pts, ntiles) ::  clobbered_htveg
-REAL :: heat_cap_lower_limit(mp,ms)
-heat_cap_lower_limit = 0.01
 
       !---------------------------------------------------------------------!
       !--- code to create type um1% conaining UM basic vars describing    --! 
@@ -348,8 +347,6 @@ CALL initialize_veg( kblum_veg%htveg , land_pts, npft, ntiles, sm_levels, mp,   
  
       IF( first_call ) THEN
 !CBL3call spec_init_soil_snow( real(kwidth_gl), soil_cbl, ssnow_cbl, canopy_cbl, met_cbl, bal_cbl, veg_cbl,heat_cap_loower_limit)
-!draft1!call spec_init_soil_snow( real(kwidth_gl), soil, ssnow, canopy, met, bal, veg, &
-!draft1!        heat_cap_lower_limit )
          CALL init_bgc_vars() 
          CALL init_sumflux_zero() 
 

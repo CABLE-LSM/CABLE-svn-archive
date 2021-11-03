@@ -181,8 +181,8 @@ END TYPE vegin_type
           soilcol, & ! keep color for all patches/tiles
           albsoilf   ! soil reflectance
 
-     REAL, DIMENSION(:,:), POINTER :: &
-          heat_cap_lower_limit
+     !REAL, DIMENSION(:,:), POINTER :: &
+     !     heat_cap_lower_limit
 
      REAL, DIMENSION(:,:), POINTER :: &
           zse_vec,css_vec,cnsd_vec
