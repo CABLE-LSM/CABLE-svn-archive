@@ -197,7 +197,7 @@ USE snowdensity_mod,              ONLY: snowDensity
 
    CALL remove_trans(dels, soil, ssnow, canopy, veg)
 
-   CALL  soilfreeze(dels, soil, ssnow)
+   CALL  soilfreeze(dels, soil, ssnow, heat_cap_lower_limit)
 
 
    totwet = canopy%precis + ssnow%smelt 

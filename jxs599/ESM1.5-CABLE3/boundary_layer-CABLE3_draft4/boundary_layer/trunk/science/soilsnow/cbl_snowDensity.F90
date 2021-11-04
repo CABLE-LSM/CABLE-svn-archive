@@ -1,6 +1,8 @@
 MODULE snowdensity_mod
 
-USE cable_soil_snow_data_mod
+USE cbl_ssnow_data_mod
+
+PUBLIC  snowdensity
 
 CONTAINS
 
@@ -13,13 +15,9 @@ IMPLICIT NONE
     
    TYPE(soil_parameter_type), INTENT(INOUT) :: soil
 
-   INTEGER, DIMENSION(mp,3) :: ssnow_isflag_ssdn 
    REAL, DIMENSION(mp) :: ssnow_tgg_min1
-   REAL, DIMENSION(mp,3) :: dels_ssdn, ssnow_tgg_min
-     
-   ssnow_isflag_ssdn = SPREAD( ssnow%isflag,2,mp) 
+   REAL, DIMENSION(mp,3) :: ssnow_tgg_min
    
-   dels_ssdn = SPREAD( SPREAD( dels, 1, mp ), 2,  mp ) 
    ssnow_tgg_min1 = MIN( CTFRZ, ssnow%tgg(:,1) )
    
    WHERE( ssnow%snowd > 0.1 .AND. ssnow%isflag == 0 )

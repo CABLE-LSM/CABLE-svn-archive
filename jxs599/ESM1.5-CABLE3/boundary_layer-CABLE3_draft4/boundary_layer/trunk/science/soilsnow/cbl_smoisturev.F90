@@ -1,9 +1,13 @@
 MODULE smoisturev_mod
 
-USE cable_soil_snow_data_mod
+USE cbl_ssnow_data_mod
+
+PUBLIC  smoisturev
 
 CONTAINS
 
+!      Solves implicit soil moisture equation
+!      Science development by Eva Kowalczyk and John McGregor, CMAR
 SUBROUTINE smoisturev (dels,ssnow,soil,veg)
    
    USE cable_common_module
@@ -81,13 +85,10 @@ IMPLICIT NONE
       dtt           !
    
    LOGICAL :: is_open     ! Is file open?
-   
    INTEGER ::                                                                  &
       u,    & ! I/O unit
       k
    
-
-
    at = 0.0
    bt = 1.0
    ct = 0.0
@@ -95,6 +96,10 @@ IMPLICIT NONE
    z1mult(:,ms+1) = 0.0    ! corresponds to 2b+3
    z1(:,1) = 0.0           ! i.e. K(.5),    value at surface
    z1(:,ms+1) = 0.0        ! i.e. K(ms+.5), value at bottom
+    z2(:,1) = 0.0           ! i.e. K(.5),    value at surface
+    z2(:,ms+1) = 0.0        ! i.e. K(ms+.5), value at bottom
+    z3(:,1) = 0.0           ! i.e. K(.5),    value at surface
+    z3(:,ms+1) = 0.0        ! i.e. K(ms+.5), value at bottom
 
    ! nmeth: equation solution technique
    IF (nmeth <= 0) THEN
@@ -164,12 +169,12 @@ IMPLICIT NONE
          hydss = soil%hyds
     
          speed_k = hydss * ( wh / soil%ssat )**( soil%i2bp3 - 1 )
-         speed_k =  0.5 * speed_k / ( 1. - MIN( 0.5, 10. * ssnow%wbice(:,ms) ) )
+             speed_k =  0.5 * speed_k / ( 1. - MIN( 0.5_r_2, 10. * ssnow%wbice(:,ms) ) )
          fluxlo = wbl_k
          
          ! scale speed to grid lengths per dt & limit speed for stability
-         speed_k = MIN( 0.5 * speed_k, 0.5 * soil%zse(ms) / dels )
-         fluxh(:,ms) = MAX( 0.0, speed_k * fluxlo )
+             speed_k = MIN( 0.5 * speed_k, 0.5_r_2 * soil%zse(ms) / dels )
+             fluxh(:,ms) = MAX( 0.0_r_2, speed_k * fluxlo )
      
       END WHERE
 
@@ -188,12 +193,12 @@ IMPLICIT NONE
          hydss = soil%hyds
 
          speed_k = hydss * ( wh / soil%ssat )**( soil%i2bp3 - 1 )
-         speed_k =  speed_k / ( 1. - MIN( 0.5, 10. * ssnow%wbice(:,ms) ) )
+             speed_k =  speed_k / ( 1. - MIN( 0.5_r_2, 10. * ssnow%wbice(:,ms) ) )
          fluxlo = wbl_k
 
          ! scale speed to grid lengths per dt & limit speed for stability
-         speed_k = MIN( speed_k, 0.5 * soil%zse(ms) / dels )
-         fluxh(:,ms) = MAX( 0.0, speed_k * fluxlo )
+             speed_k = MIN( speed_k, REAL(0.5 * soil%zse(ms) / dels, r_2) )
+             fluxh(:,ms) = MAX( 0.0_r_2, speed_k * fluxlo )
 
       END WHERE
 
@@ -250,9 +255,9 @@ IMPLICIT NONE
       END DO
 
       bt = 1. - at - ct
-      ssnow%wblf(:,1) = ssnow%wblf(:,1) + dtt(:,1) * ssnow%fwtop1 / rhowat
-      ssnow%wblf(:,2) = ssnow%wblf(:,2) + dtt(:,2) * ssnow%fwtop2 / rhowat
-      ssnow%wblf(:,3) = ssnow%wblf(:,3) + dtt(:,3) * ssnow%fwtop3 / rhowat
+       ssnow%wblf(:,1) = ssnow%wblf(:,1) + dtt(:,1) * ssnow%fwtop1 / Cdensity_liq
+       ssnow%wblf(:,2) = ssnow%wblf(:,2) + dtt(:,2) * ssnow%fwtop2 / Cdensity_liq
+       ssnow%wblf(:,3) = ssnow%wblf(:,3) + dtt(:,3) * ssnow%fwtop3 / Cdensity_liq
     
    END IF
    ! END: IF (nmeth <= 0) THEN
@@ -271,7 +276,7 @@ IMPLICIT NONE
          
          ssnow%wbfice(:,k) = REAL( ssnow%wbice(:,k) ) / soil%ssat
          
-         wbficemx = MAX( wbficemx, ssnow%wbfice(:,k) )
+          wbficemx = MAX( wbficemx, REAL(ssnow%wbfice(:,k)) )
          dtt(:,k) = dels / ( soil%zse(k) * ssatcurr(:,k) )
       
       END DO
@@ -412,9 +417,9 @@ IMPLICIT NONE
          END DO
       END IF
    
-      ssnow%wblf(:,1) = ssnow%wblf(:,1) + dtt(:,1) * ssnow%fwtop1 / rhowat
-      ssnow%wblf(:,2) = ssnow%wblf(:,2) + dtt(:,2) * ssnow%fwtop2 / rhowat
-      ssnow%wblf(:,3) = ssnow%wblf(:,3) + dtt(:,3) * ssnow%fwtop3 / rhowat
+       ssnow%wblf(:,1) = ssnow%wblf(:,1) + dtt(:,1) * ssnow%fwtop1 / Cdensity_liq
+       ssnow%wblf(:,2) = ssnow%wblf(:,2) + dtt(:,2) * ssnow%fwtop2 / Cdensity_liq
+       ssnow%wblf(:,3) = ssnow%wblf(:,3) + dtt(:,3) * ssnow%fwtop3 / Cdensity_liq
     
    END IF  ! IF (nmeth > 0)
 

@@ -1,6 +1,8 @@
 MODULE snow_melting_mod
 
-USE cable_soil_snow_data_mod
+USE cbl_ssnow_data_mod
+
+PUBLIC  snow_melting
 
 CONTAINS
 
@@ -58,20 +60,20 @@ IMPLICIT NONE
       !where there is snow 
       WHERE( ssnow%snowd > 0.0 .AND. ssnow%isflag > 0 )
 
-         sgamm = ssnow%ssdn(:,k) * cgsnow * ssnow%sdepth(:,k)
+          sgamm = ssnow%ssdn(:,k) * Ccgsnow * ssnow%sdepth(:,k)
        
          ! snow melt refreezing
          snowflx = smelt1(:,k-1) * CHLF / dels
 
          ssnow%tggsn(:,k) = ssnow%tggsn(:,k) + ( snowflx * dels +              &
-                            smelt1(:,k-1)*cswat *( CTFRZ-ssnow%tggsn(:,k) ) ) &
-                            / ( sgamm + cswat*smelt1(:,k-1) )
+               smelt1(:,k-1)*Ccswat *( CTFRZ-ssnow%tggsn(:,k) ) ) &
+               / ( sgamm + Ccswat*smelt1(:,k-1) )
          
          ! increase density due to snowmelt
          osm = ssnow%smass(:,k)
          ssnow%smass(:,k) = ssnow%smass(:,k) + smelt1(:,k-1)
          ssnow%ssdn(:,k) = MAX( 120.0, MIN( ssnow%ssdn(:,k) * osm /            &
-                           ssnow%smass(:,k) + rhowat * ( 1.0 - osm /           &
+               ssnow%smass(:,k) + Cdensity_liq * ( 1.0 - osm /           &
                            ssnow%smass(:,k)), max_ssdn ) )
 
          ! permanent ice: fix hard-wired number in next version
@@ -80,7 +82,7 @@ IMPLICIT NONE
 
          ssnow%sdepth(:,k) = ssnow%smass(:,k) / ssnow%ssdn(:,k)
          
-         sgamm = ssnow%smass(:,k) * cgsnow
+          sgamm = ssnow%smass(:,k) * Ccgsnow
         
          smelt1(:,k-1) = 0.0
          smelt1(:,k) = 0.0

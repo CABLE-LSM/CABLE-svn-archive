@@ -1,6 +1,8 @@
 MODULE snowl_adjust_mod
 
-USE cable_soil_snow_data_mod
+USE cbl_ssnow_data_mod
+
+PUBLIC  snowl_adjust
 
 CONTAINS
 

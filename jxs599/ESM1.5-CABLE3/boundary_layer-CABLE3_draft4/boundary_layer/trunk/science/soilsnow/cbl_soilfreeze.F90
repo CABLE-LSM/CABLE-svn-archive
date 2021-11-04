@@ -1,10 +1,12 @@
 MODULE soilfreeze_mod
 
-USE cable_soil_snow_data_mod
+USE cbl_ssnow_data_mod
+
+PUBLIC  soilfreeze
 
 CONTAINS
 
-SUBROUTINE soilfreeze(dels, soil, ssnow)
+SUBROUTINE soilfreeze(dels, soil, ssnow,heat_cap_lower_limit)
    USE cable_common_module
 IMPLICIT NONE
    REAL, INTENT(IN)                    :: dels ! integration time step (s)
@@ -14,6 +16,7 @@ IMPLICIT NONE
    REAL(r_2), DIMENSION(mp)           :: sicemelt
    REAL, DIMENSION(mp)           :: xx
    INTEGER k
+REAL :: heat_cap_lower_limit
 
    xx = 0.
    DO k = 1, ms
@@ -27,14 +30,14 @@ IMPLICIT NONE
          ssnow%wbice(:,k) = MIN( ssnow%wbice(:,k) + sicefreeze / (soil%zse(k)  &
                             * 1000.0), frozen_limit * ssnow%wb(:,k) )
          xx = soil%css * soil%rhosoil
-         ssnow%gammzz(:,k) = MAX(                                              &
+          ssnow%gammzz(:,k) = MAX((heat_cap_lower_limit),           &
              REAL((1.0 - soil%ssat) * soil%css * soil%rhosoil ,r_2)            &
-             + (ssnow%wb(:,k) - ssnow%wbice(:,k)) * REAL(cswat * rhowat,r_2)   &
-             + ssnow%wbice(:,k) * REAL(csice * rhowat * 0.9,r_2),              &
-             REAL(xx,r_2)) * REAL( soil%zse(k),r_2 )
+               + (ssnow%wb(:,k) - ssnow%wbice(:,k)) * REAL(Ccswat * Cdensity_liq,r_2)   &
+               + ssnow%wbice(:,k) * REAL(Ccsice * Cdensity_liq * 0.9,r_2))* &
+               REAL( soil%zse(k),r_2 )
 
          WHERE (k == 1 .AND. ssnow%isflag == 0)
-            ssnow%gammzz(:,k) = ssnow%gammzz(:,k) + cgsnow * ssnow%snowd
+             ssnow%gammzz(:,k) = ssnow%gammzz(:,k) + Ccgsnow * ssnow%snowd
          END WHERE
          ssnow%tgg(:,k) = ssnow%tgg(:,k) + REAL(sicefreeze)                    &
                           * CHLF / REAL(ssnow%gammzz(:,k) )
@@ -47,13 +50,13 @@ IMPLICIT NONE
          ssnow%wbice(:,k) = MAX( 0.0_r_2, ssnow%wbice(:,k) - sicemelt          &
                             / (soil%zse(k) * 1000.0) )
          xx = soil%css * soil%rhosoil
-         ssnow%gammzz(:,k) = MAX(                                              &
+          ssnow%gammzz(:,k) = MAX((heat_cap_lower_limit),       &
               REAL((1.0-soil%ssat) * soil%css * soil%rhosoil,r_2)             &
-              + (ssnow%wb(:,k) - ssnow%wbice(:,k)) * REAL(cswat*rhowat,r_2)   &
-              + ssnow%wbice(:,k) * REAL(csice * rhowat * 0.9,r_2),            &
-              REAL(xx,r_2) ) * REAL(soil%zse(k),r_2)
+               + (ssnow%wb(:,k) - ssnow%wbice(:,k)) * REAL(Ccswat*Cdensity_liq,r_2)   &
+               + ssnow%wbice(:,k) * REAL(Ccsice * Cdensity_liq * 0.9,r_2))            &
+               * REAL(soil%zse(k),r_2)
          WHERE (k == 1 .AND. ssnow%isflag == 0)
-            ssnow%gammzz(:,k) = ssnow%gammzz(:,k) + cgsnow * ssnow%snowd
+             ssnow%gammzz(:,k) = ssnow%gammzz(:,k) + Ccgsnow * ssnow%snowd
          END WHERE
          ssnow%tgg(:,k) = ssnow%tgg(:,k) - REAL(sicemelt)                     &
                           * CHLF / REAL(ssnow%gammzz(:,k))
