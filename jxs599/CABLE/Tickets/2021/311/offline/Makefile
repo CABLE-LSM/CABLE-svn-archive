@@ -148,7 +148,7 @@ cbl_remove_trans.o: cbl_remove_trans.F90 cbl_soilsnow_data.o cable_define_types.
 cbl_hyd_redistrib.o: cbl_hyd_redistrib.F90 cbl_soilsnow_data.o cable_define_types.o cable_common.o 
 cbl_conductivity.o: cbl_conductivity.F90 cbl_soilsnow_data.o cable_define_types.o
 cbl_Oldconductivity.o: cbl_Oldconductivity.F90 cbl_soilsnow_data.o cable_define_types.o
-cbl_GW.o: cbl_GW.F90 cbl_soilsnow_data.o cbl_Oldconductivity.o cbl_conductivity.o cable_define_types.o cable_common.o 
+cbl_GW.o: cbl_GW.F90 cbl_soilsnow_data.o cbl_trimb.o cbl_Oldconductivity.o cbl_conductivity.o cable_define_types.o cable_common.o 
 cbl_thermal.o: cbl_thermal.F90 cbl_soilsnow_data.o cbl_snowCheck.o cbl_snowDensity.o cbl_snowAccum.o cbl_snowMelt.o cbl_snowl_adjust.o 
 cbl_surfbv.o: cbl_surfbv.F90 cbl_soilsnow_data.o cable_define_types.o cable_common.o cbl_smoisturev.o
 cbl_stempv.o: cbl_stempv.F90 cbl_trimb.o cbl_soilsnow_data.o cbl_conductivity.o cbl_Oldconductivity.o
