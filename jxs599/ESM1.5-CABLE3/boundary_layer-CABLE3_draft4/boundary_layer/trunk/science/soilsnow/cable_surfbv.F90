@@ -1,6 +1,6 @@
 MODULE surfbv_mod
 
-USE cable_soil_snow_data_mod
+USE cbl_ssnow_data_mod
 
 PUBLIC  surfbv
 
@@ -22,8 +22,8 @@ IMPLICIT NONE
    TYPE(veg_parameter_type),  INTENT(IN)     :: veg
    TYPE(soil_parameter_type), INTENT(INOUT)  :: soil  ! soil parameters
 
-!jhan:cable.nml
-   INTEGER, PARAMETER      :: nglacier = 2 ! 0 original, 1 off, 2 new Eva
+    !jhan:cable.nml
+    INTEGER            :: nglacier  ! 0 original, 1 off, 2 new Eva
 
    REAL, DIMENSION(mp) ::                                                      &
       rnof5,      & !
@@ -31,13 +31,20 @@ IMPLICIT NONE
       sgamm,      & !
       smasstot,   & !
       talb,       & ! snow albedo
-      tmp,        & ! temporary value
-      xxx           !
+         tmp           ! temporary value
+    REAL(r_2), DIMENSION(mp) :: xxx
 
    REAL, DIMENSION(mp,0:3) :: smelt1
     
    REAL :: wb_lake_T, rnof2_T, ratio
    INTEGER :: k,j
+
+    IF( cable_runtime%UM ) THEN
+       nglacier = 0
+    ELSE
+       nglacier = 2
+    ENDIF
+    IF( cable_runtime%esm15 ) nglacier = 2
 
    CALL smoisturev( dels, ssnow, soil, veg )
 
@@ -45,7 +52,7 @@ IMPLICIT NONE
       xxx = REAL( soil%ssat,r_2 )
       ssnow%rnof1 = ssnow%rnof1 + REAL( MAX( ssnow%wb(:,k) - xxx, 0.0_r_2 )  &
                     * 1000.0 )  * soil%zse(k)
-      ssnow%wb(:,k) = MAX( 0.01, MIN( ssnow%wb(:,k), xxx ) )
+       ssnow%wb(:,k) = MAX( 0.01_r_2, MIN( ssnow%wb(:,k), xxx ) )
    END DO
 
    ! for deep runoff use wb-sfc, but this value not to exceed .99*wb-wbice
@@ -56,7 +63,7 @@ IMPLICIT NONE
    ! ssnow%rnof1 = (1. - fracm) * ssnow%rnof1 
 
    ! Scaling  runoff to kg/m^2/s to match rest of the model
-!jhan:replace nested wheres 
+    !jhan:replace nested wheres
 
    !---  glacier formation
    rnof5= 0.
@@ -83,7 +90,7 @@ IMPLICIT NONE
       DO k = 1, 3
          
          WHERE( ssnow%snowd > max_glacier_snowd  .AND.  ssnow%isflag > 0 )
-            sgamm = ssnow%ssdn(:,k) * cgsnow * ssnow%sdepth(:,k)
+             sgamm = ssnow%ssdn(:,k) * Ccgsnow * ssnow%sdepth(:,k)
             smelt1(:,k) = MIN( rnof5 * ssnow%smass(:,k) / smasstot,            &
                           0.2 * ssnow%smass(:,k) )
             ssnow%smass(:,k) = ssnow%smass(:,k) - smelt1(:,k)
@@ -96,7 +103,7 @@ IMPLICIT NONE
    
    END IF
 
-!  Rescale drainage to remove water added to lakes (wb_lake) 
+    !  Rescale drainage to remove water added to lakes (wb_lake)
    ssnow%sinfil = 0.0
    WHERE( veg%iveg == 16 )
       ssnow%sinfil  = MIN( ssnow%rnof1, ssnow%wb_lake ) ! water that can be extracted from the rnof1
@@ -105,12 +112,12 @@ IMPLICIT NONE
       ssnow%sinfil  = MIN( ssnow%rnof2, ssnow%wb_lake ) ! water that can be extracted from the rnof2
       ssnow%rnof2   = MAX( 0.0, ssnow%rnof2 - ssnow%sinfil )
       ssnow%wb_lake = MAX( 0.0, ssnow%wb_lake - ssnow%sinfil)
-      xxx = MAX(0.0, (ssnow%wb(:,ms) - soil%sfc(:))*soil%zse(ms)*1000.0)
-      ssnow%sinfil  = MIN( xxx, ssnow%wb_lake )
-      ssnow%wb(:,ms) = ssnow%wb(:,ms) - ssnow%sinfil / (soil%zse(ms)*1000.0)
+       xxx = MAX(0.0_r_2, (ssnow%wb(:,ms) - REAL(soil%sfc(:),r_2))*soil%zse(ms)*1000.0)
+       ssnow%sinfil  = MIN( REAL(xxx), ssnow%wb_lake )
+       ssnow%wb(:,ms) = ssnow%wb(:,ms) - REAL(ssnow%sinfil / (soil%zse(ms)*1000.0), r_2)
       ssnow%wb_lake = MAX( 0.0, ssnow%wb_lake - ssnow%sinfil)
-      xxx = MAX(0.0, (ssnow%wb(:,ms) - .5*(soil%sfc + soil%swilt))*soil%zse(ms)*1000.0)
-      ssnow%sinfil  = MIN( xxx, ssnow%wb_lake )
+       xxx = MAX(0.0_r_2, (ssnow%wb(:,ms) - 0.5*(soil%sfc + soil%swilt))*soil%zse(ms)*1000.0)
+       ssnow%sinfil  = MIN( REAL(xxx), ssnow%wb_lake )
       ssnow%wb(:,ms) = ssnow%wb(:,ms) - ssnow%sinfil / (soil%zse(ms)*1000.0)
       ssnow%wb_lake = MAX( 0.0, ssnow%wb_lake - ssnow%sinfil)
    ENDWHERE
@@ -121,7 +128,7 @@ IMPLICIT NONE
    !ssnow%rnof2 = ssnow%rnof2 - ratio*ssnow%rnof2
    !ssnow%wb_lake = MAX( 0.0, ssnow%wb_lake - ratio*ssnow%rnof2)
 
-!  Rescale drainage to remove water added to lakes (wb_lake)
+    !  Rescale drainage to remove water added to lakes (wb_lake)
    !wb_lake_T = 0.0
    !rnof2_T = 0.
    !DO j=1,mp
@@ -136,6 +143,6 @@ IMPLICIT NONE
    ssnow%rnof2 = ssnow%rnof2 / dels
    ssnow%runoff = ssnow%rnof1 + ssnow%rnof2 
 
-END SUBROUTINE surfbv
+  END SUBROUTINE surfbv
 
 END MODULE surfbv_mod
