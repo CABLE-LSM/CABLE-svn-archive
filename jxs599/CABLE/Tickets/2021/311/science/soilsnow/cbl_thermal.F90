@@ -2,9 +2,21 @@ MODULE snow_processes_soil_thermal_mod
 
 USE cbl_ssnow_data_mod
 
+PUBLIC snow_processes_soil_thermal
+
 CONTAINS
 
 SUBROUTINE snow_processes_soil_thermal(dels,ssnow,soil,veg,canopy,met,bal,snowmlt)
+
+USE snowl_adjust_mod,             ONLY: snowl_adjust
+USE snowCheck_mod,                ONLY: snowCheck
+USE snow_melting_mod,             ONLY: snow_melting
+USE snow_accum_mod,               ONLY: snow_accum
+USE snowdensity_mod,              ONLY: snowDensity
+USE GWstempv_mod,                 ONLY: GWstempv
+
+IMPLICIT NONE
+
     REAL, INTENT(IN)                    :: dels ! integration time step (s)
     TYPE(soil_parameter_type), INTENT(INOUT) :: soil
     TYPE(soil_snow_type), INTENT(INOUT)      :: ssnow

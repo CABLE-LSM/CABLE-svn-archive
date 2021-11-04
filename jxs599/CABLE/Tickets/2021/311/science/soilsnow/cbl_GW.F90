@@ -7,7 +7,11 @@ PUBLIC  GWstempv
 CONTAINS
 
 SUBROUTINE GWstempv(dels, canopy, ssnow, soil)
-    USE cable_common_module, ONLY: cable_user
+USE cable_common_module,         ONLY: cable_user
+USE total_soil_conductivity_mod, ONLY: total_soil_conductivity
+USE old_soil_conductivity_mod,   ONLY: old_soil_conductivity
+USE trimb_mod,                   ONLY : trimb
+
     REAL, INTENT(IN) :: dels ! integration time step (s)
 
     TYPE(canopy_type),    INTENT(INOUT) :: canopy
