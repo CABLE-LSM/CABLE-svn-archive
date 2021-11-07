@@ -5,6 +5,7 @@ USE cable_def_types_mod, ONLY : soil_snow_type, soil_parameter_type,        &
        balances_type, r_2, ms, mp
 !distribute these per sbr
 USE cable_phys_constants_mod, ONLY : CTFRZ => TFRZ
+USE cable_phys_constants_mod, ONLY : CCAPP => CAPP
 USE cable_phys_constants_mod, ONLY : CHL => HL
 USE cable_phys_constants_mod, ONLY : CHLF => HLF
 USE cable_phys_constants_mod, ONLY : Cdensity_liq => density_liq
@@ -20,6 +21,6 @@ USE cable_common_module, ONLY: cable_user,snow_ccnsw,snmin,&
 
 IMPLICIT NONE
 
-REAL, PARAMETER ::  heat_cap_lower_limit = 0.01  !never allow /0
+REAL, ALLOCATABLE :: heat_cap_lower_limit(:,:)
 
 END MODULE cbl_ssnow_data_mod

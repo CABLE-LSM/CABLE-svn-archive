@@ -16,7 +16,7 @@ IMPLICIT NONE
    REAL(r_2), DIMENSION(mp)           :: sicemelt
    REAL, DIMENSION(mp)           :: xx
    INTEGER k
-REAL :: heat_cap_lower_limit
+REAL :: heat_cap_lower_limit(mp,ms)
 
    xx = 0.
    DO k = 1, ms
@@ -30,7 +30,7 @@ REAL :: heat_cap_lower_limit
          ssnow%wbice(:,k) = MIN( ssnow%wbice(:,k) + sicefreeze / (soil%zse(k)  &
                             * 1000.0), frozen_limit * ssnow%wb(:,k) )
          xx = soil%css * soil%rhosoil
-          ssnow%gammzz(:,k) = MAX((heat_cap_lower_limit),           &
+          ssnow%gammzz(:,k) = MAX((heat_cap_lower_limit(:,k)),           &
              REAL((1.0 - soil%ssat) * soil%css * soil%rhosoil ,r_2)            &
                + (ssnow%wb(:,k) - ssnow%wbice(:,k)) * REAL(Ccswat * Cdensity_liq,r_2)   &
                + ssnow%wbice(:,k) * REAL(Ccsice * Cdensity_liq * 0.9,r_2))* &
@@ -50,7 +50,7 @@ REAL :: heat_cap_lower_limit
          ssnow%wbice(:,k) = MAX( 0.0_r_2, ssnow%wbice(:,k) - sicemelt          &
                             / (soil%zse(k) * 1000.0) )
          xx = soil%css * soil%rhosoil
-          ssnow%gammzz(:,k) = MAX((heat_cap_lower_limit),       &
+          ssnow%gammzz(:,k) = MAX((heat_cap_lower_limit(:,k)),       &
               REAL((1.0-soil%ssat) * soil%css * soil%rhosoil,r_2)             &
                + (ssnow%wb(:,k) - ssnow%wbice(:,k)) * REAL(Ccswat*Cdensity_liq,r_2)   &
                + ssnow%wbice(:,k) * REAL(Ccsice * Cdensity_liq * 0.9,r_2))            &
