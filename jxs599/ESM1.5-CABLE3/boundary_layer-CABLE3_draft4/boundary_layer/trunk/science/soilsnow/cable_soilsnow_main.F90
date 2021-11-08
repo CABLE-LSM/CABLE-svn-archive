@@ -1,38 +1,20 @@
 MODULE cbl_soil_snow_main_module
    
+USE cbl_ssnow_data_mod
+USE cable_data_module, ONLY : issnow_type, point2constants
+
+IMPLICIT NONE
+
+PRIVATE
+
+PUBLIC soil_snow ! must be available outside this module
+
+
    
-   USE cable_def_types_mod, ONLY : soil_snow_type, soil_parameter_type,        &
-                             veg_parameter_type, canopy_type, met_type,        &
-                             balances_type, r_2, ms, mp           
-   USE cable_data_module, ONLY : issnow_type, point2constants
-USE cbl_ssnow_data_mod, ONLY: heat_cap_lower_limit
-
-
-   IMPLICIT NONE
-
-   PRIVATE
-
-   TYPE ( issnow_type ) :: C 
-   
-   REAL, PARAMETER ::                                                          &
-      cgsnow = 2090.0,     & ! specific heat capacity for snow
-      csice = 2.100e3,     & ! specific heat capacity for ice
-      cswat = 4.218e3,     & ! specific heat capacity for water
-      rhowat = 1000.0,     & ! density of water
-      snmin = 1.,          & ! for 3-layer;
-      max_ssdn = 750.0,    & !
-      max_sconds = 2.51,   & !
-      frozen_limit = 0.85    ! EAK Feb2011 (could be 0.95)
-   
-   REAL :: cp    ! specific heat capacity for air
-   
-   !jhan:make parameter
-   REAL :: max_glacier_snowd
- 
-   ! This module contains the following subroutines:
-   PUBLIC soil_snow ! must be available outside this module
-
 CONTAINS
+
+
+
 
 
   ! Inputs:
@@ -79,8 +61,6 @@ USE snowdensity_mod,              ONLY: snowDensity
    INTEGER, SAVE :: ktau =0 
 REAL :: wbliq(mp,ms)
    
-   CALL point2constants( C ) 
-   cp = C%CAPP
   IF(.NOT. ALLOCATED(heat_cap_lower_limit)) THEN
     ALLOCATE( heat_cap_lower_limit(mp,ms) )
   END IF  
@@ -110,67 +90,16 @@ REAL :: wbliq(mp,ms)
    ssnow%osnowd = ssnow%snowd
 
 
-   IF( .NOT.cable_user%cable_runtime_coupled ) THEN
-   
-      IF( ktau_gl <= 1 ) THEN
-         
-         IF (cable_runtime%um) canopy%dgdtg = 0.0 ! RML added um condition
-                                                  ! after discussion with BP
-         ! N.B. snmin should exceed sum of layer depths, i.e. .11 m
-         ssnow%wbtot = 0.0
-         DO k = 1, ms
-            ssnow%wb(:,k)  = MIN( soil%ssat,MAX ( ssnow%wb(:,k), soil%swilt ))
-         END DO
-   
-         ssnow%wb(:,ms-2)  = MIN( soil%ssat, MAX ( ssnow%wb(:,ms-2),           &
-                             0.5 * ( soil%sfc + soil%swilt ) ) )
-         ssnow%wb(:,ms-1)  = MIN( soil%ssat, MAX ( ssnow%wb(:,ms-1),           &
-                             0.8 * soil%sfc ) )
-         ssnow%wb(:,ms)    = MIN( soil%ssat, MAX ( ssnow%wb(:,ms), soil%sfc) )
-         
-         DO k = 1, ms
-            
-            WHERE( ssnow%tgg(:,k) <= C%TFRZ .AND. ssnow%wbice(:,k) <= 0.01 )   &
-               ssnow%wbice(:,k) = 0.5 * ssnow%wb(:,k)
-            
-            WHERE( ssnow%tgg(:,k) < C%TFRZ)                                    &
-               ssnow%wbice(:,k) = frozen_limit * ssnow%wb(:,k)
-            
-         END DO
-   
-         WHERE (soil%isoilm == 9) 
-            ! permanent ice: fix hard-wired number in next version
-            ssnow%snowd = max_glacier_snowd
-            ssnow%osnowd = max_glacier_snowd
-            ssnow%tgg(:,1) = ssnow%tgg(:,1) - 1.0
-            ssnow%wb(:,1) = 0.95 * soil%ssat
-            ssnow%wb(:,2) = 0.95 * soil%ssat
-            ssnow%wb(:,3) = 0.95 * soil%ssat
-            ssnow%wb(:,4) = 0.95 * soil%ssat
-            ssnow%wb(:,5) = 0.95 * soil%ssat
-            ssnow%wb(:,6) = 0.95 * soil%ssat
-            ssnow%wbice(:,1) = 0.90 * ssnow%wb(:,1)
-            ssnow%wbice(:,2) = 0.90 * ssnow%wb(:,2)
-            ssnow%wbice(:,3) = 0.90 * ssnow%wb(:,3)
-            ssnow%wbice(:,4) = 0.90 * ssnow%wb(:,4)
-            ssnow%wbice(:,5) = 0.90 * ssnow%wb(:,5)
-            ssnow%wbice(:,6) = 0.90 * ssnow%wb(:,6)
-         ENDWHERE
-         
-         xx=soil%css * soil%rhosoil
-         
-         ssnow%gammzz(:,1) = MAX( (1.0 - soil%ssat) * soil%css * soil%rhosoil &
-              & + (ssnow%wb(:,1) - ssnow%wbice(:,1) ) * cswat * rhowat &
-              & + ssnow%wbice(:,1) * csice * rhowat * .9, xx ) * soil%zse(1)
-      END IF
-   ENDIF  ! if(.NOT.cable_runtime_coupled)
+  wbliq = ssnow%wb - ssnow%wbice
+
+  !%cable_runtime_coupled special initalizations in um_init NA for ESM1.5
 
    xx=soil%css * soil%rhosoil
    IF (ktau <= 1)                                                              &
      ssnow%gammzz(:,1) = MAX( (1.0 - soil%ssat) * soil%css * soil%rhosoil      &
-            & + (ssnow%wb(:,1) - ssnow%wbice(:,1) ) * cswat * rhowat           &
-            & + ssnow%wbice(:,1) * csice * rhowat * .9, xx ) * soil%zse(1) +   &
-            & (1. - ssnow%isflag) * cgsnow * ssnow%snowd
+            & + (ssnow%wb(:,1) - ssnow%wbice(:,1) ) * Ccswat * Cdensity_liq           &
+            & + ssnow%wbice(:,1) * Ccsice * Cdensity_liq * .9, xx ) * soil%zse(1) +   &
+            & (1. - ssnow%isflag) * Ccgsnow * ssnow%snowd
 
 
 
@@ -216,14 +145,14 @@ REAL :: wbliq(mp,ms)
    totwet = canopy%precis + ssnow%smelt 
    
    ! total available liquid including puddle
-   weting = totwet + max(0.,ssnow%pudsto - canopy%fesp/C%HL*dels) 
+   weting = totwet + max(0.,ssnow%pudsto - canopy%fesp/CHL*dels) 
    xxx=soil%ssat - ssnow%wb(:,1)
   
-   sinfil1 = MIN( 0.95*xxx*soil%zse(1)*rhowat, weting) !soil capacity
+   sinfil1 = MIN( 0.95*xxx*soil%zse(1)*Cdensity_liq, weting) !soil capacity
    xxx=soil%ssat - ssnow%wb(:,2)
-   sinfil2 = MIN( 0.95*xxx*soil%zse(2)*rhowat, weting - sinfil1) !soil capacity
+   sinfil2 = MIN( 0.95*xxx*soil%zse(2)*Cdensity_liq, weting - sinfil1) !soil capacity
    xxx=soil%ssat - ssnow%wb(:,3)
-   sinfil3 = MIN( 0.95*xxx*soil%zse(3)*rhowat,weting-sinfil1-sinfil2)
+   sinfil3 = MIN( 0.95*xxx*soil%zse(3)*Cdensity_liq,weting-sinfil1-sinfil2)
    
    ! net water flux to the soil
    ssnow%fwtop1 = sinfil1 / dels - canopy%segg          
