@@ -6,10 +6,9 @@ PUBLIC  snow_accum
 
 CONTAINS 
 
+  SUBROUTINE snow_accum ( dels,  canopy, met, ssnow, soil )
 
-SUBROUTINE snow_accum ( dels,  canopy, met, ssnow, soil )
-USE cable_common_module
-IMPLICIT NONE
+    USE cable_common_module
 
     REAL, INTENT(IN) :: dels ! integration time step (s)
 
@@ -182,7 +181,6 @@ IMPLICIT NONE
        ENDIF
 
     ENDDO
-
-END SUBROUTINE snow_accum
+  END SUBROUTINE snow_accum
 
 END MODULE snow_accum_mod

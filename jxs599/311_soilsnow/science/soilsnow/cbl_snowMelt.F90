@@ -9,7 +9,6 @@ CONTAINS
 SUBROUTINE snow_melting (dels, snowmlt, ssnow, soil )
 
     USE cable_common_module
-IMPLICIT NONE
 
     REAL, INTENT(IN) :: dels   ! integration time step (s)
 
@@ -117,6 +116,7 @@ IMPLICIT NONE
        ssnow%snowd = ssnow%snowd - snowmlt
     END WHERE
 
-END SUBROUTINE snow_melting
+  END SUBROUTINE snow_melting
 
 END MODULE snow_melting_mod
+

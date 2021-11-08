@@ -8,7 +8,6 @@ CONTAINS
 
 SUBROUTINE snowl_adjust(dels, ssnow, canopy )
 
-IMPLICIT NONE
     REAL, INTENT(IN) :: dels ! integration time step (s)
 
     TYPE(soil_snow_type), INTENT(INOUT) :: ssnow
@@ -153,6 +152,7 @@ IMPLICIT NONE
 
     END DO
 
-END SUBROUTINE snowl_adjust
+  END SUBROUTINE snowl_adjust
 
 END MODULE snowl_adjust_mod
+
