@@ -1,7 +1,6 @@
 MODULE cbl_soil_snow_main_module
    
 USE cbl_ssnow_data_mod
-USE cable_data_module, ONLY : issnow_type, point2constants
 
 IMPLICIT NONE
 
@@ -12,9 +11,6 @@ PUBLIC soil_snow ! must be available outside this module
 
    
 CONTAINS
-
-
-
 
 
   ! Inputs:
@@ -145,7 +141,7 @@ REAL :: wbliq(mp,ms)
    totwet = canopy%precis + ssnow%smelt 
    
    ! total available liquid including puddle
-   weting = totwet + max(0.,ssnow%pudsto - canopy%fesp/CHL*dels) 
+    weting = totwet + MAX(0._r_2,ssnow%pudsto - canopy%fesp/CHL*dels)
    xxx=soil%ssat - ssnow%wb(:,1)
   
    sinfil1 = MIN( 0.95*xxx*soil%zse(1)*Cdensity_liq, weting) !soil capacity
@@ -160,7 +156,7 @@ REAL :: wbliq(mp,ms)
    ssnow%fwtop3 = sinfil3 / dels           
 
    ! Puddle for the next time step
-   ssnow%pudsto = max( 0., weting - sinfil1 - sinfil2 - sinfil3 )
+    ssnow%pudsto = MAX( 0._r_2, weting - sinfil1 - sinfil2 - sinfil3 )
    ssnow%rnof1 = max(0.,ssnow%pudsto - ssnow%pudsmx)
    ssnow%pudsto = ssnow%pudsto - ssnow%rnof1
 
@@ -169,8 +165,8 @@ REAL :: wbliq(mp,ms)
 ! correction required for energy balance in online simulations
 IF( cable_runtime%um ) THEN
       canopy%fhs_cor = ssnow%dtmlt(:,1)*ssnow%dfh_dtg
-  canopy%fes_cor = ssnow%dtmlt(:,1)*(ssnow%dfe_ddq * ssnow%ddq_dtg)
-  !CBL3canopy%fes_cor = ssnow%dtmlt(:,1)*ssnow%dfe_dtg
+  !canopy%fes_cor = ssnow%dtmlt(:,1)*(ssnow%dfe_ddq * ssnow%ddq_dtg)
+  canopy%fes_cor = ssnow%dtmlt(:,1)*ssnow%dfe_dtg
 
       canopy%fhs = canopy%fhs+canopy%fhs_cor
       canopy%fes = canopy%fes+canopy%fes_cor
