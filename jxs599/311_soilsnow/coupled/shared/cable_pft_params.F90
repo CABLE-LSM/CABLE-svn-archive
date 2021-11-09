@@ -1020,6 +1020,7 @@ USE cable_params_mod, ONLY : vegin
        vegin%zr(17) =        1.000000
     vegin%clitt(17) =        0.000000
 
+      
    ! new calculation dleaf since April 2012 (cable v1.8 did not use width)
    vegin%dleaf = SQRT(vegin%width * vegin%length)
     
