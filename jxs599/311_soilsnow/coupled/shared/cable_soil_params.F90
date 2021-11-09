@@ -3,20 +3,20 @@ MODULE cable_soil_params_mod
 
 CONTAINS
 
+
 subroutine cable_soil_params()
 
 ! Gets parameter values for each vegetation type and soil type.
-   
+USE cable_params_mod, ONLY : soilin
 USE cable_def_types_mod, ONLY : mstype
-USE cable_params_mod,         ONLY: soilin
-implicit none
-character(len=256) :: soil_desc(mstype )
-logical, save :: first_call = .true.
-
-if( first_call ) then
+  implicit none
   
-!SOIL parameters: description and corresponding variable name in code. 
-!SOIL parameters are assigned as TYPE soilin% but later used as soil%
+  !hard-wired #  of soil types, promote to nml
+  mstype = 9 
+ 
+ !SOIL parameters: description and corresponding variable name in code. 
+ !SOIL parameters are assigned as TYPE soilin% but later used as soil%
+ 
 !SOIL: Coarse sand/Loamy sand                                                
 ! =========================================================
     soilin%silt( 1) =        0.080000
@@ -142,9 +142,7 @@ if( first_call ) then
     soilin%sucs( 9) =       -0.153000
   soilin%rhosoil( 9) =      910.000000
      soilin%css( 9) =     2100.000000    
-  endif
 
-  first_call = .false.
 
 End subroutine cable_soil_params
 
