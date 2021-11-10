@@ -181,9 +181,6 @@ END TYPE vegin_type
           soilcol, & ! keep color for all patches/tiles
           albsoilf   ! soil reflectance
 
-     !REAL, DIMENSION(:,:), POINTER :: &
-     !     heat_cap_lower_limit
-
      REAL, DIMENSION(:,:), POINTER :: &
           zse_vec,css_vec,cnsd_vec
 
@@ -255,10 +252,10 @@ TYPE soilin_type
 END TYPE soilin_type
 
 !Instantiate types
-TYPE(vegin_type),  SAVE  :: vegin !read from namelist
-TYPE(soilin_type), SAVE :: soilin !read from namelist
+TYPE(vegin_type) :: vegin !read from namelist
+TYPE(soilin_type) :: soilin !read from namelist
 
-TYPE(soil_parameter_type), save :: soil_cbl !used in CABLE
-TYPE(veg_parameter_type), save  :: veg_cbl  !used in CABLE
+TYPE(soil_parameter_type) :: soil_cbl !used in CABLE
+TYPE(veg_parameter_type) :: veg_cbl  !used in CABLE
 
 END MODULE cable_params_mod

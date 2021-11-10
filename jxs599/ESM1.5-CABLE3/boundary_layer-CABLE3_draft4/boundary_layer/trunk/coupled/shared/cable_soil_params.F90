@@ -11,10 +11,7 @@ USE cable_params_mod, ONLY : soilin
    
    USE cable_def_types_mod, ONLY : mstype
   implicit none
-  logical, save :: first_call = .true.
 
-  if( first_call ) then
-  
   !hard-wired #  of soil types, promote to nml
   mstype = 9 
  
@@ -146,9 +143,6 @@ USE cable_params_mod, ONLY : soilin
     soilin%sucs( 9) =       -0.153000
   soilin%rhosoil( 9) =      910.000000
      soilin%css( 9) =     2100.000000    
-  endif
-
-  first_call = .false.
 
 End subroutine cable_soil_params
 

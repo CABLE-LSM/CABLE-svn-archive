@@ -11,7 +11,6 @@ USE cable_params_mod, ONLY : vegin
    USE cable_def_types_mod, ONLY : mvtype, ms, ncs, ncp, nrb 
 
    INTEGER :: a, jveg ! do loop counter
-  logical, save :: first_call = .true.
 !HACK
    mvtype=17    
  
@@ -1021,7 +1020,6 @@ USE cable_params_mod, ONLY : vegin
        vegin%zr(17) =        1.000000
     vegin%clitt(17) =        0.000000
 
-  first_call = .false.
       
    ! new calculation dleaf since April 2012 (cable v1.8 did not use width)
    vegin%dleaf = SQRT(vegin%width * vegin%length)

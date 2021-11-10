@@ -80,9 +80,7 @@ USE cable_pft_params_mod, ONLY : cable_pft_params
 !draft1!USE cbl_soil_snow_init_special_module, ONLY: spec_init_soil_snow
 USE cable_common_module, ONLY : kwidth_gl 
 USE cable_def_types_mod, ONLY : ms
-USE cable_um_tech_mod,   ONLY : ssnow, canopy, met, bal
-    USE cable_params_mod, ONLY : veg => veg_cbl 
-    USE cable_params_mod, ONLY : soil => soil_cbl 
+USE cable_um_tech_mod,   ONLY : ssnow, canopy, met, bal, veg, soil
 USE cable_other_constants_mod, ONLY : CLAI_THRESH => LAI_THRESH
 USE cbl_ssnow_data_mod, ONLY: heat_cap_lower_limit
 

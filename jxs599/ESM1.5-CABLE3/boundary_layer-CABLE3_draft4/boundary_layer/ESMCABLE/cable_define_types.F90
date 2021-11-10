@@ -35,19 +35,14 @@ MODULE cable_def_types_mod
 !cbl3!USE cable_balances_type_mod,  ONLY: balances_type
 !cbl3!USE cable_bgc_pool_type_mod,  ONLY: bgc_pool_type
 USE cable_canopy_type_mod,    ONLY: canopy_type
-USE cable_canopy_type_mod,    ONLY: canopy_cbl 
 USE cable_climate_type_mod,   ONLY: climate_type
 !cbl3!USE cable_met_type_mod,       ONLY: met_type
 !cbl3!USE cable_radiation_type_mod, ONLY: radiation_type
 !cbl3!USE cable_roughness_type_mod, ONLY: roughness_type
 USE cable_soil_snow_type_mod, ONLY: soil_snow_type
-USE cable_soil_snow_type_mod, ONLY: ssnow_cbl
 !cbl3!USE cable_sum_flux_type_mod,  ONLY: sum_flux_type
 USE cable_params_mod,         ONLY: veg_parameter_type
 USE cable_params_mod,         ONLY: soil_parameter_type
-
-    USE cable_params_mod, ONLY : veg_parameter_type
-    USE cable_params_mod, ONLY : soil_parameter_type
 
 USE cable_types_mod, ONLY: r_2
    ! Contains all variables which are not subroutine-internal
