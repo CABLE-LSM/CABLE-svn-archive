@@ -623,37 +623,12 @@ SUBROUTINE cable_expl_unpack( FTL_TILE_CAB, FTL_CAB, FTL_TILE, FQW_TILE,       &
       RECIPLMOTILE =  canopy_zetar(:,niter) / rough_zref_tq
       RECIP_L_MO_TILE = UNPACK( RECIPLMOTILE, um1%l_tile_pts, miss )
       EPOT_TILE = UNPACK( canopy_epot, um1%l_tile_pts, miss )
-      
 
       IF(first_cable_call) THEN 
          l_tile_pts = um1%l_tile_pts
          first_cable_call = .FALSE.
       ENDIF
 
-IF(knode_gl==2) THEN 
-IF(ktau_gl<11) THEN 
-  OPEN(unit=781,FILE="/home/599/jxs599/expl_unpack.txt")
-  write(781,*) 'ktau ', ktau_gl
-  write(781,*) 'FTL_TILE_CAB, ', SUM( FTL_TILE_CAB)  
-  write(781,*) 'FQW_TILE_CAB , ', SUM(FQW_TILE_CAB)  
-  write(781,*) 'LE_TILE_CAB, ', SUM(  LE_TILE_CAB)   
-  write(781,*) 'FTL_TILE, ', SUM(FTL_TILE)          
-  write(781,*) 'FQW_TILE, ', SUM( FQW_TILE)          
-  write(781,*) 'TSTAR_TILE, ', SUM(TSTAR_TILE)         
-  write(781,*) 'Z0M_TILE, ', SUM(Z0M_TILE)                
-  write(781,*) 'U_S_TILE, ', SUM(U_S_TILE)                  
-  write(781,*) 'CD_CAB_TILE, ', SUM(CD_CAB_TILE)     
-  write(781,*) 'CH_CAB_TILE, ,', SUM(CH_CAB_TILE)     
-  write(781,*) 'FRACA, ', SUM(FRACA)                        
-  write(781,*) 'RESFT, ', SUM(RESFT)                      
-  write(781,*) 'RESFS, ,', SUM(RESFS)                        
-  write(781,*) 'RADNET_TILE,, ', SUM(RADNET_TILE )           
-  write(781,*) 'RECIP_L_MO_TILE, ', SUM(RECIP_L_MO_TILE)    
-  write(781,*) 'EPOT_TILE, ', SUM(EPOT_TILE)                
-  write(781,*) ''
-ENDIF
-ENDIF
-   
 END SUBROUTINE cable_expl_unpack
     
 !============================================================================
