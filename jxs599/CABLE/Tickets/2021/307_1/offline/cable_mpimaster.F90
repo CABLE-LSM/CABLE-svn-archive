@@ -157,7 +157,7 @@ CONTAINS
     USE cable_def_types_mod
     USE cable_IO_vars_module, ONLY: logn,gswpfile,ncciy,leaps,globalMetfile, &
          verbose, fixedCO2,output,check,patchout,    &
-         patch_type,soilparmnew,&
+         patch_type,landpt,soilparmnew,&
          defaultLAI, sdoy, smoy, syear, timeunits, exists, output, &
          latitude,longitude, calendar
     USE cable_common_module,  ONLY: ktau_gl, kend_gl, knode_gl, cable_user,     &
@@ -207,6 +207,7 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
     USE cable_namelist_util, ONLY : get_namelist_file_name,&
          CABLE_NAMELIST,arg_not_namelist
 
+    USE landuse_constant, ONLY: mstate,mvmax,mharvw
     IMPLICIT NONE
 
     ! MPI:
@@ -279,6 +280,7 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
          spinConv      = .FALSE., & ! has spinup converged?
          spincasa      = .FALSE., & ! TRUE: CASA-CNP Will spin mloop times,
          l_casacnp     = .FALSE., & ! using CASA-CNP with CABLE
+         l_landuse     = .FALSE., & ! using LANDUSE             
          l_laiFeedbk   = .FALSE., & ! using prognostic LAI
          l_vcmaxFeedbk = .FALSE., & ! using prognostic Vcmax
          CASAONLY      = .FALSE., & ! ONLY Run CASA-CNP
@@ -344,6 +346,7 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
          fixedCO2,         &
          spincasa,         &
          l_casacnp,        &
+         l_landuse,        &
          l_laiFeedbk,      &
          l_vcmaxFeedbk,    &
          icycle,           &
@@ -355,11 +358,22 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
          wiltParam,        &
          satuParam,        &
          cable_user,       &  ! additional USER switches
-         gw_params
+         gw_params        
+ !        gw_params,        &
+ !        l_landuse
     INTEGER :: i,x,kk
     INTEGER :: LALLOC
     INTEGER, PARAMETER ::	 mloop	= 30   ! CASA-CNP PreSpinup loops
     REAL    :: etime
+
+! for landuse
+    integer     mlon,mlat
+    real(r_2), dimension(:,:,:),   allocatable,  save  :: luc_atransit
+    real(r_2), dimension(:,:),     allocatable,  save  :: luc_fharvw
+    real(r_2), dimension(:,:,:),   allocatable,  save  :: luc_xluh2cable
+    real(r_2), dimension(:),       allocatable,  save  :: arealand
+    integer,   dimension(:,:),     allocatable,  save  :: landmask
+
 
 
     ! END header
@@ -1323,6 +1337,8 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
 
     END DO SPINLOOP
 
+    l_landuse=.false.
+
     IF (icycle > 0 .AND. (.NOT.spincasa).AND. (.NOT.casaonly)) THEN
        ! MPI: gather casa results from all the workers
 
@@ -1333,7 +1349,10 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
 !!$       CALL casa_poolout( ktau, veg, soil, casabiome,                           &
 !!$            casapool, casaflux, casamet, casabal, phen )
        CALL casa_fluxout( nyear, veg, soil, casabal, casamet)
-       CALL write_casa_restart_nc ( casamet, casapool,casaflux,phen,CASAONLY )
+
+       if(.not.l_landuse) then
+           CALL write_casa_restart_nc ( casamet, casapool,casaflux,phen,CASAONLY )
+       endif
 
        !CALL write_casa_restart_nc ( casamet, casapool, met, CASAONLY )
 
@@ -1366,8 +1385,10 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
 
        !       CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
 
+       if(.not. l_landuse) then
        CALL create_restart( logn, dels, ktau, soil, veg, ssnow,                 &
             canopy, rough, rad, bgc, bal, met  )
+       endif 
 
        IF (cable_user%CALL_climate) THEN
           CALL master_receive (comm, ktau_gl, climate_ts)
@@ -1379,6 +1400,22 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
        END IF
 
     END IF
+
+
+    IF(l_landuse.and. .not. CASAONLY) then
+       mlon = maxval(landpt(1:mp)%ilon)
+       mlat = maxval(landpt(1:mp)%ilat)
+       print *, 'before landuse: mlon mlat ', mlon,mlat
+       allocate(luc_atransit(mland,mvmax,mvmax))
+       allocate(luc_fharvw(mland,mharvw))
+       allocate(luc_xluh2cable(mland,mvmax,mstate))
+       allocate(landmask(mlon,mlat))
+       allocate(arealand(mland))
+
+       call landuse_data(mlon,mlat,landmask,arealand,luc_atransit,luc_fharvw,luc_xluh2cable)
+       call landuse_driver(mlon,mlat,landmask,arealand,ssnow,soil,veg,bal,canopy,phen,casapool,casabal,casamet,bgc,rad)
+
+     ENDIF
 
 
 
@@ -3847,6 +3884,29 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
             &                             types(bidx), ierr)
        blen(bidx) = 1
 
+       ! added by ypw
+       bidx = bidx + 1
+       CALL MPI_Get_address (casapool%cwoodprod(off,1), displs(bidx), ierr)
+       CALL MPI_Type_create_hvector (mwood, r2len, r2stride, MPI_BYTE, &
+            &                             types(bidx), ierr)
+       blen(bidx) = 1
+       !blen(bidx) = mwood * r2len
+
+       bidx = bidx + 1
+       CALL MPI_Get_address (casapool%nwoodprod(off,1), displs(bidx), ierr)
+       CALL MPI_Type_create_hvector (mwood, r2len, r2stride, MPI_BYTE, &
+             &                             types(bidx), ierr)
+       blen(bidx) = 1
+      !blen(bidx) = mwood * r2len
+
+       bidx = bidx + 1
+       CALL MPI_Get_address (casapool%pwoodprod(off,1), displs(bidx), ierr)
+       CALL MPI_Type_create_hvector (mwood, r2len, r2stride, MPI_BYTE, &
+             &                             types(bidx), ierr)
+       blen(bidx) = 1
+      !blen(bidx) = mwoodt * r2len
+
+
        ! ------- casaflux ----
 
        bidx = bidx + 1
@@ -6257,6 +6317,28 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
             &                             types(bidx), ierr)
        blocks(bidx) = 1
 
+
+      ! added by YPW
+
+       bidx = bidx + 1
+       CALL MPI_Get_address (casapool%cwoodprod(off,1), displs(bidx), ierr)
+       CALL MPI_Type_create_hvector (mwood, r2len, r2stride, MPI_BYTE,types(bidx), ierr)
+       blocks(bidx) = 1
+
+
+       bidx = bidx + 1
+       CALL MPI_Get_address (casapool%nwoodprod(off,1), displs(bidx), ierr)
+       CALL MPI_Type_create_hvector (mwood, r2len, r2stride, MPI_BYTE,types(bidx), ierr)
+       blocks(bidx) = 1
+
+
+       bidx = bidx + 1
+       CALL MPI_Get_address (casapool%pwoodprod(off,1), displs(bidx), ierr)
+       CALL MPI_Type_create_hvector (mwood, r2len, r2stride, MPI_BYTE,types(bidx), ierr)
+       blocks(bidx) = 1
+       !============ypw
+
+
        bidx = bidx + 1
        CALL MPI_Get_address (phen%doyphase(off,1), displs(bidx), ierr)
        CALL MPI_Type_create_hvector (mphase, I1LEN, istride, MPI_BYTE, &
@@ -7396,6 +7478,8 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
 
     USE casavariable, ONLY: casa_met, casa_flux
     USE cable_def_types_mod, ONLY: climate_type
+    ! paul ryan 5-8-2021
+    USE cable_common_module,ONLY: cable_user
     USE phenvariable
     IMPLICIT NONE
 

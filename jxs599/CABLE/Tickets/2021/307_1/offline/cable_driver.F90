@@ -62,7 +62,7 @@ PROGRAM cable_offline_driver
   USE cable_def_types_mod
   USE cable_IO_vars_module, ONLY: logn,gswpfile,ncciy,leaps,		      &
        verbose, fixedCO2,output,check,patchout,	   &
-       patch_type,soilparmnew,&
+       patch_type,landpt,soilparmnew,&
        defaultLAI, sdoy, smoy, syear, timeunits, exists, calendar
   USE casa_ncdf_module, ONLY: is_casa_time
   USE cable_common_module,  ONLY: ktau_gl, kend_gl, knode_gl, cable_user,     &
@@ -127,6 +127,8 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
   USE casa_inout_module
   USE casa_cable
 USE cbl_soil_snow_init_special_module
+
+USE landuse_constant, ONLY: mstate,mvmax,mharvw
   IMPLICIT NONE
 
   ! CABLE namelist: model configuration, runtime/user switches
@@ -200,6 +202,7 @@ USE cbl_soil_snow_init_special_module
   TYPE (CRU_TYPE)       :: CRU
   TYPE (site_TYPE)       :: site
   TYPE (LUC_EXPT_TYPE) :: LUC_EXPT
+!  
   CHARACTER		:: cyear*4
   CHARACTER		:: ncfile*99
 
@@ -211,6 +214,7 @@ USE cbl_soil_snow_init_special_module
        spincasa = .FALSE.,	   & ! TRUE: CASA-CNP Will spin mloop times,
                                 ! FALSE: no spin up
        l_casacnp = .FALSE.,	   & ! using CASA-CNP with CABLE
+       l_landuse = .FALSE.,	   & ! using CASA-CNP with CABLE
        l_laiFeedbk = .FALSE.,	   & ! using prognostic LAI
        l_vcmaxFeedbk = .FALSE.,	   & ! using prognostic Vcmax
        CASAONLY	     = .FALSE.,	   & ! ONLY Run CASA-CNP
@@ -252,6 +256,7 @@ USE cbl_soil_snow_init_special_module
        fixedCO2,	 &
        spincasa,	 &
        l_casacnp,	 &
+       l_landuse,        &
        l_laiFeedbk,	 &
        l_vcmaxFeedbk,	 &
        icycle,		 &
@@ -286,6 +291,15 @@ USE cbl_soil_snow_init_special_module
   INTEGER :: nkend=0
   INTEGER :: ioerror
   INTEGER :: count_bal = 0
+
+! for landuse
+  integer     mlon,mlat
+  real(r_2), dimension(:,:,:),   allocatable,  save  :: luc_atransit
+  real(r_2), dimension(:,:),     allocatable,  save  :: luc_fharvw
+  real(r_2), dimension(:,:,:),   allocatable,  save  :: luc_xluh2cable
+  real(r_2), dimension(:),       allocatable,  save  :: arealand        
+  integer,   dimension(:,:),     allocatable,  save  :: landmask
+
   ! END header
 
   !check to see if first argument passed to cable is
@@ -1149,6 +1163,8 @@ USE cbl_soil_snow_init_special_module
 
   END DO SPINLOOP
 
+  l_landuse=.false.
+
   IF ( SpinConv .AND. .NOT. CASAONLY ) THEN
      ! Close output file and deallocate main variables:
      CALL close_output_file( bal, air, bgc, canopy, met,		      &
@@ -1168,7 +1184,7 @@ USE cbl_soil_snow_init_special_module
 
 
 
-  IF (icycle > 0) THEN
+  IF (icycle > 0.and. .not.l_landuse) THEN
 
      !CALL casa_poolout( ktau, veg, soil, casabiome,		  &
      ! casapool, casaflux, casamet, casabal, phen )
@@ -1176,11 +1192,26 @@ USE cbl_soil_snow_init_special_module
 
   END IF
 
+  IF (l_landuse .AND. .NOT. CASAONLY ) THEN
+     mlon = maxval(landpt(1:mp)%ilon)
+     mlat = maxval(landpt(1:mp)%ilat)     
+     print *, 'before landuse: mlon mlat ', mlon,mlat
+     allocate(luc_atransit(mland,mvmax,mvmax)) 
+     allocate(luc_fharvw(mland,mharvw)) 
+     allocate(luc_xluh2cable(mland,mvmax,mstate))  
+     allocate(landmask(mlon,mlat))
+     allocate(arealand(mland))
+          
+!     call landuse_data(mlon,mlat,landmask,arealand,luc_atransit,luc_fharvw,luc_xluh2cable)      
+!     call landuse_driver(mlon,mlat,landmask,arealand,ssnow,soil,veg,bal,canopy,phen,casapool,casabal,casamet,bgc,rad)
+
+  ENDIF
+
   IF (cable_user%POPLUC .AND. .NOT. CASAONLY ) THEN
      CALL WRITE_LUC_RESTART_NC ( POPLUC, YYYY )
   ENDIF
 
-  IF ( .NOT. CASAONLY ) THEN
+  IF ( .NOT. CASAONLY.and. .not. l_landuse ) THEN
      ! Write restart file if requested:
      IF(output%restart)						  &
           CALL create_restart( logn, dels, ktau, soil, veg, ssnow,  &
