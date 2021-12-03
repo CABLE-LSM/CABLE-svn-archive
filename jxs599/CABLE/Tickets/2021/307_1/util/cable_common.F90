@@ -53,7 +53,7 @@ USE cable_runtime_opts_mod ,ONLY : wiltparam
   !---CABLE runtime switches def in this type
   TYPE kbl_internal_switches
      LOGICAL :: um = .FALSE., um_explicit = .FALSE., um_implicit = .FALSE.,   &
-          um_radiation = .FALSE., um_hydrology = .FALSE.
+          um_radiation = .FALSE., um_hydrology = .FALSE., esm15 = .FALSE.
      LOGICAL :: offline = .FALSE., mk3l = .FALSE.
   END TYPE kbl_internal_switches
 
@@ -85,7 +85,7 @@ USE cable_runtime_opts_mod ,ONLY : wiltparam
 
   END TYPE filenames_type
 
-  TYPE(filenames_type), SAVE :: filename
+   TYPE(filenames_type) :: filename
 
   ! hydraulic_redistribution switch _soilsnow module
   LOGICAL :: redistrb = .FALSE.  
