@@ -7505,6 +7505,8 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
 
     USE casavariable, ONLY: casa_met, casa_flux
     USE cable_def_types_mod, ONLY: climate_type
+   ! paul ryan 5-8-2021
+    USE cable_common_module,ONLY: cable_user
     USE phenvariable
     IMPLICIT NONE
 
