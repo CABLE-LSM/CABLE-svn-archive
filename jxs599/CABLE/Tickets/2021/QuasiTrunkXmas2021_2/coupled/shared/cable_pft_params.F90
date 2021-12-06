@@ -3,24 +3,22 @@ MODULE cable_pft_params_mod
 
 CONTAINS
 
+
 subroutine cable_pft_params()
 
-! Gets parameter values for each vegetation type 
-USE cable_def_types_mod,  ONLY : mvtype, ms, ncs, ncp, nrb 
-USE cable_params_mod,     ONLY: vegin
+   ! Gets parameter values for each vegetation type 
+USE cable_params_mod, ONLY : vegin
+   USE cable_def_types_mod, ONLY : mvtype, ms, ncs, ncp, nrb 
 
    INTEGER :: a, jveg ! do loop counter
-  logical, save :: first_call = .true.
+!HACK
    mvtype=17    
-
-    ! Allocate memory for type-specific vegetation parameters:
-  if( first_call ) then
-  
-!PFT parameters: description and corresponding variable name in code. 
-!PFT parameters are assigned as TYPE vegin% but later used as veg%
  
-!PFT: evergreen_needleleaf                                                  
-!=========================================================
+ !PFT parameters: description and corresponding variable name in code. 
+ !PFT parameters are assigned as TYPE vegin% but later used as veg%
+ 
+ !PFT: evergreen_needleleaf                                                  
+ !=========================================================
     vegin%canst1(1) =        0.100000
    vegin%length(1) =        0.055000
     vegin%width(1) =        0.001000
@@ -1021,9 +1019,7 @@ USE cable_params_mod,     ONLY: vegin
        vegin%g1(17) =        5.248500
        vegin%zr(17) =        1.000000
     vegin%clitt(17) =        0.000000
-  endif
 
-  first_call = .false.
       
    ! new calculation dleaf since April 2012 (cable v1.8 did not use width)
    vegin%dleaf = SQRT(vegin%width * vegin%length)
