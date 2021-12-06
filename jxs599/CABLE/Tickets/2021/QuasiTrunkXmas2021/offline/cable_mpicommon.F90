@@ -39,7 +39,8 @@ MODULE cable_mpicommon
   !INTEGER, PARAMETER :: ncasaparam = 68
   !INTEGER, PARAMETER :: ncasaparam = 176
   ! MPI: added casapool fields ratioNCsoilnew, ratioNCsoilmin and ratioNCsoilmax
-  INTEGER, PARAMETER :: ncasaparam = 210  ! changed lpn added 9 variables
+  ! INTEGER, PARAMETER :: ncasaparam = 210  ! changed lpn added 9 variables
+  INTEGER, PARAMETER :: ncasaparam = 213  ! YPW to account for 3 aditional woodproduct pools
   !  (casaflux%frac_sapwood/sapwood_area,casabiome,casabiome%ratioNPplantmin,%ratioNPplantmax)
   ! casapool%ratioNPplant,%ratioNPlitter,ratioNPsoil
   ! MPI: base number of casa_init parameters sent to the workers
@@ -102,7 +103,8 @@ MODULE cable_mpicommon
 
   ! MPI: number of final casa result matrices and vectors to receive
   ! by the master for casa_poolout and casa_fluxout
-  INTEGER, PARAMETER :: ncasa_mat = 34
+  INTEGER, PARAMETER :: ncasa_mat = 37    ! add three more wood product variables
+  !INTEGER, PARAMETER :: ncasa_mat = 34
   !  INTEGER, PARAMETER :: ncasa_vec = 27
   !  INTEGER, PARAMETER :: ncasa_vec = 32    ! changed on 30-jan-2013 for adding four new respiration variable to the output
   INTEGER, PARAMETER :: ncasa_vec = 58   ! vh changed on 5-feb-2016 for adding sapwood area and frac_sapwood
