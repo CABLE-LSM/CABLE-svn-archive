@@ -128,6 +128,7 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
   USE casa_cable
 USE cbl_soil_snow_init_special_module
 USE landuse_constant, ONLY: mstate,mvmax,mharvw
+USE landuse_variable
   IMPLICIT NONE
 
   ! CABLE namelist: model configuration, runtime/user switches
@@ -201,6 +202,7 @@ USE landuse_constant, ONLY: mstate,mvmax,mharvw
   TYPE (CRU_TYPE)       :: CRU
   TYPE (site_TYPE)       :: site
   TYPE (LUC_EXPT_TYPE) :: LUC_EXPT
+  TYPE (landuse_mp)     :: lucmp
   CHARACTER		:: cyear*4
   CHARACTER		:: ncfile*99
 
@@ -268,7 +270,7 @@ USE landuse_constant, ONLY: mstate,mvmax,mharvw
        gw_params
 
   !mpidiff
-  INTEGER :: i,x,kk
+  INTEGER :: i,x,kk,m,np,ivt
 
   ! Vars for standard for quasi-bitwise reproducability b/n runs
   ! Check triggered by cable_user%consistency_check = .TRUE. in cable.nml
@@ -291,12 +293,16 @@ USE landuse_constant, ONLY: mstate,mvmax,mharvw
   INTEGER :: count_bal = 0
 
 ! for landuse
-  integer     mlon,mlat
+  integer     mlon,mlat, mpx
   real(r_2), dimension(:,:,:),   allocatable,  save  :: luc_atransit
   real(r_2), dimension(:,:),     allocatable,  save  :: luc_fharvw
   real(r_2), dimension(:,:,:),   allocatable,  save  :: luc_xluh2cable
   real(r_2), dimension(:),       allocatable,  save  :: arealand        
   integer,   dimension(:,:),     allocatable,  save  :: landmask
+  integer,   dimension(:),       allocatable,  save  :: cstart,cend,nap
+  real(r_2), dimension(:,:,:),   allocatable,  save  :: patchfrac_new
+
+
 
   ! END header
 
@@ -1198,10 +1204,42 @@ USE landuse_constant, ONLY: mstate,mvmax,mharvw
      allocate(luc_fharvw(mland,mharvw)) 
      allocate(luc_xluh2cable(mland,mvmax,mstate))  
      allocate(landmask(mlon,mlat))
-     allocate(arealand(mland))
           
+     allocate(patchfrac_new(mlon,mlat,mvmax))
+     allocate(cstart(mland),cend(mland),nap(mland))
+
+     do m=1,mland
+        cstart(m) = landpt(m)%cstart
+        cend(m)   = landpt(m)%cend
+        nap(m)    = landpt(m)%nap
+     enddo
+
      call landuse_data(mlon,mlat,landmask,arealand,luc_atransit,luc_fharvw,luc_xluh2cable)      
-     call landuse_driver(mlon,mlat,landmask,arealand,ssnow,soil,veg,bal,canopy,phen,casapool,casabal,casamet,bgc,rad)
+     call  landuse_driver(mlon,mlat,landmask,arealand,ssnow,soil,veg,bal,canopy,  &
+                          phen,casapool,casabal,casamet,casabiome,casaflux,bgc,rad, &
+                          cstart,cend,nap,lucmp)
+
+     do m=1,mland
+        do np=cstart(m),cend(m)
+           ivt=lucmp%iveg(np)
+           if(ivt<1.or.ivt>mvmax) then
+             print *, 'landuse: error in vegtype',m,np,ivt
+             stop
+           endif
+           patchfrac_new(landpt(m)%ilon,landpt(m)%ilat,ivt) = lucmp%patchfrac(np)
+        enddo
+     enddo
+
+      call create_new_gridinfo(filename%type,filename%gridnew,mlon,mlat,landmask,patchfrac_new)
+
+      print *, 'writing casapools: land use'
+      call WRITE_LANDUSE_CASA_RESTART_NC(cend(mland), lucmp, CASAONLY )
+
+      print *, 'writing cable restart: land use'
+      call create_landuse_cable_restart(logn, dels, ktau, soil, cend(mland),lucmp,cstart,cend,nap)
+
+      print *, 'deallocating'
+      call landuse_deallocate_mp(cend(mland),ms,msn,nrb,mplant,mlitter,msoil,mwood,lucmp)
 
   ENDIF
 
