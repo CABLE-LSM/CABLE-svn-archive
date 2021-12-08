@@ -5,7 +5,6 @@ USE cable_def_types_mod, ONLY : soil_snow_type, soil_parameter_type,        &
        balances_type, r_2, ms, mp
 !distribute these per sbr
 USE cable_phys_constants_mod, ONLY : CTFRZ => TFRZ
-USE cable_phys_constants_mod, ONLY : CCAPP => CAPP
 USE cable_phys_constants_mod, ONLY : CHL => HL
 USE cable_phys_constants_mod, ONLY : CHLF => HLF
 USE cable_phys_constants_mod, ONLY : Cdensity_liq => density_liq
