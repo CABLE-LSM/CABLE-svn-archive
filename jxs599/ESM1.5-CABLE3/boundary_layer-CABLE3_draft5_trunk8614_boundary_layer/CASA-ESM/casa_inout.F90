@@ -950,34 +950,11 @@ SUBROUTINE casa_cnpflux(casaflux,casabal)
   USE casadimension
   USE casaparm
   USE casavariable
-USE cable_common_module, ONLY : ktau_gl, knode_gl
   IMPLICIT NONE
   TYPE (casa_flux),    INTENT(INOUT) :: casaflux
   TYPE (casa_balance), INTENT(INOUT) :: casabal
 !  REAL(r_2), INTENT(INOUT) :: clitterinput(mp,3),csoilinput(mp,3)
   INTEGER n
-
-!integer :: mnode   
-!integer :: mtau
-!integer :: funit
-!character(len=330) :: jhfilename
-!character(len=30) :: chmnode
-!character(len=30) :: chmtau
-!funit=781
-!mnode =190
-!mtau=1494
-!write(chmtau,10) ktau_gl
-!write(chmnode,10) knode_gl
-!10 format(i4.4)  
-!jhfilename=trim("/scratch/p66/jxs599/diag_4/casa1.txt."//trim(chmnode) )
-!
-!OPEN(unit=funit,FILE=jhfilename, status='unknown')
-!    write(funit,*) ' ktau                     ', ktau_gl
-!    write(funit,*) 'casabal%FCrpyear ',casabal%FCrpyear
-!    write(funit,*) 'casaflux%Crp ',casaflux%Crp
-!    !write(funit,*) ' ',
-!    write(funit,*) '----------'
-!CLOSE(unit=funit)
 
 casaflux%Crp = 0.
 
