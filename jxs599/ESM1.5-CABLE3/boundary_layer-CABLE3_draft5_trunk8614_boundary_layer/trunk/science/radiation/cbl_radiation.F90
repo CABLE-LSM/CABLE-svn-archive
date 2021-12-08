@@ -161,7 +161,7 @@ real :: Ccapp
                rad%transb**2 ) / ( rad%extkb + rad%extkb ) ) )
 
           ! Define qcan for short wave (par, nir) for shaded leaf:
-           rad%qcan(:,2,b) = met%fsd(:,b) * (                                    &
+          rad%qcan(:,2,b) = met%fsd(:,b) * (                                    &
                ( 1.0 - rad%fbeam(:,b) ) * ( 1.0 - rad%reffdf(:,b) )&
                * rad%extkdm(:,b) *                                 &
                ( ( 1.0 - rad%cexpkdm(:,b) ) / rad%extkdm(:,b)      &
