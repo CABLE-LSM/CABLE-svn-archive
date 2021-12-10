@@ -1,4 +1,4 @@
-MODULE grid_constants_cbl_mod
+MODULE grid_constants_mod_cbl
 
 IMPLICIT NONE
 
@@ -6,28 +6,21 @@ PUBLIC
 
 !-----------------------------------------------------------------------------
 ! Description:
-!   Other CABLE constants
+!   CABLE constants that define the "grid" ie. dimensions of arrays/vectors
+!   (replace constants USEd from elsewhere AS they are implemented)
+!   Potentially these dims could be read/set from CABLE nmls. However,
+!   NB. Simply changing these dims arbitrarily would render the model useless
 !
 ! Code Owner: Please refer to ModuleLeaders.txt
-! This file belongs in 
+! This file belongs in CABLE Science
 !-----------------------------------------------------------------------------
 
-! number of radiation "bands" normally in use
-INTEGER, PARAMETER ::                                                          &
-  n_rad_components = 2,  &  ! number of components  DIRect(beam)/DIFfuse         
-  n_rad_sw_bands   = 2,  &  ! number of spectral bands VISual/NIR
-  !H!trb = n_rad_components * n_rad_sw_bands,  & ! total number of "bands" 
-  trb = 3                   ! total number of "bands" 
+INTEGER, PARAMETER :: ntype_max = 17 ! Max # tiles ! compile time constant
+INTEGER, PARAMETER :: nsoil_max = 9  ! Max # soils ! req'd to read in pars
+INTEGER, PARAMETER :: nsl       = 6  ! # soil layers
+INTEGER, PARAMETER :: nsnl      = 3  ! # snow layers
+INTEGER, PARAMETER :: nrb       = 3  ! # rad bands VISual/NIR + Legacy incl LW
+INTEGER, PARAMETER :: nsCs      = 2  ! # soil carbon stores
+INTEGER, PARAMETER :: nvCs      = 3  ! # vegetation carbon stores
 
-INTEGER, PARAMETER :: tsl = 3     ! # snow layers
-
-INTEGER, parameter :: nsoiltypes=9    ! # total no of soil types
-
-INTEGER, PARAMETER :: mf = 2          ! # leaves (sunlit, shaded)
-INTEGER, PARAMETER :: niter = 4       ! number of iterations for za/L
-
-INTEGER, PARAMETER :: ncp = 3         ! # vegetation carbon stores
-INTEGER, PARAMETER :: ncs = 2         ! # soil carbon stores
-
-
-END MODULE grid_constants_cbl_mod
+END MODULE grid_constants_mod_cbl
