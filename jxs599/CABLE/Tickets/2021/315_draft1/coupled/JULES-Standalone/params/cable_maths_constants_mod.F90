@@ -12,6 +12,7 @@ PUBLIC
 ! This file belongs in CABLE SCIENCE
 !-----------------------------------------------------------------------------
 
-
+real :: pi = 3.1415927
+real :: pi180 = 3.1415927/ 180.0 ! radians / degree
 
 END MODULE cable_math_constants_mod
