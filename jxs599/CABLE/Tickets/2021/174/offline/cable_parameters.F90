@@ -1133,7 +1133,7 @@ CONTAINS
     !   landpt(mp)%type- via cable_IO_vars_module (%nap,cstart,cend,ilon,ilat)
     !   patch(mp)%type - via cable_IO_vars_module (%frac,longitude,latitude)
 
-    USE cable_common_module, ONLY : calcsoilalbedo,cable_user
+    USE cable_common_module, ONLY : calcsoilalbedo,cable_user, frozen_limit 
 
     IMPLICIT NONE
     INTEGER,               INTENT(IN)    :: logn  ! log file unit number
@@ -1612,7 +1612,7 @@ CONTAINS
     ENDWHERE
     ! Soil ice:
     WHERE(ssnow%tgg(:, :) < 273.15)
-       ssnow%wbice(:,:) = ssnow%wb(:, :) * 0.8
+       ssnow%wbice(:,:)  = frozen_limit *ssnow%wb(:,:)
     ELSEWHERE
        ssnow%wbice(:, :) = 0.0
     END WHERE

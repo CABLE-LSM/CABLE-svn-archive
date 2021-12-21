@@ -39,7 +39,7 @@ MODULE cable_init_module
        soiltype_metfile
   USE cable_read_module
   USE netcdf
-  USE cable_common_module, ONLY : filename, cable_user
+  USE cable_common_module, ONLY : filename, cable_user, frozen_limit
 
   IMPLICIT NONE
 
@@ -113,7 +113,7 @@ CONTAINS
        END IF
        ! Soil ice:
        WHERE(ssnow%tgg(e,:)<273.15)
-          ssnow%wbice(e,:)  = ssnow%wb(e,:)*0.8
+          ssnow%wbice(e,:)  = frozen_limit *ssnow%wb(e,:)
        ELSEWHERE
           ssnow%wbice(e,:) = 0.0
        END WHERE
