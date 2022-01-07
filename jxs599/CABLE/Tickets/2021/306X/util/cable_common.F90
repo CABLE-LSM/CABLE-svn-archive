@@ -78,6 +78,8 @@ USE cable_runtime_opts_mod ,ONLY : wiltparam
           inits,      & ! name of file for initialisations
           soilIGBP,   & ! name of file for IGBP soil map
           gw_elev,    & !name of file for gw/elevation data
+          gw_soils=''   !itled/layerd soil params
+                        !give default as not not required
           fxpft,      & !filename for PFT fraction and transition,wood harvest, secondary harvest
           fxluh2cable,& !filename for mapping 12 luc states into 17 CABLE PFT
           gridnew       !filename for updated gridinfo file                       
@@ -90,17 +92,18 @@ USE cable_runtime_opts_mod ,ONLY : wiltparam
   ! hydraulic_redistribution switch _soilsnow module
   LOGICAL :: redistrb = .FALSE.  
 
+!Are these for GW?
   TYPE organic_soil_params
      !Below are the soil properties for fully organic soil
 
      REAL ::    &
-          hyds_vec_organic  = 1.0e-4,&
-          sucs_vec_organic = 10.3,   &
-          clappb_organic = 2.91,     &
-          ssat_vec_organic = 0.9,    &
-          watr_organic   = 0.1,     &
-          sfc_vec_hk      = 1.157407e-06, &
-          swilt_vec_hk      = 2.31481481e-8
+        hyds_vec = 1.0e-4,&
+        sucs_vec = 10.3,   &
+        bch_vec  = 2.91,     &    
+        ssat_vec = 0.9,    &    
+        watr     = 0.1,&
+        css_vec  = 4000.0,&
+        cnsd_vec = 0.1 
 
   END TYPE organic_soil_params
 
@@ -109,31 +112,52 @@ USE cable_runtime_opts_mod ,ONLY : wiltparam
      REAL ::                   &
           MaxHorzDrainRate=2e-4,  & !anisintropy * q_max [qsub]
           EfoldHorzDrainRate=2.0, & !e fold rate of q_horz
+        EfoldHorzDrainScale=1.0, & !e fold rate of q_horz
           MaxSatFraction=2500.0,     & !parameter controll max sat fraction
           hkrz=0.5,               & !hyds_vec variation with z
           zdepth=1.5,             & !level where hyds_vec(z) = hyds_vec(no z)
           frozen_frac=0.05,       & !ice fraction to determine first non-frozen layer for qsub
           SoilEvapAlpha = 1.0,    & !modify field capacity dependence of soil evap limit
           IceAlpha=3.0,           &
-          IceBeta=1.0
+        IceBeta=1.0,            &
+        sfc_vec_hk      = 1.157407e-06, &
+        swilt_vec_hk      = 2.31481481e-8
+
 
      REAL :: ice_impedence=5.0
+      real :: ssat_wet_factor=0.85
+                    !hysteresis reduces ssat due to air entra[pment
 
      TYPE(organic_soil_params) :: org
-
+      INTEGER :: aquifer_recharge_function=-1  !0=>no flux,1=>assume gw at hydrostat eq
      INTEGER :: level_for_satfrac = 6
      LOGICAL :: ssgw_ice_switch = .FALSE.
 
      LOGICAL :: subsurface_sat_drainage = .TRUE.
-
+      LOGICAL :: cosby_univariate=.false.
+      LOGICAL :: cosby_multivariate=.false.
+      LOGICAL :: HC_SWC=.false. !use Hutson Cass modified brooks corey
+                                !seperates wet/dry to remove need for watr and
+                                !gives better numerical behavoir for soln
+      LOGICAL :: BC_hysteresis=.false.
   END TYPE gw_parameters_type
 
   TYPE(gw_parameters_type), SAVE :: gw_params
 
+   REAL, DIMENSION(17),SAVE :: psi_c = (/-2550000.0,-2550000.0,-2550000.0, &
+                                  -2240000.0,-4280000.0,-2750000.0,-2750000.0,&
+                                  -2750000.0,-2750000.0,-2750000.0,-2750000.0,-2750000.0,&
+                                  -2750000.0,-2750000.0,-2750000.0,-2750000.0,-2750000.0/)
+
+   REAL, DIMENSION(17),SAVE :: psi_o = (/-66000.0,-66000.0,-66000.0,&
+                                  -35000.0,-83000.0,-74000.0,-74000.0,&
+                                  -74000.0,-74000.0,-74000.0,-74000.0,-74000.0,&
+                                  -74000.0,-74000.0,-74000.0,-74000.0,-74000.0/)
+
   REAL, SAVE ::        &!should be able to change parameters!!!
        max_glacier_snowd=1100.0,&
        snow_ccnsw = 2.0, &
-                                !jh!an:clobber - effectively force single layer snow
+!jh!an:clobber - effectively force single layer snow
                                 !snmin = 100.0,      & ! for 1-layer;
        snmin = 1.,          & ! for 3-layer;
        max_ssdn = 750.0,    & !
