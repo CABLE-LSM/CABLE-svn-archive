@@ -12,7 +12,7 @@ PUBLIC
 ! This file belongs in CABLE SCIENCE
 !-----------------------------------------------------------------------------
 
-REAL, PARAMETER :: pi    = 3.1415927
-REAL, PARAMETER :: pi180 = 3.1415927/ 180.0 ! radians / degree
+REAL, PARAMETER :: pi     = 3.141592653589793238462643383279502884197
+REAL, PARAMETER :: pi180  = pi / 180.0 ! radians / degree
 
 END MODULE cable_math_constants_mod
