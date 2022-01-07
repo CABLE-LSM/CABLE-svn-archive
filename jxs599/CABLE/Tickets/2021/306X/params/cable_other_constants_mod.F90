@@ -42,6 +42,25 @@ REAL, PARAMETER :: lai_thresh = 0.001
 REAL, PARAMETER :: coszen_tols = 1.0e-4
 
 REAL, PARAMETER :: z0surf_min = 1.e-7 ! min. roughness of bare soil surface
+
 !H!REAL, PARAMETER :: z0snow_min = 1.e-7 ! min. roughness of bare snow surface
+
+  !Meng! leaf reflectance/transmittance - comes from pft_params
+  !Meng!REAL,    PARAMETER, DIMENSION(nrb) :: refl    = (/ 0.1, 0.425, 0.02 /) ! mar08
+  !Meng!REAL,    PARAMETER, DIMENSION(nrb) :: taul    = (/ 0.1, 0.425, 0.02 /) ! mar08
+
+  ! Are these all Meng's parameters: rm KIND dependence
+  INTEGER, PARAMETER                 :: istemp  = 4                      ! soil temp:     1,2,3,4 = FR,kf,mrr,mrrkf
+  INTEGER, PARAMETER                 :: ismois  = 2                      ! soil moist:  1,2,3     = MP84,NP89,Richards
+  INTEGER, PARAMETER                 :: isinf   = 2                      ! soil infilt: 1,2       = MP84, FC96
+  INTEGER, PARAMETER                 :: isevap  = 2                      ! soil evap: 1,2,3 = alfa,beta,threshold
+  INTEGER, PARAMETER                 :: itherm  = 1                      ! VW or KGK algorithm for hconds,rkapps
+  INTEGER, PARAMETER                 :: irktem  = 5                      ! RK steps in soil temp schemes
+  INTEGER, PARAMETER                 :: irkmoi  = 5                      ! RK steps in soil moisture schemes
+  ! soil water  parameters:
+  REAL,    PARAMETER                 :: etarct  = 0.7                    ! rel soil moisture for finding zst1,zst2
+  REAL,    PARAMETER                 :: dbde    = 1.3333                 ! d(beta)/d(etar): 4/3, 8 for D78,KGK91
+  INTEGER, PARAMETER                 :: istsw   = 1                      !
+  INTEGER, PARAMETER                 :: iresp   = 0                      ! unscaled (iresp=0) or scaled (iresp=1) respiration
 
 END MODULE cable_other_constants_mod
