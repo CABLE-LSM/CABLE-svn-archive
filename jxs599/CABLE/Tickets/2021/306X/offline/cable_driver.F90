@@ -131,12 +131,6 @@ USE landuse_constant, ONLY: mstate,mvmax,mharvw
 USE landuse_variable
   IMPLICIT NONE
 
-  ! CABLE namelist: model configuration, runtime/user switches
-  !CHARACTER(LEN=200), PARAMETER :: CABLE_NAMELIST='cable.nml'
-  ! try to read in namelist from command line argument
-  ! allows simple way of not hard coding cable.nml
-  ! defaults to using cable.nml if no file specified
-
   ! timing variables
   INTEGER, PARAMETER ::	 kstart = 1   ! start of simulation
   INTEGER, PARAMETER ::	 mloop	= 30   ! CASA-CNP PreSpinup loops
@@ -402,7 +396,7 @@ real(r_2), dimension(:,:,:),   allocatable,  save  :: patchfrac_new
        STOP 'icycle must be 1 to 3 when using casaCNP'
   !IF( ( l_laiFeedbk .OR. l_vcmaxFeedbk ) )	  &
   !   STOP 'casaCNP required to get prognostic LAI or Vcmax'
-  IF( l_vcmaxFeedbk .AND. icycle < 1 )					   &
+  IF( l_vcmaxFeedbk .AND. icycle < 2 )                            &
        STOP 'icycle must be 2 to 3 to get prognostic Vcmax'
   IF( icycle > 0 .AND. ( .NOT. soilparmnew ) )				   &
        STOP 'casaCNP must use new soil parameters'
@@ -506,6 +500,39 @@ real(r_2), dimension(:,:,:),   allocatable,  save  :: patchfrac_new
               ELSE
                  calendar = "noleap"
               ENDIF
+! __________________________ MMY using Princeton _______________________________
+        ELSE IF ( TRIM(cable_user%MetType) .EQ. 'prin' ) THEN
+           ncciy = CurYear
+
+           CALL prepareFiles_princeton(ncciy) ! MMY
+           IF ( RRRR .EQ. 1 ) THEN
+           CALL open_met_file( dels, koffset, kend, spinup, C%TFRZ )
+           IF (leaps.and.is_leapyear(YYYY).and.kend.eq.2920) THEN
+              STOP 'LEAP YEAR INCOMPATIBILITY WITH INPUT MET !!!'
+           ENDIF
+           IF ( NRRRR .GT. 1 ) THEN
+              GSWP_MID(1,YYYY) = ncid_rain
+              ! GSWP_MID(2,YYYY) = ncid_snow MMY
+              GSWP_MID(3,YYYY) = ncid_lw
+              GSWP_MID(4,YYYY) = ncid_sw
+              GSWP_MID(5,YYYY) = ncid_ps
+              GSWP_MID(6,YYYY) = ncid_qa
+              GSWP_MID(7,YYYY) = ncid_ta
+              GSWP_MID(8,YYYY) = ncid_wd
+           ENDIF
+           ELSE
+           ncid_rain = GSWP_MID(1,YYYY)
+           ! ncid_snow = GSWP_MID(2,YYYY) MMY
+           ncid_lw   = GSWP_MID(3,YYYY)
+           ncid_sw   = GSWP_MID(4,YYYY)
+           ncid_ps   = GSWP_MID(5,YYYY)
+           ncid_qa   = GSWP_MID(6,YYYY)
+           ncid_ta   = GSWP_MID(7,YYYY)
+           ncid_wd   = GSWP_MID(8,YYYY)
+           kend      = ktauday * LOY ! MMY
+           ENDIF
+! ______________________________________________________________________________
+
 
            ELSE IF ( TRIM(cable_user%MetType) .EQ. 'plum' ) THEN
               ! PLUME experiment setup using WATCH
@@ -903,6 +930,9 @@ real(r_2), dimension(:,:,:),   allocatable,  save  :: patchfrac_new
                           !jhan:assuming doy for mp=1 is same as ....
                           CALL write_casa_dump( ncfile, casamet , casaflux, phen, climate,&
                                INT(met%doy(1)), LOY )
+                          !From Mengyuan's GW branch
+                          !CALL write_casa_dump( ncfile, casamet , casaflux, phen, climate, idoy, &
+                          !  kend/ktauday )
                        ELSE
                           CALL write_casa_dump( ncfile, casamet , casaflux, &
                                phen, climate, idoy, kend/ktauday )
@@ -971,7 +1001,7 @@ real(r_2), dimension(:,:,:),   allocatable,  save  :: patchfrac_new
                       new_sumfe/count_bal, new_sumfpn/count_bal
 
 
-                 ! vh ! commented code below detects Nans in evaporation flux and stops if there are any.
+! vh ! commented code below detects Nans in evaporation flux and stops if there are any.
 !!$	      do kk=1,mp
 !!$		 if( canopy%fe(kk).NE.( canopy%fe(kk))) THEN
 !!$		    write(*,*) 'fe nan', kk, ktau,met%qv(kk), met%precip(kk),met%precip_sn(kk), &
@@ -1310,6 +1340,48 @@ SUBROUTINE renameFiles(logn,inFile,ncciy,inName)
   WRITE(logn,*) TRIM(inName), ' global data from ', TRIM(inFile)
 
 END SUBROUTINE renameFiles
+
+! _______________________ MMY for Princeton input ______________________________
+SUBROUTINE prepareFiles_princeton(ncciy)
+  USE cable_IO_vars_module, ONLY: logn,gswpfile
+  IMPLICIT NONE
+  INTEGER, INTENT(IN) :: ncciy
+
+  WRITE(logn,*) 'CABLE offline global run using princeton forcing for ', ncciy
+  PRINT *,     'CABLE offline global run using princeton forcing for ', ncciy
+
+  CALL renameFiles_princeton(logn,gswpfile%rainf,ncciy,'rainf')
+  CALL renameFiles_princeton(logn,gswpfile%LWdown,ncciy,'LWdown')
+  CALL renameFiles_princeton(logn,gswpfile%SWdown,ncciy,'SWdown')
+  CALL renameFiles_princeton(logn,gswpfile%PSurf,ncciy,'PSurf')
+  CALL renameFiles_princeton(logn,gswpfile%Qair,ncciy,'Qair')
+  CALL renameFiles_princeton(logn,gswpfile%Tair,ncciy,'Tair')
+  CALL renameFiles_princeton(logn,gswpfile%wind,ncciy,'wind')
+
+END SUBROUTINE prepareFiles_princeton
+
+SUBROUTINE renameFiles_princeton(logn,inFile,ncciy,inName)
+  IMPLICIT NONE
+  INTEGER, INTENT(IN) :: logn,ncciy
+  INTEGER:: nn
+  CHARACTER(LEN=200), INTENT(INOUT) :: inFile
+  CHARACTER(LEN=*),  INTENT(IN)        :: inName
+  INTEGER :: idummy
+
+  nn = INDEX(inFile,'19')
+  READ(inFile(nn:nn+3),'(i4)') idummy
+  WRITE(inFile(nn:nn+3),'(i4.4)') ncciy
+  nn = INDEX(inFile,'19')
+  READ(inFile(nn:nn+3),'(i4)') idummy
+  WRITE(inFile(nn:nn+3),'(i4.4)') ncciy
+  READ(inFile(nn-5:nn-2),'(i4)') idummy
+  WRITE(inFile(nn-5:nn-2),'(i4.4)') ncciy
+  WRITE(logn,*) TRIM(inName), ' global data from ', TRIM(inFile)
+
+END SUBROUTINE renameFiles_princeton
+
+! ______________________________________________________________________________
+
 
 !***************************************************************************************
 ! subroutine for reading LU input data, zeroing biomass in empty secondary forest tiles
