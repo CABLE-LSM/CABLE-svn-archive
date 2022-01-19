@@ -53,13 +53,6 @@ USE cable_phys_constants_mod, ONLY : CCAPP   => CAPP
 USE cable_phys_constants_mod, ONLY : CEMLEAF => EMLEAF
 USE cable_phys_constants_mod, ONLY : CEMSOIL => EMSOIL
 USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
-    !mrd561
-    USE cable_gw_hydro_module, ONLY : sli_hydrology,&
-         soil_snow_gw
-    USE cable_canopy_module, ONLY : define_canopy
-    USE cbl_albedo_mod, ONLY : albedo
-    USE sli_main_mod, ONLY : sli_main
-!data !jhan:pass these
 USE cable_other_constants_mod, ONLY : CLAI_THRESH => lai_thresh
 USE cable_other_constants_mod,  ONLY : Crad_thresh => rad_thresh
 USE cable_other_constants_mod,  ONLY : Ccoszen_tols => coszen_tols
@@ -68,6 +61,13 @@ USE cable_math_constants_mod, ONLY : CPI => pi
 USE cable_math_constants_mod, ONLY : CPI180 => pi180
 use cbl_masks_mod, ONLY :  fveg_mask,  fsunlit_mask,  fsunlit_veg_mask
 use cbl_masks_mod, ONLY :  veg_mask,  sunlit_mask,  sunlit_veg_mask
+
+USE cable_canopy_module, ONLY : define_canopy
+USE cbl_albedo_mod, ONLY : albedo
+
+    USE cable_gw_hydro_module, ONLY : sli_hydrology,&
+         soil_snow_gw
+    USE sli_main_mod, ONLY : sli_main
 
     ! CABLE model variables
     TYPE (air_type),       INTENT(INOUT) :: air
@@ -96,6 +96,8 @@ LOGICAL :: jls_radiation= .false.
 REAL :: c1(mp,nrb)
 REAL :: rhoch(mp,nrb)
 REAL :: xk(mp,nrb)
+
+! End Header
 
 !iFor testing
 cable_user%soil_struc="default"
@@ -162,8 +164,23 @@ CALL define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,climate, su
     
 ssnow%owetfac = ssnow%wetfac
 
-CALL soil_snow(dels, soil, ssnow, canopy, met, bal,veg)
+IF(cable_user%SOIL_STRUC=='default') THEN
 
+  IF (cable_user%gw_model) then
+    CALL soil_snow_gw(dels, soil, ssnow, canopy, met, bal,veg)
+  ELSE
+     CALL soil_snow(dels, soil, ssnow, canopy, met, bal,veg)
+  ENDIF
+
+ELSEIF (cable_user%SOIL_STRUC=='sli') THEN
+
+   IF (cable_user%test_new_gw) &
+      CALL sli_hydrology(dels,ssnow,soil,veg,canopy)
+
+   CALL sli_main(ktau,dels,veg,soil,ssnow,met,canopy,air,rad,0)
+
+ENDIF ! IF(cable_user%SOIL_STRUC=='default')
+ 
 ssnow%deltss = ssnow%tss-ssnow%otss
 
     ! need to adjust fe after soilsnow

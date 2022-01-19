@@ -136,6 +136,8 @@ MODULE cable_checks_module
           silt = (/0.0,1.0/),                 &
           ssat = (/0.35,0.5/),                &
           sucs = (/-0.8,-0.03/),              &
+!jhan:How to icorporate this alternate value?
+!sucs = (/30.,800./),                & ! MMY the range [-0.8,-0.03] doesn't suit for Mark Decker's version
           swilt = (/0.05,0.4/),               &
           froot = (/0.0,1.0/),                &
           zse = (/0.0,5.0/),                  &
@@ -185,20 +187,20 @@ MODULE cable_checks_module
 
 CONTAINS
 
-  !==============================================================================
-  !
-  ! Name: mass_balance
-  !
-  ! Purpose: Calculate cumulative and per-timestep balance, as well as allow user
-  !          to scrutinise balance in particular sections of the code - largely
-  !          for diagnostics/fault finding.
-  !
-  ! CALLed from: write_output
-  !
-  !
-  !==============================================================================
+!==============================================================================
+!
+! Name: mass_balance
+!
+! Purpose: Calculate cumulative and per-timestep balance, as well as allow user
+!          to scrutinise balance in particular sections of the code - largely
+!          for diagnostics/fault finding.
+!
+! CALLed from: write_output
+!
+!
+!==============================================================================
 
-  SUBROUTINE mass_balance(dels,ktau, ssnow,soil,canopy,met,                            &
+SUBROUTINE mass_balance(dels,ktau, ssnow,soil,canopy,met,                            &
        air,bal)
 
     ! Input arguments
@@ -212,6 +214,7 @@ CONTAINS
 
     ! Local variables
     REAL(r_2), DIMENSION(:,:,:),POINTER, SAVE :: bwb         ! volumetric soil moisture
+   REAL(r_2), DIMENSION(:,:),POINTER, SAVE   :: bwb_gw ! volumetric gw soil moisture ! MMY
     REAL(r_2), DIMENSION(mp)                  :: delwb       ! change in soilmoisture
     ! b/w tsteps
     REAL, DIMENSION(mp)                  :: canopy_wbal !canopy water balance
@@ -220,12 +223,39 @@ CONTAINS
 
     IF(ktau==1) THEN
        ALLOCATE( bwb(mp,ms,2) )
+      ALLOCATE( bwb_gw(mp,2) ) ! MMY
        ! initial vlaue of soil moisture
        bwb(:,:,1)=ssnow%wb
        bwb(:,:,2)=ssnow%wb
+      bwb_gw(:,1)=ssnow%GWwb ! MMY
+      bwb_gw(:,2)=ssnow%GWwb ! MMY
        delwb(:) = 0.
     ELSE
        ! Calculate change in soil moisture b/w timesteps:
+
+      ! ________________ MMY, Water Balance Equation for GW_ON _______________
+      ! MMY to fix water balance bug when gw-on
+      IF ( cable_user%GW_MODEL) THEN ! MMY
+
+       IF(MOD(REAL(ktau),2.0)==1.0) THEN         ! if odd timestep
+          bwb(:,:,1)=ssnow%wb
+          bwb_gw(:,1)=ssnow%GWwb
+          DO k=1,mp           ! current smoist - prev tstep smoist
+             delwb(k) = ( SUM( (bwb(k,:,1) - bwb(k,:,2))*soil%zse ) +         &
+                          (bwb_gw(k,1) - bwb_gw(k,2))*soil%GWdz(k) ) *1000.0
+          END DO
+       ELSE IF(MOD(REAL(ktau),2.0)==0.0) THEN    ! if even timestep
+          bwb(:,:,2)=ssnow%wb
+          bwb_gw(:,2)=ssnow%GWwb
+          DO k=1,mp           !  current smoist - prev tstep smoist
+             delwb(k) = ( SUM( (bwb(k,:,2) - bwb(k,:,1))*soil%zse ) +         &
+                          (bwb_gw(k,2) -bwb_gw(k,1))*soil%GWdz(k) ) *1000.0
+          END DO
+       END IF
+      ! ______________________________________________________________________
+
+      ELSE ! MMY
+
        IF(MOD(REAL(ktau),2.0)==1.0) THEN         ! if odd timestep
           bwb(:,:,1)=ssnow%wb
           DO k=1,mp           ! current smoist - prev tstep smoist
@@ -239,6 +269,9 @@ CONTAINS
                   - (bwb(k,:,1)))*soil%zse)*1000.0
           END DO
        END IF
+
+      END IF ! MMY
+
     END IF
 
 
@@ -249,9 +282,18 @@ CONTAINS
     !      it's included in change in canopy storage calculation))
     ! rml 28/2/11 ! BP changed rnof1+rnof2 to ssnow%runoff which also included rnof5
     ! which is used when nglacier=2 in soilsnow routines (BP feb2011)
+
+   IF ( cable_user%GW_MODEL) THEN ! MMY
+   ! ________________ MMY, Water Balance Equation for GW_ON _______________
+     bal%wbal = REAL(met%precip - canopy%delwc - ssnow%snowd+ssnow%osnowd       &
+         - ssnow%runoff-(canopy%fevw+canopy%fevc                                &
+         + canopy%fes/ssnow%cls)*dels/air%rlam - delwb) ! remove qrecharge
+   ! ______________________________________________________________________
+   ELSE ! MMY
     bal%wbal = REAL(met%precip - canopy%delwc - ssnow%snowd+ssnow%osnowd        &
          - ssnow%runoff-(canopy%fevw+canopy%fevc                                &
          + canopy%fes/ssnow%cls)*dels/air%rlam - delwb - ssnow%qrecharge)
+   END IF ! MMY
 
     ! Canopy water balance: precip-change.can.storage-throughfall-evap+dew
     canopy_wbal = REAL(met%precip-canopy%delwc-canopy%through                   &
@@ -279,23 +321,23 @@ CONTAINS
             + (canopy%fev+canopy%fes/ssnow%cls) * dels/air%rlam
     END IF
 
-  END SUBROUTINE mass_balance
+END SUBROUTINE mass_balance
 
-  !==============================================================================
-  !
-  ! Name: energy_balance
-  !
-  ! Purpose: Calculate cumulative and per-timestep balance, as well as allow user
-  !          to scrutinise balance in particular sections of the code - largely
-  !          for diagnostics/fault finding.
-  !
-  ! CALLed from: write_output
-  !
-  ! MODULEs used: cable_data (inherited)
-  !
-  !==============================================================================
+!==============================================================================
+!
+! Name: energy_balance
+!
+! Purpose: Calculate cumulative and per-timestep balance, as well as allow user
+!          to scrutinise balance in particular sections of the code - largely
+!          for diagnostics/fault finding.
+!
+! CALLed from: write_output
+!
+! MODULEs used: cable_data (inherited)
+!
+!==============================================================================
 
-  SUBROUTINE energy_balance( dels,ktau,met,rad,canopy,bal,ssnow,                    &
+SUBROUTINE energy_balance( dels,ktau,met,rad,canopy,bal,ssnow,                    &
        SBOLTZ,EMLEAF, EMSOIL )
 
     ! Input arguments
@@ -311,7 +353,6 @@ CONTAINS
          EMLEAF,  & !leaf emissivity
          EMSOIL     !leaf emissivity
 
-    !! vh_js !! note changes to this subroutine. Need to use ssnow%otss (not ssnow%tss) in these calculations.
 
     !! vh !! March 2014
 
@@ -348,22 +389,22 @@ CONTAINS
     bal%ebal_tot = bal%ebal_tot + bal%ebal
     bal%RadbalSum = bal%RadbalSum + bal%Radbal
 
-  END SUBROUTINE energy_balance
+END SUBROUTINE energy_balance
 
-  !==============================================================================
-  !
-  ! Name: rh_sh
-  !
-  ! Purpose: Converts relative humidity to specific humidity
-  !
-  ! CALLed from: units_in
-  !              get_met_data
-  !
-  ! CALLs: svp
-  !
-  !==============================================================================
+!==============================================================================
+!
+! Name: rh_sh
+!
+! Purpose: Converts relative humidity to specific humidity
+!
+! CALLed from: units_in
+!              get_met_data
+!
+! CALLs: svp
+!
+!==============================================================================
 
-  SUBROUTINE rh_sh (relHum,tk,psurf,specHum)
+SUBROUTINE rh_sh (relHum,tk,psurf,specHum)
 
     ! Input arguments
     REAL, INTENT (IN)  ::                                                  &
@@ -381,19 +422,19 @@ CONTAINS
     ws = 0.622 * es / (psurf - es) ! specific humidity at saturation
     specHum = (relHum/100.0) * ws ! specific humidity
 
-  END SUBROUTINE rh_sh
+END SUBROUTINE rh_sh
 
-  !==============================================================================
-  !
-  ! Name: svp
-  !
-  ! Purpose: Calculates saturation vapour pressure
-  !
-  ! CALLed from: rh_sh
-  !
-  !==============================================================================
+!==============================================================================
+!
+! Name: svp
+!
+! Purpose: Calculates saturation vapour pressure
+!
+! CALLed from: rh_sh
+!
+!==============================================================================
 
-  FUNCTION svp(tk) RESULT (F_Result)
+FUNCTION svp(tk) RESULT (F_Result)
 
     ! Local variables
     REAL ::                  &
@@ -426,6 +467,6 @@ CONTAINS
        F_Result = 10.0**ewlog4
     END IF
 
-  END FUNCTION svp
-  !==============================================================================
+END FUNCTION svp
+!==============================================================================
 END MODULE cable_checks_module
