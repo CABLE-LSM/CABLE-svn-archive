@@ -39,7 +39,7 @@ MODULE cable_init_module
        soiltype_metfile
   USE cable_read_module
   USE netcdf
-  USE cable_common_module, ONLY : filename, cable_user
+   USE cable_common_module, ONLY : filename, cable_user,gw_params
 
   IMPLICIT NONE
 
@@ -140,6 +140,19 @@ CONTAINS
     canopy%fes     = 0.0   ! latent heat flux from soil (W/m2)
     canopy%fhs     = 0.0   ! sensible heat flux from soil (W/m2)
     canopy%us = 0.1 ! friction velocity (needed in roughness before first call to canopy: should in be in restart?)
+   canopy%sublayer_dz = 0.001
+   ssnow%rtevap_sat   = 0.0
+   ssnow%rtevap_unsat = 0.0
+   ssnow%satfrac    = 1.0e-12
+   ssnow%qhz        = 0.0
+   ssnow%wtd        = 1000.0
+
+  ssnow%wb_hys  = 0.99*soil%ssat_vec
+  ssnow%smp_hys = -0.99*soil%sucs_vec
+  ssnow%ssat_hys = gw_params%ssat_wet_factor*soil%ssat_vec
+  ssnow%watr_hys = soil%watr
+  ssnow%hys_fac = 1.0
+
 
   END SUBROUTINE get_default_inits
 
@@ -284,13 +297,7 @@ CONTAINS
     ok=NF90_GET_VAR(ncid_rin,latID,lat_restart)
     IF(ok/=NF90_NOERR) CALL nc_abort(ok,'Error reading latitude in file '       &
          //TRIM(filename%restart_in)// '(SUBROUTINE get_restart)')
-    ! Removed rad%latitude from here as it is already done in write_default_params
-    ! (BP may2010)
-    !    ! Set rad%latitude parameter
-    !    DO i=1,mland
-    !       ! All patches in a single grid cell have the same latitude:
-    !       rad%latitude(landpt(i)%cstart:landpt(i)%cend)=lat_restart(i)
-    !    END DO
+
     ok=NF90_GET_VAR(ncid_rin,lonID,lon_restart)
     IF(ok/=NF90_NOERR) CALL nc_abort(ok,'Error reading longitude in file '      &
          //TRIM(filename%restart_in)// '(SUBROUTINE get_restart)')
@@ -316,16 +323,7 @@ CONTAINS
                //TRIM(filename%restart_in)// ' out of range')
           IF (INvegt /= mvtype) PRINT *, 'Warning: INvegt, nvegt = ', INvegt, mvtype
        ENDIF
-       ! Removed the following as mvtype is determined earlier from
-       ! reading in def_veg_params_xx.txt (BP may2010)
-       !       IF(vegparmnew) THEN
-       !          mvtype = 17
-       !       ELSE
-       !          mvtype = 13
-       !       ENDIF
     ELSE
-       ! Changed the read-in variable name so that mvtype would not be overwritten
-       ! and added some more checking (BP may2010)
        ok=NF90_GET_VAR(ncid_rin,mvtypeID,INvegt)
        IF(ok/=NF90_NOERR) CALL nc_abort(ok,'Error reading mvtype in file '      &
             //TRIM(filename%restart_in)// '(SUBROUTINE get_restart)')
@@ -344,12 +342,7 @@ CONTAINS
           IF(INsoilt /= mstype) CALL nc_abort(ok,'Error: nsoilt value in file ' &
                //TRIM(filename%restart_in)// ' is wrong')
        ENDIF
-       ! Removed the following as mstype is determined earlier from
-       ! reading in def_soil_params.txt (BP may2010)
-       !       mstype = 9
     ELSE
-       ! Changed the read-in variable name so that mstype would not be overwritten
-       ! (BP may2010)
        ok=NF90_GET_VAR(ncid_rin,mstypeID,INsoilt)
        IF(ok/=NF90_NOERR) CALL nc_abort(ok,'Error reading mstype in file '      &
             //TRIM(filename%restart_in)// '(SUBROUTINE get_restart)')
@@ -373,7 +366,6 @@ CONTAINS
          max_vegpatches,'msd',from_restart,mp)
     CALL readpar(ncid_rin,'wbice',dummy,ssnow%wbice,filename%restart_in,        &
          max_vegpatches,'msd',from_restart,mp)
-    !    WHERE (ssnow%tgg > 273.2 .AND. ssnow%wbice >0.0) ssnow%wbice=0.0
     CALL readpar(ncid_rin,'gammzz',dummy,ssnow%gammzz,filename%restart_in,      &
          max_vegpatches,'msd',from_restart,mp)
     CALL readpar(ncid_rin,'tss',dummy,ssnow%tss,filename%restart_in,            &
@@ -408,19 +400,78 @@ CONTAINS
     CALL readpar(ncid_rin,'runoff',dummy,ssnow%runoff,filename%restart_in,      &
          max_vegpatches,'def',from_restart,mp)
 
-    !MD
-    ok = NF90_INQ_VARID(ncid_rin,'GWwb',parID)
-    IF(ok == NF90_NOERR) THEN
-       CALL readpar(ncid_rin,'GWwb',dummy,ssnow%GWwb,filename%restart_in,            &
-            max_vegpatches,'def',from_restart,mp)
-    ELSE
-       ssnow%GWwb = 0.95*soil%ssat
-    END IF
+   IF (cable_user%gw_model) THEN
 
-!!$   IF(cable_user%SOIL_STRUC=='sli'.or.cable_user%FWSOIL_SWITCH=='Haverd2013') THEN
-!!$      CALL readpar(ncid_rin,'gamma',dummy,veg%gamma,filename%restart_in,           &
-!!$           max_vegpatches,'def',from_restart,mp)
-!!$   ENDIF
+      ok = NF90_INQ_VARID(ncid_rin,'GWwb',parID)
+      IF(ok == NF90_NOERR) THEN 
+        CALL readpar(ncid_rin,'GWwb',dummy,ssnow%GWwb,filename%restart_in,            &
+                   max_vegpatches,'def',from_restart,mp)   
+      ELSE
+         ssnow%GWwb = 0.95*soil%ssat
+      END IF
+
+      ok = NF90_INQ_VARID(ncid_rin,'wb_hys',parID)
+      IF(ok == NF90_NOERR) THEN 
+        CALL readpar(ncid_rin,'wb_hys',dummy,ssnow%wb_hys,filename%restart_in,            &
+                   max_vegpatches,'msd',from_restart,mp)   
+      ELSE
+         ssnow%wb_hys = 0.99*soil%ssat_vec
+      END IF
+
+      ok = NF90_INQ_VARID(ncid_rin,'smp_hys',parID)
+      IF(ok == NF90_NOERR) THEN 
+        CALL readpar(ncid_rin,'smp_hys',dummy,ssnow%smp_hys,filename%restart_in,            &
+                   max_vegpatches,'msd',from_restart,mp)   
+      ELSE
+         ssnow%smp_hys = -1.0*abs(soil%sucs_vec)*0.99
+      END IF
+
+      ok = NF90_INQ_VARID(ncid_rin,'ssat_hys',parID)
+      IF(ok == NF90_NOERR) THEN 
+        CALL readpar(ncid_rin,'ssat_hys',dummy,ssnow%ssat_hys,filename%restart_in,            &
+                   max_vegpatches,'msd',from_restart,mp)   
+      ELSE
+         ssnow%ssat_hys = soil%ssat_vec
+      END IF
+
+      ok = NF90_INQ_VARID(ncid_rin,'watr_hys',parID)
+      IF(ok == NF90_NOERR) THEN 
+        CALL readpar(ncid_rin,'watr_hys',dummy,ssnow%watr_hys,filename%restart_in,            &
+                   max_vegpatches,'msd',from_restart,mp)   
+      ELSE
+         ssnow%watr_hys = soil%watr
+      END IF
+
+      ok = NF90_INQ_VARID(ncid_rin,'hys_fac',parID)
+      IF(ok == NF90_NOERR) THEN 
+        CALL readpar(ncid_rin,'hys_fac',dummy,ssnow%hys_fac,filename%restart_in,            &
+                   max_vegpatches,'msd',from_restart,mp)   
+      ELSE
+         ssnow%hys_fac = 1.0
+      END IF
+
+   END IF ! IF (cable_user%gw_model)
+
+   IF (cable_user%or_evap) then
+
+		ok = NF90_INQ_VARID(ncid_rin,'sublayer_dz',parID)
+   	IF(ok == NF90_NOERR) THEN 
+			CALL readpar(ncid_rin,'sublayer_dz',dummy,canopy%sublayer_dz,filename%restart_in,            &
+									 max_vegpatches,'def',from_restart,mp)   
+   	ELSE
+			canopy%sublayer_dz(:) = 0.01
+   	END IF
+   
+		if (any(canopy%sublayer_dz .lt. 0.0) .or. any(canopy%sublayer_dz .gt. 0.5))then
+			WRITE(*,*) 'problem with sublayer_dz and restart.  check restart values!'
+		end if
+   
+	 END IF ! IF (cable_user%or_evap)
+
+   IF(cable_user%SOIL_STRUC=='sli'.or.cable_user%FWSOIL_SWITCH=='Haverd2013') THEN
+      CALL readpar(ncid_rin,'gamma',dummy,veg%gamma,filename%restart_in,           &
+           max_vegpatches,'def',from_restart,mp)
+   ENDIF
 
     IF(cable_user%SOIL_STRUC=='sli') THEN
        CALL readpar(ncid_rin,'S',dummy,ssnow%S,filename%restart_in, &
@@ -437,6 +488,7 @@ CONTAINS
             max_vegpatches,'snow',from_restart,mp)
        CALL readpar(ncid_rin,'sconds',dummy,ssnow%sconds,filename%restart_in, &
             max_vegpatches,'snow',from_restart,mp)
+!jhan:hack - dont recall why these were blocked
 !!$       CALL readpar(ncid_rin,'ZR',dummy,veg%ZR, &
 !!$            filename%restart_in,max_vegpatches,'def',from_restart,mp)
 !!$       CALL readpar(ncid_rin,'F10',dummy,veg%F10, &
@@ -545,6 +597,7 @@ CONTAINS
        ! no problem with overwriting default values
        soil%isoilm = INvar
     ENDIF
+!jhan:hack - dont recall why these were blocked
     !    CALL readpar(ncid_rin,'isoil',dummy,soil%isoilm,filename%restart_in,       &
     !         max_vegpatches,'def',from_restart,mp)
     !   CALL readpar(ncid_rin,'clay',dummy,soil%clay,filename%restart_in,           &
