@@ -516,8 +516,6 @@ IF (lhook) CALL dr_hook(ModuleName//':'//RoutineName,zhook_in,zhook_handle)
   l_dust_diag = l_dust
 #endif
 
-!curiously crashes if it iis called for CABLE
-!!IF( LSM_ID == 1) THEN
   CALL jules_gridinit_sf_explicit (                                            &
     !IN soil/vegetation/land surface data :
     flandg,                                                                    &
@@ -537,8 +535,6 @@ IF (lhook) CALL dr_hook(ModuleName//':'//RoutineName,zhook_in,zhook_handle)
     !OUT data required elsewhere in boundary layer or surface code
     rhostar,vshr,coast%vshr_land_ij,coast%vshr_ssi_ij                          &
     )
-
-!!END IF
 
   DO i = tdims%i_start,tdims%i_end
     DO j = tdims%j_start,tdims%j_end
@@ -886,8 +882,6 @@ END SELECT
     fluxes%sw_sicat, fluxes%sw_sea                                             &
     )
 
-!curiously crashes if it iis called for CABLE
-IF( LSM_ID == 1) THEN
   CALL jules_griddiag_sf_explicit (                                            &
     !IN values defining field dimensions and subset to be processed :
     land_pts, nice_use,                                                        &
@@ -933,8 +927,6 @@ IF( LSM_ID == 1) THEN
    !jules_internal
     jules_vars%unload_backgrnd_pft                                             &
     )
-
-endif
 
 #if defined(UM_JULES)
   DO l = 1, land_pts
