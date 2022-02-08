@@ -490,6 +490,8 @@ CHARACTER(LEN=*), PARAMETER :: RoutineName='SURF_COUPLE_EXPLICIT'
 !End of header
 IF (lhook) CALL dr_hook(ModuleName//':'//RoutineName,zhook_in,zhook_handle)
 
+!curiously crashes if it iis called for CABLE
+IF( LSM_ID == 1) THEN
   ! Change 2d UM clay to 1d jules clay content for soil respiration
   ! Soil tiling not currently in the UM, so broadcast ij value to all tiles.
   ! Multi-layer clay not currently in UM so set all layers to same value.
@@ -542,7 +544,7 @@ IF (lhook) CALL dr_hook(ModuleName//':'//RoutineName,zhook_in,zhook_handle)
       rhostar_ssi(i,j) = rhostar(i,j)
     END DO
   END DO
-
+END IF
 
 SELECT CASE( lsm_id )
 CASE ( jules )
@@ -837,6 +839,8 @@ CASE DEFAULT
 
 END SELECT
 
+!curiously crashes if it iis called for CABLE
+IF( LSM_ID == 1) THEN
   CALL jules_ssi_sf_explicit (                                                 &
     !IN values defining field dimensions and subset to be processed :
     nice, nice_use,                                                            &
@@ -937,6 +941,8 @@ END SELECT
     END DO
   END DO
 #endif
+
+endif
 
 IF (lhook) CALL dr_hook(ModuleName//':'//RoutineName,zhook_out,zhook_handle)
 RETURN
