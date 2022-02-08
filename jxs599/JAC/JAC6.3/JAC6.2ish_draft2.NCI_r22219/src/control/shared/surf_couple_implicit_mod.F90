@@ -542,8 +542,6 @@ CASE DEFAULT
 
 END SELECT
 
-!curiously crashes if it iis called for CABLE
-IF( LSM_ID == 1) THEN
   CALL jules_ssi_sf_implicit (                                                 &
   ! IN values defining field dimensions and subset to be processed :
           nice,nice_use,flandg,                                                &
@@ -571,6 +569,8 @@ IF( LSM_ID == 1) THEN
   ! fluxes (IN)
           fluxes%sw_sicat)
 
+!curiously crashes if it iis called for CABLE
+IF( LSM_ID == 1) THEN
   CALL jules_griddiag_sf_implicit (                                            &
   ! IN values defining field dimensions and subset to be processed :
           land_pts,ainfo%land_index,nice_use,nsurft,ainfo%surft_index,         &

@@ -544,6 +544,7 @@ IF( LSM_ID == 1) THEN
       rhostar_ssi(i,j) = rhostar(i,j)
     END DO
   END DO
+
 END IF
 
 SELECT CASE( lsm_id )
@@ -839,8 +840,6 @@ CASE DEFAULT
 
 END SELECT
 
-!curiously crashes if it iis called for CABLE
-IF( LSM_ID == 1) THEN
   CALL jules_ssi_sf_explicit (                                                 &
     !IN values defining field dimensions and subset to be processed :
     nice, nice_use,                                                            &
@@ -887,6 +886,8 @@ IF( LSM_ID == 1) THEN
     fluxes%sw_sicat, fluxes%sw_sea                                             &
     )
 
+!curiously crashes if it iis called for CABLE
+IF( LSM_ID == 1) THEN
   CALL jules_griddiag_sf_explicit (                                            &
     !IN values defining field dimensions and subset to be processed :
     land_pts, nice_use,                                                        &
@@ -933,6 +934,8 @@ IF( LSM_ID == 1) THEN
     jules_vars%unload_backgrnd_pft                                             &
     )
 
+endif
+
 #if defined(UM_JULES)
   DO l = 1, land_pts
     DO n = 1, dim_cs1
@@ -941,8 +944,6 @@ IF( LSM_ID == 1) THEN
     END DO
   END DO
 #endif
-
-endif
 
 IF (lhook) CALL dr_hook(ModuleName//':'//RoutineName,zhook_out,zhook_handle)
 RETURN
