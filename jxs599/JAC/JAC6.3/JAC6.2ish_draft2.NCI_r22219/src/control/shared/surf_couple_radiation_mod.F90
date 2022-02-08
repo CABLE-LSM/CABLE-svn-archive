@@ -71,6 +71,7 @@ USE lake_mod, ONLY: lake_type
 
 USE jules_ssi_albedo_mod,     ONLY: jules_ssi_albedo
 USE jules_land_albedo_mod,    ONLY: jules_land_albedo
+USE cable_land_albedo_mod,    ONLY: cable_land_albedo
 
 !Common modules
 USE ereport_mod,              ONLY:                                            &
@@ -261,6 +262,56 @@ CASE ( jules )
     progs%snowdepth_surft, progs%rho_snow_grnd_surft, progs%nsnow_surft,       &
     progs%sice_surft, progs%sliq_surft, progs%ds_surft)
 
+CASE ( cable )
+  ! for testing LSM
+  WRITE(jules_message,'(A)') "CABLE not yet implemented"
+  CALL jules_print(RoutineName, jules_message)
+
+  ! initialise all INTENT(OUT) fields for now until CABLE is implemented
+  sea_ice_albedo(:,:,:) = 0.0
+  fluxes%alb_surft(:,:,:) = 0.0
+  fluxes%land_albedo_ij(:,:,:) = 0.0
+
+RETURN
+
+  CALL cable_land_albedo (                                                     &
+    !INTENT(IN)
+    t_i_length * t_j_length,                                                   &
+    land_pts, nsurft,                                                          &
+    ainfo%land_index, surft_pts, ainfo%surft_index,                            &
+    psparms%albsoil_soilt, psparms%albobs_sw_gb, psparms%albobs_vis_gb,        &
+    psparms%albobs_nir_gb,                                                     &
+    cosz_gb, soot_gb, jules_vars%ho2r2_orog_gb,                                &
+    progs%lai_pft, progs%canht_pft,                                            &
+    progs%rgrain_surft, snow_surft, progs%tstar_surft, psparms%z0_surft,       &
+    ainfo%frac_surft,                                                          &
+    !INTENT(OUT)
+    fluxes%alb_surft,albobs_sc_ij,fluxes%land_albedo_ij,                       &
+    !New arguments replacing USE statements
+    !jules_vars_mod (IN OUT)
+    jules_vars%albobs_scaling_surft,                                           &
+    !jules_vars_mod (OUT)
+    jules_vars%snowdep_surft,                                                  &
+    !urban_param (IN)
+    urban_param%albwl_gb, urban_param%albrd_gb, urban_param%hwr_gb,            &
+    !lake_mod (IN)
+    lake_vars%lake_h_ice_gb,                                                   &
+    !ancil_info (IN)
+    ainfo%l_lice_point,                                                        &
+    !prognostics (IN)
+    progs%snowdepth_surft, progs%rho_snow_grnd_surft, progs%nsnow_surft,       &
+    progs%sice_surft, progs%sliq_surft, progs%ds_surft,                        &
+    progs_cbl, work_cbl )
+
+
+CASE DEFAULT
+  errorstatus = 101
+  WRITE(jules_message,'(A,I0)') 'Unrecognised surface scheme. lsm_id = ',      &
+     lsm_id
+  CALL ereport(RoutineName, errorstatus, jules_message)
+
+END SELECT
+
   CALL jules_ssi_albedo (                                                      &
     !INTENT(IN)
     !input fields
@@ -293,23 +344,6 @@ CASE ( jules )
     !Fluxes (OUT)
     fluxes%alb_sicat, fluxes%penabs_rad_frac)
 
-CASE ( cable )
-  ! for testing LSM
-  WRITE(jules_message,'(A)') "CABLE not yet implemented"
-  CALL jules_print(RoutineName, jules_message)
-
-  ! initialise all INTENT(OUT) fields for now until CABLE is implemented
-  sea_ice_albedo(:,:,:) = 0.0
-  fluxes%alb_surft(:,:,:) = 0.0
-  fluxes%land_albedo_ij(:,:,:) = 0.0
-
-CASE DEFAULT
-  errorstatus = 101
-  WRITE(jules_message,'(A,I0)') 'Unrecognised surface scheme. lsm_id = ',      &
-     lsm_id
-  CALL ereport(RoutineName, errorstatus, jules_message)
-
-END SELECT
 
 IF (lhook) CALL dr_hook(ModuleName//':'//RoutineName,zhook_out,zhook_handle)
 RETURN

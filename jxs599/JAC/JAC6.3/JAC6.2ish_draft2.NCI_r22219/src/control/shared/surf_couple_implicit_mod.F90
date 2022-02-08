@@ -12,6 +12,7 @@ MODULE surf_couple_implicit_mod
 
 USE jules_grid_update_implicit_mod, ONLY: jules_grid_update_implicit
 USE jules_land_sf_implicit_mod,     ONLY: jules_land_sf_implicit
+USE cable_land_sf_implicit_mod,     ONLY: cable_land_sf_implicit
 USE jules_ssi_sf_implicit_mod,      ONLY: jules_ssi_sf_implicit
 USE jules_griddiag_sf_implicit_mod, ONLY: jules_griddiag_sf_implicit
 
@@ -74,8 +75,7 @@ SUBROUTINE surf_couple_implicit(                                               &
   !veg3_parm, &
   !veg3_field, &
   !chemvars, &
-  progs_cbl,                                                                   &
-  work_cbl                                                                     &
+  progs_cbl, work_cbl                                                          &
   )
 
 !Module Imports
@@ -385,9 +385,6 @@ CHARACTER(LEN=*), PARAMETER :: RoutineName='SURF_COUPLE_IMPLICIT'
 
 IF (lhook) CALL dr_hook(ModuleName//':'//RoutineName,zhook_in,zhook_handle)
 
-SELECT CASE( lsm_id )
-CASE ( jules )
-
   CALL  jules_grid_update_implicit(                                            &
   ! IN values defining field dimensions and subset to be processed :
           land_pts,ainfo%land_index,nice,nice_use,nsurft,ainfo%surft_index,    &
@@ -411,6 +408,10 @@ CASE ( jules )
   ! OUT data required elsewhere in UM system :
           fluxes%e_sea_ij,fluxes%h_sea_ij,taux_1,tauy_1,ice_fract_cat_use      &
         )
+
+
+SELECT CASE( lsm_id )
+CASE ( jules )
 
   IF ( .NOT. l_correct ) THEN
     CALL jules_land_sf_implicit (                                              &
@@ -454,6 +455,90 @@ CASE ( jules )
             !TYPES containing field data (IN OUT)
             crop_vars)
   END IF ! IF .NOT. L_correct
+
+CASE ( cable )
+  ! for testing LSM switch
+  WRITE(jules_message,'(A)') "CABLE not yet implemented"
+  CALL jules_print(RoutineName, jules_message)
+
+  ! initialise all INTENT(OUT) for now until CABLE is implemented
+  fluxes%tstar_ij(:,:) = 0.0
+  fluxes%le_surft(:,:) = 0.0
+  fluxes%radnet_surft(:,:) = 0.0
+  fluxes%e_sea_ij(:,:) = 0.0
+  fluxes%h_sea_ij(:,:) = 0.0
+  taux_1(:,:) = 0.0
+  tauy_1(:,:) = 0.0
+  fluxes%ecan_surft(:,:) = 0.0
+  fluxes%ei_ij(:,:) = 0.0
+  fluxes%esoil_ij_soilt(:,:,:) = 0.0
+  fluxes%ext_soilt(:,:,:) = 0.0
+  fluxes%melt_surft(:,:) = 0.0
+  fluxes%ecan_ij(:,:) = 0.0
+  fluxes%ei_surft(:,:) = 0.0
+  fluxes%esoil_surft(:,:) = 0.0
+  fluxes%sea_ice_htf_sicat(:,:,:) = 0.0
+  fluxes%surf_ht_flux_ij(:,:) = 0.0
+  fluxes%surf_htf_surft(:,:) = 0.0
+  ERROR = 0
+
+RETURN
+
+!CBL! maybe should we call this the 2nd time?
+  IF ( .NOT. l_correct ) THEN
+
+    CALL cable_land_sf_implicit (                                              &
+    ! IN values defining field dimensions and subset to be processed :
+            land_pts,ainfo%land_index,nsurft,ainfo%surft_index,surft_pts,      &
+            sm_levels,                                                         &
+            canhc_surft,progs%canopy_surft,flake,progs%smc_soilt,tile_frac,    &
+            wt_ext_surft,coast%fland,flandg,                                   &
+    ! IN everything not covered so far :
+            forcing%lw_down_ij,fluxes%sw_surft,progs%t_soil_soilt,r_gamma,     &
+            alpha1,ashtf_surft,                                                &
+            jules_vars%dtrdz_charney_grid_1_ij,fraca,resfs,resft,rhokh_surft,  &
+            fluxes%emis_surft,progs%snow_surft,dtstar_surft,                   &
+    ! INOUT data :
+            progs%tstar_surft,fluxes%fqw_surft,fqw_1,ftl_1,fluxes%ftl_surft,   &
+            sf_diag,                                                           &
+    ! OUT Diagnostic not requiring STASH flags :
+            fluxes%ecan_ij,fluxes%ei_surft,fluxes%esoil_surft,                 &
+            coast%surf_ht_flux_land_ij,                                        &
+            ei_land_ij,fluxes%surf_htf_surft,                                  &
+    ! OUT data required elsewhere in UM system :
+            tstar_land_ij,fluxes%le_surft,fluxes%radnet_surft,                 &
+            fluxes%ecan_surft,fluxes%esoil_ij_soilt,                           &
+            fluxes%ext_soilt,fluxes%melt_surft,                                &
+            tstar_surft_old,ERROR,                                             &
+            !New arguments replacing USE statements
+            ! lake_mod (IN)
+            lake_vars%lake_h_ice_gb,                                           &
+            ! lake_mod (OUT)
+            lake_vars%surf_ht_flux_lake_ij,                                    &
+            ! fluxes (IN)
+            fluxes%anthrop_heat_surft,                                         &
+            ! fluxes (OUT)
+            fluxes%surf_ht_store_surft,                                        &
+            ! c_elevate (IN)
+            jules_vars%lw_down_elevcorr_surft,                                 &
+            ! prognostics (IN)
+            progs%nsnow_surft,                                                 &
+            ! jules_vars_mod (IN)
+            jules_vars%snowdep_surft,                                          &
+            !TYPES containing field data (IN OUT)
+            crop_vars,                                                         &
+            progs_cbl, work_cbl )
+
+  END IF ! IF .NOT. L_correct
+
+
+CASE DEFAULT
+  ERROR = 101
+  WRITE(jules_message,'(A,I0)') 'Unrecognised surface scheme. lsm_id = ',      &
+     lsm_id
+  CALL ereport(RoutineName, ERROR, jules_message)
+
+END SELECT
 
   CALL jules_ssi_sf_implicit (                                                 &
   ! IN values defining field dimensions and subset to be processed :
@@ -516,39 +601,7 @@ CASE ( jules )
         )
 
 
-CASE ( cable )
-  ! for testing LSM switch
-  WRITE(jules_message,'(A)') "CABLE not yet implemented"
-  CALL jules_print(RoutineName, jules_message)
 
-  ! initialise all INTENT(OUT) for now until CABLE is implemented
-  fluxes%tstar_ij(:,:) = 0.0
-  fluxes%le_surft(:,:) = 0.0
-  fluxes%radnet_surft(:,:) = 0.0
-  fluxes%e_sea_ij(:,:) = 0.0
-  fluxes%h_sea_ij(:,:) = 0.0
-  taux_1(:,:) = 0.0
-  tauy_1(:,:) = 0.0
-  fluxes%ecan_surft(:,:) = 0.0
-  fluxes%ei_ij(:,:) = 0.0
-  fluxes%esoil_ij_soilt(:,:,:) = 0.0
-  fluxes%ext_soilt(:,:,:) = 0.0
-  fluxes%melt_surft(:,:) = 0.0
-  fluxes%ecan_ij(:,:) = 0.0
-  fluxes%ei_surft(:,:) = 0.0
-  fluxes%esoil_surft(:,:) = 0.0
-  fluxes%sea_ice_htf_sicat(:,:,:) = 0.0
-  fluxes%surf_ht_flux_ij(:,:) = 0.0
-  fluxes%surf_htf_surft(:,:) = 0.0
-  ERROR = 0
-
-CASE DEFAULT
-  ERROR = 101
-  WRITE(jules_message,'(A,I0)') 'Unrecognised surface scheme. lsm_id = ',      &
-     lsm_id
-  CALL ereport(RoutineName, ERROR, jules_message)
-
-END SELECT
 
 IF (lhook) CALL dr_hook(ModuleName//':'//RoutineName,zhook_out,zhook_handle)
 RETURN

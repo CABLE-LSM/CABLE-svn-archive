@@ -128,6 +128,7 @@ USE work_vars_mod_cbl,  ONLY: work_vars_type      ! and some kept thru timestep
 
 !Import interfaces to subroutines called
 USE hydrol_mod,               ONLY: hydrol
+USE hydrol_mod_cbl,           ONLY: hydrol_cbl
 USE snow_mod,                 ONLY: snow
 USE jules_rivers_mod,         ONLY: l_rivers, l_inland, rivers_call
 
@@ -494,12 +495,6 @@ timestep_real =  timestep
 timestep_real = REAL(timestep_len)
 #endif
 
-!CABLE_LSM: implement switching based on lsm_id
-SELECT CASE( lsm_id )
-
-  !=============================================================================
-CASE ( jules )
-
   !=============================================================================
   ! Redimensioning of arrays
 
@@ -608,9 +603,18 @@ CASE ( jules )
       END DO
     END IF !l_var_rainfrac
 
+  END IF ! ( l_hydrology .AND. land_pts /= 0 )
+
     !===========================================================================
     ! Science calls
 
+
+!CABLE_LSM: implement switching based on lsm_id
+SELECT CASE( lsm_id )
+
+CASE ( jules )
+
+  IF (l_hydrology .AND. land_pts > 0 ) THEN
     !Snow (standalone and UM)
     CALL snow ( land_pts,timestep_real,smlt,nsurft,surft_pts,                  &
                 ainfo%surft_index,psparms%catch_snow_surft,con_snow_gb,        &
@@ -681,6 +685,82 @@ CASE ( jules )
        toppdm%slope_gb, dim_cs1, l_soil_sat_down, asteps_since_triffid)
 
   END IF ! ( l_hydrology .AND. land_pts /= 0 )
+
+
+CASE ( cable )
+  ! for testing LSM switch
+  WRITE(jules_message,'(A)') "CABLE not yet implemented"
+  CALL jules_print(RoutineName, jules_message)
+
+  ! initialise all INTENT(OUT) for now until CABLE is implemented
+  fluxes%melt_surft(:,:) = 0.0
+  fluxes%hf_snow_melt_gb(:) = 0.0
+  fluxes%snomlt_sub_htf_gb(:) = 0.0
+  fluxes%sub_surf_roff_gb(:) = 0.0
+  fluxes%surf_roff_gb(:) = 0.0
+  fluxes%tot_tfall_gb(:) = 0.0
+  fluxes%snow_melt_gb(:) = 0.0
+  fluxes%rrun_gb(:) = 0.0
+  fluxes%rflow_gb(:) = 0.0
+  fluxes%snow_soil_htf(:,:) = 0.0
+
+RETURN
+
+  IF (l_hydrology .AND. land_pts > 0 ) THEN
+    !Hydrology (standalone and UM)
+    CALL hydrol_cbl (                                                              &
+      lice_pts,ainfo%lice_index,soil_pts,ainfo%soil_index, progs%nsnow_surft,  &
+      land_pts,sm_levels,psparms%bexp_soilt,psparms%catch_surft,con_rain_gb,   &
+      fluxes%ecan_surft,fluxes%ext_soilt,psparms%hcap_soilt,                   &
+      psparms%hcon_soilt,ls_rain_gb,                                           &
+      con_rainfrac_gb, ls_rainfrac_gb,                                         &
+      psparms%satcon_soilt,psparms%sathh_soilt,progs%snowdepth_surft,          &
+      fluxes%snow_soil_htf, surf_ht_flux_ld,timestep_real,                     &
+      psparms%smvcst_soilt,psparms%smvcwt_soilt,progs%canopy_surft,            &
+      stf_sub_surf_roff,progs%smcl_soilt,psparms%sthf_soilt,                   &
+      psparms%sthu_soilt, progs%t_soil_soilt,progs%tsurf_elev_surft,           &
+      progs%canopy_gb,progs%smc_soilt,fluxes%snow_melt_gb,                     &
+      fluxes%sub_surf_roff_gb,fluxes%surf_roff_gb,fluxes%tot_tfall_gb,         &
+      fluxes%tot_tfall_surft,                                                  &
+      ! add new inland basin variable
+      inlandout_atm_gb,l_inland,                                               &
+      ! Additional variables for MOSES II
+      nsurft,surft_pts,ainfo%surft_index,                                      &
+      psparms%infil_surft, fluxes%melt_surft,tile_frac,                        &
+      ! Additional variables required for large-scale hydrology:
+      l_top,l_pdm,fexp_soilt,ti_mean_soilt,cs_ch4_soilt,progs%cs_pool_soilt,   &
+      dun_roff_soilt,drain_soilt,fsat_soilt,fwetl_soilt,toppdm%qbase_soilt,    &
+      qbase_l_soilt, toppdm%qbase_zw_soilt, w_flux_soilt,                      &
+      zw_soilt,sthzw_soilt,a_fsat_soilt,c_fsat_soilt,a_fwet_soilt,             &
+      c_fwet_soilt,                                                            &
+      resp_s_soilt,npp_gb,toppdm%fch4_wetl_soilt,                              &
+      toppdm%fch4_wetl_cs_soilt,toppdm%fch4_wetl_npp_soilt,                    &
+      toppdm%fch4_wetl_resps_soilt, crop_vars%sthu_irr_soilt,                  &
+      crop_vars%frac_irr_soilt, crop_vars%ext_irr_soilt,                       &
+      ! New arguments replacing USE statements
+      ! trif_vars_mod
+      trif_vars%n_leach_soilt, trif_vars%n_leach_gb_acc,                       &
+      ! prognostics
+      progs%n_inorg_soilt_lyrs, progs%n_inorg_avail_pft, npft,                 &
+      progs%t_soil_soilt_acc, progs%tsoil_deep_gb,                             &
+      ! top_pdm_alloc
+       toppdm%fch4_wetl_acc_soilt,                                             &
+      ! microbial methane scheme
+      progs%substr_ch4, progs%mic_ch4, progs%mic_act_ch4, progs%acclim_ch4,    &
+      ! pdm_vars
+      toppdm%slope_gb, dim_cs1, l_soil_sat_down, asteps_since_triffid,         & 
+      progs_cbl, work_cbl )
+
+  END IF ! ( l_hydrology .AND. land_pts /= 0 )
+
+
+CASE DEFAULT
+  errorstatus = 101
+  WRITE(jules_message,'(A,I0)') 'Unrecognised surface scheme. lsm_id = ',      &
+     lsm_id
+  CALL ereport(RoutineName, errorstatus, jules_message)
+
+END SELECT
 
   ! Code not yet ported to LFRic
 #if !defined(LFRIC)
@@ -1183,31 +1263,7 @@ CASE ( jules )
   END IF
 #endif
 
-  !=============================================================================
-CASE ( cable )
-  ! for testing LSM switch
-  WRITE(jules_message,'(A)') "CABLE not yet implemented"
-  CALL jules_print(RoutineName, jules_message)
 
-  ! initialise all INTENT(OUT) for now until CABLE is implemented
-  fluxes%melt_surft(:,:) = 0.0
-  fluxes%hf_snow_melt_gb(:) = 0.0
-  fluxes%snomlt_sub_htf_gb(:) = 0.0
-  fluxes%sub_surf_roff_gb(:) = 0.0
-  fluxes%surf_roff_gb(:) = 0.0
-  fluxes%tot_tfall_gb(:) = 0.0
-  fluxes%snow_melt_gb(:) = 0.0
-  fluxes%rrun_gb(:) = 0.0
-  fluxes%rflow_gb(:) = 0.0
-  fluxes%snow_soil_htf(:,:) = 0.0
-
-CASE DEFAULT
-  errorstatus = 101
-  WRITE(jules_message,'(A,I0)') 'Unrecognised surface scheme. lsm_id = ',      &
-     lsm_id
-  CALL ereport(RoutineName, errorstatus, jules_message)
-
-END SELECT
 
 IF (lhook) CALL dr_hook(ModuleName//':'//RoutineName,zhook_out,zhook_handle)
 RETURN

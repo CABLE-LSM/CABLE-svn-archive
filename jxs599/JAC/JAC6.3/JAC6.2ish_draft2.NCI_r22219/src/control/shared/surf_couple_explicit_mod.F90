@@ -12,6 +12,7 @@ MODULE surf_couple_explicit_mod
 
 USE jules_gridinit_sf_explicit_mod, ONLY: jules_gridinit_sf_explicit
 USE jules_land_sf_explicit_mod,     ONLY: jules_land_sf_explicit
+USE cable_land_sf_explicit_mod,     ONLY: cable_land_sf_explicit
 USE jules_ssi_sf_explicit_mod,      ONLY: jules_ssi_sf_explicit
 USE jules_griddiag_sf_explicit_mod, ONLY: jules_griddiag_sf_explicit
 
@@ -489,9 +490,6 @@ CHARACTER(LEN=*), PARAMETER :: RoutineName='SURF_COUPLE_EXPLICIT'
 !End of header
 IF (lhook) CALL dr_hook(ModuleName//':'//RoutineName,zhook_in,zhook_handle)
 
-SELECT CASE( lsm_id )
-CASE ( jules )
-
   ! Change 2d UM clay to 1d jules clay content for soil respiration
   ! Soil tiling not currently in the UM, so broadcast ij value to all tiles.
   ! Multi-layer clay not currently in UM so set all layers to same value.
@@ -545,6 +543,9 @@ CASE ( jules )
     END DO
   END DO
 
+
+SELECT CASE( lsm_id )
+CASE ( jules )
 
   CALL jules_land_sf_explicit (                                                &
     !IN date-related values
@@ -661,6 +662,180 @@ CASE ( jules )
     chemvars%flux_o3_pft, chemvars%fo3_pft                                     &
     )
 
+CASE ( cable )
+  ! for testing LSM switch
+  WRITE(jules_message,'(A)') "CABLE not yet implemented"
+  CALL jules_print(RoutineName, jules_message)
+
+  ! initialise all INTENT(OUT) for now until CABLE is implemented
+  fqw_1(:,:) = 0.0
+  ftl_1(:,:) = 0.0
+  fluxes%ftl_surft(:,:) = 0.0
+  fluxes%fqw_surft(:,:) = 0.0
+  fluxes%fqw_sicat(:,:,:) = 0.0
+  fluxes%ftl_sicat(:,:,:) = 0.0
+  fluxes%fsmc_pft(:,:) = 0.0
+  fluxes%emis_surft(:,:) = 0.0
+  radnet_sice(:,:,:) = 0.0
+  rhokm_1(:,:) = 0.0
+  rhokm_land(:,:) = 0.0
+  rhokm_ssi(:,:) = 0.0
+  cdr10m(:,:) = 0.0
+  alpha1(:,:) = 0.0
+  alpha1_sea(:,:) = 0.0
+  alpha1_sice(:,:,:) = 0.0
+  ashtf_prime(:,:,:) = 0.0
+  ashtf_prime_sea(:,:) = 0.0
+  ashtf_prime_surft(:,:) = 0.0
+  epot_surft(:,:) = 0.0
+  fraca(:,:) = 0.0
+  resfs(:,:) = 0.0
+  resft(:,:) = 0.0
+  rhokh(:,:) = 0.0
+  rhokh_surft(:,:) = 0.0
+  rhokh_sice(:,:,:) = 0.0
+  rhokh_sea(:,:) = 0.0
+  dtstar_surft(:,:) = 0.0
+  dtstar_sea(:,:) = 0.0
+  dtstar_sice(:,:,:) = 0.0
+  z0hssi(:,:) = 0.0
+  fluxes%z0h_surft(:,:) = 0.0
+  z0mssi(:,:) = 0.0
+  fluxes%z0m_surft(:,:) = 0.0
+  chr1p5m(:,:) = 0.0
+  chr1p5m_sice(:,:) = 0.0
+  canhc_surft(:,:) = 0.0
+  wt_ext_surft(:,:,:) = 0.0
+  flake(:,:) = 0.0
+  hcons_soilt(:,:) = 0.0
+  tile_frac(:,:) = 0.0
+
+RETURN
+
+  CALL cable_land_sf_explicit (                                                &
+    !IN date-related values
+    curr_day_number,                                                           &
+    !IN values defining field dimensions and subset to be processed :
+    land_pts,                                                                  &
+    !IN  parameters for iterative SISL scheme
+    numcycles, cycleno,                                                        &
+    !IN parameters required from boundary-layer scheme :
+    bq_1,bt_1,ainfo%z1_uv_ij,z1_uv_top,ainfo%z1_tq_ij,z1_tq_top,               &
+    forcing%qw_1_ij,forcing%tl_1_ij,                                           &
+    !IN soil/vegetation/land surface data :
+    ainfo%land_index,nsurft,sm_levels,progs%canopy_surft,psparms%catch_surft,  &
+    psparms%catch_snow_surft, psparms%hcon_soilt,jules_vars%ho2r2_orog_gb,     &
+    flandg(pdims%i_start:pdims%i_end,pdims%j_start:pdims%j_end),               &
+    progs%snow_surft,jules_vars%sil_orog_land_gb,psparms%smvccl_soilt,         &
+    psparms%smvcst_soilt,psparms%smvcwt_soilt,                                 &
+    psparms%sthf_soilt, psparms%sthu_soilt,psparms%z0_surft,                   &
+    psparms%z0h_bare_surft, psparms%z0m_soil_gb,                               &
+    !IN input data from the wave model
+    charnock_w,                                                                &
+    !IN everything not covered so far :
+    forcing%pstar_ij,forcing%lw_down_ij,fluxes%sw_surft,jules_vars%zh,ddmfx,   &
+    co2_mmr,co2_3d_ij,l_co2_interactive,l_phenol,                              &
+    asteps_since_triffid,progs%cs_pool_soilt,veg_state,ainfo%frac_surft,       &
+    progs%canht_pft,                                                           &
+    photosynth_act_rad, progs%lai_pft,                                         &
+    l_mr_physics,progs%t_soil_soilt,progs%tsurf_elev_surft,                    &
+    progs%tstar_surft,jules_vars%z_land_ij,                                    &
+    psparms%albsoil_soilt,                                                     &
+    psparms%cosz_ij,                                                           &
+    l_aero_classic,l_dust,l_dust_diag,psparms%clay_soilt,chemvars%o3_gb,       &
+    !INOUT diagnostics
+    sf_diag,                                                                   &
+    !INOUT data :
+    progs%gs_gb,trifctltype%g_leaf_acc_pft,trifctltype%npp_acc_pft,            &
+    trifctltype%resp_w_acc_pft,                                                &
+    trifctltype%resp_s_acc_soilt,rhostar_land,                                 &
+    !INOUT Diagnostic not requiring STASH flags :
+    fqw_1,ftl_1,t1_sd,q1_sd,vshr,coast%vshr_land_ij,                           &
+    !OUT Diagnostic not requiring STASH flags :
+    fluxes%ftl_surft,                                                          &
+    !OUT variables for message passing
+    rhokm_land, cdr10m,                                                        &
+    !OUT data required for mineral dust scheme
+    aerotype%u_s_std_surft,                                                    &
+    !OUT data required elsewhere in boundary layer or surface code
+    alpha1,ashtf_prime_surft,fluxes%fqw_surft,epot_surft,fraca,                &
+    resfs,resft,rhokh_surft,dtstar_surft,fluxes%z0h_surft,fluxes%z0m_surft,    &
+    chr1p5m,progs%smc_soilt,hcons_soilt,trifctltype%gpp_gb,trifctltype%npp_gb, &
+    trifctltype%resp_p_gb,trifctltype%g_leaf_pft,                              &
+    trifctltype%gpp_pft,trifctltype%npp_pft,trifctltype%resp_p_pft,            &
+    trifctltype%resp_s_soilt,resp_s_tot_soilt,                                 &
+    trif_vars%resp_l_pft,trif_vars%resp_r_pft,trifctltype%resp_w_pft,          &
+    trif_vars%n_leaf_pft,trif_vars%n_root_pft,trif_vars%n_stem_pft,            &
+    trif_vars%lai_bal_pft,                                                     &
+    progs%gc_surft,canhc_surft,wt_ext_surft,flake,                             &
+    ainfo%surft_index,surft_pts,tile_frac,fluxes%fsmc_pft,fluxes%emis_surft,   &
+    emis_soil,                                                                 &
+    ! OUT required for classic aerosols
+    cd_land_ij,rib_surft,ch_surft_classic,cd_std_classic,                      &
+    ! OUT required for sea and sea-ice calculations
+    l_cdr10m_snow,                                                             &
+    !New arguments replacing USE statements
+    ! Prognostics (IN)
+    progs%t_home_gb, progs%t_growth_gb,                                        &
+    !urban_param (IN)
+    urban_param%emisr_gb, urban_param%emisw_gb, urban_param%hwr_gb,            &
+    !jules_vars_mod (IN OUT)
+    jules_vars%albobs_scaling_surft,                                           &
+    !jules_chemvars_mod (OUT)
+    chemvars%isoprene_gb, chemvars%isoprene_pft, chemvars%terpene_gb ,         &
+    chemvars%terpene_pft, chemvars%methanol_gb, chemvars%methanol_pft,         &
+    chemvars%acetone_gb, chemvars%acetone_pft,                                 &
+    !trif_vars_mod (OUT)
+    trif_vars%fapar_diag_pft, trif_vars%apar_diag_pft, trif_vars%apar_diag_gb, &
+    trif_vars%gpp_gb_acc, trif_vars%gpp_pft_acc,                               &
+    !crop_vars_mod (IN)
+    crop_vars%rootc_cpft, crop_vars%sthu_irr_soilt,                            &
+    crop_vars%frac_irr_soilt, crop_vars%frac_irr_surft, crop_vars%dvi_cpft,    &
+    !crop_vars_mod (IN OUT)
+    crop_vars%resfs_irr_surft,                                                 &
+    !crop_vars_mod (OUT)
+    crop_vars%gs_irr_surft, crop_vars%smc_irr_soilt,                           &
+    crop_vars%wt_ext_irr_surft, crop_vars%gc_irr_surft,                        &
+    !p_s_parms (IN)
+    psparms%bexp_soilt, psparms%sathh_soilt, psparms%v_close_pft,              &
+    psparms%v_open_pft,                                                        &
+    !urban_param (IN)
+    urban_param%wrr_gb,                                                        &
+    !Fluxes (IN OUT)
+    fluxes%anthrop_heat_surft,                                                 &
+    !prognostics (IN)
+    progs%nsnow_surft, progs%sice_surft, progs%sliq_surft,                     &
+    progs%snowdepth_surft, progs%tsnow_surft, progs%ds_surft,                  &
+    !c_elevate (OUT)
+    jules_vars%surf_hgt_surft, jules_vars%lw_down_elevcorr_surft,              &
+    !jules_vars_mod (OUT)
+    jules_vars%snowdep_surft,                                                  &
+    !urban_param (IN)
+    urban_param%hgt_gb, urban_param%disp_gb,                                   &
+    !lake_mod (IN)
+    lake_vars%lake_t_ice_gb,lake_vars%lake_t_snow_gb,                          &
+    lake_vars%lake_t_mxl_gb, lake_vars%lake_t_mean_gb,                         &
+    lake_vars%lake_h_snow_gb,lake_vars%lake_h_ice_gb,                          &
+    lake_vars%lake_h_mxl_gb,lake_vars%lake_depth_gb,lake_vars%g_dt_gb,         &
+    !lake_mod (OUT)
+    lake_vars%nusselt_gb, lake_vars%ts1_lake_gb,                               &
+    !ancil_info (IN)
+    ainfo%l_lice_point, ainfo%l_soil_point,                                    &
+    !jules_surface_types (IN)
+    jules_vars%diff_frac,                                                      &
+    !chemvars (OUT)
+    chemvars%flux_o3_pft, chemvars%fo3_pft,                                    &
+    !CABLE
+    progs_cbl, work_cbl                                                        &
+    )
+
+CASE DEFAULT
+  errorstatus = 101
+  WRITE(jules_message,'(A,I0)') 'Unrecognised surface scheme. lsm_id = ',      &
+     lsm_id
+  CALL ereport(RoutineName, errorstatus, jules_message)
+
+END SELECT
 
   CALL jules_ssi_sf_explicit (                                                 &
     !IN values defining field dimensions and subset to be processed :
@@ -762,63 +937,6 @@ CASE ( jules )
     END DO
   END DO
 #endif
-
-
-CASE ( cable )
-  ! for testing LSM switch
-  WRITE(jules_message,'(A)') "CABLE not yet implemented"
-  CALL jules_print(RoutineName, jules_message)
-
-  ! initialise all INTENT(OUT) for now until CABLE is implemented
-  fqw_1(:,:) = 0.0
-  ftl_1(:,:) = 0.0
-  fluxes%ftl_surft(:,:) = 0.0
-  fluxes%fqw_surft(:,:) = 0.0
-  fluxes%fqw_sicat(:,:,:) = 0.0
-  fluxes%ftl_sicat(:,:,:) = 0.0
-  fluxes%fsmc_pft(:,:) = 0.0
-  fluxes%emis_surft(:,:) = 0.0
-  radnet_sice(:,:,:) = 0.0
-  rhokm_1(:,:) = 0.0
-  rhokm_land(:,:) = 0.0
-  rhokm_ssi(:,:) = 0.0
-  cdr10m(:,:) = 0.0
-  alpha1(:,:) = 0.0
-  alpha1_sea(:,:) = 0.0
-  alpha1_sice(:,:,:) = 0.0
-  ashtf_prime(:,:,:) = 0.0
-  ashtf_prime_sea(:,:) = 0.0
-  ashtf_prime_surft(:,:) = 0.0
-  epot_surft(:,:) = 0.0
-  fraca(:,:) = 0.0
-  resfs(:,:) = 0.0
-  resft(:,:) = 0.0
-  rhokh(:,:) = 0.0
-  rhokh_surft(:,:) = 0.0
-  rhokh_sice(:,:,:) = 0.0
-  rhokh_sea(:,:) = 0.0
-  dtstar_surft(:,:) = 0.0
-  dtstar_sea(:,:) = 0.0
-  dtstar_sice(:,:,:) = 0.0
-  z0hssi(:,:) = 0.0
-  fluxes%z0h_surft(:,:) = 0.0
-  z0mssi(:,:) = 0.0
-  fluxes%z0m_surft(:,:) = 0.0
-  chr1p5m(:,:) = 0.0
-  chr1p5m_sice(:,:) = 0.0
-  canhc_surft(:,:) = 0.0
-  wt_ext_surft(:,:,:) = 0.0
-  flake(:,:) = 0.0
-  hcons_soilt(:,:) = 0.0
-  tile_frac(:,:) = 0.0
-
-CASE DEFAULT
-  errorstatus = 101
-  WRITE(jules_message,'(A,I0)') 'Unrecognised surface scheme. lsm_id = ',      &
-     lsm_id
-  CALL ereport(RoutineName, errorstatus, jules_message)
-
-END SELECT
 
 IF (lhook) CALL dr_hook(ModuleName//':'//RoutineName,zhook_out,zhook_handle)
 RETURN
