@@ -303,6 +303,71 @@ RETURN
     progs%sice_surft, progs%sliq_surft, progs%ds_surft,                        &
     progs_cbl, work_cbl )
 
+!jh!  CALL cable_rad_main(                                                        &
+!jh!  !corresponding name (if differs) of varaible on other side of call/subroutine shown in "[]" 
+!jh!
+!jh!    !Variables to be calculated and returned by CABLE
+!jh!    land_albedo_ij, & ! GridBoxMean albedo per rad band (row_length,rows,4) [land_albedo]
+!jh!    alb_surft,& ! albedo per rad band per tile (land_pts, ntiles, 4) [alb_tile]
+!jh!  
+!jh!    !Mostly model dimensions and associated
+!jh!    row_length,          & !grid cell x
+!jh!    rows,                & !grid cell y
+!jh!    land_pts,            & !grid cell land points on the x,y grid
+!jh!    nsurft,              & !grid cell number of surface types [ntiles] 
+!jh!    !sm_levels,           & !grid cell number of soil levels 
+!jh!    npft,                & !grid cell number of PFTs 
+!jh!    surft_pts,           & !Number of land points per PFT [surft_pts] 
+!jh!    surft_index,        & !Index of land point in (land_pts) array[surft_index]
+!jh!    land_index, & !Index of land points in (x,y) array - see  corresponding *decs.inc
+!jh!  
+!jh!    !Surface descriptions generally parametrized
+!jh!    !dzsoil,              & !soil thicknesses in each layer  
+!jh!    frac_surft,     & !fraction of each surface type per land point [tile_frac]
+!jh!    LAI_pft,             & !Leaf area index. [LAI_pft_um]
+!jh!    canht_pft,           & !Canopy height [HGT_pft_um]
+!jh!    albsoil_soilt(:,1),  & !(albsoil)Snow-free, bare soil albedo [soil_alb]
+!jh!  
+!jh!    !Variables passed from control() level 
+!jh!    !This is the total snow depth per tile. CABLE also has depth per layer
+!jh!    snow_surft,          & ! snow depth equivalent (in water?) [snow_tile]
+!jh!    snowosurft,          & ! snow depth equivalent (in water?) prev. dt
+!jh!    cosz_ij,             & ! cosine_zenith_angle [cosine_zenith_angle]  
+!jh!    !The args below are passed from control() level as they usually do not exist
+!jh!    !in the JULES rasiation pathway -------------------------------------------------
+!jh!    !Mostly model dimensions and associated!------------------------------------
+!jh!    sm_levels,           & !grid cell number of soil levels 
+!jh!    !Surface descriptions generally parametrized!-------------------------------
+!jh!    dzsoil,              & !soil thicknesses in each layer  
+!jh!    !CABLE dimensions !---------------------------------------------------------
+!jh!    mp_cbl,           & !# CABLE vars assume vector of length mp(=Active patch)
+!jh!    msn_cbl,            &!# of snow layers. at present=3 
+!jh!    nrb_cbl,        & !# of rad. bands(confused b/n VIS/NIR, dir/dif. wrongly=3
+!jh!    jls_standalone, &! Am I in standalone mode 
+!jh!    L_tile_pts_cbl,     &!Logical mask. TRUE where tile frac > 0. else = FALSE
+!jh!    veg_mask,                                                                 &
+!jh!    sunlit_mask,                                                              &
+!jh!    sunlit_veg_mask, & !Logical masks. TRUE where veg/sunlit/Both 
+!jh!    !introduced prognostics. tiled soil on 6 layers. tiled snow on 3 layers etc!
+!jh!    SoilTemp_CABLE,           &!soil temperature (IN for rad.)
+!jh!    SnowTemp_CABLE,           &!snow temperature (IN for rad.) REDUNDANT
+!jh!    ThreeLayerSnowFlag_CABLE, & !flag signalling 3 layer treatment (binary) IN only
+!jh!    OneLyrSnowDensity_CABLE,                                                  &
+!jh!    !constants!-----------------------------------------------------------------
+!jh!    z0surf_min_cbl,                                                           &
+!jh!    lai_thresh_cbl,                                                           &
+!jh!    coszen_tols_cbl,                                                          &
+!jh!    gauss_w_cbl,                                                              &
+!jh!    pi_cbl,                                                                   &
+!jh!    pi180_cbl,                                                                &
+!jh!    !Vegetation parameters!-----------------------------------------------------
+!jh!    Veg_cbl%iveg,                                                             &
+!jh!    Veg_cbl%Xfang,                                                            &
+!jh!    Veg_cbl%Taul,                                                             &
+!jh!    Veg_cbl%Refl,                                                             &
+!jh!    !Soil parameters!-----------------------------------------------------
+!jh!    Soil_cbl%isoilm                                                           &
+!jh!  )
 
 CASE DEFAULT
   errorstatus = 101
