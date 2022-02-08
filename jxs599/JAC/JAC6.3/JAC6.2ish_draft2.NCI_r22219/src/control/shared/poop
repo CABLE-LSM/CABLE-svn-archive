@@ -1,0 +1,3 @@
+cp  surf_couple_extra_mod.F90  surf_couple_extra_mod_cbl.F90
+cp  surf_couple_implicit_mod.F90  surf_couple_implicit_mod_cbl.F90
+cp  surf_couple_radiation_mod.F90 surf_couple_radiation_mod_cbl.F90
