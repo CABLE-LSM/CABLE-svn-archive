@@ -490,8 +490,6 @@ CHARACTER(LEN=*), PARAMETER :: RoutineName='SURF_COUPLE_EXPLICIT'
 !End of header
 IF (lhook) CALL dr_hook(ModuleName//':'//RoutineName,zhook_in,zhook_handle)
 
-!curiously crashes if it iis called for CABLE
-IF( LSM_ID == 1) THEN
   ! Change 2d UM clay to 1d jules clay content for soil respiration
   ! Soil tiling not currently in the UM, so broadcast ij value to all tiles.
   ! Multi-layer clay not currently in UM so set all layers to same value.
@@ -518,6 +516,8 @@ IF( LSM_ID == 1) THEN
   l_dust_diag = l_dust
 #endif
 
+!curiously crashes if it iis called for CABLE
+!!IF( LSM_ID == 1) THEN
   CALL jules_gridinit_sf_explicit (                                            &
     !IN soil/vegetation/land surface data :
     flandg,                                                                    &
@@ -538,14 +538,14 @@ IF( LSM_ID == 1) THEN
     rhostar,vshr,coast%vshr_land_ij,coast%vshr_ssi_ij                          &
     )
 
+!!END IF
+
   DO i = tdims%i_start,tdims%i_end
     DO j = tdims%j_start,tdims%j_end
       rhostar_land(i,j) = rhostar(i,j)
       rhostar_ssi(i,j) = rhostar(i,j)
     END DO
   END DO
-
-END IF
 
 SELECT CASE( lsm_id )
 CASE ( jules )
@@ -689,7 +689,7 @@ CASE ( cable )
   alpha1_sice(:,:,:) = 0.0
   ashtf_prime(:,:,:) = 0.0
   ashtf_prime_sea(:,:) = 0.0
-  ashtf_prime_surft(:,:) = 0.0
+  ashtf_prime_surft(:,:) = 1.0e-30
   epot_surft(:,:) = 0.0
   fraca(:,:) = 0.0
   resfs(:,:) = 0.0

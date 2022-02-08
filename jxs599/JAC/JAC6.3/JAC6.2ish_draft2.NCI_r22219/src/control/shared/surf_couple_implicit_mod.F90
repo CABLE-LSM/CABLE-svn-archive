@@ -386,7 +386,7 @@ CHARACTER(LEN=*), PARAMETER :: RoutineName='SURF_COUPLE_IMPLICIT'
 IF (lhook) CALL dr_hook(ModuleName//':'//RoutineName,zhook_in,zhook_handle)
 
 !curiously crashes if it iis called for CABLE
-IF( LSM_ID == 1) THEN
+!!IF( LSM_ID == 1) THEN
   CALL  jules_grid_update_implicit(                                            &
   ! IN values defining field dimensions and subset to be processed :
           land_pts,ainfo%land_index,nice,nice_use,nsurft,ainfo%surft_index,    &
@@ -410,7 +410,7 @@ IF( LSM_ID == 1) THEN
   ! OUT data required elsewhere in UM system :
           fluxes%e_sea_ij,fluxes%h_sea_ij,taux_1,tauy_1,ice_fract_cat_use      &
         )
-ENDIF
+!!ENDIF
 
 SELECT CASE( lsm_id )
 CASE ( jules )
@@ -464,7 +464,7 @@ CASE ( cable )
   CALL jules_print(RoutineName, jules_message)
 
   ! initialise all INTENT(OUT) for now until CABLE is implemented
-  fluxes%tstar_ij(:,:) = 0.0
+  fluxes%tstar_ij(:,:) = fluxes%tstar_ij(:,:)
   fluxes%le_surft(:,:) = 0.0
   fluxes%radnet_surft(:,:) = 0.0
   fluxes%e_sea_ij(:,:) = 0.0
