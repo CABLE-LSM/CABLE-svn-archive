@@ -33,5 +33,7 @@ INTEGER, PARAMETER :: nsnl      = 3  ! # snow layers
 INTEGER, PARAMETER :: nrb       = 3  ! # rad bands VISual/NIR + Legacy incl LW
 INTEGER, PARAMETER :: nsCs      = 2  ! # soil carbon stores
 INTEGER, PARAMETER :: nvCs      = 3  ! # vegetation carbon stores
+! Strictly NOT a constant. # of active tiles, length of CABLE working vectors  
+INTEGER :: mp  
 
 END MODULE grid_constants_mod_cbl
