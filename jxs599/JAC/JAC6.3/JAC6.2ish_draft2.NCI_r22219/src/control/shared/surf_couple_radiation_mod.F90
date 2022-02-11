@@ -99,7 +99,19 @@ USE jules_model_environment_mod,         ONLY:                                 &
 
 ! In general CABLE utilizes a required subset of tbe JULES types, however;
 USE progs_cbl_vars_mod, ONLY: progs_cbl_vars_type ! CABLE requires extra progs
-USE work_vars_mod_cbl,  ONLY: work_vars_type      ! and some kept thru timestep
+USE work_vars_mod_cbl,  ONLY: work_vars_type      ! and vars kept thru timestep
+USE cable_fields_mod,   ONLY: pars_io_cbl         ! and veg/soil parameters
+!data: constants                                        
+USE cable_other_constants_mod,  ONLY: Z0SURF_MIN
+USE cable_other_constants_mod,  ONLY: LAI_THRESH
+USE cable_other_constants_mod,  ONLY: COSZEN_TOLS
+USE cable_other_constants_mod,  ONLY: GAUSS_W
+USE cable_math_constants_mod,   ONLY: PI
+USE cable_math_constants_mod,   ONLY: PI180
+USE grid_constants_mod_cbl,     ONLY: NRB, NSL, NSNL, mp
+
+USE jules_soil_mod,             ONLY: dzsoil
+USE jules_surface_types_mod,    ONLY: npft
 
 !Dr Hook
 USE parkind1,                 ONLY:                                            &
@@ -303,71 +315,69 @@ RETURN
     progs%sice_surft, progs%sliq_surft, progs%ds_surft,                        &
     progs_cbl, work_cbl )
 
-!jh!  CALL cable_rad_main(                                                        &
-!jh!  !corresponding name (if differs) of varaible on other side of call/subroutine shown in "[]" 
-!jh!
-!jh!    !Variables to be calculated and returned by CABLE
-!jh!    land_albedo_ij, & ! GridBoxMean albedo per rad band (row_length,rows,4) [land_albedo]
-!jh!    alb_surft,& ! albedo per rad band per tile (land_pts, ntiles, 4) [alb_tile]
-!jh!  
-!jh!    !Mostly model dimensions and associated
-!jh!    row_length,          & !grid cell x
-!jh!    rows,                & !grid cell y
-!jh!    land_pts,            & !grid cell land points on the x,y grid
-!jh!    nsurft,              & !grid cell number of surface types [ntiles] 
-!jh!    !sm_levels,           & !grid cell number of soil levels 
-!jh!    npft,                & !grid cell number of PFTs 
-!jh!    surft_pts,           & !Number of land points per PFT [surft_pts] 
-!jh!    surft_index,        & !Index of land point in (land_pts) array[surft_index]
-!jh!    land_index, & !Index of land points in (x,y) array - see  corresponding *decs.inc
-!jh!  
-!jh!    !Surface descriptions generally parametrized
-!jh!    !dzsoil,              & !soil thicknesses in each layer  
-!jh!    frac_surft,     & !fraction of each surface type per land point [tile_frac]
-!jh!    LAI_pft,             & !Leaf area index. [LAI_pft_um]
-!jh!    canht_pft,           & !Canopy height [HGT_pft_um]
-!jh!    albsoil_soilt(:,1),  & !(albsoil)Snow-free, bare soil albedo [soil_alb]
-!jh!  
-!jh!    !Variables passed from control() level 
-!jh!    !This is the total snow depth per tile. CABLE also has depth per layer
-!jh!    snow_surft,          & ! snow depth equivalent (in water?) [snow_tile]
-!jh!    snowosurft,          & ! snow depth equivalent (in water?) prev. dt
-!jh!    cosz_ij,             & ! cosine_zenith_angle [cosine_zenith_angle]  
-!jh!    !The args below are passed from control() level as they usually do not exist
-!jh!    !in the JULES rasiation pathway -------------------------------------------------
-!jh!    !Mostly model dimensions and associated!------------------------------------
-!jh!    sm_levels,           & !grid cell number of soil levels 
-!jh!    !Surface descriptions generally parametrized!-------------------------------
-!jh!    dzsoil,              & !soil thicknesses in each layer  
-!jh!    !CABLE dimensions !---------------------------------------------------------
-!jh!    mp_cbl,           & !# CABLE vars assume vector of length mp(=Active patch)
-!jh!    msn_cbl,            &!# of snow layers. at present=3 
-!jh!    nrb_cbl,        & !# of rad. bands(confused b/n VIS/NIR, dir/dif. wrongly=3
-!jh!    jls_standalone, &! Am I in standalone mode 
+  !CALL cable_rad_main(                                                        &
+  CALL cable_land_albedo (                                                     &
+    !corresponding name (if differs) of varaible on other side of call/subroutine shown in "[]" 
+
+    !OUT: Variables to be calculated and returned by CABLE
+    !------------------------------------------------
+    fluxes%land_albedo_ij,                                                     &
+                              ! GridBoxMean albedo per rad band !
+                              !(row_length,rows,4) [land_albedo]
+    fluxes%alb_surft,                                                          &
+                              ! albedo per rad band per tile 
+                              !(land_pts, ntiles, 4) [alb_tile]
+    
+    !IN: Mostly parent model dimensions and associated
+    row_length,                                                                &
+    rows,                                                                      &
+    land_pts,                                                                  &
+    nsurft,                                                                    &
+    npft,                                                                      &
+    surft_pts,                                                                 &
+    ainfo%surft_index,                                                         &
+    ainfo%land_index,                                                          &
+dzsoil,              & !soil thicknesses in each layer  
+!CABLE dimensionsfrom grid_constants_cbl 
+mp,           & !# CABLE vars assume vector of length mp(=Active patch)
+NSL,            &!# of soil layers. at present=6 
+NSNL,            &!# of snow layers. at present=3 
+NRB,        & !# of rad. bands(confused b/n VIS/NIR, dir/dif. wrongly=3
+
+!Surface descriptions generally parametrized
+ainfo%frac_surft,     & !fraction of each surface type per land point [tile_frac]
+progs%LAI_pft,             & !Leaf area index. [LAI_pft_um]
+progs%canht_pft,           & !Canopy height [HGT_pft_um]
+psparms%albsoil_soilt(:,1),  & !(albsoil)Snow-free, bare soil albedo [soil_alb]
+
+!jhan:sort? - it appears we are sending CABLE's snowosurft & JULES  snow_surft
+!This is the total snow depth per tile. CABLE also has depth per layer
+snow_surft,          & ! snow depth equivalent (in water?) [snow_tile]
+progs_cbl%Ssnowosurft,          & ! snow depth equivalent (in water?) prev. dt
+psparms%cosz_ij,             & ! cosine_zenith_angle [cosine_zenith_angle]  
+
+!!!!!!jh!    jls_standalone, &! Am I in standalone mode - def/init this in CABLE 
+!work_vars?? -comput these every timestep
 !jh!    L_tile_pts_cbl,     &!Logical mask. TRUE where tile frac > 0. else = FALSE
 !jh!    veg_mask,                                                                 &
 !jh!    sunlit_mask,                                                              &
 !jh!    sunlit_veg_mask, & !Logical masks. TRUE where veg/sunlit/Both 
-!jh!    !introduced prognostics. tiled soil on 6 layers. tiled snow on 3 layers etc!
-!jh!    SoilTemp_CABLE,           &!soil temperature (IN for rad.)
-!jh!    SnowTemp_CABLE,           &!snow temperature (IN for rad.) REDUNDANT
-!jh!    ThreeLayerSnowFlag_CABLE, & !flag signalling 3 layer treatment (binary) IN only
-!jh!    OneLyrSnowDensity_CABLE,                                                  &
-!jh!    !constants!-----------------------------------------------------------------
-!jh!    z0surf_min_cbl,                                                           &
-!jh!    lai_thresh_cbl,                                                           &
-!jh!    coszen_tols_cbl,                                                          &
-!jh!    gauss_w_cbl,                                                              &
-!jh!    pi_cbl,                                                                   &
-!jh!    pi180_cbl,                                                                &
-!jh!    !Vegetation parameters!-----------------------------------------------------
-!jh!    Veg_cbl%iveg,                                                             &
-!jh!    Veg_cbl%Xfang,                                                            &
-!jh!    Veg_cbl%Taul,                                                             &
-!jh!    Veg_cbl%Refl,                                                             &
-!jh!    !Soil parameters!-----------------------------------------------------
-!jh!    Soil_cbl%isoilm                                                           &
-!jh!  )
+
+!introduced prognostics. tiled soil on 6 layers. tiled snow on 3 layers etc!
+progs_cbl%SoilTemp_CABLE,           &!soil temperature (IN for rad.)
+progs_cbl%SnowTemp_CABLE,           &!snow temperature (IN for rad.) REDUNDANT
+progs_cbl%ThreeLayerSnowFlag_CABLE, & !flag signalling 3 layer treatment (binary) IN only
+progs_cbl%OneLyrSnowDensity_CABLE,                                                  &
+!constants!-----------------------------------------------------------------
+Z0SURF_MIN,                                                                    &
+LAI_THRESH,                                                                    &
+COSZEN_TOLS,                                                                   &
+GAUSS_W,                                                                       &
+PI,                                                                            &
+PI180,                                                                         &
+!Vegetation/Soil parameters!-----------------------------------------------------
+pars_io_cbl                                                                    &
+  )
 
 CASE DEFAULT
   errorstatus = 101
