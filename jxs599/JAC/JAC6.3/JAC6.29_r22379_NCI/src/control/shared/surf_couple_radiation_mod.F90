@@ -42,12 +42,13 @@ SUBROUTINE surf_couple_radiation(                                              &
   !TYPES containing field data (IN OUT)
   psparms,ainfo,urban_param,progs,coast,jules_vars,                            &
   fluxes,                                                                      &
-  lake_vars                                                                    &
+  lake_vars,                                                                   &
   !forcing, &
   !rivers, &
   !veg3_parm, &
   !veg3_field, &
   !chemvars, &
+  progs_cbl                                                                    &
   )
 
 !Module imports
@@ -69,6 +70,7 @@ USE lake_mod, ONLY: lake_type
 
 USE jules_ssi_albedo_mod,     ONLY: jules_ssi_albedo
 USE jules_land_albedo_mod,    ONLY: jules_land_albedo
+USE cable_land_albedo_mod,    ONLY: cable_land_albedo
 
 !Common modules
 USE ereport_mod,              ONLY:                                            &
@@ -93,6 +95,21 @@ USE jules_print_mgr,          ONLY: jules_message, jules_print
 
 USE jules_model_environment_mod,         ONLY:                                 &
   lsm_id, jules, cable
+
+! In general CABLE utilizes a required subset of tbe JULES types, however;
+USE progs_cbl_vars_mod, ONLY: progs_cbl_vars_type ! CABLE requires extra progs
+USE cable_fields_mod,   ONLY: pars_io_cbl         ! and veg/soil parameters
+!data: constants                                        
+USE cable_other_constants_mod,  ONLY: Z0SURF_MIN
+USE cable_other_constants_mod,  ONLY: LAI_THRESH
+USE cable_other_constants_mod,  ONLY: COSZEN_TOLS
+USE cable_other_constants_mod,  ONLY: GAUSS_W
+USE cable_math_constants_mod,   ONLY: PI
+USE cable_math_constants_mod,   ONLY: PI180
+USE grid_constants_mod_cbl,     ONLY: NRB, NSL, NSNL, mp
+
+USE jules_soil_mod,             ONLY: dzsoil
+USE jules_surface_types_mod,    ONLY: npft
 
 !Dr Hook
 USE parkind1,                 ONLY:                                            &
@@ -188,6 +205,9 @@ TYPE(lake_type), INTENT(IN OUT) :: lake_vars
 !TYPE(in_dev), INTENT(IN OUT) :: veg3_field
 !TYPE(chemvars_type), INTENT(IN OUT) :: chemvars
 
+!CABLE TYPES containing field data (IN OUT)
+TYPE(progs_cbl_vars_type), INTENT(IN OUT) :: progs_cbl
+
 !-----------------------------------------------------------------------------
 ! Local variables
 !-----------------------------------------------------------------------------
@@ -251,6 +271,47 @@ CASE ( jules )
     progs%snowdepth_surft, progs%rho_snow_grnd_surft, progs%nsnow_surft,       &
     progs%sice_surft, progs%sliq_surft, progs%ds_surft)
 
+CASE ( cable )
+  ! for testing LSM
+  !WRITE(jules_message,'(A)') "CABLE not yet implemented"
+  !CALL jules_print(RoutineName, jules_message)
+
+  ! initialise all INTENT(OUT) fields for now until CABLE is implemented
+  sea_ice_albedo(:,:,:) = 0.0
+  fluxes%alb_surft(:,:,:) = 0.0
+  fluxes%land_albedo_ij(:,:,:) = 0.0
+
+  CALL cable_land_albedo (                                                     &
+    !OUT: (per rad band) albedos [GridBoxMean & per tile albedo]
+    fluxes%land_albedo_ij, fluxes%alb_surft,                                   &
+    !IN: JULES dimensions and associated
+    row_length, rows, land_pts, nsurft, npft,                                  &
+    surft_pts, ainfo%surft_index, ainfo%land_index,                            &
+    !IN: JULES Surface descriptions generally parametrized
+    dzsoil, ainfo%frac_surft, progs%LAI_pft, progs%canht_pft,                  &
+    psparms%albsoil_soilt(:,1),                                                &
+    !IN: JULES  timestep varying fields
+    psparms%cosz_ij, snow_surft,                                               &
+    !IN:CABLE dimensions from grid_constants_cbl 
+    nsl, nsnl, nrb,                                                            &
+    !IN: CABLE constants
+    z0surf_min, lai_thresh, coszen_tols, gauss_w, pi, pi180,                   &
+    !IN: CABLE Vegetation/Soil parameters. decl in params_io_cbl.F90 
+    pars_io_cbl%vegin_xfang, pars_io_cbl%vegin_taul,                           &
+    pars_io_cbl%vegin_refl,                                                    &
+    !IN: CABLE prognostics. decl in progs_cbl_vars_mod.F90 
+    progs_cbl%SoilTemp_CABLE, progs_cbl%SnowTemp_CABLE,                        &
+    progs_cbl%OneLyrSnowDensity_CABLE                                          &
+  )
+
+CASE DEFAULT
+  errorstatus = 101
+  WRITE(jules_message,'(A,I0)') 'Unrecognised surface scheme. lsm_id = ',      &
+     lsm_id
+  CALL ereport(RoutineName, errorstatus, jules_message)
+
+END SELECT
+
   CALL jules_ssi_albedo (                                                      &
     !INTENT(IN)
     !input fields
@@ -283,23 +344,6 @@ CASE ( jules )
     !Fluxes (OUT)
     fluxes%alb_sicat, fluxes%penabs_rad_frac)
 
-CASE ( cable )
-  ! for testing LSM
-  WRITE(jules_message,'(A)') "CABLE not yet implemented"
-  CALL jules_print(RoutineName, jules_message)
-
-  ! initialise all INTENT(OUT) fields for now until CABLE is implemented
-  sea_ice_albedo(:,:,:) = 0.0
-  fluxes%alb_surft(:,:,:) = 0.0
-  fluxes%land_albedo_ij(:,:,:) = 0.0
-
-CASE DEFAULT
-  errorstatus = 101
-  WRITE(jules_message,'(A,I0)') 'Unrecognised surface scheme. lsm_id = ',      &
-     lsm_id
-  CALL ereport(RoutineName, errorstatus, jules_message)
-
-END SELECT
 
 IF (lhook) CALL dr_hook(ModuleName//':'//RoutineName,zhook_out,zhook_handle)
 RETURN

@@ -92,10 +92,11 @@ SUBROUTINE surf_couple_extra(                                                  &
    fluxes,                                                                     &
    lake_vars,                                                                  &
    forcing,                                                                    &
-   rivers                                                                      &
+   rivers,                                                                     &
   !veg3_parm, &
   !veg3_field, &
   !chemvars, &
+   work_cbl                                                                    &
   )
 
 !Module imports
@@ -119,6 +120,10 @@ USE jules_rivers_mod, ONLY: rivers_type
 ! USE veg3_parm_mod, ONLY: in_dev
 ! USE veg3_field_mod, ONLY: in_dev
 ! USE jules_chemvars_mod, ONLY: chemvars_type
+
+! In general CABLE utilizes a required subset of tbe JULES types, however;
+USE progs_cbl_vars_mod, ONLY: progs_cbl_vars_type ! CABLE requires extra progs
+USE work_vars_mod_cbl,  ONLY: work_vars_type      ! and some kept thru timestep
 
 !Import interfaces to subroutines called
 USE hydrol_mod,               ONLY: hydrol
@@ -394,6 +399,10 @@ TYPE(rivers_type), INTENT(IN OUT) :: rivers
 !TYPE(in_dev), INTENT(IN OUT) :: veg3_parm
 !TYPE(in_dev), INTENT(IN OUT) :: veg3_field
 !TYPE(chemvars_type), INTENT(IN OUT) :: chemvars
+
+!CABLE TYPES containing field data (IN OUT)
+TYPE(progs_cbl_vars_type) :: progs_cbl
+TYPE(work_vars_type)      :: work_cbl
 
 !==============================================================================
 !Local variables

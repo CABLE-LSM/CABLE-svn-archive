@@ -14,7 +14,8 @@ SUBROUTINE control (                                                           &
     !veg3_parm, &
     !veg3_field, &
     chemvars,                                                                  &
-    rivers                                                                     &
+    rivers,                                                                    &
+    progs_cbl, work_cbl                                                        &
     )
 
 !-------------------------------------------------------------------------------
@@ -43,6 +44,10 @@ USE jules_rivers_mod, ONLY: rivers_type
 ! USE veg3_parm_mod, ONLY: in_dev
 ! USE veg3_field_mod, ONLY: in_dev
 USE jules_chemvars_mod, ONLY: chemvars_type
+
+! In general CABLE utilizes a required subset of tbe JULES types, however;
+USE progs_cbl_vars_mod, ONLY: progs_cbl_vars_type ! CABLE requires extra progs
+USE work_vars_mod_cbl,  ONLY: work_vars_type      ! and some kept thru timestep
 
 !Import the main subroutines we will use
 USE surf_couple_radiation_mod, ONLY: surf_couple_radiation
@@ -137,6 +142,9 @@ TYPE(rivers_type), INTENT(IN OUT) :: rivers
 !TYPE(in_dev), INTENT(IN OUT) :: veg3_field
 TYPE(chemvars_type), INTENT(IN OUT) :: chemvars
 
+!CABLE TYPES containing field data (IN OUT)
+TYPE(progs_cbl_vars_type), INTENT(IN OUT) :: progs_cbl
+TYPE(work_vars_type), INTENT(IN OUT)      :: work_cbl
 !-------------------------------------------------------------------------------
 ! Arguments with intent(out)
 !-------------------------------------------------------------------------------
@@ -478,12 +486,13 @@ CALL surf_couple_radiation(                                                    &
   !TYPES containing field data (IN OUT)
   psparms, ainfo, urban_param, progs, coast, jules_vars,                       &
   fluxes,                                                                      &
-  lake_vars                                                                    &
+  lake_vars,                                                                   &
   !forcing, &
   !rivers, &
   !veg3_parm, &
   !veg3_field, &
   !chemvars, &
+  progs_cbl                                                                    &
   )
 
 !All the calculations for the radiation downward components have been put into
@@ -608,7 +617,8 @@ CALL surf_couple_explicit(                                                     &
   !rivers,     &
   !veg3_parm,  &
   !veg3_field, &
-  chemvars                                                                     &
+  chemvars,                                                                    &
+  progs_cbl, work_cbl                                                          &
   )
 
 !  Items that are only passed from explicit to implicit.
@@ -730,11 +740,12 @@ CALL surf_couple_implicit(                                                     &
   crop_vars,ainfo,aerotype,progs, coast, jules_vars,                           &
   fluxes,                                                                      &
   lake_vars,                                                                   &
-  forcing                                                                      &
+  forcing,                                                                     &
   !rivers, &
   !veg3_parm, &
   !veg3_field, &
   !chemvars, &
+  progs_cbl, work_cbl                                                          &
   )
 
 ! Adjust the value of r_gamma2 to ensure explicit coupling
@@ -793,11 +804,12 @@ CALL surf_couple_implicit(                                                     &
   crop_vars,ainfo,aerotype,progs, coast, jules_vars,                           &
   fluxes,                                                                      &
   lake_vars,                                                                   &
-  forcing                                                                      &
+  forcing,                                                                     &
   !rivers, &
   !veg3_parm, &
   !veg3_field, &
   !chemvars, &
+  progs_cbl, work_cbl                                                          &
   )
 
 !-------------------------------------------------------------------------------
@@ -861,11 +873,12 @@ CALL surf_couple_extra(                                                        &
   fluxes,                                                                      &
   lake_vars,                                                                   &
   forcing,                                                                     &
-  rivers                                                                       &
+  rivers,                                                                      &
   !veg3_parm, &
   !veg3_field, &
   !chemvars, &
-)
+  work_cbl                                                                     &
+  )
 
 END SUBROUTINE control
 #endif

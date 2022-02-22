@@ -69,11 +69,13 @@ SUBROUTINE surf_couple_implicit(                                               &
   crop_vars,ainfo,aerotype,progs,coast, jules_vars,                            &
   fluxes,                                                                      &
   lake_vars,                                                                   &
-  forcing                                                                      &
+  forcing,                                                                     &
   !rivers, &
   !veg3_parm, &
   !veg3_field, &
   !chemvars, &
+  progs_cbl,                                                                   &
+  work_cbl                                                                     &
   )
 
 !Module Imports
@@ -92,6 +94,10 @@ USE jules_forcing_mod, ONLY: forcing_type
 ! USE veg3_parm_mod, ONLY: in_dev
 ! USE veg3_field_mod, ONLY: in_dev
 ! USE jules_chemvars_mod, ONLY: chemvars_type
+
+! In general CABLE utilizes a required subset of tbe JULES types, however;
+USE progs_cbl_vars_mod, ONLY: progs_cbl_vars_type ! CABLE requires extra progs
+USE work_vars_mod_cbl,  ONLY: work_vars_type      ! and some kept thru timestep
 
 !Common modules
 USE ereport_mod,           ONLY: ereport
@@ -329,6 +335,10 @@ TYPE(forcing_type), INTENT(IN OUT) :: forcing
 !TYPE(in_dev), INTENT(IN OUT) :: veg3_parm
 !TYPE(in_dev), INTENT(IN OUT) :: veg3_field
 !TYPE(chemvars_type), INTENT(IN OUT) :: chemvars
+
+!CABLE TYPES containing field data (IN OUT)
+TYPE(progs_cbl_vars_type) :: progs_cbl
+TYPE(work_vars_type)      :: work_cbl
 
 !-----------------------------------------------------------------------------
 ! Workspace
