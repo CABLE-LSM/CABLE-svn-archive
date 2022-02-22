@@ -78,6 +78,10 @@ REAL, INTENT(IN) :: OneLyrSnowDensity_CABLE(land_pts, nsurft )
 
 ! End header
 
+! initialise INTENT(OUT) fields for now until CABLE is implemented
+land_albedo = 0.0 
+alb_surft = 0.0 
+
 write(6,*) "Currently CABLE rad/albedo @6.3 not implemented"
 
 RETURN

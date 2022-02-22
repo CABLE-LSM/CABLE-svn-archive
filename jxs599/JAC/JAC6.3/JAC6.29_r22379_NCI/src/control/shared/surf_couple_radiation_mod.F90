@@ -272,14 +272,6 @@ CASE ( jules )
     progs%sice_surft, progs%sliq_surft, progs%ds_surft)
 
 CASE ( cable )
-  ! for testing LSM
-  !WRITE(jules_message,'(A)') "CABLE not yet implemented"
-  !CALL jules_print(RoutineName, jules_message)
-
-  ! initialise all INTENT(OUT) fields for now until CABLE is implemented
-  sea_ice_albedo(:,:,:) = 0.0
-  fluxes%alb_surft(:,:,:) = 0.0
-  fluxes%land_albedo_ij(:,:,:) = 0.0
 
   CALL cable_land_albedo (                                                     &
     !OUT: (per rad band) albedos [GridBoxMean & per tile albedo]
