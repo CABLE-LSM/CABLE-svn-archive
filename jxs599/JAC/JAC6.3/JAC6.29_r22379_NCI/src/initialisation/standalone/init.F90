@@ -28,9 +28,9 @@ SUBROUTINE init(nml_dir, crop_vars_data, crop_vars,                            &
                   !veg3_field_(data), &
                    chemvars_data, chemvars,                                    &
                    rivers_data, rivers,                                        &
-                   !CABLE state vars, progs, params and miscellaneous
-                   !requirements
-                   progs_cbl_vars_data, progs_cbl_vars                         &
+                   !CABLE: progs, working vars 
+                   progs_cbl_vars_data, progs_cbl_vars,                        &
+                   work_cbl_data, work_cbl                                     &
                   )
 
 USE update_mod,                   ONLY: l_imogen
@@ -146,7 +146,10 @@ USE jules_chemvars_mod,         ONLY: chemvars_data_type,                      &
 USE jules_soil_mod,               ONLY: sm_levels
 USE progs_cbl_vars_mod,           ONLY: progs_cbl_vars_type,                   &
                                         progs_cbl_vars_data_type
+USE work_vars_mod_cbl,            ONLY: work_vars_type,                   &
+                                        work_vars_data_type
 USE init_cable_progs_mod,         ONLY: init_cable_progs
+USE init_cable_work_mod,          ONLY: init_cable_work
 
 IMPLICIT NONE
 
@@ -189,6 +192,7 @@ TYPE(rivers_data_type), INTENT(IN OUT) :: rivers_data
 !TYPE(in_dev), INTENT(IN OUT) :: veg3_field_(data)
 TYPE(chemvars_data_type), INTENT(IN OUT) :: chemvars_data
 TYPE(progs_cbl_vars_data_type), INTENT(IN OUT) :: progs_cbl_vars_data
+TYPE(work_vars_data_type), INTENT(IN OUT)      :: work_cbl_data
 
 !TYPES pointing to data
 TYPE(crop_vars_type), INTENT(IN OUT) :: crop_vars
@@ -213,6 +217,7 @@ TYPE(rivers_type), INTENT(IN OUT) :: rivers
 !TYPE(in_dev), INTENT(IN OUT) :: veg3_field_(data)
 TYPE(chemvars_type), INTENT(IN OUT) :: chemvars
 TYPE(progs_cbl_vars_type), INTENT(IN OUT) :: progs_cbl_vars
+TYPE(work_vars_type), INTENT(IN OUT)      :: work_cbl
 !-----------------------------------------------------------------------------
 
 ! Check that the metadata for variables is acceptable.
@@ -326,6 +331,8 @@ CALL init_ancillaries(nml_dir, crop_vars, ainfo, trif_vars, urban_param,       &
 IF ( lsm_id == cable ) THEN
   CALL init_cable_progs( land_pts, nsurft, sm_levels, lsm_id, cable,           &
                          progs_cbl_vars, progs_cbl_vars_data )
+  CALL init_cable_work( land_pts, nsurft, sm_levels, lsm_id, cable,           &
+                         work_cbl, work_cbl_data )
 END IF
 
 ! Initialise model parameters

@@ -111,6 +111,7 @@ USE jules_chemvars_mod, ONLY: chemvars_type
 ! In general CABLE utilizes a required subset of tbe JULES types, however;
 USE progs_cbl_vars_mod, ONLY: progs_cbl_vars_type ! CABLE requires extra progs
 USE work_vars_mod_cbl,  ONLY: work_vars_type      ! and some kept thru timestep
+USE cable_fields_mod,   ONLY: pars_io_cbl         ! and veg/soil parameters
 
 !Common modules
 USE ereport_mod,              ONLY:                                            &
@@ -775,7 +776,8 @@ CASE ( cable )
   alpha1_sice(:,:,:) = 0.0
   ashtf_prime(:,:,:) = 0.0
   ashtf_prime_sea(:,:) = 0.0
-  ashtf_prime_surft(:,:) = 0.0
+  !jhan:fudge to avoid NaN - discard post explicit pathway done
+  ashtf_prime_surft(:,:) = 0.1
   epot_surft(:,:) = 0.0
   fraca(:,:) = 0.0
   resfs(:,:) = 0.0

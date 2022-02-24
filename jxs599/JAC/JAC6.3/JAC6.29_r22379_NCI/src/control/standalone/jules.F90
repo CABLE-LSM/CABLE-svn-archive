@@ -64,7 +64,7 @@ USE jules_fields_mod, ONLY: crop_vars_data, crop_vars,                         &
 ! In general CABLE utilizes a required subset of tbe JULES types, however;
 ! CABLE requires extra prognostics and some vars to be kept thru a timestep
 USE cable_fields_mod, ONLY: progs_cbl_vars_data, progs_cbl_vars,               &
-                            work_vars_cbl
+                            work_vars_data_cbl, work_vars_cbl
 USE imgn_drive_mod, ONLY: imgn_drive_data, imgn_drive
 
 IMPLICIT NONE
@@ -140,7 +140,8 @@ CALL init(nml_dir, crop_vars_data, crop_vars,                                  &
                    chemvars_data, chemvars,                                    &
                    rivers_data, rivers,                                        &
                    !CABLE state vars, progs, params and miscellaneous requirements
-                   progs_cbl_vars_data, progs_cbl_vars                         &
+                   progs_cbl_vars_data, progs_cbl_vars,                        &
+                   work_vars_data_cbl, work_vars_cbl                           &
                    )
 
 !-----------------------------------------------------------------------------

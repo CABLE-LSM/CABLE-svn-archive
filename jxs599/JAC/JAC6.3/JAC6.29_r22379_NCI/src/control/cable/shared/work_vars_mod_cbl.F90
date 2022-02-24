@@ -23,16 +23,26 @@ PRIVATE
 CHARACTER(LEN=*), PARAMETER, PRIVATE :: ModuleName='WORK_VARS_MOD_CBL'
 
 TYPE :: work_vars_data_type
-
-  REAL, ALLOCATABLE, PUBLIC ::                                                 &
-    template_eg(:,:,:)
+  
+  !fields returned @ hydrology (surf_couple_extra) level of JULES
+  !computed in CABLE @ implicit (surf_couple_implicit) level 
+  REAL, ALLOCATABLE, PUBLIC :: SNOW_TILE(:,:) 
+  REAL, ALLOCATABLE, PUBLIC :: LYING_SNOW(:) 
+  REAL, ALLOCATABLE, PUBLIC :: SURF_ROFF(:) 
+  REAL, ALLOCATABLE, PUBLIC :: SUB_SURF_ROFF(:) 
+  REAL, ALLOCATABLE, PUBLIC :: TOT_TFALL(:) 
 
 END TYPE work_vars_data_type
 
 TYPE :: work_vars_type
 
-  REAL, POINTER, PUBLIC ::                                                     &
-    template_eg(:,:,:)
+  !fields returned @ hydrology (surf_couple_extra) level of JULES
+  !computed in CABLE @ implicit (surf_couple_implicit) level 
+  REAL, POINTER, PUBLIC :: SNOW_TILE(:,:)
+  REAL, POINTER, PUBLIC :: LYING_SNOW(:)
+  REAL, POINTER, PUBLIC :: SURF_ROFF(:) 
+  REAL, POINTER, PUBLIC :: SUB_SURF_ROFF(:) 
+  REAL, POINTER, PUBLIC :: TOT_TFALL(:) 
 
 END TYPE work_vars_type
 
@@ -85,11 +95,14 @@ CHARACTER(LEN=*), PARAMETER :: RoutineName='ALLOC_WORK_VARS_CBL'
 
 IF (lhook) CALL dr_hook(ModuleName//':'//RoutineName,zhook_in,zhook_handle)
 
-! CABLE vars to be initialized via JULES i/o
+! CABLE vars to be initialized
 IF ( lsm_id == cable ) THEN
 
-  ALLOCATE( work_data_cbl%template_eg(land_pts, nsurft, sm_levels),            &
-            STAT = ERROR )
+  ALLOCATE( work_data_cbl%SNOW_TILE(land_pts, nsurft), STAT = ERROR )
+  ALLOCATE( work_data_cbl%LYING_SNOW(land_pts),        STAT = ERROR )
+  ALLOCATE( work_data_cbl%SURF_ROFF(land_pts),         STAT = ERROR )
+  ALLOCATE( work_data_cbl%TOT_TFALL(land_pts),         STAT = ERROR )
+  ALLOCATE( work_data_cbl%SUB_SURF_ROFF(land_pts),     STAT = ERROR )
   error_sum = error_sum + ERROR
 
   !-----------------------------------------------------------------------
@@ -101,7 +114,11 @@ IF ( lsm_id == cable ) THEN
 
 ELSE
 
-  ALLOCATE( work_data_cbl%template_eg(1, 1, 1), STAT = ERROR )
+  ALLOCATE( work_data_cbl%SNOW_TILE(1,1), STAT = ERROR )
+  ALLOCATE( work_data_cbl%LYING_SNOW(1),  STAT = ERROR )
+  ALLOCATE( work_data_cbl%SURF_ROFF(1),   STAT = ERROR )
+  ALLOCATE( work_data_cbl%TOT_TFALL(1),   STAT = ERROR )
+  ALLOCATE( work_data_cbl%SUB_SURF_ROFF(1), STAT = ERROR )
   error_sum = error_sum + ERROR
 
   !-----------------------------------------------------------------------
@@ -113,7 +130,11 @@ ELSE
 
 END IF
 
-work_data_cbl%template_eg(:,:,:)       = 0.0
+work_data_cbl% SNOW_TILE      (:,:)       = 0.0
+work_data_cbl% LYING_SNOW     (:)         = 0.0
+work_data_cbl% SURF_ROFF      (:)         = 0.0
+work_data_cbl% SUB_SURF_ROFF  (:)         = 0.0
+work_data_cbl% TOT_TFALL      (:)         = 0.0
 
 IF (lhook) CALL dr_hook(ModuleName//':'//RoutineName,zhook_out,zhook_handle)
 RETURN
@@ -144,9 +165,12 @@ CHARACTER(LEN=*), PARAMETER :: RoutineName='DEALLOC_WORK_VARS_CBL'
 
 IF (lhook) CALL dr_hook(ModuleName//':'//RoutineName,zhook_in,zhook_handle)
 
-
 ! CABLE vars to be initialized via JULES i/o
-DEALLOCATE( work_data_cbl%template_eg)
+DEALLOCATE( work_data_cbl %SNOW_TILE     )
+DEALLOCATE( work_data_cbl %LYING_SNOW    )
+DEALLOCATE( work_data_cbl %SURF_ROFF     )
+DEALLOCATE( work_data_cbl %SUB_SURF_ROFF )
+DEALLOCATE( work_data_cbl %TOT_TFALL     )
 
 IF (lhook) CALL dr_hook(ModuleName//':'//RoutineName,zhook_out,zhook_handle)
 RETURN
@@ -177,7 +201,11 @@ IF (lhook) CALL dr_hook(ModuleName//':'//RoutineName,zhook_in,zhook_handle)
 
 CALL nullify_assoc_work_vars_cbl(work_cbl)
 
-work_cbl%template_eg=> work_data_cbl%template_eg
+work_cbl% SNOW_TILE     => work_data_cbl% SNOW_TILE    
+work_cbl% LYING_SNOW    => work_data_cbl% LYING_SNOW   
+work_cbl% SURF_ROFF     => work_data_cbl% SURF_ROFF    
+work_cbl% SUB_SURF_ROFF => work_data_cbl% SUB_SURF_ROFF
+work_cbl% TOT_TFALL     => work_data_cbl% TOT_TFALL    
 
 IF (lhook) CALL dr_hook(ModuleName//':'//RoutineName,zhook_out,zhook_handle)
 RETURN
@@ -205,7 +233,11 @@ CHARACTER(LEN=*), PARAMETER :: RoutineName='NULLIFY_ASSOC_WORK_VARS_CBL'
 
 IF (lhook) CALL dr_hook(ModuleName//':'//RoutineName,zhook_in,zhook_handle)
 
-NULLIFY(work_cbl%template_eg)
+NULLIFY( work_cbl% SNOW_TILE      )
+NULLIFY( work_cbl% LYING_SNOW     )
+NULLIFY( work_cbl% SURF_ROFF      )
+NULLIFY( work_cbl% SUB_SURF_ROFF  )
+NULLIFY( work_cbl% TOT_TFALL      )
 
 IF (lhook) CALL dr_hook(ModuleName//':'//RoutineName,zhook_out,zhook_handle)
 RETURN

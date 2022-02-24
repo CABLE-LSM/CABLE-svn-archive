@@ -127,6 +127,7 @@ USE work_vars_mod_cbl,  ONLY: work_vars_type      ! and some kept thru timestep
 
 !Import interfaces to subroutines called
 USE hydrol_mod,               ONLY: hydrol
+USE hydrol_mod_cbl,           ONLY: hydrol_cbl
 USE snow_mod,                 ONLY: snow
 USE jules_rivers_mod,         ONLY: l_rivers, l_inland, rivers_call
 
@@ -401,8 +402,7 @@ TYPE(rivers_type), INTENT(IN OUT) :: rivers
 !TYPE(chemvars_type), INTENT(IN OUT) :: chemvars
 
 !CABLE TYPES containing field data (IN OUT)
-TYPE(progs_cbl_vars_type) :: progs_cbl
-TYPE(work_vars_type)      :: work_cbl
+TYPE(work_vars_type), INTENT(OUT) :: work_cbl
 
 !==============================================================================
 !Local variables
@@ -495,118 +495,119 @@ timestep_real =  timestep
 timestep_real = REAL(timestep_len)
 #endif
 
-!CABLE_LSM: implement switching based on lsm_id
-SELECT CASE( lsm_id )
-
-  !=============================================================================
-CASE ( jules )
-
-  !=============================================================================
-  ! Redimensioning of arrays
+! Redimensioning of arrays
 
 #if defined(UM_JULES)
-  !Dimensionality of variables differ betweeen UM and standalone, so copy across
+!Dimensionality of variables differ betweeen UM and standalone, so copy across
 
+! Change 2d to 1d soil clay content for soil respiration- dimensionalities
+! differ between UM and standalone.
+! Soil tiling not currently in the UM, so broadcast ij value to all tiles.
+! Multi-layer clay not currently in UM so set all layers to same value.
+IF ( soil_bgc_model == soil_model_rothc ) THEN
+  m = 1
+  DO l = 1, land_pts
+    j = (ainfo%land_index(l) - 1) / row_length + 1
+    i = ainfo%land_index(l) - (j-1) * row_length
+    DO n = 1, dim_cslayer
+      psparms%clay_soilt(l,m,n) = soil_clay_ij(i,j)
+    END DO
+  END DO
+END IF
 
-  ! Change 2d to 1d soil clay content for soil respiration- dimensionalities
-  ! differ between UM and standalone.
-  ! Soil tiling not currently in the UM, so broadcast ij value to all tiles.
-  ! Multi-layer clay not currently in UM so set all layers to same value.
-  IF ( soil_bgc_model == soil_model_rothc ) THEN
-    m = 1
+! Compress pop_den and flash rate fields to land points if required.
+! In the UM the ancils are 2D fields.
+IF (l_inferno) THEN
+  IF (ignition_method == ignition_vary_natural) THEN
     DO l = 1, land_pts
       j = (ainfo%land_index(l) - 1) / row_length + 1
       i = ainfo%land_index(l) - (j-1) * row_length
-      DO n = 1, dim_cslayer
-        psparms%clay_soilt(l,m,n) = soil_clay_ij(i,j)
-      END DO
+      fire_vars%flash_rate(l) = flash_rate_ancil(i,j)
     END DO
   END IF
-
-  ! Compress pop_den and flash rate fields to land points if required.
-  ! In the UM the ancils are 2D fields.
-  IF (l_inferno) THEN
-    IF (ignition_method == ignition_vary_natural) THEN
-      DO l = 1, land_pts
-        j = (ainfo%land_index(l) - 1) / row_length + 1
-        i = ainfo%land_index(l) - (j-1) * row_length
-        fire_vars%flash_rate(l) = flash_rate_ancil(i,j)
-      END DO
-    END IF
-    IF (ignition_method == ignition_vary_natural_human) THEN
-      DO l = 1, land_pts
-        j = (ainfo%land_index(l) - 1) / row_length + 1
-        i = ainfo%land_index(l) - (j-1) * row_length
-        fire_vars%flash_rate(l) = flash_rate_ancil(i,j)
-        fire_vars%pop_den(l)    = pop_den_ancil(i,j)
-      END DO
-    END IF
+  IF (ignition_method == ignition_vary_natural_human) THEN
+    DO l = 1, land_pts
+      j = (ainfo%land_index(l) - 1) / row_length + 1
+      i = ainfo%land_index(l) - (j-1) * row_length
+      fire_vars%flash_rate(l) = flash_rate_ancil(i,j)
+      fire_vars%pop_den(l)    = pop_den_ancil(i,j)
+    END DO
   END IF
+END IF
 #endif
 
-  !Encompassing IF statement for land_pts > 0. We exit/re-enter this IF about
-  !half way down to allow for river routing
+!Encompassing IF statement for land_pts > 0. We exit/re-enter this IF about
+!half way down to allow for river routing
 
-  IF (l_hydrology .AND. land_pts > 0 ) THEN
+IF (l_hydrology .AND. land_pts > 0 ) THEN
 
-    !===========================================================================
-    ! Compression to land points
+  !===========================================================================
+  ! Compression to land points
 
+  DO l = 1, land_pts
+    j = (ainfo%land_index(l) - 1) / row_length + 1
+    i = ainfo%land_index(l) - (j-1) * row_length
+    ls_rain_gb(l)    = forcing%ls_rain_ij(i,j)
+    con_rain_gb(l)   = forcing%con_rain_ij(i,j)
+    con_snow_gb(l)   = forcing%con_snow_ij(i,j)
+    ls_snow_gb(l)    = forcing%ls_snow_ij(i,j)
+    ls_graup_gb(l)   = ls_graup_ij(i,j)
+    pstar_gb(l)      = forcing%pstar_ij(i,j)
+    tl_1_gb(l)       = forcing%tl_1_ij(i,j)
+    qw_1_gb(l)       = forcing%qw_1_ij(i,j)
+    u_1_gb(l)        = u_1_ij(i,j)
+    v_1_gb(l)        = v_1_ij(i,j)
+  END DO
+
+  !Pass jules the modelled rain fractions
+  !In standalone mode, both rainfracs are passed in as zeroed arrays
+  IF (l_var_rainfrac) THEN
     DO l = 1, land_pts
       j = (ainfo%land_index(l) - 1) / row_length + 1
       i = ainfo%land_index(l) - (j-1) * row_length
-      ls_rain_gb(l)    = forcing%ls_rain_ij(i,j)
-      con_rain_gb(l)   = forcing%con_rain_ij(i,j)
-      con_snow_gb(l)   = forcing%con_snow_ij(i,j)
-      ls_snow_gb(l)    = forcing%ls_snow_ij(i,j)
-      ls_graup_gb(l)   = ls_graup_ij(i,j)
-      pstar_gb(l)      = forcing%pstar_ij(i,j)
-      tl_1_gb(l)       = forcing%tl_1_ij(i,j)
-      qw_1_gb(l)       = forcing%qw_1_ij(i,j)
-      u_1_gb(l)        = u_1_ij(i,j)
-      v_1_gb(l)        = v_1_ij(i,j)
+
+      con_rainfrac_gb(l) = MIN(cca_2d(i,j),0.5) !As in diagnostics_conv
+
+      !provide some safety checking for convective rain with no CCA
+      IF (con_rain_gb(l) > 0.0 ) THEN
+        IF (con_rainfrac_gb(l) == 0.0) THEN
+          con_rainfrac_gb(l) = confrac
+          !and for very small CCA amounts
+        ELSE IF (con_rainfrac_gb(l) < 0.01) THEN
+          con_rainfrac_gb(l) = 0.01
+        END IF
+      END IF
+
+      !provide some safety checking for ls rain with no rainfrac
+      IF (ls_rain_gb(l) > 0.0) THEN
+        IF (ls_rainfrac_gb(l) == 0.0) THEN
+          ls_rainfrac_gb(l) = 0.5
+          !and for very small rainfrac amounts
+        ELSE IF (ls_rainfrac_gb(l) < 0.01) THEN
+          ls_rainfrac_gb(l) = 0.01
+        END IF
+      END IF
     END DO
 
-    !Pass jules the modelled rain fractions
-    !In standalone mode, both rainfracs are passed in as zeroed arrays
-    IF (l_var_rainfrac) THEN
-      DO l = 1, land_pts
-        j = (ainfo%land_index(l) - 1) / row_length + 1
-        i = ainfo%land_index(l) - (j-1) * row_length
+  ELSE !use original default values
+    DO l = 1, land_pts
+      con_rainfrac_gb(l) = confrac
+      ls_rainfrac_gb(l)  = 1.0
+    END DO
+  END IF !l_var_rainfrac
 
-        con_rainfrac_gb(l) = MIN(cca_2d(i,j),0.5) !As in diagnostics_conv
+END IF ! ( l_hydrology .AND. land_pts /= 0 )
 
-        !provide some safety checking for convective rain with no CCA
-        IF (con_rain_gb(l) > 0.0 ) THEN
-          IF (con_rainfrac_gb(l) == 0.0) THEN
-            con_rainfrac_gb(l) = confrac
-            !and for very small CCA amounts
-          ELSE IF (con_rainfrac_gb(l) < 0.01) THEN
-            con_rainfrac_gb(l) = 0.01
-          END IF
-        END IF
+!===========================================================================
+! Science calls
 
-        !provide some safety checking for ls rain with no rainfrac
-        IF (ls_rain_gb(l) > 0.0) THEN
-          IF (ls_rainfrac_gb(l) == 0.0) THEN
-            ls_rainfrac_gb(l) = 0.5
-            !and for very small rainfrac amounts
-          ELSE IF (ls_rainfrac_gb(l) < 0.01) THEN
-            ls_rainfrac_gb(l) = 0.01
-          END IF
-        END IF
-      END DO
+!implement switching based on lsm_id
+SELECT CASE( lsm_id )
 
-    ELSE !use original default values
-      DO l = 1, land_pts
-        con_rainfrac_gb(l) = confrac
-        ls_rainfrac_gb(l)  = 1.0
-      END DO
-    END IF !l_var_rainfrac
+CASE ( jules )
 
-    !===========================================================================
-    ! Science calls
-
+  IF (l_hydrology .AND. land_pts > 0 ) THEN
+ 
     !Snow (standalone and UM)
     CALL snow ( land_pts,timestep_real,smlt,nsurft,surft_pts,                  &
                 ainfo%surft_index,psparms%catch_snow_surft,con_snow_gb,        &
@@ -682,512 +683,7 @@ CASE ( jules )
 
   END IF ! ( l_hydrology .AND. land_pts /= 0 )
 
-  ! Code not yet ported to LFRic
-#if !defined(LFRIC)
-
-  !Here we need to exit the land_pts IF to allow river routing to be called
-  !on all MPI ranks. This is because it is possible that a rank with
-  !land_pts = 0 still has a river routing point.
-
-#if !defined(UM_JULES)
-    ! Water resources (standalone; not yet allowed in UM).
-  IF ( l_water_resources ) THEN
-    CALL water_resources_control(                                              &
-           ainfo%land_index, forcing%con_rain_ij,                              &
-           forcing%con_snow_ij,                                                &
-           conveyance_loss, demand_rate_domestic, demand_rate_industry,        &
-           demand_rate_livestock, demand_rate_transfers, crop_vars%dvi_cpft,   &
-           flandg, crop_vars%frac_irr_soilt, ainfo%frac_soilt,                 &
-           ainfo%frac_surft, irrig_eff, grid_area_ij,                          &
-           forcing%ls_rain_ij, forcing%ls_snow_ij, forcing%lw_down_ij,         &
-           psparms%smvccl_soilt, psparms%smvcst_soilt, psparms%sthf_soilt,     &
-           fluxes%sw_surft, forcing%tl_1_ij, progs%tstar_surft,                &
-           crop_vars%icntmax_gb, crop_vars%plant_n_gb, demand_accum,           &
-           crop_vars%prec_1_day_av_gb, crop_vars%prec_1_day_av_use_gb,         &
-           crop_vars%rn_1_day_av_gb, crop_vars%rn_1_day_av_use_gb,             &
-           progs%smcl_soilt, crop_vars%sthu_irr_soilt, psparms%sthu_soilt,     &
-           crop_vars%tl_1_day_av_gb, crop_vars%tl_1_day_av_use_gb,             &
-           priority_order, crop_vars%irrig_water_gb )
-  END IF
-#endif
-
-  IF ( l_rivers ) THEN
-    CALL surf_couple_rivers(                                                   &
-      !INTEGER, INTENT(IN)
-      land_pts,                                                                &
-      !REAL, INTENT(IN)
-      fluxes%sub_surf_roff_gb, fluxes%surf_roff_gb,                            &
-      !INTEGER, INTENT(INOUT)
-      a_steps_since_riv,                                                       &
-      !REAL, INTENT (INOUT)
-      tot_surf_runoff_gb, tot_sub_runoff_gb, acc_lake_evap_gb,                 &
-      !REAL, INTENT (OUT)
-      rivers%rivers_sto_per_m2_on_landpts, fluxes%rflow_gb, fluxes%rrun_gb,    &
-      !Arguments for the UM-----------------------------------------
-      !INTEGER, INTENT(IN)
-      n_proc, row_length, rows, river_row_length, river_rows,                  &
-      ainfo%land_index, aocpl_row_length, aocpl_p_rows, g_p_field,             &
-      g_r_field, global_row_length, global_rows, global_river_row_length,      &
-       global_river_rows, nsurft,                                              &
-      !REAL, INTENT(IN)
-      fluxes%fqw_surft, delta_lambda, delta_phi, xx_cos_theta_latitude,        &
-      xpa, xua, xva, ypa, yua, yva, flandg, trivdir,                           &
-      trivseq, r_area, slope, flowobs1, r_inext, r_jnext, r_land,              &
-      psparms%smvcst_soilt, psparms%smvcwt_soilt, ainfo%frac_surft,            &
-      !REAL, INTENT(INOUT)
-      substore, surfstore, flowin, bflowin, twatstor,                          &
-      progs%smcl_soilt, psparms%sthu_soilt,                                    &
-      !REAL, INTENT(OUT)
-      inlandout_atm_gb, inlandout_riv, riverout, box_outflow, box_inflow,      &
-      riverout_rgrid,                                                          &
-      !  imported rivers arrays
-      rivers)
-  END IF ! l_rivers (ATMOS)
-
-  !Irrigation (standalone and UM for some options).
-  IF ( l_irrig_dmd .AND. .NOT. l_water_resources ) THEN
-    CALL irrigation_control( a_step, land_pts,                                 &
-                       ainfo%land_index,                                       &
-                       forcing%con_rain_ij, forcing%con_snow_ij,               &
-                       crop_vars%dvi_cpft,                                     &
-                       crop_vars%frac_irr_soilt, ainfo%frac_surft,             &
-                       forcing%ls_rain_ij, forcing%ls_snow_ij,                 &
-                       forcing%lw_down_ij,                                     &
-                       psparms%smvccl_soilt, psparms%smvcst_soilt,             &
-                       psparms%smvcwt_soilt, psparms%sthf_soilt,               &
-                       fluxes%sw_surft, forcing%tl_1_ij, progs%tstar_surft,    &
-                       crop_vars%icntmax_gb, crop_vars%plant_n_gb,             &
-                       crop_vars%irrDaysDiag_gb, crop_vars%prec_1_day_av_gb,   &
-                       crop_vars%prec_1_day_av_use_gb,                         &
-                       crop_vars%rn_1_day_av_gb, crop_vars%rn_1_day_av_use_gb, &
-                       crop_vars%tl_1_day_av_gb, crop_vars%tl_1_day_av_use_gb, &
-                       progs%smcl_soilt,  crop_vars%sthu_irr_soilt,            &
-                       psparms%sthu_soilt, sthzw_soilt,                        &
-                       crop_vars%irrig_water_gb,                               &
-                       !New arguments replacing USE statements
-                       !jules_rivers_mod
-                       rivers%rivers_sto_per_m2_on_landpts,                    &
-                       rivers%rivers_adj_on_landpts,                           &
-                       rivers )
-  ELSE IF ( .NOT. l_water_resources ) THEN
-    ! Set sthu_irr_soilt to 0.0 in case it is still reported
-    ! It would be better to not allocate this array when it is not being used.
-    ! This led to a memory leak in the D1 array (UM).
-    crop_vars%sthu_irr_soilt(:,:,:) = 0.0
-  END IF ! l_irrig_dmd
-
-  !Restart the IF for land_pts > 0 now that river routing is done with
-  IF (land_pts > 0) THEN
-
-    !Crops (standalone only)
-#if !defined(UM_JULES)
-    IF ( l_crop ) THEN
-      crop_call = MOD ( REAL(a_step),                                          &
-                        REAL(crop_period) * rsec_per_day / timestep_real )
-
-      DO n = 1,ncpft
-        DO l = 1,land_pts
-          trifctltype%npp_acc_pft(l,nnpft + n) =                               &
-                        trifctltype%npp_acc_pft(l,nnpft + n)                   &
-                        + (trifctltype%npp_pft(l,nnpft + n) * timestep_real)
-        END DO
-      END DO
-
-      CALL photoperiod(t_i_length * t_j_length, crop_vars%phot,                &
-                       crop_vars%dphotdt)
-
-      CALL crop(t_i_length * t_j_length, land_pts, ainfo%land_index, a_step,   &
-                crop_call, sm_levels, ainfo%frac_surft, crop_vars%phot,        &
-                crop_vars%dphotdt,                                             &
-                sf_diag%t1p5m_surft, progs%t_soil_soilt, psparms%sthu_soilt,   &
-                psparms%smvccl_soilt,                                          &
-                psparms%smvcst_soilt, trifctltype%npp_acc_pft,                 &
-                progs%canht_pft, progs%lai_pft, crop_vars%dvi_cpft,            &
-                crop_vars%rootc_cpft,                                          &
-                crop_vars%harvc_cpft,                                          &
-                crop_vars%reservec_cpft, crop_vars%croplai_cpft,               &
-                crop_vars%cropcanht_cpft,                                      &
-                psparms%catch_surft, psparms%z0_surft,                         &
-                !New arguments replacing USE statements
-                !crop_vars_mod
-                crop_vars%sow_date_cpft, crop_vars%tt_veg_cpft,                &
-                crop_vars%tt_rep_cpft,                                         &
-                crop_vars%latestharv_date_cpft,                                &
-                crop_vars%yield_diag_cpft, crop_vars%stemc_diag_cpft,          &
-                crop_vars%leafc_diag_cpft, crop_vars%nonyield_diag_cpft,       &
-                crop_vars%harvest_trigger_cpft, crop_vars%harvest_counter_cpft,&
-                !ancil_info (IN)
-                ainfo%l_lice_point)
-
-    END IF  ! l_crop
-
-    !Metstats (standalone only)
-        !Beware- does not currently account for graupel
-    IF ( l_metstats ) THEN
-      CALL metstats_timestep(tl_1_gb, qw_1_gb, u_1_gb, v_1_gb, ls_rain_gb,     &
-                            con_rain_gb, ls_snow_gb, con_snow_gb, pstar_gb,    &
-                            metstats_prog,                                     &
-                            !Vars that should be USED but can't due to
-                            !UM/standalone differences
-                            current_time%TIME, timestep_real,land_pts)
-    END IF
-
-    !Fire (standalone only)
-    IF ( l_fire ) THEN
-      !Calculate the gridbox mean soil moisture
-      smc_gb = soiltiles_to_gbm(progs%smc_soilt, ainfo)
-      CALL fire_timestep(metstats_prog, smc_gb, fire_prog, fire_diag,          &
-                        !Vars that should be USED but can't due to
-                        !UM/standalone differences
-                        current_time%TIME, current_time%month, timestep_real,  &
-                        land_pts)
-    END IF
-#endif
-
-    !INFERNO (standalone and UM)
-    IF ( l_inferno ) THEN
-      CALL calc_soil_carbon_pools(land_pts, soil_pts, ainfo%soil_index,        &
-                                  dim_cs1, progs%cs_pool_soilt,                &
-                                  c_soil_dpm_gb, c_soil_rpm_gb)
-
-      CALL inferno_io( sf_diag%t1p5m_surft, sf_diag%q1p5m_surft, pstar_gb,     &
-                      psparms%sthu_soilt, sm_levels,                           &
-                      ainfo%frac_surft, c_soil_dpm_gb, c_soil_rpm_gb,          &
-                      progs%canht_pft,                                         &
-                      ls_rain_gb, con_rain_gb,                                 &
-                      fire_vars,                                               &
-                      land_pts, ignition_method,                               &
-                      nsurft, asteps_since_triffid,                            &
-                    ! New Arguments to replace USE statements
-                    ! TRIF_VARS_MOD
-                      trif_vars%g_burn_pft_acc)
-    END IF  !  l_inferno
-
-    IF (l_phenol .OR. l_triffid) THEN
-      IF (l_veg3) THEN
-
-        !Update veg3 structures
-        !Structures can then be passed straight through
-        ! Copy prognostics and forcings in and then out
-        ! Same calling when coulpled to atmos
-        DO n = 1, nnpft
-          DO k = 1, land_pts
-            l = ainfo%land_index(k)
-            veg_state%npp_acc(l,n) = trifctltype%npp_acc_pft(l,n)
-          END DO
-        END DO
-
-        CALL next_gen_biogeochem(                                              &
-          !IN control vars
-            asteps_since_triffid,land_pts,nnpft,nmasst,veg3_ctrl,              &
-            ainfo,                                                             &
-          !IN parms
-            litter_parms,red_parms,                                            &
-          !INOUT data structures
-            veg_state,red_state                                                &
-          !OUT diagnostics
-          )
-
-        ! Update the physical state of the land
-        ! Outside of main call as
-        ! - Uses non-veg tilepts
-        ! - Accesses fields via USE statements
-
-        ! Note use lai_bal for now as we don't yet have phenology
-        CALL sparm (land_pts,nsurft,surft_pts,ainfo%surft_index,               &
-                    veg_state%frac,veg_state%canht,                            &
-                    veg_state%lai_bal,psparms%z0m_soil_gb,                     &
-                    psparms%catch_snow_surft,psparms%catch_surft,              &
-                    psparms%z0_surft,psparms%z0h_bare_surft,urban_param%ztm_gb)
-
-        CALL infiltration_rate(land_pts,nsurft,surft_pts,ainfo%surft_index,    &
-                               psparms%satcon_soilt,veg_state%frac,            &
-                               psparms%infil_surft)
-
-        DO n = 1, nnpft
-          DO k = 1, land_pts
-            l = ainfo%land_index(k)
-            trifctltype%npp_acc_pft(l,n) = veg_state%npp_acc(l,n)
-          END DO
-        END DO
-
-      ELSE ! Triffid based model
-
-        !Vegetation (standalone and UM- differing functionality)
-
-        CALL veg_control(                                                      &
-          land_pts, nsurft, dim_cs1,                                           &
-          a_step, asteps_since_triffid,                                        &
-          phenol_period, triffid_period,                                       &
-          l_phenol, l_triffid, l_trif_eq,                                      &
-          timestep_real, frac_agr_gb, trif_vars%frac_past_gb,                  &
-          psparms%satcon_soilt,                                                &
-          trifctltype%g_leaf_acc_pft, trifctltype%g_leaf_phen_acc_pft,         &
-          trifctltype%npp_acc_pft,                                             &
-          resp_s_acc_gb_um, trifctltype%resp_w_acc_pft,                        &
-          ainfo%frac_surft, progs%lai_pft,                                     &
-          psparms%clay_soilt, psparms%z0m_soil_gb,                             &
-          progs%canht_pft,                                                     &
-          psparms%catch_snow_surft, psparms%catch_surft,                       &
-          psparms%infil_surft, psparms%z0_surft, psparms%z0h_bare_surft,       &
-          trifctltype%c_veg_pft, trifctltype%cv_gb, trifctltype%lit_c_pft,     &
-          trifctltype%lit_c_mn_gb, trifctltype%g_leaf_day_pft,                 &
-          trifctltype%g_leaf_phen_pft,trifctltype%lai_phen_pft,                &
-          trifctltype%g_leaf_dr_out_pft, trifctltype%npp_dr_out_pft,           &
-          trifctltype%resp_w_dr_out_pft,                                       &
-          resp_s_dr_out_gb_um, qbase_l_soilt,                                  &
-          psparms%sthf_soilt, psparms%sthu_soilt,                              &
-          w_flux_soilt, progs%t_soil_soilt,progs%cs_pool_soilt,                &
-          progs%frac_c_label_pool_soilt,                                       &
-          !New arguments replacing USE statements
-          !trif_vars_mod (IN OUT)
-          trif_vars,                                                           &
-          !crop_vars_mod (IN)
-          crop_vars%rootc_cpft, crop_vars%harvc_cpft, crop_vars%reservec_cpft, &
-          crop_vars%stemc_diag_cpft,                                           &
-          crop_vars%leafc_diag_cpft, crop_vars%dvi_cpft,                       &
-          ! prognostics (IN)
-          progs%wood_prod_fast_gb, progs%wood_prod_med_gb,                     &
-          progs%wood_prod_slow_gb, progs%frac_agr_prev_gb,                     &
-          progs%frac_past_prev_gb, progs%n_inorg_gb, progs%n_inorg_soilt_lyrs, &
-          progs%n_inorg_avail_pft, progs%ns_pool_gb,                           &
-          progs%triffid_co2_gb, progs%t_soil_soilt_acc,                        &
-          ! p_s_parms (IN)
-          psparms%bexp_soilt, psparms%sathh_soilt,                             &
-          psparms%smvcst_soilt, psparms%smvcwt_soilt,                          &
-          psparms%soil_ph_soilt,                                               &
-          ! soil_ecosse_vars_mod (OUT)
-          soilecosse%n_soil_pool_soilt, dim_soil_n_pool,                       &
-          soilecosse%co2_soil_gb, soilecosse%n2o_soil_gb,                      &
-          soilecosse%n2o_denitrif_gb, soilecosse%n2o_nitrif_gb,                &
-          soilecosse%n2o_partial_nitrif_gb, soilecosse%n2_denitrif_gb,         &
-          soilecosse%n_denitrification_gb, soilecosse%n_leach_amm_gb,          &
-          soilecosse%n_leach_nit_gb, soilecosse%n_nitrification_gb,            &
-          soilecosse%no_soil_gb, soilecosse%soil_c_add, soilecosse%soil_n_add, &
-          ! soil_ecosse_vars_mod (IN)
-          soilecosse%qbase_l_driver, soilecosse%sthf_driver,                   &
-          soilecosse%sthu_driver, soilecosse%tsoil_driver,                     &
-          soilecosse%wflux_driver,                                             &
-          !ancil_info (IN)
-          ainfo%l_lice_point, ainfo%soil_index,                                &
-          !TYPES
-          soilecosse, urban_param,trifctltype)
-
-      END IF
-    END IF
-
-    IF ( l_acclim ) THEN
-      ! Update the growth temperature for the thermal acclimation of
-      ! photosynthesis.
-      progs%t_growth_gb(:) = progs%t_growth_gb(:)                              &
-                     + alpha_acclim * ( tl_1_gb(:) - progs%t_growth_gb(:) )
-    END IF
-
-#if !defined(UM_JULES)
-    !Reference evapotranspiration (standalone only)
-    IF (l_fao_ref_evapotranspiration) THEN
-      trad = ( surftiles_to_gbm(progs%tstar_surft**4, ainfo) )**0.25
-      CALL fao_ref_evapotranspiration(soil_pts, ainfo%soil_index,              &
-        land_pts, ainfo%land_index, sf_diag%t1p5m,                             &
-        forcing%sw_down_ij, forcing%lw_down_ij, fluxes%surf_ht_flux_ij,        &
-        sf_diag%u10m, sf_diag%v10m, sf_diag%q1p5m, forcing%pstar_ij,           &
-        trad, trif_vars%fao_et0)
-    END IF
-    ! End of standalone Jules code
-#endif
-
-    !-----------------------------------------------------------------------
-    !     call to the FLake interface
-    !-----------------------------------------------------------------------
-    IF (       l_flake_model                                                   &
-         .AND. ( .NOT. l_aggregate)                                            &
-         .AND. (land_pts > 0 ) ) THEN
-
-      DO k = 1,surft_pts(lake)
-        l = ainfo%surft_index(k,lake)
-        j=(ainfo%land_index(l) - 1) / row_length + 1
-        i = ainfo%land_index(l) - (j-1) * row_length
-
-        !       U* of lake obtained by matching surface stress
-        lake_vars%u_s_lake_gb(l) =   u_s_std_surft(l, lake)                    &
-                      * SQRT( rhostar(i,j) / rho_water )
-
-        !       Downwelling SW on lake tile
-        lake_vars%sw_down_gb(l) = fluxes%sw_surft(l,lake) /                    &
-                                    (1.0 - lake_vars%lake_albedo_gb(l))
-
-        !       Take the net SW flux out of the surface heat flux
-        !       since this is done separately within FLake.
-        lake_vars%surf_ht_flux_lk_gb(l) = lake_vars%surf_ht_flux_lake_ij(i,j) -&
-                                            fluxes%sw_surft(l,lake)
-
-        IF ( (nsmax > 0) .AND.                                                 &
-             (lake_vars%lake_h_snow_gb(l) > EPSILON(1.0)) ) THEN
-          ! For the new snow scheme, FLake is forced with zero snow
-          ! and the forcing fluxes are those at the bottom of the snowpack.
-          ! The order of the following calculations is important.
-
-          ! attenuated DWSW below snow
-          dwsw_sub_snow = lake_vars%sw_down_gb(l) *                            &
-                    EXP( -lake_vars%lake_h_snow_gb(l) / h_snow_sw_att )
-
-          ! following last calculation, set snow depth to zero
-          lake_vars%lake_h_snow_gb(l) = 0.0
-
-          ! heat flux into the lake becomes
-          ! the sub-snow value minus remaining DWSW
-
-          lake_vars%surf_ht_flux_lk_gb(l) = lake_vars%surf_ht_flux_lake_ij(i,j)&
-                                  - dhf_surf_minus_soil(l)                     &
-                                  - dwsw_sub_snow
-
-          ! now overwrite the DWSW with the remaining sub-snow amount
-          lake_vars%sw_down_gb(l) = dwsw_sub_snow
-        END IF
-
-      END DO
-
-      trap_frozen   = 0
-      trap_unfrozen = 0
-
-      CALL flake_interface( land_pts                                           &
-                           ,surft_pts(lake)                                    &
-                           ,ainfo%surft_index(:,lake)                          &
-                           ,lake_vars%u_s_lake_gb                              &
-                           ,lake_vars%surf_ht_flux_lk_gb                       &
-                           ,lake_vars%sw_down_gb                               &
-                           ,lake_vars%lake_depth_gb                            &
-                           ,lake_vars%coriolis_param_gb                        &
-                           ,timestep_real                                      &
-                           ,lake_vars%lake_albedo_gb                           &
-                           ,lake_vars%lake_t_snow_gb                           &
-                           ,lake_vars%lake_t_ice_gb                            &
-                           ,lake_vars%lake_t_mean_gb                           &
-                           ,lake_vars%lake_t_mxl_gb                            &
-                           ,lake_vars%lake_shape_factor_gb                     &
-                           ,lake_vars%lake_h_snow_gb                           &
-                           ,lake_vars%lake_h_ice_gb                            &
-                           ,lake_vars%lake_h_mxl_gb                            &
-                           ,lake_vars%lake_t_sfc_gb                            &
-                           ,lake_vars%ts1_lake_gb                              &
-                           ,lake_vars%g_dt_gb                                  &
-                           ,trap_frozen                                        &
-                           ,trap_unfrozen )
-
-      IF ( trap_frozen > 0 ) THEN
-        errcode = -1
-        CALL ereport('control', errcode,                                       &
-          'surf_couple_extra-FLake: # zero-divide (frozen) avoided =')
-      END IF
-      IF ( trap_unfrozen > 0 ) THEN
-        errcode = -1
-        CALL ereport('control', errcode,                                       &
-          'surf_couple_extra-FLake: # zero-divide (unfrozen) avoided =')
-      END IF
-
-    END IF ! Flake
-
-    ! End of code excluded from LFRic builds
-#else
-    ! These variables are intent out and so must be initialised for LFRic to
-    ! compile. Set to rmdi in the hope this will show errors if they are used!
-  fluxes%rrun_gb = rmdi
-  fluxes%rflow_gb = rmdi
-  psparms%z0_surft = rmdi
-  psparms%z0h_bare_surft = rmdi
-
-  IF (land_pts > 0) THEN
-
-    ! End of bespoke LFRic code
-#endif
-
-    !End of science calls
-    !===========================================================================
-    !Expansion to full grid
-
-    DO l = 1, land_pts
-      j=(ainfo%land_index(l) - 1) / row_length + 1
-      i = ainfo%land_index(l) - (j-1) * row_length
-      progs%snow_mass_ij(i,j) = snow_mass_gb(l)
-    END DO
-
-  END IF ! land_pts > 0
-
-  !=============================================================================
-  !UM Diagnostics calls
-
-    !For the UM, soil tiling has not been implemented, ie nsoilt = 1, so we can
-    !hard-code _soilt variables with index 1 using m = 1
-#if defined(UM_JULES) && !defined(LFRIC)
-  IF (model_type /= mt_single_column) THEN
-    m = 1
-    IF (l_hydrology .AND. sf(0,8) ) THEN
-      CALL diagnostics_hyd(                                                    &
-        row_length, rows,                                                      &
-        land_pts, sm_levels,                                                   &
-        ainfo%land_index,inlandout_atm_gb,                                     &
-        progs%smc_soilt(:,m), fluxes%surf_roff_gb, fluxes%sub_surf_roff_gb,    &
-        snow_mass_gb, fluxes%snow_melt_gb,                                     &
-        progs%t_soil_soilt(:,m,:),                                             &
-        fluxes%snow_soil_htf,                                                  &
-        progs%smcl_soilt(:,m,:),                                               &
-        nsurft, fluxes%hf_snow_melt_gb, psparms%sthu_soilt(:,m,:),             &
-        psparms%sthf_soilt(:,m,:),                                             &
-        fluxes%tot_tfall_gb, fluxes%melt_surft,                                &
-        land_sea_mask,                                                         &
-        dun_roff_soilt(:,m), drain_soilt(:,m), toppdm%qbase_soilt(:,m),        &
-        toppdm%qbase_zw_soilt(:,m), toppdm%fch4_wetl_soilt(:,m),               &
-        toppdm%fch4_wetl_cs_soilt(:,m),                                        &
-        toppdm%fch4_wetl_npp_soilt(:,m),toppdm%fch4_wetl_resps_soilt(:,m),     &
-        fexp_soilt(:,m),gamtot_soilt(:,m),ti_mean_soilt(:,m),                  &
-        ti_sig_soilt(:,m),                                                     &
-        fsat_soilt(:,m),fwetl_soilt(:,m),zw_soilt(:,m),sthzw_soilt(:,m),       &
-        timestep_real,                                                         &
-        STASHwork8,                                                            &
-        sf_diag,                                                               &
-        !JULES TYPEs
-        fire_vars, progs)
-    END IF
-
-    IF ( l_rivers .AND. rivers_call .AND. sf(0,26) ) THEN
-      CALL diagnostics_riv(                                                    &
-        row_length, rows,                                                      &
-        river_row_length, river_rows,                                          &
-        riverout,                                                              &
-        riverout_rgrid,                                                        &
-        box_outflow, box_inflow,                                               &
-        twatstor,inlandout_riv,                                                &
-        STASHwork26                                                            &
-        )
-    END IF
-
-    IF (sf(0,19)) THEN
-      CALL diagnostics_veg(                                                    &
-        row_length, rows,                                                      &
-        dim_cs1,                                                               &
-        land_pts,                                                              &
-        ainfo%land_index,                                                      &
-        ntype,npft,                                                            &
-        trifctltype%c_veg_pft,trifctltype%cv_gb,trifctltype%g_leaf_phen_pft,   &
-        trifctltype%lit_c_pft,trifctltype%lit_c_mn_gb,                         &
-        trifctltype%g_leaf_day_pft, trifctltype%lai_phen_pft,                  &
-        trifctltype%g_leaf_dr_out_pft,trifctltype%npp_dr_out_pft,              &
-        trifctltype%resp_w_dr_out_pft,resp_s_dr_out_gb_um,frac_agr_gb,         &
-        disturb_veg_prev,                                                      &
-        ainfo%frac_surft,                                                      &
-        STASHwork19,                                                           &
-        !JULES TYPEs
-        trif_vars, progs                                                       &
-        )
-    END IF
-  END IF
-#endif
-
-  !=============================================================================
 CASE ( cable )
-  ! for testing LSM switch
-  WRITE(jules_message,'(A)') "CABLE not yet implemented"
-  CALL jules_print(RoutineName, jules_message)
 
   ! initialise all INTENT(OUT) for now until CABLE is implemented
   fluxes%melt_surft(:,:) = 0.0
@@ -1201,6 +697,53 @@ CASE ( cable )
   fluxes%rflow_gb(:) = 0.0
   fluxes%snow_soil_htf(:,:) = 0.0
 
+  !Hydrology (standalone and UM)
+  CALL hydrol_cbl (                                                              &
+    lice_pts,ainfo%lice_index,soil_pts,ainfo%soil_index, progs%nsnow_surft,  &
+    land_pts,sm_levels,psparms%bexp_soilt,psparms%catch_surft,con_rain_gb,   &
+    fluxes%ecan_surft,fluxes%ext_soilt,psparms%hcap_soilt,                   &
+    psparms%hcon_soilt,ls_rain_gb,                                           &
+    con_rainfrac_gb, ls_rainfrac_gb,                                         &
+    psparms%satcon_soilt,psparms%sathh_soilt,progs%snowdepth_surft,          &
+    fluxes%snow_soil_htf, surf_ht_flux_ld,timestep_real,                     &
+    psparms%smvcst_soilt,psparms%smvcwt_soilt,progs%canopy_surft,            &
+    stf_sub_surf_roff,progs%smcl_soilt,psparms%sthf_soilt,                   &
+    psparms%sthu_soilt, progs%t_soil_soilt,progs%tsurf_elev_surft,           &
+                    progs%smc_soilt,fluxes%snow_melt_gb,                     &
+    fluxes%sub_surf_roff_gb,fluxes%surf_roff_gb,fluxes%tot_tfall_gb,         &
+    fluxes%tot_tfall_surft, lake_vars%non_lake_frac,                         &
+    ! add new inland basin variable
+    inlandout_atm_gb,l_inland,                                               &
+    ! Additional variables for MOSES II
+    nsurft,surft_pts,ainfo%surft_index,                                      &
+    psparms%infil_surft, fluxes%melt_surft,tile_frac,                        &
+    ! Additional variables required for large-scale hydrology:
+    l_top,l_pdm,fexp_soilt,ti_mean_soilt,toppdm%cs_ch4_soilt,                &
+    progs%cs_pool_soilt,                                                     &
+                   drain_soilt,fsat_soilt,fwetl_soilt,toppdm%qbase_soilt,    &
+    qbase_l_soilt, toppdm%qbase_zw_soilt, w_flux_soilt,                      &
+    zw_soilt,sthzw_soilt,a_fsat_soilt,c_fsat_soilt,a_fwet_soilt,             &
+    c_fwet_soilt,                                                            &
+    resp_s_soilt,npp_gb,toppdm%fch4_wetl_soilt,                              &
+    toppdm%fch4_wetl_cs_soilt,toppdm%fch4_wetl_npp_soilt,                    &
+    toppdm%fch4_wetl_resps_soilt, crop_vars%sthu_irr_soilt,                  &
+    crop_vars%frac_irr_soilt, crop_vars%ext_irr_soilt,                       &
+    ! New arguments replacing USE statements
+    ! trif_vars_mod
+    trif_vars%n_leach_soilt, trif_vars%n_leach_gb_acc,                       &
+    ! prognostics
+    progs%n_inorg_soilt_lyrs, progs%n_inorg_avail_pft, npft,                 &
+    progs%t_soil_soilt_acc, progs%tsoil_deep_gb,                             &
+    ! top_pdm_alloc
+     toppdm%fch4_wetl_acc_soilt,                                             &
+    ! microbial methane scheme
+    progs%substr_ch4, progs%mic_ch4, progs%mic_act_ch4, progs%acclim_ch4,    &
+    ! pdm_vars
+     toppdm%slope_gb, dim_cs1, l_soil_sat_down, asteps_since_triffid,        &
+    !CABLE UNPACKs snow* to work_bl% @implicit. passes to JULES fields here
+    progs%snow_surft, snow_mass_gb,                                                &
+    work_cbl )
+  
 CASE DEFAULT
   errorstatus = 101
   WRITE(jules_message,'(A,I0)') 'Unrecognised surface scheme. lsm_id = ',      &
@@ -1209,6 +752,508 @@ CASE DEFAULT
 
 END SELECT
 
+! Code not yet ported to LFRic
+#if !defined(LFRIC)
+
+!Here we need to exit the land_pts IF to allow river routing to be called
+!on all MPI ranks. This is because it is possible that a rank with
+!land_pts = 0 still has a river routing point.
+
+#if !defined(UM_JULES)
+  ! Water resources (standalone; not yet allowed in UM).
+IF ( l_water_resources ) THEN
+  CALL water_resources_control(                                              &
+         ainfo%land_index, forcing%con_rain_ij,                              &
+         forcing%con_snow_ij,                                                &
+         conveyance_loss, demand_rate_domestic, demand_rate_industry,        &
+         demand_rate_livestock, demand_rate_transfers, crop_vars%dvi_cpft,   &
+         flandg, crop_vars%frac_irr_soilt, ainfo%frac_soilt,                 &
+         ainfo%frac_surft, irrig_eff, grid_area_ij,                          &
+         forcing%ls_rain_ij, forcing%ls_snow_ij, forcing%lw_down_ij,         &
+         psparms%smvccl_soilt, psparms%smvcst_soilt, psparms%sthf_soilt,     &
+         fluxes%sw_surft, forcing%tl_1_ij, progs%tstar_surft,                &
+         crop_vars%icntmax_gb, crop_vars%plant_n_gb, demand_accum,           &
+         crop_vars%prec_1_day_av_gb, crop_vars%prec_1_day_av_use_gb,         &
+         crop_vars%rn_1_day_av_gb, crop_vars%rn_1_day_av_use_gb,             &
+         progs%smcl_soilt, crop_vars%sthu_irr_soilt, psparms%sthu_soilt,     &
+         crop_vars%tl_1_day_av_gb, crop_vars%tl_1_day_av_use_gb,             &
+         priority_order, crop_vars%irrig_water_gb )
+END IF
+#endif
+
+IF ( l_rivers ) THEN
+  CALL surf_couple_rivers(                                                   &
+    !INTEGER, INTENT(IN)
+    land_pts,                                                                &
+    !REAL, INTENT(IN)
+    fluxes%sub_surf_roff_gb, fluxes%surf_roff_gb,                            &
+    !INTEGER, INTENT(INOUT)
+    a_steps_since_riv,                                                       &
+    !REAL, INTENT (INOUT)
+    tot_surf_runoff_gb, tot_sub_runoff_gb, acc_lake_evap_gb,                 &
+    !REAL, INTENT (OUT)
+    rivers%rivers_sto_per_m2_on_landpts, fluxes%rflow_gb, fluxes%rrun_gb,    &
+    !Arguments for the UM-----------------------------------------
+    !INTEGER, INTENT(IN)
+    n_proc, row_length, rows, river_row_length, river_rows,                  &
+    ainfo%land_index, aocpl_row_length, aocpl_p_rows, g_p_field,             &
+    g_r_field, global_row_length, global_rows, global_river_row_length,      &
+     global_river_rows, nsurft,                                              &
+    !REAL, INTENT(IN)
+    fluxes%fqw_surft, delta_lambda, delta_phi, xx_cos_theta_latitude,        &
+    xpa, xua, xva, ypa, yua, yva, flandg, trivdir,                           &
+    trivseq, r_area, slope, flowobs1, r_inext, r_jnext, r_land,              &
+    psparms%smvcst_soilt, psparms%smvcwt_soilt, ainfo%frac_surft,            &
+    !REAL, INTENT(INOUT)
+    substore, surfstore, flowin, bflowin, twatstor,                          &
+    progs%smcl_soilt, psparms%sthu_soilt,                                    &
+    !REAL, INTENT(OUT)
+    inlandout_atm_gb, inlandout_riv, riverout, box_outflow, box_inflow,      &
+    riverout_rgrid,                                                          &
+    !  imported rivers arrays
+    rivers)
+END IF ! l_rivers (ATMOS)
+
+!Irrigation (standalone and UM for some options).
+IF ( l_irrig_dmd .AND. .NOT. l_water_resources ) THEN
+  CALL irrigation_control( a_step, land_pts,                                 &
+                     ainfo%land_index,                                       &
+                     forcing%con_rain_ij, forcing%con_snow_ij,               &
+                     crop_vars%dvi_cpft,                                     &
+                     crop_vars%frac_irr_soilt, ainfo%frac_surft,             &
+                     forcing%ls_rain_ij, forcing%ls_snow_ij,                 &
+                     forcing%lw_down_ij,                                     &
+                     psparms%smvccl_soilt, psparms%smvcst_soilt,             &
+                     psparms%smvcwt_soilt, psparms%sthf_soilt,               &
+                     fluxes%sw_surft, forcing%tl_1_ij, progs%tstar_surft,    &
+                     crop_vars%icntmax_gb, crop_vars%plant_n_gb,             &
+                     crop_vars%irrDaysDiag_gb, crop_vars%prec_1_day_av_gb,   &
+                     crop_vars%prec_1_day_av_use_gb,                         &
+                     crop_vars%rn_1_day_av_gb, crop_vars%rn_1_day_av_use_gb, &
+                     crop_vars%tl_1_day_av_gb, crop_vars%tl_1_day_av_use_gb, &
+                     progs%smcl_soilt,  crop_vars%sthu_irr_soilt,            &
+                     psparms%sthu_soilt, sthzw_soilt,                        &
+                     crop_vars%irrig_water_gb,                               &
+                     !New arguments replacing USE statements
+                     !jules_rivers_mod
+                     rivers%rivers_sto_per_m2_on_landpts,                    &
+                     rivers%rivers_adj_on_landpts,                           &
+                     rivers )
+ELSE IF ( .NOT. l_water_resources ) THEN
+  ! Set sthu_irr_soilt to 0.0 in case it is still reported
+  ! It would be better to not allocate this array when it is not being used.
+  ! This led to a memory leak in the D1 array (UM).
+  crop_vars%sthu_irr_soilt(:,:,:) = 0.0
+END IF ! l_irrig_dmd
+
+!Restart the IF for land_pts > 0 now that river routing is done with
+IF (land_pts > 0) THEN
+
+!Crops (standalone only)
+#if !defined(UM_JULES)
+  IF ( l_crop ) THEN
+    crop_call = MOD ( REAL(a_step),                                          &
+                      REAL(crop_period) * rsec_per_day / timestep_real )
+
+    DO n = 1,ncpft
+      DO l = 1,land_pts
+        trifctltype%npp_acc_pft(l,nnpft + n) =                               &
+                      trifctltype%npp_acc_pft(l,nnpft + n)                   &
+                      + (trifctltype%npp_pft(l,nnpft + n) * timestep_real)
+      END DO
+    END DO
+
+    CALL photoperiod(t_i_length * t_j_length, crop_vars%phot,                &
+                     crop_vars%dphotdt)
+
+    CALL crop(t_i_length * t_j_length, land_pts, ainfo%land_index, a_step,   &
+              crop_call, sm_levels, ainfo%frac_surft, crop_vars%phot,        &
+              crop_vars%dphotdt,                                             &
+              sf_diag%t1p5m_surft, progs%t_soil_soilt, psparms%sthu_soilt,   &
+              psparms%smvccl_soilt,                                          &
+              psparms%smvcst_soilt, trifctltype%npp_acc_pft,                 &
+              progs%canht_pft, progs%lai_pft, crop_vars%dvi_cpft,            &
+              crop_vars%rootc_cpft,                                          &
+              crop_vars%harvc_cpft,                                          &
+              crop_vars%reservec_cpft, crop_vars%croplai_cpft,               &
+              crop_vars%cropcanht_cpft,                                      &
+              psparms%catch_surft, psparms%z0_surft,                         &
+              !New arguments replacing USE statements
+              !crop_vars_mod
+              crop_vars%sow_date_cpft, crop_vars%tt_veg_cpft,                &
+              crop_vars%tt_rep_cpft,                                         &
+              crop_vars%latestharv_date_cpft,                                &
+              crop_vars%yield_diag_cpft, crop_vars%stemc_diag_cpft,          &
+              crop_vars%leafc_diag_cpft, crop_vars%nonyield_diag_cpft,       &
+              crop_vars%harvest_trigger_cpft, crop_vars%harvest_counter_cpft,&
+              !ancil_info (IN)
+              ainfo%l_lice_point)
+
+  END IF  ! l_crop
+
+  !Metstats (standalone only)
+      !Beware- does not currently account for graupel
+  IF ( l_metstats ) THEN
+    CALL metstats_timestep(tl_1_gb, qw_1_gb, u_1_gb, v_1_gb, ls_rain_gb,     &
+                          con_rain_gb, ls_snow_gb, con_snow_gb, pstar_gb,    &
+                          metstats_prog,                                     &
+                          !Vars that should be USED but can't due to
+                          !UM/standalone differences
+                          current_time%TIME, timestep_real,land_pts)
+  END IF
+
+  !Fire (standalone only)
+  IF ( l_fire ) THEN
+    !Calculate the gridbox mean soil moisture
+    smc_gb = soiltiles_to_gbm(progs%smc_soilt, ainfo)
+    CALL fire_timestep(metstats_prog, smc_gb, fire_prog, fire_diag,          &
+                      !Vars that should be USED but can't due to
+                      !UM/standalone differences
+                      current_time%TIME, current_time%month, timestep_real,  &
+                      land_pts)
+  END IF
+#endif
+
+  !INFERNO (standalone and UM)
+  IF ( l_inferno ) THEN
+    CALL calc_soil_carbon_pools(land_pts, soil_pts, ainfo%soil_index,        &
+                                dim_cs1, progs%cs_pool_soilt,                &
+                                c_soil_dpm_gb, c_soil_rpm_gb)
+
+    CALL inferno_io( sf_diag%t1p5m_surft, sf_diag%q1p5m_surft, pstar_gb,     &
+                    psparms%sthu_soilt, sm_levels,                           &
+                    ainfo%frac_surft, c_soil_dpm_gb, c_soil_rpm_gb,          &
+                    progs%canht_pft,                                         &
+                    ls_rain_gb, con_rain_gb,                                 &
+                    fire_vars,                                               &
+                    land_pts, ignition_method,                               &
+                    nsurft, asteps_since_triffid,                            &
+                  ! New Arguments to replace USE statements
+                  ! TRIF_VARS_MOD
+                    trif_vars%g_burn_pft_acc)
+  END IF  !  l_inferno
+
+  IF (l_phenol .OR. l_triffid) THEN
+    IF (l_veg3) THEN
+
+      !Update veg3 structures
+      !Structures can then be passed straight through
+      ! Copy prognostics and forcings in and then out
+      ! Same calling when coulpled to atmos
+      DO n = 1, nnpft
+        DO k = 1, land_pts
+          l = ainfo%land_index(k)
+          veg_state%npp_acc(l,n) = trifctltype%npp_acc_pft(l,n)
+        END DO
+      END DO
+
+      CALL next_gen_biogeochem(                                              &
+        !IN control vars
+          asteps_since_triffid,land_pts,nnpft,nmasst,veg3_ctrl,              &
+          ainfo,                                                             &
+        !IN parms
+          litter_parms,red_parms,                                            &
+        !INOUT data structures
+          veg_state,red_state                                                &
+        !OUT diagnostics
+        )
+
+      ! Update the physical state of the land
+      ! Outside of main call as
+      ! - Uses non-veg tilepts
+      ! - Accesses fields via USE statements
+
+      ! Note use lai_bal for now as we don't yet have phenology
+      CALL sparm (land_pts,nsurft,surft_pts,ainfo%surft_index,               &
+                  veg_state%frac,veg_state%canht,                            &
+                  veg_state%lai_bal,psparms%z0m_soil_gb,                     &
+                  psparms%catch_snow_surft,psparms%catch_surft,              &
+                  psparms%z0_surft,psparms%z0h_bare_surft,urban_param%ztm_gb)
+
+      CALL infiltration_rate(land_pts,nsurft,surft_pts,ainfo%surft_index,    &
+                             psparms%satcon_soilt,veg_state%frac,            &
+                             psparms%infil_surft)
+
+      DO n = 1, nnpft
+        DO k = 1, land_pts
+          l = ainfo%land_index(k)
+          trifctltype%npp_acc_pft(l,n) = veg_state%npp_acc(l,n)
+        END DO
+      END DO
+
+    ELSE ! Triffid based model
+
+      !Vegetation (standalone and UM- differing functionality)
+
+      CALL veg_control(                                                      &
+        land_pts, nsurft, dim_cs1,                                           &
+        a_step, asteps_since_triffid,                                        &
+        phenol_period, triffid_period,                                       &
+        l_phenol, l_triffid, l_trif_eq,                                      &
+        timestep_real, frac_agr_gb, trif_vars%frac_past_gb,                  &
+        psparms%satcon_soilt,                                                &
+        trifctltype%g_leaf_acc_pft, trifctltype%g_leaf_phen_acc_pft,         &
+        trifctltype%npp_acc_pft,                                             &
+        resp_s_acc_gb_um, trifctltype%resp_w_acc_pft,                        &
+        ainfo%frac_surft, progs%lai_pft,                                     &
+        psparms%clay_soilt, psparms%z0m_soil_gb,                             &
+        progs%canht_pft,                                                     &
+        psparms%catch_snow_surft, psparms%catch_surft,                       &
+        psparms%infil_surft, psparms%z0_surft, psparms%z0h_bare_surft,       &
+        trifctltype%c_veg_pft, trifctltype%cv_gb, trifctltype%lit_c_pft,     &
+        trifctltype%lit_c_mn_gb, trifctltype%g_leaf_day_pft,                 &
+        trifctltype%g_leaf_phen_pft,trifctltype%lai_phen_pft,                &
+        trifctltype%g_leaf_dr_out_pft, trifctltype%npp_dr_out_pft,           &
+        trifctltype%resp_w_dr_out_pft,                                       &
+        resp_s_dr_out_gb_um, qbase_l_soilt,                                  &
+        psparms%sthf_soilt, psparms%sthu_soilt,                              &
+        w_flux_soilt, progs%t_soil_soilt,progs%cs_pool_soilt,                &
+        progs%frac_c_label_pool_soilt,                                       &
+        !New arguments replacing USE statements
+        !trif_vars_mod (IN OUT)
+        trif_vars,                                                           &
+        !crop_vars_mod (IN)
+        crop_vars%rootc_cpft, crop_vars%harvc_cpft, crop_vars%reservec_cpft, &
+        crop_vars%stemc_diag_cpft,                                           &
+        crop_vars%leafc_diag_cpft, crop_vars%dvi_cpft,                       &
+        ! prognostics (IN)
+        progs%wood_prod_fast_gb, progs%wood_prod_med_gb,                     &
+        progs%wood_prod_slow_gb, progs%frac_agr_prev_gb,                     &
+        progs%frac_past_prev_gb, progs%n_inorg_gb, progs%n_inorg_soilt_lyrs, &
+        progs%n_inorg_avail_pft, progs%ns_pool_gb,                           &
+        progs%triffid_co2_gb, progs%t_soil_soilt_acc,                        &
+        ! p_s_parms (IN)
+        psparms%bexp_soilt, psparms%sathh_soilt,                             &
+        psparms%smvcst_soilt, psparms%smvcwt_soilt,                          &
+        psparms%soil_ph_soilt,                                               &
+        ! soil_ecosse_vars_mod (OUT)
+        soilecosse%n_soil_pool_soilt, dim_soil_n_pool,                       &
+        soilecosse%co2_soil_gb, soilecosse%n2o_soil_gb,                      &
+        soilecosse%n2o_denitrif_gb, soilecosse%n2o_nitrif_gb,                &
+        soilecosse%n2o_partial_nitrif_gb, soilecosse%n2_denitrif_gb,         &
+        soilecosse%n_denitrification_gb, soilecosse%n_leach_amm_gb,          &
+        soilecosse%n_leach_nit_gb, soilecosse%n_nitrification_gb,            &
+        soilecosse%no_soil_gb, soilecosse%soil_c_add, soilecosse%soil_n_add, &
+        ! soil_ecosse_vars_mod (IN)
+        soilecosse%qbase_l_driver, soilecosse%sthf_driver,                   &
+        soilecosse%sthu_driver, soilecosse%tsoil_driver,                     &
+        soilecosse%wflux_driver,                                             &
+        !ancil_info (IN)
+        ainfo%l_lice_point, ainfo%soil_index,                                &
+        !TYPES
+        soilecosse, urban_param,trifctltype)
+
+    END IF
+  END IF
+
+  IF ( l_acclim ) THEN
+    ! Update the growth temperature for the thermal acclimation of
+    ! photosynthesis.
+    progs%t_growth_gb(:) = progs%t_growth_gb(:)                              &
+                   + alpha_acclim * ( tl_1_gb(:) - progs%t_growth_gb(:) )
+  END IF
+
+#if !defined(UM_JULES)
+  !Reference evapotranspiration (standalone only)
+  IF (l_fao_ref_evapotranspiration) THEN
+    trad = ( surftiles_to_gbm(progs%tstar_surft**4, ainfo) )**0.25
+    CALL fao_ref_evapotranspiration(soil_pts, ainfo%soil_index,              &
+      land_pts, ainfo%land_index, sf_diag%t1p5m,                             &
+      forcing%sw_down_ij, forcing%lw_down_ij, fluxes%surf_ht_flux_ij,        &
+      sf_diag%u10m, sf_diag%v10m, sf_diag%q1p5m, forcing%pstar_ij,           &
+      trad, trif_vars%fao_et0)
+  END IF
+  ! End of standalone Jules code
+#endif
+
+  !-----------------------------------------------------------------------
+  !     call to the FLake interface
+  !-----------------------------------------------------------------------
+  IF (       l_flake_model                                                   &
+       .AND. ( .NOT. l_aggregate)                                            &
+       .AND. (land_pts > 0 ) ) THEN
+
+    DO k = 1,surft_pts(lake)
+      l = ainfo%surft_index(k,lake)
+      j=(ainfo%land_index(l) - 1) / row_length + 1
+      i = ainfo%land_index(l) - (j-1) * row_length
+
+      !       U* of lake obtained by matching surface stress
+      lake_vars%u_s_lake_gb(l) =   u_s_std_surft(l, lake)                    &
+                    * SQRT( rhostar(i,j) / rho_water )
+
+      !       Downwelling SW on lake tile
+      lake_vars%sw_down_gb(l) = fluxes%sw_surft(l,lake) /                    &
+                                  (1.0 - lake_vars%lake_albedo_gb(l))
+
+      !       Take the net SW flux out of the surface heat flux
+      !       since this is done separately within FLake.
+      lake_vars%surf_ht_flux_lk_gb(l) = lake_vars%surf_ht_flux_lake_ij(i,j) -&
+                                          fluxes%sw_surft(l,lake)
+
+      IF ( (nsmax > 0) .AND.                                                 &
+           (lake_vars%lake_h_snow_gb(l) > EPSILON(1.0)) ) THEN
+        ! For the new snow scheme, FLake is forced with zero snow
+        ! and the forcing fluxes are those at the bottom of the snowpack.
+        ! The order of the following calculations is important.
+
+        ! attenuated DWSW below snow
+        dwsw_sub_snow = lake_vars%sw_down_gb(l) *                            &
+                  EXP( -lake_vars%lake_h_snow_gb(l) / h_snow_sw_att )
+
+        ! following last calculation, set snow depth to zero
+        lake_vars%lake_h_snow_gb(l) = 0.0
+
+        ! heat flux into the lake becomes
+        ! the sub-snow value minus remaining DWSW
+
+        lake_vars%surf_ht_flux_lk_gb(l) = lake_vars%surf_ht_flux_lake_ij(i,j)&
+                                - dhf_surf_minus_soil(l)                     &
+                                - dwsw_sub_snow
+
+        ! now overwrite the DWSW with the remaining sub-snow amount
+        lake_vars%sw_down_gb(l) = dwsw_sub_snow
+      END IF
+
+    END DO
+
+    trap_frozen   = 0
+    trap_unfrozen = 0
+
+    CALL flake_interface( land_pts                                           &
+                         ,surft_pts(lake)                                    &
+                         ,ainfo%surft_index(:,lake)                          &
+                         ,lake_vars%u_s_lake_gb                              &
+                         ,lake_vars%surf_ht_flux_lk_gb                       &
+                         ,lake_vars%sw_down_gb                               &
+                         ,lake_vars%lake_depth_gb                            &
+                         ,lake_vars%coriolis_param_gb                        &
+                         ,timestep_real                                      &
+                         ,lake_vars%lake_albedo_gb                           &
+                         ,lake_vars%lake_t_snow_gb                           &
+                         ,lake_vars%lake_t_ice_gb                            &
+                         ,lake_vars%lake_t_mean_gb                           &
+                         ,lake_vars%lake_t_mxl_gb                            &
+                         ,lake_vars%lake_shape_factor_gb                     &
+                         ,lake_vars%lake_h_snow_gb                           &
+                         ,lake_vars%lake_h_ice_gb                            &
+                         ,lake_vars%lake_h_mxl_gb                            &
+                         ,lake_vars%lake_t_sfc_gb                            &
+                         ,lake_vars%ts1_lake_gb                              &
+                         ,lake_vars%g_dt_gb                                  &
+                         ,trap_frozen                                        &
+                         ,trap_unfrozen )
+
+    IF ( trap_frozen > 0 ) THEN
+      errcode = -1
+      CALL ereport('control', errcode,                                       &
+        'surf_couple_extra-FLake: # zero-divide (frozen) avoided =')
+    END IF
+    IF ( trap_unfrozen > 0 ) THEN
+      errcode = -1
+      CALL ereport('control', errcode,                                       &
+        'surf_couple_extra-FLake: # zero-divide (unfrozen) avoided =')
+    END IF
+
+  END IF ! Flake
+
+  ! End of code excluded from LFRic builds
+#else
+  ! These variables are intent out and so must be initialised for LFRic to
+  ! compile. Set to rmdi in the hope this will show errors if they are used!
+fluxes%rrun_gb = rmdi
+fluxes%rflow_gb = rmdi
+psparms%z0_surft = rmdi
+psparms%z0h_bare_surft = rmdi
+
+IF (land_pts > 0) THEN
+
+  ! End of bespoke LFRic code
+#endif
+
+  !End of science calls
+  !===========================================================================
+  !Expansion to full grid
+
+  DO l = 1, land_pts
+    j=(ainfo%land_index(l) - 1) / row_length + 1
+    i = ainfo%land_index(l) - (j-1) * row_length
+    progs%snow_mass_ij(i,j) = snow_mass_gb(l)
+  END DO
+
+END IF ! land_pts > 0
+
+!=============================================================================
+!UM Diagnostics calls
+
+  !For the UM, soil tiling has not been implemented, ie nsoilt = 1, so we can
+  !hard-code _soilt variables with index 1 using m = 1
+#if defined(UM_JULES) && !defined(LFRIC)
+IF (model_type /= mt_single_column) THEN
+  m = 1
+  IF (l_hydrology .AND. sf(0,8) ) THEN
+    CALL diagnostics_hyd(                                                    &
+      row_length, rows,                                                      &
+      land_pts, sm_levels,                                                   &
+      ainfo%land_index,inlandout_atm_gb,                                     &
+      progs%smc_soilt(:,m), fluxes%surf_roff_gb, fluxes%sub_surf_roff_gb,    &
+      snow_mass_gb, fluxes%snow_melt_gb,                                     &
+      progs%t_soil_soilt(:,m,:),                                             &
+      fluxes%snow_soil_htf,                                                  &
+      progs%smcl_soilt(:,m,:),                                               &
+      nsurft, fluxes%hf_snow_melt_gb, psparms%sthu_soilt(:,m,:),             &
+      psparms%sthf_soilt(:,m,:),                                             &
+      fluxes%tot_tfall_gb, fluxes%melt_surft,                                &
+      land_sea_mask,                                                         &
+      dun_roff_soilt(:,m), drain_soilt(:,m), toppdm%qbase_soilt(:,m),        &
+      toppdm%qbase_zw_soilt(:,m), toppdm%fch4_wetl_soilt(:,m),               &
+      toppdm%fch4_wetl_cs_soilt(:,m),                                        &
+      toppdm%fch4_wetl_npp_soilt(:,m),toppdm%fch4_wetl_resps_soilt(:,m),     &
+      fexp_soilt(:,m),gamtot_soilt(:,m),ti_mean_soilt(:,m),                  &
+      ti_sig_soilt(:,m),                                                     &
+      fsat_soilt(:,m),fwetl_soilt(:,m),zw_soilt(:,m),sthzw_soilt(:,m),       &
+      timestep_real,                                                         &
+      STASHwork8,                                                            &
+      sf_diag,                                                               &
+      !JULES TYPEs
+      fire_vars, progs)
+  END IF
+
+  IF ( l_rivers .AND. rivers_call .AND. sf(0,26) ) THEN
+    CALL diagnostics_riv(                                                    &
+      row_length, rows,                                                      &
+      river_row_length, river_rows,                                          &
+      riverout,                                                              &
+      riverout_rgrid,                                                        &
+      box_outflow, box_inflow,                                               &
+      twatstor,inlandout_riv,                                                &
+      STASHwork26                                                            &
+      )
+  END IF
+
+  IF (sf(0,19)) THEN
+    CALL diagnostics_veg(                                                    &
+      row_length, rows,                                                      &
+      dim_cs1,                                                               &
+      land_pts,                                                              &
+      ainfo%land_index,                                                      &
+      ntype,npft,                                                            &
+      trifctltype%c_veg_pft,trifctltype%cv_gb,trifctltype%g_leaf_phen_pft,   &
+      trifctltype%lit_c_pft,trifctltype%lit_c_mn_gb,                         &
+      trifctltype%g_leaf_day_pft, trifctltype%lai_phen_pft,                  &
+      trifctltype%g_leaf_dr_out_pft,trifctltype%npp_dr_out_pft,              &
+      trifctltype%resp_w_dr_out_pft,resp_s_dr_out_gb_um,frac_agr_gb,         &
+      disturb_veg_prev,                                                      &
+      ainfo%frac_surft,                                                      &
+      STASHwork19,                                                           &
+      !JULES TYPEs
+      trif_vars, progs                                                       &
+      )
+  END IF
+END IF
+#endif
+
+  !=============================================================================
 IF (lhook) CALL dr_hook(ModuleName//':'//RoutineName,zhook_out,zhook_handle)
 RETURN
 END SUBROUTINE surf_couple_extra

@@ -15,6 +15,10 @@ USE jules_land_sf_implicit_mod,     ONLY: jules_land_sf_implicit
 USE jules_ssi_sf_implicit_mod,      ONLY: jules_ssi_sf_implicit
 USE jules_griddiag_sf_implicit_mod, ONLY: jules_griddiag_sf_implicit
 
+USE cable_grid_update_implicit_mod, ONLY: cable_grid_update_implicit
+USE cable_land_sf_implicit_mod,     ONLY: cable_land_sf_implicit
+USE cable_griddiag_sf_implicit_mod, ONLY: cable_griddiag_sf_implicit
+
 USE um_types, ONLY: real_jlslsm
 
 IMPLICIT NONE
@@ -98,6 +102,11 @@ USE jules_forcing_mod, ONLY: forcing_type
 ! In general CABLE utilizes a required subset of tbe JULES types, however;
 USE progs_cbl_vars_mod, ONLY: progs_cbl_vars_type ! CABLE requires extra progs
 USE work_vars_mod_cbl,  ONLY: work_vars_type      ! and some kept thru timestep
+USE cable_fields_mod,   ONLY: pars_io_cbl         ! and veg/soil parameters
+!UM modules
+#if defined(UM_JULES)
+USE atmos_physics2_alloc_mod, ONLY: gc
+#endif
 
 !Common modules
 USE ereport_mod,           ONLY: ereport
@@ -454,32 +463,137 @@ CASE ( jules )
             crop_vars)
   END IF ! IF .NOT. L_correct
 
-  CALL jules_ssi_sf_implicit (                                                 &
+CASE ( cable )
+
+  ! initialise all INTENT(OUT) for now until CABLE is implemented
+  fluxes%tstar_ij(:,:) = 0.0
+  fluxes%le_surft(:,:) = 0.0
+  fluxes%radnet_surft(:,:) = 0.0
+  fluxes%e_sea_ij(:,:) = 0.0
+  fluxes%h_sea_ij(:,:) = 0.0
+  taux_1(:,:) = 0.0
+  tauy_1(:,:) = 0.0
+  fluxes%ecan_surft(:,:) = 0.0
+  fluxes%ei_ij(:,:) = 0.0
+  fluxes%esoil_ij_soilt(:,:,:) = 0.0
+  fluxes%ext_soilt(:,:,:) = 0.0
+  fluxes%melt_surft(:,:) = 0.0
+  fluxes%ecan_ij(:,:) = 0.0
+  fluxes%ei_surft(:,:) = 0.0
+  fluxes%esoil_surft(:,:) = 0.0
+  fluxes%sea_ice_htf_sicat(:,:,:) = 0.0
+  fluxes%surf_ht_flux_ij(:,:) = 0.0
+  fluxes%surf_htf_surft(:,:) = 0.0
+  ERROR = 0
+
+  CALL  cable_grid_update_implicit(                                            &
   ! IN values defining field dimensions and subset to be processed :
-          nice,nice_use,flandg,                                                &
+          land_pts,ainfo%land_index,nice,nice_use,nsurft,ainfo%surft_index,    &
+          surft_pts, tile_frac,flandg,                                         &
   ! IN sea/sea-ice data :
-          ainfo%ice_fract_ij,ainfo%ice_fract_ncat_sicat,ice_fract_cat_use,     &
-          progs%k_sice_sicat,progs%di_ncat_sicat,ainfo%sstfrz_ij,              &
+          ainfo%ice_fract_ij,ainfo%ice_fract_ncat_sicat,                       &
   ! IN everything not covered so far :
-          forcing%lw_down_ij,r_gamma,alpha1_sice,ashtf,                        &
-          jules_vars%dtrdz_charney_grid_1_ij,rhokh_sice,l_correct,             &
+          rhokm_u,rhokm_v,r_gamma,                                             &
+          gamma1,gamma2,alpha1,alpha1_sea,alpha1_sice,                         &
+          ashtf,ashtf_sea,ashtf_surft,                                         &
+          du,dv,resft,rhokh_surft,rhokh_sice,rhokh_sea,ctctq1,                 &
+          dqw1_1,dtl1_1,du_star1,dv_star1,cq_cm_u_1,cq_cm_v_1,                 &
+          l_correct,flandg_u,flandg_v,progs%snow_surft,                        &
   ! INOUT data :
-          fluxes%fqw_sicat,fluxes%ftl_sicat,coast%tstar_sice_sicat,            &
-          coast%tstar_ssi_ij,                                                  &
-          coast%tstar_sea_ij,                                                  &
-          radnet_sice,fqw_1,ftl_1,progs%ti_sicat,sf_diag,                      &
-  ! OUT Diagnostic not requiring STASH flags :
-          ti_gb,fluxes%sea_ice_htf_sicat,coast%surf_ht_flux_sice_sicat,        &
-  ! OUT data required elsewhere in UM system :
-          tstar_sice_ij,fluxes%e_sea_ij,fluxes%h_sea_ij,fluxes%ei_sice,        &
+          epot_surft,fluxes%fqw_sicat,fluxes%ftl_sicat,dtstar_surft,           &
           dtstar_sea,dtstar_sice,                                              &
-          surf_ht_flux_sice_sm_ij,ei_sice_sm_ij,tstar_ssi_old_ij,              &
-  ! ancil_info (IN)
-          ainfo%ssi_index, ainfo%sice_index, ainfo%sice_index_ncat,            &
-          ainfo%fssi_ij, ainfo%sice_frac, ainfo%sice_frac_ncat,                &
-          ainfo%ocn_cpl_point,                                                 &
-  ! fluxes (IN)
-          fluxes%sw_sicat)
+          fluxes%fqw_surft, fqw_1,ftl_1,fluxes%ftl_surft,                      &
+          coast%taux_land_ij,coast%taux_ssi_ij,coast%tauy_land_ij,             &
+          coast%tauy_ssi_ij, coast%taux_land_star,coast%tauy_land_star,        &
+          coast%taux_ssi_star, coast%tauy_ssi_star,                            &
+  ! OUT data required elsewhere in UM system :
+          fluxes%e_sea_ij,fluxes%h_sea_ij,taux_1,tauy_1,ice_fract_cat_use      &
+        )
+
+
+  IF ( .NOT. l_correct ) THEN
+    CALL cable_land_sf_implicit (                                              &
+    ! IN values defining field dimensions and subset to be processed :
+            land_pts,ainfo%land_index,nsurft,ainfo%surft_index,surft_pts,      &
+            sm_levels,                                                         &
+            canhc_surft,progs%canopy_surft,flake,progs%smc_soilt,tile_frac,    &
+            wt_ext_surft,coast%fland,flandg,                                   &
+    ! IN everything not covered so far :
+            forcing%lw_down_ij,fluxes%sw_surft,progs%t_soil_soilt,r_gamma,     &
+            alpha1,ashtf_surft,                                                &
+            jules_vars%dtrdz_charney_grid_1_ij,fraca,resfs,resft,rhokh_surft,  &
+            fluxes%emis_surft,progs%snow_surft,dtstar_surft,                   &
+    ! INOUT data :
+            progs%tstar_surft,fluxes%fqw_surft,fqw_1,ftl_1,fluxes%ftl_surft,   &
+            sf_diag,                                                           &
+    ! OUT Diagnostic not requiring STASH flags :
+            fluxes%ecan_ij,fluxes%ei_surft,fluxes%esoil_surft,                 &
+            coast%surf_ht_flux_land_ij,                                        &
+            ei_land_ij,fluxes%surf_htf_surft,                                  &
+    ! OUT data required elsewhere in UM system :
+            tstar_land_ij,fluxes%le_surft,fluxes%radnet_surft,                 &
+            fluxes%ecan_surft,fluxes%esoil_ij_soilt,                           &
+            fluxes%ext_soilt,fluxes%melt_surft,                                &
+            tstar_surft_old,ERROR,                                             &
+            !New arguments replacing USE statements
+            ! lake_mod (IN)
+            lake_vars%lake_h_ice_gb,                                           &
+            ! lake_mod (OUT)
+            lake_vars%surf_ht_flux_lake_ij, lake_vars%non_lake_frac,           &
+            ! fluxes (IN)
+            fluxes%anthrop_heat_surft,                                         &
+            ! fluxes (OUT)
+            fluxes%surf_ht_store_surft,                                        &
+            ! c_elevate (IN)
+            jules_vars%lw_down_elevcorr_surft,                                 &
+            ! prognostics (IN)
+            progs%nsnow_surft,                                                 &
+            ! jules_vars_mod (IN)
+            jules_vars%snowdep_surft,                                          &
+            !TYPES containing field data (IN OUT)
+            crop_vars,                                                         &
+            !CABLE TYPES containing field data (IN OUT)
+            progs_cbl, work_cbl, pars_io_cbl ) 
+
+  END IF ! IF .NOT. L_correct
+
+CASE DEFAULT
+  ERROR = 101
+  WRITE(jules_message,'(A,I0)') 'Unrecognised surface scheme. lsm_id = ',      &
+     lsm_id
+  CALL ereport(RoutineName, ERROR, jules_message)
+
+END SELECT
+
+CALL jules_ssi_sf_implicit (                                                 &
+! IN values defining field dimensions and subset to be processed :
+        nice,nice_use,flandg,                                                &
+! IN sea/sea-ice data :
+        ainfo%ice_fract_ij,ainfo%ice_fract_ncat_sicat,ice_fract_cat_use,     &
+        progs%k_sice_sicat,progs%di_ncat_sicat,ainfo%sstfrz_ij,              &
+! IN everything not covered so far :
+        forcing%lw_down_ij,r_gamma,alpha1_sice,ashtf,                        &
+        jules_vars%dtrdz_charney_grid_1_ij,rhokh_sice,l_correct,             &
+! INOUT data :
+        fluxes%fqw_sicat,fluxes%ftl_sicat,coast%tstar_sice_sicat,            &
+        coast%tstar_ssi_ij,                                                  &
+        coast%tstar_sea_ij,                                                  &
+        radnet_sice,fqw_1,ftl_1,progs%ti_sicat,sf_diag,                      &
+! OUT Diagnostic not requiring STASH flags :
+        ti_gb,fluxes%sea_ice_htf_sicat,coast%surf_ht_flux_sice_sicat,        &
+! OUT data required elsewhere in UM system :
+        tstar_sice_ij,fluxes%e_sea_ij,fluxes%h_sea_ij,fluxes%ei_sice,        &
+        dtstar_sea,dtstar_sice,                                              &
+        surf_ht_flux_sice_sm_ij,ei_sice_sm_ij,tstar_ssi_old_ij,              &
+! ancil_info (IN)
+        ainfo%ssi_index, ainfo%sice_index, ainfo%sice_index_ncat,            &
+        ainfo%fssi_ij, ainfo%sice_frac, ainfo%sice_frac_ncat,                &
+        ainfo%ocn_cpl_point,                                                 &
+! fluxes (IN)
+        fluxes%sw_sicat)
+
+SELECT CASE( lsm_id )
+CASE ( jules )
 
   CALL jules_griddiag_sf_implicit (                                            &
   ! IN values defining field dimensions and subset to be processed :
@@ -514,32 +628,41 @@ CASE ( jules )
           fluxes%tstar_ij,fluxes%ei_ij,rhokh_mix                               &
         )
 
-
 CASE ( cable )
-  ! for testing LSM switch
-  WRITE(jules_message,'(A)') "CABLE not yet implemented"
-  CALL jules_print(RoutineName, jules_message)
 
-  ! initialise all INTENT(OUT) for now until CABLE is implemented
-  fluxes%tstar_ij(:,:) = 0.0
-  fluxes%le_surft(:,:) = 0.0
-  fluxes%radnet_surft(:,:) = 0.0
-  fluxes%e_sea_ij(:,:) = 0.0
-  fluxes%h_sea_ij(:,:) = 0.0
-  taux_1(:,:) = 0.0
-  tauy_1(:,:) = 0.0
-  fluxes%ecan_surft(:,:) = 0.0
-  fluxes%ei_ij(:,:) = 0.0
-  fluxes%esoil_ij_soilt(:,:,:) = 0.0
-  fluxes%ext_soilt(:,:,:) = 0.0
-  fluxes%melt_surft(:,:) = 0.0
-  fluxes%ecan_ij(:,:) = 0.0
-  fluxes%ei_surft(:,:) = 0.0
-  fluxes%esoil_surft(:,:) = 0.0
-  fluxes%sea_ice_htf_sicat(:,:,:) = 0.0
-  fluxes%surf_ht_flux_ij(:,:) = 0.0
-  fluxes%surf_htf_surft(:,:) = 0.0
-  ERROR = 0
+  CALL cable_griddiag_sf_implicit (                                            &
+  ! IN values defining field dimensions and subset to be processed :
+          land_pts,ainfo%land_index,nice_use,nsurft,ainfo%surft_index,         &
+          surft_pts, tile_frac,flandg,l_mr_physics,                            &
+  ! IN sea/sea-ice data :
+          ainfo%ice_fract_ij,ice_fract_cat_use,forcing%u_0_ij,                 &
+          forcing%v_0_ij,                                                      &
+  ! IN everything not covered so far :
+          forcing%pstar_ij,forcing%qw_1_ij,forcing%tl_1_ij,                    &
+          u_1,v_1,du,dv,                                                       &
+          resft,rhokh,ainfo%z1_tq_ij,                                          &
+          z0hssi,z0mssi,fluxes%z0h_surft,fluxes%z0m_surft,                     &
+          cdr10m_u,cdr10m_v,                                                   &
+          chr1p5m,chr1p5m_sice,ctctq1,                                         &
+          dqw1_1,dtl1_1,du_star1,dv_star1,cq_cm_u_1,cq_cm_v_1,                 &
+          l_correct,fluxes%emis_surft,                                         &
+          coast%tstar_sice_sicat,coast%tstar_ssi_ij,progs%tstar_surft,         &
+          coast%tstar_sea_ij,fqw_1,                                            &
+          coast%surf_ht_flux_land_ij,surf_ht_flux_sice_sm_ij,ei_land_ij,       &
+          ei_sice_sm_ij,tstar_land_ij,tstar_ssi_old_ij,tstar_surft_old,        &
+          taux_1,tauy_1,                                                       &
+  ! IN variables used to calculate cooling at the screen level
+          l_co2_interactive, co2_mmr, co2_3d_ij,rho1, f3_at_p,                 &
+          ustargbm,                                                            &
+  ! INOUT data :
+          ftl_1,olr,                                                           &
+          tscrndcl_ssi,tscrndcl_surft,tStbTrans,sf_diag,                       &
+  ! OUT Diagnostic not requiring STASH flags :
+          fluxes%surf_ht_flux_ij,                                              &
+  ! OUT data required elsewhere in UM system :
+          fluxes%tstar_ij,fluxes%ei_ij,rhokh_mix                               &
+        )
+
 
 CASE DEFAULT
   ERROR = 101
