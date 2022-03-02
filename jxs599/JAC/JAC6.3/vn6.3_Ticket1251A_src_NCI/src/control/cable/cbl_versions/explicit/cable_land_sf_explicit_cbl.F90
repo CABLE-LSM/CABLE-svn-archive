@@ -3,17 +3,17 @@
 ! For further details please refer to the file COPYRIGHT.txt
 ! which you should have received as part of this distribution.
 ! *****************************COPYRIGHT*******************************
-MODULE jules_land_sf_explicit_mod
+MODULE cable_land_sf_explicit_mod
 
 USE um_types, ONLY: real_jlslsm
 
 IMPLICIT NONE
 
 CHARACTER(LEN=*), PARAMETER, PRIVATE ::                                        &
-                  ModuleName='JULES_LAND_SF_EXPLICIT_MOD'
+                  ModuleName='cable_LAND_SF_EXPLICIT_MOD'
 
 CONTAINS
-!  SUBROUTINE JULES_LAND_SF_EXPLICIT ---------------------------------
+!  SUBROUTINE cable_LAND_SF_EXPLICIT ---------------------------------
 !
 !  Purpose: Calculate explicit surface fluxes of heat, moisture and
 !           momentum over land. Also calculates surface exchange
@@ -26,7 +26,7 @@ CONTAINS
 !
 !---------------------------------------------------------------------
 !    Arguments :-
-SUBROUTINE jules_land_sf_explicit (                                            &
+SUBROUTINE cable_land_sf_explicit (                                            &
 ! IN date-related values
  curr_day_number,                                                              &
 ! IN values defining field dimensions and subset to be processed :
@@ -946,7 +946,7 @@ INTEGER(KIND=jpim), PARAMETER :: zhook_in  = 0
 INTEGER(KIND=jpim), PARAMETER :: zhook_out = 1
 REAL(KIND=jprb)               :: zhook_handle
 
-CHARACTER(LEN=*), PARAMETER :: RoutineName='JULES_LAND_SF_EXPLICIT'
+CHARACTER(LEN=*), PARAMETER :: RoutineName='cable_LAND_SF_EXPLICIT'
 
 IF (lhook) CALL dr_hook(ModuleName//':'//RoutineName,zhook_in,zhook_handle)
 
@@ -2409,5 +2409,5 @@ END IF
 IF (lhook) CALL dr_hook(ModuleName//':'//RoutineName,zhook_out,zhook_handle)
 
 RETURN
-END SUBROUTINE jules_land_sf_explicit
-END MODULE jules_land_sf_explicit_mod
+END SUBROUTINE cable_land_sf_explicit
+END MODULE cable_land_sf_explicit_mod
