@@ -28,7 +28,7 @@ SUBROUTINE screen_tq (                                                         &
  l_co2_interactive, co2_mmr, co2_3d,                                           &
  f3_at_p, ustargbm, rho1,                                                      &
  tscrndcl_ssi,tscrndcl_surft,tstbtrans,                                        &
- l_mr_physics                                                                  &
+ l_mr_physic , lsm_id, cable                                                   &
  )
 
 USE atm_fields_bounds_mod, ONLY: tdims, tdims_s
@@ -217,6 +217,8 @@ LOGICAL, ALLOCATABLE :: LDclDiag(:, :)
 REAL(KIND=real_jlslsm), ALLOCATABLE :: TStarGBM(:, :)
                           ! Grid-box mean surface temperature
 
+INTEGER :: lsm_id
+INTEGER :: cable
 
 REAL(KIND=real_jlslsm) :: QScrn
 REAL(KIND=real_jlslsm) :: CO2Scrn
@@ -350,7 +352,8 @@ IF (sf_diag%sq1p5 .OR. (IScrnTDiag == IP_ScrnDecpl2)                           &
 !$OMP PRIVATE(j,i,cer1p5m,l,n,qs_surft,k)                                      &
 !$OMP SHARED(tdims,sf_diag,flandg,chr1p5m_sice,qw_1,qs,                        &
 !$OMP        i_ind,j_ind,pstar,nsurft,land_pts,tstar_surft,pstar_land,         &
-!$OMP        l_mr_physics,surft_pts,surft_index,resft,chr1p5m,tile_frac)
+!$OMP        l_mr_physics,surft_pts,surft_index,resft,chr1p5m,tile_frac,       &
+!$OMP        lsm_id, cable )
 
 !$OMP DO SCHEDULE(STATIC)
   DO j = tdims%j_start,tdims%j_end
@@ -380,9 +383,11 @@ IF (sf_diag%sq1p5 .OR. (IScrnTDiag == IP_ScrnDecpl2)                           &
 
 !$OMP DO SCHEDULE(STATIC)
   DO n = 1,nsurft
-    DO l = 1,land_pts
-      sf_diag%q1p5m_surft(l,n) = 0.0
-    END DO
+    IF( lsm_id /= cable ) THEN
+      DO l = 1,land_pts
+        sf_diag%q1p5m_surft(l,n) = 0.0
+      END DO
+    END IF
 
     IF (l_mr_physics) THEN
       CALL qsat_mix(qs_surft,tstar_surft(:,n),pstar_land,land_pts)
@@ -395,8 +400,10 @@ IF (sf_diag%sq1p5 .OR. (IScrnTDiag == IP_ScrnDecpl2)                           &
       i = i_ind(l)
       j = j_ind(l)
       cer1p5m = resft(l,n) * (chr1p5m(l,n) - 1.0)
-      sf_diag%q1p5m_surft(l,n) = qw_1(i,j) +                                   &
-                                 cer1p5m * ( qw_1(i,j) - qs_surft(l) )
+      IF( lsm_id /= cable ) THEN
+        sf_diag%q1p5m_surft(l,n) = qw_1(i,j) +                                   &
+                                   cer1p5m * ( qw_1(i,j) - qs_surft(l) )
+      END IF
     END DO
   END DO
 !$OMP END DO
@@ -458,7 +465,8 @@ IF (sf_diag%st1p5 .OR. (IScrnTDiag == IP_ScrnDecpl2)                           &
 !$OMP SHARED(tdims,sf_diag,flandg,tstar_ssi,chr1p5m_sice,                      &
 !$OMP        tl_1,z1,z0mssi,z0hssi,nsurft,land_pts,surft_pts,surft_index,      &
 !$OMP        i_ind,j_ind,tstar_surft,chr1p5m,z0m_surft,z0h_surft,tile_frac,    &
-!$OMP        grcp,t1p5m0_ssi,t1p5m0_surft,epsilon_ssi,epsilon_surft)
+!$OMP        grcp,t1p5m0_ssi,t1p5m0_surft,epsilon_ssi,epsilon_surft,           &
+!$OMP        lsm_id, cable )
 !$OMP DO SCHEDULE(STATIC)
   DO j = tdims%j_start, tdims%j_end
     DO i = tdims%i_start, tdims%i_end
@@ -482,9 +490,11 @@ IF (sf_diag%st1p5 .OR. (IScrnTDiag == IP_ScrnDecpl2)                           &
 
   DO n = 1, nsurft
 !$OMP DO SCHEDULE(STATIC)
-    DO l = 1,land_pts
-      sf_diag%t1p5m_surft(l,n) = 0.0
-    END DO
+    IF( lsm_id /= cable ) THEN
+      DO l = 1,land_pts
+        sf_diag%t1p5m_surft(l,n) = 0.0
+      END DO
+    END IF
 !$OMP END DO
 
 !$OMP DO SCHEDULE(STATIC)
@@ -492,9 +502,11 @@ IF (sf_diag%st1p5 .OR. (IScrnTDiag == IP_ScrnDecpl2)                           &
       l = surft_index(k,n)
       i = i_ind(l)
       j = j_ind(l)
-      sf_diag%t1p5m_surft(l,n) = tstar_surft(l,n) - grcp * z_obs_tq +          &
-        chr1p5m(l,n) * ( tl_1(i,j) - tstar_surft(l,n) +                        &
-        grcp * (z1(i,j) + z0m_surft(l,n) - z0h_surft(l,n)) )
+      IF( lsm_id /= cable ) THEN
+        sf_diag%t1p5m_surft(l,n) = tstar_surft(l,n) - grcp * z_obs_tq +          &
+          chr1p5m(l,n) * ( tl_1(i,j) - tstar_surft(l,n) +                        &
+          grcp * (z1(i,j) + z0m_surft(l,n) - z0h_surft(l,n)) )
+      END IF
       t1p5m0_surft(l,n) = sf_diag%t1p5m_surft(l,n)
       ! store temperature at 1.5 m over land tiles
       ! with one derived following MOST.

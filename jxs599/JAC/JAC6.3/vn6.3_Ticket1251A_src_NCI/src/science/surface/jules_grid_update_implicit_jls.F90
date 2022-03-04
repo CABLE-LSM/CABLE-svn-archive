@@ -44,7 +44,8 @@ SUBROUTINE jules_grid_update_implicit (                                        &
  fqw_surft,fqw_1,ftl_1,ftl_surft,taux_land,taux_ssi,tauy_land,tauy_ssi,        &
  taux_land_star,tauy_land_star,taux_ssi_star, tauy_ssi_star,                   &
 ! OUT data required elsewhere in UM system :
- e_sea,h_sea,taux_1,tauy_1,ice_fract_cat_use                                   &
+ e_sea,h_sea,taux_1,tauy_1,ice_fract_cat_use,                                   &
+ lsm_id, cable                                                                  &
  )
 
 USE planet_constants_mod,     ONLY: cp
@@ -194,6 +195,8 @@ REAL(KIND=real_jlslsm), INTENT(IN) ::                                          &
 LOGICAL, INTENT(IN) ::                                                         &
  l_correct                   ! IN flag used by the new BL solver
 
+INTEGER :: lsm_id
+INTEGER :: cable
 
 !--------------------------------------------------------------------
 !  In/outs :-
@@ -338,6 +341,10 @@ END IF
 
 !$OMP END PARALLEL
 
+IF (lsm_id == cable) THEN
+  rhokh_1 == 0.0
+END IF
+
 CALL im_sf_pt2 (                                                               &
  land_pts,land_index,nsurft,surft_index,surft_pts                              &
 ,flandg,tile_frac,snow_surft,nice_use,ice_fract,ice_fract_cat_use              &
@@ -352,7 +359,7 @@ CALL im_sf_pt2 (                                                               &
 ,taux_1,taux_land,taux_land_star,taux_ssi,taux_ssi_star,tauy_1                 &
 ,tauy_land,tauy_land_star,tauy_ssi,tauy_ssi_star                               &
 ,fqw_surft,epot_surft,ftl_surft,fqw_ice,ftl_ice,e_sea,h_sea                    &
-,l_correct                                                                     &
+,l_correct, lsm_id, cable                                                      &
 )
 
 IF ( .NOT.  l_correct ) THEN

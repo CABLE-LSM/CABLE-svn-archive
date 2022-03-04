@@ -50,7 +50,8 @@ SUBROUTINE jules_griddiag_sf_implicit (                                        &
 ! OUT Diagnostic not requiring STASH flags :
  surf_ht_flux,                                                                 &
 ! OUT data required elsewhere in UM system :
- tstar,ei,rhokh_mix                                                            &
+ tstar,ei,rhokh_mix,                                                           &
+ lsm_id, cable                                                                  &
  )
 
 USE csigma,                   ONLY:                                            &
@@ -332,6 +333,9 @@ REAL(KIND=real_jlslsm), INTENT(OUT) ::                                         &
                              ! OUT Exchange coeffs for moisture.
                              !     (Not used for JULES)
 
+INTEGER :: lsm_id
+INTEGER :: cable
+
 !--------------------------------------------------------------------
 !  Workspace :-
 !--------------------------------------------------------------------
@@ -473,7 +477,8 @@ IF ( .NOT. l_correct ) THEN
     l_co2_interactive, co2_mmr, co2_3d,                                        &
     f3_at_p, uStarGBM, rho1,                                                   &
     TScrnDcl_SSI,TScrnDcl_SURFT,tStbTrans,                                     &
-    l_mr_physics                                                               &
+    l_mr_physics,                                                              &
+    lsm_id, cable                                                              &
     )
 
   !-----------------------------------------------------------------------
