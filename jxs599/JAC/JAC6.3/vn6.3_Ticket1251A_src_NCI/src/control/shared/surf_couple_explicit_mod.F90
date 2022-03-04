@@ -15,6 +15,8 @@ USE jules_land_sf_explicit_mod,     ONLY: jules_land_sf_explicit
 USE jules_ssi_sf_explicit_mod,      ONLY: jules_ssi_sf_explicit
 USE jules_griddiag_sf_explicit_mod, ONLY: jules_griddiag_sf_explicit
 
+USE cable_land_sf_explicit_mod,     ONLY: cable_land_sf_explicit
+
 USE um_types, ONLY: real_jlslsm
 
 IMPLICIT NONE
@@ -112,6 +114,7 @@ USE jules_chemvars_mod, ONLY: chemvars_type
 USE progs_cbl_vars_mod, ONLY: progs_cbl_vars_type ! CABLE requires extra progs
 USE work_vars_mod_cbl,  ONLY: work_vars_type      ! and some kept thru timestep
 USE cable_fields_mod,   ONLY: pars_io_cbl         ! and veg/soil parameters
+USE coastal,            ONLY : fland
 
 !Common modules
 USE ereport_mod,              ONLY:                                            &
@@ -480,9 +483,6 @@ CHARACTER(LEN=*), PARAMETER :: RoutineName='SURF_COUPLE_EXPLICIT'
 !End of header
 IF (lhook) CALL dr_hook(ModuleName//':'//RoutineName,zhook_in,zhook_handle)
 
-SELECT CASE( lsm_id )
-CASE ( jules )
-
   ! Change 2d UM clay to 1d jules clay content for soil respiration
   ! Soil tiling not currently in the UM, so broadcast ij value to all tiles.
   ! Multi-layer clay not currently in UM so set all layers to same value.
@@ -535,6 +535,8 @@ CASE ( jules )
     END DO
   END DO
 
+SELECT CASE( lsm_id )
+CASE ( jules )
 
   CALL jules_land_sf_explicit (                                                &
     !IN date-related values
@@ -649,6 +651,64 @@ CASE ( jules )
     chemvars%flux_o3_pft, chemvars%fo3_pft                                     &
     )
 
+CASE ( cable )
+
+  ! initialise all INTENT(OUT) for now until CABLE is implemented
+  fqw_1(:,:) = 0.0
+  ftl_1(:,:) = 0.0
+  fluxes%ftl_surft(:,:) = 0.0
+  fluxes%fqw_surft(:,:) = 0.0
+  fluxes%fqw_sicat(:,:,:) = 0.0
+  fluxes%ftl_sicat(:,:,:) = 0.0
+  fluxes%fsmc_pft(:,:) = 0.0
+  fluxes%emis_surft(:,:) = 0.0
+  radnet_sice(:,:,:) = 0.0
+  rhokm_1(:,:) = 0.0
+  rhokm_land(:,:) = 0.0
+  rhokm_ssi(:,:) = 0.0
+  cdr10m(:,:) = 0.0
+  alpha1(:,:) = 0.0
+  alpha1_sea(:,:) = 0.0
+  alpha1_sice(:,:,:) = 0.0
+  ashtf_prime(:,:,:) = 0.0
+  ashtf_prime_sea(:,:) = 0.0
+!jhan:fudge to avoid NaN 
+ashtf_prime_surft(:,:) = 1.0
+  epot_surft(:,:) = 0.0
+  fraca(:,:) = 0.0
+  resfs(:,:) = 0.0
+  resft(:,:) = 0.0
+  rhokh(:,:) = 0.0
+  rhokh_surft(:,:) = 0.0
+  rhokh_sice(:,:,:) = 0.0
+  rhokh_sea(:,:) = 0.0
+  dtstar_surft(:,:) = 0.0
+  dtstar_sea(:,:) = 0.0
+  dtstar_sice(:,:,:) = 0.0
+  z0hssi(:,:) = 0.0
+!jhan:fudge to avoid NaN - discard post explicit pathway done
+fluxes%z0h_surft(:,:) = 0.1
+  z0mssi(:,:) = 0.0
+fluxes%z0m_surft(:,:) = 0.1
+  chr1p5m(:,:) = 0.0
+  chr1p5m_sice(:,:) = 0.0
+  canhc_surft(:,:) = 0.0
+  wt_ext_surft(:,:,:) = 0.0
+  flake(:,:) = 0.0
+  hcons_soilt(:,:) = 0.0
+  tile_frac(:,:) = 0.0
+
+  CALL cable_land_sf_explicit (                                                &
+    !CABLE TYPES containing field data (IN OUT)
+    progs_cbl, work_cbl, pars_io_cbl )
+    
+CASE DEFAULT
+  errorstatus = 101
+  WRITE(jules_message,'(A,I0)') 'Unrecognised surface scheme. lsm_id = ',      &
+     lsm_id
+  CALL ereport(RoutineName, errorstatus, jules_message)
+
+END SELECT
 
   CALL jules_ssi_sf_explicit (                                                 &
     !IN values defining field dimensions and subset to be processed :
@@ -751,63 +811,6 @@ CASE ( jules )
   END DO
 #endif
 
-
-CASE ( cable )
-  ! for testing LSM switch
-  WRITE(jules_message,'(A)') "CABLE not yet implemented"
-  CALL jules_print(RoutineName, jules_message)
-
-  ! initialise all INTENT(OUT) for now until CABLE is implemented
-  fqw_1(:,:) = 0.0
-  ftl_1(:,:) = 0.0
-  fluxes%ftl_surft(:,:) = 0.0
-  fluxes%fqw_surft(:,:) = 0.0
-  fluxes%fqw_sicat(:,:,:) = 0.0
-  fluxes%ftl_sicat(:,:,:) = 0.0
-  fluxes%fsmc_pft(:,:) = 0.0
-  fluxes%emis_surft(:,:) = 0.0
-  radnet_sice(:,:,:) = 0.0
-  rhokm_1(:,:) = 0.0
-  rhokm_land(:,:) = 0.0
-  rhokm_ssi(:,:) = 0.0
-  cdr10m(:,:) = 0.0
-  alpha1(:,:) = 0.0
-  alpha1_sea(:,:) = 0.0
-  alpha1_sice(:,:,:) = 0.0
-  ashtf_prime(:,:,:) = 0.0
-  ashtf_prime_sea(:,:) = 0.0
-  !jhan:fudge to avoid NaN - discard post explicit pathway done
-  ashtf_prime_surft(:,:) = 0.1
-  epot_surft(:,:) = 0.0
-  fraca(:,:) = 0.0
-  resfs(:,:) = 0.0
-  resft(:,:) = 0.0
-  rhokh(:,:) = 0.0
-  rhokh_surft(:,:) = 0.0
-  rhokh_sice(:,:,:) = 0.0
-  rhokh_sea(:,:) = 0.0
-  dtstar_surft(:,:) = 0.0
-  dtstar_sea(:,:) = 0.0
-  dtstar_sice(:,:,:) = 0.0
-  z0hssi(:,:) = 0.0
-  fluxes%z0h_surft(:,:) = 0.0
-  z0mssi(:,:) = 0.0
-  fluxes%z0m_surft(:,:) = 0.0
-  chr1p5m(:,:) = 0.0
-  chr1p5m_sice(:,:) = 0.0
-  canhc_surft(:,:) = 0.0
-  wt_ext_surft(:,:,:) = 0.0
-  flake(:,:) = 0.0
-  hcons_soilt(:,:) = 0.0
-  tile_frac(:,:) = 0.0
-
-CASE DEFAULT
-  errorstatus = 101
-  WRITE(jules_message,'(A,I0)') 'Unrecognised surface scheme. lsm_id = ',      &
-     lsm_id
-  CALL ereport(RoutineName, errorstatus, jules_message)
-
-END SELECT
 
 IF (lhook) CALL dr_hook(ModuleName//':'//RoutineName,zhook_out,zhook_handle)
 RETURN
