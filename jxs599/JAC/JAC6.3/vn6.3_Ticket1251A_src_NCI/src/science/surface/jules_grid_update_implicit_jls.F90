@@ -158,9 +158,6 @@ REAL(KIND=real_jlslsm), INTENT(IN) ::                                          &
                              ! IN Total resistance factor.
                              !    FRACA+(1-FRACA)*RESFS for
                              !    snow-free land, 1 for snow.
-,rhokh_surft(land_pts,nsurft)                                                  &
-                             ! IN Surface exchange coefficients
-                             !    for land tiles
 ,rhokh_sice(tdims%i_start:tdims%i_end,tdims%j_start:tdims%j_end,               &
                                                         nice_use)              &
                              ! IN Surface exchange coefficients
@@ -191,7 +188,11 @@ REAL(KIND=real_jlslsm), INTENT(IN) ::                                          &
           vdims_s%j_start:vdims_s%j_end)
                              ! IN Additional arrays needed by the
                              !    uncond stable BL numerical solver
-
+!!CABLE possibly re-defines as 0.
+REAL(KIND=real_jlslsm), INTENT(INOUT) ::                                          &
+ rhokh_surft(land_pts,nsurft)
+                             ! IN Surface exchange coefficients
+                             !    for land tiles
 LOGICAL, INTENT(IN) ::                                                         &
  l_correct                   ! IN flag used by the new BL solver
 
@@ -342,7 +343,7 @@ END IF
 !$OMP END PARALLEL
 
 IF (lsm_id == cable) THEN
-  rhokh_1 == 0.0
+  rhokh_surft = 0.0
 END IF
 
 CALL im_sf_pt2 (                                                               &

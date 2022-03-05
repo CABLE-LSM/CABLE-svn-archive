@@ -33,7 +33,7 @@ SUBROUTINE im_sf_pt2 (                                                         &
 ,taux_1,taux_land,taux_land_star,taux_ssi,taux_ssi_star,tauy_1                 &
 ,tauy_land,tauy_land_star,tauy_ssi,tauy_ssi_star                               &
 ,fqw_surft,epot_surft,ftl_surft,fqw_ice,ftl_ice,e_sea,h_sea                    &
-,l_correct                                                                     &
+,l_correct, lsm_id, cable                                                      &
 )
 
 #if defined(UM_JULES)
@@ -267,6 +267,9 @@ REAL(KIND=real_jlslsm) ::                                                      &
 LOGICAL ::                                                                     &
  epot_calc(land_pts,nsurft)  ! flag to connect first and second
                              ! epot calculations
+
+INTEGER :: lsm_id
+INTEGER :: cable
 
 !  Local scalars :-
 INTEGER ::                                                                     &

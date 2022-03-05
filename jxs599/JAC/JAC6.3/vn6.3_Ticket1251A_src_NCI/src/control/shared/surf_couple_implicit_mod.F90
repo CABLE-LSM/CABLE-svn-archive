@@ -15,11 +15,7 @@ USE jules_land_sf_implicit_mod,     ONLY: jules_land_sf_implicit
 USE jules_ssi_sf_implicit_mod,      ONLY: jules_ssi_sf_implicit
 USE jules_griddiag_sf_implicit_mod, ONLY: jules_griddiag_sf_implicit
 
-!  -->> USE im_sf_pt2_mod_cbl, ONLY: im_sf_pt2_cbl
-USE cable_grid_update_implicit_mod, ONLY: cable_grid_update_implicit
 USE cable_land_sf_implicit_mod,     ONLY: cable_land_sf_implicit
-USE cable_griddiag_sf_implicit_mod, ONLY: cable_griddiag_sf_implicit
-!  -->> USE screen_tq_mod_cbl, ONLY: screen_tq_cbl
 
 USE um_types, ONLY: real_jlslsm
 
@@ -222,6 +218,10 @@ REAL(KIND=real_jlslsm), INTENT(IN) ::                                          &
 !Misc INTENT(IN) Many of these simply come out of explicit and come
 !back into here. Need a module for them.
 
+!!CABLE possibly re-defines as 0.
+REAL(KIND=real_jlslsm), INTENT(INOUT) ::                                          &
+ rhokh_surft(land_pts,nsurft)
+    ! IN Surface exchange coefficients for land tiles
 !Arrays
 REAL(KIND=real_jlslsm), INTENT(IN) ::                                          &
   rhokm_u(udims%i_start:udims%i_end,udims%j_start:udims%j_end),                &
@@ -261,8 +261,6 @@ REAL(KIND=real_jlslsm), INTENT(IN) ::                                          &
     !snow.
   rhokh(tdims%i_start:tdims%i_end,tdims%j_start:tdims%j_end),                  &
     !Grid-box surface exchange coefficients (not used for JULES)
-  rhokh_surft(land_pts,nsurft),                                                &
-    !Surface exchange coefficients for land tiles
   rhokh_sice(tdims%i_start:tdims%i_end,tdims%j_start:tdims%j_end,nice_use),    &
     !Surface exchange coefficients for sea sea-ice
   rhokh_sea(tdims%i_start:tdims%i_end,tdims%j_start:tdims%j_end),              &
@@ -604,7 +602,6 @@ CALL jules_ssi_sf_implicit (                                                   &
           lsm_id, cable                                                        &
         )
 
-END SELECT
 
 IF (lhook) CALL dr_hook(ModuleName//':'//RoutineName,zhook_out,zhook_handle)
 RETURN

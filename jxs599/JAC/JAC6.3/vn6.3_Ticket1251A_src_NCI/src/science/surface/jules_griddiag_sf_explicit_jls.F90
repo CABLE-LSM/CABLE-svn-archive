@@ -489,11 +489,18 @@ DO n = 1,nsurft
     l = surft_index(k,n)
     j=(land_index(l) - 1) / t_i_length + 1
     i = land_index(l) - (j-1) * t_i_length
+    write(6,*) "jh:flandg(i,j) ", flandg(i,j) 
+    write(6,*) "jh:tile_frac(l,n) ", tile_frac(l,n)
     tmp1 = flandg(i,j) * tile_frac(l,n)
     tmp2 = LOG(lb / z0m_surft(l,n))
+    write(6,*) "jh:rib(i,j) ", rib(i,j)
+    write(6,*) "jh:rib_surft(l,n) ",  rib_surft(l,n)
     rib(i,j) = rib(i,j) + tmp1 * rib_surft(l,n)
     fz0(i,j) = fz0(i,j) + tmp1 / (tmp2**2)
     fz0h(i,j) = fz0h(i,j) + tmp1 / (tmp2 * LOG(lb / z0h_surft(l,n)))
+    write(6,*) "jh:fz0(i,j) ", fz0(i,j)
+fz0(i,j) = 1.0
+fz0h(i,j) = 1.0
   END DO
 !$OMP END PARALLEL DO
 END DO

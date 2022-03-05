@@ -114,7 +114,6 @@ USE jules_chemvars_mod, ONLY: chemvars_type
 USE progs_cbl_vars_mod, ONLY: progs_cbl_vars_type ! CABLE requires extra progs
 USE work_vars_mod_cbl,  ONLY: work_vars_type      ! and some kept thru timestep
 USE cable_fields_mod,   ONLY: pars_io_cbl         ! and veg/soil parameters
-USE coastal,            ONLY : fland
 
 !Common modules
 USE ereport_mod,              ONLY:                                            &
@@ -215,6 +214,8 @@ REAL(KIND=real_jlslsm), INTENT(IN) ::                                          &
 REAL(KIND=real_jlslsm), INTENT(IN) ::                                          &
   flandg(pdims_s%i_start:pdims_s%i_end,pdims_s%j_start:pdims_s%j_end)
 !JULES aero module
+REAL(KIND=real_jlslsm) ::                                       &
+  fflandg(pdims_s%i_start:pdims_s%i_end,pdims_s%j_start:pdims_s%j_end)
 REAL(KIND=real_jlslsm), INTENT(IN) ::                                          &
   co2_3d_ij(co2_dim_len, co2_dim_row)
 !JULES trifctl module
@@ -654,50 +655,57 @@ CASE ( jules )
 CASE ( cable )
 
   ! initialise all INTENT(OUT) for now until CABLE is implemented
-  fqw_1(:,:) = 0.0
-  ftl_1(:,:) = 0.0
-  fluxes%ftl_surft(:,:) = 0.0
-  fluxes%fqw_surft(:,:) = 0.0
-  fluxes%fqw_sicat(:,:,:) = 0.0
-  fluxes%ftl_sicat(:,:,:) = 0.0
-  fluxes%fsmc_pft(:,:) = 0.0
-  fluxes%emis_surft(:,:) = 0.0
-  radnet_sice(:,:,:) = 0.0
-  rhokm_1(:,:) = 0.0
-  rhokm_land(:,:) = 0.0
-  rhokm_ssi(:,:) = 0.0
-  cdr10m(:,:) = 0.0
-  alpha1(:,:) = 0.0
-  alpha1_sea(:,:) = 0.0
-  alpha1_sice(:,:,:) = 0.0
-  ashtf_prime(:,:,:) = 0.0
-  ashtf_prime_sea(:,:) = 0.0
+!!  fqw_1(:,:) = 0.0
+!!  ftl_1(:,:) = 0.0
+!!  fluxes%ftl_surft(:,:) = 0.0
+!!  fluxes%fqw_surft(:,:) = 0.0
+!!  fluxes%fqw_sicat(:,:,:) = 0.0
+!!  fluxes%ftl_sicat(:,:,:) = 0.0
+!!  fluxes%fsmc_pft(:,:) = 0.0
+!!  fluxes%emis_surft(:,:) = 0.0
+!!  radnet_sice(:,:,:) = 0.0
+!!  rhokm_1(:,:) = 0.0
+!!  rhokm_land(:,:) = 0.0
+!!  rhokm_ssi(:,:) = 0.0
+!!  cdr10m(:,:) = 0.0
+!!  alpha1(:,:) = 0.0
+!!  alpha1_sea(:,:) = 0.0
+!!  alpha1_sice(:,:,:) = 0.0
+!!  ashtf_prime(:,:,:) = 0.0
+!!  ashtf_prime_sea(:,:) = 0.0
 !jhan:fudge to avoid NaN 
 ashtf_prime_surft(:,:) = 1.0
-  epot_surft(:,:) = 0.0
-  fraca(:,:) = 0.0
-  resfs(:,:) = 0.0
-  resft(:,:) = 0.0
-  rhokh(:,:) = 0.0
-  rhokh_surft(:,:) = 0.0
-  rhokh_sice(:,:,:) = 0.0
-  rhokh_sea(:,:) = 0.0
-  dtstar_surft(:,:) = 0.0
-  dtstar_sea(:,:) = 0.0
-  dtstar_sice(:,:,:) = 0.0
-  z0hssi(:,:) = 0.0
+!!  epot_surft(:,:) = 0.0
+!!  fraca(:,:) = 0.0
+!!  resfs(:,:) = 0.0
+!!  resft(:,:) = 0.0
+!!  rhokh(:,:) = 0.0
+!!  rhokh_surft(:,:) = 0.0
+!!  rhokh_sice(:,:,:) = 0.0
+!!  rhokh_sea(:,:) = 0.0
+!!  dtstar_surft(:,:) = 0.0
+!!  dtstar_sea(:,:) = 0.0
+!!  dtstar_sice(:,:,:) = 0.0
+!!  z0hssi(:,:) = 0.0
 !jhan:fudge to avoid NaN - discard post explicit pathway done
 fluxes%z0h_surft(:,:) = 0.1
-  z0mssi(:,:) = 0.0
+!!  z0mssi(:,:) = 0.0
 fluxes%z0m_surft(:,:) = 0.1
-  chr1p5m(:,:) = 0.0
-  chr1p5m_sice(:,:) = 0.0
-  canhc_surft(:,:) = 0.0
-  wt_ext_surft(:,:,:) = 0.0
-  flake(:,:) = 0.0
-  hcons_soilt(:,:) = 0.0
-  tile_frac(:,:) = 0.0
+!!  chr1p5m(:,:) = 0.0
+!!  chr1p5m_sice(:,:) = 0.0
+!!  canhc_surft(:,:) = 0.0
+!!  wt_ext_surft(:,:,:) = 0.0
+!!  flake(:,:) = 0.0
+!!  hcons_soilt(:,:) = 0.0
 
+!coast%fland
+!CABLE:straight up call diags.ssi
+!So is like saying if flandg is used and it aint been init .b/c lsm_id=CABLE - fail
+!intent(IN)flandg = 0.0 !This has value of 1 where printed HOW?
+fflandg = 1.0 /(2*SQRT(2.0) )
+tile_frac(:,:) = 0.0 !This needs to be set for CABLE 
+rib_surft = 1.0 !iagain WAS set in jules_land_sf_explicit (
+resp_s_gb_um = 0.0 !intent((OUT)
   CALL cable_land_sf_explicit (                                                &
     !CABLE TYPES containing field data (IN OUT)
     progs_cbl, work_cbl, pars_io_cbl )
@@ -717,7 +725,7 @@ END SELECT
     bq_1,bt_1,ainfo%z1_uv_ij,z1_uv_top,ainfo%z1_tq_ij,z1_tq_top,               &
     forcing%qw_1_ij,forcing%tl_1_ij,                                           &
     !IN soil/vegetation/land surface data :
-    flandg(pdims%i_start:pdims%i_end,pdims%j_start:pdims%j_end),               &
+    fflandg(pdims%i_start:pdims%i_end,pdims%j_start:pdims%j_end),               &
     !IN sea/sea-ice data :
     ainfo%ice_fract_ncat_sicat,progs%k_sice_sicat,                             &
     progs%z0m_sice_fmd, progs%z0m_sice_skin,                                   &

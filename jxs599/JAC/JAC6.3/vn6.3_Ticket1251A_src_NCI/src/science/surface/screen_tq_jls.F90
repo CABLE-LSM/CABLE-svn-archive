@@ -28,7 +28,7 @@ SUBROUTINE screen_tq (                                                         &
  l_co2_interactive, co2_mmr, co2_3d,                                           &
  f3_at_p, ustargbm, rho1,                                                      &
  tscrndcl_ssi,tscrndcl_surft,tstbtrans,                                        &
- l_mr_physic , lsm_id, cable                                                   &
+ l_mr_physics, lsm_id, cable                                                   &
  )
 
 USE atm_fields_bounds_mod, ONLY: tdims, tdims_s

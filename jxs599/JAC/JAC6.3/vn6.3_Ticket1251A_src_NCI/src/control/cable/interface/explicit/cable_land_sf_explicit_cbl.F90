@@ -1,8 +1,8 @@
-MODULE cable_explicit_main_mod
+MODULE cable_land_sf_explicit_mod
 
 CONTAINS
 
-SUBROUTINE cable_explicit_main( progs, work, pars )
+SUBROUTINE cable_land_sf_explicit( progs, work, pars )
 
 ! In general CABLE utilizes a required subset of tbe JULES types, however;
 USE progs_cbl_vars_mod, ONLY: progs_cbl_vars_type ! CABLE requires extra progs
@@ -19,8 +19,8 @@ TYPE(params_io_type), INTENT(IN)         :: pars
 WRITE(6,*) "Currently CABLE explicit@6.3 is not implemented"
 RETURN
 
-END SUBROUTINE cable_explicit_main
+END SUBROUTINE cable_land_sf_explicit
 
-END MODULE cable_explicit_main_mod
+END MODULE cable_land_sf_explicit_mod
 
 
