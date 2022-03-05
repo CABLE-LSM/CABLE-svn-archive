@@ -12,6 +12,7 @@ MODULE surf_couple_explicit_mod
 
 USE jules_gridinit_sf_explicit_mod, ONLY: jules_gridinit_sf_explicit
 USE jules_land_sf_explicit_mod,     ONLY: jules_land_sf_explicit
+USE cable_land_sf_explicit_mod,     ONLY: cable_land_sf_explicit
 USE jules_ssi_sf_explicit_mod,      ONLY: jules_ssi_sf_explicit
 USE jules_griddiag_sf_explicit_mod, ONLY: jules_griddiag_sf_explicit
 
@@ -111,6 +112,7 @@ USE jules_chemvars_mod, ONLY: chemvars_type
 ! In general CABLE utilizes a required subset of tbe JULES types, however;
 USE progs_cbl_vars_mod, ONLY: progs_cbl_vars_type ! CABLE requires extra progs
 USE work_vars_mod_cbl,  ONLY: work_vars_type      ! and some kept thru timestep
+USE cable_fields_mod,   ONLY: pars_io_cbl         ! and veg/soil parameters
 
 !Common modules
 USE ereport_mod,              ONLY:                                            &
@@ -798,6 +800,11 @@ CASE ( cable )
   flake(:,:) = 0.0
   hcons_soilt(:,:) = 0.0
   tile_frac(:,:) = 0.0
+
+    CALL cable_land_sf_explicit (                                              &
+            !CABLE TYPES containing field data (IN OUT)
+            progs_cbl, work_cbl, pars_io_cbl )
+
 
 CASE DEFAULT
   errorstatus = 101

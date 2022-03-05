@@ -14,6 +14,7 @@ USE jules_grid_update_implicit_mod, ONLY: jules_grid_update_implicit
 USE jules_land_sf_implicit_mod,     ONLY: jules_land_sf_implicit
 USE jules_ssi_sf_implicit_mod,      ONLY: jules_ssi_sf_implicit
 USE jules_griddiag_sf_implicit_mod, ONLY: jules_griddiag_sf_implicit
+USE cable_land_sf_implicit_mod,     ONLY: cable_land_sf_implicit
 
 USE um_types, ONLY: real_jlslsm
 
@@ -98,6 +99,7 @@ USE jules_forcing_mod, ONLY: forcing_type
 ! In general CABLE utilizes a required subset of tbe JULES types, however;
 USE progs_cbl_vars_mod, ONLY: progs_cbl_vars_type ! CABLE requires extra progs
 USE work_vars_mod_cbl,  ONLY: work_vars_type      ! and some kept thru timestep
+USE cable_fields_mod,   ONLY: pars_io_cbl         ! and veg/soil parameters
 
 !Common modules
 USE ereport_mod,           ONLY: ereport
@@ -540,6 +542,12 @@ CASE ( cable )
   fluxes%surf_ht_flux_ij(:,:) = 0.0
   fluxes%surf_htf_surft(:,:) = 0.0
   ERROR = 0
+
+  IF ( .NOT. l_correct ) THEN
+    CALL cable_land_sf_implicit (                                              &
+            !CABLE TYPES containing field data (IN OUT)
+            progs_cbl, work_cbl, pars_io_cbl )
+  END IF
 
 CASE DEFAULT
   ERROR = 101

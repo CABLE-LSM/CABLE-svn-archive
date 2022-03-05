@@ -70,6 +70,7 @@ USE lake_mod, ONLY: lake_type
 
 USE jules_ssi_albedo_mod,     ONLY: jules_ssi_albedo
 USE jules_land_albedo_mod,    ONLY: jules_land_albedo
+USE cable_land_albedo_mod,    ONLY: cable_land_albedo
 
 !Common modules
 USE ereport_mod,              ONLY:                                            &
@@ -97,6 +98,19 @@ USE jules_model_environment_mod,         ONLY:                                 &
 
 ! In general CABLE utilizes a required subset of tbe JULES types, however;
 USE progs_cbl_vars_mod, ONLY: progs_cbl_vars_type ! CABLE requires extra progs
+USE cable_fields_mod,   ONLY: pars_io_cbl         ! and veg/soil parameters
+!data: constants
+USE cable_other_constants_mod,  ONLY: z0surf_min
+USE cable_other_constants_mod,  ONLY: lai_thresh
+USE cable_other_constants_mod,  ONLY: coszen_tols
+USE cable_other_constants_mod,  ONLY: gauss_w
+USE cable_math_constants_mod,   ONLY: pi
+USE cable_math_constants_mod,   ONLY: pi180
+USE grid_constants_mod_cbl,     ONLY: nrb, nsl, nsnl, mp
+
+USE jules_soil_mod,             ONLY: dzsoil
+USE jules_surface_types_mod,    ONLY: npft
+
 !Dr Hook
 USE parkind1,                 ONLY:                                            &
   jprb, jpim
@@ -257,47 +271,30 @@ CASE ( jules )
     progs%snowdepth_surft, progs%rho_snow_grnd_surft, progs%nsnow_surft,       &
     progs%sice_surft, progs%sliq_surft, progs%ds_surft)
 
-  CALL jules_ssi_albedo (                                                      &
-    !INTENT(IN)
-    !input fields
-    flandg, ainfo%ice_fract_ij, fluxes%tstar_ij, coast%tstar_sice_sicat,       &
-    psparms%cosz_ij, ws10m, chloro,                                            &
-    progs%snow_mass_sea_sicat, progs%di_ncat_sicat,                            &
-    ainfo%pond_frac_cat_sicat, ainfo%pond_depth_cat_sicat,                     &
-    !max and min sea ice albedo specifications
-    alpham, alphac, alphab, dtice,                                             &
-    dt_bare, dalb_bare_wet, pen_rad_frac, sw_beta,                             &
-    ! parameters for CICE multi-band albedo scheme:
-    albicev_cice, albicei_cice, albsnowv_cice, albsnowi_cice,                  &
-    albpondv_cice, albpondi_cice,                                              &
-    ahmax, dalb_mlt_cice, dalb_mlts_v_cice, dalb_mlts_i_cice,                  &
-    dt_bare_cice, dt_snow_cice,                                                &
-    pen_rad_frac_cice, sw_beta_cice, snowpatch,                                &
-    !size and control variables
-    row_length * rows, max_n_swbands,                                          &
-    n_band, nice, nice_use,                                                    &
-    !spectral boundaries
-    wavelength_short,                                                          &
-    wavelength_long,                                                           &
-    !INTENT(OUT)
-    !output arguments
-    sea_ice_albedo,                                                            &
-    open_sea_albedo,                                                           &
-    !ancil_info (IN)
-    ainfo%sea_index, ainfo%ssi_index, ainfo%sice_index_ncat,                   &
-    ainfo%sice_frac_ncat,                                                      &
-    !Fluxes (OUT)
-    fluxes%alb_sicat, fluxes%penabs_rad_frac)
-
 CASE ( cable )
-  ! for testing LSM
-  WRITE(jules_message,'(A)') "CABLE not yet implemented"
-  CALL jules_print(RoutineName, jules_message)
 
-  ! initialise all INTENT(OUT) fields for now until CABLE is implemented
-  sea_ice_albedo(:,:,:) = 0.0
-  fluxes%alb_surft(:,:,:) = 0.0
-  fluxes%land_albedo_ij(:,:,:) = 0.0
+  CALL cable_land_albedo (                                                     &
+    !OUT: (per rad band) albedos [GridBoxMean & per tile albedo]
+    fluxes%land_albedo_ij, fluxes%alb_surft,                                   &
+    !IN: JULES dimensions and associated
+    row_length, rows, land_pts, nsurft, npft,                                  &
+    surft_pts, ainfo%surft_index, ainfo%land_index,                            &
+    !IN: JULES Surface descriptions generally parametrized
+    dzsoil, ainfo%frac_surft, progs%LAI_pft, progs%canht_pft,                  &
+    psparms%albsoil_soilt(:,1),                                                &
+    !IN: JULES  timestep varying fields
+    psparms%cosz_ij, snow_surft,                                               &
+    !IN:CABLE dimensions from grid_constants_cbl
+    nsl, nsnl, nrb,                                                            &
+    !IN: CABLE constants
+    z0surf_min, lai_thresh, coszen_tols, gauss_w, pi, pi180,                   &
+    !IN: CABLE Vegetation/Soil parameters. decl in params_io_cbl.F90
+    pars_io_cbl%vegin_xfang, pars_io_cbl%vegin_taul,                           &
+    pars_io_cbl%vegin_refl,                                                    &
+    !IN: CABLE prognostics. decl in progs_cbl_vars_mod.F90
+    progs_cbl%SoilTemp_CABLE, progs_cbl%SnowTemp_CABLE,                        &
+    progs_cbl%OneLyrSnowDensity_CABLE                                          &
+  )
 
 CASE DEFAULT
   errorstatus = 101
@@ -306,6 +303,39 @@ CASE DEFAULT
   CALL ereport(RoutineName, errorstatus, jules_message)
 
 END SELECT
+
+CALL jules_ssi_albedo (                                                        &
+  !INTENT(IN)
+  !input fields
+  flandg, ainfo%ice_fract_ij, fluxes%tstar_ij, coast%tstar_sice_sicat,         &
+  psparms%cosz_ij, ws10m, chloro,                                              &
+  progs%snow_mass_sea_sicat, progs%di_ncat_sicat,                              &
+  ainfo%pond_frac_cat_sicat, ainfo%pond_depth_cat_sicat,                       &
+  !max and min sea ice albedo specifications
+  alpham, alphac, alphab, dtice,                                               &
+  dt_bare, dalb_bare_wet, pen_rad_frac, sw_beta,                               &
+  ! parameters for CICE multi-band albedo scheme:
+  albicev_cice, albicei_cice, albsnowv_cice, albsnowi_cice,                    &
+  albpondv_cice, albpondi_cice,                                                &
+  ahmax, dalb_mlt_cice, dalb_mlts_v_cice, dalb_mlts_i_cice,                    &
+  dt_bare_cice, dt_snow_cice,                                                  &
+  pen_rad_frac_cice, sw_beta_cice, snowpatch,                                  &
+  !size and control variables
+  row_length * rows, max_n_swbands,                                            &
+  n_band, nice, nice_use,                                                      &
+  !spectral boundaries
+  wavelength_short,                                                            &
+  wavelength_long,                                                             &
+  !INTENT(OUT)
+  !output arguments
+  sea_ice_albedo,                                                              &
+  open_sea_albedo,                                                             &
+  !ancil_info (IN)
+  ainfo%sea_index, ainfo%ssi_index, ainfo%sice_index_ncat,                     &
+  ainfo%sice_frac_ncat,                                                        &
+  !Fluxes (OUT)
+  fluxes%alb_sicat, fluxes%penabs_rad_frac)
+
 
 IF (lhook) CALL dr_hook(ModuleName//':'//RoutineName,zhook_out,zhook_handle)
 RETURN

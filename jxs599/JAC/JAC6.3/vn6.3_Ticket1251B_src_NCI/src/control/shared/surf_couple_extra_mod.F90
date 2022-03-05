@@ -126,6 +126,7 @@ USE work_vars_mod_cbl,  ONLY: work_vars_type      ! and some kept thru timestep
 
 !Import interfaces to subroutines called
 USE hydrol_mod,               ONLY: hydrol
+USE hydrol_mod_cbl,           ONLY: hydrol_cbl
 USE snow_mod,                 ONLY: snow
 USE jules_rivers_mod,         ONLY: l_rivers, l_inland, rivers_call
 
@@ -1183,10 +1184,7 @@ CASE ( jules )
 
   !=============================================================================
 CASE ( cable )
-  ! for testing LSM switch
-  WRITE(jules_message,'(A)') "CABLE not yet implemented"
-  CALL jules_print(RoutineName, jules_message)
-
+  
   ! initialise all INTENT(OUT) for now until CABLE is implemented
   fluxes%melt_surft(:,:) = 0.0
   fluxes%hf_snow_melt_gb(:) = 0.0
@@ -1198,6 +1196,12 @@ CASE ( cable )
   fluxes%rrun_gb(:) = 0.0
   fluxes%rflow_gb(:) = 0.0
   fluxes%snow_soil_htf(:,:) = 0.0
+
+
+  CALL hydrol_cbl ( progs%snow_surft, snow_mass_gb, fluxes%tot_tfall_gb,       &
+                    fluxes%surf_roff_gb, fluxes%sub_surf_roff_gb,              &
+                    land_pts, nsurft,                                          &
+                    work_cbl ) 
 
 CASE DEFAULT
   errorstatus = 101
