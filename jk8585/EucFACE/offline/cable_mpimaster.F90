@@ -2568,22 +2568,6 @@ SUBROUTINE master_cable_params(comm, met, air, ssnow, veg, bgc, soil, canopy, ro
           &                             types(bidx), ierr)
      blen(bidx) = 1
 
-
-     bidx = bidx + 1
-     CALL MPI_Get_address (veg%disturbance_interval(off,1), displs(bidx), ierr)
-     CALL MPI_Type_create_hvector (2, i1len, istride, MPI_BYTE, &
-          &                             types(bidx), ierr)
-     blen(bidx) = 1
-
-     bidx = bidx + 1
-     CALL MPI_Get_address (veg%disturbance_intensity(off,1), displs(bidx), ierr)
-! Maciej: disturbance_intensity is REAL(r_2)
-!     CALL MPI_Type_create_hvector (2, r1len, r1stride, MPI_BYTE, &
-!          &                             types(bidx), ierr)
-     CALL MPI_Type_create_hvector (2, r2len, r2stride, MPI_BYTE, &
-          &                             types(bidx), ierr)
-     blen(bidx) = 1
-
      ! Ticket #56, adding veg parms for Medlyn model
      bidx = bidx + 1
      CALL MPI_Get_address (veg%g0(off), displs(bidx), ierr)
@@ -3899,6 +3883,21 @@ SUBROUTINE master_casa_params(comm, casabiome, casapool, casaflux, casamet, casa
      bidx = bidx + 1
      CALL MPI_Get_address (casabiome%DAMM_alpha, displs(bidx), ierr)
      blen(bidx) = mvtype * extr2
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casabiome%disturbance_interval(off,1), displs(bidx), ierr)
+     CALL MPI_Type_create_hvector (2, i1len, istride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blen(bidx) = 1
+
+     bidx = bidx + 1
+     CALL MPI_Get_address (casabiome%disturbance_intensity(off,1), displs(bidx), ierr)
+! Maciej: disturbance_intensity is REAL(r_2)
+!     CALL MPI_Type_create_hvector (2, r1len, r1stride, MPI_BYTE, &
+!          &                             types(bidx), ierr)
+     CALL MPI_Type_create_hvector (2, r2len, r2stride, MPI_BYTE, &
+          &                             types(bidx), ierr)
+     blen(bidx) = 1
 
      ! ------ casapool ----
 
@@ -10450,7 +10449,7 @@ SUBROUTINE master_CASAONLY_LUC(dels, kstart, kend, veg, casabiome, casapool, &
                  j = landpt(k)%cstart+1
                  do l=1,size(POP%Iwood)
                     if( POP%Iwood(l) == j) then
-                       CALL POP_init_single(POP,veg%disturbance_interval,l)
+                       CALL POP_init_single(POP,casabiome%disturbance_interval,l)
                        exit
                     endif
                  enddo
@@ -10491,7 +10490,7 @@ SUBROUTINE master_CASAONLY_LUC(dels, kstart, kend, veg, casabiome, casapool, &
 
            ! workers call POP here
 
-           ! CALL POPdriver(casaflux,casabal,veg, POP)
+           ! CALL POPdriver(casaflux,casabal,casabiome, POP)
            CALL master_receive_pop(POP, ocomm)
 
            ! 13C
@@ -10621,7 +10620,7 @@ SUBROUTINE LUCdriver(casabiome, casapool, casaflux, POP, LUC_EXPT, POPLUC, veg, 
         j = landpt(k)%cstart+1
         do l=1,size(POP%Iwood)
            if( POP%Iwood(l) == j) then
-              CALL POP_init_single(POP,veg%disturbance_interval,l)
+              CALL POP_init_single(POP,casabiome%disturbance_interval,l)
               exit
            endif
         enddo

@@ -86,25 +86,25 @@ MODULE POP_Constants
   REAL(dp), PARAMETER :: DENSINDIV_MAX = 0.2_dp  ! 0.5 !  Maximum density of individuals within a cohort indiv/m2
   REAL(dp), PARAMETER :: DENSINDIV_MIN = 1.0e-9_dp !
   REAL(dp), PARAMETER :: Kbiometric = 50.0_dp ! Constant in height-diameter relationship
-  REAL(dp), PARAMETER :: WD = 300.0_dp ! Wood density kgC/m3
+  REAL(dp), PARAMETER :: WD = 342.0_dp ! Wood density kgC/m3
   ! threshold growth efficiency for enhanced mortality (higher value gives higher biomass turnover)
   REAL(dp), PARAMETER :: GROWTH_EFFICIENCY_MIN = 0.009_dp ! 0.0095 ! 0.0089 ! 0.0084
   REAL(dp), PARAMETER :: Pmort = 5.0_dp ! exponent in mortality formula
-  REAL(dp), PARAMETER :: MORT_MAX = 0.3_dp ! upper asymptote for enhanced mortality
+  REAL(dp), PARAMETER :: MORT_MAX = 0.2_dp ! upper asymptote for enhanced mortality
   REAL(dp), PARAMETER :: THETA_recruit = 0.95_dp ! shape parameter in recruitment equation
   REAL(dp), PARAMETER :: CMASS_STEM_INIT = 1.0e-4_dp ! initial biomass kgC/m2
   REAL(dp), PARAMETER :: POWERbiomass = 0.67_dp ! exponent for biomass in proportion to which cohorts preempt resources
   REAL(dp), PARAMETER :: POWERGrowthEfficiency = 0.67_dp
-  REAL(dp), PARAMETER :: CrowdingFactor = 0.043_dp ! 0.043 ! 0.039  !0.029 ! 0.033
+  REAL(dp), PARAMETER :: CrowdingFactor = 0.043_dp ! 0.039  !0.029 ! 0.033
   REAL(dp), PARAMETER :: ALPHA_CPC = 3.5_dp
   REAL(dp), PARAMETER :: k_allom1 = 200.0_dp ! crown area =  k_allom1 * diam ** k_rp
   REAL(dp), PARAMETER :: k_rp = 1.67_dp  ! constant in crown area relation to tree diameter
-  REAL(dp), PARAMETER :: ksapwood = 0.05_dp ! rate constant for conversion of sapwood to heartwood (y-1)
+  REAL(dp), PARAMETER :: ksapwood = 0.0667_dp ! rate constant for conversion of sapwood to heartwood (y-1)
   REAL(dp), PARAMETER :: Q=7.0_dp ! governs rate of increase of mortality with age (2=exponential)
   REAL,     PARAMETER :: rshootfrac = 0.63
   REAL(dp), PARAMETER :: shootfrac = real(rshootfrac,dp)
   REAL(dp), PARAMETER :: CtoNw = 400.0_dp
-  REAL(dp), PARAMETER ::  CtoNl = 60.0_dp
+  REAL(dp), PARAMETER :: CtoNl = 60.0_dp
   REAL(dp), PARAMETER :: CtoNr = 70.0_dp
   REAL(dp), PARAMETER :: N_EXTENT = 2.0_dp ! multiple of crown diameters within which tree competes with other cohorts
   REAL(dp), PARAMETER :: EPS = 1.0e-12_dp
@@ -113,12 +113,12 @@ MODULE POP_Constants
   INTEGER(i4b), PARAMETER :: NDISTURB = 1 ! number of disturbance regimes (1 (total only)  or 2 (partial and total))
   INTEGER(i4b), PARAMETER :: PATCH_REPS = 10 ! higher number reduces 'noise'
   INTEGER(i4b), PARAMETER :: NAGE_MAX = 1 ! number of maxium ages
-  INTEGER(i4b), PARAMETER :: PATCH_REPS1 = 60 ! number of first dist years
+  INTEGER(i4b), PARAMETER :: PATCH_REPS1 = 1 ! number of first dist years
   INTEGER(i4b), PARAMETER :: PATCH_REPS2 = 1 ! number of second dist years
   INTEGER(i4b), PARAMETER :: NPATCH = PATCH_REPS1*PATCH_REPS2
   INTEGER(i4b), PARAMETER :: NPATCH1D = NPATCH
   INTEGER(i4b), PARAMETER :: NPATCH2D = NPATCH
-  INTEGER(i4b), PARAMETER ::  HEIGHT_BINS = 12 ! number of height categories to keep track of for diagnostics
+  INTEGER(i4b), PARAMETER :: HEIGHT_BINS = 12 ! number of height categories to keep track of for diagnostics
   REAL(dp), PARAMETER :: BIN_POWER = 1.4_dp ! bins have muscles
   ! Time base factor (to be multiplied by mean dist interval to give TIMEBASE)
   ! for sampling disturbance probabilities from Poisson distribution
@@ -128,9 +128,9 @@ MODULE POP_Constants
   INTEGER(i4b), PARAMETER :: ALLOM_SWITCH = 2
   ! 0 == binnned max height variable; 1 = continuous (needs lots of memory); 2 = binned by integer heights
   INTEGER(i4b), PARAMETER :: MAX_HEIGHT_SWITCH = 2
-  INTEGER(i4b), PARAMETER :: RESOURCE_SWITCH = 1 ! 0 = default; 1  fraction net resource uptake
+  INTEGER(i4b), PARAMETER :: RESOURCE_SWITCH = 0 ! 0 = default; 1  fraction net resource uptake
   INTEGER(i4b), PARAMETER :: RECRUIT_SWITCH = 1 ! 0 = default, 1 = Pgap-dependence
-  INTEGER(i4b), PARAMETER :: INTERP_SWITCH = 1 ! 0 = sum over weighted patches, 1 = sum over interpolated patches
+  INTEGER(i4b), PARAMETER :: INTERP_SWITCH = 0 ! 0 = sum over weighted patches, 1 = sum over interpolated patches
   INTEGER(i4b), PARAMETER :: SMOOTH_SWITCH = 0 ! smooth disturbance flux
   INTEGER(i4b), PARAMETER :: NYEAR_WINDOW  = 5                  ! one-side of smoothing window (y)
   INTEGER(i4b), PARAMETER :: NYEAR_SMOOTH  = 2*NYEAR_WINDOW + 1 ! smoothing window (y)
@@ -592,8 +592,10 @@ CONTAINS
        ELSE   ! NPATCH =1 (single patch mode)
           k = 1
           DO idist=1,NDISTURB
+             !write(81,*) "idist:", idist
+             !write(81,*) "mean_disturbance_interval(g,:):", mean_disturbance_interval(g,:)
              POP%pop_grid(g)%patch(k)%disturbance_interval(idist) = mean_disturbance_interval(g,idist)
-             POP%pop_grid(g)%patch(k)%first_disturbance_year(idist) = 113
+             POP%pop_grid(g)%patch(k)%first_disturbance_year(idist) = 0
              POP%pop_grid(g)%patch(k)%age = 0
              POP%pop_grid(g)%patch(k)%id = k
           ENDDO
@@ -1798,6 +1800,7 @@ CONTAINS
                (pop%pop_grid(j)%patch(k)%first_disturbance_year(idisturb).EQ.pop%pop_grid(j)%patch(k)%age(idisturb))).OR. &
                (pop%pop_grid(j)%patch(k)%disturbance_interval(idisturb).EQ.pop%pop_grid(j)%patch(k)%age(idisturb))) THEN
 
+             !write(86,*) "Partial disturbance happened!"
 
              ! loop through cohorts
              ivec = 0
@@ -1854,6 +1857,7 @@ CONTAINS
                      Psurvival*pop%pop_grid(j)%patch(k)%layer(1)%cohort(c)%heartwood
                 pop%pop_grid(j)%patch(k)%layer(1)%cohort(c)%density = &
                      Psurvival*pop%pop_grid(j)%patch(k)%layer(1)%cohort(c)%density
+
                 IF (pop%pop_grid(j)%patch(k)%Layer(1)%cohort(c)%density.LT.DENSINDIV_MIN) THEN
                    ! remove cohort
                    pop%pop_grid(j)%patch(k)%fire_mortality = pop%pop_grid(j)%patch(k)%fire_mortality + &
@@ -2029,6 +2033,8 @@ CONTAINS
              IF ((pop%pop_grid(j)%patch(k)%first_disturbance_year(idisturb).EQ.pop%pop_grid(j)%patch(k)%age(idisturb)).or. &
                   (pop%pop_grid(j)%patch(k)%disturbance_interval(idisturb).EQ.pop%pop_grid(j)%patch(k)%age(idisturb)) ) THEN
                 ! kill entire layer
+                !write(82,*) "k:", k
+                !write(82,*) "disturbance happened (first)"
                 nc = pop%pop_grid(j)%patch(k)%layer(1)%ncohort
 
                 ! pop%pop_grid(j)%patch(k)%fire_mortality = SUM(pop%pop_grid(j)%patch(k)%layer(1)%cohort(1:nc)%biomass)
@@ -2066,12 +2072,15 @@ CONTAINS
                 IF (PRESENT(precip)) THEN
                    CALL layer_recruitment_single_patch(pop,k,j,precip)
                 ELSE
+                   !write(82,*) " layer_recruitment_single_patch called after disturbance (first)"
                    CALL layer_recruitment_single_patch(pop,k,j)
 
                 ENDIF
              ENDIF
           ELSEIF (pop%pop_grid(j)%patch(k)%disturbance_interval(idisturb).EQ.pop%pop_grid(j)%patch(k)%age(idisturb)) THEN
              ! kill entire layer
+             !write(82,*) "k:", k
+             !write(82,*) "catastrophic disturbance happened (second)"
              nc = pop%pop_grid(j)%patch(k)%layer(1)%ncohort
              pop%pop_grid(j)%patch(k)%sapwood_loss =  pop%pop_grid(j)%patch(k)%sapwood_loss + &
                   SUM(pop%pop_grid(j)%patch(k)%layer(1)%cohort(1:nc)%sapwood)
@@ -2107,11 +2116,10 @@ CONTAINS
              IF (PRESENT(precip)) THEN
                 CALL layer_recruitment_single_patch(pop,k,j,precip)
              ELSE
+                !write(82,*) " layer_recruitment_single_patch called after catastrophic disturbance (second)"
                 CALL layer_recruitment_single_patch(pop,k,j)
-
              ENDIF
           ENDIF
-
        ENDDO
 
     ENDDO
@@ -2193,6 +2201,7 @@ CONTAINS
     INTEGER(i4b) :: j, k, ncohort, np
     REAL(dp) :: diam,basal
 
+
     np = SIZE(Pop%pop_grid)
     DO j=grid_index,grid_index
        DO k=index,index
@@ -2207,6 +2216,11 @@ CONTAINS
           densindiv=DENSINDIV_MAX*mu
           cmass=CMASS_STEM_INIT*densindiv/DENSINDIV_MAX
 
+          !write(84,*) "pop%pop_grid(j)%patch(k)%factor_recruit:", f
+          !write(84,*) "mu:", mu
+          !write(84,*) "densindiv:", densindiv
+          !write(84,*) "cmass:", cmass
+          
           IF (cmass>EPS*10.0_dp .AND. densindiv>DENSINDIV_MIN .AND. &
                (pop%pop_grid(j)%patch(k)%Layer(1)%ncohort+1).LT.NCOHORT_MAX) THEN
              ! create a new cohort

@@ -97,7 +97,8 @@ contains
          xcostnpup,xmaxfinelitter,xmaxcwd,xnintercept,xnslope
 
 
-    REAL(r_2), DIMENSION(mvtype)       :: la_to_sa, vcmax_scalar, disturbance_interval
+    REAL(r_2), DIMENSION(mvtype)       :: la_to_sa, vcmax_scalar
+    INTEGER,   DIMENSION(mvtype,2)     :: disturbance_interval
     REAL(r_2), DIMENSION(mvtype)       :: DAMM_EnzPool, DAMM_KMO2,DAMM_KMcp, DAMM_Ea, DAMM_alpha
     REAL(r_2), DIMENSION(mso)          :: xxkplab,xxkpsorb,xxkpocc
 
@@ -243,7 +244,7 @@ contains
     READ(101,*)
     DO nv=1,mvtype
        READ(101,*) nv12, &
-            la_to_sa(nv),disturbance_interval(nv),vcmax_scalar(nv)
+            la_to_sa(nv),disturbance_interval(nv,1),vcmax_scalar(nv)
     ENDDO
 
     READ(101,*)
@@ -298,9 +299,9 @@ contains
        casabiome%nintercept(nv)      = xnintercept(nv)
        casabiome%nslope(nv)          = xnslope(nv)
 
-       casabiome%la_to_sa(nv)        = la_to_sa(nv)
-       casabiome%vcmax_scalar(nv)        = vcmax_scalar(nv)
-       casabiome%disturbance_interval(nv)        = disturbance_interval(nv)
+       casabiome%la_to_sa(nv)               = la_to_sa(nv)
+       casabiome%vcmax_scalar(nv)           = vcmax_scalar(nv)
+       casabiome%disturbance_interval(nv,:) = disturbance_interval(nv,1)
        casabiome%DAMM_EnzPool(nv) = DAMM_EnzPool(nv)
        casabiome%DAMM_KMO2(nv) = DAMM_KMO2(nv)
        casabiome%DAMM_KMcp(nv) = DAMM_KMcp(nv)
@@ -1185,7 +1186,7 @@ contains
                   (1.0_r_2 -  max( min((POP%pop_grid(:)%stress_mortality + &
                   POP%pop_grid(:)%crowding_mortality ) &
                   /(POP%pop_grid(:)%cmass_sum+POP%pop_grid(:)%growth) + &
-                  1.0_r_2/veg%disturbance_interval(POP%Iwood,1), 0.99_r_2), &
+                  1.0_r_2/real(casabiome%disturbance_interval(POP%Iwood,1)), 0.99_r_2), &
                   0.0_r_2))**(1.0_r_2/365.0_r_2)
           ELSEWHERE
              casaflux%kplant(POP%Iwood,2) =  1.0_r_2 -  &

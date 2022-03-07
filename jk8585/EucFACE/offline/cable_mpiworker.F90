@@ -511,7 +511,7 @@ CONTAINS
                 endif
                 ! MPI: POP restart received only if pop module AND casa are active
                 if (cable_user%call_pop) then
-                   call worker_pop_types(comm, veg, pop)
+                   call worker_pop_types(comm, casabiome, pop)
                 endif
 
                 ! CLN:
@@ -820,7 +820,7 @@ CONTAINS
                    IF ( cable_user%CALL_BLAZE ) THEN
                       CALL BLAZE_ACCOUNTING(BLAZE, climate, ktau, dels, YYYY, idoy)
                       call blaze_driver(blaze%ncells, blaze, simfire, casapool, casaflux, &
-                           casamet, climate, rshootfrac, idoy, YYYY, 1, POP, veg)
+                           casamet, casabiome, climate, rshootfrac, idoy, YYYY, 1, POP, veg)
                       !par send blaze_out back
                       CALL MPI_Send(MPI_BOTTOM, 1, blaze_out_t, 0, ktau_gl, ocomm, ierr)
                    ENDIF
@@ -889,13 +889,13 @@ CONTAINS
              ENDIF
              ! one annual time-step of POP
              !write(wlogn,*) 'laimax',  casabal%LAImax
-             CALL POPdriver(casaflux, casabal, veg, POP)
+             CALL POPdriver(casaflux, casabal, casabiome, POP)
 
              ! Call BLAZE again to compute turnovers depending on POP mortalities
              IF ( cable_user%CALL_BLAZE ) THEN
                 !MC - this is different to serial code
                 call blaze_driver(blaze%ncells, blaze, simfire, casapool, casaflux, &
-                     casamet, climate, rshootfrac, idoy, YYYY, 1, POP, veg)
+                     casamet, casabiome, climate, rshootfrac, idoy, YYYY, 1, POP, veg)
              ENDIF
 
              CALL worker_send_pop(POP, ocomm)
@@ -1647,16 +1647,6 @@ CONTAINS
     bidx = bidx + 1
     CALL MPI_Get_address (veg%taul, displs(bidx), ierr)
     blen(bidx) = 2 * r1len
-
-    bidx = bidx + 1
-    CALL MPI_Get_address (veg%disturbance_interval, displs(bidx), ierr)
-    blen(bidx) = 2 * i1len
-
-    bidx = bidx + 1
-    CALL MPI_Get_address (veg%disturbance_intensity, displs(bidx), ierr)
-    ! Maciej: disturbance_intensity is REAL(r_2)
-    !    blen(bidx) = 2 * r1len
-    blen(bidx) = 2 * r2len
 
     ! Ticket #56, adding new veg parms
     bidx = bidx + 1
@@ -2885,9 +2875,20 @@ CONTAINS
     CALL MPI_Get_address (casabiome%vcmax_scalar, displs(bidx), ierr)
     blen(bidx) = mvtype  * extr2
 
+    !bidx = bidx + 1
+    !CALL MPI_Get_address (casabiome%disturbance_interval, displs(bidx), ierr)
+    !blen(bidx) = mvtype  * extr2
+
     bidx = bidx + 1
     CALL MPI_Get_address (casabiome%disturbance_interval, displs(bidx), ierr)
-    blen(bidx) = mvtype  * extr2
+    blen(bidx) = 2 * i1len
+    !blen(bidx) = mvtype * i1len
+    
+    bidx = bidx + 1
+    CALL MPI_Get_address (casabiome%disturbance_intensity, displs(bidx), ierr)
+    ! Maciej: disturbance_intensity is REAL(r_2)
+    !    blen(bidx) = 2 * r1len
+    blen(bidx) = 2 * r2len
 
     bidx = bidx + 1
     CALL MPI_Get_address (casabiome%DAMM_EnzPool, displs(bidx), ierr)
@@ -7755,20 +7756,20 @@ CONTAINS
   END SUBROUTINE worker_casa_LUC_types
 
 
-  SUBROUTINE worker_pop_types(comm, veg, pop)
+  SUBROUTINE worker_pop_types(comm, casabiome, pop)
 
     use mpi
     USE POP_mpi
     USE POPmodule,          ONLY: POP_INIT
     USE POP_types,          ONLY: pop_type
-    USE cable_def_types_mod,ONLY: veg_parameter_type
+    USE casavariable,       ONLY: casa_biome
     USE cable_common_module,ONLY: cable_user
 
     IMPLICIT NONE
 
-    INTEGER,         INTENT(IN)    :: comm
-    TYPE (pop_type), INTENT(INOUT) :: pop
-    TYPE (veg_parameter_type),INTENT(IN) :: veg
+    INTEGER,          INTENT(IN)    :: comm
+    TYPE (pop_type),  INTENT(INOUT) :: pop
+    TYPE (casa_biome),INTENT(IN)    :: casabiome
 
     INTEGER, DIMENSION(:), Allocatable :: Iwood, ainv
     INTEGER :: mp_pop, stat(MPI_STATUS_SIZE), ierr
@@ -7812,7 +7813,7 @@ CONTAINS
     ! CALL ALLOC_POP ( POP, mp_pop )
     !CALL POP_INIT( pop,veg%disturbance_interval,mp_pop,POP%Iwood )
     ! maciej: veg%disturbance_levels received earlier in worker_cable_params
-    CALL POP_INIT( pop,veg%disturbance_interval,mp_pop,Iwood )
+    CALL POP_INIT( pop,casabiome%disturbance_interval,mp_pop,Iwood )
 
     DEALLOCATE (Iwood)
 
@@ -8865,7 +8866,7 @@ SUBROUTINE worker_spincasacnp(dels, kstart, kend, mloop, &
            endif
 
            if (idoy==mdyear) then ! end of year
-              call POPdriver(casaflux, casabal, veg, POP)
+              call POPdriver(casaflux, casabal, casabiome, POP)
            endif  ! end of year
         else
            casaflux%stemnpp = 0.0_dp
@@ -9027,11 +9028,11 @@ SUBROUTINE worker_spincasacnp(dels, kstart, kend, mloop, &
               endif
 
               if (idoy==mdyear) then ! end of year
-                 call POPdriver(casaflux, casabal, veg, POP)
+                 call POPdriver(casaflux, casabal, casabiome, POP)
                  !CLN Check here accounting missing
                  if (cable_user%call_blaze) then
                     call blaze_driver(blaze%ncells, blaze, simfire, casapool, casaflux, &
-                         casamet, climate, rshootfrac, idoy, 1900, 1, POP, veg)
+                         casamet, casabiome, climate, rshootfrac, idoy, 1900, 1, POP, veg)
                  endif
                  !! CLN BLAZE TURNOVER
               endif  ! end of year
@@ -9193,7 +9194,7 @@ SUBROUTINE worker_CASAONLY_LUC(dels, kstart, kend, veg, soil, casabiome, casapoo
            flush(wlogn)
            IF (cable_user%CALL_POP .and. POP%np.gt.0) THEN ! CALL_POP
               write(wlogn,*) 'b4  POPdriver ', POP%pop_grid%cmass_sum
-              CALL POPdriver(casaflux, casabal, veg, POP)
+              CALL POPdriver(casaflux, casabal, casabiome, POP)
               !! CLN BLAZE TURNOVER
            ENDIF
            ! write(wlogn,*)

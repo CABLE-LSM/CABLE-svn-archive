@@ -171,6 +171,7 @@ SUBROUTINE casa_xnp(xnplimit,xNuptake,xPuptake,xNPuptake,veg,casabiome,casapool,
 !write(83,*) "xNuptake(:):",xNuptake(:) 
 !write(83,*) "totPreqmax(:):", totPreqmax(:)
 !write(83,*) "casapool%psoillab(:)", casapool%psoillab(:)
+!write(83,*) "casapool%Nsoilmin(:)", casapool%Nsoilmin(:)
 
   xnplimit(:)  = 1.0_r_2
   xNPuptake(:) = min(xnuptake(:), xpuptake(:))
@@ -1902,8 +1903,8 @@ SUBROUTINE casa_delsoil(veg, casapool, casaflux, casamet, casabiome)
         ENDIF ! end of icycle > 2
 
      endif  ! end of casamet%iveg2(nland) /= icewater
-write(38,*) "Pimb", Pimb
-write(38,*) "Nimb", Nimb     
+!write(38,*) "Pimb", Pimb
+!write(38,*) "Nimb", Nimb     
   enddo  ! end of nland
 
   do nland=1, mp
@@ -2143,7 +2144,7 @@ SUBROUTINE casa_xkN(xkNlimiting,casapool,casaflux,casamet,casabiome,veg)
      xkNlimiting(:) = 1.0_r_2
     end where
   ENDWHERE
-write(80,*) "xkNlimiting(:):",xkNlimiting(:) 
+!write(80,*) "xkNlimiting(:):",xkNlimiting(:) 
 
 END SUBROUTINE casa_xkN
 
@@ -2177,7 +2178,7 @@ SUBROUTINE casa_nuptake(veg,xNuptake,casabiome,casapool,casaflux,casamet)
   xnCnpp = max(0.0_r_2,casaflux%Cnpp)
   call casa_Nrequire(xnCnpp,Nreqmin,Nreqmax,NtransPtoP,veg, &
                      casabiome,casapool,casaflux,casamet)
-write(84,*) "xNuptake1(:)", xNuptake(:)
+!write(84,*) "xNuptake1(:)", xNuptake(:)
   WHERE(casamet%iveg2/=icewater)
     !totNreqmax(:) = Nreqmax(:,leaf)+Nreqmax(:,wood)+Nreqmax(:,froot)
     !totNreqmin(:) = Nreqmin(:,leaf)+Nreqmin(:,wood)+Nreqmin(:,froot)
@@ -2360,13 +2361,13 @@ SUBROUTINE casa_puptake(veg,xPuptake,casabiome,casapool,casaflux,casamet)
 
   ENDWHERE
 
-!write(85,*) "xpuptake(:,leaf):", xpuptake(:)
-!write(85,*) "Preqmin(:,leaf):", Preqmin(:,leaf)
-!write(85,*) "Preqmax(:,leaf):", Preqmax(:,leaf)
-!write(85,*) "casapool%Psoillab(:):", casapool%Psoillab(:)
-!write(85,*) "casaflux%Plabuptake(:):", casaflux%Plabuptake(:)
-!write(85,*) "plantPuptake(:,:):", plantPuptake(:,:)
-!write(85,*) "casaflux%fracPalloc(:,:):", casaflux%fracPalloc(:,:)
+!write(87,*) "xpuptake(:,leaf):", xpuptake(:)
+!write(87,*) "Preqmin(:,leaf):", Preqmin(:,leaf)
+!write(87,*) "Preqmax(:,leaf):", Preqmax(:,leaf)
+!write(87,*) "casapool%Psoillab(:):", casapool%Psoillab(:)
+!write(87,*) "casaflux%Plabuptake(:):", casaflux%Plabuptake(:)
+!write(87,*) "plantPuptake(:,:):", plantPuptake(:,:)
+!write(87,*) "casaflux%fracPalloc(:,:):", casaflux%fracPalloc(:,:)
 
 
   casaflux%Pupland = casaflux%Plabuptake

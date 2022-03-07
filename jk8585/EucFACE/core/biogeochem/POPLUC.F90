@@ -1583,7 +1583,8 @@ CONTAINS
              j = landpt(k)%cstart+1
              do l=1, size(POP%Iwood)
                 if (POP%Iwood(l) == j) then
-                   CALL POP_init_single(POP,veg%disturbance_interval,l)
+                   write(78,*) "calling POP_init_single from POPLUC_init"
+                   CALL POP_init_single(POP,casabiome%disturbance_interval,l)
                    exit
                 endif
              enddo

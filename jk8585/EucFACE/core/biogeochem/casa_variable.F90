@@ -148,7 +148,6 @@ MODULE casavariable
           nslope => null(),         &
           la_to_sa => null(),       &
           vcmax_scalar => null(),   &
-          disturbance_interval => null(), &
           DAMM_EnzPool => null(), &
           DAMM_KMO2 => null(), &
           DAMM_KMcp => null(), &
@@ -169,7 +168,10 @@ MODULE casavariable
           ftransPPtoL => null(),     &
           litterrate => null(),      &
           ratioPcplantmin => null(), &
-          ratioPcplantmax => null()
+          ratioPcplantmax => null(), &
+          disturbance_intensity => null()
+
+     INTEGER, DIMENSION(:,:), POINTER :: disturbance_interval => null()    
      REAL(r_2), DIMENSION(:,:),POINTER :: soilrate => null()
   END TYPE casa_biome
 
@@ -524,7 +526,8 @@ Contains
          casabiome%ratioPcplantmin(mvtype,mplant),   &
          casabiome%la_to_sa(mvtype),                 &
          casabiome%vcmax_scalar(mvtype),             &
-         casabiome%disturbance_interval(mvtype),     &
+         casabiome%disturbance_interval(mvtype,2),   &
+         casabiome%disturbance_intensity(mvtype,2),  &
          casabiome%DAMM_EnzPool(mvtype),     &
          casabiome%DAMM_KMO2(mvtype),     &
          casabiome%DAMM_KMcp(mvtype),     &
@@ -1015,7 +1018,8 @@ Contains
     casabiome%ratioPcplantmin      = 0.0_r_2
     casabiome%la_to_sa             = 0.0_r_2
     casabiome%vcmax_scalar         = 0.0_r_2
-    casabiome%disturbance_interval = 0.0_r_2
+    casabiome%disturbance_interval = 0
+    casabiome%disturbance_intensity = 0.0_r_2
     casabiome%DAMM_EnzPool         = 0.0_r_2
     casabiome%DAMM_KMO2            = 0.0_r_2
     casabiome%DAMM_KMcp            = 0.0_r_2
@@ -1347,6 +1351,7 @@ Contains
     write(*,*) 'la_to_sa ', casabiome%la_to_sa
     write(*,*) 'vcmax_scalar ', casabiome%vcmax_scalar
     write(*,*) 'disturbance_interval ', casabiome%disturbance_interval
+    write(*,*) 'disturbance_intensity ', casabiome%disturbance_intensity
     write(*,*) 'DAMM_EnzPool ', casabiome%DAMM_EnzPool
     write(*,*) 'DAMM_KMO2 ', casabiome%DAMM_KMO2
     write(*,*) 'DAMM_KMcp ', casabiome%DAMM_KMcp
