@@ -16,6 +16,12 @@ TYPE(progs_cbl_vars_type), INTENT(IN OUT) :: progs
 TYPE(work_vars_type), INTENT(OUT)        :: work
 TYPE(params_io_type), INTENT(IN)         :: pars
 
+DO n = 1,ntype
+  DO l = 1, land_pts
+    tile_frac(l,n) = frac(l,n)
+  END DO
+END DO
+
 WRITE(6,*) "Currently CABLE explicit@6.3 is not implemented"
 RETURN
 

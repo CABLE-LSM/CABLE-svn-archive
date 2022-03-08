@@ -113,7 +113,9 @@ USE jules_chemvars_mod, ONLY: chemvars_type
 USE progs_cbl_vars_mod, ONLY: progs_cbl_vars_type ! CABLE requires extra progs
 USE work_vars_mod_cbl,  ONLY: work_vars_type      ! and some kept thru timestep
 USE cable_fields_mod,   ONLY: pars_io_cbl         ! and veg/soil parameters
-
+#if !defined(UM_JULES)
+USE model_grid_mod,     ONLY : latitude, longitude
+#endif
 !Common modules
 USE ereport_mod,              ONLY:                                            &
   ereport
@@ -801,42 +803,75 @@ fluxes%z0m_surft(:,:) = 0.0
   hcons_soilt(:,:) = 0.0
   tile_frac(:,:) = 0.0
 
-    CALL cable_land_sf_explicit (                                              &
-            ! RETURNED per tile fields as seen by atmosphere
-            !sensible/latent heat flux (W/m^2)
-            fluxes%ftl_surft, fluxes%fqw_surft,
-            !Surface temperature (K) 
-            progs%tstar_surft,
-            !Surface friction velocity (m/s) (standard value) -> aerosols
-            aerotype%u_s_std_surft, !??? is this the right one 
+  CALL cable_land_sf_explicit (                                              &
+    !RETURNED per tile fields as seen by atmosphere
+    !sensible/latent heat flux (W/m^2)
+    fluxes%ftl_surft, fluxes%fqw_surft,
+    !Surface temperature (K) 
+    progs%tstar_surft,
+    !Surface friction velocity (m/s) (standard value) -> aerosols
+    aerotype%u_s_std_surft, !??? is this the right one 
 ! I think these need to be aggreg. over tiles for land_pt
 cd_surft, ch_surft,               &
 !this appears to be a local variable in jules_land_sf_explicit, formerly in sf_expl. pumped  into fcdch                      
 radnet_surft, 
-            !Fraction of surface moisture flux with only aerodynamic resistance for
-            !snow-free land tiles.
-            fraca, 
-            !Combined soil, stomatal and aerodynamic resistance factor for fraction
-            !(1-FRACA) of snow-free land tiles.
-            resfs,                                                      &
-            !Total resistance factor. FRACA+(1-FRACA)*RESFS for snow-free land, 1 for
-            !snow.
-            resft,                                                      &
-            ! Roughness lengths for heat and moisture/ momentum  (m)
-            fluxes%z0h_surft, fluxes%z0m_surft,           &
+    !Fraction of surface moisture flux with only aerodynamic resistance for
+    !snow-free land tiles.
+    fraca, 
+    !Combined soil, stomatal and aerodynamic resistance factor for fraction
+    !(1-FRACA) of snow-free land tiles.
+    resfs,                                                      &
+    !Total resistance factor. FRACA+(1-FRACA)*RESFS for snow-free land, 1 for
+    !snow.
+    resft,                                                      &
+    ! Roughness lengths for heat and moisture/ momentum  (m)
+    fluxes%z0h_surft, fluxes%z0m_surft,           &
 !this appears to be a local variable in jules_land_sf_explicit, formerly in sf_expl. pumped  into fcdch           
 recip_l_MO_surft, 
-            epot_surft, 
+    epot_surft, 
 !This might as well be local to CABLE
-l_tile_pts, 
-            !Surface friction velocity (m/s) (grid box)
-            u_s, 
-
-!IN 
-            !CABLE TYPES containing field data (IN OUT)
-            progs_cbl, work_cbl, pars_io_cbl )
-            !soilin, soil_cbl )
-
+!l_tile_pts, 
+    !Surface friction velocity (m/s) (grid box)
+    u_s, 
+  !CALL cable_explicit_main(                                                    &
+      !mype, timestep_number, endstep,!abandoned at 5.7 comparrison as not actually neeeded - useful ONLY 
+      !timestep, !this is available via standalone module ONLY. rightly so it is not here as it is not needed
+!IN Model fundamentals & dimensions 
+      cycleno, numcycles curr_day_number,                                      &
+      land_pts, nsurft, npft, sm_levels,                                       & !consistency - half the time we use nsl from CABLE
+      latitude, longitude,
+      land_index, surft_pts, surft_index,                     &
+      !IN Parametrs 
+      tile_frac,  !Dont fush this please  - maybe call tile_pts
+      !Re-examine consequence of setting to soilt=1      
+      psparms%bexp_soilt(:,1,:), 
+      psparms%hcon_soilt(:,1,:), 
+      psparms%satcon_soilt(:,1,:), 
+      psparms%sathh_soilt(:,1,:), 
+      psparms%smvcst_soilt(:,1,:), 
+      psparms%smvcwt_soilt(:,1,:), 
+      psparms%smvccl_soilt(:,1,:), 
+      psparms%sthu_soilt(:,1,:), !Unfrozen soil fraction of moisture content !why in parms? 
+      psparms%albsoil_soilt,   
+      psparms%cosz_ij       !cosine Zenith angle changes with dt? param??
+      co2_mmr, !USEd 
+      !IN prognostics
+      progs%snow_surft, !verify where we need snow depth on explicit call. init only?  
+      progs%canopy_surft, !water content retained in canopy ? 
+      progs%canht_pft, progs%lai_pft, !canopy height/ LAI                                &
+      !IN met forcing
+      forcing%lw_down_ij ,                                               &
+      fluxes%sw_surft, &    ! Surface net shortwave on tiles (W/m2) 
+      forcing%ls_rain, forcing%ls_snow, !large scale precip 
+      forcing%qw_1_ij,  !  Total water content (Kg/Kg)  !this appears to be what we need now
+      forcing%tl_1_ij, ! Ice/liquid water temperature (k) !this appears to be what we need now
+      forcing%pstar_ij, ! Surface pressure (Pascals)
+      ainfo%z1_tq_ij, !  height of temperature data
+      ainfo%z1_uv_ij, !  height of wind data
+      coast%Fland, !this seems to be the one we want but why is it in coastal%        &
+      coast%vshr_land_ij !! wind shear surface-to-atm (m per s)!why coastal%
+!INOUT: CABLE TYPES containing field data (IN OUT)
+    progs_cbl, work_cbl, pars_io_cbl )
 
 CASE DEFAULT
   errorstatus = 101
