@@ -468,6 +468,10 @@ LOGICAL ::                                                                     &
                              !    to be calculated for use with
                              !    snow unloading.
 
+REAL :: cd_surft(land_pts,nsurft) ! Drag coefficient
+REAL :: ch_surft(land_pts,nsurft) !Transfer coefficient for heat and moisture
+REAL :: radnet_surft(land_pts,nsurft)
+
 ! Temp until the model switching is implemented for coupled mode
 ! Having a parameter until then should hopefully help the compiler eliminate
 ! dead code
@@ -763,8 +767,6 @@ CASE ( cable )
   ! initialise all INTENT(OUT) for now until CABLE is implemented
   fqw_1(:,:) = 0.0
   ftl_1(:,:) = 0.0
-fluxes%ftl_surft(:,:) = 0.0 !CABLE
-fluxes%fqw_surft(:,:) = 0.0 !CABLE
   fluxes%fqw_sicat(:,:,:) = 0.0
   fluxes%ftl_sicat(:,:,:) = 0.0
   fluxes%fsmc_pft(:,:) = 0.0
@@ -780,7 +782,6 @@ fluxes%fqw_surft(:,:) = 0.0 !CABLE
   ashtf_prime(:,:,:) = 0.0
   ashtf_prime_sea(:,:) = 0.0
   ashtf_prime_surft(:,:) = 0.0
-epot_surft(:,:) = 0.0
   fraca(:,:) = 0.0
   resfs(:,:) = 0.0
   resft(:,:) = 0.0
@@ -792,45 +793,25 @@ epot_surft(:,:) = 0.0
   dtstar_sea(:,:) = 0.0
   dtstar_sice(:,:,:) = 0.0
   z0hssi(:,:) = 0.0
-fluxes%z0h_surft(:,:) = 0.0
   z0mssi(:,:) = 0.0
-fluxes%z0m_surft(:,:) = 0.0
   chr1p5m(:,:) = 0.0
   chr1p5m_sice(:,:) = 0.0
   canhc_surft(:,:) = 0.0
   wt_ext_surft(:,:,:) = 0.0
   flake(:,:) = 0.0
   hcons_soilt(:,:) = 0.0
-  tile_frac(:,:) = 0.0
 
   CALL cable_land_sf_explicit (                                              &
     !RETURNED per tile fields as seen by atmosphere
-    !sensible/latent heat flux (W/m^2)
-    fluxes%ftl_surft, fluxes%fqw_surft,
-    !Surface temperature (K) 
-    progs%tstar_surft,
-    !Surface friction velocity (m/s) (standard value) -> aerosols
+    fluxes%ftl_surft, fluxes%fqw_surft, progs%tstar_surft,                     &
     aerotype%u_s_std_surft, !??? is this the right one 
-! I think these need to be aggreg. over tiles for land_pt
-cd_surft, ch_surft,               &
-!this appears to be a local variable in jules_land_sf_explicit, formerly in sf_expl. pumped  into fcdch                      
-radnet_surft, 
-    !Fraction of surface moisture flux with only aerodynamic resistance for
-    !snow-free land tiles.
-    fraca, 
-    !Combined soil, stomatal and aerodynamic resistance factor for fraction
-    !(1-FRACA) of snow-free land tiles.
-    resfs,                                                      &
-    !Total resistance factor. FRACA+(1-FRACA)*RESFS for snow-free land, 1 for
-    !snow.
-    resft,                                                      &
+    cd_surft, ch_surft, radnet_surft, 
+    fraca, resfs, resft,                                                      &
     ! Roughness lengths for heat and moisture/ momentum  (m)
     fluxes%z0h_surft, fluxes%z0m_surft,           &
 !this appears to be a local variable in jules_land_sf_explicit, formerly in sf_expl. pumped  into fcdch           
 recip_l_MO_surft, 
     epot_surft, 
-!This might as well be local to CABLE
-!l_tile_pts, 
     !Surface friction velocity (m/s) (grid box)
     u_s, 
   !CALL cable_explicit_main(                                                    &
