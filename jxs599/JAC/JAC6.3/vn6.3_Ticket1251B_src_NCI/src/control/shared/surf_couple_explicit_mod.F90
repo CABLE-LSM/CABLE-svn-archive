@@ -12,9 +12,10 @@ MODULE surf_couple_explicit_mod
 
 USE jules_gridinit_sf_explicit_mod, ONLY: jules_gridinit_sf_explicit
 USE jules_land_sf_explicit_mod,     ONLY: jules_land_sf_explicit
-USE cable_land_sf_explicit_mod,     ONLY: cable_land_sf_explicit
 USE jules_ssi_sf_explicit_mod,      ONLY: jules_ssi_sf_explicit
 USE jules_griddiag_sf_explicit_mod, ONLY: jules_griddiag_sf_explicit
+
+USE cable_land_sf_explicit_mod,     ONLY: cable_land_sf_explicit
 
 USE um_types, ONLY: real_jlslsm
 
@@ -113,9 +114,7 @@ USE jules_chemvars_mod, ONLY: chemvars_type
 USE progs_cbl_vars_mod, ONLY: progs_cbl_vars_type ! CABLE requires extra progs
 USE work_vars_mod_cbl,  ONLY: work_vars_type      ! and some kept thru timestep
 USE cable_fields_mod,   ONLY: pars_io_cbl         ! and veg/soil parameters
-#if !defined(UM_JULES)
-USE model_grid_mod,     ONLY : latitude, longitude
-#endif
+
 !Common modules
 USE ereport_mod,              ONLY:                                            &
   ereport
@@ -215,6 +214,8 @@ REAL(KIND=real_jlslsm), INTENT(IN) ::                                          &
 REAL(KIND=real_jlslsm), INTENT(IN) ::                                          &
   flandg(pdims_s%i_start:pdims_s%i_end,pdims_s%j_start:pdims_s%j_end)
 !JULES aero module
+REAL(KIND=real_jlslsm) ::                                       &
+  fflandg(pdims_s%i_start:pdims_s%i_end,pdims_s%j_start:pdims_s%j_end)
 REAL(KIND=real_jlslsm), INTENT(IN) ::                                          &
   co2_3d_ij(co2_dim_len, co2_dim_row)
 !JULES trifctl module
@@ -468,10 +469,6 @@ LOGICAL ::                                                                     &
                              !    to be calculated for use with
                              !    snow unloading.
 
-REAL :: cd_surft(land_pts,nsurft) ! Drag coefficient
-REAL :: ch_surft(land_pts,nsurft) !Transfer coefficient for heat and moisture
-REAL :: radnet_surft(land_pts,nsurft)
-
 ! Temp until the model switching is implemented for coupled mode
 ! Having a parameter until then should hopefully help the compiler eliminate
 ! dead code
@@ -486,9 +483,6 @@ CHARACTER(LEN=*), PARAMETER :: RoutineName='SURF_COUPLE_EXPLICIT'
 !-----------------------------------------------------------------------------
 !End of header
 IF (lhook) CALL dr_hook(ModuleName//':'//RoutineName,zhook_in,zhook_handle)
-
-SELECT CASE( lsm_id )
-CASE ( jules )
 
   ! Change 2d UM clay to 1d jules clay content for soil respiration
   ! Soil tiling not currently in the UM, so broadcast ij value to all tiles.
@@ -542,6 +536,8 @@ CASE ( jules )
     END DO
   END DO
 
+SELECT CASE( lsm_id )
+CASE ( jules )
 
   CALL jules_land_sf_explicit (                                                &
     !IN date-related values
@@ -656,6 +652,105 @@ CASE ( jules )
     chemvars%flux_o3_pft, chemvars%fo3_pft                                     &
     )
 
+CASE ( cable )
+
+  ! initialise all INTENT(OUT) for now until CABLE is implemented
+  fqw_1(:,:) = 0.0
+  ftl_1(:,:) = 0.0
+  fluxes%fqw_sicat(:,:,:) = 0.0
+  fluxes%ftl_sicat(:,:,:) = 0.0
+  fluxes%fsmc_pft(:,:) = 0.0
+  fluxes%emis_surft(:,:) = 0.0
+  radnet_sice(:,:,:) = 0.0
+  rhokm_1(:,:) = 0.0
+  rhokm_land(:,:) = 0.0
+  rhokm_ssi(:,:) = 0.0
+  cdr10m(:,:) = 0.0
+  alpha1(:,:) = 0.0
+  alpha1_sea(:,:) = 0.0
+  alpha1_sice(:,:,:) = 0.0
+  ashtf_prime(:,:,:) = 0.0
+  ashtf_prime_sea(:,:) = 0.0
+  ashtf_prime_surft(:,:) = 0.0
+  fraca(:,:) = 0.0
+  resfs(:,:) = 0.0
+  resft(:,:) = 0.0
+  rhokh(:,:) = 0.0
+  rhokh_surft(:,:) = 0.0
+  rhokh_sice(:,:,:) = 0.0
+  rhokh_sea(:,:) = 0.0
+  dtstar_surft(:,:) = 0.0
+  dtstar_sea(:,:) = 0.0
+  dtstar_sice(:,:,:) = 0.0
+  z0hssi(:,:) = 0.0
+  z0mssi(:,:) = 0.0
+  chr1p5m(:,:) = 0.0
+  chr1p5m_sice(:,:) = 0.0
+  canhc_surft(:,:) = 0.0
+  wt_ext_surft(:,:,:) = 0.0
+  flake(:,:) = 0.0
+  hcons_soilt(:,:) = 0.0
+
+  CALL cable_land_sf_explicit (                                              &
+		!RETURNED per tile fields as seen by atmosphere
+    fluxes%ftl_surft, fluxes%fqw_surft, progs%tstar_surft,                     &
+    aerotype%u_s_std_surft, !??? is this the right one 
+    cd_surft, ch_surft, radnet_surft, 
+    fraca, resfs, resft,                                                      &
+    ! Roughness lengths for heat and moisture/ momentum  (m)
+    fluxes%z0h_surft, fluxes%z0m_surft,           &
+!this appears to be a local variable in jules_land_sf_explicit, formerly in sf_expl. pumped  into fcdch           
+recip_l_MO_surft, 
+    epot_surft, 
+    !Surface friction velocity (m/s) (grid box)
+    u_s, 
+		!!iCALL cable_explicit_main(                                                    &
+    !mype, timestep_number, endstep,!abandoned at 5.7 comparrison as not actually neeeded - useful ONLY 
+    !timestep, !this is available via standalone module ONLY. rightly so it is not here as it is not needed
+		!IN Model fundamentals & dimensions 
+    cycleno, numcycles curr_day_number,                                      &
+    land_pts, nsurft, npft, sm_levels,                                       & !consistency - half the time we use nsl from CABLE
+    latitude, longitude,
+    land_index, surft_pts, surft_index,                     &
+    !IN Parametrs 
+    tile_frac,  !Dont fush this please  - maybe call tile_pts
+    !Re-examine consequence of setting to soilt=1      
+    psparms%bexp_soilt(:,1,:), 
+    psparms%hcon_soilt(:,1,:), 
+    psparms%satcon_soilt(:,1,:), 
+    psparms%sathh_soilt(:,1,:), 
+    psparms%smvcst_soilt(:,1,:), 
+    psparms%smvcwt_soilt(:,1,:), 
+    psparms%smvccl_soilt(:,1,:), 
+    psparms%sthu_soilt(:,1,:), !Unfrozen soil fraction of moisture content !why in parms? 
+    psparms%albsoil_soilt,   
+    psparms%cosz_ij       !cosine Zenith angle changes with dt? param??
+    co2_mmr, !USEd 
+    !IN prognostics
+    progs%snow_surft, !verify where we need snow depth on explicit call. init only?  
+    progs%canopy_surft, !water content retained in canopy ? 
+    progs%canht_pft, progs%lai_pft, !canopy height/ LAI                                &
+    !IN met forcing
+    forcing%lw_down_ij ,                                               &
+    fluxes%sw_surft, &    ! Surface net shortwave on tiles (W/m2) 
+    forcing%ls_rain, forcing%ls_snow, !large scale precip 
+    forcing%qw_1_ij,  !  Total water content (Kg/Kg)  !this appears to be what we need now
+    forcing%tl_1_ij, ! Ice/liquid water temperature (k) !this appears to be what we need now
+    forcing%pstar_ij, ! Surface pressure (Pascals)
+    ainfo%z1_tq_ij, !  height of temperature data
+    ainfo%z1_uv_ij, !  height of wind data
+    coast%Fland, !this seems to be the one we want but why is it in coastal%        &
+    coast%vshr_land_ij !! wind shear surface-to-atm (m per s)!why coastal%
+		!INOUT: CABLE TYPES containing field data (IN OUT)
+    progs_cbl, work_cbl, pars_io_cbl )
+
+CASE DEFAULT
+  errorstatus = 101
+  WRITE(jules_message,'(A,I0)') 'Unrecognised surface scheme. lsm_id = ',      &
+     lsm_id
+  CALL ereport(RoutineName, errorstatus, jules_message)
+
+END SELECT
 
   CALL jules_ssi_sf_explicit (                                                 &
     !IN values defining field dimensions and subset to be processed :
@@ -664,7 +759,7 @@ CASE ( jules )
     bq_1,bt_1,ainfo%z1_uv_ij,z1_uv_top,ainfo%z1_tq_ij,z1_tq_top,               &
     forcing%qw_1_ij,forcing%tl_1_ij,                                           &
     !IN soil/vegetation/land surface data :
-    flandg(pdims%i_start:pdims%i_end,pdims%j_start:pdims%j_end),               &
+    fflandg(pdims%i_start:pdims%i_end,pdims%j_start:pdims%j_end),               &
     !IN sea/sea-ice data :
     ainfo%ice_fract_ncat_sicat,progs%k_sice_sicat,                             &
     progs%z0m_sice_fmd, progs%z0m_sice_skin,                                   &
@@ -758,109 +853,6 @@ CASE ( jules )
   END DO
 #endif
 
-
-CASE ( cable )
-  ! for testing LSM switch
-  WRITE(jules_message,'(A)') "CABLE not yet implemented"
-  CALL jules_print(RoutineName, jules_message)
-
-  ! initialise all INTENT(OUT) for now until CABLE is implemented
-  fqw_1(:,:) = 0.0
-  ftl_1(:,:) = 0.0
-  fluxes%fqw_sicat(:,:,:) = 0.0
-  fluxes%ftl_sicat(:,:,:) = 0.0
-  fluxes%fsmc_pft(:,:) = 0.0
-  fluxes%emis_surft(:,:) = 0.0
-  radnet_sice(:,:,:) = 0.0
-  rhokm_1(:,:) = 0.0
-  rhokm_land(:,:) = 0.0
-  rhokm_ssi(:,:) = 0.0
-  cdr10m(:,:) = 0.0
-  alpha1(:,:) = 0.0
-  alpha1_sea(:,:) = 0.0
-  alpha1_sice(:,:,:) = 0.0
-  ashtf_prime(:,:,:) = 0.0
-  ashtf_prime_sea(:,:) = 0.0
-  ashtf_prime_surft(:,:) = 0.0
-  fraca(:,:) = 0.0
-  resfs(:,:) = 0.0
-  resft(:,:) = 0.0
-  rhokh(:,:) = 0.0
-  rhokh_surft(:,:) = 0.0
-  rhokh_sice(:,:,:) = 0.0
-  rhokh_sea(:,:) = 0.0
-  dtstar_surft(:,:) = 0.0
-  dtstar_sea(:,:) = 0.0
-  dtstar_sice(:,:,:) = 0.0
-  z0hssi(:,:) = 0.0
-  z0mssi(:,:) = 0.0
-  chr1p5m(:,:) = 0.0
-  chr1p5m_sice(:,:) = 0.0
-  canhc_surft(:,:) = 0.0
-  wt_ext_surft(:,:,:) = 0.0
-  flake(:,:) = 0.0
-  hcons_soilt(:,:) = 0.0
-
-  CALL cable_land_sf_explicit (                                              &
-    !RETURNED per tile fields as seen by atmosphere
-    fluxes%ftl_surft, fluxes%fqw_surft, progs%tstar_surft,                     &
-    aerotype%u_s_std_surft, !??? is this the right one 
-    cd_surft, ch_surft, radnet_surft, 
-    fraca, resfs, resft,                                                      &
-    ! Roughness lengths for heat and moisture/ momentum  (m)
-    fluxes%z0h_surft, fluxes%z0m_surft,           &
-!this appears to be a local variable in jules_land_sf_explicit, formerly in sf_expl. pumped  into fcdch           
-recip_l_MO_surft, 
-    epot_surft, 
-    !Surface friction velocity (m/s) (grid box)
-    u_s, 
-  !CALL cable_explicit_main(                                                    &
-      !mype, timestep_number, endstep,!abandoned at 5.7 comparrison as not actually neeeded - useful ONLY 
-      !timestep, !this is available via standalone module ONLY. rightly so it is not here as it is not needed
-!IN Model fundamentals & dimensions 
-      cycleno, numcycles curr_day_number,                                      &
-      land_pts, nsurft, npft, sm_levels,                                       & !consistency - half the time we use nsl from CABLE
-      latitude, longitude,
-      land_index, surft_pts, surft_index,                     &
-      !IN Parametrs 
-      tile_frac,  !Dont fush this please  - maybe call tile_pts
-      !Re-examine consequence of setting to soilt=1      
-      psparms%bexp_soilt(:,1,:), 
-      psparms%hcon_soilt(:,1,:), 
-      psparms%satcon_soilt(:,1,:), 
-      psparms%sathh_soilt(:,1,:), 
-      psparms%smvcst_soilt(:,1,:), 
-      psparms%smvcwt_soilt(:,1,:), 
-      psparms%smvccl_soilt(:,1,:), 
-      psparms%sthu_soilt(:,1,:), !Unfrozen soil fraction of moisture content !why in parms? 
-      psparms%albsoil_soilt,   
-      psparms%cosz_ij       !cosine Zenith angle changes with dt? param??
-      co2_mmr, !USEd 
-      !IN prognostics
-      progs%snow_surft, !verify where we need snow depth on explicit call. init only?  
-      progs%canopy_surft, !water content retained in canopy ? 
-      progs%canht_pft, progs%lai_pft, !canopy height/ LAI                                &
-      !IN met forcing
-      forcing%lw_down_ij ,                                               &
-      fluxes%sw_surft, &    ! Surface net shortwave on tiles (W/m2) 
-      forcing%ls_rain, forcing%ls_snow, !large scale precip 
-      forcing%qw_1_ij,  !  Total water content (Kg/Kg)  !this appears to be what we need now
-      forcing%tl_1_ij, ! Ice/liquid water temperature (k) !this appears to be what we need now
-      forcing%pstar_ij, ! Surface pressure (Pascals)
-      ainfo%z1_tq_ij, !  height of temperature data
-      ainfo%z1_uv_ij, !  height of wind data
-      coast%Fland, !this seems to be the one we want but why is it in coastal%        &
-      coast%vshr_land_ij !! wind shear surface-to-atm (m per s)!why coastal%
-!INOUT: CABLE TYPES containing field data (IN OUT)
-    progs_cbl, work_cbl, pars_io_cbl )
-
-CASE DEFAULT
-  errorstatus = 101
-  WRITE(jules_message,'(A,I0)') 'Unrecognised surface scheme. lsm_id = ',      &
-     lsm_id
-  CALL ereport(RoutineName, errorstatus, jules_message)
-
-END SELECT
 
 IF (lhook) CALL dr_hook(ModuleName//':'//RoutineName,zhook_out,zhook_handle)
 RETURN
