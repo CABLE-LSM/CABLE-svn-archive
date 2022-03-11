@@ -1848,7 +1848,11 @@ CONTAINS
 
     ! TIME
     STATUS = NF90_GET_ATT( FILE_ID, NF90_GLOBAL, "Valid restart date", RSTDATE )
+
+    print *, 'getting the global attribute in file A', fname
+
     IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
+    print *, 'getting the global attribute in file B', fname,Curyear
 !!$
     WRITE(CYEAR, FMT="(I4)") CurYear
     CDATE = '01/01/'//CYEAR

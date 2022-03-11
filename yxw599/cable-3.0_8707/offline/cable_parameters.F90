@@ -90,6 +90,9 @@ MODULE cable_param_module
   REAL,    DIMENSION(:, :),       ALLOCATABLE :: inNfix
   REAL,    DIMENSION(:, :),       ALLOCATABLE :: inPwea
   REAL,    DIMENSION(:, :),       ALLOCATABLE :: inPdust
+  ! added ypwang 8/3/2022
+  REAL,    DIMENSION(:, :),       ALLOCATABLE :: inPfert
+  REAL,    DIMENSION(:, :),       ALLOCATABLE :: inNfert
 
   ! Temporary values for reading IGBP soil map Q.Zhang @ 12/20/2010
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: inswilt
@@ -389,6 +392,9 @@ CONTAINS
        ALLOCATE( inNfix(nlon, nlat) )
        ALLOCATE( inPwea(nlon, nlat) )
        ALLOCATE( inPdust(nlon, nlat) )
+       ! added by ypwang 8/3/2022
+       ALLOCATE( inPfert(nlon, nlat) )
+       ALLOCATE( inNfert(nlon, nlat) )
 
        ok = NF90_INQ_VARID(ncid, 'area', varID)
        IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding area.')
@@ -420,11 +426,32 @@ CONTAINS
        ok = NF90_GET_VAR(ncid, varID, inPdust)
        IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading Pdust.')
 
+       ok = NF90_INQ_VARID(ncid, 'Nfer', varID)
+       IF (ok /= NF90_NOERR) then
+         print *, 'N fertilizer data are not available'
+         inNfert=4.0   ! gN/m2/yr
+       else  
+         ok = NF90_GET_VAR(ncid, varID, inNfert)
+         IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading Nfer')
+       endif
+
+       ok = NF90_INQ_VARID(ncid, 'Pfer', varID)
+       IF (ok /= NF90_NOERR) then
+         print *, 'P fertilizer data are not available'
+         inPfert=0.7    !g P/m2/yr
+       else
+         ok = NF90_GET_VAR(ncid, varID, inPfert)
+         IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading Pfer')
+       endif  
+
        ! change units from g/m2/yr to g/m2/day
        inNdep  = inNdep  / 365.0
        inNfix  = inNfix  / 365.0
        inPwea  = inPwea  / 365.0
        inPdust = inPdust / 365.0
+       ! added by ypw
+       inPfert = inPfert / 365.0
+       inNfert = inNfert / 365.0
 
     ENDIF
 
@@ -1680,6 +1707,7 @@ CONTAINS
     !   inNfix         - via cable_param_module
     !   inPdust        - via cable_param_module
     !   inPwea         - via cable_param_module
+    !YPW: use MAX function to remove negative N or P inputs
 
     USE casaparm, ONLY: cropland, croplnd2
     IMPLICIT NONE
@@ -1699,38 +1727,46 @@ CONTAINS
           casamet%areacell(hh) = patch(hh)%frac                                  &
                * inArea(landpt(ee)%ilon, landpt(ee)%ilat)
           casaflux%Nmindep(hh) = patch(hh)%frac                                  &
-               * inNdep(landpt(ee)%ilon, landpt(ee)%ilat)
+               * max(0.0,inNdep(landpt(ee)%ilon, landpt(ee)%ilat))
           casaflux%Nminfix(hh) = patch(hh)%frac                                  &
-               * inNfix(landpt(ee)%ilon, landpt(ee)%ilat)
+               * max(0.0,inNfix(landpt(ee)%ilon, landpt(ee)%ilat))
           casaflux%Pdep(hh)    = patch(hh)%frac                                  &
-               * inPdust(landpt(ee)%ilon, landpt(ee)%ilat)
+               * max(0.0,inPdust(landpt(ee)%ilon, landpt(ee)%ilat))
           casaflux%Pwea(hh)    = patch(hh)%frac                                  &
-               * inPwea(landpt(ee)%ilon, landpt(ee)%ilat)
+               * max(0.0,inPwea(landpt(ee)%ilon, landpt(ee)%ilat))
           !! vh !! fluxes shouldn't be weighted by patch frac.
           !   IF (CABLE_USER%POPLUC) then
-          casaflux%Nmindep(hh) =  inNdep(landpt(ee)%ilon, landpt(ee)%ilat)
+          casaflux%Nmindep(hh) =  max(0.0,inNdep(landpt(ee)%ilon, landpt(ee)%ilat))
           casaflux%Nminfix(hh) = MAX( inNfix(landpt(ee)%ilon, landpt(ee)%ilat), &
                8.0e-4)
           !vh ! minimum fixation rate of 3 kg N ha-1y-1 (8e-4 g N m-2 d-1)
           ! Cleveland, Cory C., et al. "Global patterns of terrestrial biological nitrogen (N2) &
           !fixation in natural ecosystems." Global biogeochemical cycles 13.2 (1999): 623-645.
-          casaflux%Pdep(hh)    = inPdust(landpt(ee)%ilon, landpt(ee)%ilat)
-          casaflux%Pwea(hh)    = inPwea(landpt(ee)%ilon, landpt(ee)%ilat)
+          casaflux%Pdep(hh)    = max(0.0,inPdust(landpt(ee)%ilon, landpt(ee)%ilat))
+          casaflux%Pwea(hh)    = max(0.0,inPwea(landpt(ee)%ilon, landpt(ee)%ilat))
           !  ENDIF
 
           ! fertilizer addition is included here
           IF (veg%iveg(hh) == cropland .OR. veg%iveg(hh) == croplnd2) THEN
              ! P fertilizer =13 Mt P globally in 1994
+
+      !       casaflux%Pdep(hh)    = casaflux%Pdep(hh)                             &
+      !            + 0.7 / 365.0
+      !       casaflux%Nmindep(hh) = casaflux%Nmindep(hh)                          &
+      !            + 4.0 / 365.0
+      ! ypw wang use the time-varying and spatially explicit N P fertilizer addition rate based on Tian et al. Nature paper)
              casaflux%Pdep(hh)    = casaflux%Pdep(hh)                             &
-                  + 0.7 / 365.0
+                  + max(0.0,inPfert(landpt(ee)%ilon, landpt(ee)%ilat))
              casaflux%Nmindep(hh) = casaflux%Nmindep(hh)                          &
-                  + 4.0 / 365.0
+                  + max(0.0,inNfert(landpt(ee)%ilon, landpt(ee)%ilat))
+
           ENDIF
+
        ENDDO
     ENDDO
-    DEALLOCATE(inSorder, inArea, inNdep, inNfix, inPwea, inPdust)
+    DEALLOCATE(inSorder, inArea, inNdep, inNfix, inPwea, inPdust, inNfert, inPfert)
 
-    !write(668,*) 'in write_cnp_params: Ndep, Nfix', casaflux%Nmindep(1), casaflux%Nminfix(1)
+!    write(668,*) 'in write_cnp_params: Ndep, Nfix', casaflux%Nmindep(1), casaflux%Nminfix(1)
 
   END SUBROUTINE write_cnp_params
   !============================================================================
@@ -2134,78 +2170,102 @@ CONTAINS
                rough%za_uv(landpt(e)%cend - landpt(e)%cstart + 1),            &
                rough%za_tq(landpt(e)%cend - landpt(e)%cstart + 1)
           WRITE(logn, *) ' Vegetation parameters: '
+
           WRITE(logn, patchfmti) 'Veg type for each active (>0% gridcell) '//  &
                'patch: ', veg%iveg(landpt(e)%cstart:landpt(e)%cend)
+
           WRITE(logn, patchfmtr) 'Vegetation height (m): ',                    &
                veg%hc(landpt(e)%cstart:(landpt(e)%cstart + landpt(e)%nap - 1))
+
           WRITE(logn, patchfmtr) 'Fraction of roots in layer 1 (-): ',         &
                veg%froot(landpt(e)%cstart:(landpt(e)%cstart + landpt(e)%nap   &
                - 1), 1)
+
           WRITE(logn, patchfmtr) 'Fraction of roots in layer 2 (-): ',         &
                veg%froot(landpt(e)%cstart:(landpt(e)%cstart + landpt(e)%nap   &
                - 1), 2)
+
           WRITE(logn, patchfmtr) 'Fraction of roots in layer 3 (-): ',         &
                veg%froot(landpt(e)%cstart:(landpt(e)%cstart + landpt(e)%nap   &
                - 1), 3)
+
           WRITE(logn, patchfmtr) 'Fraction of roots in layer 4 (-): ',         &
                veg%froot(landpt(e)%cstart:(landpt(e)%cstart + landpt(e)%nap   &
                - 1), 4)
+
           WRITE(logn, patchfmtr) 'Fraction of roots in layer 5 (-): ',         &
                veg%froot(landpt(e)%cstart:(landpt(e)%cstart + landpt(e)%nap   &
                - 1), 5)
+
           WRITE(logn, patchfmtr) 'Fraction of roots in layer 6 (-): ',         &
                veg%froot(landpt(e)%cstart:(landpt(e)%cstart + landpt(e)%nap   &
                - 1), 6)
+
           WRITE(logn, patchfmtr) 'Fraction of plants which are C4 (-): ',      &
                veg%frac4(landpt(e)%cstart:(landpt(e)%cstart + landpt(e)%nap   &
                - 1))
+
           WRITE(logn, patchfmtr) 'Maximum canopy water storage (mm/LAI): ',    &
                veg%canst1(landpt(e)%cstart:(landpt(e)%cstart + landpt(e)%nap  &
                - 1))
+
           WRITE(logn, patchfmte)                                               &
                'Max pot elec transport rate top leaf (mol/m2/s): ',           &
                veg%ejmax(landpt(e)%cstart:(landpt(e)%cstart + landpt(e)%nap   &
                - 1))
+
           WRITE(logn, patchfmte)                                               &
                'Max RuBP carboxylation rate top leaf (mol/m^2/s): ',          &
                veg%vcmax(landpt(e)%cstart:(landpt(e)%cstart + landpt(e)%nap   &
                - 1))
+
           WRITE(logn, patchfmtr) 'Plant respiration coeff @ 20 C '//           &
                '(mol/m^2/s): ', veg%rp20(landpt(e)%cstart:(landpt(e)%cstart   &
                + landpt(e)%nap - 1))
+
           WRITE(logn, patchfmtr)                                               &
                'Temperature coef nonleaf plant respiration (1/C): ',          &
                veg%rpcoef(landpt(e)%cstart:(landpt(e)%cstart + landpt(e)%nap  &
                - 1))
+
           WRITE(logn, patchfmtr) 'Sheltering factor (-): ',                    &
                veg%shelrb(landpt(e)%cstart:(landpt(e)%cstart + landpt(e)%nap  &
                - 1))
+
           WRITE(logn, patchfmtr) 'Chararacteristic legnth of leaf (m): ',      &
                veg%dleaf(landpt(e)%cstart:(landpt(e)%cstart + landpt(e)%nap   &
                - 1))
+
           WRITE(logn, patchfmtr) 'Leaf angle parameter (-): ',                 &
                veg%xfang(landpt(e)%cstart:(landpt(e)%cstart + landpt(e)%nap   &
                - 1))
+
           WRITE(logn, patchfmtr)                                               &
                'Min temperature for start of photosynthesis (C): ',           &
                veg%tminvj(landpt(e)%cstart:(landpt(e)%cstart + landpt(e)%nap  &
                - 1))
+
           WRITE(logn, patchfmtr)                                               &
                'Max temperature for start of photosynthesis (C): ',           &
                veg%tmaxvj(landpt(e)%cstart:(landpt(e)%cstart + landpt(e)%nap  &
                - 1))
+
           WRITE(logn, patchfmtr) 'Stomatal sensitivity to soil water: ',       &
                veg%vbeta(landpt(e)%cstart:(landpt(e)%cstart + landpt(e)%nap   &
                - 1))
+
           WRITE(logn, patchfmtr) 'Modifier for surface albedo in near IR '//   &
                'band: ', veg%xalbnir(landpt(e)%cstart:(landpt(e)%cstart +     &
                landpt(e)%nap - 1))
+
           WRITE(logn, patchfmtr) 'a1 parameter in leaf stomatal model  ',      &
                veg%a1gs(landpt(e)%cstart:(landpt(e)%cstart +                  &
                landpt(e)%nap - 1))
+
           WRITE(logn, patchfmtr) 'd0 parameter in leaf stomatal model  ',      &
                veg%d0gs(landpt(e)%cstart:(landpt(e)%cstart +                  &
                landpt(e)%nap - 1))
+
           IF (icycle == 0) THEN
              WRITE(logn,'(4X, A50, F12.4)')                                     &
                   'Plant carbon rate constant pool 1 (1/year): ', bgc%ratecp(1)
@@ -2241,7 +2301,9 @@ CONTAINS
                + landpt(e)%nap - 1))
           WRITE(logn,patchfmtr) 'Soil respiration coeff @ 20C (mol/m^2/s): ',  &
                veg%rs20(landpt(e)%cstart:(landpt(e)%cstart+landpt(e)%nap-1))
+
           !              soil%rs20(landpt(e)%cstart:(landpt(e)%cstart+landpt(e)%nap-1))
+
           WRITE(logn, patchfmtr) 'Suction at saturation (m): ',                &
                soil%sucs(landpt(e)%cstart:(landpt(e)%cstart+landpt(e)%nap-1))
           WRITE(logn, patchfmtr) 'Soil density (kg/m^3): ',                    &
@@ -2467,23 +2529,30 @@ CONTAINS
                   casamet%areacell(landpt(e)%cstart :                             &
                   (landpt(e)%cstart + landpt(e)%nap-1) )*1.0e-9
 
+          ! both N and P external input rates are read from grid info in g N or P/m2/yr
+          ! but are divided by 365 in write_cnp_params, the unit is g N or P/m2/day
+          ! for crop patches, deposition input includes fertilizer addtion
+          ! ypw 8-3-2022
              WRITE(logn,patchfmtr)                                              &
-                  '          Nitrogen deposition   (g N/m^2/year): ',             &
+                  '          Nitrogen deposition   (g N/m^2/day): ',             &
                   casaflux%Nmindep(landpt(e)%cstart :                             &
                   (landpt(e)%cstart + landpt(e)%nap-1) )
 
+             WRITE(logn,*) 'max_vegpatches=', max_vegpatches      
+
              WRITE(logn,patchfmtr)                                              &
-                  '          Nitrogen fixation     (g N/m^2/year): ',             &
+                  '          Nitrogen fixation     (g N/m^2/day): ',             &
                   casaflux%Nminfix(landpt(e)%cstart :                             &
                   (landpt(e)%cstart+landpt(e)%nap-1) )
 
+
              WRITE(logn,patchfmtr)                                              &
-                  '          Phosphorus weathering (g P/m^2/year): ',             &
+                  '          Phosphorus weathering (g P/m^2/day): ',             &
                   casaflux%Pwea(landpt(e)%cstart :                                &
                   (landpt(e)%cstart+landpt(e)%nap-1) )
 
              WRITE(logn,patchfmtr)                                              &
-                  '          Phosphorus in dust    (g P/m^2/year): ',             &
+                  '          Phosphorus in dust    (g P/m^2/day): ',             &
                   casaflux%Pdep(landpt(e)%cstart :                                &
                   (landpt(e)%cstart+landpt(e)%nap-1) )
 

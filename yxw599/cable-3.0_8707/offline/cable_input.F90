@@ -2655,7 +2655,6 @@ CONTAINS
          rad,logn,vegparmnew,smoy, TFRZ, LUC_EXPT)
 
 
-
     ! Zero out lai where there is no vegetation acc. to veg. index
     WHERE ( veg%iveg(:) .GE. 14 ) veg%vlai = 0.
 
@@ -2764,6 +2763,7 @@ CONTAINS
        WRITE(*,*)    ' Pre-loaded default initialisations are used.'
     END IF ! if restart file exists
 
+
     ! Overwrite default values by those available in met file:
     CALL get_parameters_met(soil,veg,bgc,rough,completeSet)
 
@@ -2795,8 +2795,9 @@ CONTAINS
     CALL check_parameter_values(soil,veg,ssnow)
 
     ! Write per-site parameter values to log file if requested:
-    CALL report_parameters(logn,soil,veg,bgc,rough,ssnow,canopy, &
-         casamet,casapool,casaflux,phen,vegparmnew,verbose)
+    ! ypw: may crahs if maxpatch >10
+  !  CALL report_parameters(logn,soil,veg,bgc,rough,ssnow,canopy, &
+ !        casamet,casapool,casaflux,phen,vegparmnew,verbose)
 
 
   END SUBROUTINE load_parameters

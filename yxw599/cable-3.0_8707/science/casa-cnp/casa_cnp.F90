@@ -850,14 +850,19 @@ END SUBROUTINE casa_rplant1
       casaflux%crmplant(:,froot) = casaflux%crmplant(:,froot) + delcrmfroot(:)
   !    casaflux%Cnpp(:) = casaflux%Cnpp(:) -delcrmwood(:)-delcrmfroot(:)
       casaflux%crgplant(:) = 0.0
+      ! The logic above can still lead to a negative NPP as
+      ! SUM(casaflux%crmplant(:,:),2) can be a tiny number, if this
+      ! happens, set NPP to zero
+      WHERE(casaflux%Cnpp < 0.0)
+         casaflux%cnpp(:) = 0.0
+      ENDWHERE
+
     ENDWHERE
 
-
-
-       ENDWHERE ! (casamet%iveg2/=icewater)
+    ENDWHERE ! (casamet%iveg2/=icewater)
   
-  casaflux%Cnpp(:) = casaflux%Cgpp(:) - SUM(casaflux%crmplant(:,:),2) &
-                   - casaflux%crgplant(:)
+    casaflux%Cnpp(:) = casaflux%Cgpp(:) - SUM(casaflux%crmplant(:,:),2) &
+                     - casaflux%crgplant(:)
 
     ENDIF
 

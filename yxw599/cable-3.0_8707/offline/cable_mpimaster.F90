@@ -378,6 +378,8 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
     real(r_2), dimension(:,:,:),   allocatable,  save  :: patchfrac_new    
 
 
+ !ypw: temporary
+    integer g1,g2
 
     ! END header
 
@@ -596,6 +598,7 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
                   casaflux, sum_casapool, sum_casaflux, &
                   casamet, casabal, phen, POP, spinup,	       &
                   CEMSOIL, CTFRZ, LUC_EXPT, POPLUC )
+
 
              IF (CABLE_USER%POPLUC .AND. TRIM(CABLE_USER%POPLUC_RunType) .EQ. 'static') &
                   CABLE_USER%POPLUC= .FALSE.
