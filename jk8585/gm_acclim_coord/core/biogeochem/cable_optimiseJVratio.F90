@@ -123,6 +123,12 @@ CONTAINS
           Neff = vcmax00 + relcost_J*bjv(k)*vcmax00/4. ! effective nitrogen amount
           !for distribution between e-limited and c-limited processes
 
+          if (cable_user%acclimate_photosyn) then
+             Tgrowth = climate%mtemp(k)
+             Thome = climate%mtemp_max20(k)
+          endif
+
+          
           ! optimisation for shade leaves
           APAR = climate%APAR_leaf_shade(k,:)*1e-6;
           Dleaf = max(climate%Dleaf_shade(k,:), 50.0)*1e-3 ! Pa -> kPa
@@ -130,11 +136,6 @@ CONTAINS
           cs = climate%cs_shade(k,:)*1e-6
           scalex = climate%scalex_shade(k,:)
           g0 = veg%g0(k) * scalex / C%RGSWC
-
-          if (cable_user%acclimate_photosyn) then
-             Tgrowth = climate%mtemp(k)
-             Thome = climate%mtemp_max20(k)
-          endif
 
           if (coord) then
              if(diff_Ac_Aj(l_bound)*diff_Ac_Aj(u_bound)<0) then
@@ -191,6 +192,7 @@ CONTAINS
           Tleaf = climate%Tleaf_sun(k,:)
           cs = climate%cs_sun(k,:)*1e-6
           scalex = climate%scalex_sun(k,:)
+          g0 = veg%g0(k) * scalex / C%RGSWC
 
           if (coord) then
              if (diff_Ac_Aj(l_bound)*diff_Ac_Aj(u_bound)<0) then
