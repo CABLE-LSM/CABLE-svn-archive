@@ -753,8 +753,8 @@ contains
     ncleafx(:) = casabiome%ratioNCplantmax(veg%iveg(:),leaf)
     npleafx(:) = casabiome%ratioNPplantmin(veg%iveg(:),leaf)
 
-    !if (cable_user%acclimate_photosyn .AND. (.NOT. cable_user%coordinate_photosyn)) then ! does not make a difference
-    if (cable_user%acclimate_photosyn) then
+    if (cable_user%acclimate_photosyn .AND. (.NOT. cable_user%coordinate_photosyn)) then
+    !if (cable_user%acclimate_photosyn) then
        veg%bjv(:) = 2.56 - 0.0375 * climate%mtemp_max20(:) - 0.0202 * (climate%mtemp(:) - climate%mtemp_max20(:)) 
     else
        veg%bjv(:) = PHOTO%bjvref  ! 1.8245 at Tgrowth=15degC and Thome=25degC Kumarathunge et al. 2019, acclimates
@@ -911,11 +911,6 @@ contains
              else
                 relcostJ(:) = PHOTO%relcostJ_optim
              endif
-             ! only if acclim + coord: bjv decreases with growth temp: either Neff must decrease or relcostJ must increase.
-             ! if following lines are commented out, assumption is made that Neff decreases with Tgrowth
-             !if (cable_user%acclimate_photosyn) then
-             !   relcostJ(:) = relcostJ(:) * PHOTO%bjvref / veg%bjv(np)
-             !endif
           endif
 
        else ! cable_user%vcmax .eq. 'standard' or 'Walker2014'
