@@ -88,7 +88,7 @@ CHARACTER(LEN=*), PARAMETER :: routinename='VEGIN_CABLE'
 NAMELIST / cable_pftparm/ vegin
 
 !HACK:offline checks mvtype so we need to define it or get rid off the checks
-   mvtype=17    
+mvtype=ntype_max    
 !-----------------------------------------------------------------------------
 ! Read namelist
 !-----------------------------------------------------------------------------
