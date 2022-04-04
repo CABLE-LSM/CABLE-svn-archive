@@ -242,7 +242,7 @@ contains
                       j = landpt(k)%cstart+1
                       do l=1,size(POP%Iwood)
                          if ( POP%Iwood(l) == j) then
-                            CALL POP_init_single(POP,casabiome%disturbance_interval,l)
+                            CALL POP_init_single(POP,veg%disturbance_interval,l)
                             exit
                          endif
                       enddo
@@ -273,7 +273,7 @@ contains
 
                 CALL POPLUC_weights_transfer(POPLUC,POP,LUC_EXPT)
 
-                CALL POPdriver(casaflux,casabal,casabiome,POP)
+                CALL POPdriver(casaflux,casabal,veg,POP)
 
                 !MC CALL POP_IO( pop, casamet, YYYY, 'WRITE_EPI', &
                 !      ( YYYY.EQ.cable_user%YearEnd ) )
@@ -294,7 +294,7 @@ contains
              ENDIF  ! end of year
           ELSE
              IF (idoy==mdyear) THEN ! end of year
-                CALL POPdriver(casaflux, casabal, casabiome, POP)
+                CALL POPdriver(casaflux, casabal, veg, POP)
              endif
              ! CALL POP_IO( pop, casamet, YYYY, 'WRITE_EPI', &
              !         ( YYYY.EQ.cable_user%YearEnd ) )

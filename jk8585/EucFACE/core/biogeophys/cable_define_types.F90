@@ -340,8 +340,8 @@ MODULE cable_def_types_mod
      REAL(r_2), DIMENSION(:), POINTER :: clitt => null()     !
 
      ! Additional POP veg param
-     !INTEGER,   DIMENSION(:,:), POINTER :: disturbance_interval => null()
-     !REAL(r_2), DIMENSION(:,:), POINTER :: disturbance_intensity => null()
+     INTEGER,   DIMENSION(:,:), POINTER :: disturbance_interval => null()
+     REAL(r_2), DIMENSION(:,:), POINTER :: disturbance_intensity => null()
 
   END TYPE veg_parameter_type
 
@@ -1065,8 +1065,8 @@ CONTAINS
     allocate(var%ZR(mp))
     allocate(var%clitt(mp))
 
-    !allocate(var%disturbance_interval(mp,2))
-    !allocate(var%disturbance_intensity(mp,2))
+    allocate(var%disturbance_interval(mp,2))
+    allocate(var%disturbance_intensity(mp,2))
 
   END SUBROUTINE alloc_veg_parameter_type
 
@@ -1696,8 +1696,8 @@ CONTAINS
     deallocate(var%F10)
     deallocate(var%ZR)
     deallocate(var%CLitt)
-    !deallocate(var%disturbance_interval)
-    !deallocate(var%disturbance_intensity)
+    deallocate(var%disturbance_interval)
+    deallocate(var%disturbance_intensity)
     ! END IF
 
   END SUBROUTINE dealloc_veg_parameter_type
@@ -2207,8 +2207,8 @@ CONTAINS
     var%ZR       = 0
     var%clitt    = 0
 
-    !var%disturbance_interval  = 0
-    !var%disturbance_intensity = 0
+    var%disturbance_interval  = 0
+    var%disturbance_intensity = 0
 
   END SUBROUTINE zero_veg_parameter_type
 
@@ -2846,8 +2846,8 @@ CONTAINS
     write(*,*) 'veg%ZR ', var%ZR
     write(*,*) 'veg%clitt ', var%clitt
 
-    !write(*,*) 'veg%disturbance_interval ', var%disturbance_interval
-    !write(*,*) 'veg%disturbance_intensity ', var%disturbance_intensity
+    write(*,*) 'veg%disturbance_interval ', var%disturbance_interval
+    write(*,*) 'veg%disturbance_intensity ', var%disturbance_intensity
 
   END SUBROUTINE print_veg_parameter_type
 

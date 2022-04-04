@@ -2543,6 +2543,7 @@ SUBROUTINE load_parameters(met, air, ssnow, veg, bgc, soil, canopy, rough, rad, 
          DO i=1,mp
             IF (casamet%iveg2(i)==forest .OR. casamet%iveg2(i)==shrub) THEN
                Iwood(j) = i
+               veg%disturbance_interval(Iwood(j),:) = casabiome%disturbance_interval(veg%iveg(i),:)
                j = j+1
             ENDIF
          ENDDO
@@ -2550,13 +2551,13 @@ SUBROUTINE load_parameters(met, air, ssnow, veg, bgc, soil, canopy, rough, rad, 
          ! JK_test: specific for EucFACE testing
          !veg%disturbance_interval(Iwood,1) = 150.0   ! first one is partial disturbance if NDISTURB=2, otherwise total disturbance
          !veg%disturbance_interval(Iwood,2) = 1000.0
-         casabiome%disturbance_intensity(Iwood,1) = 60.0  ! only first one is used if frac_intensity1 is not input to POPstep (in %)
-         casabiome%disturbance_intensity(Iwood,2) = 60.0
+         veg%disturbance_intensity(Iwood,1) = 60.0  ! only first one is used if frac_intensity1 is not input to POPstep (in %)
+         veg%disturbance_intensity(Iwood,2) = 60.0
 
          !write(79,*) "Iwood", Iwood
          !write(79,*) "casamet%iveg2(:)", casamet%iveg2(:)
          
-         CALL POP_init( POP, casabiome%disturbance_interval(Iwood,:), mp_POP, Iwood )
+         CALL POP_init( POP, veg%disturbance_interval(Iwood,:), mp_POP, Iwood )
          IF ( .NOT. (spinup .OR. CABLE_USER%POP_fromZero )) &
               CALL POP_IO(POP, casamet, cable_user%YearStart, "READ_RST", .TRUE.)
       ENDIF

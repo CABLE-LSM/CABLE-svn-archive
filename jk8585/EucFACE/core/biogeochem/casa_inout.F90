@@ -1186,7 +1186,7 @@ contains
                   (1.0_r_2 -  max( min((POP%pop_grid(:)%stress_mortality + &
                   POP%pop_grid(:)%crowding_mortality ) &
                   /(POP%pop_grid(:)%cmass_sum+POP%pop_grid(:)%growth) + &
-                  1.0_r_2/real(casabiome%disturbance_interval(POP%Iwood,1)), 0.99_r_2), &
+                  1.0_r_2/veg%disturbance_interval(POP%Iwood,1), 0.99_r_2), &
                   0.0_r_2))**(1.0_r_2/365.0_r_2)
           ELSEWHERE
              casaflux%kplant(POP%Iwood,2) =  1.0_r_2 -  &

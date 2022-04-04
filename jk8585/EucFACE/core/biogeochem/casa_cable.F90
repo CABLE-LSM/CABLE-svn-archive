@@ -219,7 +219,7 @@ contains
 
   ! ==============================================================================
 
-  SUBROUTINE POPdriver(casaflux, casabal, casabiome, POP)
+  SUBROUTINE POPdriver(casaflux, casabal, veg, POP)
 
     use cable_def_types_mod
     use casadimension
@@ -233,10 +233,10 @@ contains
 
     implicit none
 
-    type(casa_flux),     INTENT(IN)    :: casaflux
-    type(casa_balance),  INTENT(IN)    :: casabal
-    type(casa_biome),    INTENT(IN)    :: casabiome
-    type(POP_TYPE),      INTENT(INOUT) :: POP
+    type(casa_flux),           INTENT(IN)    :: casaflux
+    type(casa_balance),        INTENT(IN)    :: casabal
+    type(veg_parameter_type),  INTENT(IN)    :: veg  ! vegetation parameters
+    type(POP_TYPE),            INTENT(INOUT) :: POP
 
     real(dp)              :: StemNPP(mp,2)
     real(dp), allocatable :: NPPtoGPP(:)
@@ -270,8 +270,8 @@ contains
        !write(85,*) "casabiome%disturbance_intensity(Iw,:)", casabiome%disturbance_intensity(Iw,:)
        !write(85,*) "casabiome%disturbance_interval(:,:)", casabiome%disturbance_interval(:,:)
        
-       CALL POPStep(pop, max(StemNPP(Iw,:)/1000.0_dp, 0.0001_dp), int(casabiome%disturbance_interval(Iw,:), i4b), &
-            real(casabiome%disturbance_intensity(Iw,:),dp), &
+       CALL POPStep(pop, max(StemNPP(Iw,:)/1000.0_dp, 0.0001_dp), int(veg%disturbance_interval(Iw,:), i4b), &
+            real(veg%disturbance_intensity(Iw,:),dp), &
             max(LAImax(Iw), 0.001_dp), Cleafmean(Iw), Crootmean(Iw), NPPtoGPP(Iw))
     endif ! CALL_POP
 

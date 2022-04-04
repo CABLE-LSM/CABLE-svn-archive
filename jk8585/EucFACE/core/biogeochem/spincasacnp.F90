@@ -265,7 +265,7 @@ contains
              !            .true., ctime, .FALSE.  )
              !            ctime = ctime+1
              if (idoy==mdyear) then ! end of year
-                call POPdriver(casaflux, casabal, casabiome, POP)
+                call POPdriver(casaflux, casabal, veg, POP)
                 !MC - ToDo - update 13CO2 harvest
                 ! CALL POP_IO( pop, casamet, nyear, 'WRITE_EPI', &
                 !     (.FALSE.))
@@ -544,7 +544,7 @@ contains
 
                 IF (idoy==mdyear) THEN ! end of year
                    !MC - ToDo - update 13CO2 harvest
-                   CALL POPdriver(casaflux, casabal, casabiome, POP)
+                   CALL POPdriver(casaflux, casabal, veg, POP)
                    ! CALL POP_IO( pop, casamet, NYEAR, 'WRITE_EPI', &
                    !     (nloop.eq.mloop .and. nyear.eq.myearspin) )
                    ! CALL WRITE_CASA_OUTPUT_NC(veg, casamet, casapool, casabal, casaflux, &
