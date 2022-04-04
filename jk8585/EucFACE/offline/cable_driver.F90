@@ -1010,7 +1010,7 @@ PROGRAM cable_offline_driver
                        CALL BLAZE_ACCOUNTING(BLAZE, climate, ktau, dels, YYYY, idoy)
 
                        call blaze_driver(blaze%ncells, blaze, simfire, casapool, casaflux, &
-                            casamet, casabiome, climate, rshootfrac, idoy, YYYY, 1, POP, veg)
+                            casamet, climate, rshootfrac, idoy, YYYY, 1, POP, veg)
 
                        call write_blaze_output_nc( BLAZE, ktau.EQ.kend .AND. YYYY.EQ.cable_user%YearEnd)
                     ENDIF
@@ -1025,7 +1025,7 @@ PROGRAM cable_offline_driver
                     ENDIF
 
                     ! one annual time-step of POP
-                    CALL POPdriver(casaflux,casabal,casabiome,POP)
+                    CALL POPdriver(casaflux,casabal,veg,POP)
 
                     IF (CABLE_USER%POPLUC) THEN
                        ! Dynamic LUC: update casa pools according to LUC transitions
@@ -1516,7 +1516,7 @@ SUBROUTINE LUCdriver( casabiome, casapool, casaflux, POP, LUC_EXPT, POPLUC, veg,
         do l=1,size(POP%Iwood)
            if( POP%Iwood(l) == j) then
               !write(79,*) ":casabiome%disturbance_interval:", casabiome%disturbance_interval
-              CALL POP_init_single(POP,casabiome%disturbance_interval,l)
+              CALL POP_init_single(POP,veg%disturbance_interval,l)
               exit
            endif
         enddo

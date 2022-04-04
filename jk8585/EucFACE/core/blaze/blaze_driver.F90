@@ -1,9 +1,9 @@
-SUBROUTINE BLAZE_DRIVER ( NCELLS, BLAZE, SF, casapool,  casaflux, casamet, casabiome, &
+SUBROUTINE BLAZE_DRIVER ( NCELLS, BLAZE, SF, casapool,  casaflux, casamet, &
      climate, shootfrac, idoy, curyear, CTLFLAG, POP, veg )
 
   use cable_def_types_mod, only: r_2
   USE CABLE_COMMON_MODULE, ONLY: IS_LEAPYEAR, DOYSOD2YMDHMS !, Esatf
-  USE CASAVARIABLE,        ONLY: casa_pool, casa_flux, casa_met, casa_biome
+  USE CASAVARIABLE,        ONLY: casa_pool, casa_flux, casa_met
   USE BLAZE_MOD,           ONLY: RUN_BLAZE, TYPE_TURNOVER, BLAZE_TURNOVER, &
        METB, STR, CWD, LEAF, WOOD, FROOT, TYPE_BLAZE, MLIT, SLIT, CLIT ! , p_surv_OzSavanna
   USE SIMFIRE_MOD,         ONLY: TYPE_SIMFIRE
@@ -21,7 +21,6 @@ SUBROUTINE BLAZE_DRIVER ( NCELLS, BLAZE, SF, casapool,  casaflux, casamet, casab
   TYPE (casa_pool),  INTENT(IN)   :: casapool
   TYPE (casa_flux),  INTENT(IN)   :: casaflux
   TYPE (casa_met ),  INTENT(IN)   :: casamet
-  TYPE (casa_biome), INTENT(IN)   :: casabiome
   TYPE (climate_type ), INTENT(IN)         :: climate
   TYPE (veg_parameter_type),  INTENT(IN) :: veg  ! vegetation parameters
   INTEGER,          INTENT(IN)         :: idoy, CurYear, CTLFLAG,ncells
@@ -157,14 +156,14 @@ SUBROUTINE BLAZE_DRIVER ( NCELLS, BLAZE, SF, casapool,  casaflux, casamet, casab
 
 
 
-  ! set burned area and fire line intensity in casabiome%disturbance_intensity for use in
+  ! set burned area and fire line intensity in veg%disturbance_intensity for use in
   ! calculating tree mortality in POP.
   DO i = 1, BLAZE%NCELLS
      DO p = 1, landpt(i)%nap  ! loop over number of active patches
         patch_index = landpt(i)%cstart + p - 1 ! patch index in CABLE vector
 !!$        IF ( casamet%lnonwood(patch_index) == 0 ) THEN ! Here woody patches
-           casabiome%disturbance_intensity(patch_index,1) = BLAZE%AB(i) ! needed for ADJUST_POP_FOR_FIRE
-           casabiome%disturbance_intensity(patch_index,2) = BLAZE%FLI(i) ! needed for ADJUST_POP_FOR_FIRE
+           veg%disturbance_intensity(patch_index,1) = BLAZE%AB(i) ! needed for ADJUST_POP_FOR_FIRE
+           veg%disturbance_intensity(patch_index,2) = BLAZE%FLI(i) ! needed for ADJUST_POP_FOR_FIRE
                
 !!$           DO nh = 1,mheights
 !!$              hgt = real(casaflux%fire_mortality_vs_height(patch_index,nh,1))
@@ -187,13 +186,13 @@ SUBROUTINE BLAZE_DRIVER ( NCELLS, BLAZE, SF, casapool,  casaflux, casamet, casab
  ! print*, 'IW', POP%Iwood
  ! print*, 'fire_mort',  casaflux%fire_mortality_vs_height(Iw,:,:)
  ! print*, 'BA: ', BLAZE%AB
- ! print*, 'dist: ', int(casabiome%disturbance_interval(Iw,:), i4b)
+ ! print*, 'dist: ', int(veg%disturbance_interval(Iw,:), i4b)
   
   POP%pop_grid(:)%fire_mortality = 0.0_dp
 !!$  CALL ADJUST_POP_FOR_FIRE(pop,int(veg%disturbance_interval(Iw,:), i4b), &
 !!$       casaflux%fire_mortality_vs_height(Iw,:,:))
-  CALL ADJUST_POP_FOR_FIRE(pop,int(casabiome%disturbance_interval(Iw,:), i4b), &
-     casabiome%disturbance_intensity(Iw,1), casabiome%disturbance_intensity(Iw,2)  )
+  CALL ADJUST_POP_FOR_FIRE(pop,int(veg%disturbance_interval(Iw,:), i4b), &
+     veg%disturbance_intensity(Iw,1), veg%disturbance_intensity(Iw,2)  )
   
   casaflux%kplant_fire(Iw,WOOD) = max(min(POP%pop_grid(:)%fire_mortality/POP%pop_grid(:)%cmass_sum, &
        0.99_dp),0.0_dp)
