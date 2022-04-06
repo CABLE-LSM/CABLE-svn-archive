@@ -20,7 +20,7 @@ implicit none
 !re-decl input args
 integer :: mp
 integer :: nrb
-LOGICAL :: jls_radiation            !runtime switch def. in cable_*main routines 
+LOGICAL :: jls_radiation            !runtime switch def. in cable_*main routines - not needed anymore
 REAL :: AlbSnow(mp,nrb) 
 REAL :: AlbSoil(mp,nrb) 
 REAL :: MetTk(mp)                   !not needed anymore
@@ -28,7 +28,7 @@ REAL :: coszen(mp)
 REAL :: SnowDepth(mp)
 REAL :: SnowODepth(mp)              !not needed anymore
 REAL :: SnowDensity(mp)
-REAL :: SoilTemp(mp)                !not needed anymore
+REAL :: SoilTemp(mp)                
 REAL :: SnowTemp(mp)                !not needed anymore
 REAL :: SnowAge(mp)
 integer:: SnowFlag_3L(mp)           !not needed anymore
@@ -84,7 +84,7 @@ integer:: soil_type(mp)
     END WHERE
 
     !first estimate of albedos
-    AlbSnow(:,2) = 2. * SoilAlbsoilF / (1. + sfact)
+    AlbSnow(:,2) = 2.0 * SoilAlbsoilF / (1.0 + sfact)
     AlbSnow(:,1) = sfact * AlbSnow(:,2)
 
     ! calc soil albedo based on colour - Ticket #27
@@ -104,38 +104,38 @@ integer:: soil_type(mp)
 
        WHERE (soil_type == perm_ice)
           ! permanent ice: hard-wired number to be removed
-          snrat = 1.
+          snrat = 1.0
        ELSEWHERE
-          snrat = MIN (1., snr / (snr + .1) )
+          snrat = MIN (1.0, snr / (snr + 0.1) )
        END WHERE
 
-       fage = 1. - 1. / (1. + SnowAge ) !age factor
-       tmp = MAX (.17365, coszen )
+       fage = 1.0 - 1.0 / (1.0 + SnowAge ) !age factor
+       tmp = MAX (0.17365, coszen )
        fzenm = MAX( 0., MERGE( 0.0,                                             &
-            ( 1. + 1./2. ) / ( 1. + 2. * 2. * tmp ) - 1./2., tmp > 0.5 ) )
+            ( 1.0 + 1.0/2.0 ) / ( 1.0 + 2.0* 2.0 * tmp ) - 1.0/2.0, tmp > 0.5 ) )
 
        tmp = alvo * (1.0 - 0.2 * fage)
-       alv = .4 * fzenm * (1. - tmp) + tmp
-       tmp = aliro * (1. - .5 * fage)
+       alv = 0.4 * fzenm * (1.0 - tmp) + tmp
+       tmp = aliro * (1.0 - 0.5 * fage)
 
        ! use dry snow albedo
        WHERE (soil_type == perm_ice)
           ! permanent ice: hard-wired number to be removed
 
           tmp = 0.95 * (1.0 - 0.2 * fage)
-          alv = .4 * fzenm * (1. - tmp) + tmp
-          tmp = 0.75 * (1. - .5 * fage)
+          alv = 0.4 * fzenm * (1.0 - tmp) + tmp
+          tmp = 0.75 * (1.0 - 0.5 * fage)
 
        END WHERE
 
-       alir = .4 * fzenm * (1.0 - tmp) + tmp
-       talb = .5 * (alv + alir) ! snow albedo - not needed as not used!!
+       alir = 0.4 * fzenm * (1.0 - tmp) + tmp
+       talb = 0.5 * (alv + alir) ! snow albedo - not needed as not used!!
 
     END WHERE        ! snowd > snow_deth_thresh=
     
     !H!jhan:SLI currently not available
     !H!IF(cable_user%SOIL_STRUC=='sli') THEN
-    !H!   WHERE (SnowDepth.GT.1.0)
+    !H!   WHERE (SnowDepth.GT.snow_depth_thresh)
     !H!      snrat = 1.0   ! using default parameterisation, albedo is too low,
     !H!      ! inhibiting snowpack initiation
     !H!   ENDWHERE
@@ -143,10 +143,10 @@ integer:: soil_type(mp)
 
     !final values of soil-snow albedos
     AlbSnow(:,2) = MIN( aliro,                                          &
-                          ( 1. - snrat ) * AlbSnow(:,2) + snrat * alir)
+                          ( 1.0 - snrat ) * AlbSnow(:,2) + snrat * alir)
 
     AlbSnow(:,1) = MIN( alvo,                                           &
-                          ( 1. - snrat ) * AlbSnow(:,1) + snrat * alv )
+                          ( 1.0 - snrat ) * AlbSnow(:,1) + snrat * alv )
 
     !ecept for ice regions
     WHERE (soil_type == perm_ice) ! use dry snow albedo: 1=vis, 2=nir
