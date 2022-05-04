@@ -1,23 +1,13 @@
 !==============================================================================
 ! This source code is part of the 
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
-! This work is licensed under the CABLE Academic User Licence Agreement 
-! (the "Licence").
-! You may not use this file except in compliance with the Licence.
-! A copy of the Licence and registration form can be obtained from 
-! http://www.cawcr.gov.au/projects/access/cable
-! You need to register and read the Licence agreement before use.
-! Please contact cable_help@nf.nci.org.au for any questions on 
-! registration and the Licence.
+! This work is licensed under the CSIRO Open Source Software License
+! Agreement (variation of the BSD / MIT License).
 !
-! Unless required by applicable law or agreed to in writing, 
-! software distributed under the Licence is distributed on an "AS IS" BASIS,
-! WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-! See the Licence for the specific language governing permissions and 
-! limitations under the Licence.
-! ==============================================================================
+! You may not use this file except in compliance with this License.
+! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located
+! in each directory containing CABLE code.
 !
-! Purpose: Calculates surface exchange fluxes through the solution of surface 
 !          energy balance and its interaction with plant physiology. Specific 
 !        representation of the transport of scalars within a canopy is included.
 !
@@ -28,13 +18,75 @@
 ! History: Revision of canopy temperature calculation (relative to v1.4b) 
 !          Reorganisation of code (dryLeaf, wetLeaf, photosynthesis subroutines
 !          taken out of define_canopy)
+!        : Martin De Kauwe and Jatin Kala added new switch to compute stomatal
+!          conductance based on: Medlyn BE et al (2011) Global Change Biology 17:
+!          2134-2144. The variables xleuning, xleuningz are no longer used, but
+!          replaced with gs_coeff,gs_coeffz. If GS_SWITCH is set to "leuning",
+!          gs_coeff=xleuning and gs_coeffz=xleuningz, but based on the new model
+!          if set to "medlyn". Search for "Ticket #56"
+!        : Vanessa Haverd added new fwsoil_switch  for response of stomatal conductance
+!          to soil moisture, which resolves decoupling of transpiration and
+!          photosynthesis at low soil moisture. Search for "Haverd2013".
+!        : Vanessa Hverd added new logical switch cable_user%litter. When 'true',
+!          leaf litter suppresses soil evaporation
+!        : Vanessa Haverd added new switch to enable SLI alternative to default soil
+!          module. When cable_user%soil_struc=='sli', then SLI is used to compute
+!          coupled transfers of heat and water in the soil and snow and at the surface
+!          and an in-canopy stability correction is applied.
+!        : See http://www.geosci-model-dev.net/9/3111/2016 for full documentation
+!          of last 3 changes.
 !
+!        : Feb 2017 - various changes to facilitate the cls (Ticket 137) and
+!          REV_CORR packages
 !
+!        : August 2017 - GW and Or parameterisations includes and merged with
+!          cls and REV_CORR
 ! ==============================================================================
 
 MODULE cable_canopy_module
    
+
    USE cable_data_module, ONLY : icanopy_type, point2constants 
+! physical constants
+USE cable_phys_constants_mod, ONLY : CTFRZ   => TFRZ
+USE cable_phys_constants_mod, ONLY : CRMAIR  => RMAIR
+USE cable_phys_constants_mod, ONLY : CRGAS   => RGAS
+USE cable_phys_constants_mod, ONLY : CDHEAT  => DHEAT
+USE cable_phys_constants_mod, ONLY : CZETNEG => ZETNEG
+USE cable_phys_constants_mod, ONLY : CZETMUL => ZETMUL
+USE cable_phys_constants_mod, ONLY : CZETPOS => ZETPOS
+USE cable_phys_constants_mod, ONLY : CGRAV   => GRAV
+USE cable_phys_constants_mod, ONLY : CUMIN   => UMIN
+USE cable_phys_constants_mod, ONLY : CRHOW   => RHOW
+USE cable_phys_constants_mod, ONLY : CCTL    => CTL
+USE cable_phys_constants_mod, ONLY : CCSW    => CSW
+USE cable_phys_constants_mod, ONLY : CEMLEAF => EMLEAF
+USE cable_phys_constants_mod, ONLY : CEMSOIL => EMSOIL
+USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
+USE cable_phys_constants_mod, ONLY : CPRANDT => PRANDT
+USE cable_phys_constants_mod, ONLY : CCAPP   => CAPP
+USE cable_phys_constants_mod, ONLY : CRMH2O  => RMH2O
+USE cable_phys_constants_mod, ONLY : CAPOL   => APOL
+USE cable_phys_constants_mod, ONLY : CA33    => A33
+USE cable_phys_constants_mod, ONLY : CVONK   => VONK
+USE cable_phys_constants_mod, ONLY : CZETA0  => ZETA0
+USE cable_phys_constants_mod, ONLY : CTETENA     => TETENA
+USE cable_phys_constants_mod, ONLY : CTETENB     => TETENB
+USE cable_phys_constants_mod, ONLY : CTETENC     => TETENC
+USE cable_phys_constants_mod, ONLY : CTETENA_ICE => TETENA_ICE
+USE cable_phys_constants_mod, ONLY : CTETENB_ICE => TETENB_ICE
+USE cable_phys_constants_mod, ONLY : CTETENC_ICE => TETENC_ICE
+! photosynthetic constants
+USE cable_photo_constants_mod, ONLY : CRGSWC => RGSWC
+USE cable_photo_constants_mod, ONLY : CGAM0  => GAM0
+USE cable_photo_constants_mod, ONLY : CGAM2  => GAM2
+USE cable_photo_constants_mod, ONLY : CRGBWC => RGBWC
+USE cable_photo_constants_mod, ONLY : CGAM1  => GAM1
+USE cable_photo_constants_mod, ONLY : CTREFK => TREFK
+USE cable_photo_constants_mod, ONLY : CMAXITER  => MAXITER ! only integer here
+! maths & other constants
+USE cable_math_constants_mod,  ONLY : CPI_C  => PI
+USE cable_other_constants_mod, ONLY : CLAI_THRESH  => LAI_THRESH
    
    IMPLICIT NONE
    
@@ -47,12 +99,13 @@ MODULE cable_canopy_module
 CONTAINS
  
 
-SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
+SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,climate, sunlit_veg_mask, reducedLAIdue2snow )
    USE cable_def_types_mod
-   USE cable_radiation_module
+   USE cbl_radiation_module, ONLY : radiation
    USE cable_air_module
    USE cable_common_module   
    USE cable_roughness_module
+USE cable_climate_type_mod, ONLY : climate_type
 
    TYPE (balances_type), INTENT(INOUT)  :: bal
    TYPE (radiation_type), INTENT(INOUT) :: rad
@@ -61,12 +114,14 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    TYPE (met_type), INTENT(INOUT)       :: met
    TYPE (soil_snow_type), INTENT(INOUT) :: ssnow
    TYPE (canopy_type), INTENT(INOUT)    :: canopy
+    TYPE (climate_type), INTENT(IN)    :: climate
 
    TYPE (soil_parameter_type), INTENT(INOUT)   :: soil
    TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
    
+REAL :: reducedLAIdue2snow(mp)
+logical :: sunlit_veg_mask(mp) 
    REAL, INTENT(IN)               :: dels ! integration time setp (s)
-   
    INTEGER  ::                                                                 &
       iter,  & ! iteration #
       iterplus !
@@ -124,6 +179,12 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
    
    INTEGER, SAVE :: call_number =0
    
+real :: tv_denom(mp)
+real :: tv_denom_transd(mp)
+real :: tv_frac(mp)
+real :: tv_tk(mp)
+real :: tv(mp)
+
    ! END header
    
    call_number = call_number + 1
@@ -192,7 +253,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
 
       ! E.Kowalczyk 2014
       IF (cable_user%l_new_roughness_soil)                                     &
-         CALL ruff_resist(veg, rough, ssnow, canopy)
+        CALL ruff_resist( veg, rough, ssnow, canopy, veg%vlai, veg%hc, canopy%vlaiw )
 
       
       ! Turbulent aerodynamic resistance from roughness sublayer depth 
@@ -301,8 +362,19 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy)
             rad%lwabv(j) = C%CAPP * C%rmair * ( tlfy(j) - met%tk(j) ) *        &
                            sum_rad_gradis(j) 
 
-            canopy%tv(j) = (rad%lwabv(j) / (2.0*(1.0-rad%transd(j))            &
-                           * C%SBOLTZ*C%EMLEAF)+met%tk(j)**4)**0.25
+!esm1.5 using LAI_thresh=0.001 formulation for canopy%tv fails 
+!esm1.5            canopy%tv(j) = (rad%lwabv(j) / (2.0*(1.0-rad%transd(j))            &
+!esm1.5                     * C%SBOLTZ*C%EMLEAF)+met%tk(j)**4)**0.25
+
+tv_denom_transd(j) = ( 1.0-rad%transd(j) )
+tv_denom(j) = 2.0*(tv_denom_transd(j)) * C%SBOLTZ*C%EMLEAF
+tv_frac(j) = rad%lwabv(j) / tv_denom(j)
+tv_tk(j) = met%tk(j) **4
+tv(j) = ( tv_frac(j) + tv_tk(j) )
+tv(j) = MAX( 0.0, tv(j) )
+tv(j) = tv(j) ** .25
+canopy%tv(j) = tv(j)
+
          
          ELSE! sparse canopy
          

@@ -39,10 +39,6 @@
 
 MODULE casa_um_inout_mod
 
-!!  USE cable_um_tech_mod    !, ONLY : um1, veg, soil           ! cable types (replaces cable_variables)
-!!  USE define_dimensions    ! mp, r_1, r_2, i_d
-!!  USE casadimension        ! icycle,mplant,mlitter,msoil
-!!  USE cable_common_module  ! ktau_gl, kend_gl
   USE landuse_mod
   USE feedback_mod
   USE casa_inout_mod
@@ -64,8 +60,6 @@ SUBROUTINE init_casacnp(sin_theta_latitude,cpool_tile,npool_tile,ppool_tile, &
                            GLAI,PHENPHASE,PREV_YR_SFRAC,idoy)
 ! Lest 20 Jan 2011
     USE cable_def_types_mod
-    !USE define_dimensions
-    !USE define_types
     USE cable_um_tech_mod, ONLY : um1, veg, soil, canopy
     USE casavariable
     USE phenvariable
@@ -1310,7 +1304,6 @@ END SUBROUTINE unpack_glai
   END SUBROUTINE redistr_luc
 
   !SUBROUTINE redistr_luc_i(prev_yr_sfrac,inVar,outVar)
-  !    USE cable_um_tech_mod, ONLY : um1
   !   IMPLICIT NONE
   !    REAL, INTENT(IN) ,DIMENSION(um1%land_pts,um1%ntiles) :: prev_yr_sfrac
   !    INTEGER, INTENT(IN) ,DIMENSION(um1%land_pts,um1%ntiles) :: inVar

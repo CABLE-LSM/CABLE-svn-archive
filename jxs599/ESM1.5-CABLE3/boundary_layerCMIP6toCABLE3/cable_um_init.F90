@@ -62,22 +62,27 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
    
    USE cable_um_tech_mod,   ONLY :                                             &
       alloc_um_interface_types,  & ! mem. allocation subr (um1, kblum%) 
-      dealloc_vegin_soilin,      & ! mem. allocation subr (vegin%,soilin%)
       um1,soil,                  & ! um1% type UM basics 4 convenience
       kblum_veg                    ! kblum_veg% reset UM veg vars 4 CABLE use
 
    USE cable_common_module, ONLY :                                             &
       cable_user,          & ! cable_user% type inherits user definition
                              ! via namelist (cable.nml) 
-      get_type_parameters, & ! veg and soil parameters READ subroutine  
-                             !
       l_casacnp,           & !
       knode_gl               !
 
    USE cable_def_types_mod, ONLY : mp, mland ! number of points CABLE works on
 
    USE casa_um_inout_mod
-
+  ! veg and soil parameters READ subroutine  
+  USE cable_pft_params_mod,   ONLY: cable_pft_params
+  USE cable_soil_params_mod,  ONLY: cable_soil_params
+!CBL3
+!draft1!USE cbl_soil_snow_init_special_module, ONLY: spec_init_soil_snow
+USE cable_common_module, ONLY : kwidth_gl 
+USE cable_def_types_mod, ONLY : ms
+USE cable_um_tech_mod,   ONLY : ssnow, canopy, met, bal, veg
+USE cable_other_constants_mod, ONLY : CLAI_THRESH => LAI_THRESH
 
    !-------------------------------------------------------------------------- 
    !--- INPUT ARGS FROM cable_explicit_driver() ------------------------------
@@ -239,6 +244,10 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
    INTEGER :: logn=6       ! 6=write to std out
    LOGICAL :: vegparmnew=.true.   ! true=read std veg params false=CASA file 
          
+!CBL3
+REAL, DIMENSION(land_pts, ntiles) ::  clobbered_htveg
+REAL :: heat_cap_lower_limit(mp,ms)
+heat_cap_lower_limit = 0.01
 
       !---------------------------------------------------------------------!
       !--- code to create type um1% conaining UM basic vars describing    --! 
@@ -269,6 +278,7 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
       !--- IF the tile is "active"
       IF ( first_call ) THEN
       
+         L_TILE_PTS     = .FALSE.
          um1%L_TILE_PTS = .FALSE.
          mp = SUM(um1%TILE_PTS)
          mland = LAND_PTS
@@ -279,6 +289,7 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
             DO j=1,ntiles
                
                IF( um1%TILE_FRAC(i,j) .GT. 0.0 ) THEN 
+                  L_TILE_PTS(i,j)     = .TRUE.
                      um1%L_TILE_PTS(i,j) = .TRUE.
                   !jhan:can set veg%iveg from  here ?
                   tile_index_mp(i,j) = j 
@@ -297,11 +308,16 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
 
 
       !--- read in soil (and veg) parameters 
-      IF(first_call)                                                        & 
-         CALL  get_type_parameters(logn,vegparmnew)
+      IF(first_call) then 
+         CALL cable_pft_params()
+         CALL cable_soil_params()
+      ENDIF
 
       !--- initialize veg   
-      CALL initialize_veg( canht_ft, lai_ft ) 
+CALL initialize_veg( kblum_veg%htveg , land_pts, npft, ntiles, sm_levels, mp,     &
+                     canht_ft, lai_ft, dzsoil, veg,         &
+                    tile_pts, tile_index, tile_frac, L_tile_pts,                 &
+                    CLAI_thresh )
  
       !--- initialize soil
       CALL initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,      &
@@ -330,6 +346,8 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
 
  
       IF( first_call ) THEN
+!draft1!call spec_init_soil_snow( real(kwidth_gl), soil, ssnow, canopy, met, bal, veg, &
+!draft1!        heat_cap_lower_limit )
          CALL init_bgc_vars() 
          CALL init_sumflux_zero() 
 
@@ -361,7 +379,6 @@ SUBROUTINE interface_UM_data( row_length, rows, land_pts, ntiles,              &
          endif
 
       IF( first_call ) THEN
-         CALL dealloc_vegin_soilin()
          first_call = .FALSE. 
       ENDIF      
       

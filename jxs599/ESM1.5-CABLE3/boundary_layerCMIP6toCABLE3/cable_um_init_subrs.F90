@@ -130,8 +130,8 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
 
    USE cable_def_types_mod, ONLY : ms, mstype, mp, r_2
    USE cable_um_tech_mod,   ONLY : um1, soil, veg, ssnow 
-   USE cable_common_module, ONLY : cable_runtime, cable_user,                  &
-                                   soilin, get_type_parameters
+   USE cable_common_module, ONLY : cable_runtime, cable_user
+  USE cable_params_mod, ONLY : soilin
    
    REAL, INTENT(IN), DIMENSION(um1%land_pts) :: &
       bexp, &
@@ -265,21 +265,56 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
 !========================================================================
 !========================================================================
 !========================================================================
-          
-SUBROUTINE initialize_veg( canht_ft, lai_ft) 
-   USE cable_um_tech_mod
-   USE cable_common_module, ONLY : cable_runtime, cable_user, vegin
-   
-   REAL, INTENT(IN), DIMENSION(um1%land_pts, um1%npft) :: canht_ft, lai_ft 
-   
-   LOGICAL, SAVE :: first_call= .TRUE. ! defs 1st call to CABLE in this run
+SUBROUTINE initialize_veg( clobbered_htveg, land_pts, npft, ntiles, ms, mp,      &
+                           canht_ft, lai_ft, soil_zse, veg,                  &
+                    tile_pts, tile_index, tile_frac, L_tile_pts,                 &
+                    CLAI_thresh )
 
-      !---clobbers veg height, lai and resets ivegt for CABLE tiles
-      CALL clobber_height_lai( canht_ft, lai_ft )
+USE cable_common_module, ONLY : knode_gl 
+USE cable_def_types_mod,  ONLY: veg_parameter_type
+USE cbl_LAI_canopy_height_mod,  ONLY: limit_HGT_LAI
+   
+INTEGER ::  land_pts
+INTEGER ::  ntiles
+INTEGER ::  npft
+INTEGER ::  ms                ! soil levels
+INTEGER ::  mp                ! active pts CABLE
+REAL    ::  CLAI_thresh  
+INTEGER ::  tile_pts(ntiles)  ! number of land_pts per tile type
+REAL    ::  tile_frac(land_pts, ntiles)
+INTEGER ::  tile_index(land_pts, ntiles)  ! index of tile 
+LOGICAL ::  L_tile_pts(land_pts, ntiles)  ! true IF vegetation (tile) fraction is greater than 0
+REAL    ::  clobbered_htveg(land_pts, ntiles)
+REAL    :: soil_zse(ms)       !soil layer thickness [dzsoil]
+TYPE(veg_parameter_type), INTENT(INOUT) :: veg
+REAL, INTENT(IN) :: canht_ft(land_pts, npft)
+REAL, INTENT(IN) :: lai_ft(land_pts, npft) 
+LOGICAL, SAVE :: first_call= .TRUE. ! defs 1st call to CABLE in this run
+INTEGER :: JSurfaceTypeID(land_pts,ntiles)
+INTEGER :: i,j
+
+!--- veg params were read from initialize_soil() 
+IF(first_call)  THEN
+  !local var to pack surface type:
+  JSurfaceTypeID = 0
+  DO j = 1, land_pts
+    DO i = 1,ntiles
+      IF ( tile_frac(j,i) > 0.0 ) JSurfaceTypeID(j,i) = i
+    END DO
+  END DO
+  veg%iveg = PACK( JSurfaceTypeID, L_tile_pts)
+          
+ENDIF
+
+! limit IN height, LAI  and initialize existing cable % types
+CALL limit_HGT_LAI( clobbered_htveg, veg%vlai, veg%hc, mp, land_pts, ntiles,           &
+                    tile_pts, tile_index, tile_frac, L_tile_pts,              &
+                    LAI_ft, canht_ft, CLAI_thresh )
+     
       
       !--- veg params were read from initialize_soil() 
       IF(first_call)  THEN
-         CALL init_veg_pars_fr_vegin() 
+         CALL init_veg_pars_fr_vegin( soil_zse ) 
          ! Fix in-canopy turbulence scheme globally:
          veg%meth = 1
       ENDIF
@@ -291,52 +326,103 @@ END SUBROUTINE initialize_veg
 !========================================================================
 !========================================================================
 
-SUBROUTINE clobber_height_lai( um_htveg, um_lai )
-   USE cable_um_tech_mod, ONLY : um1, kblum_veg, veg
+SUBROUTINE init_veg_pars_fr_vegin( soil_zse ) 
+   USE cable_common_module, ONLY : vegin
+   USE cable_um_tech_mod,   ONLY : veg, soil 
+  USE cable_def_types_mod, ONLY : mp, ms
 
-   REAL, INTENT(IN), DIMENSION(um1%land_pts, um1%npft) ::                      &
-                                                          um_htveg, um_lai
-   INTEGER :: i,j,n
-    
-   DO N=1,um1%NTILES
-      DO J=1,um1%TILE_PTS(N)
-         
-         i = um1%TILE_INDEX(j,N)  ! It must be landpt index
+  real, dimension(ms) :: soil_zse 
 
-         IF( um1%TILE_FRAC(i,N) .gt. 0.0 ) THEN
-            
-            ! hard-wired vegetation type numbers need to be removed
-            IF(N < 5 ) THEN ! rml changed 4 to 5
-               ! trees
-               kblum_veg%IVEGT(i,N) = N
-               kblum_veg%LAIFT(i,N) = max(0.01,um_lai(i,N)) 
-               kblum_veg%HTVEG(i,N) = max(1.,um_htveg(i,N)) 
-            ELSE IF(N > 4 .AND. N < 14 ) THEN !rml changed 3 to 4
-               ! shrubs/grass
-               kblum_veg%IVEGT(i,N) = N
-               kblum_veg%LAIFT(i,N) = max(0.01, um_lai(i,N)) 
-               kblum_veg%HTVEG(i,N) = max(0.1, um_htveg(i,N)) 
-             ELSE IF(N > 13 ) THEN
-               ! non-vegetated
-               kblum_veg%IVEGT(i,N) = N
-               kblum_veg%LAIFT(i,N) = 0. 
-               kblum_veg%HTVEG(i,N) = 0.
-            ENDIF
+  CALL init_veg_from_vegin(1, mp, veg, soil_zse) 
 
-         ENDIF
+      !froot fixed here for all vegetation types for ACCESS
+      !need more flexibility in next version to read in or parameterise
+      veg%froot(:,1) = 0.05
+      veg%froot(:,2) = 0.20
+      veg%froot(:,3) = 0.20
+      veg%froot(:,4) = 0.20
+      veg%froot(:,5) = 0.20
+      veg%froot(:,6) = 0.15
 
-      ENDDO
-   ENDDO
+END SUBROUTINE init_veg_pars_fr_vegin
+
+SUBROUTINE init_veg_from_vegin(ifmp,fmp, veg, soil_zse ) 
+     use cable_def_types_mod, ONLY : veg_parameter_type, ms, mp 
+USE cable_params_mod, ONLY : vegin
+
+     integer ::  ifmp,  & ! start local mp, # landpoints (jhan:when is this not 1 )      
+                 fmp     ! local mp, # landpoints       
+     real, dimension(ms) :: soil_zse 
   
-   veg%iveg   = PACK(kblum_veg%ivegt, um1%L_TILE_PTS)
-   veg%vlai   = PACK(kblum_veg%laift, um1%L_TILE_PTS)
-   veg%hc     = PACK(kblum_veg%htveg, um1%L_TILE_PTS)
+     type(veg_parameter_type) :: veg
+     
+    INTEGER :: is
+    REAL :: totdepth
+     integer :: k,h
 
-END SUBROUTINE clobber_height_lai
+      !! Prescribe parameters for current gridcell based on veg/soil type (which
+      !! may have loaded from default value file or met file):
+      DO h = 1, mp          ! over each patch in current grid
+         veg%canst1(h)   = vegin%canst1(veg%iveg(h))
+         veg%ejmax(h)    = vegin%ejmax(veg%iveg(h))
+         veg%ejmax(h)   = 2.*vegin%vcmax(veg%iveg(h))
+         veg%frac4(h)    = vegin%frac4(veg%iveg(h))
+         veg%tminvj(h)   = vegin%tminvj(veg%iveg(h))
+         veg%tmaxvj(h)   = vegin%tmaxvj(veg%iveg(h))
+         veg%vbeta(h)    = vegin%vbeta(veg%iveg(h))
+         veg%rp20(h)     = vegin%rp20(veg%iveg(h))
+         veg%rpcoef(h)   = vegin%rpcoef(veg%iveg(h))
+         veg%shelrb(h)   = vegin%shelrb(veg%iveg(h))
+         veg%vegcf(h)    = vegin%vegcf(veg%iveg(h))
+         veg%extkn(h)    = vegin%extkn(veg%iveg(h))
+         veg%vcmax(h)    = vegin%vcmax(veg%iveg(h))
+         veg%xfang(h)    = vegin%xfang(veg%iveg(h))
+         veg%dleaf(h)    = vegin%dleaf(veg%iveg(h))
+         veg%xalbnir(h)  = vegin%xalbnir(veg%iveg(h))
+         veg%rs20(h)     = vegin%rs20(veg%iveg(h))
+         
+         veg%taul(h,1)    = vegin%taul(1,veg%iveg(h))
+         veg%taul(h,2)    = vegin%taul(2,veg%iveg(h))
+         veg%refl(h,1)    = vegin%refl(1,veg%iveg(h))
+         veg%refl(h,2)    = vegin%refl(2,veg%iveg(h))
+            
+!veg%hc(h)       = vegin%hc(veg%iveg(h))
 
-!========================================================================
-!========================================================================
-!========================================================================
+veg%wai(h)      = vegin%wai(veg%iveg(h))
+veg%a1gs(h)     = vegin%a1gs(veg%iveg(h))
+veg%d0gs(h)     = vegin%d0gs(veg%iveg(h))
+veg%g0(h)       = vegin%g0(veg%iveg(h)) ! Ticket #56
+veg%g1(h)       = vegin%g1(veg%iveg(h)) ! Ticket #56
+veg%alpha(h)  = vegin%alpha(veg%iveg(h))
+veg%convex(h) = vegin%convex(veg%iveg(h))
+veg%cfrd(h)   = vegin%cfrd(veg%iveg(h))
+veg%gswmin(h) = vegin%gswmin(veg%iveg(h))
+veg%conkc0(h) = vegin%conkc0(veg%iveg(h))
+veg%conko0(h) = vegin%conko0(veg%iveg(h))
+veg%ekc(h)    = vegin%ekc(veg%iveg(h))
+veg%eko(h)    = vegin%eko(veg%iveg(h))
+veg%rootbeta(h)  = vegin%rootbeta(veg%iveg(h))
+veg%zr(h)       = vegin%zr(veg%iveg(h))
+veg%clitt(h)    = vegin%clitt(veg%iveg(h))
+         END DO ! over each veg patch in land point
+
+!used in CM2 - overwritten here
+  ! calculate vegin%froot from using rootbeta and soil depth
+  ! (Jackson et al. 1996, Oceologica, 108:389-411)
+  totdepth = 0.0
+  DO is = 1, ms-1
+    totdepth = totdepth + soil_zse(is) * 100.0  ! unit in centimetres
+    veg%froot(:, is) = MIN( 1.0, 1.0-veg%rootbeta(:)**totdepth )
+  END DO
+  veg%froot(:, ms) = 1.0 - veg%froot(:, ms-1)
+  DO is = ms-1, 2, -1
+    veg%froot(:, is) = veg%froot(:, is)-veg%froot(:,is-1)
+  END DO
+
+
+END SUBROUTINE init_veg_from_vegin
+
+
 
 SUBROUTINE init_respiration(NPP_FT_ACC,RESP_W_FT_ACC,RESP_S_ACC)
    ! Lestevens 23apr13 - for reading in prog soil & plant resp
@@ -392,47 +478,6 @@ END SUBROUTINE init_respiration
 !========================================================================
 !========================================================================
 !========================================================================
-
-SUBROUTINE init_veg_pars_fr_vegin() 
-   USE cable_common_module, ONLY : vegin
-   USE cable_um_tech_mod,   ONLY : veg, soil 
-   USE cable_def_types_mod, ONLY : mp
-
-   INTEGER :: k
-
-      !jhan:UM reads from ancil. & resets thru kblum_veg   
-      veg%canst1  = vegin%canst1(veg%iveg)
-      veg%ejmax   = 2.*vegin%vcmax(veg%iveg)
-      veg%frac4   = vegin%frac4(veg%iveg)
-      veg%tminvj  = vegin%tminvj(veg%iveg)
-      veg%tmaxvj  = vegin%tmaxvj(veg%iveg)
-      veg%vbeta   = vegin%vbeta(veg%iveg)
-      veg%rp20    = vegin%rp20(veg%iveg)
-      veg%rpcoef  = vegin%rpcoef(veg%iveg)
-      veg%shelrb  = vegin%shelrb(veg%iveg)
-      veg%vegcf   = vegin%vegcf(veg%iveg)
-      veg%extkn   = vegin%extkn(veg%iveg)
-      veg%vcmax   = vegin%vcmax(veg%iveg)
-      veg%xfang   = vegin%xfang(veg%iveg)
-      veg%dleaf   = vegin%dleaf(veg%iveg)
-      veg%xalbnir = vegin%xalbnir(veg%iveg)
-      veg%rs20 = vegin%rs20(veg%iveg)
-
-      do k=1,2
-        veg%refl(:,k)   = vegin%refl(k,veg%iveg)
-        veg%taul(:,k)   = vegin%taul(k,veg%iveg)
-      enddo
-
-      !froot fixed here for all vegetation types for ACCESS
-      !need more flexibility in next version to read in or parameterise
-      veg%froot(:,1) = 0.05
-      veg%froot(:,2) = 0.20
-      veg%froot(:,3) = 0.20
-      veg%froot(:,4) = 0.20
-      veg%froot(:,5) = 0.20
-      veg%froot(:,6) = 0.15
-
-END SUBROUTINE init_veg_pars_fr_vegin
 
 !========================================================================
 !========================================================================
@@ -1040,18 +1085,22 @@ SUBROUTINE alloc_cable_types()
    USE cable_def_types_mod, ONLY : mp, alloc_cbm_var
    USE cable_um_tech_mod,   ONLY : air, canopy, met, bal, rad, rough,          &
                                    soil, ssnow, sum_flux, veg, bgc
+  USE allocate_veg_params_mod,  ONLY : allocate_veg_parameter_type
+  USE allocate_soil_params_mod, ONLY : allocate_soil_parameter_type
+USE cable_canopy_type_mod, ONLY : alloc_canopy_type
+USE cable_soil_snow_type_mod, ONLY : alloc_soil_snow_type
 
       CALL alloc_cbm_var(air, mp)
-      CALL alloc_cbm_var(canopy, mp)
       CALL alloc_cbm_var(met, mp)
       CALL alloc_cbm_var(bal, mp)
       CALL alloc_cbm_var(rad, mp)
       CALL alloc_cbm_var(rough, mp)
-      CALL alloc_cbm_var(soil, mp)
-      CALL alloc_cbm_var(ssnow, mp)
       CALL alloc_cbm_var(sum_flux, mp)
-      CALL alloc_cbm_var(veg, mp)
       CALL alloc_cbm_var(bgc, mp)
+    CALL allocate_veg_parameter_type(veg, mp)
+    CALL allocate_soil_parameter_type(soil, mp)
+    CALL alloc_canopy_type(canopy, mp)
+    CALL alloc_soil_snow_type(ssnow, mp)
 
 END SUBROUTINE alloc_cable_types
 

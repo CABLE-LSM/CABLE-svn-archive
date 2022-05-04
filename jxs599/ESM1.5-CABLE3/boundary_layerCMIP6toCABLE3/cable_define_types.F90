@@ -31,6 +31,13 @@
 MODULE cable_def_types_mod
 
    ! Contains all variables which are not subroutine-internal
+USE cable_canopy_type_mod, ONLY : canopy_type
+USE cable_soil_snow_type_mod, ONLY : soil_snow_type
+USE cable_climate_type_mod,   ONLY: climate_type
+
+USE cable_params_mod, ONLY : soil_parameter_type
+USE cable_params_mod, ONLY : veg_parameter_type
+USE cable_other_constants_mod, ONLY: r_2
 
    IMPLICIT NONE
 
@@ -45,7 +52,6 @@ MODULE cable_def_types_mod
               mland                           ! # land grid cells
    
    INTEGER, PARAMETER ::                                                        &
-      r_2  = KIND(1.0), &
       n_tiles = 17,  & ! # possible no of different 
       ncp = 3,       & ! # vegetation carbon stores
       ncs = 2,       & ! # soil carbon stores
@@ -56,7 +62,6 @@ MODULE cable_def_types_mod
       niter = 4,     & ! number of iterations for za/L
       ms = 6           ! # soil layers
 
-!   PRIVATE :: r_2, ms, msn, mf, nrb, ncp, ncs
   
 ! .............................................................................
 
@@ -95,236 +100,6 @@ MODULE cable_def_types_mod
    END TYPE balances_type
 
 ! .............................................................................
-
-   ! Soil parameters:
-   TYPE soil_parameter_type 
-   
-      INTEGER, DIMENSION(:), POINTER ::                                        &
-         isoilm     ! integer soil type
-
-      REAL, DIMENSION(:), POINTER ::                                           &
-         bch,     & ! parameter b in Campbell equation
-         c3,      & ! c3 drainage coeff (fraction)
-         clay,    & ! fraction of soil which is clay
-         css,     & ! soil specific heat capacity [kJ/kg/K]
-         hsbh,    & ! difsat * etasat (=hyds*abs(sucs)*bch)
-         hyds,    & ! hydraulic conductivity @ saturation [m/s], Ksat
-         i2bp3,   & ! par. one in K vis suction (=nint(bch)+2)
-         ibp2,    & ! par. two in K vis suction (fn of pbch)
-         rhosoil, & ! soil density [kg/m3]
-         sand,    & ! fraction of soil which is sand
-         sfc,     & ! vol H2O @ field capacity
-         silt,    & ! fraction of soil which is silt
-         ssat,    & ! vol H2O @ saturation
-         sucs,    & ! suction at saturation (m)
-         swilt,   & ! vol H2O @ wilting
-         zse,     & ! thickness of each soil layer (1=top) in m
-         zshh,    & ! distance between consecutive layer midpoints (m)
-         albsoilf   ! soil reflectance
-     
-      REAL(r_2), DIMENSION(:), POINTER ::                                      &
-         cnsd,    & ! thermal conductivity of dry soil [W/m/K]
-         pwb_min    ! working variable (swilt/ssat)**ibp2
-     
-      REAL, DIMENSION(:,:), POINTER ::                                         &
-         albsoil    ! soil reflectance (2nd dim. BP 21Oct2009)
-
-  END TYPE soil_parameter_type
-
-! .............................................................................
-
-   ! Soil and snow variables:
-   TYPE soil_snow_type 
-     
-     INTEGER, DIMENSION(:), POINTER :: isflag ! 0 => no snow 1 => snow
-    
-      REAL, DIMENSION(:), POINTER ::                                           &
-         iantrct, & ! pointer to Antarctic land points
-         pudsto,  & ! puddle storage
-         pudsmx,  & ! puddle storage
-         cls,     & ! factor for latent heat
-         dfn_dtg, & ! d(canopy%fns)/d(ssnow%tgg)
-         dfh_dtg, & ! d(canopy%fhs)/d(ssnow%tgg)
-         dfe_ddq, & ! d(canopy%fes)/d(dq)
-         ddq_dtg, & ! d(dq)/d(ssnow%tgg)
-         evapsn,  & ! snow evaporation  
-         fwtop,   & ! water flux to the soil
-         fwtop1,  & ! water flux to the soil
-         fwtop2,  & ! water flux to the soil
-         fwtop3,  & ! water flux to the soil
-         osnowd,  & ! snow depth from previous time step
-         potev,   & ! potential evapotranspiration
-         runoff,  & ! total runoff (mm/dels)
-         rnof1,   & ! surface runoff (mm/dels)
-         rnof2,   & ! deep drainage (mm/dels)
-         rtsoil,  & ! turbulent resistance for soil
-         wbtot1,  & ! total soil water (mm)
-         wbtot2,  & ! total soil water (mm)
-         wb_lake, &
-         sinfil,  & 
-         qstss,   & 
-         wetfac,  & ! surface wetness fact. at current time step
-         owetfac, & ! surface wetness fact. at previous time step
-         t_snwlr, & ! top snow layer depth in 3 layer snowpack
-         tggav,   & ! mean soil temperature in K
-         otgg,    & ! soil temperature in K
-         otss,    & ! surface temperature (weighted soil, snow)
-         otss_0,  & ! surface temperature (weighted soil, snow)
-         tprecip, &
-         tevap,   &
-         trnoff,  &
-         totenbal,&!
-         totenbal2,&
-         fland,   & ! factor for latent heat
-         ifland,  & ! integer soil type
-         qasrf,   & ! heat advected to the snow by precip. 
-         qfsrf,   & ! energy of snowpack phase changes 
-         qssrf,   & ! sublimation 
-         snage,   & ! snow age
-         snowd,   & ! snow depth (liquid water)
-         smelt,   & ! snow melt 
-         ssdnn,   & ! average snow density
-         tss,     & ! surface temperature (weighted soil, snow)
-         tss_p,   & ! surface temperature (weighted soil, snow)
-         deltss,  & ! surface temperature (weighted soil, snow)
-         owb1       ! surface temperature (weighted soil, snow)
- 
-      REAL, DIMENSION(:,:), POINTER ::                                         &
-         sconds,     & !
-         sdepth,     & ! snow depth
-         smass,      & ! snow mass
-         ssdn,       & ! snow densities
-         tgg,        & ! soil temperature in K
-         tggsn,      & ! snow temperature in K
-         dtmlt,      & ! water flux to the soil
-         albsoilsn,  & ! soil + snow reflectance
-         evapfbl,    & !
-         tilefrac      ! factor for latent heat
-     
-    
-      REAL(r_2), DIMENSION(:), POINTER ::                                      &
-         wbtot   ! total soil water (mm)
-     
-      REAL(r_2), DIMENSION(:,:), POINTER ::                                    &
-         gammzz,  & ! heat capacity for each soil layer
-         wb,      & ! volumetric soil moisture (solid+liq)
-         wbice,   & ! soil ice
-         wblf,    & !
-         wbfice     !
-
-   END TYPE soil_snow_type
-
-! .............................................................................
-
-   ! Vegetation parameters:
-   TYPE veg_parameter_type
-     
-      INTEGER, DIMENSION(:), POINTER ::                                        &
-         iveg       ! vegetation type
-
-      REAL, DIMENSION(:), POINTER ::                                           &
-         canst1,  & ! max intercepted water by canopy (mm/LAI)
-         dleaf,   & ! chararacteristc legnth of leaf (m)
-         ejmax,   & ! max pot. electron transp rate top leaf(mol/m2/s)
-         meth,    & ! method for calculation of canopy fluxes and temp.
-         frac4,   & ! fraction of c4 plants
-         hc,      & ! roughness height of canopy (veg - snow)
-         vlai,    & ! leaf area index
-         xalbnir, & 
-         rp20,    & ! plant respiration coefficient at 20 C
-         rpcoef,  & ! temperature coef nonleaf plant respiration (1/C)
-         rs20,    & ! soil respiration at 20 C [mol m-2 s-1]
-         shelrb,  & ! sheltering factor (dimensionless)
-         vegcf,   & ! kdcorbin, 08/10
-         tminvj,  & ! min temperature of the start of photosynthesis
-         tmaxvj,  & ! max temperature of the start of photosynthesis
-         vbeta,   & ! 
-         vcmax,   & ! max RuBP carboxylation rate top leaf (mol/m2/s)
-         xfang,   & ! leaf angle PARAMETER
-         extkn,   & ! extinction coef for vertical
-         vlaimax, & ! extinction coef for vertical
-         wai        ! wood area index (stem+branches+twigs)
-
-      LOGICAL, DIMENSION(:), POINTER ::                                        &
-         deciduous ! flag used for phenology fix
-
-      REAL, DIMENSION(:,:), POINTER ::                                         &
-         refl,    &
-         taul,    & 
-         froot      ! fraction of root in each soil layer
-
-   END TYPE veg_parameter_type
-
-! .............................................................................
-
-   ! Canopy/vegetation variables:
-   TYPE canopy_type
-      
-
-      REAL, DIMENSION(:), POINTER ::                                           &
-         cansto,  & ! canopy water storage (mm)
-         cduv,    & ! drag coefficient for momentum
-         delwc,   & ! change in canopy water store (mm/dels)
-         dewmm,   & ! dewfall (mm)
-         fe,      & ! total latent heat (W/m2)
-         fh,      & ! total sensible heat (W/m2)
-         fpn,     & ! plant photosynthesis (g C m-2 s-1)
-         frp,     & ! plant respiration (g C m-2 s-1)
-         frpw,    & ! plant respiration (g C m-2 s-1)???
-         frpr,    & ! plant respiration (g C m-2 s-1)???
-         frs,     & ! soil respiration (g C m-2 s-1)
-         fnee,    & ! net carbon flux (g C m-2 s-1)
-         frday,   & ! daytime leaf resp
-         fnv,     & ! net rad. avail. to canopy (W/m2)
-         fev,     & ! latent hf from canopy (W/m2)
-         epot,    & ! total potential evaporation 
-         fnpp,    & ! npp flux
-         fevw_pot,& ! potential lat heat from canopy
-         gswx_T,  & ! ! stom cond for water
-         cdtq,    & ! drag coefficient for momentum
-         wetfac_cs,&! 
-         fevw,    & ! lat heat fl wet canopy (W/m2)
-         fhvw,    & ! sens heatfl from wet canopy (W/m2)
-         oldcansto,&! canopy water storage (mm)
-         fhv,     & ! sens heatfl from canopy (W/m2)
-         fns,     & ! net rad avail to soil (W/m2)
-         fhs,     & ! sensible heat flux from soil
-         fhs_cor, &
-         ga,      & ! ground heat flux (W/m2) ???
-         ghflux,  & ! ground heat flux (W/m2) ???
-         precis,  & ! throughfall to soil, after snow (mm)
-         qscrn,   & ! specific humudity at screen height (g/g)
-         rnet,    & ! net radiation absorbed by surface (W/m2)
-         segg,    & ! latent heatfl from soil mm
-         sghflux, & ! ground heat flux (W/m2) ???
-         through, & ! canopy throughfall (mm)
-         spill,   & ! can.storage excess after dewfall (mm)
-         tscrn,   & ! air temperature at screen height (oC)
-         wcint,   & ! canopy rainfall interception (mm)
-         tv,      & ! vegetation temp (K)
-         us,      & ! friction velocity
-         uscrn,   & ! wind speed at screen height (m/s)
-         vlaiw,   & ! lai adj for snow depth for calc of resistances
-         rghlai,  & ! lai adj for snow depth for calc of resistances
-         fwet       ! fraction of canopy wet
-
-      REAL, DIMENSION(:,:), POINTER ::                                         &
-         evapfbl, &
-         gswx,    & ! stom cond for water
-         zetar      ! stability correction
-
-      REAL(r_2), DIMENSION(:), POINTER ::                                      &
-         fess,    & ! latent heatfl from soil (W/m2)
-         fesp,    & ! latent heatfl from soil (W/m2)
-         dgdtg,   & ! derivative of gflux wrt soil temp
-         fes,     & ! latent heatfl from soil (W/m2)
-         fes_cor, & ! latent heatfl from soil (W/m2)
-         fevc       ! dry canopy transpiration (W/m2)
-
-   END TYPE canopy_type
-
-! .............................................................................
-
    ! Radiation variables:
    TYPE radiation_type
    
@@ -400,7 +175,7 @@ MODULE cable_def_types_mod
          usuh ! Friction velocity/windspeed at canopy height
    
       REAL, DIMENSION(:), POINTER ::                                           &
-         term2, term3, term5, term6 ! for aerodyn resist. calc.
+         term2, term3, term5, term6, term6a ! for aerodyn resist. calc.
    
    END TYPE roughness_type
 
@@ -501,10 +276,6 @@ MODULE cable_def_types_mod
    
    INTERFACE alloc_cbm_var
       MODULE PROCEDURE alloc_balances_type,                                    &
-         alloc_soil_parameter_type,                                            &
-         alloc_soil_snow_type,                                                 &
-         alloc_veg_parameter_type,                                             &
-         alloc_canopy_type,                                                    &
          alloc_radiation_type,                                                 &
          alloc_roughness_type,                                                 &
          alloc_air_type,                                                       &
@@ -515,10 +286,6 @@ MODULE cable_def_types_mod
 
    INTERFACE dealloc_cbm_var
       MODULE PROCEDURE dealloc_balances_type,                                  &
-         dealloc_soil_parameter_type,                                          &
-         dealloc_soil_snow_type,                                               &
-         dealloc_veg_parameter_type,                                           &
-         dealloc_canopy_type,                                                  &
          dealloc_radiation_type,                                               &
          dealloc_roughness_type,                                               &
          dealloc_air_type,                                                     &
@@ -598,83 +365,6 @@ SUBROUTINE alloc_soil_parameter_type(var, mp)
 END SUBROUTINE alloc_soil_parameter_type
  
 ! ------------------------------------------------------------------------------
-
-SUBROUTINE alloc_soil_snow_type(var, mp)
-   
-   TYPE(soil_snow_type), INTENT(inout) :: var
-   INTEGER, INTENT(in) :: mp
-  
-   ALLOCATE ( var % iantrct(mp) )
-   ALLOCATE ( var % pudsto(mp) )
-   ALLOCATE ( var % pudsmx(mp) )
-   ALLOCATE ( var % dtmlt(mp,3) )
-   ALLOCATE( var% albsoilsn(mp,nrb) ) 
-   ALLOCATE( var% cls(mp) )     
-   ALLOCATE( var% dfn_dtg(mp) ) 
-   ALLOCATE( var% dfh_dtg(mp) ) 
-   ALLOCATE( var% dfe_ddq(mp) ) 
-   ALLOCATE( var% ddq_dtg(mp) ) 
-   ALLOCATE( var% evapsn(mp) )  
-   ALLOCATE( var% fwtop(mp) )   
-   ALLOCATE( var% fwtop1(mp) )   
-   ALLOCATE( var% fwtop2(mp) )   
-   ALLOCATE( var% fwtop3(mp) )   
-   ALLOCATE( var% gammzz(mp,ms) ) 
-   ALLOCATE( var% isflag(mp) ) 
-   ALLOCATE( var% osnowd(mp) ) 
-   ALLOCATE( var% potev(mp) ) 
-   ALLOCATE( var% runoff(mp) )
-   ALLOCATE( var% rnof1(mp) ) 
-   ALLOCATE( var% rnof2(mp) ) 
-   ALLOCATE( var% rtsoil(mp) )
-   ALLOCATE( var% sconds(mp,msn) ) 
-   ALLOCATE( var% sdepth(mp,msn) ) 
-   ALLOCATE( var% smass(mp,msn) ) 
-   ALLOCATE( var% snage(mp) )  
-   ALLOCATE( var% snowd(mp) )  
-   ALLOCATE( var% smelt(mp) )  
-   ALLOCATE( var% ssdn(mp,msn) ) 
-   ALLOCATE( var% ssdnn(mp) ) 
-   ALLOCATE( var% tgg(mp,ms) )   
-   ALLOCATE( var% tggsn(mp,msn) ) 
-   ALLOCATE( var% tss(mp) )   
-   ALLOCATE( var% tss_p(mp) )   
-   ALLOCATE( var% deltss(mp) )   
-   ALLOCATE( var% owb1(mp) )   
-   ALLOCATE( var% wb(mp,ms) )    
-   ALLOCATE( var% wbice(mp,ms) ) 
-   ALLOCATE( var% wblf(mp,ms) ) 
-   ALLOCATE( var%wbtot(mp) )    
-   ALLOCATE( var%wbtot1(mp) )    
-   ALLOCATE( var%wbtot2(mp) )    
-   ALLOCATE( var%wb_lake(mp) )    
-   ALLOCATE( var%sinfil(mp) )    
-   ALLOCATE( var%evapfbl(mp,ms) )    
-   ALLOCATE( var%qstss(mp) )    
-   ALLOCATE( var%wetfac(mp) )  
-   ALLOCATE( var%owetfac(mp) )  
-   ALLOCATE( var%t_snwlr(mp) )  
-   ALLOCATE( var%wbfice(mp,ms) )  
-   ALLOCATE( var%tggav(mp) )  
-   ALLOCATE( var%otgg(mp) )   
-   ALLOCATE( var%otss(mp) )   
-   ALLOCATE( var%otss_0(mp) )   
-   ALLOCATE( var%tprecip(mp) ) 
-   ALLOCATE( var%tevap(mp) ) 
-   ALLOCATE( var%trnoff(mp) ) 
-   ALLOCATE( var%totenbal(mp) ) 
-   ALLOCATE( var%totenbal2(mp) ) 
-   ALLOCATE( var%fland(mp) )      
-   ALLOCATE( var%ifland(mp) )  
-   ALLOCATE( var%tilefrac(mp,n_tiles) ) 
-   ALLOCATE( var%qasrf(mp) )  
-   ALLOCATE( var%qfsrf(mp) )  
-   ALLOCATE( var%qssrf(mp) )  
-
-END SUBROUTINE alloc_soil_snow_type
-
-! ------------------------------------------------------------------------------
-   
 SUBROUTINE alloc_veg_parameter_type(var, mp)
 
    TYPE(veg_parameter_type), INTENT(inout) :: var
@@ -709,70 +399,6 @@ SUBROUTINE alloc_veg_parameter_type(var, mp)
    ALLOCATE( var%vlaimax(mp) ) 
 
 END SUBROUTINE alloc_veg_parameter_type
-
-! ------------------------------------------------------------------------------
-   
-SUBROUTINE alloc_canopy_type(var, mp)
-
-   TYPE(canopy_type), INTENT(inout) :: var
-   INTEGER, INTENT(in) :: mp
-   
-   ALLOCATE ( var % fess(mp) )
-   ALLOCATE ( var % fesp(mp) )
-   ALLOCATE( var% cansto(mp) )  
-   ALLOCATE( var% cduv(mp) )   
-   ALLOCATE( var% delwc(mp) )  
-   ALLOCATE( var% dewmm(mp) )  
-   ALLOCATE( var% dgdtg(mp) )  
-   ALLOCATE( var% fe(mp) )      
-   ALLOCATE( var% fh(mp) )      
-   ALLOCATE( var% fpn(mp) )     
-   ALLOCATE( var% frp(mp) )     
-   ALLOCATE( var% frpw(mp) )    
-   ALLOCATE( var% frpr(mp) )    
-   ALLOCATE( var% frs(mp) )     
-   ALLOCATE( var% fnee(mp) )    
-   ALLOCATE( var% frday(mp) )   
-   ALLOCATE( var% fnv(mp) )     
-   ALLOCATE( var% fev(mp) )     
-   ALLOCATE( var% fevc(mp) )    
-   ALLOCATE( var% fhv(mp) )     
-   ALLOCATE( var% fns(mp) )     
-   ALLOCATE( var% fhs(mp) )     
-   ALLOCATE( var% fhs_cor(mp) )     
-   ALLOCATE( var% ga(mp) )      
-   ALLOCATE( var% ghflux(mp) )   
-   ALLOCATE( var% precis(mp) ) 
-   ALLOCATE( var% qscrn(mp) )  
-   ALLOCATE( var% rnet(mp) )   
-   ALLOCATE( var% segg(mp) )   
-   ALLOCATE( var% sghflux(mp) )  
-   ALLOCATE( var% through(mp) )  
-   ALLOCATE( var% spill(mp) )  
-   ALLOCATE( var% tscrn(mp) )  
-   ALLOCATE( var% wcint(mp) )  
-   ALLOCATE( var% tv(mp) )      
-   ALLOCATE( var% us(mp) )      
-   ALLOCATE( var% uscrn(mp) )   
-   ALLOCATE( var% rghlai(mp) ) 
-   ALLOCATE( var% vlaiw(mp) ) 
-   ALLOCATE( var% fwet(mp) )   
-   ALLOCATE ( var % evapfbl(mp,ms) )
-   ALLOCATE( var% epot(mp) )   
-   ALLOCATE( var% fnpp(mp) )   
-   ALLOCATE( var% fevw_pot(mp) )  
-   ALLOCATE( var% gswx_T(mp) )  
-   ALLOCATE( var% cdtq(mp) )   
-   ALLOCATE( var% wetfac_cs(mp) )  
-   ALLOCATE( var% fevw(mp) )   
-   ALLOCATE( var% fhvw(mp) )   
-   ALLOCATE( var% fes(mp) )    
-   ALLOCATE( var% fes_cor(mp) )    
-   ALLOCATE( var% gswx(mp,mf) )  
-   ALLOCATE( var% oldcansto(mp) )  
-   ALLOCATE( var% zetar(mp,NITER) )  
-   
-END SUBROUTINE alloc_canopy_type
 
 ! ------------------------------------------------------------------------------
    
@@ -833,6 +459,7 @@ SUBROUTINE alloc_roughness_type(var, mp)
    ALLOCATE ( var % term3(mp) )
    ALLOCATE ( var % term5(mp) )
    ALLOCATE ( var % term6(mp) )
+   ALLOCATE ( var % term6a(mp) )
    ALLOCATE ( var % usuh(mp) )
    ALLOCATE ( var % za_uv(mp) )
    ALLOCATE ( var % za_tq(mp) )
@@ -998,82 +625,6 @@ SUBROUTINE dealloc_soil_parameter_type(var)
 END SUBROUTINE dealloc_soil_parameter_type
  
 ! ------------------------------------------------------------------------------
-
-SUBROUTINE dealloc_soil_snow_type(var)
-   
-   TYPE(soil_snow_type), INTENT(inout) :: var
-  
-   DEALLOCATE ( var % iantrct )
-   DEALLOCATE ( var % pudsto )
-   DEALLOCATE ( var % pudsmx )
-   DEALLOCATE ( var % dtmlt )
-   DEALLOCATE( var% albsoilsn ) 
-   DEALLOCATE( var% cls )     
-   DEALLOCATE( var% dfn_dtg ) 
-   DEALLOCATE( var% dfh_dtg ) 
-   DEALLOCATE( var% dfe_ddq ) 
-   DEALLOCATE( var% ddq_dtg ) 
-   DEALLOCATE( var% evapsn )  
-   DEALLOCATE( var% fwtop )   
-   DEALLOCATE( var% fwtop1 )   
-   DEALLOCATE( var% fwtop2 )   
-   DEALLOCATE( var% fwtop3 )   
-   DEALLOCATE( var% gammzz ) 
-   DEALLOCATE( var% isflag ) 
-   DEALLOCATE( var% osnowd ) 
-   DEALLOCATE( var% potev ) 
-   DEALLOCATE( var% runoff )
-   DEALLOCATE( var% rnof1 ) 
-   DEALLOCATE( var% rnof2 ) 
-   DEALLOCATE( var% rtsoil )
-   DEALLOCATE( var% sconds ) 
-   DEALLOCATE( var% sdepth ) 
-   DEALLOCATE( var% smass ) 
-   DEALLOCATE( var% snage )  
-   DEALLOCATE( var% snowd )  
-   DEALLOCATE( var% smelt )  
-   DEALLOCATE( var% ssdn ) 
-   DEALLOCATE( var% ssdnn ) 
-   DEALLOCATE( var% tgg )   
-   DEALLOCATE( var% tggsn ) 
-   DEALLOCATE( var% tss )   
-   DEALLOCATE( var% tss_p )   
-   DEALLOCATE( var% deltss )   
-   DEALLOCATE( var% owb1 )   
-   DEALLOCATE( var% wb )    
-   DEALLOCATE( var% wbice ) 
-   DEALLOCATE( var% wblf ) 
-   DEALLOCATE( var%wbtot )    
-   DEALLOCATE( var%wbtot1 )    
-   DEALLOCATE( var%wbtot2 )    
-   DEALLOCATE( var%wb_lake )    
-   DEALLOCATE( var%sinfil )    
-   DEALLOCATE( var%evapfbl)    
-   DEALLOCATE( var%qstss)    
-   DEALLOCATE( var%wetfac )  
-   DEALLOCATE( var%owetfac )  
-   DEALLOCATE( var%t_snwlr )  
-   DEALLOCATE( var%wbfice )  
-   DEALLOCATE( var%tggav )  
-   DEALLOCATE( var%otgg )   
-   DEALLOCATE( var%otss )   
-   DEALLOCATE( var%otss_0 )   
-   DEALLOCATE( var%tprecip ) 
-   DEALLOCATE( var%tevap ) 
-   DEALLOCATE( var%trnoff ) 
-   DEALLOCATE( var%totenbal ) 
-   DEALLOCATE( var%totenbal2 ) 
-   DEALLOCATE( var%fland )      
-   DEALLOCATE( var%ifland )  
-   DEALLOCATE( var%tilefrac ) 
-   DEALLOCATE( var%qasrf )  
-   DEALLOCATE( var%qfsrf )  
-   DEALLOCATE( var%qssrf )  
-   
-END SUBROUTINE dealloc_soil_snow_type
-   
-! ------------------------------------------------------------------------------
-
 SUBROUTINE dealloc_veg_parameter_type(var)
 
    TYPE(veg_parameter_type), INTENT(inout) :: var
@@ -1105,69 +656,6 @@ SUBROUTINE dealloc_veg_parameter_type(var)
    DEALLOCATE( var%taul ) 
    
 END SUBROUTINE dealloc_veg_parameter_type
-   
-! ------------------------------------------------------------------------------
-
-SUBROUTINE dealloc_canopy_type(var)
-
-   TYPE(canopy_type), INTENT(inout) :: var
-
-   DEALLOCATE ( var % fess )
-   DEALLOCATE ( var % fesp )
-   DEALLOCATE( var% cansto )  
-   DEALLOCATE( var% cduv )   
-   DEALLOCATE( var% delwc )  
-   DEALLOCATE( var% dewmm )  
-   DEALLOCATE( var% dgdtg )  
-   DEALLOCATE( var% fe )      
-   DEALLOCATE( var% fh )      
-   DEALLOCATE( var% fpn )     
-   DEALLOCATE( var% frp )     
-   DEALLOCATE( var% frpw )    
-   DEALLOCATE( var% frpr )    
-   DEALLOCATE( var% frs )     
-   DEALLOCATE( var% fnee )    
-   DEALLOCATE( var% frday )   
-   DEALLOCATE( var% fnv )     
-   DEALLOCATE( var% fev )     
-   DEALLOCATE( var% fevc )    
-   DEALLOCATE( var% fhv )     
-   DEALLOCATE( var% fns )     
-   DEALLOCATE( var% fhs )     
-   DEALLOCATE( var% fhs_cor )     
-   DEALLOCATE( var% ga )      
-   DEALLOCATE( var% ghflux )   
-   DEALLOCATE( var% precis ) 
-   DEALLOCATE( var% qscrn )  
-   DEALLOCATE( var% rnet )   
-   DEALLOCATE( var% segg )   
-   DEALLOCATE( var% sghflux )  
-   DEALLOCATE( var% through )  
-   DEALLOCATE( var% spill )  
-   DEALLOCATE( var% tscrn )  
-   DEALLOCATE( var% wcint )  
-   DEALLOCATE( var% tv )      
-   DEALLOCATE( var% us )      
-   DEALLOCATE( var% uscrn )   
-   DEALLOCATE( var% rghlai ) 
-   DEALLOCATE( var% vlaiw ) 
-   DEALLOCATE( var% fwet )   
-   DEALLOCATE ( var % evapfbl )
-   DEALLOCATE( var% epot )   
-   DEALLOCATE( var% fnpp )   
-   DEALLOCATE( var% fevw_pot )  
-   DEALLOCATE( var% gswx_T )  
-   DEALLOCATE( var% cdtq )   
-   DEALLOCATE( var% wetfac_cs )  
-   DEALLOCATE( var% fevw )   
-   DEALLOCATE( var% fhvw )   
-   DEALLOCATE( var% fes )    
-   DEALLOCATE( var% fes_cor )    
-   DEALLOCATE( var% gswx )  
-   DEALLOCATE( var% oldcansto )  
-   DEALLOCATE( var% zetar )  
-
-END SUBROUTINE dealloc_canopy_type
    
 ! ------------------------------------------------------------------------------
 
@@ -1226,6 +714,7 @@ SUBROUTINE dealloc_roughness_type(var)
    DEALLOCATE ( var % term3 )
    DEALLOCATE ( var % term5 )
    DEALLOCATE ( var % term6 )
+   DEALLOCATE ( var % term6a )
    DEALLOCATE ( var % usuh )
    DEALLOCATE ( var % za_uv )
    DEALLOCATE ( var % za_tq )
