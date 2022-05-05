@@ -10,7 +10,7 @@ CONTAINS
 !variable formerly known as canopy%vlaiw
 SUBROUTINE LAI_eff( mp, LAI_PFT, Hgt_PFT, HgtAboveSnow,  &
                     reducedLAIdue2snow ) 
-
+  IMPLICIT NONE
   !re-decl input args  
   integer  :: mp
   real :: LAI_PFT(mp)
@@ -26,7 +26,8 @@ SUBROUTINE LAI_eff( mp, LAI_PFT, Hgt_PFT, HgtAboveSnow,  &
   FracOfCanopyAboveSnow = HgtAboveSnow/ MAX( 0.01, Hgt_PFT)
   
   ! LAI decreases due to snow:
-  reducedLAIdue2snow = LAI_PFT * FracOfCanopyAboveSnow 
+  !reducedLAIdue2snow = LAI_PFT * FracOfCanopyAboveSnow !this results in different output
+  reducedLAIdue2snow = LAI_PFT * HgtAboveSnow/ MAX( 0.01, Hgt_PFT) 
 
 END SUBROUTINE LAI_eff
 
