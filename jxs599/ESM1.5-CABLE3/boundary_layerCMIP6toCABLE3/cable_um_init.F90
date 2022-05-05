@@ -246,8 +246,8 @@ USE cable_other_constants_mod, ONLY : CLAI_THRESH => LAI_THRESH
          
 !CBL3
 REAL, DIMENSION(land_pts, ntiles) ::  clobbered_htveg
-REAL :: heat_cap_lower_limit(mp,ms)
-heat_cap_lower_limit = 0.01
+
+soil%heat_cap_lower_limit = 0.01
 
       !---------------------------------------------------------------------!
       !--- code to create type um1% conaining UM basic vars describing    --! 
@@ -347,7 +347,7 @@ CALL initialize_veg( kblum_veg%htveg , land_pts, npft, ntiles, sm_levels, mp,   
  
       IF( first_call ) THEN
 !draft1!call spec_init_soil_snow( real(kwidth_gl), soil, ssnow, canopy, met, bal, veg, &
-!draft1!        heat_cap_lower_limit )
+!draft1!        soil%heat_cap_lower_limit )
          CALL init_bgc_vars() 
          CALL init_sumflux_zero() 
 
