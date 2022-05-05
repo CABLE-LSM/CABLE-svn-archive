@@ -41,7 +41,9 @@ REAL, PARAMETER :: lai_thresh = 0.001
 ! minimum (cosine)zenith angle of sun signalling sunrise 
 REAL, PARAMETER :: coszen_tols = 1.0e-4
 
-REAL, PARAMETER :: z0surf_min = 1.e-7 ! min. roughness of bare soil surface
-!H!REAL, PARAMETER :: z0snow_min = 1.e-7 ! min. roughness of bare snow surface
+!minimum roughness of bare soil surface
+real, parameter :: z0surf_min = 1.e-7
+!minimum roughness of bare snow surface
+!H!real, parameter :: z0snow_min = 1.e-7
 
 END MODULE cable_other_constants_mod
