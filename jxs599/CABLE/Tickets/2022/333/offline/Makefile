@@ -77,8 +77,8 @@ LSRC =                          \
 	cable_cru_TRENDY.F90 POPLUC.F90 cable_LUC_EXPT.F90												 \
 	cable_gw_hydro.F90 cable_psm.F90 cable_namelist_input.F90									 \
 	cable_site.F90 cable_climate_type_mod.F90 cable_metutils.F90               \
-	landuse3.F90 landuse_inout.F90 landuse_constant.F90
-
+	landuse3.F90 landuse_inout.F90 landuse_constant.F90										 		 \
+	cable_canopy_module_subrs.F90
 # this is the executable we are building
 PROG = cable
 
@@ -165,7 +165,9 @@ casa_phenology.o: casa_phenology.F90
 
 cable_air.o: cable_air.F90 cable_define_types.o cable_common.o
 
-cable_canopy.o: cable_canopy.F90 cable_maths_constants_mod.o cable_phys_constants_mod.o cable_other_constants_mod.o cable_photo_constants_mod.o cable_define_types.o cbl_radiation.o cable_roughness.o cable_air.o cable_common.o cable_sli_utils.o cable_sli_main.o cable_gw_hydro.o cable_iovars.o cable_psm.o cable_gw_hydro.o
+cable_canopy.o: cable_canopy.F90 cable_canopy_module_subrs.o cable_maths_constants_mod.o cable_phys_constants_mod.o cable_other_constants_mod.o cable_photo_constants_mod.o cable_define_types.o cbl_radiation.o cable_roughness.o cable_air.o cable_common.o cable_sli_utils.o cable_sli_main.o cable_gw_hydro.o cable_iovars.o cable_psm.o cable_gw_hydro.o
+
+cable_canopy_module_subrs.o: cable_canopy_module_subrs.F90 cable_maths_constants_mod.o cable_phys_constants_mod.o cable_other_constants_mod.o cable_photo_constants_mod.o 
 
 cable_carbon.o: cable_carbon.F90 cable_define_types.o cable_common.o
 
