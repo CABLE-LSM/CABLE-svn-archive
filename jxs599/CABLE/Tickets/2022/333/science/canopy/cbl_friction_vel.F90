@@ -4,6 +4,7 @@ IMPLICIT NONE
 
 PUBLIC comp_friction_vel
 PUBLIC psim
+PUBLIC psis
 
 PRIVATE
 
@@ -94,5 +95,44 @@ unstable = ALOG((1.0+x*x)*(1.0+x)**2/8) - 2.0*ATAN(x) + CPI_C*0.5
 r        = z*stable + (1.0-z)*unstable
 
 END FUNCTION psim
+
+ELEMENTAL FUNCTION psis(zeta) RESULT(r)
+
+! mrr, 16-sep-92 (from function psi: mrr, edinburgh 1977)
+! computes integrated stability function psis(z/l) (z/l=zeta)
+! for scalars, using the businger-dyer form for unstable cases
+! and the webb form for stable cases. see paulson (1970).
+
+REAL, INTENT(IN)     :: zeta
+
+REAL, PARAMETER      ::                                                     &
+     gu = 16.0,        & !
+     gs = 5.0,         & !
+     a = 1.0,          & !
+     b = 0.667,        & !
+     c = 5.0,          & !
+     d = 0.35
+
+REAL                 ::                                                     &
+     r,                & !
+     stzeta,           & !
+     ustzeta,          & !
+     z,                & !
+     y,                & !
+     stable,           & !
+     unstable
+
+z      = 0.5 + SIGN(0.5,zeta)    ! z=1 in stable, 0 in unstable
+
+! Beljaars and Holtslag (1991) for stable
+stzeta = MAX(0.,zeta)
+stable = -(1.+2./3.*a*stzeta)**(3./2.) -  &
+     b*(stzeta-c/d)*EXP(-d*stzeta) - b*c/d + 1.
+y      = (1.0 + gu*ABS(zeta))**0.5
+unstable = 2.0 * alog((1+y)*0.5)
+r   = z*stable + (1.0-z)*unstable
+
+END FUNCTION psis
+
 
 END MODULE cbl_friction_vel_module
