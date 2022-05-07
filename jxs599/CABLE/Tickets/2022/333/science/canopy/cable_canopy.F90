@@ -62,6 +62,8 @@ USE cable_canopy_module_subrs_module, ONLY:  Surf_wetness_fact, dryLeaf,       &
                                              fwsoil_calc_Lai_Ktaul,            &
                                              fwsoil_calc_sli,  getrex_1d
 
+USE cbl_friction_vel_module, ONLY: comp_friction_vel, psim
+
     TYPE (balances_type), INTENT(INOUT)  :: bal
     TYPE (radiation_type), INTENT(INOUT) :: rad
     TYPE (roughness_type), INTENT(INOUT) :: rough
@@ -235,7 +237,9 @@ CALL radiation( ssnow, veg, air, met, rad, canopy, sunlit_veg_mask, &
        ! AERODYNAMIC PROPERTIES: friction velocity us, thence turbulent
        ! resistances rt0, rt1 (elements of dispersion matrix):
        ! See CSIRO SCAM, Raupach et al 1997, eq. 3.46:
-       CALL comp_friction_vel()
+       CALL comp_friction_vel(canopy%us, iter, mp, CVONK, CUMIN, CPI_C,      &
+                             canopy%zetar, rough%zref_uv, rough%zref_tq,     &
+                             rough%z0m, met%ua )
 
        ! E.Kowalczyk 2014
        IF (cable_user%l_new_roughness_soil)                                     &
@@ -275,10 +279,13 @@ CALL radiation( ssnow, veg, air, met, rad, canopy, sunlit_veg_mask, &
              phist = 1 + 5.0*(zstar - rough%disp)*rL
 
              WHERE (canopy%zetar(:,iter) .GT. 1.e-6)! stable conditions
+             csw = MIN(0.3*((LOG((veg%hc-rough%disp)/rough%z0m) + phist*psihat - &
+             psim( canopy%zetar(:,iter)*(veg%hc-rough%disp) /                  &
+                    (rough%zref_tq-rough%disp), mp, CPI_C )+ &
+             psim(canopy%zetar(:,iter)*rough%z0m /                             &
+                  (rough%zref_tq-rough%disp), mp, CPI_C ))                     &
+                  / 0.4)**2/2., 3.0)* Ccsw
 
-                csw = MIN(0.3*((LOG((veg%hc-rough%disp)/rough%z0m) + phist*psihat - &
-                     psim(canopy%zetar(:,iter)*(veg%hc-rough%disp)/(rough%zref_tq-rough%disp))+ &
-                     psim(canopy%zetar(:,iter)*rough%z0m/(rough%zref_tq-rough%disp)))/0.4)**2/2., 3.0)* Ccsw
              ELSEWHERE
                 csw = Ccsw
              endwhere
@@ -631,12 +638,14 @@ write(6,*) "SLI is not an option right now"
          rad%transd*(.01*ssnow%wb(:,1)/soil%sfc)**2 ! + soil conductance; this part is done as in Moses
     WHERE ( soil%isoilm == 9 ) canopy%gswx_T = 1.e6   ! this is a value taken from Moses for ice points
 
-    canopy%cdtq = canopy%cduv *( LOG( rough%zref_uv / rough%z0m) -              &
-         psim( canopy%zetar(:,NITER) * rough%zref_uv/rough%zref_tq )   &
-         + psim( canopy%zetar(:,NITER) * rough%z0m/rough%zref_tq ) & ! new term from Ian Harman
-         ) / ( LOG( rough%zref_tq /(0.1*rough%z0m) )                   &
-         - psis( canopy%zetar(:,NITER))                                  &
-         + psis(canopy%zetar(:,NITER)*0.1*rough%z0m/rough%zref_tq) ) ! n
+    canopy%cdtq = canopy%cduv * &
+                    ( LOG( rough%zref_uv / rough%z0m) -              &
+                      psim( canopy%zetar(:,NITER) * rough%zref_uv/rough%zref_tq, mp, CPI_C )   &
+                     + psim( canopy%zetar(:,NITER) * rough%z0m    /rough%zref_tq, mp, CPI_C ) & ! new term from Ian Harman
+                    )                                          &
+                    / ( LOG( rough%zref_tq /(0.1*rough%z0m) )                   &
+                      - psis( canopy%zetar(:,NITER) )                                  &
+                      + psis(canopy%zetar(:,NITER)*0.1*rough%z0m/rough%zref_tq ) ) ! n
 
     !INH - the screen level calculations should be split off into a new subroutine -------
 
@@ -956,39 +965,6 @@ DEALLOCATE(ghwet)
 RETURN
 
   CONTAINS
-
-    ! ------------------------------------------------------------------------------
-
-    SUBROUTINE comp_friction_vel()
-      USE cable_def_types_mod, ONLY : mp
-      REAL, DIMENSION(mp)  :: lower_limit, rescale
-
-      !INH: Ticket #138 %us is defined based on U(rough%zref_uv)
-      ! but zetar based on rough%zref_tq - changes to ensure consistency
-      !NB no RSL incorporated here
-
-      !psim_1 = psim(canopy%zetar(:,iter))
-      psim_1 = psim(canopy%zetar(:,iter)*rough%zref_uv/rough%zref_tq)
-
-      rescale = CVONK * MAX(met%ua,CUMIN)
-      z_eff = rough%zref_uv / rough%z0m
-
-      !psim_arg = canopy%zetar(:,iter) / z_eff
-      psim_arg = canopy%zetar(:,iter) * rough%z0m / rough%zref_tq
-
-      !---fix for compiler limitation. bitwise reproducable whilst we
-      !---we know it to 11th decimal. psim_arg typically of a few
-      !psim_arg = nint(psim_arg * 1.e11)*1.e-11
-
-      psim_2 = psim( psim_arg )
-
-      lower_limit = rescale / ( LOG(z_eff) - psim_1 + psim_2 )
-
-      canopy%us = MIN(MAX(1.e-6, lower_limit ), 10.0 )
-
-    END SUBROUTINE comp_friction_vel
-
-    ! ------------------------------------------------------------------------------
 
     FUNCTION Penman_Monteith( ground_H_flux ) RESULT(ssnowpotev)
       USE cable_def_types_mod, ONLY : mp
@@ -1437,48 +1413,6 @@ write(6,*) "GW or ORevepis not an option right now"
       var = (CRMH2o/Crmair) * (CTETENA*EXP(CTETENB*tair/(CTETENC+tair))) / pmb
 
     END SUBROUTINE qsatfjh2
-
-    ! -----------------------------------------------------------------------------
-
-    FUNCTION psim(zeta) RESULT(r)
-      USE cable_def_types_mod, ONLY : mp
-      ! mrr, 16-sep-92 (from function psi: mrr, edinburgh 1977)
-      ! computes integrated stability function psim(z/l) (z/l=zeta)
-      ! for momentum, using the businger-dyer form for unstable cases
-      ! and the Beljaars and Holtslag (1991) form for stable cases.
-
-
-      REAL, INTENT(IN), DIMENSION(mp) ::  zeta       !
-
-      ! function result
-      REAL, DIMENSION(mp) :: r
-
-      REAL, DIMENSION(mp) ::                                                      &
-           x,       & !
-           z,       & !
-           stable,  & !
-           unstable   !
-
-      REAL, PARAMETER ::                                                          &
-           gu = 16.0,  & !
-           gs = 5.0
-
-      REAL, PARAMETER ::                                                          &
-           a = 1.0,       & !
-           b = 0.667,     & !
-           xc = 5.0,       & !
-           d = 0.35         !
-
-      z = 0.5 + SIGN(0.5,zeta)    ! z=1 in stable, 0 in unstable
-
-      ! Beljaars and Holtslag (1991) for stable
-      stable = -a*zeta - b*(zeta - xc/d)*EXP( -d*zeta) - b*xc/d
-      x      = (1.0 + gu*ABS(zeta))**0.25
-      unstable = ALOG((1.0+x*x)*(1.0+x)**2/8) - 2.0*ATAN(x) + CPI_C*0.5
-      r = z*stable + (1.0-z)*unstable
-    END FUNCTION psim
-
-    ! -----------------------------------------------------------------------------
 
     ELEMENTAL FUNCTION psis(zeta) RESULT(r)
 
