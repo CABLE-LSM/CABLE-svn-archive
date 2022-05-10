@@ -63,6 +63,8 @@ USE cable_canopy_module_subrs_module, ONLY:  Surf_wetness_fact, dryLeaf,       &
                                              fwsoil_calc_sli,  getrex_1d
 
 USE cbl_friction_vel_module, ONLY: comp_friction_vel, psim, psis
+USE cbl_pot_evap_snow_module, ONLY: Penman_Monteith, Humidity_deficit_method
+USE cbl_qsat_module, ONLY: qsatfjh,  qsatfjh2
 
     TYPE (balances_type), INTENT(INOUT)  :: bal
     TYPE (radiation_type), INTENT(INOUT) :: rad
@@ -185,7 +187,7 @@ logical :: sunlit_veg_mask(mp)
 
     CALL define_air (met, air)
 
-    CALL qsatfjh(qstvair,met%tvair-Ctfrz,met%pmb)
+    CALL qsatfjh(mp, qstvair, CRMH2o, Crmair, CTETENA, CTETENB, CTETENC, met%tvair-CTfrz,met%pmb)
 
     met%dva = (qstvair - met%qvair) *  Crmair/Crmh2o * met%pmb * 100.0
     dsx = met%dva     ! init. leaf surface vpd
@@ -448,7 +450,7 @@ CALL radiation( ssnow, veg, air, met, rad, canopy, sunlit_veg_mask, &
 
 
        ! Saturation specific humidity at soil/snow surface temperature:
-       CALL qsatfjh(ssnow%qstss,ssnow%tss-Ctfrz,met%pmb)
+       CALL qsatfjh(mp, ssnow%qstss, CRMH2o, Crmair, CTETENA, CTETENB, CTETENC,ssnow%tss-CTfrz,met%pmb)
 
       if (cable_user%gw_model .OR.  cable_user%or_evap) & 
       write(6,*) "GW or ORevepis not an option right now"
@@ -470,7 +472,12 @@ CALL radiation( ssnow, veg, air, met, rad, canopy, sunlit_veg_mask, &
           IF(cable_user%ssnow_POTEV== "P-M") THEN
 
              !--- uses %ga from previous timestep
-             ssnow%potev = Penman_Monteith(canopy%ga)
+             ssnow%potev = Penman_Monteith( mp, Ctfrz, CRMH2o, Crmair, CTETENA, CTETENB,         &
+                          CTETENC, REAL(veg%clitt), cable_user%litter,               &
+                          air%dsatdk, air%psyc, air%rho, air%rlam,             &
+                          met%tvair, met%pmb, met%qvair,                       &
+                          canopy%ga, canopy%fns, REAL(canopy%DvLitt),                &
+                          ssnow%rtsoil, ssnow%isflag )
 
           ELSE !by default assumes Humidity Deficit Method
 
@@ -478,7 +485,15 @@ CALL radiation( ssnow, veg, air, met, rad, canopy, sunlit_veg_mask, &
              ! INH: I think this should be - met%qvair
              dq = ssnow%qstss - met%qv
              dq_unsat = ssnow%rh_srf*ssnow%qstss - met%qv
-             ssnow%potev =  Humidity_deficit_method(dq, dq_unsat,ssnow%qstss)
+             ssnow%potev = Humidity_deficit_method( mp, Ctfrz, REAL(veg%clitt),cable_user%or_evap,     &
+                                 cable_user%gw_model, cable_user%litter,       &
+                                 air%rho, air%rlam,           & 
+                                 dq,dq_unsat,ssnow%qstss,   & 
+                                 REAL(canopy%DvLitt),      &
+                                 ssnow%isflag, REAL(ssnow%satfrac),ssnow%rtsoil, &
+                                 REAL(ssnow%rtevap_sat),  REAL(ssnow%rtevap_unsat), & 
+                                 ssnow%snowd, ssnow%tgg(:,1)     )
+
 
           ENDIF
 
@@ -515,21 +530,35 @@ write(6,*) "SLI is not an option right now"
        CALL within_canopy( gbhu, gbhf, rt0, rhlitt, relitt )
 
        ! Saturation specific humidity at soil/snow surface temperature:
-       CALL qsatfjh(ssnow%qstss,ssnow%tss-Ctfrz,met%pmb)
+       CALL qsatfjh(mp, ssnow%qstss, CRMH2o, Crmair, CTETENA, CTETENB, CTETENC,ssnow%tss-Ctfrz,met%pmb)
 
        IF (cable_user%soil_struc=='default') THEN
 
           IF(cable_user%ssnow_POTEV== "P-M") THEN
 
              !--- uses %ga from previous timestep
-             ssnow%potev = Penman_Monteith(canopy%ga)
+             ssnow%potev = Penman_Monteith( mp, Ctfrz, CRMH2o, Crmair, CTETENA, CTETENB,         &
+                          CTETENC, REAL(veg%clitt), cable_user%litter,               &
+                          air%dsatdk, air%psyc, air%rho, air%rlam,             &
+                          met%tvair, met%pmb, met%qvair,                       &
+                          canopy%ga, canopy%fns, REAL(canopy%DvLitt),                &
+                          ssnow%rtsoil, ssnow%isflag )
+
 
           ELSE !by default assumes Humidity Deficit Method
 
              ! Humidity deficit
              dq = ssnow%qstss - met%qvair
              dq_unsat = ssnow%rh_srf*ssnow%qstss - met%qvair
-             ssnow%potev =  Humidity_deficit_method(dq, dq_unsat,ssnow%qstss)
+             ssnow%potev = Humidity_deficit_method( mp, Ctfrz, REAL(veg%clitt),cable_user%or_evap,     &
+                                 cable_user%gw_model, cable_user%litter,       &
+                                 air%rho, air%rlam,           & 
+                                 dq,dq_unsat,ssnow%qstss,   & 
+                                 REAL(canopy%DvLitt),      &
+                                 ssnow%isflag, REAL(ssnow%satfrac),ssnow%rtsoil, &
+                                 REAL(ssnow%rtevap_sat),  REAL(ssnow%rtevap_unsat), & 
+                                 ssnow%snowd, ssnow%tgg(:,1)     )
+
 
           ENDIF
 
@@ -753,7 +782,7 @@ write(6,*) "SLI is not an option right now"
 
 
     !screen level humdity - this is only approximate --------------------------
-    CALL qsatfjh(rsts,canopy%tscrn,met%pmb)
+    CALL  qsatfjh(mp, rsts, CRMH2o, Crmair, CTETENA, CTETENB, CTETENC, canopy%tscrn,met%pmb)
 
     qtgnet = rsts * ssnow%wetfac - met%qv
 
@@ -965,115 +994,6 @@ DEALLOCATE(ghwet)
 RETURN
 
   CONTAINS
-
-    FUNCTION Penman_Monteith( ground_H_flux ) RESULT(ssnowpotev)
-      USE cable_def_types_mod, ONLY : mp
-      REAL, INTENT(IN), DIMENSION(mp)  :: ground_H_flux
-      REAL, DIMENSION(MP)  ::                                                     &
-           ssnowpotev,      & ! returned result of function
-           sss,             & ! var for Penman-Monteith soil evap
-           cc1,             & ! var for Penman-Monteith soil evap
-           cc2,             & ! var for Penman-Monteith soil evap
-           qsatfvar           !
-      INTEGER :: j
-
-      ! Penman-Monteith formula
-      sss=air%dsatdk
-      cc1=sss/(sss+air%psyc )
-      cc2=air%psyc /(sss+air%psyc )
-
-      CALL qsatfjh(qsatfvar,met%tvair-Ctfrz,met%pmb)
-
-      !INH 10-1-2017 - this P-M implementation is incorrect over snow.
-      !variable ssnowpotev is actually the latent heat flux associated with
-      !potential evaporation.
-      !Needs to be addressed/simplified at a later date - involves changes
-      !to HDM method and latent_heat_flux() and elsewhere
-
-      IF (cable_user%litter) THEN
-         !! vh_js !!
-         ssnowpotev = cc1 * (canopy%fns - ground_H_flux) + &
-              cc2 * air%rho * air%rlam*(qsatfvar - met%qvair)/ &
-              (ssnow%rtsoil+ REAL((1-ssnow%isflag))*veg%clitt*0.003/canopy%DvLitt)
-      ELSE
-         ssnowpotev = cc1 * (canopy%fns - ground_H_flux) + &
-              cc2 * air%rho * air%rlam*(qsatfvar  - met%qvair)/ssnow%rtsoil
-      ENDIF
-
-    END FUNCTION Penman_Monteith
-
-
-    ! ------------------------------------------------------------------------------
-    ! method alternative to P-M formula above
-    FUNCTION humidity_deficit_method(dq,dqu,qstss ) RESULT(ssnowpotev)
-
-      USE cable_def_types_mod, ONLY : mp
-
-      REAL, DIMENSION(mp) ::                                                      &
-           ssnowpotev,    & !
-           dq,            & ! sat spec hum diff.
-           dqu,           & ! sat spec hum diff.
-           qstss             !dummy var for compilation
-
-      INTEGER :: j
-      REAL, DIMENSION(mp) :: q_air
-
-      q_air = qstss - dq
-
-      DO j=1,mp
-         !if(ssnow%snowd(j) > 1.0) dq(j) = max( -0.1e-3, dq(j))
-         IF( ssnow%snowd(j)>1.0 .OR. ssnow%tgg(j,1).EQ.Ctfrz)   THEN
-            dq(j) = MAX( -0.1e-3, dq(j))
-            dqu(j) = MAX( -0.1e-3, dqu(j))
-         END IF
-
-         IF (dq(j) .LE. 0.0 .AND. dqu(j) .LT. dq(j)) THEN
-            dqu(j) = dq(j)
-         END IF
-
-         IF (dq(j) .GE. 0.0 .AND. dqu(j) .LT. 0.0) THEN
-            dqu(j) = 0.0
-         ENDIF
-      ENDDO
-
-      IF (cable_user%or_evap .or. cable_user%gw_model) then
-
-write(6,*) "GW or ORevepis not an option right now"
-!H!        IF (cable_user%or_evap) THEN
-!H!          do j=1,mp
-!H!       
-!H!             if (veg%iveg(j) .lt. 16 .and. ssnow%snowd(j) .lt. 1e-7) THEN
-!H!       
-!H!                if (dq(j) .le. 0.0) THEN
-!H!                   ssnow%rtevap_sat(j) = min(rtevap_max,canopy%sublayer_dz(j)/rt_Dff)
-!H!                end if
-!H!       
-!H!                if (dqu(j) .le. 0.0) THEN
-!H!                   ssnow%rtevap_unsat(j) = min(rtevap_max,canopy%sublayer_dz(j)/rt_Dff)
-!H!                end if
-!H!       
-!H!             end if
-!H!
-!H!          end do
-!H!
-!H!        END IF
-
-         ssnowpotev = air%rho * air%rlam * ( &
-              REAL(ssnow%satfrac) * dq /(ssnow%rtsoil + REAL(ssnow%rtevap_sat)) + &
-              (1.0 - REAL(ssnow%satfrac))* dqu/( &
-              ssnow%rtsoil + REAL(ssnow%rtevap_unsat)) )
-
-      ELSEIF (cable_user%litter) THEN
-         !! vh_js !!
-         ssnowpotev =air%rho * air%rlam * dq /(ssnow%rtsoil + &
-              REAL((1-ssnow%isflag))*veg%clitt*0.003/canopy%DvLitt)
-      ELSE
-         ssnowpotev =air%rho * air%rlam * dq /ssnow%rtsoil
-      ENDIF
-
-    END FUNCTION Humidity_deficit_method
-
-    ! ------------------------------------------------------------------------------
 
     SUBROUTINE Latent_heat_flux()
 
@@ -1287,7 +1207,7 @@ write(6,*) "GW or ORevepis not an option right now"
             met%qvair(j) =  MIN(met%qvair(j), upper_limit)
 
             ! Saturated specific humidity in canopy:
-            CALL qsatfjh2(qstvair(j),met%tvair(j)-Ctfrz,met%pmb(j))
+            CALL  qsatfjh2( qstvair(j), CRMH2o, Crmair, CTETENA, CTETENB, CTETENC, met%tvair(j)-Ctfrz,met%pmb(j))
 
             ! Saturated vapour pressure deficit in canopy:
             met%dva(j) = ( qstvair(j) - met%qvair(j) ) *  Crmair/CRMH2o         &
@@ -1377,42 +1297,6 @@ write(6,*) "GW or ORevepis not an option right now"
       r = (CRMH2o/Crmair) * (CTETENA*EXP(CTETENB*tair/(CTETENC+tair))) / pmb
 
     END FUNCTION qsatf
-
-    ! -----------------------------------------------------------------------------
-
-    SUBROUTINE qsatfjh(var,tair,pmb)
-      USE cable_def_types_mod, ONLY : mp
-      REAL, INTENT(IN), DIMENSION(mp) ::                                          &
-           tair,                        & ! air temperature (C)
-           pmb                            ! pressure PMB (mb)
-
-      REAL, INTENT(OUT), DIMENSION(mp) ::                                         &
-           var                            ! result; sat sp humidity
-
-      INTEGER :: j
-
-      DO j=1,mp
-
-         var(j) = (CRMH2o/Crmair) * (CTETENA*EXP(CTETENB*tair(j)/(CTETENC+tair(j))))    &
-              / pmb(j)
-      ENDDO
-
-    END SUBROUTINE qsatfjh
-
-    ! -----------------------------------------------------------------------------
-
-    SUBROUTINE qsatfjh2(var,tair,pmb)
-
-      REAL, INTENT(IN) ::                                                         &
-           tair,         & ! air temperature (C)
-           pmb             ! pressure PMB (mb)
-
-      REAL, INTENT(OUT) ::                                                        &
-           var             ! result; sat sp humidity
-
-      var = (CRMH2o/Crmair) * (CTETENA*EXP(CTETENB*tair/(CTETENC+tair))) / pmb
-
-    END SUBROUTINE qsatfjh2
 
     ! -----------------------------------------------------------------------------
 
