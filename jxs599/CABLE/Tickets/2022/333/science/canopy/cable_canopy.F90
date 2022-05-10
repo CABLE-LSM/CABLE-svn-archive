@@ -65,6 +65,7 @@ USE cable_canopy_module_subrs_module, ONLY:  Surf_wetness_fact, dryLeaf,       &
 USE cbl_friction_vel_module, ONLY: comp_friction_vel, psim, psis
 USE cbl_pot_evap_snow_module, ONLY: Penman_Monteith, Humidity_deficit_method
 USE cbl_qsat_module, ONLY: qsatfjh,  qsatfjh2
+USE cbl_zetar_module, ONLY : update_zetar
 
     TYPE (balances_type), INTENT(INOUT)  :: bal
     TYPE (radiation_type), INTENT(INOUT) :: rad
@@ -648,7 +649,13 @@ write(6,*) "SLI is not an option right now"
 
        ENDDO
 
-       CALL update_zetar()
+  CALL update_zetar( mp, NITER, canopy%zetar, iter, nrb, CVONK, CGRAV, CCAPP,  &
+                     CLAI_THRESH, CZETmul, CZETPOS, CZETNEG,          &
+                     cable_user%soil_struc, air%rho, met%tk,  met%fsd, &
+                     rough%zref_tq, rough%hruff, rough%term6a, rough%z0soilsn,   &
+                     canopy%vlaiw, canopy%zetash,  canopy%us, &
+                     canopy%fh, canopy%fe, canopy%fhs, REAL(canopy%fes) ) 
+
        !!880!CALL update_zetar(mp, sunlit_veg_mask)
 
     END DO           ! do iter = 1, NITER
@@ -1219,68 +1226,6 @@ RETURN
     END SUBROUTINE within_canopy
 
     ! -----------------------------------------------------------------------------
-
-    SUBROUTINE update_zetar()
-
-      INTEGER :: j
-
-      ! monin-obukhov stability parameter zetar=zref/l
-      ! recompute zetar for the next iteration, except on last iteration
-      IF (iter < NITER) THEN ! dont compute zetar on the last iter
-
-         iterplus = MAX(iter+1,2)
-         canopy%zetar(:,iterplus) = -( CVONK * CGRAV * rough%zref_tq *              &
-              ( canopy%fh + 0.07 * canopy%fe ) ) /          &
-              ( air%rho * CCAPP * met%tk * canopy%us**3 )
-
-         ! stability parameter at shear height: needed for Harman in-canopy stability correction
-         IF (cable_user%soil_struc=='sli') THEN
-            WHERE (canopy%vlaiw > CLAI_THRESH .AND. rough%hruff > rough%z0soilsn)
-               canopy%zetash(:,iterplus) = -(Cvonk*Cgrav*(0.1*rough%hruff)*(canopy%fhs+0.07*REAL(canopy%fes)))/ &
-                    MAX( (air%rho*Ccapp*met%tk*(canopy%us*rough%term6a)**3), 1.e-12)
-            ELSEWHERE
-               canopy%zetash(:,iterplus) = canopy%zetash(:,iter)
-            ENDWHERE
-         ENDIF
-
-         ! case NITER=2: final zetar=CZETmul*zetar(2) (compute only when iter=1)
-         IF (NITER == 2) THEN
-
-            canopy%zetar(:,2) = CZETmul * canopy%zetar(:,2)
-
-            ! stability parameter at shear height: needed for Harman in-canopy stability correction
-            IF (cable_user%soil_struc=='sli') THEN
-               canopy%zetash(:,2) = CZETmul * canopy%zetash(:,2)
-            ENDIF
-
-
-            DO j=1,mp
-               IF ( (met%fsd(j,1)+met%fsd(j,2))  ==  0.0 ) &
-                    canopy%zetar(j,2) = 0.5 * canopy%zetar(j,2)
-            ENDDO
-
-         END IF
-
-         ! constrain zeta to CZETPOS and CZETNEG (set in param0)
-
-         ! zetar too +
-         canopy%zetar(:,iterplus) = MIN(CZETPOS,canopy%zetar(:,iterplus))
-         !jhan: to get past rigorous build - however (:,i) cant be compared
-         !if ( canopy%zetash(:,iterplus) .NE. CZETPOS ) &
-         IF (cable_user%soil_struc=='sli') &
-              canopy%zetash(:,iterplus) = MIN(CZETPOS,canopy%zetash(:,iterplus))
-
-         ! zetar too -
-         canopy%zetar(:,iterplus) = MAX(CZETNEG,canopy%zetar(:,iterplus))
-         !if ( canopy%zetash(:,iterplus) .NE. CZETNEG ) &
-         IF (cable_user%soil_struc=='sli') &
-              canopy%zetash(:,iterplus) = MAX(CZETNEG,canopy%zetash(:,iterplus))
-
-      END IF ! (iter < NITER)
-
-    END SUBROUTINE update_zetar
-
-
     FUNCTION qsatf(j,tair,pmb) RESULT(r)
       ! MRR, 1987
       ! AT TEMP tair (DEG C) AND PRESSURE pmb (MB), GET SATURATION SPECIFIC
