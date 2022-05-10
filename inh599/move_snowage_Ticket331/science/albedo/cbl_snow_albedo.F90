@@ -122,6 +122,9 @@ CONTAINS
        AlbSnow(:,2) = aliro - 0.05 ! => here al*o LESS arbitrary aging 0.05
     END WHERE
 
+    print*, "snow_albedo", SnowDepth(1), 0*SnowDepth(1), SnowAge(1), SnowDensity(1), &
+       0*SnowAge(1), SoilTemp(1), 0*SoilTemp(1), AlbSnow(1,1), AlbSnow(1,2), AlbSoil(1,1)
+
     RETURN
 
   END SUBROUTINE surface_albedosn

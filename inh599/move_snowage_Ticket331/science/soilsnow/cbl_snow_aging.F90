@@ -32,7 +32,7 @@ CONTAINS
     !model parameter shared across subroutines -> cable_phys_constants
     REAL, PARAMETER :: snow_depth_thresh = 1.0
 
-    !working variables
+    !working variables - could be converted to scalars
     REAL, DIMENSION(mp) ::                             &
          ar1,     &  ! factor for crystal growth  (-ve)
          ar2,     &  ! factor for freezing of melt water
@@ -65,7 +65,7 @@ CONTAINS
              ar3(i) = 0.0000001
              
              !  NB. dsnow =1,assumes pristine snow; ignores soot etc. ALTERNATIVELY,
-             !dnsnow = max (dnsnow, 0.5) !increase refreshing of snow in Antarctic
+             !dnsnow = max (dnsnow(i), 0.5) !increase refreshing of snow in Antarctic
              dnsnow(i) = 1.0
 
           ELSE
@@ -74,16 +74,13 @@ CONTAINS
 
           END IF
 
+          !update snow age
+          dtau(i) = 1.0e-6 * (EXP( ar1(i) ) + EXP( ar2(i) ) + ar3(i) ) * dels
+          SnowAge(i) = MAX(0.0,(SnowAge(i)+dtau(i))*(1.0-dnsnow(i)))
+
        END IF
+
     END DO
-
-    dtau = 1.0e-6 * (EXP( ar1 ) + EXP( ar2 ) + ar3 ) * dels
-
-    WHERE (SnowDepth <= snow_depth_thresh)
-       SnowAge = 0.0
-    ELSEWHERE
-       SnowAge = MAX(0.0,(SnowAge+dtau)*(1.0-dnsnow))
-    END WHERE
 
     RETURN
 
