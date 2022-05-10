@@ -207,9 +207,6 @@ ENDIF
 
     IF( ALLOCATED(heat_cap_lower_limit) ) DEALLOCATE(heat_cap_lower_limit)
 
-    print*, "soilsnow", ssnow%snowd(1), ssnow%osnowd(1), ssnow%snage(1), ssnow%ssdnn(1), &
-       ssnow%isflag(1), ssnow%tgg(1,1), ssnow%tggsn(1,1), ssnow%AlbSoilsn(1,1), ssnow%AlbSoilsn(1,2), soil%AlbSoil(1,1)
-
 RETURN
 END SUBROUTINE soil_snow
 
