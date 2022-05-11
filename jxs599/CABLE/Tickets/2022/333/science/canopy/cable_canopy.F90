@@ -66,6 +66,7 @@ USE cbl_friction_vel_module, ONLY: comp_friction_vel, psim, psis
 USE cbl_pot_evap_snow_module, ONLY: Penman_Monteith, Humidity_deficit_method
 USE cbl_qsat_module, ONLY: qsatfjh,  qsatfjh2
 USE cbl_zetar_module, ONLY : update_zetar
+USE cable_latent_heat_module, ONLY : latent_heat_flux
 
     TYPE (balances_type), INTENT(INOUT)  :: bal
     TYPE (radiation_type), INTENT(INOUT) :: rad
@@ -499,7 +500,13 @@ CALL radiation( ssnow, veg, air, met, rad, canopy, sunlit_veg_mask, &
           ENDIF
 
           ! Soil latent heat:
-          CALL latent_heat_flux()
+
+      CALL Latent_heat_flux( mp, CTFRZ, dels, soil%zse(1), soil%swilt,           &
+                             cable_user%l_new_reduce_soilevp, pwet, air%rlam,  &
+                             ssnow%snowd, ssnow%wb(:,1), ssnow%wbice(:,1),             &
+                             ssnow%pudsto, ssnow%pudsmx, ssnow%potev,          &
+                             ssnow%wetfac, ssnow%evapfbl(:,1), ssnow%cls,          & 
+                             ssnow%tss, canopy%fes, canopy%fess, canopy%fesp  )
 
           ! Calculate soil sensible heat:
           ! INH: I think this should be - met%tvair
@@ -564,7 +571,13 @@ write(6,*) "SLI is not an option right now"
           ENDIF
 
           ! Soil latent heat:
-          CALL latent_heat_flux()
+      CALL Latent_heat_flux( mp, CTFRZ, dels, soil%zse(1), soil%swilt,           &
+                             cable_user%l_new_reduce_soilevp, pwet, air%rlam,  &
+                             ssnow%snowd, ssnow%wb(:,1), ssnow%wbice(:,1),             &
+                             ssnow%pudsto, ssnow%pudsmx, ssnow%potev,          &
+                             ssnow%wetfac, ssnow%evapfbl(:,1), ssnow%cls,          & 
+                             ssnow%tss, canopy%fes, canopy%fess, canopy%fesp  )
+
 
           ! Soil sensible heat:
           !canopy%fhs = air%rho*CCAPP*(ssnow%tss - met%tvair) /ssnow%rtsoil
@@ -1002,101 +1015,6 @@ RETURN
 
   CONTAINS
 
-    SUBROUTINE Latent_heat_flux()
-
-      USE cable_common_module
-      USE cable_def_types_mod, ONLY : mp
-
-      REAL, DIMENSION(mp) ::                                                      &
-           frescale,  flower_limit, fupper_limit
-
-      INTEGER :: j
-
-      !Ticket 137 - adjustments made so that one of four cases occurs
-      !             i) evaporation from/dew onto surfaces with no snow, T>Tfrz
-      !            ii) sublimation from/frost onto surfaces with snow cover
-      !           iii) evaporation of liquid water if no snow but frozen soil
-      !            iv) deposition of frost onto frozen soils if no snow cover
-      !
-      !IMPORTANTLY the value of %cls set here is used to control whether
-      !water fluxes are from the snow pack or soil column in _soilsnow
-
-      ! Soil latent heat:
-      WHERE (ssnow%potev < 0. ) ssnow%wetfac(:) = 1.0
-      canopy%fess= ssnow%wetfac * ssnow%potev
-      !removed below, set wetfac to 1.0 is potev < 0.0
-      !WHERE (ssnow%potev < 0. ) canopy%fess = ssnow%potev
-
-      ! Reduce soil evap due to presence of puddle
-      pwet = MAX(0.,MIN(0.2,ssnow%pudsto/MAX(1.,ssnow%pudsmx)))
-      canopy%fess = canopy%fess * (1.-pwet)
-
-      frescale = soil%zse(1) * 1000. * air%rlam / dels
-
-      DO j=1,mp
-
-         IF(ssnow%snowd(j) < 0.1 .AND. canopy%fess(j) .GT. 0. ) THEN
-
-            IF (.NOT.cable_user%l_new_reduce_soilevp) THEN
-               flower_limit(j) = REAL(ssnow%wb(j,1))-soil%swilt(j)/2.0
-            ELSE
-               ! E.Kowalczyk 2014 - reduces the soil evaporation
-               flower_limit(j) = REAL(ssnow%wb(j,1))-soil%swilt(j)
-            ENDIF
-            fupper_limit(j) = MAX( 0.,                                        &
-                 flower_limit(j) * frescale(j)                       &
-                 - ssnow%evapfbl(j,1)*air%rlam(j)/dels)
-
-            canopy%fess(j) = MIN(canopy%fess(j), REAL(fupper_limit(j),r_2))
-
-            !Ticket 137 - case iii)
-            !evaporation from frozen soils needs to respect the assumption that
-            !ice fraction of soil moisture cannot exceed frozen_limit=0.85
-            !see soilsnow: if frozen_limit changes need to be consistent
-            fupper_limit(j) = REAL(ssnow%wb(j,1)-ssnow%wbice(j,1)/0.85)*frescale(j)
-            fupper_limit(j) = MAX(REAL(fupper_limit(j),r_2),0.)
-
-            canopy%fess(j) = MIN(canopy%fess(j), REAL(fupper_limit(j),r_2))
-
-         END IF
-
-         ssnow%cls(j)=1.
-
-         !Ticket 137 - case ii) deposition of frost onto snow
-         ! case of sublimation of snow overwrites later
-         IF (ssnow%snowd(j) >=0.1 ) THEN
-            ssnow%cls(j) = 1.1335
-            canopy%fess(j) = ssnow%cls(j)*ssnow%potev(j)
-         ENDIF
-
-         !Ticket 137 - case iv) deposition of frost onto frozen soil, no snow
-         IF (ssnow%snowd(j) < 0.1 .AND. ssnow%potev(j) < 0. .AND. &
-              ssnow%tss(j)<CTFRZ) THEN
-            ssnow%cls(j)=1.1335
-            canopy%fess(j) = ssnow%cls(j)*ssnow%potev(j)
-         ENDIF
-
-         !Ticket 137 - case ii) sublimation of snow
-         IF (ssnow%snowd(j) >= 0.1 .AND. ssnow%potev(j) > 0.) THEN
-
-            ssnow%cls(j) = 1.1335
-
-            !INH - if changes to PM routine then matching changes here
-            canopy%fess(j) = MIN( (ssnow%wetfac(j)*ssnow%potev(j))*ssnow%cls(j), &
-                 ssnow%snowd(j)/dels*air%rlam(j)*ssnow%cls(j))
-
-         ENDIF
-
-      ENDDO
-
-      ! Evaporation from soil puddle
-      canopy%fesp = MIN(ssnow%pudsto/dels*air%rlam,MAX(pwet*ssnow%potev,0.))
-      canopy%fes = canopy%fess + canopy%fesp
-
-    END SUBROUTINE latent_heat_flux
-
-    ! -----------------------------------------------------------------------------
-
     SUBROUTINE within_canopy( gbhu, gbhf, rt0, rhlitt, relitt )
 
       USE cable_def_types_mod, ONLY : mp, r_2
@@ -1226,25 +1144,6 @@ RETURN
     END SUBROUTINE within_canopy
 
     ! -----------------------------------------------------------------------------
-    FUNCTION qsatf(j,tair,pmb) RESULT(r)
-      ! MRR, 1987
-      ! AT TEMP tair (DEG C) AND PRESSURE pmb (MB), GET SATURATION SPECIFIC
-      ! HUMIDITY (KG/KG) FROM TETEN FORMULA
-
-      REAL, INTENT(IN) ::                                                         &
-           tair,         & ! air temperature (C)
-           pmb             ! pressure PMB (mb)
-
-      INTEGER, INTENT(IN) :: j
-
-      REAL           :: r    ! result; sat sp humidity
-
-      r = (CRMH2o/Crmair) * (CTETENA*EXP(CTETENB*tair/(CTETENC+tair))) / pmb
-
-    END FUNCTION qsatf
-
-    ! -----------------------------------------------------------------------------
-
     ELEMENTAL FUNCTION rplant(rpconst, rpcoef, tair) RESULT(z)
       REAL, INTENT(IN)     :: rpconst
       REAL, INTENT(IN)     :: rpcoef

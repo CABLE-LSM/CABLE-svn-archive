@@ -165,7 +165,7 @@ casa_phenology.o: casa_phenology.F90
 
 cable_air.o: cable_air.F90 cable_define_types.o cable_common.o
 
-cable_canopy.o: cable_canopy.F90 cable_canopy_module_subrs.o cbl_friction_vel.o cbl_pot_evap_snow.o cbl_qsat.o cbl_zetar.o cable_maths_constants_mod.o cable_phys_constants_mod.o cable_other_constants_mod.o cable_photo_constants_mod.o cable_define_types.o cbl_radiation.o cable_roughness.o cable_air.o cable_common.o cable_sli_utils.o cable_sli_main.o cable_gw_hydro.o cable_iovars.o cable_psm.o cable_gw_hydro.o
+cable_canopy.o: cable_canopy.F90 cable_canopy_module_subrs.o cbl_friction_vel.o cbl_pot_evap_snow.o cbl_qsat.o cbl_zetar.o cbl_latent_heat.o cable_maths_constants_mod.o cable_phys_constants_mod.o cable_other_constants_mod.o cable_photo_constants_mod.o cable_define_types.o cbl_radiation.o cable_roughness.o cable_air.o cable_common.o cable_sli_utils.o cable_sli_main.o cable_gw_hydro.o cable_iovars.o cable_psm.o cable_gw_hydro.o
 
 cbl_friction_vel.o: cbl_friction_vel.F90
 
@@ -174,6 +174,7 @@ cbl_pot_evap_snow.o: cbl_pot_evap_snow.F90 cbl_qsat.o
 cbl_qsat.o: cbl_qsat.F90
 
 cbl_zetar.o: cbl_zetar.F90
+cbl_latent_heat.o: cbl_latent_heat.F90
 
 cable_carbon.o: cable_carbon.F90 cable_define_types.o cable_common.o
 
