@@ -37,17 +37,19 @@ SUBROUTINE cable_rad_driver(                                                   &
                              ! OUT
                              LAND_ALBEDO_CABLE, ALB_TILE, LAND_ALB_CABLE ) 
 
-   USE cable_def_types_mod, ONLY : mp, nrb, c1, rhoch, xk
+   USE cable_def_types_mod, ONLY : mp,nrb
 USE cbl_albedo_mod, ONLY: albedo
-USE cbl_masks_mod, ONLY: veg_mask,  sunlit_mask,  sunlit_veg_mask
+!USE init_active_tile_mask_mod,  ONLY: init_active_tile_mask_cbl
+USE cbl_masks_mod,              ONLY: fveg_mask, fsunlit_mask
+USE cbl_masks_mod,              ONLY: fsunlit_veg_mask
 USE cable_other_constants_mod, ONLY: Ccoszen_tols => coszen_tols
 USE cable_other_constants_mod,  ONLY : Crad_thresh => rad_thresh
 USE cable_other_constants_mod, ONLY: clai_thresh => lai_thresh
 USE cable_other_constants_mod, ONLY: cgauss_w => gauss_w
 USE cable_math_constants_mod,  ONLY: cpi => pi
 USE cable_math_constants_mod,  ONLY: cpi180 => pi180
-
-   USE cable_um_tech_mod,   ONLY : kblum_rad, um1, ssnow, rad, met, canopy, veg, soil
+   USE cable_um_tech_mod,   ONLY : kblum_rad, um1, soil, ssnow, rad, veg,      &
+                                   met, canopy
    USE cable_um_init_subrs_mod, ONLY : update_kblum_radiation,  um2cable_met_rad,  &
                                    um2cable_lp 
    USE cable_common_module, ONLY : cable_runtime, cable_user
@@ -87,10 +89,25 @@ USE cable_math_constants_mod,  ONLY: cpi180 => pi180
    
    REAL :: rad_vis(mp), rad_nir(mp), met_fsd_tot_rel(mp), rad_albedo_tot(mp) 
 
+!co-efficients usoughout init_radiation ` called from _albedo as well
+REAL :: c1(mp,nrb)
+REAL :: rhoch(mp,nrb)
+REAL :: xk(mp,nrb)
 CHARACTER(LEN=*), PARAMETER :: subr_name = "cbl_model_driver"
-LOGICAL :: jls_standalone= .TRUE.
+LOGICAL :: jls_standalone= .FALSE.
 LOGICAL :: jls_radiation= .TRUE.
-LOGICAL :: cbl_standalone = .FALSE.    
+LOGICAL :: cbl_standalone = .FALSE.   
+!masks
+LOGICAL, ALLOCATABLE :: veg_mask(:),  sunlit_mask(:),  sunlit_veg_mask(:)
+INTEGER, ALLOCATABLE :: SurfaceType(:)
+
+!CALL init_active_tile_mask_cbl(l_tile_pts, um1%land_pts, um1%ntiles, um1%tile_frac )
+ 
+!define logical masks that are used throughout
+CALL fveg_mask( veg_mask, mp, .01, canopy%vlaiw)
+CALL fsunlit_mask( sunlit_mask, mp, 1.e-4, met%coszen )
+CALL fsunlit_veg_mask( sunlit_veg_mask, veg_mask, sunlit_mask, mp )
+
       !jhan:check that these are reset after call done
       cable_runtime%um_radiation= .TRUE.
       

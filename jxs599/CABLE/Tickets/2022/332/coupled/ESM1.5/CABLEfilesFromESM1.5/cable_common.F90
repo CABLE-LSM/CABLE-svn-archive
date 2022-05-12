@@ -26,6 +26,8 @@ MODULE cable_common_module
 USE cable_runtime_opts_mod ,ONLY : cable_user
 USE cable_runtime_opts_mod ,ONLY : satuparam
 USE cable_runtime_opts_mod ,ONLY : wiltparam
+USE cable_params_mod,       ONLY : soilin
+USE cable_params_mod,       ONLY : vegin
 
    IMPLICIT NONE 
 
@@ -33,7 +35,6 @@ USE cable_runtime_opts_mod ,ONLY : wiltparam
    !---total number of timesteps, and processing node 
    INTEGER, SAVE :: ktau_gl, kend_gl, knode_gl, kwidth_gl
    
-  LOGICAL :: L_fudge = .FALSE.
 
   INTEGER, SAVE :: CurYear  ! current year of multiannual run
 
@@ -48,11 +49,12 @@ USE cable_runtime_opts_mod ,ONLY : wiltparam
    LOGICAL, SAVE :: l_casacnp,l_laiFeedbk,l_vcmaxFeedbk
    LOGICAL :: l_luc = .FALSE.
    LOGICAL :: l_thinforest = .FALSE.
+   LOGICAL :: l_landuse = .FALSE.
    
    !---CABLE runtime switches def in this type
    TYPE kbl_internal_switches
       LOGICAL :: um = .FALSE., um_explicit = .FALSE., um_implicit = .FALSE.,   &
-          um_radiation = .FALSE., um_hydrology = .FALSE.
+          um_radiation = .FALSE., um_hydrology = .FALSE., esm15 = .FALSE.
       LOGICAL :: offline = .FALSE., mk3l = .FALSE.
    END TYPE kbl_internal_switches 
 
@@ -76,15 +78,19 @@ USE cable_runtime_opts_mod ,ONLY : wiltparam
           soilcolor,  & ! file for soil color(soilcolor_global_1x1.nc)
       inits,      & ! name of file for initialisations
           soilIGBP,   & ! name of file for IGBP soil map
-          gw_elev       !name of file for gw/elevation data
+          gw_elev,    & !name of file for gw/elevation data
+          fxpft,      & !filename for PFT fraction and transition,wood harvest, secondary harvest
+          fxluh2cable,& !filename for mapping 12 luc states into 17 CABLE PFT
+          gridnew       !filename for updated gridinfo file                       
+
 
    END TYPE filenames_type
 
-  TYPE(filenames_type), SAVE :: filename
+   TYPE(filenames_type) :: filename
 
    ! hydraulic_redistribution switch _soilsnow module
   LOGICAL :: redistrb = .FALSE.  
-
+ 
   TYPE organic_soil_params
      !Below are the soil properties for fully organic soil
 
@@ -96,11 +102,11 @@ USE cable_runtime_opts_mod ,ONLY : wiltparam
           watr_organic   = 0.1,     &
           sfc_vec_hk      = 1.157407e-06, &
           swilt_vec_hk      = 2.31481481e-8
-
+   
   END TYPE organic_soil_params
 
   TYPE gw_parameters_type
-   
+
      REAL ::                   &
           MaxHorzDrainRate=2e-4,  & !anisintropy * q_max [qsub]
           EfoldHorzDrainRate=2.0, & !e fold rate of q_horz
@@ -124,7 +130,7 @@ USE cable_runtime_opts_mod ,ONLY : wiltparam
   END TYPE gw_parameters_type
 
   TYPE(gw_parameters_type), SAVE :: gw_params
-      
+
   REAL, SAVE ::        &!should be able to change parameters!!!
        max_glacier_snowd=1100.0,&
        snow_ccnsw = 2.0, &
@@ -134,7 +140,7 @@ USE cable_runtime_opts_mod ,ONLY : wiltparam
        max_ssdn = 750.0,    & !
        max_sconds = 2.51,   & !
        frozen_limit = 0.85    ! EAK Feb2011 (could be 0.95)
-
+      
 CONTAINS
 
   ELEMENTAL FUNCTION IS_LEAPYEAR( YYYY )
@@ -162,3 +168,4 @@ CONTAINS
 
 
 END MODULE cable_common_module
+
