@@ -16,7 +16,7 @@ IMPLICIT NONE
     REAL(r_2), DIMENSION(mp)           :: sicemelt
     REAL, DIMENSION(mp)           :: xx
 INTEGER :: i,k
-REAL(r_2) :: heat_cap_lower_limit(mp,ms)
+REAL :: heat_cap_lower_limit(mp,ms)
 REAL :: max_arg1, max_arg2
  
 xx = 0.
