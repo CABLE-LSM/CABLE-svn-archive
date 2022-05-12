@@ -1,8 +1,16 @@
 !jhan:Althoughthis isonly calling subrs and not using data - still needs revision to only call once and use L_tile_pts from here
 module cbl_masks_mod
+  public L_tile_pts
   public fveg_mask
   public fsunlit_mask
   public fsunlit_veg_mask
+  public veg_mask
+  public sunlit_mask
+  public sunlit_veg_mask
+!H! remove SAVE attr later 
+  !mask TRUE where tile fraction is greater than zero
+  LOGICAL, allocatable,SAVE :: L_tile_pts(:,:)
+  LOGICAL, allocatable, SAVE :: veg_mask(:), sunlit_mask(:), sunlit_veg_mask(:)
 
 contains
 
@@ -50,11 +58,9 @@ End subroutine fsunlit_mask
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-subroutine fsunlit_veg_mask( sunlit_veg_mask, veg_mask, sunlit_mask, mp )
+subroutine fsunlit_veg_mask( sunlit_veg_mask, mp )
 
 implicit none
-LOGICAL :: veg_mask(:)
-LOGICAL :: sunlit_mask(:)
 LOGICAL, allocatable :: sunlit_veg_mask(:)
 integer ::  mp
 integer :: i

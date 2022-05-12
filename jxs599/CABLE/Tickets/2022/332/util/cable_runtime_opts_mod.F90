@@ -16,7 +16,7 @@ TYPE kbl_user_switches
 
   ! Ticket #56
   !jhan:options?
-  CHARACTER(LEN=20) :: gs_switch='medlyn'
+  CHARACTER(LEN=20) :: gs_switch=''
 
   !INH - new switch for revised coupling on implicit step of ACCESS-CM2 Ticket #132
   LOGICAL :: l_revised_coupling = .FALSE.
@@ -114,10 +114,6 @@ TYPE kbl_user_switches
 
   LOGICAL :: l_limit_labile = .FALSE.    ! #237: limit Labile in spinup
   LOGICAL :: NtilesThruMetFile = .FALSE. ! #199: Specify Ntiles thru met file 
- !paths 4 testing ESM1.5-CABLE3 
-  LOGICAL :: test1= .FALSE. 
-  LOGICAL :: test2= .FALSE. 
-  LOGICAL :: test3= .FALSE. 
 
 END TYPE kbl_user_switches
 

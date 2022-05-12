@@ -83,7 +83,6 @@ module cable_data_module
       zetneg = -15.0, & ! negative limit on za/L when niter>=3
       zetpos = 1.0,  & ! positive limit on za/L when niter>=3
       zdlin  = 1.0,  & ! height frac of d below which TL linear
-      !umin   = 0.1 !CM2
       umin   = 0.01
        
    END TYPE physical_constants
@@ -101,8 +100,8 @@ module cable_data_module
       !where 3 = no. radiation bands (nrb in define types)
       real, DIMENSION(3) :: gauss_w=(/0.308,0.514,0.178/) ! Gaussian integ. weights
       !--- jhan: can make these trigger of #defines/namelist
-      real:: RAD_THRESH = 0.01 
-      real:: LAI_THRESH = 0.01 
+      real:: RAD_THRESH = 0.001 
+      real:: LAI_THRESH = 0.001 
    end type other_constants
 
    type photosynthetic_constants
