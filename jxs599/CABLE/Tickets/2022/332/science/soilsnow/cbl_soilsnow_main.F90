@@ -57,9 +57,6 @@ USE snowdensity_mod,              ONLY: snowDensity
     INTEGER, SAVE :: ktau =0
 REAL :: wbliq(mp,ms)
 
-  IF(.NOT. ALLOCATED(heat_cap_lower_limit)) THEN
-    ALLOCATE( heat_cap_lower_limit(mp,ms) )
-  END IF  
     ktau = ktau +1
   !this is the value it is initialized with in cable_common anyway 
   max_glacier_snowd = 1100.0 ! for ACCESS1.3 onwards. = 50000.0 for ACCESS1.0
@@ -68,7 +65,7 @@ REAL :: wbliq(mp,ms)
     ssnow%tggav = 0.
     DO k = 1, ms
       ssnow%tggav = ssnow%tggav  + soil%zse(k)*ssnow%tgg(:,k)/zsetot
-      heat_cap_lower_limit(:,k) = MAX( 0.01, soil%css(:) * soil%rhosoil(:) )
+      soil%heat_cap_lower_limit(:,k) = MAX( 0.01, soil%css(:) * soil%rhosoil(:) )
     END DO
 
   IF( cable_runtime%offline .or. cable_runtime%mk3l ) THEN !in um_init for UM
@@ -124,7 +121,7 @@ REAL :: wbliq(mp,ms)
     ! snow aging etc...
     CALL snowl_adjust(dels, ssnow, canopy )
 
-    CALL stempv(dels, canopy, ssnow, soil, heat_cap_lower_limit)
+   CALL stempv(dels, canopy, ssnow, soil, soil%heat_cap_lower_limit )
 
     ssnow%tss =  (1-ssnow%isflag)*ssnow%tgg(:,1) + ssnow%isflag*ssnow%tggsn(:,1)
 
@@ -135,7 +132,7 @@ REAL :: wbliq(mp,ms)
 
     CALL remove_trans(dels, soil, ssnow, canopy, veg)
 
-    CALL  soilfreeze(dels, soil, ssnow,heat_cap_lower_limit )
+   CALL  soilfreeze(dels, soil, ssnow, soil%heat_cap_lower_limit)
 
 
     totwet = canopy%precis + ssnow%smelt
@@ -162,8 +159,8 @@ REAL :: wbliq(mp,ms)
 
     CALL surfbv(dels, met, ssnow, soil, veg, canopy )
 
-! correction required for energy balance in online simulations
-IF( cable_runtime%um ) THEN
+   ! correction required for energy balance in online simulations 
+   IF( cable_runtime%um ) THEN
   canopy%fhs_cor = ssnow%dtmlt(:,1)*ssnow%dfh_dtg
    IF( cable_runtime%esm15 ) THEN
       canopy%fes_cor = ssnow%dtmlt(:,1)*(ssnow%dfe_ddq * ssnow%ddq_dtg)
