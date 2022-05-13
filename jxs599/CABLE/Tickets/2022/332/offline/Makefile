@@ -126,7 +126,7 @@ cable_diag.o: cable_diag.F90 cable_common.o cable_fFile.o
 
 #science seperated subrs
 cbl_hgtAbove_snow.o: cbl_hgtAbove_snow.F90
-cbl_lai_eff.o: cbl_lai_eff.F90
+cbl_lai_eff.o: cbl_lai_eff.F90 cable_common.o
 
 #science partially seperated subrs
 #albedo

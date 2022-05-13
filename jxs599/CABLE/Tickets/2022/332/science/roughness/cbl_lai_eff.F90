@@ -30,7 +30,7 @@ USE cable_common_module, ONLY: cable_runtime
 IF( cable_runtime%esm15 ) THEN
   reducedLAIdue2snow = LAI_PFT * HgtAboveSnow/ MAX( 0.01, Hgt_PFT) 
 ELSE
-  reducedLAIdue2snog = LAI_PFT * FracOfCanopyAboveSnow !this results in different output
+  reducedLAIdue2snow = LAI_PFT * FracOfCanopyAboveSnow !this results in different output
 ENDIF
 
 END SUBROUTINE LAI_eff
