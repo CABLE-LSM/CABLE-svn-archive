@@ -26,8 +26,6 @@ MODULE cable_common_module
 USE cable_runtime_opts_mod ,ONLY : cable_user
 USE cable_runtime_opts_mod ,ONLY : satuparam
 USE cable_runtime_opts_mod ,ONLY : wiltparam
-USE cable_params_mod,       ONLY : soilin
-USE cable_params_mod,       ONLY : vegin
 
    IMPLICIT NONE 
 
@@ -54,7 +52,7 @@ USE cable_params_mod,       ONLY : vegin
    !---CABLE runtime switches def in this type
    TYPE kbl_internal_switches
       LOGICAL :: um = .FALSE., um_explicit = .FALSE., um_implicit = .FALSE.,   &
-          um_radiation = .FALSE., um_hydrology = .FALSE., esm15 = .FALSE.
+          um_radiation = .FALSE., um_hydrology = .FALSE., esm15 = .TRUE.
       LOGICAL :: offline = .FALSE., mk3l = .FALSE.
    END TYPE kbl_internal_switches 
 
