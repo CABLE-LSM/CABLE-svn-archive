@@ -6,9 +6,8 @@ USE cable_other_constants_mod,  ONLY: nrb       !# radiation "bANDS"
                                                 !dir/dif components in bands VIS/NIR
 USE cable_other_constants_mod,  ONLY: nscs      ! number of soil carbon stores
 USE cable_other_constants_mod,  ONLY: nvcs      ! number of vegetation carbon stores
-USE grid_constants_mod_cbl, ONLY : mstype => nsoiltypes  ! # of soil types [9]
+USE grid_constants_mod_cbl, ONLY : mstype => nsoil_max   ! # of soil types [9]
 USE grid_constants_mod_cbl, ONLY : ntype_max     ! # of PFTs [17]
-MODULE grid_constants
 
 IMPLICIT NONE
 

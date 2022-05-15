@@ -40,4 +40,7 @@ INTEGER, PARAMETER :: nrb       = 3  ! # rad bands VISual/NIR + Legacy incl LW
 INTEGER, PARAMETER :: nsCs      = 2  ! # soil carbon stores
 INTEGER, PARAMETER :: nvCs      = 3  ! # vegetation carbon stores
 
+INTEGER, PARAMETER :: mf = 2          ! # leaves (sunlit, shaded)
+INTEGER, PARAMETER :: niter = 4       ! number of iterations for za/L
+
 END MODULE grid_constants_mod_cbl
