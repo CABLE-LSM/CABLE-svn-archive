@@ -327,7 +327,7 @@ END SUBROUTINE initialize_veg
 !========================================================================
 
 SUBROUTINE init_veg_pars_fr_vegin( soil_zse ) 
-   USE cable_common_module, ONLY : vegin
+   USE cable_params_mod, ONLY : vegin
    USE cable_um_tech_mod,   ONLY : veg, soil 
   USE cable_def_types_mod, ONLY : mp, ms
 
@@ -348,7 +348,7 @@ END SUBROUTINE init_veg_pars_fr_vegin
 
 SUBROUTINE init_veg_from_vegin(ifmp,fmp, veg, soil_zse ) 
      use cable_def_types_mod, ONLY : veg_parameter_type, ms, mp 
-USE cable_params_mod, ONLY : vegin
+   USE cable_params_mod, ONLY : vegin
 
      integer ::  ifmp,  & ! start local mp, # landpoints (jhan:when is this not 1 )      
                  fmp     ! local mp, # landpoints       
@@ -1049,7 +1049,7 @@ END SUBROUTINE um2cable_lp
 SUBROUTINE init_bgc_vars() 
    USE cable_def_types_mod, ONLY : ncs, ncp 
    USE cable_um_tech_mod,   ONLY : bgc, veg   
-   USE cable_common_module, ONLY : vegin
+   USE cable_params_mod, ONLY : vegin
    
    INTEGER :: k
 
