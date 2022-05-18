@@ -1,7 +1,7 @@
 MODULE snow_aging_mod
 
-  !This routine evaluates the effective age of the snow pack
-  !It is called from cbl_soilsnow_main and the output SnowAge
+  !This routine evaluates the effective age of any snow pack
+  !It is called from cbm module and the output (SnowAge)
   !is used in cbl_snow_albedo
 
 PUBLIC snow_aging
@@ -43,10 +43,6 @@ CONTAINS
 
     INTEGER :: i        !looping variable
     
-    !initialise at values if there is no snow
-    !ar1=0.0
-    !ar2=0.0
-    !ar3=0.0
     DO i=1,mp
        IF (SnowDepth(i)>snow_depth_thresh) THEN
 
