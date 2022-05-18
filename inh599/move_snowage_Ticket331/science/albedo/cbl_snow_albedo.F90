@@ -80,7 +80,7 @@ CONTAINS
     alir(:) =0.0
     alv(:)  =0.0
 
-    !Ticket 331 - snow age evaluation moved to soilsnow routine
+    !Ticket 331 - snow age evaluation moved to cbm module
     !removed permanent ice special conditions as overwritten later
     WHERE (SnowDepth > snow_depth_thresh)
 

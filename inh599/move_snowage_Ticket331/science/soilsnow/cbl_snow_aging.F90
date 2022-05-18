@@ -32,51 +32,51 @@ CONTAINS
     !model parameter shared across subroutines -> cable_phys_constants
     REAL, PARAMETER :: snow_depth_thresh = 1.0
 
-    !working variables - could be converted to scalars
-    REAL, DIMENSION(mp) ::                             &
+    !working variables - converted to scalars
+    REAL ::                                                           &
          ar1,     &  ! factor for crystal growth  (-ve)
          ar2,     &  ! factor for freezing of melt water
          ar3,     &  ! factor for accumulation of dirt
          dnsnow,  &  ! depth of new snow albedo
-         dtau        !change in effective snow age
+         dtau,    &  !change in effective snow age
+         tmp         !local effective surface temperauture
 
     INTEGER :: i        !looping variable
-    REAL    :: tmp      !local effective surface temperauture
-
+    
     !initialise at values if there is no snow
-    ar1(:)=0.0
-    ar2(:)=0.0
-    ar3(:)=0.0
+    !ar1=0.0
+    !ar2=0.0
+    !ar3=0.0
     DO i=1,mp
        IF (SnowDepth(i)>snow_depth_thresh) THEN
 
           !depth of new snow (in cm H20)
-          dnsnow(i) = MIN (1.0, 0.1 * MAX( 0.0, SnowDepth(i) - SnowODepth(i) ) )
+          dnsnow = MIN (1.0, 0.1 * MAX( 0.0, SnowDepth(i) - SnowODepth(i) ) )
 
           ! Snow age depends on snow crystal growth, freezing of melt water,
           ! accumulation of dirt and amount of new snow.
           tmp = SnowFlag_3L(i) * SnowTemp(i) + ( 1 - SnowFlag_3L(i) ) * SoilTemp(i)
           tmp = MIN( tmp, CTFRZ )
-          ar1(i) = 5000.0 * (1.0 / (CTFRZ-0.01) - 1.0 / tmp) ! crystal growth  (-ve)
-          ar2(i) = 10.0 * ar1(i)                             ! freezing of melt water
+          ar1 = 5000.0 * (1.0 / (CTFRZ-0.01) - 1.0 / tmp) ! crystal growth  (-ve)
+          ar2 = 10.0 * ar1                             ! freezing of melt water
 
           IF (soil_type(i) == perm_ice) THEN
              ! permanent ice case
-             ar3(i) = 0.0000001
+             ar3 = 0.0000001
              
              !  NB. dsnow =1,assumes pristine snow; ignores soot etc. ALTERNATIVELY,
              !dnsnow = max (dnsnow(i), 0.5) !increase refreshing of snow in Antarctic
-             dnsnow(i) = 1.0
+             dnsnow = 1.0
 
           ELSE
              ! accumulation of dirt
-             ar3(i) = 0.1
+             ar3 = 0.1
 
           END IF
 
           !update snow age
-          dtau(i) = 1.0e-6 * (EXP( ar1(i) ) + EXP( ar2(i) ) + ar3(i) ) * dels
-          SnowAge(i) = MAX(0.0,(SnowAge(i)+dtau(i))*(1.0-dnsnow(i)))
+          dtau = 1.0e-6 * (EXP( ar1 ) + EXP( ar2 ) + ar3 ) * dels
+          SnowAge(i) = MAX(0.0,(SnowAge(i)+dtau)*(1.0-dnsnow))
 
        END IF
 

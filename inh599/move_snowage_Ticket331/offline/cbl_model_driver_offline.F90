@@ -59,6 +59,8 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
     USE cable_canopy_module, ONLY : define_canopy
     USE cbl_albedo_mod, ONLY : albedo
     USE sli_main_mod, ONLY : sli_main
+    USE snow_aging_mod,               ONLY: snow_aging
+    
 !data !jhan:pass these
 USE cable_other_constants_mod, ONLY : CLAI_THRESH => lai_thresh
 USE cable_other_constants_mod,  ONLY : Crad_thresh => rad_thresh
@@ -126,7 +128,11 @@ CALL init_radiation( rad%extkb, rad%extkd,                                     &
                      !coszen, metDoY, SW_down,
                      canopy%vlaiw                                              &
                    ) !reducedLAIdue2snow 
- 
+
+!Ticket 331 refactored albedo code for JAC
+CALL snow_aging(ssnow%snage,mp,dels,ssnow%snowd,ssnow%osnowd,ssnow%tggsn(:,1),&
+         ssnow%tgg(:,1),ssnow%isflag,veg%iveg,soil%isoilm) 
+
 call Albedo( ssnow%AlbSoilsn, soil%AlbSoil,                                &
              !AlbSnow, AlbSoil,              
              mp, nrb,                                                      &

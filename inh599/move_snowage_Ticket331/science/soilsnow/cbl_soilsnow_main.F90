@@ -39,7 +39,6 @@ USE surfbv_mod,                   ONLY: surfbv
 USE snow_melting_mod,             ONLY: snow_melting
 USE snow_accum_mod,               ONLY: snow_accum
 USE snowdensity_mod,              ONLY: snowDensity
-USE snow_aging_mod,               ONLY: snow_aging
 
     REAL, INTENT(IN)                    :: dels ! integration time step (s)
     TYPE(soil_parameter_type), INTENT(INOUT) :: soil
@@ -200,10 +199,6 @@ ENDIF
     DO k = 1, ms
        ssnow%wbtot = ssnow%wbtot + REAL(ssnow%wb(:,k)*1000.0*soil%zse(k),r_2)
     END DO
-
-    !finally update snow age (this code was previously in the albedo section)
-    CALL snow_aging(ssnow%snage,mp,dels,ssnow%snowd,ssnow%osnowd,ssnow%tggsn(:,1),&
-         ssnow%tgg(:,1),ssnow%isflag,veg%iveg,soil%isoilm)
 
     IF( ALLOCATED(heat_cap_lower_limit) ) DEALLOCATE(heat_cap_lower_limit)
 
