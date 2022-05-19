@@ -13,10 +13,8 @@ jls_radiation ,                                   &
 veg_mask, sunlit_mask, sunlit_veg_mask,           &  
 Ccoszen_tols, CGAUSS_W,                           & 
 surface_type, soil_type, VegRefl, VegTaul,        &
-metTk, coszen,                                    & 
-reducedLAIdue2snow,                               &
-SnowDepth, SnowODepth, SnowFlag_3L,               & 
-SnowDensity, SoilTemp, SnowTemp, SnowAge,                   &
+coszen, reducedLAIdue2snow,                       &
+SnowDepth, SnowDensity, SoilTemp, SnowAge,        &
 xk, c1, rhoch,                                    & 
 RadFbeam, RadAlbedo,                              &
 ExtCoeff_dif, ExtCoeff_beam,                      &
@@ -63,20 +61,14 @@ REAL :: AlbSnow(mp,nrb)             !Ground Albedo given a snow coverage (ssnow%
 REAL :: RadAlbedo(mp,nrb)           !Total albedo given RadFbeam (rad%albedo)
 
 !Forcing
-REAL :: MetTk(mp)                   !Air Temperture at surface - atmospheric forcing (met%tk) - not needed
 REAL :: coszen(mp)                  !cosine zenith angle  (met%coszen)
-REAL :: metDoY(mp)                  !Day of the Year - not always available (met%doy)
 REAL :: SW_down(mp,nrb)             !Downward shortwave "forced" (met%fsd)
 
 !Prognostics
 REAL :: SnowDepth(mp)               !Total Snow depth - water eqivalent - packed from snow_surft (SnowDepth)
-REAL :: SnowODepth(mp)              !Total Snow depth before any update this timestep (SnowODepth)    - not needed
 REAL :: SnowDensity(mp)             !Total Snow density (assumes 1 layer describes snow cover) (SnowDensity)
-REAL :: SoilTemp(mp)                !Soil Temperature of top layer (soil%tgg)
-REAL :: SnowTemp(mp)                !Soil Temperature of top layer (soil%tgg) - not needed
+REAL :: SoilTemp(mp)                !Soil Temperature of top layer - for lake alebdo (ssnow%tgg)
 REAL :: SnowAge(mp)                 !Snow age (assumes 1 layer describes snow cover) (SnowAge)
-integer:: SnowFlag_3L(mp)           !Flag to treat snow as 3 layer - if enough present 
-                                    !Updated depending on total depth (SnowFlag_3L) - not needed
 
 REAL :: RadFbeam(mp,nrb)            !Computed Beam Fraction given total SW (rad%fbeam)
 

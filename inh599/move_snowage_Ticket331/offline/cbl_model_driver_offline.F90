@@ -141,12 +141,10 @@ call Albedo( ssnow%AlbSoilsn, soil%AlbSoil,                                &
              Ccoszen_tols, CGAUSS_W,                                       & 
              veg%iveg, soil%isoilm, veg%refl, veg%taul,                    & 
              !surface_type, VegRefl, VegTaul,
-             met%tk, met%coszen, canopy%vlaiw,                             &
-             !metTk, coszen, reducedLAIdue2snow,
-             ssnow%snowd, ssnow%osnowd, ssnow%isflag,                      & 
-             !SnowDepth, SnowODepth, SnowFlag_3L, 
-             ssnow%ssdnn, ssnow%tgg(:,1), ssnow%tggsn(:,1), ssnow%snage,   & 
-             !SnowDensity, SoilTemp, SnowAge, 
+             met%coszen, canopy%vlaiw,                                     &
+             !coszen, reducedLAIdue2snow,
+             ssnow%snowd, ssnow%ssdnn, ssnow%tgg(:,1), ssnow%snage,        & 
+             !SnowDepth, SnowDensity, SoilTemp, SnowAge, 
              xk, c1, rhoch,                                                & 
              rad%fbeam, rad%albedo,                                        &
              !RadFbeam, RadAlbedo,

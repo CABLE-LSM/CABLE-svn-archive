@@ -1,5 +1,5 @@
 &cable
-   filename%met = '/g/data/ks32/CLEX_Data/PLUMBER2/v1-0/Met/NL-Loo_1997-2013_FLUXNET2015_Met.nc'
+   filename%met = '/g/data/ks32/CLEX_Data/PLUMBER2/v1-0/Met/US-FPe_2000-2006_LaThuile_Met.nc'
    filename%out = 'out_cable.nc'
    filename%log = 'log_cable.txt'
    filename%restart_in = ' ' 
