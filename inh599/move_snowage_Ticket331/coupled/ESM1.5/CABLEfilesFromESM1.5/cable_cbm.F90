@@ -95,8 +95,12 @@ CALL init_radiation( &
                      !coszen, metDoY, SW_down,                                 &
                      canopy%vlaiw  ) !reducedLAIdue2snow 
  
-      IF( cable_runtime%um_explicit ) THEN
-
+IF( cable_runtime%um_explicit ) THEN
+   
+ !Ticket 331 refactored albedo code for JAC
+ CALL snow_aging(ssnow%snage,mp,dels,ssnow%snowd,ssnow%osnowd,ssnow%tggsn(:,1),&
+         ssnow%tgg(:,1),ssnow%isflag,veg%iveg,soil%isoilm) 
+         
  CALL Albedo( ssnow%AlbSoilsn, soil%AlbSoil,                                 &
              !AlbSnow, AlbSoil,              
              mp, nrb,                                                       &
