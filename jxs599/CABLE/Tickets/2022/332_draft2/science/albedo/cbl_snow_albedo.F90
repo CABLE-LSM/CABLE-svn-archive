@@ -12,7 +12,7 @@ SUBROUTINE surface_albedosn( AlbSnow, AlbSoil, mp, nrb, jls_radiation, surface_t
                             SoilTemp, SnowTemp, SnowAge, & 
                             metTk, coszen )
 !H!jhan:Eliminate these USE data statements  
-USE cable_common_module, ONLY : kwidth_gl
+USE cable_common_module, ONLY : kwidth_gl, cable_runtime
 use cable_phys_constants_mod, ONLY : CTFRZ => TFRZ
 
 implicit none
@@ -58,12 +58,19 @@ integer:: soil_type(mp)
 
 ! local vars    
 REAL :: SoilAlbsoilf(mp) 
+REAL :: Albsoilf_min(mp) 
 
    SoilAlbsoilF = Albsoil(:,1)
 
-    ! lakes: hard-wired number to be removed in future
+IF( cable_runtime%esm15_albedo ) THEN
+   Albsoilf_min = MetTk   
+ELSE  
+   Albsoilf_min = SoilTemp
+ENDIF
+
+   ! lakes: hard-wired number to be removed in future
     WHERE( surface_type == 16 )                                                     &
-      soilalbsoilf = -0.022*( MIN( 275., MAX( 260., SoilTemp) ) - 260. ) + 0.45
+      SoilAlbsoilf = -0.022*( MIN( 275., MAX( 260., Albsoilf_min ) ) - 260. ) + 0.45
 
    WHERE(SnowDepth > 1. .and. surface_type == 16 ) SoilAlbsoilF = 0.85
 
@@ -198,10 +205,17 @@ ENDWHERE        ! snowd > 0
    AlbSnow(:,1) = MIN( alvo,                                           &
                           ( 1. - snrat ) * AlbSnow(:,1) + snrat * alv )
 
-    WHERE (soil_type == 9) ! use dry snow albedo: 1=vis, 2=nir
+IF( cable_runtime%esm15_albedo ) THEN
+  WHERE(soil_type == 9) !imples pseudo mp dimension mask, hence 2 lines follow
+    AlbSnow(:,1) = 0.82
+    AlbSnow(:,2) = 0.82
+  ENDWHERE
+ELSE  
+  WHERE(soil_type == 9) 
      AlbSnow(:,1) = alvo - 0.05 ! al*o = albedo appropriate for new snow 
      AlbSnow(:,2) = aliro - 0.05 ! => here al*o LESS arbitrary aging 0.05
-    END WHERE
+  ENDWHERE
+ENDIF
 
 return
 

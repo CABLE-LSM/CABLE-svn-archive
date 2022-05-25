@@ -148,6 +148,30 @@ IMPLICIT NONE
 
     ! Initialise snow evaporation:
     ssnow%evapsn = 0
+IF( cable_runtime%esm15 ) THEN
+   ! Snow evaporation and dew on snow
+   WHERE( ssnow%snowd > 0.1 )
+      
+      ssnow%evapsn = dels * ( canopy%fess + canopy%fes_cor ) / ( CHL + CHLF )
+      xxx = ssnow%evapsn
+
+      WHERE( ssnow%isflag == 0 .AND. canopy%fess + canopy%fes_cor.GT. 0.0 )    &
+         ssnow%evapsn = MIN( ssnow%snowd, xxx )
+          
+      WHERE( ssnow%isflag  > 0 .AND. canopy%fess + canopy%fes_cor .GT. 0.0 )   &
+         ssnow%evapsn = MIN( 0.9 * ssnow%smass(:,1), xxx )
+
+      ssnow%snowd = ssnow%snowd - ssnow%evapsn
+      
+      WHERE( ssnow%isflag > 0 )
+         ssnow%smass(:,1) = ssnow%smass(:,1)  - ssnow%evapsn
+         ssnow%sdepth(:,1) = MAX( 0.02, ssnow%smass(:,1) / ssnow%ssdn(:,1) )
+      END WHERE
+
+      canopy%segg = 0.0
+
+   END WHERE
+ELSE
     DO i=1,mp
        ! Snow evaporation and dew on snow
        ! NB the conditions on when %fes applies to %segg or %evapsn MUST(!!)
@@ -182,6 +206,9 @@ IMPLICIT NONE
        ENDIF
 
     ENDDO
+
+ENDIF !IF( cable_runtime%esm15 ) THEN
+
 
 END SUBROUTINE snow_accum
 
