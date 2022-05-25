@@ -126,12 +126,12 @@ cable_diag.o: cable_diag.F90 cable_common.o cable_fFile.o
 
 #science seperated subrs
 cbl_hgtAbove_snow.o: cbl_hgtAbove_snow.F90
-cbl_lai_eff.o: cbl_lai_eff.F90
+cbl_lai_eff.o: cbl_lai_eff.F90 cable_common.o
 
 #science partially seperated subrs
 #albedo
 cbl_albedo.o: cbl_albedo.F90 cbl_snow_albedo.o cbl_rhoch.o cable_define_types.o cable_common.o
-cbl_snow_albedo.o: cbl_snow_albedo.F90 cbl_soilColour_albedo.o cable_phys_constants_mod.o
+cbl_snow_albedo.o: cbl_snow_albedo.F90 cbl_soilColour_albedo.o cable_phys_constants_mod.o cable_common.o
 cbl_soilColour_albedo.o: cbl_soilColour_albedo.F90 
 #radiation
 cbl_rhoch.o: cbl_rhoch.F90
