@@ -9,7 +9,7 @@ CONTAINS
 !Computes Effective LAI of exposed canopy given effect of snow present
 !variable formerly known as canopy%vlaiw
 SUBROUTINE LAI_eff( mp, LAI_PFT, Hgt_PFT, HgtAboveSnow,  &
-                    reducedLAIdue2snow ) 
+                    reducedLAIdue2snow )
 USE cable_common_module, ONLY: cable_runtime 
   IMPLICIT NONE
   !re-decl input args  

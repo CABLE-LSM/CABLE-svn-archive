@@ -1,5 +1,5 @@
 !==============================================================================
-! This source code is part of the
+! This source code is part of the 
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
 ! This work is licensed under the CSIRO Open Source Software License
 ! Agreement (variation of the BSD / MIT License).
@@ -23,6 +23,7 @@ MODULE cbl_init_radiation_module
    IMPLICIT NONE
 
    PUBLIC init_radiation
+   PUBLIC Common_InitRad_Scalings
    PRIVATE
 
 !FUDGED local pars -masks tuned at other times - review conssitency!!
@@ -31,7 +32,7 @@ real :: Ccoszen_tols_tiny  ! 1e-4 * threshold cosine of sun's zenith angle, belo
 
 CONTAINS
 
-SUBROUTINE init_radiation( ExtCoeff_beam, ExtCoeff_dif,                        &
+SUBROUTINE init_radiation( ExtCoeff_beam, ExtCoeff_dif,                           &
                         EffExtCoeff_beam, EffExtCoeff_dif, RadFbeam,           &
                         c1, rhoch, xk,                                         &
                         mp,nrb,                                                &
@@ -42,6 +43,8 @@ SUBROUTINE init_radiation( ExtCoeff_beam, ExtCoeff_dif,                        &
                         VegXfang, VegTaul, VegRefl,                            &
                         coszen, metDoY, SW_down,                               & 
                         reducedLAIdue2snow )
+
+USE cable_common_module, ONLY: cable_runtime
 
 implicit none
 
@@ -93,17 +96,20 @@ REAL :: xk(mp,nrb)              ! extinct. coef.for beam rad. and black leaves
 REAL :: xvlai2(mp,nrb) ! 2D vlai
 REAL :: xphi1(mp)      ! leaf angle parmameter 1
 REAL :: xphi2(mp)      ! leaf angle parmameter 2
-   
+
 !Null Initializations
 ExtCoeff_beam(:) = 0.0
 ExtCoeff_dif(:) = 0.0
 EffExtCoeff_beam(:,:) = 0.0
 EffExtCoeff_dif(:,:) = 0.0
-RadFbeam(:,:) = 0.0
+IF( .NOT. cable_runtime%um) THEN
+  RadFbeam(:,:) = 0.0
+ENDIF
+
 c1(:,:) = 0.0
 rhoch(:,:) = 0.0
 xk(:,:) = 0.0
-
+  
 ! Compute common scaling co-efficients used throughout init_radiation
 call Common_InitRad_Scalings( xphi1, xphi2, xk, xvlai2, c1, rhoch,             &
                             mp, nrb, Cpi180,cLAI_thresh, veg_mask,             &
@@ -121,6 +127,14 @@ call ExtinctionCoeff( ExtCoeff_beam, ExtCoeff_dif, mp, nrb,                    &
                       sunlit_mask, veg_mask, sunlit_veg_mask,                  &
                       cLAI_thresh, coszen, xphi1, xphi2, xk, xvlai2)
 
+IF( cable_runtime%esm15_init_rad) THEN
+   WHERE(RadFbeam(:,1) <  0.01) !CRAD_THRESH )
+      ExtCoeff_beam = 30.0         ! keep cexpkbm within real*4 range (BP jul2010)
+   END WHERE
+ELSE  
+  write(6,*) "this ad-hoc use of fbeam as a trigger is peculiar to esm15"
+ENDIF
+   
 ! Define effective Extinction co-efficient for direct beam/diffuse radiation
 ! Extincion Co-eff defined by parametrized leaf reflect(transmit)ance - used in
 ! canopy transmitance calculations (cbl_albeo)
@@ -128,14 +142,14 @@ call ExtinctionCoeff( ExtCoeff_beam, ExtCoeff_dif, mp, nrb,                    &
 call EffectiveExtinctCoeffs( EffExtCoeff_beam, EffExtCoeff_dif,               &
                              mp, nrb, sunlit_veg_mask,                        &
                              ExtCoeff_beam, ExtCoeff_dif, c1 )
-
+   
 ! Offline/standalone forcing gives us total downward Shortwave. We have
 ! previosuly, arbitratily split this into NIR/VIS (50/50). We use 
 ! Spitter function to split these bands into direct beam and diffuse components
 IF( cbl_standalone .OR. jls_standalone .AND. .NOT. jls_radiation ) &
   CALL BeamFraction( RadFbeam, mp, nrb, Cpi, Ccoszen_tols_huge, metDoy,  &
                      coszen, SW_down ) 
-   
+
 END SUBROUTINE init_radiation
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
