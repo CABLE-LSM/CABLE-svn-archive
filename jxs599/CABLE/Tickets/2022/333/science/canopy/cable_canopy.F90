@@ -48,7 +48,6 @@ USE cable_other_constants_mod, ONLY : CLAI_THRESH  => LAI_THRESH
 
 CONTAINS
 
-
 SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,climate, sunlit_veg_mask, reducedLAIdue2snow )
     USE cable_def_types_mod
    USE cbl_radiation_module, ONLY : radiation
@@ -67,6 +66,8 @@ USE cbl_pot_evap_snow_module, ONLY: Penman_Monteith, Humidity_deficit_method
 USE cbl_qsat_module, ONLY: qsatfjh,  qsatfjh2
 USE cbl_zetar_module, ONLY : update_zetar
 USE cable_latent_heat_module, ONLY : latent_heat_flux
+USE cable_wetleaf_module, ONLY : wetleaf 
+USE cable_within_canopy_module, ONLY : within_canopy
 
     TYPE (balances_type), INTENT(INOUT)  :: bal
     TYPE (radiation_type), INTENT(INOUT) :: rad
@@ -399,9 +400,9 @@ CALL radiation( ssnow, veg, air, met, rad, canopy, sunlit_veg_mask, &
             ghwet,  iter,climate )
 
 
-       CALL wetLeaf( dels, rad, rough, air, met,                                &
-            veg, canopy, cansat, tlfy,                                 &
-            gbhu, gbhf, ghwet )
+CALL wetLeaf( mp, CLAI_thresh, CCAPP, Crmair, dels, rad, rough, air,     &
+                    met, veg, canopy, cansat, tlfy,     &
+                    gbhu, gbhf, ghwet )
 
 
        ! Calculate latent heat from vegetation:
@@ -535,9 +536,11 @@ write(6,*) "SLI is not an option right now"
 
        ENDIF
 
-       CALL within_canopy( gbhu, gbhf, rt0, rhlitt, relitt )
+        
+       CALL within_canopy( mp, CRMH2o, Crmair, CTETENA, CTETENB, CTETENC, CLAI_thresh, &
+                           CCAPP, CTFRZ, rad,rough, air, met, veg, canopy, ssnow, gbhu, gbhf,    &
+                           qstvair, rt0, rhlitt, relitt )
 
-       ! Saturation specific humidity at soil/snow surface temperature:
        CALL qsatfjh(mp, ssnow%qstss, CRMH2o, Crmair, CTETENA, CTETENB, CTETENC,ssnow%tss-Ctfrz,met%pmb)
 
        IF (cable_user%soil_struc=='default') THEN
@@ -1012,238 +1015,6 @@ DEALLOCATE(gbhf, csx)
 DEALLOCATE(ghwet)
 
 RETURN
-
-  CONTAINS
-
-    SUBROUTINE within_canopy( gbhu, gbhf, rt0, rhlitt, relitt )
-
-      USE cable_def_types_mod, ONLY : mp, r_2
-
-      REAL(r_2), INTENT(IN), DIMENSION(:,:) ::                                    &
-           gbhu,    &  ! forcedConvectionBndryLayerCond
-           gbhf        ! freeConvectionBndryLayerCond
-
-      REAL, INTENT(IN), DIMENSION(mp) ::                                       &
-           rt0,     &  ! resistance from ground to canopy air
-           rhlitt,  &  ! additional litter resistance for heat (=0 by default)
-           relitt      ! additional litter resistance for water
-
-      REAL, DIMENSION(mp) ::                                                      &
-           rrsw,             & ! recipr. stomatal resistance for water
-           rrbw,             & ! recipr. leaf boundary layer resistance for water
-           dmah,             & ! A_{H} in eq. 3.41 in SCAM, CSIRO tech report 132
-           dmbh,             & ! B_{H} in eq. 3.41 in SCAM, CSIRO tech report 132
-           dmch,             & ! C_{H} in eq. 3.41 in SCAM, CSIRO tech report 132
-           dmae,             & ! A_{E} in eq. 3.41 in SCAM, CSIRO tech report 132
-           dmbe,             & ! B_{E} in eq. 3.41 in SCAM, CSIRO tech report 132
-           dmce                ! C_{E} in eq. 3.41 in SCAM, CSIRO tech report 132
-
-      REAL  :: lower_limit, upper_limit
-      REAL, DIMENSION(mp) :: fix_eqn,fix_eqn2
-
-      INTEGER :: j
-
-      !INH: rhlitt=relitt=0. if litter resistance not active but case included
-      !dmah through to dmce are not A_{H} through C_{E} as per Eqn 3.40
-      !in SCAM documentation but rt0*((1+esp)/rs + 1/rb)*A_{H} etc.
-      !
-      !changes from v1.4 for %cls package, litter and Or hydrology
-
-      rrbw = SUM(gbhu+gbhf,2)/air%cmolar  ! MJT
-
-      ! leaf stomatal resistance for water
-      rrsw = SUM(canopy%gswx,2)/air%cmolar ! MJT
-
-      IF (cable_user%or_evap) THEN
-         fix_eqn(:) = rt0(:)*(REAL(ssnow%satfrac(:))/(rt0(:)+REAL(ssnow%rtevap_sat(:))) + &
-              (1-REAL(ssnow%satfrac(:)))/(rt0(:)+REAL(ssnow%rtevap_unsat(:))))
-         !lakes/ice rtevap=0 and wetfac is .ne. 1
-         fix_eqn(:) = ssnow%wetfac(:) * fix_eqn(:)*ssnow%cls(:)   !INH correction. & M.Dekker +d wetfac
-
-         fix_eqn2(:) = rt0(:) / (rt0(:) + REAL(ssnow%rt_qh_sublayer) )
-
-      ELSE  !with INH corrections for litter and cls
-
-         fix_eqn(:) = ssnow%cls(:)*rt0(:)/(rt0(:)+relitt(:))
-         WHERE (ssnow%potev>0.) fix_eqn(:)=fix_eqn(:)*ssnow%wetfac(:)
-         fix_eqn2(:) = rt0(:)/(rt0(:)+rhlitt(:))
-
-      END IF
-
-      DO j=1,mp
-
-         IF(veg%meth(j) > 0 .AND. canopy%vlaiw(j) > CLAI_THRESH .AND.              &
-              rough%hruff(j) > rough%z0soilsn(j) ) THEN
-
-            !   use the dispersion matrix (DM) to find the air temperature
-            !   and specific humidity
-            !   (Raupach, Finkele and Zhang 1997, pp 17)
-            ! leaf boundary layer resistance for water
-            ! A_{H} in eq. 3.41, SCAM manual, CSIRO tech doc 132
-            dmah(j) = (rt0(j)+fix_eqn2(j)*rough%rt1(j))*((1.+air%epsi(j))*rrsw(j) + rrbw(j))  &
-                 + air%epsi(j) * (rt0(j)*rough%rt1(j))*(rrbw(j)*rrsw(j))
-
-            ! B_{H} in eq. 3.41, SCAM manual, CSIRO tech doc 132
-            dmbh(j) = (-air%rlam(j)/CCAPP)*(rt0(j)*rough%rt1(j))*(rrbw(j)*rrsw(j))
-
-            ! C_{H} in eq. 3.41, SCAM manual, CSIRO tech doc 132
-            dmch(j) = ((1.+air%epsi(j))*rrsw(j) + rrbw(j))*rt0(j)*rough%rt1(j)*   &
-                 (canopy%fhv(j) + canopy%fhs(j))/(air%rho(j)*CCAPP)
-
-            ! A_{E} in eq. 3.41, SCAM manual, CSIRO tech doc 132
-            dmae(j) = (-air%epsi(j)*CCAPP/air%rlam(j))*(rt0(j)*rough%rt1(j)) *   &
-                 (rrbw(j)*rrsw(j))
-
-            ! B_{E} in eq. 3.41, SCAM manual, CSIRO tech doc 132
-            dmbe(j) = ( rt0(j) + fix_eqn(j) * rough%rt1(j) ) *               &
-                 ( (1.+air%epsi(j) ) * rrsw(j) + rrbw(j) ) +                 &
-                 ( rt0(j) * rough%rt1(j) ) * ( rrbw(j) * rrsw(j) )
-
-            ! C_{E} in eq. 3.41, SCAM manual, CSIRO tech doc 132
-            ! INH: includes modifications for %cls
-            dmce(j) = ((1.+air%epsi(j))*rrsw(j) + rrbw(j))*rt0(j)*rough%rt1(j)*   &
-                 (canopy%fev(j) + canopy%fes(j)/ssnow%cls(j)) /                   &
-                 (air%rho(j)*air%rlam(j))
-
-            ! Within canopy air temperature:
-            met%tvair(j) = met%tk(j) + ( dmbe(j) * dmch(j) - dmbh(j) * dmce(j) )  &
-                 / (dmah(j)*dmbe(j)-dmae(j)*dmbh(j)+1.0e-12)
-
-            !---set limits for comparisson
-            lower_limit =  MIN( ssnow%tss(j), met%tk(j)) - 5.0
-            upper_limit =  MAX( ssnow%tss(j), met%tk(j)) + 5.0
-
-            !--- tvair within these limits
-            met%tvair(j) = MAX(met%tvair(j) , lower_limit)
-            met%tvair(j) = MIN(met%tvair(j) , upper_limit)
-
-            ! recalculate using canopy within temperature
-            met%qvair(j) = met%qv(j) + (dmah(j)*dmce(j)-dmae(j)*dmch(j)) /        &
-                 ( dmah(j)*dmbe(j)-dmae(j)*dmbh(j)+1.0e-12)
-            met%qvair(j) = MAX(0.0,met%qvair(j))
-
-            !---set limits for comparisson
-
-            lower_limit =  MIN( ssnow%qstss(j), met%qv(j))
-            upper_limit =  MAX( ssnow%qstss(j), met%qv(j))
-
-            !--- qvair within these limits
-            met%qvair(j) =  MAX(met%qvair(j),lower_limit)
-            met%qvair(j) =  MIN(met%qvair(j), upper_limit)
-
-            ! Saturated specific humidity in canopy:
-            CALL  qsatfjh2( qstvair(j), CRMH2o, Crmair, CTETENA, CTETENB, CTETENC, met%tvair(j)-Ctfrz,met%pmb(j))
-
-            ! Saturated vapour pressure deficit in canopy:
-            met%dva(j) = ( qstvair(j) - met%qvair(j) ) *  Crmair/CRMH2o         &
-                 * met%pmb(j) * 100.
-         ENDIF
-
-      ENDDO
-
-    END SUBROUTINE within_canopy
-
-    ! -----------------------------------------------------------------------------
-    ELEMENTAL FUNCTION rplant(rpconst, rpcoef, tair) RESULT(z)
-      REAL, INTENT(IN)     :: rpconst
-      REAL, INTENT(IN)     :: rpcoef
-      REAL, INTENT(IN)     :: tair
-      REAL                 :: z
-      z = rpconst * EXP(rpcoef * tair)
-    END FUNCTION rplant
-
-    ! -----------------------------------------------------------------------------
-
-    SUBROUTINE wetLeaf( dels, rad, rough, air, met, veg, canopy, cansat, tlfy,     &
-         gbhu, gbhf, ghwet )
-
-      USE cable_def_types_mod
-
-      TYPE (radiation_type), INTENT(INOUT) :: rad
-      TYPE (roughness_type), INTENT(INOUT) :: rough
-      TYPE (air_type),       INTENT(INOUT) :: air
-      TYPE (met_type),       INTENT(INOUT) :: met
-      TYPE (canopy_type),    INTENT(INOUT) :: canopy
-
-      TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
-
-      REAL,INTENT(IN), DIMENSION(:) ::                                            &
-           tlfy,          & ! leaf temp (K) - assCUMINg the temperature of
-                                ! wet leaf is equal that of dry leaf ="tlfy"
-           cansat           ! max canopy intercept. (mm)
-
-      REAL(r_2), INTENT(IN), DIMENSION(:,:) ::                                    &
-           gbhu,          & ! forcedConvectionBndryLayerCond
-           gbhf             ! freeConvectionBndryLayerCond
-
-      REAL(r_2), INTENT(OUT), DIMENSION(:) ::                                     &
-           ghwet            ! cond for heat for a wet canopy
-
-      REAL, INTENT(IN)     :: dels ! integration time step (s)
-
-      ! local variables
-      REAL, DIMENSION(mp) ::                                                      &
-           ccfevw,        & ! limitation term for
-           gwwet,         & ! cond for water for a wet canopy
-           ghrwet           ! wet canopy cond: heat & thermal rad
-
-      !i sums, terms of convenience/readability
-      REAL, DIMENSION(mp) ::                                                      &
-           sum_gbh, sum_rad_rniso, sum_rad_gradis, xx1
-
-      INTEGER :: j
-
-      ! END header
-
-      ghwet = 1.0e-3
-      gwwet = 1.0e-3
-      ghrwet= 1.0e-3
-      canopy%fevw = 0.0
-      canopy%fhvw = 0.0
-      sum_gbh = SUM((gbhu+gbhf),2)
-      sum_rad_rniso = SUM(rad%rniso,2)
-      sum_rad_gradis = SUM(rad%gradis,2)
-
-      DO j=1,mp
-
-         IF(canopy%vlaiw(j) > CLAI_THRESH) THEN
-
-            ! VEG SENSIBLE & LATENT HEAT FLUXES fevw, fhvw (W/m2) for a wet canopy
-            ! calculate total thermal resistance, rthv in s/m
-            ghwet(j) = 2.0   * sum_gbh(j)
-            gwwet(j) = 1.075 * sum_gbh(j)
-            ghrwet(j) = sum_rad_gradis(j) + ghwet(j)
-
-            ! Calculate lat heat from wet canopy, may be neg. if dew on wet canopy
-            ! to avoid excessive evaporation:
-            ccfevw(j) = MIN(canopy%cansto(j) * air%rlam(j) / dels, &
-                 2.0 / (1440.0 / (dels/60.0)) * air%rlam(j) )
-
-            canopy%fevw(j) = MIN( canopy%fwet(j) * ( air%dsatdk(j) *              &
-                 ( sum_rad_rniso(j)- CCAPP*Crmair*( met%tvair(j)     &
-                 - met%tk(j) ) * sum_rad_gradis(j) )                   &
-                 + CCAPP * Crmair * met%dva(j) * ghrwet(j) )         &
-                 / ( air%dsatdk(j)+air%psyc(j)*ghrwet(j) / gwwet(j) )  &
-                 , ccfevw(j) )
-
-            !upwards flux density of water (kg/m2/s) - canopy componenet of 
-            !potential evapotranspiration 
-            canopy%fevw_pot(j) = ( air%dsatdk(j)* (sum_rad_rniso(j) -             &
-                 CCAPP * Crmair * ( met%tvair(j) - met%tk(j) )  &
-                 *sum_rad_gradis(j) )                             &
-                 + CCAPP * Crmair * met%dva(j) * ghrwet(j))     &
-                 / (air%dsatdk(j)+air%psyc(j)*ghrwet(j)/gwwet(j) )
-
-            ! calculate sens heat from wet canopy:
-            canopy%fhvw(j) = canopy%fwet(j) * ( sum_rad_rniso(j) -CCAPP * Crmair&
-                 * ( tlfy(j) - met%tk(j) ) * sum_rad_gradis(j) )      &
-                 - canopy%fevw(j)
-
-         ENDIF
-
-      ENDDO
-
-    END SUBROUTINE wetLeaf
 
 END SUBROUTINE define_canopy
 
