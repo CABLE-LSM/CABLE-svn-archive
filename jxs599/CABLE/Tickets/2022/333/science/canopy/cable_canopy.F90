@@ -1,5 +1,29 @@
 MODULE cable_canopy_module
 
+  IMPLICIT NONE
+
+  PUBLIC define_canopy
+  PRIVATE
+
+CONTAINS
+
+SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,climate, sunlit_veg_mask, reducedLAIdue2snow )
+    USE cable_def_types_mod
+   USE cbl_radiation_module, ONLY : radiation
+    USE cable_air_module
+    USE cable_common_module
+    USE cable_roughness_module
+
+USE cbl_friction_vel_module,  ONLY : comp_friction_vel, psim, psis
+USE cbl_pot_evap_snow_module, ONLY : Penman_Monteith, Humidity_deficit_method
+USE cbl_qsat_module,          ONLY : qsatfjh,  qsatfjh2
+USE cbl_zetar_module,         ONLY : update_zetar
+USE cable_latent_heat_module, ONLY : latent_heat_flux
+USE cable_wetleaf_module,     ONLY : wetleaf 
+USE cbl_dryLeaf_module,       ONLY : dryLeaf
+USE cable_within_canopy_module, ONLY : within_canopy
+USE cbl_SurfaceWetness_module,  ONLY : Surf_wetness_fact
+
 ! physical constants
 USE cable_phys_constants_mod, ONLY : CTFRZ   => TFRZ
 USE cable_phys_constants_mod, ONLY : CRMAIR  => RMAIR
@@ -41,33 +65,7 @@ USE cable_photo_constants_mod, ONLY : CMAXITER  => MAXITER ! only integer here
 USE cable_math_constants_mod,  ONLY : CPI_C  => PI
 USE cable_other_constants_mod, ONLY : CLAI_THRESH  => LAI_THRESH
 
-  IMPLICIT NONE
 
-  PUBLIC define_canopy
-  PRIVATE
-
-CONTAINS
-
-SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,climate, sunlit_veg_mask, reducedLAIdue2snow )
-    USE cable_def_types_mod
-   USE cbl_radiation_module, ONLY : radiation
-    USE cable_air_module
-    USE cable_common_module
-    USE cable_roughness_module
-
-USE cable_canopy_module_subrs_module, ONLY:  Surf_wetness_fact, dryLeaf,       &
-                                             photosynthesis, fwsoil_calc_std,  &
-                                             fwsoil_calc_non_linear,           &
-                                             fwsoil_calc_Lai_Ktaul,            &
-                                             fwsoil_calc_sli,  getrex_1d
-
-USE cbl_friction_vel_module, ONLY: comp_friction_vel, psim, psis
-USE cbl_pot_evap_snow_module, ONLY: Penman_Monteith, Humidity_deficit_method
-USE cbl_qsat_module, ONLY: qsatfjh,  qsatfjh2
-USE cbl_zetar_module, ONLY : update_zetar
-USE cable_latent_heat_module, ONLY : latent_heat_flux
-USE cable_wetleaf_module, ONLY : wetleaf 
-USE cable_within_canopy_module, ONLY : within_canopy
 
     TYPE (balances_type), INTENT(INOUT)  :: bal
     TYPE (radiation_type), INTENT(INOUT) :: rad

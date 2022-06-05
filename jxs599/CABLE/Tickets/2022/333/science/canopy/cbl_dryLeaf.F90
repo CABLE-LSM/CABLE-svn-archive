@@ -1,114 +1,12 @@
-MODULE cable_canopy_module_subrs_module
-
-! physical constants
-USE cable_phys_constants_mod, ONLY : CTFRZ   => TFRZ
-USE cable_phys_constants_mod, ONLY : CDHEAT  => DHEAT
-USE cable_phys_constants_mod, ONLY : CRGAS   => RGAS
-USE cable_phys_constants_mod, ONLY : CCAPP   => CAPP
-USE cable_phys_constants_mod, ONLY : CRMAIR  => RMAIR
-! maths & other constants
-USE cable_other_constants_mod, ONLY : CLAI_THRESH  => LAI_THRESH
-! photosynthetic constants
-USE cable_photo_constants_mod, ONLY : CMAXITER  => MAXITER ! only integer here
-USE cable_photo_constants_mod, ONLY : CTREFK => TREFK
-USE cable_photo_constants_mod, ONLY : CGAM0  => GAM0
-USE cable_photo_constants_mod, ONLY : CGAM1  => GAM1
-USE cable_photo_constants_mod, ONLY : CGAM2  => GAM2
-USE cable_photo_constants_mod, ONLY : CRGSWC => RGSWC
-USE cable_photo_constants_mod, ONLY : CRGBWC => RGBWC
+MODULE cbl_dryLeaf_module
 
 IMPLICIT NONE
 
-PUBLIC :: Surf_wetness_fact, dryLeaf,  photosynthesis,  fwsoil_calc_std
-PUBLIC ::  fwsoil_calc_non_linear
-PUBLIC ::  fwsoil_calc_Lai_Ktaul
-PUBLIC ::  fwsoil_calc_sli
-PUBLIC ::  getrex_1d
+PUBLIC :: dryLeaf
+PRIVATE
 
 CONTAINS
 
-  SUBROUTINE Surf_wetness_fact( cansat, canopy, ssnow,veg, met, soil, dels )
-
-    USE cable_common_module
-    USE cable_def_types_mod
-    !H!USE cable_gw_hydro_module, ONLY : calc_srf_wet_fraction
-
-    TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
-    TYPE (soil_snow_type), INTENT(inout):: ssnow
-    TYPE (soil_parameter_type), INTENT(inout)   :: soil
-    TYPE (canopy_type), INTENT(INOUT)   :: canopy
-    TYPE (met_type), INTENT(INOUT)   :: met
-
-    REAL, INTENT(IN) :: dels ! integration time setp (s)
-
-    REAL,INTENT(IN), DIMENSION(:) :: cansat ! max canopy intercept. (mm)
-
-    !local variables
-    REAL, DIMENSION(mp)  :: lower_limit, upper_limit,ftemp
-
-    INTEGER :: j, i
-
-    ! Rainfall variable is limited so canopy interception is limited,
-    ! used to stabilise latent fluxes.
-    ! to avoid excessive direct canopy evaporation (EK nov2007, snow scheme)
-    upper_limit = 4.0 * MIN(dels,1800.0) / (60.0 * 1440.0 )
-    ftemp =MIN(met%precip-met%precip_sn, upper_limit )
-    ! Calculate canopy intercepted rainfall, equal to zero if temp < 0C:
-    lower_limit = cansat - canopy%cansto
-    upper_limit = MAX(lower_limit, 0.0)
-    canopy%wcint = MERGE( MIN( upper_limit, ftemp ), 0.0,                       &
-         ftemp > 0.0  .AND. met%tk > Ctfrz)  !EAK, 09/10
-
-    ! Define canopy throughfall (100% of precip if temp < 0C, see above):
-    canopy%through = met%precip_sn + MIN( met%precip - met%precip_sn ,          &
-         MAX( 0.0, met%precip - met%precip_sn - canopy%wcint) )
-
-    ! Add canopy interception to canopy storage term:
-    canopy%cansto = canopy%cansto + canopy%wcint
-
-    ! Calculate fraction of canopy which is wet:
-    canopy%fwet   = MAX( 0.0, MIN( 0.9, 0.8 * canopy%cansto /                   &
-         MAX( cansat, 0.01 ) ) )
-
-    !calc the surface wetness for soil evap in this routine
-    !include the default wetfac when or_evap and gw_model are not used
-!H!gw n/a here and so copied default below
-!H!    CALL calc_srf_wet_fraction(ssnow,soil,met,veg)
-!H!   ELSE  !Default formulation
-
-       !call saturated_fraction(ssnow,soil,veg)
-       ssnow%satfrac(:) = 1.0e-8
-       ssnow%rh_srf(:)  = 1.0
-
-       ssnow%wetfac = MAX( 1.e-6, MIN( 1.0,&
-            ( REAL (ssnow%wb(:,1) ) - soil%swilt/ 2.0 )                  &
-            / ( soil%sfc - soil%swilt/2.0 ) ) )
-   
-       DO i=1,mp
-   
-          IF( ssnow%wbice(i,1) > 0. )&
-               ssnow%wetfac(i) = ssnow%wetfac(i) * &
-                                real(MAX( 0.5_r_2, 1._r_2 - MIN( 0.2_r_2, &
-                                 ( ssnow%wbice(i,1) / ssnow%wb(i,1) )**2 ) ) )
-   
-          IF( ssnow%snowd(i) > 0.1) ssnow%wetfac(i) = 0.9
-   
-          IF ( veg%iveg(i) == 16 .and. met%tk(i) >= Ctfrz + 5. )   &
-               ssnow%wetfac(i) = 1.0 ! lakes: hard-wired number to be removed
-   
-          IF( veg%iveg(i) == 16 .and. met%tk(i) < Ctfrz + 5. )   &
-               ssnow%wetfac(i) = 0.7 ! lakes: hard-wired number to be removed
-   
-       ENDDO
-       ! owetfac introduced to reduce sharp changes in dry regions,
-       ! especially in offline runs in which there may be discrepancies b/n
-       ! timing of precip and temperature change (EAK apr2009)
-       ssnow%wetfac = 0.5*(ssnow%wetfac + ssnow%owetfac)
-
-
-  END SUBROUTINE Surf_wetness_fact
-
-  ! -----------------------------------------------------------------------------
   SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
        veg, canopy, soil, ssnow, dsx,                             &
        fwsoil, tlfx,  tlfy,  ecy, hcy,                            &
@@ -117,6 +15,25 @@ CONTAINS
 
     USE cable_def_types_mod
     USE cable_common_module
+USE cbl_photosynthesis_module,  ONLY : photosynthesis
+USE cbl_fwsoil_module,        ONLY : fwsoil_calc_std, fwsoil_calc_non_linear,           &
+                                     fwsoil_calc_Lai_Ktaul, fwsoil_calc_sli
+! maths & other constants
+USE cable_other_constants_mod, ONLY : CLAI_THRESH  => LAI_THRESH
+! physical constants
+USE cable_phys_constants_mod, ONLY : CTFRZ   => TFRZ
+USE cable_phys_constants_mod, ONLY : CDHEAT  => DHEAT
+USE cable_phys_constants_mod, ONLY : CRGAS   => RGAS
+USE cable_phys_constants_mod, ONLY : CCAPP   => CAPP
+USE cable_phys_constants_mod, ONLY : CRMAIR  => RMAIR
+! photosynthetic constants
+USE cable_photo_constants_mod, ONLY : CMAXITER  => MAXITER ! only integer here
+USE cable_photo_constants_mod, ONLY : CTREFK => TREFK
+USE cable_photo_constants_mod, ONLY : CGAM0  => GAM0
+USE cable_photo_constants_mod, ONLY : CGAM1  => GAM1
+USE cable_photo_constants_mod, ONLY : CGAM2  => GAM2
+USE cable_photo_constants_mod, ONLY : CRGSWC => RGSWC
+USE cable_photo_constants_mod, ONLY : CRGBWC => RGBWC
 
     TYPE (radiation_type), INTENT(INOUT) :: rad
     TYPE (roughness_type), INTENT(INOUT) :: rough
@@ -749,470 +666,9 @@ CONTAINS
     DEALLOCATE( gswmin )
 
   END SUBROUTINE dryLeaf
-  ! -----------------------------------------------------------------------------
-
-
-  ! Ticket #56, xleuningz repalced with gs_coeffz
-  SUBROUTINE photosynthesis( csxz, cx1z, cx2z, gswminz,                          &
-       rdxz, vcmxt3z, vcmxt4z, vx3z,                       &
-       vx4z, gs_coeffz, vlaiz, deltlfz, anxz, fwsoilz )
-    USE cable_def_types_mod, ONLY : mp, mf, r_2
-
-    REAL(r_2), DIMENSION(mp,mf), INTENT(IN) :: csxz
-
-    REAL, DIMENSION(mp,mf), INTENT(IN) ::                                       &
-         cx1z,       & !
-         cx2z,       & !
-         gswminz,    & !
-         rdxz,       & !
-         vcmxt3z,    & !
-         vcmxt4z,    & !
-         vx4z,       & !
-         vx3z,       & !
-         gs_coeffz,  & ! Ticket #56, xleuningz repalced with gs_coeffz
-         vlaiz,      & !
-         deltlfz       !
-
-    REAL, DIMENSION(mp,mf), INTENT(INOUT) :: anxz
-
-    ! local variables
-    REAL(r_2), DIMENSION(mp,mf) ::                                              &
-         coef0z,coef1z,coef2z, ciz,delcxz,                                        &
-         anrubiscoz,anrubpz,ansinkz
-
-    REAL, DIMENSION(mp) :: fwsoilz
-
-    REAL, PARAMETER  :: effc4 = 4000.0  ! Vc=effc4*Ci*Vcmax (see
-    ! Bonan,LSM version 1.0, p106)
-
-    INTEGER :: i,j
-
-    DO i=1,mp
-
-       IF (SUM(vlaiz(i,:)) .GT. CLAI_THRESH) THEN
-
-          DO j=1,mf
-
-             IF( vlaiz(i,j) .GT. CLAI_THRESH .AND. deltlfz(i,j) .GT. 0.1) THEN
-
-                ! Rubisco limited:
-                coef2z(i,j) = gswminz(i,j)*fwsoilz(i) / CRGSWC + gs_coeffz(i,j) * &
-                     ( vcmxt3z(i,j) - ( rdxz(i,j)-vcmxt4z(i,j) ) )
-
-                coef1z(i,j) = (1.0-csxz(i,j)*gs_coeffz(i,j)) *                  &
-                     (vcmxt3z(i,j)+vcmxt4z(i,j)-rdxz(i,j))             &
-                     + (gswminz(i,j)*fwsoilz(i)/CRGSWC)*(cx1z(i,j)-csxz(i,j)) &
-                     - gs_coeffz(i,j)*(vcmxt3z(i,j)*cx2z(i,j)/2.0      &
-                     + cx1z(i,j)*(rdxz(i,j)-vcmxt4z(i,j) ) )
-
-
-                coef0z(i,j) = -(1.0-csxz(i,j)*gs_coeffz(i,j)) *                 &
-                     (vcmxt3z(i,j)*cx2z(i,j)/2.0                       &
-                     + cx1z(i,j)*( rdxz(i,j)-vcmxt4z(i,j ) ) )         &
-                     -( gswminz(i,j)*fwsoilz(i)/CRGSWC ) * cx1z(i,j)*csxz(i,j)
-
-
-                ! kdcorbin,09/10 - new calculations
-                IF( ABS(coef2z(i,j)) .GT. 1.0e-9 .AND. &
-                     ABS(coef1z(i,j)) .LT. 1.0e-9) THEN
-
-                   ! no solution, give it a huge number as
-                   ! quadratic below cannot handle zero denominator
-                   ciz(i,j) = 99999.0
-
-                   anrubiscoz(i,j) = 99999.0 ! OR do ciz=0 and calc anrubiscoz
-
-                ENDIF
-
-                ! solve linearly
-                IF( ABS( coef2z(i,j) ) < 1.e-9 .AND.                            &
-                     ABS( coef1z(i,j) ) >= 1e-9 ) THEN
-
-                   ! same reason as above
-                   ciz(i,j) = -1.0 * coef0z(i,j) / coef1z(i,j)
-
-                   ciz(i,j) = MAX( 0.0_r_2, ciz(i,j) )
-
-                   anrubiscoz(i,j) = vcmxt3z(i,j)*(ciz(i,j)-cx2z(i,j) / 2.0 ) / &
-                        ( ciz(i,j) + cx1z(i,j)) + vcmxt4z(i,j) -   &
-                        rdxz(i,j)
-
-                ENDIF
-
-                ! solve quadratic (only take the more positive solution)
-                IF( ABS( coef2z(i,j) ) >= 1.e-9 ) THEN
-
-                   delcxz(i,j) = coef1z(i,j)**2 -4.0 * coef0z(i,j)              &
-                        * coef2z(i,j)
-
-                   ciz(i,j) = ( -coef1z(i,j) + SQRT( MAX( 0.0_r_2 ,             &
-                        delcxz(i,j) ) ) ) / ( 2.0*coef2z(i,j) )
-
-                   ciz(i,j) = MAX( 0.0_r_2, ciz(i,j) )   ! must be positive, why?
-
-                   anrubiscoz(i,j) = vcmxt3z(i,j) * ( ciz(i,j) - cx2z(i,j)      &
-                        / 2.0)  / ( ciz(i,j) + cx1z(i,j) ) +       &
-                        vcmxt4z(i,j) - rdxz(i,j)
-
-                ENDIF
-
-                ! RuBP limited:
-                coef2z(i,j) = gswminz(i,j)*fwsoilz(i) / CRGSWC + gs_coeffz(i,j) &
-                     * ( vx3z(i,j) - ( rdxz(i,j) - vx4z(i,j) ) )
-
-                coef1z(i,j) = ( 1.0 - csxz(i,j) * gs_coeffz(i,j) ) *            &
-                     ( vx3z(i,j) + vx4z(i,j) - rdxz(i,j) )             &
-                     + ( gswminz(i,j)*fwsoilz(i) / CRGSWC ) *          &
-                     ( cx2z(i,j) - csxz(i,j) ) - gs_coeffz(i,j)        &
-                     * ( vx3z(i,j) * cx2z(i,j) / 2.0 + cx2z(i,j) *     &
-                     ( rdxz(i,j) - vx4z(i,j) ) )
-
-                coef0z(i,j) = -(1.0-csxz(i,j)*gs_coeffz(i,j)) *   &
-                     (vx3z(i,j)*cx2z(i,j)/2.0                          &
-                     + cx2z(i,j)*(rdxz(i,j)-vx4z(i,j)))                &
-                     - (gswminz(i,j)*fwsoilz(i)/CRGSWC)*cx2z(i,j)*csxz(i,j)
-
-
-                !Ticket #117 - initialize at all times
-                ciz(i,j) = 99999.0
-                anrubpz(i,j)  = 99999.0
-
-                ! solve linearly
-                IF( ABS( coef2z(i,j) ) < 1.e-9 .AND.                            &
-                     ABS( coef1z(i,j) ) >= 1.e-9) THEN
-
-                   ciz(i,j) = -1.0 * coef0z(i,j) / coef1z(i,j)
-
-                   ciz(i,j) = MAX(0.0_r_2,ciz(i,j))
-
-                   anrubpz(i,j) = vx3z(i,j)*(ciz(i,j)-cx2z(i,j)/2.0) /          &
-                        (ciz(i,j)+cx2z(i,j)) +vx4z(i,j)-rdxz(i,j)
-
-                ENDIF
-
-                ! solve quadratic (only take the more positive solution)
-                IF ( ABS( coef2z(i,j)) >= 1.e-9 ) THEN
-
-                   delcxz(i,j) = coef1z(i,j)**2 -4.0*coef0z(i,j)*coef2z(i,j)
-
-                   ciz(i,j) = (-coef1z(i,j)+SQRT(MAX(0.0_r_2,delcxz(i,j))))     &
-                        /(2.0*coef2z(i,j))
-
-                   ciz(i,j) = MAX(0.0_r_2,ciz(i,j))
-
-                   anrubpz(i,j)  = vx3z(i,j)*(ciz(i,j)-cx2z(i,j)/2.0) /         &
-                        (ciz(i,j)+cx2z(i,j)) +vx4z(i,j)-rdxz(i,j)
-
-                ENDIF
-
-                ! Sink limited:
-                coef2z(i,j) = gs_coeffz(i,j)
-
-                coef1z(i,j) = gswminz(i,j)*fwsoilz(i)/CRGSWC + gs_coeffz(i,j)   &
-                     * (rdxz(i,j) - 0.5*vcmxt3z(i,j))                  &
-                     + effc4 * vcmxt4z(i,j) - gs_coeffz(i,j)           &
-                     * csxz(i,j) * effc4 * vcmxt4z(i,j)
-
-                coef0z(i,j) = -( gswminz(i,j)*fwsoilz(i)/CRGSWC )*csxz(i,j)*effc4 &
-                     * vcmxt4z(i,j) + ( rdxz(i,j)                      &
-                     - 0.5 * vcmxt3z(i,j)) * gswminz(i,j)*fwsoilz(i)/CRGSWC
-
-                ! no solution, give it a huge number
-                IF( ABS( coef2z(i,j) ) < 1.0e-9 .AND.                           &
-                     ABS( coef1z(i,j)) < 1.0e-9 ) THEN
-
-                   ciz(i,j) = 99999.0
-                   ansinkz(i,j)  = 99999.0
-
-                ENDIF
-
-                ! solve linearly
-                IF( ABS( coef2z(i,j) ) < 1.e-9 .AND.                            &
-                     ABS( coef1z(i,j) ) >= 1.e-9 ) THEN
-
-                   ciz(i,j) = -1.0 * coef0z(i,j) / coef1z(i,j)
-                   ansinkz(i,j)  = ciz(i,j)
-
-                ENDIF
-
-                ! solve quadratic (only take the more positive solution)
-                IF( ABS( coef2z(i,j) ) >= 1.e-9 ) THEN
-
-                   delcxz(i,j) = coef1z(i,j)**2 -4.0*coef0z(i,j)*coef2z(i,j)
-
-                   ciz(i,j) = (-coef1z(i,j)+SQRT (MAX(0.0_r_2,delcxz(i,j)) ) )  &
-                        / ( 2.0 * coef2z(i,j) )
-
-                   ansinkz(i,j) = ciz(i,j)
-
-                ENDIF
-
-                ! minimal of three limited rates
-                anxz(i,j) = MIN(anrubiscoz(i,j),anrubpz(i,j),ansinkz(i,j))
-
-
-             ENDIF
-
-          ENDDO
-
-       ENDIF
-
-    ENDDO
-
-
-
-  END SUBROUTINE photosynthesis
-
-  ! ------------------------------------------------------------------------------
-
-  FUNCTION ej3x(parx,alpha,convex,x) RESULT(z)
-
-    REAL, INTENT(IN)     :: parx
-    REAL, INTENT(IN)     :: alpha
-    REAL, INTENT(IN)     :: convex
-    REAL, INTENT(IN)     :: x
-    REAL                 :: z
-
-    z = MAX(0.0,                                                                &
-         0.25*((alpha*parx+x-SQRT((alpha*parx+x)**2 -                      &
-         4.0*convex*alpha*parx*x)) /(2.0*convex)) )
-  END FUNCTION ej3x
-
-  ! ------------------------------------------------------------------------------
-
-  FUNCTION ej4x(parx,alpha,convex,x) RESULT(z)
-
-    REAL, INTENT(IN)     :: parx
-    REAL, INTENT(IN)     :: alpha
-    REAL, INTENT(IN)     :: convex
-    REAL, INTENT(IN)     :: x
-    REAL                 :: z
-
-    z = MAX(0.0,                                                                &
-         (alpha*parx+x-SQRT((alpha*parx+x)**2 -                           &
-         4.0*convex*alpha*parx*x))/(2.0*convex))
-
-  END FUNCTION ej4x
-
-  ! ------------------------------------------------------------------------------
-
-  ! Explicit array dimensions as temporary work around for NEC inlining problem
-  FUNCTION xvcmxt4(x) RESULT(z)
-
-    REAL, PARAMETER      :: q10c4 = 2.0
-    REAL, INTENT(IN) :: x
-    REAL :: z
-
-    z = q10c4 ** (0.1 * x - 2.5) /                                              &
-         ((1.0 + EXP(0.3 * (13.0 - x))) * (1.0 + EXP(0.3 * (x - 36.0))))
-
-  END FUNCTION xvcmxt4
-
-  ! ------------------------------------------------------------------------------
-
-  FUNCTION xvcmxt3(x) RESULT(z)
-
-    !  leuning 2002 (p c & e) equation for temperature response
-    !  used for vcmax for c3 plants
-    REAL, INTENT(IN) :: x
-    REAL :: xvcnum,xvcden,z
-
-    REAL, PARAMETER  :: EHaVc  = 73637.0  ! J/mol (Leuning 2002)
-    REAL, PARAMETER  :: EHdVc  = 149252.0 ! J/mol (Leuning 2002)
-    REAL, PARAMETER  :: EntropVc = 486.0  ! J/mol/K (Leuning 2002)
-    REAL, PARAMETER  :: xVccoef = 1.17461 ! derived parameter
-    ! xVccoef=1.0+exp((EntropJx*CTREFK-EHdJx)/(Rconst*CTREFK))
-
-    xvcnum=xvccoef*EXP( ( ehavc / ( Crgas*CTREFK ) )* ( 1.-CTREFK/x ) )
-    xvcden=1.0+EXP( ( entropvc*x-ehdvc ) / ( Crgas*x ) )
-    z = MAX( 0.0,xvcnum / xvcden )
-
-  END FUNCTION xvcmxt3
-
-  ! ------------------------------------------------------------------------------
-  REAL FUNCTION xrdt(x)
-
-    !  Atkins et al. (Eq 1, New Phytologist (2015) 206: 614–636)
-    !variable Q10 temperature of dark respiration
-    ! Originally from Tjoelker et al. 2001
-
-    REAL, INTENT(IN) :: x
-
-
-    xrdt = (3.09 - 0.043*((x-273.15)+25.)/2.0)**((x-273.15 -25.0)/10.0)
-
-  END FUNCTION xrdt
-
-  ! ------------------------------------------------------------------------------
-
-  FUNCTION xejmxt3(x) RESULT(z)
-
-    !  leuning 2002 (p c & e) equation for temperature response
-    !  used for jmax for c3 plants
-
-    REAL, INTENT(IN) :: x
-    REAL :: xjxnum,xjxden,z
-
-    REAL, PARAMETER  :: EHaJx  = 50300.0  ! J/mol (Leuning 2002)
-    REAL, PARAMETER  :: EHdJx  = 152044.0 ! J/mol (Leuning 2002)
-    REAL, PARAMETER  :: EntropJx = 495.0  ! J/mol/K (Leuning 2002)
-    REAL, PARAMETER  :: xjxcoef = 1.16715 ! derived parameter
-
-    xjxnum = xjxcoef*EXP( ( ehajx / ( Crgas*CTREFK ) ) * ( 1.-CTREFK / x ) )
-    xjxden=1.0+EXP( ( entropjx*x-ehdjx) / ( Crgas*x ) )
-    z = MAX(0.0, xjxnum/xjxden)
-
-  END FUNCTION xejmxt3
-
-  ! ------------------------------------------------------------------------------
-
-  SUBROUTINE fwsoil_calc_std(fwsoil, soil, ssnow, veg)
-    USE cable_def_types_mod
-    USE cable_common_module, ONLY : cable_user
-    TYPE (soil_snow_type), INTENT(INOUT):: ssnow
-    TYPE (soil_parameter_type), INTENT(INOUT)   :: soil
-    TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
-    REAL, INTENT(OUT), DIMENSION(:):: fwsoil ! soil water modifier of stom. cond
-    REAL, DIMENSION(mp) :: rwater ! soil water availability
-
-    !note even though swilt_vec is defined in default model it is r_2
-    !and even using real(_vec) gives results different from trunk (rounding
-    !errors)
-
-    IF (.NOT.cable_user%gw_model) THEN
-
-       rwater = MAX(1.0e-9,                                                    &
-            SUM(veg%froot * MAX(1.0e-9,MIN(1.0, REAL(ssnow%wb) -                   &
-            SPREAD(soil%swilt, 2, ms))),2) /(soil%sfc-soil%swilt))
-
-    ELSE
-       rwater = MAX(1.0e-9,                                                    &
-            SUM(veg%froot * MAX(1.0e-9,MIN(1.0, REAL((ssnow%wbliq -                 &
-            soil%swilt_vec)/(soil%sfc_vec-soil%swilt_vec)) )),2) )
-
-    ENDIF
-
-    ! Remove vbeta #56
-    IF(cable_user%GS_SWITCH == 'medlyn') THEN
-       fwsoil = MAX(1.0e-4,MIN(1.0, rwater))
-    ELSE
-       fwsoil = MAX(1.0e-9,MIN(1.0, veg%vbeta * rwater))
-    ENDIF
-
-
-  END SUBROUTINE fwsoil_calc_std
-
-  ! ------------------------------------------------------------------------------
-
-  SUBROUTINE fwsoil_calc_non_linear(fwsoil, soil, ssnow, veg)
-    USE cable_def_types_mod
-    TYPE (soil_snow_type), INTENT(INOUT):: ssnow
-    TYPE (soil_parameter_type), INTENT(INOUT)   :: soil
-    TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
-    REAL, INTENT(OUT), DIMENSION(:):: fwsoil ! soil water modifier of stom. cond
-    REAL, DIMENSION(mp) :: rwater ! soil water availability
-    REAL, DIMENSION(mp,3)          :: xi, ti, si
-    INTEGER :: j
-
-    rwater = MAX(1.0e-9,                                                    &
-         SUM(veg%froot * MAX(0.0,MIN(1.0, REAL(ssnow%wb) -                   &
-         SPREAD(soil%swilt, 2, ms))),2) /(soil%sfc-soil%swilt))
-
-    fwsoil = 1.
-
-    rwater = soil%swilt + rwater * (soil%sfc-soil%swilt)
-
-    xi(:,1) = soil%swilt
-    xi(:,2) = soil%swilt + (soil%sfc - soil%swilt)/2.0
-    xi(:,3) = soil%sfc
-
-    ti(:,1) = 0.
-    ti(:,2) = 0.9
-    ti(:,3) = 1.0
-
-    si(:,1) = (rwater - xi(:,2)) / ( xi(:,1) - xi(:,2)) *                       &
-         (rwater - xi(:,3)) / ( xi(:,1) - xi(:,3))
-
-    si(:,2) = (rwater - xi(:,1)) / ( xi(:,2) - xi(:,1)) *                       &
-         (rwater - xi(:,3)) / ( xi(:,2) - xi(:,3))
-
-    si(:,3) = (rwater - xi(:,1)) / ( xi(:,3) - xi(:,1)) *                       &
-         (rwater - xi(:,2)) / ( xi(:,3) - xi(:,2))
-
-    DO j=1,mp
-       IF (rwater(j) < soil%sfc(j) - 0.02)                                      &
-            fwsoil(j) = MAX(0.,MIN(1., ti(j,1)*si(j,1) +                          &
-            ti(j,2)*si(j,2) + ti(j,3)*si(j,3)))
-
-    ENDDO
-
-  END SUBROUTINE fwsoil_calc_non_linear
-
-  ! ------------------------------------------------------------------------------
-
-  ! ypw 19/may/2010 soil water uptake efficiency (see Lai and Ktaul 2000)
-  SUBROUTINE fwsoil_calc_Lai_Ktaul(fwsoil, soil, ssnow, veg)
-    USE cable_def_types_mod
-    TYPE (soil_snow_type), INTENT(INOUT):: ssnow
-    TYPE (soil_parameter_type), INTENT(INOUT)   :: soil
-    TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
-    REAL, INTENT(OUT), DIMENSION(:):: fwsoil ! soil water modifier of stom. cond
-    INTEGER   :: ns
-    REAL, PARAMETER ::rootgamma = 0.01   ! (19may2010)
-    REAL, DIMENSION(mp)  :: dummy, normFac
-    !--- local level dependent rwater
-    REAL, DIMENSION(mp,ms)  :: frwater
-
-    fwsoil(:) = 0.0
-    normFac(:) = 0.0
-
-    DO ns=1,ms
-
-       dummy(:) = rootgamma/MAX(1.0e-3_r_2,ssnow%wb(:,ns)-soil%swilt(:))
-
-       frwater(:,ns) = MAX(1.0e-4_r_2,((ssnow%wb(:,ns)-soil%swilt(:))/soil%ssat(:)) &
-            ** dummy)
-
-       fwsoil(:) = MIN(1.0,MAX(fwsoil(:),frwater(:,ns)))
-
-       normFac(:) = normFac(:) + frwater(:,ns) * veg%froot(:,ns)
-
-    ENDDO
-
-  END SUBROUTINE fwsoil_calc_Lai_Ktaul
-
-  ! ------------------------------------------------------------------------------
-  SUBROUTINE fwsoil_calc_sli(fwsoil, soil, ssnow, veg)
-    USE cable_def_types_mod
-    TYPE (soil_snow_type), INTENT(INOUT):: ssnow
-    TYPE (soil_parameter_type), INTENT(INOUT)   :: soil
-    TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
-    REAL, INTENT(OUT), DIMENSION(:):: fwsoil ! soil water modifier of stom. cond
-    REAL, DIMENSION(mp,ms):: tmp2d1, tmp2d2, delta_root, alpha2a_root, alpha2_root
-    ! Lai and Katul formulation for root efficiency function  vh 17/07/09
-    alpha2a_root = MAX(ssnow%wb-soil%swilt_vec, 0.001_r_2)/(soil%ssat_vec)
-    tmp2d1 = ssnow%wb -soil%swilt_vec
-    tmp2d2 = SPREAD(veg%gamma,2,ms)/tmp2d1*LOG(alpha2a_root)
-    WHERE ((tmp2d1>0.001) .AND. (tmp2d2 > -10.0))
-       alpha2_root = EXP(tmp2d2)
-    ELSEWHERE
-       alpha2_root = 0.0
-    ENDWHERE
-
-    WHERE (veg%froot>0.0)
-       delta_root = 1.0
-    ELSEWHERE
-       delta_root = 0.0
-    ENDWHERE
-
-    fwsoil  = MAXVAL(alpha2_root*delta_root, 2)
-    fwsoil  = MAX(0.0, fwsoil)
-
-  END SUBROUTINE fwsoil_calc_sli
-
-  !*********************************************************************************************************************
-
-  SUBROUTINE getrex_1d(theta, rex, fws, Fs, thetaS, thetaw, Etrans, gamma, dx, dt, zr)
+ 
+ 
+   SUBROUTINE getrex_1d(theta, rex, fws, Fs, thetaS, thetaw, Etrans, gamma, dx, dt, zr)
 
     ! root extraction : Haverd et al. 2013
     USE cable_def_types_mod, ONLY: r_2
@@ -1306,6 +762,108 @@ CONTAINS
     ENDIF
 
   END SUBROUTINE getrex_1d
-  !*********************************************************************************************************************
 
-END MODULE cable_canopy_module_subrs_module
+
+  FUNCTION ej3x(parx,alpha,convex,x) RESULT(z)
+
+    REAL, INTENT(IN)     :: parx
+    REAL, INTENT(IN)     :: alpha
+    REAL, INTENT(IN)     :: convex
+    REAL, INTENT(IN)     :: x
+    REAL                 :: z
+
+    z = MAX(0.0,                                                                &
+         0.25*((alpha*parx+x-SQRT((alpha*parx+x)**2 -                      &
+         4.0*convex*alpha*parx*x)) /(2.0*convex)) )
+  END FUNCTION ej3x
+
+
+  FUNCTION ej4x(parx,alpha,convex,x) RESULT(z)
+
+    REAL, INTENT(IN)     :: parx
+    REAL, INTENT(IN)     :: alpha
+    REAL, INTENT(IN)     :: convex
+    REAL, INTENT(IN)     :: x
+    REAL                 :: z
+
+    z = MAX(0.0,                                                                &
+         (alpha*parx+x-SQRT((alpha*parx+x)**2 -                           &
+         4.0*convex*alpha*parx*x))/(2.0*convex))
+
+  END FUNCTION ej4x
+
+  ! Explicit array dimensions as temporary work around for NEC inlining problem
+  FUNCTION xvcmxt4(x) RESULT(z)
+
+    REAL, PARAMETER      :: q10c4 = 2.0
+    REAL, INTENT(IN) :: x
+    REAL :: z
+
+    z = q10c4 ** (0.1 * x - 2.5) /                                              &
+         ((1.0 + EXP(0.3 * (13.0 - x))) * (1.0 + EXP(0.3 * (x - 36.0))))
+
+  END FUNCTION xvcmxt4
+
+  ! ------------------------------------------------------------------------------
+
+  FUNCTION xvcmxt3(x) RESULT(z)
+
+USE cable_phys_constants_mod, ONLY : CRGAS   => RGAS
+USE cable_photo_constants_mod, ONLY : CTREFK => TREFK
+    !  leuning 2002 (p c & e) equation for temperature response
+    !  used for vcmax for c3 plants
+    REAL, INTENT(IN) :: x
+    REAL :: xvcnum,xvcden,z
+
+    REAL, PARAMETER  :: EHaVc  = 73637.0  ! J/mol (Leuning 2002)
+    REAL, PARAMETER  :: EHdVc  = 149252.0 ! J/mol (Leuning 2002)
+    REAL, PARAMETER  :: EntropVc = 486.0  ! J/mol/K (Leuning 2002)
+    REAL, PARAMETER  :: xVccoef = 1.17461 ! derived parameter
+    ! xVccoef=1.0+exp((EntropJx*CTREFK-EHdJx)/(Rconst*CTREFK))
+
+    xvcnum=xvccoef*EXP( ( ehavc / ( Crgas*CTREFK ) )* ( 1.-CTREFK/x ) )
+    xvcden=1.0+EXP( ( entropvc*x-ehdvc ) / ( Crgas*x ) )
+    z = MAX( 0.0,xvcnum / xvcden )
+
+  END FUNCTION xvcmxt3
+
+  ! ------------------------------------------------------------------------------
+  REAL FUNCTION xrdt(x)
+
+    !  Atkins et al. (Eq 1, New Phytologist (2015) 206: 614–636)
+    !variable Q10 temperature of dark respiration
+    ! Originally from Tjoelker et al. 2001
+
+    REAL, INTENT(IN) :: x
+
+
+    xrdt = (3.09 - 0.043*((x-273.15)+25.)/2.0)**((x-273.15 -25.0)/10.0)
+
+  END FUNCTION xrdt
+
+  ! ------------------------------------------------------------------------------
+
+  FUNCTION xejmxt3(x) RESULT(z)
+USE cable_phys_constants_mod, ONLY : CRGAS   => RGAS
+USE cable_photo_constants_mod, ONLY : CTREFK => TREFK
+
+    !  leuning 2002 (p c & e) equation for temperature response
+    !  used for jmax for c3 plants
+
+    REAL, INTENT(IN) :: x
+    REAL :: xjxnum,xjxden,z
+
+    REAL, PARAMETER  :: EHaJx  = 50300.0  ! J/mol (Leuning 2002)
+    REAL, PARAMETER  :: EHdJx  = 152044.0 ! J/mol (Leuning 2002)
+    REAL, PARAMETER  :: EntropJx = 495.0  ! J/mol/K (Leuning 2002)
+    REAL, PARAMETER  :: xjxcoef = 1.16715 ! derived parameter
+
+    xjxnum = xjxcoef*EXP( ( ehajx / ( Crgas*CTREFK ) ) * ( 1.-CTREFK / x ) )
+    xjxden=1.0+EXP( ( entropjx*x-ehdjx) / ( Crgas*x ) )
+    z = MAX(0.0, xjxnum/xjxden)
+
+  END FUNCTION xejmxt3
+
+
+
+END MODULE cbl_dryLeaf_module
