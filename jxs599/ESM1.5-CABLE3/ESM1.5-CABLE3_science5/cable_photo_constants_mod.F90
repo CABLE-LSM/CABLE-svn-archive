@@ -53,5 +53,10 @@ module cable_photo_constants_mod
       real :: a1c4 = 4.0
       real :: cfrd3  = 0.010
       real :: cfrd4  = 0.025
+      
+      real :: alpha3 = 0.200
+      real :: alpha4  = 0.05
+      real :: convx3 = 1.0E-2
+      real :: convx4 = 0.8
 End module cable_photo_constants_mod
 
