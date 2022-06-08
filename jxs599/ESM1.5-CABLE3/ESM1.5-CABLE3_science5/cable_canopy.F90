@@ -707,12 +707,12 @@ REAL :: psim_1(mp), psim_2(mp), psim_arg(mp)
 REAL :: z_eff(mp)
 REAL :: ffactor(mp)
 
-   psim_1 = psim(canopy%zetar(:,iter)) 
+   psim_1 = psim(zetar(:,iter)) 
    
-   rescale = C%VONK * MAX(met%ua,C%UMIN)
-   z_eff = rough%zref_uv / rough%z0m
+   rescale = CVONK * MAX(ua,CUMIN)
+   z_eff = zref_uv / z0m
    
-   psim_arg = canopy%zetar(:,iter) / z_eff 
+   psim_arg = zetar(:,iter) / z_eff 
    !---fix for compiler limitation. bitwise reproducable whilst we  
    !---we know it to 11th decimal. psim_arg typically of a few 
    !psim_arg = nint(psim_arg * 1.e11)*1.e-11
@@ -721,7 +721,7 @@ REAL :: ffactor(mp)
           
    lower_limit = rescale / ( LOG(z_eff) - psim_1 + psim_2 )
 
-   canopy%us = MAX(1.e-6, lower_limit )
+   friction_vel = MAX(1.e-6, lower_limit )
 
 END SUBROUTINE comp_friction_vel
 
