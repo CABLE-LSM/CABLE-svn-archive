@@ -106,6 +106,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,clima
    USE cable_roughness_module
 USE cable_climate_type_mod, ONLY : climate_type
 
+USE cbl_friction_vel_module,  ONLY : comp_friction_vel, psim, psis
 USE cbl_qsat_module,          ONLY : qsatfjh,  qsatfjh2
 
    TYPE (balances_type), INTENT(INOUT)  :: bal
@@ -509,8 +510,10 @@ canopy%tv(j) = tv(j)
     where ( soil%isoilm == 9 ) canopy%gswx_T = 1.e6   ! this is a value taken from Moses for ice points
 
     canopy%cdtq = canopy%cduv *( LOG( rough%zref_uv / rough%z0m) -              &
-                 psim( canopy%zetar(:,NITER) * rough%zref_uv/rough%zref_tq )   &
-               + psim( canopy%zetar(:,NITER) * rough%z0m/rough%zref_tq ) & ! new term from Ian Harman
+               psim( canopy%zetar(:,NITER) * rough%zref_uv/rough%zref_tq, mp, CPI_C ) &
+             + psim( canopy%zetar(:,NITER) * rough%z0m/rough%zref_tq, mp, CPI_C ) & ! new term from Ian Harman
+               !ESM15!  psim( canopy%zetar(:,NITER) * rough%zref_uv/rough%zref_tq )   &
+               !ESM15!+ psim( canopy%zetar(:,NITER) * rough%z0m/rough%zref_tq ) & ! new term from Ian Harman
                  ) / ( LOG( rough%zref_tq /(0.1*rough%z0m) )                   &
                - psis( canopy%zetar(:,NITER))                                  &
                + psis(canopy%zetar(:,NITER)*0.1*rough%z0m/rough%zref_tq) ) ! n
@@ -678,52 +681,6 @@ canopy%tv(j) = tv(j)
    DEALLOCATE(ghwet)
 
 CONTAINS
-
-! ------------------------------------------------------------------------------
-
-SUBROUTINE comp_friction_vel(friction_vel, iter, mp, CVONK, CUMIN, CPI_C,      &
-                             zetar, zref_uv, zref_tq, z0m, ua )
-USE cable_common_module, ONLY : cable_runtime
-IMPLICIT NONE
-
-INTEGER, INTENT(IN) :: mp
-REAL, INTENT(OUT) :: friction_vel(mp)   !canopy%us
-INTEGER, INTENT(IN) :: iter
-! physical constants
-REAL, INTENT(IN) :: CVONK
-REAL, INTENT(IN) :: CUMIN   
-! maths & other constants
-REAL, INTENT(IN) :: CPI_C  
-
-REAL, INTENT(IN) :: zetar(mp,iter)      !canopy%zetar
-REAL, INTENT(IN) :: zref_uv(mp)         !rough%zref_uv
-REAL, INTENT(IN) :: zref_tq(mp)         !rough%zref_tq
-REAL, INTENT(IN) :: z0m(mp)             !rough%z0m
-REAL, INTENT(IN) :: ua(mp)              !met%ua
-
-!local vars
-REAL :: lower_limit(mp), rescale(mp)
-REAL :: psim_1(mp), psim_2(mp), psim_arg(mp)
-REAL :: z_eff(mp)
-REAL :: ffactor(mp)
-
-   psim_1 = psim(zetar(:,iter)) 
-   
-   rescale = CVONK * MAX(ua,CUMIN)
-   z_eff = zref_uv / z0m
-   
-   psim_arg = zetar(:,iter) / z_eff 
-   !---fix for compiler limitation. bitwise reproducable whilst we  
-   !---we know it to 11th decimal. psim_arg typically of a few 
-   !psim_arg = nint(psim_arg * 1.e11)*1.e-11
-
-   psim_2 = psim( psim_arg )
-          
-   lower_limit = rescale / ( LOG(z_eff) - psim_1 + psim_2 )
-
-   friction_vel = MAX(1.e-6, lower_limit )
-
-END SUBROUTINE comp_friction_vel
 
 ! ------------------------------------------------------------------------------
 
@@ -980,86 +937,7 @@ SUBROUTINE update_zetar()
       
 END SUBROUTINE update_zetar
 
-! -----------------------------------------------------------------------------
-
-FUNCTION psim(zeta) RESULT(r)
-   USE cable_def_types_mod, only : mp
-   ! mrr, 16-sep-92 (from function psi: mrr, edinburgh 1977)
-   ! computes integrated stability function psim(z/l) (z/l=zeta)
-   ! for momentum, using the businger-dyer form for unstable cases
-   ! and the Beljaars and Holtslag (1991) form for stable cases.
-   
-   
-   REAL, INTENT(IN), DIMENSION(mp) ::  zeta       !
-
-   ! function result   
-   REAL, DIMENSION(mp) :: r
-   
-   REAL, DIMENSION(mp) ::                                                      &
-      x,       & !
-      z,       & !
-      stable,  & !
-      unstable   !
-      
-   REAL, PARAMETER ::                                                          &
-      gu = 16.0,  & !
-      gs = 5.0
-  
-   REAL, PARAMETER ::                                                          &
-      a = 1.0,       & !
-      b = 0.667,     & !
-      xc = 5.0,       & !
-      d = 0.35         !
-
-   z = 0.5 + sign(0.5,zeta)    ! z=1 in stable, 0 in unstable
-   
-   ! Beljaars and Holtslag (1991) for stable
-   stable = -a*zeta - b*(zeta - xc/d)*exp( -d*zeta) - b*xc/d
-   x      = (1.0 + gu*abs(zeta))**0.25
-   unstable = ALOG((1.0+x*x)*(1.0+x)**2/8) - 2.0*atan(x) + C%PI_C*0.5
-   r = z*stable + (1.0-z)*unstable
-END FUNCTION psim
-
-! -----------------------------------------------------------------------------
-
-ELEMENTAL FUNCTION psis(zeta) RESULT(r)
-
-   ! mrr, 16-sep-92 (from function psi: mrr, edinburgh 1977)
-   ! computes integrated stability function psis(z/l) (z/l=zeta)
-   ! for scalars, using the businger-dyer form for unstable cases
-   ! and the webb form for stable cases. see paulson (1970).
-
-   REAL, INTENT(IN)     :: zeta
-   
-   REAL, PARAMETER      ::                                                     &
-      gu = 16.0,        & !
-      gs = 5.0,         & !
-      a = 1.0,          & !
-      b = 0.667,        & !
-      c = 5.0,          & !
-      d = 0.35
- 
-   REAL                 ::                                                     &
-      r,                & !
-      stzeta,           & !
-      ustzeta,          & !
-      z,                & !
-      y,                & !
-      stable,           & !
-      unstable
-   
-   z      = 0.5 + sign(0.5,zeta)    ! z=1 in stable, 0 in unstable 
-
-   ! Beljaars and Holtslag (1991) for stable
-   stzeta = MAX(0.,zeta)
-   stable = -(1.+2./3.*a*stzeta)**(3./2.) -  &
-             b*(stzeta-c/d)*exp(-d*stzeta) - b*c/d + 1.
-   y      = (1.0 + gu*abs(zeta))**0.5
-   unstable = 2.0 * alog((1+y)*0.5)
-   r   = z*stable + (1.0-z)*unstable
-
-END FUNCTION psis
-
+!psis1 function obsoleted in trunk
 ! -----------------------------------------------------------------------------
 
 FUNCTION psis1(zeta) RESULT(r)
@@ -1098,6 +976,16 @@ FUNCTION psis1(zeta) RESULT(r)
    r   = z*stable + (1.0-z)*unstable
 
 END FUNCTION psis1
+
+! -----------------------------------------------------------------------------
+
+ELEMENTAL FUNCTION rplant(rpconst, rpcoef, tair) result(z)
+   REAL, INTENT(IN)     :: rpconst
+   REAL, INTENT(IN)     :: rpcoef
+   REAL, INTENT(IN)     :: tair
+   REAL                 :: z
+   z = rpconst * exp(rpcoef * tair)
+END FUNCTION rplant
 
 ! -----------------------------------------------------------------------------
 
