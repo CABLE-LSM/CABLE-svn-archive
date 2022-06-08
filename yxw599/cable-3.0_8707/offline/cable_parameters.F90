@@ -2153,10 +2153,10 @@ CONTAINS
 
        IF(verbose) THEN
           ! Set up format specifier for writing active patch details below:
-          WRITE(patchfmtr,'(A8, I1, A6)') '(4X,A50,', landpt(e)%nap, 'F12.4)'
-          WRITE(patchfmti,'(A8, I1, A4)') '(4X,A50,', landpt(e)%nap, 'I12)'
-          WRITE(patchfmte,'(A8, I1, A6)') '(4X,A50,', landpt(e)%nap, 'E12.4)'
-          WRITE(patchfmte2,'(A8, I1, A6)') '(4X,A50,', landpt(e)%nap, 'E12.4)'
+          WRITE(patchfmtr,'(A8, I2, A6)') '(4X,A50,', landpt(e)%nap, 'F12.4)'
+          WRITE(patchfmti,'(A8, I2, A4)') '(4X,A50,', landpt(e)%nap, 'I12)'
+          WRITE(patchfmte,'(A8, I2, A6)') '(4X,A50,', landpt(e)%nap, 'E12.4)'
+          WRITE(patchfmte2,'(A8, I2, A6)') '(4X,A50,', landpt(e)%nap, 'E12.4)'
           ! Write parameter set details to log file:
           WRITE(logn, *) '------------------------------------------------'//  &
                '---------'
@@ -2166,7 +2166,7 @@ CONTAINS
                '---------'
           WRITE(logn,'(4X, A50, 2F10.4)') 'reference height (m): ',            &
                                 ! AJA MODIFIED
-                                ! rough%za(e*max_vegpatches)
+                                ! rnnnh%za(e*max_vegpatches)
                rough%za_uv(landpt(e)%cend - landpt(e)%cstart + 1),            &
                rough%za_tq(landpt(e)%cend - landpt(e)%cstart + 1)
           WRITE(logn, *) ' Vegetation parameters: '
