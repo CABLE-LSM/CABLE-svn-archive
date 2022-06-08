@@ -254,7 +254,9 @@ CALL radiation( ssnow, veg, air, met, rad, canopy, sunlit_veg_mask, &
       ! AERODYNAMIC PROPERTIES: friction velocity us, thence turbulent
       ! resistances rt0, rt1 (elements of dispersion matrix):
       ! See CSIRO SCAM, Raupach et al 1997, eq. 3.46:
-      CALL comp_friction_vel()
+CALL comp_friction_vel(canopy%us, iter, mp, CVONK, CUMIN, CPI_C,      &
+                       canopy%zetar, rough%zref_uv, rough%zref_tq,     &
+                       rough%z0m, met%ua )
 
       ! E.Kowalczyk 2014
       IF (cable_user%l_new_roughness_soil)                                     &
@@ -679,14 +681,36 @@ CONTAINS
 
 ! ------------------------------------------------------------------------------
 
-SUBROUTINE comp_friction_vel()
-   USE cable_def_types_mod, only : mp
-   REAL, DIMENSION(mp)  :: lower_limit, rescale
+SUBROUTINE comp_friction_vel(friction_vel, iter, mp, CVONK, CUMIN, CPI_C,      &
+                             zetar, zref_uv, zref_tq, z0m, ua )
+USE cable_common_module, ONLY : cable_runtime
+IMPLICIT NONE
+
+INTEGER, INTENT(IN) :: mp
+REAL, INTENT(OUT) :: friction_vel(mp)   !canopy%us
+INTEGER, INTENT(IN) :: iter
+! physical constants
+REAL, INTENT(IN) :: CVONK
+REAL, INTENT(IN) :: CUMIN   
+! maths & other constants
+REAL, INTENT(IN) :: CPI_C  
+
+REAL, INTENT(IN) :: zetar(mp,iter)      !canopy%zetar
+REAL, INTENT(IN) :: zref_uv(mp)         !rough%zref_uv
+REAL, INTENT(IN) :: zref_tq(mp)         !rough%zref_tq
+REAL, INTENT(IN) :: z0m(mp)             !rough%z0m
+REAL, INTENT(IN) :: ua(mp)              !met%ua
+
+!local vars
+REAL :: lower_limit(mp), rescale(mp)
+REAL :: psim_1(mp), psim_2(mp), psim_arg(mp)
+REAL :: z_eff(mp)
+REAL :: ffactor(mp)
 
    psim_1 = psim(canopy%zetar(:,iter)) 
    
-      rescale = C%VONK * MAX(met%ua,C%UMIN)
-      z_eff = rough%zref_uv / rough%z0m
+   rescale = C%VONK * MAX(met%ua,C%UMIN)
+   z_eff = rough%zref_uv / rough%z0m
    
    psim_arg = canopy%zetar(:,iter) / z_eff 
    !---fix for compiler limitation. bitwise reproducable whilst we  
@@ -1074,16 +1098,6 @@ FUNCTION psis1(zeta) RESULT(r)
    r   = z*stable + (1.0-z)*unstable
 
 END FUNCTION psis1
-
-! -----------------------------------------------------------------------------
-
-ELEMENTAL FUNCTION rplant(rpconst, rpcoef, tair) result(z)
-   REAL, INTENT(IN)     :: rpconst
-   REAL, INTENT(IN)     :: rpcoef
-   REAL, INTENT(IN)     :: tair
-   REAL                 :: z
-   z = rpconst * exp(rpcoef * tair)
-END FUNCTION rplant
 
 ! -----------------------------------------------------------------------------
 
