@@ -923,9 +923,9 @@ INTEGER :: j
    IF (iter < NITER) THEN ! dont compute zetar on the last iter
 
       iterplus = MAX(iter+1,2)
-      canopy%zetar(:,iterplus) = -( CVONK * CGRAV * rough%zref_tq *              &
-                                 ( canopy%fh + 0.07 * canopy%fe ) ) /          &
-                                 ( air%rho * CCAPP * met%tk * canopy%us**3 )
+      canopy_zetar(:,iterplus) = -( CVONK * CGRAV * rough_zref_tq *              &
+                                 ( canopy_fh + 0.07 * canopy_fe ) ) /          &
+                                 ( air_rho * CCAPP * met_tk * canopy_us**3 )
 
       ! case NITER=2: final zetar=CZETmul*zetar(2) (compute only when iter=1)
       IF (NITER == 2) THEN
