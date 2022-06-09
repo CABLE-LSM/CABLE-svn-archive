@@ -927,18 +927,6 @@ INTEGER :: j
                                  ( canopy_fh + 0.07 * canopy_fe ) ) /          &
                                  ( air_rho * CCAPP * met_tk * canopy_us**3 )
 
-      ! case NITER=2: final zetar=CZETmul*zetar(2) (compute only when iter=1)
-      IF (NITER == 2) THEN
-    
-         canopy%zetar(:,2) = CZETmul * canopy%zetar(:,2)
-    
-         DO j=1,mp
-            IF ( (met%fsd(j,1)+met%fsd(j,2))  ==  0.0 ) &
-               canopy%zetar(j,2) = 0.5 * canopy%zetar(j,2)
-         ENDDO
-
-      END IF
-
       ! constrain zeta to CZETPOS and CZETNEG (set in param0)
       
       ! zetar too +
