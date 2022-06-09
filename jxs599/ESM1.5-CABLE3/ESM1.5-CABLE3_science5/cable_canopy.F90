@@ -124,6 +124,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,clima
 USE cable_climate_type_mod, ONLY : climate_type
 
 USE cbl_friction_vel_module,  ONLY : comp_friction_vel, psim, psis
+USE cbl_pot_evap_snow_module, ONLY : Penman_Monteith, Humidity_deficit_method
 USE cbl_qsat_module,          ONLY : qsatfjh,  qsatfjh2
 
    TYPE (balances_type), INTENT(INOUT)  :: bal
@@ -420,12 +421,16 @@ canopy%tv(j) = tv(j)
       IF(cable_user%ssnow_POTEV== "P-M") THEN
          
          !--- uses %ga from previous timestep    
-         ssnow%potev =  Penman_Monteith(canopy%ga) 
-      
+         ssnow%potev =  Penman_Monteith( mp, Ctfrz, CRMH2o, Crmair, CTETENA, CTETENB,         &
+                 CTETENC, air%dsatdk, air%psyc, air%rho, air%rlam,             & 
+                 met%tvair, met%pmb, met%qvair,                       &
+                 canopy%ga, canopy%fns, ssnow%rtsoil, ssnow%isflag )
       ELSE !by default assumes Humidity Deficit Method
       
          dq = ssnow%qstss - met%qv
-         ssnow%potev =  Humidity_deficit_method(dq,ssnow%qstss )
+         ssnow%potev = Humidity_deficit_method( mp, Ctfrz,  &
+                                 air%rho,air%rlam,           & 
+                      dq, ssnow%rtsoil,ssnow%snowd, ssnow%tgg )
           
       ENDIF
 
@@ -445,12 +450,17 @@ canopy%tv(j) = tv(j)
       IF(cable_user%ssnow_POTEV== "P-M") THEN
          
          !--- uses %ga from previous timestep    
-         ssnow%potev =  Penman_Monteith(canopy%ga) 
+         ssnow%potev =  Penman_Monteith( mp, Ctfrz, CRMH2o, Crmair, CTETENA, CTETENB,         &
+                 CTETENC, air%dsatdk, air%psyc, air%rho, air%rlam,             & 
+                 met%tvair, met%pmb, met%qvair,                       &
+                 canopy%ga, canopy%fns, ssnow%rtsoil, ssnow%isflag )
       
       ELSE !by default assumes Humidity Deficit Method
       
          dq = ssnow%qstss - met%qvair
-         ssnow%potev =  Humidity_deficit_method(dq,ssnow%qstss )
+         ssnow%potev = Humidity_deficit_method( mp, Ctfrz,  &
+                                 air%rho,air%rlam,           & 
+                      dq, ssnow%rtsoil,ssnow%snowd, ssnow%tgg )
           
       ENDIF
 
@@ -695,56 +705,6 @@ canopy%tv(j) = tv(j)
 CONTAINS
 
 ! ------------------------------------------------------------------------------
-
-FUNCTION Penman_Monteith( ground_H_flux ) RESULT(ssnowpotev)
-   USE cable_def_types_mod, only : mp
-USE cbl_qsat_module,          ONLY : qsatfjh,  qsatfjh2
-   REAL, INTENT(IN), DIMENSION(mp)  :: ground_H_flux
-   REAL, DIMENSION(MP)  ::                                                     &
-      ssnowpotev,      & ! returned result of function    
-      sss,             & ! var for Penman-Monteith soil evap
-      cc1,             & ! var for Penman-Monteith soil evap
-      cc2,             & ! var for Penman-Monteith soil evap
-      qsatfvar           !
-   INTEGER :: j
-   
-   ! Penman-Monteith formula
-   sss=air%dsatdk
-   cc1=sss/(sss+air%psyc )
-   cc2=air%psyc /(sss+air%psyc )
-   
-CALL qsatfjh( mp, qsatfvar, CRMH2o, Crmair, CTETENA, CTETENB, CTETENC,         &
-              met%tvair-CTfrz,met%pmb)
- !ESM15!  CALL qsatfjh(qsatfvar,met%tvair-Ctfrz,met%pmb)
-
-   ssnowpotev = cc1 * (canopy%fns - ground_H_flux) + &
-   cc2 * air%rho * air%rlam*(qsatfvar  - met%qvair)/ssnow%rtsoil
- 
-END FUNCTION Penman_Monteith
-
-
-! ------------------------------------------------------------------------------
-! method alternative to P-M formula above
-FUNCTION humidity_deficit_method(dq,qstss ) RESULT(ssnowpotev)
-
-   USE cable_def_types_mod, only : mp
-   
-   REAL, DIMENSION(mp) ::                                                      &
-      ssnowpotev,    & ! 
-      dq,            & ! sat spec hum diff.
-      qstss             !dummy var for compilation
-       
-   INTEGER :: j
-   
-   DO j=1,mp
-      !if(ssnow%snowd(j) > 1.0) dq(j) = max( -0.1e-3, dq(j))
-      IF( ssnow%snowd(j)>1.0 .OR. ssnow%tgg(j,1).EQ.Ctfrz)                      &
-         dq(j) = max( -0.1e-3, dq(j))
-   ENDDO 
-   
-   ssnowpotev =air%rho * air%rlam * dq /ssnow%rtsoil
-   
-END FUNCTION Humidity_deficit_method
 
 ! ------------------------------------------------------------------------------
  
