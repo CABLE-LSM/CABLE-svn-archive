@@ -126,6 +126,7 @@ USE cable_climate_type_mod, ONLY : climate_type
 USE cbl_friction_vel_module,  ONLY : comp_friction_vel, psim, psis
 USE cbl_pot_evap_snow_module, ONLY : Penman_Monteith, Humidity_deficit_method
 USE cbl_qsat_module,          ONLY : qsatfjh,  qsatfjh2
+!USE cbl_zetar_module,         ONLY : update_zetar
 
    TYPE (balances_type), INTENT(INOUT)  :: bal
    TYPE (radiation_type), INTENT(INOUT) :: rad
@@ -516,7 +517,14 @@ canopy%tv(j) = tv(j)
       
       ENDDO 
 
-      CALL update_zetar()
+  CALL update_zetar( mp, NITER, canopy%zetar, iter, nrb, CVONK, CGRAV, CCAPP,  &
+                     CLAI_THRESH, CZETmul, CZETPOS, CZETNEG,          &
+                     cable_user%soil_struc, air%rho, met%tk,  met%fsd, &
+                     rough%zref_tq, rough%hruff, rough%term6a, rough%z0soilsn,   &
+                     canopy%vlaiw, canopy%zetash,  canopy%us, &
+                     canopy%fh, canopy%fe, canopy%fhs, REAL(canopy%fes) ) 
+
+       !!880!CALL update_zetar(mp, sunlit_veg_mask)
 
    END DO           ! do iter = 1, NITER
 
@@ -872,12 +880,46 @@ END SUBROUTINE within_canopy
 
 ! -----------------------------------------------------------------------------
 
-SUBROUTINE update_zetar()
-   
-   INTEGER :: j
-   
-   ! monin-obukhov stability parameter zetar=zref/l
-   ! recompute zetar for the next iteration, except on last iteration
+SUBROUTINE update_zetar( mp, NITER, canopy_zetar, iter, nrb, CVONK, CGRAV, CCAPP,  &
+                   CLAI_THRESH, CZETmul, CZETPOS, CZETNEG,          &
+                   cable_user_soil_struc, air_rho, met_tk,  met_fsd, &
+                   rough_zref_tq, rough_hruff, rough_term6a, rough_z0soilsn,   &
+                   canopy_vlaiw, canopy_zetash,  canopy_us, &
+                   canopy_fh, canopy_fe, canopy_fhs, canopy_fes ) 
+IMPLICIT NONE
+
+INTEGER, INTENT(IN) :: mp
+INTEGER, INTENT(IN) :: NITER
+INTEGER, INTENT(IN) :: nrb
+
+REAL, INTENT(OUT) :: canopy_zetar(mp, NITER)
+REAL, INTENT(OUT) :: canopy_zetash(mp, NITER)
+INTEGER, INTENT(IN) :: iter
+
+! constants
+REAL, INTENT(IN) :: CVONK, CGRAV, CCAPP, CLAI_THRESH, CZETmul, CZETPOS, CZETNEG
+CHARACTER, INTENT(IN)  :: cable_user_soil_struc
+
+REAL, INTENT(IN) :: air_rho(mp)
+REAL, INTENT(IN) :: met_tk(mp)
+REAL, INTENT(IN) :: met_fsd(mp,nrb)
+REAL, INTENT(IN) :: rough_zref_tq(mp)
+REAL, INTENT(IN) :: rough_hruff(mp)
+REAL, INTENT(IN) :: rough_term6a(mp)
+REAL, INTENT(IN) :: rough_z0soilsn(mp)
+REAL, INTENT(IN) :: canopy_vlaiw(mp)
+REAL, INTENT(IN) :: canopy_us(mp)
+REAL, INTENT(IN) :: canopy_fh(mp)
+REAL, INTENT(IN) :: canopy_fe(mp)
+REAL, INTENT(IN) :: canopy_fhs(mp)
+REAL, INTENT(IN) :: canopy_fes(mp)
+
+!local vars
+INTEGER :: iterplus
+INTEGER :: j
+
+! monin-obukhov stability parameter zetar=zref/l
+! recompute zetar for the next iteration, except on last iteration
    IF (iter < NITER) THEN ! dont compute zetar on the last iter
 
       iterplus = MAX(iter+1,2)
