@@ -127,6 +127,7 @@ USE cbl_friction_vel_module,  ONLY : comp_friction_vel, psim, psis
 USE cbl_pot_evap_snow_module, ONLY : Penman_Monteith, Humidity_deficit_method
 USE cbl_qsat_module,          ONLY : qsatfjh,  qsatfjh2
 USE cbl_zetar_module,         ONLY : update_zetar
+USE cable_latent_heat_module, ONLY : latent_heat_flux
 
    TYPE (balances_type), INTENT(INOUT)  :: bal
    TYPE (radiation_type), INTENT(INOUT) :: rad
@@ -436,7 +437,13 @@ canopy%tv(j) = tv(j)
       ENDIF
 
       ! Soil latent heat:
-      CALL latent_heat_flux()
+
+      CALL Latent_heat_flux( mp, CTFRZ, dels, soil%zse(1), soil%swilt,           &
+                             cable_user%l_new_reduce_soilevp, pwet, air%rlam,  &
+                             ssnow%snowd, ssnow%wb(:,1), ssnow%wbice(:,1),             &
+                             ssnow%pudsto, ssnow%pudsmx, ssnow%potev,          &
+                             ssnow%wetfac, ssnow%evapfbl(:,1), ssnow%cls,          & 
+                             ssnow%tss, canopy%fes, canopy%fess, canopy%fesp  )
 
       ! Calculate soil sensible heat:
       canopy%fhs = air%rho*CCAPP*(ssnow%tss - met%tk) /ssnow%rtsoil
@@ -467,7 +474,13 @@ canopy%tv(j) = tv(j)
 
          
       ! Soil latent heat:
-      CALL latent_heat_flux()
+      CALL Latent_heat_flux( mp, CTFRZ, dels, soil%zse(1), soil%swilt,           &
+                             cable_user%l_new_reduce_soilevp, pwet, air%rlam,  &
+                             ssnow%snowd, ssnow%wb(:,1), ssnow%wbice(:,1),             &
+                             ssnow%pudsto, ssnow%pudsmx, ssnow%potev,          &
+                             ssnow%wetfac, ssnow%evapfbl(:,1), ssnow%cls,          & 
+                             ssnow%tss, canopy%fes, canopy%fess, canopy%fesp  )
+
 
       ! Soil sensible heat:
       canopy%fhs = air%rho*CCAPP*(ssnow%tss - met%tvair) /ssnow%rtsoil
@@ -714,66 +727,6 @@ CONTAINS
 
 ! ------------------------------------------------------------------------------
  
-SUBROUTINE Latent_heat_flux() 
-
-   USE cable_common_module
-   USE cable_def_types_mod, only : mp
-
-   REAL, DIMENSION(mp) ::                                                      &
-      frescale,  flower_limit, fupper_limit
-
-   INTEGER :: j
-   
-   ! Soil latent heat:
-   canopy%fess= ssnow%wetfac * ssnow%potev
-   WHERE (ssnow%potev < 0. ) canopy%fess = ssnow%potev
-   
-   ! Reduce soil evap due to presence of puddle
-   pwet = max(0.,min(0.2,ssnow%pudsto/max(1.,ssnow%pudsmx)))
-   canopy%fess = canopy%fess * (1.-pwet)
-
-   frescale = soil%zse(1) * 1000. * air%rlam / dels         
-
-   DO j=1,mp
-      
-      IF(ssnow%snowd(j) < 0.1 .AND. canopy%fess(j) .GT. 0. ) THEN
-
-        IF (.not.cable_user%l_new_reduce_soilevp) THEN
-         flower_limit(j) = REAL(ssnow%wb(j,1))-soil%swilt(j)/2.0
-        ELSE
-         ! E.Kowalczyk 2014 - reduces the soil evaporation
-         flower_limit(j) = REAL(ssnow%wb(j,1))-soil%swilt(j)
-        ENDIF
-         fupper_limit(j) = MAX( 0._r_2,                                        &
-                           flower_limit(j) * frescale(j)                       &
-                           - ssnow%evapfbl(j,1)*air%rlam(j)/dels)
-
-         canopy%fess(j) = MIN(canopy%fess(j), fupper_limit(j))
-         
-         fupper_limit(j) = REAL(ssnow%wb(j,1)-ssnow%wbice(j,1)) * frescale(j)
-
-         canopy%fess(j) = min(canopy%fess(j), fupper_limit(j))
-
-      END IF
-
-      ssnow%cls(j)=1.
-      
-      IF (ssnow%snowd(j) >= 0.1 .and. ssnow%potev(j) > 0.) THEN
-
-         ssnow%cls(j) = 1.1335
-         canopy%fess(j) = MIN( (ssnow%wetfac(j)*ssnow%potev(j))*ssnow%cls(j), &
-                          ssnow%snowd(j)/dels*air%rlam(j)*ssnow%cls(j))
-      
-      ENDIF
-
-   ENDDO 
-   
-   ! Evaporation form soil puddle
-   canopy%fesp = min(ssnow%pudsto/dels*air%rlam,max(pwet*ssnow%potev,0.))
-   canopy%fes = canopy%fess + canopy%fesp
-
-END SUBROUTINE latent_heat_flux
-
 ! -----------------------------------------------------------------------------
 
 SUBROUTINE within_canopy( gbhu, gbhf )
