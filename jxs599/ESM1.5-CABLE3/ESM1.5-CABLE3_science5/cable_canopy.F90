@@ -930,10 +930,10 @@ INTEGER :: j
       ! constrain zeta to CZETPOS and CZETNEG (set in param0)
       
       ! zetar too +
-      canopy%zetar(:,iterplus) = MIN(CZETPOS,canopy%zetar(:,iterplus))        
+      canopy_zetar(:,iterplus) = MIN(CZETPOS,canopy_zetar(:,iterplus))        
       
       ! zetar too -
-      canopy%zetar(:,iterplus) = MAX(CZETNEG,canopy%zetar(:,iterplus))        
+      canopy_zetar(:,iterplus) = MAX(CZETNEG,canopy_zetar(:,iterplus))        
     
    END IF ! (iter < NITER)
       
