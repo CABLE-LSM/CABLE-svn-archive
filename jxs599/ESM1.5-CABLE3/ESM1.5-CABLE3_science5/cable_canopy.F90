@@ -319,7 +319,8 @@ CALL comp_friction_vel(canopy%us, iter, mp, CVONK, CUMIN, CPI_C,      &
       CALL wetLeaf( dels, rad, rough, air, met,                                &
                     veg, canopy, cansat, tlfy,                                 &
                     gbhu, gbhf, ghwet, &
-                    CLAI_thresh, CCAPP, CRmair )
+                    mp, CLAI_thresh, CCAPP, CRmair, & 
+                    canopy%fevw, canopy%fevw_pot, canopy%fhvw )
 
      
       ! Calculate latent heat from vegetation:
