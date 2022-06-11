@@ -94,7 +94,6 @@ USE cable_wetleaf_module,     ONLY : wetleaf
 
    TYPE (soil_parameter_type), INTENT(INOUT)   :: soil
    TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
-   
 REAL :: reducedLAIdue2snow(mp)
 logical :: sunlit_veg_mask(mp) 
    REAL, INTENT(IN)               :: dels ! integration time setp (s)
@@ -308,7 +307,8 @@ CALL comp_friction_vel(canopy%us, iter, mp, CVONK, CUMIN, CPI_C,      &
       hcy = 0.0              ! init current estimate lat heat
       ecy = rny - hcy        ! init current estimate lat heat
 
-      sum_rad_rniso = SUM(rad%rniso,2)
+sum_rad_rniso = SUM(rad%rniso,2)
+sum_rad_gradis = SUM(rad%gradis,2)
 
       CALL dryLeaf( dels, rad, rough, air, met,                                &
                     veg, canopy, soil, ssnow, dsx,                             &
@@ -316,11 +316,14 @@ CALL comp_friction_vel(canopy%us, iter, mp, CVONK, CUMIN, CPI_C,      &
                     rny, gbhu, gbhf, csx, cansat,                              &
                     ghwet,  iter )
      
-      CALL wetLeaf( dels, rad, rough, air, met,                                &
-                    veg, canopy, cansat, tlfy,                                 &
+      CALL wetLeaf( dels,                                 &
+                    cansat, tlfy,                                 &
                     gbhu, gbhf, ghwet, &
                     mp, CLAI_thresh, CCAPP, CRmair, & 
-                    canopy%fevw, canopy%fevw_pot, canopy%fhvw )
+                    reducedLAIdue2snow, sum_rad_rniso, sum_rad_gradis, & 
+                    canopy%fevw, canopy%fevw_pot, canopy%fhvw, &
+                    canopy%fwet, canopy%cansto, air%rlam, air%dsatdk, &
+                    met%tvair, met%tk, met%dva, air%psyc )
 
      
       ! Calculate latent heat from vegetation:
