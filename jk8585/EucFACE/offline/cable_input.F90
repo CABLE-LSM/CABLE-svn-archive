@@ -2538,6 +2538,12 @@ SUBROUTINE load_parameters(met, air, ssnow, veg, bgc, soil, canopy, rough, rad, 
          ! evaluate mp_POP and POP_array
          mp_POP = COUNT(casamet%iveg2==forest) + COUNT(casamet%iveg2==shrub)
 
+         ! Initialisation (should happen somewhere else...)
+         veg%disturbance_interval(:,1) = 100.0   ! first one is partial disturbance if NDISTURB=2, otherwise total disturbance
+         veg%disturbance_interval(:,2) = 100.0
+         veg%disturbance_intensity(:,1) = 60.0  ! only first one is used if frac_intensity1 is not input to POPstep (in %)
+         veg%disturbance_intensity(:,2) = 60.0
+         
          ALLOCATE(Iwood(mp_POP))
          j = 1
          DO i=1,mp
@@ -2547,15 +2553,6 @@ SUBROUTINE load_parameters(met, air, ssnow, veg, bgc, soil, canopy, rough, rad, 
                j = j+1
             ENDIF
          ENDDO
-
-         ! JK_test: specific for EucFACE testing
-         !veg%disturbance_interval(Iwood,1) = 150.0   ! first one is partial disturbance if NDISTURB=2, otherwise total disturbance
-         !veg%disturbance_interval(Iwood,2) = 1000.0
-         veg%disturbance_intensity(Iwood,1) = 60.0  ! only first one is used if frac_intensity1 is not input to POPstep (in %)
-         veg%disturbance_intensity(Iwood,2) = 60.0
-
-         !write(79,*) "Iwood", Iwood
-         !write(79,*) "casamet%iveg2(:)", casamet%iveg2(:)
          
          CALL POP_init( POP, veg%disturbance_interval(Iwood,:), mp_POP, Iwood )
          IF ( .NOT. (spinup .OR. CABLE_USER%POP_fromZero )) &

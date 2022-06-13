@@ -113,6 +113,7 @@ MODULE POP_Constants
   INTEGER(i4b), PARAMETER :: NDISTURB = 1 ! number of disturbance regimes (1 (total only)  or 2 (partial and total))
   INTEGER(i4b), PARAMETER :: PATCH_REPS = 10 ! higher number reduces 'noise'
   INTEGER(i4b), PARAMETER :: NAGE_MAX = 1 ! number of maxium ages
+  !  INTEGER(i4b), PARAMETER :: PATCH_REPS1 = 1 ! number of first dist years
   INTEGER(i4b), PARAMETER :: PATCH_REPS1 = 1 ! number of first dist years
   INTEGER(i4b), PARAMETER :: PATCH_REPS2 = 1 ! number of second dist years
   INTEGER(i4b), PARAMETER :: NPATCH = PATCH_REPS1*PATCH_REPS2
@@ -130,6 +131,7 @@ MODULE POP_Constants
   INTEGER(i4b), PARAMETER :: MAX_HEIGHT_SWITCH = 2
   INTEGER(i4b), PARAMETER :: RESOURCE_SWITCH = 0 ! 0 = default; 1  fraction net resource uptake
   INTEGER(i4b), PARAMETER :: RECRUIT_SWITCH = 1 ! 0 = default, 1 = Pgap-dependence
+  !INTEGER(i4b), PARAMETER :: INTERP_SWITCH = 1 ! 0 = sum over weighted patches, 1 = sum over interpolated patches
   INTEGER(i4b), PARAMETER :: INTERP_SWITCH = 0 ! 0 = sum over weighted patches, 1 = sum over interpolated patches
   INTEGER(i4b), PARAMETER :: SMOOTH_SWITCH = 0 ! smooth disturbance flux
   INTEGER(i4b), PARAMETER :: NYEAR_WINDOW  = 5                  ! one-side of smoothing window (y)

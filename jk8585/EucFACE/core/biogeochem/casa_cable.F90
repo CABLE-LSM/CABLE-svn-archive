@@ -263,13 +263,7 @@ contains
        LAImax    = casabal%LAImax
        Cleafmean = casabal%cleafmean
        Crootmean = casabal%Crootmean
-
-       ! JK_test: specific for EucFACE testing
-       !write(85,*) "Iw", Iw
-       !write(85,*) "casabiome%disturbance_interval(Iw,:)", casabiome%disturbance_interval(Iw,:)
-       !write(85,*) "casabiome%disturbance_intensity(Iw,:)", casabiome%disturbance_intensity(Iw,:)
-       !write(85,*) "casabiome%disturbance_interval(:,:)", casabiome%disturbance_interval(:,:)
-       
+      
        CALL POPStep(pop, max(StemNPP(Iw,:)/1000.0_dp, 0.0001_dp), int(veg%disturbance_interval(Iw,:), i4b), &
             real(veg%disturbance_intensity(Iw,:),dp), &
             max(LAImax(Iw), 0.001_dp), Cleafmean(Iw), Crootmean(Iw), NPPtoGPP(Iw))
