@@ -5,8 +5,8 @@ PUBLIC qsatfjh2
 
 CONTAINS
 
-!E!SUBROUTINE qsatfjh(var,tair,pmb) 
 !==============================================================================
+
 SUBROUTINE qsatfjh(mp, var, CRMH2o, Crmair, CTETENA, CTETENB, CTETENC, tair,pmb)
 IMPLICIT NONE
 
@@ -29,12 +29,9 @@ ENDDO
 
 RETURN
 END SUBROUTINE qsatfjh
+
 !==============================================================================
 
-
-
-!E!SUBROUTINE qsatfjh2(var,tair,pmb) 
-!==============================================================================
 SUBROUTINE qsatfjh2( var, CRMH2o, Crmair, CTETENA, CTETENB, CTETENC, tair,pmb)
 IMPLICIT NONE
 
@@ -49,6 +46,7 @@ var = (CRMH2o/Crmair) * (CTETENA*EXP(CTETENB*tair/(CTETENC+tair))) / pmb
 
 RETURN
 END SUBROUTINE qsatfjh2
+
 !==============================================================================
 
 END MODULE cbl_qsat_module

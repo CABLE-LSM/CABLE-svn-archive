@@ -55,13 +55,28 @@ IF (iter < NITER) THEN ! dont compute zetar on the last iter
                              ( canopy_fh + 0.07 * canopy_fe ) ) /          &
                              ( air_rho * CCAPP * met_tk * canopy_us**3 )
 
+  ! stability parameter at shear height: needed for Harman in-canopy stability correction
+  IF (cable_user_soil_struc=='sli') THEN
+     WHERE (canopy_vlaiw > CLAI_THRESH .AND. rough_hruff > rough_z0soilsn)
+        canopy_zetash(:,iterplus) = -(Cvonk*Cgrav*(0.1*rough_hruff)*(canopy_fhs+0.07*REAL(canopy_fes)))/ &
+             MAX( (air_rho*Ccapp*met_tk*(canopy_us*rough_term6a)**3), 1.e-12)
+     ELSEWHERE
+        canopy_zetash(:,iterplus) = canopy_zetash(:,iter)
+     ENDWHERE
+  ENDIF
+
+
   ! constrain zeta to CZETPOS and CZETNEG (set in param0)
   
   ! zetar too +
   canopy_zetar(:,iterplus) = MIN(CZETPOS,canopy_zetar(:,iterplus))        
+  IF (cable_user_soil_struc=='sli') &
+       canopy_zetash(:,iterplus) = MIN(CZETPOS,canopy_zetash(:,iterplus))
   
   ! zetar too -
   canopy_zetar(:,iterplus) = MAX(CZETNEG,canopy_zetar(:,iterplus))        
+  IF (cable_user_soil_struc=='sli') &
+       canopy_zetash(:,iterplus) = MAX(CZETNEG,canopy_zetash(:,iterplus))
 
 END IF ! (iter < NITER)
 
