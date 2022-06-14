@@ -30,8 +30,6 @@ USE cable_phys_constants_mod, ONLY : CTFRZ   => TFRZ
 
     INTEGER :: j, i
 
-
-
    ! Rainfall variable is limited so canopy interception is limited,
    ! used to stabilise latent fluxes.
    ! to avoid excessive direct canopy evaporation (EK nov2007, snow scheme)
@@ -54,33 +52,39 @@ USE cable_phys_constants_mod, ONLY : CTFRZ   => TFRZ
    canopy%fwet   = MAX( 0.0, MIN( 0.9, 0.8 * canopy%cansto /                   &
                    MAX( cansat, 0.01 ) ) )
 
+!calc the surface wetness for soil evap in this routine
+!include the default wetfac when or_evap and gw_model are not used
+!H!gw n/a here and so copied default below
+!H!    CALL calc_srf_wet_fraction(ssnow,soil,met,veg)
+!H!   ELSE  !Default formulation
    ssnow%wetfac = MAX( 1.e-6, MIN( 1.0,                                        &
                   ( REAL (ssnow%wb(:,1) ) - soil%swilt/ 2.0 )                  &
                   / ( soil%sfc - soil%swilt/2.0 ) ) )
   
-   DO j=1,mp
+   DO i=1,mp
    
-      IF( ssnow%wbice(j,1) > 0. )                                              &
-         ssnow%wetfac(j) = ssnow%wetfac(j) * MAX( 0.5, 1. - MIN( 0.2,          &
-                           ( ssnow%wbice(j,1) / ssnow%wb(j,1) )**2 ) )
+      !e!IF( ssnow%wbice(i,1) > 0. )                                              &
+         !e!ssnow%wetfac(i) = ssnow%wetfac(i) * MAX( 0.5, 1. - MIN( 0.2,          &
+         !e!                  ( ssnow%wbice(i,1) / ssnow%wb(i,1) )**2 ) )
 
-      IF( ssnow%snowd(j) > 0.1) ssnow%wetfac(j) = 0.9
+          IF( ssnow%wbice(i,1) > 0. )&
+               ssnow%wetfac(i) = ssnow%wetfac(i) * &
+                                real(MAX( 0.5_r_2, 1._r_2 - MIN( 0.2_r_2, &
+                                 ( ssnow%wbice(i,1) / ssnow%wb(i,1) )**2 ) ) )
+      IF( ssnow%snowd(i) > 0.1) ssnow%wetfac(i) = 0.9
       
-      IF ( veg%iveg(j) == 16 .and. met%tk(j) >= Ctfrz + 5. )                  &
-         ssnow%wetfac(j) = 1.0 ! lakes: hard-wired number to be removed
+      IF ( veg%iveg(i) == 16 .and. met%tk(i) >= Ctfrz + 5. )                  &
+         ssnow%wetfac(i) = 1.0 ! lakes: hard-wired number to be removed
       
-      IF( veg%iveg(j) == 16 .and. met%tk(j) < Ctfrz + 5. )                    &
-         ssnow%wetfac(j) = 0.7 ! lakes: hard-wired number to be removed
+      IF( veg%iveg(i) == 16 .and. met%tk(i) < Ctfrz + 5. )                    &
+         ssnow%wetfac(i) = 0.7 ! lakes: hard-wired number to be removed
 
    ENDDO 
       
-
    ! owetfac introduced to reduce sharp changes in dry regions,
    ! especially in offline runs in which there may be discrepancies b/n
    ! timing of precip and temperature change (EAK apr2009)
    ssnow%wetfac = 0.5*(ssnow%wetfac + ssnow%owetfac)
-
-
 
 
   END SUBROUTINE Surf_wetness_fact
