@@ -15,6 +15,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
 
     USE cable_def_types_mod
     USE cable_common_module
+USE cable_common_module, ONLY : cable_user, cable_runtime
 USE cable_climate_type_mod, ONLY : climate_type
 USE cbl_photosynthesis_module,  ONLY : photosynthesis
 USE cbl_fwsoil_module,        ONLY : fwsoil_calc_std, fwsoil_calc_non_linear,           &
@@ -152,146 +153,156 @@ USE cable_photo_constants_mod, ONLY : CCFRD4 => CFRD4
 
     INTEGER :: i, j, k, kk  ! iteration count
     REAL :: vpd, g1 ! Ticket #56
-#define VanessasCanopy
-#ifdef VanessasCanopy
     REAL, DIMENSION(mp,mf)  ::                                                  &
          xleuning    ! leuning stomatal coeff
-#endif
 
     REAL :: medlyn_lim  !INH 2018: should be a parameter in long-term
     ! END header
 
-   ALLOCATE( gswmin(mp,mf ))
+ALLOCATE( gswmin(mp,mf ))
 
-   ! Soil water limitation on stomatal conductance:
-   IF( iter ==1) THEN
+! Soil water limitation on stomatal conductance:
+IF( iter ==1) THEN
    
-      IF(cable_user%FWSOIL_SWITCH == 'standard') THEN
-         CALL fwsoil_calc_std( fwsoil, soil, ssnow, veg) 
-      ELSEIf (cable_user%FWSOIL_SWITCH == 'non-linear extrapolation') THEN
-         !EAK, 09/10 - replace linear approx by polynomial fitting
-         CALL fwsoil_calc_non_linear(fwsoil, soil, ssnow, veg) 
-      ELSEIF(cable_user%FWSOIL_SWITCH == 'Lai and Ktaul 2000') THEN
-         CALL fwsoil_calc_Lai_Ktaul(fwsoil, soil, ssnow, veg) 
-      ELSE
-         STOP 'fwsoil_switch failed.'
-      ENDIF
+  IF ((cable_user%soil_struc=='default').AND.(cable_user%FWSOIL_SWITCH.NE.'Haverd2013')) THEN
+    
+    IF(cable_user%FWSOIL_SWITCH == 'standard') THEN
+       CALL fwsoil_calc_std( fwsoil, soil, ssnow, veg) 
+    ELSEIf (cable_user%FWSOIL_SWITCH == 'non-linear extrapolation') THEN
+       !EAK, 09/10 - replace linear approx by polynomial fitting
+       CALL fwsoil_calc_non_linear(fwsoil, soil, ssnow, veg) 
+    ELSEIF(cable_user%FWSOIL_SWITCH == 'Lai and Ktaul 2000') THEN
+       CALL fwsoil_calc_Lai_Ktaul(fwsoil, soil, ssnow, veg) 
+    ELSE
+       STOP 'fwsoil_switch failed.'
+    ENDIF !fwsoil
+    canopy%fwsoil = fwsoil
+    
+  ELSEIF ((cable_user%soil_struc=='sli').OR.(cable_user%FWSOIL_SWITCH=='Haverd2013')) THEN
+    
+    fwsoil = canopy%fwsoil
+    
+  ENDIF ! sli
 
-   ENDIF
+ENDIF
 
-   ! weight min stomatal conductance by C3 an C4 plant fractions
-   frac42 = SPREAD(veg%frac4, 2, mf) ! frac C4 plants
-
+! weight min stomatal conductance by C3 an C4 plant fractions
+frac42 = SPREAD(veg%frac4, 2, mf) ! frac C4 plants
+IF( cable_runtime%esm15_dryLeaf ) THEN
    gsw_term = Cgsw03 * (1. - frac42) + Cgsw04 * frac42
    lower_limit2 = rad%scalex * (Cgsw03 * (1. - frac42) + Cgsw04 * frac42)
-   gswmin = max(1.e-6,lower_limit2)
-         
+ELSE
+   gsw_term = SPREAD(veg%gswmin,2,mf)
+   lower_limit2 = rad%scalex * gsw_term
+ENDIF   
+gswmin = max(1.e-6,lower_limit2)
 
-   gw = 1.0e-3 ! default values of conductance
-   gh = 1.0e-3
-   ghr= 1.0e-3
-   rdx = 0.0
-   anx = 0.0
-   rnx = SUM(rad%rniso,2)
-   abs_deltlf = 999.0
+gw = 1.0e-3 ! default values of conductance
+gh = 1.0e-3
+ghr= 1.0e-3
+rdx = 0.0
+anx = 0.0
+rnx = SUM(rad%rniso,2)
+abs_deltlf = 999.0
 
+gras = 1.0e-6
+an_y= 0.0
+hcx = 0.0              ! init sens heat iteration memory variable
+hcy = 0.0
+rdy = 0.0
+ecx = SUM(rad%rniso,2) ! init lat heat iteration memory variable
+tlfxx = tlfx
+psycst(:,:) = SPREAD(air%psyc,2,mf)
+canopy%fevc = 0.0
+ssnow%evapfbl = 0.0
 
-   gras = 1.0e-6
-   an_y= 0.0
-   hcx = 0.0              ! init sens heat iteration memory variable
-   hcy = 0.0
-   rdy = 0.0
-   ecx = SUM(rad%rniso,2) ! init lat heat iteration memory variable
-   tlfxx = tlfx
-   psycst(:,:) = SPREAD(air%psyc,2,mf)
-   canopy%fevc = 0.0
-   ssnow%evapfbl = 0.0
+ghwet = 1.0e-3
+gwwet = 1.0e-3
+ghrwet= 1.0e-3
+canopy%fevw = 0.0
+canopy%fhvw = 0.0
+sum_gbh = SUM((gbhu+gbhf),2)
+sum_rad_rniso = SUM(rad%rniso,2)
+sum_rad_gradis = SUM(rad%gradis,2)
 
-   ghwet = 1.0e-3
-   gwwet = 1.0e-3
-   ghrwet= 1.0e-3
-   canopy%fevw = 0.0
-   canopy%fhvw = 0.0
-   sum_gbh = SUM((gbhu+gbhf),2)
-   sum_rad_rniso = SUM(rad%rniso,2)
-   sum_rad_gradis = SUM(rad%gradis,2)
+DO kk=1,mp
 
-   DO kk=1,mp
+  IF(canopy%vlaiw(kk) <= CLAI_THRESH) THEN
+    rnx(kk) = 0.0 ! intialise
+    ecx(kk) = 0.0 ! intialise
+    ecy(kk) = ecx(kk) ! store initial values
+    abs_deltlf(kk)=0.0
+    rny(kk) = rnx(kk) ! store initial values
+    ! calculate total thermal resistance, rthv in s/m
+  END IF
 
-      IF(canopy%vlaiw(kk) <= CLAI_THRESH) THEN
-         rnx(kk) = 0.0 ! intialise
-         ecx(kk) = 0.0 ! intialise
-         ecy(kk) = ecx(kk) ! store initial values
-         abs_deltlf(kk)=0.0
-         rny(kk) = rnx(kk) ! store initial values
-         ! calculate total thermal resistance, rthv in s/m
-      END IF
-
-   ENDDO
+ENDDO
    
-   deltlfy = abs_deltlf
-   k = 0
+deltlfy = abs_deltlf
+k = 0
+!kdcorbin, 08/10 - doing all points all the time
+DO WHILE (k < CMAXITER)
 
-   !kdcorbin, 08/10 - doing all points all the time
-   DO WHILE (k < CMAXITER)
-      k = k + 1
-
-      DO i=1,mp
+  k = k + 1
+  DO i=1,mp
          
-         IF (canopy%vlaiw(i) > CLAI_THRESH .AND. abs_deltlf(i) > 0.1) THEN
-         
-            ghwet(i) = 2.0   * sum_gbh(i)
-            gwwet(i) = 1.075 * sum_gbh(i)
-            ghrwet(i) = sum_rad_gradis(i) + ghwet(i)
+		!IF vegetated dryleaf per patch - within iteration loop    
+  	IF (canopy%vlaiw(i) > CLAI_THRESH .AND. abs_deltlf(i) > 0.1) THEN
+  	       
+  	  ghwet(i) = 2.0   * sum_gbh(i)
+  	  gwwet(i) = 1.075 * sum_gbh(i)
+  	  ghrwet(i) = sum_rad_gradis(i) + ghwet(i)
        
-            ! Calculate fraction of canopy which is wet:
-            canopy%fwet(i) = MAX( 0.0, MIN( 1.0, 0.8 * canopy%cansto(i)/ MAX(  &
-                             cansat(i),0.01 ) ) )
+			IF( cable_runtime%esm15_dryLeaf ) THEN
+				! Calculate fraction of canopy which is wet:
+        canopy%fwet(i) = MAX( 0.0, MIN( 1.0, 0.8 * canopy%cansto(i)/ MAX(  &
+                              cansat(i),0.01 ) ) )
+      ENDIF
 
-            ! Calculate lat heat from wet canopy, may be neg.                  
-            ! if dew on wet canopy to avoid excessive evaporation:
-            ccfevw(i) = MIN(canopy%cansto(i) * air%rlam(i) / dels,             &
-                        2.0 / (1440.0 / (dels/60.0)) * air%rlam(i) )
+      ! Calculate lat heat from wet canopy, may be neg.                  
+      ! if dew on wet canopy to avoid excessive evaporation:
+      ccfevw(i) = MIN(canopy%cansto(i) * air%rlam(i) / dels,             &
+                  2.0 / (1440.0 / (dels/60.0)) * air%rlam(i) )
    
-            ! Grashof number (Leuning et al, 1995) eq E4:
-            gras(i) = MAX(1.0e-6,                                              &
-                      1.595E8* ABS( tlfx(i)-met%tvair(i))* (veg%dleaf(i)**3.0) )
+      ! Grashof number (Leuning et al, 1995) eq E4:
+      gras(i) = MAX(1.0e-6,                                              &
+                1.595E8* ABS( tlfx(i)-met%tvair(i))* (veg%dleaf(i)**3.0) )
 
-            ! See Appendix E in (Leuning et al, 1995):
-            gbhf(i,1) = rad%fvlai(i,1) * air%cmolar(i) * 0.5*Cdheat           &
-                       * ( gras(i)**0.25 ) / veg%dleaf(i)
-            gbhf(i,2) = rad%fvlai(i,2) * air%cmolar(i) * 0.5 * Cdheat         &
-                        * ( gras(i)**0.25 ) / veg%dleaf(i)
-            gbhf(i,:) = MAX( 1.e-6, gbhf(i,:) )
+      ! See Appendix E in (Leuning et al, 1995):
+      gbhf(i,1) = rad%fvlai(i,1) * air%cmolar(i) * 0.5*Cdheat           &
+                 * ( gras(i)**0.25 ) / veg%dleaf(i)
+      gbhf(i,2) = rad%fvlai(i,2) * air%cmolar(i) * 0.5 * Cdheat         &
+                  * ( gras(i)**0.25 ) / veg%dleaf(i)
+      gbhf(i,:) = MAX( 1.e-6, gbhf(i,:) )
       
-            ! Conductance for heat:
-            gh(i,:) = 2.0 * (gbhu(i,:) + gbhf(i,:))
+      ! Conductance for heat:
+      gh(i,:) = 2.0 * (gbhu(i,:) + gbhf(i,:))
       
-            ! Conductance for heat and longwave radiation:
-            ghr(i,:) = rad%gradis(i,:)+gh(i,:)
+      ! Conductance for heat and longwave radiation:
+      ghr(i,:) = rad%gradis(i,:)+gh(i,:)
       
-            ! Leuning 2002 (P C & E) equation for temperature response
-            ! used for Vcmax for C3 plants:
-            temp(i) =  xvcmxt3(tlfx(i)) * veg%vcmax(i) * (1.0-veg%frac4(i))
-            
-            vcmxt3(i,1) = rad%scalex(i,1) * temp(i)
-            vcmxt3(i,2) = rad%scalex(i,2) * temp(i)
+      ! Leuning 2002 (P C & E) equation for temperature response
+      ! used for Vcmax for C3 plants:
+      temp(i) =  xvcmxt3(tlfx(i)) * veg%vcmax(i) * (1.0-veg%frac4(i))
+      
+      vcmxt3(i,1) = rad%scalex(i,1) * temp(i)
+      vcmxt3(i,2) = rad%scalex(i,2) * temp(i)
     
-            ! Temperature response Vcmax, C4 plants (Collatz et al 1989):
-            temp(i) = xvcmxt4(tlfx(i)-Ctfrz) * veg%vcmax(i) * veg%frac4(i)
-            vcmxt4(i,1) = rad%scalex(i,1) * temp(i)
-            vcmxt4(i,2) = rad%scalex(i,2) * temp(i)
+      ! Temperature response Vcmax, C4 plants (Collatz et al 1989):
+      temp(i) = xvcmxt4(tlfx(i)-Ctfrz) * veg%vcmax(i) * veg%frac4(i)
+      vcmxt4(i,1) = rad%scalex(i,1) * temp(i)
+      vcmxt4(i,2) = rad%scalex(i,2) * temp(i)
     
-            ! Leuning 2002 (P C & E) equation for temperature response
-            ! used for Jmax for C3 plants:
-            temp(i) = xejmxt3(tlfx(i)) * veg%ejmax(i) * (1.0-veg%frac4(i))
-            ejmxt3(i,1) = rad%scalex(i,1) * temp(i)
-            ejmxt3(i,2) = rad%scalex(i,2) * temp(i)
-            
-            ! Difference between leaf temperature and reference temperature:
-            tdiff(i) = tlfx(i) - CTREFK
-            
-            ! Michaelis menten constant of Rubisco for CO2:
+      ! Leuning 2002 (P C & E) equation for temperature response
+      ! used for Jmax for C3 plants:
+      temp(i) = xejmxt3(tlfx(i)) * veg%ejmax(i) * (1.0-veg%frac4(i))
+      ejmxt3(i,1) = rad%scalex(i,1) * temp(i)
+      ejmxt3(i,2) = rad%scalex(i,2) * temp(i)
+      
+      ! Difference between leaf temperature and reference temperature:
+      tdiff(i) = tlfx(i) - CTREFK
+      
+      ! Michaelis menten constant of Rubisco for CO2:
             conkct(i) = Cconkc0 * EXP( (Cekc / ( Crgas*Ctrefk) ) *         &
                         ( 1.0 - Ctrefk/tlfx(i) ) )
 
