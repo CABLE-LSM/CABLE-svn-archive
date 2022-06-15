@@ -246,15 +246,15 @@ DO WHILE (k < CMAXITER)
   k = k + 1
   DO i=1,mp
          
-		!IF vegetated dryleaf per patch - within iteration loop    
-  	IF (canopy%vlaiw(i) > CLAI_THRESH .AND. abs_deltlf(i) > 0.1) THEN
-  	       
-  	  ghwet(i) = 2.0   * sum_gbh(i)
-  	  gwwet(i) = 1.075 * sum_gbh(i)
-  	  ghrwet(i) = sum_rad_gradis(i) + ghwet(i)
+    !IF vegetated dryleaf per patch - within iteration loop    
+    IF (canopy%vlaiw(i) > CLAI_THRESH .AND. abs_deltlf(i) > 0.1) THEN
+           
+      ghwet(i) = 2.0   * sum_gbh(i)
+      gwwet(i) = 1.075 * sum_gbh(i)
+      ghrwet(i) = sum_rad_gradis(i) + ghwet(i)
        
-			IF( cable_runtime%esm15_dryLeaf ) THEN
-				! Calculate fraction of canopy which is wet:
+      IF( cable_runtime%esm15_dryLeaf ) THEN
+        ! Calculate fraction of canopy which is wet:
         canopy%fwet(i) = MAX( 0.0, MIN( 1.0, 0.8 * canopy%cansto(i)/ MAX(  &
                               cansat(i),0.01 ) ) )
       ENDIF
@@ -303,13 +303,21 @@ DO WHILE (k < CMAXITER)
       tdiff(i) = tlfx(i) - CTREFK
       
       ! Michaelis menten constant of Rubisco for CO2:
+      IF( cable_runtime%esm15_dryLeaf ) THEN
             conkct(i) = Cconkc0 * EXP( (Cekc / ( Crgas*Ctrefk) ) *         &
                         ( 1.0 - Ctrefk/tlfx(i) ) )
 
             ! Michaelis menten constant of Rubisco for oxygen:
             conkot(i) = Cconko0 * EXP( ( Ceko / (Crgas*Ctrefk) ) *         &
                         ( 1.0 - Ctrefk/tlfx(i) ) )
+      ELSE
+        conkct(i) = veg%conkc0(i) * EXP( ( veg%ekc(i) / (Crgas*Ctrefk) ) &
+                  * ( 1.0 - Ctrefk/tlfx(i) ) )
    
+        ! Michaelis menten constant of Rubisco for oxygen:
+        conkot(i) = veg%conko0(i) * EXP( ( veg%eko(i) / (Crgas*Ctrefk) ) &
+                  * ( 1.0 - Ctrefk/tlfx(i) ) )
+      ENDIF   
             ! Store leaf temperature
             tlfxx(i) = tlfx(i)
    
@@ -330,8 +338,13 @@ DO WHILE (k < CMAXITER)
              vx4(i,1)  = ej4x(temp2(i,1),veg%alpha(i),veg%convex(i),vcmxt4(i,1))
              vx4(i,2)  = ej4x(temp2(i,2),veg%alpha(i),veg%convex(i),vcmxt4(i,2))
     
+      IF( cable_runtime%esm15_dryLeaf ) THEN
             rdx(i,1) = (Ccfrd3*vcmxt3(i,1) + Ccfrd4*vcmxt4(i,1))
             rdx(i,2) = (Ccfrd3*vcmxt3(i,2) + Ccfrd4*vcmxt4(i,2))
+      ELSE
+        rdx(i,2) = (veg%cfrd(i)*vcmxt3(i,2) + veg%cfrd(i)*vcmxt4(i,2))
+        rdx(i,2) = (veg%cfrd(i)*vcmxt3(i,2) + veg%cfrd(i)*vcmxt4(i,2))
+      ENDIF
             
             xleuning(i,1) = ( fwsoil(i) / ( csx(i,1) - co2cp3 ) )              &
                           * ( ( 1.0 - veg%frac4(i) ) * CA1C3 / ( 1.0 + dsx(i) &
@@ -493,9 +506,10 @@ DO WHILE (k < CMAXITER)
 
    END DO  ! DO WHILE (ANY(abs_deltlf > 0.1) .AND.  k < CMAXITER)
 
+! dry canopy flux
+canopy%fevc = (1.0-canopy%fwet) * ecy
 
-   ! dry canopy flux
-   canopy%fevc = (1.0-canopy%fwet) * ecy
+IF (cable_user%fwsoil_switch.NE.'Haverd2013') THEN
 
    ! Recalculate ssnow%evapfbl as ecy may not be updated with the ecx
    ! calculated in the last iteration.
@@ -523,7 +537,7 @@ DO WHILE (k < CMAXITER)
                PRINT *, 'oldevapfbl = ', oldevapfbl(i,:)
                PRINT *, 'ssnow%evapfbl before rescaling: ',                    &
                                                            ssnow%evapfbl(i,:)
-               STOP
+           ! STOP
             
             ELSE
             
@@ -537,18 +551,21 @@ DO WHILE (k < CMAXITER)
    
    END DO
 
-   canopy%frday = 12.0 * SUM(rdy, 2)
+ENDIF
+
+canopy%frday = 12.0 * SUM(rdy, 2)
+
    canopy%fpn = -12.0 * SUM(an_y, 2)
    canopy%evapfbl = ssnow%evapfbl
    
-   DEALLOCATE( gswmin )
 
 
 
 
 
+DEALLOCATE( gswmin )
 
-  END SUBROUTINE dryLeaf
+END SUBROUTINE dryLeaf
  
  
    SUBROUTINE getrex_1d(theta, rex, fws, Fs, thetaS, thetaw, Etrans, gamma, dx, dt, zr)
