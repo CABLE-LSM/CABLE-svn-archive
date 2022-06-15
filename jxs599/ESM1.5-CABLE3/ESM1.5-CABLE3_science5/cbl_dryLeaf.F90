@@ -318,47 +318,89 @@ DO WHILE (k < CMAXITER)
         conkot(i) = veg%conko0(i) * EXP( ( veg%eko(i) / (Crgas*Ctrefk) ) &
                   * ( 1.0 - Ctrefk/tlfx(i) ) )
       ENDIF   
-            ! Store leaf temperature
-            tlfxx(i) = tlfx(i)
+      ! Store leaf temperature
+      ! Store leaf temperature
+      tlfxx(i) = tlfx(i)
    
-            ! "d_{3}" in Wang and Leuning, 1998, appendix E:
-            cx1(i) = conkct(i) * (1.0+0.21/conkot(i))
-            cx2(i) = 2.0 * Cgam0 * ( 1.0 + Cgam1 * tdiff(i) +                    &
-                     Cgam2 * tdiff(i) * tdiff(i ))
+      ! "d_{3}" in Wang and Leuning, 1998, appendix E:
+      cx1(i) = conkct(i) * (1.0+0.21/conkot(i))
+      cx2(i) = 2.0 * Cgam0 * ( 1.0 + Cgam1 * tdiff(i) +                    &
+               Cgam2 * tdiff(i) * tdiff(i ))
     
-            ! All equations below in appendix E in Wang and Leuning 1998 are
-            ! for calculating anx, csx and gswx for Rubisco limited,
-            ! RuBP limited, sink limited
-            temp2(i,1) = rad%qcan(i,1,1) * jtomol * (1.0-veg%frac4(i))
-            temp2(i,2) = rad%qcan(i,2,1) * jtomol * (1.0-veg%frac4(i))
-             vx3(i,1)  = ej3x(temp2(i,1),veg%alpha(i),veg%convex(i),ejmxt3(i,1))
-             vx3(i,2)  = ej3x(temp2(i,2),veg%alpha(i),veg%convex(i),ejmxt3(i,2))
-            temp2(i,1) = rad%qcan(i,1,1) * jtomol * veg%frac4(i)
-            temp2(i,2) = rad%qcan(i,2,1) * jtomol * veg%frac4(i)
-             vx4(i,1)  = ej4x(temp2(i,1),veg%alpha(i),veg%convex(i),vcmxt4(i,1))
-             vx4(i,2)  = ej4x(temp2(i,2),veg%alpha(i),veg%convex(i),vcmxt4(i,2))
+      ! All equations below in appendix E in Wang and Leuning 1998 are
+      ! for calculating anx, csx and gswx for Rubisco limited,
+      ! RuBP limited, sink limited
+      temp2(i,1) = rad%qcan(i,1,1) * jtomol * (1.0-veg%frac4(i))
+      temp2(i,2) = rad%qcan(i,2,1) * jtomol * (1.0-veg%frac4(i))
+      vx3(i,1)  = ej3x(temp2(i,1),veg%alpha(i),veg%convex(i),ejmxt3(i,1))
+      vx3(i,2)  = ej3x(temp2(i,2),veg%alpha(i),veg%convex(i),ejmxt3(i,2))
+      temp2(i,1) = rad%qcan(i,1,1) * jtomol * veg%frac4(i)
+      temp2(i,2) = rad%qcan(i,2,1) * jtomol * veg%frac4(i)
+      vx4(i,1)  = ej4x(temp2(i,1),veg%alpha(i),veg%convex(i),vcmxt4(i,1))
+      vx4(i,2)  = ej4x(temp2(i,2),veg%alpha(i),veg%convex(i),vcmxt4(i,2))
     
       IF( cable_runtime%esm15_dryLeaf ) THEN
-            rdx(i,1) = (Ccfrd3*vcmxt3(i,1) + Ccfrd4*vcmxt4(i,1))
-            rdx(i,2) = (Ccfrd3*vcmxt3(i,2) + Ccfrd4*vcmxt4(i,2))
+        rdx(i,1) = (Ccfrd3*vcmxt3(i,1) + Ccfrd4*vcmxt4(i,1))
+        rdx(i,2) = (Ccfrd3*vcmxt3(i,2) + Ccfrd4*vcmxt4(i,2))
       ELSE
         rdx(i,2) = (veg%cfrd(i)*vcmxt3(i,2) + veg%cfrd(i)*vcmxt4(i,2))
         rdx(i,2) = (veg%cfrd(i)*vcmxt3(i,2) + veg%cfrd(i)*vcmxt4(i,2))
       ENDIF
             
-            xleuning(i,1) = ( fwsoil(i) / ( csx(i,1) - co2cp3 ) )              &
-                          * ( ( 1.0 - veg%frac4(i) ) * CA1C3 / ( 1.0 + dsx(i) &
-                          / Cd0c3 ) + veg%frac4(i)    * CA1C4 / (1.0+dsx(i)/ &
-                          Cd0c4) )
-
-            xleuning(i,2) = ( fwsoil(i) / ( csx(i,2)-co2cp3 ) )                &
-                            * ( (1.0-veg%frac4(i) ) * CA1C3 / ( 1.0 + dsx(i) /&
-                            Cd0c3 ) + veg%frac4(i)    * CA1C4 / (1.0+ dsx(i)/&
-                            Cd0c4) )
-    
+   
          
          ENDIF
          
+      IF (cable_user%GS_SWITCH == 'leuning') THEN
+
+        IF( cable_runtime%esm15_dryLeaf ) THEN
+          xleuning(i,1) = ( fwsoil(i) / ( csx(i,1) - co2cp3 ) )              &
+                            * ( ( 1.0 - veg%frac4(i) ) * CA1C3 / ( 1.0 + dsx(i) &
+                            / Cd0c3 ) + veg%frac4(i)    * CA1C4 / (1.0+dsx(i)/ &
+                            Cd0c4) )
+
+          xleuning(i,2) = ( fwsoil(i) / ( csx(i,2)-co2cp3 ) )                &
+                              * ( (1.0-veg%frac4(i) ) * CA1C3 / ( 1.0 + dsx(i) /&
+                              Cd0c3 ) + veg%frac4(i)    * CA1C4 / (1.0+ dsx(i)/&
+                              Cd0c4) )
+        ELSE
+
+          gs_coeff(i,1) = ( fwsoil(i) / ( csx(i,1) - co2cp3 ) )              &
+                          * ( veg%a1gs(i) / ( 1.0 + dsx(i)/veg%d0gs(i)))
+      
+          gs_coeff(i,2) = ( fwsoil(i) / ( csx(i,2) - co2cp3 ) )              &
+                          * ( veg%a1gs(i) / ( 1.0 + dsx(i)/veg%d0gs(i)))
+        ENDIF
+ 
+      
+      ELSEIF(cable_user%GS_SWITCH == 'medlyn') THEN
+      
+        ! Medlyn BE et al (2011) Global Change Biology 17: 2134-2144.
+        gswmin = veg%g0(i)
+      
+        IF (dsx(i) < 50.0) THEN
+           vpd  = 0.05 ! kPa
+        ELSE
+           vpd = dsx(i) * 1E-03 ! Pa -> kPa
+        END IF
+      
+        g1 = veg%g1(i)
+      
+        gs_coeff(i,1) = (1.0 + (g1 * fwsoil(i)) / SQRT(vpd)) / csx(i,1)
+        gs_coeff(i,2) = (1.0 + (g1 * fwsoil(i)) / SQRT(vpd)) / csx(i,2)
+      
+        !INH 2018: enforce gs_coeff to vary proportionally to fwsoil in dry soil conditions
+        ! required to avoid transpiration without soil water extraction
+        medlyn_lim = 0.05
+        IF (fwsoil(i) <= medlyn_lim) THEN
+          gs_coeff(i,1) = (fwsoil(i) / medlyn_lim + (g1 * fwsoil(i)) / SQRT(vpd)) / csx(i,1)
+          gs_coeff(i,2) = (fwsoil(i) / medlyn_lim + (g1 * fwsoil(i)) / SQRT(vpd)) / csx(i,2)
+        END IF
+      
+      ELSE
+        STOP 'gs_model_switch failed.'
+      ENDIF ! IF (cable_user%GS_SWITCH == 'leuning') THEN
+   
       ENDDO !i=1,mp
    
       CALL photosynthesis( csx(:,:),                                           &
