@@ -346,10 +346,6 @@ DO WHILE (k < CMAXITER)
         rdx(i,2) = (veg%cfrd(i)*vcmxt3(i,2) + veg%cfrd(i)*vcmxt4(i,2))
         rdx(i,2) = (veg%cfrd(i)*vcmxt3(i,2) + veg%cfrd(i)*vcmxt4(i,2))
       ENDIF
-            
-   
-         
-         ENDIF
          
       IF (cable_user%GS_SWITCH == 'leuning') THEN
 
@@ -401,7 +397,9 @@ DO WHILE (k < CMAXITER)
         STOP 'gs_model_switch failed.'
       ENDIF ! IF (cable_user%GS_SWITCH == 'leuning') THEN
    
-      ENDDO !i=1,mp
+    ENDIF  !IF vegetated dryleaf per patch - within iteration loop    
+         
+  ENDDO !i=1,mp
    
       CALL photosynthesis( csx(:,:),                                           &
                            SPREAD( cx1(:), 2, mf ),                            &
