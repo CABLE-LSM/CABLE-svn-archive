@@ -7,7 +7,7 @@ MODULE cable_within_canopy_module
 
 CONTAINS
 
-SUBROUTINE within_canopy( mp, CRMH2o, Crmair, CTETENA, CTETENB, CTETENC, CLAI_thresh, &
+SUBROUTINE within_canopy( mp, CRMH2o, Crmair, CTETENA, CTETENB, CTETENC, CLAI_thresh, CGRAV, &
                            CCAPP, CTFRZ, rad,rough, air, met, veg, canopy, ssnow, gbhu, gbhf,    &
                            qstvair, rt0, rhlitt, relitt )
   
@@ -32,7 +32,7 @@ USE cbl_qsat_module, ONLY: qsatfjh, qsatfjh2
   REAL,  INTENT(INOUT)  :: qstvair(mp)        ! sat spec humidity at leaf temperature
   INTEGER, INTENT(IN) :: mp
   REAL, INTENT(IN) :: CRMH2o, Crmair, CTETENA, CTETENB, CTETENC
-  REAL, INTENT(IN) :: CLAI_thresh, CCAPP, CTFRZ
+  REAL, INTENT(IN) :: CLAI_thresh, CCAPP, CTFRZ, CGRAV
 
   REAL(r_2), INTENT(IN), DIMENSION(:,:) ::                                    &
        gbhu,    &  ! forcedConvectionBndryLayerCond
@@ -53,7 +53,7 @@ USE cbl_qsat_module, ONLY: qsatfjh, qsatfjh2
        dmbe,             & ! B_{E} in eq. 3.41 in SCAM, CSIRO tech report 132
        dmce                ! C_{E} in eq. 3.41 in SCAM, CSIRO tech report 132
 
-  REAL  :: lower_limit, upper_limit
+  REAL  :: lower_limit, upper_limit, incl_lapse
   REAL, DIMENSION(mp) :: fix_eqn,fix_eqn2
 
   INTEGER :: j
@@ -84,7 +84,7 @@ USE cbl_qsat_module, ONLY: qsatfjh, qsatfjh2
      fix_eqn2(:) = rt0(:)/(rt0(:)+rhlitt(:))
 
   END IF
-
+  
   DO j=1,mp
 
      IF(veg%meth(j) > 0 .AND. canopy%vlaiw(j) > CLAI_THRESH .AND.              &
@@ -102,8 +102,15 @@ USE cbl_qsat_module, ONLY: qsatfjh, qsatfjh2
         dmbh(j) = (-air%rlam(j)/CCAPP)*(rt0(j)*rough%rt1(j))*(rrbw(j)*rrsw(j))
 
         ! C_{H} in eq. 3.41, SCAM manual, CSIRO tech doc 132
-        dmch(j) = ((1.+air%epsi(j))*rrsw(j) + rrbw(j))*rt0(j)*rough%rt1(j)*   &
-             (canopy%fhv(j) + canopy%fhs(j))/(air%rho(j)*CCAPP)
+        ! #206 - add the lapse rate term onto C_H
+        IF (cable_user%use_pot_temp_in_H) THEN
+           dmch(j) = ((1.+air%epsi(j))*rrsw(j) + rrbw(j))*rt0(j)* ( rough%rt1(j)*   &
+                 (canopy%fhv(j) + canopy%fhs(j))/(air%rho(j)*CCAPP) +           &
+                        CGRAV*rough%zref_tq(j)/CCAPP )
+        ELSE
+           dmch(j) = ((1.+air%epsi(j))*rrsw(j) + rrbw(j)) *rt0(j)*rough%rt1(j)*   &
+                (canopy%fhv(j) + canopy%fhs(j))/(air%rho(j)*CCAPP)
+        END IF
 
         ! A_{E} in eq. 3.41, SCAM manual, CSIRO tech doc 132
         dmae(j) = (-air%epsi(j)*CCAPP/air%rlam(j))*(rt0(j)*rough%rt1(j)) *   &

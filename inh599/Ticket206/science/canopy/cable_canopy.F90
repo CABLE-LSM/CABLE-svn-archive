@@ -112,7 +112,9 @@ logical :: sunlit_veg_mask(mp)
          relitt,        & !
          alpm1,         & ! REV_CORR working variables for Or scheme
          beta2,         & ! beta_div_alpm1 = beta2/alpm1 (goes to zero without
-         beta_div_alpm    ! division when no canopy)
+         beta_div_alpm, & ! division when no canopy)
+         dummyT,        & ! #206 dummy temperatures for use in sensible heat
+         dummyT2          ! while preserving backwards compatibility.
 
     ! temporary buffers to simplify equations
     REAL, DIMENSION(mp) ::                                                      &
@@ -454,9 +456,16 @@ CALL wetLeaf( mp, CLAI_thresh, CCAPP, Crmair, dels, rad, rough, air,     &
        CALL qsatfjh(mp, ssnow%qstss, CRMH2o, Crmair, CTETENA, CTETENB, CTETENC,ssnow%tss-CTfrz,met%pmb)
 
       if (cable_user%gw_model .OR.  cable_user%or_evap) & 
-      write(6,*) "GW or ORevepis not an option right now"
+                 write(6,*) "GW or ORevepis not an option right now"
       !H!        call pore_space_relative_humidity(ssnow,soil,veg)
 
+      ! Referring to Raupach et al. 1997 (SCAM) - clarification on use of T,q in the next section
+      ! calculation of %fhs and %fes is a three step process -
+      !     1) use the reference level T and q (%tk and %qv) to estimate fluxes
+      !     2) use these fluex estimates to calculate within_canopy values (%tvair and %qvair)
+      !     3) use the within canopy values to update fluxes
+      ! this happens/resets on each (iter) iteration
+      
        IF (cable_user%soil_struc=='default') THEN
 
           !REV_CORR - single location for calculating litter resistances
@@ -468,22 +477,31 @@ CALL wetLeaf( mp, CLAI_thresh, CCAPP, Crmair, dels, rad, rough, air,     &
                   canopy%DvLitt
           ENDIF
 
-          !latent heat flux density of water (W/m2) - soil componenet of 
+          !latent heat flux density of water (W/m2) - soil component of 
           !potential evapotranspiration 
           IF(cable_user%ssnow_POTEV== "P-M") THEN
 
              !--- uses %ga from previous timestep
+             !--- #206 should be %tk and %qv here not %tvair and %qvair
+             !    using #206 working variables to change args in Penman_Monteith()
+             IF (cable_user%use_pot_temp_in_H) THEN
+                dummyT = met%tk
+                dummyT2 = met%qv
+             ELSE
+                dummyT = met%tvair
+                dummyT2 = met%qvair
+             END IF
+             
              ssnow%potev = Penman_Monteith( mp, Ctfrz, CRMH2o, Crmair, CTETENA, CTETENB,         &
                           CTETENC, REAL(veg%clitt), cable_user%litter,               &
                           air%dsatdk, air%psyc, air%rho, air%rlam,             &
-                          met%tvair, met%pmb, met%qvair,                       &
+                          dummyT, met%pmb, dummyT2,                       &
                           canopy%ga, canopy%fns, REAL(canopy%DvLitt),                &
                           ssnow%rtsoil, ssnow%isflag )
 
           ELSE !by default assumes Humidity Deficit Method
 
              ! Humidity deficit
-             ! INH: I think this should be - met%qvair
              dq = ssnow%qstss - met%qv
              dq_unsat = ssnow%rh_srf*ssnow%qstss - met%qv
              ssnow%potev = Humidity_deficit_method( mp, Ctfrz, REAL(veg%clitt),cable_user%or_evap,     &
@@ -500,7 +518,7 @@ CALL wetLeaf( mp, CLAI_thresh, CCAPP, Crmair, dels, rad, rough, air,     &
 
           ! Soil latent heat:
 
-      CALL Latent_heat_flux( mp, CTFRZ, dels, soil%zse(1), soil%swilt,           &
+          CALL Latent_heat_flux( mp, CTFRZ, dels, soil%zse(1), soil%swilt,           &
                              cable_user%l_new_reduce_soilevp, pwet, air%rlam,  &
                              ssnow%snowd, ssnow%wb(:,1), ssnow%wbice(:,1),             &
                              ssnow%pudsto, ssnow%pudsmx, ssnow%potev,          &
@@ -508,21 +526,36 @@ CALL wetLeaf( mp, CLAI_thresh, CCAPP, Crmair, dels, rad, rough, air,     &
                              ssnow%tss, canopy%fes, canopy%fess, canopy%fesp  )
 
           ! Calculate soil sensible heat:
-          ! INH: I think this should be - met%tvair
-          !canopy%fhs = air%rho*CCAPP*(ssnow%tss - met%tk) /ssnow%rtsoil
+          ! Ticket 206 (non-SLI) - use a dummyT when calculating %fhs
+          ! if use_pot_temp_in_H = F (old scheme) then dummyT = met%tk or met%tvair
+          ! if use_pot_temp_in_H = T then dummyT = met%tk+lapse rate term
+          IF (cable_user%use_pot_temp_in_H) THEN
+             !canopy
+             WHERE (canopy%vlaiw > CLAI_THRESH .AND. rough%hruff > rough%z0soilsn )
+                dummyT = met%tk + CGRAV*rough%disp/CCAPP
+                dummyT2 = met%tk + CGRAV*rough%disp/CCAPP
+             ELSEWHERE !bare soil
+                dummyT = met%tk + CGRAV*(rough%disp+rough%zref_tq)/CCAPP
+                dummyT2 = met%tk + CGRAV*(rough%disp+rough%zref_tq)/CCAPP
+             END WHERE
+          ELSE
+             dummyT = met%tk
+             dummyT2 = met%tvair
+          END IF
+                 
           IF (cable_user%gw_model .OR. cable_user%or_evap) THEN
-             canopy%fhs =  air%rho*CCAPP*(ssnow%tss - met%tk) / &
+             canopy%fhs =  air%rho*CCAPP*(ssnow%tss - dummyT) / &
                   (ssnow%rtsoil + ssnow%rt_qh_sublayer)
              !note if or_evap and litter are true then litter resistance is
-             !incluyded above in ssnow%rt_qh_sublayer
+             !included above in ssnow%rt_qh_sublayer
           ELSEIF (cable_user%litter) THEN
              !! vh_js !! account for additional litter resistance to sensible heat transfer
              !! INH simplifying code using rhlitt
-             canopy%fhs =  air%rho*CCAPP*(ssnow%tss - met%tk) / &
-                                !(ssnow%rtsoil + real((1-ssnow%isflag))*veg%clitt*0.003/canopy%kthLitt/(air%rho*CCAPP))
-                  (ssnow%rtsoil + rhlitt)
+             canopy%fhs =  air%rho*CCAPP*(ssnow%tss - dummyT) / &
+                                  (ssnow%rtsoil + rhlitt)
           ELSE
-             canopy%fhs = air%rho*CCAPP*(ssnow%tss - met%tvair) /ssnow%rtsoil
+             !#206 should be %tk here - but was %tvair in the trunk@8884
+             canopy%fhs = air%rho*CCAPP*(ssnow%tss - dummyT2) /ssnow%rtsoil
           ENDIF
 
        ELSE
@@ -530,12 +563,14 @@ CALL wetLeaf( mp, CLAI_thresh, CCAPP, Crmair, dels, rad, rough, air,     &
 write(6,*) "SLI is not an option right now"
           ! SLI SEB to get canopy%fhs, canopy%fess, canopy%ga
           ! (Based on old Tsoil, new canopy%tv, new canopy%fns)
+          ! Note: #206 has NOT been incoporated into SLI 
           !H!CALL sli_main(1,dels,veg,soil,ssnow,met,canopy,air,rad,1)
 
        ENDIF
 
-        
-       CALL within_canopy( mp, CRMH2o, Crmair, CTETENA, CTETENB, CTETENC, CLAI_thresh, &
+       !updates within canopy %tvair, %qvair in response to estimates of fluxes.
+       !#206 - within_canopy() inherits cable_user% through cable_common
+       CALL within_canopy( mp, CRMH2o, Crmair, CTETENA, CTETENB, CTETENC, CLAI_thresh, CGRAV,    &
                            CCAPP, CTFRZ, rad,rough, air, met, veg, canopy, ssnow, gbhu, gbhf,    &
                            qstvair, rt0, rhlitt, relitt )
 
@@ -546,6 +581,7 @@ write(6,*) "SLI is not an option right now"
           IF(cable_user%ssnow_POTEV== "P-M") THEN
 
              !--- uses %ga from previous timestep
+             !    uses %tvair and %qvair correctly
              ssnow%potev = Penman_Monteith( mp, Ctfrz, CRMH2o, Crmair, CTETENA, CTETENB,         &
                           CTETENC, REAL(veg%clitt), cable_user%litter,               &
                           air%dsatdk, air%psyc, air%rho, air%rlam,             &
@@ -556,7 +592,7 @@ write(6,*) "SLI is not an option right now"
 
           ELSE !by default assumes Humidity Deficit Method
 
-             ! Humidity deficit
+             ! Humidity deficit - uses %qvair correctly
              dq = ssnow%qstss - met%qvair
              dq_unsat = ssnow%rh_srf*ssnow%qstss - met%qvair
              ssnow%potev = Humidity_deficit_method( mp, Ctfrz, REAL(veg%clitt),cable_user%or_evap,     &
@@ -572,7 +608,7 @@ write(6,*) "SLI is not an option right now"
           ENDIF
 
           ! Soil latent heat:
-      CALL Latent_heat_flux( mp, CTFRZ, dels, soil%zse(1), soil%swilt,           &
+          CALL Latent_heat_flux( mp, CTFRZ, dels, soil%zse(1), soil%swilt,           &
                              cable_user%l_new_reduce_soilevp, pwet, air%rlam,  &
                              ssnow%snowd, ssnow%wb(:,1), ssnow%wbice(:,1),             &
                              ssnow%pudsto, ssnow%pudsmx, ssnow%potev,          &
@@ -581,19 +617,29 @@ write(6,*) "SLI is not an option right now"
 
 
           ! Soil sensible heat:
-          !canopy%fhs = air%rho*CCAPP*(ssnow%tss - met%tvair) /ssnow%rtsoil
+          ! #206 - add lapse rate term to %fhs 
+          IF (cable_user%use_pot_temp_in_H) THEN
+             !canopy
+             WHERE(canopy%vlaiw > CLAI_THRESH .AND. rough%hruff > rough%z0soilsn )
+                dummyT = met%tvair + CGRAV*rough%disp/CCAPP
+             ELSEWHERE !bare soil
+                dummyT = met%tvair + CGRAV*(rough%disp+rough%zref_tq)/CCAPP
+             END WHERE  
+          ELSE
+             dummyT = met%tvair
+          END IF
+          
           IF (cable_user%gw_model .OR. cable_user%or_evap) THEN
-             canopy%fhs =  air%rho*CCAPP*(ssnow%tss - met%tvair) / &
+             canopy%fhs =  air%rho*CCAPP*(ssnow%tss - dummyT) / &
                   (ssnow%rtsoil + REAL(ssnow%rt_qh_sublayer))
 
           ELSEIF (cable_user%litter) THEN
              !! vh_js !! account for additional litter resistance to sensible heat transfer
              !! INH simplifying code using rhlitt
-             canopy%fhs =  air%rho*CCAPP*(ssnow%tss - met%tvair) / &
-                                !(ssnow%rtsoil +  real((1-ssnow%isflag))*veg%clitt*0.003/canopy%kthLitt/(air%rho*CCAPP))
-                  (ssnow%rtsoil + rhlitt)
+             canopy%fhs =  air%rho*CCAPP*(ssnow%tss - dummyT) / &
+                                (ssnow%rtsoil + rhlitt)
           ELSE
-             canopy%fhs = air%rho*CCAPP*(ssnow%tss - met%tvair) /ssnow%rtsoil
+             canopy%fhs = air%rho*CCAPP*(ssnow%tss - dummyT) /ssnow%rtsoil
              
 
           ENDIF
@@ -606,6 +652,7 @@ write(6,*) "SLI is not an option right now"
 write(6,*) "SLI is not an option right now"
           ! SLI SEB to get canopy%fhs, canopy%fess, canopy%ga
           ! (Based on old Tsoil, new canopy%tv, new canopy%fns)
+          ! Note: #206 has NOT been incoporated into SLI          
           !H!CALL sli_main(1,dels,veg,soil,ssnow,met,canopy,air,rad,1)
 
        ENDIF

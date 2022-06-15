@@ -27,6 +27,9 @@ TYPE kbl_user_switches
   !ticket#179
   LOGICAL :: soil_thermal_fix = .FALSE.
 
+  !ticket#206
+  LOGICAL :: use_pot_temp_in_H = .FALSE.
+
   !jhan:options?
   CHARACTER(LEN=3) :: ssnow_potev=''
      
