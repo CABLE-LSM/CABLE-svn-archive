@@ -318,7 +318,7 @@ DO WHILE (k < CMAXITER)
         conkot(i) = veg%conko0(i) * EXP( ( veg%eko(i) / (Crgas*Ctrefk) ) &
                   * ( 1.0 - Ctrefk/tlfx(i) ) )
       ENDIF   
-      ! Store leaf temperature
+
       ! Store leaf temperature
       tlfxx(i) = tlfx(i)
    
@@ -342,24 +342,116 @@ DO WHILE (k < CMAXITER)
       IF( cable_runtime%esm15_dryLeaf ) THEN
         rdx(i,1) = (Ccfrd3*vcmxt3(i,1) + Ccfrd4*vcmxt4(i,1))
         rdx(i,2) = (Ccfrd3*vcmxt3(i,2) + Ccfrd4*vcmxt4(i,2))
-      ELSE
-        rdx(i,2) = (veg%cfrd(i)*vcmxt3(i,2) + veg%cfrd(i)*vcmxt4(i,2))
-        rdx(i,2) = (veg%cfrd(i)*vcmxt3(i,2) + veg%cfrd(i)*vcmxt4(i,2))
-      ENDIF
-         
-      IF (cable_user%GS_SWITCH == 'leuning') THEN
+        xleuning(i,1) = ( fwsoil(i) / ( csx(i,1) - co2cp3 ) )              &
+                          * ( ( 1.0 - veg%frac4(i) ) * CA1C3 / ( 1.0 + dsx(i) &
+                          / Cd0c3 ) + veg%frac4(i)    * CA1C4 / (1.0+dsx(i)/ &
+                          Cd0c4) )
 
-        IF( cable_runtime%esm15_dryLeaf ) THEN
-          xleuning(i,1) = ( fwsoil(i) / ( csx(i,1) - co2cp3 ) )              &
-                            * ( ( 1.0 - veg%frac4(i) ) * CA1C3 / ( 1.0 + dsx(i) &
-                            / Cd0c3 ) + veg%frac4(i)    * CA1C4 / (1.0+dsx(i)/ &
+        xleuning(i,2) = ( fwsoil(i) / ( csx(i,2)-co2cp3 ) )                &
+                            * ( (1.0-veg%frac4(i) ) * CA1C3 / ( 1.0 + dsx(i) /&
+                            Cd0c3 ) + veg%frac4(i)    * CA1C4 / (1.0+ dsx(i)/&
                             Cd0c4) )
+      
+      ELSE
+        
+        !Vanessa - the trunk does not contain xleauning as of Ticket#56 inclusion
+        !as well as other inconsistencies here that need further investigation. In the
+        !interests of getting this into the trunk ASAP just isolate this code for now
+        !default side of this condition is to use trunk version
 
-          xleuning(i,2) = ( fwsoil(i) / ( csx(i,2)-co2cp3 ) )                &
-                              * ( (1.0-veg%frac4(i) ) * CA1C3 / ( 1.0 + dsx(i) /&
-                              Cd0c3 ) + veg%frac4(i)    * CA1C4 / (1.0+ dsx(i)/&
-                              Cd0c4) )
-        ELSE
+        IF (cable_user%CALL_climate) THEN
+
+          ! Atkins et al. 2015, Table S4,
+          ! modified by saling factor to reduce leaf respiration to
+          ! expected proportion of GPP
+          !Broad-leaved trees: Rdark a25 =
+          !1.2818 + (0.0116 × Vcmax,a25) – (0.0334 × TWQ)
+          !C3 herbs/grasses: Rdark,a25 =
+          !1.6737 + (0.0116 × Vcmax,a25) – (0.0334 × TWQ)
+          !Needle-leaved trees: Rdark,a25 =
+          !1.2877 + (0.0116 × Vcmax,a25) – (0.0334 × TWQ)
+          !Shrubs: Rdark,a25 = 1.5758 + (0.0116 × Vcmax,a25) – (0.0334 × TWQ)
+
+          IF (veg%iveg(i).EQ.2 .OR. veg%iveg(i).EQ. 4  ) THEN ! broadleaf forest
+
+            rdx(i,1) = 0.60*(1.2818e-6+0.0116*veg%vcmax(i) - & 
+                       0.0334*climate%qtemp_max_last_year(i)*1e-6)
+            rdx(i,2) = rdx(i,1)
+
+          ELSEIF (veg%iveg(i).EQ.1 .OR. veg%iveg(i).EQ. 3  ) THEN ! needleleaf forest
+
+            rdx(i,1) = 1.0*(1.2877e-6+0.0116*veg%vcmax(i) - &
+                       0.0334*climate%qtemp_max_last_year(i)*1e-6)
+            rdx(i,2) = rdx(i,1)
+
+          ELSEIF ( veg%iveg(i).EQ.6 .OR. veg%iveg(i).EQ.8       .OR. &
+                   veg%iveg(i).EQ. 9  ) THEN ! C3 grass, tundra, crop
+ 
+             rdx(i,1) = 0.60*(1.6737e-6+0.0116*veg%vcmax(i)- &
+                        0.0334*climate%qtemp_max_last_year(i)*1e-6)
+             rdx(i,2) = rdx(i,1)
+
+          ELSE  ! shrubs and other (C4 grass and crop)
+
+             rdx(i,1) = 0.60*(1.5758e-6+0.0116*veg%vcmax(i)- &
+                  0.0334*climate%qtemp_max_last_year(i)*1e-6)
+             rdx(i,2) = rdx(i,1)
+
+          ENDIF
+
+          ! modify for leaf area and instanteous temperature response (Rd25 -> Rd)
+          rdx(i,1) = rdx(i,1) * xrdt(tlfx(i)) * rad%scalex(i,1)
+          rdx(i,2) = rdx(i,2) * xrdt(tlfx(i)) * rad%scalex(i,2)
+
+          ! reduction of daytime leaf dark-respiration to account for
+          !photo-inhibition
+          !Mercado, L. M., Huntingford, C., Gash, J. H. C., Cox, P. M.,
+          ! and Jogireddy, V.:
+          ! Improving the representation of radiation
+          !interception and photosynthesis for climate model applications,
+          !Tellus B, 59, 553-565, 2007.
+          ! Equation 3
+          ! (Brooks and Farquhar, 1985, as implemented by Lloyd et al., 1995).
+          ! Rc = Rd 0 < Io < 10 μmol quantam−2s−1
+          ! Rc = [0.5 − 0.05 ln(Io)] Rd Io > 10μmol quantam−2s−1
+
+          IF ( jtomol*1.0e6*rad%qcan(i,1,1).GT.10.0 ) THEN 
+            rdx(i,1) = rdx(i,1) * (0.5 - 0.05*LOG(jtomol*1.0e6*rad%qcan(i,1,1)))
+          ENDIF
+          IF ( jtomol*1.0e6*rad%qcan(i,1,2).GT.10.0 ) THEN
+            rdx(i,2) = rdx(i,2) * (0.5 - 0.05*LOG(jtomol*1.0e6*rad%qcan(i,1,2)))
+          ENDIF
+
+          !!$ xleuning(i,1) = ( fwsoil(i) / ( csx(i,1) - co2cp3 ) )              &
+          !!$      * ( veg%a1gs(i) / ( 1.0 + dsx(i)/veg%d0gs(i)))
+          !!$ xleuning(i,2) = ( fwsoil(i) / ( csx(i,2) - co2cp3 ) )              &
+          !!$      * ( veg%a1gs(i) / ( 1.0 + dsx(i)/veg%d0gs(i)))
+
+        ELSE !cable_user%call_climate
+
+          !!$!Vanessa:note there is no xleuning to go into photosynthesis etc anymore
+          !!$             gs_coeff = xleuning
+
+          rdx(i,1) = (veg%cfrd(i)*vcmxt3(i,1) + veg%cfrd(i)*vcmxt4(i,1))
+          rdx(i,2) = (veg%cfrd(i)*vcmxt3(i,2) + veg%cfrd(i)*vcmxt4(i,2))
+
+        ENDIF !cable_user%call_climate
+   
+      ENDIF ! IF( cable_runtime%esm15_dryLeaf ) THEN
+         
+      IF (  cable_user%GS_SWITCH == 'leuning') THEN
+
+        IF( .NOT. cable_runtime%esm15_dryLeaf ) THEN
+        !!  xleuning(i,1) = ( fwsoil(i) / ( csx(i,1) - co2cp3 ) )              &
+        !!                    * ( ( 1.0 - veg%frac4(i) ) * CA1C3 / ( 1.0 + dsx(i) &
+        !!                    / Cd0c3 ) + veg%frac4(i)    * CA1C4 / (1.0+dsx(i)/ &
+        !!                    Cd0c4) )
+
+        !!  xleuning(i,2) = ( fwsoil(i) / ( csx(i,2)-co2cp3 ) )                &
+        !!                      * ( (1.0-veg%frac4(i) ) * CA1C3 / ( 1.0 + dsx(i) /&
+        !!                      Cd0c3 ) + veg%frac4(i)    * CA1C4 / (1.0+ dsx(i)/&
+        !!                      Cd0c4) )
+        !!ELSE
 
           gs_coeff(i,1) = ( fwsoil(i) / ( csx(i,1) - co2cp3 ) )              &
                           * ( veg%a1gs(i) / ( 1.0 + dsx(i)/veg%d0gs(i)))
@@ -367,7 +459,6 @@ DO WHILE (k < CMAXITER)
           gs_coeff(i,2) = ( fwsoil(i) / ( csx(i,2) - co2cp3 ) )              &
                           * ( veg%a1gs(i) / ( 1.0 + dsx(i)/veg%d0gs(i)))
         ENDIF
- 
       
       ELSEIF(cable_user%GS_SWITCH == 'medlyn') THEN
       
@@ -401,14 +492,14 @@ DO WHILE (k < CMAXITER)
          
   ENDDO !i=1,mp
    
-      CALL photosynthesis( csx(:,:),                                           &
-                           SPREAD( cx1(:), 2, mf ),                            &
-                           SPREAD( cx2(:), 2, mf ),                            &
-                           gswmin(:,:), rdx(:,:), vcmxt3(:,:),                 &
-                           vcmxt4(:,:), vx3(:,:), vx4(:,:),                    &
-                           xleuning(:,:), rad%fvlai(:,:),                      &
-                           SPREAD( abs_deltlf, 2, mf ),                        &
-                           anx(:,:), fwsoil(:) )
+  CALL photosynthesis( csx(:,:),                                           &
+                       SPREAD( cx1(:), 2, mf ),                            &
+                       SPREAD( cx2(:), 2, mf ),                            &
+                       gswmin(:,:), rdx(:,:), vcmxt3(:,:),                 &
+                       vcmxt4(:,:), vx3(:,:), vx4(:,:),                    &
+                       xleuning(:,:), rad%fvlai(:,:),                      &
+                       SPREAD( abs_deltlf, 2, mf ),                        &
+                       anx(:,:), fwsoil(:) )
 
       DO i=1,mp
          
