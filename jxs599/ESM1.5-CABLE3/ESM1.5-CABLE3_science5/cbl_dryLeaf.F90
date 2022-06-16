@@ -324,8 +324,8 @@ DO WHILE (k < CMAXITER)
    
       ! "d_{3}" in Wang and Leuning, 1998, appendix E:
       cx1(i) = conkct(i) * (1.0+0.21/conkot(i))
-      cx2(i) = 2.0 * Cgam0 * ( 1.0 + Cgam1 * tdiff(i) +                    &
-               Cgam2 * tdiff(i) * tdiff(i ))
+             cx2(i) = 2.0 * Cgam0 * ( 1.0 + Cgam1 * tdiff(i)                  &
+                  + Cgam2 * tdiff(i) * tdiff(i) )
     
       ! All equations below in appendix E in Wang and Leuning 1998 are
       ! for calculating anx, csx and gswx for Rubisco limited,
@@ -422,10 +422,6 @@ DO WHILE (k < CMAXITER)
             rdx(i,2) = rdx(i,2) * (0.5 - 0.05*LOG(jtomol*1.0e6*rad%qcan(i,1,2)))
           ENDIF
 
-          !!$ xleuning(i,1) = ( fwsoil(i) / ( csx(i,1) - co2cp3 ) )              &
-          !!$      * ( veg%a1gs(i) / ( 1.0 + dsx(i)/veg%d0gs(i)))
-          !!$ xleuning(i,2) = ( fwsoil(i) / ( csx(i,2) - co2cp3 ) )              &
-          !!$      * ( veg%a1gs(i) / ( 1.0 + dsx(i)/veg%d0gs(i)))
 
         ELSE !cable_user%call_climate
 
@@ -439,26 +435,18 @@ DO WHILE (k < CMAXITER)
    
       ENDIF ! IF( cable_runtime%esm15_dryLeaf ) THEN
          
+      ! Ticket #56 added switch for Belinda Medlyn's model
       IF (  cable_user%GS_SWITCH == 'leuning') THEN
 
         IF( .NOT. cable_runtime%esm15_dryLeaf ) THEN
-        !!  xleuning(i,1) = ( fwsoil(i) / ( csx(i,1) - co2cp3 ) )              &
-        !!                    * ( ( 1.0 - veg%frac4(i) ) * CA1C3 / ( 1.0 + dsx(i) &
-        !!                    / Cd0c3 ) + veg%frac4(i)    * CA1C4 / (1.0+dsx(i)/ &
-        !!                    Cd0c4) )
-
-        !!  xleuning(i,2) = ( fwsoil(i) / ( csx(i,2)-co2cp3 ) )                &
-        !!                      * ( (1.0-veg%frac4(i) ) * CA1C3 / ( 1.0 + dsx(i) /&
-        !!                      Cd0c3 ) + veg%frac4(i)    * CA1C4 / (1.0+ dsx(i)/&
-        !!                      Cd0c4) )
-        !!ELSE
 
           gs_coeff(i,1) = ( fwsoil(i) / ( csx(i,1) - co2cp3 ) )              &
                           * ( veg%a1gs(i) / ( 1.0 + dsx(i)/veg%d0gs(i)))
       
           gs_coeff(i,2) = ( fwsoil(i) / ( csx(i,2) - co2cp3 ) )              &
                           * ( veg%a1gs(i) / ( 1.0 + dsx(i)/veg%d0gs(i)))
-        ENDIF
+        
+        ENDIF ! IF( .NOT. cable_runtime%esm15_dryLeaf ) THEN
       
       ELSEIF(cable_user%GS_SWITCH == 'medlyn') THEN
       
@@ -497,13 +485,16 @@ DO WHILE (k < CMAXITER)
                        SPREAD( cx2(:), 2, mf ),                            &
                        gswmin(:,:), rdx(:,:), vcmxt3(:,:),                 &
                        vcmxt4(:,:), vx3(:,:), vx4(:,:),                    &
+                       ! Ticket #56, xleuning replaced with gs_coeff here
+                       ! gs_coeff(:,:), rad%fvlai(:,:),                     &
                        xleuning(:,:), rad%fvlai(:,:),                      &
                        SPREAD( abs_deltlf, 2, mf ),                        &
                        anx(:,:), fwsoil(:) )
 
       DO i=1,mp
          
-         IF (canopy%vlaiw(i) > CLAI_THRESH .AND. abs_deltlf(i) > 0.1) Then
+
+          IF (canopy%vlaiw(i) > CLAI_THRESH .AND. abs_deltlf(i) > 0.1 ) THEN
       
             DO kk=1,mf
                
@@ -513,6 +504,8 @@ DO WHILE (k < CMAXITER)
                               gbhu(i,kk) + gbhf(i,kk) )
                   csx(i,kk) = MAX( 1.0e-4, csx(i,kk) )
 
+
+                  ! Ticket #56, xleuning replaced with gs_coeff here
                   canopy%gswx(i,kk) = MAX( 1.e-3, gswmin(i,kk)*fwsoil(i) +     &
                                       MAX( 0.0, CRGSWC * xleuning(i,kk) *     &
                                       anx(i,kk) ) )
@@ -540,6 +533,30 @@ DO WHILE (k < CMAXITER)
                      met%dva(i) * ghr(i,2) ) /                                 &
                      ( air%dsatdk(i) + psycst(i,2) ) 
 
+             IF (cable_user%fwsoil_switch=='Haverd2013') THEN
+                ! avoid root-water extraction when fwsoil is zero
+                IF (fwsoil(i).LT.1e-6) THEN
+                   anx(i,:) =  - rdx(i,:)
+                   ecx(i) = 0.0
+                ENDIF
+
+                canopy%fevc(i) = ecx(i)*(1.0-canopy%fwet(i))
+
+                CALL getrex_1d(ssnow%wbliq(i,:),&
+                     ssnow%rex(i,:), &
+                     canopy%fwsoil(i), &
+                     REAL(veg%froot(i,:),r_2),&
+                     soil%ssat_vec(i,:), &
+                     soil%swilt_vec(i,:), &
+                     MAX(REAL(canopy%fevc(i)/air%rlam(i)/1000_r_2,r_2),0.0_r_2), &
+                     REAL(veg%gamma(i),r_2), &
+                     REAL(soil%zse,r_2), REAL(dels,r_2), REAL(veg%zr(i),r_2))
+
+                fwsoil(i) = canopy%fwsoil(i)
+                ssnow%evapfbl(i,:) = ssnow%rex(i,:)*dels*1000_r_2 ! mm water &
+                !(root water extraction) per time step
+
+             ELSE
 
             IF (ecx(i) > 0.0 .AND. canopy%fwet(i) < 1.0) Then
                evapfb(i) = ( 1.0 - canopy%fwet(i)) * REAL( ecx(i) ) *dels      &
@@ -560,6 +577,7 @@ DO WHILE (k < CMAXITER)
 
             ENDIF
 
+             ENDIF
             ! Update canopy sensible heat flux:
             hcx(i) = (SUM(rad%rniso(i,:))-ecx(i)                               &
                - Ccapp*Crmair*(met%tvair(i)-met%tk(i))                       &
@@ -602,12 +620,7 @@ DO WHILE (k < CMAXITER)
             an_y(i,2) = anx(i,2)
             
             ! save last values calculated for ssnow%evapfbl
-            oldevapfbl(i,1) = ssnow%evapfbl(i,1)
-            oldevapfbl(i,2) = ssnow%evapfbl(i,2)
-            oldevapfbl(i,3) = ssnow%evapfbl(i,3)
-            oldevapfbl(i,4) = ssnow%evapfbl(i,4)
-            oldevapfbl(i,5) = ssnow%evapfbl(i,5)
-            oldevapfbl(i,6) = ssnow%evapfbl(i,6)
+             oldevapfbl(i,:) = ssnow%evapfbl(i,:)
 
          ENDIF
           
