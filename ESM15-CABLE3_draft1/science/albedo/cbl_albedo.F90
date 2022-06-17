@@ -1,9 +1,9 @@
 MODULE cbl_albedo_mod
 
-  IMPLICIT NONE
-
+   IMPLICIT NONE
+   
   PUBLIC albedo
-  PRIVATE
+   PRIVATE
 
 CONTAINS
 
@@ -22,10 +22,11 @@ EffExtCoeff_dif, EffExtCoeff_beam,                &
 CanopyRefl_dif,CanopyRefl_beam,                   &
 CanopyTransmit_dif, CanopyTransmit_beam,          &
 EffSurfRefl_dif, EffSurfRefl_beam                 )
-
+   
+USE cable_common_module, ONLY: cable_runtime   
 !subrs called
 USE cbl_snow_albedo_module, ONLY : surface_albedosn
-
+   
 implicit none
 
 !model dimensions
@@ -96,9 +97,9 @@ REAL :: CanopyTransmit_beam(mp,nrb) !Canopy Transmitance (rad%cexpkbm)
 
 real :: SumEffSurfRefl_beam(1)
 real :: SumEffSurfRefl_dif(1)
-integer :: i
+integer :: b
 
-    ! END header
+! END header
 
 AlbSnow(:,:) = 0.0
 !CanopyTransmit_beam(:,:) = 0.0
@@ -114,8 +115,17 @@ CanopyRefl_dif(:,:) = 0.0
 call surface_albedosn( AlbSnow, AlbSoil, mp, nrb, surface_type, soil_type, &
                        SnowDepth, SnowDensity, SoilTemp, SnowAge, Coszen )
 
-! Update fractional leaf transmittance and reflection
-!---1 = visible, 2 = nir radiaition
+! Update fractional transmittance for leaf transmittance and reflection 
+
+IF( cable_runtime%esm15_albedo) THEN
+
+   DO b = 1, 2        
+      WHERE (sunlit_veg_mask)                
+         EffExtCoeff_beam(:,b) = ExtCoeff_beam * c1(:,b)
+      END WHERE
+   END DO
+
+ENDIF
 
 ! Define canopy Reflectance for diffuse/direct radiation
 ! Formerly rad%rhocbm, rad%rhocdf
@@ -153,7 +163,7 @@ if(.NOT. jls_radiation) &
   call FbeamRadAlbedo( RadAlbedo, mp, nrb, veg_mask, radfbeam, &
                        EffSurfRefl_dif, EffSurfRefl_beam, AlbSnow )
  
-END SUBROUTINE albedo
+END SUBROUTINE Albedo 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -217,7 +227,7 @@ End subroutine CanopyReflectance_beam
 
 subroutine CanopyReflectance_dif( CanopyRefl_dif, mp, nrb, CGauss_w,  &
                                   ExtCoeff_dif, xk, rhoch )
-
+USE cable_common_module, ONLY: cable_runtime   
 implicit none
 INTEGER :: mp
 integer :: nrb
@@ -228,11 +238,18 @@ REAL :: xk(mp,nrb)      ! extinct. coef.for beam rad. and black leaves
 REAL :: rhoch(mp,nrb)      
 !local vars
 INTEGER :: ictr
+REAL :: factor
+
+IF( cable_runtime%esm15_albedo) THEN
+  factor = 1.0
+ELSE
+  factor = 2.0
+ENDIF
 
 ! Canopy REFLection of diffuse radiation for black leaves:
 DO ictr=1,2
 
-  CanopyRefl_dif(:,ictr) = rhoch(:,ictr) *  2. *                                &
+  CanopyRefl_dif(:,ictr) = rhoch(:,ictr) *  factor *                                &
                        ( CGAUSS_W(1) * xk(:,1) / ( xk(:,1) + ExtCoeff_dif(:) )&
                        + CGAUSS_W(2) * xk(:,2) / ( xk(:,2) + ExtCoeff_dif(:) )&
                        + CGAUSS_W(3) * xk(:,3) / ( xk(:,3) + ExtCoeff_dif(:) ) )
@@ -298,6 +315,7 @@ End subroutine  CanopyTransmitance_dif
 
 
 subroutine CanopyTransmitance_beam(CanopyTransmit, mp, nrb, ExtinctionCoeff, reducedLAIdue2snow, mask )
+USE cable_common_module, ONLY: cable_runtime   
 implicit none
 integer :: mp 
 integer :: nrb
@@ -311,7 +329,13 @@ integer :: i, b
 DO i = 1,mp
   DO b = 1, 2 
     if( mask(i) ) then 
-      dummy(i,b) = min( ExtinctionCoeff(i,b) * reducedLAIdue2snow(i), 20. )
+      
+      IF( cable_runtime%esm15_albedo) THEN
+        dummy(i,b) = ExtinctionCoeff(i,b) * reducedLAIdue2snow(i)
+      ELSE
+        dummy(i,b) = min( ExtinctionCoeff(i,b) * reducedLAIdue2snow(i), 20. )
+      ENDIF
+    
       CanopyTransmit(i,b) = EXP( -1.* dummy(i,b) )
     endif
   enddo

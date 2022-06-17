@@ -10,6 +10,7 @@ CONTAINS
   SUBROUTINE surface_albedosn( AlbSnow, AlbSoil, mp, nrb, surface_type, soil_type, &
                             SnowDepth, SnowDensity, SoilTemp, SnowAge, coszen )
 
+    USE cable_common_module, ONLY: cable_runtime   
     IMPLICIT NONE
 
     !re-decl input args
@@ -33,12 +34,15 @@ CONTAINS
          fzenm,   &  ! zenith factor
          sfact,   &  ! soil factor
          snrat,   &  ! (1-) fraction of soil 'seen' when evaluating surface albedo
-         tmp,     &  ! temporary value
-         SoilAlbsoilF
+         tmp         ! temporary value
 
     REAL, PARAMETER ::                                                             &
          alvo  = 0.95,  &  ! albedo for vis. on a new snow
          aliro = 0.70      ! albedo for near-infr. on a new snow
+
+    ! local vars    
+    REAL :: SoilAlbsoilf(mp) 
+    REAL :: Albsoilf_min(mp) 
 
     !hard wired indexes to be substituted with arg list or USEd from module
     INTEGER, PARAMETER :: perm_ice = 9
@@ -51,9 +55,15 @@ CONTAINS
     !initialise to the no-snow value for albedo for all land points
     SoilAlbsoilF = Albsoil(:,1)
 
+    IF( cable_runtime%esm15_albedo ) THEN
+    !   Albsoilf_min = MetTk  !met%tk is no longer available -see #329 
+    ELSE  
+       Albsoilf_min = SoilTemp
+    ENDIF
+
     ! lakes - with/without snow cover
     WHERE( surface_type == lake )                                                     
-       SoilAlbsoilF = -0.022*( MIN( 275.0, MAX( 260.0, SoilTemp) ) - 260.0 ) + 0.45
+      SoilAlbsoilf = -0.022*( MIN( 275., MAX( 260., Albsoilf_min ) ) - 260. ) + 0.45
     END WHERE
     WHERE(SnowDepth > snow_depth_thresh .and. surface_type == lake )
        SoilAlbsoilF = 0.85
@@ -117,10 +127,18 @@ CONTAINS
                           ( 1.0 - snrat ) * AlbSnow(:,1) + snrat * alv )
 
     !except for ice regions
-    WHERE (soil_type == perm_ice) ! use dry snow albedo: 1=vis, 2=nir
-       AlbSnow(:,1) = alvo - 0.05 ! al*o = albedo appropriate for new snow 
-       AlbSnow(:,2) = aliro - 0.05 ! => here al*o LESS arbitrary aging 0.05
-    END WHERE
+    IF( cable_runtime%esm15_albedo ) THEN
+      WHERE (soil_type == perm_ice) ! use dry snow albedo: 1=vis, 2=nir
+        AlbSnow(:,1) = 0.82
+        AlbSnow(:,2) = 0.82
+      ENDWHERE
+    ELSE  
+        WHERE (soil_type == perm_ice) ! use dry snow albedo: 1=vis, 2=nir
+        AlbSnow(:,1) = alvo - 0.05 ! al*o = albedo appropriate for new snow 
+        AlbSnow(:,2) = aliro - 0.05 ! => here al*o LESS arbitrary aging 0.05
+      ENDWHERE
+    ENDIF
+
 
     RETURN
 
