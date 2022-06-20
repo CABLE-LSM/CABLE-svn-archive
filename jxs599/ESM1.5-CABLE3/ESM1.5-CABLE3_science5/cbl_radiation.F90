@@ -63,8 +63,10 @@ real :: Ccapp
       flpwb, &    ! black-body long-wave radiation
       flwv        ! vegetation long-wave radiation (isothermal)
       
-   REAL(r_2), DIMENSION(mp) ::                                                 &
+   REAL, DIMENSION(mp) ::                                                 &
       dummy, dummy2
+   !e!REAL(r_2), DIMENSION(mp) ::                                                 &
+   !e!   dummy, dummy2
    
 REAL :: VegTemp(mp)   
 REAL :: CanopyExtincion_beam(mp)
