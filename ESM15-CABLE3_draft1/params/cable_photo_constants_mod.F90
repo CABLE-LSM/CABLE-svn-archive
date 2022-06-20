@@ -40,5 +40,23 @@ module cable_photo_constants_mod
       real :: toptv  = 20.0
       real :: trefk= 298.2  !reference temperature K
 
+!ESM15 uses - replaced formulation in trunk
+      real :: gsw03  = 0.01
+      real :: gsw04  = 0.04
+      real :: conkc0 = 302.e-6  !mol mol^-1
+      real :: conko0 = 256.e-3  !mol mol^-1
+      real :: ekc = 59430.0  !J mol^-1
+      real :: eko = 36000.0  !J mol^-1
+      real :: d0c3 = 1500.0
+      real :: d0c4 = 1500.0
+      real :: a1c3 = 9.0
+      real :: a1c4 = 4.0
+      real :: cfrd3  = 0.010
+      real :: cfrd4  = 0.025
+      
+      real :: alpha3 = 0.200
+      real :: alpha4  = 0.05
+      real :: convx3 = 1.0E-2
+      real :: convx4 = 0.8
 End module cable_photo_constants_mod
 
