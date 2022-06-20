@@ -12,10 +12,10 @@ PUBLIC
 ! This file belongs in 
 !-----------------------------------------------------------------------------
 
-  REAL, PARAMETER :: tfrz   = 273.16     ! Temp (K) corresp. to 0 C
+  REAL, PARAMETER :: tfrz   = 273.16        ! Temp (K) corresp. to 0 C
   REAL, PARAMETER :: sboltz = 5.67e-8       ! Stefan-Boltz. const (W/m2/K4)
-  REAL, PARAMETER :: emsoil = 1.0        ! soil emissivity
-  REAL, PARAMETER :: emleaf = 1.0        ! leaf emissivity
+  REAL, PARAMETER :: emsoil = 1.0           ! soil emissivity
+  REAL, PARAMETER :: emleaf = 1.0           ! leaf emissivity
   REAL, PARAMETER :: capp   = 1004.64    ! air spec. heat (J/kg/K)
   REAL, PARAMETER :: hl = 2.5014e6       ! latent heat of vaporization (J/s/m2)
   !Below are constants used in CABLE model which are not as yet used in JAC-6.2
@@ -34,7 +34,7 @@ PUBLIC
   REAL, PARAMETER :: density_liq = 1000.0   ! density of liquid water
   REAL, PARAMETER :: density_ice = 921.0    ! denisty of ice
 
-      ! Teten coefficients
+  ! Teten coefficients
   REAL, PARAMETER :: tetena = 6.106         ! Magnus Tetans (Murray 1967)
   REAL, PARAMETER :: tetenb = 17.27
   REAL, PARAMETER :: tetenc = 237.3
@@ -43,7 +43,7 @@ PUBLIC
   REAL, PARAMETER :: tetenb_ice = 21.875
   REAL, PARAMETER :: tetenc_ice = 265.5
 
-      ! Aerodynamic parameters, diffusivities, water density:
+  ! Aerodynamic parameters, diffusivities, water density:
   REAL, PARAMETER :: vonk   = 0.40          ! von Karman constant
   REAL, PARAMETER :: a33    = 1.25          ! inertial sublayer sw/us
   REAL, PARAMETER :: csw    = 0.50          ! canopy sw decay (Weil theory)
@@ -56,19 +56,20 @@ PUBLIC
   REAL, PARAMETER :: crd = 0.3              ! element drag coefficient
   REAL, PARAMETER :: csd = 0.003            ! substrate drag coefficient
 
-      !jhan:hardwire for now. note beta2 = crd/csd
+  !jhan:hardwire for now. note beta2 = crd/csd
   REAL, PARAMETER ::  beta2 = 0.3/0.003     ! ratio cr/cs
   REAL, PARAMETER ::  ccd   = 15.0          ! constant in d/h equation
   REAL, PARAMETER ::  ccw_c = 2.0           ! ccw=(zw-d)/(h-d)
   REAL, PARAMETER ::  usuhm = 0.3           ! (max of us/uh)
 
-      ! Turbulence parameters:
+  ! Turbulence parameters:
   REAL, PARAMETER :: zetmul = 0.4     ! if niter=2, final zeta=zetmul*zetar(2)
                                       ! niter=4 ATM see cable_define_types.F90
   REAL, PARAMETER :: zeta0  = 0.0     ! initial value of za/L
   REAL, PARAMETER :: zetneg = -15.0   ! negative limit on za/L when niter>=3
   REAL, PARAMETER :: zetpos = 1.0     ! positive limit on za/L when niter>=3
   REAL, PARAMETER :: zdlin  = 1.0     ! height frac of d below which TL linear
-  REAL, PARAMETER :: umin   = 0.01     ! guarantees convergence, was 0.01 
+  !trunk!REAL, PARAMETER :: umin   = 0.01     ! guarantees convergence, was 0.01 
+  REAL, PARAMETER :: umin   = 0.1     ! guarantees convergence, was 0.01 
 
 END MODULE cable_phys_constants_mod
