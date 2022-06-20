@@ -69,7 +69,7 @@ PUBLIC
   REAL, PARAMETER :: zetneg = -15.0   ! negative limit on za/L when niter>=3
   REAL, PARAMETER :: zetpos = 1.0     ! positive limit on za/L when niter>=3
   REAL, PARAMETER :: zdlin  = 1.0     ! height frac of d below which TL linear
-  !trunk!REAL, PARAMETER :: umin   = 0.01     ! guarantees convergence, was 0.01 
-  REAL, PARAMETER :: umin   = 0.1     ! guarantees convergence, was 0.01 
+  REAL, PARAMETER :: umin   = 0.01     ! min. wind speed
+  !trunk!REAL, PARAMETER :: umin   = 0.1     ! guarantees convergence, was 0.01 
 
 END MODULE cable_phys_constants_mod
