@@ -1,6 +1,5 @@
 MODULE cbl_soil_snow_main_module
 
-USE cbl_ssnow_data_mod
 
 IMPLICIT NONE
 
@@ -28,6 +27,7 @@ CONTAINS
   !        ssnow
   SUBROUTINE soil_snow(dels, soil, ssnow, canopy, met, bal, veg)
     USE cable_common_module
+USE cbl_ssnow_data_mod
 !called subrs
 USE hydraulic_redistribution_mod, ONLY: hydraulic_redistribution
 USE soilfreeze_mod,               ONLY: soilfreeze
@@ -51,14 +51,15 @@ USE snowdensity_mod,              ONLY: snowDensity
     REAL, DIMENSION(mp) :: snowmlt
     REAL, DIMENSION(mp) :: totwet
     REAL, DIMENSION(mp) :: weting
-    REAL, DIMENSION(mp) :: xx, tgg_old, tggsn_old
-    REAL(r_2), DIMENSION(mp) :: xxx,deltat,sinfil1,sinfil2,sinfil3
+   REAL(r_2), DIMENSION(mp) :: xxx
+   REAL, DIMENSION(mp) :: xx
+   REAL(r_2), DIMENSION(mp) :: sinfil1, sinfil2, sinfil3 
     REAL                :: zsetot
     INTEGER, SAVE :: ktau =0
 REAL :: wbliq(mp,ms)
 
     ktau = ktau +1
-
+  !this is the value it is initialized with in cable_common anyway 
   max_glacier_snowd = 1100.0 ! for ACCESS1.3 onwards. = 50000.0 for ACCESS1.0
 
     zsetot = SUM(soil%zse)
@@ -159,11 +160,15 @@ REAL :: wbliq(mp,ms)
 
     CALL surfbv(dels, met, ssnow, soil, veg, canopy )
 
-! correction required for energy balance in online simulations
-IF( cable_runtime%um ) THEN
+  ! correction required for energy balance in online simulations 
+  IF( cable_runtime%um ) THEN
+	   
   canopy%fhs_cor = ssnow%dtmlt(:,1)*ssnow%dfh_dtg
+    IF( cable_runtime%esm15 ) THEN
+      canopy%fes_cor = ssnow%dtmlt(:,1)*(ssnow%dfe_ddq * ssnow%ddq_dtg)
+    ELSE
   canopy%fes_cor = ssnow%dtmlt(:,1)*ssnow%dfe_dtg
-
+    ENDIF
   canopy%fhs = canopy%fhs+canopy%fhs_cor
   canopy%fes = canopy%fes+canopy%fes_cor
 
@@ -179,7 +184,8 @@ IF( cable_runtime%um ) THEN
 
     canopy%fess = canopy%fess + canopy%fes_cor
    ENDIF
-ENDIF
+  
+  ENDIF
 
     ! redistrb (set in cable.nml) by default==.FALSE.
     IF( redistrb )                                                              &
