@@ -30,47 +30,47 @@ IMPLICIT NONE
 
        IF(canopy%precis(i) > 0.0 .AND. ssnow%isflag(i) == 0) THEN
 
-          ! accumulate solid part
+      ! accumulate solid part
           ssnow%snowd(i) = MAX( ssnow%snowd(i) + met%precip_sn(i), 0.0 )
-
+      
           canopy%precis(i) = canopy%precis(i) - met%precip_sn(i)
-
+      
           ssnow%ssdn(i,1) = MAX( 120.0, ssnow%ssdn(i,1)                            &
                * ssnow%osnowd(i) / MAX( 0.01, ssnow%snowd(i) )              &
                + 120.0 * met%precip_sn(i) / MAX( 0.01, ssnow%snowd(i) ) )
-
+      
           ssnow%ssdnn(i) = ssnow%ssdn(i,1)
-
+      
           IF( canopy%precis(i) > 0.0 .AND. ssnow%tgg(i,1) < CTFRZ ) THEN
-
+         
              ssnow%snowd(i) = MAX(ssnow%snowd(i) + canopy%precis(i), 0.0)
-
+        
              ssnow%tgg(i,1) = ssnow%tgg(i,1) + canopy%precis(i) * CHLF               &
                   / ( REAL( ssnow%gammzz(i,1) ) + Ccswat *canopy%precis(i) )
-             ! change density due to water being added
+         ! change density due to water being added 
              ssnow%ssdn(i,1) = MIN( max_ssdn, MAX( 120.0, ssnow%ssdn(i,1)          &
                   * ssnow%osnowd(i) / MAX( 0.01, ssnow%snowd(i) ) + Cdensity_liq  &
                   * canopy%precis(i) / MAX( 0.01, ssnow%snowd(i) )  ) )
 
-             ! permanent ice: fix hard-wired number in next version
+         ! permanent ice: fix hard-wired number in next version
              IF( soil%isoilm(i) /= 9 )                                             &
                   ssnow%ssdn(i,1) = MIN( 450.0, ssnow%ssdn(i,1) )
 
              canopy%precis(i) = 0.0
              ssnow%ssdnn(i) = ssnow%ssdn(i,1)
-
+      
           END IF
-
+   
        END IF ! (canopy%precis > 0. .and. ssnow%isflag == 0)
 
        IF(canopy%precis(i) > 0.0 .AND.  ssnow%isflag(i) > 0) THEN
-
-          ! add solid precip
+      
+      ! add solid precip
           ssnow%snowd(i) = MAX( ssnow%snowd(i) + met%precip_sn(i), 0.0 )
 
           canopy%precis(i) = canopy%precis(i) - met%precip_sn(i)  ! remaining liquid precip
 
-          ! update top snow layer with fresh snow
+      ! update top snow layer with fresh snow
           osm(i) = ssnow%smass(i,1)
           ssnow%smass(i,1) = ssnow%smass(i,1) + met%precip_sn(i)
           ssnow%ssdn(i,1) = MAX( 120.0,ssnow%ssdn(i,1) * osm(i) / ssnow%smass(i,1)    &
@@ -78,9 +78,9 @@ IMPLICIT NONE
 
           ssnow%sdepth(i,1) = MAX( 0.02, ssnow%smass(i,1) / ssnow%ssdn(i,1) )
 
-          ! add liquid precip
+      ! add liquid precip
           IF( canopy%precis(i) > 0.0 ) THEN
-
+        
              ssnow%snowd(i) = MAX( ssnow%snowd(i) + canopy%precis(i), 0.0 )
              sgamm(i) = ssnow%ssdn(i,1) * Ccgsnow * ssnow%sdepth(i,1)
              osm(i) = ssnow%smass(i,1)
@@ -94,13 +94,13 @@ IMPLICIT NONE
                   ssnow%smass(i,1) +  Cdensity_liq *                        &
                   ( 1.0 - osm(i) / ssnow%smass(i,1) ), max_ssdn ) )
 
-             ! permanent ice: fix hard-wired number in next version
+         ! permanent ice: fix hard-wired number in next version
              IF( soil%isoilm(i) /= 9 ) &
                   ssnow%ssdn(i,1) = MIN( 450.0, ssnow%ssdn(i,1) )
 
              ssnow%sdepth(i,1) = ssnow%smass(i,1)/ssnow%ssdn(i,1)
 
-             !layer 2
+         !layer 2
              sgamm(i) = ssnow%ssdn(i,2) * Ccgsnow * ssnow%sdepth(i,2)
              osm(i) = ssnow%smass(i,2)
              ssnow%tggsn(i,2) = ssnow%tggsn(i,2) + canopy%precis(i) * CHLF           &
@@ -111,13 +111,13 @@ IMPLICIT NONE
                   ssnow%smass(i,2) + Cdensity_liq *                         &
                   ( 1.0 - osm(i) / ssnow%smass(i,2) ), max_ssdn ) )
 
-             ! permanent ice: fix hard-wired number in next version
+         ! permanent ice: fix hard-wired number in next version
              IF( soil%isoilm(i) /= 9 ) &
                   ssnow%ssdn(i,2) = MIN( 450.0, ssnow%ssdn(i,2) )
 
              ssnow%sdepth(i,2) = ssnow%smass(i,2) / ssnow%ssdn(i,2)
 
-             !layer 3
+         !layer 3        
              sgamm(i) = ssnow%ssdn(i,3) * Ccgsnow * ssnow%sdepth(i,3)
              osm(i) = ssnow%smass(i,3)
              ssnow%tggsn(i,3) = ssnow%tggsn(i,3) + canopy%precis(i) * CHLF           &
@@ -128,26 +128,50 @@ IMPLICIT NONE
                   ssnow%smass(i,3) + Cdensity_liq *                          &
                   ( 1.0 - osm(i) / ssnow%smass(i,3) ), max_ssdn ) )
 
-             ! permanent ice: fix hard-wired number in next version
+         ! permanent ice: fix hard-wired number in next version
              IF( soil%isoilm(i) /= 9 ) &
                   ssnow%ssdn(i,3) = MIN(450.0,ssnow%ssdn(i,3))
 
              ssnow%sdepth(i,3) = ssnow%smass(i,3) / ssnow%ssdn(i,3)
 
              canopy%precis(i) = 0.0
-
+      
           ENDIF
-
+   
        ENDIF
 
     ENDDO
 
-    ! 'fess' is for soil evap and 'fes' is for soil evap plus soil puddle evap
-    canopy%segg = canopy%fess / CHL
-    canopy%segg = ( canopy%fess + canopy%fes_cor ) / CHL
+   ! 'fess' is for soil evap and 'fes' is for soil evap plus soil puddle evap
+   canopy%segg = canopy%fess / CHL
+   canopy%segg = ( canopy%fess + canopy%fes_cor ) / CHL
 
-    ! Initialise snow evaporation:
-    ssnow%evapsn = 0
+   ! Initialise snow evaporation:
+   ssnow%evapsn = 0
+IF( cable_runtime%esm15 ) THEN
+   ! Snow evaporation and dew on snow
+   WHERE( ssnow%snowd > 0.1 )
+      
+      ssnow%evapsn = dels * ( canopy%fess + canopy%fes_cor ) / ( CHL + CHLF )
+      xxx = ssnow%evapsn
+
+      WHERE( ssnow%isflag == 0 .AND. canopy%fess + canopy%fes_cor.GT. 0.0 )    &
+         ssnow%evapsn = MIN( ssnow%snowd, xxx )
+          
+      WHERE( ssnow%isflag  > 0 .AND. canopy%fess + canopy%fes_cor .GT. 0.0 )   &
+         ssnow%evapsn = MIN( 0.9 * ssnow%smass(:,1), xxx )
+
+      ssnow%snowd = ssnow%snowd - ssnow%evapsn
+      
+      WHERE( ssnow%isflag > 0 )
+         ssnow%smass(:,1) = ssnow%smass(:,1)  - ssnow%evapsn
+         ssnow%sdepth(:,1) = MAX( 0.02, ssnow%smass(:,1) / ssnow%ssdn(:,1) )
+      END WHERE
+
+      canopy%segg = 0.0
+
+   END WHERE
+ELSE
     DO i=1,mp
        ! Snow evaporation and dew on snow
        ! NB the conditions on when %fes applies to %segg or %evapsn MUST(!!)
@@ -182,6 +206,9 @@ IMPLICIT NONE
        ENDIF
 
     ENDDO
+
+ENDIF !IF( cable_runtime%esm15 ) THEN
+
 
 END SUBROUTINE snow_accum
 
