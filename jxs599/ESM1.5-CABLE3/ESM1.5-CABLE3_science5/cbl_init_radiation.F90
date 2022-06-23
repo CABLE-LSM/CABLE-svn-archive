@@ -132,7 +132,7 @@ IF( cable_runtime%esm15_init_rad) THEN
       ExtCoeff_beam = 30.0         ! keep cexpkbm within real*4 range (BP jul2010)
    END WHERE
 ELSE  
-  !write(6,*) "this ad-hoc use of fbeam as a trigger is peculiar to esm15"
+  write(6,*) "this ad-hoc use of fbeam as a trigger is peculiar to esm15"
 ENDIF
    
 ! Define effective Extinction co-efficient for direct beam/diffuse radiation
