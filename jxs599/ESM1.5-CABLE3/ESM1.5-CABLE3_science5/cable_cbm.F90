@@ -17,6 +17,7 @@ USE cbl_init_radiation_module, ONLY: init_radiation
 USE cbl_albedo_mod, ONLY: albedo
 USE cbl_masks_mod, ONLY: fveg_mask,  fsunlit_mask,  fsunlit_veg_mask
 USE cbl_soil_snow_main_module, ONLY: soil_snow
+USE snow_aging_mod, ONLY : snow_aging 
 
 !jhan:pass these !data
 USE cable_other_constants_mod, ONLY: Ccoszen_tols => coszen_tols
@@ -110,6 +111,10 @@ CALL init_radiation( &
    IF( cable_runtime%um ) THEN
       
       IF( cable_runtime%um_explicit ) THEN
+ 
+ CALL snow_aging(ssnow%snage,mp,dels,ssnow%snowd,ssnow%osnowd,ssnow%tggsn(:,1),&
+         ssnow%tgg(:,1),ssnow%isflag,veg%iveg,soil%isoilm) 
+ 
  CALL Albedo( ssnow%AlbSoilsn, soil%AlbSoil,                                 &
              !AlbSnow, AlbSoil,              
              mp, nrb,                                                       &
