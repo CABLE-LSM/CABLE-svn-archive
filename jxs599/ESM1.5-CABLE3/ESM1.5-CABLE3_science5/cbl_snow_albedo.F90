@@ -97,38 +97,43 @@ REAL :: MetTk(mp)                   !Air Temperture at surface - atmospheric for
       ! accumulation of dirt and amount of new snow.
       snr = SnowDepth / max (SnowDensity, 200.)
       
+      !snrat is how little (as fraction) of the underlying soil 'seen'
+      snrat = MIN(1.0, snr/ (snr + 0.1))
+       
+      !IF( cable_runtime%esm15_albedo ) THEN
        WHERE (soil_type == 9)
          !  NB. dsnow =1,assumes pristine snow; ignores soot etc. ALTERNATIVELY,
          !dnsnow = max (dnsnow, .5) !increase refreshing of snow in Antarctic
          snrat = 1.
-      
-      ELSEWHERE
-
-         ! snow covered fraction of the grid
-         snrat = min (1., snr / (snr + .1) )    
-      
       END WHERE
+      !END IF
 
+      !331!!snow age and zenith angle factors
+      !331!fage = 1.0 - 1.0 / (1.0 + SnowAge )
+      !331!tmp = MAX (0.17365, coszen )
+      !331!fzenm = MAX(0.0, MERGE(0.0, 1.5/(1.0+4.0*tmp) - 0.5,tmp>0.5) )
       fage = 1. - 1. / (1. + SnowAge ) !age factor
-
       tmp = MAX( .17365, coszen )
+      !Share fzenm = MAX(0.0, MERGE(0.0, 1.5/(1.0+4.0*tmp) - 0.5,tmp>0.5) )
       fzenm = MAX( 0.0, MERGE( 0.0,                                           &
               ( 1. + 1./2. ) / ( 1. + 2.*2. * tmp ) - 1./2., tmp > 0.5 ) )
 
+      !alv and alir: aged-snow albedo
       tmp = alvo * (1.0 - 0.2 * fage)
-      alv = .4 * fzenm * (1. - tmp) + tmp
-      tmp = aliro * (1. - .5 * fage)
+      alv = 0.4 * fzenm * (1.0 - tmp) + tmp
+      tmp = aliro * (1.0 - 0.5 * fage )
 
+      !IF( cable_runtime%esm15_albedo ) THEN
       ! use dry snow albedo for pernament land ice: hard-wired no to be removed
        WHERE (soil_type == 9)
-         
          tmp = 0.95 * (1.0 - 0.2 * fage)
          alv = .4 * fzenm * (1. - tmp) + tmp
          tmp = 0.75 * (1. - .5 * fage)
-      
       END WHERE
+      !END IF
       
       alir = .4 * fzenm * (1.0 - tmp) + tmp
+      !talb = .5 * (alv + alir) ! snow albedo
     
    ENDWHERE        ! snowd > 0
    
@@ -169,7 +174,7 @@ WHERE (SnowDepth > 1 )
 ENDWHERE        ! snowd > 0
 !H!jhan:SLI currently not available
     !H!IF(cable_user%SOIL_STRUC=='sli') THEN
-    !H!   WHERE (SnowDepth.GT.1.0)
+    !H!   WHERE (SnowDepth.GT.snow_depth_thresh)
     !H!      snrat = 1.0   ! using default parameterisation, albedo is too low,
     !H!      ! inhibiting snowpack initiation
     !H!   ENDWHERE
