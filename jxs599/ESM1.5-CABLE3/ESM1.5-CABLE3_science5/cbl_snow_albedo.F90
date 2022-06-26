@@ -7,66 +7,54 @@ MODULE cbl_snow_albedo_module
 
 CONTAINS
 
-SUBROUTINE surface_albedosn( AlbSnow, AlbSoil, mp, nrb, jls_radiation, surface_type, soil_type, &
-                            SnowDepth, SnowODepth, SnowFlag_3L, SnowDensity, &
-                            SoilTemp, SnowTemp, SnowAge, & 
-                            metTk, coszen )
-!H!jhan:Eliminate these USE data statements  
-USE cable_common_module, ONLY : kwidth_gl, cable_runtime
-use cable_phys_constants_mod, ONLY : CTFRZ => TFRZ
+  SUBROUTINE surface_albedosn( AlbSnow, AlbSoil, mp, nrb, surface_type, soil_type, &
+                            SnowDepth, SnowDensity, SoilTemp, SnowAge, coszen, metTk )
 
-implicit none
-
-!re-decl input args
-integer :: mp
-integer :: nrb
-LOGICAL :: jls_radiation            !runtime switch def. in cable_*main routines 
-REAL :: AlbSnow(mp,nrb) 
-REAL :: AlbSoil(mp,nrb) 
-REAL :: MetTk(mp) 
-REAL :: coszen(mp) 
-REAL :: SnowDepth(mp)
-REAL :: SnowODepth(mp)
-REAL :: SnowDensity(mp)
-REAL :: SoilTemp(mp)
-REAL :: SnowTemp(mp)
-REAL :: SnowAge(mp)
-integer:: SnowFlag_3L(mp)
-integer:: surface_type(mp) 
-integer:: soil_type(mp) 
-integer:: i
-REAL :: Snow_depth_thresh = 1.0
-REAL :: dels =1800.0
-integer :: perm_ice=9
-
-   REAL ::                                                      &
-      ar1,     &  ! crystal growth  (-ve)
-      ar2,     &  ! freezing of melt water
-      ar3,     &  !
-      dnsnow,  &  ! new snow albedo
-      tmpi,         & ! temporary value
-      dtau
-
+    USE cable_common_module, ONLY: cable_runtime   
+    IMPLICIT NONE
    
+    !re-decl input args
+    INTEGER, INTENT(IN) :: mp
+    INTEGER, INTENT(IN) :: nrb
+    REAL, INTENT(OUT)   :: AlbSnow(mp,nrb) 
+    REAL, INTENT(IN)    :: AlbSoil(mp,nrb) !becomes INOUT w soilColour param^n
+    REAL, INTENT(IN)    :: coszen(mp) 
+    REAL, INTENT(IN)    :: SnowDepth(mp)
+    REAL, INTENT(IN)    :: SnowDensity(mp)
+    REAL, INTENT(IN)    :: SoilTemp(mp)                
+    REAL, INTENT(IN)    :: SnowAge(mp)
+    INTEGER, INTENT(IN) :: surface_type(mp)          
+    INTEGER, INTENT(IN) :: soil_type(mp) 
+REAL :: MetTk(mp)                   !Air Temperture at surface - atmospheric forcing (met%tk)
+
+    !working variables  
    REAL, DIMENSION(mp) ::                                                      &
       alv,     &  ! Snow albedo for visible
       alir,    &  ! Snow albedo for near infra-red
       fage,    &  ! age factor
-      fzenm,   &  !    
-      sfact,   &  !
-      snr,     &  ! 
-      snrat,   &  !  
-      talb,    &  ! snow albedo
+      fzenm,   &  ! zenith factor
+      sfact,   &  ! soil factor
+      snrat,   &  ! (1-) fraction of soil 'seen' when evaluating surface albedo
+      snr,     &  ! when evaluating surface albedo
       tmp         ! temporary value
    
    REAL, PARAMETER ::                                                          &
       alvo  = 0.95,  &  ! albedo for vis. on a new snow
       aliro = 0.70      ! albedo for near-infr. on a new snow
    
-! local vars    
-REAL :: SoilAlbsoilf(mp) 
-REAL :: Albsoilf_min(mp) 
+    ! local vars    
+    REAL :: SoilAlbsoilf(mp) 
+    REAL :: Albsoilf_min(mp) 
 
+    !hard wired indexes to be substituted with arg list or USEd from module
+    INTEGER, PARAMETER :: perm_ice = 9
+    INTEGER, PARAMETER :: lake = 16
+    !model parameter shared across subroutines -> cable_phys_constants
+    REAL, PARAMETER :: snow_depth_thresh = 1.0
+
+    INTEGER :: i    !looping variable
+
+    !initialise to the no-snow value for albedo for all land points
    SoilAlbsoilF = Albsoil(:,1)
 
 IF( cable_runtime%esm15_albedo ) THEN
@@ -101,7 +89,7 @@ ENDIF
    alir =0.
    alv  =0.
 
-   WHERE ( SnowDepth > 1. .AND. .NOT. jls_radiation )
+   WHERE ( SnowDepth > 1. )
        
       ! Snow age depends on snow crystal growth, freezing of melt water,
       ! accumulation of dirt and amount of new snow.
@@ -139,13 +127,12 @@ ENDIF
       END WHERE
       
       alir = .4 * fzenm * (1.0 - tmp) + tmp
-      talb = .5 * (alv + alir) ! snow albedo
     
    ENDWHERE        ! snowd > 0
    
    !H!! when it is called from cable_rad_driver (UM)
    !H!! no need to recalculate snage
-WHERE (SnowDepth > 1 .and. jls_radiation )
+WHERE (SnowDepth > 1 )
       
    snr = SnowDepth / MAX (SnowDensity, 200.)
       
@@ -176,7 +163,6 @@ WHERE (SnowDepth > 1 .and. jls_radiation )
       END WHERE
       
       alir = .4 * fzenm * (1.0 - tmp) + tmp
-      talb = .5 * (alv + alir) ! snow albedo
 
 ENDWHERE        ! snowd > 0
 !H!jhan:SLI currently not available

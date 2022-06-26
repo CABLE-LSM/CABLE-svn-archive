@@ -125,9 +125,9 @@ CALL init_radiation( &
              !surface_type, VegRefl, VegTaul,
              met%tk, met%coszen, canopy%vlaiw,                              &
              !metTk, coszen, reducedLAIdue2snow,
-             ssnow%snowd, ssnow%osnowd, ssnow%isflag,                       & 
+             ssnow%snowd, ssnow%ssdnn,                                      & 
              !SnowDepth, SnowODepth, SnowFlag_3L, 
-             ssnow%ssdnn, ssnow%tgg(:,1), ssnow%tggsn(:,1), ssnow%snage,                      & 
+             ssnow%tgg(:,1), ssnow%snage,                      & 
              !SnowDensity, SoilTemp, SnowAge, 
              xk, c1, rhoch,                                                 & 
              rad%fbeam, rad%albedo,                                         &
@@ -144,6 +144,8 @@ CALL init_radiation( &
            ) !EffSurfRefl_dif, EffSurfRefl_beam 
 
 
+
+
       ENDIF
    
    ELSE
@@ -157,9 +159,9 @@ CALL init_radiation( &
              !surface_type, VegRefl, VegTaul,
              met%tk, met%coszen, canopy%vlaiw,                              &
              !metTk, coszen, reducedLAIdue2snow,
-             ssnow%snowd, ssnow%osnowd, ssnow%isflag,                       & 
+             ssnow%snowd, ssnow%ssdnn,                                      & 
              !SnowDepth, SnowODepth, SnowFlag_3L, 
-             ssnow%ssdnn, ssnow%tgg(:,1), ssnow%tggsn(:,1), ssnow%snage,                      & 
+             ssnow%tgg(:,1), ssnow%snage,                      & 
              !SnowDensity, SoilTemp, SnowAge, 
              xk, c1, rhoch,                                                 & 
              rad%fbeam, rad%albedo,                                         &
