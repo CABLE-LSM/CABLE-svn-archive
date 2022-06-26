@@ -57,27 +57,29 @@ REAL :: MetTk(mp)                   !Air Temperture at surface - atmospheric for
     !initialise to the no-snow value for albedo for all land points
    SoilAlbsoilF = Albsoil(:,1)
 
-IF( cable_runtime%esm15_albedo ) THEN
+    IF( cable_runtime%esm15_albedo ) THEN
    Albsoilf_min = MetTk   
-ELSE  
+    ELSE  
    Albsoilf_min = SoilTemp
-ENDIF
+    ENDIF
 
-   ! lakes: hard-wired number to be removed in future
-    WHERE( surface_type == 16 )                                                     &
+    ! lakes - with/without snow cover
+    WHERE( surface_type == lake )                                                     
       SoilAlbsoilf = -0.022*( MIN( 275., MAX( 260., Albsoilf_min ) ) - 260. ) + 0.45
+    END WHERE
+    WHERE(SnowDepth > snow_depth_thresh .and. surface_type == lake )
+      SoilAlbsoilF = 0.85
+    END WHERE
 
-   WHERE(SnowDepth > 1. .and. surface_type == 16 ) SoilAlbsoilF = 0.85
-
-   sfact = 0.68
-  
+    sfact(:) = 0.68
    WHERE (SoilAlbsoilf <= 0.14)
       sfact = 0.5
    ELSEWHERE (SoilAlbsoilf > 0.14 .and. SoilAlbsoilf <= 0.20)
       sfact = 0.62
    END WHERE
 
-   AlbSnow(:,2) = 2. * SoilAlbsoilF / (1. + sfact)
+    !first estimate of snow-affected surface albedos
+    AlbSnow(:,2) = 2.0 * SoilAlbsoilF / (1.0 + sfact)
    AlbSnow(:,1) = sfact * AlbSnow(:,2)
 
     ! calc soil albedo based on colour - Ticket #27
@@ -172,26 +174,29 @@ ENDWHERE        ! snowd > 0
     !H!      ! inhibiting snowpack initiation
     !H!   ENDWHERE
     !H!ENDIF
+
+    !final values of soil-snow albedos - 1=vis, 2=nir
    AlbSnow(:,2) = MIN( aliro,                                          &
-                          ( 1. - snrat ) * AlbSnow(:,2) + snrat * alir)
+                          ( 1.0 - snrat ) * AlbSnow(:,2) + snrat * alir)
    
    AlbSnow(:,1) = MIN( alvo,                                           &
-                          ( 1. - snrat ) * AlbSnow(:,1) + snrat * alv )
+                          ( 1.0 - snrat ) * AlbSnow(:,1) + snrat * alv )
 
-IF( cable_runtime%esm15_albedo ) THEN
-  WHERE(soil_type == 9) !imples pseudo mp dimension mask, hence 2 lines follow
+    !except for ice regions
+    IF( cable_runtime%esm15_albedo ) THEN
+      WHERE (soil_type == perm_ice) ! use dry snow albedo: 1=vis, 2=nir
     AlbSnow(:,1) = 0.82
     AlbSnow(:,2) = 0.82
   ENDWHERE
-ELSE  
-  WHERE(soil_type == 9) 
+    ELSE  
+      WHERE (soil_type == perm_ice) ! use dry snow albedo: 1=vis, 2=nir
     AlbSnow(:,1) = alvo - 0.05 ! al*o = albedo appropriate for new snow 
     AlbSnow(:,2) = aliro - 0.05 ! => here al*o LESS arbitrary aging 0.05
   ENDWHERE
-ENDIF
+    ENDIF
 
-return
+    RETURN
 
-END SUBROUTINE surface_albedosn
+  END SUBROUTINE surface_albedosn
 
 END MODULE cbl_snow_albedo_module
