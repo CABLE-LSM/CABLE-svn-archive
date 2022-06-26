@@ -138,41 +138,7 @@ REAL :: MetTk(mp)                   !Air Temperture at surface - atmospheric for
    ENDWHERE        ! snowd > 0
    
    !H!! when it is called from cable_rad_driver (UM)
-   !H!! no need to recalculate snage
-WHERE (SnowDepth > 1 )
-      
-   snr = SnowDepth / MAX (SnowDensity, 200.)
-      
-       WHERE (soil_type == 9)
-         ! permanent ice: hard-wired number to be removed
-         snrat = 1.
-      ELSEWHERE
-         snrat = MIN (1., snr / (snr + .1) )
-      END WHERE
-      
-   fage = 1. - 1. / (1. + SnowAge ) !age factor
-      tmp = MAX (.17365, coszen )
-      fzenm = MAX( 0., MERGE( 0.0,                                             &
-              ( 1. + 1./2. ) / ( 1. + 2. * 2. * tmp ) - 1./2., tmp > 0.5 ) )
-
-       tmp = alvo * (1.0 - 0.2 * fage)
-       alv = .4 * fzenm * (1. - tmp) + tmp
-       tmp = aliro * (1. - .5 * fage)
-      
-      ! use dry snow albedo
-       WHERE (soil_type == 9)
-         ! permanent ice: hard-wired number to be removed
-
-         tmp = 0.95 * (1.0 - 0.2 * fage)
-         alv = .4 * fzenm * (1. - tmp) + tmp
-         tmp = 0.75 * (1. - .5 * fage)
-      
-      END WHERE
-      
-      alir = .4 * fzenm * (1.0 - tmp) + tmp
-
-ENDWHERE        ! snowd > 0
-!H!jhan:SLI currently not available
+    !H!jhan:SLI currently not available
     !H!IF(cable_user%SOIL_STRUC=='sli') THEN
     !H!   WHERE (SnowDepth.GT.snow_depth_thresh)
     !H!      snrat = 1.0   ! using default parameterisation, albedo is too low,
