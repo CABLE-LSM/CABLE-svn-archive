@@ -132,32 +132,34 @@ CALL init_radiation( rad%extkb, rad%extkd,                                     &
 !Ticket 331 refactored albedo code for JAC
 CALL snow_aging(ssnow%snage,mp,dels,ssnow%snowd,ssnow%osnowd,ssnow%tggsn(:,1),&
          ssnow%tgg(:,1),ssnow%isflag,veg%iveg,soil%isoilm) 
-
-call Albedo( ssnow%AlbSoilsn, soil%AlbSoil,                                &
+ CALL Albedo( ssnow%AlbSoilsn, soil%AlbSoil,                                 &
              !AlbSnow, AlbSoil,              
-             mp, nrb,                                                      &
-             jls_radiation,                                                &
-             veg_mask, sunlit_mask, sunlit_veg_mask,                       &  
-             Ccoszen_tols, CGAUSS_W,                                       & 
+             mp, nrb,                                                       &
+             jls_radiation,                                                 &
+             veg_mask, sunlit_mask, sunlit_veg_mask,                        &  
+             Ccoszen_tols, cgauss_w,                                        & 
              veg%iveg, soil%isoilm, veg%refl, veg%taul,                    & 
              !surface_type, VegRefl, VegTaul,
-             met%coszen, canopy%vlaiw,                                     &
-             !coszen, reducedLAIdue2snow,
-             ssnow%snowd, ssnow%ssdnn, ssnow%tgg(:,1), ssnow%snage,        & 
-             !SnowDepth, SnowDensity, SoilTemp, SnowAge, 
-             xk, c1, rhoch,                                                & 
-             rad%fbeam, rad%albedo,                                        &
+             met%tk, met%coszen, canopy%vlaiw,                              &
+             !metTk, coszen, reducedLAIdue2snow,
+             ssnow%snowd, ssnow%ssdnn,                                      & 
+             !SnowDepth, SnowODepth, SnowFlag_3L, 
+             ssnow%tgg(:,1), ssnow%snage,                      & 
+             !SnowDensity, SoilTemp, SnowAge, 
+             xk, c1, rhoch,                                                 & 
+             rad%fbeam, rad%albedo,                                         &
              !RadFbeam, RadAlbedo,
-             rad%extkd, rad%extkb,                                         & 
+             rad%extkd, rad%extkb,                                          & 
              !ExtCoeff_dif, ExtCoeff_beam,
-             rad%extkdm, rad%extkbm,                                       & 
+             rad%extkdm, rad%extkbm,                                        & 
              !EffExtCoeff_dif, EffExtCoeff_beam,                
-             rad%rhocdf, rad%rhocbm,                                       &
+             rad%rhocdf, rad%rhocbm,                                        &
              !CanopyRefl_dif,CanopyRefl_beam,
-             rad%cexpkdm, rad%cexpkbm,                                     & 
+             rad%cexpkdm, rad%cexpkbm,                                      & 
              !CanopyTransmit_dif, CanopyTransmit_beam, 
              rad%reffdf, rad%reffbm                                        &
            ) !EffSurfRefl_dif, EffSurfRefl_beam 
+
 
 ssnow%otss_0 = ssnow%otss  ! vh should be before call to canopy?
 ssnow%otss = ssnow%tss
