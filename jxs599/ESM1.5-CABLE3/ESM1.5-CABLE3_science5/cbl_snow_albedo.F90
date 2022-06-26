@@ -25,10 +25,10 @@ CONTAINS
     REAL, INTENT(IN)    :: SnowAge(mp)
     INTEGER, INTENT(IN) :: surface_type(mp)          
     INTEGER, INTENT(IN) :: soil_type(mp) 
-REAL :: MetTk(mp)                   !Air Temperture at surface - atmospheric forcing (met%tk)
+    REAL :: MetTk(mp)                   !Air Temperture at surface - atmospheric forcing (met%tk)
 
     !working variables  
-   REAL, DIMENSION(mp) ::                                                      &
+    REAL, DIMENSION(mp) ::                                                      &
       alv,     &  ! Snow albedo for visible
       alir,    &  ! Snow albedo for near infra-red
       fage,    &  ! age factor
@@ -55,12 +55,12 @@ REAL :: MetTk(mp)                   !Air Temperture at surface - atmospheric for
     INTEGER :: i    !looping variable
 
     !initialise to the no-snow value for albedo for all land points
-   SoilAlbsoilF = Albsoil(:,1)
+    SoilAlbsoilF = Albsoil(:,1)
 
     IF( cable_runtime%esm15_albedo ) THEN
-   Albsoilf_min = MetTk   
+      Albsoilf_min = MetTk   
     ELSE  
-   Albsoilf_min = SoilTemp
+      Albsoilf_min = SoilTemp
     ENDIF
 
     ! lakes - with/without snow cover
@@ -80,18 +80,21 @@ REAL :: MetTk(mp)                   !Air Temperture at surface - atmospheric for
 
     !first estimate of snow-affected surface albedos
     AlbSnow(:,2) = 2.0 * SoilAlbsoilF / (1.0 + sfact)
-   AlbSnow(:,1) = sfact * AlbSnow(:,2)
+    AlbSnow(:,1) = sfact * AlbSnow(:,2)
 
     ! calc soil albedo based on colour - Ticket #27
-   !H!IF (calcsoilalbedo) THEN
-   !H!   CALL soilcol_albedo(ssnow, soil)
-   !H!END IF
+    !H!IF (calcsoilalbedo) THEN
+    !H!   CALL soilcol_albedo(ssnow, soil)
+    !H!END IF
   
-   snrat=0.
-   alir =0.
-   alv  =0.
+    !no snow values for working variables.
+    snrat(:)=0.0
+    alir(:) =0.0
+    alv(:)  =0.0
 
-   WHERE ( SnowDepth > 1. )
+    !Ticket 331 - snow age evaluation moved to cbm module
+    !removed permanent ice special conditions as overwritten later
+    WHERE (SnowDepth > snow_depth_thresh)
        
       ! Snow age depends on snow crystal growth, freezing of melt water,
       ! accumulation of dirt and amount of new snow.
@@ -101,22 +104,15 @@ REAL :: MetTk(mp)                   !Air Temperture at surface - atmospheric for
       snrat = MIN(1.0, snr/ (snr + 0.1))
        
       !IF( cable_runtime%esm15_albedo ) THEN
-       WHERE (soil_type == 9)
-         !  NB. dsnow =1,assumes pristine snow; ignores soot etc. ALTERNATIVELY,
-         !dnsnow = max (dnsnow, .5) !increase refreshing of snow in Antarctic
-         snrat = 1.
-      END WHERE
+        WHERE (soil_type == perm_ice)
+          snrat = 1.
+        END WHERE
       !END IF
 
-      !331!!snow age and zenith angle factors
-      !331!fage = 1.0 - 1.0 / (1.0 + SnowAge )
-      !331!tmp = MAX (0.17365, coszen )
-      !331!fzenm = MAX(0.0, MERGE(0.0, 1.5/(1.0+4.0*tmp) - 0.5,tmp>0.5) )
-      fage = 1. - 1. / (1. + SnowAge ) !age factor
-      tmp = MAX( .17365, coszen )
-      !Share fzenm = MAX(0.0, MERGE(0.0, 1.5/(1.0+4.0*tmp) - 0.5,tmp>0.5) )
-      fzenm = MAX( 0.0, MERGE( 0.0,                                           &
-              ( 1. + 1./2. ) / ( 1. + 2.*2. * tmp ) - 1./2., tmp > 0.5 ) )
+      !snow age and zenith angle factors
+      fage = 1.0 - 1.0 / (1.0 + SnowAge )
+      tmp = MAX (0.17365, coszen )
+      fzenm = MAX(0.0, MERGE(0.0, 1.5/(1.0+4.0*tmp) - 0.5,tmp>0.5) )
 
       !alv and alir: aged-snow albedo
       tmp = alvo * (1.0 - 0.2 * fage)
@@ -125,19 +121,18 @@ REAL :: MetTk(mp)                   !Air Temperture at surface - atmospheric for
 
       !IF( cable_runtime%esm15_albedo ) THEN
       ! use dry snow albedo for pernament land ice: hard-wired no to be removed
-       WHERE (soil_type == 9)
-         tmp = 0.95 * (1.0 - 0.2 * fage)
-         alv = .4 * fzenm * (1. - tmp) + tmp
-         tmp = 0.75 * (1. - .5 * fage)
-      END WHERE
+        WHERE (soil_type == perm_ice )
+          tmp = 0.95 * (1.0 - 0.2 * fage)
+          alv = .4 * fzenm * (1. - tmp) + tmp
+          tmp = 0.75 * (1. - .5 * fage)
+        END WHERE
       !END IF
       
       alir = .4 * fzenm * (1.0 - tmp) + tmp
-      !talb = .5 * (alv + alir) ! snow albedo
     
-   ENDWHERE        ! snowd > 0
+    ENDWHERE        ! snowd > 0
    
-   !H!! when it is called from cable_rad_driver (UM)
+    !H!! when it is called from cable_rad_driver (UM)
     !H!jhan:SLI currently not available
     !H!IF(cable_user%SOIL_STRUC=='sli') THEN
     !H!   WHERE (SnowDepth.GT.snow_depth_thresh)
@@ -156,14 +151,14 @@ REAL :: MetTk(mp)                   !Air Temperture at surface - atmospheric for
     !except for ice regions
     IF( cable_runtime%esm15_albedo ) THEN
       WHERE (soil_type == perm_ice) ! use dry snow albedo: 1=vis, 2=nir
-    AlbSnow(:,1) = 0.82
-    AlbSnow(:,2) = 0.82
-  ENDWHERE
+        AlbSnow(:,1) = 0.82
+        AlbSnow(:,2) = 0.82
+      ENDWHERE
     ELSE  
       WHERE (soil_type == perm_ice) ! use dry snow albedo: 1=vis, 2=nir
-    AlbSnow(:,1) = alvo - 0.05 ! al*o = albedo appropriate for new snow 
-    AlbSnow(:,2) = aliro - 0.05 ! => here al*o LESS arbitrary aging 0.05
-  ENDWHERE
+        AlbSnow(:,1) = alvo - 0.05 ! al*o = albedo appropriate for new snow 
+        AlbSnow(:,2) = aliro - 0.05 ! => here al*o LESS arbitrary aging 0.05
+      ENDWHERE
     ENDIF
 
     RETURN
