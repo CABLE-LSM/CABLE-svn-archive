@@ -9,6 +9,7 @@ CONTAINS
 
 SUBROUTINE Surf_wetness_fact( cansat, canopy, ssnow,veg, met, soil, dels )
 
+    USE cable_common_module, ONLY : cable_runtime
     USE cable_common_module
     USE cable_def_types_mod
 ! physical constants
@@ -52,25 +53,29 @@ USE cable_phys_constants_mod, ONLY : CTFRZ   => TFRZ
    canopy%fwet   = MAX( 0.0, MIN( 0.9, 0.8 * canopy%cansto /                   &
                    MAX( cansat, 0.01 ) ) )
 
-!calc the surface wetness for soil evap in this routine
-!include the default wetfac when or_evap and gw_model are not used
-!H!gw n/a here and so copied default below
-!H!    CALL calc_srf_wet_fraction(ssnow,soil,met,veg)
-!H!   ELSE  !Default formulation
+    !calc the surface wetness for soil evap in this routine
+    !include the default wetfac when or_evap and gw_model are not used
+    !H!gw n/a here and so copied default below
+    !H!    CALL calc_srf_wet_fraction(ssnow,soil,met,veg)
+    !H!   ELSE  !Default formulation
+
+    IF( .NOT. cable_runtime%esm15_dryLeaf ) THEN
+       !call saturated_fraction(ssnow,soil,veg)
+       ssnow%satfrac(:) = 1.0e-8
+       ssnow%rh_srf(:)  = 1.0
+    END IF
+
    ssnow%wetfac = MAX( 1.e-6, MIN( 1.0,                                        &
                   ( REAL (ssnow%wb(:,1) ) - soil%swilt/ 2.0 )                  &
                   / ( soil%sfc - soil%swilt/2.0 ) ) )
   
    DO i=1,mp
    
-      !e!IF( ssnow%wbice(i,1) > 0. )                                              &
-         !e!ssnow%wetfac(i) = ssnow%wetfac(i) * MAX( 0.5, 1. - MIN( 0.2,          &
-         !e!                  ( ssnow%wbice(i,1) / ssnow%wb(i,1) )**2 ) )
-
           IF( ssnow%wbice(i,1) > 0. )&
                ssnow%wetfac(i) = ssnow%wetfac(i) * &
                                 real(MAX( 0.5_r_2, 1._r_2 - MIN( 0.2_r_2, &
                                  ( ssnow%wbice(i,1) / ssnow%wb(i,1) )**2 ) ) )
+   
       IF( ssnow%snowd(i) > 0.1) ssnow%wetfac(i) = 0.9
       
       IF ( veg%iveg(i) == 16 .and. met%tk(i) >= Ctfrz + 5. )                  &

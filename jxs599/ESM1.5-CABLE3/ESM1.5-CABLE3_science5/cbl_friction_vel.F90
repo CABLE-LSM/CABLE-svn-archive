@@ -52,7 +52,7 @@ rescale = CVONK * MAX( ua, CUMIN )
 
 z_eff = zref_uv / z0m
 
-!e!psim_arg = zetar(:,iter) * z0m / zref_tq
+!trunk!psim_arg = zetar(:,iter) * z0m / zref_tq
 psim_arg = zetar(:,iter) / z_eff 
 
 psim_2 = psim( psim_arg, mp, CPI_C  )
