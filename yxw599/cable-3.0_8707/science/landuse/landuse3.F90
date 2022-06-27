@@ -849,7 +849,7 @@ END MODULE landuse_variable
      endif
       
      ! assign variables var(mp,:) to luc%var_x(mland,mvmax,:)
-     print *, 'calling mp2land: landus cstart cende', cstart,cend
+     print *, 'calling mp2land: landuse cstart cend', cstart,cend
      call landuse_mp2land(luc,lucmp,mp,cstart,cend)
 
      ! we need to deallocate "lucmp" because "mp" will be updated after land use change
