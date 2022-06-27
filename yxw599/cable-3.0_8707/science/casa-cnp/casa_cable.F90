@@ -601,6 +601,11 @@ END SUBROUTINE write_casa_dump
   real, dimension(17)                   ::  xnslope
   data xnslope/0.80,1.00,2.00,1.00,1.00,1.00,0.50,1.00,0.34,1.00,1.00,1.00,1.00,1.00,1.00,1.00,1.00/
 
+
+  ! ypw for secondary PFTS on 9/6/2022
+  xnslope(11) = xnslope(1)
+  xnslope(12) = xnslope(2)
+  xnslope(13) = xnslope(4)
   ! first initialize
   ncleafx(:) = casabiome%ratioNCplantmax(veg%iveg(:),leaf)
   npleafx = 14.2
@@ -621,7 +626,7 @@ END SUBROUTINE write_casa_dump
 
     IF (TRIM(cable_user%vcmax).eq.'standard') then
        IF (casamet%glai(np) > casabiome%glaimin(ivt)) THEN
-          IF (ivt/=2) THEN
+          IF (ivt/=2.or.ivt/=12) THEN  !added PFT12 ypw for secondary forest
              veg%vcmax(np) = ( casabiome%nintercept(ivt) &
                   + casabiome%nslope(ivt)*ncleafx(np)/casabiome%sla(ivt) ) * 1.0e-6
           ELSE

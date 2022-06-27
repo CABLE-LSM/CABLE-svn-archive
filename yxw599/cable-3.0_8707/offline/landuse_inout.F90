@@ -1,5 +1,6 @@
   subroutine landuse_data(mlon,mlat,landmask,arealand,luc_atransit,luc_fharvw,luc_xluh2cable)
   use netcdf
+  USE cable_IO_vars_module, ONLY: logn
   use cable_abort_module,   ONLY: nc_abort 
   use cable_common_module,  ONLY: filename
   USE cable_def_types_mod,  ONLY: mland,r_2
@@ -63,7 +64,11 @@
      endif   
 
      ! get the mapping matrix (landuse type to PFT)
+     write(logn,901) filename%fxluh2cable
+901  format(' landuse on: reading xluh2cable file: ',a500)     
      call landuse_getxluh2(mlat,mlon,landmask,filename%fxluh2cable,luc_xluh2cable)    !"xluh2cable"
+     write(logn,902) filename%fxpft
+902  format(' landuse on: reading xpft file: ',a500)     
      call landuse_getdata(mlat,mlon,landmask,filename%fxpft,luc_atransit,luc_fharvw)
   end subroutine landuse_data
 
@@ -210,6 +215,14 @@ END SUBROUTINE landuse_getdata
      ! then set non-land patch vegtype to -1
      ! then order patch within each land cell by area fraction from largest to the smallest
      ! sort patch by area fraction
+     write(logn,900)
+     write(logn,901) fgridold
+     write(logn,902) fgridnew
+
+900  format(' create new gridinfo from land use')
+901  format(' old gridinfo file: ', a500)
+902  format(' new gridinfo file: ', a500)
+
      patchfrac_y = 0.0
      do j=1,mlat
      do i=1,mlon
@@ -235,8 +248,6 @@ END SUBROUTINE landuse_getdata
         endif
      enddo
      enddo
-
-     write(logn,*) 'landuse on: create new gridinfo'
 
      ok = NF90_OPEN(fgridold,0,ncid0)
      if(ok/=nf90_noerr) call nc_abort(ok, 'file opening error')
@@ -808,7 +819,6 @@ END SUBROUTINE landuse_getdata
      ok = nf90_close(ncid11)
      if(ok/=nf90_noerr) call nc_abort(ok, 'error in put albedo')
 
-     write(logn,*) 'landuse on: new gridinfo created', fgridnew
   end subroutine create_new_gridinfo
 
   subroutine rangechk2(mlon,mlat,landmask,varx2,xmin,xmax)
@@ -1119,7 +1129,8 @@ END SUBROUTINE landuse_getdata
     STATUS = NF90_close(FILE_ID)
     IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
 
-    write(logn, *) 'landuse on: casapool writeen to ', fname
+    write(logn, *) 'landuse on: casapool written to ', fname
+
   END SUBROUTINE WRITE_LANDUSE_CASA_RESTART_NC
 
 
@@ -1174,7 +1185,7 @@ END SUBROUTINE landuse_getdata
 
     dummy = 0 ! initialise
 
-    WRITE(logn, '(A24)') ' Writing restart file...'
+    WRITE(logn, '(A36)') ' Landuse on: Writing restart file...'
     IF ( TRIM(filename%path) .EQ. '' ) filename%path = './'
     frst_out = TRIM(filename%path)//'/'//TRIM(filename%restart_out)
     ! Look for explicit restart file (netCDF). If not, asssume input is path
@@ -1619,6 +1630,7 @@ END SUBROUTINE landuse_getdata
     ok = NF90_CLOSE(ncid_restart)
 
     write(logn,*) ' landuse on'
-    WRITE(logn, '(A36)') '   Restart file complete and closed.'
+    WRITE(logn, '(A42)') '   CABLE Restart file complete and closed.'
+    WRITE(logn,*) 'filename: ', frst_out
 
   END SUBROUTINE create_landuse_cable_restart

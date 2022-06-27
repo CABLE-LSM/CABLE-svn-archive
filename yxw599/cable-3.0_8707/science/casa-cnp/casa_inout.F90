@@ -419,6 +419,12 @@ CONTAINS
     !SUBROUTINE casa_readphen(mvt,veg,casamet,phen)
     ! read in the tabulated modis-derived leaf phenology data
     ! for latitude bands of 79.75 to -55.25
+	! ypwang 9/6/2022
+	! for secondary forest type
+	! PFT11<->PFT1
+	! PFT12<->PFT2
+	! PFT13<->PFT4
+	!
     USE cable_def_types_mod
     USE casadimension
     USE casaparm
@@ -431,11 +437,15 @@ CONTAINS
     TYPE (phen_variable),      INTENT(INOUT) :: phen
 
     ! local variables
-    INTEGER, PARAMETER            :: nphen=8! was 10(IGBP). changed by Q.Zhang @01/12/2011
+    INTEGER, PARAMETER            :: nphen= 8! was 10(IGBP). changed by Q.Zhang @01/12/2011
     INTEGER np,nx,ilat
     INTEGER, DIMENSION(271,mvtype) :: greenup, fall,  phendoy1
-    INTEGER, DIMENSION(nphen)     :: greenupx,fallx,xphendoy1
-    INTEGER, DIMENSION(nphen)     :: ivtx
+	! changed to 13 by ypwang to include secondary forests
+    !INTEGER, DIMENSION(nphen)     :: greenupx,fallx,xphendoy1
+    !INTEGER, DIMENSION(nphen)     :: ivtx
+	INTEGER, DIMENSION(nphen+5)     :: greenupx,fallx,xphendoy1
+    INTEGER, DIMENSION(nphen+5)     :: ivtx
+	
     REAL(r_2), DIMENSION(271)     :: xlat
 
     ! initilize for evergreen PFTs
@@ -450,11 +460,16 @@ CONTAINS
     DO ilat=271,1,-1
        READ(101,*) xlat(ilat),(greenupx(nx),nx=1,nphen), &
             (fallx(nx),nx=1,nphen),(xphendoy1(nx),nx=1,nphen)
+	   
        DO nx=1,nphen
           greenup(ilat,ivtx(nx)) = greenupx(nx)
           fall(ilat,ivtx(nx))    = fallx(nx)
           phendoy1(ilat,ivtx(nx))= xphendoy1(nx)
        ENDDO
+	   ! added ypwang 9/6/2022 to secondary forest PFT13 (DBF)		   
+       greenup(ilat,13) = greenup(ilat,4)
+       fall(ilat,13)    = fall(ilat,4) 
+       phendoy1(ilat,13)= phendoy1(ilat,4)
     ENDDO
 
     DO np=1,mp

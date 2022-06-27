@@ -633,6 +633,10 @@ MODULE landuse_variable
    SUBROUTINE landuse_deallocate_mp(mpx,ms,msn,nrb,mplant,mlitter,msoil,mwood,lucmp)
    integer     mpx,ms,msn,nrb,mplant,mlitter,msoil,mwood
    TYPE(landuse_mp), INTENT(INOUT)  :: lucmp
+
+
+     print *, 'inside landuse_deallocate_mp'
+
      ! patch-generic variables
      deallocate(lucmp%iveg,lucmp%isoil,lucmp%soilorder,lucmp%phase,lucmp%isflag)
      deallocate(lucmp%lat,lucmp%lon)
@@ -845,17 +849,17 @@ END MODULE landuse_variable
      endif
       
      ! assign variables var(mp,:) to luc%var_x(mland,mvmax,:)
-     print *, 'calling mp2land: landuse'
+     print *, 'calling mp2land: landus cstart cende', cstart,cend
      call landuse_mp2land(luc,lucmp,mp,cstart,cend)
 
      ! we need to deallocate "lucmp" because "mp" will be updated after land use change
-     print *, 'calling deallocate mp: landuse'
+     print *, 'calling deallocate mp: landuse',mp,ms,msn,nrb,mplant,mlitter,msoil,mwood
      call landuse_deallocate_mp(mp,ms,msn,nrb,mplant,mlitter,msoil,mwood,lucmp)
 
      print *, 'calling transitx: landuse'
      call landuse_transitx(luc,casabiome)
 
-     print *, 'calling checks: landuse'
+     print *, 'calling checks: landuse', mlon,mlat
      call landuse_checks(mlon,mlat,landmask,luc)
 
      print *, 'calling update mland: landuse'
@@ -916,6 +920,8 @@ end subroutine landuse_driver
  type(landuse_mp)      :: lucmp
  integer g,np,ivt,i
  integer,        dimension(mland)        :: cstart,cend
+
+  print *, 'inside landuse_mp2land'
 
   do g=1,mland
      do ivt=1,mvmax
@@ -1133,6 +1139,8 @@ SUBROUTINE landuse_transitx(luc,casabiome)
    integer p,d,r,q,r1,r2,r3,r4,ierror,ivt,k
    integer irb,is,icp,ics
 
+   print *, 'inside landuse_transitx'
+
    ivt2=(/3,3,3,3,2,1,1,2,1,1,3,3,3,1,0,0,0/)
    delarea(:,:)     = 0.0
    dcplant(:,:,:)   = 0.0; dnplant(:,:,:)   = 0.0; dpplant(:,:,:)    = 0.0; dclabile(:,:) = 0.0
@@ -1165,17 +1173,26 @@ SUBROUTINE landuse_transitx(luc,casabiome)
       delfwhpri(1:mvmax) = 0.0; afwhpri(1:mvmax,1:mvmax) = 0.0      
       if(luc%fharvw(p,1) >0.0) then
          ! calculate the transition matrix for primary land 
+         ! test codes, check out: /g/data/p66/yxw599/trendy10_input/access
           do d=1,mvtype
             if(d<11.or.d>13) then
                delfwhpri(d)  = luc%fharvw(p,1) * luc%xluh2cable(p,d,1)    ! donor    (positive)
             else
-               delfwhpri(d) = -luc%fharvw(p,1) * luc%xluh2cable(p,r,3)    ! receiver (negative)
+      !         delfwhpri(d) = -luc%fharvw(p,1) * luc%xluh2cable(p,r,3)    ! receiver (negative)
+               delfwhpri(d) = -luc%fharvw(p,1) * luc%xluh2cable(p,d,3)    ! receiver (negative)
             endif          
          enddo  ! of "d"
          call landuse_redistribution(p,mvmax,delfwhpri,afwhpri)  
       endif
 
       transitx(1:mvmax,1:mvmax) = luc%atransit(p,1:mvmax,1:mvmax)+afwhpri(1:mvmax,1:mvmax)
+
+      print *, 'transitx at land point', p
+      print *, 'luc%transit= ', luc%atransit(p,1:mvmax,1:mvmax)
+      print *, 'luc%fharvw1', luc%fharvw(p,1)
+      print *, 'luc%xluh2cable', luc%xluh2cable(p,1:mvtype,1)
+
+
 
       do d = 1,mvmax
       do r = 1,mvmax
