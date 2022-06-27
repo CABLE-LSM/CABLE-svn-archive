@@ -273,7 +273,7 @@ DO WHILE (k < CMAXITER)
                  * ( gras(i)**0.25 ) / veg%dleaf(i)
       gbhf(i,2) = rad%fvlai(i,2) * air%cmolar(i) * 0.5 * Cdheat         &
                   * ( gras(i)**0.25 ) / veg%dleaf(i)
-      gbhf(i,:) = MAX( 1.e-6, gbhf(i,:) )
+             gbhf(i,:) = MAX( 1.e-6_r_2, gbhf(i,:) )
       
       ! Conductance for heat:
       gh(i,:) = 2.0 * (gbhu(i,:) + gbhf(i,:))
@@ -339,9 +339,9 @@ DO WHILE (k < CMAXITER)
       vx4(i,1)  = ej4x(temp2(i,1),veg%alpha(i),veg%convex(i),vcmxt4(i,1))
       vx4(i,2)  = ej4x(temp2(i,2),veg%alpha(i),veg%convex(i),vcmxt4(i,2))
     
+      rdx(i,1) = (Ccfrd3*vcmxt3(i,1) + Ccfrd4*vcmxt4(i,1))
+      rdx(i,2) = (Ccfrd3*vcmxt3(i,2) + Ccfrd4*vcmxt4(i,2))
       IF( cable_runtime%esm15_dryLeaf ) THEN
-        rdx(i,1) = (Ccfrd3*vcmxt3(i,1) + Ccfrd4*vcmxt4(i,1))
-        rdx(i,2) = (Ccfrd3*vcmxt3(i,2) + Ccfrd4*vcmxt4(i,2))
         xleuning(i,1) = ( fwsoil(i) / ( csx(i,1) - co2cp3 ) )              &
                           * ( ( 1.0 - veg%frac4(i) ) * CA1C3 / ( 1.0 + dsx(i) &
                           / Cd0c3 ) + veg%frac4(i)    * CA1C4 / (1.0+dsx(i)/ &
@@ -352,6 +352,8 @@ DO WHILE (k < CMAXITER)
                             Cd0c3 ) + veg%frac4(i)    * CA1C4 / (1.0+ dsx(i)/&
                             Cd0c4) )
       
+        gs_coeff(:,:) = xleuning(:,:)
+
       ELSE
         
         !Vanessa - the trunk does not contain xleauning as of Ticket#56 inclusion
@@ -486,8 +488,7 @@ DO WHILE (k < CMAXITER)
                        gswmin(:,:), rdx(:,:), vcmxt3(:,:),                 &
                        vcmxt4(:,:), vx3(:,:), vx4(:,:),                    &
                        ! Ticket #56, xleuning replaced with gs_coeff here
-                       ! gs_coeff(:,:), rad%fvlai(:,:),                     &
-                       xleuning(:,:), rad%fvlai(:,:),                      &
+                       gs_coeff(:,:), rad%fvlai(:,:),                      &
                        SPREAD( abs_deltlf, 2, mf ),                        &
                        anx(:,:), fwsoil(:) )
 
@@ -502,12 +503,12 @@ DO WHILE (k < CMAXITER)
 
                   csx(i,kk) = met%ca(i) - CRGBWC*anx(i,kk) / (                &
                               gbhu(i,kk) + gbhf(i,kk) )
-                  csx(i,kk) = MAX( 1.0e-4, csx(i,kk) )
+                   csx(i,kk) = MAX( 1.0e-4_r_2, csx(i,kk) )
 
 
                   ! Ticket #56, xleuning replaced with gs_coeff here
                   canopy%gswx(i,kk) = MAX( 1.e-3, gswmin(i,kk)*fwsoil(i) +     &
-                                      MAX( 0.0, CRGSWC * xleuning(i,kk) *     &
+                        MAX( 0.0, CRGSWC * gs_coeff(i,kk) *     &
                                       anx(i,kk) ) )
 
                   !Recalculate conductance for water:
@@ -570,10 +571,12 @@ DO WHILE (k < CMAXITER)
                                         soil%zse(kk) * 1000.0 )
 
                ENDDO
-
+                   IF (cable_user%soil_struc=='default') THEN
                canopy%fevc(i) = SUM(ssnow%evapfbl(i,:))*air%rlam(i)/dels
-    
                ecx(i) = canopy%fevc(i) / (1.0-canopy%fwet(i))
+                   ELSEIF (cable_user%soil_struc=='sli') THEN
+                      canopy%fevc(i) = ecx(i)*(1.0-canopy%fwet(i))
+                   ENDIF
 
             ENDIF
 
@@ -595,6 +598,9 @@ DO WHILE (k < CMAXITER)
             ! Update leaf surface vapour pressure deficit:
             dsx(i) = met%dva(i) + air%dsatdk(i) * (tlfx(i)-met%tvair(i))
 
+            IF( .NOT. cable_runtime%esm15_dryLeaf ) THEN
+              dsx(i)=  MAX(dsx(i),0.0)
+            END IF    
             ! Store change in leaf temperature between successive iterations:
             deltlf(i) = tlfxx(i)-tlfx(i)
             abs_deltlf(i) = ABS(deltlf(i))
@@ -602,9 +608,9 @@ DO WHILE (k < CMAXITER)
          ENDIF !lai/abs_deltlf
 
       ENDDO !i=1,mp
-
-      ! Whhere leaf temp change b/w iterations is significant, and
+       ! Where leaf temp change b/w iterations is significant, and
       ! difference is smaller than the previous iteration, store results:
+
       DO i=1,mp
       
          IF ( abs_deltlf(i) < ABS( deltlfy(i) ) ) THEN
@@ -648,12 +654,14 @@ DO WHILE (k < CMAXITER)
       
       END DO !over mp 
 
+
    END DO  ! DO WHILE (ANY(abs_deltlf > 0.1) .AND.  k < CMAXITER)
 
-! dry canopy flux
-canopy%fevc = (1.0-canopy%fwet) * ecy
 
-IF (cable_user%fwsoil_switch.NE.'Haverd2013') THEN
+    ! dry canopy flux
+    canopy%fevc = (1.0-canopy%fwet) * ecy
+
+    IF (cable_user%fwsoil_switch.NE.'Haverd2013') THEN
 
    ! Recalculate ssnow%evapfbl as ecy may not be updated with the ecx
    ! calculated in the last iteration.
@@ -699,17 +707,17 @@ ENDIF
 
 canopy%frday = 12.0 * SUM(rdy, 2)
 
-   canopy%fpn = -12.0 * SUM(an_y, 2)
-   canopy%evapfbl = ssnow%evapfbl
+IF( cable_runtime%esm15_dryLeaf ) THEN
+  canopy%fpn = -12.0 * SUM(an_y, 2)
+ELSE
+  canopy%fpn = MIN(-12.0 * SUM(an_y, 2), canopy%frday)
+END IF    
+canopy%evapfbl = ssnow%evapfbl
    
 
+    DEALLOCATE( gswmin )
 
-
-
-
-DEALLOCATE( gswmin )
-
-END SUBROUTINE dryLeaf
+  END SUBROUTINE dryLeaf
  
  
    SUBROUTINE getrex_1d(theta, rex, fws, Fs, thetaS, thetaw, Etrans, gamma, dx, dt, zr)
