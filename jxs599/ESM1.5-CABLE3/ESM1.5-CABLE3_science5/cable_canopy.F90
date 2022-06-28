@@ -390,15 +390,27 @@ canopy%tv(j) = tv(j)
          
          !--- uses %ga from previous timestep    
          ssnow%potev =  Penman_Monteith( mp, Ctfrz, CRMH2o, Crmair, CTETENA, CTETENB,         &
-                 CTETENC, air%dsatdk, air%psyc, air%rho, air%rlam,             & 
+                          CTETENC, REAL(veg%clitt), cable_user%litter,               &
+                          air%dsatdk, air%psyc, air%rho, air%rlam,             &
                  met%tvair, met%pmb, met%qvair,                       &
-                 canopy%ga, canopy%fns, ssnow%rtsoil, ssnow%isflag )
+                          canopy%ga, canopy%fns, REAL(canopy%DvLitt),                &
+                          ssnow%rtsoil, ssnow%isflag )
+
       ELSE !by default assumes Humidity Deficit Method
       
+             ! Humidity deficit
+             ! INH: I think this should be - met%qvair
          dq = ssnow%qstss - met%qv
-         ssnow%potev = Humidity_deficit_method( mp, Ctfrz,  &
-                                 air%rho,air%rlam,           & 
-                      dq, ssnow%rtsoil,ssnow%snowd, ssnow%tgg )
+             dq_unsat = ssnow%rh_srf*ssnow%qstss - met%qv
+             ssnow%potev = Humidity_deficit_method( mp, Ctfrz, REAL(veg%clitt),cable_user%or_evap,     &
+                                 cable_user%gw_model, cable_user%litter,       &
+                                 air%rho, air%rlam,           & 
+                                 dq,dq_unsat,ssnow%qstss,   & 
+                                 REAL(canopy%DvLitt),      &
+                                 ssnow%isflag, REAL(ssnow%satfrac),ssnow%rtsoil, &
+                                 REAL(ssnow%rtevap_sat),  REAL(ssnow%rtevap_unsat), & 
+                                 ssnow%snowd, ssnow%tgg(:,1)     )
+
           
       ENDIF
 
@@ -427,16 +439,26 @@ canopy%tv(j) = tv(j)
          
          !--- uses %ga from previous timestep    
          ssnow%potev =  Penman_Monteith( mp, Ctfrz, CRMH2o, Crmair, CTETENA, CTETENB,         &
-                 CTETENC, air%dsatdk, air%psyc, air%rho, air%rlam,             & 
+                          CTETENC, REAL(veg%clitt), cable_user%litter,               &
+                          air%dsatdk, air%psyc, air%rho, air%rlam,             &
                  met%tvair, met%pmb, met%qvair,                       &
-                 canopy%ga, canopy%fns, ssnow%rtsoil, ssnow%isflag )
+                          canopy%ga, canopy%fns, REAL(canopy%DvLitt),                &
+                          ssnow%rtsoil, ssnow%isflag )
+
       
       ELSE !by default assumes Humidity Deficit Method
       
+             ! Humidity deficit
          dq = ssnow%qstss - met%qvair
-         ssnow%potev = Humidity_deficit_method( mp, Ctfrz,  &
-                                 air%rho,air%rlam,           & 
-                      dq, ssnow%rtsoil,ssnow%snowd, ssnow%tgg )
+             dq_unsat = ssnow%rh_srf*ssnow%qstss - met%qvair
+             ssnow%potev = Humidity_deficit_method( mp, Ctfrz, REAL(veg%clitt),cable_user%or_evap,     &
+                                 cable_user%gw_model, cable_user%litter,       &
+                                 air%rho, air%rlam,           & 
+                                 dq,dq_unsat,ssnow%qstss,   & 
+                                 REAL(canopy%DvLitt),      &
+                                 ssnow%isflag, REAL(ssnow%satfrac),ssnow%rtsoil, &
+                                 REAL(ssnow%rtevap_sat),  REAL(ssnow%rtevap_unsat), & 
+                                 ssnow%snowd, ssnow%tgg(:,1)     )
           
       ENDIF
 
