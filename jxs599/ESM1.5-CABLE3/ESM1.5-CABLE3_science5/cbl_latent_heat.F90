@@ -47,17 +47,28 @@ REAL, DIMENSION(mp) ::                                                      &
 
 INTEGER :: j
 
+!Ticket 137 - adjustments made so that one of four cases occurs
+!             i) evaporation from/dew onto surfaces with no snow, T>Tfrz
+!            ii) sublimation from/frost onto surfaces with snow cover
+!           iii) evaporation of liquid water if no snow but frozen soil
+!            iv) deposition of frost onto frozen soils if no snow cover
+!
+!IMPORTANTLY the value of _cls set here is used to control whether
+!water fluxes are from the snow pack or soil column in _soilsnow
+
    ! Soil latent heat:
    canopy_fess= ssnow_wetfac * ssnow_potev
    WHERE (ssnow_potev < 0. ) canopy_fess = ssnow_potev
+!ShareWHERE (ssnow_potev < 0. ) ssnow_wetfac(:) = 1.0
+!Sharecanopy_fess= ssnow_wetfac * ssnow_potev
    
-   ! Reduce soil evap due to presence of puddle
-   pwet = max(0.,min(0.2,ssnow_pudsto/max(1.,ssnow_pudsmx)))
-   canopy_fess = canopy_fess * (1.-pwet)
+! Reduce soil evap due to presence of puddle
+pwet = MAX(0.,MIN(0.2,ssnow_pudsto/MAX(1.,ssnow_pudsmx)))
+canopy_fess = canopy_fess * (1.-pwet)
 
-   frescale = soil_zse * 1000. * air_rlam / dels         
+frescale = soil_zse * 1000. * air_rlam / dels         
 
-   DO j=1,mp
+DO j=1,mp
       
       IF(ssnow_snowd(j) < 0.1 .AND. canopy_fess(j) .GT. 0. ) THEN
 
