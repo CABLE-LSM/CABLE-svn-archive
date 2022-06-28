@@ -80,11 +80,11 @@ DO j=1,mp
          ! E.Kowalczyk 2014 - reduces the soil evaporation
          flower_limit(j) = REAL(ssnow_wb(j))-soil_swilt(j)
         ENDIF
-         fupper_limit(j) = MAX( 0._r_2,                                        &
+    fupper_limit(j) = MAX( 0.,                                        &
                            flower_limit(j) * frescale(j)                       &
                            - ssnow_evapfbl(j)*air_rlam(j)/dels)
 
-         canopy_fess(j) = MIN(canopy_fess(j), fupper_limit(j))
+    canopy_fess(j) = MIN(canopy_fess(j), REAL(fupper_limit(j),r_2))
          
     !Ticket 137 - case iii)
     !evaporation from frozen soils needs to respect the assumption that
