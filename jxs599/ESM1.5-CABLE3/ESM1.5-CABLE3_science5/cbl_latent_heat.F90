@@ -59,10 +59,13 @@ INTEGER :: j
 !water fluxes are from the snow pack or soil column in _soilsnow
 
 ! Soil latent heat:
-canopy_fess= ssnow_wetfac * ssnow_potev
-WHERE (ssnow_potev < 0. ) canopy_fess = ssnow_potev
-!ShareWHERE (ssnow_potev < 0. ) ssnow_wetfac(:) = 1.0
-!Sharecanopy_fess= ssnow_wetfac * ssnow_potev
+IF( cable_runtime%esm15_latentH ) THEN
+	canopy_fess= ssnow_wetfac * ssnow_potev
+	WHERE (ssnow_potev < 0. ) canopy_fess = ssnow_potev
+ELSE
+	WHERE (ssnow_potev < 0. ) ssnow_wetfac(:) = 1.0
+	canopy_fess= ssnow_wetfac * ssnow_potev
+END IF
    
 ! Reduce soil evap due to presence of puddle
 pwet = MAX(0.,MIN(0.2,ssnow_pudsto/MAX(1.,ssnow_pudsmx)))
@@ -90,7 +93,7 @@ DO j=1,mp
     !evaporation from frozen soils needs to respect the assumption that
     !ice fraction of soil moisture cannot exceed frozen_limit=0.85
     !see soilsnow: if frozen_limit changes need to be consistent
-    IF( cable_runtime%esm15_dryLeaf ) THEN
+    IF( cable_runtime%esm15_latentH ) THEN
          fupper_limit(j) = REAL(ssnow_wb(j)-ssnow_wbice(j)) * frescale(j)
     ELSE
      fupper_limit(j) = REAL(ssnow_wb(j)-ssnow_wbice(j)/0.85)*frescale(j)
@@ -102,7 +105,7 @@ DO j=1,mp
 
       ssnow_cls(j)=1.
       
-    IF( .NOT. cable_runtime%esm15_dryLeaf ) THEN
+    IF( .NOT. cable_runtime%esm15_latentH ) THEN
  
       !Ticket 137 - case ii) deposition of frost onto snow
       ! case of sublimation of snow overwrites later
