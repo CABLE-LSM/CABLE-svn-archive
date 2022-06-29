@@ -14,6 +14,7 @@ SUBROUTINE wetLeaf( dels, cansat, tlfy,     &
                     canopy_fwet, canopy_cansto, air_rlam, air_dsatdk, &
                     met_tvair, met_tk, met_dva, air_psyc )
 
+USE cable_common_module, ONLY : cable_runtime
 USE cable_def_types_mod, ONLY : r_2
    
 INTEGER, INTENT(IN) :: mp
@@ -79,9 +80,11 @@ REAL, INTENT(IN) :: sum_rad_gradis(mp)
          gwwet(j) = 1.075 * sum_gbh(j) 
          ghrwet(j) = sum_rad_gradis(j) + ghwet(j)
          
-         ! Calculate fraction of canopy which is wet:
-         canopy_fwet(j) = MAX( 0.0, MIN( 1.0,                                  &
-                          0.8 * canopy_cansto(j) / MAX( cansat(j), 0.01 ) ) )
+        IF( cable_runtime%esm15_wetLeaf ) THEN
+          ! Calculate fraction of canopy which is wet:
+          canopy_fwet(j) = MAX( 0.0, MIN( 1.0,                                 &
+                           0.8 * canopy_cansto(j) / MAX( cansat(j), 0.01 ) ) )
+        ENDIF
          
          ! Calculate lat heat from wet canopy, may be neg. if dew on wet canopy
          ! to avoid excessive evaporation:
@@ -95,6 +98,8 @@ REAL, INTENT(IN) :: sum_rad_gradis(mp)
                          / ( air_dsatdk(j)+air_psyc(j)*ghrwet(j) / gwwet(j) )  &
                          , ccfevw(j) )
 
+        !upwards flux density of water (kg/m2/s) - canopy componenet of 
+        !potential evapotranspiration 
          canopy_fevw_pot(j) = ( air_dsatdk(j)* (sum_rad_rniso(j) -             &
                               CCAPP * Crmair * ( met_tvair(j) - met_tk(j) )  &
                               *sum_rad_gradis(j) )                             &
