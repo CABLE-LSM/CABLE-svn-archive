@@ -132,15 +132,9 @@ DO i=1,mp
                       - (gswminz(i,j)*fwsoilz(i)/CRGSWC)*cx2z(i,j)*csxz(i,j)
 
 
-            !kdcorbin, 09/10 - new calculations
-            ! no solution, give it a huge number
-            IF( ABS( coef2z(i,j) ) < 1.0e-9 .AND.                           &
-                ABS( coef1z(i,j) ) < 1.0e-9 ) THEN
-
-               ciz(i,j) = 99999.0
-               anrubpz(i,j)  = 99999.0
-
-            ENDIF
+             !Ticket #117 - initialize at all times
+            ciz(i,j) = 99999.0
+            anrubpz(i,j)  = 99999.0
 
             ! solve linearly
             IF( ABS( coef2z(i,j) ) < 1.e-9 .AND.                            &
