@@ -61,9 +61,17 @@ CALL qsatfjh( mp, qsatfvar, CRMH2o, Crmair, CTETENA, CTETENB, CTETENC,         &
 !Needs to be addressed/simplified at a later date - involves changes
 !to HDM method and latent_heat_flux() and elsewhere
 
-ssnowpotev = cc1 * (canopy_fns - ground_H_flux) + &
+IF (cable_user_litter) THEN
+  !! vh_js !!
+  ssnowpotev = cc1 * (canopy_fns - ground_H_flux) + &
+               cc2 * air_rho * air_rlam*(qsatfvar - met_qvair)/ &
+               (ssnow_rtsoil+ REAL((1-ssnow_isflag))*veg_clitt*0.003/canopy_DvLitt)
+ELSE
+  ssnowpotev = cc1 * (canopy_fns - ground_H_flux) + &
              cc2 * air_rho * air_rlam*(qsatfvar  - met_qvair)/ssnow_rtsoil
+ENDIF
 
+RETURN
 END FUNCTION Penman_Monteith
 
 
@@ -77,6 +85,7 @@ FUNCTION Humidity_deficit_method( mp, Ctfrz, veg_clitt,cable_user_or_evap,     &
                                  ssnow_rtevap_sat, ssnow_rtevap_unsat,      & 
                                  ssnow_snowd, ssnow_tgg &
                                  ) RESULT(ssnowpotev)
+USE cable_common_module, ONLY : cable_runtime
 IMPLICIT NONE
 
 integer :: mp
@@ -101,9 +110,7 @@ REAL :: ssnow_rtevap_unsat(mp)    !
 
 !local vars
 INTEGER :: j
-REAL, DIMENSION(mp) :: q_air
 
-!Share!q_air = qstss - dq
 
 DO j=1,mp
 
@@ -111,9 +118,52 @@ DO j=1,mp
     dq(j) = MAX( -0.1e-3, dq(j))
   END IF
 
+  IF( .NOT. cable_runtime%esm15_HDM ) THEN
+
+    IF( ssnow_snowd(j)>1.0 .OR. ssnow_tgg(j) .EQ. Ctfrz ) THEN
+      dqu(j) = MAX( -0.1e-3, dqu(j))
+    ELSEIF (dq(j) .LE. 0.0 .AND. dqu(j) .LT. dq(j)) THEN
+      dqu(j) = dq(j)
+    ELSEIF (dq(j) .GE. 0.0 .AND. dqu(j) .LT. 0.0) THEN
+      dqu(j) = 0.0
+    ENDIF
+
+  ENDIF
 ENDDO
 
-ssnowpotev = air_rho * air_rlam * dq / ssnow_rtsoil
+IF (cable_user_or_evap .or. cable_user_gw_model) then
+  write(6,*) "GW or ORevepis not an option right now"
+  !H!        IF (cable_user_or_evap) THEN
+  !H!          do j=1,mp
+  !H!       
+  !H!             if (veg_iveg(j) .lt. 16 .and. ssnow_snowd(j) .lt. 1e-7) THEN
+  !H!       
+  !H!                if (dq(j) .le. 0.0) THEN
+  !H!                   ssnow_rtevap_sat(j) = min(rtevap_max,canopy_sublayer_dz(j)/rt_Dff)
+  !H!                end if
+  !H!       
+  !H!                if (dqu(j) .le. 0.0) THEN
+  !H!                   ssnow_rtevap_unsat(j) = min(rtevap_max,canopy_sublayer_dz(j)/rt_Dff)
+  !H!                end if
+  !H!       
+  !H!             end if
+  !H!
+  !H!          end do
+  !H!
+  !H!        END IF
+
+  ssnowpotev = air_rho * air_rlam * ( &
+               REAL(ssnow_satfrac) * dq /(ssnow_rtsoil + REAL(ssnow_rtevap_sat)) + &
+               (1.0 - REAL(ssnow_satfrac))* dqu/( &
+               ssnow_rtsoil + REAL(ssnow_rtevap_unsat)) )
+
+ ELSEIF (cable_user_litter) THEN
+         !! vh_js !!
+  ssnowpotev = air_rho * air_rlam * dq /( ssnow_rtsoil +                       &
+                          REAL((1-ssnow_isflag))* veg_clitt*0.003/canopy_DvLitt)
+ ELSE
+  ssnowpotev = air_rho * air_rlam * dq / ssnow_rtsoil
+ ENDIF
    
 RETURN
 END FUNCTION Humidity_deficit_method

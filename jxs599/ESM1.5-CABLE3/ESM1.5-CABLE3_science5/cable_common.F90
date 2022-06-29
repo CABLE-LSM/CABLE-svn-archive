@@ -56,7 +56,7 @@ USE cable_runtime_opts_mod ,ONLY : wiltparam
           um_radiation = .FALSE., um_hydrology = .FALSE., esm15 = .TRUE.,      &
           esm15_albedo = .TRUE., esm15_init_rad = .TRUE., esm15_rad = .TRUE.,  &
           esm15_friction = .TRUE., esm15_dryLeaf = .TRUE.,                     &
-          esm15_wetness = .TRUE., esm15_latentH = .TRUE.
+          esm15_wetness = .TRUE., esm15_latentH = .TRUE., esm15_HDM = .TRUE.
       
       LOGICAL :: offline = .FALSE., mk3l = .FALSE.
    
