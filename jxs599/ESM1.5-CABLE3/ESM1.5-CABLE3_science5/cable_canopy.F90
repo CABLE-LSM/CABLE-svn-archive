@@ -1,5 +1,31 @@
 MODULE cable_canopy_module
+  
+  IMPLICIT NONE
    
+  PUBLIC define_canopy
+  PRIVATE
+   
+CONTAINS
+ 
+SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,climate, sunlit_veg_mask, reducedLAIdue2snow )
+
+  USE cable_def_types_mod
+  USE cbl_radiation_module, ONLY : radiation
+  USE cable_air_module
+  USE cable_common_module   
+  USE cable_roughness_module
+  USE cable_climate_type_mod, ONLY : climate_type
+
+USE cbl_friction_vel_module,  ONLY : comp_friction_vel, psim, psis
+USE cbl_pot_evap_snow_module, ONLY : Penman_Monteith, Humidity_deficit_method
+USE cbl_qsat_module,          ONLY : qsatfjh,  qsatfjh2
+USE cbl_zetar_module,         ONLY : update_zetar
+USE cable_latent_heat_module, ONLY : latent_heat_flux
+USE cable_wetleaf_module,     ONLY : wetleaf 
+USE cbl_dryLeaf_module,       ONLY : dryLeaf
+USE cbl_SurfaceWetness_module, ONLY : Surf_wetness_fact
+USE cable_within_canopy_module, ONLY : within_canopy
+
 ! physical constants
 USE cable_phys_constants_mod, ONLY : CTFRZ   => TFRZ
 USE cable_phys_constants_mod, ONLY : CRMAIR  => RMAIR
@@ -58,33 +84,9 @@ USE cable_photo_constants_mod, ONLY : CCONVX4 => CONVX4
 ! maths & other constants
 USE cable_math_constants_mod,  ONLY : CPI_C  => PI
 USE cable_other_constants_mod, ONLY : CLAI_THRESH  => LAI_THRESH
-   
-   IMPLICIT NONE
-   
-   PUBLIC define_canopy
-   PRIVATE
-   
-CONTAINS
  
-
-SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,climate, sunlit_veg_mask, reducedLAIdue2snow )
-   USE cable_def_types_mod
-   USE cbl_radiation_module, ONLY : radiation
-   USE cable_air_module
-   USE cable_common_module   
-   USE cable_roughness_module
-USE cable_climate_type_mod, ONLY : climate_type
-
-USE cbl_friction_vel_module,  ONLY : comp_friction_vel, psim, psis
-USE cbl_pot_evap_snow_module, ONLY : Penman_Monteith, Humidity_deficit_method
-USE cbl_qsat_module,          ONLY : qsatfjh,  qsatfjh2
-USE cbl_zetar_module,         ONLY : update_zetar
-USE cable_latent_heat_module, ONLY : latent_heat_flux
-USE cable_wetleaf_module,     ONLY : wetleaf 
-USE cbl_dryLeaf_module,       ONLY : dryLeaf
-USE cbl_SurfaceWetness_module, ONLY : Surf_wetness_fact
-USE cable_within_canopy_module, ONLY : within_canopy
-
+  IMPLICIT NONE
+   
    TYPE (balances_type), INTENT(INOUT)  :: bal
    TYPE (radiation_type), INTENT(INOUT) :: rad
    TYPE (roughness_type), INTENT(INOUT) :: rough
@@ -127,12 +129,21 @@ logical :: sunlit_veg_mask(mp)
       sum_rad_gradis,& !
       rttsoil,       & ! REV_CORR working variable for sensitivity terms
       rhlitt,        & ! REV_CORR working variables for litter resistances
-      relitt           !
+         relitt,        & !
+         alpm1,         & ! REV_CORR working variables for Or scheme
+         beta2,         & ! beta_div_alpm1 = beta2/alpm1 (goes to zero without
+         beta_div_alpm    ! division when no canopy)
    
    ! temporary buffers to simplify equations
    REAL, DIMENSION(mp) ::                                                      &
-      ftemp,rlower_limit,                      &
+         ftemp,z_eff,psim_arg, psim_1, psim_2, rlower_limit,                      &
       term1, term2, term3, term5 
+    ! arguments for potential_evap (sli)
+    REAL(r_2), DIMENSION(mp) ::  Rn, rbh, rbw, Ta, rha,Ts, &
+         Tsoil, Epot, Hpot, Gpot, &
+         kth, dz,lambdav, &
+         dEdrha, dEdTa, dEdTsoil, dGdTa, dGdTsoil
+    REAL, DIMENSION(mp) :: qsat
 
    REAL, DIMENSION(:), POINTER ::                                              & 
       cansat,        & ! max canopy intercept. (mm)
@@ -156,6 +167,7 @@ logical :: sunlit_veg_mask(mp)
       csx              ! leaf surface CO2 concentration
 
    REAL  :: rt_min
+    REAL, DIMENSION(mp)       :: zstar, rL, phist, csw, psihat,rt0bus
 
    INTEGER :: j
    
@@ -191,17 +203,19 @@ real :: tv(mp)
    gbhf = 1e-3     ! default free convection boundary layer conductance
    gbhu = 1e-3     ! default forced convection boundary layer conductance
    ssnow%evapfbl = 0.0
-
+    ssnow%rex = 0.0
    ! Initialise in-canopy temperatures and humidity:
    csx = SPREAD(met%ca, 2, mf) ! initialise leaf surface CO2 concentration
    met%tvair = met%tk
    met%qvair = met%qv
    canopy%tv = met%tvair
+    canopy%fwsoil = 1.0
+
+   CALL define_air (met, air)
 
    CALL define_air (met, air)
    
-   !ESM15!CALL qsatfjh(qstvair,met%tvair-Ctfrz,met%pmb)
-CALL qsatfjh(mp, qstvair, CRMH2o, Crmair, CTETENA, CTETENB, CTETENC, met%tvair-CTfrz,met%pmb)
+  CALL qsatfjh(mp, qstvair, CRMH2o, Crmair, CTETENA, CTETENB, CTETENC, met%tvair-CTfrz,met%pmb)
 
    met%dva = (qstvair - met%qvair) *  Crmair/Crmh2o * met%pmb * 100.0
    dsx = met%dva     ! init. leaf surface vpd
