@@ -13,6 +13,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,clima
   USE cbl_radiation_module, ONLY : radiation
   USE cable_air_module
   USE cable_common_module   
+USE cable_common_module, ONLY : cable_runtime
   USE cable_roughness_module
   USE cable_climate_type_mod, ONLY : climate_type
 
@@ -23,8 +24,8 @@ USE cbl_zetar_module,         ONLY : update_zetar
 USE cable_latent_heat_module, ONLY : latent_heat_flux
 USE cable_wetleaf_module,     ONLY : wetleaf 
 USE cbl_dryLeaf_module,       ONLY : dryLeaf
-USE cbl_SurfaceWetness_module, ONLY : Surf_wetness_fact
 USE cable_within_canopy_module, ONLY : within_canopy
+USE cbl_SurfaceWetness_module, ONLY : Surf_wetness_fact
 
 ! physical constants
 USE cable_phys_constants_mod, ONLY : CTFRZ   => TFRZ
@@ -213,18 +214,23 @@ real :: tv(mp)
 
    CALL define_air (met, air)
 
-   CALL define_air (met, air)
-   
   CALL qsatfjh(mp, qstvair, CRMH2o, Crmair, CTETENA, CTETENB, CTETENC, met%tvair-CTfrz,met%pmb)
 
    met%dva = (qstvair - met%qvair) *  Crmair/Crmh2o * met%pmb * 100.0
    dsx = met%dva     ! init. leaf surface vpd
-   
+  IF( .NOT. cable_runtime%esm15_canopy ) THEN
+    dsx= MAX(dsx,0.0)
+  END IF   
    tlfx = met%tk  ! initialise leaf temp iteration memory variable (K)
    tlfy = met%tk  ! initialise current leaf temp (K)
    
    ortsoil = ssnow%rtsoil
-   ssnow%tss =  (1-ssnow%isflag)*ssnow%tgg(:,1) + ssnow%isflag*ssnow%tggsn(:,1)
+    IF (cable_user%soil_struc=='sli') THEN
+       ssnow%tss = REAL(ssnow%Tsurface) + Ctfrz
+    ELSE
+       ssnow%tss =  REAL((1-ssnow%isflag))*ssnow%tgg(:,1) +                    &
+            REAL(ssnow%isflag)*ssnow%tggsn(:,1)
+    ENDIF
    tss4 = ssnow%tss**4
    canopy%fes = 0.
    canopy%fess = 0.
@@ -232,6 +238,9 @@ real :: tv(mp)
    ssnow%potev = 0.
    canopy%fevw_pot = 0.
 
+  IF( .NOT. cable_runtime%esm15_canopy ) THEN
+    dsx= MAX(dsx,0.0)
+  END IF   
 CALL radiation( ssnow, veg, air, met, rad, canopy, sunlit_veg_mask, &
   !constants
   clai_thresh, Csboltz, Cemsoil, Cemleaf, Ccapp &
@@ -246,7 +255,7 @@ CALL radiation( ssnow, veg, air, met, rad, canopy, sunlit_veg_mask, &
       ! AERODYNAMIC PROPERTIES: friction velocity us, thence turbulent
       ! resistances rt0, rt1 (elements of dispersion matrix):
       ! See CSIRO SCAM, Raupach et al 1997, eq. 3.46:
-CALL comp_friction_vel(canopy%us, iter, mp, CVONK, CUMIN, CPI_C,      &
+      CALL comp_friction_vel(canopy%us, iter, mp, CVONK, CUMIN, CPI_C,         &
                        canopy%zetar, rough%zref_uv, rough%zref_tq,     &
                        rough%z0m, met%ua )
 
@@ -270,9 +279,66 @@ CALL comp_friction_vel(canopy%us, iter, mp, CVONK, CUMIN, CPI_C,      &
                        / rough%zref_tq ) ) / CVONK
       
       rt_min = 5.      
+
+       !! vh_js !!
+       IF (cable_user%soil_struc=='sli') THEN
+          ! for stable conditions, update rough%rt0us & rough%rt1usa by replacing CCSW by
+          ! csw = cd/2* (U(hc)/ust)**2 according to Eqs 15 & 19 from notes by Ian Harman (9-9-2011)
+          WHERE (canopy%vlaiw > CLAI_thresh .AND. rough%hruff > rough%z0soilsn)
+             rt0bus = (LOG(0.1*rough%hruff/rough%z0soilsn) - psis(canopy%zetash(:,iter)) + &
+                  psis(canopy%zetash(:,iter)*rough%z0soilsn/(0.1*rough%hruff))) / &
+                  Cvonk/rough%term6a
+
+             zstar = rough%disp + 1.5*(veg%hc - rough%disp)
+
+             psihat = LOG((zstar - rough%disp)/ (veg%hc - rough%disp)) + &
+                  (veg%hc - zstar)/(zstar - rough%disp)
+             rL = -(Cvonk*Cgrav*(zstar - rough%disp)*(canopy%fh))/ &  ! 1/Monin-Obokov Length
+                  MAX( (air%rho*Ccapp*met%tk*canopy%us**3), 1.e-12)
+             phist = 1 + 5.0*(zstar - rough%disp)*rL
+
+             WHERE (canopy%zetar(:,iter) .GT. 1.e-6)! stable conditions
+             csw = MIN(0.3*((LOG((veg%hc-rough%disp)/rough%z0m) + phist*psihat - &
+             psim( canopy%zetar(:,iter)*(veg%hc-rough%disp) /                  &
+                    (rough%zref_tq-rough%disp), mp, CPI_C )+ &
+             psim(canopy%zetar(:,iter)*rough%z0m /                             &
+                  (rough%zref_tq-rough%disp), mp, CPI_C ))                     &
+                  / 0.4)**2/2., 3.0)* Ccsw
+
+             ELSEWHERE
+                csw = Ccsw
+             endwhere
+
+             rough%term2  = EXP( 2. * CSW * canopy%rghlai * &
+                  ( 1 - rough%disp / rough%hruff ) )
+             rough%term3  = CA33**2 * CCTL * 2. * CSW * canopy%rghlai
+             rough%term5  = MAX( ( 2. / 3. ) * rough%hruff / rough%disp, 1.0 )
+             rough%term6 =  EXP( 3. * rough%coexp * ( rough%disp / rough%hruff -1. ) )
+
+             rough%rt0us  = LOG(rough%disp/(0.1 * rough%hruff)) * &
+                  EXP(2. * CCSW * canopy%rghlai) * rough%disp &
+                  / rough%hruff / (Ca33 ** 2 * Cctl)
+
+             rough%rt1usa = rough%term5 * ( rough%term2 - 1.0 ) / rough%term3
+             rt0 = MAX(rt_min, rough%rt0us+rt0bus) / canopy%us
+          ELSEWHERE
+             rt0 = MAX(rt_min,rough%rt0us) / canopy%us
+          ENDWHERE
+
+       ELSE ! NOT sli
       rt0 = max(rt_min,rough%rt0us / canopy%us)
       
-      ! Aerodynamic resistance (sum 3 height integrals)/us
+          IF (cable_user%litter) THEN
+             ! Mathews (2006), A process-based model of offine fuel moisture,
+             !                 International Journal of Wildland Fire 15,155-168
+             ! assuming here u=1.0 ms-1, bulk litter density 63.5 kgm-3
+             canopy%kthLitt = 0.3_r_2 ! ~ 0.2992125984251969 = 0.2+0.14*0.045*1000.0/63.5
+             canopy%DvLitt = 3.1415841138194147e-05_r_2 ! = 2.17e-5*exp(1.0*2.6)*exp(-0.5*(2.08+(1.0*2.38)))
+          ENDIF
+
+       ENDIF ! sli
+
+!       ! Aerodynamic resistance (sum 3 height integrals)/us
       ! See CSIRO SCAM, Raupach et al 1997, eq. 3.50:
       rough%rt1 = MAX(5.,(rough%rt1usa + rough%rt1usb + rt1usc) / canopy%us)
       

@@ -58,7 +58,8 @@ USE cable_runtime_opts_mod ,ONLY : wiltparam
                esm15_rad = .TRUE., esm15_friction = .TRUE.,                    &
                esm15_dryLeaf = .TRUE., esm15_wetLeaf = .TRUE.,                 &
                esm15_wetness = .TRUE., esm15_latentH = .TRUE.,                 &
-               esm15_HDM = .TRUE., esm15_within_canopy = .TRUE.
+               esm15_HDM = .TRUE., esm15_within_canopy = .TRUE.,               &
+               esm15_canopy = .TRUE.
       
      LOGICAL :: offline = .FALSE., mk3l = .FALSE.
   
