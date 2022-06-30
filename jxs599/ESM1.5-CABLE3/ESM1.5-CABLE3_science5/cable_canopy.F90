@@ -239,8 +239,21 @@ real :: tv(mp)
    canopy%fevw_pot = 0.
 
   IF( .NOT. cable_runtime%esm15_canopy ) THEN
-    dsx= MAX(dsx,0.0)
+    !L_REV_CORR - initialise sensitivity/ACCESS correction terms
+    !NB %fes_cor is NOT initialised to zero at this point
+    canopy%fhs_cor = 0.0
+    canopy%fns_cor = 0.0
+    canopy%ga_cor = 0.0
+    canopy%fes_cor = 0.0
+
+    !L_REV_CORR - new working variables
+    rttsoil = 0.
+    rhlitt = 0.
+    relitt = 0.
+    alpm1  = 0.
+    beta2  = 0.
   END IF   
+
 CALL radiation( ssnow, veg, air, met, rad, canopy, sunlit_veg_mask, &
   !constants
   clai_thresh, Csboltz, Cemsoil, Cemleaf, Ccapp &
@@ -596,7 +609,7 @@ canopy%tv(j) = tv(j)
          IF ( canopy%wetfac_cs(j) .LE. 0. )                                    &
             canopy%wetfac_cs(j) = MAX( 0., MIN( 1.,                            &
                                   MAX( canopy%fev(j)/canopy%fevw_pot(j),       &
-                                  canopy%fes(j)/ssnow%potev(j) ) ) )
+               REAL(canopy%fes(j))/ssnow%potev(j) ) ) )
       
       ENDDO 
 
