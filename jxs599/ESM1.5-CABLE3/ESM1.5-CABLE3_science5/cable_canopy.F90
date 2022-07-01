@@ -261,6 +261,10 @@ CALL radiation( ssnow, veg, air, met, rad, canopy, sunlit_veg_mask, &
 
    canopy%zetar(:,1) = CZETA0 ! stability correction terms
    canopy%zetar(:,2) = CZETPOS + 1 
+  IF( .NOT. cable_runtime%esm15_canopy ) THEN
+    canopy%zetash(:,1) = CZETA0 ! stability correction terms
+    canopy%zetash(:,2) = CZETPOS + 1
+  END IF   
 
 
    DO iter = 1, NITER
@@ -365,6 +369,7 @@ CALL radiation( ssnow, veg, air, met, rad, canopy, sunlit_veg_mask, &
      
       ENDDO 
       
+
       ssnow%rtsoil = max(rt_min,ssnow%rtsoil)   
       
       DO j=1,mp
@@ -378,6 +383,12 @@ CALL radiation( ssnow, veg, air, met, rad, canopy, sunlit_veg_mask, &
       
       ENDDO 
    
+
+       IF (cable_user%or_evap) THEN
+        write(6,*) "GW or ORevepis not an option right now"
+        !H!          call or_soil_evap_resistance(soil,air,met,canopy,ssnow,veg,rough)
+       END IF
+
       ! Vegetation boundary-layer conductance (mol/m2/s)
       ! Cprandt = kinematic viscosity/molecular diffusivity
       ! See CSIRO SCAM, Raupach et al 1997, eq. 3.12. Top leaf:
@@ -392,6 +403,7 @@ CALL radiation( ssnow, veg, air, met, rad, canopy, sunlit_veg_mask, &
             
             ! Forced convection boundary layer conductance                     
             ! (see Wang & Leuning 1998, AFM):
+            IF( cable_runtime%esm15_canopy ) THEN
             gbhu(j,1) = gbvtop(j)*(1.0-EXP(-canopy%vlaiw(j)                    &
                         *(0.5*rough%coexp(j)+rad%extkb(j) ))) /                &
                         (rad%extkb(j)+0.5*rough%coexp(j))
@@ -399,6 +411,17 @@ CALL radiation( ssnow, veg, air, met, rad, canopy, sunlit_veg_mask, &
             gbhu(j,2) = (2.0/rough%coexp(j))*gbvtop(j)*  &
                         (1.0-EXP(-0.5*rough%coexp(j)*canopy%vlaiw(j)))         &
                         - gbhu(j,1)
+            ELSE
+              !vh! inserted 'min' to avoid floating underflow
+              gbhu(j,1) = gbvtop(j)*(1.0-EXP(-MIN(canopy%vlaiw(j)                    &
+                              *(0.5*rough%coexp(j)+rad%extkb(j) ),20.0))) /            &
+                              (rad%extkb(j)+0.5*rough%coexp(j))
+            
+              gbhu(j,2) = (2.0/rough%coexp(j))*gbvtop(j)*  &
+                              (1.0-EXP(-MIN(0.5*rough%coexp(j)*canopy%vlaiw(j),20.0))) &
+                              - gbhu(j,1)
+            
+            ENDIF 
          ENDIF 
       
       ENDDO 
@@ -794,15 +817,15 @@ canopy%tv(j) = tv(j)
    bal%drybal = REAL(ecy+hcy) - SUM(rad%rniso,2)                               &
                 + CCAPP*Crmair*(tlfy-met%tk)*SUM(rad%gradis,2)  ! YP nov2009
 
-   bal%wetbal = canopy%fevw + canopy%fhvw - SUM(rad%rniso,2) * canopy%fwet      &
+bal%wetbal = canopy%fevw + canopy%fhvw - SUM(rad%rniso,2) * canopy%fwet      &
                 + CCAPP*Crmair * (tlfy-met%tk) * SUM(rad%gradis,2) *          &
                 canopy%fwet  ! YP nov2009
 
-   DEALLOCATE(cansat,gbhu)
-   DEALLOCATE(dsx, fwsoil, tlfx, tlfy)
-   DEALLOCATE(ecy, hcy, rny)
-   DEALLOCATE(gbhf, csx)
-   DEALLOCATE(ghwet)
+DEALLOCATE(cansat,gbhu)
+DEALLOCATE(dsx, fwsoil, tlfx, tlfy)
+DEALLOCATE(ecy, hcy, rny)
+DEALLOCATE(gbhf, csx)
+DEALLOCATE(ghwet)
 
 CONTAINS
 
