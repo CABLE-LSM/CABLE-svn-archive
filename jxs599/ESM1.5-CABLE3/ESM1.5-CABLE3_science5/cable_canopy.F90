@@ -518,31 +518,44 @@ END IF
             CSBOLTZ*canopy%tv**4 - CEMSOIL*CSBOLTZ* tss4
 
 
+
       ! Saturation specific humidity at soil/snow surface temperature:
-      !ESM15!call qsatfjh(ssnow%qstss,ssnow%tss-Ctfrz,met%pmb)
        CALL qsatfjh(mp, ssnow%qstss, CRMH2o, Crmair, CTETENA, CTETENB, CTETENC,ssnow%tss-CTfrz,met%pmb)
 
       if (cable_user%gw_model .OR.  cable_user%or_evap) & 
       write(6,*) "GW or ORevepis not an option right now"
       !H!        call pore_space_relative_humidity(ssnow,soil,veg)
 
-      IF(cable_user%ssnow_POTEV== "P-M") THEN
+        IF (cable_user%soil_struc=='default') THEN
+
+          !REV_CORR - single location for calculating litter resistances
+          !can go earlier in the code if needed
+          IF (cable_user%litter) THEN
+             rhlitt = REAL((1-ssnow%isflag))*veg%clitt*0.003/ &
+                  canopy%kthLitt/(air%rho*CCAPP)
+             relitt = REAL((1-ssnow%isflag))*veg%clitt*0.003/ &
+                  canopy%DvLitt
+          ENDIF
+
+          !latent heat flux density of water (W/m2) - soil componenet of 
+          !potential evapotranspiration 
+          IF(cable_user%ssnow_POTEV== "P-M") THEN
          
-         !--- uses %ga from previous timestep    
-         ssnow%potev =  Penman_Monteith( mp, Ctfrz, CRMH2o, Crmair, CTETENA, CTETENB,         &
+            !--- uses %ga from previous timestep    
+            ssnow%potev =  Penman_Monteith( mp, Ctfrz, CRMH2o, Crmair, CTETENA, CTETENB,         &
                           CTETENC, REAL(veg%clitt), cable_user%litter,               &
                           air%dsatdk, air%psyc, air%rho, air%rlam,             &
-                 met%tvair, met%pmb, met%qvair,                       &
+                          met%tvair, met%pmb, met%qvair,                       &
                           canopy%ga, canopy%fns, REAL(canopy%DvLitt),                &
                           ssnow%rtsoil, ssnow%isflag )
 
-      ELSE !by default assumes Humidity Deficit Method
+          ELSE !by default assumes Humidity Deficit Method
       
-             ! Humidity deficit
-             ! INH: I think this should be - met%qvair
-         dq = ssnow%qstss - met%qv
-             dq_unsat = ssnow%rh_srf*ssnow%qstss - met%qv
-             ssnow%potev = Humidity_deficit_method( mp, Ctfrz, REAL(veg%clitt),cable_user%or_evap,     &
+            ! Humidity deficit
+            ! INH: I think this should be - met%qvair
+            dq = ssnow%qstss - met%qv
+            dq_unsat = ssnow%rh_srf*ssnow%qstss - met%qv
+            ssnow%potev = Humidity_deficit_method( mp, Ctfrz, REAL(veg%clitt),cable_user%or_evap,     &
                                  cable_user%gw_model, cable_user%litter,       &
                                  air%rho, air%rlam,           & 
                                  dq,dq_unsat,ssnow%qstss,   & 
@@ -552,19 +565,56 @@ END IF
                                  ssnow%snowd, ssnow%tgg(:,1)     )
 
           
-      ENDIF
+          ENDIF !(cable_user%ssnow_POTEV== "P-M") THEN
 
-      ! Soil latent heat:
+          ! Soil latent heat:
 
-      CALL Latent_heat_flux( mp, CTFRZ, dels, soil%zse(1), soil%swilt,           &
+          CALL Latent_heat_flux( mp, CTFRZ, dels, soil%zse(1), soil%swilt,           &
                              cable_user%l_new_reduce_soilevp, pwet, air%rlam,  &
                              ssnow%snowd, ssnow%wb(:,1), ssnow%wbice(:,1),             &
                              ssnow%pudsto, ssnow%pudsmx, ssnow%potev,          &
                              ssnow%wetfac, ssnow%evapfbl(:,1), ssnow%cls,          & 
                              ssnow%tss, canopy%fes, canopy%fess, canopy%fesp  )
 
-      ! Calculate soil sensible heat:
-      canopy%fhs = air%rho*CCAPP*(ssnow%tss - met%tk) /ssnow%rtsoil
+          ! Calculate soil sensible heat:
+          IF (cable_runtime%esm15_canopy) THEN
+            canopy%fhs = air%rho*CCAPP*(ssnow%tss - met%tk) /ssnow%rtsoil
+          ELSE !(cable_runtime%esm15_canopy) THEN
+          
+            ! INH: I think this should be - met%tvair
+            !canopy%fhs = air%rho*CCAPP*(ssnow%tss - met%tk) /ssnow%rtsoil
+            IF (cable_user%gw_model .OR. cable_user%or_evap) THEN
+            canopy%fhs =  air%rho*CCAPP*(ssnow%tss - met%tk) / &
+                      (ssnow%rtsoil + ssnow%rt_qh_sublayer)
+            
+            !note if or_evap and litter are true then litter resistance is
+            !incluyded above in ssnow%rt_qh_sublayer
+            ELSEIF (cable_user%litter) THEN
+            
+              !! vh_js !! account for additional litter resistance to sensible heat transfer
+              !! INH simplifying code using rhlitt
+              canopy%fhs =  air%rho*CCAPP*(ssnow%tss - met%tk) / &
+                                  !(ssnow%rtsoil + real((1-ssnow%isflag))*veg%clitt*0.003/canopy%kthLitt/(air%rho*CCAPP))
+                          (ssnow%rtsoil + rhlitt)
+            ELSE
+              canopy%fhs = air%rho*CCAPP*(ssnow%tss - met%tvair) /ssnow%rtsoil
+            ENDIF !(cable_user%gw_model .OR. cable_user%or_evap) THEN
+
+          ENDIF !(cable_runtime%esm15_canopy) THEN
+        
+        ELSE !cable_user%soil_struct==default
+    
+          IF (.NOT. cable_runtime%esm15_canopy) THEN
+          
+            write(6,*) "SLI is not an option right now"
+            ! SLI SEB to get canopy%fhs, canopy%fess, canopy%ga
+            ! (Based on old Tsoil, new canopy%tv, new canopy%fns)
+            !H!CALL sli_main(1,dels,veg,soil,ssnow,met,canopy,air,rad,1)
+    
+          ENDIF !(cable_runtime%esm15_canopy) THEN
+
+    ENDIF !cable_user%soil_struct==default
+     
 
 
   CALL within_canopy( mp, CRMH2o, Crmair, CTETENA, CTETENB, CTETENC,           &
@@ -642,6 +692,10 @@ END IF
 
 
       canopy%rnet = canopy%fnv + canopy%fns  
+
+       !upwards flux density of water (kg/m2/s) - potential evapotranspiration 
+       !radiation weighted soil and canopy contributions
+       !Note: If PM routine corrected then match changes here
       canopy%epot = ((1.-rad%transd)*canopy%fevw_pot +                         &
                     rad%transd*ssnow%potev) * dels/air%rlam  
 
@@ -689,10 +743,12 @@ END IF
                - psis( canopy%zetar(:,NITER))                                  &
                + psis(canopy%zetar(:,NITER)*0.1*rough%z0m/rough%zref_tq) ) ! n
 
+    !INH - the screen level calculations should be split off into a new subroutine -------
 
    ! Calculate screen temperature: 1) original method from SCAM
    ! screen temp., windspeed and relative humidity at 1.5m
    ! screen temp., windspeed and relative humidity at 2.0m
+    ! cls factor included in qstar
     tstar = - canopy%fh / ( air%rho*CCAPP*canopy%us)
     qstar = - canopy%fe / ( air%rho*air%rlam *canopy%us)
     zscrn = MAX(rough%z0m,2.0-rough%disp)
@@ -710,7 +766,7 @@ END IF
    term2=0.
    term5=0.
    term3 = 0. ! Work around for Intel compiler problem with nested whres
-   r_sc = 0.
+    r_sc = 0.  ! sum of resistance from ground to screen level
    zscl = MAX(rough%z0soilsn,2.0)
 
    ! assume screen temp of bareground if all these conditions are not met
