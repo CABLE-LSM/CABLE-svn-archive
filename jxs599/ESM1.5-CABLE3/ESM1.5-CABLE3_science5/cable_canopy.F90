@@ -399,7 +399,7 @@ CALL radiation( ssnow, veg, air, met, rad, canopy, sunlit_veg_mask, &
                         veg%dleaf(j) * (canopy%us(j) / MAX(rough%usuh(j),1.e-6)&
                         * veg%dleaf(j) / air%visc(j) )**0.5                    &
                         * Cprandt**(1.0/3.0) / veg%shelrb(j)
-            gbvtop(j) = MAX (0.05,gbvtop(j) )      ! for testing (BP aug2010)
+             gbvtop(j) = MAX (0.05_r_2,gbvtop(j) )      ! for testing (BP aug2010)
             
             ! Forced convection boundary layer conductance                     
             ! (see Wang & Leuning 1998, AFM):
@@ -473,25 +473,45 @@ sum_rad_gradis = SUM(rad%gradis,2)
 !esm1.5            canopy%tv(j) = (rad%lwabv(j) / (2.0*(1.0-rad%transd(j))            &
 !esm1.5                     * CSBOLTZ*CEMLEAF)+met%tk(j)**4)**0.25
 
-tv_denom_transd(j) = ( 1.0-rad%transd(j) )
-tv_denom(j) = 2.0*(tv_denom_transd(j)) * CSBOLTZ*CEMLEAF
-tv_frac(j) = rad%lwabv(j) / tv_denom(j)
-tv_tk(j) = met%tk(j) **4
-tv(j) = ( tv_frac(j) + tv_tk(j) )
-!effectivel MAX here does IF( |tv_frac| >  tv_tk ) tv_frac = -1.0 * tv_tk
-tv(j) = MAX( 0.0, tv(j) )
-tv(j) = tv(j) ** .25
-canopy%tv(j) = tv(j)
+IF( cable_runtime%esm15_canopy ) THEN
 
+  tv_denom_transd(j) = ( 1.0-rad%transd(j) )
+  tv_denom(j) = 2.0*(tv_denom_transd(j)) * CSBOLTZ*CEMLEAF
+  tv_frac(j) = rad%lwabv(j) / tv_denom(j)
+  tv_tk(j) = met%tk(j) **4
+  tv(j) = ( tv_frac(j) + tv_tk(j) )
+  !effectivel MAX here does IF( |tv_frac| >  tv_tk ) tv_frac = -1.0 * tv_tk
+  tv(j) = MAX( 0.0, tv(j) )
+  tv(j) = tv(j) ** .25
+  canopy%tv(j) = tv(j)
+
+ELSE
+
+             IF (  (rad%lwabv(j) / (2.0*(1.0-rad%transd(j))            &
+                  * CSBOLTZ*CEMLEAF)+met%tvrad(j)**4) .GT. 0.0) THEN
+
+                canopy%tv(j) = (rad%lwabv(j) / (2.0*(1.0-rad%transd(j))            &
+                     * CSBOLTZ*CEMLEAF)+met%tvrad(j)**4)**0.25
+             ELSE
+                canopy%tv(j) = met%tvrad(j)
+             ENDIF
+
+
+END IF  
          
          ELSE! sparse canopy
          
+IF( cable_runtime%esm15_canopy ) THEN
            canopy%tv(j) = met%tk(j)
+ELSE
+  canopy%tv(j) = met%tvrad(j)
+END IF  
          
          ENDIF
           
       ENDDO 
      
+
 
       ! Calculate net rad to soil:
       canopy%fns = rad%qssabs + rad%transd*met%fld + (1.0-rad%transd)*CEMLEAF* &
@@ -501,6 +521,10 @@ canopy%tv(j) = tv(j)
       ! Saturation specific humidity at soil/snow surface temperature:
       !ESM15!call qsatfjh(ssnow%qstss,ssnow%tss-Ctfrz,met%pmb)
        CALL qsatfjh(mp, ssnow%qstss, CRMH2o, Crmair, CTETENA, CTETENB, CTETENC,ssnow%tss-CTfrz,met%pmb)
+
+      if (cable_user%gw_model .OR.  cable_user%or_evap) & 
+      write(6,*) "GW or ORevepis not an option right now"
+      !H!        call pore_space_relative_humidity(ssnow,soil,veg)
 
       IF(cable_user%ssnow_POTEV== "P-M") THEN
          
