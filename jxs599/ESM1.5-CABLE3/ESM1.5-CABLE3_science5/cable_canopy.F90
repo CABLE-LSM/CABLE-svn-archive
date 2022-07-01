@@ -698,8 +698,6 @@ END IF
       ENDIF !(cable_runtime%esm15_canopy) THEN
 
     ENDIF !cable_user%soil_struct==default
-    
-    canopy%ga = canopy%fns-canopy%fhs-canopy%fes
       
       ! Set total latent heat:
       canopy%fe = canopy%fev + canopy%fes
@@ -730,8 +728,20 @@ END IF
        !upwards flux density of water (kg/m2/s) - potential evapotranspiration 
        !radiation weighted soil and canopy contributions
        !Note: If PM routine corrected then match changes here
-      canopy%epot = ((1.-rad%transd)*canopy%fevw_pot +                         &
-                    rad%transd*ssnow%potev) * dels/air%rlam  
+      IF ( cable_runtime%esm15_canopy) THEN
+        canopy%epot = ((1.-rad%transd)*canopy%fevw_pot +                         &
+                    rad%transd*ssnow%potev) * dels/air%rlam 
+      ELSE 
+       canopy%epot = ((1.-rad%transd)*canopy%fevw_pot +                         &
+            rad%transd*ssnow%potev*ssnow%cls) * dels/air%rlam
+
+
+
+       canopy%rniso = SUM(rad%rniso,2) + rad%qssabs + rad%transd*met%fld + &
+            (1.0-rad%transd)*CEMLEAF* &
+            CSBOLTZ*met%tvrad**4 - CEMSOIL*CSBOLTZ*met%tvrad**4
+
+      END IF
 
       rlower_limit = canopy%epot * air%rlam / dels  
       where (rlower_limit == 0 ) rlower_limit = 1.e-7 !prevent from 0. by adding 1.e-7 (W/m2)
@@ -758,6 +768,7 @@ END IF
    END DO           ! do iter = 1, NITER
 
 
+
    canopy%cduv = canopy%us * canopy%us / (max(met%ua,CUMIN))**2
 
    !---diagnostic purposes
@@ -770,12 +781,16 @@ END IF
                   rad%transd*(.01*ssnow%wb(:,1)/soil%sfc)**2 ! + soil conductance; this part is done as in Moses
     where ( soil%isoilm == 9 ) canopy%gswx_T = 1.e6   ! this is a value taken from Moses for ice points
 
-    canopy%cdtq = canopy%cduv *( LOG( rough%zref_uv / rough%z0m) -              &
+    canopy%cdtq = canopy%cduv * &
+                    ( LOG( rough%zref_uv / rough%z0m) -              &
                psim( canopy%zetar(:,NITER) * rough%zref_uv/rough%zref_tq, mp, CPI_C ) &
-             + psim( canopy%zetar(:,NITER) * rough%z0m/rough%zref_tq, mp, CPI_C ) & ! new term from Ian Harman
-                 ) / ( LOG( rough%zref_tq /(0.1*rough%z0m) )                   &
-               - psis( canopy%zetar(:,NITER))                                  &
-               + psis(canopy%zetar(:,NITER)*0.1*rough%z0m/rough%zref_tq) ) ! n
+                     + psim( canopy%zetar(:,NITER) * rough%z0m    /rough%zref_tq, mp, CPI_C ) & ! new term from Ian Harman
+                    )                                          &
+                    / ( LOG( rough%zref_tq /(0.1*rough%z0m) )                   &
+                      - psis( canopy%zetar(:,NITER) )                                  &
+                      + psis(canopy%zetar(:,NITER)*0.1*rough%z0m/rough%zref_tq ) ) ! n
+
+    !INH - the screen level calculations should be split off into a new subroutine -------
 
     !INH - the screen level calculations should be split off into a new subroutine -------
 
@@ -784,7 +799,12 @@ END IF
    ! screen temp., windspeed and relative humidity at 2.0m
     ! cls factor included in qstar
     tstar = - canopy%fh / ( air%rho*CCAPP*canopy%us)
+IF ( cable_runtime%esm15_canopy) THEN
     qstar = - canopy%fe / ( air%rho*air%rlam *canopy%us)
+ELSE
+
+    qstar = - canopy%fe / ( air%rho*air%rlam *canopy%us * ssnow%cls)
+ENDIF
     zscrn = MAX(rough%z0m,2.0-rough%disp)
     ftemp = ( LOG(rough%zref_tq/zscrn)- psis(canopy%zetar(:,iterplus)) +       &
             psis(canopy%zetar(:,iterplus) * zscrn / rough%zref_tq) ) /CVONK
@@ -821,6 +841,7 @@ END IF
 
          IF( zscl(j) < rough%disp(j) ) THEN
 
+!!IF ( cable_runtime%esm15_canopy) THEN
             r_sc(j) = term5(j) * LOG(zscl(j)/rough%z0soilsn(j)) *              &
                       ( EXP(2*CCSW*canopy%rghlai(j)) - term1(j) ) / term3(j)
 
