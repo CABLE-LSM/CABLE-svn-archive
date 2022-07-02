@@ -946,14 +946,47 @@ ENDIF
 
       canopy%qscrn(j) = met%qv(j) - qstar(j) * ftemp(j)
 
-      IF( canopy%vlaiw(j) >CLAI_THRESH .and. rough%hruff(j) > 0.01)           &
+      IF( canopy%vlaiw(j) >CLAI_THRESH .and. rough%hruff(j) > 0.01) THEN 
 
-            canopy%qscrn(j) = qsurf(j) + (met%qv(j) - qsurf(j)) * MIN( 1.,     &
-                              r_sc(j) / MAX( 1., rough%rt0us(j) +              &
-                              rough%rt1usa(j) + rough%rt1usb(j) + rt1usc(j) ) )
+        IF ( cable_runtime%esm15_canopy) THEN
+          canopy%qscrn(j) = qsurf(j) + (met%qv(j) - qsurf(j)) * MIN( 1.,     &
+                                      r_sc(j) / MAX( 1., rough%rt0us(j) +              &
+                                      rough%rt1usa(j) + rough%rt1usb(j) + rt1usc(j) ) )
+        ELSE!( cable_runtime%esm15_canopy)
+        
+          IF (cable_user%litter) THEN
+        
+            !extensions for litter and Or model
+            canopy%qscrn(j) = qsurf(j) + (met%qv(j) - qsurf(j)) *             &
+                     MIN(1., ( ( r_sc(j)+relitt(j)*canopy%us(j) ) / MAX( 1.,         &
+                     rough%rt0us(j) + rough%rt1usa(j) + rough%rt1usb(j)            &
+                     + rt1usc(j) + relitt(j)*canopy%us(j) )) )
+        
+          ELSEIF (cable_user%or_evap .OR. cable_user%gw_model) THEN
+            !using alpm1 as a dumy variable
+            alpm1(j) = REAL(&
+                     ssnow%satfrac(j)/(REAL(ssnow%rtsoil(j),r_2)+&
+                     ssnow%rtevap_sat(j)) &
+                     + (1.0-ssnow%satfrac(j))/(REAL(ssnow%rtsoil(j),r_2)+ ssnow%rtevap_unsat(j)) &
+                     )
+        
+            canopy%qscrn(j) = qsurf(j) + (met%qv(j) - qsurf(j)) *             &
+                     MIN(1., ( (r_sc(j) + canopy%us(j)/alpm1(j) ) / MAX( 1.,         &
+                     rough%rt0us(j) + rough%rt1usa(j) + rough%rt1usb(j)              &
+                     + rt1usc(j) + canopy%us(j)/alpm1(j) )) )
+        
+          ELSE
+            canopy%qscrn(j) = qsurf(j) + (met%qv(j) - qsurf(j)) *             &
+                     MIN(1., (r_sc(j) / MAX( 1.,                                     &
+                     rough%rt0us(j) + rough%rt1usa(j) + rough%rt1usb(j)              &
+                     + rt1usc(j))) )
+          ENDIF
+        
+        ENDIF!( cable_runtime%esm15_canopy)
+    
+      ENDIF
 
    ENDDO 
-
 
    ! Calculate dewfall: from negative lh wet canopy + neg. lh dry canopy:
    canopy%dewmm = - (min(0.0,canopy%fevw) + min(0.0_r_2,canopy%fevc)) * &
@@ -970,6 +1003,7 @@ ENDIF
    canopy%spill=max(0.0, canopy%cansto-cansat)
 
    ! Move excess canopy water to throughfall:
+    ! %through is /dels in UM app. (unpacked in hyd driver) for STASH output
    canopy%through = canopy%through + canopy%spill
    
    ! Initialise 'throughfall to soil' as 'throughfall from canopy'; 
