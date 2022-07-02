@@ -10,14 +10,15 @@ PRIVATE
 
 CONTAINS
 
-SUBROUTINE fwsoil_calc_std(fwsoil, soil, ssnow, veg)
-    USE cable_def_types_mod
+!==============================================================================
+SUBROUTINE fwsoil_calc_std(fwsoil, soil, ssnow, veg) 
+   USE cable_def_types_mod
     USE cable_common_module, ONLY : cable_user
-    TYPE (soil_snow_type), INTENT(INOUT):: ssnow
-    TYPE (soil_parameter_type), INTENT(INOUT)   :: soil
-    TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
-    REAL, INTENT(OUT), DIMENSION(:):: fwsoil ! soil water modifier of stom. cond
-    REAL, DIMENSION(mp) :: rwater ! soil water availability
+   TYPE (soil_snow_type), INTENT(INOUT):: ssnow
+   TYPE (soil_parameter_type), INTENT(INOUT)   :: soil
+   TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
+   REAL, INTENT(OUT), DIMENSION(:):: fwsoil ! soil water modifier of stom. cond
+   REAL, DIMENSION(mp) :: rwater ! soil water availability
 
     !note even though swilt_vec is defined in default model it is r_2
     !and even using real(_vec) gives results different from trunk (rounding
@@ -25,10 +26,10 @@ SUBROUTINE fwsoil_calc_std(fwsoil, soil, ssnow, veg)
 
     IF (.NOT.cable_user%gw_model) THEN
 
-       rwater = MAX(1.0e-9,                                                    &
-            SUM(veg%froot * MAX(1.0e-9,MIN(1.0, REAL(ssnow%wb) -                   &
+   rwater = MAX(1.0e-9,                                                    &
+                   SUM(veg%froot * MAX(1.0e-9,MIN(1.0, REAL(ssnow%wb) -                   &
             SPREAD(soil%swilt, 2, ms))),2) /(soil%sfc-soil%swilt))
-
+  
     ELSE
        rwater = MAX(1.0e-9,                                                    &
             SUM(veg%froot * MAX(1.0e-9,MIN(1.0, REAL((ssnow%wbliq -                 &
@@ -40,93 +41,94 @@ SUBROUTINE fwsoil_calc_std(fwsoil, soil, ssnow, veg)
     IF(cable_user%GS_SWITCH == 'medlyn') THEN
        fwsoil = MAX(1.0e-4,MIN(1.0, rwater))
     ELSE
-       fwsoil = MAX(1.0e-9,MIN(1.0, veg%vbeta * rwater))
+   fwsoil = MAX(1.0e-9,MIN(1.0, veg%vbeta * rwater))
     ENDIF
 
-
+      
   END SUBROUTINE fwsoil_calc_std
 
-  ! ------------------------------------------------------------------------------
 
-  SUBROUTINE fwsoil_calc_non_linear(fwsoil, soil, ssnow, veg)
-    USE cable_def_types_mod
-    TYPE (soil_snow_type), INTENT(INOUT):: ssnow
-    TYPE (soil_parameter_type), INTENT(INOUT)   :: soil
-    TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
-    REAL, INTENT(OUT), DIMENSION(:):: fwsoil ! soil water modifier of stom. cond
-    REAL, DIMENSION(mp) :: rwater ! soil water availability
-    REAL, DIMENSION(mp,3)          :: xi, ti, si
-    INTEGER :: j
+!==============================================================================
+SUBROUTINE fwsoil_calc_non_linear(fwsoil, soil, ssnow, veg) 
+   USE cable_def_types_mod
+   TYPE (soil_snow_type), INTENT(INOUT):: ssnow
+   TYPE (soil_parameter_type), INTENT(INOUT)   :: soil
+   TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
+   REAL, INTENT(OUT), DIMENSION(:):: fwsoil ! soil water modifier of stom. cond
+   REAL, DIMENSION(mp) :: rwater ! soil water availability
+   REAL, DIMENSION(mp,3)          :: xi, ti, si
+   INTEGER :: j
 
-    rwater = MAX(1.0e-9,                                                    &
-         SUM(veg%froot * MAX(0.0,MIN(1.0, REAL(ssnow%wb) -                   &
-         SPREAD(soil%swilt, 2, ms))),2) /(soil%sfc-soil%swilt))
+   rwater = MAX(1.0e-9,                                                    &
+                   SUM(veg%froot * MAX(0.0,MIN(1.0, REAL(ssnow%wb) -                   &
+            SPREAD(soil%swilt, 2, ms))),2) /(soil%sfc-soil%swilt))
 
-    fwsoil = 1.
+   fwsoil = 1.
 
-    rwater = soil%swilt + rwater * (soil%sfc-soil%swilt)
+   rwater = soil%swilt + rwater * (soil%sfc-soil%swilt)
+   
+   xi(:,1) = soil%swilt
+   xi(:,2) = soil%swilt + (soil%sfc - soil%swilt)/2.0
+   xi(:,3) = soil%sfc
+   
+   ti(:,1) = 0.
+   ti(:,2) = 0.9
+   ti(:,3) = 1.0
+   
+   si(:,1) = (rwater - xi(:,2)) / ( xi(:,1) - xi(:,2)) *                       &
+             (rwater - xi(:,3)) / ( xi(:,1) - xi(:,3))
 
-    xi(:,1) = soil%swilt
-    xi(:,2) = soil%swilt + (soil%sfc - soil%swilt)/2.0
-    xi(:,3) = soil%sfc
+   si(:,2) = (rwater - xi(:,1)) / ( xi(:,2) - xi(:,1)) *                       &
+             (rwater - xi(:,3)) / ( xi(:,2) - xi(:,3))
 
-    ti(:,1) = 0.
-    ti(:,2) = 0.9
-    ti(:,3) = 1.0
+   si(:,3) = (rwater - xi(:,1)) / ( xi(:,3) - xi(:,1)) *                       &
+             (rwater - xi(:,2)) / ( xi(:,3) - xi(:,2))
 
-    si(:,1) = (rwater - xi(:,2)) / ( xi(:,1) - xi(:,2)) *                       &
-         (rwater - xi(:,3)) / ( xi(:,1) - xi(:,3))
+   DO j=1,mp
+      IF (rwater(j) < soil%sfc(j) - 0.02)                                      &
+         fwsoil(j) = max(0.,min(1., ti(j,1)*si(j,1) +                          &
+                       ti(j,2)*si(j,2) + ti(j,3)*si(j,3)))
 
-    si(:,2) = (rwater - xi(:,1)) / ( xi(:,2) - xi(:,1)) *                       &
-         (rwater - xi(:,3)) / ( xi(:,2) - xi(:,3))
+   ENDDO
 
-    si(:,3) = (rwater - xi(:,1)) / ( xi(:,3) - xi(:,1)) *                       &
-         (rwater - xi(:,2)) / ( xi(:,3) - xi(:,2))
 
-    DO j=1,mp
-       IF (rwater(j) < soil%sfc(j) - 0.02)                                      &
-            fwsoil(j) = MAX(0.,MIN(1., ti(j,1)*si(j,1) +                          &
-            ti(j,2)*si(j,2) + ti(j,3)*si(j,3)))
+END SUBROUTINE fwsoil_calc_non_linear
+!==============================================================================
 
-    ENDDO
 
-  END SUBROUTINE fwsoil_calc_non_linear
+!==============================================================================
+SUBROUTINE fwsoil_calc_Lai_Ktaul(fwsoil, soil, ssnow, veg) 
+   USE cable_def_types_mod
+   TYPE (soil_snow_type), INTENT(INOUT):: ssnow
+   TYPE (soil_parameter_type), INTENT(INOUT)   :: soil
+   TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
+   REAL, INTENT(OUT), DIMENSION(:):: fwsoil ! soil water modifier of stom. cond
+   INTEGER   :: ns
+   REAL, parameter ::rootgamma = 0.01   ! (19may2010)
+   REAL, DIMENSION(mp)  :: dummy, normFac
+   !--- local level dependent rwater 
+   REAL, DIMENSION(mp,ms)  :: frwater
 
-  ! ------------------------------------------------------------------------------
+   fwsoil(:) = 0.0
+   normFac(:) = 0.0
 
-  ! ypw 19/may/2010 soil water uptake efficiency (see Lai and Ktaul 2000)
-  SUBROUTINE fwsoil_calc_Lai_Ktaul(fwsoil, soil, ssnow, veg)
-    USE cable_def_types_mod
-    TYPE (soil_snow_type), INTENT(INOUT):: ssnow
-    TYPE (soil_parameter_type), INTENT(INOUT)   :: soil
-    TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
-    REAL, INTENT(OUT), DIMENSION(:):: fwsoil ! soil water modifier of stom. cond
-    INTEGER   :: ns
-    REAL, PARAMETER ::rootgamma = 0.01   ! (19may2010)
-    REAL, DIMENSION(mp)  :: dummy, normFac
-    !--- local level dependent rwater
-    REAL, DIMENSION(mp,ms)  :: frwater
-
-    fwsoil(:) = 0.0
-    normFac(:) = 0.0
-
-    DO ns=1,ms
-
+   DO ns=1,ms
+     
        dummy(:) = rootgamma/MAX(1.0e-3_r_2,ssnow%wb(:,ns)-soil%swilt(:))
 
        frwater(:,ns) = MAX(1.0e-4_r_2,((ssnow%wb(:,ns)-soil%swilt(:))/soil%ssat(:)) &
-            ** dummy)
+                      ** dummy)
+      
+      fwsoil(:) = min(1.0,max(fwsoil(:),frwater(:,ns)))
+      
+      normFac(:) = normFac(:) + frwater(:,ns) * veg%froot(:,ns)
 
-       fwsoil(:) = MIN(1.0,MAX(fwsoil(:),frwater(:,ns)))
+   ENDDO
 
-       normFac(:) = normFac(:) + frwater(:,ns) * veg%froot(:,ns)
-
-    ENDDO
-
-  END SUBROUTINE fwsoil_calc_Lai_Ktaul
+END SUBROUTINE fwsoil_calc_Lai_Ktaul
 
   ! ------------------------------------------------------------------------------
-  SUBROUTINE fwsoil_calc_sli(fwsoil, soil, ssnow, veg)
+SUBROUTINE fwsoil_calc_sli(fwsoil, soil, ssnow, veg)
     USE cable_def_types_mod
     TYPE (soil_snow_type), INTENT(INOUT):: ssnow
     TYPE (soil_parameter_type), INTENT(INOUT)   :: soil
@@ -152,7 +154,8 @@ SUBROUTINE fwsoil_calc_std(fwsoil, soil, ssnow, veg)
     fwsoil  = MAXVAL(alpha2_root*delta_root, 2)
     fwsoil  = MAX(0.0, fwsoil)
 
-  END SUBROUTINE fwsoil_calc_sli
+END SUBROUTINE fwsoil_calc_sli
+!==============================================================================
 
  
 END MODULE cbl_fwsoil_module
