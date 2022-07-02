@@ -1,3 +1,6 @@
+!!IF ( cable_runtime%esm15_canopy) THEN
+!!ELSE!( cable_runtime%esm15_canopy)
+!!ENDIF!( cable_runtime%esm15_canopy)
 MODULE cable_canopy_module
   
   IMPLICIT NONE
@@ -841,9 +844,16 @@ ENDIF
 
          IF( zscl(j) < rough%disp(j) ) THEN
 
-!!IF ( cable_runtime%esm15_canopy) THEN
-            r_sc(j) = term5(j) * LOG(zscl(j)/rough%z0soilsn(j)) *              &
-                      ( EXP(2*CCSW*canopy%rghlai(j)) - term1(j) ) / term3(j)
+          IF ( cable_runtime%esm15_canopy) THEN
+                      r_sc(j) = term5(j) * LOG(zscl(j)/rough%z0soilsn(j)) *              &
+                                ( EXP(2*CCSW*canopy%rghlai(j)) - term1(j) ) / term3(j)
+          ELSE!( cable_runtime%esm15_canopy)
+                       !Ticket #154
+                       r_sc(j) = term5(j) * LOG(zscl(j)/rough%z0soilsn(j)) *              &
+                            ( EXP(2*CCSW*canopy%rghlai(j)) - term2(j) ) / term3(j)
+                       r_sc(j) = r_sc(j) + term5(j) * LOG(rough%disp(j)/rough%z0soilsn(j)) *  &
+                            ( EXP(2*CCSW*canopy%rghlai(j)) - term1(j) ) / term3(j)
+          END IF!( cable_runtime%esm15_canopy)
 
          ELSEIF( rough%disp(j) <= zscl(j) .AND.                                &
                  zscl(j) < rough%hruff(j) ) THEN
@@ -860,8 +870,9 @@ ENDIF
 
 
          ELSEIF( zscl(j) >= rough%zruffs(j) ) THEN
+            IF ( cable_runtime%esm15_canopy) THEN
             
-            r_sc(j) = rough%rt0us(j) + rough%rt1usa(j) + rough%rt1usb(j) +     &
+              r_sc(j) = rough%rt0us(j) + rough%rt1usa(j) + rough%rt1usb(j) +     &
                       ( LOG( (zscl(j) - rough%disp(j)) /                       &
                       MAX( rough%zruffs(j)-rough%disp(j),                      &
                       rough%z0soilsn(j) ) ) - psis1( (zscl(j)-rough%disp(j))   &
@@ -869,18 +880,58 @@ ENDIF
                       + psis1( (rough%zruffs(j) - rough%disp(j) )              &
                       / (rough%zref_tq(j)/canopy%zetar(j,iterplus ) ) ) )      &
                       / CVONK
+          ELSE!( cable_runtime%esm15_canopy)
 
+              !Ticket #67 - Modify order of operations to avoid potential error
+             r_sc(j) = rough%rt0us(j) + rough%rt1usa(j) + rough%rt1usb(j) +     &
+                  ( LOG( (zscl(j) - rough%disp(j)) /                       &
+                  MAX( rough%zruffs(j)-rough%disp(j),                      &
+                  rough%z0soilsn(j) ) ) - psis( (zscl(j)-rough%disp(j))    &
+                                !Ticket #67 - change order of operations to avoid /0
+                                !        / (rough%zref_tq(j)/canopy%zetar(j,iterplus) ) )        &
+                  * canopy%zetar(j,iterplus)/rough%zref_tq(j) )            &
+                  + psis( (rough%zruffs(j) - rough%disp(j) )               &
+                                !        / (rough%zref_tq(j)/canopy%zetar(j,iterplus ) ) ) )     &
+                  * canopy%zetar(j,iterplus)/rough%zref_tq(j) ) )          &
+                  / CVONK
+
+        
+          ENDIF!( cable_runtime%esm15_canopy)
+         
          ENDIF
 
-        canopy%tscrn(j) = ssnow%tss(j) + (met%tk(j) - ssnow%tss(j)) *          &
+        IF ( cable_runtime%esm15_canopy) THEN
+          canopy%tscrn(j) = ssnow%tss(j) + (met%tk(j) - ssnow%tss(j)) *          &
                           MIN(1.,r_sc(j) / MAX( 1.,                            &
                           rough%rt0us(j) + rough%rt1usa(j) + rough%rt1usb(j)   &
                           + rt1usc(j))) - Ctfrz 
+        ELSE!( cable_runtime%esm15_canopy)
+
+            !extensions for litter and Or evaporation model
+            IF (cable_user%litter) THEN
+               canopy%tscrn(j) = ssnow%tss(j) + (met%tk(j) - ssnow%tss(j)) *     &
+                    MIN(1., ( (r_sc(j)+rhlitt(j)*canopy%us(j))  / MAX( 1.,          &
+                    rough%rt0us(j) + rough%rt1usa(j) + rough%rt1usb(j)              &
+                    + rt1usc(j) + rhlitt(j)*canopy%us(j) )) ) - Ctfrz
+            ELSEIF (cable_user%or_evap .OR. cable_user%gw_model) THEN
+               canopy%tscrn(j) = ssnow%tss(j) + (met%tk(j) - ssnow%tss(j)) *     &
+                    MIN(1., ( (ssnow%rt_qh_sublayer(j)*canopy%us(j) + r_sc(j) ) /   &
+                    MAX( 1., rough%rt0us(j) + rough%rt1usa(j) + rough%rt1usb(j)     &
+                    + rt1usc(j) + ssnow%rt_qh_sublayer(j)*canopy%us(j) )) ) - Ctfrz
+            ELSE
+               canopy%tscrn(j) = ssnow%tss(j) + (met%tk(j) - ssnow%tss(j)) *      &
+                    MIN(1., (r_sc(j) / MAX( 1.,                            &
+                    rough%rt0us(j) + rough%rt1usa(j) + rough%rt1usb(j)   &
+                    + rt1usc(j))) )  - Ctfrz
+            ENDIF
+          
+          ENDIF!( cable_runtime%esm15_canopy)
       ENDIF  
 
    ENDDO  
-  
-   !ESM15!CALL qsatfjh(rsts,canopy%tscrn,met%pmb)
+
+
+    !screen level humdity - this is only approximate --------------------------
     CALL  qsatfjh(mp, rsts, CRMH2o, Crmair, CTETENA, CTETENB, CTETENC, canopy%tscrn,met%pmb)
      
    qtgnet = rsts * ssnow%wetfac - met%qv
