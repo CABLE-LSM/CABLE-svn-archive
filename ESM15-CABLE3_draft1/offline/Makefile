@@ -188,17 +188,17 @@ cbl_latent_heat.o: cbl_latent_heat.F90 cable_define_types.o
 cbl_wetleaf.o: cbl_wetleaf.F90 cable_define_types.o
 cbl_within_canopy.o: cbl_within_canopy.F90 cable_define_types.o cable_common.o cbl_qsat.o
 cbl_SurfaceWetness.o: cbl_SurfaceWetness.F90 cable_define_types.o cable_common.o cable_phys_constants_mod.o
-cbl_dryLeaf.o: cbl_dryLeaf.F90 cbl_photosynthesis.o cbl_fwsoil.o cable_define_types.o cable_common.o cable_phys_constants_mod.o cable_photo_constants_mod.o 
+cbl_dryLeaf.o: cbl_dryLeaf.F90 cbl_photosynthesis.o cbl_fwsoil.o cable_define_types.o cable_common.o cable_phys_constants_mod.o cable_photo_constants_mod.o cable_climate_type_mod.o
 cbl_fwsoil.o: cbl_fwsoil.F90 cable_define_types.o cable_common.o
 cbl_photosynthesis.o: cbl_photosynthesis.F90 cable_define_types.o cable_other_constants_mod.o cable_photo_constants_mod.o 
 
 cable_carbon.o: cable_carbon.F90 cable_define_types.o cable_common.o
 
-cbl_model_driver_offline.o: cbl_model_driver_offline.F90 cable_phys_constants_mod.o cable_carbon.o cbl_soilsnow_main.o cable_canopy.o cable_define_types.o cable_roughness.o cbl_radiation.o cbl_albedo.o casa_variable.o cable_common.o cable_gw_hydro.o cable_psm.o cbl_masks.o cbl_snow_aging.o
+cbl_model_driver_offline.o: cbl_model_driver_offline.F90 cable_phys_constants_mod.o cable_carbon.o cbl_soilsnow_main.o cable_canopy.o cable_define_types.o cable_roughness.o cbl_radiation.o cbl_albedo.o casa_variable.o cable_common.o cable_gw_hydro.o cable_psm.o cbl_masks.o cbl_snow_aging.o cable_climate.o
 
 cable_checks.o: cable_checks.F90 cbl_radiation.o cable_common.o
 
-cable_define_types.o: cable_define_types.F90
+cable_define_types.o: cable_define_types.F90 cable_climate_type_mod.o
 
 cable_iovars.o: cable_iovars.F90 cable_define_types.o
 
