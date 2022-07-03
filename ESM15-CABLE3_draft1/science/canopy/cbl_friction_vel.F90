@@ -12,7 +12,7 @@ CONTAINS
 
 SUBROUTINE comp_friction_vel(friction_vel, iter, mp, CVONK, CUMIN, CPI_C,      &
                              zetar, zref_uv, zref_tq, z0m, ua )
-
+USE cable_common_module, ONLY : cable_runtime
 IMPLICIT NONE
 
 INTEGER, INTENT(IN) :: mp
@@ -34,23 +34,44 @@ REAL, INTENT(IN) :: ua(mp)              !met%ua
 REAL :: lower_limit(mp), rescale(mp)
 REAL :: psim_1(mp), psim_2(mp), psim_arg(mp)
 REAL :: z_eff(mp)
+REAL :: ffactor(mp)
 
 !INH: Ticket #138 %us is defined based on U(rough%zref_uv)
 ! but zetar based on rough%zref_tq - changes to ensure consistency
 !NB no RSL incorporated here
 
-psim_1 = psim( zetar(:,iter) * zref_uv/zref_tq, mp, CPI_C   )
+!fails!IF( cable_runtime%esm15_friction ) THEN
+!fails!  ffactor = 1.0 
+!fails!ELSE  
+!fails!  ffactor = zref_uv/zref_tq
+!fails!ENDIF
+!fails!
+!fails!psim_1 = psim( zetar(:,iter) * ffactor(:), mp, CPI_C   )
+IF( cable_runtime%esm15_friction ) THEN
+  psim_1 = psim( zetar(:,iter), mp, CPI_C   )
+ELSE  
+  psim_1 = psim( zetar(:,iter) * zref_uv/zref_tq, mp, CPI_C   )
+ENDIF
 
-!rescale = CVONK * MAX( ua, SPREAD(CUMIN,1,mp ) ) 
 rescale = CVONK * MAX( ua, CUMIN ) 
+
 z_eff = zref_uv / z0m
 
-psim_arg = zetar(:,iter) * z0m / zref_tq
+IF( cable_runtime%esm15_friction ) THEN
+  psim_arg = zetar(:,iter) / z_eff 
+ELSE  
+  psim_arg = zetar(:,iter) * z0m / zref_tq
+ENDIF
+
 psim_2 = psim( psim_arg, mp, CPI_C  )
 
 lower_limit = rescale / ( LOG(z_eff) - psim_1 + psim_2 )
 
-friction_vel= MIN( MAX(1.e-6, lower_limit), 10.0 )
+IF( cable_runtime%esm15_friction ) THEN
+  friction_vel = MAX(1.e-6, lower_limit )
+ELSE  
+  friction_vel= MIN( MAX(1.e-6, lower_limit), 10.0 )
+ENDIF
 
 RETURN
 END SUBROUTINE comp_friction_vel
