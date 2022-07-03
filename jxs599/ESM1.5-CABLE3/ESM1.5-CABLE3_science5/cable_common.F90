@@ -53,13 +53,13 @@ USE cable_runtime_opts_mod ,ONLY : wiltparam
   TYPE kbl_internal_switches
      
     LOGICAL :: um = .FALSE., um_explicit = .FALSE., um_implicit = .FALSE.,     &
-               um_radiation = .FALSE., um_hydrology = .FALSE., esm15 = .TRUE., &
+               um_radiation = .FALSE., um_hydrology = .FALSE.,                 &
                esm15_albedo = .TRUE., esm15_init_rad = .TRUE.,                 &
                esm15_rad = .TRUE., esm15_friction = .TRUE.,                    &
                esm15_dryLeaf = .TRUE., esm15_wetLeaf = .TRUE.,                 &
                esm15_wetness = .TRUE., esm15_latentH = .TRUE.,                 &
                esm15_HDM = .TRUE., esm15_within_canopy = .TRUE.,               &
-               esm15_canopy = .TRUE.
+               esm15_canopy = .TRUE., esm15 = .TRUE.
       
      LOGICAL :: offline = .FALSE., mk3l = .FALSE.
   
