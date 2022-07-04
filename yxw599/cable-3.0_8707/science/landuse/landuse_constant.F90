@@ -9,7 +9,7 @@ MODULE landuse_constant
   INTEGER,   PARAMETER                   :: mvmax    = 17
   INTEGER,   PARAMETER                   :: mharvw   = 5           
 
-  real(r_2),    PARAMETER                   :: thresh_frac  = 1.0e-6
+  real(r_2),    PARAMETER                   :: thresh_frac  = 1.0e-12
   REAL(r_2),    PARAMETER, DIMENSION(mwood) :: fwoodprod    =(/0.3,0.4,0.4/)
   REAL(r_2),    PARAMETER, DIMENSION(mwood) :: ratewoodprod =(/1.0,0.1,0.01/)
   REAL(r_2),    PARAMETER, DIMENSION(mwood) :: fracwoodseed =(/0.4,0.3,0.3/)

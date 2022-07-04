@@ -90,8 +90,14 @@ SUBROUTINE landuse_getxluh2(mlat,mlon,landmask,fxluh2cable,luc_xluh2cable)
 
     allocate(xluh2cable(mlon,mlat,21,mstate))
     ok = nf90_open(fxluh2cable,nf90_nowrite,ncid2)
-    ok = nf90_inq_varid(ncid2,"xluh2cable",varxid)
+    ok = nf90_inq_varid(ncid2,"XLUH2CABLE_ACCESS",varxid)
     ok = nf90_get_var(ncid2,varxid,xluh2cable)
+    if(ok/=0) then
+       print *, 'tranistion matrix was not read correctly!'
+       print *, 'variable XLUH2CABLE_ACCESS in file= ',fxluh2cable
+       stop
+    endif
+    
     ok = nf90_close(ncid2)
     ! assig the values of luc%variables
     luc_xluh2cable(:,:,:) = 0.0
@@ -137,8 +143,10 @@ SUBROUTINE landuse_getdata(mlat,mlon,landmask,fxpft,luc_atransit,luc_fharvw)
   real(r_2), dimension(mland,mvmax,mvmax)       :: luc_atransit
   real(r_2), dimension(mland,mharvw)            :: luc_fharvw
   ! local variables
-  real(r_2),  dimension(:,:,:),   allocatable   :: fracharvw
-  real(r_2),  dimension(:,:,:,:), allocatable   :: transitx
+!  real(r_2),  dimension(:,:,:),   allocatable   :: fracharvw
+!  real(r_2),  dimension(:,:,:,:), allocatable   :: transitx
+  real,  dimension(:,:,:),   allocatable   :: fracharvw
+  real,  dimension(:,:,:,:), allocatable   :: transitx
   integer  ok,ncid1,varxid
   integer  i,j,m,k,ivt
 
@@ -148,15 +156,31 @@ SUBROUTINE landuse_getdata(mlat,mlon,landmask,fxpft,luc_atransit,luc_fharvw)
     ok = nf90_open(fxpft,nf90_nowrite,ncid1)
     ok = nf90_inq_varid(ncid1,"harvest",varxid)
     ok = nf90_get_var(ncid1,varxid,fracharvw)
+    if(ok/=0) then
+       print *, 'tranistion matrix was not read correctly!'
+       print *, 'variable harvest in file= ',fxpft
+       stop
+    endif
+    
     ok = nf90_inq_varid(ncid1,"transition",varxid)
     ok = nf90_get_var(ncid1,varxid,transitx)
+    if(ok/=0) then
+       print *, 'tranistion matrix was not read correctly!'
+       print *, 'variable transition in file= ',fxpft
+       stop
+    endif
+    
     ok = nf90_close(ncid1)
+
+    ! remove some missing values
+    transitx = min(1.0,max(0.0,transitx))
+    fracharvw = min(1.0,max(0.0,fracharvw))
 
     ! assig the values of luc%variables
     luc_fharvw(:,:) =0.0; luc_atransit(:,:,:)=0.0
     m = 0
-    do i=1,mlon
     do j=1,mlat
+    do i=1,mlon
        if(landmask(i,j) ==1) then
           m= m +1
           luc_atransit(m,:,:)   = transitx(i,j,:,:)
@@ -167,6 +191,7 @@ SUBROUTINE landuse_getdata(mlat,mlon,landmask,fxpft,luc_atransit,luc_fharvw)
     
     deallocate(fracharvw)
     deallocate(transitx)
+
 END SUBROUTINE landuse_getdata
 
   subroutine create_new_gridinfo(fgridold,fgridnew,mlon,mlat,landmask,patchfrac_new)

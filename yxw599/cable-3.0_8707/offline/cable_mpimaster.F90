@@ -1425,9 +1425,11 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
 
        call landuse_data(mlon,mlat,landmask,arealand,luc_atransit,luc_fharvw,luc_xluh2cable)
 
+       print *, 'tranit at mland=48 ', luc_atransit(48,:,:)
+
        call  landuse_driver(mlon,mlat,landmask,arealand,ssnow,soil,veg,bal,canopy,  &
                            phen,casapool,casabal,casamet,casabiome,casaflux,bgc,rad, &
-                           cstart,cend,nap,lucmp)
+                           cstart,cend,nap,lucmp,luc_atransit,luc_fharvw,luc_xluh2cable)
 
        print *, 'writing new gridinfo: landuse'
        print *, 'new patch information. mland= ',mland
