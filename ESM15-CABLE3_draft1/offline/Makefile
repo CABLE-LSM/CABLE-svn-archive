@@ -80,12 +80,12 @@ LSRC =                          \
 	cbl_fwsoil.F90                                                             \
 	cbl_photosynthesis.F90                                                     \
 	cable_air.F90 cable_roughness.F90 																				 \
-	cable_carbon.F90 cable_checks.F90 												 \
+	cable_carbon.F90 cable_checks.F90 												                 \
 	cable_read.F90 cable_initialise.F90 cable_input.F90 cable_write.F90				 \
 	cable_output.F90 casa_cnp.F90 casa_cable.F90 casa_inout.F90								 \
 	cable_sli_main.F90 cable_sli_numbers.F90 cable_sli_roots.F90							 \
 	cable_sli_solve.F90 cable_sli_utils.F90 																	 \
-	cable_diag.F90 POP.F90 pop_io.F90 cable_plume_mip.F90 									 	 \
+	POP.F90 pop_io.F90 cable_plume_mip.F90 						                			 	 \
 	cable_weathergenerator.F90 cable_climate.F90 cable_phenology.F90 					 \
 	cable_cru_TRENDY.F90 POPLUC.F90 cable_LUC_EXPT.F90												 \
 	cable_gw_hydro.F90 cable_psm.F90 cable_namelist_input.F90									 \
@@ -131,10 +131,6 @@ casa_dimension.o: casa_dimension.F90
 cbl_masks.o: cbl_masks.F90
 casa_ncdf.o: casa_ncdf.F90 cable_define_types.o cable_common.o
 cable_abort.o: cable_abort.F90 cable_iovars.o cable_define_types.o
-
-#tech file diag - exclude from official relllease but part of CABLE for now
-cable_fFile.o: cable_fFile.F90
-cable_diag.o: cable_diag.F90 cable_common.o cable_fFile.o
 
 #science seperated subrs
 cbl_hgtAbove_snow.o: cbl_hgtAbove_snow.F90
@@ -230,7 +226,7 @@ spincasacnp.o: spincasacnp.F90  cable_define_types.o  cable_carbon.o cable_commo
 CASAONLY_LUC.o: CASAONLY_LUC.F90 cable_define_types.o  cable_carbon.o cable_common.o casa_variable.o POP.o POPLUC.o cable_LUC_EXPT.o casa_ncdf.o
 
 casa_cable.o: casa_cable.F90 POP.o cable_define_types.o  cable_carbon.o casa_variable.o \
-	      cable_diag.o cable_phenology.o casa_cnp.o casa_inout.o casa_ncdf.o
+	      cable_phenology.o casa_cnp.o casa_inout.o casa_ncdf.o
 
 landuse_constant.o: landuse_constant.F90 cable_define_types.o casa_dimension.o
 
