@@ -581,7 +581,7 @@ write(6,*) "SLI is not an option right now"
           IF(cable_user%ssnow_POTEV== "P-M") THEN
 
              !--- uses %ga from previous timestep
-             !    uses %tvair and %qvair correctly
+             !    uses %tvair and %qvair here correctly
              ssnow%potev = Penman_Monteith( mp, Ctfrz, CRMH2o, Crmair, CTETENA, CTETENB,         &
                           CTETENC, REAL(veg%clitt), cable_user%litter,               &
                           air%dsatdk, air%psyc, air%rho, air%rlam,             &
@@ -592,7 +592,7 @@ write(6,*) "SLI is not an option right now"
 
           ELSE !by default assumes Humidity Deficit Method
 
-             ! Humidity deficit - uses %qvair correctly
+             ! Humidity deficit - uses %qvair here correctly
              dq = ssnow%qstss - met%qvair
              dq_unsat = ssnow%rh_srf*ssnow%qstss - met%qvair
              ssnow%potev = Humidity_deficit_method( mp, Ctfrz, REAL(veg%clitt),cable_user%or_evap,     &
@@ -848,6 +848,10 @@ write(6,*) "SLI is not an option right now"
 
     ENDDO
 
+    !Ticket 206 - apply consistent increment to %tscrn
+    IF (cable_user%use_pot_temp_in_H) THEN
+       canopy%tscrn = canopy%tscrn + CGRAV/CCAPP*(rough%zref_tq-zscrn+rough%hruff-rough%disp)
+    END IF
 
     !screen level humdity - this is only approximate --------------------------
     CALL  qsatfjh(mp, rsts, CRMH2o, Crmair, CTETENA, CTETENB, CTETENC, canopy%tscrn,met%pmb)
