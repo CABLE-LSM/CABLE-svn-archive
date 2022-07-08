@@ -710,7 +710,7 @@ write(6,*) "SLI is not an option right now"
 
        ENDDO
 
-  CALL update_zetar( mp, NITER, canopy%zetar, iter, nrb, CVONK, CGRAV, CCAPP,  &
+  CALL update_zetar( mp, NITER, canopy%zetar, iter, iterplus, nrb, CVONK, CGRAV, CCAPP,  &
                      CLAI_THRESH, CZETmul, CZETPOS, CZETNEG,          &
                      cable_user%soil_struc, air%rho, met%tk,  met%fsd, &
                      rough%zref_tq, rough%hruff, rough%term6a, rough%z0soilsn,   &
@@ -753,12 +753,12 @@ write(6,*) "SLI is not an option right now"
     tstar = - canopy%fh / ( air%rho*CCAPP*canopy%us)
     qstar = - canopy%fe / ( air%rho*air%rlam *canopy%us * ssnow%cls)
     zscrn = MAX(rough%z0m,2.0-rough%disp)
-    ftemp = ( LOG(rough%zref_tq/zscrn)- psis(canopy%zetar(:,iterplus)) +       &
-         psis(canopy%zetar(:,iterplus) * zscrn / rough%zref_tq) ) /CVONK
+    ftemp = ( LOG(rough%zref_tq/zscrn)- psis(canopy%zetar(:,NITER)) +       &
+         psis(canopy%zetar(:,NITER) * zscrn / rough%zref_tq) ) /CVONK
 
     ! Calculate screen temperature:
     canopy%tscrn = met%tk - Ctfrz - tstar * ftemp
-
+    
     ! Calculate radiative/skin temperature;
     ! at this stage old soil temperature is used
     ! calculation of screen temepratures for LAI > 0.1 . Method by Ian Harman
@@ -818,10 +818,10 @@ write(6,*) "SLI is not an option right now"
                   rough%z0soilsn(j) ) ) - psis( (zscl(j)-rough%disp(j))    &
                                 !Ticket #67 - change order of operations to avoid /0
                                 !        / (rough%zref_tq(j)/canopy%zetar(j,iterplus) ) )        &
-                  * canopy%zetar(j,iterplus)/rough%zref_tq(j) )            &
+                  * canopy%zetar(j,NITER)/rough%zref_tq(j) )            &
                   + psis( (rough%zruffs(j) - rough%disp(j) )               &
                                 !        / (rough%zref_tq(j)/canopy%zetar(j,iterplus ) ) ) )     &
-                  * canopy%zetar(j,iterplus)/rough%zref_tq(j) ) )          &
+                  * canopy%zetar(j,NITER)/rough%zref_tq(j) ) )          &
                   / CVONK
 
           ENDIF
@@ -852,7 +852,7 @@ write(6,*) "SLI is not an option right now"
     IF (cable_user%use_pot_temp_in_H) THEN
        canopy%tscrn = canopy%tscrn + CGRAV/CCAPP*(rough%zref_tq-zscrn+rough%hruff-rough%disp)
     END IF
-
+    
     !screen level humdity - this is only approximate --------------------------
     CALL  qsatfjh(mp, rsts, CRMH2o, Crmair, CTETENA, CTETENB, CTETENC, canopy%tscrn,met%pmb)
 
