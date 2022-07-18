@@ -1927,14 +1927,14 @@ CONTAINS
        DO i=1,mp
 
           IF (canopy%vlaiw(i) > C%LAI_THRESH .AND. abs_deltlf(i) > 0.1) THEN
-            ! _______________________ MMY: test Eucface para __________________
-            ! prescribe plant photosynthesis parameters
-            ! veg%alpha = 0.3
-            ! veg%convex = 0.48
-            ! veg%g1 = 5.
-            veg%vcmax = 91e-6
-            veg%ejmax = 159e-6
-            ! _________________________________________________________________
+            !! _______________________ MMY: test Eucface para __________________
+            !! prescribe plant photosynthesis parameters
+            !! veg%alpha = 0.3
+            !! veg%convex = 0.48
+            !! veg%g1 = 5.
+            !veg%vcmax = 91e-6
+            !veg%ejmax = 159e-6
+            !! _________________________________________________________________
              ghwet(i) = 2.0   * sum_gbh(i)
              gwwet(i) = 1.075 * sum_gbh(i)
              ghrwet(i) = sum_rad_gradis(i) + ghwet(i)
@@ -2658,12 +2658,12 @@ CONTAINS
     REAL, INTENT(IN) :: x
     REAL :: xvcnum,xvcden,z
     ! ______________________ MMY test Eucface para ______________________
-    ! REAL, PARAMETER  :: EHaVc  = 73637.0  ! J/mol (Leuning 2002)
-    ! REAL, PARAMETER  :: EHdVc  = 149252.0 ! J/mol (Leuning 2002)
-    ! REAL, PARAMETER  :: EntropVc = 486.0  ! J/mol/K (Leuning 2002)
-    REAL, PARAMETER  :: EHaVc  = 66386  ! J/mol
-    REAL, PARAMETER  :: EHdVc  = 200000 ! J/mol
-    REAL, PARAMETER  :: EntropVc = 639.60  ! J/mol/K    
+    REAL, PARAMETER  :: EHaVc  = 73637.0  ! J/mol (Leuning 2002)
+    REAL, PARAMETER  :: EHdVc  = 149252.0 ! J/mol (Leuning 2002)
+    REAL, PARAMETER  :: EntropVc = 486.0  ! J/mol/K (Leuning 2002)
+    !REAL, PARAMETER  :: EHaVc  = 66386  ! J/mol
+    !REAL, PARAMETER  :: EHdVc  = 200000 ! J/mol
+    !REAL, PARAMETER  :: EntropVc = 639.60  ! J/mol/K    
     ! ___________________________________________________________________
     REAL, PARAMETER  :: xVccoef = 1.17461 ! derived parameter
     ! xVccoef=1.0+exp((EntropJx*C%TREFK-EHdJx)/(Rconst*C%TREFK))
@@ -2698,12 +2698,12 @@ CONTAINS
     REAL, INTENT(IN) :: x
     REAL :: xjxnum,xjxden,z
     ! ____________________ MMY test EucFACE para ____________________
-    ! REAL, PARAMETER  :: EHaJx  = 50300.0  ! J/mol (Leuning 2002)
-    ! REAL, PARAMETER  :: EHdJx  = 152044.0 ! J/mol (Leuning 2002)
-    ! REAL, PARAMETER  :: EntropJx = 495.0  ! J/mol/K (Leuning 2002)
-    REAL, PARAMETER  :: EHaJx  = 32292  ! J/mol
-    REAL, PARAMETER  :: EHdJx  = 200000 ! J/mol
-    REAL, PARAMETER  :: EntropJx = 638.06  ! J/mol/K
+    REAL, PARAMETER  :: EHaJx  = 50300.0  ! J/mol (Leuning 2002)
+    REAL, PARAMETER  :: EHdJx  = 152044.0 ! J/mol (Leuning 2002)
+    REAL, PARAMETER  :: EntropJx = 495.0  ! J/mol/K (Leuning 2002)
+    !REAL, PARAMETER  :: EHaJx  = 32292  ! J/mol
+    !REAL, PARAMETER  :: EHdJx  = 200000 ! J/mol
+    !REAL, PARAMETER  :: EntropJx = 638.06  ! J/mol/K
     ! _______________________________________________________________
     REAL, PARAMETER  :: xjxcoef = 1.16715 ! derived parameter
 
