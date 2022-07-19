@@ -19,7 +19,7 @@ REAL ::                                                                     &
   sindec,  & ! sine of maximum declination
   z          ! result
 
-sindec = -SIN( 23.45 * PI180 ) * COS( 2. * PI * ( doy + 10.0 ) / 365.0 )
+sindec = -SIN( 23.45 * PI180  * COS( 2. * PI * ( doy + 10.0 ) / 365.0 ))
 
 z = MAX( SIN( PI180 * xslat ) * sindec                                 &
      + COS( PI180 * xslat ) * SQRT( 1. - sindec * sindec )              &
