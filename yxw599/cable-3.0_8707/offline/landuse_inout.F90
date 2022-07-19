@@ -1,4 +1,4 @@
-  subroutine landuse_data(mlon,mlat,landmask,arealand,luc_atransit,luc_fharvw,luc_xluh2cable)
+  subroutine landuse_data(mlon,mlat,landmask,arealand,luc_atransit,luc_fharvw,luc_xluh2cable,luc_delarea)
   use netcdf
   USE cable_IO_vars_module, ONLY: logn
   use cable_abort_module,   ONLY: nc_abort 
@@ -11,6 +11,7 @@
   real(r_2), dimension(mland,mvmax,mvmax)         :: luc_atransit
   real(r_2), dimension(mland,mharvw)              :: luc_fharvw
   real(r_2), dimension(mland,mvmax,mstate)        :: luc_xluh2cable
+  real(r_2), dimension(mland,mvmax)               :: luc_delarea
   integer,    dimension(mlon,mlat)                :: landmask
   real(r_2),  dimension(mland)                    :: arealand
   ! "mland" variables
@@ -67,9 +68,11 @@
      write(logn,901) filename%fxluh2cable
 901  format(' landuse on: reading xluh2cable file: ',a500)     
      call landuse_getxluh2(mlat,mlon,landmask,filename%fxluh2cable,luc_xluh2cable)    !"xluh2cable"
-     write(logn,902) filename%fxpft
-902  format(' landuse on: reading xpft file: ',a500)     
-     call landuse_getdata(mlat,mlon,landmask,filename%fxpft,luc_atransit,luc_fharvw)
+     write(logn,902) filename%fxpft0
+902  format(' landuse on: reading xpft0 file: ',a500)
+     write(logn,903) filename%fxpft
+903  format(' landuse on: reading xpft file: ',a500)      
+     call landuse_getdata(mlat,mlon,landmask,filename%fxpft0,filename%fxpft,luc_atransit,luc_fharvw,luc_delarea)
   end subroutine landuse_data
 
 
@@ -131,42 +134,83 @@ SUBROUTINE landuse_getxluh2(mlat,mlon,landmask,fxluh2cable,luc_xluh2cable)
 
  END SUBROUTINE landuse_getxluh2
 
-SUBROUTINE landuse_getdata(mlat,mlon,landmask,fxpft,luc_atransit,luc_fharvw)
+SUBROUTINE landuse_getdata(mlat,mlon,landmask,fxpft0,fxpft,luc_atransit,luc_fharvw,luc_delarea)
 ! get LUC data
   USE netcdf
   USE cable_def_types_mod,  ONLY: mland,r_2
   use landuse_constant,     ONLY: mstate,mvmax,mharvw
   IMPLICIT NONE
-  character*500 fxpft
+  character*500 fxpft0,fxpft
   integer mlat,mlon
   integer,   dimension(mlon,mlat)               :: landmask 
   real(r_2), dimension(mland,mvmax,mvmax)       :: luc_atransit
   real(r_2), dimension(mland,mharvw)            :: luc_fharvw
+  real(r_2), dimension(mland,mvmax)             :: luc_delarea
   ! local variables
 !  real(r_2),  dimension(:,:,:),   allocatable   :: fracharvw
 !  real(r_2),  dimension(:,:,:,:), allocatable   :: transitx
-  real,  dimension(:,:,:),   allocatable   :: fracharvw
-  real,  dimension(:,:,:,:), allocatable   :: transitx
-  integer  ok,ncid1,varxid
-  integer  i,j,m,k,ivt
+  real,   dimension(:,:,:),   allocatable   :: fracharvw
+  real,   dimension(:,:,:,:), allocatable   :: transitx
+  real,   dimension(:,:,:),   allocatable   :: fracpatch0,fracpatch1
+  real,   dimension(:,:),     allocatable   :: fracp0,fracp1
+  integer,dimension(:,:,:),   allocatable   :: cablepft0,cablepft1
+  integer  ok,ncid0,ncid1,varxid
+  integer  i,j,m,k,ivt,pft0,pft1
 
     allocate(fracharvw(mlon,mlat,mharvw))
     allocate(transitx(mlon,mlat,mvmax,mvmax))
+	allocate(fracpatch0(mlon,mlat,mvmax),fracpatch1(mlon,mlat,mvmax))
+	allocate(cablepft0(mlon,mlat,mvmax),cablepft1(mlon,mlat,mvmax))
+	allocate(fracp0(mland,mvmax),fracp1(mland,mvmax))
 
-    ok = nf90_open(fxpft,nf90_nowrite,ncid1)
-    ok = nf90_inq_varid(ncid1,"harvest",varxid)
-    ok = nf90_get_var(ncid1,varxid,fracharvw)
+    ok = nf90_open(fxpft0,nf90_nowrite,ncid0)
+    ok = nf90_inq_varid(ncid0,"CABLEpft",varxid)
+    ok = nf90_get_var(ncid0,varxid,cablepft0)
+	if(ok/=0) then
+       print *, 'cablepft0 was not read correctly!'
+       print *, 'In file= ',fxpft0
+       stop
+    endif
+	ok = nf90_inq_varid(ncid0,"patchfrac",varxid)
+	ok = nf90_get_var(ncid0,varxid,fracpatch0)
+	if(ok/=0) then
+       print *, 'patchfrac0 was not read correctly!'
+       print *, 'In file= ',fxpft0
+       stop
+    endif
+	
+    ok = nf90_inq_varid(ncid0,"harvest",varxid)
+    ok = nf90_get_var(ncid0,varxid,fracharvw)
     if(ok/=0) then
        print *, 'tranistion matrix was not read correctly!'
-       print *, 'variable harvest in file= ',fxpft
+       print *, 'variable harvest in file= ',fxpft0
        stop
     endif
     
-    ok = nf90_inq_varid(ncid1,"transition",varxid)
-    ok = nf90_get_var(ncid1,varxid,transitx)
+    ok = nf90_inq_varid(ncid0,"transition",varxid)
+    ok = nf90_get_var(ncid0,varxid,transitx)
     if(ok/=0) then
        print *, 'tranistion matrix was not read correctly!'
-       print *, 'variable transition in file= ',fxpft
+       print *, 'variable transition in file= ',fxpft0
+       stop
+    endif
+	
+    ok = nf90_close(ncid0)
+
+	
+    ok = nf90_open(fxpft,nf90_nowrite,ncid1)
+    ok = nf90_inq_varid(ncid1,"CABLEpft",varxid)
+    ok = nf90_get_var(ncid1,varxid,cablepft1)
+	if(ok/=0) then
+       print *, 'cablepft was not read correctly!'
+       print *, 'In file= ',fxpft
+       stop
+    endif
+	ok = nf90_inq_varid(ncid1,"patchfrac",varxid)
+	ok = nf90_get_var(ncid1,varxid,fracpatch1)
+	if(ok/=0) then
+       print *, 'patchfrac was not read correctly!'
+       print *, 'In file= ',fxpft
        stop
     endif
     
@@ -176,8 +220,8 @@ SUBROUTINE landuse_getdata(mlat,mlon,landmask,fxpft,luc_atransit,luc_fharvw)
     transitx = min(1.0,max(0.0,transitx))
     fracharvw = min(1.0,max(0.0,fracharvw))
 
-    ! assig the values of luc%variables
-    luc_fharvw(:,:) =0.0; luc_atransit(:,:,:)=0.0
+    ! assig the values of luc_variables
+    luc_fharvw(:,:) =0.0; luc_atransit(:,:,:)=0.0;luc_delarea(:,:) = 0.0; fracp0(:,:)=0.0; fracp1(:,:)=0.0
     m = 0
     do j=1,mlat
     do i=1,mlon
@@ -185,12 +229,24 @@ SUBROUTINE landuse_getdata(mlat,mlon,landmask,fxpft,luc_atransit,luc_fharvw)
           m= m +1
           luc_atransit(m,:,:)   = transitx(i,j,:,:)
           luc_fharvw(m,:)       = fracharvw(i,j,:)
+		  do k=1,mvmax
+		     pft0=cablepft0(i,j,k)
+			 pft1=cablepft1(i,j,k)
+			 fracp0(m,pft0) = min(1.0,max(0.0,fracpatch0(i,j,k)))
+			 fracp1(m,pft1) = min(1.0,max(0.0,fracpatch1(i,j,k)))
+		  enddo	
+          do k=1,mvmax
+             luc_delarea(m,k) = min(1.0,max(-1.0,fracp1(m,k)-fracp0(m,k)))
+          enddo			 
        endif
     enddo
     enddo
     
     deallocate(fracharvw)
     deallocate(transitx)
+	deallocate(fracpatch0,fracpatch1)
+	deallocate(fracp0,fracp1)
+	deallocate(cablepft0,cablepft1)
 
 END SUBROUTINE landuse_getdata
 

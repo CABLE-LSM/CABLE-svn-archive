@@ -2416,9 +2416,10 @@ END SUBROUTINE casa_rplant1
 
   END SUBROUTINE casa_poolzero
 
-  SUBROUTINE casa_cnpbal(veg,casamet,casapool,casaflux,casabal)
+  SUBROUTINE casa_cnpbal(veg,casabiome,casamet,casapool,casaflux,casabal)
 
     IMPLICIT NONE
+    TYPE (casa_biome),            INTENT(INOUT) :: casabiome
     TYPE (casa_met),              INTENT(IN)    :: casamet
     TYPE (casa_pool),             INTENT(INOUT) :: casapool
     TYPE (casa_flux),             INTENT(INOUT) :: casaflux
@@ -2462,8 +2463,10 @@ END SUBROUTINE casa_rplant1
        IF(ABS(casabal%cbalance(npt))>1e-10.and.casapool%cplant(npt,1) >1.0e-3) THEN
        
           WRITE(*,*) 'cbalance',   npt, casamet%lat(npt),casamet%lon(npt), &
-                                   casamet%iveg2(npt),Cbalplant(npt), Cbalsoil(npt)
+                                   veg%iveg(npt),Cbalplant(npt), Cbalsoil(npt)
           WRITE(*,*) 'gpp, npp',   casaflux%Cgpp(npt), casaflux%Cnpp(npt)
+          WRITE(*,*) 'cplant glai vlai sla', casapool%cplant(npt,:),casamet%glai(npt),veg%vlai(npt),casabiome%sla(veg%iveg(npt))
+          WRITE(*,*) 'nplant',     casapool%nplant(npt,:)
           WRITE(*,*) 'rmplant, rgplant',  casaflux%crmplant(npt,:) , casaflux%crgplant(npt)
           WRITE(*,*) 'DIFF cplant',  SUM(casapool%cplant(npt,:)) -SUM(casabal%cplantlast(npt,:))
           WRITE(*,*) 'dcplandt',   casapool%dcplantdt(npt,:), SUM(casapool%dcplantdt(npt,:))

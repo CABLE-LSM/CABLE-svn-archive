@@ -1,7 +1,8 @@
 ! landuse change module developed by YP Wang, CSIRO Oceans and Atmosphere
 ! some notation conventions
 ! (1) arrange index sequence: 
-!  for any two dimension arrange, x2d(mlon,mlat)
+!  for any two-dimensional variable: x(mlon,mlat)
+!
 ! (2) translation from 2d field inot 1d land point
 !  nland=0
 !  do j=1,mlat
@@ -9,7 +10,6 @@
 !      if(landmask(i,j)==1) nland=nland+1
 !  enddo
 !  enddo
-!
 !      
 MODULE landuse_variable
   use landuse_constant
@@ -160,6 +160,7 @@ MODULE landuse_variable
     REAL(r_2), DIMENSION(:,:),   ALLOCATABLE :: fharvw 
     REAL(r_2), DIMENSION(:,:,:), ALLOCATABLE :: xluh2cable 
     REAL(r_2), DIMENSION(:,:,:), ALLOCATABLE :: atransit
+	REAL(r_2), DIMENSION(:,:),   ALLOCATABLE :: delarea 
   END TYPE landuse_mland
 
   TYPE landuse_mp
@@ -341,7 +342,8 @@ MODULE landuse_variable
    ALLOCATE(luc%pftfrac(mland,mvtype),           &
             luc%fharvw(mland,mharvw),            &
             luc%xluh2cable(mland,mvmax,mstate),  &
-            luc%atransit(mland,mvmax,mvmax))
+            luc%atransit(mland,mvmax,mvmax),     &
+			luc%delarea(mland,mvmax))
 
     !        luc%phen_y(mland,mvmax),             &
     !        luc%aphen_y(mland,mvmax),            &
@@ -444,7 +446,8 @@ MODULE landuse_variable
            luc%psoilsorb_y = 0.0; luc%psoilocc_y = 0.0
            luc%cwoodprod_y=0.0;   luc%nwoodprod_y=0.0;     luc%pwoodprod_y=0.0
 
-           luc%pftfrac = 0.0;     luc%fharvw=0.0;          luc%xluh2cable=0.0;    luc%atransit=0.0
+           luc%pftfrac = 0.0;     luc%fharvw=0.0;          luc%xluh2cable=0.0
+		   luc%atransit=0.0;      luc%delarea=0.0
    END SUBROUTINE landuse_allocate_mland
 
    SUBROUTINE landuse_deallocate_mland(luc)
@@ -571,7 +574,8 @@ MODULE landuse_variable
    DEALLOCATE(luc%pftfrac,           &
               luc%fharvw,            &
               luc%xluh2cable,        &
-              luc%atransit)
+              luc%atransit,          &
+			  luc%delarea)
 
    END SUBROUTINE landuse_deallocate_mland
 
@@ -591,7 +595,7 @@ MODULE landuse_variable
    ! biophysical variables
      allocate(lucmp%albsoilsn(mpx,nrb),lucmp%albedo(mpx,nrb),lucmp%albsoil(mpx,nrb))                !float(mp,rad)
      allocate(lucmp%dgdtg(mpx))                                                                     !double(mp)
-     allocate(lucmp%gammzz(mpx,ms))                                                                    !double(mp,soil)
+     allocate(lucmp%gammzz(mpx,ms))                                                                 !double(mp,soil)
      allocate(lucmp%tgg(mpx,ms),lucmp%wb(mpx,ms),lucmp%wbice(mpx,ms))                               !float(mp,soil)
      allocate(lucmp%tggsn(mpx,msn),lucmp%ssdn(mpx,msn),lucmp%smass(mpx,msn),lucmp%sdepth(mpx,msn)) !float(mp,snow)
  
@@ -663,7 +667,7 @@ MODULE landuse_variable
      deallocate(lucmp%dgdtg)                                                  !double(mp)
      deallocate(lucmp%gammzz)                                                 !double(mp,soil)
      deallocate(lucmp%tgg,lucmp%wb,lucmp%wbice)                               !float(mp,soil)
-     deallocate(lucmp%tggsn,lucmp%ssdn,lucmp%smass,lucmp%sdepth)             !float(mp,snow)
+     deallocate(lucmp%tggsn,lucmp%ssdn,lucmp%smass,lucmp%sdepth)              !float(mp,snow)
  
      deallocate(lucmp%tss,lucmp%rtsoil,lucmp%runoff,lucmp%rnof1,lucmp%rnof2,    &
               lucmp%ssdnn,lucmp%snowd,lucmp%snage,lucmp%osnowd,                 &
@@ -689,7 +693,7 @@ END MODULE landuse_variable
 
   subroutine landuse_driver(mlon,mlat,landmask,arealand,ssnow,soil,veg,bal,canopy,  &
                             phen,casapool,casabal,casamet,casabiome,casaflux,bgc,rad, &
-                            cstart,cend,nap,lucmp,luc_atransit,luc_fharvw,luc_xluh2cable)
+                            cstart,cend,nap,lucmp,luc_atransit,luc_fharvw,luc_xluh2cable,luc_delarea)
   USE cable_IO_vars_module, ONLY: mask,patch,landpt, latitude, longitude
   USE cable_def_types_mod,  ONLY: mp,mvtype,mstype,mland,r_2,ms,msn,nrb,ncp,ncs,           &
                                   soil_parameter_type, soil_snow_type, veg_parameter_type, &
@@ -725,6 +729,7 @@ END MODULE landuse_variable
   real(r_2)    luc_atransit(mland,mvmax,mvmax)
   real(r_2)    luc_fharvw(mland,mharvw)
   real(r_2)    luc_xluh2cable(mland,mvmax,mstate)
+  real(r_2)    luc_delarea(mland,mvmax)
   
 
   character*500   fxpft,fxluh2cable
@@ -824,9 +829,10 @@ END MODULE landuse_variable
        enddo
 
        do k1=1,mvmax
-       do k2=1,mstate
-          luc%xluh2cable(m,k1,k2) = luc_xluh2cable(m,k1,k2)
-       enddo
+	      luc%delarea(m,k1)      = luc_delarea(m,k1)
+          do k2=1,mstate
+             luc%xluh2cable(m,k1,k2) = luc_xluh2cable(m,k1,k2)
+          enddo
        enddo
 
      enddo
@@ -835,11 +841,11 @@ END MODULE landuse_variable
 
      if(icycle>0) then 
      do p=1,mp        
-  !      print *, 'landuse F: ', p, phen%phase(p),phen%doyphase(p,3),phen%phen(p),phen%aphen(p)
- !       print *, 'landuse F2: ',   casaflux%frac_sapwood(p),casaflux%sapwood_area(p)
- !       print *, 'landuse F3: ', casapool%clabile(p),casapool%cplant(p,:),casapool%clitter(p,:),casapool%csoil(p,:),        &
- !                               casapool%cwoodprod(p,:)
-!        print *, 'landuse F4: ',casabal%sumcbal(p)
+!      print *, 'landuse F: ', p, phen%phase(p),phen%doyphase(p,3),phen%phen(p),phen%aphen(p)
+!      print *, 'landuse F2: ',   casaflux%frac_sapwood(p),casaflux%sapwood_area(p)
+!      print *, 'landuse F3: ', casapool%clabile(p),casapool%cplant(p,:),casapool%clitter(p,:),casapool%csoil(p,:),        &
+!                               casapool%cwoodprod(p,:)
+!      print *, 'landuse F4: ',casabal%sumcbal(p)
 
         lucmp%phase(p)       = phen%phase(p)
         lucmp%doyphase3(p)   = phen%doyphase(p,3)
@@ -888,13 +894,13 @@ END MODULE landuse_variable
      print *, 'calling deallocate mp: landuse',mp,ms,msn,nrb,mplant,mlitter,msoil,mwood
      call landuse_deallocate_mp(mp,ms,msn,nrb,mplant,mlitter,msoil,mwood,lucmp)
 
-     print *, 'calling transitx: landuse'
+     !print *, 'calling transitx: landuse'
      call landuse_transitx(luc,casabiome)
 
-     print *, 'calling checks: landuse', mlon,mlat
+     !print *, 'calling checks: landuse', mlon,mlat
      call landuse_checks(mlon,mlat,landmask,luc)
 
-     print *, 'calling update mland: landuse'
+     !print *, 'calling update mland: landuse'
      call landuse_update_mland(luc)                    ! assign "var_y" to "var_x"
 
      ! update "cstart", "cend","nap" and "mp=>mpx"
@@ -1171,6 +1177,7 @@ SUBROUTINE landuse_transitx(luc,casabiome)
    real(r_2)                                     tempx
    integer p,d,r,q,r1,r2,r3,r4,ierror,ivt,k
    integer irb,is,icp,ics
+   real  diffarea2
 
    print *, 'inside landuse_transitx'
 
@@ -1218,14 +1225,9 @@ SUBROUTINE landuse_transitx(luc,casabiome)
          call landuse_redistribution(p,mvmax,delfwhpri,afwhpri)  
       endif
 
+!      print *, 'p delarea', p,luc%delarea(p,:)
+	  
       transitx(1:mvmax,1:mvmax) = luc%atransit(p,1:mvmax,1:mvmax)+afwhpri(1:mvmax,1:mvmax)
-
- !     print *, 'transitx at land point', p
- !     print *, 'luc%transit= ', luc%atransit(p,1:mvmax,1:mvmax)
- !     print *, 'luc%fharvw1', luc%fharvw(p,1)
- !     print *, 'luc%xluh2cable', luc%xluh2cable(p,1:mvtype,1)
-
-
 
       do d = 1,mvmax
       do r = 1,mvmax
@@ -1318,26 +1320,30 @@ SUBROUTINE landuse_transitx(luc,casabiome)
 
       luc%patchfrac_y(p,:)   = luc%patchfrac_x(p,:) + delarea(p,:)
 
-      if(p==1355) then
-         print *, 'mland',p, latitude(p), longitude(p)
-         print *, 'pathcfrac_x',luc%patchfrac_x(p,:)
-         print *, 'luc%iveg_x',luc%iveg_x(p,:)
-         print *, 'pathcfrac_y',luc%patchfrac_y(p,:)
-         print *, 'luc%iveg_y',luc%iveg_y(p,:)
-         print *, 'delarea    ',delarea(p,:)
-         print *, 'transit matrix'
-         do d=1,mvmax
-            print *, luc%atransit(p,d,:)
-         enddo
-         print *, 'wood harvest'
-         do d=1,mvmax
-            print *, afwhpri(d,:)
-         enddo
-         print *, 'xluh2cabl13'
-         do d=1,mvmax
-            print *, luc%xluh2cable(p,d,1), luc%xluh2cable(p,d,3)
-         enddo   
-      endif   
+      diffarea2 = sum(abs(delarea(p,:)-luc%delarea(p,:)))
+!      if(p==1355) then
+!      if(diffarea2>thresh_frac) then
+!         print *, 'mland',p, latitude(p), longitude(p)
+!         print *, 'pathcfrac_x',luc%patchfrac_x(p,:)
+!         print *, 'luc%iveg_x',luc%iveg_x(p,:)
+!         print *, 'pathcfrac_y',luc%patchfrac_y(p,:)
+!         print *, 'luc%iveg_y',luc%iveg_y(p,:)
+!         print *, 'delarea    ',delarea(p,:)
+!		 print *, 'luc%delarea', luc%delarea(p,:)
+!		 print *, 'diffarea2  ', diffarea2
+!         print *, 'transit matrix',delarea(p,:)-luc%delarea(p,:)
+!         do d=1,mvmax
+!            print *, luc%atransit(p,d,:)
+!         enddo
+!         print *, 'wood harvest'
+!         do d=1,mvmax
+!            print *, afwhpri(d,:)
+!         enddo
+!         print *, 'xluh2cabl13'
+!         do d=1,mvmax
+!            print *, luc%xluh2cable(p,d,1), luc%xluh2cable(p,d,3)
+!         enddo   
+!      endif   
 
       do d=1,mvmax
       luc%patchfrac_y(p,d)   = luc%patchfrac_x(p,d) + delarea(p,d)

@@ -1517,7 +1517,7 @@ CONTAINS
         CALL casa_pdummy(casamet,casabal,casaflux,casapool)
     ENDIF
 
-    CALL casa_cnpbal(veg,casamet,casapool,casaflux,casabal)
+    CALL casa_cnpbal(veg,casabiome,casamet,casapool,casaflux,casabal)
 
     CALL casa_cnpflux(casaflux,casapool,casabal,.FALSE.)
 

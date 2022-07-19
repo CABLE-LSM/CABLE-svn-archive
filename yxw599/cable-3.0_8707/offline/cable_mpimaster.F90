@@ -372,6 +372,7 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
     real(r_2), dimension(:,:,:),   allocatable,  save  :: luc_atransit
     real(r_2), dimension(:,:),     allocatable,  save  :: luc_fharvw
     real(r_2), dimension(:,:,:),   allocatable,  save  :: luc_xluh2cable
+	real(r_2), dimension(:,:),     allocatable,  save  :: luc_delarea
     real(r_2), dimension(:),       allocatable,  save  :: arealand
     integer,   dimension(:,:),     allocatable,  save  :: landmask
     integer,   dimension(:),       allocatable,  save  :: cstart,cend,nap  
@@ -1412,6 +1413,7 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
        allocate(luc_atransit(mland,mvmax,mvmax))
        allocate(luc_fharvw(mland,mharvw))
        allocate(luc_xluh2cable(mland,mvmax,mstate))
+	   allocate(luc_delarea(mland,mvmax))
        allocate(landmask(mlon,mlat))
        allocate(arealand(mland))
        allocate(patchfrac_new(mlon,mlat,mvmax))
@@ -1423,13 +1425,13 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
           nap(m)    = landpt(m)%nap
        enddo
 
-       call landuse_data(mlon,mlat,landmask,arealand,luc_atransit,luc_fharvw,luc_xluh2cable)
+       call landuse_data(mlon,mlat,landmask,arealand,luc_atransit,luc_fharvw,luc_xluh2cable,luc_delarea)
 
-       print *, 'tranit at mland=48 ', luc_atransit(48,:,:)
+!       print *, 'transit at mland=48 ', luc_atransit(48,:,:)
 
        call  landuse_driver(mlon,mlat,landmask,arealand,ssnow,soil,veg,bal,canopy,  &
                            phen,casapool,casabal,casamet,casabiome,casaflux,bgc,rad, &
-                           cstart,cend,nap,lucmp,luc_atransit,luc_fharvw,luc_xluh2cable)
+                           cstart,cend,nap,lucmp,luc_atransit,luc_fharvw,luc_xluh2cable,luc_delarea)
 
        print *, 'writing new gridinfo: landuse'
        print *, 'new patch information. mland= ',mland

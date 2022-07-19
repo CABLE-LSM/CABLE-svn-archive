@@ -1295,6 +1295,7 @@ CONTAINS
        patch(landpt(e)%cstart:landpt(e)%cend)%frac =                            &
             inPFrac(landpt(e)%ilon, landpt(e)%ilat, 1:landpt(e)%nap)
 
+       WRITE(*,*) 'cstart:cend lat and lon', e,  landpt(e)%cstart,landpt(e)%cend,latitude(e),longitude(e)
        WRITE(*,*) 'iveg', e,  veg%iveg(landpt(e)%cstart:landpt(e)%cend)
        WRITE(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
 
@@ -1508,10 +1509,16 @@ CONTAINS
        ! Prescribe parameters for current gridcell based on veg/soil type (which
        ! may have loaded from default value file or met file):
        DO h = landpt(e)%cstart, landpt(e)%cend ! over each patch in current grid
-          bgc%cplant(h,:) = vegin%cplant(:, veg%iveg(h))
-          bgc%csoil(h,:)  = vegin%csoil(:, veg%iveg(h))
-          bgc%ratecp(:)   = vegin%ratecp(:, veg%iveg(h))
-          bgc%ratecs(:)   = vegin%ratecs(:, veg%iveg(h))
+          bgc%cplant(h,1) = vegin%cplant1( veg%iveg(h))
+          bgc%cplant(h,2) = vegin%cplant2( veg%iveg(h))
+          bgc%cplant(h,3) = vegin%cplant3( veg%iveg(h))
+          bgc%csoil(h,1)  = vegin%csoil1(  veg%iveg(h))
+          bgc%csoil(h,2)  = vegin%csoil2(  veg%iveg(h))
+          bgc%ratecp(1)   = vegin%ratecp1(  veg%iveg(h))
+          bgc%ratecp(2)   = vegin%ratecp2(  veg%iveg(h))
+          bgc%ratecp(3)   = vegin%ratecp3(  veg%iveg(h))
+          bgc%ratecs(1)   = vegin%ratecs1(  veg%iveg(h))
+          bgc%ratecs(2)   = vegin%ratecs2(  veg%iveg(h))
 
           IF (.NOT. soilparmnew) THEN   ! Q,Zhang @ 12/20/2010
              soil%swilt(h)   =  soilin%swilt(soil%isoilm(h))
@@ -2101,11 +2108,11 @@ CONTAINS
     TYPE (phen_variable), INTENT(IN)  :: phen
 
     INTEGER :: e, f, g ! do loop counter
-    CHARACTER(LEN=15) :: patchfmtr  ! patch format specifier for real numbers
-    CHARACTER(LEN=13) :: patchfmti  ! patch format specifier for integer
+    CHARACTER(LEN=16) :: patchfmtr  ! patch format specifier for real numbers
+    CHARACTER(LEN=14) :: patchfmti  ! patch format specifier for integer
     ! numbers
-    CHARACTER(LEN=15) :: patchfmte  ! patch format specifier for expon. numbers
-    CHARACTER(LEN=15) :: patchfmte2 ! patch format specifier for expon. numbers
+    CHARACTER(LEN=16) :: patchfmte  ! patch format specifier for expon. numbers
+    CHARACTER(LEN=16) :: patchfmte2 ! patch format specifier for expon. numbers
 
     ! Get vegetation/soil type descriptions in case they haven't yet been
     ! loaded (i.e. if restart file + met file contains all parameter/init/LAI
@@ -2751,10 +2758,10 @@ CONTAINS
     ! may have loaded from default value file or met file):
     DO h = ifmp, fmp          ! over each patch in current grid
        veg%frac4(h)    = vegin%frac4(veg%iveg(h))
-       veg%taul(h,1)    = vegin%taul(1,veg%iveg(h))
-       veg%taul(h,2)    = vegin%taul(2,veg%iveg(h))
-       veg%refl(h,1)    = vegin%refl(1,veg%iveg(h))
-       veg%refl(h,2)    = vegin%refl(2,veg%iveg(h))
+       veg%taul(h,1)    = vegin%taul1(veg%iveg(h))
+       veg%taul(h,2)    = vegin%taul2(veg%iveg(h))
+       veg%refl(h,1)    = vegin%refl1(veg%iveg(h))
+       veg%refl(h,2)    = vegin%refl2(veg%iveg(h))
        veg%canst1(h)   = vegin%canst1(veg%iveg(h))
        veg%dleaf(h)    = vegin%dleaf(veg%iveg(h))
        veg%vcmax(h)    = vegin%vcmax(veg%iveg(h))

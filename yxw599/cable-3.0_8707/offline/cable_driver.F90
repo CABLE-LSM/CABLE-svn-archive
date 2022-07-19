@@ -297,6 +297,7 @@ integer     mlon,mlat, mpx
 real(r_2), dimension(:,:,:),   allocatable,  save  :: luc_atransit
 real(r_2), dimension(:,:),     allocatable,  save  :: luc_fharvw
 real(r_2), dimension(:,:,:),   allocatable,  save  :: luc_xluh2cable
+real(r_2), dimension(:,:),     allocatable,  save  :: luc_delarea
 real(r_2), dimension(:),       allocatable,  save  :: arealand        
 integer,   dimension(:,:),     allocatable,  save  :: landmask
 integer,   dimension(:),       allocatable,  save  :: cstart,cend,nap
@@ -1201,7 +1202,8 @@ real(r_2), dimension(:,:,:),   allocatable,  save  :: patchfrac_new
      print *, 'before landuse: mlon mlat ', mlon,mlat
      allocate(luc_atransit(mland,mvmax,mvmax)) 
      allocate(luc_fharvw(mland,mharvw)) 
-     allocate(luc_xluh2cable(mland,mvmax,mstate))  
+     allocate(luc_xluh2cable(mland,mvmax,mstate)) 
+     allocate(luc_delarea(mland,mvmax))  	 
      allocate(landmask(mlon,mlat))
      allocate(arealand(mland))
      allocate(patchfrac_new(mlon,mlat,mvmax))
@@ -1213,10 +1215,10 @@ real(r_2), dimension(:,:,:),   allocatable,  save  :: patchfrac_new
         nap(m)    = landpt(m)%nap
      enddo
 
-     call landuse_data(mlon,mlat,landmask,arealand,luc_atransit,luc_fharvw,luc_xluh2cable)      
-     call  landuse_driver(mlon,mlat,landmask,arealand,ssnow,soil,veg,bal,canopy,  &
-                          phen,casapool,casabal,casamet,casabiome,casaflux,bgc,rad, &
-                          cstart,cend,nap,lucmp)
+     call landuse_data(mlon,mlat,landmask,arealand,luc_atransit,luc_fharvw,luc_xluh2cable,luc_delarea)      
+     call landuse_driver(mlon,mlat,landmask,arealand,ssnow,soil,veg,bal,canopy,    &
+                         phen,casapool,casabal,casamet,casabiome,casaflux,bgc,rad, &
+                         cstart,cend,nap,lucmp,luc_atransit,luc_fharvw,luc_xluh2cable,luc_delarea)
 
      do m=1,mland
         do np=cstart(m),cend(m)
