@@ -21,9 +21,10 @@ USE grid_constants_mod_cbl, ONLY: nsl, nscs, nvcs, nrb
 
 USE max_dimensions, ONLY: ntype_max
 
-!TYPE definitions
 USE prognostics,      ONLY: progs_type
-USE cable_fields_mod, ONLY: pars_io_data_cbl
+USE cable_fields_mod, ONLY: pars_io_data_cbl, pars_io_cbl
+
+USE params_io_mod_cbl, ONLY: params_io_assoc_cbl
 
 IMPLICIT NONE
 
@@ -469,6 +470,8 @@ IF ( ERROR /= 0 )                                                              &
                  "error message(s)")
 
 pars_io_data_cbl%vegin_dleaf(:) = SQRT(pars_io_data_cbl%vegin_width(:) * pars_io_data_cbl%vegin_length(:))
+
+CALL params_io_assoc_cbl(pars_io_cbl,pars_io_data_cbl)
 
 END SUBROUTINE init_vegin_cbl
 
