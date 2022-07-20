@@ -1,5 +1,7 @@
 MODULE cbl_masks_mod
 
+IMPLICIT NONE
+
   PUBLIC L_tile_pts
   PUBLIC fveg_mask
   PUBLIC fsunlit_mask
@@ -7,8 +9,6 @@ MODULE cbl_masks_mod
 
   !mask TRUE where tile fraction is greater than zero
   LOGICAL, allocatable :: L_tile_pts(:,:)
-
-IMPLICIT NONE
 
 CONTAINS
 

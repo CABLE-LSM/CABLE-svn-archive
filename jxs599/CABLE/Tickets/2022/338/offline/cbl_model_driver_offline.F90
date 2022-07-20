@@ -69,7 +69,6 @@ USE cable_other_constants_mod, ONLY : CGAUSS_W => gauss_w
 USE cable_math_constants_mod, ONLY : CPI => pi
 USE cable_math_constants_mod, ONLY : CPI180 => pi180
 use cbl_masks_mod, ONLY :  fveg_mask,  fsunlit_mask,  fsunlit_veg_mask
-use cbl_masks_mod, ONLY :  veg_mask,  sunlit_mask,  sunlit_veg_mask
 
     ! CABLE model variables
     TYPE (air_type),       INTENT(INOUT) :: air
@@ -94,23 +93,24 @@ LOGICAL :: cbl_standalone= .true.
 LOGICAL :: jls_standalone= .false.
 LOGICAL :: jls_radiation= .false.
 
+!masks
+LOGICAL, ALLOCATABLE :: veg_mask(:),  sunlit_mask(:),  sunlit_veg_mask(:)
+
 !co-efficients usoughout init_radiation ` called from _albedo as well
 REAL :: c1(mp,nrb)
 REAL :: rhoch(mp,nrb)
 REAL :: xk(mp,nrb)
-
-!iFor testing
-cable_user%soil_struc="default"
 
 CALL ruff_resist( veg, rough, ssnow, canopy, veg%vlai, veg%hc, canopy%vlaiw )
 
 !jhan: this call to define air may be redundant
 CALL define_air (met, air)
 
-call fveg_mask( veg_mask, mp, Clai_thresh, canopy%vlaiw )
-!call fsunlit_mask( sunlit_mask, mp, Ccoszen_tols, met%coszen )
-call fsunlit_mask( sunlit_mask, mp, CRAD_THRESH,( met%fsd(:,1)+met%fsd(:,2) ) )
-call fsunlit_veg_mask( sunlit_veg_mask, mp )
+!Define logical masks for vegetated,sunlit, both
+CALL fveg_mask( veg_mask, mp, Clai_thresh, canopy%vlaiw )
+CALL fsunlit_mask( sunlit_mask, mp, CRAD_THRESH,( met%fsd(:,1)+met%fsd(:,2) ) )
+!JAC!call fsunlit_mask( sunlit_mask, mp, Ccoszen_tols, met%coszen )
+CALL fsunlit_veg_mask( sunlit_veg_mask, veg_mask, sunlit_mask, mp )
 
 CALL init_radiation( rad%extkb, rad%extkd,                                     &
                      !ExtCoeff_beam, ExtCoeff_dif,
