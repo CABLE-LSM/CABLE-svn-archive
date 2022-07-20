@@ -25,7 +25,7 @@ SUBROUTINE read_cable_progs()
 
 USE errormessagelength_mod, ONLY: errormessagelength
 
-USE input_mod, ONLY: fill_variables_from_file
+USE fill_variables_from_file_mod, ONLY: fill_variables_from_file
 
 USE io_constants, ONLY: max_sdf_name_len, max_file_name_len, namelist_unit
 

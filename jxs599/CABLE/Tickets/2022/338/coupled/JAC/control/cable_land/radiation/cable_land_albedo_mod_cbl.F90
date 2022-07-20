@@ -22,10 +22,10 @@ SUBROUTINE cable_land_albedo (                                                 &
   !IN: CABLE Vegetation/Soil parameters. decl in params_io_cbl.F90
   VeginXfang, VeginTaul, VeginRefl, ICE_type, ICE_soiltype,                    &
   !IN: CABLE prognostics. decl in progs_cbl_vars_mod.F90
-  SoilTemp_CABLE, SnowTemp_CABLE,                                              &
-  OneLyrSnowDensity_CABLE, ThreeLayerSnowFlag_CABLE,                           &
+  SoilTemp_CABLE,                                                              &
+  OneLyrSnowDensity_CABLE,                                                     &
   !INOUT: CABLE prognostics. decl in progs_cbl_vars_mod.F90
-  SnowOSurft, SnowAge_CABLE                                                    &
+              SnowAge_CABLE                                                    &
 )
 
 !USE subroutines
@@ -40,7 +40,8 @@ USE cable_pack_mod,             ONLY: cable_pack_soil,cable_pack_rr
 ! Define CABLE grid, sunlit/veg masks & initialize surface type params
 USE def_cable_grid_mod,         ONLY: def_cable_grid
 USE init_cable_pftparms_mod,    ONLY: init_cable_veg_rad
-USE cbl_masks_mod,              ONLY: fveg_mask, fsunlit_mask, fsunlit_veg_mask
+USE cbl_masks_mod,              ONLY: fveg_mask, fsunlit_mask,                 &
+                                      fsunlit_veg_mask, L_tile_pts
 
 !Compute canopy exposed above (potential) snow
 USE cbl_LAI_canopy_height_mod,  ONLY: limit_HGT_LAI
@@ -107,25 +108,21 @@ REAL, INTENT(IN) :: VeginRefl(nrb, nsurft )          !Leaf Reflectivity
 
 !---IN: CABLE prognostics. decl in progs_cbl_vars_mod.F90
 REAL, INTENT(IN) :: SoilTemp_CABLE(land_pts, nsurft, nsl )
-REAL, INTENT(IN) :: SnowTemp_CABLE(land_pts, nsurft, nsnl)
 REAL, INTENT(IN) :: OneLyrSnowDensity_CABLE(land_pts, nsurft )
-REAL, INTENT(IN) :: ThreeLayerSnowFlag_CABLE(land_pts, nsurft )
 REAL, INTENT(IN) :: SnowAge_CABLE(land_pts, nsurft )
 
-REAL, INTENT(IN OUT) :: SnowOsurft(land_pts, nsurft )
-
-!--- local vars
+!--- local vars (passed to subrs)
 
 ! Albedos req'd by JULES - Effective Surface Relectance as seen by atmosphere
 REAL, ALLOCATABLE :: EffSurfRefl_dif(:,:)
 REAL, ALLOCATABLE :: EffSurfRefl_beam(:,:)
 
 !masks
-LOGICAL, ALLOCATABLE :: l_tile_pts(:,:)
 LOGICAL, ALLOCATABLE :: veg_mask(:),  sunlit_mask(:),  sunlit_veg_mask(:)
 
 !Vegetation parameters
 INTEGER, ALLOCATABLE :: SurfaceType(:)     ! veg%iveg
+INTEGER, ALLOCATABLE :: SoilType(:)     ! veg%iveg
 REAL, ALLOCATABLE :: VegXfang(:)           ! Leaf Angle [veg%xfang]
 REAL, ALLOCATABLE :: VegTaul(:,:)          ! Leaf Transmisivity [veg%taul]
 REAL, ALLOCATABLE :: VegRefl(:,:)          ! Leaf Reflectivity [veg%refl]
@@ -136,13 +133,9 @@ REAL, ALLOCATABLE :: HeightAboveSnow(:)    ! Canopy Hgt above snow (rough%hruff)
 ! arrays to map IN progs to CABLE vector length
 REAL, ALLOCATABLE :: SnowDepth(:)     ! Total Snow depth - water eqivalent -
                                       ! ssnow%snowd
-REAL, ALLOCATABLE :: SnowODepth(:)    ! Total Snow depth before any update
-                                      ! ssnow%osnowd
 REAL, ALLOCATABLE :: SnowDensity(:)   ! Total Snow density (assumes 1 layer
 REAL, ALLOCATABLE :: SoilTemp(:)      ! Soil Temperature of top layer (soil%tgg)
-REAL, ALLOCATABLE :: SnowTemp(:)      ! Snow Temperature of top layer (soil%tgg)
 REAL, ALLOCATABLE :: SnowAge(:)       ! Snow age (assumes 1 layer describes snow
-INTEGER, ALLOCATABLE :: SnowFlag_3L(:) ! Flag snow as 3 layer - if enough
                                       ! ssnow%isflag
 
 REAL, ALLOCATABLE :: AlbSoil(:,:)     ! BareSoil Albedo [soill%albsoil]
@@ -154,6 +147,9 @@ REAL, ALLOCATABLE  :: HGT_pft_cbl(:)           !Formerly:  ~veg%hc
 LOGICAL :: um_online = .FALSE.
 LOGICAL :: jls_standalone = .TRUE.
 LOGICAL :: jls_radiation = .TRUE.     !um_radiation = jls_radiation
+
+!local vars (used locally)
+INTEGER:: i
 CHARACTER(LEN=*), PARAMETER :: subr_name = "cable_rad_main"
 ! End header
 
@@ -171,17 +167,24 @@ CALL alloc_local_vars( EffSurfRefl_dif, EffSurfRefl_beam,                      &
                        reducedLAIdue2snow, LAI_pft_cbl, HGT_pft_cbl,           &
                        HeightAboveSnow, coszen, mp, nrb )
 
-CALL alloc_local_progs( SnowDepth, SnowODepth, SnowDensity, SnowFlag_3L,       &
-                        SoilTemp, SnowTemp, SnowAge, AlbSoil, mp, nrb )
+CALL alloc_local_progs( SnowDepth,             SnowDensity,                    &
+                        SoilTemp,             SnowAge, AlbSoil, mp, nrb )
 
 ! -----------------------------------------------------------------------------
 ! PACK CABLE variables
 ! -----------------------------------------------------------------------------
-
 ! map PFT parameters to mp format
 CALL init_cable_veg_rad( VegXfang, VegTaul, VegRefl, SurfaceType, mp, nrb,     &
                          l_tile_pts, VeginXfang, VeginTaul, VeginRefl,         &
                          land_pts, nsurft, tile_frac )
+
+IF ( .NOT. ALLOCATED(SoilType)) ALLOCATE( SoilType(mp) )
+SoilType(:)=2 
+DO i=1,mp
+  IF (SurfaceType(i) == ICE_type) THEN
+    SoilType(i)= ICE_SoilType
+  END IF
+END DO
 
 !JULES doesn't have albedos per nrb: assume same: i.e (:,2) = (:,1) & (:,3)=0
 albsoil(:,3)  = 0.0
@@ -197,11 +200,11 @@ CALL cable_pack_rr(    coszen, cosine_zenith_angle,                            &
                        mp, l_tile_pts, row_length, rows, nsurft, land_pts,     &
                        land_index, surft_pts, surft_index )
 
-CALL cable_pack_progs( SnowDepth, SnowODepth, SnowDensity, SnowFlag_3L,        &
-                       SoilTemp, SnowTemp, SnowAge, mp, land_pts, nsurft, nsl, &
-                       nsnl, l_tile_pts, snowOsurft, snow_tile,                &
-                       OneLyrSnowDensity_CABLE, ThreeLayerSnowFlag_CABLE,      &
-                       SoilTemp_CABLE, SnowTemp_CABLE, SnowAge_CABLE )
+CALL cable_pack_progs( SnowDepth,             SnowDensity,                     &
+                       SoilTemp,           SnowAge, mp, land_pts, nsurft, nsl, &
+                       nsnl, l_tile_pts,             snow_tile,                &
+                       OneLyrSnowDensity_CABLE,                                &
+                       SoilTemp_CABLE,                 SnowAge_CABLE )
 ! -----------------------------------------------------------------------------
 
 ! limit IN height, LAI  and initialize existing cable % types
@@ -228,10 +231,10 @@ CALL fsunlit_veg_mask( sunlit_veg_mask, veg_mask, sunlit_mask, mp )
 CALL cable_rad_driver( EffSurfRefl_dif, EffSurfRefl_beam,                      &
                        mp, nrb, timestep_len, Clai_thresh, Ccoszen_tols,       &
                        CGauss_w, Cpi, Cpi180, Ctfrz, Cz0surf_min,              &
-                       veg_mask, sunlit_mask, sunlit_veg_mask,                 &
-                       jls_standalone, jls_radiation,  SurfaceType,            &
-                       LAI_pft_cbl, HGT_pft_cbl, SnowDepth, SnowODepth,        &
-                       SnowFlag_3L, SnowDensity, SoilTemp, SnowTemp, SnowAge,  &
+                       veg_mask, sunlit_mask, sunlit_veg_mask,     &
+                       jls_standalone, jls_radiation, SurfaceType, SoilType,   &
+                       LAI_pft_cbl, HGT_pft_cbl, SnowDepth,                    &
+                                    SnowDensity, SoilTemp,           SnowAge,  &
                        AlbSoil ,coszen, VegXfang, VegTaul, VegRefl,            &
                        HeightAboveSnow, reducedLAIdue2snow )
 
@@ -243,8 +246,8 @@ CALL cable_rad_unpack( land_albedo, alb_surft, mp, nrb, row_length, rows,      &
                        EffSurfRefl_dif, EffSurfRefl_beam  )
 
 CALL flush_local( EffSurfRefl_dif, EffSurfRefl_beam,                           &
-                        SnowDepth, SnowODepth, SnowDensity, SnowFlag_3L,       &
-                        SoilTemp, SnowTemp, SnowAge, AlbSoil,                  &
+                        SnowDepth,             SnowDensity,                    &
+                        SoilTemp,           SnowAge, AlbSoil,                  &
                         reducedLAIdue2snow, LAI_pft_cbl, HGT_pft_cbl,          &
                         HeightAboveSnow, coszen )
 
@@ -285,28 +288,22 @@ END SUBROUTINE alloc_local_vars
 
 !==============================================================================
 
-SUBROUTINE alloc_local_progs( SnowDepth, SnowODepth, SnowDensity, SnowFlag_3L, &
-                              SoilTemp, SnowTemp, SnowAge, AlbSoil, mp, nrb )
+SUBROUTINE alloc_local_progs( SnowDepth,             SnowDensity,              &
+                              SoilTemp,           SnowAge, AlbSoil, mp, nrb )
 
 IMPLICIT NONE
 
 INTEGER :: mp, nrb
 !local to CABLE and can be flushed every timestep
-INTEGER, ALLOCATABLE :: SnowFlag_3L(:)   ! treat snow as 3 layer - if enough
 REAL, ALLOCATABLE :: SnowDepth(:)        ! Total Snow depth - water eqivalent
-REAL, ALLOCATABLE :: SnowODepth(:)       ! Total Snow depth before any update
 REAL, ALLOCATABLE :: SnowDensity(:)      ! Total Snow density (assumes 1 layer
 REAL, ALLOCATABLE :: SoilTemp(:)         ! Soil Temp. of top layer (soil%tgg)
-REAL, ALLOCATABLE :: SnowTemp(:)         ! Snow Temp. of top layer (soil%tss)
 REAL, ALLOCATABLE :: SnowAge( :)         ! assumes 1 layer describes snow
 REAL, ALLOCATABLE :: AlbSoil(:,:)        ! bare soil albedo parametrized
 
 IF ( .NOT. ALLOCATED(SnowDepth) )         ALLOCATE( SnowDepth(mp) )
-IF ( .NOT. ALLOCATED(SnowODepth) )        ALLOCATE( SnowODepth(mp) )
 IF ( .NOT. ALLOCATED(SnowDensity) )       ALLOCATE( SnowDensity(mp) )
-IF ( .NOT. ALLOCATED(SnowFlag_3L) )       ALLOCATE( SnowFlag_3L(mp) )
 IF ( .NOT. ALLOCATED(SoilTemp) )          ALLOCATE( SoilTemp(mp) )
-IF ( .NOT. ALLOCATED(SnowTemp) )          ALLOCATE( SnowTemp(mp) )
 IF ( .NOT. ALLOCATED(SnowAge) )           ALLOCATE( SnowAge(mp) )
 IF (.NOT. ALLOCATED(AlbSoil) )           ALLOCATE (AlbSoil(mp, nrb) )
 
@@ -318,11 +315,11 @@ END SUBROUTINE alloc_local_progs
 
 !==============================================================================
 
-SUBROUTINE cable_pack_progs( SnowDepth, SnowODepth, SnowDensity, SnowFlag_3L,  &
-                       SoilTemp, SnowTemp, SnowAge, mp, land_pts, nsurft, nsl, &
-                       nsnl, l_tile_pts, snowOsurft, snow_tile,                &
-                       OneLyrSnowDensity_CABLE, ThreeLayerSnowFlag_CABLE,      &
-                       SoilTemp_CABLE, SnowTemp_CABLE, SnowAge_CABLE )
+SUBROUTINE cable_pack_progs( SnowDepth,             SnowDensity,               &
+                       SoilTemp,           SnowAge, mp, land_pts, nsurft, nsl, &
+                       nsnl, l_tile_pts,             snow_tile,                &
+                       OneLyrSnowDensity_CABLE,                                &
+                       SoilTemp_CABLE,                 SnowAge_CABLE )
 
 IMPLICIT NONE
 
@@ -330,36 +327,24 @@ INTEGER, INTENT(IN)  :: land_pts, nsurft, nsl, nsnl,mp
 
 ! map IN progs to CABLE veector length
 REAL, INTENT(OUT) :: SnowDepth(mp)     ! Total Snow depth - water eqivalent -
-REAL, INTENT(OUT) :: SnowODepth(mp)    ! Total Snow depth before any update
 REAL, INTENT(OUT) :: SnowDensity(mp)   ! Total Snow density (assumes 1 layer
 REAL, INTENT(OUT) :: SoilTemp(mp)      ! Soil Temperature of top layer (soil%tgg)
-REAL, INTENT(OUT) :: SnowTemp(mp)      ! Snow Temperature of top layer (soil%tgg)
 REAL, INTENT(OUT) :: SnowAge(mp)      ! Snow age (assumes 1 layer describes snow
-INTEGER, INTENT(OUT) :: SnowFlag_3L(mp)   ! Flag to treat snow as 3 layer - if enough
 
 LOGICAL, INTENT(IN) :: l_tile_pts(land_pts, nsurft )
 
 !---IN: CABLE prognostics. decl in progs_cbl_vars_mod.F90
 REAL, INTENT(IN) :: SoilTemp_CABLE(land_pts, nsurft, nsl )
-REAL, INTENT(IN) :: SnowTemp_CABLE(land_pts, nsurft, nsnl)
 REAL, INTENT(IN) :: OneLyrSnowDensity_CABLE(land_pts, nsurft )
-REAL, INTENT(IN) :: ThreeLayerSnowFlag_CABLE(land_pts, nsurft )
 REAL, INTENT(IN) :: SnowAge_CABLE(land_pts, nsurft )
 REAL, INTENT(IN) :: snow_tile(land_pts,nsurft)            ! snow depth (units?)
-REAL, INTENT(IN OUT) :: SnowOsurft(land_pts, nsurft )
 
 !Store Snow Depth from previous timestep. Treat differently on 1st timestep
 SnowDepth   = PACK( snow_tile, l_tile_pts )
-SnowODepth  = PACK( snowOsurft, l_tile_pts )
-snowOsurft  = snow_tile
 SnowDensity = PACK( OneLyrSnowDensity_CABLE, l_tile_pts )
-
-!Treat snow depth across 3Layers? Typecasts from Real to integer
-SnowFlag_3L = PACK( INT(ThreeLayerSnowFlag_CABLE), l_tile_pts )
 
 !Surface skin/top layer Soil/Snow temperature
 SoilTemp =   PACK( SoilTemp_CABLE(:,:,1), l_tile_pts )
-SnowTemp =   PACK( SnowTemp_CABLE(:,:,1), l_tile_pts )
 SnowAge  =   PACK( SnowAge_CABLE(:,:), l_tile_pts )
 
 RETURN
@@ -369,8 +354,8 @@ END SUBROUTINE cable_pack_progs
 !==============================================================================
 
 SUBROUTINE flush_local( EffSurfRefl_dif, EffSurfRefl_beam,                     &
-                        SnowDepth, SnowODepth, SnowDensity, SnowFlag_3L,       &
-                        SoilTemp, SnowTemp, SnowAge, AlbSoil,                  &
+                        SnowDepth,             SnowDensity,                    &
+                        SoilTemp,           SnowAge, AlbSoil,                  &
                         reducedLAIdue2snow, LAI_pft_cbl, HGT_pft_cbl,          &
                         HeightAboveSnow, coszen )
 

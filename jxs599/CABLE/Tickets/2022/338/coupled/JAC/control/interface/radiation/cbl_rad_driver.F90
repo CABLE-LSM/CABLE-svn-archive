@@ -6,9 +6,9 @@ SUBROUTINE cable_rad_driver( EffSurfRefl_dif, EffSurfRefl_beam,                &
                        mp, nrb, timestep_len, Clai_thresh, Ccoszen_tols,       &
                        CGauss_w, Cpi, Cpi180, Ctfrz, z0surf_min,               &
                        veg_mask, sunlit_mask, sunlit_veg_mask,                 &
-                       jls_standalone, jls_radiation,  SurfaceType,            &
-                       LAI_pft_cbl, HGT_pft_cbl, SnowDepth, SnowODepth,        &
-                       SnowFlag_3L, SnowDensity, SoilTemp, SnowTemp, SnowAge,  &
+                       jls_standalone, jls_radiation, SurfaceType, SoilType,   &
+                       LAI_pft_cbl, HGT_pft_cbl, SnowDepth,                    &
+                                    SnowDensity, SoilTemp,           SnowAge,  &
                        AlbSoil ,coszen, VegXfang, VegTaul, VegRefl,            &
                        HeightAboveSnow, reducedLAIdue2snow )
 
@@ -18,14 +18,15 @@ USE cbl_init_radiation_module,  ONLY: init_radiation
 
 IMPLICIT NONE
 
+!model dimensions
+INTEGER, INTENT(IN) :: mp         ! total number of "tiles"
+INTEGER, INTENT(IN) :: nrb        ! # radiation bands[ 1=VIS,2=NIR,3=LW(legacy, not used)
+
 ! Albedos req'd by JULES - Effective Surface Relectance as seen by atmosphere
 REAL, INTENT(OUT) :: EffSurfRefl_dif(mp,nrb)  ! Refl to Diffuse component of rad
                                               ! formerly rad%reffdf
 REAL, INTENT(OUT) :: EffSurfRefl_beam(mp,nrb) ! Refl to Beam component of rad
                                               ! formerly rad%reffbm
-!model dimensions
-INTEGER, INTENT(IN) :: mp         ! total number of "tiles"
-INTEGER, INTENT(IN) :: nrb        ! # radiation bands[ 1=VIS,2=NIR,3=LW(legacy, not used)
 
 !---IN: JULES  timestep length in seconds
 INTEGER, INTENT(IN) :: timestep_len
@@ -60,32 +61,29 @@ REAL, INTENT(IN) :: HGT_pft_cbl(mp)             !canopy height -  "limited" and 
 !-------------------------------------------------------------------------------
 
 REAL, INTENT(IN):: HeightAboveSnow(mp)         ! Height of Canopy above snow (rough%hruff)
-                                    ! compute from z0surf_min, HGT_pft_cbl,
-                                    ! SnowDepth, SnowDensity
-REAL, INTENT(IN) :: reducedLAIdue2snow(mp)      ! Reduced LAI given snow coverage
-REAL, INTENT(IN) :: coszen(mp)                  ! cosine zenith angle  (met%coszen)
+                                               ! compute from z0surf_min, HGT_pft_cbl,
+                                               ! SnowDepth, SnowDensity
+REAL, INTENT(IN) :: reducedLAIdue2snow(mp)     ! Reduced LAI given snow coverage
+REAL, INTENT(IN) :: coszen(mp)                 ! cosine zenith angle  (met%coszen)
 
-REAL,INTENT(IN) :: AlbSoil(mp, nrb)              ! soil%AlbSoil
+REAL,INTENT(IN) :: AlbSoil(mp, nrb)            ! soil%AlbSoil
 
 !Prognostics
 !-------------------------------------------------------------------------------
 REAL,INTENT(IN) :: SnowDepth(mp)               ! Total Snow depth - water eqivalent -
-                                    ! packed from snow_surft (ssnow%snowd)
-REAL :: SnowODepth(mp)              ! Total Snow depth before any update
-!this timestep (ssnow%Osnowd)
+                                               ! packed from snow_surft (ssnow%snowd)
+                                               ! this timestep (ssnow%Osnowd)
 REAL,INTENT(IN) :: SnowDensity(mp)             ! Total Snow density (assumes 1 layer
-!describes snow cover) (ssnow%ssdnn)
+                                               ! describes snow cover) (ssnow%ssdnn)
 REAL,INTENT(IN) :: SoilTemp(mp)                ! Soil Temperature of top layer (soil%tgg)
-REAL,INTENT(IN) :: SnowTemp(mp)                ! Snow Temperature of top layer (soil%tgg)
 REAL,INTENT(IN) :: SnowAge(mp)                 ! Snow age (assumes 1 layer describes snow
-!cover) (ssnow%snage)
-INTEGER,INTENT(IN):: SnowFlag_3L(mp)           ! Flag to treat snow as 3 layer - if enough
-! snow present. Updated depending on total depth (ssnow%isflag)
+                                               ! cover) (ssnow%snage)
 !-------------------------------------------------------------------------------
 
 !Vegetation parameters
 !-------------------------------------------------------------------------------
 INTEGER, INTENT(IN) :: SurfaceType(mp)
+INTEGER, INTENT(IN) :: SoilType(mp)
 REAL :: VegXfang(mp)                !leaf angle PARAMETER (veg%xfang)
 REAL :: VegTaul(mp,nrb)             !PARAMETER leaf transmisivity (veg%taul)
 REAL :: VegRefl(mp,nrb)             !PARAMETER leaf reflectivity (veg%refl)
@@ -138,14 +136,14 @@ CALL init_radiation( ExtCoeff_beam, ExtCoeff_dif, EffExtCoeff_beam,            &
 !considering albedo of Ground (snow?) and Canopy Reflectance/Transmitance.
 
 CALL Albedo( AlbSnow, AlbSoil,                                                 &
-             mp, nrb, timestep_len,                                            &
+             mp, nrb,                                                          &
              jls_radiation,                                                    &
              veg_mask, sunlit_mask, sunlit_veg_mask,                           &
-             Ccoszen_tols, cgauss_w, Ctfrz,                                    &
-             SurfaceType, VegRefl, VegTaul,                                    &
+             Ccoszen_tols, cgauss_w,                                           &
+             SurfaceType, SoilType ,VegRefl, VegTaul,                          &
              coszen, reducedLAIdue2snow,                                       &
-             SnowDepth, SnowODepth, SnowFlag_3L,                               &
-             SnowDensity, SoilTemp, SnowTemp, SnowAge,                         &
+             SnowDepth,                                                        &
+             SnowDensity, SoilTemp,           SnowAge,                         &
              xk, c1, rhoch,                                                    &
              RadFbeam, RadAlbedo,                                              &
              ExtCoeff_dif, ExtCoeff_beam,                                      &
