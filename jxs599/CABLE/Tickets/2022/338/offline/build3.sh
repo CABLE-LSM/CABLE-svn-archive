@@ -19,6 +19,7 @@ host_gadi()
    export NCDIR=$NETCDF_ROOT'/lib/Intel'
    export NCMOD=$NETCDF_ROOT'/include/Intel'
    export CFLAGS='-O2 -fp-model precise'
+   export CFLAGS='-O0'
    export LDFLAGS='-L'$NCDIR' -O0'
    export LD='-lnetcdf -lnetcdff'
 
