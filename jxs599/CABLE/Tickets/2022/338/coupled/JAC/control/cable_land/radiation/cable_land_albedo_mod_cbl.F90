@@ -11,21 +11,16 @@ SUBROUTINE cable_land_albedo (                                                 &
   !IN: JULES Surface descriptions generally parametrized
   dzsoil, tile_frac, LAI_pft_um, HGT_pft_um,                                   &
   soil_alb,                                                                    &
-  !IN: JULES  timestep length in seconds
-  timestep_len,                                                                &
   !IN: JULES  timestep varying fields
   cosine_zenith_angle, snow_tile,                                              &
   !IN:CABLE dimensions from grid_constants_cbl
   nsl, nsnl, nrb, nrs, mp,                                                     &
   !IN: CABLE constants
-  Cz0surf_min, Clai_thresh, Ccoszen_tols, Cgauss_w, Cpi, Cpi180, Ctfrz,        &
+  Cz0surf_min, Clai_thresh, Ccoszen_tols, Cgauss_w, Cpi, Cpi180,               &
   !IN: CABLE Vegetation/Soil parameters. decl in params_io_cbl.F90
   VeginXfang, VeginTaul, VeginRefl, ICE_type, ICE_soiltype,                    &
   !IN: CABLE prognostics. decl in progs_cbl_vars_mod.F90
-  SoilTemp_CABLE,                                                              &
-  OneLyrSnowDensity_CABLE,                                                     &
-  !INOUT: CABLE prognostics. decl in progs_cbl_vars_mod.F90
-              SnowAge_CABLE                                                    &
+  SoilTemp_CABLE, OneLyrSnowDensity_CABLE, SnowAge_CABLE                       &
 )
 
 !USE subroutines
@@ -39,7 +34,7 @@ USE cable_pack_mod,             ONLY: cable_pack_soil,cable_pack_rr
 
 ! Define CABLE grid, sunlit/veg masks & initialize surface type params
 USE def_cable_grid_mod,         ONLY: def_cable_grid
-USE init_cable_pftparms_mod,    ONLY: init_cable_veg_rad
+USE init_cable_parms_mod,       ONLY: init_cable_parms_rad
 USE cbl_masks_mod,              ONLY: fveg_mask, fsunlit_mask,                 &
                                       fsunlit_veg_mask, L_tile_pts
 
@@ -51,6 +46,7 @@ USE cbl_LAI_eff_mod,            ONLY: LAI_eff
 IMPLICIT NONE
 
 !-- IN: JULES model dimensions
+!-------------------------------------------------------------------------------
 INTEGER, INTENT(IN) :: row_length, rows               !# grid cell x, y
 INTEGER, INTENT(IN) :: land_pts                       !# land points on x,y grid
 INTEGER, INTENT(IN) :: nsurft, npft                   !# surface types, PFTS
@@ -59,52 +55,59 @@ INTEGER, INTENT(IN) :: nrs                            !# rad streams
                                                       !(:,:,2) diffuse visible
                                                       !(:,:,3) direct beam NIR
                                                       !(:,:,4) diffuse NIR
+!-------------------------------------------------------------------------------
 
 !--- OUT: JULES (per rad band) albedos [GridBoxMean & per tile albedo]
+!-------------------------------------------------------------------------------
 REAL,    INTENT(OUT) :: land_albedo(row_length,rows,nrs)    ! [land_albedo_ij]
 REAL,    INTENT(OUT) :: alb_surft(Land_pts,nsurft,nrs)      ! [alb_tile]
 INTEGER, INTENT(OUT) :: mp  !curr. NOT requirted OUT, however it likely will
+!-------------------------------------------------------------------------------
 
 !---IN: JULES model associated
-INTEGER, INTENT(IN) :: surft_pts(nsurft)               !# land points per PFT
-INTEGER, INTENT(IN) :: surft_index(land_pts,nsurft)    !Index in land_pts array
-INTEGER, INTENT(IN) :: land_index(land_pts)           !Index in (x,y) array
+!-------------------------------------------------------------------------------
+INTEGER, INTENT(IN) :: surft_pts(nsurft)            ! # land points per PFT
+INTEGER, INTENT(IN) :: surft_index(land_pts,nsurft) ! Index in land_pts array
+INTEGER, INTENT(IN) :: land_index(land_pts)         ! Index in (x,y) array
+!-------------------------------------------------------------------------------
 
 !--- IN: declared in grid_cell_constants_cbl
 INTEGER, INTENT(IN) :: nsl                            !# soil layers
 
 !-- IN: JULES Surface descriptions generally parametrized
 REAL, INTENT(IN) :: dzsoil(nsl)
-REAL, INTENT(IN) :: tile_frac(land_pts,nsurft)        !fraction of each surf type
-REAL, INTENT(IN) :: LAI_pft_um(land_pts, npft)        !Leaf area index.
-REAL, INTENT(IN) :: HGT_pft_um(land_pts, npft)        !Canopy height
-REAL, INTENT(IN) :: soil_alb(land_pts)                !Snow-free, bare soil albedo
-
-!---IN: JULES  timestep length in seconds
-INTEGER, INTENT(IN) :: timestep_len
+REAL, INTENT(IN) :: tile_frac(land_pts,nsurft)      ! fraction of each surf type
+REAL, INTENT(IN) :: LAI_pft_um(land_pts, npft)      ! Leaf area index.
+REAL, INTENT(IN) :: HGT_pft_um(land_pts, npft)      ! Canopy height
+REAL, INTENT(IN) :: soil_alb(land_pts)              ! Snow-free, soil albedo
 
 !---IN: JULES  timestep varying fields
-REAL, INTENT(IN) :: cosine_zenith_angle(row_length,rows)  !zenith angle of sun
+!-------------------------------------------------------------------------------
+REAL, INTENT(IN) :: cosine_zenith_angle(row_length,rows)  ! zenith angle of sun
 REAL, INTENT(IN) :: snow_tile(land_pts,nsurft)            ! snow depth (units?)
+!-------------------------------------------------------------------------------
 
 !--- IN: CABLE  declared in grid_cell_constants_cbl
-INTEGER, INTENT(IN) :: nsnl                           !max # snow layers(3)
-INTEGER, INTENT(IN) :: nrb                            !# radiation bands
+!-------------------------------------------------------------------------------
+INTEGER, INTENT(IN) :: nsnl                           ! max # snow layers(3)
+INTEGER, INTENT(IN) :: nrb                            ! # radiation bands
+!-------------------------------------------------------------------------------
 
 !---IN: CABLE constants
-REAL, INTENT(IN) :: Cz0surf_min     !the minimum roughness of bare soil
-REAL, INTENT(IN) :: Clai_thresh     !min. LAI signalling a cell is vegetated
-REAL, INTENT(IN) :: Ctfrz           !freezing temp. of water
-REAL, INTENT(IN) :: Cgauss_w(nrb)   !Gaussian integration weights
-REAL, INTENT(IN) :: Cpi             !PI - describing the ratio of circumference to diameter
-REAL, INTENT(IN) :: Cpi180          !PI in radians
-REAL, INTENT(IN) :: Ccoszen_tols    !sun rise/set threshold for zenith angle
-                                    !signals daylit
+!-------------------------------------------------------------------------------
+REAL, INTENT(IN) :: Cz0surf_min     ! the minimum roughness of bare soil
+REAL, INTENT(IN) :: Clai_thresh     ! min. LAI signalling a cell is vegetated
+REAL, INTENT(IN) :: Cgauss_w(nrb)   ! Gaussian integration weights
+REAL, INTENT(IN) :: Cpi             ! PI
+REAL, INTENT(IN) :: Cpi180          ! PI in radians
+REAL, INTENT(IN) :: Ccoszen_tols    ! sun rise/set threshold for zenith angle
+                                    ! signals daylit
 !---IN: CABLE Vegetation/Soil parameters. decl in params_io_cbl.F90
 INTEGER, INTENT(IN) :: ICE_type, ICE_soiltype
-REAL, INTENT(IN) :: VeginXfang(nsurft)              !Leaf Angle
-REAL, INTENT(IN) :: VeginTaul(nrb, nsurft )          !Leaf Transmisivity
-REAL, INTENT(IN) :: VeginRefl(nrb, nsurft )          !Leaf Reflectivity
+REAL, INTENT(IN)    :: VeginXfang(nsurft)               ! Leaf Angle
+REAL, INTENT(IN)    :: VeginTaul(nrb, nsurft )          ! Leaf Transmisivity
+REAL, INTENT(IN)    :: VeginRefl(nrb, nsurft )          ! Leaf Reflectivity
+!-------------------------------------------------------------------------------
 
 !---IN: CABLE prognostics. decl in progs_cbl_vars_mod.F90
 REAL, INTENT(IN) :: SoilTemp_CABLE(land_pts, nsurft, nsl )
@@ -120,9 +123,9 @@ REAL, ALLOCATABLE :: EffSurfRefl_beam(:,:)
 !masks
 LOGICAL, ALLOCATABLE :: veg_mask(:),  sunlit_mask(:),  sunlit_veg_mask(:)
 
-!Vegetation parameters
+!Vegetation/soil parameters
 INTEGER, ALLOCATABLE :: SurfaceType(:)     ! veg%iveg
-INTEGER, ALLOCATABLE :: SoilType(:)     ! veg%iveg
+INTEGER, ALLOCATABLE :: SoilType(:)        ! soil%isoilm
 REAL, ALLOCATABLE :: VegXfang(:)           ! Leaf Angle [veg%xfang]
 REAL, ALLOCATABLE :: VegTaul(:,:)          ! Leaf Transmisivity [veg%taul]
 REAL, ALLOCATABLE :: VegRefl(:,:)          ! Leaf Reflectivity [veg%refl]
@@ -148,8 +151,7 @@ LOGICAL :: um_online = .FALSE.
 LOGICAL :: jls_standalone = .TRUE.
 LOGICAL :: jls_radiation = .TRUE.     !um_radiation = jls_radiation
 
-!local vars (used locally)
-INTEGER:: i
+INTEGER :: i
 CHARACTER(LEN=*), PARAMETER :: subr_name = "cable_rad_main"
 ! End header
 
@@ -171,20 +173,13 @@ CALL alloc_local_progs( SnowDepth,             SnowDensity,                    &
                         SoilTemp,             SnowAge, AlbSoil, mp, nrb )
 
 ! -----------------------------------------------------------------------------
-! PACK CABLE variables
+! PACK CABLE fields
 ! -----------------------------------------------------------------------------
-! map PFT parameters to mp format
-CALL init_cable_veg_rad( VegXfang, VegTaul, VegRefl, SurfaceType, mp, nrb,     &
-                         l_tile_pts, VeginXfang, VeginTaul, VeginRefl,         &
-                         land_pts, nsurft, tile_frac )
-
-IF ( .NOT. ALLOCATED(SoilType)) ALLOCATE( SoilType(mp) )
-SoilType(:)=2 
-DO i=1,mp
-  IF (SurfaceType(i) == ICE_type) THEN
-    SoilType(i)= ICE_SoilType
-  END IF
-END DO
+! map PFT/soil parameters to mp format
+CALL init_cable_parms_rad( VegXfang, VegTaul, VegRefl, SurfaceType, SoilType,  &
+                           mp, nrb, l_tile_pts, ICE_Type, ICE_SoilType,        &
+                           VeginXfang, VeginTaul, VeginRefl,                   &
+                           land_pts, nsurft, tile_frac )
 
 !JULES doesn't have albedos per nrb: assume same: i.e (:,2) = (:,1) & (:,3)=0
 albsoil(:,3)  = 0.0
@@ -229,12 +224,12 @@ CALL fsunlit_veg_mask( sunlit_veg_mask, veg_mask, sunlit_mask, mp )
 ! Call CABLE_rad_driver to run specific and necessary components of CABLE
 !------------------------------------------------------------------------------
 CALL cable_rad_driver( EffSurfRefl_dif, EffSurfRefl_beam,                      &
-                       mp, nrb, timestep_len, Clai_thresh, Ccoszen_tols,       &
-                       CGauss_w, Cpi, Cpi180, Ctfrz, Cz0surf_min,              &
-                       veg_mask, sunlit_mask, sunlit_veg_mask,     &
-                       jls_standalone, jls_radiation, SurfaceType, SoilType,   &
-                       LAI_pft_cbl, HGT_pft_cbl, SnowDepth,                    &
-                                    SnowDensity, SoilTemp,           SnowAge,  &
+                       mp, nrb, Clai_thresh, Ccoszen_tols,                     &
+                       CGauss_w, Cpi, Cpi180, Cz0surf_min,                     &
+                       veg_mask, sunlit_mask, sunlit_veg_mask,                 &
+                       jls_standalone, jls_radiation, SurfaceType,             &
+                       SoilType, LAI_pft_cbl, HGT_pft_cbl,                     &
+                       SnowDepth, SnowDensity, SoilTemp, SnowAge,              &
                        AlbSoil ,coszen, VegXfang, VegTaul, VegRefl,            &
                        HeightAboveSnow, reducedLAIdue2snow )
 

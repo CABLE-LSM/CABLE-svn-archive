@@ -2,13 +2,13 @@ MODULE cbl_masks_mod
 
 IMPLICIT NONE
 
-  PUBLIC L_tile_pts
-  PUBLIC fveg_mask
-  PUBLIC fsunlit_mask
-  PUBLIC fsunlit_veg_mask
+PUBLIC L_tile_pts
+PUBLIC fveg_mask
+PUBLIC fsunlit_mask
+PUBLIC fsunlit_veg_mask
 
-  !mask TRUE where tile fraction is greater than zero
-  LOGICAL, allocatable :: L_tile_pts(:,:)
+!mask TRUE where tile fraction is greater than zero
+LOGICAL, ALLOCATABLE :: L_tile_pts(:,:)
 
 CONTAINS
 
@@ -27,8 +27,8 @@ IF ( .NOT. ALLOCATED(veg_mask)) ALLOCATE( veg_mask(mp) )
 
 veg_mask(:) = .FALSE.
 ! Define vegetation mask:
-DO i=1, mp  
-  IF( reducedLAIdue2snow(i) > LAI_thresh ) veg_mask(i) = .TRUE.
+DO i=1, mp
+  IF ( reducedLAIdue2snow(i) > LAI_thresh ) veg_mask(i) = .TRUE.
 END DO
 
 RETURN
@@ -51,8 +51,8 @@ IF ( .NOT. ALLOCATED(sunlit_mask)) ALLOCATE( sunlit_mask(mp) )
 
 sunlit_mask = .FALSE.
 ! Define sunlit mask:
-DO i=1, mp  
-  IF( coszen(i) > coszen_tols ) sunlit_mask(i) = .TRUE.  
+DO i=1, mp
+  IF ( coszen(i) > coszen_tols ) sunlit_mask(i) = .TRUE.
 END DO
 
 RETURN
@@ -75,8 +75,8 @@ IF ( .NOT. ALLOCATED(sunlit_veg_mask)) ALLOCATE( sunlit_veg_mask(mp) )
 
 sunlit_veg_mask = .FALSE.
 ! Define sunlit AND vegetation mask:
-DO i=1, mp  
-  IF( veg_mask(i) .AND.  sunlit_mask(i) ) sunlit_veg_mask(i) = .TRUE.
+DO i=1, mp
+  IF ( veg_mask(i) .AND.  sunlit_mask(i) ) sunlit_veg_mask(i) = .TRUE.
 END DO
 
 RETURN

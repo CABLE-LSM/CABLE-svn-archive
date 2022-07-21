@@ -19,8 +19,8 @@ SUBROUTINE cable_pack_rr( cable_var, jules_var, mp, l_tile_pts, row_length,    &
                           surft_index )
 IMPLICIT NONE
 
-REAL, INTENT(OUT)   :: cable_var(mp)
 INTEGER, INTENT(IN) :: mp, row_length, rows, ntype, land_pts
+REAL, INTENT(OUT)   :: cable_var(mp)
 LOGICAL, INTENT(IN) :: l_tile_pts(land_pts, ntype)
 INTEGER, INTENT(IN) :: land_index(land_pts)           !Index in (x,y) array
 INTEGER, INTENT(IN) :: surft_pts(ntype)              !# land points per PFT
@@ -63,8 +63,8 @@ SUBROUTINE cable_pack_soil( cablevar, umvar, defaultin, mp, l_tile_pts,        &
 
 IMPLICIT NONE
 
-REAL, INTENT(OUT)   :: cablevar(mp)
 INTEGER, INTENT(IN) :: mp, ntype, land_pts
+REAL, INTENT(OUT)   :: cablevar(mp)
 LOGICAL, INTENT(IN) :: l_tile_pts(land_pts, ntype)
 INTEGER, INTENT(IN) :: ICE_type, ICE_soilType
 INTEGER, INTENT(IN) :: surft_pts(ntype)              !# land points per PFT

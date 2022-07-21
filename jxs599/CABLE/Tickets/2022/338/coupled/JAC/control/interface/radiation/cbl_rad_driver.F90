@@ -3,13 +3,13 @@ MODULE cable_rad_driv_mod
 CONTAINS
 
 SUBROUTINE cable_rad_driver( EffSurfRefl_dif, EffSurfRefl_beam,                &
-                       mp, nrb, timestep_len, Clai_thresh, Ccoszen_tols,       &
-                       CGauss_w, Cpi, Cpi180, Ctfrz, z0surf_min,               &
+                       mp, nrb, Clai_thresh, Ccoszen_tols,                     &
+                       CGauss_w, Cpi, Cpi180, z0surf_min,                      &
                        veg_mask, sunlit_mask, sunlit_veg_mask,                 &
                        jls_standalone, jls_radiation, SurfaceType, SoilType,   &
                        LAI_pft_cbl, HGT_pft_cbl, SnowDepth,                    &
-                                    SnowDensity, SoilTemp,           SnowAge,  &
-                       AlbSoil ,coszen, VegXfang, VegTaul, VegRefl,            &
+                       SnowDensity, SoilTemp, SnowAge, AlbSoil,                &
+                       coszen, VegXfang, VegTaul, VegRefl,                     &
                        HeightAboveSnow, reducedLAIdue2snow )
 
 !subrs:
@@ -19,17 +19,14 @@ USE cbl_init_radiation_module,  ONLY: init_radiation
 IMPLICIT NONE
 
 !model dimensions
-INTEGER, INTENT(IN) :: mp         ! total number of "tiles"
-INTEGER, INTENT(IN) :: nrb        ! # radiation bands[ 1=VIS,2=NIR,3=LW(legacy, not used)
+INTEGER, INTENT(IN) :: mp       ! total number of "tiles"
+INTEGER, INTENT(IN) :: nrb      ! # radiation bands[ 1=VIS,2=NIR,3=LW(legacy)
 
 ! Albedos req'd by JULES - Effective Surface Relectance as seen by atmosphere
 REAL, INTENT(OUT) :: EffSurfRefl_dif(mp,nrb)  ! Refl to Diffuse component of rad
                                               ! formerly rad%reffdf
 REAL, INTENT(OUT) :: EffSurfRefl_beam(mp,nrb) ! Refl to Beam component of rad
                                               ! formerly rad%reffbm
-
-!---IN: JULES  timestep length in seconds
-INTEGER, INTENT(IN) :: timestep_len
 
 !constants
 !-------------------------------------------------------------------------------
@@ -40,7 +37,6 @@ REAL, INTENT(IN) :: Clai_thresh       ! The minimum LAI below which a "cell" is
                                       ! considred  NOT vegetated
 REAL, INTENT(IN) :: Cpi               ! PI
 REAL, INTENT(IN) :: Cpi180            ! PI in radians
-REAL, INTENT(IN) :: Ctfrz             ! freezing temp. of water
 REAL, INTENT(IN) :: z0surf_min        ! the minimum roughness of bare soil
 
 LOGICAL, INTENT(IN) :: jls_standalone ! local runtime switch for JULES(/UM) run
@@ -49,47 +45,50 @@ LOGICAL, INTENT(IN) :: jls_radiation  ! local runtime switch for radiation path
 
 !masks
 !-------------------------------------------------------------------------------
-LOGICAL, INTENT(IN) :: veg_mask(:)        !  vegetated (uses min LAI)
-LOGICAL, INTENT(IN) :: sunlit_mask(:)     !  sunlit (uses zenith angle)
-LOGICAL, INTENT(IN) :: sunlit_veg_mask(:) !  BOTH sunlit AND  vegetated
+LOGICAL, INTENT(IN) :: veg_mask(:)         !  vegetated (uses min LAI)
+LOGICAL, INTENT(IN) :: sunlit_mask(:)      !  sunlit (uses zenith angle)
+LOGICAL, INTENT(IN) :: sunlit_veg_mask(:)  !  BOTH sunlit AND  vegetated
 !-------------------------------------------------------------------------------
 
 !recieved as spatial maps from the UM. remapped to "mp"
 !-------------------------------------------------------------------------------
-REAL, INTENT(IN) :: LAI_pft_cbl(mp)             !LAI -  "limited" and remapped
-REAL, INTENT(IN) :: HGT_pft_cbl(mp)             !canopy height -  "limited" and remapped
+REAL, INTENT(IN) :: LAI_pft_cbl(mp)        ! LAI -  "limited" and remapped
+REAL, INTENT(IN) :: HGT_pft_cbl(mp)        ! canopy height -  "limited", remapped
+REAL, INTENT(IN) :: coszen(mp)             ! cosine zenith angle  (met%coszen)
+REAL,INTENT(IN) :: AlbSoil(mp, nrb)        ! soil%AlbSoil
 !-------------------------------------------------------------------------------
 
-REAL, INTENT(IN):: HeightAboveSnow(mp)         ! Height of Canopy above snow (rough%hruff)
-                                               ! compute from z0surf_min, HGT_pft_cbl,
-                                               ! SnowDepth, SnowDensity
-REAL, INTENT(IN) :: reducedLAIdue2snow(mp)     ! Reduced LAI given snow coverage
-REAL, INTENT(IN) :: coszen(mp)                 ! cosine zenith angle  (met%coszen)
-
-REAL,INTENT(IN) :: AlbSoil(mp, nrb)            ! soil%AlbSoil
-
-!Prognostics
+!computed for CABLE model
 !-------------------------------------------------------------------------------
-REAL,INTENT(IN) :: SnowDepth(mp)               ! Total Snow depth - water eqivalent -
-                                               ! packed from snow_surft (ssnow%snowd)
-                                               ! this timestep (ssnow%Osnowd)
-REAL,INTENT(IN) :: SnowDensity(mp)             ! Total Snow density (assumes 1 layer
-                                               ! describes snow cover) (ssnow%ssdnn)
-REAL,INTENT(IN) :: SoilTemp(mp)                ! Soil Temperature of top layer (soil%tgg)
-REAL,INTENT(IN) :: SnowAge(mp)                 ! Snow age (assumes 1 layer describes snow
-                                               ! cover) (ssnow%snage)
+REAL, INTENT(IN):: HeightAboveSnow(mp)     ! Height of Canopy above snow
+                                           ! (rough%hruff) computed from
+                                           ! z0surf_min, HGT_pft_cbl,
+                                           ! SnowDepth, SnowDensity
+REAL, INTENT(IN) :: reducedLAIdue2snow(mp) ! Reduced LAI given snow coverage
 !-------------------------------------------------------------------------------
 
-!Vegetation parameters
+!Prognostics !recieved as spatial maps from the UM. remapped to "mp"
+!-------------------------------------------------------------------------------
+REAL,INTENT(IN) :: SnowDepth(mp)           ! Total Snow depth - water eqivalent -
+                                           ! packed from snow_surft (ssnow%snowd)
+                                           ! this timestep (ssnow%Osnowd)
+REAL,INTENT(IN) :: SnowDensity(mp)         ! Total Snow density (assumes 1 layer
+                                           ! describes snow cover) (ssnow%ssdnn)
+REAL,INTENT(IN) :: SoilTemp(mp)            ! Soil Temperature of top layer (soil%tgg)
+REAL,INTENT(IN) :: SnowAge(mp)             ! Snow age (assumes 1 layer describes snow
+                                           ! cover) (ssnow%snage)
+!-------------------------------------------------------------------------------
+
+!Vegetation parameters !recieved as per PFT params from the UM. remapped to "mp"
 !-------------------------------------------------------------------------------
 INTEGER, INTENT(IN) :: SurfaceType(mp)
 INTEGER, INTENT(IN) :: SoilType(mp)
-REAL :: VegXfang(mp)                !leaf angle PARAMETER (veg%xfang)
-REAL :: VegTaul(mp,nrb)             !PARAMETER leaf transmisivity (veg%taul)
-REAL :: VegRefl(mp,nrb)             !PARAMETER leaf reflectivity (veg%refl)
+REAL, INTENT(IN)    :: VegXfang(mp)        ! leaf angle PARAMETER (veg%xfang)
+REAL, INTENT(IN)    :: VegTaul(mp,nrb)     ! PARAM leaf transmisivity (veg%taul)
+REAL, INTENT(IN)    :: VegRefl(mp,nrb)     ! PARAM leaf reflectivity (veg%refl)
 !-------------------------------------------------------------------------------
 
-!local:
+!local to Rad/Albedo pathway:
 REAL, ALLOCATABLE :: ExtCoeff_beam(:)           ! rad%extkb,
 REAL, ALLOCATABLE :: ExtCoeff_dif(:)            ! rad%extkd
 REAL, ALLOCATABLE :: EffExtCoeff_beam(:, :)     ! rad%extkbm
@@ -104,12 +103,12 @@ REAL, ALLOCATABLE :: AlbSnow(:, :)              ! ssnow%AlbSoilsn
 REAL, ALLOCATABLE :: c1(:, :)
 REAL, ALLOCATABLE :: rhoch(:, :)
 REAL, ALLOCATABLE :: xk(:, :)
-!NOT used on rad/albedo path. Need to fulfill arg list with dummy
+! used in Calc of Beam calculation NOT on rad/albedo path.
+! However Needed to fulfill arg list with dummy
 INTEGER, ALLOCATABLE :: metDoY(:)               ! can pass DoY from current_time
-REAL, ALLOCATABLE  :: SW_down(:,:)           !dummy
+REAL, ALLOCATABLE  :: SW_down(:,:)              ! NA at surf_couple_rad layer
 
 CHARACTER(LEN=*), PARAMETER :: subr_name = "cable_rad_driver"
-
 LOGICAL :: cbl_standalone = .FALSE.
 
 ! alloc/zero each timestep
@@ -134,7 +133,6 @@ CALL init_radiation( ExtCoeff_beam, ExtCoeff_dif, EffExtCoeff_beam,            &
 !Finally call albedo to get what we really need to fill contract with JULES
 !Defines 4-"band" albedos [VIS/NIR bands. direct beam/diffuse components] from
 !considering albedo of Ground (snow?) and Canopy Reflectance/Transmitance.
-
 CALL Albedo( AlbSnow, AlbSoil,                                                 &
              mp, nrb,                                                          &
              jls_radiation,                                                    &
@@ -142,8 +140,7 @@ CALL Albedo( AlbSnow, AlbSoil,                                                 &
              Ccoszen_tols, cgauss_w,                                           &
              SurfaceType, SoilType ,VegRefl, VegTaul,                          &
              coszen, reducedLAIdue2snow,                                       &
-             SnowDepth,                                                        &
-             SnowDensity, SoilTemp,           SnowAge,                         &
+             SnowDepth, SnowDensity, SoilTemp, SnowAge,                        &
              xk, c1, rhoch,                                                    &
              RadFbeam, RadAlbedo,                                              &
              ExtCoeff_dif, ExtCoeff_beam,                                      &
@@ -156,7 +153,6 @@ CALL flush_albedo( ExtCoeff_beam, ExtCoeff_dif, EffExtCoeff_beam,              &
                          EffExtCoeff_dif, CanopyTransmit_dif,                  &
                          CanopyTransmit_beam, CanopyRefl_dif, CanopyRefl_beam, &
                          RadFbeam, RadAlbedo, AlbSnow, c1, rhoch, xk )
-
 
 RETURN
 
