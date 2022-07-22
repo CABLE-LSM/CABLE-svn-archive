@@ -41,7 +41,7 @@ LSRC =                          \
 	cable_pft_params.F90          \
 	cable_soil_params.F90         \
 	casa_ncdf.F90               	\
-	cbl_masks.F90                 \
+	masks_cbl.F90                 \
 	cbl_hgtAbove_snow.F90     		\
 	cbl_lai_eff.F90    		 				\
 	cbl_model_driver_offline.F90  \
@@ -128,7 +128,7 @@ casa_param.o: casa_param.F90
 casa_dimension.o: casa_dimension.F90
 
 #tech files including IO manipulation
-cbl_masks.o: cbl_masks.F90
+masks_cbl.o: masks_cbl.F90
 casa_ncdf.o: casa_ncdf.F90 cable_define_types.o cable_common.o
 cable_abort.o: cable_abort.F90 cable_iovars.o cable_define_types.o
 
@@ -194,7 +194,7 @@ cbl_photosynthesis.o: cbl_photosynthesis.F90 cable_define_types.o cable_other_co
 
 cable_carbon.o: cable_carbon.F90 cable_define_types.o cable_common.o
 
-cbl_model_driver_offline.o: cbl_model_driver_offline.F90 cable_phys_constants_mod.o cable_carbon.o cbl_soilsnow_main.o cable_canopy.o cable_define_types.o cable_roughness.o cbl_radiation.o cbl_albedo.o casa_variable.o cable_common.o cable_gw_hydro.o cable_psm.o cbl_masks.o cbl_snow_aging.o
+cbl_model_driver_offline.o: cbl_model_driver_offline.F90 cable_phys_constants_mod.o cable_carbon.o cbl_soilsnow_main.o cable_canopy.o cable_define_types.o cable_roughness.o cbl_radiation.o cbl_albedo.o casa_variable.o cable_common.o cable_gw_hydro.o cable_psm.o masks_cbl.o cbl_snow_aging.o
 
 cable_checks.o: cable_checks.F90 cbl_radiation.o cable_common.o
 
@@ -297,7 +297,7 @@ all  : grid_constants_cbl.o    \
 	cable_runtime_opts_mod.o   	 \
 	cable_pft_params.o   			 	 \
 	cable_soil_params.o        	 \
-	cbl_masks.o 								 \
+	masks_cbl.o 								 \
 	cbl_hgtAbove_snow.o					 \
 	cbl_lai_eff.o								 \
 	cable_iovars.o            	 \
