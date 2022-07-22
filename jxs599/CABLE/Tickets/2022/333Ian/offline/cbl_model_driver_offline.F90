@@ -112,6 +112,22 @@ call fveg_mask( veg_mask, mp, Clai_thresh, canopy%vlaiw )
 call fsunlit_mask( sunlit_mask, mp, CRAD_THRESH,( met%fsd(:,1)+met%fsd(:,2) ) )
 call fsunlit_veg_mask( sunlit_veg_mask, mp )
 
+! IMPORTANT NOTE regarding the masks (Ticket 333)
+! Prior to #333, 3 masks were used - veg_mask, sunlit_mask, sunlit_veg_mask
+! - although passed on sunlit_mask was not used
+! For JAC we will not be able to populate the sunlit masks before
+! init_radiation and albedo().  Instead will evaluate the EffExtCoeff's
+! outside their bounds of applicability here by using inclusive masks
+! (veg_mask not sunlit_eg_mask) in their place from the calling routines
+!
+! in the main radiation() and surface exchange sections JAC will retain the
+! use of the sunlit_veg_mask
+!
+! in CABLE offline and ESM1.5 the restriction does not apply so the changes
+! to init_radiation() and alebdo() below are for testing purposes only
+! - a decision for the future is whether to
+! convert CABLE offline to use the same usage of masks as JAC 
+
 CALL init_radiation( rad%extkb, rad%extkd,                                     &
                      !ExtCoeff_beam, ExtCoeff_dif,
                      rad%extkbm, rad%extkdm, Rad%Fbeam,                        &
@@ -121,7 +137,8 @@ CALL init_radiation( rad%extkb, rad%extkd,                                     &
                      Clai_thresh, Ccoszen_tols, CGauss_w, Cpi, Cpi180,         &
                      cbl_standalone, jls_standalone, jls_radiation,            &
                      subr_name,                                                &
-                     veg_mask, sunlit_mask, sunlit_veg_mask,                   &
+!                    veg_mask, sunlit_mask, sunlit_veg_mask,                   &
+                     veg_mask, veg_mask, veg_mask,                             &
                      veg%Xfang, veg%taul, veg%refl,                            &
                      !VegXfang, VegTaul, VegRefl
                      met%coszen, int(met%DoY), met%fsd,                        &
@@ -137,7 +154,8 @@ call Albedo( ssnow%AlbSoilsn, soil%AlbSoil,                                &
              !AlbSnow, AlbSoil,              
              mp, nrb,                                                      &
              jls_radiation,                                                &
-             veg_mask, sunlit_mask, sunlit_veg_mask,                       &  
+!            veg_mask, sunlit_mask, sunlit_veg_mask,                       &
+             veg_mask, veg_mask, veg_mask,                                 &
              Ccoszen_tols, CGAUSS_W,                                       & 
              veg%iveg, soil%isoilm, veg%refl, veg%taul,                    & 
              !surface_type, VegRefl, VegTaul,

@@ -15,7 +15,17 @@
 !
 ! History: No significant change from v1.4b
 !
+! IMPORTANT NOTE regarding the masks (Ticket 333)
+! Prior to #333, 3 masks were used here - veg_mask, sunlit_mask, sunlit_veg_mask
+! - although passed in sunlit_mask was not used
+! For JAC we will not be able to populate the sunlit masks and instead will 
+! evaluate the EffExtCoeff outside their bounds of applicability here by 
+! using inclusive masks in their place from the calling routines,
+!  ie. JAC will use veg_mask in place of sunlit_veg_mask
 !
+! To avoid confusion the mask names here are renamed:
+! sunlit_mask now called mask1, sunlit_veg_mask now called mask2
+! 
 ! ==============================================================================
 
 MODULE cbl_init_radiation_module
@@ -38,7 +48,7 @@ SUBROUTINE init_radiation( ExtCoeff_beam, ExtCoeff_dif,                        &
                         Clai_thresh, Ccoszen_tols, CGauss_w, Cpi, Cpi180,      &
                         cbl_standalone, jls_standalone, jls_radiation,         &
                         subr_name,                                             &
-                        veg_mask, sunlit_mask, sunlit_veg_mask,                &
+                        veg_mask, mask1, mask2,                                &
                         VegXfang, VegTaul, VegRefl,                            &
                         coszen, metDoY, SW_down,                               & 
                         reducedLAIdue2snow )
@@ -71,8 +81,8 @@ LOGICAL :: jls_radiation        !runtime switch defined in cable_*main routines 
 character(len=*) :: subr_name !where am i called from
 !masks
 logical :: veg_mask(mp)         !vegetated mask [formed by comparrisson of LAI CLAI_thresh ]
-logical :: sunlit_mask(mp)      !sunlit mask [formed by comparrisson of coszen to coszen_tols i.e. is the sun up]
-logical :: sunlit_veg_mask(mp)  !combined mask - BOTH sunlit and vegetated
+logical :: mask1(mp)            !previously sunlit mask [is coszen>coszen_tols i.e. is the sun up] - NOT USED
+logical :: mask2(mp)            !previously mask for BOTH sunlit and vegetated - in JAC just vegetated mask
 
 !vegetation parameters input via namelist
 REAL :: VegXfang(mp)
@@ -118,7 +128,7 @@ Ccoszen_tols_tiny = Ccoszen_tols * 1e-2
 ! [Formerly rad%extkb, rad%extkd]  
 call ExtinctionCoeff( ExtCoeff_beam, ExtCoeff_dif, mp, nrb,                    &
                       CGauss_w,Ccoszen_tols_tiny, reducedLAIdue2snow,          &
-                      sunlit_mask, veg_mask, sunlit_veg_mask,                  &
+                      mask1, veg_mask, mask2,                                  &
                       cLAI_thresh, coszen, xphi1, xphi2, xk, xvlai2)
 
 ! Define effective Extinction co-efficient for direct beam/diffuse radiation
@@ -126,14 +136,14 @@ call ExtinctionCoeff( ExtCoeff_beam, ExtCoeff_dif, mp, nrb,                    &
 ! canopy transmitance calculations (cbl_albeo)
 ! [Formerly rad%extkbm, rad%extkdm ]
 call EffectiveExtinctCoeffs( EffExtCoeff_beam, EffExtCoeff_dif,               &
-                             mp, nrb, sunlit_veg_mask,                        &
+                             mp, nrb, mask2,                                  &
                              ExtCoeff_beam, ExtCoeff_dif, c1 )
 
 ! Offline/standalone forcing gives us total downward Shortwave. We have
 ! previosuly, arbitratily split this into NIR/VIS (50/50). We use 
 ! Spitter function to split these bands into direct beam and diffuse components
-IF( cbl_standalone .OR. jls_standalone .AND. .NOT. jls_radiation ) &
-  CALL BeamFraction( RadFbeam, mp, nrb, Cpi, Ccoszen_tols_huge, metDoy,  &
+IF( cbl_standalone .OR. jls_standalone .AND. .NOT. jls_radiation )            &
+  CALL BeamFraction( RadFbeam, mp, nrb, Cpi, Ccoszen_tols_huge, metDoy,       &
                      coszen, SW_down ) 
    
 END SUBROUTINE init_radiation
@@ -224,7 +234,7 @@ End subroutine common_InitRad_coeffs
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 subroutine ExtinctionCoeff( ExtCoeff_beam, ExtCoeff_dif, mp, nrb, CGauss_w, Ccoszen_tols_tiny, reducedLAIdue2snow, &
-                            sunlit_mask, veg_mask, sunlit_veg_mask,  &
+                            mask1, veg_mask, mask2,  &
                             cLAI_thresh, coszen, xphi1, xphi2, xk, xvlai2)
 
 implicit none
@@ -234,8 +244,8 @@ integer :: nrb
 real :: ExtCoeff_beam(mp)        !extinction co-eff RETURNED
 real :: ExtCoeff_dif(mp)         !extinction co-eff RETURNED
 logical:: veg_mask(mp)           !vegetated mask based on a minimum LAI 
-logical :: sunlit_mask(mp)       !sunlit mask based on zenith angle
-logical :: sunlit_veg_mask(mp)   !BOTH sunlit and vegetated mask 
+logical :: mask1(mp)             !previously sunlit mask based on zenith angle - NOT USED
+logical :: mask2(mp)             !previously BOTH sunlit and vegetated mask - in JAC a copy of veg_mask
 real :: Cgauss_w(nrb)
 real :: Ccoszen_tols_tiny  ! 1e-4 * threshold cosine of sun's zenith angle, below which considered SUNLIT
 real :: cLAI_thresh
@@ -250,7 +260,7 @@ call ExtinctionCoeff_dif( ExtCoeff_dif, mp, nrb, CGauss_w, reducedLAIdue2snow, &
                           veg_mask, cLAI_thresh, xk, xvlai2)
 
 call ExtinctionCoeff_beam( ExtCoeff_beam, mp, nrb, Ccoszen_tols_tiny,&
-                           sunlit_mask, veg_mask, sunlit_veg_mask,  &
+                           mask1, veg_mask, mask2,  &
                            coszen, xphi1, xphi2, ExtCoeff_dif )
 
 End subroutine ExtinctionCoeff
@@ -258,7 +268,7 @@ End subroutine ExtinctionCoeff
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 subroutine ExtinctionCoeff_beam( ExtCoeff_beam, mp, nrb,Ccoszen_tols_tiny, &
-                                 sunlit_mask, veg_mask, sunlit_veg_mask,  &
+                                 mask1, veg_mask, mask2,                   &
                                  coszen, xphi1, xphi2, ExtCoeff_dif )
 
 implicit none
@@ -266,8 +276,8 @@ integer :: mp
 integer :: nrb
 
 real :: Ccoszen_tols_tiny  ! 1e-4 * threshold cosine of sun's zenith angle, below which considered SUNLIT
-logical :: sunlit_mask(mp)       !sunlit mask based on zenith angle
-logical :: sunlit_veg_mask(mp)   !BOTH sunlit and vegetated mask 
+logical :: mask1(mp)        !previously sunlit mask based on zenith angle - NOT used
+logical :: mask2(mp)        !previously BOTH sunlit and vegetated mask - in JAC a copy of veg_mask - NOT used 
 real :: coszen(mp)
 real :: ExtCoeff_beam(mp)
 real :: xphi1(mp)
@@ -331,7 +341,7 @@ End subroutine ExtinctionCoeff_dif
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 Subroutine EffectiveExtinctCoeffs( EffExtCoeff_beam, EffExtCoeff_dif, mp, nrb, &
-                                   sunlit_veg_mask,                        &
+                                   mask2,                                      &
                                    ExtCoeff_beam, ExtCoeff_dif, c1 )
 implicit none
 integer :: mp                   !total number of "tiles"  
@@ -341,7 +351,7 @@ REAL :: EffExtCoeff_beam(mp,nrb)!Effective Extinction co-efficient for Direct Be
 REAL :: EffExtCoeff_dif(mp,nrb) !Effective Extinction co-efficient for Diffuse component of SW radiation
 
 REAL :: c1(mp,nrb)
-logical :: sunlit_veg_mask(mp)  !combined mask - BOTH sunlit and vegetated
+logical :: mask2(mp)            !previously BOTH sunlit and vegetated - in JAC a copy of veg_mask
 REAL :: ExtCoeff_beam(mp)       !"raw" Extinction co-efficient for Direct Beam component of SW radiation
 REAL :: ExtCoeff_dif(mp)        !"raw"Extinction co-efficient for Diffuse component of SW radiation
 
@@ -350,7 +360,7 @@ call EffectiveExtinctCoeff( EffExtCoeff_dif, mp, ExtCoeff_dif, c1 )
 
 EffExtCoeff_beam = 0.
 call EffectiveExtinctCoeff( EffExtCoeff_beam, mp, ExtCoeff_beam, c1, &
-                            sunlit_veg_mask )
+                            mask2 )
 End Subroutine EffectiveExtinctCoeffs
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
