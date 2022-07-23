@@ -112,6 +112,7 @@ CALL fsunlit_mask( sunlit_mask, mp, CRAD_THRESH,( met%fsd(:,1)+met%fsd(:,2) ) )
 !JAC!call fsunlit_mask( sunlit_mask, mp, Ccoszen_tols, met%coszen )
 CALL fsunlit_veg_mask( sunlit_veg_mask, veg_mask, sunlit_mask, mp )
 
+!Ticket 333 altered mask requirements
 CALL init_radiation( rad%extkb, rad%extkd,                                     &
                      !ExtCoeff_beam, ExtCoeff_dif,
                      rad%extkbm, rad%extkdm, Rad%Fbeam,                        &
@@ -120,8 +121,7 @@ CALL init_radiation( rad%extkb, rad%extkd,                                     &
                      mp,nrb,                                                   &
                      Clai_thresh, Ccoszen_tols, CGauss_w, Cpi, Cpi180,         &
                      cbl_standalone, jls_standalone, jls_radiation,            &
-                     subr_name,                                                &
-                     veg_mask, sunlit_mask, sunlit_veg_mask,                   &
+                     subr_name, veg_mask,                                      &
                      veg%Xfang, veg%taul, veg%refl,                            &
                      !VegXfang, VegTaul, VegRefl
                      met%coszen, int(met%DoY), met%fsd,                        &
@@ -135,9 +135,7 @@ CALL snow_aging(ssnow%snage,mp,dels,ssnow%snowd,ssnow%osnowd,ssnow%tggsn(:,1),&
 
 call Albedo( ssnow%AlbSoilsn, soil%AlbSoil,                                &
              !AlbSnow, AlbSoil,              
-             mp, nrb,                                                      &
-             jls_radiation,                                                &
-             veg_mask, sunlit_mask, sunlit_veg_mask,                       &  
+             mp, nrb, jls_radiation, veg_mask,                             &  
              Ccoszen_tols, CGAUSS_W,                                       & 
              veg%iveg, soil%isoilm, veg%refl, veg%taul,                    & 
              !surface_type, VegRefl, VegTaul,

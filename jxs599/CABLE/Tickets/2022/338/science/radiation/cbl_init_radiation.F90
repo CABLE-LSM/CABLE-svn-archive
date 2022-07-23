@@ -15,6 +15,7 @@
 !
 ! History: No significant change from v1.4b
 !
+! see  #333
 !
 ! ==============================================================================
 
@@ -25,9 +26,9 @@ IMPLICIT NONE
 PUBLIC init_radiation
 PRIVATE
 
-!FUDGED local pars -masks tuned at other times - review conssitency!!
-REAL :: Ccoszen_tols_huge  ! 1e-4 * threshold cosine of sun's zenith angle, below which considered SUNLIT
-REAL :: Ccoszen_tols_tiny  ! 1e-4 * threshold cosine of sun's zenith angle, below which considered SUNLIT
+! - review consitency
+REAL :: Ccoszen_tols_huge  ! Currently 100 * .GT. Ccoszen_tols (1e-4) 
+REAL :: Ccoszen_tols_tiny  ! Currently 100 * .LT. Ccoszen_tols (1e-4) 
 
 CONTAINS
 
@@ -37,11 +38,12 @@ SUBROUTINE init_radiation( ExtCoeff_beam, ExtCoeff_dif,                        &
                         mp,nrb,                                                &
                         Clai_thresh, Ccoszen_tols, CGauss_w, Cpi, Cpi180,      &
                         cbl_standalone, jls_standalone, jls_radiation,         &
-                        subr_name,                                             &
-                        veg_mask, sunlit_mask, sunlit_veg_mask,                &
+                        subr_name, veg_mask,                                   &
                         VegXfang, VegTaul, VegRefl,                            &
                         coszen, metDoY, SW_down,                               &
                         reducedLAIdue2snow )
+
+IMPLICIT NONE
 
 !re-decl input args
 !model dimensions
@@ -69,8 +71,6 @@ LOGICAL :: jls_radiation        !runtime switch defined in cable_*main routines 
 CHARACTER(LEN=*) :: subr_name !where am i called from
 !masks
 LOGICAL :: veg_mask(mp)         !vegetated mask [formed by comparrisson of LAI CLAI_thresh ]
-LOGICAL :: sunlit_mask(mp)      !sunlit mask [formed by comparrisson of coszen to coszen_tols i.e. is the sun up]
-LOGICAL :: sunlit_veg_mask(mp)  !combined mask - BOTH sunlit and vegetated
 
 !vegetation parameters input via namelist
 REAL :: VegXfang(mp)
@@ -116,16 +116,14 @@ Ccoszen_tols_tiny = Ccoszen_tols * 1e-2
 ! [Formerly rad%extkb, rad%extkd]
 CALL ExtinctionCoeff( ExtCoeff_beam, ExtCoeff_dif, mp, nrb,                    &
                       CGauss_w,Ccoszen_tols_tiny, reducedLAIdue2snow,          &
-                      sunlit_mask, veg_mask, sunlit_veg_mask,                  &
-                      cLAI_thresh, coszen, xphi1, xphi2, xk, xvlai2)
+                      veg_mask, cLAI_thresh, coszen, xphi1, xphi2, xk, xvlai2 )
 
 ! Define effective Extinction co-efficient for direct beam/diffuse radiation
 ! Extincion Co-eff defined by parametrized leaf reflect(transmit)ance - used in
 ! canopy transmitance calculations (cbl_albeo)
 ! [Formerly rad%extkbm, rad%extkdm ]
 CALL EffectiveExtinctCoeffs( EffExtCoeff_beam, EffExtCoeff_dif,                &
-                             mp, nrb, sunlit_veg_mask,                         &
-                             ExtCoeff_beam, ExtCoeff_dif, c1 )
+                             mp, nrb, veg_mask, ExtCoeff_beam, ExtCoeff_dif, c1)
 
 ! Offline/standalone forcing gives us total downward Shortwave. We have
 ! previosuly, arbitratily split this into NIR/VIS (50/50). We use
@@ -222,8 +220,7 @@ END SUBROUTINE common_InitRad_coeffs
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 SUBROUTINE ExtinctionCoeff( ExtCoeff_beam, ExtCoeff_dif, mp, nrb, CGauss_w, Ccoszen_tols_tiny, reducedLAIdue2snow, &
-                            sunlit_mask, veg_mask, sunlit_veg_mask,            &
-                            cLAI_thresh, coszen, xphi1, xphi2, xk, xvlai2)
+                            veg_mask, cLAI_thresh, coszen, xphi1, xphi2, xk, xvlai2)
 
 IMPLICIT NONE
 !re-decl in args
@@ -232,8 +229,6 @@ INTEGER :: nrb
 REAL :: ExtCoeff_beam(mp)        !extinction co-eff RETURNED
 REAL :: ExtCoeff_dif(mp)         !extinction co-eff RETURNED
 LOGICAL:: veg_mask(mp)           !vegetated mask based on a minimum LAI
-LOGICAL :: sunlit_mask(mp)       !sunlit mask based on zenith angle
-LOGICAL :: sunlit_veg_mask(mp)   !BOTH sunlit and vegetated mask
 REAL :: Cgauss_w(nrb)
 REAL :: Ccoszen_tols_tiny  ! 1e-4 * threshold cosine of sun's zenith angle, below which considered SUNLIT
 REAL :: cLAI_thresh
@@ -248,42 +243,38 @@ CALL ExtinctionCoeff_dif( ExtCoeff_dif, mp, nrb, CGauss_w, reducedLAIdue2snow, &
                           veg_mask, cLAI_thresh, xk, xvlai2)
 
 CALL ExtinctionCoeff_beam( ExtCoeff_beam, mp, nrb, Ccoszen_tols_tiny,          &
-                           sunlit_mask, veg_mask, sunlit_veg_mask,             &
-                           coszen, xphi1, xphi2, ExtCoeff_dif )
+                           veg_mask, coszen, xphi1, xphi2, ExtCoeff_dif )
 
 END SUBROUTINE ExtinctionCoeff
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 SUBROUTINE ExtinctionCoeff_beam( ExtCoeff_beam, mp, nrb,Ccoszen_tols_tiny,     &
-                                 sunlit_mask, veg_mask, sunlit_veg_mask,       &
-                                 coszen, xphi1, xphi2, ExtCoeff_dif )
+                                 veg_mask, coszen, xphi1, xphi2, ExtCoeff_dif )
 
 IMPLICIT NONE
 INTEGER :: mp
 INTEGER :: nrb
 
 REAL :: Ccoszen_tols_tiny  ! 1e-4 * threshold cosine of sun's zenith angle, below which considered SUNLIT
-LOGICAL :: sunlit_mask(mp)       !sunlit mask based on zenith angle
-LOGICAL :: sunlit_veg_mask(mp)   !BOTH sunlit and vegetated mask
+LOGICAL :: veg_mask(mp)   !BOTH sunlit and vegetated mask
 REAL :: coszen(mp)
 REAL :: ExtCoeff_beam(mp)
 REAL :: xphi1(mp)
 REAL :: xphi2(mp)
 REAL :: ExtCoeff_dif(mp)
-LOGICAL:: veg_mask(mp)
 
 ! retain this initialization for bare soil
 ExtCoeff_beam = 0.5
 
 ! SW beam extinction coefficient ("black" leaves, extinction neglects
 ! leaf SW transmittance and REFLectance):
-WHERE ( veg_mask .AND. coszen > 1.0e-6 )                                       &
+WHERE ( veg_mask .AND. coszen > Ccoszen_tols_tiny )                                       &
   ExtCoeff_beam = xphi1 / Coszen + xphi2
 
 ! higher value precludes sunlit leaves at night. affects
 ! nighttime evaporation - Ticket #90
-WHERE ( coszen <  1.0e-6 ) ExtCoeff_beam = 1.0e5
+WHERE ( coszen <  Ccoszen_tols_tiny ) ExtCoeff_beam = 1.0e5
 
 
 ! Seems to be for stability only
@@ -329,8 +320,7 @@ END SUBROUTINE ExtinctionCoeff_dif
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 SUBROUTINE EffectiveExtinctCoeffs( EffExtCoeff_beam, EffExtCoeff_dif, mp, nrb, &
-                                   sunlit_veg_mask,                            &
-                                   ExtCoeff_beam, ExtCoeff_dif, c1 )
+                                   veg_mask, ExtCoeff_beam, ExtCoeff_dif, c1 )
 IMPLICIT NONE
 INTEGER :: mp                   !total number of "tiles"
 INTEGER :: nrb                  !number of radiation bands [per legacy=3, but really=2 VIS,NIR. 3rd dim was for LW]
@@ -339,7 +329,7 @@ REAL :: EffExtCoeff_beam(mp,nrb)!Effective Extinction co-efficient for Direct Be
 REAL :: EffExtCoeff_dif(mp,nrb) !Effective Extinction co-efficient for Diffuse component of SW radiation
 
 REAL :: c1(mp,nrb)
-LOGICAL :: sunlit_veg_mask(mp)  !combined mask - BOTH sunlit and vegetated
+LOGICAL :: veg_mask(mp)  !mask -  vegetated
 REAL :: ExtCoeff_beam(mp)       !"raw" Extinction co-efficient for Direct Beam component of SW radiation
 REAL :: ExtCoeff_dif(mp)        !"raw"Extinction co-efficient for Diffuse component of SW radiation
 
@@ -347,8 +337,7 @@ EffExtCoeff_dif = 0.0
 CALL EffectiveExtinctCoeff( EffExtCoeff_dif, mp, ExtCoeff_dif, c1 )
 
 EffExtCoeff_beam = 0.0
-CALL EffectiveExtinctCoeff( EffExtCoeff_beam, mp, ExtCoeff_beam, c1,           &
-                            sunlit_veg_mask )
+CALL EffectiveExtinctCoeff( EffExtCoeff_beam, mp, ExtCoeff_beam, c1, veg_mask )
 END SUBROUTINE EffectiveExtinctCoeffs
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -401,7 +390,7 @@ RadFbeam(:,1) = spitter(mp, cpi, metDoy, coszen, SW_down(:,1))
 RadfBeam(:,2) = spitter(mp, cpi, metDoy, coszen, SW_down(:,2))
 
 ! coszen is set during met data read in.
-WHERE (coszen < 1.0e-2 )
+WHERE (coszen < Ccoszen_tols_huge )
   RadFbeam(:,1) = 0.0
   RadFbeam(:,2) = 0.0
 END WHERE

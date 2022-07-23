@@ -1,3 +1,30 @@
+!==============================================================================
+! This source code is part of the
+! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
+! This work is licensed under the CSIRO Open Source Software License
+! Agreement (variation of the BSD / MIT License).
+!
+! You may not use this file except in compliance with this License.
+! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located
+! in each directory containing CABLE code.
+!
+! ==============================================================================
+! Purpose: Computes 4-band (visible/near-infrared, beam/diffuse) reflectances
+!          and albedo
+!
+! IMPORTANT NOTE regarding the masks (Ticket 333)
+! Prior to #333, 3 masks were used here - veg_mask, sunlit_mask, veg_mask
+! - although passed in sunlit_mask was not used
+! For JAC we will not be able to populate the sunlit masks and instead will 
+! evaluate the EffExtCoeff outside their bounds of applicability here by 
+! using inclusive masks in their place from the calling routines,
+!  ie. JAC will use veg_mask in place of veg_mask
+!
+! To avoid confusion the mask names here are renamed:
+! sunlit_mask now called mask1, veg_mask now called mask2
+! 
+! ==============================================================================
+
 MODULE cbl_albedo_mod
 
 IMPLICIT NONE
@@ -7,10 +34,8 @@ PRIVATE
 
 CONTAINS
 
-SUBROUTINE Albedo( AlbSnow, AlbSoil,                                           &
-mp, nrb,                                                                       &
-jls_radiation ,                                                                &
-veg_mask, sunlit_mask, sunlit_veg_mask,                                        &
+SUBROUTINE Albedo( AlbSnow, AlbSoil,              & 
+mp, nrb, jls_radiation, veg_mask,                 &  
 Ccoszen_tols, cgauss_w,                                                        &
 surface_type, SoilType, VegRefl, VegTaul,                                      &
 coszen, reducedLAIdue2snow,                                                    &
@@ -44,8 +69,6 @@ LOGICAL :: jls_radiation            !runtime switch def. in cable_*main routines
 
 !masks
 LOGICAL :: veg_mask(mp)             ! this "mp" is vegetated (uses minimum LAI)
-LOGICAL :: sunlit_mask(mp)          ! this "mp" is sunlit (uses zenith angle)
-LOGICAL :: sunlit_veg_mask(mp)      ! this "mp" is BOTH sunlit AND  vegetated
 
 !Vegetation parameters
 REAL :: VegTaul(mp,nrb)             !PARAMETER leaf transmisivity (veg%taul)
@@ -116,15 +139,15 @@ CALL surface_albedosn( AlbSnow, AlbSoil, mp, nrb, surface_type, SoilType,      &
 ! Define canopy Reflectance for diffuse/direct radiation
 ! Formerly rad%rhocbm, rad%rhocdf
 CALL CanopyReflectance( CanopyRefl_beam, CanopyRefl_dif,                       &
-                        mp, nrb, CGauss_w, sunlit_veg_mask,                    &
+                        mp, nrb, CGauss_w, veg_mask,                           &
                         AlbSnow, xk, rhoch,                                    &
                         ExtCoeff_beam, ExtCoeff_dif)
 
 ! Define canopy diffuse transmittance
 ! Formerly rad%cexpkbm, rad%cexpkdm
 CALL CanopyTransmitance(CanopyTransmit_beam, CanopyTransmit_dif, mp, nrb,      &
-                              sunlit_veg_mask, reducedLAIdue2snow,             &
-                              EffExtCoeff_dif, EffExtCoeff_beam)
+                        veg_mask, reducedLAIdue2snow,                          &
+                        EffExtCoeff_dif, EffExtCoeff_beam)
 
 !---1 = visible, 2 = nir radiaition
 ! Finally compute Effective 4-band albedo for diffuse/direct radiation-
@@ -136,10 +159,9 @@ EffSurfRefl_dif = AlbSnow
 EffSurfRefl_beam = AlbSnow
 
 CALL EffectiveSurfaceReflectance( EffSurfRefl_beam, EffSurfRefl_dif,           &
-                                  mp, nrb, veg_mask, sunlit_veg_mask,          &
-                                  CanopyRefl_beam, CanopyRefl_dif,             &
-                                  CanopyTransmit_beam,CanopyTransmit_dif,      &
-                                  AlbSnow )
+                                  mp, nrb, veg_mask, CanopyRefl_beam,          &
+                                  CanopyRefl_dif, CanopyTransmit_beam,         &
+                                  CanopyTransmit_dif, AlbSnow )
 
 ! Compute total albedo to SW given the Effective Surface Reflectance
 ! (considering Canopy/Soil/Snow contributions)
@@ -155,7 +177,7 @@ END SUBROUTINE albedo
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 SUBROUTINE CanopyReflectance( CanopyRefl_beam, CanopyRefl_dif,                 &
-                         mp, nrb, CGauss_w, sunlit_veg_mask,                   &
+                         mp, nrb, CGauss_w, veg_mask,                   &
                          AlbSnow, xk, rhoch,                                   &
                          ExtCoeff_beam, ExtCoeff_dif)
 IMPLICIT NONE
@@ -165,7 +187,7 @@ INTEGER :: nrb                      !number of radiation bands [per legacy=3, bu
 REAL :: CanopyRefl_dif(mp,nrb)      !Canopy reflectance (rad%cexpkdm)
 REAL :: CanopyRefl_beam(mp,nrb)     !Canopy reflectance (rad%cexpkbm)
 REAL :: Cgauss_w(nrb)
-LOGICAL :: sunlit_veg_mask(mp)      ! this "mp" is BOTH sunlit AND  vegetated
+LOGICAL :: veg_mask(mp)      ! this "mp" is BOTH sunlit AND  vegetated
 REAL :: AlbSnow(mp,nrb)             !Ground Albedo given a snow coverage (ssnow%albsoilsn)
 REAL :: xk(mp,nrb)
 REAL :: rhoch(mp,nrb)
@@ -176,7 +198,7 @@ REAL :: ExtCoeff_dif(mp)            !"raw"Extinction co-efficient for Diffuse co
 !HACHvstrunk!CanopyRefl_beam  = AlbSnow !Formerly rad%reffbm
 !HACHvstrunk!CanopyRefl_dif   = AlbSnow ! Formerly rad%refdfm
 
-CALL CanopyReflectance_beam( CanopyRefl_beam, mp, nrb, sunlit_veg_mask,        &
+CALL CanopyReflectance_beam( CanopyRefl_beam, mp, nrb, veg_mask,        &
                              ExtCoeff_beam, ExtCoeff_dif, rhoch )
 
 CALL CanopyReflectance_dif( CanopyRefl_dif, mp, nrb, CGauss_w,                 &
@@ -185,7 +207,7 @@ END SUBROUTINE CanopyReflectance
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-SUBROUTINE CanopyReflectance_beam( CanopyRefl_beam, mp, nrb, sunlit_veg_mask,  &
+SUBROUTINE CanopyReflectance_beam( CanopyRefl_beam, mp, nrb, veg_mask,  &
               ExtCoeff_beam,ExtCoeff_dif, rhoch )
 IMPLICIT NONE
 INTEGER :: mp
@@ -193,14 +215,14 @@ INTEGER ::nrb
 REAL :: CanopyRefl_beam(mp,nrb)
 REAL :: ExtCoeff_dif(mp)
 REAL :: ExtCoeff_beam(mp)
-LOGICAL :: sunlit_veg_mask(mp)
+LOGICAL :: veg_mask(mp)
 REAL :: rhoch(mp, nrb)
 INTEGER :: i, b
 
 ! Canopy reflection (6.21) beam:
 DO i = 1,mp
   DO b = 1, 2
-    IF ( sunlit_veg_mask(i) )                                                  &
+    IF ( veg_mask(i) )                                                  &
       CanopyRefl_beam(i,b) = 2.0 * ExtCoeff_beam(i) /                          &
                             ( ExtCoeff_beam(i) + ExtCoeff_dif(i) )             &
                             * rhoch(i,b)
@@ -321,16 +343,14 @@ END SUBROUTINE  CanopyTransmitance_beam
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 SUBROUTINE EffectiveSurfaceReflectance(EffSurfRefl_beam, EffSurfRefl_dif,      &
-                                       mp, nrb, veg_mask, sunlit_veg_mask,     &
-                                       CanopyRefl_beam, CanopyRefl_dif,        &
-                                       CanopyTransmit_beam,CanopyTransmit_dif, &
-                                       AlbSnow )
+                                       mp, nrb, veg_mask, CanopyRefl_beam,     &
+                                       CanopyRefl_dif, CanopyTransmit_beam,    &
+                                       CanopyTransmit_dif, AlbSnow )
 IMPLICIT NONE
-!re-decl input args
+
 INTEGER :: mp                       !total number of "tiles"
 INTEGER :: nrb                      !number of radiation bands [per legacy=3, but really=2 VIS,NIR. 3rd dim was for LW]
 LOGICAL :: veg_mask(mp)             ! this "mp" is vegetated (uses minimum LAI)
-LOGICAL :: sunlit_veg_mask(mp)      ! this "mp" is vegetated (uses minimum LAI)
 REAL :: EffSurfRefl_dif(mp,nrb)     !Effective Surface Relectance as seen by atmosphere [Diffuse SW]  (rad%reffdf)
 REAL :: EffSurfRefl_beam(mp,nrb)    !Effective Surface Relectance as seen by atmosphere [Direct Beam SW] (rad%reffbm)
 REAL :: CanopyRefl_beam(mp,nrb)
@@ -339,20 +359,18 @@ REAL :: CanopyTransmit_dif(mp,nrb)      !Canopy reflectance (rad%cexpkdm)
 REAL :: CanopyTransmit_beam(mp,nrb)     !Canopy reflectance (rad%cexpkbm)
 REAL :: AlbSnow(mp,nrb)
 
-
-
 CALL EffectiveReflectance( EffSurfRefl_dif, mp, nrb, CanopyRefl_dif, AlbSnow,  &
                            CanopyTransmit_dif, veg_mask )
 
 CALL EffectiveReflectance( EffSurfRefl_beam, mp, nrb, CanopyRefl_beam, AlbSnow,&
-                           CanopyTransmit_beam, sunlit_veg_mask )
+                           CanopyTransmit_beam, veg_mask )
 
 END SUBROUTINE EffectiveSurfaceReflectance
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 SUBROUTINE EffectiveReflectance( EffRefl, mp, nrb, CanopyRefl, AlbSnow,        &
-          CanopyTransmit, mask )
+                                 CanopyTransmit, mask )
 IMPLICIT NONE
 INTEGER :: mp
 INTEGER :: nrb
