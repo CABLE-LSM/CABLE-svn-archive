@@ -1295,9 +1295,9 @@ CONTAINS
        patch(landpt(e)%cstart:landpt(e)%cend)%frac =                            &
             inPFrac(landpt(e)%ilon, landpt(e)%ilat, 1:landpt(e)%nap)
 
-       WRITE(*,*) 'cstart:cend lat and lon', e,  landpt(e)%cstart,landpt(e)%cend,latitude(e),longitude(e)
-       WRITE(*,*) 'iveg', e,  veg%iveg(landpt(e)%cstart:landpt(e)%cend)
-       WRITE(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
+       WRITE(22,*) 'cstart:cend lat and lon', e,  landpt(e)%cstart,landpt(e)%cend,latitude(e),longitude(e)
+       WRITE(22,*) 'iveg', e,  veg%iveg(landpt(e)%cstart:landpt(e)%cend)
+       WRITE(22,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
 
        ! set land use (1 = primary; 2 = secondary, 3 = open)
        IF (cable_user%popluc) THEN

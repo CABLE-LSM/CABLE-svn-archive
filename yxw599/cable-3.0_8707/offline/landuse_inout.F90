@@ -1263,10 +1263,14 @@ END SUBROUTINE landuse_getdata
     CHARACTER         :: FRST_OUT*200, CYEAR*4
 
     INTEGER              ok
+    INTEGER              m 
 
     dummy = 0 ! initialise
 
     WRITE(logn, '(A36)') ' Landuse on: Writing restart file...'
+
+    print *, 'write out patch information in restart_cable'
+
     IF ( TRIM(filename%path) .EQ. '' ) filename%path = './'
     frst_out = TRIM(filename%path)//'/'//TRIM(filename%restart_out)
     ! Look for explicit restart file (netCDF). If not, asssume input is path
@@ -1275,6 +1279,13 @@ END SUBROUTINE landuse_getdata
        frst_out = TRIM(filename%path)//'/'//TRIM(cable_user%RunIden)//&
             '_'//CYEAR//'_cable_rst.nc'
     ENDIF
+
+    print *, 'landuse on: cable restart filename= ',frst_out
+    do m=1,mland
+       print *,m,nap(m),lucmp%iveg(cstart(m):cend(m)),lucmp%patchfrac(cstart(m):cend(m))
+    enddo
+    print *,'iveg size',size(lucmp%iveg)
+    print *,'iveg=',lucmp%iveg(:)
 
     ! Create output file:
     ok = NF90_CREATE(frst_out, NF90_CLOBBER, ncid_restart)

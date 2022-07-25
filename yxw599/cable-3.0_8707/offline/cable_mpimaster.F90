@@ -1445,6 +1445,7 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
              endif      
              patchfrac_new(landpt(m)%ilon,landpt(m)%ilat,ivt) = lucmp%patchfrac(np)
           enddo
+          print *,m,nap(m),lucmp%iveg(cstart(m):cend(m)),lucmp%patchfrac(cstart(m):cend(m))
        enddo    
 
        call create_new_gridinfo(filename%type,filename%gridnew,mlon,mlat,landmask,patchfrac_new)                   
