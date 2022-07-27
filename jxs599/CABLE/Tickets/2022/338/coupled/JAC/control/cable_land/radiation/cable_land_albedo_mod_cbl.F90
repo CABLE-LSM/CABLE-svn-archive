@@ -222,7 +222,7 @@ CALL cable_pack_progs( SnowDepth, SnowDensity, SoilTemp, SnowAge, mp,          &
 ! -----------------------------------------------------------------------------
 
 ! limit IN height, LAI  and initialize some existing cable % types
-CALL limit_HGT_LAI( LAI_pft_cbl, HGT_pft_cbl, mp, land_pts, nsurft,            &
+CALL limit_HGT_LAI( LAI_pft_cbl, HGT_pft_cbl, mp, land_pts, nsurft, npft,      &
                     surft_pts, surft_index, tile_frac, l_tile_pts,             &
                     LAI_pft_um, HGT_pft_um, CLAI_thresh )
 
