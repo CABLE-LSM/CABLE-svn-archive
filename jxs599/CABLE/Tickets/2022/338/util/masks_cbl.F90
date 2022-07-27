@@ -1,5 +1,7 @@
 MODULE cbl_masks_mod
 
+! compute LOGICAL masks that distinguish vegetated cells, sunlit cells and both
+
 IMPLICIT NONE
 
 PUBLIC L_tile_pts
