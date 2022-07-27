@@ -17,7 +17,7 @@ IMPLICIT NONE
 INTEGER, INTENT(IN) :: mp
 INTEGER, INTENT(IN) :: nrb
 
-!--- IN: CABLE specific surface_type indexes 
+!--- IN: CABLE specific surface_type indexes
 INTEGER, INTENT(IN) :: ICE_SoilType
 INTEGER, INTENT(IN) :: lakes_cable
 

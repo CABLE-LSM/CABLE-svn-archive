@@ -16,12 +16,12 @@ CONTAINS
 SUBROUTINE init_cable_parms_rad( VegXfang, VegTaul, VegRefl, SurfaceType,      &
                                  SoilType, mp, nrb, l_tile_pts,                &
                                  ICE_SurfaceType, ICE_SoilType, VeginXfang,    &
-                                 VeginTaul, VeginRefl, land_pts, nsurft,       & 
+                                 VeginTaul, VeginRefl, land_pts, nsurft,       &
                                  tile_frac )
 
 IMPLICIT NONE
 
-INTEGER, INTENT(OUT), ALLOCATABLE :: SurfaceType(:) !CABLE surface tile PFT/nveg 
+INTEGER, INTENT(OUT), ALLOCATABLE :: SurfaceType(:) !CABLE surface tile PFT/nveg
 INTEGER, INTENT(OUT), ALLOCATABLE :: SoilType(:)    !CABLE soil type per tile
 REAL,    INTENT(OUT), ALLOCATABLE :: VegXfang(:)    !Leaf Angle (CABLE)
 REAL,    INTENT(OUT), ALLOCATABLE :: VegTaul(:,:)   !Leaf Transmisivity (CABLE)
@@ -32,9 +32,9 @@ INTEGER, INTENT(IN) :: nrb
 INTEGER, INTENT(IN) :: nsurft
 INTEGER, INTENT(IN) :: land_pts
 INTEGER, INTENT(IN) :: ICE_SurfaceType              !index ICE surface type
-INTEGER, INTENT(IN) :: ICE_SoilType                 !index soil type 
-LOGICAL, INTENT(IN) :: l_tile_pts(land_pts,nsurft)  ! TRUE if active tile  
-REAL,    INTENT(IN) :: tile_frac(land_pts,nsurft)   
+INTEGER, INTENT(IN) :: ICE_SoilType                 !index soil type
+LOGICAL, INTENT(IN) :: l_tile_pts(land_pts,nsurft)  ! TRUE if active tile
+REAL,    INTENT(IN) :: tile_frac(land_pts,nsurft)
 
 !---IN: CABLE Vegetation parameters. decl in params_io_cbl.F90
 REAL, INTENT(IN) :: VeginXfang(nsurft)              !Leaf Angle
@@ -78,7 +78,7 @@ DO h = 1, mp          ! over each patch in current grid
   VegXfang(h)    = VeginXfang( SurfaceType(h))
 END DO ! over each veg patch in land point
 
-RETURN 
+RETURN
 END SUBROUTINE init_cable_parms_rad
 
 END MODULE init_cable_parms_mod

@@ -15,14 +15,14 @@
 ! IMPORTANT NOTE regarding the masks (Ticket 333)
 ! Prior to #333, 3 masks were used here - veg_mask, sunlit_mask, veg_mask
 ! - although passed in sunlit_mask was not used
-! For JAC we will not be able to populate the sunlit masks and instead will 
-! evaluate the EffExtCoeff outside their bounds of applicability here by 
+! For JAC we will not be able to populate the sunlit masks and instead will
+! evaluate the EffExtCoeff outside their bounds of applicability here by
 ! using inclusive masks in their place from the calling routines,
 !  ie. JAC will use veg_mask in place of veg_mask
 !
 ! To avoid confusion the mask names here are renamed:
 ! sunlit_mask now called mask1, veg_mask now called mask2
-! 
+!
 ! ==============================================================================
 
 MODULE cbl_albedo_mod
@@ -34,7 +34,7 @@ PRIVATE
 
 CONTAINS
 
-SUBROUTINE Albedo( AlbSnow, AlbSoil, mp, nrb, ICE_SoilType, lakes_cable,       & 
+SUBROUTINE Albedo( AlbSnow, AlbSoil, mp, nrb, ICE_SoilType, lakes_cable,       &
                    jls_radiation, veg_mask, Ccoszen_tols, cgauss_w,            &
                    SurfaceType, SoilType, VegRefl, VegTaul,                    &
                    coszen, reducedLAIdue2snow, SnowDepth, SnowDensity,         &
@@ -57,7 +57,7 @@ INTEGER :: nrb                      ! # rad bands: VIS,NIR. 3rd dim was for LW
 REAL :: EffSurfRefl_dif(mp,nrb)     ! Effective Surface Relectance as seen by atmosphere [Diffuse SW]  (rad%reffdf)
 REAL :: EffSurfRefl_beam(mp,nrb)    ! Effective Surface Relectance as seen by atmosphere [Direct Beam SW] (rad%reffbm)
 
-!--- IN: CABLE specific surface_type indexes 
+!--- IN: CABLE specific surface_type indexes
 INTEGER, INTENT(IN) :: ICE_SoilType
 INTEGER, INTENT(IN) :: lakes_cable
 
@@ -130,8 +130,8 @@ CanopyRefl_dif(:,:) = 0.0
 CanopyTransmit_dif(:,:) = 1.0  ! MPI (at least inits this = 1.0 at dt=0)
 
 !Modify parametrised soil albedo based on snow coverage
-CALL surface_albedosn( AlbSnow, AlbSoil, mp, nrb, ICE_SoilType, lakes_cable,      &
-                       SurfaceType, SoilType, SnowDepth, SnowDensity,         &
+CALL surface_albedosn( AlbSnow, AlbSoil, mp, nrb, ICE_SoilType, lakes_cable,   &
+                       SurfaceType, SoilType, SnowDepth, SnowDensity,          &
                        SoilTemp, SnowAge, Coszen )
 
 ! Update fractional leaf transmittance and reflection
@@ -178,7 +178,7 @@ END SUBROUTINE albedo
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 SUBROUTINE CanopyReflectance( CanopyRefl_beam, CanopyRefl_dif,                 &
-                         mp, nrb, CGauss_w, veg_mask,                   &
+                         mp, nrb, CGauss_w, veg_mask,                          &
                          AlbSnow, xk, rhoch,                                   &
                          ExtCoeff_beam, ExtCoeff_dif)
 IMPLICIT NONE
@@ -199,7 +199,7 @@ REAL :: ExtCoeff_dif(mp)            !"raw"Extinction co-efficient for Diffuse co
 !HACHvstrunk!CanopyRefl_beam  = AlbSnow !Formerly rad%reffbm
 !HACHvstrunk!CanopyRefl_dif   = AlbSnow ! Formerly rad%refdfm
 
-CALL CanopyReflectance_beam( CanopyRefl_beam, mp, nrb, veg_mask,        &
+CALL CanopyReflectance_beam( CanopyRefl_beam, mp, nrb, veg_mask,               &
                              ExtCoeff_beam, ExtCoeff_dif, rhoch )
 
 CALL CanopyReflectance_dif( CanopyRefl_dif, mp, nrb, CGauss_w,                 &
@@ -208,7 +208,7 @@ END SUBROUTINE CanopyReflectance
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-SUBROUTINE CanopyReflectance_beam( CanopyRefl_beam, mp, nrb, veg_mask,  &
+SUBROUTINE CanopyReflectance_beam( CanopyRefl_beam, mp, nrb, veg_mask,         &
               ExtCoeff_beam,ExtCoeff_dif, rhoch )
 IMPLICIT NONE
 INTEGER :: mp
@@ -223,7 +223,7 @@ INTEGER :: i, b
 ! Canopy reflection (6.21) beam:
 DO i = 1,mp
   DO b = 1, 2
-    IF ( veg_mask(i) )                                                  &
+    IF ( veg_mask(i) )                                                         &
       CanopyRefl_beam(i,b) = 2.0 * ExtCoeff_beam(i) /                          &
                             ( ExtCoeff_beam(i) + ExtCoeff_dif(i) )             &
                             * rhoch(i,b)
