@@ -5,20 +5,27 @@ IMPLICIT NONE
 CONTAINS
 
 ! Allocate vars in mp format
-SUBROUTINE alloc_local_vars( EffSurfRefl_dif, EffSurfRefl_beam,mp, nrb,        &
+SUBROUTINE alloc_local_vars( EffSurfRefl_beam, EffSurfRefl_dif, mp, nrb,       &
                              reducedLAIdue2snow, LAI_pft_cbl, HGT_pft_cbl,     &
                              HeightAboveSnow, coszen, ExtCoeff_beam,           &
                              ExtCoeff_dif, EffExtCoeff_beam, EffExtCoeff_dif,  &
-                             CanopyTransmit_dif, CanopyTransmit_beam,          &
-                             CanopyRefl_dif,CanopyRefl_beam, c1, rhoch, xk,    &
-                             AlbSnow, RadFbeam, RadAlbedo, metDoY, SW_down )
+                             CanopyTransmit_beam, CanopyTransmit_dif,          &
+                             CanopyRefl_beam, CanopyRefl_dif, RadFbeam,        &
+                             RadAlbedo, AlbSnow, c1, rhoch, xk, metDoY,        &
+                             SnowDepth, SnowDensity, SoilTemp, SnowAge,        &
+                             AlbSoil, SW_down)
 IMPLICIT NONE
 
 INTEGER :: mp, nrb
 REAL, INTENT(OUT), ALLOCATABLE :: EffSurfRefl_dif(:,:)
 REAL, INTENT(OUT), ALLOCATABLE :: EffSurfRefl_beam(:,:)
-REAL, INTENT(OUT), ALLOCATABLE :: LAI_pft_cbl(:)      ! Prescribed LAI 
-REAL, INTENT(OUT), ALLOCATABLE :: HGT_pft_cbl(:)      ! Prescribed canopy height 
+REAL, INTENT(OUT), ALLOCATABLE :: SnowDepth(:)
+REAL, INTENT(OUT), ALLOCATABLE :: SnowDensity(:)
+REAL, INTENT(OUT), ALLOCATABLE :: SoilTemp(:)
+REAL, INTENT(OUT), ALLOCATABLE :: SnowAge( :)
+REAL, INTENT(OUT), ALLOCATABLE :: AlbSoil(:,:)
+REAL, INTENT(OUT), ALLOCATABLE :: LAI_pft_cbl(:)      ! Prescribed LAI
+REAL, INTENT(OUT), ALLOCATABLE :: HGT_pft_cbl(:)      ! Prescribed canopy height
 REAL, INTENT(OUT), ALLOCATABLE :: reducedLAIdue2snow(:) ! Eff. LAI given snow
 REAL, INTENT(OUT), ALLOCATABLE :: HeightAboveSnow(:)  ! Canopy hgt above snow
 REAL, INTENT(OUT), ALLOCATABLE :: coszen(:)
@@ -44,9 +51,14 @@ IF ( .NOT. ALLOCATED(reducedLAIdue2snow))  ALLOCATE(reducedLAIdue2snow(mp) )
 IF ( .NOT. ALLOCATED(HeightAboveSnow) )    ALLOCATE(HeightAboveSnow(mp) )
 IF ( .NOT. ALLOCATED(LAI_pft_cbl) )        ALLOCATE(LAI_pft_cbl(mp) )
 IF ( .NOT. ALLOCATED(HGT_pft_cbl) )        ALLOCATE(HGT_pft_cbl(mp) )
+IF ( .NOT. ALLOCATED(AlbSoil) )            ALLOCATE(AlbSoil(mp,nrb) )
 IF ( .NOT. ALLOCATED(coszen) )             ALLOCATE(coszen(mp) )
 IF ( .NOT. ALLOCATED(EffSurfRefl_dif) )    ALLOCATE(EffSurfRefl_dif(mp, nrb) )
 IF ( .NOT. ALLOCATED(EffSurfRefl_beam) )   ALLOCATE(EffSurfRefl_beam(mp, nrb) )
+IF ( .NOT. ALLOCATED(SnowDepth) )          ALLOCATE(SnowDepth(mp) )
+IF ( .NOT. ALLOCATED(SnowDensity) )        ALLOCATE(SnowDensity(mp) )
+IF ( .NOT. ALLOCATED(SoilTemp) )           ALLOCATE(SoilTemp(mp) )
+IF ( .NOT. ALLOCATED(SnowAge) )            ALLOCATE(SnowAge(mp) )
 IF ( .NOT. ALLOCATED(ExtCoeff_beam) )      ALLOCATE(ExtCoeff_beam(mp) )
 IF ( .NOT. ALLOCATED(ExtCoeff_dif) )       ALLOCATE(ExtCoeff_dif(mp) )
 IF ( .NOT. ALLOCATED(EffExtCoeff_beam) )   ALLOCATE(EffExtCoeff_beam(mp, nrb) )
@@ -65,8 +77,9 @@ IF ( .NOT. ALLOCATED(RadFbeam) )           ALLOCATE(RadFbeam(mp, nrb) )
 IF ( .NOT. ALLOCATED(RadAlbedo) )          ALLOCATE(RadAlbedo(mp, nrb) )
 
 EffSurfRefl_dif(:,:) = 0.0; EffSurfRefl_beam(:,:) = 0.0
+SnowDepth = 0.0; SnowDensity = 0.0; SoilTemp = 0.0; SnowAge = 0.0
 LAI_pft_cbl(:) = 0.0; HGT_pft_cbl(:) = 0.0; coszen(:) = 0.0
-reducedLAIdue2snow(:) = 0.0; HeightAboveSnow(:) = 0.0  
+reducedLAIdue2snow(:) = 0.0; HeightAboveSnow(:) = 0.0
 ExtCoeff_beam(:) = 0.0; ExtCoeff_dif(:) = 0.0
 EffExtCoeff_beam(:,:) = 0.0; EffExtCoeff_dif(:,:) = 0.0
 CanopyTransmit_dif(:,:) = 0.0; CanopyTransmit_beam(:,:) = 0.0
@@ -81,46 +94,46 @@ RETURN
 END SUBROUTINE alloc_local_vars
 
 !flush memory
-SUBROUTINE flush_local_vars( EffSurfRefl_dif, EffSurfRefl_beam, SnowDepth,     &
+SUBROUTINE flush_local_vars( EffSurfRefl_beam, EffSurfRefl_dif, SnowDepth,     &
                              SnowDensity, SoilTemp, SnowAge, AlbSoil,          &
                              reducedLAIdue2snow, LAI_pft_cbl, HGT_pft_cbl,     &
-                             HeightAboveSnow, coszen, ExtCoeff_beam,           & 
+                             HeightAboveSnow, coszen, ExtCoeff_beam,           &
                              ExtCoeff_dif, EffExtCoeff_beam, EffExtCoeff_dif,  &
-                             CanopyTransmit_dif, CanopyTransmit_beam,          &
-                             CanopyRefl_dif, CanopyRefl_beam, RadFbeam,        &
-                             RadAlbedo, AlbSnow, c1, rhoch, xk, metDoY, SW_down) )
+                             CanopyTransmit_beam, CanopyTransmit_dif,          &
+                             CanopyRefl_beam, CanopyRefl_dif, RadFbeam,        &
+                             RadAlbedo, AlbSnow, c1, rhoch, xk, metDoY, SW_down)
 
 IMPLICIT NONE
 
-REAL, INTENT(INOUT), ALLOCATABLE :: EffSurfRefl_dif(:,:)
-REAL, INTENT(INOUT), ALLOCATABLE :: EffSurfRefl_beam(:,:)
-REAL, INTENT(INOUT), ALLOCATABLE :: SnowDepth(:)
-REAL, INTENT(INOUT), ALLOCATABLE :: SnowDensity(:)
-REAL, INTENT(INOUT), ALLOCATABLE :: SoilTemp(:)
-REAL, INTENT(INOUT), ALLOCATABLE :: SnowAge( :)
-REAL, INTENT(INOUT), ALLOCATABLE :: AlbSoil(:,:)
-REAL, INTENT(INOUT), ALLOCATABLE :: reducedLAIdue2snow(:)
-REAL, INTENT(INOUT), ALLOCATABLE :: HeightAboveSnow(:)
-REAL, INTENT(INOUT), ALLOCATABLE :: LAI_pft_cbl(:)
-REAL, INTENT(INOUT), ALLOCATABLE :: HGT_pft_cbl(:)
-REAL, INTENT(INOUT), ALLOCATABLE :: coszen(:)
+REAL, INTENT(IN OUT), ALLOCATABLE :: EffSurfRefl_dif(:,:)
+REAL, INTENT(IN OUT), ALLOCATABLE :: EffSurfRefl_beam(:,:)
+REAL, INTENT(IN OUT), ALLOCATABLE :: SnowDepth(:)
+REAL, INTENT(IN OUT), ALLOCATABLE :: SnowDensity(:)
+REAL, INTENT(IN OUT), ALLOCATABLE :: SoilTemp(:)
+REAL, INTENT(IN OUT), ALLOCATABLE :: SnowAge( :)
+REAL, INTENT(IN OUT), ALLOCATABLE :: AlbSoil(:,:)
+REAL, INTENT(IN OUT), ALLOCATABLE :: reducedLAIdue2snow(:)
+REAL, INTENT(IN OUT), ALLOCATABLE :: HeightAboveSnow(:)
+REAL, INTENT(IN OUT), ALLOCATABLE :: LAI_pft_cbl(:)
+REAL, INTENT(IN OUT), ALLOCATABLE :: HGT_pft_cbl(:)
+REAL, INTENT(IN OUT), ALLOCATABLE :: coszen(:)
 !these local to CABLE and can be flushed every timestep
-REAL, INTENT(INOUT), ALLOCATABLE :: ExtCoeff_beam(:)
-REAL, INTENT(INOUT), ALLOCATABLE :: ExtCoeff_dif(:)
-REAL, INTENT(INOUT), ALLOCATABLE :: EffExtCoeff_beam(:,:)
-REAL, INTENT(INOUT), ALLOCATABLE :: EffExtCoeff_dif(:,:)
-REAL, INTENT(INOUT), ALLOCATABLE :: CanopyTransmit_dif(:,:)
-REAL, INTENT(INOUT), ALLOCATABLE :: CanopyTransmit_beam(:,:)
-REAL, INTENT(INOUT), ALLOCATABLE :: CanopyRefl_dif(:,:)
-REAL, INTENT(INOUT), ALLOCATABLE :: CanopyRefl_beam(:,:)
-REAL, INTENT(INOUT), ALLOCATABLE :: RadFbeam(:,:)
-REAL, INTENT(INOUT), ALLOCATABLE :: RadAlbedo(:,:)
-REAL, INTENT(INOUT), ALLOCATABLE :: AlbSnow(:,:)
-REAL, INTENT(INOUT), ALLOCATABLE :: c1(:,:)
-REAL, INTENT(INOUT), ALLOCATABLE :: rhoch(:,:)
-REAL, INTENT(INOUT), ALLOCATABLE :: xk(:,:)
-REAL, INTENT(INOUT), ALLOCATABLE :: SW_down(:,:)        ! dummy
-INTEGER, INTENT(INOUT),, ALLOCATABLE :: metDoY(:)  ! pass DoY from current_time
+REAL, INTENT(IN OUT), ALLOCATABLE :: ExtCoeff_beam(:)
+REAL, INTENT(IN OUT), ALLOCATABLE :: ExtCoeff_dif(:)
+REAL, INTENT(IN OUT), ALLOCATABLE :: EffExtCoeff_beam(:,:)
+REAL, INTENT(IN OUT), ALLOCATABLE :: EffExtCoeff_dif(:,:)
+REAL, INTENT(IN OUT), ALLOCATABLE :: CanopyTransmit_dif(:,:)
+REAL, INTENT(IN OUT), ALLOCATABLE :: CanopyTransmit_beam(:,:)
+REAL, INTENT(IN OUT), ALLOCATABLE :: CanopyRefl_dif(:,:)
+REAL, INTENT(IN OUT), ALLOCATABLE :: CanopyRefl_beam(:,:)
+REAL, INTENT(IN OUT), ALLOCATABLE :: RadFbeam(:,:)
+REAL, INTENT(IN OUT), ALLOCATABLE :: RadAlbedo(:,:)
+REAL, INTENT(IN OUT), ALLOCATABLE :: AlbSnow(:,:)
+REAL, INTENT(IN OUT), ALLOCATABLE :: c1(:,:)
+REAL, INTENT(IN OUT), ALLOCATABLE :: rhoch(:,:)
+REAL, INTENT(IN OUT), ALLOCATABLE :: xk(:,:)
+REAL, INTENT(IN OUT), ALLOCATABLE :: SW_down(:,:)        ! dummy
+INTEGER, INTENT(IN OUT), ALLOCATABLE :: metDoY(:)  ! pass DoY from current_time
 
 IF ( ALLOCATED(EffSurfRefl_dif)     ) DEALLOCATE ( EffSurfRefl_dif )
 IF ( ALLOCATED(EffSurfRefl_beam)    ) DEALLOCATE ( EffSurfRefl_beam )

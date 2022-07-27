@@ -4,7 +4,7 @@ CONTAINS
 !-------------------------------------------------------------------------------
 ! Purpose: Provide (return) albedo(s) to JULES [land_albedo , alb_surft]
 ! per rad stream (VIS/NIR, Direct&Diffuse) [GridBoxMean & per tile albedo]
-! Three main sections: 
+! Three main sections:
 ! 1. Pack CABLE variables from those passed from surf_couple_radiation()
 ! 2. Call CABLE's radiation/albedo scheme
 ! 3. Unpack albedos to send back to JULES
@@ -16,13 +16,12 @@ SUBROUTINE cable_land_albedo (                                                 &
   row_length, rows, land_pts, nsurft, npft,                                    &
   surft_pts, surft_index, land_index,                                          &
   !IN: JULES Surface descriptions generally parametrized
-  dzsoil, tile_frac, LAI_pft_um, HGT_pft_um,                                   &
-  soil_alb,                                                                    &
+  tile_frac, LAI_pft_um, HGT_pft_um, soil_alb,                                 &
   !IN: JULES  timestep varying fields
   cosine_zenith_angle, snow_tile,                                              &
   !IN:CABLE dimensions from grid_constants_cbl
   nsl, nsnl, nrb, nrs, mp,                                                     &
-  !IN: CABLE specific surface_type indexes 
+  !IN: CABLE specific surface_type indexes
   ICE_Surfacetype, lakes_SurfaceType, ICE_SoilType,                            &
   !IN: CABLE constants
   Cz0surf_min, Clai_thresh, Ccoszen_tols, Cgauss_w, Cpi, Cpi180,               &
@@ -43,7 +42,7 @@ USE cable_pack_mod,             ONLY: cable_pack_rr
 
 ! Define CABLE grid, sunlit/veg masks & initialize surface type params
 USE init_cable_parms_mod,       ONLY: init_cable_parms_rad
-USE alloc_rad_albedo_vars_mod,  ONLY: alloc_local_vars, flush_local_vars 
+USE alloc_rad_albedo_vars_mod,  ONLY: alloc_local_vars, flush_local_vars
 USE cbl_masks_mod,              ONLY: fveg_mask, L_tile_pts
 
 !Compute canopy exposed above (potential) snow
@@ -78,7 +77,6 @@ INTEGER, INTENT(IN) :: land_index(land_pts)         ! Index in (x,y) array
 INTEGER, INTENT(IN) :: nsl                            !# soil layers
 
 !-- IN: JULES Surface descriptions generally parametrized
-REAL, INTENT(IN) :: dzsoil(nsl)
 REAL, INTENT(IN) :: tile_frac(land_pts,nsurft)      ! fraction of each surf type
 REAL, INTENT(IN) :: LAI_pft_um(land_pts, npft)      ! Leaf area index.
 REAL, INTENT(IN) :: HGT_pft_um(land_pts, npft)      ! Canopy height
@@ -93,7 +91,7 @@ INTEGER, INTENT(IN) :: nsnl                    ! max # snow layers(3)
 INTEGER, INTENT(IN) :: nrb                     !# rad bands VIS/NIR + Legacy LW
 INTEGER, INTENT(OUT) :: mp        ! curr. NOT requ'd OUT, however it likely will
 
-!--- IN: CABLE specific Surface/Soil type indexes 
+!--- IN: CABLE specific Surface/Soil type indexes
 INTEGER, INTENT(IN) :: ICE_SurfaceType
 INTEGER, INTENT(IN) :: lakes_SurfaceType
 INTEGER, INTENT(IN) :: ICE_SoilType
@@ -191,14 +189,15 @@ CALL init_active_tile_mask_cbl(l_tile_pts, land_pts, nsurft, tile_frac )
 ! alloc/zero each timestep
 ! metDoY, SW_down, RadFbeaam, RadAlbedo NOT used on rad/albedo path.
 ! Nevertheless,  need to fulfill later arg list(s) with dumies
-CALL alloc_local_vars( EffSurfRefl_dif, EffSurfRefl_beam, mp, nrb,             &
+CALL alloc_local_vars( EffSurfRefl_beam, EffSurfRefl_dif, mp, nrb,             &
                        reducedLAIdue2snow, LAI_pft_cbl, HGT_pft_cbl,           &
-                       HeightAboveSnow, coszen, ExtCoeff_beam, ExtCoeff_dif,   &
-                       EffExtCoeff_beam,  EffExtCoeff_dif, CanopyTransmit_dif, &
-                       CanopyTransmit_beam, CanopyRefl_dif,CanopyRefl_beam,    &
-                       c1, rhoch, xk, AlbSnow, RadFbeam, RadAlbedo, metDoY,    &
-                       SW_down )
-
+                       HeightAboveSnow, coszen, ExtCoeff_beam,                 &
+                       ExtCoeff_dif, EffExtCoeff_beam, EffExtCoeff_dif,        &
+                       CanopyTransmit_beam, CanopyTransmit_dif,                &
+                       CanopyRefl_beam, CanopyRefl_dif, RadFbeam,              &
+                       RadAlbedo, AlbSnow, c1, rhoch, xk, metDoY,              &
+                       SnowDepth, SnowDensity, SoilTemp, SnowAge,              &
+                       AlbSoil, SW_down)
 ! -----------------------------------------------------------------------------
 ! 1. PACK CABLE fields
 ! -----------------------------------------------------------------------------
@@ -222,7 +221,7 @@ CALL cable_pack_progs( SnowDepth, SnowDensity, SoilTemp, SnowAge, mp,          &
 ! -----------------------------------------------------------------------------
 
 ! limit IN height, LAI  and initialize some existing cable % types
-CALL limit_HGT_LAI( LAI_pft_cbl, HGT_pft_cbl, mp, land_pts, nsurft, npft,      &
+CALL limit_HGT_LAI( LAI_pft_cbl, HGT_pft_cbl, mp, land_pts, nsurft,            &
                     surft_pts, surft_index, tile_frac, l_tile_pts,             &
                     LAI_pft_um, HGT_pft_um, CLAI_thresh )
 
@@ -239,7 +238,7 @@ CALL fveg_mask( veg_mask, mp, Clai_thresh, reducedLAIdue2snow )
 !------------------------------------------------------------------------------
 ! 2. Call CABLE_rad_driver to run specific and necessary components of CABLE
 !------------------------------------------------------------------------------
-CALL cable_rad_driver( EffSurfRefl_dif, EffSurfRefl_beam,                      &
+CALL cable_rad_driver( EffSurfRefl_beam, EffSurfRefl_dif,                      &
                        mp, nrb, ICE_SoilType, lakes_SurfaceType, Clai_thresh,  &
                        Ccoszen_tols, CGauss_w, Cpi, Cpi180, Cz0surf_min,       &
                        veg_mask, jls_standalone, jls_radiation, SurfaceType,   &
@@ -247,8 +246,8 @@ CALL cable_rad_driver( EffSurfRefl_dif, EffSurfRefl_beam,                      &
                        SnowDensity, SoilTemp, SnowAge, AlbSoil ,coszen,        &
                        VegXfang, VegTaul, VegRefl, HeightAboveSnow,            &
                        reducedLAIdue2snow, ExtCoeff_beam, ExtCoeff_dif,        &
-                       EffExtCoeff_beam,  EffExtCoeff_dif, CanopyTransmit_dif, &
-                       CanopyTransmit_beam, CanopyRefl_dif,CanopyRefl_beam,    &
+                       EffExtCoeff_beam,  EffExtCoeff_dif, CanopyTransmit_beam,&
+                       CanopyTransmit_dif, CanopyRefl_beam,CanopyRefl_dif,     &
                        c1, rhoch, xk, AlbSnow, RadFbeam, RadAlbedo, metDoY,    &
                        SW_down )
 
@@ -260,13 +259,13 @@ CALL cable_rad_unpack( land_albedo, alb_surft, mp, nrs, row_length, rows,      &
                        land_index, tile_frac, l_tile_pts,                      &
                        EffSurfRefl_dif, EffSurfRefl_beam  )
 
-CALL flush_local_vars( EffSurfRefl_dif, EffSurfRefl_beam,SnowDepth,            &
+CALL flush_local_vars( EffSurfRefl_beam, EffSurfRefl_dif,SnowDepth,            &
                        SnowDensity, SoilTemp, SnowAge, AlbSoil,                &
                        reducedLAIdue2snow, LAI_pft_cbl,  HGT_pft_cbl,          &
                        HeightAboveSnow, coszen, ExtCoeff_beam, ExtCoeff_dif,   &
-                       EffExtCoeff_beam, EffExtCoeff_dif, CanopyTransmit_dif,  &
-                       CanopyTransmit_beam, CanopyRefl_dif, CanopyRefl_beam,   &
-                       RadFbeam, RadAlbedo, AlbSnow, c1, rhoch, xk )
+                       EffExtCoeff_beam, EffExtCoeff_dif, CanopyTransmit_beam, &
+                       CanopyTransmit_dif, CanopyRefl_beam, CanopyRefl_dif,    &
+                       RadFbeam, RadAlbedo, AlbSnow, c1, rhoch, xk, metDoY, SW_down )
 
 !flick switches before leaving
 jls_radiation= .FALSE.
@@ -276,7 +275,7 @@ RETURN
 END SUBROUTINE cable_land_albedo
 
 !==============================================================================
-! Pack spatial UM bare soil albedo to CABLE dimensions, HOWEVER limited by 
+! Pack spatial UM bare soil albedo to CABLE dimensions, HOWEVER limited by
 ! JULES typically has one soil type per cell & no distiction b//n rad bands
 SUBROUTINE cable_pack_Albsoil( AlbSoil, soil_alb, mp, nrb, l_tile_pts,         &
                                nsurft, land_pts )
@@ -302,7 +301,7 @@ DO n = 1, nsurft
 END DO
 
 AlbSoil(:,1) = PACK(fvar, l_tile_pts)
-AlbSoil(:,2) = AlbSoil(:,1) 
+AlbSoil(:,2) = AlbSoil(:,1)
 
 RETURN
 END SUBROUTINE cable_pack_Albsoil
@@ -320,8 +319,8 @@ INTEGER, INTENT(IN)  :: land_pts, nsurft, nsl, nsnl,mp
 ! map IN progs to CABLE veector length
 REAL, INTENT(OUT), ALLOCATABLE :: SnowDepth(:)   ! Tot Snow depth - water eqiv.
 REAL, INTENT(OUT), ALLOCATABLE :: SnowDensity(:) ! Snow density-assumes 1 layer
-REAL, INTENT(OUT), ALLOCATABLE :: SoilTemp(:)    ! Soil Temp. of top layer 
-REAL, INTENT(OUT), ALLOCATABLE :: SnowAge(:)     ! Snow age (assumes 1 layer) 
+REAL, INTENT(OUT), ALLOCATABLE :: SoilTemp(:)    ! Soil Temp. of top layer
+REAL, INTENT(OUT), ALLOCATABLE :: SnowAge(:)     ! Snow age (assumes 1 layer)
 
 LOGICAL, INTENT(IN) :: l_tile_pts(land_pts, nsurft )
 

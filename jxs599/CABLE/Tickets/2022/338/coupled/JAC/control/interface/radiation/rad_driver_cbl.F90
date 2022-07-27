@@ -2,19 +2,19 @@ MODULE cable_rad_driv_mod
 
 CONTAINS
 
-SUBROUTINE cable_rad_driver( EffSurfRefl_dif, EffSurfRefl_beam,                &
-                             mp, nrb, ICE_SoilType, lakes_cable, Clai_thresh,  &
+SUBROUTINE cable_rad_driver( EffSurfRefl_beam, EffSurfRefl_dif,                &
+                             mp, nrb, ICE_SoilType, lakes_type, Clai_thresh,   &
                              Ccoszen_tols, CGauss_w, Cpi, Cpi180, z0surf_min,  &
                              veg_mask, jls_standalone, jls_radiation,          &
                              SurfaceType,  SoilType,                           &
                              LAI_pft_cbl, HGT_pft_cbl, SnowDepth,              &
                              SnowDensity, SoilTemp, SnowAge, AlbSoil,          &
                              coszen, VegXfang, VegTaul, VegRefl,               &
-                             HeightAboveSnow, reducedLAIdue2snow,              & 
+                             HeightAboveSnow, reducedLAIdue2snow,              &
                              ExtCoeff_beam, ExtCoeff_dif, EffExtCoeff_beam,    &
-                             EffExtCoeff_dif, CanopyTransmit_dif,              &
-                             CanopyTransmit_beam, CanopyRefl_dif,              &
-                             CanopyRefl_beam, c1, rhoch, xk, AlbSnow, RadFbeam,&
+                             EffExtCoeff_dif, CanopyTransmit_beam,             &
+                             CanopyTransmit_dif, CanopyRefl_beam,              &
+                             CanopyRefl_dif, c1, rhoch, xk, AlbSnow, RadFbeam, &
                              RadAlbedo, metDoY, SW_down )
 
 
@@ -34,9 +34,9 @@ REAL, INTENT(OUT) :: EffSurfRefl_dif(mp,nrb)  ! Refl to Diffuse component of rad
 REAL, INTENT(OUT) :: EffSurfRefl_beam(mp,nrb) ! Refl to Beam component of rad
                                               ! formerly rad%reffbm
 
-!--- IN: CABLE specific surface_type indexes 
+!--- IN: CABLE specific surface_type indexes
 INTEGER, INTENT(IN) :: ICE_SoilType
-INTEGER, INTENT(IN) :: lakes_cable
+INTEGER, INTENT(IN) :: lakes_type
 
 !constants
 !-------------------------------------------------------------------------------
@@ -97,24 +97,24 @@ REAL,    INTENT(IN) :: VegRefl(mp,nrb)     ! PARAM leaf reflectivity (veg%refl)
 !-------------------------------------------------------------------------------
 
 !local to Rad/Albedo pathway:
-REAL, INTENT(INOUT) :: ExtCoeff_beam(mp)            ! nee. rad%extkb,
-REAL, INTENT(INOUT) :: ExtCoeff_dif(mp)             ! nee. rad%extkd
-REAL, INTENT(INOUT) :: EffExtCoeff_beam(mp, nrb)    ! nee. rad%extkbm
-REAL, INTENT(INOUT) :: EffExtCoeff_dif(mp, nrb)     ! nee. rad%extkdm,
-REAL, INTENT(INOUT) :: CanopyTransmit_dif(mp, nrb)  ! nee. rad%cexpkdm
-REAL, INTENT(INOUT) :: CanopyTransmit_beam(mp, nrb) ! nee. rad%cexpkbm
-REAL, INTENT(INOUT) :: CanopyRefl_dif(mp, nrb)      ! nee. rad%rhocdf
-REAL, INTENT(INOUT) :: CanopyRefl_beam(mp, nrb)     ! nee. rad%rhocbm
-REAL, INTENT(INOUT) :: RadFbeam(mp, nrb)            ! nee. rad%fbeam
-REAL, INTENT(INOUT) :: RadAlbedo(mp, nrb)           ! nee. rad%albedo
-REAL, INTENT(INOUT) :: AlbSnow(mp, nrb)             ! nee. ssnow%AlbSoilsn
-REAL, INTENT(INOUT) :: c1(mp, nrb)                  ! common rad scalings
-REAL, INTENT(INOUT) :: rhoch(mp, nrb)               ! common rad scalings
-REAL, INTENT(INOUT) :: xk(mp, nrb)                  ! common rad scalings
+REAL, INTENT(IN OUT) :: ExtCoeff_beam(mp)            ! nee. rad%extkb,
+REAL, INTENT(IN OUT) :: ExtCoeff_dif(mp)             ! nee. rad%extkd
+REAL, INTENT(IN OUT) :: EffExtCoeff_beam(mp, nrb)    ! nee. rad%extkbm
+REAL, INTENT(IN OUT) :: EffExtCoeff_dif(mp, nrb)     ! nee. rad%extkdm,
+REAL, INTENT(IN OUT) :: CanopyTransmit_dif(mp, nrb)  ! nee. rad%cexpkdm
+REAL, INTENT(IN OUT) :: CanopyTransmit_beam(mp, nrb) ! nee. rad%cexpkbm
+REAL, INTENT(IN OUT) :: CanopyRefl_dif(mp, nrb)      ! nee. rad%rhocdf
+REAL, INTENT(IN OUT) :: CanopyRefl_beam(mp, nrb)     ! nee. rad%rhocbm
+REAL, INTENT(IN OUT) :: RadFbeam(mp, nrb)            ! nee. rad%fbeam
+REAL, INTENT(IN OUT) :: RadAlbedo(mp, nrb)           ! nee. rad%albedo
+REAL, INTENT(IN OUT) :: AlbSnow(mp, nrb)             ! nee. ssnow%AlbSoilsn
+REAL, INTENT(IN OUT) :: c1(mp, nrb)                  ! common rad scalings
+REAL, INTENT(IN OUT) :: rhoch(mp, nrb)               ! common rad scalings
+REAL, INTENT(IN OUT) :: xk(mp, nrb)                  ! common rad scalings
 ! used in Calc of Beam calculation NOT on rad/albedo path.
 ! However Needed to fulfill arg list with dummy
-INTEGER, INTENT(INOUT) :: metDoY(mp)                 ! can pass DoY from current_time
-REAL, INTENT(INOUT)    :: SW_down(mp, nrb)           ! NA at surf_couple_rad layer
+INTEGER, INTENT(IN OUT) :: metDoY(mp)                 ! can pass DoY from current_time
+REAL, INTENT(IN OUT)    :: SW_down(mp, nrb)           ! NA at surf_couple_rad layer
 
 CHARACTER(LEN=*), PARAMETER :: subr_name = "cable_rad_driver"
 LOGICAL :: cbl_standalone = .FALSE.
@@ -132,7 +132,7 @@ CALL init_radiation( ExtCoeff_beam, ExtCoeff_dif, EffExtCoeff_beam,            &
 !Defines 4-stream albedos [VIS/NIR bands. direct beam/diffuse components] from
 !considering albedo of Ground (snow?) and Canopy Reflectance/Transmitance.
 CALL Albedo( AlbSnow, AlbSoil,                                                 &
-             mp, nrb, ICE_SoilType, lakes_cable, jls_radiation, veg_mask,      &
+             mp, nrb, ICE_SoilType, lakes_type, jls_radiation, veg_mask,       &
              Ccoszen_tols, cgauss_w,                                           &
              SurfaceType, SoilType ,VegRefl, VegTaul,                          &
              coszen, reducedLAIdue2snow,                                       &

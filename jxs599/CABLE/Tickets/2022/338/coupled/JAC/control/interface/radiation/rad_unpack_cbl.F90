@@ -4,7 +4,7 @@ CONTAINS
 
 SUBROUTINE cable_rad_unpack( land_albedo, alb_surft,                           &
                              mp, nrs, row_length, rows, land_pts,              &
-                             nsurft, tile_pts, tile_index,          &
+                             nsurft, tile_pts, tile_index,                     &
                              land_index, tile_frac, L_tile_pts,                &
                              EffSurfRefl_dif, EffSurfRefl_beam )
 
@@ -54,7 +54,7 @@ alb_surft(:,:,:) = 0.0        ! guarantee flushed
 ! Direct beam, visible / near-IR
 alb_surft(:,:,1) = UNPACK(EffSurfRefl_beam(:,1),l_tile_pts, miss)
 alb_surft(:,:,3) = UNPACK(EffSurfRefl_beam(:,2),l_tile_pts, miss)
-! Diffuse, visible / near-IR 
+! Diffuse, visible / near-IR
 alb_surft(:,:,2) = UNPACK(EffSurfRefl_dif(:,1),l_tile_pts, miss)
 alb_surft(:,:,4) = UNPACK(EffSurfRefl_dif(:,2),l_tile_pts, miss)
 
@@ -64,16 +64,16 @@ DO i = 1,land_pts
 
     IF ( alb_surft(i,j,1) > 1.0 .OR. alb_surft(i,j,1) < 0.0) THEN
       WRITE(6,*) 'albedo(i,j,1) is unphysical ',alb_surft(i,j,1)
-      STOP 'CABLE ERROR' 
-    ELSEIF ( alb_surft(i,j,2) > 1.0 .OR. alb_surft(i,j,2) < 0.0) THEN
+      STOP 'CABLE ERROR'
+    ELSE IF ( alb_surft(i,j,2) > 1.0 .OR. alb_surft(i,j,2) < 0.0) THEN
       WRITE(6,*) 'albedo(i,j,2) is unphysical ',alb_surft(i,j,2)
-      STOP 'CABLE ERROR' 
-    ELSEIF ( alb_surft(i,j,3) > 1.0 .OR. alb_surft(i,j,3) < 0.0) THEN
+      STOP 'CABLE ERROR'
+    ELSE IF ( alb_surft(i,j,3) > 1.0 .OR. alb_surft(i,j,3) < 0.0) THEN
       WRITE(6,*) 'albedo(i,j,3) is unphysical ',alb_surft(i,j,3)
-      STOP 'CABLE ERROR' 
-    ELSEIF ( alb_surft(i,j,4) > 1.0 .OR. alb_surft(i,j,4) < 0.0) THEN
+      STOP 'CABLE ERROR'
+    ELSE IF ( alb_surft(i,j,4) > 1.0 .OR. alb_surft(i,j,4) < 0.0) THEN
       WRITE(6,*) 'albedo(i,j,4) is unphysical ',alb_surft(i,j,4)
-      STOP 'CABLE ERROR' 
+      STOP 'CABLE ERROR'
     END IF
 
   END DO
@@ -84,7 +84,7 @@ END DO
 land_albedo(:,:,:) = 0        ! guarantee flushed
 DO n = 1,nsurft
   DO k = 1,tile_pts(n)
-    
+
     l = tile_index(k,n)
     j=(land_index(l) - 1) / row_length + 1
     i = land_index(l) - (j-1) * row_length
@@ -97,7 +97,7 @@ DO n = 1,nsurft
     land_albedo(i,j,3) = land_albedo(i,j,3) + tile_frac(l,n) * ALB_surft(l,n,3)
     ! Diffuse, nearinfrared
     land_albedo(i,j,4) = land_albedo(i,j,4) + tile_frac(l,n) * ALB_surft(l,n,4)
-  
+
   END DO
 END DO
 

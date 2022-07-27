@@ -8,7 +8,7 @@ CONTAINS
 !   (row_length,rows), which are no good for CABLE. These have to be
 !   re-packed in a single vector of active tiles. Hence we use
 !   conditional "mask" l_tile_pts(land_pts,ntiles) which is .true.
-!   if the land point is/has an active tile. A packing routine for 
+!   if the land point is/has an active tile. A packing routine for
 !   land_point dimensioned JULES fields is to be included as required on the
 !   subsequent (e.g. explicit) CALLs to CABLE
 !
