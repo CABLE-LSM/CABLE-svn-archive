@@ -2,74 +2,42 @@ MODULE cable_rad_unpack_mod
 
 CONTAINS
 
-SUBROUTINE cable_rad_unpack(                                                   &
-land_albedo,                                                                   &
-alb_surft,                                                                     &
-mp,                                                                            &
-nrb,                                                                           &
-row_length,                                                                    &
-rows,                                                                          &
-land_pts,                                                                      &
-nsurft,                                                                        &
-sm_levels,                                                                     &
-tile_pts,                                                                      &
-tile_index,                                                                    &
-land_index,                                                                    &
-tile_frac,                                                                     &
-L_tile_pts,                                                                    &
-EffSurfRefl_dif,                                                               &
-EffSurfRefl_beam                                                               &
-)
+SUBROUTINE cable_rad_unpack( land_albedo, alb_surft,                           &
+                             mp, nrs, row_length, rows, land_pts,              &
+                             nsurft, tile_pts, tile_index,          &
+                             land_index, tile_frac, L_tile_pts,                &
+                             EffSurfRefl_dif, EffSurfRefl_beam )
 
 IMPLICIT NONE
 
-!___ re-decl input args
+! Model(field) dimensions
+INTEGER, INTENT(IN) :: mp                       !total number of "tiles"
+INTEGER, INTENT(IN) :: nrs                      !# rad bands VIS,NIR. 3rd WAS LW
+INTEGER, INTENT(IN) :: row_length               !grid cell x
+INTEGER, INTENT(IN) :: rows                     !grid cell y
+INTEGER, INTENT(IN) :: land_pts                 !grid cell land points -x,y grid
+INTEGER, INTENT(IN) :: nsurft                   !grid cell # surface types
 
-!model dimensions
-!-------------------------------------------------------------------------------
-!JaC:todo:ultimatelty get this from JaC~
-INTEGER :: mp                       !total number of "tiles"
-INTEGER :: nrb                      !number of radiation bands [per legacy=3, but really=2 VIS,NIR. 3rd dim was for LW]
-INTEGER :: row_length                       !grid cell x
-INTEGER :: rows                             !grid cell y
-INTEGER :: land_pts                         !grid cell land points on the x,y grid
-INTEGER :: nsurft                           !grid cell number of surface types
-INTEGER :: sm_levels                        !grid cell number of soil levels
-INTEGER :: tile_pts(nsurft)                 !Number of land points per PFT
-INTEGER :: tile_index(land_pts,nsurft)      !Index of land point in (land_pts) array
-INTEGER :: land_index(land_pts)             !Index of land points in (x,y) array - see below
-!-------------------------------------------------------------------------------
+! Return Albedos CABLE to fulfill contract with JULES
+REAL, INTENT(OUT) :: land_albedo(row_length,rows,nrs)
+REAL, INTENT(OUT) :: alb_surft(land_pts,nsurft,nrs)
 
-!Return from CABLE to vulvill contract with JULES
 !-------------------------------------------------------------------------------
-REAL :: land_albedo(row_length,rows,4)
-REAL :: alb_surft(Land_pts,nsurft,4)
+INTEGER, INTENT(IN) :: tile_pts(nsurft)         !Number of land points per PFT
+INTEGER, INTENT(IN) :: land_index(land_pts)     !land point Index in (x,y) array
+INTEGER, INTENT(IN) :: tile_index(land_pts,nsurft) !Index of land point in (land_pts) array
 !-------------------------------------------------------------------------------
-
 !recieved as spatial maps from the UM.
 !-------------------------------------------------------------------------------
-REAL :: tile_frac(land_pts,nsurft)          !fraction of each surface type per land point
-LOGICAL :: L_tile_pts( land_pts, nsurft )   !mask:=TRUE where tile_frac>0, else FALSE. pack mp according to this mask
-!-------------------------------------------------------------------------------
-
-!recieved as spatial maps from the UM. remapped to "mp"
-!-------------------------------------------------------------------------------
-INTEGER:: surface_type(mp)          ! Integer index of Surface type (veg%iveg)
-REAL :: LAI_pft_cbl(mp)             !LAI -  "limited" and remapped
-REAL :: HGT_pft_cbl(mp)             !canopy height -  "limited" and remapped
-!-------------------------------------------------------------------------------
-
-!Prognostics
-!-------------------------------------------------------------------------------
-REAL :: snow_flag_cable(land_pts,nsurft) !Flag to treat snow as 3 layer  - REALized and in JULES dimensioonal format
+REAL,    INTENT(IN) :: tile_frac(land_pts,nsurft)     !fraction of each surface type per land point
+LOGICAL, INTENT(IN) :: L_tile_pts( land_pts, nsurft ) !mask:=TRUE where tile_frac>0, else FALSE. pack mp according to this mask
 !-------------------------------------------------------------------------------
 
 ! Albedos
 !-------------------------------------------------------------------------------
-REAL :: EffSurfRefl_dif(mp,nrb)     !Effective Surface Relectance as seen by atmosphere [Diffuse SW]  (rad%reffdf)
-REAL :: EffSurfRefl_beam(mp,nrb)    !Effective Surface Relectance as seen by atmosphere [Direct Beam SW] (rad%reffbm)
+REAL, INTENT(IN) :: EffSurfRefl_dif(mp,nrs)     !Effective Surface Relectance as seen by atmosphere [Diffuse SW]  (rad%reffdf)
+REAL, INTENT(IN) :: EffSurfRefl_beam(mp,nrs)    !Effective Surface Relectance as seen by atmosphere [Direct Beam SW] (rad%reffbm)
 !-------------------------------------------------------------------------------
-
 
 !___ local vars
 INTEGER :: i,j,k,l,n
@@ -80,53 +48,56 @@ CHARACTER(LEN=*), PARAMETER :: subr_name = "cable_rad_unpack"
 REAL :: Sumreffbm(mp)
 REAL :: Sumreffdf(mp)
 
-! only for land points, at present do not have a method for treating
-! mixed land/sea or land/seaice points as yet.
-!   Albedo for surface tiles
-!     (:,:,1) direct beam visible
-!     (:,:,2) diffuse visible
-!     (:,:,3) direct beam near-IR
-!     (:,:,4) diffuse near-IR
-alb_surft(:,:,:) = 0.0
+! UNPACK Albedo (per rad stream) per surface tile
+!-------------------------------------------------------------
+alb_surft(:,:,:) = 0.0        ! guarantee flushed
+! Direct beam, visible / near-IR
 alb_surft(:,:,1) = UNPACK(EffSurfRefl_beam(:,1),l_tile_pts, miss)
 alb_surft(:,:,3) = UNPACK(EffSurfRefl_beam(:,2),l_tile_pts, miss)
+! Diffuse, visible / near-IR 
 alb_surft(:,:,2) = UNPACK(EffSurfRefl_dif(:,1),l_tile_pts, miss)
 alb_surft(:,:,4) = UNPACK(EffSurfRefl_dif(:,2),l_tile_pts, miss)
 
+! ERROR trap: Model stopped as albedo is unphysical
 DO i = 1,land_pts
   DO j = 1,nsurft
 
-    IF ( alb_surft(i,j,1)> 1.0) THEN
-      PRINT  * , 'alb > 1',alb_surft(i,j,1)
-      STOP
+    IF ( alb_surft(i,j,1) > 1.0 .OR. alb_surft(i,j,1) < 0.0) THEN
+      WRITE(6,*) 'albedo(i,j,1) is unphysical ',alb_surft(i,j,1)
+      STOP 'CABLE ERROR' 
+    ELSEIF ( alb_surft(i,j,2) > 1.0 .OR. alb_surft(i,j,2) < 0.0) THEN
+      WRITE(6,*) 'albedo(i,j,2) is unphysical ',alb_surft(i,j,2)
+      STOP 'CABLE ERROR' 
+    ELSEIF ( alb_surft(i,j,3) > 1.0 .OR. alb_surft(i,j,3) < 0.0) THEN
+      WRITE(6,*) 'albedo(i,j,3) is unphysical ',alb_surft(i,j,3)
+      STOP 'CABLE ERROR' 
+    ELSEIF ( alb_surft(i,j,4) > 1.0 .OR. alb_surft(i,j,4) < 0.0) THEN
+      WRITE(6,*) 'albedo(i,j,4) is unphysical ',alb_surft(i,j,4)
+      STOP 'CABLE ERROR' 
     END IF
 
   END DO
 END DO
 
-land_albedo = 0
-
+! Aggregate albedo (per rad stream) OVER surface tiles to get per cell value
+!-------------------------------------------------------------
+land_albedo(:,:,:) = 0        ! guarantee flushed
 DO n = 1,nsurft
   DO k = 1,tile_pts(n)
+    
     l = tile_index(k,n)
     j=(land_index(l) - 1) / row_length + 1
     i = land_index(l) - (j-1) * row_length
 
-    ! direct beam visible
-    land_albedo(i,j,1) = land_albedo(i,j,1) +                                  &
-                               tile_frac(l,n) * ALB_surft(l,n,1)
-
-    ! diffuse beam visible
-    land_albedo(i,j,2) = land_albedo(i,j,2) +                                  &
-                               tile_frac(l,n) * ALB_surft(l,n,2)
-
-    ! direct beam nearinfrared
-    land_albedo(i,j,3) = land_albedo(i,j,3) +                                  &
-                               tile_frac(l,n) * ALB_surft(l,n,3)
-
-    ! diffuse beam nearinfrared
-    land_albedo(i,j,4) = land_albedo(i,j,4) +                                  &
-                               tile_frac(l,n) * ALB_surft(l,n,4)
+    ! Direct beam, visible
+    land_albedo(i,j,1) = land_albedo(i,j,1) + tile_frac(l,n) * ALB_surft(l,n,1)
+    ! Diffuse, visible
+    land_albedo(i,j,2) = land_albedo(i,j,2) + tile_frac(l,n) * ALB_surft(l,n,2)
+    ! Direct beam, nearinfrared
+    land_albedo(i,j,3) = land_albedo(i,j,3) + tile_frac(l,n) * ALB_surft(l,n,3)
+    ! Diffuse, nearinfrared
+    land_albedo(i,j,4) = land_albedo(i,j,4) + tile_frac(l,n) * ALB_surft(l,n,4)
+  
   END DO
 END DO
 

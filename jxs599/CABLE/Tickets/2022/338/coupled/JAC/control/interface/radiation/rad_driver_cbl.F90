@@ -3,14 +3,20 @@ MODULE cable_rad_driv_mod
 CONTAINS
 
 SUBROUTINE cable_rad_driver( EffSurfRefl_dif, EffSurfRefl_beam,                &
-                       mp, nrb, Clai_thresh, Ccoszen_tols,                     &
-                       CGauss_w, Cpi, Cpi180, z0surf_min,                      &
-                       veg_mask, sunlit_mask, sunlit_veg_mask,                 &
-                       jls_standalone, jls_radiation, SurfaceType, SoilType,   &
-                       LAI_pft_cbl, HGT_pft_cbl, SnowDepth,                    &
-                       SnowDensity, SoilTemp, SnowAge, AlbSoil,                &
-                       coszen, VegXfang, VegTaul, VegRefl,                     &
-                       HeightAboveSnow, reducedLAIdue2snow )
+                             mp, nrb, ICE_SoilType, lakes_cable, Clai_thresh,  &
+                             Ccoszen_tols, CGauss_w, Cpi, Cpi180, z0surf_min,  &
+                             veg_mask, jls_standalone, jls_radiation,          &
+                             SurfaceType,  SoilType,                           &
+                             LAI_pft_cbl, HGT_pft_cbl, SnowDepth,              &
+                             SnowDensity, SoilTemp, SnowAge, AlbSoil,          &
+                             coszen, VegXfang, VegTaul, VegRefl,               &
+                             HeightAboveSnow, reducedLAIdue2snow,              & 
+                             ExtCoeff_beam, ExtCoeff_dif, EffExtCoeff_beam,    &
+                             EffExtCoeff_dif, CanopyTransmit_dif,              &
+                             CanopyTransmit_beam, CanopyRefl_dif,              &
+                             CanopyRefl_beam, c1, rhoch, xk, AlbSnow, RadFbeam,&
+                             RadAlbedo, metDoY, SW_down )
+
 
 !subrs:
 USE cbl_albedo_mod,             ONLY: albedo
@@ -27,6 +33,10 @@ REAL, INTENT(OUT) :: EffSurfRefl_dif(mp,nrb)  ! Refl to Diffuse component of rad
                                               ! formerly rad%reffdf
 REAL, INTENT(OUT) :: EffSurfRefl_beam(mp,nrb) ! Refl to Beam component of rad
                                               ! formerly rad%reffbm
+
+!--- IN: CABLE specific surface_type indexes 
+INTEGER, INTENT(IN) :: ICE_SoilType
+INTEGER, INTENT(IN) :: lakes_cable
 
 !constants
 !-------------------------------------------------------------------------------
@@ -46,8 +56,6 @@ LOGICAL, INTENT(IN) :: jls_radiation  ! local runtime switch for radiation path
 !masks
 !-------------------------------------------------------------------------------
 LOGICAL, INTENT(IN) :: veg_mask(:)         !  vegetated (uses min LAI)
-LOGICAL, INTENT(IN) :: sunlit_mask(:)      !  sunlit (uses zenith angle)
-LOGICAL, INTENT(IN) :: sunlit_veg_mask(:)  !  BOTH sunlit AND  vegetated
 !-------------------------------------------------------------------------------
 
 !recieved as spatial maps from the UM. remapped to "mp"
@@ -55,7 +63,7 @@ LOGICAL, INTENT(IN) :: sunlit_veg_mask(:)  !  BOTH sunlit AND  vegetated
 REAL, INTENT(IN) :: LAI_pft_cbl(mp)        ! LAI -  "limited" and remapped
 REAL, INTENT(IN) :: HGT_pft_cbl(mp)        ! canopy height -  "limited", remapped
 REAL, INTENT(IN) :: coszen(mp)             ! cosine zenith angle  (met%coszen)
-REAL,INTENT(IN) :: AlbSoil(mp, nrb)        ! soil%AlbSoil
+REAL, INTENT(IN) :: AlbSoil(mp, nrb)      ! soil%AlbSoil
 !-------------------------------------------------------------------------------
 
 !computed for CABLE model
@@ -69,13 +77,13 @@ REAL, INTENT(IN) :: reducedLAIdue2snow(mp) ! Reduced LAI given snow coverage
 
 !Prognostics !recieved as spatial maps from the UM. remapped to "mp"
 !-------------------------------------------------------------------------------
-REAL,INTENT(IN) :: SnowDepth(mp)           ! Total Snow depth - water eqivalent -
+REAL, INTENT(IN) :: SnowDepth(mp)          ! Total Snow depth - water eqivalent -
                                            ! packed from snow_surft (ssnow%snowd)
                                            ! this timestep (ssnow%Osnowd)
-REAL,INTENT(IN) :: SnowDensity(mp)         ! Total Snow density (assumes 1 layer
+REAL, INTENT(IN) :: SnowDensity(mp)        ! Total Snow density (assumes 1 layer
                                            ! describes snow cover) (ssnow%ssdnn)
-REAL,INTENT(IN) :: SoilTemp(mp)            ! Soil Temperature of top layer (soil%tgg)
-REAL,INTENT(IN) :: SnowAge(mp)             ! Snow age (assumes 1 layer describes snow
+REAL, INTENT(IN) :: SoilTemp(mp)           ! Soil Temperature of top layer (soil%tgg)
+REAL, INTENT(IN) :: SnowAge(mp)            ! Snow age (assumes 1 layer describes snow
                                            ! cover) (ssnow%snage)
 !-------------------------------------------------------------------------------
 
@@ -83,42 +91,33 @@ REAL,INTENT(IN) :: SnowAge(mp)             ! Snow age (assumes 1 layer describes
 !-------------------------------------------------------------------------------
 INTEGER, INTENT(IN) :: SurfaceType(mp)
 INTEGER, INTENT(IN) :: SoilType(mp)
-REAL, INTENT(IN)    :: VegXfang(mp)        ! leaf angle PARAMETER (veg%xfang)
-REAL, INTENT(IN)    :: VegTaul(mp,nrb)     ! PARAM leaf transmisivity (veg%taul)
-REAL, INTENT(IN)    :: VegRefl(mp,nrb)     ! PARAM leaf reflectivity (veg%refl)
+REAL,    INTENT(IN) :: VegXfang(mp)        ! leaf angle PARAMETER (veg%xfang)
+REAL,    INTENT(IN) :: VegTaul(mp,nrb)     ! PARAM leaf transmisivity (veg%taul)
+REAL,    INTENT(IN) :: VegRefl(mp,nrb)     ! PARAM leaf reflectivity (veg%refl)
 !-------------------------------------------------------------------------------
 
 !local to Rad/Albedo pathway:
-REAL, ALLOCATABLE :: ExtCoeff_beam(:)           ! rad%extkb,
-REAL, ALLOCATABLE :: ExtCoeff_dif(:)            ! rad%extkd
-REAL, ALLOCATABLE :: EffExtCoeff_beam(:, :)     ! rad%extkbm
-REAL, ALLOCATABLE :: EffExtCoeff_dif(:, :)      ! rad%extkdm,
-REAL, ALLOCATABLE :: CanopyTransmit_dif(:, :)   ! rad%cexpkdm
-REAL, ALLOCATABLE :: CanopyTransmit_beam(:, :)  ! rad%cexpkbm
-REAL, ALLOCATABLE :: CanopyRefl_dif(:, :)       ! rad%rhocdf
-REAL, ALLOCATABLE :: CanopyRefl_beam(:,:)       ! rad%rhocbm
-REAL, ALLOCATABLE :: RadFbeam(:, :)             ! rad%fbeam
-REAL, ALLOCATABLE :: RadAlbedo(:, :)            ! rad%albedo
-REAL, ALLOCATABLE :: AlbSnow(:, :)              ! ssnow%AlbSoilsn
-REAL, ALLOCATABLE :: c1(:, :)
-REAL, ALLOCATABLE :: rhoch(:, :)
-REAL, ALLOCATABLE :: xk(:, :)
+REAL, INTENT(INOUT) :: ExtCoeff_beam(mp)            ! nee. rad%extkb,
+REAL, INTENT(INOUT) :: ExtCoeff_dif(mp)             ! nee. rad%extkd
+REAL, INTENT(INOUT) :: EffExtCoeff_beam(mp, nrb)    ! nee. rad%extkbm
+REAL, INTENT(INOUT) :: EffExtCoeff_dif(mp, nrb)     ! nee. rad%extkdm,
+REAL, INTENT(INOUT) :: CanopyTransmit_dif(mp, nrb)  ! nee. rad%cexpkdm
+REAL, INTENT(INOUT) :: CanopyTransmit_beam(mp, nrb) ! nee. rad%cexpkbm
+REAL, INTENT(INOUT) :: CanopyRefl_dif(mp, nrb)      ! nee. rad%rhocdf
+REAL, INTENT(INOUT) :: CanopyRefl_beam(mp, nrb)     ! nee. rad%rhocbm
+REAL, INTENT(INOUT) :: RadFbeam(mp, nrb)            ! nee. rad%fbeam
+REAL, INTENT(INOUT) :: RadAlbedo(mp, nrb)           ! nee. rad%albedo
+REAL, INTENT(INOUT) :: AlbSnow(mp, nrb)             ! nee. ssnow%AlbSoilsn
+REAL, INTENT(INOUT) :: c1(mp, nrb)                  ! common rad scalings
+REAL, INTENT(INOUT) :: rhoch(mp, nrb)               ! common rad scalings
+REAL, INTENT(INOUT) :: xk(mp, nrb)                  ! common rad scalings
 ! used in Calc of Beam calculation NOT on rad/albedo path.
 ! However Needed to fulfill arg list with dummy
-INTEGER, ALLOCATABLE :: metDoY(:)               ! can pass DoY from current_time
-REAL, ALLOCATABLE  :: SW_down(:,:)              ! NA at surf_couple_rad layer
+INTEGER, INTENT(INOUT) :: metDoY(mp)                 ! can pass DoY from current_time
+REAL, INTENT(INOUT)    :: SW_down(mp, nrb)           ! NA at surf_couple_rad layer
 
 CHARACTER(LEN=*), PARAMETER :: subr_name = "cable_rad_driver"
 LOGICAL :: cbl_standalone = .FALSE.
-
-! alloc/zero each timestep
-! metDoY, SW_down, RadFbeaam, RadAlbedo NOT used on rad/albedo path.
-! Nevertheless,  need to fulfill later arg list(s) with dumies
-CALL alloc_albedo_vars( ExtCoeff_beam, ExtCoeff_dif, EffExtCoeff_beam,         &
-                        EffExtCoeff_dif, CanopyTransmit_dif,                   &
-                        CanopyTransmit_beam, CanopyRefl_dif,CanopyRefl_beam,   &
-                        c1, rhoch, xk, AlbSnow,                                &
-                        RadFbeam, RadAlbedo, metDoY, SW_down, mp, nrb )
 
 !Defines Extinction Coefficients to use in calculation of Canopy
 !Reflectance/Transmitance.
@@ -126,17 +125,14 @@ CALL init_radiation( ExtCoeff_beam, ExtCoeff_dif, EffExtCoeff_beam,            &
                      EffExtCoeff_dif, RadFbeam, c1, rhoch, xk,                 &
                      mp,nrb, Clai_thresh, Ccoszen_tols, CGauss_w, Cpi, Cpi180, &
                      cbl_standalone, jls_standalone, jls_radiation, subr_name, &
-                     veg_mask, sunlit_mask, sunlit_veg_mask,                   &
-                     VegXfang, VegTaul, VegRefl, coszen, metDoY, SW_down,      &
-                     reducedLAIdue2snow )
+                     veg_mask, VegXfang, VegTaul, VegRefl, coszen, metDoY,     &
+                     SW_down, reducedLAIdue2snow )
 
-!Finally call albedo to get what we really need to fill contract with JULES
-!Defines 4-"band" albedos [VIS/NIR bands. direct beam/diffuse components] from
+!Finally call albedo to get what we really need to fulfill contract with JULES
+!Defines 4-stream albedos [VIS/NIR bands. direct beam/diffuse components] from
 !considering albedo of Ground (snow?) and Canopy Reflectance/Transmitance.
 CALL Albedo( AlbSnow, AlbSoil,                                                 &
-             mp, nrb,                                                          &
-             jls_radiation,                                                    &
-             veg_mask, sunlit_mask, sunlit_veg_mask,                           &
+             mp, nrb, ICE_SoilType, lakes_cable, jls_radiation, veg_mask,      &
              Ccoszen_tols, cgauss_w,                                           &
              SurfaceType, SoilType ,VegRefl, VegTaul,                          &
              coszen, reducedLAIdue2snow,                                       &
@@ -149,114 +145,9 @@ CALL Albedo( AlbSnow, AlbSoil,                                                 &
              CanopyTransmit_dif, CanopyTransmit_beam,                          &
              EffSurfRefl_dif, EffSurfRefl_beam )
 
-CALL flush_albedo( ExtCoeff_beam, ExtCoeff_dif, EffExtCoeff_beam,              &
-                         EffExtCoeff_dif, CanopyTransmit_dif,                  &
-                         CanopyTransmit_beam, CanopyRefl_dif, CanopyRefl_beam, &
-                         RadFbeam, RadAlbedo, AlbSnow, c1, rhoch, xk )
-
 RETURN
 
 END SUBROUTINE cable_rad_driver
-
-SUBROUTINE alloc_albedo_vars( ExtCoeff_beam, ExtCoeff_dif, EffExtCoeff_beam,   &
-                        EffExtCoeff_dif, CanopyTransmit_dif,                   &
-                        CanopyTransmit_beam, CanopyRefl_dif,CanopyRefl_beam,   &
-                        c1, rhoch, xk, AlbSnow,                                &
-                        RadFbeam, RadAlbedo, metDoY, SW_down, mp, nrb )
-IMPLICIT NONE
-
-INTEGER :: mp, nrb
-!local to CABLE and can be flushed every timestep
-REAL, ALLOCATABLE :: ExtCoeff_beam(:)
-REAL, ALLOCATABLE :: ExtCoeff_dif(:)
-REAL, ALLOCATABLE :: EffExtCoeff_beam(:,:)
-REAL, ALLOCATABLE :: EffExtCoeff_dif(:,:)
-REAL, ALLOCATABLE :: CanopyTransmit_dif(:,:)
-REAL, ALLOCATABLE :: CanopyTransmit_beam(:,:)
-REAL, ALLOCATABLE :: CanopyRefl_dif(:,:)
-REAL, ALLOCATABLE :: CanopyRefl_beam(:,:)
-REAL, ALLOCATABLE :: AlbSnow(:,:)
-REAL, ALLOCATABLE :: c1(:,:)
-REAL, ALLOCATABLE :: rhoch(:,:)
-REAL, ALLOCATABLE :: xk(:,:)
-! these are dummies in JULES rad call but req'd to load arg lists
-INTEGER, ALLOCATABLE :: metDoY(:)        ! can pass DoY from current_time
-REAL, ALLOCATABLE :: SW_down(:,:)        ! dummy
-REAL, ALLOCATABLE :: RadFbeam(:,:)
-REAL, ALLOCATABLE :: RadAlbedo(:,:)
-
-IF (.NOT. ALLOCATED(ExtCoeff_beam) )      ALLOCATE(ExtCoeff_beam(mp) )
-IF (.NOT. ALLOCATED(ExtCoeff_dif) )       ALLOCATE(ExtCoeff_dif(mp) )
-IF (.NOT. ALLOCATED(EffExtCoeff_beam) )   ALLOCATE(EffExtCoeff_beam(mp, nrb) )
-IF (.NOT. ALLOCATED(EffExtCoeff_dif) )    ALLOCATE(EffExtCoeff_dif(mp, nrb) )
-IF (.NOT. ALLOCATED(CanopyTransmit_dif))  ALLOCATE(CanopyTransmit_dif(mp, nrb))
-IF (.NOT. ALLOCATED(CanopyTransmit_beam)) ALLOCATE(CanopyTransmit_beam(mp, nrb))
-IF (.NOT. ALLOCATED(CanopyRefl_dif) )     ALLOCATE(CanopyRefl_dif(mp, nrb) )
-IF (.NOT. ALLOCATED(CanopyRefl_beam) )    ALLOCATE(CanopyRefl_beam(mp, nrb) )
-IF (.NOT. ALLOCATED(AlbSnow) )            ALLOCATE(AlbSnow(mp, nrb) )
-IF (.NOT. ALLOCATED(c1) )                 ALLOCATE(c1(mp, nrb) )
-IF (.NOT. ALLOCATED(rhoch) )              ALLOCATE(rhoch(mp, nrb) )
-IF (.NOT. ALLOCATED(xk) )                 ALLOCATE(xk(mp, nrb) )
-IF (.NOT. ALLOCATED(metDoY) )             ALLOCATE(metDoY(mp) )
-IF (.NOT. ALLOCATED(SW_down) )            ALLOCATE(SW_down(mp,nrb) )
-IF (.NOT. ALLOCATED(RadFbeam) )           ALLOCATE(RadFbeam(mp, nrb) )
-IF (.NOT. ALLOCATED(RadAlbedo) )          ALLOCATE(RadAlbedo(mp, nrb) )
-
-ExtCoeff_beam(:) = 0.0; ExtCoeff_dif(:) = 0.0
-EffExtCoeff_beam(:,:) = 0.0; EffExtCoeff_dif(:,:) = 0.0
-CanopyTransmit_dif(:,:) = 0.0; CanopyTransmit_beam(:,:) = 0.0
-CanopyRefl_dif(:,:) = 0.0; CanopyRefl_beam(:,:) = 0.0
-AlbSnow(:,:) = 0.0
-rhoch(:,:) = 0.0; xk(:,:) = 0.0; c1(:,:) = 0.0
-RadFbeam(:,:) = 0.0; RadAlbedo(:,:) = 0.0
-SW_down(:,:) = 0.0; metDoY(:) = 0.0  !can pass DoY from current_time%
-
-RETURN
-
-END SUBROUTINE alloc_albedo_vars
-
-
-SUBROUTINE flush_albedo( ExtCoeff_beam, ExtCoeff_dif, EffExtCoeff_beam,        &
-                         EffExtCoeff_dif, CanopyTransmit_dif,                  &
-                         CanopyTransmit_beam, CanopyRefl_dif, CanopyRefl_beam, &
-                         RadFbeam, RadAlbedo, AlbSnow, c1, rhoch, xk )
-IMPLICIT NONE
-
-!these local to CABLE and can be flushed every timestep
-REAL, ALLOCATABLE :: ExtCoeff_beam(:)
-REAL, ALLOCATABLE :: ExtCoeff_dif(:)
-REAL, ALLOCATABLE :: EffExtCoeff_beam(:,:)
-REAL, ALLOCATABLE :: EffExtCoeff_dif(:,:)
-REAL, ALLOCATABLE :: CanopyTransmit_dif(:,:)
-REAL, ALLOCATABLE :: CanopyTransmit_beam(:,:)
-REAL, ALLOCATABLE :: CanopyRefl_dif(:,:)
-REAL, ALLOCATABLE :: CanopyRefl_beam(:,:)
-REAL, ALLOCATABLE :: RadFbeam(:,:)
-REAL, ALLOCATABLE :: RadAlbedo(:,:)
-REAL, ALLOCATABLE :: AlbSnow(:,:)
-REAL, ALLOCATABLE :: c1(:,:)
-REAL, ALLOCATABLE :: rhoch(:,:)
-REAL, ALLOCATABLE :: xk(:,:)
-
-IF ( ALLOCATED (ExtCoeff_beam)       ) DEALLOCATE (ExtCoeff_beam )
-IF ( ALLOCATED (ExtCoeff_dif)        ) DEALLOCATE (ExtCoeff_dif )
-IF ( ALLOCATED (EffExtCoeff_beam)    ) DEALLOCATE (EffExtCoeff_beam )
-IF ( ALLOCATED (EffExtCoeff_dif)     ) DEALLOCATE (EffExtCoeff_dif )
-IF ( ALLOCATED (CanopyTransmit_dif)  ) DEALLOCATE (CanopyTransmit_dif )
-IF ( ALLOCATED (CanopyTransmit_beam) ) DEALLOCATE (CanopyTransmit_beam )
-IF ( ALLOCATED (CanopyRefl_dif)      ) DEALLOCATE (CanopyRefl_dif )
-IF ( ALLOCATED (CanopyRefl_beam)     ) DEALLOCATE (CanopyRefl_beam )
-IF ( ALLOCATED (RadFbeam)            ) DEALLOCATE (RadFbeam )
-IF ( ALLOCATED (RadAlbedo)           ) DEALLOCATE (RadAlbedo )
-IF ( ALLOCATED (AlbSnow)             ) DEALLOCATE (AlbSnow )
-IF ( ALLOCATED (c1)                  ) DEALLOCATE (c1 )
-IF ( ALLOCATED (rhoch)               ) DEALLOCATE (rhoch )
-IF ( ALLOCATED (xk)                  ) DEALLOCATE (xk )
-
-END SUBROUTINE flush_albedo
-
-!==============================================================================
-
 
 END MODULE cable_rad_driv_mod
 
