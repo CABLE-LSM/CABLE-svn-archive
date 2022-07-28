@@ -1555,6 +1555,9 @@ CONTAINS
     CHARACTER(LEN=*), INTENT(IN) :: dimswitch ! indicates dimesnion of parameter
 
     INTEGER :: i, j ! do loop counter
+	INTEGER :: sizedim1
+	
+	sizedim1 = size(par_r1)
 
     ! First, decide which grid to use. If user has forced grid using output%grid
     ! in the namelist file, use this grid. Else use format of met file.
@@ -1686,10 +1689,10 @@ CONTAINS
              ! Write output:
              IF(dimswitch(1:1) == 'r') THEN
                 ok = NF90_PUT_VAR(ncid, parID, REAL(par_r1, 4),                &
-                     start = (/1/), count = (/mp/)) ! write data to file
+                     start = (/1/), count = (/sizedim1/)) ! write data to file
              ELSE IF(dimswitch(1:1) == 'i') THEN
                 ok = NF90_PUT_VAR(ncid, parID, INT(par_r1),                    &
-                     start = (/1/), count = (/mp/)) ! write data to file
+                     start = (/1/), count = (/sizedim1/)) ! write data to file
              END IF
           ELSE
              DO i = 1, mland ! over all land grid points
@@ -1742,11 +1745,14 @@ CONTAINS
 
     INTEGER :: i, j ! do loop counter
     REAL(r_2), POINTER, DIMENSION(:, :) :: tmpout
+	INTEGER :: sizedim1
+	
+	sizedim1 = size(par_r1d)
 
     IF(PRESENT(restart)) THEN ! If writing to a a restart file
        ! Write parameter data:
        ok = NF90_PUT_VAR(ncid, parID, par_r1d,                                 &
-            start = (/1, 1/), count = (/mp/)) ! write data to file
+            start = (/1, 1/), count = (/sizedim1/)) ! write data to file
        ! Check writing was successful:
        IF(ok /= NF90_NOERR) CALL nc_abort(ok, 'Error writing '//pname//        &
             ' parameter to restart file (SUBROUTINE write_output_parameter_r1d)')
@@ -1796,7 +1802,9 @@ CONTAINS
     CHARACTER(LEN=*), INTENT(IN) :: dimswitch ! indicates dimesnion of parameter
 
     INTEGER :: i, j, k ! do loop counter
+	INTEGER :: sizedim1
 
+    sizedim1 = size(par_r2, DIM=1)
     ! First, decide which grid to use. If user has forced grid using output%grid
     ! in the namelist file, use this grid. Else use format of met file.
     IF((output%grid(1:3) == 'mas' .OR.                                         &
@@ -2200,7 +2208,7 @@ CONTAINS
              IF(PRESENT(restart)) THEN
                 ! Write data to restart file
                 ok=NF90_PUT_VAR(ncid,parID,REAL(par_r2,4), &
-                     start=(/1,1/),count=(/mp,ms/))
+                     start=(/1,1/),count=(/sizedim1,ms/))
              ELSE
                 DO i = 1, mland ! over all land grid points
                    ! Write to temporary variable (use dominant patch info only!):
@@ -2223,7 +2231,7 @@ CONTAINS
              IF(PRESENT(restart)) THEN
                 ! Write data to restart file
                 ok = NF90_PUT_VAR(ncid, parID, REAL(par_r2, 4),                  &
-                     start = (/1, 1/), count = (/mp, ncp/))
+                     start = (/1, 1/), count = (/sizedim1, ncp/))
              ELSE
                 DO i = 1, mland ! over all land grid points
                    ! Write to temporary variable (use dominant patch info only!):
@@ -2246,7 +2254,7 @@ CONTAINS
              IF(PRESENT(restart)) THEN
                 ! Write data to restart file
                 ok = NF90_PUT_VAR(ncid, parID, REAL(par_r2, 4),                  &
-                     start = (/1, 1/), count = (/mp, ncs/))
+                     start = (/1, 1/), count = (/sizedim1, ncs/))
              ELSE
                 DO i = 1, mland ! over all land grid points
                    ! Write to temporary variable (use dominant patch info only!):
@@ -2270,7 +2278,7 @@ CONTAINS
              IF(PRESENT(restart)) THEN
                 ! Write data to restart file
                 ok = NF90_PUT_VAR(ncid, parID, REAL(par_r2, 4),                  &
-                     start = (/1, 1/), count = (/mp, nrb/))
+                     start = (/1, 1/), count = (/sizedim1, nrb/))
              ELSE ! writing to output file
                 DO i = 1, mland ! over all land grid points
                    ! Write to temporary variable (use dominant patch info only!):
@@ -2293,7 +2301,7 @@ CONTAINS
              IF(PRESENT(restart)) THEN
                 ! Write data to restart file
                 ok = NF90_PUT_VAR(ncid, parID, REAL(par_r2, 4),                  &
-                     start = (/1, 1/), count = (/mp, msn/))
+                     start = (/1, 1/), count = (/sizedim1, msn/))
              ELSE ! writing to output file
                 DO i = 1, mland ! over all land grid points
                    ! Write to temporary variable (use dominant patch info only!):
@@ -2361,13 +2369,16 @@ CONTAINS
 
     INTEGER :: i,j ! do loop counter
     REAL(r_2),POINTER,DIMENSION(:,:,:) :: tmpout
+	INTEGER :: sizedim1
+	
+	sizedim1 = size(par_r2d, DIM=1)
 
     ! Check the nature of the parameter's second dimension:
     IF(dimswitch == 'soil') THEN ! i.e. spatial and soil
        IF(PRESENT(restart)) THEN
           ! Write data to restart file
           ok = NF90_PUT_VAR(ncid, parID, par_r2d,                              &
-               start = (/1, 1/), count = (/mp, ms/))
+               start = (/1, 1/), count = (/sizedim1, ms/))
        ELSE
           ALLOCATE(tmpout(mland, max_vegpatches, ms))
           DO i = 1, mland ! over all land grid points
