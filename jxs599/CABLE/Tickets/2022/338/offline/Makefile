@@ -33,17 +33,17 @@
 # these are all the files we are compiling
 LSRC =                          \
  	grid_constants_cbl.F90        \
+ 	cable_surface_types_mod.F90   \
  	cable_maths_constants_mod.F90 \
  	cable_phys_constants_mod.F90  \
  	cable_other_constants_mod.F90 \
  	cable_photo_constants_mod.F90 \
-	cable_runtime_opts_mod.F90 	  \
+	runtime_opts_mod_cbl.F90 	  \
 	cable_pft_params.F90          \
 	cable_soil_params.F90         \
 	casa_ncdf.F90               	\
 	masks_cbl.F90                 \
-	cbl_hgtAbove_snow.F90     		\
-	cbl_lai_eff.F90    		 				\
+	roughnessHGT_effLAI_cbl.F90   \
 	cbl_model_driver_offline.F90  \
   cbl_albedo.F90    					  \
 	cbl_snow_albedo.F90					  \
@@ -113,13 +113,13 @@ all :
 # dependencies
 #
 # parameters/constants 
-
+cable_surface_types_mod.o: cable_surface_types_mod.F90
 grid_constants_cbl.o: grid_constants_cbl.F90
 cable_maths_constants_mod.o: cable_maths_constants_mod.F90
 cable_phys_constants_mod.o: cable_phys_constants_mod.F90
 cable_other_constants_mod.o: cable_other_constants_mod.F90 grid_constants_cbl.o
 cable_photo_constants_mod.o: cable_photo_constants_mod.F90
-cable_runtime_opts_mod.o: cable_runtime_opts_mod.F90
+runtime_opts_mod_cbl.o: runtime_opts_mod_cbl.F90
 cable_pft_params.o: cable_pft_params.F90 cable_define_types.o
 cable_soil_params.o: cable_soil_params.F90 cable_define_types.o
 casa_param.o: casa_param.F90
@@ -137,8 +137,7 @@ cable_fFile.o: cable_fFile.F90
 cable_diag.o: cable_diag.F90 cable_common.o cable_fFile.o
 
 #science seperated subrs
-cbl_hgtAbove_snow.o: cbl_hgtAbove_snow.F90
-cbl_lai_eff.o: cbl_lai_eff.F90
+roughnessHGT_effLAI_cbl.o: roughnessHGT_effLAI_cbl.F90
 
 #science partially seperated subrs
 #albedo
@@ -194,7 +193,7 @@ cbl_photosynthesis.o: cbl_photosynthesis.F90 cable_define_types.o cable_other_co
 
 cable_carbon.o: cable_carbon.F90 cable_define_types.o cable_common.o
 
-cbl_model_driver_offline.o: cbl_model_driver_offline.F90 cable_phys_constants_mod.o cable_carbon.o cbl_soilsnow_main.o cable_canopy.o cable_define_types.o cable_roughness.o cbl_radiation.o cbl_albedo.o casa_variable.o cable_common.o cable_gw_hydro.o cable_psm.o masks_cbl.o cbl_snow_aging.o
+cbl_model_driver_offline.o: cbl_model_driver_offline.F90 cable_phys_constants_mod.o cable_carbon.o cbl_soilsnow_main.o cable_canopy.o cable_define_types.o cable_roughness.o cbl_radiation.o cbl_albedo.o casa_variable.o cable_common.o cable_gw_hydro.o cable_psm.o masks_cbl.o cbl_snow_aging.o cable_surface_types_mod.o
 
 cable_checks.o: cable_checks.F90 cbl_radiation.o cable_common.o
 
@@ -217,7 +216,7 @@ cable_output.o: cable_output.F90 cable_abort.o cable_checks.o cable_write.o cabl
 
 cable_parameters.o: cable_parameters.F90 cable_define_types.o cable_iovars.o cable_abort.o casa_variable.o cable_common.o cable_LUC_EXPT.o casa_phenology.o
 
-cable_roughness.o: cable_roughness.F90 cable_phys_constants_mod.o cable_define_types.o cable_common.o cbl_hgtAbove_snow.o cbl_lai_eff.o cable_other_constants_mod.o
+cable_roughness.o: cable_roughness.F90 cable_phys_constants_mod.o cable_define_types.o cable_common.o roughnessHGT_effLAI_cbl.o cable_other_constants_mod.o
 
 
 casa_variable.o: casa_variable.F90 POP.o casa_dimension.o casa_param.o
@@ -238,11 +237,11 @@ casa_cnp.o: casa_cnp.F90 cable_define_types.o  casa_variable.o landuse_constant.
 
 casa_inout.o: casa_inout.F90 POP.o cable_define_types.o  cable_iovars.o casa_variable.o casa_cnp.o casa_ncdf.o
 
-cable_common.o: cable_common.F90  cable_iovars.o cable_pft_params.o cable_soil_params.o cable_runtime_opts_mod.o
+cable_common.o: cable_common.F90  cable_iovars.o cable_pft_params.o cable_soil_params.o runtime_opts_mod_cbl.o
 
 POP.o: POP.F90 cable_define_types.o
 
-POPLUC.o: POPLUC.F90 cable_define_types.o cable_iovars.o casa_variable.o cable_common.o cable_runtime_opts_mod.o casa_ncdf.o
+POPLUC.o: POPLUC.F90 cable_define_types.o cable_iovars.o casa_variable.o cable_common.o runtime_opts_mod_cbl.o casa_ncdf.o
 
 cable_LUC_EXPT.o: cable_LUC_EXPT.F90 cable_define_types.o cable_iovars.o casa_variable.o cable_common.o casa_ncdf.o
 
@@ -289,17 +288,17 @@ landuse_inout.o: landuse_inout.F90 cable_define_types.o landuse_constant.o landu
 
 
 # these are all the files we are compiling
-all  : grid_constants_cbl.o    \
+all  : cable_surface_types_mod.o    \
+	grid_constants_cbl.o    		 \
   cable_maths_constants_mod.o  \
 	cable_phys_constants_mod.o 	 \
 	cable_other_constants_mod.o	 \
 	cable_photo_constants_mod.o  \
-	cable_runtime_opts_mod.o   	 \
+	runtime_opts_mod_cbl.o   	 \
 	cable_pft_params.o   			 	 \
 	cable_soil_params.o        	 \
 	masks_cbl.o 								 \
-	cbl_hgtAbove_snow.o					 \
-	cbl_lai_eff.o								 \
+	roughnessHGT_effLAI_cbl.o		 \
 	cable_iovars.o            	 \
 	casa_ncdf.o               	 \
 	cbl_albedo.o         		 	   \

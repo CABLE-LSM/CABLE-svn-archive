@@ -1,4 +1,4 @@
-MODULE eff_LAI_mod_cbl
+MODULE hruff_eff_LAI_mod_cbl
 
 IMPLICIT NONE
 
@@ -73,4 +73,4 @@ reducedLAIdue2snow = lai_pft * FracOfCanopyAboveSnow
 
 END SUBROUTINE LAI_eff
 
-END MODULE eff_LAI_mod_cbl
+END MODULE hruff_eff_LAI_mod_cbl
