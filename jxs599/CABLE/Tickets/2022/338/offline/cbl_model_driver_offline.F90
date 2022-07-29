@@ -47,7 +47,6 @@ SUBROUTINE cbm( ktau,dels, air, bgc, canopy, met,                               
     USE cbl_init_radiation_module, ONLY : init_radiation
     USE cable_air_module, ONLY : define_air
     USE casadimension,     ONLY : icycle ! used in casa_cnp
-USE cable_surface_types_mod, ONLY : lakes_cable, ICE_SoilType 
 ! physical constants
 USE cable_phys_constants_mod, ONLY : CGRAV  => GRAV
 USE cable_phys_constants_mod, ONLY : CCAPP   => CAPP
@@ -136,7 +135,7 @@ CALL snow_aging(ssnow%snage,mp,dels,ssnow%snowd,ssnow%osnowd,ssnow%tggsn(:,1),&
 
 call Albedo( ssnow%AlbSoilsn, soil%AlbSoil,                                &
              !AlbSnow, AlbSoil,              
-             mp, nrb, ICE_SoilType, lakes_cable,jls_radiation, veg_mask,   &  
+             mp, nrb, jls_radiation, veg_mask,                             &  
              Ccoszen_tols, CGAUSS_W,                                       & 
              veg%iveg, soil%isoilm, veg%refl, veg%taul,                    & 
              !surface_type, VegRefl, VegTaul,

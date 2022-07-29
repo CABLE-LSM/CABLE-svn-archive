@@ -7,20 +7,14 @@ PRIVATE
 
 CONTAINS
 
-SUBROUTINE surface_albedosn( AlbSnow, AlbSoil, mp, nrb, ICE_SoilType,          &
-                             lakes_cable, SurfaceType, SoilType, SnowDepth,    &
-                             SnowDensity, SoilTemp, SnowAge, coszen )
+SUBROUTINE surface_albedosn( AlbSnow, AlbSoil, mp, nrb, surface_type, soil_type, &
+                          SnowDepth, SnowDensity, SoilTemp, SnowAge, coszen )
 
 IMPLICIT NONE
 
 !re-decl input args
 INTEGER, INTENT(IN) :: mp
 INTEGER, INTENT(IN) :: nrb
-
-!--- IN: CABLE specific surface_type indexes
-INTEGER, INTENT(IN) :: ICE_SoilType
-INTEGER, INTENT(IN) :: lakes_cable
-
 REAL, INTENT(OUT)   :: AlbSnow(mp,nrb)
 REAL, INTENT(IN)    :: AlbSoil(mp,nrb)           !NB to become IN OUT because of soil colour parameterization
 REAL, INTENT(IN)    :: coszen(mp)
@@ -28,8 +22,8 @@ REAL, INTENT(IN)    :: SnowDepth(mp)
 REAL, INTENT(IN)    :: SnowDensity(mp)
 REAL, INTENT(IN)    :: SoilTemp(mp)
 REAL, INTENT(IN)    :: SnowAge(mp)
-INTEGER, INTENT(IN) :: SurfaceType(mp)
-INTEGER, INTENT(IN) :: SoilType(mp)
+INTEGER, INTENT(IN) :: surface_type(mp)
+INTEGER, INTENT(IN) :: soil_type(mp)
 
 !working variables
 REAL, DIMENSION(mp) ::                                                         &
@@ -47,6 +41,8 @@ REAL, PARAMETER ::                                                             &
      aliro = 0.70      ! albedo for near-infr. on a new snow
 
 !hard wired indexes to be substituted with arg list or USEd from module
+INTEGER, PARAMETER :: perm_ice = 9
+INTEGER, PARAMETER :: lake = 16
 !model parameter shared across subroutines -> cable_phys_constants
 REAL, PARAMETER :: snow_depth_thresh = 1.0
 
@@ -56,10 +52,10 @@ INTEGER :: i    !looping variable
 SoilAlbsoilF = Albsoil(:,1)
 
 ! lakes - with/without snow cover
-WHERE ( SurfaceType == lakes_cable )
+WHERE ( surface_type == lake )
   SoilAlbsoilF = -0.022*( MIN( 275.0, MAX( 260.0, SoilTemp) ) - 260.0 ) + 0.45
 END WHERE
-WHERE (SnowDepth > snow_depth_thresh .AND. SurfaceType == lakes_cable )
+WHERE (SnowDepth > snow_depth_thresh .AND. surface_type == lake )
   SoilAlbsoilF = 0.85
 END WHERE
 
@@ -121,7 +117,7 @@ AlbSnow(:,1) = MIN( alvo,                                                      &
                       ( 1.0 - snrat ) * AlbSnow(:,1) + snrat * alv )
 
 !except for ice regions
-WHERE ( SoilType == ICE_SoilType ) ! use dry snow albedo: 1=vis, 2=nir
+WHERE (soil_type == perm_ice) ! use dry snow albedo: 1=vis, 2=nir
   AlbSnow(:,1) = alvo - 0.05 ! al*o = albedo appropriate for new snow
   AlbSnow(:,2) = aliro - 0.05 ! => here al*o LESS arbitrary aging 0.05
 END WHERE

@@ -27,8 +27,8 @@ PUBLIC init_radiation
 PRIVATE
 
 ! - review consitency
-REAL :: Ccoszen_tols_huge  ! Currently 100 * .GT. Ccoszen_tols (1e-4)
-REAL :: Ccoszen_tols_tiny  ! Currently 100 * .LT. Ccoszen_tols (1e-4)
+REAL :: Ccoszen_tols_huge  ! Currently 100 * .GT. Ccoszen_tols (1e-4) 
+REAL :: Ccoszen_tols_tiny  ! Currently 100 * .LT. Ccoszen_tols (1e-4) 
 
 CONTAINS
 
@@ -269,7 +269,7 @@ ExtCoeff_beam = 0.5
 
 ! SW beam extinction coefficient ("black" leaves, extinction neglects
 ! leaf SW transmittance and REFLectance):
-WHERE ( veg_mask .AND. coszen > Ccoszen_tols_tiny )                            &
+WHERE ( veg_mask .AND. coszen > Ccoszen_tols_tiny )                                       &
   ExtCoeff_beam = xphi1 / Coszen + xphi2
 
 ! higher value precludes sunlit leaves at night. affects
