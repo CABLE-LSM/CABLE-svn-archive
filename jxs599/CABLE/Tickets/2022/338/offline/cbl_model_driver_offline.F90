@@ -136,7 +136,7 @@ CALL snow_aging(ssnow%snage,mp,dels,ssnow%snowd,ssnow%osnowd,ssnow%tggsn(:,1),&
 
 call Albedo( ssnow%AlbSoilsn, soil%AlbSoil,                                &
              !AlbSnow, AlbSoil,              
-             mp, nrb, ICE_SoilType, lakes_cable,jls_radiation, veg_mask,   &  
+             mp, nrb, ICE_SoilType, lakes_cable, jls_radiation, veg_mask,  &  
              Ccoszen_tols, CGAUSS_W,                                       & 
              veg%iveg, soil%isoilm, veg%refl, veg%taul,                    & 
              !surface_type, VegRefl, VegTaul,
@@ -147,15 +147,15 @@ call Albedo( ssnow%AlbSoilsn, soil%AlbSoil,                                &
              xk, c1, rhoch,                                                & 
              rad%fbeam, rad%albedo,                                        &
              !RadFbeam, RadAlbedo,
-             rad%extkd, rad%extkb,                                         & 
-             !ExtCoeff_dif, ExtCoeff_beam,
-             rad%extkdm, rad%extkbm,                                       & 
-             !EffExtCoeff_dif, EffExtCoeff_beam,                
-             rad%rhocdf, rad%rhocbm,                                       &
-             !CanopyRefl_dif,CanopyRefl_beam,
-             rad%cexpkdm, rad%cexpkbm,                                     & 
-             !CanopyTransmit_dif, CanopyTransmit_beam, 
-             rad%reffdf, rad%reffbm                                        &
+             rad%extkb, rad%extkd,                                         & 
+             !ExtCoeff_beam, ExtCoeff_dif,
+             rad%extkbm, rad%extkdm,                                       & 
+             !EffExtCoeff_beam, EffExtCoeff_dif,                
+             rad%rhocbm, rad%rhocdf,                                       &
+             !CanopyRefl_beam,CanopyRefl_dif,
+             rad%cexpkbm, rad%cexpkdm,                                     & 
+             !CanopyTransmit_beam, CanopyTransmit_dif, 
+             rad%reffbm, rad%reffdf                                        &
            ) !EffSurfRefl_dif, EffSurfRefl_beam 
 
 ssnow%otss_0 = ssnow%otss  ! vh should be before call to canopy?
