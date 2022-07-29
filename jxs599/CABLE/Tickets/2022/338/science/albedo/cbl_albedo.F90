@@ -74,14 +74,14 @@ LOGICAL, INTENT(IN) :: veg_mask(mp)    ! TRUE where vegetated
 REAL, INTENT(IN) :: VegTaul(mp,nrb)    ! PARAMETER leaf transmisivity (veg%taul)
 REAL, INTENT(IN) :: VegRefl(mp,nrb)    ! PARAMETER leaf reflectivity (veg%refl)
 INTEGER, INTENT(IN) :: SurfaceType(mp) ! Integer index of Surface type (veg%iveg)
-INTEGER:, INTENT(IN) : SoilType(mp)    ! Integer index of Soil    type (soil%isoilm)
+INTEGER, INTENT(IN) :: SoilType(mp)    ! Integer index of Soil    type (soil%isoilm)
 
 REAL :: reducedLAIdue2snow(mp)         ! Reduced LAI given snow coverage
 
 ! Albedos
-REAL, INTENT(IN) :: AlbSoil(mp,nrb)    ! Param'ed Bare Soil Albedo(soil%albsoil)
-REAL, INTENT(IN) :: AlbSnow(mp,nrb)    ! Alb adjusted for snow (ssnow%albsoilsn)
-REAL, INTENT(IN) :: RadAlbedo(mp,nrb)  ! Tot albedo given RadFbeam (rad%albedo)
+REAL, INTENT(OUT) :: AlbSoil(mp,nrb)    ! Param'ed Bare Soil Albedo(soil%albsoil)
+REAL, INTENT(OUT) :: AlbSnow(mp,nrb)    ! Alb adjusted for snow (ssnow%albsoilsn)
+REAL, INTENT(OUT) :: RadAlbedo(mp,nrb)  ! Tot albedo given RadFbeam (rad%albedo)
 
 !Forcing
 REAL, INTENT(IN)  :: coszen(mp)        ! cosine zenith angle  (met%coszen)
@@ -92,7 +92,7 @@ REAL, INTENT(IN) :: SnowDensity(mp)    ! Total Snow density (assumes 1 layer)
 REAL, INTENT(IN) :: SoilTemp(mp)       ! Top layer Soil Temp. (ssnow%tgg)
 REAL, INTENT(IN) :: SnowAge(mp)        ! Snow age (assumes 1 layer )
 
-REAL, INTENT(IN) :: RadFbeam(mp,nrb)   ! Beam Fraction of total SW (rad%fbeam)
+REAL, INTENT(OUT) :: RadFbeam(mp,nrb)   ! Beam Fraction of total SW (rad%fbeam)
 
 ! Variables shared primarily between radiation and albedo and possibly elsewhere
 
@@ -239,7 +239,7 @@ REAL :: dummy(mp,nrb)
 DO i = 1,mp
   DO b = 1,(nrb-1) 
     IF ( mask(i) ) THEN
-      dummy(i,b) = MIN( ExtinctionCoeff(i,b) * reducedLAIdue2snow(i), 20.0 )
+      dummy(i,b) = MIN( EffExtCoeff_beam(i,b) * reducedLAIdue2snow(i), 20.0 )
       CanopyTransmit_beam(i,b) = EXP( -1.0* dummy(i,b) )
     END IF
   END DO
