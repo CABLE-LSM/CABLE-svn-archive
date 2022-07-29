@@ -34,19 +34,15 @@ PRIVATE
 
 CONTAINS
 
-SUBROUTINE Albedo( AlbSnow, AlbSoil,              & 
-mp, nrb, jls_radiation, veg_mask,                 &  
-Ccoszen_tols, cgauss_w,                                                        &
-surface_type, SoilType, VegRefl, VegTaul,                                      &
-coszen, reducedLAIdue2snow,                                                    &
-SnowDepth, SnowDensity, SoilTemp, SnowAge,                                     &
-xk, c1, rhoch,                                                                 &
-RadFbeam, RadAlbedo,                                                           &
-ExtCoeff_dif, ExtCoeff_beam,                                                   &
-EffExtCoeff_dif, EffExtCoeff_beam,                                             &
-CanopyRefl_dif,CanopyRefl_beam,                                                &
-CanopyTransmit_dif, CanopyTransmit_beam,                                       &
-EffSurfRefl_dif, EffSurfRefl_beam                 )
+SUBROUTINE Albedo( AlbSnow, AlbSoil, mp, nrb, ICE_SoilType, lakes_cable,       &
+                   jls_radiation, veg_mask, Ccoszen_tols, cgauss_w,            &
+                   SurfaceType, SoilType, VegRefl, VegTaul,                    &
+                   coszen, reducedLAIdue2snow, SnowDepth, SnowDensity,         &
+                   SoilTemp, SnowAge, xk, c1, rhoch, RadFbeam, RadAlbedo,      &
+                   ExtCoeff_dif, ExtCoeff_beam, EffExtCoeff_dif,               &
+                   EffExtCoeff_beam, CanopyRefl_dif,CanopyRefl_beam,           &
+                   CanopyTransmit_dif, CanopyTransmit_beam,                    &
+                   EffSurfRefl_dif, EffSurfRefl_beam )
 
 !subrs called
 USE cbl_snow_albedo_module, ONLY: surface_albedosn
@@ -54,12 +50,16 @@ USE cbl_snow_albedo_module, ONLY: surface_albedosn
 IMPLICIT NONE
 
 !model dimensions
-INTEGER :: mp                       !total number of "tiles"
-INTEGER :: nrb                      !number of radiation bands [per legacy=3, but really=2 VIS,NIR. 3rd dim was for LW]
+INTEGER :: mp                       ! total number of "tiles"
+INTEGER :: nrb                      ! # rad bands: VIS,NIR. 3rd dim was for LW
 
-!This is what we are returning here
-REAL :: EffSurfRefl_dif(mp,nrb)     !Effective Surface Relectance as seen by atmosphere [Diffuse SW]  (rad%reffdf)
-REAL :: EffSurfRefl_beam(mp,nrb)    !Effective Surface Relectance as seen by atmosphere [Direct Beam SW] (rad%reffbm)
+! Return: Effective Surface Relectance as seen by atmosphere
+REAL :: EffSurfRefl_dif(mp,nrb)     ! Effective Surface Relectance as seen by atmosphere [Diffuse SW]  (rad%reffdf)
+REAL :: EffSurfRefl_beam(mp,nrb)    ! Effective Surface Relectance as seen by atmosphere [Direct Beam SW] (rad%reffbm)
+
+!--- IN: CABLE specific surface_type indexes
+INTEGER, INTENT(IN) :: ICE_SoilType
+INTEGER, INTENT(IN) :: lakes_cable
 
 !constants
 REAL :: Ccoszen_tols                !threshold cosine of sun's zenith angle, below which considered SUNLIT
@@ -73,7 +73,7 @@ LOGICAL :: veg_mask(mp)             ! this "mp" is vegetated (uses minimum LAI)
 !Vegetation parameters
 REAL :: VegTaul(mp,nrb)             !PARAMETER leaf transmisivity (veg%taul)
 REAL :: VegRefl(mp,nrb)             !PARAMETER leaf reflectivity (veg%refl)
-INTEGER:: surface_type(mp)          !Integer index of Surface type (veg%iveg)
+INTEGER:: SurfaceType(mp)           !Integer index of Surface type (veg%iveg)
 INTEGER:: SoilType(mp)              !Integer index of Soil    type (soil%isoilm)
 
 REAL :: reducedLAIdue2snow(mp)      !Reduced LAI given snow coverage
@@ -124,14 +124,15 @@ INTEGER :: i
     ! END header
 
 AlbSnow(:,:) = 0.0
-!CanopyTransmit_beam(:,:) = 0.0
+!CanopyTransmit_beam(:,:) = 1.0
 CanopyRefl_beam(:,:) = 0.0
 CanopyRefl_dif(:,:) = 0.0
-!CanopyTransmit_dif(:,:) = 0.0  ! MPI (at least inits this = 1.0 at dt=0)
+!CanopyTransmit_dif(:,:) = 1.0  ! MPI (at least inits this = 1.0 at dt=0)
 
 !Modify parametrised soil albedo based on snow coverage
-CALL surface_albedosn( AlbSnow, AlbSoil, mp, nrb, surface_type, SoilType,      &
-                       SnowDepth, SnowDensity, SoilTemp, SnowAge, Coszen )
+CALL surface_albedosn( AlbSnow, AlbSoil, mp, nrb, ICE_SoilType, lakes_cable,   &
+                       SurfaceType, SoilType, SnowDepth, SnowDensity,          &
+                       SoilTemp, SnowAge, Coszen )
 
 ! Update fractional leaf transmittance and reflection
 !---1 = visible, 2 = nir radiaition
