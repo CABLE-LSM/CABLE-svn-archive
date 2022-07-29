@@ -11,6 +11,8 @@ SUBROUTINE surface_albedosn( AlbSnow, AlbSoil, mp, nrb, ICE_SoilType,          &
                              lakes_cable, SurfaceType, SoilType, SnowDepth,    &
                              SnowDensity, SoilTemp, SnowAge, coszen )
 
+USE cable_phys_constants_mod, ONLY : snow_depth_thresh
+
 IMPLICIT NONE
 
 !re-decl input args
@@ -45,10 +47,6 @@ REAL, DIMENSION(mp) ::                                                         &
 REAL, PARAMETER ::                                                             &
      alvo  = 0.95,  &  ! albedo for vis. on a new snow
      aliro = 0.70      ! albedo for near-infr. on a new snow
-
-!hard wired indexes to be substituted with arg list or USEd from module
-!model parameter shared across subroutines -> cable_phys_constants
-REAL, PARAMETER :: snow_depth_thresh = 1.0
 
 INTEGER :: i    !looping variable
 
