@@ -47,7 +47,7 @@ USE cbl_masks_mod,              ONLY: fveg_mask, L_tile_pts
 
 !Compute canopy exposed above (potential) snow
 USE cbl_LAI_canopy_height_mod,  ONLY: limit_HGT_LAI
-USE eff_LAI_mod_cbl,            ONLY:  HgtAboveSnow, LAI_eff
+USE hruff_eff_LAI_mod_cbl, ONLY : HgtAboveSnow, LAI_eff
 
 IMPLICIT NONE
 ! re-decl dims necessary to declare OUT fields
@@ -221,7 +221,7 @@ CALL cable_pack_progs( SnowDepth, SnowDensity, SoilTemp, SnowAge, mp,          &
 ! -----------------------------------------------------------------------------
 
 ! limit IN height, LAI  and initialize some existing cable % types
-CALL limit_HGT_LAI( LAI_pft_cbl, HGT_pft_cbl, mp, land_pts, nsurft,            &
+CALL limit_HGT_LAI( LAI_pft_cbl, HGT_pft_cbl, mp, land_pts, nsurft, npft,      &
                     surft_pts, surft_index, tile_frac, l_tile_pts,             &
                     LAI_pft_um, HGT_pft_um, CLAI_thresh )
 
