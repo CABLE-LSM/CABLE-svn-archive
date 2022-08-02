@@ -2,8 +2,8 @@ MODULE hruff_eff_LAI_mod_cbl
 
 IMPLICIT NONE
 
-PUBLIC HgtAboveSnow
-PUBLIC LAI_eff
+PUBLIC :: HgtAboveSnow
+PUBLIC :: LAI_eff
 
 CONTAINS
 
@@ -13,25 +13,22 @@ SUBROUTINE HgtAboveSnow( HeightAboveSnow, mp, z0surf_min, HGT_pft,             &
                          SnowDepth, SnowDensity )
 IMPLICIT NONE
 
-!re-decl input args
-INTEGER  :: mp
-!result to return
-REAL :: HeightAboveSnow(mp)
+INTEGER, INTENT(IN)   :: mp         ! CABLE VECTOR LENGTH
 
-!re-decl input args
-REAL :: z0surf_min
-REAL :: HGT_pft(mp)
-REAL :: SnowDepth(mp) !snow depth (liquid water )
-REAL :: SnowDensity(mp)
+REAL, INTENT(OUT) :: HeightAboveSnow(mp) ! result to return
 
+REAL, INTENT(IN) :: z0surf_min      ! min. surface roughness
+REAL, INTENT(IN) :: HGT_pft(mp)     ! canopy height
+REAL, INTENT(IN) :: SnowDepth(mp)   ! snow depth (liquid water )
+REAL, INTENT(IN) :: SnowDensity(mp) ! snow density
 
 !local_vars:
 REAL, PARAMETER  :: fmin = 10.0 ! [meters]?
-REAL, PARAMETER  :: SnowDensity_min = 100.0 ! [meters]?
+REAL, PARAMETER  :: SnowDensity_min = 100.0 ! min. snow density
 
-REAL :: SnowDensity_eff(mp)
-REAL :: HgtAboveSnow_min(mp)
-REAL :: HgtAboveSnow_comp(mp)
+REAL :: SnowDensity_eff(mp)         ! Effective snow density range restricted
+REAL :: HgtAboveSnow_min(mp)        ! min. canopy height
+REAL :: HgtAboveSnow_comp(mp)       ! computed canopy height above snow
 
 ! restrict Effective snow density to be .GE. "a" minimum
 SnowDensity_eff= MAX( SnowDensity_min, SnowDensity )
@@ -54,12 +51,14 @@ END SUBROUTINE HgtAboveSnow
 SUBROUTINE LAI_eff( mp, lai_pft, Hgt_PFT, HgtAboveSnow,                        &
                     reducedLAIdue2snow )
 
-  !re-decl input args
-INTEGER  :: mp
-REAL :: lai_pft(mp)
-REAL :: Hgt_PFT(mp)
-REAL :: HgtAboveSnow(mp)
-REAL :: reducedLAIdue2snow(mp)
+IMPLICIT NONE
+
+INTEGER, INTENT(IN)   :: mp           ! CABLE VECTOR LENGTH
+! return result - considered LAI seen given snow coverage
+REAL, INTENT(OUT) :: reducedLAIdue2snow(mp)
+REAL, INTENT(IN) :: lai_pft(mp)       ! LAI
+REAL, INTENT(IN) :: HGT_pft(mp)       ! canopy height
+REAL, INTENT(IN) :: HgtAboveSnow(mp)  ! computed canopy height above snow
 
 !local_vars:
 REAL :: Hgt_eff(mp)
@@ -71,6 +70,7 @@ FracOfCanopyAboveSnow = HgtAboveSnow/ MAX( 0.01, Hgt_PFT)
 ! LAI decreases due to snow:
 reducedLAIdue2snow = lai_pft * FracOfCanopyAboveSnow
 
+RETURN
 END SUBROUTINE LAI_eff
 
 END MODULE hruff_eff_LAI_mod_cbl
