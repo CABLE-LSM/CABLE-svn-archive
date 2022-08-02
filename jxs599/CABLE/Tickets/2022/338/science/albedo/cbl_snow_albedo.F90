@@ -2,7 +2,7 @@ MODULE cbl_snow_albedo_module
 
 IMPLICIT NONE
 
-PUBLIC surface_albedosn
+PUBLIC :: surface_albedosn
 PRIVATE
 
 CONTAINS
@@ -11,7 +11,7 @@ SUBROUTINE surface_albedosn( AlbSnow, AlbSoil, mp, nrb, ICE_SoilType,          &
                              lakes_cable, SurfaceType, SoilType, SnowDepth,    &
                              SnowDensity, SoilTemp, SnowAge, coszen )
 
-USE cable_phys_constants_mod, ONLY : snow_depth_thresh
+USE cable_phys_constants_mod, ONLY: snow_depth_thresh
 
 IMPLICIT NONE
 

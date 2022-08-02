@@ -29,7 +29,7 @@ MODULE cbl_albedo_mod
 
 IMPLICIT NONE
 
-PUBLIC albedo
+PUBLIC :: albedo
 PRIVATE
 
 CONTAINS
@@ -56,12 +56,12 @@ INTEGER, INTENT(IN) :: nrb             ! # rad bands: VIS,NIR(,LW)
 ! Return: Effective Surface Relectance as seen by atmosphere
 REAL, INTENT(OUT) :: AlbSnow(mp,nrb)   ! Alb adjusted for snow (ssnow%albsoilsn)
 REAL, INTENT(OUT) :: EffSurfRefl_beam(mp,nrb)    ! Direct Beam [SW] (rad%reffbm)
-REAL, INTENT(OUT) :: EffSurfRefl_dif(mp,nrb)     ! Diffuse [SW]  (rad%reffdf)   
+REAL, INTENT(OUT) :: EffSurfRefl_dif(mp,nrb)     ! Diffuse [SW]  (rad%reffdf)
 REAL, INTENT(OUT) :: RadAlbedo(mp,nrb)  ! Tot albedo given RadFbeam (rad%albedo)
 
 !--- IN: CABLE specific surface_type indexes
-INTEGER, INTENT(IN) :: ICE_SoilType    ! Index of ICE soil type 
-INTEGER, INTENT(IN) :: lakes_cable     ! Index of lakes surface type 
+INTEGER, INTENT(IN) :: ICE_SoilType    ! Index of ICE soil type
+INTEGER, INTENT(IN) :: lakes_cable     ! Index of lakes surface type
 
 !constants
 REAL, INTENT(IN) :: Ccoszen_tols       ! zenith angle threshold for SUNLIT
@@ -69,7 +69,7 @@ REAL, INTENT(IN) :: Cgauss_w(nrb)
 LOGICAL, INTENT(IN) :: jls_radiation   ! runtime switch = radiation pathway here
 
 !masks
-LOGICAL, INTENT(IN) :: veg_mask(mp)    ! TRUE where vegetated 
+LOGICAL, INTENT(IN) :: veg_mask(mp)    ! TRUE where vegetated
 
 !Vegetation parameters
 REAL, INTENT(IN) :: VegTaul(mp,nrb)    ! PARAMETER leaf transmisivity (veg%taul)
@@ -87,7 +87,7 @@ REAL, INTENT(IN)  :: coszen(mp)        ! cosine zenith angle  (met%coszen)
 
 !Prognostics
 REAL, INTENT(IN) :: SnowDepth(mp)      ! Total Snow depth - water eqivalent
-REAL, INTENT(IN) :: SnowDensity(mp)    ! Total Snow density (assumes 1 layer) 
+REAL, INTENT(IN) :: SnowDensity(mp)    ! Total Snow density (assumes 1 layer)
 REAL, INTENT(IN) :: SoilTemp(mp)       ! Top layer Soil Temp. (ssnow%tgg)
 REAL, INTENT(IN) :: SnowAge(mp)        ! Snow age (assumes 1 layer )
 
@@ -182,7 +182,7 @@ REAL, INTENT(OUT) :: CanopyRefl_dif(mp,nrb)  ! Beam Canopy refl (rad%rhocbm)
 REAL, INTENT(OUT) :: CanopyRefl_beam(mp,nrb) ! Difuse Canopy refl(rad%rhocdf
 REAL, INTENT(IN) :: Cgauss_w(nrb)
 LOGICAL, INTENT(IN) :: veg_mask(mp)          ! TRUE where vegetated
-REAL, INTENT(IN) :: AlbSnow(mp,nrb)          ! Ground Albedo with snow 
+REAL, INTENT(IN) :: AlbSnow(mp,nrb)          ! Ground Albedo with snow
 REAL, INTENT(IN) :: xk(mp,nrb)
 REAL, INTENT(IN) :: rhoch(mp,nrb)
 REAL, INTENT(IN) :: ExtCoeff_beam(mp)        ! Extinction co-efficient
@@ -227,14 +227,14 @@ REAL, INTENT(OUT) :: CanopyTransmit_beam(mp,nrb)    ! Transmitance (rad%cexpkbm)
 LOGICAL, INTENT(IN) :: mask(mp)                     ! TRUE where vegetated
 REAL, INTENT(IN) :: reducedLAIdue2snow(mp)          ! Reduced LAI given snow
 REAL, INTENT(IN) :: EffExtCoeff_beam(mp,nrb)        ! Extinction co-efficient
-REAL, INTENT(IN) :: EffExtCoeff_dif(mp,nrb)         ! Extinction co-efficient 
+REAL, INTENT(IN) :: EffExtCoeff_dif(mp,nrb)         ! Extinction co-efficient
 !local vars
 INTEGER :: i,b
 REAL :: dummy(mp,nrb)
 
 ! For beam, compute canopy trasmitance when sunlit (and vegetated)
 DO i = 1,mp
-  DO b = 1,(nrb-1) 
+  DO b = 1,(nrb-1)
     IF ( mask(i) ) THEN
       dummy(i,b) = MIN( EffExtCoeff_beam(i,b) * reducedLAIdue2snow(i), 20.0 )
       CanopyTransmit_beam(i,b) = EXP( -1.0* dummy(i,b) )
@@ -267,7 +267,7 @@ REAL, INTENT(OUT) :: EffSurfRefl_dif(mp,nrb)    ! Diffuse Surf Refl (rad%reffdf)
 REAL, INTENT(OUT) :: EffSurfRefl_beam(mp,nrb)   ! Beam Surf Refl (rad%reffbm)
 LOGICAL, INTENT(IN) :: veg_mask(mp)             ! TRUE where vegetated
 REAL, INTENT(IN) :: CanopyRefl_beam(mp,nrb)     ! Beam Canopy refl (rad%rhocbm)
-REAL, INTENT(IN) :: CanopyRefl_dif(mp,nrb)      ! Difuse Canopy refl(rad%rhocdf) 
+REAL, INTENT(IN) :: CanopyRefl_dif(mp,nrb)      ! Difuse Canopy refl(rad%rhocdf)
 REAL, INTENT(IN) :: CanopyTransmit_dif(mp,nrb)  ! Transmitance (rad%cexpkdm)
 REAL, INTENT(IN) :: CanopyTransmit_beam(mp,nrb) ! Transmitance (rad%cexpkbm)
 REAL, INTENT(IN) :: AlbSnow(mp,nrb)           ! snow adjustd Alb ssnow%albsoilsn
@@ -292,7 +292,7 @@ IMPLICIT NONE
 INTEGER, INTENT(IN) :: mp                   ! total number of "tiles"
 INTEGER, INTENT(IN) :: nrb                  ! # rad bands [VIS,NIR(,LW)
 REAL, INTENT(OUT) :: EffRefl(mp,nrb)        ! Effective Surface Reflectance
-REAL, INTENT(IN) :: AlbSnow(mp,nrb)         ! snow adjustd Alb ssnow%albsoilsn 
+REAL, INTENT(IN) :: AlbSnow(mp,nrb)         ! snow adjustd Alb ssnow%albsoilsn
 REAL, INTENT(IN) :: CanopyRefl(mp,nrb)      ! Beam Canopy refl (rad%rhocbm)
 REAL, INTENT(IN) :: CanopyTransmit(mp,nrb)  ! Difuse Canopy refl(rad%rhocdf nrb)
 LOGICAL, INTENT(IN) :: mask(mp)            ! TRUE where vegetated
@@ -325,9 +325,9 @@ INTEGER, INTENT(IN) :: nrb                   ! # rad bands [VIS,NIR(,LW)
 REAL, INTENT(OUT) :: RadAlbedo(mp,nrb)        ! RadFbeam albedo (rad%albedo)
 LOGICAL, INTENT(IN) :: veg_mask(mp)          ! TRUE where vegetated
 REAL, INTENT(IN) :: AlbSnow(mp,nrb)          ! snow adjustd Alb (ssnow%albsoilsn
-REAL, INTENT(IN) :: RadFbeam(mp,nrb)        ! Beam Fraction of SW (rad%fbeam) 
+REAL, INTENT(IN) :: RadFbeam(mp,nrb)        ! Beam Fraction of SW (rad%fbeam)
 REAL, INTENT(IN) :: EffSurfRefl_dif(mp,nrb)  ! Direct Beam [SW] (rad%reffbm)
-REAL, INTENT(IN) :: EffSurfRefl_beam(mp,nrb) ! Diffuse [SW]  (rad%reffdf)   
+REAL, INTENT(IN) :: EffSurfRefl_beam(mp,nrb) ! Diffuse [SW]  (rad%reffdf)
 !local vars
 INTEGER :: b    !rad. band 1=visible, 2=near-infrared, 3=long-wave
 INTEGER :: i
@@ -345,7 +345,5 @@ END DO
 
 RETURN
 END SUBROUTINE FbeamRadAlbedo
-
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 END MODULE cbl_albedo_mod
