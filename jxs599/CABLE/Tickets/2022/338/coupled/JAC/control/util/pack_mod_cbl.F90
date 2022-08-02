@@ -1,4 +1,7 @@
 MODULE cable_pack_mod
+IMPLICIT NONE
+PUBLIC :: cable_pack_rr
+PRIVATE
 
 CONTAINS
 

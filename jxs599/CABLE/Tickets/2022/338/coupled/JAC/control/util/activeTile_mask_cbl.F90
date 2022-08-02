@@ -1,6 +1,7 @@
 MODULE init_active_tile_mask_mod
-
-PUBLIC init_active_tile_mask_cbl
+IMPLICIT NONE
+PUBLIC :: init_active_tile_mask_cbl
+PRIVATE
 
 CONTAINS
 

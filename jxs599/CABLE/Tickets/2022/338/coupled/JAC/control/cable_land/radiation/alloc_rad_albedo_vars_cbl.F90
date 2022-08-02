@@ -1,6 +1,8 @@
 MODULE alloc_rad_albedo_vars_mod
-
 IMPLICIT NONE
+PUBLIC :: alloc_local_vars
+PUBLIC :: flush_local_vars
+PRIVATE
 
 CONTAINS
 

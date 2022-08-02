@@ -1,4 +1,6 @@
 MODULE cable_rad_driv_mod
+IMPLICIT NONE
+PUBLIC :: cable_rad_driver
 
 CONTAINS
 
@@ -39,7 +41,6 @@ INTEGER, INTENT(IN) :: ICE_SoilType
 INTEGER, INTENT(IN) :: lakes_type
 
 !constants
-!-------------------------------------------------------------------------------
 REAL, INTENT(IN) :: Ccoszen_tols      ! threshold cosine of sun's zenith angle,
                                       ! below which considered SUNLIT
 REAL, INTENT(IN) :: Cgauss_w(nrb)     ! Gaussian integration weights
@@ -51,32 +52,24 @@ REAL, INTENT(IN) :: z0surf_min        ! the minimum roughness of bare soil
 
 LOGICAL, INTENT(IN) :: jls_standalone ! local runtime switch for JULES(/UM) run
 LOGICAL, INTENT(IN) :: jls_radiation  ! local runtime switch for radiation path
-!-------------------------------------------------------------------------------
 
 !masks
-!-------------------------------------------------------------------------------
 LOGICAL, INTENT(IN) :: veg_mask(:)         !  vegetated (uses min LAI)
-!-------------------------------------------------------------------------------
 
 !recieved as spatial maps from the UM. remapped to "mp"
-!-------------------------------------------------------------------------------
 REAL, INTENT(IN) :: LAI_pft_cbl(mp)        ! LAI -  "limited" and remapped
 REAL, INTENT(IN) :: HGT_pft_cbl(mp)        ! canopy height -  "limited", remapped
 REAL, INTENT(IN) :: coszen(mp)             ! cosine zenith angle  (met%coszen)
 REAL, INTENT(IN) :: AlbSoil(mp, nrb)      ! soil%AlbSoil
-!-------------------------------------------------------------------------------
 
 !computed for CABLE model
-!-------------------------------------------------------------------------------
 REAL, INTENT(IN):: HeightAboveSnow(mp)     ! Height of Canopy above snow
                                            ! (rough%hruff) computed from
                                            ! z0surf_min, HGT_pft_cbl,
                                            ! SnowDepth, SnowDensity
 REAL, INTENT(IN) :: reducedLAIdue2snow(mp) ! Reduced LAI given snow coverage
-!-------------------------------------------------------------------------------
 
 !Prognostics !recieved as spatial maps from the UM. remapped to "mp"
-!-------------------------------------------------------------------------------
 REAL, INTENT(IN) :: SnowDepth(mp)          ! Total Snow depth - water eqivalent -
                                            ! packed from snow_surft (ssnow%snowd)
                                            ! this timestep (ssnow%Osnowd)
@@ -85,16 +78,13 @@ REAL, INTENT(IN) :: SnowDensity(mp)        ! Total Snow density (assumes 1 layer
 REAL, INTENT(IN) :: SoilTemp(mp)           ! Soil Temperature of top layer (soil%tgg)
 REAL, INTENT(IN) :: SnowAge(mp)            ! Snow age (assumes 1 layer describes snow
                                            ! cover) (ssnow%snage)
-!-------------------------------------------------------------------------------
 
 !Vegetation parameters !recieved as per PFT params from the UM. remapped to "mp"
-!-------------------------------------------------------------------------------
 INTEGER, INTENT(IN) :: SurfaceType(mp)
 INTEGER, INTENT(IN) :: SoilType(mp)
 REAL,    INTENT(IN) :: VegXfang(mp)        ! leaf angle PARAMETER (veg%xfang)
 REAL,    INTENT(IN) :: VegTaul(mp,nrb)     ! PARAM leaf transmisivity (veg%taul)
 REAL,    INTENT(IN) :: VegRefl(mp,nrb)     ! PARAM leaf reflectivity (veg%refl)
-!-------------------------------------------------------------------------------
 
 !local to Rad/Albedo pathway:
 REAL, INTENT(IN OUT) :: ExtCoeff_beam(mp)            ! nee. rad%extkb,

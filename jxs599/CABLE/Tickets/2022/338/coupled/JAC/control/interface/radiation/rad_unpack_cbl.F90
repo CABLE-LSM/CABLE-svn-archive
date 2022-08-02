@@ -1,4 +1,6 @@
 MODULE cable_rad_unpack_mod
+IMPLICIT NONE
+PUBLIC :: cable_rad_unpack
 
 CONTAINS
 
@@ -22,22 +24,18 @@ INTEGER, INTENT(IN) :: nsurft                   !grid cell # surface types
 REAL, INTENT(OUT) :: land_albedo(row_length,rows,nrs)
 REAL, INTENT(OUT) :: alb_surft(land_pts,nsurft,nrs)
 
-!-------------------------------------------------------------------------------
+! Inherited dimensions from JULES
 INTEGER, INTENT(IN) :: tile_pts(nsurft)         !Number of land points per PFT
 INTEGER, INTENT(IN) :: land_index(land_pts)     !land point Index in (x,y) array
 INTEGER, INTENT(IN) :: tile_index(land_pts,nsurft) !Index of land point in (land_pts) array
-!-------------------------------------------------------------------------------
+
 !recieved as spatial maps from the UM.
-!-------------------------------------------------------------------------------
 REAL,    INTENT(IN) :: tile_frac(land_pts,nsurft)     !fraction of each surface type per land point
 LOGICAL, INTENT(IN) :: L_tile_pts( land_pts, nsurft ) !mask:=TRUE where tile_frac>0, else FALSE. pack mp according to this mask
-!-------------------------------------------------------------------------------
 
 ! Albedos
-!-------------------------------------------------------------------------------
 REAL, INTENT(IN) :: EffSurfRefl_dif(mp,nrs)     !Effective Surface Relectance as seen by atmosphere [Diffuse SW]  (rad%reffdf)
 REAL, INTENT(IN) :: EffSurfRefl_beam(mp,nrs)    !Effective Surface Relectance as seen by atmosphere [Direct Beam SW] (rad%reffbm)
-!-------------------------------------------------------------------------------
 
 !___ local vars
 INTEGER :: i,j,k,l,n
@@ -49,7 +47,6 @@ REAL :: Sumreffbm(mp)
 REAL :: Sumreffdf(mp)
 
 ! UNPACK Albedo (per rad stream) per surface tile
-!-------------------------------------------------------------
 alb_surft(:,:,:) = 0.0        ! guarantee flushed
 ! Direct beam, visible / near-IR
 alb_surft(:,:,1) = UNPACK(EffSurfRefl_beam(:,1),l_tile_pts, miss)
@@ -80,8 +77,7 @@ DO i = 1,land_pts
 END DO
 
 ! Aggregate albedo (per rad stream) OVER surface tiles to get per cell value
-!-------------------------------------------------------------
-land_albedo(:,:,:) = 0        ! guarantee flushed
+land_albedo(:,:,:) = 0.0        ! guarantee flushed
 DO n = 1,nsurft
   DO k = 1,tile_pts(n)
 

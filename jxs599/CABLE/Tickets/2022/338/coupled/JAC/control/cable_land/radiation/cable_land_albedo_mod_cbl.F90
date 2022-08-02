@@ -1,4 +1,7 @@
 MODULE cable_land_albedo_mod
+IMPLICIT NONE
+PUBLIC :: cable_land_albedo
+PRIVATE
 
 CONTAINS
 !-------------------------------------------------------------------------------
@@ -20,7 +23,7 @@ SUBROUTINE cable_land_albedo (                                                 &
   !IN: JULES  timestep varying fields
   cosine_zenith_angle, snow_tile,                                              &
   !IN:CABLE dimensions from grid_constants_cbl
-  nsl, nsnl, nrb, nrs, mp,                                                     &
+  nrb, nrs, mp,                                                                &
   !IN: CABLE specific surface_type indexes
   ICE_Surfacetype, lakes_SurfaceType, ICE_SoilType,                            &
   !IN: CABLE constants
@@ -47,7 +50,7 @@ USE cbl_masks_mod,              ONLY: fveg_mask, L_tile_pts
 
 !Compute canopy exposed above (potential) snow
 USE cbl_LAI_canopy_height_mod,  ONLY: limit_HGT_LAI
-USE hruff_eff_LAI_mod_cbl, ONLY : HgtAboveSnow, LAI_eff
+USE hruff_eff_LAI_mod_cbl, ONLY: HgtAboveSnow, LAI_eff
 
 IMPLICIT NONE
 ! re-decl dims necessary to declare OUT fields
@@ -73,9 +76,6 @@ INTEGER, INTENT(IN) :: surft_pts(nsurft)            ! # land points per PFT
 INTEGER, INTENT(IN) :: surft_index(land_pts,nsurft) ! Index in land_pts array
 INTEGER, INTENT(IN) :: land_index(land_pts)         ! Index in (x,y) array
 
-!--- IN: declared in grid_cell_constants_cbl
-INTEGER, INTENT(IN) :: nsl                            !# soil layers
-
 !-- IN: JULES Surface descriptions generally parametrized
 REAL, INTENT(IN) :: tile_frac(land_pts,nsurft)      ! fraction of each surf type
 REAL, INTENT(IN) :: LAI_pft_um(land_pts, npft)      ! Leaf area index.
@@ -87,7 +87,6 @@ REAL, INTENT(IN) :: cosine_zenith_angle(row_length,rows)  ! zenith angle of sun
 REAL, INTENT(IN) :: snow_tile(land_pts,nsurft)            ! snow depth (units?)
 
 !--- IN: CABLE  declared in grid_cell_constants_cbl
-INTEGER, INTENT(IN) :: nsnl                    ! max # snow layers(3)
 INTEGER, INTENT(IN) :: nrb                     !# rad bands VIS/NIR + Legacy LW
 INTEGER, INTENT(OUT) :: mp        ! curr. NOT requ'd OUT, however it likely will
 
@@ -110,11 +109,9 @@ REAL, INTENT(IN) :: VeginTaul(nrb, nsurft )          ! Leaf Transmisivity
 REAL, INTENT(IN) :: VeginRefl(nrb, nsurft )          ! Leaf Reflectivity
 
 !---IN: CABLE prognostics. decl in progs_cbl_vars_mod.F90
-REAL, INTENT(IN) :: SoilTemp_CABLE(land_pts, nsurft, nsl )
+REAL, INTENT(IN) :: SoilTemp_CABLE(land_pts, nsurft )
 REAL, INTENT(IN) :: OneLyrSnowDensity_CABLE(land_pts, nsurft )
 REAL, INTENT(IN) :: SnowAge_CABLE(land_pts, nsurft )
-
-!-------------------------------------------------------------------------------
 
 !--- local vars - Neither IN nor OUT (passed to subrs)
 
@@ -216,7 +213,7 @@ CALL cable_pack_rr( coszen, cosine_zenith_angle, mp, l_tile_pts, row_length,   &
 
 ! Pack UM spatial (per landpoint,ntile) CABLE prognostics to mp vector
 CALL cable_pack_progs( SnowDepth, SnowDensity, SoilTemp, SnowAge, mp,          &
-                       land_pts, nsurft, nsl, nsnl, l_tile_pts, snow_tile,     &
+                       land_pts, nsurft, l_tile_pts, snow_tile,                &
                        OneLyrSnowDensity_CABLE, SoilTemp_CABLE, SnowAge_CABLE )
 ! -----------------------------------------------------------------------------
 
@@ -308,13 +305,13 @@ END SUBROUTINE cable_pack_Albsoil
 
 ! Pack CABLE prognostics n CABLE dimensions from passed JULES vars
 SUBROUTINE cable_pack_progs( SnowDepth, SnowDensity,SoilTemp, SnowAge,         &
-                             mp, land_pts, nsurft, nsl, nsnl, l_tile_pts,      &
+                             mp, land_pts, nsurft, l_tile_pts,                 &
                              snow_tile, OneLyrSnowDensity_CABLE,               &
                              SoilTemp_CABLE, SnowAge_CABLE )
 
 IMPLICIT NONE
 
-INTEGER, INTENT(IN)  :: land_pts, nsurft, nsl, nsnl,mp
+INTEGER, INTENT(IN)  :: land_pts, nsurft, mp
 
 ! map IN progs to CABLE veector length
 REAL, INTENT(OUT), ALLOCATABLE :: SnowDepth(:)   ! Tot Snow depth - water eqiv.
@@ -325,7 +322,7 @@ REAL, INTENT(OUT), ALLOCATABLE :: SnowAge(:)     ! Snow age (assumes 1 layer)
 LOGICAL, INTENT(IN) :: l_tile_pts(land_pts, nsurft )
 
 !---IN: CABLE prognostics. decl in progs_cbl_vars_mod.F90
-REAL, INTENT(IN) :: SoilTemp_CABLE(land_pts, nsurft, nsl )
+REAL, INTENT(IN) :: SoilTemp_CABLE(land_pts, nsurft )
 REAL, INTENT(IN) :: OneLyrSnowDensity_CABLE(land_pts, nsurft )
 REAL, INTENT(IN) :: SnowAge_CABLE(land_pts, nsurft )
 REAL, INTENT(IN) :: snow_tile(land_pts,nsurft)            ! snow depth (units?)
@@ -340,7 +337,7 @@ SnowDepth   = PACK( snow_tile, l_tile_pts )
 SnowDensity = PACK( OneLyrSnowDensity_CABLE, l_tile_pts )
 
 !Surface skin/top layer Soil/Snow temperature
-SoilTemp =   PACK( SoilTemp_CABLE(:,:,1), l_tile_pts )
+SoilTemp =   PACK( SoilTemp_CABLE(:,:), l_tile_pts )
 SnowAge  =   PACK( SnowAge_CABLE(:,:), l_tile_pts )
 
 RETURN
