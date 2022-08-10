@@ -145,6 +145,9 @@ USE cable_photo_constants_mod, ONLY : CRGBWC => RGBWC
     REAL :: medlyn_lim  !INH 2018: should be a parameter in long-term
     ! END header
 
+    REAL    :: latx,lonx
+    INTEGER :: ivegx,npt
+
     ALLOCATE( gswmin(mp,mf ))
 
     ! Soil water limitation on stomatal conductance:
@@ -664,6 +667,17 @@ USE cable_photo_constants_mod, ONLY : CRGBWC => RGBWC
 
 
     DEALLOCATE( gswmin )
+
+!    ! print out point variables for diagnosis
+!      latx=-10.0;lonx=120.9375;ivegx=4
+!      do npt=1,mp
+!         if(abs(rad%latitude(npt)-latx)<0.1.and.abs(rad%longitude(npt)-lonx)<0.1.and.veg%iveg(npt)==ivegx) then
+!            write(*,993) npt,veg%iveg(npt),canopy%vlaiw(npt),canopy%fpn(npt)*dels,canopy%frday(npt)*dels, &
+!            veg%frac4(npt),veg%vcmax(npt)*1.0e6, rad%scalex(npt,:),rad%rniso(npt,:),canopy%fwsoil(npt), &
+!            vcmxt3(npt,:)*1.0e6,vcmxt4(npt,:)*1.0e6
+!         endif
+!      enddo
+993 format('point dryleaf ',1(i6,1x),1(i2,1x),20(f8.4,1x))
 
   END SUBROUTINE dryLeaf
  

@@ -1263,7 +1263,7 @@ END SUBROUTINE landuse_getdata
     CHARACTER         :: FRST_OUT*200, CYEAR*4
 
     INTEGER              ok
-    INTEGER              m 
+    INTEGER              m,npt 
 
     dummy = 0 ! initialise
 
@@ -1281,11 +1281,10 @@ END SUBROUTINE landuse_getdata
     ENDIF
 
     print *, 'landuse on: cable restart filename= ',frst_out
-    do m=1,mland
-       print *,m,nap(m),lucmp%iveg(cstart(m):cend(m)),lucmp%patchfrac(cstart(m):cend(m))
-    enddo
-    print *,'iveg size',size(lucmp%iveg)
-    print *,'iveg=',lucmp%iveg(:)
+!    do m=1,mland
+!       write(*,991) m,nap(m),(lucmp%iveg(npt),lucmp%patchfrac(npt),npt=cstart(m),cend(m))
+!    enddo
+991 format('landuse_restart_cable',i5,1x,i3,1x,17(i2,1x,f6.4,1x))
 
     ! Create output file:
     ok = NF90_CREATE(frst_out, NF90_CLOBBER, ncid_restart)

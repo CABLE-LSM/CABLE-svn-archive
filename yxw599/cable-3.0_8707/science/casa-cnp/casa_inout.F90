@@ -1527,9 +1527,17 @@ CONTAINS
       casapool%Psoillab = max(casapool%Psoillab,0.1)
     ENDIF
 
-
-
-
+    ! print out point variables for diagnosis
+!    latx=-10.0;lonx=120.9375;ivegx=4
+!    do npt=1,mp
+!       if(abs(casamet%lat(npt)-latx)<0.1.and.abs(casamet%lon(npt)-lonx)<0.1.and.veg%iveg(npt)==ivegx) then
+!          write(*,993) ktau,npt,veg%iveg(npt),phen%phase(npt),casamet%areacell(npt)*(1.0e-6),       &
+!                       casaflux%cgpp(npt),casaflux%crp(npt),                           &
+ !                      sum(casaflux%Crmplant(npt,:))+casaflux%crgplant(npt),           &
+ !                      casaflux%Crmplant(npt,:),casaflux%crgplant(npt)
+ !      endif
+ !   enddo
+993 format('point output: ',2(i6,1x),2(i2,1x),f9.3,1x,10(f8.4,1x))
   END SUBROUTINE biogeochem
 
 #ifndef UM_BUILD

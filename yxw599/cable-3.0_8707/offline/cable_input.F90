@@ -2625,6 +2625,12 @@ CONTAINS
     INTEGER :: mp_POP
     INTEGER, DIMENSION(:), ALLOCATABLE :: Iwood
 
+
+
+
+    real  :: latx, lonx
+    integer :: ivegx, npt
+
     ! Allocate spatial heterogeneity variables:
     ALLOCATE(landpt(mland))
 
@@ -2654,6 +2660,9 @@ CONTAINS
     CALL write_default_params(met,air,ssnow,veg,bgc,soil,canopy,rough, &
          rad,logn,vegparmnew,smoy, TFRZ, LUC_EXPT)
 
+     ! print out point variables for diagnosis
+
+    ! Construct derived parameters and zero initialisations, regardless
 
     ! Zero out lai where there is no vegetation acc. to veg. index
     WHERE ( veg%iveg(:) .GE. 14 ) veg%vlai = 0.
@@ -2763,6 +2772,7 @@ CONTAINS
        WRITE(*,*)    ' Pre-loaded default initialisations are used.'
     END IF ! if restart file exists
 
+    ! Construct derived parameters and zero initialisations, regardless
 
     ! Overwrite default values by those available in met file:
     CALL get_parameters_met(soil,veg,bgc,rough,completeSet)
@@ -2799,6 +2809,16 @@ CONTAINS
   !  CALL report_parameters(logn,soil,veg,bgc,rough,ssnow,canopy, &
  !        casamet,casapool,casaflux,phen,vegparmnew,verbose)
 
+
+    
+     ! print out point variables for diagnosis
+!     latx=-10.0;lonx=120.9375;ivegx=4
+!     do npt=1,mp
+!        if(abs(rad%latitude(npt)-latx)<0.1.and.abs(rad%longitude(npt)-lonx)<0.1.and.veg%iveg(npt)==ivegx) then
+!           write(*,995) npt,veg%iveg(npt),veg%frac4(npt),veg%vcmax(npt)*1.0e6
+!        endif
+!     enddo
+995 format('point loadpa5 ',1(i6,1x),1(i2,1x),20(f8.4,1x))
 
   END SUBROUTINE load_parameters
 

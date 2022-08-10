@@ -901,7 +901,7 @@ END MODULE landuse_variable
      call landuse_checks(mlon,mlat,landmask,luc)
 
      !print *, 'calling update mland: landuse'
-     call landuse_update_mland(luc)                    ! assign "var_y" to "var_x"
+     call landuse_update_mland(luc)                    ! assign "var_y(mland,mvmax,:)" to "var_x(mland,mvmax,:)"
 
      ! update "cstart", "cend","nap" and "mp=>mpx"
       cstart=0;cend=0;nap=0
@@ -916,10 +916,11 @@ END MODULE landuse_variable
                   np  = np + 1
                   np1 = np1 + 1
                   if(np1==1) cstart(p) = np
-              endif
+               endif
             enddo
             cend(p) = np
             nap(p)  = max(0,cend(p)-cstart(p) +1)
+!            print *, 'before land2pmx', p,cstart(p),cend(p),nap(p),luc%patchfrac_y(p,:)
          endif
       enddo
       mpx = np
@@ -933,11 +934,12 @@ END MODULE landuse_variable
            lucmp%lat(q) = latitude(p)
            lucmp%lon(q) = longitude(p)
         enddo
-     enddo      
+     enddo 
 
      print *, 'calling land2mpx: landuse'
-     call landuse_land2mpx(luc,lucmp,mpx)
-  !   call landuse_land2mpx(luc,lucmp,mpx,cstart,cend,nap)
+  !   call landuse_land2mpx(luc,lucmp,mpx)
+  ! sort all variables (mland,mvmax,:) by descending patchfrac orde
+     call landuse_land2mpx(luc,lucmp,mpx,cstart,cend,nap)
 
      print *, 'calling deallocate mland: landuse'
      call landuse_deallocate_mland(luc)
@@ -1785,26 +1787,45 @@ END SUBROUTINE landuse_transitx
 
  END SUBROUTINE landuse_update_mland
 
- SUBROUTINE landuse_land2mpx(luc,lucmp,mpx)
+ SUBROUTINE landuse_land2mpx(luc,lucmp,mpx,cstart,cend,nap)
+ ! assign luc%varx(mland,mvmax,:) to lucmp%varx(mp,:)
+ ! within each land cell, order the variable by descending patchfracions
+ !
  USE landuse_constant,     ONLY: mvmax
  USE landuse_variable
  USE cable_def_types_mod,  ONLY: mland
  IMPLICIT NONE
  TYPE(landuse_mland)         :: luc
  TYPE(landuse_mp)            :: lucmp
-! integer, dimension(mland)   :: cstart,cend,nap
+ integer, dimension(mland)   :: cstart,cend,nap
  integer mpx
- integer np,np1,p,q,n,npnew,npold
-
-    npnew=0; npold=0
+ integer np,np1,p,q,n,npnew,napx
+ integer, dimension(mvmax)   :: tmpint
+ real(r_2),dimension(mvmax)  :: tmpx
+ 
     do p=1,mland
        do q=1,mvmax
-          if(luc%patchfrac_x(p,q)>thresh_frac) then
-             npold=npold +1
+          tmpx(q)  = luc%patchfrac_y(p,q)
+          tmpint(q)= q
+       enddo
+   ! look through "mland" and order the patches within the cell in descending "patchfrac"
+       call sortx(mvmax,tmpx,tmpint)
+       napx = 0   
+       do q=1,mvmax
+          if(tmpx(q)> thresh_frac) then
+             napx = napx +1
           endif
-          if(luc%patchfrac_y(p,q)>thresh_frac) then
-             npnew = npnew +1
-             lucmp%iveg(npnew)      = q
+       enddo
+!     print *, 'within land2mpx', p,cstart(p),cend(p),nap(p),napx,tmpx(:)
+       if(napx/=nap(p)) then
+          print *, 'number of patches not equal at land cell! Stop ', p,napx,nap(p)
+          stop
+       endif
+       
+       do npnew=cstart(p),cend(p)
+             lucmp%iveg(npnew)      = tmpint(npnew-cstart(p)+1)
+             lucmp%patchfrac(npnew) = tmpx(npnew-cstart(p)+1)
+             q = lucmp%iveg(npnew)
              lucmp%isoil(npnew)     = luc%isoil_y(p,q)
              lucmp%soilorder(npnew) = luc%soilorder_y(p,q)
              lucmp%phase(npnew)      = luc%phase_y(p,q)
@@ -1879,14 +1900,39 @@ END SUBROUTINE landuse_transitx
                 lucmp%psoilocc(npnew)    = luc%psoilocc_y(p,q)
                 lucmp%pwoodprod(npnew,:) = luc%pwoodprod_y(p,q,:)
              endif
-          endif
-          !update patch_type
-       enddo   ! end of "q"
+ 
+       enddo   ! end of "npnew"
     enddo  ! end of "p"
 
-    print *, 'npnew npold', npnew,npold
+
      
  END SUBROUTINE landuse_land2mpx
+
+  subroutine sortx(mvmax,tmpx,tmpint)
+  ! based on numerical recipes, straight insertion method  p322
+  USE cable_def_types_mod,  ONLY: r_2
+  implicit none
+  integer mvmax
+  integer,      dimension(mvmax)  :: tmpint
+  real(r_2),    dimension(mvmax)  :: tmpx
+  integer i, j, na
+  real(r_2)     xa
+
+    do j=2,mvmax
+       xa = tmpx(j)
+       na = tmpint(j)
+       do i=j-1,1,-1
+          if(tmpx(i)>=xa) go to 10
+            tmpx(i+1) = tmpx(i)
+            tmpint(i+1) = tmpint(i)
+       enddo
+       i=0
+10     tmpx(i+1)   = xa
+       tmpint(i+1) = na
+    enddo
+
+  end subroutine sortx
+
 
  SUBROUTINE landuse_checks(mlon,mlat,landmask,luc)
  ! check mass balance and write output CNP pool sizes for each PFT

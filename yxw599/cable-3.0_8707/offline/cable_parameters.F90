@@ -185,6 +185,7 @@ CONTAINS
     ! count to obtain 'landpt', 'max_vegpatches' and 'mp'
     CALL countPatch(nlon, nlat, npatch)
 
+
   END SUBROUTINE get_default_params
   !=============================================================================
   SUBROUTINE read_gridinfo(nlon, nlat, npatch)
@@ -1185,6 +1186,14 @@ CONTAINS
     REAL :: totdepth  ! YP oct07
     REAL :: tmp       ! BP sep2010
 
+
+
+
+
+     real    :: latx,lonx
+     integer :: ivegx, npt
+
+
     !    The following is for the alternate method to calculate froot by Zeng 2001
     !    REAL :: term1(17), term2(17)                ! (BP may2010)
     !    REAL :: aa(17), bb(17)   ! new parameter values for IGBP types
@@ -1701,6 +1710,18 @@ CONTAINS
     soil%bch_vec(:,:)  = REAL(SPREAD(soil%bch(:),2,ms),r_2)
     soil%ssat_vec(:,:)  = REAL(SPREAD(soil%ssat(:),2,ms),r_2)
     soil%hyds_vec(:,:)  = REAL(SPREAD(soil%hyds(:),2,ms),r_2)
+
+
+
+
+     ! print out point variables for diagnosis
+     latx=-10.0;lonx=120.9375;ivegx=4
+     do npt=1,mp
+        if(abs(rad%latitude(npt)-latx)<0.1.and.abs(rad%longitude(npt)-lonx)<0.1.and.veg%iveg(npt)==ivegx) then
+           write(*,992) npt,veg%iveg(npt),veg%frac4(npt),veg%vcmax(npt)*1.0e6
+        endif
+     enddo
+992 format('point writedef',1(i6,1x),1(i2,1x),20(f8.4,1x))
 
   END SUBROUTINE write_default_params
   !=============================================================================

@@ -87,6 +87,8 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
   ! INTEGER, INTENT(IN) :: wlogn
    INTEGER , parameter :: wlogn=6
 
+   REAL latx,lonx
+   INTEGER ivegx,npt
 
    IF ( .NOT. dump_read ) THEN  ! construct casa met and flux inputs from current CABLE run
       IF ( TRIM(cable_user%MetType) .EQ. 'cru' ) THEN
@@ -117,6 +119,17 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
          casaflux%meangpp = casaflux%meangpp + (-canopy%fpn+canopy%frday)*dels
          casaflux%meanrleaf = casaflux%meanrleaf + canopy%frday*dels
       ENDIF
+
+     ! print out point variables for diagnosis
+!      latx=-10.0;lonx=120.9375;ivegx=4
+!      do npt=1,mp
+!         if(abs(casamet%lat(npt)-latx)<0.1.and.abs(casamet%lon(npt)-lonx)<0.1.and.veg%iveg(npt)==ivegx) then
+!            write(*,993) ktau,npt,veg%iveg(npt),casaflux%meangpp(npt),casaflux%meanrleaf(npt), &
+!                          casaflux%cgpp(npt),casaflux%crmplant(npt,:)
+!         endif
+!      enddo
+993 format('point casacab ',2(i6,1x),1(i2,1x),10(f8.4,1x))
+     
 
       IF(MOD((ktau-kstart+1),ktauday)==0) THEN  ! end of day
          casamet%tairk  =casamet%tairk/FLOAT(ktauday)
