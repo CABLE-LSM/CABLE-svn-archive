@@ -1,4 +1,21 @@
+!******************************************************************************
+! This source code is part of the Community Atmosphere Biosphere Land Exchange
+! (CABLE) model. This work is licensed under the CSIRO Open Source Software
+! License Agreement (variation of the BSD / MIT License).You may not use this
+! this file except in compliance with this License. A copy of the License is
+! available at https://trac.nci.org.au/trac/cable/wiki/license.
+!******************************************************************************
 MODULE cable_other_constants_mod
+
+!-----------------------------------------------------------------------------
+! Description:
+!   Other CABLE constants
+!
+! This MODULE is USEd throughout CABLE 
+!
+! Module specific documentation:https://trac.nci.org.au/trac/cable/wiki/TBC
+! Where it fits in the model flow:https://trac.nci.org.au/trac/cable/wiki/TBC
+!-----------------------------------------------------------------------------
 
 USE grid_constants_mod_cbl, ONLY : nrb, nsl, nsCs, nvCs
 USE grid_constants_mod_cbl, ONLY : msn =>  nsnl
@@ -6,14 +23,6 @@ USE grid_constants_mod_cbl, ONLY : msn =>  nsnl
 IMPLICIT NONE
 
 PUBLIC
-
-!-----------------------------------------------------------------------------
-! Description:
-!   Other CABLE constants
-!
-! Code Owner: Please refer to ModuleLeaders.txt
-! This file belongs in CABLE SCIENCE
-!-----------------------------------------------------------------------------
 
 INTEGER, PARAMETER ::                                                          &
   swb = 2,           & ! 2 shortwave bands (initial division - visible /

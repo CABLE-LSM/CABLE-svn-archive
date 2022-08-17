@@ -1,5 +1,31 @@
+!******************************************************************************
+! This source code is part of the
+! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
+! This work is licensed under the CSIRO Open Source Software License
+! Agreement (variation of the BSD / MIT License).
+!
+! You may not use this file except in compliance with this License.
+! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located
+! in each directory containing CABLE code.
+!
+!******************************************************************************
+
 MODULE cbl_snow_albedo_module
 
+!-----------------------------------------------------------------------------
+! Description: 
+!   Computes the snow-affected surface albedo
+!
+! This MODULE is USEd from:
+!     cbl_albedo (JULES, CABLE, ESM1.5),
+! 
+! This MODULE contains 1 public Subroutine:
+!     surface_albedosn
+! 
+! Module specific documentation: https://trac.nci.org.au/trac/cable/wiki/TBC
+! Where it fits in the model flow: https://trac.nci.org.au/trac/cable/wiki/TBC
+!-----------------------------------------------------------------------------
+   
   IMPLICIT NONE
 
   PUBLIC surface_albedosn
@@ -9,6 +35,8 @@ CONTAINS
 
   SUBROUTINE surface_albedosn( AlbSnow, AlbSoil, mp, nrb, surface_type, soil_type, &
                             SnowDepth, SnowDensity, SoilTemp, SnowAge, coszen )
+! Description:
+!   Nothing further to add to the module description
 
     IMPLICIT NONE
 

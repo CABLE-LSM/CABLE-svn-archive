@@ -1,4 +1,51 @@
+!******************************************************************************
+! This source code is part of the
+! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
+! This work is licensed under the CSIRO Open Source Software License
+! Agreement (variation of the BSD / MIT License).
+!
+! You may not use this file except in compliance with this License.
+! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located
+! in each directory containing CABLE code.
+!
+!******************************************************************************
+
 MODULE cbl_albedo_mod
+
+!-----------------------------------------------------------------------------
+! Description: 
+!   Computes 4-band (visible/near-infrared, beam/diffuse) reflectances
+!   and albedo
+!
+! IMPORTANT NOTE regarding the masks (Ticket 333)
+! Prior to #333, 3 masks were used here - veg_mask, sunlit_mask, veg_mask
+! - although passed in sunlit_mask was not used
+! For JAC we will not be able to populate the sunlit masks and instead will
+! evaluate the EffExtCoeff outside their bounds of applicability here by
+! using inclusive masks in their place from the calling routines,
+!  ie. JAC will use veg_mask in place of veg_mask
+!
+! To avoid confusion the mask names here are renamed:
+! sunlit_mask now called mask1, veg_mask now called mask2
+!
+! This MODULE is USEd by:
+!      cable_cbm.F90 (ESM1.5),
+!      cable_rad_driver.F90 (ESM1.5),
+!      cbl_model_driver_offline.F90 (CABLE),
+!      rad_driver_cbl.F90 (JULES)
+! 
+! This MODULE contains 1 public Subroutine:
+!      albedo
+! Other subroutines:
+!      CanopyReflectance,
+!      CanopyTransmitance,
+!      EffectiveSurfaceReflectance,
+!      EffectiveReflectance,
+!      FbeamRadAlbedo,
+!
+! Module specific documentation: https://trac.nci.org.au/trac/cable/wiki/TBC
+! Where it fits in the model flow: https://trac.nci.org.au/trac/cable/wiki/TBC
+!-----------------------------------------------------------------------------
 
   IMPLICIT NONE
 
@@ -23,6 +70,10 @@ CanopyRefl_dif,CanopyRefl_beam,                   &
 CanopyTransmit_dif, CanopyTransmit_beam,          &
 EffSurfRefl_dif, EffSurfRefl_beam                 )
 
+! Description:
+!   Computes the 4-band (visible/near-infrared, beam/diffuse) reflectances
+!   and albedo
+      
 !subrs called
 USE cbl_snow_albedo_module, ONLY : surface_albedosn
 
@@ -162,6 +213,9 @@ subroutine CanopyReflectance( CanopyRefl_beam, CanopyRefl_dif, &
                          mp, nrb, CGauss_w, sunlit_veg_mask, &
                          AlbSnow, xk, rhoch,                  &
                          ExtCoeff_beam, ExtCoeff_dif)
+! Description:
+!   Computes canopy Reflectance for diffuse/direct radiation
+
 implicit none 
 !re-decl in args
 integer :: mp                       !total number of "tiles"  
@@ -247,6 +301,9 @@ End subroutine CanopyReflectance_dif
 subroutine CanopyTransmitance(CanopyTransmit_beam, CanopyTransmit_dif, mp, nrb,&
                               mask, reducedLAIdue2snow, &
                               EffExtCoeff_dif, EffExtCoeff_beam)
+! Description:
+!   Computes canopy diffuse transmittance
+
 implicit none
 !re-decl in args
 integer :: mp                       !total number of "tiles"  
@@ -329,6 +386,9 @@ subroutine EffectiveSurfaceReflectance(EffSurfRefl_beam, EffSurfRefl_dif,      &
                                        CanopyRefl_beam, CanopyRefl_dif,        &
                                        CanopyTransmit_beam,CanopyTransmit_dif, & 
                                        AlbSnow )
+! Description:
+!    Computes the effective 4-band albedo for diffuse/direct radiation.
+
 implicit none
 !re-decl input args 
 integer :: mp                       !total number of "tiles"  
@@ -357,6 +417,9 @@ End subroutine EffectiveSurfaceReflectance
 
 subroutine EffectiveReflectance( EffRefl, mp, nrb, CanopyRefl, AlbSnow, &
           CanopyTransmit, mask )
+! Description:
+!   Computes the Surface reflectance for a given radiation
+
 implicit none
 integer :: mp
 integer :: nrb
@@ -387,6 +450,10 @@ End subroutine EffectiveReflectance
 
 subroutine FbeamRadAlbedo( RadAlbedo, mp, nrb, veg_mask, radfbeam, &
                            EffSurfRefl_dif, EffSurfRefl_beam, AlbSnow )
+! Description:
+!   Computes total albedo to SW given the Effective Surface Reflectance 
+!   (considering Canopy/Soil/Snow contributions) 
+
 implicit none
 !re-decl input args 
 integer :: mp                       !total number of "tiles"  

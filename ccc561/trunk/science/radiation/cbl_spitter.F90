@@ -1,5 +1,32 @@
+!******************************************************************************
+! This source code is part of the
+! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
+! This work is licensed under the CSIRO Open Source Software License
+! Agreement (variation of the BSD / MIT License).
+!
+! You may not use this file except in compliance with this License.
+! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located
+! in each directory containing CABLE code.
+!
+!******************************************************************************
+
 MODULE cbl_spitter_module
 
+!-----------------------------------------------------------------------------
+! Description: 
+!   Calculates the beam fraction from Spitters et al. 1986, agric. 
+!   for meteorol., 38:217-229
+!
+! This MODULE is USEd in:
+!     cbl_init_radiation.F90 (JULES)
+! 
+! This MODULE contains 1 public Function:
+!     spitter
+!
+! Module specific documentation: https://trac.nci.org.au/trac/cable/wiki/TBC
+! Where it fits in the model flow: https://trac.nci.org.au/trac/cable/wiki/TBC
+!-----------------------------------------------------------------------------
+   
    IMPLICIT NONE
 
    PUBLIC spitter

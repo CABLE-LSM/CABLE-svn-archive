@@ -1,8 +1,12 @@
+!******************************************************************************
+! This source code is part of the Community Atmosphere Biosphere Land Exchange
+! (CABLE) model. This work is licensed under the CSIRO Open Source Software
+! License Agreement (variation of the BSD / MIT License).You may not use this
+! this file except in compliance with this License. A copy of the License is
+! available at https://trac.nci.org.au/trac/cable/wiki/license.
+!******************************************************************************
+
 MODULE grid_constants_mod_cbl
-
-IMPLICIT NONE
-
-PUBLIC
 
 !-----------------------------------------------------------------------------
 ! Description:
@@ -11,9 +15,15 @@ PUBLIC
 !   Potentially these dims could be read/set from CABLE nmls. However,
 !   NB. Simply changing these dims arbitrarily would render the model useless
 !
-! Code Owner: Please refer to ModuleLeaders.txt
-! This file belongs in CABLE Science
-!-----------------------------------------------------------------------------
+! This MODULE is USEd throughout CABLE.
+!
+! Module specific documentation:https://trac.nci.org.au/trac/cable/wiki/TBC
+! Where it fits in the model flow:https://trac.nci.org.au/trac/cable/wiki/TBC
+!******************************************************************************
+
+IMPLICIT NONE
+
+PUBLIC
 
 ! Although it seems these model "dimensions" may indeed be be a configuration 
 ! variable that can/should be set thru a namelist, CABLE has been developed 

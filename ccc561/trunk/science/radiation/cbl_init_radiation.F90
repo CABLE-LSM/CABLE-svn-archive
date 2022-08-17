@@ -1,4 +1,4 @@
-!==============================================================================
+!******************************************************************************
 ! This source code is part of the
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
 ! This work is licensed under the CSIRO Open Source Software License
@@ -8,15 +8,31 @@
 ! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located
 ! in each directory containing CABLE code.
 !
-! ==============================================================================
+!******************************************************************************
 ! Purpose: Computes radiation absorbed by canopy and soil surface
 !
-! Contact: Yingping.Wang@csiro.au
+! This MODULE is USEd in:
+!     cable_cbm.F90 (ESM1.5),
+!     cbl_model_driver_offline.F90 (CABLE),
+!     rad_driver_cbl.F90 (JaC)
+! 
+! This MODULE contains 1 public Subroutine:
+!     init_ratidation
+! Other Subroutines:
+!     Common_InitRad_Scalings,
+!     ExtinctionCoeff,
+!     EffectiveExtinctCoeffs,
+!     EffectiveExtinctCoeff,
+!     BeamFraction
 !
-! History: No significant change from v1.4b
-!
-!
+! History: 
+!    Ticket #333@NCI
 ! ==============================================================================
+! Code owner: Please refer to ModuleLeaders.txt
+! This file belongs in CABLE SCIENCE
+! Module specific documentation: https://trac.nci.org.au/trac/cable/wiki/TBC
+! Where it fits in the model flow: https://trac.nci.org.au/trac/cable/wiki/TBC
+!******************************************************************************
 
 MODULE cbl_init_radiation_module
 
@@ -42,6 +58,9 @@ SUBROUTINE init_radiation( ExtCoeff_beam, ExtCoeff_dif,                        &
                         VegXfang, VegTaul, VegRefl,                            &
                         coszen, metDoY, SW_down,                               & 
                         reducedLAIdue2snow )
+! Description:
+!   Computes various extinction coefficients for different radiations (visible, 
+!   diffuse) and various quantities for black leaves.
 
 implicit none
 
@@ -145,6 +164,9 @@ subroutine Common_InitRad_Scalings( xphi1, xphi2, xk, xvlai2, c1, rhoch,      &
                             mp, nrb, Cpi180,cLAI_thresh, veg_mask,             &
                             reducedLAIdue2snow,                &
                             VegXfang, VegTaul, VegRefl)
+! Description:
+!   Compute common scaling co-efficients used throughout init_radiation
+
 !subrs
 USE cbl_rhoch_module,   ONLY : calc_rhoch
 implicit none
@@ -226,7 +248,10 @@ End subroutine common_InitRad_coeffs
 subroutine ExtinctionCoeff( ExtCoeff_beam, ExtCoeff_dif, mp, nrb, CGauss_w, Ccoszen_tols_tiny, reducedLAIdue2snow, &
                             sunlit_mask, veg_mask, sunlit_veg_mask,  &
                             cLAI_thresh, coszen, xphi1, xphi2, xk, xvlai2)
-
+! Description:
+!   Define Raw extinction co-efficients for direct beam/diffuse radiation
+!   Largely parametrized per PFT. Does depend on zenith angle and effective LAI
+        
 implicit none
 !re-decl in args
 integer :: mp
@@ -333,6 +358,11 @@ End subroutine ExtinctionCoeff_dif
 Subroutine EffectiveExtinctCoeffs( EffExtCoeff_beam, EffExtCoeff_dif, mp, nrb, &
                                    sunlit_veg_mask,                        &
                                    ExtCoeff_beam, ExtCoeff_dif, c1 )
+! Description:
+!   Define effective Extinction co-efficient for direct beam/diffuse radiation
+!   Extincion Co-eff defined by parametrized leaf reflect(transmit)ance - used in
+!   canopy transmitance calculations (cbl_albeo)                                   
+
 implicit none
 integer :: mp                   !total number of "tiles"  
 integer :: nrb                  !number of radiation bands [per legacy=3, but really=2 VIS,NIR. 3rd dim was for LW]
@@ -355,8 +385,10 @@ End Subroutine EffectiveExtinctCoeffs
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-! modified k diffuse(6.20)(for leaf scattering)
 subroutine EffectiveExtinctCoeff(Eff_ExtCoeff, mp, ExtCoeff, c1, mask )
+! Description:
+!   modified k diffuse(6.20)(for leaf scattering)
+
 implicit none
 integer :: mp 
 real :: Eff_ExtCoeff(mp,2) 
@@ -384,6 +416,10 @@ End subroutine EffectiveExtinctCoeff
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 subroutine BeamFraction( RadFbeam, mp, nrb, Cpi,Ccoszen_tols_huge, metDoy, &
 coszen, SW_down ) 
+! Description:
+!   Split the total downward Shortwave into Near-infrared and visible components
+!   Based on the Spitter function.
+                                                  
 USE cbl_spitter_module, ONLY : Spitter
 
 integer :: mp                   !total number of "tiles"  
