@@ -111,6 +111,7 @@ MODULE cable_common_module
      LOGICAL ::                                                               &
           CALL_POP               = .FALSE., & !
           POP_fromZero           = .FALSE., &
+          stand_replacement      = .FALSE., & ! total disturbance for all patches at first time step
           CALL_Climate           = .FALSE., &
           CALL_BLAZE             = .FALSE., &
           Climate_fromZero       = .FALSE., &

@@ -2539,8 +2539,8 @@ SUBROUTINE load_parameters(met, air, ssnow, veg, bgc, soil, canopy, rough, rad, 
          mp_POP = COUNT(casamet%iveg2==forest) + COUNT(casamet%iveg2==shrub)
 
          ! Initialisation (should happen somewhere else...)
-         veg%disturbance_interval(:,1) = 100.0   ! first one is partial disturbance if NDISTURB=2, otherwise total disturbance
-         veg%disturbance_interval(:,2) = 100.0
+         veg%disturbance_interval(:,1) = 150.0   ! first one is partial disturbance if NDISTURB=2, otherwise total disturbance
+         veg%disturbance_interval(:,2) = 150.0
          veg%disturbance_intensity(:,1) = 60.0  ! only first one is used if frac_intensity1 is not input to POPstep (in %)
          veg%disturbance_intensity(:,2) = 60.0
          
@@ -2553,6 +2553,8 @@ SUBROUTINE load_parameters(met, air, ssnow, veg, bgc, soil, canopy, rough, rad, 
                j = j+1
             ENDIF
          ENDDO
+
+         write(81,*) casabiome%disturbance_interval(:,:)
          
          CALL POP_init( POP, veg%disturbance_interval(Iwood,:), mp_POP, Iwood )
          IF ( .NOT. (spinup .OR. CABLE_USER%POP_fromZero )) &

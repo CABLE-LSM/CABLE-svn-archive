@@ -82,17 +82,20 @@ MODULE POP_Constants
   ! REAL(dp),PARAMETER:: CrowdingFactor = 0.0128
   ! REAL(dp),PARAMETER:: ALPHA_CPC = 3.0
 
+  !! Commented with '!!': used for EucFACE (separate branch)
   REAL(dp), PARAMETER :: FULTON_ALPHA = 3.5_dp ! recruitment scalar alpha in Fulton (1991)
   REAL(dp), PARAMETER :: DENSINDIV_MAX = 0.2_dp  ! 0.5 !  Maximum density of individuals within a cohort indiv/m2
   REAL(dp), PARAMETER :: DENSINDIV_MIN = 1.0e-9_dp !
   REAL(dp), PARAMETER :: Kbiometric = 50.0_dp ! Constant in height-diameter relationship
-  REAL(dp), PARAMETER :: WD = 342.0_dp ! Wood density kgC/m3
+  !!REAL(dp), PARAMETER :: WD = 342.0_dp ! Wood density kgC/m3
+  REAL(dp), PARAMETER :: WD = 300.0_dp ! Wood density kgC/m3
   ! threshold growth efficiency for enhanced mortality (higher value gives higher biomass turnover)
   REAL(dp), PARAMETER :: GROWTH_EFFICIENCY_MIN = 0.009_dp ! 0.0095 ! 0.0089 ! 0.0084
   REAL(dp), PARAMETER :: Pmort = 5.0_dp ! exponent in mortality formula
   REAL(dp), PARAMETER :: MORT_MAX = 0.2_dp ! upper asymptote for enhanced mortality
   REAL(dp), PARAMETER :: THETA_recruit = 0.95_dp ! shape parameter in recruitment equation
-  REAL(dp), PARAMETER :: CMASS_STEM_INIT = 1.0e-4_dp ! initial biomass kgC/m2
+  !REAL(dp), PARAMETER :: CMASS_STEM_INIT = 1.0e-4_dp ! initial biomass kgC/m2
+  REAL(dp), PARAMETER :: CMASS_STEM_INIT = 0.6_dp ! initial biomass kgC/m2
   REAL(dp), PARAMETER :: POWERbiomass = 0.67_dp ! exponent for biomass in proportion to which cohorts preempt resources
   REAL(dp), PARAMETER :: POWERGrowthEfficiency = 0.67_dp
   REAL(dp), PARAMETER :: CrowdingFactor = 0.043_dp ! 0.039  !0.029 ! 0.033
@@ -113,8 +116,8 @@ MODULE POP_Constants
   INTEGER(i4b), PARAMETER :: NDISTURB = 1 ! number of disturbance regimes (1 (total only)  or 2 (partial and total))
   INTEGER(i4b), PARAMETER :: PATCH_REPS = 10 ! higher number reduces 'noise'
   INTEGER(i4b), PARAMETER :: NAGE_MAX = 1 ! number of maxium ages
-  !  INTEGER(i4b), PARAMETER :: PATCH_REPS1 = 1 ! number of first dist years
-  INTEGER(i4b), PARAMETER :: PATCH_REPS1 = 1 ! number of first dist years
+  INTEGER(i4b), PARAMETER :: PATCH_REPS1 = 60 ! number of first dist years
+  !!INTEGER(i4b), PARAMETER :: PATCH_REPS1 = 1 ! number of first dist years
   INTEGER(i4b), PARAMETER :: PATCH_REPS2 = 1 ! number of second dist years
   INTEGER(i4b), PARAMETER :: NPATCH = PATCH_REPS1*PATCH_REPS2
   INTEGER(i4b), PARAMETER :: NPATCH1D = NPATCH
@@ -131,8 +134,8 @@ MODULE POP_Constants
   INTEGER(i4b), PARAMETER :: MAX_HEIGHT_SWITCH = 2
   INTEGER(i4b), PARAMETER :: RESOURCE_SWITCH = 0 ! 0 = default; 1  fraction net resource uptake
   INTEGER(i4b), PARAMETER :: RECRUIT_SWITCH = 1 ! 0 = default, 1 = Pgap-dependence
-  !INTEGER(i4b), PARAMETER :: INTERP_SWITCH = 1 ! 0 = sum over weighted patches, 1 = sum over interpolated patches
   INTEGER(i4b), PARAMETER :: INTERP_SWITCH = 0 ! 0 = sum over weighted patches, 1 = sum over interpolated patches
+  !!INTEGER(i4b), PARAMETER :: INTERP_SWITCH = 0 ! 0 = sum over weighted patches, 1 = sum over interpolated patches
   INTEGER(i4b), PARAMETER :: SMOOTH_SWITCH = 0 ! smooth disturbance flux
   INTEGER(i4b), PARAMETER :: NYEAR_WINDOW  = 5                  ! one-side of smoothing window (y)
   INTEGER(i4b), PARAMETER :: NYEAR_SMOOTH  = 2*NYEAR_WINDOW + 1 ! smoothing window (y)
@@ -294,6 +297,8 @@ MODULE POPModule
   USE TYPEdef, ONLY: sp, i4b
   USE POP_Types
   USE POP_Constants
+  USE cable_common_module,  only: cable_user ! 'stand_replacement' flag. Note: usually this would go to one of the
+  ! wrapper routine, but for experimental branch this is OK here.
 
   IMPLICIT NONE
 
@@ -629,7 +634,7 @@ CONTAINS
     REAL(dp), INTENT(IN), OPTIONAL :: frac_intensity1(:), precip(:)
     REAL(dp), INTENT(IN), OPTIONAL :: StemNPP_av(:)
 
-    INTEGER(i4b) :: idisturb,np,g
+    INTEGER(i4b) :: idisturb,np,g,counter
     INTEGER(i4b), allocatable :: it(:)
 
     !INTEGER, INTENT(IN) :: wlogn
@@ -646,7 +651,9 @@ CONTAINS
     ! ENDDO
 
     ! CALL GetPatchFrequencies(POP)
-
+    !StemNPP = max(StemNPP,0.05_dp)
+    write(80,*) "StemNPP:", StemNPP
+    
     !call flush(wlogn)
     IF (PRESENT(precip)) THEN
        IF(PRESENT(StemNPP_av)) THEN
@@ -668,6 +675,10 @@ CONTAINS
           CALL Patch_partial_disturb2(POP,1)
        ELSE
           CALL Patch_disturb(POP,1)
+          IF (cable_user%stand_replacement) THEN
+             CALL InitPOP2D_Poisson(POP, INT(disturbance_interval,i4b))
+             cable_user%stand_replacement=.FALSE.
+          ENDIF
           ! CALL Patch_partial_disturb2(POP,it)
        ENDIF
     ELSEIF (NDISTURB.EQ.2) THEN
@@ -2030,13 +2041,29 @@ CONTAINS
 
     DO j=1,np
        DO k=1,NPATCH2D
+
+          !! JK: Simulate a stand replacement for the whole grid cell. Actually for all patches in all grid cells.
+          !! This is not a permanent change to the code but a temporary development specific to the Mortality MIP 2022.
+          !! Changes are NOT to be merged into other branches!
+          IF (cable_user%stand_replacement) THEN
+             pop%pop_grid(j)%patch(k)%age(1) = pop%pop_grid(j)%patch(k)%disturbance_interval(1)
+                write(82,*) "j:", j
+                write(82,*) "k:", k
+             !IF (j == np .AND. k == NPATCH2D) THEN
+             !   cable_user%stand_replacement = .FALSE.
+             !   write(82,*) "Turned off cable_user%stand_replacement"
+             !ENDIF
+          ENDIF
+          
+          
           pop%pop_grid(j)%patch(k)%cat_mortality = 0.0_dp
           IF (pop%pop_grid(j)%patch(k)%first_disturbance_year(idisturb).NE.0) THEN
              IF ((pop%pop_grid(j)%patch(k)%first_disturbance_year(idisturb).EQ.pop%pop_grid(j)%patch(k)%age(idisturb)).or. &
                   (pop%pop_grid(j)%patch(k)%disturbance_interval(idisturb).EQ.pop%pop_grid(j)%patch(k)%age(idisturb)) ) THEN
-                ! kill entire layer
-                !write(82,*) "k:", k
-                !write(82,*) "disturbance happened (first)"
+
+                ! kill entire patch
+                write(82,*) "Regular Disturbance happened"
+                write(83,*) "disturbance_interval:", pop%pop_grid(j)%patch(k)%disturbance_interval(1)
                 nc = pop%pop_grid(j)%patch(k)%layer(1)%ncohort
 
                 ! pop%pop_grid(j)%patch(k)%fire_mortality = SUM(pop%pop_grid(j)%patch(k)%layer(1)%cohort(1:nc)%biomass)
@@ -3660,6 +3687,7 @@ END SUBROUTINE Allometry
     basal  = PI * (0.5_dp * dbh)**2 * density
     ! Compute Height using cylindrical approach
     height = agBiomass / ( WD * basal )
+    !height   = (Kbiometric**(3.0_dp/4.0_dp))*(4.0_dp*agbiomass/(max(density,1.0e-5_dp)*WD*PI))**(1.0_dp/4.0_dp) ! from ALLOM_SWITCH=0
     ! Basal Area [m^2/m^2]->[m^2/ha]
     basal  = basal * 1.0e4_dp
 

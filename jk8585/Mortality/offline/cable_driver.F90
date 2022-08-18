@@ -123,7 +123,8 @@ PROGRAM cable_offline_driver
   USE CABLE_PLUME_MIP,      ONLY: PLUME_MIP_TYPE, PLUME_MIP_GET_MET,&
        PLUME_MIP_INIT
 
-  USE CABLE_CRU,            ONLY: CRU_TYPE, CRU_GET_SUBDIURNAL_MET, CRU_INIT, cru_close
+  !USE CABLE_CRU,            ONLY: CRU_TYPE, CRU_GET_SUBDIURNAL_MET, CRU_INIT, cru_close
+  USE CABLE_CRU,            ONLY: CRU_TYPE, CRU_GET_MET, CRU_INIT, cru_close
   USE CABLE_site,           ONLY: site_TYPE, site_INIT, site_GET_CO2_Ndep
 
   ! BIOS only
@@ -580,16 +581,19 @@ PROGRAM cable_offline_driver
                  call cru_init(cru)
                  dels         = cru%dtsecs
                  koffset      = 0
-                 leaps        = .false. ! No leap years in CRU-NCEP
-                 exists%Snowf = .false. ! No snow in CRU-NCEP, so ensure it will
+                 !leaps        = .false. ! No leap years in CRU-NCEP
+                 leaps        = .true.
+                 !exists%Snowf = .false. ! No snow in CRU-NCEP, so ensure it will
                                         ! be determined from temperature in CABLE
                  write(str1,'(i4)') CurYear
                  str1 = adjustl(str1)
                  timeunits = "seconds since "//trim(str1)//"-01-01 00:00:00"
-                 calendar  = "noleap"
+                 !calendar  = "standard"
+                 calendar = "noleap"
                  casa_timeunits = "days since "//trim(str1)//"-01-01 00:00:00"
               ENDIF
-              LOY = 365
+              !LOY = 365
+              !IF (IS_LEAPYEAR(CurYear)) LOY = 366
               kend = NINT(24.0*3600.0/dels) * LOY
            ELSE IF ( TRIM(cable_user%MetType) .EQ. 'site' ) THEN
               ! site experiment eg AmazonFace (spinup or transient run type)
@@ -816,9 +820,10 @@ PROGRAM cable_offline_driver
                  END IF
               ELSE IF ( TRIM(cable_user%MetType) .EQ. 'cru' ) THEN
                  IF (( .NOT. CASAONLY ).OR. (CASAONLY.and.CALL1))  THEN
-                    CALL CRU_GET_SUBDIURNAL_MET(CRU, met, &
-                         YYYY, ktau, kend, &
-                         YYYY.EQ.CABLE_USER%YearEnd)
+                    !CALL CRU_GET_SUBDIURNAL_MET(CRU, met, &
+                    !     YYYY, ktau, kend, &
+                    !     YYYY.EQ.CABLE_USER%YearEnd)
+                    CALL CRU_GET_MET(CRU, met, YYYY, ktau, kend)
                  ENDIF
               ELSE
                  IF (TRIM(cable_user%MetType) .EQ. 'site') &

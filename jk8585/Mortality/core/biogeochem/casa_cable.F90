@@ -263,10 +263,14 @@ contains
        LAImax    = casabal%LAImax
        Cleafmean = casabal%cleafmean
        Crootmean = casabal%Crootmean
-      
-       CALL POPStep(pop, max(StemNPP(Iw,:)/1000.0_dp, 0.0001_dp), int(veg%disturbance_interval(Iw,:), i4b), &
+
+       ! 0.0001 was replaced to ensure biomass can build up after full disturbance (whole grid cell)
+       CALL POPStep(pop, max(StemNPP(Iw,:)/1000.0_dp, 0.02_dp), int(veg%disturbance_interval(Iw,:), i4b), &
             real(veg%disturbance_intensity(Iw,:),dp), &
             max(LAImax(Iw), 0.001_dp), Cleafmean(Iw), Crootmean(Iw), NPPtoGPP(Iw))
+       !CALL POPStep(pop, max(StemNPP(Iw,:)/1000.0_dp, 0.0001_dp), int(veg%disturbance_interval(Iw,:), i4b), &
+       !     real(veg%disturbance_intensity(Iw,:),dp), &
+       !     max(LAImax(Iw), 0.001_dp), Cleafmean(Iw), Crootmean(Iw), NPPtoGPP(Iw))
     endif ! CALL_POP
 
   END SUBROUTINE POPdriver

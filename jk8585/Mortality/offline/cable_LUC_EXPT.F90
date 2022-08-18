@@ -482,26 +482,27 @@ CONTAINS
     ELSE
        ! set secondary vegetation area to be zero where land use transitions don't occur
        ! set grass component of primary vegetation cover
-       WHERE (LUC_EXPT%prim_only .eqv. .TRUE.)
+       ! JK: Modifications for Mortality experiment
+       !WHERE (LUC_EXPT%prim_only .eqv. .TRUE.)
           LUC_EXPT%secdf    = 0.0
           LUC_EXPT%primaryf = 1.0
           LUC_EXPT%grass    = 0.0
-          WHERE (LUC_EXPT%biome .eq. 3 .or. LUC_EXPT%biome .eq. 11) ! savanna/ xerophytic woods
-             LUC_EXPT%grass    = LUC_EXPT%primaryf * 0.6
-             LUC_EXPT%primaryf = LUC_EXPT%primaryf * 0.4
-          ELSEWHERE (LUC_EXPT%biome .eq. 12 .or. LUC_EXPT%biome .eq. 13 &
-               .or. LUC_EXPT%biome .eq. 15 .or. LUC_EXPT%biome .eq. 16  ) ! shrub
-             LUC_EXPT%grass    = LUC_EXPT%primaryf * 0.8
-             LUC_EXPT%primaryf = LUC_EXPT%primaryf * 0.2
-          ELSEWHERE (LUC_EXPT%biome .eq. 7 .or. LUC_EXPT%biome .eq. 8 &
-               .or. LUC_EXPT%biome .eq. 9 .or. LUC_EXPT%biome .eq. 10) ! boreal
-             LUC_EXPT%grass    = LUC_EXPT%primaryf * 0.2
-             LUC_EXPT%primaryf = LUC_EXPT%primaryf * 0.8
-          ELSEWHERE (LUC_EXPT%biome .eq. 5 .or. LUC_EXPT%biome .eq. 6 ) ! DBL
-             LUC_EXPT%grass    = LUC_EXPT%primaryf * 0.3
-             LUC_EXPT%primaryf = LUC_EXPT%primaryf * 0.7
-          END WHERE
-       END WHERE
+         ! WHERE (LUC_EXPT%biome .eq. 3 .or. LUC_EXPT%biome .eq. 11) ! savanna/ xerophytic woods
+         !    LUC_EXPT%grass    = LUC_EXPT%primaryf * 0.6
+         !    LUC_EXPT%primaryf = LUC_EXPT%primaryf * 0.4
+         ! ELSEWHERE (LUC_EXPT%biome .eq. 12 .or. LUC_EXPT%biome .eq. 13 &
+         !      .or. LUC_EXPT%biome .eq. 15 .or. LUC_EXPT%biome .eq. 16  ) ! shrub
+         !    LUC_EXPT%grass    = LUC_EXPT%primaryf * 0.8
+         !    LUC_EXPT%primaryf = LUC_EXPT%primaryf * 0.2
+         ! ELSEWHERE (LUC_EXPT%biome .eq. 7 .or. LUC_EXPT%biome .eq. 8 &
+         !      .or. LUC_EXPT%biome .eq. 9 .or. LUC_EXPT%biome .eq. 10) ! boreal
+         !    LUC_EXPT%grass    = LUC_EXPT%primaryf * 0.2
+         !    LUC_EXPT%primaryf = LUC_EXPT%primaryf * 0.8
+         ! ELSEWHERE (LUC_EXPT%biome .eq. 5 .or. LUC_EXPT%biome .eq. 6 ) ! DBL
+         !    LUC_EXPT%grass    = LUC_EXPT%primaryf * 0.3
+         !    LUC_EXPT%primaryf = LUC_EXPT%primaryf * 0.7
+         ! END WHERE
+       !END WHERE
     ENDIF
 
   END SUBROUTINE LUC_EXPT_INIT

@@ -546,8 +546,8 @@ SUBROUTINE casa_rplant(veg, casabiome, casapool, casaflux, casamet, climate)
     ratioPNplant = casapool%Pplant / (casapool%Nplant+ 1.0e-10_r_2)
   ENDWHERE
 
-  !Ygrow(:) = 0.65_r_2 + 0.2_r_2*ratioPNplant(:,leaf)/(ratioPNplant(:,leaf)+1.0_r_2/15.0_r_2)
-  Ygrow(:) = 0.60_r_2 + 0.2_r_2*ratioPNplant(:,leaf)/(ratioPNplant(:,leaf)+1.0_r_2/15.0_r_2)
+  Ygrow(:) = 0.65_r_2 + 0.2_r_2*ratioPNplant(:,leaf)/(ratioPNplant(:,leaf)+1.0_r_2/15.0_r_2)
+  !Ygrow(:) = 0.60_r_2 + 0.2_r_2*ratioPNplant(:,leaf)/(ratioPNplant(:,leaf)+1.0_r_2/15.0_r_2) ! used for EucFACE
   
   casaflux%crmplant(:,wood)  = 0.0_r_2
   casaflux%crmplant(:,froot) = 0.0_r_2
@@ -2085,14 +2085,15 @@ SUBROUTINE casa_xkN(xkNlimiting,casapool,casaflux,casamet,casabiome,veg)
   IF (casamet%iveg2(nland)/=icewater) THEN
 
     ! calculate C:N ratio of newly formed SOM as function of soil mineral N pool
-    !IF (casapool%Nsoilmin(nland) < 2.0) THEN
-    !  casapool%ratioNCsoilnew(nland,:) = casapool%ratioNCsoilmin(nland,:)  &
-    !                                   + (casapool%ratioNCsoilmax(nland,:) &
-    !                                     -casapool%ratioNCsoilmin(nland,:)) &
-    !                                   * max(0.0_r_2,casapool%Nsoilmin(nland)) / 2.0_r_2
-    !ELSE
-    casapool%ratioNCsoilnew(nland,:) = casapool%ratioNCsoilmax(nland,:)
-    !ENDIF
+    IF (casapool%Nsoilmin(nland) < 2.0) THEN
+       casapool%ratioNCsoilnew(nland,:) = casapool%ratioNCsoilmin(nland,:)  &
+                                       + (casapool%ratioNCsoilmax(nland,:) &
+                                         -casapool%ratioNCsoilmin(nland,:)) &
+                                       * max(0.0_r_2,casapool%Nsoilmin(nland)) / 2.0_r_2
+    ELSE
+       casapool%ratioNCsoilnew(nland,:) = casapool%ratioNCsoilmax(nland,:)
+       !casapool%ratioNCsoilnew(nland,:) = (casapool%ratioNCsoilmax(nland,:) + casapool%ratioNCsoilmax(nland,:)) / 2.0_r_2
+    ENDIF
 
     DO j=1,mlitter
       xFluxNlittermin(nland) = xFluxNlittermin(nland) &

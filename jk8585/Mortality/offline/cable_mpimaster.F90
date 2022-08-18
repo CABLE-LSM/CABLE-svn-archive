@@ -230,7 +230,8 @@ CONTAINS
     USE CABLE_PLUME_MIP,      ONLY: PLUME_MIP_TYPE, PLUME_MIP_GET_MET,&
          PLUME_MIP_INIT
 
-    USE CABLE_CRU,            ONLY: CRU_TYPE, CRU_GET_SUBDIURNAL_MET, CRU_INIT ! , cru_close
+    !USE CABLE_CRU,            ONLY: CRU_TYPE, CRU_GET_SUBDIURNAL_MET, CRU_INIT ! , cru_close
+    USE CABLE_CRU,            ONLY: CRU_TYPE, CRU_GET_MET, CRU_INIT ! , cru_close
 
     ! BIOS only
     USE cable_bios_met_obs_params, ONLY: cable_bios_read_met, cable_bios_init, &
@@ -642,8 +643,8 @@ CONTAINS
                 call cru_init( cru )
                 dels         = cru%dtsecs
                 koffset      = 0
-                leaps        = .false. ! No leap years in CRU-NCEP
-                exists%Snowf = .false. ! No snow in CRU-NCEP, so ensure it will
+                leaps        = .true. ! No leap years in CRU-NCEP
+                !exists%Snowf = .false. ! No snow in CRU-NCEP, so ensure it will
                                        ! be determined from temperature in CABLE
                 write(str1,'(i4)') CurYear
                 str1 = adjustl(str1)
@@ -651,7 +652,7 @@ CONTAINS
                 calendar  = "standard"
                 casa_timeunits = "days since "//trim(str1)//"-01-01 00:00:00"
              endif
-             LOY = 365
+             !LOY = 365
              kend = nint(24.0*3600.0/dels) * LOY
              ! no ( trim(cable_user%MetType) .eq. 'site' ) in MPI
           endif ! cable_user%MetType
@@ -947,8 +948,7 @@ CONTAINS
              ELSE IF ( TRIM(cable_user%MetType) .EQ. 'bios' ) THEN
                 CALL  cable_bios_read_met(iMET, CurYear, iktau, dels )
              ELSE IF ( TRIM(cable_user%MetType) .EQ. 'cru' ) THEN
-                CALL CRU_GET_SUBDIURNAL_MET(CRU, imet, YYYY, iktau, kend, &
-                     (YYYY.EQ.cable_user%YearEnd))
+                CALL CRU_GET_MET(CRU, imet, YYYY, iktau, kend)
                 ! MC - Added two lines defining iveg and lai in input veg: iveg
                 !      because this is done in get_met_data but not in cru_get_subdiurnal_met
                 iveg%iveg = veg%iveg
