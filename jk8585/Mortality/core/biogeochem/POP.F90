@@ -88,9 +88,9 @@ MODULE POP_Constants
   REAL(dp), PARAMETER :: DENSINDIV_MIN = 1.0e-9_dp !
   REAL(dp), PARAMETER :: Kbiometric = 50.0_dp ! Constant in height-diameter relationship
   !!REAL(dp), PARAMETER :: WD = 342.0_dp ! Wood density kgC/m3
-  REAL(dp), PARAMETER :: WD = 300.0_dp ! Wood density kgC/m3
+  REAL(dp), PARAMETER :: WD = 340.0_dp ! Wood density kgC/m3
   ! threshold growth efficiency for enhanced mortality (higher value gives higher biomass turnover)
-  REAL(dp), PARAMETER :: GROWTH_EFFICIENCY_MIN = 0.009_dp ! 0.0095 ! 0.0089 ! 0.0084
+  REAL(dp), PARAMETER :: GROWTH_EFFICIENCY_MIN = 0.012_dp ! 0.0095 ! 0.0089 ! 0.0084
   REAL(dp), PARAMETER :: Pmort = 5.0_dp ! exponent in mortality formula
   REAL(dp), PARAMETER :: MORT_MAX = 0.2_dp ! upper asymptote for enhanced mortality
   REAL(dp), PARAMETER :: THETA_recruit = 0.95_dp ! shape parameter in recruitment equation
@@ -619,7 +619,7 @@ CONTAINS
 
 
   SUBROUTINE POPStep(POP, StemNPP, disturbance_interval, disturbance_intensity,LAI,Cleaf,Croot, &
-       NPPtoGPP, StemNPP_av,frac_intensity1,precip)
+       NPPtoGPP, StemNPP_pot,frac_intensity1,precip)
 
     IMPLICIT NONE
 
@@ -632,7 +632,7 @@ CONTAINS
     REAL(dp), INTENT(IN) ::  Croot(:)
     REAL(dp), INTENT(IN) ::  NPPtoGPP(:)
     REAL(dp), INTENT(IN), OPTIONAL :: frac_intensity1(:), precip(:)
-    REAL(dp), INTENT(IN), OPTIONAL :: StemNPP_av(:)
+    REAL(dp), INTENT(IN), OPTIONAL :: StemNPP_pot(:)
 
     INTEGER(i4b) :: idisturb,np,g,counter
     INTEGER(i4b), allocatable :: it(:)
@@ -656,14 +656,14 @@ CONTAINS
     
     !call flush(wlogn)
     IF (PRESENT(precip)) THEN
-       IF(PRESENT(StemNPP_av)) THEN
-          CALL PatchAnnualDynamics(POP, StemNPP, NPPtoGPP, it, precip=precip, StemNPP_av=StemNPP_av)
+       IF(PRESENT(StemNPP_pot)) THEN
+          CALL PatchAnnualDynamics(POP, StemNPP, NPPtoGPP, it, precip=precip, StemNPP_pot=StemNPP_pot)
        ELSE
           CALL PatchAnnualDynamics(POP, StemNPP, NPPtoGPP, it, precip=precip)
        ENDIF
     ELSE
-       IF(PRESENT(StemNPP_av)) THEN
-          CALL PatchAnnualDynamics(POP, StemNPP, NPPtoGPP, it, StemNPP_av=StemNPP_av)
+       IF(PRESENT(StemNPP_pot)) THEN
+          CALL PatchAnnualDynamics(POP, StemNPP, NPPtoGPP, it, StemNPP_pot=StemNPP_pot)
        ELSE
           CALL PatchAnnualDynamics(POP, StemNPP, NPPtoGPP, it)
        ENDIF
@@ -714,7 +714,7 @@ CONTAINS
   !*******************************************************************************
 
 
-  SUBROUTINE PatchAnnualDynamics(pop, StemNPP, NPPtoGPP, it, StemNPP_av, precip)
+  SUBROUTINE PatchAnnualDynamics(pop, StemNPP, NPPtoGPP, it, StemNPP_pot, precip)
 
     IMPLICIT NONE
 
@@ -722,7 +722,7 @@ CONTAINS
     REAL(dp), INTENT(IN)            :: StemNPP(:,:)
     REAL(dp), INTENT(IN)            :: NPPtoGPP(:)
     REAL(dp), INTENT(IN), OPTIONAL  :: precip(:)
-    REAL(dp), OPTIONAL, INTENT(IN)            :: StemNPP_av(:)
+    REAL(dp), OPTIONAL, INTENT(IN)  :: StemNPP_pot(:)
     INTEGER(i4b), INTENT(IN)        :: it(:)
 
     REAL(dp) :: densindiv
@@ -1042,9 +1042,9 @@ CONTAINS
              cmass_stem = pop%pop_grid(j)%patch(k)%Layer(1)%cohort(c)%biomass
              cmass_stem_inc=StemNPP(j,1)*pop%pop_grid(j)%patch(k)%Layer(1)%cohort(c)%frac_resource_uptake
 
-             if (present(StemNPP_av)) then
+             if (present(StemNPP_pot)) then
                 growth_efficiency=pop%pop_grid(j)%patch(k)%Layer(1)%cohort(c)%frac_resource_uptake* &
-                     StemNPP_av(j)  /(cmass_stem**(POWERGrowthEfficiency))
+                     StemNPP_pot(j)  /(cmass_stem**(POWERGrowthEfficiency))
              else
                 growth_efficiency=cmass_stem_inc/(cmass_stem**(POWERGrowthEfficiency))
              endif
