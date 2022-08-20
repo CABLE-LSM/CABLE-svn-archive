@@ -122,7 +122,8 @@ MODULE POP_Constants
   INTEGER(i4b), PARAMETER :: NPATCH = PATCH_REPS1*PATCH_REPS2
   INTEGER(i4b), PARAMETER :: NPATCH1D = NPATCH
   INTEGER(i4b), PARAMETER :: NPATCH2D = NPATCH
-  INTEGER(i4b), PARAMETER :: HEIGHT_BINS = 12 ! number of height categories to keep track of for diagnostics
+  !INTEGER(i4b), PARAMETER :: HEIGHT_BINS = 12 ! number of height categories to keep track of for diagnostics
+  INTEGER(i4b), PARAMETER :: DIAM_BINS = 16 ! number of diameter categories to keep track of for diagnostics
   REAL(dp), PARAMETER :: BIN_POWER = 1.4_dp ! bins have muscles
   ! Time base factor (to be multiplied by mean dist interval to give TIMEBASE)
   ! for sampling disturbance probabilities from Poisson distribution
@@ -151,7 +152,7 @@ END MODULE POP_Constants
 MODULE POP_Types
 
   USE TYPEdef, ONLY: dp, i4b
-  USE POP_Constants, ONLY: NCOHORT_MAX, NLAYER, HEIGHT_BINS, NDISTURB, NPATCH, NPATCH2D, &
+  USE POP_Constants, ONLY: NCOHORT_MAX, NLAYER, DIAM_BINS, NDISTURB, NPATCH, NPATCH2D, &
        NYEAR_HISTORY, AGEMAX
 
   IMPLICIT NONE
@@ -236,11 +237,11 @@ MODULE POP_Types
      REAL(dp), DIMENSION(NLAYER) :: density ! landscape tree density (weighted mean over patches)
      REAL(dp), DIMENSION(NLAYER) :: hmean ! landscape mean treen height (weighted mean over patches)
      REAL(dp), DIMENSION(NLAYER) :: hmax  ! landscape max tree height
-     REAL(dp), DIMENSION(HEIGHT_BINS) :: cmass_stem_bin ! biomass by height bin
-     REAL(dp), DIMENSION(HEIGHT_BINS) :: densindiv_bin ! density by height bin
-     REAL(dp), DIMENSION(HEIGHT_BINS) :: height_bin ! mean height in each bin
-     REAL(dp), DIMENSION(HEIGHT_BINS) :: diameter_bin ! mean diameter in each bin
-     CHARACTER(100), DIMENSION(HEIGHT_BINS) :: bin_labels ! text strings for bin bounds
+     REAL(dp), DIMENSION(DIAM_BINS) :: cmass_stem_bin ! biomass by height bin
+     REAL(dp), DIMENSION(DIAM_BINS) :: densindiv_bin ! density by height bin
+     REAL(dp), DIMENSION(DIAM_BINS) :: height_bin ! mean height in each bin
+     REAL(dp), DIMENSION(DIAM_BINS) :: diameter_bin ! mean diameter in each bin
+     CHARACTER(100), DIMENSION(DIAM_BINS) :: bin_labels ! text strings for bin bounds
      REAL(dp) :: cmass_sum ! landscape biomass
      REAL(dp) :: cmass_sum_old ! landscape biomass
      REAL(dp) :: cheartwood_sum ! landscape biomass (heart wood)
@@ -1383,7 +1384,7 @@ CONTAINS
     REAL(dp), INTENT(IN), OPTIONAL :: precip(:)
     INTEGER(i4b), INTENT(IN) :: it(:)
     INTEGER(i4b) :: P, g,i,j,ct, ct_highres
-    REAL(dp) :: limits(HEIGHT_BINS+1)
+    REAL(dp) :: limits(DIAM_BINS+1)
     REAL(dp) :: ht, cmass_stem,densindiv, freq, freq_old
     CHARACTER(len=12) :: string1, string2
     CHARACTER(len=9) :: fmt
@@ -1393,15 +1394,18 @@ CONTAINS
     REAL(dp) :: patch_crown_area(NPATCH2D), patch_crown_cover(NPATCH2D)
     REAL(dp), ALLOCATABLE :: height_list(:), height_list_weight(:)
     REAL(dp) :: height_copy, weight_copy, Pwc, FAVD
-    INTEGER(i4b), PARAMETER :: HEIGHT_BINS_highres=100 ! bins for assessing height_max
+    INTEGER(i4b), PARAMETER :: DIAM_BINS_highres=100 ! bins for assessing height_max
     REAL(dp), ALLOCATABLE :: limits_highres(:), DENSINDIV_HIGHRES(:)
     REAL(dp) :: tmp2
     integer :: arg1
 
     fmt = '(f5.1)'
-    limits(1) = 0.0_dp
-    IF(.NOT.ALLOCATED(limits_highres)) ALLOCATE(limits_highres(HEIGHT_BINS_highres+1))
-    IF(.NOT.ALLOCATED(DENSINDIV_HIGHRES)) ALLOCATE(DENSINDIV_HIGHRES(HEIGHT_BINS_highres))
+    !limits(1) = 0.0_dp
+    limits(:) = (/0.0_dp,0.01_dp,0.05_dp,0.1_dp,0.15_dp,0.2_dp,0.3_dp,0.4_dp,0.5_dp,0.6_dp,0.7_dp,0.8_dp, &
+                  0.9_dp,1.0_dp,1.5_dp,2.0_dp,2.5_dp/)
+    
+    IF(.NOT.ALLOCATED(limits_highres)) ALLOCATE(limits_highres(DIAM_BINS_highres+1))
+    IF(.NOT.ALLOCATED(DENSINDIV_HIGHRES)) ALLOCATE(DENSINDIV_HIGHRES(DIAM_BINS_highres))
 
     limits_highres(1) = 0.0_dp
     np = SIZE(Pop%pop_grid)
@@ -1414,20 +1418,22 @@ CONTAINS
        ENDIF
        !  IF(.NOT.ALLOCATED(MASK)) ALLOCATE(MASK(POP%pop_grid%npatch_active))
 
-       DO i=1,HEIGHT_BINS
-          limits(i+1) = BIN_POWER**REAL(i,dp)
+       DO i=1,DIAM_BINS
+          !limits(i+1) = BIN_POWER**REAL(i,dp)
           WRITE(string1,fmt) (limits(i))
           WRITE(string2,fmt) (limits(i+1))
-          pop%pop_grid(g)%bin_labels(i) = 'Height_'//TRIM(ADJUSTL(string1))//'-'//TRIM(ADJUSTL(string2))//'m'
+          pop%pop_grid(g)%bin_labels(i) = 'Diameter_'//TRIM(ADJUSTL(string1))//'-'//TRIM(ADJUSTL(string2))//'m'
           pop%pop_grid(g)%cmass_stem_bin(i) = 0.0_dp
           pop%pop_grid(g)%densindiv_bin(i) = 0.0_dp
           pop%pop_grid(g)%cmass_stem_bin(i) = 0.0_dp
-          pop%pop_grid(g)%height_bin(i) = REAL(limits(i)+limits(i+1),dp)/2.0_dp
-          pop%pop_grid(g)%diameter_bin(i) = ( (REAL(limits(i),dp)/Kbiometric)**(3.0_dp/2.0_dp) + &
-               (REAL(limits(i+1),dp)/Kbiometric)**(3.0_dp/2.0_dp) ) / 2.0_dp
+          !pop%pop_grid(g)%height_bin(i) = REAL(limits(i)+limits(i+1),dp)/2.0_dp
+          pop%pop_grid(g)%diameter_bin(i) = REAL(limits(i+1),dp)
+          !pop%pop_grid(g)%diameter_bin(i) = ( (REAL(limits(i),dp)/Kbiometric)**(3.0_dp/2.0_dp) + &
+          !     (REAL(limits(i+1),dp)/Kbiometric)**(3.0_dp/2.0_dp) ) / 2.0_dp
+          pop%pop_grid(g)%height_bin(i) = pop%pop_grid(g)%diameter_bin(i) ! TODO_JK: determine height_bins
        ENDDO
 
-       DO i=1,HEIGHT_BINS_highres
+       DO i=1,DIAM_BINS_highres
           limits_highres(i+1) = REAL(i,dp)
        ENDDO
 
@@ -1501,14 +1507,14 @@ CONTAINS
 
              ! get bin
              ct = 1
-             DO j=1,HEIGHT_BINS
-                IF (ht.GT.limits(j)) ct = j
+             DO j=1,DIAM_BINS
+                IF (diam .GT. limits(j)) ct = j
              ENDDO ! bins
 
              ! get high res bin
              ct_highres = 1
-             DO j=1,HEIGHT_BINS_highres
-                IF (ht.GT.limits_highres(j)) ct_highres = j
+             DO j=1,DIAM_BINS_highres
+                IF (diam .GT. limits_highres(j)) ct_highres = j
              ENDDO ! bins
 
              pop%pop_grid(g)%patch(p)%layer(1)%biomass = pop%pop_grid(g)%patch(p)%layer(1)%biomass + cmass_stem
@@ -1771,7 +1777,7 @@ CONTAINS
           cump = 0.0_dp
           j = 1
           densindiv_highres= densindiv_highres/max(SUM(densindiv_highres),1.0e-5_dp)
-          DO WHILE ((cump.LT.0.95_dp).AND.(j.LE.HEIGHT_BINS_highres))
+          DO WHILE ((cump.LT.0.95_dp).AND.(j.LE.DIAM_BINS_highres))
              cump = cump + densindiv_highres(j)
              pop%pop_grid(g)%height_max = (limits_highres(j+1) + limits_highres(j))/2.0_dp
              j = j+1

@@ -36,10 +36,10 @@ contains
     LOGICAL,          INTENT(IN)    :: CF
 
     INTEGER          :: STATUS, i, m, p, l, land_ID, patch_ID, ndis_ID
-    !CRM  INTEGER    :: ndis1_ID,nlay_ID,hgtb_ID,ncoh_ID,t_ID
-    INTEGER          :: nlay_ID, hgtb_ID, ncoh_ID, t_ID
+    !CRM  INTEGER    :: ndis1_ID,nlay_ID,diab_ID,ncoh_ID,t_ID
+    INTEGER          :: nlay_ID, diab_ID, ncoh_ID, t_ID
     INTEGER          :: nlayer_dim, ndisturb_dim, land_dim
-    INTEGER          :: HEIGHT_BINS_dim, npatch2d_dim, NCOHORT_MAX_dim
+    INTEGER          :: DIAM_BINS_dim, npatch2d_dim, NCOHORT_MAX_dim
     INTEGER          :: dID, t_dim, tx=-1, ntile, mp, CNT
     CHARACTER(len=3) :: typ
     CHARACTER        :: dum*9, fname*120
@@ -105,7 +105,7 @@ contains
     CHARACTER(len=40), DIMENSION(24) :: AR1
     ! 3 dim arrays (np,nlayer,t)
     CHARACTER(len=40), DIMENSION( 4) :: AR2
-    ! 3 dim arrays (np,height_bins,t)
+    ! 3 dim arrays (np,diam_bins,t)
     CHARACTER(len=40), DIMENSION( 4) :: AR3
     ! 3 dim arrays (np,ndisturb,t)
     CHARACTER(len=40), DIMENSION( 1) :: AI4
@@ -435,7 +435,7 @@ contains
              !CRM     IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
              STATUS = NF90_def_dim(FILE_ID, 'NLAYER'     , NLAYER     , nlay_ID )
              IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-             STATUS = NF90_def_dim(FILE_ID, 'HEIGHT_BINS', HEIGHT_BINS, hgtb_ID )
+             STATUS = NF90_def_dim(FILE_ID, 'DIAM_BINS', DIAM_BINS, diab_ID )
              IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
              STATUS = NF90_def_dim(FILE_ID, 'NCOHORT_MAX', NCOHORT_MAX, ncoh_ID )
              IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
@@ -489,7 +489,7 @@ contains
              END DO
 
              DO i = 1, SIZE(AR3)
-                STATUS = NF90_def_var(FILE_ID,TRIM(AR3(i)), NF90_DOUBLE, (/land_ID,hgtb_ID,t_ID/), VIDR3(i) &
+                STATUS = NF90_def_var(FILE_ID,TRIM(AR3(i)), NF90_DOUBLE, (/land_ID,diab_ID,t_ID/), VIDR3(i) &
 #ifndef __NETCDF3__
                      , deflate_level=1 &
 #endif
@@ -741,7 +741,7 @@ contains
 
        ! PUT 3D VARS ( mp,height_bins, t )
 
-       ALLOCATE( R2( mp, height_bins ) )
+       ALLOCATE( R2( mp, diam_bins ) )
        DO i = 1, SIZE(VIDR3)
           DO m = 1, mp
              SELECT CASE(i)
@@ -763,7 +763,7 @@ contains
              END SELECT
           END DO
           STATUS = NF90_PUT_VAR(FILE_ID, VIDR3( i), R2,         &
-               start=(/ 1, 1, CNT /), count=(/ mp, height_bins, 1 /) )
+               start=(/ 1, 1, CNT /), count=(/ mp, diam_bins, 1 /) )
           IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
        END DO
        DEALLOCATE( R2)
@@ -1147,9 +1147,9 @@ contains
        STATUS = NF90_INQUIRE_DIMENSION( FILE_ID, dID, LEN=NLAYER_dim )
        IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
 
-       STATUS = NF90_INQ_DIMID( FILE_ID, 'HEIGHT_BINS', dID )
+       STATUS = NF90_INQ_DIMID( FILE_ID, 'DIAM_BINS', dID )
        IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-       STATUS = NF90_INQUIRE_DIMENSION( FILE_ID, dID, LEN=HEIGHT_BINS_dim )
+       STATUS = NF90_INQUIRE_DIMENSION( FILE_ID, dID, LEN=DIAM_BINS_dim )
        IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
 
        STATUS = NF90_INQ_DIMID( FILE_ID, 'NCOHORT_MAX', dID )
@@ -1158,13 +1158,13 @@ contains
        IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
 
        IF ( land_dim .NE. mp .OR.  npatch2d_dim .NE. NPATCH2D .OR.  &
-            HEIGHT_BINS_dim .NE. HEIGHT_BINS .OR. NCOHORT_MAX_dim .NE. NCOHORT_MAX &
+            DIAM_BINS_dim .NE. DIAM_BINS .OR. NCOHORT_MAX_dim .NE. NCOHORT_MAX &
             .OR. NLAYER_dim .NE. NLAYER .OR. NDISTURB_dim .NE. NDISTURB ) THEN
           WRITE(*,*)"Dimension misfit in pop_io.F90!"
           WRITE(*,*)"Restart file  | Current Run"
           WRITE(*,*)"# points   ",land_dim,"     ",mp
           WRITE(*,*)"# patches  ",NPATCH2D_dim,"     ",NPATCH2D
-          WRITE(*,*)"# HGT_BINS ",HEIGHT_BINS_dim,"     ",HEIGHT_BINS
+          WRITE(*,*)"# DIAM_BINS ",DIAM_BINS_dim,"     ",DIAM_BINS
           WRITE(*,*)"NCOHORT_MAX",NCOHORT_MAX_dim,"     ",NCOHORT_MAX
           WRITE(*,*)"# NLAYER   ",NLAYER_dim,"     ",NLAYER
           WRITE(*,*)"# NDISTURB ",NDISTURB_dim,"     ",NDISTURB
@@ -1348,12 +1348,12 @@ contains
        DEALLOCATE( R2 )
 
        ! GET 2D VARS ( mp,height_bins )
-       ALLOCATE( R2( mp, height_bins ) )
+       ALLOCATE( R2( mp, diam_bins ) )
        DO i = 1, SIZE(AR3)
           STATUS = NF90_INQ_VARID( FILE_ID, TRIM(AR3(i)), dID )
           IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
           STATUS = NF90_GET_VAR  ( FILE_ID, dID, R2, &
-               start=(/ 1, 1, tx /), count=(/ mp, height_bins, 1 /) )
+               start=(/ 1, 1, tx /), count=(/ mp, diam_bins, 1 /) )
           IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
           DO m = 1, mp
              SELECT CASE ( i )
