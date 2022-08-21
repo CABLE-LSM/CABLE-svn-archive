@@ -2243,8 +2243,8 @@ CONTAINS
           IF (RECRUIT_SWITCH==0) THEN
              pop%pop_grid(j)%patch(k)%factor_recruit = EXP(-0.6_dp*((pop%pop_grid(j)%patch(k)%Layer(1)%biomass)**(0.6667_dp)))
           ELSEIF (RECRUIT_SWITCH==1) THEN
-             !pop%pop_grid(j)%patch(k)%factor_recruit = pop%pop_grid(j)%patch(k)%pgap
-             pop%pop_grid(j)%patch(k)%factor_recruit = 1
+             pop%pop_grid(j)%patch(k)%factor_recruit = pop%pop_grid(j)%patch(k)%pgap
+             !pop%pop_grid(j)%patch(k)%factor_recruit = 1
           ENDIF
           f = pop%pop_grid(j)%patch(k)%factor_recruit
           mu=EXP(FULTON_ALPHA*(1.0_dp-2.0_dp*THETA_recruit/(f+1.0_dp-SQRT((f+1.0_dp)*(f+1.0_dp)-4.0_dp*THETA_recruit*f))))
