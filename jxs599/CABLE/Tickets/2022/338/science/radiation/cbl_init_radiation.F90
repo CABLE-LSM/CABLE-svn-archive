@@ -138,7 +138,7 @@ IMPLICIT NONE
 INTEGER, INTENT(IN) :: mp
 INTEGER, INTENT(IN) :: nrb
 
-REAL, INTENT(OUT) :: xk(mp,nrb)      ! extinct. coef.for beam rad. and black leaves
+REAL, INTENT(OUT) :: xk(mp,nrb)   ! extinct. coef.for beam rad. and black leaves
 REAL, INTENT(OUT) :: c1(mp,nrb)
 REAL, INTENT(OUT) :: rhoch(mp,nrb)
 REAL, INTENT(OUT) :: xphi1(mp)    ! leaf angle parmameter 1
@@ -186,8 +186,9 @@ END SUBROUTINE Common_InitRad_Scalings
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-SUBROUTINE ExtinctionCoeff( ExtCoeff_beam, ExtCoeff_dif, mp, nrb, CGauss_w, Ccoszen_tols_tiny, reducedLAIdue2snow, &
-                            veg_mask, cLAI_thresh, coszen, xphi1, xphi2, xk, xvlai2)
+SUBROUTINE ExtinctionCoeff( ExtCoeff_beam, ExtCoeff_dif, mp, nrb, CGauss_w,    &
+                            Ccoszen_tols_tiny, reducedLAIdue2snow, veg_mask,   &
+                            cLAI_thresh, coszen, xphi1, xphi2, xk, xvlai2 )
 
 IMPLICIT NONE
 !model dimensions
@@ -197,16 +198,16 @@ INTEGER, INTENT(IN) :: nrb                    ! # of rad. bands VIS,NIR(,LW)
 REAL, INTENT(OUT) :: ExtCoeff_beam(mp)        !extinction co-eff RETURNED
 REAL, INTENT(OUT) :: ExtCoeff_dif(mp)         !extinction co-eff RETURNED
 
-LOGICAL, INTENT(IN) :: veg_mask(mp)           !vegetated mask based on a minimum LAI
+LOGICAL, INTENT(IN) :: veg_mask(mp)           !vegetated mask based on a min LAI
 REAL, INTENT(IN)  :: Cgauss_w(nrb)
-REAL, INTENT(IN)  :: Ccoszen_tols_tiny  ! 1e-4 * threshold cosine of sun's zenith angle, below which considered SUNLIT
+REAL, INTENT(IN)  :: Ccoszen_tols_tiny      ! min threshold of zenith for SUNLIT
 REAL, INTENT(IN)  :: cLAI_thresh
 REAL, INTENT(IN)  :: coszen(mp)
 REAL, INTENT(IN)  :: reducedLAIdue2snow(mp)
 REAL, INTENT(IN)  :: xphi1(mp)
 REAL, INTENT(IN)  :: xphi2(mp)
 REAL, INTENT(IN)  :: xvlai2(mp,nrb)  ! 2D vlai
-REAL, INTENT(IN)  :: xk(mp,nrb)      ! extinct. coef.for beam rad. and black leaves
+REAL, INTENT(IN)  :: xk(mp,nrb)      ! ext. coef.for beam rad. and black leaves
 
 ! initialization for bare soil
 ExtCoeff_beam = 0.5
@@ -254,13 +255,15 @@ IMPLICIT NONE
 INTEGER, INTENT(IN) :: mp                     ! number of "tiles"
 INTEGER, INTENT(IN) :: nrb                    ! # of rad. bands VIS,NIR(,LW)
 
-REAL, INTENT(OUT) :: EffExtCoeff_beam(mp,nrb)!Effective Extinction co-efficient for Direct Beam component of SW radiation
-REAL, INTENT(OUT) :: EffExtCoeff_dif(mp,nrb) !Effective Extinction co-efficient for Diffuse component of SW radiation
+! Effective Extinction co-efficients 
+REAL, INTENT(OUT) :: EffExtCoeff_beam(mp,nrb)! Direct Beam component to SW 
+REAL, INTENT(OUT) :: EffExtCoeff_dif(mp,nrb) ! Diffuse component to SW
 
 REAL :: c1(mp,nrb)
 LOGICAL :: veg_mask(mp)  !mask -  vegetated
-REAL, INTENT(IN) :: ExtCoeff_beam(mp)       !"raw" Extinction co-efficient for Direct Beam component of SW radiation
-REAL, INTENT(IN) :: ExtCoeff_dif(mp)        !"raw"Extinction co-efficient for Diffuse component of SW radiation
+! "raw" Extinction co-efficients 
+REAL, INTENT(IN) :: ExtCoeff_beam(mp)       ! Direct Beam component to SW
+REAL, INTENT(IN) :: ExtCoeff_dif(mp)        ! Diffuse component to SW
 
 EffExtCoeff_beam = 0.0
 EffExtCoeff_dif = 0.0
@@ -315,14 +318,14 @@ IMPLICIT NONE
 INTEGER, INTENT(IN) :: mp                     ! number of "tiles"
 INTEGER, INTENT(IN) :: nrb                    ! # of rad. bands VIS,NIR(,LW)
 
-REAL, INTENT(IN OUT) :: RadFbeam(mp,nrb)          ! Beam Fraction of SW [rad%fbeam]
+REAL, INTENT(IN OUT) :: RadFbeam(mp,nrb)       ! Beam Fraction of SW [rad%fbeam]
 
 REAL, INTENT(IN) :: Cpi                       ! PI
 REAL, INTENT(IN) :: Ccoszen_tols_huge         ! min. cos zenith for beam frac >0
 
 INTEGER, INTENT(IN):: metDoY(mp)              ! Day of the Year [met%doy]
-REAL, INTENT(IN):: coszen(mp)                 ! Day of the Year [formerly met%doy]
-REAL, INTENT(IN) :: SW_down(mp,nrb)           ! Downward SW [formerly met%fsd]
+REAL, INTENT(IN):: coszen(mp)                 ! Day of the Year [met%coszen]
+REAL, INTENT(IN) :: SW_down(mp,nrb)           ! Downward SW [met%fsd]
 
 
 ! Define beam fraction, fbeam:
