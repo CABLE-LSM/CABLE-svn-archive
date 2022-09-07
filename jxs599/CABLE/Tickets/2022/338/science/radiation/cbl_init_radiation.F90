@@ -77,8 +77,8 @@ REAL, INTENT(IN) :: SW_down(mp,nrb)           ! Downward SW [formerly met%fsd]
 INTEGER, INTENT(IN) :: metDoY(mp)             ! Day of the Year [met%doy]
 
 !local_vars - common scaling co-efficients used throughout init_radiation
-REAL :: Ccoszen_tols_huge             ! Set constant to avoid Hard-wiring limits 
-REAL :: Ccoszen_tols_tiny             ! that occur in more than one place       
+REAL :: Ccoszen_tols_huge             ! Set constant to avoid Hard-wiring limits
+REAL :: Ccoszen_tols_tiny             ! that occur in more than one place
 REAL :: xvlai2(mp,nrb)                ! 2D vlai
 REAL :: xphi1(mp)                     ! leaf angle parmameter 1
 REAL :: xphi2(mp)                     ! leaf angle parmameter 2
@@ -255,13 +255,13 @@ IMPLICIT NONE
 INTEGER, INTENT(IN) :: mp                     ! number of "tiles"
 INTEGER, INTENT(IN) :: nrb                    ! # of rad. bands VIS,NIR(,LW)
 
-! Effective Extinction co-efficients 
-REAL, INTENT(OUT) :: EffExtCoeff_beam(mp,nrb)! Direct Beam component to SW 
+! Effective Extinction co-efficients
+REAL, INTENT(OUT) :: EffExtCoeff_beam(mp,nrb)! Direct Beam component to SW
 REAL, INTENT(OUT) :: EffExtCoeff_dif(mp,nrb) ! Diffuse component to SW
 
 REAL :: c1(mp,nrb)
 LOGICAL :: veg_mask(mp)  !mask -  vegetated
-! "raw" Extinction co-efficients 
+! "raw" Extinction co-efficients
 REAL, INTENT(IN) :: ExtCoeff_beam(mp)       ! Direct Beam component to SW
 REAL, INTENT(IN) :: ExtCoeff_dif(mp)        ! Diffuse component to SW
 
