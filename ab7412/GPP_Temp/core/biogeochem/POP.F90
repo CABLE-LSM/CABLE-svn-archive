@@ -88,9 +88,9 @@ MODULE POP_Constants
   REAL(dp), PARAMETER :: Kbiometric = 50.0_dp ! Constant in height-diameter relationship
   REAL(dp), PARAMETER :: WD = 300.0_dp ! Wood density kgC/m3
   ! threshold growth efficiency for enhanced mortality (higher value gives higher biomass turnover)
-  REAL(dp), PARAMETER :: GROWTH_EFFICIENCY_MIN = 0.009_dp ! 0.0095 ! 0.0089 ! 0.0084
-  REAL(dp), PARAMETER :: Pmort = 5.0_dp ! exponent in mortality formula
-  REAL(dp), PARAMETER :: MORT_MAX = 0.3_dp ! upper asymptote for enhanced mortality
+  REAL(dp), PARAMETER :: GROWTH_EFFICIENCY_MIN = 0.009_dp ! 0.0095 ! 0.0089 ! 0.0084 
+  REAL(dp), PARAMETER :: Pmort = 5.0_dp ! exponent in mortality formula 
+  REAL(dp), PARAMETER :: MORT_MAX = 0.3_dp ! upper asymptote for enhanced mortality 
   REAL(dp), PARAMETER :: THETA_recruit = 0.95_dp ! shape parameter in recruitment equation
   REAL(dp), PARAMETER :: CMASS_STEM_INIT = 1.0e-4_dp ! initial biomass kgC/m2
   REAL(dp), PARAMETER :: POWERbiomass = 0.67_dp ! exponent for biomass in proportion to which cohorts preempt resources

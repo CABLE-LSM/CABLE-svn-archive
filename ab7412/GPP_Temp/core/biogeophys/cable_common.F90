@@ -289,7 +289,19 @@ MODULE cable_common_module
           g1,         & !  Ticket #56
           zr,         &
           clitt,      &
-          gamma
+          gamma,      &
+          Eav,        &
+          dSv,        &
+          Eaj,        &
+          dSj,        &
+          Eav_int,    &
+          Eav_slope,  &
+          dSv_int,    &
+          dSv_slope,  &
+          Eaj_acclim, &
+          dSj_int,    &
+          dSj_slope_Th, &
+          dSj_slope_TgTh 
 
      REAL, DIMENSION(:,:),ALLOCATABLE ::                                      &
           froot,      & !
@@ -440,6 +452,11 @@ CONTAINS
           READ(40,*) vegin%gswmin(jveg), vegin%conkc0(jveg), vegin%conko0(jveg), vegin%ekc(jveg), vegin%eko(jveg)
           READ(40,*) vegin%g0(jveg), vegin%g1(jveg)      ! Ticket #56
           READ(40,*) vegin%gamma(jveg), vegin%gmmax(jveg)
+          ! New parameters added to def_veg_params.txt for temperature acclimation optimisation experiment
+          READ(40,*) vegin%Eav(jveg), vegin%dSv(jveg)
+          READ(40,*) vegin%Eaj(jveg), vegin%dSj(jveg)
+          READ(40,*) vegin%Eav_int(jveg), vegin%Eav_slope(jveg), vegin%dSv_int(jveg), vegin%dSv_slope(jveg)
+          READ(40,*) vegin%Eaj_acclim(jveg), vegin%dSj_int(jveg), vegin%dSj_slope_Th(jveg), vegin%dSj_slope_TgTh(jveg) 
        END DO
 
     ELSE
@@ -850,6 +867,19 @@ CONTAINS
             veg%froot(h,:)  = vegin%froot(:, veg%iveg(h))
             veg%zr(h)       = vegin%zr(veg%iveg(h))
             veg%clitt(h)    = vegin%clitt(veg%iveg(h))
+            ! Temp. acclimation experiment
+            !veg%Eav(h)            = vegin%Eav(veg%iveg(h))
+            !veg%dSv(h)            = vegin%dSv(veg%iveg(h))
+            !veg%Eaj(h)            = vegin%Eaj(veg%iveg(h))
+            !veg%dSj(h)            = vegin%dSj(veg%iveg(h))
+            !veg%Eav_int(h)        = vegin%Eav_int(veg%iveg(h))
+            !veg%Eav_slope(h)      = vegin%Eav_slope(veg%iveg(h))
+            !veg%dSv_int(h)        = vegin%dSv_int(veg%iveg(h))
+            !veg%dSv_slope(h)      = vegin%dSv_slope(veg%iveg(h))
+            !veg%Eaj_acclim(h)     = vegin%Eaj_acclim(veg%iveg(h))
+            !veg%dSj_int(h)        = vegin%dSj_int(veg%iveg(h))
+            !veg%dSj_slope_Th(h)   = vegin%dSj_slope_Th(veg%iveg(h))
+            !veg%dSj_slope_TgTh(h) = vegin%dSj_slope_TgTh(veg%iveg(h))
          END DO ! over each veg patch in land point
 
   END SUBROUTINE init_veg_from_vegin
