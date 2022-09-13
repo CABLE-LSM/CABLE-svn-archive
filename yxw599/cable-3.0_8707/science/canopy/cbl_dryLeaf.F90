@@ -668,17 +668,6 @@ USE cable_photo_constants_mod, ONLY : CRGBWC => RGBWC
 
     DEALLOCATE( gswmin )
 
-!    ! print out point variables for diagnosis
-!      latx=-10.0;lonx=120.9375;ivegx=4
-!      do npt=1,mp
-!         if(abs(rad%latitude(npt)-latx)<0.1.and.abs(rad%longitude(npt)-lonx)<0.1.and.veg%iveg(npt)==ivegx) then
-!          if(canopy%fpn(npt)/=-12.0*SUM(an_y(npt,:))) then
-!            write(*,993) npt,veg%iveg(npt),canopy%vlaiw(npt),canopy%fpn(npt)*dels,canopy%frday(npt)*dels, &
-!                         -12.0*an_y(npt,:)*dels,vcmxt3(npt,:)*(1.0e6),rad%qcan(npt,1,:)
-!         endif
-!      enddo
-993 format('point dryleaf ',1(i6,1x),1(i2,1x),20(f8.4,1x))
-
   END SUBROUTINE dryLeaf
  
  
