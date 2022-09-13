@@ -1304,9 +1304,9 @@ CONTAINS
        patch(landpt(e)%cstart:landpt(e)%cend)%frac =                            &
             inPFrac(landpt(e)%ilon, landpt(e)%ilat, 1:landpt(e)%nap)
 
-       WRITE(22,*) 'cstart:cend lat and lon', e,  landpt(e)%cstart,landpt(e)%cend,latitude(e),longitude(e)
-       WRITE(22,*) 'iveg', e,  veg%iveg(landpt(e)%cstart:landpt(e)%cend)
-       WRITE(22,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
+       WRITE(logn,*) 'cstart:cend lat and lon', e,  landpt(e)%cstart,landpt(e)%cend,latitude(e),longitude(e)
+       WRITE(logn,*) 'iveg', e,  veg%iveg(landpt(e)%cstart:landpt(e)%cend)
+       WRITE(logn,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
 
        ! set land use (1 = primary; 2 = secondary, 3 = open)
        IF (cable_user%popluc) THEN
@@ -1713,16 +1713,6 @@ CONTAINS
 
 
 
-
-     ! print out point variables for diagnosis
-     latx=-10.0;lonx=120.9375;ivegx=4
-     do npt=1,mp
-        if(abs(rad%latitude(npt)-latx)<0.1.and.abs(rad%longitude(npt)-lonx)<0.1.and.veg%iveg(npt)==ivegx) then
-           write(*,992) npt,veg%iveg(npt),veg%frac4(npt),veg%vcmax(npt)*1.0e6
-        endif
-     enddo
-992 format('point writedef',1(i6,1x),1(i2,1x),20(f8.4,1x))
-
   END SUBROUTINE write_default_params
   !=============================================================================
   SUBROUTINE write_cnp_params(veg, casaflux, casamet)
@@ -1794,7 +1784,6 @@ CONTAINS
     ENDDO
     DEALLOCATE(inSorder, inArea, inNdep, inNfix, inPwea, inPdust, inNfert, inPfert)
 
-!    write(668,*) 'in write_cnp_params: Ndep, Nfix', casaflux%Nmindep(1), casaflux%Nminfix(1)
 
   END SUBROUTINE write_cnp_params
   !============================================================================

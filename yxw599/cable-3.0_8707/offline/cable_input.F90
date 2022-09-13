@@ -2805,20 +2805,10 @@ CONTAINS
     CALL check_parameter_values(soil,veg,ssnow)
 
     ! Write per-site parameter values to log file if requested:
-    ! ypw: may crahs if maxpatch >10
+    ! ypw: may crash if maxpatch >10
   !  CALL report_parameters(logn,soil,veg,bgc,rough,ssnow,canopy, &
  !        casamet,casapool,casaflux,phen,vegparmnew,verbose)
 
-
-    
-     ! print out point variables for diagnosis
-!     latx=-10.0;lonx=120.9375;ivegx=4
-!     do npt=1,mp
-!        if(abs(rad%latitude(npt)-latx)<0.1.and.abs(rad%longitude(npt)-lonx)<0.1.and.veg%iveg(npt)==ivegx) then
-!           write(*,995) npt,veg%iveg(npt),veg%frac4(npt),veg%vcmax(npt)*1.0e6
-!        endif
-!     enddo
-995 format('point loadpa5 ',1(i6,1x),1(i2,1x),20(f8.4,1x))
 
   END SUBROUTINE load_parameters
 

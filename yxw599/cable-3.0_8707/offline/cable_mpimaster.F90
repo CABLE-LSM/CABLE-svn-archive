@@ -379,9 +379,6 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
     real(r_2), dimension(:,:,:),   allocatable,  save  :: patchfrac_new    
 
 
- !ypw: temporary
-    integer g1,g2
-
     ! END header
     real :: latx,lonx
     integer ivegx,npt
@@ -613,17 +610,6 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
              canopy%fhs_cor = 0.
              met%ofsd = 0.1
 
-                 ! print out point variables for diagnosis
-             latx=-10.0;lonx=120.9375;ivegx=4
-             do npt=1,mp
-                if(abs(rad%latitude(npt)-latx)<0.1.and.abs(rad%longitude(npt)-lonx)<0.1.and.veg%iveg(npt)==ivegx) then
-                    print *, 'CALL1 a',CALL1    
-                    write(*,991) npt,veg%iveg(npt),veg%frac4(npt),veg%vcmax(npt)*1.0e6
-                endif
-             enddo
-991 format('point mpimas1 ',1(i6,1x),1(i2,1x),20(f8.4,1x))
-
-
              IF (.NOT.spinup)	spinConv=.TRUE.
 
              ! MPI: above was standard serial code
@@ -635,15 +621,6 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
 
           ENDIF
 
-                 ! print out point variables for diagnosis
-             latx=-10.0;lonx=120.9375;ivegx=4
-             do npt=1,mp
-                if(abs(rad%latitude(npt)-latx)<0.1.and.abs(rad%longitude(npt)-lonx)<0.1.and.veg%iveg(npt)==ivegx) then
-                    print *, 'CALL1 b',CALL1    
-                    write(*,992) npt,veg%iveg(npt),veg%frac4(npt),veg%vcmax(npt)*1.0e6
-                endif
-             enddo
-992 format('point mpimas2 ',1(i6,1x),1(i2,1x),20(f8.4,1x))
 
           CALL MPI_Bcast (kend, 1, MPI_INTEGER, 0, comm, ierr)
 
@@ -671,16 +648,6 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
 
              CALL master_cable_params(comm, met,air,ssnow,veg,bgc,soil,canopy,&
                   &                         rough,rad,sum_flux,bal)
-
-                 ! print out point variables for diagnosis
-             latx=-10.0;lonx=120.9375;ivegx=4
-             do npt=1,mp
-                if(abs(rad%latitude(npt)-latx)<0.1.and.abs(rad%longitude(npt)-lonx)<0.1.and.veg%iveg(npt)==ivegx) then
-                    print *, 'CALL1 c',CALL1    
-                    write(*,993) npt,veg%iveg(npt),veg%frac4(npt),veg%vcmax(npt)*1.0e6
-                endif
-             enddo
-993 format('point mpimas3 ',1(i6,1x),1(i2,1x),20(f8.4,1x))
 
 
              IF (cable_user%call_climate) THEN
@@ -762,15 +729,6 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
           ENDIF ! CALL1
 
 
-                 ! print out point variables for diagnosis
-             latx=-10.0;lonx=120.9375;ivegx=4
-             do npt=1,mp
-                if(abs(rad%latitude(npt)-latx)<0.1.and.abs(rad%longitude(npt)-lonx)<0.1.and.veg%iveg(npt)==ivegx) then
-                    print *, 'CALL1 d',CALL1    
-                    write(*,994) npt,veg%iveg(npt),veg%frac4(npt),veg%vcmax(npt)*1.0e6
-                endif
-             enddo
-994 format('point mpimas4 ',1(i6,1x),1(i2,1x),20(f8.4,1x))
           ! Open output file:
           IF (.NOT.CASAONLY) THEN
              IF ( TRIM(filename%out) .EQ. '' ) THEN
@@ -1454,7 +1412,7 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
        allocate(luc_atransit(mland,mvmax,mvmax))
        allocate(luc_fharvw(mland,mharvw))
        allocate(luc_xluh2cable(mland,mvmax,mstate))
-	   allocate(luc_delarea(mland,mvmax))
+       allocate(luc_delarea(mland,mvmax))
        allocate(landmask(mlon,mlat))
        allocate(arealand(mland))
        allocate(patchfrac_new(mlon,mlat,mvmax))
@@ -1468,14 +1426,10 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
 
        call landuse_data(mlon,mlat,landmask,arealand,luc_atransit,luc_fharvw,luc_xluh2cable,luc_delarea)
 
-!       print *, 'transit at mland=48 ', luc_atransit(48,:,:)
-
        call  landuse_driver(mlon,mlat,landmask,arealand,ssnow,soil,veg,bal,canopy,  &
                            phen,casapool,casabal,casamet,casabiome,casaflux,bgc,rad, &
                            cstart,cend,nap,lucmp,luc_atransit,luc_fharvw,luc_xluh2cable,luc_delarea)
 
-!       print *, 'writing new gridinfo: landuse'
-!       print *, 'new patch information. mland= ',mland
 
        do m=1,mland
           do np=cstart(m),cend(m)
@@ -1486,7 +1440,7 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
              endif      
              patchfrac_new(landpt(m)%ilon,landpt(m)%ilat,ivt) = lucmp%patchfrac(np)
           enddo
-!          print *,m,nap(m),lucmp%iveg(cstart(m):cend(m)),lucmp%patchfrac(cstart(m):cend(m))
+
        enddo    
 
        call create_new_gridinfo(filename%type,filename%gridnew,mlon,mlat,landmask,patchfrac_new)                   
@@ -1511,7 +1465,7 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
             rad, rough, soil, ssnow,                            &
             sum_flux, veg )
 
-       ! WRITE(logn,*) bal%wbal_tot, bal%ebal_tot, bal%ebal_tot_cncheck
+
     ENDIF
 
     ! Close log file

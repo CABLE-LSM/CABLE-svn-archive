@@ -81,8 +81,10 @@ SUBROUTINE landuse_getxluh2(mlat,mlon,landmask,fxluh2cable,luc_xluh2cable)
   USE netcdf
   USE cable_def_types_mod,  ONLY: mland,r_2
   use landuse_constant,     ONLY: mstate,mvmax
+  USE casa_ncdf_module,     ONLY: HANDLE_ERR  
   IMPLICIT NONE
   character*500 fxluh2cable
+  character*200 msg
   integer   mlat,mlon
   integer,  dimension(mlon,mlat)                 :: landmask
   real(r_2),dimension(mland,mvmax,mstate)        :: luc_xluh2cable
@@ -95,11 +97,14 @@ SUBROUTINE landuse_getxluh2(mlat,mlon,landmask,fxluh2cable,luc_xluh2cable)
     ok = nf90_open(fxluh2cable,nf90_nowrite,ncid2)
     ok = nf90_inq_varid(ncid2,"XLUH2CABLE_ACCESS",varxid)
     ok = nf90_get_var(ncid2,varxid,xluh2cable)
-    if(ok/=0) then
-       print *, 'tranistion matrix was not read correctly!'
-       print *, 'variable XLUH2CABLE_ACCESS in file= ',fxluh2cable
-       stop
-    endif
+	msg='transition matrix was not read correctly from file: '//trim(fxluh2cable)
+	call handle_err(ok,msg)
+	
+!    if(ok/=0) then
+!       print *, 'tranistion matrix was not read correctly!'
+!       print *, 'variable XLUH2CABLE_ACCESS in file= ',fxluh2cable
+!       stop
+!    endif
     
     ok = nf90_close(ncid2)
     ! assig the values of luc%variables
@@ -139,8 +144,10 @@ SUBROUTINE landuse_getdata(mlat,mlon,landmask,fxpft0,fxpft,luc_atransit,luc_fhar
   USE netcdf
   USE cable_def_types_mod,  ONLY: mland,r_2
   use landuse_constant,     ONLY: mstate,mvmax,mharvw
+  USE casa_ncdf_module,     ONLY: HANDLE_ERR
   IMPLICIT NONE
   character*500 fxpft0,fxpft
+  character*200 msg
   integer mlat,mlon
   integer,   dimension(mlon,mlat)               :: landmask 
   real(r_2), dimension(mland,mvmax,mvmax)       :: luc_atransit
@@ -166,34 +173,43 @@ SUBROUTINE landuse_getdata(mlat,mlon,landmask,fxpft0,fxpft,luc_atransit,luc_fhar
     ok = nf90_open(fxpft0,nf90_nowrite,ncid0)
     ok = nf90_inq_varid(ncid0,"CABLEpft",varxid)
     ok = nf90_get_var(ncid0,varxid,cablepft0)
-	if(ok/=0) then
-       print *, 'cablepft0 was not read correctly!'
-       print *, 'In file= ',fxpft0
-       stop
-    endif
+	msg='cablepft0 was not read correctly from file= '//trim(fxpft0)
+	call handle_err(ok,msg)
+!	if(ok/=0) then
+!       print *, 'cablepft0 was not read correctly!'
+!       print *, 'In file= ',fxpft0
+!       stop
+!    endif
+
 	ok = nf90_inq_varid(ncid0,"patchfrac",varxid)
 	ok = nf90_get_var(ncid0,varxid,fracpatch0)
-	if(ok/=0) then
-       print *, 'patchfrac0 was not read correctly!'
-       print *, 'In file= ',fxpft0
-       stop
-    endif
+	msg='patchfrac0 was not read correctly from file= '//trim(fxpft0)
+	call handle_err(ok,msg)
+!	if(ok/=0) then
+!       print *, 'patchfrac0 was not read correctly!'
+!       print *, 'In file= ',fxpft0
+!       stop
+!    endif
 	
     ok = nf90_inq_varid(ncid0,"harvest",varxid)
     ok = nf90_get_var(ncid0,varxid,fracharvw)
-    if(ok/=0) then
-       print *, 'tranistion matrix was not read correctly!'
-       print *, 'variable harvest in file= ',fxpft0
-       stop
-    endif
+	msg='harvest was not read correctly from file= '//trim(fxpft0)	
+	call handle_err(ok,msg)	
+!    if(ok/=0) then
+!       print *, 'tranistion matrix was not read correctly!'
+!       print *, 'variable harvest in file= ',fxpft0
+!       stop
+!    endif
     
     ok = nf90_inq_varid(ncid0,"transition",varxid)
     ok = nf90_get_var(ncid0,varxid,transitx)
-    if(ok/=0) then
-       print *, 'tranistion matrix was not read correctly!'
-       print *, 'variable transition in file= ',fxpft0
-       stop
-    endif
+	msg='transition matrix was not read correctly from file= '//trim(fxpft0)
+    call handle_err(ok,msg)	
+!    if(ok/=0) then
+!       print *, 'tranistion matrix was not read correctly!'
+!       print *, 'variable transition in file= ',fxpft0
+!       stop
+!    endif
 	
     ok = nf90_close(ncid0)
 
@@ -201,18 +217,23 @@ SUBROUTINE landuse_getdata(mlat,mlon,landmask,fxpft0,fxpft,luc_atransit,luc_fhar
     ok = nf90_open(fxpft,nf90_nowrite,ncid1)
     ok = nf90_inq_varid(ncid1,"CABLEpft",varxid)
     ok = nf90_get_var(ncid1,varxid,cablepft1)
-	if(ok/=0) then
-       print *, 'cablepft was not read correctly!'
-       print *, 'In file= ',fxpft
-       stop
-    endif
+	msg='cablepft was not read correctly from file= '//trim(fxpft)
+	call handle_err(ok,msg)	
+!	if(ok/=0) then
+!       print *, 'cablepft was not read correctly!'
+!       print *, 'In file= ',fxpft
+!       stop
+!    endif
 	ok = nf90_inq_varid(ncid1,"patchfrac",varxid)
 	ok = nf90_get_var(ncid1,varxid,fracpatch1)
-	if(ok/=0) then
-       print *, 'patchfrac was not read correctly!'
-       print *, 'In file= ',fxpft
-       stop
-    endif
+	msg='patchfrac was not read correctly from file= '//trim(fxpft)
+	call handle_err(ok,msg)		
+
+!	if(ok/=0) then
+!       print *, 'patchfrac was not read correctly!'
+!       print *, 'In file= ',fxpft
+!       stop
+!   endif
     
     ok = nf90_close(ncid1)
 
@@ -443,7 +464,6 @@ END SUBROUTINE landuse_getdata
 
      ok = nf90_close(ncid0)
 
-     !
      ! create ACCESS ESM pool size file
      ok = nf90_create(fgridnew,nf90_clobber,ncid11)
      if(ok/=nf90_noerr) call nc_abort(ok, 'error in opening fgridnew') 
@@ -1269,7 +1289,7 @@ END SUBROUTINE landuse_getdata
 
     WRITE(logn, '(A36)') ' Landuse on: Writing restart file...'
 
-    print *, 'write out patch information in restart_cable'
+    WRITE(logn, '(A60)') 'write out patch information in restart_cable'
 
     IF ( TRIM(filename%path) .EQ. '' ) filename%path = './'
     frst_out = TRIM(filename%path)//'/'//TRIM(filename%restart_out)
@@ -1280,7 +1300,7 @@ END SUBROUTINE landuse_getdata
             '_'//CYEAR//'_cable_rst.nc'
     ENDIF
 
-    print *, 'landuse on: cable restart filename= ',frst_out
+!    print *, 'landuse on: cable restart filename= ',frst_out
 !    do m=1,mland
 !       write(*,991) m,nap(m),(lucmp%iveg(npt),lucmp%patchfrac(npt),npt=cstart(m),cend(m))
 !    enddo
