@@ -1845,22 +1845,23 @@ END SUBROUTINE landuse_transitx
   ! based on numerical recipes, straight insertion method  p322
   USE cable_def_types_mod,  ONLY: r_2
   implicit none
-  integer mvmax
-  integer,      dimension(mvmax)  :: tmpint
-  real(r_2),    dimension(mvmax)  :: tmpx
-  integer i, j, na
-  real(r_2)     xa
+  integer,      intent(in)     :: mvmax
+  integer,      intent(inout)  :: tmpint(mvmax)
+  real(r_2),    intent(inout)  :: tmpx(mvmax)
+  integer                      :: i, j, na
+  real(r_2)                    :: xa
 
     do j=2,mvmax
        xa = tmpx(j)
        na = tmpint(j)
        do i=j-1,1,-1
-          if(tmpx(i)>=xa) go to 10
+          if(tmpx(i)>=xa) exit
             tmpx(i+1) = tmpx(i)
             tmpint(i+1) = tmpint(i)
        enddo
-       i=0
-10     tmpx(i+1)   = xa
+       if(tmpx(i)<xa) i=0
+!       if(i==1) i=0
+       tmpx(i+1)   = xa
        tmpint(i+1) = na
     enddo
 
