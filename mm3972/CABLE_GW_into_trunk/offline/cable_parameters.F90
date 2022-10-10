@@ -59,8 +59,6 @@ MODULE cable_param_module
   USE phenvariable
   USE cable_abort_module
   USE cable_IO_vars_module
-!!$  USE cable_common_module, ONLY: cable_user, hide, gw_params, &  ! replaced by below as per MMY code -- rk4417
-!!$                                 init_veg_from_vegin
   USE cable_common_module, ONLY: cable_user, hide, &
                                  gw_params,init_veg_from_vegin,filename,&
                                  report_parameters_to_log,psi_c,psi_o
@@ -71,11 +69,9 @@ MODULE cable_param_module
   PRIVATE
   PUBLIC get_default_params, write_default_params, derived_parameters,         &
        check_parameter_values, report_parameters, parID_type,                &
-       write_cnp_params,GWspatialParameters  ! added GWspatialParameters as per MMY code -- rk4417
-  INTEGER :: patches_in_parfile=4 ! # patches in default global parameter
-!!$  ! file  ! replaced by below as per MMY code -- rk4417
-  ! file . which one? 
-  
+       write_cnp_params, GWspatialParameters  
+  INTEGER :: patches_in_parfile=4 ! # patches in default global parameter ! MMY???
+
   CHARACTER(LEN=4)  :: classification
 
   ! Variables below are temporary - for file read-in:
@@ -111,6 +107,7 @@ MODULE cable_param_module
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: insand
 
   !MD temp vars for reading in aquifer properties !--- this block missing from MMY code -- rk4417
+  ???? I guess we dont need these
   LOGICAL :: found_explicit_gw_parameters
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: inGWbch  
   REAL,    DIMENSION(:, :),     ALLOCATABLE :: inGWssat
@@ -141,8 +138,7 @@ MODULE cable_param_module
 
 CONTAINS
 
-!!$  SUBROUTINE get_default_params(logn, vegparmnew, LUC_EXPT)  ! replaced as per MMY code -- rk4417
-  SUBROUTINE get_default_params(logn, vegparmnew, LUC_EXPT,soil,ssnow)
+  SUBROUTINE get_default_params(logn, vegparmnew, LUC_EXPT)
     USE cable_common_module, ONLY : filename,             &
          calcsoilalbedo,cable_user
     ! Load parameters for each veg type and each soil type. (get_type_parameters)
@@ -156,8 +152,7 @@ CONTAINS
     INTEGER, INTENT(IN) :: logn     ! log file unit number
     LOGICAL,      INTENT(IN) :: vegparmnew ! new format input file (BP dec2007)
     TYPE (LUC_EXPT_TYPE), INTENT(INOUT) :: LUC_EXPT
-    TYPE (soil_parameter_type), INTENT(INOUT) :: soil  ! added 2 lines as per MMY code -- rk4417
-    TYPE (soil_snow_type),      INTENT(INOUT) :: ssnow
+
     
     ! local variables
     INTEGER :: npatch
@@ -173,9 +168,11 @@ CONTAINS
     WRITE(logn,*) ' And assigning C4 fraction according to veg classification.'
     WRITE(logn,*)
     IF(exists%patch) THEN
-      CALL read_gridinfo(nlon,nlat,nmetpatches)!, &
+      CALL read_gridinfo(nlon,nlat,nmetpatches)!, & ! MMY??? 
+      print *, "MMY in get_default_params IF (exists%patch) == true" ! MMY testing point
     ELSE 
-      CALL read_gridinfo(nlon,nlat,npatch)           ! note that in MMY code only the else body exists -- rk4417
+      CALL read_gridinfo(nlon,nlat,npatch)           ! note that in MMY code only the else body exists -- rk4417 ! MMY???
+      print *, "MMY in get_default_params IF (exists%patch) == false" ! MMY testing point
     END IF
     
     ! Overwrite veg type and inital patch frac with land-use info
@@ -196,7 +193,7 @@ CONTAINS
        CALL read_soilcolor(logn)
     END IF
 
-    IF (cable_user%force_npatches_as .gt. 0) npatch=cable_user%force_npatches_as ! inserted as per MMY code -- rk4417
+    IF (cable_user%force_npatches_as .gt. 0) npatch=cable_user%force_npatches_as ! inserted as per MMY code -- rk4417 ! MMY???
 
     ! count to obtain 'landpt', 'max_vegpatches' and 'mp'
     CALL countPatch(nlon, nlat, npatch)
@@ -234,7 +231,7 @@ CONTAINS
     IMPLICIT NONE
     INTEGER, INTENT(OUT) :: nlon
     INTEGER, INTENT(OUT) :: nlat
-    INTEGER, INTENT(INOUT) :: npatch    ! note that this is only 'OUT' in MMY code -- rk4417
+    INTEGER, INTENT(INOUT) :: npatch   
 
     ! local variables
     INTEGER :: ncid, ok
@@ -244,7 +241,7 @@ CONTAINS
     INTEGER :: ii, jj, kk,pp
     INTEGER, DIMENSION(:, :),     ALLOCATABLE :: idummy
     REAL,    DIMENSION(:, :),     ALLOCATABLE :: rdummy
-    REAL,    DIMENSION(:, :, :),  ALLOCATABLE :: r3dum, r3dum2, r3dum3, r3dum4
+    REAL,    DIMENSION(:, :, :),  ALLOCATABLE :: r3dum, r3dum2
 
     ok = NF90_OPEN(filename%type, 0, ncid)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error opening grid info file.')
@@ -259,7 +256,7 @@ CONTAINS
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error inquiring y dimension.')
     ok = NF90_INQUIRE_DIMENSION(ncid, yID, LEN=nlat)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error getting y dimension.')
-    IF(.NOT. exists%patch) THEN        ! note that in MMY code only the IF body exists -- rk4417
+    IF(.NOT. exists%patch) THEN        ! note that in MMY code only the IF body exists -- rk4417 ! MMY???
       ok = NF90_INQ_DIMID(ncid, 'patch', pID)
       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error inquiring patch dimension.')
       ok = NF90_INQUIRE_DIMENSION(ncid, pID, LEN=npatch)
@@ -275,7 +272,7 @@ CONTAINS
     ok = NF90_INQUIRE_DIMENSION(ncid, bID, LEN=nband)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error getting rad dimension.')
 
-    !pass npatch to the def_types module    ! added 3 comment lines as per MMY code -- rk4417
+    !pass npatch to the def_types module
     !enables a future where npatch can be set to any value by reading in
     !tile info from gridinfo like file
 
@@ -329,17 +326,14 @@ CONTAINS
     IF(.NOT. exists%patch) THEN      ! no IF in MMY code -- rk4417
       ok = NF90_INQ_VARID(ncid, 'iveg', varID)
       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable iveg.')
-      !CLN    ok = NF90_GET_VAR(ncid, varID, idummy)   ! uncommented in MMY code -- rk4417
       ok = NF90_GET_VAR(ncid, varID, inVeg)
       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable iveg.')
-      !CLN    inVeg(:, :, 1) = idummy(:,:) ! npatch=1 in 1x1 degree input   ! uncommented in MMY code -- rk4417
       ok = NF90_INQ_VARID(ncid, 'patchfrac', varID)
       IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                    &
            'Error finding variable patchfrac.')
       ok = NF90_GET_VAR(ncid, varID, inPFrac)
       IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                    &
            'Error reading variable patchfrac.')
-      !CLN    inPFrac(:, :, 1) = rdummy(:, :)
     ELSE                                                      ! else body missing from MMY code -- rk4417
       !loop through lat and lon to fill patch and veg vars
       DO lon = 1,nlon
@@ -489,7 +483,7 @@ CONTAINS
     ! local variables
     INTEGER :: ncid, ok, ii, jj, kk, ok2, ncid_elev
     INTEGER :: xID, yID, fieldID
-    INTEGER :: xlon, xlat, ok_gw_elev   ! added ok_gw_elev as per MMY code -- rk4417
+    INTEGER :: xlon, xlat
     REAL, DIMENSION(:,:,:,:), ALLOCATABLE :: indummy
     REAL, DIMENSION(:,:),     ALLOCATABLE :: sfact, dummy2
     REAL, DIMENSION(:,:),     ALLOCATABLE :: in2alb
@@ -1043,8 +1037,7 @@ CONTAINS
     landpt(:)%ilat = -999
     ncount = 0
     DO kk = 1, mland
-       distance = 300.0 ! initialise, units are degrees
-!!$       distance = 5300.0 ! initialise, units are degrees  ! replaces line above in MMY code -- rk4417
+       distance = 300.0 ! initialise, units are degrees ! MMY distance = 5300.0 in CABLE-GW
        DO jj = 1, nlat
           DO ii = 1, nlon
              IF (inVeg(ii,jj, 1) > 0) THEN
@@ -1058,14 +1051,6 @@ CONTAINS
              END IF
           END DO
        END DO
-
-!!$ inserted 2 IFs below as per MMY code -- rk4417
-
-       IF (longitude(kk)-inLon(landpt(kk)%ilon) /= 0.) print *, "longitude: ", longitude(kk), &   ! MMY
-                                                                "inLon: ", inLon(landpt(kk)%ilon) ! MMY
-       IF (latitude(kk)-inLat(landpt(kk)%ilat) /= 0.) print *, "latitude: ", latitude(kk),    &   ! MMY
-                                                               "inLat: ", inLat(landpt(kk)%ilat)  ! MMY
-
 
        IF (landpt(kk)%ilon < -900 .OR. landpt(kk)%ilat < -900) THEN
           PRINT *, 'Land point ', kk, ' cannot find the nearest grid!'
@@ -1229,7 +1214,6 @@ CONTAINS
     INTEGER :: ir     ! BP sep2010
     REAL :: totdepth  ! YP oct07
     REAL :: tmp       ! BP sep2010
-    REAL, ALLOCATABLE, DIMENSION(:,:) :: tmp_mp_ms    ! inserted line as per MMY code -- rk4417
     
     !    The following is for the alternate method to calculate froot by Zeng 2001
     !    REAL :: term1(17), term2(17)                ! (BP may2010)
@@ -1272,11 +1256,9 @@ CONTAINS
     canopy%fe    = 0.0  ! sensible heat flux
     !mrd
     ssnow%qrecharge = 0.0
-    ssnow%GWwb = -1.0        ! note this line is missing from MMY code -- rk4417 
     ssnow%wtd = 1.0
     canopy%sublayer_dz = 0.001  !could go into restart to ensure starting/stopping runs gives identical results
     !however the impact is negligible
-!!$ note that line above appears as below in MMY code -- rk4417
 !!$    canopy%sublayer_dz = 0.01  !could go into restart to ensure starting/stopping runs gives identical results
 !!$                                !however the impact is negligible
     
@@ -1308,34 +1290,27 @@ CONTAINS
 
     END SELECT
 
-    soil%zse_vec = real(spread(soil%zse,1,mp),r_2)      ! inserted line as per MMY code -- rk4417
-    
-    !ELSE
-
-    !   ! parameters that are not spatially dependent
-    !   soil%zse = (/.022, .058, .154, .409, 1.085, 2.872/) ! layer thickness nov03
-
-    !ENDIF
+    soil%zse_vec = real(spread(soil%zse,1,mp),r_2)      ! inserted line as per MMY code -- rk4417 ! MMY???
 
     rough%za_uv = 40.0 ! lowest atm. model layer/reference height
     rough%za_tq = 40.0
 
     veg%meth = 1 ! canopy turbulence parameterisation method: 0 or 1
 
-    !! I brought this in with manual merge of #199 BUT Am i bringing this back in ?
-    !!! calculate vegin%froot from using rootbeta and soil depth
-    !!! (Jackson et al. 1996, Oceologica, 108:389-411)
-    !!totdepth = 0.0
-    !!DO is = 1, ms
-    !!   totdepth = totdepth + soil%zse(is) * 100.0  ! unit in centimetres
-    !!   vegin%froot(is, :) = MIN(1.0, 1.0-vegin%rootbeta(:)**totdepth)
-    !!END DO
-    !!DO is = ms, 2, -1
-    !!   vegin%froot(is, :) = vegin%froot(is, :)-vegin%froot(is-1, :)
-    !!END DO
+    ! I brought this in with manual merge of #199 BUT Am i bringing this back in ?
+    ! calculate vegin%froot from using rootbeta and soil depth
+    ! (Jackson et al. 1996, Oceologica, 108:389-411)
+    totdepth = 0.0
+    DO is = 1, ms
+      totdepth = totdepth + soil%zse(is) * 100.0  ! unit in centimetres
+      vegin%froot(is, :) = MIN(1.0, 1.0-vegin%rootbeta(:)**totdepth)
+    END DO
+    DO is = ms, 2, -1
+      vegin%froot(is, :) = vegin%froot(is, :)-vegin%froot(is-1, :)
+    END DO
 
-!!$ note that above block is uncommented in MMY code -- rk4417
-
+    ! MMY note that in core/utils/cable_pft_params.F90, vegin%froot are prescripted in trunk version, 
+    ! MMY we shouldn't use the prescripted froot 
     
     ALLOCATE(defaultLAI(mp, 12))
 
@@ -1347,16 +1322,12 @@ CONTAINS
             inVeg(landpt(e)%ilon, landpt(e)%ilat, 1:landpt(e)%nap)
        patch(landpt(e)%cstart:landpt(e)%cend)%frac =                            &
             inPFrac(landpt(e)%ilon, landpt(e)%ilat, 1:landpt(e)%nap)
-
-       WRITE(*,*) 'iveg', e,  veg%iveg(landpt(e)%cstart:landpt(e)%cend)
-       WRITE(*,*) 'patchfrac', e,  patch(landpt(e)%cstart:landpt(e)%cend)%frac
-!!$ note that above 2 lines are commented out in MMY code -- rk4417
        
        ! set land use (1 = primary; 2 = secondary, 3 = open)
        IF (cable_user%popluc) THEN
           veg%iLU(landpt(e)%cstart:landpt(e)%cend)= 1
           IF (landpt(e)%nap.EQ.3 .AND.veg%iveg(landpt(e)%cstart)<=5 ) THEN
-!!$         if (landpt(e)%nap.gt.1) then  ! replaces line above in MMY code -- rk4417
+!!$         if (landpt(e)%nap.gt.1) then  ! replaces line above in MMY code -- rk4417 ! MMY ???
              veg%iLU(landpt(e)%cstart+1) = 2
              veg%iLU(landpt(e)%cend) = 3
           ENDIF
@@ -1427,9 +1398,7 @@ CONTAINS
           END DO
           ! total depth, change from m to mm !see Ticket #57
           ssnow%snowd(landpt(e)%cstart + is - 1)                                 &
-               = inSND(landpt(e)%ilon, landpt(e)%ilat, is, month) * 140.0
-!!$ note that line above appears as below in MMY code -- rk4417
-!!$          = inSND(landpt(e)%ilon, landpt(e)%ilat, is, month) * 1000.0
+             = inSND(landpt(e)%ilon, landpt(e)%ilat, is, month) * 1000.0 ! MMY *140.0 in trunk - should be wrong.
        END DO
 
        ! Set default LAI values
@@ -1878,7 +1847,6 @@ CONTAINS
     REAL    :: tmp2(mp)
 
     REAL(r_2), DIMENSION(mp,ms) :: perc_frac
-    REAL(r_2), DIMENSION(17)    :: psi_o,psi_c   ! appears commented out in MMY code -- rk4417
     REAL(r_2), DIMENSION(mp,ms) :: psi_tmp
 !!$    REAL(r_2), DIMENSION(ms) :: soil_depth  ! replaced by 2 lines below as per MMY code -- rk4417
     REAL(r_2), DIMENSION(mp,ms) :: soil_depth,rhosoil_temp
@@ -1898,14 +1866,6 @@ CONTAINS
        soil_depth(:,klev) = soil_depth(:,klev-1) + soil%zse_vec(:,klev)
     end do
 
-    psi_o(1:3)  = -66000._r_2      ! this block appears commented out in MMY code -- rk4417            
-    psi_o(4)    = -35000._r_2
-    psi_o(5)    = -83000._r_2
-    psi_o(6:17) = -74000._r_2
-    psi_c(1:3)  = -2550000._r_2
-    psi_c(4)    = -2240000._r_2
-    psi_c(5)    = -4280000._r_2
-    psi_c(6:17) = -2750000._r_2
     ! Construct derived parameters and zero initialisations,
     ! regardless of where parameters and other initialisations
     ! have loaded from:
@@ -2066,7 +2026,7 @@ CONTAINS
               elseif (gw_params%HC_SWC) THEN
                 !Hutson-Cass SWC : seperate dry/wet
                 !avoid discont in derv at smp=sucs
-                !pedo transfer from T. Mayr, N.J. JarÕisr Geoderma 91
+                !pedo transfer from T. Mayr, N.J. Jarï¿½isr Geoderma 91
                 ! 1999
                 soil%sucs_vec(i,klev) = 10.0 * 10.0** ( -4.98403 +&
                                          5.0922*soil%sand_vec(i,klev) +            &
@@ -3404,6 +3364,7 @@ CONTAINS
          integer :: varid
          integer :: varinq_status,varget_status
 
+         print *, "MMY in get_gw_2d_var_constdef" ! MMY add to test whether get_gw_2d_var_constdef is necessary
          default_data(:,:) = default_const
 
          if (.not.cable_user%gw_model) then
