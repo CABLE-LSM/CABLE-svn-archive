@@ -15,11 +15,11 @@ PUBLIC
 ! This file belongs in CABLE SCIENCE
 !-----------------------------------------------------------------------------
 
-INTEGER, PARAMETER ::                                                          &
+INTEGER, PARAMETER ::                                                         &
   swb = 2,           & ! 2 shortwave bands (initial division - visible /
-                       ! near infrared)
+                       !   near infrared)
   n_sw_bands = 4,    & ! total number of shortwave radiation bands
-                       ! (above divided into direct / diffuse)
+                       !   (above divided into direct / diffuse)
   mf = 2,            & ! types of leaves (sunlit / shaded)
   r_2  = SELECTED_REAL_KIND(12, 50), &!this will be removed
                        ! double precision real dimension
@@ -27,15 +27,15 @@ INTEGER, PARAMETER ::                                                          &
   n_assim_rates = 3, & ! Rubisco, RuBP and Sink-limited rates of photosynthesis
   n_soiltypes = 9      ! number of soil types
 
-REAL, PARAMETER ::                                                             &
+REAL, PARAMETER ::                                                            &
   max_snow_depth = 50000.0,  & ! maximum depth of lying snow on tiles (kg/m2)
   init_snow_rho1l = 140.0      ! Initial value for snow mean density
 ! Gaussian integ. weights
 !REAL, PARAMETER :: gauss_w(nrb)=(/0.308,0.514,0.178 /) ! F90 
 REAL, PARAMETER :: gauss_w(nrb)=[0.308,0.514,0.178 ]    ! F03
-REAL, PARAMETER :: rad_thresh = 0.001
+REAL, PARAMETER :: rad_thresh = 0.001   !=0.01 for ESM15
                         ! minimum zenithal angle for downward SW radiation
-REAL, PARAMETER :: lai_thresh = 0.001
+REAL, PARAMETER :: lai_thresh = 0.001   !=0.01 for ESM15
                         ! threshold for minimum significant LAI
 
 ! minimum (cosine)zenith angle of sun signalling sunrise 
