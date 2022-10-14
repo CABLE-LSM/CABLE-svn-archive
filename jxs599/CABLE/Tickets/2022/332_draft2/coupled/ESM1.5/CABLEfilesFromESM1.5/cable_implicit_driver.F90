@@ -73,6 +73,7 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
    USE bgcdriver_mod, ONLY : bgcdriver
    USE sumcflux_mod, ONLY : sumcflux
    USE casa_um_inout_mod
+   USE POP_TYPES,            ONLY: POP_TYPE
 
    IMPLICIT NONE
         
@@ -242,6 +243,9 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
       dqwc
 
    REAL, POINTER :: TFRZ
+  INTEGER, PARAMETER :: loy = 365 !fudge for ESM1.5 
+  INTEGER, PARAMETER :: lalloc = 0 !fudge for ESM1.5 0 => call POP N/A 
+  TYPE(POP_TYPE) :: POP
    
       TFRZ => PHYS%TFRZ
    
@@ -291,10 +295,11 @@ subroutine cable_implicit_driver( LS_RAIN, CON_RAIN, LS_SNOW, CONV_SNOW,       &
 ! Lestevens Sept2012 - Call CASA-CNP
       if (l_casacnp) then
       CALL bgcdriver(ktau_gl,kstart,kend_gl,TIMESTEP,met,ssnow,canopy,veg,soil, &
-                     casabiome,casapool,casaflux,casamet,casabal,phen,          &
-                     .FALSE., .FALSE., ktauday, idoy, .FALSE., .FALSE. )
-!                     spinConv, spinup, ktauday, idoy, cable_user%casa_dump_read,&
-!                     cable_user%casa_dump_write )
+                     climate, casabiome,casapool,casaflux,casamet,casabal,      &
+                      phen, pop,.FALSE., .FALSE., ktauday, idoy, loy,	       &
+                      .FALSE., .FALSE.,   &
+                      LALLOC )
+      
       endif
 
       CALL sumcflux(ktau_gl,kstart,kend_gl,TIMESTEP,bgc,canopy,soil,ssnow,      &

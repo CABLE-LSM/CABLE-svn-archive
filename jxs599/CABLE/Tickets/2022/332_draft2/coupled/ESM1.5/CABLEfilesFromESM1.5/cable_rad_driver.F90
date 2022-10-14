@@ -54,7 +54,7 @@ USE cable_math_constants_mod,  ONLY: cpi180 => pi180
                                    um2cable_lp 
    USE cable_common_module, ONLY : cable_runtime, cable_user
    
-USE cbl_rhoch_module,   ONLY : calc_rhoch
+USE cbl_init_radiation_module, ONLY: Common_InitRad_Scalings
 
    IMPLICIT NONE                     
 
@@ -102,6 +102,10 @@ LOGICAL :: cbl_standalone = .FALSE.
 !masks
 LOGICAL :: veg_mask(mp),  sunlit_mask(mp),  sunlit_veg_mask(mp)
 INTEGER, ALLOCATABLE :: SurfaceType(:)
+!local_vars - common scaling co-efficients used throughout init_radiation
+REAL :: xvlai2(mp,nrb) ! 2D vlai
+REAL :: xphi1(mp)      ! leaf angle parmameter 1
+REAL :: xphi2(mp)      ! leaf angle parmameter 2
 
 !CALL init_active_tile_mask_cbl(l_tile_pts, um1%land_pts, um1%ntiles, um1%tile_frac )
  
@@ -141,7 +145,10 @@ call fsunlit_veg_mask( sunlit_veg_mask, veg_mask, sunlit_mask, mp )
       ssnow%tggsn(:,1) = PACK( SNOW_TMP3L(:,:,1), um1%L_TILE_PTS )
       ssnow%tgg(:,1) =   PACK( TSOIL_TILE(:,:,1), um1%L_TILE_PTS )
 
-CALL calc_rhoch( c1,rhoch, mp, nrb, veg%taul, veg%refl )
+! Compute common scaling co-efficients used throughout init_radiation
+call Common_InitRad_Scalings( xphi1, xphi2, xk, xvlai2, c1, rhoch,             &
+                            mp, nrb, Cpi180,cLAI_thresh, veg_mask,             &
+                            canopy%vlaiw, Veg%Xfang, Veg%Taul, Veg%Refl)
 
  CALL Albedo( ssnow%AlbSoilsn, soil%AlbSoil,                                 &
              !AlbSnow, AlbSoil,              
@@ -152,11 +159,9 @@ CALL calc_rhoch( c1,rhoch, mp, nrb, veg%taul, veg%refl )
              veg%iveg, soil%isoilm, veg%refl, veg%taul,                    & 
              !surface_type, VegRefl, VegTaul,
              met%tk, met%coszen, canopy%vlaiw,                              &
-             !metTk, coszen, reducedLAIdue2snow,
-             ssnow%snowd, ssnow%osnowd, ssnow%isflag,                       & 
-             !SnowDepth, SnowODepth, SnowFlag_3L, 
-             ssnow%ssdnn, ssnow%tgg(:,1), ssnow%tggsn(:,1), ssnow%snage,                      & 
-             !SnowDensity, SoilTemp, SnowAge, 
+             !coszen, reducedLAIdue2snow,
+             ssnow%snowd, ssnow%ssdnn, ssnow%tgg(:,1), ssnow%snage,         &
+             !SnowDepth, SnowDensity, SoilTemp, SnowAge,
              xk, c1, rhoch,                                                 & 
              rad%fbeam, rad%albedo,                                         &
              !RadFbeam, RadAlbedo,
