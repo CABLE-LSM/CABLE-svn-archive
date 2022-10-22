@@ -16,7 +16,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,clima
   USE cbl_radiation_module, ONLY : radiation
   USE cable_air_module
   USE cable_common_module   
-USE cable_common_module, ONLY : cable_runtime
+!implement ONLY!USE cable_common_module, ONLY : cable_runtime
   USE cable_roughness_module
   USE cable_climate_type_mod, ONLY : climate_type
 
@@ -78,8 +78,6 @@ USE cable_photo_constants_mod, ONLY : CD0C3   => D0C3
 USE cable_photo_constants_mod, ONLY : CD0C4   => D0C4
 USE cable_photo_constants_mod, ONLY : CA1C3   => A1C3
 USE cable_photo_constants_mod, ONLY : CA1C4   => A1C4
-USE cable_photo_constants_mod, ONLY : CCFRD3 => CFRD3
-USE cable_photo_constants_mod, ONLY : CCFRD4 => CFRD4
 USE cable_photo_constants_mod, ONLY : CALPHA3 => ALPHA3  
 USE cable_photo_constants_mod, ONLY : CALPHA4 => ALPHA4  
 USE cable_photo_constants_mod, ONLY : CCONVX3 => CONVX3
@@ -761,7 +759,7 @@ END IF
       
       ENDDO 
 
-  CALL update_zetar( mp, NITER, canopy%zetar, iter, nrb, CVONK, CGRAV, CCAPP,  &
+  CALL update_zetar( mp, iterplus, NITER, canopy%zetar, iter, nrb, CVONK, CGRAV, CCAPP,  &
                      CLAI_THRESH, CZETmul, CZETPOS, CZETNEG,          &
                      cable_user%soil_struc, air%rho, met%tk,  met%fsd, &
                      rough%zref_tq, rough%hruff, rough%term6a, rough%z0soilsn,   &
@@ -828,107 +826,79 @@ ENDIF
 
    ! assume screen temp of bareground if all these conditions are not met
    DO j=1,mp
+   
+   IF ( canopy%vlaiw(j) > CLAI_THRESH .and. rough%hruff(j) > 0.01) THEN
+   
+      IF ( rough%disp(j)  > 0.0 ) then
+  
+         term1(j) = EXP(2*CCSW*canopy%rghlai(j)*(1-zscl(j)/rough%hruff(j)))
+         term2(j) = EXP(2*CCSW*canopy%rghlai(j) *                          &
+                    (1-rough%disp(j)/rough%hruff(j)))
+         term5(j) = MAX(2./3.*rough%hruff(j)/rough%disp(j), 1.)
       
-      IF ( canopy%vlaiw(j) > CLAI_THRESH .and. rough%hruff(j) > 0.01) THEN
-      
-         IF ( rough%disp(j)  > 0.0 ) then
+      ENDIF
      
-            term1(j) = EXP(2*CCSW*canopy%rghlai(j)*(1-zscl(j)/rough%hruff(j)))
-            term2(j) = EXP(2*CCSW*canopy%rghlai(j) *                          &
-                       (1-rough%disp(j)/rough%hruff(j)))
-            term5(j) = MAX(2./3.*rough%hruff(j)/rough%disp(j), 1.)
+      term3(j) = CA33**2*CCTL*2*CCSW*canopy%rghlai(j)
+
+      IF( zscl(j) < rough%disp(j) ) THEN
+
+        !Ticket #154
+        r_sc(j) = term5(j) * LOG(zscl(j)/rough%z0soilsn(j)) *              &
+                  ( EXP(2*CCSW*canopy%rghlai(j)) - term2(j) ) / term3(j)
+        r_sc(j) = r_sc(j) + term5(j) * LOG(rough%disp(j)/rough%z0soilsn(j)) *  &
+                  ( EXP(2*CCSW*canopy%rghlai(j)) - term1(j) ) / term3(j)
+
+
+      ELSEIF( rough%disp(j) <= zscl(j) .AND.                                &
+              zscl(j) < rough%hruff(j) ) THEN
+              
+         r_sc(j) = rough%rt0us(j) + term5(j) * ( term2(j) - term1(j) ) /    &
+                   term3(j)
+
+      ELSEIF( rough%hruff(j) <= zscl(j) .AND.                               &
+              zscl(j) <  rough%zruffs(j) ) THEN
+
+         r_sc(j) = rough%rt0us(j) + rough%rt1usa(j) + term5(j) *            &
+                   ( zscl(j) - rough%hruff(j) ) /                           &
+                   ( CA33**2 * CCTL * rough%hruff(j) )
+
+
+      ELSEIF( zscl(j) >= rough%zruffs(j) ) THEN
+
+        !Ticket #67 - Modify order of operations to avoid potential error
+        r_sc(j) = rough%rt0us(j) + rough%rt1usa(j) + rough%rt1usb(j) +         &
+               ( LOG( (zscl(j) - rough%disp(j)) /                              &
+                     MAX( rough%zruffs(j)-rough%disp(j),                       &
+                          rough%z0soilsn(j) ) )                                & 
+               - psis( (zscl(j)-rough%disp(j))    &
+               / (rough%zref_tq(j)/canopy%zetar(j,iterplus) ) )        &
+               + psis( (rough%zruffs(j) - rough%disp(j) )               &
+               / (rough%zref_tq(j)/canopy%zetar(j,iterplus) ) ) )      &
+               / CVONK
+
+       ENDIF
+      
+      !extensions for litter and Or evaporation model
+      IF (cable_user%litter) THEN
+         canopy%tscrn(j) = ssnow%tss(j) + (met%tk(j) - ssnow%tss(j)) *     &
+              MIN(1., ( (r_sc(j)+rhlitt(j)*canopy%us(j))  / MAX( 1.,          &
+              rough%rt0us(j) + rough%rt1usa(j) + rough%rt1usb(j)              &
+              + rt1usc(j) + rhlitt(j)*canopy%us(j) )) ) - Ctfrz
+      ELSEIF (cable_user%or_evap .OR. cable_user%gw_model) THEN
+         canopy%tscrn(j) = ssnow%tss(j) + (met%tk(j) - ssnow%tss(j)) *     &
+              MIN(1., ( (ssnow%rt_qh_sublayer(j)*canopy%us(j) + r_sc(j) ) /   &
+              MAX( 1., rough%rt0us(j) + rough%rt1usa(j) + rough%rt1usb(j)     &
+              + rt1usc(j) + ssnow%rt_qh_sublayer(j)*canopy%us(j) )) ) - Ctfrz
+      ELSE
+         canopy%tscrn(j) = ssnow%tss(j) + (met%tk(j) - ssnow%tss(j)) *      &
+              MIN(1., (r_sc(j) / MAX( 1.,                            &
+              rough%rt0us(j) + rough%rt1usa(j) + rough%rt1usb(j)   &
+              + rt1usc(j))) )  - Ctfrz
+      ENDIF
+
+    ENDIF  
          
-         ENDIF
-        
-         term3(j) = CA33**2*CCTL*2*CCSW*canopy%rghlai(j)
-
-         IF( zscl(j) < rough%disp(j) ) THEN
-
-          IF ( cable_runtime%esm15_canopy) THEN
-                      r_sc(j) = term5(j) * LOG(zscl(j)/rough%z0soilsn(j)) *              &
-                                ( EXP(2*CCSW*canopy%rghlai(j)) - term1(j) ) / term3(j)
-          ELSE!( cable_runtime%esm15_canopy)
-                       !Ticket #154
-                       r_sc(j) = term5(j) * LOG(zscl(j)/rough%z0soilsn(j)) *              &
-                            ( EXP(2*CCSW*canopy%rghlai(j)) - term2(j) ) / term3(j)
-                       r_sc(j) = r_sc(j) + term5(j) * LOG(rough%disp(j)/rough%z0soilsn(j)) *  &
-                            ( EXP(2*CCSW*canopy%rghlai(j)) - term1(j) ) / term3(j)
-          END IF!( cable_runtime%esm15_canopy)
-
-         ELSEIF( rough%disp(j) <= zscl(j) .AND.                                &
-                 zscl(j) < rough%hruff(j) ) THEN
-                 
-            r_sc(j) = rough%rt0us(j) + term5(j) * ( term2(j) - term1(j) ) /    &
-                      term3(j)
-
-         ELSEIF( rough%hruff(j) <= zscl(j) .AND.                               &
-                 zscl(j) <  rough%zruffs(j) ) THEN
-
-            r_sc(j) = rough%rt0us(j) + rough%rt1usa(j) + term5(j) *            &
-                      ( zscl(j) - rough%hruff(j) ) /                           &
-                      ( CA33**2 * CCTL * rough%hruff(j) )
-
-
-         ELSEIF( zscl(j) >= rough%zruffs(j) ) THEN
-            IF ( cable_runtime%esm15_canopy) THEN
-            
-              r_sc(j) = rough%rt0us(j) + rough%rt1usa(j) + rough%rt1usb(j) +     &
-                      ( LOG( (zscl(j) - rough%disp(j)) /                       &
-                      MAX( rough%zruffs(j)-rough%disp(j),                      &
-                      rough%z0soilsn(j) ) ) - psis1( (zscl(j)-rough%disp(j))   &
-                      / (rough%zref_tq(j)/canopy%zetar(j,iterplus) ) )         &
-                      + psis1( (rough%zruffs(j) - rough%disp(j) )              &
-                      / (rough%zref_tq(j)/canopy%zetar(j,iterplus ) ) ) )      &
-                      / CVONK
-          ELSE!( cable_runtime%esm15_canopy)
-
-              !Ticket #67 - Modify order of operations to avoid potential error
-             r_sc(j) = rough%rt0us(j) + rough%rt1usa(j) + rough%rt1usb(j) +     &
-                  ( LOG( (zscl(j) - rough%disp(j)) /                       &
-                  MAX( rough%zruffs(j)-rough%disp(j),                      &
-                  rough%z0soilsn(j) ) ) - psis( (zscl(j)-rough%disp(j))    &
-                                !Ticket #67 - change order of operations to avoid /0
-                                !        / (rough%zref_tq(j)/canopy%zetar(j,iterplus) ) )        &
-                  * canopy%zetar(j,iterplus)/rough%zref_tq(j) )            &
-                  + psis( (rough%zruffs(j) - rough%disp(j) )               &
-                                !        / (rough%zref_tq(j)/canopy%zetar(j,iterplus ) ) ) )     &
-                  * canopy%zetar(j,iterplus)/rough%zref_tq(j) ) )          &
-                  / CVONK
-
-        
-          ENDIF!( cable_runtime%esm15_canopy)
-         
-         ENDIF
-
-        IF ( cable_runtime%esm15_canopy) THEN
-          canopy%tscrn(j) = ssnow%tss(j) + (met%tk(j) - ssnow%tss(j)) *          &
-                          MIN(1.,r_sc(j) / MAX( 1.,                            &
-                          rough%rt0us(j) + rough%rt1usa(j) + rough%rt1usb(j)   &
-                          + rt1usc(j))) - Ctfrz 
-        ELSE!( cable_runtime%esm15_canopy)
-
-            !extensions for litter and Or evaporation model
-            IF (cable_user%litter) THEN
-               canopy%tscrn(j) = ssnow%tss(j) + (met%tk(j) - ssnow%tss(j)) *     &
-                    MIN(1., ( (r_sc(j)+rhlitt(j)*canopy%us(j))  / MAX( 1.,          &
-                    rough%rt0us(j) + rough%rt1usa(j) + rough%rt1usb(j)              &
-                    + rt1usc(j) + rhlitt(j)*canopy%us(j) )) ) - Ctfrz
-            ELSEIF (cable_user%or_evap .OR. cable_user%gw_model) THEN
-               canopy%tscrn(j) = ssnow%tss(j) + (met%tk(j) - ssnow%tss(j)) *     &
-                    MIN(1., ( (ssnow%rt_qh_sublayer(j)*canopy%us(j) + r_sc(j) ) /   &
-                    MAX( 1., rough%rt0us(j) + rough%rt1usa(j) + rough%rt1usb(j)     &
-                    + rt1usc(j) + ssnow%rt_qh_sublayer(j)*canopy%us(j) )) ) - Ctfrz
-            ELSE
-               canopy%tscrn(j) = ssnow%tss(j) + (met%tk(j) - ssnow%tss(j)) *      &
-                    MIN(1., (r_sc(j) / MAX( 1.,                            &
-                    rough%rt0us(j) + rough%rt1usa(j) + rough%rt1usb(j)   &
-                    + rt1usc(j))) )  - Ctfrz
-            ENDIF
-          
-          ENDIF!( cable_runtime%esm15_canopy)
-      ENDIF  
-
-   ENDDO  
+  ENDDO  
 
 
     !screen level humdity - this is only approximate --------------------------

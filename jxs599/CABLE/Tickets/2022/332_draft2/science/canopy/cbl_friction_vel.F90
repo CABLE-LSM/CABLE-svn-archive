@@ -40,20 +40,28 @@ REAL :: ffactor(mp)
 ! but zetar based on rough%zref_tq - changes to ensure consistency
 !NB no RSL incorporated here
 
+!fails!IF( cable_runtime%esm15_friction ) THEN
+!fails!  ffactor = 1.0 
+!fails!ELSE  
+!fails!  ffactor = zref_uv/zref_tq
+!fails!ENDIF
+!fails!
+!fails!psim_1 = psim( zetar(:,iter) * ffactor(:), mp, CPI_C   )
 IF( cable_runtime%esm15_friction ) THEN
-  ffactor = 1.0 
+  psim_1 = psim( zetar(:,iter), mp, CPI_C   )
 ELSE  
-  ffactor = zref_uv/zref_tq
+  psim_1 = psim( zetar(:,iter) * zref_uv/zref_tq, mp, CPI_C   )
 ENDIF
-
-psim_1 = psim( zetar(:,iter) * ffactor(:), mp, CPI_C   )
 
 rescale = CVONK * MAX( ua, CUMIN ) 
 
 z_eff = zref_uv / z0m
 
-!trunk!psim_arg = zetar(:,iter) * z0m / zref_tq
-psim_arg = zetar(:,iter) / z_eff 
+IF( cable_runtime%esm15_friction ) THEN
+  psim_arg = zetar(:,iter) / z_eff 
+ELSE  
+  psim_arg = zetar(:,iter) * z0m / zref_tq
+ENDIF
 
 psim_2 = psim( psim_arg, mp, CPI_C  )
 

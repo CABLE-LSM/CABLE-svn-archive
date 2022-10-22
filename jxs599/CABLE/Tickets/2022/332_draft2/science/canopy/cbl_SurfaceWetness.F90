@@ -9,7 +9,7 @@ CONTAINS
 
 SUBROUTINE Surf_wetness_fact( cansat, canopy, ssnow,veg, met, soil, dels )
 
-    USE cable_common_module, ONLY : cable_runtime
+!implement ONLY!    USE cable_common_module, ONLY : cable_runtime
     USE cable_common_module
     USE cable_def_types_mod
 ! physical constants

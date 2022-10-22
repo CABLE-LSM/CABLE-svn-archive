@@ -15,8 +15,7 @@ SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
 
     USE cable_def_types_mod
     USE cable_common_module
-USE cable_common_module, ONLY : cable_user, cable_runtime
-USE cable_climate_type_mod, ONLY : climate_type
+!implement ONLY!USE cable_common_module, ONLY : cable_user, cable_runtime
 USE cbl_photosynthesis_module,  ONLY : photosynthesis
 USE cbl_fwsoil_module,        ONLY : fwsoil_calc_std, fwsoil_calc_non_linear,           &
                                      fwsoil_calc_Lai_Ktaul, fwsoil_calc_sli
@@ -48,8 +47,6 @@ USE cable_photo_constants_mod, ONLY : CD0C3   => D0C3
 USE cable_photo_constants_mod, ONLY : CD0C4   => D0C4
 USE cable_photo_constants_mod, ONLY : CA1C3   => A1C3
 USE cable_photo_constants_mod, ONLY : CA1C4   => A1C4
-USE cable_photo_constants_mod, ONLY : CCFRD3 => CFRD3
-USE cable_photo_constants_mod, ONLY : CCFRD4 => CFRD4
 !*************************************************************
 
     TYPE (radiation_type), INTENT(INOUT) :: rad
@@ -339,8 +336,6 @@ DO WHILE (k < CMAXITER)
       vx4(i,1)  = ej4x(temp2(i,1),veg%alpha(i),veg%convex(i),vcmxt4(i,1))
       vx4(i,2)  = ej4x(temp2(i,2),veg%alpha(i),veg%convex(i),vcmxt4(i,2))
     
-      rdx(i,1) = (Ccfrd3*vcmxt3(i,1) + Ccfrd4*vcmxt4(i,1))
-      rdx(i,2) = (Ccfrd3*vcmxt3(i,2) + Ccfrd4*vcmxt4(i,2))
       IF( cable_runtime%esm15_dryLeaf ) THEN
         xleuning(i,1) = ( fwsoil(i) / ( csx(i,1) - co2cp3 ) )              &
                           * ( ( 1.0 - veg%frac4(i) ) * CA1C3 / ( 1.0 + dsx(i) &
