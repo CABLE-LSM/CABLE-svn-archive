@@ -65,7 +65,8 @@ USE cable_runtime_opts_mod ,ONLY : wiltparam
                esm15_casa_delsoil = .TRUE., esm15_casa_avgsoil = .TRUE.,         &
                esm15_casa_nrequire = .TRUE., esm15_casa_cnpbal = .TRUE.,         &
                esm15_casa_Ndummy   = .TRUE., esm15_casa_Pdummy = .TRUE.,         &
-               esm15_casa_inout = .TRUE., esm15_casa_biogeochem= .TRUE.
+               esm15_casa_inout = .TRUE., esm15_casa_biogeochem= .TRUE.,         & 
+               esm15_casa_cnpflux = .TRUE., esm15_casa_cnpcycle = .TRUE.
       
      LOGICAL :: offline = .FALSE., mk3l = .FALSE.
   
