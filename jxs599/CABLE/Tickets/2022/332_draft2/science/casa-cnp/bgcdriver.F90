@@ -19,7 +19,9 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
    USE phenvariable
    USE cable_common_module,  ONLY: CurYear, CABLE_USER
    USE TypeDef,              ONLY: i4b, dp
+#  ifndef UM_BUILD
    USE POPMODULE,            ONLY: POPStep
+#  endif
    USE POP_TYPES,            ONLY: POP_TYPE
 #  ifndef UM_BUILD
    USE cable_phenology_module, ONLY: cable_phenology_clim
@@ -78,7 +80,17 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
          casamet%tairk  = 0.0
          casamet%tsoil  = 0.0
          casamet%moist  = 0.0
-
+         casaflux%cgpp  = 0.0
+         ! add initializations (BP jul2010)
+         !! Les 10jan13 - init cnpp ?
+         !casaflux%cnpp  = 0.0
+         casaflux%Crsoil   = 0.0
+         casaflux%crgplant = 0.0
+         casaflux%crmplant = 0.0
+         ! Lest 13may13 ---
+         casaflux%clabloss = 0.0
+         ! casaflux%crmplant(:,leaf) = 0.0
+         ! end changes (BP jul2010)
       ENDIF
 
       IF(MOD(ktau,ktauday)==1) THEN
@@ -111,10 +123,10 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
             IF (trim(cable_user%PHENOLOGY_SWITCH)=='climate') THEN
                ! get climate_dependent phenology
                call cable_phenology_clim(veg, climate, phen)
-
             ENDIF
 #           endif
 
+   
             CALL biogeochem(ktau,dels,idoy,LALLOC,veg,soil,casabiome,casapool,casaflux, &
                 casamet,casabal,phen,POP,climate, xnplimit,xkNlimiting,xklitter,xksoil, &
                 xkleaf,xkleafcold,xkleafdry,&
@@ -149,8 +161,8 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
       IF( MOD((ktau-kstart+1),ktauday) == 0 ) THEN  ! end of day
 
          CALL biogeochem(ktau,dels,idoy,LALLOC,veg,soil,casabiome,casapool,casaflux, &
-              casamet,casabal,phen,POP,climate,xnplimit,xkNlimiting,xklitter,xksoil,xkleaf, &
-              xkleafcold,xkleafdry,&
+                casamet,casabal,phen,POP,climate, xnplimit,xkNlimiting,xklitter,xksoil, &
+                xkleaf,xkleafcold,xkleafdry,&
               cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,         &
               nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,         &
               pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)

@@ -33,6 +33,7 @@
 MODULE casa_inout_module
 
 USE casavariable, ONLY : casafile
+USE cable_common_module, ONLY : cable_runtime
 
 contains
 
@@ -806,7 +807,7 @@ END SUBROUTINE casa_poolout
 SUBROUTINE casa_fluxout(myear,veg,soil,casabal,casamet)
 
   USE cable_def_types_mod
-USE cable_common_module, ONLY : knode_gl,cable_user, cable_runtime 
+USE cable_common_module, ONLY : knode_gl,cable_user 
   USE casadimension
   USE casaparm
   USE casavariable
@@ -901,7 +902,7 @@ END SUBROUTINE casa_fluxout
 
   SUBROUTINE casa_cnpflux(casaflux,casapool,casabal,zeroflux)
   USE cable_def_types_mod
-USE cable_common_module, ONLY : knode_gl,cable_user 
+USE cable_common_module, ONLY : knode_gl,cable_user, cable_runtime
   USE casadimension
   USE casaparm
   USE casavariable
@@ -912,7 +913,6 @@ USE cable_common_module, ONLY : knode_gl,cable_user
     LOGICAL :: zeroflux
   INTEGER n
 
-IF( .NOT. cable_runtime%esm15_casa_cnpflux) THEN 
     IF(zeroflux) THEN
        casabal%FCgppyear    = 0.0
        casabal%FCrpyear     = 0.0
@@ -978,7 +978,6 @@ IF( .NOT. cable_runtime%esm15_casa_cnpflux) THEN
   casabal%FCneeyear = casabal%FCneeyear &
                     + (casaflux%Cnpp-casaflux%Crsoil) * deltpool
  
-ENDIF
 
   IF (icycle >1) THEN
     casabal%FNdepyear   = casabal%FNdepyear   + casaflux%Nmindep    * deltpool
@@ -997,6 +996,7 @@ ENDIF
     casabal%FPleachyear = casabal%FPleachyear + casaflux%Pleach     * deltpool  
     casabal%FPlossyear  = casabal%FPlossyear  + casaflux%Ploss      * deltpool 
   ENDIF 
+ENDIF
 
 END SUBROUTINE casa_cnpflux
 
