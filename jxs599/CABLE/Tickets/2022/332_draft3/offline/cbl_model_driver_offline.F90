@@ -59,6 +59,8 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
     USE cable_canopy_module, ONLY : define_canopy
     USE cbl_albedo_mod, ONLY : albedo
     USE sli_main_mod, ONLY : sli_main
+    USE snow_aging_mod,               ONLY: snow_aging
+    
 !data !jhan:pass these
 USE cable_other_constants_mod, ONLY : CLAI_THRESH => lai_thresh
 USE cable_other_constants_mod,  ONLY : Crad_thresh => rad_thresh
@@ -67,7 +69,6 @@ USE cable_other_constants_mod, ONLY : CGAUSS_W => gauss_w
 USE cable_math_constants_mod, ONLY : CPI => pi
 USE cable_math_constants_mod, ONLY : CPI180 => pi180
 use cbl_masks_mod, ONLY :  fveg_mask,  fsunlit_mask,  fsunlit_veg_mask
-use cbl_masks_mod, ONLY :  veg_mask,  sunlit_mask,  sunlit_veg_mask
 
     ! CABLE model variables
     TYPE (air_type),       INTENT(INOUT) :: air
@@ -91,6 +92,7 @@ character(len=*), parameter :: subr_name = "cbm"
 LOGICAL :: cbl_standalone= .true.
 LOGICAL :: jls_standalone= .false.
 LOGICAL :: jls_radiation= .false.
+LOGICAL :: veg_mask(mp), sunlit_mask(mp), sunlit_veg_mask(mp)
 
 !co-efficients usoughout init_radiation ` called from _albedo as well
 REAL :: c1(mp,nrb)
@@ -108,7 +110,7 @@ CALL define_air (met, air)
 call fveg_mask( veg_mask, mp, Clai_thresh, canopy%vlaiw )
 !call fsunlit_mask( sunlit_mask, mp, Ccoszen_tols, met%coszen )
 call fsunlit_mask( sunlit_mask, mp, CRAD_THRESH,( met%fsd(:,1)+met%fsd(:,2) ) )
-call fsunlit_veg_mask( sunlit_veg_mask, mp )
+CALL fsunlit_veg_mask( sunlit_veg_mask, veg_mask, sunlit_mask, mp )
 
 CALL init_radiation( rad%extkb, rad%extkd,                                     &
                      !ExtCoeff_beam, ExtCoeff_dif,
@@ -126,7 +128,11 @@ CALL init_radiation( rad%extkb, rad%extkd,                                     &
                      !coszen, metDoY, SW_down,
                      canopy%vlaiw                                              &
                    ) !reducedLAIdue2snow 
- 
+
+!Ticket 331 refactored albedo code for JAC
+CALL snow_aging(ssnow%snage,mp,dels,ssnow%snowd,ssnow%osnowd,ssnow%tggsn(:,1),&
+         ssnow%tgg(:,1),ssnow%isflag,veg%iveg,soil%isoilm) 
+
 call Albedo( ssnow%AlbSoilsn, soil%AlbSoil,                                &
              !AlbSnow, AlbSoil,              
              mp, nrb,                                                      &
@@ -135,12 +141,10 @@ call Albedo( ssnow%AlbSoilsn, soil%AlbSoil,                                &
              Ccoszen_tols, CGAUSS_W,                                       & 
              veg%iveg, soil%isoilm, veg%refl, veg%taul,                    & 
              !surface_type, VegRefl, VegTaul,
-             met%tk, met%coszen, canopy%vlaiw,                             &
-             !metTk, coszen, reducedLAIdue2snow,
-             ssnow%snowd, ssnow%osnowd, ssnow%isflag,                      & 
-             !SnowDepth, SnowODepth, SnowFlag_3L, 
-             ssnow%ssdnn, ssnow%tgg(:,1), ssnow%tggsn(:,1), ssnow%snage,   & 
-             !SnowDensity, SoilTemp, SnowAge, 
+             met%coszen, canopy%vlaiw,                                     &
+             !coszen, reducedLAIdue2snow,
+             ssnow%snowd, ssnow%ssdnn, ssnow%tgg(:,1), ssnow%snage,        & 
+             !SnowDepth, SnowDensity, SoilTemp, SnowAge, 
              xk, c1, rhoch,                                                & 
              rad%fbeam, rad%albedo,                                        &
              !RadFbeam, RadAlbedo,
