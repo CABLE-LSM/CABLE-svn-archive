@@ -41,7 +41,7 @@ MODULE casa_um_inout_mod
 
   USE landuse_mod
   USE feedback_mod
-  USE casa_inout_mod
+  USE casa_inout_module
 
 IMPLICIT NONE 
 
