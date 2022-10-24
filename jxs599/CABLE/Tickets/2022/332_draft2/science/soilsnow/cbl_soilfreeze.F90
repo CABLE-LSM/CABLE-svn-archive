@@ -18,7 +18,7 @@ IMPLICIT NONE
 INTEGER :: i,k
 REAL :: heat_cap_lower_limit(mp,ms)
 REAL :: max_arg1, max_arg2
- 
+
 xx = 0.
 DO k = 1, ms  !loop over soil levels
   DO i = 1, mp  !loop over active tiles
@@ -32,11 +32,7 @@ DO k = 1, ms  !loop over soil levels
       ssnow%wbice(i,k) = MIN( ssnow%wbice(i,k) + sicefreeze(i) / (soil%zse(k)  &
                          * 1000.0), frozen_limit * ssnow%wb(i,k) )
       xx(i) = soil%css(i) * soil%rhosoil(i)
-      IF( cable_runtime%esm15 ) THEN
-        max_arg1 = xx(i) 
-      ELSE  
-        max_arg1 = heat_cap_lower_limit(i,k) 
-      ENDIF
+      max_arg1 = heat_cap_lower_limit(i,k) 
       max_arg2 = REAL((1.0 - soil%ssat(i)) * soil%css(i) * soil%rhosoil(i) ,r_2) &
           + (ssnow%wb(i,k) - ssnow%wbice(i,k)) * REAL(Ccswat * Cdensity_liq,r_2)  &
           + ssnow%wbice(i,k) * REAL(Ccsice * Cdensity_liq * 0.9,r_2)
@@ -47,20 +43,16 @@ DO k = 1, ms  !loop over soil levels
       
       ssnow%tgg(i,k) = ssnow%tgg(i,k) + REAL(sicefreeze(i))                    &
                        * CHLF / REAL(ssnow%gammzz(i,k) )
-   
+
    ELSEIF( ssnow%tgg(i,k) > CTFRZ .AND. ssnow%wbice(i,k) > 0. ) THEN
-      
+
       sicemelt(i) = MIN( ssnow%wbice(i,k) * soil%zse(k) * 1000.0,              &
                  ( ssnow%tgg(i,k) - CTFRZ ) * ssnow%gammzz(i,k) / CHLF )
-      
+
       ssnow%wbice(i,k) = MAX( 0.0_r_2, ssnow%wbice(i,k) - sicemelt(i)          &
                          / (soil%zse(k) * 1000.0) )
       xx(i) = soil%css(i) * soil%rhosoil(i)
-      IF( cable_runtime%esm15 ) THEN
-        max_arg1 = xx(i) 
-      ELSE  
-        max_arg1 = heat_cap_lower_limit(i,k) 
-      ENDIF
+      max_arg1 = heat_cap_lower_limit(i,k) 
       max_arg2 = REAL((1.0 - soil%ssat(i)) * soil%css(i) * soil%rhosoil(i) ,r_2) &
           + (ssnow%wb(i,k) - ssnow%wbice(i,k)) * REAL(Ccswat * Cdensity_liq,r_2)  &
           + ssnow%wbice(i,k) * REAL(Ccsice * Cdensity_liq * 0.9,r_2)
@@ -69,13 +61,13 @@ DO k = 1, ms  !loop over soil levels
 
       IF (k == 1 .AND. ssnow%isflag(i) == 0) &
          ssnow%gammzz(i,k) = ssnow%gammzz(i,k) + Ccgsnow * ssnow%snowd(i)
-      
+
       ssnow%tgg(i,k) = ssnow%tgg(i,k) - REAL(sicemelt(i))                     &
                        * CHLF / REAL(ssnow%gammzz(i,k))
-    
+
    ENDIF
- 
-  END DO
+
+    END DO
 END DO
 
 END SUBROUTINE soilfreeze
