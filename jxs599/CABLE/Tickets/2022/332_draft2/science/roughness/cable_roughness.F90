@@ -52,7 +52,7 @@ SUBROUTINE ruff_resist(veg, rough, ssnow, canopy, LAI_pft, HGT_pft, reducedLAIdu
 !      MRR draft paper "Simplified expressions...", dec-92
 ! modified to include resistance calculations by Ray leuning 19 Jun 1998  
 
-USE cable_common_module, ONLY : cable_user, cable_runtime
+USE cable_common_module, ONLY : cable_user
 USE cable_def_types_mod, ONLY : veg_parameter_type, roughness_type,         &
                                 soil_snow_type, canopy_type, mp  
 !subrs
@@ -183,10 +183,6 @@ do i=1,mp
                     - CVONK / rough%usuh(i) ) ) * rough%hruff(i)
 
     ! Reference height zref is height above the displacement height
-    IF( cable_runtime%esm15 ) THEN
-      rough%zref_uv(i) = MAX( 3.5, rough%za_uv(i) )
-      rough%zref_tq(i) = MAX( 3.5, rough%za_tq(i) )
-    ELSE
      ! Reference height zref is height above the displacement height
      ! Ticket #148: Reference height is height above the displacement height
      ! noting that this must be above the roughness length and rough%hruff-rough%disp
@@ -194,7 +190,6 @@ do i=1,mp
      rough%zref_tq(i) = MAX( 3.5 + rough%z0m(i), rough%za_tq(i) )
      rough%zref_uv(i) = MAX( rough%zref_uv(i), rough%hruff(i)-rough%disp(i) )
      rough%zref_tq(i) = MAX( rough%zref_tq(i), rough%hruff(i)-rough%disp(i) )
-    END IF
 
     ! find coexp: see notes "simplified wind model ..." eq 34a
     ! Extinction coefficient for wind profile in canopy:

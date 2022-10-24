@@ -9,8 +9,7 @@ CONTAINS
 !Computes Effective LAI of exposed canopy given effect of snow present
 !variable formerly known as canopy%vlaiw
 SUBROUTINE LAI_eff( mp, LAI_PFT, Hgt_PFT, HgtAboveSnow,  &
-                    reducedLAIdue2snow )
-USE cable_common_module, ONLY: cable_runtime 
+                    reducedLAIdue2snow ) 
   IMPLICIT NONE
   !re-decl input args  
   integer  :: mp
@@ -27,11 +26,7 @@ USE cable_common_module, ONLY: cable_runtime
   FracOfCanopyAboveSnow = HgtAboveSnow/ MAX( 0.01, Hgt_PFT)
   
   ! LAI decreases due to snow:
-IF( cable_runtime%esm15 ) THEN
-  reducedLAIdue2snow = LAI_PFT * HgtAboveSnow/ MAX( 0.01, Hgt_PFT) 
-ELSE
-  reducedLAIdue2snow = LAI_PFT * FracOfCanopyAboveSnow !this results in different output
-ENDIF
+  reducedLAIdue2snow = LAI_PFT * FracOfCanopyAboveSnow 
 
 END SUBROUTINE LAI_eff
 
