@@ -30,15 +30,22 @@
 
 MODULE cable_def_types_mod
 
-   ! Contains all variables which are not subroutine-internal
-USE cable_canopy_type_mod, ONLY : canopy_type
-USE cable_soil_snow_type_mod, ONLY : soil_snow_type
+USE cable_canopy_type_mod,    ONLY: canopy_type
+USE cable_soil_snow_type_mod, ONLY: soil_snow_type
 USE cable_climate_type_mod,   ONLY: climate_type
 
-USE cable_params_mod, ONLY : soil_parameter_type
-USE cable_params_mod, ONLY : veg_parameter_type
+USE cable_params_mod,         ONLY: soil_parameter_type
+USE cable_params_mod,         ONLY: veg_parameter_type
 USE cable_other_constants_mod, ONLY: r_2
 
+!cbl3!USE cable_types_mod!!,          ONLY: mp, l_tile_pts
+!cbl3!USE cable_air_type_mod,       ONLY: air_type
+!cbl3!USE cable_balances_type_mod,  ONLY: balances_type
+!cbl3!USE cable_bgc_pool_type_mod,  ONLY: bgc_pool_type
+!cbl3!USE cable_met_type_mod,       ONLY: met_type
+!cbl3!USE cable_radiation_type_mod, ONLY: radiation_type
+!cbl3!USE cable_roughness_type_mod, ONLY: roughness_type
+!cbl3!USE cable_sum_flux_type_mod,  ONLY: sum_flux_type
    IMPLICIT NONE
 
    PUBLIC
@@ -100,6 +107,7 @@ USE cable_other_constants_mod, ONLY: r_2
    END TYPE balances_type
 
 ! .............................................................................
+
    ! Radiation variables:
    TYPE radiation_type
    
@@ -627,12 +635,12 @@ SUBROUTINE dealloc_soil_parameter_type(var)
    DEALLOCATE( var% albsoilf )  
    
 END SUBROUTINE dealloc_soil_parameter_type
- 
+
 ! ------------------------------------------------------------------------------
 SUBROUTINE dealloc_veg_parameter_type(var)
 
    TYPE(veg_parameter_type), INTENT(inout) :: var
-
+  
    DEALLOCATE( var% canst1 ) 
    DEALLOCATE( var% dleaf )  
    DEALLOCATE( var% ejmax ) 
@@ -658,7 +666,7 @@ SUBROUTINE dealloc_veg_parameter_type(var)
    DEALLOCATE( var%froot) 
    DEALLOCATE( var%refl )
    DEALLOCATE( var%taul ) 
-   
+
 END SUBROUTINE dealloc_veg_parameter_type
    
 ! ------------------------------------------------------------------------------

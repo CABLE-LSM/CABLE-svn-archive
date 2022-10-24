@@ -305,16 +305,14 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
    !___ 1st call in RUN (!=ktau_gl -see below) 
    LOGICAL, SAVE :: first_cable_call = .TRUE.
  
-!co-efficients usoughout init_radiation ` called from _albedo as well
 integer :: j
 
    
 
    !--- initialize cable_runtime% switches 
-  cable_runtime%um = .TRUE.
-  cable_runtime%esm15 = .TRUE.
-  cable_runtime%esm15_albedo = .TRUE. 
-      
+   cable_runtime%um = .TRUE.
+   cable_runtime%esm15 = .TRUE.
+   
    !--- basic info from global model passed to cable_common_module 
    !--- vars so don't need to be passed around, just USE _module
    ktau_gl = timestep_number     !timestep of EXPERIMENT not necesarily 
@@ -419,7 +417,6 @@ integer :: j
 
 
    cable_runtime%um_explicit = .FALSE.
-
 
 END SUBROUTINE cable_explicit_driver
 
@@ -628,7 +625,6 @@ SUBROUTINE cable_expl_unpack( FTL_TILE_CAB, FTL_CAB, FTL_TILE, FQW_TILE,       &
       RECIPLMOTILE =  canopy_zetar(:,niter) / rough_zref_tq
       RECIP_L_MO_TILE = UNPACK( RECIPLMOTILE, um1%l_tile_pts, miss )
       EPOT_TILE = UNPACK( canopy_epot, um1%l_tile_pts, miss )
-      
 
       IF(first_cable_call) THEN 
          l_tile_pts = um1%l_tile_pts

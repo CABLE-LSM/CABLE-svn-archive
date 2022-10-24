@@ -98,7 +98,7 @@ REAL :: xk(mp,nrb)
 CHARACTER(LEN=*), PARAMETER :: subr_name = "cbl_model_driver"
 LOGICAL :: jls_standalone= .FALSE.
 LOGICAL :: jls_radiation= .TRUE.
-LOGICAL :: cbl_standalone = .FALSE.   
+LOGICAL :: cbl_standalone = .FALSE.    
 !masks
 LOGICAL :: veg_mask(mp),  sunlit_mask(mp),  sunlit_veg_mask(mp)
 INTEGER, ALLOCATABLE :: SurfaceType(:)
@@ -122,7 +122,7 @@ REAL :: xphi2(mp)      ! leaf angle parmameter 2
       !--- subr.  um2cable_met_rad_alb() USES CABLE types met%, rad%, soil%
       !--- and kblum%rad. calculated in  update_kblum_radiation() above 
       CALL um2cable_met_rad( cos_zenith_angle)
-
+      
 !define logical masks that are used throughout
 call fveg_mask( veg_mask, mp, Clai_thresh, canopy%vlaiw )
 call fsunlit_mask( sunlit_mask, mp, CRAD_THRESH,( met%fsd(:,1)+met%fsd(:,2) ) )
@@ -150,15 +150,15 @@ call Common_InitRad_Scalings( xphi1, xphi2, xk, xvlai2, c1, rhoch,             &
                             mp, nrb, Cpi180,cLAI_thresh, veg_mask,             &
                             canopy%vlaiw, Veg%Xfang, Veg%Taul, Veg%Refl)
 
- CALL Albedo( ssnow%AlbSoilsn, soil%AlbSoil,                                 &
+ CALL Albedo( ssnow%AlbSoilsn, soil%AlbSoil,                                &
              !AlbSnow, AlbSoil,              
              mp, nrb,                                                       &
              jls_radiation,                                                 &
              veg_mask, sunlit_mask, sunlit_veg_mask,                        &  
              Ccoszen_tols, cgauss_w,                                        & 
-             veg%iveg, soil%isoilm, veg%refl, veg%taul,                    & 
+             veg%iveg, soil%isoilm, veg%refl, veg%taul,                     & 
              !surface_type, VegRefl, VegTaul,
-             met%tk, met%coszen, canopy%vlaiw,                              &
+             met%coszen, canopy%vlaiw,                                      &
              !coszen, reducedLAIdue2snow,
              ssnow%snowd, ssnow%ssdnn, ssnow%tgg(:,1), ssnow%snage,         &
              !SnowDepth, SnowDensity, SoilTemp, SnowAge,

@@ -265,6 +265,7 @@ SUBROUTINE initialize_soil( bexp, hcon, satcon, sathh, smvcst, smvcwt,         &
 !========================================================================
 !========================================================================
 !========================================================================
+          
 SUBROUTINE initialize_veg( clobbered_htveg, land_pts, npft, ntiles, ms, mp,      &
                            canht_ft, lai_ft, soil_zse, veg,                  &
                     tile_pts, tile_index, tile_frac, L_tile_pts,                 &
@@ -303,7 +304,7 @@ IF(first_call)  THEN
     END DO
   END DO
   veg%iveg = PACK( JSurfaceTypeID, L_tile_pts)
-          
+
 ENDIF
 
 ! limit IN height, LAI  and initialize existing cable % types
@@ -325,7 +326,7 @@ END SUBROUTINE initialize_veg
 !========================================================================
 !========================================================================
 !========================================================================
-
+   
 SUBROUTINE init_veg_pars_fr_vegin( soil_zse ) 
    USE cable_params_mod, ONLY : vegin
    USE cable_um_tech_mod,   ONLY : veg, soil 
@@ -337,12 +338,12 @@ SUBROUTINE init_veg_pars_fr_vegin( soil_zse )
 
       !froot fixed here for all vegetation types for ACCESS
       !need more flexibility in next version to read in or parameterise
-      veg%froot(:,1) = 0.05
-      veg%froot(:,2) = 0.20
-      veg%froot(:,3) = 0.20
-      veg%froot(:,4) = 0.20
-      veg%froot(:,5) = 0.20
-      veg%froot(:,6) = 0.15
+    veg%froot(:,1) = 0.05
+    veg%froot(:,2) = 0.20
+    veg%froot(:,3) = 0.20
+    veg%froot(:,4) = 0.20
+    veg%froot(:,5) = 0.20
+    veg%froot(:,6) = 0.15
 
 END SUBROUTINE init_veg_pars_fr_vegin
 
@@ -359,7 +360,7 @@ SUBROUTINE init_veg_from_vegin(ifmp,fmp, veg, soil_zse )
     INTEGER :: is
     REAL :: totdepth
      integer :: k,h
-
+     
       !! Prescribe parameters for current gridcell based on veg/soil type (which
       !! may have loaded from default value file or met file):
       DO h = 1, mp          ! over each patch in current grid
@@ -369,12 +370,12 @@ SUBROUTINE init_veg_from_vegin(ifmp,fmp, veg, soil_zse )
          veg%frac4(h)    = vegin%frac4(veg%iveg(h))
          veg%tminvj(h)   = vegin%tminvj(veg%iveg(h))
          veg%tmaxvj(h)   = vegin%tmaxvj(veg%iveg(h))
-         veg%vbeta(h)    = vegin%vbeta(veg%iveg(h))
-         veg%rp20(h)     = vegin%rp20(veg%iveg(h))
-         veg%rpcoef(h)   = vegin%rpcoef(veg%iveg(h))
-         veg%shelrb(h)   = vegin%shelrb(veg%iveg(h))
-         veg%vegcf(h)    = vegin%vegcf(veg%iveg(h))
-         veg%extkn(h)    = vegin%extkn(veg%iveg(h))
+            veg%vbeta(h)    = vegin%vbeta(veg%iveg(h))
+            veg%rp20(h)     = vegin%rp20(veg%iveg(h))
+            veg%rpcoef(h)   = vegin%rpcoef(veg%iveg(h))
+            veg%shelrb(h)   = vegin%shelrb(veg%iveg(h))
+            veg%vegcf(h)    = vegin%vegcf(veg%iveg(h))
+            veg%extkn(h)    = vegin%extkn(veg%iveg(h))
          veg%vcmax(h)    = vegin%vcmax(veg%iveg(h))
          veg%xfang(h)    = vegin%xfang(veg%iveg(h))
          veg%dleaf(h)    = vegin%dleaf(veg%iveg(h))
@@ -405,7 +406,7 @@ veg%rootbeta(h)  = vegin%rootbeta(veg%iveg(h))
 veg%zr(h)       = vegin%zr(veg%iveg(h))
 veg%clitt(h)    = vegin%clitt(veg%iveg(h))
          END DO ! over each veg patch in land point
-
+ 
 !used in CM2 - overwritten here
   ! calculate vegin%froot from using rootbeta and soil depth
   ! (Jackson et al. 1996, Oceologica, 108:389-411)
@@ -535,6 +536,7 @@ SUBROUTINE initialize_radiation( sw_down, lw_down, cos_zenith_angle,           &
          ALLOCATE( conv_rain_prevstep(mp), conv_snow_prevstep(mp) )
          conv_rain_prevstep = 0. 
          conv_snow_prevstep = 0.
+         met%doy = 0.0
       ENDIF   
       
       ! re-set UM rad. forcings to suit CABLE. also called in explicit call to 

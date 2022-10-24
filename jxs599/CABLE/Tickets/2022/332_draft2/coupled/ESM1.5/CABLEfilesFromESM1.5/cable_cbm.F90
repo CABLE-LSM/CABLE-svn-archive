@@ -72,8 +72,6 @@ LOGICAL :: cbl_standalone = .FALSE.
    ! assign local ptrs to constants defined in cable_data_module
    CALL point2constants(C)    
 
-   IF( cable_runtime%um ) THEN
-      
       cable_runtime%um_radiation = .FALSE.
       
       IF( cable_runtime%um_explicit ) THEN
@@ -83,10 +81,6 @@ LOGICAL :: cbl_standalone = .FALSE.
       
       CALL define_air (met, air)
    
-   ELSE
-    CALL ruff_resist( veg, rough, ssnow, canopy, veg%vlai, veg%hc, canopy%vlaiw )
-   ENDIF
-
 call fveg_mask( veg_mask, mp, Clai_thresh, canopy%vlaiw )
 call fsunlit_mask( sunlit_mask, mp, CRAD_THRESH,( met%fsd(:,1)+met%fsd(:,2) ) )
 call fsunlit_veg_mask( sunlit_veg_mask, veg_mask, sunlit_mask, mp )
@@ -108,27 +102,24 @@ CALL init_radiation( &
                      !coszen, metDoY, SW_down,                                 &
                      canopy%vlaiw  ) !reducedLAIdue2snow 
  
-   IF( cable_runtime%um ) THEN
-      
-      IF( cable_runtime%um_explicit ) THEN
- 
+IF( cable_runtime%um_explicit ) THEN
+   
+ !Ticket 331 refactored albedo code for JAC
  CALL snow_aging(ssnow%snage,mp,dels,ssnow%snowd,ssnow%osnowd,ssnow%tggsn(:,1),&
          ssnow%tgg(:,1),ssnow%isflag,veg%iveg,soil%isoilm) 
- 
+         
  CALL Albedo( ssnow%AlbSoilsn, soil%AlbSoil,                                 &
              !AlbSnow, AlbSoil,              
              mp, nrb,                                                       &
              jls_radiation,                                                 &
              veg_mask, sunlit_mask, sunlit_veg_mask,                        &  
              Ccoszen_tols, cgauss_w,                                        & 
-             veg%iveg, soil%isoilm, veg%refl, veg%taul,                    & 
+             veg%iveg, soil%isoilm, veg%refl, veg%taul,                     & 
              !surface_type, VegRefl, VegTaul,
-             met%tk, met%coszen, canopy%vlaiw,                              &
-             !metTk, coszen, reducedLAIdue2snow,
-             ssnow%snowd, ssnow%ssdnn,                                      & 
-             !SnowDepth, SnowODepth, SnowFlag_3L, 
-             ssnow%tgg(:,1), ssnow%snage,                      & 
-             !SnowDensity, SoilTemp, SnowAge, 
+             met%coszen, canopy%vlaiw,                                      &
+             !coszen, reducedLAIdue2snow,
+             ssnow%snowd, ssnow%ssdnn, ssnow%tgg(:,1), ssnow%snage,         &
+             !SnowDepth, SnowDensity, SoilTemp, SnowAge,  
              xk, c1, rhoch,                                                 & 
              rad%fbeam, rad%albedo,                                         &
              !RadFbeam, RadAlbedo,
@@ -142,46 +133,11 @@ CALL init_radiation( &
              !CanopyTransmit_dif, CanopyTransmit_beam, 
              rad%reffdf, rad%reffbm                                        &
            ) !EffSurfRefl_dif, EffSurfRefl_beam 
-
-
-
 
       ENDIF
    
-   ELSE
- CALL Albedo( ssnow%AlbSoilsn, soil%AlbSoil,                                 &
-             !AlbSnow, AlbSoil,              
-             mp, nrb,                                                       &
-             jls_radiation,                                                 &
-             veg_mask, sunlit_mask, sunlit_veg_mask,                        &  
-             Ccoszen_tols, cgauss_w,                                        & 
-             veg%iveg, soil%isoilm, veg%refl, veg%taul,                    & 
-             !surface_type, VegRefl, VegTaul,
-             met%tk, met%coszen, canopy%vlaiw,                              &
-             !metTk, coszen, reducedLAIdue2snow,
-             ssnow%snowd, ssnow%ssdnn,                                      & 
-             !SnowDepth, SnowODepth, SnowFlag_3L, 
-             ssnow%tgg(:,1), ssnow%snage,                      & 
-             !SnowDensity, SoilTemp, SnowAge, 
-             xk, c1, rhoch,                                                 & 
-             rad%fbeam, rad%albedo,                                         &
-             !RadFbeam, RadAlbedo,
-             rad%extkd, rad%extkb,                                          & 
-             !ExtCoeff_dif, ExtCoeff_beam,
-             rad%extkdm, rad%extkbm,                                        & 
-             !EffExtCoeff_dif, EffExtCoeff_beam,                
-             rad%rhocdf, rad%rhocbm,                                        &
-             !CanopyRefl_dif,CanopyRefl_beam,
-             rad%cexpkdm, rad%cexpkbm,                                      & 
-             !CanopyTransmit_dif, CanopyTransmit_beam, 
-             rad%reffdf, rad%reffbm                                        &
-           ) !EffSurfRefl_dif, EffSurfRefl_beam 
-
-
-   ENDIf
-    
    ! Calculate canopy variables:
-  CALL define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,climate, sunlit_veg_mask, canopy%vlaiw )
+   CALL define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy, climate, sunlit_veg_mask, canopy%vlaiw )
 
    ssnow%otss_0 = ssnow%otss
    ssnow%otss = ssnow%tss
@@ -230,26 +186,6 @@ CALL init_radiation( &
    rad%trad = ( ( 1.-rad%transd ) * canopy%tv**4 +                             &
               rad%transd * ssnow%tss**4 )**0.25
 
-   ! rml 17/1/11 move all plant resp and soil resp calculations here            
-   ! from canopy. in UM only call on implicit step.
-   ! put old and new soil resp calculations into soilcarb subroutine
-   ! make new plantcarb subroutine
-   IF (.not.cable_runtime%um_explicit .AND. icycle == 0) THEN
-
-      !calculate canopy%frp
-      CALL plantcarb(veg,bgc,met,canopy)
-     
-      !calculate canopy%frs
-      CALL soilcarb(soil, ssnow, veg, bgc, met, canopy)
-
-      CALL carbon_pl(dels, soil, ssnow, veg, canopy, bgc)
-
-      canopy%fnpp = -1.0* canopy%fpn - canopy%frp
-      canopy%fnee = canopy%fpn + canopy%frs + canopy%frp
-
-   ENDIF
-
-  
 END SUBROUTINE cbm
 
 END MODULE cable_cbm_module

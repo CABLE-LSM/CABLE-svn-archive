@@ -290,7 +290,7 @@ soil%heat_cap_lower_limit = 0.01
                
                IF( um1%TILE_FRAC(i,j) .GT. 0.0 ) THEN 
                   L_TILE_PTS(i,j)     = .TRUE.
-                     um1%L_TILE_PTS(i,j) = .TRUE.
+                  um1%L_TILE_PTS(i,j) = .TRUE.
                   !jhan:can set veg%iveg from  here ?
                   tile_index_mp(i,j) = j 
                ENDIF
@@ -308,10 +308,10 @@ soil%heat_cap_lower_limit = 0.01
 
 
       !--- read in soil (and veg) parameters 
-      IF(first_call) then 
-         CALL cable_pft_params()
-         CALL cable_soil_params()
-      ENDIF
+      IF(first_call ) then
+        call cable_pft_params()
+        call cable_soil_params()
+      endif
 
       !--- initialize veg   
 CALL initialize_veg( kblum_veg%htveg , land_pts, npft, ntiles, sm_levels, mp,     &
@@ -346,8 +346,9 @@ CALL initialize_veg( kblum_veg%htveg , land_pts, npft, ntiles, sm_levels, mp,   
 
  
       IF( first_call ) THEN
-!draft1!call spec_init_soil_snow( real(kwidth_gl), soil, ssnow, canopy, met, bal, veg, &
-!draft1!        soil%heat_cap_lower_limit )
+!!we have properly initz-ed ssnow
+!!call spec_init_soil_snow( real(kwidth_gl), soil, ssnow, canopy, met, bal, veg, &
+!!        soil%heat_cap_lower_limit )
          CALL init_bgc_vars() 
          CALL init_sumflux_zero() 
 
@@ -378,9 +379,7 @@ CALL initialize_veg( kblum_veg%htveg , land_pts, npft, ntiles, sm_levels, mp,   
 
          endif
 
-      IF( first_call ) THEN
          first_call = .FALSE. 
-      ENDIF      
       
 END SUBROUTINE interface_UM_data
                                    
