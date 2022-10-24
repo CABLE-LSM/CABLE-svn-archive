@@ -114,10 +114,6 @@ TYPE kbl_user_switches
 
   LOGICAL :: l_limit_labile = .FALSE.    ! #237: limit Labile in spinup
   LOGICAL :: NtilesThruMetFile = .FALSE. ! #199: Specify Ntiles thru met file 
- !paths 4 testing ESM1.5-CABLE3 
-  LOGICAL :: test1= .FALSE. 
-  LOGICAL :: test2= .FALSE. 
-  LOGICAL :: test3= .FALSE. 
 
 END TYPE kbl_user_switches
 
