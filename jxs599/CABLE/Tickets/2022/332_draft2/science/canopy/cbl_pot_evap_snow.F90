@@ -68,7 +68,7 @@ IF (cable_user_litter) THEN
                (ssnow_rtsoil+ REAL((1-ssnow_isflag))*veg_clitt*0.003/canopy_DvLitt)
 ELSE
   ssnowpotev = cc1 * (canopy_fns - ground_H_flux) + &
-             cc2 * air_rho * air_rlam*(qsatfvar  - met_qvair)/ssnow_rtsoil
+               cc2 * air_rho * air_rlam*(qsatfvar  - met_qvair)/ssnow_rtsoil
 ENDIF
 
 RETURN
@@ -85,10 +85,9 @@ FUNCTION Humidity_deficit_method( mp, Ctfrz, veg_clitt,cable_user_or_evap,     &
                                  ssnow_rtevap_sat, ssnow_rtevap_unsat,      & 
                                  ssnow_snowd, ssnow_tgg &
                                  ) RESULT(ssnowpotev)
-USE cable_common_module, ONLY : cable_runtime
 IMPLICIT NONE
 
-integer :: mp
+INTEGER :: mp
 REAL ::  ssnowpotev(mp)
 
 REAL:: Ctfrz 
@@ -116,18 +115,15 @@ DO j=1,mp
 
   IF( ssnow_snowd(j)>1.0 .OR. ssnow_tgg(j) .EQ. Ctfrz ) THEN
     dq(j) = MAX( -0.1e-3, dq(j))
+    dqu(j) = MAX( -0.1e-3, dqu(j))
   END IF
 
-  IF( .NOT. cable_runtime%esm15_HDM ) THEN
+  IF (dq(j) .LE. 0.0 .AND. dqu(j) .LT. dq(j)) THEN
+    dqu(j) = dq(j)
+  END IF
 
-    IF( ssnow_snowd(j)>1.0 .OR. ssnow_tgg(j) .EQ. Ctfrz ) THEN
-      dqu(j) = MAX( -0.1e-3, dqu(j))
-    ELSEIF (dq(j) .LE. 0.0 .AND. dqu(j) .LT. dq(j)) THEN
-      dqu(j) = dq(j)
-    ELSEIF (dq(j) .GE. 0.0 .AND. dqu(j) .LT. 0.0) THEN
-      dqu(j) = 0.0
-    ENDIF
-
+  IF (dq(j) .GE. 0.0 .AND. dqu(j) .LT. 0.0) THEN
+    dqu(j) = 0.0
   ENDIF
 ENDDO
 
@@ -164,7 +160,7 @@ IF (cable_user_or_evap .or. cable_user_gw_model) then
  ELSE
   ssnowpotev = air_rho * air_rlam * dq / ssnow_rtsoil
  ENDIF
-   
+
 RETURN
 END FUNCTION Humidity_deficit_method
 

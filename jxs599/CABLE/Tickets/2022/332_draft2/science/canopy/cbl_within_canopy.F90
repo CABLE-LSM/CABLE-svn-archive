@@ -11,7 +11,7 @@ SUBROUTINE within_canopy( mp, CRMH2o, Crmair, CTETENA, CTETENB, CTETENC, CLAI_th
                            CCAPP, CTFRZ, rad,rough, air, met, veg, canopy, ssnow, gbhu, gbhf,    &
                            qstvair, rt0, rhlitt, relitt )
   
-USE cable_common_module, ONLY : cable_user, cable_runtime
+  USE cable_common_module, ONLY : cable_user
 
   USE cable_def_types_mod, ONLY : r_2
 
@@ -64,109 +64,96 @@ USE cbl_qsat_module, ONLY: qsatfjh, qsatfjh2
   !
   !changes from v1.4 for %cls package, litter and Or hydrology
 
-   rrbw = sum(gbhu+gbhf,2)/air%cmolar  ! MJT 
-   
-   ! leaf stomatal resistance for water
-   rrsw = sum(canopy%gswx,2)/air%cmolar ! MJT
-   
-  IF( cable_runtime%esm15_within_canopy ) THEN
-       
-    fix_eqn(:)  = ssnow%wetfac(:) 
-    fix_eqn2(:) = 1.0
-  
-  ELSE
-    
-    IF (cable_user%or_evap) THEN
-       fix_eqn(:) = rt0(:)*(REAL(ssnow%satfrac(:))/(rt0(:)+REAL(ssnow%rtevap_sat(:))) + &
-            (1-REAL(ssnow%satfrac(:)))/(rt0(:)+REAL(ssnow%rtevap_unsat(:))))
-       !lakes/ice rtevap=0 and wetfac is .ne. 1
-       fix_eqn(:) = ssnow%wetfac(:) * fix_eqn(:)*ssnow%cls(:)   !INH correction. & M.Dekker +d wetfac
-  
-       fix_eqn2(:) = rt0(:) / (rt0(:) + REAL(ssnow%rt_qh_sublayer) )
-  
-    ELSE  !with INH corrections for litter and cls
-  
-       fix_eqn(:) = ssnow%cls(:)*rt0(:)/(rt0(:)+relitt(:))
-       WHERE (ssnow%potev>0.) fix_eqn(:)=fix_eqn(:)*ssnow%wetfac(:)
-       fix_eqn2(:) = rt0(:)/(rt0(:)+rhlitt(:))
-  
-    END IF
+  rrbw = SUM(gbhu+gbhf,2)/air%cmolar  ! MJT
+
+  ! leaf stomatal resistance for water
+  rrsw = SUM(canopy%gswx,2)/air%cmolar ! MJT
+
+  IF (cable_user%or_evap) THEN
+     fix_eqn(:) = rt0(:)*(REAL(ssnow%satfrac(:))/(rt0(:)+REAL(ssnow%rtevap_sat(:))) + &
+          (1-REAL(ssnow%satfrac(:)))/(rt0(:)+REAL(ssnow%rtevap_unsat(:))))
+     !lakes/ice rtevap=0 and wetfac is .ne. 1
+     fix_eqn(:) = ssnow%wetfac(:) * fix_eqn(:)*ssnow%cls(:)   !INH correction. & M.Dekker +d wetfac
+
+     fix_eqn2(:) = rt0(:) / (rt0(:) + REAL(ssnow%rt_qh_sublayer) )
+
+  ELSE  !with INH corrections for litter and cls
+
+     fix_eqn(:) = ssnow%cls(:)*rt0(:)/(rt0(:)+relitt(:))
+     WHERE (ssnow%potev>0.) fix_eqn(:)=fix_eqn(:)*ssnow%wetfac(:)
+     fix_eqn2(:) = rt0(:)/(rt0(:)+rhlitt(:))
 
   END IF
-   DO j=1,mp
-   
-      IF(veg%meth(j) > 0 .AND. canopy%vlaiw(j) > CLAI_THRESH .AND.              &
-         rough%hruff(j) > rough%z0soilsn(j) ) THEN
 
-         !   use the dispersion matrix (DM) to find the air temperature 
-         !   and specific humidity 
-         !   (Raupach, Finkele and Zhang 1997, pp 17)
-         ! leaf boundary layer resistance for water
-         ! A_{H} in eq. 3.41, SCAM manual, CSIRO tech doc 132
+  DO j=1,mp
+
+     IF(veg%meth(j) > 0 .AND. canopy%vlaiw(j) > CLAI_THRESH .AND.              &
+          rough%hruff(j) > rough%z0soilsn(j) ) THEN
+
+        !   use the dispersion matrix (DM) to find the air temperature
+        !   and specific humidity
+        !   (Raupach, Finkele and Zhang 1997, pp 17)
+        ! leaf boundary layer resistance for water
+        ! A_{H} in eq. 3.41, SCAM manual, CSIRO tech doc 132
         dmah(j) = (rt0(j)+fix_eqn2(j)*rough%rt1(j))*((1.+air%epsi(j))*rrsw(j) + rrbw(j))  &
-                   + air%epsi(j) * (rt0(j)*rough%rt1(j))*(rrbw(j)*rrsw(j))
-         
-         ! B_{H} in eq. 3.41, SCAM manual, CSIRO tech doc 132
-         dmbh(j) = (-air%rlam(j)/CCAPP)*(rt0(j)*rough%rt1(j))*(rrbw(j)*rrsw(j))
-         
-         ! C_{H} in eq. 3.41, SCAM manual, CSIRO tech doc 132
-         dmch(j) = ((1.+air%epsi(j))*rrsw(j) + rrbw(j))*rt0(j)*rough%rt1(j)*   &
-                   (canopy%fhv(j) + canopy%fhs(j))/(air%rho(j)*CCAPP)
+             + air%epsi(j) * (rt0(j)*rough%rt1(j))*(rrbw(j)*rrsw(j))
 
-         ! A_{E} in eq. 3.41, SCAM manual, CSIRO tech doc 132
-         dmae(j) = (-air%epsi(j)*CCAPP/air%rlam(j))*(rt0(j)*rough%rt1(j)) *   &
-                   (rrbw(j)*rrsw(j))
+        ! B_{H} in eq. 3.41, SCAM manual, CSIRO tech doc 132
+        dmbh(j) = (-air%rlam(j)/CCAPP)*(rt0(j)*rough%rt1(j))*(rrbw(j)*rrsw(j))
 
-         ! B_{E} in eq. 3.41, SCAM manual, CSIRO tech doc 132
+        ! C_{H} in eq. 3.41, SCAM manual, CSIRO tech doc 132
+        dmch(j) = ((1.+air%epsi(j))*rrsw(j) + rrbw(j))*rt0(j)*rough%rt1(j)*   &
+             (canopy%fhv(j) + canopy%fhs(j))/(air%rho(j)*CCAPP)
+
+        ! A_{E} in eq. 3.41, SCAM manual, CSIRO tech doc 132
+        dmae(j) = (-air%epsi(j)*CCAPP/air%rlam(j))*(rt0(j)*rough%rt1(j)) *   &
+             (rrbw(j)*rrsw(j))
+
+        ! B_{E} in eq. 3.41, SCAM manual, CSIRO tech doc 132
         dmbe(j) = ( rt0(j) + fix_eqn(j) * rough%rt1(j) ) *               &
-                   ( (1.+air%epsi(j) ) * rrsw(j) + rrbw(j) ) +                 &
-                   ( rt0(j) * rough%rt1(j) ) * ( rrbw(j) * rrsw(j) )
+             ( (1.+air%epsi(j) ) * rrsw(j) + rrbw(j) ) +                 &
+             ( rt0(j) * rough%rt1(j) ) * ( rrbw(j) * rrsw(j) )
 
-         ! C_{E} in eq. 3.41, SCAM manual, CSIRO tech doc 132
+        ! C_{E} in eq. 3.41, SCAM manual, CSIRO tech doc 132
         ! INH: includes modifications for %cls
-  IF( cable_runtime%esm15_within_canopy ) THEN
-         dmce(j) = ((1.+air%epsi(j))*rrsw(j) + rrbw(j))*rt0(j)*rough%rt1(j)*   &
-                   (canopy%fev(j) + canopy%fes(j))/(air%rho(j)*air%rlam(j))
-  ELSE
         dmce(j) = ((1.+air%epsi(j))*rrsw(j) + rrbw(j))*rt0(j)*rough%rt1(j)*   &
              (canopy%fev(j) + canopy%fes(j)/ssnow%cls(j)) /                   &
              (air%rho(j)*air%rlam(j))
-  END IF
-      
-         ! Within canopy air temperature:
-         met%tvair(j) = met%tk(j) + ( dmbe(j) * dmch(j) - dmbh(j) * dmce(j) )  &
-                        / (dmah(j)*dmbe(j)-dmae(j)*dmbh(j)+1.0e-12)
-           
-         !---set limits for comparisson
-         lower_limit =  MIN( ssnow%tss(j), met%tk(j)) - 5.0
-         upper_limit =  MAX( ssnow%tss(j), met%tk(j)) + 5.0
-      
-         !--- tvair within these limits
-         met%tvair(j) = MAX(met%tvair(j) , lower_limit)
-         met%tvair(j) = MIN(met%tvair(j) , upper_limit)
-   
-         ! recalculate using canopy within temperature
-         met%qvair(j) = met%qv(j) + (dmah(j)*dmce(j)-dmae(j)*dmch(j)) /        &
-                        ( dmah(j)*dmbe(j)-dmae(j)*dmbh(j)+1.0e-12)
-         met%qvair(j) = MAX(0.0,met%qvair(j))
-      
-         !---set limits for comparisson
-         lower_limit =  MIN( ssnow%qstss(j), met%qv(j)) 
-         upper_limit =  MAX( ssnow%qstss(j), met%qv(j))
-      
-            !--- qvair within these limits
-         met%qvair(j) =  MAX(met%qvair(j),lower_limit)
-         met%qvair(j) =  MIN(met%qvair(j), upper_limit)
-      
-         ! Saturated specific humidity in canopy:
-        CALL  qsatfjh2( qstvair(j), CRMH2o, Crmair, CTETENA, CTETENB, CTETENC, met%tvair(j)-Ctfrz,met%pmb(j))
-         
-         ! Saturated vapour pressure deficit in canopy:
-         met%dva(j) = ( qstvair(j) - met%qvair(j) ) *  Crmair/CRMH2o         &
-                      * met%pmb(j) * 100.
-      ENDIF 
 
-   ENDDO 
+        ! Within canopy air temperature:
+        met%tvair(j) = met%tk(j) + ( dmbe(j) * dmch(j) - dmbh(j) * dmce(j) )  &
+             / (dmah(j)*dmbe(j)-dmae(j)*dmbh(j)+1.0e-12)
+
+        !---set limits for comparisson
+        lower_limit =  MIN( ssnow%tss(j), met%tk(j)) - 5.0
+        upper_limit =  MAX( ssnow%tss(j), met%tk(j)) + 5.0
+
+        !--- tvair within these limits
+        met%tvair(j) = MAX(met%tvair(j) , lower_limit)
+        met%tvair(j) = MIN(met%tvair(j) , upper_limit)
+
+        ! recalculate using canopy within temperature
+        met%qvair(j) = met%qv(j) + (dmah(j)*dmce(j)-dmae(j)*dmch(j)) /        &
+             ( dmah(j)*dmbe(j)-dmae(j)*dmbh(j)+1.0e-12)
+        met%qvair(j) = MAX(0.0,met%qvair(j))
+
+        !---set limits for comparisson
+        lower_limit =  MIN( ssnow%qstss(j), met%qv(j))
+        upper_limit =  MAX( ssnow%qstss(j), met%qv(j))
+
+        !--- qvair within these limits
+        met%qvair(j) =  MAX(met%qvair(j),lower_limit)
+        met%qvair(j) =  MIN(met%qvair(j), upper_limit)
+
+        ! Saturated specific humidity in canopy:
+        CALL  qsatfjh2( qstvair(j), CRMH2o, Crmair, CTETENA, CTETENB, CTETENC, met%tvair(j)-Ctfrz,met%pmb(j))
+
+        ! Saturated vapour pressure deficit in canopy:
+        met%dva(j) = ( qstvair(j) - met%qvair(j) ) *  Crmair/CRMH2o         &
+             * met%pmb(j) * 100.
+     ENDIF
+
+  ENDDO
 
 END SUBROUTINE within_canopy
 

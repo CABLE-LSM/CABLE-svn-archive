@@ -15,8 +15,6 @@ SUBROUTINE Latent_heat_flux( mp, CTFRZ, dels, soil_zse, soil_swilt,           &
                              ssnow_tss, canopy_fes, canopy_fess, canopy_fesp  )
 
 USE cable_def_types_mod, ONLY : r_2
-USE cable_common_module, ONLY : cable_runtime
-
 IMPLICIT NONE
 
 INTEGER :: mp
@@ -59,83 +57,70 @@ INTEGER :: j
 !water fluxes are from the snow pack or soil column in _soilsnow
 
 ! Soil latent heat:
-IF( cable_runtime%esm15_latentH ) THEN
-	canopy_fess= ssnow_wetfac * ssnow_potev
-	WHERE (ssnow_potev < 0. ) canopy_fess = ssnow_potev
-ELSE
-	WHERE (ssnow_potev < 0. ) ssnow_wetfac(:) = 1.0
-	canopy_fess= ssnow_wetfac * ssnow_potev
-END IF
-   
+WHERE (ssnow_potev < 0. ) ssnow_wetfac(:) = 1.0
+canopy_fess= ssnow_wetfac * ssnow_potev
+
 ! Reduce soil evap due to presence of puddle
 pwet = MAX(0.,MIN(0.2,ssnow_pudsto/MAX(1.,ssnow_pudsmx)))
 canopy_fess = canopy_fess * (1.-pwet)
 
-frescale = soil_zse * 1000. * air_rlam / dels         
+frescale = soil_zse * 1000. * air_rlam / dels
 
 DO j=1,mp
-      
-      IF(ssnow_snowd(j) < 0.1 .AND. canopy_fess(j) .GT. 0. ) THEN
 
-        IF (.not.cable_user_l_new_reduce_soilevp) THEN
-         flower_limit(j) = REAL(ssnow_wb(j))-soil_swilt(j)/2.0
-        ELSE
-         ! E.Kowalczyk 2014 - reduces the soil evaporation
-         flower_limit(j) = REAL(ssnow_wb(j))-soil_swilt(j)
-        ENDIF
-    fupper_limit(j) = MAX( 0.,                                        &
-                           flower_limit(j) * frescale(j)                       &
-                           - ssnow_evapfbl(j)*air_rlam(j)/dels)
+  IF(ssnow_snowd(j) < 0.1 .AND. canopy_fess(j) .GT. 0. ) THEN
 
-    canopy_fess(j) = MIN(canopy_fess(j), REAL(fupper_limit(j),r_2))
-         
-    !Ticket 137 - case iii)
-    !evaporation from frozen soils needs to respect the assumption that
-    !ice fraction of soil moisture cannot exceed frozen_limit=0.85
-    !see soilsnow: if frozen_limit changes need to be consistent
-    IF( cable_runtime%esm15_latentH ) THEN
-         fupper_limit(j) = REAL(ssnow_wb(j)-ssnow_wbice(j)) * frescale(j)
-    ELSE
+     IF (.NOT.cable_user_l_new_reduce_soilevp) THEN
+        flower_limit(j) = REAL(ssnow_wb(j))-soil_swilt(j)/2.0
+     ELSE
+        ! E.Kowalczyk 2014 - reduces the soil evaporation
+        flower_limit(j) = REAL(ssnow_wb(j))-soil_swilt(j)
+     ENDIF
+     fupper_limit(j) = MAX( 0.,                                        &
+          flower_limit(j) * frescale(j)                       &
+          - ssnow_evapfbl(j)*air_rlam(j)/dels)
+
+     canopy_fess(j) = MIN(canopy_fess(j), REAL(fupper_limit(j),r_2))
+
+     !Ticket 137 - case iii)
+     !evaporation from frozen soils needs to respect the assumption that
+     !ice fraction of soil moisture cannot exceed frozen_limit=0.85
+     !see soilsnow: if frozen_limit changes need to be consistent
      fupper_limit(j) = REAL(ssnow_wb(j)-ssnow_wbice(j)/0.85)*frescale(j)
      fupper_limit(j) = MAX(REAL(fupper_limit(j),r_2),0.)
-    END IF
-    canopy_fess(j) = MIN(canopy_fess(j), REAL(fupper_limit(j),r_2))
+     canopy_fess(j) = MIN(canopy_fess(j), REAL(fupper_limit(j),r_2))
 
-      END IF
+  END IF
 
-      ssnow_cls(j)=1.
-      
-    IF( .NOT. cable_runtime%esm15_latentH ) THEN
- 
-      !Ticket 137 - case ii) deposition of frost onto snow
-      ! case of sublimation of snow overwrites later
-      IF (ssnow_snowd(j) >=0.1 ) THEN
-        ssnow_cls(j) = 1.1335
-        canopy_fess(j) = ssnow_cls(j)*ssnow_potev(j)
-      ENDIF
+  ssnow_cls(j)=1.
 
-      !Ticket 137 - case iv) deposition of frost onto frozen soil, no snow
-      IF (ssnow_snowd(j) < 0.1 .AND. ssnow_potev(j) < 0. .AND. &
-         ssnow_tss(j)<CTFRZ) THEN
-       ssnow_cls(j)=1.1335
-       canopy_fess(j) = ssnow_cls(j)*ssnow_potev(j)
-      ENDIF
-    
-    END IF
+  !Ticket 137 - case ii) deposition of frost onto snow
+  ! case of sublimation of snow overwrites later
+  IF (ssnow_snowd(j) >=0.1 ) THEN
+     ssnow_cls(j) = 1.1335
+     canopy_fess(j) = ssnow_cls(j)*ssnow_potev(j)
+  ENDIF
+
+  !Ticket 137 - case iv) deposition of frost onto frozen soil, no snow
+  IF (ssnow_snowd(j) < 0.1 .AND. ssnow_potev(j) < 0. .AND. &
+       ssnow_tss(j)<CTFRZ) THEN
+     ssnow_cls(j)=1.1335
+     canopy_fess(j) = ssnow_cls(j)*ssnow_potev(j)
+  ENDIF
 
   !Ticket 137 - case ii) sublimation of snow
-      IF (ssnow_snowd(j) >= 0.1 .and. ssnow_potev(j) > 0.) THEN
+  IF (ssnow_snowd(j) >= 0.1 .AND. ssnow_potev(j) > 0.) THEN
 
-         ssnow_cls(j) = 1.1335
+     ssnow_cls(j) = 1.1335
 
-   !INH - if changes to PM routine then matching changes here
-         canopy_fess(j) = MIN( (ssnow_wetfac(j)*ssnow_potev(j))*ssnow_cls(j), &
-                          ssnow_snowd(j)/dels*air_rlam(j)*ssnow_cls(j))
-      
-      ENDIF
+     !INH - if changes to PM routine then matching changes here
+     canopy_fess(j) = MIN( (ssnow_wetfac(j)*ssnow_potev(j))*ssnow_cls(j), &
+          ssnow_snowd(j)/dels*air_rlam(j)*ssnow_cls(j))
+
+  ENDIF
 
 ENDDO
-   
+
 ! Evaporation from soil puddle
 canopy_fesp = MIN(ssnow_pudsto/dels*air_rlam,MAX(pwet*ssnow_potev,0.))
 canopy_fes = canopy_fess + canopy_fesp
