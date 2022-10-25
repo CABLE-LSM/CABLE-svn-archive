@@ -314,7 +314,7 @@ DO WHILE (k < CMAXITER)
              temp2(i,2) = rad%qcan(i,2,1) * jtomol * veg%frac4(i)
              vx4(i,1)  = ej4x(temp2(i,1),veg%alpha(i),veg%convex(i),vcmxt4(i,1))
              vx4(i,2)  = ej4x(temp2(i,2),veg%alpha(i),veg%convex(i),vcmxt4(i,2))
-
+             !jhan:isnt this rdx redundant,  all overwritten anyway
              rdx(i,1) = (veg%cfrd(i)*Vcmxt3(i,1) + veg%cfrd(i)*vcmxt4(i,1))
              rdx(i,2) = (veg%cfrd(i)*vcmxt3(i,2) + veg%cfrd(i)*vcmxt4(i,2))
 
