@@ -179,6 +179,11 @@ VegTemp = met%tvrad
 
 CanopyExtincion_beam = rad%extkbm(:,1)
 CanopyExtincion_dif  = rad%extkdm(:,1)
+!picked this up from WLSEside of IF esm15 loop
+WHERE (sunlit_veg_mask) ! i.e. vegetation and sunlight are present
+  CanopyExtincion_beam = EXP( -MIN(rad%extkbm(:,1) * canopy%vlaiw,20.) )
+  CanopyExtincion_dif  = EXP( -MIN(rad%extkdm(:,1) * canopy%vlaiw,20.) )
+END WHERE
     WHERE (sunlit_veg_mask) ! i.e. vegetation and sunlight are present
 
        ! Calculate shortwave radiation absorbed by soil:
