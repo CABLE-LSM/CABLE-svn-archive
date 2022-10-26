@@ -88,7 +88,9 @@ build_build()
    PAR="../params"
    SLI="../science/sli"
    POP="../science/pop"
-   /bin/cp -p $ALB/*90 ./.tmp
+   MIC="../science/mic_cnp"
+   
+	 /bin/cp -p $ALB/*90 ./.tmp
    /bin/cp -p $CAN/*90 ./.tmp
    /bin/cp -p $CNP/*90 ./.tmp
    /bin/cp -p $GWH/*90 ./.tmp
@@ -99,6 +101,7 @@ build_build()
    /bin/cp -p $SLI/*90 ./.tmp
    /bin/cp -p $POP/*90 ./.tmp
    /bin/cp -p $LUC/*90 ./.tmp
+   /bin/cp -p $MIC/*90 ./.tmp
    /bin/cp -p $OFF/*90 ./.tmp
 
 /bin/cp -p $UTI/*90 ./.tmp

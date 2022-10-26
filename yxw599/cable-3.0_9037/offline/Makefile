@@ -90,7 +90,7 @@ LSRC =                          \
 	cable_cru_TRENDY.F90 POPLUC.F90 cable_LUC_EXPT.F90												 \
 	cable_gw_hydro.F90 cable_psm.F90 cable_namelist_input.F90									 \
 	cable_site.F90 cable_climate_type_mod.F90 cable_metutils.F90               \
-	landuse3.F90 landuse_inout.F90 landuse_constant.F90               \
+	landuse3.F90 landuse_inout.F90 landuse_constant.F90               				 \
 	vmic_inout.F90 vmic_carbon.F90
 # this is the executable we are building
 PROG = cable
@@ -379,7 +379,7 @@ all  : grid_constants_cbl.o    \
 	casa_inout.o                 \
 	landuse_constant.o           \
 	landuse3.o                   \
-	landuse_inout.o              \ 
+	landuse_inout.o              \
 	vmic_carbon.o                \
 	vmic_inout.o	
 
