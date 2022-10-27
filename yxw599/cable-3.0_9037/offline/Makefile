@@ -91,7 +91,7 @@ LSRC =                          \
 	cable_gw_hydro.F90 cable_psm.F90 cable_namelist_input.F90									 \
 	cable_site.F90 cable_climate_type_mod.F90 cable_metutils.F90               \
 	landuse3.F90 landuse_inout.F90 landuse_constant.F90               				 \
-	vmic_inout.F90 vmic_carbon.F90
+	vmic_carbon.F90  vmic_inout.F90 
 # this is the executable we are building
 PROG = cable
 
@@ -286,10 +286,9 @@ landuse3.o: landuse3.F90 cable_define_types.o casa_dimension.o landuse_constant.
 
 landuse_inout.o: landuse_inout.F90 cable_define_types.o landuse_constant.o landuse3.o cable_common.o cable_iovars.o cable_abort.o
 
-vmic_carbon.o: vmic_carbon.F90 cable_define_types.o casa_dimension.o cable_common.o \
-            casa_variable.o
-vmic_inout.o: vmic_inout.F90 cable_define_types.o casa_dimension.o cable_common.o \
-            casa_variable.o vmic_carbon.o  
+vmic_carbon.o: vmic_carbon.F90 cable_define_types.o casa_dimension.o cable_common.o casa_variable.o
+
+vmic_inout.o: vmic_inout.F90 cable_define_types.o casa_dimension.o cable_common.o casa_variable.o vmic_carbon.o  
 
 # these are all the files we are compiling
 all  : grid_constants_cbl.o    \
