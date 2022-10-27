@@ -1,196 +1,19 @@
-module mic_constant
-  IMPLICIT NONE
-  integer,  parameter  :: r_2 = SELECTED_REAL_KIND(12, 60)
-  integer,  parameter  :: diag=0       ! =1 for printout 0 no prinout
-  integer,  parameter  :: outp=1       ! output site
-  integer,  parameter  :: msite=182    ! number of sites
-  integer,  parameter  :: mp=1000      ! number of site the model runs for
-  integer,  parameter  :: ms=15        ! soil layers
-  integer,  parameter  :: mcpool=7     ! number of C pools
-  integer,  parameter  :: nfvar=36     ! number of data input variables
-  real,     parameter  :: delt= 1.0    ! one hour
-  integer,  parameter  :: mpft=15      ! number of PFTs
-  real(r_2),PARAMETER  :: diffsoc  =(1.0/24.0)* 2.74e-3  !cm2/hour   
-                                        ! m2/hour  ! see Table 1,Camino-Serrano et al. (2018)
-  
-end module mic_constant
-
-module mic_variable
-  use mic_constant
-  IMPLICIT NONE
-  SAVE
-
-  TYPE mic_parameter
-  real(r_2), dimension(:),      allocatable  :: xav,xak,xdesorp,xbeta,xdiffsoc,rootbetax
-  real(r_2), dimension(:,:),    allocatable  :: K1,K2,K3,J1,J2,J3
-  real(r_2), dimension(:,:),    allocatable  :: V1,V2,V3,W1,W2,W3
-  real(r_2), dimension(:,:),    allocatable  :: desorp
-  real(r_2), dimension(:,:),    allocatable  :: Q1,Q2,fm,fs
-  real(r_2), dimension(:,:),    allocatable  :: mgeR1,mgeR2,mgeR3,mgeK1,mgeK2,mgeK3
-  real(r_2), dimension(:,:),    allocatable  :: tvmicR,tvmicK,betamicR,betamicK
-  real(r_2), dimension(:,:),    allocatable  :: fmetave
-  real(r_2), dimension(:,:,:),  allocatable  :: cn_r
-  real(r_2), dimension(:,:),    allocatable  :: fr2p,fk2p,fr2c,fk2c,fr2a,fk2a
-  real(r_2), dimension(:),      allocatable  :: xcnleaf,xcnroot,xcnwood,fligleaf,fligroot,fligwood
-  real(r_2), dimension(:),      allocatable  :: diffsocx
-  ! the following are alrealy available in CABLE
-  integer,   dimension(:),      allocatable  :: pft,region,siteid
-  real(r_2), dimension(:,:),    allocatable  :: sdepth,fracroot
-  real(r_2), dimension(:,:),    allocatable  :: clay
-  real(r_2), dimension(:,:),    allocatable  :: csoilobs,bulkd  
-  END TYPE mic_parameter
-  
-  TYPE mic_input
-  real(r_2), dimension(:,:),    allocatable  :: tavg,wavg
-  real(r_2), dimension(:),      allocatable  :: dleaf,dwood,droot
-  real(r_2), dimension(:,:),    allocatable  :: cinputm
-  real(r_2), dimension(:,:),    allocatable  :: cinputs
-  real(r_2), dimensioN(:),      allocatable  :: fcnpp
-
-  END TYPE mic_input
- 
-  TYPE mic_output
-  real(r_2), dimension(:,:),    allocatable  :: rsoil   
-  END TYPE mic_output
-  
-  TYPE mic_cpool
-  real(r_2), dimension(:,:,:),  allocatable  :: cpool
-  END TYPE mic_cpool
- 
-  TYPE mic_npool
-  real(r_2), dimension(:,:),    allocatable  :: mineralN
-  END TYPE mic_npool 
-  
- 
- CONTAINS
-
-  SUBROUTINE mic_allocate_parameter(mp,ms,micparam)
-   IMPLICIT NONE
-   TYPE(mic_parameter), INTENT(INOUT)  :: micparam
-   integer  mp,ms
-
-    ! tunable model parameters
-    allocate(micparam%xav(mp),      &
-	         micparam%xak(mp),      &
-             micparam%xdesorp(mp),  &
-             micparam%xbeta(mp),    &
-             micparam%xdiffsoc(mp), &
-             micparam%rootbetax(mp))
-    allocate(micparam%K1(mp,ms),  &
-             micparam%K2(mp,ms),  & 
-             micparam%K3(mp,ms),  & 
-             micparam%J1(mp,ms),  & 
-             micparam%J2(mp,ms),  & 
-             micparam%J3(mp,ms),  & 
-             micparam%V1(mp,ms),  & 
-             micparam%V2(mp,ms),  & 
-             micparam%V3(mp,ms),  & 
-             micparam%W1(mp,ms),  & 
-             micparam%W2(mp,ms),  & 
-             micparam%W3(mp,ms),  & 
-             micparam%desorp(mp,ms), &
-             micparam%Q1(mp,ms),     &
-             micparam%Q2(mp,ms),     &
-             micparam%fm(mp,ms),     &
-             micparam%fs(mp,ms),     &
-             micparam%mgeR1(mp,ms),  & 
-             micparam%mgeR2(mp,ms),  & 
-             micparam%mgeR3(mp,ms),  & 
-             micparam%mgeK1(mp,ms),  & 
-             micparam%mgeK2(mp,ms),  & 
-             micparam%mgeK3(mp,ms),  & 
-             micparam%fmetave(mp,ms),&
-             micparam%tvmicR(mp,ms), &
-             micparam%tvmicK(mp,ms), &
-             micparam%betamicR(mp,ms),     &
-             micparam%betamicK(mp,ms),     &
-             micparam%cn_r(mp,ms,mcpool),  &
-             micparam%fr2p(mp,ms),   & 
-             micparam%fk2p(mp,ms),   & 
-             micparam%fr2c(mp,ms),   & 
-             micparam%fk2c(mp,ms),   &
-             micparam%fr2a(mp,ms),   & 
-             micparam%fk2a(mp,ms))
-
-    allocate(micparam%xcnleaf(mp),   &
-             micparam%xcnroot(mp),   &
-             micparam%xcnwood(mp),   &
-             micparam%fligleaf(mp),  &
-             micparam%fligroot(mp),  &
-             micparam%fligwood(mp),  &
-             micparam%diffsocx(mp))
-
-    allocate(micparam%pft(mp),       &
-             micparam%region(mp),    &
-             micparam%siteid(mp))
-
-    allocate(micparam%sdepth(mp,ms),   &
-             micparam%fracroot(mp,ms), &
-             micparam%clay(mp,ms),     &
-             micparam%csoilobs(mp,ms), &
-             micparam%bulkd(mp,ms)) 
    
-  END SUBROUTINE mic_allocate_parameter
-  
-  SUBROUTINE mic_allocate_input(mp,ms,micinput)
-   IMPLICIT NONE
-   integer mp,ms
-   TYPE(mic_input), INTENT(INOUT)  :: micinput
-
-    allocate(micinput%tavg(mp,ms),    &
-             micinput%wavg(mp,ms),    &
-             micinput%fcnpp(mp),      &
-             micinput%dleaf(mp),      &
-             micinput%dwood(mp),      &
-             micinput%droot(mp),      &
-             micinput%cinputm(mp,ms), &
-             micinput%cinputs(mp,ms) )
-   
-  END SUBROUTINE mic_allocate_input
-  
-  SUBROUTINE mic_allocate_output(mp,ms,micoutput)
-   IMPLICIT NONE
-   TYPE(mic_output), INTENT(INOUT)  :: micoutput
-   integer  mp,ms
-   
-   allocate(micoutput%rsoil(mp,ms))
-
-  END SUBROUTINE mic_allocate_output  
-  
-  SUBROUTINE mic_allocate_cpool(mp,ms,miccpool)
-   IMPLICIT NONE
-   integer mp,ms
-   TYPE(mic_cpool), INTENT(INOUT)  :: miccpool
-
-   allocate(miccpool%cpool(mp,ms,mcpool))
-   
-  END SUBROUTINE mic_allocate_cpool 
-
-  SUBROUTINE mic_allocate_npool(mp,ms,micnpool)
-   IMPLICIT NONE
-   integer mp,ms
-   TYPE(mic_npool), INTENT(INOUT)  :: micnpool
-
-   ALLOCATE(micnpool%mineralN(mp,ms))
-   
-  END SUBROUTINE mic_allocate_npool 
-  
-end module mic_variable
-
-   
-SUBROUTINE vmic_param_constant(zse,micparam) 
+SUBROUTINE vmic_param_constant(zse,veg,micparam)
+    USE cable_def_types_mod, ONLY : mp, r_2, mvtype, ms 
     use mic_constant
     use mic_variable
     implicit none
-    TYPE(mic_parameter), INTENT(INout) :: micparam
-    integer nx
-    real*8,    dimension(nx)           :: xopt
+    TYPE (veg_parameter_type),  INTENT(IN)    :: veg	
+    TYPE(mic_parameter),        INTENT(INout) :: micparam
+!    integer nx
+!    real*8,    dimension(nx)           :: xopt
 !local variables   
-    real(r_2), dimension(mpft,ms)      :: froot
-    real(r_2), dimension(mpft)         :: rootbeta
+    real(r_2), dimension(mvtype,ms)      :: froot
+    real(r_2), dimension(mvtype)         :: rootbeta
     data rootbeta/0.962,0.962,0.961,0.976,0.962,0.966,0.943,0.962,0.966,0.943,0.966,0.966,0.966,0.972,0.962/
     real(r_2), dimension(ms)           :: zse
-    real(r_2), dimension(mpft)         :: totroot
+    real(r_2), dimension(mvtype)       :: totroot
 !    real(r_2) xdiffsoc,rootbetax
     integer ipft,np,ns
     real(r_2)  depths1,depths2
@@ -204,19 +27,19 @@ SUBROUTINE vmic_param_constant(zse,micparam)
       depths1=0.0;depths2=0.0
       do ns=1,ms
          depths2 = depths2 + zse(ns)
-         do ipft=1,mpft
+         do ipft=1,mvtype
              froot(ipft,ns) = (1.0/micparam%rootbetax(np)) *( exp(-micparam%rootbetax(np)*depths1)-exp(-micparam%rootbetax(np)*depths2))
          enddo
          depths1=depths2
       enddo
       
-      do ipft=1,mpft
+      do ipft=1,mvtype
          totroot(ipft) =sum(froot(ipft,1:ms))
       enddo
 
       !normalizing
       do ns=1,ms
-         do ipft=1,mpft
+         do ipft=1,mvtype
             froot(ipft,ns) = froot(ipft,ns)/totroot(ipft)
          enddo
       enddo
@@ -226,7 +49,7 @@ SUBROUTINE vmic_param_constant(zse,micparam)
          if(micparam%pft(np)<1 .or. micparam%pft(np)>15) print *, 'error: PFT incorrect', np, micparam%pft(np)
          do ns=1,ms
             micparam%sdepth(np,ns)   = zse(ns)
-            micparam%fracroot(np,ns) = froot(micparam%pft(np),ns)
+            micparam%fracroot(np,ns) = veg%froot(np,ns)
           enddo !"ns"
           micparam%diffsocx(np) = micparam%xdiffsoc(np) * diffsoc  !"diffsoc" from mic_constant
       enddo    ! "np=1,mp"
@@ -269,13 +92,11 @@ subroutine vmic_param_time(micparam,micinput,micnpool)
 end subroutine vmic_param_time
 
 
-subroutine vmic_init(kinetics,pftopt,micparam,micinput,miccpool,micnpool)
+subroutine vmic_init(micparam,micinput,miccpool,micnpool)
     use mic_constant
     use mic_variable
     implicit none
-!    integer nx
-!    real*8, dimension(nx)                :: xopt 
-    integer  kinetics,pftopt
+
     TYPE(mic_parameter), INTENT(INout)   :: micparam
     TYPE(mic_input),     INTENT(INout)   :: micinput
     TYPE(mic_cpool),     INTENT(INOUT)   :: miccpool
@@ -326,8 +147,7 @@ subroutine vmic_init(kinetics,pftopt,micparam,micinput,miccpool,micnpool)
 
 end subroutine vmic_init
 
-subroutine vmicsoil(kinetics,pftopt,nyeqpool, &
-                    micparam,micinput,miccpool,micnpool,micoutput,zse,cpooleq)
+subroutine vmicsoil(micparam,micinput,miccpool,micnpool,micoutput,zse,cpooleq)
     use mic_constant 
     use mic_variable
     implicit none
@@ -337,7 +157,7 @@ subroutine vmicsoil(kinetics,pftopt,nyeqpool, &
     TYPE(mic_npool),     INTENT(INOUT)   :: micnpool
     TYPE(mic_output),    INTENT(INout)   :: micoutput
 
-!    integer nx,isoc14,kinetics,pftopt,nyeqpool
+    integer nx,isoc14,kinetics,pftopt,nyeqpool
 !    real*8, dimension(nx)             :: xopt
     integer isoc14,kinetics,pftopt,nyeqpool
     ! local variables
@@ -346,9 +166,6 @@ subroutine vmicsoil(kinetics,pftopt,nyeqpool, &
     real(r_2),    parameter            :: tolx = 0.0001
     real(r_2),    parameter            :: tolf = 0.000001
     integer,      parameter            :: ntrial = 100
-
-    ! variables exchange with vmic_parameters
-!    real(r_2) xav, xak, xdesorp,xavexp
 
     ! variables exchange with vmic_cost
     real(r_2), dimension(mp,ms,mcpool)  :: cpooleq
@@ -364,10 +181,8 @@ subroutine vmicsoil(kinetics,pftopt,nyeqpool, &
     integer j
 
 
-      call vmic_param_constant(zse,micparam) 
-!	  call vmic_param_time(nx,xopt,micparam,micinput,micnpool)
-!      call vmic_init(miccpool)
-      call vmic_init(kinetics,pftopt,micparam,micinput,miccpool,micnpool)
+      call vmic_param_constant(zse,veg,micparam) 
+      call vmic_init(micparam,micinput,miccpool,micnpool)
 
       ndelt   = int(24*365/delt) ! number of time step per year in "delt"
 
@@ -375,16 +190,10 @@ subroutine vmicsoil(kinetics,pftopt,nyeqpool, &
 	     print *, 'run for year and % to completion', year, real(year)/real(nyeqpool+66)
          ny = year-nyeqpool         
          do i=1,365    ! 365 days in a year
-
-           ! using the daily air temperature 
-!           do np=1,mp
-!              micinput%tavg(np,1:ms) = micinput%tair(np,i)        ! using daily air temperature
-!           enddo
            ! only called if forcing varies every time step
            call vmic_param_time(micparam,micinput,micnpool)
 
             do np=1,mp
-!!            if(micparam%pft(np)==pftopt) then
 
                ! do MIMICS for each soil layer
                do ns=1,ms
@@ -424,30 +233,15 @@ subroutine vmicsoil(kinetics,pftopt,nyeqpool, &
                   fluxsoc(:) = 0.0  ! This flux is added in "modelx"
                   diffsocxx= micparam%diffsocx(np)
   
-                !  print *, 'before bioturb'
-                !  print *, year,i,ip, int(delty),ms,zse(1),delt,diffsocxx,fluxsoc(1)
-                !  print *, ip,ypooli(:)
-  
-                  ! do bioturbation for "ndelt" timesteps (to calculate equilirium pool only)
   
                   call bioturb(int(delty),ms,zse,delt,diffsocxx,fluxsoc,ypooli,ypoole)  ! only do every 24*delt
-
-                !  print *, 'after bioturb'
-                !  print *, ip, ypoole(:)
 
                   do ns=1,ms
                      miccpool%cpool(np,ns,ip) = ypoole(ns)
                   enddo
                enddo !"ip"
 
- !!           endif   !pft(np) = pftopt
             enddo !"np"
-
-
-            ! print *, 'fcost: ',year, i, micinput%tavg(1,1)
-            ! do ns=1,ms
-            !   print *, miccpool%cpool(1,ns,:)
-            ! enddo
 
          enddo  ! i (day)  
       enddo !year

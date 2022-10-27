@@ -9,7 +9,16 @@
 !(4) each timestep: get the litter input from the previous day, and current time 
 !    of soil temperature, moisture
 !(5) output soil respiration and update pool sizes
+!(6) add "mic" as a switch (=1,2 and 3 for C, CN and CNP cycles)
+!(7) call "vmic" from "biogeochem" in "casa_inout.F90"
+! strategy based on casa-cnp in CABLE
+!
+!
 !===========================================================================================
+MODULE mic_inout
+  USE cable_def_types_mod, ONLY : mp, r_2, mvtype, ms
+  IMPLICIT NONE
+
 subroutine mic_init(mp,ms)
    use mic_constant
    use mic_variable
@@ -29,13 +38,14 @@ subroutine mic_init(mp,ms)
 end subroutine mic_init	 
 
 
-subroutine mic_parameter(soil,casabiome,zse)
+subroutine mic_parameter(veg,soil,casabiome,zse)
 ! read the parameter lookup table and assigm them to (1:mp)
    use mic_constant
    use mic_variable
    implicit none
    TYPE(mic_parameter)                    :: micparam
    TYPE(mic_input)                        :: micinput
+   TYPE (veg_parameter_type),  INTENT(IN) :: veg
    TYPE (soil_parameter_type), INTENT(IN) :: soil
    TYPE (casa_biome),          INTENT(IN) :: casabiome
    real(r_2), dimension(ms)               :: zse
@@ -68,7 +78,7 @@ subroutine mic_parameter(soil,casabiome,zse)
    
    xdesorpt_pft(:) = 1.0
    do np=1,mp
-      ivt =micparam%pft(np)
+      ivt   = veg%iveg(np))
 	  isoil = soil%isoilm(np)
       xav(np)      = xav_pft(ivt)
       xak(np)      = xak_pft(ivt)
@@ -81,6 +91,8 @@ subroutine mic_parameter(soil,casabiome,zse)
       micparam%bulkd(np) = soil%rhosoil(np)
       micparam%clay(np)  = soil%clay(np)	
       ! vegetation parameters
+       
+      micparam%pft(np)     =  veg%iveg(np))	   
       micparam%xcnleaf(np) = 1.0/casabiome%ratioNCplantmax(ivt,1)
       micparam%xcnroot(np) = 1.0/casabiome%ratioNCplantmax(ivt,3)	  
       micparam%xcnwood(np) = 1.0/casabiome%ratioNCplantmax(ivt,2)
@@ -122,3 +134,4 @@ subroutine mic_input(dleaf,dwood,droot,tsoil,moist,nsoilmin)
 	 enddo	
 end subroutine mic_input
 
+END MODULE mic_inout
