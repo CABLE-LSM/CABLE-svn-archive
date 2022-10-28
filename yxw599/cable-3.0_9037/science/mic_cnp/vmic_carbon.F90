@@ -1,14 +1,16 @@
 MODULE vmic_carbon_cycle
   USE cable_def_types_mod, ONLY : mp,ms,mvtype,mstype,r_2
+  USE vmic_constant_mod
+  USE vmic_variable_mod
   IMPLICIT NONE
 
 CONTAINS
 
 
-
   SUBROUTINE vmic_param_constant(veg,soil,micparam)
     USE vmic_constant_mod
     USE vmic_variable_mod
+	USE cable_def_types_mod, ONLY : veg_parameter_type, soil_parameter_type
     implicit none
     TYPE (veg_parameter_type),  INTENT(IN)    :: veg	
     TYPE (soil_parameter_type), INTENT(IN)    :: soil	
@@ -36,18 +38,18 @@ CONTAINS
          print *, micparam%sdepth(outp,:)
          print *, micparam%diffsocx(outp)
       endif
-  END SUBROUTINE vmic_param_constant  
+   END SUBROUTINE vmic_param_constant  
 
-  SUBROUTINE vmic_param_time(micparam,micinput,micnpool)
-    USE vmic_constant_mod
-    USE vmic_variable_mod
-    ! time-dependent model parameters, called every time step if the forcing, such air temperature
-    ! varies every time step
-    ! otherwise only called at the start the integration	
-    implicit none
-    TYPE(mic_parameter), INTENT(INout)   :: micparam
-    TYPE(mic_input),     INTENT(INout)   :: micinput
-    TYPE(mic_npool),     INTENT(INOUT)   :: micnpool
+   SUBROUTINE vmic_param_time(micparam,micinput,micnpool)
+     USE vmic_constant_mod
+     USE vmic_variable_mod
+     ! time-dependent model parameters, called every time step if the forcing, such air temperature
+     ! varies every time step
+     ! otherwise only called at the start the integration	
+     implicit none
+     TYPE(mic_parameter), INTENT(INout)   :: micparam
+     TYPE(mic_input),     INTENT(INout)   :: micinput
+     TYPE(mic_npool),     INTENT(INOUT)   :: micnpool
 
 !      xav = xopt(1); xak= xopt(2); xdesorp = xopt(3); xbeta=xopt(4)
       ! compute fractions
@@ -103,8 +105,8 @@ CONTAINS
                   xpool0(ip) = miccpool%cpool(np,ns,ip)
                enddo
 
-               call mnewt(ntrial,np,ns,kinetics,micparam,micinput,xpool0,tolx,tolf)
-               call vmic_c(np,ns,kinetics,micparam,micinput,xpool0,y)
+!               call mnewt(ntrial,np,ns,kinetics,micparam,micinput,xpool0,tolx,tolf)
+               call vmic_c(np,ns,micparam,micinput,xpool0,y)
                if(maxval(xpool0(1:mcpool))>1.0e4.or.minval(xpool0(1:mcpool))<0.0) then
                   xpool0 = cpooldef
                endif
@@ -117,17 +119,18 @@ CONTAINS
 
   END SUBROUTINE vmic_init
 
-  SUBROUTINE vmicsoil(micparam,micinput,miccpool,micnpool,micoutput,zse,cpooleq)
+  SUBROUTINE vmicsoil(veg,soil,micparam,micinput,miccpool,micnpool,micoutput,cpooleq)
+	USE cable_def_types_mod, ONLY : veg_parameter_type,soil_parameter_type
     USE vmic_constant_mod
     USE vmic_variable_mod
     implicit none
-    TYPE(mic_parameter), INTENT(INout)   :: micparam
-    TYPE(mic_input),     INTENT(INout)   :: micinput
-    TYPE(mic_cpool),     INTENT(INOUT)   :: miccpool
-    TYPE(mic_npool),     INTENT(INOUT)   :: micnpool
-    TYPE(mic_output),    INTENT(INout)   :: micoutput
-
-    integer nyeqpool
+	TYPE(veg_parameter_type), INTENT(IN)      :: veg
+    TYPE(soil_parameter_type),INTENT(IN)      :: soil
+    TYPE(mic_parameter),      INTENT(INout)   :: micparam
+    TYPE(mic_input),          INTENT(INout)   :: micinput
+    TYPE(mic_cpool),          INTENT(INOUT)   :: miccpool
+    TYPE(mic_npool),          INTENT(INOUT)   :: micnpool
+    TYPE(mic_output),         INTENT(INout)   :: micoutput
 
     ! local variables
     ! for numerical solution
@@ -138,24 +141,20 @@ CONTAINS
 
     ! variables exchange with vmic_cost
     real(r_2), dimension(mp,ms,mcpool)  :: cpooleq
-    real(r_2), dimension(ms)            :: zse  
 
     ! local variables
     real(r_2),    dimension(mcpool)    :: xpool0,xpool1
     real(r_2),    dimension(ms)        :: ypooli,ypoole,fluxsoc
-
     integer       ndelt,n1,n2,i,year,ip,np,ns,ny
     real(r_2)     timex,delty,fluxdocsx,diffsocxx
-
     integer j
 
 
-      call vmic_param_constant(zse,veg,micparam) 
+      call vmic_param_constant(veg,soil,micparam)
       call vmic_init(micparam,micinput,miccpool,micnpool)
 
-      ndelt   = int(24*365/delt) ! number of time step per year in "delt"
-      nyeqpool=500
-	  
+      ndelt   = int(24*365/deltvmic) ! number of time step per year in "delt"
+      ! need to check the timestep consistency	  
       do year=1,nyeqpool+66
 	     print *, 'run for year and % to completion', year, real(year)/real(nyeqpool+66)
          ny = year-nyeqpool         
@@ -172,9 +171,9 @@ CONTAINS
                      xpool0(ip) = miccpool%cpool(np,ns,ip)
                   enddo
 
-                  timex=real(i*delt)
-                  delty = real(ndelt)/(365.0*delt)  ! time step in rk4 in "delt"
-                  call rk4modelx(timex,delty,np,ns,kinetics,micparam,micinput,xpool0,xpool1)              
+                  timex=real(i*deltvmic)
+                  delty = real(ndelt)/(365.0*deltvmic)  ! time step in rk4 in "delt"
+                  call rk4modelx(timex,delty,np,ns,micparam,micinput,xpool0,xpool1)              
                   ! the following used to avoid poolsize<0.0
                   do ip=1,mcpool
                      xpool0(ip) = max(1.0e-8,xpool1(ip))
@@ -204,7 +203,7 @@ CONTAINS
                   diffsocxx= micparam%diffsocx(np)
   
   
-                  call bioturb(int(delty),ms,zse,delt,diffsocxx,fluxsoc,ypooli,ypoole)  ! only do every 24*delt
+                  call bioturb(int(delty),ms,micparam%sdepth(np,1:ms),deltvmic,diffsocxx,fluxsoc,ypooli,ypoole)  ! only do every 24*delt
 
                   do ns=1,ms
                      miccpool%cpool(np,ns,ip) = ypoole(ns)
@@ -221,13 +220,13 @@ CONTAINS
   
     END SUBROUTINE vmicsoil 
 
-    SUBROUTINE rk4modelx(timex,delty,np,ns,kinetics,micparam,micinput,xpool0,xpool1)
+    SUBROUTINE rk4modelx(timex,delty,np,ns,micparam,micinput,xpool0,xpool1)
       USE vmic_constant_mod
       USE vmic_variable_mod
       implicit none
       TYPE(mic_parameter), INTENT(IN)  :: micparam
       TYPE(mic_input),     INTENT(IN)  :: micinput
-      integer      np,ns, kinetics
+      integer      np,ns
       real(r_2)    timex,delty,h
       real(r_2),   dimension(mcpool),intent(inout)     :: xpool0,xpool1
       real(r_2),   dimension(mcpool)                   :: y1,y2,y3,y4,dy1dt,dy2dt,dy3dt,dy4dt
@@ -235,13 +234,13 @@ CONTAINS
         h=delty
         y1(:) = xpool0(:)
  
-        call vmic_c(np,ns,kinetics,micparam,micinput,y1,dy1dt)
+        call vmic_c(np,ns,micparam,micinput,y1,dy1dt)
         y2(:) = y1(:) + 0.5 * h * dy1dt(:)
-        call vmic_c(np,ns,kinetics,micparam,micinput,y2,dy2dt)
+        call vmic_c(np,ns,micparam,micinput,y2,dy2dt)
         y3(:) = y1(:) + 0.5 * h * dy2dt(:)
-        call vmic_c(np,ns,kinetics,micparam,micinput,y3,dy3dt)
+        call vmic_c(np,ns,micparam,micinput,y3,dy3dt)
         y4(:) = y1(:) +       h * dy3dt(:)
-        call vmic_c(np,ns,kinetics,micparam,micinput,y4,dy4dt)
+        call vmic_c(np,ns,micparam,micinput,y4,dy4dt)
 
         xpool1(:) = xpool0(:) + (dy1dt(:)/6.0 + dy2dt(:)/3.0 + dy3dt(:)/3.0 + dy4dt(:)/6.0) * h
 
@@ -412,8 +411,9 @@ CONTAINS
           micparam%mgeR1(np,ns) = epislon1
           micparam%mgeR2(np,ns) = epislon2
           micparam%mgeR3(np,ns) = epislon1
-          micparam%mgeK1(np,ns) = epislon4
-          micparam%mgeK2(np,ns) = epislon3
+		 ! fixed a bug found by Lingfei Wang 
+          micparam%mgeK1(np,ns) = epislon3
+          micparam%mgeK2(np,ns) = epislon4
           micparam%mgeK3(np,ns) = epislon3
        enddo
        enddo
@@ -421,8 +421,8 @@ CONTAINS
   END SUBROUTINE mget
 
   SUBROUTINE turnovert(micparam,micinput)
-    USE vmic_constant_mod
-    USE vmic_variable_mod
+      USE vmic_constant_mod
+      USE vmic_variable_mod
       implicit none
       TYPE(mic_parameter), INTENT(INOUT)   :: micparam
       TYPE(mic_input),     INTENT(IN)      :: micinput  
@@ -695,7 +695,7 @@ CONTAINS
     subroutine advecdoc(deltx,zse,fluxsoilwx,fluxdocsx,vsoilwx,ypool)
     ! to be modified using an implicit solver to ensure mass conservation
     !
-    use mic_constant
+!    use mic_constant
     implicit none
     real(r_2)                          deltx
     real(r_2), dimension(ms)        :: zse
@@ -733,7 +733,7 @@ CONTAINS
   END SUBROUTINE advecdoc
 
 
-  SUBROUTINE vmic_c(np,ns,kinetics,micparam,micinput,xpool,y)
+  SUBROUTINE vmic_c(np,ns,micparam,micinput,xpool,y)
     ! MIMICS as modified by Zhang et al. (2019, GCB).
     ! Seven pools: metabolic litter (1), Structural litter, microbe-R (3), microbe-K(4),
     !              Physical protected (5), chemically-protected (6), active (7)
@@ -748,18 +748,18 @@ CONTAINS
      USE vmic_constant_mod
      USE vmic_variable_mod
      implicit none
-     real(r_2),  parameter                          ::  epislon1 = 0.5
-     real(r_2),  parameter                          ::  epislon2 = 0.25
-     real(r_2),  parameter                          ::  epislon3 = 0.7
-     real(r_2),  parameter                          ::  epislon4 = 0.35
-     real(r_2),  parameter                          ::  betamic  = 1.0   
-     TYPE(mic_parameter), INTENT(IN)     :: micparam
-     TYPE(mic_input),     INTENT(IN)     :: micinput
+     real(r_2),  parameter                             ::  epislon1 = 0.5
+     real(r_2),  parameter                             ::  epislon2 = 0.25
+     real(r_2),  parameter                             ::  epislon3 = 0.7
+     real(r_2),  parameter                             ::  epislon4 = 0.35
+     real(r_2),  parameter                             ::  betamic  = 1.0   
+     TYPE(mic_parameter), INTENT(IN)                   :: micparam
+     TYPE(mic_input),     INTENT(IN)                   :: micinput
 
      real(r_2),  dimension(mcpool),  INTENT(IN)        :: xpool 
      real(r_2),  dimension(mcpool),  INTENT(INOUT)     :: y   !=dxpool/dt     ! local variables
      ! local variables
-     integer     np,ns,kinetics  
+     integer     np,ns  
 
      real(r_2)  betamicR,betamicK,                 &
                 cinputmx,cinputsx,fmx,fsx,         &

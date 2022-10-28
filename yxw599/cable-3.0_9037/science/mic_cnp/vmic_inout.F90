@@ -12,7 +12,7 @@
 !(6) add "mic" as a switch (=1,2 and 3 for C, CN and CNP cycles)
 !(7) call "vmic" from "biogeochem" in "casa_inout.F90"
 ! strategy based on casa-cnp in CABLE
-!
+! (8) check the unit of "deltvmic" for consistency
 !
 !===========================================================================================
 MODULE vmic_inout_mod
