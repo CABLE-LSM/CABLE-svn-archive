@@ -1,54 +1,31 @@
-   
-SUBROUTINE vmic_param_constant(zse,veg,micparam)
-    USE cable_def_types_mod, ONLY : mp, r_2, mvtype, ms 
-    use mic_constant
-    use mic_variable
+MODULE vmic_carbon_cycle
+  USE cable_def_types_mod, ONLY : mp,ms,mvtype,mstype,r_2
+  IMPLICIT NONE
+
+CONTAINS
+
+
+
+  SUBROUTINE vmic_param_constant(veg,soil,micparam)
+    USE vmic_constant_mod
+    USE vmic_variable_mod
     implicit none
     TYPE (veg_parameter_type),  INTENT(IN)    :: veg	
-    TYPE(mic_parameter),        INTENT(INout) :: micparam
-!    integer nx
-!    real*8,    dimension(nx)           :: xopt
-!local variables   
-    real(r_2), dimension(mvtype,ms)      :: froot
-    real(r_2), dimension(mvtype)         :: rootbeta
-    data rootbeta/0.962,0.962,0.961,0.976,0.962,0.966,0.943,0.962,0.966,0.943,0.966,0.966,0.966,0.972,0.962/
-    real(r_2), dimension(ms)           :: zse
-    real(r_2), dimension(mvtype)       :: totroot
-!    real(r_2) xdiffsoc,rootbetax
-    integer ipft,np,ns
-    real(r_2)  depths1,depths2
+    TYPE (soil_parameter_type), INTENT(IN)    :: soil	
+    TYPE (mic_parameter),       INTENT(INout) :: micparam
+    !local variables   
+    integer np,ns
     real(r_2) Kor, Kok, Q1, Q2, fm, fs
 
-!      xdiffsoc=xopt(5); rootbetax=xopt(7)
+    !xdiffsoc=xopt(5); rootbetax=xopt(7)
   
       Kor = 4.0; Kok = 4.0; Q1= Kor; Q2  = Kok; fm = 0.05; fs= 0.05
       micparam%Q1(:,:) = Q1; micparam%Q2(:,:) =Q2; micparam%fm(:,:)=fm; micparam%fs(:,:)=fs
-      
-      depths1=0.0;depths2=0.0
-      do ns=1,ms
-         depths2 = depths2 + zse(ns)
-         do ipft=1,mvtype
-             froot(ipft,ns) = (1.0/micparam%rootbetax(np)) *( exp(-micparam%rootbetax(np)*depths1)-exp(-micparam%rootbetax(np)*depths2))
-         enddo
-         depths1=depths2
-      enddo
-      
-      do ipft=1,mvtype
-         totroot(ipft) =sum(froot(ipft,1:ms))
-      enddo
-
-      !normalizing
-      do ns=1,ms
-         do ipft=1,mvtype
-            froot(ipft,ns) = froot(ipft,ns)/totroot(ipft)
-         enddo
-      enddo
 
       ! calculate mp by ms all parameter values
       do np=1, mp
-         if(micparam%pft(np)<1 .or. micparam%pft(np)>15) print *, 'error: PFT incorrect', np, micparam%pft(np)
          do ns=1,ms
-            micparam%sdepth(np,ns)   = zse(ns)
+            micparam%sdepth(np,ns)   = soil%zse(ns)
             micparam%fracroot(np,ns) = veg%froot(np,ns)
           enddo !"ns"
           micparam%diffsocx(np) = micparam%xdiffsoc(np) * diffsoc  !"diffsoc" from mic_constant
@@ -59,23 +36,18 @@ SUBROUTINE vmic_param_constant(zse,veg,micparam)
          print *, micparam%sdepth(outp,:)
          print *, micparam%diffsocx(outp)
       endif
-END SUBROUTINE vmic_param_constant  
+  END SUBROUTINE vmic_param_constant  
 
-subroutine vmic_param_time(micparam,micinput,micnpool)
+  SUBROUTINE vmic_param_time(micparam,micinput,micnpool)
+    USE vmic_constant_mod
+    USE vmic_variable_mod
     ! time-dependent model parameters, called every time step if the forcing, such air temperature
     ! varies every time step
     ! otherwise only called at the start the integration	
-    use mic_constant 
-    use mic_variable
     implicit none
     TYPE(mic_parameter), INTENT(INout)   :: micparam
     TYPE(mic_input),     INTENT(INout)   :: micinput
     TYPE(mic_npool),     INTENT(INOUT)   :: micnpool
-
-!    integer   nx
-!    real*8,   dimension(nx)              :: xopt
-    ! local variables
-!    real(r_2)   xav, xak, xdesorp, xbeta
 
 !      xav = xopt(1); xak= xopt(2); xdesorp = xopt(3); xbeta=xopt(4)
       ! compute fractions
@@ -89,12 +61,12 @@ subroutine vmic_param_time(micparam,micinput,micnpool)
       call Kmt(micparam,micinput)
 
   
-end subroutine vmic_param_time
+   END SUBROUTINE vmic_param_time
 
 
-subroutine vmic_init(micparam,micinput,miccpool,micnpool)
-    use mic_constant
-    use mic_variable
+   SUBROUTINE vmic_init(micparam,micinput,miccpool,micnpool)
+    USE vmic_constant_mod
+    USE vmic_variable_mod
     implicit none
 
     TYPE(mic_parameter), INTENT(INout)   :: micparam
@@ -124,7 +96,6 @@ subroutine vmic_init(micparam,micinput,miccpool,micnpool)
       call vmic_param_time(micparam,micinput,micnpool)
   
       do np=1,mp
-         if(micparam%pft(np)==pftopt) then
             do ns=1,ms
 
                ! initial pool sizes
@@ -141,15 +112,14 @@ subroutine vmic_init(micparam,micinput,miccpool,micnpool)
                   miccpool%cpool(:,:,ip) = xpool0(ip)
                enddo
             enddo
-         endif
        enddo
   
 
-end subroutine vmic_init
+  END SUBROUTINE vmic_init
 
-subroutine vmicsoil(micparam,micinput,miccpool,micnpool,micoutput,zse,cpooleq)
-    use mic_constant 
-    use mic_variable
+  SUBROUTINE vmicsoil(micparam,micinput,miccpool,micnpool,micoutput,zse,cpooleq)
+    USE vmic_constant_mod
+    USE vmic_variable_mod
     implicit none
     TYPE(mic_parameter), INTENT(INout)   :: micparam
     TYPE(mic_input),     INTENT(INout)   :: micinput
@@ -157,9 +127,8 @@ subroutine vmicsoil(micparam,micinput,miccpool,micnpool,micoutput,zse,cpooleq)
     TYPE(mic_npool),     INTENT(INOUT)   :: micnpool
     TYPE(mic_output),    INTENT(INout)   :: micoutput
 
-    integer nx,isoc14,kinetics,pftopt,nyeqpool
-!    real*8, dimension(nx)             :: xopt
-    integer isoc14,kinetics,pftopt,nyeqpool
+    integer nyeqpool
+
     ! local variables
     ! for numerical solution
     real(r_2),    parameter            :: tol = 1.0E-04
@@ -185,7 +154,8 @@ subroutine vmicsoil(micparam,micinput,miccpool,micnpool,micoutput,zse,cpooleq)
       call vmic_init(micparam,micinput,miccpool,micnpool)
 
       ndelt   = int(24*365/delt) ! number of time step per year in "delt"
-
+      nyeqpool=500
+	  
       do year=1,nyeqpool+66
 	     print *, 'run for year and % to completion', year, real(year)/real(nyeqpool+66)
          ny = year-nyeqpool         
@@ -249,38 +219,38 @@ subroutine vmicsoil(micparam,micinput,miccpool,micnpool,micoutput,zse,cpooleq)
   
       cpooleq(:,:,:) = miccpool%cpool(:,:,:)
   
-    end subroutine vmicsoil 
+    END SUBROUTINE vmicsoil 
 
-    subroutine rk4modelx(timex,delty,np,ns,kinetics,micparam,micinput,xpool0,xpool1)
-    use mic_constant
-    use mic_variable
-    implicit none
-    TYPE(mic_parameter), INTENT(IN)  :: micparam
-    TYPE(mic_input),     INTENT(IN)  :: micinput
-    integer      np,ns, kinetics
-    real(r_2)    timex,delty,h
-    real(r_2),   dimension(mcpool),intent(inout)     :: xpool0,xpool1
-    real(r_2),   dimension(mcpool)                   :: y1,y2,y3,y4,dy1dt,dy2dt,dy3dt,dy4dt
+    SUBROUTINE rk4modelx(timex,delty,np,ns,kinetics,micparam,micinput,xpool0,xpool1)
+      USE vmic_constant_mod
+      USE vmic_variable_mod
+      implicit none
+      TYPE(mic_parameter), INTENT(IN)  :: micparam
+      TYPE(mic_input),     INTENT(IN)  :: micinput
+      integer      np,ns, kinetics
+      real(r_2)    timex,delty,h
+      real(r_2),   dimension(mcpool),intent(inout)     :: xpool0,xpool1
+      real(r_2),   dimension(mcpool)                   :: y1,y2,y3,y4,dy1dt,dy2dt,dy3dt,dy4dt
 
-     h=delty
-     y1(:) = xpool0(:)
+        h=delty
+        y1(:) = xpool0(:)
  
-     call vmic_c(np,ns,kinetics,micparam,micinput,y1,dy1dt)
-     y2(:) = y1(:) + 0.5 * h * dy1dt(:)
-     call vmic_c(np,ns,kinetics,micparam,micinput,y2,dy2dt)
-     y3(:) = y1(:) + 0.5 * h * dy2dt(:)
-     call vmic_c(np,ns,kinetics,micparam,micinput,y3,dy3dt)
-     y4(:) = y1(:) +       h * dy3dt(:)
-     call vmic_c(np,ns,kinetics,micparam,micinput,y4,dy4dt)
+        call vmic_c(np,ns,kinetics,micparam,micinput,y1,dy1dt)
+        y2(:) = y1(:) + 0.5 * h * dy1dt(:)
+        call vmic_c(np,ns,kinetics,micparam,micinput,y2,dy2dt)
+        y3(:) = y1(:) + 0.5 * h * dy2dt(:)
+        call vmic_c(np,ns,kinetics,micparam,micinput,y3,dy3dt)
+        y4(:) = y1(:) +       h * dy3dt(:)
+        call vmic_c(np,ns,kinetics,micparam,micinput,y4,dy4dt)
 
-     xpool1(:) = xpool0(:) + (dy1dt(:)/6.0 + dy2dt(:)/3.0 + dy3dt(:)/3.0 + dy4dt(:)/6.0) * h
+        xpool1(:) = xpool0(:) + (dy1dt(:)/6.0 + dy2dt(:)/3.0 + dy3dt(:)/3.0 + dy4dt(:)/6.0) * h
 
-    end subroutine rk4modelx
+    END SUBROUTINE rk4modelx
 
-    subroutine Kmt(micparam,micinput)
+    SUBROUTINE Kmt(micparam,micinput)
       ! unit: mg Mic C/cm3
-      use mic_constant
-      use mic_variable
+      USE vmic_constant_mod
+      USE vmic_variable_mod
       implicit none
       real(r_2), parameter            :: sk =0.017
       real(r_2), parameter            :: skx=0.027
@@ -293,45 +263,45 @@ subroutine vmicsoil(micparam,micinput,miccpool,micnpool,micoutput,zse,cpooleq)
       real(r_2), parameter            :: xj2 =4.0
       real(r_2), parameter            :: xj3 =6.0
 !      real(r_2)                          xak
-     TYPE(mic_parameter), INTENT(INOUT)   :: micparam
-     TYPE(mic_input),     INTENT(IN)      :: micinput
+      TYPE(mic_parameter), INTENT(INOUT)   :: micparam
+      TYPE(mic_input),     INTENT(IN)      :: micinput
 
   
       ! local variable
       real(r_2), dimension(mp,ms)     :: xkclay,km,kmx
       integer np,ns
 
-      do np=1,mp
-      do ns=1,ms
-         xkclay(np,ns) = 1.0/ exp(-2.0*sqrt(micparam%clay(np,ns)))
-         km(np,ns) =  micparam%xak(np) * ak * exp(sk * micinput%tavg(np,ns) + bk)
-         micparam%K1(np,ns) =  km(np,ns)/xk1
-         micparam%K3(np,ns) =  km(np,ns) * xkclay(np,ns)/xk3
-         micparam%J1(np,ns) =  km(np,ns)/xj1
-         micparam%J3(np,ns) =  km(np,ns) * xkclay(np,ns)/xj3
+        do np=1,mp
+        do ns=1,ms
+           xkclay(np,ns) = 1.0/ exp(-2.0*sqrt(micparam%clay(np,ns)))
+           km(np,ns) =  micparam%xak(np) * ak * exp(sk * micinput%tavg(np,ns) + bk)
+           micparam%K1(np,ns) =  km(np,ns)/xk1
+           micparam%K3(np,ns) =  km(np,ns) * xkclay(np,ns)/xk3
+           micparam%J1(np,ns) =  km(np,ns)/xj1
+           micparam%J3(np,ns) =  km(np,ns) * xkclay(np,ns)/xj3
 
-         kmx(np,ns) = micparam%xak(np) * ak * exp(skx * micinput%tavg(np,ns) + bk)       
-         micparam%K2(np,ns) =  kmx(np,ns)/xk2
-         micparam%J2(np,ns) =  kmx(np,ns)/xj2
-       enddo
-       enddo
+           kmx(np,ns) = micparam%xak(np) * ak * exp(skx * micinput%tavg(np,ns) + bk)       
+           micparam%K2(np,ns) =  kmx(np,ns)/xk2
+           micparam%J2(np,ns) =  kmx(np,ns)/xj2
+         enddo
+         enddo
 
-       if(diag==1) then   
-          print *, 'Kmt',micparam%clay(outp,1),micinput%tavg(outp,1),km(outp,1),kmx(outp,1)
-          print *, micparam%K1(outp,1)
-          print *, micparam%K2(outp,1)
-          print *, micparam%K3(outp,1)
-          print *, micparam%J1(outp,1)
-          print *, micparam%J2(outp,1)
-          print *, micparam%J3(outp,1)   
-       endif
+         if(diag==1) then   
+            print *, 'Kmt',micparam%clay(outp,1),micinput%tavg(outp,1),km(outp,1),kmx(outp,1)
+            print *, micparam%K1(outp,1)
+            print *, micparam%K2(outp,1)
+            print *, micparam%K3(outp,1)
+            print *, micparam%J1(outp,1)
+            print *, micparam%J2(outp,1)
+            print *, micparam%J3(outp,1)   
+         endif
    
-    end subroutine Kmt
+    END SUBROUTINE Kmt
 
-    subroutine Vmaxt(micparam,micinput)
+    SUBROUTINE Vmaxt(micparam,micinput)
+      USE vmic_constant_mod
+      USE vmic_variable_mod
       ! mg Cs per mg mic C per hour
-      use mic_constant
-      use mic_variable
       implicit none
       real(r_2), parameter :: sv = 0.063
       real(r_2), parameter :: av = 8.0e-6
@@ -375,11 +345,11 @@ subroutine vmicsoil(micparam,micinput,miccpool,micnpool,micoutput,zse,cpooleq)
            print *, micparam%W3(outp,1)
         endif
 
-    end subroutine Vmaxt
+    END SUBROUTINE Vmaxt
 
-    subroutine Desorpt(micparam)
-      use mic_constant
-      use mic_variable
+    SUBROUTINE Desorpt(micparam)
+      USE vmic_constant_mod
+      USE vmic_variable_mod
       implicit none
 !      real(r_2)              xdesorp
       TYPE(mic_parameter), INTENT(INOUT)    :: micparam 
@@ -396,26 +366,26 @@ subroutine vmicsoil(micparam,micinput,miccpool,micnpool,micoutput,zse,cpooleq)
          print *, micparam%desorp(outp,:)
       endif
   
-    end subroutine Desorpt
+    END SUBROUTINE Desorpt
 
-  subroutine mget(micparam,micinput,micnpool)
-     use mic_constant
-     use mic_variable
-     implicit none
-     real(r_2),    parameter  :: cuemax    = 0.80
-     real(r_2),    parameter  :: cue_coef1 = 0.66
-     real(r_2),    parameter  :: cue_coef2 = 1.23
+    SUBROUTINE mget(micparam,micinput,micnpool)
+      USE vmic_constant_mod
+      USE vmic_variable_mod
+      implicit none
+      real(r_2),    parameter  :: cuemax    = 0.80
+      real(r_2),    parameter  :: cue_coef1 = 0.66
+      real(r_2),    parameter  :: cue_coef2 = 1.23
  
-     real(r_2),    parameter  :: epislon1 = 0.5
-     real(r_2),    parameter  :: epislon2 = 0.25
-     real(r_2),    parameter  :: epislon3 = 0.7
-     real(r_2),    parameter  :: epislon4 = 0.35
-     TYPE(mic_parameter), INTENT(INOUT)  :: micparam 
-     TYPE(mic_input),     INTENT(IN)     :: micinput
-     TYPE(mic_npool),     INTENT(IN)     :: micnpool 
-
-     ! local variables
-     integer np,ns
+      real(r_2),    parameter  :: epislon1 = 0.5
+      real(r_2),    parameter  :: epislon2 = 0.25
+      real(r_2),    parameter  :: epislon3 = 0.7
+      real(r_2),    parameter  :: epislon4 = 0.35
+      TYPE(mic_parameter), INTENT(INOUT)  :: micparam 
+      TYPE(mic_input),     INTENT(IN)     :: micinput
+      TYPE(mic_npool),     INTENT(IN)     :: micnpool 
+ 
+      ! local variables
+      integer np,ns
 
        do np=1,mp
        do ns=1,ms 
@@ -448,11 +418,11 @@ subroutine vmicsoil(micparam,micinput,miccpool,micnpool,micoutput,zse,cpooleq)
        enddo
        enddo
 
-  end subroutine mget
+  END SUBROUTINE mget
 
-  subroutine turnovert(micparam,micinput)
-      use mic_constant
-      use mic_variable
+  SUBROUTINE turnovert(micparam,micinput)
+    USE vmic_constant_mod
+    USE vmic_variable_mod
       implicit none
       TYPE(mic_parameter), INTENT(INOUT)   :: micparam
       TYPE(mic_input),     INTENT(IN)      :: micinput  
@@ -483,12 +453,12 @@ subroutine vmicsoil(micparam,micinput,miccpool,micnpool,micoutput,zse,cpooleq)
           print *, micparam%tvmicR(outp,:) 
         endif
 
-  end subroutine turnovert
+  END SUBROUTINE turnovert
 
 
-    subroutine bgc_fractions(micparam,micinput)
-    use mic_constant
-    use mic_variable
+  SUBROUTINE bgc_fractions(micparam,micinput)
+    USE vmic_constant_mod
+    USE vmic_variable_mod
     implicit none
     real(r_2), parameter                :: fmicsom1=0.432
     real(r_2), parameter                :: fmicsom2=0.098
@@ -597,9 +567,9 @@ subroutine vmicsoil(micparam,micinput,miccpool,micnpool,micoutput,zse,cpooleq)
       endif
    
    
-   end subroutine bgc_fractions
+  END SUBROUTINE bgc_fractions
 
-   subroutine bioturb(ndelt,ms,zse,delt,diffsocxx,fluxsoc,xpooli,xpoole)
+  SUBROUTINE bioturb(ndelt,ms,zse,delt,diffsocxx,fluxsoc,xpooli,xpoole)
    ! multi-layered soil BGC including DOC and bioturbation using microbially-based BGC modeling
    ! step 1: litter-C and SOC bioturbation treated as a diffusion process
    ! step 2: advection of DOC along with water flux
@@ -612,7 +582,7 @@ subroutine vmicsoil(micparam,micinput,miccpool,micnpool,micoutput,zse,cpooleq)
    !      for flux:                 mgc/cm3/delt (=kg c/m3/delt): g/m2/delt = 0.1 mg/cm2/delt
    !      for length:               cm
    !      for diffsion coefficient: cm2/delt
-   use mic_constant,  ONLY : r_2
+!   use mic_constant,  ONLY : r_2
    implicit none
    integer                        ndelt,ms
    real(r_2), dimension(ms)    :: zse
@@ -689,14 +659,14 @@ subroutine vmicsoil(micparam,micinput,miccpool,micnpool,micoutput,zse,cpooleq)
         totflux = totflux + fluxsoc(j) * zse(j) *100.0
      enddo
   
-end subroutine bioturb
+  END SUBROUTINE bioturb
 
-   subroutine tridag(at,bt,ct,rt,u,ms)
+  SUBROUTINE tridag(at,bt,ct,rt,u,ms)
    ! solving the triadigonal matrix (numerical recipes, p43)
    ! linear equation: A* u(i-1) + B *u(i) + C * u(i+1) = R, 
    ! where i is soil layer, u(i-1), u(i) and u(i+1) are at time step t
    ! NOTE: bt(1) should not be equal to 0.0, otherwise rewrite the equation
-    use mic_constant,  ONLY : r_2
+!    use mic_constant,  ONLY : r_2
     implicit none
     integer, parameter    :: nmax=500
     integer ms
@@ -760,10 +730,10 @@ end subroutine bioturb
     
      ypool = ypool1
      
-    end subroutine advecdoc
+  END SUBROUTINE advecdoc
 
 
-    subroutine vmic_c(np,ns,kinetics,micparam,micinput,xpool,y)
+  SUBROUTINE vmic_c(np,ns,kinetics,micparam,micinput,xpool,y)
     ! MIMICS as modified by Zhang et al. (2019, GCB).
     ! Seven pools: metabolic litter (1), Structural litter, microbe-R (3), microbe-K(4),
     !              Physical protected (5), chemically-protected (6), active (7)
@@ -775,8 +745,8 @@ end subroutine bioturb
     ! all carbon pools : mg C/cm3
     ! time step :        one hour
     !
-     use mic_constant
-     use mic_variable
+     USE vmic_constant_mod
+     USE vmic_variable_mod
      implicit none
      real(r_2),  parameter                          ::  epislon1 = 0.5
      real(r_2),  parameter                          ::  epislon2 = 0.25
@@ -904,4 +874,7 @@ end subroutine bioturb
       !active SOM: [far*A4+fak*A8+A9+A10-A3-A7]
       y(7) = cfluxr2a + cfluxk2a + cfluxp2a + cfluxc2a - cfluxa2r - cfluxa2k
   
-   end subroutine vmic_c 
+ END SUBROUTINE vmic_c 
+
+
+END MODULE vmic_carbon_cycle

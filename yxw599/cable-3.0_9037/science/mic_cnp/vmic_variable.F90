@@ -1,56 +1,57 @@
-module mic_variable
-  use mic_constant
+MODULE vmic_variable_mod
+  USE cable_def_types_mod, ONLY : mp,ms,mvtype,mstype,r_2
+  use vmic_constant_mod
   IMPLICIT NONE
   SAVE
 
   TYPE mic_parameter
-  real(r_2), dimension(:),      allocatable  :: xav,xak,xdesorp,xbeta,xdiffsoc,rootbetax
-  real(r_2), dimension(:,:),    allocatable  :: K1,K2,K3,J1,J2,J3
-  real(r_2), dimension(:,:),    allocatable  :: V1,V2,V3,W1,W2,W3
-  real(r_2), dimension(:,:),    allocatable  :: desorp
-  real(r_2), dimension(:,:),    allocatable  :: Q1,Q2,fm,fs
-  real(r_2), dimension(:,:),    allocatable  :: mgeR1,mgeR2,mgeR3,mgeK1,mgeK2,mgeK3
-  real(r_2), dimension(:,:),    allocatable  :: tvmicR,tvmicK,betamicR,betamicK
-  real(r_2), dimension(:,:),    allocatable  :: fmetave
-  real(r_2), dimension(:,:,:),  allocatable  :: cn_r
-  real(r_2), dimension(:,:),    allocatable  :: fr2p,fk2p,fr2c,fk2c,fr2a,fk2a
-  real(r_2), dimension(:),      allocatable  :: xcnleaf,xcnroot,xcnwood,fligleaf,fligroot,fligwood
-  real(r_2), dimension(:),      allocatable  :: diffsocx
-  ! the following are alrealy available in CABLE
-  integer,   dimension(:),      allocatable  :: pft,region,siteid
-  real(r_2), dimension(:,:),    allocatable  :: sdepth,fracroot
-  real(r_2), dimension(:,:),    allocatable  :: clay
-  real(r_2), dimension(:,:),    allocatable  :: csoilobs,bulkd  
+    real(r_2), dimension(:),      allocatable  :: xav,xak,xdesorp,xbeta,xdiffsoc,rootbetax
+    real(r_2), dimension(:,:),    allocatable  :: K1,K2,K3,J1,J2,J3
+    real(r_2), dimension(:,:),    allocatable  :: V1,V2,V3,W1,W2,W3
+    real(r_2), dimension(:,:),    allocatable  :: desorp
+    real(r_2), dimension(:,:),    allocatable  :: Q1,Q2,fm,fs
+    real(r_2), dimension(:,:),    allocatable  :: mgeR1,mgeR2,mgeR3,mgeK1,mgeK2,mgeK3
+    real(r_2), dimension(:,:),    allocatable  :: tvmicR,tvmicK,betamicR,betamicK
+    real(r_2), dimension(:,:),    allocatable  :: fmetave
+    real(r_2), dimension(:,:,:),  allocatable  :: cn_r
+    real(r_2), dimension(:,:),    allocatable  :: fr2p,fk2p,fr2c,fk2c,fr2a,fk2a
+    real(r_2), dimension(:),      allocatable  :: xcnleaf,xcnroot,xcnwood,fligleaf,fligroot,fligwood
+    real(r_2), dimension(:),      allocatable  :: diffsocx
+    ! the following are alrealy available in CABLE
+    integer,   dimension(:),      allocatable  :: pft,region,siteid
+    real(r_2), dimension(:,:),    allocatable  :: sdepth,fracroot
+    real(r_2), dimension(:,:),    allocatable  :: clay
+    real(r_2), dimension(:,:),    allocatable  :: csoilobs,bulkd  
   END TYPE mic_parameter
   
   TYPE mic_input
-  real(r_2), dimension(:,:),    allocatable  :: tavg,wavg
-  real(r_2), dimension(:),      allocatable  :: dleaf,dwood,droot
-  real(r_2), dimension(:,:),    allocatable  :: cinputm
-  real(r_2), dimension(:,:),    allocatable  :: cinputs
-  real(r_2), dimensioN(:),      allocatable  :: fcnpp
+    real(r_2), dimension(:,:),    allocatable  :: tavg,wavg
+    real(r_2), dimension(:),      allocatable  :: dleaf,dwood,droot
+    real(r_2), dimension(:,:),    allocatable  :: cinputm
+    real(r_2), dimension(:,:),    allocatable  :: cinputs
+    real(r_2), dimensioN(:),      allocatable  :: fcnpp
 
   END TYPE mic_input
  
   TYPE mic_output
-  real(r_2), dimension(:,:),    allocatable  :: rsoil   
+    real(r_2), dimension(:,:),    allocatable  :: rsoil   
   END TYPE mic_output
   
   TYPE mic_cpool
-  real(r_2), dimension(:,:,:),  allocatable  :: cpool
+    real(r_2), dimension(:,:,:),  allocatable  :: cpool
   END TYPE mic_cpool
  
   TYPE mic_npool
-  real(r_2), dimension(:,:),    allocatable  :: mineralN
+    real(r_2), dimension(:,:),    allocatable  :: mineralN
   END TYPE mic_npool 
   
  
  CONTAINS
 
-  SUBROUTINE mic_allocate_parameter(mp,ms,micparam)
+  SUBROUTINE mic_allocate_parameter(micparam)
    IMPLICIT NONE
    TYPE(mic_parameter), INTENT(INOUT)  :: micparam
-   integer  mp,ms
+!   integer  mp,ms
 
     ! tunable model parameters
     allocate(micparam%xav(mp),      &
@@ -115,9 +116,9 @@ module mic_variable
    
   END SUBROUTINE mic_allocate_parameter
   
-  SUBROUTINE mic_allocate_input(mp,ms,micinput)
+  SUBROUTINE mic_allocate_input(micinput)
    IMPLICIT NONE
-   integer mp,ms
+!   integer mp,ms
    TYPE(mic_input), INTENT(INOUT)  :: micinput
 
     allocate(micinput%tavg(mp,ms),    &
@@ -131,31 +132,31 @@ module mic_variable
    
   END SUBROUTINE mic_allocate_input
   
-  SUBROUTINE mic_allocate_output(mp,ms,micoutput)
+  SUBROUTINE mic_allocate_output(micoutput)
    IMPLICIT NONE
    TYPE(mic_output), INTENT(INOUT)  :: micoutput
-   integer  mp,ms
+!   integer  mp,ms
    
    allocate(micoutput%rsoil(mp,ms))
 
   END SUBROUTINE mic_allocate_output  
   
-  SUBROUTINE mic_allocate_cpool(mp,ms,miccpool)
+  SUBROUTINE mic_allocate_cpool(miccpool)
    IMPLICIT NONE
-   integer mp,ms
+!   integer mp,ms
    TYPE(mic_cpool), INTENT(INOUT)  :: miccpool
 
    allocate(miccpool%cpool(mp,ms,mcpool))
    
   END SUBROUTINE mic_allocate_cpool 
 
-  SUBROUTINE mic_allocate_npool(mp,ms,micnpool)
+  SUBROUTINE mic_allocate_npool(micnpool)
    IMPLICIT NONE
-   integer mp,ms
+!   integer mp,ms
    TYPE(mic_npool), INTENT(INOUT)  :: micnpool
 
    ALLOCATE(micnpool%mineralN(mp,ms))
    
   END SUBROUTINE mic_allocate_npool 
   
-end module mic_variable
+END MODULE vmic_variable_mod

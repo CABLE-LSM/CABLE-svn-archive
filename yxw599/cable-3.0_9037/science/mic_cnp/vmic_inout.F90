@@ -15,11 +15,11 @@
 !
 !
 !===========================================================================================
-MODULE mic_inout
-  USE cable_def_types_mod, ONLY : mp, r_2, mvtype, ms
+MODULE vmic_inout_mod
+  USE cable_def_types_mod, ONLY : mp,ms,r_2,mvtype,mstype
   IMPLICIT NONE
 
-subroutine mic_init(mp,ms)
+subroutine mic_init(micparam,micinput,micoutput,miccpool,micnpool)
    use mic_constant
    use mic_variable
    implicit none
@@ -29,11 +29,11 @@ subroutine mic_init(mp,ms)
    TYPE(mic_npool)      :: micnpool
    TYPE(mic_output)     :: micoutput
    
-      call mic_allocate_parameter(mp,ms,micparam)
-      call mic_allocate_input(mp,ms,micinput)
-      call mic_allocate_output(mp,ms,micoutput)
-      call mic_allocate_cpool(mp,ms,miccpool)
-      call mic_allocate_npool(mp,ms,micnpool)
+      call mic_allocate_parameter(micparam)
+      call mic_allocate_input(micinput)
+      call mic_allocate_output(micoutput)
+      call mic_allocate_cpool(miccpool)
+      call mic_allocate_npool(micnpool)
 	  
 end subroutine mic_init	 
 
@@ -134,4 +134,4 @@ subroutine mic_input(dleaf,dwood,droot,tsoil,moist,nsoilmin)
 	 enddo	
 end subroutine mic_input
 
-END MODULE mic_inout
+END MODULE vmic_inout_mod
