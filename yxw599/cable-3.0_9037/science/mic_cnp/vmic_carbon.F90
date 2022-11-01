@@ -1,7 +1,5 @@
 MODULE vmic_carbon_cycle
   USE cable_def_types_mod, ONLY : mp,ms,mvtype,mstype,r_2
-  USE vmic_constant_mod
-  USE vmic_variable_mod
   IMPLICIT NONE
 
 CONTAINS

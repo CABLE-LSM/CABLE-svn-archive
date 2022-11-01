@@ -20,8 +20,8 @@ MODULE vmic_inout_mod
   IMPLICIT NONE
 
 subroutine mic_init(micparam,micinput,micoutput,miccpool,micnpool)
-   use mic_constant
-   use mic_variable
+   use mic_constant_mod
+   use mic_variable_mod
    implicit none
    TYPE(mic_parameter)  :: micparam
    TYPE(mic_input)      :: micinput
@@ -40,8 +40,8 @@ end subroutine mic_init
 
 subroutine mic_parameter(veg,soil,casabiome,zse)
 ! read the parameter lookup table and assigm them to (1:mp)
-   use mic_constant
-   use mic_variable
+   use mic_constant_mod
+   use mic_variable_mod
    implicit none
    TYPE(mic_parameter)                    :: micparam
    TYPE(mic_input)                        :: micinput
@@ -107,8 +107,8 @@ subroutine mic_parameter(veg,soil,casabiome,zse)
 end subroutine mic_parameter
 
 subroutine mic_input(dleaf,dwood,droot,tsoil,moist,nsoilmin)
-   use mic_constant
-   use mic_variable
+   use mic_constant_mod
+   use mic_variable_mod
    implicit none
    TYPE(mic_parameter), INTENT(IN)          :: micparam
    TYPE(mic_input),     INTENT(OUT)         :: micinput
