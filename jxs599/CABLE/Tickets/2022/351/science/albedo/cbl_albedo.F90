@@ -98,7 +98,7 @@ real :: SumEffSurfRefl_beam(1)
 real :: SumEffSurfRefl_dif(1)
 integer :: i
 
-    ! END header
+! END header
 
 AlbSnow(:,:) = 0.0
 !CanopyTransmit_beam(:,:) = 0.0
@@ -107,10 +107,6 @@ CanopyRefl_dif(:,:) = 0.0
 !CanopyTransmit_dif(:,:) = 0.0  ! MPI (at least inits this = 1.0 at dt=0) 
 
 !Modify parametrised soil albedo based on snow coverage 
-!call surface_albedosn( AlbSnow, AlbSoil, mp, nrb, jls_radiation, surface_type, soil_type, &
-!                       SnowDepth, SnowODepth, SnowFlag_3L,                      & 
-!                       SnowDensity, SoilTemp, SnowTemp, SnowAge,                     & 
-!                       MetTk, Coszen )
 call surface_albedosn( AlbSnow, AlbSoil, mp, nrb, surface_type, soil_type, &
                        SnowDepth, SnowDensity, SoilTemp, SnowAge, Coszen )
 

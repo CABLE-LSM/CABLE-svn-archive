@@ -33,7 +33,6 @@ USE cable_runtime_opts_mod ,ONLY : wiltparam
   !---total number of timesteps, and processing node
   INTEGER, SAVE :: ktau_gl, kend_gl, knode_gl, kwidth_gl
 
-  LOGICAL :: L_fudge = .FALSE.
 
   INTEGER, SAVE :: CurYear  ! current year of multiannual run
 
@@ -52,9 +51,19 @@ USE cable_runtime_opts_mod ,ONLY : wiltparam
 
   !---CABLE runtime switches def in this type
   TYPE kbl_internal_switches
+     
      LOGICAL :: um = .FALSE., um_explicit = .FALSE., um_implicit = .FALSE.,   &
-          um_radiation = .FALSE., um_hydrology = .FALSE., esm15 = .FALSE.
+               um_radiation = .FALSE., um_hydrology = .FALSE.,    &
+               esm15_dailyPhosLeach= .TRUE.,    esm15_casa_biogeochem= .TRUE.,         &
+               ! 
+               esm15_casa_allocation = .TRUE.,  esm15_casa_rplant = .TRUE.,       &
+               esm15_casa_delplant = .TRUE.,    esm15_casa_coeffplant = .TRUE.,     &
+               esm15_casa_nrequire = .TRUE.,    esm15_casa_cnpbal = .TRUE.,         &
+               esm15_casa_Ndummy   = .TRUE.,    esm15_casa_Pdummy = .TRUE.,         &
+               esm15_casa_cnpflux = .TRUE.,     esm15_casa_cnpcycle = .TRUE.
+      
      LOGICAL :: offline = .FALSE., mk3l = .FALSE.
+  
   END TYPE kbl_internal_switches
 
   ! instantiate internal switches
@@ -167,3 +176,4 @@ contains
 
 
 END MODULE cable_common_module
+

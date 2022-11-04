@@ -311,7 +311,6 @@ integer :: j
 
    !--- initialize cable_runtime% switches 
    cable_runtime%um = .TRUE.
-   cable_runtime%esm15 = .TRUE.
    
    !--- basic info from global model passed to cable_common_module 
    !--- vars so don't need to be passed around, just USE _module
