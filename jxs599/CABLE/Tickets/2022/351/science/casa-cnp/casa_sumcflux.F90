@@ -35,7 +35,7 @@ module sumcflux_mod
 contains
 
 SUBROUTINE sumcflux(ktau, kstart, kend, dels, bgc, canopy,  &
-     soil, ssnow, sum_flux, veg, met, casaflux, l_vcmaxFeedbk)
+                    soil, ssnow, sum_flux, veg, met, casaflux, l_vcmaxFeedbk)
 
   USE cable_def_types_mod
   USE cable_carbon_module
@@ -46,24 +46,17 @@ SUBROUTINE sumcflux(ktau, kstart, kend, dels, bgc, canopy,  &
   INTEGER, INTENT(IN)    :: ktau ! integration step number
   INTEGER, INTENT(IN)    :: kstart ! starting value of ktau
   INTEGER, INTENT(IN)    :: kend ! total # timesteps in run
-!  INTEGER, INTENT(IN)    :: mvtype  ! Number of veg types
-!  INTEGER, INTENT(IN)    :: mstype ! Number of soil types
   REAL,    INTENT(IN)    :: dels ! time setp size (s)
   TYPE (bgc_pool_type),       INTENT(INOUT) :: bgc
   TYPE (canopy_type),         INTENT(INOUT) :: canopy
   TYPE (soil_parameter_type), INTENT(INOUT) :: soil
   TYPE (soil_snow_type),      INTENT(INOUT) :: ssnow
   TYPE (sum_flux_type),       INTENT(INOUT) :: sum_flux
-  TYPE (met_type),            INTENT(IN)    :: met
+  TYPE (met_type),            INTENT(IN)    :: met    
   TYPE (veg_parameter_type),  INTENT(INOUT) :: veg
   TYPE (casa_flux),           INTENT(INOUT) :: casaflux
   LOGICAL, INTENT(IN)   :: l_vcmaxFeedbk ! using prognostic Vcmax
 
-!   if(icycle<=0) then
-!     these are executed in cbm
-!      CALL soilcarb(soil, ssoil, veg, bgc, met, canopy)
-!      CALL carbon_pl(dels, soil, ssoil, veg, canopy, bgc)
-!   else
     if(icycle>0) then
        canopy%frp(:) = (casaflux%crmplant(:,wood)+casaflux%crmplant(:,froot) &
                         +casaflux%crgplant(:))/86400.0
@@ -108,7 +101,6 @@ SUBROUTINE sumcflux(ktau, kstart, kend, dels, bgc, canopy,  &
     ENDIF
 
 END SUBROUTINE sumcflux
-
 
 End module sumcflux_mod
 
