@@ -28,7 +28,6 @@
 !   casa_init
 !   casa_poolout
 !   casa_cnpflux  (zeros casabal quantites on doy 1 and updates casabal at end of biogeochem)
-!   biogeochem
 !CABLE_LSM:This has to be commented for offline
 !#define UM_BUILD YES
 MODULE casa_inout_module
@@ -37,19 +36,15 @@ USE casavariable, ONLY : casafile
 
 CONTAINS
 
-  SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
-    ! mst actually not used in this routine (BP sep2010)
-    !SUBROUTINE casa_readbiome(mvt,mst,veg,soil, &
-    !                          casabiome,casapool,casaflux,casamet,phen)
-    USE cable_def_types_mod
-    USE casadimension
-    USE casaparm
-    USE casavariable
-    USE phenvariable
-    !! vh_js !!
-    USE cable_common_module, ONLY: cable_user
+SUBROUTINE casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)
+USE cable_def_types_mod
+USE casadimension
+USE casaparm
+USE casavariable
+USE phenvariable
+USE cable_common_module, ONLY : cable_runtime
+USE cable_common_module, ONLY : knode_gl,cable_user 
     IMPLICIT NONE
-    !  INTEGER,               INTENT(IN)    :: mvt,mst
     TYPE (veg_parameter_type),  INTENT(INOUT) :: veg  ! vegetation parameters
     TYPE (soil_parameter_type), INTENT(INOUT) :: soil ! soil parameters
     TYPE (casa_biome),          INTENT(INOUT) :: casabiome
@@ -90,15 +85,22 @@ CONTAINS
          xcostnpup,xmaxfinelitter,xmaxcwd,xnintercept,xnslope
     REAL(r_2), DIMENSION(mso)          :: xxkplab,xxkpsorb,xxkpocc
 
+  OPEN(101,file=casafile%cnpbiome)
 
-    OPEN(101,file=casafile%cnpbiome)
+  if (knode_gl==0) then    
+    print *, '  '; print *, 'CASA_log:'
+    print *, '  Opened file - '
+    print *, '  ', trim(casafile%cnpbiome)
+    print *, '  for reading cnpbiome vars.'
+    print *, 'End CASA_log:'; print *, '  '
+  endif
+
     DO i=1,3
        READ(101,*)
     ENDDO
 
     DO nv=1,mvtype
        READ(101,*) nv0,casabiome%ivt2(nv)
-       !     PRINT *, nv,nv0,casabiome%ivt2(nv)
     ENDDO
 
     READ(101,*)
@@ -110,7 +112,6 @@ CONTAINS
             xfherbivore(nv),leafage(nv),woodage(nv),frootage(nv), &
             metage(nv),strage(nv),cwdage(nv),  &
             micage(nv),slowage(nv),passage(nv),clabileage(nv),slax(nv)
-       !     PRINT *, 'nv1',nv,nv1
     ENDDO
 
     READ(101,*)
@@ -120,7 +121,6 @@ CONTAINS
             casabiome%fracnpptoP(nv,leaf),casabiome%fracnpptoP(nv,wood), &
             casabiome%fracnpptoP(nv,froot),casabiome%rmplant(nv,leaf),   &
             casabiome%rmplant(nv,wood),casabiome%rmplant(nv,froot)
-       !     PRINT *, 'nv2', nv2
     ENDDO
 
     READ(101,*)
@@ -136,9 +136,7 @@ CONTAINS
             ratioCNsoil(nv,mic),ratioCNsoil(nv,slow),ratioCNsoil(nv,pass),  &
             ratioCNsoilmin(nv,mic),ratioCNsoilmin(nv,slow),ratioCNsoilmin(nv,pass),  &
             ratioCNsoilmax(nv,mic),ratioCNsoilmax(nv,slow),ratioCNsoilmax(nv,pass),  &
-                                !         xfherbivore(nv),casabiome%ratiofrootleaf(nv),                  &
             casabiome%glaimax(nv),casabiome%glaimin(nv)
-       !     PRINT *, 'nv22',nv2
     ENDDO
 
     READ(101,*)
@@ -146,7 +144,6 @@ CONTAINS
     DO nv=1,mvtype
        READ(101,*) nv3, cleaf(nv),cwood(nv),cfroot(nv),cmet(nv),   &
             cstr(nv),ccwd(nv), cmic(nv), cslow(nv),cpass(nv)
-       !     PRINT *, 'nv3',nv3
     ENDDO
 
     READ(101,*)
@@ -155,15 +152,7 @@ CONTAINS
        READ(101,*) nv4, &
             phen%TKshed(nv),xxkleafcoldmax(nv),casabiome%xkleafcoldexp(nv), &
             xxkleafdrymax(nv),casabiome%xkleafdryexp(nv)
-       !     PRINT *, 'nv4',nv4
     ENDDO
-    !  READ(101,*)
-    !  READ(101,*)
-    !  DO nv=1,mvtype
-    !    READ(101,*) nv5, &
-    !         xxkleafcoldmax(nv),casabiome%xkleafcoldexp(nv),   &
-    !         xxkleafdrymax(nv),casabiome%xkleafdryexp(nv)
-    !  ENDDO
 
     READ(101,*)
     READ(101,*)
@@ -173,7 +162,6 @@ CONTAINS
             casabiome%ratioNCplantmin(nv,wood),casabiome%ratioNCplantmax(nv,wood), &
             casabiome%ratioNCplantmin(nv,froot),casabiome%ratioNCplantmax(nv,froot), &
             xfNminloss(nv), xfNminleach(nv),xnfixrate(nv)
-       !     PRINT *, 'nv6',nv6
     ENDDO
 
     READ(101,*)
@@ -182,7 +170,6 @@ CONTAINS
        READ(101,*) nv7,nleaf(nv),nwood(nv),nfroot(nv), &
             nmet(nv),nstr(nv), ncwd(nv), &
             nmic(nv),nslow(nv),npass(nv),xnsoilmin(nv)
-       !     PRINT *, 'nv7',nv7
     ENDDO
 
     READ(101,*)
@@ -216,15 +203,14 @@ CONTAINS
        READ(101,*) nv9,xkmlabp(iso),xpsorbmax(iso),xfPleach(iso), &
             ratioNPsoil(iso,mic),ratioNPsoil(iso,slow),ratioNPsoil(iso,pass), &
             xxkplab(iso),xxkpsorb(iso),xxkpocc(iso)
-       !     PRINT *, 'nv9',nv9
     ENDDO
+
     READ(101,*)
     READ(101,*)
     DO nv=1,mvtype
        READ(101,*) nv10, &
             xpleaf(nv),xpwood(nv),xpfroot(nv),xpmet(nv),xpstr(nv),xpcwd(nv), &
             xpmic(nv),xpslow(nv),xppass(nv),xplab(nv),xpsorb(nv),xpocc(nv)
-       !     PRINT *, 'nv10',nv10
     ENDDO
 
     !@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -267,7 +253,6 @@ CONTAINS
        casabiome%soilrate(nv,pass)   = deltcasa/passage(nv)
        casabiome%xkleafcoldmax(nv)   = deltcasa * xxkleafcoldmax(nv)
        casabiome%xkleafdrymax(nv)    = deltcasa * xxkleafdrymax(nv)
-       !    casabiome%kuplabp(nv)         = xkuplabp(nv)
        casabiome%rmplant(nv,:)       = casabiome%rmplant(nv,:)*deltcasa
        casabiome%kclabrate(nv)       = deltcasa/clabileage(nv)
 
@@ -292,16 +277,11 @@ CONTAINS
        casabiome%xkpocc(ns)          =  xxkpocc(ns)
     ENDDO
 
-    !@@@@@@@@@@@@@@
-
-    ! PRINT *, 'casabiome%xkoptsoil = ', casabiome%xkoptsoil(2)
 
     DO npt = 1, mp
        iv1=veg%iveg(npt)
        iso=casamet%isorder(npt)
        ! The following to be commented out when coupled to CABLE
-       !    veg%froot(npt,:) =fracroot(iv1,:)
-       !    PRINT *, 'npt,iv1,iso ', npt,iv1, iso
        casamet%iveg2(npt) =casabiome%ivt2(iv1)
        casamet%lnonwood(npt) = 1
        casapool%cplant(npt,wood)  = 0.0
@@ -346,11 +326,9 @@ CONTAINS
        casaflux%fNminloss(npt)   = xfNminloss(iv1)
        ! comment out by ypw 12/07/2009
        casaflux%fNminleach(npt)  = 10.0*xfNminleach(iv1) * deltcasa
-       !    casaflux%fNminleach(npt)  = xfNminleach(iv1)
        casapool%nplant(npt,leaf) = nleaf(iv1)
        casapool%nplant(npt,froot)= nfroot(iv1)
        casapool%nlitter(npt,metb) = nmet(iv1)
-       !    casapool%nlitter(npt,str) = nstr(iv1)
        casapool%nlitter(npt,str) = cstr(iv1)*ratioNCstrfix
        casapool%nsoil(npt,mic)   = nmic(iv1)
        casapool%nsoil(npt,slow)  = nslow(iv1)
@@ -359,7 +337,6 @@ CONTAINS
        casapool%pplant(npt,leaf) = xpleaf(iv1)
        casapool%pplant(npt,froot)= xpfroot(iv1)
        casapool%plitter(npt,metb) = xpmet(iv1)
-       !    casapool%plitter(npt,str) = xpstr(iv1)
        casapool%plitter(npt,str) = casapool%nlitter(npt,str)/ratioNPstrfix
        casapool%psoil(npt,mic)   = xpmic(iv1)
        casapool%psoil(npt,slow)  = xpslow(iv1)
@@ -413,10 +390,9 @@ CONTAINS
     ENDIF
 
 
-  END SUBROUTINE casa_readbiome
+END SUBROUTINE casa_readbiome
 
-  SUBROUTINE casa_readphen(veg,casamet,phen)
-    !SUBROUTINE casa_readphen(mvt,veg,casamet,phen)
+SUBROUTINE casa_readphen(veg,casamet,phen)
     ! read in the tabulated modis-derived leaf phenology data
     ! for latitude bands of 79.75 to -55.25
     USE cable_def_types_mod
@@ -424,8 +400,9 @@ CONTAINS
     USE casaparm
     USE casavariable
     USE phenvariable
+  USE cable_common_module, ONLY : knode_gl
     IMPLICIT NONE
-    !  INTEGER,              INTENT(IN)    :: mvt
+
     TYPE (veg_parameter_type), INTENT(IN)    :: veg  ! vegetation parameters
     TYPE (casa_met),           INTENT(IN)    :: casamet
     TYPE (phen_variable),      INTENT(INOUT) :: phen
@@ -444,6 +421,15 @@ CONTAINS
     phendoy1(:,:)= 2
 
     OPEN(101,file=casafile%phen)
+
+  if (knode_gl==0) then
+    print *, '  '; print *, 'CASA_log:'
+    print *, '  Opened file - '
+    print *, '  ', trim(casafile%phen)
+    print *, '  for reading phen vars.'
+    print *, 'End CASA_log:'; print *, '  '
+  endif
+
     READ(101,*)
     READ(101,*) (ivtx(nx),nx=1,nphen) ! fixed at 10, as only 10 of 17 IGBP PFT
     ! have seasonal leaf phenology
@@ -470,227 +456,30 @@ CONTAINS
 
     ENDDO
 
-  END SUBROUTINE casa_readphen
+END SUBROUTINE casa_readphen
 
-  !SUBROUTINE casa_readpoint(veg,soil,casaflux,casamet,rad)
-  !! Transfer grid information from CABLE internally, read N&P input from
-  !! integral NETCDF file "cnpdata_r21.nc" (Q.Zhang 01/08/2011)
-  !
-  !!SUBROUTINE casa_readpoint(mvt,veg,soil,casaflux,casamet,patch,rad)
-  !  USE netcdf
-  !  USE cable_def_types_mod
-  !  USE abort_module
-  !  USE io_variables, ONLY: landpt,patch        ! add landpt, Q.Zhang 05/08/2011
-  !  USE casaparm
-  !  USE casadimension
-  !  USE casavariable
-  !  IMPLICIT NONE
-  !!  INTEGER,               INTENT(IN)    :: mvt
-  !  TYPE (veg_parameter_type),  INTENT(INOUT) :: veg  ! vegetation parameters
-  !  TYPE (soil_parameter_type), INTENT(INOUT) :: soil ! soil parameters
-  !  TYPE (casa_flux),           INTENT(INOUT) :: casaflux
-  !  TYPE (casa_met),            INTENT(INOUT) :: casamet
-  !  TYPE (radiation_type),      INTENT(IN)    :: rad
-  !
-  !  ! local variables
-  !  INTEGER, DIMENSION(:,:), ALLOCATABLE :: iso
-  !  REAL,DIMENSION(:,:), ALLOCATABLE :: annNdep,annNfix,annPwea,annPdust
-  !  REAL,DIMENSION(:), ALLOCATABLE:: latx, lonx
-  !  INTEGER :: nlat, nlon, ii, jj, g, p
-  !  INTEGER :: ncid, ok, varid
-  !
-  !  ok = NF90_OPEN(casafile%cnppoint,0,ncid)
-  !  IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error opening cnpdata_r21.nc')
-  !
-  !  ok = NF90_INQ_DIMID(ncid,'lon',varid)
-  !  ok = NF90_INQUIRE_DIMENSION(ncid,varid,LEN=nlon)
-  !  IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error getting longitude')
-  !  ok = NF90_INQ_DIMID(ncid,'lat',varid)
-  !  ok = NF90_INQUIRE_DIMENSION(ncid,varid,LEN=nlat)
-  !  IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error getting latitude')
-  !
-  !  ALLOCATE( iso(nlon,nlat) )
-  !  ALLOCATE( annNdep(nlon,nlat) )
-  !  ALLOCATE( annNfix(nlon,nlat) )
-  !  ALLOCATE( annPwea(nlon,nlat) )
-  !  ALLOCATE( annPdust(nlon,nlat) )
-  !  ALLOCATE( latx(nlat) )
-  !  ALLOCATE( lonx(nlon) )
-  !
-  !  ! Read temporary variables
-  !  ! soil order
-  !  ok = NF90_INQ_VARID(ncid,'sorder',varid)
-  !  IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error finding variable sorder')
-  !  ok = NF90_GET_VAR(ncid,varid,iso)
-  !  IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error reading variable sorder')
-  !  ! N deposition
-  !  ok = NF90_INQ_VARID(ncid,'ndep',varid)
-  !  IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error finding variable ndep')
-  !  ok = NF90_GET_VAR(ncid,varid,annNdep)
-  !  IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error reading variable ndep')
-  !  ! N fixation rate
-  !  ok = NF90_INQ_VARID(ncid,'nfix',varid)
-  !  IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error finding variable nfix')
-  !  ok = NF90_GET_VAR(ncid,varid,annNfix)
-  !  IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error reading variable nfix')
-  !  ! P dust deposition
-  !  ok = NF90_INQ_VARID(ncid,'pdust',varid)
-  !  IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error finding variable pdust')
-  !  ok = NF90_GET_VAR(ncid,varid,annPdust)
-  !  IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error reading variable pdust')
-  !  ! P weathering rate
-  !  ok = NF90_INQ_VARID(ncid,'pweather',varid)
-  !  IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error finding variable pweather')
-  !  ok = NF90_GET_VAR(ncid,varid,annPwea)
-  !  IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error reading variable pweather')
-  !  ! lat and lon
-  !  ok = NF90_INQ_VARID(ncid,'lat',varid)
-  !  IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error finding lat')
-  !  ok = NF90_GET_VAR(ncid,varid,latx)
-  !  IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error reading variable lat')
-  !  ok = NF90_INQ_VARID(ncid,'lon',varid)
-  !  IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error finding lon')
-  !  ok = NF90_GET_VAR(ncid,varid,lonx)
-  !  IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error reading variable lon')
-  !
-  !  ! reorder lon from (0,360) to (-180,180)
-  !  where (lonx > 180.) lonx = lonx - 360.
-  !
-  !  do g = 1,mland
-  !    ii = landpt(g)%ilon
-  !    jj = landpt(g)%ilat
-  !
-  !   do p = landpt(g)%cstart,landpt(g)%cend
-  !     casamet%lon(p) = lonx(ii)
-  !     casamet%lat(p) = latx(jj)
-  !     if (ABS(casamet%lat(p) - patch(p)%latitude) > 0.1 .or. &
-  !        ABS(casamet%lon(p) - patch(p)%longitude) > 0.1) then
-  !       print*, "check nutrient input, coordinate unmatch"
-  !       print*, p, casamet%lon(p), patch(p)%longitude
-  !       print*, p, casamet%lat(p), patch(p)%latitude
-  !       stop
-  !     end if
-  !
-  !     casamet%isorder(p)  = iso(ii,jj)
-  !     casaflux%Nmindep(p) = annNdep(ii,jj)/365.0*1.e-3! gN/m2/day
-  !     casaflux%Nminfix(p) = annNfix(ii,jj)/365.0      ! gN/m2/day
-  !     casaflux%Pdep(p)    = annPdust(ii,jj)/365.0     ! gP/m2/day
-  !     casaflux%Pwea(p)    = annPwea(ii,jj)/365.0      ! gP/m2/day
-  !
-  !     if(veg%iveg(p)==9 .or. veg%iveg(p)==10) then
-  !     ! P fertilizer =13 Mt P globally in 1994
-  !       casaflux%Pdep(p) = casaflux%Pdep(p)+0.7/365.0
-  !     ! N fertilizer =86 Mt N globally in 1994
-  !       casaflux%Nminfix(p) = casaflux%Nminfix(p)+4.3/365.0
-  !     endif
-  !   end do
-  !  end do
-  !
-  !  ok = NF90_CLOSE(ncid)
-  !  if (ok /= NF90_NOERR) CALL nc_abort(ok,'error closing cnpdata_r21.nc')
-  !
-  !  DEALLOCATE(latx,lonx,iso,annNdep,annNfix,annPwea,annPdust)
-  !
-  !!  ! local variables
-  !!  INTEGER :: np,nland
-  !!  REAL(r_2) :: annNdep,annNfix,annPwea,annPdust
-  !!  REAL(r_2) :: annNfert,annPfert   ! not really used yet
-  !!  INTEGER, DIMENSION(mp) :: vtypex,stypex
-  !!  INTEGER :: nlandx,ivtigbp,inPatch,ilat,ilon
-  !!  REAL    :: frac,ssat,swilt,sfc   ! used in offline version, Q.Zhang @ 25/02/2011
-  !!
-  !!  OPEN(101,file=casafile%cnppoint,FORM='FORMATTED')
-  !!  READ(101,*)
-!!!  READ(101,*) inPatch
-  !!  PRINT * ,'Within casa_readpoint, mp = ', mp
-!!!  PRINT * ,'Input file has ', inPatch, ' patches.'
-  !!
-  !!  np = 0
-  !!  DO nland=1,mp
-  !!    np = np + 1
-!!!    READ(101,*) &
-!!!        nlandx,ivtigbp,stypex(np),casamet%isorder(np), &
-!!!               casamet%lat(np),casamet%lon(np),casamet%areacell(np), &
-!!!               annNfix,annNdep,annNfert,annPwea,annPdust,annPfert
-  !!
-  !!    ! 'ijgcm,j,i,lat,lon,frac,iveg,isoil,ist,parea,ssat,swilt,sfc,ndep,nfix,pwea,pdust'
-  !!    read(101,*) nlandx,ilat,ilon,casamet%lat(np),casamet%lon(np),&
-  !!                frac,vtypex(np),stypex(np),casamet%isorder(np),&
-  !!                casamet%areacell(np),ssat,swilt,&
-  !!                sfc,annNdep,annNfix,annPwea,annPdust
-  !!
-!!!    PRINT * , nlandx,ivtigbp,stypex(np),veg%iveg(np),soil%isoilm(np), &
-!!!              patch(np)%frac,patch(np)%latitude,patch(np)%longitude, &
-!!!              casamet%lat(np),casamet%lon(np)
-  !!
-!!!    IF (ivtigbp == 0) ivtigbp = iceland
-  !!
-  !!    IF (ABS(casamet%lat(np) - patch(np)%latitude) < 0.1 .AND. &
-  !!        ABS(casamet%lon(np) - patch(np)%longitude) < 0.1) THEN
-  !!      IF (vtypex(np) /= veg%iveg(np) .OR. stypex(np) /= soil%isoilm(np)) THEN
-  !!        PRINT * ,'Check why iveg, isoil do not match'
-  !!        STOP
-  !!      ELSE
-  !!        casaflux%Nmindep(np) = annNdep/365.0
-  !!        casaflux%Nminfix(np) = annNfix/365.0
-  !!        casaflux%Pdep(np)    = annPdust/365.0     ! gP/m2/day
-  !!        casaflux%Pwea(np)    = annPwea/365.0      ! gP/m2/day
-!!!        IF (mvtype==17) THEN
-!!!          vtypex(np)  = ivtigbp  ! for running IGBP veg type only
-!!!        END IF
-  !!      END IF
-  !!    ELSE
-  !!      PRINT * ,'Check why lat, lon do not match'
-  !!      print * ,'casamet',casamet%lat(np),casamet%lon(np)
-  !!      print * ,'cable  ',patch(np)%latitude,patch(np)%longitude
-  !!      STOP
-  !!    END IF
-  !!
-  !!    if(veg%iveg(np)==9 .or. veg%iveg(np)==10) then
-  !!    ! P fertilizer =13 Mt P globally in 1994
-  !!      casaflux%Pdep(np) = casaflux%Pdep(np)+0.7/365.0
-  !!    ! N fertilizer =86 Mt N globally in 1994
-  !!      casaflux%Nminfix(np) = casaflux%Nminfix(np)+4.3/365.0
-  !!    endif
-!!!    IF (veg%iveg(np)==12 .OR. veg%iveg(np)==14) casaflux%Pdep(np)= &
-!!!       casaflux%Pdep(np)+0.7/365.0    ! P fertilizer =13 Mt P globally in 1994
-  !!
-  !!  ENDDO
-  !!  CLOSE(101)
-  !
-  !END SUBROUTINE casa_readpoint
-
-  SUBROUTINE casa_init(casabiome,casamet,casaflux,casapool,casabal,veg,phen)
-    ! mst not used (BP sep2010)
-    !! for first time reading file *_1220.csv  (BP may2010)
-    !SUBROUTINE casa_init(mst,casapool,casabal,veg)
-    !!SUBROUTINE casa_init(mst,casapool,casabal)
-    !! end addition (BP may2010)
-    !  initialize some values in phenology parameters and leaf growth phase
+#ifndef UM_BUILD
+SUBROUTINE casa_init(casabiome,casamet,casaflux,casapool,casabal,veg,phen)
     USE casadimension
     USE casaparm
     USE casavariable
     USE phenvariable
-    ! for first time reading file *_1220.csv  (BP may2010)
     USE cable_def_types_mod
     USE cable_io_vars_module, ONLY: landpt, patch
     USE cable_common_module, ONLY: cable_user
 
-    ! end addition (BP may2010)
     IMPLICIT NONE
-    !  INTEGER,        INTENT(IN)    :: mst
+
     TYPE (casa_biome),   INTENT(IN)    :: casabiome
     TYPE (casa_met),     INTENT(INOUT) :: casamet
     TYPE (casa_flux),    INTENT(INOUT) :: casaflux
     TYPE (casa_pool),    INTENT(INOUT) :: casapool
     TYPE (casa_balance), INTENT(INOUT) :: casabal
-    ! for first time reading file *_1220.csv  (BP may2010)
     TYPE (veg_parameter_type), INTENT(IN) :: veg
     TYPE (phen_variable),   INTENT(INOUT) :: phen
     REAL(r_2) :: clabile,cplant(3),clitter(3),csoil(3)
     REAL(r_2) :: nplant(3),nlitter(3),nsoil(3),nsoilmin,pplant(3)
     REAL(r_2) :: plitter(3),psoil(3),psoillab,psoilsorb,psoilocc
-    ! end addition (BP may2010)
 
     ! local variables
     INTEGER   :: np,npt,npz
@@ -703,7 +492,6 @@ CONTAINS
        PRINT *, 'initial pool from restart file'
     ENDIF
     PRINT *, 'icycle,initcasa,mp ', icycle,initcasa,mp
-    !phen%phase = 2
 
     !CLN initialise all !!!!! THIS NEEDS FIXING because of e.g. ICE-WATER
     casaflux%Cgpp         = 0.
@@ -790,120 +578,6 @@ CONTAINS
     WHERE(casamet%lnonwood==1) casapool%cplant(:,WOOD) = 0.0
     WHERE(casamet%lnonwood==1) casapool%nplant(:,WOOD) = 0.0
     WHERE(casamet%lnonwood==1) casapool%pplant(:,WOOD) = 0.0
-!!$IF (initcasa==1) THEN
-!!$     INQUIRE( FILE=TRIM(casafile%cnpipool), EXIST=EXRST )
-!!$!! vh_js!!
-!!$     IF ( EXRST ) THEN
-!!$
-!!$           PRINT*, ' Reading cnppoolOutfile as input: ,',casafile%cnpipool
-!!$
-!!$    OPEN(99,file=casafile%cnpipool)
-!!$
-!!$    DO npt =1, mp
-!!$       SELECT CASE(icycle)
-!!$       CASE(1)
-!!$          !! vh_js !!
-!!$          IF (cable_user%CALL_POP) THEN
-!!$
-!!$             READ(99,*) nyearz,npz,ivtz,istz,isoz,latz,lonz,areacellz, &
-!!$                  casamet%glai(npt),slaz,phen%phase(npt) , &
-!!$                  phen%doyphase(npt,3), phen%phen(npt), phen%aphen(npt), &
-!!$                  casapool%clabile(npt) ,casapool%cplant(npt,:) ,  &
-!!$                  casapool%clitter(npt,:),casapool%csoil(npt,:), &
-!!$                  casaflux%frac_sapwood(npt), casaflux%sapwood_area(npt)
-!!$
-!!$
-!!$             ELSE
-!!$              READ(99,*) nyearz,npz,ivtz,istz,isoz,latz,lonz,areacellz, &
-!!$                  casamet%glai(npt),slaz,phen%phase(npt) , &
-!!$                  phen%doyphase(npt,3), phen%phen(npt), phen%aphen(npt), &
-!!$                  casapool%clabile(npt) ,casapool%cplant(npt,:) ,  &
-!!$                  casapool%clitter(npt,:),casapool%csoil(npt,:)
-!!$             casaflux%frac_sapwood(:) = 1.0
-!!$             casaflux%sapwood_area(:) = 0.0
-!!$          ENDIF
-!!$
-!!$
-!!$       CASE(2)
-!!$!! vh_js !!
-!!$          IF (cable_user%CALL_POP) THEN
-!!$             READ(99,*) nyearz,npz,ivtz,istz,isoz,latz,lonz,areacellz, &
-!!$                  casamet%glai(npt),slaz,phen%phase(npt), &
-!!$                  phen%doyphase(npt,3), phen%phen(npt), phen%aphen(npt), &
-!!$                  casapool%clabile(npt),casapool%cplant(npt,:),   &
-!!$                  casapool%clitter(npt,:),casapool%csoil(npt,:),       &
-!!$                  casaflux%frac_sapwood(npt), casaflux%sapwood_area(npt), &
-!!$                  casapool%nplant(npt,:),casapool%nlitter(npt,:),      &
-!!$                  casapool%nsoil(npt,:),casapool%nsoilmin(npt)
-!!$
-!!$          ELSE
-!!$             READ(99,*) nyearz,npz,ivtz,istz,isoz,latz,lonz,areacellz, &
-!!$                  casamet%glai(npt),slaz,phen%phase(npt), &
-!!$                  phen%doyphase(npt,3), phen%phen(npt), phen%aphen(npt), &
-!!$                  casapool%clabile(npt),casapool%cplant(npt,:),   &
-!!$                  casapool%clitter(npt,:),casapool%csoil(npt,:),       &
-!!$                  casapool%nplant(npt,:),casapool%nlitter(npt,:),      &
-!!$                  casapool%nsoil(npt,:),casapool%nsoilmin(npt)
-!!$             casaflux%frac_sapwood(:) = 1.0
-!!$             casaflux%sapwood_area(:) = 0.0
-!!$
-!!$          ENDIF
-!!$       CASE(3)
-!!$!! vh_js !!
-!!$          IF (cable_user%CALL_POP) THEN
-!!$             READ(99,*) nyearz,npz,ivtz,istz,isoz,latz,lonz,areacellz, &
-!!$                  casamet%glai(npt),slaz,phen%phase(npt), &
-!!$                  phen%doyphase(npt,3), phen%phen(npt), phen%aphen(npt), &
-!!$                  casapool%clabile(npt),casapool%cplant(npt,:),   &
-!!$                  casapool%clitter(npt,:),casapool%csoil(npt,:),       &
-!!$                  casaflux%frac_sapwood(npt), casaflux%sapwood_area(npt), &
-!!$                  casapool%nplant(npt,:),casapool%nlitter(npt,:),      &
-!!$                  casapool%nsoil(npt,:),casapool%nsoilmin(npt),        &
-!!$                  casapool%pplant(npt,:),casapool%plitter(npt,:),      &
-!!$                  casapool%psoil(npt,:),casapool%psoillab(npt),        &
-!!$                  casapool%psoilsorb(npt),casapool%psoilocc(npt)
-!!$          ELSE
-!!$             READ(99,*) nyearz,npz,ivtz,istz,isoz,latz,lonz,areacellz, &
-!!$                  casamet%glai(npt),slaz,phen%phase(npt), &
-!!$                  phen%doyphase(npt,3), phen%phen(npt), phen%aphen(npt), &
-!!$                  casapool%clabile(npt),casapool%cplant(npt,:),   &
-!!$                  casapool%clitter(npt,:),casapool%csoil(npt,:),       &
-!!$                  casapool%nplant(npt,:),casapool%nlitter(npt,:),      &
-!!$                  casapool%nsoil(npt,:),casapool%nsoilmin(npt),        &
-!!$                  casapool%pplant(npt,:),casapool%plitter(npt,:),      &
-!!$                  casapool%psoil(npt,:),casapool%psoillab(npt),        &
-!!$                  casapool%psoilsorb(npt),casapool%psoilocc(npt)
-!!$             casaflux%frac_sapwood(:) = 1.0
-!!$             casaflux%sapwood_area(:) = 0.0
-!!$
-!!$
-!!$          ENDIF
-!!$       END SELECT
-!!$       IF (ABS(patch(npt)%longitude - lonz) > 0.9 .OR. &
-!!$            ABS(patch(npt)%latitude  - latz) > 0.9) THEN
-!!$          PRINT *, 'patch(npt)%longitude, lonz:', patch(npt)%longitude, lonz
-!!$          PRINT *, 'patch(npt)%latitude,  latz:', patch(npt)%latitude,  latz
-!!$          PRINT *, 'npt = ', npt
-!!$          STOP
-!!$       ENDIF
-!!$    ENDDO
-!!$    CLOSE(99)
-!!$
-!!$
-!!$ ELSE
-!!$ !! vh_js !!
-!!$    WRITE(*,*)'No valid restart file for casa_init found.'
-!!$    WRITE(*,*)'Using input from readbiome.!!!'
-!!$    WRITE(*,*) 'initialising frac_sapwood=1 and sapwood_area = 0)'
-!!$    casaflux%frac_sapwood(:) = 1.0
-!!$    casaflux%sapwood_area(:) = 0.0
-!!$
-!!$
-!!$ ENDIF  ! IF (EXRST)
-
-!!$ENDIF
-    !92 format(5(i6,2x),5(f18.6,3x),2(i6,',',2x),',',2x,100(f18.6,3x))
-92  FORMAT(5(i6,',',2x),5(f18.6,',',2x),2(i6,',',2x),',',2x,100(f18.6,',',2x))
 
 
     IF(initcasa==0) THEN
@@ -915,7 +589,6 @@ CONTAINS
     ENDIF
 
     ! reset labile C pool,comment out by Q.Zhang 10/09/2011
-    !  casapool%clabile    = 0.0
     ! check pool sizes
     casapool%cplant     = MAX(0.0,casapool%cplant)
     casapool%clitter    = MAX(0.0,casapool%clitter)
@@ -927,7 +600,6 @@ CONTAINS
     casabal%sumcbal     = 0.0
     casabal%FCgppyear=0.0;casabal%FCrpyear=0.0
     casabal%FCnppyear=0;casabal%FCrsyear=0.0;casabal%FCneeyear=0.0
-    !vh !
     WHERE(casamet%lnonwood==1) casapool%cplant(:,WOOD) = 0.0
     IF (icycle==1) THEN
        casapool%Nplant(:,:) = casapool%cplant(:,:) * casapool%ratioNCplant(:,:)
@@ -948,7 +620,6 @@ CONTAINS
        casabal%sumnbal     = 0.0
        casabal%FNdepyear=0.0;casabal%FNfixyear=0.0;casabal%FNsnetyear=0.0
        casabal%FNupyear=0.0;casabal%FNleachyear=0.0;casabal%FNlossyear=0.0
-       !vh !
        WHERE(casamet%lnonwood==1) casapool%nplant(:,WOOD) = 0.0
     ENDIF
 
@@ -968,16 +639,14 @@ CONTAINS
        casabal%sumpbal       = 0.0
        casabal%FPweayear=0.0;casabal%FPdustyear=0.0; casabal%FPsnetyear=0.0
        casabal%FPupyear=0.0;casabal%FPleachyear=0.0;casabal%FPlossyear=0.0
-       !vh !
        WHERE(casamet%lnonwood==1) casapool%pplant(:,WOOD) = 0.0
     ENDIF
     
     casapool%cwoodprod=0.0; casapool%nwoodprod=0.0;casapool%pwoodprod=0.0
 
-  END SUBROUTINE casa_init
+END SUBROUTINE casa_init
 
-
-  SUBROUTINE casa_poolout(ktau,veg,soil,casabiome,casapool,casaflux,casamet, &
+SUBROUTINE casa_poolout(ktau,veg,soil,casabiome,casapool,casaflux,casamet, &
        casabal,phen)
     USE cable_def_types_mod
     USE casadimension
@@ -1095,7 +764,6 @@ CONTAINS
           casabal%sumcbal(npt) =0.0; casabal%sumnbal(npt) =0.0; casabal%sumpbal(npt) = 0.0
        ENDIF
 
-       !! vh_js  !!
        IF (cable_user%CALL_POP) THEN
 
           WRITE(nout,92) ktau,npt,veg%iveg(npt),soil%isoilm(npt) ,     &
@@ -1128,31 +796,29 @@ CONTAINS
                casabal%sumcbal(npt),casabal%sumnbal(npt),casabal%sumpbal(npt)
        ENDIF
 
-
     ENDDO
 
     CLOSE(nout)
 
 92  FORMAT(5(i6,',',2x),5(f18.6,',',2x),2(i6,',',2x),100(f18.6,',',2x))
-  END SUBROUTINE casa_poolout
+END SUBROUTINE casa_poolout
 
-  ! casa_fluxout output data for Julie Tang; comment out (BP apr2010)
-  SUBROUTINE casa_fluxout(myear,veg,soil,casabal,casamet)
-    !SUBROUTINE casa_fluxout(myear,clitterinput,csoilinput)
+! casa_fluxout output data for Julie Tang; comment out (BP apr2010)
+SUBROUTINE casa_fluxout(myear,veg,soil,casabal,casamet)
+
     USE cable_def_types_mod
-    !  USE cableDeclare, ONLY: veg, soil
+USE cable_common_module, ONLY : knode_gl,cable_user 
     USE casadimension
     USE casaparm
     USE casavariable
     USE phenvariable
-    !  USE casaDeclare
+
     IMPLICIT NONE
     TYPE (veg_parameter_type),  INTENT(INOUT) :: veg  ! vegetation parameters
     TYPE (soil_parameter_type), INTENT(INOUT) :: soil ! soil parameters
     TYPE (casa_met),            INTENT(INOUT) :: casamet
     TYPE (casa_balance),        INTENT(INOUT) :: casabal
     INTEGER,               INTENT(IN)    :: myear
-    !  REAL(r_2),    INTENT(IN) :: clitterinput(mp,3),csoilinput(mp,3)
 
     ! local variables
     INTEGER  npt,nout
@@ -1182,15 +848,12 @@ CONTAINS
     casabal%FPupyear=casabal%FPupyear * xyear
     casabal%FPleachyear=casabal%FPleachyear * xyear
     casabal%FPlossyear=casabal%FPlossyear * xyear
-    !  clitterinput = clitterinput * xyear
-    !  csoilinput   = csoilinput   * xyear
 
     PRINT *, 'writing CNP fluxes out to file ', casafile%cnpflux
     OPEN(nout,file=casafile%cnpflux)
     DO npt =1,mp
        SELECT CASE(icycle)
        CASE(1)
-
           WRITE(nout,*) myear,npt,veg%iveg(npt),soil%isoilm(npt),    &
                casamet%isorder(npt),casamet%lat(npt),casamet%lon(npt), &
                casamet%areacell(npt)*(1.0e-9),casabal%Fcgppyear(npt),  &
@@ -1198,7 +861,6 @@ CONTAINS
                casabal%Fcrmleafyear(npt),casabal%Fcrmwoodyear(npt),     &
                casabal%Fcrmrootyear(npt),casabal%Fcrgrowyear(npt),     &
                casabal%Fcrsyear(npt),casabal%Fcneeyear(npt)  ! ,           &
-          !            clitterinput(npt,:),csoilinput(npt,:)
 
        CASE(2)
           WRITE(nout,*) myear,npt,veg%iveg(npt),soil%isoilm(npt),    &
@@ -1228,8 +890,6 @@ CONTAINS
 
        END SELECT
        totGPP = totGPP+casabal%Fcgppyear(npt)* casamet%areacell(npt)
-
-
        totNPP = totNPP+casabal%Fcnppyear(npt)* casamet%areacell(npt)
     ENDDO
 
@@ -1237,12 +897,12 @@ CONTAINS
     PRINT *, 'totNPP global = ', totNPP*(1.0e-15)
     CLOSE(nout)
 92  FORMAT(5(i6,',',2x),100(f15.6,',',2x))
-  END SUBROUTINE casa_fluxout
+END SUBROUTINE casa_fluxout
+#endif
 
-  ! clitterinput and csoilinput are for Julie Tang; comment out (BP apr2010)
-  !SUBROUTINE casa_cnpflux(clitterinput,csoilinput)
   SUBROUTINE casa_cnpflux(casaflux,casapool,casabal,zeroflux)
     USE cable_def_types_mod
+USE cable_common_module, ONLY : knode_gl,cable_user, cable_runtime
     USE casadimension
     USE casaparm
     USE casavariable
@@ -1251,7 +911,6 @@ CONTAINS
     TYPE (casa_pool),    INTENT(INOUT) :: casapool
     TYPE (casa_balance), INTENT(INOUT) :: casabal
     LOGICAL :: zeroflux
-    !  REAL(r_2), INTENT(INOUT) :: clitterinput(mp,3),csoilinput(mp,3)
     INTEGER n
 
     IF(zeroflux) THEN
@@ -1330,1436 +989,4 @@ CONTAINS
     ENDIF
   END SUBROUTINE casa_cnpflux
   ! changed by yp wang following Chris Lu 5/nov/2012
-#ifndef UM_BUILD
-  SUBROUTINE WRITE_CASA_RESTART_NC ( casamet, casapool, casaflux, phen, CASAONLY )
-
-    USE casavariable, ONLY : casa_met, casa_pool, casa_flux, icycle, mplant, mlitter, msoil
-    USE cable_common_module
-  USE casa_ncdf_module, ONLY: HANDLE_ERR
-   
-    USE cable_def_types_mod, ONLY: met_type, mp
-    USE phenvariable
-    USE netcdf
-
-    IMPLICIT NONE
-
-
-    TYPE (casa_met),  INTENT(IN) :: casamet
-    TYPE (casa_pool),  INTENT(IN) :: casapool
-    TYPE (casa_flux),           INTENT(IN) :: casaflux
-    TYPE (phen_variable),       INTENT(IN) :: phen
-
-    INTEGER*4 :: mp4
-    INTEGER*4, PARAMETER   :: pmp4 =0
-    INTEGER, PARAMETER   :: fmp4 = KIND(pmp4)
-    INTEGER*4   :: STATUS
-    INTEGER*4   :: FILE_ID, land_ID, plnt_ID, litt_ID, soil_ID, i
-    LOGICAL   :: CASAONLY
-    CHARACTER :: CYEAR*4, FNAME*99,dum*50
-
-    ! ! 1 dim arrays (npt )
-    ! CHARACTER(len=20),DIMENSION(7), PARAMETER :: A1 = (/ 'latitude', 'longitude', 'glai', &
-    !      'clabile', 'psoillab','psoilsorb','psoilocc' /)
-    ! ! 2 dim arrays (npt,mplant)
-    ! CHARACTER(len=20),DIMENSION(3), PARAMETER :: A2 = (/ 'cplant' , 'nplant' , 'pplantc' /)
-    ! ! 2 dim arrays (npt,mlitter)
-    ! CHARACTER(len=20),DIMENSION(3), PARAMETER :: A3 = (/ 'clitter', 'nlitter', 'plitter' /)
-    ! ! 2 dim arrays (npt,msoil)
-    ! CHARACTER(len=20),DIMENSION(3), PARAMETER :: A4 = (/ 'csoil', 'nsoil', 'psoil' /)
-
-    ! 1 dim arrays (npt )
-    CHARACTER(len=20),DIMENSION(12) :: A1
-    CHARACTER(len=20),DIMENSION(2) :: AI1
-    ! 2 dim arrays (npt,mplant)
-    CHARACTER(len=20),DIMENSION(3) :: A2
-    ! 2 dim arrays (npt,mlitter)
-    CHARACTER(len=20),DIMENSION(3) :: A3
-    ! 2 dim arrays (npt,msoil)
-    CHARACTER(len=20),DIMENSION(3) :: A4
-    INTEGER*4 :: VID1(SIZE(A1)), VIDI1(SIZE(AI1)), VID2(SIZE(A2)), VID3(SIZE(A3)), VID4(SIZE(A4))
-
-    mp4=INT(mp,fmp4)
-    A1(1) = 'latitude'
-    A1(2) = 'longitude'
-    A1(3) = 'glai'
-    A1(4) = 'clabile'
-    A1(5) = 'psoillab'
-    A1(6) = 'psoilsorb'
-    A1(7) = 'psoilocc'
-    A1(8) = 'frac_sapwood'
-    A1(9) = 'sapwood_area'
-    A1(10) = 'phen'
-    A1(11) = 'aphen'
-    A1(12) = 'nsoilmin'
-
-    AI1(1) = 'phase'
-    AI1(2) = 'doyphase3'
-
-
-    A2(1) = 'cplant'
-    A2(2) = 'nplant'
-    A2(3) = 'pplant'
-    A3(1) = 'clitter'
-    A3(2) = 'nlitter'
-    A3(3) = 'plitter'
-    A4(1) = 'csoil'
-    A4(2) = 'nsoil'
-    A4(3) = 'psoil'
-
-    ! Get File-Name
-    WRITE(CYEAR, FMT='(I4)') CurYear + 1
-
-    IF (LEN( TRIM(casafile%cnpepool) ) .GT. 0) THEN
-       fname=TRIM(casafile%cnpepool)
-    ELSE
-       fname = TRIM(filename%path)//'/'//TRIM( cable_user%RunIden )//&
-            '_casa_rst.nc'
-    ENDIF
-    ! Create NetCDF file:
-    STATUS = NF90_create(fname, NF90_CLOBBER, FILE_ID)
-    IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-    WRITE(*,*) 'writing casa restart', fname
-    ! Put the file in define mode:
-    STATUS = NF90_redef(FILE_ID)
-
-    STATUS = NF90_PUT_ATT( FILE_ID, NF90_GLOBAL, "Valid restart date", "01/01/"//CYEAR  )
-    STATUS = NF90_PUT_ATT( FILE_ID, NF90_GLOBAL, "Icycle", icycle  )
-    IF ( CASAONLY ) THEN
-       dum = 'CASA-ONLY run'
-    ELSE
-       dum = 'CABLE-CASA coupled run'
-    ENDIF
-    STATUS = NF90_PUT_ATT( FILE_ID, NF90_GLOBAL, "Run-Type", TRIM(dum) )
-
-    ! Define dimensions:
-    ! Land (number of points)
-    STATUS = NF90_def_dim(FILE_ID, 'land'   , mp4     , land_ID)
-    IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-    STATUS = NF90_def_dim(FILE_ID, 'mplant' , mplant , plnt_ID)
-    IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-    STATUS = NF90_def_dim(FILE_ID, 'mlitter', mlitter, litt_ID)
-    IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-    STATUS = NF90_def_dim(FILE_ID, 'msoil'  , msoil  , soil_ID)
-    IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-
-    DO i = 1, SIZE(A1)
-       STATUS = NF90_def_var(FILE_ID,TRIM(A1(i)) ,NF90_FLOAT,(/land_ID/),VID1(i))
-       IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-    END DO
-
-    DO i = 1, SIZE(AI1)
-       STATUS = NF90_def_var(FILE_ID,TRIM(AI1(i)) ,NF90_INT,(/land_ID/),VIDI1(i))
-       IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-    END DO
-
-    DO i = 1, SIZE(A2)
-       STATUS = NF90_def_var(FILE_ID,TRIM(A2(i)) ,NF90_FLOAT,(/land_ID,plnt_ID/),VID2(i))
-       IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-    END DO
-
-    DO i = 1, SIZE(A3)
-       STATUS = NF90_def_var(FILE_ID,TRIM(A3(i)) ,NF90_FLOAT,(/land_ID,litt_ID/),VID3(i))
-       IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-    END DO
-
-    DO i = 1, SIZE(A4)
-       STATUS = NF90_def_var(FILE_ID,TRIM(A4(i)) ,NF90_FLOAT,(/land_ID,soil_ID/),VID4(i))
-       IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-    END DO
-
-    ! End define mode:
-    STATUS = NF90_enddef(FILE_ID)
-    IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-
-    ! PUT LAT / LON
-    STATUS = NF90_PUT_VAR(FILE_ID, VID1(1), casamet%lat )
-    IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-    STATUS = NF90_PUT_VAR(FILE_ID, VID1(2), casamet%lon )
-    IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-    ! PUT VARS
-    STATUS = NF90_PUT_VAR(FILE_ID, VID1(3), casamet%glai )
-    IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-    STATUS = NF90_PUT_VAR(FILE_ID, VID1(4), casapool%clabile )
-    IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-
-    STATUS = NF90_PUT_VAR(FILE_ID, VID1(8), casaflux%frac_sapwood )
-    IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-    STATUS = NF90_PUT_VAR(FILE_ID, VID1(9), casaflux%sapwood_area )
-    IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-    STATUS = NF90_PUT_VAR(FILE_ID, VID1(10), phen%phen )
-    IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-    STATUS = NF90_PUT_VAR(FILE_ID, VID1(11), phen%aphen )
-    IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-    STATUS = NF90_PUT_VAR(FILE_ID, VID1(12), casapool%Nsoilmin )
-    IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-    STATUS = NF90_PUT_VAR(FILE_ID, VIDI1(1), phen%phase )
-    IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-    STATUS = NF90_PUT_VAR(FILE_ID, VIDI1(2), phen%doyphase(:,3) )
-    IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-    STATUS = NF90_PUT_VAR(FILE_ID, VID2(1), casapool%cplant  )
-    IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-    STATUS = NF90_PUT_VAR(FILE_ID, VID2(2), casapool%nplant  )
-    IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-    STATUS = NF90_PUT_VAR(FILE_ID, VID3(1), casapool%clitter  )
-    IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-    STATUS = NF90_PUT_VAR(FILE_ID, VID3(2), casapool%nlitter )
-    IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-    STATUS = NF90_PUT_VAR(FILE_ID, VID4(1), casapool%csoil )
-    IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-    STATUS = NF90_PUT_VAR(FILE_ID, VID4(2), casapool%nsoil )
-    IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(5), casapool%psoillab )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(6), casapool%psoilsorb )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(7), casapool%psoilocc )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-
-       STATUS = NF90_PUT_VAR(FILE_ID, VID4(3), casapool%psoil )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-       STATUS = NF90_PUT_VAR(FILE_ID, VID2(3), casapool%pplant  )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-       STATUS = NF90_PUT_VAR(FILE_ID, VID3(3), casapool%plitter )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-    ! Close NetCDF file:
-    STATUS = NF90_close(FILE_ID)
-    IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-
-  END SUBROUTINE WRITE_CASA_RESTART_NC
-
-#ifndef UM_BUILD
-  SUBROUTINE READ_CASA_RESTART_NC (  casamet, casapool, casaflux,phen )
-
-    USE CASAVARIABLE
-    USE phenvariable
-    USE CABLE_COMMON_MODULE
-    USE casa_ncdf_module, ONLY: HANDLE_ERR
-    USE CABLE_DEF_TYPES_MOD, ONLY: MET_TYPE, r_2, mp
-    USE netcdf
-
-    IMPLICIT NONE
-
-    !INTEGER, INTENT(in)    :: YEAR
-    TYPE (casa_met) , INTENT(inout) :: casamet
-    TYPE (casa_pool), INTENT(inout) :: casapool
-    TYPE (casa_flux), INTENT(inout) :: casaflux
-    TYPE (phen_variable),       INTENT(INOUT) :: phen
-
-    INTEGER*4 :: mp4
-    INTEGER*4, PARAMETER   :: pmp4 =0
-    INTEGER, PARAMETER   :: fmp4 = KIND(pmp4)
-    INTEGER*4   :: STATUS, i
-    INTEGER*4   :: FILE_ID, dID, land_dim, mp_dim, ml_dim, ms_dim, mw_dim
-    CHARACTER :: FRST_IN*99, CYEAR*4, CDATE*12, RSTDATE*12, FNAME*99
-
-    ! ! 1 dim arrays (npt )
-    ! CHARACTER(len=20),DIMENSION(7), PARAMETER :: A1 = (/ 'latitude', 'longitude', 'glai', &
-    !      'clabile', 'psoillab','psoilsorb','psoilocc' /)
-    ! ! 2 dim arrays (npt,mplant)
-    ! CHARACTER(len=20),DIMENSION(3), PARAMETER :: A2 = (/ 'cplant' , 'nplant' , 'pplantc' /)
-    ! ! 2 dim arrays (npt,mlitter)
-    ! CHARACTER(len=20),DIMENSION(3), PARAMETER :: A3 = (/ 'clitter', 'nlitter', 'plitter' /)
-    ! ! 2 dim arrays (npt,msoil)
-    ! CHARACTER(len=20),DIMENSION(3), PARAMETER :: A4 = (/ 'csoil', 'nsoil', 'psoil' /)
-    REAL(r_2), DIMENSION(mp)          :: LAT, LON, TMP
-    REAL(r_2)                         :: TMP2(mp,mplant),TMP3(mp,mlitter),TMP4(mp,msoil)
-
-    ! 1 dim arrays (npt )
-    CHARACTER(len=20),DIMENSION(12) :: A1
-    CHARACTER(len=20),DIMENSION(2) :: AI1
-    ! 2 dim arrays (npt,mplant)
-    CHARACTER(len=20),DIMENSION(3) :: A2
-    ! 2 dim arrays (npt,mlitter)
-    CHARACTER(len=20),DIMENSION(3) :: A3
-    ! 2 dim arrays (npt,msoil)
-    CHARACTER(len=20),DIMENSION(3) :: A4
-    ! 2-d array (npt,mwood)
-    CHARACTER(len=20),DIMENSION(3) :: A5
-
-    INTEGER :: VID1(SIZE(A1)), VID2(SIZE(A2)), VID3(SIZE(A3)), VID4(SIZE(A4))
-    LOGICAL            ::  EXISTFILE, EXISTFILE1
-    mp4=INT(mp,fmp4)
-    A1(1) = 'latitude'
-    A1(2) = 'longitude'
-    A1(3) = 'glai'
-    A1(4) = 'clabile'
-    A1(5) = 'psoillab'
-    A1(6) = 'psoilsorb'
-    A1(7) = 'psoilocc'
-    A1(8) = 'frac_sapwood'
-    A1(9) = 'sapwood_area'
-    A1(10) = 'phen'
-    A1(11) = 'aphen'
-    A1(12) = 'nsoilmin'
-
-    AI1(1) = 'phase'
-    AI1(2) = 'doyphase3'
-
-    A2(1) = 'cplant'
-    A2(2) = 'nplant'
-    A2(3) = 'pplant'
-    A3(1) = 'clitter'
-    A3(2) = 'nlitter'
-    A3(3) = 'plitter'
-    A4(1) = 'csoil'
-    A4(2) = 'nsoil'
-    A4(3) = 'psoil'
-
-    A5(1) = 'cwoodprod'
-    A5(2) = 'nwoodprod'
-    A5(3) = 'pwoodprod'
-
-
-
-    !fname = TRIM(filename%path)//'/'//TRIM( cable_user%RunIden )//&
-    !       '_casa_rst.nc'
-    fname =  TRIM(casafile%cnpipool)
-    INQUIRE( FILE=TRIM(fname), EXIST=EXISTFILE )
-    IF (EXISTFILE) THEN
-       STATUS = NF90_OPEN( TRIM(fname), NF90_NOWRITE, FILE_ID )
-       IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-       PRINT *, 'initial pool from restart file: ', fname
-    ELSE
-       WRITE(*,*) 'CASA restart file:', TRIM(fname), ' does not exist'
-       fname = TRIM(filename%path)//'/'//TRIM( cable_user%RunIden )//&
-            '_casa_rst.nc'
-       INQUIRE( FILE=TRIM(fname), EXIST=EXISTFILE1 )
-       IF (EXISTFILE1) THEN
-          STATUS = NF90_OPEN( TRIM(fname), NF90_NOWRITE, FILE_ID )
-          IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-          PRINT *, 'initial pool from restart file: ', fname
-       ELSE
-          WRITE(*,*) 'CASA restart file:', TRIM(fname), ' does not exist either'
-          WRITE(*,*) 'Set cable_user%CASA_fromZero to true to initialise without restart file.'
-          WRITE(*,*) 'Otherwise set casafile%cnpipool to netcdf restart file name in cable.nml'
-          STOP
-       ENDIF
-    ENDIF
-
-    ! TIME
-    STATUS = NF90_GET_ATT( FILE_ID, NF90_GLOBAL, "Valid restart date", RSTDATE )
-    IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-!!$
-    WRITE(CYEAR, FMT="(I4)") CurYear
-    CDATE = '01/01/'//CYEAR
-    ! compare current year with restart year (only for non-site type met data)
-    IF ( CDATE .NE. RSTDATE .AND. &
-         TRIM(cable_user%MetType).NE.'' .AND. TRIM(cable_user%MetType).NE.'site' ) THEN
-       WRITE(*,*)"Restart Date in rst file doesn't match start date of Run!"
-       WRITE(*,*)"File: "//RSTDATE//' Run: '//CDATE
-       ! STOP
-    ENDIF
-
-    ! DIMS
-    STATUS = NF90_INQ_DIMID( FILE_ID, 'land', dID )
-    IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-    STATUS = NF90_INQUIRE_DIMENSION( FILE_ID, dID, LEN=land_dim )
-    IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-
-    STATUS = NF90_INQ_DIMID( FILE_ID, 'mplant', dID )
-    IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-    STATUS = NF90_INQUIRE_DIMENSION( FILE_ID, dID, LEN=mp_dim )
-    IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-
-    STATUS = NF90_INQ_DIMID( FILE_ID, 'mlitter', dID )
-    IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-    STATUS = NF90_INQUIRE_DIMENSION( FILE_ID, dID, LEN=ml_dim )
-    IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-
-    STATUS = NF90_INQ_DIMID( FILE_ID, 'msoil', dID )
-    IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-    STATUS = NF90_INQUIRE_DIMENSION( FILE_ID, dID, LEN=ms_dim )
-    IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-
-    if(l_landuse) then
-       STATUS = NF90_INQ_DIMID( FILE_ID, 'mwood', dID )
-       IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-       STATUS = NF90_INQUIRE_DIMENSION( FILE_ID, dID, LEN=mw_dim )
-       IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-    endif
-
-    IF ( land_dim .NE. SIZE(casamet%lon) .OR. mp_dim .NE. mplant .OR. &
-         ml_dim   .NE. mlitter             .OR. ms_dim .NE. msoil ) THEN
-       WRITE(*,*)"Dimension misfit!"
-       WRITE(*,*)"Restart file      Run"
-       WRITE(*,*)"# points  ",land_dim,"     ",SIZE(casamet%lon)
-       WRITE(*,*)"# mplant  ",mp_dim,"     ",mplant
-       WRITE(*,*)"# mlitter ",ml_dim,"     ",mlitter
-       WRITE(*,*)"# msoil   ",ms_dim,"     ",msoil
-       STOP
-    ENDIF
-
-    ! LAT & LON
-    STATUS = NF90_INQ_VARID( FILE_ID, A1(1), dID )
-    IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-    STATUS = NF90_GET_VAR( FILE_ID, dID, LAT )
-    IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-
-    STATUS = NF90_INQ_VARID( FILE_ID, A1(2), dID )
-    IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-    STATUS = NF90_GET_VAR( FILE_ID, dID, LON )
-    IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-
-    ! CHECK FOR VALID LONS
-
-    ! READ 1-dimensional fields
-    DO i = 3, SIZE(A1)
-       STATUS = NF90_INQ_VARID( FILE_ID, A1(i), dID )
-       IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-       STATUS = NF90_GET_VAR( FILE_ID, dID, TMP )
-       IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-
-       SELECT CASE ( TRIM(A1(i)))
-       CASE ('glai'      ) ; casamet%glai       = TMP
-       CASE ('clabile'   ) ; casapool%clabile   = TMP
-       CASE ('frac_sapwood' ) ; casaflux%frac_sapwood  = TMP
-       CASE ( 'sapwood_area' ) ; casaflux%sapwood_area  = TMP
-       CASE ( 'phen' ) ; phen%phen  = TMP
-       CASE ( 'aphen' ) ; phen%aphen  = TMP
-       CASE ( 'nsoilmin' ) ; casapool%Nsoilmin  = TMP
-       END SELECT
-    END DO
-    IF (icycle==3) THEN
-       DO i = 3, SIZE(A1)
-          STATUS = NF90_INQ_VARID( FILE_ID, A1(i), dID )
-          IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-          STATUS = NF90_GET_VAR( FILE_ID, dID, TMP )
-          IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-
-          SELECT CASE ( TRIM(A1(i)))
-          CASE ('psoillab'  ) ; casapool%psoillab  = TMP
-          CASE ('psoilsorb' ) ; casapool%psoilsorb = TMP
-          CASE ('psoilocc'  ) ; casapool%psoilocc  = TMP
-          END SELECT
-       END DO
-    ENDIF
-
-    DO i = 1, SIZE(AI1)
-       STATUS = NF90_INQ_VARID( FILE_ID, AI1(i), dID )
-       IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-       STATUS = NF90_GET_VAR( FILE_ID, dID, TMP )
-       IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-
-       SELECT CASE ( TRIM(AI1(i)))
-       CASE ( 'phase' ) ; phen%phase  = TMP
-       CASE ( 'doyphase3' ) ; phen%doyphase(:,3)  = TMP
-       END SELECT
-    END DO
-
-    ! READ 2-dimensional fields (mplant)
-    DO i = 1, SIZE(A2)
-       STATUS = NF90_INQ_VARID( FILE_ID, A2(i), dID )
-       IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-       STATUS = NF90_GET_VAR( FILE_ID, dID, TMP2 )
-       IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-
-       SELECT CASE ( TRIM(A2(i)))
-       CASE ('cplant' ) ; casapool%cplant = TMP2
-       CASE ('nplant' ) ; casapool%nplant = TMP2
-       END SELECT
-    END DO
-
-
-    IF (icycle==3) THEN
-       DO i = 1, SIZE(A2)
-          STATUS = NF90_INQ_VARID( FILE_ID, A2(i), dID )
-          IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-          STATUS = NF90_GET_VAR( FILE_ID, dID, TMP2 )
-          IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-
-          SELECT CASE ( TRIM(A2(i)))
-          CASE ('pplant' ) ; casapool%pplant = TMP2
-          END SELECT
-       END DO
-    ENDIF
-
-    ! READ 2-dimensional fields (mlitter)
-    DO i = 1, SIZE(A3)
-       STATUS = NF90_INQ_VARID( FILE_ID, A3(i), dID )
-       IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-       STATUS = NF90_GET_VAR( FILE_ID, dID, TMP3 )
-       IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-
-       SELECT CASE ( TRIM(A3(i)))
-       CASE ('clitter' ) ; casapool%clitter = TMP3
-       CASE ('nlitter' ) ; casapool%nlitter = TMP3
-       END SELECT
-    END DO
-
-    IF (icycle==3) THEN
-
-       DO i = 1, SIZE(A3)
-          STATUS = NF90_INQ_VARID( FILE_ID, A3(i), dID )
-          IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-          STATUS = NF90_GET_VAR( FILE_ID, dID, TMP3 )
-          IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-
-          SELECT CASE ( TRIM(A3(i)))
-          CASE ('plitter' ) ; casapool%plitter = TMP3
-          END SELECT
-       END DO
-
-
-    ENDIF
-
-    ! READ 2-dimensional fields (msoil)
-    DO i = 1, SIZE(A4)
-       STATUS = NF90_INQ_VARID( FILE_ID, A4(i), dID )
-       IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-       STATUS = NF90_GET_VAR( FILE_ID, dID, TMP4 )
-       IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-       SELECT CASE ( TRIM(A4(i)))
-       CASE ('csoil' ) ; casapool%csoil = TMP4
-       CASE ('nsoil' ) ; casapool%nsoil = TMP4
-       END SELECT
-    END DO
-
-    if(l_landuse) then
-
-       DO i = 1, SIZE(A5)
-          STATUS = NF90_INQ_VARID( FILE_ID, A5(i), dID )
-          IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-           STATUS = NF90_GET_VAR( FILE_ID, dID, TMP4 )
-          IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-          SELECT CASE ( TRIM(A4(i)))
-             CASE ('cwoodprod' ) ; casapool%cwoodprod = TMP4
-             CASE ('nwoodprod' ) ; casapool%nwoodprod = TMP4
-             CASE ('pwoodprod' ) ; casapool%pwoodprod = TMP4
-          END SELECT
-        END DO
-
-    endif
-
-    IF (icycle==3) THEN
-       DO i = 1, SIZE(A4)
-          STATUS = NF90_INQ_VARID( FILE_ID, A4(i), dID )
-          IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-          STATUS = NF90_GET_VAR( FILE_ID, dID, TMP4 )
-          IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-
-          SELECT CASE ( TRIM(A4(i)))
-          CASE ('psoil' ) ; casapool%psoil = TMP4
-          END SELECT
-       END DO
-    ENDIF
-
-    STATUS = NF90_CLOSE( FILE_ID )
-
-  END SUBROUTINE READ_CASA_RESTART_NC
-#endif
-  SUBROUTINE WRITE_CASA_OUTPUT_NC ( veg, casamet, casapool, casabal, casaflux, &
-       CASAONLY, ctime, FINAL )
-
-    USE CASAVARIABLE
-    USE CABLE_COMMON_MODULE
-  USE casa_ncdf_module, ONLY: HANDLE_ERR
-
-
-    USE cable_def_types_mod, ONLY: veg_parameter_type
-
-    USE netcdf
-
-    IMPLICIT NONE
-
-    TYPE (casa_met) ,   INTENT(in) :: casamet
-    TYPE (casa_pool),   INTENT(in) :: casapool
-    TYPE (casa_balance),INTENT(in) :: casabal
-    TYPE (casa_flux),   INTENT(in) :: casaflux
-    TYPE (veg_parameter_type),  INTENT(IN) :: veg  ! vegetation parameters
-
-    INTEGER   :: STATUS, ctime
-    INTEGER   :: land_ID, plnt_ID, litt_ID, soil_ID, t_ID, i
-    LOGICAL   :: CASAONLY, FINAL
-    CHARACTER :: CYEAR*4, FNAME*99,dum*50
-    LOGICAL, SAVE :: CALL1 = .TRUE.
-
-    ! ! 1 dim arrays (mp )
-    ! CHARACTER(len=20),DIMENSION(2), PARAMETER :: A0 = (/ 'latitude', 'longitude' /)
-    ! ! 2 dim arrays (mp,t)
-    ! CHARACTER(len=20),DIMENSION(44),PARAMETER :: A1 = (/ 'glai', 'clabile',      &
-    !      'psoillab','psoilsorb','psoilocc', 'sumcbal','sumnbal','sumpbal','Cgpp',&
-    !      'Cnpp','stemnpp','Crp','Crgplant','Nminfix','Plabuptake','Clabloss',    &
-    !      'fraclabile','Cnep','Crsoil','Nmindep','Nminloss','Nminleach',          &
-    !      'Nupland','Nlittermin','Nsmin','Nsnet','fNMinloss','fNMinleach','Pdep', &
-    !      'pwea','Pleach','Ploss','Pupland','Plittermin','Psmin','Psimm','Psnet', &
-    !      'fPleach','kPlab','kPsorb','kpocc','kmlabP','Psorbmax','FluxCtoco2'/)
-    ! ! 3 dim arrays (mp,mplant,t)
-    ! CHARACTER(len=20),DIMENSION(8), PARAMETER :: A2 = (/ 'cplant' , 'nplant' ,   &
-    !      'pplantc','fracCalloc','fracNalloc','fracPalloc','kplant','Crmplant'/)
-    ! ! 3 dim arrays (mp,mlitter,t)
-    ! CHARACTER(len=20),DIMENSION(8), PARAMETER :: A3 = (/ 'clitter', 'nlitter',   &
-    !      'plitter','klitter','fromL2CO2','FluxCtolitter','FluxNtolitter',        &
-    !      'FluxPtolitter' /)
-    ! ! 3 dim arrays (mp,msoil,t)
-    ! CHARACTER(len=20),DIMENSION(8), PARAMETER :: A4 = (/ 'csoil','nsoil','psoil',&
-    !      'ksoil','fromStoCO2','FluxCtosoil','FluxNtosoil','FluxPxtosoil'/)
-
-    ! 1 dim arrays (mp )
-    CHARACTER(len=20),DIMENSION(2) :: A0
-    ! 2 dim arrays (mp,t)
-    CHARACTER(len=20),DIMENSION(51):: A1
-    ! 3 dim arrays (mp,mplant,t)
-    CHARACTER(len=20),DIMENSION(8) :: A2
-    ! 3 dim arrays (mp,mlitter,t)
-    CHARACTER(len=20),DIMENSION(8) :: A3
-    ! 3 dim arrays (mp,msoil,t)
-    CHARACTER(len=20),DIMENSION(8) :: A4
-
-    ! 4 dim arrays (mp,mlitter,mplant,t)
-    CHARACTER(len=20),DIMENSION(1), PARAMETER :: A5 = (/ 'fromPtoL'/)
-    ! 4 dim arrays (mp,msoil,mlitter,t)
-    CHARACTER(len=20),DIMENSION(1), PARAMETER :: A6 = (/ 'fromLtoS'/)
-    ! 4 dim arrays (mp,msoil,msoil,t)
-    CHARACTER(len=20),DIMENSION(1), PARAMETER :: A7 = (/ 'fromStoS'/)
-
-    INTEGER, SAVE :: VIDtime, VID0(SIZE(A0)),VID1(SIZE(A1)),VID2(SIZE(A2)),VID3(SIZE(A3))
-    INTEGER, SAVE :: VID4(SIZE(A4)),VID5(SIZE(A5)),VID6(SIZE(A6)),VID7(SIZE(A7))
-    INTEGER, SAVE :: FILE_ID, CNT = 0
-    LOGICAL   :: EXRST
-    CHARACTER(len=50) :: RecordDimName
-    ! temporary fixer: ypwang 10-6-2021
-    REAL(r_2), DIMENSION(mp,mplant)   :: tempFCrmyear
-    REAL(R_2), DIMENSION(mp)          :: tempFCrgyear
-
-    tempFCrmyear(:,1)  = casabal%FCrmleafyear(:)   ! leaf
-    tempFCrmyear(:,2)  = casabal%FCrmwoodyear(:)   ! wood
-    tempFCrmyear(:,3)  = casabal%FCrmrootyear(:)   ! froot
-    tempFCrgyear(:)    = casabal%FCrgrowyear(:)
-
-
-
-    A0(1) = 'latitude'
-    A0(2) = 'longitude'
-
-    A1(1) = 'glai'
-    A1(2) = 'clabile'
-    A1(3) = 'psoillab'
-    A1(4) = 'psoilsorb'
-    A1(5) = 'psoilocc'
-    A1(6) = 'sumcbal'
-    A1(7) = 'sumnbal'
-    A1(8) = 'sumpbal'
-    A1(9) = 'Cgpp'
-    A1(10) = 'Cnpp'
-    A1(11) = 'stemnpp'
-    A1(12) = 'Crp'
-    A1(13) = 'Crgplant'
-    A1(14) = 'Nminfix'
-    A1(15) = 'Plabuptake'
-    A1(16) = 'Clabloss'
-    A1(17) = 'fraclabile'
-    A1(18) = 'Cnep'
-    A1(19) = 'Crsoil'
-    A1(20) = 'Nmindep'
-    A1(21) = 'Nminloss'
-    A1(22) = 'Nminleach'
-    A1(23) = 'Nupland'
-    A1(24) = 'Nlittermin'
-    A1(25) = 'Nsmin'
-    A1(26) = 'Nsimm'
-    A1(27) = 'Nsnet'
-    A1(28) = 'fNMinloss'
-    A1(29) = 'Pdep'
-    A1(30) = 'pwea'
-    A1(31) = 'Pleach'
-    A1(32) = 'Ploss'
-    A1(33) = 'Pupland'
-    A1(34) = 'Plittermin'
-    A1(35) = 'Psmin'
-    A1(36) = 'Psimm'
-    A1(37) = 'Psnet'
-    A1(38) = 'fPleach'
-    A1(39) = 'kPlab'
-    A1(40) = 'kPsorb'
-    A1(41) = 'kpocc'
-    A1(42) = 'kmlabP'
-    A1(43) = 'Psorbmax'
-    A1(44) = 'FluxCtoco2'
-    A1(45) = 'FCgppyear'
-    A1(46) = 'FCrpyear'
-    A1(47) = 'FCnppyear'
-    A1(48) = 'FCrsyear'
-    A1(49) = 'FCNeeyear'
-    A1(50) = 'vcmax'
-    A1(51) = 'Nsoilmin'
-
-    A2(1) = 'cplant'
-    A2(2) = 'nplant'
-    A2(3) = 'pplant'
-    A2(4) = 'fracCalloc'
-    A2(5) = 'fracNalloc'
-    A2(6) = 'fracPalloc'
-    A2(7) = 'kplant'
-    A2(8) = 'Crmplant'
-
-    A3(1) = 'clitter'
-    A3(2) = 'nlitter'
-    A3(3) = 'plitter'
-    A3(4) = 'klitter'
-    A3(5) = 'fromL2CO2'
-    A3(6) = 'FluxCtolitter'
-    A3(7) = 'FluxNtolitter'
-    A3(8) = 'FluxPtolitter'
-
-    A4(1) = 'csoil'
-    A4(2) = 'nsoil'
-    A4(3) = 'psoil'
-    A4(4) = 'ksoil'
-    A4(5) = 'fromStoCO2'
-    A4(6) = 'FluxCtosoil'
-    A4(7) = 'FluxNtosoil'
-    A4(8) = 'FluxPxtosoil'
-
-
-    CNT = CNT + 1
-
-    IF ( CALL1 ) THEN
-       ! Get File-Name
-
-       IF (TRIM(cable_user%MetType).NE.'' ) THEN
-
-          WRITE( dum, FMT="(I4,'_',I4)")CABLE_USER%YEARSTART,CABLE_USER%YEAREND
-          IF (CABLE_USER%YEARSTART.LT.1000.AND.CABLE_USER%YEAREND.LT.1000) THEN
-             WRITE( dum, FMT="(I3,'_',I3)")CABLE_USER%YEARSTART,CABLE_USER%YEAREND
-          ELSEIF (CABLE_USER%YEARSTART.LT.1000) THEN
-             WRITE( dum, FMT="(I3,'_',I4)")CABLE_USER%YEARSTART,CABLE_USER%YEAREND
-          ENDIF
-          fname = TRIM(filename%path)//'/'//TRIM(cable_user%RunIden)//'_'//&
-               TRIM(dum)//'_casa_out.nc'
-       ELSE
-          ! site data
-          fname = TRIM(filename%path)//'/'//TRIM(cable_user%RunIden)//'_casa_out.nc'
-       ENDIF
-       INQUIRE( FILE=TRIM( fname ), EXIST=EXRST )
-       EXRST = .FALSE.
-       IF ( EXRST ) THEN
-          STATUS = NF90_open(fname, mode=nf90_write, ncid=FILE_ID)
-          IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-          CALL1 = .FALSE.
-
-          STATUS = nf90_inq_dimid(FILE_ID, 'time', t_id)
-          IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-
-          !CRM        status = nf90_inquire_dimension(FILE_ID, t_id,name = RecordDimName, len = CNT)
-          !CRM        if (status /= nf90_noerr) call handle_err(status)
-          !CRM        CNT = CNT+1
-
-          STATUS = nf90_inq_varid(FILE_ID, 'time', VIDTime)
-          IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-
-          DO i = 1, SIZE(A0)
-             STATUS = nf90_inq_varid(FILE_ID,TRIM(A0(i)),VID0(i))
-             IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-          END DO
-
-          DO i = 1, SIZE(A1)
-             STATUS = nf90_inq_varid(FILE_ID,TRIM(A1(i)), VID1(i))
-             IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-          END DO
-
-          DO i = 1, SIZE(A2)
-             STATUS = nf90_inq_varid(FILE_ID,TRIM(A2(i)) , VID2(i))
-             IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-          END DO
-
-          DO i = 1, SIZE(A3)
-             STATUS = nf90_inq_varid(FILE_ID,TRIM(A3(i)) ,VID3(i))
-             IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-          END DO
-
-          DO i = 1, SIZE(A4)
-             STATUS = nf90_inq_varid(FILE_ID,TRIM(A4(i)) ,VID4(i))
-             IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-          END DO
-
-          DO i = 1, SIZE(A5)
-             STATUS = nf90_inq_varid(FILE_ID,TRIM(A5(i)), VID5(i))
-             IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-          END DO
-
-          DO i = 1, SIZE(A6)
-             STATUS = nf90_inq_varid(FILE_ID,TRIM(A6(i)), VID6(i))
-             IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-          END DO
-
-          DO i = 1, SIZE(A7)
-             STATUS = nf90_inq_varid(FILE_ID,TRIM(A7(i)),VID7(i))
-             IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-          END DO
-
-       ELSE
-          ! Create NetCDF file:
-          STATUS = NF90_create(fname, NF90_CLOBBER, FILE_ID)
-          IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-
-          ! Put the file in define mode:
-          STATUS = NF90_redef(FILE_ID)
-
-          STATUS = NF90_PUT_ATT( FILE_ID, NF90_GLOBAL, "Icycle"   , icycle  )
-          STATUS = NF90_PUT_ATT( FILE_ID, NF90_GLOBAL, "StartYear", CABLE_USER%YEARSTART )
-          STATUS = NF90_PUT_ATT( FILE_ID, NF90_GLOBAL, "EndYear"  , CABLE_USER%YEAREND   )
-          STATUS = NF90_PUT_ATT( FILE_ID, NF90_GLOBAL, "RunIden"  , CABLE_USER%RunIden   )
-          IF ( CASAONLY ) THEN
-             dum = 'CASA-ONLY run'
-          ELSE
-             dum = 'CABLE-CASA coupled run'
-          ENDIF
-          STATUS = NF90_PUT_ATT( FILE_ID, NF90_GLOBAL, "Run-Type", TRIM(dum) )
-
-          ! Define dimensions:
-          ! Land (number of points)
-          STATUS = NF90_def_dim(FILE_ID, 'land'   , mp     , land_ID)
-          IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-          STATUS = NF90_def_dim(FILE_ID, 'mplant' , mplant , plnt_ID)
-          IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-          STATUS = NF90_def_dim(FILE_ID, 'mlitter', mlitter, litt_ID)
-          IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-          STATUS = NF90_def_dim(FILE_ID, 'msoil'  , msoil  , soil_ID)
-          IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-          STATUS = NF90_def_dim(FILE_ID, 'time'   , NF90_UNLIMITED, t_ID)
-          IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-
-          ! Define variables
-          STATUS = NF90_def_var(FILE_ID,'time' ,NF90_INT,(/t_ID/),VIDtime )
-          IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-
-          DO i = 1, SIZE(A0)
-             STATUS = NF90_def_var(FILE_ID,TRIM(A0(i)) ,NF90_FLOAT,(/land_ID/),VID0(i))
-             IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-          END DO
-
-          DO i = 1, SIZE(A1)
-             STATUS = NF90_def_var(FILE_ID,TRIM(A1(i)) ,NF90_FLOAT,(/land_ID,t_ID/),VID1(i))
-             IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-          END DO
-
-          DO i = 1, SIZE(A2)
-             STATUS = NF90_def_var(FILE_ID,TRIM(A2(i)) ,NF90_FLOAT,(/land_ID,plnt_ID,t_ID/),VID2(i))
-             IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-          END DO
-
-          DO i = 1, SIZE(A3)
-             STATUS = NF90_def_var(FILE_ID,TRIM(A3(i)) ,NF90_FLOAT,(/land_ID,litt_ID,t_ID/),VID3(i))
-             IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-          END DO
-
-          DO i = 1, SIZE(A4)
-             STATUS = NF90_def_var(FILE_ID,TRIM(A4(i)) ,NF90_FLOAT,(/land_ID,soil_ID,t_ID/),VID4(i))
-             IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-          END DO
-
-          DO i = 1, SIZE(A5)
-             STATUS = NF90_def_var(FILE_ID,TRIM(A5(i)) ,NF90_FLOAT, &
-                  (/land_ID,litt_ID,plnt_ID,t_ID/),VID5(i))
-             IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-          END DO
-
-          DO i = 1, SIZE(A6)
-             STATUS = NF90_def_var(FILE_ID,TRIM(A6(i)) ,NF90_FLOAT, &
-                  (/land_ID,soil_ID,litt_ID,t_ID/),VID6(i))
-             IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-          END DO
-
-          DO i = 1, SIZE(A7)
-             STATUS = NF90_def_var(FILE_ID,TRIM(A7(i)) ,NF90_FLOAT, &
-                  (/land_ID,soil_ID,soil_ID,t_ID/),VID7(i))
-             IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-          END DO
-
-          ! End define mode:
-          STATUS = NF90_enddef(FILE_ID)
-          IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-
-
-          ! PUT LAT / LON ( mp )
-          STATUS = NF90_PUT_VAR(FILE_ID, VID0(1), casamet%lat )
-          IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-          STATUS = NF90_PUT_VAR(FILE_ID, VID0(2), casamet%lon )
-          IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-          CALL1 = .FALSE.
-       ENDIF !( EXRST )
-    ENDIF
-
-    ! TIME  ( t )
-    STATUS = NF90_PUT_VAR(FILE_ID, VIDtime, ctime, start=(/ CNT /) )
-    IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-    SELECT CASE(icycle)
-    CASE(1)
-       ! PUT 2D VARS ( mp, t )
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1( 1), casamet%glai,        start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1( 2), casapool%clabile,    start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1( 6), casabal%sumcbal,     start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1( 7), casabal%sumnbal,     start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1( 9), casaflux%Cgpp,       start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(10), REAL(casaflux%Cnpp), start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(11), casaflux%stemnpp,    start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(12), casaflux%Crp,        start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(13), tempFCrgyear,   start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(16), casaflux%Clabloss,   start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(17), casaflux%fracClabile,start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(18), casaflux%Cnep,       start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(19), casaflux%Crsoil,     start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(45), casabal%FCgppyear,   start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(46), casabal%FCrpyear,    start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(47), casabal%FCnppyear,   start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(48), casabal%FCrsyear,    start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(49), casabal%FCneeyear,   start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(50), veg%vcmax,   start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-       ! PUT 3D VARS ( mp, mplant, t )
-       STATUS = NF90_PUT_VAR(FILE_ID, VID2(1), casapool%cplant,   &
-            start=(/ 1,1,CNT /), count=(/ mp,mplant,1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID2(4), casaflux%fracCalloc,   &
-            start=(/ 1,1,CNT /), count=(/ mp,mplant,1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID2(7), casaflux%kplant,   &
-            start=(/ 1,1,CNT /), count=(/ mp,mplant,1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID2(8), tempFCrmyear,   &
-            start=(/ 1,1,CNT /), count=(/ mp,mplant,1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-       ! PUT 3D VARS ( mp, mlitter, t )
-       STATUS = NF90_PUT_VAR(FILE_ID, VID3(1), casapool%clitter,   &
-            start=(/ 1,1,CNT /), count=(/ mp,mlitter,1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-       STATUS = NF90_PUT_VAR(FILE_ID, VID3(4), casaflux%klitter,   &
-            start=(/ 1,1,CNT /), count=(/ mp,mlitter,1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-       STATUS = NF90_PUT_VAR(FILE_ID, VID3(5), casaflux%fromLtoCO2,   &
-            start=(/ 1,1,CNT /), count=(/ mp,mlitter,1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-       STATUS = NF90_PUT_VAR(FILE_ID, VID3(6), casaflux%FluxCtolitter,   &
-            start=(/ 1,1,CNT /), count=(/ mp,mlitter,1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-
-       ! PUT 3D VARS ( mp, msoil, t )
-       STATUS = NF90_PUT_VAR(FILE_ID, VID4(1), casapool%csoil,   &
-            start=(/ 1,1,CNT /), count=(/ mp,msoil,1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-       STATUS = NF90_PUT_VAR(FILE_ID, VID4(4), casaflux%ksoil,   &
-            start=(/ 1,1,CNT /), count=(/ mp,msoil,1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-       STATUS = NF90_PUT_VAR(FILE_ID, VID4(5), casaflux%fromStoCO2,   &
-            start=(/ 1,1,CNT /), count=(/ mp,msoil,1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-       STATUS = NF90_PUT_VAR(FILE_ID, VID4(6), casaflux%FluxCtosoil,   &
-            start=(/ 1,1,CNT /), count=(/ mp,msoil,1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-
-       ! PUT 4D VARS ( mp, mlitter,mplant, t )
-       STATUS = NF90_PUT_VAR(FILE_ID, VID5(1), casaflux%fromPtoL,   &
-            start=(/ 1,1,1,CNT /), count=(/ mp,mlitter,mplant,1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-       ! PUT 4D VARS ( mp, msoil, mlitter, t )
-       STATUS = NF90_PUT_VAR(FILE_ID, VID6(1), casaflux%fromLtoS,   &
-            start=(/ 1,1,1,CNT /), count=(/ mp,msoil,mlitter,1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-       ! PUT 4D VARS ( mp, msoil, msoil, t )
-       STATUS = NF90_PUT_VAR(FILE_ID, VID7(1), casaflux%fromStoS,   &
-            start=(/ 1,1,1,CNT /), count=(/ mp,msoil,msoil,1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-    CASE(2)
-
-
-       ! PUT 2D VARS ( mp, t )
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1( 1), casamet%glai,        start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1( 2), casapool%clabile,    start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1( 3), casapool%psoillab,   start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1( 4), casapool%psoilsorb,  start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1( 5), casapool%psoilocc,   start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1( 6), casabal%sumcbal,     start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1( 7), casabal%sumnbal,     start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1( 8), casabal%sumpbal,     start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1( 9), casaflux%Cgpp,       start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(10), casaflux%Cnpp,       start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(11), casaflux%stemnpp,    start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(12), casaflux%Crp,        start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(13), tempFCrgyear,   start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(14), casabal%FNfixyear,    start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       ! STATUS = NF90_PUT_VAR(FILE_ID, VID1(15), casaflux%Nminuptake, start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       ! IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(15), casabal%FPupyear, start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(16), casaflux%Clabloss,   start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(17), casaflux%fracClabile,start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(18), casaflux%Cnep,       start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(19), casabal%FCrsyear,     start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(20), casabal%FNdepyear,    start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(21), casabal%FNlossyear,   start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(22), casabal%FNleachyear,  start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(23), casabal%FNleachyear,    start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(24), casaflux%Nlittermin, start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(25), casaflux%Nsmin,      start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(26), casaflux%Nsimm,      start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(27), casabal%FNsnetyear,      start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(28), casaflux%fNminloss,  start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(29), casabal%FPdustyear,       start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(30), casabal%FPweayear,       start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(31), casabal%FPleachyear,     start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(32), casabal%FPlossyear,      start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(33), casaflux%Pupland,    start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(34), casaflux%Plittermin, start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(35), casaflux%Psmin,      start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(36), casaflux%Psimm,      start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(37), casabal%FPsnetyear,      start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(38), casaflux%fPleach,    start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(39), casaflux%kplab,      start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(40), casaflux%kpsorb,     start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(41), casaflux%kpocc,      start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(42), casaflux%kmlabP,     start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(43), casaflux%Psorbmax,   start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(44), casaflux%FluxCtoco2,    start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(45), casabal%FCgppyear,   start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(46), casabal%FCrpyear,    start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(47), casabal%FCnppyear,   start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(48), casabal%FCrsyear,    start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(49), casabal%FCneeyear,   start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(50), veg%vcmax,   start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(51), casapool%Nsoilmin,   start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-       ! PUT 3D VARS ( mp, mplant, t )
-       STATUS = NF90_PUT_VAR(FILE_ID, VID2(1), casapool%cplant,   &
-            start=(/ 1,1,CNT /), count=(/ mp,mplant,1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID2(2), casapool%nplant,   &
-            start=(/ 1,1,CNT /), count=(/ mp,mplant,1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID2(3), casapool%pplant,   &
-            start=(/ 1,1,CNT /), count=(/ mp,mplant,1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID2(4), casaflux%fracCalloc,   &
-            start=(/ 1,1,CNT /), count=(/ mp,mplant,1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID2(5), casaflux%fracNalloc,   &
-            start=(/ 1,1,CNT /), count=(/ mp,mplant,1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID2(6), casaflux%fracPalloc,   &
-            start=(/ 1,1,CNT /), count=(/ mp,mplant,1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID2(7), casaflux%kplant,   &
-            start=(/ 1,1,CNT /), count=(/ mp,mplant,1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID2(8), tempFCrmyear,   &
-            start=(/ 1,1,CNT /), count=(/ mp,mplant,1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-       ! PUT 3D VARS ( mp, mlitter, t )
-       STATUS = NF90_PUT_VAR(FILE_ID, VID3(1), casapool%clitter,   &
-            start=(/ 1,1,CNT /), count=(/ mp,mlitter,1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-       STATUS = NF90_PUT_VAR(FILE_ID, VID3(2), casapool%nlitter,   &
-            start=(/ 1,1,CNT /), count=(/ mp,mlitter,1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-       STATUS = NF90_PUT_VAR(FILE_ID, VID3(3), casapool%plitter,   &
-            start=(/ 1,1,CNT /), count=(/ mp,mlitter,1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-       STATUS = NF90_PUT_VAR(FILE_ID, VID3(4), casaflux%klitter,   &
-            start=(/ 1,1,CNT /), count=(/ mp,mlitter,1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-       STATUS = NF90_PUT_VAR(FILE_ID, VID3(5), casaflux%fromLtoCO2,   &
-            start=(/ 1,1,CNT /), count=(/ mp,mlitter,1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-       STATUS = NF90_PUT_VAR(FILE_ID, VID3(6), casaflux%FluxCtolitter,   &
-            start=(/ 1,1,CNT /), count=(/ mp,mlitter,1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-       STATUS = NF90_PUT_VAR(FILE_ID, VID3(7), casaflux%FluxNtolitter,   &
-            start=(/ 1,1,CNT /), count=(/ mp,mlitter,1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-       STATUS = NF90_PUT_VAR(FILE_ID, VID3(8), casaflux%FluxPtolitter,   &
-            start=(/ 1,1,CNT /), count=(/ mp,mlitter,1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-       ! PUT 3D VARS ( mp, msoil, t )
-       STATUS = NF90_PUT_VAR(FILE_ID, VID4(1), casapool%csoil,   &
-            start=(/ 1,1,CNT /), count=(/ mp,msoil,1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-       STATUS = NF90_PUT_VAR(FILE_ID, VID4(2), casapool%nsoil,   &
-            start=(/ 1,1,CNT /), count=(/ mp,msoil,1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-       STATUS = NF90_PUT_VAR(FILE_ID, VID4(3), casapool%psoil,   &
-            start=(/ 1,1,CNT /), count=(/ mp,msoil,1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-       STATUS = NF90_PUT_VAR(FILE_ID, VID4(4), casaflux%ksoil,   &
-            start=(/ 1,1,CNT /), count=(/ mp,msoil,1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-       STATUS = NF90_PUT_VAR(FILE_ID, VID4(5), casaflux%fromStoCO2,   &
-            start=(/ 1,1,CNT /), count=(/ mp,msoil,1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-       STATUS = NF90_PUT_VAR(FILE_ID, VID4(6), casaflux%FluxCtosoil,   &
-            start=(/ 1,1,CNT /), count=(/ mp,msoil,1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-       STATUS = NF90_PUT_VAR(FILE_ID, VID4(7), casaflux%FluxNtosoil,   &
-            start=(/ 1,1,CNT /), count=(/ mp,msoil,1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-       STATUS = NF90_PUT_VAR(FILE_ID, VID4(8), casaflux%FluxPtosoil,   &
-            start=(/ 1,1,CNT /), count=(/ mp,msoil,1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-       ! PUT 4D VARS ( mp, mlitter,mplant, t )
-       STATUS = NF90_PUT_VAR(FILE_ID, VID5(1), casaflux%fromPtoL,   &
-            start=(/ 1,1,1,CNT /), count=(/ mp,mlitter,mplant,1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-       ! PUT 4D VARS ( mp, msoil, mlitter, t )
-       STATUS = NF90_PUT_VAR(FILE_ID, VID6(1), casaflux%fromLtoS,   &
-            start=(/ 1,1,1,CNT /), count=(/ mp,msoil,mlitter,1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-       ! PUT 4D VARS ( mp, msoil, msoil, t )
-       STATUS = NF90_PUT_VAR(FILE_ID, VID7(1), casaflux%fromStoS,   &
-            start=(/ 1,1,1,CNT /), count=(/ mp,msoil,msoil,1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-    CASE(3)
-       ! PUT 2D VARS ( mp, t )
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1( 1), casamet%glai,        start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1( 2), casapool%clabile,    start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1( 3), casapool%psoillab,   start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1( 4), casapool%psoilsorb,  start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1( 5), casapool%psoilocc,   start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1( 6), casabal%sumcbal,     start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1( 7), casabal%sumnbal,     start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1( 8), casabal%sumpbal,     start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1( 9), casaflux%Cgpp,       start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(10), casaflux%Cnpp,       start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(11), casaflux%stemnpp,    start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(12), casaflux%Crp,        start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(13), tempFCrgyear,   start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(14), casabal%FNfixyear,    start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       !  IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       !  STATUS = NF90_PUT_VAR(FILE_ID, VID1(15), casaflux%Nminuptake, start=(/ 1, CNT /), count=(/ mp, 1 !/) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(15), casabal%FPupyear, start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(16), casaflux%Clabloss,   start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(17), casaflux%fracClabile,start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(18), casaflux%Cnep,       start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(19), casabal%FCrsyear,     start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(20), casabal%FNdepyear,    start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(21), casabal%FNlossyear,   start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(22), casabal%FNleachyear,  start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(23), casabal%FNupyear,    start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(24), casaflux%Nlittermin, start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(25), casaflux%Nsmin,      start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(26), casaflux%Nsimm,      start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(27), casabal%FNsnetyear,      start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(28), casaflux%fNminloss,  start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(29), casabal%FPdustyear,       start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(30), casabal%FPweayear,       start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(31), casabal%FPleachyear,     start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(32), casabal%FPlossyear,      start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(33), casaflux%Pupland,    start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(34), casaflux%Plittermin, start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(35), casaflux%Psmin,      start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(36), casaflux%Psimm,      start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(37), casabal%FPsnetyear,      start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(38), casaflux%fPleach,    start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(39), casaflux%kplab,      start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(40), casaflux%kpsorb,     start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(41), casaflux%kpocc,      start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(42), casaflux%kmlabP,     start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(43), casaflux%Psorbmax,   start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(44), casaflux%FluxCtoCo2,   start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(45), casabal%FCgppyear,   start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(46), casabal%FCrpyear,    start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(47), casabal%FCnppyear,   start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(48), casabal%FCrsyear,    start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(49), casabal%FCneeyear,   start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(50), veg%vcmax,   start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID1(51), casapool%Nsoilmin,   start=(/ 1, CNT /), count=(/ mp, 1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-
-       ! PUT 3D VARS ( mp, mplant, t )
-       STATUS = NF90_PUT_VAR(FILE_ID, VID2(1), casapool%cplant,   &
-            start=(/ 1,1,CNT /), count=(/ mp,mplant,1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID2(2), casapool%nplant,   &
-            start=(/ 1,1,CNT /), count=(/ mp,mplant,1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID2(3), casapool%pplant,   &
-            start=(/ 1,1,CNT /), count=(/ mp,mplant,1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID2(4), casaflux%fracCalloc,   &
-            start=(/ 1,1,CNT /), count=(/ mp,mplant,1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID2(5), casaflux%fracNalloc,   &
-            start=(/ 1,1,CNT /), count=(/ mp,mplant,1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID2(6), casaflux%fracPalloc,   &
-            start=(/ 1,1,CNT /), count=(/ mp,mplant,1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID2(7), casaflux%kplant,   &
-            start=(/ 1,1,CNT /), count=(/ mp,mplant,1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       STATUS = NF90_PUT_VAR(FILE_ID, VID2(8), tempFCrmyear,   &
-            start=(/ 1,1,CNT /), count=(/ mp,mplant,1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-       ! PUT 3D VARS ( mp, mlitter, t )
-       STATUS = NF90_PUT_VAR(FILE_ID, VID3(1), casapool%clitter,   &
-            start=(/ 1,1,CNT /), count=(/ mp,mlitter,1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-       STATUS = NF90_PUT_VAR(FILE_ID, VID3(2), casapool%nlitter,   &
-            start=(/ 1,1,CNT /), count=(/ mp,mlitter,1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-       STATUS = NF90_PUT_VAR(FILE_ID, VID3(3), casapool%plitter,   &
-            start=(/ 1,1,CNT /), count=(/ mp,mlitter,1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-       STATUS = NF90_PUT_VAR(FILE_ID, VID3(4), casaflux%klitter,   &
-            start=(/ 1,1,CNT /), count=(/ mp,mlitter,1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-       STATUS = NF90_PUT_VAR(FILE_ID, VID3(5), casaflux%fromLtoCO2,   &
-            start=(/ 1,1,CNT /), count=(/ mp,mlitter,1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-       STATUS = NF90_PUT_VAR(FILE_ID, VID3(6), casaflux%FluxCtolitter,   &
-            start=(/ 1,1,CNT /), count=(/ mp,mlitter,1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-       STATUS = NF90_PUT_VAR(FILE_ID, VID3(7), casaflux%FluxNtolitter,   &
-            start=(/ 1,1,CNT /), count=(/ mp,mlitter,1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-       STATUS = NF90_PUT_VAR(FILE_ID, VID3(8), casaflux%FluxPtolitter,   &
-            start=(/ 1,1,CNT /), count=(/ mp,mlitter,1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-       ! PUT 3D VARS ( mp, msoil, t )
-       STATUS = NF90_PUT_VAR(FILE_ID, VID4(1), casapool%csoil,   &
-            start=(/ 1,1,CNT /), count=(/ mp,msoil,1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-       STATUS = NF90_PUT_VAR(FILE_ID, VID4(2), casapool%nsoil,   &
-            start=(/ 1,1,CNT /), count=(/ mp,msoil,1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-       STATUS = NF90_PUT_VAR(FILE_ID, VID4(3), casapool%psoil,   &
-            start=(/ 1,1,CNT /), count=(/ mp,msoil,1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-       STATUS = NF90_PUT_VAR(FILE_ID, VID4(4), casaflux%ksoil,   &
-            start=(/ 1,1,CNT /), count=(/ mp,msoil,1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-       STATUS = NF90_PUT_VAR(FILE_ID, VID4(5), casaflux%fromStoCO2,   &
-            start=(/ 1,1,CNT /), count=(/ mp,msoil,1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-       STATUS = NF90_PUT_VAR(FILE_ID, VID4(6), casaflux%FluxCtosoil,   &
-            start=(/ 1,1,CNT /), count=(/ mp,msoil,1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-       STATUS = NF90_PUT_VAR(FILE_ID, VID4(7), casaflux%FluxNtosoil,   &
-            start=(/ 1,1,CNT /), count=(/ mp,msoil,1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-       STATUS = NF90_PUT_VAR(FILE_ID, VID4(8), casaflux%FluxPtosoil,   &
-            start=(/ 1,1,CNT /), count=(/ mp,msoil,1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-       ! PUT 4D VARS ( mp, mlitter,mplant, t )
-       STATUS = NF90_PUT_VAR(FILE_ID, VID5(1), casaflux%fromPtoL,   &
-            start=(/ 1,1,1,CNT /), count=(/ mp,mlitter,mplant,1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-       ! PUT 4D VARS ( mp, msoil, mlitter, t )
-       STATUS = NF90_PUT_VAR(FILE_ID, VID6(1), casaflux%fromLtoS,   &
-            start=(/ 1,1,1,CNT /), count=(/ mp,msoil,mlitter,1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-       ! PUT 4D VARS ( mp, msoil, msoil, t )
-       STATUS = NF90_PUT_VAR(FILE_ID, VID7(1), casaflux%fromStoS,   &
-            start=(/ 1,1,1,CNT /), count=(/ mp,msoil,msoil,1 /) )
-       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-    END SELECT
-
-    IF ( FINAL ) THEN
-       ! Close NetCDF file:
-       STATUS = NF90_close(FILE_ID)
-       IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-       WRITE(*,*) " Casa Output written to ",fname
-    ENDIF
-
-  END SUBROUTINE WRITE_CASA_OUTPUT_NC
-#endif
-
 END MODULE casa_inout_module
