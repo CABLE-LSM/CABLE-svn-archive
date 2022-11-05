@@ -59,6 +59,7 @@ MODULE casaparm
   REAL(r_2), PARAMETER :: fixed_stem=1.0/3.0
   REAL(r_2), PARAMETER :: Q10alloc=2.0
   REAL(r_2), PARAMETER :: ratioNCstrfix = 1.0/150.0
+  REAL(r_2), PARAMETER :: ratioPCstrfix = ratioNCstrfix/25.0
   REAL(r_2), PARAMETER :: ratioNPstrfix = 25.0
   REAL(r_2), PARAMETER :: fracCbiomass = 0.50
   REAL(r_2), PARAMETER :: tsoilrefc=25.0
@@ -67,7 +68,9 @@ MODULE casaparm
   REAL(r_2), PARAMETER :: frootparmb =-0.0485
   REAL(r_2), PARAMETER :: frootparmc = 0.1755
   REAL(r_2), PARAMETER :: xweightalloc = 0.2
-  !  REAL(r_2), PARAMETER :: xkplab=0.5*deltcasa
-  !  REAL(r_2), PARAMETER :: xkpsorb=0.01*deltcasa
-  !  REAL(r_2), PARAMETER :: xkpocc =0.01*deltcasa
+!jhan:332: test impact of this
+!  !  REAL(r_2), PARAMETER :: xkplab=0.5*deltcasa
+!  !  REAL(r_2), PARAMETER :: xkpsorb=0.01*deltcasa
+!  !  REAL(r_2), PARAMETER :: xkpocc =0.01*deltcasa
+!jhan:332: test impact of this
 END MODULE casaparm
