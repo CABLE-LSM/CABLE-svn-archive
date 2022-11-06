@@ -29,8 +29,6 @@ MODULE cable_common_module
 
   IMPLICIT NONE
 
-  LOGICAL :: report_parameters_to_log=.false.   ! line inserted as per MMY -- rk4417
-  
   !---allows reference to "gl"obal timestep in run (from atm_step)
   !---total number of timesteps, and processing node
   INTEGER, SAVE :: ktau_gl, kend_gl, knode_gl, kwidth_gl
@@ -221,41 +219,32 @@ MODULE cable_common_module
   TYPE organic_soil_params
      !Below are the soil properties for fully organic soil
 
-     REAL ::    &
-          hyds_vec_organic  = 1.0e-4,&
-          sucs_vec_organic = 10.3,   &
-          clappb_organic = 2.91,     &
-          ssat_vec_organic = 0.9,    &
-          watr_organic   = 0.1,     &
-          sfc_vec_hk      = 1.157407e-06, & ! these 2 lines appear in MMY under gw_parameters_type -- rk4417
-          swilt_vec_hk      = 2.31481481e-8
-
-     REAL ::    &                  ! added this block from MMY. Some of the names appear above 
-          hyds_vec = 1.0e-4,&      ! with _organic -- rk4417
-          sucs_vec = 10.3,   &
-          bch_vec  = 2.91,     &    
-          ssat_vec = 0.9,    &    
-          watr     = 0.1,&
-          css_vec  = 4000.0,&
-          cnsd_vec = 0.1 
+     REAL ::                        &
+          hyds_organic  = 1.0e-4,   &
+          sucs_organic  = 10.3,     &
+          bch_organic   = 2.91,     &
+          ssat_organic  = 0.9,      &
+          watr_organic  = 0.1,      &
+          css_organic   = 4000.0,   &
+          cnsd_organic  = 0.1 
      
   END TYPE organic_soil_params
 
   TYPE gw_parameters_type
 
-     REAL ::                   &
-          MaxHorzDrainRate=2e-4,  & !anisintropy * q_max [qsub]
-          EfoldHorzDrainRate=2.0, & !e fold rate of q_horz
-          EfoldHorzDrainScale=1.0, & !e fold rate of q_horz   ! inserted line as per MMY -- rk4417
-          MaxSatFraction=2500.0,     & !parameter controll max sat fraction
-          hkrz=0.5,               & !hyds_vec variation with z
-          zdepth=1.5,             & !level where hyds_vec(z) = hyds_vec(no z)
-          frozen_frac=0.05,       & !ice fraction to determine first non-frozen layer for qsub
-          SoilEvapAlpha = 1.0,    & !modify field capacity dependence of soil evap limit
-          IceAlpha=3.0,           &
-          IceBeta=1.0,            &
-          sfc_vec_hk      = 1.157407e-06, & ! inserted 2 lines as per MMY  -- rk4417
-          swilt_vec_hk      = 2.31481481e-8
+     REAL ::                           &
+          MaxHorzDrainRate   = 2e-4,   & !anisintropy * q_max [qsub]
+          EfoldHorzDrainRate = 2.0,    & !e fold rate of q_horz
+          EfoldHorzDrainScale= 1.0,    & !e fold rate of q_horz   ! inserted line as per MMY -- rk4417
+          MaxSatFraction     = 2500.0, & !parameter controll max sat fraction
+          hkrz               = 0.5,    & !hyds_vec variation with z
+          zdepth             = 1.5,    & !level where hyds_vec(z) = hyds_vec(no z)
+          frozen_frac        = 0.05,   & !ice fraction to determine first non-frozen layer for qsub
+          SoilEvapAlpha      = 1.0,    & !modify field capacity dependence of soil evap limit
+          IceAlpha           = 3.0,    &
+          IceBeta            = 1.0,    &
+          sfc_vec_hk         = 1.157407e-06, & 
+          swilt_vec_hk       = 2.31481481e-8
 
      REAL :: ice_impedence=5.0
      REAL :: ssat_wet_factor=0.85            ! inserted line as per MMY -- rk4417
@@ -265,7 +254,10 @@ MODULE cable_common_module
      INTEGER :: aquifer_recharge_function=-1  !0=>no flux,1=>assume gw at hydrostat eq !inserted line as per MMY -- rk4417
      INTEGER :: level_for_satfrac = 6
      LOGICAL :: ssgw_ice_switch = .FALSE.
-
+     
+     LOGICAL :: derive_soil_param = .FALSE. ! MMY TRUE: derive soil parameters by cosby or HC-SWC equations hard-coded in CABLE-GW
+                                            ! MMY       however, sand/silt/clay/org/rhosoil_vec are read from gridinfo 
+                                            ! MMY FALSE: read soil parameters from land gridinfo file
      LOGICAL :: subsurface_sat_drainage = .TRUE.
      LOGICAL :: cosby_univariate=.false. ! added 4 declarations as per MMY -- rk4417
      LOGICAL :: cosby_multivariate=.false.
@@ -539,8 +531,6 @@ CONTAINS
 
   SUBROUTINE init_veg_from_vegin(ifmp,fmp, veg, soil_zse )
     USE cable_def_types_mod, ONLY : veg_parameter_type, ms
-!!$    SUBROUTINE init_veg_from_vegin(ifmp,fmp, veg)        ! above 2 lines appear this way in MMY code
-!!$      use cable_def_types_mod, ONLY : veg_parameter_type ! most likely superseded by 2 lines here -- rk4417
     INTEGER ::  ifmp,  & ! start local mp, # landpoints (jhan:when is this not 1 )
          fmp     ! local mp, # landpoints
     REAL, DIMENSION(ms) :: soil_zse
@@ -591,11 +581,12 @@ CONTAINS
        veg%ekc(h)    = vegin%ekc(veg%iveg(h))
        veg%eko(h)    = vegin%eko(veg%iveg(h))
        veg%rootbeta(h)  = vegin%rootbeta(veg%iveg(h))
-       veg%froot(h,:)  = vegin%froot(:, veg%iveg(h))   ! inserted this line as per MMY -- rk4417
+       veg%froot(h,:)  = vegin%froot(:, veg%iveg(h)) 
        veg%zr(h)       = vegin%zr(veg%iveg(h))
        veg%clitt(h)    = vegin%clitt(veg%iveg(h))
     END DO ! over each veg patch in land point
 
+    ! MMY @Oct2022 note replace the look-up table froot with Jackson eq
     ! calculate vegin%froot from using rootbeta and soil depth
     ! (Jackson et al. 1996, Oceologica, 108:389-411)
     totdepth = 0.0

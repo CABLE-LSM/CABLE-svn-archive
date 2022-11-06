@@ -62,7 +62,7 @@ PROGRAM cable_offline_driver
   USE cable_def_types_mod
   USE cable_IO_vars_module, ONLY: logn,gswpfile,ncciy,leaps,		      &
        verbose, fixedCO2,output,check,patchout,	   &
-       patch_type,soilparmnew,&
+       patch_type,& ! soilparmnew, ! MMY @Oct2022 change to use soilparmnew by default
        defaultLAI, sdoy, smoy, syear, timeunits, exists, calendar
   USE cable_common_module,  ONLY: ktau_gl, kend_gl, knode_gl, cable_user,     &
        cable_runtime, filename, myhome,		   &
@@ -243,7 +243,7 @@ USE cbl_soil_snow_init_special_module
   NAMELIST/CABLE/		   &
        filename,	 & ! TYPE, containing input filenames
        vegparmnew,	 & ! use new soil param. method
-       soilparmnew,	 & ! use new soil param. method
+      !  soilparmnew,	 & ! use new soil param. method ! MMY @Oct2022 change to use soilparmnew by default
        calcsoilalbedo,	 & ! albedo considers soil color Ticket #27
        spinup,		 & ! spinup model (soil) to steady state
        delsoilM,delsoilT,& !
@@ -397,8 +397,8 @@ USE cbl_soil_snow_init_special_module
   IF( l_vcmaxFeedbk .AND. icycle < 1 )					   &
 !!$  IF( l_vcmaxFeedbk .AND. icycle < 2 )                            &   ! replaces line above in MMY code -- rk4417
        STOP 'icycle must be 2 to 3 to get prognostic Vcmax'
-  IF( icycle > 0 .AND. ( .NOT. soilparmnew ) )				   &
-       STOP 'casaCNP must use new soil parameters'
+!   IF( icycle > 0 .AND. ( .NOT. soilparmnew ) )				   & ! MMY @Oct2022 change to use soilparmnew by default
+!        STOP 'casaCNP must use new soil parameters'
 
   NRRRR = MERGE(MAX(CABLE_USER%CASA_NREP,1), 1, CASAONLY)
   ! casa time count
