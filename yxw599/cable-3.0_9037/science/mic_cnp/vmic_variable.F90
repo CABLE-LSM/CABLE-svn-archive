@@ -5,7 +5,7 @@ MODULE vmic_variable_mod
   SAVE
 
   TYPE mic_parameter
-    real(r_2), dimension(:),      allocatable  :: xav,xak,xdesorp,xbeta,xdiffsoc,rootbetax
+    real(r_2), dimension(:),      allocatable  :: xav,xavexp,xak,xdesorp,xbeta,xdiffsoc,rootbetax
     real(r_2), dimension(:,:),    allocatable  :: K1,K2,K3,J1,J2,J3
     real(r_2), dimension(:,:),    allocatable  :: V1,V2,V3,W1,W2,W3
     real(r_2), dimension(:,:),    allocatable  :: desorp
@@ -18,6 +18,7 @@ MODULE vmic_variable_mod
     real(r_2), dimension(:),      allocatable  :: xcnleaf,xcnroot,xcnwood,fligleaf,fligroot,fligwood
     real(r_2), dimension(:),      allocatable  :: diffsocx
     ! the following are alrealy available in CABLE
+	real(r_2), dimension(:),      allocatable  :: zse
     integer,   dimension(:),      allocatable  :: pft,region,siteid
     real(r_2), dimension(:,:),    allocatable  :: sdepth,fracroot
     real(r_2), dimension(:,:),    allocatable  :: clay
@@ -55,6 +56,7 @@ MODULE vmic_variable_mod
 
     ! tunable model parameters
     allocate(micparam%xav(mp),      &
+             micparam%xavexp(mp),   &
 	         micparam%xak(mp),      &
              micparam%xdesorp(mp),  &
              micparam%xbeta(mp),    &
@@ -104,7 +106,8 @@ MODULE vmic_variable_mod
              micparam%fligwood(mp),  &
              micparam%diffsocx(mp))
 
-    allocate(micparam%pft(mp),       &
+    allocate(micparam%zse(ms),       &
+             micparam%pft(mp),       &
              micparam%region(mp),    &
              micparam%siteid(mp))
 

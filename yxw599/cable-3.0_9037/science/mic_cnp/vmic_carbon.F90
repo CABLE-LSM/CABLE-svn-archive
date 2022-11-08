@@ -1,4 +1,4 @@
-MODULE vmic_carbon_cycle
+MODULE vmic_carbon_cycle_mod
   USE cable_def_types_mod, ONLY : mp,ms,mvtype,mstype,r_2
   IMPLICIT NONE
 
@@ -50,7 +50,7 @@ CONTAINS
      TYPE(mic_npool),     INTENT(INOUT)   :: micnpool
 
 !      xav = xopt(1); xak= xopt(2); xdesorp = xopt(3); xbeta=xopt(4)
-      ! compute fractions
+      ! compute fractions and time-dependent carbon input
       call bgc_fractions(micparam,micinput)
       ! compute microbial growth efficiency
       call mget(micparam,micinput,micnpool)
@@ -81,7 +81,7 @@ CONTAINS
     real(r_2),    parameter            :: tolf = 0.000001
     integer,     parameter             :: ntrial = 100
     integer np,ns,ip
-    real(r_2),    dimension(mcpool)     :: cpooldef,xpool0,y
+    real(r_2),    dimension(mcpool)    :: cpooldef,xpool0,y
 
 !	  print *, 'calling vmic_init'
 
@@ -93,30 +93,31 @@ CONTAINS
          miccpool%cpool(:,:,ip) = cpooldef(ip)
       enddo
   
-      call vmic_param_time(micparam,micinput,micnpool)
-  
-      do np=1,mp
-            do ns=1,ms
-
-               ! initial pool sizes
-               do ip=1,mcpool
-                  xpool0(ip) = miccpool%cpool(np,ns,ip)
-               enddo
-
-!               call mnewt(ntrial,np,ns,kinetics,micparam,micinput,xpool0,tolx,tolf)
-               call vmic_c(np,ns,micparam,micinput,xpool0,y)
-               if(maxval(xpool0(1:mcpool))>1.0e4.or.minval(xpool0(1:mcpool))<0.0) then
-                  xpool0 = cpooldef
-               endif
-               do ip=1,mcpool
-                  miccpool%cpool(:,:,ip) = xpool0(ip)
-               enddo
-            enddo
-       enddo
+!      call vmic_param_time(micparam,micinput,micnpool)
+!  
+!      do np=1,mp
+!            do ns=1,ms
+!
+!               ! initial pool sizes
+!               do ip=1,mcpool
+!                  xpool0(ip) = miccpool%cpool(np,ns,ip)
+!               enddo
+!
+!!!!               call mnewt(ntrial,np,ns,kinetics,micparam,micinput,xpool0,tolx,tolf)
+!               call vmic_c(np,ns,micparam,micinput,xpool0,y)
+!               if(maxval(xpool0(1:mcpool))>1.0e4.or.minval(xpool0(1:mcpool))<0.0) then
+!                  xpool0 = cpooldef
+!               endif
+!               do ip=1,mcpool
+!                  miccpool%cpool(:,:,ip) = xpool0(ip)
+!               enddo
+!            enddo
+!       enddo
   
 
   END SUBROUTINE vmic_init
 
+  ! the following subroutine is not used   
   SUBROUTINE vmicsoil(veg,soil,micparam,micinput,miccpool,micnpool,micoutput,cpooleq)
 	USE cable_def_types_mod, ONLY : veg_parameter_type,soil_parameter_type
     USE vmic_constant_mod
@@ -151,7 +152,7 @@ CONTAINS
       call vmic_param_constant(veg,soil,micparam)
       call vmic_init(micparam,micinput,miccpool,micnpool)
 
-      ndelt   = int(24*365/deltvmic) ! number of time step per year in "delt"
+      ndelt   = int(24*365/deltvmic) ! number of time step per year in "deltvmic"
       ! need to check the timestep consistency	  
       do year=1,nyeqpool+66
 	     print *, 'run for year and % to completion', year, real(year)/real(nyeqpool+66)
@@ -201,7 +202,7 @@ CONTAINS
                   diffsocxx= micparam%diffsocx(np)
   
   
-                  call bioturb(int(delty),ms,micparam%sdepth(np,1:ms),deltvmic,diffsocxx,fluxsoc,ypooli,ypoole)  ! only do every 24*delt
+                  call bioturb(int(delty),ms,micparam%zse(1:ms),deltvmic,diffsocxx,fluxsoc,ypooli,ypoole)  ! only do every 24*delt
 
                   do ns=1,ms
                      miccpool%cpool(np,ns,ip) = ypoole(ns)
@@ -321,7 +322,7 @@ CONTAINS
        do np=1,mp
           do ns=1,ms 
   
-           vmax(np,ns) =  micparam%xav(np) * av * exp(sv*micinput%tavg(np,ns) + bv) * delt
+           vmax(np,ns) =  micparam%xav(np) * av * exp(sv*micinput%tavg(np,ns) + bv) * deltvmic
            micparam%V1(np,ns)   =  xv1 * vmax(np,ns) 
            micparam%V2(np,ns)   =  xv2 * vmax(np,ns) 
            micparam%V3(np,ns)   =  xv3 * vmax(np,ns) 
@@ -438,8 +439,8 @@ CONTAINS
            tvref(np) = sqrt(micinput%fcnpp(np)/xtv)
            tvref(np) = max(0.6,min(1.3,tvref(np)))          ! 0.8-1.2 based on Wieder et al., 2015
            do ns=1,ms
-              micparam%tvmicR(np,ns)   = 0.00052 * tvref(np) * exp(0.3 * micparam%fmetave(np,ns)) * delt
-              micparam%tvmicK(np,ns)   = 0.00024 * tvref(np) * exp(0.1 * micparam%fmetave(np,ns)) * delt
+              micparam%tvmicR(np,ns)   = 0.00052 * tvref(np) * exp(0.3 * micparam%fmetave(np,ns)) * deltvmic
+              micparam%tvmicK(np,ns)   = 0.00024 * tvref(np) * exp(0.1 * micparam%fmetave(np,ns)) * deltvmic
               micparam%betamicR(np,ns) = betamic * micparam%xbeta(np)
               micparam%betamicK(np,ns) = betamic * micparam%xbeta(np)
            enddo
@@ -693,7 +694,6 @@ CONTAINS
     subroutine advecdoc(deltx,zse,fluxsoilwx,fluxdocsx,vsoilwx,ypool)
     ! to be modified using an implicit solver to ensure mass conservation
     !
-!    use mic_constant
     implicit none
     real(r_2)                          deltx
     real(r_2), dimension(ms)        :: zse
@@ -875,4 +875,4 @@ CONTAINS
  END SUBROUTINE vmic_c 
 
 
-END MODULE vmic_carbon_cycle
+END MODULE vmic_carbon_cycle_mod

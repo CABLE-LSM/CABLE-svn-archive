@@ -209,6 +209,11 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
 
     USE landuse_constant,     ONLY: mstate,mvmax,mharvw
     USE landuse_variable
+
+    USE vmic_constant_mod
+    USE vmic_variable_mod
+    USE vmic_inout_mod
+	
     IMPLICIT NONE
 
     ! MPI:
@@ -274,6 +279,13 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
     TYPE (landuse_mp)     :: lucmp
     CHARACTER             :: cyear*4
     CHARACTER             :: ncfile*99
+
+    ! VMIC variables
+    TYPE(mic_parameter)   :: micparam
+    TYPE(mic_input)       :: micinput
+    TYPE(mic_cpool)       :: miccpool
+    TYPE(mic_npool)       :: micnpool
+    TYPE(mic_output)      :: micoutput
 
     ! declare vars for switches (default .FALSE.) etc declared thru namelist
     LOGICAL, SAVE           :: &
@@ -360,7 +372,8 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
          wiltParam,        &
          satuParam,        &
          cable_user,       &  ! additional USER switches
-         gw_params        
+         gw_params,        &
+         vmicrobe
  
     INTEGER :: i,x,kk,m,np,ivt
     INTEGER :: LALLOC
@@ -596,6 +609,12 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
                   casaflux, sum_casapool, sum_casaflux, &
                   casamet, casabal, phen, POP, spinup,	       &
                   CEMSOIL, CTFRZ, LUC_EXPT, POPLUC )
+             ! allocate variables and assign model parameters
+             if (vmicrobe>0) then
+                call vmic_allocate(micparam,micinput,micoutput,miccpool,micnpool)
+                call vmic_parameter(veg,soil,casabiome,micparam,micinput)
+				call vmic_init(micparam,micinput,miccpool,micnpool)
+             endif
 
              IF (CABLE_USER%POPLUC .AND. TRIM(CABLE_USER%POPLUC_RunType) .EQ. 'static') &
                   CABLE_USER%POPLUC= .FALSE.

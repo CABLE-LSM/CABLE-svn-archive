@@ -159,6 +159,9 @@ CONTAINS
          CABLE_NAMELIST,arg_not_namelist
     
 USE cbl_soil_snow_init_special_module
+
+    USE vmic_constant_mod,    ONLY: vmicrobe
+	
     IMPLICIT NONE
 
     ! MPI:
@@ -280,7 +283,8 @@ USE cbl_soil_snow_init_special_module
          wiltParam,        &
          satuParam,        &
          cable_user,       &  ! additional USER switches
-         gw_params
+         gw_params,        &
+         vmicrobe
 
     INTEGER :: i,x,kk
     INTEGER :: LALLOC, iu

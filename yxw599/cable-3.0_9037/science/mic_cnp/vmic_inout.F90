@@ -16,122 +16,249 @@
 !
 !===========================================================================================
 MODULE vmic_inout_mod
-  USE cable_def_types_mod, ONLY : mp,ms,r_2,mvtype,mstype
+  USE cable_def_types_mod    !, ONLY : mp,ms,r_2,mvtype,mstype
+  USE casavariable,             ONLY : casa_biome
+  USE vmic_constant_mod
+  USE vmic_variable_mod
   IMPLICIT NONE
-
-subroutine mic_init(micparam,micinput,micoutput,miccpool,micnpool)
-   use mic_constant_mod
-   use mic_variable_mod
-   implicit none
-   TYPE(mic_parameter)  :: micparam
-   TYPE(mic_input)      :: micinput
-   TYPE(mic_cpool)      :: miccpool
-   TYPE(mic_npool)      :: micnpool
-   TYPE(mic_output)     :: micoutput
-   
-      call mic_allocate_parameter(micparam)
-      call mic_allocate_input(micinput)
-      call mic_allocate_output(micoutput)
-      call mic_allocate_cpool(miccpool)
-      call mic_allocate_npool(micnpool)
-	  
-end subroutine mic_init	 
-
-
-subroutine mic_parameter(veg,soil,casabiome,zse)
-! read the parameter lookup table and assigm them to (1:mp)
-   use mic_constant_mod
-   use mic_variable_mod
-   implicit none
-   TYPE(mic_parameter)                    :: micparam
-   TYPE(mic_input)                        :: micinput
-   TYPE (veg_parameter_type),  INTENT(IN) :: veg
-   TYPE (soil_parameter_type), INTENT(IN) :: soil
-   TYPE (casa_biome),          INTENT(IN) :: casabiome
-   real(r_2), dimension(ms)               :: zse
-   real(r_2), dimension(mpft)             :: xav_pft,      &
-                                             xak_pft,      &
-                                             xavexp_pft,   &
-                                             xbeta_pft,    &
-                                             xdiffsoc_pft, &
-                                             xdesorpt_pft, &
-                                             rootbetax_pft
-								
-! parameter estimates based on ICP-China sites for 4 PFTs based optimizinfg 5 parameters
-! xav      xak       xavexp    xbeta    xdiffsoc   
-! 14.524    15.091     1.008     1.255    18.329
-!  5.475    13.271     1.011     1.446     4.636
-!  6.125     9.869     1.324     1.582     1.051
-!  4.757    19.013     1.271     1.955     0.263
-!
-!  7.72     14.31      1.15      1.56      6.07
-
-   data      xav_pft/ 7.72, 7.72, 7.72, 7.72, 7.72, 7.72, 7.72, 7.72, 7.72, 7.72, 7.72, 7.72, 7.72, 7.72, 7.72, 7.72, 7.72/
-   data      xak_pft/14.31,14.31,14.31,14.31,14.31,14.31,14.31,14.31,14.31,14.31,14.31,14.31,14.31,14.31,14.31,14.31,14.31/
-   data   xavexp_pft/ 1.15, 1.15, 1.15, 1.15, 1.15, 1.15, 1.15, 1.15, 1.15, 1.15, 1.15, 1.15, 1.15, 1.15, 1.15, 1.15, 1.15/
-   data    xbeta_pft/ 1.56, 1.56, 1.56, 1.56, 1.56, 1.56, 1.56, 1.56, 1.56, 1.56, 1.56, 1.56, 1.56, 1.56, 1.56, 1.56, 1.56/
-   data xdiffsoc_pft/ 6.07, 6.07, 6.07, 6.07, 6.07, 6.07, 6.07, 6.07, 6.07, 6.07, 6.07, 6.07, 6.07, 6.07, 6.07, 6.07, 6.07/
-   data rootbeta_pft/ 0.96, 0.96, 0.96, 0.98, 0.96, 0.97, 0.94, 0.96, 0.97, 0.94, 0.97, 0.97, 0.97, 0.97, 0.96, 0.96, 0.96/   
-
-   ! local variables
-   integer ivt,np,ns
-   
-   xdesorpt_pft(:) = 1.0
-   do np=1,mp
-      ivt   = veg%iveg(np))
-	  isoil = soil%isoilm(np)
-      xav(np)      = xav_pft(ivt)
-      xak(np)      = xak_pft(ivt)
-      xavexp(np)   = xavexp_pft(ivt)	  
-      xbeta(np)    = xbeta_pft(ivt)
-      xdiffsoc(np) = xdiffsoc_pft(ivt)
-      rootbeta(np) = rootbeta_pft(ivt)
-      xdesorpt(np) = xdesorpt_pft(ivt)
-      ! soil parameters	  
-      micparam%bulkd(np) = soil%rhosoil(np)
-      micparam%clay(np)  = soil%clay(np)	
-      ! vegetation parameters
-       
-      micparam%pft(np)     =  veg%iveg(np))	   
-      micparam%xcnleaf(np) = 1.0/casabiome%ratioNCplantmax(ivt,1)
-      micparam%xcnroot(np) = 1.0/casabiome%ratioNCplantmax(ivt,3)	  
-      micparam%xcnwood(np) = 1.0/casabiome%ratioNCplantmax(ivt,2)
-      micparam%fligleaf(np)=  casabiome%fracligninplant(ivt,1)
-      micparam%fligroot(np)=  casabiome%fracligninplant(ivt,3)
-      micparam%fligwood(np)=  casabiome%fracligninplant(ivt,2)
-    enddo  
-    do ns=1,ms
-       zse(ns) = soil%zse(ns)
-    enddo
-	
-end subroutine mic_parameter
-
-subroutine mic_input(dleaf,dwood,droot,tsoil,moist,nsoilmin)
-   use mic_constant_mod
-   use mic_variable_mod
-   implicit none
-   TYPE(mic_parameter), INTENT(IN)          :: micparam
-   TYPE(mic_input),     INTENT(OUT)         :: micinput
-   TYPE(mic_npool),     INTENT(IN)          :: micnpool   
-   real(r_2),  dimension(mp)                :: dleaf,dwood,droot,fcnpp,nsoilmin
-   real(r_2),  dimension(mp,ms)             :: tsoil,moist
-   real(r_2),  dimension(mpft)              :: fcnpp_pft
-   data fcnpp_pft/500.0,500.0,500.0,500.0,500.0,500.0,500.0,500.0,500.0,500.0,500.0,500.0,500.0,500.0,500.0,500.0,500.0/
- 
-   ! local variables
-   integer np,ivt
+  CONTAINS
   
-     do np=1,mp
-	    !
-        ivt =micparam%pft(np)
-	    micinput%fcnpp(np) = fcnpp_pft(ivt)  ! gc/m2/year for calculating microbial turnover rate (constant!!)
-		micinput%dleaf(np) = dleaf(np)       ! gc/m2/delt
-		micinput%dwood(np) = dwood(np)       ! gc/m2/delt
-        micinput%droot(np) = droot(np)       ! gc/m2/delt
-		micinput%tavg(np,:)= tsoil(np,:)
-		micinput%wavg(np,:)= moist(np,:)
-		micnpool%mineralN(np,1:ms) = nsoilmin(np)   ! temporary solution
-	 enddo	
-end subroutine mic_input
+  SUBROUTINE vmic_allocate(micparam,micinput,micoutput,miccpool,micnpool)
+    implicit none
+    TYPE(mic_parameter)  :: micparam
+    TYPE(mic_input)      :: micinput
+    TYPE(mic_cpool)      :: miccpool
+    TYPE(mic_npool)      :: micnpool
+    TYPE(mic_output)     :: micoutput
+   
+      call vmic_allocate_parameter(micparam)
+      call vmic_allocate_input(micinput)
+      call vmic_allocate_output(micoutput)
+      call vmic_allocate_cpool(miccpool)
+      call vmic_allocate_npool(micnpool)
+	  
+  end SUBROUTINE vmic_allocate 
 
+
+  SUBROUTINE vmic_parameter(veg,soil,casabiome,micparam,micinput)
+  ! read the parameter lookup table and assigm them to (1:mp)
+    implicit none
+    TYPE(mic_parameter)                    :: micparam
+    TYPE(mic_input)                        :: micinput
+    TYPE (veg_parameter_type),  INTENT(IN) :: veg
+    TYPE (soil_parameter_type), INTENT(IN) :: soil
+    TYPE (casa_biome),          INTENT(IN) :: casabiome
+    real(r_2), dimension(17)               :: xav_pft,      &
+                                              xak_pft,      &
+                                              xavexp_pft,   &
+                                              xbeta_pft,    &
+                                              xdiffsoc_pft, &
+                                              xdesorpt_pft, &
+                                              rootbeta_pft
+								
+    ! parameter estimates based on ICP-China sites for 4 PFTs based optimizinfg 5 parameters
+    ! xav      xak       xavexp    xbeta    xdiffsoc   
+    ! 14.524    15.091     1.008     1.255    18.329
+    !  5.475    13.271     1.011     1.446     4.636
+    !  6.125     9.869     1.324     1.582     1.051
+    !  4.757    19.013     1.271     1.955     0.263
+    !
+    !  7.72     14.31      1.15      1.56      6.07
+
+    data      xav_pft/ 7.72, 7.72, 7.72, 7.72, 7.72, 7.72, 7.72, 7.72, 7.72, 7.72, 7.72, 7.72, 7.72, 7.72, 7.72, 7.72, 7.72/
+    data      xak_pft/14.31,14.31,14.31,14.31,14.31,14.31,14.31,14.31,14.31,14.31,14.31,14.31,14.31,14.31,14.31,14.31,14.31/
+    data   xavexp_pft/ 1.15, 1.15, 1.15, 1.15, 1.15, 1.15, 1.15, 1.15, 1.15, 1.15, 1.15, 1.15, 1.15, 1.15, 1.15, 1.15, 1.15/
+    data    xbeta_pft/ 1.56, 1.56, 1.56, 1.56, 1.56, 1.56, 1.56, 1.56, 1.56, 1.56, 1.56, 1.56, 1.56, 1.56, 1.56, 1.56, 1.56/
+    data xdiffsoc_pft/ 6.07, 6.07, 6.07, 6.07, 6.07, 6.07, 6.07, 6.07, 6.07, 6.07, 6.07, 6.07, 6.07, 6.07, 6.07, 6.07, 6.07/
+    data rootbeta_pft/ 0.96, 0.96, 0.96, 0.98, 0.96, 0.97, 0.94, 0.96, 0.97, 0.94, 0.97, 0.97, 0.97, 0.97, 0.96, 0.96, 0.96/   
+
+    ! local variables
+    integer ivt,np,ns,isoil
+   
+      xdesorpt_pft(:) = 1.0
+        do np=1,mp
+           ivt          = veg%iveg(np)
+	       isoil        = soil%isoilm(np)
+           micparam%xav(np)      = xav_pft(ivt)
+           micparam%xak(np)      = xak_pft(ivt)
+           micparam%xavexp(np)   = xavexp_pft(ivt)	  
+           micparam%xbeta(np)    = xbeta_pft(ivt)
+           micparam%xdiffsoc(np) = xdiffsoc_pft(ivt)
+           micparam%rootbetax(np)= rootbeta_pft(ivt)
+           micparam%xdesorp(np)  = xdesorpt_pft(ivt)
+           ! soil parameters	  
+           micparam%bulkd(np,1:ms) = soil%rhosoil(np)
+           micparam%clay(np,1:ms)  = soil%clay(np)	
+           ! vegetation parameters
+       
+           micparam%pft(np)     =  veg%iveg(np)	   
+           micparam%xcnleaf(np) = 1.0/casabiome%ratioNCplantmax(ivt,1)
+           micparam%xcnroot(np) = 1.0/casabiome%ratioNCplantmax(ivt,3)	  
+           micparam%xcnwood(np) = 1.0/casabiome%ratioNCplantmax(ivt,2)
+           micparam%fligleaf(np)=  casabiome%fracligninplant(ivt,1)
+           micparam%fligroot(np)=  casabiome%fracligninplant(ivt,3)
+           micparam%fligwood(np)=  casabiome%fracligninplant(ivt,2)
+        enddo  
+        do ns=1,ms
+           micparam%zse(ns) = soil%zse(ns)
+        enddo
+	
+    end SUBROUTINE vmic_parameter
+
+   SUBROUTINE vmic_input(dleaf,dwood,droot,nsoilmin,casamet,micparam,micinput,micnpool)
+     USE casavariable,                    ONLY : casa_met
+	 USE casaparm,                        ONLY : tkzeroc
+     implicit none
+     TYPE (casa_met),     INTENT(IN)          :: casamet
+     TYPE(mic_parameter), INTENT(IN)          :: micparam
+     TYPE(mic_input),     INTENT(OUT)         :: micinput
+     TYPE(mic_npool),     INTENT(INOUT)       :: micnpool   
+     real(r_2),  dimension(mp)                :: dleaf,dwood,droot,fcnpp,nsoilmin
+     real(r_2),  dimension(17)                :: fcnpp_pft
+     data fcnpp_pft/500.0,500.0,500.0,500.0,500.0,500.0,500.0,500.0,500.0,500.0,500.0,500.0,500.0,500.0,500.0,500.0,500.0/
+ 
+     ! local variables
+     integer np,ivt
+  
+       do np=1,mp
+	      !
+          ivt =micparam%pft(np)
+	      micinput%fcnpp(np) = fcnpp_pft(ivt)         ! gc/m2/year for calculating microbial turnover rate (constant!!)
+	      micinput%dleaf(np) = dleaf(np)              ! gc/m2/deltvmic
+		  micinput%dwood(np) = dwood(np)              ! gc/m2/deltvmic
+          micinput%droot(np) = droot(np)              ! gc/m2/deltvmic
+		  micinput%tavg(np,:)= casamet%tsoil(np,:)- tkzeroc
+		  micinput%wavg(np,:)= casamet%moist(np,:)
+		  micnpool%mineralN(np,1:ms) = nsoilmin(np)   ! temporary solution
+	   enddo	
+  end SUBROUTINE vmic_input
+
+  SUBROUTINE vmic_driver(ktau,dels,idoY,LALLOC,veg,soil,casabiome,casapool,casaflux, &
+                         casamet,casabal,phen,micparam,micinput,miccpool,micnpool,micoutput)
+    USE casadimension
+    USE casa_cnp_module
+    USE casavariable
+	use vmic_carbon_cycle_mod
+    IMPLICIT NONE
+    INTEGER, INTENT(IN)    :: ktau
+    REAL,    INTENT(IN)    :: dels
+    INTEGER, INTENT(IN)    :: idoy
+    INTEGER, INTENT(IN)    :: LALLOC
+    TYPE (veg_parameter_type),    INTENT(INOUT) :: veg  ! vegetation parameters
+    TYPE (soil_parameter_type),   INTENT(INOUT) :: soil ! soil parameters
+    TYPE (casa_biome),            INTENT(INOUT) :: casabiome
+    TYPE (casa_pool),             INTENT(INOUT) :: casapool
+    TYPE (casa_flux),             INTENT(INOUT) :: casaflux
+    TYPE (casa_met),              INTENT(INOUT) :: casamet
+    TYPE (casa_balance),          INTENT(INOUT) :: casabal
+    TYPE (phen_variable),         INTENT(INOUT) :: phen
+    TYPE (mic_parameter),         INTENT(INOUT) :: micparam
+    TYPE (mic_input),             INTENT(INOUT) :: micinput
+    TYPE (mic_cpool),             INTENT(INOUT) :: miccpool
+    TYPE (mic_npool),             INTENT(INOUT) :: micnpool
+    TYPE (mic_output),            INTENT(INOUT) :: micoutput	
+	
+    ! local variables added by ypwang following Chris Lu 5/nov/2012
+
+    REAL, DIMENSION(mp)                :: cleaf2met,cleaf2str, &
+	     croot2met,croot2str,cwood2cwd,                        &
+         nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,    &
+         pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd
+    REAL(r_2), dimension(mp)           :: dleaf,dwood,droot
+    ! local variables
+    real(r_2),    dimension(mcpool)    :: xpool0,xpool1
+    real(r_2),    dimension(ms)        :: ypooli,ypoole,fluxsoc
+    REAL(r_2),    DIMENSION(mp)        :: xnplimit,xNPuptake
+    REAL(r_2),    DIMENSION(mp)        :: xklitter,xksoil,xkNlimiting
+    REAL(r_2),    DIMENSION(mp)        :: xkleafcold,xkleafdry,xkleaf
+	REAL(r_2),    DIMENSION(mp)        :: nsoilmin
+	REAL(r_2)                          :: delty,timex,diffsocxx
+	integer ndeltvmic,ntime
+    INTEGER  np,ip,ns,is
+    integer ivegx,isox
+
+
+    CALL phenology(idoy,veg,phen)
+    CALL avgsoil(veg,soil,casamet)
+    CALL casa_rplant1(veg,casabiome,casapool,casaflux,casamet)
+
+    IF (.NOT.cable_user%CALL_POP) THEN
+       CALL casa_allocation(veg,soil,casabiome,casaflux,casapool,casamet,phen,LALLOC)
+    ENDIF
+
+    CALL casa_xrateplant(xkleafcold,xkleafdry,xkleaf,veg,casabiome, &
+         casamet,phen)
+    CALL casa_coeffplant(xkleafcold,xkleafdry,xkleaf,veg,casabiome,casapool, &
+         casaflux,casamet,phen)
+
+    ! changed by ypwang following Chris Lu on 5/nov/2012
+    CALL casa_delplant(veg,casabiome,casapool,casaflux,casamet,                &
+         cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,  &
+         nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,  &
+         pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
+		 
+    call vmic_param_time(micparam,micinput,micnpool)
+	! litter fall flux in g C/m2/delt, where "delt" is one day in casa-cnp, and timesetp in vmic is hourly
+	dleaf(:) = (cleaf2met(:)+cleaf2str(:))/24.0
+	dwood(:) =  cwood2cwd(:)/24.0
+	droot(:) = (croot2met(:)+croot2str(:))/24.0
+	nsoilmin(:) = 2.0    ! mg N/kg soil
+	call vmic_input(dleaf,dwood,droot,nsoilmin,casamet,micparam,micinput,micnpool)
+
+    do np=1,mp
+       ! do MIMICS for each soil layer
+        do ns=1,ms
+           do ip=1,mcpool
+              xpool0(ip) = miccpool%cpool(np,ns,ip)
+           enddo
+		   
+           ndeltvmic=24  ! 24-hourly
+           delty = real(ndeltvmic) * deltvmic  ! time step in rk4 in "delt"
+		   timex = real(idoy)
+		   
+           do ntime=1,1			 
+             call rk4modelx(timex,delty,np,ns,micparam,micinput,xpool0,xpool1)
+             ! the following used to avoid poolsize<0.0
+             do ip=1,mcpool
+                xpool0(ip) = max(1.0e-8,xpool1(ip))
+             enddo
+           enddo
+		   
+           xpool1=xpool0 
+           do ip=1,mcpool
+              miccpool%cpool(np,ns,ip) = xpool1(ip)
+           enddo
+		   
+           ! soil respiration in mg c/cm3/deltvmic		   
+           micoutput%rsoil(np,ns) = micinput%dleaf(np)+micinput%dwood(np)+micinput%droot(np) &
+                                  - sum(xpool1(1:mcpool)-sum(xpool0(1:mcpool)))
+        enddo ! "ns"
+  
+        if(diag==1) then  
+           print *, 'np1', outp,micparam%diffsocx(outp)
+           do ns=1,ms
+              print *, ns, miccpool%cpool(outp,ns,:) 
+           enddo  
+        endif
+  
+        do ip=1,mcpool
+           do ns=1,ms
+              ypooli(ns) = miccpool%cpool(np,ns,ip)      ! in mg c/cm3
+           enddo  !"ns"
+
+           fluxsoc(:) = 0.0  ! This flux is added in "modelx"
+           diffsocxx= micparam%diffsocx(np)
+  
+           ! only do every 24*deltvmic  
+           call bioturb(ndeltvmic,ms,micparam%zse(1:ms),deltvmic,diffsocxx,fluxsoc,ypooli,ypoole)  
+
+           do ns=1,ms
+              miccpool%cpool(np,ns,ip) = ypoole(ns)
+           enddo
+        enddo !"ip"
+
+        enddo !"np" 
+  
+  END SUBROUTINE vmic_driver
+  
 END MODULE vmic_inout_mod
