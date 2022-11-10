@@ -21,7 +21,8 @@ MODULE vmic_inout_mod
   USE vmic_constant_mod
   USE vmic_variable_mod
   IMPLICIT NONE
-  CONTAINS
+  
+CONTAINS
   
   SUBROUTINE vmic_allocate(micparam,micinput,micoutput,miccpool,micnpool)
     implicit none
@@ -105,6 +106,92 @@ MODULE vmic_inout_mod
 	
     end SUBROUTINE vmic_parameter
 
+  SUBROUTINE vmic_param_constant(veg,soil,micparam)
+    USE vmic_constant_mod
+    USE vmic_variable_mod
+	USE cable_def_types_mod, ONLY : veg_parameter_type, soil_parameter_type
+    implicit none
+    TYPE (veg_parameter_type),  INTENT(IN)    :: veg	
+    TYPE (soil_parameter_type), INTENT(IN)    :: soil	
+    TYPE (mic_parameter),       INTENT(INout) :: micparam
+    !local variables   
+    integer np,ns
+    real(r_2) Kor, Kok, Q1, Q2, fm, fs
+
+    !xdiffsoc=xopt(5); rootbetax=xopt(7)
+  
+      Kor = 4.0; Kok = 4.0; Q1= Kor; Q2  = Kok; fm = 0.05; fs= 0.05
+      micparam%Q1(:,:) = Q1; micparam%Q2(:,:) =Q2; micparam%fm(:,:)=fm; micparam%fs(:,:)=fs
+
+      ! calculate mp by ms all parameter values
+      do np=1, mp
+         do ns=1,ms
+            micparam%sdepth(np,ns)   = soil%zse(ns)
+            micparam%fracroot(np,ns) = veg%froot(np,ns)
+          enddo !"ns"
+          micparam%diffsocx(np) = micparam%xdiffsoc(np) * diffsoc  !"diffsoc" from mic_constant
+      enddo    ! "np=1,mp"
+  
+      if(diag==1) then
+         print *, micparam%fracroot(outp,:) 
+         print *, micparam%sdepth(outp,:)
+         print *, micparam%diffsocx(outp)
+      endif
+   END SUBROUTINE vmic_param_constant  
+
+   SUBROUTINE vmic_init(micparam,micinput,miccpool,micnpool)
+    USE vmic_constant_mod
+    USE vmic_variable_mod
+    implicit none
+
+    TYPE(mic_parameter), INTENT(INout)   :: micparam
+    TYPE(mic_input),     INTENT(INout)   :: micinput
+    TYPE(mic_cpool),     INTENT(INOUT)   :: miccpool
+    TYPE(mic_npool),     INTENT(INOUT)   :: micnpool
+
+    ! local variables
+    ! for numerical solution
+    real(r_2),    parameter            :: tol = 1.0E-04
+    real(r_2),    parameter            :: tolx = 0.0001
+    real(r_2),    parameter            :: tolf = 0.000001
+    integer,     parameter             :: ntrial = 100
+    integer np,ns,ip
+    real(r_2),    dimension(mcpool)    :: cpooldef,xpool0,y
+
+!	  print *, 'calling vmic_init'
+
+      cpooldef(1) = 16.5*0.1;     cpooldef(2) = 16.5*0.1
+      cpooldef(3) = 16.5*0.025;   cpooldef(4) = 16.5*0.025
+      cpooldef(5) = 16.5*0.1125;  cpooldef(6) = 16.5*0.375;  cpooldef(7) = 16.5*0.2625
+
+      do ip=1,mcpool
+         miccpool%cpool(:,:,ip) = cpooldef(ip)
+      enddo
+  
+!      call vmic_param_time(micparam,micinput,micnpool)
+!  
+!      do np=1,mp
+!            do ns=1,ms
+!
+!               ! initial pool sizes
+!               do ip=1,mcpool
+!                  xpool0(ip) = miccpool%cpool(np,ns,ip)
+!               enddo
+!
+!!!!               call mnewt(ntrial,np,ns,kinetics,micparam,micinput,xpool0,tolx,tolf)
+!               call vmic_c(np,ns,micparam,micinput,xpool0,y)
+!               if(maxval(xpool0(1:mcpool))>1.0e4.or.minval(xpool0(1:mcpool))<0.0) then
+!                  xpool0 = cpooldef
+!               endif
+!               do ip=1,mcpool
+!                  miccpool%cpool(:,:,ip) = xpool0(ip)
+!               enddo
+!            enddo
+!       enddo
+  
+
+  END SUBROUTINE vmic_init
+
    SUBROUTINE vmic_input(dleaf,dwood,droot,nsoilmin,casamet,micparam,micinput,micnpool)
      USE casavariable,                    ONLY : casa_met
 	 USE casaparm,                        ONLY : tkzeroc
@@ -160,10 +247,10 @@ MODULE vmic_inout_mod
 	
     ! local variables added by ypwang following Chris Lu 5/nov/2012
 
-    REAL, DIMENSION(mp)                :: cleaf2met,cleaf2str, &
-	     croot2met,croot2str,cwood2cwd,                        &
-         nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,    &
-         pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd
+    REAL, DIMENSION(mp)  :: cleaf2met,cleaf2str,                                  &
+	                        croot2met,croot2str,cwood2cwd,                        &
+                            nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,    &
+                            pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd
     REAL(r_2), dimension(mp)           :: dleaf,dwood,droot
     ! local variables
     real(r_2),    dimension(mcpool)    :: xpool0,xpool1
@@ -192,10 +279,10 @@ MODULE vmic_inout_mod
          casaflux,casamet,phen)
 
     ! changed by ypwang following Chris Lu on 5/nov/2012
-    CALL casa_delplant(veg,casabiome,casapool,casaflux,casamet,                &
-         cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,  &
-         nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,  &
-         pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
+    CALL casa_delplant(veg,casabiome,casapool,casaflux,casamet,            &
+                       cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,  &
+                       nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,  &
+                       pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
 		 
     call vmic_param_time(micparam,micinput,micnpool)
 	! litter fall flux in g C/m2/delt, where "delt" is one day in casa-cnp, and timesetp in vmic is hourly

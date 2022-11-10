@@ -47,9 +47,9 @@ MODULE vmic_variable_mod
   END TYPE mic_npool 
   
  
- CONTAINS
+CONTAINS
 
-  SUBROUTINE mic_allocate_parameter(micparam)
+  SUBROUTINE vmic_allocate_parameter(micparam)
    IMPLICIT NONE
    TYPE(mic_parameter), INTENT(INOUT)  :: micparam
 !   integer  mp,ms
@@ -117,9 +117,9 @@ MODULE vmic_variable_mod
              micparam%csoilobs(mp,ms), &
              micparam%bulkd(mp,ms)) 
    
-  END SUBROUTINE mic_allocate_parameter
+  END SUBROUTINE vmic_allocate_parameter
   
-  SUBROUTINE mic_allocate_input(micinput)
+  SUBROUTINE vmic_allocate_input(micinput)
    IMPLICIT NONE
 !   integer mp,ms
    TYPE(mic_input), INTENT(INOUT)  :: micinput
@@ -133,33 +133,33 @@ MODULE vmic_variable_mod
              micinput%cinputm(mp,ms), &
              micinput%cinputs(mp,ms) )
    
-  END SUBROUTINE mic_allocate_input
+  END SUBROUTINE vmic_allocate_input
   
-  SUBROUTINE mic_allocate_output(micoutput)
+  SUBROUTINE vmic_allocate_output(micoutput)
    IMPLICIT NONE
    TYPE(mic_output), INTENT(INOUT)  :: micoutput
 !   integer  mp,ms
    
    allocate(micoutput%rsoil(mp,ms))
 
-  END SUBROUTINE mic_allocate_output  
+  END SUBROUTINE vmic_allocate_output  
   
-  SUBROUTINE mic_allocate_cpool(miccpool)
+  SUBROUTINE vmic_allocate_cpool(miccpool)
    IMPLICIT NONE
 !   integer mp,ms
    TYPE(mic_cpool), INTENT(INOUT)  :: miccpool
 
    allocate(miccpool%cpool(mp,ms,mcpool))
    
-  END SUBROUTINE mic_allocate_cpool 
+  END SUBROUTINE vmic_allocate_cpool 
 
-  SUBROUTINE mic_allocate_npool(micnpool)
+  SUBROUTINE vmic_allocate_npool(micnpool)
    IMPLICIT NONE
 !   integer mp,ms
    TYPE(mic_npool), INTENT(INOUT)  :: micnpool
 
    ALLOCATE(micnpool%mineralN(mp,ms))
    
-  END SUBROUTINE mic_allocate_npool 
+  END SUBROUTINE vmic_allocate_npool 
   
 END MODULE vmic_variable_mod
