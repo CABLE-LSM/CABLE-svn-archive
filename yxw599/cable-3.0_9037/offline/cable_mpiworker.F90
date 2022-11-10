@@ -160,7 +160,9 @@ CONTAINS
     
 USE cbl_soil_snow_init_special_module
 
-    USE vmic_constant_mod,    ONLY: vmicrobe
+	USE vmic_constant_mod
+    USE vmic_variable_mod
+    USE vmic_inout_mod
 	
     IMPLICIT NONE
 
@@ -221,6 +223,14 @@ USE cbl_soil_snow_init_special_module
     TYPE (phen_variable)  :: phen
     TYPE (POP_TYPE)       :: POP
     TYPE (PLUME_MIP_TYPE) :: PLUME
+
+    ! VMIC variables
+    TYPE(mic_parameter)   :: micparam
+    TYPE(mic_input)       :: micinput
+    TYPE(mic_cpool)       :: miccpool
+    TYPE(mic_npool)       :: micnpool
+    TYPE(mic_output)      :: micoutput
+	
     CHARACTER             :: cyear*4
     CHARACTER             :: ncfile*99
 
@@ -671,12 +681,18 @@ USE cbl_soil_snow_init_special_module
              !spinup=.false. & we want CASA_dump.nc (spinConv=.true.)
 
              IF(icycle >0) THEN
-
+              if (vmicrobe==0) then
                 CALL bgcdriver( ktau, kstart, kend, dels, met,          &
                      ssnow, canopy, veg, soil,climate, casabiome,       &
                      casapool, casaflux, casamet, casabal,              &
                      phen, pop, spinConv, spinup, ktauday, idoy, loy,   &
                      .FALSE., .FALSE., LALLOC )
+					 
+					 
+			  else
+                CALL vmic_driver(ktau,dels,idoY,LALLOC,veg,soil,casabiome,casapool,casaflux, &
+                                 casamet,casabal,phen,micparam,micinput,miccpool,micnpool,micoutput)
+              endif			  
 
                 ! IF(MOD((ktau-kstart+1),ktauday)==0) THEN
                 CALL MPI_Send (MPI_BOTTOM,1, casa_t,0,ktau_gl,ocomm,ierr)
