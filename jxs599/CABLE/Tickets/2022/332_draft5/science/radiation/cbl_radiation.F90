@@ -63,12 +63,13 @@ real :: Ccapp
          flwv, &     ! vegetation long-wave radiation (isothermal)
          dummy, dummy2
 
+REAL :: VegTemp(mp)   
+REAL :: CanopyExtincion_beam(mp)
+REAL :: CanopyExtincion_dif(mp)
 
     INTEGER :: b ! rad. band 1=visible, 2=near-infrared, 3=long-wave
 
-    INTEGER, SAVE :: call_number =0
 
-    call_number = call_number + 1
 
     ! Relative leaf nitrogen concentration within canopy:
     cf2n = EXP(-veg%extkn * canopy%vlaiw)
@@ -85,16 +86,14 @@ real :: Ccapp
     END WHERE
 
     ! Define fraction of SW beam tranmitted through canopy:
-    !C!jhan: check rel. b/n extkb, extkbm,transb,cexpkbm def. cable_albedo, qsabbs
-    !! vh_js !!
     dummy2 = MIN(rad%extkb * canopy%vlaiw,30.) ! vh version to avoid floating underflow !
     dummy = EXP(-dummy2)
-    ! dummy2 = -rad%extkb * canopy%vlaiw
-    ! dummy = EXP(dummy2)
     rad%transb = REAL(dummy)
 
+VegTemp = met%tvrad
     ! Define longwave from vegetation:
-    flpwb = CSboltz * (met%tvrad) ** 4
+   ! Define longwave from vegetation:
+   flpwb = Csboltz * VegTemp**4
     flwv = Cemleaf * flpwb
 
     rad%flws = CSboltz*Cemsoil* ssnow%tss **4
@@ -109,14 +108,14 @@ real :: Ccapp
 
        ! Define radiative conductance (Leuning et al, 1995), eq. D7:
        rad%gradis(:,1) = ( 4.0 * Cemleaf / (Ccapp * air%rho) ) * flpwb        &
-            / (met%tvrad) * rad%extkd                              &
+            / VegTemp * rad%extkd                              &
             * ( ( 1.0 - rad%transb * rad%transd ) /                &
             ( rad%extkb + rad%extkd )                              &
             + ( rad%transd - rad%transb ) /                        &
             ( rad%extkb - rad%extkd ) )
 
        rad%gradis(:,2) = ( 8.0 * Cemleaf / ( Ccapp * air%rho ) ) *            &
-            flpwb / met%tvrad * rad%extkd *                        &
+            flpwb / VegTemp * rad%extkd *                        &
             ( 1.0 - rad%transd ) / rad%extkd - rad%gradis(:,1)
 
        ! Longwave radiation absorbed by sunlit canopy fraction:
@@ -178,15 +177,22 @@ real :: Ccapp
 
     rad%qssabs = 0.
 
+CanopyExtincion_beam = rad%extkbm(:,1)
+CanopyExtincion_dif  = rad%extkdm(:,1)
+!picked this up from WLSEside of IF esm1.5 loop
+WHERE (sunlit_veg_mask) ! i.e. vegetation and sunlight are present
+  CanopyExtincion_beam = EXP( -MIN(rad%extkbm(:,1) * canopy%vlaiw,20.) )
+  CanopyExtincion_dif  = EXP( -MIN(rad%extkdm(:,1) * canopy%vlaiw,20.) )
+END WHERE
     WHERE (sunlit_veg_mask) ! i.e. vegetation and sunlight are present
 
        ! Calculate shortwave radiation absorbed by soil:
        ! (av. of transmitted NIR and PAR through canopy)*SWdown
        rad%qssabs = met%fsd(:,1) * (                                            &
             rad%fbeam(:,1) * ( 1. - rad%reffbm(:,1) ) *                 &
-            EXP( -MIN(rad%extkbm(:,1) * canopy%vlaiw,20.) ) +           &
+                   CanopyExtincion_beam  +                    &
             ( 1. - rad%fbeam(:,1) ) * ( 1. - rad%reffdf(:,1) ) *        &
-            EXP( -MIN(rad%extkdm(:,1) * canopy%vlaiw,20.) ) )           &
+                   CanopyExtincion_dif )                    &
             + met%fsd(:,2) * ( rad%fbeam(:,2) * ( 1. - rad%reffbm(:,2) )&
             * rad%cexpkbm(:,2) + ( 1. - rad%fbeam(:,2) ) *              &
             ( 1. - rad%reffdf(:,2) ) * rad%cexpkdm(:,2) )
