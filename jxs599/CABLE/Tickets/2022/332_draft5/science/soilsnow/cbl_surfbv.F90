@@ -39,9 +39,7 @@ IMPLICIT NONE
     REAL :: wb_lake_T, rnof2_T, ratio
     INTEGER :: k,j
 
-    IF( cable_runtime%UM ) THEN
-       nglacier = 0
-    ELSE
+    IF( .NOT. cable_runtime%UM  .OR. cable_runtime%esm15 ) THEN
        nglacier = 2
     ENDIF
     IF( cable_runtime%esm15 ) nglacier = 2
