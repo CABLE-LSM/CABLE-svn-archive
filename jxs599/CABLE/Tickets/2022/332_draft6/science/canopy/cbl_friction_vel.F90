@@ -12,7 +12,6 @@ CONTAINS
 
 SUBROUTINE comp_friction_vel(friction_vel, iter, mp, CVONK, CUMIN, CPI_C,      &
                              zetar, zref_uv, zref_tq, z0m, ua )
-
 IMPLICIT NONE
 
 INTEGER, INTENT(IN) :: mp
@@ -41,11 +40,12 @@ REAL :: z_eff(mp)
 
 psim_1 = psim( zetar(:,iter) * zref_uv/zref_tq, mp, CPI_C   )
 
-!rescale = CVONK * MAX( ua, SPREAD(CUMIN,1,mp ) ) 
 rescale = CVONK * MAX( ua, CUMIN ) 
+
 z_eff = zref_uv / z0m
 
 psim_arg = zetar(:,iter) * z0m / zref_tq
+
 psim_2 = psim( psim_arg, mp, CPI_C  )
 
 lower_limit = rescale / ( LOG(z_eff) - psim_1 + psim_2 )

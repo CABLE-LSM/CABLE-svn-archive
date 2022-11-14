@@ -88,7 +88,6 @@ DO j=1,mp
      !see soilsnow: if frozen_limit changes need to be consistent
      fupper_limit(j) = REAL(ssnow_wb(j)-ssnow_wbice(j)/0.85)*frescale(j)
      fupper_limit(j) = MAX(REAL(fupper_limit(j),r_2),0.)
-
      canopy_fess(j) = MIN(canopy_fess(j), REAL(fupper_limit(j),r_2))
 
   END IF
@@ -126,6 +125,7 @@ ENDDO
 canopy_fesp = MIN(ssnow_pudsto/dels*air_rlam,MAX(pwet*ssnow_potev,0.))
 canopy_fes = canopy_fess + canopy_fesp
 
+RETURN
 END SUBROUTINE latent_heat_flux
 
 END MODULE cable_latent_heat_module

@@ -138,7 +138,6 @@ USE cbl_qsat_module, ONLY: qsatfjh, qsatfjh2
         met%qvair(j) = MAX(0.0,met%qvair(j))
 
         !---set limits for comparisson
-
         lower_limit =  MIN( ssnow%qstss(j), met%qv(j))
         upper_limit =  MAX( ssnow%qstss(j), met%qv(j))
 
