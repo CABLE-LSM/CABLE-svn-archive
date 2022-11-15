@@ -470,6 +470,10 @@ USE cbl_soil_snow_init_special_module
              CALL worker_cable_params(comm, met,air,ssnow,veg,bgc,soil,canopy,&
                   &                        rough,rad,sum_flux,bal)
 
+             if (vmicrobe>0) then
+               CALL worker_cable_micparams(comm,micparam,micinput,micoutput,miccpool,micnpool)
+             endif
+
              !mrd561 debug
              WRITE(wlogn,*) ' ssat_vec min',MINVAL(soil%ssat_vec),MINLOC(soil%ssat_vec)
              WRITE(wlogn,*) ' sfc_vec min',MINVAL(soil%sfc_vec),MINLOC(soil%sfc_vec)
@@ -687,12 +691,12 @@ USE cbl_soil_snow_init_special_module
                      casapool, casaflux, casamet, casabal,              &
                      phen, pop, spinConv, spinup, ktauday, idoy, loy,   &
                      .FALSE., .FALSE., LALLOC )
-					 
-					 
-			  else
+ 
+ 
+              else
                 CALL vmic_driver(ktau,dels,idoY,LALLOC,veg,soil,casabiome,casapool,casaflux, &
                                  casamet,casabal,phen,micparam,micinput,miccpool,micnpool,micoutput)
-              endif			  
+              endif  
 
                 ! IF(MOD((ktau-kstart+1),ktauday)==0) THEN
                 CALL MPI_Send (MPI_BOTTOM,1, casa_t,0,ktau_gl,ocomm,ierr)
@@ -2509,6 +2513,377 @@ USE cbl_soil_snow_init_special_module
     RETURN
 
   END SUBROUTINE worker_cable_params
+
+
+  ! MPI: creates micparam_t type for the worker to receive the default parameters
+  ! from the master process
+  ! then receives the parameters
+  ! and finally frees the MPI type
+  SUBROUTINE worker_cable_micparams (comm,micparam,micinput,micoutput,miccpool,micnpool)
+
+    USE mpi
+
+    USE cable_def_types_mod
+    USE cable_IO_vars_module
+    USE vmic_variable_mod
+    USE vmic_inout_mod, only : vmic_allocate
+
+    IMPLICIT NONE
+
+    ! subroutine arguments
+
+    INTEGER, INTENT(IN) :: comm ! MPI communicator
+
+    TYPE(mic_parameter), INTENT(INOUT) :: micparam
+    TYPE(mic_input), INTENT(INOUT)     :: micinput
+    TYPE(mic_output), INTENT(INOUT)    :: micoutput
+    TYPE(mic_cpool), INTENT(INOUT)     :: miccpool
+    TYPE(mic_npool), INTENT(INOUT)     :: micnpool
+
+    ! local vars
+
+    ! temp arrays for marshalling all fields into a single struct
+    INTEGER, ALLOCATABLE, DIMENSION(:) :: blen
+    INTEGER(KIND=MPI_ADDRESS_KIND), ALLOCATABLE, DIMENSION(:) :: displs
+    INTEGER, ALLOCATABLE, DIMENSION(:) :: types
+
+    ! temp vars for verifying block number and total length of inp_t
+    INTEGER(KIND=MPI_ADDRESS_KIND) :: text, tmplb
+    INTEGER :: tsize
+
+    INTEGER :: stat(MPI_STATUS_SIZE), ierr
+    INTEGER :: landp_t, patch_t, micparam_t
+
+    INTEGER :: r1len, r2len, i1len, llen ! block lengths
+    INTEGER :: bidx ! block index
+    INTEGER :: ntyp ! total number of blocks
+
+    INTEGER :: rank,  off, ierr2, rcount, pos
+
+    CHARACTER, DIMENSION(:), ALLOCATABLE :: rbuf
+
+    CALL MPI_Comm_rank (comm, rank, ierr)
+
+    IF (.NOT. ALLOCATED (micparam%xav)) THEN
+       WRITE (*,*) 'worker alloc micparam,micinput,miccpool,micnpool var with m patches: ',rank,mp
+       CALL vmic_allocate(micparam,micinput,micoutput,miccpool,micnpool)
+    END IF
+
+    ntyp = nmicparam
+
+    ALLOCATE (blen(ntyp))
+    ALLOCATE (displs(ntyp))
+    ALLOCATE (types(ntyp))
+
+    ! default type is byte, to be overriden for multi-D types
+    types = MPI_BYTE
+
+    r1len = mp * extr1
+    r2len = mp * extr2
+    i1len = mp * extid
+    llen = mp * extl
+
+    bidx = 0
+
+    ! the order of variables follows argument list
+    ! the order of fields within follows alloc_*_type subroutines
+
+    ! ----------- micparam --------------
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (micparam%xav, displs(bidx), ierr)
+    blen(bidx) = r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (micparam%xavexp, displs(bidx), ierr)
+    blen(bidx) = r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (micparam%xak, displs(bidx), ierr)
+    blen(bidx) = r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (micparam%xdesorp, displs(bidx), ierr)
+    blen(bidx) = r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (micparam%xbeta, displs(bidx), ierr)
+    blen(bidx) = r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (micparam%xdiffsoc, displs(bidx), ierr)
+    blen(bidx) = r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (micparam%rootbetax, displs(bidx), ierr)
+    blen(bidx) = r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (micparam%K1, displs(bidx), ierr)
+    blen(bidx) = ms * r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (micparam%K2, displs(bidx), ierr)
+    blen(bidx) = ms * r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (micparam%K3, displs(bidx), ierr)
+    blen(bidx) = ms * r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (micparam%J1, displs(bidx), ierr)
+    blen(bidx) = ms * r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (micparam%J2, displs(bidx), ierr)
+    blen(bidx) = ms * r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (micparam%J3, displs(bidx), ierr)
+    blen(bidx) = ms * r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (micparam%V1, displs(bidx), ierr)
+    blen(bidx) = ms * r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (micparam%V2, displs(bidx), ierr)
+    blen(bidx) = ms * r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (micparam%V3, displs(bidx), ierr)
+    blen(bidx) = ms * r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (micparam%W1, displs(bidx), ierr)
+    blen(bidx) = ms * r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (micparam%W2, displs(bidx), ierr)
+    blen(bidx) = ms * r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (micparam%W3, displs(bidx), ierr)
+    blen(bidx) = ms * r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (micparam%desorp, displs(bidx), ierr)
+    blen(bidx) = ms * r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (micparam%Q1, displs(bidx), ierr)
+    blen(bidx) = ms * r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (micparam%Q2, displs(bidx), ierr)
+    blen(bidx) = ms * r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (micparam%fm, displs(bidx), ierr)
+    blen(bidx) = ms * r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (micparam%fs, displs(bidx), ierr)
+    blen(bidx) = ms * r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (micparam%mgeR1, displs(bidx), ierr)
+    blen(bidx) = ms * r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (micparam%mgeR2, displs(bidx), ierr)
+    blen(bidx) = ms * r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (micparam%mgeR3, displs(bidx), ierr)
+    blen(bidx) = ms * r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (micparam%mgeK1, displs(bidx), ierr)
+    blen(bidx) = ms * r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (micparam%mgeK2, displs(bidx), ierr)
+    blen(bidx) = ms * r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (micparam%mgeK3, displs(bidx), ierr)
+    blen(bidx) = ms * r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (micparam%tvmicR, displs(bidx), ierr)
+    blen(bidx) = ms * r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (micparam%tvmicK, displs(bidx), ierr)
+    blen(bidx) = ms * r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (micparam%betamicR, displs(bidx), ierr)
+    blen(bidx) = ms * r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (micparam%betamicK, displs(bidx), ierr)
+    blen(bidx) = ms * r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (micparam%fmetave, displs(bidx), ierr)
+    blen(bidx) = ms * r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (micparam%cn_r, displs(bidx), ierr)
+    blen(bidx) = ms * mcpool * r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (micparam%fr2p, displs(bidx), ierr)
+    blen(bidx) = ms * r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (micparam%fk2p, displs(bidx), ierr)
+    blen(bidx) = ms * r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (micparam%fr2c, displs(bidx), ierr)
+    blen(bidx) = ms * r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (micparam%fk2c, displs(bidx), ierr)
+    blen(bidx) = ms * r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (micparam%fr2a, displs(bidx), ierr)
+    blen(bidx) = ms * r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (micparam%fk2a, displs(bidx), ierr)
+    blen(bidx) = ms * r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (micparam%xcnleaf, displs(bidx), ierr)
+    blen(bidx) = r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (micparam%xcnroot, displs(bidx), ierr)
+    blen(bidx) = r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (micparam%xcnwood, displs(bidx), ierr)
+    blen(bidx) = r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (micparam%fligleaf, displs(bidx), ierr)
+    blen(bidx) = r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (micparam%fligroot, displs(bidx), ierr)
+    blen(bidx) = r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (micparam%fligwood, displs(bidx), ierr)
+    blen(bidx) = r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (micparam%diffsocx, displs(bidx), ierr)
+    blen(bidx) = r2len
+
+    ! ----------- micinput --------------
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (micinput%tavg, displs(bidx), ierr)
+    blen(bidx) = ms * r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (micinput%wavg, displs(bidx), ierr)
+    blen(bidx) = ms * r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (micinput%dleaf, displs(bidx), ierr)
+    blen(bidx) = r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (micinput%dwood, displs(bidx), ierr)
+    blen(bidx) = r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (micinput%droot, displs(bidx), ierr)
+    blen(bidx) = r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (micinput%cinputm, displs(bidx), ierr)
+    blen(bidx) = ms * r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (micinput%cinputs, displs(bidx), ierr)
+    blen(bidx) = ms * r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (micinput%fcnpp, displs(bidx), ierr)
+    blen(bidx) = r2len
+
+    ! ----------- miccspool --------------
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (miccpool%cpool, displs(bidx), ierr)
+    blen(bidx) = ms * mcpool * r2len
+
+    ! ----------- micnpool --------------
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (micnpool%mineralN, displs(bidx), ierr)
+    blen(bidx) = ms * r2len
+
+    ! MPI: sanity check
+    IF (bidx /= ntyp) THEN
+       WRITE (*,*) 'worker ',rank,' invalid number of micparam_t fields',bidx,', fix it!'
+       CALL MPI_Abort (comm, 1, ierr)
+    END IF
+
+    CALL MPI_Type_create_struct (bidx, blen, displs, types, micparam_t, ierr)
+    CALL MPI_Type_commit (micparam_t, ierr)
+
+    CALL MPI_Type_size (micparam_t, tsize, ierr)
+    CALL MPI_Type_get_extent (micparam_t, tmplb, text, ierr)
+
+    WRITE (*,*) 'worker micparam_t blocks, size, extent and lb: ',rank,bidx,tsize,text,tmplb
+
+    ! MPI: check whether total size of received data equals total
+    ! data sent by all the workers
+    CALL MPI_Reduce (tsize, MPI_DATATYPE_NULL, 1, MPI_INTEGER, MPI_SUM, 0, comm, ierr)
+
+    DEALLOCATE(types)
+    DEALLOCATE(displs)
+    DEALLOCATE(blen)
+
+    ! if anything went wrong the master will mpi_abort
+    ! which mpi_recv below is going to catch...
+
+    ! so, now receive all the parameters
+    !    CALL MPI_Recv (MPI_BOTTOM, 1, micparam_t, 0, 0, comm, stat, ierr)
+    !   Maciej: buffered recv + unpac version
+    ALLOCATE (rbuf(tsize))
+    CALL MPI_Recv (rbuf, tsize, MPI_BYTE, 0, 0, comm, stat, ierr)
+    CALL MPI_Get_count (stat, micparam_t, rcount, ierr2)
+
+    IF (ierr == MPI_SUCCESS .AND. ierr2 == MPI_SUCCESS .AND. rcount == 1) THEN
+       pos = 0
+       CALL MPI_Unpack (rbuf, tsize, pos, MPI_BOTTOM, rcount, micparam_t, &
+            comm, ierr)
+       IF (ierr /= MPI_SUCCESS) WRITE(*,*),'cable param unpack error, rank: ',rank,ierr
+    ELSE
+       WRITE(*,*),'cable param recv rank err err2 rcount: ',rank, ierr, ierr2, rcount
+    END IF
+
+    DEALLOCATE(rbuf)
+
+
+    ! finally free the MPI type
+    CALL MPI_Type_Free (micparam_t, ierr)
+
+
+    ! all CABLE parameters have been received from the master by now
+    RETURN
+
+  END SUBROUTINE worker_cable_micparams
 
 
   ! MPI: creates param_t type for the worker to receive the default casa

@@ -66,6 +66,10 @@ MODULE cable_mpicommon
   ! added 4 time fields in met: year, moy, doy, hod
   INTEGER, PARAMETER :: ninput = 16
 
+  ! MPI: number of mic parameters sent to workers as
+  ! start up parameters
+  INTEGER, PARAMETER :: nmicparam = 59
+
   ! MPI: number of 3D array slices / worker (results)
   INTEGER, PARAMETER :: n3d = 1
 

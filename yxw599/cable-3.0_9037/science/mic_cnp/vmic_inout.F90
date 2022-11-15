@@ -194,11 +194,11 @@ CONTAINS
 
    SUBROUTINE vmic_input(dleaf,dwood,droot,nsoilmin,casamet,micparam,micinput,micnpool)
      USE casavariable,                    ONLY : casa_met
-	 USE casaparm,                        ONLY : tkzeroc
+     USE casaparm,                        ONLY : tkzeroc
      implicit none
      TYPE (casa_met),     INTENT(IN)          :: casamet
      TYPE(mic_parameter), INTENT(IN)          :: micparam
-     TYPE(mic_input),     INTENT(OUT)         :: micinput
+     TYPE(mic_input),     INTENT(INOUT)         :: micinput
      TYPE(mic_npool),     INTENT(INOUT)       :: micnpool   
      real(r_2),  dimension(mp)                :: dleaf,dwood,droot,fcnpp,nsoilmin
      real(r_2),  dimension(17)                :: fcnpp_pft
@@ -208,16 +208,16 @@ CONTAINS
      integer np,ivt
   
        do np=1,mp
-	      !
+      !
           ivt =micparam%pft(np)
-	      micinput%fcnpp(np) = fcnpp_pft(ivt)         ! gc/m2/year for calculating microbial turnover rate (constant!!)
-	      micinput%dleaf(np) = dleaf(np)              ! gc/m2/deltvmic
-		  micinput%dwood(np) = dwood(np)              ! gc/m2/deltvmic
+          micinput%fcnpp(np) = fcnpp_pft(ivt)         ! gc/m2/year for calculating microbial turnover rate (constant!!)
+          micinput%dleaf(np) = dleaf(np)              ! gc/m2/deltvmic
+          micinput%dwood(np) = dwood(np)              ! gc/m2/deltvmic
           micinput%droot(np) = droot(np)              ! gc/m2/deltvmic
-		  micinput%tavg(np,:)= casamet%tsoil(np,:)- tkzeroc
-		  micinput%wavg(np,:)= casamet%moist(np,:)
-		  micnpool%mineralN(np,1:ms) = nsoilmin(np)   ! temporary solution
-	   enddo	
+          micinput%tavg(np,:)= casamet%tsoil(np,:)- tkzeroc
+          micinput%wavg(np,:)= casamet%moist(np,:)
+          micnpool%mineralN(np,1:ms) = nsoilmin(np)   ! temporary solution
+   enddo
   end SUBROUTINE vmic_input
 
   SUBROUTINE vmic_driver(ktau,dels,idoY,LALLOC,veg,soil,casabiome,casapool,casaflux, &
@@ -225,7 +225,7 @@ CONTAINS
     USE casadimension
     USE casa_cnp_module
     USE casavariable
-	use vmic_carbon_cycle_mod
+    use vmic_carbon_cycle_mod
     IMPLICIT NONE
     INTEGER, INTENT(IN)    :: ktau
     REAL,    INTENT(IN)    :: dels
@@ -243,12 +243,12 @@ CONTAINS
     TYPE (mic_input),             INTENT(INOUT) :: micinput
     TYPE (mic_cpool),             INTENT(INOUT) :: miccpool
     TYPE (mic_npool),             INTENT(INOUT) :: micnpool
-    TYPE (mic_output),            INTENT(INOUT) :: micoutput	
-	
+    TYPE (mic_output),            INTENT(INOUT) :: micoutput
+
     ! local variables added by ypwang following Chris Lu 5/nov/2012
 
     REAL, DIMENSION(mp)  :: cleaf2met,cleaf2str,                                  &
-	                        croot2met,croot2str,cwood2cwd,                        &
+                            croot2met,croot2str,cwood2cwd,                        &
                             nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,    &
                             pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd
     REAL(r_2), dimension(mp)           :: dleaf,dwood,droot
@@ -258,9 +258,9 @@ CONTAINS
     REAL(r_2),    DIMENSION(mp)        :: xnplimit,xNPuptake
     REAL(r_2),    DIMENSION(mp)        :: xklitter,xksoil,xkNlimiting
     REAL(r_2),    DIMENSION(mp)        :: xkleafcold,xkleafdry,xkleaf
-	REAL(r_2),    DIMENSION(mp)        :: nsoilmin
-	REAL(r_2)                          :: delty,timex,diffsocxx
-	integer ndeltvmic,ntime
+    REAL(r_2),    DIMENSION(mp)        :: nsoilmin
+    REAL(r_2)                          :: delty,timex,diffsocxx
+    integer ndeltvmic,ntime
     INTEGER  np,ip,ns,is
     integer ivegx,isox
 
@@ -283,14 +283,14 @@ CONTAINS
                        cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,  &
                        nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,  &
                        pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
-		 
+ 
     call vmic_param_time(micparam,micinput,micnpool)
-	! litter fall flux in g C/m2/delt, where "delt" is one day in casa-cnp, and timesetp in vmic is hourly
-	dleaf(:) = (cleaf2met(:)+cleaf2str(:))/24.0
-	dwood(:) =  cwood2cwd(:)/24.0
-	droot(:) = (croot2met(:)+croot2str(:))/24.0
-	nsoilmin(:) = 2.0    ! mg N/kg soil
-	call vmic_input(dleaf,dwood,droot,nsoilmin,casamet,micparam,micinput,micnpool)
+! litter fall flux in g C/m2/delt, where "delt" is one day in casa-cnp, and timesetp in vmic is hourly
+    dleaf(:) = (cleaf2met(:)+cleaf2str(:))/24.0
+    dwood(:) =  cwood2cwd(:)/24.0
+    droot(:) = (croot2met(:)+croot2str(:))/24.0
+    nsoilmin(:) = 2.0    ! mg N/kg soil
+    call vmic_input(dleaf,dwood,droot,nsoilmin,casamet,micparam,micinput,micnpool)
 
     do np=1,mp
        ! do MIMICS for each soil layer
@@ -298,24 +298,24 @@ CONTAINS
            do ip=1,mcpool
               xpool0(ip) = miccpool%cpool(np,ns,ip)
            enddo
-		   
+
            ndeltvmic=24  ! 24-hourly
            delty = real(ndeltvmic) * deltvmic  ! time step in rk4 in "delt"
-		   timex = real(idoy)
-		   
-           do ntime=1,1			 
+           timex = real(idoy)
+   
+           do ntime=1,1
              call rk4modelx(timex,delty,np,ns,micparam,micinput,xpool0,xpool1)
              ! the following used to avoid poolsize<0.0
              do ip=1,mcpool
                 xpool0(ip) = max(1.0e-8,xpool1(ip))
              enddo
            enddo
-		   
+
            xpool1=xpool0 
            do ip=1,mcpool
               miccpool%cpool(np,ns,ip) = xpool1(ip)
            enddo
-		   
+
            ! soil respiration in mg c/cm3/deltvmic		   
            micoutput%rsoil(np,ns) = micinput%dleaf(np)+micinput%dwood(np)+micinput%droot(np) &
                                   - sum(xpool1(1:mcpool)-sum(xpool0(1:mcpool)))
