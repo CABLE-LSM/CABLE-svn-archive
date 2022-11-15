@@ -55,27 +55,21 @@ CONTAINS
 !========================================================================
 !========================================================================
 
-!SUBROUTINE cable_casa_init(sin_theta_latitude,um1,cpool_tile,npool_tile,ppool_tile, &
 SUBROUTINE init_casacnp(sin_theta_latitude,cpool_tile,npool_tile,ppool_tile, &
                            soil_order,nidep,nifix,pwea,pdust,&
                            wood_hvest_c,wood_hvest_n,wood_hvest_P,&
                            wood_flux_c,wood_flux_n,wood_flux_P,&
                            wresp_c,wresp_n,wresp_P,thinning,&
                            GLAI,PHENPHASE,PREV_YR_SFRAC,idoy)
-! Lest 20 Jan 2011
     USE cable_def_types_mod
-    !USE define_dimensions
-    !USE define_types
+  USE casa_readbiome_module, ONLY: casa_readbiome
     USE cable_um_tech_mod, ONLY : um1, veg, soil, canopy
     USE casavariable
     USE phenvariable
     USE casa_types_mod
-    !USE casa_inout
 
 IMPLICIT NONE
 
-!    TYPE (um_dimensions), INTENT(IN)          :: um1
-!   LOGICAL, INTENT(INOUT), DIMENSION(um1%land_pts, um1%ntiles) :: L_tile_pts
     REAL   , INTENT(IN)   , DIMENSION(um1%row_length,um1%rows)  :: sin_theta_latitude
     REAL   , INTENT(INOUT) :: cpool_tile(um1%land_pts,um1%ntiles,10)
     REAL   , INTENT(INOUT) :: npool_tile(um1%land_pts,um1%ntiles,10)
@@ -87,7 +81,6 @@ IMPLICIT NONE
     REAL   , INTENT(INOUT) :: pdust(um1%land_pts)
     REAL   , INTENT(INOUT) :: GLAI(um1%land_pts,um1%ntiles)
     REAL   , INTENT(INOUT) :: PHENPHASE(um1%land_pts,um1%ntiles)
-    !INTEGER, INTENT(INOUT) :: PHENPHASE(um1%land_pts,um1%ntiles)
     REAL   , INTENT(INOUT) :: PREV_YR_SFRAC(um1%land_pts,um1%ntiles)
     REAL   , INTENT(INOUT) :: WOOD_HVEST_C(um1%land_pts,um1%ntiles,3)
     REAL   , INTENT(INOUT) :: WOOD_HVEST_N(um1%land_pts,um1%ntiles,3)
@@ -111,12 +104,9 @@ IMPLICIT NONE
 !!   casafile%cnpmetin ='/home/599/lxs599/surface_data/casametDH.csv'
 !    casafile%cnpflux  =' '
 
-!print *,'Lest um_inout',mp,um1%land_pts,um1%ntiles
-
     CALL alloc_casavariable(casabiome,casapool,casaflux,casamet,casabal,mp)
     CALL alloc_phenvariable(phen,mp)
 
-    !CALL casa_readpoint_pk(sin_theta_latitude,veg,soil,casaflux,casamet,um1, &
     CALL casa_readpoint_pk(sin_theta_latitude,veg,soil,casaflux,casamet, &
                           nidep,nifix,pwea,pdust,soil_order)
     CALL casa_readbiome(veg,soil,casabiome,casapool,casaflux,casamet,phen)

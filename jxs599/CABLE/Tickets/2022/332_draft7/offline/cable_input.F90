@@ -56,6 +56,7 @@ MODULE cable_input_module
   USE cable_common_module, ONLY : filename, cable_user, CurYear, is_leapyear
   USE casa_ncdf_module, ONLY: HANDLE_ERR
   USE casa_inout_module, ONLY: casa_readbiome, casa_readphen, casa_init
+  USE casa_readbiome_module, ONLY: casa_readbiome
 
   IMPLICIT NONE
 
