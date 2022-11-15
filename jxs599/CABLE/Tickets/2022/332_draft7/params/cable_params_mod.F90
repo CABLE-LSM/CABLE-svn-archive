@@ -247,7 +247,7 @@ TYPE soilin_type
 END TYPE soilin_type
 
 !Instantiate types
-TYPE(vegin_type),  SAVE  :: vegin !read from namelist
-TYPE(soilin_type), SAVE :: soilin !read from namelist
+TYPE(vegin_type)    :: vegin !read from namelist
+TYPE(soilin_type)  :: soilin !read from namelist
 
 END MODULE cable_params_mod
