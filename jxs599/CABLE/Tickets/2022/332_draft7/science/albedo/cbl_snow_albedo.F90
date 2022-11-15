@@ -87,6 +87,10 @@ CONTAINS
        !snrat is how little (as fraction) of the underlying soil 'seen'
        tmp = SnowDepth / MAX (SnowDensity, 200.0)
        snrat = MIN(1.0, tmp/ (tmp + 0.1))
+       !this was in draft6
+       WHERE (soil_type == perm_ice)
+         snrat = 1.
+       END WHERE
 
        !snow age and zenith angle factors
        fage = 1.0 - 1.0 / (1.0 + SnowAge )
