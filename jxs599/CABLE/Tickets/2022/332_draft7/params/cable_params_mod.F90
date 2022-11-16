@@ -177,6 +177,9 @@ END TYPE vegin_type
           albsoilf   ! soil reflectance
 
      REAL, DIMENSION(:,:), POINTER :: &
+          heat_cap_lower_limit
+
+     REAL, DIMENSION(:,:), POINTER :: &
           zse_vec,css_vec,cnsd_vec
 
      REAL, DIMENSION(:), POINTER ::                                      &
