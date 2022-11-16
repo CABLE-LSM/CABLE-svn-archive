@@ -45,7 +45,7 @@ MODULE casa_um_inout_mod
 !!  USE cable_common_module  ! ktau_gl, kend_gl
   USE landuse_mod
   USE feedback_mod
-  USE casa_inout_mod
+  USE casa_inout_module
 
 IMPLICIT NONE 
 
