@@ -142,12 +142,13 @@ DO i=1,mp
 
 ENDDO
 
- 'fess' is for soil evap and 'fes' is for soil evap plus soil puddle evap
-anopy%segg = canopy%fess / CHL
-anopy%segg = ( canopy%fess + canopy%fes_cor ) / CHL
+! 'fess' is for soil evap and 'fes' is for soil evap plus soil puddle evap
+canopy%segg = canopy%fess / CHL
+canopy%segg = ( canopy%fess + canopy%fes_cor ) / CHL
 
- Initialise snow evaporation:
-snow%evapsn = 0
+! Initialise snow evaporation:
+ssnow%evapsn = 0
+
 DO i=1,mp
    ! Snow evaporation and dew on snow
    ! NB the conditions on when %fes applies to %segg or %evapsn MUST(!!)
