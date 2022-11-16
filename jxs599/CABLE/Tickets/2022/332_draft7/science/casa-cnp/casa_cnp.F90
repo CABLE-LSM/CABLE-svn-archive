@@ -305,6 +305,7 @@ SUBROUTINE casa_allocation(veg,soil,casabiome,casaflux,casapool,casamet,phen, LA
 
 END SUBROUTINE casa_allocation  
 
+
 SUBROUTINE casa_xrateplant(xkleafcold,xkleafdry,xkleaf,veg,casabiome, &
                            casamet,phen)
 ! use xleafcold and xleafdry to account for

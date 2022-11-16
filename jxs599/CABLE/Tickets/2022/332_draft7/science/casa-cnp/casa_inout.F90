@@ -36,8 +36,7 @@ USE casavariable, ONLY : casafile
 
 CONTAINS
 
-  SUBROUTINE casa_readphen(veg,casamet,phen)
-    !SUBROUTINE casa_readphen(mvt,veg,casamet,phen)
+SUBROUTINE casa_readphen(veg,casamet,phen)
     ! read in the tabulated modis-derived leaf phenology data
     ! for latitude bands of 79.75 to -55.25
     USE cable_def_types_mod
@@ -45,8 +44,8 @@ CONTAINS
     USE casaparm
     USE casavariable
     USE phenvariable
+  USE cable_common_module, ONLY : knode_gl
     IMPLICIT NONE
-    !  INTEGER,              INTENT(IN)    :: mvt
     TYPE (veg_parameter_type), INTENT(IN)    :: veg  ! vegetation parameters
     TYPE (casa_met),           INTENT(IN)    :: casamet
     TYPE (phen_variable),      INTENT(INOUT) :: phen
@@ -65,6 +64,15 @@ CONTAINS
     phendoy1(:,:)= 2
 
     OPEN(101,file=casafile%phen)
+
+  if (knode_gl==0) then
+    print *, '  '; print *, 'CASA_log:'
+    print *, '  Opened file - '
+    print *, '  ', trim(casafile%phen)
+    print *, '  for reading phen vars.'
+    print *, 'End CASA_log:'; print *, '  '
+  endif
+
     READ(101,*)
     READ(101,*) (ivtx(nx),nx=1,nphen) ! fixed at 10, as only 10 of 17 IGBP PFT
     ! have seasonal leaf phenology
@@ -91,7 +99,7 @@ CONTAINS
 
     ENDDO
 
-  END SUBROUTINE casa_readphen
+END SUBROUTINE casa_readphen
 
   !SUBROUTINE casa_readpoint(veg,soil,casaflux,casamet,rad)
   !! Transfer grid information from CABLE internally, read N&P input from
