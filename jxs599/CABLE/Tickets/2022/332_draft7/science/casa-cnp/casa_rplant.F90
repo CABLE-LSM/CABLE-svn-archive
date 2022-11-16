@@ -37,7 +37,6 @@
 !   casa_rplant
 
 MODULE casa_rplant_module
-  !jhan:move thesse to subr AND ONLY-ise
   USE cable_def_types_mod
   USE casadimension
   USE casaparm
@@ -45,9 +44,9 @@ MODULE casa_rplant_module
   USE phenvariable
   USE cable_common_module, ONLY: cable_user,l_landuse ! Custom soil respiration: Ticket #42
   USE landuse_constant
-
   IMPLICIT NONE
-
+  REAL(r_2), PARAMETER :: zero = 0.0_r_2
+  REAL(r_2), PARAMETER :: one  = 1.0_r_2
 CONTAINS
 
   SUBROUTINE casa_rplant(veg,casabiome,casapool,casaflux,casamet,climate)
@@ -390,5 +389,6 @@ SUBROUTINE casa_rplant1(veg,casabiome,casapool,casaflux,casamet)
                    - casaflux%crgplant(:)
 
 END SUBROUTINE casa_rplant1
+
 
 END MODULE casa_rplant_module
