@@ -16,8 +16,9 @@ USE cable_def_types_mod
 USE cable_common_module, ONLY : cable_runtime, cable_user
 USE casadimension
 USE casa_cnp_module
-USE casa_inout_mod, ONLY : casa_cnpflux
+USE casa_inout_module, ONLY : casa_cnpflux
 USE POP_TYPES,            ONLY: POP_TYPE
+USE casa_rplant_module, ONLY: casa_rplant
 IMPLICIT NONE
 INTEGER, INTENT(IN)    :: ktau
 REAL,    INTENT(IN)    :: dels
