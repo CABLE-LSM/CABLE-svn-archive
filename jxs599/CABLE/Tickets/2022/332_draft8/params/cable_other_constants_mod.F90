@@ -33,9 +33,9 @@ REAL, PARAMETER ::                                                             &
 ! Gaussian integ. weights
 !REAL, PARAMETER :: gauss_w(nrb)=(/0.308,0.514,0.178 /) ! F90 
 REAL, PARAMETER :: gauss_w(nrb)=[0.308,0.514,0.178 ]    ! F03
-REAL, PARAMETER :: rad_thresh = 0.001
+REAL, PARAMETER :: rad_thresh = 0.001   !=0.01 for ESM1.5
                         ! minimum zenithal angle for downward SW radiation
-REAL, PARAMETER :: lai_thresh = 0.001
+REAL, PARAMETER :: lai_thresh = 0.001   !=0.01 for ESM1.5
                         ! threshold for minimum significant LAI
 
 ! minimum (cosine)zenith angle of sun signalling sunrise 

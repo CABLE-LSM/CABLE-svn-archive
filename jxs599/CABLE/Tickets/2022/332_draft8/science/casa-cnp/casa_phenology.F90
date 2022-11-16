@@ -1,5 +1,5 @@
 !==============================================================================
-! This source code is part of the
+! This source code is part of the 
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
 ! This work is licensed under the CSIRO Open Source Software License
 ! Agreement (variation of the BSD / MIT License).
@@ -30,9 +30,9 @@ MODULE phenvariable
   USE casadimension
   IMPLICIT NONE
   TYPE phen_variable
-     INTEGER,   DIMENSION(:),  POINTER :: phase
-     REAL(r_2), DIMENSION(:),  POINTER :: TKshed
-     INTEGER,   DIMENSION(:,:),POINTER :: doyphase
+    INTEGER,   DIMENSION(:),  POINTER :: phase        
+    REAL(r_2), DIMENSION(:),  POINTER :: TKshed
+    INTEGER,   DIMENSION(:,:),POINTER :: doyphase
      REAL, DIMENSION(:),  POINTER :: phen   ! fraction of max LAI
      REAL, DIMENSION(:),  POINTER :: aphen  ! annual leaf on sum
      INTEGER,   DIMENSION(:,:),POINTER :: phasespin
@@ -41,19 +41,19 @@ MODULE phenvariable
      INTEGER,   DIMENSION(:,:),POINTER :: doyphasespin_3
      INTEGER,   DIMENSION(:,:),POINTER :: doyphasespin_4
 
-  END TYPE phen_variable
+  END type phen_variable
 
 CONTAINS
 
-  SUBROUTINE alloc_phenvariable(phen,arraysize)
+SUBROUTINE alloc_phenvariable(phen,arraysize)
 
-    IMPLICIT NONE
-    TYPE(phen_variable), INTENT(INOUT) :: phen
-    INTEGER,             INTENT(IN) :: arraysize
+  IMPLICIT NONE
+  TYPE(phen_variable), INTENT(INOUT) :: phen
+  INTEGER,             INTENT(IN) :: arraysize
 
-    ALLOCATE(phen%Tkshed(mvtype))
-    ALLOCATE(phen%phase(arraysize),         &
-         phen%doyphase(arraysize,mphase))
+  ALLOCATE(phen%Tkshed(mvtype))
+  ALLOCATE(phen%phase(arraysize),         &
+           phen%doyphase(arraysize,mphase))
     ALLOCATE(phen%phen(arraysize), &
          phen%aphen(arraysize), &
          phen%phasespin(arraysize,mdyear), &
@@ -63,4 +63,4 @@ CONTAINS
          phen%doyphasespin_4(arraysize,mdyear))
   END SUBROUTINE alloc_phenvariable
 
-END MODULE phenvariable
+End MODULE phenvariable

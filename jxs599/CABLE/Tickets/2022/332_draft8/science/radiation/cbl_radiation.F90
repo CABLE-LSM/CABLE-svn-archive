@@ -66,9 +66,7 @@ real :: Ccapp
 
     INTEGER :: b ! rad. band 1=visible, 2=near-infrared, 3=long-wave
 
-    INTEGER, SAVE :: call_number =0
 
-    call_number = call_number + 1
 
     ! Relative leaf nitrogen concentration within canopy:
     cf2n = EXP(-veg%extkn * canopy%vlaiw)
@@ -85,15 +83,11 @@ real :: Ccapp
     END WHERE
 
     ! Define fraction of SW beam tranmitted through canopy:
-    !C!jhan: check rel. b/n extkb, extkbm,transb,cexpkbm def. cable_albedo, qsabbs
-    !! vh_js !!
     dummy2 = MIN(rad%extkb * canopy%vlaiw,30.) ! vh version to avoid floating underflow !
     dummy = EXP(-dummy2)
-    ! dummy2 = -rad%extkb * canopy%vlaiw
-    ! dummy = EXP(dummy2)
     rad%transb = REAL(dummy)
 
-    ! Define longwave from vegetation:
+   ! Define longwave from vegetation:
     flpwb = CSboltz * (met%tvrad) ** 4
     flwv = Cemleaf * flpwb
 
