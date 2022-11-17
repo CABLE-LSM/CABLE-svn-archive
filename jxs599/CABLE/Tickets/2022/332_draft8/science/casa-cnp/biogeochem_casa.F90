@@ -1,5 +1,5 @@
 
-#define UM_BUILD YES
+!#define UM_BUILD YES
 
 MODULE biogeochem_mod
 
@@ -18,7 +18,11 @@ USE casadimension
 USE casa_cnp_module
 USE casa_inout_module, ONLY : casa_cnpflux
 USE POP_TYPES,            ONLY: POP_TYPE
-USE casa_rplant_module, ONLY: casa_rplant
+#ifdef UM_BUILD 
+USE casa_rplant_module, ONLY: casa_rplant 
+#else
+USE casa_rplant_module, ONLY: casa_rplant1 
+#endif
 IMPLICIT NONE
 INTEGER, INTENT(IN)    :: ktau
 REAL,    INTENT(IN)    :: dels
@@ -73,8 +77,11 @@ IF (cable_user%PHENOLOGY_SWITCH.EQ.'MODIS' .OR. cable_runtime%esm15 ) THEN
   CALL phenology(idoy,veg,phen)
 ENDIF
 CALL avgsoil(veg,soil,casamet)
-CALL casa_rplant(veg,casabiome,casapool,casaflux,casamet)
-
+#ifdef UM_BUILD 
+CALL casa_rplant(veg,casabiome,casapool,casaflux,casamet,climate)
+#else
+CALL casa_rplant1(veg,casabiome,casapool,casaflux,casamet)
+#endif
 IF (.NOT.cable_user%CALL_POP) THEN
   CALL casa_allocation(veg,soil,casabiome,casaflux,casapool,casamet,phen,LALLOC)
 ENDIF
@@ -173,7 +180,9 @@ ENDIF
 CALL casa_cnpbal(casapool,casaflux,casabal)
 
 ! add "casabal" to store pool sizes before updating
-CALL casa_cnpflux(casaflux,casabal)
+#ifdef UM_BUILD 
+CALL casa_cnpflux(casaflux,casapool,casabal,.TRUE.)
+#endif
 
 ! Limit labile for spinning up only
 IF(cable_user%l_limit_labile .AND. icycle > 1) THEN

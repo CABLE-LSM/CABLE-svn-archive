@@ -14,7 +14,7 @@ SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
   USE POP_Types,  ONLY: POP_TYPE
   USE POPMODULE,            ONLY: POPStep
   USE TypeDef,              ONLY: i4b, dp
-
+USE biogeochem_mod, ONLY: biogeochem
   IMPLICIT NONE
   !!CLN  CHARACTER(LEN=99), INTENT(IN)  :: fcnpspin
   REAL,    INTENT(IN)    :: dels
@@ -172,13 +172,12 @@ SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
         ENDIF
         ! write(6699,*) casaflux%cgpp(1), climate%mtemp(1),  casaflux%crmplant(1,1)
 
-        CALL biogeochem(ktau,dels,idoy,LALLOC,veg,soil,casabiome,casapool,casaflux, &
+        CALL biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
              casamet,casabal,phen,POP,climate,xnplimit,xkNlimiting,xklitter, &
              xksoil,xkleaf,xkleafcold,xkleafdry,&
              cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,         &
              nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,         &
-             pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
-
+             pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd,LALLOC)
 
         IF (cable_user%CALL_POP .AND. POP%np.GT.0) THEN ! CALL_POP
 
@@ -375,12 +374,12 @@ SUBROUTINE spincasacnp( dels,kstart,kend,mloop,veg,soil,casabiome,casapool, &
 
 
 
-           CALL biogeochem(ktauy,dels,idoy,LALLOC,veg,soil,casabiome,casapool,casaflux, &
+           CALL biogeochem(ktauy,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
                 casamet,casabal,phen,POP,climate,xnplimit,xkNlimiting,xklitter,xksoil,xkleaf,&
                 xkleafcold,xkleafdry,&
                 cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,         &
                 nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,         &
-                pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
+                pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd,LALLOC)
 
 
 

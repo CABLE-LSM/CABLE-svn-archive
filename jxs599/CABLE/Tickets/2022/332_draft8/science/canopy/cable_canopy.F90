@@ -14,7 +14,7 @@ SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,clima
     USE cable_air_module
     USE cable_common_module
     USE cable_roughness_module
-  USE cable_climate_type_mod, ONLY : climate_type
+!  USE cable_climate_type_mod, ONLY : climate_type !presentyl inheriting this thru cable_def_types_mod
 
 USE cbl_friction_vel_module,  ONLY : comp_friction_vel, psim, psis
 USE cbl_pot_evap_snow_module, ONLY : Penman_Monteith, Humidity_deficit_method

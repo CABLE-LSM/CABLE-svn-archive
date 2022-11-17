@@ -53,6 +53,7 @@ CONTAINS
     ! maintenance respiration of woody tisse and fineroots
     ! see Sitch et al. (2003), GCB, reqn (23)
 
+USE casa_cnp_module, ONLY : vcmax_np 
     IMPLICIT NONE
     TYPE (veg_parameter_type),  INTENT(INOUT) :: veg  ! vegetation parameters
     TYPE (casa_biome),          INTENT(INOUT) :: casabiome

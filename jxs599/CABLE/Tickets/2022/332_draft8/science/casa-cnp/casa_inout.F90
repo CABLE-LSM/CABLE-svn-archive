@@ -97,7 +97,7 @@ SUBROUTINE casa_readphen(veg,casamet,phen)
 
 END SUBROUTINE casa_readphen
 
-SUBROUTINE casa_init(casabiome,casamet,casapool,casabal,veg,phen)
+SUBROUTINE casa_init(casabiome,casamet,casaflux,casapool,casabal,veg,phen)
 ! mst not used (BP sep2010)
 !! for first time reading file *_1220.csv  (BP may2010)
 !SUBROUTINE casa_init(mst,casapool,casabal,veg)
@@ -117,6 +117,7 @@ SUBROUTINE casa_init(casabiome,casamet,casapool,casabal,veg,phen)
 !  INTEGER,        INTENT(IN)    :: mst
   TYPE (casa_biome),   INTENT(IN)    :: casabiome
   TYPE (casa_met),     INTENT(INOUT) :: casamet
+TYPE (casa_flux)   , INTENT(INOUT)        :: casaflux
   TYPE (casa_pool),    INTENT(INOUT) :: casapool
   TYPE (casa_balance), INTENT(INOUT) :: casabal
 ! for first time reading file *_1220.csv  (BP may2010)
@@ -411,15 +412,17 @@ SUBROUTINE casa_fluxout(myear,veg,soil,casabal,casamet)
 END SUBROUTINE casa_fluxout
 
 ! clitterinput and csoilinput are for Julie Tang; comment out (BP apr2010)
-SUBROUTINE casa_cnpflux(casaflux,casabal)
-  USE cable_def_types_mod
-  USE casadimension
-  USE casaparm
-  USE casavariable
-  IMPLICIT NONE
-  TYPE (casa_flux),    INTENT(INOUT) :: casaflux
-  TYPE (casa_balance), INTENT(INOUT) :: casabal
-  INTEGER n
+SUBROUTINE casa_cnpflux(casaflux,casapool,casabal,zeroflux)
+USE cable_def_types_mod
+USE casadimension
+USE casaparm
+USE casavariable
+IMPLICIT NONE
+TYPE (casa_flux),    INTENT(INOUT) :: casaflux
+TYPE (casa_pool),    INTENT(INOUT) :: casapool
+TYPE (casa_balance), INTENT(INOUT) :: casabal
+LOGICAL :: zeroflux
+INTEGER n
 
   casabal%FCgppyear = casabal%FCgppyear + casaflux%Cgpp   * deltpool
   casabal%FCrpyear  = casabal%FCrpyear  + casaflux%Crp    * deltpool

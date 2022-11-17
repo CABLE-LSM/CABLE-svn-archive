@@ -2,7 +2,7 @@ MODULE bgcdriver_mod
 
 IMPLICIT NONE
 
-# define UM_BUILD YES
+!# define UM_BUILD YES
 
 CONTAINS
 

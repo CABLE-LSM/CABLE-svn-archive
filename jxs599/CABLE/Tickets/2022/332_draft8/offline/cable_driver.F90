@@ -129,6 +129,7 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
 USE cbl_soil_snow_init_special_module
 USE landuse_constant, ONLY: mstate,mvmax,mharvw
 USE landuse_variable
+  USE casa_offline_inout_module, ONLY : write_casa_output_nc,  write_casa_restart_nc
   IMPLICIT NONE
 
   ! CABLE namelist: model configuration, runtime/user switches

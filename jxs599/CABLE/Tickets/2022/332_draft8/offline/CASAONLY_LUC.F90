@@ -22,7 +22,10 @@ SUBROUTINE CASAONLY_LUC( dels,kstart,kend,veg,soil,casabiome,casapool, &
        POP_LUC_CASA_transfer,  WRITE_LUC_RESTART_NC, READ_LUC_RESTART_NC, &
        POPLUC_set_patchfrac, WRITE_LUC_OUTPUT_GRID_NC
   USE casa_cable
+  
+USE biogeochem_mod, ONLY : biogeochem
   USE casa_inout_module
+  USE casa_offline_inout_module
 
 
   IMPLICIT NONE
@@ -156,12 +159,12 @@ SUBROUTINE CASAONLY_LUC( dels,kstart,kend,veg,soil,casabiome,casapool, &
         climate%qtemp_max_last_year(:) =  casamet%mtempspin(:,idoy)
 
 
-        CALL biogeochem(ktau,dels,idoy,LALLOC,veg,soil,casabiome,casapool,casaflux, &
+        CALL biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
              casamet,casabal,phen,POP,climate,xnplimit,xkNlimiting,xklitter, &
              xksoil,xkleaf,xkleafcold,xkleafdry,&
              cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,         &
              nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,         &
-             pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
+             pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd,LALLOC)
 
         ! update time-aggregates of casa pools and fluxes
         CALL update_sum_casa(sum_casapool, sum_casaflux, casapool, casaflux, &

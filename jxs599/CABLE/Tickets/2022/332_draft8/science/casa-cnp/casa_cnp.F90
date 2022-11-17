@@ -1,3 +1,4 @@
+!#define UM_BUILD YES
 !==============================================================================
 ! This source code is part of the 
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
@@ -1675,5 +1676,20 @@ SUBROUTINE phenology(iday,veg,phen)
   ENDWHERE
 
 END SUBROUTINE phenology
+
+#ifndef UM_BUILD
+REAL FUNCTION vcmax_np(nleaf, pleaf)
+    IMPLICIT NONE
+    REAL, INTENT(IN) :: nleaf ! leaf N in g N m-2 leaf
+    REAL, INTENT(IN) :: pleaf ! leaf P in g P m-2 leaf
+
+    !Walker, A. P. et al.: The relationship of leaf photosynthetic traits – Vcmax and Jmax –
+    !to leaf nitrogen, leaf phosphorus, and specific leaf area:
+    !a meta-analysis and modeling study, Ecology and Evolution, 4, 3218-3235, 2014.
+    vcmax_np = EXP(3.946 + 0.921*LOG(nleaf) + 0.121*LOG(pleaf) + &
+         0.282*LOG(pleaf)*LOG(nleaf)) * 1.0e-6 ! units of mol m-2 (leaf)
+  END FUNCTION vcmax_np
+#endif
+
 
 END MODULE casa_cnp_module

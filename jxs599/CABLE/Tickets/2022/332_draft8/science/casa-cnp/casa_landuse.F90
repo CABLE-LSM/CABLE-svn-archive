@@ -1,3 +1,5 @@
+!# define UM_BUILD YES
+#ifndef UM_BUILD
 module landuse_mod
 
 contains
@@ -339,3 +341,4 @@ SUBROUTINE newsoil(nd,csoil_x,frac_x,ifpre_x,csoil_y,frac_y,ifpre_y)
 END SUBROUTINE newsoil
 
 End module landuse_mod
+#endif
