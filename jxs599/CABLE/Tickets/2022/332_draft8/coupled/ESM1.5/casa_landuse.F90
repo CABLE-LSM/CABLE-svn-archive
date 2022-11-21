@@ -1,5 +1,5 @@
-!# define UM_BUILD YES
-#ifndef UM_BUILD
+# define UM_BUILD YES
+#ifdef UM_BUILD
 module landuse_mod
 
 contains

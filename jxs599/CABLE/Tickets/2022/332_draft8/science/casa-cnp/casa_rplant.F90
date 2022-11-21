@@ -1,3 +1,4 @@
+#define UM_BUILD YES
 !==============================================================================
 ! This source code is part of the
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
@@ -37,21 +38,23 @@
 !   casa_rplant
 
 MODULE casa_rplant_module
+  !jhan:move thesse to subr AND ONLY-ise
   USE cable_def_types_mod
   USE casadimension
   USE casaparm
   USE casavariable
   USE phenvariable
   USE cable_common_module, ONLY: cable_user,l_landuse ! Custom soil respiration: Ticket #42
+#ifndef UM_BUILD 
   USE landuse_constant
+#endif
   IMPLICIT NONE
-  REAL(r_2), PARAMETER :: zero = 0.0_r_2
-  REAL(r_2), PARAMETER :: one  = 1.0_r_2
+
 CONTAINS
 
-  SUBROUTINE casa_rplant(veg,casabiome,casapool,casaflux,casamet,climate)
-    ! maintenance respiration of woody tisse and fineroots
-    ! see Sitch et al. (2003), GCB, reqn (23)
+SUBROUTINE casa_rplant(veg,casabiome,casapool,casaflux,casamet,climate)
+! maintenance respiration of woody tisse and fineroots
+! see Sitch et al. (2003), GCB, reqn (23)
 
 USE casa_cnp_module, ONLY : vcmax_np 
     IMPLICIT NONE
@@ -80,7 +83,6 @@ USE casa_cnp_module, ONLY : vcmax_np
     ENDWHERE
 
     Ygrow(:) = 0.65+0.2*ratioPNplant(:,leaf)/(ratioPNplant(:,leaf)+1.0/15.0)
-
     Ygrow(:) = min(0.85,max(0.65,Ygrow(:)))
 
     casaflux%crmplant(:,wood) = 0.0
@@ -256,9 +258,6 @@ USE casa_cnp_module, ONLY : vcmax_np
           ENDWHERE
 
 
-          !casaflux%Cnpp(:) = MAX(0.0,(casaflux%Cgpp(:)-SUM(casaflux%crmplant(:,:),2) &
-          !                 - casaflux%crgplant(:)))
-          ! changes made by yp wang 5 april 2013
           Casaflux%cnpp(:) = casaflux%Cgpp(:)-SUM(casaflux%crmplant(:,:),2) - casaflux%crgplant(:)
 
     WHERE(casaflux%Cnpp < 0.0)
@@ -276,7 +275,6 @@ USE casa_cnp_module, ONLY : vcmax_np
          casaflux%crmplant(:,leaf)  = casaflux%crmplant(:,leaf)  + delcrmleaf(:)
       casaflux%crmplant(:,wood)  = casaflux%crmplant(:,wood)  + delcrmwood(:)
       casaflux%crmplant(:,froot) = casaflux%crmplant(:,froot) + delcrmfroot(:)
-  !    casaflux%Cnpp(:) = casaflux%Cnpp(:) -delcrmwood(:)-delcrmfroot(:)
       casaflux%crgplant(:) = 0.0
     ENDWHERE
 
@@ -289,7 +287,7 @@ USE casa_cnp_module, ONLY : vcmax_np
 
     ENDIF
 
-  END SUBROUTINE casa_rplant
+END SUBROUTINE casa_rplant
 
 
 SUBROUTINE casa_rplant1(veg,casabiome,casapool,casaflux,casamet)
@@ -390,6 +388,5 @@ SUBROUTINE casa_rplant1(veg,casabiome,casapool,casaflux,casamet)
                    - casaflux%crgplant(:)
 
 END SUBROUTINE casa_rplant1
-
 
 END MODULE casa_rplant_module
