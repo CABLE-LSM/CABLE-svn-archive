@@ -52,7 +52,7 @@ SUBROUTINE ruff_resist(veg, rough, ssnow, canopy, LAI_pft, HGT_pft, reducedLAIdu
 !      MRR draft paper "Simplified expressions...", dec-92
 ! modified to include resistance calculations by Ray leuning 19 Jun 1998  
 
-USE cable_common_module, ONLY : cable_user, cable_runtime
+USE cable_common_module, ONLY : cable_user
 USE cable_def_types_mod, ONLY : veg_parameter_type, roughness_type,         &
                                 soil_snow_type, canopy_type, mp  
 !subrs
@@ -87,6 +87,9 @@ call HgtAboveSnow( HeightAboveSnow, mp, z0soilsn_min, veg%hc, ssnow%snowd, &
                    ssnow%ssdnn )
 rough%hruff =  HeightAboveSnow
 
+! jhan: L-new_roughness soil CALLs ruff_resist from canopy therefore IF( cable_runtime%um_explicit ) THEN
+! would ensure effective LAI remains constant thru timesteps [from explicit to explicit] i.e. mask remains
+! consistent in rad call AND expl CALL - todo??
 ! LAI decreases due to snow: formerly canopy%vlaiw
 call LAI_eff( mp, veg%vlai, veg%hc, HeightAboveSnow, &
               reducedLAIdue2snow )
@@ -108,6 +111,7 @@ IF (cable_user%soil_struc=='default') THEN
   WHERE( ssnow%snowd .GT. 0.01   )  &
     rough%z0soilsn =  MAX(z0soilsn_min, &
     rough%z0soil - rough%z0soil*MIN(ssnow%snowd,10.)/10.)
+    !Extra restriction over perma-frost on roughness
   WHERE( ssnow%snowd .GT. 0.01 .AND. veg%iveg == 17  )  &
     rough%z0soilsn =  MAX(rough%z0soilsn, z0soilsn_min_PF )
 
@@ -131,10 +135,6 @@ do i=1,mp
     rough%disp(i) = 0.0
 
     ! Reference height zref is height above the displacement height
-    IF( cable_runtime%esm15 ) THEN
-      rough%zref_uv(i) = MAX( 3.5, rough%za_uv(i) )
-      rough%zref_tq(i) = MAX( 3.5, rough%za_tq(i) )
-    ELSE     
       ! Ticket #148: Reference height is height above the displacement height
       ! noting that this must be above the roughness length and rough%hruff-rough%disp
       ! (though second case is unlikely to be attained)
@@ -142,7 +142,6 @@ do i=1,mp
       rough%zref_tq(i) = MAX( 3.5 + rough%z0m(i), rough%za_tq(i) )
       rough%zref_uv(i) = MAX( rough%zref_uv(i), rough%hruff(i)-rough%disp(i) )
       rough%zref_tq(i) = MAX( rough%zref_tq(i), rough%hruff(i)-rough%disp(i) )
-    END IF
     
     rough%zruffs(i) = 0.0
     rough%rt1usa(i) = 0.0
@@ -184,10 +183,6 @@ do i=1,mp
                     - CVONK / rough%usuh(i) ) ) * rough%hruff(i)
 
     ! Reference height zref is height above the displacement height
-    IF( cable_runtime%esm15 ) THEN
-      rough%zref_uv(i) = MAX( 3.5, rough%za_uv(i) )
-      rough%zref_tq(i) = MAX( 3.5, rough%za_tq(i) )
-    ELSE
      ! Reference height zref is height above the displacement height
      ! Ticket #148: Reference height is height above the displacement height
      ! noting that this must be above the roughness length and rough%hruff-rough%disp
@@ -195,7 +190,6 @@ do i=1,mp
      rough%zref_tq(i) = MAX( 3.5 + rough%z0m(i), rough%za_tq(i) )
      rough%zref_uv(i) = MAX( rough%zref_uv(i), rough%hruff(i)-rough%disp(i) )
      rough%zref_tq(i) = MAX( rough%zref_tq(i), rough%hruff(i)-rough%disp(i) )
-    END IF
 
     ! find coexp: see notes "simplified wind model ..." eq 34a
     ! Extinction coefficient for wind profile in canopy:

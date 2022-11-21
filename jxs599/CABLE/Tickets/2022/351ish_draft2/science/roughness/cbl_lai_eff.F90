@@ -10,7 +10,7 @@ CONTAINS
 !variable formerly known as canopy%vlaiw
 SUBROUTINE LAI_eff( mp, LAI_PFT, Hgt_PFT, HgtAboveSnow,  &
                     reducedLAIdue2snow ) 
-
+  IMPLICIT NONE
   !re-decl input args  
   integer  :: mp
   real :: LAI_PFT(mp)
