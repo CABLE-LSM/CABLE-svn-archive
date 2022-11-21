@@ -170,6 +170,7 @@ TYPE (casa_flux)   , INTENT(INOUT)        :: casaflux
     CLOSE(99)
   
   ENDIF 
+92  format(5(i6,3x),5(f15.6,3x),i6,3x,100(f15.6,3x))
 
   ! reset labile C pool,comment out by Q.Zhang 10/09/2011
   ! check pool sizes
