@@ -164,17 +164,12 @@ TYPE (casa_flux)   , INTENT(INOUT)        :: casaflux
                    casapool%psoil(npt,:),casapool%psoillab(npt),        &
                    casapool%psoilsorb(npt),casapool%psoilocc(npt)
       END SELECT 
-      IF (ABS(patch(npt)%longitude - lonz) > 0.9 .OR. &
-          ABS(patch(npt)%latitude  - latz) > 0.9) THEN
-        PRINT *, 'patch(npt)%longitude, lonz:', patch(npt)%longitude, lonz
-        PRINT *, 'patch(npt)%latitude,  latz:', patch(npt)%latitude,  latz
-        PRINT *, 'npt = ', npt
-        STOP
-      ENDIF
+    
     ENDDO
+    
     CLOSE(99)
+  
   ENDIF 
-92  format(5(i6,3x),5(f15.6,3x),i6,3x,100(f15.6,3x))
 
   ! reset labile C pool,comment out by Q.Zhang 10/09/2011
   ! check pool sizes
@@ -314,21 +309,10 @@ SUBROUTINE casa_poolout(ktau,veg,soil,casabiome,casapool,casaflux,casamet, &
       casapool%psoilocc(npt) = totpsoil(npt) *fracPocc(nso)
     ENDIF 
 
-    WRITE(nout,92) ktau,npt,veg%iveg(npt),soil%isoilm(npt),     &
-        casamet%isorder(npt),casamet%lat(npt),casamet%lon(npt), &
-        casamet%areacell(npt)*(1.0e-9),casamet%glai(npt),       &
-        casabiome%sla(veg%iveg(npt)), phen%phase(npt), casapool%clabile(npt), &
-        casapool%cplant(npt,:),casapool%clitter(npt,:),casapool%csoil(npt,:), &
-        casapool%nplant(npt,:),casapool%nlitter(npt,:),casapool%nsoil(npt,:), &
-        casapool%nsoilmin(npt),casapool%pplant(npt,:),          &
-        casapool%plitter(npt,:), casapool%psoil(npt,:),         &
-        casapool%psoillab(npt),casapool%psoilsorb(npt),casapool%psoilocc(npt), &
-        casabal%sumcbal(npt),casabal%sumnbal(npt),casabal%sumpbal(npt)
   ENDDO
 
   CLOSE(nout)
 
-92    format(5(i6,',',2x),5(f15.6,',',2x),i6,',',2x,100(f15.6,',',2x))
 END SUBROUTINE casa_poolout
 
 ! casa_fluxout output data for Julie Tang; comment out (BP apr2010)
@@ -431,11 +415,6 @@ INTEGER n
   casabal%FCneeyear = casabal%FCneeyear &
                     + (casaflux%Cnpp-casaflux%Crsoil) * deltpool
  
-!  DO n=1,3
-!    clitterinput(:,n)= clitterinput(:,n) + casaflux%kplant(:,n) * casapool%cplant(:,n) * deltpool
-!    csoilinput(:,n) = csoilinput(:,n) + casaflux%fluxCtosoil(:,n) * deltpool
-!    !csoilinput(:,n) = csoilinput(:,n)+casaflux%fluxCtolitter(:,n)*deltpool
-!  ENDDO
 
   IF (icycle >1) THEN
     casabal%FNdepyear   = casabal%FNdepyear   + casaflux%Nmindep    * deltpool

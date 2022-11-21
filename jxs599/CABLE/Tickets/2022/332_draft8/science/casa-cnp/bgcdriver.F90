@@ -1,8 +1,8 @@
+!# define UM_BUILD YES
+
 MODULE bgcdriver_mod
 
 IMPLICIT NONE
-
-!# define UM_BUILD YES
 
 CONTAINS
 
@@ -115,12 +115,12 @@ IF ( .NOT. dump_read ) THEN  ! construct casa met and flux inputs from current C
       ENDIF
 #     endif
 
-      CALL biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
+            CALL biogeochem(ktau,dels,idoy,LALLOC,veg,soil,casabiome,casapool,casaflux, &
           casamet,casabal,phen,POP,climate, xnplimit,xkNlimiting,xklitter,xksoil, &
           xkleaf,xkleafcold,xkleafdry,&
           cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,         &
           nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,         &
-          pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd, LALLOC)
+                pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
 
       IF (cable_user%CALL_POP) THEN ! accumulate input variables for POP
         
@@ -156,12 +156,12 @@ ELSE ! dump_read: ! use casa met and flux inputs from dumpfile
 
   IF( MOD((ktau-kstart+1),ktauday) == 0 ) THEN  ! end of day
 
-    CALL biogeochem(ktau,dels,idoy,veg,soil,casabiome,casapool,casaflux, &
-             casamet,casabal,phen,POP,climate, xnplimit,xkNlimiting,xklitter,xksoil, &
-             xkleaf,xkleafcold,xkleafdry,&
+         CALL biogeochem(ktau,dels,idoy,LALLOC,veg,soil,casabiome,casapool,casaflux, &
+              casamet,casabal,phen,POP,climate,xnplimit,xkNlimiting,xklitter,xksoil,xkleaf, &
+              xkleafcold,xkleafdry,&
            cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,         &
            nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,         &
-           pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd, LALLOC)
+              pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
 
     IF (cable_user%CALL_POP) THEN ! accumulate input variables for POP
 

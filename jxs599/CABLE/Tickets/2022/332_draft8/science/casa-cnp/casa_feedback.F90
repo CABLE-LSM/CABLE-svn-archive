@@ -69,8 +69,8 @@ contains
                         MAX(casabiome%ratioNCplantmin(ivt,leaf), &
                             casapool%nplant(np,leaf)/casapool%cplant(np,leaf)))
       IF (icycle>2 .AND. casapool%pplant(np,leaf)>0.0) THEN
-        npleafx(np) = MIN(30.0,MAX(8.0,casapool%nplant(np,leaf) &
-                                      /casapool%pplant(np,leaf)))
+        npleafx(np) = MIN(30.0,MAX(8.0,real(casapool%nplant(np,leaf) &
+                /casapool%pplant(np,leaf))))
       ENDIF
     ENDIF
 
@@ -94,9 +94,7 @@ contains
   ENDDO
 
   veg%ejmax = 2.0 * veg%vcmax
- END SUBROUTINE casa_feedback
+
+END SUBROUTINE casa_feedback
 
 End module feedback_mod
-
-
-

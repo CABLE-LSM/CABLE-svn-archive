@@ -21,7 +21,6 @@
 !
 !
 ! ==============================================================================
-! casa_cnp.f90
 !
 ! This module contains the following subroutines:
 !   casa_xnp
@@ -464,17 +463,6 @@ END SUBROUTINE casa_xratesoil
 
 SUBROUTINE casa_coeffplant(xkleafcold,xkleafdry,xkleaf,veg,casabiome,casapool, &
                            casaflux,casamet,phen)
-! calculate the plant litter fall rate, litter fall and sOM decomposition rate (1/day)
-! and the transfer coefficients between different pools
-!
-! inputs:
-!     xkleafcold(mp):  cold stress induced leaf senescence rate (1/day)
-!     xkleafdry(mp):   drought-induced leaf senescence rate (1/day)
-!     xkleaf(mp):      set to 0.0 during maximal leaf growth phase
-!
-! outputs:
-!     kplant(mp,mplant):        senescence rate of plant pool (1/day)
-!     fromPtoL(mp,mlitter,mplant): fraction of senesced plant biomass to litter pool (fraction)
 
   IMPLICIT NONE
   REAL(r_2), DIMENSION(mp), INTENT(IN)    :: xkleafcold,xkleafdry,xkleaf
@@ -627,6 +615,7 @@ SUBROUTINE casa_coeffsoil(xklitter,xksoil,veg,soil,casabiome,casaflux,casamet)
 END SUBROUTINE casa_coeffsoil
 
 SUBROUTINE casa_delplant(veg,casabiome,casapool,casaflux,casamet)
+
 !  calculate the chnage in plant C, N and P pools
 !  uptake of N and P will be computed in casa_uptake
 !  labile C pool will be computed casa_labile
@@ -670,6 +659,7 @@ SUBROUTINE casa_delplant(veg,casabiome,casapool,casaflux,casamet)
 
 
     IF(icycle >2) THEN
+
        IF(casaflux%fracPalloc(npt,leaf)==0.0) THEN
           casapool%dPplantdt(npt,leaf)  = - casaflux%kplant(npt,leaf) * casapool%Pplant(npt,leaf)
        else 
@@ -724,6 +714,7 @@ SUBROUTINE casa_delplant(veg,casabiome,casapool,casaflux,casamet)
 ! add P uptake
        casapool%dPplantdt(npt,:) = casapool%dPplantdt(npt,:) &
                                  + casaflux%Plabuptake(npt)*casaflux%fracPalloc(npt,:) 
+
     ENDIF  !of "icycle >2"
 
   ENDIF
@@ -946,7 +937,7 @@ DO nland=1,mp
       ENDDO    ! end of "k"
 ! need to account for flow from sorbed to occluded pool
    ENDIF
-ENDIF  ! end of /=icewater
+  ENDIF  ! end of /=icewater
 ENDDO  ! end of nland
 
 DO nland=1,mp
@@ -1010,7 +1001,7 @@ IF(casamet%iveg2(nland)/=icewater) THEN
 
       casaflux%Ploss(nland)       = 0.0 
    ENDIF
-ENDIF
+  ENDIF
 ENDDO
 
 END SUBROUTINE casa_delsoil
@@ -1030,7 +1021,6 @@ SUBROUTINE avgsoil(veg,soil,casamet)
   casamet%tsoilavg   = 0.0
   casamet%moistavg   = 0.0
   casamet%btran      = 0.0
-!  print *, 'avgsoil: froot', veg%froot
 
   DO ns = 1, ms
   DO nland=1,mp
@@ -1063,11 +1053,6 @@ SUBROUTINE casa_xkN(xkNlimiting,casapool,casaflux,casamet,casabiome,veg)
   REAL(r_2), DIMENSION(mp)         :: xFluxNsoilmin
   REAL(r_2), DIMENSION(mp)         :: xFluxNsoilimm
   REAL(r_2), DIMENSION(mp)         :: xFluxNsoilminnet
-! A maximum Clitter set to avoid positive feedback for litter accumulation
-! when N mode is activated. (Q.Zhang 23/05/2011)
-!  real(r_2), dimension(17)         :: xClitter
-!  data xClitter/100.0,100.0,100.0,100.0,50.0,150.0,150.0,100.0,&
-!                150.0,150.0,100.0, 20.0,20.0, 20.0, 20.0, 20.0,20.0/
   real(r_2) maxfinelitter(17),maxcwd(17)
   data maxfinelitter/1524.0, 384.0, 1527.0, 887.0, 157.0, &
                       361.0, 225.0,  913.0, 660.0, 100.0, &
@@ -1132,22 +1117,17 @@ SUBROUTINE casa_xkN(xkNlimiting,casapool,casaflux,casamet,casabiome,veg)
 ! Q.Zhang 23/05/2011 test code according to YPW
   WHERE(casamet%iveg2(:)/=icewater)
     WHERE((xFluxNsoilminnet(:)*deltpool + (casapool%Nsoilmin(:)-2.0)) > 0.0 &
-          .OR. xFluxNsoilminnet(:) > 0.0)
+            .OR. xFluxNsoilminnet(:) .GE. 0.0)
       xkNlimiting(:) =1.0
     ELSEWHERE
       xkNlimiting(:) =MAX(0.0, - (casapool%Nsoilmin(:)-0.5) &
                                 /(deltpool*xFluxNsoilminnet(:)))
       xkNlimiting(:) =MIN(1.0,xkNlimiting(:))
     ENDWHERE
-! Q.Zhang 23/05/2011 test
-! If pool size larger than xClitter, turnover rate will not constrained by Nsoilmin.
-!    where(casapool%clitter(:,1) > xClitter(veg%iveg(:)))
-!     xkNlimiting(:) = 1.0
-!    end where
-! end (Q.Zhang 23/05/2011)
-    where(sum(casapool%clitter,2) > maxfinelitter(veg%iveg(:)) + maxcwd(veg%iveg(:)))
+    
+    WHERE(sum(casapool%clitter,2) > maxfinelitter(veg%iveg(:)) + maxcwd(veg%iveg(:)))
      xkNlimiting(:) = 1.0
-    end where
+    END WHERE
   ENDWHERE
 
 END SUBROUTINE casa_xkN
@@ -1371,12 +1351,11 @@ SUBROUTINE casa_cnpcycle(veg,casabiome,casapool,casaflux,casamet,casabal, LALLOC
   IMPLICIT NONE
   TYPE (veg_parameter_type),    INTENT(INOUT) :: veg  ! vegetation parameters
   TYPE (casa_biome),            INTENT(INOUT) :: casabiome
-TYPE (casa_balance),          INTENT(INOUT) :: casabal
   TYPE (casa_pool),             INTENT(INOUT) :: casapool
   TYPE (casa_flux),             INTENT(INOUT) :: casaflux
   TYPE (casa_met),              INTENT(INOUT) :: casamet
-  INTEGER,                      INTENT(IN) :: LALLOC 
-
+    TYPE (casa_balance),          INTENT(INOUT) :: casabal    
+    INTEGER , INTENT(IN) :: LALLOC
   ! local variables
   REAL(r_2), DIMENSION(mp)   :: plabsorb,deltap
   INTEGER i,j,k,np,nland
@@ -1386,6 +1365,7 @@ TYPE (casa_balance),          INTENT(INOUT) :: casabal
   IF(casamet%iveg2(np) == icewater) THEN
     casamet%glai(np)   = 0.0
   ELSE  
+
     casapool%cplant(np,:)  = casapool%cplant(np,:)  &
                            + casapool%dcplantdt(np,:)  * deltpool 
     casapool%clabile(np)   = casapool%clabile(np)   &
@@ -1617,7 +1597,7 @@ END SUBROUTINE casa_ndummy
 
 
 SUBROUTINE casa_pdummy(casamet,casabal,casaflux,casapool)
-  IMPLICIT NONE
+IMPLICIT NONE
 TYPE (casa_pool),             INTENT(INOUT) :: casapool
 TYPE (casa_flux),             INTENT(INOUT) :: casaflux
 TYPE (casa_met),              INTENT(INOUT) :: casamet
@@ -1686,7 +1666,7 @@ REAL FUNCTION vcmax_np(nleaf, pleaf)
     !a meta-analysis and modeling study, Ecology and Evolution, 4, 3218-3235, 2014.
     vcmax_np = EXP(3.946 + 0.921*LOG(nleaf) + 0.121*LOG(pleaf) + &
          0.282*LOG(pleaf)*LOG(nleaf)) * 1.0e-6 ! units of mol m-2 (leaf)
-  END FUNCTION vcmax_np
 
+END FUNCTION vcmax_np
 
 END MODULE casa_cnp_module
