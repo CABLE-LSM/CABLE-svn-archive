@@ -1,4 +1,3 @@
-!#define UM_BUILD YES
 !==============================================================================
 ! This source code is part of the 
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
@@ -1677,7 +1676,6 @@ SUBROUTINE phenology(iday,veg,phen)
 
 END SUBROUTINE phenology
 
-#ifndef UM_BUILD
 REAL FUNCTION vcmax_np(nleaf, pleaf)
     IMPLICIT NONE
     REAL, INTENT(IN) :: nleaf ! leaf N in g N m-2 leaf
@@ -1689,7 +1687,6 @@ REAL FUNCTION vcmax_np(nleaf, pleaf)
     vcmax_np = EXP(3.946 + 0.921*LOG(nleaf) + 0.121*LOG(pleaf) + &
          0.282*LOG(pleaf)*LOG(nleaf)) * 1.0e-6 ! units of mol m-2 (leaf)
   END FUNCTION vcmax_np
-#endif
 
 
 END MODULE casa_cnp_module
