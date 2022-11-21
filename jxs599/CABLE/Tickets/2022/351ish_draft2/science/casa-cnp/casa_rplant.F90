@@ -1,8 +1,62 @@
+#define UM_BUILD YES
+!==============================================================================
+! This source code is part of the
+! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
+! This work is licensed under the CSIRO Open Source Software License
+! Agreement (variation of the BSD / MIT License).
+!
+! You may not use this file except in compliance with this License.
+! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located
+! in each directory containing CABLE code.
+!
+! ==============================================================================
+! Purpose: subroutines for calculating carbon, nitrogen, phosphorus cycle
+!          including plant growth
+!
+! Called from: biogeochem (mostly) or casa_xnp
+!
+! Contact: Yingping.Wang@csiro.au
+!
+! History: Developed by Yingping Wang (Wang et al., BG, 2011)
+!          Current version uses fixed phenology.
+!
+! Sep 2015: option of climate-driven phenology (V. Haverd)
+!           search for cable_user%PHENOLOGY_SWITCH (Ticket #110)
+! May 2016: option of acclimation of auttrophic respiration (V. Haverd)
+!            search for cable_user%CALL_climate (Ticket#110)
+!         : fixes to prevent carbon and nitrogen pools from going negative
+!           search for Ticket#108 (V.Haverd)
+!         : alternative functional form of vcmax, called when cable_user%vcmax=='Walker2014'
+!           (V.Haverd)
+!         : alternative allocation switch integer: LALLOC=3. (V.Haverd)
+!           leaf:wood allocation set to maintain LA:SA ratio
+!           below target value (requires casaflux%sapwood_area
+!           inherited from POP demography module. (Ticket#61)
+! ==============================================================================
+!
+! This module contains the following subroutines:
+!   casa_rplant
 
-  SUBROUTINE casa_rplant(veg,casabiome,casapool,casaflux,casamet,climate)
-    ! maintenance respiration of woody tisse and fineroots
-    ! see Sitch et al. (2003), GCB, reqn (23)
+MODULE casa_rplant_module
+  !jhan:move thesse to subr AND ONLY-ise
+  USE cable_def_types_mod
+  USE casadimension
+  USE casaparm
+  USE casavariable
+  USE phenvariable
+  USE cable_common_module, ONLY: cable_user,l_landuse ! Custom soil respiration: Ticket #42
+#ifndef UM_BUILD 
+  USE landuse_constant
+#endif
+  IMPLICIT NONE
 
+CONTAINS
+
+SUBROUTINE casa_rplant(veg,casabiome,casapool,casaflux,casamet,climate)
+! maintenance respiration of woody tisse and fineroots
+! see Sitch et al. (2003), GCB, reqn (23)
+
+USE casa_cnp_module, ONLY : vcmax_np 
     IMPLICIT NONE
     TYPE (veg_parameter_type),  INTENT(INOUT) :: veg  ! vegetation parameters
     TYPE (casa_biome),          INTENT(INOUT) :: casabiome
@@ -29,7 +83,6 @@
     ENDWHERE
 
     Ygrow(:) = 0.65+0.2*ratioPNplant(:,leaf)/(ratioPNplant(:,leaf)+1.0/15.0)
-
     Ygrow(:) = min(0.85,max(0.65,Ygrow(:)))
 
     casaflux%crmplant(:,wood) = 0.0
@@ -205,9 +258,6 @@
           ENDWHERE
 
 
-          !casaflux%Cnpp(:) = MAX(0.0,(casaflux%Cgpp(:)-SUM(casaflux%crmplant(:,:),2) &
-          !                 - casaflux%crgplant(:)))
-          ! changes made by yp wang 5 april 2013
           Casaflux%cnpp(:) = casaflux%Cgpp(:)-SUM(casaflux%crmplant(:,:),2) - casaflux%crgplant(:)
 
     WHERE(casaflux%Cnpp < 0.0)
@@ -225,7 +275,6 @@
          casaflux%crmplant(:,leaf)  = casaflux%crmplant(:,leaf)  + delcrmleaf(:)
       casaflux%crmplant(:,wood)  = casaflux%crmplant(:,wood)  + delcrmwood(:)
       casaflux%crmplant(:,froot) = casaflux%crmplant(:,froot) + delcrmfroot(:)
-  !    casaflux%Cnpp(:) = casaflux%Cnpp(:) -delcrmwood(:)-delcrmfroot(:)
       casaflux%crgplant(:) = 0.0
     ENDWHERE
 
@@ -238,7 +287,7 @@
 
     ENDIF
 
-  END SUBROUTINE casa_rplant
+END SUBROUTINE casa_rplant
 
 
 SUBROUTINE casa_rplant1(veg,casabiome,casapool,casaflux,casamet)
@@ -340,6 +389,4 @@ SUBROUTINE casa_rplant1(veg,casabiome,casapool,casaflux,casamet)
 
 END SUBROUTINE casa_rplant1
 
-
-
-
+END MODULE casa_rplant_module

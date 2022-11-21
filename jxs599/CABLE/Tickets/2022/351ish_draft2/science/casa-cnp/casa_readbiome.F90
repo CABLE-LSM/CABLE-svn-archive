@@ -1,4 +1,3 @@
-
 !==============================================================================
 ! This source code is part of the
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
@@ -37,6 +36,8 @@ CONTAINS
     USE casadimension
     USE casaparm
     USE casavariable
+USE casavariable, ONLY : casafile
+
     USE phenvariable
     !! vh_js !!
     USE cable_common_module, ONLY: cable_user
@@ -406,6 +407,5 @@ CONTAINS
 
 
   END SUBROUTINE casa_readbiome
-
 
 END MODULE casa_readbiome_module

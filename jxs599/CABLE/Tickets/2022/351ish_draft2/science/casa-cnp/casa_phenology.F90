@@ -45,7 +45,7 @@ MODULE phenvariable
 
 CONTAINS
 
-  SUBROUTINE alloc_phenvariable(phen,arraysize)
+SUBROUTINE alloc_phenvariable(phen,arraysize)
 
     IMPLICIT NONE
     TYPE(phen_variable), INTENT(INOUT) :: phen
