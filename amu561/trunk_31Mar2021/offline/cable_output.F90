@@ -1884,6 +1884,21 @@ CONTAINS
           out%Evap = 0.0
        END IF
     END IF
+   ! PotEvap: potential total evapotranspiration [kg/m^2/s]
+    IF(output%flux .OR. output%PotEvap) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%PotEvap = out%PotEvap + REAL(canopy%epot / air%rlam, 4)
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%PotEvap = out%PotEvap / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%PotEvap, 'PotEvap', out%PotEvap, &
+               ranges%PotEvap, patchout%PotEvap, 'default', met)
+          ! Reset temporary output variable:
+          out%PotEvap = 0.0
+       END IF
+    END IF
+    
     ! ECanop: interception evaporation [kg/m^2/s]
     IF(output%flux .OR. output%ECanop) THEN
        ! Add current timestep's value to total of temporary output variable:

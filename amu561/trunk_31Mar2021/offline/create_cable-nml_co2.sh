@@ -28,7 +28,7 @@ EOF
 
 #set some defaults here?  or do with if;fi after getopts
 
-metdir="/g/data/w35/mm3972/model/cable/src/CABLE-AUX/offline/"
+metdir="/g/data/w97/mm3972/model/cable/src/CABLE-AUX/offline/"
 
 while getopts “hm:r:o:l:i:r:t:v:s:y:e:g:a:f:c:” OPTION
 do
@@ -174,10 +174,10 @@ cat > $(pwd)/cable_on.nml << EOF
    filename%log = "${logfile}"
    filename%restart_in  = "${restart_infile}"
    filename%restart_out = "${restart_outfile}"
-   filename%type = "/g/data/w35/amu561/Steven_CABLE_runs/CABLE_inputs/gridinfo_AWRA_matched_veg_inputs.nc"
-   filename%veg  = "/g/data/w35/amu561/Steven_CABLE_runs/CABLE_source/CABLE-AUX/core/biogeophys/def_veg_params_zr_clitt_albedo_fix.txt"
-   filename%gw_elev ="/g/data/w35/amu561/Steven_CABLE_runs/CABLE_inputs/gridinfo_AWRA_matched_veg_inputs.nc"
-   filename%soil = "/g/data/w35/amu561/Steven_CABLE_runs/CABLE_source/CABLE-AUX/core/biogeophys/def_soil_params.txt"
+   filename%type = "/g/data/w97/amu561/Steven_CABLE_runs/CABLE_inputs/gridinfo_AWRA_matched_veg_inputs.nc"
+   filename%veg  = "/g/data/w97/amu561/Steven_CABLE_runs/CABLE_source/CABLE-AUX/core/biogeophys/def_veg_params_zr_clitt_albedo_fix.txt"
+   filename%gw_elev ="/g/data/w97/amu561/Steven_CABLE_runs/CABLE_inputs/gridinfo_AWRA_matched_veg_inputs.nc"
+   filename%soil = "/g/data/w97/amu561/Steven_CABLE_runs/CABLE_source/CABLE-AUX/core/biogeophys/def_soil_params.txt"
    vegparmnew = .TRUE.  ! using new format when true
    soilparmnew = .TRUE.  ! using new format when true
    spinup = .FALSE.  ! do we spin up the model?
@@ -220,11 +220,11 @@ cat > $(pwd)/cable_on.nml << EOF
    gswpfile%snowf = "${metfile_path}/Snowf/AWAP.Snowf.3hr.${year}.nc"
    gswpfile%LWdown= "${metfile_path}/LWdown/AWAP.LWdown.3hr.${year}.nc"
    gswpfile%SWdown= "${metfile_path}/SWdown/AWAP.SWdown.3hr.${year}.nc"
-   gswpfile%PSurf =  "/g/data/w35/amu561/Steven_CABLE_runs/CABLE_inputs/gridinfo_AWRA_matched_veg_inputs.nc" 
+   gswpfile%PSurf =  "/g/data/w97/amu561/Steven_CABLE_runs/CABLE_inputs/gridinfo_AWRA_matched_veg_inputs.nc" 
    gswpfile%Qair  = "${metfile_path}/Qair/AWAP.Qair.3hr.${year}.nc"
    gswpfile%Tair  = "${metfile_path}/Tair/AWAP.Tair.3hr.${year}.nc"
    gswpfile%wind  = "${metfile_path}/Wind/AWAP.Wind.3hr.${year}.nc"
-   gswpfile%mask  = "/g/data/w35/amu561/Steven_CABLE_runs/CABLE_inputs/gridinfo_AWRA_matched_veg_inputs.nc"
+   gswpfile%mask  = "/g/data/w97/amu561/Steven_CABLE_runs/CABLE_inputs/gridinfo_AWRA_matched_veg_inputs.nc"
    redistrb = .FALSE.  ! Turn on/off the hydraulic redistribution
    wiltParam = 0.5
    satuParam = 0.8
