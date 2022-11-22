@@ -146,6 +146,7 @@ biogeochem_casa.F90						\
 casa_feedback.F90							\
 casa_readbiome.F90						\
 casa_rplant.F90							  \
+casa_offline_inout.F90				\
 casa_sumcflux.F90
 
 
@@ -297,7 +298,7 @@ landuse_constant.o: landuse_constant.F90 cable_define_types.o casa_dimension.o
 
 casa_cnp.o: casa_cnp.F90 cable_define_types.o  casa_variable.o landuse_constant.o
 
-casa_inout.o: casa_inout.F90 POP.o cable_define_types.o  cable_iovars.o casa_variable.o casa_cnp.o casa_ncdf.o
+casa_inout.o: casa_inout.F90 POP.o cable_define_types.o  cable_iovars.o casa_variable.o casa_cnp.o casa_ncdf.o  casa_offline_inout.o
 casa_offline_inout.o: casa_offline_inout.F90 POP.o cable_define_types.o  cable_iovars.o casa_variable.o casa_cnp.o casa_ncdf.o
 
 cable_common.o: cable_common.F90  cable_iovars.o cable_pft_params.o cable_soil_params.o cable_runtime_opts_mod.o
