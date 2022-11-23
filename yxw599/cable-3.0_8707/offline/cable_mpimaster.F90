@@ -1489,14 +1489,16 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
     WRITE(logn,*) 'CABLE offline global run using gswp forcing for ', ncciy
     PRINT *,      'CABLE offline global run using gswp forcing for ', ncciy
 
-    CALL renameFiles(logn,gswpfile%rainf,ncciy,'rainf')
-    CALL renameFiles(logn,gswpfile%snowf,ncciy,'snowf')
-    CALL renameFiles(logn,gswpfile%LWdown,ncciy,'LWdown')
-    CALL renameFiles(logn,gswpfile%SWdown,ncciy,'SWdown')
-    CALL renameFiles(logn,gswpfile%PSurf,ncciy,'PSurf')
-    CALL renameFiles(logn,gswpfile%Qair,ncciy,'Qair')
-    CALL renameFiles(logn,gswpfile%Tair,ncciy,'Tair')
-    CALL renameFiles(logn,gswpfile%wind,ncciy,'wind')
+    ! this is hard-wired for reading data of 19XX to 19yy
+    ! shoudl be reomved. YP Wang
+!    CALL renameFiles(logn,gswpfile%rainf,ncciy,'rainf')
+!    CALL renameFiles(logn,gswpfile%snowf,ncciy,'snowf')
+!    CALL renameFiles(logn,gswpfile%LWdown,ncciy,'LWdown')
+!    CALL renameFiles(logn,gswpfile%SWdown,ncciy,'SWdown')
+!    CALL renameFiles(logn,gswpfile%PSurf,ncciy,'PSurf')
+!    CALL renameFiles(logn,gswpfile%Qair,ncciy,'Qair')
+!    CALL renameFiles(logn,gswpfile%Tair,ncciy,'Tair')
+!    CALL renameFiles(logn,gswpfile%wind,ncciy,'wind')
 
   END SUBROUTINE prepareFiles
 
