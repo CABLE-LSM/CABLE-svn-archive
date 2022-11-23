@@ -62,7 +62,7 @@ USE cable_phys_constants_mod, ONLY : CTFRZ   => TFRZ
        ssnow%satfrac(:) = 1.0e-8
        ssnow%rh_srf(:)  = 1.0
 
-       ssnow%wetfac = MAX( 1.e-6, MIN( 1.0,&
+   ssnow%wetfac = MAX( 1.e-6, MIN( 1.0,                                        &
             ( REAL (ssnow%wb(:,1) ) - soil%swilt/ 2.0 )                  &
             / ( soil%sfc - soil%swilt/2.0 ) ) )
    
@@ -82,6 +82,7 @@ USE cable_phys_constants_mod, ONLY : CTFRZ   => TFRZ
                ssnow%wetfac(i) = 0.7 ! lakes: hard-wired number to be removed
    
        ENDDO
+      
        ! owetfac introduced to reduce sharp changes in dry regions,
        ! especially in offline runs in which there may be discrepancies b/n
        ! timing of precip and temperature change (EAK apr2009)

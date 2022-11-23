@@ -8,11 +8,13 @@ MODULE cable_canopy_module
 CONTAINS
 
 SUBROUTINE define_canopy(bal,rad,rough,air,met,dels,ssnow,soil,veg, canopy,climate, sunlit_veg_mask, reducedLAIdue2snow )
+
     USE cable_def_types_mod
    USE cbl_radiation_module, ONLY : radiation
     USE cable_air_module
     USE cable_common_module
     USE cable_roughness_module
+!  USE cable_climate_type_mod, ONLY : climate_type !presentyl inheriting this thru cable_def_types_mod
 
 USE cbl_friction_vel_module,  ONLY : comp_friction_vel, psim, psis
 USE cbl_pot_evap_snow_module, ONLY : Penman_Monteith, Humidity_deficit_method
@@ -65,7 +67,7 @@ USE cable_photo_constants_mod, ONLY : CMAXITER  => MAXITER ! only integer here
 USE cable_math_constants_mod,  ONLY : CPI_C  => PI
 USE cable_other_constants_mod, ONLY : CLAI_THRESH  => LAI_THRESH
 
-
+  IMPLICIT NONE
 
     TYPE (balances_type), INTENT(INOUT)  :: bal
     TYPE (radiation_type), INTENT(INOUT) :: rad
@@ -157,8 +159,8 @@ logical :: sunlit_veg_mask(mp)
 
     call_number = call_number + 1
 
-    !H! vNot sure that this is appropriate for JULES standalone - HaC
-    !H!IF( .NOT. cable_runtime%um)                                                 &
+    !jhan! vNot sure that this is appropriate for JULES standalone - HaC
+    !jhan!IF( .NOT. cable_runtime%um)                                                 &
          canopy%cansto =  canopy%oldcansto
 
     ALLOCATE( cansat(mp), gbhu(mp,mf))
@@ -262,6 +264,7 @@ CALL radiation( ssnow, veg, air, met, rad, canopy, sunlit_veg_mask, &
             + psis( canopy%zetar(:,iter) * ( MAX( rough%zruffs-rough%disp,  &
             rough%z0soilsn ) )            &
             / rough%zref_tq ) ) / CVONK
+      
        rt_min = 5.
 
        !! vh_js !!
@@ -320,7 +323,7 @@ CALL radiation( ssnow, veg, air, met, rad, canopy, sunlit_veg_mask, &
              canopy%DvLitt = 3.1415841138194147e-05_r_2 ! = 2.17e-5*exp(1.0*2.6)*exp(-0.5*(2.08+(1.0*2.38)))
           ENDIF
 
-       ENDIF
+       ENDIF ! sli
 
 !       ! Aerodynamic resistance (sum 3 height integrals)/us
        ! See CSIRO SCAM, Raupach et al 1997, eq. 3.50:
@@ -384,23 +387,26 @@ CALL radiation( ssnow, veg, air, met, rad, canopy, sunlit_veg_mask, &
 
        ENDDO
 
-
        rny = SUM(rad%rniso,2) ! init current estimate net rad
        hcy = 0.0              ! init current estimate lat heat
        ecy = rny - hcy        ! init current estimate lat heat
 
        sum_rad_rniso = SUM(rad%rniso,2)
 
-       CALL dryLeaf( dels, rad, rough, air, met,                                &
-            veg, canopy, soil, ssnow, dsx,                             &
-            fwsoil, tlfx, tlfy, ecy, hcy,                              &
-            rny, gbhu, gbhf, csx, cansat,                              &
-            ghwet,  iter,climate )
+       CALL dryLeaf( dels, rad, rough, air, met,                             &
+                  veg, canopy, soil, ssnow, dsx,                             &
+                  fwsoil, tlfx, tlfy, ecy, hcy,                              &
+                  rny, gbhu, gbhf, csx, cansat,                              &
+                  ghwet, iter, climate )
 
-
-CALL wetLeaf( mp, CLAI_thresh, CCAPP, Crmair, dels, rad, rough, air,     &
-                    met, veg, canopy, cansat, tlfy,     &
-                    gbhu, gbhf, ghwet )
+      CALL wetLeaf( dels,                                 &
+                    cansat, tlfy,                                 &
+                    gbhu, gbhf, ghwet, &
+                    mp, CLAI_thresh, CCAPP, CRmair, & 
+                    reducedLAIdue2snow, sum_rad_rniso, sum_rad_gradis, & 
+                    canopy%fevw, canopy%fevw_pot, canopy%fhvw, &
+                    canopy%fwet, canopy%cansto, air%rlam, air%dsatdk, &
+                    met%tvair, met%tk, met%dva, air%psyc )
 
 
        ! Calculate latent heat from vegetation:
@@ -496,7 +502,7 @@ CALL wetLeaf( mp, CLAI_thresh, CCAPP, Crmair, dels, rad, rough, air,     &
                                  ssnow%snowd, ssnow%tgg(:,1)     )
 
 
-          ENDIF
+      ENDIF !(cable_user%ssnow_POTEV== "P-M") THEN
 
           ! Soil latent heat:
 
@@ -509,10 +515,10 @@ CALL wetLeaf( mp, CLAI_thresh, CCAPP, Crmair, dels, rad, rough, air,     &
 
           ! Calculate soil sensible heat:
           ! INH: I think this should be - met%tvair
-          !canopy%fhs = air%rho*CCAPP*(ssnow%tss - met%tk) /ssnow%rtsoil
           IF (cable_user%gw_model .OR. cable_user%or_evap) THEN
              canopy%fhs =  air%rho*CCAPP*(ssnow%tss - met%tk) / &
                   (ssnow%rtsoil + ssnow%rt_qh_sublayer)
+            
              !note if or_evap and litter are true then litter resistance is
              !incluyded above in ssnow%rt_qh_sublayer
           ELSEIF (cable_user%litter) THEN
@@ -523,22 +529,23 @@ CALL wetLeaf( mp, CLAI_thresh, CCAPP, Crmair, dels, rad, rough, air,     &
                   (ssnow%rtsoil + rhlitt)
           ELSE
              canopy%fhs = air%rho*CCAPP*(ssnow%tss - met%tvair) /ssnow%rtsoil
-          ENDIF
+        ENDIF !(cable_user%gw_model .OR. cable_user%or_evap) THEN
+    
+    ELSE !cable_user%soil_struct==default
 
-       ELSE
-
-write(6,*) "SLI is not an option right now"
+          write(6,*) "SLI is not an option right now"
           ! SLI SEB to get canopy%fhs, canopy%fess, canopy%ga
           ! (Based on old Tsoil, new canopy%tv, new canopy%fns)
           !H!CALL sli_main(1,dels,veg,soil,ssnow,met,canopy,air,rad,1)
 
-       ENDIF
 
+    ENDIF !cable_user%soil_struct==default
         
-       CALL within_canopy( mp, CRMH2o, Crmair, CTETENA, CTETENB, CTETENC, CLAI_thresh, &
-                           CCAPP, CTFRZ, rad,rough, air, met, veg, canopy, ssnow, gbhu, gbhf,    &
-                           qstvair, rt0, rhlitt, relitt )
+    CALL within_canopy( mp, CRMH2o, Crmair, CTETENA, CTETENB, CTETENC,           &
+                      CLAI_thresh, CCAPP, CTFRZ, rad, rough, air, met, veg,    &
+                      canopy, ssnow, gbhu, gbhf, qstvair, rt0, rhlitt, relitt )
 
+    ! Saturation specific humidity at soil/snow surface temperature:
        CALL qsatfjh(mp, ssnow%qstss, CRMH2o, Crmair, CTETENA, CTETENB, CTETENC,ssnow%tss-Ctfrz,met%pmb)
 
        IF (cable_user%soil_struc=='default') THEN
@@ -568,8 +575,7 @@ write(6,*) "SLI is not an option right now"
                                  REAL(ssnow%rtevap_sat),  REAL(ssnow%rtevap_unsat), & 
                                  ssnow%snowd, ssnow%tgg(:,1)     )
 
-
-          ENDIF
+      ENDIF
 
           ! Soil latent heat:
       CALL Latent_heat_flux( mp, CTFRZ, dels, soil%zse(1), soil%swilt,           &
@@ -587,6 +593,7 @@ write(6,*) "SLI is not an option right now"
                   (ssnow%rtsoil + REAL(ssnow%rt_qh_sublayer))
 
           ELSEIF (cable_user%litter) THEN
+
              !! vh_js !! account for additional litter resistance to sensible heat transfer
              !! INH simplifying code using rhlitt
              canopy%fhs =  air%rho*CCAPP*(ssnow%tss - met%tvair) / &
@@ -594,21 +601,20 @@ write(6,*) "SLI is not an option right now"
                   (ssnow%rtsoil + rhlitt)
           ELSE
              canopy%fhs = air%rho*CCAPP*(ssnow%tss - met%tvair) /ssnow%rtsoil
-             
-
-          ENDIF
+        ENDIF !IF (cable_user%gw_model .OR. cable_user%or_evap) THEN
 
           !! Ticket #90 ssnow%cls factor should be retained: required for energy balance
           !! INH: %cls factor included in %fes already - do not include here
           canopy%ga = canopy%fns-canopy%fhs-canopy%fes !*ssnow%cls
-       ELSE
 
-write(6,*) "SLI is not an option right now"
+        write(6,*) "SLI is not an option right now"
+    
+    ELSE !cable_user%soil_struct==default
           ! SLI SEB to get canopy%fhs, canopy%fess, canopy%ga
           ! (Based on old Tsoil, new canopy%tv, new canopy%fns)
           !H!CALL sli_main(1,dels,veg,soil,ssnow,met,canopy,air,rad,1)
 
-       ENDIF
+    ENDIF !cable_user%soil_struct==default
 
        ! Set total latent heat:
        canopy%fe = canopy%fev + canopy%fes
@@ -663,14 +669,12 @@ write(6,*) "SLI is not an option right now"
 
        ENDDO
 
-  CALL update_zetar( mp, NITER, canopy%zetar, iter, nrb, CVONK, CGRAV, CCAPP,  &
+  CALL update_zetar( mp, iterplus, NITER, canopy%zetar, iter, nrb, CVONK, CGRAV, CCAPP,  &
                      CLAI_THRESH, CZETmul, CZETPOS, CZETNEG,          &
                      cable_user%soil_struc, air%rho, met%tk,  met%fsd, &
                      rough%zref_tq, rough%hruff, rough%term6a, rough%z0soilsn,   &
                      canopy%vlaiw, canopy%zetash,  canopy%us, &
                      canopy%fh, canopy%fe, canopy%fhs, REAL(canopy%fes) ) 
-
-       !!880!CALL update_zetar(mp, sunlit_veg_mask)
 
     END DO           ! do iter = 1, NITER
 
@@ -696,6 +700,8 @@ write(6,*) "SLI is not an option right now"
                     / ( LOG( rough%zref_tq /(0.1*rough%z0m) )                   &
                       - psis( canopy%zetar(:,NITER) )                                  &
                       + psis(canopy%zetar(:,NITER)*0.1*rough%z0m/rough%zref_tq ) ) ! n
+
+    !INH - the screen level calculations should be split off into a new subroutine -------
 
     !INH - the screen level calculations should be split off into a new subroutine -------
 
@@ -742,12 +748,11 @@ write(6,*) "SLI is not an option right now"
           IF( zscl(j) < rough%disp(j) ) THEN
 
              !Ticket #154
-             !r_sc(j) = term5(j) * LOG(zscl(j)/rough%z0soilsn(j)) *              &
-             !     ( EXP(2*CCSW*canopy%rghlai(j)) - term1(j) ) / term3(j)
              r_sc(j) = term5(j) * LOG(zscl(j)/rough%z0soilsn(j)) *              &
                   ( EXP(2*CCSW*canopy%rghlai(j)) - term2(j) ) / term3(j)
              r_sc(j) = r_sc(j) + term5(j) * LOG(rough%disp(j)/rough%z0soilsn(j)) *  &
                   ( EXP(2*CCSW*canopy%rghlai(j)) - term1(j) ) / term3(j)
+
 
           ELSEIF( rough%disp(j) <= zscl(j) .AND.                                &
                zscl(j) < rough%hruff(j) ) THEN
@@ -764,16 +769,14 @@ write(6,*) "SLI is not an option right now"
 
 
           ELSEIF( zscl(j) >= rough%zruffs(j) ) THEN
+
              !Ticket #67 - Modify order of operations to avoid potential error
              r_sc(j) = rough%rt0us(j) + rough%rt1usa(j) + rough%rt1usb(j) +     &
                   ( LOG( (zscl(j) - rough%disp(j)) /                       &
                   MAX( rough%zruffs(j)-rough%disp(j),                      &
                   rough%z0soilsn(j) ) ) - psis( (zscl(j)-rough%disp(j))    &
-                                !Ticket #67 - change order of operations to avoid /0
-                                !        / (rough%zref_tq(j)/canopy%zetar(j,iterplus) ) )        &
                   * canopy%zetar(j,iterplus)/rough%zref_tq(j) )            &
                   + psis( (rough%zruffs(j) - rough%disp(j) )               &
-                                !        / (rough%zref_tq(j)/canopy%zetar(j,iterplus ) ) ) )     &
                   * canopy%zetar(j,iterplus)/rough%zref_tq(j) ) )          &
                   / CVONK
 
@@ -882,7 +885,6 @@ write(6,*) "SLI is not an option right now"
     ! d(canopy%fns)/d(ssnow%tgg)
     ! d(canopy%fhs)/d(ssnow%tgg)
     ! d(canopy%fes)/d(dq)
-    !IF (cable_user%soil_struc=='default') THEN
        ssnow%dfn_dtg = (-1.)*4.*CEMSOIL*CSBOLTZ*tss4/ssnow%tss
 
        !INH: REV_CORR revised sensitivity terms working variable
