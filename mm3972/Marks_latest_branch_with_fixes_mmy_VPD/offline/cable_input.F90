@@ -2852,6 +2852,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
             CALL abort('PSurf out of specified ranges!')
        endif
     END IF
+    met%qv = met%qv*0.5 ! MMY@Nov2022 reduce air humidity to reduce VPD
 
 END SUBROUTINE get_met_data
 !==============================================================================
