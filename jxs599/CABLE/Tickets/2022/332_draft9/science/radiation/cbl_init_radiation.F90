@@ -23,6 +23,7 @@ MODULE cbl_init_radiation_module
    IMPLICIT NONE
 
    PUBLIC init_radiation
+   PUBLIC Common_InitRad_Scalings
    PRIVATE
 
 !FUDGED local pars -masks tuned at other times - review conssitency!!
