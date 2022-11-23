@@ -25,9 +25,9 @@ MODULE cable_climate_mod
   !CABLE_LSM: see CABLE Ticket#149. yet still inclueded file?? legacy-hack??
 # ifndef UM_BUILD
   USE cable_IO_vars_module, ONLY: patch
+  USE casa_ncdf_module, ONLY: HANDLE_ERR
 # endif
   USE CABLE_COMMON_MODULE, ONLY: CurYear, filename, cable_user
-  USE casa_ncdf_module, ONLY: HANDLE_ERR
 
 CONTAINS
   ! ==============================================================================
