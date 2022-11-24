@@ -2117,10 +2117,12 @@ CONTAINS
                 END IF
 
                 g1 = veg%g1(i)
+                
+                ! print *, "MMY vpd ", vpd ! MMY @Nov2022
 
                 gs_coeff(i,1) = (1.0 + (g1 * fwsoil(i)) / SQRT(vpd)) / csx(i,1)
                 gs_coeff(i,2) = (1.0 + (g1 * fwsoil(i)) / SQRT(vpd)) / csx(i,2)
-
+              
             ELSE
                 STOP 'gs_model_switch failed.'
             ENDIF ! IF (cable_user%GS_SWITCH == 'leuning') THEN

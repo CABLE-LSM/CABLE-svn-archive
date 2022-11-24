@@ -1848,7 +1848,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
           met%fsd(landpt(i)%cstart:landpt(i)%cend,2) = &
                0.5 * REAL(tmpDat3(land_x(i),land_y(i),1))
         ENDDO
-        print *, "met%fsd",met%fsd ! MMY
+        ! print *, "met%fsd",met%fsd ! MMY
       END IF ! MMY
 
 ! _______________________ MMY bring below from CABLE trunk r8444  ______________________
@@ -2829,6 +2829,9 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
     ! initialise within canopy air temp
     met%tvair = met%tk
     met%tvrad = met%tk
+
+    ! met%qv = met%qv*0.5 ! MMY@Nov2022 reduce air humidity to reduce VPD
+
     IF(check%ranges) THEN
        ! Check ranges are okay:
           !jhan:quick fix, use dimension 1 here arbitrarily
@@ -2852,7 +2855,6 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
             CALL abort('PSurf out of specified ranges!')
        endif
     END IF
-    met%qv = met%qv*0.5 ! MMY@Nov2022 reduce air humidity to reduce VPD
 
 END SUBROUTINE get_met_data
 !==============================================================================
