@@ -1585,7 +1585,7 @@ CONTAINS
                                    ' is set at a value out of specified ranges!'
                       WRITE(*, *) 'Land point # ',i, 'patch #', j
                       WRITE(*, *) 'Value: ', otmp3xyp(land_x(i), land_y(i), j)
-                      CALL abort('Aborting.')
+                      ! CALL abort('Aborting.') ! MMY@Nov2022
                    END IF
                 END DO
              END IF

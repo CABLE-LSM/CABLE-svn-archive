@@ -2432,7 +2432,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
             met%ca(landpt(i)%cstart:landpt(i)%cend) = &
                   REAL(tmpDat3(land_x(i),land_y(i),1))/1000000.0
          ENDDO
-      ELSE ! i.e. ndims==4, the older ALMA format for CO2air
+      ELSE ! i.e. ndims==4, the older ALMA format for CO2air 
         ok= NF90_GET_VAR(ncid_met,id%CO2air,tmpDat4, &
              start=(/1,1,1,ktau/),count=(/xdimsize,ydimsize,1,1/))
         IF(ok /= NF90_NOERR) CALL nc_abort &
@@ -2442,7 +2442,10 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
           met%ca(landpt(i)%cstart:landpt(i)%cend) = &
                   REAL(tmpDat4(land_x(i),land_y(i),1,1))/1000000.0
         ENDDO
-      END IF  
+      END IF
+   ELSE ! MMY@Nov2022
+      ! Fix CO2 air concentration: ! MMY@Nov2022
+      met%ca(:) = fixedCO2 /1000000.0 ! MMY@Nov2022  
    END IF
 ! __________________________________________________________________________
       
@@ -2832,7 +2835,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
 
     ! met%qv = met%qv*0.5 ! MMY@Nov2022 reduce air humidity to reduce VPD
 
-    IF(check%ranges) THEN
+    IF(check%ranges) THEN ! MMY@Nov2022
        ! Check ranges are okay:
           !jhan:quick fix, use dimension 1 here arbitrarily
        IF(ANY(met%fsd(:,1)<ranges%SWdown(1)).OR.ANY(met%fsd(:,1)>ranges%SWdown(2))) &
@@ -2854,7 +2857,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
           write(*,*) "min, max Psurf", minval(met%pmb), maxval(met%pmb),ranges%Psurf(1), ranges%Psurf(2)
             CALL abort('PSurf out of specified ranges!')
        endif
-    END IF
+    END IF ! MMY@Nov2022
 
 END SUBROUTINE get_met_data
 !==============================================================================
