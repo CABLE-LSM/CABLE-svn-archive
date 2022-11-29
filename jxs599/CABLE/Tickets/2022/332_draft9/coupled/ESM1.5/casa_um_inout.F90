@@ -234,7 +234,7 @@ SUBROUTINE casa_init_pk(casabiome,casaflux,casamet,casapool,casabal,veg,canopy,p
 
 IMPLICIT NONE
 
-  TYPE (casa_biome),   INTENT(IN)       :: casabiome
+  TYPE (casa_biome),   INTENT(INOUT)    :: casabiome
   TYPE (casa_flux),    INTENT(INOUT)    :: casaflux
   TYPE (casa_met),     INTENT(INOUT)    :: casamet
   TYPE (casa_pool),    INTENT(INOUT)    :: casapool
