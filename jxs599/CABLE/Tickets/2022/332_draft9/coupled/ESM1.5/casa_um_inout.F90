@@ -386,7 +386,7 @@ SUBROUTINE casa_reinit_pk(casabiome,casamet,casapool,casabal,veg,phen, &
 
    IMPLICIT NONE
 
-   TYPE(casa_biome),         INTENT(IN)    :: casabiome
+   TYPE(casa_biome),         INTENT(INOUT)    :: casabiome
    TYPE(casa_met),           INTENT(INOUT) :: casamet
    TYPE(casa_pool),          INTENT(INOUT) :: casapool
    TYPE(casa_balance),       INTENT(INOUT) :: casabal    

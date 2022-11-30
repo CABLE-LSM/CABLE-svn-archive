@@ -109,7 +109,9 @@ CONTAINS
     USE cable_def_types_mod
     USE cable_io_vars_module, ONLY: landpt, patch
     USE cable_common_module, ONLY: cable_user
+#ifndef UM_BUILD
 USE casa_offline_inout_module, ONLY : READ_CASA_RESTART_NC
+#endif
 
     ! end addition (BP may2010)
     IMPLICIT NONE
