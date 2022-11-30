@@ -103,7 +103,7 @@ CONTAINS
        tmp = aliro * (1.0 - 0.5 * fage )
        alir = 0.4 * fzenm * (1.0 - tmp) + tmp
 
-    END WHERE
+    ENDWHERE        ! snowd > 0
     
     !H!jhan:SLI currently not available
     !H!IF(cable_user%SOIL_STRUC=='sli') THEN
