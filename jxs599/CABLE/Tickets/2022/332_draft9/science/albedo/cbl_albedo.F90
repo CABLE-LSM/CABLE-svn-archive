@@ -224,11 +224,15 @@ REAL :: xk(mp,nrb)      ! extinct. coef.for beam rad. and black leaves
 REAL :: rhoch(mp,nrb)      
 !local vars
 INTEGER :: ictr
+REAL :: factor
+
+  factor = 1.0  !esm15
+  !factor = 2.0 !trunk
 
 ! Canopy REFLection of diffuse radiation for black leaves:
 DO ictr=1,2
 
-  CanopyRefl_dif(:,ictr) = rhoch(:,ictr) *  2. *                                &
+  CanopyRefl_dif(:,ictr) = rhoch(:,ictr) *  factor *                                &
                        ( CGAUSS_W(1) * xk(:,1) / ( xk(:,1) + ExtCoeff_dif(:) )&
                        + CGAUSS_W(2) * xk(:,2) / ( xk(:,2) + ExtCoeff_dif(:) )&
                        + CGAUSS_W(3) * xk(:,3) / ( xk(:,3) + ExtCoeff_dif(:) ) )
