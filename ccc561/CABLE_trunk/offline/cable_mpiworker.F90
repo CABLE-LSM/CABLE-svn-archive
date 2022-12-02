@@ -36,7 +36,7 @@
 !                 casa_cable
 !                 casa_inout_module
 !
-! CALLs:       point2constants
+! CALLs:       
 !              casa_feedback
 !              cbm
 !              bgcdriver
@@ -69,6 +69,7 @@ MODULE cable_mpiworker
   USE cable_common_module,  ONLY: cable_user
   USE casa_inout_module
   USE casa_cable
+USE bgcdriver_mod, ONLY : bgcdriver
 
 
   IMPLICIT NONE
@@ -114,6 +115,7 @@ MODULE cable_mpiworker
   !debug moved to iovars -- easy to pass around
 
   PUBLIC :: mpidrv_worker
+  REAL, allocatable  :: heat_cap_lower_limit(:,:)
 
 CONTAINS
 
@@ -122,16 +124,16 @@ CONTAINS
     USE mpi
 
     USE cable_def_types_mod
-    USE cable_IO_vars_module, ONLY: logn,gswpfile,ncciy,leaps,                  &
+    USE cable_IO_vars_module, ONLY: logn,gswpfile,ncciy,leaps, globalMetfile,  &
          verbose, fixedCO2,output,check,patchout,    &
          patch_type,soilparmnew,&
          defaultLAI, wlogn
     USE cable_common_module,  ONLY: ktau_gl, kend_gl, knode_gl, cable_user,     &
          cable_runtime, filename, myhome,            &
          redistrb, wiltParam, satuParam, CurYear,    &
-         IS_LEAPYEAR, IS_CASA_TIME, calcsoilalbedo,                &
-         report_version_no, kwidth_gl, gw_params
-    USE cable_data_module,    ONLY: driver_type, point2constants
+         IS_LEAPYEAR, calcsoilalbedo,                &
+         kwidth_gl, gw_params
+  USE casa_ncdf_module, ONLY: is_casa_time
     USE cable_input_module,   ONLY: open_met_file,load_parameters,              &
          get_met_data,close_met_file
     USE cable_output_module,  ONLY: create_restart,open_output_file,            &
@@ -156,6 +158,8 @@ CONTAINS
 
     USE cable_namelist_util, ONLY : get_namelist_file_name,&
          CABLE_NAMELIST,arg_not_namelist
+    
+USE cbl_soil_snow_init_special_module
     IMPLICIT NONE
 
     ! MPI:
@@ -202,7 +206,6 @@ CONTAINS
     ! CABLE parameters
     TYPE (soil_parameter_type) :: soil ! soil parameters
     TYPE (veg_parameter_type)  :: veg  ! vegetation parameters
-    TYPE (driver_type)    :: C         ! constants used locally
 
     TYPE (sum_flux_type)  :: sum_flux ! cumulative flux variables
     TYPE (bgc_pool_type)  :: bgc  ! carbon pool variables
@@ -226,6 +229,7 @@ CONTAINS
          spinConv      = .FALSE., & ! has spinup converged?
          spincasa      = .FALSE., & ! TRUE: CASA-CNP Will spin mloop times,
          l_casacnp     = .FALSE., & ! using CASA-CNP with CABLE
+         l_landuse     = .FALSE., & ! using LANDUSE                 
          l_laiFeedbk   = .FALSE., & ! using prognostic LAI
          l_vcmaxFeedbk = .FALSE., & ! using prognostic Vcmax
          CASAONLY      = .FALSE., & ! ONLY Run CASA-CNP
@@ -265,12 +269,14 @@ CONTAINS
          fixedCO2,         &
          spincasa,         &
          l_casacnp,        &
+         l_landuse,        &
          l_laiFeedbk,      &
          l_vcmaxFeedbk,    &
          icycle,           &
          casafile,         &
          ncciy,            &
          gswpfile,         &
+         globalMetfile,    &   
          redistrb,         &
          wiltParam,        &
          satuParam,        &
@@ -279,6 +285,10 @@ CONTAINS
 
     INTEGER :: i,x,kk
     INTEGER :: LALLOC, iu
+!For consistency w JAC
+  REAL,ALLOCATABLE, SAVE :: c1(:,:)
+  REAL,ALLOCATABLE, SAVE :: rhoch(:,:)
+  REAL,ALLOCATABLE, SAVE :: xk(:,:)
     ! END header
 
     ! Maciej: make sure the variable does not go out of scope
@@ -350,9 +360,6 @@ CONTAINS
     ENDIF
 
     cable_runtime%offline = .TRUE.
-
-    ! associate pointers used locally with global definitions
-    CALL point2constants( C )
 
     IF( l_casacnp  .AND. ( icycle == 0 .OR. icycle > 3 ) )                   &
          STOP 'icycle must be 1 to 3 when using casaCNP'
@@ -568,6 +575,15 @@ CONTAINS
           IF (spincasa .OR. casaonly) THEN
              EXIT
           ENDIF
+
+  if( .NOT. allocated(heat_cap_lower_limit) ) then
+    allocate( heat_cap_lower_limit(mp,ms) ) 
+    heat_cap_lower_limit = 0.01
+  end if
+
+  call spec_init_soil_snow(dels, soil, ssnow, canopy, met, bal, veg, heat_cap_lower_limit)
+
+  
           ! IF (.NOT.spincasa) THEN
           ! time step loop over ktau
           KTAULOOP:DO ktau=kstart, kend
@@ -637,10 +653,10 @@ CONTAINS
                   climate, canopy, air, rad, dels, mp)
 
 
+   IF (.NOT. allocated(c1)) ALLOCATE( c1(mp,nrb), rhoch(mp,nrb), xk(mp,nrb) )
              ! CALL land surface scheme for this timestep, all grid points:
-             CALL cbm( ktau, dels, air, bgc, canopy, met,                  &
-                  bal, rad, rough, soil, ssnow,                            &
-                  sum_flux, veg, climate)
+   CALL cbm( ktau, dels, air, bgc, canopy, met, bal,                             &
+             rad, rough, soil, ssnow, sum_flux, veg, climate, xk, c1, rhoch )
 
              ssnow%smelt  = ssnow%smelt*dels
              ssnow%rnof1  = ssnow%rnof1*dels
@@ -2904,6 +2920,18 @@ CONTAINS
     !    blen(bidx) = mplant * r2len
     ! Maciej
     blen(bidx) = msoil * r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (casapool%cwoodprod, displs(bidx), ierr)
+    blen(bidx) = mwood * r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (casapool%nwoodprod, displs(bidx), ierr)
+    blen(bidx) = mwood * r2len
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (casapool%pwoodprod, displs(bidx), ierr)
+    blen(bidx) = mwood * r2len
 
     ! ------- casaflux ----
 
@@ -5942,6 +5970,19 @@ CONTAINS
     CALL MPI_Get_address (casapool%ratioPCsoil(off,1), displs(bidx), ierr)
     blocks(bidx) = r2len * msoil
 
+    bidx = bidx + 1
+    CALL MPI_Get_address (casapool%cwoodprod(off,1), displs(bidx), ierr)
+    blocks(bidx) = r2len * mwood
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (casapool%nwoodprod(off,1), displs(bidx), ierr)
+    blocks(bidx) = r2len * mwood
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (casapool%pwoodprod(off,1), displs(bidx), ierr)
+    blocks(bidx) = r2len * mwood
+
+   ! 
 
     bidx = bidx + 1
     CALL MPI_Get_address (phen%doyphase(off,1), displs(bidx), ierr)
@@ -6855,9 +6896,10 @@ CONTAINS
     CALL MPI_Get_address (phen%doyphase, displs(bidx), ierr)
     blen(bidx) = mphase * i1len
 
-    bidx = bidx + 1
-    CALL MPI_Get_address (climate%mtemp_max, displs(bidx), ierr)
-    blen(bidx) = r1len
+    ! #294 - Avoid malformed var write for now 
+    ! bidx = bidx + 1
+    ! CALL MPI_Get_address (climate%mtemp_max, displs(bidx), ierr)
+    ! blen(bidx) = r1len
 
     !****************************************************************
     ! Ndep
@@ -7181,6 +7223,7 @@ CONTAINS
     USE POPMODULE,            ONLY: POPStep
     USE TypeDef,              ONLY: i4b, dp
     USE mpi
+  USE biogeochem_mod, ONLY : biogeochem 
 
     !mrd561 debug
     USE cable_IO_vars_module, ONLY: wlogn
@@ -7218,6 +7261,14 @@ CONTAINS
     !chris 12/oct/2012 for spin up casa
     REAL,      DIMENSION(:), ALLOCATABLE, SAVE  :: avg_ratioNCsoilmic,  avg_ratioNCsoilslow,  avg_ratioNCsoilpass
     REAL(r_2), DIMENSION(:), ALLOCATABLE, SAVE  :: avg_xnplimit,  avg_xkNlimiting,avg_xklitter, avg_xksoil
+
+  REAL,      DIMENSION(:), ALLOCATABLE, SAVE  :: avg_af
+  REAL,      DIMENSION(:), ALLOCATABLE, SAVE  :: avg_aw
+  REAL,      DIMENSION(:), ALLOCATABLE, SAVE  :: avg_ar
+  REAL,      DIMENSION(:), ALLOCATABLE, SAVE  :: avg_lf
+  REAL,      DIMENSION(:), ALLOCATABLE, SAVE  :: avg_lw
+  REAL,      DIMENSION(:), ALLOCATABLE, SAVE  :: avg_lr
+  REAL,      DIMENSION(:), ALLOCATABLE, SAVE  :: avg_annual_cnpp
 
     ! local variables
     INTEGER                  :: myearspin,nyear, nloop1, LOY
@@ -7272,6 +7323,20 @@ CONTAINS
          avg_rationcsoilmic(mp),avg_rationcsoilslow(mp),avg_rationcsoilpass(mp),                        &
          avg_nsoilmin(mp),  avg_psoillab(mp),    avg_psoilsorb(mp), avg_psoilocc(mp))
 
+  ALLOCATE(avg_af(mp))
+  ALLOCATE(avg_aw(mp))
+  ALLOCATE(avg_ar(mp))
+  ALLOCATE(avg_lf(mp))
+  ALLOCATE(avg_lw(mp))
+  ALLOCATE(avg_lr(mp))
+  ALLOCATE(avg_annual_cnpp(mp))
+  avg_af = 0.0
+  avg_aw = 0.0
+  avg_ar = 0.0
+  avg_lf = 0.0
+  avg_lw = 0.0
+  avg_lr = 0.0
+  avg_annual_cnpp = 0.0
 
     myearspin = CABLE_USER%CASA_SPIN_ENDYEAR - CABLE_USER%CASA_SPIN_STARTYEAR + 1
     ! compute the mean fluxes and residence time of each carbon pool
@@ -7332,6 +7397,15 @@ CONTAINS
           !    xkNlimiting = 0.001
           ! END WHERE
 
+        ! Calculate average allocation fractions  (-) for the plant pools
+        avg_af = avg_af + casaflux%fracCalloc(:,leaf)
+        avg_aw = avg_aw + casaflux%fracCalloc(:,wood)
+        avg_ar = avg_ar + casaflux%fracCalloc(:,froot)
+
+        ! Calculate average turnover rates for the plant pools (yr-1)
+        avg_lf = avg_lf + (casaflux%kplant(:,leaf) * REAL(LOY))
+        avg_lw = avg_lw + (casaflux%kplant(:,wood) * REAL(LOY))
+        avg_lr = avg_lr + (casaflux%kplant(:,froot) * REAL(LOY))
 
           avg_cleaf2met = avg_cleaf2met + cleaf2met
           avg_cleaf2str = avg_cleaf2str + cleaf2str
@@ -7372,46 +7446,57 @@ CONTAINS
        ENDDO
     ENDDO
 
-    !!CLN    CLOSE(91)
+ ! Average the plant allocation fraction
+  avg_af = avg_af / REAL(nday)
+  avg_aw = avg_aw / REAL(nday)
+  avg_ar = avg_ar / REAL(nday)
 
-    avg_cleaf2met = avg_cleaf2met/REAL(nday*myearspin)
-    avg_cleaf2str = avg_cleaf2str/REAL(nday*myearspin)
-    avg_croot2met = avg_croot2met/REAL(nday*myearspin)
-    avg_croot2str = avg_croot2str/REAL(nday*myearspin)
-    avg_cwood2cwd = avg_cwood2cwd/REAL(nday*myearspin)
+  ! Average the plant turnover fraction
+  avg_lf = avg_lf / REAL(nday)
+  avg_lw = avg_lw / REAL(nday)
+  avg_lr = avg_lr / REAL(nday)
 
-    avg_nleaf2met = avg_nleaf2met/REAL(nday*myearspin)
-    avg_nleaf2str = avg_nleaf2str/REAL(nday*myearspin)
-    avg_nroot2met = avg_nroot2met/REAL(nday*myearspin)
-    avg_nroot2str = avg_nroot2str/REAL(nday*myearspin)
-    avg_nwood2cwd = avg_nwood2cwd/REAL(nday*myearspin)
+  ! Need the annual NPP to solve plant pools g C m-2 y-1
+  avg_annual_cnpp = avg_cnpp / REAL(myearspin)
 
-    avg_pleaf2met = avg_pleaf2met/REAL(nday*myearspin)
-    avg_pleaf2str = avg_pleaf2str/REAL(nday*myearspin)
-    avg_proot2met = avg_proot2met/REAL(nday*myearspin)
-    avg_proot2str = avg_proot2str/REAL(nday*myearspin)
-    avg_pwood2cwd = avg_pwood2cwd/REAL(nday*myearspin)
+  avg_cleaf2met = avg_cleaf2met/REAL(nday)
+  avg_cleaf2str = avg_cleaf2str/REAL(nday)
+  avg_croot2met = avg_croot2met/REAL(nday)
+  avg_croot2str = avg_croot2str/REAL(nday)
+  avg_cwood2cwd = avg_cwood2cwd/REAL(nday)
 
-    avg_cgpp      = avg_cgpp/REAL(nday*myearspin)
-    avg_cnpp      = avg_cnpp/REAL(nday*myearspin)
-    avg_nuptake   = avg_nuptake/REAL(nday*myearspin)
-    avg_puptake   = avg_puptake/REAL(nday*myearspin)
+  avg_nleaf2met = avg_nleaf2met/REAL(nday)
+  avg_nleaf2str = avg_nleaf2str/REAL(nday)
+  avg_nroot2met = avg_nroot2met/REAL(nday)
+  avg_nroot2str = avg_nroot2str/REAL(nday)
+  avg_nwood2cwd = avg_nwood2cwd/REAL(nday)
 
-    avg_xnplimit    = avg_xnplimit/REAL(nday*myearspin)
-    avg_xkNlimiting = avg_xkNlimiting/REAL(nday*myearspin)
-    avg_xklitter    = avg_xklitter/REAL(nday*myearspin)
-    avg_xksoil      = avg_xksoil/REAL(nday*myearspin)
+  avg_pleaf2met = avg_pleaf2met/REAL(nday)
+  avg_pleaf2str = avg_pleaf2str/REAL(nday)
+  avg_proot2met = avg_proot2met/REAL(nday)
+  avg_proot2str = avg_proot2str/REAL(nday)
+  avg_pwood2cwd = avg_pwood2cwd/REAL(nday)
 
-    avg_nsoilmin    = avg_nsoilmin/REAL(nday*myearspin)
-    avg_psoillab    = avg_psoillab/REAL(nday*myearspin)
-    avg_psoilsorb   = avg_psoilsorb/REAL(nday*myearspin)
-    avg_psoilocc    = avg_psoilocc/REAL(nday*myearspin)
+  avg_cgpp      = avg_cgpp/REAL(nday)
+  avg_cnpp      = avg_cnpp/REAL(nday)
 
-    avg_rationcsoilmic  = avg_rationcsoilmic  /REAL(nday*myearspin)
-    avg_rationcsoilslow = avg_rationcsoilslow /REAL(nday*myearspin)
-    avg_rationcsoilpass = avg_rationcsoilpass /REAL(nday*myearspin)
+  avg_nuptake   = avg_nuptake/REAL(nday)
+  avg_puptake   = avg_puptake/REAL(nday)
 
+  avg_xnplimit    = avg_xnplimit/REAL(nday)
+  avg_xkNlimiting = avg_xkNlimiting/REAL(nday)
+  avg_xklitter    = avg_xklitter/REAL(nday)
 
+  avg_xksoil      = avg_xksoil/REAL(nday)
+
+  avg_nsoilmin    = avg_nsoilmin/REAL(nday)
+  avg_psoillab    = avg_psoillab/REAL(nday)
+  avg_psoilsorb   = avg_psoilsorb/REAL(nday)
+  avg_psoilocc    = avg_psoilocc/REAL(nday)
+
+  avg_rationcsoilmic  = avg_rationcsoilmic  /REAL(nday)
+  avg_rationcsoilslow = avg_rationcsoilslow /REAL(nday)
+  avg_rationcsoilpass = avg_rationcsoilpass /REAL(nday)
 
     CALL analyticpool(kend,veg,soil,casabiome,casapool,                                          &
          casaflux,casamet,casabal,phen,                                         &
@@ -7421,7 +7506,8 @@ CONTAINS
          avg_cgpp, avg_cnpp, avg_nuptake, avg_puptake,                          &
          avg_xnplimit,avg_xkNlimiting,avg_xklitter,avg_xksoil,                  &
          avg_ratioNCsoilmic,avg_ratioNCsoilslow,avg_ratioNCsoilpass,            &
-         avg_nsoilmin,avg_psoillab,avg_psoilsorb,avg_psoilocc)
+       avg_nsoilmin,avg_psoillab,avg_psoilsorb,avg_psoilocc,                  &
+       avg_af, avg_aw, avg_ar, avg_lf, avg_lw, avg_lr, avg_annual_cnpp)
 
 
     nloop1= MAX(1,mloop-3)
@@ -7507,6 +7593,7 @@ CONTAINS
     USE POPMODULE,            ONLY: POPStep
     USE TypeDef,              ONLY: i4b, dp
     USE mpi
+  USE biogeochem_mod, ONLY : biogeochem 
 
     !mrd561 debug
     USE cable_IO_vars_module, ONLY: wlogn

@@ -48,14 +48,15 @@ MODULE cable_input_module
   USE POPLUC_Types,               ONLY: POPLUC_TYPE
   USE cable_param_module
   USE cable_checks_module,     ONLY: ranges, rh_sh
-  USE cable_radiation_module,  ONLY: sinbet
+  USE cbl_sinbet_mod,  ONLY: sinbet
   USE cable_IO_vars_module
   USE cable_read_module,       ONLY: readpar
   USE cable_init_module
   USE netcdf ! link must be made in cd to netcdf-x.x.x/src/f90/netcdf.mod
-  USE cable_common_module, ONLY : filename, cable_user, CurYear, HANDLE_ERR, &
-                                  is_leapyear
-  USE casa_inout_module, ONLY: casa_readbiome, casa_readphen, casa_init
+  USE cable_common_module, ONLY : filename, cable_user, CurYear, is_leapyear
+  USE casa_ncdf_module, ONLY: HANDLE_ERR
+  USE casa_inout_module, ONLY: casa_readphen, casa_init
+  USE casa_readbiome_module, ONLY: casa_readbiome
 
   IMPLICIT NONE
 
@@ -293,8 +294,10 @@ CONTAINS
 
   SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
 
-    USE CABLE_COMMON_MODULE, ONLY : IS_LEAPYEAR, YMDHMS2DOYSOD, DOYSOD2YMDHMS,&
-         HANDLE_ERR
+    USE CABLE_COMMON_MODULE, ONLY : IS_LEAPYEAR
+    USE casa_ncdf_module, ONLY: HANDLE_ERR, YMDHMS2DOYSOD, DOYSOD2YMDHMS
+    USE CABLE_METUTILS_MODULE, ONLY: possible_varnames, find_metvarid
+
     IMPLICIT NONE
     ! Input arguments
     REAL, INTENT(OUT) :: dels   ! time step size
@@ -380,43 +383,85 @@ CONTAINS
 
     ! Open netcdf file:
     IF (ncciy > 0) THEN
-       WRITE(logn,*) 'Opening met data file: ', TRIM(gswpfile%rainf), ' and 7 more'
-       ok = NF90_OPEN(gswpfile%rainf,0,ncid_rain)
+
+       IF( globalMetfile%l_gpcc ) THEN
+       WRITE(logn,*) 'Opening met data file: ', TRIM(globalMetfile%rainf), ' and 7 more'
+       ELSE
+         WRITE(logn,*) 'Opening met data file: ', TRIM(gswpfile%rainf), ' and 7 more'
+       ENDIF
+ 
+       IF( globalMetfile%l_gpcc ) THEN
+       ok = NF90_OPEN(globalMetfile%rainf,0,ncid_rain)
+       ELSE
+         ok = NF90_OPEN(gswpfile%rainf,0,ncid_rain)
+       ENDIF
        IF (ok /= NF90_NOERR) THEN
           PRINT*,'rainf'
           CALL handle_err( ok )
        ENDIF
-       ok = NF90_OPEN(gswpfile%snowf,0,ncid_snow)
-       IF (ok /= NF90_NOERR) THEN
-          PRINT*,'snow'
-          CALL handle_err( ok )
+       IF(.NOT. globalMetfile%l_gpcc) THEN
+         ok = NF90_OPEN(gswpfile%snowf,0,ncid_snow)
+         IF (ok /= NF90_NOERR) THEN
+            PRINT*,'snow'
+            CALL handle_err( ok )
+         ENDIF
        ENDIF
-       ok = NF90_OPEN(gswpfile%LWdown,0,ncid_lw)
+       
+       IF( globalMetfile%l_gpcc ) THEN
+       ok = NF90_OPEN(globalMetfile%LWdown,0,ncid_lw)
+       ELSE
+         ok = NF90_OPEN(gswpfile     %LWdown,0,ncid_lw)
+       ENDIF
        IF (ok /= NF90_NOERR) THEN
           PRINT*,'lw'
           CALL handle_err( ok )
        ENDIF
-       ok = NF90_OPEN(gswpfile%SWdown,0,ncid_sw)
+       
+       IF( globalMetfile%l_gpcc ) THEN
+       ok = NF90_OPEN(globalMetfile%SWdown,0,ncid_sw)
+       ELSE
+         ok = NF90_OPEN(gswpfile%SWdown,0,ncid_sw)
+       ENDIF
        IF (ok /= NF90_NOERR) THEN
           PRINT*,'sw'
           CALL handle_err( ok )
        ENDIF
-       ok = NF90_OPEN(gswpfile%PSurf,0,ncid_ps)
+       
+       IF( globalMetfile%l_gpcc ) THEN
+       ok = NF90_OPEN(globalMetfile%PSurf,0,ncid_ps)
+       ELSE
+         ok = NF90_OPEN(gswpfile%PSurf,0,ncid_ps)
+       ENDIF
        IF (ok /= NF90_NOERR) THEN
           PRINT*,'ps'
           CALL handle_err( ok )
        ENDIF
-       ok = NF90_OPEN(gswpfile%Qair,0,ncid_qa)
+       
+       IF( globalMetfile%l_gpcc ) THEN
+       ok = NF90_OPEN(globalMetfile%Qair,0,ncid_qa)
+       ELSE
+         ok = NF90_OPEN(gswpfile%Qair,0,ncid_qa)
+       ENDIF
        IF (ok /= NF90_NOERR) THEN
           PRINT*,'qa'
           CALL handle_err( ok )
        ENDIF
-       ok = NF90_OPEN(gswpfile%Tair,0,ncid_ta)
+       
+       IF( globalMetfile%l_gpcc ) THEN
+       ok = NF90_OPEN(globalMetfile%Tair,0,ncid_ta)
+       ELSE
+         ok = NF90_OPEN(gswpfile%Tair,0,ncid_ta)
+       ENDIF
        IF (ok /= NF90_NOERR) THEN
           PRINT*,'ta'
           CALL handle_err( ok )
        ENDIF
-       ok = NF90_OPEN(gswpfile%wind,0,ncid_wd)
+       
+       IF( globalMetfile%l_gpcc ) THEN
+       ok = NF90_OPEN(globalMetfile%wind,0,ncid_wd)
+       ELSE
+         ok = NF90_OPEN(gswpfile%wind,0,ncid_wd)
+       ENDIF
        IF (ok /= NF90_NOERR) THEN
           PRINT*,'wind',ncid_wd
           CALL handle_err( ok )
@@ -474,17 +519,12 @@ CONTAINS
 
     ! Get all latitude and longitude values.
     ! Find latitude variable (try 'latitude' and 'nav_lat'(ALMA)):
-    ok = NF90_INQ_VARID(ncid_met, 'latitude', latitudeID)
-    IF(ok /= NF90_NOERR) THEN
-       ok = NF90_INQ_VARID(ncid_met, 'nav_lat', latitudeID)
-       IF(ok /= NF90_NOERR) THEN
-          !MDeck allow for 1d lat called 'lat'
-          ok = NF90_INQ_VARID(ncid_met, 'lat', latitudeID)
-          IF (ok /= NF90_NOERR) CALL nc_abort &
-               (ok,'Error finding latitude variable in ' &
-               //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
-       END IF
-    END IF
+    CALL find_metvarid(ncid_met, possible_varnames%LatNames, latitudeID, ok)
+
+    IF (ok /= NF90_NOERR) CALL nc_abort &
+      (ok,'Error finding latitude variable in ' &
+      //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
+
     ! Allocate space for lat_all variable and its temp counterpart:
     ALLOCATE(lat_all(xdimsize,ydimsize))
     ALLOCATE(temparray2(xdimsize,ydimsize))
@@ -504,19 +544,15 @@ CONTAINS
          //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
     ! Needed since r_1 will be double precision with -r8:
     lat_all = REAL(temparray2)
+
     ! Find longitude variable (try 'longitude' and 'nav_lon'(ALMA)):
-    ok = NF90_INQ_VARID(ncid_met, 'longitude', longitudeID)
-    IF(ok /= NF90_NOERR) THEN
-       ok = NF90_INQ_VARID(ncid_met, 'nav_lon', longitudeID)
-       IF(ok /= NF90_NOERR) THEN
-          !MDeck allow for 1d lon called 'lon'
-          ok = NF90_INQ_VARID(ncid_met, 'lon', longitudeID)
-          IF(ok /= NF90_NOERR) CALL nc_abort &
-               (ok,'Error finding longitude variable in ' &
-               //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
-       END IF
-    END IF
-    ! Allocate space for lon_all variable:
+    CALL find_metvarid(ncid_met, possible_varnames%LonNames, longitudeID, ok)
+
+    IF(ok /= NF90_NOERR) CALL nc_abort &
+      (ok,'Error finding longitude variable in ' &
+      //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
+
+      ! Allocate space for lon_all variable:
     ALLOCATE(lon_all(xdimsize,ydimsize))
     ! Get longitude values for entire region:
     !MDeck allow for 1d lon
@@ -538,11 +574,7 @@ CONTAINS
     ! Check for "mask" variable or "land" variable to tell grid type
     ! (and allow neither if only one gridpoint). "mask" is a 2D variable
     ! with dims x,y and "land" is a 1D variable.
-    IF (.NOT.cable_user%gswp3) THEN
-       ok = NF90_INQ_VARID(ncid_mask, 'mask', maskID) ! check for "mask"
-    ELSE
-       ok = NF90_INQ_VARID(ncid_mask, 'landsea', maskID) ! check for "mask"
-    END IF
+    CALL find_metvarid(ncid_mask, possible_varnames%MaskNames, maskID, ok)
     IF(ok /= NF90_NOERR) THEN ! if error, i.e. no "mask" variable:
        ! Check for "land" variable:
        ok = NF90_INQ_VARID(ncid_met, 'land', landID)
@@ -675,7 +707,6 @@ CONTAINS
        exists%patch = .TRUE.
        ok = NF90_INQUIRE_DIMENSION(ncid_met,patchdimID,len=nmetpatches)
     END IF
-    nmetpatches = 1       ! initialised so that old met files without patch
 
     ! Check if monthly dimension exists for LAI info
     ok = NF90_INQ_DIMID(ncid_met,'monthly', monthlydimID)
@@ -700,7 +731,7 @@ CONTAINS
 
     !!=========VV Determine simulation timing details VV================
     ! Inquire 'time' variable's ID:
-    ok = NF90_INQ_VARID(ncid_met, 'time', timevarID)
+    CALL find_metvarid(ncid_met, possible_varnames%TimeNames, timevarID, ok)
     IF(ok /= NF90_NOERR) CALL nc_abort &
          (ok,'Error finding time variable in met data file ' &
          //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
@@ -936,7 +967,11 @@ CONTAINS
     all_met = .TRUE. ! initialise
     ! Look for SWdown (essential):- - - - - - - - - - - - - - - - - -
     IF (ncciy > 0) ncid_met = ncid_sw
-    ok = NF90_INQ_VARID(ncid_met,'SWdown',id%SWdown)
+
+   ! option was added by Chris Lu to allow for different variable names between GPCC and GSWP forcings
+   ! added by ypwang 30/oct/2012 
+    CALL find_metvarid(ncid_met, possible_varnames%SWdownNames, id%SWdown, ok)
+
     IF(ok /= NF90_NOERR) CALL nc_abort &
          (ok,'Error finding SWdown in met data file ' &
          //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
@@ -955,7 +990,8 @@ CONTAINS
     END IF
     ! Look for Tair (essential):- - - - - - - - - - - - - - - - - - -
     IF (ncciy > 0) ncid_met = ncid_ta
-    ok = NF90_INQ_VARID(ncid_met,'Tair',id%Tair)
+    CALL find_metvarid(ncid_met, possible_varnames%TairNames, id%Tair, ok)
+
     IF(ok /= NF90_NOERR) CALL nc_abort &
          (ok,'Error finding Tair in met data file ' &
          //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
@@ -978,7 +1014,8 @@ CONTAINS
     END IF
     ! Look for Qair (essential):- - - - - - - - - - - - - - - - - - -
     IF (ncciy > 0) ncid_met = ncid_qa
-    ok = NF90_INQ_VARID(ncid_met,'Qair',id%Qair)
+    Call find_metvarid(ncid_met, possible_varnames%QairNames, id%Qair, ok)
+
     IF(ok /= NF90_NOERR) CALL nc_abort &
          (ok,'Error finding Qair in met data file ' &
          //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
@@ -1000,9 +1037,11 @@ CONTAINS
        CALL abort('Unknown units for Qair'// &
             ' in '//TRIM(filename%met)//' (SUBROUTINE open_met_data)')
     END IF
+
     ! Look for Rainf (essential):- - - - - - - - - - - - - - - - - -
     IF (ncciy > 0) ncid_met = ncid_rain
-    ok = NF90_INQ_VARID(ncid_met,'Rainf',id%Rainf)
+    CALL find_metvarid(ncid_met, possible_varnames%RainNames, id%Rainf, ok)
+
     IF(ok /= NF90_NOERR) CALL nc_abort &
          (ok,'Error finding Rainf in met data file ' &
          //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
@@ -1031,12 +1070,13 @@ CONTAINS
     ranges%Rainf = ranges%Rainf*dels ! range therefore depends on dels
     ! Look for Wind (essential):- - - - - - - - - - - - - - - - - - -
     IF (ncciy > 0) ncid_met = ncid_wd
-    ok = NF90_INQ_VARID(ncid_met,'Wind',id%Wind)
+    CALL find_metvarid(ncid_met, possible_varnames%WindNames, id%Wind, ok)
+
     IF(ok /= NF90_NOERR) THEN
        ! Look for vector wind:
        ok = NF90_INQ_VARID(ncid_met,'Wind_N',id%Wind)
        IF(ok /= NF90_NOERR) CALL nc_abort &
-            (ok,'Error finding Wind in met data file ' &
+            (ok,'Error finding Wind_N in met data file ' &
             //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
        ok = NF90_INQ_VARID(ncid_met,'Wind_E',id%Wind_E)
        IF(ok /= NF90_NOERR) CALL nc_abort &
@@ -1046,6 +1086,9 @@ CONTAINS
     ELSE
        exists%Wind = .TRUE. ! 'Wind' variable exists
     END IF
+
+    ! The following does not work with vector winds. Do we want to keep
+    ! vector winds?
     ! Get Wind units:
     ok = NF90_GET_ATT(ncid_met,id%Wind,'units',metunits%Wind)
     IF(ok /= NF90_NOERR) CALL nc_abort &
@@ -1059,7 +1102,8 @@ CONTAINS
     ! Now "optional" variables:
     ! Look for LWdown (can be synthesised):- - - - - - - - - - - - - - -
     IF (ncciy > 0) ncid_met = ncid_lw
-    ok = NF90_INQ_VARID(ncid_met,'LWdown',id%LWdown)
+    CALL find_metvarid(ncid_met, possible_varnames%LWdownNames, id%LWdown, ok)
+
     IF(ok == NF90_NOERR) THEN ! If inquiry is okay
        exists%LWdown = .TRUE. ! LWdown is present in met file
        ! Get LWdown units and check okay:
@@ -1088,7 +1132,8 @@ CONTAINS
     END IF
     ! Look for PSurf (can be synthesised):- - - - - - - - - - - - - - - -
     IF (ncciy > 0) ncid_met = ncid_ps
-    ok = NF90_INQ_VARID(ncid_met,'PSurf',id%PSurf)
+    CALL find_metvarid(ncid_met, possible_varnames%PSurfNames, id%PSurf, ok)
+
     IF(ok == NF90_NOERR) THEN ! If inquiry is okay
        exists%PSurf = .TRUE. ! PSurf is present in met file
        ! Get PSurf units and check:
@@ -1120,7 +1165,7 @@ CONTAINS
        all_met=.FALSE. ! not all met variables are present in file
        ! Look for "elevation" variable to approximate pressure based
        ! on elevation and temperature:
-       ok = NF90_INQ_VARID(ncid_met,'Elevation',id%Elev)
+       CALL find_metvarid(ncid_met, possible_varnames%ElevNames, id%Elev, ok)
        IF(ok == NF90_NOERR) THEN ! elevation present
           ! Get elevation units:
           ok = NF90_GET_ATT(ncid_met,id%Elev,'units',metunits%Elev)
@@ -1168,7 +1213,7 @@ CONTAINS
             'synthesised based on elevation and temperature.'
     END IF
     ! Look for CO2air (can be assumed to be static):- - - - - - - - - - -
-    ok = NF90_INQ_VARID(ncid_met,'CO2air',id%CO2air)
+    CALL find_metvarid(ncid_met, possible_varnames%CO2Names, id%CO2air, ok)
     IF(ok == NF90_NOERR) THEN ! If inquiry is okay
        exists%CO2air = .TRUE. ! CO2air is present in met file
        ! Get CO2air units:
@@ -1189,8 +1234,12 @@ CONTAINS
             'values will be fixed at ',INT(fixedCO2),' ppmv'
     END IF
     ! Look for Snowf (could be part of Rainf variable):- - - - - - - - - -
-    IF (ncciy > 0) ncid_met = ncid_snow
-    ok = NF90_INQ_VARID(ncid_met,'Snowf',id%Snowf)
+    !IF (ncciy > 0 .AND. (globalMetfile%l_gpcc .OR. globalMetfile%l_gswp .OR. globalMetfile%l_ncar))Then
+    IF (ncciy > 0 .AND. ( globalMetfile%l_gswp .OR. globalMetfile%l_ncar))Then
+       ncid_met = ncid_snow
+    END IF
+
+    CALL find_metvarid(ncid_met, possible_varnames%SnowNames, id%Snowf, ok)
     IF(ok == NF90_NOERR) THEN ! If inquiry is okay
        exists%Snowf = .TRUE. ! Snowf is present in met file
        ! Get Snowf units:
@@ -1210,7 +1259,7 @@ CONTAINS
             'Assumed to be contained in Rainf variable'
     END IF
     ! Look for LAI - - - - - - - - - - - - - - - - - - - - - - - - -
-    ok = NF90_INQ_VARID(ncid_met,'LAI',id%LAI)
+    CALL find_metvarid(ncid_met, possible_varnames%LAINames, id%LAI, ok)
     IF(ok == NF90_NOERR) THEN ! If inquiry is okay
        exists%LAI = .TRUE. ! LAI is present in met file
        ! LAI will be read in which ever land grid is used
@@ -1245,7 +1294,7 @@ CONTAINS
     ! If a spinup is to be performed:
     IF(spinup) THEN
        ! Look for avPrecip variable (time invariant - used for spinup):
-       ok = NF90_INQ_VARID(ncid_met,'avPrecip',id%avPrecip)
+       CALL find_metvarid(ncid_met, possible_varnames%APrecipNames, id%avPrecip, ok)
        IF(ok == NF90_NOERR) THEN ! If inquiry is okay and avPrecip exists
           ! Report to log file than modified spinup will be used:
           WRITE(logn,*) 'Spinup will use modified precip - avPrecip variable found'
@@ -1359,13 +1408,13 @@ CONTAINS
     END IF  ! if a spinup is to be performed
 
     ! Look for veg type - - - - - - - - - - - - - - - - -:
-    ok = NF90_INQ_VARID(ncid_met,'iveg',id%iveg)
+    CALL find_metvarid(ncid_met, possible_varnames%IVegNames, id%iveg, ok)
     IF(ok == NF90_NOERR) THEN ! If 'iveg' exists in the met file
        ! Note existence of at least one model parameter in the met file:
        exists%parameters = .TRUE.
        ! Allocate space for user-defined veg type variable:
        ALLOCATE(vegtype_metfile(mland,nmetpatches))
-       IF(cable_user%NtilesThruMetFile)  ALLOCATE(vegpatch_metfile(mland,nmetpatches))
+       IF(exists%patch)  ALLOCATE(vegpatch_metfile(mland,nmetpatches))
 
        ! Check dimension of veg type:
        ok=NF90_INQUIRE_VARIABLE(ncid_met,id%iveg,ndims=iveg_dims)
@@ -1384,7 +1433,7 @@ CONTAINS
              ! Patch-specific iveg variable MUST be accompanied by
              ! patchfrac variable with the same dimensions. So,
              ! Make sure that the patchfrac variable exists:
-             ok = NF90_INQ_VARID(ncid_met,'patchfrac',id%patchfrac)
+             CALL find_metvarid(ncid_met, possible_varnames%PFracNames, id%patchfrac, ok)
              IF(ok /= NF90_NOERR) CALL nc_abort & ! check read ok
                   (ok,'Patch-specific vegetation type (iveg) must be accompanied '// &
                   'by a patchfrac variable - this was not found in met data file '&
@@ -1397,7 +1446,8 @@ CONTAINS
                      (ok,'Error reading iveg in met data file ' &
                      //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
 
-              IF(cable_user%NtilesThruMetFile) then
+              IF(exists%patch) then
+       
                 !Anna: also read patch fractions
                 ok= NF90_GET_VAR(ncid_met,id%patchfrac,vegpatch_metfile(i,:), &
                      start=(/land_x(i),land_y(i),1/),count=(/1,1,nmetpatches/))
@@ -1423,13 +1473,13 @@ CONTAINS
              ! Patch-specific iveg variable MUST be accompanied by
              ! patchfrac variable with same dimensions. So,
              ! Make sure that the patchfrac variable exists:
-             ok = NF90_INQ_VARID(ncid_met,'patchfrac',id%patchfrac)
-             IF(ok /= NF90_NOERR) CALL nc_abort & ! check read ok
+            CALL find_metvarid(ncid_met, possible_varnames%PFracNames, id%patchfrac, ok)
+            IF(ok /= NF90_NOERR) CALL nc_abort & ! check read ok
                   (ok,'Patch-specific vegetation type (iveg) must be accompanied'// &
                   'by a patchfrac variable - this was not found in met data file '&
                   //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
 
-              IF(cable_user%NtilesThruMetFile) then
+              IF(exists%patch) then
                 !Anna: also read patch fractions
                 ok= NF90_GET_VAR(ncid_met,id%patchfrac,vegpatch_metfile(i,:), &
                      start=(/land_x(i),land_y(i),1/),count=(/1,1,nmetpatches/))
@@ -1451,11 +1501,12 @@ CONTAINS
        END IF
     ELSE
        NULLIFY(vegtype_metfile)
-       IF(cable_user%NtilesThruMetFile) NULLIFY(vegpatch_metfile)
+       IF(exists%patch) NULLIFY(vegpatch_metfile)
+       
     END IF
 
     ! Look for soil type:
-    ok = NF90_INQ_VARID(ncid_met,'isoil',id%isoil)
+    CALL find_metvarid(ncid_met, possible_varnames%ISoilNames, id%isoil, ok)
     IF(ok == NF90_NOERR) THEN ! If inquiry is okay
        ! Note existence of at least one model parameter in the met file:
        exists%parameters = .TRUE.

@@ -59,8 +59,7 @@ MODULE cable_param_module
   USE phenvariable
   USE cable_abort_module
   USE cable_IO_vars_module
-  USE cable_common_module, ONLY: cable_user, hide, gw_params, &
-                                 init_veg_from_vegin
+  USE cable_common_module, ONLY: cable_user, gw_params
   USE cable_pft_params_mod
   USE cable_soil_params_mod
   USE CABLE_LUC_EXPT, ONLY: LUC_EXPT, LUC_EXPT_TYPE, LUC_EXPT_SET_TILES
@@ -148,15 +147,10 @@ CONTAINS
     INTEGER :: nlon
     INTEGER :: nlat
 
-    ! Get parameter values for all default veg and soil types:
-    !CALL get_type_parameters(logn, vegparmnew, classification)
-    CALL cable_pft_params()
-    CALL cable_soil_params()
-
     WRITE(logn,*) ' Reading grid info from ', TRIM(filename%type)
     WRITE(logn,*) ' And assigning C4 fraction according to veg classification.'
     WRITE(logn,*)
-    IF(cable_user%NtilesThruMetFile) THEN
+    IF(exists%patch) THEN
       CALL read_gridinfo(nlon,nlat,nmetpatches)!, &
     ELSE 
       CALL read_gridinfo(nlon,nlat,npatch)
@@ -174,6 +168,11 @@ CONTAINS
        WRITE(logn,*) 'Use spatially-specific soil properties; ', nlon, nlat
        CALL spatialSoil(nlon, nlat, logn)
     ENDIF
+
+    ! Get parameter values for all default veg and soil types:
+    !CALL get_type_parameters(logn, vegparmnew, classification)
+    CALL cable_pft_params()
+    CALL cable_soil_params()
 
     ! include prescribed soil colour in determining albedo - Ticket #27
     IF (calcsoilalbedo) THEN
@@ -241,7 +240,7 @@ CONTAINS
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error inquiring y dimension.')
     ok = NF90_INQUIRE_DIMENSION(ncid, yID, LEN=nlat)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error getting y dimension.')
-    IF(.NOT. cable_user%NtilesThruMetFile) THEN
+    IF(.NOT. exists%patch) THEN
       ok = NF90_INQ_DIMID(ncid, 'patch', pID)
       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error inquiring patch dimension.')
       ok = NF90_INQUIRE_DIMENSION(ncid, pID, LEN=npatch)
@@ -304,7 +303,7 @@ CONTAINS
     ok = NF90_GET_VAR(ncid, varID, inLat)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable latitude.')
 
-    IF(.NOT. cable_user%NtilesThruMetFile) THEN
+    IF(.NOT. exists%patch) THEN
       ok = NF90_INQ_VARID(ncid, 'iveg', varID)
       IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable iveg.')
       !CLN    ok = NF90_GET_VAR(ncid, varID, idummy)
@@ -322,10 +321,7 @@ CONTAINS
       !loop through lat and lon to fill patch and veg vars
       DO lon = 1,nlon
         DO lat = 1, nlat
-          inPFrac(lon,lat,1) = vegpatch_metfile(1,1) !Anna: passing met patchfrac here
-          inPFrac(lon,lat,2) = vegpatch_metfile(1,2) !Anna: passing met patchfrac here
-          inPFrac(lon,lat,3) = vegpatch_metfile(1,3) !Anna: passing met patchfrac here
-          inPFrac(lon,lat,4) = vegpatch_metfile(1,4) !Anna: passing met patchfrac here
+          inPFrac(lon,lat,:) = vegpatch_metfile(1,:) !Anna: passing met patchfrac here
           inVeg(lon,lat,:) = vegtype_metfile(1,:)
         ENDDO
       ENDDO
@@ -1137,8 +1133,7 @@ CONTAINS
     !   landpt(mp)%type- via cable_IO_vars_module (%nap,cstart,cend,ilon,ilat)
     !   patch(mp)%type - via cable_IO_vars_module (%frac,longitude,latitude)
 
-    USE cable_common_module, ONLY : vegin, soilin, &
-         calcsoilalbedo,cable_user,init_veg_from_vegin
+    USE cable_common_module, ONLY : calcsoilalbedo,cable_user
 
     IMPLICIT NONE
     INTEGER,               INTENT(IN)    :: logn  ! log file unit number
@@ -1461,9 +1456,9 @@ CONTAINS
           veg%iveg(landpt(e)%cstart:landpt(e)%cstart + nmetpatches - 1) =      &
                vegtype_metfile(e, :)
 
-        IF(cable_user%NtilesThruMetFile) &
+        IF(exists%patch) &
           patch(landpt(e)%cstart:landpt(e)%cstart)%frac =      &
-                                                           vegpatch_metfile(e, :)
+                                                          vegpatch_metfile(e,landpt(e)%cstart:landpt(e)%cstart )
 
           ! In case gridinfo file provides more patches than met file(BP may08)
           DO f = nmetpatches+1, landpt(e)%nap
@@ -1486,10 +1481,16 @@ CONTAINS
        ! Prescribe parameters for current gridcell based on veg/soil type (which
        ! may have loaded from default value file or met file):
        DO h = landpt(e)%cstart, landpt(e)%cend ! over each patch in current grid
-          bgc%cplant(h,:) = vegin%cplant(:, veg%iveg(h))
-          bgc%csoil(h,:)  = vegin%csoil(:, veg%iveg(h))
-          bgc%ratecp(:)   = vegin%ratecp(:, veg%iveg(h))
-          bgc%ratecs(:)   = vegin%ratecs(:, veg%iveg(h))
+          bgc%cplant(h,1) = vegin%cplant1( veg%iveg(h))
+          bgc%cplant(h,2) = vegin%cplant2( veg%iveg(h))
+          bgc%cplant(h,3) = vegin%cplant3( veg%iveg(h))
+          bgc%csoil(h,1)  = vegin%csoil1(  veg%iveg(h))
+          bgc%csoil(h,2)  = vegin%csoil2(  veg%iveg(h))
+          bgc%ratecp(1)   = vegin%ratecp1(  veg%iveg(h))
+          bgc%ratecp(2)   = vegin%ratecp2(  veg%iveg(h))
+          bgc%ratecp(3)   = vegin%ratecp3(  veg%iveg(h))
+          bgc%ratecs(1)   = vegin%ratecs1(  veg%iveg(h))
+          bgc%ratecs(2)   = vegin%ratecs2(  veg%iveg(h))
 
           IF (.NOT. soilparmnew) THEN   ! Q,Zhang @ 12/20/2010
              soil%swilt(h)   =  soilin%swilt(soil%isoilm(h))
@@ -1727,9 +1728,9 @@ CONTAINS
           IF (veg%iveg(hh) == cropland .OR. veg%iveg(hh) == croplnd2) THEN
              ! P fertilizer =13 Mt P globally in 1994
              casaflux%Pdep(hh)    = casaflux%Pdep(hh)                             &
-                  + patch(hh)%frac * 0.7 / 365.0
+                  + 0.7 / 365.0
              casaflux%Nmindep(hh) = casaflux%Nmindep(hh)                          &
-                  + patch(hh)%frac * 4.0 / 365.0
+                  + 4.0 / 365.0
           ENDIF
        ENDDO
     ENDDO
@@ -2070,11 +2071,11 @@ CONTAINS
     TYPE (phen_variable), INTENT(IN)  :: phen
 
     INTEGER :: e, f, g ! do loop counter
-    CHARACTER(LEN=15) :: patchfmtr  ! patch format specifier for real numbers
-    CHARACTER(LEN=13) :: patchfmti  ! patch format specifier for integer
+    CHARACTER(LEN=16) :: patchfmtr  ! patch format specifier for real numbers
+    CHARACTER(LEN=14) :: patchfmti  ! patch format specifier for integer
     ! numbers
-    CHARACTER(LEN=15) :: patchfmte  ! patch format specifier for expon. numbers
-    CHARACTER(LEN=15) :: patchfmte2 ! patch format specifier for expon. numbers
+    CHARACTER(LEN=16) :: patchfmte  ! patch format specifier for expon. numbers
+    CHARACTER(LEN=16) :: patchfmte2 ! patch format specifier for expon. numbers
 
     ! Get vegetation/soil type descriptions in case they haven't yet been
     ! loaded (i.e. if restart file + met file contains all parameter/init/LAI
@@ -2122,10 +2123,10 @@ CONTAINS
 
        IF(verbose) THEN
           ! Set up format specifier for writing active patch details below:
-          WRITE(patchfmtr,'(A8, I1, A6)') '(4X,A50,', landpt(e)%nap, 'F12.4)'
-          WRITE(patchfmti,'(A8, I1, A4)') '(4X,A50,', landpt(e)%nap, 'I12)'
-          WRITE(patchfmte,'(A8, I1, A6)') '(4X,A50,', landpt(e)%nap, 'E12.4)'
-          WRITE(patchfmte2,'(A8, I1, A6)') '(4X,A50,', landpt(e)%nap, 'E12.4)'
+          WRITE(patchfmtr,'(A8, I2, A6)') '(4X,A50,', landpt(e)%nap, 'F12.4)'
+          WRITE(patchfmti,'(A8, I2, A4)') '(4X,A50,', landpt(e)%nap, 'I12)'
+          WRITE(patchfmte,'(A8, I2, A6)') '(4X,A50,', landpt(e)%nap, 'E12.4)'
+          WRITE(patchfmte2,'(A8, I2, A6)') '(4X,A50,', landpt(e)%nap, 'E12.4)'
           ! Write parameter set details to log file:
           WRITE(logn, *) '------------------------------------------------'//  &
                '---------'
@@ -2670,6 +2671,80 @@ CONTAINS
     END DO
 
   END SUBROUTINE report_parameters
+
+  SUBROUTINE init_veg_from_vegin(ifmp,fmp, veg, soil_zse )
+    USE cable_def_types_mod, ONLY : veg_parameter_type, ms
+    INTEGER ::  ifmp,  & ! start local mp, # landpoints (jhan:when is this not 1 )
+         fmp     ! local mp, # landpoints
+    REAL, DIMENSION(ms) :: soil_zse
+
+    TYPE(veg_parameter_type) :: veg
+
+    INTEGER :: is
+    REAL :: totdepth
+    INTEGER :: h
+
+    ! Prescribe parameters for current gridcell based on veg/soil type (which
+    ! may have loaded from default value file or met file):
+    DO h = ifmp, fmp          ! over each patch in current grid
+       veg%frac4(h)    = vegin%frac4(veg%iveg(h))
+       veg%taul(h,1)    = vegin%taul1(veg%iveg(h))
+       veg%taul(h,2)    = vegin%taul2(veg%iveg(h))
+       veg%refl(h,1)    = vegin%refl1(veg%iveg(h))
+       veg%refl(h,2)    = vegin%refl2(veg%iveg(h))
+       veg%canst1(h)   = vegin%canst1(veg%iveg(h))
+       veg%dleaf(h)    = vegin%dleaf(veg%iveg(h))
+       veg%vcmax(h)    = vegin%vcmax(veg%iveg(h))
+       veg%ejmax(h)    = vegin%ejmax(veg%iveg(h))
+       veg%hc(h)       = vegin%hc(veg%iveg(h))
+       veg%xfang(h)    = vegin%xfang(veg%iveg(h))
+       veg%vbeta(h)    = vegin%vbeta(veg%iveg(h))
+       veg%xalbnir(h)  = vegin%xalbnir(veg%iveg(h))
+       veg%rp20(h)     = vegin%rp20(veg%iveg(h))
+       veg%rpcoef(h)   = vegin%rpcoef(veg%iveg(h))
+       veg%rs20(h)     = vegin%rs20(veg%iveg(h))
+       veg%shelrb(h)   = vegin%shelrb(veg%iveg(h))
+       veg%wai(h)      = vegin%wai(veg%iveg(h))
+       veg%a1gs(h)     = vegin%a1gs(veg%iveg(h))
+       veg%d0gs(h)     = vegin%d0gs(veg%iveg(h))
+       veg%vegcf(h)    = vegin%vegcf(veg%iveg(h))
+       veg%extkn(h)    = vegin%extkn(veg%iveg(h))
+       veg%tminvj(h)   = vegin%tminvj(veg%iveg(h))
+       veg%tmaxvj(h)   = vegin%tmaxvj(veg%iveg(h))
+       veg%g0(h)       = vegin%g0(veg%iveg(h)) ! Ticket #56
+       veg%g1(h)       = vegin%g1(veg%iveg(h)) ! Ticket #56
+       veg%a1gs(h)   = vegin%a1gs(veg%iveg(h))
+       veg%d0gs(h)   = vegin%d0gs(veg%iveg(h))
+       veg%alpha(h)  = vegin%alpha(veg%iveg(h))
+       veg%convex(h) = vegin%convex(veg%iveg(h))
+       veg%cfrd(h)   = vegin%cfrd(veg%iveg(h))
+       veg%gswmin(h) = vegin%gswmin(veg%iveg(h))
+       veg%conkc0(h) = vegin%conkc0(veg%iveg(h))
+       veg%conko0(h) = vegin%conko0(veg%iveg(h))
+       veg%ekc(h)    = vegin%ekc(veg%iveg(h))
+       veg%eko(h)    = vegin%eko(veg%iveg(h))
+       veg%rootbeta(h)  = vegin%rootbeta(veg%iveg(h))
+       veg%zr(h)       = vegin%zr(veg%iveg(h))
+       veg%clitt(h)    = vegin%clitt(veg%iveg(h))
+    END DO ! over each veg patch in land point
+
+    ! calculate vegin%froot from using rootbeta and soil depth
+    ! (Jackson et al. 1996, Oceologica, 108:389-411)
+    totdepth = 0.0
+    DO is = 1, ms-1
+       totdepth = totdepth + soil_zse(is) * 100.0  ! unit in centimetres
+       veg%froot(:, is) = MIN( 1.0, 1.0-veg%rootbeta(:)**totdepth )
+    END DO
+    veg%froot(:, ms) = 1.0 - veg%froot(:, ms-1)
+    DO is = ms-1, 2, -1
+       veg%froot(:, is) = veg%froot(:, is)-veg%froot(:,is-1)
+    END DO
+
+
+
+
+
+  END SUBROUTINE init_veg_from_vegin
 
 
 END MODULE cable_param_module

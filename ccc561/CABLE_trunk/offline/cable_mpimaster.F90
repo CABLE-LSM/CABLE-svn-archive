@@ -26,7 +26,6 @@
 !                 cable_def_types_mod
 !                 cable_IO_vars_module
 !                 cable_common_module
-!                 cable_data_module
 !                 cable_input_module
 !                 cable_output_module
 !                 cable_cbm_module
@@ -156,17 +155,22 @@ CONTAINS
     USE mpi
 
     USE cable_def_types_mod
-    USE cable_IO_vars_module, ONLY: logn,gswpfile,ncciy,leaps,                  &
+    USE cable_IO_vars_module, ONLY: logn,gswpfile,ncciy,leaps,globalMetfile, &
          verbose, fixedCO2,output,check,patchout,    &
-         patch_type,soilparmnew,&
+         patch_type,landpt,soilparmnew,&
          defaultLAI, sdoy, smoy, syear, timeunits, exists, output, &
          latitude,longitude, calendar
     USE cable_common_module,  ONLY: ktau_gl, kend_gl, knode_gl, cable_user,     &
          cable_runtime, fileName, myhome,            &
          redistrb, wiltParam, satuParam, CurYear,    &
-         IS_LEAPYEAR, IS_CASA_TIME, calcsoilalbedo,                &
-         report_version_no, kwidth_gl, gw_params
-    USE cable_data_module,    ONLY: driver_type, point2constants
+         IS_LEAPYEAR, calcsoilalbedo,                &
+         kwidth_gl, gw_params
+  USE casa_ncdf_module, ONLY: is_casa_time
+! physical constants
+USE cable_phys_constants_mod, ONLY : CTFRZ   => TFRZ
+USE cable_phys_constants_mod, ONLY : CEMLEAF => EMLEAF
+USE cable_phys_constants_mod, ONLY : CEMSOIL => EMSOIL
+USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
     USE cable_input_module,   ONLY: open_met_file,load_parameters,              &
          get_met_data,close_met_file
     USE cable_output_module,  ONLY: create_restart,open_output_file,            &
@@ -177,7 +181,7 @@ CONTAINS
 
 
     ! modules related to CASA-CNP
-    USE casadimension,        ONLY: icycle
+    USE casadimension,        ONLY: icycle,mplant,mlitter,msoil,mwood
     USE casavariable,         ONLY: casafile, casa_biome, casa_pool, casa_flux,  &
          casa_met, casa_balance, zero_sum_casa, update_sum_casa
     USE phenvariable,         ONLY: phen_variable
@@ -200,9 +204,13 @@ CONTAINS
          PLUME_MIP_INIT
     USE CABLE_CRU,            ONLY: CRU_TYPE, CRU_GET_SUBDIURNAL_MET, CRU_INIT
 
-    USE cable_namelist_util, ONLY : get_namelist_file_name,&
-         CABLE_NAMELIST,arg_not_namelist
+    USE cable_namelist_util,  ONLY : get_namelist_file_name,&
+                                     CABLE_NAMELIST,arg_not_namelist
 
+    USE landuse_constant,     ONLY: mstate,mvmax,mharvw
+    USE landuse_variable
+USE bgcdriver_mod, ONLY : bgcdriver
+USE casa_offline_inout_module, ONLY : WRITE_CASA_RESTART_NC, WRITE_CASA_OUTPUT_NC 
     IMPLICIT NONE
 
     ! MPI:
@@ -247,7 +255,6 @@ CONTAINS
     ! CABLE parameters
     TYPE (soil_parameter_type) :: soil ! soil parameters
     TYPE (veg_parameter_type)  :: veg  ! vegetation parameters: see below for iveg in MPI variables
-    TYPE (driver_type)    :: C         ! constants used locally
 
     TYPE (sum_flux_type)  :: sum_flux ! cumulative flux variables
     TYPE (bgc_pool_type)  :: bgc  ! carbon pool variables
@@ -266,6 +273,7 @@ CONTAINS
     TYPE (LUC_EXPT_TYPE) :: LUC_EXPT
     TYPE (PLUME_MIP_TYPE) :: PLUME
     TYPE (CRU_TYPE)       :: CRU
+    TYPE (landuse_mp)     :: lucmp
     CHARACTER             :: cyear*4
     CHARACTER             :: ncfile*99
 
@@ -276,6 +284,7 @@ CONTAINS
          spinConv      = .FALSE., & ! has spinup converged?
          spincasa      = .FALSE., & ! TRUE: CASA-CNP Will spin mloop times,
          l_casacnp     = .FALSE., & ! using CASA-CNP with CABLE
+         l_landuse     = .FALSE., & ! using LANDUSE             
          l_laiFeedbk   = .FALSE., & ! using prognostic LAI
          l_vcmaxFeedbk = .FALSE., & ! using prognostic Vcmax
          CASAONLY      = .FALSE., & ! ONLY Run CASA-CNP
@@ -341,21 +350,35 @@ CONTAINS
          fixedCO2,         &
          spincasa,         &
          l_casacnp,        &
+         l_landuse,        &
          l_laiFeedbk,      &
          l_vcmaxFeedbk,    &
          icycle,           &
          casafile,         &
          ncciy,            &
          gswpfile,         &
+         globalMetfile,    &
          redistrb,         &
          wiltParam,        &
          satuParam,        &
          cable_user,       &  ! additional USER switches
-         gw_params
-    INTEGER :: i,x,kk
+         gw_params        
+ 
+    INTEGER :: i,x,kk,m,np,ivt
     INTEGER :: LALLOC
     INTEGER, PARAMETER ::	 mloop	= 30   ! CASA-CNP PreSpinup loops
     REAL    :: etime
+
+! for landuse
+    integer     mlon,mlat,mpx
+    real(r_2), dimension(:,:,:),   allocatable,  save  :: luc_atransit
+    real(r_2), dimension(:,:),     allocatable,  save  :: luc_fharvw
+    real(r_2), dimension(:,:,:),   allocatable,  save  :: luc_xluh2cable
+    real(r_2), dimension(:),       allocatable,  save  :: arealand
+    integer,   dimension(:,:),     allocatable,  save  :: landmask
+    integer,   dimension(:),       allocatable,  save  :: cstart,cend,nap  
+    real(r_2), dimension(:,:,:),   allocatable,  save  :: patchfrac_new    
+
 
 
     ! END header
@@ -377,8 +400,6 @@ CONTAINS
 
     ! Open log file:
     OPEN(logn,FILE=filename%log)
-
-    CALL report_version_no( logn )
 
     IF( IARGC() > 0 ) THEN
        CALL GETARG(1, filename%met)
@@ -438,9 +459,6 @@ CONTAINS
 
     cable_runtime%offline = .TRUE.
 
-    ! associate pointers used locally with global definitions
-    CALL point2constants( C )
-
     IF( l_casacnp  .AND. ( icycle == 0 .OR. icycle > 3 ) )                   &
          STOP 'icycle must be 1 to 3 when using casaCNP'
     IF( ( l_laiFeedbk .OR. l_vcmaxFeedbk ) .AND. ( .NOT. l_casacnp ) )       &
@@ -462,8 +480,9 @@ CONTAINS
          TRIM(cable_user%MetType) .NE. "gswp3" .AND. &
          TRIM(cable_user%MetType) .NE. "gpgs" .AND. &
          TRIM(cable_user%MetType) .NE. "plum"  .AND. &
-         TRIM(cable_user%MetType) .NE. "cru") THEN
-       CALL open_met_file( dels, koffset, kend, spinup, C%TFRZ )
+         TRIM(cable_user%MetType) .NE. "cru"  .AND. &
+         TRIM(cable_user%MetType) .NE. "gpcc") THEN
+       CALL open_met_file( dels, koffset, kend, spinup, CTFRZ )
        IF ( koffset .NE. 0 .AND. CABLE_USER%CALL_POP ) THEN
           WRITE(*,*)"When using POP, episode must start at Jan 1st!"
           STOP 991
@@ -536,12 +555,12 @@ CONTAINS
              ncciy = CurYear
              WRITE(*,*) 'Looking for global offline run info.'
              CALL prepareFiles(ncciy)
-             CALL open_met_file( dels, koffset, kend, spinup, C%TFRZ )
+             CALL open_met_file( dels, koffset, kend, spinup, CTFRZ )
 
           ELSE IF (TRIM(cable_user%MetType) .EQ. 'gswp3') THEN
              ncciy = CurYear
              WRITE(*,*) 'Looking for global offline run info.'
-             CALL open_met_file( dels, koffset, kend, spinup, C%TFRZ )
+             CALL open_met_file( dels, koffset, kend, spinup, CTFRZ )
 
              IF ( leaps .AND. IS_LEAPYEAR( YYYY ) ) THEN
                 calendar = "standard"
@@ -549,6 +568,10 @@ CONTAINS
                 calendar = "noleap"
              ENDIF
 
+           ELSE IF ( globalMetfile%l_gpcc ) THEN
+             ncciy = CurYear
+             WRITE(*,*) 'Looking for global offline run info.'
+             CALL open_met_file( dels, koffset, kend, spinup, CTFRZ )
 
           ENDIF
 
@@ -574,7 +597,7 @@ CONTAINS
                   bal, logn, vegparmnew, casabiome, casapool,		 &
                   casaflux, sum_casapool, sum_casaflux, &
                   casamet, casabal, phen, POP, spinup,	       &
-                  C%EMSOIL, C%TFRZ, LUC_EXPT, POPLUC )
+                  CEMSOIL, CTFRZ, LUC_EXPT, POPLUC )
 
              IF (CABLE_USER%POPLUC .AND. TRIM(CABLE_USER%POPLUC_RunType) .EQ. 'static') &
                   CABLE_USER%POPLUC= .FALSE.
@@ -756,7 +779,7 @@ CONTAINS
 
              ELSE
                 CALL get_met_data( spinup, spinConv, imet, soil,                 &
-                     rad, iveg, kend, dels, C%TFRZ, iktau+koffset,                &
+                     rad, iveg, kend, dels, CTFRZ, iktau+koffset,                &
                      kstart+koffset )
 
              ENDIF
@@ -829,7 +852,7 @@ CONTAINS
              ELSE
 
                 CALL get_met_data( spinup, spinConv, imet, soil,                 &
-                     rad, iveg, kend, dels, C%TFRZ, iktau+koffset,                &
+                     rad, iveg, kend, dels, CTFRZ, iktau+koffset,                &
                      kstart+koffset )
 
              ENDIF
@@ -947,12 +970,12 @@ CONTAINS
                         .OR. TRIM(cable_user%MetType) .EQ. 'gswp3') THEN
                       CALL write_output( dels, ktau_tot, met, canopy, casaflux, casapool, &
                            casamet,ssnow,         &
-                           rad, bal, air, soil, veg, C%SBOLTZ,     &
-                           C%EMLEAF, C%EMSOIL )
+                           rad, bal, air, soil, veg, CSBOLTZ,     &
+                           CEMLEAF, CEMSOIL )
                    ELSE
                       CALL write_output( dels, ktau, met, canopy, casaflux, casapool, &
                            casamet, ssnow,   &
-                           rad, bal, air, soil, veg, C%SBOLTZ, C%EMLEAF, C%EMSOIL )
+                           rad, bal, air, soil, veg, CSBOLTZ, CEMLEAF, CEMSOIL )
 
                    ENDIF
                 END IF
@@ -1167,12 +1190,12 @@ CONTAINS
 
                    CALL write_output( dels, ktau_tot, met, canopy, casaflux, casapool, &
                         casamet, ssnow,         &
-                        rad, bal, air, soil, veg, C%SBOLTZ,     &
-                        C%EMLEAF, C%EMSOIL )
+                        rad, bal, air, soil, veg, CSBOLTZ,     &
+                        CEMLEAF, CEMSOIL )
                 ELSE
                    CALL write_output( dels, ktau, met, canopy, casaflux, casapool, casamet, &
                         ssnow,   &
-                        rad, bal, air, soil, veg, C%SBOLTZ, C%EMLEAF, C%EMSOIL )
+                        rad, bal, air, soil, veg, CSBOLTZ, CEMLEAF, CEMSOIL )
 
                 ENDIF
              END IF
@@ -1293,7 +1316,7 @@ CONTAINS
              END IF
           END IF
 
-          IF ( YYYY.EQ. CABLE_USER%YearEnd ) THEN
+          IF ( YYYY.GT. CABLE_USER%YearEnd ) THEN
              ! store soil moisture and temperature
              soilTtemp = ssnow%tgg
              soilMtemp = REAL(ssnow%wb)
@@ -1329,12 +1352,15 @@ CONTAINS
 !!$       CALL casa_poolout( ktau, veg, soil, casabiome,                           &
 !!$            casapool, casaflux, casamet, casabal, phen )
        CALL casa_fluxout( nyear, veg, soil, casabal, casamet)
-       CALL write_casa_restart_nc ( casamet, casapool,casaflux,phen,CASAONLY )
+
+       if(.not.l_landuse) then
+           CALL write_casa_restart_nc ( casamet, casapool,casaflux,phen,CASAONLY )
+       endif
 
        !CALL write_casa_restart_nc ( casamet, casapool, met, CASAONLY )
 
 
-       IF ( CABLE_USER%CALL_POP .AND.POP%np.GT.0 ) THEN
+       IF (.not.l_landuse.and.CABLE_USER%CALL_POP .AND.POP%np.GT.0 ) THEN
           IF ( CASAONLY .OR. cable_user%POP_fromZero &
                .OR.TRIM(cable_user%POP_out).EQ.'ini' ) THEN
              CALL POP_IO( pop, casamet, CurYear+1, 'WRITE_INI', .TRUE.)
@@ -1343,7 +1369,7 @@ CONTAINS
              CALL POP_IO( pop, casamet, CurYear+1, 'WRITE_RST', .TRUE.)
           ENDIF
        END IF
-       IF (cable_user%POPLUC .AND. .NOT. CASAONLY ) THEN
+       IF (.not.l_landuse.and.cable_user%POPLUC .AND. .NOT. CASAONLY ) THEN
           CALL WRITE_LUC_RESTART_NC ( POPLUC, YYYY )
        ENDIF
 
@@ -1362,8 +1388,10 @@ CONTAINS
 
        !       CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
 
+       if(.not.l_landuse) then
        CALL create_restart( logn, dels, ktau, soil, veg, ssnow,                 &
             canopy, rough, rad, bgc, bal, met  )
+       endif 
 
        IF (cable_user%CALL_climate) THEN
           CALL master_receive (comm, ktau_gl, climate_ts)
@@ -1375,6 +1403,53 @@ CONTAINS
        END IF
 
     END IF
+
+
+    IF(l_landuse.and. .not. CASAONLY) then
+       mlon = maxval(landpt(1:mland)%ilon)
+       mlat = maxval(landpt(1:mland)%ilat)
+       allocate(luc_atransit(mland,mvmax,mvmax))
+       allocate(luc_fharvw(mland,mharvw))
+       allocate(luc_xluh2cable(mland,mvmax,mstate))
+       allocate(landmask(mlon,mlat))
+       allocate(arealand(mland))
+       allocate(patchfrac_new(mlon,mlat,mvmax))
+       allocate(cstart(mland),cend(mland),nap(mland))
+
+       do m=1,mland
+          cstart(m) = landpt(m)%cstart
+          cend(m)   = landpt(m)%cend
+          nap(m)    = landpt(m)%nap
+       enddo
+
+       call landuse_data(mlon,mlat,landmask,arealand,luc_atransit,luc_fharvw,luc_xluh2cable)
+
+       call  landuse_driver(mlon,mlat,landmask,arealand,ssnow,soil,veg,bal,canopy,  &
+                           phen,casapool,casabal,casamet,casabiome,casaflux,bgc,rad, &
+                           cstart,cend,nap,lucmp)
+
+       print *, 'writing new gridinfo: landuse'
+       print *, 'new patch information. mland= ',mland
+
+       do m=1,mland
+          do np=cstart(m),cend(m)
+             ivt=lucmp%iveg(np)
+             if(ivt<1.or.ivt>mvmax) then
+                print *, 'landuse: error in vegtype',m,np,ivt
+                stop
+             endif      
+             patchfrac_new(landpt(m)%ilon,landpt(m)%ilat,ivt) = lucmp%patchfrac(np)
+          enddo
+       enddo    
+
+       call create_new_gridinfo(filename%type,filename%gridnew,mlon,mlat,landmask,patchfrac_new)                   
+
+       call WRITE_LANDUSE_CASA_RESTART_NC(cend(mland), lucmp, CASAONLY )
+
+       call create_landuse_cable_restart(logn, dels, ktau, soil, cend(mland),lucmp,cstart,cend,nap)
+
+       call landuse_deallocate_mp(cend(mland),ms,msn,nrb,mplant,mlitter,msoil,mwood,lucmp)
+     ENDIF
 
 
 
@@ -1597,15 +1672,15 @@ CONTAINS
 
     TYPE (met_type), INTENT(INOUT) :: met
     TYPE (air_type), INTENT(INOUT) :: air
-    TYPE (soil_snow_type), INTENT(OUT) :: ssnow
-    TYPE (veg_parameter_type), INTENT(OUT)  :: veg
-    TYPE (bgc_pool_type), INTENT(OUT)  :: bgc
-    TYPE (soil_parameter_type), INTENT(OUT) :: soil
-    TYPE (canopy_type), INTENT(OUT)    :: canopy
-    TYPE (roughness_type), INTENT(OUT) :: rough
-    TYPE (radiation_type),INTENT(OUT)  :: rad
-    TYPE (sum_flux_type), INTENT(OUT)  :: sum_flux
-    TYPE (balances_type), INTENT(OUT)  :: bal
+    TYPE (soil_snow_type),      INTENT(INOUT) :: ssnow
+    TYPE (veg_parameter_type),  INTENT(INOUT) :: veg
+    TYPE (bgc_pool_type),       INTENT(INOUT) :: bgc
+    TYPE (soil_parameter_type), INTENT(INOUT) :: soil
+    TYPE (canopy_type),         INTENT(INOUT) :: canopy
+    TYPE (roughness_type),      INTENT(INOUT) :: rough
+    TYPE (radiation_type),      INTENT(INOUT) :: rad
+    TYPE (sum_flux_type),       INTENT(INOUT) :: sum_flux
+    TYPE (balances_type),       INTENT(INOUT) :: bal
 
 
     ! local vars
@@ -1721,7 +1796,6 @@ CONTAINS
        CALL MPI_Type_create_hvector (swb, r1len, r1stride, MPI_BYTE, &
             &                             types(bidx), ierr)
        blen(bidx) = 1
-       !blen(bidx) = r1len
 
        bidx = bidx + 1
        CALL MPI_Get_address (met%fld(off), displs(bidx), ierr)
@@ -1836,7 +1910,6 @@ CONTAINS
        CALL MPI_Type_create_hvector (nrb, r1len, r1stride, MPI_BYTE, &
             &                             types(bidx), ierr)
        blen(bidx) = 1
-       !blen(bidx) = nrb * r1len
 
        bidx = bidx + 1
        CALL MPI_Get_address (ssnow%cls(off), displs(bidx), ierr)
@@ -3842,6 +3915,26 @@ CONTAINS
        CALL MPI_Type_create_hvector (msoil, r2len, r2stride, MPI_BYTE, &
             &                             types(bidx), ierr)
        blen(bidx) = 1
+
+       ! added by ypw
+       bidx = bidx + 1
+       CALL MPI_Get_address (casapool%cwoodprod(off,1), displs(bidx), ierr)
+       CALL MPI_Type_create_hvector (mwood, r2len, r2stride, MPI_BYTE, &
+            &                             types(bidx), ierr)
+       blen(bidx) = 1
+
+       bidx = bidx + 1
+       CALL MPI_Get_address (casapool%nwoodprod(off,1), displs(bidx), ierr)
+       CALL MPI_Type_create_hvector (mwood, r2len, r2stride, MPI_BYTE, &
+             &                             types(bidx), ierr)
+       blen(bidx) = 1
+
+       bidx = bidx + 1
+       CALL MPI_Get_address (casapool%pwoodprod(off,1), displs(bidx), ierr)
+       CALL MPI_Type_create_hvector (mwood, r2len, r2stride, MPI_BYTE, &
+             &                             types(bidx), ierr)
+       blen(bidx) = 1
+
 
        ! ------- casaflux ----
 
@@ -6253,6 +6346,28 @@ CONTAINS
             &                             types(bidx), ierr)
        blocks(bidx) = 1
 
+
+      ! added by YPW
+
+       bidx = bidx + 1
+       CALL MPI_Get_address (casapool%cwoodprod(off,1), displs(bidx), ierr)
+       CALL MPI_Type_create_hvector (mwood, r2len, r2stride, MPI_BYTE,types(bidx), ierr)
+       blocks(bidx) = 1
+
+
+       bidx = bidx + 1
+       CALL MPI_Get_address (casapool%nwoodprod(off,1), displs(bidx), ierr)
+       CALL MPI_Type_create_hvector (mwood, r2len, r2stride, MPI_BYTE,types(bidx), ierr)
+       blocks(bidx) = 1
+
+
+       bidx = bidx + 1
+       CALL MPI_Get_address (casapool%pwoodprod(off,1), displs(bidx), ierr)
+       CALL MPI_Type_create_hvector (mwood, r2len, r2stride, MPI_BYTE,types(bidx), ierr)
+       blocks(bidx) = 1
+       !============ypw
+
+
        bidx = bidx + 1
        CALL MPI_Get_address (phen%doyphase(off,1), displs(bidx), ierr)
        CALL MPI_Type_create_hvector (mphase, I1LEN, istride, MPI_BYTE, &
@@ -7498,9 +7613,10 @@ CONTAINS
             &                             types(bidx), ierr)
        blocks(bidx) = 1
 
-       bidx = bidx + 1
-       CALL MPI_Get_address (climate%mtemp_max(off), displs(bidx), ierr)
-       blocks(bidx) = r1len
+       ! #294 - Avoid malformed var write for now 
+       ! bidx = bidx + 1
+       ! CALL MPI_Get_address (climate%mtemp_max(off), displs(bidx), ierr)
+       ! blocks(bidx) = r1len
 
        !****************************************************************
        ! Ndep
@@ -8050,6 +8166,7 @@ CONTAINS
     USE POP_Types,  ONLY: POP_TYPE
     USE POPMODULE,            ONLY: POPStep
     USE TypeDef,              ONLY: i4b, dp
+USE casa_offline_inout_module, ONLY : WRITE_CASA_RESTART_NC
 
     IMPLICIT NONE
     !!CLN  CHARACTER(LEN=99), INTENT(IN)  :: fcnpspin
@@ -8221,7 +8338,8 @@ CONTAINS
 
     USE cable_def_types_mod
     USE cable_carbon_module
-    USE cable_common_module, ONLY: CABLE_USER, is_casa_time
+    USE cable_common_module, ONLY: CABLE_USER
+  USE casa_ncdf_module, ONLY: is_casa_time
     USE cable_IO_vars_module, ONLY: logn, landpt, patch, output
     USE casadimension
     USE casaparm
@@ -8236,6 +8354,7 @@ CONTAINS
     USE POPLUC_Module, ONLY: POPLUCStep, POPLUC_weights_Transfer, WRITE_LUC_OUTPUT_NC, &
          POP_LUC_CASA_transfer,  WRITE_LUC_RESTART_NC, READ_LUC_RESTART_NC, &
          POPLUC_set_patchfrac,  WRITE_LUC_OUTPUT_GRID_NC
+USE casa_offline_inout_module, ONLY : WRITE_CASA_RESTART_NC
 
 
 
@@ -8524,7 +8643,8 @@ CONTAINS
 
     USE cable_def_types_mod , ONLY: veg_parameter_type, mland
     USE cable_carbon_module
-    USE cable_common_module, ONLY: CABLE_USER, is_casa_time, CurYear
+    USE cable_common_module, ONLY: CABLE_USER, CurYear
+  USE casa_ncdf_module, ONLY: is_casa_time
     USE cable_IO_vars_module, ONLY: logn, landpt, patch
     USE casadimension
     USE casaparm

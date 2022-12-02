@@ -62,19 +62,23 @@ PROGRAM cable_offline_driver
   USE cable_def_types_mod
   USE cable_IO_vars_module, ONLY: logn,gswpfile,ncciy,leaps,		      &
        verbose, fixedCO2,output,check,patchout,	   &
-       patch_type,soilparmnew,&
+       patch_type,landpt,soilparmnew,&
        defaultLAI, sdoy, smoy, syear, timeunits, exists, calendar
+  USE casa_ncdf_module, ONLY: is_casa_time
   USE cable_common_module,  ONLY: ktau_gl, kend_gl, knode_gl, cable_user,     &
        cable_runtime, filename, myhome,		   &
        redistrb, wiltParam, satuParam, CurYear,	   &
-       IS_LEAPYEAR, IS_CASA_TIME, calcsoilalbedo,		 &
-       report_version_no, kwidth_gl, gw_params
+       IS_LEAPYEAR, calcsoilalbedo,		 &
+       kwidth_gl, gw_params
 
   USE cable_namelist_util, ONLY : get_namelist_file_name,&
        CABLE_NAMELIST,arg_not_namelist
+! physical constants
+USE cable_phys_constants_mod, ONLY : CTFRZ   => TFRZ
+USE cable_phys_constants_mod, ONLY : CEMLEAF => EMLEAF
+USE cable_phys_constants_mod, ONLY : CEMSOIL => EMSOIL
+USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
 
-
-  USE cable_data_module,    ONLY: driver_type, point2constants
   USE cable_input_module,   ONLY: open_met_file,load_parameters,	      &
        get_met_data,close_met_file,		   &
        ncid_rain,	&
@@ -89,8 +93,7 @@ PROGRAM cable_offline_driver
        write_output,close_output_file
   USE cable_write_module,   ONLY: nullify_write
   USE cable_IO_vars_module, ONLY: timeunits,calendar
-  USE cable_cbm_module
-  USE cable_diag_module
+   USE cable_cbm_module, ONLY : cbm
   !mpidiff
   USE cable_climate_mod
     
@@ -123,7 +126,11 @@ PROGRAM cable_offline_driver
 #endif
   USE casa_inout_module
   USE casa_cable
-
+USE cbl_soil_snow_init_special_module
+USE landuse_constant, ONLY: mstate,mvmax,mharvw
+USE landuse_variable
+USE bgcdriver_mod, ONLY : bgcdriver
+USE casa_offline_inout_module, ONLY : WRITE_CASA_RESTART_NC, WRITE_CASA_OUTPUT_NC 
   IMPLICIT NONE
 
   ! CABLE namelist: model configuration, runtime/user switches
@@ -177,7 +184,6 @@ PROGRAM cable_offline_driver
   ! CABLE parameters
   TYPE (soil_parameter_type) :: soil ! soil parameters
   TYPE (veg_parameter_type)  :: veg  ! vegetation parameters
-  TYPE (driver_type)	:: C	     ! constants used locally
 
   TYPE (sum_flux_type)	:: sum_flux ! cumulative flux variables
   TYPE (bgc_pool_type)	:: bgc	! carbon pool variables
@@ -198,6 +204,7 @@ PROGRAM cable_offline_driver
   TYPE (CRU_TYPE)       :: CRU
   TYPE (site_TYPE)       :: site
   TYPE (LUC_EXPT_TYPE) :: LUC_EXPT
+  TYPE (landuse_mp)     :: lucmp
   CHARACTER		:: cyear*4
   CHARACTER		:: ncfile*99
 
@@ -209,6 +216,7 @@ PROGRAM cable_offline_driver
        spincasa = .FALSE.,	   & ! TRUE: CASA-CNP Will spin mloop times,
                                 ! FALSE: no spin up
        l_casacnp = .FALSE.,	   & ! using CASA-CNP with CABLE
+       l_landuse = .FALSE.,	   & ! using CASA-CNP with CABLE
        l_laiFeedbk = .FALSE.,	   & ! using prognostic LAI
        l_vcmaxFeedbk = .FALSE.,	   & ! using prognostic Vcmax
        CASAONLY	     = .FALSE.,	   & ! ONLY Run CASA-CNP
@@ -231,11 +239,7 @@ PROGRAM cable_offline_driver
 
   ! timing
   REAL:: etime ! Declare the type of etime(), For receiving user and system time, total time
-
-  !___ unique unit/file identifiers for cable_diag: arbitrarily 5 here
-  INTEGER, SAVE :: iDiagZero=0, iDiag1=0, iDiag2=0, iDiag3=0, iDiag4=0
-
-
+  REAL, allocatable  :: heat_cap_lower_limit(:,:)
   ! switches etc defined thru namelist (by default cable.nml)
   NAMELIST/CABLE/		   &
        filename,	 & ! TYPE, containing input filenames
@@ -254,6 +258,7 @@ PROGRAM cable_offline_driver
        fixedCO2,	 &
        spincasa,	 &
        l_casacnp,	 &
+       l_landuse,        &
        l_laiFeedbk,	 &
        l_vcmaxFeedbk,	 &
        icycle,		 &
@@ -267,7 +272,7 @@ PROGRAM cable_offline_driver
        gw_params
 
   !mpidiff
-  INTEGER :: i,x,kk
+  INTEGER :: i,x,kk,m,np,ivt
 
   ! Vars for standard for quasi-bitwise reproducability b/n runs
   ! Check triggered by cable_user%consistency_check = .TRUE. in cable.nml
@@ -280,12 +285,28 @@ PROGRAM cable_offline_driver
        new_sumbal = 0.0, &
        new_sumfpn = 0.0, &
        new_sumfe = 0.0
+!For consistency w JAC
+  REAL,ALLOCATABLE, SAVE :: c1(:,:)
+  REAL,ALLOCATABLE, SAVE :: rhoch(:,:)
+  REAL,ALLOCATABLE, SAVE :: xk(:,:)
 
   INTEGER :: nkend=0
   INTEGER :: ioerror
   INTEGER :: count_bal = 0
-  ! END header
 
+! for landuse
+integer     mlon,mlat, mpx
+real(r_2), dimension(:,:,:),   allocatable,  save  :: luc_atransit
+real(r_2), dimension(:,:),     allocatable,  save  :: luc_fharvw
+real(r_2), dimension(:,:,:),   allocatable,  save  :: luc_xluh2cable
+real(r_2), dimension(:),       allocatable,  save  :: arealand        
+integer,   dimension(:,:),     allocatable,  save  :: landmask
+integer,   dimension(:),       allocatable,  save  :: cstart,cend,nap
+real(r_2), dimension(:,:,:),   allocatable,  save  :: patchfrac_new
+
+! END header
+
+  cable_runtime%offline = .TRUE.
   !check to see if first argument passed to cable is
   !the name of the namelist file
   !if not use cable.nml
@@ -309,8 +330,6 @@ PROGRAM cable_offline_driver
 
   ! Open log file:
   OPEN(logn,FILE=filename%log)
-
-  CALL report_version_no( logn )
 
   IF( (IARGC() > 0 ) .AND. (arg_not_namelist)) THEN
      CALL GETARG(1, filename%met)
@@ -381,11 +400,6 @@ PROGRAM cable_offline_driver
      cable_user%MetType = 'gswp'
   ENDIF
 
-  cable_runtime%offline = .TRUE.
-
-  ! associate pointers used locally with global definitions
-  CALL point2constants( C )
-
   IF( l_casacnp	 .AND. ( icycle == 0 .OR. icycle > 3 ) )		   &
        STOP 'icycle must be 1 to 3 when using casaCNP'
   !IF( ( l_laiFeedbk .OR. l_vcmaxFeedbk ) )	  &
@@ -408,7 +422,7 @@ PROGRAM cable_offline_driver
 
      IF (l_casacnp) THEN
 
-        CALL open_met_file( dels, koffset, kend, spinup, C%TFRZ )
+        CALL open_met_file( dels, koffset, kend, spinup, CTFRZ )
         IF ( koffset .NE. 0 .AND. CABLE_USER%CALL_POP ) THEN
            WRITE(*,*)"When using POP, episode must start at Jan 1st!"
            STOP 991
@@ -423,7 +437,7 @@ PROGRAM cable_offline_driver
 
   ELSEIF (TRIM(cable_user%MetType) .EQ. '') THEN
 
-     CALL open_met_file( dels, koffset, kend, spinup, C%TFRZ )
+     CALL open_met_file( dels, koffset, kend, spinup, CTFRZ )
      IF ( koffset .NE. 0 .AND. CABLE_USER%CALL_POP ) THEN
         WRITE(*,*)"When using POP, episode must start at Jan 1st!"
         STOP 991
@@ -452,8 +466,10 @@ PROGRAM cable_offline_driver
            CurYear = YYYY
            IF ( leaps .AND. IS_LEAPYEAR( YYYY ) ) THEN
               LOY = 366
+              calendar = "standard"
            ELSE
               LOY = 365
+              calendar = "noleap"
            ENDIF
            ! Check for gswp run
            IF ( TRIM(cable_user%MetType) .EQ. 'gswp' ) THEN
@@ -461,7 +477,7 @@ PROGRAM cable_offline_driver
 
               CALL prepareFiles(ncciy)
               IF ( RRRR .EQ. 1 ) THEN
-                 CALL open_met_file( dels, koffset, kend, spinup, C%TFRZ )
+                 CALL open_met_file( dels, koffset, kend, spinup, CTFRZ )
                  IF (leaps.AND.is_leapyear(YYYY).AND.kend.EQ.2920) THEN
                     STOP 'LEAP YEAR INCOMPATIBILITY WITH INPUT MET !!!'
                  ENDIF
@@ -612,7 +628,7 @@ PROGRAM cable_offline_driver
                    bal, logn, vegparmnew, casabiome, casapool,		 &
                    casaflux, sum_casapool, sum_casaflux, &
                    casamet, casabal, phen, POP, spinup,	       &
-                   C%EMSOIL, C%TFRZ, LUC_EXPT, POPLUC )
+                   CEMSOIL, CTFRZ, LUC_EXPT, POPLUC )
 
               IF ( CABLE_USER%POPLUC .AND. TRIM(CABLE_USER%POPLUC_RunType) .EQ. 'static') &
                    CABLE_USER%POPLUC= .FALSE.
@@ -684,6 +700,13 @@ PROGRAM cable_offline_driver
               EXIT
            ENDIF
 
+  if( .NOT. allocated(heat_cap_lower_limit) ) then
+    allocate( heat_cap_lower_limit(mp,ms) ) 
+    heat_cap_lower_limit = 0.01
+  end if
+
+  call spec_init_soil_snow(dels, soil, ssnow, canopy, met, bal, veg, heat_cap_lower_limit)
+
            ! time step loop over ktau
            DO ktau=kstart, kend
 
@@ -720,11 +743,11 @@ PROGRAM cable_offline_driver
               ELSE
                  IF (TRIM(cable_user%MetType) .EQ. 'site') &
                       CALL get_met_data( spinup, spinConv, met, soil,		 &
-                      rad, veg, kend, dels, C%TFRZ, ktau+koffset_met,		 &
+                      rad, veg, kend, dels, CTFRZ, ktau+koffset_met,		 &
                       kstart+koffset_met )
                  IF (TRIM(cable_user%MetType) .EQ. '') &
                       CALL get_met_data( spinup, spinConv, met, soil,		 &
-                      rad, veg, kend, dels, C%TFRZ, ktau+koffset,		 &
+                      rad, veg, kend, dels, CTFRZ, ktau+koffset,		 &
                       kstart+koffset )
 
                  IF (TRIM(cable_user%MetType) .EQ. 'site' ) THEN
@@ -774,10 +797,10 @@ PROGRAM cable_offline_driver
 
                  IF (l_laiFeedbk.AND.icycle>0) veg%vlai(:) = casamet%glai(:)
 
+   IF (.NOT. allocated(c1)) ALLOCATE( c1(mp,nrb), rhoch(mp,nrb), xk(mp,nrb) )
                  ! Call land surface scheme for this timestep, all grid points:
-                 CALL cbm(ktau, dels, air, bgc, canopy, met,		      &
-                      bal, rad, rough, soil, ssnow,			      &
-                      sum_flux, veg,climate )
+   CALL cbm( ktau, dels, air, bgc, canopy, met, bal,                             &
+             rad, rough, soil, ssnow, sum_flux, veg, climate, xk, c1, rhoch )
 
                  IF (cable_user%CALL_climate) &
                       CALL cable_climate(ktau_tot,kstart,kend,ktauday,idoy,LOY,met, &
@@ -917,26 +940,14 @@ PROGRAM cable_offline_driver
 
 
                     CALL write_output( dels, ktau_tot, met, canopy, casaflux, casapool, casamet, &
-                         ssnow,   rad, bal, air, soil, veg, C%SBOLTZ, C%EMLEAF, C%EMSOIL )
+                         ssnow,   rad, bal, air, soil, veg, CSBOLTZ, CEMLEAF, CEMSOIL )
                  ELSE
                     CALL write_output( dels, ktau, met, canopy, casaflux, casapool, casamet, &
-                         ssnow,rad, bal, air, soil, veg, C%SBOLTZ, C%EMLEAF, C%EMSOIL )
+                         ssnow,rad, bal, air, soil, veg, CSBOLTZ, CEMLEAF, CEMSOIL )
                  ENDIF
               ENDIF
 
 
-              ! dump bitwise reproducible testing data
-              IF( cable_user%RUN_DIAG_LEVEL == 'zero') THEN
-                 IF (.NOT.CASAONLY) THEN
-                    WRITE(*,*) 'before diags'
-                    IF((.NOT.spinup).OR.(spinup.AND.spinConv))			 &
-                         CALL cable_diag( iDiagZero, "FLUXES", mp, kend, ktau,			 &
-                         knode_gl, "FLUXES",				&
-                         canopy%fe + canopy%fh )
-                 ENDIF
-              ENDIF
-
-              ! Check this run against standard for quasi-bitwise reproducability
               ! Check triggered by cable_user%consistency_check = .TRUE. in cable.nml
               IF(cable_user%consistency_check) THEN
 
@@ -1157,6 +1168,8 @@ PROGRAM cable_offline_driver
 
   END DO SPINLOOP
 
+  l_landuse=.false.
+
   IF ( SpinConv .AND. .NOT. CASAONLY ) THEN
      ! Close output file and deallocate main variables:
      CALL close_output_file( bal, air, bgc, canopy, met,		      &
@@ -1176,7 +1189,7 @@ PROGRAM cable_offline_driver
 
 
 
-  IF (icycle > 0) THEN
+  IF (icycle > 0.and. .not.l_landuse) THEN
 
      !CALL casa_poolout( ktau, veg, soil, casabiome,		  &
      ! casapool, casaflux, casamet, casabal, phen )
@@ -1184,11 +1197,58 @@ PROGRAM cable_offline_driver
 
   END IF
 
+  IF (l_landuse .AND. .NOT. CASAONLY ) THEN
+     mlon = maxval(landpt(1:mp)%ilon)
+     mlat = maxval(landpt(1:mp)%ilat)     
+     print *, 'before landuse: mlon mlat ', mlon,mlat
+     allocate(luc_atransit(mland,mvmax,mvmax)) 
+     allocate(luc_fharvw(mland,mharvw)) 
+     allocate(luc_xluh2cable(mland,mvmax,mstate))  
+     allocate(landmask(mlon,mlat))
+     allocate(arealand(mland))
+     allocate(patchfrac_new(mlon,mlat,mvmax))
+     allocate(cstart(mland),cend(mland),nap(mland))
+
+     do m=1,mland
+        cstart(m) = landpt(m)%cstart
+        cend(m)   = landpt(m)%cend
+        nap(m)    = landpt(m)%nap
+     enddo
+
+     call landuse_data(mlon,mlat,landmask,arealand,luc_atransit,luc_fharvw,luc_xluh2cable)      
+     call  landuse_driver(mlon,mlat,landmask,arealand,ssnow,soil,veg,bal,canopy,  &
+                          phen,casapool,casabal,casamet,casabiome,casaflux,bgc,rad, &
+                          cstart,cend,nap,lucmp)
+
+     do m=1,mland
+        do np=cstart(m),cend(m)
+           ivt=lucmp%iveg(np)
+           if(ivt<1.or.ivt>mvmax) then
+             print *, 'landuse: error in vegtype',m,np,ivt
+             stop
+           endif
+           patchfrac_new(landpt(m)%ilon,landpt(m)%ilat,ivt) = lucmp%patchfrac(np)
+        enddo
+     enddo
+
+      call create_new_gridinfo(filename%type,filename%gridnew,mlon,mlat,landmask,patchfrac_new)
+
+      print *, 'writing casapools: land use'
+      call WRITE_LANDUSE_CASA_RESTART_NC(cend(mland), lucmp, CASAONLY )
+
+      print *, 'writing cable restart: land use'
+      call create_landuse_cable_restart(logn, dels, ktau, soil, cend(mland),lucmp,cstart,cend,nap)
+
+      print *, 'deallocating'
+      call landuse_deallocate_mp(cend(mland),ms,msn,nrb,mplant,mlitter,msoil,mwood,lucmp)
+
+  ENDIF
+
   IF (cable_user%POPLUC .AND. .NOT. CASAONLY ) THEN
      CALL WRITE_LUC_RESTART_NC ( POPLUC, YYYY )
   ENDIF
 
-  IF ( .NOT. CASAONLY ) THEN
+  IF ( .NOT. CASAONLY.and. .not. l_landuse ) THEN
      ! Write restart file if requested:
      IF(output%restart)						  &
           CALL create_restart( logn, dels, ktau, soil, veg, ssnow,  &
@@ -1264,7 +1324,8 @@ SUBROUTINE LUCdriver( casabiome,casapool, &
 
   USE cable_def_types_mod , ONLY: veg_parameter_type, mland
   USE cable_carbon_module
-  USE cable_common_module, ONLY: CABLE_USER, is_casa_time, CurYear
+  USE cable_common_module, ONLY: CABLE_USER, CurYear
+  USE casa_ncdf_module, ONLY: is_casa_time
   USE cable_IO_vars_module, ONLY: logn, landpt, patch
   USE casadimension
   USE casaparm
