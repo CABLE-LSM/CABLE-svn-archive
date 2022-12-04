@@ -2859,6 +2859,15 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
        endif
     END IF ! MMY@Nov2022
 
+    print *, "MMY fsd(1000,1), ",met%fsd(1000,1) ! MMY
+    print *, "MMY fsd(1000,2), ",met%fsd(1000,2) ! MMY
+    print *, "MMY fld(1000), ",met%fld(1000) ! MMY
+    print *, "MMY qv(1000), ", met%qv(1000) ! MMY
+    print *, "MMY ua(1000), ",met%ua(1000) ! MMY
+    print *, "MMY tk(1000), ",met%tk(1000) ! MMY
+    print *, "MMY pmb(1000), ",met%pmb(1000) ! MMY
+
+
 END SUBROUTINE get_met_data
 !==============================================================================
 !

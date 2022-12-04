@@ -2119,7 +2119,9 @@ CONTAINS
                 g1 = veg%g1(i)
                 
                 ! print *, "MMY vpd ", vpd ! MMY @Nov2022
-
+                !print *, "MMY vpd ", vpd           ! MMY@Nov2022
+                !print *, "MMY csx(i,1) ", csx(i,1) ! MMY@Nov2022
+  
                 gs_coeff(i,1) = (1.0 + (g1 * fwsoil(i)) / SQRT(vpd)) / csx(i,1)
                 gs_coeff(i,2) = (1.0 + (g1 * fwsoil(i)) / SQRT(vpd)) / csx(i,2)
               
