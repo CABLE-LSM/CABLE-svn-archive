@@ -2833,9 +2833,9 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
     met%tvair = met%tk
     met%tvrad = met%tk
 
-    ! met%qv = met%qv*0.5 ! MMY@Nov2022 reduce air humidity to reduce VPD
+    met%qv = met%qv*0.5 ! MMY@Nov2022 reduce air humidity to reduce VPD
 
-    IF(check%ranges) THEN ! MMY@Nov2022
+   IF(check%ranges) THEN 
        ! Check ranges are okay:
           !jhan:quick fix, use dimension 1 here arbitrarily
        IF(ANY(met%fsd(:,1)<ranges%SWdown(1)).OR.ANY(met%fsd(:,1)>ranges%SWdown(2))) &
@@ -2857,15 +2857,15 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
           write(*,*) "min, max Psurf", minval(met%pmb), maxval(met%pmb),ranges%Psurf(1), ranges%Psurf(2)
             CALL abort('PSurf out of specified ranges!')
        endif
-    END IF ! MMY@Nov2022
+    END IF 
 
-    print *, "MMY fsd(1000,1), ",met%fsd(1000,1) ! MMY
-    print *, "MMY fsd(1000,2), ",met%fsd(1000,2) ! MMY
-    print *, "MMY fld(1000), ",met%fld(1000) ! MMY
-    print *, "MMY qv(1000), ", met%qv(1000) ! MMY
-    print *, "MMY ua(1000), ",met%ua(1000) ! MMY
-    print *, "MMY tk(1000), ",met%tk(1000) ! MMY
-    print *, "MMY pmb(1000), ",met%pmb(1000) ! MMY
+   !  print *, "MMY fsd(1000,1), ",met%fsd(1000,1) ! MMY
+   !  print *, "MMY fsd(1000,2), ",met%fsd(1000,2) ! MMY
+   !  print *, "MMY fld(1000), ",met%fld(1000) ! MMY
+   !  print *, "MMY qv(1000), ", met%qv(1000) ! MMY
+   !  print *, "MMY ua(1000), ",met%ua(1000) ! MMY
+   !  print *, "MMY tk(1000), ",met%tk(1000) ! MMY
+   !  print *, "MMY pmb(1000), ",met%pmb(1000) ! MMY
 
 
 END SUBROUTINE get_met_data
