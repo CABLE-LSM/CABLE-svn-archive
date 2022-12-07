@@ -7,7 +7,7 @@ PRIVATE
 
 CONTAINS
 
-  SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
+SUBROUTINE dryLeaf( dels, rad, rough, air, met,                                &
        veg, canopy, soil, ssnow, dsx,                             &
        fwsoil, tlfx,  tlfy,  ecy, hcy,                            &
        rny, gbhu, gbhf, csx,                                      &
@@ -136,20 +136,19 @@ USE cable_photo_constants_mod, ONLY : CRGBWC => RGBWC
 
     INTEGER :: i, j, k, kk  ! iteration count
     REAL :: vpd, g1 ! Ticket #56
-#define VanessasCanopy
-#ifdef VanessasCanopy
     REAL, DIMENSION(mp,mf)  ::                                                  &
          xleuning    ! leuning stomatal coeff
-#endif
 
     REAL :: medlyn_lim  !INH 2018: should be a parameter in long-term
     ! END header
 
-    ALLOCATE( gswmin(mp,mf ))
+ALLOCATE( gswmin(mp,mf ))
 
-    ! Soil water limitation on stomatal conductance:
-    IF( iter ==1) THEN
+! Soil water limitation on stomatal conductance:
+IF( iter ==1) THEN
+   
        IF ((cable_user%soil_struc=='default').AND.(cable_user%FWSOIL_SWITCH.NE.'Haverd2013')) THEN
+    
           IF(cable_user%FWSOIL_SWITCH == 'standard') THEN
              CALL fwsoil_calc_std( fwsoil, soil, ssnow, veg)
           ELSEIF (cable_user%FWSOIL_SWITCH == 'non-linear extrapolation') THEN
@@ -159,51 +158,52 @@ USE cable_photo_constants_mod, ONLY : CRGBWC => RGBWC
              CALL fwsoil_calc_Lai_Ktaul(fwsoil, soil, ssnow, veg)
           ELSE
              STOP 'fwsoil_switch failed.'
-          ENDIF
+    ENDIF !fwsoil
           canopy%fwsoil = fwsoil
+    
        ELSEIF ((cable_user%soil_struc=='sli').OR.(cable_user%FWSOIL_SWITCH=='Haverd2013')) THEN
+    
           fwsoil = canopy%fwsoil
-       ENDIF
 
-    ENDIF
+  ENDIF ! sli
 
-    ! weight min stomatal conductance by C3 an C4 plant fractions
-    frac42 = SPREAD(veg%frac4, 2, mf) ! frac C4 plants
+ENDIF
+
+! weight min stomatal conductance by C3 an C4 plant fractions
+frac42 = SPREAD(veg%frac4, 2, mf) ! frac C4 plants
     gsw_term = SPREAD(veg%gswmin,2,mf)
     lower_limit2 = rad%scalex * gsw_term
-    gswmin = MAX(1.e-6,lower_limit2)
+gswmin = MAX(1.e-6,lower_limit2)
 
+gw = 1.0e-3 ! default values of conductance
+gh = 1.0e-3
+ghr= 1.0e-3
+rdx = 0.0
+anx = 0.0
+rnx = SUM(rad%rniso,2)
+abs_deltlf = 999.0
 
-    gw = 1.0e-3 ! default values of conductance
-    gh = 1.0e-3
-    ghr= 1.0e-3
-    rdx = 0.0
-    anx = 0.0
-    rnx = SUM(rad%rniso,2)
-    abs_deltlf = 999.0
+gras = 1.0e-6
+an_y= 0.0
+hcx = 0.0              ! init sens heat iteration memory variable
+hcy = 0.0
+rdy = 0.0
+ecx = SUM(rad%rniso,2) ! init lat heat iteration memory variable
+tlfxx = tlfx
+psycst(:,:) = SPREAD(air%psyc,2,mf)
+canopy%fevc = 0.0
+ssnow%evapfbl = 0.0
 
+ghwet = 1.0e-3
+gwwet = 1.0e-3
+ghrwet= 1.0e-3
+canopy%fevw = 0.0
+canopy%fhvw = 0.0
+sum_gbh = SUM((gbhu+gbhf),2)
+sum_rad_rniso = SUM(rad%rniso,2)
+sum_rad_gradis = SUM(rad%gradis,2)
 
-    gras = 1.0e-6
-    an_y= 0.0
-    hcx = 0.0              ! init sens heat iteration memory variable
-    hcy = 0.0
-    rdy = 0.0
-    ecx = SUM(rad%rniso,2) ! init lat heat iteration memory variable
-    tlfxx = tlfx
-    psycst(:,:) = SPREAD(air%psyc,2,mf)
-    canopy%fevc = 0.0
-    ssnow%evapfbl = 0.0
-
-    ghwet = 1.0e-3
-    gwwet = 1.0e-3
-    ghrwet= 1.0e-3
-    canopy%fevw = 0.0
-    canopy%fhvw = 0.0
-    sum_gbh = SUM((gbhu+gbhf),2)
-    sum_rad_rniso = SUM(rad%rniso,2)
-    sum_rad_gradis = SUM(rad%gradis,2)
-
-    DO kk=1,mp
+DO kk=1,mp
 
        IF(canopy%vlaiw(kk) <= CLAI_THRESH) THEN
           rnx(kk) = 0.0 ! intialise
@@ -214,17 +214,17 @@ USE cable_photo_constants_mod, ONLY : CRGBWC => RGBWC
           ! calculate total thermal resistance, rthv in s/m
        END IF
 
-    ENDDO
+ENDDO
 
-    deltlfy = abs_deltlf
-    k = 0
+deltlfy = abs_deltlf
+k = 0
 
-
-    !kdcorbin, 08/10 - doing all points all the time
-    DO WHILE (k < CMAXITER)
+!kdcorbin, 08/10 - doing all points all the time
+DO WHILE (k < CMAXITER)
        k = k + 1
        DO i=1,mp
 
+    !IF vegetated dryleaf per patch - within iteration loop    
           IF (canopy%vlaiw(i) > CLAI_THRESH .AND. abs_deltlf(i) > 0.1) THEN
 
              ghwet(i) = 2.0   * sum_gbh(i)
@@ -301,7 +301,7 @@ USE cable_photo_constants_mod, ONLY : CRGBWC => RGBWC
              temp2(i,2) = rad%qcan(i,2,1) * jtomol * veg%frac4(i)
              vx4(i,1)  = ej4x(temp2(i,1),veg%alpha(i),veg%convex(i),vcmxt4(i,1))
              vx4(i,2)  = ej4x(temp2(i,2),veg%alpha(i),veg%convex(i),vcmxt4(i,2))
-
+             !jhan:isnt this rdx redundant,  all overwritten anyway
              rdx(i,1) = (veg%cfrd(i)*Vcmxt3(i,1) + veg%cfrd(i)*vcmxt4(i,1))
              rdx(i,2) = (veg%cfrd(i)*vcmxt3(i,2) + veg%cfrd(i)*vcmxt4(i,2))
 
@@ -309,9 +309,6 @@ USE cable_photo_constants_mod, ONLY : CRGBWC => RGBWC
              !as well as other inconsistencies here that need further investigation. In the
              !interests of getting this into the trunk ASAP just isolate this code for now
              !default side of this condition is to use trunk version
-
-             !#ifdef VanessasCanopy
-
 
              IF (cable_user%CALL_climate) THEN
 
@@ -328,33 +325,34 @@ USE cable_photo_constants_mod, ONLY : CRGBWC => RGBWC
 
                 IF (veg%iveg(i).EQ.2 .OR. veg%iveg(i).EQ. 4  ) THEN ! broadleaf forest
 
-                   rdx(i,1) = 0.60*(1.2818e-6+0.0116*veg%vcmax(i)- &
+                   rdx(i,1) = 0.60*(1.2818e-6+0.0116*veg%vcmax(i) - &
                         0.0334*climate%qtemp_max_last_year(i)*1e-6)
                    rdx(i,2) = rdx(i,1)
 
                 ELSEIF (veg%iveg(i).EQ.1 .OR. veg%iveg(i).EQ. 3  ) THEN ! needleleaf forest
-                   rdx(i,1) = 1.0*(1.2877e-6+0.0116*veg%vcmax(i)- &
+                   
+                   rdx(i,1) = 1.0*(1.2877e-6+0.0116*veg%vcmax(i) - &
                         0.0334*climate%qtemp_max_last_year(i)*1e-6)
                    rdx(i,2) = rdx(i,1)
 
-                ELSEIF (veg%iveg(i).EQ.6 .OR. veg%iveg(i).EQ.8 .OR. &
+                ELSEIF ( veg%iveg(i).EQ.6 .OR. veg%iveg(i).EQ.8 .OR. &
                      veg%iveg(i).EQ. 9  ) THEN ! C3 grass, tundra, crop
+ 
                    rdx(i,1) = 0.60*(1.6737e-6+0.0116*veg%vcmax(i)- &
                         0.0334*climate%qtemp_max_last_year(i)*1e-6)
                    rdx(i,2) = rdx(i,1)
 
                 ELSE  ! shrubs and other (C4 grass and crop)
+
                    rdx(i,1) = 0.60*(1.5758e-6+0.0116*veg%vcmax(i)- &
                         0.0334*climate%qtemp_max_last_year(i)*1e-6)
                    rdx(i,2) = rdx(i,1)
-                ENDIF
 
+                ENDIF
 
                 ! modify for leaf area and instanteous temperature response (Rd25 -> Rd)
                 rdx(i,1) = rdx(i,1) * xrdt(tlfx(i)) * rad%scalex(i,1)
                 rdx(i,2) = rdx(i,2) * xrdt(tlfx(i)) * rad%scalex(i,2)
-
-
 
                 ! reduction of daytime leaf dark-respiration to account for
                 !photo-inhibition
@@ -368,25 +366,19 @@ USE cable_photo_constants_mod, ONLY : CRGBWC => RGBWC
                 ! Rc = Rd 0 < Io < 10 μmol quantam−2s−1
                 ! Rc = [0.5 − 0.05 ln(Io)] Rd Io > 10μmol quantam−2s−1
 
-                IF (jtomol*1.0e6*rad%qcan(i,1,1).GT.10.0) &
-                     rdx(i,1) = rdx(i,1) * &
-                     (0.5 - 0.05*LOG(jtomol*1.0e6*rad%qcan(i,1,1)))
+                IF ( jtomol*1.0e6*rad%qcan(i,1,1).GT.10.0 ) THEN
+                     rdx(i,1) = rdx(i,1) * (0.5 - 0.05*LOG(jtomol*1.0e6*rad%qcan(i,1,1)))
+                ENDIF
+                IF ( jtomol*1.0e6*rad%qcan(i,1,2).GT.10.0 ) THEN
+                     rdx(i,2) = rdx(i,2) * (0.5 - 0.05*LOG(jtomol*1.0e6*rad%qcan(i,1,2)))
+                ENDIF
 
-                IF (jtomol*1.0e6*rad%qcan(i,1,2).GT.10.0) &
-                     rdx(i,2) = rdx(i,2) * &
-                     (0.5 - 0.05*LOG(jtomol*1.0e6*rad%qcan(i,1,2)))
-
-!$                xleuning(i,1) = ( fwsoil(i) / ( csx(i,1) - co2cp3 ) )              &
-!$                     * ( veg%a1gs(i) / ( 1.0 + dsx(i)/veg%d0gs(i)))
-!$                xleuning(i,2) = ( fwsoil(i) / ( csx(i,2) - co2cp3 ) )              &
-!$                     * ( veg%a1gs(i) / ( 1.0 + dsx(i)/veg%d0gs(i)))
 
              ELSE !cable_user%call_climate
 
-!$!Vanessa:note there is no xleuning to go into photosynthesis etc anymore
-!$             gs_coeff = xleuning
+          !!$!Vanessa:note there is no xleuning to go into photosynthesis etc anymore
+          !!$             gs_coeff = xleuning
 
-                !#else
                 rdx(i,1) = (veg%cfrd(i)*vcmxt3(i,1) + veg%cfrd(i)*vcmxt4(i,1))
                 rdx(i,2) = (veg%cfrd(i)*vcmxt3(i,2) + veg%cfrd(i)*vcmxt4(i,2))
 
@@ -403,6 +395,7 @@ USE cable_photo_constants_mod, ONLY : CRGBWC => RGBWC
                 ! Medlyn BE et al (2011) Global Change Biology 17: 2134-2144.
              ELSEIF(cable_user%GS_SWITCH == 'medlyn') THEN
 
+        ! Medlyn BE et al (2011) Global Change Biology 17: 2134-2144.
                 gswmin = veg%g0(i)
 
                 IF (dsx(i) < 50.0) THEN
@@ -427,9 +420,8 @@ USE cable_photo_constants_mod, ONLY : CRGBWC => RGBWC
              ELSE
                 STOP 'gs_model_switch failed.'
              ENDIF ! IF (cable_user%GS_SWITCH == 'leuning') THEN
-             !#endif
 
-          ENDIF !IF (canopy%vlaiw(i) > CLAI_THRESH .AND. abs_deltlf(i) > 0.1)
+    ENDIF  !IF vegetated dryleaf per patch - within iteration loop    
 
        ENDDO !i=1,mp
 
@@ -439,7 +431,7 @@ USE cable_photo_constants_mod, ONLY : CRGBWC => RGBWC
             gswmin(:,:), rdx(:,:), vcmxt3(:,:),                 &
             vcmxt4(:,:), vx3(:,:), vx4(:,:),                    &
                                 ! Ticket #56, xleuning replaced with gs_coeff here
-            gs_coeff(:,:), rad%fvlai(:,:),&
+            gs_coeff(:,:), rad%fvlai(:,:),                      &
             SPREAD( abs_deltlf, 2, mf ),                        &
             anx(:,:), fwsoil(:) )
 
@@ -462,12 +454,9 @@ USE cable_photo_constants_mod, ONLY : CRGBWC => RGBWC
                         MAX( 0.0, CRGSWC * gs_coeff(i,kk) *     &
                         anx(i,kk) ) )
 
-
                    !Recalculate conductance for water:
                    gw(i,kk) = 1.0 / ( 1.0 / canopy%gswx(i,kk) +                 &
                         1.0 / ( 1.075 * ( gbhu(i,kk) + gbhf(i,kk) ) ) )
-
-
 
                    gw(i,kk) = MAX( gw(i,kk), 0.00001 )
 
@@ -540,6 +529,7 @@ USE cable_photo_constants_mod, ONLY : CRGBWC => RGBWC
                   - Ccapp*Crmair*(met%tvair(i)-met%tk(i))                       &
                   * SUM(rad%gradis(i,:)))                                         &
                   * SUM(gh(i,:))/ SUM(ghr(i,:))
+
              ! Update leaf temperature:
              tlfx(i)=met%tvair(i)+REAL(hcx(i))/(Ccapp*Crmair*SUM(gh(i,:)))
 
@@ -655,12 +645,11 @@ USE cable_photo_constants_mod, ONLY : CRGBWC => RGBWC
 
        END DO
 
-    ENDIF
+ENDIF
 
-    canopy%frday = 12.0 * SUM(rdy, 2)
-    ! vh ! inserted min to avoid -ve values of GPP
-    canopy%fpn = MIN(-12.0 * SUM(an_y, 2), canopy%frday)
-    canopy%evapfbl = ssnow%evapfbl
+canopy%frday = 12.0 * SUM(rdy, 2)
+  canopy%fpn = MIN(-12.0 * SUM(an_y, 2), canopy%frday)
+canopy%evapfbl = ssnow%evapfbl
 
 
     DEALLOCATE( gswmin )

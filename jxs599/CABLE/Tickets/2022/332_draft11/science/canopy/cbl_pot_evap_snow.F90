@@ -109,9 +109,7 @@ REAL :: ssnow_rtevap_unsat(mp)    !
 
 !local vars
 INTEGER :: j
-REAL, DIMENSION(mp) :: q_air
 
-q_air = qstss - dq
 
 DO j=1,mp
 
