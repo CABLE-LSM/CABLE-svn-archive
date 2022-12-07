@@ -98,7 +98,7 @@ real :: SumEffSurfRefl_beam(1)
 real :: SumEffSurfRefl_dif(1)
 integer :: i
 
-    ! END header
+! END header
 
 AlbSnow(:,:) = 0.0
 !CanopyTransmit_beam(:,:) = 0.0
@@ -107,10 +107,6 @@ CanopyRefl_dif(:,:) = 0.0
 !CanopyTransmit_dif(:,:) = 0.0  ! MPI (at least inits this = 1.0 at dt=0) 
 
 !Modify parametrised soil albedo based on snow coverage 
-!call surface_albedosn( AlbSnow, AlbSoil, mp, nrb, jls_radiation, surface_type, soil_type, &
-!                       SnowDepth, SnowODepth, SnowFlag_3L,                      & 
-!                       SnowDensity, SoilTemp, SnowTemp, SnowAge,                     & 
-!                       MetTk, Coszen )
 call surface_albedosn( AlbSnow, AlbSoil, mp, nrb, surface_type, soil_type, &
                        SnowDepth, SnowDensity, SoilTemp, SnowAge, Coszen )
 
@@ -218,6 +214,7 @@ End subroutine CanopyReflectance_beam
 subroutine CanopyReflectance_dif( CanopyRefl_dif, mp, nrb, CGauss_w,  &
                                   ExtCoeff_dif, xk, rhoch )
 
+USE cable_common_module, ONLY : cable_runtime
 implicit none
 INTEGER :: mp
 integer :: nrb
@@ -228,11 +225,18 @@ REAL :: xk(mp,nrb)      ! extinct. coef.for beam rad. and black leaves
 REAL :: rhoch(mp,nrb)      
 !local vars
 INTEGER :: ictr
+REAL :: factor
+
+IF( cable_runtime%esm15 ) THEN
+  factor = 1.0  !esm15
+ELSE
+  factor = 2.0 !trunk
+ENDIF
 
 ! Canopy REFLection of diffuse radiation for black leaves:
 DO ictr=1,2
 
-  CanopyRefl_dif(:,ictr) = rhoch(:,ictr) *  2. *                                &
+  CanopyRefl_dif(:,ictr) = rhoch(:,ictr) *  factor *                                &
                        ( CGAUSS_W(1) * xk(:,1) / ( xk(:,1) + ExtCoeff_dif(:) )&
                        + CGAUSS_W(2) * xk(:,2) / ( xk(:,2) + ExtCoeff_dif(:) )&
                        + CGAUSS_W(3) * xk(:,3) / ( xk(:,3) + ExtCoeff_dif(:) ) )
