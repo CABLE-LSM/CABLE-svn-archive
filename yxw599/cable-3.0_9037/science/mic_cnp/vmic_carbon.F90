@@ -1,30 +1,32 @@
 MODULE vmic_carbon_cycle_mod
-  USE cable_def_types_mod, ONLY : mp,ms,mvtype,mstype,r_2
+  USE cable_def_types_mod    !, ONLY : mp,ms,mvtype,mstype,r_2
   IMPLICIT NONE
 
 CONTAINS
 
-   SUBROUTINE vmic_param_time(micparam,micinput,micnpool)
+   SUBROUTINE vmic_param_time(veg,soil,micparam,micinput,micnpool)
      USE vmic_constant_mod
      USE vmic_variable_mod
      ! time-dependent model parameters, called every time step if the forcing, such air temperature
      ! varies every time step
      ! otherwise only called at the start the integration	
      implicit none
-     TYPE(mic_parameter), INTENT(INout)   :: micparam
-     TYPE(mic_input),     INTENT(INout)   :: micinput
-     TYPE(mic_npool),     INTENT(INOUT)   :: micnpool
+     TYPE(mic_parameter), INTENT(INout)     :: micparam
+     TYPE(mic_input),     INTENT(INout)     :: micinput
+     TYPE(mic_npool),     INTENT(INOUT)     :: micnpool
+     TYPE (veg_parameter_type),  INTENT(IN) :: veg  ! vegetation parameters     
+     TYPE (soil_parameter_type), INTENT(IN) :: soil 
 
 !      xav = xopt(1); xak= xopt(2); xdesorp = xopt(3); xbeta=xopt(4)
       ! compute fractions and time-dependent carbon input
-      call bgc_fractions(micparam,micinput)
+      call bgc_fractions(veg,soil,micparam,micinput)
       ! compute microbial growth efficiency
       call mget(micparam,micinput,micnpool)
       ! compute microbial turnover rates
       call turnovert(micparam,micinput)
-      call Desorpt(micparam) 
+      call Desorpt(soil,micparam) 
       call Vmaxt(micparam,micinput)
-      call Kmt(micparam,micinput)
+      call Kmt(soil,micparam,micinput)
 
   
    END SUBROUTINE vmic_param_time
@@ -55,7 +57,7 @@ CONTAINS
 
     END SUBROUTINE rk4modelx
 
-    SUBROUTINE Kmt(micparam,micinput)
+    SUBROUTINE Kmt(soil,micparam,micinput)
       ! unit: mg Mic C/cm3
       USE vmic_constant_mod
       USE vmic_variable_mod
@@ -71,8 +73,9 @@ CONTAINS
       real(r_2), parameter            :: xj2 =4.0
       real(r_2), parameter            :: xj3 =6.0
 !      real(r_2)                          xak
-      TYPE(mic_parameter), INTENT(INOUT)   :: micparam
-      TYPE(mic_input),     INTENT(IN)      :: micinput
+      TYPE(mic_parameter), INTENT(INOUT)       :: micparam
+      TYPE(mic_input),     INTENT(IN)          :: micinput
+      TYPE (soil_parameter_type),   INTENT(IN) :: soil ! soil parameters
 
   
       ! local variable
@@ -81,7 +84,7 @@ CONTAINS
 
         do np=1,mp
         do ns=1,ms
-           xkclay(np,ns) = 1.0/ exp(-2.0*sqrt(micparam%clay(np,ns)))
+           xkclay(np,ns) = 1.0/ exp(-2.0*sqrt(soil%clay(np)))
            km(np,ns) =  micparam%xak(np) * ak * exp(sk * micinput%tavg(np,ns) + bk)
            micparam%K1(np,ns) =  km(np,ns)/xk1
            micparam%K3(np,ns) =  km(np,ns) * xkclay(np,ns)/xk3
@@ -95,7 +98,7 @@ CONTAINS
          enddo
 
          if(diag==1) then   
-            print *, 'Kmt',micparam%clay(outp,1),micinput%tavg(outp,1),km(outp,1),kmx(outp,1)
+            print *, 'Kmt',soil%clay(np),micinput%tavg(outp,1),km(outp,1),kmx(outp,1)
             print *, micparam%K1(outp,1)
             print *, micparam%K2(outp,1)
             print *, micparam%K3(outp,1)
@@ -155,17 +158,18 @@ CONTAINS
 
     END SUBROUTINE Vmaxt
 
-    SUBROUTINE Desorpt(micparam)
+    SUBROUTINE Desorpt(soil,micparam)
       USE vmic_constant_mod
       USE vmic_variable_mod
       implicit none
 !      real(r_2)              xdesorp
-      TYPE(mic_parameter), INTENT(INOUT)    :: micparam 
+      TYPE(mic_parameter),          INTENT(INOUT)    :: micparam 
+      TYPE (soil_parameter_type),   INTENT(IN)       :: soil ! soil parameters      
       integer np,ns 
 
       do np=1,mp
       do ns=1,ms 
-         micparam%desorp(np,ns) = micparam%xdesorp(np) * (1.5e-5) * exp(-1.5*micparam%clay(np,ns)) 
+         micparam%desorp(np,ns) = micparam%xdesorp(np) * (1.5e-5) * exp(-1.5*soil%clay(np)) 
       enddo
       enddo
 
@@ -265,7 +269,7 @@ CONTAINS
   END SUBROUTINE turnovert
 
 
-  SUBROUTINE bgc_fractions(micparam,micinput)
+  SUBROUTINE bgc_fractions(veg,soil,micparam,micinput)
     USE vmic_constant_mod
     USE vmic_variable_mod
     implicit none
@@ -274,8 +278,10 @@ CONTAINS
     real(r_2), parameter                :: fmicsom3=10.56
     real(r_2), parameter                :: fmicsom4=29.78
     real(r_2), parameter                :: fmicsom5=2.61
-    TYPE(mic_parameter), INTENT(INOUT)  :: micparam  
-    TYPE(mic_input),     INTENT(INOUT)  :: micinput
+    TYPE(mic_parameter), INTENT(INOUT)      :: micparam  
+    TYPE(mic_input),     INTENT(INOUT)      :: micinput
+    TYPE (veg_parameter_type),  INTENT(IN)  :: veg  ! vegetation parameters
+    TYPE (soil_parameter_type), INTENT(IN)  :: soil
     !local variables
     integer np,ns
     real(r_2), dimension(mp)            :: fmetleaf,fmetroot,fmetwood
@@ -283,7 +289,7 @@ CONTAINS
     real(r_2), dimension(mp,ms)         :: cinputm,cinputs
     real(r_2), dimension(mp,ms,2)       :: cninp
     
-    
+  
       do np=1,mp
           ! need to count for resorption as in CASA-CNP  
           fmetleaf(np) = max(0.0, 1.0 * (0.85 - 0.013 * micparam%fligleaf(np) * micparam%xcnleaf(np)))
@@ -292,7 +298,7 @@ CONTAINS
 
           ! Initial C:N ratio of each C pool
           do ns=1,ms
-
+             
              ! **this is a temporary solution, to be modified after N cycle is included
              micparam%cn_r(np,ns,1)=max( 5.0,0.5*(micparam%xcnleaf(np)+micparam%xcnroot(np)))
              micparam%cn_r(np,ns,2)=max(10.0,0.5*(micparam%xcnleaf(np)+micparam%xcnwood(np)))
@@ -305,12 +311,12 @@ CONTAINS
  
        ! here zse in m, litter input in g/m2/delt, *0.001 to mgc/cm3/delt and "zse" in m.
              if(ns==1) then
-                dleafx(np,ns) = 0.001* micinput%dleaf(np)/micparam%sdepth(np,1)                      ! mgc/cm3/delt
-                drootx(np,ns) = 0.001* micparam%fracroot(np,1) * micinput%droot(np)/micparam%sdepth(np,1)     ! mgc/cm3/delt
-                dwoodx(np,ns) = 0.001* micinput%dwood(np)/micparam%sdepth(np,1)                      ! mgc/cm3/delt
+                dleafx(np,ns) = 0.001 * micinput%dleaf(np)/soil%zse(1)                                ! mgc/cm3/delt
+                drootx(np,ns) = 0.001 * veg%froot(np,1) * micinput%droot(np)/soil%zse(1)     ! mgc/cm3/delt
+                dwoodx(np,ns) = 0.001 * micinput%dwood(np)/soil%zse(1)                               ! mgc/cm3/delt
              else
                 dleafx(np,ns) = 0.0
-                drootx(np,ns) = 0.001 * micparam%fracroot(np,ns) * micinput%droot(np)/micparam%sdepth(np,ns)  ! mgc/cm3/delt
+                drootx(np,ns) = 0.001 * veg%froot(np,ns) * micinput%droot(np)/soil%zse(ns)  ! mgc/cm3/delt
                 dwoodx(np,ns) = 0.0
              endif
 
@@ -351,8 +357,8 @@ CONTAINS
 
              micparam%cn_r(np,ns,1) = cninp(np,ns,1); micparam%cn_r(np,ns,2)=cninp(np,ns,2)
 
-             micparam%fr2p(np,ns) = fmicsom1 * 0.30 * exp(1.3*micparam%clay(np,ns)) *1.0                   ! 3.0
-             micparam%fk2p(np,ns) = fmicsom2 * 0.20 * exp(0.8*micparam%clay(np,ns)) *1.0                   ! 3.0
+             micparam%fr2p(np,ns) = fmicsom1 * 0.30 * exp(1.3*soil%clay(np)) *1.0                   ! 3.0
+             micparam%fk2p(np,ns) = fmicsom2 * 0.20 * exp(0.8*soil%clay(np)) *1.0                   ! 3.0
              micparam%fr2c(np,ns) = min(1.0-micparam%fr2p(np,ns), fmicsom3 * 0.10 * exp(-fmicsom5 * micparam%fmetave(np,ns))*1.0 )    ! 9.0   to invoid a negative value of fr2a  ZHC
              micparam%fk2c(np,ns) = min(1.0-micparam%fk2p(np,ns), fmicsom4 * 0.30 * exp(-fmicsom5 * micparam%fmetave(np,ns))*1.0)     ! 9.0   to invoid a negative value of fk2a ZHC
              micparam%fr2a(np,ns) = 1.00 - micparam%fr2p(np,ns) - micparam%fr2c(np,ns)
@@ -587,7 +593,7 @@ CONTAINS
      real(r_2) cfluxc2a, cfluxr2a, cfluxk2a, cfluxa2r, cfluxa2k
  
       cinputmx = micinput%cinputm(np,ns);   cinputsx = micinput%cinputs(np,ns)
-      tavgx    = micinput%tavg(np,ns);      clayx    = micparam%clay(np,ns)   
+      tavgx    = micinput%tavg(np,ns)   
 
       fmx      = micparam%fm(np,ns);        fsx      = micparam%fs(np,ns)  
       fr2px    = micparam%fr2p(np,ns);      fr2cx    = micparam%fr2c(np,ns)

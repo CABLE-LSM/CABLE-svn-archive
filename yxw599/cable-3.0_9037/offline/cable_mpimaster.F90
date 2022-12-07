@@ -613,8 +613,8 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
              if (vmicrobe>0) then
                 call vmic_allocate(micparam,micinput,micoutput,miccpool,micnpool)
                 call vmic_parameter(veg,soil,casabiome,micparam,micinput)
-				call vmic_param_constant(veg,soil,micparam)
-				call vmic_init(micparam,micinput,miccpool,micnpool)
+                call vmic_param_constant(veg,soil,micparam)
+                call vmic_init(micparam,micinput,miccpool,micnpool)
              endif
 
              IF (CABLE_USER%POPLUC .AND. TRIM(CABLE_USER%POPLUC_RunType) .EQ. 'static') &

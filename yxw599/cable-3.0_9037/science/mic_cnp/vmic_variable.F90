@@ -18,11 +18,11 @@ MODULE vmic_variable_mod
     real(r_2), dimension(:),      allocatable  :: xcnleaf,xcnroot,xcnwood,fligleaf,fligroot,fligwood
     real(r_2), dimension(:),      allocatable  :: diffsocx
     ! the following are alrealy available in CABLE
-	real(r_2), dimension(:),      allocatable  :: zse
-    integer,   dimension(:),      allocatable  :: pft,region,siteid
-    real(r_2), dimension(:,:),    allocatable  :: sdepth,fracroot
-    real(r_2), dimension(:,:),    allocatable  :: clay
-    real(r_2), dimension(:,:),    allocatable  :: csoilobs,bulkd  
+!	real(r_2), dimension(:),      allocatable  :: zse                !zse=>soil@zse, unit in m
+!    integer,   dimension(:),      allocatable  :: pft,region,siteid  !pft=>veg%iveg
+!    real(r_2), dimension(:,:),    allocatable  :: sdepth,fracroot    !sdepth calculates from "zse", fracroot=>veg%froot
+!    real(r_2), dimension(:,:),    allocatable  :: clay               !clay=>soil%clay      ! unit in fraction (0-1)
+!    real(r_2), dimension(:,:),    allocatable  :: csoilobs,bulkd     !bulkd->soil%rhosoil  ! kg/m3 or mg/cm3
   END TYPE mic_parameter
   
   TYPE mic_input
@@ -30,7 +30,7 @@ MODULE vmic_variable_mod
     real(r_2), dimension(:),      allocatable  :: dleaf,dwood,droot
     real(r_2), dimension(:,:),    allocatable  :: cinputm
     real(r_2), dimension(:,:),    allocatable  :: cinputs
-    real(r_2), dimensioN(:),      allocatable  :: fcnpp
+    real(r_2), dimension(:),      allocatable  :: fcnpp
 
   END TYPE mic_input
  
@@ -106,16 +106,16 @@ CONTAINS
              micparam%fligwood(mp),  &
              micparam%diffsocx(mp))
 
-    allocate(micparam%zse(ms),       &
-             micparam%pft(mp),       &
-             micparam%region(mp),    &
-             micparam%siteid(mp))
+!    allocate(micparam%zse(ms),       &
+!             micparam%pft(mp),       &
+!             micparam%region(mp),    &
+!             micparam%siteid(mp))
 
-    allocate(micparam%sdepth(mp,ms),   &
-             micparam%fracroot(mp,ms), &
-             micparam%clay(mp,ms),     &
-             micparam%csoilobs(mp,ms), &
-             micparam%bulkd(mp,ms)) 
+!    allocate(micparam%sdepth(mp,ms),   &
+!             micparam%fracroot(mp,ms), &
+!             micparam%clay(mp,ms),     &
+!             micparam%csoilobs(mp,ms), &
+!             micparam%bulkd(mp,ms)) 
    
   END SUBROUTINE vmic_allocate_parameter
   

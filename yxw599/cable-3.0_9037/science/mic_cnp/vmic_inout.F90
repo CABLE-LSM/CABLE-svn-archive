@@ -88,11 +88,11 @@ CONTAINS
            micparam%rootbetax(np)= rootbeta_pft(ivt)
            micparam%xdesorp(np)  = xdesorpt_pft(ivt)
            ! soil parameters	  
-           micparam%bulkd(np,1:ms) = soil%rhosoil(np)
-           micparam%clay(np,1:ms)  = soil%clay(np)	
+!           micparam%bulkd(np,1:ms) = soil%rhosoil(np)
+!           micparam%clay(np,1:ms)  = soil%clay(np)	
            ! vegetation parameters
        
-           micparam%pft(np)     =  veg%iveg(np)	   
+!           micparam%pft(np)     =  veg%iveg(np)	   
            micparam%xcnleaf(np) = 1.0/casabiome%ratioNCplantmax(ivt,1)
            micparam%xcnroot(np) = 1.0/casabiome%ratioNCplantmax(ivt,3)	  
            micparam%xcnwood(np) = 1.0/casabiome%ratioNCplantmax(ivt,2)
@@ -100,9 +100,9 @@ CONTAINS
            micparam%fligroot(np)=  casabiome%fracligninplant(ivt,3)
            micparam%fligwood(np)=  casabiome%fracligninplant(ivt,2)
         enddo  
-        do ns=1,ms
-           micparam%zse(ns) = soil%zse(ns)
-        enddo
+!        do ns=1,ms
+!           micparam%zse(ns) = soil%zse(ns)
+!        enddo
 	
     end SUBROUTINE vmic_parameter
 
@@ -125,16 +125,16 @@ CONTAINS
 
       ! calculate mp by ms all parameter values
       do np=1, mp
-         do ns=1,ms
-            micparam%sdepth(np,ns)   = soil%zse(ns)
-            micparam%fracroot(np,ns) = veg%froot(np,ns)
-          enddo !"ns"
+!         do ns=1,ms
+!            micparam%sdepth(np,ns)   = soil%zse(ns)
+!            micparam%fracroot(np,ns) = veg%froot(np,ns)
+!          enddo !"ns"
           micparam%diffsocx(np) = micparam%xdiffsoc(np) * diffsoc  !"diffsoc" from mic_constant
       enddo    ! "np=1,mp"
   
       if(diag==1) then
-         print *, micparam%fracroot(outp,:) 
-         print *, micparam%sdepth(outp,:)
+!         print *, micparam%fracroot(outp,:) 
+!         print *, micparam%sdepth(outp,:)
          print *, micparam%diffsocx(outp)
       endif
    END SUBROUTINE vmic_param_constant  
@@ -192,14 +192,15 @@ CONTAINS
 
   END SUBROUTINE vmic_init
 
-   SUBROUTINE vmic_input(dleaf,dwood,droot,nsoilmin,casamet,micparam,micinput,micnpool)
+   SUBROUTINE vmic_input(dleaf,dwood,droot,nsoilmin,veg,casamet,micparam,micinput,micnpool)
      USE casavariable,                    ONLY : casa_met
      USE casaparm,                        ONLY : tkzeroc
      implicit none
-     TYPE (casa_met),     INTENT(IN)          :: casamet
-     TYPE(mic_parameter), INTENT(IN)          :: micparam
-     TYPE(mic_input),     INTENT(INOUT)         :: micinput
-     TYPE(mic_npool),     INTENT(INOUT)       :: micnpool   
+     TYPE (veg_parameter_type),INTENT(IN)     :: veg  ! vegetation parameters
+     TYPE (casa_met),          INTENT(IN)     :: casamet
+     TYPE(mic_parameter),      INTENT(IN)     :: micparam
+     TYPE(mic_input),          INTENT(INOUT)  :: micinput
+     TYPE(mic_npool),          INTENT(INOUT)  :: micnpool   
      real(r_2),  dimension(mp)                :: dleaf,dwood,droot,fcnpp,nsoilmin
      real(r_2),  dimension(17)                :: fcnpp_pft
      data fcnpp_pft/500.0,500.0,500.0,500.0,500.0,500.0,500.0,500.0,500.0,500.0,500.0,500.0,500.0,500.0,500.0,500.0,500.0/
@@ -209,7 +210,8 @@ CONTAINS
   
        do np=1,mp
       !
-          ivt =micparam%pft(np)
+      !    ivt =micparam%pft(np)
+          ivt = veg%iveg(np)
           micinput%fcnpp(np) = fcnpp_pft(ivt)         ! gc/m2/year for calculating microbial turnover rate (constant!!)
           micinput%dleaf(np) = dleaf(np)              ! gc/m2/deltvmic
           micinput%dwood(np) = dwood(np)              ! gc/m2/deltvmic
@@ -260,6 +262,7 @@ CONTAINS
     REAL(r_2),    DIMENSION(mp)        :: xkleafcold,xkleafdry,xkleaf
     REAL(r_2),    DIMENSION(mp)        :: nsoilmin
     REAL(r_2)                          :: delty,timex,diffsocxx
+    real(r_2),    dimension(ms)        :: zsex
     integer ndeltvmic,ntime
     INTEGER  np,ip,ns,is
     integer ivegx,isox
@@ -284,14 +287,15 @@ CONTAINS
                        nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,  &
                        pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
  
-    call vmic_param_time(micparam,micinput,micnpool)
+    call vmic_param_time(veg,soil,micparam,micinput,micnpool)
 ! litter fall flux in g C/m2/delt, where "delt" is one day in casa-cnp, and timesetp in vmic is hourly
     dleaf(:) = (cleaf2met(:)+cleaf2str(:))/24.0
     dwood(:) =  cwood2cwd(:)/24.0
     droot(:) = (croot2met(:)+croot2str(:))/24.0
     nsoilmin(:) = 2.0    ! mg N/kg soil
-    call vmic_input(dleaf,dwood,droot,nsoilmin,casamet,micparam,micinput,micnpool)
 
+    call vmic_input(dleaf,dwood,droot,nsoilmin,veg,casamet,micparam,micinput,micnpool)
+    
     do np=1,mp
        ! do MIMICS for each soil layer
         do ns=1,ms
@@ -337,8 +341,9 @@ CONTAINS
            diffsocxx= micparam%diffsocx(np)
   
            ! only do every 24*deltvmic  
-           call bioturb(ndeltvmic,ms,micparam%zse(1:ms),deltvmic,diffsocxx,fluxsoc,ypooli,ypoole)  
-
+!           call bioturb(ndeltvmic,ms,micparam%zse(1:ms),deltvmic,diffsocxx,fluxsoc,ypooli,ypoole) 
+           zsex = soil%zse 
+           call bioturb(ndeltvmic,ms,zsex,deltvmic,diffsocxx,fluxsoc,ypooli,ypoole)  
            do ns=1,ms
               miccpool%cpool(np,ns,ip) = ypoole(ns)
            enddo
