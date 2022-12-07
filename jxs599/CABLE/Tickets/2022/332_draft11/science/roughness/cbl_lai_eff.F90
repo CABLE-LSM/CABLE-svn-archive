@@ -12,7 +12,7 @@ CONTAINS
 
 SUBROUTINE LAI_eff( mp, LAI_PFT, Hgt_PFT, HgtAboveSnow,  &
                     reducedLAIdue2snow ) 
-
+  IMPLICIT NONE
   !* This subroutine computes the leaf-area index of a canopy when there is snow
   ! present. The formulae assume that the leaf area is distributed uniformly
   ! in the vertical within the canopy.
