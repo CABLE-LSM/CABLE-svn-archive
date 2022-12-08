@@ -1,4 +1,4 @@
-#define UM_BUILD YES
+!#define UM_BUILD YES
 !==============================================================================
 ! This source code is part of the
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
@@ -224,8 +224,12 @@ USE casa_cnp_module, ONLY : vcmax_np
           WHERE(casamet%tairk >250.0)
              WHERE(casapool%cplant(:,wood)>1.0e-6)
 
+#             ifdef UM_BUILD 
+                casaflux%crmplant(:,wood)  = casabiome%rmplant(veg%iveg(:),wood) &
+#             else
                 casaflux%crmplant(:,wood)  =  resp_coeff * casaflux%frac_sapwood(:) * &
                      casabiome%rmplant(veg%iveg(:),wood) &
+#             endif
                      * casapool%nplant(:,wood)             &
                      * EXP(308.56*(1.0/56.02-1.0           &
                      / (casamet%tairk(:)+46.02-tkzeroc)))
@@ -239,7 +243,11 @@ USE casa_cnp_module, ONLY : vcmax_np
           ENDWHERE
           WHERE(casamet%tsoilavg >250.0.AND.casapool%cplant(:,froot)>1.0e-6)
 
-             casaflux%crmplant(:,froot) =  resp_coeff * casabiome%rmplant(veg%iveg(:),froot) &
+#         ifdef UM_BUILD 
+            casaflux%crmplant(:,froot) = casabiome%rmplant(veg%iveg(:),froot) &
+#         else
+            casaflux%crmplant(:,froot) =  resp_coeff * casabiome%rmplant(veg%iveg(:),froot) &
+#         endif
                   * casapool%nplant(:,froot)             &
                   * EXP(308.56*(1.0/56.02-1.0            &
                   / (casamet%tsoilavg(:)+46.02-tkzeroc)))
