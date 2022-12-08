@@ -1,3 +1,4 @@
+#define ESM15 YES
 !==============================================================================
 ! This source code is part of the 
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
@@ -83,7 +84,11 @@ module cable_data_module
       zetneg = -15.0, & ! negative limit on za/L when niter>=3
       zetpos = 1.0,  & ! positive limit on za/L when niter>=3
       zdlin  = 1.0,  & ! height frac of d below which TL linear
-      umin   = 0.1
+# ifdef ESM15    
+      umin   = 0.01
+# else 
+      umin   = 0.1 !CM2
+# endif
        
    END TYPE physical_constants
 
@@ -100,8 +105,13 @@ module cable_data_module
       !where 3 = no. radiation bands (nrb in define types)
       real, DIMENSION(3) :: gauss_w=(/0.308,0.514,0.178/) ! Gaussian integ. weights
       !--- jhan: can make these trigger of #defines/namelist
+# ifdef ESM15   
+      real:: RAD_THRESH = 0.01 
+      real:: LAI_THRESH = 0.01 
+# else 
       real:: RAD_THRESH = 0.001 
       real:: LAI_THRESH = 0.001 
+# endif
    end type other_constants
 
    type photosynthetic_constants

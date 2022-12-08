@@ -1,4 +1,4 @@
-!#define UM_BUILD YES
+#define ESM15 YES
 !==============================================================================
 ! This source code is part of the
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
@@ -1023,7 +1023,7 @@ DO npt=1,mp
       ENDIF
 
       casapool%dNplantdt(npt,wood) = 0.0
-#     ifndef UM_BUILD ! offline/trunk uses this condition
+#     ifndef ESM15 ! offline/trunk uses this condition
       IF (casamet%lnonwood(npt)==0)                                            & 
 #     endif
       casapool%dNplantdt(npt,wood) = - casaflux%kplant(npt,wood)             &
@@ -1335,7 +1335,7 @@ END SUBROUTINE casa_delplant
                   +casaflux%Psimm(nland)
              ! net mineralization
 
-#           ifdef UM_BUILD  
+#           ifdef ESM15  
              casaflux%Pleach(nland)  =  (1.0e-4) &
                                               * max(0.0,casapool%Psoillab(nland))
 #           else
@@ -1446,7 +1446,7 @@ END SUBROUTINE casa_delplant
                   + casaflux%Pdep(nland) + casaflux%Pwea(nland)      &
                   - casaflux%Pleach(nland)-casaflux%pupland(nland)   &
 !jhan: ESM15 is effectively using xkpsorb**2 - inadvertently?!?!?!?!
-#           ifdef UM_BUILD
+#           ifdef ESM15
                   - casabiome%xkpsorb(casamet%isorder(nland))*casaflux%kpsorb(nland)*casapool%Psoilsorb(nland) &
 #           else
                   - casaflux%kpsorb(nland)*casapool%Psoilsorb(nland) &
@@ -1457,7 +1457,7 @@ END SUBROUTINE casa_delplant
              casapool%dPsoillabdt(nland)  = casapool%dPsoillabdt(nland)/xdplabsorb(nland)
              casapool%dPsoilsorbdt(nland) = 0.0
 
-#           ifdef UM_BUILD
+#           ifdef ESM15
              casapool%dPsoiloccdt(nland) = casabiome%xkpsorb(casamet%isorder(nland))*casaflux%kpsorb(nland)* casapool%Psoilsorb(nland) &
 #           else
              casapool%dPsoiloccdt(nland) = casaflux%kpsorb(nland)* casapool%Psoilsorb(nland) &

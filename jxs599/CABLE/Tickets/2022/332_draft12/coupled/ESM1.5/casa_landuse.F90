@@ -1,5 +1,5 @@
-# define UM_BUILD YES
-#ifdef UM_BUILD
+# define ESM15 YES
+#ifdef ESM15
 module landuse_mod
 
 contains

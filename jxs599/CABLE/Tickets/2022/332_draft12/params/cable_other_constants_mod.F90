@@ -1,3 +1,4 @@
+#define ESM15 YES
 MODULE cable_other_constants_mod
 
 USE grid_constants_mod_cbl, ONLY : nrb, nsl, nsCs, nvCs
@@ -33,10 +34,15 @@ REAL, PARAMETER ::                                                             &
 ! Gaussian integ. weights
 !REAL, PARAMETER :: gauss_w(nrb)=(/0.308,0.514,0.178 /) ! F90 
 REAL, PARAMETER :: gauss_w(nrb)=[0.308,0.514,0.178 ]    ! F03
-REAL, PARAMETER :: rad_thresh = 0.001
+# ifdef ESM15 
+REAL, PARAMETER :: rad_thresh = 0.01   !=0.01 for ESM15
                         ! minimum zenithal angle for downward SW radiation
-REAL, PARAMETER :: lai_thresh = 0.001
+REAL, PARAMETER :: lai_thresh = 0.01   !=0.01 for ESM15
                         ! threshold for minimum significant LAI
+# else 
+REAL, PARAMETER :: rad_thresh = 0.001
+REAL, PARAMETER :: lai_thresh = 0.001
+# endif
 
 ! minimum (cosine)zenith angle of sun signalling sunrise 
 REAL, PARAMETER :: coszen_tols = 1.0e-4
