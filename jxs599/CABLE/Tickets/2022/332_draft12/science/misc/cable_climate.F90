@@ -1,3 +1,4 @@
+!#define UM_BUILD YES
 !==============================================================================
 ! This source code is part of the
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
@@ -16,7 +17,7 @@
 ! History: Vanessa Haverd Jan 2015
 
 ! ==============================================================================
-!#define UM_BUILD YES
+
 MODULE cable_climate_mod
 
   USE cable_def_types_mod, ONLY: met_type, climate_type, canopy_type, mp, &
@@ -25,9 +26,9 @@ MODULE cable_climate_mod
   !CABLE_LSM: see CABLE Ticket#149. yet still inclueded file?? legacy-hack??
 # ifndef UM_BUILD
   USE cable_IO_vars_module, ONLY: patch
+  USE casa_ncdf_module, ONLY: HANDLE_ERR
 # endif
   USE CABLE_COMMON_MODULE, ONLY: CurYear, filename, cable_user
-  USE casa_ncdf_module, ONLY: HANDLE_ERR
 
 CONTAINS
   ! ==============================================================================
