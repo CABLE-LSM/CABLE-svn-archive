@@ -348,20 +348,20 @@ CONTAINS
           ENDWHERE
 
           ! added in for negative NPP and one of biomass pool being zero ypw 27/jan/2014
-            WHERE(casaflux%Cnpp<0.0)
-               casaflux%fracCalloc(:,leaf)  = casaflux%Crmplant(:,leaf)/SUM(casaflux%Crmplant,2)
-               casaflux%fracCalloc(:,wood)  = casaflux%Crmplant(:,wood)/SUM(casaflux%Crmplant,2)
-               casaflux%fracCalloc(:,froot) = casaflux%Crmplant(:,froot)/SUM(casaflux%Crmplant,2)
-            ENDWHERE
+          WHERE(casaflux%Cnpp<0.0)
+             casaflux%fracCalloc(:,leaf)  = casaflux%Crmplant(:,leaf)/SUM(casaflux%Crmplant,2)
+             casaflux%fracCalloc(:,wood)  = casaflux%Crmplant(:,wood)/SUM(casaflux%Crmplant,2)
+             casaflux%fracCalloc(:,froot) = casaflux%Crmplant(:,froot)/SUM(casaflux%Crmplant,2)
+          ENDWHERE
 
           ! vh_js !
           ! as long as biomass is positive, adjust allocation to be
           ! proportional to stock when NPP -ve   (Ticket#108)
-            WHERE(casaflux%Cnpp<0.0 .AND. SUM(casapool%Cplant,2)>0  )
-               casaflux%fracCalloc(:,leaf)  = casapool%Cplant(:,leaf)/SUM(casapool%Cplant,2)
-               casaflux%fracCalloc(:,wood)  = casapool%Cplant(:,wood)/SUM(casapool%Cplant,2)
-               casaflux%fracCalloc(:,froot) = casapool%Cplant(:,froot)/SUM(casapool%Cplant,2)
-            ENDWHERE
+          WHERE(casaflux%Cnpp<0.0 .AND. SUM(casapool%Cplant,2)>0  )
+             casaflux%fracCalloc(:,leaf)  = casapool%Cplant(:,leaf)/SUM(casapool%Cplant,2)
+             casaflux%fracCalloc(:,wood)  = casapool%Cplant(:,wood)/SUM(casapool%Cplant,2)
+             casaflux%fracCalloc(:,froot) = casapool%Cplant(:,froot)/SUM(casapool%Cplant,2)
+          ENDWHERE
        ENDWHERE
 
     ELSE
@@ -1335,7 +1335,7 @@ END SUBROUTINE casa_delplant
                   +casaflux%Psimm(nland)
              ! net mineralization
 
-#           ifdef UM_BUILD  
+#           ifdef UM_BUILD
              casaflux%Pleach(nland)  =  (1.0e-4) &
                                               * max(0.0,casapool%Psoillab(nland))
 #           else
@@ -1458,14 +1458,14 @@ END SUBROUTINE casa_delplant
              casapool%dPsoilsorbdt(nland) = 0.0
 
 #           ifdef UM_BUILD
-             casapool%dPsoiloccdt(nland) = casabiome%xkpsorb(casamet%isorder(nland))*casaflux%kpsorb(nland)* casapool%Psoilsorb(nland) &
+              casapool%dPsoiloccdt(nland)  = casabiome%xkpsorb(casamet%isorder(nland))*casaflux%kpsorb(nland)* casapool%Psoilsorb(nland) &
 #           else
-             casapool%dPsoiloccdt(nland) = casaflux%kpsorb(nland)* casapool%Psoilsorb(nland) &
+             casapool%dPsoiloccdt(nland)  = casaflux%kpsorb(nland)* casapool%Psoilsorb(nland) &
 #           endif
-                                         - casaflux%kpocc(nland) * casapool%Psoilocc(nland)
+                  - casaflux%kpocc(nland) * casapool%Psoilocc(nland)
              ! P loss to non-available P pools
              !      casaflux%Ploss(nland)        = casaflux%kpocc(nland) * casapool%Psoilocc(nland)
-             
+
              !      casaflux%Ploss(nland)       = casaflux%fPleach(nland) &
              !                                 * max(zero,casapool%Psoillab(nland))
              casaflux%Ploss(nland)       = 0.0

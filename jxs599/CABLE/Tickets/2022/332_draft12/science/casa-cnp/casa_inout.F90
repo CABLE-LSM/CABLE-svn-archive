@@ -567,8 +567,8 @@ USE casa_offline_inout_module, ONLY : READ_CASA_RESTART_NC
 
 
     ENDDO
-
-    CLOSE(nout)
+    
+  CLOSE(nout)
 
 92  FORMAT(5(i6,',',2x),5(f18.6,',',2x),2(i6,',',2x),100(f18.6,',',2x))
   END SUBROUTINE casa_poolout
