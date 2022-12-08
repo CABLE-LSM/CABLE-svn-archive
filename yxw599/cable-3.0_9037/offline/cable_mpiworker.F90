@@ -230,6 +230,7 @@ USE cbl_soil_snow_init_special_module
     TYPE(mic_cpool)       :: miccpool
     TYPE(mic_npool)       :: micnpool
     TYPE(mic_output)      :: micoutput
+    TYPE(micfile_type)    :: micfile    
 	
     CHARACTER             :: cyear*4
     CHARACTER             :: ncfile*99
@@ -294,7 +295,8 @@ USE cbl_soil_snow_init_special_module
          satuParam,        &
          cable_user,       &  ! additional USER switches
          gw_params,        &
-         vmicrobe
+         vmicrobe,         &
+         micfile
 
     INTEGER :: i,x,kk
     INTEGER :: LALLOC, iu

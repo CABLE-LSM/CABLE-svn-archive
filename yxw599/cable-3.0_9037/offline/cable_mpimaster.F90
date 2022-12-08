@@ -286,6 +286,7 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
     TYPE(mic_cpool)       :: miccpool
     TYPE(mic_npool)       :: micnpool
     TYPE(mic_output)      :: micoutput
+    TYPE(micfile_type)    :: micfile
 
     ! declare vars for switches (default .FALSE.) etc declared thru namelist
     LOGICAL, SAVE           :: &
@@ -373,7 +374,8 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
          satuParam,        &
          cable_user,       &  ! additional USER switches
          gw_params,        &
-         vmicrobe
+         vmicrobe,         &
+         micfile
  
     INTEGER :: i,x,kk,m,np,ivt
     INTEGER :: LALLOC
@@ -612,7 +614,7 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
              ! allocate variables and assign model parameters
              if (vmicrobe>0) then
                 call vmic_allocate(micparam,micinput,micoutput,miccpool,micnpool)
-                call vmic_parameter(veg,soil,casabiome,micparam,micinput)
+                call vmic_parameter(veg,soil,casabiome,micparam,micinput,micfile)
                 call vmic_param_constant(veg,soil,micparam)
                 call vmic_init(micparam,micinput,miccpool,micnpool)
              endif

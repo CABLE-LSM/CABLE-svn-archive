@@ -46,6 +46,12 @@ MODULE vmic_variable_mod
     real(r_2), dimension(:,:),    allocatable  :: mineralN
   END TYPE mic_npool 
   
+  TYPE micfile_type
+    character(len=99) :: micbiome
+    character(len=99) :: micipool
+    character(len=99) :: micepool
+    character(len=99) :: micoutput
+  END TYPE micfile_type  
  
 CONTAINS
 

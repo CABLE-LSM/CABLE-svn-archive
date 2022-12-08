@@ -41,11 +41,12 @@ CONTAINS
   end SUBROUTINE vmic_allocate 
 
 
-  SUBROUTINE vmic_parameter(veg,soil,casabiome,micparam,micinput)
+  SUBROUTINE vmic_parameter(veg,soil,casabiome,micparam,micinput,micfile)
   ! read the parameter lookup table and assigm them to (1:mp)
     implicit none
     TYPE(mic_parameter)                    :: micparam
     TYPE(mic_input)                        :: micinput
+    TYPE(micfile_type)                     :: micfile
     TYPE (veg_parameter_type),  INTENT(IN) :: veg
     TYPE (soil_parameter_type), INTENT(IN) :: soil
     TYPE (casa_biome),          INTENT(IN) :: casabiome
@@ -55,7 +56,13 @@ CONTAINS
                                               xbeta_pft,    &
                                               xdiffsoc_pft, &
                                               xdesorpt_pft, &
-                                              rootbeta_pft
+                                              rootbeta_pft, & 
+                                              xcnleaf,      &
+                                              xcnwood,      &
+                                              xcnroot,      &
+                                              fligleaf,     &
+                                              fligwood,     &
+                                              fligroot
 								
     ! parameter estimates based on ICP-China sites for 4 PFTs based optimizinfg 5 parameters
     ! xav      xak       xavexp    xbeta    xdiffsoc   
@@ -66,17 +73,41 @@ CONTAINS
     !
     !  7.72     14.31      1.15      1.56      6.07
 
-    data      xav_pft/ 7.72, 7.72, 7.72, 7.72, 7.72, 7.72, 7.72, 7.72, 7.72, 7.72, 7.72, 7.72, 7.72, 7.72, 7.72, 7.72, 7.72/
-    data      xak_pft/14.31,14.31,14.31,14.31,14.31,14.31,14.31,14.31,14.31,14.31,14.31,14.31,14.31,14.31,14.31,14.31,14.31/
-    data   xavexp_pft/ 1.15, 1.15, 1.15, 1.15, 1.15, 1.15, 1.15, 1.15, 1.15, 1.15, 1.15, 1.15, 1.15, 1.15, 1.15, 1.15, 1.15/
-    data    xbeta_pft/ 1.56, 1.56, 1.56, 1.56, 1.56, 1.56, 1.56, 1.56, 1.56, 1.56, 1.56, 1.56, 1.56, 1.56, 1.56, 1.56, 1.56/
-    data xdiffsoc_pft/ 6.07, 6.07, 6.07, 6.07, 6.07, 6.07, 6.07, 6.07, 6.07, 6.07, 6.07, 6.07, 6.07, 6.07, 6.07, 6.07, 6.07/
+!    data      xav_pft/ 7.72, 7.72, 7.72, 7.72, 7.72, 7.72, 7.72, 7.72, 7.72, 7.72, 7.72, 7.72, 7.72, 7.72, 7.72, 7.72, 7.72/
+!    data      xak_pft/14.31,14.31,14.31,14.31,14.31,14.31,14.31,14.31,14.31,14.31,14.31,14.31,14.31,14.31,14.31,14.31,14.31/
+!    data   xavexp_pft/ 1.15, 1.15, 1.15, 1.15, 1.15, 1.15, 1.15, 1.15, 1.15, 1.15, 1.15, 1.15, 1.15, 1.15, 1.15, 1.15, 1.15/
+!    data    xbeta_pft/ 1.56, 1.56, 1.56, 1.56, 1.56, 1.56, 1.56, 1.56, 1.56, 1.56, 1.56, 1.56, 1.56, 1.56, 1.56, 1.56, 1.56/
+!    data xdiffsoc_pft/ 6.07, 6.07, 6.07, 6.07, 6.07, 6.07, 6.07, 6.07, 6.07, 6.07, 6.07, 6.07, 6.07, 6.07, 6.07, 6.07, 6.07/
     data rootbeta_pft/ 0.96, 0.96, 0.96, 0.98, 0.96, 0.97, 0.94, 0.96, 0.97, 0.94, 0.97, 0.97, 0.97, 0.97, 0.96, 0.96, 0.96/   
 
     ! local variables
     integer ivt,np,ns,isoil
    
       xdesorpt_pft(:) = 1.0
+      open(201,file=micfile%micbiome)
+      print *, 'reading micparameter file', micfile%micbiome  
+      read(201,*)
+      read(201,*) (xav_pft(ivt),ivt=1,mvtype)
+      read(201,*)
+      read(201,*) (xak_pft(ivt),ivt=1,mvtype)
+      read(201,*)
+      read(201,*) (xavexp_pft(ivt),ivt=1,mvtype)
+      read(201,*)
+      read(201,*) (xdiffsoc_pft(ivt),ivt=1,mvtype)
+      read(201,*)
+      read(201,*) (xcnleaf(ivt),ivt=1,mvtype)
+      read(201,*)
+      read(201,*) (xcnwood(ivt),ivt=1,mvtype)
+      read(201,*)
+      read(201,*) (xcnroot(ivt),ivt=1,mvtype)
+      read(201,*)
+      read(201,*) (fligleaf(ivt),ivt=1,mvtype)
+      read(201,*)
+      read(201,*) (fligwood(ivt),ivt=1,mvtype)
+      read(201,*)
+      read(201,*) (fligroot(ivt),ivt=1,mvtype)      
+      close(201)
+     
         do np=1,mp
            ivt          = veg%iveg(np)
 	       isoil        = soil%isoilm(np)
@@ -87,18 +118,24 @@ CONTAINS
            micparam%xdiffsoc(np) = xdiffsoc_pft(ivt)
            micparam%rootbetax(np)= rootbeta_pft(ivt)
            micparam%xdesorp(np)  = xdesorpt_pft(ivt)
+           micparam%xcnleaf(np)  = xcnleaf(ivt)
+           micparam%xcnroot(np)  = xcnroot(ivt)	  
+           micparam%xcnwood(np)  = xcnwood(ivt)
+           micparam%fligleaf(np) = fligleaf(ivt)
+           micparam%fligroot(np) = fligroot(ivt)
+           micparam%fligwood(np) = fligwood(ivt)
            ! soil parameters	  
 !           micparam%bulkd(np,1:ms) = soil%rhosoil(np)
 !           micparam%clay(np,1:ms)  = soil%clay(np)	
            ! vegetation parameters
        
 !           micparam%pft(np)     =  veg%iveg(np)	   
-           micparam%xcnleaf(np) = 1.0/casabiome%ratioNCplantmax(ivt,1)
-           micparam%xcnroot(np) = 1.0/casabiome%ratioNCplantmax(ivt,3)	  
-           micparam%xcnwood(np) = 1.0/casabiome%ratioNCplantmax(ivt,2)
-           micparam%fligleaf(np)=  casabiome%fracligninplant(ivt,1)
-           micparam%fligroot(np)=  casabiome%fracligninplant(ivt,3)
-           micparam%fligwood(np)=  casabiome%fracligninplant(ivt,2)
+!           micparam%xcnleaf(np) = 1.0/casabiome%ratioNCplantmax(ivt,1)
+!           micparam%xcnroot(np) = 1.0/casabiome%ratioNCplantmax(ivt,3)	  
+!           micparam%xcnwood(np) = 1.0/casabiome%ratioNCplantmax(ivt,2)
+!           micparam%fligleaf(np)=  casabiome%fracligninplant(ivt,1)
+!           micparam%fligroot(np)=  casabiome%fracligninplant(ivt,3)
+!           micparam%fligwood(np)=  casabiome%fracligninplant(ivt,2)
         enddo  
 !        do ns=1,ms
 !           micparam%zse(ns) = soil%zse(ns)
