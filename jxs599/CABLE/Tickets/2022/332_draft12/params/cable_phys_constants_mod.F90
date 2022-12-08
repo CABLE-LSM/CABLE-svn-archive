@@ -71,8 +71,8 @@ PUBLIC
   REAL, PARAMETER :: zetpos = 1.0     ! positive limit on za/L when niter>=3
   REAL, PARAMETER :: zdlin  = 1.0     ! height frac of d below which TL linear
 # ifdef ESM15    
-      umin   = 0.01
+  REAL, PARAMETER :: umin   = 0.01     ! guarantees convergence, was 0.01 
 # else 
-      umin   = 0.1 !CM2
+  REAL, PARAMETER :: umin   = 0.1     ! guarantees convergence, was 0.01 
 # endif
 END MODULE cable_phys_constants_mod
