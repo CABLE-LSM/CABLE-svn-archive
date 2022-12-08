@@ -1,4 +1,4 @@
-#define ESM15 YES
+!#define ESM15 YES
 MODULE cable_other_constants_mod
 
 USE grid_constants_mod_cbl, ONLY : nrb, nsl, nsCs, nvCs

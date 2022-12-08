@@ -1,4 +1,4 @@
-#define ESM15 YES
+!#define ESM15 YES
 !==============================================================================
 ! This source code is part of the
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.

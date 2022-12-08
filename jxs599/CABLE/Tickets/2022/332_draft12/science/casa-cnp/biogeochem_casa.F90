@@ -1,5 +1,4 @@
-
-#define ESM15 YES
+!#define ESM15 YES
 
 MODULE biogeochem_mod
 

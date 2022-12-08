@@ -1,4 +1,4 @@
-# define ESM15 YES
+!# define ESM15 YES
 
 MODULE bgcdriver_mod
 
