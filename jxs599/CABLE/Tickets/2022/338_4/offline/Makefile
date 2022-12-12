@@ -88,8 +88,7 @@ cbl_rhoch.F90									\
 cbl_sinbet.F90								\
 cbl_spitter.F90								\
 cable_roughness.F90						\
-cbl_hgtAbove_snow.F90					\
-cbl_lai_eff.F90								\
+roughnessHGT_effLAI_cbl.F90   \
 cable_sli_main.F90						\
 cable_sli_numbers.F90					\
 cable_sli_roots.F90						\
@@ -199,8 +198,8 @@ casa_ncdf.o: casa_ncdf.F90 cable_define_types.o cable_common.o
 cable_abort.o: cable_abort.F90 cable_iovars.o cable_define_types.o
 
 #science seperated subrs
-cbl_hgtAbove_snow.o: cbl_hgtAbove_snow.F90
-cbl_lai_eff.o: cbl_lai_eff.F90
+
+roughnessHGT_effLAI_cbl.o: roughnessHGT_effLAI_cbl.F90
 
 #science partially seperated subrs
 #albedo
@@ -279,7 +278,7 @@ cable_output.o: cable_output.F90 cable_abort.o cable_checks.o cable_write.o cabl
 
 cable_parameters.o: cable_parameters.F90 cable_define_types.o cable_iovars.o cable_abort.o casa_variable.o cable_common.o cable_LUC_EXPT.o casa_phenology.o
 
-cable_roughness.o: cable_roughness.F90 cable_phys_constants_mod.o cable_define_types.o cable_common.o cbl_hgtAbove_snow.o cbl_lai_eff.o cable_other_constants_mod.o
+cable_roughness.o: cable_roughness.F90 cable_phys_constants_mod.o cable_define_types.o cable_common.o roughnessHGT_effLAI_cbl.o cable_other_constants_mod.o
 
 
 casa_variable.o: casa_variable.F90 POP.o casa_dimension.o casa_param.o
@@ -358,8 +357,6 @@ all  : grid_constants_cbl.o    \
 	cable_pft_params.o   			 	 \
 	cable_soil_params.o        	 \
 	cbl_masks.o 								 \
-	cbl_hgtAbove_snow.o					 \
-	cbl_lai_eff.o								 \
 	cable_iovars.o            	 \
 	casa_ncdf.o               	 \
 	cbl_albedo.o         		 	   \
@@ -403,6 +400,7 @@ all  : grid_constants_cbl.o    \
   cbl_snow_aging.o             \
 	cable_air.o               	 \
 	cable_roughness.o         	 \
+	roughnessHGT_effLAI_cbl.o    \
 	cable_carbon.o            	 \
 	cable_canopy.o            	 \
 	cable_sli_main.o          	 \

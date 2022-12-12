@@ -69,6 +69,8 @@ USE cable_other_constants_mod, ONLY : CGAUSS_W => gauss_w
 USE cable_math_constants_mod, ONLY : CPI => pi
 USE cable_math_constants_mod, ONLY : CPI180 => pi180
 use cbl_masks_mod, ONLY :  fveg_mask,  fsunlit_mask,  fsunlit_veg_mask
+!--- IN: CABLE specific surface_type indexes
+USE grid_constants_mod_cbl, ONLY : ICE_SoilType, lakes_type
 
     ! CABLE model variables
     TYPE (air_type),       INTENT(INOUT) :: air
@@ -134,32 +136,19 @@ CALL init_radiation( rad%extkb, rad%extkd,                                     &
 !Ticket 331 refactored albedo code for JAC
 CALL snow_aging(ssnow%snage,mp,dels,ssnow%snowd,ssnow%osnowd,ssnow%tggsn(:,1),&
          ssnow%tgg(:,1),ssnow%isflag,veg%iveg,soil%isoilm) 
-
-call Albedo( ssnow%AlbSoilsn, soil%AlbSoil,                                &
-             !AlbSnow, AlbSoil,              
-             mp, nrb,                                                      &
-             jls_radiation,                                                &
-             veg_mask, sunlit_mask, sunlit_veg_mask,                       &  
-             Ccoszen_tols, CGAUSS_W,                                       & 
-             veg%iveg, soil%isoilm, veg%refl, veg%taul,                    & 
-             !surface_type, VegRefl, VegTaul,
-             met%coszen, canopy%vlaiw,                                     &
-             !coszen, reducedLAIdue2snow,
-             ssnow%snowd, ssnow%ssdnn, ssnow%tgg(:,1), ssnow%snage,        & 
-             !SnowDepth, SnowDensity, SoilTemp, SnowAge, 
-             xk, c1, rhoch,                                                & 
-             rad%fbeam, rad%albedo,                                        &
-             !RadFbeam, RadAlbedo,
-             rad%extkd, rad%extkb,                                         & 
-             !ExtCoeff_dif, ExtCoeff_beam,
-             rad%extkdm, rad%extkbm,                                       & 
-             !EffExtCoeff_dif, EffExtCoeff_beam,                
-             rad%rhocdf, rad%rhocbm,                                       &
-             !CanopyRefl_dif,CanopyRefl_beam,
-             rad%cexpkdm, rad%cexpkbm,                                     & 
-             !CanopyTransmit_dif, CanopyTransmit_beam, 
-             rad%reffdf, rad%reffbm                                        &
-           ) !EffSurfRefl_dif, EffSurfRefl_beam 
+CALL Albedo( AlbSnow, AlbSoil,                                                 &
+             mp, nrb, ICE_SoilType, lakes_type, jls_radiation, veg_mask,       &
+             Ccoszen_tols, cgauss_w,                                           &
+             SurfaceType, SoilType ,VegRefl, VegTaul,                          &
+             coszen, reducedLAIdue2snow,                                       &
+             SnowDepth, SnowDensity, SoilTemp, SnowAge,                        &
+             xk, c1, rhoch,                                                    &
+             RadFbeam, RadAlbedo,                                              &
+             ExtCoeff_dif, ExtCoeff_beam,                                      &
+             EffExtCoeff_dif, EffExtCoeff_beam,                                &
+             CanopyRefl_dif,CanopyRefl_beam,                                   &
+             CanopyTransmit_dif, CanopyTransmit_beam,                          &
+             EffSurfRefl_dif, EffSurfRefl_beam )
 
 ssnow%otss_0 = ssnow%otss  ! vh should be before call to canopy?
 ssnow%otss = ssnow%tss
