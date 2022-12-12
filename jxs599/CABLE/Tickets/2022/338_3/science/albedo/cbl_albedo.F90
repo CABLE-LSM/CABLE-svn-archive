@@ -200,6 +200,8 @@ SUBROUTINE canopyReflectance( CanopyRefl_beam, CanopyRefl_dif,                 &
 ! Description:
 !   Computes canopy Reflectance for diffuse/direct radiation
 
+USE cable_common_module, only: cable_runtime
+
 IMPLICIT NONE 
 
 INTEGER, INTENT(IN) :: mp                    ! total number of "tiles"
