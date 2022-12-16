@@ -9,10 +9,6 @@
 
 MODULE cable_phys_constants_mod
 
-IMPLICIT NONE
-
-PUBLIC
-
 !-----------------------------------------------------------------------------
 ! Description:
 !   CABLE physical constants

@@ -8,13 +8,6 @@
 !******************************************************************************
 MODULE cable_other_constants_mod
 
-USE grid_constants_mod_cbl, ONLY : nrb, nsl, nsCs, nvCs
-USE grid_constants_mod_cbl, ONLY : msn =>  nsnl
-
-IMPLICIT NONE
-
-PUBLIC
-
 !-----------------------------------------------------------------------------
 ! Description:
 !   Other CABLE constants
@@ -25,7 +18,8 @@ PUBLIC
 ! Where it fits in the model flow:https://trac.nci.org.au/trac/cable/wiki/TBC
 !-----------------------------------------------------------------------------
 
-USE grid_constants_mod_cbl, ONLY: nrb
+USE grid_constants_mod_cbl, ONLY : nrb, nsl, nsCs, nvCs
+USE grid_constants_mod_cbl, ONLY : msn =>  nsnl
 
 IMPLICIT NONE
 
