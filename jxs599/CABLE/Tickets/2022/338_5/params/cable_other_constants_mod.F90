@@ -26,8 +26,15 @@ IMPLICIT NONE
 PUBLIC
 
 REAL, PARAMETER :: gauss_w(nrb)=[0.308,0.514,0.178 ] ! Gaussian integ. weights
-                        ! minimum zenithal angle for downward SW radiation
-                        ! threshold for minimum significant LAI
+
+# ifdef ESM15 
+REAL, PARAMETER :: rad_thresh = 0.01 ! min. zenithal angle for downward SW 
+REAL, PARAMETER :: lai_thresh = 0.01 ! min. LAI to be considered as vegetated
+# else 
+REAL, PARAMETER :: rad_thresh = 0.001
+REAL, PARAMETER :: lai_thresh = 0.001
+# endif
+
 INTEGER, PARAMETER ::                                                          &
   swb = 2,           & ! 2 shortwave bands (initial division - visible /
                        ! near infrared)
@@ -43,14 +50,6 @@ INTEGER, PARAMETER ::                                                          &
 REAL, PARAMETER ::                                                             &
   max_snow_depth = 50000.0,  & ! maximum depth of lying snow on tiles (kg/m2)
   init_snow_rho1l = 140.0      ! Initial value for snow mean density
-
-# ifdef ESM15 
-REAL, PARAMETER :: rad_thresh = 0.01 ! min. zenithal angle for downward SW 
-REAL, PARAMETER :: lai_thresh = 0.01 ! min. LAI to be considered as vegetated
-# else 
-REAL, PARAMETER :: rad_thresh = 0.001
-REAL, PARAMETER :: lai_thresh = 0.001
-# endif
 
 ! minimum (cosine)zenith angle of sun signalling sunrise 
 REAL, PARAMETER :: coszen_tols = 1.0e-4
