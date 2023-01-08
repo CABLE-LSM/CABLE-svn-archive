@@ -48,7 +48,7 @@ subroutine cable_implicit_driver( i_day_number, cycleno, &! num_cycles
   USE cable_cbm_module,    ONLY : cbm
   
   USE cable_def_types_mod, ONLY : mp, msn, ncs,ncp, climate_type
-  USE cable_data_module,   ONLY : PHYS
+USE cable_phys_constants_mod,  ONLY: TFRZ, CAPP 
   USE cable_um_tech_mod,   ONLY : um1, conv_rain_prevstep, conv_snow_prevstep,&
                                  air, bgc, canopy, met, bal, rad, rough, soil,&
                                  ssnow, sum_flux, veg, basic_diag
@@ -205,8 +205,6 @@ subroutine cable_implicit_driver( i_day_number, cycleno, &! num_cycles
 
   !___ local vars
   
-  !inconsistent method of pointing to constants (C%, USE, et c)
-  REAL, POINTER :: TFRZ
 
   !This is a quick fix. These can be organised through namelists
   logical :: spinup=.false., spinconv=.false.,                   &
@@ -259,8 +257,6 @@ subroutine cable_implicit_driver( i_day_number, cycleno, &! num_cycles
 
   if (ipb == cpb) call cable_reinstate_prognostics()
 
-      TFRZ => PHYS%TFRZ
-   
       dtlc = 0. ; dqwc = 0.
 
       !--- All these subrs do is pack a CABLE var with a UM var.
@@ -299,7 +295,7 @@ subroutine cable_implicit_driver( i_day_number, cycleno, &! num_cycles
     CALL um2cable_rr( ctctq1, ctctq1c)
     CALL um2cable_rr( FTL_1, ftl1c)
     CALL um2cable_rr( FQW_1, fqw1c) 
-    dtlc = dtlc - ctctq1c*ftl1c/PHYS%CAPP  !NB FTL_1 is in W/m2 hence / CAPP
+    dtlc = dtlc - ctctq1c*ftl1c/CAPP  !NB FTL_1 is in W/m2 hence / CAPP
     dqwc = dqwc - ctctq1c*fqw1c
   endif
   !-----------------------------------------------------------------------

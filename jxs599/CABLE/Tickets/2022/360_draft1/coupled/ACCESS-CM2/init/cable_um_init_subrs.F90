@@ -26,7 +26,6 @@ MODULE cable_um_init_subrs_mod
 CONTAINS
 
    subroutine initialize_maps(latitude,longitude, tile_index_mp)
-      use cable_data_module, only : cable
       use cable_um_tech_mod, only : um1, veg
       use cable_def_types_mod, only : mp
 
@@ -75,7 +74,7 @@ CONTAINS
       integer, dimension(mp) :: cable_umi,cable_umj, cable_uml,cable_umn 
  
            
-            allocate( cable%lat(mp), cable%lon(mp), cable%tile(mp), cable%tile_frac(mp) )
+ !           allocate( cable%lat(mp), cable%lon(mp), cable%tile(mp), cable%tile_frac(mp) )
 
             !-------------------------------------   
             !---make indexes for tile, lat, lon
@@ -89,7 +88,7 @@ CONTAINS
             !call um2cable_rr( (asin(latitude)/cable%const%math%pi180), cable%lat )
             !call um2cable_rr( ((latitude)/cable%const%math%pi180), cable%lat )
             !call um2cable_rr( acoslat, cable%lat )
-            call um2cable_rr( latitude, cable%lat )
+  !          call um2cable_rr( latitude, cable%lat )
            
             !==================================================================
 
@@ -116,11 +115,11 @@ CONTAINS
             !   new_longitude(j,:) = tlong(j)
             !enddo
             
-            call um2cable_rr( longitude, cable%lon )
+            !call um2cable_rr( longitude, cable%lon )
             
             !--- get tile index/fraction  corresponding to cable points
-            cable%tile = pack(tile_index_mp, um1%l_tile_pts)
-            cable%tile_frac = pack(um1%tile_frac, um1%l_tile_pts)
+            !cable%tile = pack(tile_index_mp, um1%l_tile_pts)
+            !cable%tile_frac = pack(um1%tile_frac, um1%l_tile_pts)
 
 return          
             !--- write all these maps.  cable_user%initialize_mapping can be 
@@ -829,7 +828,8 @@ SUBROUTINE initialize_radiation( sw_down, lw_down, cos_zenith_angle,           &
                    CO2_MMR,CO2_3D,CO2_DIM_LEN,CO2_DIM_ROW,L_CO2_INTERACTIVE )   
 
    USE cable_def_types_mod, ONLY : mp
-   USE cable_data_module,   ONLY : PHYS, OTHER
+USE cable_phys_constants_mod,  ONLY: TFRZ, UMIN 
+USE cable_other_constants_mod,  ONLY: RAD_THRESH 
    USE cable_um_tech_mod,   ONLY : um1, rad, soil, met,                        &
                                    conv_rain_prevstep, conv_snow_prevstep
    USE cable_common_module, ONLY : cable_runtime, cable_user, ktau_gl, kwidth_gl
@@ -862,11 +862,6 @@ SUBROUTINE initialize_radiation( sw_down, lw_down, cos_zenith_angle,           &
              
    !___defs 1st call to CABLE in this run. OK in UM & coupled
    LOGICAL, SAVE :: first_call= .TRUE.
-     
-   REAL, POINTER :: TFRZ, RAD_THRESH
-      
-      TFRZ => PHYS%TFRZ
-      RAD_THRESH => OTHER%RAD_THRESH
      
       IF( first_call ) THEN
          rad%albedo_T = soil%albsoil(:,1)
@@ -920,7 +915,7 @@ SUBROUTINE initialize_radiation( sw_down, lw_down, cos_zenith_angle,           &
       END IF 
 
       !---this is necessary clobrring at present 
-      WHERE(met%ua < PHYS%UMIN ) met%ua = PHYS%UMIN
+      WHERE(met%ua < UMIN ) met%ua = UMIN
       
       ! rml 24/2/11 Set atmospheric CO2 seen by cable to CO2_MMR (value seen 
       ! by radiation scheme).  Option in future to have cable see interactive 
@@ -999,7 +994,7 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile,smcl_tile,smgw_til
                                 sin_theta_latitude ) 
 
    USE cable_def_types_mod,  ONLY : mp, msn, ms, r_2,mstype
-   USE cable_data_module,   ONLY : PHYS
+USE cable_phys_constants_mod,  ONLY: TFRZ 
    USE cable_um_tech_mod,   ONLY : um1, soil, ssnow, met, bal, veg
    USE cable_common_module, ONLY : cable_runtime, cable_user, ktau_gl
    
@@ -1037,7 +1032,6 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile,smcl_tile,smgw_til
    REAL  :: zsetot, max_snow_depth=50000.
    REAL, ALLOCATABLE:: fwork(:,:,:), sfact(:), fvar(:), rtemp(:),&
                        tot_mass_tmp(:,:,:), ice_vol_tmp(:,:,:)
-   REAL, POINTER :: TFRZ
    LOGICAL :: skip =.TRUE. 
    LOGICAL, save :: first_call = .TRUE.
    REAL, DIMENSION(mstype) :: dummy 
@@ -1054,7 +1048,6 @@ SUBROUTINE initialize_soilsnow( smvcst, tsoil_tile, sthf_tile,smcl_tile,smgw_til
       ssnow%wb_lake = 0.
 
       !local pntrs to derived type data
-      TFRZ => PHYS%TFRZ
        !why is snow updated from um values every timestep
        !but soil moisture not?
       

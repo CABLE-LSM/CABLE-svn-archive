@@ -65,7 +65,6 @@ SUBROUTINE cable_explicit_main(                                                &
   !processor number, timestep number / width, endstep
   USE cable_common_module, ONLY : knode_gl, ktau_gl, kwidth_gl, kend_gl
   USE cable_common_module, ONLY : cable_runtime
-  USE cable_data_module, ONLY : cable
 !jhan:this looks like I was testing standalone
 # if !defined(UM_JULES)
   USE model_grid_mod, ONLY: latitude, longitude

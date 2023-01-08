@@ -62,7 +62,7 @@ SUBROUTINE cable_expl_unpack( latitude, longitude, FTL_TILE, FQW_TILE,         &
                           !         ktau_gl, knode_gl, kend_gl, &
    
   USE cable_def_types_mod, ONLY : mp, NITER 
-  USE cable_data_module,   ONLY : PHYS
+USE cable_phys_constants_mod,  ONLY: CAPP 
   USE cable_um_tech_mod,   ONLY : um1, basic_diag
   
   implicit none         
@@ -145,7 +145,6 @@ SUBROUTINE cable_expl_unpack( latitude, longitude, FTL_TILE, FQW_TILE,         &
   INTEGER :: i,j,k,N,L
   REAL :: miss = 0.0
   LOGICAL, SAVE :: first_cable_call = .true.
-  REAL, POINTER :: CAPP 
   LOGICAL :: Lunpack = .false.
   LOGICAL :: checks = .false.
   real :: tols = 0.25
@@ -154,8 +153,6 @@ SUBROUTINE cable_expl_unpack( latitude, longitude, FTL_TILE, FQW_TILE,         &
   character(len=*), parameter :: subr_name = "cable_explicit_unpack"
 
   !-------- Unique subroutine body -----------
-  CAPP => PHYS%CAPP
-     
   !___return fluxes
   FTL_TILE = UNPACK(canopy_fh,  um1%l_tile_pts, miss)
   FTL_TILE = FTL_TILE / CAPP

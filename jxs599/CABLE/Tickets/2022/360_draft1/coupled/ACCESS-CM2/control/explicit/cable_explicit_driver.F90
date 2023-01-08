@@ -67,8 +67,6 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
                          !         report_version_no,                          &
                          !         l_vcmaxFeedbk, l_laiFeedbk
    
-  USE cable_data_module, ONLY : cable
-
   !--- reads runtime and user switches and reports
   USE cable_um_tech_mod, ONLY : cable_um_runtime_vars, air, bgc, canopy,      &
                                 met, bal, rad, rough, soil, ssnow, sum_flux,  &
@@ -77,7 +75,7 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
   USE cable_def_types_mod, ONLY : mp, ms, climate_type
 
   USE cable_decs_mod, only : L_tile_pts!, rho_water
-  USE cable_data_module, only : PHYS
+USE cable_phys_constants_mod,  ONLY: density_liq, density_ice
 
   USE casavariable
   USE casa_types_mod
@@ -258,12 +256,12 @@ SUBROUTINE cable_explicit_driver( row_length, rows, land_pts, ntiles,npft,     &
      first_cable_call = .FALSE.
   ENDIF      
 
-  rho_water = PHYS%density_liq
+  rho_water = density_liq
 
   IF (cable_user%GW_model) then
-     rho_ice = PHYS%density_ice
+     rho_ice = density_ice
   ELSE
-     rho_ice = PHYS%density_liq
+     rho_ice = density_liq
   ENDIF      
 
   !---------------------------------------------------------------------!

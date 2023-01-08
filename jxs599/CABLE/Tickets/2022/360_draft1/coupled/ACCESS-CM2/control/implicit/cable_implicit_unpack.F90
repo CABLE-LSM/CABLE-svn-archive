@@ -57,7 +57,7 @@ subroutine Implicit_unpack( cycleno, & ! nucycles
                          !         L_fudge, ktau_gl
   
   USE cable_def_types_mod, ONLY : mp
-  USE cable_data_module,   ONLY : PHYS
+USE cable_phys_constants_mod,  ONLY: TFRZ 
   USE cable_um_tech_mod,   ONLY : um1 ,canopy, rad, soil, ssnow, air,         &
                                   basic_diag, veg
 
@@ -176,15 +176,11 @@ subroutine Implicit_unpack( cycleno, & ! nucycles
   INTEGER:: i_miss = 0
   REAL :: miss = 0.0
   
-  REAL, POINTER :: TFRZ
-
   ! std template args 
   character(len=*), parameter :: subr_name = "cable_implicit_unpack"
 
   !-------- Unique subroutine body -----------
 
-  TFRZ => PHYS%TFRZ
-  
   !--- set UM vars to zero
   SMCL_TILE = 0.; STHF_TILE = 0.; STHU_TILE = 0.
   TSOIL_TILE = 0.; SMGW_TILE = 0.

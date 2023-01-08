@@ -44,7 +44,7 @@ CONTAINS
 
    USE cable_common_module
    USE cable_carbon_module
-   USE cable_soil_snow_module, only : soil_snow
+
    USE cable_def_types_mod
    USE cable_roughness_module, only : ruff_resist
    USE cable_air_module, only : define_air
@@ -60,6 +60,7 @@ CONTAINS
 !subrs:
 USE cbl_albedo_mod,             ONLY: albedo
 USE cbl_init_radiation_module,  ONLY: init_radiation
+USE cbl_soil_snow_main_module, ONLY : soil_snow
 USE cbl_masks_mod, ONLY: fveg_mask,  fsunlit_mask,  fsunlit_veg_mask
 USE snow_aging_mod, ONLY : snow_aging 
 

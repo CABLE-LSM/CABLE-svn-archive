@@ -41,7 +41,6 @@ SUBROUTINE cable_hyd_main( land_pts, ntiles, lying_snow, SNOW_surft, SURF_ROFF,&
   !processor number, timestep number / width, endstep
   USE cable_common_module, ONLY : knode_gl, ktau_gl, kwidth_gl, kend_gl
   USE cable_common_module, ONLY : cable_runtime
-  USE cable_data_module, ONLY : cable
 
   implicit none
  

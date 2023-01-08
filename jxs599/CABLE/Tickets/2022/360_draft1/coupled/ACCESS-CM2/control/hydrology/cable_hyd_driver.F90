@@ -34,13 +34,11 @@ SUBROUTINE cable_hyd_driver( land_pts, ntiles, lying_snow, SNOW_TILE, SURF_ROFF,
   !processor number, timestep number / width, endstep
   USE cable_common_module, ONLY : knode_gl, ktau_gl, kwidth_gl, kend_gl
   USE cable_common_module, ONLY : cable_runtime
-  USE cable_data_module, ONLY : cable
   !from old version
   !USE cable_common_module!, only : cable_runtime, cable_user
-  USE cable_data_module,   ONLY : PHYS, OTHER
   USE cable_um_tech_mod, only : um1, ssnow, canopy, veg
   USE cable_decs_mod, ONLY : L_tile_pts
-
+USE cable_phys_constants_mod,  ONLY: TFRZ 
   implicit none
 
   !___ re-decl input args
@@ -63,15 +61,12 @@ SUBROUTINE cable_hyd_driver( land_pts, ntiles, lying_snow, SNOW_TILE, SURF_ROFF,
     TOT_TFALL_TILE                
 
   REAL :: miss =0. 
-  REAL, POINTER :: TFRZ
  
   ! std template args 
   character(len=*), parameter :: subr_name = "cable_explicit_main"
 
   !-------- Unique subroutine body -----------
  
-  TFRZ => PHYS%TFRZ
-   
   SNOW_TILE= UNPACK(ssnow%snowd, L_TILE_PTS, miss) 
 
   LYING_SNOW = SUM(um1%TILE_FRAC * SNOW_TILE,2) !gridbox snow mass
