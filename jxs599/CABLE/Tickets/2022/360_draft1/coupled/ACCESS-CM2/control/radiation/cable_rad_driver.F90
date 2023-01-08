@@ -231,13 +231,6 @@ CALL init_radiation( rad%extkb, rad%extkd,                                     &
 
     !-------- End Unique subroutine body -----------
 
-  if(L_cable_Pyfprint) then 
-    !vname='tscrn'; dimx=land_pts
-    !call cable_Pyfprintf( cDiag2, vname, t1p5m, dimx, .true.)
-    !vname='tstar_tile'; dimx=size(tstar_tile,1); dimy=size(tstar_tile,2)
-    !call cable_Pyfprintf( cDiag4, vname, tstar_tile, dimx, dimy, .true.)
-  endif
-
 return
  
 END SUBROUTINE cable_rad_driver

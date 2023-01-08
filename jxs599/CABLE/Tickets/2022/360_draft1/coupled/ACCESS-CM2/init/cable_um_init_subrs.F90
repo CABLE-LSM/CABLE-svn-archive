@@ -30,7 +30,6 @@ CONTAINS
       use cable_um_tech_mod, only : um1, veg
       use cable_def_types_mod, only : mp
 
-      use cable_diag_module, only : cable_diag 
       use cable_common_module, only : ktau_gl, knode_gl, cable_user 
          
       implicit none
@@ -130,8 +129,6 @@ return
             !write indexes for tile, lat, lon  !fudge
             !asinlatitude = ( latitude ) /cable%const%math%pi180
              
-            !call cable_diag( iDiag0, 'latitude', um1%rows, 1, ktau_gl,  & 
-            !      knode_gl, 'latitude',asinlatitude(1,:)  ) 
 
 
             ! ----------------------------------------------------------------------------------
@@ -176,23 +173,7 @@ return
 
             ! ----------------------------------------------------------------------------------
              
-            call cable_diag( iDiag1, 'longitude', um1%row_length, 1, ktau_gl,  & 
-                  knode_gl, 'longitude', ( new_longitude(:,1) ) ) 
-        
-            !write indexes for tile, lat, lon
-            call cable_diag( iDiag2, 'lat_index', mp, 1, ktau_gl,  & 
-                  knode_gl, 'lat', cable%lat )
-            call cable_diag( iDiag3, 'lon_index', mp, 1, ktau_gl,  & 
-                  knode_gl, 'lon', cable%lon )
-            
-            !this should be integer-ed. typecast for now
-            call cable_diag( iDiag4, 'tile_index', mp, 1, ktau_gl,  & 
-                  knode_gl, 'tile', real(cable%tile) )
-            
-            call cable_diag( iDiag5, 'tile_frac', mp, 1, ktau_gl,  & 
-                  knode_gl, 'tile_frac', cable%tile_frac )
-            
-      
+     
       return
    end subroutine initialize_maps
   

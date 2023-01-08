@@ -276,13 +276,7 @@ subroutine cable_implicit_driver( i_day_number, cycleno, &! num_cycles
       !--- for snow tile 
       !-------------------------------------------------------------------
   ! Leave here as example
-  !if( L_fprint_HW ) then
-  !  if ( ipb == cpb ) L_fprint = .true.
-  !endif  
-  !vname='met_precip' 
   CALL um2cable_rr( (LS_RAIN+CON_RAIN)*TIMESTEP, met%precip)
-  !call cable_fprintf( cDiag0, vname, met%precip, mp, L_fprint )
-  !L_fprint = .false.
 
   CALL um2cable_rr( (LS_SNOW+CONV_SNOW)*TIMESTEP, met%precip_sn)
       
@@ -359,6 +353,8 @@ subroutine cable_implicit_driver( i_day_number, cycleno, &! num_cycles
                           GLAI,PHENPHASE)
 
   !-------- End Unique subroutine body -----------
+
+!End Testing puroses:
 
 return
 

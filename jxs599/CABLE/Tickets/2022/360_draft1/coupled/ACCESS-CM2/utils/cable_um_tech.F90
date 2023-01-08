@@ -91,8 +91,6 @@ SUBROUTINE cable_um_runtime_vars(runtime_vars_file)
                                    cable_user, knode_gl, redistrb, wiltParam,  &
                                    satuParam, l_casacnp, l_laiFeedbk,          &
                                    l_vcmaxFeedbk, gw_params
-   USE cable_fFile_module, ONLY : fprintf_dir_root, L_cable_fprint,            &
-                                  L_cable_Pyfprint, unique_subdir
    USE casavariable, ONLY : casafile
    USE casadimension, ONLY : icycle
 
@@ -103,8 +101,7 @@ SUBROUTINE cable_um_runtime_vars(runtime_vars_file)
    !--- namelist for CABLE runtime vars, files, switches 
    NAMELIST/CABLE/filename, l_casacnp, l_laiFeedbk, l_vcmaxFeedbk, icycle,     &
                   casafile, cable_user, redistrb, wiltParam, satuParam,        &
-                  gw_params, fprintf_dir_root, L_cable_fprint,                 &
-                  L_cable_Pyfprint, unique_subdir
+                  gw_params
       !--- assume namelist exists. no iostatus check 
       OPEN(unit=funit,FILE= runtime_vars_file)
          READ(funit,NML=CABLE)
