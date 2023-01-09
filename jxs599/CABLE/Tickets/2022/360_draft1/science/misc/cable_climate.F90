@@ -1,5 +1,5 @@
 !#define ESM15 YES
-#define UM-CBL YES
+!#define UM-CBL YES
 !==============================================================================
 ! This source code is part of the
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
