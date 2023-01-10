@@ -105,7 +105,6 @@ ExtCoeff_beam(:) = 0.0
 ExtCoeff_dif(:) = 0.0
 EffExtCoeff_beam(:,:) = 0.0
 EffExtCoeff_dif(:,:) = 0.0
-RadFbeam(:,:) = 0.0 ! IF( .NOT. cable_runtime%um) THEN 
 
 c1(:,:) = 0.0
 rhoch(:,:) = 0.0
