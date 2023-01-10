@@ -25,10 +25,9 @@ IMPLICIT NONE
 PUBLIC
 
 REAL, PARAMETER :: gauss_w(nrb)=[0.308,0.514,0.178 ] ! Gaussian integ. weights
-REAL, PARAMETER :: rad_thresh = 0.001
-                        ! minimum zenithal angle for downward SW radiation
-REAL, PARAMETER :: lai_thresh = 0.001
-                        ! threshold for minimum significant LAI
+
+REAL, PARAMETER :: rad_thresh = 0.001 ! min. zenithal angle for downward SW 
+REAL, PARAMETER :: lai_thresh = 0.001 ! min. LAI to be considered as vegetated
 
 INTEGER, PARAMETER ::                                                          &
   swb = 2,           & ! 2 shortwave bands (initial division - visible /
