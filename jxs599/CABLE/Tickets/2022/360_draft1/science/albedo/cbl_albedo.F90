@@ -219,11 +219,7 @@ REAL, INTENT(IN) :: ExtCoeff_dif(mp)         ! Extinction co-efficient
 INTEGER :: i, b
 REAL :: factor
 
-IF( cable_runtime%esm15 ) THEN
-  factor = 1.0  !esm15
-ELSE
   factor = 2.0 !trunk
-ENDIF
 
 ! Canopy reflection (6.21) beam:
 DO i = 1,mp
