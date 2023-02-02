@@ -11,57 +11,58 @@ PRIVATE
 CONTAINS
 
 SUBROUTINE fwsoil_calc_std(fwsoil, soil, ssnow, veg)
-USE cable_def_types_mod
-USE cable_common_module, ONLY : cable_user
-TYPE (soil_snow_type), INTENT(INOUT):: ssnow
-TYPE (soil_parameter_type), INTENT(INOUT)   :: soil
-TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
-REAL, INTENT(OUT), DIMENSION(:):: fwsoil ! soil water modifier of stom. cond
-REAL, DIMENSION(mp) :: rwater ! soil water availability
+    USE cable_def_types_mod
+    USE cable_common_module, ONLY : cable_user
+    TYPE (soil_snow_type), INTENT(INOUT):: ssnow
+    TYPE (soil_parameter_type), INTENT(INOUT)   :: soil
+    TYPE (veg_parameter_type), INTENT(INOUT)    :: veg
+    REAL, INTENT(OUT), DIMENSION(:):: fwsoil ! soil water modifier of stom. cond
+    REAL, DIMENSION(mp) :: rwater ! soil water availability
 REAL, DIMENSION(mp,ms) :: rwater_dlayer
 REAL, DIMENSION(mp,ms) :: swilt_dlayer
 REAL, DIMENSION(mp,ms) :: sfc_dlayer
 
-!note even though swilt_vec is defined in default model it is r_2
-!and even using real(_vec) gives results different from trunk (rounding
-!errors)
+    !note even though swilt_vec is defined in default model it is r_2
+    !and even using real(_vec) gives results different from trunk (rounding
+    !errors)
 
-IF (.NOT.cable_user%gw_model) THEN
+    IF (.NOT.cable_user%gw_model) THEN
+    
+      ! define wilting point per soil layer
+      swilt_dlayer = SPREAD(soil%swilt, 2, ms) 
+    
+      ! define field capacity per soil layer
+      sfc_dlayer = SPREAD(soil%sfc, 2, ms) 
+      
+      ! compute available water per layer 
+      rwater_dlayer = REAL( (ssnow%wb-swilt_dlayer) ) / (sfc_dlayer-swilt_dlayer)
+    
+      ! restrict the (relative) range of available water per layer 
+      rwater_dlayer = MIN( 1.0, rwater_dlayer  )
+      rwater_dlayer = MAX( 1.0e-9, rwater_dlayer  )
+    
+      ! available water per coulmn to vegetation 
+      rwater = SUM( (veg%froot * rwater_dlayer), 2)
+      rwater = MAX( 1.0e-9, rwater )
+    
+    ELSE
+    
+      rwater = SUM( veg%froot * MAX(1.0e-9,MIN(1.0, REAL((ssnow%wbliq -            &
+                    soil%swilt_vec)/(soil%sfc_vec-soil%swilt_vec)) )),2) 
+    
+      rwater = MAX( 1.0e-9, rwater )
+    
+    ENDIF
+    
+    ! Remove vbeta #56
+    IF(cable_user%GS_SWITCH == 'medlyn') THEN
+       fwsoil = MAX(1.0e-4,MIN(1.0, rwater))
+    ELSE
+       fwsoil = MAX(1.0e-9,MIN(1.0, veg%vbeta * rwater))
+    ENDIF
 
-  ! define wilting point per soil layer
-  swilt_dlayer = SPREAD(soil%swilt, 2, ms) 
 
-  ! define field capacity per soil layer
-  sfc_dlayer = SPREAD(soil%sfc, 2, ms) 
-  
-  ! compute available water per layer 
-  rwater_dlayer = REAL( (ssnow%wb-swilt_dlayer) ) / (sfc_dlayer-swilt_dlayer)
-
-  ! restrict the (relative) range of available water per layer 
-  rwater_dlayer = MIN( 1.0, rwater_dlayer  )
-  rwater_dlayer = MAX( 1.0e-9, rwater_dlayer  )
-
-  ! available water per coulmn to vegetation 
-  rwater = SUM( (veg%froot * rwater_dlayer), 2)
-  rwater = MAX( 1.0e-9, rwater )
-
-ELSE
-
-  rwater = SUM( veg%froot * MAX(1.0e-9,MIN(1.0, REAL((ssnow%wbliq -            &
-                soil%swilt_vec)/(soil%sfc_vec-soil%swilt_vec)) )),2) 
-
-  rwater = MAX( 1.0e-9, rwater )
-
-ENDIF
-
-! Remove vbeta #56
-IF(cable_user%GS_SWITCH == 'medlyn') THEN
-   fwsoil = MAX(1.0e-4,MIN(1.0, rwater))
-ELSE
-   fwsoil = MAX(1.0e-9,MIN(1.0, veg%vbeta * rwater))
-ENDIF
-
-END SUBROUTINE fwsoil_calc_std
+  END SUBROUTINE fwsoil_calc_std
 
   ! ------------------------------------------------------------------------------
 
