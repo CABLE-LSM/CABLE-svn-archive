@@ -207,14 +207,14 @@ cable_read.o: cable_read.F90 cable_iovars.o cable_abort.o
 
 cable_initialise.o: cable_initialise.F90 cable_read.o cable_iovars.o cable_abort.o  cable_define_types.o
 
-cable_write.o: cable_write.F90 cable_iovars.o cable_abort.o cable_define_types.o casa_variable.o
+cable_write.o: cable_write.F90 cable_iovars.o cable_abort.o cable_define_types.o casa_variable.o vmic_variable.o
 
 cable_metutils.o: cable_metutils.F90
 
 cable_input.o: cable_input.F90 POP.o cable_checks.o cable_abort.o cable_read.o cable_initialise.o cbl_sinbet.o \
 	       cable_parameters.o cable_common.o cable_LUC_EXPT.o POPLUC.o casa_inout.o cable_metutils.o
 
-cable_output.o: cable_output.F90 cable_abort.o cable_checks.o cable_write.o cable_common.o
+cable_output.o: cable_output.F90 cable_abort.o cable_checks.o cable_write.o cable_common.o vmic_constant.o vmic_variable.o
 
 cable_parameters.o: cable_parameters.F90 cable_define_types.o cable_iovars.o cable_abort.o casa_variable.o cable_common.o cable_LUC_EXPT.o casa_phenology.o
 

@@ -1123,7 +1123,7 @@ END SUBROUTINE landuse_getdata
   END SUBROUTINE WRITE_LANDUSE_CASA_RESTART_NC
 
 
-  SUBROUTINE create_landuse_cable_restart(logn,dels,ktau,soil,mpx,lucmp,cstart,cend,nap)
+  SUBROUTINE create_landuse_cable_restart(logn,dels,ktau,soil,mpx,lucmp,cstart,cend,nap,miccpool,micnpool)
     ! Creates a restart file for CABLE using a land only grid cell area occupied by a '//  &
     ! Creates a restart file for CABLE using a land only grid with mland
     ! land points and max_vegpatches veg/soil patches (some of which may
@@ -1136,6 +1136,8 @@ END SUBROUTINE landuse_getdata
     USE cable_write_module
     USE cable_common_module,        ONLY : filename,CurYear,cable_user
     USE landuse_variable,           ONLY : landuse_mp
+    USE vmic_constant_mod, ONLY: mcpool, vmicrobe
+    USE vmic_variable_mod, ONLY: mic_cpool, mic_npool
 
     implicit none
     type(landuse_mp)                       :: lucmp
@@ -1148,12 +1150,14 @@ END SUBROUTINE landuse_getdata
     INTEGER, DIMENSION(mland), INTENT(in)  :: cstart,cend,nap
 !    TYPE (soil_parameter_type),INTENT(IN)  :: soil    ! from "cable_de_types_mod"
 !    TYPE (ranges_type),        INTENT(IN)  :: ranges  ! from "cable_checks_module"
+    TYPE (mic_cpool), INTENT(IN)  :: miccpool
+    TYPE (mic_npool), INTENT(IN)  :: micnpool
 
     INTEGER           :: ncid_restart ! netcdf restart file ID
     ! REAL, POINTER,DIMENSION(:,:) :: surffrac ! fraction of each surf type
     INTEGER           :: dummy ! dummy argument in subroutine call
     INTEGER           :: mlandID, mpID, radID, soilID, napID,                       &
-                         soilcarbID, plantcarbID, tID, snowID ! dimension IDs
+                         soilcarbID, plantcarbID, tID, snowID, miccarbID ! dimension IDs
 
     INTEGER           :: patchfrac_id,mvtype_id,mstype_id
     INTEGER           :: iveg_id, isoil_id, zse_id,albsoil_id
@@ -1163,7 +1167,7 @@ END SUBROUTINE landuse_getdata
                          canstoID, albsoilsnID, gammzzID, tggsnID, sghfluxID,       &
                          ghfluxID, runoffID, rnof1ID, rnof2ID, gaID, dgdtgID,       &
                          fevID, fesID, fhsID, wbtot0ID, osnowd0ID, cplantID,        &
-                         csoilID, tradID, albedoID, gwID
+                         csoilID, tradID, albedoID, gwID, cmicID, nmicID
 
     INTEGER           :: h0ID, snowliqID, SID, TsurfaceID, scondsID, nsnowID, TsoilID
     CHARACTER(LEN=10) :: todaydate, nowtime ! used to timestamp netcdf file
@@ -1228,6 +1232,14 @@ END SUBROUTINE landuse_getdata
     IF (ok /= NF90_NOERR) CALL nc_abort                                        &
          (ok, 'Error defining plant carbon pool dimension in restart file. '// &
          '(SUBROUTINE create_restart)')
+
+    IF (vmicrobe>0) THEN
+       ok = NF90_DEF_DIM(ncid_restart, 'mic_carbon_pools', mcpool, miccarbID)
+       ! number of mic carbon pools
+       IF (ok /= NF90_NOERR) CALL nc_abort                                        &
+            (ok, 'Error defining mic carbon pool dimension in restart file. '// &
+            '(SUBROUTINE create_restart)')
+    END IF
 
     ok = NF90_DEF_DIM(ncid_restart, 'time', 1, tID)
     IF (ok /= NF90_NOERR) CALL nc_abort &
@@ -1401,6 +1413,16 @@ END SUBROUTINE landuse_getdata
          'Soil carbon stores',                                     &
          .TRUE., soilcarbID, 'soilcarbon', 0, 0, 0, mpID, dummy, .TRUE.)
 
+    !--------------mic variables-----------------------------------
+    IF (vmicrobe>0) THEN
+        CALL define_ovar(ncid_restart, cmicID, 'mic_cpool', 'gC/m^2',              &
+             'MIC carbon stores',                                    &
+             .TRUE., soilID, miccarbID, 'soil', 0, 0, 0, mpID, dummy, .TRUE.)
+        CALL define_ovar(ncid_restart, nmicID, 'mic_npool', 'gN/m^2',              &
+             'MIC nitrogen stores',                                    &
+             .TRUE., soilID, 'soil', 0, 0, 0, mpID, dummy, .TRUE.)
+    END IF
+
     !-------------------others---------------------------------
     CALL define_ovar(ncid_restart, wbtot0ID, 'wbtot0', 'mm',                   &
          'Initial time step soil water total',                     &
@@ -1557,6 +1579,12 @@ END SUBROUTINE landuse_getdata
          (/-99999.0, 9999999.0/), .TRUE., 'plantcarbon', .TRUE.)
     CALL write_ovar (ncid_restart, csoilID, 'csoil', REAL(lucmp%csoilx, 4),       &
          (/-99999.0, 9999999.0/), .TRUE., 'soilcarbon', .TRUE.)
+    IF (vmicrobe>0) THEN
+       CALL write_ovar (ncid_restart, cmicID, 'mic_cpool', REAL(miccpool%cpool, 4),    &
+            (/-99999.0, 9999999.0/), .TRUE., 'miccarbonpool', .TRUE.)
+       CALL write_ovar (ncid_restart, nmicID, 'mic_npool', REAL(micnpool%mineralN, 4),    &
+            (/-99999.0, 9999999.0/), .TRUE., 'soil', .TRUE.)
+    END IF
     ok = NF90_PUT_VAR(ncid_restart, zse_id, REAL(soil%zse, 4))
     IF(ok /= NF90_NOERR) CALL nc_abort(ok, 'Error writing zse parameter to '   &
          //TRIM(frst_out)// '(SUBROUTINE create_restart)')

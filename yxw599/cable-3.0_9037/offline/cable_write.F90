@@ -30,12 +30,14 @@
 !                 define_output_variable_r2
 !                 define_output_parameter_r1
 !                 define_output_parameter_r2
+!                 define_output_parameter_r3
 !                 write_output_variable_r1
 !                 write_output_variable_r2
 !                 write_output_parameter_r1
 !                 write_output_parameter_r1d
 !                 write_output_parameter_r2
 !                 write_output_parameter_r2d
+!                 write_output_parameter_r3
 !
 !
 !
@@ -50,6 +52,7 @@ MODULE cable_write_module
   USE cable_IO_vars_module, ONLY: landpt, patch, max_vegpatches, parID_type,           &
        metGrid, land_x, land_y, logn, output,               &
        xdimsize, ydimsize, check, mask
+  USE vmic_constant_mod, ONLY : mcpool
   USE netcdf
   IMPLICIT NONE
   PRIVATE
@@ -61,7 +64,7 @@ MODULE cable_write_module
        otmp4xyst, otmp4xysnt, otmp4xyrt, otmp4xypct, otmp4xysct, otmp4lpst,  &
        otmp4lpsnt, otmp4lprt, otmp4lpsct, otmp4lppct, otmp4xyps,             &
        otmp4xyppc, otmp4xypsc, otmp5xypst, otmp5xypsnt, otmp5xyprt,          &
-       otmp5xyppct, otmp5xypsct, nullify_write
+       otmp5xyppct, otmp5xypsct, nullify_write, otmp3ls
   INTERFACE define_ovar
      ! Defines an output variable in the output netcdf file. Units, long name,
      ! variable, dimensions etc are created.
@@ -69,6 +72,7 @@ MODULE cable_write_module
      MODULE PROCEDURE define_output_variable_r2
      MODULE PROCEDURE define_output_parameter_r1
      MODULE PROCEDURE define_output_parameter_r2
+     MODULE PROCEDURE define_output_parameter_r3
   END INTERFACE
   INTERFACE write_ovar
      ! Writes a single time step of an output variable to the output netcdf
@@ -79,6 +83,7 @@ MODULE cable_write_module
      MODULE PROCEDURE write_output_parameter_r1d
      MODULE PROCEDURE write_output_parameter_r2
      MODULE PROCEDURE write_output_parameter_r2d
+     MODULE PROCEDURE write_output_parameter_r3
   END INTERFACE
 
   INTEGER :: ncmissingi = -9999999
@@ -98,6 +103,7 @@ MODULE cable_write_module
        otmp3xypc, otmp3xysc, otmp3lps,    &
        otmp3lppc, otmp3lpsc, otmp3xysf,   &
        otmp3lpr, otmp3lpsn, otmp3xyr
+  REAL, POINTER, DIMENSION(:, :, :) ::  otmp3ls
   REAL, POINTER, DIMENSION(:, :, :, :) :: otmp4xypt, otmp4xyzt,           &
        otmp4xyst, otmp4xysnt,          &
        otmp4xyrt, otmp4xypct,          &
@@ -821,6 +827,108 @@ CONTAINS
     END IF
 
   END SUBROUTINE define_output_parameter_r2
+  !=============================================================================
+  SUBROUTINE define_output_parameter_r3(ncid, parID, pname, punits, longname,  &
+       writepatch, othdimID, othdimID2, dimswitch, xID,  &
+       yID, zID, landID, patchID, restart)
+    ! Subroutine for defining a real valued 3D parameter (time invariant)
+    INTEGER, INTENT(IN) :: ncid ! netcdf file ID
+    INTEGER, INTENT(IN) :: othdimID ! ID of parameter's second dimension
+    INTEGER, INTENT(IN) :: othdimID2 ! ID of parameter's third dimension
+    INTEGER, INTENT(IN) :: xID, yID, zID, landID, patchID ! netcdf
+    ! dimension IDs
+    INTEGER, INTENT(OUT) :: parID ! variable's netcdf ID
+    LOGICAL, INTENT(IN) :: writepatch ! write patch-specific info for this var?
+    LOGICAL,INTENT(IN),OPTIONAL :: restart ! are we writing to a restart file?
+    CHARACTER(LEN=*), INTENT(IN) :: pname ! name of variable
+    CHARACTER(LEN=*), INTENT(IN) :: punits ! variable units
+    CHARACTER(LEN=*), INTENT(IN) :: longname ! full variable name
+    CHARACTER(LEN=*), INTENT(IN) :: dimswitch ! indicates dimesnion of parameter
+
+    ! First, decide which grid to use. If user has forced grid using output%grid
+    ! in the namelist file, use this grid. Else use format of met file.
+    IF((output%grid(1:3) == 'mas' .OR.                                         &
+         (output%grid(1:3) == 'def' .AND. metGrid == 'mask') .OR.               &
+         output%grid(1:3) == 'ALM') .AND. .NOT. PRESENT(restart)) THEN
+       CALL nc_abort                                  &
+            (ok, 'Unsupported grid in output file. '// &
+            '(SUBROUTINE define_output_parameter_r3)')
+    ELSE IF(output%grid(1:3) == 'lan' .OR. (output%grid(1:3) == 'def'          &
+         .AND. metGrid=='land') .OR. PRESENT(restart)) THEN
+       ! Should patch-specific info be written for this variable?
+       ! If this variable has been requested by user with patch-specific info
+       ! (writepatch) OR all have been (output%patch) AND we're NOT writing
+       ! a restart file (which uses a different technique to store patch info):
+       IF((writepatch .OR. output%patch) .AND. (dimswitch /= 'surftype')       &
+            .AND. .NOT. PRESENT(restart)) THEN
+          CALL nc_abort                                  &
+               (ok, 'patch specific info unsupported in output file. '// &
+               '(SUBROUTINE define_output_parameter_r3)')
+       ELSE ! variable has no explicit patch dimension (incl. restart file)
+          ! Restart file definitions will be directed to this part of interface.
+          ! If not writing a restart file, report variable writing to log file:
+          IF(.NOT.PRESENT(restart)) WRITE(logn,*) 'Writing '//pname// &
+               ' to output file using land grid'
+          ! Define parameter as double precision if required for restart file:
+          IF(dimswitch(1:2)=='r2') THEN
+             ok=NF90_DEF_VAR(ncid,pname,NF90_DOUBLE,(/landID,othdimID,othdimID2/),parID)
+          ELSE
+             ok=NF90_DEF_VAR(ncid,pname,NF90_FLOAT,(/landID,othdimID,othdimID2/),parID)
+          END IF
+          IF (ok /= NF90_NOERR) CALL nc_abort &
+               (ok,'Error defining '//pname//' variable in output file. '// &
+               '(SUBROUTINE define_output_parameter_r3)')
+          ! If not already allocated, allocate a temporary storage variable
+          ! of this dimension structure:
+          IF(dimswitch=='soil'.OR.dimswitch=='r2soil') THEN
+             IF(.NOT.ASSOCIATED(otmp3ls)) ALLOCATE(otmp3ls(mland,ms,mcpool))
+          END IF
+       END IF
+    ELSE
+       CALL abort('Unknown grid specification '//                              &
+            '(SUBROUTINE define_output_parameter_r3)')
+    END IF
+    ! Define variable units:
+    ok = NF90_PUT_ATT(ncid ,parID, 'units', punits)
+    IF (ok /= NF90_NOERR) CALL nc_abort                                        &
+         (ok, 'Error defining '//pname//' variable attributes in '//             &
+         'output file. (SUBROUTINE define_output_parameter_r3)')
+    ! Define long name:
+    ok = NF90_PUT_ATT(ncid, parID, 'long_name', longname)
+    IF (ok /= NF90_NOERR) CALL nc_abort                                        &
+         (ok, 'Error defining '//pname//' variable attributes in '//             &
+         'output file. (SUBROUTINE define_output_parameter_r3)')
+    ! Define missing/fill values:
+    IF(dimswitch(1:1) == 'i') THEN
+       ok = NF90_PUT_ATT(ncid, parID, '_FillValue', ncmissingi)
+       IF (ok /= NF90_NOERR) CALL nc_abort                                     &
+            (ok, 'Error defining '//pname//' variable attributes in '//          &
+            'output file. (INTERFACE define_ovar)')
+       ok = NF90_PUT_ATT(ncid, parID, 'missing_value', ncmissingi)
+       IF (ok /= NF90_NOERR) CALL nc_abort                                     &
+            (ok, 'Error defining '//pname//' variable attributes in '//          &
+            'output file. (INTERFACE define_ovar)')
+    ELSE IF(dimswitch(1:2) == 'r2') THEN
+       ok = NF90_PUT_ATT(ncid, parID, '_FillValue', REAL(ncmissingr, 8))
+       IF (ok /= NF90_NOERR) CALL nc_abort                                     &
+            (ok, 'Error defining '//pname//' variable attributes in '//          &
+            'output file. (INTERFACE define_ovar)')
+       ok = NF90_PUT_ATT(ncid, parID, 'missing_value', REAL(ncmissingr, 8))
+       IF (ok /= NF90_NOERR) CALL nc_abort                                     &
+            (ok, 'Error defining '//pname//' variable attributes in '//          &
+            'output file. (INTERFACE define_ovar)')
+    ELSE
+       ok = NF90_PUT_ATT(ncid, parID, '_FillValue', REAL(ncmissingr, 4))
+       IF (ok /= NF90_NOERR) CALL nc_abort                                     &
+            (ok, 'Error defining '//pname//' variable attributes in '//        &
+            'output file. (INTERFACE define_ovar)')
+       ok = NF90_PUT_ATT(ncid, parID, 'missing_value', REAL(ncmissingr, 4))
+       IF (ok /= NF90_NOERR) CALL nc_abort                                     &
+            (ok, 'Error defining '//pname//' variable attributes in '//          &
+            'output file. (INTERFACE define_ovar)')
+    END IF
+
+  END SUBROUTINE define_output_parameter_r3
   !=============================================================================
   SUBROUTINE write_output_variable_r1(ktau, ncid, varID, vname, var_r1,        &
        vrange, writepatch, dimswitch, met)
@@ -2344,6 +2452,76 @@ CONTAINS
          ' variable to output file (SUBROUTINE write_output_parameter_r2)')
 
   END SUBROUTINE write_output_parameter_r2
+  !=============================================================================
+  SUBROUTINE write_output_parameter_r3(ncid, parID, pname, par_r2, prange,     &
+       writepatch, dimswitch, restart)
+    ! Subroutine for writing a real valued 3D parameter (time invariant)
+    INTEGER, INTENT(IN) :: ncid ! netcdf file ID
+    INTEGER, INTENT(IN) :: parID ! variable's netcdf ID
+    REAL(KIND=4), DIMENSION(:, :,:), INTENT(IN) :: par_r2 ! variable values
+    REAL, DIMENSION(2), INTENT(IN) :: prange ! max and min for variable
+    ! error checking
+    LOGICAL, INTENT(IN) :: writepatch ! write patch-specific info for this var?
+    LOGICAL,INTENT(IN),OPTIONAL :: restart ! are we writing to a restart file?
+    CHARACTER(LEN=*), INTENT(IN) :: pname ! name of variable
+    CHARACTER(LEN=*), INTENT(IN) :: dimswitch ! indicates dimesnion of parameter
+
+    INTEGER :: i, j, k ! do loop counter
+
+    ! First, decide which grid to use. If user has forced grid using output%grid
+    ! in the namelist file, use this grid. Else use format of met file.
+    IF((output%grid(1:3) == 'mas' .OR.                                         &
+         (output%grid(1:3) == 'def' .AND. metGrid == 'mask') .OR.                &
+         output%grid(1:3) == 'ALM') .AND. .NOT. PRESENT(restart)) THEN
+       CALL abort('Unsupported grid - in SUBROUTINE write_output_parameter_r3')
+    ELSE IF(output%grid(1:3) == 'lan'                                          &
+         .OR.(output%grid(1:3) == 'def' .AND. metGrid == 'land')            &
+         .OR. PRESENT(restart)) THEN
+       ! Does this variable have a patch dimension (restart does not)?
+       IF((writepatch .OR. output%patch) .AND. (dimswitch /= 'surftype')        &
+            .AND. .NOT. PRESENT(restart)) THEN
+          CALL abort('patch specific info unsupported'// &
+               ' - in SUBROUTINE write_output_parameter_r3')
+       ELSE ! Varaible has no patch dimension
+          ! Check the nature of the parameter's second dimension:
+          IF(dimswitch=='miccarbonpool') THEN ! i.e. spatial and soil
+             IF(PRESENT(restart)) THEN
+                ! Write data to restart file
+                ok=NF90_PUT_VAR(ncid,parID,REAL(par_r2,4), &
+                     start=(/1,1,1/),count=(/mp,ms,mcpool/))
+             ELSE
+                DO i = 1, mland ! over all land grid points
+                   ! Write to temporary variable (use dominant patch info only!):
+                   otmp3ls(i,:,:) = par_r2(landpt(i)%cstart,:,:)
+                   IF(check%ranges) THEN  ! Check ranges:
+                      IF(ANY(otmp3ls(i,:,:)<prange(1)).OR. &
+                           ANY(otmp3ls(i,:,:)>prange(2))) THEN
+                         WRITE(*,*) 'Parameter '//pname// &
+                              ' is set at a value out of specified ranges!'
+                         WRITE(*,*) 'Land point # ',i
+                         WRITE(*,*) 'Values: ', otmp3ls(i,:,:)
+                         CALL abort('Aborting.')
+                      END IF
+                   END IF
+                END DO
+                ok=NF90_PUT_VAR(ncid,parID,REAL(otmp3ls,4), &
+                     start=(/1,1,1/),count=(/mland,ms,mcpool/)) ! write data to file
+             END IF
+          ELSE
+             CALL abort('Parameter '//pname//                                     &
+                  ' defined with unknown dimension switch - '//dimswitch//  &
+                  ' - in SUBROUTINE write_output_parameter_r3')
+          END IF
+       END IF
+    ELSE
+       CALL abort('Unknown grid specification '//                               &
+            '(SUBROUTINE write_output_parameter_r3)')
+    END IF
+    ! Check writing was successful:
+    IF(ok /= NF90_NOERR) CALL nc_abort(ok, 'Error writing '//pname//           &
+         ' variable to output file (SUBROUTINE write_output_parameter_r3)')
+
+  END SUBROUTINE write_output_parameter_r3
   !==============================================================================
   SUBROUTINE write_output_parameter_r2d(ncid, parID, pname, par_r2d, prange,   &
        writepatch, dimswitch, restart)
