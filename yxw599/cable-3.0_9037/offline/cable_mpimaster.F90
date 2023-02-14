@@ -1469,6 +1469,10 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
 
        call WRITE_LANDUSE_CASA_RESTART_NC(cend(mland), lucmp, CASAONLY )
 
+       if (vmicrobe>0) then
+          call WRITE_LANDUSE_MIC_RESTART_NC(cend(mland), miccpool, micnpool, micfile )
+       end if
+
        call create_landuse_cable_restart(logn, dels, ktau, soil, cend(mland),lucmp,cstart,cend,nap,miccpool,micnpool)
 
        call landuse_deallocate_mp(cend(mland),ms,msn,nrb,mplant,mlitter,msoil,mwood,lucmp)

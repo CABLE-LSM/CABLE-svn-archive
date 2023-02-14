@@ -879,6 +879,7 @@ END SUBROUTINE landuse_getdata
 
   end subroutine sort
 
+
   SUBROUTINE WRITE_LANDUSE_CASA_RESTART_NC(mpx, lucmp, CASAONLY )
 
     USE netcdf
@@ -1121,6 +1122,96 @@ END SUBROUTINE landuse_getdata
 
     write(logn, *) 'landuse on: casapool writeen to ', fname
   END SUBROUTINE WRITE_LANDUSE_CASA_RESTART_NC
+
+
+  SUBROUTINE WRITE_LANDUSE_MIC_RESTART_NC(mpx, miccpool, micnpool, micfile )
+
+    USE netcdf
+    USE cable_def_types_mod,  ONLY : ms
+    USE cable_abort_module,   ONLY : nc_abort
+    USE cable_IO_vars_module, ONLY : logn
+    USE cable_common_module
+    USE vmic_constant_mod, ONLY: mcpool
+    USE vmic_variable_mod, ONLY: mic_cpool, mic_npool, micfile_type
+
+    IMPLICIT NONE
+    TYPE (mic_cpool), INTENT(IN)   :: miccpool
+    TYPE (mic_npool), INTENT(IN)   :: micnpool
+    TYPE(micfile_type), INTENT(IN) :: micfile
+
+    INTEGER,      INTENT(IN) :: mpx
+    INTEGER*4                :: STATUS
+    INTEGER*4                :: FILE_ID, mp_ID, miccarb_ID, soil_ID
+    CHARACTER                :: CYEAR*4, fname*99
+
+    INTEGER*4 :: cmic_ID, nmic_ID
+
+    write(logn,*)  ' landuse on: writing mic pool: patch number=', mpx
+
+    ! Get File-Name
+    WRITE(CYEAR, FMT='(I4)') CurYear + 1
+
+    IF (LEN( TRIM(micfile%micepool) ) .GT. 0) THEN
+       fname=TRIM(micfile%micepool)
+    ELSE
+       fname = TRIM(filename%path)//'/'//TRIM( cable_user%RunIden )//&
+            '_mic_rst.nc'
+    ENDIF
+    ! Create NetCDF file:
+    STATUS = NF90_create(fname, NF90_CLOBBER, FILE_ID)
+    IF(STATUS /= NF90_NOERR) CALL nc_abort(STATUS, 'Error creating restart file '      &
+         //TRIM(fname)// '(SUBROUTINE WRITE_LANDUSE_MIC_RESTART_NC)')
+
+    WRITE(*,*) 'writing mic restart', fname
+    ! Put the file in define mode:
+    STATUS = NF90_redef(FILE_ID)
+
+    STATUS = NF90_PUT_ATT( FILE_ID, NF90_GLOBAL, "Valid restart date", "01/01/"//CYEAR  )
+
+    ! Define dimensions:
+    ! Land (number of points)
+    STATUS = NF90_def_dim(FILE_ID, 'mp'   , mpx     , mp_ID)
+    IF(STATUS /= NF90_NOERR) CALL nc_abort(STATUS, 'Error defining mp dimension '      &
+         // '(SUBROUTINE WRITE_LANDUSE_MIC_RESTART_NC)')
+
+    STATUS = NF90_DEF_DIM(FILE_ID, 'soil', ms, soil_ID)
+    IF(STATUS /= NF90_NOERR) CALL nc_abort(STATUS, 'Error defining soil dimension '      &
+         // '(SUBROUTINE WRITE_LANDUSE_MIC_RESTART_NC)')
+
+    STATUS = NF90_def_dim(FILE_ID, 'mic_carbon_pools', mcpool, miccarb_ID)
+    IF(STATUS /= NF90_NOERR) CALL nc_abort(STATUS, 'Error defining mic_carbon_pools dimension '      &
+         // '(SUBROUTINE WRITE_LANDUSE_MIC_RESTART_NC)')
+
+    STATUS = NF90_def_var(FILE_ID,'mic_cpool',NF90_FLOAT,(/mp_ID,soil_ID,miccarb_ID/),cmic_ID)
+    IF(STATUS /= NF90_NOERR) CALL nc_abort(STATUS, 'Error defining mic_cpool variable '      &
+         // '(SUBROUTINE WRITE_LANDUSE_MIC_RESTART_NC)')
+
+    STATUS = NF90_def_var(FILE_ID,'mic_npool',NF90_FLOAT,(/mp_ID,soil_ID/),nmic_ID)
+    IF(STATUS /= NF90_NOERR) CALL nc_abort(STATUS, 'Error defining mic_npool variable '      &
+         // '(SUBROUTINE WRITE_LANDUSE_MIC_RESTART_NC)')
+
+    ! End define mode:
+    STATUS = NF90_enddef(FILE_ID)
+    IF(STATUS /= NF90_NOERR) CALL nc_abort(STATUS, 'Error ending define mode '      &
+         // '(SUBROUTINE WRITE_LANDUSE_MIC_RESTART_NC)')
+
+    ! PUT VARS
+    STATUS = NF90_PUT_VAR(FILE_ID, cmic_ID, REAL(miccpool%cpool, 4) )
+    IF(STATUS /= NF90_NOERR) CALL nc_abort(STATUS, 'Error writing mic_cpool variable '      &
+         // '(SUBROUTINE WRITE_LANDUSE_MIC_RESTART_NC)')
+
+    STATUS = NF90_PUT_VAR(FILE_ID, nmic_ID, REAL(micnpool%mineralN, 4) )
+    IF(STATUS /= NF90_NOERR) CALL nc_abort(STATUS, 'Error writing mic_npool variable '      &
+         // '(SUBROUTINE WRITE_LANDUSE_MIC_RESTART_NC)')
+
+
+    ! Close NetCDF file:
+    STATUS = NF90_close(FILE_ID)
+    IF(STATUS /= NF90_NOERR) CALL nc_abort(STATUS, 'Error closing restart file '      &
+         //TRIM(fname)// '(SUBROUTINE WRITE_LANDUSE_MIC_RESTART_NC)')
+
+    write(logn, *) 'landuse on: micpool writeen to ', fname
+  END SUBROUTINE WRITE_LANDUSE_MIC_RESTART_NC
 
 
   SUBROUTINE create_landuse_cable_restart(logn,dels,ktau,soil,mpx,lucmp,cstart,cend,nap,miccpool,micnpool)
