@@ -24,21 +24,36 @@ MODULE vmic_inout_mod
   
 CONTAINS
   
-  SUBROUTINE vmic_allocate(micparam,micinput,micoutput,miccpool,micnpool)
+  SUBROUTINE vmic_allocate(micparam,micinput,micoutput)
     implicit none
     TYPE(mic_parameter)  :: micparam
     TYPE(mic_input)      :: micinput
     TYPE(mic_cpool)      :: miccpool
     TYPE(mic_npool)      :: micnpool
     TYPE(mic_output)     :: micoutput
-   
+
       call vmic_allocate_parameter(micparam)
       call vmic_allocate_input(micinput)
       call vmic_allocate_output(micoutput)
+
+  end SUBROUTINE vmic_allocate 
+
+
+  SUBROUTINE vmic_allocate_pools(miccpool,micnpool)
+    implicit none
+    TYPE(mic_cpool)      :: miccpool
+    TYPE(mic_npool)      :: micnpool
+
+    write(6,*)"ALLOCATING variables"
+    write(6,*)ALLOCATED(micnpool%mineralN)
+   
       call vmic_allocate_cpool(miccpool)
       call vmic_allocate_npool(micnpool)
+
+    write(6,*)ALLOCATED(micnpool%mineralN)
+    write(6,*)size(micnpool%mineralN,1),size(micnpool%mineralN,2)
 	  
-  end SUBROUTINE vmic_allocate 
+  end SUBROUTINE vmic_allocate_pools
 
 
   SUBROUTINE vmic_parameter(veg,soil,casabiome,micparam,micinput,micfile)

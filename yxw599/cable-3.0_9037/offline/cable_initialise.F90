@@ -40,6 +40,8 @@ MODULE cable_init_module
   USE cable_read_module
   USE netcdf
   USE cable_common_module, ONLY : filename, cable_user
+  USE vmic_constant_mod, ONLY: vmicrobe
+  USE vmic_variable_mod, ONLY: mic_cpool, mic_npool
 
   IMPLICIT NONE
 
@@ -161,7 +163,7 @@ CONTAINS
   !==============================================================================
 
   SUBROUTINE get_restart_data(logn,ssnow,canopy,rough,bgc,                       &
-       bal,veg,soil,rad,vegparmnew, EMSOIL)
+       bal,veg,soil,rad,miccpool,micnpool,vegparmnew, EMSOIL)
 
     IMPLICIT NONE
 
@@ -175,6 +177,8 @@ CONTAINS
     TYPE (veg_parameter_type), INTENT(INOUT)  :: veg        ! vegetation parameters
     TYPE (soil_parameter_type), INTENT(INOUT) :: soil       ! soil parameters
     TYPE (radiation_type),INTENT(INOUT)       :: rad
+    TYPE (mic_cpool), INTENT(INOUT)           :: miccpool
+    TYPE (mic_npool), INTENT(INOUT)           :: micnpool
     LOGICAL,INTENT(IN)                        :: vegparmnew ! are we using the new format?
 
     REAL, INTENT(IN) :: EMSOIL
@@ -476,6 +480,12 @@ CONTAINS
          max_vegpatches,'ncp',from_restart,mp)
     CALL readpar(ncid_rin,'csoil',dummy,bgc%csoil,filename%restart_in,          &
          max_vegpatches,'ncs',from_restart,mp)
+    IF (vmicrobe>0) THEN
+       CALL readpar(ncid_rin,'mic_cpool',dummy,miccpool%cpool,filename%restart_in,  &
+            max_vegpatches,'mic',from_restart,mp)
+       CALL readpar(ncid_rin,'mic_npool',dummy,micnpool%mineralN,filename%restart_in,  &
+            max_vegpatches,'ms',from_restart,mp)
+    END IF
     CALL readpar(ncid_rin,'wbtot0',dummy,bal%wbtot0,filename%restart_in,        &
          max_vegpatches,'def',from_restart,mp)
     CALL readpar(ncid_rin,'osnowd0',dummy,bal%osnowd0,filename%restart_in,      &

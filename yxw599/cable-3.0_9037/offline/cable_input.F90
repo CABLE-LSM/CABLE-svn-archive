@@ -56,6 +56,7 @@ MODULE cable_input_module
   USE cable_common_module, ONLY : filename, cable_user, CurYear, is_leapyear
   USE casa_ncdf_module, ONLY: HANDLE_ERR
   USE casa_inout_module, ONLY: casa_readbiome, casa_readphen, casa_init
+  USE vmic_variable_mod, ONLY: mic_cpool, mic_npool
 
   IMPLICIT NONE
 
@@ -2556,6 +2557,7 @@ CONTAINS
   !==============================================================================
 
   SUBROUTINE load_parameters(met,air,ssnow,veg,climate,bgc,soil,canopy,rough,rad,        &
+       miccpool,micnpool, &
        sum_flux,bal,logn,vegparmnew,casabiome,casapool,    &
        casaflux,sum_casapool, sum_casaflux,casamet,casabal,phen,POP,spinup,EMSOIL, &
        TFRZ, LUC_EXPT, POPLUC)
@@ -2571,6 +2573,9 @@ CONTAINS
     USE POPmodule, ONLY: POP_INIT
     USE POPLUC_module, ONLY: POPLUC_INIT
     USE CABLE_LUC_EXPT, ONLY: LUC_EXPT_TYPE
+    USE vmic_constant_mod, ONLY: vmicrobe
+    USE vmic_variable_mod, ONLY: mic_cpool, mic_npool
+    USE vmic_inout_mod,    ONLY: vmic_allocate_pools
 
     IMPLICIT NONE
 
@@ -2585,6 +2590,8 @@ CONTAINS
     TYPE (canopy_type), INTENT(OUT)         :: canopy
     TYPE (roughness_type), INTENT(OUT)      :: rough
     TYPE (radiation_type),INTENT(OUT)       :: rad
+    TYPE (mic_cpool), INTENT(INOUT)         :: miccpool
+    TYPE (mic_npool), INTENT(INOUT)         :: micnpool
     TYPE (sum_flux_type), INTENT(OUT)       :: sum_flux
     TYPE (balances_type), INTENT(OUT)       :: bal
     TYPE (casa_biome)  , INTENT(OUT)        :: casabiome
@@ -2640,6 +2647,9 @@ CONTAINS
     CALL allocate_cable_vars(air,bgc,canopy,met,bal,rad,rough,soil,ssnow, &
          sum_flux,veg,mp)
     WRITE(logn,*) ' CABLE variables allocated with ', mp, ' patch(es).'
+    if (vmicrobe>0) then
+       call vmic_allocate_pools(miccpool,micnpool)
+    endif
 
     IF (icycle > 0 .OR. CABLE_USER%CASA_DUMP_WRITE ) &
          CALL alloc_casavariable(casabiome,casapool,casaflux, &
@@ -2752,7 +2762,7 @@ CONTAINS
 
        ! Load initialisations and parameters from restart file:
        CALL get_restart_data(logn,ssnow,canopy,rough,bgc,bal,veg, &
-            soil,rad,vegparmnew, EMSOIL )
+            soil,rad,miccpool,micnpool,vegparmnew, EMSOIL )
 
     ELSE
        ! With no restart file, use default parameters already loaded

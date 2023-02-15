@@ -27,6 +27,7 @@
 !                 readpar_rd
 !                 readpar_r2
 !                 readpar_r2d
+!                 readpar_r3d
 !                 nc_abort
 !                 redistr*
 !
@@ -36,6 +37,7 @@ MODULE cable_read_module
   USE cable_abort_module
   USE cable_def_types_mod, ONLY : ms, ncp, r_2, mland, mp, ncs, nrb, msn
   USE cable_IO_vars_module, ONLY: landpt, exists, land_x, land_y, metGrid
+  USE vmic_constant_mod, ONLY: mcpool
   USE netcdf
 
   IMPLICIT NONE
@@ -51,6 +53,7 @@ MODULE cable_read_module
      MODULE PROCEDURE readpar_rd  ! for double precision real parameter read
      MODULE PROCEDURE readpar_r2  ! for 2d real parameter read
      MODULE PROCEDURE readpar_r2d ! for double precision 2d real parameter read
+     MODULE PROCEDURE readpar_r3d ! for double precision 3d real parameter read
   END INTERFACE
   ! INTERFACE redistr
   !   MODULE PROCEDURE redistr_i
@@ -824,6 +827,83 @@ CONTAINS
     END IF ! parameter's existence
 
   END SUBROUTINE readpar_r2d
+  !=============================================================================
+  SUBROUTINE readpar_r3d(ncid, parname, completeSet, var_r3d, filename,        &
+       npatch, dimswitch, from_restart, INpatch)
+    ! Subroutine for loading a double precision two dimensional real-valued
+    ! soil dimensioned parameter
+    INTEGER, INTENT(IN) :: ncid ! netcdf file ID
+    INTEGER, INTENT(IN) :: npatch ! # of veg patches in parameter's file
+    INTEGER, INTENT(IN), OPTIONAL :: INpatch
+    REAL(r_2), DIMENSION(:, :,:), INTENT(INOUT) :: var_r3d ! returned parameter
+    ! value
+    LOGICAL, INTENT(IN), OPTIONAL :: from_restart ! reading from restart file?
+    LOGICAL, INTENT(INOUT) :: completeSet ! has every parameter been loaded?
+    CHARACTER(LEN=*), INTENT(IN) :: parname ! name of parameter
+    CHARACTER(LEN=*), INTENT(IN) :: filename ! file containing parameter values
+    CHARACTER(LEN=*), INTENT(IN) :: dimswitch ! indicates dimesnion of parameter
+
+    INTEGER :: parID ! parameter's netcdf ID
+    INTEGER :: pardims ! # dimensions of parameter
+    INTEGER :: dimctr ! size of non-spatial (2nd) dimension of parameter
+    INTEGER :: dimctr2 ! size of non-spatial (3rd) dimension of parameter
+    INTEGER :: i,j ! do loop counter
+    REAL(8), DIMENSION(:, :, :), POINTER       :: tmp3rd ! temporary for ncdf
+    ! read in
+
+    ! Check if parameter exists:
+    ok = NF90_INQ_VARID(ncid,parname,parID)
+    IF(ok /= NF90_NOERR) THEN ! if it doesn't exist
+       completeSet = .FALSE.
+       ! If this routine is reading from the restart, abort
+       IF(PRESENT(from_restart))  WRITE(*,*) ' Error reading '//parname//' in file ' &
+            //TRIM(filename)//' (SUBROUTINE readpar_r3d)'
+    ELSE
+       exists%parameters = .TRUE. ! Note that pars were found in file
+       ! Decide which 2nd dimension of parameter /init state we're loading:
+       IF(dimswitch(1:3) == 'mic') THEN
+          dimctr = ms ! i.e. horizontal spatial and soil
+          dimctr2 = mcpool  ! i.e. horizontal spatial and soil
+       ELSE
+          CALL abort('Parameter or initial state '//parname//                  &
+               ' called with unknown dimension switch - '//dimswitch//   &
+               ' - in INTERFACE readpar')
+       END IF
+       ! Check for grid type - restart file uses land type grid
+       IF(metGrid == 'land' .OR. PRESENT(from_restart)) THEN
+          ! Collect data from land only grid in netcdf file.
+          ! First, check whether parameter has patch dimension:
+          ok = NF90_INQUIRE_VARIABLE(ncid, parID, ndims=pardims)
+          IF(pardims == 3) THEN ! no patch dimension, just a land+soil
+             ! dimensions
+             ! If we really are reading a double precision variable
+             ! from the netcdf restart file, dimswitch will show this:
+             ! equivalent to using "IF(PRESENT(from_restart)) THEN"
+             IF(dimswitch == 'mic') THEN
+                ALLOCATE(tmp3rd(INpatch, dimctr, dimctr2))
+                ok = NF90_GET_VAR(ncid, parID, tmp3rd,                          &
+                     start=(/1, 1, 1/), count=(/INpatch, dimctr, dimctr2/))
+                IF(ok /= NF90_NOERR) CALL nc_abort                              &
+                     (ok, 'Error reading '//parname//' in met data file ' &
+                     //TRIM(filename)//' (SUBROUTINE readpar_r3d)')
+                var_r3d(:, :, :) = REAL(tmp3rd(:, :, :), r_2)
+                DEALLOCATE(tmp3rd)
+             ELSE
+                CALL abort('Parameter or initial state '//parname//                  &
+                     ' called with unknown dimension switch - '//dimswitch//   &
+                     ' - in INTERFACE readpar')
+             END IF ! reading a d.p. var from netcdf
+          ELSE
+             CALL abort('Dimension of '//parname//' parameter in met file'//   &
+                  'unknown.')
+          END IF
+       ELSEIF(metGrid == 'mask') THEN ! Get data from land/sea mask type grid:
+          CALL abort('Unsupported grid or not from restart file '//                  &
+               ' - in INTERFACE readpar')
+       END IF ! gridtype land or mask
+    END IF ! parameter's existence
+
+  END SUBROUTINE readpar_r3d
   !=============================================================================
   SUBROUTINE redistr_i(INpatch, nap, in_i, out_i, parname)
     IMPLICIT NONE

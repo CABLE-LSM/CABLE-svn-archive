@@ -606,14 +606,14 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
 
              !! vh_js !!
              CALL load_parameters( met, air, ssnow, veg,climate,bgc,		&
-                  soil, canopy, rough, rad, sum_flux,			 &
+                  soil, canopy, rough, rad, miccpool, micnpool, sum_flux,    &
                   bal, logn, vegparmnew, casabiome, casapool,		 &
                   casaflux, sum_casapool, sum_casaflux, &
                   casamet, casabal, phen, POP, spinup,	       &
                   CEMSOIL, CTFRZ, LUC_EXPT, POPLUC )
              ! allocate variables and assign model parameters
              if (vmicrobe>0) then
-                call vmic_allocate(micparam,micinput,micoutput,miccpool,micnpool)
+                call vmic_allocate(micparam,micinput,micoutput)
                 call vmic_parameter(veg,soil,casabiome,micparam,micinput,micfile)
                 call vmic_param_constant(veg,soil,micparam)
                 call vmic_init(micparam,micinput,miccpool,micnpool)
