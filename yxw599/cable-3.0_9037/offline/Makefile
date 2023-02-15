@@ -207,12 +207,12 @@ cable_read.o: cable_read.F90 cable_iovars.o cable_abort.o vmic_constant.o
 
 cable_initialise.o: cable_initialise.F90 cable_read.o cable_iovars.o cable_abort.o  cable_define_types.o vmic_constant.o vmic_variable.o
 
-cable_write.o: cable_write.F90 cable_iovars.o cable_abort.o cable_define_types.o casa_variable.o vmic_constant.o
+cable_write.o: cable_write.F90 cable_iovars.o cable_abort.o cable_define_types.o vmic_constant.o
 
 cable_metutils.o: cable_metutils.F90
 
 cable_input.o: cable_input.F90 POP.o cable_checks.o cable_abort.o cable_read.o cable_initialise.o cbl_sinbet.o \
-	       cable_parameters.o cable_common.o cable_LUC_EXPT.o POPLUC.o casa_inout.o cable_metutils.o vmic_constant.o vmic_inout.o
+	       cable_parameters.o cable_common.o cable_LUC_EXPT.o POPLUC.o casa_inout.o cable_metutils.o vmic_constant.o vmic_variable.o vmic_inout.o
 
 cable_output.o: cable_output.F90 cable_abort.o cable_checks.o cable_write.o cable_common.o vmic_constant.o vmic_variable.o
 
@@ -284,7 +284,7 @@ cable_site.o: cable_site.F90 cable_iovars.o cable_common.o
 landuse3.o: landuse3.F90 cable_define_types.o casa_dimension.o landuse_constant.o cable_common.o \
             cable_iovars.o casa_variable.o casa_phenology.o
 
-landuse_inout.o: landuse_inout.F90 cable_define_types.o landuse_constant.o landuse3.o cable_common.o cable_iovars.o cable_abort.o
+landuse_inout.o: landuse_inout.F90 cable_define_types.o landuse_constant.o landuse3.o cable_common.o cable_iovars.o cable_abort.o vmic_constant.o vmic_variable.o
 
 vmic_constant.o: vmic_constant.F90 cable_define_types.o casa_dimension.o cable_common.o casa_variable.o
 

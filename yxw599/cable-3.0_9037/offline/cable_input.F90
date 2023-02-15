@@ -56,7 +56,6 @@ MODULE cable_input_module
   USE cable_common_module, ONLY : filename, cable_user, CurYear, is_leapyear
   USE casa_ncdf_module, ONLY: HANDLE_ERR
   USE casa_inout_module, ONLY: casa_readbiome, casa_readphen, casa_init
-  USE vmic_variable_mod, ONLY: mic_cpool, mic_npool
 
   IMPLICIT NONE
 
@@ -2557,7 +2556,7 @@ CONTAINS
   !==============================================================================
 
   SUBROUTINE load_parameters(met,air,ssnow,veg,climate,bgc,soil,canopy,rough,rad,        &
-       miccpool,micnpool, &
+       micparam,micinput,micoutput,miccpool,micnpool, &
        sum_flux,bal,logn,vegparmnew,casabiome,casapool,    &
        casaflux,sum_casapool, sum_casaflux,casamet,casabal,phen,POP,spinup,EMSOIL, &
        TFRZ, LUC_EXPT, POPLUC)
@@ -2574,8 +2573,8 @@ CONTAINS
     USE POPLUC_module, ONLY: POPLUC_INIT
     USE CABLE_LUC_EXPT, ONLY: LUC_EXPT_TYPE
     USE vmic_constant_mod, ONLY: vmicrobe
-    USE vmic_variable_mod, ONLY: mic_cpool, mic_npool
-    USE vmic_inout_mod,    ONLY: vmic_allocate_pools
+    USE vmic_variable_mod
+    USE vmic_inout_mod,    ONLY: vmic_allocate
 
     IMPLICIT NONE
 
@@ -2590,6 +2589,9 @@ CONTAINS
     TYPE (canopy_type), INTENT(OUT)         :: canopy
     TYPE (roughness_type), INTENT(OUT)      :: rough
     TYPE (radiation_type),INTENT(OUT)       :: rad
+    TYPE(mic_parameter), INTENT(INOUT)      :: micparam
+    TYPE(mic_input), INTENT(INOUT)          :: micinput
+    TYPE(mic_output), INTENT(INOUT)         :: micoutput
     TYPE (mic_cpool), INTENT(INOUT)         :: miccpool
     TYPE (mic_npool), INTENT(INOUT)         :: micnpool
     TYPE (sum_flux_type), INTENT(OUT)       :: sum_flux
@@ -2648,7 +2650,7 @@ CONTAINS
          sum_flux,veg,mp)
     WRITE(logn,*) ' CABLE variables allocated with ', mp, ' patch(es).'
     if (vmicrobe>0) then
-       call vmic_allocate_pools(miccpool,micnpool)
+       call vmic_allocate(micparam,micinput,micoutput,miccpool,micnpool)
     endif
 
     IF (icycle > 0 .OR. CABLE_USER%CASA_DUMP_WRITE ) &

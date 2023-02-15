@@ -2528,7 +2528,7 @@ USE cbl_soil_snow_init_special_module
     USE cable_def_types_mod
     USE cable_IO_vars_module
     USE vmic_variable_mod
-    USE vmic_inout_mod, only : vmic_allocate, vmic_allocate_pools
+    USE vmic_inout_mod, only : vmic_allocate
 
     IMPLICIT NONE
 
@@ -2568,8 +2568,7 @@ USE cbl_soil_snow_init_special_module
 
     IF (.NOT. ALLOCATED (micparam%xav)) THEN
        WRITE (*,*) 'worker alloc micparam,micinput,miccpool,micnpool var with m patches: ',rank,mp
-       CALL vmic_allocate(micparam,micinput,micoutput)
-       CALL vmic_allocate_pools(miccpool,micnpool)
+       CALL vmic_allocate(micparam,micinput,micoutput,miccpool,micnpool)
     END IF
 
     ntyp = nmicparam
