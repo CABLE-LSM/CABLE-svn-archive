@@ -390,4 +390,141 @@ CONTAINS
   
   END SUBROUTINE vmic_driver
   
+  SUBROUTINE write_mic_output_nc ( miccpool, micnpool, micoutput, micfile, &
+       ctime, FINAL )
+
+    USE CASAVARIABLE
+    USE CABLE_COMMON_MODULE
+    USE casa_ncdf_module, ONLY: HANDLE_ERR
+    USE vmic_constant_mod, ONLY: mcpool
+    USE vmic_variable_mod, ONLY: mic_cpool, mic_npool, mic_output, micfile_type
+
+
+    USE cable_def_types_mod, ONLY: veg_parameter_type
+
+    USE netcdf
+
+    IMPLICIT NONE
+
+    TYPE(mic_cpool), INTENT(IN)      :: miccpool
+    TYPE(mic_npool), INTENT(IN)      :: micnpool
+    TYPE(mic_output), INTENT(IN)     :: micoutput
+    TYPE(micfile_type), INTENT(IN)   :: micfile
+
+    INTEGER   :: STATUS, ctime
+    INTEGER   :: mp_ID, soil_ID, miccarb_ID, t_ID, i
+    LOGICAL   :: FINAL
+    CHARACTER :: CYEAR*4, FNAME*99,dum*50
+    LOGICAL, SAVE :: CALL1 = .TRUE.
+
+    INTEGER, SAVE :: time_ID, rsoil_ID, nmic_ID, cmic_ID
+    INTEGER, SAVE :: FILE_ID, CNT = 0
+    LOGICAL   :: EXRST
+    CHARACTER(len=50) :: RecordDimName
+
+
+    CNT = CNT + 1
+
+    IF ( CALL1 ) THEN
+       ! Get File-Name
+
+       IF (LEN( TRIM(micfile%micoutput) ) .GT. 0) THEN
+          fname=TRIM(micfile%micoutput)
+       ELSE
+          fname = TRIM(filename%path)//'/'//TRIM(cable_user%RunIden)//'_mic_out.nc'
+       ENDIF
+       INQUIRE( FILE=TRIM( fname ), EXIST=EXRST )
+       EXRST = .FALSE.
+       IF ( EXRST ) THEN
+          STATUS = NF90_open(fname, mode=nf90_write, ncid=FILE_ID)
+          IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
+          CALL1 = .FALSE.
+
+          STATUS = nf90_inq_dimid(FILE_ID, 'time', t_ID)
+          IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
+
+          STATUS = nf90_inq_varid(FILE_ID, 'time', time_ID)
+          IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
+
+          STATUS = nf90_inq_varid(FILE_ID,'mic_rsoil' , rsoil_ID)
+          IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
+
+          STATUS = nf90_inq_varid(FILE_ID,'nmic_ID' , nmic_ID)
+          IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
+
+          STATUS = nf90_inq_varid(FILE_ID,'cmic_ID', cmic_ID)
+          IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
+
+       ELSE
+          ! Create NetCDF file:
+          STATUS = NF90_create(fname, NF90_CLOBBER, FILE_ID)
+          IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
+
+          ! Put the file in define mode:
+          STATUS = NF90_redef(FILE_ID)
+
+          STATUS = NF90_PUT_ATT( FILE_ID, NF90_GLOBAL, "Icycle"   , icycle  )
+          STATUS = NF90_PUT_ATT( FILE_ID, NF90_GLOBAL, "StartYear", CABLE_USER%YEARSTART )
+          STATUS = NF90_PUT_ATT( FILE_ID, NF90_GLOBAL, "EndYear"  , CABLE_USER%YEAREND   )
+          STATUS = NF90_PUT_ATT( FILE_ID, NF90_GLOBAL, "RunIden"  , CABLE_USER%RunIden   )
+
+          ! Define dimensions:
+          ! Land (number of points)
+          STATUS = NF90_def_dim(FILE_ID, 'mp'   , mp   , mp_ID)
+          IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
+          STATUS = NF90_def_dim(FILE_ID, 'soil'  , ms  , soil_ID)
+          IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
+          STATUS = NF90_def_dim(FILE_ID, 'mic_carbon_pools' , mcpool , miccarb_ID)
+          IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
+          STATUS = NF90_def_dim(FILE_ID, 'time'   , NF90_UNLIMITED, t_ID)
+          IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
+
+          ! Define variables
+          STATUS = NF90_def_var(FILE_ID,'time' ,NF90_INT,(/t_ID/),time_ID )
+          IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
+
+          STATUS = NF90_def_var(FILE_ID, 'mic_rsoil' ,NF90_FLOAT,(/mp_ID,soil_ID,t_ID/),rsoil_ID)
+          IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
+
+          STATUS = NF90_def_var(FILE_ID, 'mic_npool' ,NF90_FLOAT,(/mp_ID,soil_ID,t_ID/),nmic_ID)
+          IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
+
+          STATUS = NF90_def_var(FILE_ID, 'mic_cpool' ,NF90_FLOAT, &
+               (/mp_ID,soil_ID,miccarb_ID,t_ID/),cmic_ID)
+          IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
+
+          ! End define mode:
+          STATUS = NF90_enddef(FILE_ID)
+          IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
+
+          CALL1 = .FALSE.
+       ENDIF !( EXRST )
+    ENDIF
+
+    ! TIME  ( t )
+    STATUS = NF90_PUT_VAR(FILE_ID, time_ID, ctime, start=(/ CNT /) )
+    IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+
+       ! PUT 3D VARS ( mp, mplant, t )
+       STATUS = NF90_PUT_VAR(FILE_ID, rsoil_ID, REAL(micoutput%rsoil,4),   &
+            start=(/ 1,1,CNT /), count=(/ mp,ms,1 /) )
+       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+
+       STATUS = NF90_PUT_VAR(FILE_ID, nmic_ID, REAL(micnpool%mineralN,4),   &
+            start=(/ 1,1,CNT /), count=(/ mp,ms,1 /) )
+       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+
+       ! PUT 4D VARS ( mp, mlitter,mplant, t )
+       STATUS = NF90_PUT_VAR(FILE_ID, cmic_ID, REAL(miccpool%cpool,4),   &
+            start=(/ 1,1,1,CNT /), count=(/ mp,ms,mcpool,1 /) )
+       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+
+    IF ( FINAL ) THEN
+       ! Close NetCDF file:
+       STATUS = NF90_close(FILE_ID)
+       IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
+       WRITE(*,*) " Casa Output written to ",fname
+    ENDIF
+
+  END SUBROUTINE write_mic_output_nc
 END MODULE vmic_inout_mod

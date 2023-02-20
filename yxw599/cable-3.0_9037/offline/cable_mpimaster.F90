@@ -981,6 +981,10 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
                       CALL WRITE_CASA_OUTPUT_NC (veg, casamet, casapool, casabal, casaflux, &
                            CASAONLY, ctime, &
                            ( ktau.EQ.kend .AND. YYYY .EQ.cable_user%YearEnd ) )
+                      if (vmicrobe>0) then
+                         CALL write_mic_output_nc ( miccpool, micnpool, micoutput, micfile, ctime, &
+                              ( ktau.EQ.kend .AND. YYYY .EQ.cable_user%YearEnd ) )
+                      end if
                    ENDIF
                 ENDIF
 
@@ -1170,6 +1174,10 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
                 CALL WRITE_CASA_OUTPUT_NC (veg, casamet, casapool, casabal, casaflux, &
                      CASAONLY, ctime, ( ktau.EQ.kend .AND. YYYY .EQ.               &
                      cable_user%YearEnd ) )
+                if (vmicrobe>0) then
+                   CALL write_mic_output_nc (miccpool, micnpool, micoutput, micfile, ctime, &
+                        ( ktau.EQ.kend .AND. YYYY .EQ.cable_user%YearEnd ) )
+                end if
                 IF ( cable_user%CALL_POP ) THEN
 
                    ! CALL master_receive_pop(POP, ocomm)
