@@ -124,7 +124,7 @@ CONTAINS
     USE cable_def_types_mod
     USE cable_IO_vars_module, ONLY: logn,gswpfile,ncciy,leaps,                  &
          verbose, fixedCO2,output,check,patchout,    &
-         patch_type,soilparmnew,&
+         patch_type,                                 &      ! MMY@Feb2023 soilparmnew,                            
          defaultLAI, wlogn
     USE cable_common_module,  ONLY: ktau_gl, kend_gl, knode_gl, cable_user,     &
          cable_runtime, filename, myhome,            &
@@ -255,7 +255,7 @@ USE cbl_soil_snow_init_special_module
     NAMELIST/CABLE/                  &
          filename,         & ! TYPE, containing input filenames
          vegparmnew,       & ! use new soil param. method
-         soilparmnew,      & ! use new soil param. method
+         ! soilparmnew,      & ! use new soil param. method ! MMY@Feb2023
          calcsoilalbedo,   & ! switch: soil colour albedo - Ticket #27
          spinup,           & ! spinup model (soil) to steady state
          delsoilM,delsoilT,& !
@@ -363,8 +363,8 @@ USE cbl_soil_snow_init_special_module
          STOP 'casaCNP required to get prognostic LAI or Vcmax'
     IF( l_vcmaxFeedbk .AND. icycle < 2 )                                     &
          STOP 'icycle must be 2 to 3 to get prognostic Vcmax'
-    IF( icycle > 0 .AND. ( .NOT. soilparmnew ) )                             &
-         STOP 'casaCNP must use new soil parameters'
+   !  IF( icycle > 0 .AND. ( .NOT. soilparmnew ) )                             & ! MMY@Feb2023
+   !       STOP 'casaCNP must use new soil parameters' 
 
     ! Open log file:
     ! MPI: worker logs go to the black hole

@@ -316,8 +316,8 @@ MODULE cbl_soil_snow_subrs_module
    
              ! moisture diffusivity (D) is  wbh*pwb; hsbh includes b
              ! i.e. D(k-.5)/soil%zshh(k)
-             z3_k = pwb_wbh / soil%zshh (k)
-   
+             z3_k = pwb_wbh / soil%zshh(k)
+
              ! where dtt=dels/(soil%zse(k)*ssatcurr_k)
              at (:,k) = - dtt(:,k) * z3_k
              ct (:,k-1) = - dtt(:,k-1) * z3_k
@@ -2013,7 +2013,7 @@ MODULE cbl_soil_snow_subrs_module
    
        snowmlt = 0.0  
        
-       CALL snowcheck (dels, ssnow, soil, met ) >>>>
+       CALL snowcheck (dels, ssnow, soil, met )
    
        CALL snowdensity (dels, ssnow, soil)
    

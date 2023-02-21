@@ -1567,21 +1567,17 @@ MODULE cable_param_module
     REAL(r_2), DIMENSION(mp,ms) :: psi_tmp, sst_tmp ! MMY add sst_tmp
     REAL(r_2), DIMENSION(mp,ms) :: soil_depth ! MMY ,rhosoil_temp 
     REAL(r_2), DIMENSION(:,:), ALLOCATABLE :: ssat_bounded,rho_soil_bulk
- 
+
+   ! Construct derived parameters and zero initialisations,
+   ! regardless of where parameters and other initialisations
+   ! have loaded from:
+
     where(veg%iveg .eq. 17) soil%isoilm = 9   ! inserted line as per MMY code -- rk4417
  
     soil_depth(:,1) = soil%zse_vec(:,1)
     do klev=2,ms
        soil_depth(:,klev) = soil_depth(:,klev-1) + soil%zse_vec(:,klev)
     end do
- 
-    ! Construct derived parameters and zero initialisations,
-    ! regardless of where parameters and other initialisations
-    ! have loaded from:
-    soil%zshh(1)      = 0.5 * soil%zse(1) ! distance between consecutive layer
-    ! midpoints:
-    soil%zshh(ms + 1) = 0.5 * soil%zse(ms)
-    soil%zshh(2:ms)   = 0.5 * (soil%zse(1:ms-1) + soil%zse(2:ms))
  
     !MD aquifer node depth
     soil%GWz = 0.5*soil%GWdz + SUM(soil%zse)  !node is halfway through aquifer depth ! MMY note: GWz doesn't function, kept for later
@@ -1818,9 +1814,9 @@ MODULE cable_param_module
           do klev=1,ms
              do i=1,mp
                 soil%css_vec(i,klev)  = (1.-soil%org_vec(i,klev))*soil%css_vec(i,klev) +  &
-                                        real(soil%org_vec(i,klev)*gw_params%org%css_vec)
+                                        real(soil%org_vec(i,klev)*gw_params%org%css_organic)
                 soil%cnsd_vec(i,klev) = (1.-soil%org_vec(i,klev))*soil%cnsd_vec(i,klev) + &
-                                        soil%org_vec(i,klev)*gw_params%org%cnsd_vec
+                                        soil%org_vec(i,klev)*gw_params%org%cnsd_organic
              end do
           end do
        END IF
@@ -1983,7 +1979,7 @@ MODULE cable_param_module
         
         IF(ANY(soil%isoilm(landpt(i)%cstart:(landpt(i)%cstart + landpt(i)%nap   &
            - 1)) < 1 ) .OR. ANY(soil%isoilm(landpt(i)%cstart:(landpt(i)%cstart  &
-           + landpt(i)%nap - 1)) > mstype) .and. .not. soilparmnew) THEN
+           + landpt(i)%nap - 1)) > mstype) ) THEN ! MMY@Feb2023 .and. .not. soilparmnew
            WRITE(*,*) 'SUBROUTINE load_parameters: soil < 1 or > ',mstype
            DO j=landpt(i)%cstart,landpt(i)%cend
               IF (soil%isoilm(j) .lt. 1 .or. soil%isoilm(j) .gt. mstype) THEN
@@ -2711,7 +2707,7 @@ MODULE cable_param_module
    SUBROUTINE GWspatialParameters(logn,soil,ssnow)
      ! MMY this subrountine aims to set up GW-scheme parameters
      ! MMY change filename%gw_elev to filename%type and change ncid_elev to ncid
-     ! Read in spatially-specific groundwater parameters
+     ! Read in spatially-specific groundwater parameters from filename%type
  
      USE netcdf
      use cable_common_module, only : filename,cable_user,gw_params
@@ -2729,6 +2725,23 @@ MODULE cable_param_module
      REAL, ALLOCATABLE, DIMENSION(:,:,:,:) :: inGW4dtmp
      REAL, ALLOCATABLE, DIMENSION(:,:,:)   :: inGW3dtmp
      REAL, ALLOCATABLE, DIMENSION(:,:)     :: inGWtmp
+
+     ! _____________ MMY@Feb2023  ____________
+     ! MMY : add for hkrz
+     REAL(r_2), DIMENSION(mp,ms) :: soil_depth 
+     soil_depth(:,1) = soil%zse_vec(:,1)
+     do klev=2,ms
+        soil_depth(:,klev) = soil_depth(:,klev-1) + soil%zse_vec(:,klev)
+     end do
+
+     ! MMY : move from subroutine derived_parameters to here
+     !       since derived_parameters is now an option but compulsory 
+     soil%zshh(1)      = 0.5 * soil%zse(1) ! distance between consecutive layer
+     ! midpoints:
+     soil%zshh(ms + 1) = 0.5 * soil%zse(ms)
+     soil%zshh(2:ms)   = 0.5 * (soil%zse(1:ms-1) + soil%zse(2:ms))
+     ! ______________________________________
+
      !MD Aquifer properties
  
      !open type file ! MMY
@@ -2910,9 +2923,9 @@ MODULE cable_param_module
              insucs(landpt(e)%ilon, landpt(e)%ilat) ! MMY add GWsucs_vec here
           soil%GWbch_vec(landpt(e)%cstart:landpt(e)%cend)  = &
              inbch(landpt(e)%ilon, landpt(e)%ilat) ! MMY add GWbch_vec here
-          soil%org_vec(landpt(e)%cstart:landpt(e)%cend,klev) = 0.0 ! MMY standard CABLE gridinfo doesn't have organic
-          soil%watr(landpt(e)%cstart:landpt(e)%cend,klev)  = 0.0 ! MMY standard CABLE gridinfo doesn't have watr
-          
+          soil%org_vec(landpt(e)%cstart:landpt(e)%cend,:)  = 0.0 ! MMY standard CABLE gridinfo doesn't have organic
+          soil%watr(landpt(e)%cstart:landpt(e)%cend,:)     = 0.0 ! MMY standard CABLE gridinfo doesn't have watr          
+
           DO klev=1,ms
              !layered_in_soils(landpt(e)%cstart:landpt(e)%cend,klev,1) =&
              soil%sand_vec(landpt(e)%cstart:landpt(e)%cend,klev) = & 

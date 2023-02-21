@@ -2741,6 +2741,8 @@ MODULE cable_input_module
      USE POPmodule, ONLY: POP_INIT
      USE POPLUC_module, ONLY: POPLUC_INIT
      USE CABLE_LUC_EXPT, ONLY: LUC_EXPT_TYPE
+
+     USE cable_common_module,  ONLY: gw_params ! MMY@Feb2023 for using gw_params%derive_soil_param
  
      IMPLICIT NONE
  

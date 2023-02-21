@@ -69,8 +69,7 @@ MODULE cable_canopy_module
      USE cable_psm, ONLY: or_soil_evap_resistance,rtevap_max,&
           rt_Dff,update_or_soil_resis
  !$    USE cable_gw_hydro_module, ONLY : pore_space_relative_humidity ! replaced as per MMY -- rk4417
-     USE cable_gw_hydro_module, ONLY : pore_space_relative_humidity,&
-                                       den_rat,set_den_rat
+     USE cable_gw_hydro_module, ONLY : pore_space_relative_humidity,den_rat ! MMY@Feb2023 ,set_den_rat
      USE sli_main_mod, ONLY : sli_main
  
  
@@ -213,7 +212,7 @@ MODULE cable_canopy_module
      ENDIF
      
      IF (cable_user%gw_model) THEN                   ! inserted if block as per MMY -- rk4417 
-        IF (call_number .eq. 1) call set_den_rat()
+      !   IF (call_number .eq. 1) call set_den_rat()
         ssnow%wbliq(:,:) = ssnow%wb(:,:) - den_rat*ssnow%wbice(:,:)
      ELSE
         ssnow%wbliq(:,:) = ssnow%wb(:,:) - ssnow%wbice(:,:)
@@ -1860,11 +1859,11 @@ MODULE cable_canopy_module
      REAL :: xx,xxd                  ! MMY
      INTEGER :: i, j, k, kk  ! iteration count
      REAL :: vpd, g1 ! Ticket #56
- #define VanessasCanopy
- #ifdef VanessasCanopy
+#define VanessasCanopy
+#ifdef VanessasCanopy
      REAL, DIMENSION(mp,mf)  ::                                                  &
           xleuning    ! leuning stomatal coeff
- #endif
+#endif
  
  !$    REAL :: medlyn_lim  !INH 2018: should be a parameter in long-term  ! commented out as absent from MMY code -- rk4417
      ! END header

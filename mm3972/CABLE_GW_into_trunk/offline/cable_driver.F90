@@ -118,12 +118,12 @@ PROGRAM cable_offline_driver
  
    ! LUC_EXPT only
    USE CABLE_LUC_EXPT, ONLY: LUC_EXPT_TYPE, LUC_EXPT_INIT
- #ifdef NAG
+#ifdef NAG
    USE F90_UNIX
- #endif
+#endif
    USE casa_inout_module
    USE casa_cable
- USE cbl_soil_snow_init_special_module
+   USE cbl_soil_snow_init_special_module
    IMPLICIT NONE
  
    ! CABLE namelist: model configuration, runtime/user switches
