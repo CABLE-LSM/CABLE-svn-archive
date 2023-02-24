@@ -2833,7 +2833,17 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
     met%tvair = met%tk
     met%tvrad = met%tk
 
-    met%qv = met%qv*0.5 ! MMY@Nov2022 reduce air humidity to reduce VPD
+    ! __________________ MMY@Dec2022 _________________
+    !met%qv = met%qv*0.6 ! MMY@Nov2022 reduce air humidity to reduce VPD
+
+    WHERE (met%qv<ranges%Qair(1)) 
+       met%qv=ranges%Qair(1)
+    END WHERE
+
+    WHERE (met%qv>ranges%Qair(2)) 
+       met%qv=ranges%Qair(2)
+    END WHERE
+    ! ________________________________________________
 
    IF(check%ranges) THEN 
        ! Check ranges are okay:
