@@ -108,7 +108,7 @@ module cable_data_module
 
 !! vh_js !! smaller values
       real:: RAD_THRESH = 0.001
-      real:: LAI_THRESH = 0.001
+      real:: LAI_THRESH = 0.015 !0.001 ! MMY@Dec2022
    end type other_constants
 
    type photosynthetic_constants

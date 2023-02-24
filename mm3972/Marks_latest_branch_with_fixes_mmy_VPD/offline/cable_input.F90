@@ -2834,7 +2834,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
     met%tvrad = met%tk
 
     ! __________________ MMY@Dec2022 _________________
-    !met%qv = met%qv*0.6 ! MMY@Nov2022 reduce air humidity to reduce VPD
+    met%qv = met%qv*0.9 ! MMY@Nov2022 reduce air humidity to reduce VPD
 
     WHERE (met%qv<ranges%Qair(1)) 
        met%qv=ranges%Qair(1)
