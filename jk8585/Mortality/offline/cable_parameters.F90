@@ -1594,10 +1594,11 @@ CONTAINS
     END IF
 
     !! vh_js !!
-    IF(cable_user%CALL_POP) THEN
-       veg%disturbance_interval  = 100
-       veg%disturbance_intensity = 0.0_r_2
-    ENDIF
+    !! Now set in offline/cable_input.F90 before POP routine is called
+    !IF(cable_user%CALL_POP) THEN
+    !   veg%disturbance_interval  = 150
+    !   veg%disturbance_intensity = 0.0_r_2
+    !ENDIF
 
     ! GPP_components
     canopy%A_shC          = 0.0_r_2

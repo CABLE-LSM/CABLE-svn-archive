@@ -86,25 +86,26 @@ MODULE POP_Constants
   REAL(dp), PARAMETER :: DENSINDIV_MAX = 0.2_dp  ! 0.5 !  Maximum density of individuals within a cohort indiv/m2
   REAL(dp), PARAMETER :: DENSINDIV_MIN = 1.0e-9_dp !
   REAL(dp), PARAMETER :: Kbiometric = 50.0_dp ! Constant in height-diameter relationship
-  REAL(dp), PARAMETER :: WD = 300.0_dp ! Wood density kgC/m3
+  REAL(dp), PARAMETER :: WD = 340.0_dp ! Wood density kgC/m3
   ! threshold growth efficiency for enhanced mortality (higher value gives higher biomass turnover)
-  REAL(dp), PARAMETER :: GROWTH_EFFICIENCY_MIN = 0.009_dp ! 0.0095 ! 0.0089 ! 0.0084
+  REAL(dp), PARAMETER :: GROWTH_EFFICIENCY_MIN = 0.012_dp ! 0.0095 ! 0.0089 ! 0.0084
   REAL(dp), PARAMETER :: Pmort = 5.0_dp ! exponent in mortality formula
-  REAL(dp), PARAMETER :: MORT_MAX = 0.3_dp ! upper asymptote for enhanced mortality
+  REAL(dp), PARAMETER :: MORT_MAX = 0.2_dp ! upper asymptote for enhanced mortality
   REAL(dp), PARAMETER :: THETA_recruit = 0.95_dp ! shape parameter in recruitment equation
-  REAL(dp), PARAMETER :: CMASS_STEM_INIT = 1.0e-4_dp ! initial biomass kgC/m2
+  !REAL(dp), PARAMETER :: CMASS_STEM_INIT = 1.0e-4_dp ! initial biomass kgC/m2
+  REAL(dp), PARAMETER :: CMASS_STEM_INIT = 0.6_dp ! initial biomass kgC/m2
   REAL(dp), PARAMETER :: POWERbiomass = 0.67_dp ! exponent for biomass in proportion to which cohorts preempt resources
   REAL(dp), PARAMETER :: POWERGrowthEfficiency = 0.67_dp
   REAL(dp), PARAMETER :: CrowdingFactor = 0.043_dp ! 0.043 ! 0.039  !0.029 ! 0.033
   REAL(dp), PARAMETER :: ALPHA_CPC = 3.5_dp
   REAL(dp), PARAMETER :: k_allom1 = 200.0_dp ! crown area =  k_allom1 * diam ** k_rp
   REAL(dp), PARAMETER :: k_rp = 1.67_dp  ! constant in crown area relation to tree diameter
-  REAL(dp), PARAMETER :: ksapwood = 0.05_dp ! rate constant for conversion of sapwood to heartwood (y-1)
+  REAL(dp), PARAMETER :: ksapwood = 0.0667_dp ! rate constant for conversion of sapwood to heartwood (y-1)
   REAL(dp), PARAMETER :: Q=7.0_dp ! governs rate of increase of mortality with age (2=exponential)
   REAL,     PARAMETER :: rshootfrac = 0.63
   REAL(dp), PARAMETER :: shootfrac = real(rshootfrac,dp)
   REAL(dp), PARAMETER :: CtoNw = 400.0_dp
-  REAL(dp), PARAMETER ::  CtoNl = 60.0_dp
+  REAL(dp), PARAMETER :: CtoNl = 60.0_dp
   REAL(dp), PARAMETER :: CtoNr = 70.0_dp
   REAL(dp), PARAMETER :: N_EXTENT = 2.0_dp ! multiple of crown diameters within which tree competes with other cohorts
   REAL(dp), PARAMETER :: EPS = 1.0e-12_dp
@@ -118,19 +119,20 @@ MODULE POP_Constants
   INTEGER(i4b), PARAMETER :: NPATCH = PATCH_REPS1*PATCH_REPS2
   INTEGER(i4b), PARAMETER :: NPATCH1D = NPATCH
   INTEGER(i4b), PARAMETER :: NPATCH2D = NPATCH
-  INTEGER(i4b), PARAMETER ::  HEIGHT_BINS = 12 ! number of height categories to keep track of for diagnostics
+  !INTEGER(i4b), PARAMETER ::  HEIGHT_BINS = 12 ! number of height categories to keep track of for diagnostics
+  INTEGER(i4b), PARAMETER ::  DIAM_BINS = 16 ! number of height categories to keep track of for diagnostics
   REAL(dp), PARAMETER :: BIN_POWER = 1.4_dp ! bins have muscles
   ! Time base factor (to be multiplied by mean dist interval to give TIMEBASE)
   ! for sampling disturbance probabilities from Poisson distribution
   INTEGER(i4b), PARAMETER :: TIMEBASE_FACTOR=50
   REAL(dp), PARAMETER :: PI=3.14159265358979323846264_dp
   ! 0 == default; 1 = top-end allometry (requires precip as input to POPSTEP); 2 = Allometry following Williams 2005, Model 5b
-  INTEGER(i4b), PARAMETER :: ALLOM_SWITCH = 2
+  INTEGER(i4b), PARAMETER :: ALLOM_SWITCH = 0
   ! 0 == binnned max height variable; 1 = continuous (needs lots of memory); 2 = binned by integer heights
   INTEGER(i4b), PARAMETER :: MAX_HEIGHT_SWITCH = 2
-  INTEGER(i4b), PARAMETER :: RESOURCE_SWITCH = 1 ! 0 = default; 1  fraction net resource uptake
+  INTEGER(i4b), PARAMETER :: RESOURCE_SWITCH = 0 ! 0 = default; 1  fraction net resource uptake
   INTEGER(i4b), PARAMETER :: RECRUIT_SWITCH = 1 ! 0 = default, 1 = Pgap-dependence
-  INTEGER(i4b), PARAMETER :: INTERP_SWITCH = 1 ! 0 = sum over weighted patches, 1 = sum over interpolated patches
+  INTEGER(i4b), PARAMETER :: INTERP_SWITCH = 0 ! 0 = sum over weighted patches, 1 = sum over interpolated patches
   INTEGER(i4b), PARAMETER :: SMOOTH_SWITCH = 0 ! smooth disturbance flux
   INTEGER(i4b), PARAMETER :: NYEAR_WINDOW  = 5                  ! one-side of smoothing window (y)
   INTEGER(i4b), PARAMETER :: NYEAR_SMOOTH  = 2*NYEAR_WINDOW + 1 ! smoothing window (y)
@@ -146,7 +148,7 @@ END MODULE POP_Constants
 MODULE POP_Types
 
   USE TYPEdef, ONLY: dp, i4b
-  USE POP_Constants, ONLY: NCOHORT_MAX, NLAYER, HEIGHT_BINS, NDISTURB, NPATCH, NPATCH2D, &
+  USE POP_Constants, ONLY: NCOHORT_MAX, NLAYER, DIAM_BINS, NDISTURB, NPATCH, NPATCH2D, &
        NYEAR_HISTORY, AGEMAX
 
   IMPLICIT NONE
@@ -231,11 +233,11 @@ MODULE POP_Types
      REAL(dp), DIMENSION(NLAYER) :: density ! landscape tree density (weighted mean over patches)
      REAL(dp), DIMENSION(NLAYER) :: hmean ! landscape mean treen height (weighted mean over patches)
      REAL(dp), DIMENSION(NLAYER) :: hmax  ! landscape max tree height
-     REAL(dp), DIMENSION(HEIGHT_BINS) :: cmass_stem_bin ! biomass by height bin
-     REAL(dp), DIMENSION(HEIGHT_BINS) :: densindiv_bin ! density by height bin
-     REAL(dp), DIMENSION(HEIGHT_BINS) :: height_bin ! mean height in each bin
-     REAL(dp), DIMENSION(HEIGHT_BINS) :: diameter_bin ! mean diameter in each bin
-     CHARACTER(100), DIMENSION(HEIGHT_BINS) :: bin_labels ! text strings for bin bounds
+     REAL(dp), DIMENSION(DIAM_BINS) :: cmass_stem_bin ! biomass by height bin
+     REAL(dp), DIMENSION(DIAM_BINS) :: densindiv_bin ! density by height bin
+     REAL(dp), DIMENSION(DIAM_BINS) :: height_bin ! mean height in each bin
+     REAL(dp), DIMENSION(DIAM_BINS) :: diameter_bin ! mean diameter in each bin
+     CHARACTER(100), DIMENSION(DIAM_BINS) :: bin_labels ! text strings for bin bounds
      REAL(dp) :: cmass_sum ! landscape biomass
      REAL(dp) :: cmass_sum_old ! landscape biomass
      REAL(dp) :: cheartwood_sum ! landscape biomass (heart wood)
@@ -292,6 +294,8 @@ MODULE POPModule
   USE TYPEdef, ONLY: sp, i4b
   USE POP_Types
   USE POP_Constants
+  USE cable_common_module, only: cable_user ! a few flags/settings added specifically for Mortality-MIP
+  ! they would be better kept in wrapper routine, but OK for experimental branch like this.
 
   IMPLICIT NONE
 
@@ -592,8 +596,10 @@ CONTAINS
        ELSE   ! NPATCH =1 (single patch mode)
           k = 1
           DO idist=1,NDISTURB
+             !write(81,*) "idist:", idist
+             !write(81,*) "mean_disturbance_interval(g,:):", mean_disturbance_interval(g,:)
              POP%pop_grid(g)%patch(k)%disturbance_interval(idist) = mean_disturbance_interval(g,idist)
-             POP%pop_grid(g)%patch(k)%first_disturbance_year(idist) = 113
+             POP%pop_grid(g)%patch(k)%first_disturbance_year(idist) = 0
              POP%pop_grid(g)%patch(k)%age = 0
              POP%pop_grid(g)%patch(k)%id = k
           ENDDO
@@ -625,7 +631,7 @@ CONTAINS
     REAL(dp), INTENT(IN), OPTIONAL :: frac_intensity1(:), precip(:)
     REAL(dp), INTENT(IN), OPTIONAL :: StemNPP_pot(:)
 
-    INTEGER(i4b) :: idisturb,np,g
+    INTEGER(i4b) :: idisturb,np,g,counter
     INTEGER(i4b), allocatable :: it(:)
 
     !INTEGER, INTENT(IN) :: wlogn
@@ -642,6 +648,8 @@ CONTAINS
     ! ENDDO
 
     ! CALL GetPatchFrequencies(POP)
+    !StemNPP = max(StemNPP,0.05_dp)
+    write(80,*) "StemNPP:", StemNPP
 
     !call flush(wlogn)
     IF (PRESENT(precip)) THEN
@@ -664,6 +672,10 @@ CONTAINS
           CALL Patch_partial_disturb2(POP,1)
        ELSE
           CALL Patch_disturb(POP,1)
+          IF (cable_user%stand_replacement) THEN
+             CALL InitPOP2D_Poisson(POP, INT(disturbance_interval,i4b))
+             cable_user%stand_replacement=.FALSE.
+          ENDIF
           ! CALL Patch_partial_disturb2(POP,it)
        ENDIF
     ELSEIF (NDISTURB.EQ.2) THEN
@@ -1368,7 +1380,7 @@ CONTAINS
     REAL(dp), INTENT(IN), OPTIONAL :: precip(:)
     INTEGER(i4b), INTENT(IN) :: it(:)
     INTEGER(i4b) :: P, g,i,j,ct, ct_highres
-    REAL(dp) :: limits(HEIGHT_BINS+1)
+    REAL(dp) :: limits(DIAM_BINS+1)
     REAL(dp) :: ht, cmass_stem,densindiv, freq, freq_old
     CHARACTER(len=12) :: string1, string2
     CHARACTER(len=9) :: fmt
@@ -1378,15 +1390,18 @@ CONTAINS
     REAL(dp) :: patch_crown_area(NPATCH2D), patch_crown_cover(NPATCH2D)
     REAL(dp), ALLOCATABLE :: height_list(:), height_list_weight(:)
     REAL(dp) :: height_copy, weight_copy, Pwc, FAVD
-    INTEGER(i4b), PARAMETER :: HEIGHT_BINS_highres=100 ! bins for assessing height_max
+    INTEGER(i4b), PARAMETER :: DIAM_BINS_highres=100 ! bins for assessing height_max
     REAL(dp), ALLOCATABLE :: limits_highres(:), DENSINDIV_HIGHRES(:)
     REAL(dp) :: tmp2
     integer :: arg1
 
     fmt = '(f5.1)'
-    limits(1) = 0.0_dp
-    IF(.NOT.ALLOCATED(limits_highres)) ALLOCATE(limits_highres(HEIGHT_BINS_highres+1))
-    IF(.NOT.ALLOCATED(DENSINDIV_HIGHRES)) ALLOCATE(DENSINDIV_HIGHRES(HEIGHT_BINS_highres))
+    !limits(1) = 0.0_dp
+    limits(:) = (/0.0_dp,0.01_dp,0.05_dp,0.1_dp,0.15_dp,0.2_dp,0.3_dp,0.4_dp,0.5_dp,0.6_dp,0.7_dp,0.8_dp, &
+                  0.9_dp,1.0_dp,1.5_dp,2.0_dp,2.5_dp/)
+    
+    IF(.NOT.ALLOCATED(limits_highres)) ALLOCATE(limits_highres(DIAM_BINS_highres+1))
+    IF(.NOT.ALLOCATED(DENSINDIV_HIGHRES)) ALLOCATE(DENSINDIV_HIGHRES(DIAM_BINS_highres))
 
     limits_highres(1) = 0.0_dp
     np = SIZE(Pop%pop_grid)
@@ -1399,20 +1414,22 @@ CONTAINS
        ENDIF
        !  IF(.NOT.ALLOCATED(MASK)) ALLOCATE(MASK(POP%pop_grid%npatch_active))
 
-       DO i=1,HEIGHT_BINS
-          limits(i+1) = BIN_POWER**REAL(i,dp)
+       DO i=1,DIAM_BINS
+          !limits(i+1) = BIN_POWER**REAL(i,dp)
           WRITE(string1,fmt) (limits(i))
           WRITE(string2,fmt) (limits(i+1))
-          pop%pop_grid(g)%bin_labels(i) = 'Height_'//TRIM(ADJUSTL(string1))//'-'//TRIM(ADJUSTL(string2))//'m'
+          pop%pop_grid(g)%bin_labels(i) = 'Diameter_'//TRIM(ADJUSTL(string1))//'-'//TRIM(ADJUSTL(string2))//'m'
           pop%pop_grid(g)%cmass_stem_bin(i) = 0.0_dp
           pop%pop_grid(g)%densindiv_bin(i) = 0.0_dp
           pop%pop_grid(g)%cmass_stem_bin(i) = 0.0_dp
-          pop%pop_grid(g)%height_bin(i) = REAL(limits(i)+limits(i+1),dp)/2.0_dp
-          pop%pop_grid(g)%diameter_bin(i) = ( (REAL(limits(i),dp)/Kbiometric)**(3.0_dp/2.0_dp) + &
-               (REAL(limits(i+1),dp)/Kbiometric)**(3.0_dp/2.0_dp) ) / 2.0_dp
+          !pop%pop_grid(g)%height_bin(i) = REAL(limits(i)+limits(i+1),dp)/2.0_dp
+          pop%pop_grid(g)%diameter_bin(i) = REAL(limits(i+1),dp)
+          !pop%pop_grid(g)%diameter_bin(i) = ( (REAL(limits(i),dp)/Kbiometric)**(3.0_dp/2.0_dp) + &
+          !     (REAL(limits(i+1),dp)/Kbiometric)**(3.0_dp/2.0_dp) ) / 2.0_dp
+          pop%pop_grid(g)%height_bin(i) = pop%pop_grid(g)%diameter_bin(i) ! TODO_JK: determine height_bins
        ENDDO
 
-       DO i=1,HEIGHT_BINS_highres
+       DO i=1,DIAM_BINS_highres
           limits_highres(i+1) = REAL(i,dp)
        ENDDO
 
@@ -1486,14 +1503,14 @@ CONTAINS
 
              ! get bin
              ct = 1
-             DO j=1,HEIGHT_BINS
-                IF (ht.GT.limits(j)) ct = j
+             DO j=1,DIAM_BINS
+                IF (diam .GT. limits(j)) ct = j
              ENDDO ! bins
 
              ! get high res bin
              ct_highres = 1
-             DO j=1,HEIGHT_BINS_highres
-                IF (ht.GT.limits_highres(j)) ct_highres = j
+             DO j=1,DIAM_BINS_highres
+                IF (diam .GT. limits_highres(j)) ct_highres = j
              ENDDO ! bins
 
              pop%pop_grid(g)%patch(p)%layer(1)%biomass = pop%pop_grid(g)%patch(p)%layer(1)%biomass + cmass_stem
@@ -1756,7 +1773,7 @@ CONTAINS
           cump = 0.0_dp
           j = 1
           densindiv_highres= densindiv_highres/max(SUM(densindiv_highres),1.0e-5_dp)
-          DO WHILE ((cump.LT.0.95_dp).AND.(j.LE.HEIGHT_BINS_highres))
+          DO WHILE ((cump.LT.0.95_dp).AND.(j.LE.DIAM_BINS_highres))
              cump = cump + densindiv_highres(j)
              pop%pop_grid(g)%height_max = (limits_highres(j+1) + limits_highres(j))/2.0_dp
              j = j+1
@@ -1798,6 +1815,7 @@ CONTAINS
                (pop%pop_grid(j)%patch(k)%first_disturbance_year(idisturb).EQ.pop%pop_grid(j)%patch(k)%age(idisturb))).OR. &
                (pop%pop_grid(j)%patch(k)%disturbance_interval(idisturb).EQ.pop%pop_grid(j)%patch(k)%age(idisturb))) THEN
 
+             !write(86,*) "Partial disturbance happened!"
 
              ! loop through cohorts
              ivec = 0
@@ -1854,6 +1872,7 @@ CONTAINS
                      Psurvival*pop%pop_grid(j)%patch(k)%layer(1)%cohort(c)%heartwood
                 pop%pop_grid(j)%patch(k)%layer(1)%cohort(c)%density = &
                      Psurvival*pop%pop_grid(j)%patch(k)%layer(1)%cohort(c)%density
+
                 IF (pop%pop_grid(j)%patch(k)%Layer(1)%cohort(c)%density.LT.DENSINDIV_MIN) THEN
                    ! remove cohort
                    pop%pop_grid(j)%patch(k)%fire_mortality = pop%pop_grid(j)%patch(k)%fire_mortality + &
@@ -2024,11 +2043,29 @@ CONTAINS
 
     DO j=1,np
        DO k=1,NPATCH2D
+
+          !! JK: Simulate a stand replacement for the whole grid cell. Actually for all patches in all grid cells.
+          !! This is not a permanent change to the code but a temporary development specific to the Mortality MIP 2022.
+          !! Changes are NOT to be merged into other branches!
+          IF (cable_user%stand_replacement) THEN
+             pop%pop_grid(j)%patch(k)%age(1) = pop%pop_grid(j)%patch(k)%disturbance_interval(1)
+                write(82,*) "j:", j
+                write(82,*) "k:", k
+             !IF (j == np .AND. k == NPATCH2D) THEN
+             !   cable_user%stand_replacement = .FALSE.
+             !   write(82,*) "Turned off cable_user%stand_replacement"
+             !ENDIF
+          ENDIF
+          
+          
           pop%pop_grid(j)%patch(k)%cat_mortality = 0.0_dp
           IF (pop%pop_grid(j)%patch(k)%first_disturbance_year(idisturb).NE.0) THEN
              IF ((pop%pop_grid(j)%patch(k)%first_disturbance_year(idisturb).EQ.pop%pop_grid(j)%patch(k)%age(idisturb)).or. &
                   (pop%pop_grid(j)%patch(k)%disturbance_interval(idisturb).EQ.pop%pop_grid(j)%patch(k)%age(idisturb)) ) THEN
-                ! kill entire layer
+
+                ! kill entire patch
+                write(82,*) "Regular Disturbance happened"
+                write(83,*) "disturbance_interval:", pop%pop_grid(j)%patch(k)%disturbance_interval(1)
                 nc = pop%pop_grid(j)%patch(k)%layer(1)%ncohort
 
                 ! pop%pop_grid(j)%patch(k)%fire_mortality = SUM(pop%pop_grid(j)%patch(k)%layer(1)%cohort(1:nc)%biomass)
@@ -2066,12 +2103,15 @@ CONTAINS
                 IF (PRESENT(precip)) THEN
                    CALL layer_recruitment_single_patch(pop,k,j,precip)
                 ELSE
+                   !write(82,*) " layer_recruitment_single_patch called after disturbance (first)"
                    CALL layer_recruitment_single_patch(pop,k,j)
 
                 ENDIF
              ENDIF
           ELSEIF (pop%pop_grid(j)%patch(k)%disturbance_interval(idisturb).EQ.pop%pop_grid(j)%patch(k)%age(idisturb)) THEN
              ! kill entire layer
+             !write(82,*) "k:", k
+             !write(82,*) "catastrophic disturbance happened (second)"
              nc = pop%pop_grid(j)%patch(k)%layer(1)%ncohort
              pop%pop_grid(j)%patch(k)%sapwood_loss =  pop%pop_grid(j)%patch(k)%sapwood_loss + &
                   SUM(pop%pop_grid(j)%patch(k)%layer(1)%cohort(1:nc)%sapwood)
@@ -2107,6 +2147,7 @@ CONTAINS
              IF (PRESENT(precip)) THEN
                 CALL layer_recruitment_single_patch(pop,k,j,precip)
              ELSE
+                !write(82,*) " layer_recruitment_single_patch called after catastrophic disturbance (second)"
                 CALL layer_recruitment_single_patch(pop,k,j)
 
              ENDIF
@@ -2193,20 +2234,26 @@ CONTAINS
     INTEGER(i4b) :: j, k, ncohort, np
     REAL(dp) :: diam,basal
 
+
     np = SIZE(Pop%pop_grid)
     DO j=grid_index,grid_index
        DO k=index,index
           IF (RECRUIT_SWITCH==0) THEN
              pop%pop_grid(j)%patch(k)%factor_recruit = EXP(-0.6_dp*((pop%pop_grid(j)%patch(k)%Layer(1)%biomass)**(0.6667_dp)))
           ELSEIF (RECRUIT_SWITCH==1) THEN
-             !pop%pop_grid(j)%patch(k)%factor_recruit = pop%pop_grid(j)%patch(k)%pgap
-             pop%pop_grid(j)%patch(k)%factor_recruit = 1
+             pop%pop_grid(j)%patch(k)%factor_recruit = pop%pop_grid(j)%patch(k)%pgap
+             !pop%pop_grid(j)%patch(k)%factor_recruit = 1
           ENDIF
           f = pop%pop_grid(j)%patch(k)%factor_recruit
           mu=EXP(FULTON_ALPHA*(1.0_dp-2.0_dp*THETA_recruit/(f+1.0_dp-SQRT((f+1.0_dp)*(f+1.0_dp)-4.0_dp*THETA_recruit*f))))
           densindiv=DENSINDIV_MAX*mu
           cmass=CMASS_STEM_INIT*densindiv/DENSINDIV_MAX
 
+          !write(84,*) "pop%pop_grid(j)%patch(k)%factor_recruit:", f
+          !write(84,*) "mu:", mu
+          !write(84,*) "densindiv:", densindiv
+          !write(84,*) "cmass:", cmass
+          
           IF (cmass>EPS*10.0_dp .AND. densindiv>DENSINDIV_MIN .AND. &
                (pop%pop_grid(j)%patch(k)%Layer(1)%ncohort+1).LT.NCOHORT_MAX) THEN
              ! create a new cohort
@@ -3644,6 +3691,7 @@ END SUBROUTINE Allometry
     basal  = PI * (0.5_dp * dbh)**2 * density
     ! Compute Height using cylindrical approach
     height = agBiomass / ( WD * basal )
+    !height   = (Kbiometric**(3.0_dp/4.0_dp))*(4.0_dp*agbiomass/(max(density,1.0e-5_dp)*WD*PI))**(1.0_dp/4.0_dp) ! from ALLOM_SWITCH=0
     ! Basal Area [m^2/m^2]->[m^2/ha]
     basal  = basal * 1.0e4_dp
 
@@ -3668,7 +3716,7 @@ END SUBROUTINE Allometry
 
     INTEGER(i4b) :: j, k
 
-    CALL alloc_POP(pop, int(np))
+    CALL alloc_POP(pop,int(np))
     POP%np     = np
     POP%Iwood  = Iwood
     POP%it_pop = 0
@@ -3677,10 +3725,10 @@ END SUBROUTINE Allometry
 
     CALL ZeroPOP(pop)
 
-    CALL InitPOP2D_Poisson(pop, int(disturbance_interval, i4b))
+    CALL InitPOP2D_Poisson(pop, INT(disturbance_interval,i4b))
 
-    DO j=1, np
-       DO k=1, NPATCH2D
+    DO j=1,np
+       DO k=1,NPATCH2D
           ! understorey recruitment
           IF (PRESENT(precip)) THEN
              CALL layer_recruitment_single_patch(pop, k, j, precip)

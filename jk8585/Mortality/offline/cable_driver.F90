@@ -842,6 +842,15 @@ PROGRAM cable_offline_driver
               else if (trim(cable_user%MetType) == 'cru') then
                  if ((.not. CASAONLY) .or. (CASAONLY .and. CALL1)) then
                     call CRU_GET_SUBDIURNAL_MET(CRU, met, YYYY, ktau, kend)
+                    ! Mortality-MIP only: Trigger stand replacing disturbance event in year 1590.
+                    if (((.not. cable_user%CASA_DUMP_READ) .and. (.not. cable_user%CASA_DUMP_WRITE)) &  ! not in spinup
+                         .and. (trim(CRU%run) == "Mortality_MIP_ambient" .or. trim(CRU%run) == "Mortality_MIP_elevated")) then
+                        if (YYYY .eq. 1590) then
+                           cable_user%stand_replacement = .TRUE.
+                        else
+                           cable_user%stand_replacement = .FALSE.
+                        end if
+                     end if 
                  end if
               else
                  if (trim(cable_user%MetType) == 'site') &

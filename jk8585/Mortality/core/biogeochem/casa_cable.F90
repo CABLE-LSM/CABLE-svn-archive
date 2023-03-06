@@ -209,7 +209,7 @@ contains
                 casabal%Crootmean = casapool%cplant(:,3) / real(LOY,r_2) / 1000.0_r_2
              ELSE
                 casaflux%stemnpp  = casaflux%stemnpp + casaflux%cnpp * casaflux%fracCalloc(:,2) * 0.7_r_2
-                casaflux%potstemnpp = casaflux%potstemnpp + (casaflux%cnpp * casaflux%fracCalloc(:,2) * 0.7_dp + &
+                casaflux%potstemnpp = casaflux%potstemnpp + (casaflux%cnpp * casaflux%fracCalloc(:,2) * 0.7_r_2 + &
                                                              casaflux%fracClabile * casaflux%cgpp)
                 casabal%LAImax    = max(casamet%glai, casabal%LAImax)
                 casabal%Cleafmean = casabal%Cleafmean + casapool%cplant(:,1) / real(LOY,r_2) / 1000.0_r_2
@@ -279,9 +279,13 @@ contains
        Cleafmean = casabal%cleafmean
        Crootmean = casabal%Crootmean
 
-       CALL POPStep(pop, max(StemNPP(Iw,:)/1000.0_dp, 0.0001_dp), int(veg%disturbance_interval(Iw,:), i4b), &
-                    real(veg%disturbance_intensity(Iw,:), dp), &
-                    max(LAImax(Iw), 0.001_dp), Cleafmean(Iw), Crootmean(Iw), NPPtoGPP(Iw), max(PotStemNPP(Iw)/1000.0_dp, 0.0001_dp))
+       ! 0.0001 was replaced to ensure biomass can build up after full disturbance (whole grid cell)
+       CALL POPStep(pop, max(StemNPP(Iw,:)/1000.0_dp, 0.02_dp), int(veg%disturbance_interval(Iw,:), i4b), &
+            real(veg%disturbance_intensity(Iw,:),dp), &
+            max(LAImax(Iw), 0.001_dp), Cleafmean(Iw), Crootmean(Iw), NPPtoGPP(Iw), max(PotStemNPP(Iw)/1000.0_dp, 0.02_dp))
+       !CALL POPStep(pop, max(StemNPP(Iw,:)/1000.0_dp, 0.0001_dp), int(veg%disturbance_interval(Iw,:), i4b), &
+       !     real(veg%disturbance_intensity(Iw,:),dp), &
+       !     max(LAImax(Iw), 0.001_dp), Cleafmean(Iw), Crootmean(Iw), NPPtoGPP(Iw))
     endif ! CALL_POP
 
   END SUBROUTINE POPdriver

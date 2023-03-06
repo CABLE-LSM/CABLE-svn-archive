@@ -178,8 +178,8 @@ contains
 
     ! diffuse fraction not available for all Metversions
     if ((CRU%ReadDiffFrac == .true.) .and. (trim(CRU%MetVersion) /= "CRUJRA_2021" .or. trim(CRU%MetVersion) /= "CRUJRA_2022")) then
-       write(*,'(a)') "Diffuse Fraction only available for CRUJRA_2021 and CRUJRA2022!"
-       write(logn,*)  "Diffuse Fraction only available for CRUJRA_2021 and CRUJRA2022!"
+       write(*,'(a)') "Diffuse Fraction only available for CRUJRA_2021 and CRUJRA_2022!"
+       write(logn,*)  "Diffuse Fraction only available for CRUJRA_2021 and CRUJRA_2022!"
     endif
 
     ! Assign Forcing and CO2 labels based only on the value of CRU%Run
@@ -462,12 +462,15 @@ contains
        cruver="crujra.v2.1"
     case("CRUJRA_2021")
        cruver="crujra.v2.2"
+       write(*,*) "cruver1:", cruver
     case("CRUJRA_2022")
        cruver="crujra.v2.3"
     case("VERIFY_2021")
        cruver="cru_verify"
     case("Drought_Heat")
        cruver=fn(scan(fn,"/",.true.)+1:) ! scenario
+    case default
+       write(*,*) "Invalid option for CRU%MetVersion:", trim(CRU%MetVersion)
     end select
 
     ! Build the rest of the filename according to the value of par, which references 11 possible
@@ -518,34 +521,34 @@ contains
     else
        select case(par)
        case(rain)
-          fn = trim(fn)//"/pre/"//trim(cruver)//".5d.pre."//cy//".365d.noc.daytot.nc"
+          fn = trim(fn)//"/"//trim(cruver)//".5d.pre."//cy//".365d.noc_daytot.nc"
        case(lwdn)
-          fn = trim(fn)//"/dlwrf/"//trim(cruver)//".5d.dlwrf."//cy//".365d.noc.daymean.nc"
+          fn = trim(fn)//"/"//trim(cruver)//".5d.dlwrf."//cy//".365d.noc_daymean.nc"
        case(swdn)
           if (trim(CRU%MetVersion) == "CRUJRA_2021") then
-             fn = trim(fn)//"/tswrf/tswrf_v10_"//cy//".daymean.nc"
+             fn = trim(fn)//"/tswrf_v10_"//cy//"_daymean.nc"
           else if (trim(CRU%MetVersion) == "CRUJRA_2022") then
-             fn = trim(fn)//"/tswrf/tswrf_v11_"//cy//".daymean.nc"
+             fn = trim(fn)//"/tswrf_v11_"//cy//"_daymean.nc"
           else
-             fn = trim(fn)//"/dswrf/"//trim(cruver)//".5d.dswrf."//cy//".365d.noc.daymean.nc"
+             fn = trim(fn)//"/"//trim(cruver)//".5d.dswrf."//cy//".365d.noc_daymean.nc"
           endif
        case(pres)
-          fn = trim(fn)//"/pres/"//trim(cruver)//".5d.pres."//cy//".365d.noc.daymean.nc"
+          fn = trim(fn)//"/"//trim(cruver)//".5d.pres."//cy//".365d.noc_daymean.nc"
        case(qair)
-          fn = trim(fn)//"/spfh/"//trim(cruver)//".5d.spfh."//cy//".365d.noc.daymean.nc"
+          fn = trim(fn)//"/"//trim(cruver)//".5d.spfh."//cy//".365d.noc_daymean.nc"
        case(tmax, PrevTmax)
-          fn = trim(fn)//"/tmax/"//trim(cruver)//".5d.tmax."//cy//".365d.noc.daymax.nc"
+          fn = trim(fn)//"/"//trim(cruver)//".5d.tmax."//cy//".365d.noc_daymax.nc"
        case(tmin, NextTmin)
-          fn = trim(fn)//"/tmin/"//trim(cruver)//".5d.tmin."//cy//".365d.noc.daymin.nc"
+          fn = trim(fn)//"/"//trim(cruver)//".5d.tmin."//cy//".365d.noc_daymin.nc"
        case(uwind)
-          fn = trim(fn)//"/ugrd/"//trim(cruver)//".5d.ugrd."//cy//".365d.noc.daymean.nc"
+          fn = trim(fn)//"/"//trim(cruver)//".5d.ugrd."//cy//".365d.noc_daymean.nc"
        case(vwind)
-          fn = trim(fn)//"/vgrd/"//trim(cruver)//".5d.vgrd."//cy//".365d.noc.daymean.nc"
+          fn = trim(fn)//"/"//trim(cruver)//".5d.vgrd."//cy//".365d.noc_daymean.nc"
        case(fdiff)
           if (trim(CRU%MetVersion) == "CRUJRA_2021") then
-            fn = trim(fn)//"/fd/fd_v10_"//cy//".daymean.nc"
+            fn = trim(fn)//"/fd_v10_"//cy//"_daymean.nc"
           else if (trim(CRU%MetVersion) == "CRUJRA_2022") then
-            fn = trim(fn)//"/fd/fd_v11_"//cy//".daymean.nc"
+            fn = trim(fn)//"/fd_v11_"//cy//"_daymean.nc"
           endif
        end select
     endif

@@ -174,7 +174,7 @@ casa_inout.o: casa_inout.F90 POP.o cable_define_types.o cable_iovars.o casa_vari
 
 cable_common.o: cable_common.F90 cable_define_types.o cable_iovars.o
 
-POP.o: POP.F90 cable_define_types.o mo_utils.o
+POP.o: POP.F90 cable_define_types.o mo_utils.o cable_common.o
 
 POPLUC.o: POPLUC.F90 cable_define_types.o cable_iovars.o casa_variable.o cable_common.o cable_LUC_EXPT.o
 

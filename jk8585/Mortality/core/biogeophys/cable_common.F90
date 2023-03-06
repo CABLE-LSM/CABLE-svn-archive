@@ -108,6 +108,10 @@ MODULE cable_common_module
      CHARACTER(LEN=200) :: gm_LUT_file = ''           ! LUT file used if explicit_gm = .true.
      ! Options: Bernacchi_2002 or Walker_2013. Only used if explicit_gm = .true.
      CHARACTER(LEN=50)  :: Rubisco_parameters = ''    ! Rubisco kinetic parameters
+     ! Options specific for Mortality-MIP
+     CHARACTER(LEN=3)   :: site = ''                   ! simulation site
+     CHARACTER(LEN=3)   :: mortality_experiment = ''   ! mortality experiment (P0 or PSX) 
+     LOGICAL            :: stand_replacement = .FALSE. ! whether a stand replacing disturbance event happens in that year
      LOGICAL ::                                                               &
           CALL_POP               = .FALSE., & !
           POP_fromZero           = .FALSE., &

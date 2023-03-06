@@ -2534,11 +2534,18 @@ SUBROUTINE load_parameters(met, air, ssnow, veg, bgc, soil, canopy, rough, rad, 
          ! evaluate mp_POP and POP_array
          mp_POP = COUNT(casamet%iveg2==forest) + COUNT(casamet%iveg2==shrub)
 
+         ! Initialisation (should happen somewhere else...)
+         veg%disturbance_interval(:,1) = 150.0   ! first one is partial disturbance if NDISTURB=2, otherwise total disturbance
+         veg%disturbance_interval(:,2) = 150.0
+         veg%disturbance_intensity(:,1) = 0.0   ! only first one is used if frac_intensity1 is not input to POPstep (in %)
+         veg%disturbance_intensity(:,2) = 0.0
+
          ALLOCATE(Iwood(mp_POP))
          j = 1
          DO i=1,mp
             IF (casamet%iveg2(i)==forest .OR. casamet%iveg2(i)==shrub) THEN
                Iwood(j) = i
+               !veg%disturbance_interval(Iwood(j),:) = casabiome%disturbance_interval(veg%iveg(i),:)
                j = j+1
             ENDIF
          ENDDO
