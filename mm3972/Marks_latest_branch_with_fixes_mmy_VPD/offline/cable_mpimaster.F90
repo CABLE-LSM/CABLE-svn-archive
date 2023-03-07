@@ -1467,6 +1467,7 @@ SUBROUTINE prepareFiles(ncciy)
    CALL renameFiles(logn,gswpfile%Qair,ncciy,'Qair')
    CALL renameFiles(logn,gswpfile%Tair,ncciy,'Tair')
    CALL renameFiles(logn,gswpfile%wind,ncciy,'wind')
+   CALL renameFiles(logn,gswpfile%Tair,ncciy,'Tair')    ! MMY@Mar2023 for detrended Qair
 
 END SUBROUTINE prepareFiles
 

@@ -637,6 +637,7 @@ MODULE cable_def_types_mod
          precip,  & ! rainfall (liquid+solid)(mm/dels)
          precip_sn,&! solid preipitation only (mm/dels)
          tk,      & ! surface air temperature (oK)
+         tk_dt,   & ! detrended surface air temperature (oK) ! MMY@Mar2023 detrended tair
          tvair,   & ! within canopy air temperature (oK)
          tvrad,   & ! radiative vegetation temperature (K)
          pmb,     & ! surface air pressure (mbar)

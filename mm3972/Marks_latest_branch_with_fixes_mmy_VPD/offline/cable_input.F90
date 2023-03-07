@@ -69,8 +69,9 @@ MODULE cable_input_module
        ncid_ps,         &
        ncid_qa,         &
        ncid_ta,         &
-       ncid_wd,         &
-       ncid_mask
+       ncid_wd,         &      
+       ncid_mask,       & ! MMY@Mar2023
+       ncid_ta_dt,      & ! MMY@Mar2023 for detrended Tair
 
    INTEGER                      ::                                        &
         ncid_met,        & ! met data netcdf file ID
@@ -83,6 +84,7 @@ MODULE cable_input_module
         ncid_ta,         &
         ncid_wd,         &
         ncid_mask,       &
+        ncid_ta_dt,      & ! MMY@Mar2023 for detrended Tair
         ok                 ! netcdf error status
    ! - see ALMA compress by gathering
    INTEGER,POINTER,DIMENSION(:) :: landGrid ! for ALMA compressed variables
@@ -98,6 +100,7 @@ MODULE cable_input_module
            PSurf,        &
            Tair,         &
            Qair,         &
+           Tair_dt,      & ! MMY@Mar2023 for detrended Tair
            Rainf,        &
            Snowf,        &
            CO2air,       &
@@ -118,6 +121,7 @@ MODULE cable_input_module
            PSurf,        &
            Tair,         &
            Qair,         &
+           Tair_dt,      & ! MMY@Mar2023 for detrended Tair ! MMY ??? I guess Tair_dt can use Tair's units
            Rainf,        &
            Snowf,        &
            CO2air,       &
@@ -130,6 +134,7 @@ MODULE cable_input_module
            PSurf,        &
            Tair,         &
            Qair,         &
+           Tair_dt,      & ! MMY@Mar2023 for detrended Tair ! MMY ??? I guess Tair_dt can use Tair's units
            Rainf,        &
            CO2air,       &
            Elev
@@ -416,6 +421,15 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
           PRINT*,'ta'
           CALL handle_err( ok )
        ENDIF
+
+   ! _________ MMY@Mar2023 _________
+   ok = NF90_OPEN(gswpfile%Tair_dt,0,ncid_ta_dt)
+   IF (ok /= NF90_NOERR) THEN
+      PRINT*,'ta_dt'
+      CALL handle_err( ok )
+   ENDIF
+   ! ________________________________
+
     ok = NF90_OPEN(gswpfile%wind,0,ncid_wd)
        IF (ok /= NF90_NOERR) THEN
           PRINT*,'wind',ncid_wd
@@ -993,6 +1007,30 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
        CALL abort('Unknown units for Tair'// &
             ' in '//TRIM(filename%met)//' (SUBROUTINE open_met_data)')
     END IF
+    
+    ! ___________ MMY@Mar2023, look for detrended Tair ___________
+    IF (ncciy > 0) ncid_met = ncid_ta_dt
+    ok = NF90_INQ_VARID(ncid_met,'Tair',id%Tair_dt)
+
+    ! Get Tair units and check okay:
+    ok = NF90_GET_ATT(ncid_met,id%Tair_dt,'units',metunits%Tair_dt)
+    IF(ok /= NF90_NOERR) CALL nc_abort &
+         (ok,'Error finding Tair detrended units in met data file ' &
+         //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
+    IF(metunits%Tair_dt(1:1)=='C'.OR.metunits%Tair_dt(1:1)=='c') THEN
+       ! Change from celsius to kelvin:
+       convert%Tair_dt = tfrz
+       WRITE(logn,*) 'Temperature will be converted from C to K'
+    ELSE IF(metunits%Tair_dt(1:1)=='K'.OR.metunits%Tair_dt(1:1)=='k') THEN
+       ! Units are correct
+       convert%Tair_dt = 0.0
+    ELSE
+       WRITE(*,*) metunits%Tair_dt
+       CALL abort('Unknown units for Tair detrended'// &
+            ' in '//TRIM(filename%met)//' (SUBROUTINE open_met_data)')
+    END IF
+    ! _______________________________________________________________
+
     ! Look for Qair (essential):- - - - - - - - - - - - - - - - - - -
     IF (ncciy > 0) ncid_met = ncid_qa
     ok = NF90_INQ_VARID(ncid_met,'Qair',id%Qair)
@@ -2145,6 +2183,36 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
       ENDDO
    END IF
 
+   ! ___________________ MMY@Mar2023 ___________________
+   ! Get detrended Tair data for mask grid:- - - - - - - - - - - - - - - - - -
+   IF(cable_user%GSWP3) ncid_met = ncid_ta ! since GSWP3 multiple met files
+      ! Find number of dimensions of detrended Tair :
+   ok = NF90_INQUIRE_VARIABLE(ncid_met,id%Tair_dt,ndims=ndims)
+   IF(ndims==3) THEN ! 3D var, either on grid or new ALMA format single site
+      ok= NF90_GET_VAR(ncid_met,id%Tair_dt,tmpDat3, &
+            start=(/1,1,ktau/),count=(/xdimsize,ydimsize,1/))
+      IF(ok /= NF90_NOERR) CALL nc_abort & ! check for error
+            (ok,'Error reading detrended Tair in met data file ' &
+            //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
+      ! Assign value to met data variable with units change:
+      DO i=1,mland ! over all land points/grid cells
+         met%tk_dt(landpt(i)%cstart:landpt(i)%cend) = &
+               REAL(tmpDat3(land_x(i),land_y(i),1)) + convert%Tair_dt
+      ENDDO
+   ELSE ! i.e. ndims==4, the older ALMA format for detrended Tair
+      ok= NF90_GET_VAR(ncid_met,id%Tair_dt,tmpDat4, &
+            start=(/1,1,1,ktau/),count=(/xdimsize,ydimsize,1,1/))
+      IF(ok /= NF90_NOERR) CALL nc_abort &
+            (ok,'Error reading detrended Tair in met data file HERE' &
+            //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
+      ! Assign value to met data variable with units change:
+      DO i=1,mland ! over all land points/grid cells
+         met%tk_dt(landpt(i)%cstart:landpt(i)%cend) = &
+               REAL(tmpDat4(land_x(i),land_y(i),1,1)) + convert%Tair_dt
+      ENDDO
+   END IF   
+   ! _____________________________________________________
+
    ! Get PSurf data for mask grid:- - - - - - - - - - - - - - - - - -
    IF (cable_user%GSWP3) ncid_met = ncid_ps ! since GSWP3 multiple met files
    IF(exists%PSurf) THEN ! IF PSurf is in met file:
@@ -2571,6 +2639,22 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
              REAL(tmpDat2(i,1)) + convert%Tair
       ENDDO
 
+      ! ___________________ MMY@Mar2023 ___________________
+      ! Get detrended Tair data for land-only grid:- - - - - - - - - - - - - - -
+      IF (ncciy > 0) ncid_met = ncid_ta
+      ok= NF90_GET_VAR(ncid_met,id%Tair_dt,tmpDat2, &
+           start=(/1,ktau/),count=(/mland,1/))
+      IF(ok /= NF90_NOERR) CALL nc_abort &
+           (ok,'Error reading detrended Tair in met data file ' &
+           //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
+      ! Assign value to met data variable with units change:
+      DO i=1,mland ! over all land points/grid cells
+        met%tk_dt(landpt(i)%cstart:landpt(i)%cend) = &
+             REAL(tmpDat2(i,1)) + convert%Tair_dt
+      ENDDO
+      ! ___________________________________________________
+
+
       ! Get PSurf data for land-only grid:- -- - - - - - - - - - - - - -
       IF (ncciy > 0) ncid_met = ncid_ps
       IF(exists%PSurf) THEN ! IF PSurf is in met file:
@@ -2863,6 +2947,8 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
             CALL abort('Wind out of specified ranges!')
        IF(ANY(met%tk<ranges%Tair(1)).OR.ANY(met%tk>ranges%Tair(2))) &
             CALL abort('Tair out of specified ranges!')
+       IF(ANY(met%tk_dt<ranges%Tair(1)).OR.ANY(met%tk_dt>ranges%Tair(2))) & ! MMY@Mar2023
+            CALL abort('detrended Tair out of specified ranges!')           ! MMY@Mar2023
        IF(ANY(met%pmb<ranges%PSurf(1)).OR.ANY(met%pmb>ranges%PSurf(2))) then
           write(*,*) "min, max Psurf", minval(met%pmb), maxval(met%pmb),ranges%Psurf(1), ranges%Psurf(2)
             CALL abort('PSurf out of specified ranges!')
