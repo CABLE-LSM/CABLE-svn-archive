@@ -1,11 +1,11 @@
 !==============================================================================
-! This source code is part of the 
+! This source code is part of the
 ! Australian Community Atmosphere Biosphere Land Exchange (CABLE) model.
 ! This work is licensed under the CSIRO Open Source Software License
 ! Agreement (variation of the BSD / MIT License).
-! 
+!
 ! You may not use this file except in compliance with this License.
-! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located 
+! A copy of the License (CSIRO_BSD_MIT_License_v2.0_CABLE.txt) is located
 ! in each directory containing CABLE code.
 !
 ! ==============================================================================
@@ -40,7 +40,8 @@ MODULE cable_mpicommon
   ! VH add 9 params for sli 299 -> 308
   ! INH add 7 params for REV_CORR package
   ! mrd561 9 more: vector soils
-  INTEGER, PARAMETER :: nparam =351!hysteresis 346! 341!1 !326!308   
+  ! INTEGER, PARAMETER :: nparam =351!hysteresis 346! 341!1 !326!308 ! MMY@Mar2023
+  INTEGER, PARAMETER :: nparam =352 ! MMY@Mar2023 
   ! MPI: extra params sent only if nsoilparmnew is true
   INTEGER, PARAMETER :: nsoilnew = 1
 
@@ -49,7 +50,7 @@ MODULE cable_mpicommon
   !INTEGER, PARAMETER :: ncasaparam = 68
   !INTEGER, PARAMETER :: ncasaparam = 176
   ! MPI: added casapool fields ratioNCsoilnew, ratioNCsoilmin and ratioNCsoilmax
-  INTEGER, PARAMETER :: ncasaparam = 210  ! changed lpn added 9 variables 
+  INTEGER, PARAMETER :: ncasaparam = 210  ! changed lpn added 9 variables
 !  (casaflux%frac_sapwood/sapwood_area,casabiome,casabiome%ratioNPplantmin,%ratioNPplantmax)
 ! casapool%ratioNPplant,%ratioNPlitter,ratioNPsoil
   ! MPI: base number of casa_init parameters sent to the workers
@@ -212,7 +213,7 @@ SUBROUTINE decomp_types (landpt_t, patch_t)
 
   ! create MPI type to exchange landpt records
   types = MPI_INTEGER
-  
+
   CALL MPI_Get_address (dlandpt(1), base_d, ierr)
 
   CALL MPI_Get_address (dlandpt(1)%nap, displs(1), ierr)
@@ -234,7 +235,7 @@ SUBROUTINE decomp_types (landpt_t, patch_t)
 
   ! create MPI type to exchange patch records
   types = MPI_REAL
-  
+
   CALL MPI_Get_address (dpatch(1), base_d, ierr)
 
   CALL MPI_Get_address (dpatch(1)%frac, displs(1), ierr)
