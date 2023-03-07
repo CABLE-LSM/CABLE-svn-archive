@@ -1786,6 +1786,12 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
      CALL MPI_Get_address (met%tk(off), displs(bidx), ierr)
      blen(bidx) = r1len
 
+     ! ______________ MMY@Mar2023 ______________
+     bidx = bidx + 1
+     CALL MPI_Get_address (met%tk_dt(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+     ! _________________________________________
+
      bidx = bidx + 1
      CALL MPI_Get_address (met%tvair(off), displs(bidx), ierr)
      blen(bidx) = r1len
@@ -4777,6 +4783,12 @@ SUBROUTINE master_intypes (comm,met,veg)
      CALL MPI_Get_address (met%tk(off), displs(bidx), ierr)
      blocks(bidx) = r1len
 
+     ! ____________ MMY@Mar2023 ______________
+     bidx = bidx + 1
+     CALL MPI_Get_address (met%tk_dt(off), displs(bidx), ierr)
+     blocks(bidx) = r1len
+     ! _______________________________________
+
      bidx = bidx + 1
      CALL MPI_Get_address (met%pmb(off), displs(bidx), ierr)
      blocks(bidx) = r1len
@@ -5397,6 +5409,13 @@ SUBROUTINE master_outtypes (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
      CALL MPI_Get_address (met%tk(off), vaddr(vidx), ierr)
      blen(vidx) = cnt * extr1
      vidx = vidx + 1
+
+     !_______________ MMY@Mar2023 ______________
+     CALL MPI_Get_address (met%tk_dt(off), vaddr(vidx), ierr)
+     blen(vidx) = cnt * extr1
+     vidx = vidx + 1
+     !__________________________________________
+
      ! REAL(r_1)
      CALL MPI_Get_address (met%tvair(off), vaddr(vidx), ierr)
      blen(vidx) = cnt * extr1

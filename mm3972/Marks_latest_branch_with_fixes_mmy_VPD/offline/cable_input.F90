@@ -71,7 +71,7 @@ MODULE cable_input_module
        ncid_ta,         &
        ncid_wd,         &      
        ncid_mask,       & ! MMY@Mar2023
-       ncid_ta_dt,      & ! MMY@Mar2023 for detrended Tair
+       ncid_ta_dt         ! MMY@Mar2023 for detrended Tair
 
    INTEGER                      ::                                        &
         ncid_met,        & ! met data netcdf file ID
