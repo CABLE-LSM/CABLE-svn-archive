@@ -92,7 +92,8 @@ MODULE cable_mpicommon
   !INTEGER, PARAMETER :: nmat = 29
   ! MPI: CABLE_r491, after following up with Bernard on the new variables
   ! vh sli nmat + 4 36 -> 40
-  INTEGER, PARAMETER :: nmat = 46  !hysteresis 41
+  !INTEGER, PARAMETER :: nmat = 46  !hysteresis 41 ! MMY@Mar2023
+  INTEGER, PARAMETER :: nmat = 47  ! MMY@Mar2023
 
   ! MPI: number of contig vector parts / worker (results)
   !INTEGER, PARAMETER :: nvec = 149
