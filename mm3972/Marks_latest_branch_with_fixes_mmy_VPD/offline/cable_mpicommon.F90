@@ -92,8 +92,8 @@ MODULE cable_mpicommon
   !INTEGER, PARAMETER :: nmat = 29
   ! MPI: CABLE_r491, after following up with Bernard on the new variables
   ! vh sli nmat + 4 36 -> 40
-  !INTEGER, PARAMETER :: nmat = 46  !hysteresis 41 ! MMY@Mar2023
-  INTEGER, PARAMETER :: nmat = 47  ! MMY@Mar2023
+  INTEGER, PARAMETER :: nmat = 46  !hysteresis 41 ! MMY@Mar2023
+  ! INTEGER, PARAMETER :: nmat = 47  ! MMY@Mar2023
 
   ! MPI: number of contig vector parts / worker (results)
   !INTEGER, PARAMETER :: nvec = 149
@@ -110,7 +110,8 @@ MODULE cable_mpicommon
   ! vh sli nvec + 6 162 -> 168
   ! INTEGER, PARAMETER :: nvec = 172! 168
   ! INH REV_CORR +3  (SSEB +2 will be needed)
-   INTEGER, PARAMETER :: nvec = 176! 176!175
+  ! INTEGER, PARAMETER :: nvec = 176! 176!175 ! MMY@Mar2023
+  INTEGER, PARAMETER :: nvec = 177 ! MMY@Mar2023
 
   ! MPI: number of final casa result matrices and vectors to receive
   ! by the master for casa_poolout and casa_fluxout
