@@ -63,6 +63,7 @@ END MODULE TypeDef
 MODULE POP_Constants
 
   USE TYPEdef, ONLY: dp, i4b
+  USE cable_common_module, only: cable_user 
 
   IMPLICIT NONE
 
@@ -82,14 +83,23 @@ MODULE POP_Constants
   ! REAL(dp),PARAMETER:: CrowdingFactor = 0.0128
   ! REAL(dp),PARAMETER:: ALPHA_CPC = 3.0
 
+  !! JK: Note that some parameters have been removed from the parameter list here and 
+  !!     added to the POP%site structure, which is initialised in Subroutine ZeroPOP.
+  !!     This was done to make some key parameters site-specific. This is specific for the Mortality branch
+  !!     and is a temporary solution and project-specific. Do not merge with the main branch!
+  !!     The following parameters have been removed here:
+  !!     - GROWTH_EFFICIENCY_MIN
+
   REAL(dp), PARAMETER :: FULTON_ALPHA = 3.5_dp ! recruitment scalar alpha in Fulton (1991)
   REAL(dp), PARAMETER :: DENSINDIV_MAX = 0.2_dp  ! 0.5 !  Maximum density of individuals within a cohort indiv/m2
   REAL(dp), PARAMETER :: DENSINDIV_MIN = 1.0e-9_dp !
-  REAL(dp), PARAMETER :: Kbiometric = 50.0_dp ! Constant in height-diameter relationship
+  REAL(dp), PARAMETER :: Kbiometric = 25.0_dp ! Constant in height-diameter relationship
+  !REAL(dp), PARAMETER :: Kbiometric = 50.0_dp ! Constant in height-diameter relationship
   REAL(dp), PARAMETER :: WD = 340.0_dp ! Wood density kgC/m3
   ! threshold growth efficiency for enhanced mortality (higher value gives higher biomass turnover)
-  REAL(dp), PARAMETER :: GROWTH_EFFICIENCY_MIN = 0.012_dp ! 0.0095 ! 0.0089 ! 0.0084
+  !REAL(dp), PARAMETER :: GROWTH_EFFICIENCY_MIN = 0.012_dp ! 0.0095 ! 0.0089 ! 0.0084
   REAL(dp), PARAMETER :: Pmort = 5.0_dp ! exponent in mortality formula
+  !REAL(dp), PARAMETER :: Pmort = 4.0_dp ! exponent in mortality formula
   REAL(dp), PARAMETER :: MORT_MAX = 0.2_dp ! upper asymptote for enhanced mortality
   REAL(dp), PARAMETER :: THETA_recruit = 0.95_dp ! shape parameter in recruitment equation
   !REAL(dp), PARAMETER :: CMASS_STEM_INIT = 1.0e-4_dp ! initial biomass kgC/m2
@@ -152,6 +162,12 @@ MODULE POP_Types
        NYEAR_HISTORY, AGEMAX
 
   IMPLICIT NONE
+
+  ! JK: Introduce Site Type so that some key parameters can be varied depending on site
+  ! Note: only temporary solution, specific to Mortality-MIP runs.
+  TYPE Site
+      REAL(dp) :: GROWTH_EFFICIENCY_MIN
+  END TYPE Site
 
   TYPE Cohort
      INTEGER(i4b) :: id
@@ -279,6 +295,7 @@ MODULE POP_Types
      INTEGER,         DIMENSION(:), Allocatable :: it_pop
      INTEGER                                    :: np
      INTEGER,         DIMENSION(:), Allocatable :: Iwood ! , LU
+     TYPE(Site)                                 :: site
   END TYPE POP_TYPE
 
 END MODULE POP_Types
@@ -327,6 +344,10 @@ CONTAINS
        stop 84
 #endif
     ENDIF
+
+    !! JK: site specific parameters (see module POP_Constants for context)
+    !!     Parameterisation in Subroutine POPStep (in need of a better solution...)
+    POP%site%GROWTH_EFFICIENCY_MIN = 0.0_dp 
 
     np = SIZE(pop%pop_grid)
 
@@ -633,6 +654,21 @@ CONTAINS
 
     INTEGER(i4b) :: idisturb,np,g,counter
     INTEGER(i4b), allocatable :: it(:)
+
+
+    !! JK: initialise site-specific parameter values here
+    select case(trim(cable_user%site))
+    case("FIN")
+        POP%site%GROWTH_EFFICIENCY_MIN = 0.01_dp ! 0.0095 ! 0.0089 ! 0.0084
+    case("BIA")
+        POP%site%GROWTH_EFFICIENCY_MIN = 0.01_dp ! 0.0095 ! 0.0089 ! 0.0084
+    case("BCI")
+        POP%site%GROWTH_EFFICIENCY_MIN = 0.02_dp ! 0.0095 ! 0.0089 ! 0.0084
+    end select  
+    !write(*,*) "cable_user%site:", cable_user%site
+    !write(*,*) "POP%site%GROWTH_EFFICIENCY_MIN:", POP%site%GROWTH_EFFICIENCY_MIN
+
+
 
     !INTEGER, INTENT(IN) :: wlogn
     pop%it_pop = pop%it_pop + 1
@@ -1046,7 +1082,7 @@ CONTAINS
                 growth_efficiency=cmass_stem_inc/(cmass_stem**(POWERGrowthEfficiency))
              endif
              ! growth_efficiency=cmass_stem_inc/(pop%pop_grid(j)%patch(k)%Layer(1)%cohort(c)%sapwood**(POWERGrowthEfficiency))
-             mort=MORT_MAX/(1.0_dp+(growth_efficiency/GROWTH_EFFICIENCY_MIN)**Pmort)
+             mort=MORT_MAX/(1.0_dp+(growth_efficiency/POP%site%GROWTH_EFFICIENCY_MIN)**Pmort)
 
              ! mort = 0 ! test
 
@@ -1398,7 +1434,7 @@ CONTAINS
     fmt = '(f5.1)'
     !limits(1) = 0.0_dp
     limits(:) = (/0.0_dp,0.01_dp,0.05_dp,0.1_dp,0.15_dp,0.2_dp,0.3_dp,0.4_dp,0.5_dp,0.6_dp,0.7_dp,0.8_dp, &
-                  0.9_dp,1.0_dp,1.5_dp,2.0_dp,2.5_dp/)
+                  0.9_dp,1.0_dp,1.5_dp,2.0_dp,5.0_dp/)
     
     IF(.NOT.ALLOCATED(limits_highres)) ALLOCATE(limits_highres(DIAM_BINS_highres+1))
     IF(.NOT.ALLOCATED(DENSINDIV_HIGHRES)) ALLOCATE(DENSINDIV_HIGHRES(DIAM_BINS_highres))

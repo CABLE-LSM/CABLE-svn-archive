@@ -535,6 +535,8 @@ CONTAINS
 
   SUBROUTINE LUC_EXPT_SET_TILES(inVeg, inPfrac, LUC_EXPT)
 
+    use cable_common_module,       only: cable_user
+
     IMPLICIT NONE
 
     INTEGER,             INTENT(INOUT) :: inVeg(:,:,:)
@@ -547,55 +549,71 @@ CONTAINS
        m = landpt(k)%ilon
        n = landpt(k)%ilat
 
-       if (inVeg(m,n,1).LT.11) THEN ! vegetated
-
-          if (LUC_EXPT%prim_only(k) ) then
-
-             inVeg(m,n,1)     = LUC_EXPT%ivegp(k)
-             inVeg(m,n,2:3)   = 0
-             inPFrac(m,n,2:3) = 0.0
-             inPFrac(m,n,1)   = 1.0
-             if ( LUC_EXPT%grass(k) .gt. 0.01) then
-                IF (LUC_EXPT%mtemp_min20(k) .LE. 15.5) THEN
-                   inVeg(m,n,2) = 6 ! C3 grass
-                ELSE
-                   inVeg(m,n,2) = 7 ! C4 grass
-                ENDIF
-                inPFrac(m,n,1) = min(LUC_EXPT%primaryf(k),1.0)
-                inPFrac(m,n,2) = 1.0 - min(LUC_EXPT%primaryf(k),1.0)
-             endif
-
-          elseif ((.NOT.LUC_EXPT%prim_only(k)) ) then
-
-             inVeg(m,n,1) = LUC_EXPT%ivegp(k)
-             inVeg(m,n,2) = LUC_EXPT%ivegp(k)
-
-             if (LUC_EXPT%mtemp_min20(k) .LE. 15.5) THEN
-                inVeg(m,n,3) = 6 ! C3 grass
-             ELSE
-                inVeg(m,n,3) = 7 ! C4 grass
-             ENDIF
-             inPFrac(m,n,1) = min(LUC_EXPT%primaryf(k),1.0)
-             inPFrac(m,n,2) = min(LUC_EXPT%secdf(k),1.0)
-             inPFrac(m,n,3) = 1.0 - inPFrac(m,n,1) - inPFrac(m,n,2)
-
-          endif
-       else
-
-          LUC_EXPT%prim_only(k)=.TRUE.
-
+       !! Use different scheme for Mortality-MIP:
+       !! Note that there are two different forest PFTs, one of which will be defined as secondary forest.
+       !! Since LUC is not considered in this MIP, this should be fine (also the only way to simulate 3 different PFTs!)
+       if (trim(cable_user%site) == "FIN" ) then
+         inVeg(m,n,:)   = (/1, 4, 6/)
+         inPFrac(m,n,:) = (/1.0, 0.0, 0.0/)
+       elseif (trim(cable_user%site) == "BIA" ) then
+         inVeg(m,n,:)   = (/1, 4, 6/)
+         inPFrac(m,n,:) = (/1.0, 0.0, 0.0/)
+       elseif (trim(cable_user%site) == "BCI" ) then
+         inVeg(m,n,:)   = (/2, 2, 7/)
+         inPFrac(m,n,:) = (/1.0, 0.0, 0.0/)
        endif
+       
+       LUC_EXPT%prim_only(k)=.TRUE.
 
-       ! don't consider LUC events in desert or tundra
-       if (inveg(m,n,1)==14 .OR.  inveg(m,n,1)==8 ) THEN
-          LUC_EXPT%prim_only(k) = .TRUE.
-          LUC_EXPT%primaryf(k)  = 1.0
-          LUC_EXPT%secdf(k)     = 0.0
-          LUC_EXPT%grass(k)     = 0.0
-          inPFrac(m,n,1)   = 1.0
-          inPFrac(m,n,2:3) = 0.0
-          inVeg(m,n,2:3)   = 0
-       endif
+       !if (inVeg(m,n,1).LT.11) THEN ! vegetated
+
+      !    if (LUC_EXPT%prim_only(k) ) then
+
+      !       inVeg(m,n,1)     = LUC_EXPT%ivegp(k)
+      !       inVeg(m,n,2:3)   = 0
+      !       inPFrac(m,n,2:3) = 0.0
+      !       inPFrac(m,n,1)   = 1.0
+      !       if ( LUC_EXPT%grass(k) .gt. 0.01) then
+      !          IF (LUC_EXPT%mtemp_min20(k) .LE. 15.5) THEN
+      !             inVeg(m,n,2) = 6 ! C3 grass
+      !          ELSE
+      !             inVeg(m,n,2) = 7 ! C4 grass
+      !          ENDIF
+      !          inPFrac(m,n,1) = min(LUC_EXPT%primaryf(k),1.0)
+      !          inPFrac(m,n,2) = 1.0 - min(LUC_EXPT%primaryf(k),1.0)
+      !       endif
+
+      !    elseif ((.NOT.LUC_EXPT%prim_only(k)) ) then
+
+      !       inVeg(m,n,1) = LUC_EXPT%ivegp(k)
+      !       inVeg(m,n,2) = LUC_EXPT%ivegp(k)
+
+      !       if (LUC_EXPT%mtemp_min20(k) .LE. 15.5) THEN
+      !          inVeg(m,n,3) = 6 ! C3 grass
+      !       ELSE
+      !          inVeg(m,n,3) = 7 ! C4 grass
+      !       ENDIF
+      !       inPFrac(m,n,1) = min(LUC_EXPT%primaryf(k),1.0)
+      !       inPFrac(m,n,2) = min(LUC_EXPT%secdf(k),1.0)
+      !       inPFrac(m,n,3) = 1.0 - inPFrac(m,n,1) - inPFrac(m,n,2)
+
+      !    endif
+      ! else
+
+      !    LUC_EXPT%prim_only(k)=.TRUE.
+
+      ! endif
+
+      ! ! don't consider LUC events in desert or tundra
+      ! if (inveg(m,n,1)==14 .OR.  inveg(m,n,1)==8 ) THEN
+      !    LUC_EXPT%prim_only(k) = .TRUE.
+      !    LUC_EXPT%primaryf(k)  = 1.0
+      !    LUC_EXPT%secdf(k)     = 0.0
+      !    LUC_EXPT%grass(k)     = 0.0
+      !    inPFrac(m,n,1)   = 1.0
+      !    inPFrac(m,n,2:3) = 0.0
+      !    inVeg(m,n,2:3)   = 0
+      ! endif
 
     ENDDO
 
