@@ -110,16 +110,16 @@ CONTAINS
      
         do np=1,mp
            ivt          = veg%iveg(np)
-	       isoil        = soil%isoilm(np)
+           isoil        = soil%isoilm(np)
            micparam%xav(np)      = xav_pft(ivt)
            micparam%xak(np)      = xak_pft(ivt)
-           micparam%xavexp(np)   = xavexp_pft(ivt)	  
+           micparam%xavexp(np)   = xavexp_pft(ivt)  
            micparam%xbeta(np)    = xbeta_pft(ivt)
            micparam%xdiffsoc(np) = xdiffsoc_pft(ivt)
            micparam%rootbetax(np)= rootbeta_pft(ivt)
            micparam%xdesorp(np)  = xdesorpt_pft(ivt)
            micparam%xcnleaf(np)  = xcnleaf(ivt)
-           micparam%xcnroot(np)  = xcnroot(ivt)	  
+           micparam%xcnroot(np)  = xcnroot(ivt)
            micparam%xcnwood(np)  = xcnwood(ivt)
            micparam%fligleaf(np) = fligleaf(ivt)
            micparam%fligroot(np) = fligroot(ivt)
@@ -140,16 +140,16 @@ CONTAINS
 !        do ns=1,ms
 !           micparam%zse(ns) = soil%zse(ns)
 !        enddo
-	
+
     end SUBROUTINE vmic_parameter
 
   SUBROUTINE vmic_param_constant(veg,soil,micparam)
     USE vmic_constant_mod
     USE vmic_variable_mod
-	USE cable_def_types_mod, ONLY : veg_parameter_type, soil_parameter_type
+    USE cable_def_types_mod, ONLY : veg_parameter_type, soil_parameter_type
     implicit none
-    TYPE (veg_parameter_type),  INTENT(IN)    :: veg	
-    TYPE (soil_parameter_type), INTENT(IN)    :: soil	
+    TYPE (veg_parameter_type),  INTENT(IN)    :: veg
+    TYPE (soil_parameter_type), INTENT(IN)    :: soil
     TYPE (mic_parameter),       INTENT(INout) :: micparam
     !local variables   
     integer np,ns
@@ -257,19 +257,44 @@ CONTAINS
           micinput%wavg(np,:)= casamet%moist(np,:)
           micnpool%mineralN(np,1:ms) = nsoilmin(np)   ! temporary solution
    enddo
+    
+    if(diag==1) then
+        print *, 'vmicinput',outp,veg%iveg(outp)
+        print *, casamet%tsoil(outp,:),tkzeroc
+        print *, micinput%tavg(outp,:)
+        print *, casamet%moist(outp,:)
+        print *, micinput%wavg(outp,:)
+        print *, micnpool%mineralN(outp,1:ms)
+    endif    
+
   end SUBROUTINE vmic_input
 
-  SUBROUTINE vmic_driver(ktau,dels,idoY,LALLOC,veg,soil,casabiome,casapool,casaflux, &
+  SUBROUTINE vmic_driver(ktau,kstart,kend,dels,ktauday,idoy,loy,LALLOC,spinConv,spinup,dump_read,dump_write,  &
+                         met,ssnow,canopy,veg,soil,casabiome,casapool,casaflux,                                &
                          casamet,casabal,phen,micparam,micinput,miccpool,micnpool,micoutput)
+    USE cable_def_types_mod
+    USE cable_common_module, only: cable_runtime,CurYear, CABLE_USER
     USE casadimension
     USE casa_cnp_module
     USE casavariable
+!    USE casaparm
+!    USE phenvariable
+    USE casa_inout_module
+
     use vmic_carbon_cycle_mod
     IMPLICIT NONE
-    INTEGER, INTENT(IN)    :: ktau
-    REAL,    INTENT(IN)    :: dels
-    INTEGER, INTENT(IN)    :: idoy
-    INTEGER, INTENT(IN)    :: LALLOC
+    INTEGER,      INTENT(IN)    :: ktau
+    INTEGER,      INTENT(IN)    :: kstart
+    INTEGER,      INTENT(IN)    :: kend
+    REAL,         INTENT(IN)    :: dels
+    INTEGER,      INTENT(IN)    :: ktauday
+    INTEGER,      INTENT(IN)    :: idoy ,LOY ! day of year (1-365) , Length oy
+    INTEGER,      INTENT(IN)    :: LALLOC
+    logical,      INTENT(IN)    :: spinConv, spinup
+    logical,      INTENT(IN)    :: dump_read, dump_write
+    TYPE (met_type), INTENT(INOUT)       :: met  ! met input variables
+    TYPE (soil_snow_type), INTENT(INOUT) :: ssnow ! soil and snow variables
+    TYPE (canopy_type), INTENT(INOUT) :: canopy ! vegetation variables
     TYPE (veg_parameter_type),    INTENT(INOUT) :: veg  ! vegetation parameters
     TYPE (soil_parameter_type),   INTENT(INOUT) :: soil ! soil parameters
     TYPE (casa_biome),            INTENT(INOUT) :: casabiome
@@ -304,90 +329,142 @@ CONTAINS
     INTEGER  np,ip,ns,is
     integer ivegx,isox
 
-
-    CALL phenology(idoy,veg,phen)
-    CALL avgsoil(veg,soil,casamet)
-    CALL casa_rplant1(veg,casabiome,casapool,casaflux,casamet)
-
-    IF (.NOT.cable_user%CALL_POP) THEN
-       CALL casa_allocation(veg,soil,casabiome,casaflux,casapool,casamet,phen,LALLOC)
-    ENDIF
-
-    CALL casa_xrateplant(xkleafcold,xkleafdry,xkleaf,veg,casabiome, &
-         casamet,phen)
-    CALL casa_coeffplant(xkleafcold,xkleafdry,xkleaf,veg,casabiome,casapool, &
-         casaflux,casamet,phen)
-
-    ! changed by ypwang following Chris Lu on 5/nov/2012
-    CALL casa_delplant(veg,casabiome,casapool,casaflux,casamet,            &
-                       cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,  &
-                       nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,  &
-                       pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
- 
-    call vmic_param_time(veg,soil,micparam,micinput,micnpool)
-! litter fall flux in g C/m2/delt, where "delt" is one day in casa-cnp, and timesetp in vmic is hourly
-    dleaf(:) = (cleaf2met(:)+cleaf2str(:))/24.0
-    dwood(:) =  cwood2cwd(:)/24.0
-    droot(:) = (croot2met(:)+croot2str(:))/24.0
-    nsoilmin(:) = 2.0    ! mg N/kg soil
-
-    call vmic_input(dleaf,dwood,droot,nsoilmin,veg,casamet,micparam,micinput,micnpool)
-    
-    do np=1,mp
-       ! do MIMICS for each soil layer
-        do ns=1,ms
-           do ip=1,mcpool
-              xpool0(ip) = miccpool%cpool(np,ns,ip)
-           enddo
-
-           ndeltvmic=24  ! 24-hourly
-           delty = real(ndeltvmic) * deltvmic  ! time step in rk4 in "delt"
-           timex = real(idoy)
+!! taken from bgcdriver in casa_cnp_module
+   INTEGER , parameter :: wlogn=6
    
-           do ntime=1,1
-             call rk4modelx(timex,delty,np,ns,micparam,micinput,xpool0,xpool1)
-             ! the following used to avoid poolsize<0.0
+   IF ( .NOT. dump_read ) THEN  ! construct casa met and flux inputs from current CABLE run
+      IF ( TRIM(cable_user%MetType) .EQ. 'cru' ) THEN
+         casaflux%Nmindep = met%Ndep
+      ENDIF
+
+      IF(ktau == kstart) THEN
+         casamet%tairk  = 0.0
+         casamet%tsoil  = 0.0
+         casamet%moist  = 0.0
+
+      ENDIF
+
+      IF(MOD(ktau,ktauday)==1) THEN
+         casamet%tairk = met%tk
+         casamet%tsoil = ssnow%tgg
+         casamet%moist = ssnow%wb
+!         casaflux%cgpp = (-canopy%fpn+canopy%frday)*dels
+!         casaflux%crmplant(:,leaf) = canopy%frday*dels
+         casaflux%meangpp = (-canopy%fpn+canopy%frday)*dels
+         casaflux%meanrleaf = canopy%frday*dels
+      ELSE
+         Casamet%tairk  =casamet%tairk + met%tk
+         casamet%tsoil = casamet%tsoil + ssnow%tgg
+         casamet%moist = casamet%moist + ssnow%wb
+!         casaflux%cgpp = casaflux%cgpp + (-canopy%fpn+canopy%frday)*dels
+!         casaflux%crmplant(:,leaf) = casaflux%crmplant(:,leaf) + canopy%frday*dels
+         casaflux%meangpp = casaflux%meangpp + (-canopy%fpn+canopy%frday)*dels
+         casaflux%meanrleaf = casaflux%meanrleaf + canopy%frday*dels
+      ENDIF
+
+      IF(MOD((ktau-kstart+1),ktauday)==0) THEN  ! end of day
+         casamet%tairk  =casamet%tairk/FLOAT(ktauday)
+         casamet%tsoil=casamet%tsoil/FLOAT(ktauday)
+         casamet%moist=casamet%moist/FLOAT(ktauday)
+         casaflux%cgpp = casaflux%meangpp
+         casaflux%crmplant(:,leaf) = casaflux%meanrleaf
+      ENDIF
+   ENDIF   
+!!
+
+     IF(MOD((ktau-kstart+1),ktauday)==0) THEN  ! end of day
+       CALL phenology(idoy,veg,phen)
+       CALL avgsoil(veg,soil,casamet)
+       CALL casa_rplant1(veg,casabiome,casapool,casaflux,casamet)
+
+       IF (.NOT.cable_user%CALL_POP) THEN
+          CALL casa_allocation(veg,soil,casabiome,casaflux,casapool,casamet,phen,LALLOC)
+       ENDIF
+
+       CALL casa_xrateplant(xkleafcold,xkleafdry,xkleaf,veg,casabiome, &
+                            casamet,phen)
+       CALL casa_coeffplant(xkleafcold,xkleafdry,xkleaf,veg,casabiome,casapool, &
+                            casaflux,casamet,phen)
+
+       ! changed by ypwang following Chris Lu on 5/nov/2012
+       CALL casa_delplant(veg,casabiome,casapool,casaflux,casamet,            &
+                          cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,  &
+                          nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,  &
+                          pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
+ 
+       call vmic_param_time(veg,soil,micparam,micinput,micnpool)
+       ! litter fall flux in g C/m2/delt, where "delt" is one day in casa-cnp, and timesetp in vmic is hourly
+       dleaf(:) = (cleaf2met(:)+cleaf2str(:))/24.0
+       dwood(:) =  cwood2cwd(:)/24.0
+       droot(:) = (croot2met(:)+croot2str(:))/24.0
+       nsoilmin(:) = 2.0    ! mg N/kg soil
+
+       call vmic_input(dleaf,dwood,droot,nsoilmin,veg,casamet,micparam,micinput,micnpool)
+    
+       if(diag==1) then
+          print *, 'vmicinout: after vmicinput',outp,veg%iveg(outp)
+          print *, dleaf(outp),dwood(outp),droot(outp)
+          print *, micinput%dleaf(outp),micinput%dwood(outp),micinput%droot(outp)
+          print *, micinput%tavg(outp,:)
+          print *, micinput%wavg(outp,:)
+       endif    
+
+       do np=1,mp
+          ! do MIMICS for each soil layer
+          do ns=1,ms
              do ip=1,mcpool
-                xpool0(ip) = max(1.0e-8,xpool1(ip))
+              xpool0(ip) = max(1.0e-8,miccpool%cpool(np,ns,ip))
              enddo
-           enddo
 
-           xpool1=xpool0 
-           do ip=1,mcpool
-              miccpool%cpool(np,ns,ip) = xpool1(ip)
-           enddo
+             ndeltvmic=24  ! 24-hourly
+             delty = real(ndeltvmic) * deltvmic  ! time step in rk4 in "delt"
+             timex = real(idoy)
+   
+             do ntime=1,1
+                call rk4modelx(timex,delty,np,ns,micparam,micinput,xpool0,xpool1)
+                ! the following used to avoid poolsize<0.0
+                !       do ip=1,mcpool
+                !          xpool0(ip) = max(1.0e-8,xpool1(ip))
+                !       enddo
+             enddo
 
-           ! soil respiration in mg c/cm3/deltvmic		   
-           micoutput%rsoil(np,ns) = micinput%dleaf(np)+micinput%dwood(np)+micinput%droot(np) &
-                                  - sum(xpool1(1:mcpool)-sum(xpool0(1:mcpool)))
-        enddo ! "ns"
-  
-        if(diag==1) then  
-           print *, 'np1', outp,micparam%diffsocx(outp)
-           do ns=1,ms
-              print *, ns, miccpool%cpool(outp,ns,:) 
-           enddo  
-        endif
-  
-        do ip=1,mcpool
-           do ns=1,ms
-              ypooli(ns) = miccpool%cpool(np,ns,ip)      ! in mg c/cm3
-           enddo  !"ns"
+             ! soil respiration in mg c/cm3/deltvmic		   
+             micoutput%rsoil(np,ns) = micinput%dleaf(np)+micinput%dwood(np)+micinput%droot(np) &
+                                    - sum(xpool1(1:mcpool)-sum(xpool0(1:mcpool)))
+             do ip=1,mcpool
+                miccpool%cpool(np,ns,ip) = xpool1(ip)
+             enddo
+             !      xpool1=xpool0 
 
-           fluxsoc(:) = 0.0  ! This flux is added in "modelx"
-           diffsocxx= micparam%diffsocx(np)
+          enddo ! "ns"
   
-           ! only do every 24*deltvmic  
-!           call bioturb(ndeltvmic,ms,micparam%zse(1:ms),deltvmic,diffsocxx,fluxsoc,ypooli,ypoole) 
-           zsex = soil%zse 
-           call bioturb(ndeltvmic,ms,zsex,deltvmic,diffsocxx,fluxsoc,ypooli,ypoole)  
-           do ns=1,ms
-              miccpool%cpool(np,ns,ip) = ypoole(ns)
-           enddo
-        enddo !"ip"
+          if(casamet%lat(np)==-53.75 .and. casamet%lon(np) ==-68.4375 .and. veg%iveg(np) ==6 ) then  
+             print *, 'np', ktau,np,casamet%lat(np),casamet%lon(np),veg%iveg(np),micinput%dleaf(np),micinput%dwood(np),micinput%droot(np) 
+             do ns=1,ms
+                print *, ns, miccpool%cpool(np,ns,:) 
+             enddo  
+          endif
+  
+          do ip=1,mcpool
+             do ns=1,ms
+                ypooli(ns) = miccpool%cpool(np,ns,ip)      ! in mg c/cm3
+             enddo  !"ns"
 
-        enddo !"np" 
+             fluxsoc(:) = 0.0  ! This flux is added in "modelx"
+             diffsocxx= micparam%diffsocx(np)
   
+             ! only do every 24*deltvmic  
+             ! call bioturb(ndeltvmic,ms,micparam%zse(1:ms),deltvmic,diffsocxx,fluxsoc,ypooli,ypoole) 
+             zsex = soil%zse 
+             call bioturb(ndeltvmic,ms,zsex,deltvmic,diffsocxx,fluxsoc,ypooli,ypoole)  
+             do ns=1,ms
+                miccpool%cpool(np,ns,ip) = ypoole(ns)
+             enddo
+          enddo !"ip"
+
+       enddo !"np" 
+    ENDIF    ! end of day call vmic "endif"
+    
   END SUBROUTINE vmic_driver
   
   SUBROUTINE write_mic_output_nc ( miccpool, micnpool, micoutput, micfile, &

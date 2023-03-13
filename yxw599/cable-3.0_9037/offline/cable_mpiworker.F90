@@ -696,8 +696,12 @@ USE cbl_soil_snow_init_special_module
  
  
               else
-                CALL vmic_driver(ktau,dels,idoY,LALLOC,veg,soil,casabiome,casapool,casaflux, &
-                                 casamet,casabal,phen,micparam,micinput,miccpool,micnpool,micoutput)
+            !    CALL vmic_driver(ktau,dels,idoY,LALLOC,veg,soil,casabiome,casapool,casaflux, &
+            !                     casamet,casabal,phen,micparam,micinput,miccpool,micnpool,micoutput)
+                CALL vmic_driver(ktau,kstart,kend,dels,ktauday,idoy,loy,LALLOC,spinConv,spinup,.FALSE., .FALSE.,  &
+                         met,ssnow,canopy,veg,soil,casabiome,casapool,casaflux,                                   &
+                         casamet,casabal,phen,micparam,micinput,miccpool,micnpool,micoutput)
+            
               endif  
 
                 ! IF(MOD((ktau-kstart+1),ktauday)==0) THEN

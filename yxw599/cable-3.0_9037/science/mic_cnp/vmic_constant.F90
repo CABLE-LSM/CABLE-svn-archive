@@ -4,7 +4,7 @@ MODULE vmic_constant_mod
   integer,  parameter   :: kinetics=1
   integer,  parameter   :: nyeqpool=500
   integer,  parameter   :: diag=0           ! =1 for printout 0 no prinout
-  integer,  parameter   :: outp=1           ! output site
+  integer,  parameter   :: outp=14          ! output site
   integer,  parameter   :: mcpool=7         ! number of C pools
   real(r_2),parameter   :: deltvmic= 1.0    ! one hour
 

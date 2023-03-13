@@ -86,7 +86,7 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
 
   ! INTEGER, INTENT(IN) :: wlogn
    INTEGER , parameter :: wlogn=6
-
+   
 
    IF ( .NOT. dump_read ) THEN  ! construct casa met and flux inputs from current CABLE run
       IF ( TRIM(cable_user%MetType) .EQ. 'cru' ) THEN
@@ -194,6 +194,7 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
       ENDIF ! end of day
 
    ENDIF ! dump_read
+
 
 END SUBROUTINE bgcdriver
 ! ==============================================================================

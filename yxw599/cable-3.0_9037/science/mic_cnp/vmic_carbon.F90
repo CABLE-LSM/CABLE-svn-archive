@@ -98,7 +98,7 @@ CONTAINS
          enddo
 
          if(diag==1) then   
-            print *, 'Kmt',soil%clay(np),micinput%tavg(outp,1),km(outp,1),kmx(outp,1)
+            print *, 'Kmt',soil%clay(outp),micinput%tavg(outp,1),km(outp,1),kmx(outp,1)
             print *, micparam%K1(outp,1)
             print *, micparam%K2(outp,1)
             print *, micparam%K3(outp,1)
@@ -367,7 +367,9 @@ CONTAINS
       enddo       !"np"
 
       if(diag==1) then
-         print *,'bgc_fraction parameters'
+         print *,'bgc_fraction parameters',outp
+         print *, micparam%fligleaf(outp)
+         print *, micparam%xcnleaf(outp)
          print *, micinput%cinputm(outp,:)
          print *, micinput%cinputs(outp,:)
          print *, micparam%fmetave(outp,:)
