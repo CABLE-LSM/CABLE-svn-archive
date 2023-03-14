@@ -887,6 +887,10 @@ USE cbl_soil_snow_init_special_module
        CALL MPI_Send (MPI_BOTTOM, 1, restart_t, 0, ktau_gl, comm, ierr)
        ! MPI: output file written by master only
 
+       if (vmicrobe>0) then
+          CALL worker_cable_micrestart(comm,miccpool,micnpool)
+       end if
+
        IF (cable_user%CALL_climate) &
             CALL MPI_Send (MPI_BOTTOM, 1, climate_t, 0, ktau_gl, comm, ierr)
     END IF
@@ -2890,6 +2894,118 @@ USE cbl_soil_snow_init_special_module
     RETURN
 
   END SUBROUTINE worker_cable_micparams
+
+
+  ! MPI: creates micrestart_t type for the worker to send the output to the master
+  SUBROUTINE worker_cable_micrestart (comm,miccpool,micnpool)
+
+    USE mpi
+
+    USE cable_def_types_mod
+    USE cable_IO_vars_module
+    USE vmic_variable_mod
+    USE vmic_inout_mod, only : vmic_allocate
+
+    IMPLICIT NONE
+
+    ! subroutine arguments
+
+    INTEGER, INTENT(IN) :: comm ! MPI communicator
+
+    TYPE(mic_cpool), INTENT(IN)     :: miccpool
+    TYPE(mic_npool), INTENT(IN)     :: micnpool
+
+    ! local vars
+
+    ! temp arrays for marshalling all fields into a single struct
+    INTEGER, ALLOCATABLE, DIMENSION(:) :: blen
+    INTEGER(KIND=MPI_ADDRESS_KIND), ALLOCATABLE, DIMENSION(:) :: displs
+    INTEGER, ALLOCATABLE, DIMENSION(:) :: types
+
+    ! temp vars for verifying block number and total length of inp_t
+    INTEGER(KIND=MPI_ADDRESS_KIND) :: text, tmplb
+    INTEGER :: tsize
+
+    INTEGER :: stat(MPI_STATUS_SIZE), ierr
+    INTEGER :: landp_t, patch_t, micrestart_t
+
+    INTEGER :: r1len, r2len, i1len, llen ! block lengths
+    INTEGER :: bidx ! block index
+    INTEGER :: ntyp ! total number of blocks
+
+    INTEGER :: rank,  off, ierr2, rcount, pos
+
+    CALL MPI_Comm_rank (comm, rank, ierr)
+
+    ntyp = nmicrestart
+
+    ALLOCATE (blen(ntyp))
+    ALLOCATE (displs(ntyp))
+    ALLOCATE (types(ntyp))
+
+    ! default type is byte, to be overriden for multi-D types
+    types = MPI_BYTE
+
+    r1len = mp * extr1
+    r2len = mp * extr2
+    i1len = mp * extid
+    llen = mp * extl
+
+    bidx = 0
+
+    ! the order of variables follows argument list
+    ! the order of fields within follows alloc_*_type subroutines
+
+    ! ----------- miccspool --------------
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (miccpool%cpool, displs(bidx), ierr)
+    blen(bidx) = ms * mcpool * r2len
+
+    ! ----------- micnpool --------------
+
+    bidx = bidx + 1
+    CALL MPI_Get_address (micnpool%mineralN, displs(bidx), ierr)
+    blen(bidx) = ms * r2len
+
+    ! MPI: sanity check
+    IF (bidx /= ntyp) THEN
+       WRITE (*,*) 'worker ',rank,' invalid number of micrestart_t fields',bidx,', fix it!'
+       CALL MPI_Abort (comm, 1, ierr)
+    END IF
+
+    CALL MPI_Type_create_struct (bidx, blen, displs, types, micrestart_t, ierr)
+    CALL MPI_Type_commit (micrestart_t, ierr)
+
+    CALL MPI_Type_size (micrestart_t, tsize, ierr)
+    CALL MPI_Type_get_extent (micrestart_t, tmplb, text, ierr)
+
+    WRITE (*,*) 'worker micrestart_t blocks, size, extent and lb: ',rank,bidx,tsize,text,tmplb
+
+    ! MPI: check whether total size of sent data equals total
+    ! data sent by all the workers
+    CALL MPI_Reduce (tsize, MPI_DATATYPE_NULL, 1, MPI_INTEGER, MPI_SUM, 0, comm, ierr)
+
+    DEALLOCATE(types)
+    DEALLOCATE(displs)
+    DEALLOCATE(blen)
+
+    ! so, now send all the parameters
+    CALL MPI_Send (MPI_BOTTOM, 1, micrestart_t, 0, 0, comm, ierr)
+
+    IF (ierr /= MPI_SUCCESS) THEN
+       WRITE(*,*),'cable output send rank err: ',rank, ierr
+    END IF
+
+
+    ! finally free the MPI type
+    CALL MPI_Type_Free (micrestart_t, ierr)
+
+
+    ! all CABLE parameters have been received from the master by now
+    RETURN
+
+  END SUBROUTINE worker_cable_micrestart
 
 
   ! MPI: creates param_t type for the worker to receive the default casa

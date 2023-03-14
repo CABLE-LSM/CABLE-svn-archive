@@ -1417,6 +1417,10 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
        ! instead of a separate receive_restart sub?
        CALL master_receive (comm, ktau_gl, restart_ts)
 
+       if (vmicrobe>0) then
+          CALL master_cable_micrestart(comm,miccpool,micnpool)
+       end if
+
        !       CALL MPI_Waitall (wnp, recv_req, recv_stats, ierr)
 
        if(.not.l_landuse) then
@@ -3889,6 +3893,155 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
     RETURN
 
   END SUBROUTINE master_cable_micparams
+
+
+  ! MPI: creates micrestart_ts type for the master to receive the output from the workers
+  SUBROUTINE master_cable_micrestart (comm,miccpool,micnpool)
+
+    USE mpi
+
+    USE cable_def_types_mod
+    USE cable_IO_vars_module
+    USE vmic_variable_mod
+
+    IMPLICIT NONE
+
+    ! subroutine arguments
+
+    INTEGER, INTENT(IN) :: comm ! MPI communicator
+
+    TYPE(mic_cpool), INTENT(INOUT)     :: miccpool
+    TYPE(mic_npool), INTENT(INOUT)     :: micnpool
+
+
+    ! local vars
+
+    ! temp arrays for marshalling all fields into a single struct
+    INTEGER, ALLOCATABLE, DIMENSION(:) :: blen
+    INTEGER(KIND=MPI_ADDRESS_KIND), ALLOCATABLE, DIMENSION(:) :: displs
+    INTEGER, ALLOCATABLE, DIMENSION(:) :: types
+
+    ! temp vars for verifying block number and total length of inp_t
+    INTEGER(KIND=MPI_ADDRESS_KIND) :: text, tmplb
+    INTEGER :: tsize, localtotal, remotetotal
+
+    INTEGER :: stat(MPI_STATUS_SIZE), ierr
+    INTEGER, ALLOCATABLE, DIMENSION(:) :: micrestart_ts
+
+    INTEGER(KIND=MPI_ADDRESS_KIND) :: r1stride, r2stride, istride
+    INTEGER :: r1len, r2len, I1LEN, llen ! block lengths
+    INTEGER :: bidx ! block index
+    INTEGER :: ntyp ! total number of blocks
+    INTEGER :: rank
+
+    INTEGER :: landpt_t, patch_t
+
+    INTEGER :: nxt, pcnt, off, cnt
+
+
+    ntyp = nmicrestart
+
+    ALLOCATE (micrestart_ts(wnp))
+
+    ALLOCATE (blen(ntyp))
+    ALLOCATE (displs(ntyp))
+    ALLOCATE (types(ntyp))
+
+    ! MPI: array strides for multi-dimensional types
+    r1stride = mp * extr1
+    r2stride = mp * extr2
+    istride  = mp * extid
+
+    ! default type is byte, to be overriden for multi-D types
+    types = MPI_BYTE
+
+    ! total size of input data sent to all workers
+    localtotal = 0
+
+    ! create a separate MPI derived datatype for each worker
+    DO rank = 1, wnp
+
+       ! starting patch and number for each worker rank
+       off = wland(rank)%patch0
+       cnt = wland(rank)%npatch
+
+       r1len = cnt * extr1
+       r2len = cnt * extr2
+       I1LEN  = cnt * extid
+       llen  = cnt * extl
+
+       bidx = 0
+
+       ! the order of variables follows argument list
+       ! the order of fields within follows alloc_*_type subroutines
+
+       ! ----------- miccspool --------------
+
+       bidx = bidx + 1
+       CALL MPI_Get_address (miccpool%cpool(off,1,1), displs(bidx), ierr)
+       CALL MPI_Type_create_hvector (ms*mcpool, r2len, r2stride, MPI_BYTE, &
+            &                             types(bidx), ierr)
+       blen(bidx) = 1
+
+       ! ----------- micnpool --------------
+
+       bidx = bidx + 1
+       CALL MPI_Get_address (micnpool%mineralN(off,1), displs(bidx), ierr)
+       CALL MPI_Type_create_hvector (ms, r2len, r2stride, MPI_BYTE, &
+            &                             types(bidx), ierr)
+       blen(bidx) = 1
+
+       ! MPI: sanity check
+       IF (bidx /= ntyp) THEN
+          WRITE (*,*) 'master: invalid number of param_t fields ',bidx,', fix it!'
+          CALL MPI_Abort (comm, 1, ierr)
+       END IF
+
+       CALL MPI_Type_create_struct (bidx, blen, displs, types, micrestart_ts(rank), ierr)
+       CALL MPI_Type_commit (micrestart_ts(rank), ierr)
+
+       CALL MPI_Type_size (micrestart_ts(rank), tsize, ierr)
+       CALL MPI_Type_get_extent (micrestart_ts(rank), tmplb, text, ierr)
+
+       WRITE (*,*) 'master to rank micoutput_t blocks, size, extent and lb: ',rank, bidx,tsize,text,tmplb
+
+       localtotal = localtotal + tsize
+
+    END DO ! rank
+
+    WRITE (*,*) 'total cable params size sent to all workers: ', localtotal
+
+    DEALLOCATE(types)
+    DEALLOCATE(displs)
+    DEALLOCATE(blen)
+
+    ! MPI: check whether total size of received input data equals total
+    ! data sent by all the workers
+    remotetotal = 0
+    CALL MPI_Reduce (MPI_IN_PLACE, remotetotal, 1, MPI_INTEGER, MPI_SUM, 0, comm, ierr)
+
+    WRITE (*,*) 'total cable output size received by master: ', remotetotal
+
+    IF (localtotal /= remotetotal) THEN
+       WRITE (*,*) 'error: total length of cable output sent and received differ'
+       CALL MPI_Abort (comm, 0, ierr)
+    END IF
+
+    ! so, now send all the parameters
+    CALL master_receive (comm, 0,  micrestart_ts)
+    !  CALL MPI_Waitall (wnp, inp_req, inp_stats, ierr)
+
+    ! finally free the MPI type
+    DO rank = 1, wnp
+       CALL MPI_Type_Free (micrestart_ts(rank), ierr)
+    END DO
+
+    DEALLOCATE (micrestart_ts)
+
+    ! all CABLE parameters have been transferred to the workers by now
+    RETURN
+
+  END SUBROUTINE master_cable_micrestart
 
 
   ! MPI: creates casa_ts types to broadcast/scatter the default casa parameters

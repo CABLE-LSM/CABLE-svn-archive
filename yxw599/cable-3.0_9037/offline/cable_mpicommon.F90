@@ -70,6 +70,9 @@ MODULE cable_mpicommon
   ! start up parameters
   INTEGER, PARAMETER :: nmicparam = 59
 
+  ! MPI: number of mic restart variables received from workers
+  INTEGER, PARAMETER :: nmicrestart = 2
+
   ! MPI: number of 3D array slices / worker (results)
   INTEGER, PARAMETER :: n3d = 1
 
