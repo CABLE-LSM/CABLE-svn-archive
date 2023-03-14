@@ -95,12 +95,13 @@ MODULE POP_Constants
   REAL(dp), PARAMETER :: DENSINDIV_MIN = 1.0e-9_dp !
   !REAL(dp), PARAMETER :: Kbiometric = 25.0_dp ! Constant in height-diameter relationship
   !REAL(dp), PARAMETER :: Kbiometric = 50.0_dp ! Constant in height-diameter relationship
-  REAL(dp), PARAMETER :: WD = 340.0_dp ! Wood density kgC/m3
+  !REAL(dp), PARAMETER :: WD = 340.0_dp ! Wood density kgC/m3
   ! threshold growth efficiency for enhanced mortality (higher value gives higher biomass turnover)
   !REAL(dp), PARAMETER :: GROWTH_EFFICIENCY_MIN = 0.012_dp ! 0.0095 ! 0.0089 ! 0.0084
   !REAL(dp), PARAMETER :: Pmort = 5.0_dp ! exponent in mortality formula
   !REAL(dp), PARAMETER :: Pmort = 4.0_dp ! exponent in mortality formula
-  REAL(dp), PARAMETER :: MORT_MAX = 0.2_dp ! upper asymptote for enhanced mortality
+  !REAL(dp), PARAMETER :: MORT_MAX = 0.2_dp ! upper asymptote for enhanced mortality
+  !REAL(dp), PARAMETER :: MORT_MAX = 0.12_dp ! upper asymptote for enhanced mortality
   REAL(dp), PARAMETER :: THETA_recruit = 0.95_dp ! shape parameter in recruitment equation
   !REAL(dp), PARAMETER :: CMASS_STEM_INIT = 1.0e-4_dp ! initial biomass kgC/m2
   REAL(dp), PARAMETER :: CMASS_STEM_INIT = 0.6_dp ! initial biomass kgC/m2
@@ -110,7 +111,8 @@ MODULE POP_Constants
   REAL(dp), PARAMETER :: ALPHA_CPC = 3.5_dp
   REAL(dp), PARAMETER :: k_allom1 = 200.0_dp ! crown area =  k_allom1 * diam ** k_rp
   REAL(dp), PARAMETER :: k_rp = 1.67_dp  ! constant in crown area relation to tree diameter
-  REAL(dp), PARAMETER :: ksapwood = 0.0667_dp ! rate constant for conversion of sapwood to heartwood (y-1)
+  !REAL(dp), PARAMETER :: ksapwood = 0.0667_dp ! rate constant for conversion of sapwood to heartwood (y-1)
+  REAL(dp), PARAMETER :: ksapwood = 0.05_dp ! rate constant for conversion of sapwood to heartwood (y-1)
   REAL(dp), PARAMETER :: Q=7.0_dp ! governs rate of increase of mortality with age (2=exponential)
   REAL,     PARAMETER :: rshootfrac = 0.63
   REAL(dp), PARAMETER :: shootfrac = real(rshootfrac,dp)
@@ -166,8 +168,10 @@ MODULE POP_Types
   ! JK: Introduce Site Type so that some key parameters can be varied depending on site
   ! Note: only temporary solution, specific to Mortality-MIP runs.
   TYPE Site
+      REAL(dp) :: WD
       REAL(dp) :: GROWTH_EFFICIENCY_MIN
       REAL(dp) :: Pmort
+      REAL(dp) :: MORT_MAX
       REAL(dp) :: Kbiometric
       REAL(dp) :: CrowdingFactor
   END TYPE Site
@@ -350,8 +354,10 @@ CONTAINS
 
     !! JK: site specific parameters (see module POP_Constants for context)
     !!     Parameterisation in Subroutine POPStep (in need of a better solution...)
+    POP%site%WD = 0.0_dp
     POP%site%GROWTH_EFFICIENCY_MIN = 0.0_dp
     POP%site%Pmort = 0.0_dp
+    POP%site%MORT_MAX = 0.0_dp
     POP%site%Kbiometric = 0.0_dp
     POP%site%CrowdingFactor = 0.0_dp
 
@@ -666,20 +672,26 @@ CONTAINS
     !! JK: initialise site-specific parameter values here
     select case(trim(cable_user%site))
     case("FIN")
-        POP%site%GROWTH_EFFICIENCY_MIN = 0.01_dp ! 0.0095 ! 0.0089 ! 0.0084
-        POP%site%Pmort                 = 5.0_dp 
+        POP%site%WD                    = 340.0_dp
+        POP%site%GROWTH_EFFICIENCY_MIN = 0.015_dp ! 0.0095 ! 0.0089 ! 0.0084
+        POP%site%Pmort                 = 3.0_dp 
+        POP%site%MORT_MAX              = 0.15_dp
         POP%site%Kbiometric            = 25.0_dp 
-        POP%site%CrowdingFactor        = 0.043_dp 
-    case("BIA")
-        POP%site%GROWTH_EFFICIENCY_MIN = 0.01_dp ! 0.0095 ! 0.0089 ! 0.0084
-        POP%site%Pmort                 = 5.0_dp 
-        POP%site%Kbiometric            = 25.0_dp 
-        POP%site%CrowdingFactor        = 0.043_dp 
-    case("BCI")
-        POP%site%GROWTH_EFFICIENCY_MIN = 0.018_dp ! 0.0095 ! 0.0089 ! 0.0084
-        POP%site%Pmort                 = 5.0_dp 
-        POP%site%Kbiometric            = 25.0_dp
         POP%site%CrowdingFactor        = 0.08_dp 
+    case("BIA")
+        POP%site%WD                    = 340.0_dp
+        POP%site%GROWTH_EFFICIENCY_MIN = 0.015_dp ! 0.0095 ! 0.0089 ! 0.0084
+        POP%site%Pmort                 = 3.0_dp 
+        POP%site%MORT_MAX              = 0.15_dp
+        POP%site%Kbiometric            = 25.0_dp 
+        POP%site%CrowdingFactor        = 0.06_dp 
+    case("BCI")
+        POP%site%WD                    = 300.0_dp
+        POP%site%GROWTH_EFFICIENCY_MIN = 0.012_dp ! 0.0095 ! 0.0089 ! 0.0084
+        POP%site%Pmort                 = 1.2_dp
+        POP%site%MORT_MAX              = 0.12_dp 
+        POP%site%Kbiometric            = 20.0_dp
+        POP%site%CrowdingFactor        = 0.05_dp 
     end select  
     !write(*,*) "cable_user%site:", cable_user%site
     !write(*,*) "POP%site%GROWTH_EFFICIENCY_MIN:", POP%site%GROWTH_EFFICIENCY_MIN
@@ -875,9 +887,9 @@ CONTAINS
                 ! get initial basal area
 
                 IF ( PRESENT(precip) ) THEN
-                   CALL GET_ALLOMETRY( ALLOM_SWITCH, POP%site%Kbiometric, cmass_stem, densindiv, ht, diam, basal_old, precip(j))
+                   CALL GET_ALLOMETRY( ALLOM_SWITCH, POP%site%WD, POP%site%Kbiometric, cmass_stem, densindiv, ht, diam, basal_old, precip(j))
                 ELSE
-                   CALL GET_ALLOMETRY( ALLOM_SWITCH, POP%site%Kbiometric, cmass_stem, densindiv, ht, diam, basal_old )
+                   CALL GET_ALLOMETRY( ALLOM_SWITCH, POP%site%WD, POP%site%Kbiometric, cmass_stem, densindiv, ht, diam, basal_old )
                 ENDIF
 
                 if (ALLOM_SWITCH.eq.1) then
@@ -1008,9 +1020,9 @@ CONTAINS
              ! get initial basal area
 
              IF ( PRESENT(precip) ) THEN
-                CALL GET_ALLOMETRY( ALLOM_SWITCH, POP%site%Kbiometric, cmass_stem, densindiv, ht, diam, basal_old, precip(j))
+                CALL GET_ALLOMETRY( ALLOM_SWITCH, POP%site%WD, POP%site%Kbiometric, cmass_stem, densindiv, ht, diam, basal_old, precip(j))
              ELSE
-                CALL GET_ALLOMETRY( ALLOM_SWITCH, POP%site%Kbiometric, cmass_stem, densindiv, ht, diam, basal_old )
+                CALL GET_ALLOMETRY( ALLOM_SWITCH, POP%site%WD, POP%site%Kbiometric, cmass_stem, densindiv, ht, diam, basal_old )
              ENDIF
 
              ! increment biomass in cohort
@@ -1023,10 +1035,10 @@ CONTAINS
 
              ! get incremented basal area
              IF ( PRESENT(precip) ) THEN
-                CALL GET_ALLOMETRY( ALLOM_SWITCH, POP%site%Kbiometric, cmass_stem, densindiv, ht, diam, basal_new, precip(j))
+                CALL GET_ALLOMETRY( ALLOM_SWITCH, POP%site%WD, POP%site%Kbiometric, cmass_stem, densindiv, ht, diam, basal_new, precip(j))
              ELSE
 
-                CALL GET_ALLOMETRY( ALLOM_SWITCH, POP%site%Kbiometric, cmass_stem, densindiv, ht, diam, basal_new )
+                CALL GET_ALLOMETRY( ALLOM_SWITCH, POP%site%WD, POP%site%Kbiometric, cmass_stem, densindiv, ht, diam, basal_new )
              ENDIF
 
 
@@ -1098,7 +1110,7 @@ CONTAINS
                 growth_efficiency=cmass_stem_inc/(cmass_stem**(POWERGrowthEfficiency))
              endif
              ! growth_efficiency=cmass_stem_inc/(pop%pop_grid(j)%patch(k)%Layer(1)%cohort(c)%sapwood**(POWERGrowthEfficiency))
-             mort=MORT_MAX/(1.0_dp+(growth_efficiency/POP%site%GROWTH_EFFICIENCY_MIN)**POP%site%Pmort)
+             mort=POP%site%MORT_MAX/(1.0_dp+(growth_efficiency/POP%site%GROWTH_EFFICIENCY_MIN)**POP%site%Pmort)
 
              ! mort = 0 ! test
 
@@ -1534,9 +1546,9 @@ CONTAINS
              densindiv = pop%pop_grid(g)%patch(p)%layer(1)%cohort(i)%density
 
              IF ( PRESENT(precip) ) THEN
-                CALL GET_ALLOMETRY( ALLOM_SWITCH, POP%site%Kbiometric, cmass_stem, densindiv, ht, diam, basal, precip(g))
+                CALL GET_ALLOMETRY( ALLOM_SWITCH, POP%site%WD, POP%site%Kbiometric, cmass_stem, densindiv, ht, diam, basal, precip(g))
              ELSE
-                CALL GET_ALLOMETRY( ALLOM_SWITCH, POP%site%Kbiometric, cmass_stem, densindiv, ht, diam, basal )
+                CALL GET_ALLOMETRY( ALLOM_SWITCH, POP%site%WD, POP%site%Kbiometric, cmass_stem, densindiv, ht, diam, basal )
 
              ENDIF
 
@@ -1548,7 +1560,7 @@ CONTAINS
 
              ! sapwood area in each cohort
              pop%pop_grid(g)%patch(p)%layer(1)%cohort(i)%sapwood_area = basal - & ! m2 ha-1
-                  pop%pop_grid(g)%patch(p)%layer(1)%cohort(i)%heartwood/(ht*WD)*1.0e4_dp
+                  pop%pop_grid(g)%patch(p)%layer(1)%cohort(i)%heartwood/(ht*pop%site%WD)*1.0e4_dp
 
              pop%pop_grid(g)%patch(p)%layer(1)%cohort(i)%sapwood_area = &
                   max(pop%pop_grid(g)%patch(p)%layer(1)%cohort(i)%sapwood_area, 0.0_dp)
@@ -1709,9 +1721,9 @@ CONTAINS
              densindiv = pop%pop_grid(g)%patch(p)%layer(1)%cohort(i)%density
 
              IF ( PRESENT(precip) ) THEN
-                CALL GET_ALLOMETRY( ALLOM_SWITCH, POP%site%Kbiometric, cmass_stem, densindiv, ht, diam, basal, precip(g))
+                CALL GET_ALLOMETRY( ALLOM_SWITCH, POP%site%WD, POP%site%Kbiometric, cmass_stem, densindiv, ht, diam, basal, precip(g))
              ELSE
-                CALL GET_ALLOMETRY( ALLOM_SWITCH, POP%site%Kbiometric, cmass_stem, densindiv, ht, diam, basal )
+                CALL GET_ALLOMETRY( ALLOM_SWITCH, POP%site%WD, POP%site%Kbiometric, cmass_stem, densindiv, ht, diam, basal )
              ENDIF
 
 
@@ -2255,9 +2267,9 @@ CONTAINS
              pop%pop_grid(j)%patch(k)%Layer(1)%cohort(ncohort)%sapwood = cmass
 
              IF ( PRESENT(precip) ) THEN
-                CALL GET_ALLOMETRY( ALLOM_SWITCH, POP%site%Kbiometric, cmass, densindiv, ht, diam, basal, precip(j))
+                CALL GET_ALLOMETRY( ALLOM_SWITCH, POP%site%WD, POP%site%Kbiometric, cmass, densindiv, ht, diam, basal, precip(j))
              ELSE
-                CALL GET_ALLOMETRY( ALLOM_SWITCH, POP%site%Kbiometric, cmass, densindiv, ht, diam, basal )
+                CALL GET_ALLOMETRY( ALLOM_SWITCH, POP%site%WD, POP%site%Kbiometric, cmass, densindiv, ht, diam, basal )
              ENDIF
 
              pop%pop_grid(j)%patch(k)%layer(1)%cohort(ncohort)%height   = ht
@@ -2316,9 +2328,9 @@ CONTAINS
              pop%pop_grid(j)%patch(k)%Layer(1)%cohort(ncohort)%sapwood = cmass
 
              IF ( PRESENT(precip) ) THEN
-                CALL GET_ALLOMETRY( ALLOM_SWITCH, POP%site%Kbiometric, cmass, densindiv, ht, diam, basal, precip(j))
+                CALL GET_ALLOMETRY( ALLOM_SWITCH, POP%site%WD, POP%site%Kbiometric, cmass, densindiv, ht, diam, basal, precip(j))
              ELSE
-                CALL GET_ALLOMETRY( ALLOM_SWITCH, POP%site%Kbiometric, cmass, densindiv, ht, diam, basal )
+                CALL GET_ALLOMETRY( ALLOM_SWITCH, POP%site%WD, POP%site%Kbiometric, cmass, densindiv, ht, diam, basal )
              ENDIF
 
              pop%pop_grid(j)%patch(k)%layer(1)%cohort(ncohort)%height   = ht
@@ -2420,7 +2432,7 @@ CONTAINS
   ! ALLOMETRY
   !*******************************************************************************
 
-  SUBROUTINE GET_ALLOMETRY( ALLOM_SWITCH,  Kbiometric, biomass, density, ht, diam, basal, precip )
+  SUBROUTINE GET_ALLOMETRY( ALLOM_SWITCH, WD, Kbiometric, biomass, density, ht, diam, basal, precip )
 
 #ifdef __MPI__
     use mpi, only: MPI_Abort
@@ -2429,6 +2441,7 @@ CONTAINS
     IMPLICIT NONE
 
     INTEGER(i4b), INTENT(IN) :: ALLOM_SWITCH
+    REAL(dp),     INTENT(IN) :: WD  ! wood density 
     REAL(dp),     INTENT(IN) :: Kbiometric
     REAL(dp),     INTENT(IN) :: biomass
     REAL(dp),     INTENT(IN) :: density
@@ -2447,12 +2460,12 @@ CONTAINS
 
        ! Top-End Allometry following G.Cook
     ELSEIF (ALLOM_SWITCH.EQ.1.AND.PRESENT(precip)) THEN
-       ht   =GetHeight(precip,biomass,density)
-       CALL Allometry(ht,biomass,density,diam,basal)
+       ht   =GetHeight(precip,WD,biomass,density)
+       CALL Allometry(WD,ht,biomass,density,diam,basal)
 
        ! Allometry following Williams 2005, Model 5b
     ELSEIF ( ALLOM_SWITCH.EQ.2 ) THEN
-       CALL Williams_Allometry(biomass,density,ht,diam,basal)
+       CALL Williams_Allometry(biomass,WD,density,ht,diam,basal)
 
     ELSE
        WRITE(*,*)"Invalid Allometry settings in POP!"
@@ -2481,11 +2494,12 @@ CONTAINS
   ! biomass = tree stem C biomass across patch (kgC/m2)
   ! density = tree density (indiv/m2)
 
-  REAL(dp) FUNCTION GetHeight(precip,biomass,density)
+  REAL(dp) FUNCTION GetHeight(precip,WD,biomass,density)
 
     IMPLICIT NONE
 
     REAL(dp), INTENT(IN) :: precip
+    REAL(dp), INTENT(IN) :: WD
     REAL(dp), INTENT(IN) :: biomass
     REAL(dp), INTENT(IN) :: density
 
@@ -3692,10 +3706,11 @@ END FUNCTION TopKill_Collins
 ! Computes tree stem diameter (m) and basal area (m2/ha)
 ! given height (m), stem biomass (kgC/m2) and tree population density (indiv/m2)
 
-SUBROUTINE Allometry(height,biomass,density,diam,basal)
+SUBROUTINE Allometry(WD,height,biomass,density,diam,basal)
 
   IMPLICIT NONE
 
+  REAL(dp), INTENT(IN) :: WD
   REAL(dp), INTENT(IN) :: height
   REAL(dp), INTENT(IN) :: biomass
   REAL(dp), INTENT(IN) :: density
@@ -3716,7 +3731,7 @@ END SUBROUTINE Allometry
 !*******************************************************************************
 
 
-  SUBROUTINE Williams_Allometry(agBiomass, density, height, dbh, basal)
+  SUBROUTINE Williams_Allometry(agBiomass, WD, density, height, dbh, basal)
 
     IMPLICIT NONE
     ! Allometry following Williams 2005, Model 5b (see table 2)
@@ -3730,7 +3745,7 @@ END SUBROUTINE Allometry
     ! height   : tree height [m]
     ! dbh      : Diameter at breast height [m]
     ! basal    : Basal area [m2/ha]
-    REAL(dp), INTENT(IN) :: agbiomass, density
+    REAL(dp), INTENT(IN) :: agbiomass, WD, density
     REAL(dp), INTENT(OUT):: height, dbh, basal
 
     REAL(dp), PARAMETER  :: beta0 = -2.3046_dp
