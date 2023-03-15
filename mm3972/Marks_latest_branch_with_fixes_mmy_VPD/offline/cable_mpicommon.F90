@@ -79,7 +79,8 @@ MODULE cable_mpicommon
   ! timestep
   !INTEGER, PARAMETER :: ninput = 11
   ! added 4 time fields in met: year, moy, doy, hod
-  INTEGER, PARAMETER :: ninput = 16
+  ! INTEGER, PARAMETER :: ninput = 16 ! MMY@Mar2023
+  INTEGER, PARAMETER :: ninput = 17 ! MMY@Mar2023
 
   ! MPI: number of 3D array slices / worker (results)
   INTEGER, PARAMETER :: n3d = 1
@@ -92,8 +93,7 @@ MODULE cable_mpicommon
   !INTEGER, PARAMETER :: nmat = 29
   ! MPI: CABLE_r491, after following up with Bernard on the new variables
   ! vh sli nmat + 4 36 -> 40
-  INTEGER, PARAMETER :: nmat = 46  !hysteresis 41 ! MMY@Mar2023
-  ! INTEGER, PARAMETER :: nmat = 47  ! MMY@Mar2023
+  INTEGER, PARAMETER :: nmat = 46  !hysteresis 41 
 
   ! MPI: number of contig vector parts / worker (results)
   !INTEGER, PARAMETER :: nvec = 149
