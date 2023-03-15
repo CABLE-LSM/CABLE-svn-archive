@@ -2195,12 +2195,12 @@ END SUBROUTINE calc_soil_hydraulic_props
 
        ssnow%qhlev(i,ms+1) = max((ssnow%GWwb(i) - soil%GWwatr(i)),0._r_2)*&
                              ice_factor(i,ms)*ssnow%qhz(i)/sm_tot(i)            & ! MMY
+                             + ssnow%hk(i,ms)  ! MMY: free drainage, ssnow%hk(i,ms) is Qrecharge
+                                               !      add aquifer recharge to subsurface runoff
 
        do k=k_drain(i),ms
           ssnow%qhlev(i,k) = max(ssnow%wbliq(i,k)-ssnow%watr_hys(i,k),0._r_2)*&
                                    ice_factor(i,k)*ssnow%qhz(i)/sm_tot(i)
-                                   + ssnow%hk(i,ms)  ! MMY: free drainage, ssnow%hk(i,ms) is Qrecharge
-                                                     !      add aquifer recharge to subsurface runoff
        end do
 
        !incase every layer is frozen very dry
