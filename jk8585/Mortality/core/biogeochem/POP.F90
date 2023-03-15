@@ -104,7 +104,7 @@ MODULE POP_Constants
   !REAL(dp), PARAMETER :: MORT_MAX = 0.12_dp ! upper asymptote for enhanced mortality
   REAL(dp), PARAMETER :: THETA_recruit = 0.95_dp ! shape parameter in recruitment equation
   !REAL(dp), PARAMETER :: CMASS_STEM_INIT = 1.0e-4_dp ! initial biomass kgC/m2
-  REAL(dp), PARAMETER :: CMASS_STEM_INIT = 0.6_dp ! initial biomass kgC/m2
+  !REAL(dp), PARAMETER :: CMASS_STEM_INIT = 0.6_dp ! initial biomass kgC/m2
   REAL(dp), PARAMETER :: POWERbiomass = 0.67_dp ! exponent for biomass in proportion to which cohorts preempt resources
   REAL(dp), PARAMETER :: POWERGrowthEfficiency = 0.67_dp
   !REAL(dp), PARAMETER :: CrowdingFactor = 0.043_dp ! 0.043 ! 0.039  !0.029 ! 0.033
@@ -168,6 +168,7 @@ MODULE POP_Types
   ! JK: Introduce Site Type so that some key parameters can be varied depending on site
   ! Note: only temporary solution, specific to Mortality-MIP runs.
   TYPE Site
+      REAL(dp) :: CMASS_STEM_INIT
       REAL(dp) :: WD
       REAL(dp) :: GROWTH_EFFICIENCY_MIN
       REAL(dp) :: Pmort
@@ -354,6 +355,7 @@ CONTAINS
 
     !! JK: site specific parameters (see module POP_Constants for context)
     !!     Parameterisation in Subroutine POPStep (in need of a better solution...)
+    POP%site%CMASS_STEM_INIT = 0.0_dp
     POP%site%WD = 0.0_dp
     POP%site%GROWTH_EFFICIENCY_MIN = 0.0_dp
     POP%site%Pmort = 0.0_dp
@@ -668,30 +670,85 @@ CONTAINS
     INTEGER(i4b) :: idisturb,np,g,counter
     INTEGER(i4b), allocatable :: it(:)
 
+    REAL(dp) :: GE_min
 
     !! JK: initialise site-specific parameter values here
     select case(trim(cable_user%site))
-    case("FIN")
-        POP%site%WD                    = 340.0_dp
-        POP%site%GROWTH_EFFICIENCY_MIN = 0.015_dp ! 0.0095 ! 0.0089 ! 0.0084
-        POP%site%Pmort                 = 3.0_dp 
-        POP%site%MORT_MAX              = 0.15_dp
-        POP%site%Kbiometric            = 25.0_dp 
-        POP%site%CrowdingFactor        = 0.08_dp 
+       case("FIN")
+          POP%site%CMASS_STEM_INIT       = 0.4_dp
+          POP%site%WD                    = 340.0_dp
+          POP%site%Kbiometric            = 40.0_dp 
+          POP%site%CrowdingFactor        = 0.10_dp
+          POP%site%Pmort                 = 4.0_dp 
+          POP%site%MORT_MAX              = 0.15_dp
+          select case(trim(cable_user%mortality_experiment))
+             case("P0")
+                POP%site%GROWTH_EFFICIENCY_MIN = 0.015_dp
+             case("PS1")
+                POP%site%GROWTH_EFFICIENCY_MIN = 0.015_dp
+             case("PS2")
+                POP%site%GROWTH_EFFICIENCY_MIN = 0.015_dp
+             case("PS3")
+                POP%site%GROWTH_EFFICIENCY_MIN = 0.015_dp
+             case("PS4")
+                POP%site%GROWTH_EFFICIENCY_MIN = 0.015_dp
+             case("PS5")
+                POP%site%GROWTH_EFFICIENCY_MIN = 0.015_dp
+             case("PS6")
+                POP%site%GROWTH_EFFICIENCY_MIN = 0.015_dp
+             case("PS7")
+                POP%site%GROWTH_EFFICIENCY_MIN = 0.015_dp
+          end select
     case("BIA")
+        POP%site%CMASS_STEM_INIT       = 0.4_dp
         POP%site%WD                    = 340.0_dp
-        POP%site%GROWTH_EFFICIENCY_MIN = 0.015_dp ! 0.0095 ! 0.0089 ! 0.0084
-        POP%site%Pmort                 = 3.0_dp 
-        POP%site%MORT_MAX              = 0.15_dp
-        POP%site%Kbiometric            = 25.0_dp 
+        POP%site%Kbiometric            = 20.0_dp 
         POP%site%CrowdingFactor        = 0.06_dp 
+        POP%site%Pmort                 = 2.75_dp 
+        POP%site%MORT_MAX              = 0.15_dp
+        select case(trim(cable_user%mortality_experiment))
+            case("P0")
+               POP%site%GROWTH_EFFICIENCY_MIN = 0.015_dp
+            case("PS1")
+               POP%site%GROWTH_EFFICIENCY_MIN = 0.015_dp
+            case("PS2")
+               POP%site%GROWTH_EFFICIENCY_MIN = 0.015_dp
+            case("PS3")
+               POP%site%GROWTH_EFFICIENCY_MIN = 0.015_dp
+            case("PS4")
+               POP%site%GROWTH_EFFICIENCY_MIN = 0.015_dp
+            case("PS5")
+               POP%site%GROWTH_EFFICIENCY_MIN = 0.015_dp
+            case("PS6")
+               POP%site%GROWTH_EFFICIENCY_MIN = 0.015_dp
+            case("PS7")
+               POP%site%GROWTH_EFFICIENCY_MIN = 0.015_dp
+         end select
     case("BCI")
+        POP%site%CMASS_STEM_INIT       = 0.6_dp
         POP%site%WD                    = 300.0_dp
-        POP%site%GROWTH_EFFICIENCY_MIN = 0.012_dp ! 0.0095 ! 0.0089 ! 0.0084
-        POP%site%Pmort                 = 1.2_dp
-        POP%site%MORT_MAX              = 0.12_dp 
         POP%site%Kbiometric            = 20.0_dp
         POP%site%CrowdingFactor        = 0.05_dp 
+        POP%site%Pmort                 = 1.2_dp
+        POP%site%MORT_MAX              = 0.12_dp 
+        select case(trim(cable_user%mortality_experiment))
+            case("P0")
+               POP%site%GROWTH_EFFICIENCY_MIN = 0.015_dp
+            case("PS1")
+               POP%site%GROWTH_EFFICIENCY_MIN = 0.015_dp
+            case("PS2")
+               POP%site%GROWTH_EFFICIENCY_MIN = 0.015_dp
+            case("PS3")
+               POP%site%GROWTH_EFFICIENCY_MIN = 0.015_dp
+            case("PS4")
+               POP%site%GROWTH_EFFICIENCY_MIN = 0.015_dp
+            case("PS5")
+               POP%site%GROWTH_EFFICIENCY_MIN = 0.03_dp
+            case("PS6")
+               POP%site%GROWTH_EFFICIENCY_MIN = 0.04_dp
+            case("PS7")
+               POP%site%GROWTH_EFFICIENCY_MIN = 0.05_dp
+         end select
     end select  
     !write(*,*) "cable_user%site:", cable_user%site
     !write(*,*) "POP%site%GROWTH_EFFICIENCY_MIN:", POP%site%GROWTH_EFFICIENCY_MIN
@@ -2252,7 +2309,7 @@ CONTAINS
                (f+1.0_dp-SQRT((f+1.0_dp)*(f+1.0_dp)-4.0_dp*THETA_recruit*f))), &
                -50.0_dp))
           densindiv=DENSINDIV_MAX*mu + pop%pop_grid(j)%patch(k)%fire_top_kill_density
-          cmass=CMASS_STEM_INIT*densindiv/DENSINDIV_MAX
+          cmass=POP%site%CMASS_STEM_INIT*densindiv/DENSINDIV_MAX
 
           !write(5599,*),  pop%pop_grid(j)%patch(k)%fire_top_kill_density,  densindiv, pop%pop_grid(j)%patch(k)%Layer(1)%ncohort
           !COMMLN below: should not be cohort +1 or .LE. !
@@ -2311,7 +2368,7 @@ CONTAINS
           f = pop%pop_grid(j)%patch(k)%factor_recruit
           mu=EXP(FULTON_ALPHA*(1.0_dp-2.0_dp*THETA_recruit/(f+1.0_dp-SQRT((f+1.0_dp)*(f+1.0_dp)-4.0_dp*THETA_recruit*f))))
           densindiv=DENSINDIV_MAX*mu
-          cmass=CMASS_STEM_INIT*densindiv/DENSINDIV_MAX
+          cmass=POP%site%CMASS_STEM_INIT*densindiv/DENSINDIV_MAX
 
           !write(84,*) "pop%pop_grid(j)%patch(k)%factor_recruit:", f
           !write(84,*) "mu:", mu
