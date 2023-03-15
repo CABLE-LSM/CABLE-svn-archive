@@ -73,6 +73,9 @@ MODULE cable_mpicommon
   ! MPI: number of mic restart variables received from workers
   INTEGER, PARAMETER :: nmicrestart = 2
 
+  ! MPI: number of mic output variables received from workers
+  INTEGER, PARAMETER :: nmicoutput = 3
+
   ! MPI: number of 3D array slices / worker (results)
   INTEGER, PARAMETER :: n3d = 1
 
