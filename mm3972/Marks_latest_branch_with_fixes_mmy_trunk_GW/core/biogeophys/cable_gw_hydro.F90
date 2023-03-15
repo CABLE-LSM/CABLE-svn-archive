@@ -812,16 +812,6 @@ END SUBROUTINE remove_transGW
        ssnow%GWwb(i) = ssnow%GWwb(i)  +  (ssnow%Qrecharge(i)-ssnow%qhlev(i,ms+1))*dels/(m2mm*soil%GWdz(i))
     end do
 
-    ! __________________________ MMY: water movement ___________________________
-    do i=1,mp
-      ssnow%watmove(i,ms)  = rt(i,ms)*(m2mm*soil%zse_vec(i,ms))/dels ! units: mm/s
-      print *, "watemove is ", ssnow%watmove(i,ms)
-      do k = ms-1,1,-1
-         ssnow%watmove(i,k) = rt(i,k)*(m2mm*soil%zse_vec(i,k))/dels + ssnow%watmove(i,k+1)
-      end do
-    end do
-    ! __________________________________________________________________________
-
     !determine the available pore space
     !volumetric
     do k=1,ms
