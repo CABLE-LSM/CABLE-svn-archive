@@ -3160,7 +3160,6 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,climate,bgc,soil,canopy,rough,rad, 
     CALL report_parameters(logn,soil,veg,bgc,rough,ssnow,canopy, &
          casamet,casapool,casaflux,phen,vegparmnew,verbose)
 
-    print *,"***MMY soil%elev, rough%za_uv, rough%za_tq, veg%hc",soil%elev, rough%za_uv, rough%za_tq, veg%hc !MMY
 END SUBROUTINE load_parameters
 
 
