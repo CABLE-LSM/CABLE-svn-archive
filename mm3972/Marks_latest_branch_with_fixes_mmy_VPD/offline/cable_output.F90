@@ -1730,8 +1730,8 @@ CONTAINS
     ! Tair: surface air temperature [K]
     IF(output%met .OR. output%Tair) THEN
        ! Add current timestep's value to total of temporary output variable:
-       ! out%Tair = out%Tair + REAL(met%tk, 4)  ! MMY@Mar2023
-       out%Tair = out%Tair + REAL(met%tk_dt, 4)  ! MMY@Mar2023 output the detrend Tair
+       out%Tair = out%Tair + REAL(met%tk, 4)  ! MMY@Mar2023
+      !  out%Tair = out%Tair + REAL(met%tk_dt, 4)  ! MMY@Mar2023 output the detrend Tair
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
           out%Tair = out%Tair/REAL(output%interval, 4)
