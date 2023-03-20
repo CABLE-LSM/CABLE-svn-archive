@@ -2641,7 +2641,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
 
       ! ___________________ MMY@Mar2023 ___________________
       ! Get detrended Tair data for land-only grid:- - - - - - - - - - - - - - -
-      IF (ncciy > 0) ncid_met = ncid_ta
+      IF (ncciy > 0) ncid_met = ncid_ta_dt
       ok= NF90_GET_VAR(ncid_met,id%Tair_dt,tmpDat2, &
            start=(/1,ktau/),count=(/mland,1/))
       IF(ok /= NF90_NOERR) CALL nc_abort &

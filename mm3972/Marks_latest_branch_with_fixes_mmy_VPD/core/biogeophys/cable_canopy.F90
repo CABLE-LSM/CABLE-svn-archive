@@ -256,9 +256,6 @@ CONTAINS
        IF (cable_user%l_new_roughness_soil)                                     &
             CALL ruff_resist(veg, rough, ssnow, canopy)
 
-
-
-
        ! Turbulent aerodynamic resistance from roughness sublayer depth
        ! to reference height, x=1 if zref+disp>zruffs,
        ! 0 otherwise: thus rt1usc = 0 if zref+disp<zruffs
@@ -453,7 +450,7 @@ CONTAINS
        canopy%fns = rad%qssabs + rad%transd*met%fld + (1.0-rad%transd)*C%EMLEAF* &
             C%SBOLTZ*canopy%tv**4 - C%EMSOIL*C%SBOLTZ* tss4
 
-
+      ! MMY@Mar2023 ??? should I change
        ! Saturation specific humidity at soil/snow surface temperature:
       call qsatfjh(ssnow%qstss,ssnow%tss-C%tfrz,met%pmb)
 
@@ -480,7 +477,7 @@ CONTAINS
 
              ! Humidity deficit
              ! INH: I think this should be - met%qvair
-             dq = ssnow%qstss - met%qv
+             dq = ssnow%qstss - met%qv  ! MMY@Mar2023 here should be changed to use detrended Tair calculate
              dq_unsat = ssnow%rh_srf*ssnow%qstss - met%qv
              ssnow%potev =  Humidity_deficit_method(dq, dq_unsat,ssnow%qstss)
 
