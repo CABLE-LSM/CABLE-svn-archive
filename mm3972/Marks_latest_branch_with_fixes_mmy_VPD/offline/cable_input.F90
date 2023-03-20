@@ -2185,7 +2185,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
 
    ! ___________________ MMY@Mar2023 ___________________
    ! Get detrended Tair data for mask grid:- - - - - - - - - - - - - - - - - -
-   IF(cable_user%GSWP3) ncid_met = ncid_ta ! since GSWP3 multiple met files
+   IF(cable_user%GSWP3) ncid_met = ncid_ta_dt ! since GSWP3 multiple met files
       ! Find number of dimensions of detrended Tair :
    ok = NF90_INQUIRE_VARIABLE(ncid_met,id%Tair_dt,ndims=ndims)
    IF(ndims==3) THEN ! 3D var, either on grid or new ALMA format single site
