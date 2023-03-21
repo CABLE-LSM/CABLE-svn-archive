@@ -51,9 +51,9 @@ module cable_cru
      !
      !character(len=30)  :: run            ! Where run type is      : "S0_TRENDY", "S1_TRENDY", "S2_TRENDY"
      character(len=30)  :: run            ! Where run type is      : "Spinup", "P0", "PS"
-     character(len=15)  :: CO2            ! CO2 takes value        : "static1860", "1860_1900", "1901_2015"
-     character(len=15)  :: ndep           ! Ndep takes value        : "static1860", "1860_1900", "1901_2015"
-     character(len=15)  :: forcing        ! Met Forcing takes value: "spinup",        "spinup", "1901_2015"
+     character(len=30)  :: CO2            ! CO2 takes value        : "static1860", "1860_1900", "1901_2015"
+     character(len=30)  :: ndep           ! Ndep takes value        : "static1860", "1860_1900", "1901_2015"
+     character(len=30)  :: forcing        ! Met Forcing takes value: "spinup",        "spinup", "1901_2015"
      character(len=200) :: BasePath       ! Full path for the location of data used for CRU runs "/x/y"
      character(len=200) :: MetPath        ! Full path for the location of the met files "/x/y"
      character(len=50)  :: MetVersion     ! Met Forcing Version (currently CRUJRA_YEAR and VERIFY_2021)
