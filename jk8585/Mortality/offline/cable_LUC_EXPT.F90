@@ -553,17 +553,17 @@ CONTAINS
        !! Note that there are two different forest PFTs, one of which will be defined as secondary forest.
        !! Since LUC is not considered in this MIP, this should be fine (also the only way to simulate 3 different PFTs!)
        if (trim(cable_user%site) == "FIN" ) then
-         !inVeg(m,n,:)   = (/1, 4, 6/)
-         inVeg(m,n,:)   = (/1, 0, 0/)
-         inPFrac(m,n,:) = (/1.0, 0.0, 0.0/)
+         inVeg(m,n,:)   = (/1, 4, 6/)
+         !inVeg(m,n,:)   = (/1, 0, 0/)
+         inPFrac(m,n,:) = (/0.85, 0.05, 0.1/)
        elseif (trim(cable_user%site) == "BIA" ) then
-         !inVeg(m,n,:)   = (/1, 4, 6/)
-         inVeg(m,n,:)   = (/1, 0, 0/)
-         inPFrac(m,n,:) = (/1.0, 0.0, 0.0/)
+         inVeg(m,n,:)   = (/1, 4, 6/)
+         !inVeg(m,n,:)   = (/1, 0, 0/)
+         inPFrac(m,n,:) = (/0.45, 0.45, 0.1/)
        elseif (trim(cable_user%site) == "BCI" ) then
-         !inVeg(m,n,:)   = (/2, 2, 7/)
-         inVeg(m,n,:)   = (/2, 0, 0/)
-         inPFrac(m,n,:) = (/1.0, 0.0, 0.0/)
+         inVeg(m,n,:)   = (/2, 2, 7/)
+         !inVeg(m,n,:)   = (/2, 0, 0/)
+         inPFrac(m,n,:) = (/0.45, 0.45, 0.1/)
        endif
        
        LUC_EXPT%prim_only(k)=.TRUE.

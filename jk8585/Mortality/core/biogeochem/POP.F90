@@ -105,6 +105,7 @@ MODULE POP_Constants
   REAL(dp), PARAMETER :: THETA_recruit = 0.95_dp ! shape parameter in recruitment equation
   !REAL(dp), PARAMETER :: CMASS_STEM_INIT = 1.0e-4_dp ! initial biomass kgC/m2
   !REAL(dp), PARAMETER :: CMASS_STEM_INIT = 0.6_dp ! initial biomass kgC/m2
+  !REAL(dp), PARAMETER :: CMASS_STEM_INIT = 0.1_dp ! initial biomass kgC/m2
   REAL(dp), PARAMETER :: POWERbiomass = 0.67_dp ! exponent for biomass in proportion to which cohorts preempt resources
   REAL(dp), PARAMETER :: POWERGrowthEfficiency = 0.67_dp
   !REAL(dp), PARAMETER :: CrowdingFactor = 0.043_dp ! 0.043 ! 0.039  !0.029 ! 0.033
@@ -112,7 +113,7 @@ MODULE POP_Constants
   REAL(dp), PARAMETER :: k_allom1 = 200.0_dp ! crown area =  k_allom1 * diam ** k_rp
   REAL(dp), PARAMETER :: k_rp = 1.67_dp  ! constant in crown area relation to tree diameter
   !REAL(dp), PARAMETER :: ksapwood = 0.0667_dp ! rate constant for conversion of sapwood to heartwood (y-1)
-  REAL(dp), PARAMETER :: ksapwood = 0.05_dp ! rate constant for conversion of sapwood to heartwood (y-1)
+  !REAL(dp), PARAMETER :: ksapwood = 0.05_dp ! rate constant for conversion of sapwood to heartwood (y-1)
   REAL(dp), PARAMETER :: Q=7.0_dp ! governs rate of increase of mortality with age (2=exponential)
   REAL,     PARAMETER :: rshootfrac = 0.63
   REAL(dp), PARAMETER :: shootfrac = real(rshootfrac,dp)
@@ -175,6 +176,7 @@ MODULE POP_Types
       REAL(dp) :: MORT_MAX
       REAL(dp) :: Kbiometric
       REAL(dp) :: CrowdingFactor
+      REAL(dp) :: ksapwood
   END TYPE Site
 
   TYPE Cohort
@@ -362,6 +364,7 @@ CONTAINS
     POP%site%MORT_MAX = 0.0_dp
     POP%site%Kbiometric = 0.0_dp
     POP%site%CrowdingFactor = 0.0_dp
+    POP%site%ksapwood = 0.0_dp
 
 
     np = SIZE(pop%pop_grid)
@@ -670,84 +673,118 @@ CONTAINS
     INTEGER(i4b) :: idisturb,np,g,counter
     INTEGER(i4b), allocatable :: it(:)
 
-    REAL(dp) :: GE_min
-
     !! JK: initialise site-specific parameter values here
     select case(trim(cable_user%site))
        case("FIN")
-          POP%site%CMASS_STEM_INIT       = 0.4_dp
+          POP%site%CMASS_STEM_INIT       = 0.1_dp
           POP%site%WD                    = 340.0_dp
-          POP%site%Kbiometric            = 40.0_dp 
+          POP%site%ksapwood              = 0.04_dp
+          POP%site%Kbiometric            = 35.0_dp 
           POP%site%CrowdingFactor        = 0.10_dp
           POP%site%Pmort                 = 4.0_dp 
-          POP%site%MORT_MAX              = 0.15_dp
           select case(trim(cable_user%mortality_experiment))
-             case("P0")
-                POP%site%GROWTH_EFFICIENCY_MIN = 0.015_dp
-             case("PS1")
-                POP%site%GROWTH_EFFICIENCY_MIN = 0.015_dp
+             case("P0","PS1")
+                POP%site%GROWTH_EFFICIENCY_MIN = 0.016_dp
+                POP%site%MORT_MAX              = 0.15_dp
+                POP%site%CMASS_STEM_INIT       = 0.1_dp
              case("PS2")
-                POP%site%GROWTH_EFFICIENCY_MIN = 0.015_dp
+                POP%site%GROWTH_EFFICIENCY_MIN = 0.01808660_dp
+                POP%site%MORT_MAX              = 0.1511340_dp
+                POP%site%CMASS_STEM_INIT       = 0.08_dp
              case("PS3")
-                POP%site%GROWTH_EFFICIENCY_MIN = 0.015_dp
+                POP%site%GROWTH_EFFICIENCY_MIN = 0.02780361_dp
+                POP%site%MORT_MAX              = 0.1564150_dp
+                POP%site%CMASS_STEM_INIT       = 0.06_dp
              case("PS4")
-                POP%site%GROWTH_EFFICIENCY_MIN = 0.015_dp
+                POP%site%GROWTH_EFFICIENCY_MIN = 0.04852691_dp
+                POP%site%MORT_MAX              = 0.1676777_dp
+                POP%site%CMASS_STEM_INIT       = 0.04_dp
              case("PS5")
-                POP%site%GROWTH_EFFICIENCY_MIN = 0.015_dp
+                POP%site%GROWTH_EFFICIENCY_MIN = 0.08277128_dp
+                POP%site%MORT_MAX              = 0.1862887_dp
+                POP%site%CMASS_STEM_INIT       = 0.02_dp
              case("PS6")
-                POP%site%GROWTH_EFFICIENCY_MIN = 0.015_dp
+                POP%site%GROWTH_EFFICIENCY_MIN = 0.13264462_dp
+                POP%site%MORT_MAX              = 0.2133938_dp
+                POP%site%CMASS_STEM_INIT       = 0.01_dp
              case("PS7")
-                POP%site%GROWTH_EFFICIENCY_MIN = 0.015_dp
+                POP%site%GROWTH_EFFICIENCY_MIN = 0.2_dp
+                POP%site%MORT_MAX              = 0.25_dp
+                POP%site%CMASS_STEM_INIT       = 0.005_dp
           end select
     case("BIA")
-        POP%site%CMASS_STEM_INIT       = 0.4_dp
+        POP%site%CMASS_STEM_INIT       = 0.1_dp
         POP%site%WD                    = 340.0_dp
+        POP%site%ksapwood              = 0.05_dp
         POP%site%Kbiometric            = 20.0_dp 
         POP%site%CrowdingFactor        = 0.06_dp 
-        POP%site%Pmort                 = 2.75_dp 
-        POP%site%MORT_MAX              = 0.15_dp
+        POP%site%Pmort                 = 2.25_dp 
         select case(trim(cable_user%mortality_experiment))
-            case("P0")
-               POP%site%GROWTH_EFFICIENCY_MIN = 0.015_dp
-            case("PS1")
-               POP%site%GROWTH_EFFICIENCY_MIN = 0.015_dp
+            case("P0","PS1")
+               POP%site%GROWTH_EFFICIENCY_MIN = 0.012_dp
+               POP%site%MORT_MAX              = 0.15_dp
+               POP%site%CMASS_STEM_INIT       = 0.1_dp
             case("PS2")
-               POP%site%GROWTH_EFFICIENCY_MIN = 0.015_dp
+               POP%site%GROWTH_EFFICIENCY_MIN = 0.01866806_dp
+               POP%site%MORT_MAX              = 0.1528351_dp
+               POP%site%CMASS_STEM_INIT       = 0.08_dp
             case("PS3")
-               POP%site%GROWTH_EFFICIENCY_MIN = 0.015_dp
+               POP%site%GROWTH_EFFICIENCY_MIN = 0.04972022_dp
+               POP%site%MORT_MAX              = 0.1660375_dp
+               POP%site%CMASS_STEM_INIT       = 0.06_dp
             case("PS4")
-               POP%site%GROWTH_EFFICIENCY_MIN = 0.015_dp
+               POP%site%GROWTH_EFFICIENCY_MIN = 0.11594470_dp
+               POP%site%MORT_MAX              = 0.1941942_dp
+               POP%site%CMASS_STEM_INIT       = 0.04_dp
             case("PS5")
-               POP%site%GROWTH_EFFICIENCY_MIN = 0.015_dp
+               POP%site%GROWTH_EFFICIENCY_MIN = 0.22537777_dp
+               POP%site%MORT_MAX              = 0.2407218_dp
+               POP%site%CMASS_STEM_INIT       = 0.02_dp
             case("PS6")
-               POP%site%GROWTH_EFFICIENCY_MIN = 0.015_dp
+               POP%site%GROWTH_EFFICIENCY_MIN = 0.38475563_dp
+               POP%site%MORT_MAX              = 0.3084845_dp
+               POP%site%CMASS_STEM_INIT       = 0.01_dp
             case("PS7")
-               POP%site%GROWTH_EFFICIENCY_MIN = 0.015_dp
+               POP%site%GROWTH_EFFICIENCY_MIN = 0.6_dp
+               POP%site%MORT_MAX              = 0.4_dp
+               POP%site%CMASS_STEM_INIT       = 0.005_dp
          end select
     case("BCI")
-        POP%site%CMASS_STEM_INIT       = 0.6_dp
+        POP%site%CMASS_STEM_INIT       = 0.1_dp
         POP%site%WD                    = 300.0_dp
+        POP%site%ksapwood              = 0.11_dp
         POP%site%Kbiometric            = 20.0_dp
         POP%site%CrowdingFactor        = 0.05_dp 
         POP%site%Pmort                 = 1.2_dp
-        POP%site%MORT_MAX              = 0.12_dp 
         select case(trim(cable_user%mortality_experiment))
-            case("P0")
-               POP%site%GROWTH_EFFICIENCY_MIN = 0.015_dp
-            case("PS1")
-               POP%site%GROWTH_EFFICIENCY_MIN = 0.015_dp
+            case("P0","PS1")
+               POP%site%GROWTH_EFFICIENCY_MIN = 0.010_dp
+               POP%site%MORT_MAX              = 0.12_dp 
+               POP%site%CMASS_STEM_INIT       = 0.1_dp
             case("PS2")
-               POP%site%GROWTH_EFFICIENCY_MIN = 0.015_dp
+               POP%site%GROWTH_EFFICIENCY_MIN = 0.02236085_dp
+               POP%site%MORT_MAX              = 0.1254433_dp 
+               POP%site%CMASS_STEM_INIT       = 0.08_dp
             case("PS3")
-               POP%site%GROWTH_EFFICIENCY_MIN = 0.015_dp
+               POP%site%GROWTH_EFFICIENCY_MIN = 0.07992353_dp
+               POP%site%MORT_MAX              = 0.1507920_dp 
+               POP%site%CMASS_STEM_INIT       = 0.06_dp
             case("PS4")
-               POP%site%GROWTH_EFFICIENCY_MIN = 0.015_dp
+               POP%site%GROWTH_EFFICIENCY_MIN = 0.20268660_dp
+               POP%site%MORT_MAX              = 0.2048528_dp 
+               POP%site%CMASS_STEM_INIT       = 0.04_dp
             case("PS5")
-               POP%site%GROWTH_EFFICIENCY_MIN = 0.03_dp
+               POP%site%GROWTH_EFFICIENCY_MIN = 0.40554723_dp
+               POP%site%MORT_MAX              = 0.2941859_dp 
+               POP%site%CMASS_STEM_INIT       = 0.02_dp
             case("PS6")
-               POP%site%GROWTH_EFFICIENCY_MIN = 0.04_dp
+               POP%site%GROWTH_EFFICIENCY_MIN = 0.70099258_dp
+               POP%site%MORT_MAX              = 0.4242903_dp 
+               POP%site%CMASS_STEM_INIT       = 0.01_dp
             case("PS7")
-               POP%site%GROWTH_EFFICIENCY_MIN = 0.05_dp
+               POP%site%GROWTH_EFFICIENCY_MIN = 1.1_dp
+               POP%site%MORT_MAX              = 0.6_dp 
+               POP%site%CMASS_STEM_INIT       = 0.005_dp
          end select
     end select  
     !write(*,*) "cable_user%site:", cable_user%site
@@ -1108,15 +1145,15 @@ CONTAINS
              ! increment heartwood in cohort
              pop%pop_grid(j)%patch(k)%Layer(1)%cohort(c)%heartwood =  &
                   pop%pop_grid(j)%patch(k)%Layer(1)%cohort(c)%heartwood + &
-                  ksapwood*pop%pop_grid(j)%patch(k)%Layer(1)%cohort(c)%sapwood
+                  POP%site%ksapwood*pop%pop_grid(j)%patch(k)%Layer(1)%cohort(c)%sapwood
 
              ! keep track of patch-level sapwood loss
              pop%pop_grid(j)%patch(k)%sapwood_loss = pop%pop_grid(j)%patch(k)%sapwood_loss + &
-                  ksapwood*pop%pop_grid(j)%patch(k)%Layer(1)%cohort(c)%sapwood
+                  POP%site%ksapwood*pop%pop_grid(j)%patch(k)%Layer(1)%cohort(c)%sapwood
 
              ! decrease sapwood in cohort (accounting for loss to heartwood)
              pop%pop_grid(j)%patch(k)%Layer(1)%cohort(c)%sapwood =  &
-                  (1.0_dp - ksapwood)*pop%pop_grid(j)%patch(k)%Layer(1)%cohort(c)%sapwood
+                  (1.0_dp - POP%site%ksapwood)*pop%pop_grid(j)%patch(k)%Layer(1)%cohort(c)%sapwood
 
 
              !if ( pop%pop_grid(j)%patch(k)%Layer(1)%cohort(c)%density.gt.1e-9) then
@@ -1162,13 +1199,13 @@ CONTAINS
 
              if (present(StemNPP_pot)) then
                 growth_efficiency=pop%pop_grid(j)%patch(k)%Layer(1)%cohort(c)%frac_resource_uptake* &
-                     StemNPP_pot(j)  /(cmass_stem**(POWERGrowthEfficiency))
+                     max(0.0,StemNPP_pot(j)) / (cmass_stem**(POWERGrowthEfficiency))
              else
-                growth_efficiency=cmass_stem_inc/(cmass_stem**(POWERGrowthEfficiency))
+                growth_efficiency=max(cmass_stem_inc,0.0_dp)/(cmass_stem**(POWERGrowthEfficiency))
              endif
              ! growth_efficiency=cmass_stem_inc/(pop%pop_grid(j)%patch(k)%Layer(1)%cohort(c)%sapwood**(POWERGrowthEfficiency))
              mort=POP%site%MORT_MAX/(1.0_dp+(growth_efficiency/POP%site%GROWTH_EFFICIENCY_MIN)**POP%site%Pmort)
-
+             
              ! mort = 0 ! test
 
              pop%pop_grid(j)%patch(k)%stress_mortality = pop%pop_grid(j)%patch(k)%stress_mortality &
@@ -1810,7 +1847,7 @@ CONTAINS
                      0.5_dp*pop%pop_grid(g)%patch(p)%layer(1)%cohort(i)%LAI !*1.4142
              ENDIF
              pop%pop_grid(g)%patch(p)%layer(1)%cohort(i)%crown_area= &
-                  max(pop%pop_grid(g)%patch(p)%layer(1)%cohort(i)%crown_area,0.01_dp)
+                  max(pop%pop_grid(g)%patch(p)%layer(1)%cohort(i)%crown_area,1.0e-6_dp)
 
              pop%pop_grid(g)%crown_area = pop%pop_grid(g)%crown_area + &
                   freq*pop%pop_grid(g)%patch(p)%layer(1)%cohort(i)%crown_area
@@ -2511,7 +2548,7 @@ CONTAINS
 
     ! Standard Allometry
     IF (ALLOM_SWITCH.EQ.0) THEN
-       ht   = (Kbiometric**(3.0_dp/4.0_dp))*(4.0_dp*biomass/(max(density,1.0e-5_dp)*WD*PI))**(1.0_dp/4.0_dp)
+       ht   = (Kbiometric**(3.0_dp/4.0_dp))*(4.0_dp*biomass/(max(density,1.0e-3_dp)*WD*PI))**(1.0_dp/4.0_dp)
        diam = (ht/Kbiometric)**(1.5_dp)
        basal= PI * (diam/2.0_dp) * (diam/2.0_dp) * density * 1.0e4_dp
 
