@@ -41,7 +41,7 @@ MODULE cable_mpicommon
   ! INH add 7 params for REV_CORR package
   ! mrd561 9 more: vector soils
   ! INTEGER, PARAMETER :: nparam =351!hysteresis 346! 341!1 !326!308 ! MMY@Mar2023
-  INTEGER, PARAMETER :: nparam =352 ! MMY@Mar2023 
+  INTEGER, PARAMETER :: nparam =353 ! MMY@Mar2023  Qair_dt & Tair_dt
   ! MPI: extra params sent only if nsoilparmnew is true
   INTEGER, PARAMETER :: nsoilnew = 1
 
@@ -80,7 +80,7 @@ MODULE cable_mpicommon
   !INTEGER, PARAMETER :: ninput = 11
   ! added 4 time fields in met: year, moy, doy, hod
   ! INTEGER, PARAMETER :: ninput = 16 ! MMY@Mar2023
-  INTEGER, PARAMETER :: ninput = 17 ! MMY@Mar2023
+  INTEGER, PARAMETER :: ninput = 18 ! MMY@Mar2023 Qair_dt & Tair_dt
 
   ! MPI: number of 3D array slices / worker (results)
   INTEGER, PARAMETER :: n3d = 1
@@ -111,7 +111,7 @@ MODULE cable_mpicommon
   ! INTEGER, PARAMETER :: nvec = 172! 168
   ! INH REV_CORR +3  (SSEB +2 will be needed)
   ! INTEGER, PARAMETER :: nvec = 176! 176!175 ! MMY@Mar2023
-  INTEGER, PARAMETER :: nvec = 177! 176!175 ! MMY@Mar2023
+  INTEGER, PARAMETER :: nvec = 178! 176!175 ! MMY@Mar2023 Qair_dt & Tair_dt
 
   ! MPI: number of final casa result matrices and vectors to receive
   ! by the master for casa_poolout and casa_fluxout

@@ -1124,6 +1124,12 @@ ENDIF
     CALL MPI_Get_address (met%qv, displs(bidx), ierr)
     blen(bidx) = r1len
 
+    ! _______________ MMY@Mar2023 ___________________
+    bidx = bidx + 1
+    CALL MPI_Get_address (met%qv_dt, displs(bidx), ierr)
+    blen(bidx) = r1len
+    ! ______________________________________________
+
     bidx = bidx + 1
     CALL MPI_Get_address (met%qvair, displs(bidx), ierr)
     blen(bidx) = r1len
@@ -3718,6 +3724,12 @@ ENDIF
     CALL MPI_Get_address (met%qv, displs(bidx), ierr)
     blocks(bidx) = r1len
 
+    ! _______________ MMY@Mar2023 ________________
+    bidx = bidx + 1
+    CALL MPI_Get_address (met%qv_dt, displs(bidx), ierr)
+    blocks(bidx) = r1len
+    ! ____________________________________________
+
     bidx = bidx + 1
     CALL MPI_Get_address (met%ua, displs(bidx), ierr)
     blocks(bidx) = r1len
@@ -4413,6 +4425,12 @@ ENDIF
     bidx = bidx + 1
     CALL MPI_Get_address (met%qv(off), displs(bidx), ierr)
     blocks(bidx) = r1len
+
+    ! _____________ MMY@Mar2023 _____________
+    bidx = bidx + 1
+    CALL MPI_Get_address (met%qv_dt(off), displs(bidx), ierr)
+    blocks(bidx) = r1len
+    !________________________________________
 
     !vidx = vidx + 1
     ! REAL(r_1)

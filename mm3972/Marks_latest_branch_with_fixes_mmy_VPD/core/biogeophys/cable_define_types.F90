@@ -643,6 +643,7 @@ MODULE cable_def_types_mod
          pmb,     & ! surface air pressure (mbar)
          ua,      & ! surface wind speed (m/s)
          qv,      & ! surface specific humidity (g/g)
+         qv_dt,   & ! detrend surface specific humidity (g/g) ! MMY@Mar2023 detrended qair
          qvair,   & ! within canopy specific humidity (g/g)
          da,      & ! water vap pressure deficit at ref height (Pa)
          dva,     & ! in canopy water vap pressure deficit (Pa)
@@ -1330,6 +1331,7 @@ SUBROUTINE alloc_met_type(var, mp)
    ALLOCATE ( var % pmb(mp) )
    ALLOCATE ( var % ua(mp) )
    ALLOCATE ( var % qv(mp) )
+   ALLOCATE ( var % qv_dt(mp) ) ! MMY@Mar2023
    ALLOCATE ( var % qvair(mp) )
    ALLOCATE ( var % da(mp) )
    ALLOCATE ( var % dva(mp) )
@@ -1948,6 +1950,7 @@ SUBROUTINE dealloc_met_type(var)
    DEALLOCATE ( var % pmb )
    DEALLOCATE ( var % ua )
    DEALLOCATE ( var % qv )
+   DEALLOCATE ( var % qv_dt ) ! MMY@Mar2023
    DEALLOCATE ( var % qvair )
    DEALLOCATE ( var % da )
    DEALLOCATE ( var % dva )

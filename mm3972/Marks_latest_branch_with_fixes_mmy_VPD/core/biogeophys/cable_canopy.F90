@@ -1330,9 +1330,6 @@ CONTAINS
 
             ! ____________ MMY@Mar2023, use detrend Tair ____________
             ! Within canopy air temperature:
-            print *,"*** MMY ***"
-            print *,"met%tk_dt(j)=", met%tk_dt(j)
-            print *,"met%tk(j)=",met%tk(j)
 
             met%tvair(j) = met%tk_dt(j) + ( dmbe(j) * dmch(j) - dmbh(j) * dmce(j) )  &
                            / (dmah(j)*dmbe(j)-dmae(j)*dmbh(j)+1.0e-12)

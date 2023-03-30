@@ -103,6 +103,7 @@ MODULE cable_IO_vars_module
          SWdown, &
          PSurf, &
          Qair, &
+         Qair_dt, & ! MMY@Mar2023
          Tair, &
          Tair_dt, & ! MMY@Mar2023
          wind, &

@@ -1787,7 +1787,7 @@ CONTAINS
     ! Qair: specific humidity [kg/kg]
     IF(output%met .OR. output%Qair) THEN
        ! Add current timestep's value to total of temporary output variable:
-       out%Qair = out%Qair + REAL(met%qv, 4)
+       out%Qair = out%Qair + REAL(met%qv_dt, 4)
        IF(writenow) THEN
           ! Divide accumulated variable by number of accumulated time steps:
           out%Qair = out%Qair / REAL(output%interval, 4)

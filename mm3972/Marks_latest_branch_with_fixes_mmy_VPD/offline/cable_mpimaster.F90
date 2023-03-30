@@ -1465,9 +1465,10 @@ SUBROUTINE prepareFiles(ncciy)
    CALL renameFiles(logn,gswpfile%SWdown,ncciy,'SWdown')
    CALL renameFiles(logn,gswpfile%PSurf,ncciy,'PSurf')
    CALL renameFiles(logn,gswpfile%Qair,ncciy,'Qair')
+   CALL renameFiles(logn,gswpfile%Qair_dt,ncciy,'Qair') ! MMY@Mar2023 for detrended Qair
    CALL renameFiles(logn,gswpfile%Tair,ncciy,'Tair')
+   CALL renameFiles(logn,gswpfile%Tair_dt,ncciy,'Tair')    ! MMY@Mar2023 for detrended Tair
    CALL renameFiles(logn,gswpfile%wind,ncciy,'wind')
-   CALL renameFiles(logn,gswpfile%Tair_dt,ncciy,'Tair')    ! MMY@Mar2023 for detrended Qair
 
 END SUBROUTINE prepareFiles
 
@@ -1811,6 +1812,12 @@ SUBROUTINE master_cable_params (comm,met,air,ssnow,veg,bgc,soil,canopy,&
      bidx = bidx + 1
      CALL MPI_Get_address (met%qv(off), displs(bidx), ierr)
      blen(bidx) = r1len
+
+     ! ______________ MMY@Mar2023 ______________
+     bidx = bidx + 1
+     CALL MPI_Get_address (met%qv_dt(off), displs(bidx), ierr)
+     blen(bidx) = r1len
+     ! _________________________________________
 
      bidx = bidx + 1
      CALL MPI_Get_address (met%qvair(off), displs(bidx), ierr)
@@ -4797,6 +4804,12 @@ SUBROUTINE master_intypes (comm,met,veg)
      CALL MPI_Get_address (met%qv(off), displs(bidx), ierr)
      blocks(bidx) = r1len
 
+     ! ____________ MMY@Mar2023 ______________
+     bidx = bidx + 1
+     CALL MPI_Get_address (met%qv_dt(off), displs(bidx), ierr)
+     blocks(bidx) = r1len
+     ! _______________________________________
+
      bidx = bidx + 1
      CALL MPI_Get_address (met%ua(off), displs(bidx), ierr)
      blocks(bidx) = r1len
@@ -5436,6 +5449,13 @@ SUBROUTINE master_outtypes (comm,met,canopy,ssnow,rad,bal,air,soil,veg)
      CALL MPI_Get_address (met%qv(off), vaddr(vidx), ierr)
      blen(vidx) = cnt * extr1
      vidx = vidx + 1
+
+     !_______________ MMY@Mar2023 ______________
+     CALL MPI_Get_address (met%qv_dt(off), vaddr(vidx), ierr)
+     blen(vidx) = cnt * extr1
+     vidx = vidx + 1
+     !__________________________________________
+
      ! REAL(r_1)
      CALL MPI_Get_address (met%qvair(off), vaddr(vidx), ierr)
      blen(vidx) = cnt * extr1

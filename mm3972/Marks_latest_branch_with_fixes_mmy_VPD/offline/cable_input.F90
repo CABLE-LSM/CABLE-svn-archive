@@ -71,7 +71,8 @@ MODULE cable_input_module
        ncid_ta,         &
        ncid_wd,         &      
        ncid_mask,       & ! MMY@Mar2023
-       ncid_ta_dt         ! MMY@Mar2023 for detrended Tair
+       ncid_ta_dt,      & ! MMY@Mar2023 for detrended Tair
+       ncid_qa_dt         ! MMY@Mar2023 for detrended Qair
 
    INTEGER                      ::                                        &
         ncid_met,        & ! met data netcdf file ID
@@ -85,6 +86,7 @@ MODULE cable_input_module
         ncid_wd,         &
         ncid_mask,       &
         ncid_ta_dt,      & ! MMY@Mar2023 for detrended Tair
+        ncid_qa_dt,      & ! MMY@Mar2023 for detrended Qair
         ok                 ! netcdf error status
    ! - see ALMA compress by gathering
    INTEGER,POINTER,DIMENSION(:) :: landGrid ! for ALMA compressed variables
@@ -101,6 +103,7 @@ MODULE cable_input_module
            Tair,         &
            Qair,         &
            Tair_dt,      & ! MMY@Mar2023 for detrended Tair
+           Qair_dt,      & ! MMY@Mar2023 for detrended Qair
            Rainf,        &
            Snowf,        &
            CO2air,       &
@@ -122,6 +125,7 @@ MODULE cable_input_module
            Tair,         &
            Qair,         &
            Tair_dt,      & ! MMY@Mar2023 for detrended Tair ! MMY ??? I guess Tair_dt can use Tair's units
+           Qair_dt,      & ! MMY@Mar2023 for detrended Qair 
            Rainf,        &
            Snowf,        &
            CO2air,       &
@@ -135,6 +139,7 @@ MODULE cable_input_module
            Tair,         &
            Qair,         &
            Tair_dt,      & ! MMY@Mar2023 for detrended Tair ! MMY ??? I guess Tair_dt can use Tair's units
+           Qair_dt,      & ! MMY@Mar2023 for detrended Qair 
            Rainf,        &
            CO2air,       &
            Elev
@@ -423,6 +428,12 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
        ENDIF
 
    ! _________ MMY@Mar2023 _________
+   ok = NF90_OPEN(gswpfile%Qair_dt,0,ncid_qa_dt)
+   IF (ok /= NF90_NOERR) THEN
+      PRINT*,'qa_dt'
+      CALL handle_err( ok )
+   ENDIF
+
    ok = NF90_OPEN(gswpfile%Tair_dt,0,ncid_ta_dt)
    IF (ok /= NF90_NOERR) THEN
       PRINT*,'ta_dt'
@@ -1058,6 +1069,34 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
        CALL abort('Unknown units for Qair'// &
             ' in '//TRIM(filename%met)//' (SUBROUTINE open_met_data)')
     END IF
+
+    ! ___________ MMY@Mar2023, look for detrended Qair ___________
+    ! Look for detrend Qair :- - - - - - - - - - - - - - - - - - -
+    IF (ncciy > 0) ncid_met = ncid_qa_dt
+    ok = NF90_INQ_VARID(ncid_met,'Qair',id%Qair_dt)
+
+    ! Get Qair units:
+    ok = NF90_GET_ATT(ncid_met,id%Qair_dt,'units',metunits%Qair_dt)
+    IF(ok /= NF90_NOERR) CALL nc_abort &
+         (ok,'Error finding Qair_dt units in met data file ' &
+         //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
+    IF(metunits%Qair_dt(1:1)=='%'.OR.metunits%Qair_dt(1:1)=='-') THEN
+       ! Change from relative humidity to specific humidity:
+       convert%Qair_dt = -999.0
+       WRITE(logn,*) 'Humidity will be converted from relative to specific'
+    ELSE IF(metunits%Qair_dt(1:3)=='g/g'.OR.metunits%Qair_dt(1:5)=='kg/kg' &
+         .OR.metunits%Qair_dt(1:3)=='G/G'.OR.metunits%Qair_dt(1:5)=='KG/KG'&
+         .or.metunits%Qair_dt(1:7)=='kg kg-1') THEN
+       ! Units are correct
+       convert%Qair_dt=1.0
+    ELSE
+       WRITE(*,*) metunits%Qair_dt
+       CALL abort('Unknown units for Qair_dt'// &
+            ' in '//TRIM(filename%met)//' (SUBROUTINE open_met_data)')
+    END IF
+    ! ______________________________________________________________
+
+
     ! Look for Rainf (essential):- - - - - - - - - - - - - - - - - -
     IF (ncciy > 0) ncid_met = ncid_rain
     ok = NF90_INQ_VARID(ncid_met,'Rainf',id%Rainf)
@@ -2247,6 +2286,56 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
       ENDDO
    END IF
 
+   ! _________________________ MMY@Mar2023 __________________________
+   ! Get Qair data for mask grid: - - - - - - - - - - - - - - - - - -
+   IF(cable_user%GSWP3) ncid_met = ncid_qa_dt ! since GSWP3 multiple met files
+   ! Find number of dimensions of Qair:
+   ok = NF90_INQUIRE_VARIABLE(ncid_met,id%Qair_dt,ndims=ndims)
+   IF(ndims==3) THEN ! 3D var, either grid or new ALMA format single site
+      ok= NF90_GET_VAR(ncid_met,id%Qair_dt,tmpDat3, & ! read 3D Qair var
+            start=(/1,1,ktau/),count=(/xdimsize,ydimsize,1/))
+      IF(ok /= NF90_NOERR) CALL nc_abort & ! check for error
+            (ok,'Error reading Qair in met data file ' &
+            //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
+      IF(convert%Qair_dt==-999.0) THEN
+         ! Convert relative value using only first veg/soil patch values
+         ! (identical)
+         DO i=1,mland ! over all land points/grid cells
+            CALL rh_sh(REAL(tmpDat3(land_x(i),land_y(i),1)), &
+               met%tk_dt(landpt(i)%cstart), &
+               met%pmb(landpt(i)%cstart),met%qv_dt(landpt(i)%cstart))
+               met%qv_dt(landpt(i)%cstart:landpt(i)%cend) = met%qv_dt(landpt(i)%cstart)
+         ENDDO
+      ELSE
+         DO i=1,mland ! over all land points/grid cells
+            met%qv_dt(landpt(i)%cstart:landpt(i)%cend) = &
+               REAL(tmpDat3(land_x(i),land_y(i),1))
+         ENDDO
+      END IF
+   ELSE   ! i.e. ndims==4, the older ALMA format for Qair
+      ok= NF90_GET_VAR(ncid_met,id%Qair_dt,tmpDat4, &
+         start=(/1,1,1,ktau/),count=(/xdimsize,ydimsize,1,1/))
+      IF(ok /= NF90_NOERR) CALL nc_abort &
+         (ok,'Error reading Qair in met data file ' &
+         //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
+      IF(convert%Qair_dt==-999.0) THEN
+         ! Convert relative value using only first veg/soil patch values
+         ! (identical)
+         DO i=1,mland ! over all land points/grid cells
+            CALL rh_sh(REAL(tmpDat4(land_x(i),land_y(i),1,1)), &
+               met%tk_dt(landpt(i)%cstart), &
+               met%pmb(landpt(i)%cstart),met%qv_dt(landpt(i)%cstart))
+               met%qv_dt(landpt(i)%cstart:landpt(i)%cend) = met%qv_dt(landpt(i)%cstart)
+         ENDDO
+      ELSE
+         DO i=1,mland ! over all land points/grid cells
+            met%qv_dt(landpt(i)%cstart:landpt(i)%cend) = &
+                  REAL(tmpDat4(land_x(i),land_y(i),1,1))
+         ENDDO
+      END IF
+   END IF
+   ! ________________________________________________________________
+
    ! Get Qair data for mask grid: - - - - - - - - - - - - - - - - - -
    IF(cable_user%GSWP3) ncid_met = ncid_qa ! since GSWP3 multiple met files
    ! Find number of dimensions of Qair:
@@ -2700,6 +2789,28 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
         ENDDO
       END IF
 
+      ! ___________________ MMY@Mar2023 ___________________
+      ! Get detrended Qair data for land-only grid:- - - - - - - - - - - - - - - -
+      IF (ncciy > 0) ncid_met = ncid_qa_dt
+      ok= NF90_GET_VAR(ncid_met,id%Qair_dt,tmpDat2, &
+           start=(/1,ktau/),count=(/mland,1/))
+      IF(ok /= NF90_NOERR) CALL nc_abort &
+           (ok,'Error reading Qair in met data file ' &
+           //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
+      IF(convert%Qair_dt==-999.0) THEN
+        DO i=1,mland ! over all land points/grid cells
+          CALL rh_sh(REAL(tmpDat2(i,1)), met%tk_dt(landpt(i)%cstart), &
+               met%pmb(landpt(i)%cstart),met%qv_dt(landpt(i)%cstart))
+          met%qv_dt(landpt(i)%cstart:landpt(i)%cend)=met%qv_dt(landpt(i)%cstart)
+        ENDDO
+      ELSE
+        DO i=1,mland ! over all land points/grid cells
+          met%qv_dt(landpt(i)%cstart:landpt(i)%cend) = REAL(tmpDat2(i,1))
+        ENDDO
+      END IF
+      ! ____________________________________________________
+
+
       ! Get Wind data for land-only grid: - - - - - - - - - - - - - - - -
       IF (ncciy > 0) ncid_met = ncid_wd
       IF(exists%Wind) THEN ! Scalar Wind
@@ -2940,6 +3051,8 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
             CALL abort('LWdown out of specified ranges!')
        IF(ANY(met%qv<ranges%Qair(1)).OR.ANY(met%qv>ranges%Qair(2))) &
             CALL abort('Qair out of specified ranges!')
+       IF(ANY(met%qv_dt<ranges%Qair(1)).OR.ANY(met%qv_dt>ranges%Qair(2))) &  ! MMY@Mar2023
+            CALL abort('detrended Qair out of specified ranges!')            ! MMY@Mar2023
        IF(ANY(met%precip<ranges%Rainf(1)).OR.ANY(met%precip>ranges%Rainf(2))) then
           CALL abort('Rainf out of specified ranges!')
        ENDIF
