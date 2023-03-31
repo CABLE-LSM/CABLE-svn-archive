@@ -57,7 +57,7 @@ MODULE cable_output_module
                     Qmom, Qle, Qh, Qg, NEE, SWnet,                             &
                     LWnet, SoilMoist, SoilTemp, Albedo,                        &
                     visAlbedo, nirAlbedo, SoilMoistIce,                        &
-                    Qs, Qsb, Evap, BaresoilT, SWE, SnowT,                      &
+                    Qs, Qsb, Evap, PotEvap, BaresoilT, SWE, SnowT,Gs,          & ! MMY@Mar2023 add PotEvap and Gs
                     RadT, VegT, Ebal, Wbal, AutoResp,                          &
                     LeafResp, HeteroResp, GPP, NPP, LAI,                       &
                     ECanop, TVeg, ESoil, CanopInt, SnowDepth,                  &
@@ -125,6 +125,8 @@ MODULE cable_output_module
                                                   ! [kg/m2/s]
     REAL(KIND=4), POINTER, DIMENSION(:) :: ECanop ! 26 interception evaporation
                                                   ! [kg/m2/s]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: Gs     ! MMY@Mar2023 stomatal conductance
+
     ! 27 potential evapotranspiration [kg/m2/s]
     REAL(KIND=4), POINTER, DIMENSION(:) :: PotEvap
     REAL(KIND=4), POINTER, DIMENSION(:) :: ACond   ! 28 aerodynamic conductance
@@ -520,6 +522,24 @@ CONTAINS
        ALLOCATE(out%Evap(mp))
        out%Evap = 0.0 ! initialise
     END IF
+    ! ____________________ MMY@Mar2023 ____________________
+    ! PotEvap potential evapotranspiration
+    IF(output%flux .OR. output%PotEvap) THEN
+       CALL define_ovar(ncid_out, ovid%PotEvap,'PotEvap', 'kg/m^2/s',                &
+                        'Potential evapotranspiration', patchout%PotEvap, 'dummy',    &
+                        xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%PotEvap(mp))
+       out%PotEvap = 0.0 ! initialise
+    END IF
+    ! Gs: leaf stomatal conductance
+    IF(output%flux .OR. output%Gs) THEN
+       CALL define_ovar(ncid_out, ovid%Gs,'Gs', 'mol/m^2/s)',                &
+                        'Leaf stomatal conductance', patchout%Gs, 'dummy',    &
+                        xID, yID, zID, landID, patchID, tID)
+       ALLOCATE(out%Gs(mp))
+       out%Gs = 0.0 ! initialise
+    END IF
+    ! _____________________________________________________
     IF(output%flux .OR. output%ECanop) THEN
        CALL define_ovar(ncid_out, ovid%Ecanop, 'ECanop', 'kg/m^2/s',           &
                         'Wet canopy evaporation', patchout%ECanop, 'dummy',    &
@@ -1926,6 +1946,40 @@ CONTAINS
           out%Evap = 0.0
        END IF
     END IF
+    ! ___________________ MMY@Mar2023 _______________________
+    ! PotEvap: potential evapotranspiration [kg/m^2/s]
+    IF(output%flux .OR. output%PotEvap) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%PotEvap = out%PotEvap + REAL(ssnow%potev / air%rlam, 4) ! MMY please check whether it should be ssnow%potev
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%PotEvap = out%PotEvap / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%PotEvap, 'PotEvap', out%PotEvap, &
+                          ranges%PotEvap, patchout%PotEvap, 'default', met)
+          ! Reset temporary output variable:
+          out%PotEvap = 0.0
+       END IF
+    END IF
+
+    ! Gs: leaf stomatal conductance [kg/m^2/s]
+    IF(output%flux .OR. output%Gs) THEN
+       ! Add current timestep's value to total of temporary output variable:
+       out%Gs = out%Gs + REAL(sum(canopy%gswx,2)/air%cmolar, 4)
+               ! MMY add shade and sun leaf gs and conv. from m/s to mol/m2/s
+               ! MMY follow the calculation in subroutine within_canopy
+       IF(writenow) THEN
+          ! Divide accumulated variable by number of accumulated time steps:
+          out%Gs = out%Gs / REAL(output%interval, 4)
+          ! Write value to file:
+          CALL write_ovar(out_timestep, ncid_out, ovid%Gs, 'Gs', out%Gs, &
+                          ranges%Gs, patchout%Gs, 'default', met)
+          ! Reset temporary output variable:
+          out%Gs = 0.0
+       END IF
+    END IF
+    ! _______________________________________________________
+
     ! ECanop: interception evaporation [kg/m^2/s]
     IF(output%flux .OR. output%ECanop) THEN
        ! Add current timestep's value to total of temporary output variable:

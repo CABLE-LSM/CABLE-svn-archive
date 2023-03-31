@@ -226,6 +226,7 @@ MODULE cable_IO_vars_module
          SWnet = .FALSE.,     & ! 20 net shortwave [W/m2]
          LWnet = .FALSE.,     & ! 21 net longwave [W/m2]
          Evap = .FALSE.,      & ! 22 total evapotranspiration [kg/m2/s]
+         Gs = .FALSE.,        & ! leaf stomatal conductance [mol/m^2/s] ! MMY@Mar2023
          Ewater = .FALSE.,    & ! 23 evap. from surface water storage [kg/m2/s]
          ESoil = .FALSE.,     & ! 24 bare soil evaporation [kg/m2/s]
          TVeg = .FALSE.,      & ! 25 vegetation transpiration [kg/m2/s]
