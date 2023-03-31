@@ -1328,24 +1328,6 @@ CONTAINS
                  (canopy%fev(j) + canopy%fes(j)/ssnow%cls(j)) /                   &
                  (air%rho(j)*air%rlam(j))
 
-            ! ____________ MMY@Mar2023, use detrend Tair ____________
-            ! Within canopy air temperature:
-
-            met%tvair(j) = met%tk_dt(j) + ( dmbe(j) * dmch(j) - dmbh(j) * dmce(j) )  &
-                           / (dmah(j)*dmbe(j)-dmae(j)*dmbh(j)+1.0e-12)
-
-            !---set limits for comparisson
-            lower_limit =  MIN( ssnow%tss(j), met%tk(j)) - 5.0
-            upper_limit =  MAX( ssnow%tss(j), met%tk(j)) + 5.0
-
-            !--- tvair within these limits
-            met%tvair(j) = MAX(met%tvair(j) , lower_limit)
-            met%tvair(j) = MIN(met%tvair(j) , upper_limit)
-
-            ! Saturated specific humidity in canopy:
-            CALL qsatfjh2(qstvair(j),met%tvair(j)-C%tfrz,met%pmb(j))
-            ! _______________________________________________________
-
             ! Within canopy air temperature:
             met%tvair(j) = met%tk(j) + ( dmbe(j) * dmch(j) - dmbh(j) * dmce(j) )  &
                  / (dmah(j)*dmbe(j)-dmae(j)*dmbh(j)+1.0e-12)
@@ -1372,10 +1354,8 @@ CONTAINS
             met%qvair(j) =  MAX(met%qvair(j),lower_limit)
             met%qvair(j) =  MIN(met%qvair(j), upper_limit)
             
-            ! ____________ MMY@Mar2023, comment out if use detrend Tair ____________
             ! Saturated specific humidity in canopy:
-            ! CALL qsatfjh2(qstvair(j),met%tvair(j)-C%tfrz,met%pmb(j))
-            ! _______________________________________________________
+            CALL qsatfjh2(qstvair(j),met%tvair(j)-C%tfrz,met%pmb(j))
 
             ! Saturated vapour pressure deficit in canopy:
             met%dva(j) = ( qstvair(j) - met%qvair(j) ) *  C%rmair/C%RMH2o         &
