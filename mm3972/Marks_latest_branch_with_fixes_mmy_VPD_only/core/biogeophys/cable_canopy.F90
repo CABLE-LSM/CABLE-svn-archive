@@ -117,6 +117,7 @@ CONTAINS
          relitt,        & !
          alpm1,         & ! REV_CORR working variables for Or scheme
          beta2,         & ! beta_div_alpm1 = beta2/alpm1 (goes to zero without
+         dva_dt,        & ! MMY@Apr2023
          beta_div_alpm    ! division when no canopy)
 
     ! temporary buffers to simplify equations
@@ -194,6 +195,11 @@ CONTAINS
     canopy%fwsoil = 1.0
 
     CALL define_air (met, air)
+
+    ! ________________________  MMY@Apr2023 ____________________________
+    CALL qsatfjh(qstvair,met%tk_dt-C%tfrz,met%pmb)
+    dva_dt = (qstvair - met%qv_dt) *  C%rmair/C%rmh2o * met%pmb * 100.0
+    ! __________________________________________________________________
 
     CALL qsatfjh(qstvair,met%tvair-C%tfrz,met%pmb)
 
@@ -397,12 +403,12 @@ CONTAINS
             veg, canopy, soil, ssnow, dsx,                             &
             fwsoil, tlfx, tlfy, ecy, hcy,                              &
             rny, gbhu, gbhf, csx, cansat,                              &
-            ghwet,  iter,climate )
+            ghwet,  iter, climate, dva_dt ) ! MMY@Apr2023 add dva_dt
 
 
        CALL wetLeaf( dels, rad, rough, air, met,                                &
             veg, canopy, cansat, tlfy,                                 &
-            gbhu, gbhf, ghwet )
+            gbhu, gbhf, ghwet, dva_dt ) ! MMY@Apr2023 add dva_dt
 
 
        ! Calculate latent heat from vegetation:
@@ -450,9 +456,9 @@ CONTAINS
        canopy%fns = rad%qssabs + rad%transd*met%fld + (1.0-rad%transd)*C%EMLEAF* &
             C%SBOLTZ*canopy%tv**4 - C%EMSOIL*C%SBOLTZ* tss4
 
-      ! MMY@Mar2023 ??? should I change
+
        ! Saturation specific humidity at soil/snow surface temperature:
-      call qsatfjh(ssnow%qstss,ssnow%tss-C%tfrz,met%pmb)
+      call qsatfjh(ssnow%qstss,ssnow%tss-C%tfrz,met%pmb) ! MMY@Mar2023 ??? should I change
 
       if (cable_user%gw_model .OR.  cable_user%or_evap) &
         call pore_space_relative_humidity(ssnow,soil,veg)
@@ -471,7 +477,7 @@ CONTAINS
           IF(cable_user%ssnow_POTEV== "P-M") THEN
 
              !--- uses %ga from previous timestep
-             ssnow%potev = Penman_Monteith(canopy%ga)
+             ssnow%potev = Penman_Monteith(canopy%ga, met%tk_dt, met%qv_dt ) !MMY@Apr2023 add  met%tk_dt, met%qv_dt
 
           ELSE !by default assumes Humidity Deficit Method
 
@@ -518,7 +524,7 @@ CONTAINS
 
        ENDIF
 
-       CALL within_canopy( gbhu, gbhf, rt0, rhlitt, relitt )
+       CALL within_canopy_detrend( gbhu, gbhf, rt0, rhlitt, relitt ) ! MMY@Apr2023 has been detrended
 
        ! Saturation specific humidity at soil/snow surface temperature:
        call qsatfjh(ssnow%qstss,ssnow%tss-C%tfrz,met%pmb)
@@ -528,7 +534,7 @@ CONTAINS
           IF(cable_user%ssnow_POTEV== "P-M") THEN
 
              !--- uses %ga from previous timestep
-             ssnow%potev = Penman_Monteith(canopy%ga)
+             ssnow%potev = Penman_Monteith(canopy%ga, met%tvair, met%qvair ) !MMY@Apr2023 add detrended met%tvair, met%qvair
 
           ELSE !by default assumes Humidity Deficit Method
 
@@ -538,6 +544,8 @@ CONTAINS
              ssnow%potev =  Humidity_deficit_method(dq, dq_unsat,ssnow%qstss)
 
           ENDIF
+
+          CALL within_canopy( gbhu, gbhf, rt0, rhlitt, relitt ) ! MMY@Apr2023 change to default
 
           ! Soil latent heat:
           CALL latent_heat_flux()
@@ -1029,14 +1037,15 @@ CONTAINS
 
     ! ------------------------------------------------------------------------------
 
-    FUNCTION Penman_Monteith( ground_H_flux ) RESULT(ssnowpotev)
+    FUNCTION Penman_Monteith( ground_H_flux,tvair_dt,qvair_dt ) RESULT(ssnowpotev) ! MMY@Apr2023
       USE cable_def_types_mod, only : mp
-      REAL, INTENT(IN), DIMENSION(mp)  :: ground_H_flux
+      REAL, INTENT(IN), DIMENSION(mp)  :: ground_H_flux,qvair_dt,tvair_dt ! MMY@Apr2023
       REAL, DIMENSION(MP)  ::                                                     &
            ssnowpotev,      & ! returned result of function
            sss,             & ! var for Penman-Monteith soil evap
            cc1,             & ! var for Penman-Monteith soil evap
            cc2,             & ! var for Penman-Monteith soil evap
+           tvair_dt,        & !
            qsatfvar           !
       INTEGER :: j
 
@@ -1045,7 +1054,7 @@ CONTAINS
       cc1=sss/(sss+air%psyc )
       cc2=air%psyc /(sss+air%psyc )
 
-      CALL qsatfjh(qsatfvar,met%tvair-C%tfrz,met%pmb)
+      CALL qsatfjh(qsatfvar,tvair_dt-C%tfrz,met%pmb) ! MMY@Apr2023 met%tvair->tvair_dt
 
       !INH 10-1-2017 - this P-M implementation is incorrect over snow.
       !variable ssnowpotev is actually the latent heat flux associated with
@@ -1056,11 +1065,11 @@ CONTAINS
       IF (cable_user%litter) THEN
          !! vh_js !!
          ssnowpotev = cc1 * (canopy%fns - ground_H_flux) + &
-              cc2 * air%rho * air%rlam*(qsatfvar - met%qvair)/ &
+              cc2 * air%rho * air%rlam*(qsatfvar - qvair_dt)/ &  ! MMY@Apr2023 met%qvair->qvair_dt
               (ssnow%rtsoil+ real((1-ssnow%isflag))*veg%clitt*0.003/canopy%DvLitt)
       ELSE
          ssnowpotev = cc1 * (canopy%fns - ground_H_flux) + &
-              cc2 * air%rho * air%rlam*(qsatfvar  - met%qvair)/ssnow%rtsoil
+              cc2 * air%rho * air%rlam*(qsatfvar  - qvair_dt)/ssnow%rtsoil ! MMY@Apr2023 met%qvair->qvair_dt
       ENDIF
 
     END FUNCTION Penman_Monteith
@@ -1238,6 +1247,135 @@ CONTAINS
 
     ! -----------------------------------------------------------------------------
 
+    ! ________________________ MMY@Apr2023 _______________________
+    SUBROUTINE within_canopy_detrend( gbhu, gbhf, rt0, rhlitt, relitt )
+
+      USE cable_def_types_mod, only : mp, r_2
+
+      REAL(r_2), INTENT(IN), DIMENSION(:,:) ::                                    &
+           gbhu,    &  ! forcedConvectionBndryLayerCond
+           gbhf        ! freeConvectionBndryLayerCond
+
+     REAL, INTENT(IN), DIMENSION(mp) ::                                       &
+           rt0,     &  ! resistance from ground to canopy air
+           rhlitt,  &  ! additional litter resistance for heat (=0 by default)
+           relitt      ! additional litter resistance for water
+
+      REAL, DIMENSION(mp) ::                                                      &
+           rrsw,             & ! recipr. stomatal resistance for water
+           rrbw,             & ! recipr. leaf boundary layer resistance for water
+           dmah,             & ! A_{H} in eq. 3.41 in SCAM, CSIRO tech report 132
+           dmbh,             & ! B_{H} in eq. 3.41 in SCAM, CSIRO tech report 132
+           dmch,             & ! C_{H} in eq. 3.41 in SCAM, CSIRO tech report 132
+           dmae,             & ! A_{E} in eq. 3.41 in SCAM, CSIRO tech report 132
+           dmbe,             & ! B_{E} in eq. 3.41 in SCAM, CSIRO tech report 132
+           dmce                ! C_{E} in eq. 3.41 in SCAM, CSIRO tech report 132
+
+      REAL  :: lower_limit, upper_limit
+      REAL, DIMENSION(mp) :: fix_eqn,fix_eqn2
+
+      INTEGER :: j
+
+      !INH: rhlitt=relitt=0. if litter resistance not active but case included
+      !dmah through to dmce are not A_{H} through C_{E} as per Eqn 3.40
+      !in SCAM documentation but rt0*((1+esp)/rs + 1/rb)*A_{H} etc.
+      !
+      !changes from v1.4 for %cls package, litter and Or hydrology
+
+      rrbw = sum(gbhu+gbhf,2)/air%cmolar  ! MJT
+
+      ! leaf stomatal resistance for water
+      rrsw = sum(canopy%gswx,2)/air%cmolar ! MJT
+
+      IF (cable_user%or_evap) THEN
+         fix_eqn(:) = rt0(:)*(real(ssnow%satfrac(:))/(rt0(:)+real(ssnow%rtevap_sat(:))) + &
+                         (1-real(ssnow%satfrac(:)))/(rt0(:)+real(ssnow%rtevap_unsat(:))))
+         !lakes/ice rtevap=0 and wetfac is .ne. 1
+         fix_eqn(:) = ssnow%wetfac(:) * fix_eqn(:)*ssnow%cls(:)   !INH correction. & M.Dekker +d wetfac
+
+         fix_eqn2(:) = rt0(:) / (rt0(:) + real(ssnow%rt_qh_sublayer) )
+
+      ELSE  !with INH corrections for litter and cls
+
+         fix_eqn(:) = ssnow%cls(:)*rt0(:)/(rt0(:)+relitt(:))
+         WHERE (ssnow%potev>0.) fix_eqn(:)=fix_eqn(:)*ssnow%wetfac(:)
+         fix_eqn2(:) = rt0(:)/(rt0(:)+rhlitt(:))
+
+      END IF
+
+      DO j=1,mp
+
+         IF(veg%meth(j) > 0 .AND. canopy%vlaiw(j) > C%LAI_THRESH .AND.              &
+              rough%hruff(j) > rough%z0soilsn(j) ) THEN
+
+            !   use the dispersion matrix (DM) to find the air temperature
+            !   and specific humidity
+            !   (Raupach, Finkele and Zhang 1997, pp 17)
+            ! leaf boundary layer resistance for water
+            ! A_{H} in eq. 3.41, SCAM manual, CSIRO tech doc 132
+            dmah(j) = (rt0(j)+fix_eqn2(j)*rough%rt1(j))*((1.+air%epsi(j))*rrsw(j) + rrbw(j))  &
+                 + air%epsi(j) * (rt0(j)*rough%rt1(j))*(rrbw(j)*rrsw(j))
+
+            ! B_{H} in eq. 3.41, SCAM manual, CSIRO tech doc 132
+            dmbh(j) = (-air%rlam(j)/C%CAPP)*(rt0(j)*rough%rt1(j))*(rrbw(j)*rrsw(j))
+
+            ! C_{H} in eq. 3.41, SCAM manual, CSIRO tech doc 132
+            dmch(j) = ((1.+air%epsi(j))*rrsw(j) + rrbw(j))*rt0(j)*rough%rt1(j)*   &
+                 (canopy%fhv(j) + canopy%fhs(j))/(air%rho(j)*C%CAPP)
+
+            ! A_{E} in eq. 3.41, SCAM manual, CSIRO tech doc 132
+            dmae(j) = (-air%epsi(j)*C%CAPP/air%rlam(j))*(rt0(j)*rough%rt1(j)) *   &
+                 (rrbw(j)*rrsw(j))
+
+            ! B_{E} in eq. 3.41, SCAM manual, CSIRO tech doc 132
+            dmbe(j) = ( rt0(j) + fix_eqn(j) * rough%rt1(j) ) *               &
+                 ( (1.+air%epsi(j) ) * rrsw(j) + rrbw(j) ) +                 &
+                 ( rt0(j) * rough%rt1(j) ) * ( rrbw(j) * rrsw(j) )
+
+            ! C_{E} in eq. 3.41, SCAM manual, CSIRO tech doc 132
+            ! INH: includes modifications for %cls
+            dmce(j) = ((1.+air%epsi(j))*rrsw(j) + rrbw(j))*rt0(j)*rough%rt1(j)*   &
+                 (canopy%fev(j) + canopy%fes(j)/ssnow%cls(j)) /                   &
+                 (air%rho(j)*air%rlam(j))
+
+            ! Within canopy air temperature:
+            met%tvair(j) = met%tk_dt(j) + ( dmbe(j) * dmch(j) - dmbh(j) * dmce(j) )  &  ! MMY@Apr2023 met%tk->met%tk_dt
+                 / (dmah(j)*dmbe(j)-dmae(j)*dmbh(j)+1.0e-12)
+
+            !---set limits for comparisson
+            lower_limit =  MIN( ssnow%tss(j), met%tk_dt(j)) - 5.0 ! MMY@Apr2023 met%tk->met%tk_dt
+            upper_limit =  MAX( ssnow%tss(j), met%tk_dt(j)) + 5.0 ! MMY@Apr2023 met%tk->met%tk_dt
+
+            !--- tvair within these limits
+            met%tvair(j) = MAX(met%tvair(j) , lower_limit)
+            met%tvair(j) = MIN(met%tvair(j) , upper_limit)
+
+            ! recalculate using canopy within temperature
+            met%qvair(j) = met%qv_dt(j) + (dmah(j)*dmce(j)-dmae(j)*dmch(j)) / & ! MMY met%qv->met%qv_dt
+                 ( dmah(j)*dmbe(j)-dmae(j)*dmbh(j)+1.0e-12)
+            met%qvair(j) = MAX(0.0,met%qvair(j))
+
+            !---set limits for comparisson
+
+            lower_limit =  MIN( ssnow%qstss(j), met%qv_dt(j)) ! MMY@Apr2023 met%tk->met%tk_dt
+            upper_limit =  MAX( ssnow%qstss(j), met%qv_dt(j)) ! MMY@Apr2023 met%tk->met%tk_dt
+
+            !--- qvair within these limits
+            met%qvair(j) =  MAX(met%qvair(j),lower_limit)
+            met%qvair(j) =  MIN(met%qvair(j), upper_limit)
+
+            ! Saturated specific humidity in canopy:
+            CALL qsatfjh2(qstvair(j),met%tvair(j)-C%tfrz,met%pmb(j))
+
+            ! Saturated vapour pressure deficit in canopy:
+            met%dva(j) = ( qstvair(j) - met%qvair(j) ) *  C%rmair/C%RMH2o         &
+                 * met%pmb(j) * 100.
+         ENDIF
+
+      ENDDO
+
+    END SUBROUTINE within_canopy_detrend
+    ! ____________________________________________________________________
     SUBROUTINE within_canopy( gbhu, gbhf, rt0, rhlitt, relitt )
 
       USE cable_def_types_mod, only : mp, r_2
@@ -1353,7 +1491,7 @@ CONTAINS
             !--- qvair within these limits
             met%qvair(j) =  MAX(met%qvair(j),lower_limit)
             met%qvair(j) =  MIN(met%qvair(j), upper_limit)
-            
+
             ! Saturated specific humidity in canopy:
             CALL qsatfjh2(qstvair(j),met%tvair(j)-C%tfrz,met%pmb(j))
 
@@ -1575,7 +1713,7 @@ CONTAINS
     ! -----------------------------------------------------------------------------
 
     SUBROUTINE wetLeaf( dels, rad, rough, air, met, veg, canopy, cansat, tlfy,     &
-         gbhu, gbhf, ghwet )
+         gbhu, gbhf, ghwet, dva_dt ) ! MMY@Apr2023 add dva_dt
 
       USE cable_def_types_mod
 
@@ -1609,7 +1747,7 @@ CONTAINS
 
       !i sums, terms of convenience/readability
       REAL, DIMENSION(mp) ::                                                      &
-           sum_gbh, sum_rad_rniso, sum_rad_gradis, xx1
+           sum_gbh, sum_rad_rniso, sum_rad_gradis, xx1, dva_dt ! MMY@Apr2023 add dva_dt
 
       INTEGER :: j
 
@@ -1646,14 +1784,14 @@ CONTAINS
             canopy%fevw(j) = MIN( canopy%fwet(j) * ( air%dsatdk(j) *              &
                  ( sum_rad_rniso(j)- C%CAPP*C%rmair*( met%tvair(j)     &
                  - met%tk(j) ) * sum_rad_gradis(j) )                   &
-                 + C%CAPP * C%rmair * met%dva(j) * ghrwet(j) )         &
+                 + C%CAPP * C%rmair * dva_dt(j) * ghrwet(j) )         & ! MMY@Apr2023 met%dva->dva_dt
                  / ( air%dsatdk(j)+air%psyc(j)*ghrwet(j) / gwwet(j) )  &
                  , ccfevw(j) )
 
             canopy%fevw_pot(j) = ( air%dsatdk(j)* (sum_rad_rniso(j) -             &
                  C%CAPP * C%rmair * ( met%tvair(j) - met%tk(j) )  &
                  *sum_rad_gradis(j) )                             &
-                 + C%CAPP * C%rmair * met%dva(j) * ghrwet(j))     &
+                 + C%CAPP * C%rmair * dva_dt(j) * ghrwet(j))      & ! MMY@Apr2023 met%dva->dva_dt
                  / (air%dsatdk(j)+air%psyc(j)*ghrwet(j)/gwwet(j) )
 
             ! calculate sens heat from wet canopy:
@@ -1728,7 +1866,7 @@ CONTAINS
        veg, canopy, soil, ssnow, dsx,                             &
        fwsoil, tlfx,  tlfy,  ecy, hcy,                            &
        rny, gbhu, gbhf, csx,                                      &
-       cansat, ghwet, iter,climate )
+       cansat, ghwet, iter,climate, dva_dt ) ! MMY@Apr2023 add dva_dt
 
     USE cable_def_types_mod
     USE cable_common_module
@@ -1791,8 +1929,8 @@ CONTAINS
          gwwet,         & ! cond for water for a wet canopy
          ghrwet,        & ! wet canopy cond: heat & thermal rad
          sum_gbh,       & !
-         ccfevw,        & ! limitation term for
-                                ! wet canopy evaporation rate
+         ccfevw,        & ! limitation term for wet canopy evaporation rate
+         dva_dt,        & ! MMY@Apr2023 detrended leaf VPD
          temp             !
 
     REAL(r_2), DIMENSION(mp)  ::                                                &
@@ -1835,6 +1973,7 @@ CONTAINS
     REAL :: xx,xxd                  ! MMY
     INTEGER :: i, j, k, kk  ! iteration count
     REAL :: vpd, g1 ! Ticket #56
+
 #define VanessasCanopy
 #ifdef VanessasCanopy
     REAL, DIMENSION(mp,mf)  ::                                                  &
@@ -2114,14 +2253,14 @@ CONTAINS
                 END IF
 
                 g1 = veg%g1(i)
-                
+
                 ! print *, "MMY vpd ", vpd ! MMY @Nov2022
                 !print *, "MMY vpd ", vpd           ! MMY@Nov2022
                 !print *, "MMY csx(i,1) ", csx(i,1) ! MMY@Nov2022
-  
+
                 gs_coeff(i,1) = (1.0 + (g1 * fwsoil(i)) / SQRT(vpd)) / csx(i,1)
                 gs_coeff(i,2) = (1.0 + (g1 * fwsoil(i)) / SQRT(vpd)) / csx(i,2)
-              
+
             ELSE
                 STOP 'gs_model_switch failed.'
             ENDIF ! IF (cable_user%GS_SWITCH == 'leuning') THEN
@@ -2175,14 +2314,14 @@ CONTAINS
                 ENDIF
 
              ENDDO
-
+             ! MMY@Apr2023 !!!
              ecx(i) = ( air%dsatdk(i) * ( rad%rniso(i,1) - C%capp * C%rmair     &
                   * ( met%tvair(i) - met%tk(i) ) * rad%gradis(i,1) )        &
-                  + C%capp * C%rmair * met%dva(i) * ghr(i,1) )              &
+                  + C%capp * C%rmair * dva_dt(i) * ghr(i,1) )              & ! MMY@Apr2023 met%dva -> dva_dt
                   / ( air%dsatdk(i) + psycst(i,1) ) + ( air%dsatdk(i)       &
                   * ( rad%rniso(i,2) - C%capp * C%rmair * ( met%tvair(i) -  &
                   met%tk(i) ) * rad%gradis(i,2) ) + C%capp * C%rmair *      &
-                  met%dva(i) * ghr(i,2) ) /                                 &
+                  dva_dt(i) * ghr(i,2) ) /                                 & ! MMY@Apr2023 met%dva -> dva_dt
                   ( air%dsatdk(i) + psycst(i,2) )
 
              IF (cable_user%fwsoil_switch=='Haverd2013') then
