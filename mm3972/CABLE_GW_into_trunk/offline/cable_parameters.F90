@@ -1591,10 +1591,14 @@ MODULE cable_param_module
        !placeholder
        soil%srf_frac_ma(:) = 0._r_2
        soil%edepth_ma(:)   = 0._r_2
- 
-       soil%qhz_efold(:) = real(gw_params%EfoldHorzDrainScale,r_2)*soil%drain_dens(:)&
-                                  +   real(gw_params%EfoldHorzDrainRate,r_2)
- 
+
+      ! soil%qhz_efold(:) = real(gw_params%EfoldHorzDrainScale,r_2)*soil%drain_dens(:)& ! MMY@Feb2023 move to GWspatial
+      !                            +   real(gw_params%EfoldHorzDrainRate,r_2)           ! MMY@Feb2023
+      ! ! _____________ MMY@Feb2023 check qhz_efold _____________
+      !print *, "gw_params%EfoldHorzDrainScale", gw_params%EfoldHorzDrainScale
+      !print *, "soil%drain_dens", soil%drain_dens
+      !print *, "soil%qhz_efold", soil%qhz_efold
+      !! _______________________________________________________ 
        !include organin impact.  fraction of grid cell where percolation through
        !organic macropores dominates
        soil%org_vec = max(0._r_2,soil%org_vec)
@@ -2740,6 +2744,9 @@ MODULE cable_param_module
      ! midpoints:
      soil%zshh(ms + 1) = 0.5 * soil%zse(ms)
      soil%zshh(2:ms)   = 0.5 * (soil%zse(1:ms-1) + soil%zse(2:ms))
+     
+     soil%qhz_efold(:) = real(gw_params%EfoldHorzDrainScale,r_2)*soil%drain_dens(:)&
+                       + real(gw_params%EfoldHorzDrainRate,r_2)
      ! ______________________________________
 
      !MD Aquifer properties

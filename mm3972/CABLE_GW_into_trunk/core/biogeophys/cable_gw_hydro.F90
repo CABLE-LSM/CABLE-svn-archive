@@ -1484,11 +1484,11 @@ MODULE cable_gw_hydro_module
                                 *(zimm(i,k)-ssnow%wtd(i)))/(zimm(i,k)-zimm(i,k-1))
            else
               ! ___________________ MMY debug __________________
-              print *,"ssnow%sucs_hys(i,k)", ssnow%sucs_hys(i,k)
-              print *,"ssnow%wtd(i)", ssnow%wtd(i)
-              print *,"zimm(i,k)",zimm(i,k)
-              print *,"ssnow%sucs_hys(i,k)",ssnow%sucs_hys(i,k)
-              print *,"soil%bch_vec(i,k)",soil%bch_vec(i,k)
+              !print *,"ssnow%sucs_hys(i,k)", ssnow%sucs_hys(i,k)
+              !print *,"ssnow%wtd(i)", ssnow%wtd(i)
+              !print *,"zimm(i,k)",zimm(i,k)
+              !print *,"ssnow%sucs_hys(i,k)",ssnow%sucs_hys(i,k)
+              !print *,"soil%bch_vec(i,k)",soil%bch_vec(i,k)
               ! _________________________________________________
               tempi = (((ssnow%sucs_hys(i,k)+ssnow%wtd(i)-zimm(i,k))/&
                        ssnow%sucs_hys(i,k)))**(1._r_2-1._r_2/soil%bch_vec(i,k))

@@ -295,7 +295,7 @@ PROGRAM cable_offline_driver
    WRITE(*,*) "THE NAME LIST IS ",CABLE_NAMELIST
    ! Open, read and close the namelist file.
    OPEN( 10, FILE = CABLE_NAMELIST )
-   READ( 10, NML=CABLE )	  !where NML=CABLE defined above
+   READ( 10, NML=CABLE )  !where NML=CABLE defined above
    CLOSE(10)
  
    ! Open, read and close the consistency check file.
