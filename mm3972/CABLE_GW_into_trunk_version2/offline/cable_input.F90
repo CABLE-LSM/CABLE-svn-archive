@@ -385,7 +385,7 @@ CONTAINS
           PRINT*,'rainf'
           CALL handle_err( ok )
        ENDIF
-       IF (TRIM(cable_user%MetType) .eq. "gswp") THEN ! MMY
+       IF (TRIM(cable_user%MetType) .eq. "gswp") THEN ! MMY add if for using Princeton forcing
           ok = NF90_OPEN(gswpfile%snowf,0,ncid_snow)
           IF (ok /= NF90_NOERR) THEN
              PRINT*,'snow'
@@ -1047,7 +1047,7 @@ CONTAINS
     IF(ok /= NF90_NOERR) CALL nc_abort &
          (ok,'Error finding Rainf units in met data file ' &
          //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
-    IF(metunits%Rainf(1:8)=='kg/m^2/s'.OR.metunits%Rainf(1:6)=='kg/m2s'.OR.metunits%Rainf(1:10)== &
+    IF(metunits%Rainf(1:8)=='kg/m^2/s'.OR.metunits%Rainf(1:7)=='kg/m2/s'.OR.metunits%Rainf(1:6)=='kg/m2s'.OR.metunits%Rainf(1:10)== & ! MMY@23Apr2023 edit for PLUMBER2
          'kgm^-2s^-1'.OR.metunits%Rainf(1:4)=='mm/s'.OR. &
          metunits%Rainf(1:6)=='mms^-1'.OR. &
          metunits%Rainf(1:7)=='kg/m^2s'.OR.metunits%Rainf(1:10)=='kg m-2 s-1'.OR.metunits%Wind(1:5)/='m s-1') THEN
@@ -1151,6 +1151,7 @@ CONTAINS
     IF (ncciy > 0) ncid_met = ncid_ps
     ok = NF90_INQ_VARID(ncid_met,'PSurf',id%PSurf)
     IF(ok .NE. NF90_NOERR) ok = NF90_INQ_VARID(ncid_met,'Psurf',id%PSurf)
+    IF(ok .NE. NF90_NOERR) ok = NF90_INQ_VARID(ncid_met,'pres',id%PSurf) ! MMY ! For Princeton
     IF(ok == NF90_NOERR) THEN ! If inquiry is okay
        exists%PSurf = .TRUE. ! PSurf is present in met file
        ! Get PSurf units and check:
@@ -1177,86 +1178,57 @@ CONTAINS
           CALL abort('Unknown units for PSurf'// &
                ' in '//TRIM(filename%met)//' (SUBROUTINE open_met_data)')
        END IF
-    ELSE                                                           ! MMY
-       ok = NF90_INQ_VARID(ncid_met,'pres',id%PSurf)               ! MMY ! For Princeton
-       IF(ok == NF90_NOERR) THEN ! If inquiry is okay
-          exists%PSurf = .TRUE. ! PSurf is present in met file
-          ! Get PSurf units and check:
-          ok = NF90_GET_ATT(ncid_met,id%PSurf,'units',metunits%PSurf)
-          IF(ok /= NF90_NOERR) CALL nc_abort &
-               (ok,'Error finding PSurf units in met data file ' &
+    ELSE         ! If PSurf not present                             ! MMY
+       exists%PSurf = .FALSE. ! PSurf is not present in met file
+       all_met=.FALSE. ! not all met variables are present in file
+       ! Look for "elevation" variable to approximate pressure based
+       ! on elevation and temperature:
+       ok = NF90_INQ_VARID(ncid_met,'Elevation',id%Elev)
+       IF(ok == NF90_NOERR) THEN ! elevation present
+         ! Get elevation units:
+         ok = NF90_GET_ATT(ncid_met,id%Elev,'units',metunits%Elev)
+         IF(ok /= NF90_NOERR) CALL nc_abort &
+            (ok,'Error finding elevation units in met data file ' &
+            //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
+         ! Units should be metres or feet:
+         IF(metunits%Elev(1:1)=='m'.OR.metunits%Elev(1:1)=='M') THEN
+            ! This is the expected unit - metres
+            convert%Elev = 1.0
+         ELSE IF(metunits%Elev(1:1)=='f'.OR.metunits%Elev(1:1)=='F') THEN
+            ! Convert from feet to metres:
+            convert%Elev = 0.3048
+         ELSE
+            CALL abort('Unknown units for Elevation'// &
+               ' in '//TRIM(filename%met)//' (SUBROUTINE open_met_data)')
+         END IF
+         ! Allocate space for elevation variable:
+         ALLOCATE(elevation(mland))
+         ! Get site elevations:
+         IF(metGrid=='mask') THEN
+            DO i = 1, mland
+               ok= NF90_GET_VAR(ncid_met,id%Elev,data2, &
+                  start=(/land_x(i),land_y(i)/),count=(/1,1/))
+               IF(ok /= NF90_NOERR) CALL nc_abort &
+                  (ok,'Error reading elevation in met data file ' &
+                  //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
+               elevation(i)=REAL(data2(1,1))*convert%Elev
+            END DO
+         ELSE IF(metGrid=='land') THEN
+            ! Collect data from land only grid in netcdf file:
+            ok= NF90_GET_VAR(ncid_met,id%Elev,data1)
+            IF(ok /= NF90_NOERR) CALL nc_abort &
+               (ok,'Error reading elevation in met data file ' &
                //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
-          IF(metunits%PSurf(1:2)=='Pa'.OR.metunits%PSurf(1:2)=='pa'.OR. &
-               metunits%PSurf(1:2)=='PA' ) THEN
-             ! Change from pa to mbar (cable uses mbar):
-             convert%PSurf = 0.01
-             WRITE(logn,*) 'Pressure will be converted from Pa to mb'
-          ELSE IF(metunits%PSurf(1:2)=='KP'.OR.metunits%PSurf(1:2)=='kP' &
-               .OR.metunits%PSurf(1:2)=='Kp'.OR.metunits%PSurf(1:2)=='kp') THEN
-             ! convert from kPa to mb
-             convert%PSurf = 10.0
-             WRITE(logn,*) 'Pressure will be converted from kPa to mb'
-          ELSE IF(metunits%PSurf(1:2)=='MB'.OR.metunits%PSurf(1:2)=='mB' &
-               .OR.metunits%PSurf(1:2)=='Mb'.OR.metunits%PSurf(1:2)=='mb') THEN
-             ! Units are correct
-             convert%PSurf = 1.0
-          ELSE
-             WRITE(*,*) metunits%PSurf
-             CALL abort('Unknown units for PSurf'// &
-                  ' in '//TRIM(filename%met)//' (SUBROUTINE open_met_data)')
-          END IF
-       ELSE         ! If PSurf not present                             ! MMY
-          exists%PSurf = .FALSE. ! PSurf is not present in met file
-          all_met=.FALSE. ! not all met variables are present in file
-          ! Look for "elevation" variable to approximate pressure based
-          ! on elevation and temperature:
-          ok = NF90_INQ_VARID(ncid_met,'Elevation',id%Elev)
-          IF(ok == NF90_NOERR) THEN ! elevation present
-             ! Get elevation units:
-             ok = NF90_GET_ATT(ncid_met,id%Elev,'units',metunits%Elev)
-             IF(ok /= NF90_NOERR) CALL nc_abort &
-                  (ok,'Error finding elevation units in met data file ' &
-                  //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
-             ! Units should be metres or feet:
-             IF(metunits%Elev(1:1)=='m'.OR.metunits%Elev(1:1)=='M') THEN
-                ! This is the expected unit - metres
-                convert%Elev = 1.0
-             ELSE IF(metunits%Elev(1:1)=='f'.OR.metunits%Elev(1:1)=='F') THEN
-                ! Convert from feet to metres:
-                convert%Elev = 0.3048
-             ELSE
-                CALL abort('Unknown units for Elevation'// &
-                     ' in '//TRIM(filename%met)//' (SUBROUTINE open_met_data)')
-             END IF
-             ! Allocate space for elevation variable:
-             ALLOCATE(elevation(mland))
-             ! Get site elevations:
-             IF(metGrid=='mask') THEN
-                DO i = 1, mland
-                   ok= NF90_GET_VAR(ncid_met,id%Elev,data2, &
-                        start=(/land_x(i),land_y(i)/),count=(/1,1/))
-                   IF(ok /= NF90_NOERR) CALL nc_abort &
-                        (ok,'Error reading elevation in met data file ' &
-                        //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
-                   elevation(i)=REAL(data2(1,1))*convert%Elev
-                END DO
-             ELSE IF(metGrid=='land') THEN
-                ! Collect data from land only grid in netcdf file:
-                ok= NF90_GET_VAR(ncid_met,id%Elev,data1)
-                IF(ok /= NF90_NOERR) CALL nc_abort &
-                     (ok,'Error reading elevation in met data file ' &
-                     //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
-                elevation = REAL(data1) * convert%Elev
-             END IF
-          ELSE ! If both PSurf and elevation aren't present, abort:
-             CALL abort &
-                  ('Error finding PSurf or Elevation in met data file ' &
-                  //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
-          END IF
-          ! Note static pressure based on elevation in log file:
-          WRITE(logn,*) 'PSurf not present in met file; values will be ', &
-               'synthesised based on elevation and temperature.'
-       END IF                                                      ! MMY
+            elevation = REAL(data1) * convert%Elev
+         END IF
+       ELSE ! If both PSurf and elevation aren't present, abort:
+         CALL abort &
+            ('Error finding PSurf or Elevation in met data file ' &
+            //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
+       END IF
+       ! Note static pressure based on elevation in log file:
+       WRITE(logn,*) 'PSurf not present in met file; values will be ', &
+         'synthesised based on elevation and temperature.'
     END IF
     ! Look for CO2air (can be assumed to be static):- - - - - - - - - - -
     ok = NF90_INQ_VARID(ncid_met,'CO2air',id%CO2air)
@@ -1886,7 +1858,7 @@ CONTAINS
           ENDDO
        END IF ! MMY
 
-   ! ============ MMY@23Apr2023 keep the block commented, may delete after testing ============
+   ! ============ MMY@23Apr2023 please delete this block ============
    !     ! Get Tair data for mask grid:- - - - - - - - - - - - - - - - - -
    !     IF(cable_user%GSWP3) THEN
    !        ncid_met = ncid_ta
@@ -2156,8 +2128,8 @@ CONTAINS
        
    ! ================ MMY@23Apr2023 testing below ==============
    ! Get Tair data for mask grid:- - - - - - - - - - - - - - - - - -
-       IF(cable_user%GSWP3) ncid_met = ncid_ta ! since GSWP3 multiple met files
-       ! Find number of dimensions of Tair:
+    IF(cable_user%GSWP3) ncid_met = ncid_ta ! since GSWP3 multiple met files
+    ! Find number of dimensions of Tair:
     ok = NF90_INQUIRE_VARIABLE(ncid_met,id%Tair,ndims=ndims)
     IF(ndims==3) THEN ! 3D var, either on grid or new ALMA format single site
        ok= NF90_GET_VAR(ncid_met,id%Tair,tmpDat3, &
@@ -2303,7 +2275,7 @@ CONTAINS
                 (ok,'Error reading Wind_N in met data file ' &
                 //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
           ! Write part of wind variable to met%ua:
-          DO i=1,mland ! over all land points/grid cells
+          DO i=1,mland ! over all land points/grid cells 
              met%ua(landpt(i)%cstart) = REAL(tmpDat3(land_x(i),land_y(i),1))
           ENDDO
           ! Then fetch 3D Wind_E, and combine:
@@ -2358,8 +2330,6 @@ CONTAINS
          met%precip(landpt(i)%cstart:landpt(i)%cend) = &
               REAL(tmpDat4(land_x(i),land_y(i),1,1)) ! store Rainf
       ENDDO
-      ! PRINT *, "========== MMY =========="
-      ! PRINT *, "met%precip",met%precip
       ! ____________________________________________________
    ELSE ! MMY
       ok= NF90_GET_VAR(ncid_met,id%Rainf,tmpDat3, &
@@ -2544,7 +2514,7 @@ CONTAINS
        DEALLOCATE(tmpDat2,tmpDat3,tmpDat4,tmpDat3x,tmpDat4x)
 
     ELSE IF(metGrid=='land') THEN
-      PRINT *, "metGrid=='land'" ! MMY     ! inserted line as per MMY code -- rk4417 ! MMY@23Apr2023 delete
+      ! PRINT *, "metGrid=='land'" ! MMY     ! inserted line as per MMY code -- rk4417 ! MMY@23Apr2023 delete
        ! Collect data from land only grid in netcdf file:
        ALLOCATE(tmpDat1(mland))
        ALLOCATE(tmpDat2(mland,1))
