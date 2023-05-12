@@ -976,7 +976,7 @@ CONTAINS
              PRINT *, 'vegtype_metfile = ', vegtype_metfile(kk,:)
              STOP
           END IF
-       ELSE                  ! ----------- end of block -- rk4417 ! MMY@13April decision has been made
+       ELSE                  ! ----------- end of block -- rk4417 ! MMY@13April delete the comment
 
           ! assume nmetpatches to be 1
           IF (nmetpatches == 1) THEN
@@ -1172,7 +1172,7 @@ CONTAINS
        IF (cable_user%popluc) THEN
           veg%iLU(landpt(e)%cstart:landpt(e)%cend)= 1
           IF (landpt(e)%nap.EQ.3 .AND.veg%iveg(landpt(e)%cstart)<=5 ) THEN
-!$         if (landpt(e)%nap.gt.1) then  ! replaces line above in MMY code -- rk4417 ! MMY@13April I don't know about pop, so need someone else decide it.
+!$         if (landpt(e)%nap.gt.1) then  ! replaces line above in MMY code -- rk4417 ! MMY@13April I don't know about pop, need to ask Claire.
              veg%iLU(landpt(e)%cstart+1) = 2
              veg%iLU(landpt(e)%cend) = 3
           ENDIF
@@ -1269,7 +1269,7 @@ CONTAINS
           veg%iveg(landpt(e)%cstart:landpt(e)%cstart + nmetpatches - 1) =      &
                vegtype_metfile(e, :)
 
-        IF(exists%patch) &    ! this IF is missing from MMY code -- rk4417 ! MMY@13April I don't know what this block is about
+        IF(exists%patch) &    ! this IF is missing from MMY code -- rk4417 ! MMY@13April I am not sure, here seems considering metfile's patch number, need Claire
           patch(landpt(e)%cstart:landpt(e)%cstart)%frac =      &
                                                            vegpatch_metfile(e, :)
 
@@ -1299,7 +1299,7 @@ CONTAINS
           bgc%ratecp(:)   = vegin%ratecp(:, veg%iveg(h))
           bgc%ratecs(:)   = vegin%ratecs(:, veg%iveg(h))
 
-          ! MMY@13April keep it in the code but commented  
+          ! MMY@13April keep it in the code but commented, here removed soilparmnew option and take soilparmnew=true as default
           ! ____ MMY @Oct2022 comment out since soilparmnew should be the default ____
           !   IF (.NOT. soilparmnew) THEN   ! Q,Zhang @ 12/20/2010
           !   soil%swilt(h)   =  soilin%swilt(soil%isoilm(h))
@@ -1427,14 +1427,14 @@ CONTAINS
     END WHERE
 
     ssnow%Qrecharge = 0.0
-    canopy%sublayer_dz = 0.0   ! line misssing from MMY code -- rk4417 ! MMY@13April yes, add it in the new code
+    canopy%sublayer_dz = 0.0   ! line misssing from MMY code -- rk4417 ! MMY@13April accept the insert as it is used in CABLE-GW
     ssnow%rtevap_sat = 0.0
     ssnow%rtevap_unsat = 0.0
     ssnow%satfrac = 0.5
     ssnow%wbliq = ssnow%wb - ssnow%wbice
     ssnow%GWwb = 0.9*soil%ssat
 
-    ssnow%wb_hys = -1.0e+36     ! inserted block as per MMY code -- rk4417 ! MMY@13April yes, add it in the new code
+    ssnow%wb_hys = -1.0e+36     ! inserted block as per MMY code -- rk4417 ! MMY@13April accept the insert as it is used in CABLE-GW
     ssnow%hys_fac = 1.0
     ssnow%watr_hys = soil%watr
     ssnow%ssat_hys = soil%ssat_vec
@@ -1459,14 +1459,14 @@ CONTAINS
 
     IF(cable_user%SOIL_STRUC=='sli') THEN
        soil%nhorizons = 1 ! use 1 soil horizon globally
-       ! veg%clitt = 5.0 ! (tC / ha)     ! line commented out in MMY code but included here for completeness -- rk4417 ! MMY@13April delete this line, clitt values has been writen in codes
+       ! veg%clitt = 5.0 ! (tC / ha)     ! line commented out in MMY code but included here for completeness -- rk4417 ! MMY@13April delete as clitt=vegin%clitt is prescripted in core/utils/cable_pft_params.F90
        veg%F10 = 0.85
-      !  veg%ZR = 5.0 ! MMY@13April delete this line, zr values has been writen in codes
+      !  veg%ZR = 5.0 ! MMY@13April delete as veg%ZR=vegin%zr is prescripted in core/utils/cable_pft_params.F90
     END IF
 
     IF(cable_user%SOIL_STRUC=='sli'.OR.cable_user%FWSOIL_SWITCH=='Haverd2013') THEN
        veg%gamma = 3.e-2
-       !veg%clitt = 5.0 ! (tC / ha)     ! line commented out in MMY code but included here for completeness -- rk4417 ! MMY@13April delete this line, clitt values has been writen in codes
+       !veg%clitt = 5.0 ! (tC / ha)     ! line commented out in MMY code but included here for completeness -- rk4417  ! MMY@13April delete as clitt=vegin%clitt is prescripted in core/utils/cable_pft_params.F90
     ENDIF
     !! vh_js !!
     IF(cable_user%CALL_POP) THEN
@@ -1590,7 +1590,7 @@ CONTAINS
     ! regardless of where parameters and other initialisations
     ! have loaded from:
 
-    where(veg%iveg .eq. 17) soil%isoilm = 9   ! inserted line as per MMY code -- rk4417 ! MMY@13April yes, set where iveg = ice isoilm = permanent ice
+    where(veg%iveg .eq. 17) soil%isoilm = 9   ! inserted line as per MMY code -- rk4417 ! MMY@13April accept the insert, it says where iveg = ice, isoilm = permanent ice
 
     soil_depth(:,1) = soil%zse_vec(:,1)
     do klev=2,ms
@@ -1601,7 +1601,7 @@ CONTAINS
     soil%GWz = 0.5*soil%GWdz + SUM(soil%zse)  !node is halfway through aquifer depth ! MMY note: GWz doesn't function, kept for later
 
     IF (cable_user%GW_MODEL) then
-
+      
        soil%qhz_max(:) = real(gw_params%MaxHorzDrainRate,r_2)  !enable distributed values
        soil%hkrz(:)    = real(gw_params%hkrz,r_2)
        soil%zdepth(:)  = real(gw_params%zdepth,r_2)
@@ -1702,7 +1702,7 @@ CONTAINS
           end do; end do
 
        ! MMY take soil organic material impact into consideration
-       if (gw_params%cosby_multivariate .or. gw_params%cosby_multivariate) then
+       if (.not.gw_params%HC_SWC) then
              DO klev=1,ms  !0-23.3 cm, data really is to 30cm
                 do i=1,mp
                    soil%hyds_vec(i,klev)  = (1.-soil%org_vec(i,klev))*soil%hyds_vec(i,klev) + &
@@ -2000,7 +2000,7 @@ CONTAINS
 !$          CALL abort('Unknown soil type! Aborting.')
 !$       END IF
 
-!$       replaced block above by below as per MMY code -- rk4417 ! MMY@13April, yes replace above by below. it is abort information, so doesnt matter.
+!$       replaced block above by below as per MMY code -- rk4417 ! MMY@13April accept, it is abortion information, does not really matter I think.
        
        IF(ANY(soil%isoilm(landpt(i)%cstart:(landpt(i)%cstart + landpt(i)%nap   &
           - 1)) < 1 ) .OR. ANY(soil%isoilm(landpt(i)%cstart:(landpt(i)%cstart  &
@@ -2136,8 +2136,8 @@ CONTAINS
     ! loaded (i.e. if restart file + met file contains all parameter/init/LAI
     ! info). This will not overwrite any parameter values.
     ! CALL get_type_parameters(filename_veg, filename_soil, logn, vegparmnew)
-    CALL cable_pft_params()    ! these 2 calls are missing in MMY code -- rk4417 ! MMY@13April delete these two lines as vegin and soilin are not needed in this subroutine at all other than they have already be defined
-    CALL cable_soil_params()
+   !  CALL cable_pft_params()    ! these 2 calls are missing in MMY code -- rk4417 ! MMY@13April delete these two lines as vegin and soilin are not needed in this subroutine at all other than they have already be defined
+   !  CALL cable_soil_params()
 
     ! Only report parameters for active vegetation patches:
 
@@ -2853,7 +2853,7 @@ CONTAINS
     end do 
  
     IF (cable_user%gw_model) then
- 
+
     !1
     soil%elev(:) = get_gw_data(ncid,file_status,'elevation',50.0,nlon,nlat)
     !2

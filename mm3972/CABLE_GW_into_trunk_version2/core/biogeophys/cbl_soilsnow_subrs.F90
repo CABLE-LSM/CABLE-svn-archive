@@ -9,12 +9,13 @@ MODULE cbl_soil_snow_subrs_module
   USE cable_common_module, ONLY: cable_user,snow_ccnsw,snmin,&
        max_ssdn,max_sconds,frozen_limit,&
        max_glacier_snowd
-
+  USE cable_data_module, only: C=>PHYS ! MMY@23Apr2023 newly add, to replace 'TYPE ( issnow_type ), SAVE :: C' below
   IMPLICIT NONE
 
   PRIVATE
 
-  TYPE ( issnow_type ), SAVE :: C
+  TYPE ( issnow_type ), SAVE :: C ! MMY@23Apr2023 I suggest to delete this line and use the line below 
+  
 
 PUBLIC  trimb
 PUBLIC  smoisturev
@@ -517,7 +518,7 @@ CONTAINS
 
     REAL, DIMENSION(mp) :: ssnow_tgg_min1
     
-    CALL point2constants( C )   ! note that this line is missing from MMY code -- rk4417
+!     CALL point2constants( C )   ! note that this line is missing from MMY code -- rk4417 ! MMY@23Apr2023 if use 'USE cable_data_module, only: C=>PHYS', this line can be deleted
 
     ssnow_tgg_min1 = MIN( C%TFRZ, ssnow%tgg(:,1) )
 
@@ -626,7 +627,7 @@ CONTAINS
 
     REAL, DIMENSION(mp,0:3) :: smelt1
 
-    CALL point2constants( C )   ! note that this line is missing from MMY code -- rk4417
+!     CALL point2constants( C )   ! note that this line is missing from MMY code -- rk4417 ! MMY@23Apr2023 if use 'USE cable_data_module, only: C=>PHYS', this line can be deleted
 
     snowmlt= 0.0
     smelt1 = 0.0
@@ -743,7 +744,7 @@ CONTAINS
 
     INTEGER             :: i,j,k
 
-    CALL point2constants( C )   ! note that this line is missing from MMY code -- rk4417
+!     CALL point2constants( C )   ! note that this line is missing from MMY code -- rk4417 ! MMY@23Apr2023 if use 'USE cable_data_module, only: C=>PHYS', this line can be deleted
     
     DO i=1,mp
 
@@ -936,7 +937,7 @@ CONTAINS
     REAL :: wb_lake_T, rnof2_T, ratio
     INTEGER :: k,j
 
-    CALL point2constants( C )   ! note that this line is missing from MMY code -- rk4417
+!     CALL point2constants( C )   ! note that this line is missing from MMY code -- rk4417 ! MMY@23Apr2023 if use 'USE cable_data_module, only: C=>PHYS', this line can be deleted
     
     IF( cable_runtime%UM ) THEN
        nglacier = 0
@@ -1088,7 +1089,7 @@ CONTAINS
     ct = 0.0
     coeff = 0.0
 
-    ssnow%otgg(:,:) = ssnow%tgg     ! inserted this line as per MMY code -- rk4417
+    ssnow%otgg(:,:) = ssnow%tgg     ! inserted this line as per MMY code -- rk4417 ! MMY@23Apr2023 have no idea, need someone to check whether adding this line will cause any difference
 
     IF (cable_user%soil_thermal_fix) THEN
        ccnsw = total_soil_conductivity(ssnow,soil)
@@ -1275,7 +1276,7 @@ CONTAINS
     INTEGER :: k,j
 
 
-    CALL point2constants( C )   ! note that this line is missing from MMY code -- rk4417
+!     CALL point2constants( C )   ! note that this line is missing from MMY code -- rk4417 ! MMY@23Apr2023 if use 'USE cable_data_module, only: C=>PHYS', this line can be deleted
     
     DO j=1,mp
 
@@ -1395,7 +1396,7 @@ CONTAINS
     INTEGER :: api ! active patch counter
 
 
-    CALL point2constants( C )   ! note that this line is missing from MMY code -- rk4417
+!     CALL point2constants( C )   ! note that this line is missing from MMY code -- rk4417 ! MMY@23Apr2023 if use 'USE cable_data_module, only: C=>PHYS', this line can be deleted
     
     ! adjust levels in the snowpack due to snow accumulation/melting,
     ! snow aging etc...
@@ -1537,7 +1538,7 @@ CONTAINS
     REAL, DIMENSION(mp)           :: xx
     INTEGER k
 
-    CALL point2constants( C )   ! note that this line is missing from MMY code -- rk4417
+!     CALL point2constants( C )   ! note that this line is missing from MMY code -- rk4417 ! MMY@23Apr2023 if use 'USE cable_data_module, only: C=>PHYS', this line can be deleted
     
     xx = 0.
     DO k = 1, ms
@@ -1604,7 +1605,7 @@ CONTAINS
     REAL(r_2), DIMENSION(mp)      :: xx,xxd,evap_cur
     INTEGER k
 
-    CALL point2constants( C )   ! note that this line is missing from MMY code -- rk4417
+!     CALL point2constants( C )   ! note that this line is missing from MMY code -- rk4417 ! MMY@23Apr2023 if use 'USE cable_data_module, only: C=>PHYS', this line can be deleted
     
     IF (cable_user%FWSOIL_switch.NE.'Haverd2013') THEN
        xx = 0.; xxd = 0.; diff(:,:) = 0.
@@ -1700,7 +1701,7 @@ CONTAINS
 
     INTEGER :: j, k
 
-    CALL point2constants( C )   ! note that this line is missing from MMY code -- rk4417
+!     CALL point2constants( C )   ! note that this line is missing from MMY code -- rk4417 ! MMY@23Apr2023 if use 'USE cable_data_module, only: C=>PHYS', this line can be deleted
     
     zsetot = SUM(soil%zse)
     totalmoist(:) = 0.0
@@ -2080,12 +2081,12 @@ CONTAINS
     
     LOGICAL :: direct2min = .FALSE.
 
-    CALL point2constants( C )   ! note that this line is missing from MMY code -- rk4417
+!     CALL point2constants( C )   ! note that this line is missing from MMY code -- rk4417 ! MMY@23Apr2023 if use 'USE cable_data_module, only: C=>PHYS', this line can be deleted
 
-    dels_r2 = real(dels,r_2)     ! inserted this line as per MMY code -- rk4417
+    dels_r2 = real(dels,r_2)     ! inserted this line as per MMY code -- rk4417 ! MMY@23Apr2023 keep it as it is used later
     
-
-   at = 0._r_2            ! ---- start -- rk4417
+ 
+   at = 0._r_2            ! ---- start -- rk4417 ! MMY@23Apr2023 are these taken from CABLE-GW? accept them gammzz_snow is used the eq later
    bt = 1._r_2
    ct = 0._r_2
    coeff = 0._r_2
@@ -2128,6 +2129,7 @@ CONTAINS
 
     k = 1
     WHERE( ssnow%isflag == 0 )
+! __ MMY@23Apr2023 delete, as these are duplication and its replacement from CABLE-GW is more readable __
 !$       coeff(:,2) = 2.0 / ( ( soil%zse(1) + xx(:) ) / ccnsw(:,1) + soil%zse(2) /   &
 !$            ccnsw(:,2) )
 !$       coefa = 0.0
@@ -2142,9 +2144,10 @@ CONTAINS
 !$            ssnow%wbfice(:,k) * C%cs_rho_ice ) )     &
 !$            * soil%zse_vec(:,k)
 !$
-!$       ssnow%gammzz(:,k) = ssnow%gammzz(:,k) + C%cgsnow * ssnow%snowd
+!$       ssnow%gammzz(:,k) = ssnow%gammzz(:,k) + C%cgsnow * ssnow%snowd 
 !$
-!$       dtg = dels / ssnow%gammzz(:,k)     ! replaced block by one below as per MMY code -- rk4417
+!$       dtg = dels / ssnow%gammzz(:,k)     ! replaced block by one below as per MMY code -- rk4417 
+! ___________________________________________________________________________________________________
 
        coeff(:,2) = 2._r_2 / ( ( soil%zse_vec(:,1) + xx(:) ) / ccnsw(:,1) + soil%zse_vec(:,2) /   &
             ccnsw(:,2) )
@@ -2170,6 +2173,7 @@ CONTAINS
     DO k = 2, ms
 
        WHERE( ssnow%isflag == 0 )
+! ___________________ MMY@23Apr2023 delete this block as duplication ___________________
 
 !$          wblfsp = ssnow%wblf(:,k)
 !$
@@ -2181,17 +2185,18 @@ CONTAINS
 !$               * soil%zse_vec(:,k)
 !$
 !$          dtg = dels / ssnow%gammzz(:,k)       ! replaced block by one below as per MMY code -- rk4417
-          
+! _____________________________________________________________________________________
+
           ssnow%gammzz(:,k) = MAX((soil%heat_cap_lower_limit(:,k)), &
                ( 1.0 - soil%ssat_vec(:,k) ) * &
                soil%css_vec(:,k) * soil%rhosoil_vec(:,k)   &
-               + ssnow%wbliq(:,k)*real(C%cswat*C%density_liq,r_2)           &
+               + ssnow%wbliq(:,k)*real(C%cswat*C%density_liq,r_2)           & 
                !+ ssnow%wbice(:,k)*real(C%csice*C%density_liq*0.9,r_2) )      & ! MMY
                + ssnow%wbice(:,k)*real(C%csice*C%density_ice,r_2) )      & ! MMY
                * soil%zse_vec(:,k) + gammzz_snow(:,k)
           
           dtg = dels_r2 / ssnow%gammzz(:,k)
-          
+
           at(:,k) = - dtg * coeff(:,k)
           ct(:,k) = - dtg * coeff(:,k+1) ! c3(ms)=0 & not really used
           bt(:,k) = 1.0 - at(:,k) - ct(:,k)
@@ -2252,6 +2257,7 @@ CONTAINS
     DO k = 1, ms
 
        WHERE( ssnow%isflag /= 0 )
+! ____________ MMY@23Apr2023 delete this block as duplication ___________
 !$          wblfsp = ssnow%wblf(:,k)
 !$
 !$          ssnow%gammzz(:,k) = MAX((soil%heat_cap_lower_limit(:,k)),&
@@ -2264,7 +2270,7 @@ CONTAINS
 !$          at(:,k) = - dtg * coeff(:,k)
 !$          ct(:,k) = - dtg * coeff(:,k + 1) ! c3(ms)=0 & not really used
 !$          bt(:,k) = 1.0 - at(:,k) - ct(:,k)    ! replaced block by one below as per MMY code -- rk4417
-
+! ______________________________________________________________________
           ssnow%gammzz(:,k) = MAX((soil%heat_cap_lower_limit(:,k)), &
                ( 1.0 - soil%ssat_vec(:,k) ) * &
                soil%css_vec(:,k) * soil%rhosoil_vec(:,k)   &

@@ -280,7 +280,7 @@ USE cbl_soil_snow_init_special_module
          cable_user,       &  ! additional USER switches
          gw_params
 
-    INTEGER :: i,x,kk,klev   !  added klev as per MMY code -- rk4417
+    INTEGER :: i,x,kk,klev   !  added klev as per MMY code -- rk4417 ! MMY@23Apr2023 delete the comment
     INTEGER :: LALLOC, iu
     ! END header
 
@@ -642,11 +642,11 @@ USE cbl_soil_snow_init_special_module
                   CALL cable_climate(ktau_tot,kstart,kend,ktauday,idoy,LOY,met, &
                   climate, canopy, air, rad, dels, mp)
 
-!$             if (cable_user%CALL_climate) &     ! above if appears this way in MMY code -- rk4417
+!$             if (cable_user%CALL_climate) &     ! above if appears this way in MMY code -- rk4417 ! MMY@23Apr2023 rad is redundant, however to keep it simple, use cable_climate from trunk
 !$                 CALL cable_climate(ktau,kstart,kend,ktauday,idoy,LOY,met, &  ! missing rad argument -- rk4417
 !$                      climate, canopy,air, dels,mp)                           ! ktau_tot  not ktau ??
 
-             do i=1,mp                                        ! added do loop as per MMY code -- rk4417
+             do i=1,mp                                        ! added do loop as per MMY code -- rk4417 ! MMY@23Apr2023 them as it is just an alarm
                 if (met%ua(i) .gt. 50.0) then
                    write(wlogn,*) 'ua error',i,met%ua(i)
                    write(wlogn,*) 't error',i,met%tk(i)
@@ -664,8 +664,8 @@ USE cbl_soil_snow_init_special_module
              ssnow%runoff = ssnow%runoff*dels
 
 
-!$added do loop below as per MMY code -- rk4417
-!$--------------------------------------- rk4417 ---------------------------------------
+!$added do loop below as per MMY code -- rk4417 ! MMY@23Apr2023 accept the add as it is just an alarm
+!$--------------------------------------- rk4417 --------------------------------------- ! MMY@23Apr2023 accept the insert but delete the comment
 
 ! check for Nans in biophysical outputs and abort if there are any
              DO kk=1,mp
@@ -722,7 +722,7 @@ USE cbl_soil_snow_init_special_module
                 
              ENDDO
              
-!$--------------------------------------- rk4417 ---------------------------------------
+!$--------------------------------------- rk4417 ---------------------------------------  ! MMY@23Apr2023 accept the insert but delete the comment
              
              !jhan this is insufficient testing. condition for
              !spinup=.false. & we want CASA_dump.nc (spinConv=.true.)
@@ -1978,7 +1978,7 @@ USE cbl_soil_snow_init_special_module
     CALL MPI_Get_address (canopy%fwsoil, displs(bidx), ierr)
     blen(bidx) = r2len
 
-    bidx = bidx + 1       ! inserted this block as per MMY code -- rk4417
+    bidx = bidx + 1       ! inserted this block as per MMY code -- rk4417  ! MMY@23Apr2023 keep the insert but delete this comment rk4417 as this is new from CABLE-GW
     CALL MPI_Get_address (canopy%sublayer_dz, displs(bidx), ierr)
     blen(bidx) = r2len
 
@@ -2460,8 +2460,8 @@ USE cbl_soil_snow_init_special_module
     CALL MPI_Get_address (soil%sfc_vec, displs(bidx), ierr)
     blen(bidx) = ms * r2len
 
-!$ inserted block below as per MMY code -- rk4417       
-!$  --------------------- start of block --------------------- rk4417
+!$ inserted block below as per MMY code -- rk4417       ! MMY@23Apr2023 delete this comment
+!$  --------------------- start of block --------------------- rk4417 ! MMY@23Apr2023 keep the insert but delete this comment  as they are new from CABLE-GW
 
   bidx = bidx + 1
   CALL MPI_Get_address (soil%css_vec, displs(bidx), ierr)
@@ -2527,7 +2527,7 @@ USE cbl_soil_snow_init_special_module
   blen(bidx) = ms * r2len
 
 
-!$  --------------------- end of block --------------------- rk4417
+!$  --------------------- end of block --------------------- rk4417 ! MMY@23Apr2023 delete this line
 
     
     !1d
@@ -2551,15 +2551,15 @@ USE cbl_soil_snow_init_special_module
     CALL MPI_Get_address (soil%GWwatr, displs(bidx), ierr)
     blen(bidx) = r2len
 
-    bidx = bidx + 1                ! note that this block is missing from MMY code -- rk4417 
-    CALL MPI_Get_address (soil%GWz, displs(bidx), ierr)
-    blen(bidx) = r2len
+   !  bidx = bidx + 1                ! note that this block is missing from MMY code -- rk4417 ! MMY@23Apr2023 delete these since GWz isn't used and we won't want to change MPI at all
+   !  CALL MPI_Get_address (soil%GWz, displs(bidx), ierr)
+   !  blen(bidx) = r2len
 
     bidx = bidx + 1
     CALL MPI_Get_address (soil%GWdz, displs(bidx), ierr)
     blen(bidx) = r2len
 
-    bidx = bidx + 1         ! inserted this block as per MMY code -- rk4417
+    bidx = bidx + 1         ! inserted this block as per MMY code -- rk4417  ! MMY@23Apr2023 accept the add, since it required by CABLE-GW
     CALL MPI_Get_address (soil%elev, displs(bidx), ierr)
     blen(bidx) = r2len
 
@@ -2571,8 +2571,8 @@ USE cbl_soil_snow_init_special_module
     CALL MPI_Get_address (soil%slope_std, displs(bidx), ierr)
     blen(bidx) = r2len
 
-!$ inserted block below as per MMY code -- rk4417       
-!$  --------------------- start of block --------------------- rk4417
+!$ inserted block below as per MMY code -- rk4417         ! MMY@23Apr2023 accept the add, since it required by CABLE-GW
+!$  --------------------- start of block --------------------- rk4417 ! MMY@23Apr2023 keep the insert but delete the comment 
 
   bidx = bidx + 1
   CALL MPI_Get_address (soil%drain_dens, displs(bidx), ierr)
@@ -2608,7 +2608,8 @@ USE cbl_soil_snow_init_special_module
   CALL MPI_Get_address (soil%qhz_efold, displs(bidx), ierr)
   blen(bidx) = r2len
 
-!$  --------------------- end of block --------------------- rk4417
+!$  --------------------- end of block --------------------- rk4417 ! MMY@23Apr2023 delete the comment 
+
 
     bidx = bidx + 1
     CALL MPI_Get_address (ssnow%GWwb, displs(bidx), ierr)
@@ -2617,7 +2618,7 @@ USE cbl_soil_snow_init_special_module
     ! MPI: sanity check
     IF (bidx /= ntyp) THEN
        WRITE (*,*) 'worker ',rank,' invalid number of param_t fields',bidx,', fix it!'
-       WRITE (*,*) 'worker ',rank,' invalid number ntyp is ',ntyp,', fix it!'  ! inserted line as per MMY code -- rk4417
+       WRITE (*,*) 'worker ',rank,' invalid number ntyp is ',ntyp,', fix it!'  ! inserted line as per MMY code -- rk4417 ! MMY@23Apr2023 keep the insert but delete the comment 
        CALL MPI_Abort (comm, 1, ierr)
     END IF
 
@@ -4068,8 +4069,8 @@ USE cbl_soil_snow_init_special_module
     CALL MPI_Get_address (ssnow%wb(off,1), displs(bidx), ierr)
     blocks(bidx) = r2len * ms
 
-!$ inserted block below as per MMY code -- rk4417       
-!$  --------------------- start of block --------------------- rk4417
+!$ inserted block below as per MMY code -- rk4417        ! MMY@23Apr2023 accept the add, since it required by CABLE-GW
+!$  --------------------- start of block --------------------- rk4417 ! MMY@23Apr2023 keep the insert but delete the comment
 
     bidx = bidx + 1
     CALL MPI_Get_address (ssnow%smp(off,1), displs(bidx), ierr)
@@ -4096,7 +4097,8 @@ USE cbl_soil_snow_init_special_module
     blocks(bidx) = r2len * ms
 
 
-!$  --------------------- end of block --------------------- rk4417
+!$  --------------------- end of block --------------------- rk4417 ! MMY@23Apr2023 delete the comment
+
 
     bidx = bidx + 1
     CALL MPI_Get_address (ssnow%evapfbl(off,1), displs(bidx), ierr)
@@ -4861,7 +4863,7 @@ USE cbl_soil_snow_init_special_module
     CALL MPI_Get_address (canopy%fwsoil(off), displs(bidx), ierr)
     blocks(bidx) = r2len
 
-    bidx = bidx + 1   ! added block as per MMY code -- rk4417
+    bidx = bidx + 1   ! added block as per MMY code -- rk4417 ! MMY@23Apr2023 accept the add as it's new from CABLE-GW
     CALL MPI_Get_address (canopy%sublayer_dz(off), displs(bidx), ierr)
     blocks(bidx) = r2len
 
@@ -6582,7 +6584,7 @@ USE cbl_soil_snow_init_special_module
     IMPLICIT NONE
 
     TYPE(climate_type), INTENT(INOUT):: climate
-    INTEGER, INTENT(IN) :: comm, ktauday     ! ktauday missing from MMY code -- rk4417
+    INTEGER, INTENT(IN) :: comm, ktauday     ! ktauday missing from MMY code -- rk4417 ! MMY@23Apr2023 accept it to avoid change
 
     ! MPI: temp arrays for marshalling all types into a struct
     INTEGER, ALLOCATABLE, DIMENSION(:) :: blocks
@@ -6611,8 +6613,8 @@ USE cbl_soil_snow_init_special_module
 
     ! CALL alloc_cbm_var(climate,mp)
 
-    IF (cable_user%call_climate) CALL climate_init ( climate, mp, ktauday )
-!$        CALL climate_init (climate, mp)   ! line above appears this way in MMY code -- rk4417
+    IF (cable_user%call_climate) CALL climate_init ( climate, mp, ktauday ) 
+!$        CALL climate_init (climate, mp)   ! line above appears this way in MMY code -- rk4417 ! MMY@23Apr2023 delete this line 
     ! MPI: allocate temp vectors used for marshalling
     ntyp = nclimate
 

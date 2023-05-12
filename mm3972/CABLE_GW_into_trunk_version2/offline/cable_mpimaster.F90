@@ -161,7 +161,7 @@ CONTAINS
          patch_type,& ! soilparmnew, ! MMY @Oct2022 change to use soilparmnew by default
          defaultLAI, sdoy, smoy, syear, timeunits, exists, output, &
          latitude,longitude, calendar,                             &
-         patch,wlogn               ! added line as per MMY code -- rk4417
+         patch               ! added line as per MMY code -- rk4417 ! MMY delete wlogn and keep patch, as wlogn used nowhere in this script
     USE cable_common_module,  ONLY: ktau_gl, kend_gl, knode_gl, cable_user,     &
          cable_runtime, fileName, myhome,            &
          redistrb, wiltParam, satuParam, CurYear,    &
@@ -354,7 +354,7 @@ CONTAINS
          satuParam,        &
          cable_user,       &  ! additional USER switches
          gw_params
-    INTEGER :: i,x,kk,klev       !  added klev as per MMY code -- rk4417
+    INTEGER :: i,x,kk,klev       !  added klev as per MMY code -- rk4417 ! MMY@23Apr2023 delete klev as it used nowhere
     INTEGER :: LALLOC
     INTEGER, PARAMETER ::	 mloop	= 30   ! CASA-CNP PreSpinup loops
     REAL    :: etime
@@ -2695,7 +2695,7 @@ CONTAINS
        CALL MPI_Get_address (canopy%fwsoil(off), displs(bidx), ierr)
        blen(bidx) = r2len
 
-       bidx = bidx + 1        ! inserted this block as per MMY code -- rk4417
+       bidx = bidx + 1        ! inserted this block as per MMY code --  ! MMY@23Apr2023 keep the insert but delete this comment rk4417 as this is new from CABLE-GW
        CALL MPI_Get_address (canopy%sublayer_dz(off), displs(bidx), ierr)
        blen(bidx) = r2len
      
@@ -3241,7 +3241,7 @@ CONTAINS
        blen(bidx) = 1
 
 !$ inserted block below as per MMY code -- rk4417       
-!$  --------------------- start of block --------------------- rk4417
+!$  --------------------- start of block --------------------- rk4417 ! MMY@23Apr2023 keep the insert but delete the comments, they are new variables from CABLE-GW
 
   bidx = bidx + 1
   CALL MPI_Get_address (soil%css_vec(off,1), displs(bidx), ierr)
@@ -3329,7 +3329,7 @@ CONTAINS
   &                             types(bidx), ierr)
   blen(bidx) = 1
 
-!$  --------------------- end of block --------------------- rk4417
+!$  --------------------- end of block --------------------- rk4417 ! MMY@23Apr2023 keep the insert but delete the comments, they are new variables from CABLE-GW
   
        !1D
        bidx = bidx + 1
@@ -3352,15 +3352,15 @@ CONTAINS
        CALL MPI_Get_address (soil%GWwatr(off), displs(bidx), ierr)
        blen(bidx) = r2len
 
-       bidx = bidx + 1                ! note that this block is missing from MMY code -- rk4417 
-       CALL MPI_Get_address (soil%GWz(off), displs(bidx), ierr)
-       blen(bidx) = r2len
+     !   bidx = bidx + 1                ! note that this block is missing from MMY code -- rk4417  ! MMY@23Apr2023 delete these since GWz isn't used and we won't want to change MPI at all
+     !   CALL MPI_Get_address (soil%GWz(off), displs(bidx), ierr)
+     !   blen(bidx) = r2len
 
        bidx = bidx + 1
        CALL MPI_Get_address (soil%GWdz(off), displs(bidx), ierr)
        blen(bidx) = r2len
 
-       bidx = bidx + 1            ! inserted this block as per MMY code -- rk4417
+       bidx = bidx + 1            ! inserted this block as per MMY code -- rk4417 ! MMY@23Apr2023 accept the add, since it required by CABLE-GW
        CALL MPI_Get_address (soil%elev(off), displs(bidx), ierr)
        blen(bidx) = r2len
   
@@ -3372,8 +3372,8 @@ CONTAINS
        CALL MPI_Get_address (soil%slope_std(off), displs(bidx), ierr)
        blen(bidx) = r2len
 
-!$ inserted block below as per MMY code -- rk4417       
-!$  --------------------- start of block --------------------- rk4417
+!$ inserted block below as per MMY code -- rk4417       ! MMY@23Apr2023 accept the add, since they are required by CABLE-GW
+!$  --------------------- start of block --------------------- rk4417 ! MMY@23Apr2023 keep the insert but delete the comments 
        bidx = bidx + 1
        CALL MPI_Get_address (soil%drain_dens(off), displs(bidx), ierr)
        blen(bidx) = r2len
@@ -3408,7 +3408,7 @@ CONTAINS
        CALL MPI_Get_address (soil%qhz_efold(off), displs(bidx), ierr)
        blen(bidx) = r2len
 
-!$  --------------------- end of block --------------------- rk4417
+!$  --------------------- end of block --------------------- rk4417 ! MMY@23Apr2023 delete the comments 
 
        bidx = bidx + 1
        CALL MPI_Get_address (ssnow%GWwb(off), displs(bidx), ierr)
@@ -3417,7 +3417,7 @@ CONTAINS
        ! MPI: sanity check
        IF (bidx /= ntyp) THEN
           WRITE (*,*) 'master: invalid number of param_t fields ',bidx,', fix it!'
-          WRITE (*,*) 'local counbt bidx is ',bidx,' while ntyp is ',ntyp  ! inserted line as per MMY code -- rk4417
+          WRITE (*,*) 'local counbt bidx is ',bidx,' while ntyp is ',ntyp  ! inserted line as per MMY code -- rk4417 ! MMY@23Apr2023 keep the insert but delete the comments 
           CALL MPI_Abort (comm, 1, ierr)
        END IF
 
@@ -4620,7 +4620,7 @@ CONTAINS
        ! MPI: sanity check
        IF (bidx /= ntyp) THEN
           WRITE (*,*) 'master: invalid number of casa_t param fields ',bidx,', fix it!'
-          WRITE (*,*) 'local counbt bidx is ',bidx,' while ntyp is ',ntyp  ! inserted line as per MMY code -- rk4417
+          WRITE (*,*) 'local counbt bidx is ',bidx,' while ntyp is ',ntyp  ! inserted line as per MMY code -- rk4417 ! MMY@23Apr2023 keep the insert but delete the comments 
           CALL MPI_Abort (comm, 1, ierr)
        END IF
 
@@ -5086,8 +5086,8 @@ CONTAINS
        CALL MPI_Type_commit (mat_t(midx, rank), ierr)
        midx = midx + 1
        
-!$ inserted block below as per MMY code -- rk4417       
-!$  --------------------- start of block --------------------- rk4417
+!$ inserted block below as per MMY code -- rk4417        ! MMY@23Apr2023 accept the adds since they are required by CABLE-GW
+!$  --------------------- start of block --------------------- rk4417 ! MMY@23Apr2023 keep the insert but delete the comments 
 
      ! REAL(r_2)
      CALL MPI_Get_address (ssnow%smp(off,1), maddr(midx), ierr) ! 12
@@ -5133,7 +5133,7 @@ CONTAINS
      CALL MPI_Type_commit (mat_t(midx, rank), ierr)
      midx = midx + 1
 
-!$  --------------------- end of block --------------------- rk4417
+!$  --------------------- end of block --------------------- rk4417 ! MMY@23Apr2023 delete the comments 
 
        ! REAL(r_1)
        CALL MPI_Get_address (ssnow%evapfbl(off,1), maddr(midx), ierr) ! 12
@@ -5645,7 +5645,7 @@ CONTAINS
        CALL MPI_Get_address (canopy%fwsoil(off), vaddr(vidx), ierr) ! 59
        blen(vidx) = cnt * extr2
 
-       vidx = vidx + 1   ! added block as per MMY code -- rk4417
+       vidx = vidx + 1   ! added block as per MMY code -- rk4417 ! MMY@23Apr2023 accept the add since it is required by CABLE-GW 
        ! REAL(r_2)
        CALL MPI_Get_address (canopy%sublayer_dz(off), vaddr(vidx), ierr) ! 59
        blen(vidx) = cnt * extr2

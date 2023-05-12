@@ -36,7 +36,7 @@ MODULE cable_IO_vars_module
   CHARACTER(LEN=200) :: timeunits ! timing info read from nc file
 
   CHARACTER(LEN=10) :: calendar ! 'noleap' for no leap years, 'standard' for leap years
-!$  line above is missing from MMY code -- rk4417
+!$  line above is missing from MMY code -- rk4417 ! MMY@23Apr2023 keep this line since it enables calendar attribution in output
   CHARACTER(LEN=3) :: time_coord ! GMT or LOCal time variables
 
   REAL(r_2),POINTER,DIMENSION(:) :: timevar ! time variable from file
@@ -129,7 +129,7 @@ MODULE cable_IO_vars_module
        vegtype_metfile(:,:)      ! user-def veg type (from met file)
 
    REAL, POINTER :: vegpatch_metfile(:,:) ! Anna: patchfrac for user-def vegtype
-!$  line above is missing from MMY code -- rk4417
+!$  line above is missing from MMY code -- rk4417 ! MMY@23Apr2023 keep this line since it's new function in the trunk version
 
   TYPE parID_type ! model parameter IDs in netcdf file
 
@@ -142,7 +142,7 @@ MODULE cable_IO_vars_module
           WatSat,GWWatSat,SoilMatPotSat,GWSoilMatPotSat,                       &
           HkSat,GWHkSat,FrcSand,FrcClay,Clappb,Watr,GWWatr,sfc_vec,forg,swilt_vec, &
           slope,slope_std,GWdz,SatFracmax,Qhmax,QhmaxEfold,HKefold,HKdepth,   &
-          sand_vec,clay_vec,bch_vec,org_vec,elev,elev_std       ! added this line as per MMY code -- rk4417 
+          sand_vec,clay_vec,bch_vec,org_vec,elev,elev_std       ! added this line as per MMY code -- rk4417 ! MMY@23Apr2023 keep this line but delete the comment as CABLE-GW needs this line 
                                                                 
      INTEGER :: ishorizon,nhorizons,clitt, &
           zeta,fsatmax, &
@@ -365,7 +365,7 @@ MODULE cable_IO_vars_module
           isoil  = .FALSE.,    & ! soil type from global index
           meth  = .FALSE.,     & ! method for solving turbulence in canopy scheme
           za  = .FALSE.,       & ! something to do with roughness ????
-          elev = .false.,&      !mean subgrid elev       ! inserted these 2 lines as per MMY code -- rk4417
+          elev = .false.,&      !mean subgrid elev       ! inserted these 2 lines as per MMY code -- rk4417 ! MMY@23Apr2023 accept the adding and delete this comment
           elev_std=.false.,&    !stddev of subgrid elev
           slope = .FALSE.,&      !mean subgrid slope
           slope_std=.FALSE.,&    !stddev of subgrid slope
@@ -374,7 +374,7 @@ MODULE cable_IO_vars_module
           Qhmax=.FALSE.,&
           QhmaxEfold=.FALSE.,&
           HKefold=.FALSE.,&
-!$          HKdepth           ! replaced line by block below as per MMY code -- rk4417
+!$          HKdepth           ! replaced line by block below as per MMY code -- rk4417 ! MMY@23Apr2023 delete this line
           HKdepth=.false.,&
           SMP=.false.,&
           SMP_hys=.false.,&

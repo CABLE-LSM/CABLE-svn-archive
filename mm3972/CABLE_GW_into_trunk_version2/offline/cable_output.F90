@@ -231,13 +231,13 @@ MODULE cable_output_module
      REAL(KIND=4), POINTER, DIMENSION(:) :: RootResp   !  autotrophic root respiration [umol/m2/s]
      REAL(KIND=4), POINTER, DIMENSION(:) :: StemResp   !  autotrophic stem respiration [umol/m2/s]
     
-     REAL(KIND=4), POINTER, DIMENSION(:,:) :: SMP      ! soil pressure [m] ! inserted 3 lines as per MMY code -- rk4417
+     REAL(KIND=4), POINTER, DIMENSION(:,:) :: SMP      ! soil pressure [m] ! inserted 3 lines as per MMY code -- rk4417 ! MMY@23Apr2023 delete the comment as it's new from CABLE-GW 
      REAL(KIND=4), POINTER, DIMENSION(:,:) :: SMP_hys  ! soil pressure [m]
      REAL(KIND=4), POINTER, DIMENSION(:,:) :: WB_hys    ! soil pressure [m]
     
      REAL(KIND=4), POINTER, DIMENSION(:,:) :: SSAT_hys   ! soil pressure [m]
      REAL(KIND=4), POINTER, DIMENSION(:,:) :: WATR_hys   ! soil pressure [m]
-     REAL(KIND=4), POINTER, DIMENSION(:,:) :: hys_fac   ! soil pressure [m] ! inserted line as per MMY code -- rk4417
+     REAL(KIND=4), POINTER, DIMENSION(:,:) :: hys_fac   ! soil pressure [m] ! inserted line as per MMY code -- rk4417 ! MMY@23Apr2023 delete the comment as it's new from CABLE-GW
      
   END TYPE output_temporary_type
   TYPE(output_temporary_type), SAVE :: out
@@ -358,7 +358,7 @@ CONTAINS
     IF (ok /= NF90_NOERR) CALL nc_abort                                        &
          (ok, 'Error defining time variable attributes in output file. '// &
          '(SUBROUTINE open_output_file)')
-    ok = NF90_PUT_ATT(ncid_out, ovid%tvar, 'calendar', calendar)   ! note that this block is missing from MMY code -- rk4417 
+    ok = NF90_PUT_ATT(ncid_out, ovid%tvar, 'calendar', calendar)   ! note that this block is missing from MMY code -- rk4417  ! MMY@23Apr2023 keep this line as it's needed by trunk but delete the comment 
     IF (ok /= NF90_NOERR) CALL nc_abort                                        &
          (ok, 'Error defining time variable attributes in output file. '// &
          '(SUBROUTINE open_output_file)')
@@ -600,8 +600,8 @@ CONTAINS
        out%SoilTemp = 0.0 ! initialise
     END IF
 
-!$ inserted block below as per MMY code -- rk4417       
-!$  --------------------- start of block --------------------- rk4417
+!$ inserted block below as per MMY code -- rk4417       ! MMY@23Apr2023 delete the comment as it's new from CABLE-GW
+!$  --------------------- start of block --------------------- rk4417 ! MMY@23Apr2023 delete the comment
     
     IF(output%soil .OR. output%SMP) THEN
        CALL define_ovar(ncid_out, ovid%SMP, 'SMP', 'm',      &
@@ -638,7 +638,7 @@ CONTAINS
        out%hys_fac = 0.0 ! initialise
     end if
 
-!$  --------------------- end of block --------------------- rk4417  
+!$  --------------------- end of block --------------------- rk4417   ! MMY@23Apr2023 delete the comment
     
     IF(output%soil .OR. output%BaresoilT) THEN
        CALL define_ovar(ncid_out, ovid%BaresoilT, 'BaresoilT',                 &
@@ -1111,6 +1111,7 @@ CONTAINS
          'isoil', '-', 'Soil type', patchout%isoil, 'integer', &
          xID, yID, zID, landID, patchID)
 
+! ============== MMY@23Apr2023 delete, since vars below is static, should not output as time-varying vars ===========
 !$    IF(output%params .OR. output%bch) CALL define_ovar(ncid_out, opid%bch,     &
 !$         'bch', '-', 'Parameter b, Campbell eqn 1985', patchout%bch, 'real', &
 !$         xID, yID, zID, landID, patchID)
@@ -1142,10 +1143,11 @@ CONTAINS
 !$         'css', 'J/kg/C', 'Heat capacity of soil minerals', &
 !$         patchout%css, 'real', xID, yID, zID, landID, patchID)
 
-!$replaced block above by one below as per MMY code -- rk4417    
+!$replaced block above by one below as per MMY code -- rk4417  
 !$  --------------------- start of block --------------------- rk4417
-       ! MMY ??? I don't know how the dimswitch='real' can be read by define_ovar
-    
+       
+! ============== MMY@23Apr2023 end deletet ==========
+
     IF(output%params .OR. output%bch) CALL define_ovar(ncid_out, opid%bch,     &
            'bch', '-', 'Parameter b, Campbell eqn 1985', patchout%bch, soilID,'soil', &
                                                  xID, yID, zID, landID, patchID)
@@ -1177,13 +1179,13 @@ CONTAINS
                             'css', 'J/kg/C', 'Heat capacity of soil minerals', &
                            patchout%css, soilID,'soil', xID, yID, zID, landID, patchID)
 
-!$  --------------------- end of block --------------------- rk4417    
+!$  --------------------- end of block --------------------- rk4417     ! MMY@23Apr2023 deletet the comment 
 
-!$    IF(output%params .OR. output%rhosoil) CALL define_ovar(ncid_out,           &
+!$    IF(output%params .OR. output%rhosoil) CALL define_ovar(ncid_out,           &  ! MMY@23Apr2023 delete since CABLE-GW doesn't use it any more 
 !$         opid%rhosoil, 'rhosoil', 'kg/m^3', 'Density of soil minerals', &
 !$         patchout%rhosoil, 'real', xID, yID, zID, landID, patchID)
 
-!$ replaced block above by below as per MMY code -- rk4417 
+!$ replaced block above by below as per MMY code -- rk4417  ! MMY@23Apr2023 deletet 
 
     IF(output%params .OR. output%rhosoil) CALL define_ovar(ncid_out,           &
          opid%rhosoil, 'rhosoil', 'kg/m^3', 'Density of soil minerals', &
@@ -1306,7 +1308,7 @@ CONTAINS
     !                          patchout%GWdz, 'real', xID, yID, zID, landID, patchID)
     !
 
-
+! ============== MMY@23Apr2023 delete, since vars below is static, should not output as time-varying vars ==============
 !$    IF(output%params .AND. cable_user%gw_model) THEN
 !$       CALL define_ovar(ncid_out, opid%Qhmax,   &
 !$            'Qhmax', 'mm/s', 'Maximum subsurface drainage ', &
@@ -1325,8 +1327,8 @@ CONTAINS
 !$            patchout%HKdepth, 'real', xID, yID, zID, landID, patchID)
 !$    END IF
 
-!$ replaced block above by below as per MMY code -- rk4417
-
+!$ replaced block above by below as per MMY code -- rk4417 
+! ============== end delete ==============
     IF(output%params .and. cable_user%gw_model) THEN
             call define_ovar(ncid_out, opid%slope,   &
            'slope', '-', 'mean subgrid topographic slope', &
@@ -1475,6 +1477,7 @@ CONTAINS
     IF(output%params .OR. output%isoil) CALL write_ovar(ncid_out, opid%isoil,  &
          'isoil', REAL(soil%isoilm, 4), ranges%isoil, patchout%isoil,'integer')
 
+! ============== MMY@23Apr2023 delete, since vars below is static, should not output as time-varying vars ==============
 !$    IF(output%params .OR. output%bch) CALL write_ovar(ncid_out, opid%bch,      &
 !$         'bch', REAL(soil%bch, 4), ranges%bch, patchout%bch, 'real')
 !$    IF(output%params .OR. output%clay) CALL write_ovar(ncid_out, opid%clay,    &
@@ -1487,6 +1490,7 @@ CONTAINS
 !$         'css', REAL(soil%css, 4), ranges%css, patchout%css, 'real')
 
 !$ replaced block above by below as per MMY code -- rk4417
+! ============== end delete ==============
     
     IF(output%params .OR. output%bch) CALL write_ovar(ncid_out, opid%bch,      &
                      'bch', REAL(soil%bch_vec, 4), ranges%bch, patchout%bch, 'soil')
@@ -1500,22 +1504,27 @@ CONTAINS
                      'css', REAL(soil%css_vec, 4), ranges%css, patchout%css, 'soil')
 
 
+! ============== MMY@23Apr2023 delete, since vars below is static, should not output as time-varying vars ==============
 !$    IF(output%params .OR. output%rhosoil) CALL write_ovar(ncid_out,            &
 !$         opid%rhosoil, 'rhosoil',REAL(soil%rhosoil,4), &
 !$         ranges%rhosoil, patchout%rhosoil, 'real')
 
 !$ replaced block above by below as per MMY code -- rk4417
+! ============== end delete ==============
 
     IF(output%params .OR. output%rhosoil) CALL write_ovar(ncid_out,            &
          opid%rhosoil, 'rhosoil',REAL(soil%rhosoil_vec,4), &
          ranges%rhosoil, patchout%rhosoil, 'soil')
 
+! ============== MMY@23Apr2023 delete, since vars below is static, should not output as time-varying vars ==============
 !$    IF(output%params .OR. output%hyds) CALL write_ovar(ncid_out, opid%hyds,    &
 !$         'hyds', REAL(soil%hyds, 4), ranges%hyds, patchout%hyds, 'real')
 !$    IF(output%params .OR. output%sucs) CALL write_ovar(ncid_out, opid%sucs,    &
 !$         'sucs', REAL(soil%sucs, 4), ranges%sucs, patchout%sucs, 'real')
 
 !$ replaced block above by below as per MMY code -- rk4417
+! ============== end delete ==============
+
 
    IF(output%params .OR. output%hyds) CALL write_ovar(ncid_out, opid%hyds,    &
                  'hyds', REAL(soil%hyds_vec, 4), ranges%hyds, patchout%hyds, 'soil')
@@ -1528,6 +1537,7 @@ CONTAINS
     !         'rs20',REAL(soil%rs20,4),ranges%rs20,patchout%rs20,'real')
 
 
+! ============== MMY@23Apr2023 delete, since vars below is static, should not output as time-varying vars ==============
 !$    IF(output%params .OR. output%ssat) CALL write_ovar(ncid_out, opid%ssat,    &
 !$         'ssat', REAL(soil%ssat, 4), ranges%ssat, patchout%ssat, 'real')
 !$    IF(output%params .OR. output%sfc) CALL write_ovar(ncid_out, opid%sfc,      &
@@ -1536,6 +1546,7 @@ CONTAINS
 !$         'swilt', REAL(soil%swilt, 4), ranges%swilt, patchout%swilt, 'real')
 
 !$ replaced block above by below as per MMY code -- rk4417
+! ============== end delete ==============
 
     IF(output%params .OR. output%ssat) CALL write_ovar(ncid_out, opid%ssat,    &
                  'ssat', REAL(soil%ssat_vec, 4), ranges%ssat, patchout%ssat, 'soil')
@@ -1617,6 +1628,7 @@ CONTAINS
          'zse', REAL(soil%zse_vec, 4),ranges%zse, &
          patchout%zse, 'soil')! no spatial dim at present
 
+! ============== MMY@23Apr2023 delete, since vars below is static, should not output as time-varying vars ==============
     !    IF(output%params .OR. output%slope) CALL write_ovar(ncid_out, opid%slope,    &
     !                 'slope', REAL(soil%slope, 4), (/0.0,1.0/), patchout%slope, 'real')
     !    IF(output%params .OR. output%slope_std) CALL write_ovar(ncid_out, opid%slope_std,    &
@@ -1649,6 +1661,7 @@ CONTAINS
 !$    END IF
 
 !$ replaced block above by below as per MMY code -- rk4417
+! ============== end delete ==============
 
     IF(output%params .AND. cable_user%gw_model) THEN
           CALL write_ovar(ncid_out, opid%slope,    &
@@ -2284,8 +2297,8 @@ CONTAINS
        END IF
     END IF
 
-!$     inserted block below as per MMY code -- rk4417
-!$------------------------------ rk4417 ----------------------------------
+!$     inserted block below as per MMY code -- rk4417 ! MMY@23Apr2023 accept the add since they are new from CABLE-GW
+!$------------------------------ rk4417 ---------------------------------- ! MMY@23Apr2023 delete the comment 
 
     IF((output%soil .OR. output%SMP)  .and. cable_user%GW_MODEL) THEN
        !write(*,*) 'Qinfl'    !MDeck
@@ -2342,7 +2355,7 @@ CONTAINS
        END IF
     END IF
 
-!$------------------------------ rk4417 ----------------------------------
+!$------------------------------ rk4417 ---------------------------------- MMY@23Apr2023 delete the comment 
 
     ! recharge rate
     IF(output%soil .OR. output%Qrecharge) THEN
@@ -2771,7 +2784,7 @@ CONTAINS
 
        IF(output%casa) THEN
 !$          out%AutoResp = out%AutoResp + REAL((sum(casaflux%crmplant,2)/86400.0 + &
-!$ note that 2 lines below are placed by line above in MMY code -- rk4417
+!$ note that 2 lines below are placed by line above in MMY code -- rk4417 ! MMY@23Apr2023 these changes are important for casa, need help from Claire
           out%AutoResp = out%AutoResp + REAL(canopy%frday / 1.201E-5, 4) + &
                REAL((casaflux%crmplant(:,2)/86400.0 + casaflux%crmplant(:,3)/86400.0 + &
                casaflux%crgplant/86400.0 + casaflux%clabloss/86400.)/ 1.201E-5, 4)
@@ -2790,7 +2803,7 @@ CONTAINS
           out%AutoResp = 0.0
        END IF
 
-       IF(output%casa) THEN    ! note that this IF block is missing from MMY code -- rk4417
+       IF(output%casa) THEN    ! note that this IF block is missing from MMY code -- rk4417 ! MMY@23Apr2023 these changes are important for casa, need help from Claire
           out%RootResp = out%RootResp + REAL(casaflux%crmplant(:,3)/86400.0/ 1.201E-5, 4) !+ &
           ! REAL(0.3*casaflux%crmplant(:,2)/86400.0/ 1.201E-5, 4)
           IF(writenow) THEN
@@ -2804,7 +2817,7 @@ CONTAINS
           END IF
        END IF
 
-       IF(output%casa) THEN    ! note that this IF block is missing from MMY code -- rk4417
+       IF(output%casa) THEN    ! note that this IF block is missing from MMY code -- rk4417 ! MMY@23Apr2023 these changes are important for casa, need help from Claire
           out%StemResp = out%StemResp + REAL(casaflux%crmplant(:,2)/86400.0/ 1.201E-5, 4)
           IF(writenow) THEN
              ! Divide accumulated variable by number of accumulated time steps:
@@ -2876,12 +2889,12 @@ CONTAINS
     ! NBP and turnover fluxes [umol/m^2/s]
 !$    IF(output%casa) THEN
 !$ line below appears as above in MMY code -- rk4417
-    IF((output%carbon .OR. output%NBP) .AND. output%casa) THEN
+    IF((output%carbon .OR. output%NBP) .AND. output%casa) THEN ! MMY@23Apr2023 I have no idea about casa, need help from Claire
        ! Add current timestep's value to total of temporary output variable:
        IF (cable_user%POPLUC) THEN
           out%NBP = out%NBP + -REAL((casaflux%Crsoil-casaflux%cnpp &
                - casapool%dClabiledt)/86400.0 &
-               / 1.201E-5, 4) !-  &  ! note that this bit is not commented out in MMY code -- rk4417 
+               / 1.201E-5, 4) !-  &  ! note that this bit is not commented out in MMY code -- rk4417 ! MMY@23Apr2023 I have no idea about casa, need help from Claire
           !REAL((casaflux%FluxCtohwp + casaflux%FluxCtoclear  )/86400.0 &
           !/ 1.201E-5, 4)
        ELSE
@@ -3268,9 +3281,9 @@ CONTAINS
          canstoID, albsoilsnID, gammzzID, tggsnID, sghfluxID,       &
          ghfluxID, runoffID, rnof1ID, rnof2ID, gaID, dgdtgID,       &
          fevID, fesID, fhsID, wbtot0ID, osnowd0ID, cplantID,        &
-         csoilID, tradID, albedoID, gwID, subdzID   ! added subdzID as per MMY code -- rk4417
+         csoilID, tradID, albedoID, gwID, subdzID   ! added subdzID as per MMY code -- rk4417 ! MMY@23Apr2023 accept these changes and delete the comment
     INTEGER :: h0ID, snowliqID, SID, TsurfaceID, scondsID, nsnowID, TsoilID
-    INTEGER :: hys(6)   ! inserted line as per MMY code -- rk4417
+    INTEGER :: hys(6)   ! inserted line as per MMY code -- rk4417 ! MMY@23Apr2023 accept these changes and delete the comment
     CHARACTER(LEN=10) :: todaydate, nowtime ! used to timestamp netcdf file
     ! CHARACTER         :: FRST_OUT*100, CYEAR*4
     CHARACTER         :: FRST_OUT*200, CYEAR*4
@@ -3507,6 +3520,7 @@ CONTAINS
          'Vegetation type', .TRUE., 'integer', 0, 0, 0, mpID, dummy, .TRUE.)
     CALL define_ovar(ncid_restart, rpid%isoil, 'isoil', '-',                   &
          'Soil type', .TRUE., 'integer', 0, 0, 0, mpID, dummy, .TRUE.)
+! =========== MMY@23Apr2023 delete, since vars below is static, should not output as time-varying vars ===========
 !$    CALL define_ovar(ncid_restart, rpid%clay, 'clay', '-',                     &
 !$                     'Fraction of soil which is clay',                         &
 !$                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
@@ -3527,7 +3541,7 @@ CONTAINS
 !$                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
 
 !$ block above appears uncommented as below in MMY code -- rk4417
-
+! =========== end delete  ===========
     CALL define_ovar(ncid_restart, rpid%clay, 'clay', '-',                     &
                      'Fraction of soil which is clay',                         &
                      .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
@@ -3555,6 +3569,8 @@ CONTAINS
     ok = NF90_PUT_ATT(ncid_restart, rpid%zse, "long_name",                     &
          "Depth of each soil layer")
     ok = NF90_PUT_ATT(ncid_restart, rpid%zse, "units", "m")
+
+! =========== MMY@23Apr2023 delete, since vars below is static, should not output as time-varying vars ===========
 !$    CALL define_ovar(ncid_restart, rpid%froot, 'froot', '-',                   &
 !$                     'Fraction of roots in each soil layer',                   &
 !$                      .TRUE., soilID, 'soil', 0, 0, 0, mpID, dummy, .TRUE.)
@@ -3578,7 +3594,8 @@ CONTAINS
 !$                      .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
 
 !$ block above appears uncommented as below in MMY code -- rk4417
-    
+! =========== end delete  ===========
+
     CALL define_ovar(ncid_restart, rpid%froot, 'froot', '-',                   &
                      'Fraction of roots in each soil layer',                   &
                       .TRUE., soilID, 'soil', 0, 0, 0, mpID, dummy, .TRUE.)
@@ -3604,6 +3621,9 @@ CONTAINS
    CALL define_ovar(ncid_restart, rpid%albsoil, 'albsoil', '-',               &
          'Soil reflectance', .TRUE.,                               &
          radID, 'radiation', 0, 0, 0, mpID, dummy, .TRUE.)
+
+
+! =========== MMY@23Apr2023 delete, since vars below is static, should not output as time-varying vars ===========         
 !$    CALL define_ovar(ncid_restart, rpid%hc, 'hc', 'm',                         &
 !$                     'Height of canopy', .TRUE.,                               &
 !$                     'real', 0, 0, 0, mpID, dummy, .TRUE.)
@@ -3686,6 +3706,7 @@ CONTAINS
 !$                     .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
 
 !$ block above appears uncommented as below in MMY code -- rk4417
+! =========== end delete  ===========
 
     CALL define_ovar(ncid_restart, rpid%hc, 'hc', 'm',                         &
                      'Height of canopy', .TRUE.,                               &
@@ -3771,7 +3792,7 @@ CONTAINS
     
     CALL define_ovar(ncid_restart, gwID, 'GWwb', 'mm3/mm3','GW water content', &
          .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
-
+! ============ MMY@23Apr2023 delete, since vars below is static, should not output as time-varying vars ============
 !$    IF(cable_user%SOIL_STRUC=='sli'.OR.cable_user%FWSOIL_SWITCH=='Haverd2013') THEN
 !$      CALL define_ovar(ncid_restart,rpid%gamma,'gamma','-', &
 !$            'Parameter in root efficiency function (Lai and Katul 2000)', &
@@ -3779,7 +3800,8 @@ CONTAINS
 !$    ENDIF
 
 !$  commented-block above replaced by 2 blocks below as per MMY code -- rk4417
-    
+! ============================================================ 
+
     CALL define_ovar(ncid_restart, subdzID, 'sublayer_dz', 'm','depth of viscous sublayer',&
                      .TRUE., 'real', 0, 0, 0, mpID, dummy, .TRUE.)
 
@@ -3792,6 +3814,8 @@ CONTAINS
     ! Soil-Litter-Iso soil model
     IF(cable_user%SOIL_STRUC=='sli') THEN
        ! Parameters for SLI:
+
+! ============ MMY@23Apr2023 delete as duplication ============
 !$       CALL define_ovar(ncid_restart,rpid%nhorizons,'nhorizons','-', &
 !$            'Number of soil horizons',.TRUE.,'integer',0,0,0,mpID,dummy,.TRUE.)
 !$       CALL define_ovar(ncid_restart,rpid%zeta,'zeta','[ ]', &
@@ -3808,8 +3832,9 @@ CONTAINS
 !$            'Fraction of roots in top 10 cm', &
 !$            .TRUE.,'real',0,0,0,mpID,dummy,.TRUE.)
 
-!$ block above appears uncommented as below in MMY code -- rk4417
-       
+!$ block above appears uncommented as below in MMY code -- rk4417  
+! ============================================================ 
+
        CALL define_ovar(ncid_restart,rpid%nhorizons,'nhorizons','-', &
             'Number of soil horizons',.TRUE.,'integer',0,0,0,mpID,dummy,.TRUE.)
        CALL define_ovar(ncid_restart,rpid%zeta,'zeta','[ ]', &
@@ -3850,7 +3875,7 @@ CONTAINS
             .TRUE.,'real',0,0,0,mpID,dummy,.TRUE.)
     END IF ! SLI soil model
 
-    if (cable_user%gw_model) then            ! added if block as per MMY code -- rk4417
+    if (cable_user%gw_model) then            ! added if block as per MMY code -- rk4417 ! MMY@23Apr2023 accept as they are new from CABLE-GW
        CALL define_ovar(ncid_restart,hys(1),'wb_hys','-',&
             'water (volumetric) at dry/wet switch', &
             .TRUE.,soilID,'soil',0,0,0,mpID,dummy,.TRUE.)
@@ -3961,10 +3986,13 @@ CONTAINS
                      ranges%swilt, .TRUE., 'real', .TRUE.)
 
     ! Soil dimensioned variables/parameters:
+
+! ============ MMY@23Apr2023 delete as duplication ============
 !$    CALL write_ovar (ncid_restart, rpid%froot, 'froot', REAL(veg%froot, 4),    &
 !$                     ranges%froot, .TRUE., 'soil', .TRUE.)
 
 !$ block above appears uncommented as below in MMY code -- rk4417
+! ============================================================ 
 
     CALL write_ovar (ncid_restart, rpid%froot, 'froot', REAL(veg%froot, 4),    &
                      ranges%froot, .TRUE., 'soil', .TRUE.)
@@ -4000,6 +4028,8 @@ CONTAINS
     CALL write_ovar (ncid_restart, rpid%albsoil, 'albsoil',                    &
          REAL(soil%albsoil, 4), ranges%albsoil, .TRUE.,            &
          'radiation', .TRUE.)
+
+! ============ MMY@23Apr2023 delete, since vars below is static, should not output as time-varying vars ============
 !$    CALL write_ovar (ncid_restart, rpid%canst1, 'canst1', REAL(veg%canst1, 4), &
 !$                     ranges%canst1, .TRUE., 'real', .TRUE.)
 !$    CALL write_ovar (ncid_restart, rpid%dleaf, 'dleaf', REAL(veg%dleaf, 4),    &
@@ -4057,7 +4087,7 @@ CONTAINS
 !$                     ranges%za, .TRUE., 'real', .TRUE.)
 
 !$ block above appears uncommented as below in MMY code -- rk4417
-
+! ========================================================
     CALL write_ovar (ncid_restart, rpid%canst1, 'canst1', REAL(veg%canst1, 4), &
                      ranges%canst1, .TRUE., 'real', .TRUE.)
     CALL write_ovar (ncid_restart, rpid%dleaf, 'dleaf', REAL(veg%dleaf, 4),    &
@@ -4163,6 +4193,7 @@ CONTAINS
     CALL write_ovar (ncid_restart, gwID, 'GWwb', REAL(ssnow%GWwb, 4),       &
          ranges%GWwb, .TRUE., 'real', .TRUE.)
 
+! ============ MMY@23Apr2023 delete as duplication ============
 !$    IF(cable_user%SOIL_STRUC=='sli'.OR.cable_user%FWSOIL_SWITCH=='Haverd2013') THEN
 !$       CALL write_ovar (ncid_restart,rpid%gamma,'gamma', &
 !$            REAL(veg%gamma,4),(/-99999.0,99999.0/),.TRUE.,'real',.TRUE.)
@@ -4170,6 +4201,7 @@ CONTAINS
 !$
 
 !$  commented-block above replaced by 2 blocks below as per MMY code -- rk4417
+! =============================================================
 
     CALL write_ovar (ncid_restart, subdzID, 'sublayer_dz', REAL(canopy%sublayer_dz, 4),       &
                      (/0.0,1.0e2/), .TRUE., 'real', .TRUE.)
@@ -4182,6 +4214,8 @@ CONTAINS
     
     IF(cable_user%SOIL_STRUC=='sli') THEN
        ! Write SLI parameters:
+
+! ============ MMY@23Apr2023 delete as duplication ============
 !$       CALL write_ovar (ncid_restart,rpid%nhorizons,'nhorizons', &
 !$            REAL(soil%nhorizons,4),(/-99999.0,99999.0/),.TRUE.,'integer',.TRUE.)
 !$       CALL write_ovar (ncid_restart,rpid%ishorizon,'ishorizon', &
@@ -4194,7 +4228,8 @@ CONTAINS
 !$            REAL(veg%F10,4),(/-99999.0,99999.0/),.TRUE.,'real',.TRUE.)
 
 !$ block above appears uncommented as below in MMY code -- rk4417
-       
+! =============================================================
+
        CALL write_ovar (ncid_restart,rpid%nhorizons,'nhorizons', &
             REAL(soil%nhorizons,4),(/-99999.0,99999.0/),.TRUE.,'integer',.TRUE.)
        CALL write_ovar (ncid_restart,rpid%ishorizon,'ishorizon', &
@@ -4224,7 +4259,7 @@ CONTAINS
 
     END IF
     
-    if (cable_user%gw_model) then           ! added if block as per MMY code -- rk4417
+    if (cable_user%gw_model) then           ! added if block as per MMY code -- rk4417 ! MMY@23Apr2023 keep it as its for CABLE-GW
        CALL write_ovar (ncid_restart,hys(1),'wb_hys',REAL(ssnow%wb_hys,4), &
             (/0.0,1.0/),.TRUE.,'soil',.TRUE.)
        CALL write_ovar (ncid_restart,hys(2),'smp_hys',REAL(ssnow%smp_hys,4), &

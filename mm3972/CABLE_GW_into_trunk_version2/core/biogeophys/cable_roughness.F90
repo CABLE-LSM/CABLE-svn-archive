@@ -62,7 +62,7 @@ CONTAINS
     ! Set canopy height above snow level:
     rough%hruff = MAX( 10. * z0soilsn_min, veg%hc - 1.2 * ssnow%snowd /                       &
          MAX( ssnow%ssdnn, 100. ) )
-!$    rough%hruff = MAX( 1.e-6, veg%hc - 1.2 * ssnow%snowd /                       &
+!$    rough%hruff = MAX( 1.e-6, veg%hc - 1.2 * ssnow%snowd /                       & ! MMY@23Apr2023 this block as it's the same as above
 !$                 MAX( ssnow%ssdnn, 100. ) )  ! above line appears like this in MMY
                                                 ! but same effect -- rk4417 
     ! LAI decreases due to snow:
@@ -83,7 +83,7 @@ CONTAINS
        WHERE( ssnow%snowd .GT. 0.01   )  &
             rough%z0soilsn =  MAX(z0soilsn_min, &
             rough%z0soil - rough%z0soil*MIN(ssnow%snowd,10.)/10.)
-       WHERE( ssnow%snowd .GT. 0.01 .AND. veg%iveg == 17  )  &  ! extra line supersedes MMY code -- rk4417
+       WHERE( ssnow%snowd .GT. 0.01 .AND. veg%iveg == 17  )  &  ! extra line supersedes MMY code -- rk4417 ! MMY@23Apr2023 need to ask Claire, while I don't think this can cause any issue
             rough%z0soilsn =  MAX(rough%z0soilsn, z0soilsn_min_PF )
 
     ELSEIF (cable_user%soil_struc=='sli') THEN
@@ -109,7 +109,7 @@ CONTAINS
        ! Ticket #148: Reference height is height above the displacement height
        ! noting that this must be above the roughness length and rough%hruff-rough%disp
        ! (though second case is unlikely to be attained)
-       rough%zref_uv = MAX( 3.5 + rough%z0m, rough%za_uv )   ! 4 lines supersede MMY code -- rk4417
+       rough%zref_uv = MAX( 3.5 + rough%z0m, rough%za_uv )   ! 4 lines supersede MMY code -- rk4417 ! MMY@23Apr2023 I suggest to accept the inserts while they need someone to check
        rough%zref_tq = MAX( 3.5 + rough%z0m, rough%za_tq )
        rough%zref_uv = MAX( rough%zref_uv, rough%hruff-rough%disp )
        rough%zref_tq = MAX( rough%zref_tq, rough%hruff-rough%disp )
@@ -157,7 +157,7 @@ CONTAINS
        ! Reference height zref is height above the displacement height
        ! Ticket #148: Reference height is height above the displacement height
        ! noting that this must be above the roughness length and rough%hruff-rough%disp
-       rough%zref_uv = MAX( 3.5 + rough%z0m, rough%za_uv )      ! 4 lines supersede MMY code -- rk4417
+       rough%zref_uv = MAX( 3.5 + rough%z0m, rough%za_uv )      ! 4 lines supersede MMY code -- rk4417 ! MMY@23Apr2023 I suggest to accept the inserts while they need someone to check
        rough%zref_tq = MAX( 3.5 + rough%z0m, rough%za_tq )      ! note that roughness length must be computed before
        rough%zref_uv = MAX( rough%zref_uv, rough%hruff-rough%disp )  ! unlike MMY code -- rk4417
        rough%zref_tq = MAX( rough%zref_tq, rough%hruff-rough%disp )
