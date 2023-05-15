@@ -2409,17 +2409,33 @@ CONTAINS
           met%fld(:) = 0.0000094*0.0000000567*(met%tk(:)**6.0)
        END IF
      END IF
+
        ! Get CO2air data for mask grid:- - - - - - - - - - - - - - - - - -
        IF(exists%CO2air) THEN ! If CO2air exists in met file
-          ok= NF90_GET_VAR(ncid_met,id%CO2air,tmpDat4, &
-               start=(/1,1,1,ktau/),count=(/xdimsize,ydimsize,1,1/))
-          IF(ok /= NF90_NOERR) CALL nc_abort &
-               (ok,'Error reading CO2air in met data file ' &
-               //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
-          DO i=1,mland ! over all land points/grid cells
-             met%ca(landpt(i)%cstart:landpt(i)%cend) = &
-                  REAL(tmpDat4(land_x(i),land_y(i),1,1))/1000000.0
-          ENDDO
+         ! ____________ MMY@23Apr2023 to read CO2air from PLUMBER2 __________
+         ok = NF90_INQUIRE_VARIABLE(ncid_met,id%CO2air,ndims=ndims) 
+         IF(ndims==3) THEN                                                  
+            ok= NF90_GET_VAR(ncid_met,id%CO2air,tmpDat3, &
+                  start=(/1,1,ktau/),count=(/xdimsize,ydimsize,1/))
+            IF(ok /= NF90_NOERR) CALL nc_abort &
+                  (ok,'Error reading CO2air in met data file ' &
+                  //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
+            DO i=1,mland ! over all land points/grid cells
+               met%ca(landpt(i)%cstart:landpt(i)%cend) = &
+                     REAL(tmpDat3(land_x(i),land_y(i),1,1))/1000000.0
+            ENDDO
+         ELSE 
+         ! __________________________________________________________________
+            ok= NF90_GET_VAR(ncid_met,id%CO2air,tmpDat4, &
+                  start=(/1,1,1,ktau/),count=(/xdimsize,ydimsize,1,1/))
+            IF(ok /= NF90_NOERR) CALL nc_abort &
+                  (ok,'Error reading CO2air in met data file ' &
+                  //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
+            DO i=1,mland ! over all land points/grid cells
+               met%ca(landpt(i)%cstart:landpt(i)%cend) = &
+                     REAL(tmpDat4(land_x(i),land_y(i),1,1))/1000000.0
+            ENDDO
+         END IF ! MMY@23Apr2023  
        ELSE
           ! Fix CO2 air concentration:
           met%ca(:) = fixedCO2 /1000000.0
