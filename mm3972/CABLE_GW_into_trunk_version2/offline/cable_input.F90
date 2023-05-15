@@ -2422,7 +2422,7 @@ CONTAINS
                   //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
             DO i=1,mland ! over all land points/grid cells
                met%ca(landpt(i)%cstart:landpt(i)%cend) = &
-                     REAL(tmpDat3(land_x(i),land_y(i),1,1))/1000000.0
+                     REAL(tmpDat3(land_x(i),land_y(i),1))/1000000.0
             ENDDO
          ELSE 
          ! __________________________________________________________________
