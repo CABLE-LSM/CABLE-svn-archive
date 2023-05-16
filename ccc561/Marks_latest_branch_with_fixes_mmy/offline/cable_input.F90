@@ -1000,6 +1000,7 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
         IF(ok /= NF90_NOERR) CALL nc_abort &
          (ok,'Error finding Rainf in met data file ' &
          //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
+    END IF
     ! Get Rainf units:
     ok = NF90_GET_ATT(ncid_met,id%Rainf,'units',metunits%Rainf)
     IF(ok /= NF90_NOERR) CALL nc_abort &
