@@ -1843,11 +1843,16 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
             ! Convert relative value using only first veg/soil patch values
             ! (identical)
             DO i=1,mland ! over all land points/grid cells
-               CALL rh_sh(REAL(tmpDat3(land_x(i),land_y(i),1)), &
+               CALL rh_sh(REAL(tmpDat4(land_x(i),land_y(i),1,1)), &
                      met%tk(landpt(i)%cstart), &
                      met%pmb(landpt(i)%cstart),met%qv(landpt(i)%cstart))
                met%qv(landpt(i)%cstart:landpt(i)%cend) = met%qv(landpt(i)%cstart)
             ENDDO
+         ELSE
+            DO i=1,mland ! over all land points/grid cells
+               met%qv(landpt(i)%cstart:landpt(i)%cend) = &
+                     REAL(tmpDat4(land_x(i),land_y(i),1,1))
+            ENDDO 
          END IF
       END IF
          
