@@ -1852,79 +1852,78 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
       END IF
          
       ! Get Wind data for mask grid: - - - - - - - - - - - - - - - - - -
-    IF(cable_user%GSWP3) THEN
-      ncid_met = ncid_wd
-      IF(exists%Wind) THEN ! Scalar Wind
-        ok= NF90_GET_VAR(ncid_met,id%Wind,tmpDat3, &
-             start=(/1,1,ktau/),count=(/xdimsize,ydimsize,1/))
-        IF(ok /= NF90_NOERR) CALL nc_abort &
-             (ok,'Error reading Wind in met data file ' &
-             //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
-        ! Assign value to met data variable (no units change required):
-        DO i=1,mland ! over all land points/grid cells
-          met%ua(landpt(i)%cstart:landpt(i)%cend) = &
-               REAL(tmpDat3(land_x(i),land_y(i),1))
-        ENDDO
-      ELSE ! Vector wind
-        ! Get Wind_N:
-        ok= NF90_GET_VAR(ncid_met,id%Wind,tmpDat3, &
-             start=(/1,1,ktau/),count=(/xdimsize,ydimsize,1/))
-        IF(ok /= NF90_NOERR) CALL nc_abort &
-             (ok,'Error reading Wind_N in met data file ' &
-             //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
-        ! only part of wind variable
-        DO i=1,mland ! over all land points/grid cells
-          met%ua(landpt(i)%cstart) = REAL(tmpDat3(land_x(i),land_y(i),1))
-        ENDDO
-        ok= NF90_GET_VAR(ncid_met,id%Wind_E,tmpDat3, &
-             start=(/1,1,ktau/),count=(/xdimsize,ydimsize,1/))
-        IF(ok /= NF90_NOERR) CALL nc_abort &
-             (ok,'Error reading Wind_E in met data file ' &
-             //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
-        ! Write final scalar Wind value:
-        DO i=1,mland ! over all land points/grid cells
-          met%ua(landpt(i)%cstart:landpt(i)%cend) = &
-               SQRT(met%ua(landpt(i)%cstart)**2 + &
-               REAL(tmpDat3(land_x(i),land_y(i),1))**2)
-        ENDDO
+    IF(cable_user%GSWP3) ncid_met = ncid_wd
+      ! Check if it's a 3D or 4D variable in file.
+      ok = NF90_INQUIRE_VARIABLE(ncid_met,id%Wind,ndims=ndims)
+      IF(ndims==3) THEN                                                 
+         IF(exists%Wind) THEN ! Scalar Wind
+            ok= NF90_GET_VAR(ncid_met,id%Wind,tmpDat3, &
+                  start=(/1,1,ktau/),count=(/xdimsize,ydimsize,1/))
+            IF(ok /= NF90_NOERR) CALL nc_abort &
+               (ok,'Error reading Wind in met data file ' &
+               //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
+            DO i=1,mland ! over all land points/grid cells
+               met%ua(landpt(i)%cstart:landpt(i)%cend) = &
+                  REAL(tmpDat3(land_x(i),land_y(i),1))
+            ENDDO
+         ELSE ! Vector wind
+            ! Get Wind_N:
+            ok= NF90_GET_VAR(ncid_met,id%Wind,tmpDat3, &
+               start=(/1,1,ktau/),count=(/xdimsize,ydimsize,1/))
+            IF(ok /= NF90_NOERR) CALL nc_abort &
+               (ok,'Error reading Wind_N in met data file ' &
+               //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
+            ! only part of wind variable
+            DO i=1,mland ! over all land points/grid cells
+            met%ua(landpt(i)%cstart) = REAL(tmpDat3(land_x(i),land_y(i),1))
+            ENDDO
+            ok= NF90_GET_VAR(ncid_met,id%Wind_E,tmpDat3, &
+               start=(/1,1,ktau/),count=(/xdimsize,ydimsize,1/))
+            IF(ok /= NF90_NOERR) CALL nc_abort &
+               (ok,'Error reading Wind_E in met data file ' &
+               //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
+            ! Write final scalar Wind value:
+            DO i=1,mland ! over all land points/grid cells
+            met%ua(landpt(i)%cstart:landpt(i)%cend) = &
+                  SQRT(met%ua(landpt(i)%cstart)**2 + &
+                  REAL(tmpDat3(land_x(i),land_y(i),1))**2)
+            ENDDO
+         END IF
+      ELSE
+         IF(exists%Wind) THEN ! Scalar Wind
+            ok= NF90_GET_VAR(ncid_met,id%Wind,tmpDat4, &
+               start=(/1,1,1,ktau/),count=(/xdimsize,ydimsize,1,1/))
+            IF(ok /= NF90_NOERR) CALL nc_abort &
+                  (ok,'Error reading Wind in met data file ' &
+                  //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
+            DO i=1,mland ! over all land points/grid cells
+               met%ua(landpt(i)%cstart:landpt(i)%cend) = &
+                     REAL(tmpDat4(land_x(i),land_y(i),1,1))
+            ENDDO
+         ELSE ! Vector wind
+            ! Get Wind_N:
+            ok= NF90_GET_VAR(ncid_met,id%Wind,tmpDat4, &
+               start=(/1,1,1,ktau/),count=(/xdimsize,ydimsize,1,1/))
+            IF(ok /= NF90_NOERR) CALL nc_abort &
+               (ok,'Error reading Wind_N in met data file ' &
+               //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
+            ! only part of wind variable
+            DO i=1,mland ! over all land points/grid cells
+            met%ua(landpt(i)%cstart) = REAL(tmpDat4(land_x(i),land_y(i),1,1))
+            ENDDO
+            ok= NF90_GET_VAR(ncid_met,id%Wind_E,tmpDat4, &
+               start=(/1,1,1,ktau/),count=(/xdimsize,ydimsize,1,1/))
+            IF(ok /= NF90_NOERR) CALL nc_abort &
+               (ok,'Error reading Wind_E in met data file ' &
+               //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
+            ! Write final scalar Wind value:
+            DO i=1,mland ! over all land points/grid cells
+            met%ua(landpt(i)%cstart:landpt(i)%cend) = &
+                  SQRT(met%ua(landpt(i)%cstart)**2 + &
+                  REAL(tmpDat4(land_x(i),land_y(i),1,1))**2)
+            ENDDO
+         END IF
       END IF
-   
-    ELSE ! Anna, site runs need extra z dimension
-      IF(exists%Wind) THEN ! Scalar Wind
-        ok= NF90_GET_VAR(ncid_met,id%Wind,tmpDat4, &
-             start=(/1,1,1,ktau/),count=(/xdimsize,ydimsize,1,1/))
-        IF(ok /= NF90_NOERR) CALL nc_abort &
-             (ok,'Error reading Wind in met data file ' &
-             //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
-        ! Assign value to met data variable (no units change required):
-        DO i=1,mland ! over all land points/grid cells
-          met%ua(landpt(i)%cstart:landpt(i)%cend) = &
-               REAL(tmpDat4(land_x(i),land_y(i),1,1))
-        ENDDO
-      ELSE ! Vector wind
-        ! Get Wind_N:
-        ok= NF90_GET_VAR(ncid_met,id%Wind,tmpDat4, &
-             start=(/1,1,1,ktau/),count=(/xdimsize,ydimsize,1,1/))
-        IF(ok /= NF90_NOERR) CALL nc_abort &
-             (ok,'Error reading Wind_N in met data file ' &
-             //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
-        ! only part of wind variable
-        DO i=1,mland ! over all land points/grid cells
-          met%ua(landpt(i)%cstart) = REAL(tmpDat4(land_x(i),land_y(i),1,1))
-        ENDDO
-        ok= NF90_GET_VAR(ncid_met,id%Wind_E,tmpDat4, &
-             start=(/1,1,1,ktau/),count=(/xdimsize,ydimsize,1,1/))
-        IF(ok /= NF90_NOERR) CALL nc_abort &
-             (ok,'Error reading Wind_E in met data file ' &
-             //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
-        ! Write final scalar Wind value:
-        DO i=1,mland ! over all land points/grid cells
-          met%ua(landpt(i)%cstart:landpt(i)%cend) = &
-               SQRT(met%ua(landpt(i)%cstart)**2 + &
-               REAL(tmpDat4(land_x(i),land_y(i),1,1))**2)
-        ENDDO
-      END IF
-     END IF
 
       ! Get Rainf and Snowf data for mask grid:- - - - - - - - - - - - -
       if (cable_user%GSWP3) ncid_met = ncid_rain
