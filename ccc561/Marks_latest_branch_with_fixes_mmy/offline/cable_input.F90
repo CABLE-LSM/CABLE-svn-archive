@@ -1542,6 +1542,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
    REAL(KIND=4),DIMENSION(1,1)            :: data2 ! " "
    REAL(KIND=4),DIMENSION(1)              :: data1 ! " "
    INTEGER                           :: i,j ! do loop counter
+   INTEGER                           :: ndims ! # of dimensions in file
    REAL(KIND=4),ALLOCATABLE,DIMENSION(:)       :: tmpDat1
    REAL(KIND=4),ALLOCATABLE,DIMENSION(:,:)     :: tmpDat2, tmpDat2x
    REAL(KIND=4),ALLOCATABLE,DIMENSION(:,:,:)   :: tmpDat3, tmpDat3x
