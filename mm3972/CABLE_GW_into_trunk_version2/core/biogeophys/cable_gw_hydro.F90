@@ -1154,6 +1154,7 @@ CONTAINS
 !$       soil%heat_cap_lower_limit(:,:) = 0.01  !never allow /0    ! replaced as per MMY -- rk4417 ! MMY@23Apr2023 I guess we should delete this line since someone changed it on purpose
        soil%heat_cap_lower_limit(:,:) = 0._r_2  !allow /0 to show bugs ! MMY@23Apr2023, I don't know how it shows bugs, can anyone check it???
     ELSE
+       print *, "MMY testing soil%css_vec(:,:) =",soil%css_vec(:,:), "soil%rhosoil_vec(:,:) = ", soil%rhosoil_vec(:,:) !MMY@18May2023
        soil%heat_cap_lower_limit(:,:) = soil%css_vec(:,:) * soil%rhosoil_vec(:,:)
     END IF
 

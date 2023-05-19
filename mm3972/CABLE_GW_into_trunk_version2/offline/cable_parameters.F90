@@ -1596,6 +1596,16 @@ CONTAINS
     do klev=2,ms
        soil_depth(:,klev) = soil_depth(:,klev-1) + soil%zse_vec(:,klev)
     end do
+    
+    ! _______ MMY@19May2023 move back since moving below will cause gw_off issue ________
+    ! Construct derived parameters and zero initialisations,
+    ! regardless of where parameters and other initialisations
+    ! have loaded from:
+    soil%zshh(1) = 0.5 * soil%zse(1) ! distance between consecutive layer
+                                     ! midpoints:
+    soil%zshh(ms + 1) = 0.5 * soil%zse(ms)
+    soil%zshh(2:ms)   = 0.5 * (soil%zse(1:ms-1) + soil%zse(2:ms))
+    ! ___________________________________________________________________________________
 
     !MD aquifer node depth
     soil%GWz = 0.5*soil%GWdz + SUM(soil%zse)  !node is halfway through aquifer depth ! MMY note: GWz doesn't function, kept for later
@@ -2759,13 +2769,14 @@ CONTAINS
         soil_depth(:,klev) = soil_depth(:,klev-1) + soil%zse_vec(:,klev)
      end do
 
-     ! MMY : move from subroutine derived_parameters to here
-     !       since derived_parameters is now an option but compulsory 
-     soil%zshh(1)      = 0.5 * soil%zse(1) ! distance between consecutive layer
-     ! midpoints:
-     soil%zshh(ms + 1) = 0.5 * soil%zse(ms)
-     soil%zshh(2:ms)   = 0.5 * (soil%zse(1:ms-1) + soil%zse(2:ms))
-     ! ______________________________________
+     !! MMY : move from subroutine derived_parameters to here
+     !!       since derived_parameters is now an option but compulsory 
+     !soil%zshh(1)      = 0.5 * soil%zse(1) ! distance between consecutive layer
+     !! midpoints:
+     !soil%zshh(ms + 1) = 0.5 * soil%zse(ms)
+     !soil%zshh(2:ms)   = 0.5 * (soil%zse(1:ms-1) + soil%zse(2:ms))
+     !print *, "MMY testing soil%zshh", soil%zshh
+     !! ______________________________________
 
     !MD Aquifer properties
 

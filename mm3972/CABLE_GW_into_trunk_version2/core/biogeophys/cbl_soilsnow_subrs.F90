@@ -14,7 +14,7 @@ MODULE cbl_soil_snow_subrs_module
 
   PRIVATE
 
-  TYPE ( issnow_type ), SAVE :: C ! MMY@23Apr2023 I suggest to delete this line and use the line below 
+  !TYPE ( issnow_type ), SAVE :: C ! MMY@23Apr2023 I suggest to delete this line and use the line below 
   
 
 PUBLIC  trimb
@@ -158,7 +158,7 @@ CONTAINS
          k
 
 
-    CALL point2constants( C )
+    ! CALL point2constants( C ) ! MMY@18May2023
     
     at = 0.0
     bt = 1.0
@@ -1082,7 +1082,7 @@ CONTAINS
     REAL :: exp_arg
     LOGICAL :: direct2min = .FALSE.
 
-    CALL point2constants( C )
+    ! CALL point2constants( C ) ! MMY@18May2023
     
     at = 0.0
     bt = 1.0
@@ -1090,7 +1090,7 @@ CONTAINS
     coeff = 0.0
 
     ssnow%otgg(:,:) = ssnow%tgg     ! inserted this line as per MMY code -- rk4417 ! MMY@23Apr2023 have no idea, need someone to check whether adding this line will cause any difference
-
+    print *,"MMY testing soil_thermal_fix=", cable_user%soil_thermal_fix ! MMY@18May2023
     IF (cable_user%soil_thermal_fix) THEN
        ccnsw = total_soil_conductivity(ssnow,soil)
     ELSE
@@ -2010,7 +2010,7 @@ CONTAINS
 
     INTEGER             :: k,i
 
-    CALL point2constants( C )
+    ! CALL point2constants( C ) ! MMY@18May2023
 
     snowmlt = 0.0  
                    
