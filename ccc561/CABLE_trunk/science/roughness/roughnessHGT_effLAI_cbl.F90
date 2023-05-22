@@ -107,16 +107,10 @@ SUBROUTINE LAI_eff( mp, lai_pft, Hgt_PFT, HgtAboveSnow,                        &
 
 IMPLICIT NONE
 
-integer  :: mp !! Number of land points (-)
-real :: LAI_PFT(mp) !! Leaf area index without snow (m\(^2\) m\(^{-2})\)
-real :: Hgt_PFT(mp) !! height of canopy without snow (m)
-real :: HgtAboveSnow(mp) !! height of canopy above the snow surface (m)
-real :: reducedLAIdue2snow(mp) 
- !! Output. Modified leaf area index for snow (m\(^2\) m\(^{-2}\))
-
 INTEGER, INTENT(IN)   :: mp           !! Number of land points (-)
 ! return result - considered LAI seen given snow coverage
 REAL, INTENT(OUT) :: reducedLAIdue2snow(mp)
+ !! Output. Modified leaf area index for snow (m\(^2\) m\(^{-2}\))
 REAL, INTENT(IN) :: lai_pft(mp)       !! Leaf area index without snow (m\(^2\) m\(^{-2})\)
 REAL, INTENT(IN) :: HGT_pft(mp)       !!! height of canopy without snow (m)
 REAL, INTENT(IN) :: HgtAboveSnow(mp)  !! height of canopy above the snow surface (m)
