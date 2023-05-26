@@ -4,9 +4,30 @@ export dosvn=1 # 1/0: do/do not check svn
 
 known_hosts()
 {
-   set -A kh vayu cher pear shin jigg nXXX raij ces2 ccrc mael mons cycl hurr typh
+   set -A kh gadi cher pear shin jigg nXXX ces2
 }
+##
+host_gadi()
+{
+   . /etc/bashrc
+   module purge
+   module add intel-compiler/2021.1.1
+   module add openmpi/4.1.0
+   module add netcdf/4.7.4
 
+   export FC='ifort'
+   export NCDIR=$NETCDF_ROOT'/lib/Intel'
+   export NCMOD=$NETCDF_ROOT'/include/Intel'
+   export CFLAGS='-O2 -fp-model precise'
+   if [[ $1 = 'debug' ]]; then
+      export CFLAGS='-O0 -traceback -g -fp-model precise -ftz -fpe0'
+   fi
+   export LDFLAGS='-L'$NCDIR' -O0'
+   export LD='-lnetcdf -lnetcdff'
+   build_build
+   cd ../
+   build_status
+}
 
 ##
 host_cycl()
