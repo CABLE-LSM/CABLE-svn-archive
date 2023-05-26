@@ -1083,6 +1083,8 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
      ! Look for PSurf (can be synthesised):- - - - - - - - - - - - - - - -
      IF (ncciy > 0) ncid_met = ncid_ps
      ok = NF90_INQ_VARID(ncid_met,'PSurf',id%PSurf)
+     IF (ok /= NF90_NOERR)  & ! Try alternate name
+      ok = NF90_INQ_VARID(ncid_met,'Psurf',id%PSurf)
      IF(ok == NF90_NOERR) THEN ! If inquiry is okay
         exists%PSurf = .TRUE. ! PSurf is present in met file
         ! Get PSurf units and check:
@@ -1494,6 +1496,7 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
  
     !!=================^^ End met variables search^^=======================
  END SUBROUTINE open_met_file
+
 !==============================================================================
 !
 ! Name: get_met_data
