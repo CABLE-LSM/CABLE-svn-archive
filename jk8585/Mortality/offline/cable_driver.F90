@@ -1099,7 +1099,7 @@ PROGRAM cable_offline_driver
                     end if
 
                     ! one annual time-step of POP
-                    call POPdriver(casaflux, casabal, veg, POP)
+                    call POPdriver(casaflux, casabal, veg, POP, YYYY)
 
                     if (CABLE_USER%POPLUC) then
                        ! Dynamic LUC: update casa pools according to LUC transitions

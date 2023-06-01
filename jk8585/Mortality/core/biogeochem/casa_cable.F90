@@ -228,7 +228,7 @@ contains
 
   ! ==============================================================================
 
-  SUBROUTINE POPdriver(casaflux, casabal, veg, POP)
+  SUBROUTINE POPdriver(casaflux, casabal, veg, POP, Year)
 
     use cable_def_types_mod
     use casadimension
@@ -246,6 +246,7 @@ contains
     type(casa_balance),       INTENT(IN)    :: casabal
     type(veg_parameter_type), INTENT(IN)    :: veg  ! vegetation parameters
     type(POP_TYPE),           INTENT(INOUT) :: POP
+    Integer,                  INTENT(IN)    :: Year
 
     real(dp)              :: StemNPP(mp,2)
     real(dp)              :: PotStemNPP(mp)
@@ -282,7 +283,7 @@ contains
        ! 0.0001 was replaced to ensure biomass can build up after full disturbance (whole grid cell)
        CALL POPStep(pop, max(StemNPP(Iw,:)/1000.0_dp, 0.02_dp), int(veg%disturbance_interval(Iw,:), i4b), &
             real(veg%disturbance_intensity(Iw,:),dp), &
-            max(LAImax(Iw), 0.001_dp), Cleafmean(Iw), Crootmean(Iw), NPPtoGPP(Iw), max(PotStemNPP(Iw)/1000.0_dp, 0.02_dp))
+            max(LAImax(Iw), 0.001_dp), Cleafmean(Iw), Crootmean(Iw), NPPtoGPP(Iw), Year, max(PotStemNPP(Iw)/1000.0_dp, 0.02_dp))
        !CALL POPStep(pop, max(StemNPP(Iw,:)/1000.0_dp, 0.0001_dp), int(veg%disturbance_interval(Iw,:), i4b), &
        !     real(veg%disturbance_intensity(Iw,:),dp), &
        !     max(LAImax(Iw), 0.001_dp), Cleafmean(Iw), Crootmean(Iw), NPPtoGPP(Iw))

@@ -655,7 +655,7 @@ CONTAINS
 
 
   SUBROUTINE POPStep(POP, StemNPP, disturbance_interval, disturbance_intensity,LAI,Cleaf,Croot, &
-       NPPtoGPP, StemNPP_pot,frac_intensity1,precip)
+       NPPtoGPP, Year, StemNPP_pot,frac_intensity1,precip)
 
     IMPLICIT NONE
 
@@ -667,15 +667,55 @@ CONTAINS
     REAL(dp), INTENT(IN) ::  Cleaf(:)
     REAL(dp), INTENT(IN) ::  Croot(:)
     REAL(dp), INTENT(IN) ::  NPPtoGPP(:)
-    REAL(dp), INTENT(IN), OPTIONAL :: frac_intensity1(:), precip(:)
+    INTEGER(i4b), INTENT(IN) :: Year
     REAL(dp), INTENT(IN), OPTIONAL :: StemNPP_pot(:)
+    REAL(dp), INTENT(IN), OPTIONAL :: frac_intensity1(:), precip(:)
+
 
     INTEGER(i4b) :: idisturb,np,g,counter
     INTEGER(i4b), allocatable :: it(:)
 
-    !! JK: initialise site-specific parameter values here
-    select case(trim(cable_user%site))
-       case("FIN")
+
+
+    ! JK: note this structure is not ideal and just a quick fix specific to this model versions!!
+    IF (Year .LT. 1589) THEN
+        Select case(trim(cable_user%site))
+           case("FIN")
+              POP%site%CMASS_STEM_INIT       = 0.1_dp
+              POP%site%WD                    = 340.0_dp
+              POP%site%ksapwood              = 0.04_dp
+              POP%site%Kbiometric            = 35.0_dp 
+              POP%site%CrowdingFactor        = 0.10_dp
+              POP%site%Pmort                 = 4.0_dp
+              POP%site%GROWTH_EFFICIENCY_MIN = 0.016_dp
+              POP%site%MORT_MAX              = 0.15_dp
+              POP%site%CMASS_STEM_INIT       = 0.1_dp
+           case("BIA")
+              POP%site%CMASS_STEM_INIT       = 0.1_dp
+              POP%site%WD                    = 340.0_dp
+              POP%site%ksapwood              = 0.05_dp
+              POP%site%Kbiometric            = 20.0_dp 
+              POP%site%CrowdingFactor        = 0.06_dp 
+              POP%site%Pmort                 = 2.25_dp
+              POP%site%GROWTH_EFFICIENCY_MIN = 0.012_dp
+              POP%site%MORT_MAX              = 0.15_dp
+              POP%site%CMASS_STEM_INIT       = 0.1_dp
+           case("BCI")
+               POP%site%CMASS_STEM_INIT       = 0.1_dp
+               POP%site%WD                    = 300.0_dp
+               POP%site%ksapwood              = 0.11_dp
+               POP%site%Kbiometric            = 20.0_dp
+               POP%site%CrowdingFactor        = 0.05_dp 
+               POP%site%Pmort                 = 1.2_dp
+               POP%site%GROWTH_EFFICIENCY_MIN = 0.010_dp
+               POP%site%MORT_MAX              = 0.12_dp 
+               POP%site%CMASS_STEM_INIT       = 0.1_dp
+        End Select
+
+    ELSE 
+       !! JK: initialise site-specific parameter values here
+       Select case(trim(cable_user%site))
+          case("FIN")
           POP%site%CMASS_STEM_INIT       = 0.1_dp
           POP%site%WD                    = 340.0_dp
           POP%site%ksapwood              = 0.04_dp
@@ -786,7 +826,8 @@ CONTAINS
                POP%site%MORT_MAX              = 0.6_dp 
                POP%site%CMASS_STEM_INIT       = 0.005_dp
          end select
-    end select  
+      end select
+    ENDIF
     !write(*,*) "cable_user%site:", cable_user%site
     !write(*,*) "POP%site%GROWTH_EFFICIENCY_MIN:", POP%site%GROWTH_EFFICIENCY_MIN
 

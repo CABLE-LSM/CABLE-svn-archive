@@ -276,7 +276,7 @@ contains
 
                 CALL POPLUC_weights_transfer(POPLUC,POP,LUC_EXPT)
 
-                CALL POPdriver(casaflux,casabal,veg, POP)
+                CALL POPdriver(casaflux,casabal,veg, POP, yyyy)
 
                 !MC CALL POP_IO( pop, casamet, YYYY, 'WRITE_EPI', &
                 !      ( YYYY.EQ.cable_user%YearEnd ) )
@@ -297,7 +297,7 @@ contains
              ENDIF  ! end of year
           ELSE
              IF (idoy==mdyear) THEN ! end of year
-                CALL POPdriver(casaflux, casabal, veg, POP)
+                CALL POPdriver(casaflux, casabal, veg, POP, yyyy)
              endif
              ! CALL POP_IO( pop, casamet, YYYY, 'WRITE_EPI', &
              !         ( YYYY.EQ.cable_user%YearEnd ) )
