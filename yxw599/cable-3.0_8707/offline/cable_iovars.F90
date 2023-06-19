@@ -98,7 +98,7 @@ MODULE cable_IO_vars_module
    TYPE globalMet_type
      LOGICAL           ::                                                     &
        l_gpcc,&! = .FALSE., &         ! ypwang following Chris Lu (30/oct/2012)
-       l_gswp,&!= .FALSE. , &         ! BP May 2013
+       l_gswp= .TRUE. , &         ! BP May 2013
        l_ncar,&! = .FALSE., &         ! BP Dec 2013
        l_access ! = .FALSE.          ! BP May 2013
 

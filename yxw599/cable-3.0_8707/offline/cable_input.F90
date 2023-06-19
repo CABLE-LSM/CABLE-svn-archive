@@ -384,9 +384,19 @@ CONTAINS
     IF (ncciy > 0) THEN
 
        IF( globalMetfile%l_gpcc ) THEN
+               
+       WRITE(logn,*) 'Opening met data file: GPCC: ncciy', ncciy
        WRITE(logn,*) 'Opening met data file: ', TRIM(globalMetfile%rainf), ' and 7 more'
        ELSE
-         WRITE(logn,*) 'Opening met data file: ', TRIM(gswpfile%rainf), ' and 7 more'
+         WRITE(logn,*) 'Opening met data file: GSWP: ncciy', ncciy
+         WRITE(logn,*) 'Opening met data file: rainf ', TRIM(gswpfile%Rainf)
+         WRITE(logn,*) 'Opening met data file: snowf',  TRIM(gswpfile%snowf)
+         WRITE(logn,*) 'Opening met data file: LWdown', TRIM(gswpfile%LWdown)
+         WRITE(logn,*) 'Opening met data file: SWdown', TRIM(gswpfile%SWdown)
+         WRITE(logn,*) 'Opening met data file: Psurf',  TRIM(gswpfile%PSurf)
+         WRITE(logn,*) 'Opening met data file: Qair',   TRIM(gswpfile%Qair)
+         WRITE(logn,*) 'Opening met data file: Tair',   TRIM(gswpfile%Tair)
+         WRITE(logn,*) 'Opening met data file: wind',   TRIM(gswpfile%wind)
        ENDIF
  
        IF( globalMetfile%l_gpcc ) THEN
@@ -400,6 +410,7 @@ CONTAINS
        ENDIF
        IF(.NOT. globalMetfile%l_gpcc) THEN
          ok = NF90_OPEN(gswpfile%snowf,0,ncid_snow)
+         write(logn,*) 'ypw 1 ncid_snow',ncid_snow,ok
          IF (ok /= NF90_NOERR) THEN
             PRINT*,'snow'
             CALL handle_err( ok )
@@ -409,7 +420,7 @@ CONTAINS
        IF( globalMetfile%l_gpcc ) THEN
        ok = NF90_OPEN(globalMetfile%LWdown,0,ncid_lw)
        ELSE
-         ok = NF90_OPEN(gswpfile     %LWdown,0,ncid_lw)
+         ok = NF90_OPEN(gswpfile%LWdown,0,ncid_lw)
        ENDIF
        IF (ok /= NF90_NOERR) THEN
           PRINT*,'lw'
@@ -1239,6 +1250,10 @@ CONTAINS
     END IF
 
     CALL find_metvarid(ncid_met, possible_varnames%SnowNames, id%Snowf, ok)
+
+    write(logn,*) 'cable_input: ypw 2',ncciy, globalMetfile%l_gswp 
+    write(logn,*) 'cable_input: ypw 3',ncid_met, possible_varnames%SnowNames, id%Snowf, ok
+
     IF(ok == NF90_NOERR) THEN ! If inquiry is okay
        exists%Snowf = .TRUE. ! Snowf is present in met file
        ! Get Snowf units:

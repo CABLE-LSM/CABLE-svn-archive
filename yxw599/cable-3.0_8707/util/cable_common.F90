@@ -78,7 +78,7 @@ USE cable_runtime_opts_mod ,ONLY : wiltparam
           inits,      & ! name of file for initialisations
           soilIGBP,   & ! name of file for IGBP soil map
           gw_elev,    & !name of file for gw/elevation data
-          fxpft,      & !filename for PFT fraction and transition,wood harvest, secondary harvest at current year
+          fxpft1,     & !filename for PFT fraction and transition,wood harvest, secondary harvest at current year
           fxpft0,     & !filename for PFT fraction and transition,wood harvest, secondary harvest at next year
           fxluh2cable,& !filename for mapping 12 luc states into 17 CABLE PFT
           gridnew       !filename for updated gridinfo file                       

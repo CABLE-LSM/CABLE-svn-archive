@@ -732,7 +732,7 @@ END MODULE landuse_variable
   real(r_2)    luc_delarea(mland,mvmax)
   
 
-  character*500   fxpft,fxluh2cable
+  character*500   fxpft1,fxluh2cable
   integer ivt,ee,hh,np,p,q,np1,k1,k2
   integer ncid,ok,xID,yID,varID,i,j,m,mpx
 
@@ -741,7 +741,7 @@ END MODULE landuse_variable
  
      ! get the mapping matrix from state to PFT
      ! call landuse_getxluh2(mlat,mlon,landmask,luc,filename%fxluh2cable)    !"xluh2cable"
-     ! call landuse_getdata(mlat,mlon,landmask,filename%fxpft,luc)     !"luc(t-1)" and "xpft(t-1)"
+     ! call landuse_getdata(mlat,mlon,landmask,filename%fxpft1,luc)     !"luc(t-1)" and "xpft(t-1)"
 
      ! get pool sizes and other states in the "restart", "gridinfo" and "poolout" file
      ! patch-generic variables

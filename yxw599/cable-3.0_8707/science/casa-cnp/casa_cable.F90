@@ -88,7 +88,7 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
    INTEGER , parameter :: wlogn=6
 
    REAL latx,lonx
-   INTEGER ivegx,npt
+   INTEGER ivegx,npt,np
 
    IF ( .NOT. dump_read ) THEN  ! construct casa met and flux inputs from current CABLE run
       IF ( TRIM(cable_user%MetType) .EQ. 'cru' ) THEN
@@ -198,6 +198,22 @@ SUBROUTINE bgcdriver(ktau,kstart,kend,dels,met,ssnow,canopy,veg,soil, &
 
    ENDIF ! dump_read
 
+
+!    do np=1,mp
+!
+!       if(casamet%lat(np)==67.5 .and. casamet%lon(np)==15.9375 .and. veg%iveg(np)==9) then
+!          write(*,7777) ktau,np,casamet%lat(np),casamet%lon(np),veg%iveg(np), &
+!          canopy%fpn(np),canopy%frp(np),casaflux%cgpp(np),casaflux%cnpp(np),casamet%glai(np),casapool%cplant(np,:)
+!       endif
+!
+!
+!       if(casamet%lat(np)==-38.75 .and. casamet%lon(np)==143.4375 .and. veg%iveg(np)==9) then
+!          write(*,7778) ktau,np,casamet%lat(np),casamet%lon(np),veg%iveg(np), &
+!         canopy%fpn(np),canopy%frp(np),casaflux%cgpp(np),casaflux%cnpp(np),casamet%glai(np),casapool%cplant(np,:)
+!       endif
+!    enddo   
+7777 format('point 22496 casapoolflux',2(i6,1x),2(f8.4,1x),i2,1x,8(e12.4,1x))   
+7778 format('point 315 casapoolflux',2(i6,1x),2(f8.4,1x),i2,1x,8(e12.4,1x)) 
 END SUBROUTINE bgcdriver
 ! ==============================================================================
 

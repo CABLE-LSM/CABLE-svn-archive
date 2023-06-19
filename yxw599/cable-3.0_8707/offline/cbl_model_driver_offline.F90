@@ -99,6 +99,9 @@ REAL :: c1(mp,nrb)
 REAL :: rhoch(mp,nrb)
 REAL :: xk(mp,nrb)
 
+! temporary variables
+    integer np
+    
 !iFor testing
 cable_user%soil_struc="default"
 
@@ -197,7 +200,41 @@ ssnow%deltss = ssnow%tss-ssnow%otss
 
     ENDIF
 
-
+    ! print two specific points canopy-fluxes
+!    do np=1,mp
+!
+!       if(rad%latitude(np)==67.5 .and. rad%longitude(np)==15.9375 .and. veg%iveg(np)==9) then
+!          write(*,7777) ktau,np,rad%latitude(np),rad%longitude(np),veg%iveg(np), &
+!                        met%pmb(np),met%precip(np),met%ua(np),met%qv(np),met%da(np),met%fld(np),    &
+!                        met%fsd(np,1)+met%fsd(np,2),met%tk(np),ssnow%tss(np),canopy%tv(np),          &
+!                        veg%frac4(np),veg%taul(np,:),veg%refl(np,:),veg%canst1(np),veg%vcmax(np),veg%ejmax(np),  &
+!                        veg%hc(np),veg%xfang(np),veg%a1gs(np),veg%d0gs(np),veg%vegcf(np),veg%extkn(np),          &
+!                        veg%alpha(np),veg%convex(np),veg%cfrd(np),veg%gswmin(np),veg%conkc0(np),veg%conko0(np),   &
+!                        veg%ekc(np),veg%eko(np),veg%rootbeta(np),veg%zr(np),                                     &
+!                        canopy%fwsoil(np),rough%rt1(np),ssnow%rtsoil(np),rough%hruff(np),           &
+!                        canopy%fwet(np),canopy%rnet(np),canopy%fe(np),canopy%fh(np),                &
+!                        canopy%fev(np),canopy%fhv(np),canopy%fes(np),canopy%fhs(np),                &
+!                        canopy%fpn(np),canopy%frday(np),veg%vlai(np) 
+!       endif
+!
+!
+!       if(rad%latitude(np)==-38.75 .and. rad%longitude(np)==143.4375 .and. veg%iveg(np)==9) then
+!          write(*,7778) ktau,np,rad%latitude(np),rad%longitude(np),veg%iveg(np),                    &
+!                        met%pmb(np),met%precip(np),met%ua(np),met%qv(np),met%da(np),met%fld(np),    &
+!                        met%fsd(np,1)+met%fsd(np,2),met%tk(np),ssnow%tss(np),canopy%tv(np),          &
+!                        veg%frac4(np),veg%taul(np,:),veg%refl(np,:),veg%canst1(np),veg%vcmax(np),veg%ejmax(np),  &
+!                        veg%hc(np),veg%xfang(np),veg%a1gs(np),veg%d0gs(np),veg%vegcf(np),veg%extkn(np),          &
+!                        veg%alpha(np),veg%convex(np),veg%cfrd(np),veg%gswmin(np),veg%conkc0(np),veg%conko0(np),   &
+!                        veg%ekc(np),veg%eko(np),veg%rootbeta(np),veg%zr(np),                                     &
+!                        canopy%fwsoil(np),rough%rt1(np),ssnow%rtsoil(np),rough%hruff(np),           &
+!                        canopy%fwet(np),canopy%rnet(np),canopy%fe(np),canopy%fh(np),                &
+!                        canopy%fev(np),canopy%fhv(np),canopy%fes(np),canopy%fhs(np),                &
+!                        canopy%fpn(np),canopy%frday(np),veg%vlai(np) 
+!       endif
+!
+!    enddo   
+7777 format('point 22496 canopy flux',2(i6,1x),2(f8.4,1x),i3,1x,100(e12.4,1x))
+7778 format('point 315 canopy flux',2(i6,1x),2(f8.4,1x),i3,1x,100(e12.4,1x))
   END SUBROUTINE cbm
 
 END MODULE cable_cbm_module

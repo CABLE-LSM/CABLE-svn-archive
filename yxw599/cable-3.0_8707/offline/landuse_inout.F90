@@ -70,9 +70,9 @@
      call landuse_getxluh2(mlat,mlon,landmask,filename%fxluh2cable,luc_xluh2cable)    !"xluh2cable"
      write(logn,902) filename%fxpft0
 902  format(' landuse on: reading xpft0 file: ',a500)
-     write(logn,903) filename%fxpft
+     write(logn,903) filename%fxpft1
 903  format(' landuse on: reading xpft file: ',a500)      
-     call landuse_getdata(mlat,mlon,landmask,filename%fxpft0,filename%fxpft,luc_atransit,luc_fharvw,luc_delarea)
+     call landuse_getdata(mlat,mlon,landmask,filename%fxpft0,filename%fxpft1,luc_atransit,luc_fharvw,luc_delarea)
   end subroutine landuse_data
 
 
@@ -139,14 +139,14 @@ SUBROUTINE landuse_getxluh2(mlat,mlon,landmask,fxluh2cable,luc_xluh2cable)
 
  END SUBROUTINE landuse_getxluh2
 
-SUBROUTINE landuse_getdata(mlat,mlon,landmask,fxpft0,fxpft,luc_atransit,luc_fharvw,luc_delarea)
+SUBROUTINE landuse_getdata(mlat,mlon,landmask,fxpft0,fxpft1,luc_atransit,luc_fharvw,luc_delarea)
 ! get LUC data
   USE netcdf
   USE cable_def_types_mod,  ONLY: mland,r_2
   use landuse_constant,     ONLY: mstate,mvmax,mharvw
   USE casa_ncdf_module,     ONLY: HANDLE_ERR
   IMPLICIT NONE
-  character*500 fxpft0,fxpft
+  character*500 fxpft0,fxpft1
   character*200 msg
   integer mlat,mlon
   integer,   dimension(mlon,mlat)               :: landmask 
@@ -214,24 +214,24 @@ SUBROUTINE landuse_getdata(mlat,mlon,landmask,fxpft0,fxpft,luc_atransit,luc_fhar
     ok = nf90_close(ncid0)
 
 	
-    ok = nf90_open(fxpft,nf90_nowrite,ncid1)
+    ok = nf90_open(fxpft1,nf90_nowrite,ncid1)
     ok = nf90_inq_varid(ncid1,"CABLEpft",varxid)
     ok = nf90_get_var(ncid1,varxid,cablepft1)
-	msg='cablepft was not read correctly from file= '//trim(fxpft)
+	msg='cablepft was not read correctly from file= '//trim(fxpft1)
 	call handle_err(ok,msg)	
 !	if(ok/=0) then
 !       print *, 'cablepft was not read correctly!'
-!       print *, 'In file= ',fxpft
+!       print *, 'In file= ',fxpft1
 !       stop
 !    endif
 	ok = nf90_inq_varid(ncid1,"patchfrac",varxid)
 	ok = nf90_get_var(ncid1,varxid,fracpatch1)
-	msg='patchfrac was not read correctly from file= '//trim(fxpft)
+	msg='patchfrac was not read correctly from file= '//trim(fxpft1)
 	call handle_err(ok,msg)		
 
 !	if(ok/=0) then
 !       print *, 'patchfrac was not read correctly!'
-!       print *, 'In file= ',fxpft
+!       print *, 'In file= ',fxpft1
 !       stop
 !   endif
     

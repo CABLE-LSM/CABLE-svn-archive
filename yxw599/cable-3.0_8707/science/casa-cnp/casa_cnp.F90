@@ -333,13 +333,14 @@ CONTAINS
 
           ! IF Prognostic LAI reached glaimax, no C is allocated to leaf
           ! Q.Zhang 17/03/2011
-          WHERE(casamet%glai(:)>=casabiome%glaimax(veg%iveg(:)))
-             casaflux%fracCalloc(:,leaf)  = 0.0
-             casaflux%fracCalloc(:,froot) =  casaflux%fracCalloc(:,froot) &
-                  /(casaflux%fracCalloc(:,froot) &
-                  +casaflux%fracCalloc(:,wood))
-             casaflux%fracCalloc(:,wood)  = 1.0 -casaflux%fracCalloc(:,froot)
-          ENDWHERE
+          ! comment out by ypw 17-6-2023
+   !       WHERE(casamet%glai(:)>=casabiome%glaimax(veg%iveg(:)))
+   !          casaflux%fracCalloc(:,leaf)  = 0.0
+   !          casaflux%fracCalloc(:,froot) =  casaflux%fracCalloc(:,froot) &
+   !               /(casaflux%fracCalloc(:,froot) &
+   !               +casaflux%fracCalloc(:,wood))
+   !          casaflux%fracCalloc(:,wood)  = 1.0 -casaflux%fracCalloc(:,froot)
+   !       ENDWHERE
 
           ! added in for negative NPP and one of biomass pool being zero ypw 27/jan/2014
           WHERE(casaflux%Cnpp<0.0)
@@ -2271,10 +2272,13 @@ END SUBROUTINE casa_rplant1
           !                                  * casapool%cplant(np,leaf))
           casamet%glai(np)   = MAX(casabiome%glaimin(veg%iveg(np)), &
                casabiome%sla(veg%iveg(np)) * casapool%cplant(np,leaf))
+
           ! vh !
-          IF (LALLOC.NE.3) THEN
-             casamet%glai(np)   = MIN(casabiome%glaimax(veg%iveg(np)), casamet%glai(np))
-          ENDIF
+          ! comment out by ypw 17-6-2023
+   !       IF (LALLOC.NE.3) THEN
+   !          casamet%glai(np)   = MIN(casabiome%glaimax(veg%iveg(np)), casamet%glai(np))
+   !       ENDIF
+
           casapool%clitter(np,:) = casapool%clitter(np,:) &
                + casapool%dClitterdt(np,:) * deltpool
           casapool%csoil(np,:)   = casapool%csoil(np,:)   &
