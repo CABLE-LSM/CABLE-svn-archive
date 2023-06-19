@@ -80,6 +80,7 @@ MODULE cable_param_module
   REAL,    DIMENSION(:, :, :),    ALLOCATABLE :: inPFrac
   INTEGER, DIMENSION(:, :),       ALLOCATABLE :: inSoil
   REAL,    DIMENSION(:, :, :, :), ALLOCATABLE :: inWB
+  REAL,    DIMENSION(:, :, :),    ALLOCATABLE :: inGWWB ! MMY@19June2023
   REAL,    DIMENSION(:, :, :, :), ALLOCATABLE :: inTGG
   REAL,    DIMENSION(:),          ALLOCATABLE :: inLon
   REAL,    DIMENSION(:),          ALLOCATABLE :: inLat
@@ -276,6 +277,7 @@ CONTAINS
     ALLOCATE( idummy(nlon, nlat) )
     ALLOCATE( rdummy(nlon, nlat) )
     ALLOCATE(  inWB(nlon, nlat, nslayer,ntime) )
+    ALLOCATE(inGWWB(nlon, nlat, ntime) )        ! MMY@19June2023
     ALLOCATE( inTGG(nlon, nlat, nslayer,ntime) )
     ALLOCATE( inALB(nlon, nlat, npatch,nband) )
     ALLOCATE( inSND(nlon, nlat, npatch,ntime) )
@@ -328,10 +330,18 @@ CONTAINS
     IF (ok /= NF90_NOERR) CALL nc_abort(ok,                                    &
                                         'Error reading variable SoilMoist.')
 
+    ! ________________ MMY@19June2023 ________________
+    ok = NF90_INQ_VARID(ncid, 'GW_SoilMoist', varID)
+    IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error finding variable Aquifer SoilMoist.')
+    ok = NF90_GET_VAR(ncid, varID, inGWWB)
+    IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error reading variable Aquifer SoilMoist.')
+    ! ________________________________________________
+
     ok = NF90_INQ_VARID(ncid, 'SoilTemp', varID)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable SoilTemp.')
     ok = NF90_GET_VAR(ncid, varID, inTGG)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error reading variable SoilTemp.')
+
 
     ok = NF90_INQ_VARID(ncid, 'Albedo', varID)
     IF (ok /= NF90_NOERR) CALL nc_abort(ok, 'Error finding variable Albedo.')
@@ -1190,6 +1200,9 @@ CONTAINS
               inWB(landpt(e)%ilon, landpt(e)%ilat, min(is,size(inTGG,3)), month)
     END DO
 
+    ! _____________ MMY@19June2023 ____________
+    ssnow%GWwb(landpt(e)%cstart:landpt(e)%cend) = inGWWB(landpt(e)%ilon, landpt(e)%ilat, month)
+    ! __________________________________________
       ! Set initial snow depth and snow-free soil albedo
 
 
@@ -1353,7 +1366,7 @@ CONTAINS
     IF (soilparmnew) DEALLOCATE(inswilt, insfc, inssat, inbch, inhyds,         &
                        insucs, inrhosoil, incss, incnsd) ! Q,Zhang @ 12/20/2010
     IF (calcsoilalbedo) DEALLOCATE(inSoilColor) ! vars intro for Ticket #27
-    DEALLOCATE(inVeg, inPFrac, inSoil, inWB, inTGG)
+    DEALLOCATE(inVeg, inPFrac, inSoil, inWB, inGWWB, inTGG) ! MMY@19June2023 add inGWWB
     DEALLOCATE(inLAI, inSND, inALB)
 !    DEALLOCATE(soiltemp_temp,soilmoist_temp,patchfrac_temp,isoilm_temp,&
 !         frac4_temp,iveg_temp)
@@ -1425,7 +1438,7 @@ CONTAINS
    ssnow%rtevap_unsat = 0.0
    ssnow%satfrac = 0.5
    ssnow%wbliq = ssnow%wb - ssnow%wbice
-   ssnow%GWwb = soil%GWssat_vec
+   ! ssnow%GWwb = soil%GWssat_vec ! MMY@19June2023 comment out 
 
    ssnow%wb_hys = -1.0e+36
    ssnow%hys_fac = 1.0
