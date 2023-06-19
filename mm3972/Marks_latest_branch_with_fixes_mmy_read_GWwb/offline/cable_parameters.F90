@@ -1479,7 +1479,8 @@ CONTAINS
          veg%disturbance_interval = 100
          veg%disturbance_intensity = 0.
       ENDIF
-   soil%GWdz = MAX(1.0,(soil%GWdz - SUM(soil%zse,dim=1))) ! MMY @Nov2022 fix: the depth to bedrock should include 4.6m soil column
+   ! soil%GWdz = MAX(1.0,(soil%GWdz - SUM(soil%zse,dim=1))) ! MMY @Nov2022 fix: the depth to bedrock should include 4.6m soil column
+   ! ! MMY@19June2023 comment out the aquifer thickness fix
 
    !set vectorized versions as same as defaut for now
 !   soil%swilt_vec(:,:)  = real(spread(soil%swilt(:),2,ms),r_2)
