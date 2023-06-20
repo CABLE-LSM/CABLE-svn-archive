@@ -93,7 +93,7 @@ MODULE cable_common_module
         GS_SWITCH='leuning'
       
      CHARACTER(LEN=10) :: RunIden       = 'STANDARD'  !
-     CHARACTER(LEN=6)  :: MetType       = ' ' !
+     CHARACTER(LEN=6)  :: MetType       = 'site' ! MMY@20June2023 set 'site' as default
      CHARACTER(LEN=20) :: SOIL_STRUC    = "default" ! 'default' or 'sli'
      CHARACTER(LEN=3)  :: POP_out       = 'rst' ! POP output type ('epi' or 'rst')
      CHARACTER(LEN=50) :: POP_rst       = ' ' !

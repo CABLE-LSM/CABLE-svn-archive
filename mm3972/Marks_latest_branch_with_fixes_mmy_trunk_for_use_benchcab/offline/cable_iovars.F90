@@ -119,7 +119,7 @@ MODULE cable_IO_vars_module
 
    LOGICAL ::                                                                  &
       verbose,    & ! print init and param details of all grid cells?
-      soilparmnew   ! read IGBP new soil map. Q.Zhang @ 12/20/2010
+      soilparmnew = .TRUE.  ! read IGBP new soil map. Q.Zhang @ 12/20/2010 ! MMY@20June2023 set true as default
 
    ! ================ Veg and soil type variables ============================
    INTEGER, POINTER ::                                                         &
