@@ -1438,7 +1438,7 @@ CONTAINS
    ssnow%rtevap_unsat = 0.0
    ssnow%satfrac = 0.5
    ssnow%wbliq = ssnow%wb - ssnow%wbice
-   ! ssnow%GWwb = soil%GWssat_vec ! MMY@19June2023 comment out 
+   ! ssnow%GWwb = soil%GWssat_vec ! MMY@19June2023 comment out
 
    ssnow%wb_hys = -1.0e+36
    ssnow%hys_fac = 1.0
@@ -1770,13 +1770,13 @@ CONTAINS
                 end if
              end do
           end do
-
-       ELSE
-
-          DO klev=1,ms
-              soil%hyds_vec(:,klev) = soil%hyds_vec(:,klev)*exp(-soil%hkrz(:)*(soil_depth(:,klev)-soil%zdepth(:)))
-          END DO
-
+       ! _______________________ MMY@21June2023 ______________________
+       ! ELSE
+       !
+       !    DO klev=1,ms
+       !        soil%hyds_vec(:,klev) = soil%hyds_vec(:,klev)*exp(-soil%hkrz(:)*(soil_depth(:,klev)-soil%zdepth(:)))
+       !    END DO
+       ! ______________________________________________________________
        END IF  !use either uni or multi cosby transfer func
 
        !set the non-vectored values to srf value
@@ -2960,6 +2960,14 @@ END SUBROUTINE report_parameters
          IF (klev .gt. 3) soil%org_vec(ii,klev) =  0.0
       END DO
     ENDDO
+
+    !___________________ MMY@21June2023 GW_vec = ms6 ____________________
+	 	soil%GWhyds_vec(:) = soil%hyds_vec(:,ms)
+    soil%GWssat_vec(:) = soil%ssat_vec(:,ms)
+    soil%GWsucs_vec(:) = soil%sucs_vec(:,ms)
+    soil%GWbch_vec(:)  = soil%bch_vec(:,ms)
+    soil%GWwatr(:)     = soil%watr(:,ms)
+    !____________________________________________________________________
 
     !removed gw_soils for now
 
