@@ -103,6 +103,8 @@ CONTAINS
          qtgnet,        & !
          tss4,          & ! soil/snow temperature**4
          qstvair,       & ! sat spec humidity at leaf temperature
+         qstvair_dt,    & ! sat spec humidity at leaf temperature ! MMY@22June2023
+         dva_dt,        & ! MMY@22June2023
          xx,            & ! delta-type func 4 sparse canopy limit, p20 SCAM manual
          r_sc,          & !
          zscl,          & !
@@ -198,7 +200,16 @@ CONTAINS
     CALL qsatfjh(qstvair,met%tvair-C%tfrz,met%pmb)
 
     met%dva = (qstvair - met%qvair) *  C%rmair/C%rmh2o * met%pmb * 100.0
-    dsx = met%dva     ! init. leaf surface vpd
+
+    ! ___________ MMY@22June2023 ___________
+    CALL qsatfjh(qstvair_dt,met%tk_dt-C%tfrz,met%pmb)
+    dva_dt = (qstvair_dt - met%qv_dt) *  C%rmair/C%rmh2o * met%pmb * 100.0
+    dsx = dva_dt
+    ! dsx = met%dva     ! init. leaf surface vpd
+    print *,"***MMY met%dva",met%dva
+    print *,"***MMY dva_dt",dva_dt
+    ! ______________________________________
+
     dsx= max(dsx,0.0)
     tlfx = met%tk  ! initialise leaf temp iteration memory variable (K)
     tlfy = met%tk  ! initialise current leaf temp (K)
@@ -1353,7 +1364,7 @@ CONTAINS
             !--- qvair within these limits
             met%qvair(j) =  MAX(met%qvair(j),lower_limit)
             met%qvair(j) =  MIN(met%qvair(j), upper_limit)
-            
+
             ! Saturated specific humidity in canopy:
             CALL qsatfjh2(qstvair(j),met%tvair(j)-C%tfrz,met%pmb(j))
 
@@ -2114,14 +2125,10 @@ CONTAINS
                 END IF
 
                 g1 = veg%g1(i)
-                
-                ! print *, "MMY vpd ", vpd ! MMY @Nov2022
-                !print *, "MMY vpd ", vpd           ! MMY@Nov2022
-                !print *, "MMY csx(i,1) ", csx(i,1) ! MMY@Nov2022
-  
+
                 gs_coeff(i,1) = (1.0 + (g1 * fwsoil(i)) / SQRT(vpd)) / csx(i,1)
                 gs_coeff(i,2) = (1.0 + (g1 * fwsoil(i)) / SQRT(vpd)) / csx(i,2)
-              
+
             ELSE
                 STOP 'gs_model_switch failed.'
             ENDIF ! IF (cable_user%GS_SWITCH == 'leuning') THEN
