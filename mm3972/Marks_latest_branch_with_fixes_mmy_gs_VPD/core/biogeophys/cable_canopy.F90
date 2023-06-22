@@ -206,8 +206,7 @@ CONTAINS
     dva_dt = (qstvair_dt - met%qv_dt) *  C%rmair/C%rmh2o * met%pmb * 100.0
     dsx = dva_dt
     ! dsx = met%dva     ! init. leaf surface vpd
-    print *,"***MMY met%dva",met%dva
-    print *,"***MMY dva_dt",dva_dt
+    print *,"***MMY met%dva",met%dva(1),"dva_dt =",dva_dt(1)
     ! ______________________________________
 
     dsx= max(dsx,0.0)
