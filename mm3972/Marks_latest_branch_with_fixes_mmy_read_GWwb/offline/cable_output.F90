@@ -125,6 +125,7 @@ MODULE cable_output_module
                                                   ! [kg/m2/s]
     REAL(KIND=4), POINTER, DIMENSION(:) :: ECanop ! 26 interception evaporation
                                                   ! [kg/m2/s]
+    REAL(KIND=4), POINTER, DIMENSION(:) :: Gs     ! MMY@June2023 stomatal conductance
     ! 27 potential evapotranspiration [kg/m2/s]
     REAL(KIND=4), POINTER, DIMENSION(:) :: PotEvap
     REAL(KIND=4), POINTER, DIMENSION(:) :: ACond   ! 28 aerodynamic conductance
