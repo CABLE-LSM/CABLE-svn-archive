@@ -1088,10 +1088,10 @@ USE cbl_soil_snow_init_special_module
                       MAXVAL(ABS(ssnow%GWwb-GWtemp),dim=1) > delgwM) THEN
 
 !$                 IF( (ANY( ABS(ssnow%wb-soilMtemp)>delsoilM).OR.                &  ! FEEDBACK (three lines above or this block?) --rk4417 
-!$                      ANY( ABS(ssnow%tgg-soilTtemp)>delsoilT) .or. &               
-!$                      maxval(ABS(ssnow%GWwb-GWtemp),dim=1) > delgwM) .and. &
-!$                      ( (int(ktau_tot/kend) .lt. cable_user%max_spins)  .and.&
-!$                      (cable_user%max_spins .gt. 0) ) ) THEN
+!$                      ANY( ABS(ssnow%tgg-soilTtemp)>delsoilT) .or. &               !ccc Well, that's the spinup question. The max_spins allow to cut off the spin up
+!$                      maxval(ABS(ssnow%GWwb-GWtemp),dim=1) > delgwM) .and. &       ! if things don't converge rapidly enough. I would keep it as it is a user option.
+!$                      ( (int(ktau_tot/kend) .lt. cable_user%max_spins)  .and.&     ! Preferably I would do the checks in the reverse order though: max_spins > 0 and # spins < max_spins.
+!$                      (cable_user%max_spins .gt. 0) ) ) THEN                       !OTHER_FEEDBACK: any thoughts on this mechanism to "force" the code out of spinup?
               
                     ! No complete convergence yet
                     PRINT *, 'ssnow%wb : ', ssnow%wb
@@ -1223,7 +1223,7 @@ USE cbl_soil_snow_init_special_module
 
   IF (icycle > 0) THEN
 
-     !CALL casa_poolout( ktau, veg, soil, casabiome,		  &  ! FEEDBACK (this call is uncommented in MMY code) --rk4417 
+     !CALL casa_poolout( ktau, veg, soil, casabiome,		  &  ! FEEDBACK (this call is uncommented in MMY code) --rk4417  !ccc no idea... But I would leave anything to do with CASA as in trunk.
      ! casapool, casaflux, casamet, casabal, phen )
      CALL write_casa_restart_nc ( casamet, casapool,casaflux,phen, CASAONLY )
 

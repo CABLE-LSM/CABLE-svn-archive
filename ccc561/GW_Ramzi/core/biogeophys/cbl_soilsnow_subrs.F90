@@ -1088,7 +1088,8 @@ CONTAINS
     ct = 0.0
     coeff = 0.0
 
-    ssnow%otgg(:,:) = ssnow%tgg      ! FEEDBACK (OK to insert this line as per MMY code?) --rk4417 
+    ssnow%otgg(:,:) = ssnow%tgg      ! FEEDBACK (OK to insert this line as per MMY code?) --rk4417  !ccc Remove, it's useless.
+                                     ! otgg is only used by GW code which does not call stempv() subroutine.
 
 !    print *,"MMY testing soil_thermal_fix=", cable_user%soil_thermal_fix ! MMY@18May2023
     IF (cable_user%soil_thermal_fix) THEN
@@ -2092,6 +2093,8 @@ CONTAINS
    coeff = 0._r_2
 
    ssnow%otgg(:,:) = ssnow%tgg(:,:) ! MMY??? ssnow%otgg has gotten value in SUBROUTINE soil_snow_gw before call snow_processes_soil_thermal
+                                    !ccc FEEDBACK: this is weird. At this point in the call, tgg has already been partially updated. So otgg isn't any
+                                    ! more the temperature of the last timestep. And it's a temperature in the middle of the timestep... But I don't know for sure
 
    gammzz_snow(:,:) = 0._r_2
 

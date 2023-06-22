@@ -89,6 +89,17 @@ module cable_data_module
       zdlin  = 1.0,  & ! height frac of d below which TL linear
       !revised upwards from 0.01 to guarantee convergence, unnecessary now ?
       umin   = 0.1     ! FEEDBACK (umin   = 1.0 in MMY code) --rk4417
+      !ccc Here is the head of trunk version:
+!# ifdef ESM15    
+!      umin   = 0.01
+!# else 
+!      umin   = 0.1 !CM2
+!# endif
+! Even more confusing, right? That's a minimum value for wind speed in m/s. So 1.0 seems too high, keep 0.1.
+! Especially it is used in equations like:
+! canopy%cduv = canopy%us * canopy%us / (MAX(met%ua,CUMIN))**2
+! So a value of 1.0 would make a big difference. Don't use 1.0 since the origin is not understood. It comes from revision 5051 from Mark but no agreement was given on it.
+!OTHER_FEEDBACK
       
    END TYPE physical_constants
 

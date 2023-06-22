@@ -1146,7 +1146,7 @@ CONTAINS
        IF (cable_user%popluc) THEN
           veg%iLU(landpt(e)%cstart:landpt(e)%cend)= 1
           IF (landpt(e)%nap.EQ.3 .AND.veg%iveg(landpt(e)%cstart)<=5 ) THEN
-!$         if (landpt(e)%nap.gt.1) then  ! FEEDBACK (replaces line above in MMY code) --rk4417 
+!$         if (landpt(e)%nap.gt.1) then  ! FEEDBACK (replaces line above in MMY code) --rk4417  !ccc keep trunk version. It's an update for POPLUC
              veg%iLU(landpt(e)%cstart+1) = 2
              veg%iLU(landpt(e)%cend) = 3
           ENDIF
@@ -1244,6 +1244,8 @@ CONTAINS
                vegtype_metfile(e, :)
 
         IF(exists%patch) &   ! FEEDBACK (this IF is missing from MMY code) --rk4417 
+        !ccc vegpatch_metfile (used below) is only allocated if exists%patch==.TRUE. (line 1424 in cable_input.F90)
+        ! so let's keep the IF.
           patch(landpt(e)%cstart:landpt(e)%cstart)%frac =      &
                                                            vegpatch_metfile(e, :)
 

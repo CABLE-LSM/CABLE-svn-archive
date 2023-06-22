@@ -240,11 +240,13 @@ CONTAINS
        LUC_EXPT%primaryf =  LUC_EXPT%primaryf * 1.0/5.0
        LUC_EXPT%secdf =  LUC_EXPT%secdf * 1.0/5.0
        ! FEEDBACK (three lines above or three lines below?) --rk4417
+       !ccc Keep the trunk version. 
 !$       LUC_EXPT%grass = LUC_EXPT%grass + (LUC_EXPT%primaryf+LUC_EXPT%secdf)*2.0/3.0
 !$       LUC_EXPT%primaryf =  LUC_EXPT%primaryf * 1.0/3.0
 !$       LUC_EXPT%secdf =  LUC_EXPT%secdf * 1.0/3.0
     ELSEWHERE (LUC_EXPT%biome .EQ. 7 .OR. LUC_EXPT%biome .EQ. 8 &  ! boreal        ! FEEDBACK (the remainder of the where construct from here
-         .OR. LUC_EXPT%biome .EQ. 9 .OR. LUC_EXPT%biome .EQ. 10  )                 ! is missing from MMY code) --rk4417                       
+         .OR. LUC_EXPT%biome .EQ. 9 .OR. LUC_EXPT%biome .EQ. 10  )                 ! is missing from MMY code) --rk4417 
+                                                                                   !ccc Keep the whole WHERE                      
        LUC_EXPT%grass = LUC_EXPT%grass + (LUC_EXPT%primaryf+LUC_EXPT%secdf)*1.0/5.0
        LUC_EXPT%primaryf =  LUC_EXPT%primaryf * 4.0/5.0
        LUC_EXPT%secdf =  LUC_EXPT%secdf * 4.0/5.0
@@ -304,10 +306,11 @@ CONTAINS
           LUC_EXPT%grass = LUC_EXPT%primaryf*4.0/5.0
           LUC_EXPT%primaryf =  LUC_EXPT%primaryf * 1.0/5.0
           ! FEEDBACK (two lines above or two lines below?) --rk4417
+          !ccc Keep the trunk version.
 !$          LUC_EXPT%grass = LUC_EXPT%primaryf*2.0/3.0
 !$          LUC_EXPT%primaryf =  LUC_EXPT%primaryf * 1.0/3.0
        ELSEWHERE (LUC_EXPT%biome .EQ. 7 .OR. LUC_EXPT%biome .EQ. 8 &              ! FEEDBACK (the remainder of the where construct from here   
-            .OR. LUC_EXPT%biome .EQ. 9 .OR. LUC_EXPT%biome .EQ. 10) ! boreal      ! is missing from MMY code) --rk4417                         
+            .OR. LUC_EXPT%biome .EQ. 9 .OR. LUC_EXPT%biome .EQ. 10) ! boreal      ! is missing from MMY code) --rk4417 !ccc Keep the trunk version                         
           LUC_EXPT%grass = LUC_EXPT%primaryf*1.0/5.0
           LUC_EXPT%primaryf =  LUC_EXPT%primaryf * 4.0/5.0
        ELSEWHERE (LUC_EXPT%biome .EQ. 5 .OR. LUC_EXPT%biome .EQ. 6 ) ! DBL
@@ -378,6 +381,7 @@ CONTAINS
           ENDIF
        ELSE
           LUC_EXPT%prim_only(k)=.TRUE.      ! FEEDBACK (this else is absent in MMY code) -- rk4417
+                                            !ccc Keep the trunk.
 
        ENDIF
 
@@ -389,7 +393,7 @@ CONTAINS
           LUC_EXPT%grass(k) = 0.0
           inPFrac(m,n,1) = 1.0
           inPFrac(m,n,2:3) = 0.0
-          inVeg(m,n,2:3) = 0                ! FEEDBACK (this line is absent in MMY code) -- rk4417 
+          inVeg(m,n,2:3) = 0                ! FEEDBACK (this line is absent in MMY code) -- rk4417 !ccc Keep the trunk
        ENDIF
 
 
@@ -587,13 +591,13 @@ CONTAINS
        LUC_EXPT%INPUT(ptog)%VAL =  LUC_EXPT%INPUT(ptog)%VAL * 1.0/5.0
        LUC_EXPT%INPUT(gtos)%VAL =  LUC_EXPT%INPUT(gtos)%VAL * 1.0/5.0
        LUC_EXPT%INPUT(stog)%VAL =  LUC_EXPT%INPUT(stog)%VAL * 1.0/5.0
-       ! FEEDBACK (four lines above or four lines below?) --rk4417
+       ! FEEDBACK (four lines above or four lines below?) --rk4417 !ccc Keep the trunk
 !$    LUC_EXPT%INPUT(ptos)%VAL =  LUC_EXPT%INPUT(ptos)%VAL * 1.0/3.0
 !$    LUC_EXPT%INPUT(ptog)%VAL =  LUC_EXPT%INPUT(ptog)%VAL * 1.0/3.0
 !$    LUC_EXPT%INPUT(gtos)%VAL =  LUC_EXPT%INPUT(gtos)%VAL * 1.0/3.0
 !$    LUC_EXPT%INPUT(stog)%VAL =  LUC_EXPT%INPUT(stog)%VAL * 1.0/3.0
     ELSEWHERE (LUC_EXPT%biome .EQ. 7 .OR. LUC_EXPT%biome .EQ. 8 &                 ! FEEDBACK (the remainder of the where construct from here   
-         .OR. LUC_EXPT%biome .EQ. 9 .OR. LUC_EXPT%biome .EQ. 10) ! boreal         ! is missing from MMY code) --rk4417                         
+         .OR. LUC_EXPT%biome .EQ. 9 .OR. LUC_EXPT%biome .EQ. 10) ! boreal         ! is missing from MMY code) --rk4417  !ccc Keep the trunk                       
        LUC_EXPT%INPUT(ptos)%VAL =  LUC_EXPT%INPUT(ptos)%VAL * 0.8
        LUC_EXPT%INPUT(ptog)%VAL =  LUC_EXPT%INPUT(ptog)%VAL * 0.8
        LUC_EXPT%INPUT(gtos)%VAL =  LUC_EXPT%INPUT(gtos)%VAL * 0.8

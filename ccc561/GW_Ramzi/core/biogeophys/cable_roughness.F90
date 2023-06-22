@@ -82,6 +82,7 @@ CONTAINS
             rough%z0soilsn =  MAX(z0soilsn_min, &
             rough%z0soil - rough%z0soil*MIN(ssnow%snowd,10.)/10.)
        WHERE( ssnow%snowd .GT. 0.01 .AND. veg%iveg == 17  )  &   ! FEEDBACK (this line is missing from MMY code) --rk4417
+                                                                 !ccc This came in during CMIP6 work. Keep.
             rough%z0soilsn =  MAX(rough%z0soilsn, z0soilsn_min_PF )
 
     ELSEIF (cable_user%soil_struc=='sli') THEN
@@ -107,7 +108,7 @@ CONTAINS
        ! Ticket #148: Reference height is height above the displacement height
        ! noting that this must be above the roughness length and rough%hruff-rough%disp
        ! (though second case is unlikely to be attained)
-       rough%zref_uv = MAX( 3.5 + rough%z0m, rough%za_uv )   ! FEEDBACK (these 4 lines are missing from MMY code) --rk4417 
+       rough%zref_uv = MAX( 3.5 + rough%z0m, rough%za_uv )   ! FEEDBACK (these 4 lines are missing from MMY code) --rk4417 !ccc Keep! This ticket $148 definitely fixes a bug.
        rough%zref_tq = MAX( 3.5 + rough%z0m, rough%za_tq )
        rough%zref_uv = MAX( rough%zref_uv, rough%hruff-rough%disp )
        rough%zref_tq = MAX( rough%zref_tq, rough%hruff-rough%disp )
@@ -157,7 +158,7 @@ CONTAINS
        ! noting that this must be above the roughness length and rough%hruff-rough%disp
        rough%zref_uv = MAX( 3.5 + rough%z0m, rough%za_uv )           ! FEEDBACK (these 4 lines are missing from MMY code) --rk4417 
        rough%zref_tq = MAX( 3.5 + rough%z0m, rough%za_tq )           ! note that roughness length must be computed before
-       rough%zref_uv = MAX( rough%zref_uv, rough%hruff-rough%disp )  ! unlike MMY code -- rk4417                                     
+       rough%zref_uv = MAX( rough%zref_uv, rough%hruff-rough%disp )  ! unlike MMY code -- rk4417  !ccc Definitely keep, that's a bug fix.                               
        rough%zref_tq = MAX( rough%zref_tq, rough%hruff-rough%disp )
 
        ! find coexp: see notes "simplified wind model ..." eq 34a

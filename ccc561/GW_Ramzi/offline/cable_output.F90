@@ -2628,6 +2628,7 @@ CONTAINS
        IF(output%casa) THEN
 !$          out%AutoResp = out%AutoResp + REAL((sum(casaflux%crmplant,2)/86400.0 + &
 ! FEEDBACK (2 lines below are replaced by line above in MMY code) --rk4417
+! ccc That's connected to the comment by "vh" above. Typically a fix for CASA. Keep trunk.
           out%AutoResp = out%AutoResp + REAL(canopy%frday / 1.201E-5, 4) + &
                REAL((casaflux%crmplant(:,2)/86400.0 + casaflux%crmplant(:,3)/86400.0 + &
                casaflux%crgplant/86400.0 + casaflux%clabloss/86400.)/ 1.201E-5, 4)
@@ -2647,6 +2648,7 @@ CONTAINS
        END IF
 
        IF(output%casa) THEN    ! FEEDBACK (this IF block is missing from MMY code) --rk4417 
+                               !ccc considering it is outputing a "casaflux" variable, the IF is needed.
           out%RootResp = out%RootResp + REAL(casaflux%crmplant(:,3)/86400.0/ 1.201E-5, 4) !+ &
           ! REAL(0.3*casaflux%crmplant(:,2)/86400.0/ 1.201E-5, 4)
           IF(writenow) THEN
@@ -2661,6 +2663,7 @@ CONTAINS
        END IF
 
        IF(output%casa) THEN    ! FEEDBACK (this IF block is missing from MMY code) --rk4417 
+                               !ccc considering it is outputing a "casaflux" variable, the IF is needed.
           out%StemResp = out%StemResp + REAL(casaflux%crmplant(:,2)/86400.0/ 1.201E-5, 4)
           IF(writenow) THEN
              ! Divide accumulated variable by number of accumulated time steps:
@@ -2732,6 +2735,7 @@ CONTAINS
     ! NBP and turnover fluxes [umol/m^2/s]
 !$    IF(output%casa) THEN
 ! FEEDBACK (line below appears as above in MMY code) --rk4417 
+!ccc No idea. Comes from Martin De Kauwe for CMIP6 OTHER_FEEDBACK
     IF((output%carbon .OR. output%NBP) .AND. output%casa) THEN
        ! Add current timestep's value to total of temporary output variable:
        IF (cable_user%POPLUC) THEN

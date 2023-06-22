@@ -95,6 +95,8 @@ USE cbl_soil_snow_subrs_module
     END IF
 
 !$ inserted block below as per MMY code -- rk4417     ! FEEDBACK (any opinion about this block?) --rk4417
+    !ccc In head of trunk, there is now an identical block in spec_init_soil_snow() so I would remove this from here,
+    ! and just keep the one that already exists.
 
    IF( .NOT.cable_user%cable_runtime_coupled ) THEN
 

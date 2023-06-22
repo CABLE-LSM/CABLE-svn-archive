@@ -37,7 +37,7 @@ MODULE cable_def_types_mod
 
   INTEGER :: mp,    & ! # total no of patches/tiles
              mvtype,& ! total # vegetation types,   from input
-#ifdef UM_BUILD       ! FEEDBACK (this if block is not found in MMY code) --rk4417
+#ifdef UM_BUILD       ! FEEDBACK (this if block is not found in MMY code) --rk4417 !ccc Keep the if block
              mstype=9,& ! total # soil types, needs to de defined atCompile TimeForNow
 #else       
              mstype,& ! total # soil types,         from input
@@ -48,7 +48,7 @@ MODULE cable_def_types_mod
 
   INTEGER, PARAMETER ::                                                        &
        i_d  = KIND(9), &
-#ifdef UM_BUILD        ! FEEDBACK (this if block is not found in MMY code) --rk4417
+#ifdef UM_BUILD        ! FEEDBACK (this if block is not found in MMY code) --rk4417  !ccc keep the if block
        r_2  = KIND(1.0),&!SELECTED_REAL_KIND(12, 50), &
 #else       
        r_2  = KIND(1.d0),&!SELECTED_REAL_KIND(12, 50), & ! note that MMY code uses the commented out bit
@@ -1107,7 +1107,7 @@ CONTAINS
     ALLOCATE( var%deciduous(mp) )
     ALLOCATE( var%froot(mp,ms) )
     !was nrb(=3), but never uses (:,3) in model
-#ifdef UM_BUILD              ! FEEDBACK (this if block is not found in MMY code) --rk4417
+#ifdef UM_BUILD              ! FEEDBACK (this if block is not found in MMY code) --rk4417 !ccc Keep the if block. nrb is a mess that needs to be cleaned anyway.
     ALLOCATE( var%refl(mp,nrb) ) !jhan:swb?
     ALLOCATE( var%taul(mp,nrb) )
 #else

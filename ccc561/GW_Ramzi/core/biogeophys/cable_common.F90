@@ -66,7 +66,7 @@ MODULE cable_common_module
   !---CABLE runtime switches def in this type
   TYPE kbl_internal_switches
      LOGICAL :: um = .FALSE., um_explicit = .FALSE., um_implicit = .FALSE.,   &
-          um_radiation = .FALSE., um_hydrology = .FALSE.     ! FEEDBACK (MMY has only  um_radiation = .FALSE. ?) --rk4417
+          um_radiation = .FALSE., um_hydrology = .FALSE.     ! FEEDBACK (MMY has only  um_radiation = .FALSE. ?) --rk4417  !ccc keep all switches
      LOGICAL :: offline = .FALSE., mk3l = .FALSE.
   END TYPE kbl_internal_switches
 
@@ -103,7 +103,7 @@ MODULE cable_common_module
           CALL_POP               = .FALSE., & !
           POP_fromZero           = .FALSE., &
           CALL_Climate           = .FALSE., &
-          Climate_fromZero       = .FALSE., &     ! FEEDBACK (.TRUE. in CABLE-GW ?) --rk4417
+          Climate_fromZero       = .FALSE., &     ! FEEDBACK (.TRUE. in CABLE-GW ?) --rk4417  !ccc All switches should default to .FALSE.
           CASA_fromZero          = .FALSE., &     ! FEEDBACK (.TRUE. in CABLE-GW ?) --rk4417
           POPLUC                 = .FALSE.
 

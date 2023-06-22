@@ -1200,8 +1200,8 @@ CONTAINS
     INTEGER :: k,i
 
 !$    IF (gw_params%ssgw_ice_switch) THEN  ! FEEDBACK (MMY asks: ask Claire or Anna what ssgw_ice_switch is for and whether to keep it) --rk4417  
-!$       smp_cor = 8.0
-!$    ELSE
+!$       smp_cor = 8.0                     !ccc Absolutely no idea, first time I see it. But if we keep some of the conditions on ssgw_ice_switch
+!$    ELSE                                 ! then we need to keep all. Some of the conditions are currently not commented. OTHER_FEEDBACK
 !$       smp_cor = 0.0
 !$    END IF
 

@@ -430,7 +430,7 @@ CONTAINS
                   sum_rad_gradis(j)
              !! vh_js !!
              
-             ! FEEDBACK
+             ! FEEDBACK  !ccc Need to use the trunk version here as per ticket #197
              ! (
              ! ____ MMY@23Apr2023 need to check whether met%tvrad and met%tk are the same, leave these comments for now ____
              !print *, "MMY point 1, check met%tvrad and met%tk values", met%tk(j), met%tvrad(j) ! MMY@23Apr2023
@@ -613,7 +613,7 @@ CONTAINS
        canopy%epot = ((1.-rad%transd)*canopy%fevw_pot +                         &
             rad%transd*ssnow%potev*ssnow%cls) * dels/air%rlam
 
-       ! FEEDBACK
+       ! FEEDBACK  !ccc Use trunk version (ticket #197)
        ! (
        ! ____ MMY@23Apr2023 need to check whether met%tvrad and met%tk are the same, leave these comments for now ____
        !print *, "MMY point 1, check met%tvrad and met%tk values", met%tk(j), met%tvrad(j) ! MMY@23Apr2023
@@ -1815,7 +1815,7 @@ CONTAINS
          xleuning    ! leuning stomatal coeff
 #endif
 
-!$    REAL :: medlyn_lim  !INH 2018: should be a parameter in long-term  ! FEEDBACK (any opinion?) -- rk4417
+!$    REAL :: medlyn_lim  !INH 2018: should be a parameter in long-term  ! FEEDBACK (any opinion?) -- rk4417 !ccc definitely needed and block of code that uses it.
     ! END header
 
     ALLOCATE( gswmin(mp,mf ))
@@ -2195,7 +2195,7 @@ CONTAINS
                    evapfb(i) = ( 1.0 - canopy%fwet(i)) * REAL( ecx(i) ) *dels      &
                         / air%rlam(i)
 
-                   ! MMY to fix the inconsistence in root water extraction between  ! FEEDBACK(MMY?)
+                   ! MMY to fix the inconsistence in root water extraction between  ! FEEDBACK(MMY?) !ccc there is only one version here, so not sure what this is about.
                    !     cable_gw_hydro and above
                    xx      = 0._r_2 ! demand : transpiration
                    xxd     = 0._r_2 ! difference : demand - supply

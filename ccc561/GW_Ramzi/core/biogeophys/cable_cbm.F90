@@ -100,7 +100,7 @@ CONTAINS
           CALL ruff_resist(veg, rough, ssnow, canopy)
        ENDIF
        ! Height adjustment not used in ACCESS CM2. See CABLE ticket 197
-       ! met%tk = met%tk + C%grav/C%capp*(rough%zref_tq + 0.9*rough%z0m)  ! FEEDBACK (this line is uncommented in MMY code?) --rk4417
+       ! met%tk = met%tk + C%grav/C%capp*(rough%zref_tq + 0.9*rough%z0m)  ! FEEDBACK (this line is uncommented in MMY code?) --rk4417 !ccc Keep as in trunk. Linked to the work to choose %tk or %tvrad.
 
        CALL define_air (met, air)
 
@@ -229,6 +229,10 @@ CONTAINS
        ! CM2 - further adapted to pass the correction term onto %trad correctly
        rad%trad = ( ( 1.-rad%transd ) * C%emleaf * canopy%tv**4 +                      &
             rad%transd * C%emsoil * ssnow%otss**4 + canopy%fns_cor/C%sboltz )**0.25      ! FEEDBACK (this line appears as below in MMY code?) --rk4417
+                                                                                         !ccc In the HEAD of trunk, this is now in offline/ and only the non-UM case is kept.
+                                                                                         ! The UM case (under coupled/) is the non-MMY version. Keep your branch original version as that's
+                                                                                         ! the correct version. But it will change a lot in phase 2.
+                                                                                       
       ! rad%trad = ( ( 1.-rad%transd ) * C%emleaf * canopy%tv**4 +                     & 
       ! rad%transd * C%emsoil * ssnow%tss**4 )**0.25
     ELSE

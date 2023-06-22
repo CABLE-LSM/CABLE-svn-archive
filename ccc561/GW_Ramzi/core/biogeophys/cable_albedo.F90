@@ -310,8 +310,8 @@ CONTAINS
     END WHERE
     
 !$    WHERE (soil%isoilm == 9)       ! use dry snow albedo     ! FEEDBACK (this block vs one above?) --rk4417
-!$       ssnow%albsoilsn(:,2) = 0.82
-!$       ssnow%albsoilsn(:,1) = 0.82
+!$       ssnow%albsoilsn(:,2) = 0.82                           !ccc The one above was done for ACCESS-CM2 but I can't find
+!$       ssnow%albsoilsn(:,1) = 0.82                           ! more information !OTHER_FEEDBACK
 !$    END WHERE
     
     RETURN

@@ -17,6 +17,7 @@
 
 ! ==============================================================================
 !#define UM_BUILD YES        ! FEEDBACK (this line is uncommented in MMY code?) --rk4417
+!ccc Remove. UM_BUILD case is handled later.
 MODULE cable_climate_mod
 
   USE cable_def_types_mod, ONLY: met_type, climate_type, canopy_type, mp, &

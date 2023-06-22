@@ -82,7 +82,7 @@ MODULE physical_constants
   REAL,    PARAMETER :: zetneg = -10.0    ! negative limit on za/L when niter>=3
   REAL,    PARAMETER :: zetpos = 0.5      ! positive limit on za/L when niter>=3
   REAL,    PARAMETER :: zdlin  = 1.0      ! height frac of d below which TL linear
-  REAL,    PARAMETER :: umin   = 0.1      ! FEEDBACK (umin   = 1.0 in MMY code) --rk4417
+  REAL,    PARAMETER :: umin   = 0.1      ! FEEDBACK (umin   = 1.0 in MMY code) --rk4417 !ccc seee cable_data.F90 comment
   
 END MODULE physical_constants
 

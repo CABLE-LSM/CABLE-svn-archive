@@ -137,6 +137,12 @@ CONTAINS
     !!vh !! include RAD_THRESH in condition
     WHERE (canopy%vlaiw > C%LAI_THRESH .AND. met%coszen > 1.e-6 )
 !$   WHERE (canopy%vlaiw > C%LAI_THRESH .and. rad%fbeam(:,1).GE.C%RAD_THRESH)  ! FEEDBACK (MMY has this line instead of above one?) --rk4417
+    !ccc I'm not sure so I have done some detective work:
+    ! This came from this ticket by Vanessa: https://trac.nci.org.au/trac/cable/ticket/107, it is put in the trunk here: https://trac.nci.org.au/trac/cable/ticket/128 at revision 3825. 
+    ! But then the older version with met%coszen is put back during the CMIP6 work (revision 5717).
+    ! From there I can trace it back to revision 5607. But this only says: "update/sync with ACCESS-CM2"
+    ! I am somewhat tempted to say it is a mistake that the old version came back in but let's see with Jhan and Ian.
+    !OTHER_FEEDBACK
        ! SW beam extinction coefficient ("black" leaves, extinction neglects
        ! leaf SW transmittance and REFLectance):
        rad%extkb = xphi1 / met%coszen + xphi2
@@ -150,7 +156,7 @@ CONTAINS
     END WHERE
 
     WHERE( met%coszen < 1.e-6 )
-!$       WHERE(rad%fbeam(:,1) < C%RAD_THRESH )    ! FEEDBACK (MMY has this line instead of above one?) --rk4417
+!$       WHERE(rad%fbeam(:,1) < C%RAD_THRESH )    ! FEEDBACK (MMY has this line instead of above one?) --rk4417 !ccc Same as above.
        ! higher value precludes sunlit leaves at night. affects
        ! nighttime evaporation - Ticket #90
        rad%extkb=1.0e5
