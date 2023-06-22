@@ -224,6 +224,7 @@ MODULE cable_IO_vars_module
          SWnet = .FALSE.,     & ! 20 net shortwave [W/m2]
          LWnet = .FALSE.,     & ! 21 net longwave [W/m2]
          Evap = .FALSE.,      & ! 22 total evapotranspiration [kg/m2/s]
+         Gs = .FALSE.,        & ! leaf stomatal conductance [mol/m^2/s] ! MMY@June2023
          Ewater = .FALSE.,    & ! 23 evap. from surface water storage [kg/m2/s]
          ESoil = .FALSE.,     & ! 24 bare soil evaporation [kg/m2/s]
          TVeg = .FALSE.,      & ! 25 vegetation transpiration [kg/m2/s]
@@ -329,9 +330,9 @@ MODULE cable_IO_vars_module
          hc = .FALSE.,        & ! height of canopy [m]
          rp20  = .FALSE.,     & ! plant respiration coefficient at
                                 ! 20 C [-] 0.1 - 10 (frp 0 - 15e-6 mol/m2/s)
-         g0   = .FALSE.,      & ! Ticket #56      
+         g0   = .FALSE.,      & ! Ticket #56
          g1   = .FALSE.,      & ! Ticket #56
-         rpcoef  = .FALSE.,   & ! temperature coef nonleaf plant 
+         rpcoef  = .FALSE.,   & ! temperature coef nonleaf plant
                                 ! respiration [1/C] (0.8 - 1.5)
          shelrb  = .FALSE.,   & ! sheltering factor [-] {avoid - insensitive?}
          vcmax  = .FALSE.,    & ! maximum RuBP carboxylation rate
