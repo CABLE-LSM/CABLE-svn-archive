@@ -3266,6 +3266,15 @@ CONTAINS
                canopy%gswx(i,j) = MAX( 1.e-3, gsc(idx) )
             endif
 
+            ! catch for very low silly Ci solutions
+            if (Ci(idx)  < 0.05) then
+               an_canopy(j) = 0.0 ! umol m-2 s-1
+               e_leaves(j) = 0.0 ! mol H2O m-2 s-1
+               p_leaves(j) = p(idx)
+               !canopy%gswx(i,j) = MAX( 1.e-3, gsc(idx) * C%RGSWC)
+               canopy%gswx(i,j) = MAX( 1.e-3, 0.0 )
+            endif
+
             ci_ca = Ci(idx)/Cs
 
             !if (p_leaves(j) < -4 .AND. canopy%gswx(i,j) > 0.01) then
