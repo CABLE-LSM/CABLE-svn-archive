@@ -1192,7 +1192,7 @@ real(r_2), dimension(:,:,:),   allocatable,  save  :: patchfrac_new
 
      !CALL casa_poolout( ktau, veg, soil, casabiome,		  &
      ! casapool, casaflux, casamet, casabal, phen )
-     CALL write_casa_restart_nc ( casamet, casapool,casaflux,phen, CASAONLY )
+     CALL write_casa_restart_nc (veg, casamet, casapool,casaflux,phen, CASAONLY )
 
   END IF
 

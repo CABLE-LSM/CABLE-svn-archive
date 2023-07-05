@@ -1530,24 +1530,26 @@ CONTAINS
   END SUBROUTINE biogeochem
 
 #ifndef UM_BUILD
-  SUBROUTINE WRITE_CASA_RESTART_NC ( casamet, casapool, casaflux, phen, CASAONLY )
+  SUBROUTINE WRITE_CASA_RESTART_NC (veg, casamet, casapool, casaflux, phen, CASAONLY )
 
     USE casavariable, ONLY : casa_met, casa_pool, casa_flux, icycle, mplant, mlitter, msoil
     USE cable_common_module
-  USE casa_ncdf_module, ONLY: HANDLE_ERR
+    USE casa_ncdf_module, ONLY: HANDLE_ERR
+    USE cable_io_vars_module, ONLY: patch
    
-    USE cable_def_types_mod, ONLY: met_type, mp
+    USE cable_def_types_mod, ONLY: met_type, mp, veg_parameter_type
     USE phenvariable
     USE netcdf
 
     IMPLICIT NONE
 
 
-    TYPE (casa_met),  INTENT(IN) :: casamet
-    TYPE (casa_pool),  INTENT(IN) :: casapool
-    TYPE (casa_flux),           INTENT(IN) :: casaflux
-    TYPE (phen_variable),       INTENT(IN) :: phen
-
+    TYPE (casa_met),             INTENT(IN) :: casamet
+    TYPE (casa_pool),            INTENT(IN) :: casapool
+    TYPE (casa_flux),            INTENT(IN) :: casaflux
+    TYPE (phen_variable),        INTENT(IN) :: phen
+    TYPE (veg_parameter_type),   INTENT(IN) :: veg  ! vegetation parameters
+    
     INTEGER*4 :: mp4
     INTEGER*4, PARAMETER   :: pmp4 =0
     INTEGER, PARAMETER   :: fmp4 = KIND(pmp4)
@@ -1567,7 +1569,7 @@ CONTAINS
     ! CHARACTER(len=20),DIMENSION(3), PARAMETER :: A4 = (/ 'csoil', 'nsoil', 'psoil' /)
 
     ! 1 dim arrays (npt )
-    CHARACTER(len=20),DIMENSION(12) :: A1
+    CHARACTER(len=20),DIMENSION(14) :: A1
     CHARACTER(len=20),DIMENSION(2) :: AI1
     ! 2 dim arrays (npt,mplant)
     CHARACTER(len=20),DIMENSION(3) :: A2
@@ -1590,6 +1592,9 @@ CONTAINS
     A1(10) = 'phen'
     A1(11) = 'aphen'
     A1(12) = 'nsoilmin'
+    ! added ypw    
+    A1(13) = 'patchfrac'
+    A1(14) = 'iveg'
 
     AI1(1) = 'phase'
     AI1(2) = 'doyphase3'
@@ -1641,10 +1646,14 @@ CONTAINS
     STATUS = NF90_def_dim(FILE_ID, 'msoil'  , msoil  , soil_ID)
     IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
 
-    DO i = 1, SIZE(A1)
+    ! modified to add patchfrac and iveg as output
+    DO i = 1, 13   !SIZE(A1)
        STATUS = NF90_def_var(FILE_ID,TRIM(A1(i)) ,NF90_FLOAT,(/land_ID/),VID1(i))
        IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
     END DO
+    ! added ypw
+    STATUS = NF90_def_var(FILE_ID,TRIM(A1(14)) ,NF90_INT,(/land_ID/),VID1(14))
+    IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
 
     DO i = 1, SIZE(AI1)
        STATUS = NF90_def_var(FILE_ID,TRIM(AI1(i)) ,NF90_INT,(/land_ID/),VIDI1(i))
@@ -1699,6 +1708,14 @@ CONTAINS
 
     STATUS = NF90_PUT_VAR(FILE_ID, VID1(12), casapool%Nsoilmin )
     IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+    
+    ! added ypw
+    STATUS = NF90_PUT_VAR(FILE_ID, VID1(13), patch%frac )
+    IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS) 
+
+    STATUS = NF90_PUT_VAR(FILE_ID, VID1(14), veg%iveg )
+    IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS) 
+    
 
     STATUS = NF90_PUT_VAR(FILE_ID, VIDI1(1), phen%phase )
     IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
@@ -1800,6 +1817,9 @@ CONTAINS
 
     INTEGER :: VID1(SIZE(A1)), VID2(SIZE(A2)), VID3(SIZE(A3)), VID4(SIZE(A4))
     LOGICAL            ::  EXISTFILE, EXISTFILE1
+    INTEGER np, ivt
+
+
     mp4=INT(mp,fmp4)
     A1(1) = 'latitude'
     A1(2) = 'longitude'
@@ -2071,6 +2091,19 @@ CONTAINS
 
     STATUS = NF90_CLOSE( FILE_ID )
 
+!   ypw diagnosis
+   ! ypw 22-6-2023 diagnosis
+   do np=1,mp
+       if(casamet%lat(np)==-55.0.and.casamet%lon(np)==-66.5625) then
+          write(*,81) mp,np,mplant,icycle,casamet%lat(np),casamet%lon(np), &
+          casapool%cplant(np,:),casapool%nplant(np,:),casapool%pplant(np,:)
+
+       endif
+   enddo
+81 format(' casa-restart diag3: ',2(i7,1x),2(i2,1x),15(f9.4,1x))
+
+
+
   END SUBROUTINE READ_CASA_RESTART_NC
 #endif
   SUBROUTINE WRITE_CASA_OUTPUT_NC ( veg, casamet, casapool, casabal, casaflux, &
@@ -2084,6 +2117,8 @@ CONTAINS
     USE cable_def_types_mod, ONLY: veg_parameter_type
 
     USE netcdf
+    
+    USE cable_io_vars_module, ONLY: patch
 
     IMPLICIT NONE
 
@@ -2121,7 +2156,7 @@ CONTAINS
     !      'ksoil','fromStoCO2','FluxCtosoil','FluxNtosoil','FluxPxtosoil'/)
 
     ! 1 dim arrays (mp )
-    CHARACTER(len=20),DIMENSION(2) :: A0
+    CHARACTER(len=20),DIMENSION(4) :: A0
     ! 2 dim arrays (mp,t)
     CHARACTER(len=20),DIMENSION(51):: A1
     ! 3 dim arrays (mp,mplant,t)
@@ -2156,6 +2191,8 @@ CONTAINS
 
     A0(1) = 'latitude'
     A0(2) = 'longitude'
+    A0(3) = 'patchfrac'
+    A0(4) = 'iveg'
 
     A1(1) = 'glai'
     A1(2) = 'clabile'
@@ -2349,10 +2386,13 @@ CONTAINS
           STATUS = NF90_def_var(FILE_ID,'time' ,NF90_INT,(/t_ID/),VIDtime )
           IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
 
-          DO i = 1, SIZE(A0)
+          DO i = 1, 3
              STATUS = NF90_def_var(FILE_ID,TRIM(A0(i)) ,NF90_FLOAT,(/land_ID/),VID0(i))
              IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
           END DO
+
+          STATUS = NF90_def_var(FILE_ID,TRIM(A0(4)) ,NF90_INT,(/land_ID/),VID0(4))
+          IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
 
           DO i = 1, SIZE(A1)
              STATUS = NF90_def_var(FILE_ID,TRIM(A1(i)) ,NF90_FLOAT,(/land_ID,t_ID/),VID1(i))
@@ -2404,6 +2444,13 @@ CONTAINS
           STATUS = NF90_PUT_VAR(FILE_ID, VID0(2), casamet%lon )
           IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
 
+          ! PUT patch%frac and veg%iveg
+          STATUS = NF90_PUT_VAR(FILE_ID, VID0(3), patch%frac )
+          IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+
+          STATUS = NF90_PUT_VAR(FILE_ID, VID0(4), veg%iveg )
+          IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)          
+          
           CALL1 = .FALSE.
        ENDIF !( EXRST )
     ENDIF

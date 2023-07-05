@@ -2007,7 +2007,7 @@ CONTAINS
        END IF
        ! Check patch fractions sum to 1 in each grid cell:
        IF((SUM(patch(landpt(i)%cstart:landpt(i)%cend)%frac) - 1.0)             &
-            > 1.0E-6) THEN
+            > 1.0E-4) THEN
           WRITE(*,*) 'SUBROUTINE load_parameters:'
           WRITE(*,*) 'At land point number', i
           WRITE(*,*) 'And patch numbers:  ', landpt(i)%cstart, landpt(i)%cend

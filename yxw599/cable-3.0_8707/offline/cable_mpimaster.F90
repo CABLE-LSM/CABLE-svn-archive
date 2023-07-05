@@ -1355,7 +1355,7 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
        CALL casa_fluxout( nyear, veg, soil, casabal, casamet)
 
        if(.not.l_landuse) then
-           CALL write_casa_restart_nc ( casamet, casapool,casaflux,phen,CASAONLY )
+           CALL write_casa_restart_nc (veg, casamet, casapool,casaflux,phen,CASAONLY )
        endif
 
        !CALL write_casa_restart_nc ( casamet, casapool, met, CASAONLY )
@@ -8322,7 +8322,7 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
          casapool, casaflux, casamet, casabal, phen )
 
 
-    CALL write_casa_restart_nc ( casamet, casapool,casaflux,phen,.TRUE. )
+    CALL write_casa_restart_nc (veg, casamet, casapool,casaflux,phen,.TRUE. )
 
 
     IF ( CABLE_USER%CALL_POP .AND.POP%np.GT.0 ) THEN
@@ -8626,7 +8626,7 @@ USE cable_phys_constants_mod, ONLY : CSBOLTZ => SBOLTZ
 
     ENDDO
     CALL WRITE_LUC_RESTART_NC ( POPLUC, YYYY )
-    CALL write_casa_restart_nc ( casamet, casapool,casaflux,phen,.TRUE. )
+    CALL write_casa_restart_nc (veg, casamet, casapool,casaflux,phen,.TRUE. )
 
     CALL POP_IO( pop, casamet, myearspin, 'WRITE_INI', .TRUE.)
 

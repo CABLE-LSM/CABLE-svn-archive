@@ -1022,7 +1022,7 @@ END SUBROUTINE landuse_getdata
     ! CHARACTER(len=20),DIMENSION(3), PARAMETER :: A4 = (/ 'csoil', 'nsoil', 'psoil' /)
 
     ! 1 dim arrays (npt )
-    CHARACTER(len=20),DIMENSION(12) :: A1
+    CHARACTER(len=20),DIMENSION(14) :: A1
     CHARACTER(len=20),DIMENSION(2)  :: AI1
     ! 2 dim arrays (npt,mplant)
     CHARACTER(len=20),DIMENSION(3)  :: A2
@@ -1051,7 +1051,10 @@ END SUBROUTINE landuse_getdata
     A1(10) = 'phen'
     A1(11) = 'aphen'
     A1(12) = 'nsoilmin'
-
+    ! added ypw    
+    A1(13) = 'patchfrac'
+    A1(14) = 'iveg'
+    
     AI1(1) = 'phase'
     AI1(2) = 'doyphase3'
 
@@ -1111,10 +1114,14 @@ END SUBROUTINE landuse_getdata
     STATUS = NF90_def_dim(FILE_ID, 'mwood'  , mwood  , wood_ID)
     IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
 
-    DO i = 1, SIZE(A1)
+    DO i = 1, 13    !SIZE(A1)
        STATUS = NF90_def_var(FILE_ID,TRIM(A1(i)) ,NF90_FLOAT,(/land_ID/),VID1(i))
        IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
     END DO
+    ! added ypw
+    STATUS = NF90_def_var(FILE_ID,TRIM(A1(14)) ,NF90_INT,(/land_ID/),VID1(14))
+    IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
+
 
     DO i = 1, SIZE(AI1)
        STATUS = NF90_def_var(FILE_ID,TRIM(AI1(i)) ,NF90_INT,(/land_ID/),VIDI1(i))
@@ -1182,6 +1189,12 @@ END SUBROUTINE landuse_getdata
 
     STATUS = NF90_PUT_VAR(FILE_ID, VID1(12), lucmp%Nsoilmin )
     IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+    
+    STATUS = NF90_PUT_VAR(FILE_ID, VID1(13), lucmp%patchfrac )
+    IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
+    
+    STATUS = NF90_PUT_VAR(FILE_ID, VID1(14), lucmp%iveg )
+    IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)        
 
     STATUS = NF90_PUT_VAR(FILE_ID, VIDI1(1), lucmp%phase )
     IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)

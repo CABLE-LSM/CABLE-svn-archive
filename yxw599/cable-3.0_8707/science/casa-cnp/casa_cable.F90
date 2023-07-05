@@ -602,6 +602,7 @@ SUBROUTINE write_casa_dump( ncfile, casamet, casaflux, phen, climate, n_call, ke
 END SUBROUTINE write_casa_dump
 
  SUBROUTINE casa_feedback(ktau,veg,casabiome,casapool,casamet)
+  USE cable_IO_vars_module, ONLY: logn       
   USE cable_def_types_mod
   USE casadimension
   USE casaparm
@@ -678,10 +679,20 @@ END SUBROUTINE write_casa_dump
        stop ('invalid vcmax flag')
     endif
 
+    ! print out for diagnosis: ypwang 21-6-2023
+!    if(ivt==6.and.casamet%lat(np)==-55.0.and.casamet%lon(np)==-66.5625) then
+!
+!       write(*,81) ktau,ivt,icycle,casamet%lat(np),casamet%lon(np),veg%vcmax(np)*1.0e6, casabiome%nintercept(ivt), &
+!       casabiome%nslope(ivt),casabiome%sla(ivt),casamet%glai(np),casabiome%glaimin(ivt), xnslope(ivt),    &
+!       ncleafx(np),npleafx(np),casapool%cplant(np,leaf),casapool%nplant(np,leaf),casapool%pplant(np,leaf)
+!            
+!    endif        
+    
   ENDDO
 
   veg%ejmax = 2.0 * veg%vcmax
 !991 format(i6,2x,i4,2x,2(f9.3,2x))
+81 format(' casa-cable diagnosis: ',i7,1x,2(i2,1x),15(f9.4,1x))
  END SUBROUTINE casa_feedback
 
 
