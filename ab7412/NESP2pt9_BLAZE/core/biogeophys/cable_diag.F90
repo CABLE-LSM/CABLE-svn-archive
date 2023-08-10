@@ -87,12 +87,10 @@ SUBROUTINE cable_diag1( iDiag, basename, dimx, dimy, timestep, node, &
       if( present(once) ) then
          if (timestep == 1) &
          ! write data only on first timestep
-         call cable_diag_data1( iDiag, trim(filename), dimx, timestep, dimy, &
-                             var1 )
+         call cable_diag_data1( iDiag, trim(filename), timestep, dimy, var1 )
       else
          ! write data every timestep
-         call cable_diag_data1( iDiag, trim(filename), dimx, timestep, dimy, &
-                                var1 )
+         call cable_diag_data1( iDiag, trim(filename), timestep, dimy, var1 )
       endif
 
 END SUBROUTINE cable_diag1
@@ -129,9 +127,9 @@ SUBROUTINE cable_diag_desc1( iDiag, filename, dimx, dimy, vname1 )
 END SUBROUTINE cable_diag_desc1
 
 
-SUBROUTINE cable_diag_data1( iDiag, filename, dimx, timestep, kend, var1  )
+SUBROUTINE cable_diag_data1( iDiag, filename, timestep, kend, var1  )
 
-   integer, intent(in) :: iDiag, dimx, timestep, kend
+   integer, intent(in) :: iDiag, timestep, kend
    real, intent(in), dimension(:) :: var1
    character(len=*), intent(in) :: filename
    integer, save :: gopenstatus = 1
@@ -178,13 +176,13 @@ END SUBROUTINE cable_diag_data1
   end subroutine def_dims
 
 
-  subroutine def_vars(nv, ncid, xtype, dimID, var_name, varID)
+  subroutine def_vars(ncid, xtype, dimID, var_name, varID)
 
     use netcdf
     
     implicit none
     
-    integer,                        intent(in)    :: nv, ncid, xtype
+    integer,                        intent(in)    :: ncid, xtype
     integer,          dimension(:), intent(in)    :: dimID
     character(len=*), dimension(:), intent(in)    :: var_name
     integer,          dimension(:), intent(inout) :: varID
@@ -192,163 +190,146 @@ END SUBROUTINE cable_diag_data1
     integer :: ncok
 
     ! lat
-    ! print*, 'DV01'
     ncok = NF90_DEF_VAR( ncid, trim(var_name(1)), xtype, &
          (/ dimID(1) /), varID(1))
     if (ncok /= nf90_noerr ) call stderr_nc(ncok,'def var ', var_name(1))
 
     ! lon
-    ! print*, 'DV02'
     ncok = NF90_DEF_VAR(ncid, trim(var_name(2)), xtype, &
          (/ dimID(1) /), varID(2))
     if (ncok /= nf90_noerr ) call stderr_nc(ncok,'def var ', var_name(2))
 
     ! tairk
-    ! print*, 'DV03'
     ncok = NF90_DEF_VAR(ncid, trim(var_name(3)), xtype, &
          (/ dimID(1), dimID(3) /), varID(3) &
 #ifndef __NETCDF3__
-         , deflate_level=1 &
+         , deflate_level=4 &
 #endif
          )
     if (ncok /= nf90_noerr ) call stderr_nc(ncok,'def var ', var_name(3))
 
     !tsoil
-    ! print*, 'DV04'
     ncok = NF90_DEF_VAR(ncid, trim(var_name(4)), xtype, &
          (/ dimID(1), dimID(2), dimID(3)/), varID(4) &
 #ifndef __NETCDF3__
-         , deflate_level=1 &
+         , deflate_level=4 &
 #endif
          )
     if (ncok /= nf90_noerr ) call stderr_nc(ncok,'def var ', var_name(4))
 
     ! moist
-    ! print*, 'DV05'
     ncok = NF90_DEF_VAR(ncid, trim(var_name(5)), xtype, &
          (/ dimID(1), dimID(2), dimID(3)/), varID(5) &
 #ifndef __NETCDF3__
-         , deflate_level=1 &
+         , deflate_level=4 &
 #endif
          )
     if (ncok /= nf90_noerr ) call stderr_nc(ncok,'def var ', var_name(5))
 
     !cgpp
-    ! print*, 'DV06'
     ncok = NF90_DEF_VAR(ncid, trim(var_name(6)), xtype, &
          (/ dimID(1), dimID(3)/), varID(6) &
 #ifndef __NETCDF3__
-         , deflate_level=1 &
+         , deflate_level=4 &
 #endif
          )
     if (ncok /= nf90_noerr ) call stderr_nc(ncok,'def var ', var_name(6))
 
     !crmplant
-    ! print*, 'DV07'
     ncok = NF90_DEF_VAR(ncid, trim(var_name(7)), xtype, &
          (/ dimID(1), dimID(2), dimID(3)/), varID(7) &
 #ifndef __NETCDF3__
-         , deflate_level=1 &
+         , deflate_level=4 &
 #endif
          )
     if (ncok /= nf90_noerr ) call stderr_nc(ncok,'def var ', var_name(7))
 
     !phenphase
-    ! print*, 'DV08'
     ncok = NF90_DEF_VAR(ncid, trim(var_name(8)), xtype, &
          (/ dimID(1), dimID(3)/), varID(8) &
 #ifndef __NETCDF3__
-         , deflate_level=1 &
+         , deflate_level=4 &
 #endif
          )
     if (ncok /= nf90_noerr ) call stderr_nc(ncok,'def var ', var_name(8))
 
     !doyphase1
-    ! print*, 'DV09'
     ncok = NF90_DEF_VAR(ncid, trim(var_name(9)), xtype, &
          (/ dimID(1), dimID(3)/), varID(9) &
 #ifndef __NETCDF3__
-         , deflate_level=1 &
+         , deflate_level=4 &
 #endif
          )
     if (ncok /= nf90_noerr ) call stderr_nc(ncok,'def var ', var_name(9))
 
     !doyphase2
-    ! print*, 'DV10'
     ncok = NF90_DEF_VAR(ncid, trim(var_name(10)), xtype, &
          (/ dimID(1), dimID(3)/), varID(10) &
 #ifndef __NETCDF3__
-         , deflate_level=1 &
+         , deflate_level=4 &
 #endif
          )
     if (ncok /= nf90_noerr ) call stderr_nc(ncok,'def var ', var_name(10))
 
     !doyphase3
-    ! print*, 'DV11'
     ncok = NF90_DEF_VAR(ncid, trim(var_name(11)), xtype, &
          (/ dimID(1), dimID(3)/), varID(11) &
 #ifndef __NETCDF3__
-         , deflate_level=1 &
+         , deflate_level=4 &
 #endif
          )
     if (ncok /= nf90_noerr ) call stderr_nc(ncok,'def var ', var_name(11))
 
     !doyphase4
-    ! print*, 'DV12'
     ncok = NF90_DEF_VAR(ncid, trim(var_name(12)), xtype, &
          (/ dimID(1), dimID(3)/), varID(12) &
 #ifndef __NETCDF3__
-         , deflate_level=1 &
+         , deflate_level=4 &
 #endif
          )
     if (ncok /= nf90_noerr ) call stderr_nc(ncok,'def var ', var_name(12))
 
     !mtemp
-    ! print*, 'DV13'
     ncok = NF90_DEF_VAR(ncid, trim(var_name(13)), xtype, &
          (/ dimID(1), dimID(3)/), varID(13) &
 #ifndef __NETCDF3__
-         , deflate_level=1 &
+         , deflate_level=4 &
 #endif
          )
     if (ncok /= nf90_noerr ) call stderr_nc(ncok,'def var ', var_name(13))
 
     !frec
-    ! print*, 'DV14'
     ncok = NF90_DEF_VAR(ncid, trim(var_name(14)), xtype, &
          (/ dimID(1), dimID(3)/), varID(14) &
 #ifndef __NETCDF3__
-         , deflate_level=1 &
+         , deflate_level=4 &
 #endif
          )
     if (ncok /= nf90_noerr ) call stderr_nc(ncok,'def var ', var_name(14))
 
     !Ndep
-    ! print*, 'DV15'
     ncok = NF90_DEF_VAR(ncid, trim(var_name(15)), xtype, &
          (/ dimID(1), dimID(3)/), varID(15) &
 #ifndef __NETCDF3__
-         , deflate_level=1 &
+         , deflate_level=4 &
 #endif
          )
     if (ncok /= nf90_noerr ) call stderr_nc(ncok,'def var ', var_name(15))
 
     !Pdep
-    ! print*, 'DV16'
     ncok = NF90_DEF_VAR(ncid, trim(var_name(16)), xtype, &
          (/ dimID(1), dimID(3)/), varID(16) &
 #ifndef __NETCDF3__
-         , deflate_level=1 &
+         , deflate_level=4 &
 #endif
          )
     if (ncok /= nf90_noerr ) call stderr_nc(ncok,'def var ', var_name(16))
 
     !cAn12spin
-    ! print*, 'DV17'
     ncok = NF90_DEF_VAR(ncid, trim(var_name(17)), xtype, &
          (/ dimID(1), dimID(3)/), varID(17) &
 #ifndef __NETCDF3__
-         , deflate_level=1 &
+         , deflate_level=4 &
 #endif
          )
     if (ncok /= nf90_noerr ) call stderr_nc(ncok,'def var ', var_name(17))
@@ -357,7 +338,7 @@ END SUBROUTINE cable_diag_data1
     ncok = NF90_DEF_VAR(ncid, trim(var_name(18)), xtype, &
          (/ dimID(1), dimID(3)/), varID(18) &
 #ifndef __NETCDF3__
-         , deflate_level=1 &
+         , deflate_level=4 &
 #endif
          )
     if (ncok /= nf90_noerr ) call stderr_nc(ncok,'def var ', var_name(18))
@@ -366,7 +347,7 @@ END SUBROUTINE cable_diag_data1
     ncok = NF90_DEF_VAR(ncid, trim(var_name(19)), xtype, &
          (/ dimID(1), dimID(3)/), varID(19) &
 #ifndef __NETCDF3__
-         , deflate_level=1 &
+         , deflate_level=4 &
 #endif
          )
     if (ncok /= nf90_noerr ) call stderr_nc(ncok,'def var ', var_name(19))
@@ -375,7 +356,7 @@ END SUBROUTINE cable_diag_data1
     ncok = NF90_DEF_VAR(ncid, trim(var_name(20)), xtype, &
          (/ dimID(1), dimID(3)/), varID(20) &
 #ifndef __NETCDF3__
-         , deflate_level=1 &
+         , deflate_level=4 &
 #endif
          )
     if (ncok /= nf90_noerr ) call stderr_nc(ncok,'def var ', var_name(20))
@@ -384,7 +365,7 @@ END SUBROUTINE cable_diag_data1
     ncok = NF90_DEF_VAR(ncid, trim(var_name(21)), xtype, &
          (/ dimID(1), dimID(3)/), varID(21) &
 #ifndef __NETCDF3__
-         , deflate_level=1 &
+         , deflate_level=4 &
 #endif
          )
     if (ncok /= nf90_noerr ) call stderr_nc(ncok,'def var ', var_name(21))
@@ -393,7 +374,7 @@ END SUBROUTINE cable_diag_data1
     ncok = NF90_DEF_VAR(ncid, trim(var_name(22)), xtype, &
          (/ dimID(1), dimID(3)/), varID(22) &
 #ifndef __NETCDF3__
-         , deflate_level=1 &
+         , deflate_level=4 &
 #endif
          )
     if (ncok /= nf90_noerr ) call stderr_nc(ncok,'def var ', var_name(22))
@@ -402,7 +383,7 @@ END SUBROUTINE cable_diag_data1
     ncok = NF90_DEF_VAR(ncid, trim(var_name(23)), xtype, &
          (/ dimID(1), dimID(3)/), varID(23) &
 #ifndef __NETCDF3__
-         , deflate_level=1 &
+         , deflate_level=4 &
 #endif
          )
     if (ncok /= nf90_noerr ) call stderr_nc(ncok,'def var ', var_name(23))
@@ -411,7 +392,7 @@ END SUBROUTINE cable_diag_data1
     ncok = NF90_DEF_VAR(ncid, trim(var_name(24)), xtype, &
          (/ dimID(1), dimID(3)/), varID(24) &
 #ifndef __NETCDF3__
-         , deflate_level=1 &
+         , deflate_level=4 &
 #endif
          )
     if (ncok /= nf90_noerr ) call stderr_nc(ncok,'def var ', var_name(24))
@@ -420,7 +401,7 @@ END SUBROUTINE cable_diag_data1
     ncok = NF90_DEF_VAR(ncid, trim(var_name(25)), xtype, &
          (/ dimID(1), dimID(3)/), varID(25) &
 #ifndef __NETCDF3__
-         , deflate_level=1 &
+         , deflate_level=4 &
 #endif
          )
     if (ncok /= nf90_noerr ) call stderr_nc(ncok,'def var ', var_name(25))
@@ -429,7 +410,7 @@ END SUBROUTINE cable_diag_data1
     ncok = NF90_DEF_VAR(ncid, trim(var_name(26)), xtype, &
          (/ dimID(1), dimID(3)/), varID(26) &
 #ifndef __NETCDF3__
-         , deflate_level=1 &
+         , deflate_level=4 &
 #endif
          )
     if (ncok /= nf90_noerr ) call stderr_nc(ncok,'def var ', var_name(26))
@@ -438,7 +419,7 @@ END SUBROUTINE cable_diag_data1
     ncok = NF90_DEF_VAR(ncid, trim(var_name(27)), xtype, &
          (/ dimID(1), dimID(3)/), varID(27) &
 #ifndef __NETCDF3__
-         , deflate_level=1 &
+         , deflate_level=4 &
 #endif
          )
     if (ncok /= nf90_noerr ) call stderr_nc(ncok,'def var ', var_name(27))
@@ -447,7 +428,7 @@ END SUBROUTINE cable_diag_data1
     ncok = NF90_DEF_VAR(ncid, trim(var_name(28)), xtype, &
          (/ dimID(1), dimID(3)/), varID(28) &
 #ifndef __NETCDF3__
-         , deflate_level=1 &
+         , deflate_level=4 &
 #endif
          )
     if (ncok /= nf90_noerr ) call stderr_nc(ncok,'def var ', var_name(28))
@@ -456,7 +437,7 @@ END SUBROUTINE cable_diag_data1
     ncok = NF90_DEF_VAR(ncid, trim(var_name(29)), xtype, &
          (/ dimID(1), dimID(3)/), varID(29) &
 #ifndef __NETCDF3__
-         , deflate_level=1 &
+         , deflate_level=4 &
 #endif
          )
     if (ncok /= nf90_noerr ) call stderr_nc(ncok,'def var ', var_name(29))
@@ -611,14 +592,29 @@ END SUBROUTINE cable_diag_data1
   ! netCDF error handling
 
   subroutine stderr_nc(status,message, var)
+    
     use netcdf
+#ifdef __MPI__
+    use mpi, only: MPI_Abort
+#endif
+    
     character(len=*), intent(in) :: message, var
     INTEGER, INTENT(IN) :: status
+    
     character(len=7) :: err_mess
+#ifdef __MPI__
+    integer :: ierr
+#endif
+
     err_mess = 'ERROR:'
-    print *, (err_mess//message), var
-    PRINT*,NF90_STRERROR(status)
-    stop
+    write(*,*) err_mess//message, var
+    write(*,*) NF90_STRERROR(status)
+#ifdef __MPI__
+    call MPI_Abort(0, 135, ierr) ! Do not know comm nor rank here
+#else
+    stop 135
+#endif
+
   end subroutine stderr_nc
 #endif
 

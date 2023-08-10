@@ -19,8 +19,11 @@ contains
          vars_met, vars, vars_snow, &                                  ! types
          MW, Rgas, Lambdas, lambdaf, csice, cswat, rhow, nsnow_max, e5, &
          freezefac, topmodel, alpha, botbc
-    USE sli_utils,            ONLY: x, dx, par, setpar, setpar_Loetsch, setx, plit, dxL, setlitterpar, esat, &
-         esat_ice, slope_esat_ice, thetalmax, Tfrz,  hyofS, SEB
+    USE sli_utils,            ONLY: x, dx, par, setpar, setpar_Loetsch, printparams, &
+         setx, plit, dxL, setlitterpar, esat, &
+         esat_ice, slope_esat_ice, thetalmax, Tfrz,  hyofS, SEB, &
+         zerovars, zerovars_met, zerovars_snow, &
+         printvars, printvars_met, printvars_snow
     USE sli_roots,            ONLY: setroots, getrex
     USE sli_solve,            ONLY: solve
     USE cable_IO_vars_module, ONLY: wlogn
@@ -34,13 +37,13 @@ contains
     TYPE(met_type),            INTENT(INOUT) :: met     ! all r_1
     TYPE(canopy_type),         INTENT(INOUT) :: canopy  ! all r_1
     TYPE(air_type),            INTENT(INOUT) :: air     ! all r_1
-    TYPE (radiation_type),     INTENT(IN)    :: rad
+    TYPE(radiation_type),      INTENT(IN)    :: rad
     INTEGER,                   INTENT(IN)    :: ktau ! integration step number
     INTEGER,                   INTENT(IN)    :: SEB_only ! integration step number
 
-    REAL(r_2), PARAMETER :: emsoil=0.97
-    REAL(r_2), PARAMETER :: rhocp=1.1822e3
-    REAL(r_2), PARAMETER :: Dva = 2.17e-5
+    REAL(r_2), PARAMETER :: emsoil = 0.97_r_2
+    REAL(r_2), PARAMETER :: rhocp = 1.1822e3_r_2
+    REAL(r_2), PARAMETER :: Dva   = 2.17e-5_r_2
     INTEGER(i_d) :: i, k, kk, setroot
     REAL(r_2)    :: ti, tf
     TYPE(vars_met),  DIMENSION(1:mp)      :: vmet ! Meteorology above soil
@@ -134,23 +137,28 @@ contains
     hice       = zero
     err        = 0
 
+    vmet  = zerovars_met()
+    vlit  = zerovars()
+    var   = zerovars()
+    vsnow = zerovars_snow()
+
     ! output files for testing purposes
     if (first) then
-!!$     open (unit=332,file="vh08.out",status="replace",position="rewind")
-!!$     open (unit=334,file="S.out",status="replace",position="rewind")
-!!$     open (unit=336,file="Tsoil.out",status="replace",position="rewind")
-!!$     open (unit=335,file="SEB.out",status="replace",position="rewind")
-!!$     open (unit=337,file="soil_log.out",status="replace",position="rewind")
-!!$     open(unit=338, file="thetai.out", status="replace", position="rewind")
-!!$     open(unit=340, file="snow.out", status="replace", position="rewind")
-!!$     open(unit=346, file="diags.out",status="replace", position="rewind")
-!!$     open(unit=369, file="vmet.out", status="replace", position="rewind", recl=20*20)
-!!$     open(unit=370, file="qex.out",status="replace", position="rewind")
-!!$     open(unit=371, file="q.out",status="replace", position="rewind")
+       ! open(unit=332, file="vh08.out", status="replace", position="rewind")
+       ! open(unit=334, file="S.out", status="replace", position="rewind")
+       ! open(unit=336, file="Tsoil.out", status="replace", position="rewind")
+       ! open(unit=335, file="SEB.out", status="replace", position="rewind")
+       ! open(unit=337, file="soil_log.out", status="replace", position="rewind")
+       ! open(unit=338, file="thetai.out", status="replace", position="rewind")
+       ! open(unit=340, file="snow.out", status="replace", position="rewind")
+       ! open(unit=346, file="diags.out", status="replace", position="rewind")
+       ! open(unit=369, file="vmet.out", status="replace", position="rewind", recl=20*20)
+       ! open(unit=370, file="qex.out", status="replace", position="rewind")
+       ! open(unit=371, file="q.out", status="replace", position="rewind")
 
-       !open(unit=339, file="latlong.out",status="replace", position="rewind")
+       ! open(unit=339, file="latlong.out", status="replace", position="rewind")
        ! write(339,"(20000f8.2)") rad%latitude
-       !write(339,"(20000f8.2)") rad%longitude
+       ! write(339,"(20000f8.2)") rad%longitude
        counter = 0
     endif
 
@@ -181,7 +189,7 @@ contains
     endif
 
     ! If we want solutes:
-!!$     if (.not. allocated(bd)) allocate(bd(soil%nhorizons(k)))
+    ! if (.not. allocated(bd)) allocate(bd(soil%nhorizons(k)))
 
     ! Litter parameters:
     if (.not. allocated(plit)) then
@@ -194,7 +202,7 @@ contains
        vmet%rha   = zero
        vmet%rrc   = zero
        vmet%Rn    = zero
-       vmet%Rnsw = zero
+       vmet%Rnsw  = zero
        vmet%cva   = zero
        vmet%civa  = zero
        vmet%phiva = zero
@@ -214,7 +222,7 @@ contains
     vmet%phiva = Dva * vmet%cva
     vmet%Rn    = canopy%fns
     ! vmet%Rnsw  = rad%qssabs  ! shortwave radiation absorbed
-    vmet%Rnsw = zero ! all radiation absorbed at snow surface
+    vmet%Rnsw  = zero ! all radiation absorbed at snow surface
     ! vmet%Rnsw = vmet%Rn ! all radiation absorbed beneath snow surface
     Etrans     = max(canopy%fevc/air%rlam/thousand, zero) ! m s-1
     where (canopy%fevc .lt. zero)
@@ -225,13 +233,13 @@ contains
 
     ! zero runoff here, in case error is returned to avoid excessive runoff from previous time-step.
     ! (Runoff is multipled by dt in cable_driver.F90)
-    ssnow%rnof1 = 0.0
-    ssnow%rnof2 = 0.0
-    ssnow%runoff = 0.0
-    ssnow%E_fusion_sn = 0.0
-    ssnow%E_sublimation_sn = 0.0
-    ssnow%evap_liq_sn = 0.0
-    ssnow%surface_melt = 0.0
+    ssnow%rnof1            = 0.0
+    ssnow%rnof2            = 0.0
+    ssnow%runoff           = 0.0
+    ssnow%E_fusion_sn      = zero
+    ssnow%E_sublimation_sn = zero
+    ssnow%evap_liq_sn      = zero
+    ssnow%surface_melt     = zero
     ! Set isotopes to zero
     vmet%civa = zero
 
@@ -281,14 +289,11 @@ contains
        first = .false.
     endif
 
-
     Tsurface = ssnow%Tsurface
     T0       = ssnow%Tsurface
     deltaTa  = zero
     lE_old   = ssnow%lE
     zdelta   = ssnow%zdelta
-
-
 
     SL    = 0.5_r_2   ! degree of litter saturation
     Tsoil = ssnow%Tsoil
@@ -299,7 +304,6 @@ contains
     ssnow%smelt = zero
     ssnow%cls   = one
     S           = ssnow%S                ! degree of soil saturation
-
 
     ! ----------------------------------------------------------------
     ! Iinitialise phi where it is (frozen and saturated) and where (pond >zero)
@@ -509,30 +513,46 @@ contains
 
     if (SEB_only == 1) then
        do kk=1, mp
-
-
           ! call hyofS(S(kk,:), Tsoil(kk,:), par(kk,:), var(kk,:))
           call hyofS(S(kk,1), Tsoil(kk,1), par(kk,1), var(kk,1))
           CALL SEB(ms, par(kk,:), vmet(kk), vsnow(kk), var(kk,:), qprec(kk), qprec_snow(kk), dx(kk,:), &
                h0(kk), Tsoil(kk,:), &
-               Tsurface(kk), G0(kk), lE(kk),Epot(kk), &
+               Tsurface(kk), G0(kk), lE(kk), Epot(kk), &
                tmp1d1a, tmp1d2, tmp1d3, tmp1d4, &
                tmp1d5, tmp1d6, tmp1d7, tmp1d8, tmp1d9,tmp1d10, tmp1d11, &
-               tmp1d12,tmp1d13, tmp1d14, tmp1d15, tmp1d16, ktau)
-
+               tmp1d12,tmp1d13, tmp1d14, tmp1d15, tmp1d16)
        enddo
-       canopy%ga  = real(G0)
-       canopy%fes = real(lE)
-       canopy%fhs = canopy%fns - canopy%ga - real(canopy%fes)
-       ssnow%tss  = real(Tsurface + Tzero)
-       ssnow%potev  = real(Epot)
-
+       ! print*, 'SEB01 ', mp, ms
+       ! do kk=1, mp
+       !    call printvars_met(vmet(kk))
+       !    call printvars_snow(vsnow(kk))
+       !    do i=1, ms
+       !       print*, 'i/ms ', i, ms
+       !       call printparams(par(kk,i))
+       !       call printvars(var(kk,i))
+       !    enddo
+       !    print*, 'qprec ', qprec(kk)
+       !    print*, 'qprec_snow ', qprec_snow(kk)
+       !    print*, 'dx ', dx(kk,:)
+       !    print*, 'h0 ', h0(kk)
+       !    print*, 'Tsoil ', Tsoil(kk,:)
+       !    print*, 'Tsurface ', Tsurface(kk)
+       !    print*, 'G0 ', G0(kk)
+       !    print*, 'lE ', lE(kk)
+       !    print*, 'Epot ', Epot(kk)
+       ! enddo
+       canopy%ga   = real(G0)
+       canopy%fes  = lE
+       canopy%fhs  = canopy%fns - canopy%ga - real(canopy%fes)
+       ssnow%tss   = real(Tsurface + Tzero)
+       ssnow%potev = real(Epot)
     else ! full SLI
        ! save for output, because they get changed with litter in solve
        rbw = vmet(1)%rbw
        rbh = vmet(1)%rbh
        rrc = vmet(1)%rrc
        !write(*,*), 'b4 solve', ktau
+       call hyofS(S, Tsoil, par, var)
        call solve( ti, tf, ktau, mp, qprec, qprec_snow, ms, dx, &
             h0, S, thetai, Jsensible, Tsoil, evap, &
             evap_pot, runoff, infil, drn, discharge, qh, &
@@ -578,15 +598,12 @@ contains
        win = win + (qprec+qprec_snow)*(tf-ti)
 
        if (1 == 0 .and. wlogn == 1011) then
-
           k=79
-
-
-!!$  if(k==1) then
-!!$write(*,"(100e16.6)") &
-!!$(win(k)-(wp(k)-wpi(k)+deltah0(k)+runoff(k)+evap(k)+drn(k))-Etrans(k)*dt)*1000, &
-!!$win(k)*1000, (wp(k)-wpi(k)+deltah0(k))*1000, runoff(k)*1000+drn(k)*1000, evap(k)*1000,  Etrans(k)*dt*1000
-!!$endif
+          ! if(k==1) then
+          !     write(*,"(100e16.6)") &
+          !    (win(k)-(wp(k)-wpi(k)+deltah0(k)+runoff(k)+evap(k)+drn(k))-Etrans(k)*dt)*1000, &
+          !    win(k)*1000, (wp(k)-wpi(k)+deltah0(k))*1000, runoff(k)*1000+drn(k)*1000, evap(k)*1000,  Etrans(k)*dt*1000
+          ! endif
           write(332,"(i8,i8,18e16.6)") ktau, nsteps(k), wp(k)-wpi(k), infil(k)-drn(k), runoff(k), &
                win(k)-(wp(k)-wpi(k)+deltah0(k)+runoff(k)+evap(k)+drn(k))-Etrans(k)*dt, wp(k), &
                evap(k), evap_pot(k), infil(k), &
@@ -644,7 +661,7 @@ contains
        end do
 
        if (cable_user%fwsoil_switch.ne.'Haverd2013') then
-          where (err(1:mp) == 0) canopy%fwsoil = real(fws)
+          where (err(1:mp) == 0) canopy%fwsoil = fws
        endif
 
        if (litter==0) then

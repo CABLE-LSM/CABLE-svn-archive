@@ -35,14 +35,14 @@ END TYPE TYPE_SIMFIRE
 ! 11 Permanent Wetland % 11: mixture of water and herbaceous or woody vegetation
 ! 12 Cropland % 12
 ! 13 Urban and Built-Up % 13
-! 14 Cropland/Natural Vegetation Mosaic % 14 none of forest, shrubland, cropland, 
+! 14 Cropland/Natural Vegetation Mosaic % 14 none of forest, shrubland, cropland,
 !    grassland >60% cover
 ! 15 Permanent Snow and Ice % 15
 ! 16 Barren or Sparsely Vegetated % 16: <10% vegetation cover all year
 ! 17 Unclassified / No data
 !
 INTEGER, DIMENSION(16,2), PARAMETER :: IGBP2BIOME = reshape( &
-     (/ 2, 3, 2, 3, 4, 5, 5, 6, 6, 6, 0, 1, 1, 1, 0, 8 ,   & ! LAT  < 50 
+     (/ 2, 3, 2, 3, 4, 5, 5, 6, 6, 6, 0, 1, 1, 1, 0, 8 ,   & ! LAT  < 50
         2, 3, 2, 3, 4, 7, 7, 6, 6, 6, 0, 1, 1, 1, 0, 7 /), & ! LAT >= 50
      (/16,2/) )
 
@@ -59,26 +59,23 @@ SUBROUTINE INI_SIMFIRE( NCELLS, SF, modis_igbp )
   use netcdf
 
   IMPLICIT NONE
-  
+
   TYPE (TYPE_SIMFIRE), INTENT(INOUT) :: SF
   INTEGER,             INTENT(IN)    :: NCELLS, modis_igbp(NCELLS)
-  CHARACTER(len=400)   :: HydePath,  BurnedAreaSource, BurnedAreaFile, &
-       BurnedAreaClimatologyFile, SIMFIRE_REGION
+  CHARACTER(len=400)  :: HydePath, BurnedAreaFile = "", BurnedAreaClimatologyFile, SIMFIRE_REGION
+  CHARACTER(len=10)   :: BurnedAreaSource = "SIMFIRE", blazeTStep = "annually"
   INTEGER :: F_ID, V_ID, V_ID_lat, V_ID_lon, ilat,ilon
   INTEGER :: iu
   INTEGER :: i
   REAL, DIMENSION(720):: lon_BA
   REAL, DIMENSION(360):: lat_BA
   integer :: status
- 
-  NAMELIST /BLAZENML/ HydePath,  BurnedAreaSource, BurnedAreaFile, BurnedAreaClimatologyFile, &
-       SIMFIRE_REGION
-  
+
+  NAMELIST /SIMFIRENML/ SIMFIRE_REGION, HydePath, BurnedAreaClimatologyFile
+
   !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
- ! SF%RES    = 1./12.
- 
- ! SF%RES = 0.5
+  SF%RES    = 0.5 ! CLN should stay 0.5 deg becasue SIMFIRE was trained on it. 
   SF%NCELLS = NCELLS
 
   ALLOCATE( SF%IGBP        (NCELLS) )
@@ -96,7 +93,6 @@ SUBROUTINE INI_SIMFIRE( NCELLS, SF, modis_igbp )
   ALLOCATE( SF%POPDENS     (NCELLS) )
   ALLOCATE( SF%BA_MONTHLY_CLIM(NCELLS,12)) ! fraction of annual burned area in each month
 
-  !MCINI
   call zero_simfire(SF)
 
   SF%IGBP = modis_igbp
@@ -104,7 +100,7 @@ SUBROUTINE INI_SIMFIRE( NCELLS, SF, modis_igbp )
   SF%LON  = LONGITUDE
 
   !=============================================================================
-  ! VEGTYPE from IGBP dataset 
+  ! VEGTYPE from IGBP dataset
   !=============================================================================
 
   ! Assign SIMFIRE Parameters
@@ -114,17 +110,15 @@ SUBROUTINE INI_SIMFIRE( NCELLS, SF, modis_igbp )
   !vh!
   ! inherit modis_igbp from climate variable
 
-
-
   ! READ BLAZE settings
-   CALL GET_UNIT(iu)
-   OPEN (iu,FILE="BLAZE.nml",STATUS='OLD',ACTION='READ')
-   READ (iu,NML=BLAZENML)
-   CLOSE(iu)
-
-   SF%HYDEPATH = TRIM(HydePath)
-   SF%BA_CLIM_FILE = TRIM(BurnedAreaClimatologyFile)
-
+  CALL GET_UNIT(iu)
+  OPEN (iu,FILE="blaze.nml",STATUS='OLD',ACTION='READ')
+  READ (iu,NML=SIMFIRENML)
+  CLOSE(iu)
+  
+  SF%HYDEPATH = TRIM(HydePath)
+  SF%BA_CLIM_FILE = TRIM(BurnedAreaClimatologyFile)
+  WRITE(*,*)"SIMFIRENML :", SIMFIRE_REGION, HydePath, BurnedAreaClimatologyFile
   SF%IGBP = modis_igbp
 
   DO i = 1, NCELLS
@@ -138,8 +132,8 @@ SUBROUTINE INI_SIMFIRE( NCELLS, SF, modis_igbp )
      ENDIF
 
      WRITE(*,FMT='(A5,I2,A17,I1,(1X,F7.2))')"IGBP ",SF%IGBP(i)," -> SIMFIREBIOME ", &
-          SF%BIOME(i),SF%LAT(i), SF%LON(i) 
-     
+          SF%BIOME(i),SF%LAT(i), SF%LON(i)
+
      IF ( TRIM(SIMFIRE_REGION) == "GLOBAL" ) THEN ! GLOBAL
         SF%REGION(i) = 1
      ELSE IF ( TRIM(SIMFIRE_REGION) == "ANZ" ) THEN ! AUSTRALIA
@@ -148,14 +142,14 @@ SUBROUTINE INI_SIMFIRE( NCELLS, SF, modis_igbp )
         SF%REGION(i) = 3
      ELSE
         WRITE(*,*)"Invalid SIMFIRE_REGION in cable.nml:",SIMFIRE_REGION
-        STOP 
+        STOP
      ENDIF
   END DO
 
   WRITE(*,*)"SIMFIRE Optimisation chosen:", TRIM(SIMFIRE_REGION)
 
   WRITE(*,*) "reading monthly burned area fraction from: ", TRIM(SF%BA_CLIM_FILE)
-  
+
   STATUS = NF90_OPEN(TRIM(SF%BA_CLIM_FILE), NF90_NOWRITE, F_ID)
   CALL HANDLE_ERR(STATUS, "Opening BA Clim File "//SF%BA_CLIM_FILE )
   STATUS = NF90_INQ_VARID(F_ID,'monthly_ba', V_ID)
@@ -170,10 +164,10 @@ SUBROUTINE INI_SIMFIRE( NCELLS, SF, modis_igbp )
            start=(/1/)  )
 
   DO i = 1, SF%NCELLS
-      
+
       ilat = MINLOC(ABS(lat_BA - SF%LAT(i)),DIM=1)
       ilon = MINLOC(ABS(lon_BA - SF%LON(i)),DIM=1)
-      
+
       STATUS = NF90_GET_VAR( F_ID, V_ID, SF%BA_MONTHLY_CLIM(i,:), &
            start=(/1,ilon,ilat/) )
       CALL HANDLE_ERR(STATUS, "Reading direct from "//SF%BA_CLIM_FILE )
@@ -181,38 +175,62 @@ SUBROUTINE INI_SIMFIRE( NCELLS, SF, modis_igbp )
   ENDDO
 
   STATUS = NF90_CLOSE(F_ID)
-  
 
-  
+
+
 END SUBROUTINE INI_SIMFIRE
 
 
 SUBROUTINE zero_simfire(SF)
 
   implicit none
-  
-  TYPE (TYPE_SIMFIRE), INTENT(INOUT) :: SF
 
-  SF%IGBP         = 0
-  SF%BIOME        = 0
-  SF%REGION       = 0
-  SF%POPD         = 0
-  SF%MAX_NESTEROV = 0
-  SF%CNEST        = 0
-  SF%NDAY         = 0
-  SF%FAPAR        = 0
-  SF%LAT          = 0
-  SF%LON          = 0
-  !SF%FLI          = 0
-  SF%SAV_NESTEROV = 0
-  SF%SAV_FAPAR = 0
-  SF%POPDENS      = 0
-  SF%BA_MONTHLY_CLIM = 0
-  
+  type(type_simfire), intent(inout) :: sf
+
+  sf%IGBP         = 0
+  sf%BIOME        = 0
+  sf%REGION       = 0
+  sf%POPD         = 0
+  sf%MAX_NESTEROV = 0
+  sf%CNEST        = 0
+  sf%NDAY         = 0
+  sf%FAPAR        = 0
+  sf%LAT          = 0
+  sf%LON          = 0
+  ! sf%FLI          = 0
+  sf%SAV_NESTEROV = 0
+  sf%SAV_FAPAR    = 0
+  sf%POPDENS      = 0
+  sf%BA_MONTHLY_CLIM = 0
+
 END SUBROUTINE zero_simfire
 
 
-SUBROUTINE GET_POPDENS ( SF, YEAR ) 
+SUBROUTINE print_simfire(SF)
+
+  implicit none
+
+  type(type_simfire), intent(in) :: sf
+
+  write(*,*) 'IGBP ', sf%IGBP
+  write(*,*) 'BIOME ', sf%BIOME
+  write(*,*) 'REGION ', sf%REGION
+  write(*,*) 'POPD ', sf%POPD
+  write(*,*) 'MAX_NESTEROV ', sf%MAX_NESTEROV
+  write(*,*) 'CNEST ', sf%CNEST
+  write(*,*) 'NDAY ', sf%NDAY
+  write(*,*) 'FAPAR ', sf%FAPAR
+  write(*,*) 'LAT ', sf%LAT
+  write(*,*) 'LON ', sf%LON
+  write(*,*) 'SAV_NESTEROV ', sf%SAV_NESTEROV
+  write(*,*) 'SAV_FAPAR ', sf%SAV_FAPAR
+  write(*,*) 'POPDENS ', sf%POPDENS
+  write(*,*) 'BA_MONTHLY_CLIM ', sf%BA_MONTHLY_CLIM
+
+END SUBROUTINE print_simfire
+
+
+SUBROUTINE GET_POPDENS ( SF, YEAR )
 
   USE CABLE_COMMON_MODULE, ONLY: GET_UNIT
 
@@ -237,10 +255,10 @@ SUBROUTINE GET_POPDENS ( SF, YEAR )
   REAL,    DIMENSION(:), ALLOCATABLE, SAVE :: SPOPD, EPOPD
   REAL,    SAVE :: LAND_AREA(NLON,NLAT)
   LOGICAL, SAVE :: CALL1 = .TRUE.
-  
+
   ! CLN Put into cable_in
   !SF%HYDEPATH = "/OSM/CBR/OA_GLOBALCABLE/work/Data_BLAZE/HYDE3.1"
-  
+
   !=============================================================================
   ! POPDENS Population Density from HYDE 3.1 popd comes at 5' res
   !=============================================================================
@@ -255,32 +273,32 @@ SUBROUTINE GET_POPDENS ( SF, YEAR )
   ELSE
      ISTEP = 5
   END IF
- SF%RES    = HYRES
+  !CLN WROOONGGG!!!! SF%RES    = HYRES
   IF ( CALL1 ) THEN
      RF = NINT(SF%RES/HYRES)
      ! Check for Res being an integral multiple of 5' [RES] = fract. deg
      IF ( REAL(RF) .NE. SF%RES/HYRES .OR. SF%RES .LT. HYRES ) THEN
-        WRITE(*,*) 'Spatial resolution must be integral multiple of HYDE res. '
+        WRITE(*,*) 'Spatial resolution must be integer multiple of HYDE res. '
         WRITE(*,*) "RES:",SF%RES,"/ HYDE:",HYRES," = ",SF%RES/HYRES
         STOP "get_popdens in simfire_mod.f90"
      END IF
 
      ! READ Land_area for each gridcell [km^2]
-     CALL GET_UNIT(iu)     
+     CALL GET_UNIT(iu)
      FNAME = TRIM(SF%HYDEPATH)//"/mland_cr.asc"
      INQUIRE( FILE=TRIM(FNAME), EXIST=EXISTFILE)
      IF ( .NOT. EXISTFILE ) THEN
         WRITE(*,*)"Hyde 3.1 Pop Dens mland_cr File doesnt exist!",TRIM(FNAME)
         STOP -1
      END IF
-     
+
      OPEN(iu, FILE=TRIM(FNAME), ACTION="READ", STATUS="OLD")
      ! Skip header
-     DO i = 1, 6 
+     DO i = 1, 6
         READ(iu,*)
      END DO
      ! Read data backwards ( llcorner is -180E, -90N )
-     DO j = NLAT, 1, -1 
+     DO j = NLAT, 1, -1
         READ(iu,*)(LAND_AREA(i,j),i=1,NLON)
      END DO
      CLOSE(iu)
@@ -316,13 +334,13 @@ SUBROUTINE GET_POPDENS ( SF, YEAR )
      NREAD = 0
   END IF
 
-  SF%RES = 1./12.
+  !CLN SF%RES = 1./12.
   RF = NINT(SF%RES/HYRES)
 
- 
+
   IF ( NREAD .GT. 0 ) THEN
-     CALL GET_UNIT(iu)     
-     DO nr = 1, NREAD 
+     CALL GET_UNIT(iu)
+     DO nr = 1, NREAD
         IF ( nr .EQ. 1 ) THEN
            RYEAR = SF%EYEAR
         ELSE
@@ -335,11 +353,11 @@ SUBROUTINE GET_POPDENS ( SF, YEAR )
            WRITE(cYEAR,FMT="(I4,A1)")ABS(RYEAR)," "
         ELSE IF ( ABS(RYEAR) .GE. 100  ) THEN
            WRITE(cYEAR,FMT="(I3,A2)")ABS(RYEAR),"  "
-        ELSE 
+        ELSE
            cYEAR = "0    "
         END IF
 
-        IF ( RYEAR .LT. 0 ) THEN 
+        IF ( RYEAR .LT. 0 ) THEN
            suf = "BC"
         ELSE
            suf = "AD"
@@ -353,24 +371,24 @@ SUBROUTINE GET_POPDENS ( SF, YEAR )
 
         OPEN(iu, FILE=TRIM(FNAME), ACTION="READ", STATUS="OLD")
         ! Skip header
-        DO i = 1, 6 
+        DO i = 1, 6
            READ(iu,*)
         END DO
         ! Read data backwards ( llcorner is -180E, 90N )
         write(*,*) NLAT, NLON
-        DO j = NLAT, 1, -1 
+        DO j = NLAT, 1, -1
            READ(iu,*)(RVAL(i,j),i=1,NLON)
           ! write(3334,"(4320e16.6)") (RVAL(i,j),i=1,NLON)
         END DO
         CLOSE(iu)
-  
+
 
         DO i = 1, SF%NCELLS
 
            ix0 = RF * (X(i)-1) + 1
            jy0 = RF * (Y(i)-1) + 1
            dxy = RF - 1
-!write(*,*) 'ix0,iy0', RF,ix0, jy0
+           !write(*,*) 'ix0,iy0', RF,ix0, jy0
            ! average over sub-gridcells, weighted by land area of cell
            wPOPD = 0.
            wTOT  = 0.
@@ -380,26 +398,32 @@ SUBROUTINE GET_POPDENS ( SF, YEAR )
                  wPOPD = wPOPD + RVAL(ix,jy) * LAND_AREA(ix,jy)
                  wTOT  = wTOT  + LAND_AREA(ix,jy)
 
-                 write(*,*) 'RVAL: ',   RVAL(ix,jy), ix, jy
+                 !CRMwrite(*,*) 'RVAL: ',   RVAL(ix,jy), ix, jy
               END DO
            END DO
 
            IF ( wTOT .EQ. 0. ) THEN
+              ! There are land-pixels in the CABLE grid that are non-land in HYDE 3.1
+              ! therefore assume zero population on these
               WRITE(*,*)"Pixel LAT:",SF%LAT(i)," LON:",SF%LON(i)," does not contain land!"
-              STOP "GET_POPDENS in simfire_mod.f90"
-           ELSEIF ( nr .EQ. 1 ) THEN 
+              !CLN STOP "GET_POPDENS in simfire_mod.f90"
+              wPOPD = 0.
+              wTOT  = 1.
+           ENDIF
+
+           IF ( nr .EQ. 1 ) THEN
               EPOPD(i) = wPOPD / wTOT
            ELSE
               SPOPD(i) = wPOPD / wTOT
            END IF
-           
+
         END DO
      END DO
   END IF
 
   ! Finally get time-interpolated population density
   tf = REAL( SF%EYEAR - YEAR ) / REAL(ISTEP)
-  
+
   SF%POPD = tf * SPOPD + (1.-tf) * EPOPD
 
   !write(*,*) 'POPD', SPOPD, EPOPD,  SF%POPD , SF%LON, SF%LAT
@@ -429,32 +453,32 @@ INTEGER :: ai
 
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 ! PARAMETERS FOR SIMFIRE:
-! GLOBAL (1) , AUSTRALIA-NZ-OPTIMISED (2), AND EUROPE (3) 
+! GLOBAL (1) , AUSTRALIA-NZ-OPTIMISED (2), AND EUROPE (3)
 ! BIOME COEFFICIENTS a(BIOME)
 REAL, DIMENSION(8,3), PARAMETER :: a = reshape( &
      (/0.110,  0.095    ,0.092  ,0.127  ,0.470  ,0.889 ,0.059  ,0.113,     & ! GLOBAL
        0.06974,0.6535   ,0.6341 ,0.6438 ,2.209  ,1.710 ,    0. ,2.572,     & ! ANZ
        0.02589,0.0008087,0.04896,0.06248,0.01966,0.1191,0.01872,0.08873/), & ! EUR
        (/8,3/) )
-! Biome:  crop NLfor     BLfor   mixedfor shrub  grass  tundra  barren 
+! Biome:  crop NLfor     BLfor   mixedfor shrub  grass  tundra  barren
 !
 ! fAPAR EXPONENT b
 REAL, DIMENSION(3), PARAMETER :: b = (/0.905, & ! GLOBAL
-                                       1.297, & ! ANZ   
-                                       0.9164/) ! EUR   
+                                       1.297, & ! ANZ
+                                       0.9164/) ! EUR
 
 ! NESTEROV-INDEX EXPONENT c
 REAL, DIMENSION(3), PARAMETER :: c = (/0.860, & ! GLOBAL
-                                       1.038, & ! ANZ   
-                                       0.4876/) ! EUR   
+                                       1.038, & ! ANZ
+                                       0.4876/) ! EUR
 
 ! POPULATION COEFFICIENT e
 !CLNORIREAL, DIMENSION(3), PARAMETER :: e = (/-0.0168, & ! GLOBAL
-!CLNORI                                       -0.2131, & ! ANZ   
-!CLNORI                                       -0.017 /)  ! EUR   
+!CLNORI                                       -0.2131, & ! ANZ
+!CLNORI                                       -0.017 /)  ! EUR
 REAL, DIMENSION(3), PARAMETER :: e = (/-0.0168, & ! GLOBAL
-                                       -0.05  , & ! ANZ   
-                                       -0.017 /)  ! EUR   
+                                       -0.05  , & ! ANZ
+                                       -0.017 /)  ! EUR
 
 ! CORRECTION FACTORS (only for fpar_leafon!)
 ! REAL, PARAMETER :: fpar_corr1 = 0.428
@@ -466,7 +490,7 @@ REAL, PARAMETER :: scalar     = 1e-5
 IF ( REGIO_FLAG .LT. 1 .OR. REGIO_FLAG .GT. 3 )THEN
    WRITE(*,*)"Wrong REGIO_FLAG chosen for SIMFIRE: ",REGIO_FLAG
    STOP "Either global=1, AUS/NZ=2, EUR=3!"
-ENDIF 
+ENDIF
 
 IF ( BIOME .LT. 0 .OR. BIOME .GT. 8 ) THEN
    WRITE(*,*)"Wrong BIOME chosen for SIMFIRE: ",BIOME
@@ -485,39 +509,23 @@ IF ( BIOME .EQ. 0 ) THEN
 ELSE
    ANNUAL_BA = &
         a(BIOME,ai) * FAPAR ** b(ai) * (scalar * FIRE_IDX) ** c(ai) * EXP(e(ai)*POPDENS)
-
-
-    ANNUAL_BA = &
-        a(BIOME,ai) * FAPAR ** b(ai) * (scalar * FIRE_IDX) ** c(ai) * EXP(e(ai)*POPDENS) 
 !CLNELSE
-!CLN ! W.KNORR: Instead of fpar_corr1 * fpar_leafon + fpar_corr2 * fpar_leafon * fpar_leafon, 
-!CLN ! simply use FAPAR - the correction takes into account that fpar_leafon has a high bias 
+!CLN ! W.KNORR: Instead of fpar_corr1 * fpar_leafon + fpar_corr2 * fpar_leafon * fpar_leafon,
+!CLN ! simply use FAPAR - the correction takes into account that fpar_leafon has a high bias
 !CLN ! compared to observed FAPAR.
 !CLN   ABA = a(BIOME,ai) * &
 !CLN        (fpar_corr1 * FPAR_LEAFON + fpar_corr2 * FPAR_LEAFON * FPAR_LEAFON) ** b(ai) * &
 !CLN        (scalar * FIRE_IDX) ** c(ai) * &
-!CLN        EXP(e(ai)*POPDENS) 
+!CLN        EXP(e(ai)*POPDENS)
 ENDIF
 
 END FUNCTION ANNUAL_BA
-
-SUBROUTINE UPDATE_FIRE_BIOME
-
-
-
-
-
-
-
-
-  
-END SUBROUTINE UPDATE_FIRE_BIOME
 
 SUBROUTINE SIMFIRE ( SF, RAINF, TMAX, TMIN, DOY,MM, YEAR, AB, climate )
 
   USE CABLE_COMMON_MODULE, ONLY: IS_LEAPYEAR
   USE cable_IO_vars_module, ONLY:  landpt
-  
+
   USE CABLE_DEF_TYPES_MOD, ONLY:  climate_type
   USE netcdf
 
@@ -528,16 +536,16 @@ SUBROUTINE SIMFIRE ( SF, RAINF, TMAX, TMIN, DOY,MM, YEAR, AB, climate )
   REAL,    INTENT(OUT):: AB(*)
   INTEGER, INTENT(IN) :: YEAR, MM
   TYPE (CLIMATE_TYPE), INTENT(IN)     :: climate
-  
+
   INTEGER :: i, DOM(12), DOY
 
   DOM = (/ 31,28,31,30,31,30,31,31,30,31,30,31 /)
   IF ( IS_LEAPYEAR(YEAR) ) DOM(2) = 29
-  
+
   SF%FAPAR = climate%AvgAnnMaxFAPAR(landpt(:)%cstart)
   SF%MAX_NESTEROV =  climate%Nesterov_ann_running_max(landpt(:)%cstart)
   !SF%BA_CLIM_FILE = "/OSM/CBR/OA_GLOBALCABLE/work/Data_BLAZE/simfire_monthly_ba.nc"
-  
+
   ! Housekeeping first
   IF ( DOY.EQ. 1 ) THEN
      CALL GET_POPDENS ( SF, YEAR )
@@ -569,7 +577,7 @@ SUBROUTINE SIMFIRE ( SF, RAINF, TMAX, TMIN, DOY,MM, YEAR, AB, climate )
 !!$
 !!$      ilat = MINLOC(ABS(lat_BA - SF%LAT(i)),DIM=1)
 !!$      ilon = MINLOC(ABS(lon_BA - SF%LON(i)),DIM=1)
-!!$      
+!!$
 !!$      STATUS = NF90_GET_VAR( F_ID, V_ID, monthly_ba, &
 !!$           start=(/MM,ilon,ilat/) )
 !!$      CALL HANDLE_ERR(STATUS, "Reading direct from "//SF%BA_CLIM_FILE )
@@ -577,7 +585,7 @@ SUBROUTINE SIMFIRE ( SF, RAINF, TMAX, TMIN, DOY,MM, YEAR, AB, climate )
       !if (year==2003) then
       !   AB(i) = 0.8        ! test vh
       !endif
-      
+
       ! Daily Burned Area
       AB(i) = AB(i) *  SF%BA_MONTHLY_CLIM(i,MM) / DOM(MM)
 

@@ -7,16 +7,16 @@ MODULE CABLE_CRU
   USE cable_IO_vars_module, ONLY: & ! Selected cable_iovars.F90 variables:
       logn,            &            ! Log file unit number
       land_x, land_y,  &            ! Col (x) & row (y) indices of each land point in land mask (dimension mland)
-      exists                        ! Only for exists%Snowf, which we will set to .FALSE. because there is no snow 
+      exists                        ! Only for exists%Snowf, which we will set to .FALSE. because there is no snow
                                     ! in CRU-NCEP. Setting this ensures snow will be determined in CABLE from temperature.
 
   IMPLICIT NONE
-  
+
   integer, parameter :: sp = kind(1.0)
-  
+
   ! Define a type for CRU-NCEP information, and the subtype METVALS
 
-  TYPE CRU_MET_TYPE 
+  TYPE CRU_MET_TYPE
     REAL, DIMENSION(:), ALLOCATABLE :: METVALS  ! Define a spatial vector of meteorology for one timestep
   END TYPE CRU_MET_TYPE
 
@@ -25,12 +25,13 @@ MODULE CABLE_CRU
     INTEGER :: NMET               ! Number of met variable types (rain, lwdn etc) NOT INCLUDING prevTmax and nextTmin
     INTEGER :: xdimsize, ydimsize ! Landmask grid size dimensions (x=cols, y=rows)
     INTEGER :: tdimsize           ! Time dimension of metfiles (met data timesteps per annual file)
-    INTEGER :: CYEAR              ! Current run year, same as CurYear, not necessarily the same as MetYear
-    INTEGER :: MetStart           ! First year of met
-    INTEGER :: MetEnd             ! Last year of met
-    INTEGER :: CTSTEP             ! Current met data timestep (1 to tdimsize, i.e. 365 for CRU-NCEP annual daily files)
-    INTEGER :: DTsecs             ! Model timestep in seconds, converted from namelist value in hours
-    INTEGER :: ktau               ! Current model timestep, reset at the start of a new year of met
+    INTEGER :: CYEAR              ! Current Run Year, Same As Curyear, Not Necessarily The Same As Metyear
+    Integer :: Metstart           ! First Year Of Met
+    Integer :: Metend             ! Last Year Of Met
+    Integer :: Ctstep             ! Current Met Data Timestep (1 To Tdimsize, I.E. 365 For Cru-Ncep Annual Daily Files)
+    Integer :: Dtsecs             ! Model Timestep In Seconds, Converted From Namelist Value In Hours
+    Integer :: Ktau               ! Current model timestep, reset at the start of a new year of met
+    INTEGER :: metrecyc=20        ! number of years for the met recycling
     INTEGER, DIMENSION(9) :: F_ID, V_ID ! NetCDF object id's for files and variables (NetCDF bookkeeping stuff)
     ! Avg of one day's diurnal cycle of lwdn calculated by Swinbank. AVG_LWDN
     ! is used to rescale the diurnal cycle to match the day's CRUNCEP lwdn. (dim=mland)
@@ -38,14 +39,14 @@ MODULE CABLE_CRU
     ! Global annual CO2 values (dim is the number of years of data, or 1 if time-invariant)
     REAL, DIMENSION(:), ALLOCATABLE :: CO2VALS
     LOGICAL :: DirectRead ! Flag to do with reading small numbers of points efficiently. Set true for small numbers of points
-    LOGICAL :: LeapYears  ! Flag for whether leaps years occur, required by CABLE. Always false for CRUNCEP (no Feb 29th) 
+    LOGICAL :: LeapYears  ! Flag for whether leaps years occur, required by CABLE. Always false for CRUNCEP (no Feb 29th)
     LOGICAL, DIMENSION(:,:), ALLOCATABLE :: LandMask ! Logical landmask, true for land, false for non-land
     !
     CHARACTER(len=30)  :: Run            ! Where run type is      : "S0_TRENDY", "S1_TRENDY", "S2_TRENDY"
-    CHARACTER(len=15)  :: CO2            ! CO2 takes value        : "static1860", "1860_1900", "1901_2015" 
+    CHARACTER(len=15)  :: CO2            ! CO2 takes value        : "static1860", "1860_1900", "1901_2015"
     CHARACTER(len=15)  :: Ndep           ! Ndep takes value        : "static1860", "1860_1900", "1901_2015"
-    CHARACTER(len=15)  :: Forcing        ! Met Forcing takes value: "spinup",        "spinup", "1901_2015" 
-    !         
+    CHARACTER(len=15)  :: Forcing        ! Met Forcing takes value: "spinup",        "spinup", "1901_2015"
+    !
     CHARACTER(len=200) :: BasePath       ! Full path for the location of data used for CRU runs "/x/y"
     CHARACTER(len=200) :: MetPath        ! Full path for the location of the met files "/x/y"
     CHARACTER(len=200) :: LandMaskFile   ! Land mask filename, without path
@@ -53,17 +54,17 @@ MODULE CABLE_CRU
     CHARACTER(len=30),  DIMENSION(9)  :: VAR_NAME
     ! Met file names incl metpath, constructed in CRU_GET_FILENAME (dim=# of met vars)
     CHARACTER(len=200), DIMENSION(9)  :: MetFile
-    ! Met data vectors (METVALS) for one timestep, dim=# of met vars + 2 for prev Tmax and next Tmin  
+    ! Met data vectors (METVALS) for one timestep, dim=# of met vars + 2 for prev Tmax and next Tmin
     TYPE(CRU_MET_TYPE), DIMENSION(11) :: MET
     REAL, DIMENSION(:), ALLOCATABLE :: NdepVALS
     INTEGER :: NdepF_ID, NdepV_ID
-    INTEGER :: Ndep_CTSTEP   ! counter for Ndep in input file   
+    INTEGER :: Ndep_CTSTEP   ! counter for Ndep in input file
   END TYPE CRU_TYPE
 
   ! TYPE(CRU_TYPE) :: CRU  ! Define the variable CRU, of type CRU_TYPE
 
-  ! Define local parameter names representing the position of each met var within variable MET. 
-  ! prevTmax and nextTmin are special cases of Tmax and Tmin that do not count as extra met variables per se.  
+  ! Define local parameter names representing the position of each met var within variable MET.
+  ! prevTmax and nextTmin are special cases of Tmax and Tmin that do not count as extra met variables per se.
   INTEGER, PRIVATE, PARAMETER :: &
        rain     =  1, &
        lwdn     =  2, &
@@ -109,12 +110,15 @@ CONTAINS
          xdimsize, ydimsize,  & ! (I) Size of grid dimensions
          lat_all, lon_all       ! (R) Grids with the lat or lon of each cell (i.e. repetition along rows/cols), for CABLE.
     USE cable_def_types_mod,  ONLY: mland  ! (I) Number of land cells
+#ifdef __MPI__
+    use mpi,                  only: MPI_Abort
+#endif
 
     IMPLICIT NONE
 
     TYPE(CRU_TYPE), intent(inout) :: CRU
 
-    INTEGER :: ErrStatus  ! Error status returned by nc routines (zero=ok, non-zero=error) 
+    INTEGER :: ErrStatus  ! Error status returned by nc routines (zero=ok, non-zero=error)
     INTEGER :: nmlunit    ! Unit number for reading namelist file
     INTEGER :: FID        ! NetCDF id for the landmask file
     INTEGER :: latID, lonID  ! NetCDF ids for dimensions in the landmask file
@@ -123,10 +127,10 @@ CONTAINS
     INTEGER :: xcol, yrow ! Column and row position in the data file grids
     INTEGER :: imetvar    ! loop counter through met variables
 
-    ! Temporary local names for CRU% variables as they are read from the namelist file. 
+    ! Temporary local names for CRU% variables as they are read from the namelist file.
     ! Note that CRU%CO2 and CRU%Forcing are assigned based on the value of Run, not read as options from the namelist file.
     LOGICAL            :: DirectRead = .FALSE.
-    CHARACTER(len=30)  :: Run 
+    CHARACTER(len=30)  :: Run
     CHARACTER(len=200) :: BasePath
     CHARACTER(len=200) :: MetPath
     CHARACTER(len=200) :: LandMaskFile
@@ -136,6 +140,9 @@ CONTAINS
 
     ! Flag for errors
     LOGICAL :: ERR = .FALSE.
+#ifdef __MPI__
+    integer :: ierr
+#endif
 
     NAMELIST /CRUNML/ BasePath, MetPath, LandMaskFile, Run, DThrs, DirectRead
 
@@ -155,61 +162,61 @@ CONTAINS
 
     ! Assign Forcing and CO2 labels based only on the value of CRU%Run
     SELECT CASE(TRIM(CRU%Run))
-    CASE( "S0_TRENDY" ) 
+    CASE( "S0_TRENDY" )
        CRU%Forcing = "spinup"
        CRU%CO2     = "static1860"
        CRU%Ndep    = "static1860"
        write(*,'(a)') "Run = 'spinup': Therefore Forcing = 'spinup', CO2 = 'static1860'"
        WRITE(logn,*)  "Run = 'spinup': Therefore Forcing = 'spinup', CO2 = 'static1860'"
-    CASE( "S0_TRENDY_CO2" ) 
+    CASE( "S0_TRENDY_CO2" )
        CRU%Forcing = "spinup"
        CRU%CO2     = "1901_2015"
        CRU%Ndep    = "static1860"
        write(*,'(a)') "Run = 'S0_CO2': Therefore Forcing = 'S0_CO2', CO2 = '1860_2015'"
        WRITE(logn,*)  "Run = 'S0_CO2': Therefore Forcing = 'S0_CO2', CO2 = '1860_2015'"
-    CASE( "S0_TRENDY_Ndep" ) 
+    CASE( "S0_TRENDY_Ndep" )
        CRU%Forcing = "spinup"
        CRU%CO2     = "static1860"
        CRU%Ndep    = "1901_2015"
        write(*,'(a)') "Run = 'S0_Ndep': Therefore Forcing = 'S0_Ndep', Ndep = '1860_2015'"
        WRITE(logn,*)  "Run = 'S0_Ndep': Therefore Forcing = 'S0_Ndep', Ndep = '1860_2015'"
-    CASE( "S0_TRENDY_Precip" ) 
+    CASE( "S0_TRENDY_Precip" )
        CRU%Forcing = "spinup"
        CRU%CO2     = "static1860"
        CRU%Ndep    = "static1860"
        write(*,'(a)') "Run = 'spinup': Therefore Forcing = 'spinup', CO2 = 'static1860'"
        WRITE(logn,*)  "Run = 'spinup': Therefore Forcing = 'spinup', CO2 = 'static1860'"
-    CASE( "S0_TRENDY_Temp" ) 
+    CASE( "S0_TRENDY_Temp" )
        CRU%Forcing = "spinup"
        CRU%CO2     = "static1860"
        CRU%Ndep    = "static1860"
        write(*,'(a)') "Run = 'spinup': Therefore Forcing = 'spinup', CO2 = 'static1860'"
        WRITE(logn,*)  "Run = 'spinup': Therefore Forcing = 'spinup', CO2 = 'static1860'"
-    CASE( "S0_TRENDY_Temp_Precip" ) 
+    CASE( "S0_TRENDY_Temp_Precip" )
        CRU%Forcing = "spinup"
        CRU%CO2     = "static1860"
        CRU%Ndep    = "static1860"
        write(*,'(a)') "Run = 'spinup': Therefore Forcing = 'spinup', CO2 = 'static1860'"
        WRITE(logn,*)  "Run = 'spinup': Therefore Forcing = 'spinup', CO2 = 'static1860'"
-    CASE( "S0_TRENDY_CO2_Temp" ) 
+    CASE( "S0_TRENDY_CO2_Temp" )
        CRU%Forcing = "spinup"
        CRU%CO2     = "1901_2015"
        CRU%Ndep    = "static1860"
        write(*,'(a)') "Run = 'spinup': Therefore Forcing = 'spinup', CO2 = '1860_2015'"
        WRITE(logn,*)  "Run = 'spinup': Therefore Forcing = 'spinup', CO2 = '1860_2015'"
-    CASE( "S0_TRENDY_CO2_Precip" ) 
+    CASE( "S0_TRENDY_CO2_Precip" )
        CRU%Forcing = "spinup"
        CRU%CO2     = "1901_2015"
        CRU%Ndep    = "static1860"
        write(*,'(a)') "Run = 'spinup': Therefore Forcing = 'spinup', CO2 = '1860_2015'"
        WRITE(logn,*)  "Run = 'spinup': Therefore Forcing = 'spinup', CO2 = '1860_2015'"
-    CASE( "S0_TRENDY_CO2_Temp_Precip" ) 
+    CASE( "S0_TRENDY_CO2_Temp_Precip" )
        CRU%Forcing = "spinup"
        CRU%CO2     = "1901_2015"
        CRU%Ndep    = "static1860"
        write(*,'(a)') "Run = 'spinup': Therefore Forcing = 'spinup', CO2 = '1860_2015'"
        WRITE(logn,*)  "Run = 'spinup': Therefore Forcing = 'spinup', CO2 = '1860_2015'"
-    CASE( "S1_TRENDY" ) 
+    CASE( "S1_TRENDY" )
        CRU%Forcing = "spinup"
        CRU%CO2     = "1860_1900"
        CRU%Ndep    = "1860_1900"
@@ -233,14 +240,14 @@ CONTAINS
        CRU%Ndep    = "1901_2015"
        write(*,'(a)') "Run = 'S2_TRENDY': Therefore Forcing = 'spinup', CO2 = '1901_2015'"
        WRITE(logn,*)  "Run = 'S2_TRENDY': Therefore Forcing = 'spinup', CO2 = '1901_2015'"
-    CASE default 
+    CASE default
        write(*,'(a)') "Wrong CRU%Run: "//trim(CRU%Run)
        write(*,'(a)') "Use: S0_TRENDY, S1_TRENDY, or S2_TRENDY!"
        WRITE(logn,*)  "Wrong CRU%Run: ",trim(CRU%Run)
        WRITE(logn,*)  "Use: S0_TRENDY, S1_TRENDY, or S2_TRENDY!"
        ERR = .TRUE.
     END SELECT
-   
+
     ! Print settings
     write(*,'(a)') "========================================= CRU ============"
     write(*,'(a)') "CRU settings chosen:"
@@ -261,10 +268,15 @@ CONTAINS
     WRITE(logn,*) " Ndep    (assigned): ",TRIM(CRU%Ndep)
     WRITE(logn,*) " DT(secs): ",CRU%DTsecs
 
-    ! Error trap for bad namelist. 
+    ! Error trap for bad namelist.
     IF ( ERR ) THEN
        WRITE(logn,*) "Invalid settings in CRU_INIT"
-       STOP "Invalid settings in CRU_INIT"
+       write(*,*) "Invalid settings in CRU_INIT"
+#ifdef __MPI__
+       call MPI_Abort(0, 5, ierr) ! Do not know comm nor rank here
+#else
+       stop 5
+#endif
     ENDIF
 
     ! ! If this is a S0_TRENDY run look for met data in the spinup directory instead.
@@ -289,7 +301,11 @@ CONTAINS
     CRU%NMET = 9
     CRU%VAR_NAME(rain)  = "pre"
     CRU%VAR_NAME(lwdn)  = "dlwrf"
+#ifdef __CRU2020__
+    CRU%VAR_NAME(swdn)  = "tswrf"
+#else
     CRU%VAR_NAME(swdn)  = "dswrf"
+#endif
     CRU%VAR_NAME(pres)  = "pres"
     CRU%VAR_NAME(qair)  = "spfh"
     CRU%VAR_NAME(tmax)  = "tmax"
@@ -308,7 +324,6 @@ CONTAINS
 
     ! Open the land mask file
     ErrStatus = NF90_OPEN(TRIM(LandMaskFile), NF90_NOWRITE, FID)
-    ! print*, 'OOpen01 ', fid, TRIM(LandMaskFile)
     CALL HANDLE_ERR(ErrStatus, "Opening CRU Land-mask file"//TRIM(LandMaskFile))
 
     ! Latitude: Get the dimension ID, find the size of the dimension, assign it to CRU.
@@ -340,7 +355,7 @@ CONTAINS
        CRU_lons = CRU_lons - 360.0
     end where
 
-    ! Allocate the landmask arrays for... 
+    ! Allocate the landmask arrays for...
     ALLOCATE( CRU%landmask ( xdimsize, ydimsize) )  ! Passing out to other CRU routines (logical)
     ALLOCATE( landmask ( xdimsize, ydimsize) )      ! Local use in this routine (integer)
     ALLOCATE ( mask( xdimsize, ydimsize) )          ! Use by CABLE
@@ -367,8 +382,8 @@ CONTAINS
     ! Allocate CABLE land-only vectors for lat/long and row/col values/indices.
     ALLOCATE( latitude(CRU%mland), longitude(CRU%mland) )
     ALLOCATE( land_y  (CRU%mland), land_x   (CRU%mland) )
-   
-    ! Allocate vectors for each of the different met quantities, including extra 
+
+    ! Allocate vectors for each of the different met quantities, including extra
     ! prev/next temperatures for the Cesarracio temperature calculations in the
     ! weather generator.
     DO imetvar = 1, CRU%NMET
@@ -381,7 +396,7 @@ CONTAINS
 
     ! Copy the col/row and lat/long positions of each land cell into the corresponding
     ! land only CABLE vectors. Q: We know mland at this point. Why not use landcnt to confirm
-    ! the correct value of mland? 
+    ! the correct value of mland?
     landcnt = 1
     DO yrow = 1, ydimsize
        DO xcol = 1, xdimsize
@@ -416,13 +431,12 @@ CONTAINS
     sdoy        = 1
     smoy        = 1
     syear       = CRU%CYEAR
-    
+
     ! Used to rescale the diurnal cycle from Swinbank calculation to match CRU-NCEP provided value.
     ALLOCATE( CRU%AVG_LWDN(mland) )
 
     DEALLOCATE ( landmask, CRU_lats, CRU_lons )
 
-    ! print*, 'OClose01 ', fid
     ErrStatus = NF90_CLOSE(FID)
     FID = -1
     CALL HANDLE_ERR(ErrStatus, "Closing mask-file"//TRIM(LandMaskFile))
@@ -430,7 +444,7 @@ CONTAINS
     ! set units to -1
     CRU%f_id = -1
     CRU%Ndepf_id = -1
-    
+
   END SUBROUTINE CRU_INIT
 
   ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -445,13 +459,17 @@ CONTAINS
     integer,            intent(in)  :: cyear  ! Current year as an integer
     integer,            intent(in)  :: par    ! Index (1-9) of which met quantity will be sought
     character(len=200), intent(out) :: fn     ! Met filename (outgoing)
-    
+
     character(len=4)   :: cy   ! Character representation of cyear
     character(len=200) :: metp ! Local repr of met path
 #ifdef __CRU2017__
     character(len=*), parameter :: cruver="crujra.V1.1" ! CRU version
-#else
+#elif __CRU2018__
     character(len=*), parameter :: cruver="crujra.v2.0" ! CRU version
+#elif __CRU2020__
+    character(len=*), parameter :: cruver="crujra.v2.2" ! CRU version
+#else
+    character(len=*), parameter :: cruver="crujra.v2.1" ! CRU version
 #endif
 
     ! Create a character version of the year for building that part of the filename.
@@ -462,7 +480,7 @@ CONTAINS
     fn   = trim(metp)
 
     ! Build the rest of the filename according to the value of par, which references 11 possible
-    ! types of met through the parameter names rain, lwdn, etc. 
+    ! types of met through the parameter names rain, lwdn, etc.
     ! SELECT CASE ( par )
     ! CASE(rain) ; FN = TRIM(FN)//"/rain/cruncep2015_1_rain_"//cy//".daymean.nc"
     ! CASE(lwdn) ; FN = TRIM(FN)//"/lwdown/cruncep2015_1_lwdown_"//cy//".daymean.nc"
@@ -498,7 +516,7 @@ CONTAINS
     ! CASE(uwind) ; FN = TRIM(FN)//"/ugrd/crujra.V1.1.5d.ugrd."//cy//".365d.noc.daymean.1deg.nc"
     ! CASE(vwind) ; FN = TRIM(FN)//"/vgrd/crujra.V1.1.5d.vgrd."//cy//".365d.noc.daymean.1deg.nc"
     ! END SELECT
-    
+
     ! SELECT CASE ( par )
     ! CASE(rain) ; FN = TRIM(FN)//"/pre/crujra.V2.0.5d.pre."//cy//".365d.noc.daytot.1deg.nc"
     ! CASE(lwdn) ; FN = TRIM(FN)//"/dlwrf/crujra.V2.0.5d.dlwrf."//cy//".365d.noc.daymean.1deg.nc"
@@ -517,7 +535,11 @@ CONTAINS
     case(lwdn)
        fn = trim(fn)//"/dlwrf/"//cruver//".5d.dlwrf."//cy//".365d.noc.daymean.1deg.nc"
     case(swdn)
+#ifdef __CRU2020__
+       fn = trim(fn)//"/tswrf/tswrf_v10_"//cy//".daymean.1deg.nc"
+#else
        fn = trim(fn)//"/dswrf/"//cruver//".5d.dswrf."//cy//".365d.noc.daymean.1deg.nc"
+#endif
     case(pres)
        fn = trim(fn)//"/pres/"//cruver//".5d.pres."//cy//".365d.noc.daymean.1deg.nc"
     case(qair)
@@ -531,18 +553,6 @@ CONTAINS
     case(vwind)
        fn = trim(fn)//"/vgrd/"//cruver//".5d.vgrd."//cy//".365d.noc.daymean.1deg.nc"
     end select
-   
-    ! SELECT CASE ( par )
-    ! CASE(rain) ; FN = TRIM(FN)//"/pre/crujra.v2.0.5d.pre."//cy//".365d.noc.daytot.1deg.nc"
-    ! CASE(lwdn) ; FN = TRIM(FN)//"/dlwrf/crujra.v2.0.5d.dlwrf."//cy//".365d.noc.daymean.1deg.nc"
-    ! CASE(swdn) ; FN = TRIM(FN)//"/dswrf/crujra.v2.0.5d.dswrf."//cy//".365d.noc.daymean.1deg.nc"
-    ! CASE(pres) ; FN = TRIM(FN)//"/pres/crujra.v2.0.5d.pres."//cy//".365d.noc.daymean.1deg.nc"
-    ! CASE(qair) ; FN = TRIM(FN)//"/spfh/crujra.v2.0.5d.spfh."//cy//".365d.noc.daymean.1deg.nc"
-    ! CASE(tmax,PrevTmax) ; FN = TRIM(FN)//"/tmax/crujra.v2.0.5d.tmax."//cy//".365d.noc.daymax.1deg.nc"
-    ! CASE(tmin,NextTmin) ; FN = TRIM(FN)//"/tmin/crujra.v2.0.5d.tmin."//cy//".365d.noc.daymin.1deg.nc"
-    ! CASE(uwind) ; FN = TRIM(FN)//"/ugrd/crujra.v2.0.5d.ugrd."//cy//".365d.noc.daymean.1deg.nc"
-    ! CASE(vwind) ; FN = TRIM(FN)//"/vgrd/crujra.v2.0.5d.vgrd."//cy//".365d.noc.daymean.1deg.nc"
-    ! END SELECT
 
   END SUBROUTINE CRU_GET_FILENAME
 
@@ -552,7 +562,7 @@ CONTAINS
 
     ! Get CO2 values for use with a CRU-NCEP run. Assign a static 1860 value if specified otherwise
     ! on the first call read all the annual values from a file into the CRU%CO2VALS array. On the first
-    ! and subsequent   
+    ! and subsequent
 
     IMPLICIT NONE
 
@@ -561,7 +571,7 @@ CONTAINS
 
     INTEGER              :: iunit, iyear, IOS = 0
     CHARACTER(len=200)   :: CO2FILE
-    LOGICAL,        SAVE :: CALL1 = .TRUE.  ! A *local* variable recording the first call of this routine 
+    LOGICAL,        SAVE :: CALL1 = .TRUE.  ! A *local* variable recording the first call of this routine
 
     ! For S0_TRENDY, use only static 1860 CO2 value and return immediately
     IF ( TRIM(CRU%CO2) .EQ. "static1860") THEN
@@ -571,15 +581,21 @@ CONTAINS
 
     ELSE ! If not S0_TRENDY, varying CO2 values will be used...
 
-       ! On the first call, allocate the CRU%CO2VALS array to store the entire history of annual CO2 
-       ! values, open the (ascii) CO2 file and read the values into the array. 
+       ! On the first call, allocate the CRU%CO2VALS array to store the entire history of annual CO2
+       ! values, open the (ascii) CO2 file and read the values into the array.
        IF (CALL1) THEN
 #ifdef __CRU2017__
           ALLOCATE( CRU%CO2VALS( 1700:2017 ) )
           CO2FILE = TRIM(CRU%BasePath)//"/co2/global_co2_ann_1700_2017.csv"
-#else
+#elif __CRU2018__
           ALLOCATE( CRU%CO2VALS( 1700:2018 ) )
           CO2FILE = TRIM(CRU%BasePath)//"/co2/global_co2_ann_1700_2018.csv"
+#elif __CRU2020__
+          ALLOCATE( CRU%CO2VALS( 1700:2020 ) )
+          CO2FILE = TRIM(CRU%BasePath)//"/co2/global_co2_ann_1700_2020.txt"
+#else
+          ALLOCATE( CRU%CO2VALS( 1700:2019 ) )
+          CO2FILE = TRIM(CRU%BasePath)//"/co2/global_co2_ann_1700_2019.txt"
 #endif
           CALL GET_UNIT(iunit)
           OPEN(iunit, FILE=TRIM(CO2FILE), STATUS="OLD", ACTION="READ")
@@ -595,29 +611,29 @@ CONTAINS
        ! In all varying CO2 cases, return the element of the array for the current year
        ! as a single CO2 value.
        !
-       CO2air = CRU%CO2VALS( CRU%CYEAR ) 
+       CO2air = CRU%CO2VALS( CRU%CYEAR )
 
     END IF
 
   END SUBROUTINE GET_CRU_CO2
 
   ! **************************************************************************************************
-  
+
   SUBROUTINE GET_CRU_Ndep( CRU )
 
     ! Get Ndep values for use with a CRU-NCEP run. Assign a static 1860 value if specified otherwise
     ! on the first call read all the annual values from a file into the CRU%CO2VALS array. On the first
-    ! and subsequent   
+    ! and subsequent
 
     IMPLICIT NONE
 
     TYPE(CRU_TYPE), INTENT(INOUT) :: CRU ! All the info needed for CRU met runs
-    
-    REAL, ALLOCATABLE :: tmparr(:,:) 
+
+    REAL, ALLOCATABLE :: tmparr(:,:)
     INTEGER :: k, t
     INTEGER :: xds, yds ! Ndep file dimensions of long (x), lat (y)
 
-    LOGICAL, SAVE  :: CALL1 = .TRUE. ! A *local* variable recording the first call of this routine 
+    LOGICAL, SAVE  :: CALL1 = .TRUE. ! A *local* variable recording the first call of this routine
     CHARACTER(400) :: NdepFILE
 
     ! Abbreviate dimensions for readability.
@@ -626,8 +642,8 @@ CONTAINS
     allocate(tmparr(xds,yds))
     ! For S0_TRENDY, use only static 1860 CO2 value and return immediately
 
-    ! On the first call, allocate the CRU%CO2VALS array to store the entire history of annual CO2 
-    ! values, open the (ascii) CO2 file and read the values into the array. 
+    ! On the first call, allocate the CRU%CO2VALS array to store the entire history of annual CO2
+    ! values, open the (ascii) CO2 file and read the values into the array.
     IF (CALL1) THEN
 #ifdef __CRU2017__
        NdepFILE = trim(CRU%BasePath)//"/ndep/NOy_plus_NHx_dry_plus_wet_deposition_hist_1850_2015_annual_1deg.nc"
@@ -639,8 +655,7 @@ CONTAINS
        write(*,'(a)') 'Opening ndep data file: '//trim(NdepFILE)
        WRITE(logn,*)  'Opening ndep data file: ', trim(NdepFILE)
 
-       ErrStatus = NF90_OPEN(TRIM(NdepFILE), NF90_NOWRITE, CRU%NdepF_ID)  
-       ! print*, 'OOpen02 ', CRU%NdepF_ID, TRIM(NdepFILE)
+       ErrStatus = NF90_OPEN(TRIM(NdepFILE), NF90_NOWRITE, CRU%NdepF_ID)
        CALL HANDLE_ERR(ErrStatus, "Opening CRU file "//trim(NdepFILE))
        ErrStatus = NF90_INQ_VARID(CRU%NdepF_ID,'N_deposition', CRU%NdepV_ID)
        CALL HANDLE_ERR(ErrStatus, "Inquiring CRU var "//"N_deposition"//" in "//trim(NdepFILE))
@@ -648,10 +663,10 @@ CONTAINS
        ! Set internal counter
        CRU%Ndep_CTSTEP = 1
 
-       IF ( TRIM(CRU%Ndep) .EQ. "static1860" .OR. CRU%CYEAR<=1860) THEN
-          ! read Ndep at year 1860 (noting that file starts at 1850)
-          ! print*, 'ORead02.1 ', CRU%NdepF_ID
-          CRU%Ndep_CTSTEP = 11
+       IF ( TRIM(CRU%Ndep) .EQ. "static1860" .OR. CRU%CYEAR<=1850) THEN
+          ! read Ndep at year 1850 (file starts at 1850)
+          ! prior to TRENDYv10: year 1860
+          CRU%Ndep_CTSTEP = 1
           t =  CRU%Ndep_CTSTEP
           ErrStatus = NF90_GET_VAR(CRU%NdepF_ID, CRU%NdepV_ID, tmparr, &
                start=(/1,1,t/),count=(/xds,yds,1/) )
@@ -661,13 +676,11 @@ CONTAINS
           END DO
        END IF
        CALL1 = .FALSE.
-       ! print*, 'after ndep read'
     END IF
 
-    IF ( TRIM(CRU%Ndep) .NE. "static1860" .and.  CRU%CYEAR>1860) THEN
-       ! read Ndep at current year (noting that file starts at 1850 and ends in 2015)
-       ! print*, 'ORead02.2 ', CRU%NdepF_ID
-       CRU%Ndep_CTSTEP = min(CRU%CYEAR, 2015) - 1850 + 1
+    IF ( TRIM(CRU%Ndep) .NE. "static1860" .and.  CRU%CYEAR>1850) THEN
+       ! read Ndep at current year (noting that file starts at 1850 and ends in 2099)
+       CRU%Ndep_CTSTEP = min(CRU%CYEAR, 2099) - 1850 + 1
        t =  CRU%Ndep_CTSTEP
        ErrStatus = NF90_GET_VAR(CRU%NdepF_ID, CRU%NdepV_ID, tmparr, &
             start=(/1,1,t/),count=(/xds,yds,1/) )
@@ -684,38 +697,41 @@ CONTAINS
   SUBROUTINE OPEN_CRU_MET( CRU )
 
     ! Opens each of the met files required for one year. This is where the distinction is made between
-    ! the nominal run year (CYEAR) and the year of met required (MetYear), which is different for 
-    ! S0_TRENDY and S1_TRENDY than for a standard run (S2_TRENDY). 
+    ! the nominal run year (CYEAR) and the year of met required (MetYear), which is different for
+    ! S0_TRENDY and S1_TRENDY than for a standard run (S2_TRENDY).
 
   IMPLICIT NONE
 
   TYPE(CRU_TYPE), INTENT(INOUT) :: CRU ! All CRU-NCEP related quantities and flags
 
   INTEGER       :: iVar            ! Loop counter through met variables
-  INTEGER       :: MetYear         ! Year of met to access. Equals CYEAR for normal runs, but 
+  INTEGER       :: MetYear         ! Year of met to access. Equals CYEAR for normal runs, but
                                    ! must be calculated for S0_TRENDY and initialisation runs.
   INTEGER, SAVE :: RunStartYear    ! The value of CRU%CYEAR on the first call, also equals syear.
-                                   ! Allows the calculation of MetYear during S0_TRENDY and init runs. 
+                                   ! Allows the calculation of MetYear during S0_TRENDY and init runs.
   LOGICAL, SAVE :: CALL1 = .TRUE.  ! A *local* variable recording the first call of this routine
 
-  ! Keep the initial value of CYEAR for calculation of different MetYear if required. 
+  ! Keep the initial value of CYEAR for calculation of different MetYear if required.
   !IF (CALL1) RunStartYear = 1710 ! edit vh !
-  IF (CALL1) RunStartYear = 1691 ! edit vh !
-  
+  !IF (CALL1) RunStartYear = 1691 ! edit vh !
+  IF (CALL1) RunStartYear = 1501 ! edit jk !
+
   DO iVar = 1, CRU%NMET  ! For each met variable
 
-     ! For S0_TRENDY and initialisation, calculate the required met year for repeatedly cycling through the 
+     ! For S0_TRENDY and initialisation, calculate the required met year for repeatedly cycling through the
      ! 30 years of 1901-1930 spinup meteorology. For normal runs 1901-2015, MetYear = CYEAR.
+     ! JK: according to v9 protocol, met should be recycled from 1901-1920 (i.e. 20 years)
      !!$    IF ( TRIM(CRU%Run) .EQ. 'S0_TRENDY' .OR.  ( TRIM(CRU%Run) .EQ. 'S1_TRENDY' )) THEN
      !!$      MetYear = 1901 + MOD(CRU%CYEAR-RunStartYear,30)
      !!$    ELSE IF ( TRIM(CRU%Run) .EQ. 'S2_TRENDY' ) THEN
      !!$      MetYear = CRU%CYEAR
      !!$    ENDIF
-     IF ( TRIM(CRU%Run) .EQ. 'S0_TRENDY' .OR.  ( TRIM(CRU%Run) .EQ. 'S1_TRENDY' ) &
+     IF ((TRIM(CRU%Run) .EQ. 'S0_TRENDY') .OR.  ( TRIM(CRU%Run) .EQ. 'S1_TRENDY' ) &
           .OR.  ( TRIM(CRU%Run) .EQ. 'S0_TRENDY_CO2') &
-          .OR.  ( TRIM(CRU%Run) .EQ. 'S0_TRENDY_Ndep' )) THEN
-        MetYear = 1901 + MOD(CRU%CYEAR-RunStartYear,30)
-         !print*, 'metyear', MetYear
+          .OR.  ( TRIM(CRU%Run) .EQ. 'S0_TRENDY_Ndep' ) ) THEN
+
+        MetYear = 1901 + MOD(CRU%CYEAR-RunStartYear, CRU%metrecyc)
+        
      ELSEIF  ( TRIM(CRU%Run) .EQ. 'S0_TRENDY_Precip' .OR. &
           TRIM(CRU%Run) .EQ. 'S0_TRENDY_CO2_Precip'.OR. &
           TRIM(CRU%Run) .EQ. 'S0_TRENDY_CO2_Temp_Precip'.OR. &
@@ -723,7 +739,7 @@ CONTAINS
         IF (iVar.EQ.1) THEN
            MetYear = CRU%CYEAR
         ELSE
-           MetYear = 1901 + MOD(CRU%CYEAR-RunStartYear,30)
+           MetYear = 1901 + MOD(CRU%CYEAR-RunStartYear,CRU%metrecyc)
         ENDIF
 
         IF  ( TRIM(CRU%Run) .EQ. 'S0_TRENDY_CO2_Temp_Precip'.OR. &
@@ -731,7 +747,7 @@ CONTAINS
            IF (iVar.EQ.6 .OR. iVar.EQ.7) THEN
               MetYear = CRU%CYEAR
            ELSE
-              MetYear = 1901 + MOD(CRU%CYEAR-RunStartYear,30)
+              MetYear = 1901 + MOD(CRU%CYEAR-RunStartYear,CRU%metrecyc)
            ENDIF
         ENDIF
 
@@ -741,26 +757,25 @@ CONTAINS
         IF (iVar.EQ.6 .OR. iVar.EQ.7) THEN
            MetYear = CRU%CYEAR
         ELSE
-           MetYear = 1901 + MOD(CRU%CYEAR-RunStartYear,30)
+           MetYear = 1901 + MOD(CRU%CYEAR-RunStartYear,CRU%metrecyc)
         ENDIF
      ELSE IF ( TRIM(CRU%Run) .EQ. 'S2_TRENDY' ) THEN
         MetYear = CRU%CYEAR
      ELSE IF ( TRIM(CRU%Run) .EQ. 'S2_TRENDY_precip0' ) THEN
         IF (iVar.EQ.1) THEN
            ! special for baseline precip
-           MetYear = 1901 + MOD(CRU%CYEAR-RunStartYear,30)
+           MetYear = 1901 + MOD(CRU%CYEAR-RunStartYear,CRU%metrecyc)
         ELSE
            MetYear = CRU%CYEAR
         ENDIF
      ELSE IF ( TRIM(CRU%Run) .EQ. 'S2_TRENDY_precip' ) THEN
         IF (iVar.NE.1) THEN
            ! special for baseline non-precip
-           MetYear = 1901 + MOD(CRU%CYEAR-RunStartYear,30)
+           MetYear = 1901 + MOD(CRU%CYEAR-RunStartYear,CRU%metrecyc)
         ELSE
            MetYear = CRU%CYEAR
         ENDIF
      ENDIF
-
     CALL CRU_GET_FILENAME( CRU, MetYear, iVar, CRU%MetFile(iVar) ) ! Call routine to build the filenames.
 
     ! Open the new met files and access the variables by their name and variable id.
@@ -768,7 +783,6 @@ CONTAINS
     WRITE(logn,*)  'Opening met data file: ', CRU%MetFile(iVar)
 
     ErrStatus = NF90_OPEN(TRIM(CRU%MetFile(iVar)), NF90_NOWRITE, CRU%F_ID(iVar))
-    ! print*, 'OOpen03 ', iVar, CRU%NMET, CRU%F_ID(iVar), TRIM(CRU%MetFile(iVar))
     CALL HANDLE_ERR(ErrStatus, "Opening CRU file "//trim(CRU%MetFile(iVar)) )
     ErrStatus = NF90_INQ_VARID(CRU%F_ID(iVar),TRIM(CRU%VAR_NAME(iVar)), CRU%V_ID(iVar))
     CALL HANDLE_ERR(ErrStatus, "Inquiring CRU var "//TRIM(CRU%VAR_NAME(iVar))// &
@@ -795,7 +809,7 @@ CONTAINS
     INTEGER :: iVar, ii, k
     INTEGER :: t, tplus1              ! The current and next timestep
     INTEGER :: fid, vid, tid          ! Netcdf id's for file, variable, and time
-    INTEGER :: xds, yds, tds          ! Metfile dimensions of long (x), lat (y), and time (t) 
+    INTEGER :: xds, yds, tds          ! Metfile dimensions of long (x), lat (y), and time (t)
     INTEGER :: MetYear                ! Year of meteorology currently in use
     INTEGER :: NextMetYear            ! Next met year: Where to look for the nextTmin on Dec 31st
     CHARACTER(LEN=200) :: filename
@@ -807,10 +821,11 @@ CONTAINS
 
     ! If first call...
     ! Keep the initial value of CYEAR for calculation of different MetYear if required.
-    IF (CALL1) THEN  
+    IF (CALL1) THEN
        !RunStartYear = CRU%CYEAR
-       RunStartYear = 1691
-       ! If this is not the first call, capture the existing Tmax from the previous day as the 
+       !RunStartYear = 1691
+       RunStartYear = 1501
+       ! If this is not the first call, capture the existing Tmax from the previous day as the
        ! 'previous Tmax' before reading another one. Move the existing next day's Tmin into the current
        ! Tmin before reading a new 'next Tmin'. These previous and next values are required for the
        ! Cesaraccio et al. algorithm used by the weather generator to interpolate daily into subdiurnal
@@ -824,16 +839,16 @@ CONTAINS
     yds = CRU%ydimsize
     allocate(tmparr(xds,yds))
 
-    ! For S0_TRENDY and initialisation, calculate the year of meteorology as mod 50, so we repeatedly cycle  
+    ! For S0_TRENDY and initialisation, calculate the year of meteorology as mod 50, so we repeatedly cycle
     ! through the 50 years of 1951-2000 spinup meteorology. For normal runs 1901-2015, MetYear = CYEAR.
     ! Stop with error for anything else.
 
     ! IF ( TRIM(CRU%Run) .EQ. 'S0_TRENDY' .OR.  ( TRIM(CRU%Run) .EQ. 'S1_TRENDY' )) THEN
-    !   MetYear = 1901 + MOD(CRU%CYEAR-RunStartYear,30)
+    !   MetYear = 1901 + MOD(CRU%CYEAR-RunStartYear,CRU%metrecyc)
     ! ELSE IF ( TRIM(CRU%Run) .EQ. 'S2_TRENDY' ) THEN
     !   MetYear = CRU%CYEAR
     ! ELSE
-    !   STOP 'Error in cable_cru.F90: CRU%Run not S0_TRENDY, S1_TRENDY, or 1901-2015' 
+    !   STOP 'Error in cable_cru.F90: CRU%Run not S0_TRENDY, S1_TRENDY, or 1901-2015'
     ! ENDIF
 
     ! print *, "runstartyear, metyear", runstartyear, metyear
@@ -842,16 +857,15 @@ CONTAINS
     xds = CRU%xdimsize
     yds = CRU%ydimsize
 
-    ! Loop through all 9 met variables (not including prevTmax and nextTmin, which are addressed 
+    ! Loop through all 9 met variables (not including prevTmax and nextTmin, which are addressed
     ! separately as special cases of Tmax and Tmin)
 
     ! print *,  "CRU%CTSTEP, LastDayOfYear, LastYearOfMet", CRU%CTSTEP, LastDayOfYear, LastYearOfMet
     DO iVar = 1, CRU%NMET
-       ! print*, 'ORead03 ', iVar, CRU%NMET, CRU%F_ID(iVar)
        IF ( TRIM(CRU%Run) .EQ. 'S0_TRENDY' .OR.  ( TRIM(CRU%Run) .EQ. 'S1_TRENDY' ) &
             .OR.  ( TRIM(CRU%Run) .EQ. 'S0_TRENDY_CO2') &
             .OR.  ( TRIM(CRU%Run) .EQ. 'S0_TRENDY_Ndep' )) THEN
-          MetYear = 1901 + MOD(CRU%CYEAR-RunStartYear,30)
+          MetYear = 1901 + MOD(CRU%CYEAR-RunStartYear,CRU%metrecyc)
        ELSE IF ( TRIM(CRU%Run) .EQ. 'S0_TRENDY_Precip' &
             .OR.  TRIM(CRU%Run) .EQ. 'S0_TRENDY_CO2_Precip'.OR. &
             TRIM(CRU%Run) .EQ. 'S0_TRENDY_CO2_Temp_Precip'.OR. &
@@ -859,14 +873,14 @@ CONTAINS
           IF (iVar.EQ.1) THEN
              MetYear = CRU%CYEAR
           ELSE
-             MetYear = 1901 + MOD(CRU%CYEAR-RunStartYear,30)
+             MetYear = 1901 + MOD(CRU%CYEAR-RunStartYear,CRU%metrecyc)
           ENDIF
           IF  ( TRIM(CRU%Run) .EQ. 'S0_TRENDY_CO2_Temp_Precip'.OR. &
                TRIM(CRU%Run) .EQ. 'S0_TRENDY_Temp_Precip' ) THEN
              IF (iVar.EQ.6 .OR. iVar.EQ.7) THEN
                 MetYear = CRU%CYEAR
              ELSE
-                MetYear = 1901 + MOD(CRU%CYEAR-RunStartYear,30)
+                MetYear = 1901 + MOD(CRU%CYEAR-RunStartYear,CRU%metrecyc)
              ENDIF
           ENDIF
        ELSE IF ( TRIM(CRU%Run) .EQ. 'S0_TRENDY_Temp' &
@@ -874,21 +888,21 @@ CONTAINS
           IF (iVar.EQ.6 .OR. iVar.EQ.7) THEN
              MetYear = CRU%CYEAR
           ELSE
-             MetYear = 1901 + MOD(CRU%CYEAR-RunStartYear,30)
+             MetYear = 1901 + MOD(CRU%CYEAR-RunStartYear,CRU%metrecyc)
           ENDIF
        ELSE IF ( TRIM(CRU%Run) .EQ. 'S2_TRENDY' ) THEN
           MetYear = CRU%CYEAR
        ELSE IF ( TRIM(CRU%Run) .EQ. 'S2_TRENDY_precip0' ) THEN
           IF (iVar.EQ.1) THEN
              ! special for baseline precip
-             MetYear = 1901 + MOD(CRU%CYEAR-RunStartYear,30)
+             MetYear = 1901 + MOD(CRU%CYEAR-RunStartYear,CRU%metrecyc)
           ELSE
              MetYear = CRU%CYEAR
           ENDIF
        ELSE IF ( TRIM(CRU%Run) .EQ. 'S2_TRENDY_precip' ) THEN
           IF (iVar.NE.1) THEN
              ! special for baseline non-precip
-             MetYear = 1901 + MOD(CRU%CYEAR-RunStartYear,30)
+             MetYear = 1901 + MOD(CRU%CYEAR-RunStartYear,CRU%metrecyc)
           ELSE
              MetYear = CRU%CYEAR
           ENDIF
@@ -913,7 +927,7 @@ CONTAINS
              ! directly from the file (DirectRead) rather than reading the whole array and extracting the land
              ! points from that.
              IF ( CRU%DirectRead ) THEN
-                ! For each land cell, read the first day value of Tmin into tmp, and copy it to the METVALS vector. 
+                ! For each land cell, read the first day value of Tmin into tmp, and copy it to the METVALS vector.
                 DO k = 1, CRU%mland
                    ! t (first value) into iVar (tmin)
                    ErrStatus = NF90_GET_VAR( CRU%F_ID(iVar), CRU%V_ID(iVar), tmp, &
@@ -928,9 +942,9 @@ CONTAINS
                    CRU%MET(ii)%METVALS(k) = tmp
                 END DO
 
-                ! Not DirectRead: Read the whole spatial grid of first day Tmin into tmparr, and copy it to the  
+                ! Not DirectRead: Read the whole spatial grid of first day Tmin into tmparr, and copy it to the
                 ! METVALS vector.
-             ELSE  
+             ELSE
                 ! t (first value) into iVar (tmin)
                 ErrStatus = NF90_GET_VAR(CRU%F_ID(iVar), CRU%V_ID(iVar), tmparr, &
                      start=(/1,1,t/),count=(/xds,yds,1/) )
@@ -954,12 +968,12 @@ CONTAINS
           END IF   ! End of if CALL1
 
           ! If this is the last day of the year we will need to get the nextTmin
-          ! value from the next year's met file. 
+          ! value from the next year's met file.
           IF ( LastDayOfYear ) THEN
 
              IF ( LastYearOfMet ) THEN  ! If there is no more met to open...
 
-                CONTINUE ! Do nothing. The current value of nextTmin will just be reused. 
+                CONTINUE ! Do nothing. The current value of nextTmin will just be reused.
 
              ELSE  ! There is another year of Tmin data available
 
@@ -967,14 +981,14 @@ CONTAINS
 
                 ! Add one to the calculation of MetYear
                 ! IF ( TRIM(CRU%Run) .EQ. 'S0_TRENDY' .OR.  ( TRIM(CRU%Run) .EQ. 'S1_TRENDY' )) THEN
-                !   NextMetYear = 1901 + MOD(CRU%CYEAR + 1 - RunStartYear,30)  
+                !   NextMetYear = 1901 + MOD(CRU%CYEAR + 1 - RunStartYear,CRU%metrecyc)
                 ! ELSE IF ( TRIM(CRU%Run) .EQ. 'S2_TRENDY' ) THEN
                 !   NextMetYear = CRU%CYEAR + 1
                 ! ENDIF
                 IF ( TRIM(CRU%Run) .EQ. 'S0_TRENDY' .OR.  ( TRIM(CRU%Run) .EQ. 'S1_TRENDY' ) &
                      .OR.  ( TRIM(CRU%Run) .EQ. 'S0_TRENDY_CO2') &
                      .OR.  ( TRIM(CRU%Run) .EQ. 'S0_TRENDY_Ndep' )) THEN
-                   NextMetYear = 1901 + MOD(CRU%CYEAR-RunStartYear,30)
+                   NextMetYear = 1901 + MOD(CRU%CYEAR-RunStartYear,CRU%metrecyc)
                 ELSEIF  ( TRIM(CRU%Run) .EQ. 'S0_TRENDY_Precip'&
                      .OR.  TRIM(CRU%Run) .EQ. 'S0_TRENDY_CO2_Precip' .OR. &
                      TRIM(CRU%Run) .EQ. 'S0_TRENDY_CO2_Temp_Precip'.OR. &
@@ -982,14 +996,14 @@ CONTAINS
                    IF (iVar.EQ.1) THEN
                       NextMetYear = CRU%CYEAR
                    ELSE
-                      NextMetYear = 1901 + MOD(CRU%CYEAR-RunStartYear,30)
+                      NextMetYear = 1901 + MOD(CRU%CYEAR-RunStartYear,CRU%metrecyc)
                    ENDIF
                    IF  ( TRIM(CRU%Run) .EQ. 'S0_TRENDY_CO2_Temp_Precip'.OR. &
                         TRIM(CRU%Run) .EQ. 'S0_TRENDY_Temp_Precip' ) THEN
                       IF (iVar.EQ.6 .OR. iVar.EQ.7) THEN
                          NextMetYear = CRU%CYEAR
                       ELSE
-                         NextMetYear = 1901 + MOD(CRU%CYEAR-RunStartYear,30)
+                         NextMetYear = 1901 + MOD(CRU%CYEAR-RunStartYear,CRU%metrecyc)
                       ENDIF
                    ENDIF
 
@@ -999,21 +1013,21 @@ CONTAINS
                    IF (iVar.EQ.6 .OR. iVar.EQ.7) THEN
                       NextMetYear = CRU%CYEAR
                    ELSE
-                      NextMetYear = 1901 + MOD(CRU%CYEAR-RunStartYear,30)
+                      NextMetYear = 1901 + MOD(CRU%CYEAR-RunStartYear,CRU%metrecyc)
                    ENDIF
                 ELSE IF ( TRIM(CRU%Run) .EQ. 'S2_TRENDY' ) THEN
                    NextMetYear = CRU%CYEAR
                 ELSE IF ( TRIM(CRU%Run) .EQ. 'S2_TRENDY_precip0' ) THEN
                    IF (iVar.EQ.1) THEN
                       ! special for baseline precip
-                      NextMetYear = 1901 + MOD(CRU%CYEAR-RunStartYear,30)
+                      NextMetYear = 1901 + MOD(CRU%CYEAR-RunStartYear,CRU%metrecyc)
                    ELSE
                       NextMetYear = CRU%CYEAR
                    ENDIF
                 ELSE IF ( TRIM(CRU%Run) .EQ. 'S2_TRENDY_precip' ) THEN
                    IF (iVar.NE.1) THEN
                       ! special for baseline non-precip
-                      NextMetYear = 1901 + MOD(CRU%CYEAR-RunStartYear,30)
+                      NextMetYear = 1901 + MOD(CRU%CYEAR-RunStartYear,CRU%metrecyc)
                    ELSE
                       NextMetYear = CRU%CYEAR
                    ENDIF
@@ -1022,7 +1036,6 @@ CONTAINS
                 ! Open the Tmin file for next year in preparation for reading Jan 1st...
                 CALL CRU_GET_FILENAME( CRU, NextMetYear, Tmin, filename )
                 ErrStatus = NF90_OPEN(TRIM(filename), NF90_NOWRITE, fid)
-                ! print*, 'OOpen04 ', fid, TRIM(filename)
                 CALL HANDLE_ERR(ErrStatus, "Opening CRU file "//trim(filename))
                 ErrStatus = NF90_INQ_VARID(fid,TRIM(CRU%VAR_NAME(iVar)), vid)
                 CALL HANDLE_ERR(ErrStatus, "Inquiring CRU var "//trim(filename))
@@ -1038,7 +1051,7 @@ CONTAINS
                    END DO
 
                    ! Else not DirectRead: Read full grid into temp array and extract domain from that.
-                ELSE 
+                ELSE
 
                    ErrStatus = NF90_GET_VAR(fid, vid, tmparr, &
                         start=(/1,1,t/),count=(/xds,yds,1/) )
@@ -1050,7 +1063,6 @@ CONTAINS
                 ENDIF  ! End of If DirectRead
 
                 ! Close the next year's Tmin met file
-                ! print*, 'OClose04 ', fid
                 ErrStatus = NF90_CLOSE(fid)
                 fid = -1
                 CALL HANDLE_ERR(ErrStatus, "Closing CRU file "//trim(filename))
@@ -1085,22 +1097,21 @@ CONTAINS
           !--------------------------------------------------------------------------------------------------
 
        CASE (TMax)
-          ! For Tmax, we need the previous day's Tmax for the Cesaraccio et al subdiurnal 
+          ! For Tmax, we need the previous day's Tmax for the Cesaraccio et al subdiurnal
           ! temperature interpolation algorithm.
 
           IF ( CALL1 ) THEN   ! On the first day of the run...
 
-             ! Assign the met variable index to be prevTmax. iVar will still refer to Tmax. 
+             ! Assign the met variable index to be prevTmax. iVar will still refer to Tmax.
              ii = prevTmax
 
              ! If the very first MetYear is more than 1901, there is a previous year of Tmax data available.
              ! such as during spinups, when the starting year is 1951.
-             IF ( MetYear .GT. 1901 ) THEN 
+             IF ( MetYear .GT. 1901 ) THEN
 
                 ! Open the previous year's Tmax file (MetYear-1)
                 CALL CRU_GET_FILENAME( CRU, MetYear-1, iVar, filename )
                 ErrStatus = NF90_OPEN(TRIM(filename), NF90_NOWRITE, fid)
-                ! print*, 'OOpen05 ', fid
                 CALL HANDLE_ERR(ErrStatus, "Opening CRU file "//trim(filename))
 
                 ! Obtain the size of the time dimension (tds), which locates the data for Dec 31st in the file.
@@ -1112,8 +1123,8 @@ CONTAINS
                 ErrStatus = NF90_INQ_VARID(fid,TRIM(CRU%VAR_NAME(iVar)), vid)
                 CALL HANDLE_ERR(ErrStatus, "Inquiring CRU var "//trim(filename))
 
-                ! If DirectRead is specified (small domain) pull the data for Dec 31st (tds) directly from the file. 
-                ! Otherwise, read the whole Dec 31st grid into tmparr and pack the land points from there. 
+                ! If DirectRead is specified (small domain) pull the data for Dec 31st (tds) directly from the file.
+                ! Otherwise, read the whole Dec 31st grid into tmparr and pack the land points from there.
                 IF ( CRU%DirectRead ) THEN
                    !print *,"about to read last value of MetYear-1 ", MetYear - 1, trim(filename)
                    DO k = 1, CRU%mland
@@ -1134,7 +1145,6 @@ CONTAINS
 
                 ENDIF  ! End of If DirectRead
 
-                ! print*, 'OClose05 ', fid
                 ErrStatus = NF90_CLOSE(fid)
                 fid = -1
                 CALL HANDLE_ERR(ErrStatus, "Closing CRU file "//trim(filename))
@@ -1165,7 +1175,7 @@ CONTAINS
 
              ELSE ! MetYear = 1901
 
-                ! Where MetYear is 1901, there is no previous Tmax value available, so we read the 
+                ! Where MetYear is 1901, there is no previous Tmax value available, so we read the
                 ! Jan 1 value into Tmax, then assign it to prevTmax as well
 
                 ! ! Open the 1901 Tmax file (MetYear)
@@ -1205,7 +1215,7 @@ CONTAINS
              ! This is not the first call, so the only thing remaining to do for Tmax is read the new value.
              ! (Current Tmax was assigned to prevTmax at the top of the routine).
 
-             ! Set the variable index to iVar (Tmax). The timestep is the current timestep. 
+             ! Set the variable index to iVar (Tmax). The timestep is the current timestep.
              t  = CRU%CTSTEP
 
              ! Read the current points directly into the vector for small domains, or read the whole grid into tmparr
@@ -1239,8 +1249,8 @@ CONTAINS
           t  = CRU%CTSTEP
 
           ! Standard read of the current variable, for the current timestep:
-          ! Directly read the current points into the met vector (more efficient for small domains), 
-          ! or read the whole grid into tmparr and extract them from there. 
+          ! Directly read the current points into the met vector (more efficient for small domains),
+          ! or read the whole grid into tmparr and extract them from there.
           IF ( CRU%DirectRead ) THEN
 
              DO k = 1, CRU%mland
@@ -1302,6 +1312,7 @@ CONTAINS
     USE cable_common_module,   ONLY: DOYSOD2YMDHMS
     USE cable_weathergenerator,ONLY: WEATHER_GENERATOR_TYPE, WGEN_INIT, &
          WGEN_DAILY_CONSTANTS, WGEN_SUBDIURNAL_MET
+    use mo_utils,              only: eq
 
     IMPLICIT NONE
 
@@ -1309,16 +1320,16 @@ CONTAINS
     INTEGER,        INTENT(IN)    :: CurYear, ktau, kend
     LOGICAL,        INTENT(IN)    :: LastYearOfMet
 
-    ! Define MET the CABLE version, different from the MET defined and used within the CRU variable. 
-    ! The structure of MET_TYPE is defined in cable_define_types.F90 
-    TYPE(MET_TYPE) :: MET   
+    ! Define MET the CABLE version, different from the MET defined and used within the CRU variable.
+    ! The structure of MET_TYPE is defined in cable_define_types.F90
+    TYPE(MET_TYPE) :: MET
 
     ! Local variables
     LOGICAL   :: newday, LastDayOfYear  ! Flags for occurence of a new day (0 hrs) and the last day of the year.
     INTEGER   :: iland                  ! Loop counter through 'land' cells (cells in the spatial domain)
     INTEGER   :: itimestep              ! Loop counter through subdiurnal timesteps in a day
     INTEGER   :: imetvar                ! Loop counter through met variables
-    INTEGER   :: dM, dD                 ! Met date as year, month, and day returned from DOYSOD2YMDHMS  
+    INTEGER   :: dM, dD                 ! Met date as year, month, and day returned from DOYSOD2YMDHMS
     INTEGER   :: is, ie                 ! Starting and ending vegetation type per land cell
     REAL      :: dt                     ! Timestep in seconds
     REAL      :: CO2air                 ! CO2 concentration in ppm
@@ -1332,7 +1343,7 @@ CONTAINS
     ! On first step read and check CRU settings and read land-mask
     IF ( CALL1 ) CALL WGEN_INIT( WG, CRU%mland, latitude, dt )
 
-    ! Pass time-step information to CRU 
+    ! Pass time-step information to CRU
     CRU%CYEAR = CurYear
 
 
@@ -1342,27 +1353,27 @@ CONTAINS
     !  restarts on Jan 1                                      !
     ! Based on the ktau timestep, calculate date and time information (the same for the whole spatial dimension.)
     met%hod (:) = REAL(MOD( (ktau-1) * NINT(dt), INT(SecDay)) ) / 3600.  ! Hour of the day
-    met%doy (:) = INT(REAL(ktau-1) * dt / SecDay ) + 1                   ! Day of Year = days since 0 hr 1st Jan 
+    met%doy (:) = INT(REAL(ktau-1) * dt / SecDay ) + 1                   ! Day of Year = days since 0 hr 1st Jan
     met%year(:) = CurYear                                                ! Current year
 
     ! Using the day-of-year and seconds-of-day calculate the month and day-of-month, using the time information
     ! for the first land cell only (because they will be the same across the domain).
-    !                            In      In         In        Out       Out       Optional Out 
+    !                            In      In         In        Out       Out       Optional Out
     ! SUBROUTINE DOYSOD2YMDHMS( Year, Yearday, SecondsOfDay, Month, DayOfMonth, [Hour, Min, Sec])
 
     CALL DOYSOD2YMDHMS(CurYear, INT(met%doy(1)), INT(met%hod(1)) * 3600, dM, dD)
 
     met%moy (:) = dM     ! Record the month
 
-    ! It's a new day if the hour of the day is zero. 
-    newday = ( met%hod(landpt(1)%cstart).EQ. 0 )
+    ! It's a new day if the hour of the day is zero.
+    newday = eq(met%hod(landpt(1)%cstart), 0.0)
 
     ! Beginning-of-year accounting
     IF (ktau .EQ. 1) THEN  ! ktau is always reset to 1 at the start of the year.
 
        ! Read a new annual CO2 value and convert it from ppm to mol/mol
        CALL GET_CRU_CO2( CRU, CO2air )
-       met%ca(:) = CO2air / 1.e+6  ! 
+       met%ca(:) = CO2air / 1.e+6  !
 
        CALL GET_CRU_Ndep( CRU )
        DO iland = 1, CRU%mland
@@ -1383,7 +1394,7 @@ CONTAINS
        !   CALL CPU_TIME(etime)
        !   PRINT *, 'b4 daily ', etime, ' seconds needed '
 
-       LastDayOfYear = (ktau .EQ. kend-((SecDay/dt)-1))
+       LastDayOfYear = ktau .EQ. (kend-(nint(SecDay/dt)-1))
        CALL CRU_GET_DAILY_MET( CRU, LastDayOfYear, LastYearOfMet )
        !   CALL CPU_TIME(etime)
        !   PRINT *, 'after daily ', etime, ' seconds needed '
@@ -1432,17 +1443,17 @@ CONTAINS
     !  met%pmb = CRU%MET(pres)%METVALS !CLN interpolation??
 
     ! Assign weather-generated data, or daily values, as required to CABLE variables.
-    ! 
+    !
     DO iland = 1, CRU%mland
        is = landpt(iland)%cstart
        ie = landpt(iland)%cend
 
        met%precip(is:ie) = real(WG%Precip(iland)) ! test vh !
 
-       ! Cable's swdown is split into two components, visible and nir, which 
+       ! Cable's swdown is split into two components, visible and nir, which
        ! get half of the CRU-NCEP swdown each.
-       met%fsd(is:ie,1) = real(WG%PhiSD(iland) * 0.5_r_2)  ! Visible 
-       met%fsd(is:ie,2) = real(WG%PhiSD(iland) * 0.5_r_2)  ! NIR  
+       met%fsd(is:ie,1) = real(WG%PhiSD(iland) * 0.5_r_2)  ! Visible
+       met%fsd(is:ie,2) = real(WG%PhiSD(iland) * 0.5_r_2)  ! NIR
 
        ! Convert C to K for cable's tk
        met%tk(is:ie)     = real(WG%Temp(iland) + 273.15_r_2)
@@ -1454,19 +1465,19 @@ CONTAINS
        ! to the daily value from CRU-NCEP.
        met%fld(is:ie) = CRU%MET(lwdn)%METVALS(iland) * real(WG%PhiLD(iland)) / CRU%AVG_LWDN(iland)
 
-       ! Specific humidity (qair g/g) was not sent to the weather generator. Here we assign the 
-       ! daily value to the whole diurnal cycle 
+       ! Specific humidity (qair g/g) was not sent to the weather generator. Here we assign the
+       ! daily value to the whole diurnal cycle
        met%qv(is:ie) = CRU%MET(qair)%METVALS(iland)
 
 
        met%rhum(is:ie)  = real(WG%VapPmb(iland))/esatf(real(WG%Temp(iland),sp)) *100.0 ! rel humidity (%)
-       met%u10(is:ie)   = met%ua(is:ie) 
+       met%u10(is:ie)   = met%ua(is:ie)
        ! initialise within canopy air temp
-       met%tvair(is:ie) = met%tk(is:ie) 
+       met%tvair(is:ie) = met%tk(is:ie)
        met%tvrad(is:ie) = met%tk(is:ie)
        met%pdep = 0.0
 
-       ! calculate snowfall based on total precip and air T 
+       ! calculate snowfall based on total precip and air T
        !(ref Jin et al. Table II, Hyd Proc, 1999)
 
 !!$    if (WG%Temp(iland) > 2.5) then
@@ -1496,8 +1507,6 @@ CONTAINS
     !print *, "ktau, kend, LastYearOfMet as close test:", ktau, kend
     IF (ktau .EQ. kend) THEN
        DO imetvar=1, CRU%NMET
-          !print *, 'Close CRU%MetFile(imetvar)', CRU%MetFile(imetvar)
-          ! print*, 'OClose03.1 ', imetvar, CRU%NMET, CRU%F_ID(imetvar)
           ErrStatus = NF90_CLOSE(CRU%F_ID(imetvar))
           CRU%F_ID(imetvar) = -1
           CALL HANDLE_ERR(ErrStatus, "Closing CRU file"//trim(CRU%MetFile(imetvar)))
@@ -1513,7 +1522,7 @@ CONTAINS
 
     ELEMENTAL FUNCTION Esatf(TC)
       ! ------------------------------------------------------------------------------
-      ! At temperature TC [deg C], return saturation water vapour pressure Esatf [mb] 
+      ! At temperature TC [deg C], return saturation water vapour pressure Esatf [mb]
       ! from Teten formula.
       ! MRR, xx/1987
       ! PRB, 09/1999:   Convert to F95 elemental function; works on scalars and arrays
@@ -1553,18 +1562,15 @@ CONTAINS
     write(*,*) 'Closing CRU files.'
     do i=1, CRU%nmet
        if (CRU%f_id(i) > -1) then
-          ! print*, 'OClose03.2 ', i, CRU%nmet, CRU%f_id(i)
           errstatus = nf90_close(CRU%f_id(i))
           call handle_err(errstatus, "Closing CRU met file "//trim(CRU%MetFile(i)))
        end if
     end do
-    
+
     if (CRU%Ndepf_id > -1) then
-       ! print*, 'OClose02 ', CRU%Ndepf_id
        errstatus = nf90_close(CRU%Ndepf_id)
        call handle_err(errstatus, "Closing CRU Ndep file.")
     end if
-    ! print*, 'OClosed02/03'
 
   end subroutine cru_close
 

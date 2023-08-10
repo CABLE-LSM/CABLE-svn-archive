@@ -15,7 +15,7 @@
 ! Called from: cable_driver or cable_mpimaster
 !
 ! SUBROUTINES
-! ZeroPOPLUC(POPLUC)
+! Zero_POPLUC(POPLUC)
 ! execute_luc_event(from_state,to_state,frac_change_grid,g,POPLUC)
 ! CALCULATE_WEIGHTS(POPLUC, g)
 ! INCREMENT_AGE(POPLUC,g)
@@ -134,71 +134,148 @@ CONTAINS
 
   !*******************************************************************************
 
-  SUBROUTINE ZeroPOPLUC(POPLUC)
+  SUBROUTINE zero_popluc(popluc)
 
-    TYPE(POPLUC_TYPE), INTENT(INOUT) :: POPLUC
-    INTEGER:: np
+    type(popluc_type), intent(inout) :: popluc
 
-    np = popluc%np
-
-    POPLUC%firstyear               = 0_i4b
-    POPLUC%thisyear                = 0_i4b
-    POPLUC%primf                   = 0.0_dp
-    POPLUC%secdf                   = 0.0_dp
-    POPLUC%grass                   = 0.0_dp
-    POPLUC%crop                    = 0.0_dp
-    POPLUC%past                    = 0.0_dp
-    POPLUC%ptos                    = 0.0_dp
-    POPLUC%ptog                    = 0.0_dp
-    POPLUC%stog                    = 0.0_dp
-    POPLUC%gtop                    = 0.0_dp
-    POPLUC%gtos                    = 0.0_dp
-    POPLUC%ptoc                    = 0.0_dp
-    POPLUC%ptoq                    = 0.0_dp
-    POPLUC%stoc                    = 0.0_dp
-    POPLUC%stoq                    = 0.0_dp
-    POPLUC%qtos                    = 0.0_dp
-    POPLUC%ctos                    = 0.0_dp
-    POPLUC%frac_forest             = 0.0_dp
-    POPLUC%frac_primf              = 0.0_dp
-    POPLUC%area_history_secdf      = 0.0_dp
-    POPLUC%age_history_secdf       = 0.0_dp
-    POPLUC%n_event                 = 0.0_dp
-    POPLUC%freq_age_secondary      = 0.0_dp
-    POPLUC%freq_age_primary        = 0.0_dp
-    POPLUC%biomass_age_primary     = 0.0_dp
-    POPLUC%biomass_age_secondary   = 0.0_dp
-    POPLUC%FNEP                    = 0.0_dp
-    POPLUC%Clitt                   = 0.0_dp
-    POPLUC%Csoil                   = 0.0_dp
-    POPLUC%Cbiomass                = 0.0_dp
-    POPLUC%FHarvest                = 0.0_dp
-    POPLUC%FClearance              = 0.0_dp
-    POPLUC%FTransferNet            = 0.0_dp
-    POPLUC%FTransferGross          = 0.0_dp
-    POPLUC%pharv                   = 0.0_dp
-    POPLUC%smharv                  = 0.0_dp
-    POPLUC%syharv                  = 0.0_dp
-    POPLUC%HarvProd                = 0.0_dp
-    POPLUC%HarvProdLoss            = 0.0_dp
-    POPLUC%ClearProd               = 0.0_dp
-    POPLUC%ClearProdLoss           = 0.0_dp
-    POPLUC%kSecHarv                = 0.0_dp
-    POPLUC%kNatDist                = 0.0_dp
-    POPLUC%kExpand1                = 0.0_dp
-    POPLUC%kExpand2                = 0.0_dp
-    POPLUC%kClear                  = 0.0_dp
-    POPLUC%cRelClear               = 0.0_dp
-    POPLUC%AgProd                  = 0.0_dp
-    POPLUC%AgProdLoss              = 0.0_dp
-    POPLUC%FAg                     = 0.0_dp
+    popluc%firstyear               = 0_i4b
+    popluc%thisyear                = 0_i4b
+    popluc%n_event                 = 0_i4b
+    popluc%latitude                = 0.0_dp
+    popluc%longitude               = 0.0_dp
+    popluc%primf                   = 0.0_dp
+    popluc%secdf                   = 0.0_dp
+    popluc%grass                   = 0.0_dp
+    popluc%crop                    = 0.0_dp
+    popluc%past                    = 0.0_dp
+    popluc%ptos                    = 0.0_dp
+    popluc%ptog                    = 0.0_dp
+    popluc%stog                    = 0.0_dp
+    popluc%gtop                    = 0.0_dp
+    popluc%gtos                    = 0.0_dp
+    popluc%ptoc                    = 0.0_dp
+    popluc%ptoq                    = 0.0_dp
+    popluc%stoc                    = 0.0_dp
+    popluc%stoq                    = 0.0_dp
+    popluc%qtos                    = 0.0_dp
+    popluc%ctos                    = 0.0_dp
+    popluc%frac_forest             = 0.0_dp
+    popluc%frac_primf              = 0.0_dp
+    popluc%area_history_secdf      = 0.0_dp
+    popluc%age_history_secdf       = 0.0_dp
+    popluc%freq_age_secondary      = 0.0_dp
+    popluc%freq_age_primary        = 0.0_dp
+    popluc%biomass_age_primary     = 0.0_dp
+    popluc%biomass_age_secondary   = 0.0_dp
+    popluc%FNEP                    = 0.0_dp
+    popluc%Clitt                   = 0.0_dp
+    popluc%Csoil                   = 0.0_dp
+    popluc%Cbiomass                = 0.0_dp
+    popluc%FHarvest                = 0.0_dp
+    popluc%FClearance              = 0.0_dp
+    popluc%FTransferNet            = 0.0_dp
+    popluc%FTransferGross          = 0.0_dp
+    popluc%pharv                   = 0.0_dp
+    popluc%smharv                  = 0.0_dp
+    popluc%syharv                  = 0.0_dp
+    popluc%HarvProd                = 0.0_dp
+    popluc%HarvProdLoss            = 0.0_dp
+    popluc%fracHarvProd            = 0.0_dp
+    popluc%fracHarvResid           = 0.0_dp
+    popluc%fracHarvSecResid        = 0.0_dp
+    popluc%ClearProd               = 0.0_dp
+    popluc%ClearProdLoss           = 0.0_dp
+    popluc%fracClearProd           = 0.0_dp
+    popluc%fracClearResid          = 0.0_dp
+    popluc%kSecHarv                = 0.0_dp
+    popluc%kNatDist                = 0.0_dp
+    popluc%kExpand1                = 0.0_dp
+    popluc%kExpand2                = 0.0_dp
+    popluc%kClear                  = 0.0_dp
+    popluc%cRelClear               = 0.0_dp
+    popluc%AgProd                  = 0.0_dp
+    popluc%AgProdLoss              = 0.0_dp
+    popluc%FAg                     = 0.0_dp
     popluc%FluxPHarvResidtoLitter  = 0.0_dp
     popluc%FluxSHarvResidtoLitter  = 0.0_dp
     popluc%FluxPClearResidtoLitter = 0.0_dp
     popluc%FluxSClearResidtoLitter = 0.0_dp
     popluc%dcSHarvClear            = 0.0_dp
-    
-  END SUBROUTINE ZeroPOPLUC
+
+  END SUBROUTINE zero_popluc
+
+  !*******************************************************************************
+
+  SUBROUTINE print_popluc(popluc)
+
+    type(popluc_type), intent(in) :: popluc
+
+    write(*,*) 'np ', popluc%np
+    write(*,*) 'firstyear ', popluc%firstyear
+    write(*,*) 'thisyear ', popluc%thisyear
+    write(*,*) 'n_event ', popluc%n_event
+    write(*,*) 'latitude ', popluc%latitude
+    write(*,*) 'longitude ', popluc%longitude
+    write(*,*) 'primf ', popluc%primf
+    write(*,*) 'secdf ', popluc%secdf
+    write(*,*) 'grass ', popluc%grass
+    write(*,*) 'crop ', popluc%crop
+    write(*,*) 'past ', popluc%past
+    write(*,*) 'ptos ', popluc%ptos
+    write(*,*) 'ptog ', popluc%ptog
+    write(*,*) 'stog ', popluc%stog
+    write(*,*) 'gtop ', popluc%gtop
+    write(*,*) 'gtos ', popluc%gtos
+    write(*,*) 'ptoc ', popluc%ptoc
+    write(*,*) 'ptoq ', popluc%ptoq
+    write(*,*) 'stoc ', popluc%stoc
+    write(*,*) 'stoq ', popluc%stoq
+    write(*,*) 'qtos ', popluc%qtos
+    write(*,*) 'ctos ', popluc%ctos
+    write(*,*) 'frac_forest ', popluc%frac_forest
+    write(*,*) 'frac_primf ', popluc%frac_primf
+    write(*,*) 'area_history_secdf ', popluc%area_history_secdf
+    write(*,*) 'age_history_secdf ', popluc%age_history_secdf
+    write(*,*) 'freq_age_secondary ', popluc%freq_age_secondary
+    write(*,*) 'freq_age_primary ', popluc%freq_age_primary
+    write(*,*) 'biomass_age_primary ', popluc%biomass_age_primary
+    write(*,*) 'biomass_age_secondary ', popluc%biomass_age_secondary
+    write(*,*) 'FNEP ', popluc%FNEP
+    write(*,*) 'Clitt ', popluc%Clitt
+    write(*,*) 'Csoil ', popluc%Csoil
+    write(*,*) 'Cbiomass ', popluc%Cbiomass
+    write(*,*) 'FHarvest ', popluc%FHarvest
+    write(*,*) 'FClearance ', popluc%FClearance
+    write(*,*) 'FTransferNet ', popluc%FTransferNet
+    write(*,*) 'FTransferGross ', popluc%FTransferGross
+    write(*,*) 'pharv ', popluc%pharv
+    write(*,*) 'smharv ', popluc%smharv
+    write(*,*) 'syharv ', popluc%syharv
+    write(*,*) 'HarvProd ', popluc%HarvProd
+    write(*,*) 'HarvProdLoss ', popluc%HarvProdLoss
+    write(*,*) 'fracHarvProd ', popluc%fracHarvProd
+    write(*,*) 'fracHarvResid ', popluc%fracHarvResid
+    write(*,*) 'fracHarvSecResid ', popluc%fracHarvSecResid
+    write(*,*) 'ClearProd ', popluc%ClearProd
+    write(*,*) 'ClearProdLoss ', popluc%ClearProdLoss
+    write(*,*) 'fracClearProd ', popluc%fracClearProd
+    write(*,*) 'fracClearResid ', popluc%fracClearResid
+    write(*,*) 'kSecHarv ', popluc%kSecHarv
+    write(*,*) 'kNatDist ', popluc%kNatDist
+    write(*,*) 'kExpand1 ', popluc%kExpand1
+    write(*,*) 'kExpand2 ', popluc%kExpand2
+    write(*,*) 'kClear ', popluc%kClear
+    write(*,*) 'cRelClear ', popluc%cRelClear
+    write(*,*) 'AgProd ', popluc%AgProd
+    write(*,*) 'AgProdLoss ', popluc%AgProdLoss
+    write(*,*) 'FAg ', popluc%FAg
+    write(*,*) 'FluxPHarvResidtoLitter ', popluc%FluxPHarvResidtoLitter
+    write(*,*) 'FluxSHarvResidtoLitter ', popluc%FluxSHarvResidtoLitter
+    write(*,*) 'FluxPClearResidtoLitter ', popluc%FluxPClearResidtoLitter
+    write(*,*) 'FluxSClearResidtoLitter ', popluc%FluxSClearResidtoLitter
+    write(*,*) 'dcSHarvClear ', popluc%dcSHarvClear
+
+  END SUBROUTINE print_POPLUC
 
   !*******************************************************************************
 
@@ -206,16 +283,24 @@ CONTAINS
     ! Execute a transition between land use types (states)
     !  frac_change_grid = fractional change in unit fraction of grid cell this year
 
+#ifdef __MPI__
+  use mpi, only: MPI_Abort
+#endif
+
     IMPLICIT NONE
 
-    CHARACTER(5), INTENT(IN) :: from_state, to_state
-    REAL(dp), INTENT(INOUT):: frac_change_grid
-    TYPE(POPLUC_TYPE),INTENT(INOUT) :: POPLUC
-    INTEGER(i4b), INTENT(IN) :: g  ! grid cell index
+    CHARACTER(5),      INTENT(IN)    :: from_state, to_state
+    REAL(dp),          INTENT(INOUT) :: frac_change_grid
+    INTEGER(i4b),      INTENT(IN)    :: g  ! grid cell index
+    TYPE(POPLUC_TYPE), INTENT(INOUT) :: POPLUC
+
     REAL(dp) :: frac_open_grid, remaining
     INTEGER(i4b) :: n  ! position of new element in POPLUC%SecFor array
     INTEGER(i4b) :: i
     REAL(dp) :: tmp, tmp1, tmp2
+#ifdef __MPI__
+    integer :: ierr
+#endif
 
     ! frac_open_grid = 1.0_dp-POPLUC%frac_forest(g)
     frac_open_grid = POPLUC%grass(g)
@@ -223,7 +308,6 @@ CONTAINS
     IF (from_state=='PRIMF') THEN
 
        IF (frac_change_grid.GT.POPLUC%primf(g)) THEN
-          ! PRINT*, "Warning: requested reduction in primary forest area exceeds primary forest area"
           IF (to_state=='SECDF') POPLUC%ptos(g) = POPLUC%primf(g)
           IF (to_state=='C3ANN') POPLUC%ptog(g) = POPLUC%primf(g)
           frac_change_grid = POPLUC%primf(g)
@@ -241,10 +325,10 @@ CONTAINS
              tmp = 0.0_dp
           ENDIF
           POPLUC%kExpand1(g) = 0.0_dp
-          POPLUC%n_event(g) = POPLUC%n_event(g)+1
+          POPLUC%n_event(g)  = POPLUC%n_event(g) + 1
           n = POPLUC%n_event(g)
           POPLUC%area_history_secdf(g,n) = frac_change_grid
-          POPLUC%age_history_secdf(g,n) = 0.0_dp
+          POPLUC%age_history_secdf(g,n)  = 0.0_dp
           POPLUC%freq_age_secondary(g,1) = POPLUC%freq_age_secondary(g,1) + frac_change_grid
 
           IF (sum( POPLUC%freq_age_secondary(g,:)) .gt. 0.0_dp) THEN
@@ -265,7 +349,11 @@ CONTAINS
 
        IF (to_state=='PRIMF') THEN
           write(*,*) "Error: cannot create primary forest from secondary forest"
-          STOP
+#ifdef __MPI__
+          call MPI_Abort(0, 87, ierr) ! Do not know comm nor rank here
+#else
+          stop 87
+#endif
        ELSE
           ! Transition from secondary -> non forest (stog)
           ! Assumption: youngest stands cleared first, if stands> 10 years accommodate transition
@@ -375,10 +463,13 @@ CONTAINS
       ELSEIF (to_state=='PRIMF') THEN
 
        write(*,*) "Error: cannot create primary forest from non-forest"
-       STOP
+#ifdef __MPI__
+       call MPI_Abort(0, 88, ierr) ! Do not know comm nor rank here
+#else
+       stop 88
+#endif
 
     ENDIF
-
 
   ENDSUBROUTINE execute_luc_event
 
@@ -394,7 +485,7 @@ CONTAINS
 
     type(popluc_type), intent(inout) :: POPLUC
     integer(i4b),      intent(in)    :: g
-    
+
     integer(i4b) :: age, i, iage
     real(dp)     :: fac, disturbance_freq
 
@@ -425,18 +516,20 @@ CONTAINS
     IMPLICIT NONE
 
     TYPE(POPLUC_TYPE), INTENT(INOUT) :: POPLUC
+    INTEGER(i4b),      INTENT(IN)    :: g
+
     INTEGER(i4b) :: n_event, i
-    INTEGER(i4b), INTENT(IN) :: g
     REAL(dp):: remaining
     REAL(dp):: tmp, tmp1, tmp2
-    n_event =  POPLUC%n_event(g)
+
+    n_event = POPLUC%n_event(g)
     POPLUC%kSecHarv(g) = 0.0_dp
     POPLUC%kNatDist(g) = 0.0_dp
 
     POPLUC%freq_age_secondary(g,2:age_max)=POPLUC%freq_age_secondary(g,1:age_max-1)
     POPLUC%biomass_age_secondary(g,2:age_max)=POPLUC%biomass_age_secondary(g,1:age_max-1)
 
-    POPLUC%freq_age_secondary(g,1) = 0.0_dp
+    POPLUC%freq_age_secondary(g,1)    = 0.0_dp
     POPLUC%biomass_age_secondary(g,1) = 0.0_dp
     ! adjust secondary age distribution for secondary forest harvest area
 
@@ -530,15 +623,17 @@ CONTAINS
        POPLUC%kNatDist(g) = 0.0_dp
     endif
 
-
   END SUBROUTINE INCREMENT_AGE
 
   !*******************************************************************************
 
   SUBROUTINE POPLUCStep(POPLUC,year)
+
     IMPLICIT NONE
+
     TYPE(POPLUC_TYPE), INTENT(INOUT) :: POPLUC
-    INTEGER(i4b), INTENT(IN) :: year
+    INTEGER(i4b),      INTENT(IN)    :: year
+
     INTEGER(i4b) :: g
 
     POPLUC%it = POPLUC%it + 1
@@ -546,24 +641,16 @@ CONTAINS
     ! vh ! remove code relating to (year.lt.POPLUC%thisyear) ?
     IF (year.lt.POPLUC%thisyear) THEN
 
-       DO g = 1,POPLUC%np
+       DO g=1, POPLUC%np
           ! CALL calculate_weights(POPLUC, g)
           CALL increment_age(POPLUC,g)
        ENDDO
 
     ELSE
 
-       DO g = 1,POPLUC%np
+       DO g=1, POPLUC%np
 
-!!$if (POPLUC%thisyear.gt.860) then
-!!$         POPLUC%smharv = 0.0_dp ! test
-!!$         POPLUC%stog = 0.0_dp ! test
-!!$         POPLUC%syharv = 0.0_dp ! test
-!!$         POPLUC%ptog = 0.0_dp ! test
-!!$         POPLUC%ptos = 0.0_dp ! test
-!!$         POPLUC%gtos = 0.0_dp ! test
-!!$endif
-         POPLUC%kClear(g) = 0.0_dp
+         POPLUC%kClear(g)   = 0.0_dp
          POPLUC%kExpand1(g) = 0.0_dp
          POPLUC%kExpand2(g) = 0.0_dp
          POPLUC%kSecHarv(g) = 0.0_dp
@@ -604,7 +691,7 @@ CONTAINS
     ! This subroutine transfers LUC-determined age distributions to POP
     !-------------------------------------------------------------------------------
     IMPLICIT NONE
-    
+
     TYPE(POPLUC_TYPE),   INTENT(IN)    :: POPLUC
     TYPE(POP_TYPE),      INTENT(INOUT) :: POP
     TYPE(LUC_EXPT_TYPE), INTENT(IN)    :: LUC_EXPT
@@ -635,15 +722,18 @@ CONTAINS
 
   !*******************************************************************************
 
-  SUBROUTINE POP_LUC_CASA_transfer(POPLUC,POP,LUC_EXPT,casapool,casabal,casaflux,ktauday)
+  SUBROUTINE POP_LUC_CASA_transfer(POPLUC, POP, LUC_EXPT, &
+       casapool, casabal, casaflux, ktauday)
 
     !-------------------------------------------------------------------------------
     ! This subroutine redestributes carbon (nitrogen and phosphorous) amongst
     ! pools according to land-use transitions
     !-------------------------------------------------------------------------------
 
+    use mo_utils, only: eq
+
     IMPLICIT NONE
-    
+
     TYPE(POPLUC_TYPE),   INTENT(INOUT) :: POPLUC
     TYPE(POP_TYPE),      INTENT(INOUT) :: POP
     TYPE(LUC_EXPT_TYPE), INTENT(IN)    :: LUC_EXPT
@@ -651,7 +741,7 @@ CONTAINS
     TYPE(casa_balance),  INTENT(INOUT) :: casabal
     TYPE(casa_flux),     INTENT(INOUT) :: casaflux
     INTEGER,             INTENT(IN)    :: ktauday
-    
+
     ! number of cable time-steps in a day (for needed for LUC flux output)
     integer:: g, k, j, l, idp, irp, idlu, irlu, ilu
     INTEGER, PARAMETER :: &
@@ -734,7 +824,7 @@ CONTAINS
     popluc%FluxPClearResidtoLitter = 0.0_dp
     popluc%FluxSClearResidtoLitter = 0.0_dp
     popluc%dcSHarvClear            = 0.0_dp
-    
+
     DO g = 1,POPLUC%np  ! loop over CABLE grid-cells
        dcHarv(g)  = 0.0_dp
        dcClear(g) = 0.0_dp
@@ -1147,7 +1237,7 @@ CONTAINS
                 ! Clearance Flux
                 ! primary forest to grass
                 if ((idlu==p) .and. irlu ==gr) then
-                   popluc%FClearance(g,idlu) =  (1.0_dp -POPLUC%fracClearResid(g)) & 
+                   popluc%FClearance(g,idlu) =  (1.0_dp -POPLUC%fracClearResid(g)) &
                         * casapool%cplant(idp,2)*deltaA
                 endif
 
@@ -1331,7 +1421,7 @@ CONTAINS
              endif
              !if (g==3 .and. POPLUC%thisyear==1837 ) write(*,*) 'c01c',  casapool%cplant(irp,2), ilu,dcharvclear(g)
           enddo ! ilu=1, nlu
-          
+
           ! POPLUC diagnostics
           ! pools in gC per m2 of gridcell
           ! NEP in g C y-1 per m2 of gridcell
@@ -1345,7 +1435,7 @@ CONTAINS
                 POPLUC%primf(g)  = max(patch(irp)%frac + dA_r(ilu) + dA_d(ilu), 0.0_dp)
              elseif (ilu == s) then
                 POPLUC%secdf(g) = max(patch(irp)%frac + dA_r(ilu) + dA_d(ilu), 0.0_dp)
-                if (POPLUC%secdf(g) .eq. 0.0_dp) then
+                if (eq(POPLUC%secdf(g), 0.0_dp)) then
                    POPLUC%freq_age_secondary(g,:) = 0.0_dp
                 endif
              elseif (ilu == gr) then
@@ -1454,7 +1544,7 @@ CONTAINS
     POPLUC%it = 0
     POPLUC%np = np
 
-    CALL ZeroPOPLUC(POPLUC)
+    CALL Zero_POPLUC(POPLUC)
 
     CALL POPLUC_set_params(POPLUC, LUC_EXPT)
 
@@ -1748,7 +1838,7 @@ CONTAINS
     USE netcdf
 
     IMPLICIT NONE
-    
+
     TYPE(POPLUC_TYPE), INTENT(IN) :: POPLUC
     INTEGER,           INTENT(IN) :: ctime
     LOGICAL,           INTENT(IN) :: FINAL
@@ -1785,7 +1875,7 @@ CONTAINS
     REAL(dp), ALLOCATABLE :: freq_age_secondary(:,:)
     INTEGER :: g
     LOGICAL :: put_age_vars
-    
+
     mp = POPLUC%np
     nprod = 3
     put_age_vars=.TRUE.
@@ -1872,7 +1962,7 @@ CONTAINS
     else
        fname = trim(filename%path)//'/'//trim(cable_user%RunIden)//'_'//trim(dum)//'_LUC_out.nc'
     endif
-    
+
     IF ( CALL1 ) THEN
 
        ! Create NetCDF file:
@@ -1881,7 +1971,6 @@ CONTAINS
 #else
        STATUS = NF90_create(trim(fname), ior(nf90_clobber,ior(nf90_netcdf4,nf90_classic_model)), FILE_ID)
 #endif
-       ! print*, 'OCreate65 ', file_id, trim(fname)
        IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
 
        STATUS = NF90_PUT_ATT( FILE_ID, NF90_GLOBAL, "StartYear", CABLE_USER%YEARSTART )
@@ -1917,7 +2006,7 @@ CONTAINS
        DO i = 1, SIZE(A1)
           STATUS = NF90_def_var(FILE_ID,TRIM(A1(i)) ,NF90_FLOAT,(/land_ID,t_ID/),VID1(i) &
 #ifndef __NETCDF3__
-               , deflate_level=1 &
+               , deflate_level=4 &
 #endif
                )
           IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
@@ -1926,7 +2015,7 @@ CONTAINS
        DO i = 1, SIZE(AI1)
           STATUS = NF90_def_var(FILE_ID,TRIM(AI1(i)) ,NF90_INT,(/land_ID,t_ID/),VIDI1(i) &
 #ifndef __NETCDF3__
-               , deflate_level=1 &
+               , deflate_level=4 &
 #endif
                )
           IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
@@ -1935,7 +2024,7 @@ CONTAINS
           DO i = 1, SIZE(A2)
              STATUS = NF90_def_var(FILE_ID,TRIM(A2(i)) ,NF90_FLOAT,(/land_ID,age_ID,t_ID/),VID2(i) &
 #ifndef __NETCDF3__
-                  , deflate_level=1 &
+                  , deflate_level=4 &
 #endif
                   )
              IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
@@ -1955,7 +2044,7 @@ CONTAINS
        DO i = 1, SIZE(A4)
           STATUS = NF90_def_var(FILE_ID,TRIM(A4(i)) ,NF90_FLOAT,(/land_ID,nLU_ID,t_ID/),VID4(i) &
 #ifndef __NETCDF3__
-               , deflate_level=1 &
+               , deflate_level=4 &
 #endif
                )
           IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
@@ -1964,7 +2053,7 @@ CONTAINS
        DO i = 1, SIZE(A5)
           STATUS = NF90_def_var(FILE_ID,TRIM(A5(i)) ,NF90_FLOAT,(/land_ID,ntrans_ID,t_ID/),VID5(i) &
 #ifndef __NETCDF3__
-               , deflate_level=1 &
+               , deflate_level=4 &
 #endif
                )
           IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
@@ -1973,7 +2062,7 @@ CONTAINS
        DO i = 1, SIZE(A6)
           STATUS = NF90_def_var(FILE_ID,TRIM(A6(i)) ,NF90_FLOAT,(/land_ID,nprod_ID,t_ID/),VID6(i) &
 #ifndef __NETCDF3__
-               , deflate_level=1 &
+               , deflate_level=4 &
 #endif
                )
           IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
@@ -1991,14 +2080,12 @@ CONTAINS
        IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
 
        CALL1 = .FALSE.
-       ! print*, 'OCreated65'
 
     ENDIF ! CALL1
 
 
 
     ! TIME  ( t )
-    ! print*, 'OWrite65 ', file_id
     STATUS = NF90_PUT_VAR(FILE_ID, VIDtime, ctime, start=(/ CNT /) )
     IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
 
@@ -2118,7 +2205,6 @@ CONTAINS
 
     IF ( FINAL ) THEN
        ! Close NetCDF file:
-       ! print*, 'OClose65 ', file_id
        STATUS  = NF90_close(FILE_ID)
        file_id = -1
        IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
@@ -2129,7 +2215,7 @@ CONTAINS
 
   !*********************************************************************************************************************
 
-  SUBROUTINE WRITE_LUC_RESTART_NC(POPLUC, ctime)
+  SUBROUTINE WRITE_LUC_RESTART_NC(POPLUC)
 
     use cable_common_module, only: filename, cable_user, HANDLE_ERR
     use netcdf
@@ -2137,7 +2223,6 @@ CONTAINS
     implicit none
 
     type(popluc_type), intent(in) :: POPLUC
-    integer,           intent(in) :: ctime
 
     INTEGER   :: STATUS
     INTEGER   :: land_ID, age_ID, i, mp, nprod_ID
@@ -2193,7 +2278,6 @@ CONTAINS
 
     ! Create NetCDF file:
     STATUS = NF90_create(trim(fname), ior(nf90_clobber,nf90_64bit_offset), FILE_ID)
-    ! print*, 'OCreate66 ', file_id, trim(fname)
     IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
 
     ! Put the file in define mode:
@@ -2269,7 +2353,6 @@ CONTAINS
 
 
     ! Close NetCDF file:
-    ! print*, 'OClose66 ', file_id
     STATUS = NF90_close(FILE_ID)
     file_id = -1
     IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
@@ -2329,7 +2412,6 @@ CONTAINS
        fname = TRIM(filename%path)//'/'//TRIM(cable_user%RunIden)//'_'//'LUC_rst.nc'
     ENDIF
     STATUS = NF90_OPEN( TRIM(fname), NF90_NOWRITE, FILE_ID )
-    ! print*, 'OOpen67 ', file_id, trim(fname)
     IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
 
     ! DIMS
@@ -2398,7 +2480,6 @@ CONTAINS
        END SELECT
     END DO
 
-    ! print*, 'OClose67 ', file_id
     STATUS = NF90_CLOSE( FILE_ID )
     file_id = -1
 
@@ -2463,13 +2544,13 @@ CONTAINS
     REAL(dp), DIMENSION(:,:,:), ALLOCATABLE :: tmparr1
     REAL(dp), DIMENSION(:,:,:), ALLOCATABLE :: tmparr2
     REAL(dp), DIMENSION(:,:,:), ALLOCATABLE :: tmparr3
-    
+
     mp = POPLUC%np
     nx = xdimsize
     ny = ydimsize
     nprod = 3
     put_age_vars = .FALSE.
-    
+
     allocate(freq_age_secondary(mp,age_max))
     ALLOCATE(landmask(xdimsize, ydimsize)) ! Local use in this routine (integer)
     ALLOCATE(fieldr(xdimsize, ydimsize))   ! field for UNPACK command (reals)
@@ -2477,7 +2558,7 @@ CONTAINS
     ALLOCATE(tmparr1(xdimsize, ydimsize, nLU))
     ALLOCATE(tmparr2(xdimsize, ydimsize, nTrans))
     ALLOCATE(tmparr3(xdimsize, ydimsize, nprod))
-    
+
     ! Convert the integer 'mask' into the logical 'landmask'
     WHERE (mask .EQ. 1 )
        landmask = .TRUE.
@@ -2560,8 +2641,12 @@ CONTAINS
        ELSEIF (CABLE_USER%YEARSTART.lt.1000) THEN
           WRITE( dum, FMT="(I3,'_',I4)")CABLE_USER%YEARSTART,CABLE_USER%YEAREND
        ENDIF
-       fname = TRIM(filename%path)//'/'//TRIM(cable_user%RunIden)//'_'//&
-            TRIM(dum)//'_LUC_out.nc'
+
+       if (len_trim(cable_user%LUC_outfile) > 0) then
+          fname = trim(cable_user%LUC_outfile)
+       else
+          fname = trim(filename%path) // '/' // trim(cable_user%RunIden) // '_' // trim(dum) // '_LUC_out.nc'
+       endif
 
        ! Create NetCDF file:
 #ifdef __NETCDF3__
@@ -2569,7 +2654,6 @@ CONTAINS
 #else
        STATUS = NF90_create(trim(fname), ior(nf90_clobber,ior(nf90_netcdf4,nf90_classic_model)), FILE_ID)
 #endif
-       ! print*, 'OCreate68 ', file_id, trim(fname)
        IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
 
        ! Put the file in define mode:
@@ -2666,7 +2750,7 @@ CONTAINS
        DO i = 1, SIZE(A1)
           STATUS = NF90_def_var(FILE_ID, TRIM(A1(i)), NF90_FLOAT, (/xID, yID,t_ID/), VID1(i) &
 #ifndef __NETCDF3__
-               , deflate_level=1 &
+               , deflate_level=4 &
 #endif
                )
           IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
@@ -2686,7 +2770,7 @@ CONTAINS
        DO i = 1, SIZE(AI1)
           STATUS = NF90_def_var(FILE_ID, TRIM(AI1(i)), NF90_INT, (/xID, yID,t_ID/), VIDI1(i) &
 #ifndef __NETCDF3__
-               , deflate_level=1 &
+               , deflate_level=4 &
 #endif
                )
           IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
@@ -2708,7 +2792,7 @@ CONTAINS
           DO i = 1, SIZE(A2)
              STATUS = NF90_def_var(FILE_ID, TRIM(A2(i)), NF90_FLOAT, (/xID, yID,age_ID,t_ID/), VID2(i) &
 #ifndef __NETCDF3__
-                  , deflate_level=1 &
+                  , deflate_level=4 &
 #endif
                   )
              IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
@@ -2718,7 +2802,7 @@ CONTAINS
        DO i = 1, SIZE(A4)
           STATUS = NF90_def_var(FILE_ID, TRIM(A4(i)), NF90_FLOAT, (/xID, yID,nLU_ID,t_ID/), VID4(i) &
 #ifndef __NETCDF3__
-               , deflate_level=1 &
+               , deflate_level=4 &
 #endif
                )
           IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
@@ -2737,7 +2821,7 @@ CONTAINS
        DO i = 1, SIZE(A5)
           STATUS = NF90_def_var(FILE_ID, TRIM(A5(i)), NF90_FLOAT, (/xID, yID,ntrans_ID,t_ID/), VID5(i) &
 #ifndef __NETCDF3__
-               , deflate_level=1 &
+               , deflate_level=4 &
 #endif
                )
           IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
@@ -2757,7 +2841,7 @@ CONTAINS
        DO i = 1, SIZE(A6)
           STATUS = NF90_def_var(FILE_ID, TRIM(A6(i)), NF90_FLOAT, (/xID, yID ,nprod_ID,t_ID/), VID6(i) &
 #ifndef __NETCDF3__
-               , deflate_level=1 &
+               , deflate_level=4 &
 #endif
                )
           IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
@@ -2803,12 +2887,10 @@ CONTAINS
        IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
 
        CALL1 = .FALSE.
-       ! print*, 'OCreated68'
 
     ENDIF ! CALL1
 
     ! TIME  ( t )
-    ! print*, 'OWrite68 ', file_id
     STATUS = NF90_PUT_VAR(FILE_ID, VIDtime, ctime, start=(/ CNT /) )
     IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
 
@@ -2935,7 +3017,6 @@ CONTAINS
          start=(/ 1,1,1,CNT /), count=(/ nx,ny,nLU,1 /) )
     IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
 
-
     DO k=1,nLU
        tmparr1(:,:,k) = UNPACK(POPLUC%Clitt(:,k),landmask, fieldr)
     ENDDO
@@ -3004,11 +3085,10 @@ CONTAINS
 
     IF ( FINAL ) THEN
        ! Close NetCDF file:
-       ! print*, 'OClose68 ', file_id
        STATUS  = NF90_close(FILE_ID)
        file_id = -1
        IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-       WRITE(*,*) " POPLUC Output written to ",fname
+       WRITE(*,*) " POPLUC Output written to ", trim(fname)
     ENDIF
 
   END SUBROUTINE WRITE_LUC_OUTPUT_GRID_NC

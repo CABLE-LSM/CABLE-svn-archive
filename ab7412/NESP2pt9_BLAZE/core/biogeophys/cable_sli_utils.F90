@@ -12,6 +12,10 @@ MODULE sli_utils
        gf, hmin, rhmin, dsmmax, rhocp, vars_snow, vars_met, &
        freezefac, ithermalcond, rmair, Mw
   USE cable_common_module, ONLY: cable_user
+  use mo_utils,            only: eq
+#ifdef __MPI__
+  use mpi,                 only: MPI_Abort
+#endif
 
   IMPLICIT NONE
 
@@ -20,9 +24,12 @@ MODULE sli_utils
   PUBLIC :: dx, dxL, par, plit, sol, x ! soil water parameters
   PUBLIC :: bd, dis, isopar, isotype   ! soil solute parameters
   PUBLIC :: aquifer_props, flux, generic_thomas, getfluxes_vp, getheatfluxes, hyofh, hyofS, isosub ! subroutines
-  PUBLIC :: litter_props, massman_sparse, potential_evap, setlitterpar, setpar, setpar_Loetsch, setsol, setx, tri
+  PUBLIC :: litter_props, massman_sparse, potential_evap
+  PUBLIC :: setlitterpar, setpar, setpar_Loetsch, setsol, setx, tri, printparams
   PUBLIC :: csat, csoil, dthetalmaxdT, dthetalmaxdTh, esat, esat_ice, gammln, igamma, phi, rh0_sol, rtbis_rh0 ! functions
-  PUBLIC :: slope_csat, slope_esat,slope_esat_ice, Sofh, Tfrz, thetalmax, weight, zerovars, Tthetalmax, Tfrozen
+  PUBLIC :: slope_csat, slope_esat,slope_esat_ice, Sofh, Tfrz, thetalmax, weight, Tthetalmax, Tfrozen
+  PUBLIC :: zerovars, zerovars_met, zerovars_snow, zerovars_aquifer
+  PUBLIC :: printvars, printvars_met, printvars_snow, printvars_aquifer
   PUBLIC :: rtbis_Tfrozen, GTfrozen, JSoilLayer, forcerestore, SEB
   PUBLIC :: spline_b, mean, nse
 
@@ -42,6 +49,9 @@ MODULE sli_utils
   REAL(r_2),        DIMENSION(:),   ALLOCATABLE         :: dis
   TYPE(rapointer),  DIMENSION(:,:), ALLOCATABLE         :: isopar
   CHARACTER(LEN=2), DIMENSION(:,:), ALLOCATABLE         :: isotype
+#ifdef __MPI__
+  integer :: ierr
+#endif
 
   ! Subroutine interfaces
 
@@ -198,7 +208,7 @@ CONTAINS
   !*****************************************************************************************
 
   SUBROUTINE forcerestore(Tg0, Rnet0, lE0, dlEdTg, Ta, Tbar, d1, rrc, lambda, &
-       cs, dt, iice, Tg, G, H, lE)
+       dt, iice, Tg, G, H, lE)
 
     ! method applicable to multilayer soil or soil/snow column
     ! derived using Eq's 3-12 in Hirota et al. JGR 2002
@@ -212,7 +222,6 @@ CONTAINS
     REAL(r_2), INTENT(IN)   :: d1 ! diurnal damping depth (m) = sqrt(2*lambda/c/omega) (Hirota et al. eq 40)
     REAL(r_2), INTENT(IN)   :: rrc ! resistance to sensible heat and radiation transfer at ground/air interface [m-1 s]
     REAL(r_2), INTENT(IN)   :: lambda ! thermal conductivity of soil or snow at surface [W m-1 K-1]
-    REAL(r_2), INTENT(IN)   :: cs ! heat capacity of soil or snow at surface [J m-3 K-1]
     REAL(r_2), INTENT(IN)   :: dt ! time step [s]
     INTEGER, INTENT(IN):: iice ! top layer frozen (1) or not (0)
     REAL(r_2), INTENT(OUT) :: Tg, G, H, lE
@@ -290,7 +299,7 @@ CONTAINS
   ! Surface Energy Balance
   SUBROUTINE SEB(n, par, vmet, vsnow, var, qprec, qprec_snow, dx, h0, Tsoil,  &
        Tsurface, G0, lE0, Epot, qsurface, qevap, qliq, qv, &
-       qyb, qTb, qlyb, qvyb, qlTb, qvTb, qh, qadv, qhyb, qhTb, qadvyb, qadvTb, irec)
+       qyb, qTb, qlyb, qvyb, qlTb, qvTb, qh, qadv, qhyb, qhTb, qadvyb, qadvTb)
 
     IMPLICIT NONE
 
@@ -301,7 +310,6 @@ CONTAINS
     TYPE(vars),      DIMENSION(1:n), INTENT(IN) :: var
     REAL(r_2),                       INTENT(IN) :: qprec
     REAL(r_2),                       INTENT(IN) :: qprec_snow
-    INTEGER(i_d),                    INTENT(IN) :: irec
     REAL(r_2),       DIMENSION(1:n), INTENT(IN) :: dx
     REAL(r_2),                       INTENT(IN) :: h0
     REAL(r_2),       DIMENSION(1:n), INTENT(IN) :: Tsoil
@@ -384,13 +392,13 @@ CONTAINS
              isEpot = .false.
              lE0 = E_vap+E_liq
              dEdTs = zero
-          endif          
+          endif
           ! lE0 = min(Epot, E_vap+E_liq) ! analytic approximation (See Haverd et al. 2013, Appxx)
           ! if (Epot .gt. (E_vap+E_liq)) dEdTs = zero
           Tsurface = (-half*dx(1)*lE0 + half*dx(1)*vmet%Rn + &
                var(1)%kth*Tsoil(1) + half*dx(1)*(one/vmet%rbh*rhocp)*vmet%Ta) &
                /(var(1)%kth + half*dx(1)*(one/vmet%rbh*rhocp))
-          
+
           G0       = var(1)%kth/(half*dx(1))*(Tsurface-Tsoil(1))
           dGdTsoil  =  -var(1)%kth/(half*dx(1))
 
@@ -466,14 +474,14 @@ CONTAINS
        qadvTb = dTqwdTb + rhow*cswat*Tqw*qTb
        qadvyb =  rhow*cswat*qyb*Tqw
        qadvyb = 0
-     
 
-       qadvTb = 0 ! test vh! 
-       
+
+       qadvTb = 0 ! test vh!
+
        qh = qadv + G0
        qhyb = qadvyb
        qhTb = dGdTsoil + qadvTb
-      
+
     case (2) !dedicated snow layer
        ! NB Only longwave component of net radiation directly affects SEB: sw component is absorbed internally
 
@@ -560,7 +568,7 @@ CONTAINS
        qadvyb = zero
        qhyb   = qhyb + qadvyb
        qhTb   = qhTb + qadvTb
-       
+
 
        qv   = -qevap
        qliq = zero
@@ -898,7 +906,11 @@ CONTAINS
           err = 1
           return
        else
-          stop 1
+#ifdef __MPI__
+          call MPI_Abort(0, 144, ierr) ! Do not know comm nor rank here
+#else
+          stop 144
+#endif
        endif
     endif
     detbet1 = one/detbet
@@ -921,7 +933,11 @@ CONTAINS
              err = 1
              return
           else
-             stop 1
+#ifdef __MPI__
+             call MPI_Abort(0, 145, ierr) ! Do not know comm nor rank here
+#else
+             stop 145
+#endif
           endif
        endif
        detbet1      = one/detbet
@@ -968,7 +984,11 @@ CONTAINS
           err = 1
           return
        else
-          stop 1
+#ifdef __MPI__
+          call MPI_Abort(0, 146, ierr) ! Do not know comm nor rank here
+#else
+          stop 146
+#endif
        endif
     endif
     detbet1(1:mp) = one/detbet(1:mp)
@@ -995,7 +1015,11 @@ CONTAINS
              err = 1
              return
           else
-             stop 1
+#ifdef __MPI__
+             call MPI_Abort(0, 147, ierr) ! Do not know comm nor rank here
+#else
+             stop 147
+#endif
           endif
        endif
        detbet1(1:mp) = one/detbet(1:mp)
@@ -1284,7 +1308,7 @@ CONTAINS
     qvT(n) = zero
 
     do i=1, n-1
-       if (var(i)%Dv == zero .or. var(i+1)%Dv == zero) then
+       if (eq(var(i)%Dv, zero) .or. eq(var(i+1)%Dv, zero)) then
           q(i)    = q(i) - qv(i)
           qya(i)  = qya(i) - qvya(i)
           qyb(i)  = qyb(i) - qvyb(i)
@@ -1665,7 +1689,7 @@ CONTAINS
     qvT(:,n) = zero
 
     do i=1, n-1
-       where (var(:,i)%Dv == zero .or. var(:,i+1)%Dv == zero)
+       where (eq(var(:,i)%Dv, zero) .or. eq(var(:,i+1)%Dv, zero))
           q(:,i)    = q(:,i) - qv(:,i)
           qya(:,i)  = qya(:,i) - qvya(:,i)
           qyb(:,i)  = qyb(:,i) - qvyb(:,i)
@@ -1695,24 +1719,20 @@ CONTAINS
 
   !**********************************************************************************************************************
 
-  SUBROUTINE getheatfluxes_1d(n, dx, dxL, qh, qhya, qhyb, qhTa, qhTb, var, vlit, T, TL, litter, &
+  SUBROUTINE getheatfluxes_1d(n, dx, qh, qhya, qhyb, qhTa, qhTb, var, T, &
        q, qya, qyb, qTa, qTb,qadv, qadvya, qadvyb, qadvTa, qadvTb,advection)
     ! modified 25/05/10 to include contribution to heat flux from liquid water flux in the presence of ice
     IMPLICIT NONE
 
     INTEGER(i_d),               INTENT(IN)    :: n
     REAL(r_2),  DIMENSION(1:n), INTENT(IN)    :: dx
-    REAL(r_2),                  INTENT(IN)    :: dxL
     REAL(r_2),  DIMENSION(0:n), INTENT(INOUT) :: qh, q, qadv
     REAL(r_2),  DIMENSION(0:n), INTENT(INOUT) :: qhya, qya, qadvya
     REAL(r_2),  DIMENSION(0:n), INTENT(INOUT) :: qhyb, qyb, qadvyb
     REAL(r_2),  DIMENSION(0:n), INTENT(INOUT) :: qhTa, qTa, qadvTa
     REAL(r_2),  DIMENSION(0:n), INTENT(INOUT) :: qhTb, qTb, qadvTb
     TYPE(vars), DIMENSION(1:n), INTENT(IN)    :: var
-    TYPE(vars),                 INTENT(IN)    :: vlit
     REAL(r_2),  DIMENSION(1:n), INTENT(IN)    :: T
-    REAL(r_2),                  INTENT(IN)    :: TL
-    LOGICAL,                    INTENT(IN)    :: litter
     INTEGER(i_d),               INTENT(IN)    :: advection
     ! Gets heat fluxes qh and partial derivs qhya, qhyb wrt T and S (if unsat) or phi (if sat).
 
@@ -1795,14 +1815,13 @@ CONTAINS
 
   END SUBROUTINE getheatfluxes_1d
 
-  SUBROUTINE getheatfluxes_2d(dx, dxL, i_qh, i_qhya, i_qhyb, i_qhTa, i_qhTb, var, vlit, T, TL, &
-       litter, i_q,i_qya,i_qyb,i_qTa,i_qTb, &
+  SUBROUTINE getheatfluxes_2d(dx, i_qh, i_qhya, i_qhyb, i_qhTa, i_qhTb, var, T, &
+       i_q,i_qya,i_qyb,i_qTa,i_qTb, &
        i_qadv,i_qadvya, i_qadvyb, i_qadvTa, i_qadvTb, advection)
     ! modified 25/05/10 to include contribution to heat flux from liquid water flux in the presence of ice
     IMPLICIT NONE
 
     REAL(r_2),    DIMENSION(:,:), INTENT(IN)    :: dx      ! :,1:n
-    REAL(r_2),    DIMENSION(:),   INTENT(IN)    :: dxL
     REAL(r_2),    DIMENSION(:,:), INTENT(INOUT) :: i_qh    ! :,0:n => :,1:n+1
     REAL(r_2),    DIMENSION(:,:), INTENT(INOUT) :: i_qhya  ! :,0:n => :,1:n+1
     REAL(r_2),    DIMENSION(:,:), INTENT(INOUT) :: i_qhyb  ! :,0:n => :,1:n+1
@@ -1819,10 +1838,7 @@ CONTAINS
     REAL(r_2),    DIMENSION(:,:), INTENT(INOUT) :: i_qadvTa  ! :,0:n => :,1:n+1
     REAL(r_2),    DIMENSION(:,:), INTENT(INOUT) :: i_qadvTb  ! :,0:n => :,1:n+1
     TYPE(vars),   DIMENSION(:,:), INTENT(IN)    :: var
-    TYPE(vars),   DIMENSION(:),   INTENT(IN)    :: vlit
     REAL(r_2),    DIMENSION(:,:), INTENT(IN)    :: T       ! :,1:n
-    REAL(r_2),    DIMENSION(:),   INTENT(IN)    :: TL
-    LOGICAL,                      INTENT(IN)    :: litter
     INTEGER(i_d),   INTENT(IN)    :: advection
     ! Gets heat fluxes qh and partial derivs qhya, qhyb wrt T and S (if unsat) or phi (if sat).
 
@@ -2253,7 +2269,7 @@ CONTAINS
 
     select case (iso)
     case ("Fr")
-       if (p(3)==zero) then ! linearise near zero
+       if (eq(p(3),zero)) then ! linearise near zero
           p(3) = (0.01_r_2*dsmmax/p(1))**(one/p(2)) ! concn at 0.01*dsmmax
           p(4) = p(1)*p(3)**(p(2)-one) ! slope
        end if
@@ -2275,7 +2291,11 @@ CONTAINS
        fd = p(1)*(x-p(2)*c*x**2)+p(3)
     case default
        write(*,*) "isosub: illegal isotherm type"
-       stop 2
+#ifdef __MPI__
+       call MPI_Abort(0, 148, ierr) ! Do not know comm nor rank here
+#else
+       stop 148
+#endif
     end select
 
   END SUBROUTINE isosub
@@ -2306,22 +2326,34 @@ CONTAINS
     REAL(r_2), DIMENSION(2*size(cc),2*size(cc)) :: allmat
     REAL(r_2)    :: eps
     INTEGER(i_d) :: docond ! 0: no conditioning, 1: columns, 2: lines, 3: both
-    INTEGER(i_d) :: ierr ! error code for generic_thomas
+    INTEGER(i_d) :: iierr ! error code for generic_thomas
     ! CHARACTER(LEN=20) :: form1
     ! integer :: i, nn
     !
     ! check input sizes
     if (.not. all((/size(aa)+1,size(bb)+1,size(dd),size(ee)+1,size(ff)+1,size(gg)/) == size(cc))) then
        write(*,*) 'massman_sparse_1d error1: unequal humidity coeffs.'
-       stop 2
+#ifdef __MPI__
+       call MPI_Abort(0, 149, ierr) ! Do not know comm nor rank here
+#else
+       stop 149
+#endif
     end if
     if (.not. all((/size(aah)+1,size(bbh)+1,size(ddh),size(eeh)+1,size(ffh)+1,size(ggh)/) == size(cch))) then
        write(*,*) 'massman_sparse_1d error2: unequal temperature coeffs.'
-       stop 2
+#ifdef __MPI__
+       call MPI_Abort(0, 150, ierr) ! Do not know comm nor rank here
+#else
+       stop 150
+#endif
     end if
     if (size(cc) /= size(cch)) then
        write(*,*) 'massman_sparse_1d error3: unequal temperature and humidity coeffs.'
-       stop 2
+#ifdef __MPI__
+       call MPI_Abort(0, 151, ierr) ! Do not know comm nor rank here
+#else
+       stop 151
+#endif
     end if
     n = size(cc)
     if (present(condition)) then
@@ -2330,7 +2362,7 @@ CONTAINS
        docond = 0
     endif
     if (present(err)) err = 0
-    ierr = 0
+    iierr = 0
     !
     ! Overall matrix
     if (docond >= 1 .and. docond <= 3) then
@@ -2407,13 +2439,17 @@ CONTAINS
     d(1:n,2)     = ggh(1:n)   * lT(1:n)
     !
     ! Call Generic Thomas algorithm
-    call generic_thomas(n,A,B,C,d,x,ierr)
-    if (ierr /= 0) then
+    call generic_thomas(n,A,B,C,d,x,iierr)
+    if (iierr /= 0) then
        if (present(err)) then
           err = 1
           return
        else
-          stop 1
+#ifdef __MPI__
+          call MPI_Abort(0, 152, ierr) ! Do not know comm nor rank here
+#else
+          stop 152
+#endif
        endif
     endif
     dy(1:n) = x(1:n,1) * cS(1:n)
@@ -2446,34 +2482,58 @@ CONTAINS
     REAL(r_2), DIMENSION(1:size(cc,1),2*size(cc,2),2*size(cc,2)) :: allmat
     REAL(r_2)    :: eps
     INTEGER(i_d) :: docond ! 0: no conditioning, 1: columns, 2: lines, 3: both
-    INTEGER(i_d) :: ierr ! error code for generic_thomas
+    INTEGER(i_d) :: iierr ! error code for generic_thomas
     ! CHARACTER(LEN=20) :: form1
     ! integer :: i, k, nn
     !
     ! check input sizes
     if (.not. all((/size(aa,1)+1,size(bb,1)+1,size(dd,1),size(ee,1)+1,size(ff,1)+1,size(gg,1)/) == size(cc,1))) then
        write(*,*) 'massman_sparse_2d error1: unequal humidity coeffs (1st dim).'
-       stop 2
+#ifdef __MPI__
+       call MPI_Abort(0, 153, ierr) ! Do not know comm nor rank here
+#else
+       stop 153
+#endif
     end if
     if (.not. all((/size(aah,1)+1,size(bbh,1)+1,size(ddh,1),size(eeh,1)+1,size(ffh,1)+1,size(ggh,1)/) == size(cch,1))) then
        write(*,*) 'massman_sparse_2d error2: unequal temperature coeffs (1st dim).'
-       stop 2
+#ifdef __MPI__
+       call MPI_Abort(0, 154, ierr) ! Do not know comm nor rank here
+#else
+       stop 154
+#endif
     end if
     if (size(cc,1) /= size(cch,1)) then
        write(*,*) 'massman_sparse_2d error3: unequal temperature and humidity coeffs (1st dim).'
-       stop 2
+#ifdef __MPI__
+       call MPI_Abort(0, 155, ierr) ! Do not know comm nor rank here
+#else
+       stop 155
+#endif
     end if
     if (.not. all((/size(aa,2)+1,size(bb,2)+1,size(dd,2),size(ee,2)+1,size(ff,2)+1,size(gg,2)/) == size(cc,2))) then
        write(*,*) 'massman_sparse_2d error4: unequal humidity coeffs (2nd dim).'
-       stop 2
+#ifdef __MPI__
+       call MPI_Abort(0, 156, ierr) ! Do not know comm nor rank here
+#else
+       stop 156
+#endif
     end if
     if (.not. all((/size(aah,2)+1,size(bbh,2)+1,size(ddh,2),size(eeh,2)+1,size(ffh,2)+1,size(ggh,2)/) == size(cch,2))) then
        write(*,*) 'massman_sparse_2d error5: unequal temperature coeffs (2nd dim).'
-       stop 2
+#ifdef __MPI__
+       call MPI_Abort(0, 157, ierr) ! Do not know comm nor rank here
+#else
+       stop 157
+#endif
     end if
     if (size(cc,2) /= size(cch,2)) then
        write(*,*) 'massman_sparse_2d error6: unequal temperature and humidity coeffs (2nd dim).'
-       stop 2
+#ifdef __MPI__
+       call MPI_Abort(0, 158, ierr) ! Do not know comm nor rank here
+#else
+       stop 158
+#endif
     end if
 
     mp   = size(cc,1)
@@ -2484,7 +2544,7 @@ CONTAINS
        docond = 0
     endif
     if (present(err)) err = 0
-    ierr = 0
+    iierr = 0
     !
     ! Overall matrix
     if (docond >= 1 .and. docond <= 3) then
@@ -2561,13 +2621,17 @@ CONTAINS
     d(1:mp,1:n,2)     = ggh(1:mp,1:n)   * lT(1:mp,1:n)
     !
     ! Call Generic Thomas algorithm
-    call generic_thomas(mp,n,A,B,C,d,x,ierr)
-    if (ierr /= 0) then
+    call generic_thomas(mp,n,A,B,C,d,x,iierr)
+    if (iierr /= 0) then
        if (present(err)) then
           err = 1
           return
        else
-          stop 1
+#ifdef __MPI__
+          call MPI_Abort(0, 159, ierr) ! Do not know comm nor rank here
+#else
+          stop 159
+#endif
        endif
     endif
     dy(1:mp,1:n) = x(1:mp,1:n,1) * cS(1:mp,1:n)
@@ -2644,7 +2708,7 @@ CONTAINS
 
   !**********************************************************************************************************************
 
- ! ELEMENTAL PURE 
+ ! ELEMENTAL PURE
 SUBROUTINE potential_evap(Rn, rbh, rbw, Ta, rha, Tsoil, k, dz,lambdav, &
        Ts, E, H, G, &
        dEdrha, dEdTs, dEdTsoil, dGdTa, dGdTsoil,iice)
@@ -2784,54 +2848,53 @@ SUBROUTINE potential_evap(Rn, rbh, rbw, Ta, rha, Tsoil, k, dz,lambdav, &
        !par(:,i)%LambdaS    = real(soil%LambdaS(index),r_2)
        par(:,i)%LambdaS    = 2830_r_2 ! Sispat Manual Table 2
     enddo
-    
-! special for Cumberland: set soil params to clay:                                                                                    
-    if (cable_user%Cumberland_soil) then                                                                                                                 
-       do i=1,ms                                                                                                                        
-          par(:,i)%thw        = 0.286                                                                                                    
-          par(:,i)%thfc       = 0.367                                                                                                    
-          par(:,i)%the        = 0.482                                                                                                    
-          par(:,i)%thre       = real(soil%ssat(index),r_2) - par(:,i)%thr                                                                
-          par(:,i)%he         = -0.405                                                                                                   
-          par(:,i)%Ke         = 1e-6                                                                                                     
-          par(:,i)%lam        = 1./11.4                                                                                                  
-          par(:,i)%eta        = two/par(:,i)%lam + two + one                                                                             
-          par(:,i)%KSe        = par(:,i)%eta * par(:,i)%Ke    ! dK/dS at he                                                              
-          par(:,i)%phie       = par(:,i)%Ke * par(:,i)%he / (one - par(:,i)%lam * par(:,i)%eta) ! MFP at he                              
-          par(:,i)%phiSe      = (par(:,i)%eta - one/par(:,i)%lam) * par(:,i)%phie    ! dphi/dS at he                                     
-          par(:,i)%clay       = 0.67
 
-!!$          par(:,i)%thw        = 0.178                                                                                                    
-!!$          par(:,i)%thfc       = 0.367                                                                                                    
-!!$          par(:,i)%the        = 0.45                                                                                                    
-!!$          par(:,i)%thre       = real(soil%ssat(index),r_2) - par(:,i)%thr                                                                
-!!$          par(:,i)%he         = -0.572                                                                                                   
-!!$          par(:,i)%Ke         = 2.8e-5                                                                                                    
-!!$          par(:,i)%lam        = 1./8.7                                                                                                  
-!!$          par(:,i)%eta        = two/par(:,i)%lam + two + one                                                                             
-!!$          par(:,i)%KSe        = par(:,i)%eta * par(:,i)%Ke    ! dK/dS at he                                                              
-!!$          par(:,i)%phie       = par(:,i)%Ke * par(:,i)%he / (one - par(:,i)%lam * par(:,i)%eta) ! MFP at he                              
-!!$          par(:,i)%phiSe      = (par(:,i)%eta - one/par(:,i)%lam) * par(:,i)%phie    ! dphi/dS at he                                     
-!!$          par(:,i)%clay       = 0.2
-          
-       enddo 
+! special for Cumberland: set soil params to clay:
+    if (cable_user%Cumberland_soil) then
+       do i=1,ms
+          par(:,i)%thw        = 0.286_r_2
+          par(:,i)%thfc       = 0.367_r_2
+          par(:,i)%the        = 0.482_r_2
+          par(:,i)%thre       = real(soil%ssat(index),r_2) - par(:,i)%thr
+          par(:,i)%he         = -0.405_r_2
+          par(:,i)%Ke         = 1.e-6_r_2
+          par(:,i)%lam        = 1._r_2/11.4_r_2
+          par(:,i)%eta        = two/par(:,i)%lam + two + one
+          par(:,i)%KSe        = par(:,i)%eta * par(:,i)%Ke    ! dK/dS at he
+          par(:,i)%phie       = par(:,i)%Ke * par(:,i)%he / (one - par(:,i)%lam * par(:,i)%eta) ! MFP at he
+          par(:,i)%phiSe      = (par(:,i)%eta - one/par(:,i)%lam) * par(:,i)%phie    ! dphi/dS at he
+          par(:,i)%clay       = 0.67_r_2
+
+!!$          par(:,i)%thw        = 0.178_r_2
+!!$          par(:,i)%thfc       = 0.367_r_2
+!!$          par(:,i)%the        = 0.45_r_2
+!!$          par(:,i)%thre       = real(soil%ssat(index),r_2) - par(:,i)%thr
+!!$          par(:,i)%he         = -0.572_r_2
+!!$          par(:,i)%Ke         = 2.8e-5_r_2
+!!$          par(:,i)%lam        = 1._r_2/8.7_r_2
+!!$          par(:,i)%eta        = two/par(:,i)%lam + two + one
+!!$          par(:,i)%KSe        = par(:,i)%eta * par(:,i)%Ke    ! dK/dS at he
+!!$          par(:,i)%phie       = par(:,i)%Ke * par(:,i)%he / (one - par(:,i)%lam * par(:,i)%eta) ! MFP at he
+!!$          par(:,i)%phiSe      = (par(:,i)%eta - one/par(:,i)%lam) * par(:,i)%phie    ! dphi/dS at he
+!!$          par(:,i)%clay       = 0.2_r_2
+       enddo
     endif
-                                                                                                                                    
-!!$   ! special for Cumberland: set top 3 layers to sand                                                                             
-!!$   do i=1,3                                                                                                                       
-!!$      par(:,i)%thw        = 0.175                                                                                                 
-!!$      par(:,i)%thfc       = 0.255                                                                                                 
-!!$      par(:,i)%the        = 0.420                                                                                                 
-!!$      par(:,i)%thre       = real(soil%ssat(index),r_2) - par(:,i)%thr                                                             
-!!$      par(:,i)%he         = -0.299                                                                                                
-!!$      par(:,i)%Ke         = 6.e-6                                                                                                 
-!!$      par(:,i)%lam        = 1./7.12                                                                                               
-!!$      par(:,i)%eta        = two/par(:,i)%lam + two + one                                                                          
-!!$      par(:,i)%KSe        = par(:,i)%eta * par(:,i)%Ke    ! dK/dS at he                                                           
-!!$      par(:,i)%phie       = par(:,i)%Ke * par(:,i)%he / (one - par(:,i)%lam * par(:,i)%eta) ! MFP at he                           
-!!$      par(:,i)%phiSe      = (par(:,i)%eta - one/par(:,i)%lam) * par(:,i)%phie    ! dphi/dS at he                                  
-!!$      par(:,i)%clay       = 0.27                                                                                                  
-!!$                                                                                                                                  
+
+!!$   ! special for Cumberland: set top 3 layers to sand
+!!$   do i=1,3
+!!$      par(:,i)%thw        = 0.175_r_2
+!!$      par(:,i)%thfc       = 0.255_r_2
+!!$      par(:,i)%the        = 0.420_r_2
+!!$      par(:,i)%thre       = real(soil%ssat(index),r_2) - par(:,i)%thr
+!!$      par(:,i)%he         = -0.299_r_2
+!!$      par(:,i)%Ke         = 6.e-6_r_2
+!!$      par(:,i)%lam        = 1._r_2/7.12_r_2
+!!$      par(:,i)%eta        = two/par(:,i)%lam + two + one
+!!$      par(:,i)%KSe        = par(:,i)%eta * par(:,i)%Ke    ! dK/dS at he
+!!$      par(:,i)%phie       = par(:,i)%Ke * par(:,i)%he / (one - par(:,i)%lam * par(:,i)%eta) ! MFP at he
+!!$      par(:,i)%phiSe      = (par(:,i)%eta - one/par(:,i)%lam) * par(:,i)%phie    ! dphi/dS at he
+!!$      par(:,i)%clay       = 0.27_r_2
+!!$
 !!$   enddo
 
 
@@ -3212,7 +3275,7 @@ SUBROUTINE potential_evap(Rn, rbh, rbw, Ta, rha, Tsoil, k, dz,lambdav, &
     INTEGER(i_d) :: i
     REAL(r_2)     :: an, b, c, d, del, h
 
-    if (x == 0.0_r_2) then
+    if (eq(x, 0.0_r_2)) then
        gcf=1.0_r_2
        RETURN
     end if
@@ -3248,7 +3311,7 @@ SUBROUTINE potential_evap(Rn, rbh, rbw, Ta, rha, Tsoil, k, dz,lambdav, &
     INTEGER(i_d) :: n
     REAL(r_2)     :: ap, del, summ
 
-    if (x == 0.0_r_2) then
+    if (eq(x, 0.0_r_2)) then
        gser = 0.0_r_2
        RETURN
     end if
@@ -3372,7 +3435,7 @@ SUBROUTINE potential_evap(Rn, rbh, rbw, Ta, rha, Tsoil, k, dz,lambdav, &
        xmid = rtbis_rh0+dx
        fmid = rh0_sol(xmid,sol)
        if (fmid <= zero) rtbis_rh0 = xmid
-       if (abs(dx) < xacc .or. fmid == zero) RETURN
+       if (abs(dx) < xacc .or. eq(fmid, zero)) RETURN
     end do
 
   END FUNCTION rtbis_rh0
@@ -3570,12 +3633,12 @@ SUBROUTINE potential_evap(Rn, rbh, rbw, Ta, rha, Tsoil, k, dz,lambdav, &
   ! Write rh0_sol into rtbis -> rtbis_rh0
   ! It does not check that f(x1) and f(x2) have different signs and not if iteration > MAXIT
 
-  REAL(r_2) ELEMENTAL PURE FUNCTION rtbis_Tfrozen(J, dxsoil, theta,csoil, rhosoil, h0, thre, the, he, b, x1, x2, xacc)
+  REAL(r_2) ELEMENTAL PURE FUNCTION rtbis_Tfrozen(J, dxsoil, theta,csoil, rhosoil, h0, thre, the, he, b, x1, x2)
 
     IMPLICIT NONE
 
     real(r_2), intent(in) :: J, dxsoil, theta, csoil, rhosoil, h0, thre, the, he, b
-    REAL(r_2), INTENT(IN) :: x1, x2, xacc
+    REAL(r_2), INTENT(IN) :: x1, x2
 
     INTEGER(i_d), PARAMETER :: MAXIT=80
     INTEGER(i_d) :: k
@@ -3744,6 +3807,285 @@ SUBROUTINE potential_evap(Rn, rbh, rbw, Ta, rha, Tsoil, k, dz,lambdav, &
     zerovars%macropore_factor = zero
 
   END FUNCTION zerovars
+
+  !**********************************************************************************************************************
+
+  FUNCTION zerovars_met()
+
+    ! Sets all fields of type vars_met to zero
+
+    IMPLICIT NONE
+
+    TYPE(vars_met) :: zerovars_met
+
+    zerovars_met%Ta    = zero
+    zerovars_met%rha   = zero
+    zerovars_met%rbw   = zero
+    zerovars_met%rbh   = zero
+    zerovars_met%rrc   = zero
+    zerovars_met%Rn    = zero
+    zerovars_met%Da    = zero
+    zerovars_met%cva   = zero
+    zerovars_met%civa  = zero
+    zerovars_met%phiva = zero
+    zerovars_met%Rnsw  = zero
+
+  END FUNCTION zerovars_met
+
+  !**********************************************************************************************************************
+
+  FUNCTION zerovars_snow()
+
+    ! Sets all fields of type vars_snow to zero
+
+    IMPLICIT NONE
+
+    TYPE(vars_snow) :: zerovars_snow
+
+    zerovars_snow%nsnow                    = 0
+    zerovars_snow%nsnow_last               = 0
+    zerovars_snow%depth                    = zero
+    zerovars_snow%hsnow                    = zero
+    zerovars_snow%hliq                     = zero
+    zerovars_snow%dens                     = zero
+    zerovars_snow%tsn                      = zero
+    zerovars_snow%kH                       = zero
+    zerovars_snow%kE                       = zero
+    zerovars_snow%kth                      = zero
+    zerovars_snow%Dv                       = zero
+    zerovars_snow%cv                       = zero
+    zerovars_snow%sl                       = zero
+    zerovars_snow%melt                     = zero
+    zerovars_snow%Jsensible                = zero
+    zerovars_snow%Jlatent                  = zero
+    zerovars_snow%deltaJlatent             = zero
+    zerovars_snow%deltaJsensible           = zero
+    zerovars_snow%fsnowliq_max             = zero
+    zerovars_snow%wcol                     = zero
+    zerovars_snow%Qadv_snow                = zero
+    zerovars_snow%Qadv_rain                = zero
+    zerovars_snow%totdepth                 = zero
+    zerovars_snow%J                        = zero
+    zerovars_snow%Qadv_melt                = zero
+    zerovars_snow%Qadv_vap                 = zero
+    zerovars_snow%Qcond_net                = zero
+    zerovars_snow%Qadv_transfer            = zero
+    zerovars_snow%Qmelt                    = zero
+    zerovars_snow%Qtransfer                = zero
+    zerovars_snow%FluxDivergence           = zero
+    zerovars_snow%deltaJ                   = zero
+    zerovars_snow%Qvap                     = zero
+    zerovars_snow%MoistureFluxDivergence   = zero
+    zerovars_snow%Qprec                    = zero
+    zerovars_snow%Qevap                    = zero
+    zerovars_snow%deltawcol                = zero
+
+  END FUNCTION zerovars_snow
+
+  !**********************************************************************************************************************
+
+  FUNCTION zerovars_aquifer()
+
+    ! Sets all fields of type vars_aquifer to zero
+
+    IMPLICIT NONE
+
+    TYPE(vars_aquifer) :: zerovars_aquifer
+
+    zerovars_aquifer%isat      = 0
+    zerovars_aquifer%zdelta    = zero
+    zerovars_aquifer%zsoil     = zero
+    zerovars_aquifer%zzero     = zero
+    zerovars_aquifer%K         = zero
+    zerovars_aquifer%Wa        = zero
+    zerovars_aquifer%discharge = zero
+    zerovars_aquifer%f         = zero
+    zerovars_aquifer%Rsmax     = zero
+    zerovars_aquifer%Sy        = zero
+
+  END FUNCTION zerovars_aquifer
+
+  !**********************************************************************************************************************
+
+  SUBROUTINE printparams(par)
+
+    ! prints all fields of type vars
+
+    implicit none
+
+    type(params) :: par
+
+    write(*,*) 'par%the ', par%the
+    write(*,*) 'par%thre ', par%thre
+    write(*,*) 'par%he ', par%he
+    write(*,*) 'par%lam ', par%lam
+    write(*,*) 'par%Ke ', par%Ke
+    write(*,*) 'par%eta ', par%eta
+    write(*,*) 'par%thr ', par%thr
+    write(*,*) 'par%KSe ', par%KSe
+    write(*,*) 'par%phie ', par%phie
+    write(*,*) 'par%phiSe ', par%phiSe
+    write(*,*) 'par%rho ', par%rho
+    write(*,*) 'par%thw ', par%thw
+    write(*,*) 'par%thfc ', par%thfc
+    write(*,*) 'par%kd ', par%kd
+    write(*,*) 'par%css ', par%css
+    write(*,*) 'par%clay ', par%clay
+    write(*,*) 'par%tortuosity ', par%tortuosity
+    write(*,*) 'par%ishorizon ', par%ishorizon
+    write(*,*) 'par%zeta ', par%zeta
+    write(*,*) 'par%fsatmax ', par%fsatmax
+    write(*,*) 'par%lambc ', par%lambc
+    write(*,*) 'par%LambdaS ', par%LambdaS
+
+  END SUBROUTINE printparams
+
+  !**********************************************************************************************************************
+
+  SUBROUTINE printvars(var)
+
+    ! prints all fields of type vars
+
+    implicit none
+
+    type(vars) :: var
+
+    write(*,*) 'vars%isat ', var%isat
+    write(*,*) 'vars%h ', var%h
+    write(*,*) 'vars%phi ', var%phi
+    write(*,*) 'vars%phiS ', var%phiS
+    write(*,*) 'vars%K ', var%K
+    write(*,*) 'vars%KS ', var%KS
+    write(*,*) 'vars%Dv ', var%Dv
+    write(*,*) 'vars%cvsat ', var%cvsat
+    write(*,*) 'vars%rh ', var%rh
+    write(*,*) 'vars%phiv ', var%phiv
+    write(*,*) 'vars%phivS ', var%phivS
+    write(*,*) 'vars%kH ', var%kH
+    write(*,*) 'vars%kE ', var%kE
+    write(*,*) 'vars%kth ', var%kth
+    write(*,*) 'vars%csoil ', var%csoil
+    write(*,*) 'vars%eta_th ', var%eta_th
+    write(*,*) 'vars%hS ', var%hS
+    write(*,*) 'vars%rhS ', var%rhS
+    write(*,*) 'vars%sl ', var%sl
+    write(*,*) 'vars%cv ', var%cv
+    write(*,*) 'vars%cvsatT ', var%cvsatT
+    write(*,*) 'vars%cvS ', var%cvS
+    write(*,*) 'vars%kv ', var%kv
+    write(*,*) 'vars%iice ', var%iice
+    write(*,*) 'vars%thetai ', var%thetai
+    write(*,*) 'vars%thetal ', var%thetal
+    write(*,*) 'vars%phiT ', var%phiT
+    write(*,*) 'vars%KT ', var%KT
+    write(*,*) 'vars%lambdav ', var%lambdav
+    write(*,*) 'vars%lambdaf ', var%lambdaf
+    write(*,*) 'vars%he ', var%he
+    write(*,*) 'vars%phie ', var%phie
+    write(*,*) 'vars%Ksat ', var%Ksat
+    write(*,*) 'vars%dthetaldT ', var%dthetaldT
+    write(*,*) 'vars%Tfrz ', var%Tfrz
+    write(*,*) 'vars%csoileff ', var%csoileff
+    write(*,*) 'vars%zsat ', var%zsat
+    write(*,*) 'vars%macropore_factor ', var%macropore_factor
+
+  END SUBROUTINE printvars
+
+  !**********************************************************************************************************************
+
+  SUBROUTINE printvars_met(var)
+
+    ! prints all fields of type vars
+
+    implicit none
+
+    type(vars_met) :: var
+
+    write(*,*) 'vars_met%Ta ', var%Ta
+    write(*,*) 'vars_met%rha ', var%rha
+    write(*,*) 'vars_met%rbw ', var%rbw
+    write(*,*) 'vars_met%rbh ', var%rbh
+    write(*,*) 'vars_met%rrc ', var%rrc
+    write(*,*) 'vars_met%Rn ', var%Rn
+    write(*,*) 'vars_met%Da ', var%Da
+    write(*,*) 'vars_met%cva ', var%cva
+    write(*,*) 'vars_met%civa ', var%civa
+    write(*,*) 'vars_met%phiva ', var%phiva
+    write(*,*) 'vars_met%Rnsw ', var%Rnsw
+
+  END SUBROUTINE printvars_met
+
+  !**********************************************************************************************************************
+  
+  SUBROUTINE printvars_snow(var)
+
+    ! prints all fields of type vars
+
+    implicit none
+
+    type(vars_snow) :: var
+
+    write(*,*) 'vars_snow%nsnow ', var%nsnow
+    write(*,*) 'vars_snow%nsnow_last ', var%nsnow_last
+    write(*,*) 'vars_snow%depth ', var%depth
+    write(*,*) 'vars_snow%hsnow ', var%hsnow
+    write(*,*) 'vars_snow%hliq ', var%hliq
+    write(*,*) 'vars_snow%dens ', var%dens
+    write(*,*) 'vars_snow%tsn ', var%tsn
+    write(*,*) 'vars_snow%kH ', var%kH
+    write(*,*) 'vars_snow%kE ', var%kE
+    write(*,*) 'vars_snow%kth ', var%kth
+    write(*,*) 'vars_snow%Dv ', var%Dv
+    write(*,*) 'vars_snow%cv ', var%cv
+    write(*,*) 'vars_snow%sl ', var%sl
+    write(*,*) 'vars_snow%melt ', var%melt
+    write(*,*) 'vars_snow%Jsensible ', var%Jsensible
+    write(*,*) 'vars_snow%Jlatent ', var%Jlatent
+    write(*,*) 'vars_snow%deltaJsensible ', var%deltaJsensible
+    write(*,*) 'vars_snow%fsnowliq_max ', var%fsnowliq_max
+    write(*,*) 'vars_snow%wcol ', var%wcol
+    write(*,*) 'vars_snow%Qadv_snow ', var%Qadv_snow
+    write(*,*) 'vars_snow%Qadv_rain ', var%Qadv_rain
+    write(*,*) 'vars_snow%totdepth ', var%totdepth
+    write(*,*) 'vars_snow%J ', var%J
+    write(*,*) 'vars_snow%Qadv_melt ', var%Qadv_melt
+    write(*,*) 'vars_snow%Qadv_vap ', var%Qadv_vap
+    write(*,*) 'vars_snow%Qcond_net ', var%Qcond_net
+    write(*,*) 'vars_snow%Qadv_transfer ', var%Qadv_transfer
+    write(*,*) 'vars_snow%Qmelt ', var%Qmelt
+    write(*,*) 'vars_snow%Qtransfer ', var%Qtransfer
+    write(*,*) 'vars_snow%FluxDivergence ', var%FluxDivergence
+    write(*,*) 'vars_snow%deltaJ ', var%deltaJ
+    write(*,*) 'vars_snow%Qvap ', var%Qvap
+    write(*,*) 'vars_snow%MoistureFluxDivergence ', var%MoistureFluxDivergence
+    write(*,*) 'vars_snow%Qprec ', var%Qprec
+    write(*,*) 'vars_snow%Qevap ', var%Qevap
+    write(*,*) 'vars_snow%deltawcol ', var%deltawcol
+
+  END SUBROUTINE printvars_snow
+
+  !**********************************************************************************************************************
+
+  SUBROUTINE printvars_aquifer(var)
+
+    ! prints all fields of type vars
+
+    implicit none
+
+    type(vars_aquifer) :: var
+
+    write(*,*) 'vars_aquifer%isat ', var%isat
+    write(*,*) 'vars_aquifer%zdelta ', var%zdelta
+    write(*,*) 'vars_aquifer%zsoil ', var%zsoil
+    write(*,*) 'vars_aquifer%zzero ', var%zzero
+    write(*,*) 'vars_aquifer%K ', var%K
+    write(*,*) 'vars_aquifer%Wa ', var%Wa
+    write(*,*) 'vars_aquifer%discharge ', var%discharge
+    write(*,*) 'vars_aquifer%f ', var%f
+    write(*,*) 'vars_aquifer%Rsmax ', var%Rsmax
+    write(*,*) 'vars_aquifer%Sy ', var%Sy
+
+  END SUBROUTINE printvars_aquifer
 
   !**********************************************************************************************************************
 
@@ -3952,7 +4294,11 @@ SUBROUTINE potential_evap(Rn, rbh, rbw, Ta, rha, Tsoil, k, dz,lambdav, &
     if (present(mask)) then
        if (size(mask) /= size(dat)) then
           write(*,*) 'Error mean_1d: size(mask) /= size(dat)'
-          stop 2
+#ifdef __MPI__
+          call MPI_Abort(0, 160, ierr) ! Do not know comm nor rank here
+#else
+          stop 160
+#endif
        endif
        maske = mask
        n = real(count(maske),r_2)
@@ -3962,7 +4308,11 @@ SUBROUTINE potential_evap(Rn, rbh, rbw, Ta, rha, Tsoil, k, dz,lambdav, &
     endif
     if (n <= (1.0_r_2+tiny(1.0_r_2))) then
        write(*,*) 'mean_1d: n must be at least 2'
-       stop 2
+#ifdef __MPI__
+       call MPI_Abort(0, 161, ierr) ! Do not know comm nor rank here
+#else
+       stop 161
+#endif
     endif
 
     ! Mean
@@ -3985,7 +4335,11 @@ SUBROUTINE potential_evap(Rn, rbh, rbw, Ta, rha, Tsoil, k, dz,lambdav, &
     if (present(mask)) then
        if (size(mask) /= size(dat)) then
           write(*,*) 'Error mean_2d: size(mask) /= size(dat)'
-          stop 2
+#ifdef __MPI__
+          call MPI_Abort(0, 162, ierr) ! Do not know comm nor rank here
+#else
+          stop 162
+#endif
        endif
        maske = mask
        n = real(count(maske),r_2)
@@ -3995,7 +4349,11 @@ SUBROUTINE potential_evap(Rn, rbh, rbw, Ta, rha, Tsoil, k, dz,lambdav, &
     endif
     if (n <= (1.0_r_2+tiny(1.0_r_2))) then
        write(*,*) 'mean_2d: n must be at least 2'
-       stop 2
+#ifdef __MPI__
+       call MPI_Abort(0, 163, ierr) ! Do not know comm nor rank here
+#else
+       stop 163
+#endif
     endif
 
     ! Mean

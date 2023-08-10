@@ -190,9 +190,9 @@ CONTAINS
     btype(bidx) = MPI_DOUBLE
 
     IF ( bidx .NE. n_cohort_types ) THEN
-       PRINT*,"Error in pop_mpi layer. bidx ",bidx, " != n_cohort_types ",&
+       WRITE(*,*)"Error in pop_mpi layer. bidx ",bidx, " != n_cohort_types ",&
             n_cohort_types
-       CALL MPI_ABORT(comm, 0, ierr)
+       CALL MPI_ABORT(comm, 119, ierr)
     ENDIF
 
     CALL MPI_Type_create_struct (n_cohort_types, blen, disp, btype, tmp_t, ierr)
@@ -302,9 +302,9 @@ CONTAINS
     btype(bidx) = MPI_DOUBLE
 
     IF ( bidx .NE. n_layer_types ) THEN
-       PRINT*,"Error in pop_mpi layer. bidx ",bidx, " != n_layer_types ",&
+       WRITE(*,*)"Error in pop_mpi layer. bidx ",bidx, " != n_layer_types ",&
             n_layer_types
-       CALL MPI_ABORT(comm, 0, ierr)
+       CALL MPI_ABORT(comm, 120, ierr)
     ENDIF
 
     CALL MPI_Type_create_struct (n_layer_types, blen, disp, btype, tmp_t, ierr)
@@ -546,9 +546,9 @@ CONTAINS
     btype(bidx) = MPI_INTEGER
 
     IF ( bidx .NE. n_patch_types ) THEN
-       PRINT*,"Error in pop_mpi patch. bidx ",bidx, " != n_patch_types ",&
+       WRITE(*,*)"Error in pop_mpi patch. bidx ",bidx, " != n_patch_types ",&
             n_patch_types
-       CALL MPI_ABORT(comm, 0, ierr)
+       CALL MPI_ABORT(comm, 121, ierr)
     ENDIF
 
     CALL MPI_Type_create_struct (n_patch_types, blen, disp, btype, tmp_t, ierr)
@@ -918,11 +918,11 @@ CONTAINS
 
     ! Scalar Integer
 
-!!$    bidx = bidx + 1
-!!$    CALL MPI_Get_Address (tmp_grid(1)%npatch_active, a2, ierr)
-!!$    disp (bidx) = a2 - a1
-!!$    blen (bidx) = 1
-!!$    btype(bidx) = MPI_INTEGER
+    ! bidx = bidx + 1
+    ! CALL MPI_Get_Address (tmp_grid(1)%npatch_active, a2, ierr)
+    ! disp (bidx) = a2 - a1
+    ! blen (bidx) = 1
+    ! btype(bidx) = MPI_INTEGER
 
     bidx = bidx + 1
     CALL MPI_Get_Address (tmp_grid(1)%LU, a2, ierr)
@@ -932,9 +932,9 @@ CONTAINS
 
 
     IF ( bidx .NE. n_landscape_types ) THEN
-       PRINT*,"Error in pop_mpi landscape. bidx ",bidx, " != n_landscape_types ",&
+       WRITE(*,*)"Error in pop_mpi landscape. bidx ",bidx, " != n_landscape_types ",&
             n_landscape_types
-       CALL MPI_ABORT(comm, 0, ierr)
+       CALL MPI_ABORT(comm, 122, ierr)
     ENDIF
 
     CALL MPI_Type_create_struct (n_landscape_types, blen, disp, btype, tmp_t, ierr)

@@ -54,7 +54,7 @@ MODULE cable_input_module
    USE cable_init_module
    USE netcdf                   ! link must be made in cd to netcdf-x.x.x/src/f90/netcdf.mod
    USE cable_common_module,     ONLY: filename, cable_user, CurYear, HANDLE_ERR, is_leapyear
-   
+
    IMPLICIT NONE
 
    PRIVATE
@@ -186,7 +186,6 @@ SUBROUTINE get_default_lai
    WRITE(logn,*) ' Loading LAI from default file ', TRIM(filename%LAI)
    ! Open netcdf file
    ok = NF90_OPEN(trim(filename%LAI),0,ncid)
-   ! print*, 'OOpen10 ', ncid, trim(filename%LAI)
    IF (ok /= NF90_NOERR) CALL nc_abort(ok,'Error opening default LAI file.')
 
    ok = NF90_INQ_DIMID(ncid,'x',xID)
@@ -255,7 +254,6 @@ SUBROUTINE get_default_lai
    END IF
 
    ! Close netcdf file
-   ! print*, 'OClose10 ', ncid
    ok = NF90_CLOSE(ncid)
    ncid = -1
 
@@ -294,9 +292,15 @@ END SUBROUTINE get_default_lai
 
 SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
 
-   USE CABLE_COMMON_MODULE, ONLY : IS_LEAPYEAR, YMDHMS2DOYSOD, DOYSOD2YMDHMS,&
-                                   HANDLE_ERR
+   USE CABLE_COMMON_MODULE, ONLY: IS_LEAPYEAR, YMDHMS2DOYSOD, DOYSOD2YMDHMS,&
+        HANDLE_ERR
+   use mo_utils,            only: eq
+#ifdef __MPI__
+   use mpi,                 only: MPI_Abort
+#endif
+
    IMPLICIT NONE
+
    ! Input arguments
    REAL, INTENT(OUT) :: dels   ! time step size
    REAL, INTENT(IN) :: TFRZ
@@ -362,6 +366,9 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
    REAL(4), DIMENSION(:,:,:), ALLOCATABLE :: tempPrecip3 ! used for spinup adj
    LOGICAL                          ::                                         &
         all_met     ! ALL required met in met file (no synthesis)?
+#ifdef __MPI__
+   integer :: ierr
+#endif
 
     ! Initialise parameter loading switch - will be set to TRUE when
     ! parameters are loaded:
@@ -383,49 +390,41 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
     IF (ncciy > 0) THEN
        WRITE(logn,*) 'Opening met data file: ', TRIM(gswpfile%rainf), ' and 7 more'
        ok = NF90_OPEN(trim(gswpfile%rainf),0,ncid_rain)
-       ! print*, 'OOpen19.1 ', ncid_rain, trim(gswpfile%rainf)
        IF (ok /= NF90_NOERR) THEN
           WRITE(*,*) 'rainf'
           CALL handle_err( ok )
        ENDIF
        ok = NF90_OPEN(trim(gswpfile%snowf),0,ncid_snow)
-       ! print*, 'OOpen19.2 ', ncid_snow, trim(gswpfile%snowf)
        IF (ok /= NF90_NOERR) THEN
           WRITE(*,*) 'snow'
           CALL handle_err( ok )
        ENDIF
        ok = NF90_OPEN(trim(gswpfile%LWdown),0,ncid_lw)
-       ! print*, 'OOpen19.3 ', ncid_lw, trim(gswpfile%LWdown)
        IF (ok /= NF90_NOERR) THEN
           WRITE(*,*) 'lw'
           CALL handle_err( ok )
        ENDIF
        ok = NF90_OPEN(trim(gswpfile%SWdown),0,ncid_sw)
-       ! print*, 'OOpen19.4 ', ncid_sw, trim(gswpfile%SWdown)
        IF (ok /= NF90_NOERR) THEN
           WRITE(*,*) 'sw'
           CALL handle_err( ok )
        ENDIF
        ok = NF90_OPEN(trim(gswpfile%PSurf),0,ncid_ps)
-       ! print*, 'OOpen19.5 ', ncid_ps, trim(gswpfile%PSurf)
        IF (ok /= NF90_NOERR) THEN
           WRITE(*,*) 'ps'
           CALL handle_err( ok )
        ENDIF
        ok = NF90_OPEN(trim(gswpfile%Qair),0,ncid_qa)
-       ! print*, 'OOpen19.6 ', ncid_qa, trim(gswpfile%Qair)
        IF (ok /= NF90_NOERR) THEN
           WRITE(*,*) 'qa'
           CALL handle_err( ok )
        ENDIF
        ok = NF90_OPEN(trim(gswpfile%Tair),0,ncid_ta)
-       ! print*, 'OOpen19.7 ', ncid_ta, trim(gswpfile%Tair)
        IF (ok /= NF90_NOERR) THEN
           WRITE(*,*) 'ta'
           CALL handle_err( ok )
        ENDIF
        ok = NF90_OPEN(trim(gswpfile%wind),0,ncid_wd)
-       ! print*, 'OOpen19.8 ', ncid_wd, trim(gswpfile%wind)
        IF (ok /= NF90_NOERR) THEN
           WRITE(*,*) 'wind', ncid_wd
           CALL handle_err( ok )
@@ -434,7 +433,6 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
     ELSE
        WRITE(logn,*) 'Opening met data file: ', TRIM(filename%met)
        ok = NF90_OPEN(trim(filename%met),0,ncid_met) ! open met data file
-       ! print*, 'OOpen19.9 ', ncid_met, trim(filename%met)
        IF (ok /= NF90_NOERR) CALL nc_abort &
             (ok,'Error opening netcdf met forcing file '//TRIM(filename%met)// &
             ' (SUBROUTINE open_met_file)')
@@ -643,7 +641,7 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
        exists%patch = .TRUE.
        ok = NF90_INQUIRE_DIMENSION(ncid_met,patchdimID,len=nmetpatches)
     END IF
-   
+
     ! Check if monthly dimension exists for LAI info
     ok = NF90_INQ_DIMID(ncid_met,'monthly', monthlydimID)
     IF(ok==NF90_NOERR) THEN ! if found
@@ -725,7 +723,7 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
     !****** PALS met file has timevar(1)=0 while timeunits from 00:30:00 ******
     !!CLN CRITICAL! From my point of view, the information in the file is correct...
     !!CLN WHY DO the input files all have bugs???
-    IF (timevar(1) == 0.0_r_2) THEN
+    IF (eq(timevar(1), 0.0_r_2)) THEN
       READ(timeunits(29:30),*) tsmin
       IF (tsmin*60.0 >= dels) THEN
         tsmin = tsmin - INT(dels / 60)
@@ -770,15 +768,17 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
     ! only do this if not already at middle of timestep
     !! vh_js !!
     IF ((TRIM(cable_user%MetType).EQ.'' .OR. &
-                  TRIM(cable_user%MetType).EQ.'site').and. MOD(shod*3600, dels)==0 .and. &
-         (shod.gt.dels/3600./2.) ) THEN
+         TRIM(cable_user%MetType).EQ.'site') .and. &
+         MOD(nint(shod*3600.), int(dels)) == 0 .and. &
+         (shod .gt. dels/3600./2.) ) THEN
        shod = shod - dels/3600./2.
     ELSEIF (TRIM(cable_user%MetType).EQ.''.OR. &
-                  (TRIM(cable_user%MetType).EQ.'site') .and. MOD(shod*3600, dels)==0 .and. &
-         (shod.lt.dels/3600./2.) ) THEN
+         (TRIM(cable_user%MetType).EQ.'site') .and. &
+         MOD(nint(shod*3600.), int(dels)) == 0 .and. &
+         (shod .lt. dels/3600./2.) ) THEN
        shod = shod + dels/3600./2.
     ENDIF
-    
+
     ! Decide day-of-year for non-leap year:
     CALL YMDHMS2DOYSOD( syear, smoy, sdoytmp, INT(shod), 0, 0, sdoy, ssod )
        ! Number of days between start position and 1st timestep:
@@ -843,7 +843,11 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
           WRITE(*,*) "Chosen period: ",CABLE_USER%YEARSTART,1,CABLE_USER%YEAREND,365
           WRITE(*,*) "Data   period: ",syear,sdoy, eyear,edoy
           WRITE(*,*) "For using the metfile's time set CABLE_USER%YEARSTART = 0 !"
-          STOP
+#ifdef __MPI__
+          call MPI_Abort(0, 6, ierr) ! Do not know comm nor rank here
+#else
+          stop 6
+#endif
        ENDIF
 
        ! Find real kstart!
@@ -1156,14 +1160,14 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
     ! Look for vcmax
     write(logn,*) 'looking for vcmax'
     ok = NF90_INQ_VARID(ncid_met,'vcmax',id%vcmax)
-    write(logn,*) 'exists vcmax: ' , (ok==NF90_NOERR) 
+    write(logn,*) 'exists vcmax: ' , (ok==NF90_NOERR)
     IF(ok == NF90_NOERR) THEN ! If inquiry is okay
        exists%vcmax = .TRUE. ! vcmax is present in met file
        ! Check dimension of vcmax variable:
        ok=NF90_INQUIRE_VARIABLE(ncid_met,id%vcmax, &
             ndims=vcmax_dims,dimids=vcmaxdimids)
        write(logn,*) 'time dim ' , timedimID(1)
-       write(logn,*) 'vcmax dim ' , vcmaxdimids 
+       write(logn,*) 'vcmax dim ' , vcmaxdimids
        write(logn,*) 'vcmax dim = time dim ' , (ANY(vcmaxdimids==timedimID(1)))
        ! If any of vcmax's dimensions are the time dimension
        IF(ANY(vcmaxdimids==timedimID(1))) THEN
@@ -1182,7 +1186,7 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
     ! Look for LAI - - - - - - - - - - - - - - - - - - - - - - - - -
     write(logn,*) 'looking for LAI'
     ok = NF90_INQ_VARID(ncid_met,'LAI',id%LAI)
-    write(logn,*) 'exists LAI: ' , (ok==NF90_NOERR) 
+    write(logn,*) 'exists LAI: ' , (ok==NF90_NOERR)
     IF(ok == NF90_NOERR) THEN ! If inquiry is okay
        exists%LAI = .TRUE. ! LAI is present in met file
        ! LAI will be read in which ever land grid is used
@@ -1370,10 +1374,10 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
              END DO
               write(*,*) 'nmetpatches', nmetpatches
               write(*,*) 'vegtype_metfile(i,:): ', vegtype_metfile(:,:)
-   
+
           END IF
        ELSE IF(metGrid=='land') THEN
-          
+
           ! Collect data from land only grid in netcdf file:
           IF(iveg_dims==1) THEN ! i.e. no patch specific iveg information
              DO i = 1, mland
@@ -1401,7 +1405,7 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
                 ok= NF90_GET_VAR(ncid_met, id%iveg, &
                      vegtype_metfile(i,:),&
                      start=(/i,1/), count=(/1,nmetpatches/))
-               
+
                 IF(ok /= NF90_NOERR) CALL nc_abort &
                      (ok,'Error reading iveg in met data file ' &
                      //TRIM(filename%met)//' (SUBROUTINE open_met_file)')
@@ -1477,7 +1481,6 @@ SUBROUTINE open_met_file(dels,koffset,kend,spinup, TFRZ)
        WRITE(logn,*) 'Found all ESSENTIAL met variables in met file,', &
             ' some synthesised (as above).'
     END IF
-    ! print*, 'OOpened19 ', ncid_met
 
    !!=================^^ End met variables search^^=======================
 END SUBROUTINE open_met_file
@@ -1503,21 +1506,25 @@ END SUBROUTINE open_met_file
 !
 !==============================================================================
 
-SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
-       veg,kend,dels, TFRZ, ktau, kstart )
+SUBROUTINE get_met_data(spinup, spinConv, met, rad, &
+     veg, dels, TFRZ, ktau, kstart)
    ! Precision changes from REAL(4) to r_1 enable running with -r8
 
+   use mo_utils, only: eq
+#ifdef __MPI__
+   use mpi,      only: MPI_Abort
+#endif
+
+   implicit none
 
    ! Input arguments
    LOGICAL, INTENT(IN)                    ::                                   &
         spinup,         & ! are we performing a spinup?
         spinConv          ! has model spinup converged?
    TYPE(met_type),             INTENT(INOUT) :: met     ! meteorological data
-   TYPE (soil_parameter_type),INTENT(IN)  :: soil
    TYPE (radiation_type),INTENT(IN)       :: rad
    TYPE(veg_parameter_type),INTENT(INOUT) :: veg ! LAI retrieved from file
    INTEGER, INTENT(IN)               :: ktau, &  ! timestep in loop including spinup
-                                        kend, & ! total number of timesteps in run
                                         kstart  ! starting timestep
    REAL,INTENT(IN)                   :: dels ! time step size
    REAL, INTENT(IN) :: TFRZ
@@ -1528,6 +1535,9 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
    REAL(KIND=4),ALLOCATABLE,DIMENSION(:,:)     :: tmpDat2, tmpDat2x
    REAL(KIND=4),ALLOCATABLE,DIMENSION(:,:,:)   :: tmpDat3, tmpDat3x
    REAL(KIND=4),ALLOCATABLE,DIMENSION(:,:,:,:) :: tmpDat4, tmpDat4x
+#ifdef __MPI__
+   integer :: ierr
+#endif
 
      DO i=1,mland ! over all land points/grid cells
        ! First set timing variables:
@@ -1704,7 +1714,6 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
     ENDDO
 
     IF (metGrid=='mask') THEN
-       ! print*, 'ORead19.1 ', ncid_met
       ! N.B. not for GSWP runs, therefore only one met file here.
       ! Also, xdimsize and ydimsize are passed from io_variables.
 
@@ -1766,7 +1775,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
       IF(ok /= NF90_NOERR) CALL nc_abort &
            (ok,'Error reading Qair in met data file ' &
            //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
-      IF(convert%Qair==-999.0) THEN
+      IF (eq(convert%Qair, -999.0)) THEN
         ! Convert relative value using only first veg/soil patch values
         ! (identical)
         DO i=1,mland ! over all land points/grid cells
@@ -1912,7 +1921,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
 
        END IF
       END IF
-    
+
       ! Get LAI, if it's present, for mask grid:- - - - - - - - - - - - -
       IF(exists%LAI) THEN ! If LAI exists in met file
         IF(exists%LAI_T) THEN ! i.e. time dependent LAI
@@ -1994,7 +2003,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
 
            veg%vlai(landpt(i)%cstart:landpt(i)%cend) =  &
                 defaultLAI(landpt(i)%cstart:landpt(i)%cend,met%moy(landpt(i)%cstart))
-             
+
         ENDDO
       END IF
 
@@ -2003,7 +2012,6 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
 
     ELSE IF(metGrid=='land') THEN
 
-      ! print*, 'ORead19.2 ', ncid_met
       ! Collect data from land only grid in netcdf file:
       ALLOCATE(tmpDat1(mland))
       ALLOCATE(tmpDat2(mland,1))
@@ -2069,7 +2077,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
       IF(ok /= NF90_NOERR) CALL nc_abort &
            (ok,'Error reading Qair in met data file ' &
            //TRIM(filename%met)//' (SUBROUTINE get_met_data)')
-      IF(convert%Qair==-999.0) THEN
+      IF (eq(convert%Qair, -999.0)) THEN
         DO i=1,mland ! over all land points/grid cells
           CALL rh_sh(REAL(tmpDat2(i,1)), met%tk(landpt(i)%cstart), &
                met%pmb(landpt(i)%cstart),met%qv(landpt(i)%cstart))
@@ -2201,7 +2209,11 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
             DO i=1,mland ! over all land points/grid cells
               IF ( (landpt(i)%cend - landpt(i)%cstart + 1) < nmetpatches) THEN
                 write(*,*) 'not enough patches at land point ', i
-                STOP
+#ifdef __MPI__
+                call MPI_Abort(0, 7, ierr) ! Do not know comm nor rank here
+#else
+                stop 7
+#endif
               END IF
               DO j=1, nmetpatches
                 veg%vlai(landpt(i)%cstart+j-1) = REAL(tmpDat3(i,j,1))
@@ -2279,7 +2291,7 @@ SUBROUTINE get_met_data(spinup,spinConv,met,soil,rad,                          &
       CALL cable_abort('Unrecognised grid type')
     END IF ! grid type
 
-    if ((.not. exists%Snowf) .or. all(met%precip_sn == 0.0)) then ! honour snowf input
+    if ((.not. exists%Snowf) .or. all(eq(met%precip_sn, 0.0))) then ! honour snowf input
     DO i=1,mland ! over all land points/grid cells
       ! Set solid precip based on temp
       met%precip_sn(landpt(i)%cstart:landpt(i)%cend) = 0.0 ! (EK nov2007)
@@ -2335,7 +2347,6 @@ END SUBROUTINE get_met_data
 
 SUBROUTINE close_met_file
 
-  ! print*, 'OClose19 ', ncid_met
   ok=NF90_CLOSE(ncid_met)
   ncid_met = -1
   IF(ok /= NF90_NOERR) CALL nc_abort (ok,'Error closing met data file ' &
@@ -2376,10 +2387,10 @@ END SUBROUTINE close_met_file
 !
 !==============================================================================
 
-SUBROUTINE load_parameters(met,air,ssnow,veg,climate,bgc,soil,canopy,rough,rad,        &
-       sum_flux,bal,logn,vegparmnew,casabiome,casapool,    &
-       casaflux,sum_casapool, sum_casaflux,casamet,casabal,phen,POP,spinup,EMSOIL, &
-       TFRZ, LUC_EXPT, POPLUC, BLAZE, SIMFIRE, c13o2flux, c13o2pools, sum_c13o2pools, c13o2luc)
+SUBROUTINE load_parameters(met, air, ssnow, veg, bgc, soil, canopy, rough, rad, &
+       sum_flux, bal, logn, vegparmnew, casabiome, casapool, &
+       casaflux, sum_casapool, sum_casaflux, casamet, casabal, phen, POP, spinup, EMSOIL, &
+       TFRZ, LUC_EXPT, POPLUC, c13o2flux, c13o2pools, sum_c13o2pools, c13o2luc)
    ! Input variables not listed:
    !   filename%type  - via cable_IO_vars_module
    !   exists%type    - via cable_IO_vars_module
@@ -2390,11 +2401,8 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,climate,bgc,soil,canopy,rough,rad, 
    !   max_vegpatches - via cable_IO_vars_module
    !! vh_js !!
    USE POPmodule,       ONLY: POP_INIT
-   USE POPLUC_module,   ONLY: POPLUC_INIT 
+   USE POPLUC_module,   ONLY: POPLUC_INIT
    USE CABLE_LUC_EXPT,  ONLY: LUC_EXPT_TYPE
-
-   USE BLAZE_MOD,       ONLY: TYPE_BLAZE
-   USE SIMFIRE_MOD,     ONLY: TYPE_SIMFIRE
    use casaparm,        only: initcasa
    use casa_inout,      only: casa_readbiome, casa_readphen, casa_init
    use cable_pop_io,    only: pop_io
@@ -2412,7 +2420,6 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,climate,bgc,soil,canopy,rough,rad, 
    TYPE(air_type),            INTENT(INOUT) :: air
    TYPE(soil_snow_type),      INTENT(INOUT) :: ssnow
    TYPE(veg_parameter_type),  INTENT(OUT)   :: veg
-   TYPE(climate_type),        INTENT(INOUT) :: climate
    TYPE(bgc_pool_type),       INTENT(OUT)   :: bgc
    TYPE(soil_parameter_type), INTENT(OUT)   :: soil
    TYPE(canopy_type),         INTENT(OUT)   :: canopy
@@ -2431,8 +2438,6 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,climate,bgc,soil,canopy,rough,rad, 
    TYPE(POP_TYPE),            INTENT(INOUT) :: POP
    TYPE(POPLUC_TYPE),         INTENT(INOUT) :: POPLUC
    TYPE(LUC_EXPT_TYPE),       INTENT(INOUT) :: LUC_EXPT
-   TYPE(TYPE_BLAZE),          INTENT(INOUT) :: BLAZE
-   TYPE(TYPE_SIMFIRE),        INTENT(INOUT) :: SIMFIRE
    ! 13C
    type(c13o2_flux),          intent(out)   :: c13o2flux
    type(c13o2_pool),          intent(out)   :: c13o2pools, sum_c13o2pools
@@ -2449,7 +2454,7 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,climate,bgc,soil,canopy,rough,rad, 
         mpID,       &
         i , j         ! do loop variables
    CHARACTER :: frst_in*500, CYEAR*4
-   
+
    ! vh_js
    INTEGER :: mp_POP
    INTEGER, dimension(:), ALLOCATABLE :: Iwood
@@ -2471,40 +2476,41 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,climate,bgc,soil,canopy,rough,rad, 
     ! 13C
     if (cable_user%c13o2) then
        call c13o2_alloc_flux(c13o2flux, mp)
-       !MCINI
        call c13o2_zero_flux(c13o2flux)
     endif
     WRITE(logn,*) ' CABLE variables allocated with ', mp, ' patch(es).'
 
-    IF (icycle > 0 .OR. CABLE_USER%CASA_DUMP_WRITE ) then
-       CALL alloc_casavariable(casabiome,casapool,casaflux, &
-            casamet,casabal,mp)
-       !MCINI
-       call zero_casavariable(casabiome, casapool, casaflux, casamet, casabal)
+    IF ((icycle > 0) .OR. CABLE_USER%CASA_DUMP_WRITE) then
+       CALL alloc_casavariable(casabiome, mp)
+       CALL alloc_casavariable(casapool, mp)
+       CALL alloc_casavariable(casaflux, mp)
+       CALL alloc_casavariable(casamet, mp)
+       CALL alloc_casavariable(casabal, mp)
+       call zero_casavariable(casabiome)
+       call zero_casavariable(casapool)
+       call zero_casavariable(casaflux)
+       call zero_casavariable(casamet)
+       call zero_casavariable(casabal)
        ! 13C
        if (cable_user%c13o2) then
           call c13o2_alloc_pools(c13o2pools, mp)
-          !MCINI
           call c13o2_zero_pools(c13o2pools)
        endif
     endif
-    !mpdiff
     CALL alloc_sum_casavariable(sum_casapool, sum_casaflux, mp)
     ! 13C
     if (cable_user%c13o2) then
        call c13o2_alloc_pools(sum_c13o2pools, mp)
-       !MCINI
-       call c13o2_zero_pools(sum_c13o2pools)       
+       call c13o2_zero_pools(sum_c13o2pools)
     endif
     IF (icycle > 0) THEN
        CALL alloc_phenvariable(phen,mp)
-       !MCINI
        call zero_phenvariable(phen)
     ENDIF
 
     ! Write parameter values to CABLE's parameter variables:
-    CALL write_default_params(met,air,ssnow,veg,bgc,soil,canopy,rough, &
-            rad,logn,vegparmnew,smoy, TFRZ, LUC_EXPT)
+    CALL write_default_params(met, ssnow, veg, bgc, soil, canopy, rough, &
+            rad, logn, smoy, TFRZ, LUC_EXPT)
     ! 13C
     if (cable_user%c13o2) then
        call c13o2_zero_flux(c13o2flux)
@@ -2512,7 +2518,7 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,climate,bgc,soil,canopy,rough,rad, 
     endif
 
     ! Zero out lai where there is no vegetation acc. to veg. index
-    WHERE ( veg%iveg(:) .GE. 14 ) veg%vlai = 0.
+    WHERE (veg%iveg(:) .GE. 14) veg%vlai = 0.
 
     IF (icycle > 0) THEN
       CALL write_cnp_params(veg,casaflux,casamet)
@@ -2520,7 +2526,7 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,climate,bgc,soil,canopy,rough,rad, 
            casamet,phen)
       IF (cable_user%PHENOLOGY_SWITCH.eq.'MODIS') CALL casa_readphen(veg,casamet,phen)
 
-      CALL casa_init(casabiome,casamet,casaflux,casapool,casabal,veg,phen)
+      CALL casa_init(casamet, casaflux, casapool, casabal, phen)
       ! 13C
       if (cable_user%c13o2) then
          call c13o2_init_pools(casapool, casaflux, c13o2pools)
@@ -2530,7 +2536,7 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,climate,bgc,soil,canopy,rough,rad, 
       !! vh_js !!
       IF ( CABLE_USER%CALL_POP ) THEN
          ! evaluate mp_POP and POP_array
-         mp_POP = COUNT(casamet%iveg2==forest)+COUNT(casamet%iveg2==shrub)
+         mp_POP = COUNT(casamet%iveg2==forest) + COUNT(casamet%iveg2==shrub)
 
          ALLOCATE(Iwood(mp_POP))
          j = 1
@@ -2543,7 +2549,7 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,climate,bgc,soil,canopy,rough,rad, 
 
          CALL POP_init( POP, veg%disturbance_interval(Iwood,:), mp_POP, Iwood )
          IF ( .NOT. (spinup .OR. CABLE_USER%POP_fromZero )) &
-              CALL POP_IO( POP, casamet, cable_user%YearStart, "READ_rst " , .TRUE.)
+              CALL POP_IO(POP, casamet, cable_user%YearStart, "READ_RST", .TRUE.)
       ENDIF
 
       IF (CABLE_USER%POPLUC) then
@@ -2562,52 +2568,17 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,climate,bgc,soil,canopy,rough,rad, 
          if (cable_user%c13o2) call c13o2_init_luc(c13o2luc, c13o2pools, veg, mland)
       ENDIF
 
-      !CVH moved initialisations to cable_driver.F90 because climate%modis_igpb is needed,
-      !    and the climate structure has not been initialised at this point.
-
-      ! ! CLN ALLOCATE BLAZE Arrays 
-      ! IF ( cable_user%CALL_BLAZE ) THEN
-      !    ! CLN ?VH is rad%lat/lon below correct? 
-      !    CALL INI_BLAZE ( cable_user%CALL_POP, cable_user%BURNT_AREA, &
-      !         cable_user%BLAZE_TSTEP, mland, rad%latitude(landpt(:)%cstart), &
-      !         rad%longitude(landpt(:)%cstart), BLAZE )
-      !    !CLNIF ( .NOT. spinup) CALL READ_BLAZE_RESTART(...)
-
-      !    IF ( TRIM(cable_user%BURNT_AREA) == "SIMFIRE" ) THEN
-      !       CALL INI_SIMFIRE(mland,cable_user%SIMFIRE_REGION,SIMFIRE, &
-      !            climate%modis_igbp(landpt(:)%cstart) ) !CLN here we need to check for the SIMFIRE biome setting
-            
-      !       IF ( spinup ) THEN
-      !          !CLN get_biomes
-      !       ELSE
-      !          !CLN CALL READ_SIMFIRE_RESTART(...)
-      !       END IF
-      !    END IF
-
-      !    ! CLN enter gfed & PRESCRIBED here
-         
-      !    IF ( BLAZE%ERR ) RETURN            
-      !    ! Read restart values
-      ! ENDIF
-   ENDIF
-
-   ! removed get_default_inits and get_default_lai as they are already done
-   ! in write_default_params
-   !    ! Load default initialisations from Mk3L climatology:
-   !    CALL get_default_inits(met,soil,ssnow,canopy,logn)
-   !
-   !    ! load default LAI values from global data:
-   !    CALL get_default_lai
+   ENDIF ! icycle > 0
 
     ! Look for explicit restart file (which will have parameters):
-    IF ( TRIM(filename%restart_in) .EQ. '' ) filename%restart_in = './'
+    IF (TRIM(filename%restart_in) .EQ. '') filename%restart_in = './'
     frst_in = trim(filename%restart_in)
     ! MC - Fortran inquire returns .true. on directory on *nix but .false. on Windows.
     !        inquire(file=trim(frst_in), exist=exrst)
-    !      Intel as a directory keyword (instead of file) but not gnu.
+    !      Intel has a directory keyword (instead of file) but not gnu.
     !        inquire(directory=trim(frst_in), exist=exrst)
     !      So Cable uses netcdf to open the file if possible.
-    !      Close it immediately, otherwise opened the same file a second time below.
+    !      -> Close it immediately, otherwise the same file is opened a second time below.
     ok = nf90_open(trim(frst_in), nf90_nowrite, ncid_rin)
     if (ok==nf90_noerr) then
        EXRST = .true.
@@ -2626,7 +2597,6 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,climate,bgc,soil,canopy,rough,rad, 
 
     IF ( EXRST ) THEN
        ok = NF90_OPEN(TRIM(frst_in),NF90_NOWRITE,ncid_rin) ! open restart file
-       ! print*, 'OOpen21 ', ncid_rin, TRIM(frst_in)
        IF (ok /= NF90_NOERR) CALL HANDLE_ERR(ok)
        ! Any restart file exists, parameters and init will be loaded from it.
        WRITE(logn,*) ' Overwriting initialisations with values in ', &
@@ -2655,9 +2625,8 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,climate,bgc,soil,canopy,rough,rad, 
             //'Recommend running without restart file.')
 
       ! Load initialisations and parameters from restart file:
-      CALL get_restart_data(logn,ssnow,canopy,rough,bgc,bal,veg, &
-           soil,rad,vegparmnew, EMSOIL)
-      
+      CALL get_restart_data(ssnow, canopy, bgc, bal, veg, rad, EMSOIL)
+
       ! 13C
       if (cable_user%c13o2) then
          call c13o2_init_flux(met, canopy, c13o2flux)
@@ -2698,14 +2667,14 @@ SUBROUTINE load_parameters(met,air,ssnow,veg,climate,bgc,soil,canopy,rough,rad, 
 
     ! Construct derived parameters and zero initialisations, regardless
     ! of where parameters and other initialisations have loaded from:
-    CALL derived_parameters(soil,sum_flux,bal,ssnow,veg,rough)
+    CALL derived_parameters(soil, sum_flux, bal, ssnow, veg, rough)
 
     ! Check for basic inconsistencies in parameter values:
-    CALL check_parameter_values(soil,veg,ssnow)
+    CALL check_parameter_values(soil, veg, ssnow)
 
     ! Write per-site parameter values to log file if requested:
-    CALL report_parameters(logn,soil,veg,bgc,rough,ssnow,canopy, &
-         casamet,casapool,casaflux,phen,vegparmnew,verbose)
+    CALL report_parameters(logn, soil, veg, bgc, rough, ssnow, canopy, &
+         casamet, casapool, casaflux, phen, verbose)
 
 END SUBROUTINE load_parameters
 
@@ -2753,7 +2722,6 @@ SUBROUTINE get_parameters_met(soil,veg,bgc,rough,completeSet)
 !    END IF
 
    completeSet=.TRUE. ! initialise (assume all param will load from met file)
-   ! print*, 'ORead19.3 ', ncid_met
 
    ! Get parameter values:
    ! Arguments: netcdf file ID; parameter name; complete set check;
@@ -2769,8 +2737,8 @@ SUBROUTINE get_parameters_met(soil,veg,bgc,rough,completeSet)
    allocate(tmp(size(patch(:)%frac,1)))
    ! CALL readpar(ncid_met,'patchfrac',completeSet,patch(:)%frac,filename%met, nmetpatches,'def')
    CALL readpar(ncid_met, 'patchfrac', completeSet, tmp, filename%met, nmetpatches, 'def')
-   
-   
+
+
    if (completeSet) patch(:)%frac = real(tmp,r_2)
    deallocate(tmp)
    ! CALL readpar(ncid_met,'isoil',completeSet,soil%isoilm,filename%met, &
@@ -2906,7 +2874,6 @@ SUBROUTINE allocate_cable_vars(air,bgc,canopy,met,bal,                         &
    CALL alloc_cbm_var(sum_flux, arraysize)
    CALL alloc_cbm_var(veg, arraysize)
 
-   !MCINI
    call zero_cbm_var(air)
    call zero_cbm_var(bgc)
    call zero_cbm_var(canopy)
@@ -2918,7 +2885,7 @@ SUBROUTINE allocate_cable_vars(air,bgc,canopy,met,bal,                         &
    call zero_cbm_var(ssnow)
    call zero_cbm_var(sum_flux)
    call zero_cbm_var(veg)
-   
+
    ! Allocate patch fraction variable:
    ALLOCATE(patch(arraysize))
 

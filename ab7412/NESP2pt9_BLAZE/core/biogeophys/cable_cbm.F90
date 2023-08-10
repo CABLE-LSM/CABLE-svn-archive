@@ -35,14 +35,14 @@ MODULE cable_cbm_module
    IMPLICIT NONE
 
    PRIVATE
-   
+
    PUBLIC :: cbm
 
 CONTAINS
 
-   SUBROUTINE cbm( ktau, dels, air, bgc, canopy, met, &
-                   bal, rad, rough, soil, &
-                   ssnow, sum_flux, veg, climate )
+   SUBROUTINE cbm(ktau, dels, air, bgc, canopy, met, &
+                  bal, rad, rough, soil, &
+                  ssnow, veg, climate )
 
    USE cable_common_module
    USE cable_carbon_module
@@ -69,7 +69,6 @@ CONTAINS
    TYPE(roughness_type),      INTENT(INOUT) :: rough
    TYPE(soil_parameter_type), INTENT(INOUT) :: soil
    TYPE(soil_snow_type),      INTENT(INOUT) :: ssnow
-   TYPE(sum_flux_type),       INTENT(INOUT) :: sum_flux
    TYPE(veg_parameter_type),  INTENT(INOUT) :: veg
    TYPE(climate_type),        INTENT(IN)    :: climate
 
@@ -117,7 +116,7 @@ CONTAINS
 
    ! write(*,*) 'hod, TVeg: ', met%hod(1), canopy%fevc(1), canopy%fwsoil(1)
    ! if (met%hod(1).gt.12.0) stop
-        
+
    !ssnow%otss_0 = ssnow%otss
    !ssnow%otss = ssnow%tss
 
@@ -125,19 +124,32 @@ CONTAINS
    ssnow%owetfac = ssnow%wetfac
 
    IF ( cable_runtime%um ) THEN
-
-     IF( cable_runtime%um_implicit ) THEN
-         CALL soil_snow(dels, soil, ssnow, canopy, met, bal,veg)
+      IF ( cable_runtime%um_implicit ) THEN
+         CALL soil_snow(dels, soil, ssnow, canopy, met, veg)
       ENDIF
-
    ELSE
       IF (cable_user%SOIL_STRUC=='default') THEN
-         call soil_snow(dels, soil, ssnow, canopy, met, bal,veg)
+         call soil_snow(dels, soil, ssnow, canopy, met, veg)
       ELSEIF (cable_user%SOIL_STRUC=='sli') THEN
-         CALL sli_main(ktau,dels,veg,soil,ssnow,met,canopy,air,rad,0)
+         ! print*, 'SLIMAIN01 ', ktau, dels
+         ! call print_cbm_var(veg)
+         ! call print_cbm_var(soil)
+         ! call print_cbm_var(ssnow)
+         ! call print_cbm_var(met)
+         ! call print_cbm_var(canopy)
+         ! call print_cbm_var(air)
+         ! call print_cbm_var(rad)
+         CALL sli_main(ktau, dels, veg, soil, ssnow, met, canopy, air, rad, 0)
+         ! print*, 'SLIMAIN02 ', ktau, dels
+         ! call print_cbm_var(veg)
+         ! call print_cbm_var(soil)
+         ! call print_cbm_var(ssnow)
+         ! call print_cbm_var(met)
+         ! call print_cbm_var(canopy)
+         ! call print_cbm_var(air)
+         ! call print_cbm_var(rad)
       ENDIF
    ENDIF
-
 
    ssnow%deltss = ssnow%tss-ssnow%otss
    ! correction required for energy balance in online simulations
@@ -180,7 +192,7 @@ CONTAINS
       CALL plantcarb(veg,bgc,met,canopy)
 
       !calculate canopy%frs
-      CALL soilcarb(soil, ssnow, veg, bgc, met, canopy)
+      CALL soilcarb(soil, ssnow, veg, bgc, canopy)
 
       CALL carbon_pl(dels, soil, ssnow, veg, canopy, bgc)
 
@@ -192,5 +204,3 @@ CONTAINS
 END SUBROUTINE cbm
 
 END MODULE cable_cbm_module
-
-

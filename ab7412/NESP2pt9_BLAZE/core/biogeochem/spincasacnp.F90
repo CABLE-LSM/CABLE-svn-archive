@@ -16,7 +16,7 @@ contains
     USE casavariable
     USE phenvariable
     USE POP_Types,           Only: POP_TYPE
-    USE POP_Constants,       ONLY: shootfrac
+    USE POP_Constants,       ONLY: rshootfrac
     ! use cable_pop_io,        only: pop_io
     use casa_cable,          only: POPdriver, read_casa_dump, analyticpool
     use casa_inout,          only: casa_fluxout, biogeochem, write_casa_output_nc
@@ -25,7 +25,7 @@ contains
     use cable_c13o2_def,     only: c13o2_pool, c13o2_flux
     use cable_c13o2,         only: c13o2_save_casapool, c13o2_update_pools, &
          c13o2_create_output, c13o2_write_output, c13o2_close_output, &
-         c13o2_nvars_output
+         c13o2_nvars_output, c13o2_sanity_pools
     use mo_isotope,          only: isoratio
     USE BLAZE_MOD,           ONLY: TYPE_BLAZE,  BLAZE_ACCOUNTING,  WRITE_BLAZE_OUTPUT_NC
     USE SIMFIRE_MOD,         ONLY: TYPE_SIMFIRE
@@ -83,7 +83,6 @@ contains
     integer,  allocatable :: Iw(:) ! array of indices corresponding to woody (shrub or forest) tiles
     integer :: ctime
     real(dp) :: rday
-    real :: rshootfrac
 
     ! 13C
     real(dp), dimension(c13o2pools%ntile,c13o2pools%npools) :: casasave
@@ -103,7 +102,6 @@ contains
     LOY = 365
     !! vh_js !!
     if (cable_user%CALL_POP) Iw = POP%Iwood
-    rshootfrac = real(shootfrac)
 
     ktauday = int(24.0*3600.0/dels)
     nday    = (kend-kstart+1)/ktauday
@@ -212,7 +210,7 @@ contains
 
           ! 13C
           if (cable_user%c13o2) call c13o2_save_casapool(casapool, casasave)
-          call biogeochem(ktau,dels,idoy,LALLOC,veg,soil,casabiome,casapool,casaflux, &
+          call biogeochem(idoy,LALLOC,veg,soil,casabiome,casapool,casaflux, &
                casamet,casabal,phen,POP,climate,xnplimit,xkNlimiting,xklitter, &
                xksoil,xkleaf,xkleafcold,xkleafdry, &
                cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd, &
@@ -231,6 +229,7 @@ contains
              avg_c13wood2cwd(:) = avg_c13wood2cwd(:) + &
                   cwood2cwd(:) * isoratio(c13o2pools%cplant(:,wood), casasave(:,wood), 0.0_dp, tiny(1.0_dp))
              call c13o2_update_pools(casasave, casaflux, c13o2flux, c13o2pools)
+             call c13o2_sanity_pools(casapool, casaflux, c13o2pools)
           endif
 
           if (cable_user%CALL_BLAZE) then
@@ -383,17 +382,18 @@ contains
     !write(600,*) 'nmet pre-analytic: ' ,  casapool%nlitter(1,metb)
     !write(600,*) 'csoil3 pre-analytic: ', casapool%csoil(3,:)
     !write(600,*) 'csoil1 pre-analytic: ', casapool%csoil(1,:)
-    call analyticpool(kend,veg,soil,casabiome,casapool,                                          &
-         casaflux,casamet,casabal,phen,                                         &
+    call analyticpool(veg,soil,casabiome,casapool,                                          &
+         casaflux,casamet,casabal,                                         &
          avg_cleaf2met,avg_cleaf2str,avg_croot2met,avg_croot2str,avg_cwood2cwd, &
          avg_nleaf2met,avg_nleaf2str,avg_nroot2met,avg_nroot2str,avg_nwood2cwd, &
          avg_pleaf2met,avg_pleaf2str,avg_proot2met,avg_proot2str,avg_pwood2cwd, &
-         avg_cgpp, avg_cnpp, avg_nuptake, avg_puptake,                          &
-         avg_xnplimit,avg_xkNlimiting,avg_xklitter,avg_xksoil,                  &
+         avg_cnpp,                          &
+         avg_xkNlimiting,avg_xklitter,avg_xksoil,                  &
          avg_ratioNCsoilmic,avg_ratioNCsoilslow,avg_ratioNCsoilpass,            &
          avg_nsoilmin,avg_psoillab,avg_psoilsorb,avg_psoilocc, &
          avg_c13leaf2met, avg_c13leaf2str, avg_c13root2met, &
          avg_c13root2str, avg_c13wood2cwd, c13o2pools)
+    if (cable_user%c13o2) call c13o2_sanity_pools(casapool, casaflux, c13o2pools)
     !write(600,*) 'csoil3 post-analytic: ', casapool%csoil(3,:)
     !write(600,*) 'csoil1 post-analytic: ', casapool%csoil(1,:)
 
@@ -474,14 +474,17 @@ contains
 
              ! 13C
              if (cable_user%c13o2) call c13o2_save_casapool(casapool, casasave)
-             call biogeochem(ktauy,dels,idoy,LALLOC,veg,soil,casabiome,casapool,casaflux, &
+             call biogeochem(idoy,LALLOC,veg,soil,casabiome,casapool,casaflux, &
                   casamet,casabal,phen,POP,climate,xnplimit,xkNlimiting,xklitter,xksoil,xkleaf,&
                   xkleafcold,xkleafdry,&
                   cleaf2met,cleaf2str,croot2met,croot2str,cwood2cwd,         &
                   nleaf2met,nleaf2str,nroot2met,nroot2str,nwood2cwd,         &
                   pleaf2met,pleaf2str,proot2met,proot2str,pwood2cwd)
              ! 13C
-             if (cable_user%c13o2) call c13o2_update_pools(casasave, casaflux, c13o2flux, c13o2pools)
+             if (cable_user%c13o2) then
+                call c13o2_update_pools(casasave, casaflux, c13o2flux, c13o2pools)
+                call c13o2_sanity_pools(casapool, casaflux, c13o2pools)
+             endif
 
              if (cable_user%CALL_BLAZE) then
                 CALL BLAZE_ACCOUNTING(BLAZE, climate, ktau, dels, YYYY, idoy)

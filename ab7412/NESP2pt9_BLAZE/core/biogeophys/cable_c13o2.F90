@@ -47,6 +47,8 @@ MODULE cable_c13o2
   public :: c13o2_print_delta_flux  ! Print delta values of all Canopy pools on screen
   public :: c13o2_print_delta_pools ! Print delta values of all Casa pools on screen
   public :: c13o2_print_delta_luc   ! Print delta values of all LUC pools on screen
+  public :: c13o2_sanity_pools      ! Set 13C and 12C Casa pools to 0 if any < epsilon(1.0_dp)
+  public :: c13o2_sanity_luc        ! Set 13C and 12C LUC pools to 0 if any < epsilon(1.0_dp)
 
   ! ------------------------------------------------------------------
   ! Private
@@ -101,6 +103,11 @@ contains
     ! discriminations: D = Ra/Rp-1 -> Rp = Ra/(1+D)
     Dc3 = 4.4e-3_dp + (29.e-3_dp-4.4e-3_dp) * 0.7_dp
     Dc4 = 3.0e-3_dp
+    !MCTest
+    da  = 0.0_dp
+    Dc3 = 0.0_dp
+    Dc4 = 0.0_dp
+    !MCTest
     ! Divide by VPDB so that about same numerical precision as 12C
     c13o2flux%ca  = (1.0_dp + da) * met%ca ! * vpdbc13 / vpdbc13
     c13o2flux%RAn = (1.0_dp - merge(Dc3, Dc4, canopy%isc3)) * (1.0_dp + da)
@@ -233,34 +240,34 @@ contains
     call c13o2_fluxmatrix_pools(casaflux, fluxmatrix)
     ! sources such as photosynthesis
     call c13o2_sources_pools(c13o2flux, casaflux, casasources)
-    ! #ifdef __C13DEBUG__
-    ! call c13o2_sources_pools_nofrac(c13o2flux, casaflux, casasourcestmp)
-    ! #endif
+#ifdef __C13DEBUG__
+    call c13o2_sources_pools_nofrac(c13o2flux, casaflux, casasourcestmp)
+#endif
     ! sinks such as respiration
     call c13o2_sinks_pools(casaflux, casasinks)
 
-    ! #ifdef __C13DEBUG__
-    ! ! Check C fluxes
-    ! mp = size(casasave,1)
-    ! do i=1, mp
-    !    do j=1, 3 ! pools
-    !       ! inew = casasave(i,j) + casaflux%fracCalloc(i,j) * casaflux%Cnpp(i) &
-    !       !      - casaflux%FluxFromPtoCO2(i,j) - sum(casaflux%FluxFromPtoL(i,j,:))
-    !       ! print*, 'Plant ', i, j, casapool%cplant(i,j)-inew
-    !       ! inew = casasave(i,3+j) &
-    !       !      - casaflux%FluxFromLtoCO2(i,j) + sum(casaflux%FluxFromPtoL(i,:,j)) - sum(casaflux%FluxFromLtoS(i,j,:))
-    !       ! print*, 'Litter ', i, j, casapool%clitter(i,j)-inew
-    !       inew = casasave(i,6+j) &
-    !            - casaflux%FluxFromStoCO2(i,j) + sum(casaflux%FluxFromLtoS(i,:,j)) - sum(casaflux%FluxFromStoS(i,j,:)) &
-    !            + sum(casaflux%FluxFromStoS(i,:,j))
-    !       print*, '    Soil ', i, j, mydiff(casapool%csoil(i,j),inew)
-    !       ! if (abs(casapool%csoil(i,j)-inew) > 1e-12_dp) then
-    !       !    print*, 's01 ', casasave(i,6+j), casaflux%FluxFromStoCO2(i,j), sum(casaflux%FluxFromLtoS(i,:,j))
-    !       !    print*, 's02 ', sum(casaflux%FluxFromStoS(i,j,:)), sum(casaflux%FluxFromStoS(i,:,j))
-    !       ! endif
-    !    end do
-    ! end do
-    ! #endif
+#ifdef __C13DEBUG__
+    ! Check C fluxes
+    mp = size(casasave,1)
+    do i=1, mp
+       do j=1, 3 ! pools
+          inew = casasave(i,j) + casaflux%fracCalloc(i,j) * casaflux%Cnpp(i) &
+               - casaflux%FluxFromPtoCO2(i,j) - sum(casaflux%FluxFromPtoL(i,j,:))
+          print*, 'Plant ', i, j, casasave(i,j), casapool%cplant(i,j), casapool%cplant(i,j)-inew
+          ! inew = casasave(i,3+j) &
+          !      - casaflux%FluxFromLtoCO2(i,j) + sum(casaflux%FluxFromPtoL(i,:,j)) - sum(casaflux%FluxFromLtoS(i,j,:))
+          ! print*, 'Litter ', i, j, casapool%clitter(i,j)-inew
+          ! inew = casasave(i,6+j) &
+          !      - casaflux%FluxFromStoCO2(i,j) + sum(casaflux%FluxFromLtoS(i,:,j)) - sum(casaflux%FluxFromStoS(i,j,:)) &
+          !      + sum(casaflux%FluxFromStoS(i,:,j))
+          ! print*, '    Soil ', i, j, mydiff(casapool%csoil(i,j),inew)
+          ! if (abs(casapool%csoil(i,j)-inew) > 1e-12_dp) then
+          !    print*, 's01 ', casasave(i,6+j), casaflux%FluxFromStoCO2(i,j), sum(casaflux%FluxFromLtoS(i,:,j))
+          !    print*, 's02 ', sum(casaflux%FluxFromStoS(i,j,:)), sum(casaflux%FluxFromStoS(i,:,j))
+          ! endif
+       end do
+    end do
+#endif
 
     ! Calc the isotope pool model
     ! print*, '    DSoil11 ', mydiff(casasave(:,7:9), c13o2save(:,7:9))
@@ -272,14 +279,32 @@ contains
     ! print*, '    iSink01 ', mydiff(sum(casaflux%FluxFromStoS,3), sum(fluxmatrix(:,7:9,:), dim=3))
     ! print*, 'Ci01 ', casapool%cplant, casapool%clitter, casapool%csoil, casapool%clabile
     call isotope_pool_model(deltpool, c13o2save, casasave, fluxmatrix, S=casasources, T=casasinks, trans=.true.)
+#ifdef __C13DEBUG__
+    ! Check 13C fluxes
+    mp = size(casasave,1)
+    do i=1, mp
+       do j=1, 3 ! pools
+          inew = c13o2pools%cplant(i,j) + casaflux%fracCalloc(i,j) * casaflux%Cnpp(i) &
+               - casaflux%FluxFromPtoCO2(i,j) - sum(casaflux%FluxFromPtoL(i,j,:))
+          print*, 'Plant13 ', i, j, c13o2pools%cplant(i,j), c13o2save(i,j), c13o2save(i,j)-inew
+       end do
+    end do
+#endif
     ! print*, 'Ci03 ', c13o2save
-    ! #ifdef __C13DEBUG__
+#ifdef __C13DEBUG__
     ! print*, '    Diff1 plant ', mydiff(casapool%cplant,c13o2save(:,1:3))
     ! print*, '    Diff1 litter ', mydiff(casapool%clitter,c13o2save(:,4:6))
     ! print*, '    Diff1 soil ', mydiff(casapool%csoil,c13o2save(:,7:9))
     ! print*, '    Diff1 labile ', casapool%clabile-c13o2save(:,10)
-    ! casatmp = casasave
-    ! call isotope_pool_model(deltpool, casatmp, casasave, fluxmatrix, S=casasourcestmp, T=casasinks, trans=.true.)
+    casatmp = casasave
+    call isotope_pool_model(deltpool, casatmp, casasave, fluxmatrix, S=casasourcestmp, T=casasinks, trans=.true.)
+    ! Check 13C fluxes
+    mp = size(casasave,1)
+    do i=1, mp
+       do j=1, 3 ! pools
+          print*, 'Plant12 ', i, j, c13o2save(i,j), casatmp(i,j), c13o2save(i,j)-casatmp(i,j)
+       end do
+    end do
     ! print*, '    DSoil12 ', mydiff(casatmp(:,7:9),c13o2save(:,7:9))
     ! print*, '    Diff2 plant ', mydiff(casapool%cplant,casatmp(:,1:3))
     ! print*, '    Diff2 litter ', mydiff(casapool%clitter,casatmp(:,4:6))
@@ -311,7 +336,7 @@ contains
     !    print*, '    DLabile03 ', casatmp(:,10)
     !    print*, '    DLabile04 ', casapool%clabile-c13o2save(:,10)
     ! endif
-    ! #endif
+#endif
 
     ! put new solution into initial c13o2_pool type
     call c13o2_c13o2pools_back(c13o2pools, c13o2save)
@@ -413,6 +438,9 @@ contains
     use cable_c13o2_def,       only: c13o2_pool, c13o2_luc
     use mo_isotope_pool_model, only: isotope_pool_model
     use mo_isotope_luc_model,  only: isotope_luc_model
+#ifdef __MPI__
+    use mpi,                   only: MPI_Abort
+#endif
 #ifdef __C13DEBUG__
     use casavariable,          only: casa_pool
     use mo_isotope,            only: delta1000
@@ -443,6 +471,9 @@ contains
 
     integer :: nplant, nlitter, nsoil, nharvest, nclearance
     integer :: g, j, l, c, cs, ce
+#ifdef __MPI__
+    integer :: ierr
+#endif
 #ifdef __C13DEBUG__
     real(dp), dimension(size(casasave,1),size(casasave,2)) :: casatmp
     real(dp), dimension(nLU)                               :: csluc
@@ -473,8 +504,12 @@ contains
           j = landpt(g)%cstart ! start index of Cable tiles for grid cell g
           l = landpt(g)%cend   ! end index of Cable tiles for grid cell g
           if ((l-j+1) /= nLU) then
-             write(*,*) 'I do still not understand the tiling: ', g, j, l, nLU
-             stop 9
+             write(*,*) 'I still do not understand the tiling: ', g, j, l, nLU
+#ifdef __MPI__
+             call MPI_Abort(0, 124, ierr) ! Do not know comm nor rank here
+#else
+             stop 124
+#endif
           endif
 #ifdef __C13DEBUG__
           iwtile = l-2
@@ -644,6 +679,8 @@ contains
   ! Create 13C Casa output file
   subroutine c13o2_create_output(casamet, c13o2pools, file_id, vars, var_ids)
 
+    ! use cable_def_types_mod,  only: mland
+    ! use cable_io_vars_module, only: landpt
     use cable_common_module,  only: cable_user, filename
     use casavariable,         only: casa_met, casafile, casa_timeunits
     use cable_c13o2_def,      only: c13o2_pool
@@ -665,7 +702,7 @@ contains
     integer,           dimension(c13o2_nvars_output), intent(out) :: var_ids
 
     ! local variables
-    integer :: i, status
+    integer :: i, status ! , s, e
     character(len=200) :: fname, dum
     integer :: olen
 
@@ -683,7 +720,7 @@ contains
     integer,           dimension(3)                  :: idids ! tmp for dim ids
 
     ! dimension names
-    dims(1) = 'ntile'
+    dims(1) = 'land'
     dims(2) = 'nplant'
     dims(3) = 'nlitter'
     dims(4) = 'nsoil'
@@ -724,13 +761,13 @@ contains
     ! uvars(8) = 'kg(13C)/m^2'
     ! number of dimensions
     dvars(1) = 1 ! time
-    dvars(2) = 1 ! ntile
-    dvars(3) = 1 ! ntile
-    dvars(4) = 3 ! ntile, nplant, time
-    dvars(5) = 3 ! ntile, nlitter, time
-    dvars(6) = 3 ! ntile, nsoil, time
-    dvars(7) = 2 ! ntile, time
-    ! dvars(8) = 2 ! ntile, time
+    dvars(2) = 1 ! land
+    dvars(3) = 1 ! land
+    dvars(4) = 3 ! land, nplant, time
+    dvars(5) = 3 ! land, nlitter, time
+    dvars(6) = 3 ! land, nsoil, time
+    dvars(7) = 2 ! land, time
+    ! dvars(8) = 2 ! land, time
     ! variable type
     tvars(1) = nf90_int
     tvars(2) = nf90_double
@@ -769,8 +806,7 @@ contains
     status = nf90_create(trim(fname), cmode=ior(nf90_clobber,nf90_64bit_offset), ncid=file_id)
 #else
     status = nf90_create(trim(fname), cmode=ior(nf90_clobber,ior(nf90_netcdf4,nf90_classic_model)), ncid=file_id)
-#endif       
-    ! print*, 'OCreate70 ', file_id
+#endif
     if (status /= nf90_noerr) &
          call c13o2_err_handler('Could not open c13o2 output file: '//trim(fname))
 
@@ -829,7 +865,7 @@ contains
        else
           status = nf90_def_var(file_id, trim(vars(i)), tvars(i), idids(1:dvars(i)), var_ids(i) &
 #ifndef __NETCDF3__
-               , deflate_level=1 &
+               , deflate_level=4 &
 #endif
                )
        endif
@@ -873,6 +909,13 @@ contains
     end do
     ! write(*,*) 'Defined 13CO2 output file.'
 
+    ! do i=1, mland
+    !    s = landpt(i)%cstart
+    !    e = landpt(i)%cend
+    !    print*, '  Lats ', i, mland, casamet%lat(s:e)
+    !    print*, '  Lons ', i, mland, casamet%lon(s:e)
+    ! end do
+
   end subroutine c13o2_create_output
 
   ! ------------------------------------------------------------------
@@ -880,7 +923,7 @@ contains
   ! Write into 13C Casa output file
   subroutine c13o2_write_output(file_id, vars, var_ids, days, c13o2pools)
 
-    use cable_def_types_mod, only: i_d, dp => r_2
+    use cable_def_types_mod, only: dp => r_2
     use cable_common_module, only: cable_user
     use cable_c13o2_def,     only: c13o2_pool
     use netcdf,              only: nf90_put_var, nf90_noerr
@@ -965,7 +1008,6 @@ contains
     integer :: status
 
     write(*,*) 'Closing 13CO2 output file.'
-    ! print*, 'OClose90 ', file_id
     status = nf90_close(file_id)
     file_id = -1
     if (status /= nf90_noerr) &
@@ -1002,7 +1044,6 @@ contains
     write(*,*) 'Read 13CO2 restart_in_flux file: ', trim(c13o2_restart_in_flux)
 
     status = nf90_open(trim(c13o2_restart_in_flux), nf90_nowrite, file_id)
-    ! print*, 'OOpen90 ', file_id
     if (status /= nf90_noerr) call c13o2_err_handler('Error 13CO2 restart_in_flux file: '//trim(c13o2_restart_in_flux))
 
     ! Vstarch
@@ -1036,7 +1077,6 @@ contains
     if (status /= nf90_noerr) &
          call c13o2_err_handler('Error reading variable Rphoto from restart_in_flux file: '//trim(c13o2_restart_in_flux))
 
-    ! print*, 'OClose91 ', file_id
     status = nf90_close(file_id)
     file_id = -1
     if (status /= nf90_noerr) &
@@ -1047,9 +1087,10 @@ contains
   ! ------------------------------------------------------------------
 
   ! Write 13C Canopy pools into restart file
-  subroutine c13o2_write_restart_flux(c13o2flux)
+  subroutine c13o2_write_restart_flux(casamet, c13o2flux)
 
     use cable_common_module, only: cable_user, filename, CurYear
+    use casavariable,        only: casa_met
     use cable_c13o2_def,     only: c13o2_flux
     use netcdf,              only: nf90_create, nf90_clobber, nf90_64bit_offset, nf90_noerr, &
          nf90_put_att, nf90_global, nf90_def_dim, &
@@ -1057,6 +1098,7 @@ contains
 
     implicit none
 
+    type(casa_met),   intent(in) :: casamet
     type(c13o2_flux), intent(in) :: c13o2flux
 
     ! local variables
@@ -1065,7 +1107,7 @@ contains
     character(len=200) :: fname, cyear
 
     ! 1 dim arrays (npt,)
-    integer, parameter :: nlandvars = 2
+    integer, parameter :: nlandvars = 4
     character(len=40), dimension(nlandvars)  :: landvars
     ! 2 dim arrays (npt,nleaf)
     integer, parameter :: nleafvars = 2
@@ -1075,8 +1117,10 @@ contains
     integer, dimension(nleafvars)  :: leafvars_id
 
     ! Variables
-    landvars(1) = 'Vstarch'
-    landvars(2) = 'Rstarch'
+    landvars(1) = 'latitude'
+    landvars(2) = 'longitude'
+    landvars(3) = 'Vstarch'
+    landvars(4) = 'Rstarch'
     leafvars(1) = 'Rsucrose'
     leafvars(2) = 'Rphoto'
 
@@ -1090,7 +1134,6 @@ contains
     ! create restart file
     write(*,*) 'Writing 13CO2 Canopy pools restart file: ', trim(fname)
     status = nf90_create(trim(fname), cmode=ior(nf90_clobber,nf90_64bit_offset), ncid=file_id)
-    ! print*, 'OCreate71 ', file_id
     if (status /= nf90_noerr) &
          call c13o2_err_handler('Could not open c13o2 restart_out_flux file: '//trim(fname))
 
@@ -1101,7 +1144,7 @@ contains
          call c13o2_err_handler('Could not set global date attribute in c13o2 restart_out_flux file: '//trim(fname))
 
     ! define dimensions
-    status = nf90_def_dim(file_id, 'nland', c13o2flux%ntile, land_id)
+    status = nf90_def_dim(file_id, 'land', c13o2flux%ntile, land_id)
     if (status /= nf90_noerr) &
          call c13o2_err_handler('Could not define land dimension in c13o2 restart_out_flux file: '//trim(fname))
     status = nf90_def_dim(file_id, 'nleaf', c13o2flux%nleaf, leaf_id)
@@ -1129,21 +1172,26 @@ contains
          call c13o2_err_handler('Could not end definition phase of c13o2 restart_out_flux file: '//trim(fname))
 
     ! put variables
-    status = nf90_put_var(file_id, landvars_id(1), c13o2flux%Vstarch)
+    status = nf90_put_var(file_id, landvars_id(1), casamet%lat)
     if (status /= nf90_noerr) &
-         call c13o2_err_handler('Could put variable '//trim(landvars(1))//' to c13o2 restart_out_flux file: '//trim(fname))
-    status = nf90_put_var(file_id, landvars_id(2), c13o2flux%Rstarch)
+         call c13o2_err_handler('Could not put variable '//trim(landvars(1))//' to c13o2 restart_out_flux file: '//trim(fname))
+    status = nf90_put_var(file_id, landvars_id(2), casamet%lon)
     if (status /= nf90_noerr) &
-         call c13o2_err_handler('Could put variable '//trim(landvars(2))//' to c13o2 restart_out_flux file: '//trim(fname))
+         call c13o2_err_handler('Could not put variable '//trim(landvars(2))//' to c13o2 restart_out_flux file: '//trim(fname))
+    status = nf90_put_var(file_id, landvars_id(3), c13o2flux%Vstarch)
+    if (status /= nf90_noerr) &
+         call c13o2_err_handler('Could not put variable '//trim(landvars(3))//' to c13o2 restart_out_flux file: '//trim(fname))
+    status = nf90_put_var(file_id, landvars_id(4), c13o2flux%Rstarch)
+    if (status /= nf90_noerr) &
+         call c13o2_err_handler('Could not put variable '//trim(landvars(4))//' to c13o2 restart_out_flux file: '//trim(fname))
     status = nf90_put_var(file_id, leafvars_id(1), c13o2flux%Rsucrose)
     if (status /= nf90_noerr) &
-         call c13o2_err_handler('Could put variable '//trim(leafvars(1))//' to c13o2 restart_out_flux file: '//trim(fname))
+         call c13o2_err_handler('Could not put variable '//trim(leafvars(1))//' to c13o2 restart_out_flux file: '//trim(fname))
     status = nf90_put_var(file_id, leafvars_id(2), c13o2flux%Rphoto)
     if (status /= nf90_noerr) &
-         call c13o2_err_handler('Could put variable '//trim(leafvars(2))//' to c13o2 restart_out_flux file: '//trim(fname))
+         call c13o2_err_handler('Could not put variable '//trim(leafvars(2))//' to c13o2 restart_out_flux file: '//trim(fname))
 
     ! close restart file
-    ! print*, 'OClose92 ', file_id
     status = nf90_close(file_id)
     file_id = -1
     if (status /= nf90_noerr) &
@@ -1175,7 +1223,6 @@ contains
     write(*,*) 'Read 13CO2 restart_in_pools file: ', trim(c13o2_restart_in_pools)
 
     status = nf90_open(trim(c13o2_restart_in_pools), nf90_nowrite, file_id)
-    ! print*, 'OOpen91 ', file_id
     if (status /= nf90_noerr) call c13o2_err_handler('Error 13CO2 restart_in_pools file: '//trim(c13o2_restart_in_pools))
 
     ! cplant
@@ -1217,7 +1264,6 @@ contains
     if (status /= nf90_noerr) &
          call c13o2_err_handler('Error reading variable charvest from restart_in_pools file: '//trim(c13o2_restart_in_pools))
 
-    ! print*, 'OClose94 ', file_id
     status = nf90_close(file_id)
     file_id = -1
     if (status /= nf90_noerr) &
@@ -1228,9 +1274,10 @@ contains
   ! ------------------------------------------------------------------
 
   ! Write 13C Casa pools into restart file
-  subroutine c13o2_write_restart_pools(c13o2pools)
+  subroutine c13o2_write_restart_pools(casamet, c13o2pools)
 
     use cable_common_module, only: cable_user, filename, CurYear
+    use casavariable,        only: casa_met
     use cable_c13o2_def,     only: c13o2_pool
     use netcdf,              only: nf90_create, nf90_clobber, nf90_64bit_offset, nf90_noerr, &
          nf90_put_att, nf90_global, nf90_def_dim, &
@@ -1238,6 +1285,7 @@ contains
 
     implicit none
 
+    type(casa_met),   intent(in) :: casamet
     type(c13o2_pool), intent(in) :: c13o2pools
 
     ! local variables
@@ -1246,7 +1294,7 @@ contains
     character(len=200) :: fname, cyear
 
     ! 1 dim arrays (npt,)
-    integer, parameter :: nlandvars = 2
+    integer, parameter :: nlandvars = 4
     character(len=40), dimension(nlandvars)  :: landvars
     ! 2 dim arrays (npt,nplant)
     integer, parameter :: nplantvars = 1
@@ -1264,8 +1312,10 @@ contains
     integer, dimension(nsoilvars)   :: soilvars_id
 
     ! Variables
-    landvars(1)   = 'clabile'
-    landvars(2)   = 'charvest'
+    landvars(1)   = 'latitude'
+    landvars(2)   = 'longitude'
+    landvars(3)   = 'clabile'
+    landvars(4)   = 'charvest'
     plantvars(1)  = 'cplant'
     littervars(1) = 'clitter'
     soilvars(1)   = 'csoil'
@@ -1280,7 +1330,6 @@ contains
     ! create restart file
     write(*,*) 'Writing 13CO2 Casa restart file: ', trim(fname)
     status = nf90_create(trim(fname), cmode=ior(nf90_clobber,nf90_64bit_offset), ncid=file_id)
-    ! print*, 'OCreate72 ', file_id
     if (status /= nf90_noerr) &
          call c13o2_err_handler('Could not open c13o2 restart_out_pools file: '//trim(fname))
 
@@ -1291,7 +1340,7 @@ contains
          call c13o2_err_handler('Could not set global date attribute in c13o2 restart_out_pools file: '//trim(fname))
 
     ! define dimensions
-    status = nf90_def_dim(file_id, 'nland', c13o2pools%ntile, land_id)
+    status = nf90_def_dim(file_id, 'land', c13o2pools%ntile, land_id)
     if (status /= nf90_noerr) &
          call c13o2_err_handler('Could not define land dimension in c13o2 restart_out_pools file: '//trim(fname))
     status = nf90_def_dim(file_id, 'nplant', c13o2pools%nplant, plant_id)
@@ -1339,24 +1388,29 @@ contains
          call c13o2_err_handler('Could not end definition phase of c13o2 restart_out_pools file: '//trim(fname))
 
     ! put variables
-    status = nf90_put_var(file_id, landvars_id(1), c13o2pools%clabile)
+    status = nf90_put_var(file_id, landvars_id(1), casamet%lat)
     if (status /= nf90_noerr) &
-         call c13o2_err_handler('Could put variable '//trim(landvars(1))//' to c13o2 restart_out_pools file: '//trim(fname))
-    status = nf90_put_var(file_id, landvars_id(2), c13o2pools%charvest)
+         call c13o2_err_handler('Could not put variable '//trim(landvars(1))//' to c13o2 restart_out_pools file: '//trim(fname))
+    status = nf90_put_var(file_id, landvars_id(2), casamet%lon)
     if (status /= nf90_noerr) &
-         call c13o2_err_handler('Could put variable '//trim(landvars(2))//' to c13o2 restart_out_pools file: '//trim(fname))
+         call c13o2_err_handler('Could not put variable '//trim(landvars(2))//' to c13o2 restart_out_pools file: '//trim(fname))
+    status = nf90_put_var(file_id, landvars_id(3), c13o2pools%clabile)
+    if (status /= nf90_noerr) &
+         call c13o2_err_handler('Could not put variable '//trim(landvars(3))//' to c13o2 restart_out_pools file: '//trim(fname))
+    status = nf90_put_var(file_id, landvars_id(4), c13o2pools%charvest)
+    if (status /= nf90_noerr) &
+         call c13o2_err_handler('Could not put variable '//trim(landvars(4))//' to c13o2 restart_out_pools file: '//trim(fname))
     status = nf90_put_var(file_id, plantvars_id(1), c13o2pools%cplant)
     if (status /= nf90_noerr) &
-         call c13o2_err_handler('Could put variable '//trim(plantvars(1))//' to c13o2 restart_out_pools file: '//trim(fname))
+         call c13o2_err_handler('Could not put variable '//trim(plantvars(1))//' to c13o2 restart_out_pools file: '//trim(fname))
     status = nf90_put_var(file_id, littervars_id(1), c13o2pools%clitter)
     if (status /= nf90_noerr) &
-         call c13o2_err_handler('Could put variable '//trim(littervars(1))//' to c13o2 restart_out_pools file: '//trim(fname))
+         call c13o2_err_handler('Could not put variable '//trim(littervars(1))//' to c13o2 restart_out_pools file: '//trim(fname))
     status = nf90_put_var(file_id, soilvars_id(1), c13o2pools%csoil)
     if (status /= nf90_noerr) &
-         call c13o2_err_handler('Could put variable '//trim(soilvars(1))//' to c13o2 restart_out_pools file: '//trim(fname))
+         call c13o2_err_handler('Could not put variable '//trim(soilvars(1))//' to c13o2 restart_out_pools file: '//trim(fname))
 
     ! close restart file
-    ! print*, 'OClose95 ', file_id
     status = nf90_close(file_id)
     file_id = -1
     if (status /= nf90_noerr) &
@@ -1388,7 +1442,6 @@ contains
     write(*,*) 'Read 13CO2 restart_in_luc file: ', trim(c13o2_restart_in_luc)
 
     status = nf90_open(trim(c13o2_restart_in_luc), nf90_nowrite, file_id)
-    ! print*, 'OOpen92 ', file_id
     if (status /= nf90_noerr) call c13o2_err_handler('Error 13CO2 restart_in_luc file: '//trim(c13o2_restart_in_luc))
 
     ! charvest
@@ -1416,7 +1469,6 @@ contains
     if (status /= nf90_noerr) &
          call c13o2_err_handler('Error reading variable cagric from restart_in_luc file: '//trim(c13o2_restart_in_luc))
 
-    ! print*, 'OClose96 ', file_id
     status = nf90_close(file_id)
     file_id = -1
     if (status /= nf90_noerr) &
@@ -1427,9 +1479,10 @@ contains
   ! ------------------------------------------------------------------
 
   ! Write 13C Casa pools into restart file
-  subroutine c13o2_write_restart_luc(c13o2luc)
+  subroutine c13o2_write_restart_luc(popluc, c13o2luc)
 
     use cable_common_module, only: cable_user, filename, CurYear
+    use popluc_types,        only: popluc_type
     use cable_c13o2_def,     only: c13o2_luc
     use netcdf,              only: nf90_create, nf90_clobber, nf90_64bit_offset, nf90_noerr, &
          nf90_put_att, nf90_global, nf90_def_dim, &
@@ -1437,7 +1490,8 @@ contains
 
     implicit none
 
-    type(c13o2_luc), intent(in) :: c13o2luc
+    type(popluc_type), intent(in) :: popluc
+    type(c13o2_luc),   intent(in) :: c13o2luc
 
     ! local variables
     integer :: file_id, land_id, harvest_id, clearance_id
@@ -1445,7 +1499,7 @@ contains
     character(len=200) :: fname, cyear
 
     ! 1 dim arrays (npt,)
-    integer, parameter :: nlandvars = 1
+    integer, parameter :: nlandvars = 3
     character(len=40), dimension(nlandvars)      :: landvars
     ! 2 dim arrays (npt,nharvest)
     integer, parameter :: nharvestvars = 1
@@ -1459,7 +1513,9 @@ contains
     integer, dimension(nclearancevars) :: clearancevars_id
 
     ! Variables
-    landvars(1)      = 'cagric'
+    landvars(1)      = 'latitude'
+    landvars(2)      = 'longitude'
+    landvars(3)      = 'cagric'
     harvestvars(1)   = 'charvest'
     clearancevars(1) = 'cclearance'
 
@@ -1473,7 +1529,6 @@ contains
     ! create restart file
     write(*,*) 'Writing 13CO2 LUC restart file: ', trim(fname)
     status = nf90_create(trim(fname), cmode=ior(nf90_clobber,nf90_64bit_offset), ncid=file_id)
-    ! print*, 'OCreate73 ', file_id
     if (status /= nf90_noerr) &
          call c13o2_err_handler('Could not open c13o2 restart_out_luc file: '//trim(fname))
 
@@ -1484,7 +1539,7 @@ contains
          call c13o2_err_handler('Could not set global date attribute in c13o2 restart_out_luc file: '//trim(fname))
 
     ! define dimensions
-    status = nf90_def_dim(file_id, 'nland', c13o2luc%nland, land_id)
+    status = nf90_def_dim(file_id, 'land', c13o2luc%nland, land_id)
     if (status /= nf90_noerr) &
          call c13o2_err_handler('Could not define land dimension in c13o2 restart_out_luc file: '//trim(fname))
     status = nf90_def_dim(file_id, 'nharvest', c13o2luc%nharvest, harvest_id)
@@ -1522,18 +1577,23 @@ contains
          call c13o2_err_handler('Could not end definition phase of c13o2 restart_out_luc file: '//trim(fname))
 
     ! put variables
-    status = nf90_put_var(file_id, landvars_id(1), c13o2luc%cagric)
+    status = nf90_put_var(file_id, landvars_id(1), popluc%latitude)
     if (status /= nf90_noerr) &
-         call c13o2_err_handler('Could put variable '//trim(landvars(1))//' to c13o2 restart_out_luc file: '//trim(fname))
+         call c13o2_err_handler('Could not put variable '//trim(landvars(1))//' to c13o2 restart_out_luc file: '//trim(fname))
+    status = nf90_put_var(file_id, landvars_id(2), popluc%longitude)
+    if (status /= nf90_noerr) &
+         call c13o2_err_handler('Could not put variable '//trim(landvars(2))//' to c13o2 restart_out_luc file: '//trim(fname))
+    status = nf90_put_var(file_id, landvars_id(3), c13o2luc%cagric)
+    if (status /= nf90_noerr) &
+         call c13o2_err_handler('Could not put variable '//trim(landvars(3))//' to c13o2 restart_out_luc file: '//trim(fname))
     status = nf90_put_var(file_id, harvestvars_id(1), c13o2luc%charvest)
     if (status /= nf90_noerr) &
-         call c13o2_err_handler('Could put variable '//trim(harvestvars(1))//' to c13o2 restart_out_luc file: '//trim(fname))
+         call c13o2_err_handler('Could not put variable '//trim(harvestvars(1))//' to c13o2 restart_out_luc file: '//trim(fname))
     status = nf90_put_var(file_id, clearancevars_id(1), c13o2luc%cclearance)
     if (status /= nf90_noerr) &
-         call c13o2_err_handler('Could put variable '//trim(clearancevars(1))//' to c13o2 restart_out_luc file: '//trim(fname))
+         call c13o2_err_handler('Could not put variable '//trim(clearancevars(1))//' to c13o2 restart_out_luc file: '//trim(fname))
 
     ! close restart file
-    ! print*, 'OClose97 ', file_id
     status = nf90_close(file_id)
     file_id = -1
     if (status /= nf90_noerr) &
@@ -1544,84 +1604,180 @@ contains
 
   ! ------------------------------------------------------------------
 
-  ! Generell
+  ! General
 
   ! ------------------------------------------------------------------
 
   ! Print 13C delta values of Canopy pools on screen
   subroutine c13o2_print_delta_flux(c13o2flux)
 
-    use cable_def_types_mod, only: dp => r_2
-    use cable_c13o2_def,     only: c13o2_flux
-    use mo_isotope,          only: delta1000!, vpdbc13
+    use cable_def_types_mod,  only: mf, mland, dp => r_2
+    use cable_io_vars_module, only: landpt
+    use cable_c13o2_def,      only: c13o2_flux
+    use mo_isotope,           only: delta1000 !, vpdbc13
+    use mo_utils,             only: ne
 
     implicit none
 
     type(c13o2_flux), intent(in) :: c13o2flux
 
-    integer :: i, j, mp, npatch, nleaf
-    character(len=30) :: form1, form2
+    integer,  parameter :: nminmax = 10
+    integer,  parameter :: npatchmax = 3
+    real(dp), parameter :: undef = -999.0_dp
+    real(dp), parameter :: one   = 1.0_dp
+    real(dp), parameter :: tini  = tiny(1.0_dp)
 
-    mp     = c13o2flux%ntile
-    npatch = 3
-    nleaf  = c13o2flux%nleaf
+    integer :: npatch, s, e, i, j, jj
+    character(len=30) :: form
+    real(dp)                          :: tmp
+    real(dp), dimension(npatchmax)    :: minip, maxip
+    real(dp), dimension(mf)           :: tmpl
+    real(dp), dimension(npatchmax,mf) :: minipl, maxipl
 
-    write(*,*) '    delta-13C of Canopy pools'
-    
-    if (mp > 3) then
+    write(*,*) '  delta-13C of Canopy pools'
 
-       write(form1,'(a,i3,a)') '(a,i1,a,', mp/npatch, 'g15.6e3)'
-       print*, 'PP01 ', mp, mp/npatch, npatch, size(c13o2flux%Vstarch)
-       do i=1, npatch
-          write(*,form1) '        Vstarch (na=',i,'): ', c13o2flux%Vstarch(i:mp:npatch)
-       end do
-       do i=1, npatch
-          write(*,form1) '        dstarch (na=',i,'): ', &
-               delta1000(c13o2flux%Rstarch(i:mp:npatch), 1.0_dp, 1.0_dp, -999._dp, tiny(1.0_dp))
-       end do
+    if (mland > nminmax) then
 
-       write(form2,'(a,i3,a)') '(a,i1,a,i1,a,', mp/npatch, 'g15.6e3)'
-       do j=1, nleaf
-          do i=1, npatch
-             write(*,form2) '        dsucrose (na=',i,',nl=',j,'): ', &
-                  delta1000(c13o2flux%Rsucrose(i:mp:npatch,j), 1.0_dp, 1.0_dp, -999._dp, tiny(1.0_dp))
+       ! Vstarch
+       minip = -undef
+       maxip = undef
+       do i=1, mland
+          s = landpt(i)%cstart
+          e = landpt(i)%cend
+          do j=s, e
+             jj = j - s + 1
+             minip(jj) = min(c13o2flux%Vstarch(j), minip(jj))
+             maxip(jj) = max(c13o2flux%Vstarch(j), maxip(jj))
           end do
        end do
-       do j=1, nleaf
-          do i=1, npatch
-             write(*,form2) '        dphoto (na=',i,',nl=',j,'): ', &
-                  delta1000(c13o2flux%Rphoto(i:mp:npatch,j), 1.0_dp, 1.0_dp, -999._dp, tiny(1.0_dp))
+       write(form,'(a,i3,a)') '(a,', npatchmax, 'g15.6e3)'
+       write(*,form) '     Vstarch  min: ', minip
+       write(*,form) '              max: ', maxip
+
+       ! dstarch
+       minip = -undef
+       maxip = undef
+       do i=1, mland
+          s = landpt(i)%cstart
+          e = landpt(i)%cend
+          do j=s, e
+             jj = j - s + 1
+             tmp = delta1000(c13o2flux%Rstarch(j), one, one, undef, tini)
+             if (ne(tmp,undef)) then
+                minip(jj) = min(tmp, minip(jj))
+                maxip(jj) = max(tmp, maxip(jj))
+             endif
           end do
        end do
+       write(form,'(a,i3,a)') '(a,', npatchmax, 'g15.6e3)'
+       write(*,form) '     dstarch  min: ', minip
+       write(*,form) '              max: ', maxip
 
-    else ! mland > 1
-       
-       write(form1,'(a,i3,a)') '(a,', npatch, 'g15.6e3)'
-       write(*,form1) '        Vstarch: ', c13o2flux%Vstarch(:)
-       write(*,form1) '        dstarch: ', &
-            delta1000(c13o2flux%Rstarch(:), 1.0_dp, 1.0_dp, -999._dp, tiny(1.0_dp))
-
-       write(form2,'(a,i3,a)') '(a,i1,a,', npatch, 'g15.6e3)'
-       do j=1, nleaf
-          write(*,form2) '        dsucrose (nl=',j,'): ', &
-               delta1000(c13o2flux%Rsucrose(:,j), 1.0_dp, 1.0_dp, -999._dp, tiny(1.0_dp))
+       ! dsucrose
+       minipl = -undef
+       maxipl = undef
+       do i=1, mland
+          s = landpt(i)%cstart
+          e = landpt(i)%cend
+          do j=s, e
+             jj = j - s + 1
+             tmpl(:) = delta1000(c13o2flux%Rsucrose(j,:), one, one, undef, tini)
+             where (ne(tmpl(:),undef))
+                minipl(jj,:) = min(tmpl(:), minipl(jj,:))
+                maxipl(jj,:) = max(tmpl(:), maxipl(jj,:))
+             endwhere
+          end do
        end do
-       do j=1, nleaf
-          write(*,form2) '        dphoto (nl=',j,'): ', &
-               delta1000(c13o2flux%Rphoto(:,j), 1.0_dp, 1.0_dp, -999._dp, tiny(1.0_dp))
+       write(form,'(a,i3,a)') '(a,', npatchmax*mf, 'g15.6e3)'
+       write(*,form) '     dsucrose min: ', minipl
+       write(*,form) '              max: ', maxipl
+
+       ! dphoto
+       minipl = -undef
+       maxipl = undef
+       do i=1, mland
+          s = landpt(i)%cstart
+          e = landpt(i)%cend
+          do j=s, e
+             jj = j - s + 1
+             tmpl(:) = delta1000(c13o2flux%Rphoto(j,:), one, one, undef, tini)
+             where (ne(tmpl(:),undef))
+                minipl(jj,:) = min(tmpl(:), minipl(jj,:))
+                maxipl(jj,:) = max(tmpl(:), maxipl(jj,:))
+             endwhere
+          end do
+       end do
+       write(form,'(a,i3,a)') '(a,', npatchmax*mf, 'g15.6e3)'
+       write(*,form) '     dphoto   min: ', minipl
+       write(*,form) '              max: ', maxipl
+
+    else if (mland > 1) then
+
+       do i=1, mland
+          npatch = landpt(i)%nap
+          s      = landpt(i)%cstart
+          e      = landpt(i)%cend
+          write(form,'(a,i3,a)') '(a,i02,a,', npatch, 'g15.6e3)'
+          write(*,form) '     Vstarch (n=',i,'):   ', c13o2flux%Vstarch(s:e)
        end do
 
-    endif ! mland > 1
-    
+       do i=1, mland
+          npatch = landpt(i)%nap
+          s      = landpt(i)%cstart
+          e      = landpt(i)%cend
+          write(form,'(a,i3,a)') '(a,i02,a,', npatch, 'g15.6e3)'
+          write(*,form) '     dstarch (n=',i,'):   ', &
+               delta1000(c13o2flux%Rstarch(s:e), one, one, undef, tini)
+       end do
+
+       do i=1, mland
+          npatch = landpt(i)%nap
+          s      = landpt(i)%cstart
+          e      = landpt(i)%cend
+          write(form,'(a,i3,a)') '(a,i02,a,', npatch*mf, 'g15.6e3)'
+          write(*,form) '     dsucrose (n=',i,'): ', &
+               delta1000(c13o2flux%Rsucrose(s:e,:), one, one, undef, tini)
+       end do
+
+       do i=1, mland
+          npatch = landpt(i)%nap
+          s      = landpt(i)%cstart
+          e      = landpt(i)%cend
+          write(form,'(a,i3,a)') '(a,i02,a,', npatch*mf, 'g15.6e3)'
+          write(*,form) '     dphoto (na=',i,'):   ', &
+               delta1000(c13o2flux%Rphoto(s:e,:), one, one, undef, tini)
+       end do
+
+    else ! mland == 1
+
+       npatch = landpt(mland)%nap
+
+       write(form,'(a,i3,a)') '(a,', npatch, 'g15.6e3)'
+       write(*,form) '     Vstarch:  ', c13o2flux%Vstarch(:)
+
+       write(*,form) '     dstarch:  ', &
+            delta1000(c13o2flux%Rstarch(:), one, one, undef, tini)
+
+       write(form,'(a,i3,a)') '(a,', npatch*mf, 'g15.6e3)'
+       write(*,form) '     dsucrose: ', &
+            delta1000(c13o2flux%Rsucrose(:,:), one, one, undef, tini)
+
+       write(*,form) '     dphoto:   ', &
+            delta1000(c13o2flux%Rphoto(:,:), one, one, undef, tini)
+
+    endif ! mland
+
   end subroutine c13o2_print_delta_flux
 
   ! Print 13C delta values of Casa pools on screen
   subroutine c13o2_print_delta_pools(casapool, casaflux, c13o2pools)
 
-    use cable_def_types_mod, only: dp => r_2
-    use casavariable,        only: casa_pool, casa_flux
-    use cable_c13o2_def,     only: c13o2_pool
-    use mo_isotope,          only: delta1000!, vpdbc13
+    use cable_def_types_mod,  only: mland, dp => r_2
+    use cable_io_vars_module, only: landpt
+    use casavariable,         only: casa_pool, casa_flux
+    use cable_c13o2_def,      only: c13o2_pool
+    use mo_isotope,           only: delta1000 !, vpdbc13
+    use mo_utils,             only: ne
 
     implicit none
 
@@ -1629,72 +1785,197 @@ contains
     type(casa_flux),  intent(in) :: casaflux
     type(c13o2_pool), intent(in) :: c13o2pools
 
-    integer :: i, j, mp, npatch, nplant, nlitter, nsoil
-    character(len=30) :: form1, form2
+    integer,  parameter :: nminmax = 10
+    integer,  parameter :: npatchmax = 3
+    real(dp), parameter :: undef = -999.0_dp
+    real(dp), parameter :: one   = 1.0_dp
+    real(dp), parameter :: tini  = tiny(1.0_dp)
 
-    mp      = size(casapool%cplant,1)
-    npatch  = 3
+    integer :: nplant, nlitter, nsoil, npatch, s, e, i, j, jj
+    character(len=30) :: form
+    real(dp)                       :: tmp
+    real(dp), dimension(npatchmax) :: minip, maxip
+    real(dp), dimension(size(casapool%cplant,2))            :: tmpp
+    real(dp), dimension(npatchmax,size(casapool%cplant,2))  :: minipp, maxipp
+    real(dp), dimension(size(casapool%clitter,2))           :: tmpl
+    real(dp), dimension(npatchmax,size(casapool%clitter,2)) :: minipl, maxipl
+    real(dp), dimension(size(casapool%csoil,2))             :: tmps
+    real(dp), dimension(npatchmax,size(casapool%csoil,2))   :: minips, maxips
+
     nplant  = size(casapool%cplant,2)
     nlitter = size(casapool%clitter,2)
     nsoil   = size(casapool%csoil,2)
 
-    write(*,*) '    delta-13C of Casa pools'
+    write(*,*) '  delta-13C of Casa pools'
 
-    if (mp > 3) then
-       
-       write(form1,'(a,i3,a)') '(a,i1,a,i1,a,', mp/npatch, 'g15.6e3)'
-       do j=1, nplant
-          do i=1, npatch
-             write(*,form1) '        plant (na=',i,',np=',j,'): ', &
-                  delta1000(c13o2pools%cplant(i:mp:npatch,j), casapool%cplant(i:mp:npatch,j), 1.0_dp, -999._dp, tiny(1.0_dp))
+    if (mland > nminmax) then
+
+       ! dplant
+       minipp = -undef
+       maxipp = undef
+       do i=1, mland
+          s = landpt(i)%cstart
+          e = landpt(i)%cend
+          do j=s, e
+             jj = j - s + 1
+             tmpp(:) = delta1000(c13o2pools%cplant(j,:), casapool%cplant(j,:), one, undef, tini)
+             where (ne(tmpp(:),undef))
+                minipp(jj,:) = min(tmpp(:), minipp(jj,:))
+                maxipp(jj,:) = max(tmpp(:), maxipp(jj,:))
+             endwhere
           end do
        end do
-       do j=1, nlitter
-          do i=1, npatch
-             write(*,form1) '        litter (na=',i,',nl=',j,'): ', &
-                  delta1000(c13o2pools%clitter(i:mp:npatch,j), casapool%clitter(i:mp:npatch,j), 1.0_dp, -999._dp, tiny(1.0_dp))
+       write(form,'(a,i3,a)') '(a,', npatchmax*nplant, 'g15.6e3)'
+       write(*,form) '     dplant   min: ', minipp
+       write(*,form) '              max: ', maxipp
+
+       ! dlitter
+       minipl = -undef
+       maxipl = undef
+       do i=1, mland
+          s = landpt(i)%cstart
+          e = landpt(i)%cend
+          do j=s, e
+             jj = j - s + 1
+             tmpl(:) = delta1000(c13o2pools%clitter(j,:), casapool%clitter(j,:), one, undef, tini)
+             where (ne(tmpl(:),undef))
+                minipl(jj,:) = min(tmpl(:), minipl(jj,:))
+                maxipl(jj,:) = max(tmpl(:), maxipl(jj,:))
+             endwhere
           end do
        end do
-       do j=1, nsoil
-          do i=1, npatch
-             write(*,form1) '        soil (na=',i,',ns=',j,'): ', &
-                  delta1000(c13o2pools%csoil(i:mp:npatch,j), casapool%csoil(i:mp:npatch,j), 1.0_dp, -999._dp, tiny(1.0_dp))
+       write(form,'(a,i3,a)') '(a,', npatchmax*nlitter, 'g15.6e3)'
+       write(*,form) '     dlitter  min: ', minipl
+       write(*,form) '              max: ', maxipl
+
+       ! dsoil
+       minips = -undef
+       maxips = undef
+       do i=1, mland
+          s = landpt(i)%cstart
+          e = landpt(i)%cend
+          do j=s, e
+             jj = j - s + 1
+             tmps(:) = delta1000(c13o2pools%csoil(j,:), casapool%csoil(j,:), one, undef, tini)
+             where (ne(tmps(:),undef))
+                minips(jj,:) = min(tmps(:), minips(jj,:))
+                maxips(jj,:) = max(tmps(:), maxips(jj,:))
+             endwhere
           end do
        end do
+       write(form,'(a,i3,a)') '(a,', npatchmax*nsoil, 'g15.6e3)'
+       write(*,form) '     dsoil    min: ', minips
+       write(*,form) '              max: ', maxips
 
-       write(form2,'(a,i3,a)') '(a,i1,a,', mp/npatch, 'g15.6e3)'
-       do i=1, npatch
-          write(*,form2) '        labile (na=',i,'): ', &
-               delta1000(c13o2pools%clabile(i:mp:npatch), casapool%clabile(i:mp:npatch), 1.0_dp, -999._dp, tiny(1.0_dp))
+       ! dlabile
+       minip = -undef
+       maxip = undef
+       do i=1, mland
+          s = landpt(i)%cstart
+          e = landpt(i)%cend
+          do j=s, e
+             jj = j - s + 1
+             tmp = delta1000(c13o2pools%clabile(j), casapool%clabile(j), one, undef, tini)
+             if (ne(tmp,undef)) then
+                minip(jj) = min(tmp, minip(jj))
+                maxip(jj) = max(tmp, maxip(jj))
+             end if
+          end do
        end do
-       do i=1, npatch
-          write(*,form2) '        charvest (na=',i,'): ', &
-               delta1000(c13o2pools%charvest(i:mp:npatch), casaflux%charvest(i:mp:npatch), 1.0_dp, -999._dp, tiny(1.0_dp))
+       write(form,'(a,i3,a)') '(a,', npatchmax, 'g15.6e3)'
+       write(*,form) '     dlabile   min: ', minip
+       write(*,form) '               max: ', maxip
+
+       ! dharvest
+       minip = -undef
+       maxip = undef
+       do i=1, mland
+          s = landpt(i)%cstart
+          e = landpt(i)%cend
+          do j=s, e
+             jj = j - s + 1
+             tmp = delta1000(c13o2pools%charvest(j), casaflux%charvest(j), one, undef, tini)
+             if (ne(tmp,undef)) then
+                minip(jj) = min(tmp, minip(jj))
+                maxip(jj) = max(tmp, maxip(jj))
+             end if
+          end do
        end do
-       
-    else ! mland > 1
-       
-       write(form1,'(a,i3,a)') '(a,i1,a,', npatch, 'g15.6e3)'
-       do j=1, nplant
-          write(*,form1) '        plant (np=',j,'): ', &
-                  delta1000(c13o2pools%cplant(:,j), casapool%cplant(:,j), 1.0_dp, -999._dp, tiny(1.0_dp))
-       end do
-       do j=1, nlitter
-          write(*,form1) '        litter (nl=',j,'): ', &
-               delta1000(c13o2pools%clitter(:,j), casapool%clitter(:,j), 1.0_dp, -999._dp, tiny(1.0_dp))
-       end do
-       do j=1, nsoil
-          write(*,form1) '        soil (ns=',j,'): ', &
-               delta1000(c13o2pools%csoil(:,j), casapool%csoil(:,j), 1.0_dp, -999._dp, tiny(1.0_dp))
+       write(form,'(a,i3,a)') '(a,', npatchmax, 'g15.6e3)'
+       write(*,form) '     dharvest min: ', minip
+       write(*,form) '              max: ', maxip
+
+    else if (mland > 1) then
+
+       do i=1, mland
+          npatch = landpt(i)%nap
+          s      = landpt(i)%cstart
+          e      = landpt(i)%cend
+          write(form,'(a,i3,a)') '(a,i02,a,', npatch*nplant, 'g15.6e3)'
+          write(*,form) '     dplant (n=',i,'):   ', &
+               delta1000(c13o2pools%cplant(s:e,:), casapool%cplant(s:e,:), one, undef, tini)
        end do
 
-       write(form2,'(a,i3,a)') '(a,', npatch, 'g15.6e3)'
-       write(*,form2) '        labile: ', &
-            delta1000(c13o2pools%clabile(:), casapool%clabile(:), 1.0_dp, -999._dp, tiny(1.0_dp))
-       write(*,form2) '        charvest: ', &
-            delta1000(c13o2pools%charvest(:), casaflux%charvest(:), 1.0_dp, -999._dp, tiny(1.0_dp))
-       
-    endif ! mland > 1
+       do i=1, mland
+          npatch = landpt(i)%nap
+          s      = landpt(i)%cstart
+          e      = landpt(i)%cend
+          write(form,'(a,i3,a)') '(a,i02,a,', npatch*nlitter, 'g15.6e3)'
+          write(*,form) '     dlitter (n=',i,'):  ', &
+               delta1000(c13o2pools%clitter(s:e,:), casapool%clitter(s:e,:), one, undef, tini)
+       end do
+
+       do i=1, mland
+          npatch = landpt(i)%nap
+          s      = landpt(i)%cstart
+          e      = landpt(i)%cend
+          write(form,'(a,i3,a)') '(a,i02,a,', npatch*nsoil, 'g15.6e3)'
+          write(*,form) '     dsoil (n=',i,'):    ', &
+               delta1000(c13o2pools%csoil(s:e,:), casapool%csoil(s:e,:), one, undef, tini)
+       end do
+
+       do i=1, mland
+          npatch = landpt(i)%nap
+          s      = landpt(i)%cstart
+          e      = landpt(i)%cend
+          write(form,'(a,i3,a)') '(a,i02,a,', npatch, 'g15.6e3)'
+          write(*,form) '     dlabile (n=',i,'):  ', &
+               delta1000(c13o2pools%clabile(s:e), casapool%clabile(s:e), one, undef, tini)
+       end do
+
+       do i=1, mland
+          npatch = landpt(i)%nap
+          s      = landpt(i)%cstart
+          e      = landpt(i)%cend
+          write(form,'(a,i3,a)') '(a,i02,a,', npatch, 'g15.6e3)'
+          write(*,form) '     dharvest (n=',i,'): ', &
+               delta1000(c13o2pools%charvest(s:e), casaflux%charvest(s:e), one, undef, tini)
+       end do
+
+    else ! mland == 1
+
+       npatch = landpt(mland)%nap
+
+       write(form,'(a,i3,a)') '(a,', npatch*nplant, 'g15.6e3)'
+       write(*,form) '     dplant:   ', &
+            delta1000(c13o2pools%cplant(:,:), casapool%cplant(:,:), one, undef, tini)
+
+       write(form,'(a,i3,a)') '(a,', npatch*nlitter, 'g15.6e3)'
+       write(*,form) '     dlitter:  ', &
+            delta1000(c13o2pools%clitter(:,:), casapool%clitter(:,:), one, undef, tini)
+
+       write(form,'(a,i3,a)') '(a,', npatch*nsoil, 'g15.6e3)'
+       write(*,form) '     dsoil:    ', &
+            delta1000(c13o2pools%csoil(:,:), casapool%csoil(:,:), one, undef, tini)
+
+       write(form,'(a,i3,a)') '(a,', npatch, 'g15.6e3)'
+       write(*,form) '     dlabile:  ', &
+            delta1000(c13o2pools%clabile(:), casapool%clabile(:), one, undef, tini)
+
+       write(*,form) '     dharvest: ', &
+            delta1000(c13o2pools%charvest(:), casaflux%charvest(:), one, undef, tini)
+
+    endif ! mland
 
   end subroutine c13o2_print_delta_pools
 
@@ -1703,67 +1984,140 @@ contains
   ! Print 13C delta values of LUC pools on screen
   subroutine c13o2_print_delta_luc(popluc, c13o2luc)
 
-    use cable_def_types_mod, only: dp => r_2
-    use popluc_types,        only: popluc_type
-    use cable_c13o2_def,     only: c13o2_luc
-    use mo_isotope,          only: delta1000!, vpdbc13
+    use cable_def_types_mod,  only: mland, dp => r_2
+    use popluc_types,         only: popluc_type
+    use cable_c13o2_def,      only: c13o2_luc
+    use mo_isotope,           only: delta1000 ! , vpdbc13
+    use mo_utils,             only: ne
 
     implicit none
 
     type(popluc_type), intent(in) :: popluc
     type(c13o2_luc),   intent(in) :: c13o2luc
 
-    integer :: i, j, mp, npatch, nharvest, nclearance
-    character(len=30) :: form1, form2
+    integer,  parameter :: nminmax = 10
+    real(dp), parameter :: undef = -999.0_dp
+    real(dp), parameter :: one   = 1.0_dp
+    real(dp), parameter :: tini  = tiny(1.0_dp)
 
-    mp         = size(popluc%HarvProd,1)
-    npatch     = 3
+    integer :: nharvest, nclearance, i
+    character(len=30) :: form
+    real(dp), dimension(mland) :: tmp
+    real(dp)                   :: mini, maxi
+    real(dp), dimension(mland,size(popluc%HarvProd,2))  :: tmph
+    real(dp), dimension(size(popluc%HarvProd,2))        :: minih, maxih
+    real(dp), dimension(mland,size(popluc%ClearProd,2)) :: tmpc
+    real(dp), dimension(size(popluc%ClearProd,2))       :: minic, maxic
+
     nharvest   = size(popluc%HarvProd,2)
     nclearance = size(popluc%ClearProd,2)
 
-    write(*,*) '    delta-13C of LUC pools'
+    write(*,*) '  delta-13C of LUC pools'
 
-    if (mp > 3) then
+    if (mland > nminmax) then
 
-       write(form1,'(a,i3,a)') '(a,i1,a,i1,a,', mp/npatch, 'g15.6e3)'
-       do j=1, nharvest
-          do i=1, npatch
-             write(*,form1) '        harvest (na=',i,',nh=',j,'): ', &
-                  delta1000(c13o2luc%charvest(i:mp:npatch,j), popluc%HarvProd(i:mp:npatch,j), 1.0_dp, -999._dp, tiny(1.0_dp))
-          end do
+       ! dharvest
+       tmph  = delta1000(c13o2luc%charvest(:,:), popluc%HarvProd(:,:), one, undef, tini)
+       minih = minval(tmph, dim=1, mask=ne(tmph,undef))
+       maxih = maxval(tmph, dim=1, mask=ne(tmph,undef))
+       write(form,'(a,i3,a)') '(a,', nharvest, 'g15.6e3)'
+       write(*,form) '     dharvest   min: ', minih
+       write(*,form) '                max: ', maxih
+
+       ! dclearance
+       tmpc  = delta1000(c13o2luc%cclearance(:,:), popluc%ClearProd(:,:), one, undef, tini)
+       minic = minval(tmpc, dim=1, mask=ne(tmpc,undef))
+       maxic = maxval(tmpc, dim=1, mask=ne(tmpc,undef))
+       write(form,'(a,i3,a)') '(a,', nclearance, 'g15.6e3)'
+       write(*,form) '     dclearance min: ', minic
+       write(*,form) '                max: ', maxic
+
+       ! dagric
+       tmp  = delta1000(c13o2luc%cagric(:), popluc%AgProd(:), one, undef, tini)
+       mini = minval(tmp, mask=ne(tmp,undef))
+       maxi = maxval(tmp, mask=ne(tmp,undef))
+       write(form,'(a)') '(a,2g15.6e3)'
+       write(*,form) '     dagric:         ', mini, maxi
+
+    else if (mland > 1) then
+
+       write(form,'(a,i3,a)') '(a,i02,a,', mland, 'g15.6e3)'
+       do i=1, nharvest
+          write(*,form) '     dharvest (n=',i,'):   ', &
+               delta1000(c13o2luc%charvest(:,i), popluc%HarvProd(:,i), one, undef, tini)
        end do
-       do j=1, nclearance
-          do i=1, npatch
-             write(*,form1) '        clearance (na=',i,',nc=',j,'): ', &
-                  delta1000(c13o2luc%cclearance(i:mp:npatch,j), popluc%ClearProd(i:mp:npatch,j), 1.0_dp, -999._dp, tiny(1.0_dp))
-          end do
+
+       do i=1, nclearance
+          write(*,form) '     dclearance (n=',i,'): ', &
+               delta1000(c13o2luc%cclearance(:,i), popluc%ClearProd(:,i), one, undef, tini)
        end do
 
-       write(form2,'(a,i3,a)') '(a,i1,a,', mp/npatch, 'g15.6e3)'
-       do i=1, npatch
-          write(*,form2) '        agric (na=',i,'): ', &
-               delta1000(c13o2luc%cagric(i:mp:npatch), popluc%AgProd(i:mp:npatch), 1.0_dp, -999._dp, tiny(1.0_dp))
-       end do
+       write(form,'(a,i3,a)') '(a,', mland, 'g15.6e3)'
+       write(*,form) '     dagric:            ', &
+            delta1000(c13o2luc%cagric(:), popluc%AgProd(:), one, undef, tini)
 
-    else ! mland > 1
+    else ! mland == 1
 
-       write(form1,'(a,i3,a)') '(a,i1,a,', npatch, 'g15.6e3)'
-       do j=1, nharvest
-          write(*,form1) '        harvest (nh=',j,'): ', &
-               delta1000(c13o2luc%charvest(:,j), popluc%HarvProd(:,j), 1.0_dp, -999._dp, tiny(1.0_dp))
-       end do
-       do j=1, nclearance
-          write(*,form1) '        clearance (nc=',j,'): ', &
-               delta1000(c13o2luc%cclearance(:,j), popluc%ClearProd(:,j), 1.0_dp, -999._dp, tiny(1.0_dp))
-       end do
+       write(form,'(a,i3,a)') '(a,', mland*nharvest, 'g15.6e3)'
+       write(*,form) '     dharvest:   ', &
+            delta1000(c13o2luc%charvest(:,:), popluc%HarvProd(:,:), one, undef, tini)
 
-       write(form2,'(a,i3,a)') '(a,', npatch, 'g15.6e3)'
-       write(*,form2) '        agric: ', &
-            delta1000(c13o2luc%cagric(:), popluc%AgProd(:), 1.0_dp, -999._dp, tiny(1.0_dp))
+       write(form,'(a,i3,a)') '(a,', mland*nclearance, 'g15.6e3)'
+       write(*,form) '     dclearance: ', &
+            delta1000(c13o2luc%cclearance(:,:), popluc%ClearProd(:,:), one, undef, tini)
 
-    endif ! mland > 1
+       write(form,'(a,i3,a)') '(a,', mland, 'g15.6e3)'
+       write(*,form) '     dagric:     ', &
+            delta1000(c13o2luc%cagric(:), popluc%AgProd(:), one, undef, tini)
+
+    endif ! mland
 
   end subroutine c13o2_print_delta_luc
+
+  ! ------------------------------------------------------------------
+
+  ! Catch underflow in pools
+  subroutine c13o2_sanity_pools(casapool, casaflux, c13o2pools)
+
+    use casavariable,    only: casa_pool, casa_flux
+    use cable_c13o2_def, only: c13o2_pool
+    use mo_isotope,      only: isosanity
+
+    implicit none
+
+    type(casa_pool),  intent(inout) :: casapool
+    type(casa_flux),  intent(inout) :: casaflux
+    type(c13o2_pool), intent(inout) :: c13o2pools
+
+    logical, parameter :: doabsolute = .true. ! allow negative to still see errors
+
+    call isosanity(c13o2pools%cplant,   casapool%cplant,   absolute=doabsolute)
+    call isosanity(c13o2pools%clitter,  casapool%clitter,  absolute=doabsolute)
+    call isosanity(c13o2pools%csoil,    casapool%csoil,    absolute=doabsolute)
+    call isosanity(c13o2pools%clabile,  casapool%clabile,  absolute=doabsolute)
+    call isosanity(c13o2pools%charvest, casaflux%charvest, absolute=doabsolute)
+
+  end subroutine c13o2_sanity_pools
+
+  ! Catch underflow in luc
+  subroutine c13o2_sanity_luc(popluc, c13o2luc)
+
+    use popluc_types,     only: popluc_type
+    use cable_c13o2_def,  only: c13o2_luc
+    use mo_isotope,       only: isosanity
+
+    implicit none
+
+    type(popluc_type), intent(inout) :: popluc
+    type(c13o2_luc),   intent(inout) :: c13o2luc
+
+    logical, parameter :: doabsolute = .true. ! allow negative to still see errors
+
+    call isosanity(c13o2luc%charvest,   popluc%HarvProd,  absolute=doabsolute)
+    call isosanity(c13o2luc%cclearance, popluc%ClearProd, absolute=doabsolute)
+    call isosanity(c13o2luc%cagric,     popluc%AgProd,    absolute=doabsolute)
+
+  end subroutine c13o2_sanity_luc
 
   ! ------------------------------------------------------------------
 
@@ -1789,6 +2143,7 @@ contains
     real(dp), dimension(:,:,:), intent(out) :: fluxmatrix
 
     integer :: nplant, nlitter, nsoil, nstartr, nendr, nstartc, nendc
+    integer :: i
 
     nplant  = size(casaflux%FluxFromPtoL,2)
     nlitter = size(casaflux%FluxFromPtoL,3)
@@ -1801,21 +2156,39 @@ contains
     nendr   = nplant
     nstartc = nplant + 1
     nendc   = nplant + nlitter
-    if (any(casaflux%FluxFromPtoL < 0.0_dp)) print*, 'FF01 ', casaflux%FluxFromPtoL
+    if (any(casaflux%FluxFromPtoL < 0.0_dp)) then
+       do i=1, size(casaflux%FluxFromPtoL,1)
+          if (any(casaflux%FluxFromPtoL(i,:,:) < 0.0_dp)) then
+             print*, 'ERR FF01 ', i, casaflux%FluxFromPtoL(i,:,:)
+          endif
+       enddo
+    endif
     fluxmatrix(:,nstartr:nendr,nstartc:nendc) = casaflux%FluxFromPtoL
     ! litter to soil
     nstartr = nstartr + nplant
     nendr   = nendr + nlitter
     nstartc = nstartc + nlitter
     nendc   = nendc + nsoil
-    if (any(casaflux%FluxFromLtoS < 0.0_dp)) print*, 'FF02 ', casaflux%FluxFromLtoS
+    if (any(casaflux%FluxFromLtoS < 0.0_dp)) then
+       do i=1, size(casaflux%FluxFromLtoS,1)
+          if (any(casaflux%FluxFromLtoS(i,:,:) < 0.0_dp)) then
+             print*, 'ERR FF02 ', i, casaflux%FluxFromLtoS(i,:,:)
+          endif
+       enddo
+    endif
     fluxmatrix(:,nstartr:nendr,nstartc:nendc) = casaflux%FluxFromLtoS
     ! soil to soil
     nstartr = nstartr + nlitter
     nendr   = nendr + nsoil
     nstartc = nstartc
     nendc   = nendc
-    if (any(casaflux%FluxFromStoS < 0.0_dp)) print*, 'FF03 ', casaflux%FluxFromStoS
+    if (any(casaflux%FluxFromStoS < 0.0_dp)) then
+       do i=1, size(casaflux%FluxFromStoS,1)
+          if (any(casaflux%FluxFromStoS(i,:,:) < 0.0_dp)) then
+             print*, 'ERR FF03 ', i, casaflux%FluxFromStoS(i,:,:)
+          endif
+       enddo
+    endif
     fluxmatrix(:,nstartr:nendr,nstartc:nendc) = casaflux%FluxFromStoS
     ! labile = 0.
 
@@ -2022,9 +2395,9 @@ contains
   subroutine c13o2_err_handler(message)
 
 #ifdef __MPI__
-    use mpi
+    use mpi, only: MPI_Abort
 #endif
-    
+
     implicit none
 
     character(len=*), intent(in) :: message
@@ -2035,9 +2408,9 @@ contains
 
     write(*,*) trim(message)
 #ifdef __MPI__
-    call MPI_Abort(0, 0, ierr) ! Do not know comm nor rank here
+    call MPI_Abort(0, 125, ierr) ! Do not know comm nor rank here
 #else
-    stop 9
+    stop 125
 #endif
 
   end subroutine c13o2_err_handler

@@ -17,18 +17,22 @@ contains
     ! CLOSE_FILE : Flag to close file at the end of Episode (Episode only)
     ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     USE netcdf
-    USE TypeDef, only: dp
+    USE TypeDef,      only: dp
     USE POP_constants
     USE POP_types
     USE CASAVARIABLE, only: casa_met, icycle
     USE CABLE_COMMON_MODULE
+    use mo_utils,     only: ne
+#ifdef __MPI__
+    use mpi,          only: MPI_Abort
+#endif
 
     IMPLICIT NONE
 
     TYPE(POP_TYPE),   INTENT(INOUT) :: POP
     TYPE(casa_met),   INTENT(IN)    :: casamet
     INTEGER       ,   INTENT(IN)    :: YEAR
-    CHARACTER(LEN=9), INTENT(IN)    :: ACTION
+    CHARACTER(LEN=*), INTENT(IN)    :: ACTION
     LOGICAL,          INTENT(IN)    :: CF
 
     INTEGER          :: STATUS, i, m, p, l, land_ID, patch_ID, ndis_ID
@@ -37,7 +41,7 @@ contains
     INTEGER          :: nlayer_dim, ndisturb_dim, land_dim
     INTEGER          :: HEIGHT_BINS_dim, npatch2d_dim, NCOHORT_MAX_dim
     INTEGER          :: dID, t_dim, tx=-1, ntile, mp, CNT
-    CHARACTER(len=3) :: typ='rst'
+    CHARACTER(len=3) :: typ
     CHARACTER        :: dum*9, fname*120
     LOGICAL          :: CLOSE_FILE, EXISTFILE
 
@@ -134,6 +138,9 @@ contains
     ! TEMPORARY ARRAYS
     INTEGER,  ALLOCATABLE :: I1(:), I2(:,:), I3(:,:,:), I4(:,:,:,:)
     REAL(dp), ALLOCATABLE :: R1(:), R2(:,:), R3(:,:,:), R4(:,:,:,:)
+#ifdef __MPI__
+    integer :: ierr
+#endif
 
     mp = POP%np
 
@@ -258,17 +265,22 @@ contains
     ! END IF
 
     ! Check for valid ACTION
+    typ = 'rst'
     IF ( INDEX(ACTION,"WRITE_EPI") .GT. 0 ) THEN
        typ = 'out'
     ELSE IF ( INDEX(ACTION,"WRITE_RST") .GT. 0 ) THEN
        typ = 'rst'
     ELSE IF ( INDEX(ACTION,"WRITE_INI") .GT. 0 ) THEN
        typ = 'ini'
-    ELSE IF ( INDEX(ACTION,"READ_rst") .GT. 0 ) THEN
+    ELSE IF ( INDEX(ACTION,"READ_RST") .GT. 0 ) THEN
        typ = 'rst'
     ELSE
-       WRITE(*,*)  "WRONG ACTION:'", TRIM(ACTION), "' in call to pop_io!"
-       STOP -1
+       WRITE(*,*) "WRONG ACTION:'", TRIM(ACTION), "' in call to pop_io!"
+#ifdef __MPI__
+       call MPI_Abort(0, 94, ierr) ! Do not know comm nor rank here
+#else
+       stop 94
+#endif
     ENDIF
 
     ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -324,7 +336,6 @@ contains
           IF ( EXISTFILE .and. (typ.ne.'ini') .and. (typ.ne.'rst') ) THEN  ! file exists
 
              STATUS = NF90_open(trim(fname), mode=nf90_write, ncid=FILE_ID)
-             ! print*, 'OOpen70.1 ', file_id, trim(fname)
              IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
 
              STATUS = nf90_inq_dimid(FILE_ID, 'time', t_id)
@@ -405,8 +416,7 @@ contains
              STATUS = NF90_create(trim(fname), cmode=ior(nf90_clobber,nf90_64bit_offset), ncid=FILE_ID)
 #else
              STATUS = NF90_create(trim(fname), cmode=ior(nf90_clobber,ior(nf90_netcdf4,nf90_classic_model)), ncid=FILE_ID)
-#endif       
-             ! print*, 'OCreate70 ', file_id, trim(fname)
+#endif
              IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
 
              ! GLOBAL ATTRIBUTES
@@ -438,7 +448,7 @@ contains
              ENDIF
 
              ! Define variables
-             STATUS = NF90_def_var(FILE_ID,'Time' , NF90_INT, (/t_ID/), VIDtime )
+             STATUS = NF90_def_var(FILE_ID, 'Time', NF90_INT, (/t_ID/), VIDtime)
              IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
 
              DO i = 1, SIZE(AR0)
@@ -448,7 +458,7 @@ contains
              DO i = 1, SIZE(AI0)
                 STATUS = NF90_def_var(FILE_ID,TRIM(AI0(i)), NF90_INT, (/land_ID/), VIDI0(i) &
 #ifndef __NETCDF3__
-                     , deflate_level=1 &
+                     , deflate_level=4 &
 #endif
                      )
                 IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
@@ -456,7 +466,7 @@ contains
              DO i = 1, SIZE(AI1)
                 STATUS = NF90_def_var(FILE_ID,TRIM(AI1(i)), NF90_INT, (/land_ID,t_ID/), VIDI1(i) &
 #ifndef __NETCDF3__
-                     , deflate_level=1 &
+                     , deflate_level=4 &
 #endif
                      )
                 IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
@@ -464,7 +474,7 @@ contains
              DO i = 1, SIZE(AR1)
                 STATUS = NF90_def_var(FILE_ID,TRIM(AR1(i)), NF90_DOUBLE, (/land_ID,t_ID/), VIDR1(i) &
 #ifndef __NETCDF3__
-                     , deflate_level=1 &
+                     , deflate_level=4 &
 #endif
                      )
                 IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
@@ -472,7 +482,7 @@ contains
              DO i = 1, SIZE(AR2)
                 STATUS = NF90_def_var(FILE_ID,TRIM(AR2(i)), NF90_DOUBLE, (/land_ID,nlay_ID,t_ID/), VIDR2(i) &
 #ifndef __NETCDF3__
-                     , deflate_level=1 &
+                     , deflate_level=4 &
 #endif
                      )
                 IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
@@ -481,7 +491,7 @@ contains
              DO i = 1, SIZE(AR3)
                 STATUS = NF90_def_var(FILE_ID,TRIM(AR3(i)), NF90_DOUBLE, (/land_ID,hgtb_ID,t_ID/), VIDR3(i) &
 #ifndef __NETCDF3__
-                     , deflate_level=1 &
+                     , deflate_level=4 &
 #endif
                      )
                 IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
@@ -489,7 +499,7 @@ contains
              DO i = 1, SIZE(AI4)
                 STATUS = NF90_def_var(FILE_ID,TRIM(AI4(i)), NF90_INT, (/land_ID,ndis_ID,t_ID/), VIDI4(i) &
 #ifndef __NETCDF3__
-                     , deflate_level=1 &
+                     , deflate_level=4 &
 #endif
                      )
                 IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
@@ -497,7 +507,7 @@ contains
              DO i = 1, SIZE(AI5)
                 STATUS = NF90_def_var(FILE_ID,TRIM(AI5(i)), NF90_INT, (/land_ID,patch_ID,t_ID/), VIDI5(i) &
 #ifndef __NETCDF3__
-                     , deflate_level=1 &
+                     , deflate_level=4 &
 #endif
                      )
                 IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
@@ -505,7 +515,7 @@ contains
              DO i = 1, SIZE(AR5)
                 STATUS = NF90_def_var(FILE_ID,TRIM(AR5(i)), NF90_DOUBLE, (/land_ID,patch_ID,t_ID/), VIDR5(i) &
 #ifndef __NETCDF3__
-                     , deflate_level=1 &
+                     , deflate_level=4 &
 #endif
                      )
                 IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
@@ -514,7 +524,7 @@ contains
                 STATUS = NF90_def_var(FILE_ID,TRIM(AI7(i)), NF90_INT, &
                      (/land_ID,patch_ID,ndis_ID,t_ID/), VIDI7(i) &
 #ifndef __NETCDF3__
-                     , deflate_level=1 &
+                     , deflate_level=4 &
 #endif
                      )
                 IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
@@ -524,7 +534,7 @@ contains
                 STATUS = NF90_def_var(FILE_ID,TRIM(AR7(i)), NF90_DOUBLE, &
                      (/land_ID,patch_ID,ndis_ID,t_ID/), VIDR7(i) &
 #ifndef __NETCDF3__
-                     , deflate_level=1 &
+                     , deflate_level=4 &
 #endif
                      )
                 IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
@@ -533,7 +543,7 @@ contains
                 STATUS = NF90_def_var(FILE_ID,TRIM(AI8(i)), NF90_INT, &
                      (/land_ID,patch_ID,nlay_ID,t_ID/), VIDI8(i) &
 #ifndef __NETCDF3__
-                     , deflate_level=1 &
+                     , deflate_level=4 &
 #endif
                      )
                 IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
@@ -542,7 +552,7 @@ contains
                 STATUS = NF90_def_var(FILE_ID,TRIM(AR8(i)), NF90_DOUBLE, &
                      (/land_ID,patch_ID,nlay_ID,t_ID/), VIDR8(i) &
 #ifndef __NETCDF3__
-                     , deflate_level=1 &
+                     , deflate_level=4 &
 #endif
                      )
                 IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
@@ -551,7 +561,7 @@ contains
                 STATUS = NF90_def_var(FILE_ID,TRIM(AI9(i)), NF90_INT, &
                      (/land_ID,patch_ID,nlay_ID,ncoh_ID,t_ID/), VIDI9(i) &
 #ifndef __NETCDF3__
-                     , deflate_level=1 &
+                     , deflate_level=4 &
 #endif
                      )
                 IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
@@ -560,7 +570,7 @@ contains
                 STATUS = NF90_def_var(FILE_ID,TRIM(AR9(i)), NF90_DOUBLE, &
                      (/land_ID,patch_ID,nlay_ID,ncoh_ID,t_ID/), VIDR9(i) &
 #ifndef __NETCDF3__
-                     , deflate_level=1 &
+                     , deflate_level=4 &
 #endif
                      )
                 IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
@@ -589,12 +599,12 @@ contains
                   start=(/ 1 /), count=(/ mp /) )
              IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
 
-          END IF ! file exists
-       END IF
+          END IF ! file exists, or is rst or ini
+          
+       END IF ! CNT == 1
 
        ! WRITE CURRENT STATE
        ! TIME  ( t )
-       ! print*, 'OWrite70 ', file_id
        STATUS = NF90_PUT_VAR(FILE_ID, VIDtime, YEAR, start=(/ CNT /) )
        IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
 
@@ -715,7 +725,12 @@ contains
              CASE(4)
                 R2(m,:) = POP%pop_grid(m)%hmax
              CASE default
-                STOP "Parameter not assigned in pop_bios_io.f90!"
+                write(*,*) "Parameter not assigned in pop_io.F90!"
+#ifdef __MPI__
+                call MPI_Abort(0, 95, ierr) ! Do not know comm nor rank here
+#else
+                stop 95
+#endif
              END SELECT
           END DO
           STATUS = NF90_PUT_VAR(FILE_ID, VIDR2( i), R2,         &
@@ -739,7 +754,12 @@ contains
              CASE(4)
                 R2(m,:) = POP%pop_grid(m)%diameter_bin
              CASE default
-                STOP "Parameter not assigned in pop_bios_io.f90!"
+                write(*,*) "Parameter not assigned in pop_io.F90!"
+#ifdef __MPI__
+                call MPI_Abort(0, 96, ierr) ! Do not know comm nor rank here
+#else
+                stop 96
+#endif
              END SELECT
           END DO
           STATUS = NF90_PUT_VAR(FILE_ID, VIDR3( i), R2,         &
@@ -757,7 +777,12 @@ contains
              CASE(1)
                 I2( m,: ) = POP%pop_grid(m)%n_age
              CASE default
-                STOP "Parameter not assigned in pop_bios_io.f90!"
+                write(*,*) "Parameter not assigned in pop_io.F90!"
+#ifdef __MPI__
+                call MPI_Abort(0, 97, ierr) ! Do not know comm nor rank here
+#else
+                stop 97
+#endif
              END SELECT
           END DO
           STATUS = NF90_PUT_VAR(FILE_ID, VIDI4( i), I2,         &
@@ -775,7 +800,12 @@ contains
              CASE( 1)
                 I2( m,: ) = POP%pop_grid(m)%patch(:)%id
              CASE default
-                STOP "Parameter not assigned in pop_bios_io.f90!"
+                write(*,*) "Parameter not assigned in pop_io.F90!"
+#ifdef __MPI__
+                call MPI_Abort(0, 98, ierr) ! Do not know comm nor rank here
+#else
+                stop 98
+#endif
              END SELECT
           END DO
           STATUS = NF90_PUT_VAR(FILE_ID, VIDI5( i), I2,         &
@@ -837,7 +867,12 @@ contains
              CASE( 24)
                 R2(m,:)=POP%pop_grid(m)%patch(:)%frac_light_uptake
              CASE default
-                STOP "Parameter not assigned in pop_bios_io.f90!"
+                write(*,*) "Parameter not assigned in pop_io.F90!"
+#ifdef __MPI__
+                call MPI_Abort(0, 99, ierr) ! Do not know comm nor rank here
+#else
+                stop 99
+#endif
              END SELECT
           END DO
           STATUS = NF90_PUT_VAR(FILE_ID, VIDR5( i), R2,         &
@@ -861,7 +896,12 @@ contains
                 CASE( 4)
                    I3(m,p,:)= POP%pop_grid(m)%ranked_age_unique(p,:)
                 CASE default
-                   STOP "Parameter not assigned in pop_bios_io.f90!"
+                   write(*,*) "Parameter not assigned in pop_io.F90!"
+#ifdef __MPI__
+                   call MPI_Abort(0, 100, ierr) ! Do not know comm nor rank here
+#else
+                   stop 100
+#endif
                 END SELECT
              END DO
           END DO
@@ -879,7 +919,12 @@ contains
              CASE( 1)
                 R3(m,:,:)= POP%pop_grid(m)%freq_ranked_age_unique
              CASE default
-                STOP "Parameter not assigned in pop_bios_io.f90!"
+                write(*,*) "Parameter not assigned in pop_io.F90!"
+#ifdef __MPI__
+                call MPI_Abort(0, 101, ierr) ! Do not know comm nor rank here
+#else
+                stop 101
+#endif
              END SELECT
           END DO
 
@@ -898,7 +943,12 @@ contains
                 CASE( 1)
                    I3(m,p,:) =  POP%pop_grid(m)%patch(p)%layer(:)%ncohort
                 CASE default
-                   STOP "Parameter not assigned in pop_bios_io.f90!"
+                   write(*,*) "Parameter not assigned in pop_io.F90!"
+#ifdef __MPI__
+                   call MPI_Abort(0, 102, ierr) ! Do not know comm nor rank here
+#else
+                   stop 102
+#endif
                 END SELECT
              END DO
           END DO
@@ -922,7 +972,12 @@ contains
                 CASE( 4)
                    R3(m,p,:)=POP%pop_grid(m)%patch(p)%layer(:)%hmax
                 CASE default
-                   STOP "Parameter not assigned in pop_bios_io.f90!"
+                   write(*,*) "Parameter not assigned in pop_io.F90!"
+#ifdef __MPI__
+                   call MPI_Abort(0, 103, ierr) ! Do not know comm nor rank here
+#else
+                   stop 103
+#endif
                 END SELECT
              END DO
           END DO
@@ -944,7 +999,12 @@ contains
                    CASE( 2)
                       I4(m,p,l,:) = POP%pop_grid(m)%patch(p)%layer(l)%cohort(:)%id
                    CASE default
-                      STOP "Parameter not assigned in pop_bios_io.f90!"
+                      write(*,*) "Parameter not assigned in pop_io.F90!"
+#ifdef __MPI__
+                      call MPI_Abort(0, 104, ierr) ! Do not know comm nor rank here
+#else
+                      stop 104
+#endif
                    END SELECT
                 END DO
              END DO
@@ -1006,7 +1066,12 @@ contains
                    CASE( 19)
                       R4(m,p,l,:) =POP%pop_grid(m)%patch(p)%layer(l)%cohort(:)%Croot
                    CASE default
-                      STOP "Parameter not assigned in pop_bios_io.f90!"
+                      write(*,*) "Parameter not assigned in pop_io.F90!"
+#ifdef __MPI__
+                      call MPI_Abort(0, 105, ierr) ! Do not know comm nor rank here
+#else
+                      stop 105
+#endif
                    END SELECT
                 END DO
              END DO
@@ -1017,41 +1082,6 @@ contains
 
        ENDDO
        DEALLOCATE(R4)
-
-       ! ! PUT 3D VARS ( mp,nlayer, t )
-       ! MPS:DO m = 1, mp
-
-
-       !    PAT:DO p = 1, npatch2d
-
-
-       !       STATUS = NF90_PUT_VAR(FILE_ID, VIDR7( 1), POP%pop_grid(m)%freq_ranked_age_unique(p,:),&
-       !            start=(/ m, p, 1, CNT /), count=(/ 1, 1, NDISTURB, 1 /) )
-       !       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-       !       ! LAYER STRUCTURE
-       !       ! PUT 4D VARS ( mp,npatch2d, nlayer,t )
-       !       STATUS = NF90_PUT_VAR(FILE_ID, VIDI8( 1), POP%pop_grid(m)%patch(p)%layer(:)%ncohort,&
-       !            start=(/ m, p, 1, CNT /), count=(/ 1, 1, nlayer, 1 /) )
-       !       IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-
-
-
-       !       LAY:DO l = 1, nlayer
-       !          ! COHORT STRUCTURE
-       !          ! PUT 5D VARS ( mp,npatch2d, nlayer,ncohort_max,t )
-       !          STATUS = NF90_PUT_VAR(FILE_ID, VIDI9( 1), POP%pop_grid(m)%patch(p)%layer(l)%cohort(:)%age,&
-       !               start=(/ m, p, l, 1, CNT /), count=(/ 1, 1, 1, ncohort_max, 1 /) )
-       !          IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-       !          STATUS = NF90_PUT_VAR(FILE_ID, VIDI9( 2), POP%pop_grid(m)%patch(p)%layer(l)%cohort(:)%id,&
-       !               start=(/ m, p, l, 1, CNT /), count=(/ 1, 1, 1, ncohort_max, 1 /) )
-       !          IF(STATUS /= NF90_NoErr) CALL handle_err(STATUS)
-
-
-       !       END DO LAY
-       !    END DO PAT
-       ! END DO MPS
 
        ! !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
        ! READ POP VALUES AS RESTART VALUES
@@ -1075,7 +1105,11 @@ contains
        INQUIRE( FILE=TRIM(fname), EXIST=EXISTFILE )
        IF (.NOT. EXISTFILE) THEN
           WRITE(*,*) " No ini-restart file found either! ", TRIM(fname)
-          STOP -1
+#ifdef __MPI__
+          call MPI_Abort(0, 106, ierr) ! Do not know comm nor rank here
+#else
+          stop 106
+#endif
        ELSE
           typ = "ini"
        ENDIF
@@ -1083,9 +1117,8 @@ contains
        WRITE(*,*)"Reading POP-rst file: ", TRIM(fname)
 
        STATUS = NF90_OPEN( TRIM(fname), NF90_NOWRITE, FILE_ID )
-       ! print*, 'OOpen70.2 ', file_id, TRIM(fname)
        IF (STATUS /= NF90_noerr)THEN
-          WRITE(*,*)"Error opening file (pop_bios_io.f90) ",TRIM(fname)
+          WRITE(*,*)"Error opening file (pop_io.F90) ",TRIM(fname)
           CALL handle_err(STATUS)
        ENDIF
        ! DIMS
@@ -1127,7 +1160,7 @@ contains
        IF ( land_dim .NE. mp .OR.  npatch2d_dim .NE. NPATCH2D .OR.  &
             HEIGHT_BINS_dim .NE. HEIGHT_BINS .OR. NCOHORT_MAX_dim .NE. NCOHORT_MAX &
             .OR. NLAYER_dim .NE. NLAYER .OR. NDISTURB_dim .NE. NDISTURB ) THEN
-          WRITE(*,*)"Dimension misfit in pop_bios_io.f90!"
+          WRITE(*,*)"Dimension misfit in pop_io.F90!"
           WRITE(*,*)"Restart file  | Current Run"
           WRITE(*,*)"# points   ",land_dim,"     ",mp
           WRITE(*,*)"# patches  ",NPATCH2D_dim,"     ",NPATCH2D
@@ -1135,7 +1168,11 @@ contains
           WRITE(*,*)"NCOHORT_MAX",NCOHORT_MAX_dim,"     ",NCOHORT_MAX
           WRITE(*,*)"# NLAYER   ",NLAYER_dim,"     ",NLAYER
           WRITE(*,*)"# NDISTURB ",NDISTURB_dim,"     ",NDISTURB
-          STOP
+#ifdef __MPI__
+          call MPI_Abort(0, 107, ierr) ! Do not know comm nor rank here
+#else
+          stop 107
+#endif
        ENDIF
 
        ! TIME
@@ -1164,7 +1201,11 @@ contains
           tx = 1
           IF ( typ .NE. "ini" ) THEN
              WRITE(*,*) "Wrong date in input pop restart-file! ",TRIM(fname)
-             STOP
+#ifdef __MPI__
+             call MPI_Abort(0, 108, ierr) ! Do not know comm nor rank here
+#else
+             stop 108
+#endif
           ENDIF
        ENDIF
 
@@ -1174,8 +1215,8 @@ contains
        IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
        STATUS = NF90_GET_VAR ( FILE_ID, dID, R1 )
        IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-       IF ( ANY ( casamet%lat(POP%Iwood) .NE. R1 ) ) THEN
-          WRITE(*,*)"INPUT LATs don't match casamet! pop_bios_io.f90" &
+       IF ( ANY ( ne(casamet%lat(POP%Iwood), R1) ) ) THEN
+          WRITE(*,*)"INPUT LATs don't match casamet! pop_io.F90" &
                , TRIM(fname)
           ! STOP
        ENDIF
@@ -1183,8 +1224,8 @@ contains
        IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
        STATUS = NF90_GET_VAR ( FILE_ID, dID, R1 )
        IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)
-       IF ( ANY ( casamet%lon(POP%Iwood) .NE. R1 ) ) THEN
-          WRITE(*,*)"INPUT LONs don't match casamet! pop_bios_io.f90" &
+       IF ( ANY ( ne(casamet%lon(POP%Iwood), R1) ) ) THEN
+          WRITE(*,*)"INPUT LONs don't match casamet! pop_io.F90" &
                , TRIM(fname)
           !STOP
        ENDIF
@@ -1266,7 +1307,12 @@ contains
           CASE(24)
              POP%pop_grid(:)%KClump             = R1
           CASE default
-             STOP "Parameter not assigned in pop_bios_io.f90!"
+             write(*,*) "Parameter not assigned in pop_io.F90!"
+#ifdef __MPI__
+             call MPI_Abort(0, 109, ierr) ! Do not know comm nor rank here
+#else
+             stop 109
+#endif
           END SELECT
        END DO
        DEALLOCATE ( R1 )
@@ -1290,7 +1336,12 @@ contains
              CASE( 4)
                 POP%pop_grid(m)%hmax    = R2(m,:)
              CASE default
-                STOP "Parameter not assigned in pop_bios_io.f90!"
+                write(*,*) "Parameter not assigned in pop_io.F90!"
+#ifdef __MPI__
+                call MPI_Abort(0, 110, ierr) ! Do not know comm nor rank here
+#else
+                stop 110
+#endif
              END SELECT
           END DO
        END DO
@@ -1315,7 +1366,12 @@ contains
              CASE( 4)
                 POP%pop_grid(m)%diameter_bin   = R2(m,:)
              CASE default
-                STOP "Parameter not assigned in pop_bios_io.f90!"
+                write(*,*) "Parameter not assigned in pop_io.F90!"
+#ifdef __MPI__
+                call MPI_Abort(0, 111, ierr) ! Do not know comm nor rank here
+#else
+                stop 111
+#endif
              END SELECT
           END DO
        END DO
@@ -1405,7 +1461,12 @@ contains
              CASE( 24)
                 POP%pop_grid(m)%patch(:)%frac_light_uptake  = R2(m,:)
              CASE default
-                STOP "Parameter not assigned in pop_bios_io.f90!"
+                write(*,*) "Parameter not assigned in pop_io.F90!"
+#ifdef __MPI__
+                call MPI_Abort(0, 112, ierr) ! Do not know comm nor rank here
+#else
+                stop 112
+#endif
              END SELECT
           END DO
        END DO
@@ -1431,7 +1492,12 @@ contains
                 CASE( 4)
                    POP%pop_grid(m)%ranked_age_unique(p,:)          = I3(m,p,:)
                 CASE default
-                   STOP "Parameter not assigned in pop_bios_io.f90!"
+                   write(*,*) "Parameter not assigned in pop_io.F90!"
+#ifdef __MPI__
+                   call MPI_Abort(0, 113, ierr) ! Do not know comm nor rank here
+#else
+                   stop 113
+#endif
                 END SELECT
              END DO
           END DO
@@ -1464,7 +1530,12 @@ contains
                 CASE( 1)
                    POP%pop_grid(m)%patch(p)%layer(:)%ncohort = I3(m,p,:)
                 CASE default
-                   STOP "Parameter not assigned in pop_bios_io.f90!"
+                   write(*,*) "Parameter not assigned in pop_io.F90!"
+#ifdef __MPI__
+                   call MPI_Abort(0, 114, ierr) ! Do not know comm nor rank here
+#else
+                   stop 114
+#endif
                 END SELECT
              END DO
           END DO
@@ -1490,7 +1561,12 @@ contains
                 CASE( 4)
                    POP%pop_grid(m)%patch(p)%layer(:)%hmax    = R3(m,p,:)
                 CASE default
-                   STOP "Parameter not assigned in pop_bios_io.f90!"
+                   write(*,*) "Parameter not assigned in pop_io.F90!"
+#ifdef __MPI__
+                   call MPI_Abort(0, 115, ierr) ! Do not know comm nor rank here
+#else
+                   stop 115
+#endif
                 END SELECT
              END DO
           END DO
@@ -1515,7 +1591,12 @@ contains
                    CASE( 2)
                       POP%pop_grid(m)%patch(p)%layer(l)%cohort(:)%id  = I4(m,p,l,:)
                    CASE default
-                      STOP "Parameter not assigned in pop_bios_io.f90!"
+                      write(*,*) "Parameter not assigned in pop_io.F90!"
+#ifdef __MPI__
+                      call MPI_Abort(0, 116, ierr) ! Do not know comm nor rank here
+#else
+                      stop 116
+#endif
                    END SELECT
                 END DO
              END DO
@@ -1573,7 +1654,12 @@ contains
                    CASE( 19)
                       POP%pop_grid(m)%patch(p)%layer(l)%cohort(:)%Croot                = R4(m,p,l,:)
                    CASE default
-                      STOP "Parameter not assigned in pop_bios_io.f90!"
+                      write(*,*) "Parameter not assigned in pop_io.F90!"
+#ifdef __MPI__
+                      call MPI_Abort(0, 117, ierr) ! Do not know comm nor rank here
+#else
+                      stop 117
+#endif
                    END SELECT
                 END DO
              END DO
@@ -1583,12 +1669,16 @@ contains
 
     ELSE
        WRITE(*,*) 'ACTION = ',TRIM(ACTION)
-       STOP 'Please, enter either "READ" or "WRITE" when calling pop_bios_io.f90!'
+       write(*,*) 'Please, enter either "READ" or "WRITE" when calling pop_io.F90!'
+#ifdef __MPI__
+       call MPI_Abort(0, 118, ierr) ! Do not know comm nor rank here
+#else
+       stop 118
+#endif
     END IF
 
-    IF ( CLOSE_FILE .OR. typ .EQ. 'rst' .OR. typ .EQ. 'ini' ) THEN
+    IF ( CLOSE_FILE .OR. (typ .EQ. 'rst') .OR. (typ .EQ. 'ini') ) THEN
        ! Close NetCDF file:
-       ! print*, 'OClose70 ', file_id
        STATUS = NF90_close(FILE_ID)
        file_id = -1
        IF (STATUS /= NF90_noerr) CALL handle_err(STATUS)

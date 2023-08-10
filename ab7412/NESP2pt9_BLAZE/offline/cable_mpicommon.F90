@@ -41,7 +41,9 @@ MODULE cable_mpicommon
   ! ? 3 extra params -> 311
   ! Matthias Cuntz: add 9 canopy params for 13C -> 320
   ! Paul Ryan: add 1 soil params for SLI -> 321
-  INTEGER, PARAMETER :: nparam = 321
+  ! Jurgen Knauer: add 10 veg params -> 331
+  ! Matthias Cuntz: add 4 soil params for SLI -> 335
+  INTEGER, PARAMETER :: nparam = 335
   ! MPI: extra params sent only if nsoilparmnew is true
   INTEGER, PARAMETER :: nsoilnew = 1
 
@@ -57,8 +59,8 @@ MODULE cable_mpicommon
   ! vh added 5 variables DAMM_EnzPool, DAMM_KMO2, DAMM_KMcp, DAMM_Ea, DAMM_alpha
   ! ? 2 extra params -> 222
   ! Matthias Cuntz: add 7 canopy params for 13C -> 229
-  ! Matthias Cuntz: add 1 for fire -> 230
-  INTEGER, PARAMETER :: ncasaparam = 230
+  ! Matthias Cuntz: add 3 for fire -> 232
+  INTEGER, PARAMETER :: ncasaparam = 232
   ! MPI: base number of casa_init parameters sent to the workers
   INTEGER, PARAMETER :: ncinit = 18
 
@@ -75,7 +77,8 @@ MODULE cable_mpicommon
   ! Matthias Cuntz: add 11 in case of call_blaze -> 9
   INTEGER, PARAMETER :: ncdumprw = 9
   ! MPI: number of casa_LUC parameters sent/rec'd to/from the workers every year
-  INTEGER, PARAMETER :: nLUCrw = 16
+  ! Matthias Cuntz: add 5 1D and 3 2D used in luc_casa_transfer -> 24
+  INTEGER, PARAMETER :: nLUCrw = 24
 
   ! MPI: number of POP parameters sent/rec'd to/from the workers every
   ! timestep or at start, end. Here, with POP the dimensions are separate!
@@ -98,7 +101,8 @@ MODULE cable_mpicommon
   ! MPI: CABLE_r491, after following up with Bernard on the new variables
   ! vh sli nmat + 4 36 -> 40
   ! Matthias Cuntz: add 8 2D canopy params for 13C -> 48
-  INTEGER, PARAMETER :: nmat = 48
+  ! Matthias Cuntz: add 1 2D ssnow params for SLI -> 49
+  INTEGER, PARAMETER :: nmat = 49
 
   ! MPI: number of contig vector parts / worker (results)
   !   INTEGER, PARAMETER :: nvec = 149
@@ -130,7 +134,9 @@ MODULE cable_mpicommon
   ! Matthias Cuntz: add 1 1D param for 13C -> 61
   ! Matthias Cuntz: add 3 missing 1D param -> 64
   ! Paul Ryan: add 3 missing 1D param -> 67
-  INTEGER, PARAMETER :: ncasa_vec = 67
+  ! Matthias Cuntz: add 2 missing 1D for LUC -> 69
+  ! Matthias Cuntz: add 1 missing 1D for output -> 70
+  INTEGER, PARAMETER :: ncasa_vec = 70
   ! MPI: number of fields included in restart_t type for data
   ! that is returned only for creating a restart file at the end of the run
   !   INTEGER, PARAMETER :: nrestart = 16

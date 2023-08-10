@@ -23,7 +23,7 @@
 ! ==============================================================================
 
 MODULE cable_common_module
-  
+
   IMPLICIT NONE
 
   !---allows reference to "gl"obal timestep in run (from atm_step)
@@ -35,20 +35,19 @@ MODULE cable_common_module
 
   ! trunk modifications protected by these switches
   TYPE hide_switches
-     LOGICAL ::                                                               &
+     LOGICAL :: &
           ! L.Stevens - Test Switches
           L_NEW_ROUGHNESS_SOIL  = .FALSE., & ! from Ticket?
           L_NEW_RUNOFF_SPEED    = .FALSE., & ! from Ticket?
           L_NEW_REDUCE_SOILEVP  = .FALSE., & ! from Ticket?
           Ticket46 = .FALSE.,              & !
           !jhan: default should be FALSE, bu set up nml etc
-          Ticket49Bug1 = .false.,           & !
-          Ticket49Bug2 = .false.,           & !
-          Ticket49Bug3 = .false.,           & !
-          Ticket49Bug4 = .false.,           & !
-          Ticket49Bug5 = .false.,           & !
-          Ticket49Bug6 = .false.              !
-
+          Ticket49Bug1 = .false., & !
+          Ticket49Bug2 = .false., & !
+          Ticket49Bug3 = .false., & !
+          Ticket49Bug4 = .false., & !
+          Ticket49Bug5 = .false., & !
+          Ticket49Bug6 = .false.    !
   END TYPE hide_switches
 
   ! instantiate internal switches
@@ -56,8 +55,7 @@ MODULE cable_common_module
 
 
   ! set from environment variable $HOME
-  CHARACTER(LEN=200) ::                                                       &
-       myhome
+  CHARACTER(LEN=200) :: myhome
 
   ! switch to calc sil albedo using soil colour - Ticket #27
   LOGICAL :: calcsoilalbedo = .FALSE.
@@ -67,7 +65,7 @@ MODULE cable_common_module
 
   !---CABLE runtime switches def in this type
   TYPE kbl_internal_switches
-     LOGICAL :: um = .FALSE., um_explicit = .FALSE., um_implicit = .FALSE.,   &
+     LOGICAL :: um = .FALSE., um_explicit = .FALSE., um_implicit = .FALSE., &
           um_radiation = .FALSE.
      LOGICAL :: offline = .FALSE., mk3l = .FALSE.
   END TYPE kbl_internal_switches
@@ -80,37 +78,36 @@ MODULE cable_common_module
   ! clean these up for new namelist(s) format
   TYPE kbl_user_switches
      !jhan: this is redundant now we all use filename%veg?
-     CHARACTER(LEN=200) ::                                                    &
-          VEG_PARS_FILE  !
+     CHARACTER(LEN=200) :: VEG_PARS_FILE  !
 
-     CHARACTER(LEN=20) ::                                                     &
-          FWSOIL_SWITCH, &     !
+     CHARACTER(LEN=20) :: &
+          FWSOIL_SWITCH, &               !
           PHENOLOGY_SWITCH = 'climate'   ! alternative is 'climate'
-    !--- LN ------------------------------------------[
+     !--- LN ------------------------------------------[
 
      ! Ticket #56
-     CHARACTER(LEN=20) ::                                                     &
-    ! GS_SWITCH='leuning'
-     GS_SWITCH='medlyn'
-
-     CHARACTER(LEN=20) :: g0_switch = 'default'  ! 'maximum',takes max of g0 and A*X, 'standard' is additive
-     CHARACTER(LEN=10) :: RunIden       = 'STANDARD'  !
-     CHARACTER(LEN=4)  :: MetType       = ' ' !
-     CHARACTER(LEN=20) :: SOIL_STRUC    = "default" ! 'default' or 'sli'
-     CHARACTER(LEN=3)  :: POP_out       = 'rst' ! POP output type ('epi' or 'rst' or 'ini')
-     CHARACTER(LEN=50) :: POP_rst       = '' !
+     CHARACTER(LEN=20)  :: GS_SWITCH='medlyn'     ! GS_SWITCH='leuning'
+     CHARACTER(LEN=20)  :: g0_switch = 'default'  ! 'maximum',takes max of g0 and A*X, 'standard' is additive
+     CHARACTER(LEN=10)  :: RunIden = 'STANDARD'   !
+     CHARACTER(LEN=5)   :: MetType = ' '          !
+     CHARACTER(LEN=20)  :: SOIL_STRUC = "default" ! 'default' or 'sli'
+     CHARACTER(LEN=3)   :: POP_out = 'rst'        ! POP output type ('epi' or 'rst' or 'ini')
+     CHARACTER(LEN=50)  :: POP_rst = ''
      CHARACTER(LEN=200) :: POP_restart_in = ''
      CHARACTER(LEN=200) :: POP_restart_out = ''
-     CHARACTER(LEN=200) :: POP_outfile       = '' !
+     CHARACTER(LEN=200) :: POP_outfile = ''
      CHARACTER(LEN=200) :: climate_restart_in = ''
      CHARACTER(LEN=200) :: climate_restart_out = ''
-     CHARACTER(LEN=200) :: LUC_outfile       = '' !
+     CHARACTER(LEN=200) :: LUC_outfile = ''
      CHARACTER(LEN=200) :: LUC_restart_in = ''
      CHARACTER(LEN=200) :: LUC_restart_out = ''
-     CHARACTER(LEN=8)  :: CASA_OUT_FREQ = 'annually' ! 'daily', 'monthly', 'annually'
-     CHARACTER(LEN=10)  :: vcmax = 'standard' ! "standard" or "Walker2014"
-     CHARACTER(LEN=10)  :: POPLUC_RunType = 'static' ! 'static', 'init', 'restart'
-     CHARACTER(LEN=200) :: BLAZE_outfile       = '' !
+     CHARACTER(LEN=8)   :: CASA_OUT_FREQ = 'annually' ! 'daily', 'monthly', 'annually'
+     CHARACTER(LEN=10)  :: vcmax = 'standard'         ! "standard" or "Walker2014"
+     CHARACTER(LEN=10)  :: POPLUC_RunType = 'static'  ! 'static', 'init', 'restart'
+     CHARACTER(LEN=200) :: BLAZE_outfile = ''
+     CHARACTER(LEN=200) :: gm_LUT_file = ''           ! LUT file used if explicit_gm = .true.
+     ! Options: Bernacchi_2002 or Walker_2013. Only used if explicit_gm = .true.
+     CHARACTER(LEN=50)  :: Rubisco_parameters = ''    ! Rubisco kinetic parameters
      LOGICAL ::                                                               &
           CALL_POP               = .FALSE., & !
           POP_fromZero           = .FALSE., &
@@ -119,50 +116,42 @@ MODULE cable_common_module
           Climate_fromZero       = .FALSE., &
           CASA_fromZero          = .FALSE., &
           POPLUC                 = .FALSE., &
-          explicit_gm            = .FALSE., &     ! explicit (finite) mesophyll conductance
-          acclim_autoresp            = .TRUE., &
+          explicit_gm            = .FALSE., &    ! explicit (finite) mesophyll conductance
+          acclim_autoresp        = .TRUE., &
           coordinate_photosyn    = .TRUE., &
-          acclimate_photosyn      = .FALSE., &
-          acclimate_autoresp_seasonal = .FALSE., &  ! acclimates to last 30 d, otherwise annual.
+          acclimate_photosyn     = .FALSE., &
+          acclimate_autoresp_seasonal = .FALSE., & ! acclimates to last 30 d, otherwise annual.
           limit_labile           = .FALSE., &
-          Cumberland_soil        = .FALSE., &   ! sets special CP soil params in calbe_sli_utils.F90
+          Cumberland_soil        = .FALSE., &    ! sets special CP soil params in calbe_sli_utils.F90
           within_canopy_isothermal = .FALSE., &
           amphistomatous           = .FALSE., &
           perturb_dva_by_T         = .FALSE., &  ! switch to perturb esat by dva_T_perturbation
-          perturb_biochem_by_T         = .FALSE., &  ! switch to perturb esat by dva_T_perturbation
           perturb_Ta               = .FALSE.     ! switch to perturb air temp by Ta_perturbation (site met only)
-
-     INTEGER  ::  &
+     INTEGER ::  &
           CASA_SPIN_STARTYEAR = 1950, &
           CASA_SPIN_ENDYEAR   = 1960, &
           YEARSTART           = 0, &
           YEAREND             = 0, &
           CASA_NREP           = 1
-     REAL     :: &
+     REAL :: &
           dva_T_perturbation = 1.0, &
           Ta_perturbation    = 1.0
-     CHARACTER(len=6) :: &
-          SIMFIRE_REGION      = "ANZ"   ! either GLOBAL, EUROPE, ANZ
-     CHARACTER(len=7) :: &
-          burnt_area          = "SIMFIRE" ! either SIMFIRE
+     !--- LN ------------------------------------------
 
-    !--- LN ------------------------------------------]
+     CHARACTER(LEN=5) :: RUN_DIAG_LEVEL
 
-     CHARACTER(LEN=5) ::                                                      &
-          RUN_DIAG_LEVEL  !
-
-     CHARACTER(LEN=3) ::                                                      &
+     CHARACTER(LEN=3) :: &
           SSNOW_POTEV,      & !
           DIAG_SOIL_RESP,   & ! either ON or OFF (jhan:Make Logical)
           LEAF_RESPIRATION    ! either ON or OFF (jhan:Make Logical)
 
      ! Custom soil respiration - see Ticket #42
-     CHARACTER(LEN=15) ::                                                     &
-          !SMRF_NAME = 'Trudinger2016',   & ! Soil Moist Respiration Function
-          !STRF_NAME = 'CASA-CNP'     ! Soil Temp Respiration Function
-          !STRF_NAME = 'LT1994'    ! Soil Temp Respiration Function
-          STRF_NAME = 'CASA-CNP',  &     ! DAMM Reverse M-M Enzyme Kinetics (Sihi et al, AFM 2018)
-          SMRF_NAME = 'CASA-CNP'       ! ditto
+     CHARACTER(LEN=15) :: &
+          ! SMRF_NAME = 'Trudinger2016' ! Soil Moist Respiration Function
+          ! STRF_NAME = 'CASA-CNP'      ! Soil Temp Respiration Function
+          ! STRF_NAME = 'LT1994'        ! Soil Temp Respiration Function
+          STRF_NAME = 'CASA-CNP', & ! DAMM Reverse M-M Enzyme Kinetics (Sihi et al, AFM 2018)
+          SMRF_NAME = 'CASA-CNP'    ! ditto
      LOGICAL ::                                                               &
           INITIALIZE_MAPPING    = .FALSE., & !
           CONSISTENCY_CHECK     = .FALSE., & !
@@ -170,14 +159,12 @@ MODULE cable_common_module
           CASA_DUMP_WRITE       = .FALSE., & !
           CABLE_RUNTIME_COUPLED = .TRUE. , & !
           LogWorker             = .TRUE. , & ! Write Output of each worker
-                                ! L.Stevens - Test Switches
+          ! L.Stevens - Test Switches
           L_NEW_ROUGHNESS_SOIL  = .FALSE., & !
           L_NEW_RUNOFF_SPEED    = .FALSE., & !
           L_NEW_REDUCE_SOILEVP  = .FALSE., & !
-
-                                ! Switch for customized soil respiration - see Ticket #42
+          ! Switch for customized soil respiration - see Ticket #42
           SRF = .TRUE., &
-
           !! vh_js !!
           litter = .FALSE.
 
@@ -191,7 +178,6 @@ MODULE cable_common_module
      character(len=200) :: c13o2_restart_out_pools = '' ! 13CO2 restart Casa output file
      character(len=200) :: c13o2_restart_in_luc = ''    ! 13CO2 restart LUC input file
      character(len=200) :: c13o2_restart_out_luc = ''   ! 13CO2 restart LUC output file
-
   END TYPE kbl_user_switches
 
   ! instantiate internal switches
@@ -199,7 +185,6 @@ MODULE cable_common_module
 
   ! external files read/written by CABLE
   TYPE filenames_type
-
      CHARACTER(LEN=500) ::                                                        &
           met,        & ! name of file for CABLE input
           path='./',       & ! path for output and restart files for CABLE and CASA
@@ -214,24 +199,20 @@ MODULE cable_common_module
           soilcolor,  & ! file for soil color(soilcolor_global_1x1.nc)
           inits,      & ! name of file for initialisations
           soilIGBP      ! name of file for IGBP soil map
-
   END TYPE filenames_type
 
   TYPE(filenames_type) :: filename
 
   ! hydraulic_redistribution switch _soilsnow module
-  LOGICAL ::                                                                  &
-       redistrb = .FALSE.  ! Turn on/off the hydraulic redistribution
+  LOGICAL :: redistrb = .FALSE. ! Turn on/off the hydraulic redistribution
 
   ! hydraulic_redistribution parameters _soilsnow module
   REAL :: wiltParam=0.5, satuParam=0.8
 
-
   ! soil parameters read from file(filename%soil def. in cable.nml)
   ! & veg parameters read from file(filename%veg def. in cable.nml)
   TYPE soilin_type
-
-     REAL, DIMENSION(:),ALLOCATABLE ::                                        &
+     REAL, DIMENSION(:), ALLOCATABLE :: &
           silt,    & !
           clay,    & !
           sand,    & !
@@ -244,13 +225,10 @@ MODULE cable_common_module
           rhosoil, & !
           css,     & !
           c3         !
-
   END TYPE soilin_type
 
-
   TYPE vegin_type
-
-     REAL, DIMENSION(:),ALLOCATABLE ::                                        &
+     REAL, DIMENSION(:), ALLOCATABLE :: &
           canst1,     & !
           dleaf,      & !
           length,     & !
@@ -290,19 +268,17 @@ MODULE cable_common_module
           zr,         &
           clitt,      &
           gamma
-
-     REAL, DIMENSION(:,:),ALLOCATABLE ::                                      &
+     REAL, DIMENSION(:,:), ALLOCATABLE :: &
           froot,      & !
           cplant,     & !
           csoil,      & !
           ratecp,     & !
           ratecs,     & !
-          refl,     & !
-          taul        !
-
+          refl,       & !
+          taul          !
   END TYPE vegin_type
 
-  CHARACTER(LEN=70), DIMENSION(:), POINTER ::                                 &
+  CHARACTER(LEN=70), DIMENSION(:), POINTER :: &
        veg_desc => null(),   & ! decriptions of veg type
        soil_desc => null()     ! decriptns of soil type
 
@@ -317,12 +293,14 @@ MODULE cable_common_module
 
 CONTAINS
 
-
   SUBROUTINE get_type_parameters(logn,vegparmnew, classification)
 
     ! Gets parameter values for each vegetation type and soil type.
 
-    USE cable_def_types_mod, ONLY : mvtype, ms, ncs, ncp, mstype, nrb
+    USE cable_def_types_mod, ONLY: mvtype, ms, ncs, ncp, mstype, nrb
+#ifdef __MPI__
+    use mpi,                 only: MPI_Abort
+#endif
 
     INTEGER,INTENT(IN) :: logn     ! log file unit number
 
@@ -337,26 +315,28 @@ CONTAINS
     REAL    :: notused
     INTEGER :: ioerror ! input error integer
     INTEGER :: a, jveg ! do loop counter
-
-
+#ifdef __MPI__
+    integer :: ierr
+#endif
 
     !================= Read in vegetation type specifications: ============
-    OPEN(40,FILE=filename%veg,STATUS='old',ACTION='READ',IOSTAT=ioerror)
+    OPEN(40, FILE=trim(filename%veg), STATUS='old', ACTION='READ', IOSTAT=ioerror)
 
     IF(ioerror/=0) then
-       STOP 'CABLE_log: Cannot open veg type definitions.'
+       write(*,*) 'CABLE_log: Cannot open veg type definitions.'
+#ifdef __MPI__
+       call MPI_Abort(0, 128, ierr) ! Do not know comm nor rank here
+#else
+       stop 128
+#endif
     ENDIF
 
     IF (vegparmnew) THEN
-
        ! assume using IGBP/CSIRO vegetation types
        READ(40,*) comments
        READ(40,*) mvtype
-       IF( present(classification) )                                         &
-            WRITE(classification,'(a4)') comments(1:4)
-
+       IF (present(classification)) WRITE(classification,'(a4)') comments(1:4)
     ELSE
-
        ! assume using CASA vegetation types
        !classification = 'CASA'
        READ(40,*)
@@ -365,41 +345,41 @@ CONTAINS
        READ(40,*)
        READ(40,*)
        comments = 'CASA'
-
     END IF
 
-    WRITE(logn, '(A31,I3,1X,A10)') '  Number of vegetation types = ',        &
+    WRITE(logn, '(A31,I3,1X,A10)') '  Number of vegetation types = ', &
          mvtype,TRIM(comments)
 
-
     ! Allocate memory for type-specific vegetation parameters:
-    ALLOCATE (                                                               &
-         vegin%canst1( mvtype ), vegin%dleaf( mvtype ),                        &
-         vegin%length( mvtype ), vegin%width( mvtype ),                        &
-         vegin%vcmax( mvtype ),  vegin%ejmax( mvtype ),                        &
-         vegin%vcmaxcc(mvtype), vegin%ejmaxcc(mvtype),                         &
-         vegin%gmmax(mvtype),                                                  &
-         vegin%hc( mvtype ), vegin%xfang( mvtype ),                            &
-         vegin%rp20( mvtype ), vegin%rpcoef( mvtype ),                         &
-         vegin%rs20( mvtype ), vegin%wai( mvtype ),                            &
-         vegin%rootbeta( mvtype ), vegin%shelrb( mvtype ),                     &
-         vegin%vegcf( mvtype ), vegin%frac4( mvtype ),                         &
-         vegin%xalbnir( mvtype ), vegin%extkn( mvtype ),                       &
-         vegin%tminvj( mvtype ), vegin%tmaxvj( mvtype ),                       &
-         vegin%vbeta( mvtype ), vegin%froot( ms, mvtype ),                     &
-         vegin%cplant( ncp, mvtype ), vegin%csoil( ncs, mvtype ),              &
-         vegin%ratecp( ncp, mvtype ), vegin%ratecs( ncs, mvtype ),             &
-         vegin%refl( nrb, mvtype ), vegin%taul( nrb, mvtype ),                 &
-         veg_desc( mvtype ),                                                   &
-         vegin%a1gs(mvtype), vegin%d0gs(mvtype),                               &
-         vegin%alpha(mvtype),vegin%convex(mvtype),vegin%cfrd(mvtype),          &
-         vegin%gswmin(mvtype),vegin%conkc0(mvtype), vegin%conko0(mvtype),      &
-         vegin%ekc(mvtype), vegin%eko(mvtype),                                 &
+    ALLOCATE (                                                            &
+         vegin%canst1( mvtype ), vegin%dleaf( mvtype ),                   &
+         vegin%length( mvtype ), vegin%width( mvtype ),                   &
+         vegin%vcmax( mvtype ),  vegin%ejmax( mvtype ),                   &
+         vegin%vcmaxcc(mvtype), vegin%ejmaxcc(mvtype),                    &
+         vegin%gmmax(mvtype),                                             &
+         vegin%hc( mvtype ), vegin%xfang( mvtype ),                       &
+         vegin%rp20( mvtype ), vegin%rpcoef( mvtype ),                    &
+         vegin%rs20( mvtype ), vegin%wai( mvtype ),                       &
+         vegin%rootbeta( mvtype ), vegin%shelrb( mvtype ),                &
+         vegin%vegcf( mvtype ), vegin%frac4( mvtype ),                    &
+         vegin%xalbnir( mvtype ), vegin%extkn( mvtype ),                  &
+         vegin%tminvj( mvtype ), vegin%tmaxvj( mvtype ),                  &
+         vegin%vbeta( mvtype ), vegin%froot( ms, mvtype ),                &
+         vegin%cplant( ncp, mvtype ), vegin%csoil( ncs, mvtype ),         &
+         vegin%ratecp( ncp, mvtype ), vegin%ratecs( ncs, mvtype ),        &
+         vegin%refl( nrb, mvtype ), vegin%taul( nrb, mvtype ),            &
+         veg_desc( mvtype ),                                              &
+         vegin%a1gs(mvtype), vegin%d0gs(mvtype),                          &
+         vegin%alpha(mvtype),vegin%convex(mvtype),vegin%cfrd(mvtype),     &
+         vegin%gswmin(mvtype),vegin%conkc0(mvtype), vegin%conko0(mvtype), &
+         vegin%ekc(mvtype), vegin%eko(mvtype),                            &
          ! Ticket #56
-         vegin%g0( mvtype ), vegin%g1( mvtype ),                               &
+         vegin%g0( mvtype ), vegin%g1( mvtype ),                          &
          !! vh_veg_params !!
          vegin%zr(mvtype), vegin%clitt(mvtype), vegin%gamma(mvtype))
-
+    ! set default vcmaxcc and ejmaxcc to 0. because not used yet
+    vegin%vcmaxcc = 0
+    vegin%ejmaxcc = 0
 
     IF( vegparmnew ) THEN    ! added to read new format (BP dec 2007)
 
@@ -408,8 +388,14 @@ CONTAINS
 
           READ(40,*) jveg, vegtypetmp, vegnametmp
 
-          IF( jveg .GT. mvtype )                                             &
-               STOP 'jveg out of range in parameter file'
+          IF ( jveg .GT. mvtype ) then
+             write(*,*) 'jveg out of range in parameter file'
+#ifdef __MPI__
+             call MPI_Abort(0, 129, ierr) ! Do not know comm nor rank here
+#else
+             stop 129
+#endif
+          endif
 
           veg_desc(jveg) = vegnametmp
 
@@ -512,10 +498,15 @@ CONTAINS
 
 
     !================= Read in soil type specifications: ============
-    OPEN(40,FILE=filename%soil,STATUS='old',ACTION='READ',IOSTAT=ioerror)
+    OPEN(40, FILE=trim(filename%soil), STATUS='old', ACTION='READ', IOSTAT=ioerror)
 
     IF(ioerror/=0) then
-       STOP 'CABLE_log: Cannot open soil type definitions.'
+       write(*,*) 'CABLE_log: Cannot open soil type definitions.'
+#ifdef __MPI__
+       call MPI_Abort(0, 130, ierr) ! Do not know comm nor rank here
+#else
+       stop 130
+#endif
     ENDIF
 
     READ(40,*); READ(40,*)
@@ -549,13 +540,21 @@ CONTAINS
 
   END SUBROUTINE get_type_parameters
 
-    !--- LN ------------------------------------------[
+
+  !--- LN ------------------------------------------[
   subroutine handle_err(status, msg) ! LN 06/2013
 
     use netcdf
+#ifdef __MPI__
+    use mpi, only: MPI_Abort
+#endif
 
     integer,          intent(in)           :: status
     character(len=*), intent(in), optional :: msg
+
+#ifdef __MPI__
+    integer :: ierr
+#endif
 
     if (status /= NF90_noerr) then
        write(*,*) "netCDF error:"
@@ -567,7 +566,11 @@ CONTAINS
 !       WRITE(*,*) "UM builds with -i8. Therefore call to nf90_strerror is ", &
 !       " invalid. Quick fix to eliminate for now. Build NF90 with -i8, force -i4?"
 !#endif
-       stop -1
+#ifdef __MPI__
+       call MPI_Abort(0, 131, ierr) ! Do not know comm nor rank here
+#else
+       stop 131
+#endif
     end if
 
   end subroutine handle_err
@@ -629,6 +632,9 @@ CONTAINS
   subroutine ymdhms2doysod(yyyy, mm, dd, hour, minute, second, doy, sod)
 
     ! Compute Day-of-year and second-of-day from given date and time or
+#ifdef __MPI__
+    use mpi, only: MPI_Abort
+#endif
 
     implicit none
 
@@ -637,6 +643,9 @@ CONTAINS
 
     !  logical :: is_leapyear
     integer, dimension(12) :: month = (/ 31,28,31,30,31,30,31,31,30,31,30,31 /)
+#ifdef __MPI__
+    integer :: ierr
+#endif
 
     if (is_leapyear(yyyy)) month(2) = 29
 
@@ -644,7 +653,11 @@ CONTAINS
          mm.gt.12 .or. mm.lt.1) then
        write(*,*) "Wrong date entered in subroutine ymdhms2doysod"
        write(*,*) "Date (ymdhms): ", yyyy, mm, dd, hour, minute, second
-       stop 3
+#ifdef __MPI__
+       call MPI_Abort(0, 132, ierr) ! Do not know comm nor rank here
+#else
+       stop 132
+#endif
     endif
 
     doy = dd
@@ -659,6 +672,10 @@ CONTAINS
 
     ! Compute Day-of-year and second-of-day from given date and time or
 
+#ifdef __MPI__
+    use mpi, only: MPI_Abort
+#endif
+
     implicit none
 
     integer, intent(in)            :: yyyy, doy, sod
@@ -669,6 +686,9 @@ CONTAINS
     integer :: mon, i
     integer :: ihour, iminute, isecond
     integer, dimension(12) :: month = (/ 31,28,31,30,31,30,31,31,30,31,30,31 /)
+#ifdef __MPI__
+    integer :: ierr
+#endif
 
     if (is_leapyear(yyyy)) month(2) = 29
 
@@ -676,7 +696,11 @@ CONTAINS
          doy.gt.sum(month) .or. doy.lt.1) then
        write(*,*) "Wrong date entered in subroutine doysod2ymdhms"
        write(*,*) "yyyy doy sod: ",yyyy, doy, sod
-       stop 3
+#ifdef __MPI__
+       call MPI_Abort(0, 133, ierr) ! Do not know comm nor rank here
+#else
+       stop 133
+#endif
     endif
 
     mon = 0
@@ -732,7 +756,7 @@ CONTAINS
     landgrid = x + (y-1) * xdimsize
 
   end subroutine xy2land
-    !--- LN ------------------------------------------]
+  !--- LN ------------------------------------------]
 
 
   ! get svn revision number and status
@@ -791,66 +815,68 @@ CONTAINS
   END SUBROUTINE report_version_no
 
 
-  SUBROUTINE init_veg_from_vegin(ifmp,fmp, veg)
-     use cable_def_types_mod, ONLY : veg_parameter_type
-     integer ::  ifmp,  & ! start local mp, # landpoints (jhan:when is this not 1 )
-                 fmp     ! local mp, # landpoints
+  SUBROUTINE init_veg_from_vegin(ifmp, fmp, veg)
 
-     type(veg_parameter_type) :: veg
+    use cable_def_types_mod, ONLY : veg_parameter_type
 
-     integer :: h
+    integer ::  ifmp, & ! start local mp, # landpoints (jhan:when is this not 1 )
+                fmp     ! local mp, # landpoints
 
-         ! Prescribe parameters for current gridcell based on veg/soil type (which
-         ! may have loaded from default value file or met file):
-         DO h = ifmp, fmp          ! over each patch in current grid
-            veg%frac4(h)    = vegin%frac4(veg%iveg(h))
-            veg%taul(h,1)    = vegin%taul(1,veg%iveg(h))
-            veg%taul(h,2)    = vegin%taul(2,veg%iveg(h))
-            veg%refl(h,1)    = vegin%refl(1,veg%iveg(h))
-            veg%refl(h,2)    = vegin%refl(2,veg%iveg(h))
-            veg%canst1(h)   = vegin%canst1(veg%iveg(h))
-            veg%dleaf(h)    = vegin%dleaf(veg%iveg(h))
-            veg%vcmax(h)    = vegin%vcmax(veg%iveg(h))
-            veg%ejmax(h)    = vegin%ejmax(veg%iveg(h))
-            veg%vcmaxcc(h)  = vegin%vcmaxcc(veg%iveg(h))
-            veg%ejmaxcc(h)  = vegin%ejmaxcc(veg%iveg(h))
-            veg%gmmax(h)    = vegin%gmmax(veg%iveg(h))
-            veg%hc(h)       = vegin%hc(veg%iveg(h))
-            veg%xfang(h)    = vegin%xfang(veg%iveg(h))
-            veg%vbeta(h)    = vegin%vbeta(veg%iveg(h))
-            veg%xalbnir(h)  = vegin%xalbnir(veg%iveg(h))
-            veg%rp20(h)     = vegin%rp20(veg%iveg(h))
-            veg%rpcoef(h)   = vegin%rpcoef(veg%iveg(h))
-            veg%rs20(h)     = vegin%rs20(veg%iveg(h))
-            veg%shelrb(h)   = vegin%shelrb(veg%iveg(h))
-            veg%wai(h)      = vegin%wai(veg%iveg(h))
-            veg%a1gs(h)     = vegin%a1gs(veg%iveg(h))
-            veg%d0gs(h)     = vegin%d0gs(veg%iveg(h))
-            veg%vegcf(h)    = vegin%vegcf(veg%iveg(h))
-            veg%extkn(h)    = vegin%extkn(veg%iveg(h))
-            veg%tminvj(h)   = vegin%tminvj(veg%iveg(h))
-            veg%tmaxvj(h)   = vegin%tmaxvj(veg%iveg(h))
-            veg%g0(h)       = vegin%g0(veg%iveg(h)) ! Ticket #56
-            veg%g1(h)       = vegin%g1(veg%iveg(h)) ! Ticket #56
-            veg%a1gs(h)   = vegin%a1gs(veg%iveg(h))
-            veg%d0gs(h)   = vegin%d0gs(veg%iveg(h))
-            veg%alpha(h)  = vegin%alpha(veg%iveg(h))
-            veg%convex(h) = vegin%convex(veg%iveg(h))
-            veg%cfrd(h)   = vegin%cfrd(veg%iveg(h))
-            veg%gswmin(h) = vegin%gswmin(veg%iveg(h))
-            veg%conkc0(h) = vegin%conkc0(veg%iveg(h))
-            veg%conko0(h) = vegin%conko0(veg%iveg(h))
-            veg%ekc(h)    = vegin%ekc(veg%iveg(h))
-            veg%eko(h)    = vegin%eko(veg%iveg(h))
-            veg%froot(h,:)  = vegin%froot(:, veg%iveg(h))
-            veg%zr(h)       = vegin%zr(veg%iveg(h))
-            veg%clitt(h)    = vegin%clitt(veg%iveg(h))
-         END DO ! over each veg patch in land point
+    type(veg_parameter_type) :: veg
+
+    integer :: h
+
+    ! Prescribe parameters for current gridcell based on veg/soil type (which
+    ! may have loaded from default value file or met file):
+    DO h = ifmp, fmp          ! over each patch in current grid
+       veg%frac4(h)   = vegin%frac4(veg%iveg(h))
+       veg%taul(h,1)  = vegin%taul(1,veg%iveg(h))
+       veg%taul(h,2)  = vegin%taul(2,veg%iveg(h))
+       veg%refl(h,1)  = vegin%refl(1,veg%iveg(h))
+       veg%refl(h,2)  = vegin%refl(2,veg%iveg(h))
+       veg%canst1(h)  = vegin%canst1(veg%iveg(h))
+       veg%dleaf(h)   = vegin%dleaf(veg%iveg(h))
+       veg%vcmax(h)   = vegin%vcmax(veg%iveg(h))
+       veg%ejmax(h)   = vegin%ejmax(veg%iveg(h))
+       veg%vcmaxcc(h) = vegin%vcmaxcc(veg%iveg(h))
+       veg%ejmaxcc(h) = vegin%ejmaxcc(veg%iveg(h))
+       veg%gmmax(h)   = vegin%gmmax(veg%iveg(h))
+       veg%hc(h)      = vegin%hc(veg%iveg(h))
+       veg%xfang(h)   = vegin%xfang(veg%iveg(h))
+       veg%vbeta(h)   = vegin%vbeta(veg%iveg(h))
+       veg%xalbnir(h) = vegin%xalbnir(veg%iveg(h))
+       veg%rp20(h)    = vegin%rp20(veg%iveg(h))
+       veg%rpcoef(h)  = vegin%rpcoef(veg%iveg(h))
+       veg%rs20(h)    = vegin%rs20(veg%iveg(h))
+       veg%shelrb(h)  = vegin%shelrb(veg%iveg(h))
+       veg%wai(h)     = vegin%wai(veg%iveg(h))
+       veg%a1gs(h)    = vegin%a1gs(veg%iveg(h))
+       veg%d0gs(h)    = vegin%d0gs(veg%iveg(h))
+       veg%vegcf(h)   = vegin%vegcf(veg%iveg(h))
+       veg%extkn(h)   = vegin%extkn(veg%iveg(h))
+       veg%tminvj(h)  = vegin%tminvj(veg%iveg(h))
+       veg%tmaxvj(h)  = vegin%tmaxvj(veg%iveg(h))
+       veg%g0(h)      = vegin%g0(veg%iveg(h)) ! Ticket #56
+       veg%g1(h)      = vegin%g1(veg%iveg(h)) ! Ticket #56
+       veg%a1gs(h)    = vegin%a1gs(veg%iveg(h))
+       veg%d0gs(h)    = vegin%d0gs(veg%iveg(h))
+       veg%alpha(h)   = vegin%alpha(veg%iveg(h))
+       veg%convex(h)  = vegin%convex(veg%iveg(h))
+       veg%cfrd(h)    = vegin%cfrd(veg%iveg(h))
+       veg%gswmin(h)  = vegin%gswmin(veg%iveg(h))
+       veg%conkc0(h)  = vegin%conkc0(veg%iveg(h))
+       veg%conko0(h)  = vegin%conko0(veg%iveg(h))
+       veg%ekc(h)     = vegin%ekc(veg%iveg(h))
+       veg%eko(h)     = vegin%eko(veg%iveg(h))
+       veg%froot(h,:) = vegin%froot(:, veg%iveg(h))
+       veg%zr(h)      = vegin%zr(veg%iveg(h))
+       veg%clitt(h)   = vegin%clitt(veg%iveg(h))
+    END DO ! over each veg patch in land point
 
   END SUBROUTINE init_veg_from_vegin
 
 
-  FUNCTION IS_CASA_TIME(iotype, yyyy, ktau, kstart, koffset, kend, ktauday, logn)
+  FUNCTION IS_CASA_TIME(iotype, yyyy, ktau, kstart, koffset, ktauday, logn)
 
     ! Correctly determine if it is time to dump-read or standard-write
     ! casa output from cable_driver.
@@ -862,15 +888,21 @@ CONTAINS
 !then use common in iovars
 !#ifdef Vanessas_common
     USE cable_IO_vars_module, ONLY: leaps
+#ifdef __MPI__
+    use mpi,                  only: MPI_Abort
+#endif
 !#endif
     IMPLICIT NONE
 
     LOGICAL   :: IS_CASA_TIME
-    INTEGER  ,INTENT(IN) :: yyyy, ktau, kstart, koffset, kend, ktauday, logn
+    INTEGER  ,INTENT(IN) :: yyyy, ktau, kstart, koffset, ktauday, logn
     CHARACTER,INTENT(IN) :: iotype*5
     LOGICAL   :: is_eod, is_eom, is_eoy
     INTEGER   :: doy, m
     INTEGER, DIMENSION(12) :: MONTH
+#ifdef __MPI__
+    integer :: ierr
+#endif
 
     is_eom       = .FALSE.
     is_eoy       = .FALSE.
@@ -913,7 +945,11 @@ CONTAINS
     ELSE
        WRITE(logn,*)"Wrong statement 'iotype'", iotype, "in call to IS_CASA_TIME"
        WRITE(*   ,*)"Wrong statement 'iotype'", iotype, "in call to IS_CASA_TIME"
-       STOP -1
+#ifdef __MPI__
+       call MPI_Abort(0, 134, ierr) ! Do not know comm nor rank here
+#else
+       stop 134
+#endif
     ENDIF
 
   END FUNCTION IS_CASA_TIME
@@ -943,6 +979,21 @@ CONTAINS
     Esatf = A*EXP(B*TCtmp/(C+TCtmp))    ! sat vapour pressure (mb)
 
   END FUNCTION Esatf
+
+!CLN  SUBROUTINE PRINT_PER_PROC(TXT)
+!CLN
+!CLN    ! Write out process specific output into files called 
+!CLN    ! "cable_log_"//cRank as defined in 
+!CLN    USE cable_IO_vars_module, ONLY: wlogn
+!CLN    
+!CLN    IMPLICIT NONE 
+!CLN    CHARACTER(LEN=200) :: TXT 
+!CLN
+!CLN#ifndef __MPI__
+!CLN    RETURN
+!CLN#endif
+!CLN
+!CLN  END SUBROUTINE PRINT_PER_PROC
 
 
 END MODULE cable_common_module

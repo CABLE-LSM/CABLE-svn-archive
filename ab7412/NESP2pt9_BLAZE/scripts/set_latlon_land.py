@@ -25,39 +25,10 @@ History
 -------
 Written  Matthias Cuntz, Nov 2019
 Modified Matthias Cuntz, Jan 2020 - copy global attributes and append history
+         Matthias Cuntz, Apr 2020 - use create_variable function as in sum_patchfrac.py
+                                  - lat,lon given with -l option
+         Matthias Cuntz, Apr 2020 - use python module cablepop
 """
-
-# -------------------------------------------------------------------------
-# Functions
-#
-
-# Copied from jams.netcdf4
-def getVariableDefinition(ncvar):
-    out  = ncvar.filters() if ncvar.filters() else {}
-    dims = list(ncvar.dimensions)
-    if 'x' in dims: dims[dims.index('x')] = 'lon'
-    if 'y' in dims: dims[dims.index('y')] = 'lat'
-    chunks = ncvar.chunking() if not isinstance(ncvar.chunking(), str) else None
-    if "missing_value" in dir(ncvar):
-        ifill = ncvar.missing_value
-    elif "_FillValue" in dir(ncvar):
-        ifill = ncvar._FillValue
-    else:
-        ifill = None
-    out.update({
-        "name"       : ncvar.name,
-        "dtype"      : ncvar.dtype,
-        "dimensions" : dims,
-        "chunksizes" : chunks,
-        # "fill_value" : ncvar._FillValue if "_FillValue" in dir(ncvar) else None,
-        "fill_value" : ifill,
-        })
-    return out
-
-# get index in vector vec of value closest to num
-def closest(vec, num):
-    return np.argmin(np.abs(vec-num))
-
 
 # -------------------------------------------------------------------------
 # Command line
@@ -65,34 +36,41 @@ def closest(vec, num):
 
 import argparse
 
-ofile   = None
-izip    = False
-parser  = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
+latlon = None
+ofile  = None
+izip   = False
+parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
                                   description=('''Sets the land variable to 1 at given latitude/longitude points, otherwise 0.'''))
+parser.add_argument('-l', '--latlon', action='store',
+                    default=latlon, dest='latlon', metavar='lat,lon',
+                        help='latitude,longitude of grid point to mask/extract, or file with several latitude,longitude coordinates.')
 parser.add_argument('-o', '--outfile', action='store',
                     default=ofile, dest='ofile', metavar='output_netcdf',
                         help='output netcdf file name (default: input-masked.nc).')
 parser.add_argument('-z', '--zip', action='store_true', default=izip, dest='izip',
                     help='Use netCDF4 variable compression (default: same format as input file).')
-parser.add_argument('ifiles', nargs='*', default=None, metavar='latlon input_netcdf',
-                   help='lat,lon string or latlon input file & input netcdf file.')
+parser.add_argument('ifile', nargs='?', default=None, metavar='input_netcdf',
+                   help='input netcdf file.')
 args   = parser.parse_args()
+latlon = args.latlon
 ofile  = args.ofile
 izip   = args.izip
-ifiles = args.ifiles
+ifile  = args.ifile
 del parser, args
 
-if len(ifiles) < 2:
-    raise IOError('lat,lon string or latlon file, and input file must be given.')
-latlon = ifiles[0]
-ifile  = ifiles[1]
+if latlon is None:
+    raise IOError('latitude,longitude or file with latitudes,longitudes must be given with -l flag.')
+
+if ifile is None:
+    raise IOError('Netcdf input file must be given.')
 
 import numpy as np
 import netCDF4 as nc
 import os
 import sys
+import cablepop as cp
 import time as ptime
-tstart = ptime.time()
+# tstart = ptime.time()
 
 # -------------------------------------------------------------------------
 # Get lat/lon indices
@@ -117,17 +95,20 @@ nlatlon = lats.size
 #
 
 if ofile is None: # Default output filename
-    sifile = ifile.split('.')
-    sifile[-2] = sifile[-2]+'-masked'
-    ofile = '.'.join(sifile)
+    ofile = cp.set_output_filename(ifile, '-masked')
 fi = nc.Dataset(ifile, 'r')
+if 'land' not in fi.variables:
+    fi.close()
+    print('Land variable must be in input file: '+ifile)
+    import sys
+    sys.exit()
 if izip:
     fo = nc.Dataset(ofile, 'w', format='NETCDF4')
 else:
-    # try:
-    fo = nc.Dataset(ofile, 'w', format=fi.file_format)
-    # except:
-    #     fo = nc.Dataset(ofile, 'w', format='NETCDF4')
+    if 'file_format' in dir(fi):
+        fo = nc.Dataset(ofile, 'w', format=fi.file_format)
+    else:
+        fo = nc.Dataset(ofile, 'w', format='NETCDF3_64BIT_OFFSET')
 
 # lat/lon indices
 if 'latitude' in fi.dimensions.keys():
@@ -143,43 +124,25 @@ ilons = fi.variables[lonname][:]
 iilats = []
 iilons = []
 for ii in range(nlatlon):
-    iilats.append(closest(ilats, lats[ii]))
-    iilons.append(closest(ilons, lons[ii]))
+    iilats.append(cp.closest(ilats, lats[ii]))
+    iilons.append(cp.closest(ilons, lons[ii]))
 
-# Copy global attributes
-for k in fi.ncattrs():
-    iattr = fi.getncattr(k)
-    if (k == 'history'):
-        iattr = iattr + '\n' + ptime.asctime() + ': ' + ' '.join(sys.argv)
-    fo.setncattr(k, iattr)
-    
+# Copy global attributes, adding script
+cp.set_global_attributes(fi, fo, add={'history':ptime.asctime()+': '+' '.join(sys.argv)})
+
 # Copy dimensions
-for d in fi.dimensions.values():
-    fo.createDimension(d.name, None if d.isunlimited() else len(d))
-    
-# Create output variables
-# patchfrac = fi.variables['patchfrac']
-# create static variables (non-time dependent)
-for ivar in fi.variables.values():
-    if 'time' not in ivar.dimensions:
-        invardef = getVariableDefinition(ivar)
-        if izip: invardef.update({'zlib':True})
-        ovar = fo.createVariable(invardef.pop("name"), invardef.pop("dtype"), **invardef)
-        for k in ivar.ncattrs():
-            iattr = ivar.getncattr(k)
-            if (k != 'missing_value') and (k != '_FillValue'):
-                ovar.setncattr(k, iattr)
+cp.create_dimensions(fi, fo)
+
+# create static variables (independent of time)
+cp.create_variables(fi, fo, time=False, izip=izip, renamedim={'x':'lon', 'y':'lat'})
+
 # create dynamic variables (time dependent)
-for ivar in fi.variables.values():
-    if 'time' in ivar.dimensions:
-        invardef = getVariableDefinition(ivar)
-        if izip: invardef.update({'zlib':True})
-        ovar = fo.createVariable(invardef.pop("name"), invardef.pop("dtype"), **invardef)
-        for k in ivar.ncattrs():
-            iattr = ivar.getncattr(k)
-            if (k != 'missing_value') and (k != '_FillValue'):
-                ovar.setncattr(k, iattr)
+cp.create_variables(fi, fo, time=True, izip=izip, renamedim={'x':'lon', 'y':'lat'})
+
+#
 # Copy variables from in to out
+#
+
 # copy static variables
 for ivar in fi.variables.values():
     if 'time' not in ivar.dimensions:
@@ -189,6 +152,7 @@ for ivar in fi.variables.values():
             ovar[iilats,iilons] = 1
         else:
             ovar[:] = ivar[:]
+
 # copy dynamic variables
 if 'time' in fi.dimensions:
     ntime = fi.dimensions['time'].size
@@ -206,5 +170,5 @@ fo.close()
 # -------------------------------------------------------------------------
 # Finish
 
-tstop = ptime.time()
-print('Finished in [s]: {:.2f}'.format(tstop-tstart))
+# tstop = ptime.time()
+# print('Finished in [s]: {:.2f}'.format(tstop-tstart))

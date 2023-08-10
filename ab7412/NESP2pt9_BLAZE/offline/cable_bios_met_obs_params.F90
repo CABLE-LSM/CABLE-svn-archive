@@ -835,6 +835,7 @@ CONTAINS
   !  lon_all = UNPACK(longitude,mask=LandMaskLogical,field=-9999.)
  
   FORALL (icol=1:MaskCols) lon_all(icol,:) = MaskCtrW + (real(icol-1) * MaskRes)
+ 
   FORALL (irow=1:MaskRows) lat_all(:,irow) = (real(MaskRows - irow) * MaskRes) + MaskCtrS
 
  
@@ -847,6 +848,8 @@ CONTAINS
   !lat_all = UNPACK(latitude,mask=LandMaskLogical,field=-9999.)
   !lon_all = UNPACK(longitude,mask=LandMaskLogical,field=-9999.)
 
+  
+
   !Finished reading grids. Only mland vectors from now on.
   DEALLOCATE (ColRowGrid)
   DEALLOCATE (LandMaskLogical)
@@ -857,7 +860,7 @@ CONTAINS
 ! already-open met files.
   IF (call1) then
       
-    CALL open_bios_met
+    CALL open_bios_met()
     ALLOCATE (   rain_day(mland))
     ALLOCATE ( swdown_day(mland))
     ALLOCATE (tairmax_day(mland))
@@ -871,7 +874,7 @@ CONTAINS
     ALLOCATE (next_vp0900(mland))
 
 ! Whether start and end dates are user specified or not, we need to know 
-! what the date range in the met files is, so dummy-read the rainfall.
+! what the date range in the met files is, so dummy-read the rainfall.r
     READ (rain_unit,IOSTAT=error_status) bios_startdate, rain_day
     DO WHILE (error_status > 0)
        READ (rain_unit,IOSTAT=error_status) bios_enddate, rain_day
@@ -1117,15 +1120,15 @@ write(6,*) 'MetDate, bios_startdate=',MetDate, bios_startdate
 
 !******************************************************************************
   
-  SUBROUTINE cable_bios_read_met(MET, CurYear, ktau, kend, islast, dels )
+  SUBROUTINE cable_bios_read_met(MET, CurYear, ktau, dels )
   
     ! Read a single day of meteorology from all bios met files, updating the bios_rundate
     ! If a change of year has occurred, read an annual CO2 record
+    use mo_utils, only: eq
     
     IMPLICIT NONE
 
-    INTEGER, INTENT(IN)  :: CurYear, ktau, kend
-    LOGICAL, INTENT(IN)  :: islast
+    INTEGER, INTENT(IN)  :: CurYear, ktau
     REAL, INTENT(IN) :: dels                        ! time step size in seconds
     TYPE(MET_TYPE), INTENT(INOUT)       :: MET
 
@@ -1142,7 +1145,7 @@ write(6,*) 'MetDate, bios_startdate=',MetDate, bios_startdate
     met%doy (landpt(:)%cstart) = INT(REAL(ktau-1) * dels / SecDay ) + 1
     met%year(landpt(:)%cstart) = Curyear  
 
-    newday = ( met%hod(landpt(1)%cstart) .EQ. 0.0 )
+    newday = eq(met%hod(landpt(1)%cstart), 0.0)
     IF ( newday ) THEN
        ! get current day's met
        READ (rain_unit) bios_rundate, rain_day          ! Packed vector of daily AWAP/BIOS rain (mm) 
@@ -1789,9 +1792,8 @@ ALLOCATE (vegtypeigbp(mland),  avgannmax_fapar(mland))
 
 CALL GET_UNIT(param_unit)  ! Obtain an unused unit number for file reading, reused for all soil vars.
 
-OPEN (param_unit, FILE=TRIM(param_path)//TRIM(vegtypeigbp_file), ACCESS='STREAM', &
+OPEN(param_unit, FILE=TRIM(param_path)//TRIM(vegtypeigbp_file), ACCESS='STREAM', &
      FORM='UNFORMATTED', STATUS='OLD',IOSTAT=error_status)
-print*, TRIM(param_path)//TRIM(vegtypeigbp_file)
 IF (error_status > 0) THEN
   WRITE (*,*) "STOP - File not found: ", TRIM(param_path)//TRIM(vegtypeigbp_file) ; STOP ''
 ELSE
