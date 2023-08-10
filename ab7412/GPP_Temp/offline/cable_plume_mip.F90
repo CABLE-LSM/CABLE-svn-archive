@@ -212,14 +212,14 @@ CONTAINS
     ! check for valid CO2
 
     SELECT CASE (TRIM(PLUME%CO2))
-    CASE ("static1850","static1990","static2085","varying") ; CONTINUE
+    CASE ("static1850","static1990","static2005","static2085","varying") ; CONTINUE
     CASE default
        WRITE(*   ,*)"Wrong PLUME%CO2: ",PLUME%CO2
        WRITE(*   ,*)"Please choose any of"
-       WRITE(*   ,*)" static1850, static1990, static2085, varying"
+       WRITE(*   ,*)" static1850, static1990, static2005, static2085, varying"
        WRITE(logn,*)"Wrong PLUME%CO2: ",PLUME%CO2
        WRITE(logn,*)"Please choose any of"
-       WRITE(logn,*)" static1850, static1990, static2085, varying"
+       WRITE(logn,*)" static1850, static1990, static2005, static2085, varying"
        ERR = .TRUE.
     END SELECT
 
@@ -636,6 +636,9 @@ CONTAINS
     ELSE IF ( TRIM(PLUME%CO2) .EQ. "static1990" ) THEN
        ! fixed 1990 value
        CO2air = 353.85501
+    ELSE IF ( TRIM(PLUME%CO2) .EQ. "static2005") THEN
+       ! fixed 2005 value
+       CO2air = 378.80000
     ELSE IF ( TRIM(PLUME%CO2) .EQ. "static2085" ) THEN
        ! fixed 2085 value
        STOP " static 2085 not yet implemented! cable_plume_mip.F90"
