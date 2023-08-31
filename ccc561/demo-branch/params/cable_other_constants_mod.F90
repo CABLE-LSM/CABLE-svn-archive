@@ -45,7 +45,7 @@ REAL, PARAMETER ::                                                             &
   init_snow_rho1l = 140.0      ! Initial value for snow mean density
 
 ! minimum (cosine)zenith angle of sun signalling sunrise
-REAL, PARAMETER :: coszen_tols = 1.0e-2
+REAL, PARAMETER :: coszen_tols = 1.0e-1
 
 REAL, PARAMETER :: z0surf_min = 1.0e-7 ! min. roughness of bare soil surface
 !H!REAL, PARAMETER :: z0snow_min = 1.e-7 ! min. roughness of bare snow surface
