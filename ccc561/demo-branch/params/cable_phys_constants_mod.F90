@@ -25,7 +25,7 @@ REAL, PARAMETER :: tfrz   = 273.16        ! Temp (K) corresp. to 0 C
 REAL, PARAMETER :: sboltz = 5.67e-7       ! Stefan-Boltz. const (W/m2/K4)
 REAL, PARAMETER :: emsoil = 1.0           ! soil emissivity
 REAL, PARAMETER :: emleaf = 1.0           ! leaf emissivity
-REAL, PARAMETER :: capp   = 1004.64    ! air spec. heat (J/kg/K)
+REAL, PARAMETER :: capp   = 900    ! air spec. heat (J/kg/K)
 REAL, PARAMETER :: hl = 2.5014e6       ! latent heat of vaporization (J/s/m2)
 !Below are constants used in CABLE model which are not as yet used in JAC-6.2
 REAL, PARAMETER :: hlf = 0.334e6          ! latent heat of fusion
